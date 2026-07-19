@@ -6,8 +6,23 @@
 > `three.min.js` committed, self-reloading back button removed). The fix pass also uncovered and
 > fixed one bug this review originally missed: entering the firmament view set `scene.fog=null`
 > while `skyTick` dereferenced `scene.fog.color` every frame — the whole render loop crashed and
-> the screen froze in that view. §5–§7 (rivers, winds, encounters, interiors) remain open as the
-> feature roadmap.
+> the screen froze in that view.
+>
+> **Roadmap update:** the P1/P2 features from §5–§8 are now implemented and verified live:
+> directional wind bands with sail trim (run/beam/beat) and a HUD wind readout; 18 navigable
+> rivers carved from `world/rivers.js` (Nile, Amazon, Mississippi, Danube…); wandering storm
+> cells that darken the sky, close the fog and slow the ship, drawn on the maps; a ship's log
+> (L) tracking lands visited /176 and distance sailed, with a first-landing discovery toast per
+> country; tap-to-fast-travel from the firmament to any visited land; hollow houses with plank
+> floors, real doorways, beds, tables and chairs, wall collision (doorways pass), and interior
+> hearth-lights; tree-trunk collision; hip/shoulder limb pivots and pixel-textured robes;
+> course speed now moves the ship as well as the sun; procedural sea/wind ambience with a mute
+> button; two-finger pinch zoom on touch. The project was also restructured: one editable file
+> per country under `countries/` (optional per-country `verse` and village `site` fields —
+> see `countries/README.md`), rivers and the verse pool under `world/`, the engine in
+> `js/engine.js`, and `index.html` as the shell that loads them in fixed order.
+> Still open from the review: small-island data upgrade (50m coastlines), ocean encounters
+> (passing ships, wrecks), and villager day/night schedules.
 
 *Reviewed on branch `claude/sandbox-world-review-l396hy`. The game was run end-to-end in a headless
 browser as part of this review: title screen → set sail → sail → go ashore → village at night →
