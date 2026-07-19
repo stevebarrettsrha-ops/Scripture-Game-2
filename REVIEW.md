@@ -1,5 +1,14 @@
 # THE VOYAGE — Full World-Sandbox Review
 
+> **Status update:** every bug in §3 has since been fixed on this branch and re-verified in a
+> headless browser (correct coastal names, wooden ship, cliff walls, working localStorage saves
+> with walk-mode resume, reverse collision, sea mipmaps, firmament crash + z-fighting, offline
+> `three.min.js` committed, self-reloading back button removed). The fix pass also uncovered and
+> fixed one bug this review originally missed: entering the firmament view set `scene.fog=null`
+> while `skyTick` dereferenced `scene.fog.color` every frame — the whole render loop crashed and
+> the screen froze in that view. §5–§7 (rivers, winds, encounters, interiors) remain open as the
+> feature roadmap.
+
 *Reviewed on branch `claude/sandbox-world-review-l396hy`. The game was run end-to-end in a headless
 browser as part of this review: title screen → set sail → sail → go ashore → village at night →
 world map. Everything below marked **confirmed** was observed live, not just read from the code.*

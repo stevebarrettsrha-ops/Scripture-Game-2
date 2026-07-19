@@ -30,7 +30,6 @@
   #hint{ left:50%; bottom:1.6vh; transform:translateX(-50%); font-size:clamp(9px,1.4vmin,12px);
     letter-spacing:.16em; color:#6a6252; white-space:nowrap; }
   #ui{ position:fixed; z-index:6; right:2vw; bottom:6vh; display:flex; flex-direction:column; gap:.9vh; }
-  #back{ position:fixed; z-index:6; left:2vw; top:2vh; }
   .btn{ pointer-events:auto; background:rgba(14,18,32,.82); color:var(--ink);
     border:1px solid rgba(232,198,106,.45); border-radius:4px; padding:1vh 1.5vh;
     font-family:inherit; font-size:clamp(10px,1.55vmin,13px); letter-spacing:.13em;
@@ -78,7 +77,6 @@
 <div class="hud" id="verse"><div class="vt" id="verse-t"></div><div class="vr" id="verse-r"></div></div>
 <div class="hud" id="hint">W A S D — helm and sail &nbsp;·&nbsp; drag — look about &nbsp;·&nbsp; scroll — draw near &nbsp;·&nbsp; E — go ashore / board &nbsp;·&nbsp; M — the map &nbsp;·&nbsp; scroll far out — the firmament above</div>
 
-<button class="btn" id="back">⟵ Berĕshith</button>
 <canvas id="mini" width="280" height="280"></canvas>
 <div id="joy"><div id="joyk"></div></div>
 
@@ -270,6 +268,8 @@ blockMat('glass',TEX.glass,{transparent:true,depthWrite:false});
 blockMat('door',TEX.door,{alphaTest:0.1});
 blockMat('waterB',TEX.water);
 const seaTex=TEX.water.clone(); seaTex.needsUpdate=true; seaTex.repeat.set(R_WORLD/12,R_WORLD/12);
+/* the open sea repeats ~10,000× — without mipmaps it aliases into shimmer */
+seaTex.generateMipmaps=true; seaTex.minFilter=THREE.LinearMipmapLinearFilter;
 const seaMat=new THREE.MeshBasicMaterial({map:seaTex,transparent:true,opacity:0.82,side:THREE.DoubleSide});
 LIT.push(seaMat);
 const torchMat=new THREE.MeshBasicMaterial({color:0xffd75e});           // full-bright, never dimmed
@@ -277,27 +277,52 @@ function setBlockLight(r,g2,b2){ for(const m of LIT) m.color.setRGB(r,g2,b2); }
 
 /* ================= TERRAIN (heightmap voxels) ================= */
 const MAPR=2048, HALF=MAPR/2;
-const mapCv=D.createElement('canvas'); mapCv.width=mapCv.height=MAPR;
-const mctx=mapCv.getContext('2d',{willReadFrequently:true});
-mctx.fillStyle='rgb(0,0,0)'; mctx.fillRect(0,0,MAPR,MAPR);
-for(let i=0;i<COUNTRIES.length;i++){
-  const co=COUNTRIES[i]; mctx.fillStyle='rgb('+(i+1)+',0,0)';
-  mctx.beginPath();
-  for(const ring of co.p){
-    mctx.moveTo((ring[0][0]+1)*HALF,(ring[0][1]+1)*HALF);
-    for(let k=1;k<ring.length;k++) mctx.lineTo((ring[k][0]+1)*HALF,(ring[k][1]+1)*HALF);
-    mctx.closePath();
+/* Country ID map. Canvas polygon fills are anti-aliased, so every coastline
+   pixel becomes a blend that decodes to the wrong country (a beach of Israel,
+   id 77, at 34% coverage reads as 26 = South Africa). So the ID map is NOT
+   drawn with canvas at all: each country is rasterised with an exact even-odd
+   scanline fill — every pixel holds a true country id or 0, never a blend.
+   Sample points sit at integer canvas coords to match countryAtUV's rounding. */
+const IDMAP=(()=>{
+  const id=new Uint8Array(MAPR*MAPR);
+  for(let i=0;i<COUNTRIES.length;i++){
+    const edges=[]; let minY=Infinity, maxY=-Infinity;
+    for(const ring of COUNTRIES[i].p){
+      for(let k=0;k<ring.length;k++){
+        const a=ring[k], b=ring[(k+1)%ring.length];
+        const ay=(a[1]+1)*HALF, by=(b[1]+1)*HALF;
+        if(ay===by) continue;
+        edges.push([(a[0]+1)*HALF,ay,(b[0]+1)*HALF,by]);
+        if(ay<minY)minY=ay; if(by<minY)minY=by;
+        if(ay>maxY)maxY=ay; if(by>maxY)maxY=by;
+      }
+    }
+    const y0=Math.max(0,Math.ceil(minY)), y1=Math.min(MAPR-1,Math.floor(maxY));
+    const xs=[];
+    for(let py=y0;py<=y1;py++){
+      xs.length=0;
+      for(const e of edges){
+        const [ax,ay,bx,by]=e;
+        if((ay<=py&&by>py)||(by<=py&&ay>py)) xs.push(ax+(py-ay)/(by-ay)*(bx-ax));
+      }
+      xs.sort((p,q)=>p-q);
+      for(let k=0;k+1<xs.length;k+=2){
+        const xa=Math.max(0,Math.ceil(xs[k])), xb=Math.min(MAPR-1,Math.floor(xs[k+1]));
+        for(let px=xa;px<=xb;px++) id[py*MAPR+px]=i+1;
+      }
+    }
   }
-  mctx.fill('evenodd');
-}
-const MAPDATA=mctx.getImageData(0,0,MAPR,MAPR).data;
+  return id;
+})();
 function countryAtUV(u,v){
   const px=Math.round((u+1)*HALF), py=Math.round((v+1)*HALF);
   if(px<0||py<0||px>=MAPR||py>=MAPR) return 0;
-  return MAPDATA[(py*MAPR+px)*4];
+  return IDMAP[py*MAPR+px];
 }
 
-const COL={};
+/* Each call returns a FRESH object. (A shared scratch object here once meant
+   that querying a neighbour clobbered the current cell mid-mesh: cliff side
+   faces were skipped and trees were placed with the neighbour's height.) */
 function cellRaw(ix,iz){
   const x=(ix+.5)*B, z=(iz+.5)*B, u=x/R_WORLD, v=z/R_WORLD;
   const r=Math.hypot(u,v);
@@ -305,8 +330,8 @@ function cellRaw(ix,iz){
   const lat=90-r*180;
   const n=fbm(ix*.11,iz*.11), n2=fbm(ix*.023+40,iz*.023-70), j=hash2(ix,iz);
   if(r>=ICE_UV){ const t=(r-ICE_UV)/(0.995-ICE_UV);
-    COL.h=5+Math.floor(t*16+n*5); COL.kind='wall'; COL.tree=0; COL.ci=0; return COL; }
-  if(r>=SHELF_UV){ if(n>0.62){ COL.h=1; COL.kind='floe'; COL.tree=0; COL.ci=0; return COL; } return null; }
+    return {h:5+Math.floor(t*16+n*5), kind:'wall', tree:0, ci:0}; }
+  if(r>=SHELF_UV){ if(n>0.62){ return {h:1, kind:'floe', tree:0, ci:0}; } return null; }
   /* domain-warp the coast: sub-pixel fractal detail where the vector data runs out */
   const du2=(fbm(u*760+13.7,v*760-4.2)-0.5)*(2.6/HALF);
   const dv2=(fbm(u*760-8.1,v*760+9.3)-0.5)*(2.6/HALF);
@@ -330,7 +355,7 @@ function cellRaw(ix,iz){
   else if(tropic){ kind='tropic'; tree=j<0.085?2:0; }
   else { kind='grass'; tree=j<0.06?1:0; }
   if(kind!=='sand'&&h>=7&&!snow){ kind='rock'; tree=0; }
-  COL.h=h; COL.kind=kind; COL.tree=tree; COL.ci=ci; return COL;
+  return {h, kind, tree, ci};
 }
 /* villages flatten the ground around them (computed at boot) */
 let SITES=[], siteGrid=new Map();
@@ -587,7 +612,8 @@ function skyTick(px,pz){
   const dUV=Math.hypot(pu-su,pv-sv);
   const dayF=Math.max(0,Math.min(1,(0.66-dUV)/0.3));
   const sky=mix3(0x0a1024,0xe58a4a,0x9fc5e8,dayF).getHex();
-  scene.background.setHex(sky); scene.fog.color.setHex(sky);
+  scene.background.setHex(sky);
+  if(scene.fog) scene.fog.color.setHex(sky); /* fog is detached in the firmament view */
   const l=mix3(0x38405e,0xd9a878,0xffffff,dayF);
   setBlockLight(l.r,l.g,l.b);
   hemi.intensity=0.35+dayF*0.6; dirL.intensity=0.15+dayF*0.45;
@@ -604,9 +630,17 @@ function skyTick(px,pz){
 }
 
 /* ================= THE SHIP (plank-built) ================= */
+/* Entity boxes need their own materials: the shared chunk materials have
+   vertexColors on, and BoxGeometry carries no colour attribute — the GPU
+   multiplies by black and the whole ship renders as a silhouette. */
+const ENTMAT={};
+function entMat(name){ let m=ENTMAT[name];
+  if(!m){ m=new THREE.MeshBasicMaterial({map:MAT[name].map, side:THREE.DoubleSide});
+    ENTMAT[name]=m; LIT.push(m); }
+  return m; }
 function texBox(w,h,d, matSide, matTop, matBot){
   const g=new THREE.BoxGeometry(w,h,d);
-  const ms=MAT[matSide], mt=MAT[matTop||matSide], mb=MAT[matBot||matSide];
+  const ms=entMat(matSide), mt=entMat(matTop||matSide), mb=entMat(matBot||matSide);
   return new THREE.Mesh(g,[ms,ms,mt,mb,ms,ms]);
 }
 const boatG=new THREE.Group();
@@ -1090,7 +1124,9 @@ function boatTick(dt){
   const target=f*40*(state.wind?3:1); bt.speed+=(target-bt.speed)*Math.min(1,dt*1.2);
   if(Math.abs(bt.speed)>0.4) bt.heading+=t*dt*(0.85+Math.min(1,Math.abs(bt.speed)/22)*0.6);
   const nx=bt.x+Math.sin(bt.heading)*bt.speed*dt, nz=bt.z+Math.cos(bt.heading)*bt.speed*dt;
-  const bowX=nx+Math.sin(bt.heading)*16, bowZ=nz+Math.cos(bt.heading)*16;
+  /* probe ahead of the motion: the bow when sailing, the stern when reversing */
+  const sgn=bt.speed>=0?1:-1;
+  const bowX=nx+Math.sin(bt.heading)*16*sgn, bowZ=nz+Math.cos(bt.heading)*16*sgn;
   if(!blockedForBoat(bowX,bowZ)&&!blockedForBoat(nx,nz)){ bt.x=nx; bt.z=nz; }
   else bt.speed*=-0.15;
   const tnow=performance.now()*0.001;
@@ -1170,7 +1206,9 @@ function buildFirmament(){
   const tex=new THREE.CanvasTexture(c); tex.anisotropy=4;
   const disc=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD,128),
     new THREE.MeshBasicMaterial({map:tex,fog:false}));
-  disc.rotation.x=-Math.PI/2; disc.position.y=2;
+  /* sit well above the sea and terrain: at a 384k-unit far plane the depth
+     buffer cannot separate y=2 from the sea at y≈0.35 and the disc flickers */
+  disc.rotation.x=-Math.PI/2; disc.position.y=180;
   const dome=new THREE.Mesh(new THREE.SphereGeometry(R_WORLD*1.08,48,24,0,Math.PI*2,0,Math.PI/2),
     new THREE.MeshBasicMaterial({color:0x8fb8e8,transparent:true,opacity:0.1,side:THREE.DoubleSide,fog:false,depthWrite:false}));
   firmG=new THREE.Group(); firmG.add(disc); firmG.add(dome);
@@ -1185,10 +1223,12 @@ function buildFirmament(){
 }
 function enterFirm(){ buildFirmament(); state.firm=true; firmG.visible=true;
   scene.fog=null; state.firmDist=R_WORLD*1.05; state.camPitch=1.05;
+  sea.visible=false; seaDeep.visible=false;
   clouds.scale.set(26,26,1); clouds.position.set(0,R_WORLD*0.03,0);
   $('b-firm').textContent='\u26F5 Return to the ship'; }
 function exitFirm(){ state.firm=false; if(firmG) firmG.visible=false;
   scene.fog=FOG; state.camPitch=0.42; state.camDist=200;
+  sea.visible=true; seaDeep.visible=true;
   clouds.scale.set(1,1,1); clouds.position.y=238;
   $('b-firm').textContent='\uD83D\udd4A The firmament'; }
 
@@ -1284,11 +1324,23 @@ function sizeBig(){ const bc=$('bigcv'); const s=Math.floor(Math.min(innerWidth,
   bc.width=bc.height=s; drawMapInto(bc.getContext('2d'),s,true); }
 $('bigmap').addEventListener('click',toggleMap);
 
-/* ================= PERSISTENCE ================= */
-async function saveState(){ try{ if(window.storage) await window.storage.set('voyage:state',
-  JSON.stringify({v:2,x:state.boat.x,z:state.boat.z,h:state.boat.heading,t:state.simHours})); }catch(e){} }
-async function loadSaved(){ try{ if(window.storage){ const r=await window.storage.get('voyage:state');
-  if(r&&r.value){ const o=JSON.parse(r.value); if(o&&o.v===2) return o; } } }catch(e){} return null; }
+/* ================= PERSISTENCE =================
+   localStorage first (works everywhere, incl. GitHub Pages); the sandboxed
+   window.storage API is kept as a secondary channel where it exists. */
+const SAVE_KEY='voyage:state';
+async function saveState(){
+  const payload=JSON.stringify({v:3,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
+    t:state.simHours,m:state.mode,wx:state.walk.x,wz:state.walk.z,wh:state.walk.heading});
+  try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
+  try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
+}
+async function loadSaved(){
+  let raw=null;
+  try{ if(window.storage){ const r=await window.storage.get(SAVE_KEY); if(r&&r.value) raw=r.value; } }catch(e){}
+  if(!raw){ try{ raw=localStorage.getItem(SAVE_KEY); }catch(e){} }
+  try{ const o=JSON.parse(raw); if(o&&(o.v===2||o.v===3)) return o; }catch(e){}
+  return null;
+}
 
 /* ================= BUTTONS ================= */
 $('b-time').onclick=()=>{ state.paused=!state.paused;
@@ -1305,7 +1357,6 @@ $('b-wind').onclick=()=>{ state.wind=!state.wind;
   $('b-wind').textContent='\uD83C\udf2C Trade winds: '+(state.wind?'on':'off');
   $('b-wind').classList.toggle('off',!state.wind); };
 $('b-firm').onclick=()=>{ state.firm?exitFirm():enterFirm(); };
-$('back').onclick=()=>{ location.href='index.html'; };
 
 /* ================= LAUNCH ================= */
 function findStart(){
@@ -1320,9 +1371,12 @@ let running=false, saveT=0;
 async function begin(fresh){
   computeSites(); buildYahru();
   const saved=fresh?null:await loadSaved();
-  if(saved){ state.boat.x=saved.x; state.boat.z=saved.z; state.boat.heading=saved.h; state.simHours=saved.t; }
+  if(saved){ state.boat.x=saved.x; state.boat.z=saved.z; state.boat.heading=saved.h; state.simHours=saved.t;
+    if(saved.v===3&&saved.m==='walk'){ state.walk.x=saved.wx; state.walk.z=saved.wz;
+      state.walk.heading=saved.wh; state.mode='walk'; walkerG.visible=true; } }
   else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5; }
-  updateChunks(state.boat.x,state.boat.z,9999);
+  const p0=state.mode==='walk'?state.walk:state.boat;
+  updateChunks(p0.x,p0.z,9999);
   $('title-card').style.display='none'; running=true;
   updateAshoreBtn();
   toast('And Aluahim said, \u201cLet the waters under the shamayim be gathered together into one place, and let the dry land appear.\u201d And it came to be so.','BER\u0114SHITH 1:9');
