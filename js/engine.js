@@ -648,82 +648,176 @@ function texBox(w,h,d, matSide, matTop, matBot){
    bowsprit over the bow. Local +z is FORWARD (the bow); the quarterdeck and
    helm sit aft at -z, in view of the following camera. The deck is a real
    place — the traveller stands at the wheel to sail, and can walk the planks. */
-const DECK_Y=6.2, QDECK_Y=11, QDECK_Z=-17.6, HELM={x:0,z:-22.6}, WHEEL_Z=-20.4;
+const DECK_Y=6.2, QDECK_Y=11, FDECK_Y=8.8, FDECK_Z=17.5, QDECK_Z=-17.6, HELM={x:0,z:-22.6}, WHEEL_Z=-20.4;
 const boatG=new THREE.Group();
 { const add=(m,x,y,z)=>{ m.position.set(x,y,z); boatG.add(m); return m; };
-  /* hull, bow taper, bowsprit */
-  add(texBox(14,6.4,52,'planks','planks'),0,3.0,-2);          // main hull, deck top at 6.2
-  add(texBox(10,5.2,10,'planks','planks'),0,2.6,27);
-  add(texBox(5,4.2,7,'planks','planks'),0,2.1,34);
-  add(texBox(1.3,1.3,15,'logSide','logTop'),0,6.6,38);        // bowsprit
-  /* bulwarks along the waist, with a gangway gap amidships */
+  /* ---- hull with rising sheer: waist, stepped prow, stern run ---- */
+  add(texBox(14,6.4,52,'planks','planks'),0,3.0,-2);           // waist, deck top 6.2
+  add(texBox(13,2.2,8,'planks','planks'),0,1.1,30);
+  add(texBox(10,4.4,8,'planks','planks'),0,3.4,30);
+  add(texBox(7,5.6,6,'planks','planks'),0,4.6,36);
+  add(texBox(13,2.2,6,'planks','planks'),0,1.1,-31);
+  add(texBox(12,7.2,6,'planks','planks'),0,4.4,-30);
+  /* forecastle with its rail and steps */
+  add(texBox(12,2.6,9,'planks','planks'),0,7.5,21.5);          // deck top 8.8
+  add(texBox(10,1.6,1,'logSide','logTop'),0,9.6,25.6);
+  add(texBox(1,1.6,8,'logSide','logTop'),5.3,9.6,21.5);
+  add(texBox(1,1.6,8,'logSide','logTop'),-5.3,9.6,21.5);
+  add(texBox(4,1.4,2.2,'planks','planks'),0,6.9,16.6);
+  /* bowsprit, steeved upward in two strides */
+  add(texBox(1.4,1.4,10,'logSide','logTop'),0,8.2,41);
+  add(texBox(1.1,1.1,8,'logSide','logTop'),0,10.0,47);
+  /* bulwarks along the waist with a gangway gap amidships */
   for(const s of [1,-1]){
-    add(texBox(1.0,2.0,17,'planks','planks'),s*6.4,7.2,14.5);
+    add(texBox(1.0,2.0,12,'planks','planks'),s*6.4,7.2,10.5);
     add(texBox(1.0,2.0,18,'planks','planks'),s*6.4,7.2,-8.6);
   }
-  add(texBox(12,2.0,1.0,'planks','planks'),0,7.2,23.4);       // bow rail
-  /* quarterdeck aft, its rails, and the stair down to the waist */
-  add(texBox(14,4.8,10.4,'planks','planks'),0,8.6,-22.8);     // top at 11
+  /* quarterdeck over the great cabin, rails, companion steps */
+  add(texBox(14,4.8,10.4,'planks','planks'),0,8.6,-22.8);      // top at 11
   for(const s of [1,-1]) add(texBox(1.0,1.8,10.4,'logSide','logTop'),s*6.4,11.9,-22.8);
-  add(texBox(14,1.8,1.0,'logSide','logTop'),0,11.9,-27.6);    // taffrail
-  add(texBox(5,1.2,2.4,'planks','planks'),0,6.8,-16.6);       // stair steps
+  add(texBox(14,1.8,1.0,'logSide','logTop'),0,11.9,-27.6);
+  add(texBox(5,1.2,2.4,'planks','planks'),0,6.8,-16.6);
   add(texBox(5,2.4,2.4,'planks','planks'),0,7.4,-18.4);
-  /* the wheel on its pedestal */
+  /* the wheel */
   add(texBox(1.1,2.4,1.1,'logSide','logTop'),0,12.2,WHEEL_Z);
   const wheel=add(texBox(3.6,3.6,0.6,'benchSide','benchTop'),0,14.6,WHEEL_Z-0.2);
   for(const [hx,hy] of [[0,2.1],[0,-2.1],[2.1,0],[-2.1,0]])
     { const hnd=texBox(0.5,0.5,0.9,'logSide'); hnd.position.set(hx,hy,0); wheel.add(hnd); }
-  /* masts, yards and square sails */
+  /* three masts; square sails on fore and main, the mizzen bare-yarded */
   const mkSail=(w,h)=>{ const m=new THREE.MeshBasicMaterial({map:TEX.wool,side:THREE.DoubleSide});
     m.color.setRGB(1,1,1); LIT.push(m);
     return new THREE.Mesh(new THREE.PlaneGeometry(w,h),m); };
-  const mast=(z,hgt)=>{ add(texBox(1.6,hgt,1.6,'logSide','logTop'),0,hgt/2+DECK_Y,z);
-    add(texBox(hgt*0.52,0.9,0.9,'logSide'),0,DECK_Y+hgt*0.62,z);     // lower yard
-    add(texBox(hgt*0.36,0.8,0.8,'logSide'),0,DECK_Y+hgt*0.88,z);     // upper yard
-    add(mkSail(hgt*0.5,hgt*0.26),0,DECK_Y+hgt*0.52,z+0.9);
-    add(mkSail(hgt*0.34,hgt*0.18),0,DECK_Y+hgt*0.82,z+0.9); };
-  mast(9,36);                                                  // foremast
-  mast(-7,42);                                                 // mainmast
-  /* stern-cabin windows */
+  const mast=(z,base,hgt,sails)=>{ add(texBox(1.6,hgt,1.6,'logSide','logTop'),0,base+hgt/2,z);
+    if(sails){
+      add(texBox(hgt*0.52,0.9,0.9,'logSide'),0,base+hgt*0.62,z);
+      add(texBox(hgt*0.36,0.8,0.8,'logSide'),0,base+hgt*0.88,z);
+      add(mkSail(hgt*0.5,hgt*0.26),0,base+hgt*0.52,z+0.9);
+      add(mkSail(hgt*0.34,hgt*0.18),0,base+hgt*0.82,z+0.9);
+    } };
+  mast(14,DECK_Y,34,true);
+  mast(-4,DECK_Y,46,true);
+  mast(-25.5,QDECK_Y,26,false);
+  add(texBox(10,0.8,0.8,'logSide'),0,QDECK_Y+26*0.62,-25.5);
+  /* stern-cabin windows and a pair of stern lanterns */
   { const gm=new THREE.MeshBasicMaterial({map:TEX.glass,transparent:true,depthWrite:false});
     for(const wx of [-3.5,0,3.5]){ const win=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.6),gm);
-      win.position.set(wx,4.6,-28.06); win.rotation.y=Math.PI; boatG.add(win); } }
-  const flag=texBox(4,2,0.3,'hayTop'); flag.position.set(2,DECK_Y+44.5,-7); boatG.add(flag);
+      win.position.set(wx,5.2,-33.06); win.rotation.y=Math.PI; boatG.add(win); } }
+  for(const s of [1,-1]){ const lan=new THREE.Mesh(new THREE.BoxGeometry(1,1.2,1),torchMat);
+    lan.position.set(s*6.2,13.4,-27.4); boatG.add(lan); }
+  const flag=texBox(4,2,0.3,'hayTop'); flag.position.set(2,DECK_Y+48.5,-3); boatG.add(flag);
+  /* ---- the fine work, merged into a handful of draw calls: twin wales,
+          stays and shrouds as stepped rigging, crow's nests, deck stores ---- */
+  const G=newG();
+  for(const s of [1,-1]){
+    emitBox(G, s*7.02-0.25,1.8,-31, s*7.02+0.25,2.6,32, 'logSide','logSide',null);
+    emitBox(G, s*7.02-0.25,4.2,-31, s*7.02+0.25,5.0,30, 'logSide','logSide',null);
+  }
+  const rig=(x0,y0,z0,x1,y1,z1)=>{ const n=Math.max(3,Math.ceil(Math.hypot(x1-x0,y1-y0,z1-z0)/0.8));
+    for(let k=0;k<=n;k++){ const t=k/n, x=x0+(x1-x0)*t, y=y0+(y1-y0)*t, z=z0+(z1-z0)*t;
+      emitBox(G, x-0.17,y-0.17,z-0.17, x+0.17,y+0.17,z+0.17, 'logSide','logTop',null); } };
+  rig(0,10.6,50.5, 0,DECK_Y+34,14.8);                          // forestay down the sprit
+  rig(0,DECK_Y+34,13.2, 0,DECK_Y+46,-3.2);                     // stays between the tops
+  rig(0,DECK_Y+46,-4.8, 0,QDECK_Y+26,-24.9);
+  for(const s of [1,-1]){                                      // shrouds to the rails
+    rig(s*5.8,8.2,17.5, s*1.1,DECK_Y+25,14.3);
+    rig(s*5.8,8.2,3.5,  s*1.1,DECK_Y+34,-3.7);
+    rig(s*5.8,12.8,-27.0, s*1.0,QDECK_Y+19,-25.6);
+  }
+  const nest=(z,y)=>{ emitBox(G,-1.9,y,z-1.9, 1.9,y+0.7,z+1.9,'planks','planks','planks');
+    emitBox(G,-1.9,y+0.7,z-1.9, -1.4,y+2.0,z+1.9,'planks','planks',null);
+    emitBox(G, 1.4,y+0.7,z-1.9,  1.9,y+2.0,z+1.9,'planks','planks',null);
+    emitBox(G,-1.4,y+0.7,z-1.9,  1.4,y+2.0,z-1.4,'planks','planks',null);
+    emitBox(G,-1.4,y+0.7,z+1.4,  1.4,y+2.0,z+1.9,'planks','planks',null); };
+  nest(14,DECK_Y+24.5); nest(-4,DECK_Y+33.5); nest(-25.5,QDECK_Y+18.5);
+  emitBox(G,-2.2,DECK_Y,2.4, 2.2,DECK_Y+0.5,6.8,'benchTop','benchTop',null);   // deck grate
+  for(const [bx,bz] of [[4.8,8],[-4.8,-2],[4.8,-12]])
+    emitBox(G,bx-0.8,DECK_Y,bz-0.8, bx+0.8,DECK_Y+2.0,bz+0.8,'logSide','logTop',null);
+  emitBox(G,-4.9,DECK_Y,13.2, -3.3,DECK_Y+1.6,14.8,'planks','benchTop',null);  // a crate
+  for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
+    bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
+    bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
+    bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
+    bg.setIndex(gg.i); boatG.add(new THREE.Mesh(bg,MAT[mat])); }
   boatG.userData={flag,wheel};
   scene.add(boatG); }
 /* walkable regions of the deck, in ship-local coordinates */
+const DECK_OBS=[[0,14,2.0],[0,-4,2.0],[0,-25.5,1.9],[4.8,8,1.2],[-4.8,-2,1.2],[4.8,-12,1.2],[-4.1,14,1.4]];
 function deckAllowed(lx,lz){
   if(Math.abs(lx)>5.8) return false;
-  if(lz>22.8||lz<-27.0) return false;
-  if(Math.hypot(lx,lz-9)<2.0||Math.hypot(lx,lz+7)<2.0) return false;   // the masts
-  if(lz<QDECK_Z&&Math.hypot(lx,lz-WHEEL_Z)<1.6) return false;          // the wheel
+  if(lz>25.2||lz<-27.0) return false;
+  for(const o of DECK_OBS){ if(Math.hypot(lx-o[0],lz-o[1])<o[2]) return false; }
+  if(lz<QDECK_Z&&Math.hypot(lx,lz-WHEEL_Z)<1.6) return false;
   return true;
 }
-function deckHeightAt(lz){ return lz<QDECK_Z?QDECK_Y:DECK_Y; }
+function deckHeightAt(lz){ return lz<QDECK_Z?QDECK_Y:(lz>FDECK_Z?FDECK_Y:DECK_Y); }
 
 /* ================= THE TRAVELLER (steve-fashion) ================= */
 function lam(col){ return new THREE.MeshLambertMaterial({color:col}); }
 function lbox(w,h,d,col){ return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),lam(col)); }
-const faceTexP=mkTex(g=>{ g.fillStyle='rgb(199,140,95)'; g.fillRect(0,0,16,16);
-  g.fillStyle='rgb(90,58,38)'; g.fillRect(0,0,16,5);
-  g.fillStyle='rgb(255,255,255)'; g.fillRect(3,7,3,2); g.fillRect(10,7,3,2);
-  g.fillStyle='rgb(70,50,140)'; g.fillRect(4,7,2,2); g.fillRect(11,7,2,2);
-  g.fillStyle='rgb(160,105,70)'; g.fillRect(7,9,2,3);
-  g.fillStyle='rgb(120,72,48)'; g.fillRect(6,12,4,1); });
+const SKIN_RGB=[199,140,95], HAIR_RGB=[74,50,30], ROBE_A=[56,66,116], ROBE_D=[46,56,100];
+const faceTexP=mkTex(g=>{ g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,0,16,16);
+  for(let y=0;y<6;y++) for(let x=0;x<16;x++){                 /* hair and its uneven fringe */
+    if(y<4||hash2(x*3.1,y*7.7)>0.45){ const c=jit(HAIR_RGB,26,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } }
+  g.fillStyle='rgb(56,38,22)'; g.fillRect(2,6,5,1); g.fillRect(9,6,5,1);      /* brows */
+  g.fillStyle='rgb(255,255,255)'; g.fillRect(2,8,2,2); g.fillRect(12,8,2,2);  /* wide eyes */
+  g.fillStyle='rgb(62,88,140)';  g.fillRect(4,8,2,2); g.fillRect(10,8,2,2);
+  g.fillStyle='rgb(160,105,70)'; g.fillRect(7,9,2,3);                          /* the nose */
+  g.fillStyle='rgb(120,72,48)'; g.fillRect(5,13,6,1); g.fillRect(4,12,1,1); g.fillRect(11,12,1,1); });
+const hairTopTex=mkTex(g=>speckle(g,HAIR_RGB,24,[60,40,24],0.35));
+const hairSideTex=mkTex(g=>{ g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,0,16,16);
+  for(let y=0;y<16;y++) for(let x=0;x<16;x++){
+    const edge=(x<3)?7:0;
+    if(y<6+edge||hash2(x*5.3,y*3.9)<(y<9?0.35:0)){ const c=jit(HAIR_RGB,24,x*17+y);
+      P(g,x,y,rgb(c[0],c[1],c[2])); } } });
+const hairBackTex=mkTex(g=>{ g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,0,16,16);
+  for(let y=0;y<16;y++) for(let x=0;x<16;x++){
+    if(y<11||hash2(x*4.7,y*5.1)<0.5){ const c=jit(HAIR_RGB,24,x*13+y*3);
+      P(g,x,y,rgb(c[0],c[1],c[2])); } } });
+/* the ancient robe: indigo cloth, folds, gold trim; front carries the neckline */
+const robeSideTexP=mkTex(g=>{ speckle(g,ROBE_A,16,ROBE_D,0.3);
+  g.fillStyle='rgba(0,0,0,0.25)'; for(const x of [2,7,12]) g.fillRect(x,3,1,13);
+  g.fillStyle='rgb(190,158,84)'; g.fillRect(0,9,16,2);
+  g.fillStyle='rgb(150,120,58)'; g.fillRect(7,9,2,2);
+  g.fillStyle='rgba(0,0,0,0.3)'; g.fillRect(0,15,16,1); });
+const robeFrontTexP=mkTex(g=>{ speckle(g,ROBE_A,16,ROBE_D,0.3);
+  g.fillStyle='rgba(0,0,0,0.25)'; for(const x of [3,12]) g.fillRect(x,3,1,13);
+  g.fillStyle=rgb(...SKIN_RGB); g.fillRect(6,0,4,1); g.fillRect(7,1,2,1);     /* neckline */
+  g.fillStyle='rgb(190,158,84)'; g.fillRect(5,0,1,2); g.fillRect(10,0,1,2);   /* collar trim */
+  g.fillStyle='rgb(190,158,84)'; g.fillRect(0,9,16,2);
+  g.fillStyle='rgb(150,120,58)'; g.fillRect(7,9,2,2);                          /* the clasp */
+  g.fillStyle='rgba(0,0,0,0.3)'; g.fillRect(0,15,16,1); });
+const sleeveTexP=mkTex(g=>{ speckle(g,ROBE_A,16,ROBE_D,0.3);
+  g.fillStyle='rgba(0,0,0,0.22)'; g.fillRect(0,4,16,1);
+  g.fillStyle='rgb(190,158,84)'; g.fillRect(0,11,16,1);                        /* cuff trim */
+  g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,12,16,4); });                     /* the hand */
+const legTexP=mkTex(g=>{ speckle(g,[46,52,86],14,[38,44,74],0.3);
+  g.fillStyle='rgba(0,0,0,0.25)'; g.fillRect(0,7,16,1);
+  g.fillStyle='rgb(90,62,38)'; g.fillRect(0,13,16,1);                          /* sandals */
+  g.fillStyle='rgb(122,86,52)'; g.fillRect(0,14,16,2); });
+const robeMatP=new THREE.MeshLambertMaterial({map:robeSideTexP});
+const robeFrontMatP=new THREE.MeshLambertMaterial({map:robeFrontTexP});
+const sleeveMatP=new THREE.MeshLambertMaterial({map:sleeveTexP});
+const legMatP=new THREE.MeshLambertMaterial({map:legTexP});
 const walkerG=new THREE.Group();
-{ const skinC=0xc78c5f;
-  const headMats=[lam(skinC),lam(skinC),lam(0x4a3524),lam(skinC),
-    new THREE.MeshLambertMaterial({map:faceTexP}),lam(skinC)];
+{ const hs=new THREE.MeshLambertMaterial({map:hairSideTex});
+  const headMats=[hs,hs,
+    new THREE.MeshLambertMaterial({map:hairTopTex}),lam(0xc78c5f),
+    new THREE.MeshLambertMaterial({map:faceTexP}),
+    new THREE.MeshLambertMaterial({map:hairBackTex})];
   const head=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),headMats); head.position.y=10.4; walkerG.add(head);
-  const body=lbox(3,4.6,1.7,0x2a8a8a); body.position.y=6.6; walkerG.add(body);
-  /* limbs pivot at the hip and shoulder (geometry shifted so its origin sits
-     at the top) — swinging legs no longer sink into the body or the ground */
-  const legL=lbox(1.35,4.2,1.5,0x3a3a8a); legL.geometry.translate(0,-2.1,0);
-  legL.position.set(0.78,4.3,0); walkerG.add(legL);
-  const legR=legL.clone(); legR.position.x=-0.78; walkerG.add(legR);
-  const armL=lbox(1.2,4.4,1.5,0x2a8a8a); armL.geometry.translate(0,-2.2,0);
-  armL.position.set(2.15,8.7,0); walkerG.add(armL);
-  const armR=armL.clone(); armR.position.x=-2.15; walkerG.add(armR);
+  /* minecraft proportions: body 8×12×4, limbs 4×12×4, at 0.35 scale */
+  const body=new THREE.Mesh(new THREE.BoxGeometry(3,4.6,1.7),
+    [robeMatP,robeMatP,robeMatP,robeMatP,robeFrontMatP,robeMatP]);
+  body.position.y=6.6; walkerG.add(body);
+  const hem=new THREE.Mesh(new THREE.BoxGeometry(3.3,1.0,2.0),robeMatP); hem.position.y=4.1; walkerG.add(hem);
+  const legL=new THREE.Mesh(new THREE.BoxGeometry(1.4,4.2,1.5),legMatP);
+  legL.geometry.translate(0,-2.1,0);
+  legL.position.set(0.74,4.3,0); walkerG.add(legL);
+  const legR=legL.clone(); legR.position.x=-0.74; walkerG.add(legR);
+  const armL=new THREE.Mesh(new THREE.BoxGeometry(1.4,4.4,1.5),sleeveMatP);
+  armL.geometry.translate(0,-2.2,0);
+  armL.position.set(2.25,8.7,0); walkerG.add(armL);
+  const armR=armL.clone(); armR.position.x=-2.25; walkerG.add(armR);
   walkerG.visible=false; scene.add(walkerG);
   walkerG.userData={legL,legR,armL,armR}; }
 
@@ -735,7 +829,9 @@ function villagerFaceTex(seed){
     g.fillStyle='rgb(255,255,255)'; g.fillRect(3,7,3,2); g.fillRect(10,7,3,2);
     g.fillStyle='rgb(46,84,46)'; g.fillRect(4,7,2,2); g.fillRect(11,7,2,2);
     g.fillStyle=rgb(Math.max(0,sk[0]-30),Math.max(0,sk[1]-30),Math.max(0,sk[2]-30));
-    g.fillRect(7,8,2,6); });
+    g.fillRect(7,8,2,6);
+    g.fillStyle=rgb(Math.max(0,sk[0]-60),Math.max(0,sk[1]-60),Math.max(0,sk[2]-60));
+    g.fillRect(6,14,4,1); });
 }
 const ROBES=[0x8a5a3a,0x5f7a8a,0x7a6a3f,0x6a4a7a,0x9a5a3a,0x4f6a4f,0x8a8060];
 /* pixel-textured robes — folds, a girdle, a dark hem — one texture per colour */
@@ -1284,7 +1380,7 @@ function boatTick(dt,helm){
   const nx=bt.x+Math.sin(bt.heading)*bt.speed*dt, nz=bt.z+Math.cos(bt.heading)*bt.speed*dt;
   /* probe ahead of the motion: the bow when sailing, the stern when reversing */
   const sgn=bt.speed>=0?1:-1;
-  const bowX=nx+Math.sin(bt.heading)*38*sgn, bowZ=nz+Math.cos(bt.heading)*38*sgn;
+  const bowX=nx+Math.sin(bt.heading)*44*sgn, bowZ=nz+Math.cos(bt.heading)*44*sgn;
   if(!blockedForBoat(bowX,bowZ)&&!blockedForBoat(nx,nz)){
     state.dist+=Math.hypot(nx-bt.x,nz-bt.z); bt.x=nx; bt.z=nz; }
   else bt.speed*=-0.15;
@@ -1502,11 +1598,11 @@ function exitFirm(){ state.firm=false; if(firmG) firmG.visible=false;
 /* ================= CAMERA ================= */
 const camTgt=new THREE.Vector3(), camPos=new THREE.Vector3(), _wv=new THREE.Vector3();
 function camInsideShip(wx,wy,wz){
-  if(wy>boatG.position.y+46) return false;
+  if(wy>boatG.position.y+56) return false;
   const dx=wx-boatG.position.x, dz=wz-boatG.position.z, h=state.boat.heading;
   const c=Math.cos(h), sn=Math.sin(h);
   const lx=dx*c-dz*sn, lz=dx*sn+dz*c;
-  return Math.abs(lx)<10 && lz>-31 && lz<42;
+  return Math.abs(lx)<10 && lz>-35 && lz<50;
 }
 function cameraTick(dt){
   if(state.firm){ const pit=Math.max(0.3,Math.min(1.5,state.camPitch));
