@@ -21,8 +21,9 @@
 > per country under `countries/` (optional per-country `verse` and village `site` fields —
 > see `countries/README.md`), rivers and the verse pool under `world/`, the engine in
 > `js/engine.js`, and `index.html` as the shell that loads them in fixed order.
-> A further pass brought the black-flag presentation: a full brig (long hull, two masts of
-> square sails, bulwarks, quarterdeck, ship's wheel, bowsprit, stern windows) with the traveller
+> A further pass brought the black-flag presentation: a three-masted galleon (stepped prow, forecastle,
+> crow's nests, stepped rigging, twin wales, quarterdeck, ship's wheel, bowsprit, stern
+> windows and lanterns) with the traveller
 > always embodied — standing at the wheel while sailing, free to walk the deck (E steps between
 > helm, deck and shore by where you stand), with a ship-aware chase camera; coasts now terrace
 > down to walkable sand beaches with palms on the tropical strand, while icy and cliff shores
