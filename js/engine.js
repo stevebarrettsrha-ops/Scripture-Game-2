@@ -1692,6 +1692,7 @@ function updateLabels(px,pz){
 /* ================= CONTROLS ================= */
 const keys={};
 addEventListener('keydown',e=>{ keys[e.code]=true;
+  if(e.code==='Space'){ e.preventDefault(); if(state.mode==='walk') state.walk.jumpReq=true; }
   if(e.code==='KeyE') toggleAshore();
   if(e.code==='KeyF') toggleDoor();
   if(e.code==='KeyM') toggleMap();
@@ -1879,38 +1880,79 @@ function treeBlocked(nx,nz){
   const ix=Math.floor(nx/B), iz=Math.floor(nz/B);
   return Math.hypot(nx-(ix+.5)*B, nz-(iz+.5)*B)<B*0.55;
 }
+/* the walking surface under a point — a pier deck, the land, or the swim line */
+function groundInfo(x,z){
+  const dk=deckMap.get(Math.floor(x/B)+','+Math.floor(z/B));
+  if(dk!==undefined) return {y:dk,land:true};
+  const c=landAtWorld(x,z);
+  if(c) return {y:c.h*B, land:c.kind!=='wall', wall:c.kind==='wall'};
+  return {y:WATER_Y-2.2, land:false, water:true};
+}
+/* is a point within the room of a house (used for the inside-the-home camera) */
+function insideHouse(x,z){
+  for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
+    if(Math.hypot(x-vv.site.x,z-vv.site.z)>420) continue;
+    const T2=B*0.5+0.5;
+    for(const H of vv.houses)
+      if(x>H.x0+T2&&x<H.x1-T2&&z>H.z0+T2&&z<H.z1-T2) return H;
+  }
+  return null;
+}
+const STEP=B*1.2, JUMPH=B*2.3, CLIMBH=B*4.6;   /* step / must-jump / can-climb heights */
 function walkTick(dt){
-  const w=state.walk; const [f,t]=axis();
+  const w=state.walk, u=walkerG.userData; const [f,t]=axis();
+  if(w.feetY===undefined){ w.feetY=groundInfo(w.x,w.z).y; w.vy=0; w.grounded=true; }
+  /* ---- a climb in progress: hang, then pull up over the ledge ---- */
+  if(w.climb){ const cm=w.climb; cm.t+=dt; const p=Math.min(1,cm.t/cm.dur);
+    const e=p<0.5?2*p*p:1-Math.pow(1-p,2);
+    w.x=cm.x0+(cm.x1-cm.x0)*p; w.z=cm.z0+(cm.z1-cm.z0)*p; w.feetY=cm.y0+(cm.y1-cm.y0)*e;
+    walkerG.position.set(w.x,w.feetY,w.z); walkerG.rotation.y=w.heading;
+    const pull=Math.max(0,(p-0.55)/0.45);
+    u.armL.rotation.x=-2.5+pull*2.0; u.armR.rotation.x=u.armL.rotation.x;
+    u.legL.rotation.x=0.4+pull*1.0; u.legR.rotation.x=0.2;
+    if(p>=1){ w.climb=null; w.vy=0; w.grounded=true;
+      u.armL.rotation.x=u.armR.rotation.x=u.legL.rotation.x=u.legR.rotation.x=0; }
+    return;
+  }
   w.heading+=t*dt*2.4;
-  const here=landAtWorld(w.x,w.z);
-  const onDeck0=deckMap.get(Math.floor(w.x/B)+','+Math.floor(w.z/B))!==undefined;
-  const swimming=!here && !onDeck0 && Math.hypot(w.x-state.boat.x,w.z-state.boat.z)>=55;
-  const sp=f*(swimming?11:18);                       /* one wades slower than one walks */
+  const gi=groundInfo(w.x,w.z);
+  const swimming=gi.water && Math.hypot(w.x-state.boat.x,w.z-state.boat.z)>=55;
+  /* ---- vertical physics: gravity, landing, and the jump ---- */
+  if(swimming){ w.feetY=gi.y+Math.sin(performance.now()*0.003)*0.4; w.vy=0; w.grounded=true; }
+  else { w.vy-=64*dt; w.feetY+=w.vy*dt;
+    if(w.feetY<=gi.y){ w.feetY=gi.y; w.vy=0; w.grounded=true; } else w.grounded=false;
+    if((keys.Space||w.jumpReq)&&w.grounded){ w.vy=38; w.grounded=false; } w.jumpReq=false; }
+  /* ---- horizontal move, gated by the height of the ground ahead ---- */
+  const sp=f*(swimming?11:18);
   const nx=w.x+Math.sin(w.heading)*sp*dt, nz=w.z+Math.cos(w.heading)*sp*dt;
-  const cc=landAtWorld(nx,nz);
-  const onDeckNext=deckMap.get(Math.floor(nx/B)+','+Math.floor(nz/B));
+  const tg=groundInfo(nx,nz);
   const nearBoat=Math.hypot(nx-state.boat.x,nz-state.boat.z)<55;
-  /* on land: walls/trees/houses block. Into the sea: you may swim (but not
-     climb a sheer cliff straight out of the water — only wade up low shore). */
-  const stepUpOK=!cc || cc.kind==='wall' ? false : (!here ? cc.h<=3 : true);
-  const canGo = ((cc&&cc.kind!=='wall'&&stepUpOK)||nearBoat||onDeckNext!==undefined
-                 || (!cc && Math.hypot(nx,nz)/R_WORLD<0.985))   /* open water = swim */
-                && !blockedByStructure(nx,nz) && !treeBlocked(nx,nz)
-                && !blockedBySolid(nx,nz) && !blockedByEntity(nx,nz,walkerG);
-  if(canGo){ state.dist+=Math.hypot(nx-w.x,nz-w.z); w.x=nx; w.z=nz; }
-  const dk=deckMap.get(Math.floor(w.x/B)+','+Math.floor(w.z/B));
-  const c2=landAtWorld(w.x,w.z);
-  const nowSwim=!c2 && dk===undefined && Math.hypot(w.x-state.boat.x,w.z-state.boat.z)>=55;
-  const bob=Math.sin(performance.now()*0.003)*0.4;
-  const gy=dk!==undefined?dk:(c2?c2.h*B:(WATER_Y-2.2+bob));   /* float low in the water */
-  walkerG.position.set(w.x,gy,w.z); walkerG.rotation.y=w.heading;
-  const ph=performance.now()*0.011;
-  const moving=Math.abs(sp)>0.5; const u=walkerG.userData;
-  if(nowSwim){                                         /* a breaststroke */
-    const sw=performance.now()*0.006;
-    u.armL.rotation.x=-1.2+Math.sin(sw)*0.8; u.armR.rotation.x=-1.2+Math.sin(sw)*0.8;
-    u.legL.rotation.x=Math.sin(sw*1.2)*0.4; u.legR.rotation.x=-Math.sin(sw*1.2)*0.4;
-  } else {
+  const onDeckNext=deckMap.get(Math.floor(nx/B)+','+Math.floor(nz/B))!==undefined;
+  const solidBlock = blockedByStructure(nx,nz)||treeBlocked(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,walkerG);
+  const diff = tg.y - w.feetY;
+  let canGo=true;
+  if(tg.wall) canGo=false;
+  else if(!tg.land) canGo = nearBoat||onDeckNext||(Math.hypot(nx,nz)/R_WORLD<0.985);  /* swim */
+  else if(diff<=STEP){ /* a small step — walk up or down freely */ }
+  else if(diff<=JUMPH) canGo = w.feetY>=tg.y-B*0.4;      /* two blocks: only if jumping onto it */
+  else if(diff<=CLIMBH){                                  /* three–four blocks: climb it */
+    if(f>0.3 && w.grounded && !solidBlock && !w.climb)
+      w.climb={t:0,dur:0.8, x0:w.x,z0:w.z,y0:w.feetY,
+        x1:nx+Math.sin(w.heading)*B*0.6, z1:nz+Math.cos(w.heading)*B*0.6, y1:tg.y};
+    canGo=false;
+  } else canGo=false;                                    /* too high — go around */
+  if(solidBlock) canGo=false;
+  if(canGo){ state.dist+=Math.hypot(nx-w.x,nz-w.z); w.x=nx; w.z=nz;
+    if(w.grounded && diff>=-B*3 && diff<=STEP) w.feetY=tg.y; }   /* snap small steps */
+  walkerG.position.set(w.x,w.feetY,w.z); walkerG.rotation.y=w.heading;
+  /* ---- animation ---- */
+  const moving=Math.abs(sp)>0.5;
+  if(swimming){ const s=performance.now()*0.006;
+    u.armL.rotation.x=-1.2+Math.sin(s)*0.8; u.armR.rotation.x=-1.2+Math.sin(s)*0.8;
+    u.legL.rotation.x=Math.sin(s*1.2)*0.4; u.legR.rotation.x=-Math.sin(s*1.2)*0.4;
+  } else if(!w.grounded){                                 /* the jump pose */
+    u.legL.rotation.x=0.55; u.legR.rotation.x=-0.3; u.armL.rotation.x=-0.7; u.armR.rotation.x=-0.7;
+  } else { const ph=performance.now()*0.011;
     u.legL.rotation.x=moving?Math.sin(ph)*0.7:0; u.legR.rotation.x=moving?-Math.sin(ph)*0.7:0;
     u.armL.rotation.x=moving?-Math.sin(ph)*0.5:0; u.armR.rotation.x=moving?Math.sin(ph)*0.5:0;
   }
@@ -2091,6 +2133,14 @@ function cameraTick(dt){
     const Rd=state.firmDist;
     camPos.set(Math.sin(state.camYaw)*Math.cos(pit)*Rd, Math.sin(pit)*Rd+200, Math.cos(state.camYaw)*Math.cos(pit)*Rd);
     camera.position.lerp(camPos,Math.min(1,dt*2.5)); camera.lookAt(0,0,0); return; }
+  /* inside a home — a first-person view from within, so you truly enter it */
+  if(state.mode==='walk'){ const H=insideHouse(state.walk.x,state.walk.z);
+    if(H){ const w=state.walk, hy=walkerG.position.y+9;
+      camPos.set(w.x+Math.sin(w.heading)*1.5, hy, w.z+Math.cos(w.heading)*1.5);
+      camera.position.lerp(camPos,Math.min(1,dt*7));
+      camTgt.set(w.x+Math.sin(w.heading)*14, hy-1.5, w.z+Math.cos(w.heading)*14);
+      camera.lookAt(camTgt); return; }
+  }
   let px,pz,phead,baseY,dist;
   if(state.mode==='deck'){ walkerG.getWorldPosition(_wv);
     px=_wv.x; pz=_wv.z; baseY=_wv.y; phead=state.boat.heading+state.deck.h;
@@ -2260,6 +2310,7 @@ function toggleLog(){
 }
 $('b-log').onclick=toggleLog;
 $('prompt').onclick=toggleDoor;
+$('b-jump').onclick=()=>{ if(state.mode==='walk') state.walk.jumpReq=true; };
 $('logbook').addEventListener('click',toggleLog);
 $('b-firm').onclick=()=>{ state.firm?exitFirm():enterFirm(); };
 
