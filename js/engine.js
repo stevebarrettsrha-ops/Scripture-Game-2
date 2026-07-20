@@ -87,6 +87,16 @@ TEX.leavesTr   = mkTex(g=>{ g.clearRect(0,0,16,16);
 TEX.water      = mkTex(g=>{ speckle(g,[52,94,168],14,[44,82,152],0.4);
   g.fillStyle='rgba(120,160,220,0.6)';
   for(const y of [2,7,12]) for(let x=0;x<16;x++){ if(hash2(x,y*2.2)>0.55) g.fillRect(x,y,2,1); } });
+/* cherry blossom — soft pink canopy */
+TEX.cherry     = mkTex(g=>{ g.clearRect(0,0,16,16);
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){ if(hash2(x*5.1,y*3.7)<0.9){
+    const base=hash2(x*2.3,y*1.9)<0.25?[255,214,232]:[244,170,205];
+    const c=jit(base,26,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } } });
+/* badlands — orange top, and horizontal strata of red/orange/tan/white clay */
+TEX.badTop     = mkTex(g=>speckle(g,[201,120,66],18,[184,104,54],0.3));
+TEX.badSide    = mkTex(g=>{ const bands=[[201,120,66],[168,86,50],[212,150,92],[224,206,178],[190,104,58]];
+  for(let y=0;y<16;y++){ const bc=bands[Math.floor((y/16)*bands.length+ (hash2(0,y)*0.6))%bands.length];
+    for(let x=0;x<16;x++){ const c=jit(bc,14,x*3+y); P(g,x,y,rgb(c[0],c[1],c[2])); } } });
 TEX.haySide    = mkTex(g=>{ speckle(g,[196,160,58],22,[176,142,48],0.35);
   g.fillStyle='rgb(130,102,34)'; for(const y of [0,5,10,15]) g.fillRect(0,y,16,1); });
 TEX.hayTop     = mkTex(g=>{ speckle(g,[204,168,64],22);
@@ -157,6 +167,7 @@ blockMat('logSide',TEX.logSide); blockMat('logTop',TEX.logTop);
 blockMat('haySide',TEX.haySide); blockMat('hayTop',TEX.hayTop); blockMat('wool',TEX.wool);
 blockMat('soil',TEX.soil); blockMat('benchTop',TEX.benchTop); blockMat('benchSide',TEX.benchSide);
 blockMat('leaves',TEX.leaves,{alphaTest:0.4}); blockMat('leavesTr',TEX.leavesTr,{alphaTest:0.4});
+blockMat('cherry',TEX.cherry,{alphaTest:0.4}); blockMat('badTop',TEX.badTop); blockMat('badSide',TEX.badSide);
 blockMat('tallgrass',TEX.tallgrass,{alphaTest:0.4}); blockMat('flowerR',TEX.flowerR,{alphaTest:0.4});
 blockMat('flowerY',TEX.flowerY,{alphaTest:0.4}); blockMat('crop',TEX.crop,{alphaTest:0.4});
 blockMat('glass',TEX.glass,{transparent:true,depthWrite:false});
@@ -296,18 +307,28 @@ function cellRaw(ix,iz){
     const cap=1+Math.round(inland*4);
     if(h>cap) h=cap;
   }
+  /* broad biome regions carve out cherry-blossom hills and badland mesas */
+  const region=fbm(ix*.012-70,iz*.012+140);
+  const badlands = !snow&&!tundra&&lat>6&&lat<42&&region<0.43&&inland>0.4;
+  const cherry   = !snow&&!tundra&&!desert&&lat<56&&lat>-38&&region>0.63;
   /* a broad, flat, walkable beach along every warm/temperate coast */
-  const beach = !snow&&!tundra&&(inland<=0.5 || (inland<0.8&&h<=2));
+  const beach = !snow&&!tundra&&!badlands&&(inland<=0.5 || (inland<0.8&&h<=2));
   if(beach){ kind='sand'; h=Math.min(h,2);
     if(tropic&&j<0.03) tree=2;                 /* palms on the strand */
   }
-  else if(h<=2 && inland<1 && !snow && !tundra){ kind='sand'; h=Math.min(h,2); }
+  else if(h<=2 && inland<1 && !snow && !tundra && !badlands){ kind='sand'; h=Math.min(h,2); }
   else if(snow) kind='snow';
   else if(tundra){ kind='tundra'; tree=j<0.02?1:0; }
+  else if(badlands){ kind='badlands';
+    const bh=fbm(ix*.045+7,iz*.045-3);              /* the badlands' own eroded relief */
+    h=2+Math.floor(bh*8)+Math.floor(Math.pow(mtn,1.2)*inland*8);
+    h=Math.max(2,Math.floor(h/2)*2);                /* terraced in steps of two */
+  }
   else if(desert){ kind='desert'; }
+  else if(cherry){ kind='grass'; tree=j<0.10?3:0; } /* cherry-blossom groves */
   else if(tropic){ kind='tropic'; tree=j<0.085?2:0; }
   else { kind='grass'; tree=j<0.06?1:0; }
-  if(kind!=='sand'&&!snow&&h>=5){ kind='rock'; tree=0; }   /* rocky hills & peaks */
+  if(kind!=='sand'&&kind!=='badlands'&&!cherry&&!snow&&h>=5){ kind='rock'; tree=0; }
   return {h, kind, tree, ci};
 }
 /* villages flatten the ground around them (computed at boot) */
@@ -411,12 +432,14 @@ function topMatFor(kind){
   if(kind==='floe') return 'ice';
   if(kind==='rock') return 'stone';
   if(kind==='desert') return 'sand';
+  if(kind==='badlands') return 'badTop';
   if(kind==='tropic') return 'grassTopTr';
   if(kind==='tundra') return 'grassTopTu';
   return 'grassTop';
 }
 function sideMatsFor(kind){ /* [topBlockSide, lowerSide] */
   if(kind==='sand'||kind==='desert') return ['sand','sand'];
+  if(kind==='badlands') return ['badSide','badSide'];
   if(kind==='snow') return ['snow','stone'];
   if(kind==='wall') return ['ice','ice'];
   if(kind==='floe') return ['ice','ice'];
@@ -446,13 +469,16 @@ function emitColumn(G,ix,iz,cc){
 }
 function emitTree(G,ix,iz,cc){
   const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B;
-  const tropic=cc.tree===2;
-  const trunkH=tropic?B*3.2:B*2.2, tw=B*0.42;
+  const tropic=cc.tree===2, cherry=cc.tree===3;
+  const trunkH=tropic?B*3.2:cherry?B*2.6:B*2.2, tw=B*0.42;
   emitBox(G, x-tw,yT,z-tw, x+tw,yT+trunkH,z+tw, 'logSide','logTop',null);
-  const lm=tropic?'leavesTr':'leaves';
+  const lm=tropic?'leavesTr':cherry?'cherry':'leaves';
   if(tropic){
     emitBox(G, x-B*1.6,yT+trunkH,z-B*0.5, x+B*1.6,yT+trunkH+B*0.6,z+B*0.5, lm,lm,lm);
     emitBox(G, x-B*0.5,yT+trunkH,z-B*1.6, x+B*0.5,yT+trunkH+B*0.6,z+B*1.6, lm,lm,lm);
+  } else if(cherry){                         /* a broad, soft pink canopy */
+    emitBox(G, x-B*1.8,yT+trunkH-B*0.5,z-B*1.8, x+B*1.8,yT+trunkH+B*0.5,z+B*1.8, lm,lm,lm);
+    emitBox(G, x-B*1.1,yT+trunkH+B*0.5,z-B*1.1, x+B*1.1,yT+trunkH+B*1.1,z+B*1.1, lm,lm,lm);
   } else {
     emitBox(G, x-B*1.45,yT+trunkH-B*0.9,z-B*1.45, x+B*1.45,yT+trunkH+B*0.35,z+B*1.45, lm,lm,lm);
     emitBox(G, x-B*0.75,yT+trunkH+B*0.35,z-B*0.75, x+B*0.75,yT+trunkH+B*1.15,z+B*0.75, lm,lm,lm);
@@ -1172,6 +1198,40 @@ function seaLifeTick(px,pz,dt){
    panes, doors, stepped plank roofs with an overhang; dirt paths,
    fenced farms with crops and a water channel, hay bales, a well,
    and lamp posts that burn when the sun departs.                  */
+/* furnish a room: a big bed, a table with chairs, bookshelves along a wall,
+   a chest, a woven rug, and corner lamps — scaled to the room, off the door */
+function emitFurniture(G, ex, x0,x1,z0,z1, fy, T, hx,hz, doorDir){
+  const ix0=x0+T, ix1=x1-T, iz0=z0+T, iz1=z1-T;
+  const rw=Math.min(ix1-ix0, iz1-iz0);
+  const onZ1=doorDir===0, onZ0=doorDir===1, onX1=doorDir===2, onX0=doorDir===3;
+  faceTop(G,'haySide', hx-rw*0.34,hz-rw*0.34, hx+rw*0.34,hz+rw*0.34, fy+0.05, 0.95);   /* rug */
+  /* bed in a corner away from the door */
+  const bx = onX0? ix1-B*0.95 : ix0+B*0.95;
+  const bz = onZ0? iz1-B*1.2  : iz0+B*1.2;
+  emitBox(G, bx-B*0.85,fy,bz-B*1.1, bx+B*0.85,fy+B*0.42,bz+B*1.1,'planks','wool',null);
+  emitBox(G, bx-B*0.7,fy+B*0.42,bz-B*1.0, bx+B*0.7,fy+B*0.6,bz-B*0.5,'wool','wool',null);
+  emitBox(G, bx-B*0.9,fy,bz-B*1.28, bx+B*0.9,fy+B*0.95,bz-B*1.1,'logSide','logTop',null);
+  /* table + two chairs near the middle */
+  const tx=hx+(onX1?-B*1.5:B*1.3), tz=hz;
+  emitBox(G, tx-B*0.15,fy,tz-B*0.15, tx+B*0.15,fy+B*0.72,tz+B*0.15,'logSide','logTop',null);
+  emitBox(G, tx-B*0.8,fy+B*0.72,tz-B*0.6, tx+B*0.8,fy+B*0.86,tz+B*0.6,'planks','benchTop',null);
+  for(const s of [-1,1]){ const chz=tz+s*B*0.95;
+    emitBox(G, tx-B*0.32,fy,chz-B*0.32, tx+B*0.32,fy+B*0.44,chz+B*0.32,'planks','planks',null);
+    emitBox(G, tx-B*0.32,fy+B*0.44,chz+s*B*0.2, tx+B*0.32,fy+B*1.05,chz+s*B*0.32,'planks','planks',null); }
+  /* bookshelves along a wall that is not the door wall */
+  if(!onZ0&&!onZ1){ for(let sx=ix0+B*0.7; sx<ix1-B*0.5; sx+=B*1.05){
+      emitBox(G, sx-B*0.45,fy,iz0+0.2, sx+B*0.45,fy+B*2.0,iz0+B*0.5,'logSide','logTop',null);
+      emitBox(G, sx-B*0.4,fy+B*0.4,iz0+0.25, sx+B*0.4,fy+B*1.7,iz0+B*0.45,'planks','planks',null); } }
+  else { for(let sz=iz0+B*0.7; sz<iz1-B*0.5; sz+=B*1.05){
+      emitBox(G, ix0+0.2,fy,sz-B*0.45, ix0+B*0.5,fy+B*2.0,sz+B*0.45,'logSide','logTop',null);
+      emitBox(G, ix0+0.25,fy+B*0.4,sz-B*0.4, ix0+B*0.45,fy+B*1.7,sz+B*0.4,'planks','planks',null); } }
+  /* a chest in a corner */
+  const kx=onX1?ix0+B*0.6:ix1-B*0.6, kz=onZ1?iz0+B*0.6:iz1-B*0.6;
+  emitBox(G, kx-B*0.5,fy,kz-B*0.4, kx+B*0.5,fy+B*0.6,kz+B*0.4,'logSide','logTop',null);
+  /* corner lamps */
+  ex.torchIn.push({x:ix0+B*0.5,y:fy+B*2.2,z:iz0+B*0.5});
+  ex.torchIn.push({x:ix1-B*0.5,y:fy+B*2.2,z:iz1-B*0.5});
+}
 function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   /* w,d in blocks (odd best); walls 3 blocks; local axis-aligned.
      Houses are HOLLOW: cobble footing, plank floor, four walls with a real
@@ -1222,25 +1282,8 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
       emitBox(G, rx0,ry0,z0-B, rx1,ry1,z1+B, 'roof','roof','roof');
     }
   }
-  /* furnishings — a wool bed in the corner far from the door, a table on a
-     log leg, and a chair with a backrest drawn up beside it */
-  const fy=y+B*0.58;
-  const bx=doorDir===3?x1-T-B*0.85:x0+T+B*0.85, bz=doorDir===1?z1-T-B*1.05:z0+T+B*1.05;
-  emitBox(G, bx-B*0.55,fy,bz-B*0.85, bx+B*0.55,fy+B*0.38,bz+B*0.85, 'planks','wool',null);
-  emitBox(G, bx-B*0.42,fy+B*0.38,bz-B*0.72, bx+B*0.42,fy+B*0.52,bz-B*0.22, 'wool','hayTop',null);
-  const tx=Math.min(Math.max(hx+(doorDir===2?-B*0.9:B*0.7), x0+T+B*0.7), x1-T-B*0.7);
-  const tz=Math.min(Math.max(hz+(doorDir===0?-B*0.9:B*0.7), z0+T+B*0.7), z1-T-B*0.7);
-  emitBox(G, tx-B*0.1,fy,tz-B*0.1, tx+B*0.1,fy+B*0.62,tz+B*0.1, 'logSide','logTop',null);
-  emitBox(G, tx-B*0.5,fy+B*0.62,tz-B*0.5, tx+B*0.5,fy+B*0.74,tz+B*0.5, 'planks','benchTop',null);
-  const cx2=Math.min(tx+B*0.95, x1-T-B*0.4), cz2=tz;
-  emitBox(G, cx2-B*0.3,fy,cz2-B*0.3, cx2+B*0.3,fy+B*0.42,cz2+B*0.3, 'planks','planks',null);
-  emitBox(G, cx2+B*0.18,fy+B*0.42,cz2-B*0.3, cx2+B*0.3,fy+B*1.05,cz2+B*0.3, 'planks','planks',null);
-  /* a woven rug on the floor, and a shelf of goods against a wall */
-  faceTop(G,'haySide', hx-B*0.9,hz-B*0.9, hx+B*0.9,hz+B*0.9, fy+0.05, 0.95);
-  { const shX=doorDir===2?x0+T+B*0.35:x1-T-B*0.35, shZ=hz;
-    emitBox(G, shX-B*0.3,fy+B*1.1,shZ-B*0.7, shX+B*0.3,fy+B*1.25,shZ+B*0.7,'planks','planks',null);
-    emitBox(G, shX-B*0.28,fy+B*1.25,shZ-B*0.6, shX+B*0.28,fy+B*1.7,shZ-B*0.15,'logSide','logTop',null); }
-  ex.torchIn.push({x:hx,y:fy+B*2.05,z:hz});
+  emitFurniture(G, ex, x0,x1,z0,z1, y+B*0.58, T, hx,hz, doorDir);
+  ex.torchIn.push({x:hx,y:y+B*0.58+B*2.05,z:hz});
   ex.doors.push({x:hx+(doorDir===2?w*B/2+B:doorDir===3?-w*B/2-B:0),
                  z:hz+(doorDir===0?d*B/2+B:doorDir===1?-d*B/2-B:0)});
   const gapCX = doorDir===2?x1-T/2:doorDir===3?x0+T/2:hx;
@@ -1344,7 +1387,7 @@ function buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i){
     if(gx===0||gy===0) continue;                        // keep the streets clear
     const hx=cx+gx*spacing+(rnd(placed+1)-0.5)*B*1.5, hz=cz+gy*spacing+(rnd(placed+9)-0.5)*B*1.5;
     const hc=landAtWorld(hx,hz); if(!hc||hc.kind==='wall'||hc.kind==='floe') continue;
-    const w=3+Math.floor(rnd(placed+20)*2), d=3+Math.floor(rnd(placed+25)*2);
+    const w=5+Math.floor(rnd(placed+20)*3), d=6+Math.floor(rnd(placed+25)*3);
     const ddx=cx-hx, ddz=cz-hz;
     const doorDir=Math.abs(ddz)>=Math.abs(ddx)?(ddz>0?0:1):(ddx>0?2:3);
     emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+placed);
@@ -1416,6 +1459,7 @@ function buildPier(G,ex,site,rnd,torches){
 }
 const activeVillages=new Map();
 let worldNight=0;   /* 0 by day .. 1 deep night — sends folk home */
+const standaloneHouses=[];   /* houses not in a village (the player's treehouse) */
 function spawnVillage(i){
   const site=SITES[i]; if(!site){ activeVillages.set(i,{none:true}); return; }
   const rnd=k=>hash2(i*31.7+k*7.7, i*11.3+k*3.9);
@@ -1439,7 +1483,7 @@ function spawnVillage(i){
       const ang=rnd(h+2)*Math.PI*2, rad=(4.2+rnd(h+9)*3.4)*B;
       const hx=site.x+Math.cos(ang)*rad, hz=site.z+Math.sin(ang)*rad;
       const hc=landAtWorld(hx,hz); if(!hc||hc.kind==='wall'||hc.kind==='floe') continue;
-      const w=3+Math.floor(rnd(h+20)*2)*1, d=3+Math.floor(rnd(h+25)*3);
+      const w=5+Math.floor(rnd(h+20)*3), d=5+Math.floor(rnd(h+25)*3);
       const dx=site.x-hx, dz=site.z-hz;
       const doorDir=Math.abs(dz)>=Math.abs(dx) ? (dz>0?0:1) : (dx>0?2:3);
       emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+h);
@@ -1625,10 +1669,11 @@ function updateVillages(px,pz,dt,nightF){
   }
   doorTick(dt);
   /* the door prompt — when the traveller stands before a house */
-  if(state.mode==='walk'){ promptDoor=nearestDoor(state.walk.x,state.walk.z);
-    const el=$('prompt');
-    if(promptDoor){ el.textContent='F — '+(promptDoor.door.open?'close the door':'open the door');
-      el.style.opacity=1; } else el.style.opacity=0;
+  if(state.mode==='walk'){ const el=$('prompt');
+    if(canSleep()){ promptDoor=null; el.textContent='F — sleep until morning'; el.style.opacity=1; }
+    else { promptDoor=nearestDoor(state.walk.x,state.walk.z);
+      if(promptDoor){ el.textContent='F — '+(promptDoor.door.open?'close the door':'open the door'); el.style.opacity=1; }
+      else el.style.opacity=0; }
   } else { promptDoor=null; const el=$('prompt'); if(el) el.style.opacity=0; }
 }
 
@@ -1657,6 +1702,70 @@ function buildYahru(){ if(!yahruPos) return;
     bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
     bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
   scene.add(g);
+}
+
+/* ================= THE TRAVELLER'S TREEHOUSE HOME =================
+   A great tree with a fancy house in its canopy, a spiral stair winding up
+   the trunk, railed platform, and a big furnished interior with a bed. Found
+   on the home coast; come here at night to sleep until morning. */
+let homePos=null, HOME=null;
+{ const lat=31.9, lon=34.75, r=(90-lat)/180;
+  const u=r*Math.sin(lon*Math.PI/180), v=r*Math.cos(lon*Math.PI/180);
+  const ix0=Math.floor(u*R_WORLD/B), iz0=Math.floor(v*R_WORLD/B);
+  for(let rad=0;rad<50&&!homePos;rad++) for(let a=0;a<Math.max(1,rad*6)&&!homePos;a++){
+    const th=a/(rad*6||1)*Math.PI*2;
+    const jx=ix0+Math.round(Math.cos(th)*rad), jz=iz0+Math.round(Math.sin(th)*rad);
+    const cc=cellRaw(jx,jz); if(cc&&cc.kind!=='wall'&&cc.kind!=='floe') homePos={ix:jx,iz:jz,x:(jx+.5)*B,z:(jz+.5)*B};
+  } }
+function buildHome(){ if(!homePos) return;
+  const gy=topY(homePos.ix,homePos.iz), cx=homePos.x, cz=homePos.z;
+  const G=newG(); const ex={doors:[],houses:[],torchIn:[]};
+  const tr=B*1.1, plat=gy+B*10;
+  /* the great trunk */
+  emitBox(G, cx-tr,gy,cz-tr, cx+tr,plat+B*5,cz+tr, 'logSide','logTop',null);
+  /* the spiral stair winding up to the platform */
+  const nStep=Math.floor((plat-gy)/(B*0.85));
+  for(let s2=0;s2<nStep;s2++){ const ang=s2*0.68, rr=tr+B*1.7;
+    const sx=cx+Math.cos(ang)*rr, sz=cz+Math.sin(ang)*rr, sy=gy+s2*B*0.85;
+    emitBox(G, sx-B*0.75,sy,sz-B*0.75, sx+B*0.75,sy+B*0.4,sz+B*0.75, 'planks','planks',null);
+    emitBox(G, sx+Math.cos(ang)*B*0.7-0.25,sy,sz+Math.sin(ang)*B*0.7-0.25,
+      sx+Math.cos(ang)*B*0.7+0.25,sy+B*1.2,sz+Math.sin(ang)*B*0.7+0.25,'logSide','logTop',null); }
+  /* the railed platform */
+  const pr=B*6;
+  faceTop(G,'planks', cx-pr,cz-pr, cx+pr,cz+pr, plat, 1.0);
+  faceBottom(G,'planks', cx-pr,cz-pr, cx+pr,cz+pr, plat-0.5, 0.5);
+  for(const sgn of [[-1,-1],[1,-1],[-1,1],[1,1]])
+    emitBox(G, cx+sgn[0]*pr*0.82-0.4,gy,cz+sgn[1]*pr*0.82-0.4, cx+sgn[0]*pr*0.82+0.4,plat,cz+sgn[1]*pr*0.82+0.4,'logSide','logTop',null);
+  for(let a=0;a<48;a++){ const ang=a/48*6.283, rx=cx+Math.cos(ang)*pr*0.97, rz=cz+Math.sin(ang)*pr*0.97;
+    if(ang>1.2&&ang<1.95) continue;                 /* a gap at the door (+z) */
+    emitBox(G, rx-0.28,plat,rz-0.28, rx+0.28,plat+B*1.1,rz+0.28, 'logSide','logTop',null); }
+  emitBox(G, cx-pr,plat+B*1.1,cz-pr, cx+pr,plat+B*1.25,cz-pr+0.6, 'logSide','logSide',null);  /* top rail (partial) */
+  /* the fancy house upon the platform (a big furnished room) */
+  emitHouse(G,ex, cx,cz,plat, 7,7, 0, 7777);
+  /* the leafy canopy above */
+  const cany=plat+B*8;
+  emitBox(G, cx-B*7,cany,cz-B*7, cx+B*7,cany+B*1.4,cz+B*7, 'leaves','leaves','leaves');
+  emitBox(G, cx-B*5,cany+B*1.4,cz-B*5, cx+B*5,cany+B*2.4,cz+B*5, 'leaves','leaves','leaves');
+  emitBox(G, cx-B*2.5,cany+B*2.4,cz-B*2.5, cx+B*2.5,cany+B*3.2,cz+B*2.5, 'leaves','leaves','leaves');
+  /* build the meshes */
+  const g=new THREE.Group();
+  for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
+    bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
+    bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
+    bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
+    bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
+  /* the swinging door + register the room so it collides and enters like a home */
+  for(const H of ex.houses){ if(!H.door) continue; const D2=H.door;
+    const dm=new THREE.Mesh(new THREE.BoxGeometry(D2.w,D2.h,0.6),doorLeafMat);
+    dm.geometry.translate(D2.w/2,D2.h/2,0); dm.position.set(D2.hx,D2.y,D2.hz); dm.rotation.y=D2.base;
+    g.add(dm); D2.mesh=dm; standaloneHouses.push(H); }
+  /* hearth lanterns within (always a soft glow) */
+  for(const tp of ex.torchIn){ const tip=new THREE.Mesh(new THREE.BoxGeometry(1.4,1.7,1.4),torchMat);
+    tip.position.set(tp.x,tp.y,tp.z); g.add(tip);
+    const gm=new THREE.SpriteMaterial({map:glowTexCv,transparent:true,opacity:0.5,depthWrite:false});
+    const gs=new THREE.Sprite(gm); gs.scale.set(24,24,1); gs.position.set(tp.x,tp.y+1,tp.z); g.add(gs); }
+  scene.add(g);
+  HOME={x:cx,z:cz,plat,house:ex.houses[0],ix:homePos.ix,iz:homePos.iz};
 }
 
 /* ================= NAME BANNERS ================= */
@@ -1699,7 +1808,7 @@ const keys={};
 addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code==='Space'){ e.preventDefault(); if(state.mode==='walk') state.walk.jumpReq=true; }
   if(e.code==='KeyE') toggleAshore();
-  if(e.code==='KeyF') toggleDoor();
+  if(e.code==='KeyF') interact();
   if(e.code==='KeyM') toggleMap();
   if(e.code==='KeyL') toggleLog(); });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
@@ -1822,19 +1931,22 @@ function boatTick(dt,helm){
   if(boatG.userData.wheel) boatG.userData.wheel.rotation.z-=t*dt*2.5;
 }
 /* solid structures: house walls stop you (save for the doorway), trees stop you */
+function houseBlocks(nx,nz,H){
+  const m=1.2;
+  if(nx>H.x0-m&&nx<H.x1+m&&nz>H.z0-m&&nz<H.z1+m){
+    const T2=B*0.5+1.0;
+    if(nx>H.x0+T2&&nx<H.x1-T2&&nz>H.z0+T2&&nz<H.z1-T2) return false;   // within the room
+    if(H.door&&H.door.open&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.5) return false; // open doorway
+    return true;
+  }
+  return false;
+}
 function blockedByStructure(nx,nz){
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
     if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue;
-    for(const H of vv.houses){
-      const m=1.2;
-      if(nx>H.x0-m&&nx<H.x1+m&&nz>H.z0-m&&nz<H.z1+m){
-        const T2=B*0.5+1.0;
-        if(nx>H.x0+T2&&nx<H.x1-T2&&nz>H.z0+T2&&nz<H.z1-T2) return false;  // within the room
-        if(H.door&&H.door.open&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.5) return false; // open doorway
-        return true;                                                     // wall (or shut door)
-      }
-    }
+    for(const H of vv.houses) if(houseBlocks(nx,nz,H)) return true;
   }
+  for(const H of standaloneHouses) if(houseBlocks(nx,nz,H)) return true;
   return false;
 }
 /* the well, hay-bales and pens block the way */
@@ -1861,22 +1973,29 @@ function blockedByEntity(nx,nz,exclude){
 /* the nearest shut/open door to a point, within reach and on land */
 function nearestDoor(px,pz){
   let best=null,bd=1e9;
+  const scan=arr=>{ for(const H of arr){ if(!H.door) continue;
+    const d=Math.hypot(px-H.dx,pz-H.dz); if(d<11&&d<bd){ bd=d; best=H; } } };
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
-    if(Math.hypot(px-vv.site.x,pz-vv.site.z)>420) continue;
-    for(const H of vv.houses){ if(!H.door) continue;
-      const d=Math.hypot(px-H.dx,pz-H.dz);
-      if(d<11&&d<bd){ bd=d; best=H; } }
-  }
+    if(Math.hypot(px-vv.site.x,pz-vv.site.z)>420) continue; scan(vv.houses); }
+  scan(standaloneHouses);
   return best;
 }
 function doorTick(dt){
-  for(const[,vv] of activeVillages){ if(!vv.houses) continue;
-    for(const H of vv.houses){ const D2=H.door; if(!D2||!D2.mesh) continue;
-      if(Math.abs(D2.ang-D2.target)>0.001){ D2.ang+=(D2.target-D2.ang)*Math.min(1,dt*8);
-        D2.mesh.rotation.y=D2.ang; } }
-  }
+  const anim=arr=>{ for(const H of arr){ const D2=H.door; if(!D2||!D2.mesh) continue;
+    if(Math.abs(D2.ang-D2.target)>0.001){ D2.ang+=(D2.target-D2.ang)*Math.min(1,dt*8); D2.mesh.rotation.y=D2.ang; } } };
+  for(const[,vv] of activeVillages){ if(vv.houses) anim(vv.houses); }
+  anim(standaloneHouses);
 }
 let promptDoor=null;
+function canSleep(){ return state.mode==='walk' && HOME && worldNight>0.45
+  && insideHouse(state.walk.x,state.walk.z)===HOME.house; }
+function sleep(){
+  const day=Math.floor(state.simHours/24);
+  state.simHours=(day+1)*24+7;                    /* wake at seven, next morning */
+  toast('You rest in your home among the boughs, and wake to a new morning.');
+  saveState();
+}
+function interact(){ if(canSleep()) sleep(); else toggleDoor(); }
 function toggleDoor(){ if(!promptDoor||!promptDoor.door) return;
   const D2=promptDoor.door; D2.open=!D2.open;
   D2.target=D2.open?D2.base+D2.swing:D2.base; }
@@ -1894,14 +2013,15 @@ function groundInfo(x,z){
   return {y:WATER_Y-2.2, land:false, water:true};
 }
 /* is a point within the room of a house (used for the inside-the-home camera) */
+function insideHouseIn(x,z,arr){ const T2=B*0.5+0.5;
+  for(const H of arr) if(x>H.x0+T2&&x<H.x1-T2&&z>H.z0+T2&&z<H.z1-T2) return H;
+  return null; }
 function insideHouse(x,z){
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
     if(Math.hypot(x-vv.site.x,z-vv.site.z)>420) continue;
-    const T2=B*0.5+0.5;
-    for(const H of vv.houses)
-      if(x>H.x0+T2&&x<H.x1-T2&&z>H.z0+T2&&z<H.z1-T2) return H;
+    const H=insideHouseIn(x,z,vv.houses); if(H) return H;
   }
-  return null;
+  return insideHouseIn(x,z,standaloneHouses);
 }
 const STEP=B*1.2, JUMPH=B*2.3, CLIMBH=B*4.6;   /* step / must-jump / can-climb heights */
 function walkTick(dt){
@@ -2323,7 +2443,7 @@ function toggleLog(){
   $('log-lands').textContent=names.length?names.join(' \u00B7 '):'No land yet \u2014 the deep awaits.';
 }
 $('b-log').onclick=toggleLog;
-$('prompt').onclick=toggleDoor;
+$('prompt').onclick=interact;
 $('b-jump').onclick=()=>{ if(state.mode==='walk') state.walk.jumpReq=true; };
 $('logbook').addEventListener('click',toggleLog);
 $('b-firm').onclick=()=>{ state.firm?exitFirm():enterFirm(); };
@@ -2373,7 +2493,7 @@ function findStart(){
 }
 let running=false, saveT=0;
 async function begin(fresh){
-  computeSites(); buildYahru();
+  computeSites(); buildYahru(); buildHome();
   const saved=fresh?null:await loadSaved();
   if(saved){ state.boat.x=saved.x; state.boat.z=saved.z; state.boat.heading=saved.h; state.simHours=saved.t;
     if(saved.v>=3&&saved.m==='walk'){ state.walk.x=saved.wx; state.walk.z=saved.wz;
