@@ -158,6 +158,14 @@ blockMat('flowerY',TEX.flowerY,{alphaTest:0.4}); blockMat('crop',TEX.crop,{alpha
 blockMat('glass',TEX.glass,{transparent:true,depthWrite:false});
 blockMat('door',TEX.door,{alphaTest:0.1});
 blockMat('waterB',TEX.water);
+/* breaking surf — clumpy foam that washes the shoreline (scrolled + pulsed) */
+TEX.surf = mkTex(g=>{ g.clearRect(0,0,16,16);
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){
+    const n=fbm(x*0.5+1.3,y*0.9-2.1);
+    if(n>0.52){ const w=210+Math.floor(hash2(x,y)*40);
+      g.fillStyle='rgba('+w+','+Math.min(255,w+12)+',255,'+Math.min(1,(n-0.4)*2.2)+')';
+      g.fillRect(x,y,1,1); } } });
+const surfMat=blockMat('surf',TEX.surf,{transparent:true,alphaTest:0.02,depthWrite:false,opacity:0.6});
 const seaTex=TEX.water.clone(); seaTex.needsUpdate=true; seaTex.repeat.set(R_WORLD/12,R_WORLD/12);
 /* the open sea repeats ~10,000× — without mipmaps it aliases into shimmer */
 seaTex.generateMipmaps=true; seaTex.minFilter=THREE.LinearMipmapLinearFilter;
@@ -447,6 +455,9 @@ function buildChunk(cx,cz){
       if(nb&&nb.kind!=='wall'&&nb.kind!=='floe'){
         const x0=ix*B, z0=iz*B;
         faceTop(G,'sand',x0,z0,x0+B,z0+B,WATER_Y-1.5,0.92);
+        /* breaking surf where the swell meets the strand */
+        if(nb.kind==='sand'||nb.kind==='tropic'||nb.kind==='grass'||nb.kind==='desert')
+          faceTop(G,'surf',x0,z0,x0+B,z0+B,WATER_Y+0.55,1.0);
       }
       continue;
     }
@@ -556,10 +567,11 @@ const waveMat=new THREE.ShaderMaterial({
     uLight:{value:new THREE.Color(1,1,1)}, uFogColor:{value:new THREE.Color(0x9fc5e8)},
     uFogNear:{value:260}, uFogFar:{value:870}, uSunDir:{value:new THREE.Vector3(0.4,1,0.25)},
     uDeep:{value:new THREE.Color(0x14385f)}, uShallow:{value:new THREE.Color(0x3f79b0)},
-    uMap:{value:seaTex}, uOpacity:{value:0.9} },
+    uMap:{value:seaTex}, uOpacity:{value:0.9}, uCamPos:{value:new THREE.Vector3()},
+    uShip:{value:new THREE.Vector4()}, uShipH:{value:0}, uSunCol:{value:new THREE.Color(1,0.96,0.85)} },
   vertexShader:`
     uniform float uTime, uAmp; uniform vec2 uCenter;
-    varying vec3 vNormal; varying float vHeight, vFog; varying vec2 vUv;
+    varying vec3 vNormal, vWorld; varying float vHeight, vFog; varying vec2 vUv, vP;
     void main(){
       vec2 P=position.xz+uCenter;
       float ed=max(abs(position.x),abs(position.z));
@@ -569,24 +581,47 @@ const waveMat=new THREE.ShaderMaterial({
       vec3 nrm=vec3(0.0,1.0,0.0);
       ${waveUnroll}
       vHeight=disp.y-${WATER_Y.toFixed(3)};
-      vNormal=normalize(nrm); vUv=P*0.02;
+      vNormal=normalize(nrm); vUv=P*0.02; vP=P; vWorld=disp;
       vec4 mv=viewMatrix*vec4(disp,1.0); vFog=-mv.z;
       gl_Position=projectionMatrix*mv;
     }`,
   fragmentShader:`
     precision highp float;
-    uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow; uniform sampler2D uMap;
-    uniform float uFogNear, uFogFar, uOpacity;
-    varying vec3 vNormal; varying float vHeight, vFog; varying vec2 vUv;
+    uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow, uCamPos, uSunCol; uniform sampler2D uMap;
+    uniform float uFogNear, uFogFar, uOpacity, uTime, uShipH; uniform vec4 uShip;
+    varying vec3 vNormal, vWorld; varying float vHeight, vFog; varying vec2 vUv, vP;
+    float h21(vec2 p){ return fract(sin(dot(p,vec2(41.3,289.1)))*43758.5); }
     void main(){
       vec3 N=normalize(vNormal);
-      float diff=clamp(dot(N,normalize(uSunDir)),0.0,1.0);
+      vec3 V=normalize(uCamPos-vWorld);
+      vec3 L=normalize(uSunDir);
+      float diff=clamp(dot(N,L),0.0,1.0);
       vec3 tex=texture2D(uMap,vUv).rgb;
       vec3 base=mix(uDeep,uShallow,clamp(vHeight*0.22+0.5,0.0,1.0));
       vec3 col=base*(0.62+0.5*diff)*(0.82+0.36*tex.b);
+      /* crest foam */
       float foam=smoothstep(1.15,2.6,vHeight);
-      col=mix(col,vec3(0.92,0.96,1.0),foam*0.6);
+      /* the ship's wake: bright collar at the hull, a widening V astern */
+      vec2 fwd=vec2(sin(uShipH),cos(uShipH)), rgt=vec2(cos(uShipH),-sin(uShipH));
+      vec2 rel=vP-uShip.xy; float along=dot(rel,fwd), side=dot(rel,rgt);
+      float spd=uShip.z, near=uShip.w;
+      float d=max(0.0,-along+6.0);
+      float arm=smoothstep(4.5,0.0,abs(abs(side)-d*0.33))*smoothstep(230.0,0.0,d);
+      float cen=smoothstep(9.0+d*0.14,0.0,abs(side))*smoothstep(80.0,0.0,d)*0.6;
+      float collar=smoothstep(20.0,7.0,length(rel));
+      float wob=0.6+0.4*sin(vP.x*0.6+vP.y*0.55+uTime*7.0);
+      float wake=clamp((arm+cen+collar*0.8)*spd*wob*near,0.0,1.0);
+      float allFoam=clamp(foam*0.6+wake*0.95,0.0,1.0);
+      col=mix(col,vec3(0.92,0.96,1.0),allFoam);
       col*=uLight;
+      /* sun specular + glitter */
+      vec3 H=normalize(V+L);
+      float spec=pow(max(dot(N,H),0.0),90.0);
+      float glit=pow(max(dot(N,H),0.0),24.0)*(0.5+0.5*h21(floor(vP*1.7)+floor(uTime*9.0)));
+      col+=uSunCol*(spec*2.2+glit*0.35)*diff;
+      /* fresnel sky sheen toward grazing angles */
+      float fres=pow(1.0-max(dot(N,V),0.0),4.0);
+      col=mix(col,uFogColor*1.05,fres*0.28);
       float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
       gl_FragColor=vec4(mix(col,uFogColor,ff),uOpacity);
     }`
@@ -600,9 +635,15 @@ function waterTick(px,pz,dayF,storm){
   u.uTime.value=seaTime; u.uAmp.value=seaAmp;
   u.uCenter.value.set(px,pz);
   u.uLight.value.copy(mix3(0x38405e,0xd9a878,0xffffff,dayF)).multiplyScalar(1-storm*0.34);
+  u.uSunCol.value.copy(mix3(0x243048,0xffcf8a,0xfff2d6,dayF));
   if(scene.fog){ u.uFogColor.value.copy(scene.fog.color);
     u.uFogNear.value=scene.fog.near; u.uFogFar.value=scene.fog.far; }
   sun.getWorldPosition(_sunW); u.uSunDir.value.copy(_sunW).normalize();
+  u.uCamPos.value.copy(camera.position);
+  const spd=Math.min(1,Math.abs(state.boat.speed)/30);
+  const shown=(state.mode!=='walk')?1:Math.max(0,1-Math.hypot(px-state.boat.x,pz-state.boat.z)/400);
+  u.uShip.value.set(state.boat.x,state.boat.z,spd,shown);
+  u.uShipH.value=state.boat.heading;
 }
 
 /* flat drifting clouds, minecraft-fashion */
@@ -1972,6 +2013,9 @@ function frame(){
     TEX.clouds.offset.y=(p.z/9600*7)%1; }
   if(state.firm&&firmMark) firmMark.position.set(p.x,R_WORLD*0.012,p.z);
   seaTex.offset.x=(performance.now()*0.000012)%1; seaTex.offset.y=(performance.now()*0.000009)%1;
+  const _pn=performance.now();
+  TEX.surf.offset.x=(_pn*0.00006)%1; TEX.surf.offset.y=(_pn*0.00013)%1;
+  surfMat.opacity=0.42+0.28*Math.sin(_pn*0.0022);      /* the wash advancing and drawing back */
   renderer.render(scene,camera);
 }
 frame();
