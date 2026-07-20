@@ -1235,6 +1235,11 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   const cx2=Math.min(tx+B*0.95, x1-T-B*0.4), cz2=tz;
   emitBox(G, cx2-B*0.3,fy,cz2-B*0.3, cx2+B*0.3,fy+B*0.42,cz2+B*0.3, 'planks','planks',null);
   emitBox(G, cx2+B*0.18,fy+B*0.42,cz2-B*0.3, cx2+B*0.3,fy+B*1.05,cz2+B*0.3, 'planks','planks',null);
+  /* a woven rug on the floor, and a shelf of goods against a wall */
+  faceTop(G,'haySide', hx-B*0.9,hz-B*0.9, hx+B*0.9,hz+B*0.9, fy+0.05, 0.95);
+  { const shX=doorDir===2?x0+T+B*0.35:x1-T-B*0.35, shZ=hz;
+    emitBox(G, shX-B*0.3,fy+B*1.1,shZ-B*0.7, shX+B*0.3,fy+B*1.25,shZ+B*0.7,'planks','planks',null);
+    emitBox(G, shX-B*0.28,fy+B*1.25,shZ-B*0.6, shX+B*0.28,fy+B*1.7,shZ-B*0.15,'logSide','logTop',null); }
   ex.torchIn.push({x:hx,y:fy+B*2.05,z:hz});
   ex.doors.push({x:hx+(doorDir===2?w*B/2+B:doorDir===3?-w*B/2-B:0),
                  z:hz+(doorDir===0?d*B/2+B:doorDir===1?-d*B/2-B:0)});
@@ -2121,6 +2126,11 @@ function exitFirm(){ state.firm=false; if(firmG) firmG.visible=false;
 
 /* ================= CAMERA ================= */
 const camTgt=new THREE.Vector3(), camPos=new THREE.Vector3(), _wv=new THREE.Vector3();
+let camInside=false;
+function setCamInside(on){ if(on===camInside) return; camInside=on;
+  camera.near=on?0.3:1; camera.updateProjectionMatrix();
+  if(state.mode==='walk') walkerG.visible=!on;   /* hide the body in first-person */
+}
 function camInsideShip(wx,wy,wz){
   if(wy>boatG.position.y+56) return false;
   const dx=wx-boatG.position.x, dz=wz-boatG.position.z, h=state.boat.heading;
@@ -2133,14 +2143,18 @@ function cameraTick(dt){
     const Rd=state.firmDist;
     camPos.set(Math.sin(state.camYaw)*Math.cos(pit)*Rd, Math.sin(pit)*Rd+200, Math.cos(state.camYaw)*Math.cos(pit)*Rd);
     camera.position.lerp(camPos,Math.min(1,dt*2.5)); camera.lookAt(0,0,0); return; }
-  /* inside a home — a first-person view from within, so you truly enter it */
-  if(state.mode==='walk'){ const H=insideHouse(state.walk.x,state.walk.z);
-    if(H){ const w=state.walk, hy=walkerG.position.y+9;
-      camPos.set(w.x+Math.sin(w.heading)*1.5, hy, w.z+Math.cos(w.heading)*1.5);
-      camera.position.lerp(camPos,Math.min(1,dt*7));
-      camTgt.set(w.x+Math.sin(w.heading)*14, hy-1.5, w.z+Math.cos(w.heading)*14);
-      camera.lookAt(camTgt); return; }
-  }
+  /* inside a home — a first-person view from within, so you truly enter it.
+     The camera is clamped well inside the walls (never through them), the near
+     plane is pulled in, and the body is hidden so it doesn't fill the view. */
+  const Hin = state.mode==='walk' ? insideHouse(state.walk.x,state.walk.z) : null;
+  setCamInside(!!Hin);
+  if(Hin){ const w=state.walk, H=Hin, hy=walkerG.position.y+8.5, inset=B*0.5+2.2;
+    let cxp=w.x+Math.sin(w.heading)*1.0, czp=w.z+Math.cos(w.heading)*1.0;
+    cxp=Math.max(H.x0+inset, Math.min(H.x1-inset, cxp));
+    czp=Math.max(H.z0+inset, Math.min(H.z1-inset, czp));
+    camPos.set(cxp,hy,czp); camera.position.lerp(camPos,Math.min(1,dt*10));
+    camTgt.set(w.x+Math.sin(w.heading)*14, hy-2.0, w.z+Math.cos(w.heading)*14);
+    camera.lookAt(camTgt); return; }
   let px,pz,phead,baseY,dist;
   if(state.mode==='deck'){ walkerG.getWorldPosition(_wv);
     px=_wv.x; pz=_wv.z; baseY=_wv.y; phead=state.boat.heading+state.deck.h;
