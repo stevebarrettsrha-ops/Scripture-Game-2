@@ -27,6 +27,11 @@
   #verse .vt{ font-style:italic; font-size:clamp(11px,1.9vmin,16px); line-height:1.55; color:#efe6cf;
     text-shadow:0 2px 8px rgba(0,0,0,.85); }
   #verse .vr{ margin-top:.7vh; font-size:clamp(9px,1.4vmin,12px); letter-spacing:.24em; color:var(--gold); }
+  #prompt{ position:fixed; z-index:7; left:50%; bottom:26vh; transform:translateX(-50%);
+    pointer-events:auto; opacity:0; transition:opacity .18s; cursor:pointer;
+    background:rgba(14,18,32,.9); color:var(--gold); border:1px solid var(--gold);
+    border-radius:5px; padding:1.1vh 2.2vh; font-family:inherit; letter-spacing:.14em;
+    font-size:clamp(11px,1.8vmin,15px); text-transform:uppercase; }
   #hint{ left:50%; bottom:1.6vh; transform:translateX(-50%); font-size:clamp(9px,1.4vmin,12px);
     letter-spacing:.16em; color:#6a6252; white-space:nowrap; }
   #ui{ position:fixed; z-index:6; right:2vw; bottom:6vh; display:flex; flex-direction:column; gap:.9vh; }
@@ -85,6 +90,7 @@
 </div>
 <div class="hud" id="clock"></div>
 <div class="hud" id="place"></div>
+<button id="prompt">F — open the door</button>
 <div class="hud" id="verse"><div class="vt" id="verse-t"></div><div class="vr" id="verse-r"></div></div>
 <div class="hud" id="hint">W A S D — helm and sail &nbsp;·&nbsp; drag — look &nbsp;·&nbsp; E — the wheel · the deck · the shore &nbsp;·&nbsp; M — the map &nbsp;·&nbsp; L — the log &nbsp;·&nbsp; scroll far out — the firmament &nbsp;·&nbsp; run before the wind, and the rivers open the inland</div>
 

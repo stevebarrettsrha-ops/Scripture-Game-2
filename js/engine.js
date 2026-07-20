@@ -166,6 +166,9 @@ TEX.surf = mkTex(g=>{ g.clearRect(0,0,16,16);
       g.fillStyle='rgba('+w+','+Math.min(255,w+12)+',255,'+Math.min(1,(n-0.4)*2.2)+')';
       g.fillRect(x,y,1,1); } } });
 const surfMat=blockMat('surf',TEX.surf,{transparent:true,alphaTest:0.02,depthWrite:false,opacity:0.6});
+/* a swinging door leaf (its own mesh so it can open/close) */
+const doorLeafMat=new THREE.MeshBasicMaterial({map:TEX.door,side:THREE.DoubleSide,alphaTest:0.1});
+LIT.push(doorLeafMat);
 const seaTex=TEX.water.clone(); seaTex.needsUpdate=true; seaTex.repeat.set(R_WORLD/12,R_WORLD/12);
 /* the open sea repeats ~10,000× — without mipmaps it aliases into shimmer */
 seaTex.generateMipmaps=true; seaTex.minFilter=THREE.LinearMipmapLinearFilter;
@@ -1200,12 +1203,8 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
     quad(G,'glass', gx,gy0,z0-0.12, gx+B*1.1,gy0,z0-0.12, gx+B*1.1,gy1,z0-0.12, gx,gy1,z0-0.12, 0,0,1,1, 0.95); }
   if(rnd(2)>0.3&&doorDir!==2){ const gz=hz-B*0.55;
     quad(G,'glass', x1+0.12,gy0,gz, x1+0.12,gy0,gz+B*1.1, x1+0.12,gy1,gz+B*1.1, x1+0.12,gy1,gz, 0,0,1,1, 0.95); }
-  /* the door leaf, swung open against the outside wall beside the gap */
-  const dy0=y+B*0.05, dy1=y+B*2.05, dw=B*0.92;
-  if(doorDir===0) quad(G,'door', hx+gw,dy0,z1+0.14, hx+gw+dw,dy0,z1+0.14, hx+gw+dw,dy1,z1+0.14, hx+gw,dy1,z1+0.14, 0,0,1,1, 1.0);
-  else if(doorDir===1) quad(G,'door', hx-gw,dy0,z0-0.14, hx-gw-dw,dy0,z0-0.14, hx-gw-dw,dy1,z0-0.14, hx-gw,dy1,z0-0.14, 0,0,1,1, 1.0);
-  else if(doorDir===2) quad(G,'door', x1+0.14,dy0,hz+gw, x1+0.14,dy0,hz+gw+dw, x1+0.14,dy1,hz+gw+dw, x1+0.14,dy1,hz+gw, 0,0,1,1, 1.0);
-  else quad(G,'door', x0-0.14,dy0,hz-gw, x0-0.14,dy0,hz-gw-dw, x0-0.14,dy1,hz-gw-dw, x0-0.14,dy1,hz-gw, 0,0,1,1, 1.0);
+  /* the door is a separate swinging leaf, built in spawnVillage (closed by
+     default) — see ex.houses[].door below */
   /* stepped roof with a one-block overhang, ridge along the longer axis */
   const alongX = w>=d;
   const steps = Math.ceil(((alongX?d:w)+2)/2);
@@ -1235,9 +1234,15 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   ex.torchIn.push({x:hx,y:fy+B*2.05,z:hz});
   ex.doors.push({x:hx+(doorDir===2?w*B/2+B:doorDir===3?-w*B/2-B:0),
                  z:hz+(doorDir===0?d*B/2+B:doorDir===1?-d*B/2-B:0)});
-  ex.houses.push({x0,x1,z0,z1,
-    dx:doorDir===2?x1-T/2:doorDir===3?x0+T/2:hx,
-    dz:doorDir===0?z1-T/2:doorDir===1?z0+T/2:hz, gw});
+  const gapCX = doorDir===2?x1-T/2:doorDir===3?x0+T/2:hx;
+  const gapCZ = doorDir===0?z1-T/2:doorDir===1?z0+T/2:hz;
+  const hingeX = (doorDir<=1)?hx-gw:gapCX;
+  const hingeZ = (doorDir>=2)?hz-gw:gapCZ;
+  const baseAng = (doorDir>=2)?-Math.PI/2:0;
+  const swing = (doorDir===0||doorDir===3)?1.7:-1.7;   /* open outward */
+  ex.houses.push({x0,x1,z0,z1, dx:gapCX, dz:gapCZ, gw,
+    door:{dir:doorDir, hx:hingeX, hz:hingeZ, base:baseAng, y:y+B*0.05,
+      w:gw*2.0, h:B*2.05, swing, open:false, ang:baseAng, target:baseAng}});
 }
 function emitFarm(G, fx,fz,y, seed){
   const w=B*5, d=B*3.4, x0=fx-w/2, x1=fx+w/2, z0=fz-d/2, z1=fz+d/2;
@@ -1400,6 +1405,14 @@ function spawnVillage(i){
     bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
     bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
     bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
+  /* the doors — each house a swinging leaf, closed to begin */
+  for(const H of ex.houses){ if(!H.door) continue; const D2=H.door;
+    const dm=new THREE.Mesh(new THREE.BoxGeometry(D2.w,D2.h,0.6),doorLeafMat);
+    dm.geometry.translate(D2.w/2,D2.h/2,0);
+    dm.position.set(D2.hx,D2.y,D2.hz); dm.rotation.y=D2.base;
+    g.add(dm); D2.mesh=dm; }
+  /* solid things you cannot walk through: the well, the hay, the pens */
+  const solids=[{x:site.x,z:site.z,r:B*1.5}];
   /* torch tips + night glow */
   const torchMats=[];
   for(const tp of torches){
@@ -1449,7 +1462,7 @@ function spawnVillage(i){
     bd.position.set(cx+Math.cos(ph)*rad,h2,cz+Math.sin(ph)*rad); g.add(bd);
     birds.push({m:bd,ph,rad,h:h2,spd:0.2+rnd(b2+132)*0.25,cx,cz}); }
   scene.add(g);
-  activeVillages.set(i,{g,site,people,beasts,birds,torchMats,deckKeys,houses:ex.houses});
+  activeVillages.set(i,{g,site,people,beasts,birds,torchMats,deckKeys,houses:ex.houses,solids});
 }
 function wanderTick(ent,site,dt,speed){
   const ax=ent.hx!==undefined?ent.hx:site.x, az=ent.hz!==undefined?ent.hz:site.z;
@@ -1465,7 +1478,10 @@ function wanderTick(ent,site,dt,speed){
   const d=Math.hypot(dx,dz); let moving=d>0.6;
   const sp=speed*(ent.child?0.7:ent.role==='hunter'?1.15:1);
   if(moving){ const nx=ent.m.position.x+dx/d*sp*dt, nz=ent.m.position.z+dz/d*sp*dt;
-    if(blockedByStructure(nx,nz)){ moving=false; ent.t=0; /* pick a new way */ }
+    const pdx=nx-state.walk.x, pdz=nz-state.walk.z;
+    const hitPlayer=state.mode==='walk'&&Math.hypot(pdx,pdz)<2.6;
+    if(blockedByStructure(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,ent.m)||hitPlayer){
+      moving=false; ent.t=0; /* blocked — pick a new way */ }
     else { ent.m.position.x=nx; ent.m.position.z=nz; ent.m.rotation.y=Math.atan2(dx,dz); } }
   else if(ent.faceX!==undefined)   // idle at task — face the lesson / the work
     ent.m.rotation.y=Math.atan2(ent.faceX-ent.m.position.x, ent.faceZ-ent.m.position.z);
@@ -1507,6 +1523,13 @@ function updateVillages(px,pz,dt,nightF){
     if(vv.birds) for(const bd of vv.birds) birdTick(bd,dt);
     for(const tm of vv.torchMats) tm.opacity=nightF*0.85;
   }
+  doorTick(dt);
+  /* the door prompt — when the traveller stands before a house */
+  if(state.mode==='walk'){ promptDoor=nearestDoor(state.walk.x,state.walk.z);
+    const el=$('prompt');
+    if(promptDoor){ el.textContent='F — '+(promptDoor.door.open?'close the door':'open the door');
+      el.style.opacity=1; } else el.style.opacity=0;
+  } else { promptDoor=null; const el=$('prompt'); if(el) el.style.opacity=0; }
 }
 
 /* ================= YAHRUSHALAYIM ================= */
@@ -1575,6 +1598,7 @@ function updateLabels(px,pz){
 const keys={};
 addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code==='KeyE') toggleAshore();
+  if(e.code==='KeyF') toggleDoor();
   if(e.code==='KeyM') toggleMap();
   if(e.code==='KeyL') toggleLog(); });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
@@ -1705,13 +1729,56 @@ function blockedByStructure(nx,nz){
       if(nx>H.x0-m&&nx<H.x1+m&&nz>H.z0-m&&nz<H.z1+m){
         const T2=B*0.5+1.0;
         if(nx>H.x0+T2&&nx<H.x1-T2&&nz>H.z0+T2&&nz<H.z1-T2) return false;  // within the room
-        if(Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.5) return false;            // the doorway
-        return true;
+        if(H.door&&H.door.open&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.5) return false; // open doorway
+        return true;                                                     // wall (or shut door)
       }
     }
   }
   return false;
 }
+/* the well, hay-bales and pens block the way */
+function blockedBySolid(nx,nz){
+  for(const[,vv] of activeVillages){ if(!vv.solids||!vv.site) continue;
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue;
+    for(const s of vv.solids) if(Math.hypot(nx-s.x,nz-s.z)<s.r) return true;
+  }
+  return false;
+}
+/* you cannot walk through people or beasts (nor they through you) */
+function blockedByEntity(nx,nz,exclude){
+  for(const[,vv] of activeVillages){ if(vv.none||!vv.site) continue;
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>360) continue;
+    const test=arr=>{ if(!arr) return false;
+      for(const e of arr){ if(e.m===exclude) continue;
+        const r=(e.child?1.0:1.6);
+        if(Math.hypot(nx-e.m.position.x,nz-e.m.position.z)<r+1.4) return true; }
+      return false; };
+    if(test(vv.people)||test(vv.beasts)) return true;
+  }
+  return false;
+}
+/* the nearest shut/open door to a point, within reach and on land */
+function nearestDoor(px,pz){
+  let best=null,bd=1e9;
+  for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
+    if(Math.hypot(px-vv.site.x,pz-vv.site.z)>420) continue;
+    for(const H of vv.houses){ if(!H.door) continue;
+      const d=Math.hypot(px-H.dx,pz-H.dz);
+      if(d<11&&d<bd){ bd=d; best=H; } }
+  }
+  return best;
+}
+function doorTick(dt){
+  for(const[,vv] of activeVillages){ if(!vv.houses) continue;
+    for(const H of vv.houses){ const D2=H.door; if(!D2||!D2.mesh) continue;
+      if(Math.abs(D2.ang-D2.target)>0.001){ D2.ang+=(D2.target-D2.ang)*Math.min(1,dt*8);
+        D2.mesh.rotation.y=D2.ang; } }
+  }
+}
+let promptDoor=null;
+function toggleDoor(){ if(!promptDoor||!promptDoor.door) return;
+  const D2=promptDoor.door; D2.open=!D2.open;
+  D2.target=D2.open?D2.base+D2.swing:D2.base; }
 function treeBlocked(nx,nz){
   const c=landAtWorld(nx,nz); if(!c||!c.tree) return false;
   const ix=Math.floor(nx/B), iz=Math.floor(nz/B);
@@ -1733,7 +1800,8 @@ function walkTick(dt){
   const stepUpOK=!cc || cc.kind==='wall' ? false : (!here ? cc.h<=3 : true);
   const canGo = ((cc&&cc.kind!=='wall'&&stepUpOK)||nearBoat||onDeckNext!==undefined
                  || (!cc && Math.hypot(nx,nz)/R_WORLD<0.985))   /* open water = swim */
-                && !blockedByStructure(nx,nz) && !treeBlocked(nx,nz);
+                && !blockedByStructure(nx,nz) && !treeBlocked(nx,nz)
+                && !blockedBySolid(nx,nz) && !blockedByEntity(nx,nz,walkerG);
   if(canGo){ state.dist+=Math.hypot(nx-w.x,nz-w.z); w.x=nx; w.z=nz; }
   const dk=deckMap.get(Math.floor(w.x/B)+','+Math.floor(w.z/B));
   const c2=landAtWorld(w.x,w.z);
@@ -2095,6 +2163,7 @@ function toggleLog(){
   $('log-lands').textContent=names.length?names.join(' \u00B7 '):'No land yet \u2014 the deep awaits.';
 }
 $('b-log').onclick=toggleLog;
+$('prompt').onclick=toggleDoor;
 $('logbook').addEventListener('click',toggleLog);
 $('b-firm').onclick=()=>{ state.firm?exitFirm():enterFirm(); };
 
