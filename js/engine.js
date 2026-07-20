@@ -712,9 +712,9 @@ const boatG=new THREE.Group();
     emitBox(G, s*7.02-0.25,1.8,-31, s*7.02+0.25,2.6,32, 'logSide','logSide',null);
     emitBox(G, s*7.02-0.25,4.2,-31, s*7.02+0.25,5.0,30, 'logSide','logSide',null);
   }
-  const rig=(x0,y0,z0,x1,y1,z1)=>{ const n=Math.max(2,Math.ceil(Math.hypot(x1-x0,y1-y0,z1-z0)/2.2));
+  const rig=(x0,y0,z0,x1,y1,z1)=>{ const n=Math.max(3,Math.ceil(Math.hypot(x1-x0,y1-y0,z1-z0)/0.8));
     for(let k=0;k<=n;k++){ const t=k/n, x=x0+(x1-x0)*t, y=y0+(y1-y0)*t, z=z0+(z1-z0)*t;
-      emitBox(G, x-0.22,y-0.22,z-0.22, x+0.22,y+0.22,z+0.22, 'logSide','logTop',null); } };
+      emitBox(G, x-0.17,y-0.17,z-0.17, x+0.17,y+0.17,z+0.17, 'logSide','logTop',null); } };
   rig(0,10.6,50.5, 0,DECK_Y+34,14.8);                          // forestay down the sprit
   rig(0,DECK_Y+34,13.2, 0,DECK_Y+46,-3.2);                     // stays between the tops
   rig(0,DECK_Y+46,-4.8, 0,QDECK_Y+26,-24.9);
@@ -754,36 +754,50 @@ function deckHeightAt(lz){ return lz<QDECK_Z?QDECK_Y:(lz>FDECK_Z?FDECK_Y:DECK_Y)
 /* ================= THE TRAVELLER (steve-fashion) ================= */
 function lam(col){ return new THREE.MeshLambertMaterial({color:col}); }
 function lbox(w,h,d,col){ return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),lam(col)); }
-const SKIN_RGB=[199,140,95], HAIR_RGB=[74,50,30];
+const SKIN_RGB=[199,140,95], HAIR_RGB=[74,50,30], ROBE_A=[56,66,116], ROBE_D=[46,56,100];
 const faceTexP=mkTex(g=>{ g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,0,16,16);
-  for(let y=0;y<6;y++) for(let x=0;x<16;x++){                 /* the hair, falling unevenly */
-    if(y<4||hash2(x*3.1,y*7.7)>0.45){ const c=jit(HAIR_RGB,26,x+y*16);
-      P(g,x,y,rgb(c[0],c[1],c[2])); } }
-  g.fillStyle='rgb(255,255,255)'; g.fillRect(3,8,3,2); g.fillRect(10,8,3,2);
-  g.fillStyle='rgb(70,50,140)'; g.fillRect(4,8,2,2); g.fillRect(11,8,2,2);
-  g.fillStyle='rgb(160,105,70)'; g.fillRect(7,10,2,3);
-  g.fillStyle='rgb(120,72,48)'; g.fillRect(6,13,4,1); });
+  for(let y=0;y<6;y++) for(let x=0;x<16;x++){                 /* hair and its uneven fringe */
+    if(y<4||hash2(x*3.1,y*7.7)>0.45){ const c=jit(HAIR_RGB,26,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } }
+  g.fillStyle='rgb(56,38,22)'; g.fillRect(2,6,5,1); g.fillRect(9,6,5,1);      /* brows */
+  g.fillStyle='rgb(255,255,255)'; g.fillRect(2,8,2,2); g.fillRect(12,8,2,2);  /* wide eyes */
+  g.fillStyle='rgb(62,88,140)';  g.fillRect(4,8,2,2); g.fillRect(10,8,2,2);
+  g.fillStyle='rgb(160,105,70)'; g.fillRect(7,9,2,3);                          /* the nose */
+  g.fillStyle='rgb(120,72,48)'; g.fillRect(5,13,6,1); g.fillRect(4,12,1,1); g.fillRect(11,12,1,1); });
 const hairTopTex=mkTex(g=>speckle(g,HAIR_RGB,24,[60,40,24],0.35));
 const hairSideTex=mkTex(g=>{ g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,0,16,16);
   for(let y=0;y<16;y++) for(let x=0;x<16;x++){
-    const edge=(x<3)?7:0;                                     /* sideburn toward the face */
+    const edge=(x<3)?7:0;
     if(y<6+edge||hash2(x*5.3,y*3.9)<(y<9?0.35:0)){ const c=jit(HAIR_RGB,24,x*17+y);
       P(g,x,y,rgb(c[0],c[1],c[2])); } } });
 const hairBackTex=mkTex(g=>{ g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,0,16,16);
   for(let y=0;y<16;y++) for(let x=0;x<16;x++){
     if(y<11||hash2(x*4.7,y*5.1)<0.5){ const c=jit(HAIR_RGB,24,x*13+y*3);
       P(g,x,y,rgb(c[0],c[1],c[2])); } } });
-/* the traveller's ancient robe: deep indigo, folded, girdled with gold */
-const robeTexP=mkTex(g=>{ speckle(g,[56,66,116],16,[46,56,100],0.3);
+/* the ancient robe: indigo cloth, folds, gold trim; front carries the neckline */
+const robeSideTexP=mkTex(g=>{ speckle(g,ROBE_A,16,ROBE_D,0.3);
   g.fillStyle='rgba(0,0,0,0.25)'; for(const x of [2,7,12]) g.fillRect(x,3,1,13);
   g.fillStyle='rgb(190,158,84)'; g.fillRect(0,9,16,2);
   g.fillStyle='rgb(150,120,58)'; g.fillRect(7,9,2,2);
   g.fillStyle='rgba(0,0,0,0.3)'; g.fillRect(0,15,16,1); });
-const sleeveTexP=mkTex(g=>{ speckle(g,[56,66,116],16,[46,56,100],0.3);
-  g.fillStyle='rgba(0,0,0,0.22)'; g.fillRect(0,4,16,1); g.fillRect(0,10,16,1);
-  g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,13,16,3); });   /* the hands beneath */
-const robeMatP=new THREE.MeshLambertMaterial({map:robeTexP});
+const robeFrontTexP=mkTex(g=>{ speckle(g,ROBE_A,16,ROBE_D,0.3);
+  g.fillStyle='rgba(0,0,0,0.25)'; for(const x of [3,12]) g.fillRect(x,3,1,13);
+  g.fillStyle=rgb(...SKIN_RGB); g.fillRect(6,0,4,1); g.fillRect(7,1,2,1);     /* neckline */
+  g.fillStyle='rgb(190,158,84)'; g.fillRect(5,0,1,2); g.fillRect(10,0,1,2);   /* collar trim */
+  g.fillStyle='rgb(190,158,84)'; g.fillRect(0,9,16,2);
+  g.fillStyle='rgb(150,120,58)'; g.fillRect(7,9,2,2);                          /* the clasp */
+  g.fillStyle='rgba(0,0,0,0.3)'; g.fillRect(0,15,16,1); });
+const sleeveTexP=mkTex(g=>{ speckle(g,ROBE_A,16,ROBE_D,0.3);
+  g.fillStyle='rgba(0,0,0,0.22)'; g.fillRect(0,4,16,1);
+  g.fillStyle='rgb(190,158,84)'; g.fillRect(0,11,16,1);                        /* cuff trim */
+  g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,12,16,4); });                     /* the hand */
+const legTexP=mkTex(g=>{ speckle(g,[46,52,86],14,[38,44,74],0.3);
+  g.fillStyle='rgba(0,0,0,0.25)'; g.fillRect(0,7,16,1);
+  g.fillStyle='rgb(90,62,38)'; g.fillRect(0,13,16,1);                          /* sandals */
+  g.fillStyle='rgb(122,86,52)'; g.fillRect(0,14,16,2); });
+const robeMatP=new THREE.MeshLambertMaterial({map:robeSideTexP});
+const robeFrontMatP=new THREE.MeshLambertMaterial({map:robeFrontTexP});
 const sleeveMatP=new THREE.MeshLambertMaterial({map:sleeveTexP});
+const legMatP=new THREE.MeshLambertMaterial({map:legTexP});
 const walkerG=new THREE.Group();
 { const hs=new THREE.MeshLambertMaterial({map:hairSideTex});
   const headMats=[hs,hs,
@@ -791,16 +805,19 @@ const walkerG=new THREE.Group();
     new THREE.MeshLambertMaterial({map:faceTexP}),
     new THREE.MeshLambertMaterial({map:hairBackTex})];
   const head=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),headMats); head.position.y=10.4; walkerG.add(head);
-  const body=new THREE.Mesh(new THREE.BoxGeometry(3,4.6,1.7),robeMatP); body.position.y=6.6; walkerG.add(body);
+  /* minecraft proportions: body 8×12×4, limbs 4×12×4, at 0.35 scale */
+  const body=new THREE.Mesh(new THREE.BoxGeometry(3,4.6,1.7),
+    [robeMatP,robeMatP,robeMatP,robeMatP,robeFrontMatP,robeMatP]);
+  body.position.y=6.6; walkerG.add(body);
   const hem=new THREE.Mesh(new THREE.BoxGeometry(3.3,1.0,2.0),robeMatP); hem.position.y=4.1; walkerG.add(hem);
-  /* limbs pivot at the hip and shoulder */
-  const legL=lbox(1.35,4.2,1.5,0x2e3350); legL.geometry.translate(0,-2.1,0);
-  legL.position.set(0.78,4.3,0); walkerG.add(legL);
-  const legR=legL.clone(); legR.position.x=-0.78; walkerG.add(legR);
-  const armL=new THREE.Mesh(new THREE.BoxGeometry(1.2,4.4,1.5),sleeveMatP);
+  const legL=new THREE.Mesh(new THREE.BoxGeometry(1.4,4.2,1.5),legMatP);
+  legL.geometry.translate(0,-2.1,0);
+  legL.position.set(0.74,4.3,0); walkerG.add(legL);
+  const legR=legL.clone(); legR.position.x=-0.74; walkerG.add(legR);
+  const armL=new THREE.Mesh(new THREE.BoxGeometry(1.4,4.4,1.5),sleeveMatP);
   armL.geometry.translate(0,-2.2,0);
-  armL.position.set(2.15,8.7,0); walkerG.add(armL);
-  const armR=armL.clone(); armR.position.x=-2.15; walkerG.add(armR);
+  armL.position.set(2.25,8.7,0); walkerG.add(armL);
+  const armR=armL.clone(); armR.position.x=-2.25; walkerG.add(armR);
   walkerG.visible=false; scene.add(walkerG);
   walkerG.userData={legL,legR,armL,armR}; }
 
@@ -812,7 +829,9 @@ function villagerFaceTex(seed){
     g.fillStyle='rgb(255,255,255)'; g.fillRect(3,7,3,2); g.fillRect(10,7,3,2);
     g.fillStyle='rgb(46,84,46)'; g.fillRect(4,7,2,2); g.fillRect(11,7,2,2);
     g.fillStyle=rgb(Math.max(0,sk[0]-30),Math.max(0,sk[1]-30),Math.max(0,sk[2]-30));
-    g.fillRect(7,8,2,6); });
+    g.fillRect(7,8,2,6);
+    g.fillStyle=rgb(Math.max(0,sk[0]-60),Math.max(0,sk[1]-60),Math.max(0,sk[2]-60));
+    g.fillRect(6,14,4,1); });
 }
 const ROBES=[0x8a5a3a,0x5f7a8a,0x7a6a3f,0x6a4a7a,0x9a5a3a,0x4f6a4f,0x8a8060];
 /* pixel-textured robes — folds, a girdle, a dark hem — one texture per colour */
