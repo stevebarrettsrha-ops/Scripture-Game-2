@@ -1600,7 +1600,7 @@ cv.addEventListener('pointermove',e=>{
       const f=pinchD/nd; pinchD=nd;
       if(state.firm){ state.firmDist=Math.max(R_WORLD*0.12,Math.min(R_WORLD*2.4,state.firmDist*f));
         if(state.firmDist<=R_WORLD*0.125&&f<1) exitFirm(); }
-      else{ state.camDist=Math.max(30,Math.min(240,state.camDist*f));
+      else{ state.camDist=Math.max(14,Math.min(240,state.camDist*f));
         if(state.camDist>=239.5&&f>1) enterFirm(); }
       return; }
   }
@@ -1610,7 +1610,7 @@ cv.addEventListener('pointermove',e=>{
   if(drag&&e.pointerId===drag.id){ const ddx=e.clientX-drag.x, ddy=e.clientY-drag.y;
     drag.mv+=Math.abs(ddx)+Math.abs(ddy);
     state.camYaw-=ddx*0.0048;
-    state.camPitch=Math.max(0.08,Math.min(1.25,state.camPitch+ddy*0.004));
+    state.camPitch=Math.max(0.04,Math.min(1.52,state.camPitch+ddy*0.004));
     drag.x=e.clientX; drag.y=e.clientY; } });
 function endPtr(e){ if(joy&&e.pointerId===joy.id){ joy=null; $('joy').style.display='none'; $('joyk').style.transform=''; }
   tpts.delete(e.pointerId); if(tpts.size<2) pinchD=0;
@@ -1652,14 +1652,16 @@ function firmTravel(e){
 cv.addEventListener('wheel',e=>{ e.preventDefault();
   if(state.firm){ state.firmDist=Math.max(R_WORLD*0.12,Math.min(R_WORLD*2.4,state.firmDist*Math.exp(e.deltaY*0.0012)));
     if(state.firmDist<=R_WORLD*0.125&&e.deltaY<0) exitFirm(); return; }
-  state.camDist=Math.max(30,Math.min(240,state.camDist*Math.exp(e.deltaY*0.0012)));
+  state.camDist=Math.max(14,Math.min(240,state.camDist*Math.exp(e.deltaY*0.0012)));
   if(state.camDist>=239.5&&e.deltaY>0) enterFirm(); },{passive:false});
 function axis(){
   let f=0,t=0;
   if(keys.KeyW||keys.ArrowUp)f+=1; if(keys.KeyS||keys.ArrowDown)f-=1;
   if(keys.KeyA||keys.ArrowLeft)t-=1; if(keys.KeyD||keys.ArrowRight)t+=1;
   if(joy){ f+=-joy.dy/48; t+=joy.dx/48; }
-  return [Math.max(-1,Math.min(1,f)), Math.max(-1,Math.min(1,t))];
+  /* turn is negated so A/left steers left and D/right steers right, consistently
+     for walking, the deck, and the helm (all read t from here) */
+  return [Math.max(-1,Math.min(1,f)), -Math.max(-1,Math.min(1,t))];
 }
 
 /* ================= MOVEMENT ================= */
@@ -1929,11 +1931,11 @@ function cameraTick(dt){
   let px,pz,phead,baseY,dist;
   if(state.mode==='deck'){ walkerG.getWorldPosition(_wv);
     px=_wv.x; pz=_wv.z; baseY=_wv.y; phead=state.boat.heading+state.deck.h;
-    dist=Math.min(state.camDist,15); }
+    dist=Math.max(10,Math.min(state.camDist,44)); }
   else if(state.mode==='boat'){ const bt=state.boat;
-    px=bt.x; pz=bt.z; baseY=boatG.position.y+QDECK_Y; phead=bt.heading; dist=Math.max(55,state.camDist); }
+    px=bt.x; pz=bt.z; baseY=boatG.position.y+QDECK_Y; phead=bt.heading; dist=Math.max(40,Math.min(state.camDist,224)); }
   else{ const w=state.walk;
-    px=w.x; pz=w.z; baseY=walkerG.position.y; phead=w.heading; dist=Math.min(state.camDist,60); }
+    px=w.x; pz=w.z; baseY=walkerG.position.y; phead=w.heading; dist=Math.max(14,Math.min(state.camDist,150)); }
   const [f2]=axis(); if(Math.abs(f2)>0.2) state.camYaw*=Math.max(0,1-dt*0.5);
   const az=phead+Math.PI+state.camYaw;
   /* ashore, draw the camera in rather than clip through the ship */
