@@ -504,8 +504,106 @@ const dirL=new THREE.DirectionalLight(0xffffff,0.5); dirL.position.set(0.4,1,0.2
 const seaDeep=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),
   new THREE.MeshBasicMaterial({color:0x0c2c48}));
 seaDeep.rotation.x=-Math.PI/2; seaDeep.position.y=-2.5; scene.add(seaDeep);
+/* the flat far ring — beyond the wave grid, deep in the fog */
 const sea=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),seaMat);
-sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y; scene.add(sea);
+sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y-0.6; scene.add(sea);
+
+/* ================= THE WAVES OF THE DEEP =================
+   A true trochoidal (Gerstner) sea: several travelling swells summed, so
+   crests rise sharp and troughs roll round. The same wave field drives the
+   surface (on the GPU) and the ship's heave, pitch and roll (on the CPU),
+   so she truly rides the water. Deep-water physics: a swell's speed grows
+   with its wavelength (ω = √(g·k)). */
+const G_GRAV=16;
+const WAVES=(()=>{
+  const raw=[[0.86,0.51,190,2.4,0.72],[-0.6,0.8,120,1.5,0.68],
+             [0.35,-0.94,70,0.85,0.6],[0.98,-0.2,41,0.42,0.5]];
+  return raw.map(r=>{ const m=Math.hypot(r[0],r[1]);
+    const k=2*Math.PI/r[2];
+    return {dx:r[0]/m,dy:r[1]/m,k,A:r[3],Q:r[4],omega:Math.sqrt(G_GRAV*k)}; });
+})();
+let seaTime=0, seaAmp=1;                    /* shared clock + storm amplitude */
+function seaHeight(x,z){ let y=0;
+  for(const w of WAVES){ const f=w.k*(w.dx*x+w.dy*z)+w.omega*seaTime; y+=w.A*seaAmp*Math.sin(f); }
+  return y; }
+const _slope={x:0,z:0};
+function seaSlope(x,z){ let sx=0,sz=0;
+  for(const w of WAVES){ const f=w.k*(w.dx*x+w.dy*z)+w.omega*seaTime;
+    const c=Math.cos(f)*w.A*seaAmp*w.k; sx+=c*w.dx; sz+=c*w.dy; }
+  _slope.x=sx; _slope.z=sz; return _slope; }
+
+/* the GPU wave grid, following the ship/traveller across the deep */
+const WG_S=1250, WG_SEG=150;
+const waveGeo=(()=>{
+  const g=new THREE.BufferGeometry(), pos=[], idx=[], N=WG_SEG+1;
+  for(let j=0;j<N;j++) for(let i=0;i<N;i++)
+    pos.push(-WG_S+i/WG_SEG*2*WG_S, 0, -WG_S+j/WG_SEG*2*WG_S);
+  for(let j=0;j<WG_SEG;j++) for(let i=0;i<WG_SEG;i++){
+    const a=j*N+i, b=a+1, c=a+N, d=c+1; idx.push(a,c,b, b,c,d); }
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setIndex(idx); return g;
+})();
+const waveUnroll=WAVES.map(w=>`{
+  vec2 D=vec2(${w.dx.toFixed(5)},${w.dy.toFixed(5)});
+  float A=amp*${w.A.toFixed(4)}, k=${w.k.toFixed(6)}, Q=${w.Q.toFixed(3)};
+  float f=k*dot(D,P)+${w.omega.toFixed(5)}*uTime, c=cos(f), s=sin(f);
+  disp.x+=Q*A*D.x*c; disp.z+=Q*A*D.y*c; disp.y+=A*s;
+  float WA=k*A; nrm.x-=D.x*WA*c; nrm.z-=D.y*WA*c; nrm.y-=Q*WA*s;
+}`).join('\n');
+const waveMat=new THREE.ShaderMaterial({
+  transparent:true, side:THREE.DoubleSide,
+  uniforms:{ uTime:{value:0}, uAmp:{value:1}, uCenter:{value:new THREE.Vector2()},
+    uLight:{value:new THREE.Color(1,1,1)}, uFogColor:{value:new THREE.Color(0x9fc5e8)},
+    uFogNear:{value:260}, uFogFar:{value:870}, uSunDir:{value:new THREE.Vector3(0.4,1,0.25)},
+    uDeep:{value:new THREE.Color(0x14385f)}, uShallow:{value:new THREE.Color(0x3f79b0)},
+    uMap:{value:seaTex}, uOpacity:{value:0.9} },
+  vertexShader:`
+    uniform float uTime, uAmp; uniform vec2 uCenter;
+    varying vec3 vNormal; varying float vHeight, vFog; varying vec2 vUv;
+    void main(){
+      vec2 P=position.xz+uCenter;
+      float ed=max(abs(position.x),abs(position.z));
+      float taper=1.0-smoothstep(${(WG_S*0.55).toFixed(1)},${(WG_S*0.97).toFixed(1)},ed);
+      float amp=uAmp*taper;
+      vec3 disp=vec3(P.x, ${WATER_Y.toFixed(3)}, P.y);
+      vec3 nrm=vec3(0.0,1.0,0.0);
+      ${waveUnroll}
+      vHeight=disp.y-${WATER_Y.toFixed(3)};
+      vNormal=normalize(nrm); vUv=P*0.02;
+      vec4 mv=viewMatrix*vec4(disp,1.0); vFog=-mv.z;
+      gl_Position=projectionMatrix*mv;
+    }`,
+  fragmentShader:`
+    precision highp float;
+    uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow; uniform sampler2D uMap;
+    uniform float uFogNear, uFogFar, uOpacity;
+    varying vec3 vNormal; varying float vHeight, vFog; varying vec2 vUv;
+    void main(){
+      vec3 N=normalize(vNormal);
+      float diff=clamp(dot(N,normalize(uSunDir)),0.0,1.0);
+      vec3 tex=texture2D(uMap,vUv).rgb;
+      vec3 base=mix(uDeep,uShallow,clamp(vHeight*0.22+0.5,0.0,1.0));
+      vec3 col=base*(0.62+0.5*diff)*(0.82+0.36*tex.b);
+      float foam=smoothstep(1.15,2.6,vHeight);
+      col=mix(col,vec3(0.92,0.96,1.0),foam*0.6);
+      col*=uLight;
+      float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
+      gl_FragColor=vec4(mix(col,uFogColor,ff),uOpacity);
+    }`
+});
+const waveGrid=new THREE.Mesh(waveGeo,waveMat);
+waveGrid.frustumCulled=false; scene.add(waveGrid);
+const _sunW=new THREE.Vector3();
+function waterTick(px,pz,dayF,storm){
+  seaTime=performance.now()*0.001; seaAmp=1+storm*1.7;
+  const u=waveMat.uniforms;
+  u.uTime.value=seaTime; u.uAmp.value=seaAmp;
+  u.uCenter.value.set(px,pz);
+  u.uLight.value.copy(mix3(0x38405e,0xd9a878,0xffffff,dayF)).multiplyScalar(1-storm*0.34);
+  if(scene.fog){ u.uFogColor.value.copy(scene.fog.color);
+    u.uFogNear.value=scene.fog.near; u.uFogFar.value=scene.fog.far; }
+  sun.getWorldPosition(_sunW); u.uSunDir.value.copy(_sunW).normalize();
+}
 
 /* flat drifting clouds, minecraft-fashion */
 const cloudMat=new THREE.MeshBasicMaterial({map:TEX.clouds,transparent:true,opacity:0.85,depthWrite:false,fog:false,side:THREE.DoubleSide});
@@ -1374,6 +1472,7 @@ function blockedForBoat(x,z){ const cc=landAtWorld(x,z); if(cc) return true;
 function boatTick(dt,helm){
   const bt=state.boat; const [f,t]=helm?axis():[0,0];
   const st=stormAt(bt.x,bt.z);
+  seaTime=performance.now()*0.001; seaAmp=1+st*1.7;    /* fix the sea for this frame */
   const target=f*40*SPEEDS[state.speedIdx][2]*sailFactor(bt.heading)*(1-0.45*st);
   bt.speed+=(target-bt.speed)*Math.min(1,dt*1.2);
   if(Math.abs(bt.speed)>0.4) bt.heading+=t*dt*(0.85+Math.min(1,Math.abs(bt.speed)/22)*0.6);
@@ -1384,10 +1483,14 @@ function boatTick(dt,helm){
   if(!blockedForBoat(bowX,bowZ)&&!blockedForBoat(nx,nz)){
     state.dist+=Math.hypot(nx-bt.x,nz-bt.z); bt.x=nx; bt.z=nz; }
   else bt.speed*=-0.15;
-  const tnow=performance.now()*0.001, swell=1+st*1.6;
-  boatG.position.set(bt.x, WATER_Y+1.1+Math.sin(tnow*1.5)*0.55*swell, bt.z);
-  boatG.rotation.set(Math.sin(tnow*1.2)*0.02*swell - bt.speed*0.002, bt.heading,
-    Math.sin(tnow*0.9)*0.03*swell + t*Math.min(1,Math.abs(bt.speed)/24)*0.12);
+  /* ride the swell: heave to the wave height, pitch and roll to its slope */
+  const hd=seaHeight(bt.x,bt.z), sl=seaSlope(bt.x,bt.z);
+  const fwdX=Math.sin(bt.heading), fwdZ=Math.cos(bt.heading);
+  const pitch=-(sl.x*fwdX+sl.z*fwdZ)*7.0 - bt.speed*0.0016;   /* nose over the crest */
+  const roll =  (sl.x*fwdZ-sl.z*fwdX)*7.0
+    + t*Math.min(1,Math.abs(bt.speed)/24)*0.12;               /* lean into the turn */
+  boatG.position.set(bt.x, WATER_Y+1.1+hd, bt.z);
+  boatG.rotation.set(pitch, bt.heading, roll);
   const w=windAt(bt.x,bt.z);                       // the pennant flies downwind
   if(boatG.userData.flag) boatG.userData.flag.rotation.y=Math.atan2(w.x,w.z)-bt.heading;
   if(boatG.userData.wheel) boatG.userData.wheel.rotation.z-=t*dt*2.5;
@@ -1584,14 +1687,14 @@ function buildFirmament(){
 let firmHintShown=false;
 function enterFirm(){ buildFirmament(); state.firm=true; firmG.visible=true;
   scene.fog=null; state.firmDist=R_WORLD*1.05; state.camPitch=1.05;
-  sea.visible=false; seaDeep.visible=false;
+  sea.visible=false; seaDeep.visible=false; waveGrid.visible=false;
   if(!firmHintShown&&running){ firmHintShown=true;
     toast('Tap a land you have already visited, and a fair wind will carry you to its coasts.'); }
   clouds.scale.set(26,26,1); clouds.position.set(0,R_WORLD*0.03,0);
   $('b-firm').textContent='\u26F5 Return to the ship'; }
 function exitFirm(){ state.firm=false; if(firmG) firmG.visible=false;
   scene.fog=FOG; state.camPitch=0.42; state.camDist=200;
-  sea.visible=true; seaDeep.visible=true;
+  sea.visible=true; seaDeep.visible=true; waveGrid.visible=true;
   clouds.scale.set(1,1,1); clouds.position.y=238;
   $('b-firm').textContent='\uD83D\udd4A The firmament'; }
 
@@ -1855,6 +1958,7 @@ function frame(){
   if(state.mode==='deck') deckTick(dt); else if(state.mode==='walk') walkTick(dt);
   const p=state.mode==='walk'?state.walk:state.boat;
   const light=skyTick(p.x,p.z);
+  waterTick(p.x,p.z,light.dayF,light.storm||0);
   audioTick(light.storm||0);
   updateChunks(p.x,p.z,4);
   updateVillages(p.x,p.z,dt,light.nightF);
@@ -1867,7 +1971,6 @@ function frame(){
     TEX.clouds.offset.x=(p.x/9600*7+state.simHours*0.004)%1;
     TEX.clouds.offset.y=(p.z/9600*7)%1; }
   if(state.firm&&firmMark) firmMark.position.set(p.x,R_WORLD*0.012,p.z);
-  sea.position.y=WATER_Y+Math.sin(performance.now()*0.0009)*0.18;
   seaTex.offset.x=(performance.now()*0.000012)%1; seaTex.offset.y=(performance.now()*0.000009)%1;
   renderer.render(scene,camera);
 }
