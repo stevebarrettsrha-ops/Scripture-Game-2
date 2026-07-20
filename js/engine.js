@@ -10,6 +10,10 @@ window.__VOYAGE=function(){
 'use strict';
 const D=document, $=id=>D.getElementById(id);
 const COUNTRIES=window.EARTH.list, VERSES=window.EARTH.verseList, RIVERS=window.EARTH.riverList;
+/* the great cities (one per land, for the flagship coasts); the rest keep small villages */
+const CITIES=window.EARTH.cityList||[]; const CITY_BY_COUNTRY={};
+for(const c of CITIES) CITY_BY_COUNTRY[c.country]=c;
+function cityFor(i){ return CITY_BY_COUNTRY[COUNTRIES[i].n]; }
 
 /* ---------------- world constants ---------------- */
 const R_WORLD=120000, B=6, CH=16, CHW=B*CH, VIEW=8; /* rim = 20,000 km, 1 block = 1 km */
@@ -1293,6 +1297,75 @@ function emitPen(G,cx,cz,y,w,d){
   emitHay(G,cx+B*0.4,cz-B*0.35,y);
 }
 function emitBench(G,x,z,y){ emitBox(G,x-B*0.5,y,z-B*0.5,x+B*0.5,y+B,z+B*0.5,'benchSide','benchTop',null); }
+/* ================= CITY PIECES ================= */
+/* a paved plaza of cobblestone */
+function emitPlaza(G,cx,cz,y,rad){
+  const r=Math.ceil(rad/B), ci=Math.floor(cx/B), cj=Math.floor(cz/B);
+  for(let a=-r;a<=r;a++) for(let b2=-r;b2<=r;b2++){
+    if(a*a+b2*b2>r*r) continue;
+    const ix=ci+a, iz=cj+b2, c=cell(ix,iz); if(!c||c.kind==='wall'||c.kind==='floe') continue;
+    faceTop(G,'cobble', ix*B+0.04, iz*B+0.04, (ix+1)*B-0.04,(iz+1)*B-0.04, c.h*B+0.06, 0.95);
+  }
+}
+/* a market / fish stall — posts, a striped canopy, a counter, and goods */
+function emitStall(G,x,z,y,kind){
+  const w=B*1.15, d=B*0.95;
+  emitBox(G, x-w,y,z-d, x+w,y+B*0.95,z+d, 'planks','benchTop',null);            // counter
+  for(const sx of [-1,1]) for(const sz of [-1,1])
+    emitBox(G, x+sx*w-0.22,y,z+sz*d-0.22, x+sx*w+0.22,y+B*2.7,z+sz*d+0.22,'logSide','logTop',null);
+  const canopy = kind==='fish' ? 'wool' : 'haySide';
+  emitBox(G, x-w-B*0.45,y+B*2.6,z-d-B*0.45, x+w+B*0.45,y+B*2.95,z+d+B*0.45, canopy,canopy,canopy);
+  const goods = kind==='fish' ? ['waterB','glass','waterB'] : ['hayTop','flowerR','flowerY'];
+  for(let k=0;k<3;k++){ const gx=x-w*0.6+k*w*0.6, gm=goods[k%goods.length];
+    emitBox(G, gx-B*0.24,y+B*0.95,z-B*0.24, gx+B*0.24,y+B*1.3,z+B*0.24, gm,gm,gm); }
+}
+/* build a whole city on the country's site — streets, plaza, market, fish
+   stall, and rows of homes (one per resident). Returns {homes, market, fish}. */
+function buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i){
+  const cx=site.x, cz=site.z, sz2=cfg.size||2, nHomes=cfg.houses||10;
+  emitPlaza(G, cx,cz, wy, B*(3.5+sz2));
+  emitWell(G, cx,cz, wy); solids.push({x:cx,z:cz,r:B*1.7});
+  const spacing=B*7, reach=B*(6+Math.ceil(nHomes/3));
+  emitPathLine(G, cx-reach,cz, cx+reach,cz);            // the two main streets
+  emitPathLine(G, cx,cz-reach, cx,cz+reach);
+  const lots=[];
+  for(let gy=-3;gy<=3;gy++) for(let gx=-3;gx<=3;gx++){
+    if(Math.abs(gx)<=0&&Math.abs(gy)<=0) continue;
+    lots.push([gx,gy,Math.abs(gx)+Math.abs(gy)+rnd(gx*7+gy)*0.3]); }
+  lots.sort((a,b)=>a[2]-b[2]);
+  const homes=[]; let placed=0;
+  for(const lot of lots){ if(placed>=nHomes) break;
+    const gx=lot[0], gy=lot[1];
+    if(gx===0||gy===0) continue;                        // keep the streets clear
+    const hx=cx+gx*spacing+(rnd(placed+1)-0.5)*B*1.5, hz=cz+gy*spacing+(rnd(placed+9)-0.5)*B*1.5;
+    const hc=landAtWorld(hx,hz); if(!hc||hc.kind==='wall'||hc.kind==='floe') continue;
+    const w=3+Math.floor(rnd(placed+20)*2), d=3+Math.floor(rnd(placed+25)*2);
+    const ddx=cx-hx, ddz=cz-hz;
+    const doorDir=Math.abs(ddz)>=Math.abs(ddx)?(ddz>0?0:1):(ddx>0?2:3);
+    emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+placed);
+    const H=ex.houses[ex.houses.length-1];
+    emitPathLine(G, H.dx,H.dz, cx+gx*spacing, cz);      // a lane to the street
+    emitPathLine(G, cx+gx*spacing, cz, cx+gx*spacing, cz+gy*spacing);
+    homes.push({x:hx,z:hz,doorx:H.dx,doorz:H.dz}); placed++;
+  }
+  /* the market — a row of stalls along the eastern street */
+  let market=null;
+  if(cfg.market!==false){ market={x:cx+B*4,z:cz};
+    for(let k=0;k<3+sz2;k++){ const sx=cx+B*(3+k*2.6), sz=cz+B*2.3;
+      const c=landAtWorld(sx,sz); if(!c||c.kind==='wall') continue;
+      emitStall(G,sx,sz,c.h*B,'market'); solids.push({x:sx,z:sz,r:B*1.2}); } }
+  /* extra wells of water */
+  for(let w2=1;w2<(cfg.wells||1);w2++){ const a=rnd(w2+70)*6.28, rr=B*(6+w2*3);
+    const wx=cx+Math.cos(a)*rr, wz=cz+Math.sin(a)*rr, c=landAtWorld(wx,wz);
+    if(c&&c.kind!=='wall'){ emitWell(G,wx,wz,c.h*B); solids.push({x:wx,z:wz,r:B*1.7}); } }
+  /* lamp posts along the streets */
+  for(let t=-3;t<=3;t++){ if(!t) continue;
+    for(const p of [[cx+t*spacing*0.5,cz],[cx,cz+t*spacing*0.5]]){
+      const c=landAtWorld(p[0],p[1]); if(!c||c.kind==='wall') continue;
+      emitBox(G,p[0]-0.5,c.h*B,p[1]-0.5,p[0]+0.5,c.h*B+B*1.9,p[1]+0.5,'logSide','logTop',null);
+      torches.push({x:p[0],y:c.h*B+B*1.9,z:p[1]}); } }
+  return {homes,market};
+}
 const deckMap=new Map();
 function buildPier(G,ex,site,rnd,torches){
   let best=null;
@@ -1337,66 +1410,76 @@ function buildPier(G,ex,site,rnd,torches){
   return deckKeys;
 }
 const activeVillages=new Map();
+let worldNight=0;   /* 0 by day .. 1 deep night — sends folk home */
 function spawnVillage(i){
   const site=SITES[i]; if(!site){ activeVillages.set(i,{none:true}); return; }
   const rnd=k=>hash2(i*31.7+k*7.7, i*11.3+k*3.9);
   const G=newG(); const ex={doors:[],houses:[],torchIn:[]};
   const wy=topY(site.ix,site.iz);
-  /* houses in a ring about the well */
-  const nH=3+Math.floor(rnd(1)*3);
-  const houseAt=[];
-  for(let h=0;h<nH;h++){
-    const ang=rnd(h+2)*Math.PI*2, rad=(4.2+rnd(h+9)*3.4)*B;
-    const hx=site.x+Math.cos(ang)*rad, hz=site.z+Math.sin(ang)*rad;
-    const hc=landAtWorld(hx,hz); if(!hc||hc.kind==='wall'||hc.kind==='floe') continue;
-    const y=hc.h*B;
-    const w=3+Math.floor(rnd(h+20)*2)*1, d=3+Math.floor(rnd(h+25)*3);
-    /* the door faces the well */
-    const dx=site.x-hx, dz=site.z-hz;
-    const doorDir=Math.abs(dz)>=Math.abs(dx) ? (dz>0?0:1) : (dx>0?2:3);
-    emitHouse(G,ex, hx,hz,y, w,d, doorDir, i*100+h);
-    houseAt.push({x:hx,z:hz});
-  }
-  emitWell(G, site.x, site.z, wy);
-  /* paths from the well to every door */
-  for(const dr of ex.doors) emitPathLine(G, site.x,site.z, dr.x,dr.z);
-  /* a farm or two */
-  const nF=1+(rnd(40)>0.55?1:0);
-  for(let f=0;f<nF;f++){
-    const ang=rnd(f+44)*Math.PI*2, rad=(7+rnd(f+48)*3)*B;
-    const fx=site.x+Math.cos(ang)*rad, fz=site.z+Math.sin(ang)*rad;
-    const fc=landAtWorld(fx,fz); if(!fc||fc.kind==='wall') continue;
-    emitFarm(G, fx,fz, fc.h*B, i*100+f);
-    emitPathLine(G, site.x,site.z, fx,fz);
-  }
-  /* hay bales */
-  for(let hb=0; hb<1+Math.floor(rnd(52)*3); hb++){
-    const ang=rnd(hb+54)*Math.PI*2, rad=(3+rnd(hb+58)*5)*B;
-    const x=site.x+Math.cos(ang)*rad, z=site.z+Math.sin(ang)*rad;
-    const c2=landAtWorld(x,z); if(!c2||c2.kind==='wall') continue;
-    emitHay(G,x,z,c2.h*B);
-  }
-  /* a fenced pen for the beasts */
-  { const ang=rnd(130)*Math.PI*2, rad=(6+rnd(133)*3)*B;
-    const px2=site.x+Math.cos(ang)*rad, pz2=site.z+Math.sin(ang)*rad;
-    const pc=landAtWorld(px2,pz2);
-    if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'){ emitPen(G,px2,pz2,pc.h*B,4,3);
-      emitPathLine(G,site.x,site.z,px2,pz2); } }
-  /* a crafting bench by the well */
-  { const bx=site.x+B*1.9, bz=site.z-B*1.4; const bc=landAtWorld(bx,bz);
-    if(bc&&bc.kind!=='wall') emitBench(G,bx,bz,bc.h*B); }
-  /* lamp posts with torches */
-  const torches=[]; const glowSprites=[];
-  for(let t=0;t<3;t++){ const ang=rnd(t+62)*Math.PI*2, rad=(2.5+rnd(t+66)*4)*B;
-    const tx=site.x+Math.cos(ang)*rad, tz=site.z+Math.sin(ang)*rad;
-    const tc2=landAtWorld(tx,tz); if(!tc2||tc2.kind==='wall') continue;
-    const ty=tc2.h*B;
-    emitBox(G, tx-0.5,ty,tz-0.5, tx+0.5,ty+B*1.6,tz+0.5, 'logSide','logTop',null);
-    torches.push({x:tx,y:ty+B*1.6,z:tz});
+  const cfg=cityFor(i);                 /* a great city here, or a small village? */
+  const torches=[]; const solids=[];
+  let cityHomes=null;
+  if(cfg){
+    const ci=buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i);
+    cityHomes=ci.homes;
+    /* a fenced pen for the beasts on the outskirts */
+    { const a=rnd(130)*6.28, rr=B*(9+(cfg.size||2)*2);
+      const px2=site.x+Math.cos(a)*rr, pz2=site.z+Math.sin(a)*rr, pc=landAtWorld(px2,pz2);
+      if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'){ emitPen(G,px2,pz2,pc.h*B,5,4);
+        emitPathLine(G,site.x,site.z,px2,pz2); } }
+  } else {
+    /* --- a small village --- houses in a ring about the well --- */
+    const nH=3+Math.floor(rnd(1)*3);
+    for(let h=0;h<nH;h++){
+      const ang=rnd(h+2)*Math.PI*2, rad=(4.2+rnd(h+9)*3.4)*B;
+      const hx=site.x+Math.cos(ang)*rad, hz=site.z+Math.sin(ang)*rad;
+      const hc=landAtWorld(hx,hz); if(!hc||hc.kind==='wall'||hc.kind==='floe') continue;
+      const w=3+Math.floor(rnd(h+20)*2)*1, d=3+Math.floor(rnd(h+25)*3);
+      const dx=site.x-hx, dz=site.z-hz;
+      const doorDir=Math.abs(dz)>=Math.abs(dx) ? (dz>0?0:1) : (dx>0?2:3);
+      emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+h);
+    }
+    emitWell(G, site.x, site.z, wy); solids.push({x:site.x,z:site.z,r:B*1.5});
+    for(const dr of ex.doors) emitPathLine(G, site.x,site.z, dr.x,dr.z);
+    const nF=1+(rnd(40)>0.55?1:0);
+    for(let f=0;f<nF;f++){
+      const ang=rnd(f+44)*Math.PI*2, rad=(7+rnd(f+48)*3)*B;
+      const fx=site.x+Math.cos(ang)*rad, fz=site.z+Math.sin(ang)*rad;
+      const fc=landAtWorld(fx,fz); if(!fc||fc.kind==='wall') continue;
+      emitFarm(G, fx,fz, fc.h*B, i*100+f); emitPathLine(G, site.x,site.z, fx,fz);
+    }
+    for(let hb=0; hb<1+Math.floor(rnd(52)*3); hb++){
+      const ang=rnd(hb+54)*Math.PI*2, rad=(3+rnd(hb+58)*5)*B;
+      const x=site.x+Math.cos(ang)*rad, z=site.z+Math.sin(ang)*rad;
+      const c2=landAtWorld(x,z); if(!c2||c2.kind==='wall') continue;
+      emitHay(G,x,z,c2.h*B);
+    }
+    { const ang=rnd(130)*Math.PI*2, rad=(6+rnd(133)*3)*B;
+      const px2=site.x+Math.cos(ang)*rad, pz2=site.z+Math.sin(ang)*rad;
+      const pc=landAtWorld(px2,pz2);
+      if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'){ emitPen(G,px2,pz2,pc.h*B,4,3);
+        emitPathLine(G,site.x,site.z,px2,pz2); } }
+    { const bx=site.x+B*1.9, bz=site.z-B*1.4; const bc=landAtWorld(bx,bz);
+      if(bc&&bc.kind!=='wall') emitBench(G,bx,bz,bc.h*B); }
+    for(let t=0;t<3;t++){ const ang=rnd(t+62)*Math.PI*2, rad=(2.5+rnd(t+66)*4)*B;
+      const tx=site.x+Math.cos(ang)*rad, tz=site.z+Math.sin(ang)*rad;
+      const tc2=landAtWorld(tx,tz); if(!tc2||tc2.kind==='wall') continue;
+      emitBox(G, tx-0.5,tc2.h*B,tz-0.5, tx+0.5,tc2.h*B+B*1.6,tz+0.5, 'logSide','logTop',null);
+      torches.push({x:tx,y:tc2.h*B+B*1.6,z:tz});
+    }
   }
   torches.push(...ex.torchIn);          /* the hearth-lights within the houses */
   /* the pier, if the sea lies near */
   const deckKeys=buildPier(G,ex,site,rnd,torches)||[];
+  /* a fishmonger's stall by the pier, in the great cities */
+  if(cfg&&cfg.fishStall!==false&&ex.pier){
+    const fx=ex.pier.x, fz=ex.pier.z, fc=landAtWorld(fx-B,fz);
+    let px3=fx,pz3=fz;
+    for(let rr=1;rr<8;rr++){ const c=landAtWorld(fx+Math.cos(rr)*rr*B, fz+Math.sin(rr)*rr*B);
+      if(c&&c.kind!=='wall'){ px3=fx+Math.cos(rr)*rr*B; pz3=fz+Math.sin(rr)*rr*B; break; } }
+    const c=landAtWorld(px3,pz3); if(c&&c.kind!=='wall'){ emitStall(G,px3,pz3,c.h*B,'fish');
+      solids.push({x:px3,z:pz3,r:B*1.2}); }
+  }
   /* build the merged meshes */
   const g=new THREE.Group();
   for(const mat in G){ const gg=G[mat];
@@ -1411,8 +1494,6 @@ function spawnVillage(i){
     dm.geometry.translate(D2.w/2,D2.h/2,0);
     dm.position.set(D2.hx,D2.y,D2.hz); dm.rotation.y=D2.base;
     g.add(dm); D2.mesh=dm; }
-  /* solid things you cannot walk through: the well, the hay, the pens */
-  const solids=[{x:site.x,z:site.z,r:B*1.5}];
   /* torch tips + night glow */
   const torchMats=[];
   for(const tp of torches){
@@ -1424,13 +1505,13 @@ function spawnVillage(i){
   }
   /* the people of the land, each at their labour */
   const people=[]; const cx=site.x, cz=site.z;
-  const addPerson=(role,hx,hz,roamR,child,faceX,faceZ)=>{
+  const addPerson=(role,hx,hz,roamR,child,faceX,faceZ,home)=>{
     const seed=i*1000+people.length*7;
     const cc=landAtWorld(hx,hz); if(!cc||cc.kind==='wall') { hx=cx; hz=cz; }
     const per=makePerson(seed,role,child);
     per.position.set(hx,topY(Math.floor(hx/B),Math.floor(hz/B)),hz); g.add(per);
     people.push({m:per,role,hx,hz,roamR:roamR||3,tx:hx,tz:hz,t:hash2(seed,7)*4,seed,
-      child:!!child,faceX,faceZ}); };
+      child:!!child,faceX,faceZ,home}); };
   /* a teacher and the young children gathered for the lesson */
   const lx=cx+Math.cos(rnd(200)*6.28)*B*3.5, lz=cz+Math.sin(rnd(200)*6.28)*B*3.5;
   addPerson('teacher',lx,lz,1.0,false,lx,lz+B);
@@ -1442,6 +1523,15 @@ function spawnVillage(i){
   addPerson('farmer',cx+B*6,cz+B*3,3);
   const nFolk=1+Math.floor(rnd(70)*2);
   for(let p=0;p<nFolk;p++) addPerson('folk',cx+(rnd(p+30)-0.5)*B*4,cz+(rnd(p+40)-0.5)*B*4,3);
+  /* a great city: a resident in every home, and vendors at the stalls */
+  if(cityHomes&&cityHomes.length){
+    for(let h=0;h<cityHomes.length;h++){ const hm=cityHomes[h];
+      addPerson('folk', hm.doorx, hm.doorz, 3, false, undefined,undefined, hm); }
+    for(let v=0;v<3;v++){ const vx=cx+B*(3.5+v*2.6), vz=cz+B*3.4;
+      const c=landAtWorld(vx,vz); if(c&&c.kind!=='wall')
+        addPerson('folk', vx, vz, 0.7, false, vx, vz-B, {doorx:vx,doorz:vz}); }
+    addPerson('folk', cx-B*3, cz+B*3, 0.7, false, cx-B*3, cz+B*4);   /* a fisher near the quay */
+  }
   /* the beasts of the field and the creeping things */
   const lat=90-Math.hypot(site.x/R_WORLD,site.z/R_WORLD)*180;
   const baseKind=(cellRaw(site.ix,site.iz)||{kind:'grass'}).kind;
@@ -1471,8 +1561,12 @@ function wanderTick(ent,site,dt,speed){
   if(ent.t<=0){
     ent.t=(ent.role==='teacher'||ent.role==='child'?3.5:2)
       +hash2(ent.seed,(performance.now()%9973)*0.13)*(ent.role==='hunter'?7:5);
-    const a=Math.random()*Math.PI*2, r=Math.random()*roamR*B;
-    const nx=ax+Math.cos(a)*r, nz=az+Math.sin(a)*r;
+    let nx,nz;
+    if(worldNight>0.55&&ent.home){                    /* at dusk, go home */
+      nx=(ent.home.doorx!==undefined?ent.home.doorx:ent.home.x)+(Math.random()-0.5)*2;
+      nz=(ent.home.doorz!==undefined?ent.home.doorz:ent.home.z)+(Math.random()-0.5)*2;
+    } else { const a=Math.random()*Math.PI*2, r=Math.random()*roamR*B;
+      nx=ax+Math.cos(a)*r; nz=az+Math.sin(a)*r; }
     const cc=landAtWorld(nx,nz); if(cc&&cc.kind!=='wall'){ ent.tx=nx; ent.tz=nz; } }
   const dx=ent.tx-ent.m.position.x, dz=ent.tz-ent.m.position.z;
   const d=Math.hypot(dx,dz); let moving=d>0.6;
@@ -1499,6 +1593,7 @@ function birdTick(bd,dt){
   const u=bd.m.userData; if(u.wingL){ u.wingL.rotation.z=flap; u.wingR.rotation.z=-flap; }
 }
 function updateVillages(px,pz,dt,nightF){
+  worldNight=nightF;
   for(let i=0;i<COUNTRIES.length;i++){
     const s0=SITES[i]; const c=COUNTRIES[i].c;
     const sxp=s0?s0.x:c[0]*R_WORLD, szp=s0?s0.z:c[1]*R_WORLD;
@@ -2039,7 +2134,8 @@ function placeTick(){
       if(vs) toast(vs.t,vs.ref); } }
   else{
     const ci=countryAtUV(u,v);
-    if(ci) txt=COUNTRIES[ci-1].n.toUpperCase();
+    if(ci){ const cty=cityFor(ci-1);
+      txt=(cty?cty.name+' — '+COUNTRIES[ci-1].n:COUNTRIES[ci-1].n).toUpperCase(); }
     else{ let best=-1,bd=1e9;
       for(let i=0;i<COUNTRIES.length;i++){ const c=COUNTRIES[i].c;
         const d=Math.hypot(u-c[0],v-c[1]); if(d<bd){bd=d;best=i;} }

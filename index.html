@@ -137,10 +137,11 @@
 /* The registry the land, verse and river files feed into.
    Each file in countries/ calls EARTH.country({...}) — one land per file,
    loaded in a fixed order so the world is identical on every machine. */
-window.EARTH={list:[],verseList:[],riverList:[],
+window.EARTH={list:[],verseList:[],riverList:[],cityList:[],
   country:function(c){this.list.push(c);},
   verses:function(v){this.verseList=v;},
-  river:function(r){this.riverList.push(r);}};
+  river:function(r){this.riverList.push(r);},
+  city:function(c){this.cityList.push(c);}};
 </script>
 <script src="countries/fiji.js"></script>
 <script src="countries/tanzania.js"></script>
@@ -318,6 +319,24 @@ window.EARTH={list:[],verseList:[],riverList:[],
 <script src="countries/kosovo.js"></script>
 <script src="countries/trinidad-and-tobago.js"></script>
 <script src="countries/s-sudan.js"></script>
+<script src="cities/tsor.js"></script>
+<script src="cities/yapho.js"></script>
+<script src="cities/no-amon.js"></script>
+<script src="cities/korinthos.js"></script>
+<script src="cities/ostia.js"></script>
+<script src="cities/tarshish.js"></script>
+<script src="cities/ephesus.js"></script>
+<script src="cities/londin.js"></script>
+<script src="cities/massilia.js"></script>
+<script src="cities/lisbon.js"></script>
+<script src="cities/tingis.js"></script>
+<script src="cities/muziris.js"></script>
+<script src="cities/canton.js"></script>
+<script src="cities/sakai.js"></script>
+<script src="cities/new-haven.js"></script>
+<script src="cities/bahia.js"></script>
+<script src="cities/cape.js"></script>
+<script src="cities/amsteldam.js"></script>
 <script src="world/rivers.js"></script>
 <script src="world/verses.js"></script>
 <script src="js/engine.js"></script>
