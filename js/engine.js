@@ -272,7 +272,15 @@ function cellRaw(ix,iz){
   const desert = lat>11 && lat<36 && n2>0.42 && inland>0.5;
   const tropic = lat<=11 && lat>-38;
   let kind, tree=0;
-  if(h<=2 && inland<1 && !snow && !tundra){ kind='sand'; h=Math.min(h,2); }
+  if(!snow&&!tundra&&inland<1){
+    /* the shore terraces down to the water, minecraft-fashion */
+    const cap=1+Math.round(inland*5);
+    if(h>cap) h=cap;
+  }
+  if(!snow&&!tundra&&inland<=0.5){ kind='sand'; h=Math.min(h,2);
+    if(tropic&&j<0.035) tree=2;               /* palms on the strand */
+  }
+  else if(h<=2 && inland<1 && !snow && !tundra){ kind='sand'; h=Math.min(h,2); }
   else if(snow) kind='snow';
   else if(tundra){ kind='tundra'; tree=j<0.02?1:0; }
   else if(desert){ kind='desert'; }
@@ -526,7 +534,7 @@ const glowTexCv=(()=>{ const c=texCanvas(128); const g=c.getContext('2d');
 /* ================= COURSES OF THE LIGHTS ================= */
 const state={ simHours:9.5, speedIdx:1, paused:false,
   mode:'boat', boat:{x:0,z:0,heading:Math.PI*0.9,speed:0},
-  walk:{x:0,z:0,heading:0}, windMode:'true', firm:false, firmDist:0, camYaw:0, camPitch:0.42, camDist:78,
+  walk:{x:0,z:0,heading:0}, deck:{lx:2.4,lz:-21,h:Math.PI}, windMode:'true', firm:false, firmDist:0, camYaw:0, camPitch:0.42, camDist:96,
   visited:new Set(), dist:0 };
 
 /* ================= THE WINDS =================
@@ -635,21 +643,63 @@ function texBox(w,h,d, matSide, matTop, matBot){
   const ms=entMat(matSide), mt=entMat(matTop||matSide), mb=entMat(matBot||matSide);
   return new THREE.Mesh(g,[ms,ms,mt,mb,ms,ms]);
 }
+/* A true brig, black-flag-fashion: long hull, two masts of square sails, a
+   raised quarterdeck with the ship's wheel, bulwarks you walk between, a
+   bowsprit over the bow. Local +z is FORWARD (the bow); the quarterdeck and
+   helm sit aft at -z, in view of the following camera. The deck is a real
+   place — the traveller stands at the wheel to sail, and can walk the planks. */
+const DECK_Y=6.2, QDECK_Y=11, QDECK_Z=-17.6, HELM={x:0,z:-22.6}, WHEEL_Z=-20.4;
 const boatG=new THREE.Group();
-{ const hull=texBox(10,4,26,'planks','planks'); hull.position.y=2; boatG.add(hull);
-  const bow=texBox(8,3.4,6,'planks'); bow.position.set(0,2.2,-15); boatG.add(bow);
-  const stern=texBox(9,5,4,'planks'); stern.position.set(0,3,13.5); boatG.add(stern);
-  const rimL=texBox(1.4,2,26,'logSide','logTop'); rimL.position.set(4.6,4.6,0); boatG.add(rimL);
-  const rimR=rimL.clone(); rimR.position.x=-4.6; boatG.add(rimR);
-  const mast=texBox(1.2,26,1.2,'logSide','logTop'); mast.position.set(0,16,1); boatG.add(mast);
-  const boom=texBox(1,1,14,'logSide'); boom.position.set(0,8,-3); boatG.add(boom);
-  const sail=new THREE.Mesh(new THREE.PlaneGeometry(13,15),
-    new THREE.MeshBasicMaterial({map:TEX.wool,side:THREE.DoubleSide}));
-  sail.material.color.setRGB(1,1,1); LIT.push(sail.material);
-  sail.position.set(0,16.5,-2.2); boatG.add(sail);
-  const flag=texBox(4,2,0.3,'hayTop'); flag.position.set(2,28.5,1); boatG.add(flag);
-  boatG.userData={flag};
+{ const add=(m,x,y,z)=>{ m.position.set(x,y,z); boatG.add(m); return m; };
+  /* hull, bow taper, bowsprit */
+  add(texBox(14,6.4,52,'planks','planks'),0,3.0,-2);          // main hull, deck top at 6.2
+  add(texBox(10,5.2,10,'planks','planks'),0,2.6,27);
+  add(texBox(5,4.2,7,'planks','planks'),0,2.1,34);
+  add(texBox(1.3,1.3,15,'logSide','logTop'),0,6.6,38);        // bowsprit
+  /* bulwarks along the waist, with a gangway gap amidships */
+  for(const s of [1,-1]){
+    add(texBox(1.0,2.0,17,'planks','planks'),s*6.4,7.2,14.5);
+    add(texBox(1.0,2.0,18,'planks','planks'),s*6.4,7.2,-8.6);
+  }
+  add(texBox(12,2.0,1.0,'planks','planks'),0,7.2,23.4);       // bow rail
+  /* quarterdeck aft, its rails, and the stair down to the waist */
+  add(texBox(14,4.8,10.4,'planks','planks'),0,8.6,-22.8);     // top at 11
+  for(const s of [1,-1]) add(texBox(1.0,1.8,10.4,'logSide','logTop'),s*6.4,11.9,-22.8);
+  add(texBox(14,1.8,1.0,'logSide','logTop'),0,11.9,-27.6);    // taffrail
+  add(texBox(5,1.2,2.4,'planks','planks'),0,6.8,-16.6);       // stair steps
+  add(texBox(5,2.4,2.4,'planks','planks'),0,7.4,-18.4);
+  /* the wheel on its pedestal */
+  add(texBox(1.1,2.4,1.1,'logSide','logTop'),0,12.2,WHEEL_Z);
+  const wheel=add(texBox(3.6,3.6,0.6,'benchSide','benchTop'),0,14.6,WHEEL_Z-0.2);
+  for(const [hx,hy] of [[0,2.1],[0,-2.1],[2.1,0],[-2.1,0]])
+    { const hnd=texBox(0.5,0.5,0.9,'logSide'); hnd.position.set(hx,hy,0); wheel.add(hnd); }
+  /* masts, yards and square sails */
+  const mkSail=(w,h)=>{ const m=new THREE.MeshBasicMaterial({map:TEX.wool,side:THREE.DoubleSide});
+    m.color.setRGB(1,1,1); LIT.push(m);
+    return new THREE.Mesh(new THREE.PlaneGeometry(w,h),m); };
+  const mast=(z,hgt)=>{ add(texBox(1.6,hgt,1.6,'logSide','logTop'),0,hgt/2+DECK_Y,z);
+    add(texBox(hgt*0.52,0.9,0.9,'logSide'),0,DECK_Y+hgt*0.62,z);     // lower yard
+    add(texBox(hgt*0.36,0.8,0.8,'logSide'),0,DECK_Y+hgt*0.88,z);     // upper yard
+    add(mkSail(hgt*0.5,hgt*0.26),0,DECK_Y+hgt*0.52,z+0.9);
+    add(mkSail(hgt*0.34,hgt*0.18),0,DECK_Y+hgt*0.82,z+0.9); };
+  mast(9,36);                                                  // foremast
+  mast(-7,42);                                                 // mainmast
+  /* stern-cabin windows */
+  { const gm=new THREE.MeshBasicMaterial({map:TEX.glass,transparent:true,depthWrite:false});
+    for(const wx of [-3.5,0,3.5]){ const win=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.6),gm);
+      win.position.set(wx,4.6,-28.06); win.rotation.y=Math.PI; boatG.add(win); } }
+  const flag=texBox(4,2,0.3,'hayTop'); flag.position.set(2,DECK_Y+44.5,-7); boatG.add(flag);
+  boatG.userData={flag,wheel};
   scene.add(boatG); }
+/* walkable regions of the deck, in ship-local coordinates */
+function deckAllowed(lx,lz){
+  if(Math.abs(lx)>5.8) return false;
+  if(lz>22.8||lz<-27.0) return false;
+  if(Math.hypot(lx,lz-9)<2.0||Math.hypot(lx,lz+7)<2.0) return false;   // the masts
+  if(lz<QDECK_Z&&Math.hypot(lx,lz-WHEEL_Z)<1.6) return false;          // the wheel
+  return true;
+}
+function deckHeightAt(lz){ return lz<QDECK_Z?QDECK_Y:DECK_Y; }
 
 /* ================= THE TRAVELLER (steve-fashion) ================= */
 function lam(col){ return new THREE.MeshLambertMaterial({color:col}); }
@@ -1204,7 +1254,7 @@ function firmTravel(e){
   if(px===null){ toast(co.n+' lies far from the sea — no wind can carry a ship there.'); return; }
   state.boat.x=px; state.boat.z=pz; state.boat.speed=0;
   state.boat.heading=Math.atan2(site.x-px,site.z-pz);
-  state.mode='boat'; walkerG.visible=false; updateAshoreBtn(); exitFirm();
+  setMode('boat'); exitFirm();
   updateChunks(px,pz,9999);
   toast('A fair wind carries you to the coasts of '+co.n+'.');
   saveState();
@@ -1225,8 +1275,8 @@ function axis(){
 /* ================= MOVEMENT ================= */
 function blockedForBoat(x,z){ const cc=landAtWorld(x,z); if(cc) return true;
   return Math.hypot(x,z)/R_WORLD>0.985; }
-function boatTick(dt){
-  const bt=state.boat; const [f,t]=axis();
+function boatTick(dt,helm){
+  const bt=state.boat; const [f,t]=helm?axis():[0,0];
   const st=stormAt(bt.x,bt.z);
   const target=f*40*SPEEDS[state.speedIdx][2]*sailFactor(bt.heading)*(1-0.45*st);
   bt.speed+=(target-bt.speed)*Math.min(1,dt*1.2);
@@ -1234,7 +1284,7 @@ function boatTick(dt){
   const nx=bt.x+Math.sin(bt.heading)*bt.speed*dt, nz=bt.z+Math.cos(bt.heading)*bt.speed*dt;
   /* probe ahead of the motion: the bow when sailing, the stern when reversing */
   const sgn=bt.speed>=0?1:-1;
-  const bowX=nx+Math.sin(bt.heading)*16*sgn, bowZ=nz+Math.cos(bt.heading)*16*sgn;
+  const bowX=nx+Math.sin(bt.heading)*38*sgn, bowZ=nz+Math.cos(bt.heading)*38*sgn;
   if(!blockedForBoat(bowX,bowZ)&&!blockedForBoat(nx,nz)){
     state.dist+=Math.hypot(nx-bt.x,nz-bt.z); bt.x=nx; bt.z=nz; }
   else bt.speed*=-0.15;
@@ -1244,6 +1294,7 @@ function boatTick(dt){
     Math.sin(tnow*0.9)*0.03*swell + t*Math.min(1,Math.abs(bt.speed)/24)*0.12);
   const w=windAt(bt.x,bt.z);                       // the pennant flies downwind
   if(boatG.userData.flag) boatG.userData.flag.rotation.y=Math.atan2(w.x,w.z)-bt.heading;
+  if(boatG.userData.wheel) boatG.userData.wheel.rotation.z-=t*dt*2.5;
 }
 /* solid structures: house walls stop you (save for the doorway), trees stop you */
 function blockedByStructure(nx,nz){
@@ -1273,7 +1324,7 @@ function walkTick(dt){
   const nx=w.x+Math.sin(w.heading)*sp*dt, nz=w.z+Math.cos(w.heading)*sp*dt;
   const cc=landAtWorld(nx,nz);
   const onDeckNext=deckMap.get(Math.floor(nx/B)+','+Math.floor(nz/B));
-  const nearBoat=Math.hypot(nx-state.boat.x,nz-state.boat.z)<26;
+  const nearBoat=Math.hypot(nx-state.boat.x,nz-state.boat.z)<55;
   if(((cc&&cc.kind!=='wall')||nearBoat||onDeckNext!==undefined)
      &&!blockedByStructure(nx,nz)&&!treeBlocked(nx,nz)){
     state.dist+=Math.hypot(nx-w.x,nz-w.z); w.x=nx; w.z=nz; }
@@ -1301,30 +1352,87 @@ function markDiscovery(x,z){
   else toast('You have come ashore in '+co.n+' — the '+ordinal(state.visited.size)+' of the '+COUNTRIES.length+' lands of your voyage.');
   saveState();
 }
-function toggleAshore(){
-  if(state.mode==='boat'){
-    const bt=state.boat;
-    for(let rad=1;rad<8;rad++) for(let a=0;a<rad*8;a++){
-      const th=a/(rad*8)*Math.PI*2;
-      const x=bt.x+Math.cos(th)*rad*B, z=bt.z+Math.sin(th)*rad*B;
-      const cc=landAtWorld(x,z);
-      if(cc&&cc.kind!=='wall'){ state.walk.x=x; state.walk.z=z; state.walk.heading=bt.heading;
-        state.mode='walk'; walkerG.visible=true; updateAshoreBtn(); markDiscovery(x,z); return; }
-    }
-    let bestD=null;
-    for(const [k,yv] of deckMap){ const parts=k.split(','),ix=+parts[0],iz=+parts[1];
-      const x=(ix+.5)*B, z=(iz+.5)*B, dd=Math.hypot(x-bt.x,z-bt.z);
-      if(dd<10*B&&(!bestD||dd<bestD.dd)) bestD={x,z,dd}; }
-    if(bestD){ state.walk.x=bestD.x; state.walk.z=bestD.z; state.walk.heading=bt.heading;
-      state.mode='walk'; walkerG.visible=true; updateAshoreBtn(); markDiscovery(bestD.x,bestD.z); return; }
-    toast('No shore within reach — draw nearer to the land.');
-  } else {
-    if(Math.hypot(state.walk.x-state.boat.x,state.walk.z-state.boat.z)<40){
-      state.mode='boat'; walkerG.visible=false; updateAshoreBtn();
-    } else toast('The ship lies too far off — return to the water\u2019s edge.');
-  }
+/* ================= MODES: HELM · DECK · SHORE =================
+   The traveller is always a body in the world: at the wheel when sailing,
+   walking the planks of the deck, or ashore. E (or the ⚓ button) moves
+   between them by where you stand — black-flag-fashion. */
+function poseArms(atWheel){
+  const u=walkerG.userData;
+  u.armL.rotation.x=atWheel?-1.15:0; u.armR.rotation.x=atWheel?-1.15:0;
+  u.legL.rotation.x=0; u.legR.rotation.x=0;
 }
-function updateAshoreBtn(){ $('b-ashore').textContent = state.mode==='boat' ? '\u2693 Go ashore' : '\u26F5 Board the ship'; }
+function setMode(m){
+  state.mode=m;
+  if(m==='walk'){
+    if(walkerG.parent!==scene){ boatG.remove(walkerG); scene.add(walkerG); }
+    poseArms(false);
+  } else {
+    if(walkerG.parent!==boatG){ if(walkerG.parent) walkerG.parent.remove(walkerG); boatG.add(walkerG); }
+    if(m==='boat'){ walkerG.position.set(HELM.x,QDECK_Y,HELM.z); walkerG.rotation.y=0; poseArms(true); }
+    else poseArms(false);
+  }
+  walkerG.visible=true;
+  updateAshoreBtn();
+}
+function nearWheel(){ return state.mode==='deck'&&state.deck.lz<QDECK_Z+1.5&&Math.abs(state.deck.lx)<4.2; }
+function goAshoreFromShip(){
+  const bt=state.boat;
+  /* pass 1 — a beach or low ground; pass 2 — a pier; pass 3 — any land */
+  let anyLand=null;
+  for(let rad=1;rad<13;rad++) for(let a=0;a<rad*8;a++){
+    const th=a/(rad*8)*Math.PI*2;
+    const x=bt.x+Math.cos(th)*rad*B, z=bt.z+Math.sin(th)*rad*B;
+    const cc=landAtWorld(x,z);
+    if(cc&&cc.kind!=='wall'){
+      if(cc.h<=2){ state.walk.x=x; state.walk.z=z; state.walk.heading=bt.heading;
+        setMode('walk'); markDiscovery(x,z); return true; }
+      if(!anyLand) anyLand={x,z};
+    }
+  }
+  let bestD=null;
+  for(const [k] of deckMap){ const parts=k.split(','),ix=+parts[0],iz=+parts[1];
+    const x=(ix+.5)*B, z=(iz+.5)*B, dd=Math.hypot(x-bt.x,z-bt.z);
+    if(dd<13*B&&(!bestD||dd<bestD.dd)) bestD={x,z,dd}; }
+  if(bestD){ state.walk.x=bestD.x; state.walk.z=bestD.z; state.walk.heading=bt.heading;
+    setMode('walk'); markDiscovery(bestD.x,bestD.z); return true; }
+  if(anyLand){ state.walk.x=anyLand.x; state.walk.z=anyLand.z; state.walk.heading=bt.heading;
+    setMode('walk'); markDiscovery(anyLand.x,anyLand.z); return true; }
+  toast('No shore within reach — draw nearer to the land.');
+  return false;
+}
+function toggleAshore(){
+  if(state.mode==='boat'){                       /* step back from the wheel */
+    state.deck={lx:2.4,lz:HELM.z+1.2,h:0};
+    setMode('deck'); return;
+  }
+  if(state.mode==='deck'){
+    if(nearWheel()){ setMode('boat'); return; }  /* take the helm */
+    goAshoreFromShip(); return;
+  }
+  /* ashore: board the ship if she lies near */
+  if(Math.hypot(state.walk.x-state.boat.x,state.walk.z-state.boat.z)<60){
+    state.deck={lx:4.6,lz:2,h:Math.PI*0.5};
+    setMode('deck');
+  } else toast('The ship lies too far off — return to the water\u2019s edge.');
+}
+function updateAshoreBtn(){ const b=$('b-ashore');
+  if(state.mode==='boat') b.textContent='⚓ Leave the helm';
+  else if(state.mode==='deck') b.textContent=nearWheel()?'⎈ Take the helm':'⚓ Go ashore';
+  else b.textContent='⛵ Board the ship';
+}
+function deckTick(dt){
+  const d=state.deck; const [f,t]=axis();
+  d.h+=t*dt*2.4;
+  const sp=f*14;
+  const nx=d.lx+Math.sin(d.h)*sp*dt, nz=d.lz+Math.cos(d.h)*sp*dt;
+  if(deckAllowed(nx,d.lz)) d.lx=nx;
+  if(deckAllowed(d.lx,nz)) d.lz=nz;
+  walkerG.position.set(d.lx,deckHeightAt(d.lz),d.lz);
+  walkerG.rotation.y=d.h;
+  const ph=performance.now()*0.011, moving=Math.abs(sp)>0.5, u=walkerG.userData;
+  u.legL.rotation.x=moving?Math.sin(ph)*0.7:0; u.legR.rotation.x=moving?-Math.sin(ph)*0.7:0;
+  u.armL.rotation.x=moving?-Math.sin(ph)*0.5:0; u.armR.rotation.x=moving?Math.sin(ph)*0.5:0;
+}
 
 /* ================= THE FIRMAMENT VIEW ================= */
 let firmG=null, firmMark=null;
@@ -1392,21 +1500,44 @@ function exitFirm(){ state.firm=false; if(firmG) firmG.visible=false;
   $('b-firm').textContent='\uD83D\udd4A The firmament'; }
 
 /* ================= CAMERA ================= */
-const camTgt=new THREE.Vector3(), camPos=new THREE.Vector3();
+const camTgt=new THREE.Vector3(), camPos=new THREE.Vector3(), _wv=new THREE.Vector3();
+function camInsideShip(wx,wy,wz){
+  if(wy>boatG.position.y+46) return false;
+  const dx=wx-boatG.position.x, dz=wz-boatG.position.z, h=state.boat.heading;
+  const c=Math.cos(h), sn=Math.sin(h);
+  const lx=dx*c-dz*sn, lz=dx*sn+dz*c;
+  return Math.abs(lx)<10 && lz>-31 && lz<42;
+}
 function cameraTick(dt){
   if(state.firm){ const pit=Math.max(0.3,Math.min(1.5,state.camPitch));
     const Rd=state.firmDist;
     camPos.set(Math.sin(state.camYaw)*Math.cos(pit)*Rd, Math.sin(pit)*Rd+200, Math.cos(state.camYaw)*Math.cos(pit)*Rd);
     camera.position.lerp(camPos,Math.min(1,dt*2.5)); camera.lookAt(0,0,0); return; }
-  const p=state.mode==='boat'?state.boat:state.walk;
+  let px,pz,phead,baseY,dist;
+  if(state.mode==='deck'){ walkerG.getWorldPosition(_wv);
+    px=_wv.x; pz=_wv.z; baseY=_wv.y; phead=state.boat.heading+state.deck.h;
+    dist=Math.min(state.camDist,15); }
+  else if(state.mode==='boat'){ const bt=state.boat;
+    px=bt.x; pz=bt.z; baseY=boatG.position.y+QDECK_Y; phead=bt.heading; dist=Math.max(55,state.camDist); }
+  else{ const w=state.walk;
+    px=w.x; pz=w.z; baseY=walkerG.position.y; phead=w.heading; dist=Math.min(state.camDist,60); }
   const [f2]=axis(); if(Math.abs(f2)>0.2) state.camYaw*=Math.max(0,1-dt*0.5);
-  const baseY=state.mode==='boat'?boatG.position.y:walkerG.position.y;
-  const dist=state.mode==='boat'?state.camDist:Math.min(state.camDist,60);
-  const az=p.heading+Math.PI+state.camYaw;
-  const cy=baseY+8+Math.sin(state.camPitch)*dist;
-  camPos.set(p.x+Math.sin(az)*Math.cos(state.camPitch)*dist, cy, p.z+Math.cos(az)*Math.cos(state.camPitch)*dist);
+  const az=phead+Math.PI+state.camYaw;
+  /* ashore, draw the camera in rather than clip through the ship */
+  if(state.mode==='walk'){
+    for(let k=0;k<8&&dist>20;k++){
+      const tx=px+Math.sin(az)*Math.cos(state.camPitch)*dist;
+      const tz=pz+Math.cos(az)*Math.cos(state.camPitch)*dist;
+      const ty=baseY+8+Math.sin(state.camPitch)*dist;
+      if(!camInsideShip(tx,ty,tz)) break;
+      dist*=0.82;
+    }
+  }
+  const lift=state.mode==='deck'?5:8;
+  const cy=baseY+lift+Math.sin(state.camPitch)*dist;
+  camPos.set(px+Math.sin(az)*Math.cos(state.camPitch)*dist, cy, pz+Math.cos(az)*Math.cos(state.camPitch)*dist);
   camera.position.lerp(camPos,Math.min(1,dt*5));
-  camTgt.set(p.x,baseY+12,p.z);
+  camTgt.set(px,baseY+10,pz);
   camera.lookAt(camTgt);
 }
 
@@ -1416,7 +1547,8 @@ function toast(txt,ref){ $('verse-t').textContent=txt; $('verse-r').textContent=
   clearTimeout(toast._t); toast._t=setTimeout(()=>{v.style.opacity=0;}, ref?11000:5200); }
 const seen={wall:false,yahru:false};
 function placeTick(){
-  const p=state.mode==='boat'?state.boat:state.walk;
+  updateAshoreBtn();
+  const p=state.mode==='walk'?state.walk:state.boat;
   const u=p.x/R_WORLD, v=p.z/R_WORLD, r=Math.hypot(u,v);
   let txt;
   if(r>0.9){ txt='THE WALL OF ICE';
@@ -1483,7 +1615,7 @@ function drawMapInto(ctx2,size,withNames){
   const [su,sv]=sunUV();
   ctx2.beginPath(); ctx2.arc((su+1)*Hh,(sv+1)*Hh,Math.max(3,size/120),0,Math.PI*2);
   ctx2.fillStyle='#ffe9a8'; ctx2.fill();
-  const p=state.mode==='boat'?state.boat:state.walk;
+  const p=state.mode==='walk'?state.walk:state.boat;
   const px=(p.x/R_WORLD+1)*Hh, py=(p.z/R_WORLD+1)*Hh;
   ctx2.save(); ctx2.translate(px,py); ctx2.rotate(Math.atan2(Math.sin(p.heading),-Math.cos(p.heading)));
   const s2=Math.max(4,size/90);
@@ -1504,7 +1636,7 @@ $('bigmap').addEventListener('click',toggleMap);
 const SAVE_KEY='voyage:state';
 async function saveState(){
   const payload=JSON.stringify({v:4,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
-    t:state.simHours,m:state.mode,wx:state.walk.x,wz:state.walk.z,wh:state.walk.heading,
+    t:state.simHours,m:state.mode==='walk'?'walk':'boat',wx:state.walk.x,wz:state.walk.z,wh:state.walk.heading,
     vis:[...state.visited],d:Math.round(state.dist),wm:state.windMode});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
@@ -1600,7 +1732,7 @@ async function begin(fresh){
   const saved=fresh?null:await loadSaved();
   if(saved){ state.boat.x=saved.x; state.boat.z=saved.z; state.boat.heading=saved.h; state.simHours=saved.t;
     if(saved.v>=3&&saved.m==='walk'){ state.walk.x=saved.wx; state.walk.z=saved.wz;
-      state.walk.heading=saved.wh; state.mode='walk'; walkerG.visible=true; }
+      state.walk.heading=saved.wh; state.mode='walk'; }
     if(saved.vis) state.visited=new Set(saved.vis);
     if(saved.d) state.dist=saved.d;
     if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); } }
@@ -1608,7 +1740,7 @@ async function begin(fresh){
   const p0=state.mode==='walk'?state.walk:state.boat;
   updateChunks(p0.x,p0.z,9999);
   $('title-card').style.display='none'; running=true;
-  updateAshoreBtn(); updateWindBtn(); initAudio();
+  setMode(state.mode); updateWindBtn(); initAudio();
   toast('And Aluahim said, \u201cLet the waters under the shamayim be gathered together into one place, and let the dry land appear.\u201d And it came to be so.','BER\u0114SHITH 1:9');
 }
 loadSaved().then(s=>{ if(s){ const b=$('btn-continue'); b.style.display='inline-block'; } });
@@ -1623,8 +1755,9 @@ function frame(){
   if(!running){ renderer.render(scene,camera); return; }
   if(!state.paused) state.simHours+=dt*SPEEDS[state.speedIdx][0]/3600;
   stormTick(dt);
-  if(state.mode==='boat') boatTick(dt); else walkTick(dt);
-  const p=state.mode==='boat'?state.boat:state.walk;
+  boatTick(dt,state.mode==='boat');
+  if(state.mode==='deck') deckTick(dt); else if(state.mode==='walk') walkTick(dt);
+  const p=state.mode==='walk'?state.walk:state.boat;
   const light=skyTick(p.x,p.z);
   audioTick(light.storm||0);
   updateChunks(p.x,p.z,4);
