@@ -274,19 +274,25 @@ function cellRaw(ix,iz){
   if(countryAtUV(wu+s,wv))cnt++; if(countryAtUV(wu-s,wv))cnt++;
   if(countryAtUV(wu,wv+s))cnt++; if(countryAtUV(wu,wv-s))cnt++;
   const inland=cnt/4;
-  let h=1+Math.floor(Math.pow(n,1.25)*(1+inland*9));
-  const snow = lat>72 || lat<-55 || h>=9;
+  /* Mostly-flat, walkable ground with mountains gated behind a broad mask —
+     plains stay h=1..2 (solid footing, few steps), while ranges rise rocky. */
+  const mtnMask=fbm(ix*.018+120,iz*.018-30);
+  const mtn=Math.max(0,mtnMask-0.5)/0.5;               // 0 on the plains, →1 in the ranges
+  let h=1+Math.floor(n*1.5)+Math.floor(Math.pow(mtn,1.4)*inland*12);
+  const snow = lat>72 || lat<-55 || h>=11;
   const tundra = lat>58 && lat<=72;
   const desert = lat>11 && lat<36 && n2>0.42 && inland>0.5;
   const tropic = lat<=11 && lat>-38;
   let kind, tree=0;
   if(!snow&&!tundra&&inland<1){
-    /* the shore terraces down to the water, minecraft-fashion */
-    const cap=1+Math.round(inland*5);
+    /* the shore terraces gently to the water */
+    const cap=1+Math.round(inland*4);
     if(h>cap) h=cap;
   }
-  if(!snow&&!tundra&&inland<=0.5){ kind='sand'; h=Math.min(h,2);
-    if(tropic&&j<0.035) tree=2;               /* palms on the strand */
+  /* a broad, flat, walkable beach along every warm/temperate coast */
+  const beach = !snow&&!tundra&&(inland<=0.5 || (inland<0.8&&h<=2));
+  if(beach){ kind='sand'; h=Math.min(h,2);
+    if(tropic&&j<0.03) tree=2;                 /* palms on the strand */
   }
   else if(h<=2 && inland<1 && !snow && !tundra){ kind='sand'; h=Math.min(h,2); }
   else if(snow) kind='snow';
@@ -294,7 +300,7 @@ function cellRaw(ix,iz){
   else if(desert){ kind='desert'; }
   else if(tropic){ kind='tropic'; tree=j<0.085?2:0; }
   else { kind='grass'; tree=j<0.06?1:0; }
-  if(kind!=='sand'&&h>=7&&!snow){ kind='rock'; tree=0; }
+  if(kind!=='sand'&&!snow&&h>=5){ kind='rock'; tree=0; }   /* rocky hills & peaks */
   return {h, kind, tree, ci};
 }
 /* villages flatten the ground around them (computed at boot) */
@@ -515,9 +521,15 @@ const dirL=new THREE.DirectionalLight(0xffffff,0.5); dirL.position.set(0.4,1,0.2
 const seaDeep=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),
   new THREE.MeshBasicMaterial({color:0x0c2c48}));
 seaDeep.rotation.x=-Math.PI/2; seaDeep.position.y=-2.5; scene.add(seaDeep);
-/* the flat far ring — beyond the wave grid, deep in the fog */
-const sea=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),seaMat);
-sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y-0.6; scene.add(sea);
+/* The far ring beyond the wave grid — a PLAIN deep-water colour, no tile
+   texture (the old blocky water plane is gone; the Gerstner grid is the only
+   surface water now). It sits just under the grid's flat edge, deep in fog. */
+/* NOT in LIT — it has no texture, so setBlockLight would tint its flat colour
+   to solid white at midday and flood the sea. It keeps a fixed deep blue and
+   is lit only by the fog it sits within. */
+const farSeaMat=new THREE.MeshBasicMaterial({color:0x123353});
+const sea=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),farSeaMat);
+sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y-0.7; scene.add(sea);
 
 /* ================= THE WAVES OF THE DEEP =================
    A true trochoidal (Gerstner) sea: several travelling swells summed, so
@@ -527,8 +539,8 @@ sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y-0.6; scene.add(sea);
    with its wavelength (ω = √(g·k)). */
 const G_GRAV=16;
 const WAVES=(()=>{
-  const raw=[[0.86,0.51,190,2.4,0.72],[-0.6,0.8,120,1.5,0.68],
-             [0.35,-0.94,70,0.85,0.6],[0.98,-0.2,41,0.42,0.5]];
+  const raw=[[0.86,0.51,190,1.7,0.72],[-0.6,0.8,120,1.05,0.68],
+             [0.35,-0.94,70,0.6,0.6],[0.98,-0.2,41,0.3,0.5]];
   return raw.map(r=>{ const m=Math.hypot(r[0],r[1]);
     const k=2*Math.PI/r[2];
     return {dx:r[0]/m,dy:r[1]/m,k,A:r[3],Q:r[4],omega:Math.sqrt(G_GRAV*k)}; });
@@ -599,8 +611,8 @@ const waveMat=new THREE.ShaderMaterial({
       vec3 tex=texture2D(uMap,vUv).rgb;
       vec3 base=mix(uDeep,uShallow,clamp(vHeight*0.22+0.5,0.0,1.0));
       vec3 col=base*(0.62+0.5*diff)*(0.82+0.36*tex.b);
-      /* crest foam */
-      float foam=smoothstep(1.15,2.6,vHeight);
+      /* crest foam — only the very tallest crests, so the sea stays blue */
+      float foam=smoothstep(2.3,3.4,vHeight);
       /* the ship's wake: bright collar at the hull, a widening V astern */
       vec2 fwd=vec2(sin(uShipH),cos(uShipH)), rgt=vec2(cos(uShipH),-sin(uShipH));
       vec2 rel=vP-uShip.xy; float along=dot(rel,fwd), side=dot(rel,rgt);
@@ -611,17 +623,17 @@ const waveMat=new THREE.ShaderMaterial({
       float collar=smoothstep(20.0,7.0,length(rel));
       float wob=0.6+0.4*sin(vP.x*0.6+vP.y*0.55+uTime*7.0);
       float wake=clamp((arm+cen+collar*0.8)*spd*wob*near,0.0,1.0);
-      float allFoam=clamp(foam*0.6+wake*0.95,0.0,1.0);
-      col=mix(col,vec3(0.92,0.96,1.0),allFoam);
+      float allFoam=clamp(foam*0.32+wake*0.95,0.0,1.0);
+      col=mix(col,vec3(0.88,0.93,1.0),allFoam);
       col*=uLight;
-      /* sun specular + glitter */
+      /* sun specular + glitter — a tight highlight, not a sheet of glare */
       vec3 H=normalize(V+L);
-      float spec=pow(max(dot(N,H),0.0),90.0);
-      float glit=pow(max(dot(N,H),0.0),24.0)*(0.5+0.5*h21(floor(vP*1.7)+floor(uTime*9.0)));
-      col+=uSunCol*(spec*2.2+glit*0.35)*diff;
-      /* fresnel sky sheen toward grazing angles */
-      float fres=pow(1.0-max(dot(N,V),0.0),4.0);
-      col=mix(col,uFogColor*1.05,fres*0.28);
+      float spec=pow(max(dot(N,H),0.0),140.0);
+      float glit=pow(max(dot(N,H),0.0),40.0)*(0.5+0.5*h21(floor(vP*1.7)+floor(uTime*9.0)));
+      col+=uSunCol*(spec*1.3+glit*0.18)*diff;
+      /* fresnel sky sheen toward grazing angles — subtle */
+      float fres=pow(1.0-max(dot(N,V),0.0),5.0);
+      col=mix(col,uFogColor,fres*0.14);
       float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
       gl_FragColor=vec4(mix(col,uFogColor,ff),uOpacity);
     }`
@@ -985,19 +997,55 @@ function robeMatFor(idx){
     g.fillStyle='rgba(0,0,0,0.3)'; g.fillRect(0,15,16,1); });
   m=new THREE.MeshLambertMaterial({map:t}); ROBETEX[idx]=m; return m;
 }
-function makeVillager(seed){
+/* ================= THE PEOPLE OF THE LANDS =================
+   Real folk, built like the traveller — hair, an ancient robe, striding
+   legs — no more big-nosed villager mobs. Skin, hair and robe vary by seed;
+   a role gives each a tool and a task (herding, hunting, teaching, tilling). */
+const P_SKIN=[0xc79467,0xb07c54,0x966642,0x7c5436,0xd8a878,0x8a5a36];
+const P_HAIR=[[74,50,30],[40,28,20],[96,74,44],[150,130,96],[28,28,32],[110,86,54]];
+function hairHex(h){ return (h[0]<<16)|(h[1]<<8)|h[2]; }
+const personHead={};
+function personFaceTex(skHex,HR){
+  const r=(skHex>>16)&255,g2=(skHex>>8)&255,b2=skHex&255;
+  return mkTex(g=>{ g.fillStyle=rgb(r,g2,b2); g.fillRect(0,0,16,16);
+    for(let y=0;y<6;y++)for(let x=0;x<16;x++){ if(y<4||hash2(x*3.1,y*7.7)>0.5){
+      const c=jit(HR,22,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } }
+    g.fillStyle='rgb(58,42,28)'; g.fillRect(2,6,5,1); g.fillRect(9,6,5,1);      // brows
+    g.fillStyle='rgb(255,255,255)'; g.fillRect(3,8,3,2); g.fillRect(10,8,3,2);  // eyes
+    g.fillStyle='rgb(62,86,120)'; g.fillRect(4,8,2,2); g.fillRect(11,8,2,2);
+    g.fillStyle=rgb(Math.max(0,r-40),Math.max(0,g2-34),Math.max(0,b2-30)); g.fillRect(7,10,2,2);
+    g.fillStyle='rgb(120,72,48)'; g.fillRect(6,13,4,1); }); }
+function personHeadMats(si,hi){
+  const key=si+','+hi; if(personHead[key]) return personHead[key];
+  const sk=P_SKIN[si], hairM=lam(hairHex(P_HAIR[hi]));
+  const faceM=new THREE.MeshLambertMaterial({map:personFaceTex(sk,P_HAIR[hi])});
+  const mats=[hairM,hairM,hairM,lam(sk),faceM,hairM];   // [px,nx,top,bottom,front,back]
+  personHead[key]=mats; return mats;
+}
+function makePerson(seed, role, child){
   const g=new THREE.Group();
-  const sk=[0xc79467,0xb07c54,0x966642,0x7c5436][Math.floor(hash2(seed,1)*4)];
-  const robeIdx=Math.floor(hash2(seed,2)*ROBES.length), robeM=robeMatFor(robeIdx);
-  const body=new THREE.Mesh(new THREE.BoxGeometry(2.8,4.4,1.9),robeM); body.position.y=3.7; g.add(body);
-  const hem=lbox(3,0.7,2.05,0x3a2c1c); hem.position.y=1.2; g.add(hem);
-  const arms=new THREE.Mesh(new THREE.BoxGeometry(3.4,1.1,1),robeM); arms.position.set(0,5.1,1.05); g.add(arms);
-  const headMats=[lam(sk),lam(sk),lam(0x50412e),lam(sk),
-    new THREE.MeshLambertMaterial({map:villagerFaceTex(seed)}),lam(sk)];
-  const head=new THREE.Mesh(new THREE.BoxGeometry(2.6,2.9,2.6),headMats);
-  head.position.y=7.4; g.add(head);
-  const nose=lbox(0.65,1.5,0.75,sk); nose.position.set(0,6.9,1.5); g.add(nose);
-  g.userData={legs:[]};
+  const si=Math.floor(hash2(seed,1.1)*P_SKIN.length);
+  const hi=Math.floor(hash2(seed,2.3)*P_HAIR.length);
+  const robeM=robeMatFor(Math.floor(hash2(seed,3.7)*ROBES.length));
+  const head=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),personHeadMats(si,hi));
+  head.position.y=10.4; g.add(head);
+  const body=new THREE.Mesh(new THREE.BoxGeometry(3,4.6,1.7),robeM); body.position.y=6.6; g.add(body);
+  const hem=lbox(3.2,1.0,2.0,0x3a2c1c); hem.position.y=4.1; g.add(hem);
+  const legMat=lam(0x2e3350);
+  const legL=new THREE.Mesh(new THREE.BoxGeometry(1.35,4.2,1.5),legMat);
+  legL.geometry.translate(0,-2.1,0); legL.position.set(0.74,4.3,0); legL.userData.ph=0; g.add(legL);
+  const legR=legL.clone(); legR.position.x=-0.74; legR.userData.ph=Math.PI; g.add(legR);
+  const armL=new THREE.Mesh(new THREE.BoxGeometry(1.2,4.4,1.5),robeM);
+  armL.geometry.translate(0,-2.2,0); armL.position.set(2.15,8.7,0); armL.userData.ph=Math.PI; g.add(armL);
+  const armR=armL.clone(); armR.position.x=-2.15; armR.userData.ph=0; g.add(armR);
+  if(role==='hunter'){ const spear=lbox(0.34,8,0.34,0x6a4a2a); spear.position.set(2.7,8.4,0.6);
+      spear.rotation.x=0.25; g.add(spear);
+    const tip=lbox(0.55,0.9,0.2,0xb8bcc4); tip.position.set(2.7,12.4,1.6); g.add(tip); }
+  else if(role==='herder'){ const staff=lbox(0.3,8.5,0.3,0x7a5a30); staff.position.set(2.6,8.6,0);
+      staff.rotation.z=0.12; g.add(staff); }
+  else if(role==='teacher'){ const scroll=lbox(1.3,0.6,0.6,0xe8dfc8); scroll.position.set(2.4,7,1.2); g.add(scroll); }
+  if(child) g.scale.set(0.62,0.62,0.62);
+  g.userData={legs:[legL,legR,armL,armR]};
   return g;
 }
 function makeAnimal(kind){
@@ -1033,6 +1081,23 @@ function makeAnimal(kind){
     const wat=lbox(0.4,0.5,0.3,0xc23a2a); wat.position.set(0,2.7,1.6); g.add(wat);
     for(const s of [1,-1]){ const w2=lbox(0.3,1.2,1.9,0xdcdcd6); w2.position.set(s*1,2.1,0.1); g.add(w2); }
     fourLegs(0.45,0.4,0.8,0xdf9c2a);
+  } else if(kind==='hare'){       /* a creeping thing of the field */
+    const body=lbox(1.1,1.1,1.8,0xb8a184); body.position.y=1.2; g.add(body);
+    const head=lbox(0.9,0.9,0.9,0xc8b494); head.position.set(0,1.7,1.1); g.add(head);
+    for(const s of [1,-1]){ const ear=lbox(0.3,1.3,0.3,0xc8b494); ear.position.set(s*0.3,2.7,0.9); g.add(ear); }
+    const tail=lbox(0.5,0.5,0.4,0xefe8dc); tail.position.set(0,1.3,-1); g.add(tail);
+    fourLegs(0.4,0.6,0.7,0xa08868);
+  } else if(kind==='lizard'){     /* a creeping thing of the rocks */
+    const body=lbox(0.7,0.5,2.2,0x6f7a44); body.position.y=0.6; g.add(body);
+    const head=lbox(0.8,0.6,0.9,0x7a854c); head.position.set(0,0.7,1.4); g.add(head);
+    const tail=lbox(0.4,0.35,1.8,0x636c3c); tail.position.set(0,0.55,-1.9); g.add(tail);
+    fourLegs(0.55,0.7,0.5,0x5c6438);
+  } else if(kind==='goat'){
+    const body=lbox(2.4,2.2,3.6,0xcfc4b0); body.position.y=3.0; g.add(body);
+    const head=lbox(1.3,1.4,1.4,0xdad0be); head.position.set(0,3.9,2.3); g.add(head);
+    for(const s of [1,-1]){ const horn=lbox(0.3,0.9,0.3,0x6a5c44); horn.position.set(s*0.4,4.9,2.1);
+      horn.rotation.x=-0.5; g.add(horn); }
+    fourLegs(0.9,1.3,2.0,0xb7ac98);
   } else { /* camel */
     const body=lbox(2.8,3,5.6,0xc8a06a); body.position.y=4.8; g.add(body);
     const hump=lbox(1.9,1.4,2,0xb8905a); hump.position.set(0,6.9,0.4); g.add(hump);
@@ -1042,6 +1107,57 @@ function makeAnimal(kind){
   }
   g.userData={legs};
   return g;
+}
+/* a bird — a small body with two flapping wings, for the flocks aloft */
+function makeBird(){
+  const g=new THREE.Group();
+  const body=lbox(0.8,0.8,1.8,0x40424a); body.position.y=0; g.add(body);
+  const head=lbox(0.7,0.7,0.7,0x4a4c54); head.position.set(0,0.2,1.1); g.add(head);
+  const wingL=lbox(2.4,0.16,1.1,0x2e3038); wingL.geometry.translate(-1.2,0,0);
+  wingL.position.set(0.4,0.2,0); g.add(wingL);
+  const wingR=lbox(2.4,0.16,1.1,0x2e3038); wingR.geometry.translate(1.2,0,0);
+  wingR.position.set(-0.4,0.2,0); g.add(wingR);
+  g.userData={wingL,wingR};
+  return g;
+}
+/* a fish — a body and tail that arcs from the sea */
+function makeFish(){
+  const g=new THREE.Group();
+  const body=lbox(1.0,1.5,3.2,0x5f7fa6); body.position.y=0; g.add(body);
+  const tail=lbox(0.4,1.8,1.0,0x4a6a90); tail.position.set(0,0,-2.0); g.add(tail);
+  const fin=lbox(0.3,1.2,0.9,0x6f8fb6); fin.position.set(0,1.1,0.2); g.add(fin);
+  return g;
+}
+/* ================= SEA CREATURES =================
+   Fish that break the surface and arc back — near the traveller wherever the
+   sea is open. A small reused pool; each leap traces a parabola with a spin. */
+const SEAFISH=[]; let seaLifeInit=false, nextLeap=0;
+function seaLifeTick(px,pz,dt){
+  if(!seaLifeInit){ seaLifeInit=true;
+    for(let k=0;k<6;k++){ const f=makeFish(); f.visible=false; scene.add(f);
+      SEAFISH.push({m:f,active:false,t:0,dur:1,x:0,z:0,dx:0,dz:0,peak:0}); } }
+  nextLeap-=dt;
+  const overWater=state.mode!=='walk' || !landAtWorld(px,pz);
+  if(nextLeap<=0 && overWater){
+    nextLeap=0.7+Math.random()*2.2;
+    const fish=SEAFISH.find(f=>!f.active);
+    if(fish){ const a=Math.random()*Math.PI*2, r=40+Math.random()*160;
+      const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
+      if(!landAtWorld(x,z)&&Math.hypot(x,z)/R_WORLD<0.98){
+        const dir=Math.random()*Math.PI*2, len=6+Math.random()*10;
+        fish.active=true; fish.t=0; fish.dur=1.0+Math.random()*0.7;
+        fish.x=x; fish.z=z; fish.dx=Math.cos(dir)*len; fish.dz=Math.sin(dir)*len;
+        fish.peak=7+Math.random()*7; fish.m.visible=true; } }
+  }
+  for(const f of SEAFISH){ if(!f.active) continue;
+    f.t+=dt; const u=f.t/f.dur;
+    if(u>=1){ f.active=false; f.m.visible=false; continue; }
+    const x=f.x+f.dx*u, z=f.z+f.dz*u;
+    const y=WATER_Y+seaHeight(x,z)+f.peak*Math.sin(Math.PI*u)-1.5;
+    f.m.position.set(x,y,z);
+    f.m.rotation.y=Math.atan2(f.dx,f.dz);
+    f.m.rotation.x=(u-0.5)*2.6;               /* nose up, then dives */
+  }
 }
 
 /* ================= VILLAGES (minecraft-fashion) =================
@@ -1293,40 +1409,78 @@ function spawnVillage(i){
     const gs=new THREE.Sprite(gm2); gs.scale.set(26,26,1);
     gs.position.set(tp.x,tp.y+2,tp.z); g.add(gs); torchMats.push(gm2);
   }
-  /* the people of the land */
-  const people=[]; const nP=2+Math.floor(rnd(70)*3);
-  for(let p=0;p<nP;p++){ const per=makeVillager(i*100+p);
-    per.position.set(site.x+B,wy,site.z+B); g.add(per);
-    people.push({m:per,tx:site.x,tz:site.z,t:rnd(p+80)*4,seed:i*100+p}); }
-  /* the beasts of the field */
+  /* the people of the land, each at their labour */
+  const people=[]; const cx=site.x, cz=site.z;
+  const addPerson=(role,hx,hz,roamR,child,faceX,faceZ)=>{
+    const seed=i*1000+people.length*7;
+    const cc=landAtWorld(hx,hz); if(!cc||cc.kind==='wall') { hx=cx; hz=cz; }
+    const per=makePerson(seed,role,child);
+    per.position.set(hx,topY(Math.floor(hx/B),Math.floor(hz/B)),hz); g.add(per);
+    people.push({m:per,role,hx,hz,roamR:roamR||3,tx:hx,tz:hz,t:hash2(seed,7)*4,seed,
+      child:!!child,faceX,faceZ}); };
+  /* a teacher and the young children gathered for the lesson */
+  const lx=cx+Math.cos(rnd(200)*6.28)*B*3.5, lz=cz+Math.sin(rnd(200)*6.28)*B*3.5;
+  addPerson('teacher',lx,lz,1.0,false,lx,lz+B);
+  for(let k=0;k<3;k++){ const ca=k/3*Math.PI*2;
+    addPerson('child',lx+Math.cos(ca)*B*1.3,lz+B*0.6+Math.sin(ca)*B*1.0,0.9,true,lx,lz); }
+  /* a herdsman among the beasts, a hunter upon the outskirts, tillers, folk */
+  addPerson('herder',cx-B*5,cz-B*3,4);
+  addPerson('hunter',cx+B*6.5,cz-B*6.5,9);
+  addPerson('farmer',cx+B*6,cz+B*3,3);
+  const nFolk=1+Math.floor(rnd(70)*2);
+  for(let p=0;p<nFolk;p++) addPerson('folk',cx+(rnd(p+30)-0.5)*B*4,cz+(rnd(p+40)-0.5)*B*4,3);
+  /* the beasts of the field and the creeping things */
   const lat=90-Math.hypot(site.x/R_WORLD,site.z/R_WORLD)*180;
   const baseKind=(cellRaw(site.ix,site.iz)||{kind:'grass'}).kind;
-  const roster = baseKind==='desert' ? ['camel','camel','chicken']
-    : lat>55 ? ['sheep','sheep','chicken'] : ['sheep','cow','pig','chicken','chicken'];
-  const beasts=[]; const nA=2+Math.floor(rnd(91)*3);
+  const roster = baseKind==='desert' ? ['camel','camel','goat','lizard','lizard','chicken']
+    : baseKind==='rock' ? ['goat','goat','hare','lizard','chicken']
+    : lat>55 ? ['sheep','sheep','goat','hare','chicken']
+    : ['sheep','cow','pig','goat','chicken','chicken','hare','hare'];
+  const beasts=[]; const nA=4+Math.floor(rnd(91)*4);
   for(let a2=0;a2<nA;a2++){ const kind=roster[Math.floor(rnd(a2+95)*roster.length)]||'sheep';
     const an=makeAnimal(kind);
-    an.position.set(site.x-B,wy,site.z-B); g.add(an);
-    beasts.push({m:an,tx:site.x,tz:site.z,t:rnd(a2+97)*4,seed:i*100+50+a2}); }
+    an.position.set(cx-B+(rnd(a2)-0.5)*B*5,wy,cz-B+(rnd(a2+5)-0.5)*B*5); g.add(an);
+    beasts.push({m:an,tx:cx,tz:cz,t:rnd(a2+97)*4,seed:i*100+50+a2,
+      roamR:(kind==='hare'||kind==='lizard')?6:4}); }
+  /* birds of the air, wheeling above the land */
+  const birds=[]; const nBirds=4+Math.floor(rnd(88)*4);
+  for(let b2=0;b2<nBirds;b2++){ const bd=makeBird();
+    const ph=rnd(b2+120)*6.28, rad=(6+rnd(b2+124)*10)*B, h2=wy+40+rnd(b2+128)*30;
+    bd.position.set(cx+Math.cos(ph)*rad,h2,cz+Math.sin(ph)*rad); g.add(bd);
+    birds.push({m:bd,ph,rad,h:h2,spd:0.2+rnd(b2+132)*0.25,cx,cz}); }
   scene.add(g);
-  activeVillages.set(i,{g,site,people,beasts,torchMats,deckKeys,houses:ex.houses});
+  activeVillages.set(i,{g,site,people,beasts,birds,torchMats,deckKeys,houses:ex.houses});
 }
 function wanderTick(ent,site,dt,speed){
+  const ax=ent.hx!==undefined?ent.hx:site.x, az=ent.hz!==undefined?ent.hz:site.z;
+  const roamR=ent.roamR||4.6;
   ent.t-=dt;
-  if(ent.t<=0){ ent.t=2+hash2(ent.seed,(performance.now()%9973)*0.13)*5;
-    const a=Math.random()*Math.PI*2, r=Math.random()*4.6*B;
-    const nx=site.x+Math.cos(a)*r, nz=site.z+Math.sin(a)*r;
+  if(ent.t<=0){
+    ent.t=(ent.role==='teacher'||ent.role==='child'?3.5:2)
+      +hash2(ent.seed,(performance.now()%9973)*0.13)*(ent.role==='hunter'?7:5);
+    const a=Math.random()*Math.PI*2, r=Math.random()*roamR*B;
+    const nx=ax+Math.cos(a)*r, nz=az+Math.sin(a)*r;
     const cc=landAtWorld(nx,nz); if(cc&&cc.kind!=='wall'){ ent.tx=nx; ent.tz=nz; } }
   const dx=ent.tx-ent.m.position.x, dz=ent.tz-ent.m.position.z;
   const d=Math.hypot(dx,dz); let moving=d>0.6;
-  if(moving){ const nx=ent.m.position.x+dx/d*speed*dt, nz=ent.m.position.z+dz/d*speed*dt;
+  const sp=speed*(ent.child?0.7:ent.role==='hunter'?1.15:1);
+  if(moving){ const nx=ent.m.position.x+dx/d*sp*dt, nz=ent.m.position.z+dz/d*sp*dt;
     if(blockedByStructure(nx,nz)){ moving=false; ent.t=0; /* pick a new way */ }
     else { ent.m.position.x=nx; ent.m.position.z=nz; ent.m.rotation.y=Math.atan2(dx,dz); } }
+  else if(ent.faceX!==undefined)   // idle at task — face the lesson / the work
+    ent.m.rotation.y=Math.atan2(ent.faceX-ent.m.position.x, ent.faceZ-ent.m.position.z);
   ent.m.position.y=topY(Math.floor(ent.m.position.x/B),Math.floor(ent.m.position.z/B));
   const legs=ent.m.userData.legs;
   if(legs&&legs.length){ const ph=performance.now()*0.012;
-    for(const L of legs) L.rotation.x=moving?Math.sin(ph+L.userData.ph)*0.55:0; }
+    for(const L of legs) L.rotation.x=moving?Math.sin(ph+(L.userData.ph||0))*0.55:0; }
   else if(moving) ent.m.position.y+=Math.abs(Math.sin(performance.now()*.012))*0.35;
+}
+function birdTick(bd,dt){
+  bd.ph+=bd.spd*dt;
+  bd.m.position.set(bd.cx+Math.cos(bd.ph)*bd.rad, bd.h+Math.sin(bd.ph*2.1)*3, bd.cz+Math.sin(bd.ph)*bd.rad);
+  bd.m.rotation.y=-bd.ph+Math.PI/2;
+  const flap=Math.sin(performance.now()*0.02+bd.ph*3)*0.7;
+  const u=bd.m.userData; if(u.wingL){ u.wingL.rotation.z=flap; u.wingR.rotation.z=-flap; }
 }
 function updateVillages(px,pz,dt,nightF){
   for(let i=0;i<COUNTRIES.length;i++){
@@ -1350,6 +1504,7 @@ function updateVillages(px,pz,dt,nightF){
   for(const[,vv] of activeVillages){ if(vv.none||!vv.g) continue;
     for(const p of vv.people) wanderTick(p,vv.site,dt,7);
     for(const b2 of vv.beasts) wanderTick(b2,vv.site,dt,4.5);
+    if(vv.birds) for(const bd of vv.birds) birdTick(bd,dt);
     for(const tm of vv.torchMats) tm.opacity=nightF*0.85;
   }
 }
@@ -1524,13 +1679,16 @@ function boatTick(dt,helm){
   if(!blockedForBoat(bowX,bowZ)&&!blockedForBoat(nx,nz)){
     state.dist+=Math.hypot(nx-bt.x,nz-bt.z); bt.x=nx; bt.z=nz; }
   else bt.speed*=-0.15;
-  /* ride the swell: heave to the wave height, pitch and roll to its slope */
+  /* ride the swell: heave to the wave height, and lean GENTLY to its slope.
+     (Slopes can be large; clamp hard so she rocks like a ship, never flips.) */
   const hd=seaHeight(bt.x,bt.z), sl=seaSlope(bt.x,bt.z);
   const fwdX=Math.sin(bt.heading), fwdZ=Math.cos(bt.heading);
-  const pitch=-(sl.x*fwdX+sl.z*fwdZ)*7.0 - bt.speed*0.0016;   /* nose over the crest */
-  const roll =  (sl.x*fwdZ-sl.z*fwdX)*7.0
-    + t*Math.min(1,Math.abs(bt.speed)/24)*0.12;               /* lean into the turn */
-  boatG.position.set(bt.x, WATER_Y+1.1+hd, bt.z);
+  const cl=(v,m)=>v<-m?-m:v>m?m:v;
+  const MAXTILT=0.14;
+  let pitch=cl(-(sl.x*fwdX+sl.z*fwdZ)*0.9, MAXTILT) - cl(bt.speed*0.0012,0.03);
+  let roll =cl((sl.x*fwdZ-sl.z*fwdX)*0.9, MAXTILT)
+    + cl(t*Math.min(1,Math.abs(bt.speed)/24)*0.10, 0.10);      /* lean into the turn */
+  boatG.position.set(bt.x, WATER_Y+1.1+hd*0.6, bt.z);
   boatG.rotation.set(pitch, bt.heading, roll);
   const w=windAt(bt.x,bt.z);                       // the pennant flies downwind
   if(boatG.userData.flag) boatG.userData.flag.rotation.y=Math.atan2(w.x,w.z)-bt.heading;
@@ -1560,22 +1718,37 @@ function treeBlocked(nx,nz){
 function walkTick(dt){
   const w=state.walk; const [f,t]=axis();
   w.heading+=t*dt*2.4;
-  const sp=f*18;
+  const here=landAtWorld(w.x,w.z);
+  const onDeck0=deckMap.get(Math.floor(w.x/B)+','+Math.floor(w.z/B))!==undefined;
+  const swimming=!here && !onDeck0 && Math.hypot(w.x-state.boat.x,w.z-state.boat.z)>=55;
+  const sp=f*(swimming?11:18);                       /* one wades slower than one walks */
   const nx=w.x+Math.sin(w.heading)*sp*dt, nz=w.z+Math.cos(w.heading)*sp*dt;
   const cc=landAtWorld(nx,nz);
   const onDeckNext=deckMap.get(Math.floor(nx/B)+','+Math.floor(nz/B));
   const nearBoat=Math.hypot(nx-state.boat.x,nz-state.boat.z)<55;
-  if(((cc&&cc.kind!=='wall')||nearBoat||onDeckNext!==undefined)
-     &&!blockedByStructure(nx,nz)&&!treeBlocked(nx,nz)){
-    state.dist+=Math.hypot(nx-w.x,nz-w.z); w.x=nx; w.z=nz; }
+  /* on land: walls/trees/houses block. Into the sea: you may swim (but not
+     climb a sheer cliff straight out of the water — only wade up low shore). */
+  const stepUpOK=!cc || cc.kind==='wall' ? false : (!here ? cc.h<=3 : true);
+  const canGo = ((cc&&cc.kind!=='wall'&&stepUpOK)||nearBoat||onDeckNext!==undefined
+                 || (!cc && Math.hypot(nx,nz)/R_WORLD<0.985))   /* open water = swim */
+                && !blockedByStructure(nx,nz) && !treeBlocked(nx,nz);
+  if(canGo){ state.dist+=Math.hypot(nx-w.x,nz-w.z); w.x=nx; w.z=nz; }
   const dk=deckMap.get(Math.floor(w.x/B)+','+Math.floor(w.z/B));
   const c2=landAtWorld(w.x,w.z);
-  const gy=dk!==undefined?dk:(c2?c2.h*B:WATER_Y);
+  const nowSwim=!c2 && dk===undefined && Math.hypot(w.x-state.boat.x,w.z-state.boat.z)>=55;
+  const bob=Math.sin(performance.now()*0.003)*0.4;
+  const gy=dk!==undefined?dk:(c2?c2.h*B:(WATER_Y-2.2+bob));   /* float low in the water */
   walkerG.position.set(w.x,gy,w.z); walkerG.rotation.y=w.heading;
   const ph=performance.now()*0.011;
   const moving=Math.abs(sp)>0.5; const u=walkerG.userData;
-  u.legL.rotation.x=moving?Math.sin(ph)*0.7:0; u.legR.rotation.x=moving?-Math.sin(ph)*0.7:0;
-  u.armL.rotation.x=moving?-Math.sin(ph)*0.5:0; u.armR.rotation.x=moving?Math.sin(ph)*0.5:0;
+  if(nowSwim){                                         /* a breaststroke */
+    const sw=performance.now()*0.006;
+    u.armL.rotation.x=-1.2+Math.sin(sw)*0.8; u.armR.rotation.x=-1.2+Math.sin(sw)*0.8;
+    u.legL.rotation.x=Math.sin(sw*1.2)*0.4; u.legR.rotation.x=-Math.sin(sw*1.2)*0.4;
+  } else {
+    u.legL.rotation.x=moving?Math.sin(ph)*0.7:0; u.legR.rotation.x=moving?-Math.sin(ph)*0.7:0;
+    u.armL.rotation.x=moving?-Math.sin(ph)*0.5:0; u.armR.rotation.x=moving?Math.sin(ph)*0.5:0;
+  }
 }
 /* ================= THE SHIP'S LOG ================= */
 function ordinal(n){ const s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
@@ -2000,6 +2173,7 @@ function frame(){
   const p=state.mode==='walk'?state.walk:state.boat;
   const light=skyTick(p.x,p.z);
   waterTick(p.x,p.z,light.dayF,light.storm||0);
+  seaLifeTick(p.x,p.z,dt);
   audioTick(light.storm||0);
   updateChunks(p.x,p.z,4);
   updateVillages(p.x,p.z,dt,light.nightF);
