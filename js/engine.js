@@ -18,6 +18,9 @@ function cityFor(i){ return CITY_BY_COUNTRY[COUNTRIES[i].n]; }
 /* ---------------- world constants ---------------- */
 const R_WORLD=120000, B=6, CH=16, CHW=B*CH, VIEW=8; /* rim = 20,000 km, 1 block = 1 km */
 const ICE_UV=0.948, SHELF_UV=0.915, WATER_Y=0.35;
+/* every land is a stone standing in the water: its flanks plunge past the
+   waterline down to the bed of the sea, which lies at SUBSEA_Y */
+const SUBSEA_Y=WATER_Y-13;
 /* [sun-speed, name, ship-speed multiplier] */
 const SPEEDS=[[1,'true',1],[1200,'swift',2.2],[14400,'a day in six breaths',5]];
 
@@ -533,6 +536,9 @@ function emitColumn(G,ix,iz,cc){
       else if(d===2) facePZ(G,mat,z1,x0,x1,ya,yb,sh);
       else faceNZ(G,mat,z0,x0,x1,ya,yb,sh); };
     const sh=(d<2)?0.62:0.8;
+    /* the sea beside: the flank keeps going below the waterline, all the
+       way down to the bed — a stone standing in the glass, not upon it */
+    if(!nc) put((cc.kind==='wall'||cc.kind==='floe'||cc.kind==='snow')?'stone':'sand',SUBSEA_Y,base,sh*0.72);
     if(split){ put(sLow,base,yMid,sh); put(sTop,yMid,yT,sh); }
     else put(sTop,base,yT,sh);
   }
@@ -559,24 +565,24 @@ function buildChunk(cx,cz){
   const G=newG();
   for(let a=0;a<CH;a++) for(let b=0;b<CH;b++){
     const ix=cx*CH+a, iz=cz*CH+b, cc=cell(ix,iz);
-    if(!cc){ /* the shelf: a sloping sandy bottom, seen through the clear shallows */
+    if(!cc){ /* the shelf: solid sandy terraces stepping down from the land,
+                each rooted in the bed of the sea — never a floating sheet */
       const x0=ix*B, z0=iz*B;
+      const step=top=>emitBox(G, x0+0.08,SUBSEA_Y,z0+0.08, x0+B-0.08,top,z0+B-0.08,'sand','sand',null);
       const nb=cell(ix+1,iz)||cell(ix-1,iz)||cell(ix,iz+1)||cell(ix,iz-1);
       if(nb&&nb.kind!=='wall'&&nb.kind!=='floe'){
-        faceTop(G,'sand',x0,z0,x0+B,z0+B,WATER_Y-1.5,0.92);
+        step(WATER_Y-1.5);
         /* breaking surf where the swell meets the strand */
         if(nb.kind==='sand'||nb.kind==='tropic'||nb.kind==='grass'||nb.kind==='desert')
           faceTop(G,'surf',x0,z0,x0+B,z0+B,WATER_Y+0.55,1.0);
       } else if(shoalAt(x0+B/2,z0+B/2)>0.08){       /* only worth probing near a coast */
         const nb2=cell(ix+1,iz+1)||cell(ix-1,iz-1)||cell(ix+1,iz-1)||cell(ix-1,iz+1)
           ||cell(ix+2,iz)||cell(ix-2,iz)||cell(ix,iz+2)||cell(ix,iz-2);
-        if(nb2&&nb2.kind!=='wall'&&nb2.kind!=='floe')
-          faceTop(G,'sand',x0,z0,x0+B,z0+B,WATER_Y-4.6,0.8);
+        if(nb2&&nb2.kind!=='wall'&&nb2.kind!=='floe') step(WATER_Y-4.6);
         else {
           const nb3=cell(ix+2,iz+2)||cell(ix-2,iz-2)||cell(ix+2,iz-2)||cell(ix-2,iz+2)
             ||cell(ix+3,iz)||cell(ix-3,iz)||cell(ix,iz+3)||cell(ix,iz-3);
-          if(nb3&&nb3.kind!=='wall'&&nb3.kind!=='floe')
-            faceTop(G,'sand',x0,z0,x0+B,z0+B,WATER_Y-9.5,0.66);
+          if(nb3&&nb3.kind!=='wall'&&nb3.kind!=='floe') step(WATER_Y-9.5);
         }
       }
       continue;
@@ -2246,9 +2252,9 @@ function buildPier(G,ex,site,rnd,torches){
     faceNX(G,'planks',x0+0.2,z0+0.2,z0+B-0.2,yD-0.5,yD,0.62);
     facePZ(G,'planks',z0+B-0.2,x0+0.2,x0+B-0.2,yD-0.5,yD,0.8);
     faceNZ(G,'planks',z0+0.2,x0+0.2,x0+B-0.2,yD-0.5,yD,0.8);
-    if(s2%2===0){
-      emitBox(G,x0+0.6,-2,z0+0.6,x0+1.5,yD-0.1,z0+1.5,'logSide','logTop',null);
-      emitBox(G,x0+B-1.5,-2,z0+B-1.5,x0+B-0.6,yD-0.1,z0+B-0.6,'logSide','logTop',null);
+    if(s2%2===0){   /* the piles stand on the bed of the sea, not in the water */
+      emitBox(G,x0+0.6,SUBSEA_Y,z0+0.6,x0+1.5,yD-0.1,z0+1.5,'logSide','logTop',null);
+      emitBox(G,x0+B-1.5,SUBSEA_Y,z0+B-1.5,x0+B-0.6,yD-0.1,z0+B-0.6,'logSide','logTop',null);
     }
     deckMap.set(key,yD); deckKeys.push(key);
     lastX=x0+B/2; lastZ=z0+B/2;

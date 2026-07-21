@@ -165,6 +165,11 @@ points and cameras all rescaled to match — she sits notably broader on the scr
   and when a swell rolls over it the whole world turns to water-light — turquoise fog,
   the pier piles and the sea floor looming, the surface seen from beneath — until the
   wave passes.
+- **A stone standing in the glass**: every landmass now continues below the waterline —
+  coastal flanks plunge past the surface down to the bed of the sea, the sandy shelf is
+  built of solid terraces rooted in the bed (never a floating sheet), and pier piles
+  stand on the bottom. Seen from under the swell, the land connects to the sea floor the
+  way a stone sits in a glass of water.
 - Verified from the beach, from a low aerial over a bay (sand terraces clearly visible
   through turquoise water, surf lines breaking along the shore), over the open deep
   (dark), at evening, and from under the swell; dive mode and the cargo hold are
