@@ -559,12 +559,19 @@ const dirL=new THREE.DirectionalLight(0xffffff,0.5); dirL.position.set(0.4,1,0.2
 const seaDeep=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),
   new THREE.MeshBasicMaterial({color:0x0c2c48}));
 seaDeep.rotation.x=-Math.PI/2; seaDeep.position.y=-2.5; scene.add(seaDeep);
-/* beyond the wall of ice — the outer darkness, that no man may look past:
-   a tall dark ring just outside the rim, so nothing of "the other side" is
-   seen, only blackness and, beyond it, the stars. */
-const voidWall=new THREE.Mesh(new THREE.CylinderGeometry(R_WORLD*0.999,R_WORLD*0.999,2400,140,1,true),
-  new THREE.MeshBasicMaterial({color:0x03040d,side:THREE.BackSide,fog:false}));
-voidWall.position.y=560; scene.add(voidWall);   /* tall enough to hide the beyond, low enough that the stars show above */
+/* beyond the wall of ice — the OUTER DARKNESS, that no man may look past:
+   a tall wall of night just outside the rim, so nothing of "the other side"
+   is ever seen — only blackness set with stars, by day as by night. */
+function makeVoidTex(){ const S=512, c=texCanvas(S,S), g=c.getContext('2d');
+  g.fillStyle='#02030a'; g.fillRect(0,0,S,S);
+  for(let k=0;k<520;k++){ const x=hash2(k,1.1)*S, y=hash2(k,2.2)*S, rr=hash2(k,3.3)*1.3+0.3, bb=170+Math.floor(hash2(k,4.4)*85);
+    g.fillStyle='rgba('+bb+','+bb+','+(Math.min(255,bb+12))+','+(0.45+hash2(k,5.5)*0.55)+')';
+    g.beginPath(); g.arc(x,y,rr,0,6.283); g.fill(); }
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; }
+const voidTex=makeVoidTex(); voidTex.repeat.set(10,3);
+const voidWall=new THREE.Mesh(new THREE.CylinderGeometry(R_WORLD*0.999,R_WORLD*0.999,30000,160,1,true),
+  new THREE.MeshBasicMaterial({map:voidTex,color:0x0a0c18,side:THREE.BackSide,fog:false}));
+voidWall.position.y=13000; scene.add(voidWall);   /* tall enough to blacken the whole outer sky, day or night */
 /* The far ring beyond the wave grid — a PLAIN deep-water colour, no tile
    texture (the old blocky water plane is gone; the Gerstner grid is the only
    surface water now). It sits just under the grid's flat edge, deep in fog. */
@@ -2054,6 +2061,9 @@ function spawnVillage(i){
   const addPerson=(role,hx,hz,roamR,child,faceX,faceZ,home)=>{
     const seed=i*1000+people.length*7;
     const cc=landAtWorld(hx,hz); if(!cc||cc.kind==='wall') { hx=cx; hz=cz; }
+    /* never leave a soul embedded in a wall: nudge into the room, or out to the square */
+    for(const H of ex.houses){ if(houseBlocks(hx,hz,H)){
+      if(hx>H.x0&&hx<H.x1&&hz>H.z0&&hz<H.z1){ hx=(H.x0+H.x1)/2; hz=(H.z0+H.z1)/2; } else { hx=cx; hz=cz; } break; } }
     const per=makePerson(seed,role,child);
     per.position.set(hx,topY(Math.floor(hx/B),Math.floor(hz/B)),hz); g.add(per);
     people.push({m:per,role,hx,hz,roamR:roamR||3,tx:hx,tz:hz,t:hash2(seed,7)*4,seed,
@@ -2072,7 +2082,7 @@ function spawnVillage(i){
   /* a great city: a resident in every home, and vendors at the stalls */
   if(cityHomes&&cityHomes.length){
     for(let h=0;h<cityHomes.length;h++){ const hm=cityHomes[h];
-      addPerson('folk', hm.doorx, hm.doorz, 3, false, undefined,undefined, hm); }
+      addPerson('folk', hm.x, hm.z, 1.6, false, undefined,undefined, hm); }   /* in the room, not the doorway */
     for(let v=0;v<3;v++){ const vx=cx+B*(3.5+v*2.6), vz=cz+B*3.4;
       const c=landAtWorld(vx,vz); if(c&&c.kind!=='wall')
         addPerson('folk', vx, vz, 0.7, false, vx, vz-B, {doorx:vx,doorz:vz}); }
@@ -2108,9 +2118,9 @@ function wanderTick(ent,site,dt,speed){
     ent.t=(ent.role==='teacher'||ent.role==='child'?3.5:2)
       +hash2(ent.seed,(performance.now()%9973)*0.13)*(ent.role==='hunter'?7:5);
     let nx,nz;
-    if(worldNight>0.55&&ent.home){                    /* at dusk, go home */
-      nx=(ent.home.doorx!==undefined?ent.home.doorx:ent.home.x)+(Math.random()-0.5)*2;
-      nz=(ent.home.doorz!==undefined?ent.home.doorz:ent.home.z)+(Math.random()-0.5)*2;
+    if(worldNight>0.55&&ent.home){                    /* at dusk, go home — to the room, not the doorway */
+      nx=(ent.home.x!==undefined?ent.home.x:ent.home.doorx)+(Math.random()-0.5)*2;
+      nz=(ent.home.z!==undefined?ent.home.z:ent.home.doorz)+(Math.random()-0.5)*2;
     } else { const a=Math.random()*Math.PI*2, r=Math.random()*roamR*B;
       nx=ax+Math.cos(a)*r; nz=az+Math.sin(a)*r; }
     const cc=landAtWorld(nx,nz); if(cc&&cc.kind!=='wall'){ ent.tx=nx; ent.tz=nz; } }
@@ -2486,8 +2496,11 @@ function doorTick(dt){
   anim(standaloneHouses);
 }
 let promptDoor=null;
-function canSleep(){ return state.mode==='walk' && HOME && worldNight>0.45
-  && insideHouse(state.walk.x,state.walk.z)===HOME.house; }
+function canSleep(){ if(state.mode!=='walk'||!HOME||worldNight<=0.45) return false;
+  /* inside the room among the boughs, OR standing at the foot of the home tree
+     (the platform is high in the canopy and hard to gain, so the base serves) */
+  return insideHouse(state.walk.x,state.walk.z)===HOME.house
+      || Math.hypot(state.walk.x-HOME.x,state.walk.z-HOME.z) < B*5; }
 function sleep(){
   const day=Math.floor(state.simHours/24);
   state.simHours=(day+1)*24+7;                    /* wake at seven, next morning */
