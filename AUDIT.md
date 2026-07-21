@@ -201,6 +201,25 @@ points and cameras all rescaled to match — she sits notably broader on the scr
   skip through a quarry on a slow frame; it plants in the sea bed or the coast flank
   where it misses.
 
+## 4d. Round 5 — the deep has teeth, and treasure ✅
+
+- **Sharks hunt the diver** — the wolf logic of the land, loosed in the water. A diver
+  within scent is warned ("a great grey shape turns toward you"), run down along the
+  bed, and bitten: the shark tears up to two fish from the catch, steals a third of the
+  breath, and flings the diver surfaceward — the immortal breath is no shield against
+  teeth. A spear-strike turns the shark and breaks its hunt for a while.
+- **The repelling of beasts** (🛡 toggle, saved with the voyage) — after Tehillim 91:13
+  ("you shall tread upon the lion and the adder") — no beast of the deep will touch you
+  while it holds.
+- **Pearls of the deep** — rare glowing oysters seeded across the sea bed (22–280 deep).
+  Draw near and `F — gather the pearl` (Iyob 28:18 on the first). Gathered sites do not
+  regrow. Pearls sell at every market for 25–70 shekels — the dive now has an economy
+  of its own, tallied in the log and saved.
+- **The trawl net** (N or 🕸) — cast astern from the helm or deck: the ship loses a
+  quarter of her way, the bagged net bobs behind her, and trawling slow (best over
+  shoaling water) fills it — a fish every ~11 s, up to twelve, with a warning when it
+  strains full. Haul to add the catch to the fish tally.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

@@ -935,7 +935,7 @@ const state={ simHours:9.5, speedIdx:1, paused:false,
   dive:{x:0,y:0,z:0,heading:0,vy:0,sp:0},
   windMode:'true', firm:false, firmDist:0, camYaw:0, camPitch:0.42, camDist:96,
   visited:new Set(), dist:0, fish:0, fishing:null, coins:30, cargo:{}, game:0,
-  breath:1, immBreath:false };
+  breath:1, immBreath:false, pearls:0, repel:false, net:null };
 
 /* ================= THE WINDS =================
    The bands of the disc mirror the true circulation: trade easterlies in
@@ -1268,6 +1268,42 @@ function traderTick(px,pz,dt){ initTraders();
     T.g.rotation.y=T.h; T.g.rotation.z=Math.sin(performance.now()*0.0009+T.x*0.01)*0.04;
   } }
 function hideTraders(){ for(const T of TRADERS){ T.g.visible=false; T.set=false; } }
+/* ================= THE TRAWL NET =================
+   Cast astern (N or the button), trawl slow and steady — best over
+   shoaling water — and the sea fills the mesh. Haul it, and the catch
+   joins the fish tally. She drags: the ship loses a quarter of her way. */
+let netG=null;
+function ensureNet(){ if(netG) return;
+  netG=new THREE.Group();
+  for(const s of [1,-1]){ const rope=lbox(0.5,0.5,26,0x6a5a3a);
+    rope.position.set(s*5,8,-72); rope.rotation.x=0.42; netG.add(rope); }
+  const bagM=new THREE.MeshLambertMaterial({color:0x38424e});
+  const bag=new THREE.Mesh(new THREE.BoxGeometry(11,5,14),bagM); bag.position.set(0,-1.2,-88); netG.add(bag);
+  const bag2=new THREE.Mesh(new THREE.BoxGeometry(7,3.6,8),bagM); bag2.position.set(0,-0.6,-99); netG.add(bag2);
+  netG.userData={bag,bag2};
+  netG.visible=false; boatG.add(netG); }
+function toggleNet(){
+  if(state.mode!=='boat'&&state.mode!=='deck'){ toast('The net is worked from the ship — take the deck or the helm.'); return; }
+  if(!state.net){ ensureNet(); netG.visible=true; state.net={catch:0,t:0};
+    $('b-net').textContent='🕸 Haul the net';
+    toast('You cast the net astern — trawl slow and steady over shoaling water, and the sea will fill it.'); }
+  else { const c=state.net.catch; state.fish=(state.fish||0)+c;
+    if(netG) netG.visible=false; state.net=null; $('b-net').textContent='🕸 Cast the net';
+    toast(c?('You haul the net — '+c+' fish glisten in the mesh. Fish in the log: '+state.fish+'.')
+      :'You haul the net empty — trawl slower, and where the water shoals.');
+    saveState(); }
+}
+function netTick(dt){ if(!state.net) return;
+  const sp=Math.abs(state.boat.speed);
+  if(sp>2&&sp<34){
+    const sh=shoalAt(state.boat.x,state.boat.z);
+    state.net.t+=dt*(sh>0.08?1.35:1);            /* the shoals give more */
+    if(state.net.t>=11){ state.net.t=0;
+      if(state.net.catch<12){ state.net.catch++;
+        if(state.net.catch===12) toast('The net strains at its ropes, full to bursting — haul it in!'); } } }
+  if(netG&&netG.visible){ const t2=performance.now()*0.001, u=netG.userData;
+    u.bag.position.y=-1.2+Math.sin(t2*1.3)*0.7; u.bag2.position.y=-0.6+Math.sin(t2*1.5+1)*0.8; }
+}
 
 /* ================= THE TRAVELLER (steve-fashion) ================= */
 function lam(col){ return new THREE.MeshLambertMaterial({color:col}); }
@@ -1780,16 +1816,45 @@ function makeShark(){ const g=new THREE.Group();
   const eL=lbox(0.4,0.4,0.4,0x0a0f14); eL.position.set(1.3,0.6,6); g.add(eL); const eR=eL.clone(); eR.position.x=-1.3; g.add(eR);
   const tail=new THREE.Group(); tail.add(tailU); g.userData={tail}; return g; }
 const SHARKS=[], SHK_N=2, SHK_R=560;
+let sharkWarnT=-99;
 function initSharks(){ if(SHARKS.length) return; for(let k=0;k<SHK_N;k++){ const m=makeShark(); m.visible=false; scene.add(m);
-  SHARKS.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false}); } }
+  SHARKS.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false,cool:0}); } }
 function updateSharks(px,py,pz,dt,t){ initSharks();
   for(const s of SHARKS){ if(!s.set||Math.hypot(s.x-px,s.z-pz)>SHK_R+180){
       const a=Math.random()*6.28, r=180+Math.random()*320; s.x=px+Math.cos(a)*r; s.z=pz+Math.sin(a)*r;
       const fy=seabedDepth(s.x,s.z); s.y=fy+18+Math.random()*45; s.dir=Math.random()*6.28; s.set=true; s.m.visible=true; }
-    s.dir+=Math.sin(t*0.25+s.ph)*0.03; const sp=13; s.x+=Math.cos(s.dir)*sp*dt; s.z+=Math.sin(s.dir)*sp*dt; s.y+=Math.sin(t*0.5+s.ph)*3*dt;
-    const fy=seabedDepth(s.x,s.z); s.y=Math.max(fy+10,Math.min(SEA_SURF-8,s.y));
+    s.cool=(s.cool||0)-dt;
+    /* THE HUNT — the wolf logic of the land, loosed in the water. A diver
+       within scent is run down and bitten: the shark tears fish from the
+       catch and steals the breath from the chest (the immortal breath is
+       no shield against teeth). The repelling of beasts (🛡) stays them. */
+    let sp=13, hunting=false;
+    const dvx=px-s.x, dvz=pz-s.z, dvy=py-s.y;
+    const dd=Math.sqrt(dvx*dvx+dvz*dvz+dvy*dvy);
+    if(state.mode==='dive'&&!state.repel&&s.cool<=0&&dd<120){
+      hunting=true; sp=27;
+      s.dir=Math.atan2(dvz,dvx);
+      s.y+=(py-s.y)*Math.min(1,dt*1.4);
+      if(t-sharkWarnT>14&&dd<85){ sharkWarnT=t;
+        toast('A great grey shape turns toward you — the deep has teeth. Rise, spear it, or take up the repelling of beasts.'); }
+      if(dd<6.5){                                     /* the bite */
+        s.cool=15;
+        const lost=Math.min(state.fish||0,2);
+        if(lost) state.fish-=lost;
+        state.breath=Math.max(0.08,state.breath-0.35);
+        const dv2=state.dive, m2=Math.hypot(dvx,dvz)||1;
+        dv2.x+=dvx/m2*20; dv2.z+=dvz/m2*20; dv2.vy=70;   /* flung surfaceward */
+        toast('The shark strikes!'+(lost?' It tears '+lost+' fish from your catch.':'')+' Make for the light of the surface.');
+        saveState();
+      }
+    }
+    if(!hunting) s.dir+=Math.sin(t*0.25+s.ph)*0.03;
+    s.x+=Math.cos(s.dir)*sp*dt; s.z+=Math.sin(s.dir)*sp*dt;
+    if(!hunting) s.y+=Math.sin(t*0.5+s.ph)*3*dt;
+    /* a hunting shark hugs the bed after a bottom-hugging diver */
+    const fy=seabedDepth(s.x,s.z); s.y=Math.max(fy+(hunting?3.5:10),Math.min(SEA_SURF-8,s.y));
     s.m.position.set(s.x,s.y,s.z); s.m.rotation.y=Math.atan2(Math.cos(s.dir),Math.sin(s.dir));
-    s.m.userData.tail.rotation.y=Math.sin(t*4+s.ph)*0.3; } }
+    s.m.userData.tail.rotation.y=Math.sin(t*(hunting?7:4)+s.ph)*(hunting?0.45:0.3); } }
 /* ---- turtles, rays, whales, pufferfish, jellyfish, crabs ---- */
 function makeTurtle(){ const g=new THREE.Group();
   const shell=lbox(3.4,1.6,4.0,0x3f7a4a); g.add(shell);
@@ -1894,17 +1959,47 @@ function updateWreck(px,pz){ initWrecks();
       const key=s.gi+','+s.gj; if(s.d<95&&!wreckSeen.has(key)){ wreckSeen.add(key);
         toast('You have come upon a wreck of the ancients, sunk in the heart of the seas and grown over with the deep.','YONAH 2:3'); } }
     else WRECKS[k].visible=false; } }
-function initDeep(){ initKelp(); initCoral(); initGrass(); initRays(); initDiveFish(); initSquid(); initDolphins(); initSharks(); initSeaMobs(); initBub(); initWrecks(); }
+/* ---- PEARLS OF THE DEEP — rare oysters on the sea bed, agleam, and worth
+   much silver at any market. Gathered ones do not regrow this voyage. ---- */
+const PEARLS=[], PEARL_N=6, pearlTaken=new Set();
+function makeOyster(){ const g=new THREE.Group();
+  const bottom=lbox(2.4,0.7,2.4,0x8a949a); bottom.position.y=0.35; g.add(bottom);
+  const top=lbox(2.4,0.6,2.4,0xb0bac0); top.position.set(0,1.4,-0.8); top.rotation.x=-0.8; g.add(top);
+  const pearl=lbox(0.8,0.8,0.8,0xf6f2ea); pearl.position.set(0,1.0,0.2); g.add(pearl);
+  const gm=new THREE.SpriteMaterial({map:glowTexCv,color:0xeef6ff,transparent:true,opacity:0.55,depthWrite:false});
+  const gs=new THREE.Sprite(gm); gs.scale.set(9,9,1); gs.position.set(0,1.8,0.2); g.add(gs);
+  return g; }
+function initPearls(){ if(PEARLS.length) return;
+  for(let k=0;k<PEARL_N;k++){ const m=makeOyster(); m.visible=false; scene.add(m);
+    PEARLS.push({m,key:null,x:0,y:0,z:0}); } }
+function updatePearls(px,pz){ initPearls();
+  const CS=520, ci=Math.round(px/CS), cj=Math.round(pz/CS), sites=[];
+  for(let di=-2;di<=2;di++)for(let dj=-2;dj<=2;dj++){ const gi=ci+di,gj=cj+dj;
+    if(hash2(gi*2.3,gj*4.7)>0.8){ const key=gi+','+gj; if(pearlTaken.has(key)) continue;
+      const wx=gi*CS+(hash2(gi,gj*3)-0.5)*260, wz=gj*CS+(hash2(gj*3,gi)-0.5)*260, fy=seabedDepth(wx,wz);
+      const depth=SEA_SURF-fy; if(depth>22&&depth<280) sites.push({key,wx,wz,fy,d:Math.hypot(wx-px,wz-pz)}); } }
+  sites.sort((a,b)=>a.d-b.d);
+  for(let k=0;k<PEARLS.length;k++){ const s=sites[k], P=PEARLS[k];
+    if(s&&s.d<900){ P.key=s.key; P.x=s.wx; P.z=s.wz; P.y=s.fy;
+      P.m.position.set(s.wx,s.fy+0.2,s.wz); P.m.rotation.y=hash2(s.wx,s.wz)*6.28; P.m.visible=true; }
+    else { P.key=null; P.m.visible=false; } } }
+function hidePearls(){ for(const P of PEARLS) P.m.visible=false; }
+function nearestPearl(){ if(state.mode!=='dive') return null;
+  const dv=state.dive;
+  for(const P of PEARLS){ if(!P.key||!P.m.visible) continue;
+    if(Math.hypot(P.x-dv.x,P.z-dv.z)<9&&Math.abs(P.y-dv.y)<13) return P; }
+  return null; }
+function initDeep(){ initKelp(); initCoral(); initGrass(); initRays(); initDiveFish(); initSquid(); initDolphins(); initSharks(); initSeaMobs(); initBub(); initWrecks(); initPearls(); }
 function hideDeep(){ seaFloor.visible=false;
   for(const k of KELP)k.m.visible=false; for(const r of CORAL)r.m.visible=false; for(const r of GRASS)r.m.visible=false;
   for(const r of RAYS)r.m.visible=false; for(const f of DIVEFISH)f.m.visible=false; for(const q of SQUIDS)q.m.visible=false;
   for(const d of DOLPHINS)d.m.visible=false; for(const s of SHARKS)s.m.visible=false; hideSeaMobs();
-  for(const b of BUB)b.s.visible=false; for(const w of WRECKS)w.visible=false; deepShown=false; }
+  for(const b of BUB)b.s.visible=false; for(const w of WRECKS)w.visible=false; hidePearls(); deepShown=false; }
 function updateDeep(px,py,pz,dt,murk){ const t=performance.now()*0.001;
   seaFloor.visible=true; seaFloor.position.set(px,0,pz); updateSeaFloor(px,pz);
   updateKelp(px,pz,t); updateCoral(px,pz); updateGrass(px,pz,t); updateRays(px,py,pz,murk||0);
   updateDiveFish(px,py,pz,dt,t); updateSquid(px,py,pz,dt,t); updateDolphins(px,py,pz,dt,t); updateSharks(px,py,pz,dt,t);
-  updateSeaMobs(px,py,pz,dt,t); updateBubbles(px,py,pz,dt); updateWreck(px,pz); deepShown=true; }
+  updateSeaMobs(px,py,pz,dt,t); updateBubbles(px,py,pz,dt); updateWreck(px,pz); updatePearls(px,pz); deepShown=true; }
 /* ---- THE CLEAR SHALLOWS TEEM ----
    Fish, turtles and dolphins swim on even when no one dives: seen from the
    deck, the strand or the air wherever the water is shallow and clear. */
@@ -2754,6 +2849,7 @@ function cargoCount(){ let n=0; for(const k in state.cargo) n+=state.cargo[k]; r
 function priceAt(profile,gi){ const f=0.6+hash2(profile*3.7+gi*13.1, profile*7.3-gi*2.9);   /* 0.6 .. 1.6 */
   return Math.max(1,Math.round(GOODS[gi].base*f)); }
 function fishPriceAt(profile){ return Math.max(2,Math.round(5*(0.7+hash2(profile*5.1,profile*2.3)*0.8))); }
+function pearlPriceAt(profile){ return Math.max(25,Math.round(45*(0.7+hash2(profile*7.7,profile*3.1)*0.9))); }
 let tradeOpen=false, tradeProfile=0, tradeTitle='', tradeSea=false;
 function openTrade(profile,title,sea){
   tradeOpen=true; tradeProfile=profile; tradeTitle=title; tradeSea=!!sea;
@@ -2777,11 +2873,17 @@ function renderTrade(){
   tr2.innerHTML='<td class="g">Fish (your catch)</td><td class="r">held '+(state.fish||0)+'</td><td class="r"></td>'+
     '<td class="r"><button class="tbtn" data-a="f" '+((state.fish||0)<1?'disabled':'')+'>sell '+fp+'</button></td>';
   T.appendChild(tr2);
+  const pp=Math.max(15,Math.round(pearlPriceAt(tradeProfile)*(tradeSea?0.75:1))), tr3=document.createElement('tr');
+  tr3.innerHTML='<td class="g">Pearls of the deep</td><td class="r">held '+(state.pearls||0)+'</td><td class="r"></td>'+
+    '<td class="r"><button class="tbtn" data-a="e" '+((state.pearls||0)<1?'disabled':'')+'>sell '+pp+'</button></td>';
+  T.appendChild(tr3);
 }
 $('trade-rows').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b||b.disabled) return;
   const a=b.dataset.a;
   if(a==='f'){ if((state.fish||0)>0){ state.fish--; state.coins+=fishPriceAt(tradeProfile); } }
+  else if(a==='e'){ if((state.pearls||0)>0){ state.pearls--;
+    state.coins+=Math.max(15,Math.round(pearlPriceAt(tradeProfile)*(tradeSea?0.75:1))); } }
   else { const gi=+b.dataset.g, g=GOODS[gi], p=priceAt(tradeProfile,gi);
     if(a==='b'){ const buy=tradeSea?Math.round(p*1.15):p;
       if(state.coins>=buy&&cargoCount()<CARGO_MAX){ state.coins-=buy; state.cargo[g.k]=(state.cargo[g.k]||0)+1; } }
@@ -2825,12 +2927,17 @@ function canFishHere(){
   if(ahead.land) return false;                        /* open water must lie before you */
   return (w.feetY-WATER_Y)<18;                        /* from the strand or a pier, not a cliff */
 }
-let promptStall=null, promptTrader=null;
+let promptStall=null, promptTrader=null, promptPearl=null;
 function promptTick(){
   const el=$('prompt'); if(!el) return;
-  promptDoor=null; promptAction=null; promptPerson=null; promptStall=null; promptTrader=null;
+  promptDoor=null; promptAction=null; promptPerson=null; promptStall=null; promptTrader=null; promptPearl=null;
   let label=null;
   if(tradeOpen){ el.style.opacity=0; return; }
+  if(state.mode==='dive'){
+    promptPearl=nearestPearl();
+    if(promptPearl){ el.textContent='F — gather the pearl'; el.style.opacity=1; promptAction='pearl'; }
+    else el.style.opacity=0;
+    return; }
   if(state.mode==='deck'){
     const d=state.deck;
     if(d.level==='hold'){ if(Math.hypot(d.lx-HATCH.x,d.lz-HATCH.z)<HATCH.r+2.5){ label='F — climb up to the deck'; promptAction='up'; } }
@@ -3018,15 +3125,19 @@ function throwSpear(){
     spearM.visible=true;
   }
 }
-/* the quarry of the deep: fish, squid and puffers — all tallied as fish taken */
+/* the quarry of the deep: fish, squid and puffers are tallied as fish
+   taken; a struck SHARK is not food but flees, its hunt broken */
 function spearHitDeep(){
   const near=(x,y,z,r)=>Math.hypot(x-spear.x,z-spear.z)<r&&Math.abs(y-spear.y)<r+2.5;
+  for(const s of SHARKS){ if(!s.set) continue;
+    if(near(s.x,s.y,s.z,5.5)){ s.cool=24;
+      s.dir=Math.atan2(s.z-spear.z,s.x-spear.x); return {n:'the great shark',fishy:false}; } }
   for(const f of DIVEFISH){ if(!f.set) continue;
-    if(near(f.x,f.y,f.z,3.2)){ f.set=false; f.m.visible=false; return 'a fish of the deep'; } }
+    if(near(f.x,f.y,f.z,3.2)){ f.set=false; f.m.visible=false; return {n:'a fish of the deep',fishy:true}; } }
   for(const q of SQUIDS){ if(!q.set) continue;
-    if(near(q.x,q.y,q.z,3.6)){ q.set=false; q.m.visible=false; return 'a squid'; } }
+    if(near(q.x,q.y,q.z,3.6)){ q.set=false; q.m.visible=false; return {n:'a squid',fishy:true}; } }
   if(PUFFERS) for(const o of PUFFERS){ if(!o.set) continue;
-    if(near(o.x,o.y,o.z,3.2)){ o.set=false; o.m.visible=false; return 'a puffer of the reef'; } }
+    if(near(o.x,o.y,o.z,3.2)){ o.set=false; o.m.visible=false; return {n:'a puffer of the reef',fishy:true}; } }
   return null;
 }
 function spearHit(){
@@ -3057,8 +3168,10 @@ function spearTick(dt){
     spear.x+=spear.vx*sdt; spear.z+=spear.vz*sdt; spear.y+=spear.vy*sdt;
     if(spear.aqua){
       const catch2=spearHitDeep();
-      if(catch2){ state.fish=(state.fish||0)+1; spear.active=false; spear.stick=1.2;
-        toast('Your spear takes '+catch2+' — '+state.fish+' fish in the log, good silver at any market.');
+      if(catch2){ spear.active=false; spear.stick=1.2;
+        if(catch2.fishy){ state.fish=(state.fish||0)+1;
+          toast('Your spear takes '+catch2.n+' — '+state.fish+' fish in the log, good silver at any market.'); }
+        else toast('Your spear turns '+catch2.n+' — it breaks off the hunt and flees to the deep.');
         saveState(); break; }
       if(landAtWorld(spear.x,spear.z)){ spear.active=false; spear.stick=1.5; break; } /* struck the flank */
       const fy=seabedDepth(spear.x,spear.z);
@@ -3223,6 +3336,7 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code==='KeyE') toggleAshore();
   if(e.code==='KeyF') interact();
   if(e.code==='KeyQ') throwSpear();
+  if(e.code==='KeyN') toggleNet();
   if(e.code==='KeyG') takeFlight();          /* SPACE (handled above) lifts in flight */
   if(e.code==='KeyC') enterDive();           /* dive the deep / surface */
   if(e.code==='KeyM') toggleMap();
@@ -3321,7 +3435,7 @@ function boatTick(dt,helm){
   const bt=state.boat; const [f,t]=helm?axis():[0,0];
   const st=stormAt(bt.x,bt.z);
   seaTime=performance.now()*0.001; seaAmp=1+st*1.7;    /* fix the sea for this frame */
-  const target=f*40*SPEEDS[state.speedIdx][2]*sailFactor(bt.heading)*(1-0.45*st);
+  const target=f*40*SPEEDS[state.speedIdx][2]*sailFactor(bt.heading)*(1-0.45*st)*(state.net?0.72:1);
   bt.speed+=(target-bt.speed)*Math.min(1,dt*1.2);
   if(Math.abs(bt.speed)>0.4) bt.heading+=t*dt*(0.85+Math.min(1,Math.abs(bt.speed)/22)*0.6);
   const nx=bt.x+Math.sin(bt.heading)*bt.speed*dt, nz=bt.z+Math.cos(bt.heading)*bt.speed*dt;
@@ -3424,6 +3538,11 @@ function interact(){
     case 'speak': speakTo(promptPerson); break;
     case 'fish': startFishing(); break;
     case 'reel': reelIn(); break;
+    case 'pearl': { const P=promptPearl; if(!P) break;
+      pearlTaken.add(P.key); P.key=null; P.m.visible=false;
+      state.pearls=(state.pearls||0)+1;
+      toast('\u201cThe price of wisdom is above pearls\u201d \u2014 yet this one will fetch good silver at any market. Pearls gathered: '+state.pearls+'.','IYOB 28:18');
+      saveState(); break; }
     case 'trade': { const st=promptStall;
       const cty=cityFor(st.i);
       openTrade(st.i,'the market of '+(cty?cty.name+', ':'')+COUNTRIES[st.i].n,false); break; }
@@ -4062,7 +4181,7 @@ async function saveState(){
   const payload=JSON.stringify({v:6,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
     t:state.simHours,m:state.mode==='walk'?'walk':'boat',wx:state.walk.x,wz:state.walk.z,wh:state.walk.heading,
     vis:[...state.visited],d:Math.round(state.dist),wm:state.windMode,fi:state.fish||0,
-    co:state.coins,cg:state.cargo,gm:state.game||0,ib:state.immBreath?1:0});
+    co:state.coins,cg:state.cargo,gm:state.game||0,ib:state.immBreath?1:0,pe:state.pearls||0,rp:state.repel?1:0});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
 }
@@ -4089,6 +4208,12 @@ $('b-breath').onclick=()=>{ state.immBreath=!state.immBreath; updateBreathBtn();
   if(state.immBreath) toast('“The Ruach of Aluah has made me, and the breath of the Almighty gives me life.” You will not want for air beneath the waves.','IYOB 33:4');
   else toast('Your breath is your own again — watch the bar below, and rise to breathe.');
   saveState(); };
+function updateRepelBtn(){ $('b-repel').textContent='🛡 Repel beasts: '+(state.repel?'on':'off'); }
+$('b-repel').onclick=()=>{ state.repel=!state.repel; updateRepelBtn();
+  if(state.repel) toast('“You shall tread upon the lion and the adder…” — no beast of the deep will touch you.','TEHILLIM 91:13');
+  else toast('The beasts of the deep are wild again — mind the great grey shapes.');
+  saveState(); };
+$('b-net').onclick=toggleNet;
 (function(){ const up=$('fp-up'), dn=$('fp-dn'); if(!up||!dn) return;
   function bind(el,val){ el.addEventListener('pointerdown',e=>{ e.preventDefault(); flyPad=val; });
     const off=()=>{ if(flyPad===val) flyPad=0; };
@@ -4117,7 +4242,7 @@ function toggleLog(){
     'Lands visited: <b>'+names.length+' / '+COUNTRIES.length+'</b><br>'+
     'Distance sailed: <b>'+Math.round(state.dist/B).toLocaleString()+' km</b><br>'+
     'Purse: <b>'+(state.coins||0)+' shekels</b> · Cargo: <b>'+cargoCount()+' / '+CARGO_MAX+'</b> ('+cargoTxt+')<br>'+
-    'Fish drawn from the deep: <b>'+(state.fish||0)+'</b> · Game taken by the spear: <b>'+(state.game||0)+'</b><br>'+
+    'Fish drawn from the deep: <b>'+(state.fish||0)+'</b> · Game taken by the spear: <b>'+(state.game||0)+'</b> · Pearls: <b>'+(state.pearls||0)+'</b><br>'+
     'Day of the voyage: <b>'+dayOfYear()+'</b>';
   $('log-lands').textContent=names.length?names.join(' \u00B7 '):'No land yet \u2014 the deep awaits.';
 }
@@ -4185,6 +4310,8 @@ async function begin(fresh){
     if(saved.cg) state.cargo=saved.cg;
     if(saved.gm) state.game=saved.gm;
     if(saved.ib){ state.immBreath=true; updateBreathBtn(); }
+    if(saved.pe) state.pearls=saved.pe;
+    if(saved.rp){ state.repel=true; updateRepelBtn(); }
     if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); } }
   else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5; }
   const p0=state.mode==='walk'?state.walk:state.boat;
@@ -4200,7 +4327,7 @@ $('btn-continue').onclick=()=>begin(false);
 /* a small debug handle — used by the automated smoke tests; harmless in play */
 window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
-  DIVEFISH,DOLPHINS};
+  DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls};
 
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0;
@@ -4267,6 +4394,7 @@ function frame(){
   fishTick(dt);
   spearTick(dt);
   crewTick(dt);
+  netTick(dt);
   if(!state.firm&&state.mode!=='dive') traderTick(p.x,p.z,dt); else hideTraders();
   audioTick(light.storm||0);
   updateChunks(p.x,p.z,4);
