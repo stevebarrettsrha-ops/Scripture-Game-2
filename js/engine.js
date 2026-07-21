@@ -309,8 +309,11 @@ function cellRaw(ix,iz){
   }
   /* broad biome regions carve out cherry-blossom hills and badland mesas */
   const region=fbm(ix*.012-70,iz*.012+140);
+  const lon=Math.atan2(u,v)*180/Math.PI;              /* longitude upon the disc */
   const badlands = !snow&&!tundra&&lat>6&&lat<42&&region<0.43&&inland>0.4;
-  const cherry   = !snow&&!tundra&&!desert&&lat<56&&lat>-38&&region>0.63;
+  /* cherry blossom only in the far east — the lands of Yapan, China and Korea */
+  const eastAsia = lat>20&&lat<46&&lon>96&&lon<148;
+  const cherry   = !snow&&!tundra&&!desert&&eastAsia&&region>0.46;
   /* a broad, flat, walkable beach along every warm/temperate coast */
   const beach = !snow&&!tundra&&!badlands&&(inland<=0.5 || (inland<0.8&&h<=2));
   if(beach){ kind='sand'; h=Math.min(h,2);
