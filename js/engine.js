@@ -665,11 +665,18 @@ function waterTick(px,pz,dayF,storm){
   u.uShipH.value=state.boat.heading;
 }
 
-/* flat drifting clouds, minecraft-fashion */
+/* flat drifting clouds, minecraft-fashion.
+   CLOUD_Y is the floor of cloud the traveller rises through when he takes to
+   the air; a higher, thinner cirrus sheet gives the sky depth from above. */
+const CLOUD_Y=238, CIRRUS_Y=560;
 const cloudMat=new THREE.MeshBasicMaterial({map:TEX.clouds,transparent:true,opacity:0.85,depthWrite:false,fog:false,side:THREE.DoubleSide});
 TEX.clouds.repeat.set(7,7);
 const clouds=new THREE.Mesh(new THREE.PlaneGeometry(9600,9600),cloudMat);
-clouds.rotation.x=-Math.PI/2; clouds.position.y=238; scene.add(clouds);
+clouds.rotation.x=-Math.PI/2; clouds.position.y=CLOUD_Y; scene.add(clouds);
+/* the high cirrus — a second, fainter, larger-scaled sheet above the first */
+const cirrusMat=new THREE.MeshBasicMaterial({map:TEX.clouds,transparent:true,opacity:0.0,depthWrite:false,fog:false,side:THREE.DoubleSide});
+const cirrus=new THREE.Mesh(new THREE.PlaneGeometry(15000,15000),cirrusMat);
+cirrus.rotation.x=-Math.PI/2; cirrus.position.y=CIRRUS_Y; scene.add(cirrus);
 
 /* the stars, circling the pole in the midst */
 const starGroup=new THREE.Group(); scene.add(starGroup);
@@ -692,7 +699,9 @@ const glowTexCv=(()=>{ const c=texCanvas(128); const g=c.getContext('2d');
 /* ================= COURSES OF THE LIGHTS ================= */
 const state={ simHours:9.5, speedIdx:1, paused:false,
   mode:'boat', boat:{x:0,z:0,heading:Math.PI*0.9,speed:0},
-  walk:{x:0,z:0,heading:0}, deck:{lx:2.4,lz:-21,h:Math.PI}, windMode:'true', firm:false, firmDist:0, camYaw:0, camPitch:0.42, camDist:96,
+  walk:{x:0,z:0,heading:0}, deck:{lx:2.4,lz:-21,h:Math.PI},
+  fly:{x:0,y:0,z:0,heading:0,vy:0,sp:0}, prevGround:'boat',
+  windMode:'true', firm:false, firmDist:0, camYaw:0, camPitch:0.42, camDist:96,
   visited:new Set(), dist:0 };
 
 /* ================= THE WINDS =================
@@ -1694,8 +1703,10 @@ const keys={};
 addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code==='KeyE') toggleAshore();
   if(e.code==='KeyF') toggleDoor();
+  if(e.code==='KeyG') takeFlight();
   if(e.code==='KeyM') toggleMap();
-  if(e.code==='KeyL') toggleLog(); });
+  if(e.code==='KeyL') toggleLog();
+  if(e.code==='Space') e.preventDefault();  /* SPACE lifts in flight — never scroll the page */ });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
 const cv=$('cv'); let drag=null, joy=null;
 const tpts=new Map(); let pinchD=0;      /* two-finger pinch state */
@@ -1915,6 +1926,65 @@ function walkTick(dt){
     u.armL.rotation.x=moving?-Math.sin(ph)*0.5:0; u.armR.rotation.x=moving?Math.sin(ph)*0.5:0;
   }
 }
+/* ================= FLIGHT — LEVITATION ABOVE THE CLOUDS =================
+   The traveller is borne up off the deck or the shore into the open air.
+   W/S bear him forward and back, A/D turn him, SPACE lifts him higher,
+   SHIFT (or CTRL) lets him down. He floats — there is no falling. He rises
+   through the cloud floor and above it, and the wall of ice turns him back
+   at the rim. Bear down onto the ground and he alights. */
+const FLY_CEIL=5200, FLY_TURN=1.9, FLY_MAXSP=210, FLY_VMAX=150;
+let flyHintShown=false, flyPad=0;
+function flyFloorAt(x,z){ const cc=landAtWorld(x,z); return (cc?cc.h*B:WATER_Y)+7; }
+function flyTick(dt){
+  const fl=state.fly; const [f,t]=axis();
+  fl.heading+=t*dt*FLY_TURN;
+  const tgt=f*FLY_MAXSP;
+  fl.sp+=(tgt-fl.sp)*Math.min(1,dt*3.2);
+  fl.x+=Math.sin(fl.heading)*fl.sp*dt;
+  fl.z+=Math.cos(fl.heading)*fl.sp*dt;
+  let up=flyPad;                                     /* the on-screen ▲▼ pads (touch) */
+  if(keys.Space) up+=1;
+  if(keys.ShiftLeft||keys.ShiftRight||keys.ControlLeft||keys.ControlRight) up-=1;
+  up=Math.max(-1,Math.min(1,up));
+  const vtgt=up*FLY_VMAX;
+  fl.vy+=(vtgt-fl.vy)*Math.min(1,dt*3.2);
+  fl.y+=fl.vy*dt;
+  const floor=flyFloorAt(fl.x,fl.z);
+  if(fl.y>FLY_CEIL){ fl.y=FLY_CEIL; fl.vy=Math.min(0,fl.vy); }
+  if(fl.y<floor){ fl.y=floor; fl.vy=Math.max(0,fl.vy);
+    if(up<0){ alight(); return; } }                 /* bearing down onto the ground — set down */
+  if(Math.hypot(fl.x,fl.z)/R_WORLD>0.994){          /* the wall of ice turns you back */
+    fl.x-=Math.sin(fl.heading)*fl.sp*dt; fl.z-=Math.cos(fl.heading)*fl.sp*dt; fl.sp*=0.25; }
+  state.dist+=Math.abs(fl.sp)*dt;
+  walkerG.position.set(fl.x,fl.y,fl.z); walkerG.rotation.y=fl.heading;
+  /* the levitation pose — arms spread wide, a slow drift of the limbs */
+  const u=walkerG.userData, ph=performance.now()*0.0016, dr=Math.sin(ph)*0.12;
+  u.armL.rotation.z=0.95+dr; u.armR.rotation.z=-0.95-dr;
+  u.armL.rotation.x=-0.15; u.armR.rotation.x=-0.15;
+  u.legL.rotation.x=0.16+Math.sin(ph*1.3)*0.06; u.legR.rotation.x=-0.10-Math.sin(ph*1.3)*0.06;
+}
+function takeFlight(){
+  if(state.mode==='fly'){ alight(); return; }
+  let x,z,h;
+  if(state.mode==='walk'){ x=state.walk.x; z=state.walk.z; h=state.walk.heading; state.prevGround='walk'; }
+  else { x=state.boat.x; z=state.boat.z; h=state.boat.heading; state.prevGround='boat'; }
+  state.fly.x=x; state.fly.z=z; state.fly.heading=h;
+  state.fly.y=flyFloorAt(x,z)+60; state.fly.vy=45; state.fly.sp=0;
+  setMode('fly');
+  if(!flyHintShown){ flyHintShown=true;
+    toast('You are borne up on the air — SPACE to rise, SHIFT to sink, W/S to fly, A/D to turn.'); }
+}
+function alight(){
+  const fl=state.fly, cc=landAtWorld(fl.x,fl.z);
+  if(cc&&cc.kind!=='wall'){
+    state.walk.x=fl.x; state.walk.z=fl.z; state.walk.heading=fl.heading;
+    setMode('walk'); markDiscovery(fl.x,fl.z); toast('You alight softly upon the earth.');
+  } else {                                            /* over the deep — settle onto the ship */
+    state.boat.x=fl.x; state.boat.z=fl.z; state.boat.speed=0; state.boat.heading=fl.heading;
+    setMode('boat'); updateChunks(fl.x,fl.z,9999); toast('You settle back onto the deck.');
+  }
+  saveState();
+}
 /* ================= THE SHIP'S LOG ================= */
 function ordinal(n){ const s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
 function markDiscovery(x,z){
@@ -1937,12 +2007,13 @@ function markDiscovery(x,z){
 function poseArms(atWheel){
   const u=walkerG.userData;
   u.armL.rotation.x=atWheel?-1.15:0; u.armR.rotation.x=atWheel?-1.15:0;
+  u.armL.rotation.z=0; u.armR.rotation.z=0;           /* clear any levitation spread */
   u.legL.rotation.x=0; u.legR.rotation.x=0;
 }
 function setMode(m){
   state.mode=m;
-  if(m==='walk'){
-    if(walkerG.parent!==scene){ boatG.remove(walkerG); scene.add(walkerG); }
+  if(m==='walk'||m==='fly'){                          /* a free body in the world, not aboard */
+    if(walkerG.parent!==scene){ if(walkerG.parent) walkerG.parent.remove(walkerG); scene.add(walkerG); }
     poseArms(false);
   } else {
     if(walkerG.parent!==boatG){ if(walkerG.parent) walkerG.parent.remove(walkerG); boatG.add(walkerG); }
@@ -1950,8 +2021,12 @@ function setMode(m){
     else poseArms(false);
   }
   walkerG.visible=true;
-  updateAshoreBtn();
+  updateAshoreBtn(); updateFlyBtn();
 }
+function updateFlyBtn(){ const b=$('b-fly'); if(!b) return;
+  b.textContent=state.mode==='fly'?'🕊 Alight':'🕊 Rise up';
+  b.classList.toggle('off',state.mode==='fly');
+  const fp=$('flypad'); if(fp) fp.style.display=state.mode==='fly'?'flex':'none'; }
 function nearWheel(){ return state.mode==='deck'&&state.deck.lz<QDECK_Z+1.5&&Math.abs(state.deck.lx)<4.2; }
 function goAshoreFromShip(){
   const bt=state.boat;
@@ -1979,6 +2054,7 @@ function goAshoreFromShip(){
   return false;
 }
 function toggleAshore(){
+  if(state.mode==='fly'){ alight(); return; }    /* come down out of the air */
   if(state.mode==='boat'){                       /* step back from the wheel */
     state.deck={lx:2.4,lz:HELM.z+1.2,h:0};
     setMode('deck'); return;
@@ -1994,7 +2070,8 @@ function toggleAshore(){
   } else toast('The ship lies too far off — return to the water\u2019s edge.');
 }
 function updateAshoreBtn(){ const b=$('b-ashore');
-  if(state.mode==='boat') b.textContent='⚓ Leave the helm';
+  if(state.mode==='fly') b.textContent='🕊 Alight';
+  else if(state.mode==='boat') b.textContent='⚓ Leave the helm';
   else if(state.mode==='deck') b.textContent=nearWheel()?'⎈ Take the helm':'⚓ Go ashore';
   else b.textContent='⛵ Board the ship';
 }
@@ -2037,14 +2114,28 @@ function buildFirmament(){
     else if(lat<=11&&lat>-38) col='#3f8f4a';
     if(col){ g.fillStyle=col; g.globalAlpha=0.8; g.fillRect(px2,py,4,4); g.globalAlpha=1; }
   }
+  /* a soft coast line around every land, for definition */
+  g.strokeStyle='rgba(24,42,30,0.55)'; g.lineWidth=Math.max(1,size/1500); g.lineJoin='round';
+  for(const co of COUNTRIES){ g.beginPath();
+    for(const ring of co.p){ g.moveTo((ring[0][0]+1)*Hh,(ring[0][1]+1)*Hh);
+      for(let k=1;k<ring.length;k++) g.lineTo((ring[k][0]+1)*Hh,(ring[k][1]+1)*Hh); g.closePath(); }
+    g.stroke(); }
   g.strokeStyle='#2e5f8e'; g.lineWidth=2.4; g.lineCap='round'; g.lineJoin='round';
   for(const rv of RIVERS){ g.beginPath();
     rv.pts.forEach((p,k)=>{ const r=(90-p[0])/180, a=p[1]*Math.PI/180;
       const x=(r*Math.sin(a)+1)*Hh, yq=(r*Math.cos(a)+1)*Hh;
       k?g.lineTo(x,yq):g.moveTo(x,yq); });
     g.stroke(); }
+  /* the graticule — faint circles of latitude and meridians of longitude */
+  g.strokeStyle='rgba(232,198,106,0.09)'; g.lineWidth=1;
+  for(let k=1;k<=5;k++){ g.beginPath(); g.arc(Hh,Hh,Hh*ICE_UV*k/6,0,Math.PI*2); g.stroke(); }
+  for(let m=0;m<24;m++){ const a=m/24*Math.PI*2; g.beginPath();
+    g.moveTo(Hh,Hh); g.lineTo(Hh+Math.cos(a)*Hh*ICE_UV,Hh+Math.sin(a)*Hh*ICE_UV); g.stroke(); }
+  /* the ring of ice at the rim, and a dashed circle within it */
   g.beginPath(); g.arc(Hh,Hh,Hh*0.999,0,Math.PI*2); g.arc(Hh,Hh,Hh*ICE_UV,0,Math.PI*2,true);
   g.fillStyle='#e8f0f7'; g.fill('evenodd');
+  g.setLineDash([11,9]); g.strokeStyle='rgba(232,240,247,0.6)'; g.lineWidth=2.4;
+  g.beginPath(); g.arc(Hh,Hh,Hh*ICE_UV*0.992,0,Math.PI*2); g.stroke(); g.setLineDash([]);
   const tex=new THREE.CanvasTexture(c); tex.anisotropy=4;
   const disc=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD,128),
     new THREE.MeshBasicMaterial({map:tex,fog:false}));
@@ -2061,20 +2152,68 @@ function buildFirmament(){
   firmMark=mkSpr('#e8c66a'); firmMark.scale.set(R_WORLD*0.028,R_WORLD*0.028,1); firmG.add(firmMark);
   if(yahruPos){ const y2=mkSpr('#fff1c0'); y2.scale.set(R_WORLD*0.015,R_WORLD*0.015,1);
     y2.position.set(yahruPos.x,R_WORLD*0.012,yahruPos.z); firmG.add(y2); }
+
+  /* ---- the bronze frame that bears the disc, and the four corner verses ----
+     A great square set under the circle of the earth. The disc is punched out
+     of its midst; in the four corners, curving with the rim, stand the words
+     of the Scriptures that speak of the ends and the corners of the earth. */
+  const fs=2560, fc=texCanvas(fs), fg=fc.getContext('2d'), Fh=fs/2;
+  const planeSide=R_WORLD*2.32, discR=Fh*(1/1.16);
+  fg.clearRect(0,0,fs,fs);
+  const bgr=fg.createRadialGradient(Fh,Fh,discR*0.9,Fh,Fh,Fh*1.35);
+  bgr.addColorStop(0,'rgba(58,49,32,0)'); bgr.addColorStop(0.05,'rgba(58,49,32,0.94)');
+  bgr.addColorStop(0.55,'rgba(38,32,21,0.96)'); bgr.addColorStop(1,'rgba(12,10,8,0.99)');
+  fg.fillStyle=bgr; fg.fillRect(0,0,fs,fs);
+  fg.globalCompositeOperation='destination-out';          /* punch out the disc */
+  fg.beginPath(); fg.arc(Fh,Fh,discR,0,Math.PI*2); fg.fill();
+  fg.globalCompositeOperation='source-over';
+  fg.strokeStyle='rgba(232,198,106,0.55)'; fg.lineWidth=fs/340;
+  fg.beginPath(); fg.arc(Fh,Fh,discR*1.008,0,Math.PI*2); fg.stroke();
+  function arcText(text,R,aMid,aDir,up,color,fpx){
+    fg.save(); fg.font='italic '+fpx+'px Georgia,serif'; fg.fillStyle=color;
+    fg.textAlign='center'; fg.textBaseline='middle'; fg.shadowColor='rgba(0,0,0,0.8)'; fg.shadowBlur=fpx*0.25;
+    const ws=[]; let tot=0; for(const ch of text){ const w=fg.measureText(ch).width+fpx*0.02; ws.push(w); tot+=w; }
+    let a=aMid-aDir*(tot/R)/2;
+    for(let i=0;i<text.length;i++){ const da=ws[i]/R, ac=a+aDir*da/2;
+      fg.save(); fg.translate(Fh+Math.cos(ac)*R,Fh+Math.sin(ac)*R); fg.rotate(ac+up*Math.PI/2);
+      fg.fillText(text[i],0,0); fg.restore(); a+=aDir*da; }
+    fg.restore(); }
+  const VF=[
+    {t:'It is changed like clay under a seal, and they stand forth like a garment', r:'IYOB 38:14', aMid:-Math.PI/2, aDir:1, up:1},
+    {t:'I saw four messengers standing on the four corners of the earth, holding the four winds', r:'HAZON 7:1', aMid:0, aDir:1, up:-1},
+    {t:'and gather the outcasts of Yisharal from the four corners of the earth', r:"YASHA'YAHU 11:12", aMid:Math.PI/2, aDir:-1, up:-1},
+    {t:'The earth and all its inhabitants are melted; it is I who set up its columns firm', r:'TEHILLIM 75:3', aMid:Math.PI, aDir:1, up:1},
+  ];
+  for(const q of VF){ arcText(q.t, discR*1.05, q.aMid, q.aDir, q.up, 'rgba(214,190,140,0.92)', fs*0.0155);
+    arcText(q.r, discR*1.115, q.aMid, q.aDir, q.up, 'rgba(232,198,106,0.85)', fs*0.012); }
+  const ftex=new THREE.CanvasTexture(fc); ftex.anisotropy=4;
+  const frame=new THREE.Mesh(new THREE.PlaneGeometry(planeSide,planeSide),
+    new THREE.MeshBasicMaterial({map:ftex,transparent:true,fog:false,depthWrite:false}));
+  frame.rotation.x=-Math.PI/2; frame.position.y=176; firmG.add(frame);
+
+  /* the sun's glow standing over the midst of the lands */
+  const glowC=texCanvas(128), glg=glowC.getContext('2d');
+  const gr2=glg.createRadialGradient(64,64,0,64,64,64);
+  gr2.addColorStop(0,'rgba(255,247,214,0.7)'); gr2.addColorStop(0.28,'rgba(255,224,150,0.28)'); gr2.addColorStop(1,'rgba(255,224,150,0)');
+  glg.fillStyle=gr2; glg.fillRect(0,0,128,128);
+  const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(glowC),
+    blending:THREE.AdditiveBlending,transparent:true,fog:false,depthTest:false}));
+  glow.scale.set(R_WORLD*0.3,R_WORLD*0.3,1); glow.position.set(0,R_WORLD*0.03,0); firmG.add(glow);
+
   firmG.visible=false; scene.add(firmG);
 }
 let firmHintShown=false;
 function enterFirm(){ buildFirmament(); state.firm=true; firmG.visible=true;
-  scene.fog=null; state.firmDist=R_WORLD*1.05; state.camPitch=1.05;
+  scene.fog=null; state.firmDist=R_WORLD*1.62; state.camPitch=1.02;
   sea.visible=false; seaDeep.visible=false; waveGrid.visible=false;
   if(!firmHintShown&&running){ firmHintShown=true;
     toast('Tap a land you have already visited, and a fair wind will carry you to its coasts.'); }
-  clouds.scale.set(26,26,1); clouds.position.set(0,R_WORLD*0.03,0);
+  clouds.visible=false; cirrus.visible=false;   /* clear the sky \u2014 behold the whole earth */
   $('b-firm').textContent='\u26F5 Return to the ship'; }
 function exitFirm(){ state.firm=false; if(firmG) firmG.visible=false;
   scene.fog=FOG; state.camPitch=0.42; state.camDist=200;
   sea.visible=true; seaDeep.visible=true; waveGrid.visible=true;
-  clouds.scale.set(1,1,1); clouds.position.y=238;
+  clouds.visible=true; clouds.scale.set(1,1,1); clouds.position.y=CLOUD_Y; cirrus.visible=true;
   $('b-firm').textContent='\uD83D\udd4A The firmament'; }
 
 /* ================= CAMERA ================= */
@@ -2097,6 +2236,8 @@ function cameraTick(dt){
     dist=Math.max(10,Math.min(state.camDist,44)); }
   else if(state.mode==='boat'){ const bt=state.boat;
     px=bt.x; pz=bt.z; baseY=boatG.position.y+QDECK_Y; phead=bt.heading; dist=Math.max(40,Math.min(state.camDist,224)); }
+  else if(state.mode==='fly'){ const fl=state.fly;
+    px=fl.x; pz=fl.z; baseY=fl.y; phead=fl.heading; dist=Math.max(24,Math.min(state.camDist,300)); }
   else{ const w=state.walk;
     px=w.x; pz=w.z; baseY=walkerG.position.y; phead=w.heading; dist=Math.max(14,Math.min(state.camDist,150)); }
   const [f2]=axis(); if(Math.abs(f2)>0.2) state.camYaw*=Math.max(0,1-dt*0.5);
@@ -2126,10 +2267,13 @@ function toast(txt,ref){ $('verse-t').textContent=txt; $('verse-r').textContent=
 const seen={wall:false,yahru:false};
 function placeTick(){
   updateAshoreBtn();
-  const p=state.mode==='walk'?state.walk:state.boat;
+  const p=state.mode==='walk'?state.walk:state.mode==='fly'?state.fly:state.boat;
   const u=p.x/R_WORLD, v=p.z/R_WORLD, r=Math.hypot(u,v);
   let txt;
-  if(r>0.9){ txt='THE WALL OF ICE';
+  if(state.mode==='fly'){                              /* aloft — name the height above the deep */
+    const km=Math.max(0,Math.round((state.fly.y-CLOUD_Y)/6));
+    txt=state.fly.y>CLOUD_Y+8?('ALOFT — '+km.toLocaleString()+' KM ABOVE THE CLOUDS'):'RISING ON THE AIR'; }
+  else if(r>0.9){ txt='THE WALL OF ICE';
     if(!seen.wall){ seen.wall=true; const vs=VERSES.find(q=>q.ref.indexOf('26:10')>=0);
       if(vs) toast(vs.t,vs.ref); } }
   else{
@@ -2236,6 +2380,12 @@ $('b-speed').onclick=()=>{ state.speedIdx=(state.speedIdx+1)%SPEEDS.length;
   $('b-speed').textContent='\u23E9 Course: '+SPEEDS[state.speedIdx][1]; };
 $('b-map').onclick=toggleMap;
 $('b-ashore').onclick=toggleAshore;
+$('b-fly').onclick=takeFlight;
+(function(){ const up=$('fp-up'), dn=$('fp-dn'); if(!up||!dn) return;
+  function bind(el,val){ el.addEventListener('pointerdown',e=>{ e.preventDefault(); flyPad=val; });
+    const off=()=>{ if(flyPad===val) flyPad=0; };
+    el.addEventListener('pointerup',off); el.addEventListener('pointercancel',off); el.addEventListener('pointerleave',off); }
+  bind(up,1); bind(dn,-1); })();
 $('b-names').onclick=()=>{ namesOn=!namesOn;
   $('b-names').textContent='\uD83C\uDFF7 Names: '+(namesOn?'on':'off');
   $('b-names').classList.toggle('off',!namesOn); };
@@ -2336,9 +2486,15 @@ function frame(){
   if(!state.paused) state.simHours+=dt*SPEEDS[state.speedIdx][0]/3600;
   stormTick(dt);
   boatTick(dt,state.mode==='boat');
-  if(state.mode==='deck') deckTick(dt); else if(state.mode==='walk') walkTick(dt);
-  const p=state.mode==='walk'?state.walk:state.boat;
+  if(state.mode==='deck') deckTick(dt);
+  else if(state.mode==='walk') walkTick(dt);
+  else if(state.mode==='fly') flyTick(dt);
+  const p=state.mode==='walk'?state.walk:state.mode==='fly'?state.fly:state.boat;
   const light=skyTick(p.x,p.z);
+  /* aloft the air clears and the eye reaches far — open the fog with altitude */
+  const eyeY=state.mode==='fly'?state.fly.y:20;
+  if(scene.fog&&!state.firm){ const openF=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/2400));
+    scene.fog.near*=1+openF*4; scene.fog.far*=1+openF*9; }
   waterTick(p.x,p.z,light.dayF,light.storm||0);
   seaLifeTick(p.x,p.z,dt);
   audioTick(light.storm||0);
@@ -2351,7 +2507,14 @@ function frame(){
   saveT-=dt; if(saveT<=0){ saveT=10; saveState(); }
   if(!state.firm){ clouds.position.x=p.x; clouds.position.z=p.z;
     TEX.clouds.offset.x=(p.x/9600*7+state.simHours*0.004)%1;
-    TEX.clouds.offset.y=(p.z/9600*7)%1; }
+    TEX.clouds.offset.y=(p.z/9600*7)%1;
+    /* thin the cloud floor as the eye passes through it, so it is not a wall;
+       raise the high cirrus into view as the traveller climbs */
+    const gap=Math.abs(eyeY-CLOUD_Y), through=Math.min(1,gap/80);
+    cloudMat.opacity*=0.22+0.78*through;
+    cirrus.position.x=p.x; cirrus.position.z=p.z;
+    const climb=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/900));
+    cirrusMat.opacity=(0.08+light.dayF*0.16)*Math.min(1,climb*1.5); }
   if(state.firm&&firmMark) firmMark.position.set(p.x,R_WORLD*0.012,p.z);
   seaTex.offset.x=(performance.now()*0.000012)%1; seaTex.offset.y=(performance.now()*0.000009)%1;
   const _pn=performance.now();
