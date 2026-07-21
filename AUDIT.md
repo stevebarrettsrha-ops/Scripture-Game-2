@@ -184,6 +184,23 @@ points and cameras all rescaled to match — she sits notably broader on the scr
   (dark), at evening, from under the swell, and along the submerged coast in dive; the
   cargo hold is unaffected.
 
+## 4c. Round 4 — living waters ✅
+
+- **Breath**: diving now drains a breath bar (~75 s; shown under the HUD while below).
+  A warning comes as the chest tightens; if the breath fails you break for the surface,
+  gasping — never drowned, only driven up. Breath refills quickly above water.
+- **The immortal breath** (🫧 button): a toggle — "the breath of the Almighty gives me
+  life" (Iyob 33:4) — frees the diver of air altogether, to rove the deep at leisure.
+  The choice is saved with the voyage.
+- **The shallows teem in plain sight**: fish schools, turtles and dolphins now swim on
+  whether or not anyone dives, visible from the deck, the strand and the air through the
+  clear coastal water (verified: 30 fish and 6 dolphins live at the surface view).
+- **Spear-fishing**: the spear (Q) hunts beneath the waves — slowed and drawn down by
+  the water, true to the diver's tilt — taking fish, squid and puffers, each added to
+  the fish tally and sellable at any market. Its flight is substepped so it can never
+  skip through a quarry on a slow frame; it plants in the sea bed or the coast flank
+  where it misses.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

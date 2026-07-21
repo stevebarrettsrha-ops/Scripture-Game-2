@@ -934,7 +934,8 @@ const state={ simHours:9.5, speedIdx:1, paused:false,
   fly:{x:0,y:0,z:0,heading:0,vy:0,sp:0}, prevGround:'boat',
   dive:{x:0,y:0,z:0,heading:0,vy:0,sp:0},
   windMode:'true', firm:false, firmDist:0, camYaw:0, camPitch:0.42, camDist:96,
-  visited:new Set(), dist:0, fish:0, fishing:null, coins:30, cargo:{}, game:0 };
+  visited:new Set(), dist:0, fish:0, fishing:null, coins:30, cargo:{}, game:0,
+  breath:1, immBreath:false };
 
 /* ================= THE WINDS =================
    The bands of the disc mirror the true circulation: trade easterlies in
@@ -1904,6 +1905,19 @@ function updateDeep(px,py,pz,dt,murk){ const t=performance.now()*0.001;
   updateKelp(px,pz,t); updateCoral(px,pz); updateGrass(px,pz,t); updateRays(px,py,pz,murk||0);
   updateDiveFish(px,py,pz,dt,t); updateSquid(px,py,pz,dt,t); updateDolphins(px,py,pz,dt,t); updateSharks(px,py,pz,dt,t);
   updateSeaMobs(px,py,pz,dt,t); updateBubbles(px,py,pz,dt); updateWreck(px,pz); deepShown=true; }
+/* ---- THE CLEAR SHALLOWS TEEM ----
+   Fish, turtles and dolphins swim on even when no one dives: seen from the
+   deck, the strand or the air wherever the water is shallow and clear. */
+function updateShallowLife(px,pz,dt,t){
+  initDiveFish(); initDolphins(); initSeaMobs();
+  updateDiveFish(px,0,pz,dt,t);
+  updateDolphins(px,0,pz,dt,t);
+  updateSeaMob(TURTLES,px,0,pz,dt,t);
+  /* hideDeep may have blanked them on leaving the dive — show the living */
+  for(const f of DIVEFISH) if(f.set) f.m.visible=true;
+  for(const d2 of DOLPHINS) if(d2.set) d2.m.visible=true;
+  if(TURTLES) for(const o of TURTLES) if(o.set) o.m.visible=true;
+}
 function diveTick(dt){ const dv=state.dive; const [f,tn]=axis();
   dv.heading+=tn*dt*DIVE_TURN; const tgt=f*DIVE_MAXSP; dv.sp+=(tgt-dv.sp)*Math.min(1,dt*2.6);
   dv.x+=Math.sin(dv.heading)*dv.sp*dt; dv.z+=Math.cos(dv.heading)*dv.sp*dt;
@@ -2982,15 +2996,38 @@ function ensureSpear(){ if(spearM) return;
   spearM.visible=false; scene.add(spearM);
 }
 function throwSpear(){
-  if(state.mode!=='walk'||spear.active||state.fishing) return;
-  ensureSpear();
-  const w=state.walk;
-  spear.active=true; spear.stick=0;
-  spear.x=w.x+Math.sin(w.heading)*2; spear.z=w.z+Math.cos(w.heading)*2;
-  spear.y=(w.feetY||0)+9;
-  spear.vx=Math.sin(w.heading)*70; spear.vz=Math.cos(w.heading)*70; spear.vy=7;
-  spearM.visible=true;
-  const u=walkerG.userData; u.armR.rotation.x=-2.6;   /* the cast */
+  if(spear.active||state.fishing) return;
+  if(state.mode==='walk'){
+    ensureSpear();
+    const w=state.walk;
+    spear.active=true; spear.aqua=false; spear.stick=0;
+    spear.x=w.x+Math.sin(w.heading)*2; spear.z=w.z+Math.cos(w.heading)*2;
+    spear.y=(w.feetY||0)+9;
+    spear.vx=Math.sin(w.heading)*70; spear.vz=Math.cos(w.heading)*70; spear.vy=7;
+    spearM.visible=true;
+    const u=walkerG.userData; u.armR.rotation.x=-2.6;   /* the cast */
+  } else if(state.mode==='dive'){
+    /* the spear hunts beneath the waves too — slower, sinking, true to the water */
+    ensureSpear();
+    const dv=state.dive;
+    spear.active=true; spear.aqua=true; spear.stick=0;
+    spear.x=dv.x+Math.sin(dv.heading)*3; spear.z=dv.z+Math.cos(dv.heading)*3;
+    spear.y=dv.y+2;
+    const tilt=Math.max(-0.5,Math.min(0.5,-dv.vy/DIVE_VMAX*0.7));   /* aim follows the swim tilt */
+    spear.vx=Math.sin(dv.heading)*54; spear.vz=Math.cos(dv.heading)*54; spear.vy=-2-tilt*24;
+    spearM.visible=true;
+  }
+}
+/* the quarry of the deep: fish, squid and puffers — all tallied as fish taken */
+function spearHitDeep(){
+  const near=(x,y,z,r)=>Math.hypot(x-spear.x,z-spear.z)<r&&Math.abs(y-spear.y)<r+2.5;
+  for(const f of DIVEFISH){ if(!f.set) continue;
+    if(near(f.x,f.y,f.z,3.2)){ f.set=false; f.m.visible=false; return 'a fish of the deep'; } }
+  for(const q of SQUIDS){ if(!q.set) continue;
+    if(near(q.x,q.y,q.z,3.6)){ q.set=false; q.m.visible=false; return 'a squid'; } }
+  if(PUFFERS) for(const o of PUFFERS){ if(!o.set) continue;
+    if(near(o.x,o.y,o.z,3.2)){ o.set=false; o.m.visible=false; return 'a puffer of the reef'; } }
+  return null;
 }
 function spearHit(){
   const near=(x,z)=>Math.hypot(x-spear.x,z-spear.z)<3.4;
@@ -3008,22 +3045,49 @@ function spearTick(dt){
   if(!spear.active){
     if(spear.stick>0){ spear.stick-=dt; if(spear.stick<=0&&spearM) spearM.visible=false; }
     return; }
-  spear.x+=spear.vx*dt; spear.z+=spear.vz*dt; spear.vy-=26*dt; spear.y+=spear.vy*dt;
-  spearM.position.set(spear.x,spear.y,spear.z);
-  spearM.rotation.y=Math.atan2(spear.vx,spear.vz);
-  spearM.rotation.x=Math.atan2(-spear.vy,Math.hypot(spear.vx,spear.vz))*0.8;
-  const kill=spearHit();
-  if(kill){ state.game=(state.game||0)+1; spear.active=false; spear.stick=1.4;
-    toast(kill==='wolf'?'Your spear finds the wolf — the flock is safe, and the pelt is yours. Game taken: '+state.game+'.'
-      :'Your spear finds the '+kill+' — game taken for the voyage: '+state.game+'.');
-    saveState(); return; }
-  const gy=groundInfo(spear.x,spear.z);
-  if(spear.y<=(gy.land?gy.y:WATER_Y)+0.4){
-    spear.active=false;
-    if(!gy.land){ splash(spear.x,WATER_Y+0.6,spear.z,false); spear.stick=0.5; }
-    else { spear.stick=5; spearM.rotation.x=1.15; spearM.position.y=gy.y+1.4; }   /* planted in the earth */
+  /* substep the flight so a slow frame can never carry it clean through
+     a fish or a beast between one tick and the next */
+  const sub=Math.max(1,Math.ceil((Math.hypot(spear.vx,spear.vz)*dt)/2.4));
+  const sdt=dt/sub;
+  for(let s3=0;s3<sub&&spear.active;s3++){
+    if(spear.aqua){                                  /* the water holds it back and draws it down */
+      const drag=Math.max(0,1-sdt*0.55);
+      spear.vx*=drag; spear.vz*=drag; spear.vy=spear.vy*drag-7*sdt;
+    } else spear.vy-=26*sdt;
+    spear.x+=spear.vx*sdt; spear.z+=spear.vz*sdt; spear.y+=spear.vy*sdt;
+    if(spear.aqua){
+      const catch2=spearHitDeep();
+      if(catch2){ state.fish=(state.fish||0)+1; spear.active=false; spear.stick=1.2;
+        toast('Your spear takes '+catch2+' — '+state.fish+' fish in the log, good silver at any market.');
+        saveState(); break; }
+      if(landAtWorld(spear.x,spear.z)){ spear.active=false; spear.stick=1.5; break; } /* struck the flank */
+      const fy=seabedDepth(spear.x,spear.z);
+      if(spear.y<=fy+0.6){ spear.active=false; spear.stick=5;
+        spearM.rotation.x=1.15; spearM.position.y=fy+1.3; break; }  /* planted in the sea bed */
+      if(spear.y>=SEA_SURF+seaHeight(spear.x,spear.z)){ spear.active=false; spear.stick=0.4;
+        splash(spear.x,SEA_SURF+0.6,spear.z,false); break; }
+      const dv=state.dive;
+      if(Math.hypot(spear.x-dv.x,spear.z-dv.z)>110){ spear.active=false; spearM.visible=false; break; }
+    } else {
+      const kill=spearHit();
+      if(kill){ state.game=(state.game||0)+1; spear.active=false; spear.stick=1.4;
+        toast(kill==='wolf'?'Your spear finds the wolf — the flock is safe, and the pelt is yours. Game taken: '+state.game+'.'
+          :'Your spear finds the '+kill+' — game taken for the voyage: '+state.game+'.');
+        saveState(); break; }
+      const gy=groundInfo(spear.x,spear.z);
+      if(spear.y<=(gy.land?gy.y:WATER_Y)+0.4){
+        spear.active=false;
+        if(!gy.land){ splash(spear.x,WATER_Y+0.6,spear.z,false); spear.stick=0.5; }
+        else { spear.stick=5; spearM.rotation.x=1.15; spearM.position.y=gy.y+1.4; }  /* planted in the earth */
+        break; }
+      if(Math.hypot(spear.x-state.walk.x,spear.z-state.walk.z)>150){ spear.active=false; spearM.visible=false; break; }
+    }
   }
-  if(Math.hypot(spear.x-state.walk.x,spear.z-state.walk.z)>150){ spear.active=false; spearM.visible=false; }
+  if(spear.active){
+    spearM.position.set(spear.x,spear.y,spear.z);
+    spearM.rotation.y=Math.atan2(spear.vx,spear.vz);
+    spearM.rotation.x=Math.atan2(-spear.vy,Math.hypot(spear.vx,spear.vz))*0.8;
+  }
 }
 
 /* ================= YAHRUSHALAYIM ================= */
@@ -3998,7 +4062,7 @@ async function saveState(){
   const payload=JSON.stringify({v:6,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
     t:state.simHours,m:state.mode==='walk'?'walk':'boat',wx:state.walk.x,wz:state.walk.z,wh:state.walk.heading,
     vis:[...state.visited],d:Math.round(state.dist),wm:state.windMode,fi:state.fish||0,
-    co:state.coins,cg:state.cargo,gm:state.game||0});
+    co:state.coins,cg:state.cargo,gm:state.game||0,ib:state.immBreath?1:0});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
 }
@@ -4020,6 +4084,11 @@ $('b-map').onclick=toggleMap;
 $('b-ashore').onclick=toggleAshore;
 $('b-fly').onclick=takeFlight;
 $('b-dive').onclick=enterDive;
+function updateBreathBtn(){ $('b-breath').textContent='🫧 Breath: '+(state.immBreath?'immortal':'mortal'); }
+$('b-breath').onclick=()=>{ state.immBreath=!state.immBreath; updateBreathBtn();
+  if(state.immBreath) toast('“The Ruach of Aluah has made me, and the breath of the Almighty gives me life.” You will not want for air beneath the waves.','IYOB 33:4');
+  else toast('Your breath is your own again — watch the bar below, and rise to breathe.');
+  saveState(); };
 (function(){ const up=$('fp-up'), dn=$('fp-dn'); if(!up||!dn) return;
   function bind(el,val){ el.addEventListener('pointerdown',e=>{ e.preventDefault(); flyPad=val; });
     const off=()=>{ if(flyPad===val) flyPad=0; };
@@ -4115,6 +4184,7 @@ async function begin(fresh){
     if(saved.co!==undefined) state.coins=saved.co;
     if(saved.cg) state.cargo=saved.cg;
     if(saved.gm) state.game=saved.gm;
+    if(saved.ib){ state.immBreath=true; updateBreathBtn(); }
     if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); } }
   else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5; }
   const p0=state.mode==='walk'?state.walk:state.boat;
@@ -4129,7 +4199,8 @@ $('btn-continue').onclick=()=>begin(false);
 
 /* a small debug handle — used by the automated smoke tests; harmless in play */
 window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
-  TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth};
+  TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
+  DIVEFISH,DOLPHINS};
 
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0;
@@ -4156,8 +4227,24 @@ function frame(){
     const wc=mix3(0x061826,0x0f5170,0x36b0d8,1-murk);   /* deep dark → shallow turquoise */
     scene.background.copy(wc); scene.fog.color.copy(wc); scene.fog.near=4; scene.fog.far=470-murk*290;
     hemi.intensity=1.0-murk*0.6; dirL.intensity=0.5-murk*0.32; }
+  /* ---- BREATH — the diver's chest against the deep ----
+     It drains below, refills above; fails, and you break for the surface.
+     The immortal breath (🫧) frees you of it altogether. */
+  if(state.mode==='dive'){
+    if(state.immBreath) state.breath=1;
+    else { state.breath-=dt/75;
+      if(state.breath<0.3&&!state._breathWarn){ state._breathWarn=true;
+        toast('Your chest tightens — the surface is life. Rise and breathe, or take the immortal breath.'); }
+      if(state.breath<=0){ state.breath=0.15; state._breathWarn=false; surface();
+        toast('Your breath fails — you break for the surface, gasping.'); } }
+  } else { state.breath=Math.min(1,state.breath+dt/6); if(state.breath>0.5) state._breathWarn=false; }
+  { const bEl=$('breath'); if(bEl){ const show=state.mode==='dive';
+      bEl.style.display=show?'block':'none';
+      if(show){ $('breath-fill').style.width=Math.round(state.breath*100)+'%';
+        bEl.classList.toggle('low',!state.immBreath&&state.breath<0.3);
+        bEl.classList.toggle('imm',!!state.immBreath); } } }
   /* the swimmer's eye dips beneath the swell — the world turns to water-light */
-  else if(state.mode==='walk'&&scene.fog){
+  if(state.mode==='walk'&&scene.fog){
     const surfC=WATER_Y+seaHeight(camera.position.x,camera.position.z);
     if(camera.position.y<surfC-0.15&&!landAtWorld(camera.position.x,camera.position.z)){
       const wc=mix3(0x0a2836,0x1e7a96,0x3ab2d8,light.dayF);
@@ -4220,6 +4307,7 @@ function frame(){
   /* the beasts of the field and the fowl of the air, over all the earth */
   if(!state.firm&&state.mode!=='dive'){ const tt=performance.now()*0.001, night=(light.nightF||0)>0.5;
     updateAirLife(p.x,p.z,dt,tt,night);
+    updateShallowLife(p.x,p.z,dt,tt);   /* fish and turtles seen through the clear shallows */
     if(state.mode==='boat'||state.mode==='deck'||state.mode==='walk') updateLandLife(p.x,p.z,dt,tt); else hideLandLife(); }
   else { hideLandLife(); hideAirLife(); }
   if(state.firm&&firmMark) firmMark.position.set(p.x,R_WORLD*0.012,p.z);

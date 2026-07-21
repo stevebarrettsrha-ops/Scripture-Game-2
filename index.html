@@ -77,6 +77,13 @@
   .tbtn:hover{ background:rgba(232,198,106,.28); }
   .tbtn:disabled{ opacity:.35; cursor:default; }
   #trade .m-hint{ margin-top:2vh; text-align:center; font-size:clamp(9px,1.4vmin,12px); letter-spacing:.2em; color:#6a6252; cursor:pointer; }
+  #breath{ position:fixed; z-index:6; left:50%; bottom:20vh; transform:translateX(-50%);
+    width:min(40vw,240px); height:10px; border:1px solid rgba(232,198,106,.55); border-radius:5px;
+    background:rgba(7,16,29,.78); display:none; pointer-events:none; }
+  #breath-fill{ height:100%; width:100%; border-radius:4px;
+    background:linear-gradient(90deg,#2fb3cf,#7fe0f0); transition:width .2s linear; }
+  #breath.low #breath-fill{ background:linear-gradient(90deg,#c9502e,#e88a4a); }
+  #breath.imm #breath-fill{ background:linear-gradient(90deg,#e8c66a,#fff2c0); }
   #joy{ position:fixed; z-index:7; display:none; width:104px; height:104px; border-radius:50%;
     border:1px solid rgba(232,198,106,.4); background:rgba(14,18,32,.35); pointer-events:none; }
   #joyk{ position:absolute; left:37px; top:37px; width:30px; height:30px; border-radius:50%;
@@ -115,9 +122,10 @@
 <div class="hud" id="place"></div>
 <button id="prompt">F — open the door</button>
 <div class="hud" id="verse"><div class="vt" id="verse-t"></div><div class="vr" id="verse-r"></div></div>
-<div class="hud" id="hint">W A S D — helm and sail &nbsp;·&nbsp; drag — look &nbsp;·&nbsp; E — the wheel · the deck · the shore &nbsp;·&nbsp; SPACE — jump / climb &nbsp;·&nbsp; F — doors · speak · trade · fish · the hold · hail &nbsp;·&nbsp; Q — throw the spear &nbsp;·&nbsp; G — rise into the air (SPACE up · SHIFT down) &nbsp;·&nbsp; C — dive the deep (SHIFT down · SPACE up) &nbsp;·&nbsp; M — the map &nbsp;·&nbsp; L — the log &nbsp;·&nbsp; scroll far out — the firmament</div>
+<div class="hud" id="hint">W A S D — helm and sail &nbsp;·&nbsp; drag — look &nbsp;·&nbsp; E — the wheel · the deck · the shore &nbsp;·&nbsp; SPACE — jump / climb &nbsp;·&nbsp; F — doors · speak · trade · fish · the hold · hail &nbsp;·&nbsp; Q — the spear (ashore and beneath the waves) &nbsp;·&nbsp; G — rise into the air (SPACE up · SHIFT down) &nbsp;·&nbsp; C — dive the deep (SHIFT down · SPACE up) &nbsp;·&nbsp; M — the map &nbsp;·&nbsp; L — the log &nbsp;·&nbsp; scroll far out — the firmament</div>
 
 <canvas id="mini" width="280" height="280"></canvas>
+<div id="breath"><div id="breath-fill"></div></div>
 <div id="joy"><div id="joyk"></div></div>
 <div id="flypad"><button id="fp-up" class="fpb">▲</button><button id="fp-dn" class="fpb">▼</button></div>
 
@@ -125,6 +133,7 @@
   <button class="btn" id="b-ashore">⚓ Go ashore</button>
   <button class="btn" id="b-fly">🕊 Rise up</button>
   <button class="btn" id="b-dive">🤿 Dive</button>
+  <button class="btn" id="b-breath">🫧 Breath: mortal</button>
   <button class="btn" id="b-wind">🌬 Winds: true</button>
   <button class="btn" id="b-firm">🕊 The firmament</button>
   <button class="btn" id="b-map">🗺 The whole earth</button>
@@ -164,6 +173,8 @@
   the great ship bears twelve and more — a crew keeps her deck, and a cargo hold lies below the hatch amidships (F to go below)<br>
   stand on a strand or pier and cast a line (F) — the fish of the sea are yours to draw up · swim the swell — hold SHIFT to slip
   beneath the waves, and the bed runs unbroken from the strand into the kelp-and-coral deep (SPACE at the surface to come up)<br>
+  mind your breath below — rise to breathe, or take the 🫧 immortal breath and rove the deep at leisure · the spear (Q) hunts
+  under the waves too: fish, squid and puffers for the market<br>
   the winds are true: run before them and fly, beat against them and labour ·
   the great rivers open the inland · storms wander the deep — steer wide · traders pass upon the horizon</div>
   <div class="btns">
