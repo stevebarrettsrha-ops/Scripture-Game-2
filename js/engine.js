@@ -279,7 +279,8 @@ function cellRaw(ix,iz){
   const lat=90-r*180;
   const n=fbm(ix*.11,iz*.11), n2=fbm(ix*.023+40,iz*.023-70), j=hash2(ix,iz);
   if(r>=ICE_UV){ const t=(r-ICE_UV)/(0.995-ICE_UV);
-    return {h:5+Math.floor(t*16+n*5), kind:'wall', tree:0, ci:0}; }
+    const wh = t<0.72 ? 3+(t/0.72)*46 : 49+(t-0.72)/0.28*4;   /* a climbable ice ramp up to a crowned plateau */
+    return {h:Math.floor(wh+n*3), kind:'wall', tree:0, ci:0}; }
   if(r>=SHELF_UV){ if(n>0.62){ return {h:1, kind:'floe', tree:0, ci:0}; } return null; }
   /* domain-warp the coast: sub-pixel fractal detail where the vector data runs out */
   const du2=(fbm(u*760+13.7,v*760-4.2)-0.5)*(2.6/HALF);
@@ -558,6 +559,12 @@ const dirL=new THREE.DirectionalLight(0xffffff,0.5); dirL.position.set(0.4,1,0.2
 const seaDeep=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),
   new THREE.MeshBasicMaterial({color:0x0c2c48}));
 seaDeep.rotation.x=-Math.PI/2; seaDeep.position.y=-2.5; scene.add(seaDeep);
+/* beyond the wall of ice — the outer darkness, that no man may look past:
+   a tall dark ring just outside the rim, so nothing of "the other side" is
+   seen, only blackness and, beyond it, the stars. */
+const voidWall=new THREE.Mesh(new THREE.CylinderGeometry(R_WORLD*0.999,R_WORLD*0.999,2400,140,1,true),
+  new THREE.MeshBasicMaterial({color:0x03040d,side:THREE.BackSide,fog:false}));
+voidWall.position.y=560; scene.add(voidWall);   /* tall enough to hide the beyond, low enough that the stars show above */
 /* The far ring beyond the wave grid — a PLAIN deep-water colour, no tile
    texture (the old blocky water plane is gone; the Gerstner grid is the only
    surface water now). It sits just under the grid's flat edge, deep in fog. */
@@ -739,6 +746,18 @@ const wispMat=new THREE.MeshBasicMaterial({map:makeWispTex(),transparent:true,op
 wispMat.map.repeat.set(30,30);
 const cloudWisp=new THREE.Mesh(new THREE.PlaneGeometry(100000,100000),wispMat);
 cloudWisp.rotation.x=-Math.PI/2; cloudWisp.position.y=CLOUD_Y+64; cloudWisp.visible=false; scene.add(cloudWisp);
+/* ---- THE CLOUD COVER over the whole face of the earth — a FIXED sheet the
+   size of the disc, so from aloft the entire circle is seen mantled in cloud,
+   and at the ice wall the cloud ends at the wall, not about the traveller. */
+function makeCoverTex(){ const S=256, c=texCanvas(S,S), g=c.getContext('2d'), img=g.createImageData(S,S), d=img.data;
+  function tn(x,y,f){ const X=x/S*f,Y=y/S*f,wx=x/S,wy=y/S; return vnoise(X,Y)*(1-wx)*(1-wy)+vnoise(X-f,Y)*wx*(1-wy)+vnoise(X,Y-f)*(1-wx)*wy+vnoise(X-f,Y-f)*wx*wy; }
+  for(let y=0;y<S;y++)for(let x=0;x<S;x++){ const i=(y*S+x)*4; let h=(tn(x,y,3)*0.6+tn(x,y,7)*0.4-0.34)/0.42; h=Math.max(0,Math.min(1,h));
+    const L=0.72+0.28*h; d[i]=L*248; d[i+1]=L*250; d[i+2]=L*255; d[i+3]=Math.round((0.4+0.6*h)*255); }
+  g.putImageData(img,0,0); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; return t; }
+const coverTex=makeCoverTex(); coverTex.repeat.set(ICE_UV*R_WORLD/1200,ICE_UV*R_WORLD/1200);
+const cloudCover=new THREE.Mesh(new THREE.CircleGeometry(ICE_UV*R_WORLD,140),
+  new THREE.MeshBasicMaterial({map:coverTex,transparent:true,opacity:0,depthWrite:false,fog:true,side:THREE.DoubleSide}));
+cloudCover.rotation.x=-Math.PI/2; cloudCover.position.y=CLOUD_Y-10; cloudCover.visible=false; scene.add(cloudCover);
 
 /* the stars, circling the pole in the midst */
 const starGroup=new THREE.Group(); scene.add(starGroup);
@@ -2489,7 +2508,7 @@ function groundInfo(x,z){
   const dk=deckMap.get(Math.floor(x/B)+','+Math.floor(z/B));
   if(dk!==undefined) return {y:dk,land:true};
   const c=landAtWorld(x,z);
-  if(c) return {y:c.h*B, land:c.kind!=='wall', wall:c.kind==='wall'};
+  if(c) return {y:c.h*B, land:true, wall:c.kind==='wall'};   /* the ice wall is walkable — one may mount it */
   return {y:WATER_Y-2.2, land:false, water:true};
 }
 /* is a point within the room of a house (used for the inside-the-home camera) */
@@ -2536,8 +2555,7 @@ function walkTick(dt){
   const solidBlock = blockedByStructure(nx,nz)||treeBlocked(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,walkerG);
   const diff = tg.y - w.feetY;
   let canGo=true;
-  if(tg.wall) canGo=false;
-  else if(!tg.land) canGo = nearBoat||onDeckNext||(Math.hypot(nx,nz)/R_WORLD<0.985);  /* swim */
+  if(!tg.land) canGo = nearBoat||onDeckNext||(Math.hypot(nx,nz)/R_WORLD<0.985);  /* swim (the ice wall is land, and climbable) */
   else if(diff<=STEP){ /* a small step — walk up or down freely */ }
   else if(diff<=JUMPH) canGo = w.feetY>=tg.y-B*0.4;      /* two blocks: only if jumping onto it */
   else if(diff<=CLIMBH){                                  /* three–four blocks: climb it */
@@ -2625,7 +2643,7 @@ function takeFlight(){
 }
 function alight(){
   const fl=state.fly, cc=landAtWorld(fl.x,fl.z);
-  if(cc&&cc.kind!=='wall'){
+  if(cc){                                             /* land on any ground, the ice wall included */
     state.walk.x=fl.x; state.walk.z=fl.z; state.walk.heading=fl.heading;
     state.walk.feetY=undefined; state.walk.vy=0; state.walk.grounded=true;  /* re-seat on the ground here */
     setMode('walk'); markDiscovery(fl.x,fl.z); toast('You alight softly upon the earth.');
@@ -2690,10 +2708,10 @@ function goAshoreFromShip(){
     const th=a/(rad*8)*Math.PI*2;
     const x=bt.x+Math.cos(th)*rad*B, z=bt.z+Math.sin(th)*rad*B;
     const cc=landAtWorld(x,z);
-    if(cc&&cc.kind!=='wall'){
-      if(cc.h<=2){ state.walk.x=x; state.walk.z=z; state.walk.heading=bt.heading;
+    if(cc){
+      if(cc.kind!=='wall'&&cc.h<=2){ state.walk.x=x; state.walk.z=z; state.walk.heading=bt.heading;
         setMode('walk'); markDiscovery(x,z); return true; }
-      if(!anyLand) anyLand={x,z};
+      if(!anyLand) anyLand={x,z};   /* the ice wall counts — you may go ashore and mount it */
     }
   }
   let bestD=null;
@@ -2865,13 +2883,13 @@ function enterFirm(){ buildFirmament(); state.firm=true; firmG.visible=true;
   if(!firmHintShown&&running){ firmHintShown=true;
     toast('Tap a land you have already visited, and a fair wind will carry you to its coasts.'); }
   clouds.visible=false; cirrus.visible=false;   /* clear the sky \u2014 behold the whole earth */
-  cloudDeck.visible=false; cloudWisp.visible=false;
+  cloudDeck.visible=false; cloudWisp.visible=false; cloudCover.visible=false; voidWall.visible=false;
   hideDeep(); hideLandLife(); hideAirLife();     /* nothing of the deep or the field in the map view */
   $('b-firm').textContent='\u26F5 Return to the ship'; }
 function exitFirm(){ state.firm=false; if(firmG) firmG.visible=false;
   scene.fog=FOG; state.camPitch=0.42; state.camDist=200;
   sea.visible=true; seaDeep.visible=true; waveGrid.visible=true;
-  clouds.visible=true; clouds.scale.set(1,1,1); clouds.position.y=CLOUD_Y; cirrus.visible=true;
+  clouds.visible=true; clouds.scale.set(1,1,1); clouds.position.y=CLOUD_Y; cirrus.visible=true; voidWall.visible=true;
   $('b-firm').textContent='\uD83D\udd4A The firmament'; }
 
 /* ================= CAMERA ================= */
@@ -3213,7 +3231,7 @@ function frame(){
     const climb=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/900));
     cirrusMat.opacity=(0.08+light.dayF*0.16)*Math.min(1,climb*1.5)*(1-above*0.7);
     /* the sea of clouds — a bumpy, shaded deck with wisps drifting above */
-    cloudDeck.visible=cloudWisp.visible=above>0.003;
+    cloudDeck.visible=cloudWisp.visible=cloudCover.visible=above>0.003;
     if(above>0.003){
       cloudDeck.position.set(p.x,CLOUD_Y,p.z); updateCloudDeck(p.x,p.z);
       cloudDeckMat.opacity=above; cloudDeckMat.color.copy(mix3(0x6b7690,0xe6cba4,0xffffff,light.dayF));
@@ -3221,6 +3239,8 @@ function frame(){
       wispMat.opacity=above*0.5; wispMat.color.copy(mix3(0x4a5570,0xe0c49c,0xffffff,light.dayF));
       const dr2=state.simHours*0.006;
       wispMat.map.offset.set((p.x/100000*30+dr2)%1,(p.z/100000*30)%1);
+      /* the fixed cover mantles the whole earth (does NOT follow the traveller) */
+      cloudCover.material.opacity=above*0.97; cloudCover.material.color.copy(mix3(0x59637a,0xe0c6a0,0xffffff,light.dayF));
     } }
   if(!state.firm&&state.mode==='dive') updateDeep(state.dive.x,state.dive.y,state.dive.z,dt,Math.min(1,(SEA_SURF-state.dive.y)/560));
   else if(deepShown) hideDeep();
