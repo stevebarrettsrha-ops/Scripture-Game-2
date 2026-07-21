@@ -63,6 +63,11 @@
     border:1px solid rgba(232,198,106,.4); background:rgba(14,18,32,.35); pointer-events:none; }
   #joyk{ position:absolute; left:37px; top:37px; width:30px; height:30px; border-radius:50%;
     background:rgba(232,198,106,.55); }
+  #flypad{ position:fixed; z-index:7; left:2vw; bottom:38vh; display:none; flex-direction:column; gap:1.1vh; }
+  .fpb{ pointer-events:auto; width:62px; height:62px; border-radius:50%; line-height:1;
+    border:1px solid rgba(232,198,106,.5); background:rgba(14,18,32,.72); color:var(--gold);
+    font-size:22px; cursor:pointer; touch-action:none; }
+  .fpb:active{ background:rgba(232,198,106,.3); border-color:var(--gold); }
   #title-card{ position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
     background:radial-gradient(ellipse at 50% 35%, #0d1730 0%, #05070f 70%); }
   #title-inner{ text-align:center; max-width:min(92vw,680px); padding:4vh 4vw; }
@@ -92,13 +97,15 @@
 <div class="hud" id="place"></div>
 <button id="prompt">F — open the door</button>
 <div class="hud" id="verse"><div class="vt" id="verse-t"></div><div class="vr" id="verse-r"></div></div>
-<div class="hud" id="hint">W A S D — helm and sail &nbsp;·&nbsp; drag — look &nbsp;·&nbsp; E — the wheel · the deck · the shore &nbsp;·&nbsp; SPACE — jump / climb &nbsp;·&nbsp; F — doors &nbsp;·&nbsp; M — the map &nbsp;·&nbsp; L — the log &nbsp;·&nbsp; scroll far out — the firmament</div>
+<div class="hud" id="hint">W A S D — helm and sail &nbsp;·&nbsp; drag — look &nbsp;·&nbsp; E — the wheel · the deck · the shore &nbsp;·&nbsp; SPACE — jump / climb &nbsp;·&nbsp; F — doors &nbsp;·&nbsp; G — rise into the air (SPACE up · SHIFT down) &nbsp;·&nbsp; M — the map &nbsp;·&nbsp; L — the log &nbsp;·&nbsp; scroll far out — the firmament</div>
 
 <canvas id="mini" width="280" height="280"></canvas>
 <div id="joy"><div id="joyk"></div></div>
+<div id="flypad"><button id="fp-up" class="fpb">▲</button><button id="fp-dn" class="fpb">▼</button></div>
 
 <div id="ui">
   <button class="btn" id="b-ashore">⚓ Go ashore</button>
+  <button class="btn" id="b-fly">🕊 Rise up</button>
   <button class="btn" id="b-wind">🌬 Winds: true</button>
   <button class="btn" id="b-firm">🕊 The firmament</button>
   <button class="btn" id="b-map">🗺 The whole earth</button>
@@ -123,6 +130,7 @@
   <h1>THE VOYAGE</h1>
   <div class="sub">The waters gathered into one place, and the dry land appearing — every nation set upon the face of the deep, bounded by the wall of ice, and over all the firmament like a hard mirror. The sun runs his course between the tropics; the moon follows behind. Sail, and see.</div>
   <div class="ctl">helm — W A S D or the left thumb · look — drag · E or ⚓ — leave the wheel, walk the deck, go ashore, board<br>
+  rise into the air — G or 🕊 · hold SPACE to climb higher and higher, SHIFT to sink · up past the clouds and the lights to the firmament itself<br>
   every land holds a village of the ancient time — houses to enter, people, beasts, and fire at evening<br>
   the winds are true: run before them and fly, beat against them and labour ·
   the great rivers open the inland · storms wander the deep — steer wide</div>
