@@ -145,6 +145,22 @@ Also in this round: **the beam widened 1.4×** (the hull is now scaled 2.8× acr
 2.0× along), with the deck bounds, hold aisle, hatch, crew stations, wheel zone, boarding
 points and cameras all rescaled to match — she sits notably broader on the screen.
 
+## 4b. Round 3 — real water ✅
+
+- **A shoal map of the whole disc** (chamfer distance-to-land of the country map,
+  blurred smooth) now drives the water shader: every coast and river carries a band of
+  **clear turquoise shallows**, rolling off into the **dark of the true deep**.
+- **Light passes through the shallows**: water transparency follows real depth, and the
+  sandy shelf (now three terraces sloping to ~9 blocks down, and no longer hidden by the
+  old sea-bed plane, which sits properly deep) is **visible through the water** along
+  every strand — while the deep keeps its darkness and its near-opacity.
+- **Reflections**: a much stronger fresnel term truly mirrors the sky at grazing angles
+  (with a mirror-skin rise in opacity), the sun's specular path burns brighter on the
+  swell, and a caustic sparkle plays where the light reaches the sand.
+- Verified from the beach, from a low aerial over a bay (sand terraces clearly visible
+  through turquoise water), over the open deep (dark), and at evening; dive mode and the
+  cargo hold are unaffected.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

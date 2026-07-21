@@ -269,6 +269,55 @@ function riverAtUV(u,v){
   return RIVMAP[py*MAPR+px];
 }
 
+/* ================= THE SHOAL MAP =================
+   A distance-to-land field over the whole disc (chamfer transform of the
+   country map). The water shader drinks from it: where the bottom lies
+   near — along every coast and up every river — the sea stands clear and
+   turquoise and the light passes through to the sand; over the true deep
+   it keeps its darkness. */
+let SHOAL_DATA=null; const SHOAL_RES=1024;
+const SHOAL_TEX=(()=>{
+  const N=MAPR, d=new Float32Array(N*N), INF=1e9;
+  for(let i=0;i<N*N;i++) d[i]=IDMAP[i]?0:INF;
+  for(let y=0;y<N;y++) for(let x=0;x<N;x++){ const i=y*N+x; let v=d[i];   /* forward sweep */
+    if(x>0&&d[i-1]+1<v) v=d[i-1]+1;
+    if(y>0){ if(d[i-N]+1<v) v=d[i-N]+1;
+      if(x>0&&d[i-N-1]+1.4<v) v=d[i-N-1]+1.4;
+      if(x<N-1&&d[i-N+1]+1.4<v) v=d[i-N+1]+1.4; }
+    d[i]=v; }
+  for(let y=N-1;y>=0;y--) for(let x=N-1;x>=0;x--){ const i=y*N+x; let v=d[i];   /* backward sweep */
+    if(x<N-1&&d[i+1]+1<v) v=d[i+1]+1;
+    if(y<N-1){ if(d[i+N]+1<v) v=d[i+N]+1;
+      if(x<N-1&&d[i+N+1]+1.4<v) v=d[i+N+1]+1.4;
+      if(x>0&&d[i+N-1]+1.4<v) v=d[i+N-1]+1.4; }
+    d[i]=v; }
+  const R2=SHOAL_RES; let f=new Float32Array(R2*R2);
+  for(let y=0;y<R2;y++) for(let x=0;x<R2;x++){
+    const dist=d[Math.min(N-1,y*2)*N+Math.min(N-1,x*2)];   /* in map pixels, ≈117 units each */
+    f[y*R2+x]=Math.max(0,1-dist/4.5); }
+  /* two 3×3 blur passes — no texel facets on the open water */
+  for(let pass=0;pass<2;pass++){ const g2=new Float32Array(R2*R2);
+    for(let y=0;y<R2;y++) for(let x=0;x<R2;x++){
+      let s2=0,n2=0;
+      for(let dy=-1;dy<=1;dy++){ const yy=y+dy; if(yy<0||yy>=R2) continue;
+        for(let dx=-1;dx<=1;dx++){ const xx=x+dx; if(xx<0||xx>=R2) continue;
+          s2+=f[yy*R2+xx]; n2++; } }
+      g2[y*R2+x]=s2/n2; }
+    f=g2; }
+  const data=new Uint8Array(R2*R2*4); SHOAL_DATA=new Uint8Array(R2*R2);
+  for(let i=0;i<R2*R2;i++){ const b=Math.round(Math.pow(f[i],1.2)*255);
+    data[i*4]=b; data[i*4+1]=b; data[i*4+2]=b; data[i*4+3]=255; SHOAL_DATA[i]=b; }
+  const t=new THREE.DataTexture(data,R2,R2,THREE.RGBAFormat);
+  t.magFilter=THREE.LinearFilter; t.minFilter=THREE.LinearFilter; t.needsUpdate=true;
+  return t;
+})();
+function shoalAt(x,z){
+  const R2=SHOAL_RES;
+  const px=Math.min(R2-1,Math.max(0,Math.round((x/R_WORLD+1)*0.5*R2)));
+  const pz=Math.min(R2-1,Math.max(0,Math.round((z/R_WORLD+1)*0.5*R2)));
+  return SHOAL_DATA[pz*R2+px]/255;
+}
+
 /* Each call returns a FRESH object. (A shared scratch object here once meant
    that querying a neighbour clobbered the current cell mid-mesh: cliff side
    faces were skipped and trees were placed with the neighbour's height.) */
@@ -510,14 +559,25 @@ function buildChunk(cx,cz){
   const G=newG();
   for(let a=0;a<CH;a++) for(let b=0;b<CH;b++){
     const ix=cx*CH+a, iz=cz*CH+b, cc=cell(ix,iz);
-    if(!cc){ /* shallow shelf where land lies near: sand seen through the water */
+    if(!cc){ /* the shelf: a sloping sandy bottom, seen through the clear shallows */
+      const x0=ix*B, z0=iz*B;
       const nb=cell(ix+1,iz)||cell(ix-1,iz)||cell(ix,iz+1)||cell(ix,iz-1);
       if(nb&&nb.kind!=='wall'&&nb.kind!=='floe'){
-        const x0=ix*B, z0=iz*B;
         faceTop(G,'sand',x0,z0,x0+B,z0+B,WATER_Y-1.5,0.92);
         /* breaking surf where the swell meets the strand */
         if(nb.kind==='sand'||nb.kind==='tropic'||nb.kind==='grass'||nb.kind==='desert')
           faceTop(G,'surf',x0,z0,x0+B,z0+B,WATER_Y+0.55,1.0);
+      } else if(shoalAt(x0+B/2,z0+B/2)>0.08){       /* only worth probing near a coast */
+        const nb2=cell(ix+1,iz+1)||cell(ix-1,iz-1)||cell(ix+1,iz-1)||cell(ix-1,iz+1)
+          ||cell(ix+2,iz)||cell(ix-2,iz)||cell(ix,iz+2)||cell(ix,iz-2);
+        if(nb2&&nb2.kind!=='wall'&&nb2.kind!=='floe')
+          faceTop(G,'sand',x0,z0,x0+B,z0+B,WATER_Y-4.6,0.8);
+        else {
+          const nb3=cell(ix+2,iz+2)||cell(ix-2,iz-2)||cell(ix+2,iz-2)||cell(ix-2,iz+2)
+            ||cell(ix+3,iz)||cell(ix-3,iz)||cell(ix,iz+3)||cell(ix,iz-3);
+          if(nb3&&nb3.kind!=='wall'&&nb3.kind!=='floe')
+            faceTop(G,'sand',x0,z0,x0+B,z0+B,WATER_Y-9.5,0.66);
+        }
       }
       continue;
     }
@@ -574,7 +634,7 @@ const dirL=new THREE.DirectionalLight(0xffffff,0.5); dirL.position.set(0.4,1,0.2
 
 const seaDeep=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),
   new THREE.MeshBasicMaterial({color:0x0c2c48}));
-seaDeep.rotation.x=-Math.PI/2; seaDeep.position.y=-2.5; scene.add(seaDeep);
+seaDeep.rotation.x=-Math.PI/2; seaDeep.position.y=WATER_Y-16; scene.add(seaDeep);
 /* beyond the wall of ice — the OUTER DARKNESS, that no man may look past:
    a tall wall of night just outside the rim, so nothing of "the other side"
    is ever seen — only blackness set with stars, by day as by night. */
@@ -627,7 +687,9 @@ function updateWallWeather(px,pz,dt){
    is lit only by the fog it sits within. */
 const farSeaMat=new THREE.MeshBasicMaterial({color:0x123353});
 const sea=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),farSeaMat);
-sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y-0.7; scene.add(sea);
+/* the dark bed of the sea sits WELL below the surface now, so the sandy
+   shelf along every coast truly shows through the clear shallows above it */
+sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y-12; scene.add(sea);
 
 /* ================= THE WAVES OF THE DEEP =================
    A true trochoidal (Gerstner) sea: several travelling swells summed, so
@@ -676,8 +738,9 @@ const waveMat=new THREE.ShaderMaterial({
   uniforms:{ uTime:{value:0}, uAmp:{value:1}, uCenter:{value:new THREE.Vector2()},
     uLight:{value:new THREE.Color(1,1,1)}, uFogColor:{value:new THREE.Color(0x9fc5e8)},
     uFogNear:{value:260}, uFogFar:{value:870}, uSunDir:{value:new THREE.Vector3(0.4,1,0.25)},
-    uDeep:{value:new THREE.Color(0x14385f)}, uShallow:{value:new THREE.Color(0x3f79b0)},
+    uDeep:{value:new THREE.Color(0x0e2c4e)}, uShallow:{value:new THREE.Color(0x2fb3cf)},
     uMap:{value:seaTex}, uOpacity:{value:0.9}, uCamPos:{value:new THREE.Vector3()},
+    uShoal:{value:SHOAL_TEX},
     uShip:{value:new THREE.Vector4()}, uShipH:{value:0}, uSunCol:{value:new THREE.Color(1,0.96,0.85)} },
   vertexShader:`
     uniform float uTime, uAmp; uniform vec2 uCenter;
@@ -697,7 +760,7 @@ const waveMat=new THREE.ShaderMaterial({
     }`,
   fragmentShader:`
     precision highp float;
-    uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow, uCamPos, uSunCol; uniform sampler2D uMap;
+    uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow, uCamPos, uSunCol; uniform sampler2D uMap, uShoal;
     uniform float uFogNear, uFogFar, uOpacity, uTime, uShipH; uniform vec4 uShip;
     varying vec3 vNormal, vWorld; varying float vHeight, vFog; varying vec2 vUv, vP;
     float h21(vec2 p){ return fract(sin(dot(p,vec2(41.3,289.1)))*43758.5); }
@@ -707,7 +770,15 @@ const waveMat=new THREE.ShaderMaterial({
       vec3 L=normalize(uSunDir);
       float diff=clamp(dot(N,L),0.0,1.0);
       vec3 tex=texture2D(uMap,vUv).rgb;
-      vec3 base=mix(uDeep,uShallow,clamp(vHeight*0.22+0.5,0.0,1.0));
+      /* how near the land lies beneath: 1 clear shallow → 0 the true deep
+         (smoothstepped so the field rolls off without banding) */
+      float shoal=texture2D(uShoal, vP*${(0.5/R_WORLD).toFixed(10)}+0.5).r;
+      shoal=smoothstep(0.03,0.9,shoal);
+      float deepF=1.0-shoal;
+      /* colour by real depth — turquoise over the shallows, dark over the deep —
+         with a breath of the old wave-height shading kept within it */
+      vec3 base=mix(uShallow,uDeep,deepF);
+      base*=0.88+0.24*clamp(vHeight*0.22+0.5,0.0,1.0);
       vec3 col=base*(0.62+0.5*diff)*(0.82+0.36*tex.b);
       /* crest foam — only the very tallest crests, so the sea stays blue */
       float foam=smoothstep(2.3,3.4,vHeight);
@@ -724,16 +795,23 @@ const waveMat=new THREE.ShaderMaterial({
       float allFoam=clamp(foam*0.32+wake*0.95,0.0,1.0);
       col=mix(col,vec3(0.88,0.93,1.0),allFoam);
       col*=uLight;
-      /* sun specular + glitter — a tight highlight, not a sheet of glare */
+      /* sun specular + glitter — the sun's path burning on the swell */
       vec3 H=normalize(V+L);
       float spec=pow(max(dot(N,H),0.0),140.0);
       float glit=pow(max(dot(N,H),0.0),40.0)*(0.5+0.5*h21(floor(vP*1.7)+floor(uTime*9.0)));
-      col+=uSunCol*(spec*1.3+glit*0.18)*diff;
-      /* fresnel sky sheen toward grazing angles — subtle */
+      col+=uSunCol*(spec*1.8+glit*0.2)*diff;
+      /* caustic sparkle where the light passes through to the sand */
+      col+=uSunCol*glit*0.3*shoal*diff;
+      /* fresnel — the sky truly mirrored at grazing angles */
       float fres=pow(1.0-max(dot(N,V),0.0),5.0);
-      col=mix(col,uFogColor,fres*0.14);
+      col=mix(col,uFogColor*1.05,fres*0.45);
+      /* transparency by depth: the shallows let the bottom show through,
+         the deep keeps its darkness; a mirror-skin at grazing angles */
+      float aa=mix(0.55,0.93,deepF);
+      aa=mix(aa,0.985,fres*0.6);
+      aa=max(aa,allFoam*0.95);
       float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
-      gl_FragColor=vec4(mix(col,uFogColor,ff),uOpacity);
+      gl_FragColor=vec4(mix(col,uFogColor,ff),aa);
     }`
 });
 const waveGrid=new THREE.Mesh(waveGeo,waveMat);
@@ -4013,7 +4091,7 @@ $('btn-continue').onclick=()=>begin(false);
 
 /* a small debug handle — used by the automated smoke tests; harmless in play */
 window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
-  TRADERS,throwSpear,openTrade,cellRaw};
+  TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt};
 
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0;
@@ -4045,9 +4123,10 @@ function frame(){
   else if(flyDome){ flyDome.material.opacity=0; }
   updateWallWeather(p.x,p.z,dt);   /* cold fog and blowing snow at the wall of ice */
   waterTick(p.x,p.z,light.dayF,light.storm||0);
-  /* below the waterline in the hold, the sea must not wash through the hull */
+  /* below the waterline in the hold, the sea must not wash through the hull;
+     and in the dive, the lowered sea-bed plane must not roof the deep */
   if(!state.firm){ const inHold=state.mode==='deck'&&state.deck.level==='hold';
-    waveGrid.visible=!inHold; sea.visible=!inHold; }
+    waveGrid.visible=!inHold; sea.visible=!inHold&&state.mode!=='dive'; }
   seaLifeTick(p.x,p.z,dt);
   splashTick(dt);
   fishTick(dt);
