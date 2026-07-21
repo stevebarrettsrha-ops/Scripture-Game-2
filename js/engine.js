@@ -759,6 +759,7 @@ const state={ simHours:9.5, speedIdx:1, paused:false,
   mode:'boat', boat:{x:0,z:0,heading:Math.PI*0.9,speed:0},
   walk:{x:0,z:0,heading:0}, deck:{lx:2.4,lz:-21,h:Math.PI},
   fly:{x:0,y:0,z:0,heading:0,vy:0,sp:0}, prevGround:'boat',
+  dive:{x:0,y:0,z:0,heading:0,vy:0,sp:0},
   windMode:'true', firm:false, firmDist:0, camYaw:0, camPitch:0.42, camDist:96,
   visited:new Set(), dist:0 };
 
@@ -1194,12 +1195,12 @@ function makeBird(){
   g.userData={wingL,wingR};
   return g;
 }
-/* a fish — a body and tail that arcs from the sea */
-function makeFish(){
+/* a fish — a body and tail that arcs from the sea (col: tropical variants) */
+function makeFish(col){ const c=new THREE.Color(col||0x5f7fa6);
   const g=new THREE.Group();
-  const body=lbox(1.0,1.5,3.2,0x5f7fa6); body.position.y=0; g.add(body);
-  const tail=lbox(0.4,1.8,1.0,0x4a6a90); tail.position.set(0,0,-2.0); g.add(tail);
-  const fin=lbox(0.3,1.2,0.9,0x6f8fb6); fin.position.set(0,1.1,0.2); g.add(fin);
+  const body=new THREE.Mesh(new THREE.BoxGeometry(1.0,1.5,3.2),lam(c.getHex())); body.position.y=0; g.add(body);
+  const tail=new THREE.Mesh(new THREE.BoxGeometry(0.4,1.8,1.0),lam(c.clone().multiplyScalar(0.75).getHex())); tail.position.set(0,0,-2.0); g.add(tail);
+  const fin=new THREE.Mesh(new THREE.BoxGeometry(0.3,1.2,0.9),lam(c.clone().multiplyScalar(1.3).getHex())); fin.position.set(0,1.1,0.2); g.add(fin);
   return g;
 }
 /* ================= SEA CREATURES =================
@@ -1233,6 +1234,184 @@ function seaLifeTick(px,pz,dt){
     f.m.rotation.x=(u-0.5)*2.6;               /* nose up, then dives */
   }
 }
+
+/* ================= THE DEEP — DIVE & DISCOVER THE SEA =================
+   Below the waves lies a world of its own: a bumpy seabed that plunges into
+   trenches in the open ocean, forests of kelp and coral, schools of fish and
+   squid, rising bubbles, and wrecks of the ancients grown over with the sea.
+   From open water the traveller dives (C), swims in three dimensions
+   (W/S · A/D · SPACE up · SHIFT down), and comes up again to draw breath. */
+const DIVE_TURN=1.7, DIVE_MAXSP=155, DIVE_VMAX=125, DIVE_VACC=320, SEA_SURF=WATER_Y;
+let diveHintShown=false, deepShown=false;
+function seabedDepth(x,z){
+  const roll=fbm(x*0.02+11,z*0.02-7), basin=fbm(x*0.004-5,z*0.004+9);
+  const trench=Math.pow(Math.max(0,fbm(x*0.0016+30,z*0.0016)-0.55)/0.45,1.6);
+  return SEA_SURF-(18+roll*26+basin*130+trench*560); }   /* −18 banks … −730 trenches */
+/* ---- the seabed: a displaced, shaded floor that follows the diver ---- */
+const SB_SEG=96, SB_SIZE=3200;
+const sbGeo=new THREE.PlaneGeometry(SB_SIZE,SB_SIZE,SB_SEG,SB_SEG); sbGeo.rotateX(-Math.PI/2);
+sbGeo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(sbGeo.attributes.position.count*3),3));
+const seaFloor=new THREE.Mesh(sbGeo,new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide}));
+seaFloor.visible=false; seaFloor.frustumCulled=false; scene.add(seaFloor);
+function updateSeaFloor(px,pz){ const pos=sbGeo.attributes.position, a=pos.array, col=sbGeo.attributes.color.array;
+  for(let i=0;i<a.length;i+=3){ const wx=a[i]+px, wz=a[i+2]+pz, y=seabedDepth(wx,wz); a[i+1]=y;
+    const depth=SEA_SURF-y, lit=Math.max(0,1-depth/460), alg=fbm(wx*0.03+3,wz*0.03+7);
+    let r=0.60+0.24*lit, g=0.55+0.20*lit, b=0.40+0.16*lit;
+    if(alg>0.62){ r*=0.68; g*=0.92; b*=0.62; }
+    col[i]=r; col[i+1]=g; col[i+2]=b; }
+  pos.needsUpdate=true; sbGeo.attributes.color.needsUpdate=true; sbGeo.computeVertexNormals(); }
+/* ---- kelp — tall strands rising from the floor, swaying with the current ---- */
+function makeKelp(){ const g=new THREE.Group(), segs=[];
+  for(let s=0;s<5;s++){ const seg=lbox(1.1,7,1.1,s%2?0x2f7a3a:0x36894a); seg.position.y=s*7+3.5; g.add(seg); segs.push(seg); }
+  g.userData={segs}; return g; }
+const KELP=[], KELP_N=60, KELP_R=560;
+function initKelp(){ if(KELP.length) return; for(let k=0;k<KELP_N;k++){ const m=makeKelp(); m.visible=false; scene.add(m);
+  KELP.push({m,x:0,z:0,fy:0,h:0,ph:Math.random()*6.28,set:false}); } }
+function placeKelp(k,px,pz){ for(let tr=0;tr<6;tr++){ const a=Math.random()*6.28, r=60+Math.random()*(KELP_R-60);
+    const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r, fy=seabedDepth(x,z);
+    if(SEA_SURF-fy>34 && fbm(x*0.012+50,z*0.012-20)>0.5){ k.x=x; k.z=z; k.fy=fy;
+      k.h=Math.min(SEA_SURF-fy-6,40+Math.random()*90); k.set=true;
+      k.m.position.set(x,fy,z); k.m.scale.set(0.7+Math.random()*0.6,k.h/35,0.7+Math.random()*0.6); k.m.visible=true; return; } }
+  k.set=false; k.m.visible=false; }
+function updateKelp(px,pz,t){ initKelp(); for(const k of KELP){
+    if(!k.set||Math.hypot(k.x-px,k.z-pz)>KELP_R+90) placeKelp(k,px,pz);
+    if(!k.set) continue; const sw=Math.sin(t*1.0+k.ph)*0.12, segs=k.m.userData.segs;
+    for(let s=0;s<segs.length;s++) segs[s].rotation.z=sw*(s+1)*0.5; } }
+/* ---- CORAL REEFS — the glory of the shallows near the coasts ----
+   Mounds of coral blocks in living colour, crowned with fans, sponges and
+   glowing sea-pickles. They rise thickest where the sea is shallow and warm. */
+const CORAL_COLS=[0x2f6fe0,0x8a3fd0,0xd6486f,0xd8c23a,0xdb5aa0,0x2fb0c8,0x4ad06a];
+function makeFan(col){ const g=new THREE.Group();
+  for(let i=0;i<4;i++){ const bl=lbox(0.5,2.0+Math.random()*1.6,0.5,col), a=i/4*6.28;
+    bl.position.set(Math.cos(a)*0.8,1.1,Math.sin(a)*0.8); bl.rotation.z=Math.cos(a)*0.6; bl.rotation.x=Math.sin(a)*0.6; g.add(bl); } return g; }
+function makeCoral(){ const g=new THREE.Group(), n=9+Math.floor(Math.random()*12);
+  for(let i=0;i<n;i++){ const s=3+Math.random()*4, col=CORAL_COLS[Math.floor(Math.random()*CORAL_COLS.length)];
+    const b=lbox(s,s,s,col), rr=Math.random()*8, a=Math.random()*6.28, hy=Math.random()*12;
+    b.position.set(Math.cos(a)*rr,hy+s*0.5,Math.sin(a)*rr); g.add(b);
+    if(Math.random()<0.55){ const fan=makeFan(CORAL_COLS[Math.floor(Math.random()*CORAL_COLS.length)]);
+      fan.position.set(b.position.x,hy+s,b.position.z); g.add(fan); } }
+  if(Math.random()<0.7){ const sp=lbox(4,3.4,4,0xe0a83a); sp.position.set((Math.random()-0.5)*9,2,(Math.random()-0.5)*9); g.add(sp); }  /* sponge */
+  if(Math.random()<0.6){ const gl=new THREE.Mesh(new THREE.BoxGeometry(0.9,1.3,0.9),
+      new THREE.MeshBasicMaterial({color:0xcdf06a,fog:true})); gl.position.set((Math.random()-0.5)*7,Math.random()*9+1,(Math.random()-0.5)*7); g.add(gl); }  /* sea-pickle glow */
+  return g; }
+const CORAL=[], CORAL_N=30, CORAL_R=560;
+function initCoral(){ if(CORAL.length) return; for(let k=0;k<CORAL_N;k++){ const m=makeCoral(); m.visible=false; scene.add(m); CORAL.push({m,x:0,z:0,set:false}); } }
+function updateCoral(px,pz){ initCoral(); for(const r of CORAL){ if(r.set&&Math.hypot(r.x-px,r.z-pz)<=CORAL_R+90) continue;
+    for(let tr=0;tr<7;tr++){ const a=Math.random()*6.28, rr=50+Math.random()*CORAL_R, x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
+      if(d>10 && d<150 && fbm(x*0.01-9,z*0.01+4)>0.44){ r.x=x; r.z=z; r.set=true; r.m.position.set(x,seabedDepth(x,z),z); r.m.rotation.y=Math.random()*6.28; r.m.visible=true; break; }
+      if(tr===6){ r.set=false; r.m.visible=false; } } } }
+/* ---- seagrass — short tufts carpeting the shallow floor ---- */
+function makeSeagrass(){ const g=new THREE.Group(), n=3+Math.floor(Math.random()*4);
+  for(let i=0;i<n;i++){ const bl=lbox(0.6,2+Math.random()*2.6,0.6,Math.random()<0.5?0x3f9a4a:0x57b85f);
+    bl.position.set((Math.random()-0.5)*3.2,1.2,(Math.random()-0.5)*3.2); bl.rotation.z=(Math.random()-0.5)*0.4; g.add(bl); } return g; }
+const GRASS=[], GRASS_N=120, GRASS_R=380;
+function initGrass(){ if(GRASS.length) return; for(let k=0;k<GRASS_N;k++){ const m=makeSeagrass(); m.visible=false; scene.add(m); GRASS.push({m,x:0,z:0,ph:Math.random()*6.28,set:false}); } }
+function updateGrass(px,pz,t){ initGrass(); for(const r of GRASS){ if(!r.set||Math.hypot(r.x-px,r.z-pz)>GRASS_R+70){
+      for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28, rr=30+Math.random()*GRASS_R, x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
+        if(d>6 && d<170){ r.x=x; r.z=z; r.set=true; r.m.position.set(x,seabedDepth(x,z),z); r.m.visible=true; break; } if(tr===4){ r.set=false; r.m.visible=false; } } }
+    if(r.set) r.m.rotation.z=Math.sin(t*1.3+r.ph)*0.14; } }
+/* ---- god-rays — shafts of light slanting down from the surface ---- */
+const RAYS=[], RAY_N=9;
+function initRays(){ if(RAYS.length) return; for(let k=0;k<RAY_N;k++){
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(22,520),
+      new THREE.MeshBasicMaterial({color:0xcdeeff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,side:THREE.DoubleSide}));
+    m.visible=false; scene.add(m); RAYS.push({m,x:0,z:0,rot:Math.random()*6.28,tilt:(Math.random()-0.5)*0.5}); } }
+function updateRays(px,py,pz,murk){ initRays();
+  for(const r of RAYS){ if(Math.hypot(r.x-px,r.z-pz)>620){ const a=Math.random()*6.28, rr=Math.random()*500; r.x=px+Math.cos(a)*rr; r.z=pz+Math.sin(a)*rr; r.rot=Math.random()*6.28; }
+    r.m.position.set(r.x,SEA_SURF-250,r.z); r.m.rotation.set(r.tilt,r.rot,0.12);
+    r.m.material.opacity=(1-murk)*0.09; r.m.visible=true; } }
+/* ---- fish schools, squid, bubbles ---- */
+const DIVEFISH=[], DF_N=30, DF_R=240;
+const TROPICAL=[0xff8c2a,0xffd23a,0xff5a7a,0x3ad0ff,0x8a5cff,0xf4f4f4,0x2fd08a,0xff4d4d];
+function initDiveFish(){ if(DIVEFISH.length) return; for(let k=0;k<DF_N;k++){ const m=makeFish(TROPICAL[Math.floor(Math.random()*TROPICAL.length)]); m.scale.setScalar(0.6+Math.random()*0.8); m.visible=false; scene.add(m);
+  DIVEFISH.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,spd:9+Math.random()*11,ph:Math.random()*6.28,set:false}); } }
+function updateDiveFish(px,py,pz,dt,t){ initDiveFish(); for(const f of DIVEFISH){
+    if(!f.set||Math.hypot(f.x-px,f.z-pz)>DF_R+70){ const a=Math.random()*6.28, r=40+Math.random()*DF_R; f.x=px+Math.cos(a)*r; f.z=pz+Math.sin(a)*r;
+      const fy=seabedDepth(f.x,f.z); f.y=Math.min(SEA_SURF-8,fy+12+Math.random()*Math.max(6,SEA_SURF-fy-16)); f.dir=Math.random()*6.28; f.set=true; f.m.visible=true; }
+    f.dir+=Math.sin(t*0.5+f.ph)*0.04; f.x+=Math.cos(f.dir)*f.spd*dt; f.z+=Math.sin(f.dir)*f.spd*dt; f.y+=Math.sin(t*0.8+f.ph)*3*dt;
+    const fy=seabedDepth(f.x,f.z); f.y=Math.max(fy+4,Math.min(SEA_SURF-6,f.y));
+    f.m.position.set(f.x,f.y,f.z); f.m.rotation.y=Math.atan2(Math.cos(f.dir),Math.sin(f.dir)); f.m.rotation.z=Math.sin(t*3+f.ph)*0.16; } }
+function makeSquid(){ const g=new THREE.Group();
+  const mant=lbox(2.4,3.2,2.4,0x6a4a86); mant.position.y=0; g.add(mant);
+  const head=lbox(2.0,1.2,2.0,0x7a5a96); head.position.y=-1.9; g.add(head);
+  const tents=[]; for(let i=0;i<6;i++){ const a=i/6*6.28, tb=lbox(0.5,2.6,0.5,0x5a3a76); tb.position.set(Math.cos(a)*0.8,-3.4,Math.sin(a)*0.8); g.add(tb); tents.push(tb); }
+  const eL=lbox(0.5,0.5,0.4,0xffffff); eL.position.set(0.9,0.3,1.2); g.add(eL); const eR=eL.clone(); eR.position.x=-0.9; g.add(eR);
+  g.userData={tents}; return g; }
+const SQUIDS=[];
+function initSquid(){ if(SQUIDS.length) return; for(let k=0;k<3;k++){ const m=makeSquid(); m.visible=false; scene.add(m);
+  SQUIDS.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false}); } }
+function updateSquid(px,py,pz,dt,t){ initSquid(); for(const q of SQUIDS){
+    if(!q.set||Math.hypot(q.x-px,q.z-pz)>DF_R+140){ const a=Math.random()*6.28, r=90+Math.random()*DF_R; q.x=px+Math.cos(a)*r; q.z=pz+Math.sin(a)*r;
+      const fy=seabedDepth(q.x,q.z); q.y=fy+22+Math.random()*40; q.dir=Math.random()*6.28; q.set=true; q.m.visible=true; }
+    q.x+=Math.cos(q.dir)*6*dt; q.z+=Math.sin(q.dir)*6*dt; const pulse=0.5+0.5*Math.sin(t*3+q.ph); q.y+=(pulse-0.4)*8*dt;
+    const fy=seabedDepth(q.x,q.z); q.y=Math.max(fy+8,Math.min(SEA_SURF-10,q.y));
+    q.m.position.set(q.x,q.y,q.z); q.m.rotation.y=q.dir+Math.PI/2;
+    q.m.userData.tents.forEach((tb,i)=>{ tb.rotation.x=Math.sin(t*3+i)*0.3-pulse*0.25; }); } }
+const BUB=[], BUB_N=26;
+function initBub(){ if(BUB.length) return; for(let k=0;k<BUB_N;k++){ const s=new THREE.Sprite(new THREE.SpriteMaterial({color:0xcdeeff,transparent:true,opacity:0,depthWrite:false,fog:false}));
+  s.visible=false; scene.add(s); BUB.push({s,life:0,x:0,y:0,z:0,vy:0,sz:0}); } }
+function updateBubbles(px,py,pz,dt){ initBub(); for(const b of BUB){
+    if(b.life<=0){ if(Math.random()<0.5){ b.life=1+Math.random()*1.4; b.x=px+(Math.random()-0.5)*4; b.y=py+2; b.z=pz+(Math.random()-0.5)*4; b.vy=14+Math.random()*12; b.sz=0.3+Math.random()*0.6; b.s.visible=true; } else continue; }
+    b.life-=dt; b.y+=b.vy*dt; b.vy*=0.99; b.s.position.set(b.x,b.y,b.z); b.s.scale.setScalar(b.sz); b.s.material.opacity=Math.min(0.6,Math.max(0,b.life)*0.5);
+    if(b.life<=0) b.s.visible=false; } }
+/* ---- a wreck of the ancients, at the deep sites of the sea ---- */
+function makeWreck(){ const g=new THREE.Group();
+  const hull=lbox(10,6,26,0x5a4632); hull.position.y=3; g.add(hull);
+  const deck=lbox(9,1,24,0x6a5642); deck.position.y=6.2; g.add(deck);
+  const mast=lbox(1.2,20,1.2,0x3a2e20); mast.position.set(0,14,-2); mast.rotation.z=0.15; g.add(mast);
+  const brk=lbox(8,4,6,0x4a3a2a); brk.position.set(1,3,-13); brk.rotation.z=0.4; g.add(brk);
+  g.rotation.z=0.16; return g; }
+const wreckSeen=new Set(); let wreckM=null;
+function updateWreck(px,pz){ if(!wreckM){ wreckM=makeWreck(); wreckM.visible=false; scene.add(wreckM); }
+  const CS=1200, ci=Math.round(px/CS), cj=Math.round(pz/CS); let best=null,bd=1e9;
+  for(let di=-1;di<=1;di++)for(let dj=-1;dj<=1;dj++){ const gi=ci+di,gj=cj+dj;
+    if(hash2(gi*1.7,gj*3.1)>0.8){ const wx=gi*CS+(hash2(gi,gj)-0.5)*360, wz=gj*CS+(hash2(gj,gi)-0.5)*360, fy=seabedDepth(wx,wz);
+      if(SEA_SURF-fy>60){ const d=Math.hypot(wx-px,wz-pz); if(d<bd){ bd=d; best={wx,wz,fy,gi,gj}; } } } }
+  if(best&&bd<SB_SIZE*0.5){ wreckM.position.set(best.wx,best.fy,best.wz); wreckM.rotation.y=hash2(best.gi,best.gj)*6.28; wreckM.visible=true;
+    const key=best.gi+','+best.gj; if(bd<90&&!wreckSeen.has(key)){ wreckSeen.add(key);
+      toast('You have come upon a wreck of the ancients, sunk in the heart of the seas and grown over with the deep.','YONAH 2:3'); } }
+  else wreckM.visible=false; }
+function initDeep(){ initKelp(); initCoral(); initGrass(); initRays(); initDiveFish(); initSquid(); initBub(); }
+function hideDeep(){ seaFloor.visible=false;
+  for(const k of KELP)k.m.visible=false; for(const r of CORAL)r.m.visible=false; for(const r of GRASS)r.m.visible=false;
+  for(const r of RAYS)r.m.visible=false; for(const f of DIVEFISH)f.m.visible=false; for(const q of SQUIDS)q.m.visible=false;
+  for(const b of BUB)b.s.visible=false; if(wreckM)wreckM.visible=false; deepShown=false; }
+function updateDeep(px,py,pz,dt,murk){ const t=performance.now()*0.001;
+  seaFloor.visible=true; seaFloor.position.set(px,0,pz); updateSeaFloor(px,pz);
+  updateKelp(px,pz,t); updateCoral(px,pz); updateGrass(px,pz,t); updateRays(px,py,pz,murk||0);
+  updateDiveFish(px,py,pz,dt,t); updateSquid(px,py,pz,dt,t);
+  updateBubbles(px,py,pz,dt); updateWreck(px,pz); deepShown=true; }
+function diveTick(dt){ const dv=state.dive; const [f,tn]=axis();
+  dv.heading+=tn*dt*DIVE_TURN; const tgt=f*DIVE_MAXSP; dv.sp+=(tgt-dv.sp)*Math.min(1,dt*2.6);
+  dv.x+=Math.sin(dv.heading)*dv.sp*dt; dv.z+=Math.cos(dv.heading)*dv.sp*dt;
+  let up=flyPad; if(keys.Space) up+=1; if(keys.ShiftLeft||keys.ShiftRight||keys.ControlLeft||keys.ControlRight) up-=1; up=Math.max(-1,Math.min(1,up));
+  if(up!==0){ dv.vy+=up*DIVE_VACC*dt; dv.vy=Math.max(-DIVE_VMAX,Math.min(DIVE_VMAX,dv.vy)); } else dv.vy*=Math.max(0,1-dt*1.2);
+  dv.y+=dv.vy*dt;
+  const floor=seabedDepth(dv.x,dv.z)+3;
+  if(dv.y<floor){ dv.y=floor; dv.vy=Math.max(0,dv.vy); }
+  if(dv.y>SEA_SURF-2){ dv.y=SEA_SURF-2; dv.vy=Math.min(0,dv.vy); if(up>0){ surface(); return; } }
+  if(Math.hypot(dv.x,dv.z)/R_WORLD>0.985){ dv.x-=Math.sin(dv.heading)*dv.sp*dt; dv.z-=Math.cos(dv.heading)*dv.sp*dt; dv.sp*=0.3; }
+  state.dist+=Math.abs(dv.sp)*dt;
+  const u=walkerG.userData, ph=performance.now()*0.006;
+  walkerG.position.set(dv.x,dv.y,dv.z); walkerG.rotation.y=dv.heading;
+  walkerG.rotation.x=0.95+Math.max(-0.5,Math.min(0.5,dv.vy/DIVE_VMAX))*0.5;   /* prone, swimming */
+  u.armL.rotation.z=0; u.armR.rotation.z=0;
+  u.armL.rotation.x=-1.4+Math.sin(ph)*0.7; u.armR.rotation.x=-1.4+Math.sin(ph+0.5)*0.7;
+  u.legL.rotation.x=Math.sin(ph*1.1)*0.5; u.legR.rotation.x=-Math.sin(ph*1.1)*0.5; }
+function enterDive(){ if(state.mode==='dive'){ surface(); return; }
+  let x,z,h;
+  if(state.mode==='walk'){ x=state.walk.x; z=state.walk.z; h=state.walk.heading; }
+  else if(state.mode==='boat'||state.mode==='deck'){ x=state.boat.x; z=state.boat.z; h=state.boat.heading; }
+  else return;
+  if(landAtWorld(x,z)||Math.hypot(x,z)/R_WORLD>0.985){ toast('You must be over open water to dive into the deep.'); return; }
+  initDeep();
+  state.dive.x=x; state.dive.z=z; state.dive.heading=h; state.dive.y=SEA_SURF-6; state.dive.vy=-22; state.dive.sp=0;
+  setMode('dive');
+  if(!diveHintShown){ diveHintShown=true;
+    toast('You slip beneath the waves — SHIFT to dive deeper, SPACE to rise, W/S to swim, C to surface.'); } }
+function surface(){ const dv=state.dive;
+  state.walk.x=dv.x; state.walk.z=dv.z; state.walk.heading=dv.heading; state.walk.feetY=undefined; state.walk.vy=0; state.walk.grounded=true;
+  setMode('walk'); hideDeep(); toast('You break the surface and draw breath.'); }
 
 /* ================= VILLAGES (minecraft-fashion) =================
    Cobblestone bases, oak plank walls with log corner posts, glass
@@ -1851,6 +2030,7 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code==='KeyE') toggleAshore();
   if(e.code==='KeyF') interact();
   if(e.code==='KeyG') takeFlight();          /* SPACE (handled above) lifts in flight */
+  if(e.code==='KeyC') enterDive();           /* dive the deep / surface */
   if(e.code==='KeyM') toggleMap();
   if(e.code==='KeyL') toggleLog(); });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
@@ -2224,8 +2404,8 @@ function poseArms(atWheel){
 }
 function setMode(m){
   state.mode=m;
-  if(m!=='fly') walkerG.rotation.x=0;                 /* clear the flight lean */
-  if(m==='walk'||m==='fly'){                          /* a free body in the world, not aboard */
+  if(m!=='fly'&&m!=='dive') walkerG.rotation.x=0;      /* clear the flight/swim lean */
+  if(m==='walk'||m==='fly'||m==='dive'){              /* a free body in the world, not aboard */
     if(walkerG.parent!==scene){ if(walkerG.parent) walkerG.parent.remove(walkerG); scene.add(walkerG); }
     poseArms(false);
   } else {
@@ -2234,12 +2414,15 @@ function setMode(m){
     else poseArms(false);
   }
   walkerG.visible=true;
-  updateAshoreBtn(); updateFlyBtn();
+  updateAshoreBtn(); updateFlyBtn(); updateDiveBtn();
 }
 function updateFlyBtn(){ const b=$('b-fly'); if(!b) return;
   b.textContent=state.mode==='fly'?'🕊 Alight':'🕊 Rise up';
   b.classList.toggle('off',state.mode==='fly');
-  const fp=$('flypad'); if(fp) fp.style.display=state.mode==='fly'?'flex':'none'; }
+  const fp=$('flypad'); if(fp) fp.style.display=(state.mode==='fly'||state.mode==='dive')?'flex':'none'; }
+function updateDiveBtn(){ const b=$('b-dive'); if(!b) return;
+  b.textContent=state.mode==='dive'?'🌊 Surface':'🤿 Dive';
+  b.classList.toggle('off',state.mode==='dive'); }
 function nearWheel(){ return state.mode==='deck'&&state.deck.lz<QDECK_Z+1.5&&Math.abs(state.deck.lx)<4.2; }
 function goAshoreFromShip(){
   const bt=state.boat;
@@ -2268,6 +2451,7 @@ function goAshoreFromShip(){
 }
 function toggleAshore(){
   if(state.mode==='fly'){ alight(); return; }    /* come down out of the air */
+  if(state.mode==='dive'){ surface(); return; }  /* come up out of the deep */
   if(state.mode==='boat'){                       /* step back from the wheel */
     state.deck={lx:2.4,lz:HELM.z+1.2,h:0};
     setMode('deck'); return;
@@ -2283,7 +2467,8 @@ function toggleAshore(){
   } else toast('The ship lies too far off — return to the water\u2019s edge.');
 }
 function updateAshoreBtn(){ const b=$('b-ashore');
-  if(state.mode==='fly') b.textContent='🕊 Alight';
+  if(state.mode==='dive') b.textContent='🌊 Surface';
+  else if(state.mode==='fly') b.textContent='🕊 Alight';
   else if(state.mode==='boat') b.textContent='⚓ Leave the helm';
   else if(state.mode==='deck') b.textContent=nearWheel()?'⎈ Take the helm':'⚓ Go ashore';
   else b.textContent='⛵ Board the ship';
@@ -2469,6 +2654,8 @@ function cameraTick(dt){
     px=bt.x; pz=bt.z; baseY=boatG.position.y+QDECK_Y; phead=bt.heading; dist=Math.max(40,Math.min(state.camDist,224)); }
   else if(state.mode==='fly'){ const fl=state.fly;
     px=fl.x; pz=fl.z; baseY=fl.y; phead=fl.heading; dist=Math.max(24,Math.min(state.camDist,300)); }
+  else if(state.mode==='dive'){ const dv=state.dive;
+    px=dv.x; pz=dv.z; baseY=dv.y; phead=dv.heading; dist=Math.max(16,Math.min(state.camDist,90)); }
   else{ const w=state.walk;
     px=w.x; pz=w.z; baseY=walkerG.position.y; phead=w.heading; dist=Math.max(14,Math.min(state.camDist,150)); }
   const [f2]=axis(); if(Math.abs(f2)>0.2) state.camYaw*=Math.max(0,1-dt*0.5);
@@ -2498,7 +2685,7 @@ function toast(txt,ref){ $('verse-t').textContent=txt; $('verse-r').textContent=
 const seen={wall:false,yahru:false};
 function placeTick(){
   updateAshoreBtn();
-  const p=state.mode==='walk'?state.walk:state.mode==='fly'?state.fly:state.boat;
+  const p=state.mode==='walk'?state.walk:state.mode==='fly'?state.fly:state.mode==='dive'?state.dive:state.boat;
   const u=p.x/R_WORLD, v=p.z/R_WORLD, r=Math.hypot(u,v);
   let txt;
   if(state.mode==='fly'){                              /* aloft — name the height above the deep */
@@ -2506,6 +2693,10 @@ function placeTick(){
     txt = state.fly.y>=domeCeilAt(state.fly.x,state.fly.z)-60 ? 'AGAINST THE FIRMAMENT'
         : state.fly.y>CLOUD_Y+8 ? 'ALOFT — '+km.toLocaleString()+' KM ABOVE THE CLOUDS'
         : 'RISING ON THE AIR'; }
+  else if(state.mode==='dive'){                        /* in the deep — name the depth below the waves */
+    const m=Math.max(0,Math.round((SEA_SURF-state.dive.y)/6));
+    txt = state.dive.y<=seabedDepth(state.dive.x,state.dive.z)+6 ? 'THE FLOOR OF THE DEEP — '+m.toLocaleString()+' M DOWN'
+        : 'IN THE DEEP — '+m.toLocaleString()+' M DOWN'; }
   else if(r>0.9){ txt='THE WALL OF ICE';
     if(!seen.wall){ seen.wall=true; const vs=VERSES.find(q=>q.ref.indexOf('26:10')>=0);
       if(vs) toast(vs.t,vs.ref); } }
@@ -2571,7 +2762,7 @@ function drawMapInto(ctx2,size,withNames){
   const [su,sv]=sunUV();
   ctx2.beginPath(); ctx2.arc((su+1)*Hh,(sv+1)*Hh,Math.max(3,size/120),0,Math.PI*2);
   ctx2.fillStyle='#ffe9a8'; ctx2.fill();
-  const p=state.mode==='walk'?state.walk:state.boat;
+  const p=state.mode==='walk'?state.walk:state.mode==='fly'?state.fly:state.mode==='dive'?state.dive:state.boat;
   const px=(p.x/R_WORLD+1)*Hh, py=(p.z/R_WORLD+1)*Hh;
   ctx2.save(); ctx2.translate(px,py); ctx2.rotate(Math.atan2(Math.sin(p.heading),-Math.cos(p.heading)));
   const s2=Math.max(4,size/90);
@@ -2614,6 +2805,7 @@ $('b-speed').onclick=()=>{ state.speedIdx=(state.speedIdx+1)%SPEEDS.length;
 $('b-map').onclick=toggleMap;
 $('b-ashore').onclick=toggleAshore;
 $('b-fly').onclick=takeFlight;
+$('b-dive').onclick=enterDive;
 (function(){ const up=$('fp-up'), dn=$('fp-dn'); if(!up||!dn) return;
   function bind(el,val){ el.addEventListener('pointerdown',e=>{ e.preventDefault(); flyPad=val; });
     const off=()=>{ if(flyPad===val) flyPad=0; };
@@ -2723,13 +2915,19 @@ function frame(){
   if(state.mode==='deck') deckTick(dt);
   else if(state.mode==='walk') walkTick(dt);
   else if(state.mode==='fly') flyTick(dt);
-  const p=state.mode==='walk'?state.walk:state.mode==='fly'?state.fly:state.boat;
+  else if(state.mode==='dive') diveTick(dt);
+  const p=state.mode==='walk'?state.walk:state.mode==='fly'?state.fly:state.mode==='dive'?state.dive:state.boat;
   const light=skyTick(p.x,p.z);
   /* aloft the air clears and the eye reaches far — open the fog with altitude */
   const eyeY=state.mode==='fly'?state.fly.y:20;
   if(scene.fog&&!state.firm){ const climbF=Math.max(0,eyeY-CLOUD_Y);
     scene.fog.near*=1+climbF/2600;
     scene.fog.far=Math.min(scene.fog.far*(1+climbF/45), R_WORLD*3.0); }
+  /* underwater — the light dims and the water closes in with depth */
+  if(state.mode==='dive'&&scene.fog){ const depth=SEA_SURF-state.dive.y, murk=Math.min(1,depth/560);
+    const wc=mix3(0x061826,0x0f5170,0x36b0d8,1-murk);   /* deep dark → shallow turquoise */
+    scene.background.copy(wc); scene.fog.color.copy(wc); scene.fog.near=4; scene.fog.far=470-murk*290;
+    hemi.intensity=1.0-murk*0.6; dirL.intensity=0.5-murk*0.32; }
   /* the firmament vault fades into view the higher he climbs, and stands solid near the top */
   if(flyDome&&!state.firm){ flyDome.material.opacity=Math.max(0,Math.min(1,(eyeY-6000)/42000))*0.34; }
   else if(flyDome){ flyDome.material.opacity=0; }
@@ -2744,6 +2942,7 @@ function frame(){
     if(bigOpen) sizeBig(); }
   saveT-=dt; if(saveT<=0){ saveT=10; saveState(); }
   if(!state.firm){ const above=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/90));
+    clouds.visible=cirrus.visible=state.mode!=='dive';   /* no sky-clouds seen from under the sea */
     clouds.position.x=p.x; clouds.position.z=p.z;
     TEX.clouds.offset.x=(p.x/9600*7+state.simHours*0.004)%1;
     TEX.clouds.offset.y=(p.z/9600*7)%1;
@@ -2764,6 +2963,8 @@ function frame(){
       const dr2=state.simHours*0.006;
       wispMat.map.offset.set((p.x/100000*30+dr2)%1,(p.z/100000*30)%1);
     } }
+  if(state.mode==='dive') updateDeep(state.dive.x,state.dive.y,state.dive.z,dt,Math.min(1,(SEA_SURF-state.dive.y)/560));
+  else if(deepShown) hideDeep();
   if(state.firm&&firmMark) firmMark.position.set(p.x,R_WORLD*0.012,p.z);
   seaTex.offset.x=(performance.now()*0.000012)%1; seaTex.offset.y=(performance.now()*0.000009)%1;
   const _pn=performance.now();
