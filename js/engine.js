@@ -568,10 +568,13 @@ function makeVoidTex(){ const S=512, c=texCanvas(S,S), g=c.getContext('2d');
     g.fillStyle='rgba('+bb+','+bb+','+(Math.min(255,bb+12))+','+(0.45+hash2(k,5.5)*0.55)+')';
     g.beginPath(); g.arc(x,y,rr,0,6.283); g.fill(); }
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; }
-const voidTex=makeVoidTex(); voidTex.repeat.set(10,3);
-const voidWall=new THREE.Mesh(new THREE.CylinderGeometry(R_WORLD*0.999,R_WORLD*0.999,30000,160,1,true),
-  new THREE.MeshBasicMaterial({map:voidTex,color:0x0a0c18,side:THREE.BackSide,fog:false}));
-voidWall.position.y=13000; scene.add(voidWall);   /* tall enough to blacken the whole outer sky, day or night */
+const voidTex=makeVoidTex(); voidTex.repeat.set(10,2);
+/* fog:true — from the lands the wall of night blends into the day's blue sky
+   (so daytime is blue where the sun shines), and only stands black-and-starry
+   when the traveller is up against the ice wall itself. */
+const voidWall=new THREE.Mesh(new THREE.CylinderGeometry(R_WORLD*0.999,R_WORLD*0.999,12000,160,1,true),
+  new THREE.MeshBasicMaterial({map:voidTex,color:0x0a0c18,side:THREE.BackSide,fog:true}));
+voidWall.position.y=3400; scene.add(voidWall);
 /* The far ring beyond the wave grid — a PLAIN deep-water colour, no tile
    texture (the old blocky water plane is gone; the Gerstner grid is the only
    surface water now). It sits just under the grid's flat edge, deep in fog. */
