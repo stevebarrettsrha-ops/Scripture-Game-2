@@ -2098,47 +2098,60 @@ function walkTick(dt){
    SHIFT (or CTRL) lets him down. He floats — there is no falling. He rises
    through the cloud floor and above it, and the wall of ice turns him back
    at the rim. Bear down onto the ground and he alights. */
-const FLY_CEIL=5200, FLY_TURN=1.9, FLY_MAXSP=210, FLY_VMAX=150;
-let flyHintShown=false, flyPad=0;
+const R_DOME=R_WORLD*1.08, FLY_TURN=1.9, FLY_MAXSP=520, FLY_VACC=1150, FLY_VMAX=4800;
+let flyHintShown=false, flyPad=0, seenFirmament=false, flyDome=null;
 function flyFloorAt(x,z){ return groundInfo(x,z).y+7; }
+/* height of the firmament (the hard vault) directly above a point on the disc */
+function domeCeilAt(x,z){ return Math.sqrt(Math.max(0,R_DOME*R_DOME-x*x-z*z)); }
+function ensureFlyDome(){ if(flyDome) return;
+  flyDome=new THREE.Mesh(new THREE.SphereGeometry(R_DOME,64,32,0,Math.PI*2,0,Math.PI*0.5),
+    new THREE.MeshBasicMaterial({color:0x9ec7f2,transparent:true,opacity:0,side:THREE.BackSide,fog:false,depthWrite:false}));
+  scene.add(flyDome); }
 function flyTick(dt){
   const fl=state.fly; const [f,t]=axis();
   fl.heading+=t*dt*FLY_TURN;
   const tgt=f*FLY_MAXSP;
-  fl.sp+=(tgt-fl.sp)*Math.min(1,dt*3.2);
+  fl.sp+=(tgt-fl.sp)*Math.min(1,dt*2.4);
   fl.x+=Math.sin(fl.heading)*fl.sp*dt;
   fl.z+=Math.cos(fl.heading)*fl.sp*dt;
+  /* vertical: hold to rise, and the longer he holds the faster he climbs —
+     up through the clouds, past the sun and moon, to the firmament itself */
   let up=flyPad;                                     /* the on-screen ▲▼ pads (touch) */
   if(keys.Space) up+=1;
   if(keys.ShiftLeft||keys.ShiftRight||keys.ControlLeft||keys.ControlRight) up-=1;
   up=Math.max(-1,Math.min(1,up));
-  const vtgt=up*FLY_VMAX;
-  fl.vy+=(vtgt-fl.vy)*Math.min(1,dt*3.2);
+  if(up!==0){ fl.vy+=up*FLY_VACC*dt; fl.vy=Math.max(-FLY_VMAX,Math.min(FLY_VMAX,fl.vy)); }
+  else fl.vy*=Math.max(0,1-dt*1.4);                 /* let go and he coasts to a hover */
   fl.y+=fl.vy*dt;
-  const floor=flyFloorAt(fl.x,fl.z);
-  if(fl.y>FLY_CEIL){ fl.y=FLY_CEIL; fl.vy=Math.min(0,fl.vy); }
+  const floor=flyFloorAt(fl.x,fl.z), ceil=domeCeilAt(fl.x,fl.z)-40;
+  if(fl.y>=ceil){ fl.y=ceil; fl.vy=Math.min(0,fl.vy);   /* stuck fast against the firmament */
+    if(!seenFirmament){ seenFirmament=true;
+      toast('You are come up against the firmament — the hard vault of the shamayim, spread out like a moulded mirror, that no man passes.','IYOB 37:18'); } }
   if(fl.y<floor){ fl.y=floor; fl.vy=Math.max(0,fl.vy);
     if(up<0){ alight(); return; } }                 /* bearing down onto the ground — set down */
   if(Math.hypot(fl.x,fl.z)/R_WORLD>0.994){          /* the wall of ice turns you back */
     fl.x-=Math.sin(fl.heading)*fl.sp*dt; fl.z-=Math.cos(fl.heading)*fl.sp*dt; fl.sp*=0.25; }
   state.dist+=Math.abs(fl.sp)*dt;
-  walkerG.position.set(fl.x,fl.y,fl.z); walkerG.rotation.y=fl.heading;
-  /* the levitation pose — arms spread wide, a slow drift of the limbs */
+  /* pose: borne up with arms outstretched, leaning into the flight */
   const u=walkerG.userData, ph=performance.now()*0.0016, dr=Math.sin(ph)*0.12;
+  const glide=Math.min(1,Math.abs(fl.sp)/FLY_MAXSP);
+  walkerG.position.set(fl.x,fl.y,fl.z);
+  walkerG.rotation.y=fl.heading; walkerG.rotation.x=glide*0.4;   /* lean into the flight */
   u.armL.rotation.z=0.95+dr; u.armR.rotation.z=-0.95-dr;
   u.armL.rotation.x=-0.15; u.armR.rotation.x=-0.15;
   u.legL.rotation.x=0.16+Math.sin(ph*1.3)*0.06; u.legR.rotation.x=-0.10-Math.sin(ph*1.3)*0.06;
 }
 function takeFlight(){
   if(state.mode==='fly'){ alight(); return; }
+  ensureFlyDome();
   let x,z,h;
   if(state.mode==='walk'){ x=state.walk.x; z=state.walk.z; h=state.walk.heading; state.prevGround='walk'; }
   else { x=state.boat.x; z=state.boat.z; h=state.boat.heading; state.prevGround='boat'; }
   state.fly.x=x; state.fly.z=z; state.fly.heading=h;
-  state.fly.y=flyFloorAt(x,z)+60; state.fly.vy=45; state.fly.sp=0;
+  state.fly.y=flyFloorAt(x,z)+60; state.fly.vy=60; state.fly.sp=0;
   setMode('fly');
   if(!flyHintShown){ flyHintShown=true;
-    toast('You are borne up on the air — SPACE to rise, SHIFT to sink, W/S to fly, A/D to turn.'); }
+    toast('You are borne up on the air — hold SPACE to rise higher and higher, past the clouds and the lights, to the firmament; SHIFT to sink, W/S to fly, A/D to turn.'); }
 }
 function alight(){
   const fl=state.fly, cc=landAtWorld(fl.x,fl.z);
@@ -2179,6 +2192,7 @@ function poseArms(atWheel){
 }
 function setMode(m){
   state.mode=m;
+  if(m!=='fly') walkerG.rotation.x=0;                 /* clear the flight lean */
   if(m==='walk'||m==='fly'){                          /* a free body in the world, not aboard */
     if(walkerG.parent!==scene){ if(walkerG.parent) walkerG.parent.remove(walkerG); scene.add(walkerG); }
     poseArms(false);
@@ -2456,7 +2470,9 @@ function placeTick(){
   let txt;
   if(state.mode==='fly'){                              /* aloft — name the height above the deep */
     const km=Math.max(0,Math.round((state.fly.y-CLOUD_Y)/6));
-    txt=state.fly.y>CLOUD_Y+8?('ALOFT — '+km.toLocaleString()+' KM ABOVE THE CLOUDS'):'RISING ON THE AIR'; }
+    txt = state.fly.y>=domeCeilAt(state.fly.x,state.fly.z)-60 ? 'AGAINST THE FIRMAMENT'
+        : state.fly.y>CLOUD_Y+8 ? 'ALOFT — '+km.toLocaleString()+' KM ABOVE THE CLOUDS'
+        : 'RISING ON THE AIR'; }
   else if(r>0.9){ txt='THE WALL OF ICE';
     if(!seen.wall){ seen.wall=true; const vs=VERSES.find(q=>q.ref.indexOf('26:10')>=0);
       if(vs) toast(vs.t,vs.ref); } }
@@ -2680,6 +2696,9 @@ function frame(){
   const eyeY=state.mode==='fly'?state.fly.y:20;
   if(scene.fog&&!state.firm){ const openF=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/2400));
     scene.fog.near*=1+openF*4; scene.fog.far*=1+openF*9; }
+  /* the firmament vault fades into view the higher he climbs, and stands solid near the top */
+  if(flyDome&&!state.firm){ flyDome.material.opacity=Math.max(0,Math.min(1,(eyeY-6000)/42000))*0.34; }
+  else if(flyDome){ flyDome.material.opacity=0; }
   waterTick(p.x,p.z,light.dayF,light.storm||0);
   seaLifeTick(p.x,p.z,dt);
   audioTick(light.storm||0);
