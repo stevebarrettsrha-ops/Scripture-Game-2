@@ -1868,20 +1868,57 @@ function updateDolphins(px,py,pz,dt,t){ initDolphins();
     d.dir+=Math.sin(t*0.4+d.ph)*0.05; const sp=18; d.x+=Math.cos(d.dir)*sp*dt; d.z+=Math.sin(d.dir)*sp*dt;
     const arc=Math.sin(t*0.9+d.ph); d.y+=arc*10*dt; const fy=seabedDepth(d.x,d.z); d.y=Math.max(fy+8,Math.min(SEA_SURF-4,d.y));
     d.m.position.set(d.x,d.y,d.z); d.m.rotation.y=Math.atan2(Math.cos(d.dir),Math.sin(d.dir)); d.m.rotation.x=-arc*0.4; } }
-/* ---- sharks — great grey shapes patrolling the deeper water ---- */
+/* ---- SHARKS — honest minecraft sharks, no mere grey shapes: countershaded
+   blue above and white beneath, gill slits on the flanks, black eyes, a
+   toothy open mouth at the front, true dorsal and pectoral fins, and a
+   swept two-lobed tail that wags as it swims. ---- */
+const sharkTexTop=mkTex(g=>speckle(g,[52,84,110],14,[42,72,96],0.3));
+const sharkTexBelly=mkTex(g=>speckle(g,[226,234,240],8,[210,220,228],0.3));
+function mkSharkSideTex(gillsRight){ return mkTex(g=>{
+  speckle(g,[74,104,130],12,[62,92,118],0.3);                  /* the upper flank */
+  for(let y=11;y<16;y++) for(let x=0;x<16;x++){                 /* wavy white belly line */
+    if(y>11+(x%3===0?1:0)){ const c=jit([224,232,238],8,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } }
+  g.fillStyle='rgb(30,44,58)';                                  /* the gill slits, forward */
+  for(const x of (gillsRight?[11,12,13]:[2,3,4])) g.fillRect(x,4,1,6);
+}); }
+const sharkSideL=mkSharkSideTex(false), sharkSideR=mkSharkSideTex(true);
+const sharkFaceTex=mkTex(g=>{ speckle(g,[52,84,110],10);
+  g.fillStyle='rgb(18,24,32)'; g.fillRect(1,9,14,5);            /* the open mouth */
+  g.fillStyle='rgb(148,32,38)'; g.fillRect(2,10,12,3);          /* red within */
+  g.fillStyle='rgb(242,246,250)';                                /* the teeth, above and below */
+  for(let x=2;x<14;x+=2){ g.fillRect(x,9,1,2); g.fillRect(x+1,12,1,2); } });
 function makeShark(){ const g=new THREE.Group();
-  const body=lbox(3.0,3.6,12,0x8894a0); g.add(body);
-  const belly=lbox(2.6,1.5,10,0xd6dde4); belly.position.y=-1.5; g.add(belly);
-  const snout=lbox(2.0,2.2,3.2,0x94a0ac); snout.position.set(0,0.4,7.2); g.add(snout);
-  const mouth=lbox(1.9,0.4,0.5,0xf2f2f2); mouth.position.set(0,-0.9,8.4); g.add(mouth);
-  const dorsal=lbox(0.5,3.6,2.6,0x76828e); dorsal.position.set(0,2.9,0); dorsal.rotation.x=-0.35; g.add(dorsal);
-  const pecL=lbox(3.4,0.4,1.8,0x808c98); pecL.position.set(2.6,-1,2); pecL.rotation.z=0.5; g.add(pecL); const pecR=pecL.clone(); pecR.position.x=-2.6; pecR.rotation.z=-0.5; g.add(pecR);
-  const tailU=lbox(0.5,3.6,1.8,0x8894a0); tailU.position.set(0,1.8,-7.2); tailU.rotation.x=0.5; g.add(tailU);
-  const eL=lbox(0.4,0.4,0.4,0x0a0f14); eL.position.set(1.3,0.6,6); g.add(eL); const eR=eL.clone(); eR.position.x=-1.3; g.add(eR);
-  const tail=new THREE.Group(); tail.add(tailU); g.userData={tail}; return g; }
+  const top=new THREE.MeshLambertMaterial({map:sharkTexTop});
+  const belly=new THREE.MeshLambertMaterial({map:sharkTexBelly});
+  const sL=new THREE.MeshLambertMaterial({map:sharkSideL});
+  const sR=new THREE.MeshLambertMaterial({map:sharkSideR});
+  const face=new THREE.MeshLambertMaterial({map:sharkFaceTex});
+  const FIN=0x33506a;
+  /* box materials: [px, nx, top, bottom, front(+z), back] */
+  const body=new THREE.Mesh(new THREE.BoxGeometry(3.6,3.6,9),[sR,sL,top,belly,top,top]);
+  g.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(3.0,2.9,3.2),[sR,sL,top,belly,face,top]);
+  head.position.set(0,-0.2,6.0); g.add(head);
+  const snout=new THREE.Mesh(new THREE.BoxGeometry(2.4,1.1,1.7),[top,top,top,belly,top,top]);
+  snout.position.set(0,1.05,6.9); g.add(snout);
+  for(const s of [1,-1]){ const eye=lbox(0.45,0.45,0.45,0x0a0f14); eye.position.set(s*1.55,0.95,5.5); g.add(eye); }
+  const dorsal=lbox(0.5,3.4,2.8,FIN); dorsal.position.set(0,3.1,0.4); dorsal.rotation.x=-0.42; g.add(dorsal);
+  for(const s of [1,-1]){ const pec=lbox(3.8,0.4,1.8,FIN);
+    pec.position.set(s*3.2,-1.6,3.2); pec.rotation.z=s*0.55; pec.rotation.y=s*0.22; g.add(pec); }
+  for(const s of [1,-1]){ const pv=lbox(1.4,0.35,1.0,FIN);
+    pv.position.set(s*1.3,-1.9,-2.2); pv.rotation.z=s*0.4; g.add(pv); }
+  /* the tail: peduncle and the two-lobed caudal fin, grouped to wag */
+  const tail=new THREE.Group(); tail.position.set(0,0,-4.5);
+  const ped=new THREE.Mesh(new THREE.BoxGeometry(1.7,2.1,2.8),[sR,sL,top,belly,top,top]);
+  ped.position.set(0,0,-1.2); tail.add(ped);
+  const lobeU=lbox(0.5,3.6,1.7,FIN); lobeU.position.set(0,2.2,-2.6); lobeU.rotation.x=0.5; tail.add(lobeU);
+  const lobeD=lbox(0.5,2.1,1.3,FIN); lobeD.position.set(0,-1.5,-2.4); lobeD.rotation.x=-0.45; tail.add(lobeD);
+  g.add(tail);
+  g.userData={tail}; return g; }
 const SHARKS=[], SHK_N=2, SHK_R=560;
 let sharkWarnT=-99;
-function initSharks(){ if(SHARKS.length) return; for(let k=0;k<SHK_N;k++){ const m=makeShark(); m.visible=false; scene.add(m);
+function initSharks(){ if(SHARKS.length) return; for(let k=0;k<SHK_N;k++){ const m=makeShark();
+  m.scale.setScalar(1.25); m.visible=false; scene.add(m);
   SHARKS.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false,cool:0}); } }
 function updateSharks(px,py,pz,dt,t){ initSharks();
   for(const s of SHARKS){ if(!s.set||Math.hypot(s.x-px,s.z-pz)>SHK_R+180){
