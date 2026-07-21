@@ -113,14 +113,45 @@ course, steer off the shoals, heave on the same swell, and pass by. The deep is 
   works.
 - Saves were bumped to v5 (adds the fish tally) and remain backward-compatible with v2–v4.
 
-## 4. Further recommendations (not yet executed — future work)
+## 4. Second round of recommendations → all executed ✅
 
-1. **Trade loop**: buy cargo cheap at one city's stalls, sell dear at another — the hold
-   already exists to carry it; add a coin count to the log.
-2. **Named NPC dialogue trees** — two or three exchanges deep, with a rumour system that
-   points to the nearest undiscovered land.
-3. **Boarding the traders** — hail a passing ship, come alongside, trade at sea.
-4. **Player hunting** — a throwable spear using the hunter's stalk/flee logic already in place.
-5. **Weather-driven tasks** — folk shelter indoors during storms; fishermen stay home.
-6. **Small-island data upgrade** (50 m coastlines) — the one remaining item from the older
-   review, for richer mid-ocean landfalls.
+1. **Trade loop** ✅ — coins ("shekels", starting purse of 30) and a 24-unit cargo
+   manifest, saved with the voyage (save v6). Every market stall opens a trading panel
+   (`F — trade at the stall`): eight goods (grain, oil, wine, salt, cedar, cloth, spices,
+   purple dye) priced by a fixed per-land factor (0.6×–1.6×), so every land is cheap in
+   some things and dear in others — buy low, carry it over the deep in the hold, sell
+   high. Fish of your own catching sell at every market. Purse and manifest show in the
+   ship's log.
+2. **Named NPC dialogue** ✅ — every villager bears a seeded name (Yoram, Tamar,
+   Elazar, Miryam…) shown with their calling. Speaking again goes deeper: two lines of
+   their trade, then a **rumour** — the compass direction and distance to the nearest
+   coast you have *not* yet visited — then a farewell.
+3. **Hailing the traders** ✅ — from the helm or deck, a merchantman within hail shows
+   `F — hail the merchantman`: she backs her sails and heaves to alongside, and the same
+   trading panel opens at sea — at her prices (she buys cheap and sells dear).
+4. **Player hunting** ✅ — `Q` (or the 🗡 button) casts a spear along your gaze; it
+   arcs, takes hares, deer, fowl, pigs — or a wolf threatening the pen — tallies game in
+   the log, and stands planted in the earth where it misses.
+5. **Weather-driven tasks** ✅ — when a storm cell passes over a village the lanes
+   empty: folk hurry indoors to their own hearths (the fisherman leaves the pier), and the
+   beasts huddle at the pen until the sky clears.
+6. **Mid-ocean landfalls** ✅ (delivered as **uncharted isles** rather than the 50 m
+   dataset) — rare procedural islets now rise from the open deep between the great
+   coasts: sandy cays with palms in the warm belts, bare northern rocks elsewhere. They
+   appear on no chart and bear no nation — the HUD names them only **AN UNCHARTED
+   ISLE** when you stand on one.
+
+Also in this round: **the beam widened 1.4×** (the hull is now scaled 2.8× across to
+2.0× along), with the deck bounds, hold aisle, hatch, crew stations, wheel zone, boarding
+points and cameras all rescaled to match — she sits notably broader on the screen.
+
+## 5. Further recommendations (future work)
+
+1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
+2. **Port fees and rare goods** — one land-exclusive good per region for long routes.
+3. **Reputation with villages** — spear a village's penned beast and the vendor's
+   prices turn against you; drive off a wolf and they improve.
+4. **Deeper quests** — a villager asks for a good from a named far land; deliver for a
+   reward and a verse.
+5. **Small-island real data** (50 m coastlines) if charted, nameable islands are wanted
+   to complement the uncharted ones.

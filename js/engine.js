@@ -287,7 +287,23 @@ function cellRaw(ix,iz){
   const dv2=(fbm(u*760-8.1,v*760+9.3)-0.5)*(2.6/HALF);
   const wu=u+du2, wv=v+dv2;
   const ci=countryAtUV(wu,wv);
-  if(!ci) return null;
+  if(!ci){
+    /* UNCHARTED ISLES — small sandy risings of the deep, set on no chart:
+       rare mid-ocean landfalls between the great coasts. Palms in the warm
+       waters, a bare northern rock elsewhere. They never bear a nation. */
+    if(r>0.12&&r<SHELF_UV-0.03){
+      const iso=fbm(wu*240+77,wv*240-31);
+      if(iso>0.82){
+        const t=(iso-0.82)/0.1;
+        let ih=1+Math.floor(t*3+n*1.2);
+        const trop=lat<=28&&lat>-38;
+        let tree=0;
+        if(t>0.3){ if(trop&&j<0.09) tree=2; else if(!trop&&lat<58&&j<0.05) tree=1; }
+        return {h:Math.min(ih,3), kind:t>0.45?(trop?'tropic':'grass'):'sand', tree, ci:0};
+      }
+    }
+    return null;
+  }
   if(riverAtUV(wu,wv)) return null;   /* a river runs here — open water */
   let cnt=0; const s=1.6/HALF;
   if(countryAtUV(wu+s,wv))cnt++; if(countryAtUV(wu-s,wv))cnt++;
@@ -822,7 +838,7 @@ const state={ simHours:9.5, speedIdx:1, paused:false,
   fly:{x:0,y:0,z:0,heading:0,vy:0,sp:0}, prevGround:'boat',
   dive:{x:0,y:0,z:0,heading:0,vy:0,sp:0},
   windMode:'true', firm:false, firmDist:0, camYaw:0, camPitch:0.42, camDist:96,
-  visited:new Set(), dist:0, fish:0, fishing:null };
+  visited:new Set(), dist:0, fish:0, fishing:null, coins:30, cargo:{}, game:0 };
 
 /* ================= THE WINDS =================
    The bands of the disc mirror the true circulation: trade easterlies in
@@ -938,14 +954,15 @@ function texBox(w,h,d, matSide, matTop, matBot){
 /* Hull-local proportions (the hull is built at these, then scaled up whole). */
 const DECK_Y=6.2, QDECK_Y=11, FDECK_Y=8.8, FDECK_Z=17.5, QDECK_Z=-17.6, HELM={x:0,z:-22.6}, WHEEL_Z=-20.4;
 /* SHIP_S doubles her in every dimension — a great galleon, deck room for
-   twelve souls and more, and a walkable cargo hold below the waist deck. */
-const SHIP_S=2.0;
+   twelve souls and more, and a walkable cargo hold below the waist deck.
+   SHIP_SX widens the beam further still, so she sits broad upon the screen. */
+const SHIP_S=2.0, SHIP_SX=SHIP_S*1.4;
 const SD={ deckY:DECK_Y*SHIP_S, qdeckY:QDECK_Y*SHIP_S, fdeckY:FDECK_Y*SHIP_S,
   fdeckZ:FDECK_Z*SHIP_S, qdeckZ:QDECK_Z*SHIP_S, helmZ:HELM.z*SHIP_S, wheelZ:WHEEL_Z*SHIP_S };
-const HOLD={halfX:2.9*SHIP_S, z0:-19*SHIP_S, z1:23*SHIP_S, y:0.55*SHIP_S};
+const HOLD={halfX:2.9*SHIP_SX, z0:-19*SHIP_S, z1:23*SHIP_S, y:0.55*SHIP_S};
 const HATCH={x:0, z:4.6*SHIP_S, r:3.8*SHIP_S};
 const boatG=new THREE.Group();
-const hullG=new THREE.Group(); hullG.scale.setScalar(SHIP_S); boatG.add(hullG);
+const hullG=new THREE.Group(); hullG.scale.set(SHIP_SX,SHIP_S,SHIP_S); boatG.add(hullG);
 { const add=(m,x,y,z)=>{ m.position.set(x,y,z); hullG.add(m); return m; };
   /* ---- hull with rising sheer: waist, stepped prow, stern run ---- */
   add(texBox(14,6.4,52,'planks','planks'),0,3.0,-2);           // waist, deck top 6.2
@@ -1072,13 +1089,13 @@ const hullG=new THREE.Group(); hullG.scale.setScalar(SHIP_S); boatG.add(hullG);
   scene.add(boatG); }
 /* walkable regions of the deck, in ship-local WORLD coordinates (scaled) */
 const DECK_OBS=[[0,14,2.0],[0,-4,2.0],[0,-25.5,1.9],[4.8,8,1.4],[-4.8,-2,1.4],[4.8,-12,1.4],[-4.1,14,1.4]]
-  .map(o=>[o[0]*SHIP_S,o[1]*SHIP_S,o[2]*SHIP_S]);
+  .map(o=>[o[0]*SHIP_SX,o[1]*SHIP_S,o[2]*SHIP_S]);
 function deckAllowed(lx,lz){
-  if(Math.abs(lx)>5.8*SHIP_S) return false;
+  if(Math.abs(lx)>5.8*SHIP_SX) return false;
   if(lz>25.2*SHIP_S||lz<-27.0*SHIP_S) return false;
-  if(Math.abs(lx)<1.7*SHIP_S&&lz>2.9*SHIP_S&&lz<6.3*SHIP_S) return false;   /* the open hatchway */
+  if(Math.abs(lx)<1.7*SHIP_SX&&lz>2.9*SHIP_S&&lz<6.3*SHIP_S) return false;   /* the open hatchway */
   for(const o of DECK_OBS){ if(Math.hypot(lx-o[0],lz-o[1])<o[2]) return false; }
-  if(lz<SD.qdeckZ&&Math.hypot(lx,lz-SD.wheelZ)<1.6*SHIP_S) return false;
+  if(lz<SD.qdeckZ&&Math.hypot(lx,lz-SD.wheelZ)<1.6*SHIP_SX) return false;
   return true;
 }
 function deckHeightAt(lz){ return lz<SD.qdeckZ?SD.qdeckY:(lz>SD.fdeckZ?SD.fdeckY:SD.deckY); }
@@ -1093,11 +1110,11 @@ const CREW=[];
 function initCrew(){ if(CREW.length) return;
   const posts=[
     {lx:0,lz:21*SHIP_S,kind:'watch'},
-    {lx:-2.5*SHIP_S,lz:-19*SHIP_S,kind:'mate'},
-    {lx:3.5*SHIP_S,lz:8*SHIP_S,kind:'hand'},
-    {lx:-3.5*SHIP_S,lz:-8*SHIP_S,kind:'hand'},
-    {lx:4.5*SHIP_S,lz:-2*SHIP_S,kind:'hand'},
-    {lx:-4.5*SHIP_S,lz:14*SHIP_S,kind:'hand'}];
+    {lx:-2.5*SHIP_SX,lz:-19*SHIP_S,kind:'mate'},
+    {lx:3.5*SHIP_SX,lz:8*SHIP_S,kind:'hand'},
+    {lx:-3.5*SHIP_SX,lz:-8*SHIP_S,kind:'hand'},
+    {lx:4.5*SHIP_SX,lz:-2*SHIP_S,kind:'hand'},
+    {lx:-4.5*SHIP_SX,lz:14*SHIP_S,kind:'hand'}];
   for(let k=0;k<posts.length;k++){ const p=posts[k];
     const m=makePerson(9000+k*13,'sailor',false,false);
     m.position.set(p.lx,deckHeightAt(p.lz),p.lz); boatG.add(m);
@@ -1133,7 +1150,7 @@ function crewTick(dt){ initCrew();
 const TRADERS=[];
 function initTraders(){ if(TRADERS.length) return;
   for(let k=0;k<2;k++){ const g=new THREE.Group();
-    const h=hullG.clone(); h.scale.setScalar(SHIP_S*0.62); g.add(h);
+    const h=hullG.clone(); h.scale.set(SHIP_SX*0.62,SHIP_S*0.62,SHIP_S*0.62); g.add(h);
     g.visible=false; scene.add(g);
     TRADERS.push({g,x:0,z:0,h:0,sp:18+k*7,set:false}); } }
 function traderTick(px,pz,dt){ initTraders();
@@ -1143,9 +1160,12 @@ function traderTick(px,pz,dt){ initTraders();
       const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
       if(landAtWorld(x,z)||Math.hypot(x,z)/R_WORLD>0.93){ T.g.visible=false; T.set=false; continue; }
       T.x=x; T.z=z; T.h=Math.random()*6.28; T.set=true; T.g.visible=true; }
-    const ax=T.x+Math.sin(T.h)*140, az=T.z+Math.cos(T.h)*140;
-    if(landAtWorld(ax,az)||Math.hypot(ax,az)/R_WORLD>0.93) T.h+=dt*0.8;   /* bear away from the shoals */
-    T.x+=Math.sin(T.h)*T.sp*dt; T.z+=Math.cos(T.h)*T.sp*dt;
+    if(T.halt&&T.halt>0){ T.halt-=dt; }                                   /* hove to for the trading */
+    else {
+      const ax=T.x+Math.sin(T.h)*140, az=T.z+Math.cos(T.h)*140;
+      if(landAtWorld(ax,az)||Math.hypot(ax,az)/R_WORLD>0.93) T.h+=dt*0.8; /* bear away from the shoals */
+      T.x+=Math.sin(T.h)*T.sp*dt; T.z+=Math.cos(T.h)*T.sp*dt;
+    }
     const hd=seaHeight(T.x,T.z);
     T.g.position.set(T.x,WATER_Y-1.4+hd*0.6,T.z);
     T.g.rotation.y=T.h; T.g.rotation.z=Math.sin(performance.now()*0.0009+T.x*0.01)*0.04;
@@ -2272,7 +2292,8 @@ function spawnVillage(i){
     const per=makePerson(seed,role,child,female);
     per.position.set(hx,topY(Math.floor(hx/B),Math.floor(hz/B)),hz); g.add(per);
     const ent=Object.assign({m:per,role,hx,hz,roamR:roamR||3,tx:hx,tz:hz,t:hash2(seed,7)*4,
-      pt:0,acting:false,seed,child:!!child,female:!!female,home:nextHome()},data||{});
+      pt:0,acting:false,seed,child:!!child,female:!!female,home:nextHome(),
+      name:personName(seed,female)},data||{});
     people.push(ent); return ent; };
   /* the teacher, and the children who gather for the lesson and play at tag */
   const lx=cx+Math.cos(rnd(200)*6.28)*B*3.5, lz=cz+Math.sin(rnd(200)*6.28)*B*3.5;
@@ -2385,7 +2406,7 @@ function wanderTick(ent,site,dt,speed){
     ent.t=(ent.role==='teacher'||ent.role==='child'?3.5:2)
       +hash2(ent.seed,(performance.now()%9973)*0.13)*(ent.role==='hunter'?7:5);
     let nx,nz;
-    if(worldNight>0.55&&ent.home){                    /* at dusk, go home — to the room, not the doorway */
+    if((worldNight>0.55||ent._shelter)&&ent.home){    /* at dusk or in storm, go home — to the room, not the doorway */
       nx=(ent.home.x!==undefined?ent.home.x:ent.home.doorx)+(Math.random()-0.5)*2;
       nz=(ent.home.z!==undefined?ent.home.z:ent.home.doorz)+(Math.random()-0.5)*2;
     } else { const a=Math.random()*Math.PI*2, r=Math.random()*roamR*B;
@@ -2459,7 +2480,8 @@ function nextTask(ent,vv){
 }
 function personTick(ent,vv,dt){
   const site=vv.site, u=ent.m.userData, tnow=performance.now()*0.001;
-  if(worldNight>0.55&&ent.home){ wanderTick(ent,site,dt,7); return; }  /* homeward at dusk */
+  ent._shelter=(vv.stormF||0)>0.35;                 /* in foul weather, folk keep indoors */
+  if((worldNight>0.55||ent._shelter)&&ent.home){ wanderTick(ent,site,dt,ent._shelter?8.5:7); return; }
   if(ent.role==='folk'||!ent.role){ wanderTick(ent,site,dt,7); return; }
   if(ent.actT===undefined) nextTask(ent,vv);
   const px=ent.m.position.x, pz=ent.m.position.z;
@@ -2549,6 +2571,8 @@ function beastTick(ent,vv,dt){
       ent.tx=px+(px-fx)/dd*24; ent.tz=pz+(pz-fz)/dd*24; ent.t=0.4; ent.panic=true; sp=9; }
     else if(ent.driven&&vv.pen){ ent.tx=vv.pen.x; ent.tz=vv.pen.z; sp=7;
       if(Math.hypot(px-vv.pen.x,pz-vv.pen.z)<B*3){ ent.driven=false; ent.hx=vv.pen.x; ent.hz=vv.pen.z; } }
+    else if((vv.stormF||0)>0.35&&vv.pen&&Math.hypot(px-vv.pen.x,pz-vv.pen.z)>B*4){
+      ent.tx=vv.pen.x+(Math.random()-0.5)*B*3; ent.tz=vv.pen.z+(Math.random()-0.5)*B*3; sp=6; } /* huddle at the pen in storm */
     else if(ent.kind==='chicken'&&tnow-(vv.feedT||-99)<1.2&&Math.hypot(vv.feedX-px,vv.feedZ-pz)<45){
       ent.tx=vv.feedX+(Math.random()-0.5)*7; ent.tz=vv.feedZ+(Math.random()-0.5)*7; sp=6.5; }
     else if(ent.t<=0){ ent.t=1.6+Math.random()*3;
@@ -2586,6 +2610,7 @@ function updateVillages(px,pz,dt,nightF){
       activeVillages.delete(i); }
   }
   for(const[,vv] of activeVillages){ if(vv.none||!vv.g) continue;
+    vv.stormF=stormAt(vv.site.x,vv.site.z);      /* foul weather empties the lanes */
     for(const p of vv.people) personTick(p,vv,dt);
     for(const b2 of vv.beasts) beastTick(b2,vv,dt);
     if(vv.birds) for(const bd of vv.birds) birdTick(bd,dt);
@@ -2594,6 +2619,70 @@ function updateVillages(px,pz,dt,nightF){
   doorTick(dt);
   promptTick();
 }
+/* ================= COINS & CARGO — THE TRADE OF THE SEAS =================
+   Every market prices its wares by its own land (a fixed factor per land and
+   good): buy where a thing is cheap, bear it over the deep in the hold, and
+   sell where it is dear. Fish of your own catching sell at every market. */
+const GOODS=[
+  {k:'grain',n:'Grain',base:4},{k:'oil',n:'Olive oil',base:9},{k:'wine',n:'Wine',base:12},
+  {k:'salt',n:'Salt',base:6},{k:'cedar',n:'Cedar wood',base:14},{k:'cloth',n:'Fine cloth',base:18},
+  {k:'spice',n:'Spices',base:26},{k:'dye',n:'Purple dye',base:34}];
+const CARGO_MAX=24;
+function cargoCount(){ let n=0; for(const k in state.cargo) n+=state.cargo[k]; return n; }
+function priceAt(profile,gi){ const f=0.6+hash2(profile*3.7+gi*13.1, profile*7.3-gi*2.9);   /* 0.6 .. 1.6 */
+  return Math.max(1,Math.round(GOODS[gi].base*f)); }
+function fishPriceAt(profile){ return Math.max(2,Math.round(5*(0.7+hash2(profile*5.1,profile*2.3)*0.8))); }
+let tradeOpen=false, tradeProfile=0, tradeTitle='', tradeSea=false;
+function openTrade(profile,title,sea){
+  tradeOpen=true; tradeProfile=profile; tradeTitle=title; tradeSea=!!sea;
+  $('trade').style.display='flex'; renderTrade();
+}
+function closeTrade(){ if(!tradeOpen) return; tradeOpen=false; $('trade').style.display='none'; saveState(); }
+function renderTrade(){
+  $('trade-sub').textContent=tradeTitle+' — your purse: '+state.coins+' shekels · cargo '+cargoCount()+' / '+CARGO_MAX;
+  const T=$('trade-rows'); T.innerHTML='';
+  for(let gi=0;gi<GOODS.length;gi++){
+    const g=GOODS[gi], p=priceAt(tradeProfile,gi);
+    const buy=tradeSea?Math.round(p*1.15):p, sell=Math.max(1,tradeSea?Math.round(p*0.75):Math.round(p*0.85));
+    const have=state.cargo[g.k]||0;
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td class="g">'+g.n+'</td><td class="r">held '+have+'</td>'+
+      '<td class="r"><button class="tbtn" data-a="b" data-g="'+gi+'" '+((state.coins<buy||cargoCount()>=CARGO_MAX)?'disabled':'')+'>buy '+buy+'</button></td>'+
+      '<td class="r"><button class="tbtn" data-a="s" data-g="'+gi+'" '+(have<1?'disabled':'')+'>sell '+sell+'</button></td>';
+    T.appendChild(tr);
+  }
+  const fp=fishPriceAt(tradeProfile), tr2=document.createElement('tr');
+  tr2.innerHTML='<td class="g">Fish (your catch)</td><td class="r">held '+(state.fish||0)+'</td><td class="r"></td>'+
+    '<td class="r"><button class="tbtn" data-a="f" '+((state.fish||0)<1?'disabled':'')+'>sell '+fp+'</button></td>';
+  T.appendChild(tr2);
+}
+$('trade-rows').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b||b.disabled) return;
+  const a=b.dataset.a;
+  if(a==='f'){ if((state.fish||0)>0){ state.fish--; state.coins+=fishPriceAt(tradeProfile); } }
+  else { const gi=+b.dataset.g, g=GOODS[gi], p=priceAt(tradeProfile,gi);
+    if(a==='b'){ const buy=tradeSea?Math.round(p*1.15):p;
+      if(state.coins>=buy&&cargoCount()<CARGO_MAX){ state.coins-=buy; state.cargo[g.k]=(state.cargo[g.k]||0)+1; } }
+    else { const sell=Math.max(1,tradeSea?Math.round(p*0.75):Math.round(p*0.85));
+      if((state.cargo[g.k]||0)>0){ state.cargo[g.k]--; if(!state.cargo[g.k]) delete state.cargo[g.k]; state.coins+=sell; } } }
+  renderTrade();
+});
+$('trade-close').addEventListener('click',closeTrade);
+$('trade').addEventListener('click',e=>{ if(e.target.id==='trade') closeTrade(); });
+/* the stall the traveller stands before, and the trader hailed at sea */
+function nearestStallVillage(){
+  if(state.mode!=='walk') return null;
+  for(const[i,vv] of activeVillages){ if(vv.none||!vv.stalls||!vv.stalls.length) continue;
+    for(const s of vv.stalls){ if(Math.hypot(state.walk.x-s.x,state.walk.z-s.z)<13) return {i,s}; } }
+  return null;
+}
+function nearestTrader(){
+  if(state.mode!=='boat'&&state.mode!=='deck') return null;
+  for(let k=0;k<TRADERS.length;k++){ const T=TRADERS[k];
+    if(T.set&&Math.hypot(T.x-state.boat.x,T.z-state.boat.z)<260) return {T,k}; }
+  return null;
+}
+
 /* ================= THE PROMPT — every close-at-hand deed on one key =================
    Sleep at home · open and shut doors · go below to the hold and up again ·
    speak with the people of the land · cast a line and fish the waters. */
@@ -2614,20 +2703,29 @@ function canFishHere(){
   if(ahead.land) return false;                        /* open water must lie before you */
   return (w.feetY-WATER_Y)<18;                        /* from the strand or a pier, not a cliff */
 }
+let promptStall=null, promptTrader=null;
 function promptTick(){
   const el=$('prompt'); if(!el) return;
-  promptDoor=null; promptAction=null; promptPerson=null;
+  promptDoor=null; promptAction=null; promptPerson=null; promptStall=null; promptTrader=null;
   let label=null;
+  if(tradeOpen){ el.style.opacity=0; return; }
   if(state.mode==='deck'){
     const d=state.deck;
     if(d.level==='hold'){ if(Math.hypot(d.lx-HATCH.x,d.lz-HATCH.z)<HATCH.r+2.5){ label='F — climb up to the deck'; promptAction='up'; } }
     else if(Math.hypot(d.lx-HATCH.x,d.lz-HATCH.z)<HATCH.r){ label='F — go below to the hold'; promptAction='down'; }
+    if(!label){ promptTrader=nearestTrader();
+      if(promptTrader){ label='F — hail the merchantman'; promptAction='hail'; } }
+  } else if(state.mode==='boat'){
+    promptTrader=nearestTrader();
+    if(promptTrader){ label='F — hail the merchantman'; promptAction='hail'; }
   } else if(state.mode==='walk'){
     if(state.fishing){ label=state.fishing.phase==='bite'?'F — STRIKE! a fish is on the line':'F — draw in the line'; promptAction='reel'; }
     else if(canSleep()){ label='F — sleep until morning'; promptAction='sleep'; }
     else {
       promptDoor=nearestDoor(state.walk.x,state.walk.z);
+      promptStall=nearestStallVillage();
       if(promptDoor){ label='F — '+(promptDoor.door.open?'close the door':'open the door'); promptAction='door'; }
+      else if(promptStall){ label='F — trade at the stall'; promptAction='trade'; }
       else { promptPerson=nearbyPerson();
         if(promptPerson){ label='F — speak'; promptAction='speak'; }
         else if(canFishHere()){ label='F — cast a line'; promptAction='fish'; } }
@@ -2658,11 +2756,46 @@ const SPEECH={
     '“Strange sails in the harbour — from what land do you hail?”'],
   sailor:['“She is trim and true, this ship — room for twelve souls and cargo below.”',
     '“Mind the hatch amidships; the hold is full of good cargo.”'] };
+/* every soul bears a name; speak again and the talk goes deeper, and ends
+   in a rumour — the way to the nearest coast you have not yet seen */
+const NAMES_M=['Yoram','Boaz','Elazar','Achim','Zebadyah','Malachi','Othniel','Yair','Shammah','Ittai','Carmi','Nachum','Eran','Palti'];
+const NAMES_F=['Miryam','Tamar','Zilpah','Achsah','Yael','Chuldah','Serach','Naarah','Avigail','Devorah','Keturah','Adah','Bilhah','Peninnah'];
+function personName(seed,female){ const pool=female?NAMES_F:NAMES_M;
+  return pool[Math.floor(hash2(seed,9.7)*pool.length)%pool.length]; }
+function callingOf(p){
+  if(p.role==='folk') return p.female?'woman of the town':'man of the town';
+  if(p.role==='water') return 'water-bearer';
+  if(p.role==='shopper') return p.female?'woman at the market':'man at the market';
+  return p.role;
+}
+function rumourLine(){
+  let best=-1,bd=1e9;
+  for(let i=0;i<COUNTRIES.length;i++){ if(state.visited.has(i)||!SITES[i]) continue;
+    const s=SITES[i], d=Math.hypot(s.x-state.walk.x,s.z-state.walk.z); if(d<bd){bd=d;best=i;} }
+  if(best<0) return '“You have walked every coast I ever heard tell of. Go in peace.”';
+  const s=SITES[best], px=state.walk.x, pz=state.walk.z;
+  const pu=px/R_WORLD, pv=pz/R_WORLD, rr=Math.hypot(pu,pv)||1e-9;
+  const nX=-pu/rr, nZ=-pv/rr, eX=pv/rr, eZ=-pu/rr;          /* north = toward the midst */
+  const dx=s.x-px, dz=s.z-pz;
+  const ang=Math.atan2(dx*eX+dz*eZ, dx*nX+dz*nZ);
+  const dir=COMPASS8[(Math.round(ang/(Math.PI/4))+8)%8];
+  const km=Math.round(bd/B/50)*50;
+  return '“Sailors speak of '+COUNTRIES[best].n+' — away to the '+dir+', some '
+    +Math.max(50,km).toLocaleString()+' km over the deep. No one here has seen its coast.”';
+}
 function speakTo(p){ if(!p) return;
   const lines=SPEECH[p.role]||SPEECH.folk;
+  const now=performance.now()*0.001;
+  if(!p.talk||now-p.talk.t>25) p.talk={idx:0,t:now};
+  p.talk.t=now;
+  let line;
+  if(p.talk.idx<lines.length) line=lines[p.talk.idx];
+  else if(p.talk.idx===lines.length&&!p.child) line=rumourLine();
+  else { line='“Go in peace, friend of the sea.”'; p.talk.idx=-1; }
+  p.talk.idx++;
   p.m.rotation.y=Math.atan2(state.walk.x-p.m.position.x,state.walk.z-p.m.position.z);
-  p.pt=Math.max(p.pt||0,3); p.tx=p.m.position.x; p.tz=p.m.position.z;   /* stand and talk a moment */
-  toast(lines[Math.floor(Math.random()*lines.length)]);
+  p.pt=Math.max(p.pt||0,3.5); p.tx=p.m.position.x; p.tz=p.m.position.z;   /* stand and talk a moment */
+  toast((p.name?p.name+' the '+callingOf(p)+' — ':'')+line);
 }
 /* ================= FISHING — CAST A LINE UPON THE WATERS ================= */
 const FISH_NAMES=['a bream','a mullet','a carp','a musht','a barbel','a grey eel','a silver sardine','a great catfish'];
@@ -2726,6 +2859,63 @@ function fishTick(dt){
   if(F.phase==='wait'&&F.t>=F.dur){ F.phase='bite'; F.t=0; splash(bx,by,bz,false); }
   else if(F.phase==='bite'&&F.t>2.6){ F.phase='wait'; F.t=0; F.dur=4+Math.random()*8;
     toast('The fish slips the hook — cast on, and watch the float.'); }
+}
+/* ================= THE SPEAR — HUNT THE BEASTS OF THE FIELD =================
+   Q (or the button) casts the spear along your gaze. It arcs, and if it
+   finds a hare, a deer, a fowl — or a wolf — the game is taken and tallied
+   in the log; else it stands planted where it fell. One spear, ever ready. */
+let spearM=null; const spear={active:false,x:0,y:0,z:0,vx:0,vy:0,vz:0,stick:0};
+function ensureSpear(){ if(spearM) return;
+  spearM=new THREE.Group();
+  const shaft=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.4,9),new THREE.MeshLambertMaterial({color:0x6a4a2a}));
+  spearM.add(shaft);
+  const tip=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,1.4),new THREE.MeshLambertMaterial({color:0xb8bcc4}));
+  tip.position.z=5.0; spearM.add(tip);
+  spearM.visible=false; scene.add(spearM);
+}
+function throwSpear(){
+  if(state.mode!=='walk'||spear.active||state.fishing) return;
+  ensureSpear();
+  const w=state.walk;
+  spear.active=true; spear.stick=0;
+  spear.x=w.x+Math.sin(w.heading)*2; spear.z=w.z+Math.cos(w.heading)*2;
+  spear.y=(w.feetY||0)+9;
+  spear.vx=Math.sin(w.heading)*70; spear.vz=Math.cos(w.heading)*70; spear.vy=7;
+  spearM.visible=true;
+  const u=walkerG.userData; u.armR.rotation.x=-2.6;   /* the cast */
+}
+function spearHit(){
+  const near=(x,z)=>Math.hypot(x-spear.x,z-spear.z)<3.4;
+  for(const[,vv] of activeVillages){ if(vv.none||!vv.beasts) continue;
+    for(let k=0;k<vv.beasts.length;k++){ const b=vv.beasts[k];
+      if(!BEAST_PREY.has(b.kind)&&b.kind!=='deer'&&b.kind!=='wolf') continue;
+      if(near(b.m.position.x,b.m.position.z)&&Math.abs(b.m.position.y+3-spear.y)<8){
+        b.m.visible=false; vv.g.remove(b.m); vv.beasts.splice(k,1);
+        return b.kind; } } }
+  for(const a of LANDLIFE){ if(!a.set||(!AMBIENT_PREY.has(a.kind)&&a.kind!=='wolf'&&a.kind!=='lion')) continue;
+    if(near(a.x,a.z)&&Math.abs(a.m.position.y+3-spear.y)<9){ a.set=false; a.m.visible=false; return a.kind; } }
+  return null;
+}
+function spearTick(dt){
+  if(!spear.active){
+    if(spear.stick>0){ spear.stick-=dt; if(spear.stick<=0&&spearM) spearM.visible=false; }
+    return; }
+  spear.x+=spear.vx*dt; spear.z+=spear.vz*dt; spear.vy-=26*dt; spear.y+=spear.vy*dt;
+  spearM.position.set(spear.x,spear.y,spear.z);
+  spearM.rotation.y=Math.atan2(spear.vx,spear.vz);
+  spearM.rotation.x=Math.atan2(-spear.vy,Math.hypot(spear.vx,spear.vz))*0.8;
+  const kill=spearHit();
+  if(kill){ state.game=(state.game||0)+1; spear.active=false; spear.stick=1.4;
+    toast(kill==='wolf'?'Your spear finds the wolf — the flock is safe, and the pelt is yours. Game taken: '+state.game+'.'
+      :'Your spear finds the '+kill+' — game taken for the voyage: '+state.game+'.');
+    saveState(); return; }
+  const gy=groundInfo(spear.x,spear.z);
+  if(spear.y<=(gy.land?gy.y:WATER_Y)+0.4){
+    spear.active=false;
+    if(!gy.land){ splash(spear.x,WATER_Y+0.6,spear.z,false); spear.stick=0.5; }
+    else { spear.stick=5; spearM.rotation.x=1.15; spearM.position.y=gy.y+1.4; }   /* planted in the earth */
+  }
+  if(Math.hypot(spear.x-state.walk.x,spear.z-state.walk.z)>150){ spear.active=false; spearM.visible=false; }
 }
 
 /* ================= YAHRUSHALAYIM ================= */
@@ -2860,6 +3050,7 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code==='Space'){ e.preventDefault(); if(state.mode==='walk') state.walk.jumpReq=true; }
   if(e.code==='KeyE') toggleAshore();
   if(e.code==='KeyF') interact();
+  if(e.code==='KeyQ') throwSpear();
   if(e.code==='KeyG') takeFlight();          /* SPACE (handled above) lifts in flight */
   if(e.code==='KeyC') enterDive();           /* dive the deep / surface */
   if(e.code==='KeyM') toggleMap();
@@ -3052,14 +3243,21 @@ function sleep(){
   saveState();
 }
 function interact(){
+  if(tradeOpen){ closeTrade(); return; }        /* F also leaves the trading */
   switch(promptAction){
     case 'sleep': sleep(); break;
     case 'door': toggleDoor(); break;
     case 'down': state.deck.level='hold'; state.deck.lx=0; state.deck.lz=HATCH.z; break;
-    case 'up': state.deck.level='deck'; state.deck.lx=2.4*SHIP_S; state.deck.lz=HATCH.z+3*SHIP_S; break;
+    case 'up': state.deck.level='deck'; state.deck.lx=2.4*SHIP_SX; state.deck.lz=HATCH.z+3*SHIP_S; break;
     case 'speak': speakTo(promptPerson); break;
     case 'fish': startFishing(); break;
     case 'reel': reelIn(); break;
+    case 'trade': { const st=promptStall;
+      const cty=cityFor(st.i);
+      openTrade(st.i,'the market of '+(cty?cty.name+', ':'')+COUNTRIES[st.i].n,false); break; }
+    case 'hail': { const h=promptTrader; h.T.halt=25;
+      toast('You hail the merchantman; she backs her sails and comes alongside to trade.');
+      openTrade(500+h.k*7,'a merchantman upon the deep (her prices are her own)',true); break; }
     default: if(canSleep()) sleep(); else toggleDoor();
   }
 }
@@ -3307,7 +3505,7 @@ function updateDiveBtn(){ const b=$('b-dive'); if(!b) return;
   b.textContent=state.mode==='dive'?'🌊 Surface':'🤿 Dive';
   b.classList.toggle('off',state.mode==='dive'); }
 function nearWheel(){ return state.mode==='deck'&&state.deck.level!=='hold'
-  &&state.deck.lz<SD.qdeckZ+1.5*SHIP_S&&Math.abs(state.deck.lx)<4.2*SHIP_S; }
+  &&state.deck.lz<SD.qdeckZ+1.5*SHIP_S&&Math.abs(state.deck.lx)<4.2*SHIP_SX; }
 function goAshoreFromShip(){
   const bt=state.boat;
   /* pass 1 — a beach or low ground; pass 2 — a pier; pass 3 — any land */
@@ -3337,18 +3535,18 @@ function toggleAshore(){
   if(state.mode==='fly'){ alight(); return; }    /* come down out of the air */
   if(state.mode==='dive'){ surface(); return; }  /* come up out of the deep */
   if(state.mode==='boat'){                       /* step back from the wheel */
-    state.deck={lx:2.4*SHIP_S,lz:SD.helmZ+1.2*SHIP_S,h:0,level:'deck'};
+    state.deck={lx:2.4*SHIP_SX,lz:SD.helmZ+1.2*SHIP_S,h:0,level:'deck'};
     setMode('deck'); return;
   }
   if(state.mode==='deck'){
     if(state.deck.level==='hold'){               /* first come up out of the hold */
-      state.deck.level='deck'; state.deck.lx=2.4*SHIP_S; state.deck.lz=HATCH.z+3*SHIP_S; return; }
+      state.deck.level='deck'; state.deck.lx=2.4*SHIP_SX; state.deck.lz=HATCH.z+3*SHIP_S; return; }
     if(nearWheel()){ setMode('boat'); return; }  /* take the helm */
     goAshoreFromShip(); return;
   }
   /* ashore: board the ship if she lies near */
   if(Math.hypot(state.walk.x-state.boat.x,state.walk.z-state.boat.z)<95){
-    state.deck={lx:4.6*SHIP_S,lz:2*SHIP_S,h:Math.PI*0.5,level:'deck'};
+    state.deck={lx:4.6*SHIP_SX,lz:2*SHIP_S,h:Math.PI*0.5,level:'deck'};
     setMode('deck');
   } else toast('The ship lies too far off — return to the water\u2019s edge.');
 }
@@ -3516,7 +3714,7 @@ function camInsideShip(wx,wy,wz){
   const dx=wx-boatG.position.x, dz=wz-boatG.position.z, h=state.boat.heading;
   const c=Math.cos(h), sn=Math.sin(h);
   const lx=dx*c-dz*sn, lz=dx*sn+dz*c;
-  return Math.abs(lx)<10*SHIP_S && lz>-35*SHIP_S && lz<50*SHIP_S;
+  return Math.abs(lx)<10*SHIP_SX && lz>-35*SHIP_S && lz<50*SHIP_S;
 }
 const _camHold=new THREE.Vector3();
 function cameraTick(dt){
@@ -3602,6 +3800,7 @@ function placeTick(){
     const ci=countryAtUV(u,v);
     if(ci){ const cty=cityFor(ci-1);
       txt=(cty?cty.name+' — '+COUNTRIES[ci-1].n:COUNTRIES[ci-1].n).toUpperCase(); }
+    else if(state.mode==='walk'&&landAtWorld(p.x,p.z)) txt='AN UNCHARTED ISLE';
     else{ let best=-1,bd=1e9;
       for(let i=0;i<COUNTRIES.length;i++){ const c=COUNTRIES[i].c;
         const d=Math.hypot(u-c[0],v-c[1]); if(d<bd){bd=d;best=i;} }
@@ -3680,9 +3879,10 @@ $('bigmap').addEventListener('click',toggleMap);
    window.storage API is kept as a secondary channel where it exists. */
 const SAVE_KEY='voyage:state';
 async function saveState(){
-  const payload=JSON.stringify({v:5,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
+  const payload=JSON.stringify({v:6,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
     t:state.simHours,m:state.mode==='walk'?'walk':'boat',wx:state.walk.x,wz:state.walk.z,wh:state.walk.heading,
-    vis:[...state.visited],d:Math.round(state.dist),wm:state.windMode,fi:state.fish||0});
+    vis:[...state.visited],d:Math.round(state.dist),wm:state.windMode,fi:state.fish||0,
+    co:state.coins,cg:state.cargo,gm:state.game||0});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
 }
@@ -3690,7 +3890,7 @@ async function loadSaved(){
   let raw=null;
   try{ if(window.storage){ const r=await window.storage.get(SAVE_KEY); if(r&&r.value) raw=r.value; } }catch(e){}
   if(!raw){ try{ raw=localStorage.getItem(SAVE_KEY); }catch(e){} }
-  try{ const o=JSON.parse(raw); if(o&&o.v>=2&&o.v<=5) return o; }catch(e){}
+  try{ const o=JSON.parse(raw); if(o&&o.v>=2&&o.v<=6) return o; }catch(e){}
   return null;
 }
 
@@ -3725,15 +3925,20 @@ function toggleLog(){
   logOpen=!logOpen; $('logbook').style.display=logOpen?'flex':'none';
   if(!logOpen) return;
   const names=[...state.visited].map(i=>COUNTRIES[i].n).sort();
+  const cargoTxt=Object.keys(state.cargo||{}).length
+    ? GOODS.filter(g=>state.cargo[g.k]).map(g=>g.n.toLowerCase()+' ×'+state.cargo[g.k]).join(', ')
+    : 'the hold stands empty';
   $('log-stats').innerHTML=
     'Lands visited: <b>'+names.length+' / '+COUNTRIES.length+'</b><br>'+
     'Distance sailed: <b>'+Math.round(state.dist/B).toLocaleString()+' km</b><br>'+
-    'Fish drawn from the deep: <b>'+(state.fish||0)+'</b><br>'+
+    'Purse: <b>'+(state.coins||0)+' shekels</b> · Cargo: <b>'+cargoCount()+' / '+CARGO_MAX+'</b> ('+cargoTxt+')<br>'+
+    'Fish drawn from the deep: <b>'+(state.fish||0)+'</b> · Game taken by the spear: <b>'+(state.game||0)+'</b><br>'+
     'Day of the voyage: <b>'+dayOfYear()+'</b>';
   $('log-lands').textContent=names.length?names.join(' \u00B7 '):'No land yet \u2014 the deep awaits.';
 }
 $('b-log').onclick=toggleLog;
 $('prompt').onclick=interact;
+$('b-spear').onclick=throwSpear;
 $('b-jump').onclick=()=>{ if(state.mode==='walk') state.walk.jumpReq=true; };
 $('logbook').addEventListener('click',toggleLog);
 $('b-firm').onclick=()=>{ state.firm?exitFirm():enterFirm(); };
@@ -3791,6 +3996,9 @@ async function begin(fresh){
     if(saved.vis) state.visited=new Set(saved.vis);
     if(saved.d) state.dist=saved.d;
     if(saved.fi) state.fish=saved.fi;
+    if(saved.co!==undefined) state.coins=saved.co;
+    if(saved.cg) state.cargo=saved.cg;
+    if(saved.gm) state.game=saved.gm;
     if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); } }
   else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5; }
   const p0=state.mode==='walk'?state.walk:state.boat;
@@ -3804,7 +4012,8 @@ $('btn-sail').onclick=()=>begin(true);
 $('btn-continue').onclick=()=>begin(false);
 
 /* a small debug handle — used by the automated smoke tests; harmless in play */
-window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo};
+window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
+  TRADERS,throwSpear,openTrade,cellRaw};
 
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0;
@@ -3842,6 +4051,7 @@ function frame(){
   seaLifeTick(p.x,p.z,dt);
   splashTick(dt);
   fishTick(dt);
+  spearTick(dt);
   crewTick(dt);
   if(!state.firm&&state.mode!=='dive') traderTick(p.x,p.z,dt); else hideTraders();
   audioTick(light.storm||0);

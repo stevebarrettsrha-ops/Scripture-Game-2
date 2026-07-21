@@ -59,6 +59,24 @@
   #log-stats b{ color:var(--gold); }
   #log-lands{ font-size:clamp(10px,1.6vmin,13px); line-height:1.9; color:#9a8f74; font-style:italic; }
   #logbook .m-hint{ margin-top:2.5vh; font-size:clamp(9px,1.4vmin,12px); letter-spacing:.2em; color:#6a6252; }
+  #trade{ position:fixed; inset:0; z-index:22; display:none; align-items:center; justify-content:center;
+    background:rgba(4,6,13,.88); }
+  #trade-inner{ min-width:min(92vw,560px); max-width:min(94vw,640px); max-height:84vh; overflow-y:auto;
+    border:1px solid rgba(232,198,106,.5); border-radius:6px; padding:3vh 3vw;
+    background:rgba(10,14,26,.94); box-shadow:0 0 60px rgba(0,0,0,.8); }
+  #trade-inner h2{ color:var(--gold); letter-spacing:.24em; font-weight:600; text-align:center;
+    font-size:clamp(13px,2.2vmin,20px); margin-bottom:.8vh; }
+  #trade-sub{ text-align:center; color:#9a8f74; font-style:italic; font-size:clamp(10px,1.6vmin,13px); margin-bottom:1.8vh; }
+  #trade-rows{ width:100%; border-collapse:collapse; }
+  #trade-rows td{ padding:.7vh .6vw; font-size:clamp(10px,1.7vmin,14px); color:#cfc5aa; border-bottom:1px solid rgba(232,198,106,.12); }
+  #trade-rows td.g{ color:#efe6cf; }
+  #trade-rows td.r{ text-align:right; }
+  .tbtn{ pointer-events:auto; background:rgba(232,198,106,.12); color:var(--gold);
+    border:1px solid rgba(232,198,106,.55); border-radius:3px; padding:.4vh 1vh;
+    font-family:inherit; font-size:clamp(9px,1.5vmin,12px); letter-spacing:.08em; cursor:pointer; }
+  .tbtn:hover{ background:rgba(232,198,106,.28); }
+  .tbtn:disabled{ opacity:.35; cursor:default; }
+  #trade .m-hint{ margin-top:2vh; text-align:center; font-size:clamp(9px,1.4vmin,12px); letter-spacing:.2em; color:#6a6252; cursor:pointer; }
   #joy{ position:fixed; z-index:7; display:none; width:104px; height:104px; border-radius:50%;
     border:1px solid rgba(232,198,106,.4); background:rgba(14,18,32,.35); pointer-events:none; }
   #joyk{ position:absolute; left:37px; top:37px; width:30px; height:30px; border-radius:50%;
@@ -97,7 +115,7 @@
 <div class="hud" id="place"></div>
 <button id="prompt">F — open the door</button>
 <div class="hud" id="verse"><div class="vt" id="verse-t"></div><div class="vr" id="verse-r"></div></div>
-<div class="hud" id="hint">W A S D — helm and sail &nbsp;·&nbsp; drag — look &nbsp;·&nbsp; E — the wheel · the deck · the shore &nbsp;·&nbsp; SPACE — jump / climb &nbsp;·&nbsp; F — doors · speak · fish · the hold &nbsp;·&nbsp; G — rise into the air (SPACE up · SHIFT down) &nbsp;·&nbsp; C — dive the deep (SHIFT down · SPACE up) &nbsp;·&nbsp; M — the map &nbsp;·&nbsp; L — the log &nbsp;·&nbsp; scroll far out — the firmament</div>
+<div class="hud" id="hint">W A S D — helm and sail &nbsp;·&nbsp; drag — look &nbsp;·&nbsp; E — the wheel · the deck · the shore &nbsp;·&nbsp; SPACE — jump / climb &nbsp;·&nbsp; F — doors · speak · trade · fish · the hold · hail &nbsp;·&nbsp; Q — throw the spear &nbsp;·&nbsp; G — rise into the air (SPACE up · SHIFT down) &nbsp;·&nbsp; C — dive the deep (SHIFT down · SPACE up) &nbsp;·&nbsp; M — the map &nbsp;·&nbsp; L — the log &nbsp;·&nbsp; scroll far out — the firmament</div>
 
 <canvas id="mini" width="280" height="280"></canvas>
 <div id="joy"><div id="joyk"></div></div>
@@ -115,6 +133,7 @@
   <button class="btn" id="b-speed">⏩ Course: swift</button>
   <button class="btn" id="b-names">🏷 Names: on</button>
   <button class="btn" id="b-sound">🔊 Sound: on</button>
+  <button class="btn" id="b-spear">🗡 Throw spear</button>
   <button class="btn" id="b-jump">⤴ Jump / climb</button>
 </div>
 
@@ -125,6 +144,13 @@
   <div id="log-stats"></div>
   <div id="log-lands"></div>
   <div class="m-hint">tap to close</div>
+</div></div>
+
+<div id="trade"><div id="trade-inner">
+  <h2>⚖ THE MARKET</h2>
+  <div id="trade-sub"></div>
+  <table id="trade-rows"></table>
+  <div class="m-hint" id="trade-close">tap here to leave the trading</div>
 </div></div>
 
 <div id="title-card"><div id="title-inner">
