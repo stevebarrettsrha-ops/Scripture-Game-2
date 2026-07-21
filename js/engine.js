@@ -310,7 +310,8 @@ function cellRaw(ix,iz){
   /* broad biome regions carve out cherry-blossom hills and badland mesas */
   const region=fbm(ix*.012-70,iz*.012+140);
   const lon=Math.atan2(u,v)*180/Math.PI;              /* longitude upon the disc */
-  const badlands = !snow&&!tundra&&lat>6&&lat<42&&region<0.43&&inland>0.4;
+  /* badlands (barren mesas) only in the arid belt — the tan wastes of the map */
+  const badlands = !snow&&!tundra&&lat>11&&lat<36&&n2>0.42&&region<0.43&&inland>0.4;
   /* cherry blossom only in the far east — the lands of Yapan, China and Korea */
   const eastAsia = lat>20&&lat<46&&lon>96&&lon<148;
   const cherry   = !snow&&!tundra&&!desert&&eastAsia&&region>0.46;
@@ -1305,6 +1306,14 @@ function seaLifeTick(px,pz,dt){
   }
 }
 
+/* ---- underwater block textures, minecraft-fashion pixel art ---- */
+TEX.seasand=TEX.sand.clone(); TEX.seasand.needsUpdate=true; TEX.seasand.wrapS=TEX.seasand.wrapT=THREE.RepeatWrapping;
+TEX.seasand.generateMipmaps=true; TEX.seasand.minFilter=THREE.NearestMipmapLinearFilter; TEX.seasand.anisotropy=4;
+TEX.kelp    =mkTex(g=>{ for(let y=0;y<16;y++)for(let x=0;x<16;x++){ const base=(x%5<2)?[40,118,64]:[58,164,90]; const c=jit(base,26,x*7+y*3); P(g,x,y,rgb(c[0],c[1],c[2])); } });
+TEX.seagrass=mkTex(g=>{ for(let y=0;y<16;y++)for(let x=0;x<16;x++){ const base=(x%4<2)?[70,168,86]:[96,198,112]; const c=jit(base,24,x*5+y*2); P(g,x,y,rgb(c[0],c[1],c[2])); } });
+TEX.coral   =mkTex(g=>{ for(let y=0;y<16;y++)for(let x=0;x<16;x++){ const n=hash2(x*2.1+y*3.3,y*1.7+x*0.7); const v=n>0.72?150:n>0.42?208:246; const c=jit([v,v,v],18,x+y*4); P(g,x,y,rgb(c[0],c[1],c[2])); } });
+TEX.sponge  =mkTex(g=>speckle(g,[224,176,64],28,[190,142,48],0.4));
+
 /* ================= THE DEEP — DIVE & DISCOVER THE SEA =================
    Below the waves lies a world of its own: a bumpy seabed that plunges into
    trenches in the open ocean, forests of kelp and coral, schools of fish and
@@ -1323,18 +1332,20 @@ function seabedDepth(x,z){
 const SB_SEG=96, SB_SIZE=3200;
 const sbGeo=new THREE.PlaneGeometry(SB_SIZE,SB_SIZE,SB_SEG,SB_SEG); sbGeo.rotateX(-Math.PI/2);
 sbGeo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(sbGeo.attributes.position.count*3),3));
-const seaFloor=new THREE.Mesh(sbGeo,new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide}));
+TEX.seasand.repeat.set(SB_SIZE/6,SB_SIZE/6);
+const seaFloor=new THREE.Mesh(sbGeo,new THREE.MeshLambertMaterial({map:TEX.seasand,vertexColors:true,side:THREE.DoubleSide}));
 seaFloor.visible=false; seaFloor.frustumCulled=false; scene.add(seaFloor);
 function updateSeaFloor(px,pz){ const pos=sbGeo.attributes.position, a=pos.array, col=sbGeo.attributes.color.array;
   for(let i=0;i<a.length;i+=3){ const wx=a[i]+px, wz=a[i+2]+pz, y=seabedDepth(wx,wz); a[i+1]=y;
     const depth=SEA_SURF-y, lit=Math.max(0,1-depth/460), alg=fbm(wx*0.03+3,wz*0.03+7);
-    let r=0.60+0.24*lit, g=0.55+0.20*lit, b=0.40+0.16*lit;
-    if(alg>0.62){ r*=0.68; g*=0.92; b*=0.62; }
+    let r=0.74+0.26*lit, g=0.76+0.24*lit, b=0.64+0.28*lit;   /* tint the sand: darker deep, green where algae */
+    if(alg>0.62){ r*=0.6; g*=0.9; b*=0.55; }
     col[i]=r; col[i+1]=g; col[i+2]=b; }
   pos.needsUpdate=true; sbGeo.attributes.color.needsUpdate=true; sbGeo.computeVertexNormals(); }
 /* ---- kelp — tall strands rising from the floor, swaying with the current ---- */
+const kelpMat=new THREE.MeshLambertMaterial({map:TEX.kelp,side:THREE.DoubleSide});
 function makeKelp(){ const g=new THREE.Group(), segs=[];
-  for(let s=0;s<5;s++){ const seg=lbox(1.1,7,1.1,s%2?0x2f7a3a:0x36894a); seg.position.y=s*7+3.5; g.add(seg); segs.push(seg); }
+  for(let s=0;s<5;s++){ const seg=new THREE.Mesh(new THREE.BoxGeometry(1.1,7,1.1),kelpMat); seg.position.y=s*7+3.5; g.add(seg); segs.push(seg); }
   g.userData={segs}; return g; }
 const KELP=[], KELP_N=60, KELP_R=560;
 function initKelp(){ if(KELP.length) return; for(let k=0;k<KELP_N;k++){ const m=makeKelp(); m.visible=false; scene.add(m);
@@ -1353,16 +1364,19 @@ function updateKelp(px,pz,t){ initKelp(); for(const k of KELP){
    Mounds of coral blocks in living colour, crowned with fans, sponges and
    glowing sea-pickles. They rise thickest where the sea is shallow and warm. */
 const CORAL_COLS=[0x2f6fe0,0x8a3fd0,0xd6486f,0xd8c23a,0xdb5aa0,0x2fb0c8,0x4ad06a];
-function makeFan(col){ const g=new THREE.Group();
-  for(let i=0;i<4;i++){ const bl=lbox(0.5,2.0+Math.random()*1.6,0.5,col), a=i/4*6.28;
+const coralMats=CORAL_COLS.map(c=>new THREE.MeshLambertMaterial({map:TEX.coral,color:c}));
+const spongeMat=new THREE.MeshLambertMaterial({map:TEX.sponge});
+function cbox(w,h,d,ci){ return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),coralMats[ci]); }
+function makeFan(ci){ const g=new THREE.Group();
+  for(let i=0;i<4;i++){ const bl=cbox(0.5,2.0+Math.random()*1.6,0.5,ci), a=i/4*6.28;
     bl.position.set(Math.cos(a)*0.8,1.1,Math.sin(a)*0.8); bl.rotation.z=Math.cos(a)*0.6; bl.rotation.x=Math.sin(a)*0.6; g.add(bl); } return g; }
 function makeCoral(){ const g=new THREE.Group(), n=9+Math.floor(Math.random()*12);
-  for(let i=0;i<n;i++){ const s=3+Math.random()*4, col=CORAL_COLS[Math.floor(Math.random()*CORAL_COLS.length)];
-    const b=lbox(s,s,s,col), rr=Math.random()*8, a=Math.random()*6.28, hy=Math.random()*12;
+  for(let i=0;i<n;i++){ const s=3+Math.random()*4, ci=Math.floor(Math.random()*coralMats.length);
+    const b=cbox(s,s,s,ci), rr=Math.random()*8, a=Math.random()*6.28, hy=Math.random()*12;
     b.position.set(Math.cos(a)*rr,hy+s*0.5,Math.sin(a)*rr); g.add(b);
-    if(Math.random()<0.55){ const fan=makeFan(CORAL_COLS[Math.floor(Math.random()*CORAL_COLS.length)]);
+    if(Math.random()<0.55){ const fan=makeFan(Math.floor(Math.random()*coralMats.length));
       fan.position.set(b.position.x,hy+s,b.position.z); g.add(fan); } }
-  if(Math.random()<0.7){ const sp=lbox(4,3.4,4,0xe0a83a); sp.position.set((Math.random()-0.5)*9,2,(Math.random()-0.5)*9); g.add(sp); }  /* sponge */
+  if(Math.random()<0.7){ const sp=new THREE.Mesh(new THREE.BoxGeometry(4,3.4,4),spongeMat); sp.position.set((Math.random()-0.5)*9,2,(Math.random()-0.5)*9); g.add(sp); }  /* sponge */
   if(Math.random()<0.6){ const gl=new THREE.Mesh(new THREE.BoxGeometry(0.9,1.3,0.9),
       new THREE.MeshBasicMaterial({color:0xcdf06a,fog:true})); gl.position.set((Math.random()-0.5)*7,Math.random()*9+1,(Math.random()-0.5)*7); g.add(gl); }  /* sea-pickle glow */
   return g; }
@@ -1373,8 +1387,9 @@ function updateCoral(px,pz){ initCoral(); for(const r of CORAL){ if(r.set&&Math.
       if(d>10 && d<150 && fbm(x*0.01-9,z*0.01+4)>0.44){ r.x=x; r.z=z; r.set=true; r.m.position.set(x,seabedDepth(x,z),z); r.m.rotation.y=Math.random()*6.28; r.m.visible=true; break; }
       if(tr===6){ r.set=false; r.m.visible=false; } } } }
 /* ---- seagrass — short tufts carpeting the shallow floor ---- */
+const seagrassMat=new THREE.MeshLambertMaterial({map:TEX.seagrass,side:THREE.DoubleSide});
 function makeSeagrass(){ const g=new THREE.Group(), n=3+Math.floor(Math.random()*4);
-  for(let i=0;i<n;i++){ const bl=lbox(0.6,2+Math.random()*2.6,0.6,Math.random()<0.5?0x3f9a4a:0x57b85f);
+  for(let i=0;i<n;i++){ const bl=new THREE.Mesh(new THREE.BoxGeometry(0.6,2+Math.random()*2.6,0.6),seagrassMat);
     bl.position.set((Math.random()-0.5)*3.2,1.2,(Math.random()-0.5)*3.2); bl.rotation.z=(Math.random()-0.5)*0.4; g.add(bl); } return g; }
 const GRASS=[], GRASS_N=120, GRASS_R=380;
 function initGrass(){ if(GRASS.length) return; for(let k=0;k<GRASS_N;k++){ const m=makeSeagrass(); m.visible=false; scene.add(m); GRASS.push({m,x:0,z:0,ph:Math.random()*6.28,set:false}); } }
@@ -1535,16 +1550,20 @@ function updateBubbles(px,py,pz,dt){ initBub(); for(const b of BUB){
     b.life-=dt; b.y+=b.vy*dt; b.vy*=0.99; b.s.position.set(b.x,b.y,b.z); b.s.scale.setScalar(b.sz); b.s.material.opacity=Math.min(0.6,Math.max(0,b.life)*0.5);
     if(b.life<=0) b.s.visible=false; } }
 /* ---- a wreck of the ancients, at the deep sites of the sea ---- */
+const wPlank=new THREE.MeshLambertMaterial({map:TEX.planks,color:0xa08868});
+const wDark=new THREE.MeshLambertMaterial({map:TEX.planks,color:0x6f5a44});
+const wLog=new THREE.MeshLambertMaterial({map:TEX.logSide,color:0x8a7050});
+function wbox(w,h,d,m){ return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); }
 function makeWreck(){ const g=new THREE.Group();
-  const hull=lbox(9,7,30,0x5a4632); hull.position.y=3.5; g.add(hull);
-  const keel=lbox(4,3,30,0x4a3a2a); keel.position.y=0; g.add(keel);
-  const bow=lbox(6,6,7,0x54402e); bow.position.set(0,3.8,17); bow.rotation.x=0.22; g.add(bow);
-  const deck=lbox(8,1,26,0x6a5642); deck.position.y=7.2; g.add(deck);
-  for(let i=0;i<7;i++){ const rib=lbox(0.8,4+hash2(i,3)*3,0.8,0x4a3a2a); rib.position.set(3.7*(i%2?1:-1),8.5,-13+i*4); rib.rotation.z=(i%2?1:-1)*0.16; g.add(rib); }
-  const mast=lbox(1.3,22,1.3,0x3a2e20); mast.position.set(0,16,-6); mast.rotation.z=0.12; g.add(mast);
-  const mast2=lbox(1.0,12,1.0,0x3a2e20); mast2.position.set(0,10,9); mast2.rotation.z=-0.22; g.add(mast2);
-  const brk=lbox(7,4,6,0x4a3a2a); brk.position.set(1,3,-15); brk.rotation.z=0.4; g.add(brk);
-  for(let i=0;i<12;i++){ const w=lbox(0.5,3+hash2(i,7)*3.5,0.5,i%2?0x3f9a4a:0x57b85f);
+  const hull=wbox(9,7,30,wDark); hull.position.y=3.5; g.add(hull);
+  const keel=wbox(4,3,30,wDark); keel.position.y=0; g.add(keel);
+  const bow=wbox(6,6,7,wDark); bow.position.set(0,3.8,17); bow.rotation.x=0.22; g.add(bow);
+  const deck=wbox(8,1,26,wPlank); deck.position.y=7.2; g.add(deck);
+  for(let i=0;i<7;i++){ const rib=wbox(0.8,4+hash2(i,3)*3,0.8,wDark); rib.position.set(3.7*(i%2?1:-1),8.5,-13+i*4); rib.rotation.z=(i%2?1:-1)*0.16; g.add(rib); }
+  const mast=wbox(1.3,22,1.3,wLog); mast.position.set(0,16,-6); mast.rotation.z=0.12; g.add(mast);
+  const mast2=wbox(1.0,12,1.0,wLog); mast2.position.set(0,10,9); mast2.rotation.z=-0.22; g.add(mast2);
+  const brk=wbox(7,4,6,wDark); brk.position.set(1,3,-15); brk.rotation.z=0.4; g.add(brk);
+  for(let i=0;i<12;i++){ const w=wbox(0.5,3+hash2(i,7)*3.5,0.5,seagrassMat);
     w.position.set((hash2(i,1)-0.5)*7,9,(hash2(i,2)-0.5)*24); g.add(w); }   /* seaweed grown over the deck */
   g.rotation.z=0.12; return g; }
 const wreckSeen=new Set(), WRECKS=[]; const WRECK_N=2;
@@ -2847,6 +2866,7 @@ function enterFirm(){ buildFirmament(); state.firm=true; firmG.visible=true;
     toast('Tap a land you have already visited, and a fair wind will carry you to its coasts.'); }
   clouds.visible=false; cirrus.visible=false;   /* clear the sky \u2014 behold the whole earth */
   cloudDeck.visible=false; cloudWisp.visible=false;
+  hideDeep(); hideLandLife(); hideAirLife();     /* nothing of the deep or the field in the map view */
   $('b-firm').textContent='\u26F5 Return to the ship'; }
 function exitFirm(){ state.firm=false; if(firmG) firmG.visible=false;
   scene.fog=FOG; state.camPitch=0.42; state.camDist=200;
@@ -3202,7 +3222,7 @@ function frame(){
       const dr2=state.simHours*0.006;
       wispMat.map.offset.set((p.x/100000*30+dr2)%1,(p.z/100000*30)%1);
     } }
-  if(state.mode==='dive') updateDeep(state.dive.x,state.dive.y,state.dive.z,dt,Math.min(1,(SEA_SURF-state.dive.y)/560));
+  if(!state.firm&&state.mode==='dive') updateDeep(state.dive.x,state.dive.y,state.dive.z,dt,Math.min(1,(SEA_SURF-state.dive.y)/560));
   else if(deepShown) hideDeep();
   /* the beasts of the field and the fowl of the air, over all the earth */
   if(!state.firm&&state.mode!=='dive'){ const tt=performance.now()*0.001, night=(light.nightF||0)>0.5;
