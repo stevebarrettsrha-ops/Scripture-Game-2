@@ -559,12 +559,50 @@ const dirL=new THREE.DirectionalLight(0xffffff,0.5); dirL.position.set(0.4,1,0.2
 const seaDeep=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),
   new THREE.MeshBasicMaterial({color:0x0c2c48}));
 seaDeep.rotation.x=-Math.PI/2; seaDeep.position.y=-2.5; scene.add(seaDeep);
-/* beyond the wall of ice — the outer darkness, that no man may look past:
-   a tall dark ring just outside the rim, so nothing of "the other side" is
-   seen, only blackness and, beyond it, the stars. */
-const voidWall=new THREE.Mesh(new THREE.CylinderGeometry(R_WORLD*0.999,R_WORLD*0.999,2400,140,1,true),
-  new THREE.MeshBasicMaterial({color:0x03040d,side:THREE.BackSide,fog:false}));
-voidWall.position.y=560; scene.add(voidWall);   /* tall enough to hide the beyond, low enough that the stars show above */
+/* beyond the wall of ice — the OUTER DARKNESS, that no man may look past:
+   a tall wall of night just outside the rim, so nothing of "the other side"
+   is ever seen — only blackness set with stars, by day as by night. */
+function makeVoidTex(){ const S=512, c=texCanvas(S,S), g=c.getContext('2d');
+  g.fillStyle='#02030a'; g.fillRect(0,0,S,S);
+  for(let k=0;k<520;k++){ const x=hash2(k,1.1)*S, y=hash2(k,2.2)*S, rr=hash2(k,3.3)*1.3+0.3, bb=170+Math.floor(hash2(k,4.4)*85);
+    g.fillStyle='rgba('+bb+','+bb+','+(Math.min(255,bb+12))+','+(0.45+hash2(k,5.5)*0.55)+')';
+    g.beginPath(); g.arc(x,y,rr,0,6.283); g.fill(); }
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; }
+const voidTex=makeVoidTex(); voidTex.repeat.set(10,2);
+/* fog:true — from the lands the wall of night blends into the day's blue sky
+   (so daytime is blue where the sun shines), and only stands black-and-starry
+   when the traveller is up against the ice wall itself. */
+const voidWall=new THREE.Mesh(new THREE.CylinderGeometry(R_WORLD*0.999,R_WORLD*0.999,12000,160,1,true),
+  new THREE.MeshBasicMaterial({map:voidTex,color:0x0a0c18,side:THREE.BackSide,fog:true}));
+voidWall.position.y=3400; scene.add(voidWall);
+
+/* ---- BLOWING SNOW at the wall of ice — a particle engine (THREE.Points).
+   A cold drift of snow and mist streams on the wind about the traveller as he
+   nears the rim, and a cold fog closes in. */
+const SNOW_N=2800, SNOW_BOX=240, SNOW_TOP=150;
+const snowGeo=new THREE.BufferGeometry(), snowPos=new Float32Array(SNOW_N*3);
+for(let i=0;i<SNOW_N;i++){ snowPos[i*3]=(Math.random()-0.5)*2*SNOW_BOX; snowPos[i*3+1]=Math.random()*SNOW_TOP; snowPos[i*3+2]=(Math.random()-0.5)*2*SNOW_BOX; }
+snowGeo.setAttribute('position',new THREE.BufferAttribute(snowPos,3));
+const snowMat=new THREE.PointsMaterial({color:0xeef4ff,size:0.85,transparent:true,opacity:0,depthWrite:false,fog:false,sizeAttenuation:true});
+const snow=new THREE.Points(snowGeo,snowMat); snow.frustumCulled=false; snow.visible=false; scene.add(snow);
+const _coldFog=new THREE.Color(0xb6c6da);
+function updateWallWeather(px,pz,dt){
+  if(state.firm){ snow.visible=false; snowMat.opacity=0; return; }
+  const r=Math.hypot(px,pz)/R_WORLD, wallF=Math.max(0,Math.min(1,(r-0.85)/0.1));
+  if(wallF>0.01 && scene.fog && !state.firm && state.mode!=='dive'){   /* a cold fog closes in at the rim */
+    scene.fog.far*=1-wallF*0.55; scene.fog.color.lerp(_coldFog,wallF*0.55); }
+  snow.visible = wallF>0.02;
+  if(!snow.visible){ snowMat.opacity=0; return; }
+  snowMat.opacity=Math.min(0.9,wallF); snow.position.set(px,0,pz);
+  const w=windAt(px,pz), gust=1+0.5*Math.sin(performance.now()*0.0013);
+  const wx=w.x*(70+150*w.s)*gust, wz=w.z*(70+150*w.s)*gust, a=snowGeo.attributes.position.array;
+  for(let i=0;i<SNOW_N;i++){ const j=i*3;
+    a[j]+=wx*dt; a[j+2]+=wz*dt; a[j+1]-=(26+i%7*3)*dt;                  /* borne on the wind, and falling */
+    if(a[j]>SNOW_BOX)a[j]-=2*SNOW_BOX; else if(a[j]<-SNOW_BOX)a[j]+=2*SNOW_BOX;
+    if(a[j+2]>SNOW_BOX)a[j+2]-=2*SNOW_BOX; else if(a[j+2]<-SNOW_BOX)a[j+2]+=2*SNOW_BOX;
+    if(a[j+1]<0)a[j+1]+=SNOW_TOP; }
+  snowGeo.attributes.position.needsUpdate=true;
+}
 /* The far ring beyond the wave grid — a PLAIN deep-water colour, no tile
    texture (the old blocky water plane is gone; the Gerstner grid is the only
    surface water now). It sits just under the grid's flat edge, deep in fog. */
@@ -2054,6 +2092,9 @@ function spawnVillage(i){
   const addPerson=(role,hx,hz,roamR,child,faceX,faceZ,home)=>{
     const seed=i*1000+people.length*7;
     const cc=landAtWorld(hx,hz); if(!cc||cc.kind==='wall') { hx=cx; hz=cz; }
+    /* never leave a soul embedded in a wall: nudge into the room, or out to the square */
+    for(const H of ex.houses){ if(houseBlocks(hx,hz,H)){
+      if(hx>H.x0&&hx<H.x1&&hz>H.z0&&hz<H.z1){ hx=(H.x0+H.x1)/2; hz=(H.z0+H.z1)/2; } else { hx=cx; hz=cz; } break; } }
     const per=makePerson(seed,role,child);
     per.position.set(hx,topY(Math.floor(hx/B),Math.floor(hz/B)),hz); g.add(per);
     people.push({m:per,role,hx,hz,roamR:roamR||3,tx:hx,tz:hz,t:hash2(seed,7)*4,seed,
@@ -2072,7 +2113,7 @@ function spawnVillage(i){
   /* a great city: a resident in every home, and vendors at the stalls */
   if(cityHomes&&cityHomes.length){
     for(let h=0;h<cityHomes.length;h++){ const hm=cityHomes[h];
-      addPerson('folk', hm.doorx, hm.doorz, 3, false, undefined,undefined, hm); }
+      addPerson('folk', hm.x, hm.z, 1.6, false, undefined,undefined, hm); }   /* in the room, not the doorway */
     for(let v=0;v<3;v++){ const vx=cx+B*(3.5+v*2.6), vz=cz+B*3.4;
       const c=landAtWorld(vx,vz); if(c&&c.kind!=='wall')
         addPerson('folk', vx, vz, 0.7, false, vx, vz-B, {doorx:vx,doorz:vz}); }
@@ -2108,9 +2149,9 @@ function wanderTick(ent,site,dt,speed){
     ent.t=(ent.role==='teacher'||ent.role==='child'?3.5:2)
       +hash2(ent.seed,(performance.now()%9973)*0.13)*(ent.role==='hunter'?7:5);
     let nx,nz;
-    if(worldNight>0.55&&ent.home){                    /* at dusk, go home */
-      nx=(ent.home.doorx!==undefined?ent.home.doorx:ent.home.x)+(Math.random()-0.5)*2;
-      nz=(ent.home.doorz!==undefined?ent.home.doorz:ent.home.z)+(Math.random()-0.5)*2;
+    if(worldNight>0.55&&ent.home){                    /* at dusk, go home — to the room, not the doorway */
+      nx=(ent.home.x!==undefined?ent.home.x:ent.home.doorx)+(Math.random()-0.5)*2;
+      nz=(ent.home.z!==undefined?ent.home.z:ent.home.doorz)+(Math.random()-0.5)*2;
     } else { const a=Math.random()*Math.PI*2, r=Math.random()*roamR*B;
       nx=ax+Math.cos(a)*r; nz=az+Math.sin(a)*r; }
     const cc=landAtWorld(nx,nz); if(cc&&cc.kind!=='wall'){ ent.tx=nx; ent.tz=nz; } }
@@ -2486,8 +2527,11 @@ function doorTick(dt){
   anim(standaloneHouses);
 }
 let promptDoor=null;
-function canSleep(){ return state.mode==='walk' && HOME && worldNight>0.45
-  && insideHouse(state.walk.x,state.walk.z)===HOME.house; }
+function canSleep(){ if(state.mode!=='walk'||!HOME||worldNight<=0.45) return false;
+  /* inside the room among the boughs, OR standing at the foot of the home tree
+     (the platform is high in the canopy and hard to gain, so the base serves) */
+  return insideHouse(state.walk.x,state.walk.z)===HOME.house
+      || Math.hypot(state.walk.x-HOME.x,state.walk.z-HOME.z) < B*5; }
 function sleep(){
   const day=Math.floor(state.simHours/24);
   state.simHours=(day+1)*24+7;                    /* wake at seven, next morning */
@@ -3208,6 +3252,7 @@ function frame(){
   /* the firmament vault fades into view the higher he climbs, and stands solid near the top */
   if(flyDome&&!state.firm){ flyDome.material.opacity=Math.max(0,Math.min(1,(eyeY-6000)/42000))*0.34; }
   else if(flyDome){ flyDome.material.opacity=0; }
+  updateWallWeather(p.x,p.z,dt);   /* cold fog and blowing snow at the wall of ice */
   waterTick(p.x,p.z,light.dayF,light.storm||0);
   seaLifeTick(p.x,p.z,dt);
   audioTick(light.storm||0);
@@ -3224,9 +3269,11 @@ function frame(){
     TEX.clouds.offset.x=(p.x/9600*7+state.simHours*0.004)%1;
     TEX.clouds.offset.y=(p.z/9600*7)%1;
     /* thin the blocky floor as the eye passes through it, and fade it out well
-       above, where the soft sea of clouds takes over */
+       above — whether risen on the air or stood high upon the ice wall */
+    const pY = state.mode==='fly'?state.fly.y : state.mode==='walk'?(state.walk.feetY!==undefined?state.walk.feetY:20) : 20;
+    const highF = Math.max(0,Math.min(1,(pY-CLOUD_Y)/70));
     const gap=Math.abs(eyeY-CLOUD_Y), through=Math.min(1,gap/80);
-    cloudMat.opacity*=(0.22+0.78*through)*(1-above*0.9);
+    cloudMat.opacity*=(0.22+0.78*through)*(1-above*0.9)*(1-highF*0.96);
     cirrus.position.x=p.x; cirrus.position.z=p.z;
     const climb=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/900));
     cirrusMat.opacity=(0.08+light.dayF*0.16)*Math.min(1,climb*1.5)*(1-above*0.7);
