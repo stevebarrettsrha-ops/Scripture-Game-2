@@ -772,8 +772,8 @@ const waveMat=new THREE.ShaderMaterial({
       vec3 tex=texture2D(uMap,vUv).rgb;
       /* how near the land lies beneath: 1 clear shallow → 0 the true deep
          (smoothstepped so the field rolls off without banding) */
-      float shoal=texture2D(uShoal, vP*${(0.5/R_WORLD).toFixed(10)}+0.5).r;
-      shoal=smoothstep(0.03,0.9,shoal);
+      float shoalRaw=texture2D(uShoal, vP*${(0.5/R_WORLD).toFixed(10)}+0.5).r;
+      float shoal=smoothstep(0.03,0.9,shoalRaw);
       float deepF=1.0-shoal;
       /* colour by real depth — turquoise over the shallows, dark over the deep —
          with a breath of the old wave-height shading kept within it */
@@ -792,7 +792,19 @@ const waveMat=new THREE.ShaderMaterial({
       float collar=smoothstep(38.0,13.0,length(rel));
       float wob=0.6+0.4*sin(vP.x*0.6+vP.y*0.55+uTime*7.0);
       float wake=clamp((arm+cen+collar*0.8)*spd*wob*near,0.0,1.0);
-      float allFoam=clamp(foam*0.32+wake*0.95,0.0,1.0);
+      /* SHORE-LAPPING WASH — rings of foam marching down the shoal gradient,
+         so each line of surf wraps the coast and runs up the strand in turn,
+         broken ragged by the water texture so no two waves break alike */
+      float lap=0.0;
+      if(shoalRaw>0.5){
+        float ring=fract(shoalRaw*7.0-uTime*0.32);
+        float crest=smoothstep(0.58,0.88,ring)-smoothstep(0.9,1.0,ring);
+        float brk=0.35+0.75*texture2D(uMap, vP*0.008+vec2(uTime*0.006,uTime*0.004)).b;
+        lap=clamp(crest,0.0,1.0)*smoothstep(0.5,0.85,shoalRaw)*brk;
+        /* and a standing line of white wash right at the water's edge */
+        lap+=smoothstep(0.9,0.99,shoalRaw)*brk*(0.5+0.3*sin(uTime*1.7+shoalRaw*40.0));
+      }
+      float allFoam=clamp(foam*0.32+wake*0.95+lap,0.0,1.0);
       col=mix(col,vec3(0.88,0.93,1.0),allFoam);
       col*=uLight;
       /* sun specular + glitter — the sun's path burning on the swell */
@@ -3844,11 +3856,14 @@ function cameraTick(dt){
       dist*=0.82;
     }
   }
-  const lift=state.mode==='deck'?5:8;
+  /* swimming, the eye rides low along the waterline — the swell can roll
+     right over it (the frame loop tints the world to water-light when it does) */
+  const swimCam=state.mode==='walk'&&state.walk.inWater;
+  const lift=state.mode==='deck'?5:swimCam?2.2:8;
   const cy=baseY+lift+Math.sin(state.camPitch)*dist;
   camPos.set(px+Math.sin(az)*Math.cos(state.camPitch)*dist, cy, pz+Math.cos(az)*Math.cos(state.camPitch)*dist);
   camera.position.lerp(camPos,Math.min(1,dt*5));
-  camTgt.set(px,baseY+10,pz);
+  camTgt.set(px,baseY+(swimCam?4:10),pz);
   camera.lookAt(camTgt);
 }
 
@@ -4091,7 +4106,7 @@ $('btn-continue').onclick=()=>begin(false);
 
 /* a small debug handle — used by the automated smoke tests; harmless in play */
 window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
-  TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt};
+  TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y};
 
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0;
@@ -4118,6 +4133,16 @@ function frame(){
     const wc=mix3(0x061826,0x0f5170,0x36b0d8,1-murk);   /* deep dark → shallow turquoise */
     scene.background.copy(wc); scene.fog.color.copy(wc); scene.fog.near=4; scene.fog.far=470-murk*290;
     hemi.intensity=1.0-murk*0.6; dirL.intensity=0.5-murk*0.32; }
+  /* the swimmer's eye dips beneath the swell — the world turns to water-light */
+  else if(state.mode==='walk'&&scene.fog){
+    const surfC=WATER_Y+seaHeight(camera.position.x,camera.position.z);
+    if(camera.position.y<surfC-0.15&&!landAtWorld(camera.position.x,camera.position.z)){
+      const wc=mix3(0x0a2836,0x1e7a96,0x3ab2d8,light.dayF);
+      scene.background.copy(wc); scene.fog.color.copy(wc);
+      scene.fog.near=5; scene.fog.far=320;
+      hemi.intensity=0.85; dirL.intensity=0.4;
+    }
+  }
   /* the firmament vault fades into view the higher he climbs, and stands solid near the top */
   if(flyDome&&!state.firm){ flyDome.material.opacity=Math.max(0,Math.min(1,(eyeY-6000)/42000))*0.34; }
   else if(flyDome){ flyDome.material.opacity=0; }

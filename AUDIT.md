@@ -157,9 +157,18 @@ points and cameras all rescaled to match — she sits notably broader on the scr
 - **Reflections**: a much stronger fresnel term truly mirrors the sky at grazing angles
   (with a mirror-skin rise in opacity), the sun's specular path burns brighter on the
   swell, and a caustic sparkle plays where the light reaches the sand.
+- **Shore-lapping surf**: lines of white wash march down the shoal gradient — each line
+  of foam wraps the coastline and runs up the strand in turn, broken ragged by the water
+  texture so no two waves break alike — with a standing, breathing line of wash right at
+  the water's edge.
+- **The swimmer's eye dips under**: the swim camera now rides low along the waterline,
+  and when a swell rolls over it the whole world turns to water-light — turquoise fog,
+  the pier piles and the sea floor looming, the surface seen from beneath — until the
+  wave passes.
 - Verified from the beach, from a low aerial over a bay (sand terraces clearly visible
-  through turquoise water), over the open deep (dark), and at evening; dive mode and the
-  cargo hold are unaffected.
+  through turquoise water, surf lines breaking along the shore), over the open deep
+  (dark), at evening, and from under the swell; dive mode and the cargo hold are
+  unaffected.
 
 ## 5. Further recommendations (future work)
 
