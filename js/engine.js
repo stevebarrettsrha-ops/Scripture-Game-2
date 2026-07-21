@@ -1351,7 +1351,10 @@ function podTick(px,pz,dt,t){
   if(g){ const dx=g.x-podState.x, dz=g.z-podState.z, dd=Math.hypot(dx,dz)||1;
     /* when the ship draws near, the pod runs before her at trawling pace */
     const podSp=Math.hypot(podState.x-px,podState.z-pz)<380?32:16;
-    if(dd>160){ podState.dir=Math.atan2(dx,dz); podState.x+=dx/dd*podSp*dt; podState.z+=dz/dd*podSp*dt; podState.arrived=false; }
+    if(dd>160){ podState.dir=Math.atan2(dx,dz); podState.arrived=false;
+      const nx2=podState.x+dx/dd*podSp*dt, nz2=podState.z+dz/dd*podSp*dt;
+      if(!landAtWorld(nx2,nz2)){ podState.x=nx2; podState.z=nz2; }
+      else { podState.x+=dz/dd*podSp*dt; podState.z-=dx/dd*podSp*dt; } }   /* slide along the coast */
     else { podState.arrived=true; podState.dir+=dt*0.22;
       podState.x=g.x+Math.sin(podState.dir)*120; podState.z=g.z+Math.cos(podState.dir)*120; } }
   for(let k=0;k<POD.length;k++){ const m=POD[k];
@@ -1672,12 +1675,47 @@ function makeBird(type){ type=type||'crow';
   g.userData={wingL,wingR,type};
   return g;
 }
-/* a fish — a body and tail that arcs from the sea (col: tropical variants) */
+/* ---- PIXEL SKINS FOR THE CREATURES OF THE SEA ----
+   Countershading, stripes, scutes and throat-grooves — every beast of the
+   water wears a proper minecraft hide, no more flat colours. */
+const fishStripeTex=mkTex(g=>{ g.fillStyle='rgb(255,255,255)'; g.fillRect(0,0,16,16);
+  g.fillStyle='rgba(0,0,0,0.3)'; for(const x of [3,7,11]) g.fillRect(x,2,2,12);
+  g.fillStyle='rgba(255,255,255,0.55)'; g.fillRect(0,0,16,2); });
+const dolphTop=mkTex(g=>speckle(g,[116,138,156],10,[102,124,142],0.3));
+const dolphBelly=mkTex(g=>speckle(g,[232,238,244],6,[218,226,234],0.3));
+const dolphSide=mkTex(g=>{ speckle(g,[134,152,168],10,[120,138,156],0.3);
+  for(let y=12;y<16;y++)for(let x=0;x<16;x++){ const c=jit([228,234,240],8,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } });
+const turtleShellTex=mkTex(g=>{ speckle(g,[64,112,70],12,[54,98,60],0.3);
+  g.strokeStyle='rgb(36,64,40)'; g.lineWidth=1;
+  g.strokeRect(0.5,0.5,15,15);
+  for(const x of [5.5,10.5]){ g.beginPath(); g.moveTo(x,1); g.lineTo(x,15); g.stroke(); }
+  for(const y of [5.5,10.5]){ g.beginPath(); g.moveTo(1,y); g.lineTo(15,y); g.stroke(); } });
+const turtleBellyTex=mkTex(g=>{ speckle(g,[214,204,160],10,[198,188,146],0.3);
+  g.strokeStyle='rgb(150,140,102)'; g.lineWidth=1;
+  for(const y of [4.5,8.5,12.5]){ g.beginPath(); g.moveTo(0,y); g.lineTo(16,y); g.stroke(); }
+  g.beginPath(); g.moveTo(8.5,0); g.lineTo(8.5,16); g.stroke(); });
+const turtleSkinTex=mkTex(g=>speckle(g,[96,134,74],16,[78,114,60],0.35));
+const whaleTopTex=mkTex(g=>{ speckle(g,[54,74,94],10,[46,64,84],0.3);
+  for(let k=0;k<6;k++){ const x=Math.floor(hash2(k,3.3)*16), y=Math.floor(hash2(k,7.7)*16);
+    P(g,x,y,'rgb(78,98,118)'); } });
+const whaleBellyTex=mkTex(g=>{ speckle(g,[198,208,218],8,[184,196,208],0.3);
+  g.fillStyle='rgb(158,170,184)'; for(const y of [2,6,10,14]) g.fillRect(0,y,16,1); });   /* throat grooves */
+const whaleSideTex=mkTex(g=>{ speckle(g,[62,84,104],10,[52,74,94],0.3);
+  for(let y=12;y<16;y++)for(let x=0;x<16;x++){ const c=jit([194,204,216],8,x*3+y); P(g,x,y,rgb(c[0],c[1],c[2])); } });
+const rayTopTex=mkTex(g=>{ speckle(g,[58,76,96],10,[48,66,86],0.3);
+  g.fillStyle='rgb(206,218,230)';
+  for(let k=0;k<7;k++){ const x=1+Math.floor(hash2(k,3)*14), y=1+Math.floor(hash2(k,7)*14); g.fillRect(x,y,1,1); } });
+const rayBellyTex=mkTex(g=>speckle(g,[224,230,236],7,[210,218,226],0.3));
+/* a fish — striped pixel hide tinted by its colour, an eye, arcing tail */
 function makeFish(col){ const c=new THREE.Color(col||0x5f7fa6);
   const g=new THREE.Group();
-  const body=new THREE.Mesh(new THREE.BoxGeometry(1.0,1.5,3.2),lam(c.getHex())); body.position.y=0; g.add(body);
-  const tail=new THREE.Mesh(new THREE.BoxGeometry(0.4,1.8,1.0),lam(c.clone().multiplyScalar(0.75).getHex())); tail.position.set(0,0,-2.0); g.add(tail);
-  const fin=new THREE.Mesh(new THREE.BoxGeometry(0.3,1.2,0.9),lam(c.clone().multiplyScalar(1.3).getHex())); fin.position.set(0,1.1,0.2); g.add(fin);
+  const body=new THREE.Mesh(new THREE.BoxGeometry(1.0,1.5,3.2),
+    new THREE.MeshLambertMaterial({map:fishStripeTex,color:c.getHex()})); g.add(body);
+  const tail=new THREE.Mesh(new THREE.BoxGeometry(0.4,1.8,1.0),
+    new THREE.MeshLambertMaterial({map:fishStripeTex,color:c.clone().multiplyScalar(0.75).getHex()})); tail.position.set(0,0,-2.0); g.add(tail);
+  const fin=new THREE.Mesh(new THREE.BoxGeometry(0.3,1.2,0.9),
+    new THREE.MeshLambertMaterial({map:fishStripeTex,color:c.clone().multiplyScalar(1.3).getHex()})); fin.position.set(0,1.1,0.2); g.add(fin);
+  for(const s of [1,-1]){ const eye=lbox(0.24,0.24,0.24,0x10161e); eye.position.set(s*0.52,0.42,1.3); g.add(eye); }
   return g;
 }
 /* ================= SEA CREATURES =================
@@ -1831,7 +1869,8 @@ function updateDiveFish(px,py,pz,dt,t){ initDiveFish(); for(const f of DIVEFISH)
     if(!f.set||Math.hypot(f.x-px,f.z-pz)>DF_R+70){ const a=Math.random()*6.28, r=40+Math.random()*DF_R; f.x=px+Math.cos(a)*r; f.z=pz+Math.sin(a)*r;
       const fy=seabedDepth(f.x,f.z); f.y=Math.min(SEA_SURF-8,fy+12+Math.random()*Math.max(6,SEA_SURF-fy-16)); f.dir=Math.random()*6.28; f.set=true; f.m.visible=true; }
     f.dir+=Math.sin(t*0.5+f.ph)*0.04; f.x+=Math.cos(f.dir)*f.spd*dt; f.z+=Math.sin(f.dir)*f.spd*dt; f.y+=Math.sin(t*0.8+f.ph)*3*dt;
-    const fy=seabedDepth(f.x,f.z); f.y=Math.max(fy+4,Math.min(SEA_SURF-6,f.y));
+    const fy=seabedDepth(f.x,f.z), col=SEA_SURF-fy;
+    f.y=Math.min(SEA_SURF-6,Math.max(fy+Math.min(4,col-7),f.y));   /* the surface always wins — never above the waves */
     f.m.position.set(f.x,f.y,f.z); f.m.rotation.y=Math.atan2(Math.cos(f.dir),Math.sin(f.dir)); f.m.rotation.z=Math.sin(t*3+f.ph)*0.16; } }
 function makeSquid(){ const g=new THREE.Group();
   const mant=lbox(2.4,3.2,2.4,0x6a4a86); mant.position.y=0; g.add(mant);
@@ -1846,17 +1885,25 @@ function updateSquid(px,py,pz,dt,t){ initSquid(); for(const q of SQUIDS){
     if(!q.set||Math.hypot(q.x-px,q.z-pz)>DF_R+140){ const a=Math.random()*6.28, r=90+Math.random()*DF_R; q.x=px+Math.cos(a)*r; q.z=pz+Math.sin(a)*r;
       const fy=seabedDepth(q.x,q.z); q.y=fy+22+Math.random()*40; q.dir=Math.random()*6.28; q.set=true; q.m.visible=true; }
     q.x+=Math.cos(q.dir)*6*dt; q.z+=Math.sin(q.dir)*6*dt; const pulse=0.5+0.5*Math.sin(t*3+q.ph); q.y+=(pulse-0.4)*8*dt;
-    const fy=seabedDepth(q.x,q.z); q.y=Math.max(fy+8,Math.min(SEA_SURF-10,q.y));
+    const fy=seabedDepth(q.x,q.z), col=SEA_SURF-fy;
+    q.y=Math.min(SEA_SURF-10,Math.max(fy+Math.min(8,col-11),q.y));
     q.m.position.set(q.x,q.y,q.z); q.m.rotation.y=q.dir+Math.PI/2;
     q.m.userData.tents.forEach((tb,i)=>{ tb.rotation.x=Math.sin(t*3+i)*0.3-pulse*0.25; }); } }
 /* ---- dolphins — playful pods arcing through the shallows ---- */
 function makeDolphin(){ const g=new THREE.Group();
-  const body=lbox(2.2,2.4,7,0xa9b6c2); g.add(body);
-  const belly=lbox(2.0,1.1,5,0xe0e7ee); belly.position.y=-1.0; g.add(belly);
-  const snout=lbox(1.0,1.0,2.4,0xb9c4cf); snout.position.set(0,-0.2,4.4); g.add(snout);
-  const dorsal=lbox(0.4,1.9,1.6,0x8f9ba8); dorsal.position.set(0,1.9,0); dorsal.rotation.x=-0.3; g.add(dorsal);
-  const fluke=lbox(3.4,0.4,1.4,0x9aa7b4); fluke.position.set(0,0,-4.2); g.add(fluke);
-  const eL=lbox(0.4,0.4,0.4,0x111820); eL.position.set(0.9,0.3,3.4); g.add(eL); const eR=eL.clone(); eR.position.x=-0.9; g.add(eR);
+  const top=new THREE.MeshLambertMaterial({map:dolphTop});
+  const belly=new THREE.MeshLambertMaterial({map:dolphBelly});
+  const side=new THREE.MeshLambertMaterial({map:dolphSide});
+  const FIN=0x7e94a8;
+  const body=new THREE.Mesh(new THREE.BoxGeometry(2.2,2.4,7),[side,side,top,belly,top,top]); g.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(1.9,2.0,1.8),[side,side,top,belly,top,top]);
+  head.position.set(0,-0.1,4.2); g.add(head);
+  const beak=lbox(1.0,0.8,1.7,0xb9c4cf); beak.position.set(0,-0.5,5.6); g.add(beak);
+  for(const s of [1,-1]){ const eye=lbox(0.35,0.35,0.35,0x10161e); eye.position.set(s*1.0,0.35,4.6); g.add(eye); }
+  const dorsal=lbox(0.4,1.9,1.6,FIN); dorsal.position.set(0,1.9,0.4); dorsal.rotation.x=-0.35; g.add(dorsal);
+  for(const s of [1,-1]){ const flip=lbox(1.8,0.3,1.0,FIN);
+    flip.position.set(s*1.5,-1.1,2.6); flip.rotation.z=s*0.5; g.add(flip); }
+  const fluke=lbox(3.4,0.4,1.5,FIN); fluke.position.set(0,0.1,-4.1); g.add(fluke);
   return g; }
 const DOLPHINS=[], DOL_N=6, DOL_R=440;
 function initDolphins(){ if(DOLPHINS.length) return; for(let k=0;k<DOL_N;k++){ const m=makeDolphin(); m.visible=false; scene.add(m);
@@ -1866,7 +1913,8 @@ function updateDolphins(px,py,pz,dt,t){ initDolphins();
       const a=Math.random()*6.28, r=80+Math.random()*260; d.x=px+Math.cos(a)*r; d.z=pz+Math.sin(a)*r;
       const fy=seabedDepth(d.x,d.z); d.y=Math.min(SEA_SURF-6,fy+30+Math.random()*40); d.dir=Math.random()*6.28; d.set=true; d.m.visible=true; }
     d.dir+=Math.sin(t*0.4+d.ph)*0.05; const sp=18; d.x+=Math.cos(d.dir)*sp*dt; d.z+=Math.sin(d.dir)*sp*dt;
-    const arc=Math.sin(t*0.9+d.ph); d.y+=arc*10*dt; const fy=seabedDepth(d.x,d.z); d.y=Math.max(fy+8,Math.min(SEA_SURF-4,d.y));
+    const arc=Math.sin(t*0.9+d.ph); d.y+=arc*10*dt; const fy=seabedDepth(d.x,d.z), col=SEA_SURF-fy;
+    d.y=Math.min(SEA_SURF-4,Math.max(fy+Math.min(8,col-5),d.y));
     d.m.position.set(d.x,d.y,d.z); d.m.rotation.y=Math.atan2(Math.cos(d.dir),Math.sin(d.dir)); d.m.rotation.x=-arc*0.4; } }
 /* ---- SHARKS — honest minecraft sharks, no mere grey shapes: countershaded
    blue above and white beneath, gill slits on the flanks, black eyes, a
@@ -1953,29 +2001,52 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
     s.x+=Math.cos(s.dir)*sp*dt; s.z+=Math.sin(s.dir)*sp*dt;
     if(!hunting) s.y+=Math.sin(t*0.5+s.ph)*3*dt;
     /* a hunting shark hugs the bed after a bottom-hugging diver */
-    const fy=seabedDepth(s.x,s.z); s.y=Math.max(fy+(hunting?3.5:10),Math.min(SEA_SURF-8,s.y));
+    const fy=seabedDepth(s.x,s.z), col=SEA_SURF-fy;
+    s.y=Math.min(SEA_SURF-8,Math.max(fy+(hunting?3.5:Math.min(10,col-9)),s.y));
     s.m.position.set(s.x,s.y,s.z); s.m.rotation.y=Math.atan2(Math.cos(s.dir),Math.sin(s.dir));
     s.m.userData.tail.rotation.y=Math.sin(t*(hunting?7:4)+s.ph)*(hunting?0.45:0.3); } }
 /* ---- turtles, rays, whales, pufferfish, jellyfish, crabs ---- */
 function makeTurtle(){ const g=new THREE.Group();
-  const shell=lbox(3.4,1.6,4.0,0x3f7a4a); g.add(shell);
-  const under=lbox(3.0,0.6,3.4,0x9aa86a); under.position.y=-0.9; g.add(under);
-  const head=lbox(1.0,1.0,1.4,0x5a8a4a); head.position.set(0,0,2.6); g.add(head);
-  const flL=lbox(1.8,0.4,1.0,0x4f8a5a); flL.position.set(2.0,-0.2,1.0); g.add(flL); const flR=flL.clone(); flR.position.x=-2.0; g.add(flR);
-  const bkL=lbox(1.2,0.4,0.9,0x4f8a5a); bkL.position.set(1.8,-0.2,-1.6); g.add(bkL); const bkR=bkL.clone(); bkR.position.x=-1.8; g.add(bkR);
+  const shellM=new THREE.MeshLambertMaterial({map:turtleShellTex});
+  const bellyM=new THREE.MeshLambertMaterial({map:turtleBellyTex});
+  const skinM=new THREE.MeshLambertMaterial({map:turtleSkinTex});
+  const shell=new THREE.Mesh(new THREE.BoxGeometry(3.6,1.5,4.4),[skinM,skinM,shellM,bellyM,skinM,skinM]); g.add(shell);
+  const crown=new THREE.Mesh(new THREE.BoxGeometry(2.6,0.7,3.2),[skinM,skinM,shellM,shellM,skinM,skinM]);
+  crown.position.y=1.0; g.add(crown);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(1.1,1.0,1.5),skinM); head.position.set(0,-0.1,2.9); g.add(head);
+  for(const s2 of [1,-1]){ const eye=lbox(0.28,0.28,0.28,0x10161e); eye.position.set(s2*0.58,0.12,3.35); g.add(eye); }
+  const flL=new THREE.Mesh(new THREE.BoxGeometry(2.0,0.35,1.1),skinM); flL.position.set(2.2,-0.3,1.2); g.add(flL);
+  const flR=flL.clone(); flR.position.x=-2.2; g.add(flR);
+  const bkL=new THREE.Mesh(new THREE.BoxGeometry(1.3,0.35,1.0),skinM); bkL.position.set(1.9,-0.3,-1.7); g.add(bkL);
+  const bkR=bkL.clone(); bkR.position.x=-1.9; g.add(bkR);
   g.userData={flL,flR}; return g; }
 function makeRay(){ const g=new THREE.Group();
-  const body=lbox(4,0.6,4,0x46566a); g.add(body);
-  const wingL=lbox(3,0.35,3.4,0x556676); wingL.position.set(3.4,0,0); g.add(wingL); const wingR=wingL.clone(); wingR.position.x=-3.4; g.add(wingR);
-  const tail=lbox(0.3,0.3,5,0x35455a); tail.position.set(0,0,-4); g.add(tail);
+  const topM=new THREE.MeshLambertMaterial({map:rayTopTex});
+  const belM=new THREE.MeshLambertMaterial({map:rayBellyTex});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(4,0.7,4.6),[topM,topM,topM,belM,topM,topM]); g.add(body);
+  const wingL=new THREE.Mesh(new THREE.BoxGeometry(3.2,0.35,3.6),[topM,topM,topM,belM,topM,topM]);
+  wingL.position.set(3.4,0,0); g.add(wingL);
+  const wingR=wingL.clone(); wingR.position.x=-3.4; g.add(wingR);
+  for(const s2 of [1,-1]){ const eye=lbox(0.35,0.35,0.35,0x10161e); eye.position.set(s2*0.9,0.5,2.0); g.add(eye); }
+  const tail=lbox(0.3,0.3,5.4,0x2c3c50); tail.position.set(0,0,-4.4); g.add(tail);
+  const barb=lbox(0.5,0.2,0.9,0x9aa6b4); barb.position.set(0,0.15,-2.4); g.add(barb);
   g.userData={wingL,wingR}; return g; }
 function makeWhale(){ const g=new THREE.Group();
-  const body=lbox(9,10,30,0x3a4756); g.add(body);
-  const belly=lbox(8,3.4,24,0x9aa6b2); belly.position.y=-4.6; g.add(belly);
-  const head=lbox(8,8,10,0x36434f); head.position.set(0,0,17); g.add(head);
-  const fluke=lbox(14,1.2,4,0x30404c); fluke.position.set(0,0,-16); g.add(fluke);
-  const fin=lbox(0.7,5,3.4,0x30404c); fin.position.set(0,6,0); g.add(fin);
-  const eL=lbox(0.6,0.6,0.6,0x0a0f14); eL.position.set(4.1,0,14); g.add(eL); const eR=eL.clone(); eR.position.x=-4.1; g.add(eR);
+  const top=new THREE.MeshLambertMaterial({map:whaleTopTex});
+  const belly=new THREE.MeshLambertMaterial({map:whaleBellyTex});
+  const side=new THREE.MeshLambertMaterial({map:whaleSideTex});
+  const FIN=0x2e455c;
+  const body=new THREE.Mesh(new THREE.BoxGeometry(9,9.5,26),[side,side,top,belly,top,top]); g.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(8,7.6,9),[side,side,top,belly,top,top]);
+  head.position.set(0,-0.7,16.5); g.add(head);
+  for(const s2 of [1,-1]){ const eye=lbox(0.7,0.7,0.7,0x0a0f14); eye.position.set(s2*4.1,-1.6,13.8); g.add(eye); }
+  const blow=lbox(1.3,0.4,1.3,0x1c2c3c); blow.position.set(0,4.9,10); g.add(blow);
+  for(const s2 of [1,-1]){ const fl=lbox(4.6,0.7,2.4,FIN);
+    fl.position.set(s2*6,-3.6,8); fl.rotation.z=s2*0.35; g.add(fl); }
+  const fin=lbox(0.8,2.8,3.4,FIN); fin.position.set(0,5.6,-6); fin.rotation.x=-0.3; g.add(fin);
+  const ped=new THREE.Mesh(new THREE.BoxGeometry(3.8,4.6,6),[side,side,top,belly,top,top]);
+  ped.position.set(0,0.4,-15.5); g.add(ped);
+  const fluke=lbox(12,1.1,4,FIN); fluke.position.set(0,0.9,-19.6); g.add(fluke);
   return g; }
 function makePuffer(){ const g=new THREE.Group();
   const body=lbox(2.2,2.2,2.4,0xe0b83a); g.add(body);
@@ -2001,7 +2072,8 @@ function updateSeaMob(arr,px,py,pz,dt,t){ for(const o of arr){
       o.x=px+Math.cos(a)*r; o.z=pz+Math.sin(a)*r; const fy=seabedDepth(o.x,o.z);
       o.y = arr._near ? fy+4+Math.random()*14 : Math.min(SEA_SURF-8,fy+18+Math.random()*60); o.dir=Math.random()*6.28; o.set=true; o.m.visible=true; }
     o.dir+=Math.sin(t*0.3+o.ph)*0.03; o.x+=Math.cos(o.dir)*o.sp*dt; o.z+=Math.sin(o.dir)*o.sp*dt; o.y+=Math.sin(t*0.6+o.ph)*2*dt;
-    const fy=seabedDepth(o.x,o.z); o.y=Math.max(fy+3,Math.min(SEA_SURF-4,o.y));
+    const fy=seabedDepth(o.x,o.z), col=SEA_SURF-fy;
+    o.y=Math.min(SEA_SURF-4,Math.max(fy+3,o.y));
     o.m.position.set(o.x,o.y,o.z); o.m.rotation.y=Math.atan2(Math.cos(o.dir),Math.sin(o.dir));
     if(o.m.userData.flL){ o.m.userData.flL.rotation.z=0.2+Math.sin(t*2+o.ph)*0.3; o.m.userData.flR.rotation.z=-0.2-Math.sin(t*2+o.ph)*0.3; }
     if(o.m.userData.wingL){ o.m.userData.wingL.rotation.z=Math.sin(t*1.6+o.ph)*0.4; o.m.userData.wingR.rotation.z=-Math.sin(t*1.6+o.ph)*0.4; } } }
@@ -2016,7 +2088,8 @@ function initSeaMobs(){ if(TURTLES) return;
 function updateSeaMobs(px,py,pz,dt,t){ initSeaMobs();
   updateSeaMob(TURTLES,px,py,pz,dt,t); updateSeaMob(RAYS_M,px,py,pz,dt,t); updateSeaMob(WHALES,px,py,pz,dt,t); updateSeaMob(PUFFERS,px,py,pz,dt,t);
   for(const j of JELLIES){ if(!j.set||Math.hypot(j.x-px,j.z-pz)>360){ const a=Math.random()*6.28,r=40+Math.random()*320; j.x=px+Math.cos(a)*r; j.z=pz+Math.sin(a)*r; const fy=seabedDepth(j.x,j.z); j.y=fy+30+Math.random()*80; j.set=true; j.m.visible=true; }
-    const pulse=0.5+0.5*Math.sin(t*1.4+j.ph); j.y+=(pulse-0.45)*10*dt; const fy=seabedDepth(j.x,j.z); j.y=Math.max(fy+10,Math.min(SEA_SURF-6,j.y));
+    const pulse=0.5+0.5*Math.sin(t*1.4+j.ph); j.y+=(pulse-0.45)*10*dt; const fy=seabedDepth(j.x,j.z), col=SEA_SURF-fy;
+    j.y=Math.min(SEA_SURF-6,Math.max(fy+Math.min(10,col-7),j.y));
     j.m.position.set(j.x,j.y,j.z); j.m.scale.y=0.8+pulse*0.4; j.m.userData.tents.forEach((te,i)=>{ te.rotation.x=Math.sin(t*2+i)*0.2; }); }
   for(const c of CRABS){ if(!c.set||Math.hypot(c.x-px,c.z-pz)>300){ for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28,r=30+Math.random()*300, x=px+Math.cos(a)*r,z=pz+Math.sin(a)*r, d=SEA_SURF-seabedDepth(x,z);
         if(d>6&&d<170){ c.x=x; c.z=z; c.set=true; c.m.position.set(x,seabedDepth(x,z)+0.6,z); c.m.rotation.y=Math.random()*6.28; c.m.visible=true; break; } if(tr===4){c.set=false;c.m.visible=false;} } }
@@ -4478,7 +4551,8 @@ $('btn-continue').onclick=()=>begin(false);
 window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
-  WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState};
+  WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,
+  seaPools:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,POD})};
 
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0;
