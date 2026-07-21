@@ -170,10 +170,19 @@ points and cameras all rescaled to match — she sits notably broader on the scr
   built of solid terraces rooted in the bed (never a floating sheet), and pier piles
   stand on the bottom. Seen from under the swell, the land connects to the sea floor the
   way a stone sits in a glass of water.
+- **One sea, one bed**: the free-dive world and the coastal shallows are unified. The
+  dive layer's procedural seabed now reads the same shoal field as the surface water, so
+  the floor rises to meet the shelf at every land's foot and slopes away seamlessly into
+  the kelp, coral and wreck basins (verified profile: −12 at the strand → −65 at 500 →
+  −112 at 1400). No ridge breaches the surface near a coast, and **the land's flank
+  stops the swimmer** — no passing through the stone into the island.
+- **Swim straight down into the deep**: hold SHIFT while swimming and you slip beneath
+  the waves in place into the dive world; SPACE at the surface brings you back up to
+  swimming. Strand → shallows → kelp deep → surface, one unbroken body of water.
 - Verified from the beach, from a low aerial over a bay (sand terraces clearly visible
   through turquoise water, surf lines breaking along the shore), over the open deep
-  (dark), at evening, and from under the swell; dive mode and the cargo hold are
-  unaffected.
+  (dark), at evening, from under the swell, and along the submerged coast in dive; the
+  cargo hold is unaffected.
 
 ## 5. Further recommendations (future work)
 

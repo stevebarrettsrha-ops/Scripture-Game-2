@@ -1626,13 +1626,22 @@ TEX.sponge  =mkTex(g=>speckle(g,[224,176,64],28,[190,142,48],0.4));
    From open water the traveller dives (C), swims in three dimensions
    (W/S · A/D · SPACE up · SHIFT down), and comes up again to draw breath. */
 const DIVE_TURN=1.7, DIVE_MAXSP=155, DIVE_VMAX=125, DIVE_VACC=320, SEA_SURF=WATER_Y;
-let diveHintShown=false, deepShown=false;
+let diveHintShown=false, deepShown=false, swimDeepHintShown=false;
 function seabedDepth(x,z){
   const roll=fbm(x*0.02+11,z*0.02-7), basin=fbm(x*0.004-5,z*0.004+9);
   const trench=Math.pow(Math.max(0,fbm(x*0.0016+30,z*0.0016)-0.55)/0.45,1.6);
   const ridge=Math.pow(Math.max(0,fbm(x*0.003+70,z*0.003-40)-0.47)/0.53,1.7);   /* undersea mountains */
   const peak=ridge*(360+fbm(x*0.011-3,z*0.011+6)*120);                          /* tall ridges, some breaking the surface */
-  return SEA_SURF-(20+roll*30+basin*120+trench*540-peak); }   /* +peaks above the waves … −700 trenches */
+  let y=SEA_SURF-(20+roll*30+basin*120+trench*540-peak);      /* +peaks above the waves … −700 trenches */
+  /* ONE sea, one bed: near the coasts the floor rises to meet the shelf at
+     the land's foot (the same shoal field the surface water reads), so a
+     swimmer can go down a coastal flank and keep going — sand at the
+     strand, sloping away seamlessly into the kelp and coral basins */
+  const s=shoalAt(x,z);
+  if(s>0.02){ const t=Math.min(1,s/0.75), tt=t*t*(3-2*t);
+    y=y*(1-tt)+(SUBSEA_Y+0.4)*tt;
+    y=Math.min(y,SEA_SURF-6); }      /* no ridge breaches the surface where a coast is near */
+  return y; }
 /* ---- the seabed: a displaced, shaded floor that follows the diver ---- */
 const SB_SEG=96, SB_SIZE=3200;
 const sbGeo=new THREE.PlaneGeometry(SB_SIZE,SB_SIZE,SB_SEG,SB_SEG); sbGeo.rotateX(-Math.PI/2);
@@ -1898,6 +1907,9 @@ function updateDeep(px,py,pz,dt,murk){ const t=performance.now()*0.001;
 function diveTick(dt){ const dv=state.dive; const [f,tn]=axis();
   dv.heading+=tn*dt*DIVE_TURN; const tgt=f*DIVE_MAXSP; dv.sp+=(tgt-dv.sp)*Math.min(1,dt*2.6);
   dv.x+=Math.sin(dv.heading)*dv.sp*dt; dv.z+=Math.cos(dv.heading)*dv.sp*dt;
+  /* the land's flank stops the swimmer — no passing through the stone */
+  if(landAtWorld(dv.x,dv.z)){
+    dv.x-=Math.sin(dv.heading)*dv.sp*dt; dv.z-=Math.cos(dv.heading)*dv.sp*dt; dv.sp*=0.2; }
   let up=flyPad; if(keys.Space) up+=1; if(keys.ShiftLeft||keys.ShiftRight||keys.ControlLeft||keys.ControlRight) up-=1; up=Math.max(-1,Math.min(1,up));
   if(up!==0){ dv.vy+=up*DIVE_VACC*dt; dv.vy=Math.max(-DIVE_VMAX,Math.min(DIVE_VMAX,dv.vy)); } else dv.vy*=Math.max(0,1-dt*1.2);
   dv.y+=dv.vy*dt;
@@ -3426,7 +3438,12 @@ function walkTick(dt){
      and stroking when swimming forward, treading upright when at rest. */
   const surfY=WATER_Y+seaHeight(w.x,w.z);
   if(swimming){
-    if(!w.inWater){ w.inWater=true; splash(w.x,surfY+1,w.z,w.vy<-14); }
+    if(!w.inWater){ w.inWater=true; splash(w.x,surfY+1,w.z,w.vy<-14);
+      if(!swimDeepHintShown){ swimDeepHintShown=true;
+        toast('You swim the swell — hold SHIFT to slip beneath the waves and dive the deep; make for the shore to haul out.'); } }
+    /* hold SHIFT at the surface and slip straight down into the deep —
+       the same water, the same place, the bed running from the strand */
+    if(keys.ShiftLeft||keys.ShiftRight){ enterDive(); return; }
     w.feetY=surfY-1.0; w.vy=0; w.grounded=true; w.jumpReq=false;
   }
   else { if(w.inWater){ w.inWater=false; }
@@ -4112,7 +4129,7 @@ $('btn-continue').onclick=()=>begin(false);
 
 /* a small debug handle — used by the automated smoke tests; harmless in play */
 window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
-  TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y};
+  TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth};
 
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0;
