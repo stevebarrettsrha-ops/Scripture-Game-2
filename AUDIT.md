@@ -220,6 +220,23 @@ points and cameras all rescaled to match — she sits notably broader on the scr
   shoaling water) fills it — a fish every ~11 s, up to twelve, with a warning when it
   strains full. Haul to add the catch to the fish tally.
 
+## 4e. Round 6 — wreck-gold, renown and whale-song ✅
+
+- **Treasure in the wrecks**: every sunken ship now bears a banded, glowing sea-chest on
+  her deck. Draw near an unplundered wreck and **a guardian shark is called** to circle
+  it ("the deep does not give up its treasure freely"); break the chest open (F) for
+  30–80 shekels of old silver. Looted wrecks stay looted, saved with the voyage.
+- **Market reputation**: every fish (+1) and pearl (+3) sold at a land market builds
+  your name there — *known* at 10, *trusted* at 25, *honoured* at 40 — and lifts that
+  market's prices for your catch by up to +30%. Shown in the trade panel, told in
+  toasts at each tier, saved per land.
+- **Whale song and the fishing grounds**: teeming grounds lie scattered over the deep,
+  on no chart. A pod of three whales surfaces near the ship, arcing and spouting, and
+  swims for the nearest ground — quickening to trawling pace when the ship follows —
+  then circles over it. Their song (a real two-note WebAudio call) sounds through the
+  hull when they are near, with the word: follow, and the net fills **three times as
+  fast** over a ground.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
