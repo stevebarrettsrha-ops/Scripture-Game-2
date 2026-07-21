@@ -579,11 +579,11 @@ voidWall.position.y=3400; scene.add(voidWall);
 /* ---- BLOWING SNOW at the wall of ice — a particle engine (THREE.Points).
    A cold drift of snow and mist streams on the wind about the traveller as he
    nears the rim, and a cold fog closes in. */
-const SNOW_N=900, SNOW_BOX=260, SNOW_TOP=150;
+const SNOW_N=2800, SNOW_BOX=240, SNOW_TOP=150;
 const snowGeo=new THREE.BufferGeometry(), snowPos=new Float32Array(SNOW_N*3);
 for(let i=0;i<SNOW_N;i++){ snowPos[i*3]=(Math.random()-0.5)*2*SNOW_BOX; snowPos[i*3+1]=Math.random()*SNOW_TOP; snowPos[i*3+2]=(Math.random()-0.5)*2*SNOW_BOX; }
 snowGeo.setAttribute('position',new THREE.BufferAttribute(snowPos,3));
-const snowMat=new THREE.PointsMaterial({color:0xeef4ff,size:1.7,transparent:true,opacity:0,depthWrite:false,fog:false,sizeAttenuation:true});
+const snowMat=new THREE.PointsMaterial({color:0xeef4ff,size:0.85,transparent:true,opacity:0,depthWrite:false,fog:false,sizeAttenuation:true});
 const snow=new THREE.Points(snowGeo,snowMat); snow.frustumCulled=false; snow.visible=false; scene.add(snow);
 const _coldFog=new THREE.Color(0xb6c6da);
 function updateWallWeather(px,pz,dt){
