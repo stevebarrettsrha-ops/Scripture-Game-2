@@ -18,6 +18,9 @@ function cityFor(i){ return CITY_BY_COUNTRY[COUNTRIES[i].n]; }
 /* ---------------- world constants ---------------- */
 const R_WORLD=120000, B=6, CH=16, CHW=B*CH, VIEW=8; /* rim = 20,000 km, 1 block = 1 km */
 const ICE_UV=0.948, SHELF_UV=0.915, WATER_Y=0.35;
+/* every land is a stone standing in the water: its flanks plunge past the
+   waterline down to the bed of the sea, which lies at SUBSEA_Y */
+const SUBSEA_Y=WATER_Y-13;
 /* [sun-speed, name, ship-speed multiplier] */
 const SPEEDS=[[1,'true',1],[1200,'swift',2.2],[14400,'a day in six breaths',5]];
 
@@ -269,6 +272,55 @@ function riverAtUV(u,v){
   return RIVMAP[py*MAPR+px];
 }
 
+/* ================= THE SHOAL MAP =================
+   A distance-to-land field over the whole disc (chamfer transform of the
+   country map). The water shader drinks from it: where the bottom lies
+   near — along every coast and up every river — the sea stands clear and
+   turquoise and the light passes through to the sand; over the true deep
+   it keeps its darkness. */
+let SHOAL_DATA=null; const SHOAL_RES=1024;
+const SHOAL_TEX=(()=>{
+  const N=MAPR, d=new Float32Array(N*N), INF=1e9;
+  for(let i=0;i<N*N;i++) d[i]=IDMAP[i]?0:INF;
+  for(let y=0;y<N;y++) for(let x=0;x<N;x++){ const i=y*N+x; let v=d[i];   /* forward sweep */
+    if(x>0&&d[i-1]+1<v) v=d[i-1]+1;
+    if(y>0){ if(d[i-N]+1<v) v=d[i-N]+1;
+      if(x>0&&d[i-N-1]+1.4<v) v=d[i-N-1]+1.4;
+      if(x<N-1&&d[i-N+1]+1.4<v) v=d[i-N+1]+1.4; }
+    d[i]=v; }
+  for(let y=N-1;y>=0;y--) for(let x=N-1;x>=0;x--){ const i=y*N+x; let v=d[i];   /* backward sweep */
+    if(x<N-1&&d[i+1]+1<v) v=d[i+1]+1;
+    if(y<N-1){ if(d[i+N]+1<v) v=d[i+N]+1;
+      if(x<N-1&&d[i+N+1]+1.4<v) v=d[i+N+1]+1.4;
+      if(x>0&&d[i+N-1]+1.4<v) v=d[i+N-1]+1.4; }
+    d[i]=v; }
+  const R2=SHOAL_RES; let f=new Float32Array(R2*R2);
+  for(let y=0;y<R2;y++) for(let x=0;x<R2;x++){
+    const dist=d[Math.min(N-1,y*2)*N+Math.min(N-1,x*2)];   /* in map pixels, ≈117 units each */
+    f[y*R2+x]=Math.max(0,1-dist/4.5); }
+  /* two 3×3 blur passes — no texel facets on the open water */
+  for(let pass=0;pass<2;pass++){ const g2=new Float32Array(R2*R2);
+    for(let y=0;y<R2;y++) for(let x=0;x<R2;x++){
+      let s2=0,n2=0;
+      for(let dy=-1;dy<=1;dy++){ const yy=y+dy; if(yy<0||yy>=R2) continue;
+        for(let dx=-1;dx<=1;dx++){ const xx=x+dx; if(xx<0||xx>=R2) continue;
+          s2+=f[yy*R2+xx]; n2++; } }
+      g2[y*R2+x]=s2/n2; }
+    f=g2; }
+  const data=new Uint8Array(R2*R2*4); SHOAL_DATA=new Uint8Array(R2*R2);
+  for(let i=0;i<R2*R2;i++){ const b=Math.round(Math.pow(f[i],1.2)*255);
+    data[i*4]=b; data[i*4+1]=b; data[i*4+2]=b; data[i*4+3]=255; SHOAL_DATA[i]=b; }
+  const t=new THREE.DataTexture(data,R2,R2,THREE.RGBAFormat);
+  t.magFilter=THREE.LinearFilter; t.minFilter=THREE.LinearFilter; t.needsUpdate=true;
+  return t;
+})();
+function shoalAt(x,z){
+  const R2=SHOAL_RES;
+  const px=Math.min(R2-1,Math.max(0,Math.round((x/R_WORLD+1)*0.5*R2)));
+  const pz=Math.min(R2-1,Math.max(0,Math.round((z/R_WORLD+1)*0.5*R2)));
+  return SHOAL_DATA[pz*R2+px]/255;
+}
+
 /* Each call returns a FRESH object. (A shared scratch object here once meant
    that querying a neighbour clobbered the current cell mid-mesh: cliff side
    faces were skipped and trees were placed with the neighbour's height.) */
@@ -287,7 +339,23 @@ function cellRaw(ix,iz){
   const dv2=(fbm(u*760-8.1,v*760+9.3)-0.5)*(2.6/HALF);
   const wu=u+du2, wv=v+dv2;
   const ci=countryAtUV(wu,wv);
-  if(!ci) return null;
+  if(!ci){
+    /* UNCHARTED ISLES — small sandy risings of the deep, set on no chart:
+       rare mid-ocean landfalls between the great coasts. Palms in the warm
+       waters, a bare northern rock elsewhere. They never bear a nation. */
+    if(r>0.12&&r<SHELF_UV-0.03){
+      const iso=fbm(wu*240+77,wv*240-31);
+      if(iso>0.82){
+        const t=(iso-0.82)/0.1;
+        let ih=1+Math.floor(t*3+n*1.2);
+        const trop=lat<=28&&lat>-38;
+        let tree=0;
+        if(t>0.3){ if(trop&&j<0.09) tree=2; else if(!trop&&lat<58&&j<0.05) tree=1; }
+        return {h:Math.min(ih,3), kind:t>0.45?(trop?'tropic':'grass'):'sand', tree, ci:0};
+      }
+    }
+    return null;
+  }
   if(riverAtUV(wu,wv)) return null;   /* a river runs here — open water */
   let cnt=0; const s=1.6/HALF;
   if(countryAtUV(wu+s,wv))cnt++; if(countryAtUV(wu-s,wv))cnt++;
@@ -468,6 +536,9 @@ function emitColumn(G,ix,iz,cc){
       else if(d===2) facePZ(G,mat,z1,x0,x1,ya,yb,sh);
       else faceNZ(G,mat,z0,x0,x1,ya,yb,sh); };
     const sh=(d<2)?0.62:0.8;
+    /* the sea beside: the flank keeps going below the waterline, all the
+       way down to the bed — a stone standing in the glass, not upon it */
+    if(!nc) put((cc.kind==='wall'||cc.kind==='floe'||cc.kind==='snow')?'stone':'sand',SUBSEA_Y,base,sh*0.72);
     if(split){ put(sLow,base,yMid,sh); put(sTop,yMid,yT,sh); }
     else put(sTop,base,yT,sh);
   }
@@ -494,14 +565,25 @@ function buildChunk(cx,cz){
   const G=newG();
   for(let a=0;a<CH;a++) for(let b=0;b<CH;b++){
     const ix=cx*CH+a, iz=cz*CH+b, cc=cell(ix,iz);
-    if(!cc){ /* shallow shelf where land lies near: sand seen through the water */
+    if(!cc){ /* the shelf: solid sandy terraces stepping down from the land,
+                each rooted in the bed of the sea — never a floating sheet */
+      const x0=ix*B, z0=iz*B;
+      const step=top=>emitBox(G, x0+0.08,SUBSEA_Y,z0+0.08, x0+B-0.08,top,z0+B-0.08,'sand','sand',null);
       const nb=cell(ix+1,iz)||cell(ix-1,iz)||cell(ix,iz+1)||cell(ix,iz-1);
       if(nb&&nb.kind!=='wall'&&nb.kind!=='floe'){
-        const x0=ix*B, z0=iz*B;
-        faceTop(G,'sand',x0,z0,x0+B,z0+B,WATER_Y-1.5,0.92);
+        step(WATER_Y-1.5);
         /* breaking surf where the swell meets the strand */
         if(nb.kind==='sand'||nb.kind==='tropic'||nb.kind==='grass'||nb.kind==='desert')
           faceTop(G,'surf',x0,z0,x0+B,z0+B,WATER_Y+0.55,1.0);
+      } else if(shoalAt(x0+B/2,z0+B/2)>0.08){       /* only worth probing near a coast */
+        const nb2=cell(ix+1,iz+1)||cell(ix-1,iz-1)||cell(ix+1,iz-1)||cell(ix-1,iz+1)
+          ||cell(ix+2,iz)||cell(ix-2,iz)||cell(ix,iz+2)||cell(ix,iz-2);
+        if(nb2&&nb2.kind!=='wall'&&nb2.kind!=='floe') step(WATER_Y-4.6);
+        else {
+          const nb3=cell(ix+2,iz+2)||cell(ix-2,iz-2)||cell(ix+2,iz-2)||cell(ix-2,iz+2)
+            ||cell(ix+3,iz)||cell(ix-3,iz)||cell(ix,iz+3)||cell(ix,iz-3);
+          if(nb3&&nb3.kind!=='wall'&&nb3.kind!=='floe') step(WATER_Y-9.5);
+        }
       }
       continue;
     }
@@ -558,7 +640,7 @@ const dirL=new THREE.DirectionalLight(0xffffff,0.5); dirL.position.set(0.4,1,0.2
 
 const seaDeep=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),
   new THREE.MeshBasicMaterial({color:0x0c2c48}));
-seaDeep.rotation.x=-Math.PI/2; seaDeep.position.y=-2.5; scene.add(seaDeep);
+seaDeep.rotation.x=-Math.PI/2; seaDeep.position.y=WATER_Y-16; scene.add(seaDeep);
 /* beyond the wall of ice — the OUTER DARKNESS, that no man may look past:
    a tall wall of night just outside the rim, so nothing of "the other side"
    is ever seen — only blackness set with stars, by day as by night. */
@@ -611,7 +693,9 @@ function updateWallWeather(px,pz,dt){
    is lit only by the fog it sits within. */
 const farSeaMat=new THREE.MeshBasicMaterial({color:0x123353});
 const sea=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),farSeaMat);
-sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y-0.7; scene.add(sea);
+/* the dark bed of the sea sits WELL below the surface now, so the sandy
+   shelf along every coast truly shows through the clear shallows above it */
+sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y-12; scene.add(sea);
 
 /* ================= THE WAVES OF THE DEEP =================
    A true trochoidal (Gerstner) sea: several travelling swells summed, so
@@ -660,8 +744,9 @@ const waveMat=new THREE.ShaderMaterial({
   uniforms:{ uTime:{value:0}, uAmp:{value:1}, uCenter:{value:new THREE.Vector2()},
     uLight:{value:new THREE.Color(1,1,1)}, uFogColor:{value:new THREE.Color(0x9fc5e8)},
     uFogNear:{value:260}, uFogFar:{value:870}, uSunDir:{value:new THREE.Vector3(0.4,1,0.25)},
-    uDeep:{value:new THREE.Color(0x14385f)}, uShallow:{value:new THREE.Color(0x3f79b0)},
+    uDeep:{value:new THREE.Color(0x0e2c4e)}, uShallow:{value:new THREE.Color(0x2fb3cf)},
     uMap:{value:seaTex}, uOpacity:{value:0.9}, uCamPos:{value:new THREE.Vector3()},
+    uShoal:{value:SHOAL_TEX},
     uShip:{value:new THREE.Vector4()}, uShipH:{value:0}, uSunCol:{value:new THREE.Color(1,0.96,0.85)} },
   vertexShader:`
     uniform float uTime, uAmp; uniform vec2 uCenter;
@@ -681,7 +766,7 @@ const waveMat=new THREE.ShaderMaterial({
     }`,
   fragmentShader:`
     precision highp float;
-    uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow, uCamPos, uSunCol; uniform sampler2D uMap;
+    uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow, uCamPos, uSunCol; uniform sampler2D uMap, uShoal;
     uniform float uFogNear, uFogFar, uOpacity, uTime, uShipH; uniform vec4 uShip;
     varying vec3 vNormal, vWorld; varying float vHeight, vFog; varying vec2 vUv, vP;
     float h21(vec2 p){ return fract(sin(dot(p,vec2(41.3,289.1)))*43758.5); }
@@ -691,7 +776,15 @@ const waveMat=new THREE.ShaderMaterial({
       vec3 L=normalize(uSunDir);
       float diff=clamp(dot(N,L),0.0,1.0);
       vec3 tex=texture2D(uMap,vUv).rgb;
-      vec3 base=mix(uDeep,uShallow,clamp(vHeight*0.22+0.5,0.0,1.0));
+      /* how near the land lies beneath: 1 clear shallow → 0 the true deep
+         (smoothstepped so the field rolls off without banding) */
+      float shoalRaw=texture2D(uShoal, vP*${(0.5/R_WORLD).toFixed(10)}+0.5).r;
+      float shoal=smoothstep(0.03,0.9,shoalRaw);
+      float deepF=1.0-shoal;
+      /* colour by real depth — turquoise over the shallows, dark over the deep —
+         with a breath of the old wave-height shading kept within it */
+      vec3 base=mix(uShallow,uDeep,deepF);
+      base*=0.88+0.24*clamp(vHeight*0.22+0.5,0.0,1.0);
       vec3 col=base*(0.62+0.5*diff)*(0.82+0.36*tex.b);
       /* crest foam — only the very tallest crests, so the sea stays blue */
       float foam=smoothstep(2.3,3.4,vHeight);
@@ -702,22 +795,41 @@ const waveMat=new THREE.ShaderMaterial({
       float d=max(0.0,-along+6.0);
       float arm=smoothstep(4.5,0.0,abs(abs(side)-d*0.33))*smoothstep(230.0,0.0,d);
       float cen=smoothstep(9.0+d*0.14,0.0,abs(side))*smoothstep(80.0,0.0,d)*0.6;
-      float collar=smoothstep(20.0,7.0,length(rel));
+      float collar=smoothstep(38.0,13.0,length(rel));
       float wob=0.6+0.4*sin(vP.x*0.6+vP.y*0.55+uTime*7.0);
       float wake=clamp((arm+cen+collar*0.8)*spd*wob*near,0.0,1.0);
-      float allFoam=clamp(foam*0.32+wake*0.95,0.0,1.0);
+      /* SHORE-LAPPING WASH — rings of foam marching down the shoal gradient,
+         so each line of surf wraps the coast and runs up the strand in turn,
+         broken ragged by the water texture so no two waves break alike */
+      float lap=0.0;
+      if(shoalRaw>0.5){
+        float ring=fract(shoalRaw*7.0-uTime*0.32);
+        float crest=smoothstep(0.58,0.88,ring)-smoothstep(0.9,1.0,ring);
+        float brk=0.35+0.75*texture2D(uMap, vP*0.008+vec2(uTime*0.006,uTime*0.004)).b;
+        lap=clamp(crest,0.0,1.0)*smoothstep(0.5,0.85,shoalRaw)*brk;
+        /* and a standing line of white wash right at the water's edge */
+        lap+=smoothstep(0.9,0.99,shoalRaw)*brk*(0.5+0.3*sin(uTime*1.7+shoalRaw*40.0));
+      }
+      float allFoam=clamp(foam*0.32+wake*0.95+lap,0.0,1.0);
       col=mix(col,vec3(0.88,0.93,1.0),allFoam);
       col*=uLight;
-      /* sun specular + glitter — a tight highlight, not a sheet of glare */
+      /* sun specular + glitter — the sun's path burning on the swell */
       vec3 H=normalize(V+L);
       float spec=pow(max(dot(N,H),0.0),140.0);
       float glit=pow(max(dot(N,H),0.0),40.0)*(0.5+0.5*h21(floor(vP*1.7)+floor(uTime*9.0)));
-      col+=uSunCol*(spec*1.3+glit*0.18)*diff;
-      /* fresnel sky sheen toward grazing angles — subtle */
+      col+=uSunCol*(spec*1.8+glit*0.2)*diff;
+      /* caustic sparkle where the light passes through to the sand */
+      col+=uSunCol*glit*0.3*shoal*diff;
+      /* fresnel — the sky truly mirrored at grazing angles */
       float fres=pow(1.0-max(dot(N,V),0.0),5.0);
-      col=mix(col,uFogColor,fres*0.14);
+      col=mix(col,uFogColor*1.05,fres*0.45);
+      /* transparency by depth: the shallows let the bottom show through,
+         the deep keeps its darkness; a mirror-skin at grazing angles */
+      float aa=mix(0.55,0.93,deepF);
+      aa=mix(aa,0.985,fres*0.6);
+      aa=max(aa,allFoam*0.95);
       float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
-      gl_FragColor=vec4(mix(col,uFogColor,ff),uOpacity);
+      gl_FragColor=vec4(mix(col,uFogColor,ff),aa);
     }`
 });
 const waveGrid=new THREE.Mesh(waveGeo,waveMat);
@@ -822,7 +934,8 @@ const state={ simHours:9.5, speedIdx:1, paused:false,
   fly:{x:0,y:0,z:0,heading:0,vy:0,sp:0}, prevGround:'boat',
   dive:{x:0,y:0,z:0,heading:0,vy:0,sp:0},
   windMode:'true', firm:false, firmDist:0, camYaw:0, camPitch:0.42, camDist:96,
-  visited:new Set(), dist:0 };
+  visited:new Set(), dist:0, fish:0, fishing:null, coins:30, cargo:{}, game:0,
+  breath:1, immBreath:false, pearls:0, repel:false, net:null };
 
 /* ================= THE WINDS =================
    The bands of the disc mirror the true circulation: trade easterlies in
@@ -935,9 +1048,19 @@ function texBox(w,h,d, matSide, matTop, matBot){
    bowsprit over the bow. Local +z is FORWARD (the bow); the quarterdeck and
    helm sit aft at -z, in view of the following camera. The deck is a real
    place — the traveller stands at the wheel to sail, and can walk the planks. */
+/* Hull-local proportions (the hull is built at these, then scaled up whole). */
 const DECK_Y=6.2, QDECK_Y=11, FDECK_Y=8.8, FDECK_Z=17.5, QDECK_Z=-17.6, HELM={x:0,z:-22.6}, WHEEL_Z=-20.4;
+/* SHIP_S doubles her in every dimension — a great galleon, deck room for
+   twelve souls and more, and a walkable cargo hold below the waist deck.
+   SHIP_SX widens the beam further still, so she sits broad upon the screen. */
+const SHIP_S=2.0, SHIP_SX=SHIP_S*1.4;
+const SD={ deckY:DECK_Y*SHIP_S, qdeckY:QDECK_Y*SHIP_S, fdeckY:FDECK_Y*SHIP_S,
+  fdeckZ:FDECK_Z*SHIP_S, qdeckZ:QDECK_Z*SHIP_S, helmZ:HELM.z*SHIP_S, wheelZ:WHEEL_Z*SHIP_S };
+const HOLD={halfX:2.9*SHIP_SX, z0:-19*SHIP_S, z1:23*SHIP_S, y:0.55*SHIP_S};
+const HATCH={x:0, z:4.6*SHIP_S, r:3.8*SHIP_S};
 const boatG=new THREE.Group();
-{ const add=(m,x,y,z)=>{ m.position.set(x,y,z); boatG.add(m); return m; };
+const hullG=new THREE.Group(); hullG.scale.set(SHIP_SX,SHIP_S,SHIP_S); boatG.add(hullG);
+{ const add=(m,x,y,z)=>{ m.position.set(x,y,z); hullG.add(m); return m; };
   /* ---- hull with rising sheer: waist, stepped prow, stern run ---- */
   add(texBox(14,6.4,52,'planks','planks'),0,3.0,-2);           // waist, deck top 6.2
   add(texBox(13,2.2,8,'planks','planks'),0,1.1,30);
@@ -988,10 +1111,10 @@ const boatG=new THREE.Group();
   /* stern-cabin windows and a pair of stern lanterns */
   { const gm=new THREE.MeshBasicMaterial({map:TEX.glass,transparent:true,depthWrite:false});
     for(const wx of [-3.5,0,3.5]){ const win=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.6),gm);
-      win.position.set(wx,5.2,-33.06); win.rotation.y=Math.PI; boatG.add(win); } }
+      win.position.set(wx,5.2,-33.06); win.rotation.y=Math.PI; hullG.add(win); } }
   for(const s of [1,-1]){ const lan=new THREE.Mesh(new THREE.BoxGeometry(1,1.2,1),torchMat);
-    lan.position.set(s*6.2,13.4,-27.4); boatG.add(lan); }
-  const flag=texBox(4,2,0.3,'hayTop'); flag.position.set(2,DECK_Y+48.5,-3); boatG.add(flag);
+    lan.position.set(s*6.2,13.4,-27.4); hullG.add(lan); }
+  const flag=texBox(4,2,0.3,'hayTop'); flag.position.set(2,DECK_Y+48.5,-3); hullG.add(flag);
   /* ---- the fine work, merged into a handful of draw calls: twin wales,
           stays and shrouds as stepped rigging, crow's nests, deck stores ---- */
   const G=newG();
@@ -1016,50 +1139,194 @@ const boatG=new THREE.Group();
     emitBox(G,-1.4,y+0.7,z-1.9,  1.4,y+2.0,z-1.4,'planks','planks',null);
     emitBox(G,-1.4,y+0.7,z+1.4,  1.4,y+2.0,z+1.9,'planks','planks',null); };
   nest(14,DECK_Y+24.5); nest(-4,DECK_Y+33.5); nest(-25.5,QDECK_Y+18.5);
-  emitBox(G,-2.2,DECK_Y,2.4, 2.2,DECK_Y+0.5,6.8,'benchTop','benchTop',null);   // deck grate
+  /* the hatchway down to the hold, amidships (an open coaming, no cover) */
+  emitBox(G,-2.2,DECK_Y,2.4, -1.7,DECK_Y+0.5,6.8,'benchTop','benchTop',null);
+  emitBox(G, 1.7,DECK_Y,2.4,  2.2,DECK_Y+0.5,6.8,'benchTop','benchTop',null);
+  emitBox(G,-1.7,DECK_Y,2.4,  1.7,DECK_Y+0.5,2.9,'benchTop','benchTop',null);
+  emitBox(G,-1.7,DECK_Y,6.3,  1.7,DECK_Y+0.5,6.8,'benchTop','benchTop',null);
   for(const [bx,bz] of [[4.8,8],[-4.8,-2],[4.8,-12]])
     emitBox(G,bx-0.8,DECK_Y,bz-0.8, bx+0.8,DECK_Y+2.0,bz+0.8,'logSide','logTop',null);
   emitBox(G,-4.9,DECK_Y,13.2, -3.3,DECK_Y+1.6,14.8,'planks','benchTop',null);  // a crate
+  /* benches along the bulwarks — seats enough for twelve and more */
+  for(const s of [1,-1]){
+    emitBox(G, s*5.9-0.55,DECK_Y,-14, s*5.9+0.55,DECK_Y+0.9,4,'benchSide','benchTop',null);
+    emitBox(G, s*5.9-0.55,DECK_Y, 6.5, s*5.9+0.55,DECK_Y+0.9,15,'benchSide','benchTop',null);
+  }
+  /* ---- THE CARGO HOLD, below the waist deck: plank floor, ribs, a ladder
+          at the hatch, and rows of barrels, crates and grain-sacks ---- */
+  faceTop(G,'planks', -6.4,-20.5, 6.4,23.6, 0.5, 0.85);          // the hold floor
+  for(const rz of [-16,-8,0,8,16]){                              // hull ribs
+    emitBox(G,-6.9,0.5,rz-0.4, -6.3,6.2,rz+0.4,'logSide','logSide',null);
+    emitBox(G, 6.3,0.5,rz-0.4,  6.9,6.2,rz+0.4,'logSide','logSide',null); }
+  { let n=0;
+    for(let z=-17; z<=21; z+=3.4){ n++;
+      for(const s of [1,-1]){ const x=s*4.6, kind=(n+(s>0?0:1))%3;
+        if(kind===0){ emitBox(G,x-0.95,0.5,z-0.95, x+0.95,2.9,z+0.95,'logSide','logTop',null);       /* barrel */
+          if(n%2) emitBox(G,x-0.8,2.9,z-0.8, x+0.8,4.9,z+0.8,'logSide','logTop',null); }
+        else if(kind===1){ emitBox(G,x-1.15,0.5,z-1.15, x+1.15,2.7,z+1.15,'planks','benchTop',null); /* crate */
+          if(n%3===0) emitBox(G,x-0.9,2.7,z-0.9, x+0.9,4.4,z+0.9,'planks','benchTop',null); }
+        else emitBox(G,x-1.0,0.5,z-1.0, x+1.0,1.9,z+1.0,'haySide','hayTop',null);                     /* sacks */
+      } } }
+  /* the ladder under the hatch */
+  for(let r=0;r<7;r++){ const ry=0.9+r*0.8;
+    emitBox(G,-0.9,ry,6.05, 0.9,ry+0.28,6.35,'logSide','logSide',null); }
+  emitBox(G,-1.05,0.5,6.0, -0.75,6.2,6.4,'logSide','logTop',null);
+  emitBox(G, 0.75,0.5,6.0,  1.05,6.2,6.4,'logSide','logTop',null);
+  /* hold lanterns, ever burning */
+  for(const lz of [-10,10]){ const lan=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.85,0.7),torchMat);
+    lan.position.set(0,5.6,lz); hullG.add(lan);
+    const gm2=new THREE.SpriteMaterial({map:glowTexCv,transparent:true,opacity:0.4,depthWrite:false});
+    const gs=new THREE.Sprite(gm2); gs.scale.set(11,11,1); gs.position.set(0,5,lz); hullG.add(gs); }
   for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
     bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
     bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
     bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
-    bg.setIndex(gg.i); boatG.add(new THREE.Mesh(bg,MAT[mat])); }
+    bg.setIndex(gg.i); hullG.add(new THREE.Mesh(bg,MAT[mat])); }
   boatG.userData={flag,wheel};
   scene.add(boatG); }
-/* walkable regions of the deck, in ship-local coordinates */
-const DECK_OBS=[[0,14,2.0],[0,-4,2.0],[0,-25.5,1.9],[4.8,8,1.2],[-4.8,-2,1.2],[4.8,-12,1.2],[-4.1,14,1.4]];
+/* walkable regions of the deck, in ship-local WORLD coordinates (scaled) */
+const DECK_OBS=[[0,14,2.0],[0,-4,2.0],[0,-25.5,1.9],[4.8,8,1.4],[-4.8,-2,1.4],[4.8,-12,1.4],[-4.1,14,1.4]]
+  .map(o=>[o[0]*SHIP_SX,o[1]*SHIP_S,o[2]*SHIP_S]);
 function deckAllowed(lx,lz){
-  if(Math.abs(lx)>5.8) return false;
-  if(lz>25.2||lz<-27.0) return false;
+  if(Math.abs(lx)>5.8*SHIP_SX) return false;
+  if(lz>25.2*SHIP_S||lz<-27.0*SHIP_S) return false;
+  if(Math.abs(lx)<1.7*SHIP_SX&&lz>2.9*SHIP_S&&lz<6.3*SHIP_S) return false;   /* the open hatchway */
   for(const o of DECK_OBS){ if(Math.hypot(lx-o[0],lz-o[1])<o[2]) return false; }
-  if(lz<QDECK_Z&&Math.hypot(lx,lz-WHEEL_Z)<1.6) return false;
+  if(lz<SD.qdeckZ&&Math.hypot(lx,lz-SD.wheelZ)<1.6*SHIP_SX) return false;
   return true;
 }
-function deckHeightAt(lz){ return lz<QDECK_Z?QDECK_Y:(lz>FDECK_Z?FDECK_Y:DECK_Y); }
+function deckHeightAt(lz){ return lz<SD.qdeckZ?SD.qdeckY:(lz>SD.fdeckZ?SD.fdeckY:SD.deckY); }
+/* walkable aisle of the cargo hold (between the cargo rows) */
+function holdAllowed(lx,lz){
+  return Math.abs(lx)<HOLD.halfX && lz>HOLD.z0 && lz<HOLD.z1;
+}
+/* ================= THE CREW =================
+   Six sailors keep the deck alive: a lookout at the bow shading his eyes,
+   a mate by the helm, and hands who walk the waist and haul on the lines. */
+const CREW=[];
+function initCrew(){ if(CREW.length) return;
+  const posts=[
+    {lx:0,lz:21*SHIP_S,kind:'watch'},
+    {lx:-2.5*SHIP_SX,lz:-19*SHIP_S,kind:'mate'},
+    {lx:3.5*SHIP_SX,lz:8*SHIP_S,kind:'hand'},
+    {lx:-3.5*SHIP_SX,lz:-8*SHIP_S,kind:'hand'},
+    {lx:4.5*SHIP_SX,lz:-2*SHIP_S,kind:'hand'},
+    {lx:-4.5*SHIP_SX,lz:14*SHIP_S,kind:'hand'}];
+  for(let k=0;k<posts.length;k++){ const p=posts[k];
+    const m=makePerson(9000+k*13,'sailor',false,false);
+    m.position.set(p.lx,deckHeightAt(p.lz),p.lz); boatG.add(m);
+    CREW.push({m,kind:p.kind,hx:p.lx,hz:p.lz,tx:p.lx,tz:p.lz,t:k*1.7}); } }
+function crewTick(dt){ initCrew();
+  const ph=performance.now()*0.012;
+  for(const c of CREW){
+    c.t-=dt;
+    const u=c.m.userData;
+    if(c.kind==='hand'){
+      if(c.t<=0){ c.t=3+Math.random()*5;
+        for(let tr=0;tr<6;tr++){ const a=Math.random()*6.28, r=Math.random()*9*SHIP_S;
+          const nx=c.hx+Math.cos(a)*r, nz=c.hz+Math.sin(a)*r;
+          if(deckAllowed(nx,nz)){ c.tx=nx; c.tz=nz; break; } } }
+      const dx=c.tx-c.m.position.x, dz=c.tz-c.m.position.z, d=Math.hypot(dx,dz);
+      let moving=false;
+      if(d>0.5){ const nx=c.m.position.x+dx/d*6*dt, nz=c.m.position.z+dz/d*6*dt;
+        if(deckAllowed(nx,nz)){ c.m.position.x=nx; c.m.position.z=nz;
+          c.m.rotation.y=Math.atan2(dx,dz); moving=true; } else c.t=0; }
+      c.m.position.y=deckHeightAt(c.m.position.z);
+      for(const L of u.legs) L.rotation.x=moving?Math.sin(ph+(L.userData.ph||0))*0.55:0;
+      if(!moving&&c.t<1.4){ u.armL.rotation.x=-0.8+Math.sin(ph*0.4)*0.4; u.armR.rotation.x=-0.8-Math.sin(ph*0.4)*0.4; } /* hauling a line */
+    } else {
+      c.m.position.y=deckHeightAt(c.m.position.z);
+      c.m.rotation.y=(c.kind==='watch'?0:Math.PI)+Math.sin(performance.now()*0.0005+c.hx)*0.7;
+      if(c.kind==='watch'){ u.armR.rotation.x=-1.5; }   /* a hand shading the eyes */
+    }
+  }
+}
+/* ================= PASSING TRADERS — SAILS ON THE HORIZON =================
+   Lesser merchantmen ply the same seas: they appear on the horizon, hold
+   their course, steer off the land, and pass by — the deep is not empty. */
+const TRADERS=[];
+function initTraders(){ if(TRADERS.length) return;
+  for(let k=0;k<2;k++){ const g=new THREE.Group();
+    const h=hullG.clone(); h.scale.set(SHIP_SX*0.62,SHIP_S*0.62,SHIP_S*0.62); g.add(h);
+    g.visible=false; scene.add(g);
+    TRADERS.push({g,x:0,z:0,h:0,sp:18+k*7,set:false}); } }
+function traderTick(px,pz,dt){ initTraders();
+  for(const T of TRADERS){
+    if(!T.set||Math.hypot(T.x-px,T.z-pz)>4200){
+      const a=Math.random()*6.28, r=1400+Math.random()*1800;
+      const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
+      if(landAtWorld(x,z)||Math.hypot(x,z)/R_WORLD>0.93){ T.g.visible=false; T.set=false; continue; }
+      T.x=x; T.z=z; T.h=Math.random()*6.28; T.set=true; T.g.visible=true; }
+    if(T.halt&&T.halt>0){ T.halt-=dt; }                                   /* hove to for the trading */
+    else {
+      const ax=T.x+Math.sin(T.h)*140, az=T.z+Math.cos(T.h)*140;
+      if(landAtWorld(ax,az)||Math.hypot(ax,az)/R_WORLD>0.93) T.h+=dt*0.8; /* bear away from the shoals */
+      T.x+=Math.sin(T.h)*T.sp*dt; T.z+=Math.cos(T.h)*T.sp*dt;
+    }
+    const hd=seaHeight(T.x,T.z);
+    T.g.position.set(T.x,WATER_Y-1.4+hd*0.6,T.z);
+    T.g.rotation.y=T.h; T.g.rotation.z=Math.sin(performance.now()*0.0009+T.x*0.01)*0.04;
+  } }
+function hideTraders(){ for(const T of TRADERS){ T.g.visible=false; T.set=false; } }
+/* ================= THE TRAWL NET =================
+   Cast astern (N or the button), trawl slow and steady — best over
+   shoaling water — and the sea fills the mesh. Haul it, and the catch
+   joins the fish tally. She drags: the ship loses a quarter of her way. */
+let netG=null;
+function ensureNet(){ if(netG) return;
+  netG=new THREE.Group();
+  for(const s of [1,-1]){ const rope=lbox(0.5,0.5,26,0x6a5a3a);
+    rope.position.set(s*5,8,-72); rope.rotation.x=0.42; netG.add(rope); }
+  const bagM=new THREE.MeshLambertMaterial({color:0x38424e});
+  const bag=new THREE.Mesh(new THREE.BoxGeometry(11,5,14),bagM); bag.position.set(0,-1.2,-88); netG.add(bag);
+  const bag2=new THREE.Mesh(new THREE.BoxGeometry(7,3.6,8),bagM); bag2.position.set(0,-0.6,-99); netG.add(bag2);
+  netG.userData={bag,bag2};
+  netG.visible=false; boatG.add(netG); }
+function toggleNet(){
+  if(state.mode!=='boat'&&state.mode!=='deck'){ toast('The net is worked from the ship — take the deck or the helm.'); return; }
+  if(!state.net){ ensureNet(); netG.visible=true; state.net={catch:0,t:0};
+    $('b-net').textContent='🕸 Haul the net';
+    toast('You cast the net astern — trawl slow and steady over shoaling water, and the sea will fill it.'); }
+  else { const c=state.net.catch; state.fish=(state.fish||0)+c;
+    if(netG) netG.visible=false; state.net=null; $('b-net').textContent='🕸 Cast the net';
+    toast(c?('You haul the net — '+c+' fish glisten in the mesh. Fish in the log: '+state.fish+'.')
+      :'You haul the net empty — trawl slower, and where the water shoals.');
+    saveState(); }
+}
+function netTick(dt){ if(!state.net) return;
+  const sp=Math.abs(state.boat.speed);
+  if(sp>2&&sp<34){
+    const sh=shoalAt(state.boat.x,state.boat.z);
+    state.net.t+=dt*(sh>0.08?1.35:1);            /* the shoals give more */
+    if(state.net.t>=11){ state.net.t=0;
+      if(state.net.catch<12){ state.net.catch++;
+        if(state.net.catch===12) toast('The net strains at its ropes, full to bursting — haul it in!'); } } }
+  if(netG&&netG.visible){ const t2=performance.now()*0.001, u=netG.userData;
+    u.bag.position.y=-1.2+Math.sin(t2*1.3)*0.7; u.bag2.position.y=-0.6+Math.sin(t2*1.5+1)*0.8; }
+}
 
 /* ================= THE TRAVELLER (steve-fashion) ================= */
 function lam(col){ return new THREE.MeshLambertMaterial({color:col}); }
 function lbox(w,h,d,col){ return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),lam(col)); }
-const SKIN_RGB=[199,140,95], HAIR_RGB=[74,50,30], ROBE_A=[56,66,116], ROBE_D=[46,56,100];
+/* Steve-fashion: dark brown hair in a clean, straight fringe (no ragged edge),
+   sideburns down the temples, a bowl of hair on top and round the back. */
+const SKIN_RGB=[199,140,95], HAIR_RGB=[46,32,18], ROBE_A=[56,66,116], ROBE_D=[46,56,100];
 const faceTexP=mkTex(g=>{ g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,0,16,16);
-  for(let y=0;y<6;y++) for(let x=0;x<16;x++){                 /* hair and its uneven fringe */
-    if(y<4||hash2(x*3.1,y*7.7)>0.45){ const c=jit(HAIR_RGB,26,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } }
-  g.fillStyle='rgb(56,38,22)'; g.fillRect(2,6,5,1); g.fillRect(9,6,5,1);      /* brows */
-  g.fillStyle='rgb(255,255,255)'; g.fillRect(2,8,2,2); g.fillRect(12,8,2,2);  /* wide eyes */
-  g.fillStyle='rgb(62,88,140)';  g.fillRect(4,8,2,2); g.fillRect(10,8,2,2);
-  g.fillStyle='rgb(160,105,70)'; g.fillRect(7,9,2,3);                          /* the nose */
-  g.fillStyle='rgb(120,72,48)'; g.fillRect(5,13,6,1); g.fillRect(4,12,1,1); g.fillRect(11,12,1,1); });
-const hairTopTex=mkTex(g=>speckle(g,HAIR_RGB,24,[60,40,24],0.35));
+  for(let y=0;y<4;y++) for(let x=0;x<16;x++){                 /* the straight fringe */
+    const c=jit(HAIR_RGB,16,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); }
+  for(let y=4;y<8;y++) for(const x of [0,1,14,15]){           /* sideburns */
+    const c=jit(HAIR_RGB,16,x*7+y); P(g,x,y,rgb(c[0],c[1],c[2])); }
+  g.fillStyle='rgb(255,255,255)'; g.fillRect(3,8,2,2); g.fillRect(11,8,2,2);  /* eyes */
+  g.fillStyle='rgb(84,60,150)';  g.fillRect(5,8,2,2); g.fillRect(9,8,2,2);    /* violet-blue, steve-fashion */
+  g.fillStyle='rgb(160,105,70)'; g.fillRect(7,10,2,2);                         /* the nose */
+  g.fillStyle='rgb(106,66,40)'; g.fillRect(6,13,4,1); g.fillRect(5,12,1,1); g.fillRect(10,12,1,1); /* the mouth */ });
+const hairTopTex=mkTex(g=>speckle(g,HAIR_RGB,14,[38,26,14],0.35));
 const hairSideTex=mkTex(g=>{ g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,0,16,16);
-  for(let y=0;y<16;y++) for(let x=0;x<16;x++){
-    const edge=(x<3)?7:0;
-    if(y<6+edge||hash2(x*5.3,y*3.9)<(y<9?0.35:0)){ const c=jit(HAIR_RGB,24,x*17+y);
-      P(g,x,y,rgb(c[0],c[1],c[2])); } } });
+  for(let y=0;y<7;y++) for(let x=0;x<16;x++){                 /* a straight bowl edge */
+    const c=jit(HAIR_RGB,14,x*17+y); P(g,x,y,rgb(c[0],c[1],c[2])); } });
 const hairBackTex=mkTex(g=>{ g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,0,16,16);
-  for(let y=0;y<16;y++) for(let x=0;x<16;x++){
-    if(y<11||hash2(x*4.7,y*5.1)<0.5){ const c=jit(HAIR_RGB,24,x*13+y*3);
-      P(g,x,y,rgb(c[0],c[1],c[2])); } } });
+  for(let y=0;y<8;y++) for(let x=0;x<16;x++){
+    const c=jit(HAIR_RGB,14,x*13+y*3); P(g,x,y,rgb(c[0],c[1],c[2])); } });
 /* the ancient robe: indigo cloth, folds, gold trim; front carries the neckline */
 const robeSideTexP=mkTex(g=>{ speckle(g,ROBE_A,16,ROBE_D,0.3);
   g.fillStyle='rgba(0,0,0,0.25)'; for(const x of [2,7,12]) g.fillRect(x,3,1,13);
@@ -1158,15 +1425,22 @@ function personHeadMats(si,hi){
   const mats=[hairM,hairM,hairM,lam(sk),faceM,hairM];   // [px,nx,top,bottom,front,back]
   personHead[key]=mats; return mats;
 }
-function makePerson(seed, role, child){
+function makePerson(seed, role, child, female){
   const g=new THREE.Group();
   const si=Math.floor(hash2(seed,1.1)*P_SKIN.length);
   const hi=Math.floor(hash2(seed,2.3)*P_HAIR.length);
   const robeM=robeMatFor(Math.floor(hash2(seed,3.7)*ROBES.length));
   const head=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),personHeadMats(si,hi));
   head.position.y=10.4; g.add(head);
+  if(female){ /* long hair falling to the shoulders behind and beside */
+    const hm=lam(hairHex(P_HAIR[hi]));
+    const back=new THREE.Mesh(new THREE.BoxGeometry(3.2,3.6,0.6),hm); back.position.set(0,9.0,-1.6); g.add(back);
+    for(const s of [1,-1]){ const fall=new THREE.Mesh(new THREE.BoxGeometry(0.6,2.6,2.6),hm);
+      fall.position.set(s*1.75,9.4,-0.3); g.add(fall); } }
   const body=new THREE.Mesh(new THREE.BoxGeometry(3,4.6,1.7),robeM); body.position.y=6.6; g.add(body);
-  const hem=lbox(3.2,1.0,2.0,0x3a2c1c); hem.position.y=4.1; g.add(hem);
+  /* women wear the robe to the ankle; men show sandalled shins */
+  const hem=female?new THREE.Mesh(new THREE.BoxGeometry(3.3,3.6,2.1),robeM):lbox(3.2,1.0,2.0,0x3a2c1c);
+  hem.position.y=female?2.8:4.1; g.add(hem);
   const legMat=lam(0x2e3350);
   const legL=new THREE.Mesh(new THREE.BoxGeometry(1.35,4.2,1.5),legMat);
   legL.geometry.translate(0,-2.1,0); legL.position.set(0.74,4.3,0); legL.userData.ph=0; g.add(legL);
@@ -1180,8 +1454,19 @@ function makePerson(seed, role, child){
   else if(role==='herder'){ const staff=lbox(0.3,8.5,0.3,0x7a5a30); staff.position.set(2.6,8.6,0);
       staff.rotation.z=0.12; g.add(staff); }
   else if(role==='teacher'){ const scroll=lbox(1.3,0.6,0.6,0xe8dfc8); scroll.position.set(2.4,7,1.2); g.add(scroll); }
+  else if(role==='farmer'){ const hoe=lbox(0.3,7.5,0.3,0x7a5a30); hoe.position.set(2.6,8.0,0.4);
+      hoe.rotation.x=0.2; g.add(hoe);
+    const blade=lbox(1.1,0.4,0.9,0x9aa0a8); blade.position.set(2.6,11.5,1.2); g.add(blade); }
+  let rod=null;
+  if(role==='fisher'){ rod=lbox(0.26,9.5,0.26,0x8a6a3a); rod.position.set(2.5,9.5,2.6);
+      rod.rotation.x=1.05; g.add(rod);
+    const line=lbox(0.09,4.6,0.09,0x20242c); line.position.set(2.5,7.4,6.6); g.add(line);
+    const bob=lbox(0.5,0.5,0.5,0xd0472e); bob.position.set(2.5,5.0,6.6); g.add(bob); }
+  else if(role==='feeder'){ const basket=lbox(1.6,1.1,1.1,0xb08a48); basket.position.set(2.3,6.4,0.9); g.add(basket); }
+  else if(role==='water'){ const jar=lbox(1.4,1.8,1.4,0x9a6242); jar.position.set(0,12.9,0); g.add(jar);
+    const rim=lbox(1.0,0.4,1.0,0x7a4a32); rim.position.set(0,13.9,0); g.add(rim); }
   if(child) g.scale.set(0.62,0.62,0.62);
-  g.userData={legs:[legL,legR,armL,armR]};
+  g.userData={legs:[legL,legR,armL,armR],armL,armR,rod,female:!!female};
   return g;
 }
 function makeAnimal(kind){
@@ -1378,13 +1663,22 @@ TEX.sponge  =mkTex(g=>speckle(g,[224,176,64],28,[190,142,48],0.4));
    From open water the traveller dives (C), swims in three dimensions
    (W/S · A/D · SPACE up · SHIFT down), and comes up again to draw breath. */
 const DIVE_TURN=1.7, DIVE_MAXSP=155, DIVE_VMAX=125, DIVE_VACC=320, SEA_SURF=WATER_Y;
-let diveHintShown=false, deepShown=false;
+let diveHintShown=false, deepShown=false, swimDeepHintShown=false;
 function seabedDepth(x,z){
   const roll=fbm(x*0.02+11,z*0.02-7), basin=fbm(x*0.004-5,z*0.004+9);
   const trench=Math.pow(Math.max(0,fbm(x*0.0016+30,z*0.0016)-0.55)/0.45,1.6);
   const ridge=Math.pow(Math.max(0,fbm(x*0.003+70,z*0.003-40)-0.47)/0.53,1.7);   /* undersea mountains */
   const peak=ridge*(360+fbm(x*0.011-3,z*0.011+6)*120);                          /* tall ridges, some breaking the surface */
-  return SEA_SURF-(20+roll*30+basin*120+trench*540-peak); }   /* +peaks above the waves … −700 trenches */
+  let y=SEA_SURF-(20+roll*30+basin*120+trench*540-peak);      /* +peaks above the waves … −700 trenches */
+  /* ONE sea, one bed: near the coasts the floor rises to meet the shelf at
+     the land's foot (the same shoal field the surface water reads), so a
+     swimmer can go down a coastal flank and keep going — sand at the
+     strand, sloping away seamlessly into the kelp and coral basins */
+  const s=shoalAt(x,z);
+  if(s>0.02){ const t=Math.min(1,s/0.75), tt=t*t*(3-2*t);
+    y=y*(1-tt)+(SUBSEA_Y+0.4)*tt;
+    y=Math.min(y,SEA_SURF-6); }      /* no ridge breaches the surface where a coast is near */
+  return y; }
 /* ---- the seabed: a displaced, shaded floor that follows the diver ---- */
 const SB_SEG=96, SB_SIZE=3200;
 const sbGeo=new THREE.PlaneGeometry(SB_SIZE,SB_SIZE,SB_SEG,SB_SEG); sbGeo.rotateX(-Math.PI/2);
@@ -1522,16 +1816,45 @@ function makeShark(){ const g=new THREE.Group();
   const eL=lbox(0.4,0.4,0.4,0x0a0f14); eL.position.set(1.3,0.6,6); g.add(eL); const eR=eL.clone(); eR.position.x=-1.3; g.add(eR);
   const tail=new THREE.Group(); tail.add(tailU); g.userData={tail}; return g; }
 const SHARKS=[], SHK_N=2, SHK_R=560;
+let sharkWarnT=-99;
 function initSharks(){ if(SHARKS.length) return; for(let k=0;k<SHK_N;k++){ const m=makeShark(); m.visible=false; scene.add(m);
-  SHARKS.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false}); } }
+  SHARKS.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false,cool:0}); } }
 function updateSharks(px,py,pz,dt,t){ initSharks();
   for(const s of SHARKS){ if(!s.set||Math.hypot(s.x-px,s.z-pz)>SHK_R+180){
       const a=Math.random()*6.28, r=180+Math.random()*320; s.x=px+Math.cos(a)*r; s.z=pz+Math.sin(a)*r;
       const fy=seabedDepth(s.x,s.z); s.y=fy+18+Math.random()*45; s.dir=Math.random()*6.28; s.set=true; s.m.visible=true; }
-    s.dir+=Math.sin(t*0.25+s.ph)*0.03; const sp=13; s.x+=Math.cos(s.dir)*sp*dt; s.z+=Math.sin(s.dir)*sp*dt; s.y+=Math.sin(t*0.5+s.ph)*3*dt;
-    const fy=seabedDepth(s.x,s.z); s.y=Math.max(fy+10,Math.min(SEA_SURF-8,s.y));
+    s.cool=(s.cool||0)-dt;
+    /* THE HUNT — the wolf logic of the land, loosed in the water. A diver
+       within scent is run down and bitten: the shark tears fish from the
+       catch and steals the breath from the chest (the immortal breath is
+       no shield against teeth). The repelling of beasts (🛡) stays them. */
+    let sp=13, hunting=false;
+    const dvx=px-s.x, dvz=pz-s.z, dvy=py-s.y;
+    const dd=Math.sqrt(dvx*dvx+dvz*dvz+dvy*dvy);
+    if(state.mode==='dive'&&!state.repel&&s.cool<=0&&dd<120){
+      hunting=true; sp=27;
+      s.dir=Math.atan2(dvz,dvx);
+      s.y+=(py-s.y)*Math.min(1,dt*1.4);
+      if(t-sharkWarnT>14&&dd<85){ sharkWarnT=t;
+        toast('A great grey shape turns toward you — the deep has teeth. Rise, spear it, or take up the repelling of beasts.'); }
+      if(dd<6.5){                                     /* the bite */
+        s.cool=15;
+        const lost=Math.min(state.fish||0,2);
+        if(lost) state.fish-=lost;
+        state.breath=Math.max(0.08,state.breath-0.35);
+        const dv2=state.dive, m2=Math.hypot(dvx,dvz)||1;
+        dv2.x+=dvx/m2*20; dv2.z+=dvz/m2*20; dv2.vy=70;   /* flung surfaceward */
+        toast('The shark strikes!'+(lost?' It tears '+lost+' fish from your catch.':'')+' Make for the light of the surface.');
+        saveState();
+      }
+    }
+    if(!hunting) s.dir+=Math.sin(t*0.25+s.ph)*0.03;
+    s.x+=Math.cos(s.dir)*sp*dt; s.z+=Math.sin(s.dir)*sp*dt;
+    if(!hunting) s.y+=Math.sin(t*0.5+s.ph)*3*dt;
+    /* a hunting shark hugs the bed after a bottom-hugging diver */
+    const fy=seabedDepth(s.x,s.z); s.y=Math.max(fy+(hunting?3.5:10),Math.min(SEA_SURF-8,s.y));
     s.m.position.set(s.x,s.y,s.z); s.m.rotation.y=Math.atan2(Math.cos(s.dir),Math.sin(s.dir));
-    s.m.userData.tail.rotation.y=Math.sin(t*4+s.ph)*0.3; } }
+    s.m.userData.tail.rotation.y=Math.sin(t*(hunting?7:4)+s.ph)*(hunting?0.45:0.3); } }
 /* ---- turtles, rays, whales, pufferfish, jellyfish, crabs ---- */
 function makeTurtle(){ const g=new THREE.Group();
   const shell=lbox(3.4,1.6,4.0,0x3f7a4a); g.add(shell);
@@ -1636,20 +1959,66 @@ function updateWreck(px,pz){ initWrecks();
       const key=s.gi+','+s.gj; if(s.d<95&&!wreckSeen.has(key)){ wreckSeen.add(key);
         toast('You have come upon a wreck of the ancients, sunk in the heart of the seas and grown over with the deep.','YONAH 2:3'); } }
     else WRECKS[k].visible=false; } }
-function initDeep(){ initKelp(); initCoral(); initGrass(); initRays(); initDiveFish(); initSquid(); initDolphins(); initSharks(); initSeaMobs(); initBub(); initWrecks(); }
+/* ---- PEARLS OF THE DEEP — rare oysters on the sea bed, agleam, and worth
+   much silver at any market. Gathered ones do not regrow this voyage. ---- */
+const PEARLS=[], PEARL_N=6, pearlTaken=new Set();
+function makeOyster(){ const g=new THREE.Group();
+  const bottom=lbox(2.4,0.7,2.4,0x8a949a); bottom.position.y=0.35; g.add(bottom);
+  const top=lbox(2.4,0.6,2.4,0xb0bac0); top.position.set(0,1.4,-0.8); top.rotation.x=-0.8; g.add(top);
+  const pearl=lbox(0.8,0.8,0.8,0xf6f2ea); pearl.position.set(0,1.0,0.2); g.add(pearl);
+  const gm=new THREE.SpriteMaterial({map:glowTexCv,color:0xeef6ff,transparent:true,opacity:0.55,depthWrite:false});
+  const gs=new THREE.Sprite(gm); gs.scale.set(9,9,1); gs.position.set(0,1.8,0.2); g.add(gs);
+  return g; }
+function initPearls(){ if(PEARLS.length) return;
+  for(let k=0;k<PEARL_N;k++){ const m=makeOyster(); m.visible=false; scene.add(m);
+    PEARLS.push({m,key:null,x:0,y:0,z:0}); } }
+function updatePearls(px,pz){ initPearls();
+  const CS=520, ci=Math.round(px/CS), cj=Math.round(pz/CS), sites=[];
+  for(let di=-2;di<=2;di++)for(let dj=-2;dj<=2;dj++){ const gi=ci+di,gj=cj+dj;
+    if(hash2(gi*2.3,gj*4.7)>0.8){ const key=gi+','+gj; if(pearlTaken.has(key)) continue;
+      const wx=gi*CS+(hash2(gi,gj*3)-0.5)*260, wz=gj*CS+(hash2(gj*3,gi)-0.5)*260, fy=seabedDepth(wx,wz);
+      const depth=SEA_SURF-fy; if(depth>22&&depth<280) sites.push({key,wx,wz,fy,d:Math.hypot(wx-px,wz-pz)}); } }
+  sites.sort((a,b)=>a.d-b.d);
+  for(let k=0;k<PEARLS.length;k++){ const s=sites[k], P=PEARLS[k];
+    if(s&&s.d<900){ P.key=s.key; P.x=s.wx; P.z=s.wz; P.y=s.fy;
+      P.m.position.set(s.wx,s.fy+0.2,s.wz); P.m.rotation.y=hash2(s.wx,s.wz)*6.28; P.m.visible=true; }
+    else { P.key=null; P.m.visible=false; } } }
+function hidePearls(){ for(const P of PEARLS) P.m.visible=false; }
+function nearestPearl(){ if(state.mode!=='dive') return null;
+  const dv=state.dive;
+  for(const P of PEARLS){ if(!P.key||!P.m.visible) continue;
+    if(Math.hypot(P.x-dv.x,P.z-dv.z)<9&&Math.abs(P.y-dv.y)<13) return P; }
+  return null; }
+function initDeep(){ initKelp(); initCoral(); initGrass(); initRays(); initDiveFish(); initSquid(); initDolphins(); initSharks(); initSeaMobs(); initBub(); initWrecks(); initPearls(); }
 function hideDeep(){ seaFloor.visible=false;
   for(const k of KELP)k.m.visible=false; for(const r of CORAL)r.m.visible=false; for(const r of GRASS)r.m.visible=false;
   for(const r of RAYS)r.m.visible=false; for(const f of DIVEFISH)f.m.visible=false; for(const q of SQUIDS)q.m.visible=false;
   for(const d of DOLPHINS)d.m.visible=false; for(const s of SHARKS)s.m.visible=false; hideSeaMobs();
-  for(const b of BUB)b.s.visible=false; for(const w of WRECKS)w.visible=false; deepShown=false; }
+  for(const b of BUB)b.s.visible=false; for(const w of WRECKS)w.visible=false; hidePearls(); deepShown=false; }
 function updateDeep(px,py,pz,dt,murk){ const t=performance.now()*0.001;
   seaFloor.visible=true; seaFloor.position.set(px,0,pz); updateSeaFloor(px,pz);
   updateKelp(px,pz,t); updateCoral(px,pz); updateGrass(px,pz,t); updateRays(px,py,pz,murk||0);
   updateDiveFish(px,py,pz,dt,t); updateSquid(px,py,pz,dt,t); updateDolphins(px,py,pz,dt,t); updateSharks(px,py,pz,dt,t);
-  updateSeaMobs(px,py,pz,dt,t); updateBubbles(px,py,pz,dt); updateWreck(px,pz); deepShown=true; }
+  updateSeaMobs(px,py,pz,dt,t); updateBubbles(px,py,pz,dt); updateWreck(px,pz); updatePearls(px,pz); deepShown=true; }
+/* ---- THE CLEAR SHALLOWS TEEM ----
+   Fish, turtles and dolphins swim on even when no one dives: seen from the
+   deck, the strand or the air wherever the water is shallow and clear. */
+function updateShallowLife(px,pz,dt,t){
+  initDiveFish(); initDolphins(); initSeaMobs();
+  updateDiveFish(px,0,pz,dt,t);
+  updateDolphins(px,0,pz,dt,t);
+  updateSeaMob(TURTLES,px,0,pz,dt,t);
+  /* hideDeep may have blanked them on leaving the dive — show the living */
+  for(const f of DIVEFISH) if(f.set) f.m.visible=true;
+  for(const d2 of DOLPHINS) if(d2.set) d2.m.visible=true;
+  if(TURTLES) for(const o of TURTLES) if(o.set) o.m.visible=true;
+}
 function diveTick(dt){ const dv=state.dive; const [f,tn]=axis();
   dv.heading+=tn*dt*DIVE_TURN; const tgt=f*DIVE_MAXSP; dv.sp+=(tgt-dv.sp)*Math.min(1,dt*2.6);
   dv.x+=Math.sin(dv.heading)*dv.sp*dt; dv.z+=Math.cos(dv.heading)*dv.sp*dt;
+  /* the land's flank stops the swimmer — no passing through the stone */
+  if(landAtWorld(dv.x,dv.z)){
+    dv.x-=Math.sin(dv.heading)*dv.sp*dt; dv.z-=Math.cos(dv.heading)*dv.sp*dt; dv.sp*=0.2; }
   let up=flyPad; if(keys.Space) up+=1; if(keys.ShiftLeft||keys.ShiftRight||keys.ControlLeft||keys.ControlRight) up-=1; up=Math.max(-1,Math.min(1,up));
   if(up!==0){ dv.vy+=up*DIVE_VACC*dt; dv.vy=Math.max(-DIVE_VMAX,Math.min(DIVE_VMAX,dv.vy)); } else dv.vy*=Math.max(0,1-dt*1.2);
   dv.y+=dv.vy*dt;
@@ -1674,6 +2043,7 @@ function enterDive(){ if(state.mode==='dive'){ surface(); return; }
   if(landAtWorld(x,z)||Math.hypot(x,z)/R_WORLD>0.985){ toast('You must be over open water to dive into the deep.'); return; }
   initDeep();
   state.dive.x=x; state.dive.z=z; state.dive.heading=h; state.dive.y=SEA_SURF-6; state.dive.vy=-22; state.dive.sp=0;
+  splash(x,SEA_SURF+1,z,true);
   setMode('dive');
   if(!diveHintShown){ diveHintShown=true;
     toast('You slip beneath the waves — SHIFT to dive deeper, SPACE to rise, W/S to swim, C to surface.'); } }
@@ -1692,6 +2062,7 @@ function landKindAt(x,z){ const lat=Math.abs(90-Math.hypot(x/R_WORLD,z/R_WORLD)*
   const list=(lat<34&&arid>0.54)?LAND_DESERT:LAND_TEMPERATE;
   return list[Math.floor(hash2(Math.floor(x/48),Math.floor(z/48))*list.length)%list.length]; }
 const LANDLIFE=[], LL_N=26, LL_R=360;
+const AMBIENT_PREY=new Set(['sheep','goat','pig','chicken','hare','deer','donkey','cow','horse','ostrich']);
 function initLandLife(){ if(LANDLIFE.length) return; for(let k=0;k<LL_N;k++) LANDLIFE.push({m:null,kind:null,hx:0,hz:0,x:0,z:0,heading:0,tx:0,tz:0,t:0,set:false}); }
 function findLandSpot(px,pz){ for(let tr=0;tr<10;tr++){ const a=Math.random()*6.28, r=70+Math.random()*LL_R, x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
     const c=landAtWorld(x,z); if(c&&c.kind!=='wall'&&c.h<=6&&Math.hypot(x,z)/R_WORLD<0.9) return {x,z,y:c.h*B}; } return null; }
@@ -1702,12 +2073,35 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       if(a.kind!==kind){ if(a.m) scene.remove(a.m); a.m=makeAnimal(kind); scene.add(a.m); a.kind=kind; }
       a.hx=sp.x; a.hz=sp.z; a.x=sp.x; a.z=sp.z; a.tx=sp.x; a.tz=sp.z; a.t=Math.random()*3; a.set=true; a.m.visible=true; a.m.position.set(sp.x,sp.y,sp.z); }
     if(!a.set) continue;
+    /* the hunt upon the open field: wolves and lions run down the grazers,
+       and the grazers flee — from them, and from the traveller drawn too near */
+    let spd=7;
+    const predator=(a.kind==='wolf'||a.kind==='lion');
+    if(predator){
+      a.cool=(a.cool||0)-dt;
+      if(a.cool<=0){
+        if(!a.prey||!a.prey.set||Math.hypot(a.prey.x-a.x,a.prey.z-a.z)>90){
+          a.prey=null; let bd=1e9;
+          for(const b of LANDLIFE){ if(b===a||!b.set||!AMBIENT_PREY.has(b.kind)) continue;
+            const d2=Math.hypot(b.x-a.x,b.z-a.z); if(d2<70&&d2<bd){ bd=d2; a.prey=b; } } }
+        if(a.prey){ a.tx=a.prey.x; a.tz=a.prey.z; spd=11; a.t=Math.max(a.t,0.4);
+          if(Math.hypot(a.prey.x-a.x,a.prey.z-a.z)<3){ a.cool=12; a.prey.fear=1.8; a.prey=null; } } }
+    } else if(AMBIENT_PREY.has(a.kind)){
+      a.fear=(a.fear||0)-dt;
+      let fx=null,fz=null;
+      if(state.mode==='walk'&&Math.hypot(state.walk.x-a.x,state.walk.z-a.z)<9){ fx=state.walk.x; fz=state.walk.z; }
+      else for(const b of LANDLIFE){ if(!b.set||(b.kind!=='wolf'&&b.kind!=='lion')) continue;
+        if(Math.hypot(b.x-a.x,b.z-a.z)<16){ fx=b.x; fz=b.z; break; } }
+      if(fx!==null){ const dd2=Math.hypot(a.x-fx,a.z-fz)||1;
+        a.tx=a.x+(a.x-fx)/dd2*30; a.tz=a.z+(a.z-fz)/dd2*30; a.fear=Math.max(a.fear,0.6); }
+      if(a.fear>0){ spd=11; a.t=Math.max(a.t,0.4); }
+    }
     a.t-=dt; if(a.t<=0){ a.t=1.6+Math.random()*3; const aa=Math.random()*6.28, rr=Math.random()*14*B; a.tx=a.hx+Math.cos(aa)*rr; a.tz=a.hz+Math.sin(aa)*rr; }
     const dx=a.tx-a.x, dz=a.tz-a.z, dd=Math.hypot(dx,dz)||1, moving=dd>1.5;
-    if(moving){ const nx=a.x+dx/dd*7*dt, nz=a.z+dz/dd*7*dt, c=landAtWorld(nx,nz);
+    if(moving){ const nx=a.x+dx/dd*spd*dt, nz=a.z+dz/dd*spd*dt, c=landAtWorld(nx,nz);
       if(c&&c.kind!=='wall'&&Math.abs(c.h*B-a.m.position.y)<7){ a.x=nx; a.z=nz; a.heading=Math.atan2(dx,dz); } else a.t=0; }
     const c2=landAtWorld(a.x,a.z); a.m.position.set(a.x,c2?c2.h*B:WATER_Y,a.z); a.m.rotation.y=a.heading;
-    if(a.m.userData.legs) for(const L of a.m.userData.legs) L.rotation.x=moving?Math.sin(t*7+(L.userData.ph||0))*0.5:0; } }
+    if(a.m.userData.legs) for(const L of a.m.userData.legs) L.rotation.x=moving?Math.sin(t*(spd>8?10:7)+(L.userData.ph||0))*0.5:0; } }
 function hideLandLife(){ for(const a of LANDLIFE) if(a.m) a.m.visible=false; }
 const AIRLIFE=[], AL_N=18, AL_R=440;
 function airKind(px,pz,night){ const overSea=!landAtWorld(px,pz);
@@ -1905,8 +2299,8 @@ function emitStall(G,x,z,y,kind){
 /* build a whole city on the country's site — streets, plaza, market, fish
    stall, and rows of homes (one per resident). Returns {homes, market, fish}. */
 function buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i){
-  const cx=site.x, cz=site.z, sz2=cfg.size||2, nHomes=cfg.houses||10;
-  emitPlaza(G, cx,cz, wy, B*(3.5+sz2));
+  const cx=site.x, cz=site.z, sz2=cfg.size||2, nHomes=cfg.houses||14;
+  emitPlaza(G, cx,cz, wy, B*(4.5+sz2));
   emitWell(G, cx,cz, wy); solids.push({x:cx,z:cz,r:B*1.7});
   const spacing=B*7, reach=B*(6+Math.ceil(nHomes/3));
   emitPathLine(G, cx-reach,cz, cx+reach,cz);            // the two main streets
@@ -1936,7 +2330,8 @@ function buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i){
   if(cfg.market!==false){ market={x:cx+B*4,z:cz};
     for(let k=0;k<3+sz2;k++){ const sx=cx+B*(3+k*2.6), sz=cz+B*2.3;
       const c=landAtWorld(sx,sz); if(!c||c.kind==='wall') continue;
-      emitStall(G,sx,sz,c.h*B,'market'); solids.push({x:sx,z:sz,r:B*1.2}); } }
+      emitStall(G,sx,sz,c.h*B,'market'); solids.push({x:sx,z:sz,r:B*1.2});
+      ex.stalls.push({x:sx,z:sz}); } }
   /* extra wells of water */
   for(let w2=1;w2<(cfg.wells||1);w2++){ const a=rnd(w2+70)*6.28, rr=B*(6+w2*3);
     const wx=cx+Math.cos(a)*rr, wz=cz+Math.sin(a)*rr, c=landAtWorld(wx,wz);
@@ -1978,9 +2373,9 @@ function buildPier(G,ex,site,rnd,torches){
     faceNX(G,'planks',x0+0.2,z0+0.2,z0+B-0.2,yD-0.5,yD,0.62);
     facePZ(G,'planks',z0+B-0.2,x0+0.2,x0+B-0.2,yD-0.5,yD,0.8);
     faceNZ(G,'planks',z0+0.2,x0+0.2,x0+B-0.2,yD-0.5,yD,0.8);
-    if(s2%2===0){
-      emitBox(G,x0+0.6,-2,z0+0.6,x0+1.5,yD-0.1,z0+1.5,'logSide','logTop',null);
-      emitBox(G,x0+B-1.5,-2,z0+B-1.5,x0+B-0.6,yD-0.1,z0+B-0.6,'logSide','logTop',null);
+    if(s2%2===0){   /* the piles stand on the bed of the sea, not in the water */
+      emitBox(G,x0+0.6,SUBSEA_Y,z0+0.6,x0+1.5,yD-0.1,z0+1.5,'logSide','logTop',null);
+      emitBox(G,x0+B-1.5,SUBSEA_Y,z0+B-1.5,x0+B-0.6,yD-0.1,z0+B-0.6,'logSide','logTop',null);
     }
     deckMap.set(key,yD); deckKeys.push(key);
     lastX=x0+B/2; lastZ=z0+B/2;
@@ -1998,7 +2393,7 @@ const standaloneHouses=[];   /* houses not in a village (the player's treehouse)
 function spawnVillage(i){
   const site=SITES[i]; if(!site){ activeVillages.set(i,{none:true}); return; }
   const rnd=k=>hash2(i*31.7+k*7.7, i*11.3+k*3.9);
-  const G=newG(); const ex={doors:[],houses:[],torchIn:[]};
+  const G=newG(); const ex={doors:[],houses:[],torchIn:[],farms:[],stalls:[],pen:null};
   const wy=topY(site.ix,site.iz);
   const cfg=cityFor(i);                 /* a great city here, or a small village? */
   const torches=[]; const solids=[];
@@ -2010,12 +2405,12 @@ function spawnVillage(i){
     { const a=rnd(130)*6.28, rr=B*(9+(cfg.size||2)*2);
       const px2=site.x+Math.cos(a)*rr, pz2=site.z+Math.sin(a)*rr, pc=landAtWorld(px2,pz2);
       if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'){ emitPen(G,px2,pz2,pc.h*B,5,4);
-        emitPathLine(G,site.x,site.z,px2,pz2); } }
+        emitPathLine(G,site.x,site.z,px2,pz2); ex.pen={x:px2,z:pz2}; } }
   } else {
-    /* --- a small village --- houses in a ring about the well --- */
-    const nH=3+Math.floor(rnd(1)*3);
+    /* --- a village proper: a broad ring of homes about the well and square --- */
+    const nH=6+Math.floor(rnd(1)*4);
     for(let h=0;h<nH;h++){
-      const ang=rnd(h+2)*Math.PI*2, rad=(4.2+rnd(h+9)*3.4)*B;
+      const ang=(h/nH+rnd(h+2)*0.35)*Math.PI*2, rad=(4.5+rnd(h+9)*5.5)*B;
       const hx=site.x+Math.cos(ang)*rad, hz=site.z+Math.sin(ang)*rad;
       const hc=landAtWorld(hx,hz); if(!hc||hc.kind==='wall'||hc.kind==='floe') continue;
       const w=5+Math.floor(rnd(h+20)*3), d=5+Math.floor(rnd(h+25)*3);
@@ -2025,15 +2420,23 @@ function spawnVillage(i){
     }
     emitWell(G, site.x, site.z, wy); solids.push({x:site.x,z:site.z,r:B*1.5});
     for(const dr of ex.doors) emitPathLine(G, site.x,site.z, dr.x,dr.z);
-    const nF=1+(rnd(40)>0.55?1:0);
+    const nF=2+(rnd(40)>0.55?1:0);
     for(let f=0;f<nF;f++){
-      const ang=rnd(f+44)*Math.PI*2, rad=(7+rnd(f+48)*3)*B;
+      const ang=rnd(f+44)*Math.PI*2, rad=(7+rnd(f+48)*4)*B;
       const fx=site.x+Math.cos(ang)*rad, fz=site.z+Math.sin(ang)*rad;
       const fc=landAtWorld(fx,fz); if(!fc||fc.kind==='wall') continue;
       emitFarm(G, fx,fz, fc.h*B, i*100+f); emitPathLine(G, site.x,site.z, fx,fz);
+      ex.farms.push({x:fx,z:fz});
     }
-    for(let hb=0; hb<1+Math.floor(rnd(52)*3); hb++){
-      const ang=rnd(hb+54)*Math.PI*2, rad=(3+rnd(hb+58)*5)*B;
+    /* a market stall or two upon the square — folk selling their goods */
+    for(let s=0;s<1+(rnd(46)>0.5?1:0);s++){
+      const sx=site.x+B*(2.6+s*3.1), sz=site.z+B*(2.4-s*4.6);
+      const sc=landAtWorld(sx,sz); if(!sc||sc.kind==='wall') continue;
+      emitStall(G,sx,sz,sc.h*B, s?'fish':'market'); solids.push({x:sx,z:sz,r:B*1.2});
+      ex.stalls.push({x:sx,z:sz});
+    }
+    for(let hb=0; hb<2+Math.floor(rnd(52)*3); hb++){
+      const ang=rnd(hb+54)*Math.PI*2, rad=(3+rnd(hb+58)*6)*B;
       const x=site.x+Math.cos(ang)*rad, z=site.z+Math.sin(ang)*rad;
       const c2=landAtWorld(x,z); if(!c2||c2.kind==='wall') continue;
       emitHay(G,x,z,c2.h*B);
@@ -2042,10 +2445,10 @@ function spawnVillage(i){
       const px2=site.x+Math.cos(ang)*rad, pz2=site.z+Math.sin(ang)*rad;
       const pc=landAtWorld(px2,pz2);
       if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'){ emitPen(G,px2,pz2,pc.h*B,4,3);
-        emitPathLine(G,site.x,site.z,px2,pz2); } }
+        emitPathLine(G,site.x,site.z,px2,pz2); ex.pen={x:px2,z:pz2}; } }
     { const bx=site.x+B*1.9, bz=site.z-B*1.4; const bc=landAtWorld(bx,bz);
       if(bc&&bc.kind!=='wall') emitBench(G,bx,bz,bc.h*B); }
-    for(let t=0;t<3;t++){ const ang=rnd(t+62)*Math.PI*2, rad=(2.5+rnd(t+66)*4)*B;
+    for(let t=0;t<4;t++){ const ang=rnd(t+62)*Math.PI*2, rad=(2.5+rnd(t+66)*5)*B;
       const tx=site.x+Math.cos(ang)*rad, tz=site.z+Math.sin(ang)*rad;
       const tc2=landAtWorld(tx,tz); if(!tc2||tc2.kind==='wall') continue;
       emitBox(G, tx-0.5,tc2.h*B,tz-0.5, tx+0.5,tc2.h*B+B*1.6,tz+0.5, 'logSide','logTop',null);
@@ -2062,7 +2465,7 @@ function spawnVillage(i){
     for(let rr=1;rr<8;rr++){ const c=landAtWorld(fx+Math.cos(rr)*rr*B, fz+Math.sin(rr)*rr*B);
       if(c&&c.kind!=='wall'){ px3=fx+Math.cos(rr)*rr*B; pz3=fz+Math.sin(rr)*rr*B; break; } }
     const c=landAtWorld(px3,pz3); if(c&&c.kind!=='wall'){ emitStall(G,px3,pz3,c.h*B,'fish');
-      solids.push({x:px3,z:pz3,r:B*1.2}); }
+      solids.push({x:px3,z:pz3,r:B*1.2}); ex.stalls.push({x:px3,z:pz3}); }
   }
   /* build the merged meshes */
   const g=new THREE.Group();
@@ -2087,51 +2490,79 @@ function spawnVillage(i){
     const gs=new THREE.Sprite(gm2); gs.scale.set(26,26,1);
     gs.position.set(tp.x,tp.y+2,tp.z); g.add(gs); torchMats.push(gm2);
   }
-  /* the people of the land, each at their labour */
+  /* ============== THE PEOPLE OF THE LAND, EACH AT THEIR LABOUR ==============
+     Every soul carries a real task with waypoints — tilling, drawing water,
+     feeding the fowl, herding, hunting, selling, buying, fishing, playing —
+     walks its rounds by day, and goes home to its own hearth at dusk. */
   const people=[]; const cx=site.x, cz=site.z;
-  const addPerson=(role,hx,hz,roamR,child,faceX,faceZ,home)=>{
+  let homeIdx=0;
+  const nextHome=()=>{ if(!ex.houses.length) return null;
+    const H=ex.houses[homeIdx++%ex.houses.length];
+    return {x:(H.x0+H.x1)/2,z:(H.z0+H.z1)/2}; };
+  const addPerson=(role,hx,hz,roamR,child,female,data)=>{
     const seed=i*1000+people.length*7;
-    const cc=landAtWorld(hx,hz); if(!cc||cc.kind==='wall') { hx=cx; hz=cz; }
+    const cc=landAtWorld(hx,hz), onDk=deckMap.get(Math.floor(hx/B)+','+Math.floor(hz/B))!==undefined;
+    if((!cc||cc.kind==='wall')&&!onDk){ hx=cx; hz=cz; }
     /* never leave a soul embedded in a wall: nudge into the room, or out to the square */
     for(const H of ex.houses){ if(houseBlocks(hx,hz,H)){
       if(hx>H.x0&&hx<H.x1&&hz>H.z0&&hz<H.z1){ hx=(H.x0+H.x1)/2; hz=(H.z0+H.z1)/2; } else { hx=cx; hz=cz; } break; } }
-    const per=makePerson(seed,role,child);
+    const per=makePerson(seed,role,child,female);
     per.position.set(hx,topY(Math.floor(hx/B),Math.floor(hz/B)),hz); g.add(per);
-    people.push({m:per,role,hx,hz,roamR:roamR||3,tx:hx,tz:hz,t:hash2(seed,7)*4,seed,
-      child:!!child,faceX,faceZ,home}); };
-  /* a teacher and the young children gathered for the lesson */
+    const ent=Object.assign({m:per,role,hx,hz,roamR:roamR||3,tx:hx,tz:hz,t:hash2(seed,7)*4,
+      pt:0,acting:false,seed,child:!!child,female:!!female,home:nextHome(),
+      name:personName(seed,female)},data||{});
+    people.push(ent); return ent; };
+  /* the teacher, and the children who gather for the lesson and play at tag */
   const lx=cx+Math.cos(rnd(200)*6.28)*B*3.5, lz=cz+Math.sin(rnd(200)*6.28)*B*3.5;
-  addPerson('teacher',lx,lz,1.0,false,lx,lz+B);
-  for(let k=0;k<3;k++){ const ca=k/3*Math.PI*2;
-    addPerson('child',lx+Math.cos(ca)*B*1.3,lz+B*0.6+Math.sin(ca)*B*1.0,0.9,true,lx,lz); }
-  /* a herdsman among the beasts, a hunter upon the outskirts, tillers, folk */
-  addPerson('herder',cx-B*5,cz-B*3,4);
-  addPerson('hunter',cx+B*6.5,cz-B*6.5,9);
-  addPerson('farmer',cx+B*6,cz+B*3,3);
-  const nFolk=1+Math.floor(rnd(70)*2);
-  for(let p=0;p<nFolk;p++) addPerson('folk',cx+(rnd(p+30)-0.5)*B*4,cz+(rnd(p+40)-0.5)*B*4,3);
-  /* a great city: a resident in every home, and vendors at the stalls */
+  addPerson('teacher',lx,lz,1.0,false,false,{faceX:lx,faceZ:lz+B,post:{x:lx,z:lz}});
+  const kids=[];
+  for(let k=0;k<4;k++){ const ca=k/4*Math.PI*2;
+    kids.push(addPerson('child',lx+Math.cos(ca)*B*1.3,lz+B*0.6+Math.sin(ca)*B*1.0,4,true,k%2===1,
+      {teach:{x:lx,z:lz}})); }
+  for(let k=0;k<kids.length;k++) kids[k].mate=kids[(k+1)%kids.length];
+  if(kids.length) kids[0].it=true;
+  /* herdsman, hunter, a farmer for every field, the woman at the well, the
+     feeder of the fowl, and folk who walk about or go to the market */
+  addPerson('herder',cx-B*5,cz-B*3,4,false,false,{pen:ex.pen||{x:cx,z:cz}});
+  addPerson('hunter',cx+B*6.5,cz-B*6.5,10,false,false,{post:{x:cx,z:cz}});
+  for(const f of ex.farms) addPerson('farmer',f.x,f.z,3,false,rnd(f.x)>0.6,{farm:f});
+  if(!ex.farms.length) addPerson('farmer',cx+B*6,cz+B*3,3,false,false,{farm:{x:cx+B*6,z:cz+B*3}});
+  addPerson('water',cx+B*2,cz-B*2,2,false,true,{well:{x:cx,z:cz}});
+  addPerson('water',cx-B*2,cz+B*2.5,2,false,true,{well:{x:cx,z:cz}});
+  if(ex.pen) addPerson('feeder',ex.pen.x+B,ex.pen.z+B,3,false,true,{pen:ex.pen});
+  for(const s of ex.stalls) addPerson('vendor',s.x,s.z-B*1.6,1,false,rnd(s.x)>0.5,{stall:s});
+  if(ex.pier) addPerson('fisher',ex.pier.x,ex.pier.z,1,false,false,{spot:{x:ex.pier.x,z:ex.pier.z}});
+  const nFolk=2+Math.floor(rnd(70)*3);
+  for(let p=0;p<nFolk;p++)
+    addPerson(ex.stalls.length&&p%2?'shopper':'folk',
+      cx+(rnd(p+30)-0.5)*B*5,cz+(rnd(p+40)-0.5)*B*5,4,false,rnd(p+31)>0.5);
+  /* a great city: a resident in every home besides */
   if(cityHomes&&cityHomes.length){
     for(let h=0;h<cityHomes.length;h++){ const hm=cityHomes[h];
-      addPerson('folk', hm.x, hm.z, 1.6, false, undefined,undefined, hm); }   /* in the room, not the doorway */
-    for(let v=0;v<3;v++){ const vx=cx+B*(3.5+v*2.6), vz=cz+B*3.4;
-      const c=landAtWorld(vx,vz); if(c&&c.kind!=='wall')
-        addPerson('folk', vx, vz, 0.7, false, vx, vz-B, {doorx:vx,doorz:vz}); }
-    addPerson('folk', cx-B*3, cz+B*3, 0.7, false, cx-B*3, cz+B*4);   /* a fisher near the quay */
+      addPerson(h%3===0?'shopper':'folk', hm.x, hm.z, 2.4, false, h%2===0,
+        {home:{x:hm.x,z:hm.z}}); }
   }
-  /* the beasts of the field and the creeping things */
+  /* the beasts of the field, the creeping things — and now and then a wolf
+     out of the wilds, come down to hunt the pigs and the fowl */
   const lat=90-Math.hypot(site.x/R_WORLD,site.z/R_WORLD)*180;
   const baseKind=(cellRaw(site.ix,site.iz)||{kind:'grass'}).kind;
   const roster = baseKind==='desert' ? ['camel','camel','goat','lizard','lizard','chicken']
     : baseKind==='rock' ? ['goat','goat','hare','lizard','chicken']
     : lat>55 ? ['sheep','sheep','goat','hare','chicken']
     : ['sheep','cow','pig','goat','chicken','chicken','hare','hare'];
-  const beasts=[]; const nA=4+Math.floor(rnd(91)*4);
+  const beasts=[]; const nA=6+Math.floor(rnd(91)*4);
+  const hx0=ex.pen?ex.pen.x:cx, hz0=ex.pen?ex.pen.z:cz;
   for(let a2=0;a2<nA;a2++){ const kind=roster[Math.floor(rnd(a2+95)*roster.length)]||'sheep';
     const an=makeAnimal(kind);
-    an.position.set(cx-B+(rnd(a2)-0.5)*B*5,wy,cz-B+(rnd(a2+5)-0.5)*B*5); g.add(an);
-    beasts.push({m:an,tx:cx,tz:cz,t:rnd(a2+97)*4,seed:i*100+50+a2,
+    const bx=(a2%2?hx0:cx)-B+(rnd(a2)-0.5)*B*6, bz=(a2%2?hz0:cz)-B+(rnd(a2+5)-0.5)*B*6;
+    an.position.set(bx,wy,bz); g.add(an);
+    beasts.push({m:an,kind,hx:bx,hz:bz,tx:bx,tz:bz,t:rnd(a2+97)*4,seed:i*100+50+a2,
       roamR:(kind==='hare'||kind==='lizard')?6:4}); }
+  if(baseKind!=='desert'&&rnd(303)>0.45){        /* the wolf come down from the hills */
+    const wa=rnd(305)*6.28, an=makeAnimal('wolf');
+    const bx=cx+Math.cos(wa)*B*13, bz=cz+Math.sin(wa)*B*13;
+    an.position.set(bx,wy,bz); g.add(an);
+    beasts.push({m:an,kind:'wolf',hx:bx,hz:bz,tx:bx,tz:bz,t:2,seed:i*100+99,roamR:10,cool:6}); }
   /* birds of the air, wheeling above the land */
   const birds=[]; const nBirds=4+Math.floor(rnd(88)*4);
   for(let b2=0;b2<nBirds;b2++){ const bd=makeBird();
@@ -2139,7 +2570,50 @@ function spawnVillage(i){
     bd.position.set(cx+Math.cos(ph)*rad,h2,cz+Math.sin(ph)*rad); g.add(bd);
     birds.push({m:bd,ph,rad,h:h2,spd:0.2+rnd(b2+132)*0.25,cx,cz}); }
   scene.add(g);
-  activeVillages.set(i,{g,site,people,beasts,birds,torchMats,deckKeys,houses:ex.houses,solids});
+  activeVillages.set(i,{g,site,people,beasts,birds,torchMats,deckKeys,houses:ex.houses,solids,
+    farms:ex.farms,stalls:ex.stalls,pen:ex.pen,pier:ex.pier,feedT:-99});
+}
+/* =================== THE LABOURS OF THE PEOPLE ===================
+   A little task engine. moveEnt walks a body toward its mark with
+   collision and striding legs; nextTask gives each role its next
+   waypoint and the work to do there; personTick runs walk → work →
+   next; beastTick gives the beasts their fears, their hungers and
+   their herding. */
+function moveEnt(ent,dt,sp){
+  const dx=ent.tx-ent.m.position.x, dz=ent.tz-ent.m.position.z;
+  const d=Math.hypot(dx,dz); let moving=d>0.6;
+  if(moving){ const nx=ent.m.position.x+dx/d*sp*dt, nz=ent.m.position.z+dz/d*sp*dt;
+    const hitPlayer=state.mode==='walk'&&Math.hypot(nx-state.walk.x,nz-state.walk.z)<2.6;
+    const gN=groundInfo(nx,nz);
+    if(!gN.land||blockedByStructureNPC(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,ent.m)||hitPlayer){
+      moving=false; ent.t=0; ent.stuck=(ent.stuck||0)+1;
+      if(ent.stuck>2){ ent.stuck=0; ent.acting=false; ent.pt=0; ent.tx=ent.m.position.x; ent.tz=ent.m.position.z; } }
+    else { ent.stuck=0; ent.m.position.x=nx; ent.m.position.z=nz; ent.m.rotation.y=Math.atan2(dx,dz); } }
+  const gHere=groundInfo(ent.m.position.x,ent.m.position.z);
+  ent.m.position.y=gHere.land?gHere.y:WATER_Y;
+  const legs=ent.m.userData.legs;
+  if(legs&&legs.length){ const ph=performance.now()*(ent.panic?0.02:0.012);
+    for(const L of legs) L.rotation.x=moving?Math.sin(ph+(L.userData.ph||0))*(ent.panic?0.85:0.55):0; }
+  else if(moving) ent.m.position.y+=Math.abs(Math.sin(performance.now()*.012))*0.35;
+  return moving;
+}
+/* folk may pass through their own doorways even when the leaf is shut */
+function houseBlocksNPC(nx,nz,H){
+  const m2=1.2;
+  if(nx>H.x0-m2&&nx<H.x1+m2&&nz>H.z0-m2&&nz<H.z1+m2){
+    const T2=B*0.5+1.0;
+    if(nx>H.x0+T2&&nx<H.x1-T2&&nz>H.z0+T2&&nz<H.z1-T2) return false;
+    if(H.door&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8) return false;
+    return true;
+  }
+  return false;
+}
+function blockedByStructureNPC(nx,nz){
+  for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue;
+    for(const H of vv.houses) if(houseBlocksNPC(nx,nz,H)) return true; }
+  for(const H of standaloneHouses) if(houseBlocksNPC(nx,nz,H)) return true;
+  return false;
 }
 function wanderTick(ent,site,dt,speed){
   const ax=ent.hx!==undefined?ent.hx:site.x, az=ent.hz!==undefined?ent.hz:site.z;
@@ -2149,28 +2623,181 @@ function wanderTick(ent,site,dt,speed){
     ent.t=(ent.role==='teacher'||ent.role==='child'?3.5:2)
       +hash2(ent.seed,(performance.now()%9973)*0.13)*(ent.role==='hunter'?7:5);
     let nx,nz;
-    if(worldNight>0.55&&ent.home){                    /* at dusk, go home — to the room, not the doorway */
+    if((worldNight>0.55||ent._shelter)&&ent.home){    /* at dusk or in storm, go home — to the room, not the doorway */
       nx=(ent.home.x!==undefined?ent.home.x:ent.home.doorx)+(Math.random()-0.5)*2;
       nz=(ent.home.z!==undefined?ent.home.z:ent.home.doorz)+(Math.random()-0.5)*2;
     } else { const a=Math.random()*Math.PI*2, r=Math.random()*roamR*B;
       nx=ax+Math.cos(a)*r; nz=az+Math.sin(a)*r; }
     const cc=landAtWorld(nx,nz); if(cc&&cc.kind!=='wall'){ ent.tx=nx; ent.tz=nz; } }
-  const dx=ent.tx-ent.m.position.x, dz=ent.tz-ent.m.position.z;
-  const d=Math.hypot(dx,dz); let moving=d>0.6;
-  const sp=speed*(ent.child?0.7:ent.role==='hunter'?1.15:1);
-  if(moving){ const nx=ent.m.position.x+dx/d*sp*dt, nz=ent.m.position.z+dz/d*sp*dt;
-    const pdx=nx-state.walk.x, pdz=nz-state.walk.z;
-    const hitPlayer=state.mode==='walk'&&Math.hypot(pdx,pdz)<2.6;
-    if(blockedByStructure(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,ent.m)||hitPlayer){
-      moving=false; ent.t=0; /* blocked — pick a new way */ }
-    else { ent.m.position.x=nx; ent.m.position.z=nz; ent.m.rotation.y=Math.atan2(dx,dz); } }
-  else if(ent.faceX!==undefined)   // idle at task — face the lesson / the work
-    ent.m.rotation.y=Math.atan2(ent.faceX-ent.m.position.x, ent.faceZ-ent.m.position.z);
-  ent.m.position.y=topY(Math.floor(ent.m.position.x/B),Math.floor(ent.m.position.z/B));
-  const legs=ent.m.userData.legs;
-  if(legs&&legs.length){ const ph=performance.now()*0.012;
-    for(const L of legs) L.rotation.x=moving?Math.sin(ph+(L.userData.ph||0))*0.55:0; }
-  else if(moving) ent.m.position.y+=Math.abs(Math.sin(performance.now()*.012))*0.35;
+  const moving=moveEnt(ent,dt,speed*(ent.child?0.7:1));
+  if(!moving){
+    if(state.mode==='walk'&&Math.hypot(state.walk.x-ent.m.position.x,state.walk.z-ent.m.position.z)<9)
+      ent.m.rotation.y=Math.atan2(state.walk.x-ent.m.position.x,state.walk.z-ent.m.position.z);
+    else if(ent.faceX!==undefined)
+      ent.m.rotation.y=Math.atan2(ent.faceX-ent.m.position.x, ent.faceZ-ent.m.position.z);
+  }
+  return moving;
+}
+function nextTask(ent,vv){
+  const site=vv.site, R=Math.random;
+  switch(ent.role){
+    case 'farmer': { const f=ent.farm||site;
+      ent.tx=f.x+(R()-0.5)*B*3.4; ent.tz=f.z+(R()-0.5)*B*2.2; ent.actT=2.5+R()*3.5; ent.anim='work'; break; }
+    case 'water': {                                  /* well → home → well, jar on the head */
+      if(ent.leg==='well'&&ent.home){ ent.leg='home'; ent.tx=ent.home.x+(R()-0.5)*2; ent.tz=ent.home.z+(R()-0.5)*2; ent.actT=2+R()*2; ent.anim='idle'; }
+      else { ent.leg='well'; const w2=ent.well||site;
+        ent.tx=w2.x+(R()-0.5)*B*2.6; ent.tz=w2.z+(R()-0.5)*B*2.6; ent.actT=2.5+R()*2; ent.anim='fill'; }
+      break; }
+    case 'feeder': { const p2=ent.pen||site;
+      ent.tx=p2.x+(R()-0.5)*B*3.4; ent.tz=p2.z+(R()-0.5)*B*3.4; ent.actT=4+R()*3; ent.anim='feed'; break; }
+    case 'vendor': { const s=ent.stall||site;
+      ent.tx=s.x+(R()-0.5)*1.4; ent.tz=s.z-B*1.5; ent.actT=6+R()*5; ent.anim='hawk';
+      ent.faceX=s.x; ent.faceZ=s.z+B*4; break; }
+    case 'fisher': { const s=ent.spot||site;
+      ent.tx=s.x; ent.tz=s.z; ent.actT=9+R()*7; ent.anim='fish';
+      const rr2=Math.hypot(s.x,s.z)||1;             /* face outward, toward the open sea */
+      ent.faceX=s.x+s.x/rr2*20; ent.faceZ=s.z+s.z/rr2*20; break; }
+    case 'shopper': {
+      const st=(vv.stalls&&vv.stalls.length)?vv.stalls[Math.floor(R()*vv.stalls.length)]:null;
+      if(st&&ent.leg!=='stall'){ ent.leg='stall'; ent.tx=st.x+(R()-0.5)*3; ent.tz=st.z-B*1.9;
+        ent.actT=3+R()*3; ent.anim='idle'; ent.faceX=st.x; ent.faceZ=st.z; }
+      else if(ent.home&&ent.leg!=='home'&&R()<0.4){ ent.leg='home'; ent.tx=ent.home.x; ent.tz=ent.home.z; ent.actT=2+R()*3; ent.anim='idle'; }
+      else { ent.leg='about'; const a=R()*6.28, r2=R()*(ent.roamR||4)*B;
+        ent.tx=site.x+Math.cos(a)*r2; ent.tz=site.z+Math.sin(a)*r2; ent.actT=1.5+R()*2.5; ent.anim='idle'; }
+      break; }
+    case 'herder': { const pen=ent.pen||site;
+      let stray=null,bd=0;
+      for(const b of vv.beasts||[]){ if(b.kind!=='sheep'&&b.kind!=='goat'&&b.kind!=='cow') continue;
+        const d2=Math.hypot(b.m.position.x-pen.x,b.m.position.z-pen.z);
+        if(d2>bd){ bd=d2; stray=b; } }
+      if(stray&&bd>B*7){ ent.drive=stray; ent.tx=stray.m.position.x; ent.tz=stray.m.position.z; ent.actT=0.7; ent.anim='idle'; }
+      else { ent.drive=null; ent.tx=pen.x+(R()-0.5)*B*5; ent.tz=pen.z+(R()-0.5)*B*5; ent.actT=2.5+R()*3; ent.anim='idle'; }
+      break; }
+    case 'hunter': {
+      let prey=null,bd2=1e9;
+      for(const b of vv.beasts||[]){ if(b.kind!=='hare'&&b.kind!=='deer') continue;
+        const d2=Math.hypot(b.m.position.x-ent.m.position.x,b.m.position.z-ent.m.position.z);
+        if(d2<bd2){ bd2=d2; prey=b; } }
+      if(prey&&bd2<B*12){ ent.stalk=prey; ent.tx=prey.m.position.x; ent.tz=prey.m.position.z; ent.actT=0.6; ent.anim='idle'; }
+      else { ent.stalk=null; const a=R()*6.28, r2=(9+R()*6)*B;    /* patrol the outskirts */
+        ent.tx=site.x+Math.cos(a)*r2; ent.tz=site.z+Math.sin(a)*r2; ent.actT=2+R()*4; ent.anim='idle'; }
+      break; }
+    case 'child': {
+      const hour=state.simHours%24;
+      if(hour>=8&&hour<13&&ent.teach){                /* the morning lesson */
+        ent.tx=ent.teach.x+(R()-0.5)*B*2.4; ent.tz=ent.teach.z+B*0.7+(R()-0.5)*B*1.8;
+        ent.actT=4+R()*3; ent.anim='sit'; ent.faceX=ent.teach.x; ent.faceZ=ent.teach.z; }
+      else { ent.anim='play'; ent.actT=0.35; }        /* tag about the square (retargeted live) */
+      break; }
+    case 'teacher': { const p2=ent.post||site;
+      ent.tx=p2.x+(R()-0.5)*2; ent.tz=p2.z+(R()-0.5)*2; ent.actT=5+R()*4; ent.anim='teach'; break; }
+    default: { const a=R()*6.28, r2=R()*(ent.roamR||4)*B;
+      ent.tx=site.x+Math.cos(a)*r2; ent.tz=site.z+Math.sin(a)*r2; ent.actT=1.5+R()*3; ent.anim='idle'; }
+  }
+}
+function personTick(ent,vv,dt){
+  const site=vv.site, u=ent.m.userData, tnow=performance.now()*0.001;
+  ent._shelter=(vv.stormF||0)>0.35;                 /* in foul weather, folk keep indoors */
+  if((worldNight>0.55||ent._shelter)&&ent.home){ wanderTick(ent,site,dt,ent._shelter?8.5:7); return; }
+  if(ent.role==='folk'||!ent.role){ wanderTick(ent,site,dt,7); return; }
+  if(ent.actT===undefined) nextTask(ent,vv);
+  const px=ent.m.position.x, pz=ent.m.position.z;
+  /* live re-aiming for the chasers */
+  if(ent.role==='herder'&&ent.drive){ const s=ent.drive;
+    ent.tx=s.m.position.x; ent.tz=s.m.position.z;
+    if(Math.hypot(px-s.m.position.x,pz-s.m.position.z)<7){ s.driven=true; }       /* drive it penward */
+    if(ent.pen&&Math.hypot(s.m.position.x-ent.pen.x,s.m.position.z-ent.pen.z)<B*4){ ent.drive=null; nextTask(ent,vv); } }
+  if(ent.role==='hunter'&&ent.stalk){ const s=ent.stalk;
+    ent.tx=s.m.position.x; ent.tz=s.m.position.z;
+    if(Math.hypot(px-s.m.position.x,pz-s.m.position.z)<5){ s.spooked=tnow; ent.stalk=null; nextTask(ent,vv); } }
+  if(ent.role==='child'&&ent.anim==='play'&&ent.mate&&ent.mate.m){
+    const mx=ent.mate.m.position.x, mz=ent.mate.m.position.z;
+    if(ent.it){ ent.tx=mx; ent.tz=mz;
+      if(Math.hypot(px-mx,pz-mz)<2.2){ ent.it=false; ent.mate.it=true; ent.hop=0.5; ent.mate.hop=0.5; } }
+    else { const dd=Math.hypot(px-mx,pz-mz)||1;
+      let axp=px+(px-mx)/dd*12, azp=pz+(pz-mz)/dd*12;
+      const sd=Math.hypot(axp-site.x,azp-site.z);
+      if(sd>B*6){ axp=site.x+(axp-site.x)/sd*B*5.4; azp=site.z+(azp-site.z)/sd*B*5.4; }
+      ent.tx=axp; ent.tz=azp; } }
+  const d=Math.hypot(ent.tx-px,ent.tz-pz);
+  if(d>2.2){
+    ent.acting=false;
+    const sp=ent.role==='child'?(ent.anim==='play'?8.5:5):ent.role==='hunter'?(ent.stalk?4.5:8):ent.role==='water'?6:7;
+    moveEnt(ent,dt,sp);
+  } else {
+    if(!ent.acting){ ent.acting=true; ent.pt=ent.actT||2; }
+    ent.pt-=dt;
+    /* face the work — or a traveller come close to speak */
+    if(state.mode==='walk'&&Math.hypot(state.walk.x-px,state.walk.z-pz)<9)
+      ent.m.rotation.y=Math.atan2(state.walk.x-px,state.walk.z-pz);
+    else if(ent.faceX!==undefined)
+      ent.m.rotation.y=Math.atan2(ent.faceX-px,ent.faceZ-pz);
+    /* the work of the hands */
+    const A=ent.anim;
+    if(A==='work'){ u.armR.rotation.x=-0.8+Math.sin(tnow*6.5)*0.75; u.armL.rotation.x=-0.4+Math.sin(tnow*6.5+0.5)*0.45;
+      u.legs[0].rotation.x=0.06; u.legs[1].rotation.x=-0.06; }
+    else if(A==='fill'){ u.armL.rotation.x=-0.95; u.armR.rotation.x=-0.95; }
+    else if(A==='feed'){ u.armR.rotation.x=-0.7+Math.sin(tnow*5)*0.6; vv.feedT=tnow; vv.feedX=px; vv.feedZ=pz; }
+    else if(A==='hawk'){ u.armR.rotation.x=-1.35+Math.sin(tnow*2.4)*0.22; u.armL.rotation.x=-0.2; }
+    else if(A==='teach'){ u.armR.rotation.x=-1.0+Math.sin(tnow*1.7)*0.35; }
+    else if(A==='fish'&&u.rod){ u.rod.rotation.x=1.05+Math.sin(tnow*1.7)*0.05;
+      u.armR.rotation.x=-0.85; u.armL.rotation.x=-0.7;
+      if(Math.random()<dt*0.08){ u.rod.rotation.x=0.7; splash(px+Math.sin(ent.m.rotation.y)*7,WATER_Y+1,pz+Math.cos(ent.m.rotation.y)*7,false); } }
+    else { u.armR.rotation.x=0; u.armL.rotation.x=0; }
+    if(ent.pt<=0){ ent.acting=false; nextTask(ent,vv); }
+  }
+  if(ent.hop!==undefined&&ent.hop>0){ ent.hop-=dt; ent.m.position.y+=Math.sin(Math.max(0,ent.hop)*6.28)*1.6; }
+}
+const BEAST_PREY=new Set(['sheep','goat','pig','chicken','hare','deer','donkey']);
+const WOLF_PREY=new Set(['pig','sheep','chicken','hare','goat']);
+function beastTick(ent,vv,dt){
+  const m=ent.m, px=m.position.x, pz=m.position.z, tnow=performance.now()*0.001;
+  ent.t-=dt; ent.panic=false;
+  let sp=4.5;
+  if(ent.kind==='wolf'){
+    ent.cool=(ent.cool||0)-dt;
+    /* the shepherd and the hunter drive the wolf off */
+    let guard=null;
+    for(const p of vv.people){ if(p.role!=='herder'&&p.role!=='hunter') continue;
+      if(Math.hypot(p.m.position.x-px,p.m.position.z-pz)<11){ guard=p; break; } }
+    if(guard){ ent.hunt=null; ent.cool=Math.max(ent.cool,9); ent.panic=true; sp=10;
+      const dd=Math.hypot(px-guard.m.position.x,pz-guard.m.position.z)||1;
+      ent.tx=px+(px-guard.m.position.x)/dd*30; ent.tz=pz+(pz-guard.m.position.z)/dd*30; }
+    else if(ent.cool<=0){
+      if(!ent.hunt||!ent.hunt.m.visible||Math.random()<dt*0.05){ let best=null,bd=1e9;
+        for(const b of vv.beasts){ if(b===ent||!WOLF_PREY.has(b.kind)) continue;
+          const d2=Math.hypot(b.m.position.x-px,b.m.position.z-pz); if(d2<bd){bd=d2;best=b;} }
+        ent.hunt=best; }
+      if(ent.hunt){ sp=9.5; ent.tx=ent.hunt.m.position.x; ent.tz=ent.hunt.m.position.z;
+        if(Math.hypot(px-ent.tx,pz-ent.tz)<2.6){          /* the pounce — the prey bolts for the pen */
+          ent.hunt.driven=true; ent.hunt.hop=0.5; ent.hunt=null; ent.cool=10+Math.random()*8; ent.t=0; } }
+      else if(ent.t<=0){ ent.t=2+Math.random()*3; const a=Math.random()*6.28, r2=Math.random()*10*B;
+        ent.tx=ent.hx+Math.cos(a)*r2; ent.tz=ent.hz+Math.sin(a)*r2; }
+    } else if(ent.t<=0){ ent.t=2+Math.random()*3; const a=Math.random()*6.28;   /* skulk the outskirts */
+      ent.tx=vv.site.x+Math.cos(a)*B*14; ent.tz=vv.site.z+Math.sin(a)*B*14; }
+  } else {
+    /* fear: the traveller too close, a wolf on the hunt, a hunter's spear */
+    let fx=null,fz=null;
+    if(BEAST_PREY.has(ent.kind)){
+      if(state.mode==='walk'&&Math.hypot(state.walk.x-px,state.walk.z-pz)<8){ fx=state.walk.x; fz=state.walk.z; }
+      for(const b of vv.beasts){ if(b.kind!=='wolf') continue;
+        if(Math.hypot(b.m.position.x-px,b.m.position.z-pz)<15){ fx=b.m.position.x; fz=b.m.position.z; break; } }
+      if(ent.spooked&&tnow-ent.spooked<2.5&&fx===null){ fx=px+Math.sin(ent.seed); fz=pz+Math.cos(ent.seed); }
+    }
+    if(fx!==null){ const dd=Math.hypot(px-fx,pz-fz)||1;
+      ent.tx=px+(px-fx)/dd*24; ent.tz=pz+(pz-fz)/dd*24; ent.t=0.4; ent.panic=true; sp=9; }
+    else if(ent.driven&&vv.pen){ ent.tx=vv.pen.x; ent.tz=vv.pen.z; sp=7;
+      if(Math.hypot(px-vv.pen.x,pz-vv.pen.z)<B*3){ ent.driven=false; ent.hx=vv.pen.x; ent.hz=vv.pen.z; } }
+    else if((vv.stormF||0)>0.35&&vv.pen&&Math.hypot(px-vv.pen.x,pz-vv.pen.z)>B*4){
+      ent.tx=vv.pen.x+(Math.random()-0.5)*B*3; ent.tz=vv.pen.z+(Math.random()-0.5)*B*3; sp=6; } /* huddle at the pen in storm */
+    else if(ent.kind==='chicken'&&tnow-(vv.feedT||-99)<1.2&&Math.hypot(vv.feedX-px,vv.feedZ-pz)<45){
+      ent.tx=vv.feedX+(Math.random()-0.5)*7; ent.tz=vv.feedZ+(Math.random()-0.5)*7; sp=6.5; }
+    else if(ent.t<=0){ ent.t=1.6+Math.random()*3;
+      const a=Math.random()*6.28, r2=Math.random()*(ent.roamR||4)*B;
+      ent.tx=ent.hx+Math.cos(a)*r2; ent.tz=ent.hz+Math.sin(a)*r2; }
+  }
+  moveEnt(ent,dt,sp);
+  if(ent.hop!==undefined&&ent.hop>0){ ent.hop-=dt; ent.m.position.y+=Math.sin(Math.max(0,ent.hop)*6.28)*1.4; }
 }
 function birdTick(bd,dt){
   bd.ph+=bd.spd*dt;
@@ -2200,19 +2827,380 @@ function updateVillages(px,pz,dt,nightF){
       activeVillages.delete(i); }
   }
   for(const[,vv] of activeVillages){ if(vv.none||!vv.g) continue;
-    for(const p of vv.people) wanderTick(p,vv.site,dt,7);
-    for(const b2 of vv.beasts) wanderTick(b2,vv.site,dt,4.5);
+    vv.stormF=stormAt(vv.site.x,vv.site.z);      /* foul weather empties the lanes */
+    for(const p of vv.people) personTick(p,vv,dt);
+    for(const b2 of vv.beasts) beastTick(b2,vv,dt);
     if(vv.birds) for(const bd of vv.birds) birdTick(bd,dt);
     for(const tm of vv.torchMats) tm.opacity=nightF*0.85;
   }
   doorTick(dt);
-  /* the door prompt — when the traveller stands before a house */
-  if(state.mode==='walk'){ const el=$('prompt');
-    if(canSleep()){ promptDoor=null; el.textContent='F — sleep until morning'; el.style.opacity=1; }
-    else { promptDoor=nearestDoor(state.walk.x,state.walk.z);
-      if(promptDoor){ el.textContent='F — '+(promptDoor.door.open?'close the door':'open the door'); el.style.opacity=1; }
-      else el.style.opacity=0; }
-  } else { promptDoor=null; const el=$('prompt'); if(el) el.style.opacity=0; }
+  promptTick();
+}
+/* ================= COINS & CARGO — THE TRADE OF THE SEAS =================
+   Every market prices its wares by its own land (a fixed factor per land and
+   good): buy where a thing is cheap, bear it over the deep in the hold, and
+   sell where it is dear. Fish of your own catching sell at every market. */
+const GOODS=[
+  {k:'grain',n:'Grain',base:4},{k:'oil',n:'Olive oil',base:9},{k:'wine',n:'Wine',base:12},
+  {k:'salt',n:'Salt',base:6},{k:'cedar',n:'Cedar wood',base:14},{k:'cloth',n:'Fine cloth',base:18},
+  {k:'spice',n:'Spices',base:26},{k:'dye',n:'Purple dye',base:34}];
+const CARGO_MAX=24;
+function cargoCount(){ let n=0; for(const k in state.cargo) n+=state.cargo[k]; return n; }
+function priceAt(profile,gi){ const f=0.6+hash2(profile*3.7+gi*13.1, profile*7.3-gi*2.9);   /* 0.6 .. 1.6 */
+  return Math.max(1,Math.round(GOODS[gi].base*f)); }
+function fishPriceAt(profile){ return Math.max(2,Math.round(5*(0.7+hash2(profile*5.1,profile*2.3)*0.8))); }
+function pearlPriceAt(profile){ return Math.max(25,Math.round(45*(0.7+hash2(profile*7.7,profile*3.1)*0.9))); }
+let tradeOpen=false, tradeProfile=0, tradeTitle='', tradeSea=false;
+function openTrade(profile,title,sea){
+  tradeOpen=true; tradeProfile=profile; tradeTitle=title; tradeSea=!!sea;
+  $('trade').style.display='flex'; renderTrade();
+}
+function closeTrade(){ if(!tradeOpen) return; tradeOpen=false; $('trade').style.display='none'; saveState(); }
+function renderTrade(){
+  $('trade-sub').textContent=tradeTitle+' — your purse: '+state.coins+' shekels · cargo '+cargoCount()+' / '+CARGO_MAX;
+  const T=$('trade-rows'); T.innerHTML='';
+  for(let gi=0;gi<GOODS.length;gi++){
+    const g=GOODS[gi], p=priceAt(tradeProfile,gi);
+    const buy=tradeSea?Math.round(p*1.15):p, sell=Math.max(1,tradeSea?Math.round(p*0.75):Math.round(p*0.85));
+    const have=state.cargo[g.k]||0;
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td class="g">'+g.n+'</td><td class="r">held '+have+'</td>'+
+      '<td class="r"><button class="tbtn" data-a="b" data-g="'+gi+'" '+((state.coins<buy||cargoCount()>=CARGO_MAX)?'disabled':'')+'>buy '+buy+'</button></td>'+
+      '<td class="r"><button class="tbtn" data-a="s" data-g="'+gi+'" '+(have<1?'disabled':'')+'>sell '+sell+'</button></td>';
+    T.appendChild(tr);
+  }
+  const fp=fishPriceAt(tradeProfile), tr2=document.createElement('tr');
+  tr2.innerHTML='<td class="g">Fish (your catch)</td><td class="r">held '+(state.fish||0)+'</td><td class="r"></td>'+
+    '<td class="r"><button class="tbtn" data-a="f" '+((state.fish||0)<1?'disabled':'')+'>sell '+fp+'</button></td>';
+  T.appendChild(tr2);
+  const pp=Math.max(15,Math.round(pearlPriceAt(tradeProfile)*(tradeSea?0.75:1))), tr3=document.createElement('tr');
+  tr3.innerHTML='<td class="g">Pearls of the deep</td><td class="r">held '+(state.pearls||0)+'</td><td class="r"></td>'+
+    '<td class="r"><button class="tbtn" data-a="e" '+((state.pearls||0)<1?'disabled':'')+'>sell '+pp+'</button></td>';
+  T.appendChild(tr3);
+}
+$('trade-rows').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b||b.disabled) return;
+  const a=b.dataset.a;
+  if(a==='f'){ if((state.fish||0)>0){ state.fish--; state.coins+=fishPriceAt(tradeProfile); } }
+  else if(a==='e'){ if((state.pearls||0)>0){ state.pearls--;
+    state.coins+=Math.max(15,Math.round(pearlPriceAt(tradeProfile)*(tradeSea?0.75:1))); } }
+  else { const gi=+b.dataset.g, g=GOODS[gi], p=priceAt(tradeProfile,gi);
+    if(a==='b'){ const buy=tradeSea?Math.round(p*1.15):p;
+      if(state.coins>=buy&&cargoCount()<CARGO_MAX){ state.coins-=buy; state.cargo[g.k]=(state.cargo[g.k]||0)+1; } }
+    else { const sell=Math.max(1,tradeSea?Math.round(p*0.75):Math.round(p*0.85));
+      if((state.cargo[g.k]||0)>0){ state.cargo[g.k]--; if(!state.cargo[g.k]) delete state.cargo[g.k]; state.coins+=sell; } } }
+  renderTrade();
+});
+$('trade-close').addEventListener('click',closeTrade);
+$('trade').addEventListener('click',e=>{ if(e.target.id==='trade') closeTrade(); });
+/* the stall the traveller stands before, and the trader hailed at sea */
+function nearestStallVillage(){
+  if(state.mode!=='walk') return null;
+  for(const[i,vv] of activeVillages){ if(vv.none||!vv.stalls||!vv.stalls.length) continue;
+    for(const s of vv.stalls){ if(Math.hypot(state.walk.x-s.x,state.walk.z-s.z)<13) return {i,s}; } }
+  return null;
+}
+function nearestTrader(){
+  if(state.mode!=='boat'&&state.mode!=='deck') return null;
+  for(let k=0;k<TRADERS.length;k++){ const T=TRADERS[k];
+    if(T.set&&Math.hypot(T.x-state.boat.x,T.z-state.boat.z)<260) return {T,k}; }
+  return null;
+}
+
+/* ================= THE PROMPT — every close-at-hand deed on one key =================
+   Sleep at home · open and shut doors · go below to the hold and up again ·
+   speak with the people of the land · cast a line and fish the waters. */
+let promptAction=null, promptPerson=null;
+function nearbyPerson(){
+  if(state.mode!=='walk') return null;
+  let best=null,bd=1e9;
+  for(const[,vv] of activeVillages){ if(vv.none||!vv.people||!vv.site) continue;
+    if(Math.hypot(state.walk.x-vv.site.x,state.walk.z-vv.site.z)>420) continue;
+    for(const p of vv.people){ const d=Math.hypot(state.walk.x-p.m.position.x,state.walk.z-p.m.position.z);
+      if(d<7&&d<bd){ bd=d; best=p; } } }
+  return best;
+}
+function canFishHere(){
+  if(state.mode!=='walk'||state.fishing) return false;
+  const w=state.walk; if(w.inWater||!w.grounded) return false;
+  const ahead=groundInfo(w.x+Math.sin(w.heading)*10, w.z+Math.cos(w.heading)*10);
+  if(ahead.land) return false;                        /* open water must lie before you */
+  return (w.feetY-WATER_Y)<18;                        /* from the strand or a pier, not a cliff */
+}
+let promptStall=null, promptTrader=null, promptPearl=null;
+function promptTick(){
+  const el=$('prompt'); if(!el) return;
+  promptDoor=null; promptAction=null; promptPerson=null; promptStall=null; promptTrader=null; promptPearl=null;
+  let label=null;
+  if(tradeOpen){ el.style.opacity=0; return; }
+  if(state.mode==='dive'){
+    promptPearl=nearestPearl();
+    if(promptPearl){ el.textContent='F — gather the pearl'; el.style.opacity=1; promptAction='pearl'; }
+    else el.style.opacity=0;
+    return; }
+  if(state.mode==='deck'){
+    const d=state.deck;
+    if(d.level==='hold'){ if(Math.hypot(d.lx-HATCH.x,d.lz-HATCH.z)<HATCH.r+2.5){ label='F — climb up to the deck'; promptAction='up'; } }
+    else if(Math.hypot(d.lx-HATCH.x,d.lz-HATCH.z)<HATCH.r){ label='F — go below to the hold'; promptAction='down'; }
+    if(!label){ promptTrader=nearestTrader();
+      if(promptTrader){ label='F — hail the merchantman'; promptAction='hail'; } }
+  } else if(state.mode==='boat'){
+    promptTrader=nearestTrader();
+    if(promptTrader){ label='F — hail the merchantman'; promptAction='hail'; }
+  } else if(state.mode==='walk'){
+    if(state.fishing){ label=state.fishing.phase==='bite'?'F — STRIKE! a fish is on the line':'F — draw in the line'; promptAction='reel'; }
+    else if(canSleep()){ label='F — sleep until morning'; promptAction='sleep'; }
+    else {
+      promptDoor=nearestDoor(state.walk.x,state.walk.z);
+      promptStall=nearestStallVillage();
+      if(promptDoor){ label='F — '+(promptDoor.door.open?'close the door':'open the door'); promptAction='door'; }
+      else if(promptStall){ label='F — trade at the stall'; promptAction='trade'; }
+      else { promptPerson=nearbyPerson();
+        if(promptPerson){ label='F — speak'; promptAction='speak'; }
+        else if(canFishHere()){ label='F — cast a line'; promptAction='fish'; } }
+    }
+  }
+  if(label){ el.textContent=label; el.style.opacity=1; } else el.style.opacity=0;
+}
+/* ---- the words of the people, by their callings ---- */
+const SPEECH={
+  teacher:['“Hear, O children: the fear of YAHUAH is the beginning of wisdom.”',
+    '“Every morning we read the scroll under the open sky.”'],
+  herder:['“The flock strays ever toward the hills — a staff and a watchful eye bring them home.”',
+    '“There was a wolf about at dusk. Keep your distance from the pen.”'],
+  hunter:['“There are hares in the high grass beyond the fields — walk softly.”',
+    '“A spear, patience, and the wind in your face: that is the whole art.”'],
+  farmer:['“The early rain came in its season; the crop stands fair this year.”',
+    '“Break the clods, water the furrows, and the land gives bread.”'],
+  fisher:['“The fish bite best at first light — cast where the water darkens.”',
+    '“The sea gives, and the sea withholds. Today she gives.”'],
+  water:['“Fresh from the well — the sweetest water in all this land.”',
+    '“Every day to the well and back; the jar grows no lighter.”'],
+  feeder:['“These hens know my step — scatter the grain and they come running.”'],
+  vendor:['“Fine goods from over the sea! Come and look — the price is fair.”',
+    '“Spices, cloth, oil and grain — what does your heart desire?”'],
+  child:['“You cannot catch me! No one can!”','“Have you truly sailed past the edge of the map?”'],
+  shopper:['“The market is busy today — good bread at the far stall.”'],
+  folk:['“Peace be upon you, traveller from the sea.”',
+    '“Strange sails in the harbour — from what land do you hail?”'],
+  sailor:['“She is trim and true, this ship — room for twelve souls and cargo below.”',
+    '“Mind the hatch amidships; the hold is full of good cargo.”'] };
+/* every soul bears a name; speak again and the talk goes deeper, and ends
+   in a rumour — the way to the nearest coast you have not yet seen */
+const NAMES_M=['Yoram','Boaz','Elazar','Achim','Zebadyah','Malachi','Othniel','Yair','Shammah','Ittai','Carmi','Nachum','Eran','Palti'];
+const NAMES_F=['Miryam','Tamar','Zilpah','Achsah','Yael','Chuldah','Serach','Naarah','Avigail','Devorah','Keturah','Adah','Bilhah','Peninnah'];
+function personName(seed,female){ const pool=female?NAMES_F:NAMES_M;
+  return pool[Math.floor(hash2(seed,9.7)*pool.length)%pool.length]; }
+function callingOf(p){
+  if(p.role==='folk') return p.female?'woman of the town':'man of the town';
+  if(p.role==='water') return 'water-bearer';
+  if(p.role==='shopper') return p.female?'woman at the market':'man at the market';
+  return p.role;
+}
+function rumourLine(){
+  let best=-1,bd=1e9;
+  for(let i=0;i<COUNTRIES.length;i++){ if(state.visited.has(i)||!SITES[i]) continue;
+    const s=SITES[i], d=Math.hypot(s.x-state.walk.x,s.z-state.walk.z); if(d<bd){bd=d;best=i;} }
+  if(best<0) return '“You have walked every coast I ever heard tell of. Go in peace.”';
+  const s=SITES[best], px=state.walk.x, pz=state.walk.z;
+  const pu=px/R_WORLD, pv=pz/R_WORLD, rr=Math.hypot(pu,pv)||1e-9;
+  const nX=-pu/rr, nZ=-pv/rr, eX=pv/rr, eZ=-pu/rr;          /* north = toward the midst */
+  const dx=s.x-px, dz=s.z-pz;
+  const ang=Math.atan2(dx*eX+dz*eZ, dx*nX+dz*nZ);
+  const dir=COMPASS8[(Math.round(ang/(Math.PI/4))+8)%8];
+  const km=Math.round(bd/B/50)*50;
+  return '“Sailors speak of '+COUNTRIES[best].n+' — away to the '+dir+', some '
+    +Math.max(50,km).toLocaleString()+' km over the deep. No one here has seen its coast.”';
+}
+function speakTo(p){ if(!p) return;
+  const lines=SPEECH[p.role]||SPEECH.folk;
+  const now=performance.now()*0.001;
+  if(!p.talk||now-p.talk.t>25) p.talk={idx:0,t:now};
+  p.talk.t=now;
+  let line;
+  if(p.talk.idx<lines.length) line=lines[p.talk.idx];
+  else if(p.talk.idx===lines.length&&!p.child) line=rumourLine();
+  else { line='“Go in peace, friend of the sea.”'; p.talk.idx=-1; }
+  p.talk.idx++;
+  p.m.rotation.y=Math.atan2(state.walk.x-p.m.position.x,state.walk.z-p.m.position.z);
+  p.pt=Math.max(p.pt||0,3.5); p.tx=p.m.position.x; p.tz=p.m.position.z;   /* stand and talk a moment */
+  toast((p.name?p.name+' the '+callingOf(p)+' — ':'')+line);
+}
+/* ================= FISHING — CAST A LINE UPON THE WATERS ================= */
+const FISH_NAMES=['a bream','a mullet','a carp','a musht','a barbel','a grey eel','a silver sardine','a great catfish'];
+let rodG=null, rodLine=null, rodBob=null;
+const _fishTip=new THREE.Vector3(), _fishDir=new THREE.Vector3(), _fishUp=new THREE.Vector3(0,1,0);
+function ensureRod(){ if(rodG) return;
+  rodG=new THREE.Group();
+  const rod=new THREE.Mesh(new THREE.BoxGeometry(0.3,10,0.3),new THREE.MeshLambertMaterial({color:0x8a6a3a}));
+  rod.geometry.translate(0,5,0); rod.rotation.x=0.85; rodG.add(rod);
+  rodLine=new THREE.Mesh(new THREE.BoxGeometry(0.09,1,0.09),new THREE.MeshBasicMaterial({color:0x161a22}));
+  rodLine.geometry.translate(0,0.5,0); rodLine.visible=false; scene.add(rodLine);
+  rodBob=new THREE.Group();
+  const b1=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.4,0.7),new THREE.MeshBasicMaterial({color:0xd0472e}));
+  const b2=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.4,0.7),new THREE.MeshBasicMaterial({color:0xf2f2ee}));
+  b1.position.y=0.2; b2.position.y=-0.2; rodBob.add(b1); rodBob.add(b2);
+  rodBob.visible=false; scene.add(rodBob);
+}
+function startFishing(){ ensureRod();
+  state.fishing={t:0,dur:4+Math.random()*8,phase:'wait'};
+  walkerG.add(rodG); rodG.position.set(1.9,7.2,0.8);
+  rodLine.visible=true; rodBob.visible=true;
+  const w=state.walk;
+  splash(w.x+Math.sin(w.heading)*11,WATER_Y+0.6,w.z+Math.cos(w.heading)*11,false);
+  toast('You cast the line upon the waters, and wait for the tug.');
+}
+function endFishing(quiet){
+  if(rodG&&rodG.parent) rodG.parent.remove(rodG);
+  if(rodLine){ rodLine.visible=false; rodBob.visible=false; }
+  if(state.fishing&&!quiet) toast('You draw in the line.');
+  state.fishing=null;
+  const u=walkerG.userData; u.armL.rotation.x=0; u.armR.rotation.x=0;
+}
+function reelIn(){
+  const F=state.fishing; if(!F) return;
+  if(F.phase==='bite'){
+    state.fish=(state.fish||0)+1;
+    const name=FISH_NAMES[Math.floor(Math.random()*FISH_NAMES.length)];
+    const w=state.walk;
+    splash(w.x+Math.sin(w.heading)*11,WATER_Y+0.8,w.z+Math.cos(w.heading)*11,true);
+    endFishing(true);
+    toast('You strike, and draw up '+name+' from the deep — '+state.fish+' taken this voyage.');
+    saveState();
+  } else endFishing(false);
+}
+function fishTick(dt){
+  const F=state.fishing; if(!F) return;
+  if(state.mode!=='walk'){ endFishing(true); return; }
+  const w=state.walk, [f2,t2]=axis();
+  if(Math.abs(f2)>0.2||Math.abs(t2)>0.2||!w.grounded||w.inWater){ endFishing(false); return; }
+  F.t+=dt;
+  const bx=w.x+Math.sin(w.heading)*11, bz=w.z+Math.cos(w.heading)*11;
+  const by=WATER_Y+seaHeight(bx,bz)+0.3+(F.phase==='bite'?Math.sin(F.t*26)*0.9:Math.sin(F.t*2.1)*0.3);
+  rodBob.position.set(bx,by,bz);
+  _fishTip.set(w.x+Math.sin(w.heading)*6.4, walkerG.position.y+12.6, w.z+Math.cos(w.heading)*6.4);
+  _fishDir.set(bx-_fishTip.x,by-_fishTip.y,bz-_fishTip.z);
+  const len=_fishDir.length()||1; _fishDir.divideScalar(len);
+  rodLine.position.copy(_fishTip); rodLine.scale.set(1,len,1);
+  rodLine.quaternion.setFromUnitVectors(_fishUp,_fishDir);
+  const u=walkerG.userData;
+  u.armR.rotation.x=-0.9+(F.phase==='bite'?Math.sin(F.t*22)*0.12:0); u.armL.rotation.x=-0.72;
+  if(F.phase==='wait'&&F.t>=F.dur){ F.phase='bite'; F.t=0; splash(bx,by,bz,false); }
+  else if(F.phase==='bite'&&F.t>2.6){ F.phase='wait'; F.t=0; F.dur=4+Math.random()*8;
+    toast('The fish slips the hook — cast on, and watch the float.'); }
+}
+/* ================= THE SPEAR — HUNT THE BEASTS OF THE FIELD =================
+   Q (or the button) casts the spear along your gaze. It arcs, and if it
+   finds a hare, a deer, a fowl — or a wolf — the game is taken and tallied
+   in the log; else it stands planted where it fell. One spear, ever ready. */
+let spearM=null; const spear={active:false,x:0,y:0,z:0,vx:0,vy:0,vz:0,stick:0};
+function ensureSpear(){ if(spearM) return;
+  spearM=new THREE.Group();
+  const shaft=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.4,9),new THREE.MeshLambertMaterial({color:0x6a4a2a}));
+  spearM.add(shaft);
+  const tip=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,1.4),new THREE.MeshLambertMaterial({color:0xb8bcc4}));
+  tip.position.z=5.0; spearM.add(tip);
+  spearM.visible=false; scene.add(spearM);
+}
+function throwSpear(){
+  if(spear.active||state.fishing) return;
+  if(state.mode==='walk'){
+    ensureSpear();
+    const w=state.walk;
+    spear.active=true; spear.aqua=false; spear.stick=0;
+    spear.x=w.x+Math.sin(w.heading)*2; spear.z=w.z+Math.cos(w.heading)*2;
+    spear.y=(w.feetY||0)+9;
+    spear.vx=Math.sin(w.heading)*70; spear.vz=Math.cos(w.heading)*70; spear.vy=7;
+    spearM.visible=true;
+    const u=walkerG.userData; u.armR.rotation.x=-2.6;   /* the cast */
+  } else if(state.mode==='dive'){
+    /* the spear hunts beneath the waves too — slower, sinking, true to the water */
+    ensureSpear();
+    const dv=state.dive;
+    spear.active=true; spear.aqua=true; spear.stick=0;
+    spear.x=dv.x+Math.sin(dv.heading)*3; spear.z=dv.z+Math.cos(dv.heading)*3;
+    spear.y=dv.y+2;
+    const tilt=Math.max(-0.5,Math.min(0.5,-dv.vy/DIVE_VMAX*0.7));   /* aim follows the swim tilt */
+    spear.vx=Math.sin(dv.heading)*54; spear.vz=Math.cos(dv.heading)*54; spear.vy=-2-tilt*24;
+    spearM.visible=true;
+  }
+}
+/* the quarry of the deep: fish, squid and puffers are tallied as fish
+   taken; a struck SHARK is not food but flees, its hunt broken */
+function spearHitDeep(){
+  const near=(x,y,z,r)=>Math.hypot(x-spear.x,z-spear.z)<r&&Math.abs(y-spear.y)<r+2.5;
+  for(const s of SHARKS){ if(!s.set) continue;
+    if(near(s.x,s.y,s.z,5.5)){ s.cool=24;
+      s.dir=Math.atan2(s.z-spear.z,s.x-spear.x); return {n:'the great shark',fishy:false}; } }
+  for(const f of DIVEFISH){ if(!f.set) continue;
+    if(near(f.x,f.y,f.z,3.2)){ f.set=false; f.m.visible=false; return {n:'a fish of the deep',fishy:true}; } }
+  for(const q of SQUIDS){ if(!q.set) continue;
+    if(near(q.x,q.y,q.z,3.6)){ q.set=false; q.m.visible=false; return {n:'a squid',fishy:true}; } }
+  if(PUFFERS) for(const o of PUFFERS){ if(!o.set) continue;
+    if(near(o.x,o.y,o.z,3.2)){ o.set=false; o.m.visible=false; return {n:'a puffer of the reef',fishy:true}; } }
+  return null;
+}
+function spearHit(){
+  const near=(x,z)=>Math.hypot(x-spear.x,z-spear.z)<3.4;
+  for(const[,vv] of activeVillages){ if(vv.none||!vv.beasts) continue;
+    for(let k=0;k<vv.beasts.length;k++){ const b=vv.beasts[k];
+      if(!BEAST_PREY.has(b.kind)&&b.kind!=='deer'&&b.kind!=='wolf') continue;
+      if(near(b.m.position.x,b.m.position.z)&&Math.abs(b.m.position.y+3-spear.y)<8){
+        b.m.visible=false; vv.g.remove(b.m); vv.beasts.splice(k,1);
+        return b.kind; } } }
+  for(const a of LANDLIFE){ if(!a.set||(!AMBIENT_PREY.has(a.kind)&&a.kind!=='wolf'&&a.kind!=='lion')) continue;
+    if(near(a.x,a.z)&&Math.abs(a.m.position.y+3-spear.y)<9){ a.set=false; a.m.visible=false; return a.kind; } }
+  return null;
+}
+function spearTick(dt){
+  if(!spear.active){
+    if(spear.stick>0){ spear.stick-=dt; if(spear.stick<=0&&spearM) spearM.visible=false; }
+    return; }
+  /* substep the flight so a slow frame can never carry it clean through
+     a fish or a beast between one tick and the next */
+  const sub=Math.max(1,Math.ceil((Math.hypot(spear.vx,spear.vz)*dt)/2.4));
+  const sdt=dt/sub;
+  for(let s3=0;s3<sub&&spear.active;s3++){
+    if(spear.aqua){                                  /* the water holds it back and draws it down */
+      const drag=Math.max(0,1-sdt*0.55);
+      spear.vx*=drag; spear.vz*=drag; spear.vy=spear.vy*drag-7*sdt;
+    } else spear.vy-=26*sdt;
+    spear.x+=spear.vx*sdt; spear.z+=spear.vz*sdt; spear.y+=spear.vy*sdt;
+    if(spear.aqua){
+      const catch2=spearHitDeep();
+      if(catch2){ spear.active=false; spear.stick=1.2;
+        if(catch2.fishy){ state.fish=(state.fish||0)+1;
+          toast('Your spear takes '+catch2.n+' — '+state.fish+' fish in the log, good silver at any market.'); }
+        else toast('Your spear turns '+catch2.n+' — it breaks off the hunt and flees to the deep.');
+        saveState(); break; }
+      if(landAtWorld(spear.x,spear.z)){ spear.active=false; spear.stick=1.5; break; } /* struck the flank */
+      const fy=seabedDepth(spear.x,spear.z);
+      if(spear.y<=fy+0.6){ spear.active=false; spear.stick=5;
+        spearM.rotation.x=1.15; spearM.position.y=fy+1.3; break; }  /* planted in the sea bed */
+      if(spear.y>=SEA_SURF+seaHeight(spear.x,spear.z)){ spear.active=false; spear.stick=0.4;
+        splash(spear.x,SEA_SURF+0.6,spear.z,false); break; }
+      const dv=state.dive;
+      if(Math.hypot(spear.x-dv.x,spear.z-dv.z)>110){ spear.active=false; spearM.visible=false; break; }
+    } else {
+      const kill=spearHit();
+      if(kill){ state.game=(state.game||0)+1; spear.active=false; spear.stick=1.4;
+        toast(kill==='wolf'?'Your spear finds the wolf — the flock is safe, and the pelt is yours. Game taken: '+state.game+'.'
+          :'Your spear finds the '+kill+' — game taken for the voyage: '+state.game+'.');
+        saveState(); break; }
+      const gy=groundInfo(spear.x,spear.z);
+      if(spear.y<=(gy.land?gy.y:WATER_Y)+0.4){
+        spear.active=false;
+        if(!gy.land){ splash(spear.x,WATER_Y+0.6,spear.z,false); spear.stick=0.5; }
+        else { spear.stick=5; spearM.rotation.x=1.15; spearM.position.y=gy.y+1.4; }  /* planted in the earth */
+        break; }
+      if(Math.hypot(spear.x-state.walk.x,spear.z-state.walk.z)>150){ spear.active=false; spearM.visible=false; break; }
+    }
+  }
+  if(spear.active){
+    spearM.position.set(spear.x,spear.y,spear.z);
+    spearM.rotation.y=Math.atan2(spear.vx,spear.vz);
+    spearM.rotation.x=Math.atan2(-spear.vy,Math.hypot(spear.vx,spear.vz))*0.8;
+  }
 }
 
 /* ================= YAHRUSHALAYIM ================= */
@@ -2347,6 +3335,8 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code==='Space'){ e.preventDefault(); if(state.mode==='walk') state.walk.jumpReq=true; }
   if(e.code==='KeyE') toggleAshore();
   if(e.code==='KeyF') interact();
+  if(e.code==='KeyQ') throwSpear();
+  if(e.code==='KeyN') toggleNet();
   if(e.code==='KeyG') takeFlight();          /* SPACE (handled above) lifts in flight */
   if(e.code==='KeyC') enterDive();           /* dive the deep / surface */
   if(e.code==='KeyM') toggleMap();
@@ -2445,13 +3435,13 @@ function boatTick(dt,helm){
   const bt=state.boat; const [f,t]=helm?axis():[0,0];
   const st=stormAt(bt.x,bt.z);
   seaTime=performance.now()*0.001; seaAmp=1+st*1.7;    /* fix the sea for this frame */
-  const target=f*40*SPEEDS[state.speedIdx][2]*sailFactor(bt.heading)*(1-0.45*st);
+  const target=f*40*SPEEDS[state.speedIdx][2]*sailFactor(bt.heading)*(1-0.45*st)*(state.net?0.72:1);
   bt.speed+=(target-bt.speed)*Math.min(1,dt*1.2);
   if(Math.abs(bt.speed)>0.4) bt.heading+=t*dt*(0.85+Math.min(1,Math.abs(bt.speed)/22)*0.6);
   const nx=bt.x+Math.sin(bt.heading)*bt.speed*dt, nz=bt.z+Math.cos(bt.heading)*bt.speed*dt;
   /* probe ahead of the motion: the bow when sailing, the stern when reversing */
   const sgn=bt.speed>=0?1:-1;
-  const bowX=nx+Math.sin(bt.heading)*44*sgn, bowZ=nz+Math.cos(bt.heading)*44*sgn;
+  const bowX=nx+Math.sin(bt.heading)*44*SHIP_S*sgn, bowZ=nz+Math.cos(bt.heading)*44*SHIP_S*sgn;
   if(!blockedForBoat(bowX,bowZ)&&!blockedForBoat(nx,nz)){
     state.dist+=Math.hypot(nx-bt.x,nz-bt.z); bt.x=nx; bt.z=nz; }
   else bt.speed*=-0.15;
@@ -2464,7 +3454,7 @@ function boatTick(dt,helm){
   let pitch=cl(-(sl.x*fwdX+sl.z*fwdZ)*0.9, MAXTILT) - cl(bt.speed*0.0012,0.03);
   let roll =cl((sl.x*fwdZ-sl.z*fwdX)*0.9, MAXTILT)
     + cl(t*Math.min(1,Math.abs(bt.speed)/24)*0.10, 0.10);      /* lean into the turn */
-  boatG.position.set(bt.x, WATER_Y+1.1+hd*0.6, bt.z);
+  boatG.position.set(bt.x, WATER_Y-2.1+hd*0.65, bt.z);   /* she draws deeper now, great as she is */
   boatG.rotation.set(pitch, bt.heading, roll);
   const w=windAt(bt.x,bt.z);                       // the pennant flies downwind
   if(boatG.userData.flag) boatG.userData.flag.rotation.y=Math.atan2(w.x,w.z)-bt.heading;
@@ -2538,7 +3528,30 @@ function sleep(){
   toast('You rest in your home among the boughs, and wake to a new morning.');
   saveState();
 }
-function interact(){ if(canSleep()) sleep(); else toggleDoor(); }
+function interact(){
+  if(tradeOpen){ closeTrade(); return; }        /* F also leaves the trading */
+  switch(promptAction){
+    case 'sleep': sleep(); break;
+    case 'door': toggleDoor(); break;
+    case 'down': state.deck.level='hold'; state.deck.lx=0; state.deck.lz=HATCH.z; break;
+    case 'up': state.deck.level='deck'; state.deck.lx=2.4*SHIP_SX; state.deck.lz=HATCH.z+3*SHIP_S; break;
+    case 'speak': speakTo(promptPerson); break;
+    case 'fish': startFishing(); break;
+    case 'reel': reelIn(); break;
+    case 'pearl': { const P=promptPearl; if(!P) break;
+      pearlTaken.add(P.key); P.key=null; P.m.visible=false;
+      state.pearls=(state.pearls||0)+1;
+      toast('\u201cThe price of wisdom is above pearls\u201d \u2014 yet this one will fetch good silver at any market. Pearls gathered: '+state.pearls+'.','IYOB 28:18');
+      saveState(); break; }
+    case 'trade': { const st=promptStall;
+      const cty=cityFor(st.i);
+      openTrade(st.i,'the market of '+(cty?cty.name+', ':'')+COUNTRIES[st.i].n,false); break; }
+    case 'hail': { const h=promptTrader; h.T.halt=25;
+      toast('You hail the merchantman; she backs her sails and comes alongside to trade.');
+      openTrade(500+h.k*7,'a merchantman upon the deep (her prices are her own)',true); break; }
+    default: if(canSleep()) sleep(); else toggleDoor();
+  }
+}
 function toggleDoor(){ if(!promptDoor||!promptDoor.door) return;
   const D2=promptDoor.door; D2.open=!D2.open;
   D2.target=D2.open?D2.base+D2.swing:D2.base; }
@@ -2566,6 +3579,24 @@ function insideHouse(x,z){
   }
   return insideHouseIn(x,z,standaloneHouses);
 }
+/* ---- SPLASH — a burst of white spray where a body meets the water ---- */
+const SPLASH=[]; const SPL_N=26;
+function initSplash(){ if(SPLASH.length) return;
+  for(let k=0;k<SPL_N;k++){ const s=new THREE.Sprite(new THREE.SpriteMaterial({color:0xeaf6ff,transparent:true,opacity:0,depthWrite:false}));
+    s.visible=false; scene.add(s); SPLASH.push({s,life:0,x:0,y:0,z:0,vx:0,vy:0,vz:0,sz:0}); } }
+function splash(x,y,z,big){ initSplash();
+  let n=big?16:8;
+  for(const p of SPLASH){ if(n<=0) break; if(p.life>0) continue; n--;
+    const a=Math.random()*Math.PI*2, r=(big?10:5)*(0.4+Math.random());
+    p.life=0.55+Math.random()*0.35; p.x=x; p.y=y; p.z=z;
+    p.vx=Math.cos(a)*r; p.vz=Math.sin(a)*r; p.vy=(big?16:9)*(0.5+Math.random());
+    p.sz=(big?1.4:0.8)*(0.6+Math.random()*0.7); p.s.visible=true; } }
+function splashTick(dt){ if(!SPLASH.length) return;
+  for(const p of SPLASH){ if(p.life<=0) continue;
+    p.life-=dt; p.vy-=42*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.z+=p.vz*dt;
+    p.s.position.set(p.x,p.y,p.z); p.s.scale.setScalar(p.sz);
+    p.s.material.opacity=Math.max(0,Math.min(0.85,p.life*1.6));
+    if(p.life<=0) p.s.visible=false; } }
 const STEP=B*1.2, JUMPH=B*2.3, CLIMBH=B*4.6;   /* step / must-jump / can-climb heights */
 function walkTick(dt){
   const w=state.walk, u=walkerG.userData; const [f,t]=axis();
@@ -2584,23 +3615,36 @@ function walkTick(dt){
   }
   w.heading+=t*dt*2.4;
   const gi=groundInfo(w.x,w.z);
-  const swimming=gi.water && Math.hypot(w.x-state.boat.x,w.z-state.boat.z)>=55;
-  /* ---- vertical physics: gravity, landing, and the jump ---- */
-  if(swimming){ w.feetY=gi.y+Math.sin(performance.now()*0.003)*0.4; w.vy=0; w.grounded=true; }
-  else { w.vy-=64*dt; w.feetY+=w.vy*dt;
+  const swimming=gi.water && Math.hypot(w.x-state.boat.x,w.z-state.boat.z)>=90;
+  /* ---- vertical physics: gravity, landing, the jump, and true buoyancy ----
+     In the water the body floats AT the surface and rides the swell — prone
+     and stroking when swimming forward, treading upright when at rest. */
+  const surfY=WATER_Y+seaHeight(w.x,w.z);
+  if(swimming){
+    if(!w.inWater){ w.inWater=true; splash(w.x,surfY+1,w.z,w.vy<-14);
+      if(!swimDeepHintShown){ swimDeepHintShown=true;
+        toast('You swim the swell — hold SHIFT to slip beneath the waves and dive the deep; make for the shore to haul out.'); } }
+    /* hold SHIFT at the surface and slip straight down into the deep —
+       the same water, the same place, the bed running from the strand */
+    if(keys.ShiftLeft||keys.ShiftRight){ enterDive(); return; }
+    w.feetY=surfY-1.0; w.vy=0; w.grounded=true; w.jumpReq=false;
+  }
+  else { if(w.inWater){ w.inWater=false; }
+    w.vy-=64*dt; w.feetY+=w.vy*dt;
     if(w.feetY<=gi.y){ w.feetY=gi.y; w.vy=0; w.grounded=true; } else w.grounded=false;
     if((keys.Space||w.jumpReq)&&w.grounded){ w.vy=38; w.grounded=false; } w.jumpReq=false; }
   /* ---- horizontal move, gated by the height of the ground ahead ---- */
-  const sp=f*(swimming?11:18);
+  const sp=f*(swimming?16:18);
   const nx=w.x+Math.sin(w.heading)*sp*dt, nz=w.z+Math.cos(w.heading)*sp*dt;
   const tg=groundInfo(nx,nz);
-  const nearBoat=Math.hypot(nx-state.boat.x,nz-state.boat.z)<55;
+  const nearBoat=Math.hypot(nx-state.boat.x,nz-state.boat.z)<90;
   const onDeckNext=deckMap.get(Math.floor(nx/B)+','+Math.floor(nz/B))!==undefined;
   const solidBlock = blockedByStructure(nx,nz)||treeBlocked(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,walkerG);
   const diff = tg.y - w.feetY;
   let canGo=true;
   if(!tg.land) canGo = nearBoat||onDeckNext||(Math.hypot(nx,nz)/R_WORLD<0.985);  /* swim (the ice wall is land, and climbable) */
   else if(diff<=STEP){ /* a small step — walk up or down freely */ }
+  else if(swimming && diff<=JUMPH+3){ /* haul out of the water onto the strand */ }
   else if(diff<=JUMPH) canGo = w.feetY>=tg.y-B*0.4;      /* two blocks: only if jumping onto it */
   else if(diff<=CLIMBH){                                  /* three–four blocks: climb it */
     if(f>0.3 && w.grounded && !solidBlock && !w.climb)
@@ -2610,16 +3654,29 @@ function walkTick(dt){
   } else canGo=false;                                    /* too high — go around */
   if(solidBlock) canGo=false;
   if(canGo){ state.dist+=Math.hypot(nx-w.x,nz-w.z); w.x=nx; w.z=nz;
-    if(w.grounded && diff>=-B*3 && diff<=STEP) w.feetY=tg.y; }   /* snap small steps */
+    if(w.grounded && diff>=-B*3 && diff<=(swimming?JUMPH+3:STEP)) w.feetY=tg.y; }   /* snap small steps */
   walkerG.position.set(w.x,w.feetY,w.z); walkerG.rotation.y=w.heading;
   /* ---- animation ---- */
   const moving=Math.abs(sp)>0.5;
-  if(swimming){ const s=performance.now()*0.006;
-    u.armL.rotation.x=-1.2+Math.sin(s)*0.8; u.armR.rotation.x=-1.2+Math.sin(s)*0.8;
-    u.legL.rotation.x=Math.sin(s*1.2)*0.4; u.legR.rotation.x=-Math.sin(s*1.2)*0.4;
+  if(swimming){ const s=performance.now()*0.008;
+    const prone=Math.abs(f)>0.15;                        /* stroking forward, or treading */
+    walkerG.rotation.x=prone?1.30+Math.sin(s*0.7)*0.05:0.22;
+    walkerG.position.y=w.feetY-(prone?0.1:6.4);          /* the body lies IN the water, not upon it */
+    if(prone){                                           /* the front crawl — arms wheeling over */
+      u.armL.rotation.x=-(s%6.2832); u.armR.rotation.x=-((s+3.1416)%6.2832);
+      u.armL.rotation.z=0.12; u.armR.rotation.z=-0.12;
+      u.legL.rotation.x=Math.sin(s*2.6)*0.55; u.legR.rotation.x=-Math.sin(s*2.6)*0.55;
+      if(Math.random()<dt*2.2) splash(w.x-Math.sin(w.heading)*4,surfY+0.5,w.z-Math.cos(w.heading)*4,false);
+    } else {                                             /* treading water, head above the swell */
+      u.armL.rotation.x=-0.45+Math.sin(s)*0.22; u.armR.rotation.x=-0.45-Math.sin(s)*0.22;
+      u.armL.rotation.z=0.85; u.armR.rotation.z=-0.85;
+      u.legL.rotation.x=Math.sin(s*1.6)*0.45; u.legR.rotation.x=-Math.sin(s*1.6)*0.45;
+    }
   } else if(!w.grounded){                                 /* the jump pose */
+    walkerG.rotation.x=0; u.armL.rotation.z=0; u.armR.rotation.z=0;
     u.legL.rotation.x=0.55; u.legR.rotation.x=-0.3; u.armL.rotation.x=-0.7; u.armR.rotation.x=-0.7;
   } else { const ph=performance.now()*0.011;
+    walkerG.rotation.x=0; u.armL.rotation.z=0; u.armR.rotation.z=0;
     u.legL.rotation.x=moving?Math.sin(ph)*0.7:0; u.legR.rotation.x=moving?-Math.sin(ph)*0.7:0;
     u.armL.rotation.x=moving?-Math.sin(ph)*0.5:0; u.armR.rotation.x=moving?Math.sin(ph)*0.5:0;
   }
@@ -2730,7 +3787,7 @@ function setMode(m){
     poseArms(false);
   } else {
     if(walkerG.parent!==boatG){ if(walkerG.parent) walkerG.parent.remove(walkerG); boatG.add(walkerG); }
-    if(m==='boat'){ walkerG.position.set(HELM.x,QDECK_Y,HELM.z); walkerG.rotation.y=0; poseArms(true); }
+    if(m==='boat'){ walkerG.position.set(HELM.x,SD.qdeckY,SD.helmZ); walkerG.rotation.y=0; poseArms(true); }
     else poseArms(false);
   }
   walkerG.visible=true;
@@ -2743,12 +3800,13 @@ function updateFlyBtn(){ const b=$('b-fly'); if(!b) return;
 function updateDiveBtn(){ const b=$('b-dive'); if(!b) return;
   b.textContent=state.mode==='dive'?'🌊 Surface':'🤿 Dive';
   b.classList.toggle('off',state.mode==='dive'); }
-function nearWheel(){ return state.mode==='deck'&&state.deck.lz<QDECK_Z+1.5&&Math.abs(state.deck.lx)<4.2; }
+function nearWheel(){ return state.mode==='deck'&&state.deck.level!=='hold'
+  &&state.deck.lz<SD.qdeckZ+1.5*SHIP_S&&Math.abs(state.deck.lx)<4.2*SHIP_SX; }
 function goAshoreFromShip(){
   const bt=state.boat;
   /* pass 1 — a beach or low ground; pass 2 — a pier; pass 3 — any land */
   let anyLand=null;
-  for(let rad=1;rad<13;rad++) for(let a=0;a<rad*8;a++){
+  for(let rad=1;rad<22;rad++) for(let a=0;a<rad*8;a++){
     const th=a/(rad*8)*Math.PI*2;
     const x=bt.x+Math.cos(th)*rad*B, z=bt.z+Math.sin(th)*rad*B;
     const cc=landAtWorld(x,z);
@@ -2761,7 +3819,7 @@ function goAshoreFromShip(){
   let bestD=null;
   for(const [k] of deckMap){ const parts=k.split(','),ix=+parts[0],iz=+parts[1];
     const x=(ix+.5)*B, z=(iz+.5)*B, dd=Math.hypot(x-bt.x,z-bt.z);
-    if(dd<13*B&&(!bestD||dd<bestD.dd)) bestD={x,z,dd}; }
+    if(dd<22*B&&(!bestD||dd<bestD.dd)) bestD={x,z,dd}; }
   if(bestD){ state.walk.x=bestD.x; state.walk.z=bestD.z; state.walk.heading=bt.heading;
     setMode('walk'); markDiscovery(bestD.x,bestD.z); return true; }
   if(anyLand){ state.walk.x=anyLand.x; state.walk.z=anyLand.z; state.walk.heading=bt.heading;
@@ -2773,16 +3831,18 @@ function toggleAshore(){
   if(state.mode==='fly'){ alight(); return; }    /* come down out of the air */
   if(state.mode==='dive'){ surface(); return; }  /* come up out of the deep */
   if(state.mode==='boat'){                       /* step back from the wheel */
-    state.deck={lx:2.4,lz:HELM.z+1.2,h:0};
+    state.deck={lx:2.4*SHIP_SX,lz:SD.helmZ+1.2*SHIP_S,h:0,level:'deck'};
     setMode('deck'); return;
   }
   if(state.mode==='deck'){
+    if(state.deck.level==='hold'){               /* first come up out of the hold */
+      state.deck.level='deck'; state.deck.lx=2.4*SHIP_SX; state.deck.lz=HATCH.z+3*SHIP_S; return; }
     if(nearWheel()){ setMode('boat'); return; }  /* take the helm */
     goAshoreFromShip(); return;
   }
   /* ashore: board the ship if she lies near */
-  if(Math.hypot(state.walk.x-state.boat.x,state.walk.z-state.boat.z)<60){
-    state.deck={lx:4.6,lz:2,h:Math.PI*0.5};
+  if(Math.hypot(state.walk.x-state.boat.x,state.walk.z-state.boat.z)<95){
+    state.deck={lx:4.6*SHIP_SX,lz:2*SHIP_S,h:Math.PI*0.5,level:'deck'};
     setMode('deck');
   } else toast('The ship lies too far off — return to the water\u2019s edge.');
 }
@@ -2797,10 +3857,11 @@ function deckTick(dt){
   const d=state.deck; const [f,t]=axis();
   d.h+=t*dt*2.4;
   const sp=f*14;
+  const allowed=d.level==='hold'?holdAllowed:deckAllowed;
   const nx=d.lx+Math.sin(d.h)*sp*dt, nz=d.lz+Math.cos(d.h)*sp*dt;
-  if(deckAllowed(nx,d.lz)) d.lx=nx;
-  if(deckAllowed(d.lx,nz)) d.lz=nz;
-  walkerG.position.set(d.lx,deckHeightAt(d.lz),d.lz);
+  if(allowed(nx,d.lz)) d.lx=nx;
+  if(allowed(d.lx,nz)) d.lz=nz;
+  walkerG.position.set(d.lx,d.level==='hold'?HOLD.y:deckHeightAt(d.lz),d.lz);
   walkerG.rotation.y=d.h;
   const ph=performance.now()*0.011, moving=Math.abs(sp)>0.5, u=walkerG.userData;
   u.legL.rotation.x=moving?Math.sin(ph)*0.7:0; u.legR.rotation.x=moving?-Math.sin(ph)*0.7:0;
@@ -2928,7 +3989,7 @@ function enterFirm(){ buildFirmament(); state.firm=true; firmG.visible=true;
     toast('Tap a land you have already visited, and a fair wind will carry you to its coasts.'); }
   clouds.visible=false; cirrus.visible=false;   /* clear the sky \u2014 behold the whole earth */
   cloudDeck.visible=false; cloudWisp.visible=false; cloudCover.visible=false; voidWall.visible=false;
-  hideDeep(); hideLandLife(); hideAirLife();     /* nothing of the deep or the field in the map view */
+  hideDeep(); hideLandLife(); hideAirLife(); hideTraders();  /* nothing of the deep or the field in the map view */
   $('b-firm').textContent='\u26F5 Return to the ship'; }
 function exitFirm(){ state.firm=false; if(firmG) firmG.visible=false;
   scene.fog=FOG; state.camPitch=0.42; state.camDist=200;
@@ -2941,20 +4002,30 @@ const camTgt=new THREE.Vector3(), camPos=new THREE.Vector3(), _wv=new THREE.Vect
 let camInside=false;
 function setCamInside(on){ if(on===camInside) return; camInside=on;
   camera.near=on?0.3:1; camera.updateProjectionMatrix();
-  if(state.mode==='walk') walkerG.visible=!on;   /* hide the body in first-person */
+  if(on){ if(state.mode==='walk'||state.mode==='deck') walkerG.visible=false; } /* hide the body in first-person */
+  else walkerG.visible=true;
 }
 function camInsideShip(wx,wy,wz){
-  if(wy>boatG.position.y+56) return false;
+  if(wy>boatG.position.y+56*SHIP_S) return false;
   const dx=wx-boatG.position.x, dz=wz-boatG.position.z, h=state.boat.heading;
   const c=Math.cos(h), sn=Math.sin(h);
   const lx=dx*c-dz*sn, lz=dx*sn+dz*c;
-  return Math.abs(lx)<10 && lz>-35 && lz<50;
+  return Math.abs(lx)<10*SHIP_SX && lz>-35*SHIP_S && lz<50*SHIP_S;
 }
+const _camHold=new THREE.Vector3();
 function cameraTick(dt){
   if(state.firm){ const pit=Math.max(0.3,Math.min(1.5,state.camPitch));
     const Rd=state.firmDist;
     camPos.set(Math.sin(state.camYaw)*Math.cos(pit)*Rd, Math.sin(pit)*Rd+200, Math.cos(state.camYaw)*Math.cos(pit)*Rd);
     camera.position.lerp(camPos,Math.min(1,dt*2.5)); camera.lookAt(0,0,0); return; }
+  /* down in the hold — a first-person eye among the cargo */
+  if(state.mode==='deck'&&state.deck.level==='hold'){
+    setCamInside(true); boatG.updateMatrixWorld();
+    const d=state.deck;
+    _wv.set(d.lx,HOLD.y+9.6,d.lz); boatG.localToWorld(_wv);
+    camera.position.lerp(_wv,Math.min(1,dt*12));
+    _camHold.set(d.lx+Math.sin(d.h)*12,HOLD.y+8.2,d.lz+Math.cos(d.h)*12); boatG.localToWorld(_camHold);
+    camera.lookAt(_camHold); return; }
   /* inside a home — a first-person view from within, so you truly enter it.
      The camera is clamped well inside the walls (never through them), the near
      plane is pulled in, and the body is hidden so it doesn't fill the view. */
@@ -2970,9 +4041,9 @@ function cameraTick(dt){
   let px,pz,phead,baseY,dist;
   if(state.mode==='deck'){ walkerG.getWorldPosition(_wv);
     px=_wv.x; pz=_wv.z; baseY=_wv.y; phead=state.boat.heading+state.deck.h;
-    dist=Math.max(10,Math.min(state.camDist,44)); }
+    dist=Math.max(10,Math.min(state.camDist,60)); }
   else if(state.mode==='boat'){ const bt=state.boat;
-    px=bt.x; pz=bt.z; baseY=boatG.position.y+QDECK_Y; phead=bt.heading; dist=Math.max(40,Math.min(state.camDist,224)); }
+    px=bt.x; pz=bt.z; baseY=boatG.position.y+SD.qdeckY; phead=bt.heading; dist=Math.max(56,Math.min(state.camDist,260)); }
   else if(state.mode==='fly'){ const fl=state.fly;
     px=fl.x; pz=fl.z; baseY=fl.y; phead=fl.heading; dist=Math.max(24,Math.min(state.camDist,300)); }
   else if(state.mode==='dive'){ const dv=state.dive;
@@ -2991,11 +4062,14 @@ function cameraTick(dt){
       dist*=0.82;
     }
   }
-  const lift=state.mode==='deck'?5:8;
+  /* swimming, the eye rides low along the waterline — the swell can roll
+     right over it (the frame loop tints the world to water-light when it does) */
+  const swimCam=state.mode==='walk'&&state.walk.inWater;
+  const lift=state.mode==='deck'?5:swimCam?2.2:8;
   const cy=baseY+lift+Math.sin(state.camPitch)*dist;
   camPos.set(px+Math.sin(az)*Math.cos(state.camPitch)*dist, cy, pz+Math.cos(az)*Math.cos(state.camPitch)*dist);
   camera.position.lerp(camPos,Math.min(1,dt*5));
-  camTgt.set(px,baseY+10,pz);
+  camTgt.set(px,baseY+(swimCam?4:10),pz);
   camera.lookAt(camTgt);
 }
 
@@ -3025,6 +4099,7 @@ function placeTick(){
     const ci=countryAtUV(u,v);
     if(ci){ const cty=cityFor(ci-1);
       txt=(cty?cty.name+' — '+COUNTRIES[ci-1].n:COUNTRIES[ci-1].n).toUpperCase(); }
+    else if(state.mode==='walk'&&landAtWorld(p.x,p.z)) txt='AN UNCHARTED ISLE';
     else{ let best=-1,bd=1e9;
       for(let i=0;i<COUNTRIES.length;i++){ const c=COUNTRIES[i].c;
         const d=Math.hypot(u-c[0],v-c[1]); if(d<bd){bd=d;best=i;} }
@@ -3103,9 +4178,10 @@ $('bigmap').addEventListener('click',toggleMap);
    window.storage API is kept as a secondary channel where it exists. */
 const SAVE_KEY='voyage:state';
 async function saveState(){
-  const payload=JSON.stringify({v:4,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
+  const payload=JSON.stringify({v:6,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
     t:state.simHours,m:state.mode==='walk'?'walk':'boat',wx:state.walk.x,wz:state.walk.z,wh:state.walk.heading,
-    vis:[...state.visited],d:Math.round(state.dist),wm:state.windMode});
+    vis:[...state.visited],d:Math.round(state.dist),wm:state.windMode,fi:state.fish||0,
+    co:state.coins,cg:state.cargo,gm:state.game||0,ib:state.immBreath?1:0,pe:state.pearls||0,rp:state.repel?1:0});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
 }
@@ -3113,7 +4189,7 @@ async function loadSaved(){
   let raw=null;
   try{ if(window.storage){ const r=await window.storage.get(SAVE_KEY); if(r&&r.value) raw=r.value; } }catch(e){}
   if(!raw){ try{ raw=localStorage.getItem(SAVE_KEY); }catch(e){} }
-  try{ const o=JSON.parse(raw); if(o&&o.v>=2&&o.v<=4) return o; }catch(e){}
+  try{ const o=JSON.parse(raw); if(o&&o.v>=2&&o.v<=6) return o; }catch(e){}
   return null;
 }
 
@@ -3127,6 +4203,17 @@ $('b-map').onclick=toggleMap;
 $('b-ashore').onclick=toggleAshore;
 $('b-fly').onclick=takeFlight;
 $('b-dive').onclick=enterDive;
+function updateBreathBtn(){ $('b-breath').textContent='🫧 Breath: '+(state.immBreath?'immortal':'mortal'); }
+$('b-breath').onclick=()=>{ state.immBreath=!state.immBreath; updateBreathBtn();
+  if(state.immBreath) toast('“The Ruach of Aluah has made me, and the breath of the Almighty gives me life.” You will not want for air beneath the waves.','IYOB 33:4');
+  else toast('Your breath is your own again — watch the bar below, and rise to breathe.');
+  saveState(); };
+function updateRepelBtn(){ $('b-repel').textContent='🛡 Repel beasts: '+(state.repel?'on':'off'); }
+$('b-repel').onclick=()=>{ state.repel=!state.repel; updateRepelBtn();
+  if(state.repel) toast('“You shall tread upon the lion and the adder…” — no beast of the deep will touch you.','TEHILLIM 91:13');
+  else toast('The beasts of the deep are wild again — mind the great grey shapes.');
+  saveState(); };
+$('b-net').onclick=toggleNet;
 (function(){ const up=$('fp-up'), dn=$('fp-dn'); if(!up||!dn) return;
   function bind(el,val){ el.addEventListener('pointerdown',e=>{ e.preventDefault(); flyPad=val; });
     const off=()=>{ if(flyPad===val) flyPad=0; };
@@ -3148,14 +4235,20 @@ function toggleLog(){
   logOpen=!logOpen; $('logbook').style.display=logOpen?'flex':'none';
   if(!logOpen) return;
   const names=[...state.visited].map(i=>COUNTRIES[i].n).sort();
+  const cargoTxt=Object.keys(state.cargo||{}).length
+    ? GOODS.filter(g=>state.cargo[g.k]).map(g=>g.n.toLowerCase()+' ×'+state.cargo[g.k]).join(', ')
+    : 'the hold stands empty';
   $('log-stats').innerHTML=
     'Lands visited: <b>'+names.length+' / '+COUNTRIES.length+'</b><br>'+
     'Distance sailed: <b>'+Math.round(state.dist/B).toLocaleString()+' km</b><br>'+
+    'Purse: <b>'+(state.coins||0)+' shekels</b> · Cargo: <b>'+cargoCount()+' / '+CARGO_MAX+'</b> ('+cargoTxt+')<br>'+
+    'Fish drawn from the deep: <b>'+(state.fish||0)+'</b> · Game taken by the spear: <b>'+(state.game||0)+'</b> · Pearls: <b>'+(state.pearls||0)+'</b><br>'+
     'Day of the voyage: <b>'+dayOfYear()+'</b>';
   $('log-lands').textContent=names.length?names.join(' \u00B7 '):'No land yet \u2014 the deep awaits.';
 }
 $('b-log').onclick=toggleLog;
 $('prompt').onclick=interact;
+$('b-spear').onclick=throwSpear;
 $('b-jump').onclick=()=>{ if(state.mode==='walk') state.walk.jumpReq=true; };
 $('logbook').addEventListener('click',toggleLog);
 $('b-firm').onclick=()=>{ state.firm?exitFirm():enterFirm(); };
@@ -3212,6 +4305,13 @@ async function begin(fresh){
       state.walk.heading=saved.wh; state.mode='walk'; }
     if(saved.vis) state.visited=new Set(saved.vis);
     if(saved.d) state.dist=saved.d;
+    if(saved.fi) state.fish=saved.fi;
+    if(saved.co!==undefined) state.coins=saved.co;
+    if(saved.cg) state.cargo=saved.cg;
+    if(saved.gm) state.game=saved.gm;
+    if(saved.ib){ state.immBreath=true; updateBreathBtn(); }
+    if(saved.pe) state.pearls=saved.pe;
+    if(saved.rp){ state.repel=true; updateRepelBtn(); }
     if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); } }
   else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5; }
   const p0=state.mode==='walk'?state.walk:state.boat;
@@ -3223,6 +4323,11 @@ async function begin(fresh){
 loadSaved().then(s=>{ if(s){ const b=$('btn-continue'); b.style.display='inline-block'; } });
 $('btn-sail').onclick=()=>begin(true);
 $('btn-continue').onclick=()=>begin(false);
+
+/* a small debug handle — used by the automated smoke tests; harmless in play */
+window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
+  TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
+  DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls};
 
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0;
@@ -3249,12 +4354,48 @@ function frame(){
     const wc=mix3(0x061826,0x0f5170,0x36b0d8,1-murk);   /* deep dark → shallow turquoise */
     scene.background.copy(wc); scene.fog.color.copy(wc); scene.fog.near=4; scene.fog.far=470-murk*290;
     hemi.intensity=1.0-murk*0.6; dirL.intensity=0.5-murk*0.32; }
+  /* ---- BREATH — the diver's chest against the deep ----
+     It drains below, refills above; fails, and you break for the surface.
+     The immortal breath (🫧) frees you of it altogether. */
+  if(state.mode==='dive'){
+    if(state.immBreath) state.breath=1;
+    else { state.breath-=dt/75;
+      if(state.breath<0.3&&!state._breathWarn){ state._breathWarn=true;
+        toast('Your chest tightens — the surface is life. Rise and breathe, or take the immortal breath.'); }
+      if(state.breath<=0){ state.breath=0.15; state._breathWarn=false; surface();
+        toast('Your breath fails — you break for the surface, gasping.'); } }
+  } else { state.breath=Math.min(1,state.breath+dt/6); if(state.breath>0.5) state._breathWarn=false; }
+  { const bEl=$('breath'); if(bEl){ const show=state.mode==='dive';
+      bEl.style.display=show?'block':'none';
+      if(show){ $('breath-fill').style.width=Math.round(state.breath*100)+'%';
+        bEl.classList.toggle('low',!state.immBreath&&state.breath<0.3);
+        bEl.classList.toggle('imm',!!state.immBreath); } } }
+  /* the swimmer's eye dips beneath the swell — the world turns to water-light */
+  if(state.mode==='walk'&&scene.fog){
+    const surfC=WATER_Y+seaHeight(camera.position.x,camera.position.z);
+    if(camera.position.y<surfC-0.15&&!landAtWorld(camera.position.x,camera.position.z)){
+      const wc=mix3(0x0a2836,0x1e7a96,0x3ab2d8,light.dayF);
+      scene.background.copy(wc); scene.fog.color.copy(wc);
+      scene.fog.near=5; scene.fog.far=320;
+      hemi.intensity=0.85; dirL.intensity=0.4;
+    }
+  }
   /* the firmament vault fades into view the higher he climbs, and stands solid near the top */
   if(flyDome&&!state.firm){ flyDome.material.opacity=Math.max(0,Math.min(1,(eyeY-6000)/42000))*0.34; }
   else if(flyDome){ flyDome.material.opacity=0; }
   updateWallWeather(p.x,p.z,dt);   /* cold fog and blowing snow at the wall of ice */
   waterTick(p.x,p.z,light.dayF,light.storm||0);
+  /* below the waterline in the hold, the sea must not wash through the hull;
+     and in the dive, the lowered sea-bed plane must not roof the deep */
+  if(!state.firm){ const inHold=state.mode==='deck'&&state.deck.level==='hold';
+    waveGrid.visible=!inHold; sea.visible=!inHold&&state.mode!=='dive'; }
   seaLifeTick(p.x,p.z,dt);
+  splashTick(dt);
+  fishTick(dt);
+  spearTick(dt);
+  crewTick(dt);
+  netTick(dt);
+  if(!state.firm&&state.mode!=='dive') traderTick(p.x,p.z,dt); else hideTraders();
   audioTick(light.storm||0);
   updateChunks(p.x,p.z,4);
   updateVillages(p.x,p.z,dt,light.nightF);
@@ -3294,6 +4435,7 @@ function frame(){
   /* the beasts of the field and the fowl of the air, over all the earth */
   if(!state.firm&&state.mode!=='dive'){ const tt=performance.now()*0.001, night=(light.nightF||0)>0.5;
     updateAirLife(p.x,p.z,dt,tt,night);
+    updateShallowLife(p.x,p.z,dt,tt);   /* fish and turtles seen through the clear shallows */
     if(state.mode==='boat'||state.mode==='deck'||state.mode==='walk') updateLandLife(p.x,p.z,dt,tt); else hideLandLife(); }
   else { hideLandLife(); hideAirLife(); }
   if(state.firm&&firmMark) firmMark.position.set(p.x,R_WORLD*0.012,p.z);
