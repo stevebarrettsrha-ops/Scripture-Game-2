@@ -3269,9 +3269,11 @@ function frame(){
     TEX.clouds.offset.x=(p.x/9600*7+state.simHours*0.004)%1;
     TEX.clouds.offset.y=(p.z/9600*7)%1;
     /* thin the blocky floor as the eye passes through it, and fade it out well
-       above, where the soft sea of clouds takes over */
+       above — whether risen on the air or stood high upon the ice wall */
+    const pY = state.mode==='fly'?state.fly.y : state.mode==='walk'?(state.walk.feetY!==undefined?state.walk.feetY:20) : 20;
+    const highF = Math.max(0,Math.min(1,(pY-CLOUD_Y)/70));
     const gap=Math.abs(eyeY-CLOUD_Y), through=Math.min(1,gap/80);
-    cloudMat.opacity*=(0.22+0.78*through)*(1-above*0.9);
+    cloudMat.opacity*=(0.22+0.78*through)*(1-above*0.9)*(1-highF*0.96);
     cirrus.position.x=p.x; cirrus.position.z=p.z;
     const climb=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/900));
     cirrusMat.opacity=(0.08+light.dayF*0.16)*Math.min(1,climb*1.5)*(1-above*0.7);
