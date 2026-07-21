@@ -575,6 +575,34 @@ const voidTex=makeVoidTex(); voidTex.repeat.set(10,2);
 const voidWall=new THREE.Mesh(new THREE.CylinderGeometry(R_WORLD*0.999,R_WORLD*0.999,12000,160,1,true),
   new THREE.MeshBasicMaterial({map:voidTex,color:0x0a0c18,side:THREE.BackSide,fog:true}));
 voidWall.position.y=3400; scene.add(voidWall);
+
+/* ---- BLOWING SNOW at the wall of ice — a particle engine (THREE.Points).
+   A cold drift of snow and mist streams on the wind about the traveller as he
+   nears the rim, and a cold fog closes in. */
+const SNOW_N=900, SNOW_BOX=260, SNOW_TOP=150;
+const snowGeo=new THREE.BufferGeometry(), snowPos=new Float32Array(SNOW_N*3);
+for(let i=0;i<SNOW_N;i++){ snowPos[i*3]=(Math.random()-0.5)*2*SNOW_BOX; snowPos[i*3+1]=Math.random()*SNOW_TOP; snowPos[i*3+2]=(Math.random()-0.5)*2*SNOW_BOX; }
+snowGeo.setAttribute('position',new THREE.BufferAttribute(snowPos,3));
+const snowMat=new THREE.PointsMaterial({color:0xeef4ff,size:1.7,transparent:true,opacity:0,depthWrite:false,fog:false,sizeAttenuation:true});
+const snow=new THREE.Points(snowGeo,snowMat); snow.frustumCulled=false; snow.visible=false; scene.add(snow);
+const _coldFog=new THREE.Color(0xb6c6da);
+function updateWallWeather(px,pz,dt){
+  if(state.firm){ snow.visible=false; snowMat.opacity=0; return; }
+  const r=Math.hypot(px,pz)/R_WORLD, wallF=Math.max(0,Math.min(1,(r-0.85)/0.1));
+  if(wallF>0.01 && scene.fog && !state.firm && state.mode!=='dive'){   /* a cold fog closes in at the rim */
+    scene.fog.far*=1-wallF*0.55; scene.fog.color.lerp(_coldFog,wallF*0.55); }
+  snow.visible = wallF>0.02;
+  if(!snow.visible){ snowMat.opacity=0; return; }
+  snowMat.opacity=Math.min(0.9,wallF); snow.position.set(px,0,pz);
+  const w=windAt(px,pz), gust=1+0.5*Math.sin(performance.now()*0.0013);
+  const wx=w.x*(70+150*w.s)*gust, wz=w.z*(70+150*w.s)*gust, a=snowGeo.attributes.position.array;
+  for(let i=0;i<SNOW_N;i++){ const j=i*3;
+    a[j]+=wx*dt; a[j+2]+=wz*dt; a[j+1]-=(26+i%7*3)*dt;                  /* borne on the wind, and falling */
+    if(a[j]>SNOW_BOX)a[j]-=2*SNOW_BOX; else if(a[j]<-SNOW_BOX)a[j]+=2*SNOW_BOX;
+    if(a[j+2]>SNOW_BOX)a[j+2]-=2*SNOW_BOX; else if(a[j+2]<-SNOW_BOX)a[j+2]+=2*SNOW_BOX;
+    if(a[j+1]<0)a[j+1]+=SNOW_TOP; }
+  snowGeo.attributes.position.needsUpdate=true;
+}
 /* The far ring beyond the wave grid — a PLAIN deep-water colour, no tile
    texture (the old blocky water plane is gone; the Gerstner grid is the only
    surface water now). It sits just under the grid's flat edge, deep in fog. */
@@ -3224,6 +3252,7 @@ function frame(){
   /* the firmament vault fades into view the higher he climbs, and stands solid near the top */
   if(flyDome&&!state.firm){ flyDome.material.opacity=Math.max(0,Math.min(1,(eyeY-6000)/42000))*0.34; }
   else if(flyDome){ flyDome.material.opacity=0; }
+  updateWallWeather(p.x,p.z,dt);   /* cold fog and blowing snow at the wall of ice */
   waterTick(p.x,p.z,light.dayF,light.storm||0);
   seaLifeTick(p.x,p.z,dt);
   audioTick(light.storm||0);
