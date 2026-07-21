@@ -704,6 +704,38 @@ const cirrusMat=new THREE.MeshBasicMaterial({map:TEX.clouds,transparent:true,opa
 const cirrus=new THREE.Mesh(new THREE.PlaneGeometry(15000,15000),cirrusMat);
 cirrus.rotation.x=-Math.PI/2; cirrus.position.y=CIRRUS_Y; scene.add(cirrus);
 
+/* ---- THE SEA OF CLOUDS — a bumpy, shaded deck with real relief ------------
+   A wide mesh whose vertices are lifted by smooth noise sampled in world
+   space, so rolling cloud-hills stream beneath the traveller and catch the
+   light of the sun. A thin wispy sheet drifts just above it. Both appear only
+   once he has risen above the cloud floor, so the view from below is untouched. */
+const CS_SEG=132, CS_SIZE=46000, CS_AMP=140;
+const cloudGeo=new THREE.PlaneGeometry(CS_SIZE,CS_SIZE,CS_SEG,CS_SEG); cloudGeo.rotateX(-Math.PI/2);
+cloudGeo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(cloudGeo.attributes.position.count*3),3));
+const cloudDeckMat=new THREE.MeshLambertMaterial({color:0xffffff,vertexColors:true,transparent:true,opacity:0,side:THREE.DoubleSide});
+const cloudDeck=new THREE.Mesh(cloudGeo,cloudDeckMat);
+cloudDeck.position.y=CLOUD_Y; cloudDeck.visible=false; cloudDeck.frustumCulled=false; scene.add(cloudDeck);
+function updateCloudDeck(px,pz){ const pos=cloudGeo.attributes.position, a=pos.array, col=cloudGeo.attributes.color.array;
+  for(let i=0;i<a.length;i+=3){ const wx=(a[i]+px)*0.0011, wz=(a[i+2]+pz)*0.0011;
+    const h=Math.pow(fbm(wx,wz),1.4); a[i+1]=h*CS_AMP;                  /* rolling hills of cloud */
+    const b=0.55+0.45*h;                                               /* peaks bright, valleys shaded (blue-grey) */
+    col[i]=Math.min(1,b*0.9+0.12); col[i+1]=Math.min(1,b*0.93+0.09); col[i+2]=Math.min(1,b*0.98+0.04); }
+  pos.needsUpdate=true; cloudGeo.attributes.color.needsUpdate=true; cloudGeo.computeVertexNormals(); }
+/* a wispy tops overlay — a soft feathered texture, semi-transparent */
+function makeWispTex(){ const S=256, c=texCanvas(S,S), g=c.getContext('2d');
+  const img=g.createImageData(S,S), d=img.data;
+  function tn(x,y,f){ const X=x/S*f,Y=y/S*f,wx=x/S,wy=y/S;
+    return vnoise(X,Y)*(1-wx)*(1-wy)+vnoise(X-f,Y)*wx*(1-wy)+vnoise(X,Y-f)*(1-wx)*wy+vnoise(X-f,Y-f)*wx*wy; }
+  for(let y=0;y<S;y++)for(let x=0;x<S;x++){ const i=(y*S+x)*4;
+    let h=(tn(x,y,4)*0.6+tn(x,y,9)*0.4-0.5)/0.3; h=Math.max(0,Math.min(1,h));
+    d[i]=d[i+1]=255; d[i+2]=255; d[i+3]=Math.round(h*h*150); }
+  g.putImageData(img,0,0); const t=new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; return t; }
+const wispMat=new THREE.MeshBasicMaterial({map:makeWispTex(),transparent:true,opacity:0,depthWrite:false,fog:true,side:THREE.DoubleSide});
+wispMat.map.repeat.set(30,30);
+const cloudWisp=new THREE.Mesh(new THREE.PlaneGeometry(100000,100000),wispMat);
+cloudWisp.rotation.x=-Math.PI/2; cloudWisp.position.y=CLOUD_Y+64; cloudWisp.visible=false; scene.add(cloudWisp);
+
 /* the stars, circling the pole in the midst */
 const starGroup=new THREE.Group(); scene.add(starGroup);
 { const pts=[]; for(let i=0;i<1400;i++){ const a=Math.random()*Math.PI*2, e=Math.acos(Math.random());
@@ -2390,6 +2422,7 @@ function enterFirm(){ buildFirmament(); state.firm=true; firmG.visible=true;
   if(!firmHintShown&&running){ firmHintShown=true;
     toast('Tap a land you have already visited, and a fair wind will carry you to its coasts.'); }
   clouds.visible=false; cirrus.visible=false;   /* clear the sky \u2014 behold the whole earth */
+  cloudDeck.visible=false; cloudWisp.visible=false;
   $('b-firm').textContent='\u26F5 Return to the ship'; }
 function exitFirm(){ state.firm=false; if(firmG) firmG.visible=false;
   scene.fog=FOG; state.camPitch=0.42; state.camDist=200;
@@ -2694,8 +2727,9 @@ function frame(){
   const light=skyTick(p.x,p.z);
   /* aloft the air clears and the eye reaches far — open the fog with altitude */
   const eyeY=state.mode==='fly'?state.fly.y:20;
-  if(scene.fog&&!state.firm){ const openF=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/2400));
-    scene.fog.near*=1+openF*4; scene.fog.far*=1+openF*9; }
+  if(scene.fog&&!state.firm){ const climbF=Math.max(0,eyeY-CLOUD_Y);
+    scene.fog.near*=1+climbF/2600;
+    scene.fog.far=Math.min(scene.fog.far*(1+climbF/45), R_WORLD*3.0); }
   /* the firmament vault fades into view the higher he climbs, and stands solid near the top */
   if(flyDome&&!state.firm){ flyDome.material.opacity=Math.max(0,Math.min(1,(eyeY-6000)/42000))*0.34; }
   else if(flyDome){ flyDome.material.opacity=0; }
@@ -2709,16 +2743,27 @@ function frame(){
   miniT-=dt; if(miniT<=0){ miniT=0.5; drawMapInto(minictx,mini.width,false);
     if(bigOpen) sizeBig(); }
   saveT-=dt; if(saveT<=0){ saveT=10; saveState(); }
-  if(!state.firm){ clouds.position.x=p.x; clouds.position.z=p.z;
+  if(!state.firm){ const above=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/90));
+    clouds.position.x=p.x; clouds.position.z=p.z;
     TEX.clouds.offset.x=(p.x/9600*7+state.simHours*0.004)%1;
     TEX.clouds.offset.y=(p.z/9600*7)%1;
-    /* thin the cloud floor as the eye passes through it, so it is not a wall;
-       raise the high cirrus into view as the traveller climbs */
+    /* thin the blocky floor as the eye passes through it, and fade it out well
+       above, where the soft sea of clouds takes over */
     const gap=Math.abs(eyeY-CLOUD_Y), through=Math.min(1,gap/80);
-    cloudMat.opacity*=0.22+0.78*through;
+    cloudMat.opacity*=(0.22+0.78*through)*(1-above*0.9);
     cirrus.position.x=p.x; cirrus.position.z=p.z;
     const climb=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/900));
-    cirrusMat.opacity=(0.08+light.dayF*0.16)*Math.min(1,climb*1.5); }
+    cirrusMat.opacity=(0.08+light.dayF*0.16)*Math.min(1,climb*1.5)*(1-above*0.7);
+    /* the sea of clouds — a bumpy, shaded deck with wisps drifting above */
+    cloudDeck.visible=cloudWisp.visible=above>0.003;
+    if(above>0.003){
+      cloudDeck.position.set(p.x,CLOUD_Y,p.z); updateCloudDeck(p.x,p.z);
+      cloudDeckMat.opacity=above; cloudDeckMat.color.copy(mix3(0x6b7690,0xe6cba4,0xffffff,light.dayF));
+      cloudWisp.position.x=p.x; cloudWisp.position.z=p.z;
+      wispMat.opacity=above*0.5; wispMat.color.copy(mix3(0x4a5570,0xe0c49c,0xffffff,light.dayF));
+      const dr2=state.simHours*0.006;
+      wispMat.map.offset.set((p.x/100000*30+dr2)%1,(p.z/100000*30)%1);
+    } }
   if(state.firm&&firmMark) firmMark.position.set(p.x,R_WORLD*0.012,p.z);
   seaTex.offset.x=(performance.now()*0.000012)%1; seaTex.offset.y=(performance.now()*0.000009)%1;
   const _pn=performance.now();
