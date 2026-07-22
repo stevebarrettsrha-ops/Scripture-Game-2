@@ -746,7 +746,7 @@ const waveMat=new THREE.ShaderMaterial({
     uFogNear:{value:260}, uFogFar:{value:870}, uSunDir:{value:new THREE.Vector3(0.4,1,0.25)},
     uDeep:{value:new THREE.Color(0x0e2c4e)}, uShallow:{value:new THREE.Color(0x2fb3cf)},
     uMap:{value:seaTex}, uOpacity:{value:0.9}, uCamPos:{value:new THREE.Vector3()},
-    uShoal:{value:SHOAL_TEX},
+    uShoal:{value:SHOAL_TEX}, uZenith:{value:new THREE.Color(0x3d76c0)},
     uShip:{value:new THREE.Vector4()}, uShipH:{value:0}, uSunCol:{value:new THREE.Color(1,0.96,0.85)} },
   vertexShader:`
     uniform float uTime, uAmp; uniform vec2 uCenter;
@@ -766,12 +766,17 @@ const waveMat=new THREE.ShaderMaterial({
     }`,
   fragmentShader:`
     precision highp float;
-    uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow, uCamPos, uSunCol; uniform sampler2D uMap, uShoal;
+    uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow, uCamPos, uSunCol, uZenith; uniform sampler2D uMap, uShoal;
     uniform float uFogNear, uFogFar, uOpacity, uTime, uShipH; uniform vec4 uShip;
     varying vec3 vNormal, vWorld; varying float vHeight, vFog; varying vec2 vUv, vP;
     float h21(vec2 p){ return fract(sin(dot(p,vec2(41.3,289.1)))*43758.5); }
     void main(){
       vec3 N=normalize(vNormal);
+      /* fine wind-ripple, two scrolling octaves — the skin of the sea is never
+         still: per-pixel normal detail breaks the big Gerstner facets into chop */
+      vec3 rA=texture2D(uMap, vP*0.016+vec2(uTime*0.011,uTime*0.008)).rgb;
+      vec3 rB=texture2D(uMap, vP*0.058+vec2(-uTime*0.019,uTime*0.014)).rgb;
+      N=normalize(N+vec3((rA.r-0.5)*0.34+(rB.r-0.5)*0.20, 0.0, (rA.g-0.5)*0.34+(rB.g-0.5)*0.20));
       vec3 V=normalize(uCamPos-vWorld);
       vec3 L=normalize(uSunDir);
       float diff=clamp(dot(N,L),0.0,1.0);
@@ -786,8 +791,8 @@ const waveMat=new THREE.ShaderMaterial({
       vec3 base=mix(uShallow,uDeep,deepF);
       base*=0.88+0.24*clamp(vHeight*0.22+0.5,0.0,1.0);
       vec3 col=base*(0.62+0.5*diff)*(0.82+0.36*tex.b);
-      /* crest foam — only the very tallest crests, so the sea stays blue */
-      float foam=smoothstep(2.3,3.4,vHeight);
+      /* crest foam — only the tallest crests, torn ragged by the ripple noise */
+      float foam=smoothstep(2.1,3.3,vHeight)*(0.45+0.9*rB.b);
       /* the ship's wake: bright collar at the hull, a widening V astern */
       vec2 fwd=vec2(sin(uShipH),cos(uShipH)), rgt=vec2(cos(uShipH),-sin(uShipH));
       vec2 rel=vP-uShip.xy; float along=dot(rel,fwd), side=dot(rel,rgt);
@@ -820,9 +825,15 @@ const waveMat=new THREE.ShaderMaterial({
       col+=uSunCol*(spec*1.8+glit*0.2)*diff;
       /* caustic sparkle where the light passes through to the sand */
       col+=uSunCol*glit*0.3*shoal*diff;
-      /* fresnel — the sky truly mirrored at grazing angles */
+      /* light through the backlit crest — the glassy green heart of a wave */
+      float sss=pow(max(dot(V,-L),0.0),3.0)*smoothstep(0.6,2.4,vHeight)*(1.0-deepF*0.5);
+      col+=vec3(0.05,0.38,0.36)*sss*(0.35+diff*0.65);
+      /* fresnel — the true sky mirrored at grazing angles: the horizon haze
+         where the reflected ray runs flat, the deep zenith blue where it climbs */
       float fres=pow(1.0-max(dot(N,V),0.0),5.0);
-      col=mix(col,uFogColor*1.05,fres*0.45);
+      vec3 R=reflect(-V,N);
+      vec3 skyR=mix(uFogColor*1.06, uZenith, pow(clamp(R.y,0.0,1.0),0.7));
+      col=mix(col,skyR,fres*0.6);
       /* transparency by depth: the shallows let the bottom show through,
          the deep keeps its darkness; a mirror-skin at grazing angles */
       float aa=mix(0.55,0.93,deepF);
@@ -842,6 +853,7 @@ function waterTick(px,pz,dayF,storm){
   u.uCenter.value.set(px,pz);
   u.uLight.value.copy(mix3(0x38405e,0xd9a878,0xffffff,dayF)).multiplyScalar(1-storm*0.34);
   u.uSunCol.value.copy(mix3(0x243048,0xffcf8a,0xfff2d6,dayF));
+  u.uZenith.value.copy(mix3(0x05070f,0x27446e,0x3d76c0,dayF)).multiplyScalar(1-storm*0.45);
   if(scene.fog){ u.uFogColor.value.copy(scene.fog.color);
     u.uFogNear.value=scene.fog.near; u.uFogFar.value=scene.fog.far; }
   sun.getWorldPosition(_sunW); u.uSunDir.value.copy(_sunW).normalize();
@@ -1247,9 +1259,24 @@ function crewTick(dt){ initCrew();
 const TRADERS=[];
 function initTraders(){ if(TRADERS.length) return;
   for(let k=0;k<2;k++){ const g=new THREE.Group();
-    const h=hullG.clone(); h.scale.set(SHIP_SX*0.62,SHIP_S*0.62,SHIP_S*0.62); g.add(h);
+    const sc=0.62, h=hullG.clone(); h.scale.set(SHIP_SX*sc,SHIP_S*sc,SHIP_S*sc); g.add(h);
+    /* no ghost ships — a living crew works her deck: a watch at the bow, the
+       master aft by the wheel, hands in the waist (deck posts in boatG-local
+       coordinates, shrunk with the hull) */
+    const posts=[
+      {lx:0,lz:20*SHIP_S,ry:0},
+      {lx:-2.2*SHIP_SX,lz:-19*SHIP_S,ry:Math.PI},
+      {lx:3.4*SHIP_SX,lz:7*SHIP_S,ry:Math.PI*0.55},
+      {lx:-3.8*SHIP_SX,lz:-4*SHIP_S,ry:-Math.PI*0.4}];
+    const crew=[];
+    for(let i=0;i<posts.length;i++){ const p=posts[i];
+      const m=makePerson(7300+k*57+i*13,'sailor',false,i===2);
+      m.scale.setScalar(0.85);
+      m.position.set(p.lx*sc,deckHeightAt(p.lz)*sc,p.lz*sc);
+      m.rotation.y=p.ry; m.userData.baseRy=p.ry;
+      g.add(m); crew.push(m); }
     g.visible=false; scene.add(g);
-    TRADERS.push({g,x:0,z:0,h:0,sp:18+k*7,set:false}); } }
+    TRADERS.push({g,crew,x:0,z:0,h:0,sp:18+k*7,set:false}); } }
 function traderTick(px,pz,dt){ initTraders();
   for(const T of TRADERS){
     if(!T.set||Math.hypot(T.x-px,T.z-pz)>4200){
@@ -1266,6 +1293,18 @@ function traderTick(px,pz,dt){ initTraders();
     const hd=seaHeight(T.x,T.z);
     T.g.position.set(T.x,WATER_Y-1.4+hd*0.6,T.z);
     T.g.rotation.y=T.h; T.g.rotation.z=Math.sin(performance.now()*0.0009+T.x*0.01)*0.04;
+    /* hailed and hove to, her crew turn to the rail — and the bow watch waves */
+    if(T.crew&&T.crew.length){
+      const w0=T.crew[0].userData;
+      if(T.halt&&T.halt>0){
+        const ang=Math.atan2(state.boat.x-T.x,state.boat.z-T.z)-T.h;
+        for(const m of T.crew) m.rotation.y=ang;
+        w0.armR.rotation.x=-2.7; w0.armR.rotation.z=Math.sin(performance.now()*0.008)*0.5;
+      } else {
+        for(const m of T.crew) m.rotation.y=m.userData.baseRy;
+        w0.armR.rotation.x=0; w0.armR.rotation.z=0;
+      }
+    }
   } }
 function hideTraders(){ for(const T of TRADERS){ T.g.visible=false; T.set=false; } }
 /* ================= THE TRAWL NET =================
@@ -1980,7 +2019,9 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
     let sp=13, hunting=false;
     const dvx=px-s.x, dvz=pz-s.z, dvy=py-s.y;
     const dd=Math.sqrt(dvx*dvx+dvz*dvz+dvy*dvy);
-    if(state.mode==='dive'&&!state.repel&&s.cool<=0&&dd<120){
+    /* prey is a diver below OR a swimmer at the surface — bobbing up is no refuge */
+    const preyDive=state.mode==='dive', preySwim=state.mode==='walk'&&state.walk.inWater;
+    if((preyDive||preySwim)&&!state.repel&&s.cool<=0&&dd<120){
       hunting=true; sp=27;
       s.dir=Math.atan2(dvz,dvx);
       s.y+=(py-s.y)*Math.min(1,dt*1.4);
@@ -1990,9 +2031,17 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
         s.cool=15;
         const lost=Math.min(state.fish||0,2);
         if(lost) state.fish-=lost;
-        state.breath=Math.max(0.08,state.breath-0.35);
-        const dv2=state.dive, m2=Math.hypot(dvx,dvz)||1;
-        dv2.x+=dvx/m2*20; dv2.z+=dvz/m2*20; dv2.vy=70;   /* flung surfaceward */
+        const m2=Math.hypot(dvx,dvz)||1;
+        if(preyDive){
+          state.breath=Math.max(0.08,state.breath-0.35);
+          const dv2=state.dive;
+          dv2.x+=dvx/m2*20; dv2.z+=dvz/m2*20; dv2.vy=70;   /* flung surfaceward */
+        } else {
+          /* struck at the surface — shoved through the water, white water everywhere */
+          const w2=state.walk, nx2=w2.x+dvx/m2*16, nz2=w2.z+dvz/m2*16;
+          if(!groundInfo(nx2,nz2).land){ w2.x=nx2; w2.z=nz2; }
+          splash(w2.x,SEA_SURF+1,w2.z,true);
+        }
         toast('The shark strikes!'+(lost?' It tears '+lost+' fish from your catch.':'')+' Make for the light of the surface.');
         saveState();
       }
@@ -2000,9 +2049,10 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
     if(!hunting) s.dir+=Math.sin(t*0.25+s.ph)*0.03;
     s.x+=Math.cos(s.dir)*sp*dt; s.z+=Math.sin(s.dir)*sp*dt;
     if(!hunting) s.y+=Math.sin(t*0.5+s.ph)*3*dt;
-    /* a hunting shark hugs the bed after a bottom-hugging diver */
+    /* a hunting shark hugs the bed after a bottom-hugging diver — and rises
+       right under the swell to strike a swimmer at the surface */
     const fy=seabedDepth(s.x,s.z), col=SEA_SURF-fy;
-    s.y=Math.min(SEA_SURF-8,Math.max(fy+(hunting?3.5:Math.min(10,col-9)),s.y));
+    s.y=Math.min(hunting?SEA_SURF-3:SEA_SURF-8,Math.max(fy+(hunting?3.5:Math.min(10,col-9)),s.y));
     s.m.position.set(s.x,s.y,s.z); s.m.rotation.y=Math.atan2(Math.cos(s.dir),Math.sin(s.dir));
     s.m.userData.tail.rotation.y=Math.sin(t*(hunting?7:4)+s.ph)*(hunting?0.45:0.3); } }
 /* ---- turtles, rays, whales, pufferfish, jellyfish, crabs ---- */
@@ -2206,23 +2256,44 @@ function updateShallowLife(px,pz,dt,t){
   updateDiveFish(px,0,pz,dt,t);
   updateDolphins(px,0,pz,dt,t);
   updateSeaMob(TURTLES,px,0,pz,dt,t);
+  /* a swimmer in open water is prey — the sharks keep their hunt at the surface */
+  if(state.mode==='walk'&&state.walk.inWater&&!landAtWorld(px,pz)){
+    updateSharks(px,state.walk.feetY!==undefined?state.walk.feetY:-1,pz,dt,t);
+    for(const s of SHARKS) if(s.set) s.m.visible=true;
+  }
   /* hideDeep may have blanked them on leaving the dive — show the living */
   for(const f of DIVEFISH) if(f.set) f.m.visible=true;
   for(const d2 of DOLPHINS) if(d2.set) d2.m.visible=true;
   if(TURTLES) for(const o of TURTLES) if(o.set) o.m.visible=true;
 }
-function diveTick(dt){ const dv=state.dive; const [f,tn]=axis();
+function diveTick(dt){ const dv=state.dive;
+  /* ---- the leap from the rail: an arc over the side, head-first in ---- */
+  if(dv.jump){ const j=dv.jump; j.t+=dt; const p=Math.min(1,j.t/j.dur);
+    dv.x=j.x0+(j.x1-j.x0)*p; dv.z=j.z0+(j.z1-j.z0)*p;
+    dv.y=j.y0+(SEA_SURF-2-j.y0)*p*p+Math.sin(p*Math.PI)*7;
+    walkerG.position.set(dv.x,dv.y,dv.z); walkerG.rotation.y=dv.heading;
+    walkerG.rotation.x=p*1.9;                       /* tipping over into the dive */
+    const u=walkerG.userData;
+    u.armL.rotation.x=-2.6; u.armR.rotation.x=-2.6; u.armL.rotation.z=0.15; u.armR.rotation.z=-0.15;
+    u.legL.rotation.x=0.15; u.legR.rotation.x=-0.1;
+    if(p>=1){ dv.jump=null; dv.y=SEA_SURF-3; dv.vy=-42; splash(dv.x,SEA_SURF+1,dv.z,true); }
+    return;
+  }
+  const [f,tn]=axis();
   dv.heading+=tn*dt*DIVE_TURN; const tgt=f*DIVE_MAXSP; dv.sp+=(tgt-dv.sp)*Math.min(1,dt*2.6);
   dv.x+=Math.sin(dv.heading)*dv.sp*dt; dv.z+=Math.cos(dv.heading)*dv.sp*dt;
   /* the land's flank stops the swimmer — no passing through the stone */
   if(landAtWorld(dv.x,dv.z)){
     dv.x-=Math.sin(dv.heading)*dv.sp*dt; dv.z-=Math.cos(dv.heading)*dv.sp*dt; dv.sp*=0.2; }
   let up=flyPad; if(keys.Space) up+=1; if(keys.ShiftLeft||keys.ShiftRight||keys.ControlLeft||keys.ControlRight) up-=1; up=Math.max(-1,Math.min(1,up));
-  if(up!==0){ dv.vy+=up*DIVE_VACC*dt; dv.vy=Math.max(-DIVE_VMAX,Math.min(DIVE_VMAX,dv.vy)); } else dv.vy*=Math.max(0,1-dt*1.2);
+  if(up!==0){ dv.vy+=up*DIVE_VACC*dt; dv.vy=Math.max(-DIVE_VMAX,Math.min(DIVE_VMAX,dv.vy)); }
+  else dv.vy+=(3.4-dv.vy)*Math.min(1,dt*0.8);   /* true buoyancy — a still body drifts up */
   dv.y+=dv.vy*dt;
   const floor=seabedDepth(dv.x,dv.z)+3;
   if(dv.y<floor){ dv.y=floor; dv.vy=Math.max(0,dv.vy); }
-  if(dv.y>SEA_SURF-2){ dv.y=SEA_SURF-2; dv.vy=Math.min(0,dv.vy); if(up>0){ surface(); return; } }
+  /* touch the surface without pressing down, and you break it — the sea
+     gives the body back; hold SHIFT to stay under against the buoyancy */
+  if(dv.y>SEA_SURF-2){ dv.y=SEA_SURF-2; dv.vy=Math.min(0,dv.vy); if(up>=0){ surface(); return; } }
   if(Math.hypot(dv.x,dv.z)/R_WORLD>0.985){ dv.x-=Math.sin(dv.heading)*dv.sp*dt; dv.z-=Math.cos(dv.heading)*dv.sp*dt; dv.sp*=0.3; }
   state.dist+=Math.abs(dv.sp)*dt;
   const u=walkerG.userData, ph=performance.now()*0.007;
@@ -2234,17 +2305,30 @@ function diveTick(dt){ const dv=state.dive; const [f,tn]=axis();
   u.armL.rotation.z=0.14; u.armR.rotation.z=-0.14;
   u.legL.rotation.x=Math.sin(ph*1.5)*0.5; u.legR.rotation.x=-Math.sin(ph*1.5)*0.5; }
 function enterDive(){ if(state.mode==='dive'){ surface(); return; }
-  let x,z,h;
+  let x,z,h,jump=null;
   if(state.mode==='walk'){ x=state.walk.x; z=state.walk.z; h=state.walk.heading; }
-  else if(state.mode==='boat'||state.mode==='deck'){ x=state.boat.x; z=state.boat.z; h=state.boat.heading; }
+  else if(state.mode==='boat'||state.mode==='deck'){
+    /* THE DIVER LEAPS FROM THE RAIL — the ship stays where she rides.
+       Find open water abeam of the hull: starboard first, then port, then astern. */
+    if(state.mode==='deck'&&state.deck.level==='hold'){ toast('Come up out of the hold first — you dive from the rail.'); return; }
+    const b=state.boat, ch=Math.cos(b.heading), sh=Math.sin(b.heading);
+    const offs=[[ch,-sh],[-ch,sh],[-sh*1.6,-ch*1.6]];
+    for(const o of offs){ const tx=b.x+o[0]*42, tz=b.z+o[1]*42;
+      if(!landAtWorld(tx,tz)){ x=tx; z=tz; break; } }
+    if(x===undefined){ toast('No open water to leap into — stand off the land first.'); return; }
+    walkerG.getWorldPosition(_wv);               /* from where he stands upon the deck */
+    h=Math.atan2(x-_wv.x,z-_wv.z);
+    jump={x0:_wv.x,y0:_wv.y,z0:_wv.z,x1:x,z1:z,t:0,dur:0.7};
+  }
   else return;
   if(landAtWorld(x,z)||Math.hypot(x,z)/R_WORLD>0.985){ toast('You must be over open water to dive into the deep.'); return; }
   initDeep();
   state.dive.x=x; state.dive.z=z; state.dive.heading=h; state.dive.y=SEA_SURF-6; state.dive.vy=-22; state.dive.sp=0;
-  splash(x,SEA_SURF+1,z,true);
+  if(jump){ state.dive.jump=jump; state.dive.x=jump.x0; state.dive.z=jump.z0; state.dive.y=jump.y0; state.dive.vy=0; }
+  else splash(x,SEA_SURF+1,z,true);
   setMode('dive');
   if(!diveHintShown){ diveHintShown=true;
-    toast('You slip beneath the waves — SHIFT to dive deeper, SPACE to rise, W/S to swim, C to surface.'); } }
+    toast('You slip beneath the waves — SHIFT to dive deeper, SPACE to rise, W/S to swim, C to surface. Left alone, the body floats up of itself.'); } }
 function surface(){ const dv=state.dive;
   state.walk.x=dv.x; state.walk.z=dv.z; state.walk.heading=dv.heading; state.walk.feetY=undefined; state.walk.vy=0; state.walk.grounded=true;
   setMode('walk'); hideDeep(); toast('You break the surface and draw breath.'); }
@@ -2263,7 +2347,9 @@ const LANDLIFE=[], LL_N=26, LL_R=360;
 const AMBIENT_PREY=new Set(['sheep','goat','pig','chicken','hare','deer','donkey','cow','horse','ostrich']);
 function initLandLife(){ if(LANDLIFE.length) return; for(let k=0;k<LL_N;k++) LANDLIFE.push({m:null,kind:null,hx:0,hz:0,x:0,z:0,heading:0,tx:0,tz:0,t:0,set:false}); }
 function findLandSpot(px,pz){ for(let tr=0;tr<10;tr++){ const a=Math.random()*6.28, r=70+Math.random()*LL_R, x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
-    const c=landAtWorld(x,z); if(c&&c.kind!=='wall'&&c.h<=6&&Math.hypot(x,z)/R_WORLD<0.9) return {x,z,y:c.h*B}; } return null; }
+    /* beasts keep to the charted lands (ci>0 — the countries and true isles);
+       the bare rocks and skerries of the open ocean stay bare */
+    const c=landAtWorld(x,z); if(c&&c.ci&&c.kind!=='wall'&&c.h<=6&&Math.hypot(x,z)/R_WORLD<0.9) return {x,z,y:c.h*B}; } return null; }
 function updateLandLife(px,pz,dt,t){ initLandLife();
   for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>LL_R+140){ const sp=findLandSpot(px,pz);
       if(!sp){ if(a.m)a.m.visible=false; a.set=false; continue; }
@@ -3836,19 +3922,32 @@ function walkTick(dt){
   }
   w.heading+=t*dt*2.4;
   const gi=groundInfo(w.x,w.z);
-  const swimming=gi.water && Math.hypot(w.x-state.boat.x,w.z-state.boat.z)>=90;
+  const swimming=gi.water;      /* over water the body SWIMS — no man walks upon the sea */
   /* ---- vertical physics: gravity, landing, the jump, and true buoyancy ----
      In the water the body floats AT the surface and rides the swell — prone
      and stroking when swimming forward, treading upright when at rest. */
   const surfY=WATER_Y+seaHeight(w.x,w.z);
   if(swimming){
-    if(!w.inWater){ w.inWater=true; splash(w.x,surfY+1,w.z,w.vy<-14);
+    if(!w.inWater){
+      const plunging=w.vy<-30;
+      w.inWater=true; splash(w.x,surfY+1,w.z,w.vy<-14);
+      /* struck the water hard from a height and the water is deep — the body
+         drives under, then buoyancy gives it back to the surface */
+      if(plunging&&seabedDepth(w.x,w.z)<surfY-10){
+        initDeep();
+        state.dive.x=w.x; state.dive.z=w.z; state.dive.heading=w.heading;
+        state.dive.y=SEA_SURF-3; state.dive.vy=Math.max(-90,w.vy*0.55); state.dive.sp=0;
+        setMode('dive'); return;
+      }
       if(!swimDeepHintShown){ swimDeepHintShown=true;
         toast('You swim the swell — hold SHIFT to slip beneath the waves and dive the deep; make for the shore to haul out.'); } }
     /* hold SHIFT at the surface and slip straight down into the deep —
        the same water, the same place, the bed running from the strand */
     if(keys.ShiftLeft||keys.ShiftRight){ enterDive(); return; }
     w.feetY=surfY-1.0; w.vy=0; w.grounded=true; w.jumpReq=false;
+    /* the swell shoulders the swimmer along — the water is a moving thing */
+    const sl=seaSlope(w.x,w.z), px2=w.x-sl.x*dt*7, pz2=w.z-sl.z*dt*7;
+    if(!groundInfo(px2,pz2).land&&!camInsideShip(px2,surfY,pz2)){ w.x=px2; w.z=pz2; }
   }
   else { if(w.inWater){ w.inWater=false; }
     w.vy-=64*dt; w.feetY+=w.vy*dt;
@@ -3864,6 +3963,9 @@ function walkTick(dt){
   const diff = tg.y - w.feetY;
   let canGo=true;
   if(!tg.land) canGo = nearBoat||onDeckNext||(Math.hypot(nx,nz)/R_WORLD<0.985);  /* swim (the ice wall is land, and climbable) */
+  /* the hull is a solid thing — the swimmer fetches up against her side
+     (press E there to climb aboard); one already inside the line may swim out */
+  if(swimming&&canGo&&camInsideShip(nx,surfY,nz)&&!camInsideShip(w.x,surfY,w.z)) canGo=false;
   else if(diff<=STEP){ /* a small step — walk up or down freely */ }
   else if(swimming && diff<=JUMPH+3){ /* haul out of the water onto the strand */ }
   else if(diff<=JUMPH) canGo = w.feetY>=tg.y-B*0.4;      /* two blocks: only if jumping onto it */
@@ -3969,9 +4071,17 @@ function alight(){
     state.walk.x=fl.x; state.walk.z=fl.z; state.walk.heading=fl.heading;
     state.walk.feetY=undefined; state.walk.vy=0; state.walk.grounded=true;  /* re-seat on the ground here */
     setMode('walk'); markDiscovery(fl.x,fl.z); toast('You alight softly upon the earth.');
-  } else {                                            /* over the deep — settle onto the ship */
-    state.boat.x=fl.x; state.boat.z=fl.z; state.boat.speed=0; state.boat.heading=fl.heading;
-    setMode('boat'); updateChunks(fl.x,fl.z,9999); toast('You settle back onto the deck.');
+  } else if(Math.hypot(fl.x-state.boat.x,fl.z-state.boat.z)<90){
+    /* the ship truly lies below — settle onto her deck where she rides */
+    setMode('boat'); toast('You settle back onto the deck.');
+  } else {
+    /* open water, no ship near: down into the sea itself. The ship stays
+       where she was left — swim for her, or for the shore. */
+    state.walk.x=fl.x; state.walk.z=fl.z; state.walk.heading=fl.heading;
+    state.walk.feetY=undefined; state.walk.vy=0; state.walk.grounded=true; state.walk.inWater=false;
+    setMode('walk');
+    splash(fl.x,WATER_Y+seaHeight(fl.x,fl.z)+1,fl.z,true);
+    toast('You come down upon the open sea and take to the water — swim for your ship, or for the shore.');
   }
   saveState();
 }
@@ -4551,7 +4661,7 @@ $('btn-continue').onclick=()=>begin(false);
 window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
-  WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,
+  WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
   seaPools:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,POD})};
 
 /* ================= THE GREAT LOOP ================= */
@@ -4575,7 +4685,7 @@ function frame(){
     scene.fog.near*=1+climbF/2600;
     scene.fog.far=Math.min(scene.fog.far*(1+climbF/45), R_WORLD*3.0); }
   /* underwater — the light dims and the water closes in with depth */
-  if(state.mode==='dive'&&scene.fog){ const depth=SEA_SURF-state.dive.y, murk=Math.min(1,depth/560);
+  if(state.mode==='dive'&&scene.fog&&state.dive.y<SEA_SURF){ const depth=SEA_SURF-state.dive.y, murk=Math.min(1,depth/560);
     const wc=mix3(0x061826,0x0f5170,0x36b0d8,1-murk);   /* deep dark → shallow turquoise */
     scene.background.copy(wc); scene.fog.color.copy(wc); scene.fog.near=4; scene.fog.far=470-murk*290;
     hemi.intensity=1.0-murk*0.6; dirL.intensity=0.5-murk*0.32; }

@@ -237,6 +237,36 @@ points and cameras all rescaled to match — she sits notably broader on the scr
   hull when they are near, with the word: follow, and the net fills **three times as
   fast** over a ground.
 
+## 4f. Round 7 — living waters: the sea as a real place, not a layer ✅
+
+Seven fixes toward a real-life simulator's water (GTA-V-style entry, buoyancy
+and surface behaviour):
+
+- **Alighting over the open sea** no longer summons the ship: descend from flight over
+  water and you come down **into the water, swimming**, where you actually are — the
+  ship stays where she was left (settle onto her deck only if she truly lies below).
+- **No man walks upon the sea**: the old walk-on-water boarding zone around the ship is
+  gone. Over water the body always swims; the hull is now **solid to swimmers** — you
+  fetch up against her side and press E there to climb aboard.
+- **Diving from the ship is a real leap**: press dive at the helm or on deck and the
+  traveller **jumps from the rail in an arc**, head-first, and splashes in beside the
+  hull — the ship stays riding at the surface (no more "the whole boat dives").
+- **True buoyancy**: a still body under water drifts upward and, touching the surface,
+  breaks it and swims (GTA-fashion — hold SHIFT to stay down against it). Falling into
+  deep water from a height drives the body under, then the sea gives it back.
+- **Sharks hunt at the surface too**: bobbing up is no refuge — a hunting shark rises
+  right under the swell and strikes the swimmer (repel still stays them; the same
+  toggles apply).
+- **Merchantmen carry crews**: every passing trader now has four sailors at their posts
+  — watch at the bow, master aft, hands in the waist. Hailed and hove to, they turn to
+  the rail and the bow watch waves back. No more ghost ships.
+- **Beasts keep to the charted lands**: ambient animals spawn only on countries and
+  true isles (`ci>0`) — the bare rocks and skerries of the open ocean stay bare.
+- **The water itself, remade**: per-pixel wind-ripple normals (two scrolling octaves)
+  break the big Gerstner facets into living chop; the fresnel reflection now mirrors a
+  **real sky gradient** (horizon haze to zenith blue, day-cycled); backlit crests glow
+  green with subsurface light; crest foam is torn ragged by the same ripple noise.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
