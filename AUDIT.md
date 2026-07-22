@@ -237,6 +237,105 @@ points and cameras all rescaled to match — she sits notably broader on the scr
   hull when they are near, with the word: follow, and the net fills **three times as
   fast** over a ground.
 
+## 4f. Round 7 — living waters: the sea as a real place, not a layer ✅
+
+Seven fixes toward a real-life simulator's water (GTA-V-style entry, buoyancy
+and surface behaviour):
+
+- **Alighting over the open sea** no longer summons the ship: descend from flight over
+  water and you come down **into the water, swimming**, where you actually are — the
+  ship stays where she was left (settle onto her deck only if she truly lies below).
+- **No man walks upon the sea**: the old walk-on-water boarding zone around the ship is
+  gone. Over water the body always swims; the hull is now **solid to swimmers** — you
+  fetch up against her side and press E there to climb aboard.
+- **Diving from the ship is a real leap**: press dive at the helm or on deck and the
+  traveller **jumps from the rail in an arc**, head-first, and splashes in beside the
+  hull — the ship stays riding at the surface (no more "the whole boat dives").
+- **True buoyancy**: a still body under water drifts upward and, touching the surface,
+  breaks it and swims (GTA-fashion — hold SHIFT to stay down against it). Falling into
+  deep water from a height drives the body under, then the sea gives it back.
+- **Sharks hunt at the surface too**: bobbing up is no refuge — a hunting shark rises
+  right under the swell and strikes the swimmer (repel still stays them; the same
+  toggles apply).
+- **Merchantmen carry crews**: every passing trader now has four sailors at their posts
+  — watch at the bow, master aft, hands in the waist. Hailed and hove to, they turn to
+  the rail and the bow watch waves back. No more ghost ships.
+- **Beasts keep to the charted lands**: ambient animals spawn only on countries and
+  true isles (`ci>0`) — the bare rocks and skerries of the open ocean stay bare.
+- **The water itself, remade**: per-pixel wind-ripple normals (two scrolling octaves)
+  break the big Gerstner facets into living chop; the fresnel reflection now mirrors a
+  **real sky gradient** (horizon haze to zenith blue, day-cycled); backlit crests glow
+  green with subsurface light; crest foam is torn ragged by the same ripple noise.
+
+## 4g. Round 8 — the firmament made true, and the rim made solid ✅
+
+Modelled on the Scripture-Game repository's own earth-viewer (`earth.html`):
+the earth a still disc, the vault a low tent, and THE DEEP all around.
+
+- **The tent-vault**: the firmament is a true vault "spread out like a tent to
+  dwell in" — its rim just past the wall of ice, its apex 130 000 high over
+  the midst of the earth, day-tinted glass that stands solid as you climb. The
+  map view's dome matches it.
+- **The deep, all around**: beyond the vault a star-strewn near-black
+  (`#04060d`) closes on EVERY side — no more "circle of darkness" with raw sky
+  behind it — with the waters above the expanse glowing faint and blue over
+  the apex, and the stars (which sit beyond the glass) shining through even by
+  day when you are aloft.
+- **The eye stays within the glass**: the camera is clamped inside the vault's
+  skin — turning the view at the ceiling can no longer poke the camera through
+  the firmament.
+- **The rim is HARD, and it rescues**: flyer, swimmer and diver are pressed
+  back within the rim by position (not by undoing steps) — so anyone stranded
+  beyond it (the old bug: descend past the wall and be left swimming in the
+  void, with inward movement also blocked) is drawn back in, and inward
+  motion always works. Alighting past the rim sets you down on the wall, never
+  in the void.
+- **The earth seen from on high**: past ~9 000 up, the little chunks of the
+  world resolve into the earth's true charted face — the same azimuthal map
+  the compass rose bears, storms and all — fading in below the flyer while
+  the cloud cover thins; and the low cloud deck (a floating grey slab when
+  seen from far above) fades away with height.
+- **One Alight button**: aloft, the duplicated 🕊 button is hidden — the
+  anchor button alone reads Alight.
+
+## 4h. Round 9 — the living world: dwelt-in, down to the small things ✅
+
+After the manner of the great open worlds (the Rockstar school: ambient
+systems layered until the world reads as *inhabited*), plus a structural
+hardening pass:
+
+- **Rain and thunder**: storms now rain — wind-driven rain sheets around the
+  traveller, and at the storm's height the sky cracks: a white flash over sky
+  and fog, and a low thunder-roll through the hull (WebAudio noise burst).
+- **The smoke of hearths**: morning (≈5–9) and evening (≈16–22) the village
+  houses breathe — puffs of smoke rise off the roofs, drift with the wind,
+  swell and thin away.
+- **Fireflies**: sparks of the evening over the good grass of charted lands,
+  wandering and blinking after dusk.
+- **Chance meetings on the deep** (one at a time, drifting on the wind, gone
+  if passed by): **flotsam** to haul aboard (salvaged goods for the hold), a
+  **sealed bottle** with a word of Scripture in it (and five shekels), and a
+  **castaway on a raft**, waving — take him aboard for 25 shekels, a blessing,
+  and renown (+3) at the nearest port.
+- **Dolphins ride the bow**: run the ship past ~13 speed and two dolphins peel
+  off to race her flanks, arcing fast in her pressure wave.
+- **Gulls with the ship**: some gulls take to a passing ship and wheel about
+  her masts while she runs.
+- **The murmur of the living**: villagers greet the passing traveller with
+  floating speech — "Shalom, traveller", "Fresh wares, friend — come and
+  see!", "A quiet night, friend" — by calling and by hour, each soul no more
+  than once in a long while.
+- **Gull cries and crickets**: descending gull calls over the day-time sea;
+  cricket-song rising on land after dark (both WebAudio, off with 🔊).
+- **An explorer's ending**: the ship's log now names the **next landfall**
+  (nearest unvisited land, its bearing and distance); and when the traveller
+  has come ashore in every one of the 176 lands, **THE VOYAGE IS FULFILLED**
+  (Tehillim 107:23-24), written into the save.
+- **Structural hardening**: the trade panel closes itself if you walk off or
+  change mode (no more shop-in-your-pocket); any uncaught error saves the
+  voyage before the page notices (window error hook); plus the confirmed
+  findings of a six-dimension adversarial code audit (below).
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

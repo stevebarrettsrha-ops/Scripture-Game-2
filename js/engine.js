@@ -746,7 +746,7 @@ const waveMat=new THREE.ShaderMaterial({
     uFogNear:{value:260}, uFogFar:{value:870}, uSunDir:{value:new THREE.Vector3(0.4,1,0.25)},
     uDeep:{value:new THREE.Color(0x0e2c4e)}, uShallow:{value:new THREE.Color(0x2fb3cf)},
     uMap:{value:seaTex}, uOpacity:{value:0.9}, uCamPos:{value:new THREE.Vector3()},
-    uShoal:{value:SHOAL_TEX},
+    uShoal:{value:SHOAL_TEX}, uZenith:{value:new THREE.Color(0x3d76c0)},
     uShip:{value:new THREE.Vector4()}, uShipH:{value:0}, uSunCol:{value:new THREE.Color(1,0.96,0.85)} },
   vertexShader:`
     uniform float uTime, uAmp; uniform vec2 uCenter;
@@ -766,12 +766,17 @@ const waveMat=new THREE.ShaderMaterial({
     }`,
   fragmentShader:`
     precision highp float;
-    uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow, uCamPos, uSunCol; uniform sampler2D uMap, uShoal;
+    uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow, uCamPos, uSunCol, uZenith; uniform sampler2D uMap, uShoal;
     uniform float uFogNear, uFogFar, uOpacity, uTime, uShipH; uniform vec4 uShip;
     varying vec3 vNormal, vWorld; varying float vHeight, vFog; varying vec2 vUv, vP;
     float h21(vec2 p){ return fract(sin(dot(p,vec2(41.3,289.1)))*43758.5); }
     void main(){
       vec3 N=normalize(vNormal);
+      /* fine wind-ripple, two scrolling octaves — the skin of the sea is never
+         still: per-pixel normal detail breaks the big Gerstner facets into chop */
+      vec3 rA=texture2D(uMap, vP*0.016+vec2(uTime*0.011,uTime*0.008)).rgb;
+      vec3 rB=texture2D(uMap, vP*0.058+vec2(-uTime*0.019,uTime*0.014)).rgb;
+      N=normalize(N+vec3((rA.r-0.5)*0.34+(rB.r-0.5)*0.20, 0.0, (rA.g-0.5)*0.34+(rB.g-0.5)*0.20));
       vec3 V=normalize(uCamPos-vWorld);
       vec3 L=normalize(uSunDir);
       float diff=clamp(dot(N,L),0.0,1.0);
@@ -786,8 +791,8 @@ const waveMat=new THREE.ShaderMaterial({
       vec3 base=mix(uShallow,uDeep,deepF);
       base*=0.88+0.24*clamp(vHeight*0.22+0.5,0.0,1.0);
       vec3 col=base*(0.62+0.5*diff)*(0.82+0.36*tex.b);
-      /* crest foam — only the very tallest crests, so the sea stays blue */
-      float foam=smoothstep(2.3,3.4,vHeight);
+      /* crest foam — only the tallest crests, torn ragged by the ripple noise */
+      float foam=smoothstep(2.1,3.3,vHeight)*(0.45+0.9*rB.b);
       /* the ship's wake: bright collar at the hull, a widening V astern */
       vec2 fwd=vec2(sin(uShipH),cos(uShipH)), rgt=vec2(cos(uShipH),-sin(uShipH));
       vec2 rel=vP-uShip.xy; float along=dot(rel,fwd), side=dot(rel,rgt);
@@ -820,9 +825,15 @@ const waveMat=new THREE.ShaderMaterial({
       col+=uSunCol*(spec*1.8+glit*0.2)*diff;
       /* caustic sparkle where the light passes through to the sand */
       col+=uSunCol*glit*0.3*shoal*diff;
-      /* fresnel — the sky truly mirrored at grazing angles */
+      /* light through the backlit crest — the glassy green heart of a wave */
+      float sss=pow(max(dot(V,-L),0.0),3.0)*smoothstep(0.6,2.4,vHeight)*(1.0-deepF*0.5);
+      col+=vec3(0.05,0.38,0.36)*sss*(0.35+diff*0.65);
+      /* fresnel — the true sky mirrored at grazing angles: the horizon haze
+         where the reflected ray runs flat, the deep zenith blue where it climbs */
       float fres=pow(1.0-max(dot(N,V),0.0),5.0);
-      col=mix(col,uFogColor*1.05,fres*0.45);
+      vec3 R=reflect(-V,N);
+      vec3 skyR=mix(uFogColor*1.06, uZenith, pow(clamp(R.y,0.0,1.0),0.7));
+      col=mix(col,skyR,fres*0.6);
       /* transparency by depth: the shallows let the bottom show through,
          the deep keeps its darkness; a mirror-skin at grazing angles */
       float aa=mix(0.55,0.93,deepF);
@@ -842,6 +853,7 @@ function waterTick(px,pz,dayF,storm){
   u.uCenter.value.set(px,pz);
   u.uLight.value.copy(mix3(0x38405e,0xd9a878,0xffffff,dayF)).multiplyScalar(1-storm*0.34);
   u.uSunCol.value.copy(mix3(0x243048,0xffcf8a,0xfff2d6,dayF));
+  u.uZenith.value.copy(mix3(0x05070f,0x27446e,0x3d76c0,dayF)).multiplyScalar(1-storm*0.45);
   if(scene.fog){ u.uFogColor.value.copy(scene.fog.color);
     u.uFogNear.value=scene.fog.near; u.uFogFar.value=scene.fog.far; }
   sun.getWorldPosition(_sunW); u.uSunDir.value.copy(_sunW).normalize();
@@ -1247,9 +1259,24 @@ function crewTick(dt){ initCrew();
 const TRADERS=[];
 function initTraders(){ if(TRADERS.length) return;
   for(let k=0;k<2;k++){ const g=new THREE.Group();
-    const h=hullG.clone(); h.scale.set(SHIP_SX*0.62,SHIP_S*0.62,SHIP_S*0.62); g.add(h);
+    const sc=0.62, h=hullG.clone(); h.scale.set(SHIP_SX*sc,SHIP_S*sc,SHIP_S*sc); g.add(h);
+    /* no ghost ships — a living crew works her deck: a watch at the bow, the
+       master aft by the wheel, hands in the waist (deck posts in boatG-local
+       coordinates, shrunk with the hull) */
+    const posts=[
+      {lx:0,lz:20*SHIP_S,ry:0},
+      {lx:-2.2*SHIP_SX,lz:-19*SHIP_S,ry:Math.PI},
+      {lx:3.4*SHIP_SX,lz:7*SHIP_S,ry:Math.PI*0.55},
+      {lx:-3.8*SHIP_SX,lz:-4*SHIP_S,ry:-Math.PI*0.4}];
+    const crew=[];
+    for(let i=0;i<posts.length;i++){ const p=posts[i];
+      const m=makePerson(7300+k*57+i*13,'sailor',false,i===2);
+      m.scale.setScalar(0.85);
+      m.position.set(p.lx*sc,deckHeightAt(p.lz)*sc,p.lz*sc);
+      m.rotation.y=p.ry; m.userData.baseRy=p.ry;
+      g.add(m); crew.push(m); }
     g.visible=false; scene.add(g);
-    TRADERS.push({g,x:0,z:0,h:0,sp:18+k*7,set:false}); } }
+    TRADERS.push({g,crew,x:0,z:0,h:0,sp:18+k*7,set:false}); } }
 function traderTick(px,pz,dt){ initTraders();
   for(const T of TRADERS){
     if(!T.set||Math.hypot(T.x-px,T.z-pz)>4200){
@@ -1266,6 +1293,18 @@ function traderTick(px,pz,dt){ initTraders();
     const hd=seaHeight(T.x,T.z);
     T.g.position.set(T.x,WATER_Y-1.4+hd*0.6,T.z);
     T.g.rotation.y=T.h; T.g.rotation.z=Math.sin(performance.now()*0.0009+T.x*0.01)*0.04;
+    /* hailed and hove to, her crew turn to the rail — and the bow watch waves */
+    if(T.crew&&T.crew.length){
+      const w0=T.crew[0].userData;
+      if(T.halt&&T.halt>0){
+        const ang=Math.atan2(state.boat.x-T.x,state.boat.z-T.z)-T.h;
+        for(const m of T.crew) m.rotation.y=ang;
+        w0.armR.rotation.x=-2.7; w0.armR.rotation.z=Math.sin(performance.now()*0.008)*0.5;
+      } else {
+        for(const m of T.crew) m.rotation.y=m.userData.baseRy;
+        w0.armR.rotation.x=0; w0.armR.rotation.z=0;
+      }
+    }
   } }
 function hideTraders(){ for(const T of TRADERS){ T.g.visible=false; T.set=false; } }
 /* ================= THE TRAWL NET =================
@@ -1909,11 +1948,26 @@ const DOLPHINS=[], DOL_N=6, DOL_R=440;
 function initDolphins(){ if(DOLPHINS.length) return; for(let k=0;k<DOL_N;k++){ const m=makeDolphin(); m.visible=false; scene.add(m);
   DOLPHINS.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false}); } }
 function updateDolphins(px,py,pz,dt,t){ initDolphins();
+  /* dolphins RIDE THE BOW when the ship runs fast — two peel off and race
+     her flanks, arcing in her pressure wave, as they do on every real sea */
+  const sailing=(state.mode==='boat'||state.mode==='deck')&&Math.abs(state.boat.speed)>13;
+  let escN=0;
   for(const d of DOLPHINS){ if(!d.set||Math.hypot(d.x-px,d.z-pz)>DOL_R+150){
       const a=Math.random()*6.28, r=80+Math.random()*260; d.x=px+Math.cos(a)*r; d.z=pz+Math.sin(a)*r;
       const fy=seabedDepth(d.x,d.z); d.y=Math.min(SEA_SURF-6,fy+30+Math.random()*40); d.dir=Math.random()*6.28; d.set=true; d.m.visible=true; }
-    d.dir+=Math.sin(t*0.4+d.ph)*0.05; const sp=18; d.x+=Math.cos(d.dir)*sp*dt; d.z+=Math.sin(d.dir)*sp*dt;
-    const arc=Math.sin(t*0.9+d.ph); d.y+=arc*10*dt; const fy=seabedDepth(d.x,d.z), col=SEA_SURF-fy;
+    let sp=18;
+    const escort=sailing&&escN<2&&Math.hypot(d.x-state.boat.x,d.z-state.boat.z)<420;
+    if(escort){ const side=(escN===0)?1:-1; escN++;
+      const b=state.boat, fx=Math.sin(b.heading), fz=Math.cos(b.heading);
+      const tx=b.x+fx*(46+Math.sin(t*0.8+d.ph)*14)+Math.cos(b.heading)*side*15;
+      const tz=b.z+fz*(46+Math.sin(t*0.8+d.ph)*14)-Math.sin(b.heading)*side*15;
+      const want=Math.atan2(tz-d.z,tx-d.x);
+      let da=want-d.dir; while(da>Math.PI)da-=2*Math.PI; while(da<-Math.PI)da+=2*Math.PI;
+      d.dir+=da*Math.min(1,dt*2.4);
+      sp=Math.min(52,Math.abs(state.boat.speed)+14);
+    } else d.dir+=Math.sin(t*0.4+d.ph)*0.05;
+    d.x+=Math.cos(d.dir)*sp*dt; d.z+=Math.sin(d.dir)*sp*dt;
+    const arc=Math.sin(t*(escort?1.4:0.9)+d.ph); d.y+=arc*(escort?16:10)*dt; const fy=seabedDepth(d.x,d.z), col=SEA_SURF-fy;
     d.y=Math.min(SEA_SURF-4,Math.max(fy+Math.min(8,col-5),d.y));
     d.m.position.set(d.x,d.y,d.z); d.m.rotation.y=Math.atan2(Math.cos(d.dir),Math.sin(d.dir)); d.m.rotation.x=-arc*0.4; } }
 /* ---- SHARKS — honest minecraft sharks, no mere grey shapes: countershaded
@@ -1980,7 +2034,9 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
     let sp=13, hunting=false;
     const dvx=px-s.x, dvz=pz-s.z, dvy=py-s.y;
     const dd=Math.sqrt(dvx*dvx+dvz*dvz+dvy*dvy);
-    if(state.mode==='dive'&&!state.repel&&s.cool<=0&&dd<120){
+    /* prey is a diver below OR a swimmer at the surface — bobbing up is no refuge */
+    const preyDive=state.mode==='dive', preySwim=state.mode==='walk'&&state.walk.inWater;
+    if((preyDive||preySwim)&&!state.repel&&s.cool<=0&&dd<120){
       hunting=true; sp=27;
       s.dir=Math.atan2(dvz,dvx);
       s.y+=(py-s.y)*Math.min(1,dt*1.4);
@@ -1990,9 +2046,17 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
         s.cool=15;
         const lost=Math.min(state.fish||0,2);
         if(lost) state.fish-=lost;
-        state.breath=Math.max(0.08,state.breath-0.35);
-        const dv2=state.dive, m2=Math.hypot(dvx,dvz)||1;
-        dv2.x+=dvx/m2*20; dv2.z+=dvz/m2*20; dv2.vy=70;   /* flung surfaceward */
+        const m2=Math.hypot(dvx,dvz)||1;
+        if(preyDive){
+          state.breath=Math.max(0.08,state.breath-0.35);
+          const dv2=state.dive;
+          dv2.x+=dvx/m2*20; dv2.z+=dvz/m2*20; dv2.vy=70;   /* flung surfaceward */
+        } else {
+          /* struck at the surface — shoved through the water, white water everywhere */
+          const w2=state.walk, nx2=w2.x+dvx/m2*16, nz2=w2.z+dvz/m2*16;
+          if(!groundInfo(nx2,nz2).land){ w2.x=nx2; w2.z=nz2; }
+          splash(w2.x,SEA_SURF+1,w2.z,true);
+        }
         toast('The shark strikes!'+(lost?' It tears '+lost+' fish from your catch.':'')+' Make for the light of the surface.');
         saveState();
       }
@@ -2000,9 +2064,10 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
     if(!hunting) s.dir+=Math.sin(t*0.25+s.ph)*0.03;
     s.x+=Math.cos(s.dir)*sp*dt; s.z+=Math.sin(s.dir)*sp*dt;
     if(!hunting) s.y+=Math.sin(t*0.5+s.ph)*3*dt;
-    /* a hunting shark hugs the bed after a bottom-hugging diver */
+    /* a hunting shark hugs the bed after a bottom-hugging diver — and rises
+       right under the swell to strike a swimmer at the surface */
     const fy=seabedDepth(s.x,s.z), col=SEA_SURF-fy;
-    s.y=Math.min(SEA_SURF-8,Math.max(fy+(hunting?3.5:Math.min(10,col-9)),s.y));
+    s.y=Math.min(hunting?SEA_SURF-3:SEA_SURF-8,Math.max(fy+(hunting?3.5:Math.min(10,col-9)),s.y));
     s.m.position.set(s.x,s.y,s.z); s.m.rotation.y=Math.atan2(Math.cos(s.dir),Math.sin(s.dir));
     s.m.userData.tail.rotation.y=Math.sin(t*(hunting?7:4)+s.ph)*(hunting?0.45:0.3); } }
 /* ---- turtles, rays, whales, pufferfish, jellyfish, crabs ---- */
@@ -2206,24 +2271,46 @@ function updateShallowLife(px,pz,dt,t){
   updateDiveFish(px,0,pz,dt,t);
   updateDolphins(px,0,pz,dt,t);
   updateSeaMob(TURTLES,px,0,pz,dt,t);
+  /* a swimmer in open water is prey — the sharks keep their hunt at the surface */
+  if(state.mode==='walk'&&state.walk.inWater&&!landAtWorld(px,pz)){
+    updateSharks(px,state.walk.feetY!==undefined?state.walk.feetY:-1,pz,dt,t);
+    for(const s of SHARKS) if(s.set) s.m.visible=true;
+  }
   /* hideDeep may have blanked them on leaving the dive — show the living */
   for(const f of DIVEFISH) if(f.set) f.m.visible=true;
   for(const d2 of DOLPHINS) if(d2.set) d2.m.visible=true;
   if(TURTLES) for(const o of TURTLES) if(o.set) o.m.visible=true;
 }
-function diveTick(dt){ const dv=state.dive; const [f,tn]=axis();
+function diveTick(dt){ const dv=state.dive;
+  /* ---- the leap from the rail: an arc over the side, head-first in ---- */
+  if(dv.jump){ const j=dv.jump; j.t+=dt; const p=Math.min(1,j.t/j.dur);
+    dv.x=j.x0+(j.x1-j.x0)*p; dv.z=j.z0+(j.z1-j.z0)*p;
+    dv.y=j.y0+(SEA_SURF-2-j.y0)*p*p+Math.sin(p*Math.PI)*7;
+    walkerG.position.set(dv.x,dv.y,dv.z); walkerG.rotation.y=dv.heading;
+    walkerG.rotation.x=p*1.9;                       /* tipping over into the dive */
+    const u=walkerG.userData;
+    u.armL.rotation.x=-2.6; u.armR.rotation.x=-2.6; u.armL.rotation.z=0.15; u.armR.rotation.z=-0.15;
+    u.legL.rotation.x=0.15; u.legR.rotation.x=-0.1;
+    if(p>=1){ dv.jump=null; dv.y=SEA_SURF-3; dv.vy=-42; splash(dv.x,SEA_SURF+1,dv.z,true); }
+    return;
+  }
+  const [f,tn]=axis();
   dv.heading+=tn*dt*DIVE_TURN; const tgt=f*DIVE_MAXSP; dv.sp+=(tgt-dv.sp)*Math.min(1,dt*2.6);
   dv.x+=Math.sin(dv.heading)*dv.sp*dt; dv.z+=Math.cos(dv.heading)*dv.sp*dt;
   /* the land's flank stops the swimmer — no passing through the stone */
   if(landAtWorld(dv.x,dv.z)){
     dv.x-=Math.sin(dv.heading)*dv.sp*dt; dv.z-=Math.cos(dv.heading)*dv.sp*dt; dv.sp*=0.2; }
   let up=flyPad; if(keys.Space) up+=1; if(keys.ShiftLeft||keys.ShiftRight||keys.ControlLeft||keys.ControlRight) up-=1; up=Math.max(-1,Math.min(1,up));
-  if(up!==0){ dv.vy+=up*DIVE_VACC*dt; dv.vy=Math.max(-DIVE_VMAX,Math.min(DIVE_VMAX,dv.vy)); } else dv.vy*=Math.max(0,1-dt*1.2);
+  if(up!==0){ dv.vy+=up*DIVE_VACC*dt; dv.vy=Math.max(-DIVE_VMAX,Math.min(DIVE_VMAX,dv.vy)); }
+  else dv.vy+=(3.4-dv.vy)*Math.min(1,dt*0.8);   /* true buoyancy — a still body drifts up */
   dv.y+=dv.vy*dt;
   const floor=seabedDepth(dv.x,dv.z)+3;
   if(dv.y<floor){ dv.y=floor; dv.vy=Math.max(0,dv.vy); }
-  if(dv.y>SEA_SURF-2){ dv.y=SEA_SURF-2; dv.vy=Math.min(0,dv.vy); if(up>0){ surface(); return; } }
-  if(Math.hypot(dv.x,dv.z)/R_WORLD>0.985){ dv.x-=Math.sin(dv.heading)*dv.sp*dt; dv.z-=Math.cos(dv.heading)*dv.sp*dt; dv.sp*=0.3; }
+  /* touch the surface without pressing down, and you break it — the sea
+     gives the body back; hold SHIFT to stay under against the buoyancy */
+  if(dv.y>SEA_SURF-2){ dv.y=SEA_SURF-2; dv.vy=Math.min(0,dv.vy); if(up>=0){ surface(); return; } }
+  { const rr=Math.hypot(dv.x,dv.z)/R_WORLD;         /* the rim: hard, and inward always open */
+    if(rr>0.985){ const k=0.985/rr; dv.x*=k; dv.z*=k; dv.sp*=0.3; } }
   state.dist+=Math.abs(dv.sp)*dt;
   const u=walkerG.userData, ph=performance.now()*0.007;
   walkerG.position.set(dv.x,dv.y,dv.z); walkerG.rotation.y=dv.heading;
@@ -2234,17 +2321,30 @@ function diveTick(dt){ const dv=state.dive; const [f,tn]=axis();
   u.armL.rotation.z=0.14; u.armR.rotation.z=-0.14;
   u.legL.rotation.x=Math.sin(ph*1.5)*0.5; u.legR.rotation.x=-Math.sin(ph*1.5)*0.5; }
 function enterDive(){ if(state.mode==='dive'){ surface(); return; }
-  let x,z,h;
+  let x,z,h,jump=null;
   if(state.mode==='walk'){ x=state.walk.x; z=state.walk.z; h=state.walk.heading; }
-  else if(state.mode==='boat'||state.mode==='deck'){ x=state.boat.x; z=state.boat.z; h=state.boat.heading; }
+  else if(state.mode==='boat'||state.mode==='deck'){
+    /* THE DIVER LEAPS FROM THE RAIL — the ship stays where she rides.
+       Find open water abeam of the hull: starboard first, then port, then astern. */
+    if(state.mode==='deck'&&state.deck.level==='hold'){ toast('Come up out of the hold first — you dive from the rail.'); return; }
+    const b=state.boat, ch=Math.cos(b.heading), sh=Math.sin(b.heading);
+    const offs=[[ch,-sh],[-ch,sh],[-sh*1.6,-ch*1.6]];
+    for(const o of offs){ const tx=b.x+o[0]*42, tz=b.z+o[1]*42;
+      if(!landAtWorld(tx,tz)){ x=tx; z=tz; break; } }
+    if(x===undefined){ toast('No open water to leap into — stand off the land first.'); return; }
+    walkerG.getWorldPosition(_wv);               /* from where he stands upon the deck */
+    h=Math.atan2(x-_wv.x,z-_wv.z);
+    jump={x0:_wv.x,y0:_wv.y,z0:_wv.z,x1:x,z1:z,t:0,dur:0.7};
+  }
   else return;
   if(landAtWorld(x,z)||Math.hypot(x,z)/R_WORLD>0.985){ toast('You must be over open water to dive into the deep.'); return; }
   initDeep();
   state.dive.x=x; state.dive.z=z; state.dive.heading=h; state.dive.y=SEA_SURF-6; state.dive.vy=-22; state.dive.sp=0;
-  splash(x,SEA_SURF+1,z,true);
+  if(jump){ state.dive.jump=jump; state.dive.x=jump.x0; state.dive.z=jump.z0; state.dive.y=jump.y0; state.dive.vy=0; }
+  else splash(x,SEA_SURF+1,z,true);
   setMode('dive');
   if(!diveHintShown){ diveHintShown=true;
-    toast('You slip beneath the waves — SHIFT to dive deeper, SPACE to rise, W/S to swim, C to surface.'); } }
+    toast('You slip beneath the waves — SHIFT to dive deeper, SPACE to rise, W/S to swim, C to surface. Left alone, the body floats up of itself.'); } }
 function surface(){ const dv=state.dive;
   state.walk.x=dv.x; state.walk.z=dv.z; state.walk.heading=dv.heading; state.walk.feetY=undefined; state.walk.vy=0; state.walk.grounded=true;
   setMode('walk'); hideDeep(); toast('You break the surface and draw breath.'); }
@@ -2263,7 +2363,9 @@ const LANDLIFE=[], LL_N=26, LL_R=360;
 const AMBIENT_PREY=new Set(['sheep','goat','pig','chicken','hare','deer','donkey','cow','horse','ostrich']);
 function initLandLife(){ if(LANDLIFE.length) return; for(let k=0;k<LL_N;k++) LANDLIFE.push({m:null,kind:null,hx:0,hz:0,x:0,z:0,heading:0,tx:0,tz:0,t:0,set:false}); }
 function findLandSpot(px,pz){ for(let tr=0;tr<10;tr++){ const a=Math.random()*6.28, r=70+Math.random()*LL_R, x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
-    const c=landAtWorld(x,z); if(c&&c.kind!=='wall'&&c.h<=6&&Math.hypot(x,z)/R_WORLD<0.9) return {x,z,y:c.h*B}; } return null; }
+    /* beasts keep to the charted lands (ci>0 — the countries and true isles);
+       the bare rocks and skerries of the open ocean stay bare */
+    const c=landAtWorld(x,z); if(c&&c.ci&&c.kind!=='wall'&&c.h<=6&&Math.hypot(x,z)/R_WORLD<0.9) return {x,z,y:c.h*B}; } return null; }
 function updateLandLife(px,pz,dt,t){ initLandLife();
   for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>LL_R+140){ const sp=findLandSpot(px,pz);
       if(!sp){ if(a.m)a.m.visible=false; a.set=false; continue; }
@@ -2313,7 +2415,12 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife();
       const a=Math.random()*6.28, r=60+Math.random()*AL_R; b.cx=px+Math.cos(a)*r; b.cz=pz+Math.sin(a)*r;
       const c=landAtWorld(b.cx,b.cz), base=c?c.h*B:WATER_Y;
       b.h=type==='butterfly'?base+2+Math.random()*5:base+24+Math.random()*70; b.rad=type==='butterfly'?4+Math.random()*6:16+Math.random()*40;
-      b.spd=(type==='butterfly'?1.4:0.5)+Math.random()*0.5; b.set=true; b.m.visible=true; }
+      b.spd=(type==='butterfly'?1.4:0.5)+Math.random()*0.5; b.set=true; b.m.visible=true;
+      b.follow=type==='gull'&&Math.random()<0.4; }          /* some gulls take to a passing ship */
+    /* gulls with the ship — they wheel about her masts while she runs */
+    if(b.follow&&(state.mode==='boat'||state.mode==='deck')&&Math.abs(state.boat.speed)>8){
+      b.cx+=(state.boat.x-b.cx)*Math.min(1,dt*0.7); b.cz+=(state.boat.z-b.cz)*Math.min(1,dt*0.7);
+      b.h+=(WATER_Y+52+Math.sin(t+b.ph)*10-b.h)*Math.min(1,dt*0.5); b.rad=Math.min(b.rad,34); }
     b.ph+=dt*b.spd; const x=b.cx+Math.cos(b.ph)*b.rad, z=b.cz+Math.sin(b.ph)*b.rad;
     b.m.position.set(x,b.h+Math.sin(t*2+b.ph)*(b.type==='butterfly'?1.6:2.4),z); b.m.rotation.y=-b.ph+Math.PI/2;
     const fl=b.type==='butterfly'?Math.sin(t*16+b.ph)*0.9:Math.sin(t*10+b.ph)*0.6;
@@ -3062,10 +3169,18 @@ function addRep(profile,n){ if(tradeSea) return; state.rep=state.rep||{};
   for(const[t2,msg] of tiers){ if(before<t2&&after>=t2){ toast(msg); break; } } }
 function fishSellPrice(){ return Math.max(2,Math.round(fishPriceAt(tradeProfile)*(tradeSea?1:repMult(tradeProfile)))); }
 function pearlSellPrice(){ return Math.max(15,Math.round(pearlPriceAt(tradeProfile)*(tradeSea?0.75:repMult(tradeProfile)))); }
-let tradeOpen=false, tradeProfile=0, tradeTitle='', tradeSea=false;
+let tradeOpen=false, tradeProfile=0, tradeTitle='', tradeSea=false, tradeAnchor=null;
 function openTrade(profile,title,sea){
   tradeOpen=true; tradeProfile=profile; tradeTitle=title; tradeSea=!!sea;
+  const p=state.mode==='walk'?state.walk:state.boat;
+  tradeAnchor={x:p.x,z:p.z,mode:state.mode};        /* the stall does not follow you */
   $('trade').style.display='flex'; renderTrade();
+}
+/* walk off (or change mode) and the trading is done — no shop in your pocket */
+function tradeGuard(){
+  if(!tradeOpen||!tradeAnchor) return;
+  const p=state.mode==='walk'?state.walk:state.boat;
+  if(state.mode!==tradeAnchor.mode||Math.hypot(p.x-tradeAnchor.x,p.z-tradeAnchor.z)>26) closeTrade();
 }
 function closeTrade(){ if(!tradeOpen) return; tradeOpen=false; $('trade').style.display='none'; saveState(); }
 function renderTrade(){
@@ -3157,13 +3272,20 @@ function promptTick(){
     const d=state.deck;
     if(d.level==='hold'){ if(Math.hypot(d.lx-HATCH.x,d.lz-HATCH.z)<HATCH.r+2.5){ label='F — climb up to the deck'; promptAction='up'; } }
     else if(Math.hypot(d.lx-HATCH.x,d.lz-HATCH.z)<HATCH.r){ label='F — go below to the hold'; promptAction='down'; }
-    if(!label){ promptTrader=nearestTrader();
-      if(promptTrader){ label='F — hail the merchantman'; promptAction='hail'; } }
+    if(!label){ const e=nearestEncounter();
+      if(e){ label=e.kind==='flotsam'?'F — haul the flotsam aboard':e.kind==='bottle'?'F — take up the bottle':'F — take the castaway aboard'; promptAction='enc'; }
+      else { promptTrader=nearestTrader();
+        if(promptTrader){ label='F — hail the merchantman'; promptAction='hail'; } } }
   } else if(state.mode==='boat'){
-    promptTrader=nearestTrader();
-    if(promptTrader){ label='F — hail the merchantman'; promptAction='hail'; }
+    const e=nearestEncounter();
+    if(e){ label=e.kind==='flotsam'?'F — haul the flotsam aboard':e.kind==='bottle'?'F — take up the bottle':'F — take the castaway aboard'; promptAction='enc'; }
+    else { promptTrader=nearestTrader();
+      if(promptTrader){ label='F — hail the merchantman'; promptAction='hail'; } }
   } else if(state.mode==='walk'){
-    if(state.fishing){ label=state.fishing.phase==='bite'?'F — STRIKE! a fish is on the line':'F — draw in the line'; promptAction='reel'; }
+    if(state.walk.inWater){ const e=nearestEncounter();
+      if(e){ label='F — take up the bottle'; promptAction='enc'; } }
+    if(label){ /* the bottle from the water */ }
+    else if(state.fishing){ label=state.fishing.phase==='bite'?'F — STRIKE! a fish is on the line':'F — draw in the line'; promptAction='reel'; }
     else if(canSleep()){ label='F — sleep until morning'; promptAction='sleep'; }
     else {
       promptDoor=nearestDoor(state.walk.x,state.walk.z);
@@ -3751,6 +3873,7 @@ function interact(){
     case 'down': state.deck.level='hold'; state.deck.lx=0; state.deck.lz=HATCH.z; break;
     case 'up': state.deck.level='deck'; state.deck.lx=2.4*SHIP_SX; state.deck.lz=HATCH.z+3*SHIP_S; break;
     case 'speak': speakTo(promptPerson); break;
+    case 'enc': encounterAct(); break;
     case 'fish': startFishing(); break;
     case 'reel': reelIn(); break;
     case 'pearl': { const P=promptPearl; if(!P) break;
@@ -3836,19 +3959,32 @@ function walkTick(dt){
   }
   w.heading+=t*dt*2.4;
   const gi=groundInfo(w.x,w.z);
-  const swimming=gi.water && Math.hypot(w.x-state.boat.x,w.z-state.boat.z)>=90;
+  const swimming=gi.water;      /* over water the body SWIMS — no man walks upon the sea */
   /* ---- vertical physics: gravity, landing, the jump, and true buoyancy ----
      In the water the body floats AT the surface and rides the swell — prone
      and stroking when swimming forward, treading upright when at rest. */
   const surfY=WATER_Y+seaHeight(w.x,w.z);
   if(swimming){
-    if(!w.inWater){ w.inWater=true; splash(w.x,surfY+1,w.z,w.vy<-14);
+    if(!w.inWater){
+      const plunging=w.vy<-30;
+      w.inWater=true; splash(w.x,surfY+1,w.z,w.vy<-14);
+      /* struck the water hard from a height and the water is deep — the body
+         drives under, then buoyancy gives it back to the surface */
+      if(plunging&&seabedDepth(w.x,w.z)<surfY-10){
+        initDeep();
+        state.dive.x=w.x; state.dive.z=w.z; state.dive.heading=w.heading;
+        state.dive.y=SEA_SURF-3; state.dive.vy=Math.max(-90,w.vy*0.55); state.dive.sp=0;
+        setMode('dive'); return;
+      }
       if(!swimDeepHintShown){ swimDeepHintShown=true;
         toast('You swim the swell — hold SHIFT to slip beneath the waves and dive the deep; make for the shore to haul out.'); } }
     /* hold SHIFT at the surface and slip straight down into the deep —
        the same water, the same place, the bed running from the strand */
     if(keys.ShiftLeft||keys.ShiftRight){ enterDive(); return; }
     w.feetY=surfY-1.0; w.vy=0; w.grounded=true; w.jumpReq=false;
+    /* the swell shoulders the swimmer along — the water is a moving thing */
+    const sl=seaSlope(w.x,w.z), px2=w.x-sl.x*dt*7, pz2=w.z-sl.z*dt*7;
+    if(!groundInfo(px2,pz2).land&&!camInsideShip(px2,surfY,pz2)){ w.x=px2; w.z=pz2; }
   }
   else { if(w.inWater){ w.inWater=false; }
     w.vy-=64*dt; w.feetY+=w.vy*dt;
@@ -3863,7 +3999,11 @@ function walkTick(dt){
   const solidBlock = blockedByStructure(nx,nz)||treeBlocked(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,walkerG);
   const diff = tg.y - w.feetY;
   let canGo=true;
-  if(!tg.land) canGo = nearBoat||onDeckNext||(Math.hypot(nx,nz)/R_WORLD<0.985);  /* swim (the ice wall is land, and climbable) */
+  if(!tg.land) canGo = nearBoat||onDeckNext||(Math.hypot(nx,nz)/R_WORLD<0.985)
+    ||Math.hypot(nx,nz)<Math.hypot(w.x,w.z);  /* swim (the ice wall is land, and climbable); beyond the rim, inward always */
+  /* the hull is a solid thing — the swimmer fetches up against her side
+     (press E there to climb aboard); one already inside the line may swim out */
+  if(swimming&&canGo&&camInsideShip(nx,surfY,nz)&&!camInsideShip(w.x,surfY,w.z)) canGo=false;
   else if(diff<=STEP){ /* a small step — walk up or down freely */ }
   else if(swimming && diff<=JUMPH+3){ /* haul out of the water onto the strand */ }
   else if(diff<=JUMPH) canGo = w.feetY>=tg.y-B*0.4;      /* two blocks: only if jumping onto it */
@@ -3908,15 +4048,52 @@ function walkTick(dt){
    SHIFT (or CTRL) lets him down. He floats — there is no falling. He rises
    through the cloud floor and above it, and the wall of ice turns him back
    at the rim. Bear down onto the ground and he alights. */
-const R_DOME=R_WORLD*1.08, FLY_TURN=1.9, FLY_MAXSP=520, FLY_VACC=1150, FLY_VMAX=4800;
-let flyHintShown=false, flyPad=0, seenFirmament=false, flyDome=null;
+/* The firmament after the earth-viewer's own cosmology (Scripture-Game
+   earth.html): a tent-vault "spread out like a tent to dwell in"
+   (Yashayahu 40:22) — its rim just past the wall of ice, its apex 130,000
+   high over the midst of the earth — with THE DEEP, near-black and
+   star-strewn, all around and beyond it, and the waters above the expanse
+   glowing faintly over its apex. */
+const R_DOME=R_WORLD*1.06, H_DOME=130000, FLY_TURN=1.9, FLY_MAXSP=520, FLY_VACC=1150, FLY_VMAX=4800;
+let flyHintShown=false, flyPad=0, seenFirmament=false, flyDome=null, outerDeep=null;
 function flyFloorAt(x,z){ return groundInfo(x,z).y+7; }
 /* height of the firmament (the hard vault) directly above a point on the disc */
-function domeCeilAt(x,z){ return Math.sqrt(Math.max(0,R_DOME*R_DOME-x*x-z*z)); }
+function domeCeilAt(x,z){ return H_DOME*Math.sqrt(Math.max(0,1-(x*x+z*z)/(R_DOME*R_DOME))); }
 function ensureFlyDome(){ if(flyDome) return;
   flyDome=new THREE.Mesh(new THREE.SphereGeometry(R_DOME,64,32,0,Math.PI*2,0,Math.PI*0.5),
     new THREE.MeshBasicMaterial({color:0x9ec7f2,transparent:true,opacity:0,side:THREE.BackSide,fog:false,depthWrite:false}));
-  scene.add(flyDome); }
+  flyDome.scale.y=H_DOME/R_DOME;                     /* the tent, not the ball */
+  flyDome.renderOrder=-2;
+  scene.add(flyDome);
+  /* the deep beyond the vault — darkness all around, not a mere circle,
+     with the waters above the expanse faint and blue over the apex */
+  outerDeep=new THREE.Mesh(new THREE.SphereGeometry(R_WORLD*1.55,48,24),
+    new THREE.ShaderMaterial({
+      transparent:true, side:THREE.BackSide, fog:false, depthWrite:false,
+      uniforms:{ uOp:{value:0} },
+      vertexShader:'varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+      fragmentShader:`precision highp float; uniform float uOp; varying vec3 vP;
+        void main(){
+          vec3 col=vec3(0.016,0.024,0.051);                      /* the deep: #04060d */
+          float up=clamp(vP.y/${(R_WORLD*1.2).toFixed(1)},0.0,1.0);
+          col+=vec3(0.05,0.10,0.18)*pow(up,1.6)*0.9;             /* the waters above, faintly */
+          gl_FragColor=vec4(col,uOp);
+        }`}));
+  outerDeep.renderOrder=-3;
+  scene.add(outerDeep); }
+/* from on high the eye cannot hold the little chunks of the world — so the
+   whole earth resolves into her own true face (the same map the compass rose
+   bears), fading in as the traveller climbs: the disc seen in the deep, as
+   the earth-viewer shows her */
+let aloftDisc=null;
+function ensureAloftDisc(){ if(aloftDisc) return;
+  const c=document.createElement('canvas'); c.width=c.height=1024;
+  drawMapInto(c.getContext('2d'),1024,false);
+  const tex=new THREE.CanvasTexture(c); tex.anisotropy=4;
+  aloftDisc=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD,128),
+    new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:0,fog:false,depthWrite:false}));
+  aloftDisc.rotation.x=-Math.PI/2; aloftDisc.position.y=175;
+  aloftDisc.visible=false; scene.add(aloftDisc); }
 function flyTick(dt){
   const fl=state.fly; const [f,t]=axis();
   fl.heading+=t*dt*FLY_TURN;
@@ -3939,8 +4116,10 @@ function flyTick(dt){
       toast('You are come up against the firmament — the hard vault of the shamayim, spread out like a moulded mirror, that no man passes.','IYOB 37:18'); } }
   if(fl.y<floor){ fl.y=floor; fl.vy=Math.max(0,fl.vy);
     if(up<0){ alight(); return; } }                 /* bearing down onto the ground — set down */
-  if(Math.hypot(fl.x,fl.z)/R_WORLD>0.994){          /* the wall of ice turns you back */
-    fl.x-=Math.sin(fl.heading)*fl.sp*dt; fl.z-=Math.cos(fl.heading)*fl.sp*dt; fl.sp*=0.25; }
+  /* the rim is HARD: never past it, and anyone found beyond (an old save,
+     an old bug) is pressed back within — inward flight always works */
+  { const rr=Math.hypot(fl.x,fl.z)/R_WORLD;
+    if(rr>0.992){ const k=0.992/rr; fl.x*=k; fl.z*=k; fl.sp*=0.25; } }
   state.dist+=Math.abs(fl.sp)*dt;
   /* pose: borne up with arms outstretched, leaning into the flight */
   const u=walkerG.userData, ph=performance.now()*0.0016, dr=Math.sin(ph)*0.12;
@@ -3964,14 +4143,26 @@ function takeFlight(){
     toast('You are borne up on the air — hold SPACE to rise higher and higher, past the clouds and the lights, to the firmament; SHIFT to sink, W/S to fly, A/D to turn.'); }
 }
 function alight(){
-  const fl=state.fly, cc=landAtWorld(fl.x,fl.z);
+  const fl=state.fly;
+  /* never set a man down in the void past the rim — draw him in to the wall */
+  { const rr=Math.hypot(fl.x,fl.z)/R_WORLD;
+    if(rr>0.985&&!landAtWorld(fl.x,fl.z)){ const k=0.98/rr; fl.x*=k; fl.z*=k; } }
+  const cc=landAtWorld(fl.x,fl.z);
   if(cc){                                             /* land on any ground, the ice wall included */
     state.walk.x=fl.x; state.walk.z=fl.z; state.walk.heading=fl.heading;
     state.walk.feetY=undefined; state.walk.vy=0; state.walk.grounded=true;  /* re-seat on the ground here */
     setMode('walk'); markDiscovery(fl.x,fl.z); toast('You alight softly upon the earth.');
-  } else {                                            /* over the deep — settle onto the ship */
-    state.boat.x=fl.x; state.boat.z=fl.z; state.boat.speed=0; state.boat.heading=fl.heading;
-    setMode('boat'); updateChunks(fl.x,fl.z,9999); toast('You settle back onto the deck.');
+  } else if(Math.hypot(fl.x-state.boat.x,fl.z-state.boat.z)<90){
+    /* the ship truly lies below — settle onto her deck where she rides */
+    setMode('boat'); toast('You settle back onto the deck.');
+  } else {
+    /* open water, no ship near: down into the sea itself. The ship stays
+       where she was left — swim for her, or for the shore. */
+    state.walk.x=fl.x; state.walk.z=fl.z; state.walk.heading=fl.heading;
+    state.walk.feetY=undefined; state.walk.vy=0; state.walk.grounded=true; state.walk.inWater=false;
+    setMode('walk');
+    splash(fl.x,WATER_Y+seaHeight(fl.x,fl.z)+1,fl.z,true);
+    toast('You come down upon the open sea and take to the water — swim for your ship, or for the shore.');
   }
   saveState();
 }
@@ -4002,6 +4193,7 @@ function poseArms(atWheel){
 }
 function setMode(m){
   state.mode=m;
+  if(m==='fly') ensureFlyDome();                      /* the vault stands even for a voyage restored aloft */
   if(m!=='fly'&&m!=='dive') walkerG.rotation.x=0;      /* clear the flight/swim lean */
   if(m==='walk'||m==='fly'||m==='dive'){              /* a free body in the world, not aboard */
     if(walkerG.parent!==scene){ if(walkerG.parent) walkerG.parent.remove(walkerG); scene.add(walkerG); }
@@ -4016,6 +4208,7 @@ function setMode(m){
 }
 function updateFlyBtn(){ const b=$('b-fly'); if(!b) return;
   b.textContent=state.mode==='fly'?'🕊 Alight':'🕊 Rise up';
+  b.style.display=state.mode==='fly'?'none':'';   /* aloft, the anchor button already reads Alight — one button, not two */
   b.classList.toggle('off',state.mode==='fly');
   const fp=$('flypad'); if(fp) fp.style.display=(state.mode==='fly'||state.mode==='dive')?'flex':'none'; }
 function updateDiveBtn(){ const b=$('b-dive'); if(!b) return;
@@ -4142,8 +4335,9 @@ function buildFirmament(){
   /* sit well above the sea and terrain: at a 384k-unit far plane the depth
      buffer cannot separate y=2 from the sea at y≈0.35 and the disc flickers */
   disc.rotation.x=-Math.PI/2; disc.position.y=180;
-  const dome=new THREE.Mesh(new THREE.SphereGeometry(R_WORLD*1.08,48,24,0,Math.PI*2,0,Math.PI/2),
-    new THREE.MeshBasicMaterial({color:0x8fb8e8,transparent:true,opacity:0.1,side:THREE.DoubleSide,fog:false,depthWrite:false}));
+  const dome=new THREE.Mesh(new THREE.SphereGeometry(R_DOME,48,24,0,Math.PI*2,0,Math.PI/2),
+    new THREE.MeshBasicMaterial({color:0x8fb8e8,transparent:true,opacity:0.16,side:THREE.DoubleSide,fog:false,depthWrite:false}));
+  dome.scale.y=H_DOME/R_DOME;                       /* the same low tent-vault as within */
   firmG=new THREE.Group(); firmG.add(disc); firmG.add(dome);
   function mkSpr(col){ const cc2=texCanvas(64); const gg=cc2.getContext('2d');
     gg.fillStyle=col; gg.beginPath(); gg.moveTo(32,4); gg.lineTo(58,60); gg.lineTo(6,60); gg.closePath(); gg.fill();
@@ -4290,6 +4484,11 @@ function cameraTick(dt){
   const cy=baseY+lift+Math.sin(state.camPitch)*dist;
   camPos.set(px+Math.sin(az)*Math.cos(state.camPitch)*dist, cy, pz+Math.cos(az)*Math.cos(state.camPitch)*dist);
   camera.position.lerp(camPos,Math.min(1,dt*5));
+  /* the eye stays WITHIN the firmament — never through the glass, whatever
+     the pitch: pressed back inside the tent-vault's skin */
+  { const cp=camera.position;
+    const q=(cp.x*cp.x+cp.z*cp.z)/(R_DOME*R_DOME)+(cp.y>0?(cp.y*cp.y)/(H_DOME*H_DOME):0);
+    if(q>0.90){ const k=Math.sqrt(0.90/q); cp.x*=k; cp.z*=k; if(cp.y>0) cp.y*=k; } }
   camTgt.set(px,baseY+(swimCam?4:10),pz);
   camera.lookAt(camTgt);
 }
@@ -4402,7 +4601,7 @@ async function saveState(){
   const payload=JSON.stringify({v:6,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
     t:state.simHours,m:state.mode==='walk'?'walk':'boat',wx:state.walk.x,wz:state.walk.z,wh:state.walk.heading,
     vis:[...state.visited],d:Math.round(state.dist),wm:state.windMode,fi:state.fish||0,
-    co:state.coins,cg:state.cargo,gm:state.game||0,ib:state.immBreath?1:0,pe:state.pearls||0,rp:state.repel?1:0,rr:state.rep||{},wl:[...wreckLooted]});
+    co:state.coins,cg:state.cargo,gm:state.game||0,ib:state.immBreath?1:0,pe:state.pearls||0,rp:state.repel?1:0,rr:state.rep||{},wl:[...wreckLooted],vf:state.vf||0});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
 }
@@ -4464,7 +4663,10 @@ function toggleLog(){
     'Distance sailed: <b>'+Math.round(state.dist/B).toLocaleString()+' km</b><br>'+
     'Purse: <b>'+(state.coins||0)+' shekels</b> · Cargo: <b>'+cargoCount()+' / '+CARGO_MAX+'</b> ('+cargoTxt+')<br>'+
     'Fish drawn from the deep: <b>'+(state.fish||0)+'</b> · Game taken by the spear: <b>'+(state.game||0)+'</b> · Pearls: <b>'+(state.pearls||0)+'</b><br>'+
-    'Day of the voyage: <b>'+dayOfYear()+'</b>';
+    'Day of the voyage: <b>'+dayOfYear()+'</b><br>'+
+    (function(){ const nl=nextLandfall();
+      return nl?('Next landfall: <b>'+nl.n+'</b> — away to the <b>'+nl.dir+'</b>, some '+nl.km.toLocaleString()+' km over the deep.')
+               :'<b>The voyage is fulfilled</b> — every land under the shamayim is written in this log.'; })();
   $('log-lands').textContent=names.length?names.join(' \u00B7 '):'No land yet \u2014 the deep awaits.';
 }
 $('b-log').onclick=toggleLog;
@@ -4508,6 +4710,315 @@ $('b-sound').onclick=()=>{
   $('b-sound').textContent='🔊 Sound: '+(audioOn?'on':'off');
   $('b-sound').classList.toggle('off',!audioOn); };
 
+/* ================= THE LIVING WORLD =================
+   The small true things that make the earth feel dwelt-in, after the manner
+   of the great open worlds: weather you can feel, smoke over the hearths,
+   fireflies in the evening grass, chance meetings on the deep, dolphins at
+   the bow, gulls with the ship, the murmur of the living, and an end to the
+   voyage worth reaching. */
+
+/* ---- RAIN & THUNDER — the storm is no longer only a darkening ---- */
+const RAIN_N=800, RAIN_BOX=240, RAIN_TOP=170;
+const rainGeo=new THREE.BufferGeometry();
+{ const rp=new Float32Array(RAIN_N*3);
+  for(let i=0;i<RAIN_N;i++){ rp[i*3]=(Math.random()-0.5)*2*RAIN_BOX; rp[i*3+1]=Math.random()*RAIN_TOP; rp[i*3+2]=(Math.random()-0.5)*2*RAIN_BOX; }
+  rainGeo.setAttribute('position',new THREE.BufferAttribute(rp,3)); }
+const rainMat=new THREE.PointsMaterial({color:0xa9c2d8,size:1.4,transparent:true,opacity:0,depthWrite:false,fog:true,sizeAttenuation:true});
+const rain=new THREE.Points(rainGeo,rainMat); rain.frustumCulled=false; rain.visible=false; scene.add(rain);
+const _boltWhite=new THREE.Color(0xeaf2ff);
+let boltT=6, boltFlash=0;
+function thunderClap(){ if(!AC||!audioOn) return;
+  try{ const dur=1.6, sr=AC.sampleRate, buf=AC.createBuffer(1,sr*dur,sr), d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++){ const tt=i/sr; d[i]=(Math.random()*2-1)*Math.exp(-tt*3.0)*(tt<0.05?tt/0.05:1); }
+    const src=AC.createBufferSource(); src.buffer=buf;
+    const lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=380;
+    const g2=AC.createGain(); g2.gain.value=0.5;
+    src.connect(lp); lp.connect(g2); g2.connect(AC.destination); src.start();
+  }catch(e){} }
+function weatherTick(px,pz,dt,storm){
+  const wet=Math.max(0,(storm-0.22)/0.78);
+  const inHold=state.mode==='deck'&&state.deck.level==='hold';
+  const show=wet>0.02&&state.mode!=='dive'&&!state.firm&&!inHold;
+  rain.visible=show;
+  if(show){
+    rainMat.opacity=Math.min(0.6,wet*0.8);
+    rain.position.set(px,0,pz);
+    const w=windAt(px,pz), a=rainGeo.attributes.position.array;
+    for(let i=0;i<RAIN_N;i++){ const j=i*3;
+      a[j+1]-=(140+(i%9)*9)*dt; a[j]+=w.x*36*dt; a[j+2]+=w.z*36*dt;
+      if(a[j+1]<0) a[j+1]+=RAIN_TOP;
+      if(a[j]>RAIN_BOX)a[j]-=2*RAIN_BOX; else if(a[j]<-RAIN_BOX)a[j]+=2*RAIN_BOX;
+      if(a[j+2]>RAIN_BOX)a[j+2]-=2*RAIN_BOX; else if(a[j+2]<-RAIN_BOX)a[j+2]+=2*RAIN_BOX; }
+    rainGeo.attributes.position.needsUpdate=true;
+  }
+  /* at the storm's height the sky cracks open */
+  boltFlash=Math.max(0,boltFlash-dt*3.2);
+  if(storm>0.55&&!state.firm){ boltT-=dt;
+    if(boltT<=0){ boltT=5+Math.random()*10; boltFlash=1; thunderClap(); } }
+  if(boltFlash>0.01&&!state.firm&&state.mode!=='dive'){
+    hemi.intensity+=boltFlash*1.5; dirL.intensity+=boltFlash*0.7;
+    scene.background.lerp(_boltWhite,boltFlash*0.4);
+    if(scene.fog) scene.fog.color.lerp(_boltWhite,boltFlash*0.4);
+  }
+}
+
+/* ---- THE SMOKE OF HEARTHS — morning and evening, the houses breathe ---- */
+const SMOKES=[], SMOKE_N=26;
+function initSmoke(){ if(SMOKES.length) return;
+  for(let k=0;k<SMOKE_N;k++){ const m=new THREE.Mesh(new THREE.BoxGeometry(1.5,1.5,1.5),
+      new THREE.MeshLambertMaterial({color:0x9aa0a8,transparent:true,opacity:0.5}));
+    m.visible=false; scene.add(m); SMOKES.push({m,t:0,dur:1,x:0,y:0,z:0,ph:0}); } }
+let smokeT=0;
+function smokeTick(px,pz,dt){
+  if(state.firm||state.mode==='dive') return;
+  initSmoke();
+  const hh=((state.simHours%24)+24)%24;
+  const hearth=(hh>5.2&&hh<9.2)||(hh>16.3&&hh<21.8);
+  smokeT-=dt;
+  if(hearth&&smokeT<=0){ smokeT=0.45;
+    outer:
+    for(const [,vv] of activeVillages){ if(vv.none||!vv.houses||!vv.houses.length) continue;
+      for(let tr=0;tr<2;tr++){
+        const H=vv.houses[Math.floor(Math.random()*vv.houses.length)];
+        const hx=(H.x0+H.x1)/2, hz=(H.z0+H.z1)/2;
+        if(Math.hypot(hx-px,hz-pz)>430) continue;
+        const s=SMOKES.find(q=>!q.m.visible); if(!s) break outer;
+        s.m.visible=true; s.t=0; s.dur=3.4+Math.random()*1.6; s.ph=Math.random()*6.28;
+        s.x=hx+(Math.random()-0.5)*3; s.z=hz+(Math.random()-0.5)*3;
+        s.y=groundInfo(hx,hz).y+B*3.6;
+        break outer;
+      } } }
+  const w=windAt(px,pz);
+  for(const s of SMOKES){ if(!s.m.visible) continue;
+    s.t+=dt; const p2=s.t/s.dur;
+    if(p2>=1){ s.m.visible=false; continue; }
+    s.y+=dt*(3.4-p2*1.5); s.x+=w.x*2.6*dt+Math.sin(s.t*2+s.ph)*0.5*dt; s.z+=w.z*2.6*dt;
+    s.m.position.set(s.x,s.y,s.z);
+    s.m.scale.setScalar(0.7+p2*2.0);
+    s.m.material.opacity=0.45*(1-p2);
+    s.m.rotation.y=s.t*0.6+s.ph; }
+}
+
+/* ---- FIREFLIES — sparks of the evening over the good grass ---- */
+const FIREFLIES=[], FF_N=14;
+function initFireflies(){ if(FIREFLIES.length) return;
+  for(let k=0;k<FF_N;k++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({
+      map:glowTexCv,color:0xd8f086,transparent:true,opacity:0,fog:false,depthWrite:false}));
+    sp.scale.set(1.7,1.7,1); sp.visible=false; scene.add(sp);
+    FIREFLIES.push({m:sp,x:0,y:0,z:0,ph:Math.random()*6.28,set:false}); } }
+function fireflyTick(px,pz,dt,t,nightF){
+  initFireflies();
+  const on=nightF>0.45&&state.mode!=='dive'&&!state.firm;
+  for(const f of FIREFLIES){
+    if(!on){ f.m.visible=false; f.set=false; continue; }
+    if(!f.set||Math.hypot(f.x-px,f.z-pz)>170){
+      f.set=false;
+      for(let tr=0;tr<6;tr++){ const a=Math.random()*6.28, r=14+Math.random()*120;
+        const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r, c=landAtWorld(x,z);
+        if(c&&c.ci&&(c.kind==='grass'||c.kind==='tropic')){ f.x=x; f.z=z; f.y=c.h*B+2+Math.random()*3.5; f.set=true; break; } }
+      if(!f.set){ f.m.visible=false; continue; }
+    }
+    f.x+=Math.sin(t*0.7+f.ph)*2.4*dt; f.z+=Math.cos(t*0.5+f.ph*1.7)*2.4*dt;
+    f.m.visible=true;
+    f.m.position.set(f.x,f.y+Math.sin(t*1.3+f.ph)*0.9,f.z);
+    f.m.material.opacity=0.2+0.6*Math.max(0,Math.sin(t*2.1+f.ph*3)); }
+}
+
+/* ---- CHANCE MEETINGS ON THE DEEP — the sea has stories in it ----
+   Flotsam to salvage, a word in a bottle, a castaway on a raft. One at a
+   time, drifting on the wind, gone if you pass it by. */
+const ENC={kind:null,x:0,z:0,cool:45,models:{}};
+const BOTTLE_WORDS=[
+  ['“Cast your bread upon the waters, for you shall find it after many days.”','QOHELETH 11:1'],
+  ['“They that go down to the sea in ships, that do business in great waters — these see the works of YAHUAH.”','TEHILLIM 107:23'],
+  ['“The sea is His, and He made it, and His hands formed the dry land.”','TEHILLIM 95:5'],
+  ['“He makes the storm a calm, so that the waves thereof are still.”','TEHILLIM 107:29']];
+function encModel(kind){
+  if(ENC.models[kind]) return ENC.models[kind];
+  const g=new THREE.Group();
+  if(kind==='flotsam'){
+    const c1=texBox(4.5,4.5,4.5,'planks','planks'); c1.position.set(0,1.2,0); g.add(c1);
+    const c2=texBox(3.6,3.6,3.6,'planks','planks'); c2.position.set(4.6,0.7,1.8); c2.rotation.y=0.5; g.add(c2);
+    const bar=texBox(3,4.4,3,'logSide','logTop'); bar.position.set(-4.2,0.9,-1.4); bar.rotation.z=1.35; g.add(bar);
+  } else if(kind==='bottle'){
+    const bd=lbox(1.4,2.6,1.4,0x3f7a58); bd.position.y=0.9; g.add(bd);
+    const nk=lbox(0.6,1.2,0.6,0x3f7a58); nk.position.y=2.7; g.add(nk);
+    const ck=lbox(0.7,0.5,0.7,0x8a6a3a); ck.position.y=3.5; g.add(ck);
+  } else {
+    const raft=texBox(12,1.4,9,'planks','planks'); raft.position.y=0.4; g.add(raft);
+    for(const zz of [-3.6,0,3.6]){ const lg=texBox(1.4,1.5,9.4,'logSide','logTop'); lg.position.set(0,-0.4,0); lg.position.x=zz; g.add(lg); }
+    const man=makePerson(4177,'folk',false,false); man.position.set(0,1.1,0); g.add(man);
+    g.userData.man=man;
+  }
+  g.visible=false; scene.add(g);
+  ENC.models[kind]=g; return g;
+}
+function retireEnc(){ if(ENC.kind&&ENC.models[ENC.kind]) ENC.models[ENC.kind].visible=false; ENC.kind=null; ENC.cool=55+Math.random()*75; }
+function encounterTick(px,pz,dt,t){
+  if(state.firm||state.mode==='dive'){ if(ENC.kind&&ENC.models[ENC.kind]) ENC.models[ENC.kind].visible=false; return; }
+  if(!ENC.kind){
+    ENC.cool-=dt;
+    if(ENC.cool>0) return;
+    ENC.cool=8;                                          /* try again soon if this spot fails */
+    const a=Math.random()*6.28, r=420+Math.random()*800;
+    const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
+    if(landAtWorld(x,z)||shoalAt(x,z)>0.55||Math.hypot(x,z)/R_WORLD>0.93) return;
+    const roll=Math.random();
+    ENC.kind=roll<0.5?'flotsam':(roll<0.8?'bottle':'castaway');
+    ENC.x=x; ENC.z=z;
+    const g=encModel(ENC.kind); g.visible=true;
+    return;
+  }
+  const g=encModel(ENC.kind), w=windAt(ENC.x,ENC.z);
+  g.visible=true;
+  ENC.x+=w.x*3*dt; ENC.z+=w.z*3*dt;
+  if(landAtWorld(ENC.x,ENC.z)||Math.hypot(ENC.x-px,ENC.z-pz)>2400){ retireEnc(); return; }
+  const hd=seaHeight(ENC.x,ENC.z);
+  g.position.set(ENC.x,WATER_Y+hd*0.6-0.5,ENC.z);
+  g.rotation.y+=dt*0.06; g.rotation.z=Math.sin(t*0.8+ENC.x*0.01)*0.06;
+  if(ENC.kind==='castaway'&&g.userData.man){ const u=g.userData.man.userData;
+    u.armR.rotation.x=-2.6; u.armR.rotation.z=Math.sin(t*5)*0.5;   /* waving for his life */
+    g.userData.man.rotation.y=Math.atan2(px-ENC.x,pz-ENC.z); }
+}
+function nearestEncounter(){
+  if(!ENC.kind) return null;
+  const p=state.mode==='walk'?state.walk:state.boat;
+  const reach=ENC.kind==='bottle'?34:52;
+  if(Math.hypot(ENC.x-p.x,ENC.z-p.z)>reach) return null;
+  if(state.mode==='walk'&&ENC.kind!=='bottle') return null;   /* a swimmer can take up only the bottle */
+  return ENC;
+}
+function encounterAct(){
+  const e=nearestEncounter(); if(!e) return;
+  if(e.kind==='flotsam'){
+    const good=GOODS[Math.floor(Math.random()*GOODS.length)];
+    const take=Math.min(1+Math.floor(Math.random()*3),CARGO_MAX-cargoCount());
+    if(take<=0){ toast('The hold is full to the beams — no room for salvage.'); return; }
+    state.cargo[good.k]=(state.cargo[good.k]||0)+take;
+    toast('You haul the flotsam aboard — '+take+' '+good.n.toLowerCase()+' saved from the sea. Cargo: '+cargoCount()+' / '+CARGO_MAX+'.');
+  } else if(e.kind==='bottle'){
+    const wd=BOTTLE_WORDS[Math.floor(Math.random()*BOTTLE_WORDS.length)];
+    state.coins+=5;
+    toast('A sealed bottle, and a word within — '+wd[0]+' (…and five shekels, for good measure.)',wd[1]);
+  } else {
+    state.coins+=25;
+    let best=-1,bd=1e9; const p=state.boat;
+    for(let i=0;i<COUNTRIES.length;i++){ const c=COUNTRIES[i].c;
+      const d=Math.hypot(p.x/R_WORLD-c[0],p.z/R_WORLD-c[1]); if(d<bd){bd=d;best=i;} }
+    if(best>=0){ state.rep=state.rep||{}; state.rep[best]=(state.rep[best]||0)+3; }
+    toast('You take the castaway aboard. He weeps, presses 25 shekels into your hand, and blesses your ship — word of this kindness will reach the ports.','MATTITHYAHU 25:35');
+  }
+  retireEnc(); saveState();
+}
+
+/* ---- THE MURMUR OF THE LIVING — passers-by greet the traveller ---- */
+const BARKS=[];
+function initBarks(){ if(BARKS.length) return;
+  for(let k=0;k<3;k++){
+    const cv=document.createElement('canvas'); cv.width=512; cv.height=96;
+    const tex=new THREE.CanvasTexture(cv);
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,opacity:0,fog:false,depthWrite:false,depthTest:false}));
+    sp.visible=false; scene.add(sp);
+    BARKS.push({sp,cv,tex,t:0,dur:0,ent:null}); } }
+function barkAt(ent,text){
+  initBarks();
+  const b=BARKS.find(q=>!q.ent)||BARKS[0];
+  const g=b.cv.getContext('2d'); g.clearRect(0,0,512,96);
+  g.font='500 30px Georgia,serif';
+  const wpx=Math.min(492,g.measureText(text).width+36);
+  g.fillStyle='rgba(12,16,26,0.78)';
+  g.beginPath();
+  if(g.roundRect) g.roundRect((512-wpx)/2,16,wpx,60,14); else g.rect((512-wpx)/2,16,wpx,60);
+  g.fill();
+  g.fillStyle='#f0e8d2'; g.textAlign='center'; g.textBaseline='middle';
+  g.fillText(text,256,47);
+  b.tex.needsUpdate=true;
+  b.ent=ent; b.t=0; b.dur=3.4;
+  b.sp.scale.set(26*(wpx/512)+8,6,1);
+  b.sp.visible=true;
+}
+const GREETS_DAY=['Shalom, traveller.','Peace be upon you.','Fair winds brought you in?','A good day under the sun.','You are welcome in this place.'];
+const GREETS_NIGHT=['A quiet night, friend.','Peace to you, night-walker.','The lamps are lit — rest well.'];
+const GREETS_ROLE={vendor:'Fresh wares, friend — come and see!',child:'Come and play! You cannot catch me!',fisher:'The fish bite well today.',water:'Sweet water, drawn this hour.'};
+let greetScanT=0;
+function greetTick(dt,nightF){
+  greetScanT-=dt;
+  for(const b of BARKS){ if(!b.ent) continue;
+    b.t+=dt;
+    if(b.t>=b.dur||!b.ent.m||!b.ent.m.visible){ b.ent=null; b.sp.visible=false; continue; }
+    b.sp.position.set(b.ent.m.position.x,b.ent.m.position.y+16,b.ent.m.position.z);
+    b.sp.material.opacity=Math.min(1,(b.dur-b.t)/0.5)*Math.min(1,b.t/0.25); }
+  if(greetScanT>0||state.mode!=='walk') return;
+  greetScanT=1.2;
+  const now=performance.now()*0.001, w=state.walk;
+  for(const [,vv] of activeVillages){ if(vv.none||!vv.people) continue;
+    for(const p of vv.people){ if(!p.m||!p.m.visible) continue;
+      const d=Math.hypot(p.m.position.x-w.x,p.m.position.z-w.z);
+      if(d>3&&d<9&&(!p.greetT||now-p.greetT>40)){
+        p.greetT=now;
+        const line=GREETS_ROLE[p.role]||(nightF>0.5?GREETS_NIGHT[Math.floor(Math.random()*GREETS_NIGHT.length)]
+                                                    :GREETS_DAY[Math.floor(Math.random()*GREETS_DAY.length)]);
+        barkAt(p,line);
+        return; } } }
+}
+
+/* ---- GULL CRIES & CRICKETS — the air itself is alive ---- */
+let gullT=8, cricketGain=null;
+function gullCry(){ if(!AC||!audioOn) return;
+  try{ const t0=AC.currentTime;
+    for(let k=0;k<2;k++){ const o=AC.createOscillator(); o.type='triangle';
+      const g2=AC.createGain(); o.connect(g2); g2.connect(AC.destination);
+      const s=t0+k*0.34;
+      o.frequency.setValueAtTime(1240-k*140,s);
+      o.frequency.exponentialRampToValueAtTime(790,s+0.26);
+      g2.gain.setValueAtTime(0.0001,s);
+      g2.gain.exponentialRampToValueAtTime(0.05,s+0.05);
+      g2.gain.exponentialRampToValueAtTime(0.0001,s+0.3);
+      o.start(s); o.stop(s+0.34); }
+  }catch(e){} }
+function ensureCricket(){ if(!AC||cricketGain) return;
+  try{ cricketGain=AC.createGain(); cricketGain.gain.value=0; cricketGain.connect(AC.destination);
+    const osc=AC.createOscillator(); osc.type='sine'; osc.frequency.value=4300;
+    const am=AC.createGain(); am.gain.value=0; osc.connect(am); am.connect(cricketGain); osc.start();
+    const lfo=AC.createOscillator(); lfo.type='square'; lfo.frequency.value=12.5;
+    const lg=AC.createGain(); lg.gain.value=0.5; lfo.connect(lg); lg.connect(am.gain); lfo.start();
+  }catch(e){ cricketGain=null; } }
+function ambientAudioTick(dt,light,p){
+  if(!AC||!audioOn) return;
+  const day=(light.dayF||0)>0.45, storm=(light.storm||0);
+  if((state.mode==='boat'||state.mode==='deck'||(state.mode==='walk'&&state.walk.inWater))&&day&&storm<0.4){
+    gullT-=dt; if(gullT<=0){ gullT=8+Math.random()*16; gullCry(); } }
+  ensureCricket();
+  if(cricketGain){
+    const onLand=state.mode==='walk'&&!state.walk.inWater&&landAtWorld(p.x,p.z);
+    const want=(onLand&&(light.nightF||0)>0.5&&storm<0.3)?0.028:0;
+    cricketGain.gain.value+=(want-cricketGain.gain.value)*Math.min(1,dt*2); }
+}
+
+/* ---- THE VOYAGE FULFILLED — an explorer's game has an ending ---- */
+function nextLandfall(){
+  const p=state.mode==='walk'?state.walk:state.boat;
+  let best=-1,bd=1e9;
+  for(let i=0;i<COUNTRIES.length;i++){ if(state.visited.has(i)) continue;
+    const c=COUNTRIES[i].c, d=Math.hypot(p.x/R_WORLD-c[0],p.z/R_WORLD-c[1]);
+    if(d<bd){bd=d;best=i;} }
+  if(best<0) return null;
+  const pu=p.x/R_WORLD, pv=p.z/R_WORLD, rr=Math.hypot(pu,pv)||1e-9;
+  const nX=-pu/rr, nZ=-pv/rr, eX=pv/rr, eZ=-pu/rr;
+  const dx=COUNTRIES[best].c[0]*R_WORLD-p.x, dz=COUNTRIES[best].c[1]*R_WORLD-p.z;
+  const ang=Math.atan2(dx*eX+dz*eZ, dx*nX+dz*nZ);
+  return { n:COUNTRIES[best].n, dir:COMPASS8[(Math.round(ang/(Math.PI/4))+8)%8],
+    km:Math.max(50,Math.round(bd*R_WORLD/B/50)*50) };
+}
+function checkFulfilled(){
+  if(state.vf||state.visited.size<COUNTRIES.length) return;
+  state.vf=1; saveState();
+  toast('THE VOYAGE IS FULFILLED — you have come ashore in every land under the whole shamayim, '+COUNTRIES.length+' coasts written in your log. “They that go down to the sea in ships… these see the works of YAHUAH, and His wonders in the deep.”','TEHILLIM 107:23-24');
+}
+
+/* the voyage survives its wounds: if anything ever throws, the log is saved */
+window.addEventListener('error',()=>{ try{ saveState(); }catch(e){} });
+
 /* ================= LAUNCH ================= */
 function findStart(){
   let lat=32.1, lon=33.4;
@@ -4535,6 +5046,7 @@ async function begin(fresh){
     if(saved.rp){ state.repel=true; updateRepelBtn(); }
     if(saved.rr) state.rep=saved.rr;
     if(saved.wl) for(const k of saved.wl) wreckLooted.add(k);
+    if(saved.vf) state.vf=1;
     if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); } }
   else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5; }
   const p0=state.mode==='walk'?state.walk:state.boat;
@@ -4551,7 +5063,9 @@ $('btn-continue').onclick=()=>begin(false);
 window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
-  WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,
+  WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
+  domeInfo:()=>({dome:flyDome?flyDome.material.opacity:0, deep:outerDeep?outerDeep.material.uniforms.uOp.value:0, stars:starGroup.userData.mat.opacity}),
+  ENC,nearestEncounter,encounterAct,BARKS,FIREFLIES,SMOKES,rain,rainMat,nextLandfall,checkFulfilled,AIRLIFE,stormAt,COUNTRIES,STORMS,R_WORLD,
   seaPools:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,POD})};
 
 /* ================= THE GREAT LOOP ================= */
@@ -4575,7 +5089,7 @@ function frame(){
     scene.fog.near*=1+climbF/2600;
     scene.fog.far=Math.min(scene.fog.far*(1+climbF/45), R_WORLD*3.0); }
   /* underwater — the light dims and the water closes in with depth */
-  if(state.mode==='dive'&&scene.fog){ const depth=SEA_SURF-state.dive.y, murk=Math.min(1,depth/560);
+  if(state.mode==='dive'&&scene.fog&&state.dive.y<SEA_SURF){ const depth=SEA_SURF-state.dive.y, murk=Math.min(1,depth/560);
     const wc=mix3(0x061826,0x0f5170,0x36b0d8,1-murk);   /* deep dark → shallow turquoise */
     scene.background.copy(wc); scene.fog.color.copy(wc); scene.fog.near=4; scene.fog.far=470-murk*290;
     hemi.intensity=1.0-murk*0.6; dirL.intensity=0.5-murk*0.32; }
@@ -4605,9 +5119,24 @@ function frame(){
       hemi.intensity=0.85; dirL.intensity=0.4;
     }
   }
-  /* the firmament vault fades into view the higher he climbs, and stands solid near the top */
-  if(flyDome&&!state.firm){ flyDome.material.opacity=Math.max(0,Math.min(1,(eyeY-6000)/42000))*0.34; }
-  else if(flyDome){ flyDome.material.opacity=0; }
+  /* the firmament vault fades into view the higher he climbs, and stands solid
+     near the top; beyond it THE DEEP closes around — darkness on every side,
+     the waters above glowing faint over the apex, the stars seen through the glass */
+  if(flyDome&&!state.firm){
+    const climbF=Math.max(0,Math.min(1,(eyeY-3000)/26000));
+    flyDome.material.opacity=climbF*0.55;
+    flyDome.material.color.copy(mix3(0x1c2946,0x53719e,0x9ec7f2,light.dayF));
+    if(outerDeep) outerDeep.material.uniforms.uOp.value=Math.max(0,Math.min(1,(eyeY-CLOUD_Y*2)/9000))*0.94;
+    const aloftF=Math.max(0,Math.min(1,(eyeY-CLOUD_Y*3)/20000));
+    if(aloftF>0) starGroup.userData.mat.opacity=Math.max(starGroup.userData.mat.opacity,aloftF*0.85);
+    /* high enough, and the earth resolves into her charted face */
+    const mapF=Math.max(0,Math.min(1,(eyeY-9000)/9000));
+    if(mapF>0.02){ ensureAloftDisc(); aloftDisc.material.opacity=mapF; aloftDisc.visible=true;
+      aloftDisc.position.y=175+Math.min(2200,Math.max(0,eyeY-9000)*0.06); }  /* over the chunk tops, under the flyer */
+    else if(aloftDisc) aloftDisc.visible=false;
+  }
+  else if(flyDome){ flyDome.material.opacity=0; if(outerDeep) outerDeep.material.uniforms.uOp.value=0;
+    if(aloftDisc) aloftDisc.visible=false; }
   updateWallWeather(p.x,p.z,dt);   /* cold fog and blowing snow at the wall of ice */
   waterTick(p.x,p.z,light.dayF,light.storm||0);
   /* below the waterline in the hold, the sea must not wash through the hull;
@@ -4624,6 +5153,18 @@ function frame(){
   audioTick(light.storm||0);
   updateChunks(p.x,p.z,4);
   updateVillages(p.x,p.z,dt,light.nightF);
+  /* the living world — weather, hearths, fireflies, meetings, murmurs */
+  if(!state.firm){ const _t=performance.now()*0.001;
+    weatherTick(p.x,p.z,dt,light.storm||0);
+    smokeTick(p.x,p.z,dt);
+    fireflyTick(p.x,p.z,dt,_t,light.nightF||0);
+    encounterTick(p.x,p.z,dt,_t);
+    greetTick(dt,light.nightF||0);
+    ambientAudioTick(dt,light,p);
+    checkFulfilled();
+  } else { rain.visible=false; if(ENC.kind&&ENC.models[ENC.kind]) ENC.models[ENC.kind].visible=false;
+    for(const b of BARKS){ b.ent=null; b.sp.visible=false; } }
+  tradeGuard();
   cameraTick(dt);
   labelT-=dt; if(labelT<=0){ labelT=0.4; updateLabels(p.x,p.z); placeTick(); }
   miniT-=dt; if(miniT<=0){ miniT=0.5; drawMapInto(minictx,mini.width,false);
@@ -4644,16 +5185,24 @@ function frame(){
     const climb=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/900));
     cirrusMat.opacity=(0.08+light.dayF*0.16)*Math.min(1,climb*1.5)*(1-above*0.7);
     /* the sea of clouds — a bumpy, shaded deck with wisps drifting above */
-    cloudDeck.visible=cloudWisp.visible=cloudCover.visible=above>0.003;
+    /* the LOCAL deck patch is for skimming just over the clouds — from far
+       above it is a floating grey slab with an edge; fade it away and let the
+       whole-earth cover carry the view */
+    const deckFade=Math.max(0,1-Math.max(0,eyeY-2600)/6000);
+    cloudCover.visible=above>0.003;
+    cloudDeck.visible=cloudWisp.visible=above>0.003&&deckFade>0.01;
     if(above>0.003){
       cloudDeck.position.set(p.x,CLOUD_Y,p.z); updateCloudDeck(p.x,p.z);
-      cloudDeckMat.opacity=above; cloudDeckMat.color.copy(mix3(0x6b7690,0xe6cba4,0xffffff,light.dayF));
+      cloudDeckMat.opacity=above*deckFade; cloudDeckMat.color.copy(mix3(0x6b7690,0xe6cba4,0xffffff,light.dayF));
       cloudWisp.position.x=p.x; cloudWisp.position.z=p.z;
-      wispMat.opacity=above*0.5; wispMat.color.copy(mix3(0x4a5570,0xe0c49c,0xffffff,light.dayF));
+      wispMat.opacity=above*0.5*deckFade; wispMat.color.copy(mix3(0x4a5570,0xe0c49c,0xffffff,light.dayF));
       const dr2=state.simHours*0.006;
       wispMat.map.offset.set((p.x/100000*30+dr2)%1,(p.z/100000*30)%1);
-      /* the fixed cover mantles the whole earth (does NOT follow the traveller) */
-      cloudCover.material.opacity=above*0.97; cloudCover.material.color.copy(mix3(0x59637a,0xe0c6a0,0xffffff,light.dayF));
+      /* the fixed cover mantles the whole earth (does NOT follow the traveller);
+         from on high it thins, and the earth's charted face shows through it */
+      const mapF2=Math.max(0,Math.min(1,(eyeY-9000)/9000));
+      cloudCover.material.opacity=above*0.97*(1-mapF2*0.82);
+      cloudCover.material.color.copy(mix3(0x59637a,0xe0c6a0,0xffffff,light.dayF));
     } }
   if(!state.firm&&state.mode==='dive') updateDeep(state.dive.x,state.dive.y,state.dive.z,dt,Math.min(1,(SEA_SURF-state.dive.y)/560));
   else if(deepShown) hideDeep();
