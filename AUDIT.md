@@ -298,6 +298,44 @@ the earth a still disc, the vault a low tent, and THE DEEP all around.
 - **One Alight button**: aloft, the duplicated 🕊 button is hidden — the
   anchor button alone reads Alight.
 
+## 4h. Round 9 — the living world: dwelt-in, down to the small things ✅
+
+After the manner of the great open worlds (the Rockstar school: ambient
+systems layered until the world reads as *inhabited*), plus a structural
+hardening pass:
+
+- **Rain and thunder**: storms now rain — wind-driven rain sheets around the
+  traveller, and at the storm's height the sky cracks: a white flash over sky
+  and fog, and a low thunder-roll through the hull (WebAudio noise burst).
+- **The smoke of hearths**: morning (≈5–9) and evening (≈16–22) the village
+  houses breathe — puffs of smoke rise off the roofs, drift with the wind,
+  swell and thin away.
+- **Fireflies**: sparks of the evening over the good grass of charted lands,
+  wandering and blinking after dusk.
+- **Chance meetings on the deep** (one at a time, drifting on the wind, gone
+  if passed by): **flotsam** to haul aboard (salvaged goods for the hold), a
+  **sealed bottle** with a word of Scripture in it (and five shekels), and a
+  **castaway on a raft**, waving — take him aboard for 25 shekels, a blessing,
+  and renown (+3) at the nearest port.
+- **Dolphins ride the bow**: run the ship past ~13 speed and two dolphins peel
+  off to race her flanks, arcing fast in her pressure wave.
+- **Gulls with the ship**: some gulls take to a passing ship and wheel about
+  her masts while she runs.
+- **The murmur of the living**: villagers greet the passing traveller with
+  floating speech — "Shalom, traveller", "Fresh wares, friend — come and
+  see!", "A quiet night, friend" — by calling and by hour, each soul no more
+  than once in a long while.
+- **Gull cries and crickets**: descending gull calls over the day-time sea;
+  cricket-song rising on land after dark (both WebAudio, off with 🔊).
+- **An explorer's ending**: the ship's log now names the **next landfall**
+  (nearest unvisited land, its bearing and distance); and when the traveller
+  has come ashore in every one of the 176 lands, **THE VOYAGE IS FULFILLED**
+  (Tehillim 107:23-24), written into the save.
+- **Structural hardening**: the trade panel closes itself if you walk off or
+  change mode (no more shop-in-your-pocket); any uncaught error saves the
+  voyage before the page notices (window error hook); plus the confirmed
+  findings of a six-dimension adversarial code audit (below).
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

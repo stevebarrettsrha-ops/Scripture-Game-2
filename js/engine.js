@@ -1948,11 +1948,26 @@ const DOLPHINS=[], DOL_N=6, DOL_R=440;
 function initDolphins(){ if(DOLPHINS.length) return; for(let k=0;k<DOL_N;k++){ const m=makeDolphin(); m.visible=false; scene.add(m);
   DOLPHINS.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false}); } }
 function updateDolphins(px,py,pz,dt,t){ initDolphins();
+  /* dolphins RIDE THE BOW when the ship runs fast — two peel off and race
+     her flanks, arcing in her pressure wave, as they do on every real sea */
+  const sailing=(state.mode==='boat'||state.mode==='deck')&&Math.abs(state.boat.speed)>13;
+  let escN=0;
   for(const d of DOLPHINS){ if(!d.set||Math.hypot(d.x-px,d.z-pz)>DOL_R+150){
       const a=Math.random()*6.28, r=80+Math.random()*260; d.x=px+Math.cos(a)*r; d.z=pz+Math.sin(a)*r;
       const fy=seabedDepth(d.x,d.z); d.y=Math.min(SEA_SURF-6,fy+30+Math.random()*40); d.dir=Math.random()*6.28; d.set=true; d.m.visible=true; }
-    d.dir+=Math.sin(t*0.4+d.ph)*0.05; const sp=18; d.x+=Math.cos(d.dir)*sp*dt; d.z+=Math.sin(d.dir)*sp*dt;
-    const arc=Math.sin(t*0.9+d.ph); d.y+=arc*10*dt; const fy=seabedDepth(d.x,d.z), col=SEA_SURF-fy;
+    let sp=18;
+    const escort=sailing&&escN<2&&Math.hypot(d.x-state.boat.x,d.z-state.boat.z)<420;
+    if(escort){ const side=(escN===0)?1:-1; escN++;
+      const b=state.boat, fx=Math.sin(b.heading), fz=Math.cos(b.heading);
+      const tx=b.x+fx*(46+Math.sin(t*0.8+d.ph)*14)+Math.cos(b.heading)*side*15;
+      const tz=b.z+fz*(46+Math.sin(t*0.8+d.ph)*14)-Math.sin(b.heading)*side*15;
+      const want=Math.atan2(tz-d.z,tx-d.x);
+      let da=want-d.dir; while(da>Math.PI)da-=2*Math.PI; while(da<-Math.PI)da+=2*Math.PI;
+      d.dir+=da*Math.min(1,dt*2.4);
+      sp=Math.min(52,Math.abs(state.boat.speed)+14);
+    } else d.dir+=Math.sin(t*0.4+d.ph)*0.05;
+    d.x+=Math.cos(d.dir)*sp*dt; d.z+=Math.sin(d.dir)*sp*dt;
+    const arc=Math.sin(t*(escort?1.4:0.9)+d.ph); d.y+=arc*(escort?16:10)*dt; const fy=seabedDepth(d.x,d.z), col=SEA_SURF-fy;
     d.y=Math.min(SEA_SURF-4,Math.max(fy+Math.min(8,col-5),d.y));
     d.m.position.set(d.x,d.y,d.z); d.m.rotation.y=Math.atan2(Math.cos(d.dir),Math.sin(d.dir)); d.m.rotation.x=-arc*0.4; } }
 /* ---- SHARKS — honest minecraft sharks, no mere grey shapes: countershaded
@@ -2400,7 +2415,12 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife();
       const a=Math.random()*6.28, r=60+Math.random()*AL_R; b.cx=px+Math.cos(a)*r; b.cz=pz+Math.sin(a)*r;
       const c=landAtWorld(b.cx,b.cz), base=c?c.h*B:WATER_Y;
       b.h=type==='butterfly'?base+2+Math.random()*5:base+24+Math.random()*70; b.rad=type==='butterfly'?4+Math.random()*6:16+Math.random()*40;
-      b.spd=(type==='butterfly'?1.4:0.5)+Math.random()*0.5; b.set=true; b.m.visible=true; }
+      b.spd=(type==='butterfly'?1.4:0.5)+Math.random()*0.5; b.set=true; b.m.visible=true;
+      b.follow=type==='gull'&&Math.random()<0.4; }          /* some gulls take to a passing ship */
+    /* gulls with the ship — they wheel about her masts while she runs */
+    if(b.follow&&(state.mode==='boat'||state.mode==='deck')&&Math.abs(state.boat.speed)>8){
+      b.cx+=(state.boat.x-b.cx)*Math.min(1,dt*0.7); b.cz+=(state.boat.z-b.cz)*Math.min(1,dt*0.7);
+      b.h+=(WATER_Y+52+Math.sin(t+b.ph)*10-b.h)*Math.min(1,dt*0.5); b.rad=Math.min(b.rad,34); }
     b.ph+=dt*b.spd; const x=b.cx+Math.cos(b.ph)*b.rad, z=b.cz+Math.sin(b.ph)*b.rad;
     b.m.position.set(x,b.h+Math.sin(t*2+b.ph)*(b.type==='butterfly'?1.6:2.4),z); b.m.rotation.y=-b.ph+Math.PI/2;
     const fl=b.type==='butterfly'?Math.sin(t*16+b.ph)*0.9:Math.sin(t*10+b.ph)*0.6;
@@ -3149,10 +3169,18 @@ function addRep(profile,n){ if(tradeSea) return; state.rep=state.rep||{};
   for(const[t2,msg] of tiers){ if(before<t2&&after>=t2){ toast(msg); break; } } }
 function fishSellPrice(){ return Math.max(2,Math.round(fishPriceAt(tradeProfile)*(tradeSea?1:repMult(tradeProfile)))); }
 function pearlSellPrice(){ return Math.max(15,Math.round(pearlPriceAt(tradeProfile)*(tradeSea?0.75:repMult(tradeProfile)))); }
-let tradeOpen=false, tradeProfile=0, tradeTitle='', tradeSea=false;
+let tradeOpen=false, tradeProfile=0, tradeTitle='', tradeSea=false, tradeAnchor=null;
 function openTrade(profile,title,sea){
   tradeOpen=true; tradeProfile=profile; tradeTitle=title; tradeSea=!!sea;
+  const p=state.mode==='walk'?state.walk:state.boat;
+  tradeAnchor={x:p.x,z:p.z,mode:state.mode};        /* the stall does not follow you */
   $('trade').style.display='flex'; renderTrade();
+}
+/* walk off (or change mode) and the trading is done — no shop in your pocket */
+function tradeGuard(){
+  if(!tradeOpen||!tradeAnchor) return;
+  const p=state.mode==='walk'?state.walk:state.boat;
+  if(state.mode!==tradeAnchor.mode||Math.hypot(p.x-tradeAnchor.x,p.z-tradeAnchor.z)>26) closeTrade();
 }
 function closeTrade(){ if(!tradeOpen) return; tradeOpen=false; $('trade').style.display='none'; saveState(); }
 function renderTrade(){
@@ -3244,13 +3272,20 @@ function promptTick(){
     const d=state.deck;
     if(d.level==='hold'){ if(Math.hypot(d.lx-HATCH.x,d.lz-HATCH.z)<HATCH.r+2.5){ label='F — climb up to the deck'; promptAction='up'; } }
     else if(Math.hypot(d.lx-HATCH.x,d.lz-HATCH.z)<HATCH.r){ label='F — go below to the hold'; promptAction='down'; }
-    if(!label){ promptTrader=nearestTrader();
-      if(promptTrader){ label='F — hail the merchantman'; promptAction='hail'; } }
+    if(!label){ const e=nearestEncounter();
+      if(e){ label=e.kind==='flotsam'?'F — haul the flotsam aboard':e.kind==='bottle'?'F — take up the bottle':'F — take the castaway aboard'; promptAction='enc'; }
+      else { promptTrader=nearestTrader();
+        if(promptTrader){ label='F — hail the merchantman'; promptAction='hail'; } } }
   } else if(state.mode==='boat'){
-    promptTrader=nearestTrader();
-    if(promptTrader){ label='F — hail the merchantman'; promptAction='hail'; }
+    const e=nearestEncounter();
+    if(e){ label=e.kind==='flotsam'?'F — haul the flotsam aboard':e.kind==='bottle'?'F — take up the bottle':'F — take the castaway aboard'; promptAction='enc'; }
+    else { promptTrader=nearestTrader();
+      if(promptTrader){ label='F — hail the merchantman'; promptAction='hail'; } }
   } else if(state.mode==='walk'){
-    if(state.fishing){ label=state.fishing.phase==='bite'?'F — STRIKE! a fish is on the line':'F — draw in the line'; promptAction='reel'; }
+    if(state.walk.inWater){ const e=nearestEncounter();
+      if(e){ label='F — take up the bottle'; promptAction='enc'; } }
+    if(label){ /* the bottle from the water */ }
+    else if(state.fishing){ label=state.fishing.phase==='bite'?'F — STRIKE! a fish is on the line':'F — draw in the line'; promptAction='reel'; }
     else if(canSleep()){ label='F — sleep until morning'; promptAction='sleep'; }
     else {
       promptDoor=nearestDoor(state.walk.x,state.walk.z);
@@ -3838,6 +3873,7 @@ function interact(){
     case 'down': state.deck.level='hold'; state.deck.lx=0; state.deck.lz=HATCH.z; break;
     case 'up': state.deck.level='deck'; state.deck.lx=2.4*SHIP_SX; state.deck.lz=HATCH.z+3*SHIP_S; break;
     case 'speak': speakTo(promptPerson); break;
+    case 'enc': encounterAct(); break;
     case 'fish': startFishing(); break;
     case 'reel': reelIn(); break;
     case 'pearl': { const P=promptPearl; if(!P) break;
@@ -4565,7 +4601,7 @@ async function saveState(){
   const payload=JSON.stringify({v:6,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
     t:state.simHours,m:state.mode==='walk'?'walk':'boat',wx:state.walk.x,wz:state.walk.z,wh:state.walk.heading,
     vis:[...state.visited],d:Math.round(state.dist),wm:state.windMode,fi:state.fish||0,
-    co:state.coins,cg:state.cargo,gm:state.game||0,ib:state.immBreath?1:0,pe:state.pearls||0,rp:state.repel?1:0,rr:state.rep||{},wl:[...wreckLooted]});
+    co:state.coins,cg:state.cargo,gm:state.game||0,ib:state.immBreath?1:0,pe:state.pearls||0,rp:state.repel?1:0,rr:state.rep||{},wl:[...wreckLooted],vf:state.vf||0});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
 }
@@ -4627,7 +4663,10 @@ function toggleLog(){
     'Distance sailed: <b>'+Math.round(state.dist/B).toLocaleString()+' km</b><br>'+
     'Purse: <b>'+(state.coins||0)+' shekels</b> · Cargo: <b>'+cargoCount()+' / '+CARGO_MAX+'</b> ('+cargoTxt+')<br>'+
     'Fish drawn from the deep: <b>'+(state.fish||0)+'</b> · Game taken by the spear: <b>'+(state.game||0)+'</b> · Pearls: <b>'+(state.pearls||0)+'</b><br>'+
-    'Day of the voyage: <b>'+dayOfYear()+'</b>';
+    'Day of the voyage: <b>'+dayOfYear()+'</b><br>'+
+    (function(){ const nl=nextLandfall();
+      return nl?('Next landfall: <b>'+nl.n+'</b> — away to the <b>'+nl.dir+'</b>, some '+nl.km.toLocaleString()+' km over the deep.')
+               :'<b>The voyage is fulfilled</b> — every land under the shamayim is written in this log.'; })();
   $('log-lands').textContent=names.length?names.join(' \u00B7 '):'No land yet \u2014 the deep awaits.';
 }
 $('b-log').onclick=toggleLog;
@@ -4671,6 +4710,315 @@ $('b-sound').onclick=()=>{
   $('b-sound').textContent='🔊 Sound: '+(audioOn?'on':'off');
   $('b-sound').classList.toggle('off',!audioOn); };
 
+/* ================= THE LIVING WORLD =================
+   The small true things that make the earth feel dwelt-in, after the manner
+   of the great open worlds: weather you can feel, smoke over the hearths,
+   fireflies in the evening grass, chance meetings on the deep, dolphins at
+   the bow, gulls with the ship, the murmur of the living, and an end to the
+   voyage worth reaching. */
+
+/* ---- RAIN & THUNDER — the storm is no longer only a darkening ---- */
+const RAIN_N=800, RAIN_BOX=240, RAIN_TOP=170;
+const rainGeo=new THREE.BufferGeometry();
+{ const rp=new Float32Array(RAIN_N*3);
+  for(let i=0;i<RAIN_N;i++){ rp[i*3]=(Math.random()-0.5)*2*RAIN_BOX; rp[i*3+1]=Math.random()*RAIN_TOP; rp[i*3+2]=(Math.random()-0.5)*2*RAIN_BOX; }
+  rainGeo.setAttribute('position',new THREE.BufferAttribute(rp,3)); }
+const rainMat=new THREE.PointsMaterial({color:0xa9c2d8,size:1.4,transparent:true,opacity:0,depthWrite:false,fog:true,sizeAttenuation:true});
+const rain=new THREE.Points(rainGeo,rainMat); rain.frustumCulled=false; rain.visible=false; scene.add(rain);
+const _boltWhite=new THREE.Color(0xeaf2ff);
+let boltT=6, boltFlash=0;
+function thunderClap(){ if(!AC||!audioOn) return;
+  try{ const dur=1.6, sr=AC.sampleRate, buf=AC.createBuffer(1,sr*dur,sr), d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++){ const tt=i/sr; d[i]=(Math.random()*2-1)*Math.exp(-tt*3.0)*(tt<0.05?tt/0.05:1); }
+    const src=AC.createBufferSource(); src.buffer=buf;
+    const lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=380;
+    const g2=AC.createGain(); g2.gain.value=0.5;
+    src.connect(lp); lp.connect(g2); g2.connect(AC.destination); src.start();
+  }catch(e){} }
+function weatherTick(px,pz,dt,storm){
+  const wet=Math.max(0,(storm-0.22)/0.78);
+  const inHold=state.mode==='deck'&&state.deck.level==='hold';
+  const show=wet>0.02&&state.mode!=='dive'&&!state.firm&&!inHold;
+  rain.visible=show;
+  if(show){
+    rainMat.opacity=Math.min(0.6,wet*0.8);
+    rain.position.set(px,0,pz);
+    const w=windAt(px,pz), a=rainGeo.attributes.position.array;
+    for(let i=0;i<RAIN_N;i++){ const j=i*3;
+      a[j+1]-=(140+(i%9)*9)*dt; a[j]+=w.x*36*dt; a[j+2]+=w.z*36*dt;
+      if(a[j+1]<0) a[j+1]+=RAIN_TOP;
+      if(a[j]>RAIN_BOX)a[j]-=2*RAIN_BOX; else if(a[j]<-RAIN_BOX)a[j]+=2*RAIN_BOX;
+      if(a[j+2]>RAIN_BOX)a[j+2]-=2*RAIN_BOX; else if(a[j+2]<-RAIN_BOX)a[j+2]+=2*RAIN_BOX; }
+    rainGeo.attributes.position.needsUpdate=true;
+  }
+  /* at the storm's height the sky cracks open */
+  boltFlash=Math.max(0,boltFlash-dt*3.2);
+  if(storm>0.55&&!state.firm){ boltT-=dt;
+    if(boltT<=0){ boltT=5+Math.random()*10; boltFlash=1; thunderClap(); } }
+  if(boltFlash>0.01&&!state.firm&&state.mode!=='dive'){
+    hemi.intensity+=boltFlash*1.5; dirL.intensity+=boltFlash*0.7;
+    scene.background.lerp(_boltWhite,boltFlash*0.4);
+    if(scene.fog) scene.fog.color.lerp(_boltWhite,boltFlash*0.4);
+  }
+}
+
+/* ---- THE SMOKE OF HEARTHS — morning and evening, the houses breathe ---- */
+const SMOKES=[], SMOKE_N=26;
+function initSmoke(){ if(SMOKES.length) return;
+  for(let k=0;k<SMOKE_N;k++){ const m=new THREE.Mesh(new THREE.BoxGeometry(1.5,1.5,1.5),
+      new THREE.MeshLambertMaterial({color:0x9aa0a8,transparent:true,opacity:0.5}));
+    m.visible=false; scene.add(m); SMOKES.push({m,t:0,dur:1,x:0,y:0,z:0,ph:0}); } }
+let smokeT=0;
+function smokeTick(px,pz,dt){
+  if(state.firm||state.mode==='dive') return;
+  initSmoke();
+  const hh=((state.simHours%24)+24)%24;
+  const hearth=(hh>5.2&&hh<9.2)||(hh>16.3&&hh<21.8);
+  smokeT-=dt;
+  if(hearth&&smokeT<=0){ smokeT=0.45;
+    outer:
+    for(const [,vv] of activeVillages){ if(vv.none||!vv.houses||!vv.houses.length) continue;
+      for(let tr=0;tr<2;tr++){
+        const H=vv.houses[Math.floor(Math.random()*vv.houses.length)];
+        const hx=(H.x0+H.x1)/2, hz=(H.z0+H.z1)/2;
+        if(Math.hypot(hx-px,hz-pz)>430) continue;
+        const s=SMOKES.find(q=>!q.m.visible); if(!s) break outer;
+        s.m.visible=true; s.t=0; s.dur=3.4+Math.random()*1.6; s.ph=Math.random()*6.28;
+        s.x=hx+(Math.random()-0.5)*3; s.z=hz+(Math.random()-0.5)*3;
+        s.y=groundInfo(hx,hz).y+B*3.6;
+        break outer;
+      } } }
+  const w=windAt(px,pz);
+  for(const s of SMOKES){ if(!s.m.visible) continue;
+    s.t+=dt; const p2=s.t/s.dur;
+    if(p2>=1){ s.m.visible=false; continue; }
+    s.y+=dt*(3.4-p2*1.5); s.x+=w.x*2.6*dt+Math.sin(s.t*2+s.ph)*0.5*dt; s.z+=w.z*2.6*dt;
+    s.m.position.set(s.x,s.y,s.z);
+    s.m.scale.setScalar(0.7+p2*2.0);
+    s.m.material.opacity=0.45*(1-p2);
+    s.m.rotation.y=s.t*0.6+s.ph; }
+}
+
+/* ---- FIREFLIES — sparks of the evening over the good grass ---- */
+const FIREFLIES=[], FF_N=14;
+function initFireflies(){ if(FIREFLIES.length) return;
+  for(let k=0;k<FF_N;k++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({
+      map:glowTexCv,color:0xd8f086,transparent:true,opacity:0,fog:false,depthWrite:false}));
+    sp.scale.set(1.7,1.7,1); sp.visible=false; scene.add(sp);
+    FIREFLIES.push({m:sp,x:0,y:0,z:0,ph:Math.random()*6.28,set:false}); } }
+function fireflyTick(px,pz,dt,t,nightF){
+  initFireflies();
+  const on=nightF>0.45&&state.mode!=='dive'&&!state.firm;
+  for(const f of FIREFLIES){
+    if(!on){ f.m.visible=false; f.set=false; continue; }
+    if(!f.set||Math.hypot(f.x-px,f.z-pz)>170){
+      f.set=false;
+      for(let tr=0;tr<6;tr++){ const a=Math.random()*6.28, r=14+Math.random()*120;
+        const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r, c=landAtWorld(x,z);
+        if(c&&c.ci&&(c.kind==='grass'||c.kind==='tropic')){ f.x=x; f.z=z; f.y=c.h*B+2+Math.random()*3.5; f.set=true; break; } }
+      if(!f.set){ f.m.visible=false; continue; }
+    }
+    f.x+=Math.sin(t*0.7+f.ph)*2.4*dt; f.z+=Math.cos(t*0.5+f.ph*1.7)*2.4*dt;
+    f.m.visible=true;
+    f.m.position.set(f.x,f.y+Math.sin(t*1.3+f.ph)*0.9,f.z);
+    f.m.material.opacity=0.2+0.6*Math.max(0,Math.sin(t*2.1+f.ph*3)); }
+}
+
+/* ---- CHANCE MEETINGS ON THE DEEP — the sea has stories in it ----
+   Flotsam to salvage, a word in a bottle, a castaway on a raft. One at a
+   time, drifting on the wind, gone if you pass it by. */
+const ENC={kind:null,x:0,z:0,cool:45,models:{}};
+const BOTTLE_WORDS=[
+  ['“Cast your bread upon the waters, for you shall find it after many days.”','QOHELETH 11:1'],
+  ['“They that go down to the sea in ships, that do business in great waters — these see the works of YAHUAH.”','TEHILLIM 107:23'],
+  ['“The sea is His, and He made it, and His hands formed the dry land.”','TEHILLIM 95:5'],
+  ['“He makes the storm a calm, so that the waves thereof are still.”','TEHILLIM 107:29']];
+function encModel(kind){
+  if(ENC.models[kind]) return ENC.models[kind];
+  const g=new THREE.Group();
+  if(kind==='flotsam'){
+    const c1=texBox(4.5,4.5,4.5,'planks','planks'); c1.position.set(0,1.2,0); g.add(c1);
+    const c2=texBox(3.6,3.6,3.6,'planks','planks'); c2.position.set(4.6,0.7,1.8); c2.rotation.y=0.5; g.add(c2);
+    const bar=texBox(3,4.4,3,'logSide','logTop'); bar.position.set(-4.2,0.9,-1.4); bar.rotation.z=1.35; g.add(bar);
+  } else if(kind==='bottle'){
+    const bd=lbox(1.4,2.6,1.4,0x3f7a58); bd.position.y=0.9; g.add(bd);
+    const nk=lbox(0.6,1.2,0.6,0x3f7a58); nk.position.y=2.7; g.add(nk);
+    const ck=lbox(0.7,0.5,0.7,0x8a6a3a); ck.position.y=3.5; g.add(ck);
+  } else {
+    const raft=texBox(12,1.4,9,'planks','planks'); raft.position.y=0.4; g.add(raft);
+    for(const zz of [-3.6,0,3.6]){ const lg=texBox(1.4,1.5,9.4,'logSide','logTop'); lg.position.set(0,-0.4,0); lg.position.x=zz; g.add(lg); }
+    const man=makePerson(4177,'folk',false,false); man.position.set(0,1.1,0); g.add(man);
+    g.userData.man=man;
+  }
+  g.visible=false; scene.add(g);
+  ENC.models[kind]=g; return g;
+}
+function retireEnc(){ if(ENC.kind&&ENC.models[ENC.kind]) ENC.models[ENC.kind].visible=false; ENC.kind=null; ENC.cool=55+Math.random()*75; }
+function encounterTick(px,pz,dt,t){
+  if(state.firm||state.mode==='dive'){ if(ENC.kind&&ENC.models[ENC.kind]) ENC.models[ENC.kind].visible=false; return; }
+  if(!ENC.kind){
+    ENC.cool-=dt;
+    if(ENC.cool>0) return;
+    ENC.cool=8;                                          /* try again soon if this spot fails */
+    const a=Math.random()*6.28, r=420+Math.random()*800;
+    const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
+    if(landAtWorld(x,z)||shoalAt(x,z)>0.55||Math.hypot(x,z)/R_WORLD>0.93) return;
+    const roll=Math.random();
+    ENC.kind=roll<0.5?'flotsam':(roll<0.8?'bottle':'castaway');
+    ENC.x=x; ENC.z=z;
+    const g=encModel(ENC.kind); g.visible=true;
+    return;
+  }
+  const g=encModel(ENC.kind), w=windAt(ENC.x,ENC.z);
+  g.visible=true;
+  ENC.x+=w.x*3*dt; ENC.z+=w.z*3*dt;
+  if(landAtWorld(ENC.x,ENC.z)||Math.hypot(ENC.x-px,ENC.z-pz)>2400){ retireEnc(); return; }
+  const hd=seaHeight(ENC.x,ENC.z);
+  g.position.set(ENC.x,WATER_Y+hd*0.6-0.5,ENC.z);
+  g.rotation.y+=dt*0.06; g.rotation.z=Math.sin(t*0.8+ENC.x*0.01)*0.06;
+  if(ENC.kind==='castaway'&&g.userData.man){ const u=g.userData.man.userData;
+    u.armR.rotation.x=-2.6; u.armR.rotation.z=Math.sin(t*5)*0.5;   /* waving for his life */
+    g.userData.man.rotation.y=Math.atan2(px-ENC.x,pz-ENC.z); }
+}
+function nearestEncounter(){
+  if(!ENC.kind) return null;
+  const p=state.mode==='walk'?state.walk:state.boat;
+  const reach=ENC.kind==='bottle'?34:52;
+  if(Math.hypot(ENC.x-p.x,ENC.z-p.z)>reach) return null;
+  if(state.mode==='walk'&&ENC.kind!=='bottle') return null;   /* a swimmer can take up only the bottle */
+  return ENC;
+}
+function encounterAct(){
+  const e=nearestEncounter(); if(!e) return;
+  if(e.kind==='flotsam'){
+    const good=GOODS[Math.floor(Math.random()*GOODS.length)];
+    const take=Math.min(1+Math.floor(Math.random()*3),CARGO_MAX-cargoCount());
+    if(take<=0){ toast('The hold is full to the beams — no room for salvage.'); return; }
+    state.cargo[good.k]=(state.cargo[good.k]||0)+take;
+    toast('You haul the flotsam aboard — '+take+' '+good.n.toLowerCase()+' saved from the sea. Cargo: '+cargoCount()+' / '+CARGO_MAX+'.');
+  } else if(e.kind==='bottle'){
+    const wd=BOTTLE_WORDS[Math.floor(Math.random()*BOTTLE_WORDS.length)];
+    state.coins+=5;
+    toast('A sealed bottle, and a word within — '+wd[0]+' (…and five shekels, for good measure.)',wd[1]);
+  } else {
+    state.coins+=25;
+    let best=-1,bd=1e9; const p=state.boat;
+    for(let i=0;i<COUNTRIES.length;i++){ const c=COUNTRIES[i].c;
+      const d=Math.hypot(p.x/R_WORLD-c[0],p.z/R_WORLD-c[1]); if(d<bd){bd=d;best=i;} }
+    if(best>=0){ state.rep=state.rep||{}; state.rep[best]=(state.rep[best]||0)+3; }
+    toast('You take the castaway aboard. He weeps, presses 25 shekels into your hand, and blesses your ship — word of this kindness will reach the ports.','MATTITHYAHU 25:35');
+  }
+  retireEnc(); saveState();
+}
+
+/* ---- THE MURMUR OF THE LIVING — passers-by greet the traveller ---- */
+const BARKS=[];
+function initBarks(){ if(BARKS.length) return;
+  for(let k=0;k<3;k++){
+    const cv=document.createElement('canvas'); cv.width=512; cv.height=96;
+    const tex=new THREE.CanvasTexture(cv);
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,opacity:0,fog:false,depthWrite:false,depthTest:false}));
+    sp.visible=false; scene.add(sp);
+    BARKS.push({sp,cv,tex,t:0,dur:0,ent:null}); } }
+function barkAt(ent,text){
+  initBarks();
+  const b=BARKS.find(q=>!q.ent)||BARKS[0];
+  const g=b.cv.getContext('2d'); g.clearRect(0,0,512,96);
+  g.font='500 30px Georgia,serif';
+  const wpx=Math.min(492,g.measureText(text).width+36);
+  g.fillStyle='rgba(12,16,26,0.78)';
+  g.beginPath();
+  if(g.roundRect) g.roundRect((512-wpx)/2,16,wpx,60,14); else g.rect((512-wpx)/2,16,wpx,60);
+  g.fill();
+  g.fillStyle='#f0e8d2'; g.textAlign='center'; g.textBaseline='middle';
+  g.fillText(text,256,47);
+  b.tex.needsUpdate=true;
+  b.ent=ent; b.t=0; b.dur=3.4;
+  b.sp.scale.set(26*(wpx/512)+8,6,1);
+  b.sp.visible=true;
+}
+const GREETS_DAY=['Shalom, traveller.','Peace be upon you.','Fair winds brought you in?','A good day under the sun.','You are welcome in this place.'];
+const GREETS_NIGHT=['A quiet night, friend.','Peace to you, night-walker.','The lamps are lit — rest well.'];
+const GREETS_ROLE={vendor:'Fresh wares, friend — come and see!',child:'Come and play! You cannot catch me!',fisher:'The fish bite well today.',water:'Sweet water, drawn this hour.'};
+let greetScanT=0;
+function greetTick(dt,nightF){
+  greetScanT-=dt;
+  for(const b of BARKS){ if(!b.ent) continue;
+    b.t+=dt;
+    if(b.t>=b.dur||!b.ent.m||!b.ent.m.visible){ b.ent=null; b.sp.visible=false; continue; }
+    b.sp.position.set(b.ent.m.position.x,b.ent.m.position.y+16,b.ent.m.position.z);
+    b.sp.material.opacity=Math.min(1,(b.dur-b.t)/0.5)*Math.min(1,b.t/0.25); }
+  if(greetScanT>0||state.mode!=='walk') return;
+  greetScanT=1.2;
+  const now=performance.now()*0.001, w=state.walk;
+  for(const [,vv] of activeVillages){ if(vv.none||!vv.people) continue;
+    for(const p of vv.people){ if(!p.m||!p.m.visible) continue;
+      const d=Math.hypot(p.m.position.x-w.x,p.m.position.z-w.z);
+      if(d>3&&d<9&&(!p.greetT||now-p.greetT>40)){
+        p.greetT=now;
+        const line=GREETS_ROLE[p.role]||(nightF>0.5?GREETS_NIGHT[Math.floor(Math.random()*GREETS_NIGHT.length)]
+                                                    :GREETS_DAY[Math.floor(Math.random()*GREETS_DAY.length)]);
+        barkAt(p,line);
+        return; } } }
+}
+
+/* ---- GULL CRIES & CRICKETS — the air itself is alive ---- */
+let gullT=8, cricketGain=null;
+function gullCry(){ if(!AC||!audioOn) return;
+  try{ const t0=AC.currentTime;
+    for(let k=0;k<2;k++){ const o=AC.createOscillator(); o.type='triangle';
+      const g2=AC.createGain(); o.connect(g2); g2.connect(AC.destination);
+      const s=t0+k*0.34;
+      o.frequency.setValueAtTime(1240-k*140,s);
+      o.frequency.exponentialRampToValueAtTime(790,s+0.26);
+      g2.gain.setValueAtTime(0.0001,s);
+      g2.gain.exponentialRampToValueAtTime(0.05,s+0.05);
+      g2.gain.exponentialRampToValueAtTime(0.0001,s+0.3);
+      o.start(s); o.stop(s+0.34); }
+  }catch(e){} }
+function ensureCricket(){ if(!AC||cricketGain) return;
+  try{ cricketGain=AC.createGain(); cricketGain.gain.value=0; cricketGain.connect(AC.destination);
+    const osc=AC.createOscillator(); osc.type='sine'; osc.frequency.value=4300;
+    const am=AC.createGain(); am.gain.value=0; osc.connect(am); am.connect(cricketGain); osc.start();
+    const lfo=AC.createOscillator(); lfo.type='square'; lfo.frequency.value=12.5;
+    const lg=AC.createGain(); lg.gain.value=0.5; lfo.connect(lg); lg.connect(am.gain); lfo.start();
+  }catch(e){ cricketGain=null; } }
+function ambientAudioTick(dt,light,p){
+  if(!AC||!audioOn) return;
+  const day=(light.dayF||0)>0.45, storm=(light.storm||0);
+  if((state.mode==='boat'||state.mode==='deck'||(state.mode==='walk'&&state.walk.inWater))&&day&&storm<0.4){
+    gullT-=dt; if(gullT<=0){ gullT=8+Math.random()*16; gullCry(); } }
+  ensureCricket();
+  if(cricketGain){
+    const onLand=state.mode==='walk'&&!state.walk.inWater&&landAtWorld(p.x,p.z);
+    const want=(onLand&&(light.nightF||0)>0.5&&storm<0.3)?0.028:0;
+    cricketGain.gain.value+=(want-cricketGain.gain.value)*Math.min(1,dt*2); }
+}
+
+/* ---- THE VOYAGE FULFILLED — an explorer's game has an ending ---- */
+function nextLandfall(){
+  const p=state.mode==='walk'?state.walk:state.boat;
+  let best=-1,bd=1e9;
+  for(let i=0;i<COUNTRIES.length;i++){ if(state.visited.has(i)) continue;
+    const c=COUNTRIES[i].c, d=Math.hypot(p.x/R_WORLD-c[0],p.z/R_WORLD-c[1]);
+    if(d<bd){bd=d;best=i;} }
+  if(best<0) return null;
+  const pu=p.x/R_WORLD, pv=p.z/R_WORLD, rr=Math.hypot(pu,pv)||1e-9;
+  const nX=-pu/rr, nZ=-pv/rr, eX=pv/rr, eZ=-pu/rr;
+  const dx=COUNTRIES[best].c[0]*R_WORLD-p.x, dz=COUNTRIES[best].c[1]*R_WORLD-p.z;
+  const ang=Math.atan2(dx*eX+dz*eZ, dx*nX+dz*nZ);
+  return { n:COUNTRIES[best].n, dir:COMPASS8[(Math.round(ang/(Math.PI/4))+8)%8],
+    km:Math.max(50,Math.round(bd*R_WORLD/B/50)*50) };
+}
+function checkFulfilled(){
+  if(state.vf||state.visited.size<COUNTRIES.length) return;
+  state.vf=1; saveState();
+  toast('THE VOYAGE IS FULFILLED — you have come ashore in every land under the whole shamayim, '+COUNTRIES.length+' coasts written in your log. “They that go down to the sea in ships… these see the works of YAHUAH, and His wonders in the deep.”','TEHILLIM 107:23-24');
+}
+
+/* the voyage survives its wounds: if anything ever throws, the log is saved */
+window.addEventListener('error',()=>{ try{ saveState(); }catch(e){} });
+
 /* ================= LAUNCH ================= */
 function findStart(){
   let lat=32.1, lon=33.4;
@@ -4698,6 +5046,7 @@ async function begin(fresh){
     if(saved.rp){ state.repel=true; updateRepelBtn(); }
     if(saved.rr) state.rep=saved.rr;
     if(saved.wl) for(const k of saved.wl) wreckLooted.add(k);
+    if(saved.vf) state.vf=1;
     if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); } }
   else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5; }
   const p0=state.mode==='walk'?state.walk:state.boat;
@@ -4716,6 +5065,7 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
   domeInfo:()=>({dome:flyDome?flyDome.material.opacity:0, deep:outerDeep?outerDeep.material.uniforms.uOp.value:0, stars:starGroup.userData.mat.opacity}),
+  ENC,nearestEncounter,encounterAct,BARKS,FIREFLIES,SMOKES,rain,rainMat,nextLandfall,checkFulfilled,AIRLIFE,stormAt,COUNTRIES,STORMS,R_WORLD,
   seaPools:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,POD})};
 
 /* ================= THE GREAT LOOP ================= */
@@ -4803,6 +5153,18 @@ function frame(){
   audioTick(light.storm||0);
   updateChunks(p.x,p.z,4);
   updateVillages(p.x,p.z,dt,light.nightF);
+  /* the living world — weather, hearths, fireflies, meetings, murmurs */
+  if(!state.firm){ const _t=performance.now()*0.001;
+    weatherTick(p.x,p.z,dt,light.storm||0);
+    smokeTick(p.x,p.z,dt);
+    fireflyTick(p.x,p.z,dt,_t,light.nightF||0);
+    encounterTick(p.x,p.z,dt,_t);
+    greetTick(dt,light.nightF||0);
+    ambientAudioTick(dt,light,p);
+    checkFulfilled();
+  } else { rain.visible=false; if(ENC.kind&&ENC.models[ENC.kind]) ENC.models[ENC.kind].visible=false;
+    for(const b of BARKS){ b.ent=null; b.sp.visible=false; } }
+  tradeGuard();
   cameraTick(dt);
   labelT-=dt; if(labelT<=0){ labelT=0.4; updateLabels(p.x,p.z); placeTick(); }
   miniT-=dt; if(miniT<=0){ miniT=0.5; drawMapInto(minictx,mini.width,false);
