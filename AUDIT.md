@@ -272,10 +272,10 @@ and surface behaviour):
 Modelled on the Scripture-Game repository's own earth-viewer (`earth.html`):
 the earth a still disc, the vault a low tent, and THE DEEP all around.
 
-- **The tent-vault**: the firmament is no longer a tall hemisphere but a low
-  vault "spread out like a tent to dwell in" — its rim just past the wall of
-  ice, its apex a little over half its reach (H=0.56·R), day-tinted glass that
-  stands solid as you climb. The map view's dome matches it.
+- **The tent-vault**: the firmament is a true vault "spread out like a tent to
+  dwell in" — its rim just past the wall of ice, its apex 130 000 high over
+  the midst of the earth, day-tinted glass that stands solid as you climb. The
+  map view's dome matches it.
 - **The deep, all around**: beyond the vault a star-strewn near-black
   (`#04060d`) closes on EVERY side — no more "circle of darkness" with raw sky
   behind it — with the waters above the expanse glowing faint and blue over

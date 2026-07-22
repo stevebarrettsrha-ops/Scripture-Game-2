@@ -4013,12 +4013,12 @@ function walkTick(dt){
    through the cloud floor and above it, and the wall of ice turns him back
    at the rim. Bear down onto the ground and he alights. */
 /* The firmament after the earth-viewer's own cosmology (Scripture-Game
-   earth.html): NOT a tall hemisphere but a low tent-vault "spread out like a
-   tent to dwell in" (Yashayahu 40:22) — its rim just past the wall of ice,
-   its height a little over half its reach — with THE DEEP, near-black and
+   earth.html): a tent-vault "spread out like a tent to dwell in"
+   (Yashayahu 40:22) — its rim just past the wall of ice, its apex 130,000
+   high over the midst of the earth — with THE DEEP, near-black and
    star-strewn, all around and beyond it, and the waters above the expanse
    glowing faintly over its apex. */
-const R_DOME=R_WORLD*1.06, H_DOME=R_WORLD*0.56, FLY_TURN=1.9, FLY_MAXSP=520, FLY_VACC=1150, FLY_VMAX=4800;
+const R_DOME=R_WORLD*1.06, H_DOME=130000, FLY_TURN=1.9, FLY_MAXSP=520, FLY_VACC=1150, FLY_VMAX=4800;
 let flyHintShown=false, flyPad=0, seenFirmament=false, flyDome=null, outerDeep=null;
 function flyFloorAt(x,z){ return groundInfo(x,z).y+7; }
 /* height of the firmament (the hard vault) directly above a point on the disc */
