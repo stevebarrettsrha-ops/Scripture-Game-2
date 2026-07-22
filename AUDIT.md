@@ -267,6 +267,37 @@ and surface behaviour):
   **real sky gradient** (horizon haze to zenith blue, day-cycled); backlit crests glow
   green with subsurface light; crest foam is torn ragged by the same ripple noise.
 
+## 4g. Round 8 — the firmament made true, and the rim made solid ✅
+
+Modelled on the Scripture-Game repository's own earth-viewer (`earth.html`):
+the earth a still disc, the vault a low tent, and THE DEEP all around.
+
+- **The tent-vault**: the firmament is no longer a tall hemisphere but a low
+  vault "spread out like a tent to dwell in" — its rim just past the wall of
+  ice, its apex a little over half its reach (H=0.56·R), day-tinted glass that
+  stands solid as you climb. The map view's dome matches it.
+- **The deep, all around**: beyond the vault a star-strewn near-black
+  (`#04060d`) closes on EVERY side — no more "circle of darkness" with raw sky
+  behind it — with the waters above the expanse glowing faint and blue over
+  the apex, and the stars (which sit beyond the glass) shining through even by
+  day when you are aloft.
+- **The eye stays within the glass**: the camera is clamped inside the vault's
+  skin — turning the view at the ceiling can no longer poke the camera through
+  the firmament.
+- **The rim is HARD, and it rescues**: flyer, swimmer and diver are pressed
+  back within the rim by position (not by undoing steps) — so anyone stranded
+  beyond it (the old bug: descend past the wall and be left swimming in the
+  void, with inward movement also blocked) is drawn back in, and inward
+  motion always works. Alighting past the rim sets you down on the wall, never
+  in the void.
+- **The earth seen from on high**: past ~9 000 up, the little chunks of the
+  world resolve into the earth's true charted face — the same azimuthal map
+  the compass rose bears, storms and all — fading in below the flyer while
+  the cloud cover thins; and the low cloud deck (a floating grey slab when
+  seen from far above) fades away with height.
+- **One Alight button**: aloft, the duplicated 🕊 button is hidden — the
+  anchor button alone reads Alight.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

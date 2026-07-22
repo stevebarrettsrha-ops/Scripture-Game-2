@@ -2294,7 +2294,8 @@ function diveTick(dt){ const dv=state.dive;
   /* touch the surface without pressing down, and you break it — the sea
      gives the body back; hold SHIFT to stay under against the buoyancy */
   if(dv.y>SEA_SURF-2){ dv.y=SEA_SURF-2; dv.vy=Math.min(0,dv.vy); if(up>=0){ surface(); return; } }
-  if(Math.hypot(dv.x,dv.z)/R_WORLD>0.985){ dv.x-=Math.sin(dv.heading)*dv.sp*dt; dv.z-=Math.cos(dv.heading)*dv.sp*dt; dv.sp*=0.3; }
+  { const rr=Math.hypot(dv.x,dv.z)/R_WORLD;         /* the rim: hard, and inward always open */
+    if(rr>0.985){ const k=0.985/rr; dv.x*=k; dv.z*=k; dv.sp*=0.3; } }
   state.dist+=Math.abs(dv.sp)*dt;
   const u=walkerG.userData, ph=performance.now()*0.007;
   walkerG.position.set(dv.x,dv.y,dv.z); walkerG.rotation.y=dv.heading;
@@ -3962,7 +3963,8 @@ function walkTick(dt){
   const solidBlock = blockedByStructure(nx,nz)||treeBlocked(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,walkerG);
   const diff = tg.y - w.feetY;
   let canGo=true;
-  if(!tg.land) canGo = nearBoat||onDeckNext||(Math.hypot(nx,nz)/R_WORLD<0.985);  /* swim (the ice wall is land, and climbable) */
+  if(!tg.land) canGo = nearBoat||onDeckNext||(Math.hypot(nx,nz)/R_WORLD<0.985)
+    ||Math.hypot(nx,nz)<Math.hypot(w.x,w.z);  /* swim (the ice wall is land, and climbable); beyond the rim, inward always */
   /* the hull is a solid thing — the swimmer fetches up against her side
      (press E there to climb aboard); one already inside the line may swim out */
   if(swimming&&canGo&&camInsideShip(nx,surfY,nz)&&!camInsideShip(w.x,surfY,w.z)) canGo=false;
@@ -4010,15 +4012,52 @@ function walkTick(dt){
    SHIFT (or CTRL) lets him down. He floats — there is no falling. He rises
    through the cloud floor and above it, and the wall of ice turns him back
    at the rim. Bear down onto the ground and he alights. */
-const R_DOME=R_WORLD*1.08, FLY_TURN=1.9, FLY_MAXSP=520, FLY_VACC=1150, FLY_VMAX=4800;
-let flyHintShown=false, flyPad=0, seenFirmament=false, flyDome=null;
+/* The firmament after the earth-viewer's own cosmology (Scripture-Game
+   earth.html): NOT a tall hemisphere but a low tent-vault "spread out like a
+   tent to dwell in" (Yashayahu 40:22) — its rim just past the wall of ice,
+   its height a little over half its reach — with THE DEEP, near-black and
+   star-strewn, all around and beyond it, and the waters above the expanse
+   glowing faintly over its apex. */
+const R_DOME=R_WORLD*1.06, H_DOME=R_WORLD*0.56, FLY_TURN=1.9, FLY_MAXSP=520, FLY_VACC=1150, FLY_VMAX=4800;
+let flyHintShown=false, flyPad=0, seenFirmament=false, flyDome=null, outerDeep=null;
 function flyFloorAt(x,z){ return groundInfo(x,z).y+7; }
 /* height of the firmament (the hard vault) directly above a point on the disc */
-function domeCeilAt(x,z){ return Math.sqrt(Math.max(0,R_DOME*R_DOME-x*x-z*z)); }
+function domeCeilAt(x,z){ return H_DOME*Math.sqrt(Math.max(0,1-(x*x+z*z)/(R_DOME*R_DOME))); }
 function ensureFlyDome(){ if(flyDome) return;
   flyDome=new THREE.Mesh(new THREE.SphereGeometry(R_DOME,64,32,0,Math.PI*2,0,Math.PI*0.5),
     new THREE.MeshBasicMaterial({color:0x9ec7f2,transparent:true,opacity:0,side:THREE.BackSide,fog:false,depthWrite:false}));
-  scene.add(flyDome); }
+  flyDome.scale.y=H_DOME/R_DOME;                     /* the tent, not the ball */
+  flyDome.renderOrder=-2;
+  scene.add(flyDome);
+  /* the deep beyond the vault — darkness all around, not a mere circle,
+     with the waters above the expanse faint and blue over the apex */
+  outerDeep=new THREE.Mesh(new THREE.SphereGeometry(R_WORLD*1.55,48,24),
+    new THREE.ShaderMaterial({
+      transparent:true, side:THREE.BackSide, fog:false, depthWrite:false,
+      uniforms:{ uOp:{value:0} },
+      vertexShader:'varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+      fragmentShader:`precision highp float; uniform float uOp; varying vec3 vP;
+        void main(){
+          vec3 col=vec3(0.016,0.024,0.051);                      /* the deep: #04060d */
+          float up=clamp(vP.y/${(R_WORLD*1.2).toFixed(1)},0.0,1.0);
+          col+=vec3(0.05,0.10,0.18)*pow(up,1.6)*0.9;             /* the waters above, faintly */
+          gl_FragColor=vec4(col,uOp);
+        }`}));
+  outerDeep.renderOrder=-3;
+  scene.add(outerDeep); }
+/* from on high the eye cannot hold the little chunks of the world — so the
+   whole earth resolves into her own true face (the same map the compass rose
+   bears), fading in as the traveller climbs: the disc seen in the deep, as
+   the earth-viewer shows her */
+let aloftDisc=null;
+function ensureAloftDisc(){ if(aloftDisc) return;
+  const c=document.createElement('canvas'); c.width=c.height=1024;
+  drawMapInto(c.getContext('2d'),1024,false);
+  const tex=new THREE.CanvasTexture(c); tex.anisotropy=4;
+  aloftDisc=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD,128),
+    new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:0,fog:false,depthWrite:false}));
+  aloftDisc.rotation.x=-Math.PI/2; aloftDisc.position.y=175;
+  aloftDisc.visible=false; scene.add(aloftDisc); }
 function flyTick(dt){
   const fl=state.fly; const [f,t]=axis();
   fl.heading+=t*dt*FLY_TURN;
@@ -4041,8 +4080,10 @@ function flyTick(dt){
       toast('You are come up against the firmament — the hard vault of the shamayim, spread out like a moulded mirror, that no man passes.','IYOB 37:18'); } }
   if(fl.y<floor){ fl.y=floor; fl.vy=Math.max(0,fl.vy);
     if(up<0){ alight(); return; } }                 /* bearing down onto the ground — set down */
-  if(Math.hypot(fl.x,fl.z)/R_WORLD>0.994){          /* the wall of ice turns you back */
-    fl.x-=Math.sin(fl.heading)*fl.sp*dt; fl.z-=Math.cos(fl.heading)*fl.sp*dt; fl.sp*=0.25; }
+  /* the rim is HARD: never past it, and anyone found beyond (an old save,
+     an old bug) is pressed back within — inward flight always works */
+  { const rr=Math.hypot(fl.x,fl.z)/R_WORLD;
+    if(rr>0.992){ const k=0.992/rr; fl.x*=k; fl.z*=k; fl.sp*=0.25; } }
   state.dist+=Math.abs(fl.sp)*dt;
   /* pose: borne up with arms outstretched, leaning into the flight */
   const u=walkerG.userData, ph=performance.now()*0.0016, dr=Math.sin(ph)*0.12;
@@ -4066,7 +4107,11 @@ function takeFlight(){
     toast('You are borne up on the air — hold SPACE to rise higher and higher, past the clouds and the lights, to the firmament; SHIFT to sink, W/S to fly, A/D to turn.'); }
 }
 function alight(){
-  const fl=state.fly, cc=landAtWorld(fl.x,fl.z);
+  const fl=state.fly;
+  /* never set a man down in the void past the rim — draw him in to the wall */
+  { const rr=Math.hypot(fl.x,fl.z)/R_WORLD;
+    if(rr>0.985&&!landAtWorld(fl.x,fl.z)){ const k=0.98/rr; fl.x*=k; fl.z*=k; } }
+  const cc=landAtWorld(fl.x,fl.z);
   if(cc){                                             /* land on any ground, the ice wall included */
     state.walk.x=fl.x; state.walk.z=fl.z; state.walk.heading=fl.heading;
     state.walk.feetY=undefined; state.walk.vy=0; state.walk.grounded=true;  /* re-seat on the ground here */
@@ -4112,6 +4157,7 @@ function poseArms(atWheel){
 }
 function setMode(m){
   state.mode=m;
+  if(m==='fly') ensureFlyDome();                      /* the vault stands even for a voyage restored aloft */
   if(m!=='fly'&&m!=='dive') walkerG.rotation.x=0;      /* clear the flight/swim lean */
   if(m==='walk'||m==='fly'||m==='dive'){              /* a free body in the world, not aboard */
     if(walkerG.parent!==scene){ if(walkerG.parent) walkerG.parent.remove(walkerG); scene.add(walkerG); }
@@ -4126,6 +4172,7 @@ function setMode(m){
 }
 function updateFlyBtn(){ const b=$('b-fly'); if(!b) return;
   b.textContent=state.mode==='fly'?'🕊 Alight':'🕊 Rise up';
+  b.style.display=state.mode==='fly'?'none':'';   /* aloft, the anchor button already reads Alight — one button, not two */
   b.classList.toggle('off',state.mode==='fly');
   const fp=$('flypad'); if(fp) fp.style.display=(state.mode==='fly'||state.mode==='dive')?'flex':'none'; }
 function updateDiveBtn(){ const b=$('b-dive'); if(!b) return;
@@ -4252,8 +4299,9 @@ function buildFirmament(){
   /* sit well above the sea and terrain: at a 384k-unit far plane the depth
      buffer cannot separate y=2 from the sea at y≈0.35 and the disc flickers */
   disc.rotation.x=-Math.PI/2; disc.position.y=180;
-  const dome=new THREE.Mesh(new THREE.SphereGeometry(R_WORLD*1.08,48,24,0,Math.PI*2,0,Math.PI/2),
-    new THREE.MeshBasicMaterial({color:0x8fb8e8,transparent:true,opacity:0.1,side:THREE.DoubleSide,fog:false,depthWrite:false}));
+  const dome=new THREE.Mesh(new THREE.SphereGeometry(R_DOME,48,24,0,Math.PI*2,0,Math.PI/2),
+    new THREE.MeshBasicMaterial({color:0x8fb8e8,transparent:true,opacity:0.16,side:THREE.DoubleSide,fog:false,depthWrite:false}));
+  dome.scale.y=H_DOME/R_DOME;                       /* the same low tent-vault as within */
   firmG=new THREE.Group(); firmG.add(disc); firmG.add(dome);
   function mkSpr(col){ const cc2=texCanvas(64); const gg=cc2.getContext('2d');
     gg.fillStyle=col; gg.beginPath(); gg.moveTo(32,4); gg.lineTo(58,60); gg.lineTo(6,60); gg.closePath(); gg.fill();
@@ -4400,6 +4448,11 @@ function cameraTick(dt){
   const cy=baseY+lift+Math.sin(state.camPitch)*dist;
   camPos.set(px+Math.sin(az)*Math.cos(state.camPitch)*dist, cy, pz+Math.cos(az)*Math.cos(state.camPitch)*dist);
   camera.position.lerp(camPos,Math.min(1,dt*5));
+  /* the eye stays WITHIN the firmament — never through the glass, whatever
+     the pitch: pressed back inside the tent-vault's skin */
+  { const cp=camera.position;
+    const q=(cp.x*cp.x+cp.z*cp.z)/(R_DOME*R_DOME)+(cp.y>0?(cp.y*cp.y)/(H_DOME*H_DOME):0);
+    if(q>0.90){ const k=Math.sqrt(0.90/q); cp.x*=k; cp.z*=k; if(cp.y>0) cp.y*=k; } }
   camTgt.set(px,baseY+(swimCam?4:10),pz);
   camera.lookAt(camTgt);
 }
@@ -4662,6 +4715,7 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
+  domeInfo:()=>({dome:flyDome?flyDome.material.opacity:0, deep:outerDeep?outerDeep.material.uniforms.uOp.value:0, stars:starGroup.userData.mat.opacity}),
   seaPools:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,POD})};
 
 /* ================= THE GREAT LOOP ================= */
@@ -4715,9 +4769,24 @@ function frame(){
       hemi.intensity=0.85; dirL.intensity=0.4;
     }
   }
-  /* the firmament vault fades into view the higher he climbs, and stands solid near the top */
-  if(flyDome&&!state.firm){ flyDome.material.opacity=Math.max(0,Math.min(1,(eyeY-6000)/42000))*0.34; }
-  else if(flyDome){ flyDome.material.opacity=0; }
+  /* the firmament vault fades into view the higher he climbs, and stands solid
+     near the top; beyond it THE DEEP closes around — darkness on every side,
+     the waters above glowing faint over the apex, the stars seen through the glass */
+  if(flyDome&&!state.firm){
+    const climbF=Math.max(0,Math.min(1,(eyeY-3000)/26000));
+    flyDome.material.opacity=climbF*0.55;
+    flyDome.material.color.copy(mix3(0x1c2946,0x53719e,0x9ec7f2,light.dayF));
+    if(outerDeep) outerDeep.material.uniforms.uOp.value=Math.max(0,Math.min(1,(eyeY-CLOUD_Y*2)/9000))*0.94;
+    const aloftF=Math.max(0,Math.min(1,(eyeY-CLOUD_Y*3)/20000));
+    if(aloftF>0) starGroup.userData.mat.opacity=Math.max(starGroup.userData.mat.opacity,aloftF*0.85);
+    /* high enough, and the earth resolves into her charted face */
+    const mapF=Math.max(0,Math.min(1,(eyeY-9000)/9000));
+    if(mapF>0.02){ ensureAloftDisc(); aloftDisc.material.opacity=mapF; aloftDisc.visible=true;
+      aloftDisc.position.y=175+Math.min(2200,Math.max(0,eyeY-9000)*0.06); }  /* over the chunk tops, under the flyer */
+    else if(aloftDisc) aloftDisc.visible=false;
+  }
+  else if(flyDome){ flyDome.material.opacity=0; if(outerDeep) outerDeep.material.uniforms.uOp.value=0;
+    if(aloftDisc) aloftDisc.visible=false; }
   updateWallWeather(p.x,p.z,dt);   /* cold fog and blowing snow at the wall of ice */
   waterTick(p.x,p.z,light.dayF,light.storm||0);
   /* below the waterline in the hold, the sea must not wash through the hull;
@@ -4754,16 +4823,24 @@ function frame(){
     const climb=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/900));
     cirrusMat.opacity=(0.08+light.dayF*0.16)*Math.min(1,climb*1.5)*(1-above*0.7);
     /* the sea of clouds — a bumpy, shaded deck with wisps drifting above */
-    cloudDeck.visible=cloudWisp.visible=cloudCover.visible=above>0.003;
+    /* the LOCAL deck patch is for skimming just over the clouds — from far
+       above it is a floating grey slab with an edge; fade it away and let the
+       whole-earth cover carry the view */
+    const deckFade=Math.max(0,1-Math.max(0,eyeY-2600)/6000);
+    cloudCover.visible=above>0.003;
+    cloudDeck.visible=cloudWisp.visible=above>0.003&&deckFade>0.01;
     if(above>0.003){
       cloudDeck.position.set(p.x,CLOUD_Y,p.z); updateCloudDeck(p.x,p.z);
-      cloudDeckMat.opacity=above; cloudDeckMat.color.copy(mix3(0x6b7690,0xe6cba4,0xffffff,light.dayF));
+      cloudDeckMat.opacity=above*deckFade; cloudDeckMat.color.copy(mix3(0x6b7690,0xe6cba4,0xffffff,light.dayF));
       cloudWisp.position.x=p.x; cloudWisp.position.z=p.z;
-      wispMat.opacity=above*0.5; wispMat.color.copy(mix3(0x4a5570,0xe0c49c,0xffffff,light.dayF));
+      wispMat.opacity=above*0.5*deckFade; wispMat.color.copy(mix3(0x4a5570,0xe0c49c,0xffffff,light.dayF));
       const dr2=state.simHours*0.006;
       wispMat.map.offset.set((p.x/100000*30+dr2)%1,(p.z/100000*30)%1);
-      /* the fixed cover mantles the whole earth (does NOT follow the traveller) */
-      cloudCover.material.opacity=above*0.97; cloudCover.material.color.copy(mix3(0x59637a,0xe0c6a0,0xffffff,light.dayF));
+      /* the fixed cover mantles the whole earth (does NOT follow the traveller);
+         from on high it thins, and the earth's charted face shows through it */
+      const mapF2=Math.max(0,Math.min(1,(eyeY-9000)/9000));
+      cloudCover.material.opacity=above*0.97*(1-mapF2*0.82);
+      cloudCover.material.color.copy(mix3(0x59637a,0xe0c6a0,0xffffff,light.dayF));
     } }
   if(!state.firm&&state.mode==='dive') updateDeep(state.dive.x,state.dive.y,state.dive.z,dt,Math.min(1,(SEA_SURF-state.dive.y)/560));
   else if(deepShown) hideDeep();
