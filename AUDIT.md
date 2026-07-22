@@ -336,6 +336,50 @@ hardening pass:
   voyage before the page notices (window error hook); plus the confirmed
   findings of a six-dimension adversarial code audit (below).
 
+## 4i. Round 10 — structurally sound: the audit's findings, fixed ✅
+
+A six-dimension code audit (crash paths, mode state machine, physics and
+collision, save integrity, economy/interaction, performance) ran with
+adversarial verification; every finding below was re-verified against the
+code by hand and fixed:
+
+- **ONE water, no layers** (player-reported): the opaque far-sea backdrop
+  planes (at −12 and −16) now hide whenever the eye is beneath the waves —
+  diving, or a swimmer's camera rolled under the swell — so there is no
+  "second sea" hanging in the deep with fish above and below it.
+- **Stale rail-leap replay**: `dive.jump` is now cleared on plain dive entry,
+  on surfacing, on the high-fall plunge, and on G-from-dive — a cancelled
+  leap can no longer replay later and teleport the player back to the old
+  rail.
+- **Stale ledge-climb replay**: an auto-climb interrupted by flight or
+  boarding no longer resumes at the old island's coordinates — every
+  transition into walk clears it.
+- **G while diving** now lifts the traveller out of the water where they ARE
+  (splash and all), instead of teleporting them to the distant ship; and G in
+  the cargo hold is refused (the hold has a roof).
+- **Going ashore** re-seats the body on the local ground in all three landing
+  paths — no more materialising in mid-air at another coast's altitude.
+- **The map view surfaces the diver first** — breath no longer drains and
+  force-surfaces beneath the firmament overlay.
+- **Title-screen keys are ignored** — no mutating the mode state machine
+  before the voyage begins.
+- **A leap over water falls true**: a body in the air above water now falls
+  under gravity until it truly meets the surface (carrying its speed into the
+  plunge) instead of being snapped down onto the water mid-arc.
+- **Breaching ridges are walls**: where an undersea mountain breaks the
+  surface, the diver is stopped, not rammed up through the waves by duelling
+  clamps.
+- **No creature swims through stone**: sharks, turtles, rays, whales and
+  pufferfish all turn at the land's flank now; pod whales over a coast dive
+  under instead of spouting on the dry land; a shark's bite can no longer
+  fling the diver into the rock.
+- **The broad hull is broad**: boat collision probes bow, waist, both beams
+  and both bow quarters — neither flank ploughs through a shore or skerry.
+- **Folk walk steps, not cliff faces**: villager movement rejects steps
+  higher than ~1.3 blocks.
+- **The trade panel closes itself** when you walk off or change mode (fixed
+  in Round 9, confirmed by the audit).
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

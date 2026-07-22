@@ -1398,6 +1398,7 @@ function podTick(px,pz,dt,t){
       podState.x=g.x+Math.sin(podState.dir)*120; podState.z=g.z+Math.cos(podState.dir)*120; } }
   for(let k=0;k<POD.length;k++){ const m=POD[k];
     const off=k*2.1, wx=podState.x+Math.sin(t*0.13+off)*40+k*24, wz=podState.z+Math.cos(t*0.11+off)*40-k*20;
+    if(landAtWorld(wx,wz)){ m.visible=false; continue; }   /* no whale spouts upon the dry land */
     const arc=Math.sin(t*0.5+off*1.7);
     m.position.set(wx, WATER_Y-7+Math.max(0,arc)*10, wz);
     m.rotation.y=podState.dir+Math.sin(t*0.2+off)*0.4; m.rotation.x=-arc*0.22;
@@ -2049,8 +2050,9 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
         const m2=Math.hypot(dvx,dvz)||1;
         if(preyDive){
           state.breath=Math.max(0.08,state.breath-0.35);
-          const dv2=state.dive;
-          dv2.x+=dvx/m2*20; dv2.z+=dvz/m2*20; dv2.vy=70;   /* flung surfaceward */
+          const dv2=state.dive, sx2=dv2.x+dvx/m2*20, sz2=dv2.z+dvz/m2*20;
+          if(!landAtWorld(sx2,sz2)){ dv2.x=sx2; dv2.z=sz2; }   /* never flung into the stone */
+          dv2.vy=70;                                            /* flung surfaceward */
         } else {
           /* struck at the surface — shoved through the water, white water everywhere */
           const w2=state.walk, nx2=w2.x+dvx/m2*16, nz2=w2.z+dvz/m2*16;
@@ -2062,7 +2064,8 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
       }
     }
     if(!hunting) s.dir+=Math.sin(t*0.25+s.ph)*0.03;
-    s.x+=Math.cos(s.dir)*sp*dt; s.z+=Math.sin(s.dir)*sp*dt;
+    { const nx=s.x+Math.cos(s.dir)*sp*dt, nz=s.z+Math.sin(s.dir)*sp*dt;
+      if(!landAtWorld(nx,nz)){ s.x=nx; s.z=nz; } else s.dir+=1.9; }   /* no shark swims through stone */
     if(!hunting) s.y+=Math.sin(t*0.5+s.ph)*3*dt;
     /* a hunting shark hugs the bed after a bottom-hugging diver — and rises
        right under the swell to strike a swimmer at the surface */
@@ -2136,7 +2139,10 @@ function updateSeaMob(arr,px,py,pz,dt,t){ for(const o of arr){
     if(!o.set||Math.hypot(o.x-px,o.z-pz)>arr._R+140){ const a=Math.random()*6.28, r=arr._rs*0.3+Math.random()*arr._rs*0.7;
       o.x=px+Math.cos(a)*r; o.z=pz+Math.sin(a)*r; const fy=seabedDepth(o.x,o.z);
       o.y = arr._near ? fy+4+Math.random()*14 : Math.min(SEA_SURF-8,fy+18+Math.random()*60); o.dir=Math.random()*6.28; o.set=true; o.m.visible=true; }
-    o.dir+=Math.sin(t*0.3+o.ph)*0.03; o.x+=Math.cos(o.dir)*o.sp*dt; o.z+=Math.sin(o.dir)*o.sp*dt; o.y+=Math.sin(t*0.6+o.ph)*2*dt;
+    o.dir+=Math.sin(t*0.3+o.ph)*0.03;
+    { const nx=o.x+Math.cos(o.dir)*o.sp*dt, nz=o.z+Math.sin(o.dir)*o.sp*dt;
+      if(!landAtWorld(nx,nz)){ o.x=nx; o.z=nz; } else o.dir+=1.7; }   /* the flank turns the beast */
+    o.y+=Math.sin(t*0.6+o.ph)*2*dt;
     const fy=seabedDepth(o.x,o.z), col=SEA_SURF-fy;
     o.y=Math.min(SEA_SURF-4,Math.max(fy+3,o.y));
     o.m.position.set(o.x,o.y,o.z); o.m.rotation.y=Math.atan2(Math.cos(o.dir),Math.sin(o.dir));
@@ -2304,7 +2310,13 @@ function diveTick(dt){ const dv=state.dive;
   if(up!==0){ dv.vy+=up*DIVE_VACC*dt; dv.vy=Math.max(-DIVE_VMAX,Math.min(DIVE_VMAX,dv.vy)); }
   else dv.vy+=(3.4-dv.vy)*Math.min(1,dt*0.8);   /* true buoyancy — a still body drifts up */
   dv.y+=dv.vy*dt;
-  const floor=seabedDepth(dv.x,dv.z)+3;
+  let floor=seabedDepth(dv.x,dv.z)+3;
+  /* where an undersea mountain breaches the waves, its stone is a WALL, not a
+     ramp over the surface — the floor clamp must never fight the surface cap */
+  if(floor>SEA_SURF-2){
+    dv.x-=Math.sin(dv.heading)*dv.sp*dt; dv.z-=Math.cos(dv.heading)*dv.sp*dt; dv.sp*=0.2;
+    floor=Math.min(seabedDepth(dv.x,dv.z)+3,SEA_SURF-2);
+  }
   if(dv.y<floor){ dv.y=floor; dv.vy=Math.max(0,dv.vy); }
   /* touch the surface without pressing down, and you break it — the sea
      gives the body back; hold SHIFT to stay under against the buoyancy */
@@ -2341,11 +2353,12 @@ function enterDive(){ if(state.mode==='dive'){ surface(); return; }
   initDeep();
   state.dive.x=x; state.dive.z=z; state.dive.heading=h; state.dive.y=SEA_SURF-6; state.dive.vy=-22; state.dive.sp=0;
   if(jump){ state.dive.jump=jump; state.dive.x=jump.x0; state.dive.z=jump.z0; state.dive.y=jump.y0; state.dive.vy=0; }
-  else splash(x,SEA_SURF+1,z,true);
+  else { state.dive.jump=null; splash(x,SEA_SURF+1,z,true); }   /* never let an old leap replay */
   setMode('dive');
   if(!diveHintShown){ diveHintShown=true;
     toast('You slip beneath the waves — SHIFT to dive deeper, SPACE to rise, W/S to swim, C to surface. Left alone, the body floats up of itself.'); } }
 function surface(){ const dv=state.dive;
+  dv.jump=null;                                       /* an interrupted rail-leap must not replay */
   state.walk.x=dv.x; state.walk.z=dv.z; state.walk.heading=dv.heading; state.walk.feetY=undefined; state.walk.vy=0; state.walk.grounded=true;
   setMode('walk'); hideDeep(); toast('You break the surface and draw breath.'); }
 
@@ -2890,7 +2903,8 @@ function moveEnt(ent,dt,sp){
   if(moving){ const nx=ent.m.position.x+dx/d*sp*dt, nz=ent.m.position.z+dz/d*sp*dt;
     const hitPlayer=state.mode==='walk'&&Math.hypot(nx-state.walk.x,nz-state.walk.z)<2.6;
     const gN=groundInfo(nx,nz);
-    if(!gN.land||blockedByStructureNPC(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,ent.m)||hitPlayer){
+    const tooSteep=gN.land&&Math.abs(gN.y-ent.m.position.y)>B*1.35;   /* folk walk steps, not cliff faces */
+    if(!gN.land||tooSteep||blockedByStructureNPC(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,ent.m)||hitPlayer){
       moving=false; ent.t=0; ent.stuck=(ent.stuck||0)+1;
       if(ent.stuck>2){ ent.stuck=0; ent.acting=false; ent.pt=0; ent.tx=ent.m.position.x; ent.tz=ent.m.position.z; } }
     else { ent.stuck=0; ent.m.position.x=nx; ent.m.position.z=nz; ent.m.rotation.y=Math.atan2(dx,dz); } }
@@ -3669,6 +3683,7 @@ function updateLabels(px,pz){
 /* ================= CONTROLS ================= */
 const keys={};
 addEventListener('keydown',e=>{ keys[e.code]=true;
+  if(!running) return;                        /* the title screen is not the helm — no mode changes before the voyage begins */
   if(e.code==='Space'){ e.preventDefault(); if(state.mode==='walk') state.walk.jumpReq=true; }
   if(e.code==='KeyE') toggleAshore();
   if(e.code==='KeyF') interact();
@@ -3778,9 +3793,16 @@ function boatTick(dt,helm){
   const nx=bt.x+Math.sin(bt.heading)*bt.speed*dt, nz=bt.z+Math.cos(bt.heading)*bt.speed*dt;
   /* probe ahead of the motion: the bow when sailing, the stern when reversing */
   const sgn=bt.speed>=0?1:-1;
-  const bowX=nx+Math.sin(bt.heading)*44*SHIP_S*sgn, bowZ=nz+Math.cos(bt.heading)*44*SHIP_S*sgn;
-  if(!blockedForBoat(bowX,bowZ)&&!blockedForBoat(nx,nz)){
-    state.dist+=Math.hypot(nx-bt.x,nz-bt.z); bt.x=nx; bt.z=nz; }
+  const fX=Math.sin(bt.heading), fZ=Math.cos(bt.heading);
+  const bowX=nx+fX*44*SHIP_S*sgn, bowZ=nz+fZ*44*SHIP_S*sgn;
+  /* she is a BROAD ship: probe bow, waist and both beams (and the bow
+     quarters), so neither flank ever ploughs through a shore or skerry */
+  const rX=Math.cos(bt.heading)*16, rZ=-Math.sin(bt.heading)*16;
+  const qX=nx+fX*24*SHIP_S*sgn, qZ=nz+fZ*24*SHIP_S*sgn;
+  const clear=!blockedForBoat(bowX,bowZ)&&!blockedForBoat(nx,nz)
+    &&!blockedForBoat(nx+rX,nz+rZ)&&!blockedForBoat(nx-rX,nz-rZ)
+    &&!blockedForBoat(qX+rX,qZ+rZ)&&!blockedForBoat(qX-rX,qZ-rZ);
+  if(clear){ state.dist+=Math.hypot(nx-bt.x,nz-bt.z); bt.x=nx; bt.z=nz; }
   else bt.speed*=-0.15;
   /* ride the swell: heave to the wave height, and lean GENTLY to its slope.
      (Slopes can be large; clamp hard so she rocks like a ship, never flips.) */
@@ -3959,7 +3981,11 @@ function walkTick(dt){
   }
   w.heading+=t*dt*2.4;
   const gi=groundInfo(w.x,w.z);
-  const swimming=gi.water;      /* over water the body SWIMS — no man walks upon the sea */
+  /* over water the body SWIMS — no man walks upon the sea. But a body still
+     IN THE AIR above the water (a leap off a cliff, a jump from a pier) falls
+     under gravity until it truly meets the surface — no mid-air snap-down. */
+  const surfY0=WATER_Y+seaHeight(w.x,w.z);
+  const swimming=gi.water&&(w.feetY===undefined||w.feetY<=surfY0+0.6);
   /* ---- vertical physics: gravity, landing, the jump, and true buoyancy ----
      In the water the body floats AT the surface and rides the swell — prone
      and stroking when swimming forward, treading upright when at rest. */
@@ -3974,6 +4000,7 @@ function walkTick(dt){
         initDeep();
         state.dive.x=w.x; state.dive.z=w.z; state.dive.heading=w.heading;
         state.dive.y=SEA_SURF-3; state.dive.vy=Math.max(-90,w.vy*0.55); state.dive.sp=0;
+        state.dive.jump=null;                          /* a plunge is a plunge, not an old leap */
         setMode('dive'); return;
       }
       if(!swimDeepHintShown){ swimDeepHintShown=true;
@@ -3988,7 +4015,9 @@ function walkTick(dt){
   }
   else { if(w.inWater){ w.inWater=false; }
     w.vy-=64*dt; w.feetY+=w.vy*dt;
-    if(w.feetY<=gi.y){ w.feetY=gi.y; w.vy=0; w.grounded=true; } else w.grounded=false;
+    /* land arrests the fall; water does not — the body carries its speed
+       through the surface so the plunge can read it */
+    if(w.feetY<=gi.y&&!gi.water){ w.feetY=gi.y; w.vy=0; w.grounded=true; } else w.grounded=false;
     if((keys.Space||w.jumpReq)&&w.grounded){ w.vy=38; w.grounded=false; } w.jumpReq=false; }
   /* ---- horizontal move, gated by the height of the ground ahead ---- */
   const sp=f*(swimming?16:18);
@@ -4132,9 +4161,14 @@ function flyTick(dt){
 }
 function takeFlight(){
   if(state.mode==='fly'){ alight(); return; }
+  if(state.mode==='deck'&&state.deck.level==='hold'){ toast('The hold has a roof — come up on deck to take the air.'); return; }
   ensureFlyDome();
   let x,z,h;
   if(state.mode==='walk'){ x=state.walk.x; z=state.walk.z; h=state.walk.heading; state.prevGround='walk'; }
+  else if(state.mode==='dive'){                       /* rise from the water where you ARE, not from the distant ship */
+    x=state.dive.x; z=state.dive.z; h=state.dive.heading;
+    state.dive.jump=null; state.prevGround='walk'; hideDeep();
+    splash(x,SEA_SURF+1,z,true); }
   else { x=state.boat.x; z=state.boat.z; h=state.boat.heading; state.prevGround='boat'; }
   state.fly.x=x; state.fly.z=z; state.fly.heading=h;
   state.fly.y=flyFloorAt(x,z)+60; state.fly.vy=60; state.fly.sp=0;
@@ -4194,6 +4228,7 @@ function poseArms(atWheel){
 function setMode(m){
   state.mode=m;
   if(m==='fly') ensureFlyDome();                      /* the vault stands even for a voyage restored aloft */
+  if(m==='walk') state.walk.climb=null;               /* a climb interrupted elsewhere must not resume here */
   if(m!=='fly'&&m!=='dive') walkerG.rotation.x=0;      /* clear the flight/swim lean */
   if(m==='walk'||m==='fly'||m==='dive'){              /* a free body in the world, not aboard */
     if(walkerG.parent!==scene){ if(walkerG.parent) walkerG.parent.remove(walkerG); scene.add(walkerG); }
@@ -4216,6 +4251,13 @@ function updateDiveBtn(){ const b=$('b-dive'); if(!b) return;
   b.classList.toggle('off',state.mode==='dive'); }
 function nearWheel(){ return state.mode==='deck'&&state.deck.level!=='hold'
   &&state.deck.lz<SD.qdeckZ+1.5*SHIP_S&&Math.abs(state.deck.lx)<4.2*SHIP_SX; }
+function setAshore(x,z,h){
+  /* every walk re-entry re-seats the body on the LOCAL ground — no stale
+     altitude carried over from another coast */
+  state.walk.x=x; state.walk.z=z; state.walk.heading=h;
+  state.walk.feetY=undefined; state.walk.vy=0; state.walk.grounded=true; state.walk.inWater=false;
+  setMode('walk'); markDiscovery(x,z);
+}
 function goAshoreFromShip(){
   const bt=state.boat;
   /* pass 1 — a beach or low ground; pass 2 — a pier; pass 3 — any land */
@@ -4225,8 +4267,7 @@ function goAshoreFromShip(){
     const x=bt.x+Math.cos(th)*rad*B, z=bt.z+Math.sin(th)*rad*B;
     const cc=landAtWorld(x,z);
     if(cc){
-      if(cc.kind!=='wall'&&cc.h<=2){ state.walk.x=x; state.walk.z=z; state.walk.heading=bt.heading;
-        setMode('walk'); markDiscovery(x,z); return true; }
+      if(cc.kind!=='wall'&&cc.h<=2){ setAshore(x,z,bt.heading); return true; }
       if(!anyLand) anyLand={x,z};   /* the ice wall counts — you may go ashore and mount it */
     }
   }
@@ -4234,10 +4275,8 @@ function goAshoreFromShip(){
   for(const [k] of deckMap){ const parts=k.split(','),ix=+parts[0],iz=+parts[1];
     const x=(ix+.5)*B, z=(iz+.5)*B, dd=Math.hypot(x-bt.x,z-bt.z);
     if(dd<22*B&&(!bestD||dd<bestD.dd)) bestD={x,z,dd}; }
-  if(bestD){ state.walk.x=bestD.x; state.walk.z=bestD.z; state.walk.heading=bt.heading;
-    setMode('walk'); markDiscovery(bestD.x,bestD.z); return true; }
-  if(anyLand){ state.walk.x=anyLand.x; state.walk.z=anyLand.z; state.walk.heading=bt.heading;
-    setMode('walk'); markDiscovery(anyLand.x,anyLand.z); return true; }
+  if(bestD){ setAshore(bestD.x,bestD.z,bt.heading); return true; }
+  if(anyLand){ setAshore(anyLand.x,anyLand.z,bt.heading); return true; }
   toast('No shore within reach — draw nearer to the land.');
   return false;
 }
@@ -4397,7 +4436,9 @@ function buildFirmament(){
   firmG.visible=false; scene.add(firmG);
 }
 let firmHintShown=false;
-function enterFirm(){ buildFirmament(); state.firm=true; firmG.visible=true;
+function enterFirm(){
+  if(state.mode==='dive') surface();   /* no map-gazing from under the sea — breath would drain beneath the overlay */
+  buildFirmament(); state.firm=true; firmG.visible=true;
   scene.fog=null; state.firmDist=R_WORLD*1.62; state.camPitch=1.02;
   sea.visible=false; seaDeep.visible=false; waveGrid.visible=false;
   if(!firmHintShown&&running){ firmHintShown=true;
@@ -5142,7 +5183,17 @@ function frame(){
   /* below the waterline in the hold, the sea must not wash through the hull;
      and in the dive, the lowered sea-bed plane must not roof the deep */
   if(!state.firm){ const inHold=state.mode==='deck'&&state.deck.level==='hold';
-    waveGrid.visible=!inHold; sea.visible=!inHold&&state.mode!=='dive'; }
+    /* ONE water, not layers: the opaque far-sea sheets (at −12 and −16) are a
+       surface-view backdrop only. The moment the eye is beneath the waves —
+       diving, or a swimmer's camera rolled under the swell — they are hidden,
+       or they read as a second sea hanging in the deep with fish above and
+       below it. */
+    let eyeUnder=state.mode==='dive';
+    if(!eyeUnder&&state.mode==='walk'&&state.walk.inWater){
+      const surfC=WATER_Y+seaHeight(camera.position.x,camera.position.z);
+      if(camera.position.y<surfC-0.15) eyeUnder=true; }
+    waveGrid.visible=!inHold;
+    sea.visible=seaDeep.visible=!inHold&&!eyeUnder; }
   seaLifeTick(p.x,p.z,dt);
   splashTick(dt);
   fishTick(dt);
