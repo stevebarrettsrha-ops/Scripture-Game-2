@@ -2689,8 +2689,10 @@ function emitStall(G,x,z,y,kind){
     emitBox(G, gx-B*0.24,y+B*0.95,z-B*0.24, gx+B*0.24,y+B*1.3,z+B*0.24, gm,gm,gm); }
 }
 /* build a whole city on the country's site — streets, plaza, market, fish
-   stall, and rows of homes (one per resident). Returns {homes, market, fish}. */
-function buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i){
+   stall, and rows of homes (one per resident). Returns {homes, market, fish}.
+   A GENERATOR: it yields between homes so the frame driver can spread a
+   city's cost over many frames — no single frame pays for a whole town. */
+function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i){
   const cx=site.x, cz=site.z, sz2=cfg.size||2, nHomes=cfg.houses||14;
   emitPlaza(G, cx,cz, wy, B*(4.5+sz2));
   emitWell(G, cx,cz, wy); solids.push({x:cx,z:cz,r:B*1.7});
@@ -2716,6 +2718,7 @@ function buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i){
     emitPathLine(G, H.dx,H.dz, cx+gx*spacing, cz);      // a lane to the street
     emitPathLine(G, cx+gx*spacing, cz, cx+gx*spacing, cz+gy*spacing);
     homes.push({x:hx,z:hz,doorx:H.dx,doorz:H.dz}); placed++;
+    if(placed%3===0) yield;                              /* breathe between the houses */
   }
   /* the market — a row of stalls along the eastern street */
   let market=null;
@@ -2780,9 +2783,27 @@ function buildPier(G,ex,site,rnd,torches){
   return deckKeys;
 }
 const activeVillages=new Map();
+/* ---- the incremental builder: villages under construction, and the driver
+   that advances them a few milliseconds each frame. Nothing of a half-built
+   town touches the scene — the group is added whole, at the end. ---- */
+const villageBuilds=[];
+function villageBuildTick(){
+  if(!villageBuilds.length) return;
+  const T0=performance.now();
+  do{
+    const b=villageBuilds[0]; let r;
+    try{ r=b.gen.next(); }catch(e){ r={done:true};
+      const vv=activeVillages.get(b.i); if(vv&&vv.building) activeVillages.delete(b.i); }
+    if(r.done){ villageBuilds.shift();
+      const vv=activeVillages.get(b.i);
+      if(vv&&vv.building) activeVillages.delete(b.i); }   /* ended without registering — allow a retry */
+  }while(villageBuilds.length&&performance.now()-T0<5);
+}
 let worldNight=0;   /* 0 by day .. 1 deep night — sends folk home */
 const standaloneHouses=[];   /* houses not in a village (the player's treehouse) */
-function spawnVillage(i){
+/* A GENERATOR: driven by villageBuildTick a few milliseconds a frame, so a
+   town raises itself over many frames and the traveller never feels a hitch. */
+function* spawnVillage(i){
   const site=SITES[i]; if(!site){ activeVillages.set(i,{none:true}); return; }
   const rnd=k=>hash2(i*31.7+k*7.7, i*11.3+k*3.9);
   const G=newG(); const ex={doors:[],houses:[],torchIn:[],farms:[],stalls:[],pen:null};
@@ -2791,7 +2812,7 @@ function spawnVillage(i){
   const torches=[]; const solids=[];
   let cityHomes=null;
   if(cfg){
-    const ci=buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i);
+    const ci=yield* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i);
     cityHomes=ci.homes;
     /* a fenced pen for the beasts on the outskirts */
     { const a=rnd(130)*6.28, rr=B*(9+(cfg.size||2)*2);
@@ -2809,6 +2830,7 @@ function spawnVillage(i){
       const dx=site.x-hx, dz=site.z-hz;
       const doorDir=Math.abs(dz)>=Math.abs(dx) ? (dz>0?0:1) : (dx>0?2:3);
       emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+h);
+      if(h%2===1) yield;
     }
     emitWell(G, site.x, site.z, wy); solids.push({x:site.x,z:site.z,r:B*1.5});
     for(const dr of ex.doors) emitPathLine(G, site.x,site.z, dr.x,dr.z);
@@ -2848,6 +2870,7 @@ function spawnVillage(i){
     }
   }
   torches.push(...ex.torchIn);          /* the hearth-lights within the houses */
+  yield;
   /* the pier, if the sea lies near */
   const deckKeys=buildPier(G,ex,site,rnd,torches)||[];
   /* a fishmonger's stall by the pier, in the great cities */
@@ -2866,7 +2889,7 @@ function spawnVillage(i){
     bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
     bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
     bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
-    bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
+    bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); yield; }
   /* the doors — each house a swinging leaf, closed to begin */
   for(const H of ex.houses){ if(!H.door) continue; const D2=H.door;
     const dm=new THREE.Mesh(new THREE.BoxGeometry(D2.w,D2.h,0.6),doorLeafMat);
@@ -2913,6 +2936,7 @@ function spawnVillage(i){
       {teach:{x:lx,z:lz}})); }
   for(let k=0;k<kids.length;k++) kids[k].mate=kids[(k+1)%kids.length];
   if(kids.length) kids[0].it=true;
+  yield;
   /* herdsman, hunter, a farmer for every field, the woman at the well, the
      feeder of the fowl, and folk who walk about or go to the market */
   addPerson('herder',cx-B*5,cz-B*3,4,false,false,{pen:ex.pen||{x:cx,z:cz}});
@@ -2932,8 +2956,10 @@ function spawnVillage(i){
   if(cityHomes&&cityHomes.length){
     for(let h=0;h<cityHomes.length;h++){ const hm=cityHomes[h];
       addPerson(h%3===0?'shopper':'folk', hm.x, hm.z, 2.4, false, h%2===0,
-        {home:{x:hm.x,z:hm.z}}); }
+        {home:{x:hm.x,z:hm.z}});
+      if(h%4===3) yield; }
   }
+  yield;
   /* the beasts of the field, the creeping things — and now and then a wolf
      out of the wilds, come down to hunt the pigs and the fowl */
   const lat=90-Math.hypot(site.x/R_WORLD,site.z/R_WORLD)*180;
@@ -3201,15 +3227,19 @@ function birdTick(bd,dt){
 }
 function updateVillages(px,pz,dt,nightF){
   worldNight=nightF;
+  villageBuildTick();                          /* advance any towns under construction */
   for(let i=0;i<COUNTRIES.length;i++){
     const s0=SITES[i]; const c=COUNTRIES[i].c;
     const sxp=s0?s0.x:c[0]*R_WORLD, szp=s0?s0.z:c[1]*R_WORLD;
     const d=Math.hypot(px-sxp, pz-szp);
     const has=activeVillages.has(i);
     /* spawn well BEYOND the fog line so a town is standing whole before the
-       traveller can see the shore — no more building right before his eyes */
-    if(d<1600&&!has) spawnVillage(i);
+       traveller can see the shore — no more building right before his eyes.
+       The build itself is spread over frames by villageBuildTick. */
+    if(d<1600&&!has){ activeVillages.set(i,{building:true});
+      villageBuilds.push({i,gen:spawnVillage(i)}); }
     else if(d>2100&&has){ const vv=activeVillages.get(i);
+      if(vv.building) continue;                        /* let the build finish; torn down next pass */
       if(vv.deckKeys) for(const k of vv.deckKeys) deckMap.delete(k);
       if(vv.g){ scene.remove(vv.g);
         const sharedT=new Set(Object.values(TEX));
