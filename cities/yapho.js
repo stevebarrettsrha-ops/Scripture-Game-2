@@ -7,7 +7,7 @@
    market/fishStall/streets : features to include (true/false)
    wells     : how many wells of water */
 EARTH.city({
-country:"Israel",
+country:"Yasharal",
 name:"Yapho",
 houses:12,
 size:2,
