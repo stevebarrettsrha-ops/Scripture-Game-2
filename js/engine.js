@@ -176,6 +176,33 @@ blockMat('flowerY',TEX.flowerY,{alphaTest:0.4}); blockMat('crop',TEX.crop,{alpha
 blockMat('glass',TEX.glass,{transparent:true,depthWrite:false});
 blockMat('door',TEX.door,{alphaTest:0.1});
 blockMat('waterB',TEX.water);
+/* ---- THE WIND IN THE LEAVES ----
+   Every leaf canopy, blade of grass, flower and crop sways on the wind: a
+   vertex-shader ripple patched into the shared block materials. The chunk
+   mesher bakes geometry in WORLD coordinates, so `position` gives each plant
+   its own phase and neighbouring trees never sway in lockstep. Grass-like
+   crosses are pinned at the root (weighted by uv.y, 0 at the soil); leaf
+   canopies breathe as a whole. Amplitude follows the living wind and the
+   storms (WIND_A, fed each frame from windAt + stormAt). */
+const WIND_T={value:0}, WIND_A={value:1};
+function windSway(mat,amp,rooted){
+  mat.onBeforeCompile=sh=>{
+    sh.uniforms.uWindT=WIND_T; sh.uniforms.uWindA=WIND_A;
+    sh.vertexShader='uniform float uWindT; uniform float uWindA;\n'+sh.vertexShader.replace(
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\n'+
+      '{ float wph=position.x*0.161+position.z*0.127;\n'+
+      '  float wgt='+(rooted?'clamp(uv.y,0.0,1.0)':'0.55+0.45*sin(position.y*0.21+wph)')+';\n'+
+      '  float ws1=sin(uWindT*1.7+wph)+0.5*sin(uWindT*2.9+wph*1.83);\n'+
+      '  float ws2=sin(uWindT*1.3+wph*1.31)+0.5*sin(uWindT*2.3+wph*0.77);\n'+
+      '  transformed.x+=ws1*'+amp.toFixed(3)+'*uWindA*wgt;\n'+
+      '  transformed.z+=ws2*'+(amp*0.7).toFixed(3)+'*uWindA*wgt; }');
+  };
+  mat.needsUpdate=true;
+}
+windSway(MAT.leaves,0.55,false); windSway(MAT.leavesTr,0.62,false); windSway(MAT.cherry,0.55,false);
+windSway(MAT.tallgrass,0.9,true); windSway(MAT.flowerR,0.6,true); windSway(MAT.flowerY,0.6,true);
+windSway(MAT.crop,0.5,true);
 /* breaking surf — clumpy foam that washes the shoreline (scrolled + pulsed) */
 TEX.surf = mkTex(g=>{ g.clearRect(0,0,16,16);
   for(let y=0;y<16;y++)for(let x=0;x<16;x++){
@@ -272,6 +299,25 @@ function riverAtUV(u,v){
   return RIVMAP[py*MAPR+px];
 }
 
+/* ================= THE NAMED PLACES OF THE EARTH =================
+   world/landmarks.js names the true summits and the famous works of the
+   ancients, each at its real latitude and longitude. The mountains raise
+   the very land (cellRaw drinks from MOUNTS below); the built wonders are
+   raised as structures when the traveller draws near (updateLandmarks). */
+const LANDMARKS=(window.EARTH&&window.EARTH.landmarkList)||[];
+function llToWorld(lat,lon){ const r=(90-lat)/180, a=lon*Math.PI/180;
+  return [r*Math.sin(a)*R_WORLD, r*Math.cos(a)*R_WORLD]; }
+const MOUNTS=[];
+for(const L of LANDMARKS){ if(L.kind!=='mount') continue;
+  const [mx,mz]=llToWorld(L.lat,L.lon);
+  MOUNTS.push({x:mx,z:mz,R:(L.r||110),peak:(L.peak||18)}); }
+function mountUpliftAt(x,z){ let up=0;
+  for(const m of MOUNTS){ const dx=x-m.x; if(dx>m.R||dx<-m.R) continue;
+    const dz=z-m.z; if(dz>m.R||dz<-m.R) continue;
+    const d=Math.hypot(dx,dz);
+    if(d<m.R){ const t=1-d/m.R; const u2=m.peak*t*t*(3-2*t); if(u2>up) up=u2; } }
+  return up; }
+
 /* ================= THE SHOAL MAP =================
    A distance-to-land field over the whole disc (chamfer transform of the
    country map). The water shader drinks from it: where the bottom lies
@@ -366,13 +412,17 @@ function cellRaw(ix,iz){
   const mtnMask=fbm(ix*.018+120,iz*.018-30);
   const mtn=Math.max(0,mtnMask-0.5)/0.5;               // 0 on the plains, →1 in the ranges
   let h=1+Math.floor(n*1.5)+Math.floor(Math.pow(mtn,1.4)*inland*12);
+  /* the named summits of the true earth rise out of the plain — Ararat,
+     Sinai, Everest and their fellows, each at its own place */
+  const mUp=mountUpliftAt(x,z);
+  if(mUp>0.5) h+=Math.round(mUp);
   const snow = lat>72 || lat<-55 || h>=11;
   const tundra = lat>58 && lat<=72;
   const desert = lat>11 && lat<36 && n2>0.42 && inland>0.5;
   const tropic = lat<=11 && lat>-38;
   let kind, tree=0;
-  if(!snow&&!tundra&&inland<1){
-    /* the shore terraces gently to the water */
+  if(!snow&&!tundra&&inland<1&&mUp<=0.5){
+    /* the shore terraces gently to the water (a named summit is never shorn) */
     const cap=1+Math.round(inland*4);
     if(h>cap) h=cap;
   }
@@ -385,7 +435,7 @@ function cellRaw(ix,iz){
   const eastAsia = lat>20&&lat<46&&lon>96&&lon<148;
   const cherry   = !snow&&!tundra&&!desert&&eastAsia&&region>0.46;
   /* a broad, flat, walkable beach along every warm/temperate coast */
-  const beach = !snow&&!tundra&&!badlands&&(inland<=0.5 || (inland<0.8&&h<=2));
+  const beach = mUp<=0.5 && !snow&&!tundra&&!badlands&&(inland<=0.5 || (inland<0.8&&h<=2));
   if(beach){ kind='sand'; h=Math.min(h,2);
     if(tropic&&j<0.03) tree=2;                 /* palms on the strand */
   }
@@ -396,6 +446,7 @@ function cellRaw(ix,iz){
     const bh=fbm(ix*.045+7,iz*.045-3);              /* the badlands' own eroded relief */
     h=2+Math.floor(bh*8)+Math.floor(Math.pow(mtn,1.2)*inland*8);
     h=Math.max(2,Math.floor(h/2)*2);                /* terraced in steps of two */
+    if(mUp>0.5) h+=Math.round(mUp);                 /* Uluru and its kin rise from the waste */
   }
   else if(desert){ kind='desert'; }
   else if(cherry){ kind='grass'; tree=j<0.10?3:0; } /* cherry-blossom groves */
@@ -407,7 +458,22 @@ function cellRaw(ix,iz){
 /* villages flatten the ground around them (computed at boot) */
 let SITES=[], siteGrid=new Map();
 function siteKey(u,v){ return Math.floor((u+1)*16)+','+Math.floor((v+1)*16); }
+/* THE CELL CACHE — cell() is the hottest call in the game: chunk meshing,
+   every NPC step, every beast, every ground query. The terrain is immutable
+   once the village sites are computed, so the finished cells are memoised.
+   (Enabled only after computeSites() — before that the flattening would be
+   baked in wrong. Cleared wholesale when it grows past bound.) */
+const CELL_CACHE=new Map(); let cellCacheOn=false;
 function cell(ix,iz){
+  if(!cellCacheOn) return cellCompute(ix,iz);
+  const k=(ix+20000)*50000+(iz+20000);
+  let c=CELL_CACHE.get(k);
+  if(c===undefined){ c=cellCompute(ix,iz);
+    if(CELL_CACHE.size>350000) CELL_CACHE.clear();
+    CELL_CACHE.set(k,c); }
+  return c;
+}
+function cellCompute(ix,iz){
   const c=cellRaw(ix,iz); if(!c) return null;
   if(SITES.length&&c.kind!=='wall'&&c.kind!=='floe'){
     const x=(ix+.5)*B, z=(iz+.5)*B, u=x/R_WORLD, v=z/R_WORLD;
@@ -560,7 +626,7 @@ function emitTree(G,ix,iz,cc){
     emitBox(G, x-B*0.75,yT+trunkH+B*0.35,z-B*0.75, x+B*0.75,yT+trunkH+B*1.15,z+B*0.75, lm,lm,lm);
   }
 }
-const chunks=new Map(); const buildQueue=[];
+const chunks=new Map(); const buildQueue=[]; const buildQueued=new Set();
 function buildChunk(cx,cz){
   const G=newG();
   for(let a=0;a<CH;a++) for(let b=0;b<CH;b++){
@@ -613,12 +679,12 @@ function updateChunks(px,pz,budget){
   for(let dz=-VIEW;dz<=VIEW;dz++) for(let dx=-VIEW;dx<=VIEW;dx++){
     if(dx*dx+dz*dz>VIEW*VIEW+2) continue;
     const k=(ccx+dx)+','+(ccz+dz);
-    if(!chunks.has(k)&&!buildQueue.includes(k)) buildQueue.push(k);
+    if(!chunks.has(k)&&!buildQueued.has(k)){ buildQueue.push(k); buildQueued.add(k); }
   }
   buildQueue.sort((A,Bq)=>{ const[a1,a2]=A.split(',').map(Number),[b1,b2]=Bq.split(',').map(Number);
     return (a1-ccx)**2+(a2-ccz)**2-((b1-ccx)**2+(b2-ccz)**2); });
   let n=0;
-  while(buildQueue.length&&n<budget){ const k=buildQueue.shift();
+  while(buildQueue.length&&n<budget){ const k=buildQueue.shift(); buildQueued.delete(k);
     if(chunks.has(k)) continue; const[cx,cz]=k.split(',').map(Number); buildChunk(cx,cz); n++; }
   for(const[k,ch] of chunks){ const[cx,cz]=k.split(',').map(Number);
     const d=Math.max(Math.abs(cx-ccx),Math.abs(cz-ccz));
@@ -1065,12 +1131,16 @@ const DECK_Y=6.2, QDECK_Y=11, FDECK_Y=8.8, FDECK_Z=17.5, QDECK_Z=-17.6, HELM={x:
 /* SHIP_S doubles her in every dimension — a great galleon, deck room for
    twelve souls and more, and a walkable cargo hold below the waist deck.
    SHIP_SX widens the beam further still, so she sits broad upon the screen. */
-const SHIP_S=2.0, SHIP_SX=SHIP_S*1.4;
+const SHIP_S=2.0, SHIP_SX=SHIP_S*1.85;
 const SD={ deckY:DECK_Y*SHIP_S, qdeckY:QDECK_Y*SHIP_S, fdeckY:FDECK_Y*SHIP_S,
   fdeckZ:FDECK_Z*SHIP_S, qdeckZ:QDECK_Z*SHIP_S, helmZ:HELM.z*SHIP_S, wheelZ:WHEEL_Z*SHIP_S };
 const HOLD={halfX:2.9*SHIP_SX, z0:-19*SHIP_S, z1:23*SHIP_S, y:0.55*SHIP_S};
 const HATCH={x:0, z:4.6*SHIP_S, r:3.8*SHIP_S};
 const boatG=new THREE.Group();
+/* YXZ: yaw first, then pitch/roll IN THE HEADING FRAME — with the default XYZ
+   order the wave-pitch was applied about the WORLD x-axis, so the ship leaned
+   the wrong way on every heading but due north */
+boatG.rotation.order='YXZ';
 const hullG=new THREE.Group(); hullG.scale.set(SHIP_SX,SHIP_S,SHIP_S); boatG.add(hullG);
 { const add=(m,x,y,z)=>{ m.position.set(x,y,z); hullG.add(m); return m; };
   /* ---- hull with rising sheer: waist, stepped prow, stern run ---- */
@@ -1480,6 +1550,10 @@ const walkerG=new THREE.Group();
   armL.position.set(2.25,8.7,0); walkerG.add(armL);
   const armR=armL.clone(); armR.position.x=-2.25; walkerG.add(armR);
   walkerG.visible=false; scene.add(walkerG);
+  /* YXZ: heading first, then the prone/lean pitch about the body's OWN axis.
+     With the default XYZ order the swim/flight pitch was a world-frame tilt,
+     so turning while prone rolled and flipped the body sideways. */
+  walkerG.rotation.order='YXZ';
   walkerG.userData={legL,legR,armL,armR}; }
 
 /* ================= VILLAGERS & BEASTS (mob-fashion) ================= */
@@ -1748,7 +1822,7 @@ const rayTopTex=mkTex(g=>{ speckle(g,[58,76,96],10,[48,66,86],0.3);
 const rayBellyTex=mkTex(g=>speckle(g,[224,230,236],7,[210,218,226],0.3));
 /* a fish — striped pixel hide tinted by its colour, an eye, arcing tail */
 function makeFish(col){ const c=new THREE.Color(col||0x5f7fa6);
-  const g=new THREE.Group();
+  const g=new THREE.Group(); g.rotation.order='YXZ';
   const body=new THREE.Mesh(new THREE.BoxGeometry(1.0,1.5,3.2),
     new THREE.MeshLambertMaterial({map:fishStripeTex,color:c.getHex()})); g.add(body);
   const tail=new THREE.Mesh(new THREE.BoxGeometry(0.4,1.8,1.0),
@@ -1930,7 +2004,7 @@ function updateSquid(px,py,pz,dt,t){ initSquid(); for(const q of SQUIDS){
     q.m.position.set(q.x,q.y,q.z); q.m.rotation.y=q.dir+Math.PI/2;
     q.m.userData.tents.forEach((tb,i)=>{ tb.rotation.x=Math.sin(t*3+i)*0.3-pulse*0.25; }); } }
 /* ---- dolphins — playful pods arcing through the shallows ---- */
-function makeDolphin(){ const g=new THREE.Group();
+function makeDolphin(){ const g=new THREE.Group(); g.rotation.order='YXZ';
   const top=new THREE.MeshLambertMaterial({map:dolphTop});
   const belly=new THREE.MeshLambertMaterial({map:dolphBelly});
   const side=new THREE.MeshLambertMaterial({map:dolphSide});
@@ -2099,7 +2173,7 @@ function makeRay(){ const g=new THREE.Group();
   const tail=lbox(0.3,0.3,5.4,0x2c3c50); tail.position.set(0,0,-4.4); g.add(tail);
   const barb=lbox(0.5,0.2,0.9,0x9aa6b4); barb.position.set(0,0.15,-2.4); g.add(barb);
   g.userData={wingL,wingR}; return g; }
-function makeWhale(){ const g=new THREE.Group();
+function makeWhale(){ const g=new THREE.Group(); g.rotation.order='YXZ';
   const top=new THREE.MeshLambertMaterial({map:whaleTopTex});
   const belly=new THREE.MeshLambertMaterial({map:whaleBellyTex});
   const side=new THREE.MeshLambertMaterial({map:whaleSideTex});
@@ -2615,8 +2689,10 @@ function emitStall(G,x,z,y,kind){
     emitBox(G, gx-B*0.24,y+B*0.95,z-B*0.24, gx+B*0.24,y+B*1.3,z+B*0.24, gm,gm,gm); }
 }
 /* build a whole city on the country's site — streets, plaza, market, fish
-   stall, and rows of homes (one per resident). Returns {homes, market, fish}. */
-function buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i){
+   stall, and rows of homes (one per resident). Returns {homes, market, fish}.
+   A GENERATOR: it yields between homes so the frame driver can spread a
+   city's cost over many frames — no single frame pays for a whole town. */
+function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i){
   const cx=site.x, cz=site.z, sz2=cfg.size||2, nHomes=cfg.houses||14;
   emitPlaza(G, cx,cz, wy, B*(4.5+sz2));
   emitWell(G, cx,cz, wy); solids.push({x:cx,z:cz,r:B*1.7});
@@ -2642,6 +2718,7 @@ function buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i){
     emitPathLine(G, H.dx,H.dz, cx+gx*spacing, cz);      // a lane to the street
     emitPathLine(G, cx+gx*spacing, cz, cx+gx*spacing, cz+gy*spacing);
     homes.push({x:hx,z:hz,doorx:H.dx,doorz:H.dz}); placed++;
+    if(placed%3===0) yield;                              /* breathe between the houses */
   }
   /* the market — a row of stalls along the eastern street */
   let market=null;
@@ -2706,9 +2783,27 @@ function buildPier(G,ex,site,rnd,torches){
   return deckKeys;
 }
 const activeVillages=new Map();
+/* ---- the incremental builder: villages under construction, and the driver
+   that advances them a few milliseconds each frame. Nothing of a half-built
+   town touches the scene — the group is added whole, at the end. ---- */
+const villageBuilds=[];
+function villageBuildTick(){
+  if(!villageBuilds.length) return;
+  const T0=performance.now();
+  do{
+    const b=villageBuilds[0]; let r;
+    try{ r=b.gen.next(); }catch(e){ r={done:true};
+      const vv=activeVillages.get(b.i); if(vv&&vv.building) activeVillages.delete(b.i); }
+    if(r.done){ villageBuilds.shift();
+      const vv=activeVillages.get(b.i);
+      if(vv&&vv.building) activeVillages.delete(b.i); }   /* ended without registering — allow a retry */
+  }while(villageBuilds.length&&performance.now()-T0<5);
+}
 let worldNight=0;   /* 0 by day .. 1 deep night — sends folk home */
 const standaloneHouses=[];   /* houses not in a village (the player's treehouse) */
-function spawnVillage(i){
+/* A GENERATOR: driven by villageBuildTick a few milliseconds a frame, so a
+   town raises itself over many frames and the traveller never feels a hitch. */
+function* spawnVillage(i){
   const site=SITES[i]; if(!site){ activeVillages.set(i,{none:true}); return; }
   const rnd=k=>hash2(i*31.7+k*7.7, i*11.3+k*3.9);
   const G=newG(); const ex={doors:[],houses:[],torchIn:[],farms:[],stalls:[],pen:null};
@@ -2717,7 +2812,7 @@ function spawnVillage(i){
   const torches=[]; const solids=[];
   let cityHomes=null;
   if(cfg){
-    const ci=buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i);
+    const ci=yield* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i);
     cityHomes=ci.homes;
     /* a fenced pen for the beasts on the outskirts */
     { const a=rnd(130)*6.28, rr=B*(9+(cfg.size||2)*2);
@@ -2735,6 +2830,7 @@ function spawnVillage(i){
       const dx=site.x-hx, dz=site.z-hz;
       const doorDir=Math.abs(dz)>=Math.abs(dx) ? (dz>0?0:1) : (dx>0?2:3);
       emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+h);
+      if(h%2===1) yield;
     }
     emitWell(G, site.x, site.z, wy); solids.push({x:site.x,z:site.z,r:B*1.5});
     for(const dr of ex.doors) emitPathLine(G, site.x,site.z, dr.x,dr.z);
@@ -2774,6 +2870,7 @@ function spawnVillage(i){
     }
   }
   torches.push(...ex.torchIn);          /* the hearth-lights within the houses */
+  yield;
   /* the pier, if the sea lies near */
   const deckKeys=buildPier(G,ex,site,rnd,torches)||[];
   /* a fishmonger's stall by the pier, in the great cities */
@@ -2792,7 +2889,7 @@ function spawnVillage(i){
     bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
     bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
     bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
-    bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
+    bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); yield; }
   /* the doors — each house a swinging leaf, closed to begin */
   for(const H of ex.houses){ if(!H.door) continue; const D2=H.door;
     const dm=new THREE.Mesh(new THREE.BoxGeometry(D2.w,D2.h,0.6),doorLeafMat);
@@ -2839,6 +2936,7 @@ function spawnVillage(i){
       {teach:{x:lx,z:lz}})); }
   for(let k=0;k<kids.length;k++) kids[k].mate=kids[(k+1)%kids.length];
   if(kids.length) kids[0].it=true;
+  yield;
   /* herdsman, hunter, a farmer for every field, the woman at the well, the
      feeder of the fowl, and folk who walk about or go to the market */
   addPerson('herder',cx-B*5,cz-B*3,4,false,false,{pen:ex.pen||{x:cx,z:cz}});
@@ -2858,8 +2956,10 @@ function spawnVillage(i){
   if(cityHomes&&cityHomes.length){
     for(let h=0;h<cityHomes.length;h++){ const hm=cityHomes[h];
       addPerson(h%3===0?'shopper':'folk', hm.x, hm.z, 2.4, false, h%2===0,
-        {home:{x:hm.x,z:hm.z}}); }
+        {home:{x:hm.x,z:hm.z}});
+      if(h%4===3) yield; }
   }
+  yield;
   /* the beasts of the field, the creeping things — and now and then a wolf
      out of the wilds, come down to hunt the pigs and the fowl */
   const lat=90-Math.hypot(site.x/R_WORLD,site.z/R_WORLD)*180;
@@ -3127,13 +3227,19 @@ function birdTick(bd,dt){
 }
 function updateVillages(px,pz,dt,nightF){
   worldNight=nightF;
+  villageBuildTick();                          /* advance any towns under construction */
   for(let i=0;i<COUNTRIES.length;i++){
     const s0=SITES[i]; const c=COUNTRIES[i].c;
     const sxp=s0?s0.x:c[0]*R_WORLD, szp=s0?s0.z:c[1]*R_WORLD;
     const d=Math.hypot(px-sxp, pz-szp);
     const has=activeVillages.has(i);
-    if(d<1100&&!has) spawnVillage(i);
-    else if(d>1500&&has){ const vv=activeVillages.get(i);
+    /* spawn well BEYOND the fog line so a town is standing whole before the
+       traveller can see the shore — no more building right before his eyes.
+       The build itself is spread over frames by villageBuildTick. */
+    if(d<1600&&!has){ activeVillages.set(i,{building:true});
+      villageBuilds.push({i,gen:spawnVillage(i)}); }
+    else if(d>2100&&has){ const vv=activeVillages.get(i);
+      if(vv.building) continue;                        /* let the build finish; torn down next pass */
       if(vv.deckKeys) for(const k of vv.deckKeys) deckMap.delete(k);
       if(vv.g){ scene.remove(vv.g);
         const sharedT=new Set(Object.values(TEX));
@@ -3446,7 +3552,7 @@ function fishTick(dt){
    in the log; else it stands planted where it fell. One spear, ever ready. */
 let spearM=null; const spear={active:false,x:0,y:0,z:0,vx:0,vy:0,vz:0,stick:0};
 function ensureSpear(){ if(spearM) return;
-  spearM=new THREE.Group();
+  spearM=new THREE.Group(); spearM.rotation.order='YXZ';
   const shaft=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.4,9),new THREE.MeshLambertMaterial({color:0x6a4a2a}));
   spearM.add(shaft);
   const tip=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.6,1.4),new THREE.MeshLambertMaterial({color:0xb8bcc4}));
@@ -3567,11 +3673,63 @@ let yahruPos=null;
 function buildYahru(){ if(!yahruPos) return;
   const y=topY(yahruPos.ix,yahruPos.iz), x=yahruPos.x, z=yahruPos.z;
   const G=newG();
-  emitBox(G, x-B*2.5,y,z-B*2.5, x+B*2.5,y+B,z+B*2.5, 'stone','stone',null);
-  emitBox(G, x-B*1.7,y+B,z-B*1.7, x+B*1.7,y+B*2.6,z+B*1.7, 'planks','planks',null);
-  for(const sx of [-1,1]) for(const sz of [-1,1])
-    emitBox(G, x+sx*B*2-B*0.25,y+B,z+sz*B*2-B*0.25, x+sx*B*2+B*0.25,y+B*2.6,z+sz*B*2+B*0.25, 'logSide','logTop',null);
-  emitBox(G, x-B*0.9,y+B*2.6,z-B*0.9, x+B*0.9,y+B*3.4,z+B*0.9, 'hayTop','hayTop','hayTop');
+  const rnd=k=>hash2(k*3.17+9.1,k*7.31-2.2);
+  /* ---- THE CITY OF THE GREAT KING, as she stood BCE: a walled hill-city of
+     hewn stone. The ancient wall rings the hill with towers and two open
+     gates; the Temple courts crown the height — a platform of great stones,
+     the house with its cedar courses and crown of gold, Yakin and Boaz at
+     the porch, the altar before it; stone houses climb the slopes within,
+     and olive groves terrace the hillsides without. ---- */
+  const RA=B*15, RB=B*12, segs=72, wallTop=y+B*3.4;
+  for(let s2=0;s2<segs;s2++){ const th=s2/segs*6.283;
+    if(Math.abs(th-1.5708)<0.14||Math.abs(th-4.7124)<0.14) continue;   /* the two gates stand open */
+    const wx=x+Math.cos(th)*RA, wz=z+Math.sin(th)*RB;
+    const c=landAtWorld(wx,wz); if(!c||c.kind==='wall'||c.kind==='floe') continue;
+    const gy=c.h*B-B*0.5;
+    emitBox(G, wx-B*0.66,gy,wz-B*0.66, wx+B*0.66,wallTop,wz+B*0.66, 'cobble','cobble',null);
+    if(s2%2===0) emitBox(G, wx-B*0.3,wallTop,wz-B*0.3, wx+B*0.3,wallTop+B*0.5,wz+B*0.3, 'cobble','cobble',null);   /* crenels */
+    if(s2%9===0) emitBox(G, wx-B*1.15,gy,wz-B*1.15, wx+B*1.15,wallTop+B*1.4,wz+B*1.15, 'cobble','cobble',null); }  /* towers */
+  for(const th of [1.5708,4.7124]) for(const off of [-0.2,0.2]){       /* the gate towers */
+    const wx=x+Math.cos(th+off)*RA, wz=z+Math.sin(th+off)*RB;
+    const c=landAtWorld(wx,wz); if(!c||c.kind==='wall') continue;
+    emitBox(G, wx-B*1.1,c.h*B-B*0.5,wz-B*1.1, wx+B*1.1,wallTop+B*1.8,wz+B*1.1, 'cobble','cobble',null); }
+  /* the street of the city: gate to gate, and up to the courts */
+  emitPathLine(G, x,z-RB, x,z+RB); emitPathLine(G, x,z, x+B*9,z);
+  /* ---- the Temple platform and its stair, eastward ---- */
+  const tp=y+B*1.6;
+  emitBox(G, x-B*8,y-B*0.5,z-B*6, x+B*8,tp,z+B*6, 'stone','cobble',null);
+  for(let i=0;i<5;i++)
+    emitBox(G, x+B*8+i*B*0.8, tp-(i+1)*B*0.34, z-B*2, x+B*8+(i+1)*B*0.8, tp-i*B*0.34, z+B*2, 'stone','stone',null);
+  /* the court wall about the platform edge */
+  for(const sx of [-1,1]) emitBox(G, x+sx*B*7.8-B*0.25,tp,z-B*5.8, x+sx*B*7.8+B*0.25,tp+B*0.9,z+B*5.8, 'stone','stone',null);
+  for(const sz of [-1,1]) emitBox(G, x-B*7.8,tp,z+sz*B*5.8-B*0.25, x+B*7.8,tp+B*0.9,z+sz*B*5.8+B*0.25, 'stone','stone',null);
+  /* ---- the house: hewn stone, cedar courses, the crown of gold ---- */
+  const Hx0=x-B*6.4, Hx1=x+B*1.2, Hz0=z-B*2.2, Hz1=z+B*2.2, Hy1=tp+B*4;
+  emitBox(G, Hx0,tp,Hz0, Hx1,Hy1,Hz1, 'stone','stone',null);
+  emitBox(G, Hx0-B*0.08,tp+B*0.9,Hz0-B*0.08, Hx1+B*0.08,tp+B*1.12,Hz1+B*0.08, 'planks','planks',null);
+  emitBox(G, Hx0-B*0.08,tp+B*2.5,Hz0-B*0.08, Hx1+B*0.08,tp+B*2.72,Hz1+B*0.08, 'planks','planks',null);
+  emitBox(G, Hx0-B*0.3,Hy1,Hz0-B*0.3, Hx1+B*0.3,Hy1+B*0.55,Hz1+B*0.3, 'hayTop','hayTop','hayTop');
+  /* Yakin and Boaz — the two free pillars of the porch, crowned in gold */
+  for(const s of [-1,1]){
+    emitBox(G, Hx1+B*1.3-B*0.45,tp,z+s*B*1.5-B*0.45, Hx1+B*1.3+B*0.45,tp+B*3.4,z+s*B*1.5+B*0.45, 'logSide','logTop',null);
+    emitBox(G, Hx1+B*1.3-B*0.6,tp+B*3.4,z+s*B*1.5-B*0.6, Hx1+B*1.3+B*0.6,tp+B*3.9,z+s*B*1.5+B*0.6, 'hayTop','hayTop','hayTop'); }
+  /* the altar of unhewn stone before the porch */
+  emitBox(G, Hx1+B*3.4,tp,z-B*1.1, Hx1+B*4.9,tp+B*1.15,z+B*1.1, 'cobble','stone',null);
+  /* ---- the houses of the city, flat-roofed stone on the slopes ---- */
+  for(let hI=0;hI<16;hI++){ const a=rnd(hI+30)*6.283, rr=B*5+rnd(hI+50)*B*7;
+    const hx=x+Math.cos(a)*rr, hz=z+Math.sin(a)*rr*(RB/RA);
+    if(Math.abs(hx-x)<B*9.5&&Math.abs(hz-z)<B*7.5) continue;           /* the courts stay clear */
+    const c=landAtWorld(hx,hz); if(!c||c.kind==='wall'||c.kind==='floe') continue;
+    const gy=c.h*B, w=B*(1.4+rnd(hI+70)*0.9), hh=B*(1.4+rnd(hI+90)*0.8);
+    emitBox(G, hx-w,gy,hz-w, hx+w,gy+hh,hz+w, 'path','path',null);
+    emitBox(G, hx-w*0.45,gy+hh,hz-w*0.45, hx+w*0.45,gy+hh+B*0.5,hz+w*0.45, 'path','path',null); }
+  /* ---- the olive groves on the terraces without the walls ---- */
+  for(let tI=0;tI<18;tI++){ const a=rnd(tI+130)*6.283, rr=RA+B*3+rnd(tI+150)*B*8;
+    const tx=x+Math.cos(a)*rr, tz=z+Math.sin(a)*rr*(RB/RA);
+    const c=landAtWorld(tx,tz); if(!c||c.kind==='wall'||c.kind==='floe'||c.kind==='sand') continue;
+    const gy=c.h*B;
+    emitBox(G, tx-B*0.3,gy,tz-B*0.3, tx+B*0.3,gy+B*1.5,tz+B*0.3, 'logSide','logTop',null);
+    emitBox(G, tx-B*1.15,gy+B*1.2,tz-B*1.15, tx+B*1.15,gy+B*2.2,tz+B*1.15, 'leaves','leaves','leaves'); }
   const g=new THREE.Group();
   for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
     bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
@@ -3643,6 +3801,123 @@ function buildHome(){ if(!homePos) return;
     const gs=new THREE.Sprite(gm); gs.scale.set(24,24,1); gs.position.set(tp.x,tp.y+1,tp.z); g.add(gs); }
   scene.add(g);
   HOME={x:cx,z:cz,plat,house:ex.houses[0],ix:homePos.ix,iz:homePos.iz};
+}
+
+/* ================= THE WONDERS OF THE ANCIENTS =================
+   The famous works of the old world stand at their true places: pyramids,
+   ziggurats, temples, standing stones, walls, gates, a lighthouse — built
+   from the same blocks as the land when the traveller draws near, each
+   under its own golden name. The named summits carry a name-banner too. */
+function lmPyramid(G,x,z,y,s){ s=s||1; const layers=9, bw=B*7.5*s, step=B*1.15*s;
+  for(let i=0;i<layers;i++){ const w=bw*(1-i/layers)+B*0.4;
+    emitBox(G, x-w,y+i*step,z-w, x+w,y+(i+1)*step,z+w, 'sand','sand',null); }
+  emitBox(G, x-B*0.6,y+layers*step,z-B*0.6, x+B*0.6,y+layers*step+B*0.7,z+B*0.6,'stone','stone',null); }
+function lmZiggurat(G,x,z,y){ const ws=[B*7.5,B*5.8,B*4.2,B*2.8], step=B*1.7;
+  for(let i=0;i<ws.length;i++)
+    emitBox(G, x-ws[i],y+i*step,z-ws[i], x+ws[i],y+(i+1)*step,z+ws[i], 'badSide','badTop',null);
+  const H2=ws.length*step;
+  emitBox(G, x-B*1.2,y+H2,z-B*1.2, x+B*1.2,y+H2+B*1.7,z+B*1.2, 'cobble','cobble',null);   /* the high shrine */
+  for(let i=0;i<14;i++){ const t=i/14;                                                     /* the great stair */
+    emitBox(G, x-B*0.9,y+t*H2, z+(ws[0]+B*2)*(1-t)+B*0.6, x+B*0.9,y+t*H2+B*0.55, z+(ws[0]+B*2)*(1-t)+B*2.0, 'badSide','badTop',null); } }
+function lmTemple(G,x,z,y,s){ s=s||1; const wx=B*6.5*s, wz=B*4.2*s, colH=B*3.6*s, y0=y+B*0.8;
+  emitBox(G, x-wx-B*1.7,y-B*0.4,z-wz-B*1.7, x+wx+B*1.7,y+B*0.35,z+wz+B*1.7, 'stone','stone',null);   /* the steps */
+  emitBox(G, x-wx-B,y,z-wz-B, x+wx+B,y0,z+wz+B, 'stone','stone',null);                               /* stylobate */
+  const nx=Math.max(4,Math.round(wx/(B*1.5))), nz=Math.max(3,Math.round(wz/(B*1.5)));
+  for(let i=0;i<=nx;i++){ const cx2=-wx+i*(2*wx/nx);
+    for(const sz of [-1,1]) emitBox(G, x+cx2-B*0.38,y0,z+sz*wz-B*0.38, x+cx2+B*0.38,y0+colH,z+sz*wz+B*0.38,'stone','stone',null); }
+  for(let i=1;i<nz;i++){ const cz2=-wz+i*(2*wz/nz);
+    for(const sx of [-1,1]) emitBox(G, x+sx*wx-B*0.38,y0,z+cz2-B*0.38, x+sx*wx+B*0.38,y0+colH,z+cz2+B*0.38,'stone','stone',null); }
+  emitBox(G, x-wx*0.55,y0,z-wz*0.55, x+wx*0.55,y0+colH,z+wz*0.55, 'stone','stone',null);             /* the cella */
+  emitBox(G, x-wx-B*0.7,y0+colH,z-wz-B*0.7, x+wx+B*0.7,y0+colH+B*0.7,z+wz+B*0.7, 'stone','stone',null); /* architrave */
+  emitBox(G, x-wx*0.96,y0+colH+B*0.7,z-wz*0.96, x+wx*0.96,y0+colH+B*1.5,z+wz*0.96, 'roof','roof','roof'); }
+function lmStoneCircle(G,x,z,y){ const R2=B*5.2, n=10;
+  for(let i=0;i<n;i++){ const a=i/n*6.283, sx=x+Math.cos(a)*R2, sz=z+Math.sin(a)*R2;
+    emitBox(G, sx-B*0.55,y,sz-B*0.55, sx+B*0.55,y+B*2.6,sz+B*0.55, 'stone','stone',null);
+    if(i%2===0){ const am=(i+0.5)/n*6.283, tx=x+Math.cos(am)*R2, tz=z+Math.sin(am)*R2;
+      emitBox(G, tx-B*1.35,y+B*2.6,tz-B*1.35, tx+B*1.35,y+B*3.2,tz+B*1.35, 'stone','stone',null); } } }
+function lmWall(G,x,z,y,s){ const L2=(s?s*B*22:B*44), segs=Math.round(L2/B);
+  for(let s2=0;s2<segs;s2++){ const wx2=x-L2/2+s2*B, wz2=z+Math.sin(s2*0.33)*B*3.2;
+    const c=landAtWorld(wx2,wz2); if(!c||c.kind==='wall'||c.kind==='floe') continue;
+    const gy=c.h*B;
+    emitBox(G, wx2,gy,wz2-B*0.8, wx2+B,gy+B*2.4,wz2+B*0.8, 'cobble','cobble',null);
+    if(s2%2===0) emitBox(G, wx2,gy+B*2.4,wz2-B*0.8, wx2+B*0.5,gy+B*2.8,wz2-B*0.45,'cobble','cobble',null);  /* crenels */
+    if(s2%9===0) emitBox(G, wx2-B*0.6,gy,wz2-B*1.5, wx2+B*1.6,gy+B*4.2,wz2+B*1.5, 'cobble','cobble',null); } } /* watchtowers */
+function lmLighthouse(G,x,z,y){
+  emitBox(G, x-B*3,y,z-B*3, x+B*3,y+B*6,z+B*3, 'stone','stone',null);
+  emitBox(G, x-B*2,y+B*6,z-B*2, x+B*2,y+B*11,z+B*2, 'stone','stone',null);
+  emitBox(G, x-B*1.2,y+B*11,z-B*1.2, x+B*1.2,y+B*14,z+B*1.2, 'stone','stone',null);
+  emitBox(G, x-B*1.6,y+B*14,z-B*1.6, x+B*1.6,y+B*14.5,z+B*1.6, 'cobble','cobble',null); }
+function lmGate(G,x,z,y){
+  for(const s of [-1,1]) emitBox(G, x+s*B*3-B*1.4,y,z-B*1.4, x+s*B*3+B*1.4,y+B*5,z+B*1.4, 'cobble','cobble',null);
+  emitBox(G, x-B*4.4,y+B*3.4,z-B*1.1, x+B*4.4,y+B*5,z+B*1.1, 'cobble','cobble',null);
+  emitBox(G, x-B*4.4,y+B*5,z-B*0.9, x-B*3.4,y+B*5.7,z+B*0.9, 'cobble','cobble',null);
+  emitBox(G, x+B*3.4,y+B*5,z-B*0.9, x+B*4.4,y+B*5.7,z+B*0.9, 'cobble','cobble',null); }
+function lmCity(G,x,z,y,s,seed){ seed=seed||7.7; const R2=B*10;
+  for(let a=0;a<44;a++){ const th=a/44*6.283, wx2=x+Math.cos(th)*R2, wz2=z+Math.sin(th)*R2;
+    if(a===0||a===1) continue;                                       /* the gate gap */
+    const c=landAtWorld(wx2,wz2); if(!c||c.kind==='wall'||c.kind==='floe') continue;
+    emitBox(G, wx2-B*0.5,c.h*B,wz2-B*0.5, wx2+B*0.5,c.h*B+B*1.8,wz2+B*0.5, 'cobble','cobble',null); }
+  for(let hI=0;hI<9;hI++){ const a=hash2(hI*3.1,seed)*6.283, r=B*2+hash2(hI*1.7,seed*2)*R2*0.6;
+    const hx=x+Math.cos(a)*r, hz=z+Math.sin(a)*r; const c=landAtWorld(hx,hz); if(!c||c.kind==='wall') continue;
+    const gy=c.h*B, w=B*(1.5+hash2(hI,seed*3)*1.2);
+    emitBox(G, hx-w,gy,hz-w, hx+w,gy+B*(1.5+hash2(hI,seed*5)),hz+w, 'path','path',null); } }   /* mudbrick, flat-roofed */
+function lmStatue(G,x,z,y){
+  emitBox(G, x-B*2,y,z-B*2, x+B*2,y+B*0.8,z+B*2, 'stone','stone',null);
+  emitBox(G, x-B*1.3,y+B*0.8,z-B*1.3, x+B*1.3,y+B*3.4,z+B*1.3, 'stone','stone',null);
+  emitBox(G, x-B*1.35,y+B*2.1,z+B*1.25, x+B*1.35,y+B*2.7,z+B*1.4, 'stone','stone',null); }
+const LM_BUILDERS={pyramid:lmPyramid,ziggurat:lmZiggurat,temple:lmTemple,stonecircle:lmStoneCircle,
+  wall:lmWall,lighthouse:lmLighthouse,gate:lmGate,city:lmCity,statue:lmStatue};
+const activeLandmarks=new Map(); const LM_SITE=[];
+function landmarkSite(idx){ if(LM_SITE[idx]!==undefined) return LM_SITE[idx];
+  const L=LANDMARKS[idx]; const [wx,wz]=llToWorld(L.lat,L.lon);
+  const ix0=Math.floor(wx/B), iz0=Math.floor(wz/B); let best=null;
+  for(let rad=0;rad<40&&!best;rad++) for(let a=0;a<Math.max(1,rad*6)&&!best;a++){
+    const th=a/(rad*6||1)*Math.PI*2;
+    const jx=ix0+Math.round(Math.cos(th)*rad), jz=iz0+Math.round(Math.sin(th)*rad);
+    const cc=cell(jx,jz); if(cc&&cc.kind!=='wall'&&cc.kind!=='floe') best={ix:jx,iz:jz,x:(jx+.5)*B,z:(jz+.5)*B};
+  }
+  LM_SITE[idx]=best||null; return LM_SITE[idx];
+}
+function spawnLandmark(i){
+  const L=LANDMARKS[i], site=landmarkSite(i);
+  if(!site){ activeLandmarks.set(i,{none:true}); return; }
+  const y=topY(site.ix,site.iz), x=site.x, z=site.z;
+  let g=null;
+  if(L.kind!=='mount'){
+    const G=newG();
+    (LM_BUILDERS[L.kind]||lmTemple)(G,x,z,y,L.s,i*77.7);
+    g=new THREE.Group();
+    for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
+      bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
+      bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
+      bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
+      bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
+    if(L.kind==='lighthouse'){                             /* the fire at the top, ever burning */
+      const tip=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),torchMat); tip.position.set(x,y+B*15.4,z); g.add(tip);
+      const gm2=new THREE.SpriteMaterial({map:glowTexCv,transparent:true,opacity:0.6,depthWrite:false});
+      const gs=new THREE.Sprite(gm2); gs.scale.set(60,60,1); gs.position.set(x,y+B*15.6,z); g.add(gs); }
+    scene.add(g);
+  }
+  const label=makeLabel(L.n,true);
+  label.position.set(x, y+(L.kind==='mount'?(L.peak||18)*B+30:B*16+24), z);
+  label.scale.set(220,220/6,1);
+  scene.add(label);
+  activeLandmarks.set(i,{g,label});
+}
+function updateLandmarks(px,pz){
+  for(let i=0;i<LANDMARKS.length;i++){ const L=LANDMARKS[i];
+    const [wx,wz]=llToWorld(L.lat,L.lon);
+    const d=Math.hypot(px-wx,pz-wz);
+    const has=activeLandmarks.has(i);
+    if(has){ const A=activeLandmarks.get(i);      /* the name draws near out of the haze */
+      if(A.label) A.label.material.opacity=namesOn?Math.max(0,Math.min(0.95,(1500-d)/700)):0; }
+    if(d<1600&&!has) spawnLandmark(i);
+    else if(d>2100&&has){ const A=activeLandmarks.get(i);
+      if(A.g){ scene.remove(A.g); A.g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); }
+      if(A.label){ scene.remove(A.label);
+        if(A.label.material.map) A.label.material.map.dispose(); A.label.material.dispose(); }
+      activeLandmarks.delete(i); }
+  }
 }
 
 /* ================= NAME BANNERS ================= */
@@ -3797,7 +4072,7 @@ function boatTick(dt,helm){
   const bowX=nx+fX*44*SHIP_S*sgn, bowZ=nz+fZ*44*SHIP_S*sgn;
   /* she is a BROAD ship: probe bow, waist and both beams (and the bow
      quarters), so neither flank ever ploughs through a shore or skerry */
-  const rX=Math.cos(bt.heading)*16, rZ=-Math.sin(bt.heading)*16;
+  const rX=Math.cos(bt.heading)*7.2*SHIP_SX, rZ=-Math.sin(bt.heading)*7.2*SHIP_SX;   /* the true half-beam of the broad hull */
   const qX=nx+fX*24*SHIP_S*sgn, qZ=nz+fZ*24*SHIP_S*sgn;
   const clear=!blockedForBoat(bowX,bowZ)&&!blockedForBoat(nx,nz)
     &&!blockedForBoat(nx+rX,nz+rZ)&&!blockedForBoat(nx-rX,nz-rZ)
@@ -5071,7 +5346,9 @@ function findStart(){
 }
 let running=false, saveT=0;
 async function begin(fresh){
-  computeSites(); buildYahru(); buildHome();
+  computeSites();
+  cellCacheOn=true; CELL_CACHE.clear();   /* sites are fixed — the terrain is now immutable and memoisable */
+  buildYahru(); buildHome();
   const saved=fresh?null:await loadSaved();
   if(saved){ state.boat.x=saved.x; state.boat.z=saved.z; state.boat.heading=saved.h; state.simHours=saved.t;
     if(saved.v>=3&&saved.m==='walk'){ state.walk.x=saved.wx; state.walk.z=saved.wz;
@@ -5124,6 +5401,9 @@ function frame(){
   else if(state.mode==='dive') diveTick(dt);
   const p=state.mode==='walk'?state.walk:state.mode==='fly'?state.fly:state.mode==='dive'?state.dive:state.boat;
   const light=skyTick(p.x,p.z);
+  /* the wind in the leaves — phase clock and strength for the sway shader */
+  WIND_T.value=performance.now()*0.001;
+  { const wnd=windAt(p.x,p.z); WIND_A.value=(0.35+wnd.s*0.9)*(1+(light.storm||0)*1.6); }
   /* aloft the air clears and the eye reaches far — open the fog with altitude */
   const eyeY=state.mode==='fly'?state.fly.y:20;
   if(scene.fog&&!state.firm){ const climbF=Math.max(0,eyeY-CLOUD_Y);
@@ -5202,8 +5482,12 @@ function frame(){
   netTick(dt);
   if(!state.firm&&state.mode!=='dive') traderTick(p.x,p.z,dt); else hideTraders();
   audioTick(light.storm||0);
-  updateChunks(p.x,p.z,4);
+  /* stream faster when the traveller outruns the mesher — a swift ship or a
+     flyer eats chunks at 300+ units/s and 4-a-frame falls behind the fog line */
+  const chunkBudget=(state.mode==='fly'||Math.abs(state.boat.speed)>70)?9:4;
+  updateChunks(p.x,p.z,chunkBudget);
   updateVillages(p.x,p.z,dt,light.nightF);
+  updateLandmarks(p.x,p.z);
   /* the living world — weather, hearths, fireflies, meetings, murmurs */
   if(!state.firm){ const _t=performance.now()*0.001;
     weatherTick(p.x,p.z,dt,light.storm||0);
