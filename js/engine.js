@@ -952,8 +952,55 @@ const FL_SEA=[0.07,0.20,0.32], FL_VOID=[0.01,0.012,0.03];
 const farLandMat=new THREE.MeshBasicMaterial({vertexColors:true}); LIT.push(farLandMat);
 const farLand=new THREE.Mesh(flGeo,farLandMat);
 farLand.frustumCulled=false; farLand.visible=false; scene.add(farLand);
-const _flH=new Float32Array((FL_RINGS+1)*FL_SPOKES);
-let _flAt=null, _flR1=FL_R1;
+const FL_NV=(FL_RINGS+1)*FL_SPOKES;
+const _flH=new Float32Array(FL_NV);
+/* THE RING IS BUILT OFF TO ONE SIDE AND SWAPPED IN WHOLE. Reading fifteen
+   thousand cells of far country costs about fifty milliseconds — three whole
+   frames — and at flying speed that bill falls due twice a second, which is
+   felt as a lurch. So the work is laid out over as many frames as it takes,
+   about six milliseconds at a time, into a second pair of buffers; the ring
+   on screen keeps its old centre and its old shape until the last vertex is
+   ready, and then the whole of it changes at once. A half-built ring is
+   never shown. */
+const _flPB=new Float32Array(FL_NV*3), _flCB=new Float32Array(FL_NV*3);
+const FL_MS=6;                 /* the slice of a frame the rebuild may take */
+let _flAt=null, _flR1=FL_R1, _flJob=null;
+/* one ring of ground: the heights and the colours, read from the world */
+function flFillRing(k,px,pz,kr){
+  const rr=FL_R0*Math.exp(kr*k/FL_RINGS);
+  for(let s=0;s<FL_SPOKES;s++){
+    const v=k*FL_SPOKES+s, i=v*3;
+    _flPB[i]=FL_COS[s]*rr; _flPB[i+2]=FL_SIN[s]*rr;
+    const wx=_flPB[i]+px, wz=_flPB[i+2]+pz;
+    /* cellRaw, not cell — the village flattening is a matter of 86 units and
+       cannot be seen out here, and filling the cell cache with far country
+       would only thrash it for the ground underfoot */
+    const cc=cellRaw(Math.floor(wx/B),Math.floor(wz/B));
+    let y,c;
+    if(cc){ y=cc.h*B; c=FL_COL[cc.kind]||FL_COL.grass; }
+    else if(Math.hypot(wx,wz)>R_WORLD*0.9955){
+      /* past the rim there is no sea and no land — only the outer darkness.
+         A sheet of ocean drawn out there hung in the void below the ice. */
+      y=-900; c=FL_VOID; }
+    else { y=WATER_Y-6; c=FL_SEA; }     /* well under the trough of any wave */
+    _flH[v]=y; _flCB[i]=c[0]; _flCB[i+1]=c[1]; _flCB[i+2]=c[2];
+  }
+}
+/* one ring of shading: a flank is darker than a level top, as it is on the
+   blocks — read off the fall of the land to the next vertex out and round */
+function flShadeRing(k,r1){
+  const r=Math.hypot(_flPB[(k*FL_SPOKES)*3],_flPB[(k*FL_SPOKES)*3+2]);
+  const step=Math.max(1,Math.min(r*6.283/FL_SPOKES,(r1-FL_R0)/FL_RINGS));
+  for(let s=0;s<FL_SPOKES;s++){
+    const v=k*FL_SPOKES+s, i=v*3;
+    const vr=(k<FL_RINGS?k+1:k-1)*FL_SPOKES+s, vs=k*FL_SPOKES+(s+1)%FL_SPOKES;
+    const fall=(Math.abs(_flH[v]-_flH[vr])+Math.abs(_flH[v]-_flH[vs]))/(step*1.7);
+    const sh=1-0.40*Math.min(1,fall);
+    const sink=Math.max(0,1-Math.max(0,r-FL_R0)/FL_FADE);
+    _flPB[i+1]=_flH[v]-sink*B*1.4;
+    _flCB[i]*=sh; _flCB[i+1]*=sh; _flCB[i+2]*=sh;
+  }
+}
 function updateFarLand(px,pz,force,eyeY){
   /* THE HIGHER THE EYE, THE FURTHER IT MUST REACH. A ring three thousand
      units across is the whole world when you stand on it and a postage stamp
@@ -966,53 +1013,40 @@ function updateFarLand(px,pz,force,eyeY){
      blur. Whichever reaches further, the height or the pull-back, sets it. */
   const reach=Math.max(eyeY||0, state.camDist*0.75);
   const want=FL_R1*(1+Math.min(7,Math.max(0,reach-120)/2200));
-  /* The threshold CANNOT be opened out to pay for the denser mesh, however
+  /* The staleness CANNOT be opened out to pay for the denser mesh, however
      far the ring reaches: while it is stale its hole sits off to one side of
-     the traveller, and R0 (420) plus the step has to stay inside the chunks'
-     own reach (~768) or open sky shows where the ground should be. 330 is the
-     whole of the room there is. */
-  const moved=!_flAt||Math.hypot(_flAt[0]-px,_flAt[1]-pz)>=330;
+     the traveller, and R0 (420) plus that offset has to stay inside the
+     chunks' own reach (~768) or open sky shows where the ground should be.
+     ~330 is the whole of the room there is — and now the rebuild takes ten
+     frames rather than one, the traveller goes on moving through the whole of
+     it, so the work is STARTED earlier, at 220, to leave the rest for the
+     ground he covers while it is being laid out. */
+  const lag=_flAt?Math.hypot(_flAt[0]-px,_flAt[1]-pz):0;
   const grown=Math.abs(want-_flR1)/_flR1>0.18;
-  if(!force&&!moved&&!grown) return;
-  _flAt=[px,pz]; _flR1=want; farLand.position.set(px,0,pz);
-  const pos=flGeo.attributes.position, a=pos.array, col=flGeo.attributes.color.array;
-  const kr=Math.log(_flR1/FL_R0);
-  /* first the heights and the colours of the ground */
-  for(let k=0;k<=FL_RINGS;k++){ const rr=FL_R0*Math.exp(kr*k/FL_RINGS);
-  for(let s=0;s<FL_SPOKES;s++){
-    const v=k*FL_SPOKES+s, i=v*3;
-    a[i]=FL_COS[s]*rr; a[i+2]=FL_SIN[s]*rr;
-    const wx=a[i]+px, wz=a[i+2]+pz;
-    /* cellRaw, not cell — the village flattening is a matter of 86 units and
-       cannot be seen out here, and filling the cell cache with far country
-       would only thrash it for the ground underfoot */
-    const cc=cellRaw(Math.floor(wx/B),Math.floor(wz/B));
-    let y,c;
-    if(cc){ y=cc.h*B; c=FL_COL[cc.kind]||FL_COL.grass; }
-    else if(Math.hypot(wx,wz)>R_WORLD*0.9955){
-      /* past the rim there is no sea and no land — only the outer darkness.
-         A sheet of ocean drawn out there hung in the void below the ice. */
-      y=-900; c=FL_VOID; }
-    else { y=WATER_Y-6; c=FL_SEA; }     /* well under the trough of any wave */
-    _flH[v]=y; col[i]=c[0]; col[i+1]=c[1]; col[i+2]=c[2];
-  } }
-  /* then the shading: a flank is darker than a level top, as it is on the
-     blocks — read off the fall of the land to the next vertex out and round */
-  for(let k=0;k<=FL_RINGS;k++){
-    const r=Math.hypot(a[(k*FL_SPOKES)*3],a[(k*FL_SPOKES)*3+2]);
-    const step=Math.max(1,Math.min(r*6.283/FL_SPOKES,(_flR1-FL_R0)/FL_RINGS));
-    for(let s=0;s<FL_SPOKES;s++){
-      const v=k*FL_SPOKES+s, i=v*3;
-      const vr=(k<FL_RINGS?k+1:k-1)*FL_SPOKES+s, vs=k*FL_SPOKES+(s+1)%FL_SPOKES;
-      const fall=(Math.abs(_flH[v]-_flH[vr])+Math.abs(_flH[v]-_flH[vs]))/(step*1.7);
-      const sh=1-0.40*Math.min(1,fall);
-      const d=Math.hypot(a[i],a[i+2]);
-      const sink=Math.max(0,1-Math.max(0,d-FL_R0)/FL_FADE);
-      a[i+1]=_flH[v]-sink*B*1.4;
-      col[i]*=sh; col[i+1]*=sh; col[i+2]*=sh;
-    }
-  }
-  pos.needsUpdate=true; flGeo.attributes.color.needsUpdate=true;
+  /* the very first ring has nothing to stand in for it, so it is built whole
+     before the frame is drawn rather than showing a black disc for a moment */
+  const whole=force||!_flAt;
+  if(!_flJob){
+    if(!whole&&lag<220&&!grown) return;
+    _flJob={px,pz,r1:want,kr:Math.log(want/FL_R0),k:0,sk:0};
+  } else if(whole){ _flJob={px,pz,r1:want,kr:Math.log(want/FL_R0),k:0,sk:0}; }
+  /* and if he is outrunning it anyway — flying, or the frames themselves so
+     slow that ten of them are seconds — the rebuild stops being polite and
+     finishes in the one frame rather than let the hole open. That is the old
+     50 ms hitch, but only ever in the case where politeness has already lost;
+     it is no longer the price of every step. */
+  const rush=whole||lag>380;
+  const J=_flJob, t0=performance.now();
+  while(J.k<=FL_RINGS){ flFillRing(J.k++,J.px,J.pz,J.kr);
+    if(!rush&&performance.now()-t0>=FL_MS) return; }
+  while(J.sk<=FL_RINGS){ flShadeRing(J.sk++,J.r1);
+    if(!rush&&performance.now()-t0>=FL_MS) return; }
+  /* done — the new ring takes the place of the old one in a single step */
+  flGeo.attributes.position.array.set(_flPB);
+  flGeo.attributes.color.array.set(_flCB);
+  flGeo.attributes.position.needsUpdate=true; flGeo.attributes.color.needsUpdate=true;
+  farLand.position.set(J.px,0,J.pz);
+  _flAt=[J.px,J.pz]; _flR1=J.r1; _flJob=null;
 }
 
 /* ================= RENDERER · SKY · SEA ================= */
