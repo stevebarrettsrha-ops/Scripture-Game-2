@@ -6496,7 +6496,10 @@ function frame(){
       /* the fixed cover mantles the whole earth (does NOT follow the traveller);
          from on high it thins, and the earth's charted face shows through it */
       const mapF2=Math.max(0,Math.min(1,(eyeY-9000)/9000));
-      cloudCover.material.opacity=above*0.97*(1-mapF2*0.82);
+      /* and it thins with the ZOOM as well as with the climb — drawn back to
+         behold the whole earth from a low altitude, this sheet is a solid
+         white lid over the world and nothing of her can be seen at all */
+      cloudCover.material.opacity=above*0.97*(1-mapF2*0.82)*(1-zMapF);
       cloudCover.material.color.copy(mix3(0x59637a,0xe0c6a0,0xffffff,light.dayF));
     } }
   /* THE DEEP IS FURNISHED WHENEVER THE EYE IS IN IT — diving, swimming, or a
