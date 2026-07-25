@@ -734,6 +734,7 @@ snowGeo.setAttribute('position',new THREE.BufferAttribute(snowPos,3));
 const snowMat=new THREE.PointsMaterial({color:0xeef4ff,size:0.85,transparent:true,opacity:0,depthWrite:false,fog:false,sizeAttenuation:true});
 const snow=new THREE.Points(snowGeo,snowMat); snow.frustumCulled=false; snow.visible=false; scene.add(snow);
 const _coldFog=new THREE.Color(0xb6c6da);
+const _voidC=new THREE.Color(0x02030a);      /* the outer darkness, beyond the rim */
 function updateWallWeather(px,pz,dt){
   if(state.firm){ snow.visible=false; snowMat.opacity=0; return; }
   const r=Math.hypot(px,pz)/R_WORLD, wallF=Math.max(0,Math.min(1,(r-0.85)/0.1));
@@ -1014,6 +1015,27 @@ const state={ simHours:9.5, speedIdx:1, paused:false,
   windMode:'true', firm:false, firmDist:0, camYaw:0, camPitch:0.42, camDist:96,
   visited:new Set(), dist:0, fish:0, fishing:null, coins:30, cargo:{}, game:0,
   breath:1, immBreath:false, pearls:0, repel:false, net:null, rep:{} };
+
+/* ================= THE ONE ZOOM =================
+   The zoom was two disconnected axes with a cliff between them: camDist ran
+   14→240 and at the top SNAPPED into the firmament view's own firmDist — so
+   one flick of the wheel jumped from over-the-shoulder to a drawn page, and
+   the last third of the range did nothing at all, being clamped away per
+   mode. It is ONE scalar now: state.zoom, 0 at the shoulder and 1 at the
+   whole earth, with distance running exponentially along it so a notch of
+   the wheel covers the same PROPORTION near and far. The camera only ever
+   EASES toward it, so however fast the wheel is spun the view opens slowly.
+   Nothing snaps; the firmament view is entered by its own button alone. */
+const CAM_NEAR_D=14, CAM_FAR_D=R_WORLD*1.75, CAM_LN=Math.log(CAM_FAR_D/CAM_NEAR_D);
+function zoomToDist(z){ return CAM_NEAR_D*Math.exp(CAM_LN*Math.max(0,Math.min(1,z))); }
+function distToZoom(d){ return Math.min(1,Math.max(0,Math.log(Math.max(CAM_NEAR_D,d)/CAM_NEAR_D)/CAM_LN)); }
+/* Drawn back this far, the streamed chunks of the world run out (they reach
+   some 768 units, and the haze ends the view at 870), so from here the
+   earth's own charted face — the TRUE outlines of the countries — is brought
+   up beneath the eye and the world is seen whole. */
+const ZOOM_MAP0=0.40, ZOOM_MAP1=0.66;
+function zoomMapFade(){ return Math.max(0,Math.min(1,(state.zoom-ZOOM_MAP0)/(ZOOM_MAP1-ZOOM_MAP0))); }
+state.zoom=distToZoom(state.camDist);
 
 /* ================= THE WINDS =================
    The bands of the disc mirror the true circulation: trade easterlies in
@@ -1902,11 +1924,28 @@ sbGeo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(sbGeo.attr
 TEX.seasand.repeat.set(SB_SIZE/6,SB_SIZE/6);
 const seaFloor=new THREE.Mesh(sbGeo,new THREE.MeshLambertMaterial({map:TEX.seasand,vertexColors:true,side:THREE.DoubleSide}));
 seaFloor.visible=false; seaFloor.frustumCulled=false; scene.add(seaFloor);
-function updateSeaFloor(px,pz){ const pos=sbGeo.attributes.position, a=pos.array, col=sbGeo.attributes.color.array;
+/* Rebuilding 97×97 vertices and recomputing their normals every frame is the
+   costliest thing in the deep, and the bed only ever moves when the swimmer
+   does. So it is rebuilt on a threshold of travel, not on the clock — which
+   also lets the bed be furnished while merely swimming, at no cost to a
+   voyage spent on the surface. */
+let _sbAt=null;
+function updateSeaFloor(px,pz,force){
+  if(!force&&_sbAt&&Math.hypot(_sbAt[0]-px,_sbAt[1]-pz)<9) return;
+  _sbAt=[px,pz];
+  /* the mesh is anchored WHERE ITS DATA WAS BUILT. Each vertex holds a local
+     x/z and an absolute world y, so moving the mesh without rebuilding would
+     drag the whole sea bed along behind the swimmer. */
+  seaFloor.position.set(px,0,pz);
+  const pos=sbGeo.attributes.position, a=pos.array, col=sbGeo.attributes.color.array;
   for(let i=0;i<a.length;i+=3){ const wx=a[i]+px, wz=a[i+2]+pz, y=seabedDepth(wx,wz); a[i+1]=y;
     const depth=SEA_SURF-y, lit=Math.max(0,1-depth/460), alg=fbm(wx*0.03+3,wz*0.03+7);
-    let r=0.74+0.26*lit, g=0.76+0.24*lit, b=0.64+0.28*lit;   /* tint the sand: darker deep, green where algae */
-    if(alg>0.62){ r*=0.6; g*=0.9; b*=0.55; }
+    /* The bed is DROWNED sand, not a meadow. It is painted over the beach-sand
+       texture, so the vertex tint must pull the yellow out of it and put the
+       cold of deep water in — muted at the top of the shelf and near black in
+       the trenches; and the weed upon it is a dull olive, never lawn green. */
+    let r=0.22+0.34*lit, g=0.25+0.34*lit, b=0.27+0.30*lit;
+    if(alg>0.62){ const w=Math.min(1,(alg-0.62)/0.16); r*=1-0.30*w; g*=1-0.14*w; b*=1-0.34*w; }
     col[i]=r; col[i+1]=g; col[i+2]=b; }
   pos.needsUpdate=true; sbGeo.attributes.color.needsUpdate=true; sbGeo.computeVertexNormals(); }
 /* ---- kelp — tall strands rising from the floor, swaying with the current ---- */
@@ -2338,11 +2377,36 @@ function hideDeep(){ seaFloor.visible=false;
   for(const r of RAYS)r.m.visible=false; for(const f of DIVEFISH)f.m.visible=false; for(const q of SQUIDS)q.m.visible=false;
   for(const d of DOLPHINS)d.m.visible=false; for(const s of SHARKS)s.m.visible=false; hideSeaMobs();
   for(const b of BUB)b.s.visible=false; for(const w of WRECKS)w.visible=false; hidePearls(); deepShown=false; }
-function updateDeep(px,py,pz,dt,murk){ const t=performance.now()*0.001;
-  seaFloor.visible=true; seaFloor.position.set(px,0,pz); updateSeaFloor(px,pz);
+/* ---- IS THE EYE BENEATH THE WAVES? ----
+   ONE SEA, not two. The deep was furnished only while the traveller dived, so
+   a swimmer at the surface — or a camera rolled under the swell from the
+   strand — looked down into an empty blue with no floor beneath it at all.
+   Whatever puts the eye under the water puts it in the SAME sea, and the bed,
+   the kelp and the fish must all be standing there when it looks. */
+let _eyeUnder=false;
+function eyeUnderwater(){
+  if(state.firm){ _eyeUnder=false; return false; }
+  if(state.mode==='dive'){ _eyeUnder=true; return true; }
+  const cp=camera.position;
+  if(landAtWorld(cp.x,cp.z)){ _eyeUnder=false; return false; }
+  /* a little hysteresis at the waterline: the eye must rise clear of the
+     swell to come out, or a crest lapping the lens would flicker the whole
+     sea on and off from one frame to the next */
+  const surf=WATER_Y+seaHeight(cp.x,cp.z);
+  _eyeUnder = _eyeUnder ? cp.y<surf+0.55 : cp.y<surf-0.15;
+  return _eyeUnder;
+}
+/* full — the traveller is truly down in the deep, so the wrecks of the
+   ancients and the pearl beds are set out for him. Merely looking under the
+   surface furnishes the living sea, but not the things he may take. */
+function updateDeep(px,py,pz,dt,murk,full){ const t=performance.now()*0.001;
+  seaFloor.visible=true; updateSeaFloor(px,pz);   /* updateSeaFloor anchors the mesh itself */
   updateKelp(px,pz,t); updateCoral(px,pz); updateGrass(px,pz,t); updateRays(px,py,pz,murk||0);
   updateDiveFish(px,py,pz,dt,t); updateSquid(px,py,pz,dt,t); updateDolphins(px,py,pz,dt,t); updateSharks(px,py,pz,dt,t);
-  updateSeaMobs(px,py,pz,dt,t); updateBubbles(px,py,pz,dt); updateWreck(px,pz); updatePearls(px,pz); deepShown=true; }
+  updateSeaMobs(px,py,pz,dt,t); updateBubbles(px,py,pz,dt);
+  if(full){ updateWreck(px,pz); updatePearls(px,pz); }
+  else { for(const w of WRECKS)w.visible=false; hidePearls(); }
+  deepShown=true; }
 /* ---- THE CLEAR SHALLOWS TEEM ----
    Fish, turtles and dolphins swim on even when no one dives: seen from the
    deck, the strand or the air wherever the water is shallow and clear. */
@@ -3991,8 +4055,7 @@ cv.addEventListener('pointermove',e=>{
       const f=pinchD/nd; pinchD=nd;
       if(state.firm){ state.firmDist=Math.max(R_WORLD*0.12,Math.min(R_WORLD*2.4,state.firmDist*f));
         if(state.firmDist<=R_WORLD*0.125&&f<1) exitFirm(); }
-      else{ state.camDist=Math.max(14,Math.min(240,state.camDist*f));
-        if(state.camDist>=239.5&&f>1) enterFirm(); }
+      else state.zoom=Math.max(0,Math.min(1,state.zoom+Math.log(f)*0.18));
       return; }
   }
   if(joy&&e.pointerId===joy.id){ joy.dx=Math.max(-60,Math.min(60,e.clientX-joy.x0));
@@ -4043,8 +4106,10 @@ function firmTravel(e){
 cv.addEventListener('wheel',e=>{ e.preventDefault();
   if(state.firm){ state.firmDist=Math.max(R_WORLD*0.12,Math.min(R_WORLD*2.4,state.firmDist*Math.exp(e.deltaY*0.0012)));
     if(state.firmDist<=R_WORLD*0.125&&e.deltaY<0) exitFirm(); return; }
-  state.camDist=Math.max(14,Math.min(240,state.camDist*Math.exp(e.deltaY*0.0012)));
-  if(state.camDist>=239.5&&e.deltaY>0) enterFirm(); },{passive:false});
+  /* one notch of the wheel is a fixed, small step along the zoom — whatever
+     units the browser chooses to report it in (pixels, lines or pages) */
+  const unit=e.deltaMode===1?16:e.deltaMode===2?innerHeight:1;
+  state.zoom=Math.max(0,Math.min(1,state.zoom+e.deltaY*unit*0.00028)); },{passive:false});
 function axis(){
   let f=0,t=0;
   if(keys.KeyW||keys.ArrowUp)f+=1; if(keys.KeyS||keys.ArrowDown)f-=1;
@@ -4283,12 +4348,49 @@ function walkTick(dt){
     /* hold SHIFT at the surface and slip straight down into the deep —
        the same water, the same place, the bed running from the strand */
     if(keys.ShiftLeft||keys.ShiftRight){ enterDive(); return; }
-    w.feetY=surfY-1.0; w.vy=0; w.grounded=true; w.jumpReq=false;
-    /* the swell shoulders the swimmer along — the water is a moving thing */
-    const sl=seaSlope(w.x,w.z), px2=w.x-sl.x*dt*7, pz2=w.z-sl.z*dt*7;
+    /* ---- BUOYANCY, not a weld ----
+       The body was pinned to surfY every single frame, so a passing crest
+       teleported it and it read as a figure SKATING over the water. A float
+       on a spring instead: the swell lifts and drops it with a little lag,
+       as a cork rides the sea, and it is bounded so it can neither be flung
+       above the crest nor left hanging under it. */
+    const rest=surfY-1.0;
+    w.vy+=(rest-w.feetY)*26*dt;              /* the water pushes it back to its line */
+    w.vy-=w.vy*Math.min(1,7.4*dt);           /* and the water drags that motion down */
+    w.vy=Math.max(-46,Math.min(46,w.vy));
+    w.feetY+=w.vy*dt;
+    /* bounded either side of its line — and the upper bound is kept under
+       the swim test's own threshold (surfY+0.6), or the top of a bob would
+       drop him out of swimming and into free fall */
+    if(w.feetY>rest+0.5){ w.feetY=rest+0.5; if(w.vy>0) w.vy=0; }
+    if(w.feetY<rest-4.0){ w.feetY=rest-4.0; if(w.vy<0) w.vy=0; }
+    w.grounded=true; w.jumpReq=false;
+    /* ---- the water carries him ----
+       Not a shove down the slope: a particle in a Gerstner swell travels a
+       CIRCLE, so the surface current runs with the wave. It is eased rather
+       than applied raw, capped well under a swimmer's own stroke, and mostly
+       stilled while he is stroking — the sea sets a resting body adrift, it
+       does not sweep a swimming one off his course. */
+    const sl=seaSlope(w.x,w.z);
+    const stroking=Math.abs(f)>0.15;
+    const pull=stroking?2.4:9.0;
+    let dxw=-sl.x*pull, dzw=-sl.z*pull;
+    const dm=Math.hypot(dxw,dzw);
+    if(dm>3.2){ dxw=dxw/dm*3.2; dzw=dzw/dm*3.2; }
+    w.driftX=(w.driftX||0)+(dxw-(w.driftX||0))*Math.min(1,dt*2.2);
+    w.driftZ=(w.driftZ||0)+(dzw-(w.driftZ||0))*Math.min(1,dt*2.2);
+    const px2=w.x+w.driftX*dt, pz2=w.z+w.driftZ*dt;
     if(!groundInfo(px2,pz2).land&&!camInsideShip(px2,surfY,pz2)){ w.x=px2; w.z=pz2; }
+    /* and he lies along the FACE of the wave — pitch and roll off its slope,
+       clamped so a steep crest tilts the body and never tumbles it. A figure
+       held bolt upright through a passing swell is the whole look of skating */
+    const fwdX=Math.sin(w.heading), fwdZ=Math.cos(w.heading);
+    const cl2=(v,m)=>v<-m?-m:v>m?m:v;
+    w.wPitch=cl2(-(sl.x*fwdX+sl.z*fwdZ)*2.6,0.32);
+    w.wRoll =cl2( (sl.x*fwdZ-sl.z*fwdX)*2.6,0.32);
   }
   else { if(w.inWater){ w.inWater=false; }
+    w.driftX=0; w.driftZ=0; w.wPitch=0; w.wRoll=0;   /* out of the water, out of its motion */
     w.vy-=64*dt; w.feetY+=w.vy*dt;
     /* land arrests the fall; water does not — the body carries its speed
        through the surface so the plunge can read it */
@@ -4319,13 +4421,21 @@ function walkTick(dt){
   } else canGo=false;                                    /* too high — go around */
   if(solidBlock) canGo=false;
   if(canGo){ state.dist+=Math.hypot(nx-w.x,nz-w.z); w.x=nx; w.z=nz;
-    if(w.grounded && diff>=-B*3 && diff<=(swimming?JUMPH+3:STEP)) w.feetY=tg.y; }   /* snap small steps */
+    /* snap small steps — but NEVER onto open water. groundInfo hands back a
+       FLAT WATER_Y-2.2 for every wave in the sea, so this line was pinning
+       the swimmer to a dead level plane every frame, overwriting whatever
+       height the swell had given him. That is the whole of the skating: a
+       body held at one fixed height while the waves ran through it. Over
+       water his buoyancy rules; snapping resumes the moment he touches land
+       (so he may still haul out onto the strand). */
+    if(w.grounded && (!swimming||tg.land) && diff>=-B*3 && diff<=(swimming?JUMPH+3:STEP)) w.feetY=tg.y; }
   walkerG.position.set(w.x,w.feetY,w.z); walkerG.rotation.y=w.heading;
   /* ---- animation ---- */
   const moving=Math.abs(sp)>0.5;
   if(swimming){ const s=performance.now()*0.008;
     const prone=Math.abs(f)>0.15;                        /* stroking forward, or treading */
-    walkerG.rotation.x=prone?1.30+Math.sin(s*0.7)*0.05:0.22;
+    walkerG.rotation.x=(prone?1.30+Math.sin(s*0.7)*0.05:0.22)+(w.wPitch||0);
+    walkerG.rotation.z=w.wRoll||0;                       /* heeled over with the wave's face */
     walkerG.position.y=w.feetY-(prone?0.1:6.4);          /* the body lies IN the water, not upon it */
     if(prone){                                           /* the front crawl — arms wheeling over */
       u.armL.rotation.x=-(s%6.2832); u.armR.rotation.x=-((s+3.1416)%6.2832);
@@ -4338,10 +4448,10 @@ function walkTick(dt){
       u.legL.rotation.x=Math.sin(s*1.6)*0.45; u.legR.rotation.x=-Math.sin(s*1.6)*0.45;
     }
   } else if(!w.grounded){                                 /* the jump pose */
-    walkerG.rotation.x=0; u.armL.rotation.z=0; u.armR.rotation.z=0;
+    walkerG.rotation.x=0; walkerG.rotation.z=0; u.armL.rotation.z=0; u.armR.rotation.z=0;
     u.legL.rotation.x=0.55; u.legR.rotation.x=-0.3; u.armL.rotation.x=-0.7; u.armR.rotation.x=-0.7;
   } else { const ph=performance.now()*0.011;
-    walkerG.rotation.x=0; u.armL.rotation.z=0; u.armR.rotation.z=0;
+    walkerG.rotation.x=0; walkerG.rotation.z=0; u.armL.rotation.z=0; u.armR.rotation.z=0;
     u.legL.rotation.x=moving?Math.sin(ph)*0.7:0; u.legR.rotation.x=moving?-Math.sin(ph)*0.7:0;
     u.armL.rotation.x=moving?-Math.sin(ph)*0.5:0; u.armR.rotation.x=moving?Math.sin(ph)*0.5:0;
   }
@@ -4389,15 +4499,35 @@ function ensureFlyDome(){ if(flyDome) return;
    whole earth resolves into her own true face (the same map the compass rose
    bears), fading in as the traveller climbs: the disc seen in the deep, as
    the earth-viewer shows her */
-let aloftDisc=null;
+let aloftDisc=null, aloftCtx=null, aloftTex=null, aloftT=0, aloftMark=null;
+const ALOFT_RES=2048;      /* the coastlines must stay true when the whole earth fills the view */
 function ensureAloftDisc(){ if(aloftDisc) return;
-  const c=document.createElement('canvas'); c.width=c.height=1024;
-  drawMapInto(c.getContext('2d'),1024,false);
-  const tex=new THREE.CanvasTexture(c); tex.anisotropy=4;
-  aloftDisc=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD,128),
-    new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:0,fog:false,depthWrite:false}));
+  const c=document.createElement('canvas'); c.width=c.height=ALOFT_RES;
+  aloftCtx=c.getContext('2d');
+  drawMapInto(aloftCtx,ALOFT_RES,false,true);
+  aloftTex=new THREE.CanvasTexture(c); aloftTex.anisotropy=8;
+  aloftDisc=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD,256),
+    new THREE.MeshBasicMaterial({map:aloftTex,transparent:true,opacity:0,fog:false,depthWrite:false}));
   aloftDisc.rotation.x=-Math.PI/2; aloftDisc.position.y=175;
-  aloftDisc.visible=false; scene.add(aloftDisc); }
+  aloftDisc.visible=false; scene.add(aloftDisc);
+  /* the traveller's own mark — a sprite, so it is scaled to the eye's
+     distance and reads the same whether he looks on one sea or on all */
+  const mc=texCanvas(64), mg=mc.getContext('2d');
+  mg.fillStyle='#e8c66a'; mg.beginPath(); mg.moveTo(32,4); mg.lineTo(58,60); mg.lineTo(6,60); mg.closePath(); mg.fill();
+  mg.strokeStyle='rgba(24,20,10,0.75)'; mg.lineWidth=3; mg.stroke();
+  aloftMark=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(mc),
+    fog:false,transparent:true,depthTest:false}));
+  aloftMark.visible=false; scene.add(aloftMark); }
+/* The face carries the wandering storms and the sun's place, which move, so
+   it is repainted at a slow beat while it is being looked at — and not at
+   all while it is not. */
+function aloftTick(dt,px,pz){
+  if(!aloftDisc||!aloftDisc.visible||aloftDisc.material.opacity<0.02) return;
+  if(aloftMark){ aloftMark.visible=true;
+    aloftMark.position.set(px,aloftDisc.position.y+40,pz);
+    const s=Math.max(120,state.camDist*0.0127); aloftMark.scale.set(s,s,1); }
+  aloftT-=dt; if(aloftT>0) return;
+  aloftT=0.75; drawMapInto(aloftCtx,ALOFT_RES,false,true); aloftTex.needsUpdate=true; }
 function flyTick(dt){
   const fl=state.fly; const [f,t]=axis();
   fl.heading+=t*dt*FLY_TURN;
@@ -4504,7 +4634,7 @@ function setMode(m){
   state.mode=m;
   if(m==='fly') ensureFlyDome();                      /* the vault stands even for a voyage restored aloft */
   if(m==='walk') state.walk.climb=null;               /* a climb interrupted elsewhere must not resume here */
-  if(m!=='fly'&&m!=='dive') walkerG.rotation.x=0;      /* clear the flight/swim lean */
+  if(m!=='fly'&&m!=='dive'){ walkerG.rotation.x=0; walkerG.rotation.z=0; }   /* clear the flight/swim lean and heel */
   if(m==='walk'||m==='fly'||m==='dive'){              /* a free body in the world, not aboard */
     if(walkerG.parent!==scene){ if(walkerG.parent) walkerG.parent.remove(walkerG); scene.add(walkerG); }
     poseArms(false);
@@ -4723,7 +4853,7 @@ function enterFirm(){
   hideDeep(); hideLandLife(); hideAirLife(); hideTraders();  /* nothing of the deep or the field in the map view */
   $('b-firm').textContent='\u26F5 Return to the ship'; }
 function exitFirm(){ state.firm=false; if(firmG) firmG.visible=false;
-  scene.fog=FOG; state.camPitch=0.42; state.camDist=200;
+  scene.fog=FOG; state.camPitch=0.42; state.camDist=200; state.zoom=distToZoom(200);
   sea.visible=true; seaDeep.visible=true; waveGrid.visible=true;
   clouds.visible=true; clouds.scale.set(1,1,1); clouds.position.y=CLOUD_Y; cirrus.visible=true; voidWall.visible=true;
   $('b-firm').textContent='\uD83D\udd4A The firmament'; }
@@ -4769,40 +4899,64 @@ function cameraTick(dt){
     camPos.set(cxp,hy,czp); camera.position.lerp(camPos,Math.min(1,dt*10));
     camTgt.set(w.x+Math.sin(w.heading)*14, hy-2.0, w.z+Math.cos(w.heading)*14);
     camera.lookAt(camTgt); return; }
+  /* ease the eye toward the zoom target IN LOG SPACE, so it opens at one
+     steady rate whether it is closing on the deck or drawing back off the
+     whole earth — and so a fast spin of the wheel can never snap the view */
+  { const cz=distToZoom(state.camDist);
+    state.camDist=zoomToDist(cz+(state.zoom-cz)*Math.min(1,dt*1.9)); }
   let px,pz,phead,baseY,dist;
+  /* only a FLOOR per mode now — the ceiling used to clamp the last third of
+     the range away, so the far end of the wheel moved nothing */
   if(state.mode==='deck'){ walkerG.getWorldPosition(_wv);
     px=_wv.x; pz=_wv.z; baseY=_wv.y; phead=state.boat.heading+state.deck.h;
-    dist=Math.max(10,Math.min(state.camDist,60)); }
+    dist=Math.max(10,state.camDist); }
   else if(state.mode==='boat'){ const bt=state.boat;
-    px=bt.x; pz=bt.z; baseY=boatG.position.y+SD.qdeckY; phead=bt.heading; dist=Math.max(56,Math.min(state.camDist,260)); }
+    px=bt.x; pz=bt.z; baseY=boatG.position.y+SD.qdeckY; phead=bt.heading; dist=Math.max(56,state.camDist); }
   else if(state.mode==='fly'){ const fl=state.fly;
-    px=fl.x; pz=fl.z; baseY=fl.y; phead=fl.heading; dist=Math.max(24,Math.min(state.camDist,300)); }
+    px=fl.x; pz=fl.z; baseY=fl.y; phead=fl.heading; dist=Math.max(24,state.camDist); }
   else if(state.mode==='dive'){ const dv=state.dive;
-    px=dv.x; pz=dv.z; baseY=dv.y; phead=dv.heading; dist=Math.max(16,Math.min(state.camDist,90)); }
+    /* under the sea the water itself ends the view — drawing further back
+       only buys fog, so the deep keeps a ceiling of its own */
+    px=dv.x; pz=dv.z; baseY=dv.y; phead=dv.heading; dist=Math.max(16,Math.min(state.camDist,300)); }
   else{ const w=state.walk;
-    px=w.x; pz=w.z; baseY=walkerG.position.y; phead=w.heading; dist=Math.max(14,Math.min(state.camDist,150)); }
+    px=w.x; pz=w.z; baseY=walkerG.position.y; phead=w.heading; dist=Math.max(14,state.camDist); }
   const [f2]=axis(); if(Math.abs(f2)>0.2) state.camYaw*=Math.max(0,1-dt*0.5);
   const az=phead+Math.PI+state.camYaw;
+  /* as the eye draws back off the world it also rises over it — the pitch
+     the traveller dragged for himself still rules close in, and gives way to
+     a near-overhead view of the whole earth as it opens out */
+  const zf=zoomMapFade();
+  const pit=state.camPitch+(1.45-state.camPitch)*zf;
+  const cpit=Math.cos(pit), spit=Math.sin(pit);
   /* ashore, draw the camera in rather than clip through the ship */
   if(state.mode==='walk'){
     for(let k=0;k<8&&dist>20;k++){
-      const tx=px+Math.sin(az)*Math.cos(state.camPitch)*dist;
-      const tz=pz+Math.cos(az)*Math.cos(state.camPitch)*dist;
-      const ty=baseY+8+Math.sin(state.camPitch)*dist;
+      const tx=px+Math.sin(az)*cpit*dist;
+      const tz=pz+Math.cos(az)*cpit*dist;
+      const ty=baseY+8+spit*dist;
       if(!camInsideShip(tx,ty,tz)) break;
       dist*=0.82;
     }
   }
+  /* far out, a near plane of one unit against a 384,000-unit far plane leaves
+     the depth buffer nothing to work with and the world z-fights — open it
+     with the distance */
+  if(!camInside){ const wantNear=Math.max(1,Math.min(600,dist*0.02));
+    if(Math.abs(camera.near-wantNear)>Math.max(0.5,camera.near*0.15)){
+      camera.near=wantNear; camera.updateProjectionMatrix(); } }
   /* swimming, the eye rides low along the waterline — the swell can roll
      right over it (the frame loop tints the world to water-light when it does) */
   const swimCam=state.mode==='walk'&&state.walk.inWater;
   const lift=state.mode==='deck'?5:swimCam?2.2:8;
-  const cy=baseY+lift+Math.sin(state.camPitch)*dist;
-  camPos.set(px+Math.sin(az)*Math.cos(state.camPitch)*dist, cy, pz+Math.cos(az)*Math.cos(state.camPitch)*dist);
+  const cy=baseY+lift+spit*dist;
+  camPos.set(px+Math.sin(az)*cpit*dist, cy, pz+Math.cos(az)*cpit*dist);
   camera.position.lerp(camPos,Math.min(1,dt*5));
   /* the eye stays WITHIN the firmament — never through the glass, whatever
-     the pitch: pressed back inside the tent-vault's skin */
-  { const cp=camera.position;
+     the pitch: pressed back inside the tent-vault's skin. (Drawn right back
+     to behold the whole earth, the eye stands outside the vault of set
+     purpose, as it does in the firmament view — so the skin is not pressed
+     upon it there.) */
+  if(zf<0.02){ const cp=camera.position;
     const q=(cp.x*cp.x+cp.z*cp.z)/(R_DOME*R_DOME)+(cp.y>0?(cp.y*cp.y)/(H_DOME*H_DOME):0);
     if(q>0.90){ const k=Math.sqrt(0.90/q); cp.x*=k; cp.z*=k; if(cp.y>0) cp.y*=k; } }
   camTgt.set(px,baseY+(swimCam?4:10),pz);
@@ -4875,7 +5029,12 @@ function drawMapBase(size){
     g.stroke(); }
   return c;
 }
-function drawMapInto(ctx2,size,withNames){
+/* noMark — the charted face laid under the whole earth carries no traveller's
+   arrow of its own. Drawn into the texture it was a fixed span of WORLD, so
+   it stood a proper size only when the whole disc filled the view and swelled
+   into a great yellow wedge at every zoom short of that. A sprite scaled to
+   the eye's distance stands in its place (see aloftMark). */
+function drawMapInto(ctx2,size,withNames,noMark){
   if(!mapBases[size]) mapBases[size]=drawMapBase(size);
   ctx2.clearRect(0,0,size,size); ctx2.drawImage(mapBases[size],0,0);
   const Hh=size/2;
@@ -4894,6 +5053,7 @@ function drawMapInto(ctx2,size,withNames){
   const [su,sv]=sunUV();
   ctx2.beginPath(); ctx2.arc((su+1)*Hh,(sv+1)*Hh,Math.max(3,size/120),0,Math.PI*2);
   ctx2.fillStyle='#ffe9a8'; ctx2.fill();
+  if(noMark) return;
   const p=state.mode==='walk'?state.walk:state.mode==='fly'?state.fly:state.mode==='dive'?state.dive:state.boat;
   const px=(p.x/R_WORLD+1)*Hh, py=(p.z/R_WORLD+1)*Hh;
   ctx2.save(); ctx2.translate(px,py); ctx2.rotate(Math.atan2(Math.sin(p.heading),-Math.cos(p.heading)));
@@ -5409,10 +5569,18 @@ function frame(){
   if(scene.fog&&!state.firm){ const climbF=Math.max(0,eyeY-CLOUD_Y);
     scene.fog.near*=1+climbF/2600;
     scene.fog.far=Math.min(scene.fog.far*(1+climbF/45), R_WORLD*3.0); }
-  /* underwater — the light dims and the water closes in with depth */
-  if(state.mode==='dive'&&scene.fog&&state.dive.y<SEA_SURF){ const depth=SEA_SURF-state.dive.y, murk=Math.min(1,depth/560);
+  /* ---- UNDER THE WAVES — the light dims and the water closes in with depth.
+     Keyed on the EYE, not on the mode: a swimmer whose camera has rolled
+     under the swell stands in the same water as a diver, and must be shown
+     the same sea. Near the surface the view stays long, so a coast does not
+     vanish a few metres down; it shortens as the deep darkens. */
+  const underEye=eyeUnderwater();
+  if(underEye&&scene.fog){
+    const eyeY2=state.mode==='dive'?state.dive.y:camera.position.y;
+    const murk=Math.min(1,Math.max(0,SEA_SURF-eyeY2)/560);
     const wc=mix3(0x061826,0x0f5170,0x36b0d8,1-murk);   /* deep dark → shallow turquoise */
-    scene.background.copy(wc); scene.fog.color.copy(wc); scene.fog.near=4; scene.fog.far=470-murk*290;
+    scene.background.copy(wc); scene.fog.color.copy(wc);
+    scene.fog.near=4; scene.fog.far=820-murk*640;
     hemi.intensity=1.0-murk*0.6; dirL.intensity=0.5-murk*0.32; }
   /* ---- BREATH — the diver's chest against the deep ----
      It drains below, refills above; fails, and you break for the surface.
@@ -5430,16 +5598,6 @@ function frame(){
       if(show){ $('breath-fill').style.width=Math.round(state.breath*100)+'%';
         bEl.classList.toggle('low',!state.immBreath&&state.breath<0.3);
         bEl.classList.toggle('imm',!!state.immBreath); } } }
-  /* the swimmer's eye dips beneath the swell — the world turns to water-light */
-  if(state.mode==='walk'&&scene.fog){
-    const surfC=WATER_Y+seaHeight(camera.position.x,camera.position.z);
-    if(camera.position.y<surfC-0.15&&!landAtWorld(camera.position.x,camera.position.z)){
-      const wc=mix3(0x0a2836,0x1e7a96,0x3ab2d8,light.dayF);
-      scene.background.copy(wc); scene.fog.color.copy(wc);
-      scene.fog.near=5; scene.fog.far=320;
-      hemi.intensity=0.85; dirL.intensity=0.4;
-    }
-  }
   /* the firmament vault fades into view the higher he climbs, and stands solid
      near the top; beyond it THE DEEP closes around — darkness on every side,
      the waters above glowing faint over the apex, the stars seen through the glass */
@@ -5450,14 +5608,33 @@ function frame(){
     if(outerDeep) outerDeep.material.uniforms.uOp.value=Math.max(0,Math.min(1,(eyeY-CLOUD_Y*2)/9000))*0.94;
     const aloftF=Math.max(0,Math.min(1,(eyeY-CLOUD_Y*3)/20000));
     if(aloftF>0) starGroup.userData.mat.opacity=Math.max(starGroup.userData.mat.opacity,aloftF*0.85);
-    /* high enough, and the earth resolves into her charted face */
-    const mapF=Math.max(0,Math.min(1,(eyeY-9000)/9000));
-    if(mapF>0.02){ ensureAloftDisc(); aloftDisc.material.opacity=mapF; aloftDisc.visible=true;
-      aloftDisc.position.y=175+Math.min(2200,Math.max(0,eyeY-9000)*0.06); }  /* over the chunk tops, under the flyer */
-    else if(aloftDisc) aloftDisc.visible=false;
   }
-  else if(flyDome){ flyDome.material.opacity=0; if(outerDeep) outerDeep.material.uniforms.uOp.value=0;
-    if(aloftDisc) aloftDisc.visible=false; }
+  else if(flyDome){ flyDome.material.opacity=0; if(outerDeep) outerDeep.material.uniforms.uOp.value=0; }
+  /* ---- THE EARTH'S OWN FACE ----
+     Two things call for it and they are one and the same sight: rising high
+     enough on the air, and drawing the eye far enough back. Either way the
+     little streamed chunks can no longer be read, so the CHARTED earth is
+     brought up under the eye — the true outlines of the countries, their
+     real size and shape, not a drawn page — and the world is seen whole. */
+  const zMapF=state.firm?0:Math.max(
+      Math.max(0,Math.min(1,(eyeY-9000)/9000)),      /* risen high upon the air */
+      zoomMapFade());                                 /* or the eye drawn far back */
+  if(zMapF>0.02){ ensureAloftDisc();
+    aloftDisc.visible=true; aloftDisc.material.opacity=zMapF;
+    aloftDisc.position.y=175+Math.min(2200,Math.max(0,eyeY-9000)*0.06);  /* over the chunk tops, under the flyer */
+    aloftTick(dt,p.x,p.z); }
+  else if(aloftDisc){ aloftDisc.visible=false; if(aloftMark) aloftMark.visible=false; }
+  /* drawn right back, the sky about the disc gives way to the outer darkness,
+     and the earth is beheld standing within it — as she is */
+  if(zMapF>0.002) scene.background.lerp(_voidC,zMapF*0.92);
+  /* and the haze of the near world must not blind an eye drawn back off it */
+  if(scene.fog&&zMapF>0.002){
+    scene.fog.near+=(R_WORLD*0.5-scene.fog.near)*zMapF;
+    scene.fog.far +=(R_WORLD*3.0-scene.fog.far )*zMapF;
+    /* the wall of night at the rim takes its colour from the fog, so that it
+       blends into the day's sky when stood under — out here it must go dark
+       with everything else, or it rings the earth in a band of sunset */
+    scene.fog.color.lerp(_voidC,zMapF*0.92); }
   updateWallWeather(p.x,p.z,dt);   /* cold fog and blowing snow at the wall of ice */
   waterTick(p.x,p.z,light.dayF,light.storm||0);
   /* below the waterline in the hold, the sea must not wash through the hull;
@@ -5468,12 +5645,8 @@ function frame(){
        diving, or a swimmer's camera rolled under the swell — they are hidden,
        or they read as a second sea hanging in the deep with fish above and
        below it. */
-    let eyeUnder=state.mode==='dive';
-    if(!eyeUnder&&state.mode==='walk'&&state.walk.inWater){
-      const surfC=WATER_Y+seaHeight(camera.position.x,camera.position.z);
-      if(camera.position.y<surfC-0.15) eyeUnder=true; }
     waveGrid.visible=!inHold;
-    sea.visible=seaDeep.visible=!inHold&&!eyeUnder; }
+    sea.visible=seaDeep.visible=!inHold&&!underEye; }
   seaLifeTick(p.x,p.z,dt);
   splashTick(dt);
   fishTick(dt);
@@ -5506,7 +5679,7 @@ function frame(){
     if(bigOpen) sizeBig(); }
   saveT-=dt; if(saveT<=0){ saveT=10; saveState(); }
   if(!state.firm){ const above=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/90));
-    clouds.visible=cirrus.visible=state.mode!=='dive';   /* no sky-clouds seen from under the sea */
+    clouds.visible=cirrus.visible=!underEye;   /* no sky-clouds seen from under the sea */
     clouds.position.x=p.x; clouds.position.z=p.z;
     TEX.clouds.offset.x=(p.x/9600*7+state.simHours*0.004)%1;
     TEX.clouds.offset.y=(p.z/9600*7)%1;
@@ -5515,10 +5688,10 @@ function frame(){
     const pY = state.mode==='fly'?state.fly.y : state.mode==='walk'?(state.walk.feetY!==undefined?state.walk.feetY:20) : 20;
     const highF = Math.max(0,Math.min(1,(pY-CLOUD_Y)/70));
     const gap=Math.abs(eyeY-CLOUD_Y), through=Math.min(1,gap/80);
-    cloudMat.opacity*=(0.22+0.78*through)*(1-above*0.9)*(1-highF*0.96);
+    cloudMat.opacity*=(0.22+0.78*through)*(1-above*0.9)*(1-highF*0.96)*(1-zMapF);
     cirrus.position.x=p.x; cirrus.position.z=p.z;
     const climb=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/900));
-    cirrusMat.opacity=(0.08+light.dayF*0.16)*Math.min(1,climb*1.5)*(1-above*0.7);
+    cirrusMat.opacity=(0.08+light.dayF*0.16)*Math.min(1,climb*1.5)*(1-above*0.7)*(1-zMapF);
     /* the sea of clouds — a bumpy, shaded deck with wisps drifting above */
     /* the LOCAL deck patch is for skimming just over the clouds — from far
        above it is a floating grey slab with an edge; fade it away and let the
@@ -5539,12 +5712,24 @@ function frame(){
       cloudCover.material.opacity=above*0.97*(1-mapF2*0.82);
       cloudCover.material.color.copy(mix3(0x59637a,0xe0c6a0,0xffffff,light.dayF));
     } }
-  if(!state.firm&&state.mode==='dive') updateDeep(state.dive.x,state.dive.y,state.dive.z,dt,Math.min(1,(SEA_SURF-state.dive.y)/560));
+  /* THE DEEP IS FURNISHED WHENEVER THE EYE IS IN IT — diving, swimming, or a
+     camera dipped under a wave from the strand. It follows the eye, not the
+     mode, so there is no longer a seam where one world ends and another
+     begins. */
+  if(!state.firm&&underEye){
+    const dv=state.mode==='dive';
+    const dx2=dv?state.dive.x:camera.position.x, dz2=dv?state.dive.z:camera.position.z;
+    const dy2=dv?state.dive.y:camera.position.y;
+    initDeep();
+    updateDeep(dx2,dy2,dz2,dt,Math.min(1,Math.max(0,SEA_SURF-dy2)/560),dv);
+  }
   else if(deepShown) hideDeep();
   /* the beasts of the field and the fowl of the air, over all the earth */
   if(!state.firm&&state.mode!=='dive'){ const tt=performance.now()*0.001, night=(light.nightF||0)>0.5;
     updateAirLife(p.x,p.z,dt,tt,night);
-    updateShallowLife(p.x,p.z,dt,tt);   /* fish and turtles seen through the clear shallows */
+    /* the same fish are stirred by updateDeep when the eye is under — moving
+       them twice in one frame doubled their speed and tore the schools apart */
+    if(!underEye) updateShallowLife(p.x,p.z,dt,tt);   /* fish and turtles seen through the clear shallows */
     podTick(p.x,p.z,dt,tt);             /* the whale pods, making for the fishing grounds */
     if(state.mode==='boat'||state.mode==='deck'||state.mode==='walk') updateLandLife(p.x,p.z,dt,tt); else hideLandLife(); }
   else { hideLandLife(); hideAirLife(); hidePod(); }
