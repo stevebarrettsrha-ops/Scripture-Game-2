@@ -16,6 +16,10 @@ for(const c of CITIES) CITY_BY_COUNTRY[c.country]=c;
 function cityFor(i){ return CITY_BY_COUNTRY[COUNTRIES[i].n]; }
 
 /* ---------------- world constants ---------------- */
+/* (Chunks were tried at 32 cells with VIEW halved — the same reach in a
+   quarter of the chunks, which cut the draw calls from ~1,250 to ~890. It
+   was measurably SLOWER: bigger chunks cull far worse against the frustum,
+   and the triangles rose from 274k to 362k. Kept at 16.) */
 const R_WORLD=120000, B=6, CH=16, CHW=B*CH, VIEW=8; /* rim = 20,000 km, 1 block = 1 km */
 const ICE_UV=0.948, SHELF_UV=0.915, WATER_Y=0.35;
 /* every land is a stone standing in the water: its flanks plunge past the
@@ -418,8 +422,29 @@ function cellRaw(ix,iz){
   const lat=90-r*180;
   const n=fbm(ix*.11,iz*.11), n2=fbm(ix*.023+40,iz*.023-70), j=hash2(ix,iz);
   if(r>=ICE_UV){ const t=(r-ICE_UV)/(0.995-ICE_UV);
-    const wh = t<0.72 ? 3+(t/0.72)*46 : 49+(t-0.72)/0.28*4;   /* a climbable ice ramp up to a crowned plateau */
-    return {h:Math.floor(wh+n*3), kind:'wall', tree:0, ci:0}; }
+    /* ---- THE WALL OF ICE ----
+       It stood 53 blocks when the tallest mountain in the world stood 34.
+       Now that Everest stands 235 it read as a kerb at the world's edge — an
+       ice HILL, not the wall that hems the whole earth in. It climbs 900
+       blocks now (5,400 units, near four times Everest), and then runs out to
+       the rim as a crowned plateau that TILTS UP to meet the firmament
+       coming down — so that at the outermost edge a man may stand and reach
+       the glass. The rise is kept near a block to the pace so it can be
+       walked, and broken by long swells of the ice into buttresses and
+       crevasses. */
+    let wh = t<0.72
+      ? 6+Math.pow(t/0.72,0.86)*894          /* the long climb up out of the sea */
+      : 900+Math.pow((t-0.72)/0.28,1.6)*120; /* the crown, tilting up to the glass */
+    /* buttresses and crevasses in the ice — smoothed away toward the crown,
+       so the shelf against the firmament is level enough to walk */
+    wh+=(n2-0.5)*50*(1-t*0.8)+(n-0.5)*7;   /* the fine break stays, or the
+       radial ramp reads as a corduroy of perfect concentric terraces */
+    /* It is NOT shorn off against the vault. Clamping it to the glass put a
+       fifteen-block cliff in the ice along the line where the firmament first
+       comes down — the descent of the vault there is far steeper than any
+       ground a man could walk. The crown is simply built to pass beneath it:
+       1,020 blocks at the rim against a ceiling of 1,063. */
+    return {h:Math.max(4,Math.floor(wh)), kind:'wall', tree:0, ci:0}; }
   if(r>=SHELF_UV){ if(n>0.62){ return {h:1, kind:'floe', tree:0, ci:0}; } return null; }
   /* domain-warp the coast: sub-pixel fractal detail where the vector data runs out */
   const du2=(fbm(u*760+13.7,v*760-4.2)-0.5)*(2.6/HALF);
@@ -710,24 +735,62 @@ function emitColumn(G,ix,iz,cc){
     else put(sTop,base,yT,sh);
   }
 }
+/* ---- THE TREES OF THE FIELD ----
+   Every tree in the world stood exactly as tall as every other of its kind —
+   a plantation of identical saplings, and small ones: a canopy barely twice
+   the height of the man beneath it. They are grown now, and they VARY. Each
+   takes its stature from its own place (so it is the same tree every time
+   the chunk is rebuilt), from a sapling to a great old giant half again as
+   tall as its fellows, and the crown is scaled with the trunk. */
 function emitTree(G,ix,iz,cc){
   const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B;
   const tropic=cc.tree===2, cherry=cc.tree===3;
-  const trunkH=tropic?B*3.2:cherry?B*2.6:B*2.2, tw=B*0.42;
+  /* a long tail toward the giants: most are middling, a few tower */
+  const q=hash2(ix*0.73+11.3,iz*0.91-5.7);
+  const S=0.62+Math.pow(q,0.55)*1.25 + (hash2(ix*3.1,iz*2.3)>0.965?0.85:0);
+  const baseH=tropic?B*4.6:cherry?B*3.4:B*3.6;
+  const trunkH=baseH*S, tw=B*(0.30+0.20*S);
   emitBox(G, x-tw,yT,z-tw, x+tw,yT+trunkH,z+tw, 'logSide','logTop',null);
   const lm=tropic?'leavesTr':cherry?'cherry':'leaves';
-  if(tropic){
-    emitBox(G, x-B*1.6,yT+trunkH,z-B*0.5, x+B*1.6,yT+trunkH+B*0.6,z+B*0.5, lm,lm,lm);
-    emitBox(G, x-B*0.5,yT+trunkH,z-B*1.6, x+B*0.5,yT+trunkH+B*0.6,z+B*1.6, lm,lm,lm);
-  } else if(cherry){                         /* a broad, soft pink canopy */
-    emitBox(G, x-B*1.8,yT+trunkH-B*0.5,z-B*1.8, x+B*1.8,yT+trunkH+B*0.5,z+B*1.8, lm,lm,lm);
-    emitBox(G, x-B*1.1,yT+trunkH+B*0.5,z-B*1.1, x+B*1.1,yT+trunkH+B*1.1,z+B*1.1, lm,lm,lm);
-  } else {
-    emitBox(G, x-B*1.45,yT+trunkH-B*0.9,z-B*1.45, x+B*1.45,yT+trunkH+B*0.35,z+B*1.45, lm,lm,lm);
-    emitBox(G, x-B*0.75,yT+trunkH+B*0.35,z-B*0.75, x+B*0.75,yT+trunkH+B*1.15,z+B*0.75, lm,lm,lm);
+  const W=S;                                  /* the crown grows with the bole */
+  if(tropic){                                 /* a palm — fronds thrown out from the head */
+    emitBox(G, x-B*1.7*W,yT+trunkH,z-B*0.5*W, x+B*1.7*W,yT+trunkH+B*0.6*W,z+B*0.5*W, lm,lm,lm);
+    emitBox(G, x-B*0.5*W,yT+trunkH,z-B*1.7*W, x+B*0.5*W,yT+trunkH+B*0.6*W,z+B*1.7*W, lm,lm,lm);
+  } else if(cherry){                          /* a broad, soft pink canopy */
+    emitBox(G, x-B*1.9*W,yT+trunkH-B*0.5*W,z-B*1.9*W, x+B*1.9*W,yT+trunkH+B*0.5*W,z+B*1.9*W, lm,lm,lm);
+    emitBox(G, x-B*1.15*W,yT+trunkH+B*0.5*W,z-B*1.15*W, x+B*1.15*W,yT+trunkH+B*1.15*W,z+B*1.15*W, lm,lm,lm);
+  } else {                                    /* an oak — three tiers, wide at the shoulder */
+    emitBox(G, x-B*1.05*W,yT+trunkH-B*1.5*W,z-B*1.05*W, x+B*1.05*W,yT+trunkH-B*0.8*W,z+B*1.05*W, lm,lm,lm);
+    emitBox(G, x-B*1.55*W,yT+trunkH-B*0.9*W,z-B*1.55*W, x+B*1.55*W,yT+trunkH+B*0.35*W,z+B*1.55*W, lm,lm,lm);
+    emitBox(G, x-B*0.8*W,yT+trunkH+B*0.35*W,z-B*0.8*W, x+B*0.8*W,yT+trunkH+B*1.25*W,z+B*0.8*W, lm,lm,lm);
   }
 }
+/* is a settled place near — a village site, whose ground is grazed and cut? */
+function nearSettled(x,z){
+  const near=siteGrid.get(siteKey(x/R_WORLD,z/R_WORLD));
+  if(near) for(const st of near) if(Math.hypot(x-st.x,z-st.z)<380) return true;
+  return false;
+}
+/* ---- AND THE UNDERGROWTH ----
+   Bare ground between the trees read as a lawn. Away from the settled places
+   the wild grows in: bushes, fern and thicket. The nearer a village, the more
+   it is grazed and cut back — so the wilderness is visibly wilder. */
+function emitScrub(G,ix,iz,cc,j,wild){
+  const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B;
+  const lm=cc.kind==='tropic'?'leavesTr':'leaves';
+  const s=hash2(ix*1.31-4.4,iz*1.77+8.1);
+  if(j<0.030*wild){                                    /* a true bush, with a woody heart */
+    const r=B*(0.34+s*0.40), hh=B*(0.55+s*0.75);
+    emitBox(G, x-r,yT,z-r, x+r,yT+hh,z+r, lm,lm,null);
+    if(s>0.62) emitBox(G, x-r*0.55,yT+hh,z-r*0.55, x+r*0.55,yT+hh+B*0.4,z+r*0.55, lm,lm,lm);
+  }
+  else if(j<0.24*wild) cross(G,'tallgrass',x,z,yT,B*(0.7+s*0.5),B*(0.6+s*0.9),0.95);
+  else if(j<0.27*wild) cross(G, s<0.5?'flowerR':'flowerY', x,z,yT,B*0.85,B*0.85,0.95);
+}
 const chunks=new Map(); const buildQueue=[]; const buildQueued=new Set();
+/* all the streamed land under one root, so it can be taken out of the view
+   in a single stroke when the charted face of the earth stands in for it */
+const chunkRoot=new THREE.Group(); scene.add(chunkRoot);
 function buildChunk(cx,cz){
   const G=newG();
   for(let a=0;a<CH;a++) for(let b=0;b<CH;b++){
@@ -757,10 +820,13 @@ function buildChunk(cx,cz){
     emitColumn(G,ix,iz,cc);
     const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B, j=hash2(ix*1.7,iz*2.9);
     if(cc.tree) emitTree(G,ix,iz,cc);
-    else if((cc.kind==='grass'||cc.kind==='tropic')&&j<0.16)
-      cross(G, j<0.012?'flowerR':(j<0.028?'flowerY':'tallgrass'), x,z,yT,B*0.85,B*0.85,0.95);
-    else if(cc.kind==='desert'&&j<0.02)
-      cross(G,'tallgrass',x,z,yT,B*0.7,B*0.8,0.8);
+    else if(cc.kind==='grass'||cc.kind==='tropic'||cc.kind==='tundra'||cc.kind==='alpine'){
+      /* thickest where no one lives — a village keeps its ground grazed */
+      const wild=nearSettled(x,z)?0.34:1;
+      emitScrub(G,ix,iz,cc,j,cc.kind==='tundra'||cc.kind==='alpine'?wild*0.45:wild);
+    }
+    else if(cc.kind==='desert'&&j<0.035)
+      cross(G,'tallgrass',x,z,yT,B*(0.6+hash2(ix,iz)*0.5),B*0.8,0.8);
     if(cc.kind==='grass'&&j>0.994)
       emitBox(G, x-B*0.5,yT,z-B*0.5, x+B*0.5,yT+B,z+B*0.5,'stone','stone',null);
   }
@@ -772,7 +838,7 @@ function buildChunk(cx,cz){
     bg.setAttribute('color',new THREE.Float32BufferAttribute(g.c,3));
     bg.setIndex(g.i);
     const m=new THREE.Mesh(bg,MAT[mat]); m.frustumCulled=true;
-    scene.add(m); meshes.push(m); }
+    chunkRoot.add(m); meshes.push(m); }
   chunks.set(cx+','+cz,{meshes});
 }
 function updateChunks(px,pz,budget){
@@ -789,7 +855,7 @@ function updateChunks(px,pz,budget){
     if(chunks.has(k)) continue; const[cx,cz]=k.split(',').map(Number); buildChunk(cx,cz); n++; }
   for(const[k,ch] of chunks){ const[cx,cz]=k.split(',').map(Number);
     const d=Math.max(Math.abs(cx-ccx),Math.abs(cz-ccz));
-    if(d>VIEW+2){ for(const m of ch.meshes){ scene.remove(m); m.geometry.dispose(); } chunks.delete(k); } }
+    if(d>VIEW+2){ for(const m of ch.meshes){ chunkRoot.remove(m); m.geometry.dispose(); } chunks.delete(k); } }
 }
 
 /* ================= THE FAR LAND =================
@@ -812,13 +878,15 @@ function updateChunks(px,pz,budget){
    the hole's near edge ever came out past the chunks there would be open sky
    where the ground should be. R0 + the rebuild threshold is the budget. */
 const FL_RINGS=48, FL_SPOKES=84, FL_R0=420, FL_R1=3600, FL_FADE=760, FL_STEP=300;
+const FL_COS=new Float32Array(FL_SPOKES), FL_SIN=new Float32Array(FL_SPOKES);
+for(let a=0;a<FL_SPOKES;a++){ const th=a/FL_SPOKES*Math.PI*2; FL_COS[a]=Math.cos(th); FL_SIN[a]=Math.sin(th); }
 const flGeo=(()=>{
   const g=new THREE.BufferGeometry(), nv=(FL_RINGS+1)*FL_SPOKES;
   const pos=new Float32Array(nv*3), col=new Float32Array(nv*3), idx=[];
   const kr=Math.log(FL_R1/FL_R0);
   for(let k=0;k<=FL_RINGS;k++){ const r=FL_R0*Math.exp(kr*k/FL_RINGS);
-    for(let a=0;a<FL_SPOKES;a++){ const th=a/FL_SPOKES*Math.PI*2, o=(k*FL_SPOKES+a)*3;
-      pos[o]=Math.cos(th)*r; pos[o+1]=0; pos[o+2]=Math.sin(th)*r; } }
+    for(let a=0;a<FL_SPOKES;a++){ const o=(k*FL_SPOKES+a)*3;
+      pos[o]=FL_COS[a]*r; pos[o+1]=0; pos[o+2]=FL_SIN[a]*r; } }
   for(let k=0;k<FL_RINGS;k++) for(let a=0;a<FL_SPOKES;a++){ const a2=(a+1)%FL_SPOKES;
     const p0=k*FL_SPOKES+a, p1=k*FL_SPOKES+a2, p2=(k+1)*FL_SPOKES+a, p3=(k+1)*FL_SPOKES+a2;
     idx.push(p0,p2,p1, p1,p2,p3); }
@@ -831,7 +899,7 @@ const FL_COL={grass:[0.34,0.52,0.26], tropic:[0.22,0.50,0.22], tundra:[0.44,0.49
   sand:[0.80,0.73,0.52], desert:[0.82,0.72,0.48], badlands:[0.64,0.39,0.25],
   rock:[0.50,0.49,0.47], alpine:[0.40,0.34,0.26], snow:[0.92,0.94,0.97],
   wall:[0.88,0.93,0.97], floe:[0.80,0.88,0.94]};
-const FL_SEA=[0.07,0.20,0.32];
+const FL_SEA=[0.07,0.20,0.32], FL_VOID=[0.01,0.012,0.03];
 /* The SAME kind of material the blocks wear — unlit, vertex-shaded, tinted by
    the one global day-light — and enrolled in LIT with them. A lambert surface
    here took the hemisphere's blue-grey ground colour on every face turned
@@ -841,28 +909,43 @@ const farLandMat=new THREE.MeshBasicMaterial({vertexColors:true}); LIT.push(farL
 const farLand=new THREE.Mesh(flGeo,farLandMat);
 farLand.frustumCulled=false; farLand.visible=false; scene.add(farLand);
 const _flH=new Float32Array((FL_RINGS+1)*FL_SPOKES);
-let _flAt=null;
-function updateFarLand(px,pz,force){
-  if(!force&&_flAt&&Math.hypot(_flAt[0]-px,_flAt[1]-pz)<FL_STEP) return;
-  _flAt=[px,pz]; farLand.position.set(px,0,pz);
+let _flAt=null, _flR1=FL_R1;
+function updateFarLand(px,pz,force,eyeY){
+  /* THE HIGHER THE EYE, THE FURTHER IT MUST REACH. A ring three thousand
+     units across is the whole world when you stand on it and a postage stamp
+     when you are miles above it — which is why, aloft, the streamed land
+     showed as one small patch adrift on the chart. It opens out with height. */
+  const want=FL_R1*(1+Math.min(7,Math.max(0,(eyeY||0)-120)/2200));
+  const moved=!_flAt||Math.hypot(_flAt[0]-px,_flAt[1]-pz)>=FL_STEP;
+  const grown=Math.abs(want-_flR1)/_flR1>0.18;
+  if(!force&&!moved&&!grown) return;
+  _flAt=[px,pz]; _flR1=want; farLand.position.set(px,0,pz);
   const pos=flGeo.attributes.position, a=pos.array, col=flGeo.attributes.color.array;
+  const kr=Math.log(_flR1/FL_R0);
   /* first the heights and the colours of the ground */
-  for(let k=0;k<=FL_RINGS;k++) for(let s=0;s<FL_SPOKES;s++){
-    const v=k*FL_SPOKES+s, i=v*3, wx=a[i]+px, wz=a[i+2]+pz;
+  for(let k=0;k<=FL_RINGS;k++){ const rr=FL_R0*Math.exp(kr*k/FL_RINGS);
+  for(let s=0;s<FL_SPOKES;s++){
+    const v=k*FL_SPOKES+s, i=v*3;
+    a[i]=FL_COS[s]*rr; a[i+2]=FL_SIN[s]*rr;
+    const wx=a[i]+px, wz=a[i+2]+pz;
     /* cellRaw, not cell — the village flattening is a matter of 86 units and
        cannot be seen out here, and filling the cell cache with far country
        would only thrash it for the ground underfoot */
     const cc=cellRaw(Math.floor(wx/B),Math.floor(wz/B));
     let y,c;
     if(cc){ y=cc.h*B; c=FL_COL[cc.kind]||FL_COL.grass; }
+    else if(Math.hypot(wx,wz)>R_WORLD*0.9955){
+      /* past the rim there is no sea and no land — only the outer darkness.
+         A sheet of ocean drawn out there hung in the void below the ice. */
+      y=-900; c=FL_VOID; }
     else { y=WATER_Y-6; c=FL_SEA; }     /* well under the trough of any wave */
     _flH[v]=y; col[i]=c[0]; col[i+1]=c[1]; col[i+2]=c[2];
-  }
+  } }
   /* then the shading: a flank is darker than a level top, as it is on the
      blocks — read off the fall of the land to the next vertex out and round */
   for(let k=0;k<=FL_RINGS;k++){
     const r=Math.hypot(a[(k*FL_SPOKES)*3],a[(k*FL_SPOKES)*3+2]);
-    const step=Math.max(1,Math.min(r*6.283/FL_SPOKES,(FL_R1-FL_R0)/FL_RINGS));
+    const step=Math.max(1,Math.min(r*6.283/FL_SPOKES,(_flR1-FL_R0)/FL_RINGS));
     for(let s=0;s<FL_SPOKES;s++){
       const v=k*FL_SPOKES+s, i=v*3;
       const vr=(k<FL_RINGS?k+1:k-1)*FL_SPOKES+s, vs=k*FL_SPOKES+(s+1)%FL_SPOKES;
@@ -926,8 +1009,13 @@ const _voidC=new THREE.Color(0x02030a);      /* the outer darkness, beyond the r
 function updateWallWeather(px,pz,dt){
   if(state.firm){ snow.visible=false; snowMat.opacity=0; return; }
   const r=Math.hypot(px,pz)/R_WORLD, wallF=Math.max(0,Math.min(1,(r-0.85)/0.1));
-  if(wallF>0.01 && scene.fog && !state.firm && state.mode!=='dive'){   /* a cold fog closes in at the rim */
-    scene.fog.far*=1-wallF*0.55; scene.fog.color.lerp(_coldFog,wallF*0.55); }
+  if(wallF>0.01 && scene.fog && !state.firm && state.mode!=='dive'){
+    /* a cold haze closes in at the rim — but it used to cut the view to some
+       thousand units, which simply swallowed the ground when the wall of ice
+       was a low ramp, and would now hide a thing six thousand units high
+       standing right in front of the traveller */
+    scene.fog.far=Math.max(scene.fog.far*(1-wallF*0.34),1900);
+    scene.fog.color.lerp(_coldFog,wallF*0.5); }
   snow.visible = wallF>0.02;
   if(!snow.visible){ snowMat.opacity=0; return; }
   snowMat.opacity=Math.min(0.9,wallF); snow.position.set(px,0,pz);
@@ -2011,6 +2099,21 @@ function makeAnimal(kind){
     g.userData={legs,head};
     return g;
   }
+  else if(kind==='penguin'){
+    /* the one beast of the ice — upright, white-breasted, flippered */
+    const body=lbox(1.5,2.2,1.3,0x1b1f26); body.position.y=1.9; g.add(body);
+    const belly=lbox(1.1,1.8,0.35,0xf1f1ec); belly.position.set(0,1.9,0.72); g.add(belly);
+    const head=lbox(1.2,1.1,1.1,0x1b1f26); head.position.set(0,3.45,0.05); g.add(head);
+    const face=lbox(0.8,0.6,0.22,0xf1f1ec); face.position.set(0,3.25,0.6); g.add(face);
+    const beak=lbox(0.34,0.3,0.6,0xd8901f); beak.position.set(0,3.2,0.98); g.add(beak);
+    for(const sd of [1,-1]){
+      const e=lbox(0.2,0.2,0.18,0x0a0a0a); e.position.set(sd*0.33,3.62,0.58); g.add(e);
+      const fp=lbox(0.28,1.5,0.72,0x161a20); fp.position.set(sd*0.86,1.9,0); fp.rotation.z=sd*0.17; g.add(fp);
+      const L=lbox(0.5,0.7,0.95,0xd8901f); L.geometry.translate(0,-0.35,0);
+      L.position.set(sd*0.42,0.75,0.15); L.userData.ph=(sd>0)?0:Math.PI; g.add(L); legs.push(L); }
+    g.userData={legs};
+    return g;
+  }
   else { /* ostrich — two long legs, a tall neck */
     const body=lbox(2.2,2.6,3.4,0x3a3230); body.position.y=6.0; g.add(body);
     const neck=lbox(0.8,4.4,0.8,0xd8b89a); neck.position.set(0,8.4,1.2); neck.rotation.x=-0.2; g.add(neck);
@@ -2787,6 +2890,7 @@ function landKindAt(x,z,c){
   const j2=hash2(Math.floor(x/64)+7.3,Math.floor(z/64)-3.1);
   const k=c?c.kind:'grass', hb=c?c.h:1;
   const pick=L=>L[Math.floor(j*L.length)%L.length];
+  if(k==='floe'||k==='wall') return 'penguin';          /* the ice keeps one beast only */
   /* the crocodile lies along the great tropical rivers — the Nile up to its
      delta, the Congo, the Amazon, the Ganges — and in no other water */
   if(alat<32&&j2<0.45&&(k==='tropic'||k==='grass'||k==='desert'||k==='sand')&&riverBankAt(x,z)) return 'crocodile';
@@ -2816,7 +2920,13 @@ function findLandSpot(px,pz){ for(let tr=0;tr<10;tr++){ const a=Math.random()*6.
        the bare rocks and skerries of the open ocean stay bare.
        (The old bar of six blocks kept every creature off the high country —
        now that there IS high country, the goats and wolves may have it.) */
-    const c=landAtWorld(x,z); if(c&&c.ci&&c.kind!=='wall'&&Math.hypot(x,z)/R_WORLD<0.9) return {x,z,y:c.h*B,c}; } return null; }
+    const c=landAtWorld(x,z); if(!c) continue;
+    if(c.ci&&c.kind!=='wall'&&Math.hypot(x,z)/R_WORLD<0.9) return {x,z,y:c.h*B,c};
+    /* THE ICE BEARS ITS OWN. Penguins stand on the floes and about the FOOT
+       of the wall — but the high crown of it, up against the firmament, is
+       bare of every living thing, as such a place ought to be. */
+    if((c.kind==='floe'||(c.kind==='wall'&&c.h<=60))) return {x,z,y:c.h*B,c};
+  } return null; }
 function updateLandLife(px,pz,dt,t){ initLandLife();
   const night=(worldNight||0)>0.6;
   for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>LL_R+140){ const sp=findLandSpot(px,pz);
@@ -2972,6 +3082,8 @@ function nearestNest(x,z){ let best=null,bd=1e9;
   for(const N of NESTS){ if(!N.set) continue; const d=Math.hypot(N.x-x,N.z-z); if(d<bd){bd=d;best=N;} }
   return best; }
 function airKind(px,pz,night){ const overSea=!landAtWorld(px,pz);
+  /* nothing of the field flies out over the ice — only the gulls of the sea */
+  if(Math.hypot(px,pz)/R_WORLD>0.90) return 'gull';
   if(night) return Math.random()<0.6?'crow':'dove';
   if(overSea) return Math.random()<0.7?'gull':'eagle';
   const r=Math.random(); return r<0.3?'butterfly':r<0.55?'dove':r<0.8?'crow':'eagle'; }
@@ -3974,6 +4086,7 @@ function canFishHere(){
 let promptStall=null, promptTrader=null, promptPearl=null, promptChest=null;
 function promptTick(){
   const el=$('prompt'); if(!el) return;
+  if(domeCut){ el.style.opacity=0; promptAction=null; return; }
   promptDoor=null; promptAction=null; promptPerson=null; promptStall=null; promptTrader=null; promptPearl=null; promptChest=null;
   let label=null;
   if(tradeOpen){ el.style.opacity=0; return; }
@@ -4003,6 +4116,7 @@ function promptTick(){
     if(label){ /* the bottle from the water */ }
     else if(state.fishing){ label=state.fishing.phase==='bite'?'F — STRIKE! a fish is on the line':'F — draw in the line'; promptAction='reel'; }
     else if(canSleep()){ label='F — sleep until morning'; promptAction='sleep'; }
+    else if(canTouchDome()){ label='F \u2014 touch the firmament'; promptAction='dome'; }
     else {
       promptDoor=nearestDoor(state.walk.x,state.walk.z);
       promptStall=nearestStallVillage();
@@ -4013,6 +4127,7 @@ function promptTick(){
         else if(canFishHere()){ label='F — cast a line'; promptAction='fish'; } }
     }
   }
+  if(!label&&state.mode==='fly'&&canTouchDome()){ label='F \u2014 touch the firmament'; promptAction='dome'; }
   if(label){ el.textContent=label; el.style.opacity=1; } else el.style.opacity=0;
 }
 /* ---- the words of the people, by their callings ---- */
@@ -4762,6 +4877,7 @@ function sleep(){
 function interact(){
   if(tradeOpen){ closeTrade(); return; }        /* F also leaves the trading */
   switch(promptAction){
+    case 'dome': touchDome(); break;
     case 'sleep': sleep(); break;
     case 'door': toggleDoor(); break;
     case 'down': state.deck.level='hold'; state.deck.lx=0; state.deck.lz=HATCH.z; break;
@@ -4836,6 +4952,7 @@ function splashTick(dt){ if(!SPLASH.length) return;
     p.s.material.opacity=Math.max(0,Math.min(0.85,p.life*1.6));
     if(p.life<=0) p.s.visible=false; } }
 const STEP=B*1.2, JUMPH=B*2.3, CLIMBH=B*4.6;   /* step / must-jump / can-climb heights */
+const BODY_R=1.9;   /* the traveller's own half-breadth — he is a body, not a point */
 function walkTick(dt){
   const w=state.walk, u=walkerG.userData; const [f,t]=axis();
   if(w.feetY===undefined){ w.feetY=groundInfo(w.x,w.z).y; w.vy=0; w.grounded=true; }
@@ -4930,28 +5047,49 @@ function walkTick(dt){
     if((keys.Space||w.jumpReq)&&w.grounded){ w.vy=38; w.grounded=false; } w.jumpReq=false; }
   /* ---- horizontal move, gated by the height of the ground ahead ---- */
   const sp=f*(swimming?16:18);
-  const nx=w.x+Math.sin(w.heading)*sp*dt, nz=w.z+Math.cos(w.heading)*sp*dt;
-  const tg=groundInfo(nx,nz);
-  const nearBoat=Math.hypot(nx-state.boat.x,nz-state.boat.z)<90;
-  const onDeckNext=deckMap.get(Math.floor(nx/B)+','+Math.floor(nz/B))!==undefined;
-  const solidBlock = blockedByStructure(nx,nz)||treeBlocked(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,walkerG);
-  const diff = tg.y - w.feetY;
-  let canGo=true;
-  if(!tg.land) canGo = nearBoat||onDeckNext||(Math.hypot(nx,nz)/R_WORLD<0.985)
-    ||Math.hypot(nx,nz)<Math.hypot(w.x,w.z);  /* swim (the ice wall is land, and climbable); beyond the rim, inward always */
-  /* the hull is a solid thing — the swimmer fetches up against her side
-     (press E there to climb aboard); one already inside the line may swim out */
-  if(swimming&&canGo&&camInsideShip(nx,surfY,nz)&&!camInsideShip(w.x,surfY,w.z)) canGo=false;
-  else if(diff<=STEP){ /* a small step — walk up or down freely */ }
-  else if(swimming && diff<=JUMPH+3){ /* haul out of the water onto the strand */ }
-  else if(diff<=JUMPH) canGo = w.feetY>=tg.y-B*0.4;      /* two blocks: only if jumping onto it */
-  else if(diff<=CLIMBH){                                  /* three–four blocks: climb it */
-    if(f>0.3 && w.grounded && !solidBlock && !w.climb)
+  const fullX=w.x+Math.sin(w.heading)*sp*dt, fullZ=w.z+Math.cos(w.heading)*sp*dt;
+  /* THE BODY IS NOT A POINT. Every test below was made at the traveller's
+     midline alone, so he could stand with his centre just inside a cell and
+     half of himself buried in the stone beside it — and the face of a wall
+     lying between two frames' sample points was walked clean through. His
+     whole breadth is tested now, and if the way is barred he SLIDES along
+     it (trying each axis alone) instead of sticking fast against it. */
+  let nx=fullX, nz=fullZ, tg=groundInfo(nx,nz), diff=0, solidBlock=false, canGo=false;
+  const tryStep=(tx,tz)=>{
+    const g2=groundInfo(tx,tz);
+    const d2=g2.y-w.feetY;
+    const near2=Math.hypot(tx-state.boat.x,tz-state.boat.z)<90;
+    const deck2=deckMap.get(Math.floor(tx/B)+','+Math.floor(tz/B))!==undefined;
+    const solid2=blockedByStructure(tx,tz)||treeBlocked(tx,tz)||blockedBySolid(tx,tz)||blockedByEntity(tx,tz,walkerG);
+    let ok=true;
+    if(!g2.land) ok = near2||deck2||(Math.hypot(tx,tz)/R_WORLD<0.985)
+      ||Math.hypot(tx,tz)<Math.hypot(w.x,w.z);   /* swim; beyond the rim, inward always */
+    else if(swimming&&camInsideShip(tx,surfY,tz)&&!camInsideShip(w.x,surfY,w.z)) ok=false;
+    else if(d2<=STEP){ /* a small step — walk up or down freely */ }
+    else if(swimming && d2<=JUMPH+3){ /* haul out of the water onto the strand */ }
+    else if(d2<=JUMPH) ok = w.feetY>=g2.y-B*0.4;   /* two blocks: only if jumping onto it */
+    else ok=false;                                  /* higher — climbed, or gone around */
+    if(solid2) ok=false;
+    /* and his shoulders must clear it too, not only his midline */
+    if(ok&&!swimming) for(let k=0;k<4;k++){ const aa=k*1.5708;
+      const g3=groundInfo(tx+Math.cos(aa)*BODY_R,tz+Math.sin(aa)*BODY_R);
+      if(g3.land&&g3.y-w.feetY>STEP){ ok=false; break; } }
+    return ok?{g:g2,d:d2,solid:solid2}:null;
+  };
+  let r0=tryStep(fullX,fullZ);
+  if(!r0&&sp!==0){                                  /* barred — slide along the face */
+    const rx=tryStep(fullX,w.z);
+    if(rx){ nz=w.z; r0=rx; }
+    else { const rz=tryStep(w.x,fullZ); if(rz){ nx=w.x; r0=rz; } }
+  }
+  if(r0){ canGo=true; tg=r0.g; diff=r0.d; solidBlock=r0.solid; }
+  else { nx=fullX; nz=fullZ; tg=groundInfo(nx,nz); diff=tg.y-w.feetY;
+    solidBlock=blockedByStructure(nx,nz)||treeBlocked(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,walkerG);
+    /* three or four blocks of rock is not a wall but a ledge — he climbs it */
+    if(tg.land&&diff>JUMPH&&diff<=CLIMBH&&f>0.3&&w.grounded&&!solidBlock&&!w.climb)
       w.climb={t:0,dur:0.8, x0:w.x,z0:w.z,y0:w.feetY,
         x1:nx+Math.sin(w.heading)*B*0.6, z1:nz+Math.cos(w.heading)*B*0.6, y1:tg.y};
-    canGo=false;
-  } else canGo=false;                                    /* too high — go around */
-  if(solidBlock) canGo=false;
+  }
   if(canGo){ state.dist+=Math.hypot(nx-w.x,nz-w.z); w.x=nx; w.z=nz;
     /* snap small steps — but NEVER onto open water. groundInfo hands back a
        FLAT WATER_Y-2.2 for every wave in the sea, so this line was pinning
@@ -5000,7 +5138,15 @@ function walkTick(dt){
    high over the midst of the earth — with THE DEEP, near-black and
    star-strewn, all around and beyond it, and the waters above the expanse
    glowing faintly over its apex. */
-const R_DOME=R_WORLD*1.06, H_DOME=130000, FLY_TURN=1.9, FLY_MAXSP=520, FLY_VACC=1150, FLY_VMAX=4800;
+/* THE VAULT COMES DOWN TO THE WALL. Its radius stood at 1.06 of the world,
+   so the glass never came within 45,000 units of any ground a man could
+   stand on — there was no reaching it but by flying half a day. It is set
+   just outside the last of the land now, so the firmament sweeps DOWN as the
+   traveller walks out across the crown of the ice, and closes to a few
+   hundred units of his head at the rim: near enough to put a hand on. Over
+   the rest of the earth the change is nothing — at half the world's radius
+   the ceiling moves by two per cent. */
+const R_DOME=R_WORLD*0.9962, H_DOME=130000, FLY_TURN=1.9, FLY_MAXSP=520, FLY_VACC=1150, FLY_VMAX=4800;
 let flyHintShown=false, flyPad=0, seenFirmament=false, flyDome=null, outerDeep=null;
 function flyFloorAt(x,z){ return groundInfo(x,z).y+7; }
 /* height of the firmament (the hard vault) directly above a point on the disc */
@@ -5060,6 +5206,83 @@ function aloftTick(dt,px,pz){
     const s=Math.max(120,state.camDist*0.0127); aloftMark.scale.set(s,s,1); }
   aloftT-=dt; if(aloftT>0) return;
   aloftT=0.75; drawMapInto(aloftCtx,ALOFT_RES,false,true); aloftTex.needsUpdate=true; }
+/* ================= TOUCHING THE FIRMAMENT =================
+   Walk out along the crown of the ice and the glass sweeps down to meet you.
+   Where it comes within reach there is a prompt, and taking it plays a short
+   scene: the traveller sets his hand upon the vault and looks out past it,
+   into the outer darkness that no man may pass. */
+const DOME_REACH=460;                 /* how near the glass must be to be touched */
+let domeCut=null;
+function canTouchDome(){
+  if(state.firm||domeCut) return false;
+  if(state.mode!=='walk'&&state.mode!=='fly') return false;
+  const p=state.mode==='fly'?state.fly:state.walk;
+  const rr=Math.hypot(p.x,p.z)/R_WORLD;
+  const y=state.mode==='fly'?state.fly.y:(walkerG.position.y+8);
+  const gap=domeCeilAt(p.x,p.z)-y;
+  /* Out upon the last of the ice the vault stands close overhead. A flyer
+     may come against it anywhere; a man on his feet only here, where the
+     firmament has come down to the crown of the wall to meet him. */
+  if(state.mode==='fly') return gap>=-260&&gap<DOME_REACH;
+  return rr>0.9925&&gap>=-400&&gap<3000;
+}
+const CINE_LINES=[
+  ['\u201cHe stretches out the north over empty space, and hangs the earth upon nothing.\u201d','IYOB 26:7'],
+  ['\u201cIt is He who sits above the circle of the earth \u2014 who stretches out the heavens like a curtain, and spreads them out like a tent to dwell in.\u201d','YASHA\u2019YAHU 40:22'],
+  ['\u201cHe has inscribed a circle upon the face of the waters, at the boundary of light and darkness.\u201d','IYOB 26:10'],
+];
+function touchDome(){
+  if(domeCut||!canTouchDome()) return;
+  const p=state.mode==='fly'?state.fly:state.walk;
+  const y=state.mode==='fly'?state.fly.y:walkerG.position.y;
+  const line=CINE_LINES[Math.floor(Math.random()*CINE_LINES.length)];
+  domeCut={t:0,dur:11.5,x:p.x,y,z:p.z,out:Math.atan2(p.x,p.z),line};
+  ensureFlyDome();
+  walkerG.position.set(p.x,y,p.z);
+  const el=$('cine'); if(el) el.classList.add('on');
+  const cap=$('cine-cap');
+  if(cap) cap.innerHTML=line[0]+'<span class="ref">'+line[1]+'</span>';
+}
+function endDomeCut(){
+  domeCut=null;
+  const el=$('cine'); if(el) el.classList.remove('on');
+  const cap=$('cine-cap'); if(cap) cap.classList.remove('on');
+}
+/* the camera's whole business during the scene: swing round off his shoulder,
+   rise to the glass, hold upon the darkness beyond, and come back again */
+const _cutA=new THREE.Vector3(), _cutB=new THREE.Vector3();
+function domeCutTick(dt){
+  const C=domeCut; C.t+=dt;
+  const cap=$('cine-cap');
+  if(cap) cap.classList.toggle('on', C.t>1.9&&C.t<C.dur-1.6);
+  /* the stars and the glass are brought up, so the scene reads at any hour */
+  const rise=Math.min(1,C.t/2.4);
+  if(flyDome) flyDome.material.opacity=Math.max(flyDome.material.opacity,0.16+0.5*rise);
+  starGroup.userData.mat.opacity=Math.max(starGroup.userData.mat.opacity,0.92*rise);
+  if(outerDeep) outerDeep.material.uniforms.uOp.value=
+    Math.max(outerDeep.material.uniforms.uOp.value,0.92*rise);
+  /* he raises a hand to it */
+  const u=walkerG.userData;
+  const reach=Math.min(1,Math.max(0,(C.t-1.0)/1.4))*(C.t<C.dur-1.8?1:0);
+  if(u&&u.armL){ u.armL.rotation.x=-2.5*reach; u.armR.rotation.x=-2.3*reach;
+    u.armL.rotation.z=0.2*reach; u.armR.rotation.z=-0.2*reach;
+    u.legL.rotation.x=0; u.legR.rotation.x=0; }
+  walkerG.rotation.set(0,C.out,0); walkerG.visible=true;
+  /* the eye: behind and low at first, then swung round and tilted up the glass */
+  const swing=Math.min(1,C.t/2.4), back=Math.min(1,Math.max(0,(C.t-(C.dur-1.9))/1.6));
+  const e=swing*(1-back), s2=e*e*(3-2*e);
+  const dist=66-34*s2, lift=10+64*s2;
+  const az=C.out+Math.PI*(1-s2*0.58);
+  _cutA.set(C.x+Math.sin(az)*dist, C.y+lift, C.z+Math.cos(az)*dist);
+  camera.position.lerp(_cutA,Math.min(1,dt*2.6));
+  const look=340+2600*s2;
+  _cutB.set(C.x+Math.sin(C.out)*look, C.y+look*(0.22+1.6*s2), C.z+Math.cos(C.out)*look);
+  camera.lookAt(_cutB);
+  if(C.t>=C.dur){
+    if(u&&u.armL){ u.armL.rotation.x=u.armR.rotation.x=0; u.armL.rotation.z=u.armR.rotation.z=0; }
+    endDomeCut();
+  }
+}
 function flyTick(dt){
   const fl=state.fly; const [f,t]=axis();
   fl.heading+=t*dt*FLY_TURN;
@@ -5407,6 +5630,7 @@ function camInsideShip(wx,wy,wz){
 }
 const _camHold=new THREE.Vector3();
 function cameraTick(dt){
+  if(domeCut){ domeCutTick(dt); return; }
   if(state.firm){ const pit=Math.max(0.3,Math.min(1.5,state.camPitch));
     const Rd=state.firmDist;
     camPos.set(Math.sin(state.camYaw)*Math.cos(pit)*Rd, Math.sin(pit)*Rd+200, Math.cos(state.camYaw)*Math.cos(pit)*Rd);
@@ -5488,9 +5712,13 @@ function cameraTick(dt){
      to behold the whole earth, the eye stands outside the vault of set
      purpose, as it does in the firmament view — so the skin is not pressed
      upon it there.) */
+  /* (the vault now hugs the world's edge, so this may no longer press the eye
+     back at nine-tenths of the way out — that would shove the camera six
+     thousand units inland the moment the traveller stood on the ice. It
+     holds the eye just inside the glass itself and no further.) */
   if(zf<0.02){ const cp=camera.position;
     const q=(cp.x*cp.x+cp.z*cp.z)/(R_DOME*R_DOME)+(cp.y>0?(cp.y*cp.y)/(H_DOME*H_DOME):0);
-    if(q>0.90){ const k=Math.sqrt(0.90/q); cp.x*=k; cp.z*=k; if(cp.y>0) cp.y*=k; } }
+    if(q>0.995){ const k=Math.sqrt(0.995/q); cp.x*=k; cp.z*=k; if(cp.y>0) cp.y*=k; } }
   camTgt.set(px,baseY+(swimCam?4:10),pz);
   camera.lookAt(camTgt);
 }
@@ -6074,6 +6302,7 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
   farLand,updateFarLand,mountUpliftAt,MOUNTS,ridgeNoise,B,R_WORLD,
   AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,
+  domeCeilAt,canTouchDome,touchDome,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,setKey:(k,v)=>{keys[k]=v;},
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
   domeInfo:()=>({dome:flyDome?flyDome.material.opacity:0, deep:outerDeep?outerDeep.material.uniforms.uOp.value:0, stars:starGroup.userData.mat.opacity}),
@@ -6089,7 +6318,9 @@ function frame(){
   if(!state.paused) state.simHours+=dt*SPEEDS[state.speedIdx][0]/3600;
   stormTick(dt);
   boatTick(dt,state.mode==='boat');
-  if(state.mode==='deck') deckTick(dt);
+  /* the traveller does not stir while he stands with his hand on the glass */
+  if(domeCut){ /* the scene has the body */ }
+  else if(state.mode==='deck') deckTick(dt);
   else if(state.mode==='walk') walkTick(dt);
   else if(state.mode==='fly') flyTick(dt);
   else if(state.mode==='dive') diveTick(dt);
@@ -6197,7 +6428,15 @@ function frame(){
      horizon long before it is reached. Not needed under the sea (the water
      ends the view within a few hundred units), nor once the charted face has
      taken the world over. */
-  if(!state.firm&&!underEye&&zMapF<0.9){ farLand.visible=true; updateFarLand(p.x,p.z); }
+  /* ---- WHAT STANDS IN THE VIEW, AND WHEN ----
+     The streamed chunks reach 768 units. Seen from miles up they are one
+     small crisp patch adrift on a blurred chart, which is the whole of the
+     complaint: a fragment of the world instead of the world. Once the
+     charted face is more than half in, the chunks and the coarse ring are
+     taken out of the view altogether and the earth is shown whole. */
+  const showNear = !state.firm && zMapF<0.55;
+  chunkRoot.visible = showNear;
+  if(showNear&&!underEye){ farLand.visible=true; updateFarLand(p.x,p.z,false,eyeY); }
   else farLand.visible=false;
   updateVillages(p.x,p.z,dt,light.nightF);
   updateLandmarks(p.x,p.z);
