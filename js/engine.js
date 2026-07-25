@@ -1339,6 +1339,28 @@ const glowTexCv=(()=>{ const c=texCanvas(128); const g=c.getContext('2d');
   gr.addColorStop(0,'rgba(255,214,110,0.9)'); gr.addColorStop(1,'rgba(255,190,80,0)');
   g.fillStyle=gr; g.fillRect(0,0,128,128); return new THREE.CanvasTexture(c); })();
 
+/* ---- THE HALOES OF THE TWO GREAT LIGHTS ----
+   Seen from WITHIN the world the sun and moon are squares, as they ought to
+   be. Beheld from without — the whole earth lying under its vault — a bare
+   square pasted on the face of the deep reads as a fault in the drawing. So
+   out there, and only out there, they are given the glow that stands about
+   them. */
+const sunHalo=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexCv,color:0xfff0b4,
+  transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
+sunHalo.visible=false; scene.add(sunHalo);
+const moonHalo=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexCv,color:0xbcd0f0,
+  transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
+moonHalo.visible=false; scene.add(moonHalo);
+function haloTick(whole){
+  const so=whole*0.9*sunMat2.opacity, mo=whole*0.55*moonMat2.opacity;
+  sunHalo.material.opacity=so; moonHalo.material.opacity=mo;
+  sunHalo.visible=so>0.01; moonHalo.visible=mo>0.01;
+  if(sunHalo.visible){ sunHalo.position.copy(sun.position);
+    const h=R_WORLD*0.30; sunHalo.scale.set(h,h,1); }
+  if(moonHalo.visible){ moonHalo.position.copy(moon.position);
+    const h=R_WORLD*0.19; moonHalo.scale.set(h,h,1); }
+}
+
 /* ================= COURSES OF THE LIGHTS ================= */
 const state={ simHours:9.5, speedIdx:1, paused:false,
   mode:'boat', boat:{x:0,z:0,heading:Math.PI*0.9,speed:0},
@@ -6516,6 +6538,7 @@ function frame(){
     aloftDisc.position.y=175+Math.min(2200,Math.max(0,eyeY-9000)*0.06);  /* over the chunk tops, under the flyer */
     aloftTick(dt,p.x,p.z); }
   else if(aloftDisc){ aloftDisc.visible=false; if(aloftMark) aloftMark.visible=false; }
+  haloTick(state.firm?1:zMapF);   /* the lights get their glow when the earth is beheld whole */
   /* drawn right back, the sky about the disc gives way to the outer darkness,
      and the earth is beheld standing within it — as she is */
   if(zMapF>0.002) scene.background.lerp(_voidC,zMapF*0.92);
