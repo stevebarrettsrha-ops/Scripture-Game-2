@@ -5447,6 +5447,13 @@ function touchDome(){
   const line=CINE_LINES[Math.floor(Math.random()*CINE_LINES.length)];
   domeCut={t:0,dur:11.5,x:p.x,y,z:p.z,out:Math.atan2(p.x,p.z),line};
   ensureFlyDome();
+  /* THE WALL OF NIGHT COMES DOWN FOR THIS. It is a dark cylinder standing at
+     the rim, and it is the right thing to see from within the world — but he
+     is not within it now, he is a thousand blocks up on the crown of the ice
+     with his hand on the glass, and it stood between him and the whole of the
+     deep, a smooth blank filling two thirds of the sight with not one star in
+     it. The same is done in the firmament view, and for the same reason. */
+  voidWall.visible=false;
   walkerG.position.set(p.x,y,p.z);
   const el=$('cine'); if(el) el.classList.add('on');
   const cap=$('cine-cap');
@@ -5454,6 +5461,7 @@ function touchDome(){
 }
 function endDomeCut(){
   domeCut=null;
+  if(!state.firm) voidWall.visible=true;
   const el=$('cine'); if(el) el.classList.remove('on');
   const cap=$('cine-cap'); if(cap) cap.classList.remove('on');
 }
@@ -5465,8 +5473,11 @@ function domeCutTick(dt){
   const cap=$('cine-cap');
   if(cap) cap.classList.toggle('on', C.t>1.9&&C.t<C.dur-1.6);
   /* the stars and the glass are brought up, so the scene reads at any hour */
-  const rise=Math.min(1,C.t/2.4);
-  if(flyDome) flyDome.material.opacity=Math.max(flyDome.material.opacity,0.16+0.5*rise);
+  const rise=Math.min(1,C.t/2.4); C.rise=rise;
+  /* enough glass that his hand has something to rest on, and no more: at half
+     again as much the vault's blue lay over the whole of the abyss and the
+     host in it could barely be made out, which is the sight he came for */
+  if(flyDome) flyDome.material.opacity=Math.max(flyDome.material.opacity,0.16+0.24*rise);
   starGroup.userData.mat.opacity=Math.max(starGroup.userData.mat.opacity,0.92*rise);
   if(outerDeep) outerDeep.material.uniforms.uOp.value=
     Math.max(outerDeep.material.uniforms.uOp.value,0.92*rise);
@@ -6691,7 +6702,9 @@ function frame(){
      and the earth is beheld standing within it — as she is. It goes ALL the
      way to the dark: eight parts in a hundred of the day's blue left in it
      was enough to grey the whole void and put out the stars in it. */
-  const voidF=state.firm?1:zMapF;
+  /* and with his hand on the glass he is looking straight out into it — that
+     is the whole of what the scene is for, so the host comes up there too */
+  const voidF=state.firm?1:Math.max(zMapF, domeCut?(domeCut.rise||0):0);
   if(voidF>0.002) scene.background.lerp(_voidC,Math.min(1,voidF*1.14));
   voidStarTick(voidF);            /* and the host of the shamayim stands in it */
   /* and the haze of the near world must not blind an eye drawn back off it */
