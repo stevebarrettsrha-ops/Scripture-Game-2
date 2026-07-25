@@ -2,8 +2,15 @@
    latitude and longitude. Edit or add freely; the game rebuilds on reload.
 
    kind:'mount'  — raises the very land into a summit
-       peak : height in blocks (snow caps above 11)
-       r    : radius of the massif in world units (1 block = 6 units)
+       elev : the summit's TRUE height above the sea, in metres. The engine
+              scales it (MTN_M_PER_BLOCK), so every mountain in the world
+              keeps its right proportion to every other, and the whole range
+              of the earth is retuned from that one constant.
+       r    : radius of the MASSIF in world units (1 block = 6 units = 1 km).
+              Not the peak — the whole swelling of the land about it: the
+              plateau under Everest, the Alps under Mont Blanc. The summit
+              itself is raised sharply within it.
+       peak : (old) height in blocks — still honoured where no elev is given
    other kinds — built as structures when the traveller draws near:
        pyramid · ziggurat · temple · stonecircle · wall · lighthouse ·
        gate · city · statue          (s : optional size factor)          */
@@ -34,16 +41,16 @@ EARTH.landmark({n:"Caral of the Sacred Fire", lat:-10.89, lon:-77.52, kind:'pyra
 EARTH.landmark({n:"The Great Heads of the Olmec", lat:18.10, lon:-94.04, kind:'statue'});
 
 /* ---- the named summits — the land itself rises to meet them ---- */
-EARTH.landmark({n:"Mount Ararat", lat:39.70, lon:44.30, kind:'mount', peak:24, r:150});
-EARTH.landmark({n:"Mount Sinai", lat:28.54, lon:33.97, kind:'mount', peak:13, r:100});
-EARTH.landmark({n:"Mount Hermon", lat:33.42, lon:35.86, kind:'mount', peak:15, r:110});
-EARTH.landmark({n:"Mount Olympus", lat:40.09, lon:22.36, kind:'mount', peak:17, r:120});
-EARTH.landmark({n:"Mount Everest", lat:27.99, lon:86.93, kind:'mount', peak:34, r:200});
-EARTH.landmark({n:"Mount Fuji", lat:35.36, lon:138.73, kind:'mount', peak:20, r:130});
-EARTH.landmark({n:"Kilimanjaro", lat:-3.07, lon:37.35, kind:'mount', peak:22, r:160});
-EARTH.landmark({n:"Mont Blanc", lat:45.83, lon:6.86, kind:'mount', peak:19, r:130});
-EARTH.landmark({n:"Denali", lat:63.07, lon:-151.0, kind:'mount', peak:23, r:160});
-EARTH.landmark({n:"Aconcagua", lat:-32.65, lon:-70.01, kind:'mount', peak:25, r:160});
-EARTH.landmark({n:"Table Mountain", lat:-33.96, lon:18.40, kind:'mount', peak:9, r:90});
-EARTH.landmark({n:"Uluru", lat:-25.34, lon:131.03, kind:'mount', peak:8, r:60});
-EARTH.landmark({n:"Mount Zaphon", lat:35.95, lon:35.97, kind:'mount', peak:12, r:90});
+EARTH.landmark({n:"Mount Ararat", lat:39.70, lon:44.30, kind:'mount', elev:5137, r:520});
+EARTH.landmark({n:"Mount Sinai", lat:28.54, lon:33.97, kind:'mount', elev:2285, r:260});
+EARTH.landmark({n:"Mount Hermon", lat:33.42, lon:35.86, kind:'mount', elev:2814, r:300});
+EARTH.landmark({n:"Mount Olympus", lat:40.09, lon:22.36, kind:'mount', elev:2917, r:330});
+EARTH.landmark({n:"Mount Everest", lat:27.99, lon:86.93, kind:'mount', elev:8849, r:5400});
+EARTH.landmark({n:"Mount Fuji", lat:35.36, lon:138.73, kind:'mount', elev:3776, r:240});
+EARTH.landmark({n:"Kilimanjaro", lat:-3.07, lon:37.35, kind:'mount', elev:5895, r:330});
+EARTH.landmark({n:"Mont Blanc", lat:45.83, lon:6.86, kind:'mount', elev:4808, r:1800});
+EARTH.landmark({n:"Denali", lat:63.07, lon:-151.0, kind:'mount', elev:6190, r:1800});
+EARTH.landmark({n:"Aconcagua", lat:-32.65, lon:-70.01, kind:'mount', elev:6961, r:4200});
+EARTH.landmark({n:"Table Mountain", lat:-33.96, lon:18.40, kind:'mount', elev:1085, r:90});
+EARTH.landmark({n:"Uluru", lat:-25.34, lon:131.03, kind:'mount', elev:863, r:60});
+EARTH.landmark({n:"Mount Zaphon", lat:35.95, lon:35.97, kind:'mount', elev:1717, r:150});

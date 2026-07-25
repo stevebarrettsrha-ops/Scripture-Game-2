@@ -307,16 +307,57 @@ function riverAtUV(u,v){
 const LANDMARKS=(window.EARTH&&window.EARTH.landmarkList)||[];
 function llToWorld(lat,lon){ const r=(90-lat)/180, a=lon*Math.PI/180;
   return [r*Math.sin(a)*R_WORLD, r*Math.cos(a)*R_WORLD]; }
+/* ---- THE SCALE OF THE MOUNTAINS ----
+   True elevation cannot be laid on the disc as it stands. At 6 units to the
+   kilometre, Everest's 8,849 m would stand barely 9 blocks — LOWER than the
+   hills beside it. So the heights of the earth are raised by one constant,
+   and every mountain keeps its right proportion to every other: retune this
+   line and the whole world's relief moves together.
+   At 40 m to the block Everest stands 221 blocks — 1,326 units — far above
+   the floor of cloud at 238, so the great summits truly stand in the clouds
+   and are seen from days away at sea. */
+const MTN_M_PER_BLOCK=40;
+/* and how high a range that bears no name may climb of itself */
+const MTN_MAX=170;
 const MOUNTS=[];
 for(const L of LANDMARKS){ if(L.kind!=='mount') continue;
   const [mx,mz]=llToWorld(L.lat,L.lon);
-  MOUNTS.push({x:mx,z:mz,R:(L.r||110),peak:(L.peak||18)}); }
+  const peak=(L.elev!==undefined)?L.elev/MTN_M_PER_BLOCK:(L.peak||18);
+  MOUNTS.push({x:mx,z:mz,R:(L.r||110),peak}); }
+/* A summit is not a cone. Every great mountain sits in the midst of a massif
+   that swells for hundreds of kilometres about it — the plateau under
+   Everest, the Alps under Mont Blanc — with the peak a sharp thing standing
+   out of it. So the uplift is TWO lobes: a broad one across the whole radius
+   that raises the country itself, and a steep one across a seventh of it
+   that raises the summit. One cone gave a pyramid; two give a range. */
 function mountUpliftAt(x,z){ let up=0;
   for(const m of MOUNTS){ const dx=x-m.x; if(dx>m.R||dx<-m.R) continue;
     const dz=z-m.z; if(dz>m.R||dz<-m.R) continue;
-    const d=Math.hypot(dx,dz);
-    if(d<m.R){ const t=1-d/m.R; const u2=m.peak*t*t*(3-2*t); if(u2>up) up=u2; } }
+    const d=Math.hypot(dx,dz); if(d>=m.R) continue;
+    const tb=1-d/m.R, broad=tb*tb*(3-2*tb);
+    const rs=m.R*0.14, ts=d<rs?1-d/rs:0, sharp=ts*ts*(3-2*ts);
+    const u2=m.peak*(0.58*broad+0.42*sharp);
+    /* A massif is not a smooth dome. The ridge field breaks its flanks into
+       spurs and corries, so the shoulders are mountain country and not a
+       terraced table. It is ADDED, and dies away at the summit — so a named
+       height always keeps its own true measure and is never noised down. */
+    const relief=m.peak*0.20*broad*(1-sharp)*ridgeNoise(x*0.0013-21,z*0.0013+33);
+    const t2=u2+relief;
+    if(t2>up) up=t2; }
   return up; }
+/* ---- RIDGED MULTIFRACTAL — the shape a mountain chain actually takes ----
+   Plain fbm makes round blobs. Folding it about its midline (1−|2f−1|) puts
+   a CREST wherever it crossed the middle, so the field runs in long
+   ridgelines with spurs and saddles between them, as ranges truly lie.
+   Squaring each octave sharpens those crests. Held to three LOW octaves on
+   purpose: a fine octave here becomes a cliff at every pace, and makes a
+   range that cannot be walked at all. */
+function ridgeNoise(x,z){
+  let s=0, amp=1, f=1, tot=0;
+  for(let o=0;o<3;o++){ const r=1-Math.abs(fbm(x*f,z*f)*2-1);
+    s+=r*r*amp; tot+=amp; amp*=0.5; f*=2.07; }
+  return s/tot;
+}
 
 /* ================= THE SHOAL MAP =================
    A distance-to-land field over the whole disc (chamfer transform of the
@@ -407,25 +448,61 @@ function cellRaw(ix,iz){
   if(countryAtUV(wu+s,wv))cnt++; if(countryAtUV(wu-s,wv))cnt++;
   if(countryAtUV(wu,wv+s))cnt++; if(countryAtUV(wu,wv-s))cnt++;
   const inland=cnt/4;
-  /* Mostly-flat, walkable ground with mountains gated behind a broad mask —
-     plains stay h=1..2 (solid footing, few steps), while ranges rise rocky. */
+  /* ---- THE RANGES ----
+     The plains stay flat and walkable (h=1..2, solid footing, few steps).
+     Where the broad mask says mountains STAND, a ridged multifractal says
+     what SHAPE they take there, so they run in chains with ridgelines and
+     valleys rather than swelling into round lumps. MTN_MAX is how high a
+     nameless range may climb; the named summits are raised on top of it. */
   const mtnMask=fbm(ix*.018+120,iz*.018-30);
-  const mtn=Math.max(0,mtnMask-0.5)/0.5;               // 0 on the plains, →1 in the ranges
-  let h=1+Math.floor(n*1.5)+Math.floor(Math.pow(mtn,1.4)*inland*12);
-  /* the named summits of the true earth rise out of the plain — Ararat,
+  const mtn=Math.max(0,mtnMask-0.52)/0.48;             // 0 on the plains, →1 in the ranges
+  let rise=0;
+  if(mtn>0.001){
+    const rg=ridgeNoise(ix*.0045+9,iz*.0045-14);
+    /* THE PASSES — a slow seam crossing every chain, where the rock is drawn
+       down into a saddle. These are the roads men and beasts have always
+       taken through the mountains; without them a range is a wall, and at
+       these heights a wall no one could ever cross. */
+    const seam=Math.abs(fbm(ix*.0032-55,iz*.0032+21)*2-1);
+    const gate=0.26+0.74*Math.min(1,seam*4.5);
+    rise=Math.pow(mtn,2.0)*Math.pow(rg,1.35)*inland*gate*MTN_MAX;
+  }
+  const mtnF=Math.min(1,rise/40);                      // how mountainous this cell stands
+  /* the fine noise is damped on the heights: at full strength upon a mountain
+     it puts a step at every pace and the range cannot be climbed */
+  let h=1+Math.floor(n*1.5*(1-0.72*mtnF))+Math.floor(rise);
+  /* the named summits of the true earth rise out of the land — Ararat,
      Sinai, Everest and their fellows, each at its own place */
   const mUp=mountUpliftAt(x,z);
   if(mUp>0.5) h+=Math.round(mUp);
-  const snow = lat>72 || lat<-55 || h>=11;
-  const tundra = lat>58 && lat<=72;
-  const desert = lat>11 && lat<36 && n2>0.42 && inland>0.5;
-  const tropic = lat<=11 && lat>-38;
-  let kind, tree=0;
-  if(!snow&&!tundra&&inland<1&&mUp<=0.5){
-    /* the shore terraces gently to the water (a named summit is never shorn) */
-    const cap=1+Math.round(inland*4);
+  if(inland<1&&mUp<=0.5){
+    /* the shore terraces gently to the water, so every coast keeps a landing
+       (a named summit is never shorn) — but a range that truly runs down to
+       the sea is let stand, as ranges do */
+    const cap=1+Math.round(inland*4)+Math.round(mtnF*mtnF*40);
     if(h>cap) h=cap;
   }
+  /* ---- THE BANDS OF THE HEIGHTS ----
+     Height rules the land as much as latitude does now. The tree line and
+     the snow line both ride high over the equator and come down to meet the
+     sea at the poles, so a mountain wears forest upon its flanks, bare scree
+     above that, and snow upon its crown. (Everything above 5 blocks used to
+     be turned to naked rock with its trees stripped off — which was no loss
+     when nothing could stand higher than a hill, and would now shear the
+     forest off every mountain in the world.) */
+  /* The true snow line runs near 5,000 m over the equator and comes down to
+     meet the sea about 78° — so it is taken in METRES and put through the
+     same scale as the summits, and the two agree by construction. The tree
+     line sits at about five-eighths of it, as it does on the earth: forest
+     to 1,800 m in the Alps, to 3,000 m on Kilimanjaro. */
+  const snowLine=Math.max(3, 5000*(1-Math.pow(Math.min(1,Math.abs(lat)/78),1.6))/MTN_M_PER_BLOCK);
+  const treeLine=snowLine*0.62;
+  const snow = lat>72 || lat<-55 || h>snowLine;
+  const tundra = !snow && lat>58 && lat<=72;
+  const alpine = !snow && !tundra && h>treeLine;
+  const desert = !alpine && lat>11 && lat<36 && n2>0.42 && inland>0.5;
+  const tropic = lat<=11 && lat>-38;
+  let kind, tree=0;
   /* broad biome regions carve out cherry-blossom hills and badland mesas */
   const region=fbm(ix*.012-70,iz*.012+140);
   const lon=Math.atan2(u,v)*180/Math.PI;              /* longitude upon the disc */
@@ -434,14 +511,23 @@ function cellRaw(ix,iz){
   /* cherry blossom only in the far east — the lands of Yapan, China and Korea */
   const eastAsia = lat>20&&lat<46&&lon>96&&lon<148;
   const cherry   = !snow&&!tundra&&!desert&&eastAsia&&region>0.46;
-  /* a broad, flat, walkable beach along every warm/temperate coast */
-  const beach = mUp<=0.5 && !snow&&!tundra&&!badlands&&(inland<=0.5 || (inland<0.8&&h<=2));
+  /* a broad, flat, walkable beach along every warm/temperate coast
+     (but not where a range comes down to the water — there the rock meets
+     the sea, as it does at every mountainous coast on the earth) */
+  const beach = mUp<=0.5 && !snow&&!tundra&&!badlands&&!alpine&&mtnF<0.35
+    &&(inland<=0.5 || (inland<0.8&&h<=2));
   if(beach){ kind='sand'; h=Math.min(h,2);
     if(tropic&&j<0.03) tree=2;                 /* palms on the strand */
   }
   else if(h<=2 && inland<1 && !snow && !tundra && !badlands){ kind='sand'; h=Math.min(h,2); }
   else if(snow) kind='snow';
   else if(tundra){ kind='tundra'; tree=j<0.02?1:0; }
+  /* the alpine band: scree and stunted pine on the shoulders of the range,
+     giving way to bare rock as it nears the snow */
+  else if(alpine){
+    kind = h>treeLine+(snowLine-treeLine)*0.45 ? 'rock' : 'alpine';
+    tree = (kind==='alpine'&&j<0.020) ? 1 : 0;
+  }
   else if(badlands){ kind='badlands';
     const bh=fbm(ix*.045+7,iz*.045-3);              /* the badlands' own eroded relief */
     h=2+Math.floor(bh*8)+Math.floor(Math.pow(mtn,1.2)*inland*8);
@@ -452,7 +538,10 @@ function cellRaw(ix,iz){
   else if(cherry){ kind='grass'; tree=j<0.10?3:0; } /* cherry-blossom groves */
   else if(tropic){ kind='tropic'; tree=j<0.085?2:0; }
   else { kind='grass'; tree=j<0.06?1:0; }
-  if(kind!=='sand'&&kind!=='badlands'&&!cherry&&!snow&&h>=5){ kind='rock'; tree=0; }
+  /* (the old blanket rule turning EVERY cell above 5 blocks to bare rock and
+     stripping its trees is gone — it belonged to a world whose tallest thing
+     was a hill. The tree line does that work now, and does it by altitude
+     and by latitude both, so the forest climbs the flanks.) */
   return {h, kind, tree, ci};
 }
 /* villages flatten the ground around them (computed at boot) */
@@ -493,10 +582,19 @@ function landAtWorld(x,z){ return cell(Math.floor(x/B),Math.floor(z/B)); }
 function computeSites(){
   for(let i=0;i<COUNTRIES.length;i++){
     const co=COUNTRIES[i]; let best=null;
+    /* Villages settle on LOW GROUND. A site flattens the land for 86 units
+       about it, so one that fell on a mountain shoulder would now raise a
+       two-hundred-block table into the sky. Every country is searched first
+       under a height bar; only if it has no low ground anywhere is the bar
+       lifted, so no land is left without a settlement. */
+    let maxH=12;
     const tryPt=(u,v)=>{ const ix=Math.floor(u*R_WORLD/B), iz=Math.floor(v*R_WORLD/B);
       const cc=cellRaw(ix,iz);
-      if(cc&&cc.kind!=='wall'&&cc.kind!=='floe') return {i,ix,iz,x:(ix+.5)*B,z:(iz+.5)*B,h0:Math.max(2,cc.h)};
+      if(cc&&cc.kind!=='wall'&&cc.kind!=='floe'&&cc.h<=maxH)
+        return {i,ix,iz,x:(ix+.5)*B,z:(iz+.5)*B,h0:Math.max(2,cc.h)};
       return null; };
+    for(let pass=0;pass<2&&!best;pass++){
+    maxH = pass===0 ? 12 : 1e9;
     /* a country file may name its own village spot: site:[lat,lon] */
     if(co.site&&co.site.length===2){
       const sr=(90-co.site[0])/180, sa=co.site[1]*Math.PI/180;
@@ -526,6 +624,7 @@ function computeSites(){
         const u=co.c[0]+Math.cos(th)*rad*1.7/HALF, v=co.c[1]+Math.sin(th)*rad*1.7/HALF;
         if(countryAtUV(u,v)===i+1){ best=tryPt(u,v); if(best) break outer; }
       } }
+    }
     SITES[i]=best;
     if(best){ const u=best.x/R_WORLD, v=best.z/R_WORLD;
       for(let du=-1;du<=1;du++) for(let dv=-1;dv<=1;dv++){
@@ -570,6 +669,7 @@ function topMatFor(kind){
   if(kind==='snow'||kind==='wall') return 'snow';
   if(kind==='floe') return 'ice';
   if(kind==='rock') return 'stone';
+  if(kind==='alpine') return 'dirt';      /* the scree shoulders below the snow */
   if(kind==='desert') return 'sand';
   if(kind==='badlands') return 'badTop';
   if(kind==='tropic') return 'grassTopTr';
@@ -583,6 +683,7 @@ function sideMatsFor(kind){ /* [topBlockSide, lowerSide] */
   if(kind==='wall') return ['ice','ice'];
   if(kind==='floe') return ['ice','ice'];
   if(kind==='rock') return ['stone','stone'];
+  if(kind==='alpine') return ['dirt','stone'];
   return ['grassSide','dirt'];
 }
 function emitColumn(G,ix,iz,cc){
@@ -691,8 +792,95 @@ function updateChunks(px,pz,budget){
     if(d>VIEW+2){ for(const m of ch.meshes){ scene.remove(m); m.geometry.dispose(); } chunks.delete(k); } }
 }
 
+/* ================= THE FAR LAND =================
+   The chunk mesher reaches some 768 units and no further, which was ample
+   while the tallest thing upon the earth was a hill. It is not ample for a
+   mountain 1,300 units high: a range would stand wholly invisible until the
+   traveller was upon it, and then rear up out of nothing — and the whole
+   point of raising the mountains is that they are SEEN, from a long way off,
+   standing over the sea.
+   So beyond the chunks the land is drawn a second time at a coarse grain: a
+   POLAR ring of triangles centred on the traveller, its rings spaced
+   geometrically so the mesh grows coarser the further out it reaches (detail
+   where the eye can use it, none where it cannot), each vertex taking the
+   true height of the land beneath it. It is rebuilt only when he has
+   travelled a good way, and it is SUNK into the ground at its inner edge so
+   the real blocky chunks always stand in front of it and never fight it. */
+/* The inner radius must stay well within the chunks' own reach (some 768
+   units), because the mesh is only re-centred when the traveller has moved a
+   good way: while it is stale its hole sits off to one side of him, and if
+   the hole's near edge ever came out past the chunks there would be open sky
+   where the ground should be. R0 + the rebuild threshold is the budget. */
+const FL_RINGS=48, FL_SPOKES=84, FL_R0=420, FL_R1=3600, FL_FADE=760, FL_STEP=300;
+const flGeo=(()=>{
+  const g=new THREE.BufferGeometry(), nv=(FL_RINGS+1)*FL_SPOKES;
+  const pos=new Float32Array(nv*3), col=new Float32Array(nv*3), idx=[];
+  const kr=Math.log(FL_R1/FL_R0);
+  for(let k=0;k<=FL_RINGS;k++){ const r=FL_R0*Math.exp(kr*k/FL_RINGS);
+    for(let a=0;a<FL_SPOKES;a++){ const th=a/FL_SPOKES*Math.PI*2, o=(k*FL_SPOKES+a)*3;
+      pos[o]=Math.cos(th)*r; pos[o+1]=0; pos[o+2]=Math.sin(th)*r; } }
+  for(let k=0;k<FL_RINGS;k++) for(let a=0;a<FL_SPOKES;a++){ const a2=(a+1)%FL_SPOKES;
+    const p0=k*FL_SPOKES+a, p1=k*FL_SPOKES+a2, p2=(k+1)*FL_SPOKES+a, p3=(k+1)*FL_SPOKES+a2;
+    idx.push(p0,p2,p1, p1,p2,p3); }
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  g.setAttribute('color',new THREE.BufferAttribute(col,3));
+  g.setIndex(idx); return g;
+})();
+/* the colours the blocks read as from far off, where no texture can be seen */
+const FL_COL={grass:[0.34,0.52,0.26], tropic:[0.22,0.50,0.22], tundra:[0.44,0.49,0.40],
+  sand:[0.80,0.73,0.52], desert:[0.82,0.72,0.48], badlands:[0.64,0.39,0.25],
+  rock:[0.50,0.49,0.47], alpine:[0.40,0.34,0.26], snow:[0.92,0.94,0.97],
+  wall:[0.88,0.93,0.97], floe:[0.80,0.88,0.94]};
+const FL_SEA=[0.07,0.20,0.32];
+/* The SAME kind of material the blocks wear — unlit, vertex-shaded, tinted by
+   the one global day-light — and enrolled in LIT with them. A lambert surface
+   here took the hemisphere's blue-grey ground colour on every face turned
+   from the sun, so the far ranges came out slate blue while the near land
+   stood in daylight, and the seam between them was plain. */
+const farLandMat=new THREE.MeshBasicMaterial({vertexColors:true}); LIT.push(farLandMat);
+const farLand=new THREE.Mesh(flGeo,farLandMat);
+farLand.frustumCulled=false; farLand.visible=false; scene.add(farLand);
+const _flH=new Float32Array((FL_RINGS+1)*FL_SPOKES);
+let _flAt=null;
+function updateFarLand(px,pz,force){
+  if(!force&&_flAt&&Math.hypot(_flAt[0]-px,_flAt[1]-pz)<FL_STEP) return;
+  _flAt=[px,pz]; farLand.position.set(px,0,pz);
+  const pos=flGeo.attributes.position, a=pos.array, col=flGeo.attributes.color.array;
+  /* first the heights and the colours of the ground */
+  for(let k=0;k<=FL_RINGS;k++) for(let s=0;s<FL_SPOKES;s++){
+    const v=k*FL_SPOKES+s, i=v*3, wx=a[i]+px, wz=a[i+2]+pz;
+    /* cellRaw, not cell — the village flattening is a matter of 86 units and
+       cannot be seen out here, and filling the cell cache with far country
+       would only thrash it for the ground underfoot */
+    const cc=cellRaw(Math.floor(wx/B),Math.floor(wz/B));
+    let y,c;
+    if(cc){ y=cc.h*B; c=FL_COL[cc.kind]||FL_COL.grass; }
+    else { y=WATER_Y-6; c=FL_SEA; }     /* well under the trough of any wave */
+    _flH[v]=y; col[i]=c[0]; col[i+1]=c[1]; col[i+2]=c[2];
+  }
+  /* then the shading: a flank is darker than a level top, as it is on the
+     blocks — read off the fall of the land to the next vertex out and round */
+  for(let k=0;k<=FL_RINGS;k++){
+    const r=Math.hypot(a[(k*FL_SPOKES)*3],a[(k*FL_SPOKES)*3+2]);
+    const step=Math.max(1,Math.min(r*6.283/FL_SPOKES,(FL_R1-FL_R0)/FL_RINGS));
+    for(let s=0;s<FL_SPOKES;s++){
+      const v=k*FL_SPOKES+s, i=v*3;
+      const vr=(k<FL_RINGS?k+1:k-1)*FL_SPOKES+s, vs=k*FL_SPOKES+(s+1)%FL_SPOKES;
+      const fall=(Math.abs(_flH[v]-_flH[vr])+Math.abs(_flH[v]-_flH[vs]))/(step*1.7);
+      const sh=1-0.40*Math.min(1,fall);
+      const d=Math.hypot(a[i],a[i+2]);
+      const sink=Math.max(0,1-Math.max(0,d-FL_R0)/FL_FADE);
+      a[i+1]=_flH[v]-sink*B*1.4;
+      col[i]*=sh; col[i+1]*=sh; col[i+2]*=sh;
+    }
+  }
+  pos.needsUpdate=true; flGeo.attributes.color.needsUpdate=true;
+}
+
 /* ================= RENDERER · SKY · SEA ================= */
-scene.fog=new THREE.Fog(0x9fc5e8,260,870); const FOG=scene.fog;
+/* the haze reaches far further than it did — a mountain is no use at all if
+   it is swallowed by fog at 870 units, less than its own height away */
+scene.fog=new THREE.Fog(0x9fc5e8,300,2400); const FOG=scene.fog;
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,1,R_WORLD*3.2);
 const renderer=new THREE.WebGLRenderer({canvas:$('cv'),antialias:false});
 renderer.setPixelRatio(Math.min(2,devicePixelRatio||1));
@@ -788,8 +976,10 @@ function seaSlope(x,z){ let sx=0,sz=0;
     const c=Math.cos(f)*w.A*seaAmp*w.k; sx+=c*w.dx; sz+=c*w.dy; }
   _slope.x=sx; _slope.z=sz; return _slope; }
 
-/* the GPU wave grid, following the ship/traveller across the deep */
-const WG_S=1250, WG_SEG=150;
+/* the GPU wave grid, following the ship/traveller across the deep.
+   It has to reach as far as the haze now does, or its flat edge stands out
+   as a seam on open water where the fog no longer hides it. */
+const WG_S=2500, WG_SEG=200;
 const waveGeo=(()=>{
   const g=new THREE.BufferGeometry(), pos=[], idx=[], N=WG_SEG+1;
   for(let j=0;j<N;j++) for(let i=0;i<N;i++)
@@ -1112,7 +1302,7 @@ function skyTick(px,pz){
   if(st>0.01){ _c1.setHex(sky); _c2.setHex(0x4c545e); sky=_c1.lerp(_c2,st*0.75).getHex(); }
   scene.background.setHex(sky);
   if(scene.fog){ scene.fog.color.setHex(sky); /* fog is detached in the firmament view */
-    scene.fog.near=260*(1-st*0.65); scene.fog.far=870-st*520; }
+    scene.fog.near=300*(1-st*0.65); scene.fog.far=2400-st*1450; }
   const l=mix3(0x38405e,0xd9a878,0xffffff,dayF);
   const dim=1-st*0.38;
   setBlockLight(l.r*dim,l.g*dim,l.b*dim);
@@ -5540,6 +5730,7 @@ $('btn-continue').onclick=()=>begin(false);
 /* a small debug handle — used by the automated smoke tests; harmless in play */
 window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
+  farLand,updateFarLand,mountUpliftAt,MOUNTS,ridgeNoise,B,R_WORLD,
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
   domeInfo:()=>({dome:flyDome?flyDome.material.opacity:0, deep:outerDeep?outerDeep.material.uniforms.uOp.value:0, stars:starGroup.userData.mat.opacity}),
@@ -5659,6 +5850,12 @@ function frame(){
      flyer eats chunks at 300+ units/s and 4-a-frame falls behind the fog line */
   const chunkBudget=(state.mode==='fly'||Math.abs(state.boat.speed)>70)?9:4;
   updateChunks(p.x,p.z,chunkBudget);
+  /* the coarse land beyond the chunks — so a range is seen standing on the
+     horizon long before it is reached. Not needed under the sea (the water
+     ends the view within a few hundred units), nor once the charted face has
+     taken the world over. */
+  if(!state.firm&&!underEye&&zMapF<0.9){ farLand.visible=true; updateFarLand(p.x,p.z); }
+  else farLand.visible=false;
   updateVillages(p.x,p.z,dt,light.nightF);
   updateLandmarks(p.x,p.z);
   /* the living world — weather, hearths, fireflies, meetings, murmurs */
