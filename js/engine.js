@@ -918,7 +918,11 @@ function updateChunks(px,pz,budget){
    span its quads were whole countries wide. The rebuild costs about four
    times as much for it — it was 5-11 ms every 300 units of travel — and that
    cost cannot be bought back by rebuilding less often (see below). */
-const FL_RINGS=96, FL_SPOKES=160, FL_R0=420, FL_R1=3600, FL_FADE=760, FL_STEP=300;
+/* FL_FADE is how far the inner dip takes to die away. It ran 760 units — out
+   to 1,180 from the traveller — while the chunks that are meant to be hiding
+   the dipped ground stop at 768. The last four hundred units of it were laid
+   bare on open ground. It is spent now while the chunks still cover it. */
+const FL_RINGS=96, FL_SPOKES=160, FL_R0=420, FL_R1=3600, FL_FADE=330, FL_STEP=300;
 const FL_COS=new Float32Array(FL_SPOKES), FL_SIN=new Float32Array(FL_SPOKES);
 for(let a=0;a<FL_SPOKES;a++){ const th=a/FL_SPOKES*Math.PI*2; FL_COS[a]=Math.cos(th); FL_SIN[a]=Math.sin(th); }
 const flGeo=(()=>{
@@ -928,9 +932,17 @@ const flGeo=(()=>{
   for(let k=0;k<=FL_RINGS;k++){ const r=FL_R0*Math.exp(kr*k/FL_RINGS);
     for(let a=0;a<FL_SPOKES;a++){ const o=(k*FL_SPOKES+a)*3;
       pos[o]=FL_COS[a]*r; pos[o+1]=0; pos[o+2]=FL_SIN[a]*r; } }
+  /* WOUND FACE UP. It was wound the other way about, and every triangle of
+     the far country pointed at the deep — so the whole of it was thrown away
+     by the backface cull the moment it was looked at from above, which is the
+     only way it is ever looked at. What survived was the flanks of the
+     mountains alone, where the ground tilts past the upright and turns its
+     other face to the eye: nothing of France to be seen but the Alps,
+     standing out of open water, with the sea drawn straight through where the
+     country should have been. */
   for(let k=0;k<FL_RINGS;k++) for(let a=0;a<FL_SPOKES;a++){ const a2=(a+1)%FL_SPOKES;
     const p0=k*FL_SPOKES+a, p1=k*FL_SPOKES+a2, p2=(k+1)*FL_SPOKES+a, p3=(k+1)*FL_SPOKES+a2;
-    idx.push(p0,p2,p1, p1,p2,p3); }
+    idx.push(p0,p1,p2, p1,p3,p2); }
   g.setAttribute('position',new THREE.BufferAttribute(pos,3));
   g.setAttribute('color',new THREE.BufferAttribute(col,3));
   g.setIndex(idx); return g;
@@ -963,6 +975,7 @@ const _flH=new Float32Array(FL_NV);
    ready, and then the whole of it changes at once. A half-built ring is
    never shown. */
 const _flPB=new Float32Array(FL_NV*3), _flCB=new Float32Array(FL_NV*3);
+const _flLand=new Uint8Array(FL_NV);   /* dry ground, which may never be sunk */
 const FL_MS=6;                 /* the slice of a frame the rebuild may take */
 let _flAt=null, _flR1=FL_R1, _flJob=null;
 /* one ring of ground: the heights and the colours, read from the world */
@@ -983,7 +996,7 @@ function flFillRing(k,px,pz,kr){
          A sheet of ocean drawn out there hung in the void below the ice. */
       y=-900; c=FL_VOID; }
     else { y=WATER_Y-6; c=FL_SEA; }     /* well under the trough of any wave */
-    _flH[v]=y; _flCB[i]=c[0]; _flCB[i+1]=c[1]; _flCB[i+2]=c[2];
+    _flH[v]=y; _flLand[v]=cc?1:0; _flCB[i]=c[0]; _flCB[i+1]=c[1]; _flCB[i+2]=c[2];
   }
 }
 /* one ring of shading: a flank is darker than a level top, as it is on the
@@ -996,8 +1009,18 @@ function flShadeRing(k,r1){
     const vr=(k<FL_RINGS?k+1:k-1)*FL_SPOKES+s, vs=k*FL_SPOKES+(s+1)%FL_SPOKES;
     const fall=(Math.abs(_flH[v]-_flH[vr])+Math.abs(_flH[v]-_flH[vs]))/(step*1.7);
     const sh=1-0.40*Math.min(1,fall);
+    /* THE SINK MAY NOT DROWN THE COUNTRY. The ring dips beneath the chunks at
+       its inner edge so the seam between coarse and fine ground cannot be
+       seen — but the flat country of the world stands ONE BLOCK above the
+       waterline, and eight units of dip put whole nations under the sea. What
+       was left showing was the mountains alone, standing out of open water
+       where France should have been. The dip is now spent before the chunks
+       run out, and dry ground is never carried below the waves whatever the
+       dip asks for. */
     const sink=Math.max(0,1-Math.max(0,r-FL_R0)/FL_FADE);
-    _flPB[i+1]=_flH[v]-sink*B*1.4;
+    let y=_flH[v]-sink*B*1.4;
+    if(_flLand[v]) y=Math.max(y,Math.min(_flH[v],WATER_Y+2.2));
+    _flPB[i+1]=y;
     _flCB[i]*=sh; _flCB[i+1]*=sh; _flCB[i+2]*=sh;
   }
 }
