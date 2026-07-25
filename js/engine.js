@@ -1207,7 +1207,7 @@ const waveMat=new THREE.ShaderMaterial({
     uShip:{value:new THREE.Vector4()}, uShipH:{value:0}, uSunCol:{value:new THREE.Color(1,0.96,0.85)} },
   vertexShader:`
     uniform float uTime, uAmp; uniform vec2 uCenter; uniform sampler2D uShoal;
-    varying vec3 vNormal, vWorld; varying float vHeight, vFog; varying vec2 vUv, vP;
+    varying vec3 vNormal, vWorld; varying float vHeight, vFog, vTaper; varying vec2 vUv, vP;
     void main(){
       vec2 P=position.xz+uCenter;
       float ed=max(abs(position.x),abs(position.z));
@@ -1226,7 +1226,7 @@ const waveMat=new THREE.ShaderMaterial({
       vec3 disp=vec3(P.x, ${WATER_Y.toFixed(3)}, P.y);
       vec3 nrm=vec3(0.0,1.0,0.0);
       ${waveUnroll}
-      vHeight=disp.y-${WATER_Y.toFixed(3)};
+      vHeight=disp.y-${WATER_Y.toFixed(3)}; vTaper=taper;
       vNormal=normalize(nrm); vUv=P*0.02; vP=P; vWorld=disp;
       vec4 mv=viewMatrix*vec4(disp,1.0); vFog=-mv.z;
       gl_Position=projectionMatrix*mv;
@@ -1235,7 +1235,7 @@ const waveMat=new THREE.ShaderMaterial({
     precision highp float;
     uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow, uCamPos, uSunCol, uZenith; uniform sampler2D uMap, uShoal;
     uniform float uFogNear, uFogFar, uOpacity, uTime, uShipH; uniform vec4 uShip;
-    varying vec3 vNormal, vWorld; varying float vHeight, vFog; varying vec2 vUv, vP;
+    varying vec3 vNormal, vWorld; varying float vHeight, vFog, vTaper; varying vec2 vUv, vP;
     float h21(vec2 p){ return fract(sin(dot(p,vec2(41.3,289.1)))*43758.5); }
     void main(){
       vec3 N=normalize(vNormal);
@@ -1306,6 +1306,12 @@ const waveMat=new THREE.ShaderMaterial({
       float aa=mix(0.55,0.93,deepF);
       aa=mix(aa,0.985,fres*0.6);
       aa=max(aa,allFoam*0.95);
+      /* AND THE GRID GIVES OUT WITHOUT AN EDGE. Its swell already lies down at
+         the rim; now it thins away there too, into the flat sea of the far
+         ring beneath it. Stood on the water the haze has long since taken it
+         and nothing of this can be seen — but drawn back off the world, where
+         the haze opens, its square corner stood on the ocean like a raft. */
+      aa*=smoothstep(0.0,0.35,vTaper);
       float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
       gl_FragColor=vec4(mix(col,uFogColor,ff),aa);
     }`
