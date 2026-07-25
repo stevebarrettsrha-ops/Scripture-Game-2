@@ -307,16 +307,57 @@ function riverAtUV(u,v){
 const LANDMARKS=(window.EARTH&&window.EARTH.landmarkList)||[];
 function llToWorld(lat,lon){ const r=(90-lat)/180, a=lon*Math.PI/180;
   return [r*Math.sin(a)*R_WORLD, r*Math.cos(a)*R_WORLD]; }
+/* ---- THE SCALE OF THE MOUNTAINS ----
+   True elevation cannot be laid on the disc as it stands. At 6 units to the
+   kilometre, Everest's 8,849 m would stand barely 9 blocks — LOWER than the
+   hills beside it. So the heights of the earth are raised by one constant,
+   and every mountain keeps its right proportion to every other: retune this
+   line and the whole world's relief moves together.
+   At 40 m to the block Everest stands 221 blocks — 1,326 units — far above
+   the floor of cloud at 238, so the great summits truly stand in the clouds
+   and are seen from days away at sea. */
+const MTN_M_PER_BLOCK=40;
+/* and how high a range that bears no name may climb of itself */
+const MTN_MAX=170;
 const MOUNTS=[];
 for(const L of LANDMARKS){ if(L.kind!=='mount') continue;
   const [mx,mz]=llToWorld(L.lat,L.lon);
-  MOUNTS.push({x:mx,z:mz,R:(L.r||110),peak:(L.peak||18)}); }
+  const peak=(L.elev!==undefined)?L.elev/MTN_M_PER_BLOCK:(L.peak||18);
+  MOUNTS.push({x:mx,z:mz,R:(L.r||110),peak}); }
+/* A summit is not a cone. Every great mountain sits in the midst of a massif
+   that swells for hundreds of kilometres about it — the plateau under
+   Everest, the Alps under Mont Blanc — with the peak a sharp thing standing
+   out of it. So the uplift is TWO lobes: a broad one across the whole radius
+   that raises the country itself, and a steep one across a seventh of it
+   that raises the summit. One cone gave a pyramid; two give a range. */
 function mountUpliftAt(x,z){ let up=0;
   for(const m of MOUNTS){ const dx=x-m.x; if(dx>m.R||dx<-m.R) continue;
     const dz=z-m.z; if(dz>m.R||dz<-m.R) continue;
-    const d=Math.hypot(dx,dz);
-    if(d<m.R){ const t=1-d/m.R; const u2=m.peak*t*t*(3-2*t); if(u2>up) up=u2; } }
+    const d=Math.hypot(dx,dz); if(d>=m.R) continue;
+    const tb=1-d/m.R, broad=tb*tb*(3-2*tb);
+    const rs=m.R*0.14, ts=d<rs?1-d/rs:0, sharp=ts*ts*(3-2*ts);
+    const u2=m.peak*(0.58*broad+0.42*sharp);
+    /* A massif is not a smooth dome. The ridge field breaks its flanks into
+       spurs and corries, so the shoulders are mountain country and not a
+       terraced table. It is ADDED, and dies away at the summit — so a named
+       height always keeps its own true measure and is never noised down. */
+    const relief=m.peak*0.20*broad*(1-sharp)*ridgeNoise(x*0.0013-21,z*0.0013+33);
+    const t2=u2+relief;
+    if(t2>up) up=t2; }
   return up; }
+/* ---- RIDGED MULTIFRACTAL — the shape a mountain chain actually takes ----
+   Plain fbm makes round blobs. Folding it about its midline (1−|2f−1|) puts
+   a CREST wherever it crossed the middle, so the field runs in long
+   ridgelines with spurs and saddles between them, as ranges truly lie.
+   Squaring each octave sharpens those crests. Held to three LOW octaves on
+   purpose: a fine octave here becomes a cliff at every pace, and makes a
+   range that cannot be walked at all. */
+function ridgeNoise(x,z){
+  let s=0, amp=1, f=1, tot=0;
+  for(let o=0;o<3;o++){ const r=1-Math.abs(fbm(x*f,z*f)*2-1);
+    s+=r*r*amp; tot+=amp; amp*=0.5; f*=2.07; }
+  return s/tot;
+}
 
 /* ================= THE SHOAL MAP =================
    A distance-to-land field over the whole disc (chamfer transform of the
@@ -407,25 +448,61 @@ function cellRaw(ix,iz){
   if(countryAtUV(wu+s,wv))cnt++; if(countryAtUV(wu-s,wv))cnt++;
   if(countryAtUV(wu,wv+s))cnt++; if(countryAtUV(wu,wv-s))cnt++;
   const inland=cnt/4;
-  /* Mostly-flat, walkable ground with mountains gated behind a broad mask —
-     plains stay h=1..2 (solid footing, few steps), while ranges rise rocky. */
+  /* ---- THE RANGES ----
+     The plains stay flat and walkable (h=1..2, solid footing, few steps).
+     Where the broad mask says mountains STAND, a ridged multifractal says
+     what SHAPE they take there, so they run in chains with ridgelines and
+     valleys rather than swelling into round lumps. MTN_MAX is how high a
+     nameless range may climb; the named summits are raised on top of it. */
   const mtnMask=fbm(ix*.018+120,iz*.018-30);
-  const mtn=Math.max(0,mtnMask-0.5)/0.5;               // 0 on the plains, →1 in the ranges
-  let h=1+Math.floor(n*1.5)+Math.floor(Math.pow(mtn,1.4)*inland*12);
-  /* the named summits of the true earth rise out of the plain — Ararat,
+  const mtn=Math.max(0,mtnMask-0.52)/0.48;             // 0 on the plains, →1 in the ranges
+  let rise=0;
+  if(mtn>0.001){
+    const rg=ridgeNoise(ix*.0045+9,iz*.0045-14);
+    /* THE PASSES — a slow seam crossing every chain, where the rock is drawn
+       down into a saddle. These are the roads men and beasts have always
+       taken through the mountains; without them a range is a wall, and at
+       these heights a wall no one could ever cross. */
+    const seam=Math.abs(fbm(ix*.0032-55,iz*.0032+21)*2-1);
+    const gate=0.26+0.74*Math.min(1,seam*4.5);
+    rise=Math.pow(mtn,2.0)*Math.pow(rg,1.35)*inland*gate*MTN_MAX;
+  }
+  const mtnF=Math.min(1,rise/40);                      // how mountainous this cell stands
+  /* the fine noise is damped on the heights: at full strength upon a mountain
+     it puts a step at every pace and the range cannot be climbed */
+  let h=1+Math.floor(n*1.5*(1-0.72*mtnF))+Math.floor(rise);
+  /* the named summits of the true earth rise out of the land — Ararat,
      Sinai, Everest and their fellows, each at its own place */
   const mUp=mountUpliftAt(x,z);
   if(mUp>0.5) h+=Math.round(mUp);
-  const snow = lat>72 || lat<-55 || h>=11;
-  const tundra = lat>58 && lat<=72;
-  const desert = lat>11 && lat<36 && n2>0.42 && inland>0.5;
-  const tropic = lat<=11 && lat>-38;
-  let kind, tree=0;
-  if(!snow&&!tundra&&inland<1&&mUp<=0.5){
-    /* the shore terraces gently to the water (a named summit is never shorn) */
-    const cap=1+Math.round(inland*4);
+  if(inland<1&&mUp<=0.5){
+    /* the shore terraces gently to the water, so every coast keeps a landing
+       (a named summit is never shorn) — but a range that truly runs down to
+       the sea is let stand, as ranges do */
+    const cap=1+Math.round(inland*4)+Math.round(mtnF*mtnF*40);
     if(h>cap) h=cap;
   }
+  /* ---- THE BANDS OF THE HEIGHTS ----
+     Height rules the land as much as latitude does now. The tree line and
+     the snow line both ride high over the equator and come down to meet the
+     sea at the poles, so a mountain wears forest upon its flanks, bare scree
+     above that, and snow upon its crown. (Everything above 5 blocks used to
+     be turned to naked rock with its trees stripped off — which was no loss
+     when nothing could stand higher than a hill, and would now shear the
+     forest off every mountain in the world.) */
+  /* The true snow line runs near 5,000 m over the equator and comes down to
+     meet the sea about 78° — so it is taken in METRES and put through the
+     same scale as the summits, and the two agree by construction. The tree
+     line sits at about five-eighths of it, as it does on the earth: forest
+     to 1,800 m in the Alps, to 3,000 m on Kilimanjaro. */
+  const snowLine=Math.max(3, 5000*(1-Math.pow(Math.min(1,Math.abs(lat)/78),1.6))/MTN_M_PER_BLOCK);
+  const treeLine=snowLine*0.62;
+  const snow = lat>72 || lat<-55 || h>snowLine;
+  const tundra = !snow && lat>58 && lat<=72;
+  const alpine = !snow && !tundra && h>treeLine;
+  const desert = !alpine && lat>11 && lat<36 && n2>0.42 && inland>0.5;
+  const tropic = lat<=11 && lat>-38;
+  let kind, tree=0;
   /* broad biome regions carve out cherry-blossom hills and badland mesas */
   const region=fbm(ix*.012-70,iz*.012+140);
   const lon=Math.atan2(u,v)*180/Math.PI;              /* longitude upon the disc */
@@ -434,14 +511,23 @@ function cellRaw(ix,iz){
   /* cherry blossom only in the far east — the lands of Yapan, China and Korea */
   const eastAsia = lat>20&&lat<46&&lon>96&&lon<148;
   const cherry   = !snow&&!tundra&&!desert&&eastAsia&&region>0.46;
-  /* a broad, flat, walkable beach along every warm/temperate coast */
-  const beach = mUp<=0.5 && !snow&&!tundra&&!badlands&&(inland<=0.5 || (inland<0.8&&h<=2));
+  /* a broad, flat, walkable beach along every warm/temperate coast
+     (but not where a range comes down to the water — there the rock meets
+     the sea, as it does at every mountainous coast on the earth) */
+  const beach = mUp<=0.5 && !snow&&!tundra&&!badlands&&!alpine&&mtnF<0.35
+    &&(inland<=0.5 || (inland<0.8&&h<=2));
   if(beach){ kind='sand'; h=Math.min(h,2);
     if(tropic&&j<0.03) tree=2;                 /* palms on the strand */
   }
   else if(h<=2 && inland<1 && !snow && !tundra && !badlands){ kind='sand'; h=Math.min(h,2); }
   else if(snow) kind='snow';
   else if(tundra){ kind='tundra'; tree=j<0.02?1:0; }
+  /* the alpine band: scree and stunted pine on the shoulders of the range,
+     giving way to bare rock as it nears the snow */
+  else if(alpine){
+    kind = h>treeLine+(snowLine-treeLine)*0.45 ? 'rock' : 'alpine';
+    tree = (kind==='alpine'&&j<0.020) ? 1 : 0;
+  }
   else if(badlands){ kind='badlands';
     const bh=fbm(ix*.045+7,iz*.045-3);              /* the badlands' own eroded relief */
     h=2+Math.floor(bh*8)+Math.floor(Math.pow(mtn,1.2)*inland*8);
@@ -452,7 +538,10 @@ function cellRaw(ix,iz){
   else if(cherry){ kind='grass'; tree=j<0.10?3:0; } /* cherry-blossom groves */
   else if(tropic){ kind='tropic'; tree=j<0.085?2:0; }
   else { kind='grass'; tree=j<0.06?1:0; }
-  if(kind!=='sand'&&kind!=='badlands'&&!cherry&&!snow&&h>=5){ kind='rock'; tree=0; }
+  /* (the old blanket rule turning EVERY cell above 5 blocks to bare rock and
+     stripping its trees is gone — it belonged to a world whose tallest thing
+     was a hill. The tree line does that work now, and does it by altitude
+     and by latitude both, so the forest climbs the flanks.) */
   return {h, kind, tree, ci};
 }
 /* villages flatten the ground around them (computed at boot) */
@@ -493,10 +582,19 @@ function landAtWorld(x,z){ return cell(Math.floor(x/B),Math.floor(z/B)); }
 function computeSites(){
   for(let i=0;i<COUNTRIES.length;i++){
     const co=COUNTRIES[i]; let best=null;
+    /* Villages settle on LOW GROUND. A site flattens the land for 86 units
+       about it, so one that fell on a mountain shoulder would now raise a
+       two-hundred-block table into the sky. Every country is searched first
+       under a height bar; only if it has no low ground anywhere is the bar
+       lifted, so no land is left without a settlement. */
+    let maxH=12;
     const tryPt=(u,v)=>{ const ix=Math.floor(u*R_WORLD/B), iz=Math.floor(v*R_WORLD/B);
       const cc=cellRaw(ix,iz);
-      if(cc&&cc.kind!=='wall'&&cc.kind!=='floe') return {i,ix,iz,x:(ix+.5)*B,z:(iz+.5)*B,h0:Math.max(2,cc.h)};
+      if(cc&&cc.kind!=='wall'&&cc.kind!=='floe'&&cc.h<=maxH)
+        return {i,ix,iz,x:(ix+.5)*B,z:(iz+.5)*B,h0:Math.max(2,cc.h)};
       return null; };
+    for(let pass=0;pass<2&&!best;pass++){
+    maxH = pass===0 ? 12 : 1e9;
     /* a country file may name its own village spot: site:[lat,lon] */
     if(co.site&&co.site.length===2){
       const sr=(90-co.site[0])/180, sa=co.site[1]*Math.PI/180;
@@ -526,6 +624,7 @@ function computeSites(){
         const u=co.c[0]+Math.cos(th)*rad*1.7/HALF, v=co.c[1]+Math.sin(th)*rad*1.7/HALF;
         if(countryAtUV(u,v)===i+1){ best=tryPt(u,v); if(best) break outer; }
       } }
+    }
     SITES[i]=best;
     if(best){ const u=best.x/R_WORLD, v=best.z/R_WORLD;
       for(let du=-1;du<=1;du++) for(let dv=-1;dv<=1;dv++){
@@ -570,6 +669,7 @@ function topMatFor(kind){
   if(kind==='snow'||kind==='wall') return 'snow';
   if(kind==='floe') return 'ice';
   if(kind==='rock') return 'stone';
+  if(kind==='alpine') return 'dirt';      /* the scree shoulders below the snow */
   if(kind==='desert') return 'sand';
   if(kind==='badlands') return 'badTop';
   if(kind==='tropic') return 'grassTopTr';
@@ -583,6 +683,7 @@ function sideMatsFor(kind){ /* [topBlockSide, lowerSide] */
   if(kind==='wall') return ['ice','ice'];
   if(kind==='floe') return ['ice','ice'];
   if(kind==='rock') return ['stone','stone'];
+  if(kind==='alpine') return ['dirt','stone'];
   return ['grassSide','dirt'];
 }
 function emitColumn(G,ix,iz,cc){
@@ -691,8 +792,95 @@ function updateChunks(px,pz,budget){
     if(d>VIEW+2){ for(const m of ch.meshes){ scene.remove(m); m.geometry.dispose(); } chunks.delete(k); } }
 }
 
+/* ================= THE FAR LAND =================
+   The chunk mesher reaches some 768 units and no further, which was ample
+   while the tallest thing upon the earth was a hill. It is not ample for a
+   mountain 1,300 units high: a range would stand wholly invisible until the
+   traveller was upon it, and then rear up out of nothing — and the whole
+   point of raising the mountains is that they are SEEN, from a long way off,
+   standing over the sea.
+   So beyond the chunks the land is drawn a second time at a coarse grain: a
+   POLAR ring of triangles centred on the traveller, its rings spaced
+   geometrically so the mesh grows coarser the further out it reaches (detail
+   where the eye can use it, none where it cannot), each vertex taking the
+   true height of the land beneath it. It is rebuilt only when he has
+   travelled a good way, and it is SUNK into the ground at its inner edge so
+   the real blocky chunks always stand in front of it and never fight it. */
+/* The inner radius must stay well within the chunks' own reach (some 768
+   units), because the mesh is only re-centred when the traveller has moved a
+   good way: while it is stale its hole sits off to one side of him, and if
+   the hole's near edge ever came out past the chunks there would be open sky
+   where the ground should be. R0 + the rebuild threshold is the budget. */
+const FL_RINGS=48, FL_SPOKES=84, FL_R0=420, FL_R1=3600, FL_FADE=760, FL_STEP=300;
+const flGeo=(()=>{
+  const g=new THREE.BufferGeometry(), nv=(FL_RINGS+1)*FL_SPOKES;
+  const pos=new Float32Array(nv*3), col=new Float32Array(nv*3), idx=[];
+  const kr=Math.log(FL_R1/FL_R0);
+  for(let k=0;k<=FL_RINGS;k++){ const r=FL_R0*Math.exp(kr*k/FL_RINGS);
+    for(let a=0;a<FL_SPOKES;a++){ const th=a/FL_SPOKES*Math.PI*2, o=(k*FL_SPOKES+a)*3;
+      pos[o]=Math.cos(th)*r; pos[o+1]=0; pos[o+2]=Math.sin(th)*r; } }
+  for(let k=0;k<FL_RINGS;k++) for(let a=0;a<FL_SPOKES;a++){ const a2=(a+1)%FL_SPOKES;
+    const p0=k*FL_SPOKES+a, p1=k*FL_SPOKES+a2, p2=(k+1)*FL_SPOKES+a, p3=(k+1)*FL_SPOKES+a2;
+    idx.push(p0,p2,p1, p1,p2,p3); }
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  g.setAttribute('color',new THREE.BufferAttribute(col,3));
+  g.setIndex(idx); return g;
+})();
+/* the colours the blocks read as from far off, where no texture can be seen */
+const FL_COL={grass:[0.34,0.52,0.26], tropic:[0.22,0.50,0.22], tundra:[0.44,0.49,0.40],
+  sand:[0.80,0.73,0.52], desert:[0.82,0.72,0.48], badlands:[0.64,0.39,0.25],
+  rock:[0.50,0.49,0.47], alpine:[0.40,0.34,0.26], snow:[0.92,0.94,0.97],
+  wall:[0.88,0.93,0.97], floe:[0.80,0.88,0.94]};
+const FL_SEA=[0.07,0.20,0.32];
+/* The SAME kind of material the blocks wear — unlit, vertex-shaded, tinted by
+   the one global day-light — and enrolled in LIT with them. A lambert surface
+   here took the hemisphere's blue-grey ground colour on every face turned
+   from the sun, so the far ranges came out slate blue while the near land
+   stood in daylight, and the seam between them was plain. */
+const farLandMat=new THREE.MeshBasicMaterial({vertexColors:true}); LIT.push(farLandMat);
+const farLand=new THREE.Mesh(flGeo,farLandMat);
+farLand.frustumCulled=false; farLand.visible=false; scene.add(farLand);
+const _flH=new Float32Array((FL_RINGS+1)*FL_SPOKES);
+let _flAt=null;
+function updateFarLand(px,pz,force){
+  if(!force&&_flAt&&Math.hypot(_flAt[0]-px,_flAt[1]-pz)<FL_STEP) return;
+  _flAt=[px,pz]; farLand.position.set(px,0,pz);
+  const pos=flGeo.attributes.position, a=pos.array, col=flGeo.attributes.color.array;
+  /* first the heights and the colours of the ground */
+  for(let k=0;k<=FL_RINGS;k++) for(let s=0;s<FL_SPOKES;s++){
+    const v=k*FL_SPOKES+s, i=v*3, wx=a[i]+px, wz=a[i+2]+pz;
+    /* cellRaw, not cell — the village flattening is a matter of 86 units and
+       cannot be seen out here, and filling the cell cache with far country
+       would only thrash it for the ground underfoot */
+    const cc=cellRaw(Math.floor(wx/B),Math.floor(wz/B));
+    let y,c;
+    if(cc){ y=cc.h*B; c=FL_COL[cc.kind]||FL_COL.grass; }
+    else { y=WATER_Y-6; c=FL_SEA; }     /* well under the trough of any wave */
+    _flH[v]=y; col[i]=c[0]; col[i+1]=c[1]; col[i+2]=c[2];
+  }
+  /* then the shading: a flank is darker than a level top, as it is on the
+     blocks — read off the fall of the land to the next vertex out and round */
+  for(let k=0;k<=FL_RINGS;k++){
+    const r=Math.hypot(a[(k*FL_SPOKES)*3],a[(k*FL_SPOKES)*3+2]);
+    const step=Math.max(1,Math.min(r*6.283/FL_SPOKES,(FL_R1-FL_R0)/FL_RINGS));
+    for(let s=0;s<FL_SPOKES;s++){
+      const v=k*FL_SPOKES+s, i=v*3;
+      const vr=(k<FL_RINGS?k+1:k-1)*FL_SPOKES+s, vs=k*FL_SPOKES+(s+1)%FL_SPOKES;
+      const fall=(Math.abs(_flH[v]-_flH[vr])+Math.abs(_flH[v]-_flH[vs]))/(step*1.7);
+      const sh=1-0.40*Math.min(1,fall);
+      const d=Math.hypot(a[i],a[i+2]);
+      const sink=Math.max(0,1-Math.max(0,d-FL_R0)/FL_FADE);
+      a[i+1]=_flH[v]-sink*B*1.4;
+      col[i]*=sh; col[i+1]*=sh; col[i+2]*=sh;
+    }
+  }
+  pos.needsUpdate=true; flGeo.attributes.color.needsUpdate=true;
+}
+
 /* ================= RENDERER · SKY · SEA ================= */
-scene.fog=new THREE.Fog(0x9fc5e8,260,870); const FOG=scene.fog;
+/* the haze reaches far further than it did — a mountain is no use at all if
+   it is swallowed by fog at 870 units, less than its own height away */
+scene.fog=new THREE.Fog(0x9fc5e8,300,2400); const FOG=scene.fog;
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,1,R_WORLD*3.2);
 const renderer=new THREE.WebGLRenderer({canvas:$('cv'),antialias:false});
 renderer.setPixelRatio(Math.min(2,devicePixelRatio||1));
@@ -734,6 +922,7 @@ snowGeo.setAttribute('position',new THREE.BufferAttribute(snowPos,3));
 const snowMat=new THREE.PointsMaterial({color:0xeef4ff,size:0.85,transparent:true,opacity:0,depthWrite:false,fog:false,sizeAttenuation:true});
 const snow=new THREE.Points(snowGeo,snowMat); snow.frustumCulled=false; snow.visible=false; scene.add(snow);
 const _coldFog=new THREE.Color(0xb6c6da);
+const _voidC=new THREE.Color(0x02030a);      /* the outer darkness, beyond the rim */
 function updateWallWeather(px,pz,dt){
   if(state.firm){ snow.visible=false; snowMat.opacity=0; return; }
   const r=Math.hypot(px,pz)/R_WORLD, wallF=Math.max(0,Math.min(1,(r-0.85)/0.1));
@@ -787,8 +976,10 @@ function seaSlope(x,z){ let sx=0,sz=0;
     const c=Math.cos(f)*w.A*seaAmp*w.k; sx+=c*w.dx; sz+=c*w.dy; }
   _slope.x=sx; _slope.z=sz; return _slope; }
 
-/* the GPU wave grid, following the ship/traveller across the deep */
-const WG_S=1250, WG_SEG=150;
+/* the GPU wave grid, following the ship/traveller across the deep.
+   It has to reach as far as the haze now does, or its flat edge stands out
+   as a seam on open water where the fog no longer hides it. */
+const WG_S=2500, WG_SEG=200;
 const waveGeo=(()=>{
   const g=new THREE.BufferGeometry(), pos=[], idx=[], N=WG_SEG+1;
   for(let j=0;j<N;j++) for(let i=0;i<N;i++)
@@ -1015,6 +1206,27 @@ const state={ simHours:9.5, speedIdx:1, paused:false,
   visited:new Set(), dist:0, fish:0, fishing:null, coins:30, cargo:{}, game:0,
   breath:1, immBreath:false, pearls:0, repel:false, net:null, rep:{} };
 
+/* ================= THE ONE ZOOM =================
+   The zoom was two disconnected axes with a cliff between them: camDist ran
+   14→240 and at the top SNAPPED into the firmament view's own firmDist — so
+   one flick of the wheel jumped from over-the-shoulder to a drawn page, and
+   the last third of the range did nothing at all, being clamped away per
+   mode. It is ONE scalar now: state.zoom, 0 at the shoulder and 1 at the
+   whole earth, with distance running exponentially along it so a notch of
+   the wheel covers the same PROPORTION near and far. The camera only ever
+   EASES toward it, so however fast the wheel is spun the view opens slowly.
+   Nothing snaps; the firmament view is entered by its own button alone. */
+const CAM_NEAR_D=14, CAM_FAR_D=R_WORLD*1.75, CAM_LN=Math.log(CAM_FAR_D/CAM_NEAR_D);
+function zoomToDist(z){ return CAM_NEAR_D*Math.exp(CAM_LN*Math.max(0,Math.min(1,z))); }
+function distToZoom(d){ return Math.min(1,Math.max(0,Math.log(Math.max(CAM_NEAR_D,d)/CAM_NEAR_D)/CAM_LN)); }
+/* Drawn back this far, the streamed chunks of the world run out (they reach
+   some 768 units, and the haze ends the view at 870), so from here the
+   earth's own charted face — the TRUE outlines of the countries — is brought
+   up beneath the eye and the world is seen whole. */
+const ZOOM_MAP0=0.40, ZOOM_MAP1=0.66;
+function zoomMapFade(){ return Math.max(0,Math.min(1,(state.zoom-ZOOM_MAP0)/(ZOOM_MAP1-ZOOM_MAP0))); }
+state.zoom=distToZoom(state.camDist);
+
 /* ================= THE WINDS =================
    The bands of the disc mirror the true circulation: trade easterlies in
    the tropics, westerlies in the middle latitudes, polar easterlies near
@@ -1090,7 +1302,7 @@ function skyTick(px,pz){
   if(st>0.01){ _c1.setHex(sky); _c2.setHex(0x4c545e); sky=_c1.lerp(_c2,st*0.75).getHex(); }
   scene.background.setHex(sky);
   if(scene.fog){ scene.fog.color.setHex(sky); /* fog is detached in the firmament view */
-    scene.fog.near=260*(1-st*0.65); scene.fog.far=870-st*520; }
+    scene.fog.near=300*(1-st*0.65); scene.fog.far=2400-st*1450; }
   const l=mix3(0x38405e,0xd9a878,0xffffff,dayF);
   const dim=1-st*0.38;
   setBlockLight(l.r*dim,l.g*dim,l.b*dim);
@@ -1761,7 +1973,45 @@ function makeAnimal(kind){
     for(const s of[1,-1]){ const ear=lbox(0.4,2.8,2.4,0x82828a); ear.position.set(s*2.0,6.8,3.6); g.add(ear);
       const tusk=lbox(0.4,0.4,2.0,0xefe8d8); tusk.position.set(s*0.9,5.2,5.4); g.add(tusk); }
     fourLegs(1.6,2.6,4.4,0x76767e);
-  } else { /* ostrich — two long legs, a tall neck */
+  }
+  else if(kind==='crocodile'){
+    /* long and low, all jaw and tail, with a ridge of scutes down the back —
+       it lies in the shallows of the great rivers looking like a log */
+    const dk=0x455631, lt=0x63754a, bl=0xa9ad7c;
+    const body=lbox(2.4,1.6,6.0,dk); body.position.y=1.5; g.add(body);
+    const und=lbox(2.0,0.5,5.4,bl); und.position.y=0.75; g.add(und);
+    for(let i=0;i<6;i++){ const s=lbox(0.5,0.5,0.55,lt);
+      s.position.set((i%2?0.55:-0.55),2.45,-2.4+i*1.0); g.add(s); }     /* the scutes */
+    const neck=lbox(1.9,1.3,1.3,dk); neck.position.set(0,1.55,3.6); g.add(neck);
+    const jawT=lbox(1.5,0.7,3.4,dk);  jawT.position.set(0,1.8,5.7); g.add(jawT);
+    const jawB=lbox(1.4,0.55,3.2,bl); jawB.position.set(0,1.15,5.6); g.add(jawB);
+    for(const s of [1,-1]){ const e=lbox(0.45,0.45,0.45,0xd9c93f); e.position.set(s*0.62,2.45,4.1); g.add(e);
+      const p=lbox(0.2,0.2,0.2,0x101010); p.position.set(s*0.62,2.62,4.1); g.add(p); }
+    const t1=lbox(1.8,1.2,2.6,dk); t1.position.set(0,1.5,-4.2); g.add(t1);
+    const t2=lbox(1.0,0.9,2.8,lt); t2.position.set(0,1.5,-6.7); g.add(t2);
+    for(const sx of [1,-1]) for(const sz of [2.0,-2.2]){
+      const L=lbox(0.8,1.0,0.8,lt); L.geometry.translate(0,-0.5,0);
+      L.position.set(sx*1.55,1.05,sz); L.userData.ph=(sx*sz>0)?0:Math.PI; g.add(L); legs.push(L); }
+    g.userData={legs,jaw:jawB,tail:t2};
+    return g;
+  } else if(kind==='bear'||kind==='blackbear'){
+    /* heavy in the shoulder, small round ears, a pale muzzle — it forages the
+       northern woods and fishes the rapids */
+    const black=kind==='blackbear';
+    const fur=black?0x241f1d:0x6d4526, muz=black?0xa08a5e:0xbfa273;
+    const body=lbox(3.4,3.2,5.6,fur); body.position.y=4.4; g.add(body);
+    const hump=lbox(3.0,1.0,2.2,fur); hump.position.set(0,6.2,1.2); g.add(hump);   /* the shoulder */
+    const head=lbox(2.3,2.1,2.2,fur); head.position.set(0,5.4,3.7); g.add(head);
+    const snout=lbox(1.3,1.0,1.2,muz); snout.position.set(0,5.0,4.9); g.add(snout);
+    const nose=lbox(0.6,0.45,0.3,0x18140f); nose.position.set(0,5.25,5.55); g.add(nose);
+    for(const s of [1,-1]){ const ear=lbox(0.8,0.8,0.4,fur); ear.position.set(s*0.85,6.6,3.5); g.add(ear);
+      const eye=lbox(0.28,0.28,0.25,0x120e0a); eye.position.set(s*0.72,5.75,4.8); g.add(eye); }
+    const rump=lbox(3.2,2.8,1.2,fur); rump.position.set(0,4.2,-2.9); g.add(rump);
+    fourLegs(1.35,1.9,2.9,black?0x1b1715:0x5a3820);
+    g.userData={legs,head};
+    return g;
+  }
+  else { /* ostrich — two long legs, a tall neck */
     const body=lbox(2.2,2.6,3.4,0x3a3230); body.position.y=6.0; g.add(body);
     const neck=lbox(0.8,4.4,0.8,0xd8b89a); neck.position.set(0,8.4,1.2); neck.rotation.x=-0.2; g.add(neck);
     const head=lbox(0.9,0.9,1.4,0xd8b89a); head.position.set(0,10.6,1.8); g.add(head);
@@ -1786,8 +2036,26 @@ function makeBird(type){ type=type||'crow';
     const tail=lbox(1.0,0.16,1.2,0xffffff); tail.position.set(0,0,-1.4*S.s); g.add(tail); }
   if(type==='butterfly'){ const w2=lbox(1.4,0.1,1.0,0xffd23a); w2.geometry.translate(-0.7,0,0); w2.position.set(0.2,0,-0.5); g.add(w2);
     const w3=w2.clone(); w3.geometry=w2.geometry.clone(); w3.scale.x=-1; w3.position.set(-0.2,0,-0.5); g.add(w3); }
-  g.userData={wingL,wingR,type};
+  /* what it carries home in its beak — a fish from the sea, or seed from the
+     field. Hidden until it has caught something. */
+  const carry=lbox(0.75*S.s,0.4*S.s,1.15*S.s,0x9fb6c8);
+  carry.position.set(0,-0.42*S.s,1.35*S.s); carry.visible=false; g.add(carry);
+  g.userData={wingL,wingR,type,carry};
   return g;
+}
+/* ---- A NEST, AND THE YOUNG IN IT ----
+   A ring of woven sticks with two chicks that stretch up when the parent
+   comes in to feed them. */
+function makeNest(){ const g=new THREE.Group();
+  const base=lbox(2.4,0.35,2.4,0x5a4326); base.position.y=-0.3; g.add(base);
+  for(let i=0;i<9;i++){ const a=i/9*6.283, s=lbox(1.0,0.4,0.45,0x6b5029);
+    s.position.set(Math.cos(a)*1.15,0.05,Math.sin(a)*1.15); s.rotation.y=-a; g.add(s); }
+  const chicks=[];
+  for(let i=0;i<2;i++){ const c=lbox(0.6,0.6,0.75,0x9c8b68);
+    c.position.set(-0.42+i*0.84,0.45,0); g.add(c);
+    const bk=lbox(0.22,0.2,0.28,0xd8a030); bk.position.set(-0.42+i*0.84,0.5,0.5); g.add(bk);
+    chicks.push({body:c,beak:bk}); }
+  g.userData={chicks}; return g;
 }
 /* ---- PIXEL SKINS FOR THE CREATURES OF THE SEA ----
    Countershading, stripes, scutes and throat-grooves — every beast of the
@@ -1902,11 +2170,28 @@ sbGeo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(sbGeo.attr
 TEX.seasand.repeat.set(SB_SIZE/6,SB_SIZE/6);
 const seaFloor=new THREE.Mesh(sbGeo,new THREE.MeshLambertMaterial({map:TEX.seasand,vertexColors:true,side:THREE.DoubleSide}));
 seaFloor.visible=false; seaFloor.frustumCulled=false; scene.add(seaFloor);
-function updateSeaFloor(px,pz){ const pos=sbGeo.attributes.position, a=pos.array, col=sbGeo.attributes.color.array;
+/* Rebuilding 97×97 vertices and recomputing their normals every frame is the
+   costliest thing in the deep, and the bed only ever moves when the swimmer
+   does. So it is rebuilt on a threshold of travel, not on the clock — which
+   also lets the bed be furnished while merely swimming, at no cost to a
+   voyage spent on the surface. */
+let _sbAt=null;
+function updateSeaFloor(px,pz,force){
+  if(!force&&_sbAt&&Math.hypot(_sbAt[0]-px,_sbAt[1]-pz)<9) return;
+  _sbAt=[px,pz];
+  /* the mesh is anchored WHERE ITS DATA WAS BUILT. Each vertex holds a local
+     x/z and an absolute world y, so moving the mesh without rebuilding would
+     drag the whole sea bed along behind the swimmer. */
+  seaFloor.position.set(px,0,pz);
+  const pos=sbGeo.attributes.position, a=pos.array, col=sbGeo.attributes.color.array;
   for(let i=0;i<a.length;i+=3){ const wx=a[i]+px, wz=a[i+2]+pz, y=seabedDepth(wx,wz); a[i+1]=y;
     const depth=SEA_SURF-y, lit=Math.max(0,1-depth/460), alg=fbm(wx*0.03+3,wz*0.03+7);
-    let r=0.74+0.26*lit, g=0.76+0.24*lit, b=0.64+0.28*lit;   /* tint the sand: darker deep, green where algae */
-    if(alg>0.62){ r*=0.6; g*=0.9; b*=0.55; }
+    /* The bed is DROWNED sand, not a meadow. It is painted over the beach-sand
+       texture, so the vertex tint must pull the yellow out of it and put the
+       cold of deep water in — muted at the top of the shelf and near black in
+       the trenches; and the weed upon it is a dull olive, never lawn green. */
+    let r=0.22+0.34*lit, g=0.25+0.34*lit, b=0.27+0.30*lit;
+    if(alg>0.62){ const w=Math.min(1,(alg-0.62)/0.16); r*=1-0.30*w; g*=1-0.14*w; b*=1-0.34*w; }
     col[i]=r; col[i+1]=g; col[i+2]=b; }
   pos.needsUpdate=true; sbGeo.attributes.color.needsUpdate=true; sbGeo.computeVertexNormals(); }
 /* ---- kelp — tall strands rising from the floor, swaying with the current ---- */
@@ -2338,11 +2623,36 @@ function hideDeep(){ seaFloor.visible=false;
   for(const r of RAYS)r.m.visible=false; for(const f of DIVEFISH)f.m.visible=false; for(const q of SQUIDS)q.m.visible=false;
   for(const d of DOLPHINS)d.m.visible=false; for(const s of SHARKS)s.m.visible=false; hideSeaMobs();
   for(const b of BUB)b.s.visible=false; for(const w of WRECKS)w.visible=false; hidePearls(); deepShown=false; }
-function updateDeep(px,py,pz,dt,murk){ const t=performance.now()*0.001;
-  seaFloor.visible=true; seaFloor.position.set(px,0,pz); updateSeaFloor(px,pz);
+/* ---- IS THE EYE BENEATH THE WAVES? ----
+   ONE SEA, not two. The deep was furnished only while the traveller dived, so
+   a swimmer at the surface — or a camera rolled under the swell from the
+   strand — looked down into an empty blue with no floor beneath it at all.
+   Whatever puts the eye under the water puts it in the SAME sea, and the bed,
+   the kelp and the fish must all be standing there when it looks. */
+let _eyeUnder=false;
+function eyeUnderwater(){
+  if(state.firm){ _eyeUnder=false; return false; }
+  if(state.mode==='dive'){ _eyeUnder=true; return true; }
+  const cp=camera.position;
+  if(landAtWorld(cp.x,cp.z)){ _eyeUnder=false; return false; }
+  /* a little hysteresis at the waterline: the eye must rise clear of the
+     swell to come out, or a crest lapping the lens would flicker the whole
+     sea on and off from one frame to the next */
+  const surf=WATER_Y+seaHeight(cp.x,cp.z);
+  _eyeUnder = _eyeUnder ? cp.y<surf+0.55 : cp.y<surf-0.15;
+  return _eyeUnder;
+}
+/* full — the traveller is truly down in the deep, so the wrecks of the
+   ancients and the pearl beds are set out for him. Merely looking under the
+   surface furnishes the living sea, but not the things he may take. */
+function updateDeep(px,py,pz,dt,murk,full){ const t=performance.now()*0.001;
+  seaFloor.visible=true; updateSeaFloor(px,pz);   /* updateSeaFloor anchors the mesh itself */
   updateKelp(px,pz,t); updateCoral(px,pz); updateGrass(px,pz,t); updateRays(px,py,pz,murk||0);
   updateDiveFish(px,py,pz,dt,t); updateSquid(px,py,pz,dt,t); updateDolphins(px,py,pz,dt,t); updateSharks(px,py,pz,dt,t);
-  updateSeaMobs(px,py,pz,dt,t); updateBubbles(px,py,pz,dt); updateWreck(px,pz); updatePearls(px,pz); deepShown=true; }
+  updateSeaMobs(px,py,pz,dt,t); updateBubbles(px,py,pz,dt);
+  if(full){ updateWreck(px,pz); updatePearls(px,pz); }
+  else { for(const w of WRECKS)w.visible=false; hidePearls(); }
+  deepShown=true; }
 /* ---- THE CLEAR SHALLOWS TEEM ----
    Fish, turtles and dolphins swim on even when no one dives: seen from the
    deck, the strand or the air wherever the water is shallow and clear. */
@@ -2441,78 +2751,364 @@ function surface(){ const dv=state.dive;
    the land (chosen by the clime — camels and lions in the warm dry south,
    cattle, horses, deer and wolves in the temperate lands), and birds,
    butterflies and eagles wheeling in the air above land and sea. */
-const LAND_TEMPERATE=['cow','sheep','horse','donkey','pig','deer','wolf','dog','chicken','hare','goat','ox'];
-const LAND_DESERT=['camel','ostrich','lion','goat','donkey','deer'];
-function landKindAt(x,z){ const lat=Math.abs(90-Math.hypot(x/R_WORLD,z/R_WORLD)*180), arid=fbm(x*0.0009+5,z*0.0009-8);
-  const list=(lat<34&&arid>0.54)?LAND_DESERT:LAND_TEMPERATE;
-  return list[Math.floor(hash2(Math.floor(x/48),Math.floor(z/48))*list.length)%list.length]; }
+/* ---- WHERE EACH BEAST BELONGS ----
+   Every creature was drawn from one of two lists by a coin-toss on its
+   position — so a lion might stand in a Norwegian wood. It is placed by the
+   LAND it stands upon now: the latitude, how arid the country is, the biome
+   underfoot, how high it stands, and whether a river runs hard by. The
+   crocodile lies in tropical rivers and in no other water on the earth; the
+   bear keeps the northern forests and the flanks of the mountains; the lion
+   the dry savannah; the wolf the temperate and boreal woods and the high
+   country; the camel the desert; the goat the crags. */
+const WILD_TEMPERATE=['cow','sheep','horse','donkey','pig','deer','wolf','dog','chicken','hare','goat','ox'];
+const WILD_DRY=['camel','ostrich','lion','goat','donkey','lizard','hare'];
+const WILD_SAVANNA=['ostrich','lion','elephant','deer','goat','donkey'];
+const WILD_COLD=['wolf','deer','hare','ox','goat'];
+const WILD_HIGH=['goat','goat','deer','wolf','hare'];
+/* a river runs here or hard by — and a RIVER, not the sea: the chart says a
+   watercourse, and the ground about it belongs to a country */
+function riverBankAt(x,z){
+  /* a watercourse is stamped only one or two map pixels wide — about 120 to
+     240 units — so a single probe at the point almost never lands on one.
+     Two rings, at a bowshot and at three, find the bank it stands on. */
+  if(riverAtUV(x/R_WORLD,z/R_WORLD)&&countryAtUV(x/R_WORLD,z/R_WORLD)) return true;
+  for(const s of [150,290]) for(let k=0;k<9;k++){ const a=k/9*6.283;
+    const u=(x+Math.cos(a)*s)/R_WORLD, v=(z+Math.sin(a)*s)/R_WORLD;
+    if(riverAtUV(u,v)&&countryAtUV(u,v)) return true; }
+  return false;
+}
+function landKindAt(x,z,c){
+  const lat=90-Math.hypot(x/R_WORLD,z/R_WORLD)*180;      /* signed: the midst is north */
+  const alat=Math.abs(lat), arid=fbm(x*0.0009+5,z*0.0009-8);
+  const j=hash2(Math.floor(x/48),Math.floor(z/48));
+  /* a SEPARATE draw for the two territorial beasts, or the same number that
+     chose their species would also decide whether they were there at all,
+     and the two would move together */
+  const j2=hash2(Math.floor(x/64)+7.3,Math.floor(z/64)-3.1);
+  const k=c?c.kind:'grass', hb=c?c.h:1;
+  const pick=L=>L[Math.floor(j*L.length)%L.length];
+  /* the crocodile lies along the great tropical rivers — the Nile up to its
+     delta, the Congo, the Amazon, the Ganges — and in no other water */
+  if(alat<32&&j2<0.45&&(k==='tropic'||k==='grass'||k==='desert'||k==='sand')&&riverBankAt(x,z)) return 'crocodile';
+  /* and the bear holds a wide territory in the northern woods, so there are
+     never many of them in one country */
+  if(lat>44&&lat<74&&j2<0.20&&(k==='grass'||k==='tundra'||k==='alpine'))
+    return (k==='tundra'||lat>58)?'bear':'blackbear';
+  if(k==='alpine'||k==='rock'||hb>34) return pick(WILD_HIGH);
+  if(k==='snow'||k==='tundra') return pick(WILD_COLD);
+  if(k==='desert'||k==='badlands'||(alat<34&&arid>0.54)) return pick(WILD_DRY);
+  if(alat<24) return pick(WILD_SAVANNA);
+  return pick(WILD_TEMPERATE);
+}
 const LANDLIFE=[], LL_N=26, LL_R=360;
 const AMBIENT_PREY=new Set(['sheep','goat','pig','chicken','hare','deer','donkey','cow','horse','ostrich']);
+/* ---- AND WHAT EACH IS ABOUT ----
+   Nothing had any business but to walk to a random point and walk to another.
+   Every creature now keeps a trade: the grazers feed, herd and bed down; the
+   wolves hunt as a PACK and gather to the kill; the lion creeps in low and
+   then charges; the bear forages and fishes the rivers; the crocodile lies
+   sunk to the eyes and lunges at whatever comes within reach. */
+const WILD_ROLE={wolf:'pack', lion:'stalk', bear:'forage', blackbear:'forage',
+  crocodile:'ambush', lizard:'bask'};
 function initLandLife(){ if(LANDLIFE.length) return; for(let k=0;k<LL_N;k++) LANDLIFE.push({m:null,kind:null,hx:0,hz:0,x:0,z:0,heading:0,tx:0,tz:0,t:0,set:false}); }
 function findLandSpot(px,pz){ for(let tr=0;tr<10;tr++){ const a=Math.random()*6.28, r=70+Math.random()*LL_R, x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
     /* beasts keep to the charted lands (ci>0 — the countries and true isles);
-       the bare rocks and skerries of the open ocean stay bare */
-    const c=landAtWorld(x,z); if(c&&c.ci&&c.kind!=='wall'&&c.h<=6&&Math.hypot(x,z)/R_WORLD<0.9) return {x,z,y:c.h*B}; } return null; }
+       the bare rocks and skerries of the open ocean stay bare.
+       (The old bar of six blocks kept every creature off the high country —
+       now that there IS high country, the goats and wolves may have it.) */
+    const c=landAtWorld(x,z); if(c&&c.ci&&c.kind!=='wall'&&Math.hypot(x,z)/R_WORLD<0.9) return {x,z,y:c.h*B,c}; } return null; }
 function updateLandLife(px,pz,dt,t){ initLandLife();
+  const night=(worldNight||0)>0.6;
   for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>LL_R+140){ const sp=findLandSpot(px,pz);
       if(!sp){ if(a.m)a.m.visible=false; a.set=false; continue; }
-      const kind=landKindAt(sp.x,sp.z);
+      const kind=landKindAt(sp.x,sp.z,sp.c);
       if(a.kind!==kind){ if(a.m) scene.remove(a.m); a.m=makeAnimal(kind); scene.add(a.m); a.kind=kind; }
-      a.hx=sp.x; a.hz=sp.z; a.x=sp.x; a.z=sp.z; a.tx=sp.x; a.tz=sp.z; a.t=Math.random()*3; a.set=true; a.m.visible=true; a.m.position.set(sp.x,sp.y,sp.z); }
+      a.hx=sp.x; a.hz=sp.z; a.x=sp.x; a.z=sp.z; a.tx=sp.x; a.tz=sp.z; a.t=Math.random()*3; a.set=true;
+      a.role=WILD_ROLE[kind]||'graze'; a.job='roam'; a.jt=Math.random()*3; a.prey=null; a.cool=0;
+      a.river=riverBankAt(sp.x,sp.z); a.sink=0; a.crouch=false;
+      a.m.visible=true; a.m.position.set(sp.x,sp.y,sp.z); }
     if(!a.set) continue;
-    /* the hunt upon the open field: wolves and lions run down the grazers,
-       and the grazers flee — from them, and from the traveller drawn too near */
-    let spd=7;
-    const predator=(a.kind==='wolf'||a.kind==='lion');
-    if(predator){
-      a.cool=(a.cool||0)-dt;
-      if(a.cool<=0){
-        if(!a.prey||!a.prey.set||Math.hypot(a.prey.x-a.x,a.prey.z-a.z)>90){
+    let spd=7; a.jt=(a.jt||0)-dt; a.cool=(a.cool||0)-dt;
+    const role=a.role||'graze';
+
+    if(role==='pack'||role==='stalk'){
+      /* ---- THE HUNT ---- */
+      if(a.job==='feed'){ spd=0; if(a.jt<=0){ a.job='roam'; a.jt=4+Math.random()*5; } }
+      else if(a.cool<=0){
+        if(!a.prey||!a.prey.set||Math.hypot(a.prey.x-a.x,a.prey.z-a.z)>110){
           a.prey=null; let bd=1e9;
           for(const b of LANDLIFE){ if(b===a||!b.set||!AMBIENT_PREY.has(b.kind)) continue;
-            const d2=Math.hypot(b.x-a.x,b.z-a.z); if(d2<70&&d2<bd){ bd=d2; a.prey=b; } } }
-        if(a.prey){ a.tx=a.prey.x; a.tz=a.prey.z; spd=11; a.t=Math.max(a.t,0.4);
-          if(Math.hypot(a.prey.x-a.x,a.prey.z-a.z)<3){ a.cool=12; a.prey.fear=1.8; a.prey=null; } } }
-    } else if(AMBIENT_PREY.has(a.kind)){
+            const d2=Math.hypot(b.x-a.x,b.z-a.z); if(d2<80&&d2<bd){ bd=d2; a.prey=b; } }
+          /* a wolf does not hunt alone — the pack takes the same quarry */
+          if(a.prey&&role==='pack') for(const b of LANDLIFE)
+            if(b!==a&&b.set&&b.role==='pack'&&Math.hypot(b.x-a.x,b.z-a.z)<95){ b.prey=a.prey; b.job='roam'; }
+        }
+        if(a.prey){ const d2=Math.hypot(a.prey.x-a.x,a.prey.z-a.z);
+          /* the lion creeps in low and long, then breaks into the charge */
+          a.crouch=(role==='stalk'&&d2>26);
+          a.tx=a.prey.x; a.tz=a.prey.z; spd=a.crouch?3.4:13; a.jt=Math.max(a.jt,0.4);
+          if(d2<3.4){ a.cool=15; a.prey.fear=2.4; a.job='feed'; a.jt=6+Math.random()*5; a.crouch=false;
+            /* and the pack comes in to the kill and feeds together */
+            if(role==='pack') for(const b of LANDLIFE)
+              if(b!==a&&b.set&&b.role==='pack'&&Math.hypot(b.x-a.x,b.z-a.z)<75){
+                b.tx=a.x; b.tz=a.z; b.job='feed'; b.jt=6+Math.random()*4; b.prey=null; }
+            a.prey=null; } }
+      }
+    }
+    else if(role==='ambush'){
+      /* ---- THE CROCODILE ---- it does not wander at all. It lies in the
+         shallows sunk to the eyes, and takes whatever comes within reach. */
+      spd=0; a.sink=Math.min(1,(a.sink||0)+dt*0.5);
+      let tx=null,tz=null,td=1e9,vic=null;
+      if(state.mode==='walk'){ const d2=Math.hypot(state.walk.x-a.x,state.walk.z-a.z);
+        if(d2<24){ tx=state.walk.x; tz=state.walk.z; td=d2; } }
+      for(const b of LANDLIFE){ if(!b.set||!AMBIENT_PREY.has(b.kind)) continue;
+        const d2=Math.hypot(b.x-a.x,b.z-a.z); if(d2<22&&d2<td){ td=d2; tx=b.x; tz=b.z; vic=b; } }
+      if(tx!==null&&a.cool<=0){ a.tx=tx; a.tz=tz; spd=18; a.sink=0; a.jt=Math.max(a.jt,0.5);
+        if(td<3.6){ a.cool=18; if(vic) vic.fear=2.6; } }
+      else if(a.jt<=0){ a.jt=6+Math.random()*8; a.tx=a.x; a.tz=a.z; }   /* else it does not stir */
+    }
+    else if(role==='forage'){
+      /* ---- THE BEAR ---- it digs the ground for roots, and where it stands
+         by running water it goes down and fishes the shallows */
+      spd=6;
+      if(a.job==='fish'||a.job==='dig'){ spd=0; if(a.jt<=0){ a.job='roam'; a.jt=5+Math.random()*6; } }
+      else if(a.jt<=0){
+        if(a.river&&Math.random()<0.45){ a.job='fish'; a.jt=5+Math.random()*5; }
+        else { a.job='dig'; a.jt=3+Math.random()*4; }
+      }
+    }
+    else if(role==='bask'){
+      spd=4; if(a.jt<=0){ a.job=a.job==='bask'?'roam':'bask'; a.jt=a.job==='bask'?(4+Math.random()*6):(1+Math.random()*2); }
+      if(a.job==='bask') spd=0;
+    }
+    else {
+      /* ---- THE GRAZERS ---- heads down in the grass, drawn together into a
+         herd, fleeing what hunts them, and bedded down at night */
       a.fear=(a.fear||0)-dt;
       let fx=null,fz=null;
       if(state.mode==='walk'&&Math.hypot(state.walk.x-a.x,state.walk.z-a.z)<9){ fx=state.walk.x; fz=state.walk.z; }
-      else for(const b of LANDLIFE){ if(!b.set||(b.kind!=='wolf'&&b.kind!=='lion')) continue;
-        if(Math.hypot(b.x-a.x,b.z-a.z)<16){ fx=b.x; fz=b.z; break; } }
+      else for(const b of LANDLIFE){ if(!b.set||(b.role!=='pack'&&b.role!=='stalk'&&b.role!=='ambush')) continue;
+        if(Math.hypot(b.x-a.x,b.z-a.z)<18){ fx=b.x; fz=b.z; break; } }
       if(fx!==null){ const dd2=Math.hypot(a.x-fx,a.z-fz)||1;
-        a.tx=a.x+(a.x-fx)/dd2*30; a.tz=a.z+(a.z-fz)/dd2*30; a.fear=Math.max(a.fear,0.6); }
-      if(a.fear>0){ spd=11; a.t=Math.max(a.t,0.4); }
+        a.tx=a.x+(a.x-fx)/dd2*34; a.tz=a.z+(a.z-fz)/dd2*34; a.fear=Math.max(a.fear,0.7); a.job='flee'; a.jt=0.7; }
+      if(a.fear>0){ spd=12; }
+      else if(night){ a.job='bed'; spd=0; a.jt=2; }
+      else if(a.jt<=0){ a.job=(a.job==='feedhead')?'roam':'feedhead';
+        a.jt=a.job==='feedhead'?(3+Math.random()*4):(2.5+Math.random()*3); }
+      if(a.job==='feedhead') spd=0;
     }
-    a.t-=dt; if(a.t<=0){ a.t=1.6+Math.random()*3; const aa=Math.random()*6.28, rr=Math.random()*14*B; a.tx=a.hx+Math.cos(aa)*rr; a.tz=a.hz+Math.sin(aa)*rr; }
-    const dx=a.tx-a.x, dz=a.tz-a.z, dd=Math.hypot(dx,dz)||1, moving=dd>1.5;
+
+    /* a new place to make for, when the last is reached or the work is done */
+    if(a.jt<=0&&(a.job==='roam'||a.job==='flee')){
+      a.jt=1.8+Math.random()*3; a.job='roam';
+      const aa=Math.random()*6.28, rr=Math.random()*14*B;
+      let nx=a.hx+Math.cos(aa)*rr, nz=a.hz+Math.sin(aa)*rr;
+      /* the herd holds together — a beast makes for its own kind */
+      if(AMBIENT_PREY.has(a.kind)){ let hx=0,hz=0,hn=0;
+        for(const b of LANDLIFE) if(b!==a&&b.set&&b.kind===a.kind&&Math.hypot(b.x-a.x,b.z-a.z)<80){ hx+=b.x; hz+=b.z; hn++; }
+        if(hn){ nx=nx*0.55+(hx/hn)*0.45; nz=nz*0.55+(hz/hn)*0.45; } }
+      a.tx=nx; a.tz=nz;
+    }
+
+    const dx=a.tx-a.x, dz=a.tz-a.z, dd=Math.hypot(dx,dz)||1, moving=spd>0&&dd>1.5;
     if(moving){ const nx=a.x+dx/dd*spd*dt, nz=a.z+dz/dd*spd*dt, c=landAtWorld(nx,nz);
-      if(c&&c.kind!=='wall'&&Math.abs(c.h*B-a.m.position.y)<7){ a.x=nx; a.z=nz; a.heading=Math.atan2(dx,dz); } else a.t=0; }
-    const c2=landAtWorld(a.x,a.z); a.m.position.set(a.x,c2?c2.h*B:WATER_Y,a.z); a.m.rotation.y=a.heading;
-    if(a.m.userData.legs) for(const L of a.m.userData.legs) L.rotation.x=moving?Math.sin(t*(spd>8?10:7)+(L.userData.ph||0))*0.5:0; } }
+      /* the step a beast can take is now measured in blocks, not units — on a
+         mountain flank the old flat limit stopped everything dead */
+      if(c&&c.kind!=='wall'&&Math.abs(c.h*B-a.m.position.y)<B*1.7){ a.x=nx; a.z=nz; a.heading=Math.atan2(dx,dz); }
+      else a.jt=0; }
+    const c2=landAtWorld(a.x,a.z);
+    /* how the body carries itself at its work */
+    let lift=0, lean=0;
+    if(a.job==='feedhead'||a.job==='dig') lean=0.26;          /* head down to the ground */
+    else if(a.job==='fish'){ lean=0.34; lift=-0.6; }          /* down at the water's edge */
+    else if(a.job==='feed') lean=0.30;                        /* over the kill */
+    else if(a.job==='bed'){ lift=-1.6; }                      /* bedded down for the night */
+    else if(a.crouch) lift=-0.8;                              /* the lion low in the grass */
+    if(role==='ambush') lift=-1.5*(a.sink||0);                /* sunk to the eyes */
+    a.m.position.set(a.x,(c2?c2.h*B:WATER_Y)+lift,a.z);
+    a.m.rotation.y=a.heading; a.m.rotation.x=lean;
+    if(a.m.userData.legs) for(const L of a.m.userData.legs)
+      L.rotation.x=moving?Math.sin(t*(spd>8?10:7)+(L.userData.ph||0))*0.5:0;
+    /* the crocodile's jaw and the bear's head keep their own motion */
+    const ud=a.m.userData;
+    if(ud.jaw) ud.jaw.rotation.x=(a.cool>16.4)?-0.6:0;         /* snapped shut on the strike */
+    if(ud.head&&a.job==='dig') ud.head.rotation.x=0.4+Math.sin(t*3)*0.18;
+    else if(ud.head) ud.head.rotation.x=0;
+  } }
 function hideLandLife(){ for(const a of LANDLIFE) if(a.m) a.m.visible=false; }
+/* ================= THE FOWL OF THE AIR, AND THEIR WORK =================
+   Every bird flew a fixed circle about a fixed point, for ever. They keep a
+   day's work now: they hunt or forage, carry what they take home in the
+   beak, feed the young in the nest, rest, and go again — and at nightfall
+   they roost. The gulls and eagles over water STOOP: they fall on the
+   surface, break it, and come up with a fish — and the fish they take is a
+   real one out of the shoal, not a mime. */
 const AIRLIFE=[], AL_N=18, AL_R=440;
+const NESTS=[], NEST_N=5, NEST_R=430;
+function initNests(){ if(NESTS.length) return;
+  for(let k=0;k<NEST_N;k++){ const m=makeNest(); m.visible=false; scene.add(m);
+    NESTS.push({m,x:0,y:0,z:0,set:false,cheep:0}); } }
+/* the nests stand where their own places put them — seeded by the grid, so
+   the same crag or treetop always bears the same nest */
+function updateNests(px,pz,dt){ initNests();
+  const CS=430, ci=Math.round(px/CS), cj=Math.round(pz/CS), sites=[];
+  for(let di=-2;di<=2;di++) for(let dj=-2;dj<=2;dj++){
+    const gi=ci+di, gj=cj+dj;
+    if(hash2(gi*2.7,gj*5.1)<0.5) continue;
+    const wx=gi*CS+(hash2(gi,gj)-0.5)*300, wz=gj*CS+(hash2(gj,gi)-0.5)*300;
+    const c=landAtWorld(wx,wz); if(!c||c.kind==='wall'||!c.ci) continue;
+    sites.push({wx,wz,y:c.h*B+(c.tree?B*3.3:B*0.7),d:Math.hypot(wx-px,wz-pz)}); }
+  sites.sort((a,b)=>a.d-b.d);
+  for(let k=0;k<NEST_N;k++){ const N=NESTS[k], s=sites[k];
+    if(s&&s.d<NEST_R+300){ N.x=s.wx; N.y=s.y; N.z=s.wz; N.set=true;
+      N.m.position.set(s.wx,s.y,s.wz); N.m.visible=true; }
+    else { N.set=false; N.m.visible=false; }
+    /* the young stretch up and cheep while a parent is at the nest */
+    if(N.set){ N.cheep=Math.max(0,N.cheep-dt);
+      const up=N.cheep>0?0.45+0.25*Math.sin(performance.now()*0.02):0;
+      for(const ch of N.m.userData.chicks){ ch.body.position.y=0.45+up; ch.beak.position.y=0.5+up; } } } }
+function nearestNest(x,z){ let best=null,bd=1e9;
+  for(const N of NESTS){ if(!N.set) continue; const d=Math.hypot(N.x-x,N.z-z); if(d<bd){bd=d;best=N;} }
+  return best; }
 function airKind(px,pz,night){ const overSea=!landAtWorld(px,pz);
   if(night) return Math.random()<0.6?'crow':'dove';
   if(overSea) return Math.random()<0.7?'gull':'eagle';
   const r=Math.random(); return r<0.3?'butterfly':r<0.55?'dove':r<0.8?'crow':'eagle'; }
-function initAirLife(){ if(AIRLIFE.length) return; for(let k=0;k<AL_N;k++) AIRLIFE.push({m:null,type:null,cx:0,cz:0,rad:0,ph:Math.random()*6.28,h:0,spd:0,set:false}); }
-function updateAirLife(px,pz,dt,t,night){ initAirLife();
-  for(const b of AIRLIFE){ if(!b.set||Math.hypot(b.cx-px,b.cz-pz)>AL_R+160){ const type=airKind(px,pz,night);
+function initAirLife(){ if(AIRLIFE.length) return; for(let k=0;k<AL_N;k++)
+  AIRLIFE.push({m:null,type:null,x:0,y:0,z:0,tx:0,ty:0,tz:0,ph:Math.random()*6.28,heading:0,set:false}); }
+/* a place to look for food: over the water for a fisher, on the ground for
+   the rest — and near the ship for the gulls that have taken to her */
+function forageSpot(b,px,pz){
+  for(let tr=0;tr<8;tr++){
+    let x,z;
+    if(b.follow&&(state.mode==='boat'||state.mode==='deck')){
+      const a=Math.random()*6.28, r=20+Math.random()*70; x=state.boat.x+Math.cos(a)*r; z=state.boat.z+Math.sin(a)*r; }
+    else { const a=Math.random()*6.28, r=50+Math.random()*AL_R; x=px+Math.cos(a)*r; z=pz+Math.sin(a)*r; }
+    const c=landAtWorld(x,z);
+    if(b.fisher){ if(!c) return {x,y:WATER_Y+3,z,water:true}; }
+    else if(c&&c.kind!=='wall') return {x,y:c.h*B+1.4,z,water:false};
+  }
+  /* a gull carried inland finds no water to strike — rather than wheel there
+     for ever it forages the ground, as gulls do */
+  if(b.fisher){ for(let tr=0;tr<6;tr++){
+    const a=Math.random()*6.28, r=50+Math.random()*AL_R;
+    const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r, c=landAtWorld(x,z);
+    if(c&&c.kind!=='wall') return {x,y:c.h*B+1.4,z,water:false}; } }
+  return null;
+}
+/* the strike: the surface is broken, and a fish is truly taken out of the
+   shoal that swims there (it is re-placed elsewhere, so the sea is not
+   emptied — but the one that was caught is gone from where it was) */
+function takeFish(x,z){
+  let best=null,bd=1e9;
+  for(const f of DIVEFISH){ if(!f.set) continue;
+    const d=Math.hypot(f.x-x,f.z-z); if(d<20&&d<bd){ bd=d; best=f; } }
+  if(best){ best.set=false; if(best.m) best.m.visible=false; return true; }
+  return false;
+}
+function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
+  for(const b of AIRLIFE){
+    if(!b.set||Math.hypot(b.x-px,b.z-pz)>AL_R+220){
+      const type=airKind(px,pz,night);
       if(b.type!==type){ if(b.m) scene.remove(b.m); b.m=makeBird(type); scene.add(b.m); b.type=type; }
-      const a=Math.random()*6.28, r=60+Math.random()*AL_R; b.cx=px+Math.cos(a)*r; b.cz=pz+Math.sin(a)*r;
-      const c=landAtWorld(b.cx,b.cz), base=c?c.h*B:WATER_Y;
-      b.h=type==='butterfly'?base+2+Math.random()*5:base+24+Math.random()*70; b.rad=type==='butterfly'?4+Math.random()*6:16+Math.random()*40;
-      b.spd=(type==='butterfly'?1.4:0.5)+Math.random()*0.5; b.set=true; b.m.visible=true;
-      b.follow=type==='gull'&&Math.random()<0.4; }          /* some gulls take to a passing ship */
-    /* gulls with the ship — they wheel about her masts while she runs */
-    if(b.follow&&(state.mode==='boat'||state.mode==='deck')&&Math.abs(state.boat.speed)>8){
-      b.cx+=(state.boat.x-b.cx)*Math.min(1,dt*0.7); b.cz+=(state.boat.z-b.cz)*Math.min(1,dt*0.7);
-      b.h+=(WATER_Y+52+Math.sin(t+b.ph)*10-b.h)*Math.min(1,dt*0.5); b.rad=Math.min(b.rad,34); }
-    b.ph+=dt*b.spd; const x=b.cx+Math.cos(b.ph)*b.rad, z=b.cz+Math.sin(b.ph)*b.rad;
-    b.m.position.set(x,b.h+Math.sin(t*2+b.ph)*(b.type==='butterfly'?1.6:2.4),z); b.m.rotation.y=-b.ph+Math.PI/2;
-    const fl=b.type==='butterfly'?Math.sin(t*16+b.ph)*0.9:Math.sin(t*10+b.ph)*0.6;
-    if(b.m.userData.wingL){ b.m.userData.wingL.rotation.z=fl; b.m.userData.wingR.rotation.z=-fl; } } }
-function hideAirLife(){ for(const b of AIRLIFE) if(b.m) b.m.visible=false; }
+      const a=Math.random()*6.28, r=60+Math.random()*AL_R;
+      b.x=px+Math.cos(a)*r; b.z=pz+Math.sin(a)*r;
+      const c=landAtWorld(b.x,b.z), base=c?c.h*B:WATER_Y;
+      b.y=type==='butterfly'?base+3:base+30+Math.random()*60;
+      /* the gull is always a fisher; the eagle only where there is water for
+         it to fish — inland it hunts the ground like the rest */
+      b.fisher=(type==='gull')||(type==='eagle'&&!landAtWorld(px,pz));
+      b.follow=type==='gull'&&Math.random()<0.4;   /* some gulls take to a passing ship */
+      /* the mark it was making for MUST be dropped with everything else. A
+         bird set down beside the traveller while still holding a forage spot
+         from wherever it last was would set off for it across the whole
+         earth — and the firmament's fair wind carries the ship thousands of
+         units at a stroke, so this is not a corner case. */
+      b.job='hunt'; b.jt=0; b.food=null; b.nest=null; b.spot=null;
+      b.tx=b.x; b.ty=b.y; b.tz=b.z;
+      b.set=true; b.m.visible=true;
+    }
+    /* and a mark that has somehow come to lie beyond the bird's whole range
+       is no mark at all — it looks for another */
+    if(b.spot&&Math.hypot(b.spot.x-px,b.spot.z-pz)>AL_R*1.6) b.spot=null;
+    const ud=b.m.userData;
+    b.jt-=dt;
+
+    if(b.type==='butterfly'){
+      /* it goes from flower to flower, and never further */
+      if(b.jt<=0){ const a=Math.random()*6.28, r=3+Math.random()*14;
+        b.tx=b.x+Math.cos(a)*r; b.tz=b.z+Math.sin(a)*r;
+        const c=landAtWorld(b.tx,b.tz); b.ty=(c?c.h*B:WATER_Y)+2+Math.random()*4;
+        b.jt=1.2+Math.random()*2; }
+    } else {
+      if(!b.nest||!b.nest.set) b.nest=nearestNest(b.x,b.z);
+      if(night&&b.nest){ b.job='roost'; }
+      switch(b.job){
+        case 'hunt': {
+          if(!b.spot){ b.spot=forageSpot(b,px,pz);
+            if(!b.spot){ b.job='rest'; b.jt=3; break; }
+            b.tx=b.spot.x; b.tz=b.spot.z; b.ty=b.spot.y+(b.spot.water?46:26); }
+          /* over the mark, it drops on it — the stoop */
+          if(Math.hypot(b.x-b.tx,b.z-b.tz)<26){ b.ty=b.spot.y; }
+          if(Math.hypot(b.x-b.tx,b.z-b.tz)<8&&Math.abs(b.y-b.spot.y)<6){
+            if(b.spot.water){ splash(b.x,WATER_Y+1,b.z,false);
+              /* it always comes up with something — the sea holds more fish
+                 than the handful we draw — but if one of the DRAWN shoal was
+                 under the strike, that one is truly taken and swims there no
+                 longer, so the catch is not a mime */
+              takeFish(b.x,b.z); b.food='fish'; b.job='carry'; }
+            else { b.job='peck'; b.jt=1.6+Math.random()*1.8; }
+            b.spot=null; }
+          break; }
+        case 'peck': {
+          if(b.jt<=0){ b.food='seed'; b.job='carry'; }
+          break; }
+        case 'carry': {
+          if(!b.nest){ b.job='rest'; b.jt=3; b.food=null; break; }
+          b.tx=b.nest.x; b.tz=b.nest.z; b.ty=b.nest.y+3;
+          if(Math.hypot(b.x-b.tx,b.z-b.tz)<7&&Math.abs(b.y-b.ty)<6){
+            b.job='feed'; b.jt=2.2+Math.random(); b.nest.cheep=2.6; }
+          break; }
+        case 'feed': {
+          if(b.jt<=0){ b.food=null; b.job='rest'; b.jt=2.5+Math.random()*4; }
+          break; }
+        case 'roost': {
+          if(!b.nest){ b.job='rest'; b.jt=4; break; }
+          b.tx=b.nest.x+2.5; b.tz=b.nest.z; b.ty=b.nest.y+2;
+          if(!night){ b.job='hunt'; }
+          break; }
+        default: {   /* rest — it circles above the nest and gathers itself */
+          const n=b.nest;
+          b.ph+=dt*0.7;
+          const cx=n?n.x:b.x, cz=n?n.z:b.z, cy=(n?n.y:b.y)+34;
+          b.tx=cx+Math.cos(b.ph)*26; b.tz=cz+Math.sin(b.ph)*26; b.ty=cy;
+          if(b.jt<=0){ b.job='hunt'; b.spot=null; }
+        }
+      }
+    }
+
+    /* --- the flight itself --- */
+    const dx=b.tx-b.x, dz=b.tz-b.z, dy=b.ty-b.y, dd=Math.hypot(dx,dz)||1;
+    const spd=b.type==='butterfly'?7:(b.job==='hunt'&&b.spot&&b.ty<=b.spot.y+2)?58:30;
+    const step=Math.min(dd,spd*dt);
+    b.x+=dx/dd*step; b.z+=dz/dd*step;
+    b.y+=Math.max(-52*dt,Math.min(52*dt,dy));
+    const want=Math.atan2(dx,dz);
+    let turn=want-b.heading; while(turn>Math.PI)turn-=6.2832; while(turn<-Math.PI)turn+=6.2832;
+    b.heading+=turn*Math.min(1,dt*3.4);
+    const bob=(b.job==='roost'||b.job==='feed')?0:Math.sin(t*2+b.ph)*(b.type==='butterfly'?1.4:2.0);
+    b.m.position.set(b.x,b.y+bob,b.z);
+    b.m.rotation.y=b.heading; b.m.rotation.z=-turn*0.6;      /* it banks into the turn */
+    /* the wings still while it sits at the nest, and beat hard on the stoop */
+    const sitting=(b.job==='roost'||b.job==='feed'||b.job==='peck');
+    const fl=sitting?0.08:(b.type==='butterfly'?Math.sin(t*16+b.ph)*0.9:Math.sin(t*10+b.ph)*0.6);
+    if(ud.wingL){ ud.wingL.rotation.z=fl; ud.wingR.rotation.z=-fl; }
+    if(ud.carry){ ud.carry.visible=!!b.food;
+      if(b.food) ud.carry.material.color.setHex(b.food==='fish'?0x9fb6c8:0xc8b46a); }
+  } }
+function hideAirLife(){ for(const b of AIRLIFE) if(b.m) b.m.visible=false;
+  for(const N of NESTS) N.m.visible=false; }
 
 /* ================= VILLAGES (minecraft-fashion) =================
    Cobblestone bases, oak plank walls with log corner posts, glass
@@ -3991,8 +4587,7 @@ cv.addEventListener('pointermove',e=>{
       const f=pinchD/nd; pinchD=nd;
       if(state.firm){ state.firmDist=Math.max(R_WORLD*0.12,Math.min(R_WORLD*2.4,state.firmDist*f));
         if(state.firmDist<=R_WORLD*0.125&&f<1) exitFirm(); }
-      else{ state.camDist=Math.max(14,Math.min(240,state.camDist*f));
-        if(state.camDist>=239.5&&f>1) enterFirm(); }
+      else state.zoom=Math.max(0,Math.min(1,state.zoom+Math.log(f)*0.18));
       return; }
   }
   if(joy&&e.pointerId===joy.id){ joy.dx=Math.max(-60,Math.min(60,e.clientX-joy.x0));
@@ -4043,8 +4638,10 @@ function firmTravel(e){
 cv.addEventListener('wheel',e=>{ e.preventDefault();
   if(state.firm){ state.firmDist=Math.max(R_WORLD*0.12,Math.min(R_WORLD*2.4,state.firmDist*Math.exp(e.deltaY*0.0012)));
     if(state.firmDist<=R_WORLD*0.125&&e.deltaY<0) exitFirm(); return; }
-  state.camDist=Math.max(14,Math.min(240,state.camDist*Math.exp(e.deltaY*0.0012)));
-  if(state.camDist>=239.5&&e.deltaY>0) enterFirm(); },{passive:false});
+  /* one notch of the wheel is a fixed, small step along the zoom — whatever
+     units the browser chooses to report it in (pixels, lines or pages) */
+  const unit=e.deltaMode===1?16:e.deltaMode===2?innerHeight:1;
+  state.zoom=Math.max(0,Math.min(1,state.zoom+e.deltaY*unit*0.00028)); },{passive:false});
 function axis(){
   let f=0,t=0;
   if(keys.KeyW||keys.ArrowUp)f+=1; if(keys.KeyS||keys.ArrowDown)f-=1;
@@ -4283,12 +4880,49 @@ function walkTick(dt){
     /* hold SHIFT at the surface and slip straight down into the deep —
        the same water, the same place, the bed running from the strand */
     if(keys.ShiftLeft||keys.ShiftRight){ enterDive(); return; }
-    w.feetY=surfY-1.0; w.vy=0; w.grounded=true; w.jumpReq=false;
-    /* the swell shoulders the swimmer along — the water is a moving thing */
-    const sl=seaSlope(w.x,w.z), px2=w.x-sl.x*dt*7, pz2=w.z-sl.z*dt*7;
+    /* ---- BUOYANCY, not a weld ----
+       The body was pinned to surfY every single frame, so a passing crest
+       teleported it and it read as a figure SKATING over the water. A float
+       on a spring instead: the swell lifts and drops it with a little lag,
+       as a cork rides the sea, and it is bounded so it can neither be flung
+       above the crest nor left hanging under it. */
+    const rest=surfY-1.0;
+    w.vy+=(rest-w.feetY)*26*dt;              /* the water pushes it back to its line */
+    w.vy-=w.vy*Math.min(1,7.4*dt);           /* and the water drags that motion down */
+    w.vy=Math.max(-46,Math.min(46,w.vy));
+    w.feetY+=w.vy*dt;
+    /* bounded either side of its line — and the upper bound is kept under
+       the swim test's own threshold (surfY+0.6), or the top of a bob would
+       drop him out of swimming and into free fall */
+    if(w.feetY>rest+0.5){ w.feetY=rest+0.5; if(w.vy>0) w.vy=0; }
+    if(w.feetY<rest-4.0){ w.feetY=rest-4.0; if(w.vy<0) w.vy=0; }
+    w.grounded=true; w.jumpReq=false;
+    /* ---- the water carries him ----
+       Not a shove down the slope: a particle in a Gerstner swell travels a
+       CIRCLE, so the surface current runs with the wave. It is eased rather
+       than applied raw, capped well under a swimmer's own stroke, and mostly
+       stilled while he is stroking — the sea sets a resting body adrift, it
+       does not sweep a swimming one off his course. */
+    const sl=seaSlope(w.x,w.z);
+    const stroking=Math.abs(f)>0.15;
+    const pull=stroking?2.4:9.0;
+    let dxw=-sl.x*pull, dzw=-sl.z*pull;
+    const dm=Math.hypot(dxw,dzw);
+    if(dm>3.2){ dxw=dxw/dm*3.2; dzw=dzw/dm*3.2; }
+    w.driftX=(w.driftX||0)+(dxw-(w.driftX||0))*Math.min(1,dt*2.2);
+    w.driftZ=(w.driftZ||0)+(dzw-(w.driftZ||0))*Math.min(1,dt*2.2);
+    const px2=w.x+w.driftX*dt, pz2=w.z+w.driftZ*dt;
     if(!groundInfo(px2,pz2).land&&!camInsideShip(px2,surfY,pz2)){ w.x=px2; w.z=pz2; }
+    /* and he lies along the FACE of the wave — pitch and roll off its slope,
+       clamped so a steep crest tilts the body and never tumbles it. A figure
+       held bolt upright through a passing swell is the whole look of skating */
+    const fwdX=Math.sin(w.heading), fwdZ=Math.cos(w.heading);
+    const cl2=(v,m)=>v<-m?-m:v>m?m:v;
+    w.wPitch=cl2(-(sl.x*fwdX+sl.z*fwdZ)*2.6,0.32);
+    w.wRoll =cl2( (sl.x*fwdZ-sl.z*fwdX)*2.6,0.32);
   }
   else { if(w.inWater){ w.inWater=false; }
+    w.driftX=0; w.driftZ=0; w.wPitch=0; w.wRoll=0;   /* out of the water, out of its motion */
     w.vy-=64*dt; w.feetY+=w.vy*dt;
     /* land arrests the fall; water does not — the body carries its speed
        through the surface so the plunge can read it */
@@ -4319,13 +4953,21 @@ function walkTick(dt){
   } else canGo=false;                                    /* too high — go around */
   if(solidBlock) canGo=false;
   if(canGo){ state.dist+=Math.hypot(nx-w.x,nz-w.z); w.x=nx; w.z=nz;
-    if(w.grounded && diff>=-B*3 && diff<=(swimming?JUMPH+3:STEP)) w.feetY=tg.y; }   /* snap small steps */
+    /* snap small steps — but NEVER onto open water. groundInfo hands back a
+       FLAT WATER_Y-2.2 for every wave in the sea, so this line was pinning
+       the swimmer to a dead level plane every frame, overwriting whatever
+       height the swell had given him. That is the whole of the skating: a
+       body held at one fixed height while the waves ran through it. Over
+       water his buoyancy rules; snapping resumes the moment he touches land
+       (so he may still haul out onto the strand). */
+    if(w.grounded && (!swimming||tg.land) && diff>=-B*3 && diff<=(swimming?JUMPH+3:STEP)) w.feetY=tg.y; }
   walkerG.position.set(w.x,w.feetY,w.z); walkerG.rotation.y=w.heading;
   /* ---- animation ---- */
   const moving=Math.abs(sp)>0.5;
   if(swimming){ const s=performance.now()*0.008;
     const prone=Math.abs(f)>0.15;                        /* stroking forward, or treading */
-    walkerG.rotation.x=prone?1.30+Math.sin(s*0.7)*0.05:0.22;
+    walkerG.rotation.x=(prone?1.30+Math.sin(s*0.7)*0.05:0.22)+(w.wPitch||0);
+    walkerG.rotation.z=w.wRoll||0;                       /* heeled over with the wave's face */
     walkerG.position.y=w.feetY-(prone?0.1:6.4);          /* the body lies IN the water, not upon it */
     if(prone){                                           /* the front crawl — arms wheeling over */
       u.armL.rotation.x=-(s%6.2832); u.armR.rotation.x=-((s+3.1416)%6.2832);
@@ -4338,10 +4980,10 @@ function walkTick(dt){
       u.legL.rotation.x=Math.sin(s*1.6)*0.45; u.legR.rotation.x=-Math.sin(s*1.6)*0.45;
     }
   } else if(!w.grounded){                                 /* the jump pose */
-    walkerG.rotation.x=0; u.armL.rotation.z=0; u.armR.rotation.z=0;
+    walkerG.rotation.x=0; walkerG.rotation.z=0; u.armL.rotation.z=0; u.armR.rotation.z=0;
     u.legL.rotation.x=0.55; u.legR.rotation.x=-0.3; u.armL.rotation.x=-0.7; u.armR.rotation.x=-0.7;
   } else { const ph=performance.now()*0.011;
-    walkerG.rotation.x=0; u.armL.rotation.z=0; u.armR.rotation.z=0;
+    walkerG.rotation.x=0; walkerG.rotation.z=0; u.armL.rotation.z=0; u.armR.rotation.z=0;
     u.legL.rotation.x=moving?Math.sin(ph)*0.7:0; u.legR.rotation.x=moving?-Math.sin(ph)*0.7:0;
     u.armL.rotation.x=moving?-Math.sin(ph)*0.5:0; u.armR.rotation.x=moving?Math.sin(ph)*0.5:0;
   }
@@ -4389,15 +5031,35 @@ function ensureFlyDome(){ if(flyDome) return;
    whole earth resolves into her own true face (the same map the compass rose
    bears), fading in as the traveller climbs: the disc seen in the deep, as
    the earth-viewer shows her */
-let aloftDisc=null;
+let aloftDisc=null, aloftCtx=null, aloftTex=null, aloftT=0, aloftMark=null;
+const ALOFT_RES=2048;      /* the coastlines must stay true when the whole earth fills the view */
 function ensureAloftDisc(){ if(aloftDisc) return;
-  const c=document.createElement('canvas'); c.width=c.height=1024;
-  drawMapInto(c.getContext('2d'),1024,false);
-  const tex=new THREE.CanvasTexture(c); tex.anisotropy=4;
-  aloftDisc=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD,128),
-    new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:0,fog:false,depthWrite:false}));
+  const c=document.createElement('canvas'); c.width=c.height=ALOFT_RES;
+  aloftCtx=c.getContext('2d');
+  drawMapInto(aloftCtx,ALOFT_RES,false,true);
+  aloftTex=new THREE.CanvasTexture(c); aloftTex.anisotropy=8;
+  aloftDisc=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD,256),
+    new THREE.MeshBasicMaterial({map:aloftTex,transparent:true,opacity:0,fog:false,depthWrite:false}));
   aloftDisc.rotation.x=-Math.PI/2; aloftDisc.position.y=175;
-  aloftDisc.visible=false; scene.add(aloftDisc); }
+  aloftDisc.visible=false; scene.add(aloftDisc);
+  /* the traveller's own mark — a sprite, so it is scaled to the eye's
+     distance and reads the same whether he looks on one sea or on all */
+  const mc=texCanvas(64), mg=mc.getContext('2d');
+  mg.fillStyle='#e8c66a'; mg.beginPath(); mg.moveTo(32,4); mg.lineTo(58,60); mg.lineTo(6,60); mg.closePath(); mg.fill();
+  mg.strokeStyle='rgba(24,20,10,0.75)'; mg.lineWidth=3; mg.stroke();
+  aloftMark=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(mc),
+    fog:false,transparent:true,depthTest:false}));
+  aloftMark.visible=false; scene.add(aloftMark); }
+/* The face carries the wandering storms and the sun's place, which move, so
+   it is repainted at a slow beat while it is being looked at — and not at
+   all while it is not. */
+function aloftTick(dt,px,pz){
+  if(!aloftDisc||!aloftDisc.visible||aloftDisc.material.opacity<0.02) return;
+  if(aloftMark){ aloftMark.visible=true;
+    aloftMark.position.set(px,aloftDisc.position.y+40,pz);
+    const s=Math.max(120,state.camDist*0.0127); aloftMark.scale.set(s,s,1); }
+  aloftT-=dt; if(aloftT>0) return;
+  aloftT=0.75; drawMapInto(aloftCtx,ALOFT_RES,false,true); aloftTex.needsUpdate=true; }
 function flyTick(dt){
   const fl=state.fly; const [f,t]=axis();
   fl.heading+=t*dt*FLY_TURN;
@@ -4504,7 +5166,7 @@ function setMode(m){
   state.mode=m;
   if(m==='fly') ensureFlyDome();                      /* the vault stands even for a voyage restored aloft */
   if(m==='walk') state.walk.climb=null;               /* a climb interrupted elsewhere must not resume here */
-  if(m!=='fly'&&m!=='dive') walkerG.rotation.x=0;      /* clear the flight/swim lean */
+  if(m!=='fly'&&m!=='dive'){ walkerG.rotation.x=0; walkerG.rotation.z=0; }   /* clear the flight/swim lean and heel */
   if(m==='walk'||m==='fly'||m==='dive'){              /* a free body in the world, not aboard */
     if(walkerG.parent!==scene){ if(walkerG.parent) walkerG.parent.remove(walkerG); scene.add(walkerG); }
     poseArms(false);
@@ -4723,7 +5385,7 @@ function enterFirm(){
   hideDeep(); hideLandLife(); hideAirLife(); hideTraders();  /* nothing of the deep or the field in the map view */
   $('b-firm').textContent='\u26F5 Return to the ship'; }
 function exitFirm(){ state.firm=false; if(firmG) firmG.visible=false;
-  scene.fog=FOG; state.camPitch=0.42; state.camDist=200;
+  scene.fog=FOG; state.camPitch=0.42; state.camDist=200; state.zoom=distToZoom(200);
   sea.visible=true; seaDeep.visible=true; waveGrid.visible=true;
   clouds.visible=true; clouds.scale.set(1,1,1); clouds.position.y=CLOUD_Y; cirrus.visible=true; voidWall.visible=true;
   $('b-firm').textContent='\uD83D\udd4A The firmament'; }
@@ -4769,40 +5431,64 @@ function cameraTick(dt){
     camPos.set(cxp,hy,czp); camera.position.lerp(camPos,Math.min(1,dt*10));
     camTgt.set(w.x+Math.sin(w.heading)*14, hy-2.0, w.z+Math.cos(w.heading)*14);
     camera.lookAt(camTgt); return; }
+  /* ease the eye toward the zoom target IN LOG SPACE, so it opens at one
+     steady rate whether it is closing on the deck or drawing back off the
+     whole earth — and so a fast spin of the wheel can never snap the view */
+  { const cz=distToZoom(state.camDist);
+    state.camDist=zoomToDist(cz+(state.zoom-cz)*Math.min(1,dt*1.9)); }
   let px,pz,phead,baseY,dist;
+  /* only a FLOOR per mode now — the ceiling used to clamp the last third of
+     the range away, so the far end of the wheel moved nothing */
   if(state.mode==='deck'){ walkerG.getWorldPosition(_wv);
     px=_wv.x; pz=_wv.z; baseY=_wv.y; phead=state.boat.heading+state.deck.h;
-    dist=Math.max(10,Math.min(state.camDist,60)); }
+    dist=Math.max(10,state.camDist); }
   else if(state.mode==='boat'){ const bt=state.boat;
-    px=bt.x; pz=bt.z; baseY=boatG.position.y+SD.qdeckY; phead=bt.heading; dist=Math.max(56,Math.min(state.camDist,260)); }
+    px=bt.x; pz=bt.z; baseY=boatG.position.y+SD.qdeckY; phead=bt.heading; dist=Math.max(56,state.camDist); }
   else if(state.mode==='fly'){ const fl=state.fly;
-    px=fl.x; pz=fl.z; baseY=fl.y; phead=fl.heading; dist=Math.max(24,Math.min(state.camDist,300)); }
+    px=fl.x; pz=fl.z; baseY=fl.y; phead=fl.heading; dist=Math.max(24,state.camDist); }
   else if(state.mode==='dive'){ const dv=state.dive;
-    px=dv.x; pz=dv.z; baseY=dv.y; phead=dv.heading; dist=Math.max(16,Math.min(state.camDist,90)); }
+    /* under the sea the water itself ends the view — drawing further back
+       only buys fog, so the deep keeps a ceiling of its own */
+    px=dv.x; pz=dv.z; baseY=dv.y; phead=dv.heading; dist=Math.max(16,Math.min(state.camDist,300)); }
   else{ const w=state.walk;
-    px=w.x; pz=w.z; baseY=walkerG.position.y; phead=w.heading; dist=Math.max(14,Math.min(state.camDist,150)); }
+    px=w.x; pz=w.z; baseY=walkerG.position.y; phead=w.heading; dist=Math.max(14,state.camDist); }
   const [f2]=axis(); if(Math.abs(f2)>0.2) state.camYaw*=Math.max(0,1-dt*0.5);
   const az=phead+Math.PI+state.camYaw;
+  /* as the eye draws back off the world it also rises over it — the pitch
+     the traveller dragged for himself still rules close in, and gives way to
+     a near-overhead view of the whole earth as it opens out */
+  const zf=zoomMapFade();
+  const pit=state.camPitch+(1.45-state.camPitch)*zf;
+  const cpit=Math.cos(pit), spit=Math.sin(pit);
   /* ashore, draw the camera in rather than clip through the ship */
   if(state.mode==='walk'){
     for(let k=0;k<8&&dist>20;k++){
-      const tx=px+Math.sin(az)*Math.cos(state.camPitch)*dist;
-      const tz=pz+Math.cos(az)*Math.cos(state.camPitch)*dist;
-      const ty=baseY+8+Math.sin(state.camPitch)*dist;
+      const tx=px+Math.sin(az)*cpit*dist;
+      const tz=pz+Math.cos(az)*cpit*dist;
+      const ty=baseY+8+spit*dist;
       if(!camInsideShip(tx,ty,tz)) break;
       dist*=0.82;
     }
   }
+  /* far out, a near plane of one unit against a 384,000-unit far plane leaves
+     the depth buffer nothing to work with and the world z-fights — open it
+     with the distance */
+  if(!camInside){ const wantNear=Math.max(1,Math.min(600,dist*0.02));
+    if(Math.abs(camera.near-wantNear)>Math.max(0.5,camera.near*0.15)){
+      camera.near=wantNear; camera.updateProjectionMatrix(); } }
   /* swimming, the eye rides low along the waterline — the swell can roll
      right over it (the frame loop tints the world to water-light when it does) */
   const swimCam=state.mode==='walk'&&state.walk.inWater;
   const lift=state.mode==='deck'?5:swimCam?2.2:8;
-  const cy=baseY+lift+Math.sin(state.camPitch)*dist;
-  camPos.set(px+Math.sin(az)*Math.cos(state.camPitch)*dist, cy, pz+Math.cos(az)*Math.cos(state.camPitch)*dist);
+  const cy=baseY+lift+spit*dist;
+  camPos.set(px+Math.sin(az)*cpit*dist, cy, pz+Math.cos(az)*cpit*dist);
   camera.position.lerp(camPos,Math.min(1,dt*5));
   /* the eye stays WITHIN the firmament — never through the glass, whatever
-     the pitch: pressed back inside the tent-vault's skin */
-  { const cp=camera.position;
+     the pitch: pressed back inside the tent-vault's skin. (Drawn right back
+     to behold the whole earth, the eye stands outside the vault of set
+     purpose, as it does in the firmament view — so the skin is not pressed
+     upon it there.) */
+  if(zf<0.02){ const cp=camera.position;
     const q=(cp.x*cp.x+cp.z*cp.z)/(R_DOME*R_DOME)+(cp.y>0?(cp.y*cp.y)/(H_DOME*H_DOME):0);
     if(q>0.90){ const k=Math.sqrt(0.90/q); cp.x*=k; cp.z*=k; if(cp.y>0) cp.y*=k; } }
   camTgt.set(px,baseY+(swimCam?4:10),pz);
@@ -4875,7 +5561,12 @@ function drawMapBase(size){
     g.stroke(); }
   return c;
 }
-function drawMapInto(ctx2,size,withNames){
+/* noMark — the charted face laid under the whole earth carries no traveller's
+   arrow of its own. Drawn into the texture it was a fixed span of WORLD, so
+   it stood a proper size only when the whole disc filled the view and swelled
+   into a great yellow wedge at every zoom short of that. A sprite scaled to
+   the eye's distance stands in its place (see aloftMark). */
+function drawMapInto(ctx2,size,withNames,noMark){
   if(!mapBases[size]) mapBases[size]=drawMapBase(size);
   ctx2.clearRect(0,0,size,size); ctx2.drawImage(mapBases[size],0,0);
   const Hh=size/2;
@@ -4894,6 +5585,7 @@ function drawMapInto(ctx2,size,withNames){
   const [su,sv]=sunUV();
   ctx2.beginPath(); ctx2.arc((su+1)*Hh,(sv+1)*Hh,Math.max(3,size/120),0,Math.PI*2);
   ctx2.fillStyle='#ffe9a8'; ctx2.fill();
+  if(noMark) return;
   const p=state.mode==='walk'?state.walk:state.mode==='fly'?state.fly:state.mode==='dive'?state.dive:state.boat;
   const px=(p.x/R_WORLD+1)*Hh, py=(p.z/R_WORLD+1)*Hh;
   ctx2.save(); ctx2.translate(px,py); ctx2.rotate(Math.atan2(Math.sin(p.heading),-Math.cos(p.heading)));
@@ -5380,6 +6072,8 @@ $('btn-continue').onclick=()=>begin(false);
 /* a small debug handle — used by the automated smoke tests; harmless in play */
 window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
+  farLand,updateFarLand,mountUpliftAt,MOUNTS,ridgeNoise,B,R_WORLD,
+  AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
   domeInfo:()=>({dome:flyDome?flyDome.material.opacity:0, deep:outerDeep?outerDeep.material.uniforms.uOp.value:0, stars:starGroup.userData.mat.opacity}),
@@ -5409,10 +6103,18 @@ function frame(){
   if(scene.fog&&!state.firm){ const climbF=Math.max(0,eyeY-CLOUD_Y);
     scene.fog.near*=1+climbF/2600;
     scene.fog.far=Math.min(scene.fog.far*(1+climbF/45), R_WORLD*3.0); }
-  /* underwater — the light dims and the water closes in with depth */
-  if(state.mode==='dive'&&scene.fog&&state.dive.y<SEA_SURF){ const depth=SEA_SURF-state.dive.y, murk=Math.min(1,depth/560);
+  /* ---- UNDER THE WAVES — the light dims and the water closes in with depth.
+     Keyed on the EYE, not on the mode: a swimmer whose camera has rolled
+     under the swell stands in the same water as a diver, and must be shown
+     the same sea. Near the surface the view stays long, so a coast does not
+     vanish a few metres down; it shortens as the deep darkens. */
+  const underEye=eyeUnderwater();
+  if(underEye&&scene.fog){
+    const eyeY2=state.mode==='dive'?state.dive.y:camera.position.y;
+    const murk=Math.min(1,Math.max(0,SEA_SURF-eyeY2)/560);
     const wc=mix3(0x061826,0x0f5170,0x36b0d8,1-murk);   /* deep dark → shallow turquoise */
-    scene.background.copy(wc); scene.fog.color.copy(wc); scene.fog.near=4; scene.fog.far=470-murk*290;
+    scene.background.copy(wc); scene.fog.color.copy(wc);
+    scene.fog.near=4; scene.fog.far=820-murk*640;
     hemi.intensity=1.0-murk*0.6; dirL.intensity=0.5-murk*0.32; }
   /* ---- BREATH — the diver's chest against the deep ----
      It drains below, refills above; fails, and you break for the surface.
@@ -5430,16 +6132,6 @@ function frame(){
       if(show){ $('breath-fill').style.width=Math.round(state.breath*100)+'%';
         bEl.classList.toggle('low',!state.immBreath&&state.breath<0.3);
         bEl.classList.toggle('imm',!!state.immBreath); } } }
-  /* the swimmer's eye dips beneath the swell — the world turns to water-light */
-  if(state.mode==='walk'&&scene.fog){
-    const surfC=WATER_Y+seaHeight(camera.position.x,camera.position.z);
-    if(camera.position.y<surfC-0.15&&!landAtWorld(camera.position.x,camera.position.z)){
-      const wc=mix3(0x0a2836,0x1e7a96,0x3ab2d8,light.dayF);
-      scene.background.copy(wc); scene.fog.color.copy(wc);
-      scene.fog.near=5; scene.fog.far=320;
-      hemi.intensity=0.85; dirL.intensity=0.4;
-    }
-  }
   /* the firmament vault fades into view the higher he climbs, and stands solid
      near the top; beyond it THE DEEP closes around — darkness on every side,
      the waters above glowing faint over the apex, the stars seen through the glass */
@@ -5450,14 +6142,33 @@ function frame(){
     if(outerDeep) outerDeep.material.uniforms.uOp.value=Math.max(0,Math.min(1,(eyeY-CLOUD_Y*2)/9000))*0.94;
     const aloftF=Math.max(0,Math.min(1,(eyeY-CLOUD_Y*3)/20000));
     if(aloftF>0) starGroup.userData.mat.opacity=Math.max(starGroup.userData.mat.opacity,aloftF*0.85);
-    /* high enough, and the earth resolves into her charted face */
-    const mapF=Math.max(0,Math.min(1,(eyeY-9000)/9000));
-    if(mapF>0.02){ ensureAloftDisc(); aloftDisc.material.opacity=mapF; aloftDisc.visible=true;
-      aloftDisc.position.y=175+Math.min(2200,Math.max(0,eyeY-9000)*0.06); }  /* over the chunk tops, under the flyer */
-    else if(aloftDisc) aloftDisc.visible=false;
   }
-  else if(flyDome){ flyDome.material.opacity=0; if(outerDeep) outerDeep.material.uniforms.uOp.value=0;
-    if(aloftDisc) aloftDisc.visible=false; }
+  else if(flyDome){ flyDome.material.opacity=0; if(outerDeep) outerDeep.material.uniforms.uOp.value=0; }
+  /* ---- THE EARTH'S OWN FACE ----
+     Two things call for it and they are one and the same sight: rising high
+     enough on the air, and drawing the eye far enough back. Either way the
+     little streamed chunks can no longer be read, so the CHARTED earth is
+     brought up under the eye — the true outlines of the countries, their
+     real size and shape, not a drawn page — and the world is seen whole. */
+  const zMapF=state.firm?0:Math.max(
+      Math.max(0,Math.min(1,(eyeY-9000)/9000)),      /* risen high upon the air */
+      zoomMapFade());                                 /* or the eye drawn far back */
+  if(zMapF>0.02){ ensureAloftDisc();
+    aloftDisc.visible=true; aloftDisc.material.opacity=zMapF;
+    aloftDisc.position.y=175+Math.min(2200,Math.max(0,eyeY-9000)*0.06);  /* over the chunk tops, under the flyer */
+    aloftTick(dt,p.x,p.z); }
+  else if(aloftDisc){ aloftDisc.visible=false; if(aloftMark) aloftMark.visible=false; }
+  /* drawn right back, the sky about the disc gives way to the outer darkness,
+     and the earth is beheld standing within it — as she is */
+  if(zMapF>0.002) scene.background.lerp(_voidC,zMapF*0.92);
+  /* and the haze of the near world must not blind an eye drawn back off it */
+  if(scene.fog&&zMapF>0.002){
+    scene.fog.near+=(R_WORLD*0.5-scene.fog.near)*zMapF;
+    scene.fog.far +=(R_WORLD*3.0-scene.fog.far )*zMapF;
+    /* the wall of night at the rim takes its colour from the fog, so that it
+       blends into the day's sky when stood under — out here it must go dark
+       with everything else, or it rings the earth in a band of sunset */
+    scene.fog.color.lerp(_voidC,zMapF*0.92); }
   updateWallWeather(p.x,p.z,dt);   /* cold fog and blowing snow at the wall of ice */
   waterTick(p.x,p.z,light.dayF,light.storm||0);
   /* below the waterline in the hold, the sea must not wash through the hull;
@@ -5468,12 +6179,8 @@ function frame(){
        diving, or a swimmer's camera rolled under the swell — they are hidden,
        or they read as a second sea hanging in the deep with fish above and
        below it. */
-    let eyeUnder=state.mode==='dive';
-    if(!eyeUnder&&state.mode==='walk'&&state.walk.inWater){
-      const surfC=WATER_Y+seaHeight(camera.position.x,camera.position.z);
-      if(camera.position.y<surfC-0.15) eyeUnder=true; }
     waveGrid.visible=!inHold;
-    sea.visible=seaDeep.visible=!inHold&&!eyeUnder; }
+    sea.visible=seaDeep.visible=!inHold&&!underEye; }
   seaLifeTick(p.x,p.z,dt);
   splashTick(dt);
   fishTick(dt);
@@ -5486,6 +6193,12 @@ function frame(){
      flyer eats chunks at 300+ units/s and 4-a-frame falls behind the fog line */
   const chunkBudget=(state.mode==='fly'||Math.abs(state.boat.speed)>70)?9:4;
   updateChunks(p.x,p.z,chunkBudget);
+  /* the coarse land beyond the chunks — so a range is seen standing on the
+     horizon long before it is reached. Not needed under the sea (the water
+     ends the view within a few hundred units), nor once the charted face has
+     taken the world over. */
+  if(!state.firm&&!underEye&&zMapF<0.9){ farLand.visible=true; updateFarLand(p.x,p.z); }
+  else farLand.visible=false;
   updateVillages(p.x,p.z,dt,light.nightF);
   updateLandmarks(p.x,p.z);
   /* the living world — weather, hearths, fireflies, meetings, murmurs */
@@ -5506,7 +6219,7 @@ function frame(){
     if(bigOpen) sizeBig(); }
   saveT-=dt; if(saveT<=0){ saveT=10; saveState(); }
   if(!state.firm){ const above=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/90));
-    clouds.visible=cirrus.visible=state.mode!=='dive';   /* no sky-clouds seen from under the sea */
+    clouds.visible=cirrus.visible=!underEye;   /* no sky-clouds seen from under the sea */
     clouds.position.x=p.x; clouds.position.z=p.z;
     TEX.clouds.offset.x=(p.x/9600*7+state.simHours*0.004)%1;
     TEX.clouds.offset.y=(p.z/9600*7)%1;
@@ -5515,10 +6228,10 @@ function frame(){
     const pY = state.mode==='fly'?state.fly.y : state.mode==='walk'?(state.walk.feetY!==undefined?state.walk.feetY:20) : 20;
     const highF = Math.max(0,Math.min(1,(pY-CLOUD_Y)/70));
     const gap=Math.abs(eyeY-CLOUD_Y), through=Math.min(1,gap/80);
-    cloudMat.opacity*=(0.22+0.78*through)*(1-above*0.9)*(1-highF*0.96);
+    cloudMat.opacity*=(0.22+0.78*through)*(1-above*0.9)*(1-highF*0.96)*(1-zMapF);
     cirrus.position.x=p.x; cirrus.position.z=p.z;
     const climb=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/900));
-    cirrusMat.opacity=(0.08+light.dayF*0.16)*Math.min(1,climb*1.5)*(1-above*0.7);
+    cirrusMat.opacity=(0.08+light.dayF*0.16)*Math.min(1,climb*1.5)*(1-above*0.7)*(1-zMapF);
     /* the sea of clouds — a bumpy, shaded deck with wisps drifting above */
     /* the LOCAL deck patch is for skimming just over the clouds — from far
        above it is a floating grey slab with an edge; fade it away and let the
@@ -5539,12 +6252,24 @@ function frame(){
       cloudCover.material.opacity=above*0.97*(1-mapF2*0.82);
       cloudCover.material.color.copy(mix3(0x59637a,0xe0c6a0,0xffffff,light.dayF));
     } }
-  if(!state.firm&&state.mode==='dive') updateDeep(state.dive.x,state.dive.y,state.dive.z,dt,Math.min(1,(SEA_SURF-state.dive.y)/560));
+  /* THE DEEP IS FURNISHED WHENEVER THE EYE IS IN IT — diving, swimming, or a
+     camera dipped under a wave from the strand. It follows the eye, not the
+     mode, so there is no longer a seam where one world ends and another
+     begins. */
+  if(!state.firm&&underEye){
+    const dv=state.mode==='dive';
+    const dx2=dv?state.dive.x:camera.position.x, dz2=dv?state.dive.z:camera.position.z;
+    const dy2=dv?state.dive.y:camera.position.y;
+    initDeep();
+    updateDeep(dx2,dy2,dz2,dt,Math.min(1,Math.max(0,SEA_SURF-dy2)/560),dv);
+  }
   else if(deepShown) hideDeep();
   /* the beasts of the field and the fowl of the air, over all the earth */
   if(!state.firm&&state.mode!=='dive'){ const tt=performance.now()*0.001, night=(light.nightF||0)>0.5;
     updateAirLife(p.x,p.z,dt,tt,night);
-    updateShallowLife(p.x,p.z,dt,tt);   /* fish and turtles seen through the clear shallows */
+    /* the same fish are stirred by updateDeep when the eye is under — moving
+       them twice in one frame doubled their speed and tore the schools apart */
+    if(!underEye) updateShallowLife(p.x,p.z,dt,tt);   /* fish and turtles seen through the clear shallows */
     podTick(p.x,p.z,dt,tt);             /* the whale pods, making for the fishing grounds */
     if(state.mode==='boat'||state.mode==='deck'||state.mode==='walk') updateLandLife(p.x,p.z,dt,tt); else hideLandLife(); }
   else { hideLandLife(); hideAirLife(); hidePod(); }
