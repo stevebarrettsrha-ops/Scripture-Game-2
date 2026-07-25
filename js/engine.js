@@ -1973,7 +1973,45 @@ function makeAnimal(kind){
     for(const s of[1,-1]){ const ear=lbox(0.4,2.8,2.4,0x82828a); ear.position.set(s*2.0,6.8,3.6); g.add(ear);
       const tusk=lbox(0.4,0.4,2.0,0xefe8d8); tusk.position.set(s*0.9,5.2,5.4); g.add(tusk); }
     fourLegs(1.6,2.6,4.4,0x76767e);
-  } else { /* ostrich — two long legs, a tall neck */
+  }
+  else if(kind==='crocodile'){
+    /* long and low, all jaw and tail, with a ridge of scutes down the back —
+       it lies in the shallows of the great rivers looking like a log */
+    const dk=0x455631, lt=0x63754a, bl=0xa9ad7c;
+    const body=lbox(2.4,1.6,6.0,dk); body.position.y=1.5; g.add(body);
+    const und=lbox(2.0,0.5,5.4,bl); und.position.y=0.75; g.add(und);
+    for(let i=0;i<6;i++){ const s=lbox(0.5,0.5,0.55,lt);
+      s.position.set((i%2?0.55:-0.55),2.45,-2.4+i*1.0); g.add(s); }     /* the scutes */
+    const neck=lbox(1.9,1.3,1.3,dk); neck.position.set(0,1.55,3.6); g.add(neck);
+    const jawT=lbox(1.5,0.7,3.4,dk);  jawT.position.set(0,1.8,5.7); g.add(jawT);
+    const jawB=lbox(1.4,0.55,3.2,bl); jawB.position.set(0,1.15,5.6); g.add(jawB);
+    for(const s of [1,-1]){ const e=lbox(0.45,0.45,0.45,0xd9c93f); e.position.set(s*0.62,2.45,4.1); g.add(e);
+      const p=lbox(0.2,0.2,0.2,0x101010); p.position.set(s*0.62,2.62,4.1); g.add(p); }
+    const t1=lbox(1.8,1.2,2.6,dk); t1.position.set(0,1.5,-4.2); g.add(t1);
+    const t2=lbox(1.0,0.9,2.8,lt); t2.position.set(0,1.5,-6.7); g.add(t2);
+    for(const sx of [1,-1]) for(const sz of [2.0,-2.2]){
+      const L=lbox(0.8,1.0,0.8,lt); L.geometry.translate(0,-0.5,0);
+      L.position.set(sx*1.55,1.05,sz); L.userData.ph=(sx*sz>0)?0:Math.PI; g.add(L); legs.push(L); }
+    g.userData={legs,jaw:jawB,tail:t2};
+    return g;
+  } else if(kind==='bear'||kind==='blackbear'){
+    /* heavy in the shoulder, small round ears, a pale muzzle — it forages the
+       northern woods and fishes the rapids */
+    const black=kind==='blackbear';
+    const fur=black?0x241f1d:0x6d4526, muz=black?0xa08a5e:0xbfa273;
+    const body=lbox(3.4,3.2,5.6,fur); body.position.y=4.4; g.add(body);
+    const hump=lbox(3.0,1.0,2.2,fur); hump.position.set(0,6.2,1.2); g.add(hump);   /* the shoulder */
+    const head=lbox(2.3,2.1,2.2,fur); head.position.set(0,5.4,3.7); g.add(head);
+    const snout=lbox(1.3,1.0,1.2,muz); snout.position.set(0,5.0,4.9); g.add(snout);
+    const nose=lbox(0.6,0.45,0.3,0x18140f); nose.position.set(0,5.25,5.55); g.add(nose);
+    for(const s of [1,-1]){ const ear=lbox(0.8,0.8,0.4,fur); ear.position.set(s*0.85,6.6,3.5); g.add(ear);
+      const eye=lbox(0.28,0.28,0.25,0x120e0a); eye.position.set(s*0.72,5.75,4.8); g.add(eye); }
+    const rump=lbox(3.2,2.8,1.2,fur); rump.position.set(0,4.2,-2.9); g.add(rump);
+    fourLegs(1.35,1.9,2.9,black?0x1b1715:0x5a3820);
+    g.userData={legs,head};
+    return g;
+  }
+  else { /* ostrich — two long legs, a tall neck */
     const body=lbox(2.2,2.6,3.4,0x3a3230); body.position.y=6.0; g.add(body);
     const neck=lbox(0.8,4.4,0.8,0xd8b89a); neck.position.set(0,8.4,1.2); neck.rotation.x=-0.2; g.add(neck);
     const head=lbox(0.9,0.9,1.4,0xd8b89a); head.position.set(0,10.6,1.8); g.add(head);
@@ -1998,8 +2036,26 @@ function makeBird(type){ type=type||'crow';
     const tail=lbox(1.0,0.16,1.2,0xffffff); tail.position.set(0,0,-1.4*S.s); g.add(tail); }
   if(type==='butterfly'){ const w2=lbox(1.4,0.1,1.0,0xffd23a); w2.geometry.translate(-0.7,0,0); w2.position.set(0.2,0,-0.5); g.add(w2);
     const w3=w2.clone(); w3.geometry=w2.geometry.clone(); w3.scale.x=-1; w3.position.set(-0.2,0,-0.5); g.add(w3); }
-  g.userData={wingL,wingR,type};
+  /* what it carries home in its beak — a fish from the sea, or seed from the
+     field. Hidden until it has caught something. */
+  const carry=lbox(0.75*S.s,0.4*S.s,1.15*S.s,0x9fb6c8);
+  carry.position.set(0,-0.42*S.s,1.35*S.s); carry.visible=false; g.add(carry);
+  g.userData={wingL,wingR,type,carry};
   return g;
+}
+/* ---- A NEST, AND THE YOUNG IN IT ----
+   A ring of woven sticks with two chicks that stretch up when the parent
+   comes in to feed them. */
+function makeNest(){ const g=new THREE.Group();
+  const base=lbox(2.4,0.35,2.4,0x5a4326); base.position.y=-0.3; g.add(base);
+  for(let i=0;i<9;i++){ const a=i/9*6.283, s=lbox(1.0,0.4,0.45,0x6b5029);
+    s.position.set(Math.cos(a)*1.15,0.05,Math.sin(a)*1.15); s.rotation.y=-a; g.add(s); }
+  const chicks=[];
+  for(let i=0;i<2;i++){ const c=lbox(0.6,0.6,0.75,0x9c8b68);
+    c.position.set(-0.42+i*0.84,0.45,0); g.add(c);
+    const bk=lbox(0.22,0.2,0.28,0xd8a030); bk.position.set(-0.42+i*0.84,0.5,0.5); g.add(bk);
+    chicks.push({body:c,beak:bk}); }
+  g.userData={chicks}; return g;
 }
 /* ---- PIXEL SKINS FOR THE CREATURES OF THE SEA ----
    Countershading, stripes, scutes and throat-grooves — every beast of the
@@ -2695,78 +2751,364 @@ function surface(){ const dv=state.dive;
    the land (chosen by the clime — camels and lions in the warm dry south,
    cattle, horses, deer and wolves in the temperate lands), and birds,
    butterflies and eagles wheeling in the air above land and sea. */
-const LAND_TEMPERATE=['cow','sheep','horse','donkey','pig','deer','wolf','dog','chicken','hare','goat','ox'];
-const LAND_DESERT=['camel','ostrich','lion','goat','donkey','deer'];
-function landKindAt(x,z){ const lat=Math.abs(90-Math.hypot(x/R_WORLD,z/R_WORLD)*180), arid=fbm(x*0.0009+5,z*0.0009-8);
-  const list=(lat<34&&arid>0.54)?LAND_DESERT:LAND_TEMPERATE;
-  return list[Math.floor(hash2(Math.floor(x/48),Math.floor(z/48))*list.length)%list.length]; }
+/* ---- WHERE EACH BEAST BELONGS ----
+   Every creature was drawn from one of two lists by a coin-toss on its
+   position — so a lion might stand in a Norwegian wood. It is placed by the
+   LAND it stands upon now: the latitude, how arid the country is, the biome
+   underfoot, how high it stands, and whether a river runs hard by. The
+   crocodile lies in tropical rivers and in no other water on the earth; the
+   bear keeps the northern forests and the flanks of the mountains; the lion
+   the dry savannah; the wolf the temperate and boreal woods and the high
+   country; the camel the desert; the goat the crags. */
+const WILD_TEMPERATE=['cow','sheep','horse','donkey','pig','deer','wolf','dog','chicken','hare','goat','ox'];
+const WILD_DRY=['camel','ostrich','lion','goat','donkey','lizard','hare'];
+const WILD_SAVANNA=['ostrich','lion','elephant','deer','goat','donkey'];
+const WILD_COLD=['wolf','deer','hare','ox','goat'];
+const WILD_HIGH=['goat','goat','deer','wolf','hare'];
+/* a river runs here or hard by — and a RIVER, not the sea: the chart says a
+   watercourse, and the ground about it belongs to a country */
+function riverBankAt(x,z){
+  /* a watercourse is stamped only one or two map pixels wide — about 120 to
+     240 units — so a single probe at the point almost never lands on one.
+     Two rings, at a bowshot and at three, find the bank it stands on. */
+  if(riverAtUV(x/R_WORLD,z/R_WORLD)&&countryAtUV(x/R_WORLD,z/R_WORLD)) return true;
+  for(const s of [150,290]) for(let k=0;k<9;k++){ const a=k/9*6.283;
+    const u=(x+Math.cos(a)*s)/R_WORLD, v=(z+Math.sin(a)*s)/R_WORLD;
+    if(riverAtUV(u,v)&&countryAtUV(u,v)) return true; }
+  return false;
+}
+function landKindAt(x,z,c){
+  const lat=90-Math.hypot(x/R_WORLD,z/R_WORLD)*180;      /* signed: the midst is north */
+  const alat=Math.abs(lat), arid=fbm(x*0.0009+5,z*0.0009-8);
+  const j=hash2(Math.floor(x/48),Math.floor(z/48));
+  /* a SEPARATE draw for the two territorial beasts, or the same number that
+     chose their species would also decide whether they were there at all,
+     and the two would move together */
+  const j2=hash2(Math.floor(x/64)+7.3,Math.floor(z/64)-3.1);
+  const k=c?c.kind:'grass', hb=c?c.h:1;
+  const pick=L=>L[Math.floor(j*L.length)%L.length];
+  /* the crocodile lies along the great tropical rivers — the Nile up to its
+     delta, the Congo, the Amazon, the Ganges — and in no other water */
+  if(alat<32&&j2<0.45&&(k==='tropic'||k==='grass'||k==='desert'||k==='sand')&&riverBankAt(x,z)) return 'crocodile';
+  /* and the bear holds a wide territory in the northern woods, so there are
+     never many of them in one country */
+  if(lat>44&&lat<74&&j2<0.20&&(k==='grass'||k==='tundra'||k==='alpine'))
+    return (k==='tundra'||lat>58)?'bear':'blackbear';
+  if(k==='alpine'||k==='rock'||hb>34) return pick(WILD_HIGH);
+  if(k==='snow'||k==='tundra') return pick(WILD_COLD);
+  if(k==='desert'||k==='badlands'||(alat<34&&arid>0.54)) return pick(WILD_DRY);
+  if(alat<24) return pick(WILD_SAVANNA);
+  return pick(WILD_TEMPERATE);
+}
 const LANDLIFE=[], LL_N=26, LL_R=360;
 const AMBIENT_PREY=new Set(['sheep','goat','pig','chicken','hare','deer','donkey','cow','horse','ostrich']);
+/* ---- AND WHAT EACH IS ABOUT ----
+   Nothing had any business but to walk to a random point and walk to another.
+   Every creature now keeps a trade: the grazers feed, herd and bed down; the
+   wolves hunt as a PACK and gather to the kill; the lion creeps in low and
+   then charges; the bear forages and fishes the rivers; the crocodile lies
+   sunk to the eyes and lunges at whatever comes within reach. */
+const WILD_ROLE={wolf:'pack', lion:'stalk', bear:'forage', blackbear:'forage',
+  crocodile:'ambush', lizard:'bask'};
 function initLandLife(){ if(LANDLIFE.length) return; for(let k=0;k<LL_N;k++) LANDLIFE.push({m:null,kind:null,hx:0,hz:0,x:0,z:0,heading:0,tx:0,tz:0,t:0,set:false}); }
 function findLandSpot(px,pz){ for(let tr=0;tr<10;tr++){ const a=Math.random()*6.28, r=70+Math.random()*LL_R, x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
     /* beasts keep to the charted lands (ci>0 — the countries and true isles);
-       the bare rocks and skerries of the open ocean stay bare */
-    const c=landAtWorld(x,z); if(c&&c.ci&&c.kind!=='wall'&&c.h<=6&&Math.hypot(x,z)/R_WORLD<0.9) return {x,z,y:c.h*B}; } return null; }
+       the bare rocks and skerries of the open ocean stay bare.
+       (The old bar of six blocks kept every creature off the high country —
+       now that there IS high country, the goats and wolves may have it.) */
+    const c=landAtWorld(x,z); if(c&&c.ci&&c.kind!=='wall'&&Math.hypot(x,z)/R_WORLD<0.9) return {x,z,y:c.h*B,c}; } return null; }
 function updateLandLife(px,pz,dt,t){ initLandLife();
+  const night=(worldNight||0)>0.6;
   for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>LL_R+140){ const sp=findLandSpot(px,pz);
       if(!sp){ if(a.m)a.m.visible=false; a.set=false; continue; }
-      const kind=landKindAt(sp.x,sp.z);
+      const kind=landKindAt(sp.x,sp.z,sp.c);
       if(a.kind!==kind){ if(a.m) scene.remove(a.m); a.m=makeAnimal(kind); scene.add(a.m); a.kind=kind; }
-      a.hx=sp.x; a.hz=sp.z; a.x=sp.x; a.z=sp.z; a.tx=sp.x; a.tz=sp.z; a.t=Math.random()*3; a.set=true; a.m.visible=true; a.m.position.set(sp.x,sp.y,sp.z); }
+      a.hx=sp.x; a.hz=sp.z; a.x=sp.x; a.z=sp.z; a.tx=sp.x; a.tz=sp.z; a.t=Math.random()*3; a.set=true;
+      a.role=WILD_ROLE[kind]||'graze'; a.job='roam'; a.jt=Math.random()*3; a.prey=null; a.cool=0;
+      a.river=riverBankAt(sp.x,sp.z); a.sink=0; a.crouch=false;
+      a.m.visible=true; a.m.position.set(sp.x,sp.y,sp.z); }
     if(!a.set) continue;
-    /* the hunt upon the open field: wolves and lions run down the grazers,
-       and the grazers flee — from them, and from the traveller drawn too near */
-    let spd=7;
-    const predator=(a.kind==='wolf'||a.kind==='lion');
-    if(predator){
-      a.cool=(a.cool||0)-dt;
-      if(a.cool<=0){
-        if(!a.prey||!a.prey.set||Math.hypot(a.prey.x-a.x,a.prey.z-a.z)>90){
+    let spd=7; a.jt=(a.jt||0)-dt; a.cool=(a.cool||0)-dt;
+    const role=a.role||'graze';
+
+    if(role==='pack'||role==='stalk'){
+      /* ---- THE HUNT ---- */
+      if(a.job==='feed'){ spd=0; if(a.jt<=0){ a.job='roam'; a.jt=4+Math.random()*5; } }
+      else if(a.cool<=0){
+        if(!a.prey||!a.prey.set||Math.hypot(a.prey.x-a.x,a.prey.z-a.z)>110){
           a.prey=null; let bd=1e9;
           for(const b of LANDLIFE){ if(b===a||!b.set||!AMBIENT_PREY.has(b.kind)) continue;
-            const d2=Math.hypot(b.x-a.x,b.z-a.z); if(d2<70&&d2<bd){ bd=d2; a.prey=b; } } }
-        if(a.prey){ a.tx=a.prey.x; a.tz=a.prey.z; spd=11; a.t=Math.max(a.t,0.4);
-          if(Math.hypot(a.prey.x-a.x,a.prey.z-a.z)<3){ a.cool=12; a.prey.fear=1.8; a.prey=null; } } }
-    } else if(AMBIENT_PREY.has(a.kind)){
+            const d2=Math.hypot(b.x-a.x,b.z-a.z); if(d2<80&&d2<bd){ bd=d2; a.prey=b; } }
+          /* a wolf does not hunt alone — the pack takes the same quarry */
+          if(a.prey&&role==='pack') for(const b of LANDLIFE)
+            if(b!==a&&b.set&&b.role==='pack'&&Math.hypot(b.x-a.x,b.z-a.z)<95){ b.prey=a.prey; b.job='roam'; }
+        }
+        if(a.prey){ const d2=Math.hypot(a.prey.x-a.x,a.prey.z-a.z);
+          /* the lion creeps in low and long, then breaks into the charge */
+          a.crouch=(role==='stalk'&&d2>26);
+          a.tx=a.prey.x; a.tz=a.prey.z; spd=a.crouch?3.4:13; a.jt=Math.max(a.jt,0.4);
+          if(d2<3.4){ a.cool=15; a.prey.fear=2.4; a.job='feed'; a.jt=6+Math.random()*5; a.crouch=false;
+            /* and the pack comes in to the kill and feeds together */
+            if(role==='pack') for(const b of LANDLIFE)
+              if(b!==a&&b.set&&b.role==='pack'&&Math.hypot(b.x-a.x,b.z-a.z)<75){
+                b.tx=a.x; b.tz=a.z; b.job='feed'; b.jt=6+Math.random()*4; b.prey=null; }
+            a.prey=null; } }
+      }
+    }
+    else if(role==='ambush'){
+      /* ---- THE CROCODILE ---- it does not wander at all. It lies in the
+         shallows sunk to the eyes, and takes whatever comes within reach. */
+      spd=0; a.sink=Math.min(1,(a.sink||0)+dt*0.5);
+      let tx=null,tz=null,td=1e9,vic=null;
+      if(state.mode==='walk'){ const d2=Math.hypot(state.walk.x-a.x,state.walk.z-a.z);
+        if(d2<24){ tx=state.walk.x; tz=state.walk.z; td=d2; } }
+      for(const b of LANDLIFE){ if(!b.set||!AMBIENT_PREY.has(b.kind)) continue;
+        const d2=Math.hypot(b.x-a.x,b.z-a.z); if(d2<22&&d2<td){ td=d2; tx=b.x; tz=b.z; vic=b; } }
+      if(tx!==null&&a.cool<=0){ a.tx=tx; a.tz=tz; spd=18; a.sink=0; a.jt=Math.max(a.jt,0.5);
+        if(td<3.6){ a.cool=18; if(vic) vic.fear=2.6; } }
+      else if(a.jt<=0){ a.jt=6+Math.random()*8; a.tx=a.x; a.tz=a.z; }   /* else it does not stir */
+    }
+    else if(role==='forage'){
+      /* ---- THE BEAR ---- it digs the ground for roots, and where it stands
+         by running water it goes down and fishes the shallows */
+      spd=6;
+      if(a.job==='fish'||a.job==='dig'){ spd=0; if(a.jt<=0){ a.job='roam'; a.jt=5+Math.random()*6; } }
+      else if(a.jt<=0){
+        if(a.river&&Math.random()<0.45){ a.job='fish'; a.jt=5+Math.random()*5; }
+        else { a.job='dig'; a.jt=3+Math.random()*4; }
+      }
+    }
+    else if(role==='bask'){
+      spd=4; if(a.jt<=0){ a.job=a.job==='bask'?'roam':'bask'; a.jt=a.job==='bask'?(4+Math.random()*6):(1+Math.random()*2); }
+      if(a.job==='bask') spd=0;
+    }
+    else {
+      /* ---- THE GRAZERS ---- heads down in the grass, drawn together into a
+         herd, fleeing what hunts them, and bedded down at night */
       a.fear=(a.fear||0)-dt;
       let fx=null,fz=null;
       if(state.mode==='walk'&&Math.hypot(state.walk.x-a.x,state.walk.z-a.z)<9){ fx=state.walk.x; fz=state.walk.z; }
-      else for(const b of LANDLIFE){ if(!b.set||(b.kind!=='wolf'&&b.kind!=='lion')) continue;
-        if(Math.hypot(b.x-a.x,b.z-a.z)<16){ fx=b.x; fz=b.z; break; } }
+      else for(const b of LANDLIFE){ if(!b.set||(b.role!=='pack'&&b.role!=='stalk'&&b.role!=='ambush')) continue;
+        if(Math.hypot(b.x-a.x,b.z-a.z)<18){ fx=b.x; fz=b.z; break; } }
       if(fx!==null){ const dd2=Math.hypot(a.x-fx,a.z-fz)||1;
-        a.tx=a.x+(a.x-fx)/dd2*30; a.tz=a.z+(a.z-fz)/dd2*30; a.fear=Math.max(a.fear,0.6); }
-      if(a.fear>0){ spd=11; a.t=Math.max(a.t,0.4); }
+        a.tx=a.x+(a.x-fx)/dd2*34; a.tz=a.z+(a.z-fz)/dd2*34; a.fear=Math.max(a.fear,0.7); a.job='flee'; a.jt=0.7; }
+      if(a.fear>0){ spd=12; }
+      else if(night){ a.job='bed'; spd=0; a.jt=2; }
+      else if(a.jt<=0){ a.job=(a.job==='feedhead')?'roam':'feedhead';
+        a.jt=a.job==='feedhead'?(3+Math.random()*4):(2.5+Math.random()*3); }
+      if(a.job==='feedhead') spd=0;
     }
-    a.t-=dt; if(a.t<=0){ a.t=1.6+Math.random()*3; const aa=Math.random()*6.28, rr=Math.random()*14*B; a.tx=a.hx+Math.cos(aa)*rr; a.tz=a.hz+Math.sin(aa)*rr; }
-    const dx=a.tx-a.x, dz=a.tz-a.z, dd=Math.hypot(dx,dz)||1, moving=dd>1.5;
+
+    /* a new place to make for, when the last is reached or the work is done */
+    if(a.jt<=0&&(a.job==='roam'||a.job==='flee')){
+      a.jt=1.8+Math.random()*3; a.job='roam';
+      const aa=Math.random()*6.28, rr=Math.random()*14*B;
+      let nx=a.hx+Math.cos(aa)*rr, nz=a.hz+Math.sin(aa)*rr;
+      /* the herd holds together — a beast makes for its own kind */
+      if(AMBIENT_PREY.has(a.kind)){ let hx=0,hz=0,hn=0;
+        for(const b of LANDLIFE) if(b!==a&&b.set&&b.kind===a.kind&&Math.hypot(b.x-a.x,b.z-a.z)<80){ hx+=b.x; hz+=b.z; hn++; }
+        if(hn){ nx=nx*0.55+(hx/hn)*0.45; nz=nz*0.55+(hz/hn)*0.45; } }
+      a.tx=nx; a.tz=nz;
+    }
+
+    const dx=a.tx-a.x, dz=a.tz-a.z, dd=Math.hypot(dx,dz)||1, moving=spd>0&&dd>1.5;
     if(moving){ const nx=a.x+dx/dd*spd*dt, nz=a.z+dz/dd*spd*dt, c=landAtWorld(nx,nz);
-      if(c&&c.kind!=='wall'&&Math.abs(c.h*B-a.m.position.y)<7){ a.x=nx; a.z=nz; a.heading=Math.atan2(dx,dz); } else a.t=0; }
-    const c2=landAtWorld(a.x,a.z); a.m.position.set(a.x,c2?c2.h*B:WATER_Y,a.z); a.m.rotation.y=a.heading;
-    if(a.m.userData.legs) for(const L of a.m.userData.legs) L.rotation.x=moving?Math.sin(t*(spd>8?10:7)+(L.userData.ph||0))*0.5:0; } }
+      /* the step a beast can take is now measured in blocks, not units — on a
+         mountain flank the old flat limit stopped everything dead */
+      if(c&&c.kind!=='wall'&&Math.abs(c.h*B-a.m.position.y)<B*1.7){ a.x=nx; a.z=nz; a.heading=Math.atan2(dx,dz); }
+      else a.jt=0; }
+    const c2=landAtWorld(a.x,a.z);
+    /* how the body carries itself at its work */
+    let lift=0, lean=0;
+    if(a.job==='feedhead'||a.job==='dig') lean=0.26;          /* head down to the ground */
+    else if(a.job==='fish'){ lean=0.34; lift=-0.6; }          /* down at the water's edge */
+    else if(a.job==='feed') lean=0.30;                        /* over the kill */
+    else if(a.job==='bed'){ lift=-1.6; }                      /* bedded down for the night */
+    else if(a.crouch) lift=-0.8;                              /* the lion low in the grass */
+    if(role==='ambush') lift=-1.5*(a.sink||0);                /* sunk to the eyes */
+    a.m.position.set(a.x,(c2?c2.h*B:WATER_Y)+lift,a.z);
+    a.m.rotation.y=a.heading; a.m.rotation.x=lean;
+    if(a.m.userData.legs) for(const L of a.m.userData.legs)
+      L.rotation.x=moving?Math.sin(t*(spd>8?10:7)+(L.userData.ph||0))*0.5:0;
+    /* the crocodile's jaw and the bear's head keep their own motion */
+    const ud=a.m.userData;
+    if(ud.jaw) ud.jaw.rotation.x=(a.cool>16.4)?-0.6:0;         /* snapped shut on the strike */
+    if(ud.head&&a.job==='dig') ud.head.rotation.x=0.4+Math.sin(t*3)*0.18;
+    else if(ud.head) ud.head.rotation.x=0;
+  } }
 function hideLandLife(){ for(const a of LANDLIFE) if(a.m) a.m.visible=false; }
+/* ================= THE FOWL OF THE AIR, AND THEIR WORK =================
+   Every bird flew a fixed circle about a fixed point, for ever. They keep a
+   day's work now: they hunt or forage, carry what they take home in the
+   beak, feed the young in the nest, rest, and go again — and at nightfall
+   they roost. The gulls and eagles over water STOOP: they fall on the
+   surface, break it, and come up with a fish — and the fish they take is a
+   real one out of the shoal, not a mime. */
 const AIRLIFE=[], AL_N=18, AL_R=440;
+const NESTS=[], NEST_N=5, NEST_R=430;
+function initNests(){ if(NESTS.length) return;
+  for(let k=0;k<NEST_N;k++){ const m=makeNest(); m.visible=false; scene.add(m);
+    NESTS.push({m,x:0,y:0,z:0,set:false,cheep:0}); } }
+/* the nests stand where their own places put them — seeded by the grid, so
+   the same crag or treetop always bears the same nest */
+function updateNests(px,pz,dt){ initNests();
+  const CS=430, ci=Math.round(px/CS), cj=Math.round(pz/CS), sites=[];
+  for(let di=-2;di<=2;di++) for(let dj=-2;dj<=2;dj++){
+    const gi=ci+di, gj=cj+dj;
+    if(hash2(gi*2.7,gj*5.1)<0.5) continue;
+    const wx=gi*CS+(hash2(gi,gj)-0.5)*300, wz=gj*CS+(hash2(gj,gi)-0.5)*300;
+    const c=landAtWorld(wx,wz); if(!c||c.kind==='wall'||!c.ci) continue;
+    sites.push({wx,wz,y:c.h*B+(c.tree?B*3.3:B*0.7),d:Math.hypot(wx-px,wz-pz)}); }
+  sites.sort((a,b)=>a.d-b.d);
+  for(let k=0;k<NEST_N;k++){ const N=NESTS[k], s=sites[k];
+    if(s&&s.d<NEST_R+300){ N.x=s.wx; N.y=s.y; N.z=s.wz; N.set=true;
+      N.m.position.set(s.wx,s.y,s.wz); N.m.visible=true; }
+    else { N.set=false; N.m.visible=false; }
+    /* the young stretch up and cheep while a parent is at the nest */
+    if(N.set){ N.cheep=Math.max(0,N.cheep-dt);
+      const up=N.cheep>0?0.45+0.25*Math.sin(performance.now()*0.02):0;
+      for(const ch of N.m.userData.chicks){ ch.body.position.y=0.45+up; ch.beak.position.y=0.5+up; } } } }
+function nearestNest(x,z){ let best=null,bd=1e9;
+  for(const N of NESTS){ if(!N.set) continue; const d=Math.hypot(N.x-x,N.z-z); if(d<bd){bd=d;best=N;} }
+  return best; }
 function airKind(px,pz,night){ const overSea=!landAtWorld(px,pz);
   if(night) return Math.random()<0.6?'crow':'dove';
   if(overSea) return Math.random()<0.7?'gull':'eagle';
   const r=Math.random(); return r<0.3?'butterfly':r<0.55?'dove':r<0.8?'crow':'eagle'; }
-function initAirLife(){ if(AIRLIFE.length) return; for(let k=0;k<AL_N;k++) AIRLIFE.push({m:null,type:null,cx:0,cz:0,rad:0,ph:Math.random()*6.28,h:0,spd:0,set:false}); }
-function updateAirLife(px,pz,dt,t,night){ initAirLife();
-  for(const b of AIRLIFE){ if(!b.set||Math.hypot(b.cx-px,b.cz-pz)>AL_R+160){ const type=airKind(px,pz,night);
+function initAirLife(){ if(AIRLIFE.length) return; for(let k=0;k<AL_N;k++)
+  AIRLIFE.push({m:null,type:null,x:0,y:0,z:0,tx:0,ty:0,tz:0,ph:Math.random()*6.28,heading:0,set:false}); }
+/* a place to look for food: over the water for a fisher, on the ground for
+   the rest — and near the ship for the gulls that have taken to her */
+function forageSpot(b,px,pz){
+  for(let tr=0;tr<8;tr++){
+    let x,z;
+    if(b.follow&&(state.mode==='boat'||state.mode==='deck')){
+      const a=Math.random()*6.28, r=20+Math.random()*70; x=state.boat.x+Math.cos(a)*r; z=state.boat.z+Math.sin(a)*r; }
+    else { const a=Math.random()*6.28, r=50+Math.random()*AL_R; x=px+Math.cos(a)*r; z=pz+Math.sin(a)*r; }
+    const c=landAtWorld(x,z);
+    if(b.fisher){ if(!c) return {x,y:WATER_Y+3,z,water:true}; }
+    else if(c&&c.kind!=='wall') return {x,y:c.h*B+1.4,z,water:false};
+  }
+  /* a gull carried inland finds no water to strike — rather than wheel there
+     for ever it forages the ground, as gulls do */
+  if(b.fisher){ for(let tr=0;tr<6;tr++){
+    const a=Math.random()*6.28, r=50+Math.random()*AL_R;
+    const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r, c=landAtWorld(x,z);
+    if(c&&c.kind!=='wall') return {x,y:c.h*B+1.4,z,water:false}; } }
+  return null;
+}
+/* the strike: the surface is broken, and a fish is truly taken out of the
+   shoal that swims there (it is re-placed elsewhere, so the sea is not
+   emptied — but the one that was caught is gone from where it was) */
+function takeFish(x,z){
+  let best=null,bd=1e9;
+  for(const f of DIVEFISH){ if(!f.set) continue;
+    const d=Math.hypot(f.x-x,f.z-z); if(d<20&&d<bd){ bd=d; best=f; } }
+  if(best){ best.set=false; if(best.m) best.m.visible=false; return true; }
+  return false;
+}
+function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
+  for(const b of AIRLIFE){
+    if(!b.set||Math.hypot(b.x-px,b.z-pz)>AL_R+220){
+      const type=airKind(px,pz,night);
       if(b.type!==type){ if(b.m) scene.remove(b.m); b.m=makeBird(type); scene.add(b.m); b.type=type; }
-      const a=Math.random()*6.28, r=60+Math.random()*AL_R; b.cx=px+Math.cos(a)*r; b.cz=pz+Math.sin(a)*r;
-      const c=landAtWorld(b.cx,b.cz), base=c?c.h*B:WATER_Y;
-      b.h=type==='butterfly'?base+2+Math.random()*5:base+24+Math.random()*70; b.rad=type==='butterfly'?4+Math.random()*6:16+Math.random()*40;
-      b.spd=(type==='butterfly'?1.4:0.5)+Math.random()*0.5; b.set=true; b.m.visible=true;
-      b.follow=type==='gull'&&Math.random()<0.4; }          /* some gulls take to a passing ship */
-    /* gulls with the ship — they wheel about her masts while she runs */
-    if(b.follow&&(state.mode==='boat'||state.mode==='deck')&&Math.abs(state.boat.speed)>8){
-      b.cx+=(state.boat.x-b.cx)*Math.min(1,dt*0.7); b.cz+=(state.boat.z-b.cz)*Math.min(1,dt*0.7);
-      b.h+=(WATER_Y+52+Math.sin(t+b.ph)*10-b.h)*Math.min(1,dt*0.5); b.rad=Math.min(b.rad,34); }
-    b.ph+=dt*b.spd; const x=b.cx+Math.cos(b.ph)*b.rad, z=b.cz+Math.sin(b.ph)*b.rad;
-    b.m.position.set(x,b.h+Math.sin(t*2+b.ph)*(b.type==='butterfly'?1.6:2.4),z); b.m.rotation.y=-b.ph+Math.PI/2;
-    const fl=b.type==='butterfly'?Math.sin(t*16+b.ph)*0.9:Math.sin(t*10+b.ph)*0.6;
-    if(b.m.userData.wingL){ b.m.userData.wingL.rotation.z=fl; b.m.userData.wingR.rotation.z=-fl; } } }
-function hideAirLife(){ for(const b of AIRLIFE) if(b.m) b.m.visible=false; }
+      const a=Math.random()*6.28, r=60+Math.random()*AL_R;
+      b.x=px+Math.cos(a)*r; b.z=pz+Math.sin(a)*r;
+      const c=landAtWorld(b.x,b.z), base=c?c.h*B:WATER_Y;
+      b.y=type==='butterfly'?base+3:base+30+Math.random()*60;
+      /* the gull is always a fisher; the eagle only where there is water for
+         it to fish — inland it hunts the ground like the rest */
+      b.fisher=(type==='gull')||(type==='eagle'&&!landAtWorld(px,pz));
+      b.follow=type==='gull'&&Math.random()<0.4;   /* some gulls take to a passing ship */
+      /* the mark it was making for MUST be dropped with everything else. A
+         bird set down beside the traveller while still holding a forage spot
+         from wherever it last was would set off for it across the whole
+         earth — and the firmament's fair wind carries the ship thousands of
+         units at a stroke, so this is not a corner case. */
+      b.job='hunt'; b.jt=0; b.food=null; b.nest=null; b.spot=null;
+      b.tx=b.x; b.ty=b.y; b.tz=b.z;
+      b.set=true; b.m.visible=true;
+    }
+    /* and a mark that has somehow come to lie beyond the bird's whole range
+       is no mark at all — it looks for another */
+    if(b.spot&&Math.hypot(b.spot.x-px,b.spot.z-pz)>AL_R*1.6) b.spot=null;
+    const ud=b.m.userData;
+    b.jt-=dt;
+
+    if(b.type==='butterfly'){
+      /* it goes from flower to flower, and never further */
+      if(b.jt<=0){ const a=Math.random()*6.28, r=3+Math.random()*14;
+        b.tx=b.x+Math.cos(a)*r; b.tz=b.z+Math.sin(a)*r;
+        const c=landAtWorld(b.tx,b.tz); b.ty=(c?c.h*B:WATER_Y)+2+Math.random()*4;
+        b.jt=1.2+Math.random()*2; }
+    } else {
+      if(!b.nest||!b.nest.set) b.nest=nearestNest(b.x,b.z);
+      if(night&&b.nest){ b.job='roost'; }
+      switch(b.job){
+        case 'hunt': {
+          if(!b.spot){ b.spot=forageSpot(b,px,pz);
+            if(!b.spot){ b.job='rest'; b.jt=3; break; }
+            b.tx=b.spot.x; b.tz=b.spot.z; b.ty=b.spot.y+(b.spot.water?46:26); }
+          /* over the mark, it drops on it — the stoop */
+          if(Math.hypot(b.x-b.tx,b.z-b.tz)<26){ b.ty=b.spot.y; }
+          if(Math.hypot(b.x-b.tx,b.z-b.tz)<8&&Math.abs(b.y-b.spot.y)<6){
+            if(b.spot.water){ splash(b.x,WATER_Y+1,b.z,false);
+              /* it always comes up with something — the sea holds more fish
+                 than the handful we draw — but if one of the DRAWN shoal was
+                 under the strike, that one is truly taken and swims there no
+                 longer, so the catch is not a mime */
+              takeFish(b.x,b.z); b.food='fish'; b.job='carry'; }
+            else { b.job='peck'; b.jt=1.6+Math.random()*1.8; }
+            b.spot=null; }
+          break; }
+        case 'peck': {
+          if(b.jt<=0){ b.food='seed'; b.job='carry'; }
+          break; }
+        case 'carry': {
+          if(!b.nest){ b.job='rest'; b.jt=3; b.food=null; break; }
+          b.tx=b.nest.x; b.tz=b.nest.z; b.ty=b.nest.y+3;
+          if(Math.hypot(b.x-b.tx,b.z-b.tz)<7&&Math.abs(b.y-b.ty)<6){
+            b.job='feed'; b.jt=2.2+Math.random(); b.nest.cheep=2.6; }
+          break; }
+        case 'feed': {
+          if(b.jt<=0){ b.food=null; b.job='rest'; b.jt=2.5+Math.random()*4; }
+          break; }
+        case 'roost': {
+          if(!b.nest){ b.job='rest'; b.jt=4; break; }
+          b.tx=b.nest.x+2.5; b.tz=b.nest.z; b.ty=b.nest.y+2;
+          if(!night){ b.job='hunt'; }
+          break; }
+        default: {   /* rest — it circles above the nest and gathers itself */
+          const n=b.nest;
+          b.ph+=dt*0.7;
+          const cx=n?n.x:b.x, cz=n?n.z:b.z, cy=(n?n.y:b.y)+34;
+          b.tx=cx+Math.cos(b.ph)*26; b.tz=cz+Math.sin(b.ph)*26; b.ty=cy;
+          if(b.jt<=0){ b.job='hunt'; b.spot=null; }
+        }
+      }
+    }
+
+    /* --- the flight itself --- */
+    const dx=b.tx-b.x, dz=b.tz-b.z, dy=b.ty-b.y, dd=Math.hypot(dx,dz)||1;
+    const spd=b.type==='butterfly'?7:(b.job==='hunt'&&b.spot&&b.ty<=b.spot.y+2)?58:30;
+    const step=Math.min(dd,spd*dt);
+    b.x+=dx/dd*step; b.z+=dz/dd*step;
+    b.y+=Math.max(-52*dt,Math.min(52*dt,dy));
+    const want=Math.atan2(dx,dz);
+    let turn=want-b.heading; while(turn>Math.PI)turn-=6.2832; while(turn<-Math.PI)turn+=6.2832;
+    b.heading+=turn*Math.min(1,dt*3.4);
+    const bob=(b.job==='roost'||b.job==='feed')?0:Math.sin(t*2+b.ph)*(b.type==='butterfly'?1.4:2.0);
+    b.m.position.set(b.x,b.y+bob,b.z);
+    b.m.rotation.y=b.heading; b.m.rotation.z=-turn*0.6;      /* it banks into the turn */
+    /* the wings still while it sits at the nest, and beat hard on the stoop */
+    const sitting=(b.job==='roost'||b.job==='feed'||b.job==='peck');
+    const fl=sitting?0.08:(b.type==='butterfly'?Math.sin(t*16+b.ph)*0.9:Math.sin(t*10+b.ph)*0.6);
+    if(ud.wingL){ ud.wingL.rotation.z=fl; ud.wingR.rotation.z=-fl; }
+    if(ud.carry){ ud.carry.visible=!!b.food;
+      if(b.food) ud.carry.material.color.setHex(b.food==='fish'?0x9fb6c8:0xc8b46a); }
+  } }
+function hideAirLife(){ for(const b of AIRLIFE) if(b.m) b.m.visible=false;
+  for(const N of NESTS) N.m.visible=false; }
 
 /* ================= VILLAGES (minecraft-fashion) =================
    Cobblestone bases, oak plank walls with log corner posts, glass
@@ -5731,6 +6073,7 @@ $('btn-continue').onclick=()=>begin(false);
 window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
   farLand,updateFarLand,mountUpliftAt,MOUNTS,ridgeNoise,B,R_WORLD,
+  AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
   domeInfo:()=>({dome:flyDome?flyDome.material.opacity:0, deep:outerDeep?outerDeep.material.uniforms.uOp.value:0, stars:starGroup.userData.mat.opacity}),
