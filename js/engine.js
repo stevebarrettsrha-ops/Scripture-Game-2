@@ -165,10 +165,16 @@ const MAT={}, LIT=[];
 function blockMat(name,tex,opts){ const m=new THREE.MeshBasicMaterial(Object.assign({
     map:tex, vertexColors:true, side:THREE.DoubleSide },opts||{}));
   MAT[name]=m; LIT.push(m); return m; }
+/* the ice is enrolled in its OWN pool, not in LIT — see setIceLight */
+const ICE_MATS=[];
+function iceMat(name,tex){ const m=new THREE.MeshBasicMaterial({
+    map:tex, vertexColors:true, side:THREE.DoubleSide });
+  MAT[name]=m; ICE_MATS.push(m); return m; }
 blockMat('grassTop',TEX.grassTop); blockMat('grassTopTr',TEX.grassTopTr); blockMat('grassTopTu',TEX.grassTopTu);
 blockMat('grassSide',TEX.grassSide); blockMat('dirt',TEX.dirt); blockMat('path',TEX.path);
 blockMat('sand',TEX.sand); blockMat('stone',TEX.stone); blockMat('cobble',TEX.cobble);
 blockMat('snow',TEX.snow); blockMat('ice',TEX.ice);
+iceMat('iceTop',TEX.snow); iceMat('iceSide',TEX.ice);   /* the wall of ice and the floes */
 blockMat('planks',TEX.planks); blockMat('roof',TEX.roof);
 blockMat('logSide',TEX.logSide); blockMat('logTop',TEX.logTop);
 blockMat('haySide',TEX.haySide); blockMat('hayTop',TEX.hayTop); blockMat('wool',TEX.wool);
@@ -225,6 +231,29 @@ const seaMat=new THREE.MeshBasicMaterial({map:seaTex,transparent:true,opacity:0.
 LIT.push(seaMat);
 const torchMat=new THREE.MeshBasicMaterial({color:0xffd75e});           // full-bright, never dimmed
 function setBlockLight(r,g2,b2){ for(const m of LIT) m.color.setRGB(r,g2,b2); }
+/* ================= THE ICE KEEPS ITS OWN LIGHT =================
+   Every block in the world takes one global day-light. Out at the rim the sun
+   is always far off — it runs its course between the tropics and never comes
+   near — so that light is a dim brown there, and the wall of ice read as a
+   wall of SAND. Ice does not go brown at dusk. It is the most reflective
+   thing in the world: under a low sun it stands blue-white and luminous, and
+   by night it is still cold. So the ice materials are held out of the common
+   light and given a floor of their own — never darker than a deep polar
+   blue, and never warm. */
+const _iceC=new THREE.Color();
+const ICE_HUE=new THREE.Color(0x9dc6ee);      /* the blue-white of ice */
+function setIceLight(r,g2,b2){
+  const lum=r*0.3+g2*0.6+b2*0.1;
+  /* Out at the rim the sun never comes near, so the common day-strength is
+     squeezed into its lowest fifth and polar noon is barely brighter than
+     polar midnight. For the ice that band is STRETCHED back out — so the
+     long day is bright and the long night is dark, as they are at the poles
+     — and the whole of it is kept cold, and floored, so it can never read as
+     brown sand however far off the sun stands. */
+  const t=Math.max(0,Math.min(1,(lum-0.26)/0.26));
+  _iceC.copy(ICE_HUE).multiplyScalar(0.34+0.72*t);
+  for(const m of ICE_MATS) m.color.copy(_iceC);
+}
 
 /* ================= TERRAIN (heightmap voxels) ================= */
 const MAPR=2048, HALF=MAPR/2;
@@ -699,8 +728,8 @@ function cross(G,mat,cx,cz,y,size,h,s){
 }
 function topMatFor(kind){
   if(kind==='sand') return 'sand';
-  if(kind==='snow'||kind==='wall') return 'snow';
-  if(kind==='floe') return 'ice';
+  if(kind==='snow') return 'snow';
+  if(kind==='wall'||kind==='floe') return 'iceTop';   /* the rim keeps its own cold light */
   if(kind==='rock') return 'stone';
   if(kind==='alpine') return 'dirt';      /* the scree shoulders below the snow */
   if(kind==='desert') return 'sand';
@@ -713,8 +742,7 @@ function sideMatsFor(kind){ /* [topBlockSide, lowerSide] */
   if(kind==='sand'||kind==='desert') return ['sand','sand'];
   if(kind==='badlands') return ['badSide','badSide'];
   if(kind==='snow') return ['snow','stone'];
-  if(kind==='wall') return ['ice','ice'];
-  if(kind==='floe') return ['ice','ice'];
+  if(kind==='wall'||kind==='floe') return ['iceSide','iceSide'];
   if(kind==='rock') return ['stone','stone'];
   if(kind==='alpine') return ['dirt','stone'];
   return ['grassSide','dirt'];
@@ -905,8 +933,11 @@ const flGeo=(()=>{
 /* the colours the blocks read as from far off, where no texture can be seen */
 const FL_COL={grass:[0.34,0.52,0.26], tropic:[0.22,0.50,0.22], tundra:[0.44,0.49,0.40],
   sand:[0.80,0.73,0.52], desert:[0.82,0.72,0.48], badlands:[0.64,0.39,0.25],
-  rock:[0.50,0.49,0.47], alpine:[0.40,0.34,0.26], snow:[0.92,0.94,0.97],
-  wall:[0.88,0.93,0.97], floe:[0.80,0.88,0.94]};
+  rock:[0.50,0.49,0.47], alpine:[0.40,0.34,0.26], snow:[0.86,0.92,1.02],
+  /* the far ring wears ONE material for the whole world, so its ice cannot be
+     lit apart — the blue is put into the vertex colour instead, strong enough
+     that the rim's brown light cannot turn it to sand */
+  wall:[0.58,0.80,1.10], floe:[0.54,0.76,1.06]};
 const FL_SEA=[0.07,0.20,0.32], FL_VOID=[0.01,0.012,0.03];
 /* The SAME kind of material the blocks wear — unlit, vertex-shaded, tinted by
    the one global day-light — and enrolled in LIT with them. A lambert surface
@@ -1402,6 +1433,7 @@ function skyTick(px,pz){
   const l=mix3(0x38405e,0xd9a878,0xffffff,dayF);
   const dim=1-st*0.38;
   setBlockLight(l.r*dim,l.g*dim,l.b*dim);
+  setIceLight(l.r*dim,l.g*dim,l.b*dim);
   hemi.intensity=0.35+dayF*0.6; dirL.intensity=0.15+dayF*0.45;
   cloudMat.opacity=0.35+dayF*0.5;
   starGroup.userData.mat.opacity=Math.max(0,1-dayF*1.6)*0.95;
