@@ -954,7 +954,13 @@ function updateFarLand(px,pz,force,eyeY){
      units across is the whole world when you stand on it and a postage stamp
      when you are miles above it — which is why, aloft, the streamed land
      showed as one small patch adrift on the chart. It opens out with height. */
-  const want=FL_R1*(1+Math.min(7,Math.max(0,(eyeY||0)-120)/2200));
+  /* It must follow the VIEW, not the altitude alone. Drawing the eye back
+     over a traveller stood at sea level opens a window thousands of units
+     wide while the ring stayed 3,600 across — leaving a patch of world on an
+     empty plane, with the chart still far too near to be anything but a
+     blur. Whichever reaches further, the height or the pull-back, sets it. */
+  const reach=Math.max(eyeY||0, state.camDist*0.75);
+  const want=FL_R1*(1+Math.min(7,Math.max(0,reach-120)/2200));
   const moved=!_flAt||Math.hypot(_flAt[0]-px,_flAt[1]-pz)>=FL_STEP;
   const grown=Math.abs(want-_flR1)/_flR1>0.18;
   if(!force&&!moved&&!grown) return;
@@ -1133,13 +1139,23 @@ const waveMat=new THREE.ShaderMaterial({
     uShoal:{value:SHOAL_TEX}, uZenith:{value:new THREE.Color(0x3d76c0)},
     uShip:{value:new THREE.Vector4()}, uShipH:{value:0}, uSunCol:{value:new THREE.Color(1,0.96,0.85)} },
   vertexShader:`
-    uniform float uTime, uAmp; uniform vec2 uCenter;
+    uniform float uTime, uAmp; uniform vec2 uCenter; uniform sampler2D uShoal;
     varying vec3 vNormal, vWorld; varying float vHeight, vFog; varying vec2 vUv, vP;
     void main(){
       vec2 P=position.xz+uCenter;
       float ed=max(abs(position.x),abs(position.z));
       float taper=1.0-smoothstep(${(WG_S*0.55).toFixed(1)},${(WG_S*0.97).toFixed(1)},ed);
-      float amp=uAmp*taper;
+      /* THE SWELL LIES DOWN AS IT COMES ASHORE. A wave in a storm stands
+         nearly ten units, and the flattest beach is only six above the
+         waterline — so the open-sea swell, carried right up onto the land by
+         a grid that now reaches 2,500 units inland, washed straight over
+         solid ground. Real water does not do this either: a swell shoals and
+         breaks as the bottom rises under it. So the amplitude is damped by
+         the same distance-to-land field the surf already reads, and by the
+         shore it is all but flat. */
+      float shr=texture2D(uShoal, P*${(0.5/R_WORLD).toFixed(10)}+0.5).r;
+      float lie=1.0-smoothstep(0.22,0.90,shr);
+      float amp=uAmp*taper*(0.10+0.90*lie);
       vec3 disp=vec3(P.x, ${WATER_Y.toFixed(3)}, P.y);
       vec3 nrm=vec3(0.0,1.0,0.0);
       ${waveUnroll}
@@ -1350,7 +1366,11 @@ function distToZoom(d){ return Math.min(1,Math.max(0,Math.log(Math.max(CAM_NEAR_
    some 768 units, and the haze ends the view at 870), so from here the
    earth's own charted face — the TRUE outlines of the countries — is brought
    up beneath the eye and the world is seen whole. */
-const ZOOM_MAP0=0.40, ZOOM_MAP1=0.66;
+/* 2,048 pixels across 240,000 units is 117 units to a PIXEL: brought in at
+   three thousand units out the charted face is a coloured smear. It waits
+   until the eye is far enough back that a pixel of it is smaller than a
+   pixel of the screen — and the coarse ring covers the ground between. */
+const ZOOM_MAP0=0.56, ZOOM_MAP1=0.80;
 function zoomMapFade(){ return Math.max(0,Math.min(1,(state.zoom-ZOOM_MAP0)/(ZOOM_MAP1-ZOOM_MAP0))); }
 state.zoom=distToZoom(state.camDist);
 
@@ -5220,10 +5240,7 @@ function ensureFlyDome(){ if(flyDome) return;
 let aloftDisc=null, aloftCtx=null, aloftTex=null, aloftT=0, aloftMark=null;
 const ALOFT_RES=2048;      /* the coastlines must stay true when the whole earth fills the view */
 function ensureAloftDisc(){ if(aloftDisc) return;
-  const c=document.createElement('canvas'); c.width=c.height=ALOFT_RES;
-  aloftCtx=c.getContext('2d');
-  drawMapInto(aloftCtx,ALOFT_RES,false,true);
-  aloftTex=new THREE.CanvasTexture(c); aloftTex.anisotropy=8;
+  aloftTex=buildEarthTex();
   aloftDisc=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD,256),
     new THREE.MeshBasicMaterial({map:aloftTex,transparent:true,opacity:0,fog:false,depthWrite:false}));
   aloftDisc.rotation.x=-Math.PI/2; aloftDisc.position.y=175;
@@ -5244,8 +5261,8 @@ function aloftTick(dt,px,pz){
   if(aloftMark){ aloftMark.visible=true;
     aloftMark.position.set(px,aloftDisc.position.y+40,pz);
     const s=Math.max(120,state.camDist*0.0127); aloftMark.scale.set(s,s,1); }
-  aloftT-=dt; if(aloftT>0) return;
-  aloftT=0.75; drawMapInto(aloftCtx,ALOFT_RES,false,true); aloftTex.needsUpdate=true; }
+  /* (the face itself is a made thing, laid brick by brick once and for all —
+     only the traveller's own mark upon it moves) */ }
 /* ================= TOUCHING THE FIRMAMENT =================
    Walk out along the crown of the ice and the glass sweeps down to meet you.
    Where it comes within reach there is a prompt, and taking it plays a short
@@ -5525,52 +5542,13 @@ function deckTick(dt){
 let firmG=null, firmMark=null;
 function buildFirmament(){
   if(firmG) return;
-  const size=2048, c=texCanvas(size), g=c.getContext('2d'), Hh=size/2;
-  g.fillStyle='#05070f'; g.fillRect(0,0,size,size);
-  const grd=g.createRadialGradient(Hh,Hh,0,Hh,Hh,Hh);
-  grd.addColorStop(0,'#1c4d7a'); grd.addColorStop(0.7,'#123a5f'); grd.addColorStop(1,'#0b2745');
-  g.beginPath(); g.arc(Hh,Hh,Hh*0.999,0,Math.PI*2); g.fillStyle=grd; g.fill();
-  for(const co of COUNTRIES){ g.beginPath();
-    for(const ring of co.p){ g.moveTo((ring[0][0]+1)*Hh,(ring[0][1]+1)*Hh);
-      for(let k=1;k<ring.length;k++) g.lineTo((ring[k][0]+1)*Hh,(ring[k][1]+1)*Hh); g.closePath(); }
-    g.fillStyle='#557f45'; g.fill('evenodd'); }
-  /* biome tinting pass over the lands */
-  for(let py=0;py<size;py+=4) for(let px2=0;px2<size;px2+=4){
-    const u=px2/Hh-1, v=py/Hh-1; const r=Math.hypot(u,v); if(r>=SHELF_UV) continue;
-    if(!countryAtUV(u,v)) continue;
-    const lat=90-r*180; const n2=fbm(u*46+40,v*46-70);
-    let col=null;
-    if(lat>72||lat<-55) col='#dfe9f0';
-    else if(lat>58) col='#8d996f';
-    else if(lat>11&&lat<36&&n2>0.42) col='#d3b271';
-    else if(lat<=11&&lat>-38) col='#3f8f4a';
-    if(col){ g.fillStyle=col; g.globalAlpha=0.8; g.fillRect(px2,py,4,4); g.globalAlpha=1; }
-  }
-  /* a soft coast line around every land, for definition */
-  g.strokeStyle='rgba(24,42,30,0.55)'; g.lineWidth=Math.max(1,size/1500); g.lineJoin='round';
-  for(const co of COUNTRIES){ g.beginPath();
-    for(const ring of co.p){ g.moveTo((ring[0][0]+1)*Hh,(ring[0][1]+1)*Hh);
-      for(let k=1;k<ring.length;k++) g.lineTo((ring[k][0]+1)*Hh,(ring[k][1]+1)*Hh); g.closePath(); }
-    g.stroke(); }
-  g.strokeStyle='#2e5f8e'; g.lineWidth=2.4; g.lineCap='round'; g.lineJoin='round';
-  for(const rv of RIVERS){ g.beginPath();
-    rv.pts.forEach((p,k)=>{ const r=(90-p[0])/180, a=p[1]*Math.PI/180;
-      const x=(r*Math.sin(a)+1)*Hh, yq=(r*Math.cos(a)+1)*Hh;
-      k?g.lineTo(x,yq):g.moveTo(x,yq); });
-    g.stroke(); }
-  /* the graticule — faint circles of latitude and meridians of longitude */
-  g.strokeStyle='rgba(232,198,106,0.09)'; g.lineWidth=1;
-  for(let k=1;k<=5;k++){ g.beginPath(); g.arc(Hh,Hh,Hh*ICE_UV*k/6,0,Math.PI*2); g.stroke(); }
-  for(let m=0;m<24;m++){ const a=m/24*Math.PI*2; g.beginPath();
-    g.moveTo(Hh,Hh); g.lineTo(Hh+Math.cos(a)*Hh*ICE_UV,Hh+Math.sin(a)*Hh*ICE_UV); g.stroke(); }
-  /* the ring of ice at the rim, and a dashed circle within it */
-  g.beginPath(); g.arc(Hh,Hh,Hh*0.999,0,Math.PI*2); g.arc(Hh,Hh,Hh*ICE_UV,0,Math.PI*2,true);
-  g.fillStyle='#e8f0f7'; g.fill('evenodd');
-  g.setLineDash([11,9]); g.strokeStyle='rgba(232,240,247,0.6)'; g.lineWidth=2.4;
-  g.beginPath(); g.arc(Hh,Hh,Hh*ICE_UV*0.992,0,Math.PI*2); g.stroke(); g.setLineDash([]);
-  const tex=new THREE.CanvasTexture(c); tex.anisotropy=4;
-  const disc=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD,128),
-    new THREE.MeshBasicMaterial({map:tex,fog:false}));
+  /* THE SAME FACE the whole world wears when it is looked upon entire — laid
+     brick by brick, coloured by its clime, the shelf about every coast, the
+     tropics in dashed gold and the wall of ice at the rim. It was a second,
+     differently-drawn map before, so the earth changed its face between the
+     view from aloft and the view in the firmament. There is one earth. */
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD,256),
+    new THREE.MeshBasicMaterial({map:buildEarthTex(),fog:false}));
   /* sit well above the sea and terrain: at a 384k-unit far plane the depth
      buffer cannot separate y=2 from the sea at y≈0.35 and the disc flickers */
   disc.rotation.x=-Math.PI/2; disc.position.y=180;
@@ -5578,6 +5556,22 @@ function buildFirmament(){
     new THREE.MeshBasicMaterial({color:0x8fb8e8,transparent:true,opacity:0.16,side:THREE.DoubleSide,fog:false,depthWrite:false}));
   dome.scale.y=H_DOME/R_DOME;                       /* the same low tent-vault as within */
   firmG=new THREE.Group(); firmG.add(disc); firmG.add(dome);
+  /* ---- THE COLUMNS OF THE EARTH ----
+     "The earth and all its inhabitants are melted; it is I who set up its
+     columns firm." The disc is not adrift: it is set upon a table of bronze
+     borne on four pillars, and the whole is beheld standing in the dark. */
+  const bronze=new THREE.MeshBasicMaterial({color:0x6b5836,fog:false});
+  const bronzeDk=new THREE.MeshBasicMaterial({color:0x453922,fog:false});
+  const bronzeLt=new THREE.MeshBasicMaterial({color:0x8a7346,fog:false});
+  const TS=R_WORLD*2.34, TH=R_WORLD*0.085;      /* the table: its span and its thickness */
+  const top=new THREE.Mesh(new THREE.BoxGeometry(TS,TH,TS),
+    [bronze,bronze,bronzeLt,bronzeDk,bronze,bronze]);
+  top.position.y=180-TH/2-R_WORLD*0.004; firmG.add(top);
+  const LEG=R_WORLD*0.20, LEGH=R_WORLD*1.30, LO=TS*0.34;
+  for(const sx of [1,-1]) for(const sz of [1,-1]){
+    const leg=new THREE.Mesh(new THREE.BoxGeometry(LEG,LEGH,LEG),
+      [bronzeDk,bronzeDk,bronze,bronzeDk,bronzeDk,bronzeDk]);
+    leg.position.set(sx*LO, top.position.y-TH/2-LEGH/2, sz*LO); firmG.add(leg); }
   function mkSpr(col){ const cc2=texCanvas(64); const gg=cc2.getContext('2d');
     gg.fillStyle=col; gg.beginPath(); gg.moveTo(32,4); gg.lineTo(58,60); gg.lineTo(6,60); gg.closePath(); gg.fill();
     const sm=new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cc2),fog:false,transparent:true,depthTest:false});
@@ -5622,7 +5616,7 @@ function buildFirmament(){
   const ftex=new THREE.CanvasTexture(fc); ftex.anisotropy=4;
   const frame=new THREE.Mesh(new THREE.PlaneGeometry(planeSide,planeSide),
     new THREE.MeshBasicMaterial({map:ftex,transparent:true,fog:false,depthWrite:false}));
-  frame.rotation.x=-Math.PI/2; frame.position.y=176; firmG.add(frame);
+  frame.rotation.x=-Math.PI/2; frame.position.y=60; firmG.add(frame);   /* well clear of the disc at 180 */
 
   /* the sun's glow standing over the midst of the lands */
   const glowC=texCanvas(128), glg=glowC.getContext('2d');
@@ -5674,7 +5668,16 @@ function cameraTick(dt){
   if(state.firm){ const pit=Math.max(0.3,Math.min(1.5,state.camPitch));
     const Rd=state.firmDist;
     camPos.set(Math.sin(state.camYaw)*Math.cos(pit)*Rd, Math.sin(pit)*Rd+200, Math.cos(state.camYaw)*Math.cos(pit)*Rd);
-    camera.position.lerp(camPos,Math.min(1,dt*2.5)); camera.lookAt(0,0,0); return; }
+    camera.position.lerp(camPos,Math.min(1,dt*2.5));
+    /* This view looks upon a thing a quarter of a million units wide from as
+       far again. A near plane of ONE unit against a 384,000-unit far plane
+       leaves the depth buffer nothing at all to work with, and the bronze of
+       the table tears up through the face of the earth in radial splinters.
+       It is opened with the distance, as it is in the world. */
+    { const wantNear=Math.max(1,Rd*0.02);
+      if(Math.abs(camera.near-wantNear)>Math.max(0.5,camera.near*0.15)){
+        camera.near=wantNear; camera.updateProjectionMatrix(); } }
+    camera.lookAt(0,0,0); return; }
   /* down in the hold — a first-person eye among the cargo */
   if(state.mode==='deck'&&state.deck.level==='hold'){
     setCamInside(true); boatG.updateMatrixWorld();
@@ -5801,6 +5804,90 @@ function placeTick(){
   const hrs=state.simHours%24, hh=String(Math.floor(hrs)).padStart(2,'0'), mm=String(Math.floor(hrs%1*60)).padStart(2,'0');
   $('clock').innerHTML='DAY '+dayOfYear()+' OF 364<br>'+hh+':'+mm+' \u00b7 course: '+SPEEDS[state.speedIdx][1]
     +'<br>wind: '+windLabel();
+}
+
+/* ================= THE FACE OF THE EARTH =================
+   ONE texture for every view that looks upon the whole world: the charted
+   face seen from aloft or from a drawn-back eye, and the disc set in the
+   firmament view. It is the azimuthal-equidistant projection of the true
+   country outlines — laid as BRICKS with studs upon them, as everything in
+   this world is made — coloured by its clime, with the shelf shoaling round
+   every coast, the borders of the nations faint over it, the two tropics and
+   the equator in dashed gold, and the wall of ice about the rim. */
+function earthBiome(lat,lon,n){
+  if(lat>72 || (lat>60&&lon>-75&&lon<-12)) return ['#e6ebf2','#f4f7fb'];        /* the ice of the north */
+  if(lat>62) return n<.5?['#8a9a74','#9aa984']:['#7f9070','#8f9f80'];           /* tundra */
+  const desert=(lat>10&&lat<34&&lon>-17&&lon<62)||(lat>18&&lat<33&&lon>62&&lon<76)||
+    (lat>-33&&lat<-17&&lon>112&&lon<147)||(lat>-29&&lat<-17&&lon>11&&lon<26)||
+    (lat>-28&&lat<-16&&lon>-73&&lon<-65)||(lat>34&&lat<47&&lon>76&&lon<108);
+  if(desert) return n<.5?['#cfb26a','#dcc17c']:['#c6a75e','#d4b671'];           /* the dry lands */
+  if(lat>-13&&lat<9) return n<.5?['#3f7a35','#4b8a40']:['#356c2e','#417c38'];   /* the rain forests */
+  return n<.34?['#6a9a4a','#78a857']:(n<.67?['#5f8f42','#6d9d4f']:['#74a352','#82b160']);
+}
+let _earthTex=null;
+function buildEarthTex(){
+  if(_earthTex) return _earthTex;
+  const N4=2048, Tc=N4/2, Tr=N4/2;
+  /* 1) the land mask, from the real country polygons */
+  const M=texCanvas(N4,N4), mg=M.getContext('2d');
+  mg.fillStyle='#000'; mg.fillRect(0,0,N4,N4);
+  mg.fillStyle='#fff';
+  for(const c of COUNTRIES) for(const ring of c.p){
+    mg.beginPath();
+    for(let i=0;i<ring.length;i++){ const x=Tc+ring[i][0]*Tr, y=Tc+ring[i][1]*Tr;
+      i?mg.lineTo(x,y):mg.moveTo(x,y); }
+    mg.closePath(); mg.fill(); }
+  const mask=mg.getImageData(0,0,N4,N4).data;
+  /* 2) lay the studs, brick by brick */
+  const c4=texCanvas(N4,N4), t=c4.getContext('2d');
+  const CELL=8, N=N4/CELL;
+  const land=new Uint8Array(N*N);
+  for(let j=0;j<N;j++) for(let i=0;i<N;i++){
+    const px=(i*CELL+CELL/2)|0, py=(j*CELL+CELL/2)|0;
+    land[j*N+i]=mask[(py*N4+px)*4]>128?1:0; }
+  for(let j=0;j<N;j++) for(let i=0;i<N;i++){
+    const x=i*CELL, y=j*CELL;
+    const u=(x+CELL/2-Tc)/Tr, v=(y+CELL/2-Tc)/Tr;
+    const r=Math.hypot(u,v);
+    if(r>1.004) continue;                                  /* beyond the rim: nothing */
+    const n=hash2(i*1.13,j*2.07);
+    const lat=90-r*180, lon=Math.atan2(u,v)*180/Math.PI;
+    let base,lit;
+    if(r>ICE_UV){ base=n<.5?'#dfe7ee':'#eef3f8'; lit='#ffffff'; }   /* the wall of ice */
+    else if(land[j*N+i]){ const b=earthBiome(lat,lon,n); base=b[0]; lit=b[1]; }
+    else { const shelf=(land[j*N+i-1]||land[j*N+i+1]||land[(j-1)*N+i]||land[(j+1)*N+i]);
+      base=shelf?'#4a7fae':(n<.5?'#2f5f92':'#356a9e'); lit=shelf?'#5f92bd':'#4478a8'; }
+    t.fillStyle=base; t.fillRect(x,y,CELL,CELL);
+    t.fillStyle=lit;  t.fillRect(x,y,CELL,1.6);            /* the lit top edge of the brick */
+    t.fillStyle='rgba(0,0,0,.16)'; t.fillRect(x+CELL-1.4,y,1.4,CELL);
+    t.beginPath(); t.arc(x+CELL/2,y+CELL/2,CELL*.30,0,Math.PI*2);      /* the stud */
+    t.fillStyle='rgba(255,255,255,.10)'; t.fill();
+    t.beginPath(); t.arc(x+CELL/2,y+CELL/2+.8,CELL*.30,0,Math.PI*2);
+    t.strokeStyle='rgba(0,0,0,.10)'; t.lineWidth=1; t.stroke(); }
+  /* 3) the borders of the nations, faint over the bricks */
+  t.strokeStyle='rgba(20,16,8,.32)'; t.lineWidth=2.2; t.lineJoin='round';
+  for(const c of COUNTRIES) for(const ring of c.p){
+    t.beginPath();
+    for(let i=0;i<ring.length;i++){ const x=Tc+ring[i][0]*Tr, y=Tc+ring[i][1]*Tr;
+      i?t.lineTo(x,y):t.moveTo(x,y); }
+    t.closePath(); t.stroke(); }
+  /* 4) the rivers, threading inland from the coasts */
+  t.strokeStyle='rgba(46,95,142,.75)'; t.lineWidth=2.6; t.lineCap='round';
+  for(const rv of RIVERS){ t.beginPath();
+    rv.pts.forEach((p,k)=>{ const rr=(90-p[0])/180, a=p[1]*Math.PI/180;
+      const x=Tc+rr*Math.sin(a)*Tr, y=Tc+rr*Math.cos(a)*Tr;
+      k?t.lineTo(x,y):t.moveTo(x,y); });
+    t.stroke(); }
+  /* 5) the courses of the sun: the two tropics and the equator */
+  for(const [rr,al] of [[.37,.16],[.5,.10],[.63,.16]]){
+    t.beginPath(); t.arc(Tc,Tc,rr*Tr,0,Math.PI*2);
+    t.strokeStyle='rgba(232,198,106,'+al+')'; t.lineWidth=3; t.setLineDash([16,22]); t.stroke();
+    t.setLineDash([]); }
+  /* 6) the rim of the deep, where the ice meets the sea */
+  t.beginPath(); t.arc(Tc,Tc,ICE_UV*Tr,0,Math.PI*2);
+  t.strokeStyle='rgba(220,235,245,.35)'; t.lineWidth=4.5; t.stroke();
+  _earthTex=new THREE.CanvasTexture(c4); _earthTex.anisotropy=8;
+  return _earthTex;
 }
 
 /* ================= THE MAP OF THE WHOLE EARTH ================= */
@@ -6342,7 +6429,7 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
   farLand,updateFarLand,mountUpliftAt,MOUNTS,ridgeNoise,B,R_WORLD,
   AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,
-  domeCeilAt,canTouchDome,touchDome,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,setKey:(k,v)=>{keys[k]=v;},
+  domeCeilAt,canTouchDome,touchDome,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
   domeInfo:()=>({dome:flyDome?flyDome.material.opacity:0, deep:outerDeep?outerDeep.material.uniforms.uOp.value:0, stars:starGroup.userData.mat.opacity}),
@@ -6474,7 +6561,7 @@ function frame(){
      complaint: a fragment of the world instead of the world. Once the
      charted face is more than half in, the chunks and the coarse ring are
      taken out of the view altogether and the earth is shown whole. */
-  const showNear = !state.firm && zMapF<0.55;
+  const showNear = !state.firm && zMapF<0.75;
   chunkRoot.visible = showNear;
   if(showNear&&!underEye){ farLand.visible=true; updateFarLand(p.x,p.z,false,eyeY); }
   else farLand.visible=false;
@@ -6498,6 +6585,16 @@ function frame(){
     if(bigOpen) sizeBig(); }
   saveT-=dt; if(saveT<=0){ saveT=10; saveState(); }
   if(!state.firm){ const above=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/90));
+    /* ---- THE CLOUDS ARE NOT A LID ----
+       The sheets of cloud are a thing to fly THROUGH and to look down upon
+       from just above. Draw the eye BACK from a traveller who is only a
+       little over the cloud floor, and they become an opaque white ceiling
+       across the whole world — and all that can be seen of the earth is the
+       few mountain tops that stand out of them. (That is the whole of "the
+       countries are not loading, only the mountains out of the water": the
+       land was there all along, under a lid.) They thin as the eye draws
+       back, and are gone well before it is far enough to want the chart. */
+    const cloudFade=1-Math.max(0,Math.min(1,(state.camDist-200)/600));
     clouds.visible=cirrus.visible=!underEye;   /* no sky-clouds seen from under the sea */
     clouds.position.x=p.x; clouds.position.z=p.z;
     TEX.clouds.offset.x=(p.x/9600*7+state.simHours*0.004)%1;
@@ -6507,22 +6604,22 @@ function frame(){
     const pY = state.mode==='fly'?state.fly.y : state.mode==='walk'?(state.walk.feetY!==undefined?state.walk.feetY:20) : 20;
     const highF = Math.max(0,Math.min(1,(pY-CLOUD_Y)/70));
     const gap=Math.abs(eyeY-CLOUD_Y), through=Math.min(1,gap/80);
-    cloudMat.opacity*=(0.22+0.78*through)*(1-above*0.9)*(1-highF*0.96)*(1-zMapF);
+    cloudMat.opacity*=(0.22+0.78*through)*(1-above*0.9)*(1-highF*0.96)*(1-zMapF)*cloudFade;
     cirrus.position.x=p.x; cirrus.position.z=p.z;
     const climb=Math.max(0,Math.min(1,(eyeY-CLOUD_Y)/900));
-    cirrusMat.opacity=(0.08+light.dayF*0.16)*Math.min(1,climb*1.5)*(1-above*0.7)*(1-zMapF);
+    cirrusMat.opacity=(0.08+light.dayF*0.16)*Math.min(1,climb*1.5)*(1-above*0.7)*(1-zMapF)*cloudFade;
     /* the sea of clouds — a bumpy, shaded deck with wisps drifting above */
     /* the LOCAL deck patch is for skimming just over the clouds — from far
        above it is a floating grey slab with an edge; fade it away and let the
        whole-earth cover carry the view */
     const deckFade=Math.max(0,1-Math.max(0,eyeY-2600)/6000);
-    cloudCover.visible=above>0.003;
-    cloudDeck.visible=cloudWisp.visible=above>0.003&&deckFade>0.01;
+    cloudCover.visible=above>0.003&&cloudFade>0.01;
+    cloudDeck.visible=cloudWisp.visible=above>0.003&&deckFade>0.01&&cloudFade>0.01;
     if(above>0.003){
       cloudDeck.position.set(p.x,CLOUD_Y,p.z); updateCloudDeck(p.x,p.z);
-      cloudDeckMat.opacity=above*deckFade; cloudDeckMat.color.copy(mix3(0x6b7690,0xe6cba4,0xffffff,light.dayF));
+      cloudDeckMat.opacity=above*deckFade*cloudFade; cloudDeckMat.color.copy(mix3(0x6b7690,0xe6cba4,0xffffff,light.dayF));
       cloudWisp.position.x=p.x; cloudWisp.position.z=p.z;
-      wispMat.opacity=above*0.5*deckFade; wispMat.color.copy(mix3(0x4a5570,0xe0c49c,0xffffff,light.dayF));
+      wispMat.opacity=above*0.5*deckFade*cloudFade; wispMat.color.copy(mix3(0x4a5570,0xe0c49c,0xffffff,light.dayF));
       const dr2=state.simHours*0.006;
       wispMat.map.offset.set((p.x/100000*30+dr2)%1,(p.z/100000*30)%1);
       /* the fixed cover mantles the whole earth (does NOT follow the traveller);
@@ -6531,7 +6628,7 @@ function frame(){
       /* and it thins with the ZOOM as well as with the climb — drawn back to
          behold the whole earth from a low altitude, this sheet is a solid
          white lid over the world and nothing of her can be seen at all */
-      cloudCover.material.opacity=above*0.97*(1-mapF2*0.82)*(1-zMapF);
+      cloudCover.material.opacity=above*0.97*(1-mapF2*0.82)*(1-zMapF)*cloudFade;
       cloudCover.material.color.copy(mix3(0x59637a,0xe0c6a0,0xffffff,light.dayF));
     } }
   /* THE DEEP IS FURNISHED WHENEVER THE EYE IS IN IT — diving, swimming, or a
