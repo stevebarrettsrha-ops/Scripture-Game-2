@@ -913,7 +913,12 @@ function updateChunks(px,pz,budget){
    good way: while it is stale its hole sits off to one side of him, and if
    the hole's near edge ever came out past the chunks there would be open sky
    where the ground should be. R0 + the rebuild threshold is the budget. */
-const FL_RINGS=48, FL_SPOKES=84, FL_R0=420, FL_R1=3600, FL_FADE=760, FL_STEP=300;
+/* Four times the detail. At 48x84 the ring was fine while it reached 3,600
+   units, but it now opens out past 15,000 as the eye draws back, and at that
+   span its quads were whole countries wide. The rebuild costs about four
+   times as much for it — it was 5-11 ms every 300 units of travel — and that
+   cost cannot be bought back by rebuilding less often (see below). */
+const FL_RINGS=96, FL_SPOKES=160, FL_R0=420, FL_R1=3600, FL_FADE=760, FL_STEP=300;
 const FL_COS=new Float32Array(FL_SPOKES), FL_SIN=new Float32Array(FL_SPOKES);
 for(let a=0;a<FL_SPOKES;a++){ const th=a/FL_SPOKES*Math.PI*2; FL_COS[a]=Math.cos(th); FL_SIN[a]=Math.sin(th); }
 const flGeo=(()=>{
@@ -961,7 +966,12 @@ function updateFarLand(px,pz,force,eyeY){
      blur. Whichever reaches further, the height or the pull-back, sets it. */
   const reach=Math.max(eyeY||0, state.camDist*0.75);
   const want=FL_R1*(1+Math.min(7,Math.max(0,reach-120)/2200));
-  const moved=!_flAt||Math.hypot(_flAt[0]-px,_flAt[1]-pz)>=FL_STEP;
+  /* The threshold CANNOT be opened out to pay for the denser mesh, however
+     far the ring reaches: while it is stale its hole sits off to one side of
+     the traveller, and R0 (420) plus the step has to stay inside the chunks'
+     own reach (~768) or open sky shows where the ground should be. 330 is the
+     whole of the room there is. */
+  const moved=!_flAt||Math.hypot(_flAt[0]-px,_flAt[1]-pz)>=330;
   const grown=Math.abs(want-_flR1)/_flR1>0.18;
   if(!force&&!moved&&!grown) return;
   _flAt=[px,pz]; _flR1=want; farLand.position.set(px,0,pz);
@@ -6586,6 +6596,12 @@ function frame(){
      taken out of the view altogether and the earth is shown whole. */
   const showNear = !state.firm && zMapF<0.75;
   chunkRoot.visible = showNear;
+  /* the near WATER goes with the near land. The wave grid is a flat square
+     5,000 units on a side: left standing while the charted face came up
+     under it, it sat on the middle of the world as a pale rectangle with the
+     little patch of streamed land inside it — which is worse than either on
+     its own. The two backdrop sheets go with it. */
+  if(!showNear){ waveGrid.visible=false; sea.visible=false; seaDeep.visible=false; }
   if(showNear&&!underEye){ farLand.visible=true; updateFarLand(p.x,p.z,false,eyeY); }
   else farLand.visible=false;
   updateVillages(p.x,p.z,dt,light.nightF);
