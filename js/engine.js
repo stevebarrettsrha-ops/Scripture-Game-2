@@ -530,6 +530,14 @@ function cellRaw(ix,iz){
   let kind, tree=0;
   /* broad biome regions carve out cherry-blossom hills and badland mesas */
   const region=fbm(ix*.012-70,iz*.012+140);
+  /* ---- THE WOODS STAND IN GROVES ----
+     Trees were scattered evenly, one cell in sixteen. At the old stature that
+     read as open country with trees in it; grown to their proper height it
+     closed overhead into a canopy the traveller walked blind through. They
+     are thinner now, and GATHERED: thick where a wood stands, open in the
+     glades between, so there is somewhere to walk and something to see. */
+  const grove=fbm(ix*.035-17,iz*.035+29);
+  const dens=Math.max(0,Math.min(1,(grove-0.36)/0.38));
   const lon=Math.atan2(u,v)*180/Math.PI;              /* longitude upon the disc */
   /* badlands (barren mesas) only in the arid belt — the tan wastes of the map */
   const badlands = !snow&&!tundra&&lat>11&&lat<36&&n2>0.42&&region<0.43&&inland>0.4;
@@ -542,16 +550,16 @@ function cellRaw(ix,iz){
   const beach = mUp<=0.5 && !snow&&!tundra&&!badlands&&!alpine&&mtnF<0.35
     &&(inland<=0.5 || (inland<0.8&&h<=2));
   if(beach){ kind='sand'; h=Math.min(h,2);
-    if(tropic&&j<0.03) tree=2;                 /* palms on the strand */
+    if(tropic&&j<0.022*dens) tree=2;           /* palms on the strand */
   }
   else if(h<=2 && inland<1 && !snow && !tundra && !badlands){ kind='sand'; h=Math.min(h,2); }
   else if(snow) kind='snow';
-  else if(tundra){ kind='tundra'; tree=j<0.02?1:0; }
+  else if(tundra){ kind='tundra'; tree=j<0.016*dens?1:0; }
   /* the alpine band: scree and stunted pine on the shoulders of the range,
      giving way to bare rock as it nears the snow */
   else if(alpine){
     kind = h>treeLine+(snowLine-treeLine)*0.45 ? 'rock' : 'alpine';
-    tree = (kind==='alpine'&&j<0.020) ? 1 : 0;
+    tree = (kind==='alpine'&&j<0.016*dens) ? 1 : 0;
   }
   else if(badlands){ kind='badlands';
     const bh=fbm(ix*.045+7,iz*.045-3);              /* the badlands' own eroded relief */
@@ -560,9 +568,9 @@ function cellRaw(ix,iz){
     if(mUp>0.5) h+=Math.round(mUp);                 /* Uluru and its kin rise from the waste */
   }
   else if(desert){ kind='desert'; }
-  else if(cherry){ kind='grass'; tree=j<0.10?3:0; } /* cherry-blossom groves */
-  else if(tropic){ kind='tropic'; tree=j<0.085?2:0; }
-  else { kind='grass'; tree=j<0.06?1:0; }
+  else if(cherry){ kind='grass'; tree=j<0.075*dens?3:0; } /* cherry-blossom groves */
+  else if(tropic){ kind='tropic'; tree=j<0.062*dens?2:0; }
+  else { kind='grass'; tree=j<0.045*dens?1:0; }
   /* (the old blanket rule turning EVERY cell above 5 blocks to bare rock and
      stripping its trees is gone — it belonged to a world whose tallest thing
      was a hill. The tree line does that work now, and does it by altitude
