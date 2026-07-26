@@ -1355,6 +1355,15 @@ const waveMat=new THREE.ShaderMaterial({
       N=normalize(N+vec3((rA.r-0.5)*0.34+(rB.r-0.5)*0.20, 0.0, (rA.g-0.5)*0.34+(rB.g-0.5)*0.20));
       vec3 V=normalize(uCamPos-vWorld);
       vec3 L=normalize(uSunDir);
+      /* ---- IS THE EYE OVER THIS WATER, OR UNDER IT? ----
+         The sea was shaded as though always looked DOWN upon: the sun's
+         specular path, the glitter and the mirrored sky were laid on the
+         surface whichever side it was seen from. Swim beneath it and that
+         burning path hung in the water as a great white blaze across the
+         reef, brighter than anything under the sea, and washed the floor and
+         the coral clean out of the view. From below there is no sun-path and
+         no sky in the water — only the light coming dimly through. */
+      float above=step(vWorld.y,uCamPos.y);
       float diff=clamp(dot(N,L),0.0,1.0);
       vec3 tex=texture2D(uMap,vUv).rgb;
       /* how near the land lies beneath: 1 clear shallow → 0 the true deep
@@ -1392,7 +1401,9 @@ const waveMat=new THREE.ShaderMaterial({
         lap+=smoothstep(0.9,0.99,shoalRaw)*brk*(0.5+0.3*sin(uTime*1.7+shoalRaw*40.0));
       }
       float allFoam=clamp(foam*0.32+wake*0.95+lap,0.0,1.0);
-      col=mix(col,vec3(0.88,0.93,1.0),allFoam);
+      /* foam is white ON TOP of the water; from underneath it is only a
+         paler patch of ceiling, not a lamp */
+      col=mix(col,vec3(0.88,0.93,1.0),allFoam*mix(0.22,1.0,above));
       col*=uLight;
       /* ---- AND THE LESSER LIGHT TO RULE THE NIGHT ----
          The sea had ONE light, and when the sun went down it had none: the day
@@ -1401,7 +1412,7 @@ const waveMat=new THREE.ShaderMaterial({
          from horizon to shore. The moon lights it now as she lights the earth
          — a soft wash on the swell, a hard silver path burning down her own
          bearing, and the crests of the foam caught white. */
-      if(uMoon>0.002){
+      if(uMoon>0.002&&above>0.5){
         vec3 M=normalize(uMoonDir);
         float md=clamp(dot(N,M),0.0,1.0);
         col+=base*uMoonCol*(0.30+0.85*md)*uMoon*1.35;
@@ -1415,23 +1426,28 @@ const waveMat=new THREE.ShaderMaterial({
       vec3 H=normalize(V+L);
       float spec=pow(max(dot(N,H),0.0),140.0);
       float glit=pow(max(dot(N,H),0.0),40.0)*(0.5+0.5*h21(floor(vP*1.7)+floor(uTime*9.0)));
-      col+=uSunCol*(spec*1.8+glit*0.2)*diff;
+      col+=uSunCol*(spec*1.8+glit*0.2)*diff*above;
       /* caustic sparkle where the light passes through to the sand */
-      col+=uSunCol*glit*0.3*shoal*diff;
+      col+=uSunCol*glit*0.3*shoal*diff*above;
       /* light through the backlit crest — the glassy green heart of a wave */
-      float sss=pow(max(dot(V,-L),0.0),3.0)*smoothstep(0.6,2.4,vHeight)*(1.0-deepF*0.5);
+      /* light through the backlit crest is a thing seen ACROSS the water, not
+         from beneath it — from below, V and the sun agree and it blazed */
+      float sss=pow(max(dot(V,-L),0.0),3.0)*smoothstep(0.6,2.4,vHeight)*(1.0-deepF*0.5)*above;
       col+=vec3(0.05,0.38,0.36)*sss*(0.35+diff*0.65);
       /* fresnel — the true sky mirrored at grazing angles: the horizon haze
          where the reflected ray runs flat, the deep zenith blue where it climbs */
       float fres=pow(1.0-max(dot(N,V),0.0),5.0);
       vec3 R=reflect(-V,N);
       vec3 skyR=mix(uFogColor*1.06, uZenith, pow(clamp(R.y,0.0,1.0),0.7));
-      col=mix(col,skyR,fres*0.6);
+      col=mix(col,skyR,fres*0.6*above);
       /* transparency by depth: the shallows let the bottom show through,
          the deep keeps its darkness; a mirror-skin at grazing angles */
       float aa=mix(0.55,0.93,deepF);
-      aa=mix(aa,0.985,fres*0.6);
-      aa=max(aa,allFoam*0.95);
+      aa=mix(aa,0.985,fres*0.6*above);
+      aa=max(aa,allFoam*0.95*above);
+      /* and from beneath, the skin of the sea is thin — the daylight comes
+         through it, as it does when you look up from under water */
+      aa=mix(0.38,aa,above);
       /* AND THE GRID GIVES OUT WITHOUT AN EDGE. Its swell already lies down at
          the rim; now it thins away there too, into the flat sea of the far
          ring beneath it. Stood on the water the haze has long since taken it
@@ -2569,12 +2585,18 @@ let diveHintShown=false, deepShown=false, swimDeepHintShown=false;
    not on the chart is allowed to break the water. */
 const SB_MIN=34;
 function seabedDepth(x,z){
-  const roll=fbm(x*0.02+11,z*0.02-7), basin=fbm(x*0.004-5,z*0.004+9);
+  /* THE FINE ROLL IS LONGER AND LOWER THAN IT WAS. At a wavelength of fifty
+     units and thirty of amplitude, the bed rose and fell five blocks every
+     eight — so once it was cut into blocks the whole floor corrugated, a step
+     at nearly every block, and read as a ploughed field rather than a sea
+     bed. Stretched and flattened, the floor is mostly plain with terraces
+     standing in it, as a sea bed is. */
+  const roll=fbm(x*0.011+11,z*0.011-7), basin=fbm(x*0.004-5,z*0.004+9);
   const trench=Math.pow(Math.max(0,fbm(x*0.0016+30,z*0.0016)-0.55)/0.45,1.6);
   const ridge=Math.pow(Math.max(0,fbm(x*0.003+70,z*0.003-40)-0.47)/0.53,1.7);   /* undersea mountains */
   const peak=ridge*(360+fbm(x*0.011-3,z*0.011+6)*120);                          /* the ridges of the bed */
   /* how deep the bed lies before any ridge is raised upon it */
-  const base=20+roll*30+basin*120+trench*540;
+  const base=20+roll*15+basin*120+trench*540;
   /* ---- NO MOUNTAIN THAT IS NOT ON THE EARTH ----
      The ridge was SUBTRACTED outright, and it stands three to four hundred
      units where the bed is often only a hundred deep — so the open sea grew
@@ -2599,85 +2621,199 @@ function seabedDepth(x,z){
     y=y*(1-tt)+(SUBSEA_Y+0.4)*tt;
     y=Math.min(y,SEA_SURF-6); }      /* no ridge breaches the surface where a coast is near */
   return y; }
-/* ---- the seabed: a displaced, shaded floor that follows the diver ---- */
-const SB_SEG=96, SB_SIZE=3200;
-const sbGeo=new THREE.PlaneGeometry(SB_SIZE,SB_SIZE,SB_SEG,SB_SEG); sbGeo.rotateX(-Math.PI/2);
-sbGeo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(sbGeo.attributes.position.count*3),3));
-TEX.seasand.repeat.set(SB_SIZE/6,SB_SIZE/6);
-const seaFloor=new THREE.Mesh(sbGeo,new THREE.MeshLambertMaterial({map:TEX.seasand,vertexColors:true,side:THREE.DoubleSide}));
+/* ================= THE BED OF THE SEA IS BLOCKS =================
+   It was a SMOOTH SHEET — a plane pushed up and down by the depth field and
+   given averaged normals — while every other thing in the world is lego. So
+   the diver swam over rolling dunes with no edge anywhere on them, in a game
+   whose whole face is blocks, and the sea floor was the one place that gave
+   the lie away.
+   It is laid as BLOCKS now, at the true block of the world: a grid of cells
+   one block wide, each taking one height off the depth field SNAPPED TO THE
+   BLOCK GRID, and drawn as a flat top with four walls dropping to whatever
+   its neighbours stand at. Step down a terrace and there is a wall there, cut
+   square. Nothing is interpolated and nothing is smoothed.
+   Every cell also takes a KIND — sand, gravel, clay, dark rock — off the same
+   noise the world is made of, so the floor reads as the speckled checkerboard
+   of a real sea bed rather than one flat sheet of sand. */
+const SB_CS=B;                        /* a cell is one block, as it is ashore */
+const SB_N=112;                       /* cells to a side */
+const SB_SIZE=SB_CS*SB_N;             /* 672 units of floor about the diver */
+const SB_CELLS=SB_N*SB_N;
+/* eight vertices to a cell: four at the top, four dropped to the skirt, so
+   the top is FLAT and the walls are UPRIGHT. Nothing is shared between one
+   cell and the next — that is what keeps the edges square. */
+const SB_NV=SB_CELLS*8;
+const sbGeo=(()=>{
+  const g=new THREE.BufferGeometry();
+  const pos=new Float32Array(SB_NV*3), col=new Float32Array(SB_NV*3);
+  const uv=new Float32Array(SB_NV*2);
+  const idx=new Uint32Array(SB_CELLS*30);
+  const half=SB_SIZE/2;
+  let ii=0;
+  for(let j=0;j<SB_N;j++) for(let i=0;i<SB_N;i++){
+    const c=(j*SB_N+i), o=c*8;
+    const x0=-half+i*SB_CS, x1=x0+SB_CS, z0=-half+j*SB_CS, z1=z0+SB_CS;
+    /* 0..3 the top, 4..7 the skirt directly beneath them */
+    const cx=[x0,x1,x1,x0], cz=[z0,z0,z1,z1];
+    /* ONE WHOLE TEXTURE TO A BLOCK, as it is ashore — the sixteen pixels of
+       sand run across each block face and start again at the next, so the
+       floor is a grid of blocks and not one sheet of stretched sand. The
+       skirt carries the same u/v as the top corner above it, so a wall shows
+       that block's own colour down its face. */
+    const uu=[0,1,1,0], vv=[0,0,1,1];
+    for(let q=0;q<4;q++){
+      pos[(o+q)*3]=cx[q];   pos[(o+q)*3+2]=cz[q];
+      pos[(o+4+q)*3]=cx[q]; pos[(o+4+q)*3+2]=cz[q];
+      uv[(o+q)*2]=uu[q];    uv[(o+q)*2+1]=vv[q];
+      uv[(o+4+q)*2]=uu[q];  uv[(o+4+q)*2+1]=vv[q]; }
+    /* the top, wound face up */
+    idx[ii++]=o+0; idx[ii++]=o+2; idx[ii++]=o+1;
+    idx[ii++]=o+0; idx[ii++]=o+3; idx[ii++]=o+2;
+    /* and the four walls, each from its top edge down to the skirt */
+    for(let q=0;q<4;q++){ const a2=o+q, b2=o+(q+1)%4, a3=o+4+q, b3=o+4+(q+1)%4;
+      idx[ii++]=a2; idx[ii++]=b2; idx[ii++]=a3;
+      idx[ii++]=b2; idx[ii++]=b3; idx[ii++]=a3; }
+  }
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  g.setAttribute('color',new THREE.BufferAttribute(col,3));
+  g.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+  g.setIndex(new THREE.BufferAttribute(idx,1));
+  return g;
+})();
+/* ---- THE GRAIN OF THE FLOOR, AND NOTHING ELSE ----
+   The bed wore the shore's own sand — a warm yellow hide — and every block's
+   colour was then multiplied through it, so sand times yellow, gravel times
+   yellow and clay times yellow all came out the same khaki, and the whole
+   floor was one flat olive whatever kind of ground it was. This texture is
+   NEUTRAL: it carries the grain and the pixel-noise of a block face and no
+   colour at all, so what the eye reads is the block's own kind. */
+const sbTex=mkTex(g=>{
+  for(let y=0;y<16;y++) for(let x=0;x<16;x++){
+    const n=hash2(x*3.1+y*7.7,y*2.3-x*1.9);
+    const v=Math.round(198+n*54);          /* a pale, even grain */
+    P(g,x,y,rgb(v,v,v)); }
+  /* a few darker grits, so no two blocks read quite alike */
+  for(let k=0;k<10;k++){ const x=Math.floor(hash2(k,4.4)*16), y=Math.floor(hash2(k,8.8)*16);
+    const v=Math.round(150+hash2(k,1.2)*30); P(g,x,y,rgb(v,v,v)); } });
+sbTex.wrapS=sbTex.wrapT=THREE.RepeatWrapping; sbTex.repeat.set(1,1);
+sbTex.magFilter=THREE.NearestFilter; sbTex.minFilter=THREE.NearestMipmapLinearFilter;
+sbTex.generateMipmaps=true; sbTex.needsUpdate=true;
+/* THE SAME KIND OF MATERIAL THE LAND WEARS — unlit, vertex-shaded, so a face
+   is exactly as bright as its colour says and no averaged normal can round a
+   corner off. (A lambert bed with computed normals smoothed every edge it
+   had, which is half of why it never looked like blocks.) */
+const seaFloor=new THREE.Mesh(sbGeo,
+  new THREE.MeshBasicMaterial({map:sbTex,vertexColors:true}));
 seaFloor.visible=false; seaFloor.frustumCulled=false; scene.add(seaFloor);
-/* Rebuilding 97×97 vertices and recomputing their normals every frame is the
-   costliest thing in the deep, and the bed only ever moves when the swimmer
-   does. So it is rebuilt on a threshold of travel, not on the clock — which
-   also lets the bed be furnished while merely swimming, at no cost to a
-   voyage spent on the surface. */
+/* THE KINDS OF GROUND UNDER THE SEA, and the colour each reads as. */
+const SB_KIND=[
+  [1.02,0.94,0.72],   /* 0 sand — the common floor */
+  [0.70,0.70,0.72],   /* 1 gravel */
+  [0.58,0.71,0.86],   /* 2 clay */
+  [0.36,0.43,0.50],   /* 3 dark rock, in the deeps */
+  [0.44,0.64,0.38]    /* 4 weeded ground, and rare */
+];
+/* the colour the water itself lends to everything under it */
+const SB_WATER=[0.34,0.56,0.66], SB_COOL=0.17;
 let _sbAt=null;
-/* ---- THE BED IS LAID OVER MANY FRAMES, AND SWAPPED IN WHOLE ----
-   Nine thousand four hundred vertices, each costing six noise fields and a
-   shoal lookup, and then every normal in the mesh recomputed — some thirty
-   milliseconds of work. It was being paid EVERY NINE UNITS the swimmer moved,
-   which at swimming speed is six or seven times a second: the bed spent more
-   of each second being built than being drawn, and it came in late and in
-   lurches. That is "it is slow and it barely loads in when one gets close".
-   It is built now a slice of a frame at a time into a spare pair of buffers,
-   on a threshold of real travel; the bed on screen keeps its old shape and
-   its old anchor until the last vertex is ready, and then the whole of it
-   changes at once. A half-built bed is never shown. */
-const SB_NV=sbGeo.attributes.position.count;
-const _sbY=new Float32Array(SB_NV), _sbC=new Float32Array(SB_NV*3);
+/* THE BED IS LAID OVER MANY FRAMES AND SWAPPED IN WHOLE — a cell at a time
+   into a spare pair of buffers, on a threshold of real travel; the bed on
+   screen keeps its old shape and its old anchor until the last cell is ready.
+   A half-built bed is never shown. */
+const _sbP=new Float32Array(SB_NV*3), _sbC=new Float32Array(SB_NV*3);
 const SB_MS=4;                  /* the slice of a frame the rebuild may take */
 const SB_STEP=44;               /* how far he must swim before it is rebuilt */
 let _sbJob=null;
+/* the height of the bed at a cell, SNAPPED to the block grid */
+function sbBlockY(wx,wz){ return Math.round(seabedDepth(wx,wz)/B)*B; }
 function updateSeaFloor(px,pz,force){
   /* The very first bed has nothing to stand in for it, so it is built whole
      before the frame is drawn rather than showing a flat sheet for a moment —
      and so is a bed that has been LEFT BEHIND. He may surface here and go down
      again a world away; there is no old bed to keep the view while the new one
-     is laid, so it is paid for at once rather than leaving him swimming over
-     nothing for a dozen frames. */
+     is laid, so it is paid for at once. */
   const lag=_sbAt?Math.hypot(_sbAt[0]-px,_sbAt[1]-pz):0;
   const whole=force||!_sbAt||lag>SB_SIZE*0.25;
   if(!_sbJob){
     if(!whole&&lag<SB_STEP) return;
-    _sbJob={px,pz,v:0};
+    /* the cell heights are read once for the whole patch, so a wall may be
+       cut down to exactly what its neighbour stands at */
+    _sbJob={px,pz,j:0,h:new Float32Array(SB_CELLS),k:new Uint8Array(SB_CELLS),pass:0};
   } else if(whole||Math.hypot(_sbJob.px-px,_sbJob.pz-pz)>SB_SIZE*0.25){
-    /* the half-laid bed is for a place he has already left — begin again */
-    _sbJob={px,pz,v:0}; }
-  const J=_sbJob, a=sbGeo.attributes.position.array, t0=performance.now();
-  const ROW=SB_SEG+1;
-  while(J.v<SB_NV){
-    const end=Math.min(SB_NV,J.v+ROW);
-    for(;J.v<end;J.v++){ const i=J.v*3;
-      /* the local x/z of the plane never change — only the world y written
-         into them — so they can be read straight back off the live mesh */
-      const wx=a[i]+J.px, wz=a[i+2]+J.pz, y=seabedDepth(wx,wz); _sbY[J.v]=y;
-      const depth=SEA_SURF-y, lit=Math.max(0,1-depth/460), alg=fbm(wx*0.03+3,wz*0.03+7);
-      /* The bed is DROWNED sand, not a meadow. It is painted over the beach-sand
-         texture, so the vertex tint must pull the yellow out of it and put the
-         cold of deep water in — muted at the top of the shelf and near black in
-         the trenches; and the weed upon it is a dull olive, never lawn green. */
-      let r=0.22+0.34*lit, g=0.25+0.34*lit, b=0.27+0.30*lit;
-      if(alg>0.62){ const w=Math.min(1,(alg-0.62)/0.16); r*=1-0.30*w; g*=1-0.14*w; b*=1-0.34*w; }
-      _sbC[i]=r; _sbC[i+1]=g; _sbC[i+2]=b; }
+    _sbJob={px,pz,j:0,h:new Float32Array(SB_CELLS),k:new Uint8Array(SB_CELLS),pass:0}; }
+  const J=_sbJob, t0=performance.now(), half=SB_SIZE/2;
+  /* ---- first pass: the height and the kind of every cell ---- */
+  while(J.pass===0&&J.j<SB_N){
+    const j=J.j++;
+    for(let i=0;i<SB_N;i++){
+      const wx=J.px-half+(i+0.5)*SB_CS, wz=J.pz-half+(j+0.5)*SB_CS;
+      const c=j*SB_N+i;
+      J.h[c]=sbBlockY(wx,wz);
+      const depth=SEA_SURF-J.h[c];
+      const n1=fbm(wx*0.03+3,wz*0.03+7), n2=fbm(wx*0.011-5,wz*0.011+2);
+      let kind=0;
+      if(depth>300) kind=3;
+      else if(n2>0.60) kind=2;
+      else if(n2<0.38) kind=1;
+      if(n1>0.74&&depth<130) kind=4;
+      J.k[c]=kind;
+    }
+    if(!whole&&performance.now()-t0>=SB_MS) return;
+  }
+  if(J.pass===0){ J.pass=1; J.j=0; }
+  /* ---- second pass: cut the blocks, their tops and their walls ---- */
+  while(J.j<SB_N){
+    const j=J.j++;
+    for(let i=0;i<SB_N;i++){
+      const c=j*SB_N+i, o=c*8, y=J.h[c];
+      /* the skirt drops to the LOWEST neighbour, so the wall is exactly as
+         tall as the step down and never a gap nor a wasted face */
+      let low=y;
+      if(i>0)      low=Math.min(low,J.h[c-1]);
+      if(i<SB_N-1) low=Math.min(low,J.h[c+1]);
+      if(j>0)      low=Math.min(low,J.h[c-SB_N]);
+      if(j<SB_N-1) low=Math.min(low,J.h[c+SB_N]);
+      const skirt=Math.min(low,y)-0.5;
+      for(let q=0;q<4;q++){ _sbP[(o+q)*3+1]=y; _sbP[(o+4+q)*3+1]=skirt; }
+      /* the colour of this block: its kind, dimmed with the depth (the light
+         does not reach the trenches) and jittered a little block by block, as
+         a minecraft floor is never two blocks exactly alike */
+      const K=SB_KIND[J.k[c]];
+      const depth=SEA_SURF-y, lit=0.32+0.58*Math.max(0,1-depth/430);
+      const jr=0.90+0.20*hash2(i*1.7+j*0.3,j*2.1-i*0.7);
+      /* THE WATER LENDS ITS OWN COLOUR to everything beneath it — but by
+         MIXING toward the blue of the sea, not by pulling the red channel
+         down. Scaling the channels turned sand (whose green already stands
+         over its blue) to pond-weed olive, and the whole floor with it. */
+      const m=SB_COOL, im=1-m;
+      const r =(K[0]*lit*jr)*im + SB_WATER[0]*m*lit;
+      const g2=(K[1]*lit*jr)*im + SB_WATER[1]*m*lit;
+      const b2=(K[2]*lit*jr)*im + SB_WATER[2]*m*lit;
+      for(let q=0;q<4;q++){ const t=(o+q)*3;
+        _sbC[t]=r; _sbC[t+1]=g2; _sbC[t+2]=b2; }
+      /* THE SIDE OF A BLOCK IS DARKER THAN ITS TOP, as it is ashore — that
+         shading is what makes a stair of blocks read as a stair */
+      for(let q=0;q<4;q++){ const t=(o+4+q)*3;
+        _sbC[t]=r*0.58; _sbC[t+1]=g2*0.58; _sbC[t+2]=b2*0.58; }
+    }
     if(!whole&&performance.now()-t0>=SB_MS) return;
   }
   /* done — the new bed takes the place of the old one in a single step */
-  const col=sbGeo.attributes.color.array;
-  for(let v=0;v<SB_NV;v++) a[v*3+1]=_sbY[v];
-  col.set(_sbC);
-  /* the mesh is anchored WHERE ITS DATA WAS BUILT. Each vertex holds a local
+  const pa=sbGeo.attributes.position.array, ca=sbGeo.attributes.color.array;
+  for(let v=0;v<SB_NV;v++) pa[v*3+1]=_sbP[v*3+1];
+  ca.set(_sbC);
+  /* the mesh is anchored WHERE ITS DATA WAS BUILT. Each cell holds a local
      x/z and an absolute world y, so moving the mesh without rebuilding would
      drag the whole sea bed along behind the swimmer. */
   seaFloor.position.set(J.px,0,J.pz);
   _sbAt=[J.px,J.pz]; _sbJob=null;
-  sbGeo.attributes.position.needsUpdate=true; sbGeo.attributes.color.needsUpdate=true;
-  sbGeo.computeVertexNormals(); }
+  sbGeo.attributes.position.needsUpdate=true; sbGeo.attributes.color.needsUpdate=true; }
 /* ---- kelp — tall strands rising from the floor, swaying with the current ---- */
 const kelpMat=new THREE.MeshLambertMaterial({map:TEX.kelp,side:THREE.DoubleSide});
 function makeKelp(){ const g=new THREE.Group(), segs=[];
   for(let s=0;s<5;s++){ const seg=new THREE.Mesh(new THREE.BoxGeometry(1.1,7,1.1),kelpMat); seg.position.y=s*7+3.5; g.add(seg); segs.push(seg); }
   g.userData={segs}; return g; }
-const KELP=[], KELP_N=60, KELP_R=560;
+const KELP=[], KELP_N=90, KELP_R=330;
 function initKelp(){ if(KELP.length) return; for(let k=0;k<KELP_N;k++){ const m=makeKelp(); m.visible=false; scene.add(m);
   KELP.push({m,x:0,z:0,fy:0,h:0,ph:Math.random()*6.28,set:false}); } }
 function placeKelp(k,px,pz){ for(let tr=0;tr<6;tr++){ const a=Math.random()*6.28, r=60+Math.random()*(KELP_R-60);
@@ -2710,7 +2846,7 @@ function makeCoral(){ const g=new THREE.Group(), n=9+Math.floor(Math.random()*12
   if(Math.random()<0.6){ const gl=new THREE.Mesh(new THREE.BoxGeometry(0.9,1.3,0.9),
       new THREE.MeshBasicMaterial({color:0xcdf06a,fog:true})); gl.position.set((Math.random()-0.5)*7,Math.random()*9+1,(Math.random()-0.5)*7); g.add(gl); }  /* sea-pickle glow */
   return g; }
-const CORAL=[], CORAL_N=30, CORAL_R=560;
+const CORAL=[], CORAL_N=34, CORAL_R=330;
 function initCoral(){ if(CORAL.length) return; for(let k=0;k<CORAL_N;k++){ const m=makeCoral(); m.visible=false; scene.add(m); CORAL.push({m,x:0,z:0,set:false}); } }
 function updateCoral(px,pz){ initCoral(); for(const r of CORAL){ if(r.set&&Math.hypot(r.x-px,r.z-pz)<=CORAL_R+90) continue;
     for(let tr=0;tr<7;tr++){ const a=Math.random()*6.28, rr=50+Math.random()*CORAL_R, x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
@@ -2721,7 +2857,7 @@ const seagrassMat=new THREE.MeshLambertMaterial({map:TEX.seagrass,side:THREE.Dou
 function makeSeagrass(){ const g=new THREE.Group(), n=3+Math.floor(Math.random()*4);
   for(let i=0;i<n;i++){ const bl=new THREE.Mesh(new THREE.BoxGeometry(0.6,2+Math.random()*2.6,0.6),seagrassMat);
     bl.position.set((Math.random()-0.5)*3.2,1.2,(Math.random()-0.5)*3.2); bl.rotation.z=(Math.random()-0.5)*0.4; g.add(bl); } return g; }
-const GRASS=[], GRASS_N=120, GRASS_R=380;
+const GRASS=[], GRASS_N=200, GRASS_R=300;
 function initGrass(){ if(GRASS.length) return; for(let k=0;k<GRASS_N;k++){ const m=makeSeagrass(); m.visible=false; scene.add(m); GRASS.push({m,x:0,z:0,ph:Math.random()*6.28,set:false}); } }
 function updateGrass(px,pz,t){ initGrass(); for(const r of GRASS){ if(!r.set||Math.hypot(r.x-px,r.z-pz)>GRASS_R+70){
       for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28, rr=30+Math.random()*GRASS_R, x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
@@ -2734,9 +2870,26 @@ function initRays(){ if(RAYS.length) return; for(let k=0;k<RAY_N;k++){
       new THREE.MeshBasicMaterial({color:0xcdeeff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,side:THREE.DoubleSide}));
     m.visible=false; scene.add(m); RAYS.push({m,x:0,z:0,rot:Math.random()*6.28,tilt:(Math.random()-0.5)*0.5}); } }
 function updateRays(px,py,pz,murk){ initRays();
-  for(const r of RAYS){ if(Math.hypot(r.x-px,r.z-pz)>620){ const a=Math.random()*6.28, rr=Math.random()*500; r.x=px+Math.cos(a)*rr; r.z=pz+Math.sin(a)*rr; r.rot=Math.random()*6.28; }
-    r.m.position.set(r.x,SEA_SURF-250,r.z); r.m.rotation.set(r.tilt,r.rot,0.12);
-    r.m.material.opacity=(1-murk)*0.09; r.m.visible=true; } }
+  /* THE SHAFTS KEEP THEIR DISTANCE. They are wide additive planes, and one
+     standing ON the eye whited out the whole view — the floor, the reef and
+     all — which is the brightest thing wrong with a shallow dive. They are
+     re-cast no nearer than a hundred units, and thinned, so they light the
+     water without drowning what is in it. */
+  for(const r of RAYS){ const d=Math.hypot(r.x-px,r.z-pz);
+    if(d>620||d<100){ const a=Math.random()*6.28, rr=140+Math.random()*380;
+      r.x=px+Math.cos(a)*rr; r.z=pz+Math.sin(a)*rr; r.rot=Math.random()*6.28; }
+    /* A SHAFT REACHES FROM THE SURFACE TO THE FLOOR, AND NO FURTHER. They
+       were five hundred units tall wherever they stood, so over a shallow
+       reef each one ran clean through the sea bed and out the bottom of the
+       world — and looked at from a low angle, edge-on along its length, it
+       burned as a great white column standing on the sand. Each is cut to
+       the water column it stands in. */
+    const bed=seabedDepth(r.x,r.z), col=Math.max(12,SEA_SURF-bed);
+    r.m.scale.set(1,Math.min(1,col/520),1);
+    r.m.position.set(r.x,SEA_SURF-col*0.5,r.z); r.m.rotation.set(r.tilt,r.rot,0.12);
+    /* and they fade out as the eye comes up to them, so none is ever met */
+    const near=Math.min(1,Math.max(0,(Math.hypot(r.x-px,r.z-pz)-90)/110));
+    r.m.material.opacity=(1-murk)*0.05*near; r.m.visible=near>0.02; } }
 /* ---- fish schools, squid, bubbles ---- */
 const DIVEFISH=[], DF_N=30, DF_R=240;
 const TROPICAL=[0xff8c2a,0xffd23a,0xff5a7a,0x3ad0ff,0x8a5cff,0xf4f4f4,0x2fd08a,0xff4d4d];
@@ -6717,10 +6870,23 @@ function frame(){
      the same sea. Near the surface the view stays long, so a coast does not
      vanish a few metres down; it shortens as the deep darkens. */
   const underEye=eyeUnderwater();
+  /* ---- THE TWO GREAT LIGHTS ARE NOT SEEN FROM UNDER THE SEA ----
+     They are drawn with the fog off, so from beneath the waves the sun stood
+     as a white blaze straight through the water and washed the floor, the
+     reef and everything in front of it clean out of the view. Under the water
+     there is light, but there is no sun to look at. */
+  { const up=!underEye;
+    if(sun) sun.visible=up; if(moon) moon.visible=up;
+    if(sunHalo) sunHalo.visible=sunHalo.visible&&up;
+    if(moonHalo) moonHalo.visible=moonHalo.visible&&up; }
   if(underEye&&scene.fog){
     const eyeY2=state.mode==='dive'?state.dive.y:camera.position.y;
     const murk=Math.min(1,Math.max(0,SEA_SURF-eyeY2)/560);
-    const wc=mix3(0x061826,0x0f5170,0x36b0d8,1-murk);   /* deep dark → shallow turquoise */
+    /* deep dark → shallow turquoise. The shallow end was a pale sky-cyan, and
+       with the view now closing at three hundred units it washed the whole
+       reef out to one flat wash of it. A deeper sea-green holds the blocks
+       and the coral up against it. */
+    const wc=mix3(0x061826,0x0e4a68,0x2b8ba8,1-murk);
     /* AS DEEP AS THE EYE IS UNDER, and no deeper. A crest washing over the
        lens used to snap the whole world — sky, coast and all — to full
        water-light for the seconds it took to pass, and snap it back again:
@@ -6729,8 +6895,13 @@ function frame(){
        water. */
     const w=_eyeSub;
     scene.background.lerp(wc,w); scene.fog.color.lerp(wc,w);
+    /* THE WATER IS THE EDGE OF THE VIEW UNDER THE SEA, as it is in minecraft:
+       a short blue reach that closes to nothing in the trenches. It is held
+       INSIDE the blocky bed's own patch (672 units across), so the eye never
+       reaches the rim of the floor — and the deep looks as it should besides,
+       the far kelp going to shadow rather than standing sharp to the horizon. */
     scene.fog.near+=(4-scene.fog.near)*w;
-    scene.fog.far+=((820-murk*640)-scene.fog.far)*w;
+    scene.fog.far+=((330-murk*190)-scene.fog.far)*w;
     hemi.intensity+=((1.0-murk*0.6)-hemi.intensity)*w;
     dirL.intensity+=((0.5-murk*0.32)-dirL.intensity)*w; }
   /* ---- BREATH — the diver's chest against the deep ----
