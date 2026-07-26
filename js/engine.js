@@ -875,22 +875,35 @@ function buildChunk(cx,cz){
     bg.setIndex(g.i);
     const m=new THREE.Mesh(bg,MAT[mat]); m.frustumCulled=true;
     chunkRoot.add(m); meshes.push(m); }
-  chunks.set(cx+','+cz,{meshes});
+  chunks.set(cx+','+cz,{meshes,cx,cz});
 }
+const _chAt=[NaN,NaN];
 function updateChunks(px,pz,budget){
   const ccx=Math.floor(px/CHW), ccz=Math.floor(pz/CHW);
+  const moved=(ccx!==_chAt[0]||ccz!==_chAt[1]);
+  let added=false;
   for(let dz=-VIEW;dz<=VIEW;dz++) for(let dx=-VIEW;dx<=VIEW;dx++){
     if(dx*dx+dz*dz>VIEW*VIEW+2) continue;
-    const k=(ccx+dx)+','+(ccz+dz);
-    if(!chunks.has(k)&&!buildQueued.has(k)){ buildQueue.push(k); buildQueued.add(k); }
+    const cx=ccx+dx, cz=ccz+dz, k=cx+','+cz;
+    if(!chunks.has(k)&&!buildQueued.has(k)){ buildQueue.push({k,cx,cz}); buildQueued.add(k); added=true; }
   }
-  buildQueue.sort((A,Bq)=>{ const[a1,a2]=A.split(',').map(Number),[b1,b2]=Bq.split(',').map(Number);
-    return (a1-ccx)**2+(a2-ccz)**2-((b1-ccx)**2+(b2-ccz)**2); });
+  /* ---- THE QUEUE KEEPS ITS KEYS AS NUMBERS ----
+     It was re-sorted on every frame, and every single comparison split two
+     keys out of their strings and parsed four numbers out of them — on a
+     queue of two hundred waiting chunks that is some six thousand string
+     parses a frame, paid to arrive at the order the queue was already in.
+     The work was taken out of the very budget meant for building the ground,
+     which is why the land came in slowly as the traveller drew near it.
+     Nearest first still, so what is underfoot is laid before the horizon. */
+  if(added||moved){ _chAt[0]=ccx; _chAt[1]=ccz;
+    buildQueue.sort((A,Bq)=>((A.cx-ccx)**2+(A.cz-ccz)**2)-((Bq.cx-ccx)**2+(Bq.cz-ccz)**2)); }
   let n=0;
-  while(buildQueue.length&&n<budget){ const k=buildQueue.shift(); buildQueued.delete(k);
-    if(chunks.has(k)) continue; const[cx,cz]=k.split(',').map(Number); buildChunk(cx,cz); n++; }
-  for(const[k,ch] of chunks){ const[cx,cz]=k.split(',').map(Number);
-    const d=Math.max(Math.abs(cx-ccx),Math.abs(cz-ccz));
+  while(buildQueue.length&&n<budget){ const q=buildQueue.shift(); buildQueued.delete(q.k);
+    if(chunks.has(q.k)) continue; buildChunk(q.cx,q.cz); n++; }
+  /* and the reaping reads the chunk's own numbers rather than parsing them
+     back out of its key, two hundred times a frame */
+  for(const[k,ch] of chunks){
+    const d=Math.max(Math.abs(ch.cx-ccx),Math.abs(ch.cz-ccz));
     if(d>VIEW+2){ for(const m of ch.meshes){ chunkRoot.remove(m); m.geometry.dispose(); } chunks.delete(k); } }
 }
 
@@ -979,8 +992,25 @@ const _flLand=new Uint8Array(FL_NV);   /* dry ground, which may never be sunk */
 const FL_MS=6;                 /* the slice of a frame the rebuild may take */
 let _flAt=null, _flR1=FL_R1, _flJob=null;
 /* one ring of ground: the heights and the colours, read from the world */
-function flFillRing(k,px,pz,kr){
+function flFillRing(k,px,pz,kr,fine){
   const rr=FL_R0*Math.exp(kr*k/FL_RINGS);
+  /* ---- A RANGE, NOT A TENT ----
+     One point sample per vertex, at a spacing that grows from sixteen units
+     at the inner edge to hundreds at the outer, and a massif is barely a
+     hundred units across: the sample hit a mountain's shoulder as often as
+     its crown, and a whole chain came and went between one vertex and the
+     next. What was left standing was a lone smooth triangular tent where a
+     mountain wall should be — and it moved and changed shape with every
+     rebuild, because a different part of the range was hit each time.
+     Each vertex now takes the TALLEST land within its own footprint. A range
+     keeps its mass and its true stature, the same summits stand in the same
+     places every rebuild, and the ring reads as the land it stands for.
+     They are taken ONLY where the middle of the footprint is dry ground that
+     already stands like high country. The coastline is read from the one true
+     sample, so no land is ever grown out over the water; and the plains — the
+     most of the earth, and flat, with nothing for a wider look to find — are
+     not made to pay for a thing only the mountains need. */
+  const span=fine?Math.min(80,Math.round(rr*6.2832/FL_SPOKES/B*0.34)):0;
   for(let s=0;s<FL_SPOKES;s++){
     const v=k*FL_SPOKES+s, i=v*3;
     _flPB[i]=FL_COS[s]*rr; _flPB[i+2]=FL_SIN[s]*rr;
@@ -988,7 +1018,14 @@ function flFillRing(k,px,pz,kr){
     /* cellRaw, not cell — the village flattening is a matter of 86 units and
        cannot be seen out here, and filling the cell cache with far country
        would only thrash it for the ground underfoot */
-    const cc=cellRaw(Math.floor(wx/B),Math.floor(wz/B));
+    const ix=Math.floor(wx/B), iz=Math.floor(wz/B);
+    let cc=cellRaw(ix,iz);
+    if(cc&&cc.h>6&&span>1){
+      const a1=cellRaw(ix+span,iz+span); if(a1&&a1.h>cc.h) cc=a1;
+      const a2=cellRaw(ix-span,iz+span); if(a2&&a2.h>cc.h) cc=a2;
+      const a3=cellRaw(ix+span,iz-span); if(a3&&a3.h>cc.h) cc=a3;
+      const a4=cellRaw(ix-span,iz-span); if(a4&&a4.h>cc.h) cc=a4;
+    }
     let y,c;
     if(cc){ y=cc.h*B; c=FL_COL[cc.kind]||FL_COL.grass; }
     else if(Math.hypot(wx,wz)>R_WORLD*0.9955){
@@ -1059,8 +1096,15 @@ function updateFarLand(px,pz,force,eyeY){
      50 ms hitch, but only ever in the case where politeness has already lost;
      it is no longer the price of every step. */
   const rush=whole||lag>380;
+  /* and the footprint sampling is dropped ONLY when he is outrunning the ring
+     — there is no point paying for the true shape of a range that will be
+     thrown away and built again before the next second is out. A ring asked
+     for outright (the first of all, or a landfall set down by the firmament)
+     is built fine whatever the distance: it is built but once, and it is what
+     he sees when he arrives. */
+  const fine=whole||lag<=380;
   const J=_flJob, t0=performance.now();
-  while(J.k<=FL_RINGS){ flFillRing(J.k++,J.px,J.pz,J.kr);
+  while(J.k<=FL_RINGS){ flFillRing(J.k++,J.px,J.pz,J.kr,fine);
     if(!rush&&performance.now()-t0>=FL_MS) return; }
   while(J.sk<=FL_RINGS){ flShadeRing(J.sk++,J.r1);
     if(!rush&&performance.now()-t0>=FL_MS) return; }
@@ -2406,12 +2450,31 @@ TEX.sponge  =mkTex(g=>speckle(g,[224,176,64],28,[190,142,48],0.4));
    (W/S · A/D · SPACE up · SHIFT down), and comes up again to draw breath. */
 const DIVE_TURN=1.7, DIVE_MAXSP=155, DIVE_VMAX=125, DIVE_VACC=320, SEA_SURF=WATER_Y;
 let diveHintShown=false, deepShown=false, swimDeepHintShown=false;
+/* how near the surface the bed of the open sea may EVER come. Nothing that is
+   not on the chart is allowed to break the water. */
+const SB_MIN=34;
 function seabedDepth(x,z){
   const roll=fbm(x*0.02+11,z*0.02-7), basin=fbm(x*0.004-5,z*0.004+9);
   const trench=Math.pow(Math.max(0,fbm(x*0.0016+30,z*0.0016)-0.55)/0.45,1.6);
   const ridge=Math.pow(Math.max(0,fbm(x*0.003+70,z*0.003-40)-0.47)/0.53,1.7);   /* undersea mountains */
-  const peak=ridge*(360+fbm(x*0.011-3,z*0.011+6)*120);                          /* tall ridges, some breaking the surface */
-  let y=SEA_SURF-(20+roll*30+basin*120+trench*540-peak);      /* +peaks above the waves … −700 trenches */
+  const peak=ridge*(360+fbm(x*0.011-3,z*0.011+6)*120);                          /* the ridges of the bed */
+  /* how deep the bed lies before any ridge is raised upon it */
+  const base=20+roll*30+basin*120+trench*540;
+  /* ---- NO MOUNTAIN THAT IS NOT ON THE EARTH ----
+     The ridge was SUBTRACTED outright, and it stands three to four hundred
+     units where the bed is often only a hundred deep — so the open sea grew
+     whole ranges of its own that came up out of the water and stood over it
+     as green mountains. They are in NOTHING else: not in the chunks, not on
+     the far ring, not on the chart. Sail past them and they are not there;
+     put the eye under a wave and they are back. That is the whole of "the
+     water shows mountains that are not there".
+     The rise is FOLDED now: a seamount may climb most of the way up the
+     water column it stands in, and approaches the room there is without ever
+     passing it — so the bed keeps its ridges and its relief, and what stands
+     above the water is the land of the earth and nothing else. */
+  const room=Math.max(0,base-SB_MIN);
+  const rise=room>0.001 ? room*(1-Math.exp(-peak/room)) : 0;
+  let y=SEA_SURF-(base-rise);
   /* ONE sea, one bed: near the coasts the floor rises to meet the shelf at
      the land's foot (the same shoal field the surface water reads), so a
      swimmer can go down a coastal flank and keep going — sand at the
@@ -2434,24 +2497,66 @@ seaFloor.visible=false; seaFloor.frustumCulled=false; scene.add(seaFloor);
    also lets the bed be furnished while merely swimming, at no cost to a
    voyage spent on the surface. */
 let _sbAt=null;
+/* ---- THE BED IS LAID OVER MANY FRAMES, AND SWAPPED IN WHOLE ----
+   Nine thousand four hundred vertices, each costing six noise fields and a
+   shoal lookup, and then every normal in the mesh recomputed — some thirty
+   milliseconds of work. It was being paid EVERY NINE UNITS the swimmer moved,
+   which at swimming speed is six or seven times a second: the bed spent more
+   of each second being built than being drawn, and it came in late and in
+   lurches. That is "it is slow and it barely loads in when one gets close".
+   It is built now a slice of a frame at a time into a spare pair of buffers,
+   on a threshold of real travel; the bed on screen keeps its old shape and
+   its old anchor until the last vertex is ready, and then the whole of it
+   changes at once. A half-built bed is never shown. */
+const SB_NV=sbGeo.attributes.position.count;
+const _sbY=new Float32Array(SB_NV), _sbC=new Float32Array(SB_NV*3);
+const SB_MS=4;                  /* the slice of a frame the rebuild may take */
+const SB_STEP=44;               /* how far he must swim before it is rebuilt */
+let _sbJob=null;
 function updateSeaFloor(px,pz,force){
-  if(!force&&_sbAt&&Math.hypot(_sbAt[0]-px,_sbAt[1]-pz)<9) return;
-  _sbAt=[px,pz];
+  /* The very first bed has nothing to stand in for it, so it is built whole
+     before the frame is drawn rather than showing a flat sheet for a moment —
+     and so is a bed that has been LEFT BEHIND. He may surface here and go down
+     again a world away; there is no old bed to keep the view while the new one
+     is laid, so it is paid for at once rather than leaving him swimming over
+     nothing for a dozen frames. */
+  const lag=_sbAt?Math.hypot(_sbAt[0]-px,_sbAt[1]-pz):0;
+  const whole=force||!_sbAt||lag>SB_SIZE*0.25;
+  if(!_sbJob){
+    if(!whole&&lag<SB_STEP) return;
+    _sbJob={px,pz,v:0};
+  } else if(whole||Math.hypot(_sbJob.px-px,_sbJob.pz-pz)>SB_SIZE*0.25){
+    /* the half-laid bed is for a place he has already left — begin again */
+    _sbJob={px,pz,v:0}; }
+  const J=_sbJob, a=sbGeo.attributes.position.array, t0=performance.now();
+  const ROW=SB_SEG+1;
+  while(J.v<SB_NV){
+    const end=Math.min(SB_NV,J.v+ROW);
+    for(;J.v<end;J.v++){ const i=J.v*3;
+      /* the local x/z of the plane never change — only the world y written
+         into them — so they can be read straight back off the live mesh */
+      const wx=a[i]+J.px, wz=a[i+2]+J.pz, y=seabedDepth(wx,wz); _sbY[J.v]=y;
+      const depth=SEA_SURF-y, lit=Math.max(0,1-depth/460), alg=fbm(wx*0.03+3,wz*0.03+7);
+      /* The bed is DROWNED sand, not a meadow. It is painted over the beach-sand
+         texture, so the vertex tint must pull the yellow out of it and put the
+         cold of deep water in — muted at the top of the shelf and near black in
+         the trenches; and the weed upon it is a dull olive, never lawn green. */
+      let r=0.22+0.34*lit, g=0.25+0.34*lit, b=0.27+0.30*lit;
+      if(alg>0.62){ const w=Math.min(1,(alg-0.62)/0.16); r*=1-0.30*w; g*=1-0.14*w; b*=1-0.34*w; }
+      _sbC[i]=r; _sbC[i+1]=g; _sbC[i+2]=b; }
+    if(!whole&&performance.now()-t0>=SB_MS) return;
+  }
+  /* done — the new bed takes the place of the old one in a single step */
+  const col=sbGeo.attributes.color.array;
+  for(let v=0;v<SB_NV;v++) a[v*3+1]=_sbY[v];
+  col.set(_sbC);
   /* the mesh is anchored WHERE ITS DATA WAS BUILT. Each vertex holds a local
      x/z and an absolute world y, so moving the mesh without rebuilding would
      drag the whole sea bed along behind the swimmer. */
-  seaFloor.position.set(px,0,pz);
-  const pos=sbGeo.attributes.position, a=pos.array, col=sbGeo.attributes.color.array;
-  for(let i=0;i<a.length;i+=3){ const wx=a[i]+px, wz=a[i+2]+pz, y=seabedDepth(wx,wz); a[i+1]=y;
-    const depth=SEA_SURF-y, lit=Math.max(0,1-depth/460), alg=fbm(wx*0.03+3,wz*0.03+7);
-    /* The bed is DROWNED sand, not a meadow. It is painted over the beach-sand
-       texture, so the vertex tint must pull the yellow out of it and put the
-       cold of deep water in — muted at the top of the shelf and near black in
-       the trenches; and the weed upon it is a dull olive, never lawn green. */
-    let r=0.22+0.34*lit, g=0.25+0.34*lit, b=0.27+0.30*lit;
-    if(alg>0.62){ const w=Math.min(1,(alg-0.62)/0.16); r*=1-0.30*w; g*=1-0.14*w; b*=1-0.34*w; }
-    col[i]=r; col[i+1]=g; col[i+2]=b; }
-  pos.needsUpdate=true; sbGeo.attributes.color.needsUpdate=true; sbGeo.computeVertexNormals(); }
+  seaFloor.position.set(J.px,0,J.pz);
+  _sbAt=[J.px,J.pz]; _sbJob=null;
+  sbGeo.attributes.position.needsUpdate=true; sbGeo.attributes.color.needsUpdate=true;
+  sbGeo.computeVertexNormals(); }
 /* ---- kelp — tall strands rising from the floor, swaying with the current ---- */
 const kelpMat=new THREE.MeshLambertMaterial({map:TEX.kelp,side:THREE.DoubleSide});
 function makeKelp(){ const g=new THREE.Group(), segs=[];
@@ -2882,22 +2987,40 @@ function hideDeep(){ seaFloor.visible=false;
   for(const d of DOLPHINS)d.m.visible=false; for(const s of SHARKS)s.m.visible=false; hideSeaMobs();
   for(const b of BUB)b.s.visible=false; for(const w of WRECKS)w.visible=false; hidePearls(); deepShown=false; }
 /* ---- IS THE EYE BENEATH THE WAVES? ----
-   ONE SEA, not two. The deep was furnished only while the traveller dived, so
-   a swimmer at the surface — or a camera rolled under the swell from the
-   strand — looked down into an empty blue with no floor beneath it at all.
-   Whatever puts the eye under the water puts it in the SAME sea, and the bed,
-   the kelp and the fish must all be standing there when it looks. */
+   ONE SEA, not two: whatever truly puts the eye under the water puts it in the
+   SAME sea the diver swims, and the bed, the kelp and the fish are all
+   standing there when it looks.
+   But a crest rolling past the lens is not going under. The test used to be
+   made against the WAVE — the eye was reckoned drowned the moment the water
+   beside it stood higher — and a swimmer FLOATS in the swell: his body rides
+   from a little over the crest to five units beneath it and back again, and
+   the eye rides with him. So every wave that came through repainted the sky,
+   the sea and the whole world in turquoise water-light for the three or four
+   seconds it took to roll by, and let them all go again as it passed. That is
+   the blue tint that "comes on when the waves go up, and then changes back to
+   normal". A man at the surface is AT THE SURFACE: he sees the world in its
+   own light, always, whatever the sea does about him. Going under is a thing
+   he does on purpose — and then he is diving, and then the deep closes over
+   him as it should. */
 let _eyeUnder=false;
 function eyeUnderwater(){
   if(state.firm){ _eyeUnder=false; return false; }
   if(state.mode==='dive'){ _eyeUnder=true; return true; }
+  /* THE SHIP IS NEVER IN THE SEA. Aboard her — at the helm, on the deck, or
+     down in the hold below the waterline — the eye is inside a hull, and no
+     swell rolling past the lens puts it in the water. */
+  if(state.mode==='deck'||state.mode==='boat'){ _eyeUnder=false; return false; }
   const cp=camera.position;
   if(landAtWorld(cp.x,cp.z)){ _eyeUnder=false; return false; }
-  /* a little hysteresis at the waterline: the eye must rise clear of the
-     swell to come out, or a crest lapping the lens would flicker the whole
-     sea on and off from one frame to the next */
-  const surf=WATER_Y+seaHeight(cp.x,cp.z);
-  _eyeUnder = _eyeUnder ? cp.y<surf+0.55 : cp.y<surf-0.15;
+  /* Depth is measured against the SETTLED sea, never against the passing
+     wave. For a swimmer the mark is set deeper than the whole swing of his
+     float, so no sea he can meet at the surface will ever close over him;
+     should he somehow be carried below it — flung down by a great storm — the
+     water closes properly rather than leaving him looking through the deep
+     with the sky still on. */
+  const swimming=state.mode==='walk'&&state.walk.inWater;
+  const under=WATER_Y-(swimming?9.0:2.4);
+  _eyeUnder = _eyeUnder ? cp.y<under+1.4 : cp.y<under;
   return _eyeUnder;
 }
 /* full — the traveller is truly down in the deep, so the wrecks of the
@@ -5838,8 +5961,9 @@ function cameraTick(dt){
   if(!camInside){ const wantNear=Math.max(1,Math.min(600,dist*0.02));
     if(Math.abs(camera.near-wantNear)>Math.max(0.5,camera.near*0.15)){
       camera.near=wantNear; camera.updateProjectionMatrix(); } }
-  /* swimming, the eye rides low along the waterline — the swell can roll
-     right over it (the frame loop tints the world to water-light when it does) */
+  /* swimming, the eye rides low along the waterline. The swell rolls over it
+     and off again without the world being repainted in water-light: a crest
+     passing the lens is not the same thing as going under (see eyeUnderwater). */
   const swimCam=state.mode==='walk'&&state.walk.inWater;
   const lift=state.mode==='deck'?5:swimCam?2.2:8;
   const cy=baseY+lift+spit*dist;
