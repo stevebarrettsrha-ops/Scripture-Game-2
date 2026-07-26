@@ -1471,6 +1471,25 @@ function waterTick(px,pz,dayF,storm){
   u.uZenith.value.copy(mix3(0x05070f,0x27446e,0x3d76c0,dayF)).multiplyScalar(1-storm*0.45);
   if(scene.fog){ u.uFogColor.value.copy(scene.fog.color);
     u.uFogNear.value=scene.fog.near; u.uFogFar.value=scene.fog.far; }
+  /* ---- ONE SEA, NOT THREE ----
+     Beneath the Gerstner grid lie two flat backdrop discs, and they were
+     painted a FIXED cold navy that never moved with the hour. The grid above
+     them takes the day's light — so at dawn and at dusk, when the water goes
+     warm and pale, the discs stayed winter-blue and the seam between them cut
+     a hard straight line across the whole ocean: two, and sometimes three,
+     visible layers of water stacked one over another.
+     They are given the SAME colour the grid's own deep water reads as under
+     this hour's light, and laid into the haze besides, so wherever one shows
+     past the other there is nothing to see. */
+  { const deep=u.uDeep.value, L=u.uLight.value;
+    const fr=scene.fog?scene.fog.color:null;
+    /* what the shader makes of deep water: base × light, with no sun on it */
+    let r=deep.r*0.72*L.r, g=deep.g*0.72*L.g, b=deep.b*0.72*L.b;
+    /* only a touch toward the haze — three's own fog is already on these
+       discs, so a heavy pre-mix here lightened them past the grid again */
+    if(fr){ const k=0.13; r+=(fr.r-r)*k; g+=(fr.g-g)*k; b+=(fr.b-b)*k; }
+    farSeaMat.color.setRGB(r,g,b);
+    seaDeep.material.color.setRGB(r*0.82,g*0.82,b*0.86); }
   sun.getWorldPosition(_sunW); u.uSunDir.value.copy(_sunW).normalize();
   /* the moon rules the water only when she is up and the sun is down, and she
      fades with her own setting as the sun's light comes back over her */
@@ -1931,20 +1950,28 @@ const TRADERS=[];
 function initTraders(){ if(TRADERS.length) return;
   for(let k=0;k<2;k++){ const g=new THREE.Group();
     const sc=0.62, h=hullG.clone(); h.scale.set(SHIP_SX*sc,SHIP_S*sc,SHIP_S*sc); g.add(h);
-    /* no ghost ships — a living crew works her deck: a watch at the bow, the
-       master aft by the wheel, hands in the waist (deck posts in boatG-local
-       coordinates, shrunk with the hull) */
+    /* ---- NO GHOST SHIPS, AND NO SHIP SAILING HERSELF ----
+       A living crew works her deck: a watch at the bow, hands in the waist —
+       and A MAN AT THE WHEEL. The master used to stand off to one side of the
+       helm with his back to the bow, so every merchantman on the sea was
+       steering herself while her master looked astern. He stands AT the wheel
+       now, exactly where the traveller stands at his own, facing the bow with
+       both hands upon it, and he works it as she comes round. */
     const posts=[
-      {lx:0,lz:20*SHIP_S,ry:0},
-      {lx:-2.2*SHIP_SX,lz:-19*SHIP_S,ry:Math.PI},
+      {lx:HELM.x, lz:HELM.z, ry:0, helm:true},          /* the helmsman */
+      {lx:0,lz:20*SHIP_S,ry:0},                          /* the watch at the bow */
       {lx:3.4*SHIP_SX,lz:7*SHIP_S,ry:Math.PI*0.55},
       {lx:-3.8*SHIP_SX,lz:-4*SHIP_S,ry:-Math.PI*0.4}];
     const crew=[];
     for(let i=0;i<posts.length;i++){ const p=posts[i];
-      const m=makePerson(7300+k*57+i*13,'sailor',false,i===2);
+      const m=makePerson(7300+k*57+i*13,'sailor',false,i===3);
       m.scale.setScalar(0.85);
-      m.position.set(p.lx*sc,deckHeightAt(p.lz)*sc,p.lz*sc);
-      m.rotation.y=p.ry; m.userData.baseRy=p.ry;
+      /* the helmsman stands on the quarterdeck, not on the waist planks */
+      const py=p.helm?QDECK_Y:deckHeightAt(p.lz);
+      m.position.set(p.lx*sc,py*sc,p.lz*sc);
+      m.rotation.y=p.ry; m.userData.baseRy=p.ry; m.userData.helm=!!p.helm;
+      /* both hands out upon the wheel, as the traveller's are */
+      if(p.helm&&m.userData.armL){ m.userData.armL.rotation.x=-1.15; m.userData.armR.rotation.x=-1.15; }
       g.add(m); crew.push(m); }
     g.visible=false; scene.add(g);
     TRADERS.push({g,crew,x:0,z:0,h:0,sp:18+k*7,set:false}); } }
@@ -1961,18 +1988,34 @@ function traderTick(px,pz,dt){ initTraders();
       if(landAtWorld(ax,az)||Math.hypot(ax,az)/R_WORLD>0.93) T.h+=dt*0.8; /* bear away from the shoals */
       T.x+=Math.sin(T.h)*T.sp*dt; T.z+=Math.cos(T.h)*T.sp*dt;
     }
+    /* THE HELMSMAN WORKS HER ROUND. His hands stay on the wheel and he leans
+       into the turn as she answers it, so the ship is plainly being STEERED
+       and not merely drifting on her course. */
+    { const turn=(T.h-(T.lastH===undefined?T.h:T.lastH));
+      let d=turn; while(d>Math.PI)d-=6.2832; while(d<-Math.PI)d+=6.2832;
+      T.wheelLean=(T.wheelLean||0)+((d/Math.max(dt,0.0001))*0.55-(T.wheelLean||0))*Math.min(1,dt*3);
+      T.lastH=T.h;
+      const lean=Math.max(-0.5,Math.min(0.5,T.wheelLean||0));
+      for(const m of T.crew){ if(!m.userData.helm) continue;
+        m.rotation.y=m.userData.baseRy+lean*0.7;
+        if(m.userData.armL){
+          m.userData.armL.rotation.x=-1.15; m.userData.armR.rotation.x=-1.15;
+          m.userData.armL.rotation.z= 0.18+lean; m.userData.armR.rotation.z=-0.18+lean; } } }
     const hd=seaHeight(T.x,T.z);
     T.g.position.set(T.x,WATER_Y-1.4+hd*0.6,T.z);
     T.g.rotation.y=T.h; T.g.rotation.z=Math.sin(performance.now()*0.0009+T.x*0.01)*0.04;
     /* hailed and hove to, her crew turn to the rail — and the bow watch waves */
-    if(T.crew&&T.crew.length){
-      const w0=T.crew[0].userData;
+    if(T.crew&&T.crew.length>1){
+      /* crew[0] has the wheel; it is the BOW WATCH (crew[1]) who waves */
+      const w0=T.crew[1].userData;
       if(T.halt&&T.halt>0){
         const ang=Math.atan2(state.boat.x-T.x,state.boat.z-T.z)-T.h;
         for(const m of T.crew) m.rotation.y=ang;
         w0.armR.rotation.x=-2.7; w0.armR.rotation.z=Math.sin(performance.now()*0.008)*0.5;
       } else {
-        for(const m of T.crew) m.rotation.y=m.userData.baseRy;
+        /* every hand back to his post — but the helmsman keeps his wheel, and
+           his own lean with it, or he would be squared up and let go of it */
+        for(const m of T.crew){ if(!m.userData.helm) m.rotation.y=m.userData.baseRy; }
         w0.armR.rotation.x=0; w0.armR.rotation.z=0;
       }
     }
@@ -3452,8 +3495,25 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
     if(moving){ const nx=a.x+dx/dd*spd*dt, nz=a.z+dz/dd*spd*dt, c=landAtWorld(nx,nz);
       /* the step a beast can take is now measured in blocks, not units — on a
          mountain flank the old flat limit stopped everything dead */
-      if(c&&c.kind!=='wall'&&Math.abs(c.h*B-a.m.position.y)<B*1.7){ a.x=nx; a.z=nz; a.heading=Math.atan2(dx,dz); }
-      else a.jt=0; }
+      if(c&&c.kind!=='wall'&&Math.abs(c.h*B-a.m.position.y)<B*1.7){ a.x=nx; a.z=nz; a.heading=Math.atan2(dx,dz); a.stuck=0; }
+      else {
+        /* ---- A BEAST TURNS AWAY FROM WHAT IT CANNOT CROSS ----
+           When the way was barred it only reset its work-timer and kept the
+           SAME place to walk to — so it stood against the lip of a crag or a
+           cliff head and pushed at it, frame after frame, treading on the
+           spot until something else moved it. It now takes a new bearing,
+           sheering off to one side; and if that side is barred too it swings
+           further each time, so it works its way out of any corner it has
+           walked itself into. */
+        a.stuck=(a.stuck||0)+1;
+        const away=Math.atan2(dx,dz)+(a.stuck%2?1:-1)*(0.7+0.45*Math.min(4,a.stuck));
+        const reach=26+Math.random()*34;
+        a.tx=a.x+Math.sin(away)*reach; a.tz=a.z+Math.cos(away)*reach;
+        a.heading=away; a.jt=Math.max(a.jt,0.6);
+        /* and if it has been penned a long while, it gives up that ground and
+           looks for another spot of its own country altogether */
+        if(a.stuck>14){ a.set=false; a.stuck=0; }
+      } }
     const c2=landAtWorld(a.x,a.z);
     /* how the body carries itself at its work */
     let lift=0, lean=0;
@@ -5064,11 +5124,26 @@ function updateLandmarks(px,pz){
 /* ================= NAME BANNERS ================= */
 const labelCache=new Map(); const shownLabels=new Map(); let namesOn=true;
 function makeLabel(text,gold){
-  const c=texCanvas(1024,170);
-  const g=c.getContext('2d'); g.font='600 74px Georgia,serif'; g.textAlign='center'; g.textBaseline='middle';
+  const W=1024, H=170;
+  const c=texCanvas(W,H);
+  const g=c.getContext('2d'); g.textAlign='center'; g.textBaseline='middle';
+  const t=text.toUpperCase();
+  /* ---- A NAME IS WRITTEN TO FIT ITS BANNER ----
+     The letters were set at one fixed size on a canvas of one fixed width, so
+     any name longer than about twenty characters ran off both ends of it and
+     was CUT: "TEMPLE OF KARNAK AT NO" arrived as "EMPLE OF KARNAK AT N". The
+     name is measured now and the hand shrinks to suit — the banner keeps its
+     size on the shore, and the long names are simply written smaller, as they
+     would be on a real signboard. */
+  let size=74;
+  const PAD=34, ROOM=W-PAD*2;
+  g.font='600 '+size+'px Georgia,serif';
+  const w0=g.measureText(t).width;
+  if(w0>ROOM){ size=Math.max(26,Math.floor(size*ROOM/w0));
+    g.font='600 '+size+'px Georgia,serif'; }
   g.shadowColor='rgba(0,0,0,0.85)'; g.shadowBlur=16;
-  g.lineWidth=10; g.strokeStyle='rgba(5,7,15,0.9)'; g.strokeText(text.toUpperCase(),512,85);
-  g.fillStyle=gold?'#e8c66a':'#efe6cf'; g.fillText(text.toUpperCase(),512,85);
+  g.lineWidth=Math.max(4,size*0.135); g.strokeStyle='rgba(5,7,15,0.9)'; g.strokeText(t,W/2,85);
+  g.fillStyle=gold?'#e8c66a':'#efe6cf'; g.fillText(t,W/2,85);
   const sm=new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),fog:false,transparent:true,depthWrite:false,depthTest:false});
   const sp=new THREE.Sprite(sm); sp.scale.set(300,50,1); return sp;
 }
@@ -5419,7 +5494,7 @@ function walkTick(dt){
   if(swimming){
     if(!w.inWater){
       const plunging=w.vy<-30;
-      w.inWater=true; splash(w.x,surfY+1,w.z,w.vy<-14);
+      w.inWater=true; w.spill=0; splash(w.x,surfY+1,w.z,w.vy<-14);
       /* struck the water hard from a height and the water is deep — the body
          drives under, then buoyancy gives it back to the surface */
       if(plunging&&seabedDepth(w.x,w.z)<surfY-10){
@@ -5476,14 +5551,42 @@ function walkTick(dt){
     w.wRoll =cl2( (sl.x*fwdZ-sl.z*fwdX)*2.6,0.32);
   }
   else { if(w.inWater){ w.inWater=false; }
+    /* (a sprawl is a thing of dry land — water catches him instead) */
     w.driftX=0; w.driftZ=0; w.wPitch=0; w.wRoll=0;   /* out of the water, out of its motion */
     w.vy-=64*dt; w.feetY+=w.vy*dt;
+    /* ---- A BODY DOES NOT FALL FASTER THAN IT CAN BE CAUGHT ----
+       Off the shoulder of a mountain a thousand units high the fall reached
+       hundreds of units a second, and at that speed a frame carries the body
+       clean PAST a ledge before anything can test it — which is the whole of
+       "he clips through the mountain". The fall is now capped at a speed the
+       ground can still be found at, and the step down is walked in slices no
+       longer than half a block, so every ledge on the way down is offered to
+       him and he stands on the first one that will hold him. */
+    if(w.vy<-190) w.vy=-190;
+    { const y0=w.feetY-w.vy*dt;          /* where he was before this frame */
+      const drop=y0-w.feetY;
+      if(drop>B*0.5&&!gi.water){
+        const steps=Math.min(24,Math.ceil(drop/(B*0.5)));
+        for(let k=1;k<=steps;k++){
+          const yk=y0-drop*(k/steps);
+          if(yk<=gi.y){ w.feetY=gi.y; break; }
+          w.feetY=yk; } } }
     /* land arrests the fall; water does not — the body carries its speed
        through the surface so the plunge can read it */
-    if(w.feetY<=gi.y&&!gi.water){ w.feetY=gi.y; w.vy=0; w.grounded=true; } else w.grounded=false;
-    if((keys.Space||w.jumpReq)&&w.grounded){ w.vy=38; w.grounded=false; } w.jumpReq=false; }
+    /* A JUMP LANDS AT ABOUT -38, and a man is not winded by his own hop —
+       only a real drop puts him down. */
+    const wasFalling=!w.grounded&&w.vy<-88;
+    if(w.feetY<=gi.y&&!gi.water){
+      w.feetY=gi.y;
+      /* ---- AND HE IS WINDED BY IT ----
+         A long drop puts him down hard: he lands sprawled and gathers himself
+         up again over a moment, rather than striking the rock at a hundred
+         units a second and walking on as though nothing had happened. */
+      if(wasFalling&&!w.climb) w.spill=Math.min(1.5,0.45+(-w.vy)/190*1.05);
+      w.vy=0; w.grounded=true; } else w.grounded=false;
+    if((keys.Space||w.jumpReq)&&w.grounded&&!(w.spill>0)){ w.vy=38; w.grounded=false; } w.jumpReq=false; }
   /* ---- horizontal move, gated by the height of the ground ahead ---- */
-  const sp=f*(swimming?16:18);
+  const sp=(w.spill>0&&!swimming)?0:f*(swimming?16:18);   /* winded — no walking till he is up */
   const fullX=w.x+Math.sin(w.heading)*sp*dt, fullZ=w.z+Math.cos(w.heading)*sp*dt;
   /* THE BODY IS NOT A POINT. Every test below was made at the traveller's
      midline alone, so he could stand with his centre just inside a cell and
@@ -5554,9 +5657,43 @@ function walkTick(dt){
       u.armL.rotation.z=0.85; u.armR.rotation.z=-0.85;
       u.legL.rotation.x=Math.sin(s*1.6)*0.45; u.legR.rotation.x=-Math.sin(s*1.6)*0.45;
     }
-  } else if(!w.grounded){                                 /* the jump pose */
-    walkerG.rotation.x=0; walkerG.rotation.z=0; u.armL.rotation.z=0; u.armR.rotation.z=0;
-    u.legL.rotation.x=0.55; u.legR.rotation.x=-0.3; u.armL.rotation.x=-0.7; u.armR.rotation.x=-0.7;
+  } else if(!w.grounded){
+    /* ---- THE JUMP, AND THE FALL ----
+       A hop off a step and a drop off a mountain shoulder are not the same
+       thing. Up to a little way he keeps the tidy jump pose; past that the
+       body knows it is FALLING, and he wheels his arms and kicks for ground
+       that is not there — faster the longer he has been dropping. */
+    walkerG.rotation.z=0;
+    const fall=Math.max(0,Math.min(1,(-w.vy-30)/110));
+    if(fall<=0.001){                                    /* the tidy little jump */
+      walkerG.rotation.x=0; u.armL.rotation.z=0; u.armR.rotation.z=0;
+      u.legL.rotation.x=0.55; u.legR.rotation.x=-0.3;
+      u.armL.rotation.x=-0.7; u.armR.rotation.x=-0.7;
+    } else {                                            /* windmilling for his life */
+      const fp=performance.now()*(0.012+fall*0.024);
+      walkerG.rotation.x=-0.30*fall+Math.sin(fp*0.6)*0.10*fall;
+      u.armL.rotation.x=-2.5-Math.sin(fp)*1.5*fall;
+      u.armR.rotation.x=-2.5+Math.sin(fp+2.1)*1.5*fall;
+      u.armL.rotation.z= 0.55*fall+Math.sin(fp*0.8)*0.35*fall;
+      u.armR.rotation.z=-0.55*fall-Math.sin(fp*0.8+1.0)*0.35*fall;
+      u.legL.rotation.x= 0.75*fall+Math.sin(fp*1.1)*0.55*fall;
+      u.legR.rotation.x=-0.45*fall-Math.sin(fp*1.1)*0.55*fall;
+    }
+  } else if(w.spill>0){
+    /* ---- AND HE GATHERS HIMSELF UP AGAIN ----
+       Down on the rock where he struck it, and rising slowly out of it: first
+       sprawled flat with his arms flung out, then pushing up on them, then
+       standing. He cannot walk or jump until he is on his feet. */
+    w.spill=Math.max(0,w.spill-dt);
+    const p=1-Math.min(1,w.spill/1.5);                  /* 0 just down … 1 up again */
+    const rise=Math.max(0,(p-0.35)/0.65);
+    const e=rise*rise*(3-2*rise);
+    walkerG.rotation.x=(1.30)*(1-e);                    /* flat, then upright */
+    walkerG.rotation.z=0;
+    walkerG.position.y=w.feetY-5.6*(1-e);               /* sprawled low, then standing */
+    u.armL.rotation.x=-2.30+e*2.30; u.armR.rotation.x=-2.30+e*2.30;
+    u.armL.rotation.z= 0.95*(1-e);   u.armR.rotation.z=-0.95*(1-e);
+    u.legL.rotation.x= 0.55*(1-e);   u.legR.rotation.x=-0.35*(1-e);
   } else { const ph=performance.now()*0.011;
     walkerG.rotation.x=0; walkerG.rotation.z=0; u.armL.rotation.z=0; u.armR.rotation.z=0;
     u.legL.rotation.x=moving?Math.sin(ph)*0.7:0; u.legR.rotation.x=moving?-Math.sin(ph)*0.7:0;
@@ -6517,7 +6654,12 @@ function weatherTick(px,pz,dt,storm){
   if(boltFlash>0.01&&!state.firm&&state.mode!=='dive'){
     hemi.intensity+=boltFlash*1.5; dirL.intensity+=boltFlash*0.7;
     scene.background.lerp(_boltWhite,boltFlash*0.4);
-    if(scene.fog) scene.fog.color.lerp(_boltWhite,boltFlash*0.4);
+    /* THE LIGHTNING LIGHTS THE SKY, NOT THE SEA. The haze was whitened as
+       hard as the sky was — and the water drinks the haze twice over, once
+       for its own colour at range and again for the sky it mirrors — so every
+       bolt threw a white sheet across the whole ocean. The sky still cracks
+       open; the water only catches a little of it, as water does. */
+    if(scene.fog) scene.fog.color.lerp(_boltWhite,boltFlash*0.12);
   }
 }
 
