@@ -2019,8 +2019,15 @@ function nearestGround(x,z){ const ci=Math.round(x/GROUND_CS), cj=Math.round(z/G
 function groundFactor(x,z){ const g=nearestGround(x,z); if(!g) return 0;
   return Math.max(0,1-g.d/420); }
 const POD=[]; let podState=null, songT=-99;
+/* THE POD IS A FAMILY, not three of a size: a cow, her yearling and a calf,
+   and a bull orca running with them. The scale here is a beast's AGE — 1 is
+   full grown, and every beast's grown size is the metres in its own file. */
+const POD_KINDS=[['whale',1.0],['whale',0.78],['whale',0.52],['orca',1.0]];
+const POD_LEN=[];      /* how long each of them truly is, in world units */
 function initPod(){ if(POD.length) return;
-  for(let k=0;k<3;k++){ const m=makeWhale(); m.scale.setScalar(0.68+k*0.14); m.visible=false; scene.add(m); POD.push(m); } }
+  for(const [kind,age] of POD_KINDS){ const m=makeBeast(kind);
+    m.scale.setScalar(age); m.visible=false; scene.add(m); POD.push(m);
+    POD_LEN.push(beastUnits(kind)*age); } }
 function whaleSong(){ if(!AC||!audioOn) return;
   try{ for(let k=0;k<2;k++){
       const o=AC.createOscillator(), g2=AC.createGain();
@@ -2051,11 +2058,21 @@ function podTick(px,pz,dt,t){
       else { podState.x+=dz/dd*podSp*dt; podState.z-=dx/dd*podSp*dt; } }   /* slide along the coast */
     else { podState.arrived=true; podState.dir+=dt*0.22;
       podState.x=g.x+Math.sin(podState.dir)*120; podState.z=g.z+Math.cos(podState.dir)*120; } }
-  for(let k=0;k<POD.length;k++){ const m=POD[k];
-    const off=k*2.1, wx=podState.x+Math.sin(t*0.13+off)*40+k*24, wz=podState.z+Math.cos(t*0.11+off)*40-k*20;
+  /* THE POD SPREADS TO ITS OWN STATURE. They swam twenty units apart, which
+     was room enough while a whale was seven metres long; grown to sixteen she
+     is ninety-six units of beast, and the family swam THROUGH one another.
+     They keep a length and a half between them now, whatever that length is,
+     so changing `metres` in the file spreads the pod to match. */
+  for(let k=0;k<POD.length;k++){ const m=POD[k], len=POD_LEN[k]||60;
+    const off=k*2.1, lane=len*1.5;
+    const wx=podState.x+Math.sin(t*0.13+off)*40+k*lane*0.55;
+    const wz=podState.z+Math.cos(t*0.11+off)*40-k*lane*0.45;
     if(landAtWorld(wx,wz)){ m.visible=false; continue; }   /* no whale spouts upon the dry land */
     const arc=Math.sin(t*0.5+off*1.7);
-    m.position.set(wx, WATER_Y-7+Math.max(0,arc)*10, wz);
+    /* she rides with her back awash and rolls up to blow — both measured off
+       her own girth, so a calf does not breach like a bull */
+    const draft=len*0.10;
+    m.position.set(wx, WATER_Y-draft+Math.max(0,arc)*draft*0.75, wz);
     m.rotation.y=podState.dir+Math.sin(t*0.2+off)*0.4; m.rotation.x=-arc*0.22;
     m.visible=true;
     if(arc>0.965&&Math.random()<dt*5) splash(wx,WATER_Y+2.5,wz,true);   /* the spout */
@@ -2070,6 +2087,61 @@ function hidePod(){ for(const m of POD) m.visible=false; }
 /* ================= THE TRAVELLER (steve-fashion) ================= */
 function lam(col){ return new THREE.MeshLambertMaterial({color:col}); }
 function lbox(w,h,d,col){ return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),lam(col)); }
+
+/* ================= THE LIVING THINGS, ONE TO A FILE =================
+   Every beast has its own file in creatures/, and declares there the one
+   number that matters — its TRUE ADULT LENGTH IN METRES. The model itself may
+   be built at any convenient size: this measures what the file made and scales
+   the whole of it so the beast really is as long as it says.
+   That is what fixes the whales. They were drawn to look right beside a fish
+   and came out at six metres, a third of a humpback and a quarter of a blue —
+   the greatest thing that has ever lived, no longer than a rowing boat. Now
+   the file says 16 and the beast IS 16, and nothing in the model has to be
+   kept in proportion with anything else by hand. */
+/* The world is built at six units to the metre — a block is a metre, and the
+   traveller stands about two of them, as he does in minecraft. */
+const U_PER_M=6;
+const BEASTS=(window.EARTH&&window.EARTH.beastList)||[];
+const BEAST_BY_NAME={}; for(const b of BEASTS) BEAST_BY_NAME[b.name]=b;
+/* the toolkit the creature files build with, so they need no imports */
+const BEAST_KIT={
+  THREE,
+  group:()=>new THREE.Group(),
+  box:lbox,
+  faces:(w,h,d,mats)=>new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mats),
+  mat:t=>new THREE.MeshLambertMaterial({map:t}),
+  matc:c=>lam(c),
+  glass:(c,o)=>new THREE.MeshLambertMaterial({color:c,transparent:true,opacity:o===undefined?0.7:o}),
+  tex:mkTex, speckle, jit, px:P, rgb, hash:hash2
+};
+/* how long the built model runs along the axis its file measures it by */
+const _bBox=new THREE.Box3(), _bSize=new THREE.Vector3();
+function beastSpan(g,axis){
+  _bBox.setFromObject(g); _bBox.getSize(_bSize);
+  return axis==='x'?_bSize.x : axis==='y'?_bSize.y : _bSize.z;
+}
+/* build one beast, grown to its true stature. Extra arguments are passed
+   through to the file's build (the fish takes its colour that way). */
+function makeBeast(name,arg){
+  const spec=BEAST_BY_NAME[name];
+  if(!spec) throw new Error('no creature file for "'+name+'"');
+  const inner=spec.build(BEAST_KIT,arg);
+  const span=beastSpan(inner,spec.axis);
+  /* THE BEAST IS WRAPPED, AND THE WRAPPER GROWS IT. The engine sets scale on
+     what it is handed (a calf in the pod, a shark rearing) — so the true
+     stature is put on an INNER group where nothing can clobber it, and what
+     the engine holds is a plain group at scale 1 that means "unremarkable
+     for its kind". */
+  if(span>0.001&&spec.metres>0) inner.scale.setScalar((spec.metres*U_PER_M)/span);
+  const g=new THREE.Group();
+  g.rotation.order=inner.rotation.order;
+  g.add(inner);
+  g.userData=inner.userData||{};      /* tail, tents, wings — the moving parts */
+  return g;
+}
+/* what the file says this beast truly measures, in world units */
+function beastUnits(name){ const s=BEAST_BY_NAME[name];
+  return s?s.metres*U_PER_M:0; }
 /* Steve-fashion: dark brown hair in a clean, straight fringe (no ragged edge),
    sideburns down the temples, a bowl of hair on top and round the back. */
 const SKIN_RGB=[199,140,95], HAIR_RGB=[46,32,18], ROBE_A=[56,66,116], ROBE_D=[46,56,100];
@@ -2448,53 +2520,10 @@ function makeNest(){ const g=new THREE.Group();
 /* ---- PIXEL SKINS FOR THE CREATURES OF THE SEA ----
    Countershading, stripes, scutes and throat-grooves — every beast of the
    water wears a proper minecraft hide, no more flat colours. */
-const fishStripeTex=mkTex(g=>{ g.fillStyle='rgb(255,255,255)'; g.fillRect(0,0,16,16);
-  g.fillStyle='rgba(0,0,0,0.3)'; for(const x of [3,7,11]) g.fillRect(x,2,2,12);
-  g.fillStyle='rgba(255,255,255,0.55)'; g.fillRect(0,0,16,2); });
-const dolphTop=mkTex(g=>speckle(g,[116,138,156],10,[102,124,142],0.3));
-const dolphBelly=mkTex(g=>speckle(g,[232,238,244],6,[218,226,234],0.3));
-const dolphSide=mkTex(g=>{ speckle(g,[134,152,168],10,[120,138,156],0.3);
-  for(let y=12;y<16;y++)for(let x=0;x<16;x++){ const c=jit([228,234,240],8,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } });
-const turtleShellTex=mkTex(g=>{ speckle(g,[64,112,70],12,[54,98,60],0.3);
-  g.strokeStyle='rgb(36,64,40)'; g.lineWidth=1;
-  g.strokeRect(0.5,0.5,15,15);
-  for(const x of [5.5,10.5]){ g.beginPath(); g.moveTo(x,1); g.lineTo(x,15); g.stroke(); }
-  for(const y of [5.5,10.5]){ g.beginPath(); g.moveTo(1,y); g.lineTo(15,y); g.stroke(); } });
-const turtleBellyTex=mkTex(g=>{ speckle(g,[214,204,160],10,[198,188,146],0.3);
-  g.strokeStyle='rgb(150,140,102)'; g.lineWidth=1;
-  for(const y of [4.5,8.5,12.5]){ g.beginPath(); g.moveTo(0,y); g.lineTo(16,y); g.stroke(); }
-  g.beginPath(); g.moveTo(8.5,0); g.lineTo(8.5,16); g.stroke(); });
-const turtleSkinTex=mkTex(g=>speckle(g,[96,134,74],16,[78,114,60],0.35));
-const whaleTopTex=mkTex(g=>{ speckle(g,[54,74,94],10,[46,64,84],0.3);
-  for(let k=0;k<6;k++){ const x=Math.floor(hash2(k,3.3)*16), y=Math.floor(hash2(k,7.7)*16);
-    P(g,x,y,'rgb(78,98,118)'); } });
-const whaleBellyTex=mkTex(g=>{ speckle(g,[198,208,218],8,[184,196,208],0.3);
-  g.fillStyle='rgb(158,170,184)'; for(const y of [2,6,10,14]) g.fillRect(0,y,16,1); });   /* throat grooves */
-const whaleSideTex=mkTex(g=>{ speckle(g,[62,84,104],10,[52,74,94],0.3);
-  for(let y=12;y<16;y++)for(let x=0;x<16;x++){ const c=jit([194,204,216],8,x*3+y); P(g,x,y,rgb(c[0],c[1],c[2])); } });
-const rayTopTex=mkTex(g=>{ speckle(g,[58,76,96],10,[48,66,86],0.3);
-  g.fillStyle='rgb(206,218,230)';
-  for(let k=0;k<7;k++){ const x=1+Math.floor(hash2(k,3)*14), y=1+Math.floor(hash2(k,7)*14); g.fillRect(x,y,1,1); } });
-const rayBellyTex=mkTex(g=>speckle(g,[224,230,236],7,[210,218,226],0.3));
-/* a fish — striped pixel hide tinted by its colour, an eye, arcing tail */
-function makeFish(col){ const c=new THREE.Color(col||0x5f7fa6);
-  const g=new THREE.Group(); g.rotation.order='YXZ';
-  const body=new THREE.Mesh(new THREE.BoxGeometry(1.0,1.5,3.2),
-    new THREE.MeshLambertMaterial({map:fishStripeTex,color:c.getHex()})); g.add(body);
-  const tail=new THREE.Mesh(new THREE.BoxGeometry(0.4,1.8,1.0),
-    new THREE.MeshLambertMaterial({map:fishStripeTex,color:c.clone().multiplyScalar(0.75).getHex()})); tail.position.set(0,0,-2.0); g.add(tail);
-  const fin=new THREE.Mesh(new THREE.BoxGeometry(0.3,1.2,0.9),
-    new THREE.MeshLambertMaterial({map:fishStripeTex,color:c.clone().multiplyScalar(1.3).getHex()})); fin.position.set(0,1.1,0.2); g.add(fin);
-  for(const s of [1,-1]){ const eye=lbox(0.24,0.24,0.24,0x10161e); eye.position.set(s*0.52,0.42,1.3); g.add(eye); }
-  return g;
-}
-/* ================= SEA CREATURES =================
-   Fish that break the surface and arc back — near the traveller wherever the
-   sea is open. A small reused pool; each leap traces a parabola with a spin. */
 const SEAFISH=[]; let seaLifeInit=false, nextLeap=0;
 function seaLifeTick(px,pz,dt){
   if(!seaLifeInit){ seaLifeInit=true;
-    for(let k=0;k<6;k++){ const f=makeFish(); f.visible=false; scene.add(f);
+    for(let k=0;k<6;k++){ const f=makeBeast('fish'); f.visible=false; scene.add(f);
       SEAFISH.push({m:f,active:false,t:0,dur:1,x:0,z:0,dx:0,dz:0,peak:0}); } }
   nextLeap-=dt;
   const overWater=state.mode!=='walk' || !landAtWorld(px,pz);
@@ -2711,7 +2740,7 @@ function updateRays(px,py,pz,murk){ initRays();
 /* ---- fish schools, squid, bubbles ---- */
 const DIVEFISH=[], DF_N=30, DF_R=240;
 const TROPICAL=[0xff8c2a,0xffd23a,0xff5a7a,0x3ad0ff,0x8a5cff,0xf4f4f4,0x2fd08a,0xff4d4d];
-function initDiveFish(){ if(DIVEFISH.length) return; for(let k=0;k<DF_N;k++){ const m=makeFish(TROPICAL[Math.floor(Math.random()*TROPICAL.length)]); m.scale.setScalar(0.6+Math.random()*0.8); m.visible=false; scene.add(m);
+function initDiveFish(){ if(DIVEFISH.length) return; for(let k=0;k<DF_N;k++){ const m=makeBeast('fish',TROPICAL[Math.floor(Math.random()*TROPICAL.length)]); m.scale.setScalar(0.6+Math.random()*0.8); m.visible=false; scene.add(m);
   DIVEFISH.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,spd:9+Math.random()*11,ph:Math.random()*6.28,set:false}); } }
 function updateDiveFish(px,py,pz,dt,t){ initDiveFish(); for(const f of DIVEFISH){
     if(!f.set||Math.hypot(f.x-px,f.z-pz)>DF_R+70){ const a=Math.random()*6.28, r=40+Math.random()*DF_R; f.x=px+Math.cos(a)*r; f.z=pz+Math.sin(a)*r;
@@ -2720,14 +2749,8 @@ function updateDiveFish(px,py,pz,dt,t){ initDiveFish(); for(const f of DIVEFISH)
     const fy=seabedDepth(f.x,f.z), col=SEA_SURF-fy;
     f.y=Math.min(SEA_SURF-6,Math.max(fy+Math.min(4,col-7),f.y));   /* the surface always wins — never above the waves */
     f.m.position.set(f.x,f.y,f.z); f.m.rotation.y=Math.atan2(Math.cos(f.dir),Math.sin(f.dir)); f.m.rotation.z=Math.sin(t*3+f.ph)*0.16; } }
-function makeSquid(){ const g=new THREE.Group();
-  const mant=lbox(2.4,3.2,2.4,0x6a4a86); mant.position.y=0; g.add(mant);
-  const head=lbox(2.0,1.2,2.0,0x7a5a96); head.position.y=-1.9; g.add(head);
-  const tents=[]; for(let i=0;i<6;i++){ const a=i/6*6.28, tb=lbox(0.5,2.6,0.5,0x5a3a76); tb.position.set(Math.cos(a)*0.8,-3.4,Math.sin(a)*0.8); g.add(tb); tents.push(tb); }
-  const eL=lbox(0.5,0.5,0.4,0xffffff); eL.position.set(0.9,0.3,1.2); g.add(eL); const eR=eL.clone(); eR.position.x=-0.9; g.add(eR);
-  g.userData={tents}; return g; }
 const SQUIDS=[];
-function initSquid(){ if(SQUIDS.length) return; for(let k=0;k<3;k++){ const m=makeSquid(); m.visible=false; scene.add(m);
+function initSquid(){ if(SQUIDS.length) return; for(let k=0;k<3;k++){ const m=makeBeast('squid'); m.visible=false; scene.add(m);
   SQUIDS.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false}); } }
 function updateSquid(px,py,pz,dt,t){ initSquid(); for(const q of SQUIDS){
     if(!q.set||Math.hypot(q.x-px,q.z-pz)>DF_R+140){ const a=Math.random()*6.28, r=90+Math.random()*DF_R; q.x=px+Math.cos(a)*r; q.z=pz+Math.sin(a)*r;
@@ -2738,23 +2761,8 @@ function updateSquid(px,py,pz,dt,t){ initSquid(); for(const q of SQUIDS){
     q.m.position.set(q.x,q.y,q.z); q.m.rotation.y=q.dir+Math.PI/2;
     q.m.userData.tents.forEach((tb,i)=>{ tb.rotation.x=Math.sin(t*3+i)*0.3-pulse*0.25; }); } }
 /* ---- dolphins — playful pods arcing through the shallows ---- */
-function makeDolphin(){ const g=new THREE.Group(); g.rotation.order='YXZ';
-  const top=new THREE.MeshLambertMaterial({map:dolphTop});
-  const belly=new THREE.MeshLambertMaterial({map:dolphBelly});
-  const side=new THREE.MeshLambertMaterial({map:dolphSide});
-  const FIN=0x7e94a8;
-  const body=new THREE.Mesh(new THREE.BoxGeometry(2.2,2.4,7),[side,side,top,belly,top,top]); g.add(body);
-  const head=new THREE.Mesh(new THREE.BoxGeometry(1.9,2.0,1.8),[side,side,top,belly,top,top]);
-  head.position.set(0,-0.1,4.2); g.add(head);
-  const beak=lbox(1.0,0.8,1.7,0xb9c4cf); beak.position.set(0,-0.5,5.6); g.add(beak);
-  for(const s of [1,-1]){ const eye=lbox(0.35,0.35,0.35,0x10161e); eye.position.set(s*1.0,0.35,4.6); g.add(eye); }
-  const dorsal=lbox(0.4,1.9,1.6,FIN); dorsal.position.set(0,1.9,0.4); dorsal.rotation.x=-0.35; g.add(dorsal);
-  for(const s of [1,-1]){ const flip=lbox(1.8,0.3,1.0,FIN);
-    flip.position.set(s*1.5,-1.1,2.6); flip.rotation.z=s*0.5; g.add(flip); }
-  const fluke=lbox(3.4,0.4,1.5,FIN); fluke.position.set(0,0.1,-4.1); g.add(fluke);
-  return g; }
 const DOLPHINS=[], DOL_N=6, DOL_R=440;
-function initDolphins(){ if(DOLPHINS.length) return; for(let k=0;k<DOL_N;k++){ const m=makeDolphin(); m.visible=false; scene.add(m);
+function initDolphins(){ if(DOLPHINS.length) return; for(let k=0;k<DOL_N;k++){ const m=makeBeast('dolphin'); m.visible=false; scene.add(m);
   DOLPHINS.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false}); } }
 function updateDolphins(px,py,pz,dt,t){ initDolphins();
   /* dolphins RIDE THE BOW when the ship runs fast — two peel off and race
@@ -2783,53 +2791,13 @@ function updateDolphins(px,py,pz,dt,t){ initDolphins();
    blue above and white beneath, gill slits on the flanks, black eyes, a
    toothy open mouth at the front, true dorsal and pectoral fins, and a
    swept two-lobed tail that wags as it swims. ---- */
-const sharkTexTop=mkTex(g=>speckle(g,[52,84,110],14,[42,72,96],0.3));
-const sharkTexBelly=mkTex(g=>speckle(g,[226,234,240],8,[210,220,228],0.3));
-function mkSharkSideTex(gillsRight){ return mkTex(g=>{
-  speckle(g,[74,104,130],12,[62,92,118],0.3);                  /* the upper flank */
-  for(let y=11;y<16;y++) for(let x=0;x<16;x++){                 /* wavy white belly line */
-    if(y>11+(x%3===0?1:0)){ const c=jit([224,232,238],8,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } }
-  g.fillStyle='rgb(30,44,58)';                                  /* the gill slits, forward */
-  for(const x of (gillsRight?[11,12,13]:[2,3,4])) g.fillRect(x,4,1,6);
-}); }
-const sharkSideL=mkSharkSideTex(false), sharkSideR=mkSharkSideTex(true);
-const sharkFaceTex=mkTex(g=>{ speckle(g,[52,84,110],10);
-  g.fillStyle='rgb(18,24,32)'; g.fillRect(1,9,14,5);            /* the open mouth */
-  g.fillStyle='rgb(148,32,38)'; g.fillRect(2,10,12,3);          /* red within */
-  g.fillStyle='rgb(242,246,250)';                                /* the teeth, above and below */
-  for(let x=2;x<14;x+=2){ g.fillRect(x,9,1,2); g.fillRect(x+1,12,1,2); } });
-function makeShark(){ const g=new THREE.Group();
-  const top=new THREE.MeshLambertMaterial({map:sharkTexTop});
-  const belly=new THREE.MeshLambertMaterial({map:sharkTexBelly});
-  const sL=new THREE.MeshLambertMaterial({map:sharkSideL});
-  const sR=new THREE.MeshLambertMaterial({map:sharkSideR});
-  const face=new THREE.MeshLambertMaterial({map:sharkFaceTex});
-  const FIN=0x33506a;
-  /* box materials: [px, nx, top, bottom, front(+z), back] */
-  const body=new THREE.Mesh(new THREE.BoxGeometry(3.6,3.6,9),[sR,sL,top,belly,top,top]);
-  g.add(body);
-  const head=new THREE.Mesh(new THREE.BoxGeometry(3.0,2.9,3.2),[sR,sL,top,belly,face,top]);
-  head.position.set(0,-0.2,6.0); g.add(head);
-  const snout=new THREE.Mesh(new THREE.BoxGeometry(2.4,1.1,1.7),[top,top,top,belly,top,top]);
-  snout.position.set(0,1.05,6.9); g.add(snout);
-  for(const s of [1,-1]){ const eye=lbox(0.45,0.45,0.45,0x0a0f14); eye.position.set(s*1.55,0.95,5.5); g.add(eye); }
-  const dorsal=lbox(0.5,3.4,2.8,FIN); dorsal.position.set(0,3.1,0.4); dorsal.rotation.x=-0.42; g.add(dorsal);
-  for(const s of [1,-1]){ const pec=lbox(3.8,0.4,1.8,FIN);
-    pec.position.set(s*3.2,-1.6,3.2); pec.rotation.z=s*0.55; pec.rotation.y=s*0.22; g.add(pec); }
-  for(const s of [1,-1]){ const pv=lbox(1.4,0.35,1.0,FIN);
-    pv.position.set(s*1.3,-1.9,-2.2); pv.rotation.z=s*0.4; g.add(pv); }
-  /* the tail: peduncle and the two-lobed caudal fin, grouped to wag */
-  const tail=new THREE.Group(); tail.position.set(0,0,-4.5);
-  const ped=new THREE.Mesh(new THREE.BoxGeometry(1.7,2.1,2.8),[sR,sL,top,belly,top,top]);
-  ped.position.set(0,0,-1.2); tail.add(ped);
-  const lobeU=lbox(0.5,3.6,1.7,FIN); lobeU.position.set(0,2.2,-2.6); lobeU.rotation.x=0.5; tail.add(lobeU);
-  const lobeD=lbox(0.5,2.1,1.3,FIN); lobeD.position.set(0,-1.5,-2.4); lobeD.rotation.x=-0.45; tail.add(lobeD);
-  g.add(tail);
-  g.userData={tail}; return g; }
+/* THE HUNTERS OF THE DEEP — a great white and a hammerhead, each from its own
+   file. Add 'whaleshark' here and one will cruise with them (he hunts nothing
+   at all, but the pool does not know that). */
+const SHK_KINDS=['shark','hammerhead'];
 const SHARKS=[], SHK_N=2, SHK_R=560;
 let sharkWarnT=-99;
-function initSharks(){ if(SHARKS.length) return; for(let k=0;k<SHK_N;k++){ const m=makeShark();
-  m.scale.setScalar(1.25); m.visible=false; scene.add(m);
+function initSharks(){ if(SHARKS.length) return; for(let k=0;k<SHK_N;k++){ const m=makeBeast(SHK_KINDS[k%SHK_KINDS.length]); m.visible=false; scene.add(m);
   SHARKS.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false,cool:0}); } }
 function updateSharks(px,py,pz,dt,t){ initSharks();
   for(const s of SHARKS){ if(!s.set||Math.hypot(s.x-px,s.z-pz)>SHK_R+180){
@@ -2882,88 +2850,36 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
     s.m.position.set(s.x,s.y,s.z); s.m.rotation.y=Math.atan2(Math.cos(s.dir),Math.sin(s.dir));
     s.m.userData.tail.rotation.y=Math.sin(t*(hunting?7:4)+s.ph)*(hunting?0.45:0.3); } }
 /* ---- turtles, rays, whales, pufferfish, jellyfish, crabs ---- */
-function makeTurtle(){ const g=new THREE.Group();
-  const shellM=new THREE.MeshLambertMaterial({map:turtleShellTex});
-  const bellyM=new THREE.MeshLambertMaterial({map:turtleBellyTex});
-  const skinM=new THREE.MeshLambertMaterial({map:turtleSkinTex});
-  const shell=new THREE.Mesh(new THREE.BoxGeometry(3.6,1.5,4.4),[skinM,skinM,shellM,bellyM,skinM,skinM]); g.add(shell);
-  const crown=new THREE.Mesh(new THREE.BoxGeometry(2.6,0.7,3.2),[skinM,skinM,shellM,shellM,skinM,skinM]);
-  crown.position.y=1.0; g.add(crown);
-  const head=new THREE.Mesh(new THREE.BoxGeometry(1.1,1.0,1.5),skinM); head.position.set(0,-0.1,2.9); g.add(head);
-  for(const s2 of [1,-1]){ const eye=lbox(0.28,0.28,0.28,0x10161e); eye.position.set(s2*0.58,0.12,3.35); g.add(eye); }
-  const flL=new THREE.Mesh(new THREE.BoxGeometry(2.0,0.35,1.1),skinM); flL.position.set(2.2,-0.3,1.2); g.add(flL);
-  const flR=flL.clone(); flR.position.x=-2.2; g.add(flR);
-  const bkL=new THREE.Mesh(new THREE.BoxGeometry(1.3,0.35,1.0),skinM); bkL.position.set(1.9,-0.3,-1.7); g.add(bkL);
-  const bkR=bkL.clone(); bkR.position.x=-1.9; g.add(bkR);
-  g.userData={flL,flR}; return g; }
-function makeRay(){ const g=new THREE.Group();
-  const topM=new THREE.MeshLambertMaterial({map:rayTopTex});
-  const belM=new THREE.MeshLambertMaterial({map:rayBellyTex});
-  const body=new THREE.Mesh(new THREE.BoxGeometry(4,0.7,4.6),[topM,topM,topM,belM,topM,topM]); g.add(body);
-  const wingL=new THREE.Mesh(new THREE.BoxGeometry(3.2,0.35,3.6),[topM,topM,topM,belM,topM,topM]);
-  wingL.position.set(3.4,0,0); g.add(wingL);
-  const wingR=wingL.clone(); wingR.position.x=-3.4; g.add(wingR);
-  for(const s2 of [1,-1]){ const eye=lbox(0.35,0.35,0.35,0x10161e); eye.position.set(s2*0.9,0.5,2.0); g.add(eye); }
-  const tail=lbox(0.3,0.3,5.4,0x2c3c50); tail.position.set(0,0,-4.4); g.add(tail);
-  const barb=lbox(0.5,0.2,0.9,0x9aa6b4); barb.position.set(0,0.15,-2.4); g.add(barb);
-  g.userData={wingL,wingR}; return g; }
-function makeWhale(){ const g=new THREE.Group(); g.rotation.order='YXZ';
-  const top=new THREE.MeshLambertMaterial({map:whaleTopTex});
-  const belly=new THREE.MeshLambertMaterial({map:whaleBellyTex});
-  const side=new THREE.MeshLambertMaterial({map:whaleSideTex});
-  const FIN=0x2e455c;
-  const body=new THREE.Mesh(new THREE.BoxGeometry(9,9.5,26),[side,side,top,belly,top,top]); g.add(body);
-  const head=new THREE.Mesh(new THREE.BoxGeometry(8,7.6,9),[side,side,top,belly,top,top]);
-  head.position.set(0,-0.7,16.5); g.add(head);
-  for(const s2 of [1,-1]){ const eye=lbox(0.7,0.7,0.7,0x0a0f14); eye.position.set(s2*4.1,-1.6,13.8); g.add(eye); }
-  const blow=lbox(1.3,0.4,1.3,0x1c2c3c); blow.position.set(0,4.9,10); g.add(blow);
-  for(const s2 of [1,-1]){ const fl=lbox(4.6,0.7,2.4,FIN);
-    fl.position.set(s2*6,-3.6,8); fl.rotation.z=s2*0.35; g.add(fl); }
-  const fin=lbox(0.8,2.8,3.4,FIN); fin.position.set(0,5.6,-6); fin.rotation.x=-0.3; g.add(fin);
-  const ped=new THREE.Mesh(new THREE.BoxGeometry(3.8,4.6,6),[side,side,top,belly,top,top]);
-  ped.position.set(0,0.4,-15.5); g.add(ped);
-  const fluke=lbox(12,1.1,4,FIN); fluke.position.set(0,0.9,-19.6); g.add(fluke);
-  return g; }
-function makePuffer(){ const g=new THREE.Group();
-  const body=lbox(2.2,2.2,2.4,0xe0b83a); g.add(body);
-  for(let i=0;i<10;i++){ const a=i/10*6.28, sp=lbox(0.3,0.3,0.9,0xd0a02a); sp.position.set(Math.cos(a)*1.4,Math.sin(a)*1.4,0); sp.rotation.z=a; g.add(sp); }
-  const eL=lbox(0.4,0.4,0.3,0x201818); eL.position.set(0.7,0.4,1.3); g.add(eL); const eR=eL.clone(); eR.position.x=-0.7; g.add(eR);
-  return g; }
-function makeJelly(){ const g=new THREE.Group();
-  const bell=new THREE.Mesh(new THREE.SphereGeometry(2,10,8,0,6.28,0,Math.PI*0.62),new THREE.MeshLambertMaterial({color:0xdf7ad0,transparent:true,opacity:0.72}));
-  g.add(bell); const tents=[]; for(let i=0;i<6;i++){ const a=i/6*6.28, t=lbox(0.25,3.4,0.25,0xe89ad8); t.position.set(Math.cos(a)*1.1,-2,Math.sin(a)*1.1); g.add(t); tents.push(t); }
-  g.userData={tents}; return g; }
-function makeCrab(){ const g=new THREE.Group();
-  const body=lbox(2.4,1.2,1.8,0xd0472e); body.position.y=0.8; g.add(body);
-  for(const s of[1,-1]){ const claw=lbox(1.0,0.9,0.9,0xe0583a); claw.position.set(s*1.8,0.9,0.9); g.add(claw);
-    for(let i=0;i<3;i++){ const leg=lbox(1.2,0.25,0.25,0xb03a24); leg.position.set(s*1.6,0.5,-0.2-i*0.6); leg.rotation.z=s*0.3; g.add(leg); } }
-  for(const s of[1,-1]){ const eye=lbox(0.3,0.6,0.3,0x201818); eye.position.set(s*0.5,1.6,0.9); g.add(eye); }
-  return g; }
 /* a generic wandering sea-mob pool (turtle/ray/whale/puffer) */
-function mkSeaMob(make,n,R,rSpawn,near,scl){ const arr=[];
-  for(let k=0;k<n;k++){ const m=make(); if(scl) m.scale.setScalar(scl); m.visible=false; scene.add(m); arr.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false,sp:near?7:12}); }
-  arr._R=R; arr._rs=rSpawn; arr._near=near; return arr; }
+function mkSeaMob(kind,n,R,rSpawn,near){ const arr=[];
+  for(let k=0;k<n;k++){ const m=makeBeast(kind); m.visible=false; scene.add(m); arr.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false,sp:near?7:12}); }
+  /* EVERY BEAST NEEDS ROOM FOR ITS OWN BULK. A whale grown to sixteen metres
+     stands three units off the bed at the old clearance and ploughs the sand
+     with her belly. The clearance a beast keeps is read off its own length. */
+  arr._R=R; arr._rs=rSpawn; arr._near=near; arr._len=beastUnits(kind); return arr; }
 function updateSeaMob(arr,px,py,pz,dt,t){ for(const o of arr){
     if(!o.set||Math.hypot(o.x-px,o.z-pz)>arr._R+140){ const a=Math.random()*6.28, r=arr._rs*0.3+Math.random()*arr._rs*0.7;
       o.x=px+Math.cos(a)*r; o.z=pz+Math.sin(a)*r; const fy=seabedDepth(o.x,o.z);
-      o.y = arr._near ? fy+4+Math.random()*14 : Math.min(SEA_SURF-8,fy+18+Math.random()*60); o.dir=Math.random()*6.28; o.set=true; o.m.visible=true; }
+      const clr=Math.max(4,(arr._len||24)*0.35);   /* she swims a third of her own length clear */
+      o.y = arr._near ? fy+clr+Math.random()*14 : Math.min(SEA_SURF-clr,fy+clr+Math.random()*60); o.dir=Math.random()*6.28; o.set=true; o.m.visible=true; }
     o.dir+=Math.sin(t*0.3+o.ph)*0.03;
     { const nx=o.x+Math.cos(o.dir)*o.sp*dt, nz=o.z+Math.sin(o.dir)*o.sp*dt;
       if(!landAtWorld(nx,nz)){ o.x=nx; o.z=nz; } else o.dir+=1.7; }   /* the flank turns the beast */
     o.y+=Math.sin(t*0.6+o.ph)*2*dt;
     const fy=seabedDepth(o.x,o.z), col=SEA_SURF-fy;
-    o.y=Math.min(SEA_SURF-4,Math.max(fy+3,o.y));
+    { const clr=Math.max(3,(arr._len||24)*0.30);
+      o.y=Math.min(SEA_SURF-clr*0.5,Math.max(fy+clr,o.y)); }
     o.m.position.set(o.x,o.y,o.z); o.m.rotation.y=Math.atan2(Math.cos(o.dir),Math.sin(o.dir));
     if(o.m.userData.flL){ o.m.userData.flL.rotation.z=0.2+Math.sin(t*2+o.ph)*0.3; o.m.userData.flR.rotation.z=-0.2-Math.sin(t*2+o.ph)*0.3; }
     if(o.m.userData.wingL){ o.m.userData.wingL.rotation.z=Math.sin(t*1.6+o.ph)*0.4; o.m.userData.wingR.rotation.z=-Math.sin(t*1.6+o.ph)*0.4; } } }
 let TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS;
 function initSeaMobs(){ if(TURTLES) return;
-  TURTLES=mkSeaMob(makeTurtle,4,360,340,true,1.1);
-  RAYS_M=mkSeaMob(makeRay,3,460,440,true,1.2);
-  WHALES=mkSeaMob(makeWhale,1,700,650,false,1.0);
-  PUFFERS=mkSeaMob(makePuffer,6,240,220,true,0.9);
-  JELLIES=[]; for(let k=0;k<12;k++){ const m=makeJelly(); m.visible=false; scene.add(m); JELLIES.push({m,x:0,z:0,y:0,ph:Math.random()*6.28,set:false}); }
-  CRABS=[]; for(let k=0;k<14;k++){ const m=makeCrab(); m.visible=false; scene.add(m); CRABS.push({m,x:0,z:0,ph:Math.random()*6.28,set:false}); } }
+  TURTLES=mkSeaMob('turtle',4,360,340,true);
+  RAYS_M=mkSeaMob('ray',3,460,440,true);
+  WHALES=mkSeaMob('whale',1,700,650,false);
+  PUFFERS=mkSeaMob('puffer',6,240,220,true);
+  JELLIES=[]; for(let k=0;k<12;k++){ const m=makeBeast('jelly'); m.visible=false; scene.add(m); JELLIES.push({m,x:0,z:0,y:0,ph:Math.random()*6.28,set:false}); }
+  CRABS=[]; for(let k=0;k<14;k++){ const m=makeBeast('crab'); m.visible=false; scene.add(m); CRABS.push({m,x:0,z:0,ph:Math.random()*6.28,set:false}); } }
 function updateSeaMobs(px,py,pz,dt,t){ initSeaMobs();
   updateSeaMob(TURTLES,px,py,pz,dt,t); updateSeaMob(RAYS_M,px,py,pz,dt,t); updateSeaMob(WHALES,px,py,pz,dt,t); updateSeaMob(PUFFERS,px,py,pz,dt,t);
   for(const j of JELLIES){ if(!j.set||Math.hypot(j.x-px,j.z-pz)>360){ const a=Math.random()*6.28,r=40+Math.random()*320; j.x=px+Math.cos(a)*r; j.z=pz+Math.sin(a)*r; const fy=seabedDepth(j.x,j.z); j.y=fy+30+Math.random()*80; j.set=true; j.m.visible=true; }
@@ -6762,7 +6678,9 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   domeInfo:()=>({dome:flyDome?flyDome.material.opacity:0, deep:outerDeep?outerDeep.material.uniforms.uOp.value:0, stars:starGroup.userData.mat.opacity}),
   ENC,nearestEncounter,encounterAct,BARKS,FIREFLIES,SMOKES,rain,rainMat,nextLandfall,checkFulfilled,AIRLIFE,stormAt,COUNTRIES,STORMS,R_WORLD,
   seaPools:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,POD}),
-  seaFloor,eyeUnderwater,eyeSub:()=>_eyeSub};
+  seaFloor,eyeUnderwater,eyeSub:()=>_eyeSub,
+  makeBeast,beastUnits,BEASTS,U_PER_M,POD,initPod,SHARKS,initSharks,initSeaMobs,
+  seaMobs:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS})};
 
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0;
