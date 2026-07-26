@@ -20,7 +20,10 @@ function cityFor(i){ return CITY_BY_COUNTRY[COUNTRIES[i].n]; }
    quarter of the chunks, which cut the draw calls from ~1,250 to ~890. It
    was measurably SLOWER: bigger chunks cull far worse against the frustum,
    and the triangles rose from 274k to 362k. Kept at 16.) */
-const R_WORLD=120000, B=6, CH=16, CHW=B*CH, VIEW=8; /* rim = 20,000 km, 1 block = 1 km */
+/* VIEW=13 reaches 1,248 units, so the haze can stand at 1,140 with a hundred
+   units of streaming headroom behind it — the fog must always close INSIDE
+   the streamed ground, or land would pop in on open view. */
+const R_WORLD=120000, B=6, CH=16, CHW=B*CH, VIEW=13; /* rim = 20,000 km, 1 block = 1 km */
 const ICE_UV=0.948, SHELF_UV=0.915, WATER_Y=0.35;
 /* every land is a stone standing in the water: its flanks plunge past the
    waterline down to the bed of the sea, which lies at SUBSEA_Y */
@@ -921,11 +924,12 @@ function updateChunks(px,pz,budget){
    true height of the land beneath it. It is rebuilt only when he has
    travelled a good way, and it is SUNK into the ground at its inner edge so
    the real blocky chunks always stand in front of it and never fight it. */
-/* The inner radius must stay well within the chunks' own reach (some 768
-   units), because the mesh is only re-centred when the traveller has moved a
-   good way: while it is stale its hole sits off to one side of him, and if
-   the hole's near edge ever came out past the chunks there would be open sky
-   where the ground should be. R0 + the rebuild threshold is the budget. */
+/* The inner radius must stay well within the chunks' own reach (1,248 units
+   at VIEW=13), because the mesh is only re-centred when the traveller has
+   moved a good way: while it is stale its hole sits off to one side of him,
+   and if the hole's near edge ever came out past the chunks there would be
+   open sky where the ground should be. R0 + the rebuild threshold is the
+   budget. */
 /* Four times the detail. At 48x84 the ring was fine while it reached 3,600
    units, but it now opens out past 15,000 as the eye draws back, and at that
    span its quads were whole countries wide. The rebuild costs about four
@@ -1166,13 +1170,13 @@ function updateFarLand(px,pz,force,eyeY){
 
 /* ================= RENDERER · SKY · SEA ================= */
 /* THE FOG IS THE EDGE OF THE WORLD, minecraft-fashion. The streamed chunks
-   reach some 768 units, and the haze closes JUST INSIDE that, so everything
-   the eye can reach is true blocks and nothing else — no coarse stand-in
-   beyond them, ever, in gameplay. A far country is simply in the fog until
-   the ship draws near, as a far country is in Minecraft. The haze only opens
-   when the traveller rises high on the air or draws the eye back off the
-   world — the carpet of the whole earth appears there instead. */
-const FOG_FAR=740, FOG_NEAR=330;
+   reach 1,248 units (VIEW=13), and the haze closes JUST INSIDE that, so
+   everything the eye can reach is true blocks and nothing else — no coarse
+   stand-in beyond them, ever, in gameplay. A far country is simply in the
+   fog until the ship draws near, as a far country is in Minecraft. The haze
+   only opens when the traveller rises high on the air or draws the eye back
+   off the world — the carpet of the whole earth appears there instead. */
+const FOG_FAR=1140, FOG_NEAR=500;
 /* how high the eye must rise before the far carpet may stand in for the
    world; below this everything is blocks and fog, and nothing else */
 const ALOFT_EYE=1000;
@@ -6899,7 +6903,7 @@ function frame(){
      no longer be read anyway. It is never drawn over land the traveller can
      walk to and look at. */
   /* ---- WHAT STANDS IN THE VIEW, AND WHEN ----
-     The streamed chunks reach 768 units. Seen from miles up they are one
+     The streamed chunks reach 1,248 units. Seen from miles up they are one
      small crisp patch adrift on a blurred chart, which is the whole of the
      complaint: a fragment of the world instead of the world. Once the
      charted face is more than half in, the chunks and the coarse ring are
