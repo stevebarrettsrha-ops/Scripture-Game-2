@@ -1165,9 +1165,18 @@ function updateFarLand(px,pz,force,eyeY){
 }
 
 /* ================= RENDERER · SKY · SEA ================= */
-/* the haze reaches far further than it did — a mountain is no use at all if
-   it is swallowed by fog at 870 units, less than its own height away */
-scene.fog=new THREE.Fog(0x9fc5e8,300,2400); const FOG=scene.fog;
+/* THE FOG IS THE EDGE OF THE WORLD, minecraft-fashion. The streamed chunks
+   reach some 768 units, and the haze closes JUST INSIDE that, so everything
+   the eye can reach is true blocks and nothing else — no coarse stand-in
+   beyond them, ever, in gameplay. A far country is simply in the fog until
+   the ship draws near, as a far country is in Minecraft. The haze only opens
+   when the traveller rises high on the air or draws the eye back off the
+   world — the carpet of the whole earth appears there instead. */
+const FOG_FAR=740, FOG_NEAR=330;
+/* how high the eye must rise before the far carpet may stand in for the
+   world; below this everything is blocks and fog, and nothing else */
+const ALOFT_EYE=1000;
+scene.fog=new THREE.Fog(0x9fc5e8,FOG_NEAR,FOG_FAR); const FOG=scene.fog;
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,1,R_WORLD*3.2);
 const renderer=new THREE.WebGLRenderer({canvas:$('cv'),antialias:false});
 renderer.setPixelRatio(Math.min(2,devicePixelRatio||1));
@@ -1214,11 +1223,11 @@ function updateWallWeather(px,pz,dt){
   if(state.firm){ snow.visible=false; snowMat.opacity=0; return; }
   const r=Math.hypot(px,pz)/R_WORLD, wallF=Math.max(0,Math.min(1,(r-0.85)/0.1));
   if(wallF>0.01 && scene.fog && !state.firm && state.mode!=='dive'){
-    /* a cold haze closes in at the rim — but it used to cut the view to some
-       thousand units, which simply swallowed the ground when the wall of ice
-       was a low ramp, and would now hide a thing six thousand units high
-       standing right in front of the traveller */
-    scene.fog.far=Math.max(scene.fog.far*(1-wallF*0.34),1900);
+    /* a cold haze closes in at the rim — it may shorten an OPEN view (the
+       flyer's), but it never raises a shut one: the gameplay fog is already
+       tighter than its old floor, and lifting it here would punch a window
+       through the world's edge just where the ice stands */
+    scene.fog.far=Math.max(scene.fog.far*(1-wallF*0.34),Math.min(scene.fog.far,1900));
     scene.fog.color.lerp(_coldFog,wallF*0.5); }
   snow.visible = wallF>0.02;
   if(!snow.visible){ snowMat.opacity=0; return; }
@@ -1661,7 +1670,7 @@ function skyTick(px,pz){
   if(st>0.01){ _c1.setHex(sky); _c2.setHex(0x4c545e); sky=_c1.lerp(_c2,st*0.75).getHex(); }
   scene.background.setHex(sky);
   if(scene.fog){ scene.fog.color.setHex(sky); /* fog is detached in the firmament view */
-    scene.fog.near=300*(1-st*0.65); scene.fog.far=2400-st*1450; }
+    scene.fog.near=FOG_NEAR*(1-st*0.55); scene.fog.far=FOG_FAR-st*260; }
   const l=mix3(0x38405e,0xd9a878,0xffffff,dayF);
   const dim=1-st*0.38;
   setBlockLight(l.r*dim,l.g*dim,l.b*dim);
@@ -4966,7 +4975,10 @@ function updateLandmarks(px,pz){
     const d=Math.hypot(px-wx,pz-wz);
     const has=activeLandmarks.has(i);
     if(has){ const A=activeLandmarks.get(i);      /* the name draws near out of the haze */
-      if(A.label) A.label.material.opacity=namesOn?Math.max(0,Math.min(0.95,(1500-d)/700)):0; }
+      /* and never BEFORE the haze gives its ground up — a title floating on
+         pure fog betrays a thing the eye cannot yet have */
+      const vis=Math.min(1500, scene.fog?scene.fog.far*1.05:1500);
+      if(A.label) A.label.material.opacity=namesOn?Math.max(0,Math.min(0.95,(vis-d)/700)):0; }
     if(d<1600&&!has) spawnLandmark(i);
     else if(d>2100&&has){ const A=activeLandmarks.get(i);
       if(A.g){ scene.remove(A.g); A.g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); }
@@ -4988,11 +5000,18 @@ function makeLabel(text,gold){
   const sp=new THREE.Sprite(sm); sp.scale.set(300,50,1); return sp;
 }
 function updateLabels(px,pz){
+  /* A NAME ONLY WHERE THERE IS A LAND TO BEAR IT. The names reached 6,000
+     units while the fog now ends the played world at ~740 — so the titles of
+     unseen countries hung on empty haze, betraying land the eye cannot have.
+     A name is shown only within the fog's own reach (which opens when the
+     eye rises or draws back, and the names open with it). */
+  const vis=Math.min(6000, scene.fog?scene.fog.far*1.05:6000);
+  const fade=Math.max(380,vis*0.27);
   for(let i=0;i<COUNTRIES.length;i++){
     const site=SITES[i], c=COUNTRIES[i].c;
     const wx=site?site.x:c[0]*R_WORLD, wz=site?site.z:c[1]*R_WORLD;
     const d=Math.hypot(px-wx,pz-wz);
-    const want=namesOn&&d<6000;
+    const want=namesOn&&d<vis;
     const has=shownLabels.has(i);
     if(want&&!has){ let sp=labelCache.get(i);
       if(!sp){ sp=makeLabel(COUNTRIES[i].n,false); labelCache.set(i,sp); }
@@ -5001,7 +5020,7 @@ function updateLabels(px,pz){
       scene.add(sp); shownLabels.set(i,sp); }
     else if(!want&&has){ scene.remove(shownLabels.get(i)); shownLabels.delete(i); }
     if(shownLabels.has(i)){ const sp=shownLabels.get(i);
-      const op=Math.max(0,Math.min(1,(6000-d)/1600));
+      const op=Math.max(0,Math.min(1,(vis-d)/fade));
       sp.material.opacity=op*0.95; const sc=Math.max(200,Math.min(900,d*0.16));
       sp.scale.set(sc,sc/6,1); }
   }
@@ -6761,11 +6780,15 @@ function frame(){
   /* the wind in the leaves — phase clock and strength for the sway shader */
   WIND_T.value=performance.now()*0.001;
   { const wnd=windAt(p.x,p.z); WIND_A.value=(0.35+wnd.s*0.9)*(1+(light.storm||0)*1.6); }
-  /* aloft the air clears and the eye reaches far — open the fog with altitude */
+  /* aloft the air clears and the eye reaches far — but ONLY aloft, or with
+     the eye deliberately drawn back off the world. Down in the played world
+     the fog stays shut at the chunks' edge, so gameplay is blocks and haze
+     and nothing else; it opens where the carpet takes over. */
   const eyeY=state.mode==='fly'?state.fly.y:20;
-  if(scene.fog&&!state.firm){ const climbF=Math.max(0,eyeY-CLOUD_Y);
-    scene.fog.near*=1+climbF/2600;
-    scene.fog.far=Math.min(scene.fog.far*(1+climbF/45), R_WORLD*3.0); }
+  const viewReach=Math.max(eyeY,state.camDist);
+  if(scene.fog&&!state.firm){ const climbF=Math.max(0,viewReach-ALOFT_EYE);
+    scene.fog.near*=1+climbF/800;
+    scene.fog.far=Math.min(scene.fog.far*(1+climbF/22), R_WORLD*3.0); }
   /* ---- UNDER THE WAVES — the light dims and the water closes in with depth.
      Keyed on the EYE, not on the mode: a swimmer whose camera has rolled
      under the swell stands in the same water as a diver, and must be shown
@@ -6866,10 +6889,15 @@ function frame(){
      flyer eats chunks at 300+ units/s and 4-a-frame falls behind the fog line */
   const chunkBudget=(state.mode==='fly'||Math.abs(state.boat.speed)>70)?9:4;
   updateChunks(p.x,p.z,chunkBudget);
-  /* the coarse land beyond the chunks — so a range is seen standing on the
-     horizon long before it is reached. Not needed under the sea (the water
-     ends the view within a few hundred units), nor once the charted face has
-     taken the world over. */
+  /* ---- NOTHING BUT BLOCKS IN GAMEPLAY ----
+     The coarse far ring is BANISHED from the played world. Down on the sea,
+     ashore, on a summit, rising low over a coast — everything in view is true
+     blocks, and what lies past the chunks lies in the fog, as it does in
+     Minecraft. The ring exists for one purpose only: it is the CARPET that
+     comes up under the eye on the way out to the whole-earth view — risen
+     high on the air, or the eye drawn far back — where the blocks below can
+     no longer be read anyway. It is never drawn over land the traveller can
+     walk to and look at. */
   /* ---- WHAT STANDS IN THE VIEW, AND WHEN ----
      The streamed chunks reach 768 units. Seen from miles up they are one
      small crisp patch adrift on a blurred chart, which is the whole of the
@@ -6884,7 +6912,8 @@ function frame(){
      little patch of streamed land inside it — which is worse than either on
      its own. The two backdrop sheets go with it. */
   if(!showNear){ waveGrid.visible=false; sea.visible=false; seaDeep.visible=false; }
-  if(showNear&&!underEye){ farLand.visible=true; updateFarLand(p.x,p.z,false,eyeY); }
+  const carpet = viewReach>ALOFT_EYE || zMapF>0.02;
+  if(showNear&&!underEye&&carpet){ farLand.visible=true; updateFarLand(p.x,p.z,false,eyeY); }
   else farLand.visible=false;
   updateVillages(p.x,p.z,dt,light.nightF);
   updateLandmarks(p.x,p.z);
