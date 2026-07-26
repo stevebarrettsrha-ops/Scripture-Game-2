@@ -935,16 +935,37 @@ function updateChunks(px,pz,budget){
    to 1,180 from the traveller — while the chunks that are meant to be hiding
    the dipped ground stop at 768. The last four hundred units of it were laid
    bare on open ground. It is spent now while the chunks still cover it. */
-const FL_RINGS=96, FL_SPOKES=160, FL_R0=420, FL_R1=3600, FL_FADE=330, FL_STEP=300;
-const FL_COS=new Float32Array(FL_SPOKES), FL_SIN=new Float32Array(FL_SPOKES);
-for(let a=0;a<FL_SPOKES;a++){ const th=a/FL_SPOKES*Math.PI*2; FL_COS[a]=Math.cos(th); FL_SIN[a]=Math.sin(th); }
+/* ---- AND THE FAR COUNTRY IS BUILT OF BLOCKS TOO ----
+   The ring was a SHEET: one height per vertex and the triangles ramping
+   smoothly from each to the next. Near at hand the world is lego and every
+   mountain is a stair of blocks; at the ring's edge that same mountain became
+   a smooth brown swell, and the seam between the two was the plainest thing on
+   the horizon. "Every single mountain should be lego, no matter how far."
+   So the ring is laid as TERRACES. The polar grid is a grid of CELLS now, not
+   of points: each cell takes one height and one colour off the land and is
+   drawn as a flat top, and between one cell and the next the mesh drops
+   almost straight down — a wall, not a ramp. The bricks grow with the
+   distance, as they must (a brick the size of a real block would be beneath
+   seeing at four thousand units), so the far country is coarse lego and the
+   near country is fine lego, and both are lego.
+   It is built on a FIXED weave: each cell owns a two-by-two patch of the
+   vertex grid, its inner pair set just inside the cell's near edge and its
+   outer pair just inside the far one. Every vertex of a patch carries the same
+   height, so the patch is flat; the thin quads BETWEEN patches stand up on
+   end. One index buffer, built once, serves every rebuild. */
+const FL_RINGS=64, FL_SPOKES=112, FL_R0=420, FL_R1=3600, FL_FADE=330, FL_STEP=300;
+const FL_NR2=FL_RINGS*2, FL_NS2=FL_SPOKES*2;   /* the woven grid is twice as fine */
+const FL_INSET=0.035;         /* how far in from a cell's edge its corners sit */
+/* the angle of every vertex column: two per cell, just inside its two edges */
+const FL_COS=new Float32Array(FL_NS2), FL_SIN=new Float32Array(FL_NS2);
+{ const dth=Math.PI*2/FL_SPOKES;
+  for(let s=0;s<FL_SPOKES;s++){ const t0=s*dth;
+    const a=t0+dth*FL_INSET, b=t0+dth*(1-FL_INSET);
+    FL_COS[s*2]=Math.cos(a); FL_SIN[s*2]=Math.sin(a);
+    FL_COS[s*2+1]=Math.cos(b); FL_SIN[s*2+1]=Math.sin(b); } }
 const flGeo=(()=>{
-  const g=new THREE.BufferGeometry(), nv=(FL_RINGS+1)*FL_SPOKES;
+  const g=new THREE.BufferGeometry(), nv=FL_NR2*FL_NS2;
   const pos=new Float32Array(nv*3), col=new Float32Array(nv*3), idx=[];
-  const kr=Math.log(FL_R1/FL_R0);
-  for(let k=0;k<=FL_RINGS;k++){ const r=FL_R0*Math.exp(kr*k/FL_RINGS);
-    for(let a=0;a<FL_SPOKES;a++){ const o=(k*FL_SPOKES+a)*3;
-      pos[o]=FL_COS[a]*r; pos[o+1]=0; pos[o+2]=FL_SIN[a]*r; } }
   /* WOUND FACE UP. It was wound the other way about, and every triangle of
      the far country pointed at the deep — so the whole of it was thrown away
      by the backface cull the moment it was looked at from above, which is the
@@ -953,8 +974,8 @@ const flGeo=(()=>{
      other face to the eye: nothing of France to be seen but the Alps,
      standing out of open water, with the sea drawn straight through where the
      country should have been. */
-  for(let k=0;k<FL_RINGS;k++) for(let a=0;a<FL_SPOKES;a++){ const a2=(a+1)%FL_SPOKES;
-    const p0=k*FL_SPOKES+a, p1=k*FL_SPOKES+a2, p2=(k+1)*FL_SPOKES+a, p3=(k+1)*FL_SPOKES+a2;
+  for(let i=0;i<FL_NR2-1;i++) for(let j=0;j<FL_NS2;j++){ const j2=(j+1)%FL_NS2;
+    const p0=i*FL_NS2+j, p1=i*FL_NS2+j2, p2=(i+1)*FL_NS2+j, p3=(i+1)*FL_NS2+j2;
     idx.push(p0,p1,p2, p1,p3,p2); }
   g.setAttribute('position',new THREE.BufferAttribute(pos,3));
   g.setAttribute('color',new THREE.BufferAttribute(col,3));
@@ -977,8 +998,9 @@ const FL_SEA=[0.07,0.20,0.32], FL_VOID=[0.01,0.012,0.03];
 const farLandMat=new THREE.MeshBasicMaterial({vertexColors:true}); LIT.push(farLandMat);
 const farLand=new THREE.Mesh(flGeo,farLandMat);
 farLand.frustumCulled=false; farLand.visible=false; scene.add(farLand);
-const FL_NV=(FL_RINGS+1)*FL_SPOKES;
-const _flH=new Float32Array(FL_NV);
+const FL_NC=FL_RINGS*FL_SPOKES;          /* cells of far country, one sample each */
+const FL_NV=FL_NR2*FL_NS2;               /* vertices of the woven grid */
+const _flH=new Float32Array(FL_NC);
 /* THE RING IS BUILT OFF TO ONE SIDE AND SWAPPED IN WHOLE. Reading fifteen
    thousand cells of far country costs about fifty milliseconds — three whole
    frames — and at flying speed that bill falls due twice a second, which is
@@ -988,12 +1010,26 @@ const _flH=new Float32Array(FL_NV);
    ready, and then the whole of it changes at once. A half-built ring is
    never shown. */
 const _flPB=new Float32Array(FL_NV*3), _flCB=new Float32Array(FL_NV*3);
-const _flLand=new Uint8Array(FL_NV);   /* dry ground, which may never be sunk */
+const _flLand=new Uint8Array(FL_NC);   /* dry ground, which may never be sunk */
+const _flRad=new Float32Array(FL_RINGS);  /* the middle radius of each cell ring */
 const FL_MS=6;                 /* the slice of a frame the rebuild may take */
 let _flAt=null, _flR1=FL_R1, _flJob=null;
+/* the four vertices of cell (k,s), in the woven grid */
+function flCorners(k,s,out){
+  const i0=k*2, j0=s*2;
+  out[0]=(i0*FL_NS2+j0); out[1]=(i0*FL_NS2+j0+1);
+  out[2]=((i0+1)*FL_NS2+j0); out[3]=((i0+1)*FL_NS2+j0+1);
+}
+const _flQ=new Int32Array(4);
 /* one ring of ground: the heights and the colours, read from the world */
 function flFillRing(k,px,pz,kr,fine){
-  const rr=FL_R0*Math.exp(kr*k/FL_RINGS);
+  /* the cell's own edges, and the middle of it where the land is read */
+  const rIn=FL_R0*Math.exp(kr*k/FL_RINGS), rOut=FL_R0*Math.exp(kr*(k+1)/FL_RINGS);
+  const rr=(rIn+rOut)*0.5;
+  _flRad[k]=rr;
+  /* the two vertex radii of this cell: just inside either edge, so that what
+     lies between one cell and the next is a wall standing on end */
+  const ra=rIn+(rOut-rIn)*FL_INSET, rb=rOut-(rOut-rIn)*FL_INSET;
   /* ---- A RANGE, NOT A TENT ----
      One point sample per vertex, at a spacing that grows from sixteen units
      at the inner edge to hundreds at the outer, and a massif is barely a
@@ -1011,10 +1047,12 @@ function flFillRing(k,px,pz,kr,fine){
      most of the earth, and flat, with nothing for a wider look to find — are
      not made to pay for a thing only the mountains need. */
   const span=fine?Math.min(80,Math.round(rr*6.2832/FL_SPOKES/B*0.34)):0;
+  const dth=Math.PI*2/FL_SPOKES;
   for(let s=0;s<FL_SPOKES;s++){
-    const v=k*FL_SPOKES+s, i=v*3;
-    _flPB[i]=FL_COS[s]*rr; _flPB[i+2]=FL_SIN[s]*rr;
-    const wx=_flPB[i]+px, wz=_flPB[i+2]+pz;
+    const c0=k*FL_SPOKES+s;
+    /* the land is read at the MIDDLE of the cell — the whole brick stands at
+       that one height, as a block does */
+    const th=(s+0.5)*dth, wx=Math.cos(th)*rr+px, wz=Math.sin(th)*rr+pz;
     /* cellRaw, not cell — the village flattening is a matter of 86 units and
        cannot be seen out here, and filling the cell cache with far country
        would only thrash it for the ground underfoot */
@@ -1033,18 +1071,26 @@ function flFillRing(k,px,pz,kr,fine){
          A sheet of ocean drawn out there hung in the void below the ice. */
       y=-900; c=FL_VOID; }
     else { y=WATER_Y-6; c=FL_SEA; }     /* well under the trough of any wave */
-    _flH[v]=y; _flLand[v]=cc?1:0; _flCB[i]=c[0]; _flCB[i+1]=c[1]; _flCB[i+2]=c[2];
+    _flH[c0]=y; _flLand[c0]=cc?1:0;
+    /* the brick's four corners: the same colour on every one of them, so the
+       top is flat-shaded and the wall to the next brick is a hard edge */
+    flCorners(k,s,_flQ);
+    for(let q=0;q<4;q++){ const i=_flQ[q]*3;
+      const rq=(q<2)?ra:rb, jq=(q&1)?s*2+1:s*2;
+      _flPB[i]=FL_COS[jq]*rq; _flPB[i+2]=FL_SIN[jq]*rq;
+      _flCB[i]=c[0]; _flCB[i+1]=c[1]; _flCB[i+2]=c[2]; }
   }
 }
-/* one ring of shading: a flank is darker than a level top, as it is on the
-   blocks — read off the fall of the land to the next vertex out and round */
+/* one ring of shading: a brick that stands over its neighbours is darkened on
+   the turn, as the flanks of the near blocks are, so a stair of them reads as
+   a stair and not as one flat field of colour */
 function flShadeRing(k,r1){
-  const r=Math.hypot(_flPB[(k*FL_SPOKES)*3],_flPB[(k*FL_SPOKES)*3+2]);
+  const r=_flRad[k]||FL_R0;
   const step=Math.max(1,Math.min(r*6.283/FL_SPOKES,(r1-FL_R0)/FL_RINGS));
   for(let s=0;s<FL_SPOKES;s++){
-    const v=k*FL_SPOKES+s, i=v*3;
-    const vr=(k<FL_RINGS?k+1:k-1)*FL_SPOKES+s, vs=k*FL_SPOKES+(s+1)%FL_SPOKES;
-    const fall=(Math.abs(_flH[v]-_flH[vr])+Math.abs(_flH[v]-_flH[vs]))/(step*1.7);
+    const c0=k*FL_SPOKES+s;
+    const cr=(k<FL_RINGS-1?k+1:k-1)*FL_SPOKES+s, cs=k*FL_SPOKES+(s+1)%FL_SPOKES;
+    const fall=(Math.abs(_flH[c0]-_flH[cr])+Math.abs(_flH[c0]-_flH[cs]))/(step*1.7);
     const sh=1-0.40*Math.min(1,fall);
     /* THE SINK MAY NOT DROWN THE COUNTRY. The ring dips beneath the chunks at
        its inner edge so the seam between coarse and fine ground cannot be
@@ -1055,10 +1101,12 @@ function flShadeRing(k,r1){
        run out, and dry ground is never carried below the waves whatever the
        dip asks for. */
     const sink=Math.max(0,1-Math.max(0,r-FL_R0)/FL_FADE);
-    let y=_flH[v]-sink*B*1.4;
-    if(_flLand[v]) y=Math.max(y,Math.min(_flH[v],WATER_Y+2.2));
-    _flPB[i+1]=y;
-    _flCB[i]*=sh; _flCB[i+1]*=sh; _flCB[i+2]*=sh;
+    let y=_flH[c0]-sink*B*1.4;
+    if(_flLand[c0]) y=Math.max(y,Math.min(_flH[c0],WATER_Y+2.2));
+    flCorners(k,s,_flQ);
+    for(let q=0;q<4;q++){ const i=_flQ[q]*3;
+      _flPB[i+1]=y;
+      _flCB[i]*=sh; _flCB[i+1]*=sh; _flCB[i+2]*=sh; }
   }
 }
 function updateFarLand(px,pz,force,eyeY){
@@ -1104,9 +1152,9 @@ function updateFarLand(px,pz,force,eyeY){
      he sees when he arrives. */
   const fine=whole||lag<=380;
   const J=_flJob, t0=performance.now();
-  while(J.k<=FL_RINGS){ flFillRing(J.k++,J.px,J.pz,J.kr,fine);
+  while(J.k<FL_RINGS){ flFillRing(J.k++,J.px,J.pz,J.kr,fine);
     if(!rush&&performance.now()-t0>=FL_MS) return; }
-  while(J.sk<=FL_RINGS){ flShadeRing(J.sk++,J.r1);
+  while(J.sk<FL_RINGS){ flShadeRing(J.sk++,J.r1);
     if(!rush&&performance.now()-t0>=FL_MS) return; }
   /* done — the new ring takes the place of the old one in a single step */
   flGeo.attributes.position.array.set(_flPB);
@@ -1248,7 +1296,10 @@ const waveMat=new THREE.ShaderMaterial({
     uDeep:{value:new THREE.Color(0x0e2c4e)}, uShallow:{value:new THREE.Color(0x2fb3cf)},
     uMap:{value:seaTex}, uOpacity:{value:0.9}, uCamPos:{value:new THREE.Vector3()},
     uShoal:{value:SHOAL_TEX}, uZenith:{value:new THREE.Color(0x3d76c0)},
-    uShip:{value:new THREE.Vector4()}, uShipH:{value:0}, uSunCol:{value:new THREE.Color(1,0.96,0.85)} },
+    uShip:{value:new THREE.Vector4()}, uShipH:{value:0}, uSunCol:{value:new THREE.Color(1,0.96,0.85)},
+    /* the lesser light to rule the night */
+    uMoonDir:{value:new THREE.Vector3(0,1,0)}, uMoonCol:{value:new THREE.Color(0.60,0.70,0.96)},
+    uMoon:{value:0} },
   vertexShader:`
     uniform float uTime, uAmp; uniform vec2 uCenter; uniform sampler2D uShoal;
     varying vec3 vNormal, vWorld; varying float vHeight, vFog, vTaper; varying vec2 vUv, vP;
@@ -1279,6 +1330,7 @@ const waveMat=new THREE.ShaderMaterial({
     precision highp float;
     uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow, uCamPos, uSunCol, uZenith; uniform sampler2D uMap, uShoal;
     uniform float uFogNear, uFogFar, uOpacity, uTime, uShipH; uniform vec4 uShip;
+    uniform vec3 uMoonDir, uMoonCol; uniform float uMoon;
     varying vec3 vNormal, vWorld; varying float vHeight, vFog, vTaper; varying vec2 vUv, vP;
     float h21(vec2 p){ return fract(sin(dot(p,vec2(41.3,289.1)))*43758.5); }
     void main(){
@@ -1329,6 +1381,23 @@ const waveMat=new THREE.ShaderMaterial({
       float allFoam=clamp(foam*0.32+wake*0.95+lap,0.0,1.0);
       col=mix(col,vec3(0.88,0.93,1.0),allFoam);
       col*=uLight;
+      /* ---- AND THE LESSER LIGHT TO RULE THE NIGHT ----
+         The sea had ONE light, and when the sun went down it had none: the day
+         tint took it to a flat blue-black, the sun's diffuse and specular both
+         fell to nothing, and the whole ocean read as one dead painted slab
+         from horizon to shore. The moon lights it now as she lights the earth
+         — a soft wash on the swell, a hard silver path burning down her own
+         bearing, and the crests of the foam caught white. */
+      if(uMoon>0.002){
+        vec3 M=normalize(uMoonDir);
+        float md=clamp(dot(N,M),0.0,1.0);
+        col+=base*uMoonCol*(0.30+0.85*md)*uMoon*1.35;
+        vec3 HM=normalize(V+M);
+        float mdot=max(dot(N,HM),0.0);
+        float mglit=pow(mdot,34.0)*(0.45+0.55*h21(floor(vP*1.9)+floor(uTime*7.0)));
+        col+=uMoonCol*(pow(mdot,120.0)*1.5+mglit*0.42)*md*uMoon;
+        col+=uMoonCol*allFoam*uMoon*0.40;
+      }
       /* sun specular + glitter — the sun's path burning on the swell */
       vec3 H=normalize(V+L);
       float spec=pow(max(dot(N,H),0.0),140.0);
@@ -1362,7 +1431,7 @@ const waveMat=new THREE.ShaderMaterial({
 });
 const waveGrid=new THREE.Mesh(waveGeo,waveMat);
 waveGrid.frustumCulled=false; scene.add(waveGrid);
-const _sunW=new THREE.Vector3();
+const _sunW=new THREE.Vector3(), _moonW=new THREE.Vector3();
 function waterTick(px,pz,dayF,storm){
   seaTime=performance.now()*0.001; seaAmp=1+storm*1.7;
   const u=waveMat.uniforms;
@@ -1374,6 +1443,10 @@ function waterTick(px,pz,dayF,storm){
   if(scene.fog){ u.uFogColor.value.copy(scene.fog.color);
     u.uFogNear.value=scene.fog.near; u.uFogFar.value=scene.fog.far; }
   sun.getWorldPosition(_sunW); u.uSunDir.value.copy(_sunW).normalize();
+  /* the moon rules the water only when she is up and the sun is down, and she
+     fades with her own setting as the sun's light comes back over her */
+  moon.getWorldPosition(_moonW); u.uMoonDir.value.copy(_moonW).normalize();
+  u.uMoon.value=Math.max(0,1-dayF*1.5)*moonMat2.opacity*(1-storm*0.55);
   u.uCamPos.value.copy(camera.position);
   const spd=Math.min(1,Math.abs(state.boat.speed)/30);
   const shown=(state.mode!=='walk')?1:Math.max(0,1-Math.hypot(px-state.boat.x,pz-state.boat.z)/400);
@@ -2986,41 +3059,35 @@ function hideDeep(){ seaFloor.visible=false;
   for(const r of RAYS)r.m.visible=false; for(const f of DIVEFISH)f.m.visible=false; for(const q of SQUIDS)q.m.visible=false;
   for(const d of DOLPHINS)d.m.visible=false; for(const s of SHARKS)s.m.visible=false; hideSeaMobs();
   for(const b of BUB)b.s.visible=false; for(const w of WRECKS)w.visible=false; hidePearls(); deepShown=false; }
-/* ---- IS THE EYE BENEATH THE WAVES? ----
-   ONE SEA, not two: whatever truly puts the eye under the water puts it in the
-   SAME sea the diver swims, and the bed, the kelp and the fish are all
-   standing there when it looks.
-   But a crest rolling past the lens is not going under. The test used to be
-   made against the WAVE — the eye was reckoned drowned the moment the water
-   beside it stood higher — and a swimmer FLOATS in the swell: his body rides
-   from a little over the crest to five units beneath it and back again, and
-   the eye rides with him. So every wave that came through repainted the sky,
-   the sea and the whole world in turquoise water-light for the three or four
-   seconds it took to roll by, and let them all go again as it passed. That is
-   the blue tint that "comes on when the waves go up, and then changes back to
-   normal". A man at the surface is AT THE SURFACE: he sees the world in its
-   own light, always, whatever the sea does about him. Going under is a thing
-   he does on purpose — and then he is diving, and then the deep closes over
-   him as it should. */
-let _eyeUnder=false;
+/* ---- IS THE EYE BENEATH THE WAVES, AND HOW FAR? ----
+   ONE SEA, not two. Whatever puts the eye under the water puts it in the SAME
+   sea the diver swims: the bed, the kelp and the fish are all standing there
+   when it looks, whether he went down on purpose or a crest simply rolled
+   over him. Water you cannot see into is not water — it is a painted floor.
+   So the test is made against the TRUE surface of the sea, wave and all.
+   What was wrong was never that the water closed over him; it was that it
+   closed ALL AT ONCE, and over everything. The instant the swell touched the
+   lens the sky, the coast and the whole world were repainted in full-strength
+   water-light, and let go again as the crest passed — on and off with every
+   wave. So the depth is measured as well as the fact of it, and the sea comes
+   in as deep as the eye is under: the skin of a passing crest is a wash over
+   the view, and it is only down in the water that the water has it all. */
+let _eyeUnder=false, _eyeSub=0;
 function eyeUnderwater(){
-  if(state.firm){ _eyeUnder=false; return false; }
-  if(state.mode==='dive'){ _eyeUnder=true; return true; }
-  /* THE SHIP IS NEVER IN THE SEA. Aboard her — at the helm, on the deck, or
-     down in the hold below the waterline — the eye is inside a hull, and no
-     swell rolling past the lens puts it in the water. */
-  if(state.mode==='deck'||state.mode==='boat'){ _eyeUnder=false; return false; }
+  if(state.firm){ _eyeUnder=false; _eyeSub=0; return false; }
+  if(state.mode==='dive'){ _eyeUnder=true; _eyeSub=1; return true; }
+  /* the hold is a room inside a hull. It lies below the waterline by build,
+     and the sea has no business in it. */
+  if(state.mode==='deck'&&state.deck.level==='hold'){ _eyeUnder=false; _eyeSub=0; return false; }
   const cp=camera.position;
-  if(landAtWorld(cp.x,cp.z)){ _eyeUnder=false; return false; }
-  /* Depth is measured against the SETTLED sea, never against the passing
-     wave. For a swimmer the mark is set deeper than the whole swing of his
-     float, so no sea he can meet at the surface will ever close over him;
-     should he somehow be carried below it — flung down by a great storm — the
-     water closes properly rather than leaving him looking through the deep
-     with the sky still on. */
-  const swimming=state.mode==='walk'&&state.walk.inWater;
-  const under=WATER_Y-(swimming?9.0:2.4);
-  _eyeUnder = _eyeUnder ? cp.y<under+1.4 : cp.y<under;
+  if(landAtWorld(cp.x,cp.z)){ _eyeUnder=false; _eyeSub=0; return false; }
+  /* a little hysteresis at the waterline: the eye must rise clear of the
+     swell to come out, or a crest lapping the lens would flicker the whole
+     sea on and off from one frame to the next */
+  const surf=WATER_Y+seaHeight(cp.x,cp.z);
+  _eyeUnder = _eyeUnder ? cp.y<surf+0.55 : cp.y<surf-0.15;
+  /* HOW FAR UNDER — 0 at the very skin of the water, whole a few units down */
+  _eyeSub = _eyeUnder ? Math.min(1,Math.max(0,(surf-cp.y)/3.4)) : 0;
   return _eyeUnder;
 }
 /* full — the traveller is truly down in the deep, so the wrecks of the
@@ -5968,7 +6035,25 @@ function cameraTick(dt){
   const lift=state.mode==='deck'?5:swimCam?2.2:8;
   const cy=baseY+lift+spit*dist;
   camPos.set(px+Math.sin(az)*cpit*dist, cy, pz+Math.cos(az)*cpit*dist);
+  /* ---- THE BED OF THE SEA IS GROUND ----
+     The eye follows the diver from behind and a little below his line; swim
+     down to the floor and touch it, and the eye went straight ON THROUGH — out
+     the underside of the world, where the bed hangs overhead as a brown ceiling
+     and the whole deep is seen from beneath it. The bed is ground: the eye
+     rides over it, as it rides over the land ashore. It is lifted at the
+     TARGET so the follow settles above the floor rather than fighting it, and
+     again after the ease so no lag can carry it under. */
+  if(state.mode==='dive'||swimCam){
+    const lc=landAtWorld(camPos.x,camPos.z);
+    const floor=Math.max(seabedDepth(camPos.x,camPos.z), lc?lc.h*B:-1e9)+4.0;
+    if(camPos.y<floor) camPos.y=floor;
+  }
   camera.position.lerp(camPos,Math.min(1,dt*5));
+  if(state.mode==='dive'||swimCam){ const cp=camera.position;
+    const lc=landAtWorld(cp.x,cp.z);
+    const floor=Math.max(seabedDepth(cp.x,cp.z), lc?lc.h*B:-1e9)+3.0;
+    if(cp.y<floor) cp.y=floor;
+  }
   /* the eye stays WITHIN the firmament — never through the glass, whatever
      the pitch: pressed back inside the tent-vault's skin. (Drawn right back
      to behold the whole earth, the eye stands outside the vault of set
@@ -6653,7 +6738,8 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
   domeInfo:()=>({dome:flyDome?flyDome.material.opacity:0, deep:outerDeep?outerDeep.material.uniforms.uOp.value:0, stars:starGroup.userData.mat.opacity}),
   ENC,nearestEncounter,encounterAct,BARKS,FIREFLIES,SMOKES,rain,rainMat,nextLandfall,checkFulfilled,AIRLIFE,stormAt,COUNTRIES,STORMS,R_WORLD,
-  seaPools:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,POD})};
+  seaPools:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,POD}),
+  seaFloor,eyeUnderwater,eyeSub:()=>_eyeSub};
 
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0;
@@ -6690,9 +6776,18 @@ function frame(){
     const eyeY2=state.mode==='dive'?state.dive.y:camera.position.y;
     const murk=Math.min(1,Math.max(0,SEA_SURF-eyeY2)/560);
     const wc=mix3(0x061826,0x0f5170,0x36b0d8,1-murk);   /* deep dark → shallow turquoise */
-    scene.background.copy(wc); scene.fog.color.copy(wc);
-    scene.fog.near=4; scene.fog.far=820-murk*640;
-    hemi.intensity=1.0-murk*0.6; dirL.intensity=0.5-murk*0.32; }
+    /* AS DEEP AS THE EYE IS UNDER, and no deeper. A crest washing over the
+       lens used to snap the whole world — sky, coast and all — to full
+       water-light for the seconds it took to pass, and snap it back again:
+       the sea flickering on and off with every wave. It comes in by degrees
+       now, so the skin of a wave is a wash and only the true deep is wholly
+       water. */
+    const w=_eyeSub;
+    scene.background.lerp(wc,w); scene.fog.color.lerp(wc,w);
+    scene.fog.near+=(4-scene.fog.near)*w;
+    scene.fog.far+=((820-murk*640)-scene.fog.far)*w;
+    hemi.intensity+=((1.0-murk*0.6)-hemi.intensity)*w;
+    dirL.intensity+=((0.5-murk*0.32)-dirL.intensity)*w; }
   /* ---- BREATH — the diver's chest against the deep ----
      It drains below, refills above; fails, and you break for the surface.
      The immortal breath (🫧) frees you of it altogether. */
