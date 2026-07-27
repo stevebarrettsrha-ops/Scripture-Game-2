@@ -504,6 +504,28 @@ It is fired by NEARNESS, not by landing: a still body drifts up of itself, so
 a diver who lets go a body's length off the bed hangs there and never once
 satisfies the floor clamp.
 
+## 4l. Round 13 — the land goes down to the bed ✅
+
+Giving the sea its true depths left every land in the world **hanging**. The
+flank of a coast was drawn from its top down to `SUBSEA_Y` — thirteen units
+under the waterline — because that is where the bed used to lie at every
+shore. The bed now falls two hundred metres to the shelf break and kilometres
+past it, so each island and each continent was a SLAB with open water beneath
+it and the sea floor a long way below, unattached: swim down off any strand
+and you could look up at the underside of Cyprus.
+
+- **A block beside the water is footed on what is beside it.** Every coastal
+  flank now drops to the bed of the sea at the neighbouring cell, snapped to
+  the same block grid the diver's own floor uses, so the land is one solid
+  mass of blocks running from the strand down the shelf and the slope into
+  the deep.
+- **The shelf terraces are footed the same way** — on the LOWEST of the four
+  neighbouring beds rather than a fixed line, with a block of overlap, so
+  there is never daylight under a tread wherever the ground steps down.
+- `bedBlockAt()` and `seaFootAt()` are the two calls that do it, and the
+  chunk shelf, the landing at the water's edge and every land flank all read
+  them, so the three can never disagree about where the ground stops.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
