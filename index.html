@@ -219,7 +219,7 @@
 /* The registry the land, verse and river files feed into.
    Each file in countries/ calls EARTH.country({...}) — one land per file,
    loaded in a fixed order so the world is identical on every machine. */
-window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deepList:[],holeList:[],sceneList:[],beastList:[],faunaList:[],
+window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deepList:[],holeList:[],sceneList:[],beastList:[],faunaList:[],floraList:[],
   country:function(c){this.list.push(c);},
   verses:function(v){this.verseList=v;},
   river:function(r){this.riverList.push(r);},
@@ -235,7 +235,10 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
   beast:function(b){this.beastList.push(b);},
   /* WHICH beasts walk in WHICH land, and what ground each keeps to — the
      whole of it is data, in world/fauna.js */
-  fauna:function(f){this.faunaList.push(f);}};
+  fauna:function(f){this.faunaList.push(f);},
+  /* and WHAT GROWS in each — every tree, orchard, bush, berry and herb on
+     the earth, in world/flora.js */
+  flora:function(f){this.floraList.push(f);}};
 </script>
 <script src="countries/fiji.js"></script>
 <script src="countries/tanzania.js"></script>
@@ -439,6 +442,9 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
 <!-- WHICH BEASTS WALK IN WHICH LAND. One line to a nation; edit it and
      reload, and that country carries different creatures. -->
 <script src="world/fauna.js"></script>
+<!-- AND WHAT GROWS IN IT. The same shape: one line to a nation, naming the
+     trees, orchards, bushes, berries and herbs that land bears. -->
+<script src="world/flora.js"></script>
 <!-- EVERY LIVING THING, ONE TO A FILE. Edit any of these and reload; the
      beast is rebuilt from its own file. `metres` in each file is the beast's
      TRUE adult length, and the game scales the model to match it. -->
@@ -548,6 +554,9 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
 <!-- THE GRASS OF THE EARTH. What grows where, read by the chunk mesher
      when it draws a blade AND by every beast that walks out to eat one. -->
 <script src="js/grass.js"></script>
+<!-- AND EVERYTHING WOODY AND EVERYTHING BEARING: the forms every tree,
+     bush, cane and herb in the world is built out of. -->
+<script src="js/flora.js"></script>
 <script src="js/engine.js"></script>
 <script>
 (function(){

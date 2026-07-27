@@ -216,6 +216,29 @@ blockMat('leaves',TEX.leaves,{alphaTest:0.4}); blockMat('leavesTr',TEX.leavesTr,
 blockMat('cherry',TEX.cherry,{alphaTest:0.4}); blockMat('badTop',TEX.badTop); blockMat('badSide',TEX.badSide);
 blockMat('tallgrass',TEX.tallgrass,{alphaTest:0.4}); blockMat('flowerR',TEX.flowerR,{alphaTest:0.4});
 blockMat('savgrass',TEX.savgrass,{alphaTest:0.4}); blockMat('acacia',TEX.acacia,{alphaTest:0.4});
+/* ---- THE FOUR GREY THINGS THE WHOLE FLORA OF THE EARTH IS DRAWN WITH ----
+   Leaf, bark, blade and berry, each painted ONCE and in grey, and tinted per
+   species as the faces are laid down. A hundred and seventy kinds of tree in
+   the world, and four materials to draw the lot of them: the number of
+   species costs nothing whatever in draw calls. (Paint any of these in a
+   colour and every plant on the earth inherits it — that is the whole reason
+   they are grey.) */
+TEX.leafW  = mkTex(g=>{ for(let y=0;y<16;y++) for(let x=0;x<16;x++){
+    const n=hash2(x*2.7+y*1.3,y*3.1+x*0.7);
+    if(n<0.16){ g.clearRect(x,y,1,1); continue; }            /* the light through it */
+    const v=Math.round(196+hash2(x*5.1,y*7.3)*58);
+    P(g,x,y,rgb(v,v,v)); } });
+TEX.barkW  = mkTex(g=>{ for(let y=0;y<16;y++) for(let x=0;x<16;x++){
+    const seam=(x%5===0||x%7===3)?0.72:1;                     /* the run of the grain */
+    const v=Math.round((176+hash2(x*3.3,y*9.1)*62)*seam);
+    P(g,x,y,rgb(v,v,v)); } });
+TEX.plantW = mkTex(g=>{ g.clearRect(0,0,16,16);
+    for(let k=0;k<10;k++){ const x=1+Math.floor(hash2(k,3.7)*14), h2=7+Math.floor(hash2(k,5.9)*8);
+      for(let y=0;y<h2;y++){ const v=Math.round(188+hash2(k*3.1,y)*62);
+        g.fillStyle=rgb(v,v,v); g.fillRect(x+(y>h2-3?(hash2(k,9.1)>0.5?1:-1):0),15-y,1,1); } } });
+TEX.solidW = mkTex(g=>speckle(g,[228,228,228],26,[198,198,198],0.35));
+blockMat('leafW',TEX.leafW,{alphaTest:0.4}); blockMat('barkW',TEX.barkW);
+blockMat('plantW',TEX.plantW,{alphaTest:0.4}); blockMat('solidW',TEX.solidW);
 blockMat('flowerY',TEX.flowerY,{alphaTest:0.4}); blockMat('crop',TEX.crop,{alphaTest:0.4});
 blockMat('glass',TEX.glass,{transparent:true,depthWrite:false});
 blockMat('door',TEX.door,{alphaTest:0.1});
@@ -249,6 +272,8 @@ windSway(MAT.tallgrass,0.9,true); windSway(MAT.flowerR,0.6,true); windSway(MAT.f
 /* the plain moves as one thing when the wind crosses it — the tall grass
    swings further than the sward, and the thorn crowns ride it */
 windSway(MAT.savgrass,1.5,true); windSway(MAT.acacia,0.5,false);
+/* and every leaf and every herb on the earth moves with it */
+windSway(MAT.leafW,0.55,false); windSway(MAT.plantW,0.85,true);
 windSway(MAT.crop,0.5,true);
 /* breaking surf — clumpy foam that washes the shoreline (scrolled + pulsed) */
 TEX.surf = mkTex(g=>{ g.clearRect(0,0,16,16);
@@ -776,13 +801,18 @@ function cellRaw(ix,iz){
     kind = h>treeLine+(snowLine-treeLine)*0.45 ? 'rock' : 'alpine';
     tree = (kind==='alpine'&&j<0.016*dens) ? 1 : 0;
   }
-  else if(badlands){ kind='badlands';
+  else if(badlands){ kind='badlands'; tree=j<0.005?1:0;
     const bh=fbm(ix*.045+7,iz*.045-3);              /* the badlands' own eroded relief */
     h=2+Math.floor(bh*8)+Math.floor(Math.pow(mtn,1.2)*inland*8);
     h=Math.max(2,Math.floor(h/2)*2);                /* terraced in steps of two */
     if(mUp>0.5) h+=Math.round(mUp);                 /* Uluru and its kin rise from the waste */
   }
-  else if(desert){ kind='desert'; }
+  /* THE WASTE IS NOT BARE. It bore nothing whatever — not a date palm at a
+     well, not a saguaro, not a thorn — because nothing but the temperate and
+     tropic grounds was ever given a tree at all. It is still a waste: one
+     cell in a hundred and sixty, so what stands there stands ALONE, and is
+     worth walking to. */
+  else if(desert){ kind='desert'; tree=j<0.006?1:0; }
   /* the plain, and the thorn trees standing SINGLY upon it — a savannah is
      not a thin wood, it is open ground with a tree in the middle distance */
   else if(savanna){ kind='savanna'; tree=j<0.008?4:0; }
@@ -890,13 +920,29 @@ function computeSites(){
 const scene=new THREE.Scene();
 function newG(){ return {}; }
 function gm(G,mat){ let g=G[mat]; if(!g){ g={p:[],uv:[],c:[],i:[],n:0}; G[mat]=g; } return g; }
+/* ---- AND A FACE MAY CARRY A COLOUR, NOT ONLY A SHADE ----
+   `s` was one number, the light on the face, written into all three channels.
+   It may now be a TRIPLE — the light already multiplied into a colour. That
+   one change is what lets a hundred kinds of tree stand in the world without
+   a hundred materials to draw them with: the leaf and the bark are drawn in
+   grey, ONCE, and every species tints its own faces as they are laid down.
+   A hundred greens, and not one extra draw call. */
 function quad(G,mat, ax,ay,az, bx,by,bz, cx,cy,cz, dx,dy,dz, u0,v0,u1,v1, s){
   const g=gm(G,mat), o=g.n;
   g.p.push(ax,ay,az, bx,by,bz, cx,cy,cz, dx,dy,dz);
   g.uv.push(u0,v0, u1,v0, u1,v1, u0,v1);
-  for(let k=0;k<4;k++) g.c.push(s,s,s);
+  if(typeof s==='number'){ for(let k=0;k<4;k++) g.c.push(s,s,s); }
+  else { for(let k=0;k<4;k++) g.c.push(s[0],s[1],s[2]); }
   g.i.push(o,o+1,o+2, o,o+2,o+3); g.n+=4;
 }
+/* the light on a face, multiplied into a tint — [r,g,b] in 0..1.
+   (The scratch triple is REUSED, not freshly made: quad copies it into the
+   buffer before anything else can be called, and the mesher lays down tens of
+   thousands of faces a chunk — a new array apiece is a great deal of rubbish
+   for the collector to sweep up for no reason at all.) */
+const _sh=[0,0,0];
+function shade(tint,s){ if(!tint) return s;
+  _sh[0]=tint[0]*s; _sh[1]=tint[1]*s; _sh[2]=tint[2]*s; return _sh; }
 function faceTop(G,mat,x0,z0,x1,z1,y,s,rep){ const r=rep||1;
   quad(G,mat, x0,y,z1, x1,y,z1, x1,y,z0, x0,y,z0, 0,0,(x1-x0)/B*r,(z1-z0)/B*r, s); }
 function faceBottom(G,mat,x0,z0,x1,z1,y,s){ quad(G,mat, x0,y,z0, x1,y,z0, x1,y,z1, x0,y,z1, 0,0,(x1-x0)/B,(z1-z0)/B, s); }
@@ -904,11 +950,11 @@ function facePX(G,mat,x,z0,z1,y0,y1,s){ quad(G,mat, x,y0,z1, x,y0,z0, x,y1,z0, x
 function faceNX(G,mat,x,z0,z1,y0,y1,s){ quad(G,mat, x,y0,z0, x,y0,z1, x,y1,z1, x,y1,z0, 0,0,(z1-z0)/B,(y1-y0)/B, s); }
 function facePZ(G,mat,z,x0,x1,y0,y1,s){ quad(G,mat, x0,y0,z, x1,y0,z, x1,y1,z, x0,y1,z, 0,0,(x1-x0)/B,(y1-y0)/B, s); }
 function faceNZ(G,mat,z,x0,x1,y0,y1,s){ quad(G,mat, x1,y0,z, x0,y0,z, x0,y1,z, x1,y1,z, 0,0,(x1-x0)/B,(y1-y0)/B, s); }
-function emitBox(G, x0,y0,z0, x1,y1,z1, sideMat, topMat, botMat){
-  faceTop(G,topMat,x0,z0,x1,z1,y1,1.0);
-  if(botMat) faceBottom(G,botMat,x0,z0,x1,z1,y0,0.5);
-  facePX(G,sideMat,x1,z0,z1,y0,y1,0.62); faceNX(G,sideMat,x0,z0,z1,y0,y1,0.62);
-  facePZ(G,sideMat,z1,x0,x1,y0,y1,0.8);  faceNZ(G,sideMat,z0,x0,x1,y0,y1,0.8);
+function emitBox(G, x0,y0,z0, x1,y1,z1, sideMat, topMat, botMat, tint){
+  faceTop(G,topMat,x0,z0,x1,z1,y1,shade(tint,1.0));
+  if(botMat) faceBottom(G,botMat,x0,z0,x1,z1,y0,shade(tint,0.5));
+  facePX(G,sideMat,x1,z0,z1,y0,y1,shade(tint,0.62)); faceNX(G,sideMat,x0,z0,z1,y0,y1,shade(tint,0.62));
+  facePZ(G,sideMat,z1,x0,x1,y0,y1,shade(tint,0.8));  faceNZ(G,sideMat,z0,x0,x1,y0,y1,shade(tint,0.8));
 }
 function cross(G,mat,cx,cz,y,size,h,s){
   const r=size/2;
@@ -971,7 +1017,30 @@ function emitColumn(G,ix,iz,cc){
    takes its stature from its own place (so it is the same tree every time
    the chunk is rebuilt), from a sapling to a great old giant half again as
    tall as its fellows, and the crown is scaled with the trunk. */
+/* ---- THE TOOLKIT THE FLORA IS BUILT WITH ----
+   js/flora.js knows the SHAPES — how a conifer differs from a palm from a
+   baobab — and world/flora.js knows what grows where. Neither of them knows
+   anything about chunks, so the mesher lends them the few things they need
+   and takes the geometry back. `G` is swapped in per chunk. */
+const FKIT={ G:null, emitBox, cross, shade, hash:hash2,
+  M:{leaf:'leafW', bark:'barkW', plant:'plantW', solid:'solidW'} };
+let floraReady=false;
+function initFlora(){ if(floraReady) return; floraReady=true;
+  if(window.FLORA) FLORA.load((window.EARTH.floraList||[])[0]||null); }
+/* which land this ground belongs to, by name — the key the flora and the
+   fauna files are both written against */
+function landNameAt(x,z){ const ci=countryAtUV(x/R_WORLD,z/R_WORLD);
+  return (ci&&COUNTRIES[ci-1])?COUNTRIES[ci-1].n:null; }
+let chunkLand=null;          /* whose country the chunk being built is in */
 function emitTree(G,ix,iz,cc){
+  initFlora();
+  if(window.FLORA){
+    const K=FLORA.treeAt(chunkLand,cc.kind,cc.h,ix,iz,hash2);
+    if(K){ FKIT.G=G; FLORA.emitTree(FKIT,K,ix,iz,cc); FKIT.G=null; return; }
+  }
+  /* ---- AND IF THE FLORA HAS NOTHING FOR THIS GROUND ----
+     the four trees the world had before it did. Nothing should reach here
+     now, but a world that cannot draw a tree is worse than a dull one. */
   const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B;
   const tropic=cc.tree===2, cherry=cc.tree===3, thorn=cc.tree===4;
   /* a long tail toward the giants: most are middling, a few tower */
@@ -1023,6 +1092,24 @@ function nearSettled(x,z){
    GRASS.at(). (Before this the mesher decided alone, nothing else in the
    world knew where a blade stood, and the herds grazed bare dirt.) */
 function emitScrub(G,ix,iz,cc,wild){
+  /* ---- THE HERB AND THE BUSH COME FIRST ----
+     Before the sward, what this COUNTRY grows low: the vine and the lavender
+     of the south, the bilberry under the northern spruce, the coffee bush,
+     the reed, the agave, the ear of corn. It is a sparser draw than the
+     grass and takes its own number, so the two layers never fight over a
+     cell — where a bush stands, no blade is drawn under it. */
+  initFlora();
+  if(window.FLORA){
+    const P=FLORA.plantAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wild);
+    if(P){ FKIT.G=G; FLORA.emitPlant(FKIT,P,ix,iz,cc); FKIT.G=null; return; }
+    /* ---- AND THE YOUNG GROWTH ----
+       A wood with no young trees in it is a plantation, not a wood. A few
+       cells in every hundred carry a SAPLING of one of the same kinds that
+       stand grown over them — knee-high, the right species for the country,
+       and the same one every time you pass. */
+    const S=FLORA.saplingAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wild);
+    if(S){ FKIT.G=G; FLORA.emitSapling(FKIT,S,ix,iz,cc); FKIT.G=null; return; }
+  }
   const gr=GRASS.at(ix,iz,cc.kind,wild); if(!gr) return;
   const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B;
   if(gr.m==='bush'){                                   /* a true bush, with a woody heart */
@@ -1089,6 +1176,14 @@ const chunks=new Map(); const buildQueue=[]; const buildQueued=new Set();
 const chunkRoot=new THREE.Group(); scene.add(chunkRoot);
 function buildChunk(cx,cz){
   const G=newG();
+  /* ---- WHOSE COUNTRY THIS CHUNK IS IN ----
+     Every tree and every bush asks what land it grows in, and the answer is
+     the same for the whole chunk within a pixel or two of the chart. Asked
+     per CELL it was two hundred and fifty-six lookups and as many string
+     keys built for the flora's cache, for one answer; asked once here it is
+     one. (A chunk that straddles a border takes its middle's country — a
+     chunk is ninety-six metres across and no wood changes at a line.) */
+  chunkLand=landNameAt((cx*CH+CH/2)*B,(cz*CH+CH/2)*B);
   for(let a=0;a<CH;a++) for(let b=0;b<CH;b++){
     const ix=cx*CH+a, iz=cz*CH+b, cc=cell(ix,iz);
     if(!cc){ /* the shelf: solid sandy terraces stepping down from the land,
