@@ -826,6 +826,10 @@ function emitScrub(G,ix,iz,cc,j,wild){
   else if(j<0.24*wild) cross(G,'tallgrass',x,z,yT,B*(0.7+s*0.5),B*(0.6+s*0.9),0.95);
   else if(j<0.27*wild) cross(G, s<0.5?'flowerR':'flowerY', x,z,yT,B*0.85,B*0.85,0.95);
 }
+/* how near a coast the chunk mesher lays a blocky shelf of its own. The sea
+   bed that follows the diver reads the SAME number and stands aside there, so
+   the two never fight for the same ground. */
+const SHELF_SHOAL=0.10;
 const chunks=new Map(); const buildQueue=[]; const buildQueued=new Set();
 /* all the streamed land under one root, so it can be taken out of the view
    in a single stroke when the charted face of the earth stands in for it */
@@ -837,21 +841,27 @@ function buildChunk(cx,cz){
     if(!cc){ /* the shelf: solid sandy terraces stepping down from the land,
                 each rooted in the bed of the sea — never a floating sheet */
       const x0=ix*B, z0=iz*B;
-      const step=top=>emitBox(G, x0+0.08,SUBSEA_Y,z0+0.08, x0+B-0.08,top,z0+B-0.08,'sand','sand',null);
+      const step=(top,mat)=>emitBox(G, x0+0.08,SUBSEA_Y,z0+0.08, x0+B-0.08,top,z0+B-0.08,mat||'sand',mat||'sand',null);
       const nb=cell(ix+1,iz)||cell(ix-1,iz)||cell(ix,iz+1)||cell(ix,iz-1);
       if(nb&&nb.kind!=='wall'&&nb.kind!=='floe'){
-        step(WATER_Y-1.5);
+        step(WATER_Y-1.5);                       /* the landing at the water's edge */
         /* breaking surf where the swell meets the strand */
         if(nb.kind==='sand'||nb.kind==='tropic'||nb.kind==='grass'||nb.kind==='desert')
           faceTop(G,'surf',x0,z0,x0+B,z0+B,WATER_Y+0.55,1.0);
-      } else if(shoalAt(x0+B/2,z0+B/2)>0.08){       /* only worth probing near a coast */
-        const nb2=cell(ix+1,iz+1)||cell(ix-1,iz-1)||cell(ix+1,iz-1)||cell(ix-1,iz+1)
-          ||cell(ix+2,iz)||cell(ix-2,iz)||cell(ix,iz+2)||cell(ix,iz-2);
-        if(nb2&&nb2.kind!=='wall'&&nb2.kind!=='floe') step(WATER_Y-4.6);
-        else {
-          const nb3=cell(ix+2,iz+2)||cell(ix-2,iz-2)||cell(ix+2,iz-2)||cell(ix-2,iz+2)
-            ||cell(ix+3,iz)||cell(ix-3,iz)||cell(ix,iz+3)||cell(ix,iz-3);
-          if(nb3&&nb3.kind!=='wall'&&nb3.kind!=='floe') step(WATER_Y-9.5);
+      } else if(shoalAt(x0+B/2,z0+B/2)>SHELF_SHOAL){
+        /* ---- AND THE SHELF IS BLOCKS TOO ----
+           Past the landing the shore used to fall away in exactly two more
+           terraces, at four units and at nine, whatever the ground beneath
+           actually did — a pair of shelves ringing every coast in the world
+           at the same two depths. It steps down in real blocks now, each
+           taking the TRUE bed of the sea at that place snapped to the block
+           grid, so the shallows carry the same floor the diver swims over and
+           the two are one continuous thing. */
+        const bedTop=Math.round(seabedDepth(x0+B/2,z0+B/2)/B)*B;
+        const top=Math.min(WATER_Y-1.5,bedTop);
+        if(top>SUBSEA_Y+0.4){
+          const deep=WATER_Y-top;
+          step(top, deep>26?'stone':'sand');
         }
       }
       continue;
@@ -2702,13 +2712,12 @@ const sbGeo=(()=>{
        sand run across each block face and start again at the next, so the
        floor is a grid of blocks and not one sheet of stretched sand. The
        skirt carries the same u/v as the top corner above it, so a wall shows
-       that block's own colour down its face. */
-    const uu=[0,1,1,0], vv=[0,0,1,1];
+       that block's own face down its side. (The u/v themselves are written
+       with the bed each rebuild — see below — because they say WHICH KIND of
+       ground this block is, and that changes as he swims.) */
     for(let q=0;q<4;q++){
       pos[(o+q)*3]=cx[q];   pos[(o+q)*3+2]=cz[q];
-      pos[(o+4+q)*3]=cx[q]; pos[(o+4+q)*3+2]=cz[q];
-      uv[(o+q)*2]=uu[q];    uv[(o+q)*2+1]=vv[q];
-      uv[(o+4+q)*2]=uu[q];  uv[(o+4+q)*2+1]=vv[q]; }
+      pos[(o+4+q)*3]=cx[q]; pos[(o+4+q)*3+2]=cz[q]; }
     /* the top, wound face up */
     idx[ii++]=o+0; idx[ii++]=o+2; idx[ii++]=o+1;
     idx[ii++]=o+0; idx[ii++]=o+3; idx[ii++]=o+2;
@@ -2723,24 +2732,60 @@ const sbGeo=(()=>{
   g.setIndex(new THREE.BufferAttribute(idx,1));
   return g;
 })();
-/* ---- THE GRAIN OF THE FLOOR, AND NOTHING ELSE ----
-   The bed wore the shore's own sand — a warm yellow hide — and every block's
-   colour was then multiplied through it, so sand times yellow, gravel times
-   yellow and clay times yellow all came out the same khaki, and the whole
-   floor was one flat olive whatever kind of ground it was. This texture is
-   NEUTRAL: it carries the grain and the pixel-noise of a block face and no
-   colour at all, so what the eye reads is the block's own kind. */
-const sbTex=mkTex(g=>{
-  for(let y=0;y<16;y++) for(let x=0;x<16;x++){
-    const n=hash2(x*3.1+y*7.7,y*2.3-x*1.9);
-    const v=Math.round(198+n*54);          /* a pale, even grain */
-    P(g,x,y,rgb(v,v,v)); }
-  /* a few darker grits, so no two blocks read quite alike */
-  for(let k=0;k<10;k++){ const x=Math.floor(hash2(k,4.4)*16), y=Math.floor(hash2(k,8.8)*16);
-    const v=Math.round(150+hash2(k,1.2)*30); P(g,x,y,rgb(v,v,v)); } });
-sbTex.wrapS=sbTex.wrapT=THREE.RepeatWrapping; sbTex.repeat.set(1,1);
-sbTex.magFilter=THREE.NearestFilter; sbTex.minFilter=THREE.NearestMipmapLinearFilter;
-sbTex.generateMipmaps=true; sbTex.needsUpdate=true;
+/* ---- THE FACES OF THE SEA FLOOR, IN ONE SHEET ----
+   The bed wore a neutral grain and took its colour from a vertex tint, which
+   gave the SHAPE of blocks but not the FACE of one: sand, gravel and clay all
+   had the same grain and differed only in wash. They are drawn now as they
+   are ashore — real sixteen-pixel faces, each block wearing its own — and
+   because the whole floor is one mesh in one draw call they are laid side by
+   side in a single sheet, four across and two down, and each block is given
+   the corner of the sheet that belongs to its kind.
+   No mipmaps: an atlas blurred down bleeds one tile into its neighbour, and
+   sand would fringe with gravel. Nearest, as minecraft does. */
+const SB_ATLAS_W=4, SB_ATLAS_H=2, SB_TILE=16;
+const sbTex=(()=>{
+  const c=texCanvas(SB_ATLAS_W*SB_TILE,SB_ATLAS_H*SB_TILE);
+  const g=c.getContext('2d');
+  /* draw one tile at slot n with a per-pixel painter */
+  const tile=(n,paint)=>{ const ox=(n%SB_ATLAS_W)*SB_TILE, oy=Math.floor(n/SB_ATLAS_W)*SB_TILE;
+    for(let y=0;y<SB_TILE;y++) for(let x=0;x<SB_TILE;x++){
+      const col=paint(x,y); g.fillStyle=col; g.fillRect(ox+x,oy+y,1,1); } };
+  const sh=(base,amt,seed)=>{ const c2=jit(base,amt,seed); return rgb(c2[0],c2[1],c2[2]); };
+  /* 0 — SEA SAND: fine, pale, evenly grained */
+  tile(0,(x,y)=>sh([222,209,170],16,x*7.1+y*3.3));
+  /* 1 — GRAVEL: coarse grey stones of two sizes */
+  tile(1,(x,y)=>{ const n=hash2(x*2.3+y*5.1,y*1.7+x*0.9);
+    const b=n>0.78?150:n>0.5?178:n>0.22?196:166; return sh([b,b-4,b-10],12,x+y*5); });
+  /* 2 — CLAY: smooth, blue-grey, faintly banded */
+  tile(2,(x,y)=>{ const band=(y%4===0)?-10:0; return sh([150,166,182+band],9,x*3.7+y*2.1); });
+  /* 3 — DARK ROCK of the deeps, near black and flecked */
+  tile(3,(x,y)=>{ const n=hash2(x*1.9+y*4.3,y*2.7); const b=n>0.86?96:70;
+    return sh([b,b+8,b+16],10,x*5+y); });
+  /* 4 — WEEDED GROUND: sand under a mat of dull olive growth */
+  tile(4,(x,y)=>{ const n=hash2(x*3.1+y*1.3,y*2.9+x*0.7);
+    return n>0.42?sh([96,124,74],18,x+y*3):sh([176,168,132],14,x*2+y); });
+  /* 5 — PRISMARINE: the green-blue stone of the sea, in a woven check */
+  tile(5,(x,y)=>{ const q=((x>>2)+(y>>2))&1, b=q?[86,140,132]:[74,124,118];
+    const n=hash2(x*2.1,y*3.3); return sh(n>0.8?[104,158,148]:b,10,x*4+y); });
+  /* 6 — SHELL SAND, shot through with broken white */
+  tile(6,(x,y)=>{ const n=hash2(x*4.7+y*2.2,y*1.1);
+    return n>0.88?sh([238,234,222],8,x+y):sh([214,200,162],15,x*3+y*2); });
+  /* 7 — DEAD CORAL RUBBLE, pale and knobbled */
+  tile(7,(x,y)=>{ const n=hash2(x*1.3+y*3.9,y*2.3+x*1.7);
+    return n>0.7?sh([206,196,188],14,x+y*4):sh([176,162,152],12,x*2+y*3); });
+  const t=new THREE.CanvasTexture(c);
+  t.magFilter=THREE.NearestFilter; t.minFilter=THREE.NearestFilter;
+  t.generateMipmaps=false; t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping;
+  t.needsUpdate=true; return t;
+})();
+/* where each kind's tile sits in the sheet, in uv */
+const SB_UV=[];
+for(let n=0;n<SB_ATLAS_W*SB_ATLAS_H;n++){
+  const cx=n%SB_ATLAS_W, cy=Math.floor(n/SB_ATLAS_W);
+  /* a half-texel inset, so no filtering ever reaches into the next tile */
+  const e=0.5/(SB_ATLAS_W*SB_TILE), f=0.5/(SB_ATLAS_H*SB_TILE);
+  SB_UV.push([cx/SB_ATLAS_W+e,(cx+1)/SB_ATLAS_W-e,
+              1-(cy+1)/SB_ATLAS_H+f,1-cy/SB_ATLAS_H-f]); }
 /* THE SAME KIND OF MATERIAL THE LAND WEARS — unlit, vertex-shaded, so a face
    is exactly as bright as its colour says and no averaged normal can round a
    corner off. (A lambert bed with computed normals smoothed every edge it
@@ -2749,21 +2794,17 @@ const seaFloor=new THREE.Mesh(sbGeo,
   new THREE.MeshBasicMaterial({map:sbTex,vertexColors:true}));
 seaFloor.visible=false; seaFloor.frustumCulled=false; scene.add(seaFloor);
 /* THE KINDS OF GROUND UNDER THE SEA, and the colour each reads as. */
-const SB_KIND=[
-  [1.02,0.94,0.72],   /* 0 sand — the common floor */
-  [0.70,0.70,0.72],   /* 1 gravel */
-  [0.58,0.71,0.86],   /* 2 clay */
-  [0.36,0.43,0.50],   /* 3 dark rock, in the deeps */
-  [0.44,0.64,0.38]    /* 4 weeded ground, and rare */
-];
-/* the colour the water itself lends to everything under it */
-const SB_WATER=[0.34,0.56,0.66], SB_COOL=0.17;
+/* the colour the water itself lends to everything under it. The KIND is in
+   the block's face now, so all that is left for the vertex tint is the light
+   (which fails with depth) and the cold of the water. */
+const SB_WATER=[0.42,0.62,0.70], SB_COOL=0.20;
 let _sbAt=null;
 /* THE BED IS LAID OVER MANY FRAMES AND SWAPPED IN WHOLE — a cell at a time
    into a spare pair of buffers, on a threshold of real travel; the bed on
    screen keeps its old shape and its old anchor until the last cell is ready.
    A half-built bed is never shown. */
 const _sbP=new Float32Array(SB_NV*3), _sbC=new Float32Array(SB_NV*3);
+const _sbU=new Float32Array(SB_NV*2);
 const SB_MS=4;                  /* the slice of a frame the rebuild may take */
 const SB_STEP=44;               /* how far he must swim before it is rebuilt */
 let _sbJob=null;
@@ -2781,9 +2822,9 @@ function updateSeaFloor(px,pz,force){
     if(!whole&&lag<SB_STEP) return;
     /* the cell heights are read once for the whole patch, so a wall may be
        cut down to exactly what its neighbour stands at */
-    _sbJob={px,pz,j:0,h:new Float32Array(SB_CELLS),k:new Uint8Array(SB_CELLS),pass:0};
+    _sbJob={px,pz,j:0,h:new Float32Array(SB_CELLS),k:new Uint8Array(SB_CELLS),cov:new Uint8Array(SB_CELLS),pass:0};
   } else if(whole||Math.hypot(_sbJob.px-px,_sbJob.pz-pz)>SB_SIZE*0.25){
-    _sbJob={px,pz,j:0,h:new Float32Array(SB_CELLS),k:new Uint8Array(SB_CELLS),pass:0}; }
+    _sbJob={px,pz,j:0,h:new Float32Array(SB_CELLS),k:new Uint8Array(SB_CELLS),cov:new Uint8Array(SB_CELLS),pass:0}; }
   const J=_sbJob, t0=performance.now(), half=SB_SIZE/2;
   /* ---- first pass: the height and the kind of every cell ---- */
   while(J.pass===0&&J.j<SB_N){
@@ -2792,13 +2833,24 @@ function updateSeaFloor(px,pz,force){
       const wx=J.px-half+(i+0.5)*SB_CS, wz=J.pz-half+(j+0.5)*SB_CS;
       const c=j*SB_N+i;
       J.h[c]=sbBlockY(wx,wz);
+      /* ---- ONE FLOOR, NOT TWO ----
+         Near a coast the chunk mesher lays its own blocky shelf on exactly
+         this ground, from exactly this depth field, and two meshes at one
+         height tear at each other. So this bed gives that ground up — but
+         ONLY where the shelf truly stands: the chunks lay nothing below the
+         shelf's own footing, and a cover test that ignored that opened the
+         whole floor out from under a diver over any deep water near a coast. */
+      J.cov[c]=(shoalAt(wx,wz)>SHELF_SHOAL&&J.h[c]>SUBSEA_Y+0.4)?1:0;
       const depth=SEA_SURF-J.h[c];
       const n1=fbm(wx*0.03+3,wz*0.03+7), n2=fbm(wx*0.011-5,wz*0.011+2);
       let kind=0;
-      if(depth>300) kind=3;
-      else if(n2>0.60) kind=2;
-      else if(n2<0.38) kind=1;
-      if(n1>0.74&&depth<130) kind=4;
+      if(depth>300) kind=3;                       /* the dark rock of the deeps */
+      else if(n2>0.62) kind=2;                    /* clay beds */
+      else if(n2<0.36) kind=1;                    /* gravel */
+      else if(n2>0.545) kind=6;                   /* shell sand */
+      if(depth>150&&depth<=300&&n1>0.58) kind=5;  /* prismarine on the slopes */
+      if(n1>0.74&&depth<130) kind=4;              /* weeded ground in the shallows */
+      if(depth<60&&n1<0.30) kind=7;               /* coral rubble on the reef flats */
       J.k[c]=kind;
     }
     if(!whole&&performance.now()-t0>=SB_MS) return;
@@ -2808,7 +2860,14 @@ function updateSeaFloor(px,pz,force){
   while(J.j<SB_N){
     const j=J.j++;
     for(let i=0;i<SB_N;i++){
-      const c=j*SB_N+i, o=c*8, y=J.h[c];
+      const c=j*SB_N+i, o=c*8;
+      if(J.cov[c]){        /* the chunks have this ground — sink out of the way */
+        for(let q=0;q<4;q++){ _sbP[(o+q)*3+1]=SUBSEA_Y-460; _sbP[(o+4+q)*3+1]=SUBSEA_Y-462;
+          const t0=(o+q)*3, t1=(o+4+q)*3;
+          _sbC[t0]=_sbC[t0+1]=_sbC[t0+2]=0; _sbC[t1]=_sbC[t1+1]=_sbC[t1+2]=0;
+          _sbU[(o+q)*2]=_sbU[(o+q)*2+1]=0; _sbU[(o+4+q)*2]=_sbU[(o+4+q)*2+1]=0; }
+        continue; }
+      const y=J.h[c];
       /* the skirt drops to the LOWEST neighbour, so the wall is exactly as
          tall as the step down and never a gap nor a wasted face */
       let low=y;
@@ -2821,17 +2880,22 @@ function updateSeaFloor(px,pz,force){
       /* the colour of this block: its kind, dimmed with the depth (the light
          does not reach the trenches) and jittered a little block by block, as
          a minecraft floor is never two blocks exactly alike */
-      const K=SB_KIND[J.k[c]];
-      const depth=SEA_SURF-y, lit=0.32+0.58*Math.max(0,1-depth/430);
-      const jr=0.90+0.20*hash2(i*1.7+j*0.3,j*2.1-i*0.7);
+      /* THE BLOCK'S OWN FACE, taken out of the sheet by its kind */
+      const T=SB_UV[J.k[c]];
+      const uu=[T[0],T[1],T[1],T[0]], vv=[T[2],T[2],T[3],T[3]];
+      for(let q=0;q<4;q++){
+        _sbU[(o+q)*2]=uu[q];     _sbU[(o+q)*2+1]=vv[q];
+        _sbU[(o+4+q)*2]=uu[q];   _sbU[(o+4+q)*2+1]=vv[q]; }
+      const depth=SEA_SURF-y, lit=0.34+0.62*Math.max(0,1-depth/430);
+      const jr=0.94+0.12*hash2(i*1.7+j*0.3,j*2.1-i*0.7);
       /* THE WATER LENDS ITS OWN COLOUR to everything beneath it — but by
          MIXING toward the blue of the sea, not by pulling the red channel
          down. Scaling the channels turned sand (whose green already stands
          over its blue) to pond-weed olive, and the whole floor with it. */
       const m=SB_COOL, im=1-m;
-      const r =(K[0]*lit*jr)*im + SB_WATER[0]*m*lit;
-      const g2=(K[1]*lit*jr)*im + SB_WATER[1]*m*lit;
-      const b2=(K[2]*lit*jr)*im + SB_WATER[2]*m*lit;
+      const r =(lit*jr)*im + SB_WATER[0]*m*lit;
+      const g2=(lit*jr)*im + SB_WATER[1]*m*lit;
+      const b2=(lit*jr)*im + SB_WATER[2]*m*lit;
       for(let q=0;q<4;q++){ const t=(o+q)*3;
         _sbC[t]=r; _sbC[t+1]=g2; _sbC[t+2]=b2; }
       /* THE SIDE OF A BLOCK IS DARKER THAN ITS TOP, as it is ashore — that
@@ -2844,13 +2908,14 @@ function updateSeaFloor(px,pz,force){
   /* done — the new bed takes the place of the old one in a single step */
   const pa=sbGeo.attributes.position.array, ca=sbGeo.attributes.color.array;
   for(let v=0;v<SB_NV;v++) pa[v*3+1]=_sbP[v*3+1];
-  ca.set(_sbC);
+  ca.set(_sbC); sbGeo.attributes.uv.array.set(_sbU);
   /* the mesh is anchored WHERE ITS DATA WAS BUILT. Each cell holds a local
      x/z and an absolute world y, so moving the mesh without rebuilding would
      drag the whole sea bed along behind the swimmer. */
   seaFloor.position.set(J.px,0,J.pz);
   _sbAt=[J.px,J.pz]; _sbJob=null;
-  sbGeo.attributes.position.needsUpdate=true; sbGeo.attributes.color.needsUpdate=true; }
+  sbGeo.attributes.position.needsUpdate=true; sbGeo.attributes.color.needsUpdate=true;
+  sbGeo.attributes.uv.needsUpdate=true; }
 /* ---- kelp — tall strands rising from the floor, swaying with the current ---- */
 const kelpMat=new THREE.MeshLambertMaterial({map:TEX.kelp,side:THREE.DoubleSide});
 function makeKelp(){ const g=new THREE.Group(), segs=[];
@@ -6974,6 +7039,11 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   ENC,nearestEncounter,encounterAct,BARKS,FIREFLIES,SMOKES,rain,rainMat,nextLandfall,checkFulfilled,AIRLIFE,stormAt,COUNTRIES,STORMS,R_WORLD,
   seaPools:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,POD}),
   seaFloor,eyeUnderwater,eyeSub:()=>_eyeSub,
+  lights:()=>({ sunY:Math.round(sun.position.y), moonY:Math.round(moon.position.y),
+    sunR:+(Math.hypot(sun.position.x,sun.position.z)/R_WORLD).toFixed(3),
+    moonR:+(Math.hypot(moon.position.x,moon.position.z)/R_WORLD).toFixed(3),
+    domeR:+(R_DOME/R_WORLD).toFixed(3), faceY:aloftDisc?Math.round(aloftDisc.position.y):null,
+    sunVis:sun.visible, moonVis:moon.visible }),
   makeBeast,beastUnits,BEASTS,U_PER_M,POD,initPod,SHARKS,initSharks,initSeaMobs,
   seaMobs:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS})};
 
@@ -7088,6 +7158,24 @@ function frame(){
     aloftDisc.position.y=175+Math.min(2200,Math.max(0,eyeY-9000)*0.06);  /* over the chunk tops, under the flyer */
     aloftTick(dt,p.x,p.z); }
   else if(aloftDisc){ aloftDisc.visible=false; if(aloftMark) aloftMark.visible=false; }
+  /* ---- THE TWO LIGHTS KEEP WITHIN THE FIRMAMENT ----
+     The sun and moon ride their true courses some forty-five thousand units
+     up. That is right when the eye is under them, but the whole-earth view
+     lays the CHARTED face of the world a few hundred units off the ground —
+     so the lights, forty-five thousand nearer the eye than the earth they
+     light, swung wide with the parallax and sailed off past the rim of the
+     world into the outer darkness. Drawn back on the wheel, or risen high
+     enough that the chart takes over, they are brought down to hang just over
+     that charted face, and keep their place above the earth as they should. */
+  if(zMapF>0.02&&!state.firm){
+    const face=(aloftDisc?aloftDisc.position.y:175);
+    const sk=Math.min(1,zMapF*1.15);
+    sun.position.y +=((face+R_WORLD*0.030)-sun.position.y)*sk;
+    moon.position.y+=((face+R_WORLD*0.026)-moon.position.y)*sk;
+    /* and never outside the vault, whatever the hour or the season */
+    for(const L of [sun,moon]){ const rr=Math.hypot(L.position.x,L.position.z);
+      if(rr>R_DOME*0.94){ const k2=R_DOME*0.94/rr; L.position.x*=k2; L.position.z*=k2; } }
+  }
   haloTick(state.firm?1:zMapF);   /* the lights get their glow when the earth is beheld whole */
   /* drawn right back, the sky about the disc gives way to the outer darkness,
      and the earth is beheld standing within it — as she is */
