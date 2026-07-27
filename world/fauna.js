@@ -45,11 +45,13 @@ roles:{
   lion:'stalk', tiger:'stalk', leopard:'stalk', jaguar:'stalk', cheetah:'stalk',
   cougar:'stalk', snowleopard:'stalk', lynx:'stalk', fox:'stalk', arcticfox:'stalk',
   wolf:'pack', hyena:'pack', dingo:'pack', jackal:'pack', coyote:'pack', dog:'pack',
+  arcticwolf:'pack',
   bear:'forage', blackbear:'forage', polarbear:'forage', boar:'forage', badger:'forage',
   raccoon:'forage', skunk:'forage', panda:'forage', redpanda:'forage', gorilla:'forage',
   chimpanzee:'forage', baboon:'forage', macaque:'forage', howler:'forage', sloth:'forage',
   anteater:'forage', armadillo:'forage', hedgehog:'forage', meerkat:'forage',
   wombat:'forage', koala:'forage', tasdevil:'forage', otter:'forage', beaver:'forage',
+  wolverine:'forage', ermine:'stalk', lemming:'forage', mammoth:'graze',
   platypus:'forage', warthog:'forage', orangutan:'forage', lemur:'forage',
   caracal:'stalk',
   jerboa:'forage', scorpion:'forage',
@@ -63,7 +65,8 @@ prey:['sheep','goat','pig','chicken','hare','deer','donkey','cow','horse','ostri
   'zebra','wildebeest','gazelle','oryx','warthog','buffalo','waterbuffalo','saiga',
   'pronghorn','reindeer','moose','bison','chamois','llama','alpaca','capybara',
   'kangaroo','emu','tapir','yak','ox','giraffe','okapi','boar','hedgehog','peacock',
-  'wildass','addax','blackbuck','bustard','jerboa'],
+  'wildass','addax','blackbuck','bustard','jerboa',
+  'arctichare','lemming','ptarmigan','muskox','mammoth'],
 
 /* ---- WHERE EACH WILL STAND ----
    g    the grounds it will set foot on. A beast is never placed on ground
@@ -140,10 +143,22 @@ keeps:{
   koala:{g:['grass','tropic']}, wombat:{g:['grass','alpine','tropic']},
   dingo:{g:['desert','grass','badlands','savanna','sand','rock'],w:0.4},
   cassowary:{g:['tropic']}, kiwi:{g:['tropic','grass','alpine']}, tasdevil:{g:['grass','alpine','tropic'],w:0.6},
-  /* the cold and the ice */
+  /* ---- THE COLD AND THE ICE ----
+     The far north carried four beasts and the ice-foot carried one. It has
+     the whole of its own life now: the mammoth over the frozen steppe, the
+     white wolf on the musk ox, the wolverine that drives a bear off a
+     carcase, the arctic hare, the ermine, the ptarmigan that goes white for
+     the winter — and the lemming, on whose back the whole arctic stands. */
+  mammoth:{g:['snow','tundra','grass'],w:0.35},
+  arcticwolf:{g:['snow','tundra','floe','wall'],w:0.5},
+  wolverine:{g:['snow','tundra','alpine','grass'],w:0.5},
+  arctichare:{g:['snow','tundra','alpine','floe'],w:1.5},
+  ermine:{g:['snow','tundra','alpine','grass'],w:0.9},
+  lemming:{g:['snow','tundra','alpine'],w:1.8},
+  ptarmigan:{g:['snow','tundra','alpine','rock'],w:1.4},
   bear:{g:['grass','tundra','alpine','snow'],w:0.25},
-  polarbear:{g:['snow','floe','wall','tundra'],w:0.3}, arcticfox:{g:['snow','tundra','floe'],w:0.6},
-  muskox:{g:['tundra','snow']}, penguin:{g:['floe','wall','snow']},
+  polarbear:{g:['snow','floe','wall','tundra'],w:0.3}, arcticfox:{g:['snow','tundra','floe','wall'],w:0.6},
+  muskox:{g:['tundra','snow','grass'],w:1.2}, penguin:{g:['floe','wall','snow'],w:1.6},
   /* the beasts of the running water */
   otter:{g:['grass','tropic','tundra','alpine','savanna'],riv:true},
   beaver:{g:['grass','tundra','alpine'],riv:true},
@@ -161,11 +176,12 @@ wilds:{
   desert :['camel','goat','donkey','lizard','viper','scorpion','jerboa','hare','oryx','jackal','gazelle','bustard'],
   badlands:['goat','lizard','viper','scorpion','jerboa','hare','fox','bustard'],
   sand   :['lizard','viper','scorpion','jerboa','camel','goat','hare'],
-  tundra :['wolf','deer','hare','ox','goat','reindeer','fox','muskox'],
+  tundra :['wolf','deer','hare','ox','goat','reindeer','fox','muskox','arctichare','ptarmigan','lemming','wolverine','ermine'],
   alpine :['goat','goat','deer','wolf','hare','chamois'],
   rock   :['goat','lizard','viper','scorpion','hare','fox','wolf','deer'],
-  snow   :['polarbear','arcticfox','reindeer','muskox'],
-  floe   :['penguin'], wall:['penguin'],
+  snow   :['polarbear','arcticfox','reindeer','muskox','arctichare','ptarmigan','lemming','arcticwolf','ermine'],
+  floe   :['penguin','polarbear','arcticfox','arctichare','arcticwolf'],
+  wall   :['penguin','polarbear','arcticfox','arcticwolf'],
 },
 
 /* ---- THE LANDS, AND WHAT WALKS IN EACH ----
@@ -248,7 +264,8 @@ lands:{
 
 /* ---------------- ASIA ---------------- */
 'Russia':['bear','wolf','moose','reindeer','boar','fox','lynx','hare','tiger','saiga','muskox',
-  'arcticfox','polarbear','bison','beaver','otter','deer'],
+  'arcticfox','polarbear','bison','beaver','otter','deer',
+  'mammoth','arcticwolf','wolverine','ermine','arctichare','ptarmigan','lemming'],
 'Kazakhstan':['saiga','horse','camel','wolf','fox','hare','snowleopard','deer','sheep','goat',
   'wildass','bustard','viper','scorpion','jerboa'],
 'Uzbekistan':['camel','horse','sheep','goat','fox','wolf','gazelle','lizard','donkey',
@@ -258,7 +275,7 @@ lands:{
 'Kyrgyzstan':['snowleopard','yak','sheep','goat','horse','wolf','deer','fox','chamois'],
 'Tajikistan':['snowleopard','yak','goat','sheep','horse','wolf','fox','chamois'],
 'Mongolia':['horse','camel','yak','sheep','goat','wolf','saiga','snowleopard','fox','hare',
-  'wildass','bear','bustard','viper','scorpion','jerboa'],
+  'wildass','bear','bustard','viper','scorpion','jerboa','mammoth','wolverine','ermine','lemming'],
 'China':['panda','redpanda','tiger','yak','snowleopard','macaque','boar','deer','leopard','goat',
   'sheep','horse','peacock','otter','cow',
   /* and the Gobi and the Taklamakan, which are also China */
@@ -320,10 +337,13 @@ lands:{
 'Azerbaijan':['goat','sheep','wolf','bear','boar','deer','fox','gazelle'],
 
 /* ---------------- EUROPE ---------------- */
-'Norway':['reindeer','moose','bear','wolf','lynx','fox','hare','sheep','otter','arcticfox','muskox'],
-'Sweden':['moose','reindeer','bear','wolf','lynx','fox','boar','hare','beaver','otter','deer'],
-'Finland':['moose','reindeer','bear','wolf','lynx','fox','hare','beaver','otter'],
-'Iceland':['sheep','horse','arcticfox','reindeer','hare'],
+'Norway':['reindeer','moose','bear','wolf','lynx','fox','hare','sheep','otter','arcticfox','muskox',
+  'wolverine','ermine','ptarmigan','arctichare','lemming'],
+'Sweden':['moose','reindeer','bear','wolf','lynx','fox','boar','hare','beaver','otter','deer',
+  'wolverine','ermine','ptarmigan','lemming','arctichare'],
+'Finland':['moose','reindeer','bear','wolf','lynx','fox','hare','beaver','otter',
+  'wolverine','ermine','ptarmigan','lemming','arctichare'],
+'Iceland':['sheep','horse','arcticfox','reindeer','hare','ptarmigan','arctichare','ermine'],
 'Denmark':['deer','boar','fox','hare','cow','pig','badger','otter'],
 'Estonia':['moose','bear','wolf','lynx','boar','beaver','fox','deer'],
 'Latvia':['moose','wolf','lynx','boar','beaver','deer','fox','badger'],
@@ -360,9 +380,11 @@ lands:{
 'Ireland':['sheep','cow','deer','fox','badger','hare','horse','otter'],
 
 /* ---------------- THE AMERICAS ---------------- */
-'Greenland':['polarbear','muskox','arcticfox','reindeer','sheep','wolf'],
+'Greenland':['polarbear','muskox','arcticfox','reindeer','sheep','arcticwolf',
+  'arctichare','ptarmigan','lemming','ermine','wolverine'],
 'Canada':['moose','bison','blackbear','bear','wolf','reindeer','beaver','fox','lynx','cougar',
-  'muskox','polarbear','arcticfox','deer','otter','raccoon','hare'],
+  'muskox','polarbear','arcticfox','deer','otter','raccoon','hare',
+  'mammoth','arcticwolf','wolverine','ermine','arctichare','ptarmigan','lemming'],
 'United States of America':['bison','moose','blackbear','bear','wolf','cougar','coyote','deer',
   'pronghorn','beaver','raccoon','skunk','fox','armadillo','crocodile','hare','horse','cow','lizard',
   'viper','scorpion','jerboa'],
@@ -394,8 +416,8 @@ lands:{
 'Puerto Rico':['goat','pig','cow','lizard','macaque'],
 'Bahamas':['lizard','crocodile','pig','goat'],
 'Trinidad and Tobago':['howler','capybara','anteater','crocodile','armadillo','goat'],
-'Falkland Is.':['penguin','sheep','fox','arcticfox'],
-'Fr. S. Antarctic Lands':['penguin','sheep','arcticfox'],
+'Falkland Is.':['penguin','sheep','fox','arcticfox','ptarmigan','arctichare'],
+'Fr. S. Antarctic Lands':['penguin','sheep','arcticfox','arctichare'],
 
 /* ---------------- THE GREAT SOUTH LAND AND THE ISLES ---------------- */
 'Australia':['kangaroo','emu','koala','wombat','dingo','crocodile','platypus','tasdevil',

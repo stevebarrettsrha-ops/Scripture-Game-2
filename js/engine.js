@@ -3088,6 +3088,12 @@ function makeAnimal(kind){
 function makeBird(type){ type=type||'crow';
   const S={crow:{b:0x2e3038,w:0x24262c,s:1},gull:{b:0xeef2f6,w:0xc6ccd4,s:1.1},
     dove:{b:0xf2f0ea,w:0xdad6ce,s:0.9},eagle:{b:0x5a4326,w:0x36290f,s:1.8},
+    /* THE SNOWY OWL — white, barred, and the one bird of the high arctic
+       that hunts by day, because up there in summer there is no night to
+       hunt by. Broad in the wing and silent with it. */
+    owl:{b:0xf4f2ee,w:0xe0ded6,s:1.6},
+    /* and the puffin of the cold coasts, black above and white beneath */
+    puffin:{b:0x22242a,w:0x1a1c22,s:0.7},
     butterfly:{b:0x201820,w:0xff6ea8,s:0.5}}[type]||{b:0x2e3038,w:0x24262c,s:1};
   const g=new THREE.Group();
   const body=lbox(0.8*S.s,0.8*S.s,1.8*S.s,S.b); body.position.y=0; g.add(body);
@@ -3096,6 +3102,19 @@ function makeBird(type){ type=type||'crow';
   const wingR=lbox(2.4*S.s,0.16,1.1*S.s,S.w); wingR.geometry.translate(1.2*S.s,0,0); wingR.position.set(-0.4*S.s,0.2*S.s,0); g.add(wingR);
   if(type==='eagle'){ const beak=lbox(0.5,0.4,0.6,0xe0b040); beak.position.set(0,0.1,1.9*S.s); g.add(beak);
     const tail=lbox(1.0,0.16,1.2,0xffffff); tail.position.set(0,0,-1.4*S.s); g.add(tail); }
+  if(type==='owl'){ const face=lbox(1.0*S.s,0.9*S.s,0.2,0xfbfaf6); face.position.set(0,0.25*S.s,1.4*S.s); g.add(face);
+    const beak=lbox(0.26,0.3,0.3,0x2a2620); beak.position.set(0,0.1*S.s,1.55*S.s); g.add(beak);
+    for(const sd of [1,-1]){ const eye=lbox(0.3,0.3,0.16,0xe8c020); eye.position.set(sd*0.28*S.s,0.34*S.s,1.5*S.s); g.add(eye); }
+    for(let i=0;i<5;i++){ const bar=lbox(0.9*S.s,0.06,0.16,0x9a9a94);
+      bar.position.set(0,0.42*S.s,0.8*S.s-i*0.5*S.s); g.add(bar); }
+    const tail=lbox(0.9*S.s,0.14,1.0*S.s,0xe8e6e0); tail.position.set(0,0,-1.3*S.s); g.add(tail); }
+  if(type==='puffin'){ const belly=lbox(0.7*S.s,0.6*S.s,1.2*S.s,0xf2f0ea); belly.position.set(0,-0.16*S.s,0.2*S.s); g.add(belly);
+    const face=lbox(0.62*S.s,0.6*S.s,0.2,0xf2f0ea); face.position.set(0,0.2*S.s,1.42*S.s); g.add(face);
+    /* the bill — the whole reason anybody knows what a puffin is */
+    const bill=lbox(0.2,0.55*S.s,0.6*S.s,0xd8621f); bill.position.set(0,0.12*S.s,1.75*S.s); g.add(bill);
+    const band=lbox(0.22,0.55*S.s,0.16,0xe8c020); band.position.set(0,0.12*S.s,1.62*S.s); g.add(band);
+    for(const sd of [1,-1]){ const eye=lbox(0.16,0.16,0.12,0x100c0a); eye.position.set(sd*0.2*S.s,0.3*S.s,1.5*S.s); g.add(eye); }
+    const feet=lbox(0.5*S.s,0.12,0.5*S.s,0xd8621f); feet.position.set(0,-0.42*S.s,-0.5*S.s); g.add(feet); }
   if(type==='butterfly'){ const w2=lbox(1.4,0.1,1.0,0xffd23a); w2.geometry.translate(-0.7,0,0); w2.position.set(0.2,0,-0.5); g.add(w2);
     const w3=w2.clone(); w3.geometry=w2.geometry.clone(); w3.scale.x=-1; w3.position.set(-0.2,0,-0.5); g.add(w3); }
   /* what it carries home in its beak — a fish from the sea, or seed from the
@@ -3870,7 +3889,7 @@ function updateSeaMob(arr,px,py,pz,dt,t){
     o.m.position.set(o.x,o.y,o.z); o.m.rotation.y=Math.atan2(Math.cos(o.dir),Math.sin(o.dir));
     if(o.m.userData.flL){ o.m.userData.flL.rotation.z=0.2+Math.sin(t*2+o.ph)*0.3; o.m.userData.flR.rotation.z=-0.2-Math.sin(t*2+o.ph)*0.3; }
     if(o.m.userData.wingL){ o.m.userData.wingL.rotation.z=Math.sin(t*1.6+o.ph)*0.4; o.m.userData.wingR.rotation.z=-Math.sin(t*1.6+o.ph)*0.4; } } }
-let TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS;
+let TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS;
 function initSeaMobs(){ if(TURTLES) return;
   /* the last number is how deep each keeps, in metres: a turtle on the reef,
      a whale sounding to three hundred, a pufferfish never off the shallows */
@@ -3884,6 +3903,10 @@ function initSeaMobs(){ if(TURTLES) return;
      warm shallows and the river mouths, the octopus over the reef bed, and
      the swordfish and the barracuda out where the bottom drops away. */
   SEALS=mkSeaMob('seal',5,340,320,true,90,[42,90]);
+  /* the white whale of the ice, and the shark that lies under it — four
+     hundred years old, blind, and slower than a man walks */
+  BELUGAS=mkSeaMob('beluga',3,420,400,true,120,[55,90]);
+  SLEEPERS=mkSeaMob('greenlandshark',1,560,520,false,600,[52,90]);
   WALRUS=mkSeaMob('walrus',2,320,300,true,70,[58,90]);
   MANATEES=mkSeaMob('manatee',2,300,280,true,40,[-30,30]);
   OCTOPI=mkSeaMob('octopus',3,260,240,true,70);
@@ -3896,6 +3919,7 @@ function updateSeaMobs(px,py,pz,dt,t){ initSeaMobs();
   updateSeaMob(SEALS,px,py,pz,dt,t); updateSeaMob(WALRUS,px,py,pz,dt,t);
   updateSeaMob(MANATEES,px,py,pz,dt,t); updateSeaMob(OCTOPI,px,py,pz,dt,t);
   updateSeaMob(SWORDS,px,py,pz,dt,t); updateSeaMob(CUDAS,px,py,pz,dt,t);
+  updateSeaMob(BELUGAS,px,py,pz,dt,t); updateSeaMob(SLEEPERS,px,py,pz,dt,t);
   for(const j of JELLIES){ if(!j.set||Math.hypot(j.x-px,j.z-pz)>360){ const a=Math.random()*6.28,r=40+Math.random()*320; j.x=px+Math.cos(a)*r; j.z=pz+Math.sin(a)*r; const fy=haunt(j.x,j.z,H_JELLY); j.y=fy+30+Math.random()*80; j.set=true; j.m.visible=true; }
     const pulse=0.5+0.5*Math.sin(t*1.4+j.ph); j.y+=(pulse-0.45)*10*dt; const fy=haunt(j.x,j.z,H_JELLY), col=SEA_SURF-fy;
     j.y=Math.min(SEA_SURF-6,Math.max(fy+Math.min(10,col-7),j.y));
@@ -3945,7 +3969,7 @@ function updateAnglers(px,py,pz,dt,t){ initAnglers();
       a.gs.material.opacity=0.30+0.34*pulse; } } }
 function hideAnglers(){ for(const a of ANGLERS){ a.m.visible=false; a.gs.visible=false; a.set=false; } }
 function hideSeaMobs(){ if(!TURTLES) return;
-  for(const arr of [TURTLES,RAYS_M,WHALES,PUFFERS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS]) for(const o of arr) o.m.visible=false;
+  for(const arr of [TURTLES,RAYS_M,WHALES,PUFFERS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS]) for(const o of arr) o.m.visible=false;
   for(const j of JELLIES)j.m.visible=false; for(const c of CRABS)c.m.visible=false; }
 const BUB=[], BUB_N=26;
 function initBub(){ if(BUB.length) return; for(let k=0;k<BUB_N;k++){ const s=new THREE.Sprite(new THREE.SpriteMaterial({color:0xcdeeff,transparent:true,opacity:0,depthWrite:false,fog:false}));
@@ -4101,8 +4125,8 @@ function updateShallowLife(px,pz,dt,t){
   /* the seal and the manatee are shallow-water beasts, and both are seen
      from a deck as readily as from under it — the one off the ice at either
      end of the earth, the other grazing the weed in every warm bay */
-  updateSeaMob(SEALS,px,0,pz,dt,t); updateSeaMob(MANATEES,px,0,pz,dt,t);
-  for(const arr of [SEALS,MANATEES]) for(const o of arr) if(o.set) o.m.visible=true;
+  updateSeaMob(SEALS,px,0,pz,dt,t); updateSeaMob(MANATEES,px,0,pz,dt,t); updateSeaMob(BELUGAS,px,0,pz,dt,t);
+  for(const arr of [SEALS,MANATEES,BELUGAS]) for(const o of arr) if(o.set) o.m.visible=true;
   /* a swimmer in open water is prey — the sharks keep their hunt at the surface */
   if(state.mode==='walk'&&state.walk.inWater&&!landAtWorld(px,pz)){
     updateSharks(px,state.walk.feetY!==undefined?state.walk.feetY:-1,pz,dt,t);
@@ -4276,8 +4300,24 @@ function landKindAt(x,z,c){
      field bears the same kind for ever. */
   const j=hash2(Math.floor(x/48),Math.floor(z/48));
   const k=c?c.kind:'grass', hb=c?c.h:1;
-  if(k==='floe'||k==='wall'){                            /* the ice keeps its own */
-    return (lat>0&&j<0.5)?'polarbear':(lat>0?'arcticfox':'penguin'); }
+  /* ---- THE ICE KEEPS ITS OWN, AND IT IS NOT THE SAME ICE AT BOTH ENDS ----
+     The floes and the foot of the wall short-circuited the whole system and
+     handed back ONE of three answers for the entire polar region: a polar
+     bear or an arctic fox in the north, a penguin in the south, for ever. The
+     ice goes through the fauna file now like everything else — but the ONE
+     rule that must never break is that the two ends of the earth do not share
+     a creature. A penguin has never seen a polar bear and never will. */
+  if(k==='floe'||k==='wall'){
+    const L=FAUNA.wilds[k]; if(!L||!L.length) return lat>0?'polarbear':'penguin';
+    const south=lat<0, fit=[]; let w=0;
+    for(const n of L){ if(south!==(n==='penguin')) continue;
+      const K=FAUNA.keeps[n];
+      if(K&&K.g&&K.g.indexOf(k)<0) continue;
+      fit.push(n); w+=(K&&K.w)||1; }
+    if(!fit.length) return south?'penguin':'polarbear';
+    let r=j*w;
+    for(const n of fit){ r-=((FAUNA.keeps[n]&&FAUNA.keeps[n].w)||1); if(r<=0) return n; }
+    return fit[fit.length-1]; }
   const land=faunaFor(x,z,k);
   if(land){
     /* only the beasts that will truly stand HERE — the ground underfoot, the
@@ -4549,6 +4589,7 @@ const RIVER_KINDS=[
   {name:'trout',      n:5, lat:[34,72],   spd:9,  y:2.2},
   {name:'trout',      n:3, lat:[-58,-32], spd:9,  y:2.2},
   {name:'salmon',     n:4, lat:[40,70],   spd:11, y:3.0},
+  {name:'arcticchar', n:4, lat:[58,84],   spd:8,  y:2.6},
   {name:'sturgeon',   n:2, lat:[30,64],   spd:6,  y:5.0},
   {name:'catfish',    n:4, lat:[-34,46],  spd:5,  y:5.5},
   /* and these two by their own waters, and no others on the earth */
@@ -4628,7 +4669,15 @@ function nearestNest(x,z){ let best=null,bd=1e9;
   for(const N of NESTS){ if(!N.set) continue; const d=Math.hypot(N.x-x,N.z-z); if(d<bd){bd=d;best=N;} }
   return best; }
 function airKind(px,pz,night){ const overSea=!landAtWorld(px,pz);
-  /* nothing of the field flies out over the ice — only the gulls of the sea */
+  /* ---- AND THE COLD HAS ITS OWN FOWL ----
+     Out over the ice it was gulls and nothing else, at either end of the
+     earth, for ever. The snowy owl hunts the tundra — by DAY, because in an
+     arctic summer there is no night to hunt by — and the puffin works the
+     cold coasts in thousands. */
+  const lat=90-Math.hypot(px,pz)/R_WORLD*180, alat=Math.abs(lat);
+  if(alat>58){ const r=Math.random();
+    if(overSea) return r<0.45?'gull':r<0.8?'puffin':'owl';
+    return r<0.42?'owl':r<0.7?'dove':r<0.88?'gull':'crow'; }
   if(Math.hypot(px,pz)/R_WORLD>0.90) return 'gull';
   if(night) return Math.random()<0.6?'crow':'dove';
   if(overSea) return Math.random()<0.7?'gull':'eagle';

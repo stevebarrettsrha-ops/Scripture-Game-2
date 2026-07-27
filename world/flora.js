@@ -45,7 +45,8 @@ const BOREAL=['spruce','pine','birch','larch','rowan','juniper','willow','alder'
   'reed','sedge','watercress','cranberry'];
 /* the tundra beyond the trees: nothing stands above the knee */
 const TUNDRA=['dwarfbirch','arcticwillow','crowberry','cloudberry','lingonberry',
-  'heather','moss','lichen','reindeermoss','cottongrass'];
+  'heather','moss','lichen','reindeermoss','cottongrass',
+  'arcticpoppy','saxifrage','mosscampion','fireweed','bearberry','labradortea'];
 /* the sea of the middle earth — the oldest orchard in the world */
 const MEDIT=['olive','fig','grapevine','almond','cypress','stonepine','laurel',
   'corkoak','holmoak','pomegranate','carob','myrtle','oleander','rosemary','lavender',
@@ -384,6 +385,19 @@ barrelcactus:{form:'shrub',leaf:0x5a8a44, flower:0xd8b02a, h:0.5, g:['desert','b
 mulga    :{form:'thorn', bole:0x5a4a34, leaf:0x8a9a68, h:0.65, g:['desert','badlands','savanna','sand']},
 desertoak:{form:'column',bole:0x6a5a44, leaf:0x5a6a4a, h:1.1, g:['desert','sand','badlands']},
 
+/* ---- THE FLOWERS OF THE TUNDRA ----
+   Nothing there stands above the knee and everything there flowers, hard and
+   all at once, in the six weeks it has. The arctic poppy turns its cup to
+   follow the sun round the whole sky; the saxifrage grows out of bare rock
+   and is the northernmost flowering thing on the earth; the fireweed comes
+   up purple over any ground that has been burnt or broken. */
+arcticpoppy:{form:'herb', leaf:0x7a8a5a, flower:0xf0d84a, h:0.4, g:['tundra','snow','alpine','rock']},
+saxifrage:{form:'herb', leaf:0x6a8a5a, flower:0xe8b0c8, h:0.3, g:['tundra','snow','alpine','rock']},
+mosscampion:{form:'herb',leaf:0x5a8a4a, flower:0xd06a9a, h:0.28, g:['tundra','alpine','rock','snow']},
+fireweed :{form:'herb', leaf:0x6a9a5a, flower:0xc04a8a, h:1.0, g:['tundra','grass','alpine']},
+bearberry:{form:'shrub',leaf:0x4a7a44, fruit:0xc02828, h:0.3, g:['tundra','snow','alpine','rock','grass']},
+labradortea:{form:'shrub',leaf:0x5a7a52, flower:0xf0eee6, h:0.45, g:['tundra','snow','alpine']},
+
 /* ---- THE PLANTS OF THE WATER'S EDGE ----
    These grow on a river bank and nowhere else on the earth. Name them in a
    country and they will be met only where its rivers run. */
@@ -433,10 +447,12 @@ wilds:{
   badlands:['tamarisk','saltbush','thistle','tumbleweed','wormwood'],
   sand   :['coconut','pandanus','mangrove','saltbush','tamarisk','thistle'],
   tundra :['dwarfbirch','arcticwillow','crowberry','lingonberry','lichen','reindeermoss','moss','cottongrass',
-           'sedge','willow','reed'],
+           'sedge','willow','reed','arcticpoppy','saxifrage','mosscampion','fireweed','bearberry','labradortea'],
   alpine :['pine','spruce','juniper','dwarfbirch','heather','moss','lichen','gentian','thyme'],
-  rock   :['juniper','heather','lichen','moss','thyme','wormwood','ephedra'],
-  snow   :['arcticwillow','lichen','reindeermoss'],
+  rock   :['juniper','heather','lichen','moss','thyme','wormwood','ephedra','saxifrage','mosscampion'],
+  /* even the snow is not bare: there is lichen on every stone that shows
+     through it, and where the drift thins the poppy and the saxifrage come */
+  snow   :['arcticwillow','lichen','reindeermoss','moss','arcticpoppy','saxifrage','mosscampion','bearberry','dwarfbirch'],
 },
 
 /* ============================================================
@@ -501,7 +517,8 @@ lands:{
 'Madagascar':RAINFOREST.concat(['baobab','vanilla','clove','coffee','rice','banana','pandanus','treefern']),
 
 /* ---------------- ASIA ---------------- */
-'Russia':BOREAL.concat(['fir','aspen','oak','rye','oats','flax','sunflower','bilberry','elderberry']),
+'Russia':BOREAL.concat(['fir','aspen','oak','rye','oats','flax','sunflower','bilberry','elderberry',
+  'arcticwillow','dwarfbirch','crowberry','cloudberry','arcticpoppy','saxifrage','mosscampion','fireweed','bearberry','labradortea','reindeermoss','lichen']),
 'Kazakhstan':DESERT_ASIA.concat(['wheat','apple','poplar','birch','pine']),
 'Uzbekistan':DESERT_ASIA.concat(['cotton','mulberry','apricot','grapevine','poplar','pistachio','wheat']),
 'Turkmenistan':DESERT_ASIA.concat(['cotton','grapevine','poplar','pistachio','wheat']),
@@ -563,10 +580,10 @@ lands:{
 'Azerbaijan':TEMPERATE.concat(['pomegranate','grapevine','hazel','tea','cotton','wheat','saffron']),
 
 /* ---------------- EUROPE ---------------- */
-'Norway':BOREAL.concat(['cloudberry','heather','moss','oats','arcticwillow','aspen']),
-'Sweden':BOREAL.concat(['oak','beech','cloudberry','moss','oats','rye','aspen']),
-'Finland':BOREAL.concat(['cloudberry','moss','lingonberry','rye','oats','aspen']),
-'Iceland':TUNDRA.concat(['birch','arcticwillow','moss','lichen','barley','heather']),
+'Norway':BOREAL.concat(['cloudberry','heather','moss','oats','arcticwillow','aspen','arcticpoppy','saxifrage','mosscampion','fireweed','bearberry','dwarfbirch','crowberry','labradortea']),
+'Sweden':BOREAL.concat(['oak','beech','cloudberry','moss','oats','rye','aspen','fireweed','bearberry','crowberry','labradortea','dwarfbirch']),
+'Finland':BOREAL.concat(['cloudberry','moss','lingonberry','rye','oats','aspen','fireweed','bearberry','crowberry','labradortea','dwarfbirch']),
+'Iceland':TUNDRA.concat(['birch','arcticwillow','moss','lichen','barley','heather','arcticpoppy','saxifrage','fireweed']),
 'Denmark':TEMPERATE.concat(['beech','spruce','rye','barley','wheat','clover','heather']),
 'Estonia':BOREAL.concat(['oak','aspen','rye','flax','bilberry','moss']),
 'Latvia':BOREAL.concat(['oak','aspen','rye','flax','bilberry','moss']),
@@ -603,8 +620,9 @@ lands:{
 'Ireland':TEMPERATE.concat(['heather','gorse','blackthorn','moss','clover','oats','potato','willow']),
 
 /* ---------------- THE AMERICAS ---------------- */
-'Greenland':TUNDRA.concat(['arcticwillow','dwarfbirch','moss','lichen','crowberry']),
-'Canada':BOREAL.concat(['sugarmaple','fir','douglasfir','hemlock','aspen','cranberry','blueberry','wheat','oats','cottongrass']),
+'Greenland':TUNDRA.concat(['arcticwillow','dwarfbirch','moss','lichen','crowberry','arcticpoppy','saxifrage','mosscampion']),
+'Canada':BOREAL.concat(['sugarmaple','fir','douglasfir','hemlock','aspen','cranberry','blueberry','wheat','oats','cottongrass',
+  'arcticwillow','dwarfbirch','crowberry','cloudberry','arcticpoppy','saxifrage','fireweed','bearberry','labradortea','reindeermoss','lichen']),
 'United States of America':TEMPERATE.concat(['sugarmaple','sweetgum','planetree','hickory','pecan','redwood','sequoia','douglasfir',
   'saguaro','joshua','pricklypear','barrelcactus','ocotillo','creosote','sagebrush','agave','mesquite','yucca','cottonwood','maize','cotton','tobacco',
   'blueberry','magnolia','baldcypress','hemlock','grapefruit','bulrush']),
@@ -638,8 +656,8 @@ lands:{
 'Puerto Rico':ISLES.concat(['sugarcane','coffee','mango','ceiba','pineapple']),
 'Bahamas':ISLES.concat(['mangrove','coconut','pandanus','pineapple','saltbush']),
 'Trinidad and Tobago':ISLES.concat(['cacao','sugarcane','coconut','mangrove','ceiba']),
-'Falkland Is.':TUNDRA.concat(['heather','moss','lichen','cottongrass','thistle']),
-'Fr. S. Antarctic Lands':TUNDRA.concat(['moss','lichen','reindeermoss']),
+'Falkland Is.':TUNDRA.concat(['heather','moss','lichen','cottongrass','thistle','saxifrage','mosscampion']),
+'Fr. S. Antarctic Lands':TUNDRA.concat(['moss','lichen','reindeermoss','saxifrage','mosscampion']),
 
 /* ---------------- THE GREAT SOUTH LAND AND THE ISLES ---------------- */
 'Australia':DESERT_AUS.concat(['eucalyptus','blackwood','banksia','bottlebrush',
