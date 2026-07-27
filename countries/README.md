@@ -89,6 +89,12 @@ are keyed by the land's `n` — the name exactly as this file gives it:
 | `../world/fauna.js` | which beasts walk in this land, what ground each keeps to, how high it goes, and whether it holds to a river |
 | `../world/flora.js` | which trees, orchards, bushes, berries and herbs grow in it, and on which ground |
 
+Both files know about **the rivers in `../world/rivers.js`**. A beast or a
+plant marked `riv` is met on a river bank and nowhere else — the hippo, the
+crocodile, the otter and the beaver; the reed, the papyrus and the water lily.
+So a river is not just navigable water: it has its own bank, its own fish, and
+its own life along it.
+
 Add a country here and it will fall back to the climate — the beasts and the
 growth of its latitude and its biome, which is never wrong, only general.
 Give it a line in each of those two files and it becomes itself.

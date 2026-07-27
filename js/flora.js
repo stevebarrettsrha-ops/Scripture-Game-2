@@ -89,9 +89,15 @@ function tintOf(hex){ return [((hex>>16)&255)/255, ((hex>>8)&255)/255, (hex&255)
    The ground underfoot, how high it stands, and whether the sun of this
    latitude is its own. A kind names the grounds it takes and nothing else
    will be planted on them. */
-function fits(K,ground,hb){
+function fits(K,ground,hb,wet){
   if(K.g && K.g.indexOf(ground)<0) return false;
   if(K.hh && (hb<K.hh[0]||hb>K.hh[1])) return false;
+  /* THE WATER'S EDGE. A kind marked `riv` grows on a river bank and nowhere
+     else on the earth — the reed, the papyrus, the bulrush, the water lily,
+     the paddy, the mangrove. Away from running water they simply are not
+     there, which is why a river used to look exactly like the field beside
+     it: nothing whatever knew where the water was. */
+  if(K.riv && !wet) return false;
   return true;
 }
 /* THE LIST IS WORKED OUT ONCE PER COUNTRY, PER GROUND, PER BAND OF HEIGHT.
@@ -99,33 +105,34 @@ function fits(K,ground,hb){
    builds; filtering a country's whole growth each time would be the most
    expensive thing in the game. Bands of six blocks are fine enough — no
    tree line moves inside one. */
-function listFor(land,ground,hb,layer){
+/* on the bank, a kind that loves water is met this many times as often. The
+   willow, the alder, the poplar, the date palm at the oasis — they grow away
+   from water too, but where there IS water they crowd it. */
+const WET_FAVOUR=5;
+function gather(names,layer,ground,hb,wet){
+  const out=[]; let w=0;
+  for(const n of names){ const K=D.kinds[n]; if(!K||K.layer!==layer) continue;
+    if(!fits(K,ground,hb,wet)) continue;
+    out.push(K); w+=(wet&&(K.wet||K.riv))?K.wt*WET_FAVOUR:K.wt; }
+  return out.length?{a:out,w:w,wet:!!wet}:null;
+}
+function listFor(land,ground,hb,layer,wet){
   const band=Math.min(12,Math.max(0,Math.floor(hb/6)));
-  const key=land+'|'+ground+'|'+band+'|'+layer;
+  const key=land+'|'+ground+'|'+band+'|'+layer+(wet?'|w':'');
   let L=listCache.get(key);
   if(L!==undefined) return L;
   const names=(land&&D.lands[land])||D.wilds[ground]||null;
-  L=null;
-  if(names){ const out=[]; let w=0;
-    for(const n of names){ const K=D.kinds[n]; if(!K||K.layer!==layer) continue;
-      if(!fits(K,ground,band*6+3)) continue;
-      out.push(K); w+=K.wt; }
-    if(out.length) L={a:out,w:w};
-  }
+  L=names?gather(names,layer,ground,band*6+3,wet):null;
   /* a land whose own list grows nothing on this ground still has the climate
      to fall back on — a village on bare rock in Kenya is not treeless because
      Kenya's list is all lowland */
-  if(!L&&land){ const wild=D.wilds[ground];
-    if(wild){ const out=[]; let w=0;
-      for(const n of wild){ const K=D.kinds[n]; if(!K||K.layer!==layer) continue;
-        if(!fits(K,ground,band*6+3)) continue; out.push(K); w+=K.wt; }
-      if(out.length) L={a:out,w:w}; } }
+  if(!L&&land&&D.wilds[ground]) L=gather(D.wilds[ground],layer,ground,band*6+3,wet);
   if(listCache.size>4000) listCache.clear();
   listCache.set(key,L||null);
   return L||null;
 }
 function draw(L,j){ let r=j*L.w;
-  for(const K of L.a){ r-=K.wt; if(r<=0) return K; }
+  for(const K of L.a){ r-=(L.wet&&(K.wet||K.riv))?K.wt*WET_FAVOUR:K.wt; if(r<=0) return K; }
   return L.a[L.a.length-1]; }
 
 /* ---- WHICH TREE STANDS ON THIS CELL ----
@@ -133,8 +140,8 @@ function draw(L,j){ let r=j*L.w;
    with others mixed through it, not a different species every six metres.
    The tile is eight cells across, so a stand of pine runs about fifty
    metres before it gives way to birch. */
-function treeAt(land,ground,hb,ix,iz,hash){
-  const L=listFor(land,ground,hb,'tree'); if(!L) return null;
+function treeAt(land,ground,hb,ix,iz,hash,wet){
+  const L=listFor(land,ground,hb,'tree',wet); if(!L) return null;
   const j=hash(Math.floor(ix/8)*1.7+3.1, Math.floor(iz/8)*2.3-7.7);
   /* and one cell in six takes its OWN draw, so the stand is mixed and not a
      plantation of one thing */
@@ -152,9 +159,12 @@ function treeAt(land,ground,hb,ix,iz,hash){
    knee-deep in saltbush. */
 const PLANT_DENS={grass:1, tropic:1, savanna:0.8, alpine:0.7, tundra:0.55,
   desert:0.4, badlands:0.3, rock:0.25, sand:0.16, snow:0.12};
-function plantAt(land,ground,hb,ix,iz,hash,wild){
-  const d=PLANT_DENS[ground]; if(d===undefined) return null;
-  const L=listFor(land,ground,hb,'plant'); if(!L) return null;
+function plantAt(land,ground,hb,ix,iz,hash,wild,wet){
+  let d=PLANT_DENS[ground]; if(d===undefined) return null;
+  /* A BANK IS LUSH, whatever the country it runs through. The one green
+     thread across a desert is the one place in it that is not a desert. */
+  if(wet) d=Math.max(d,0.9)*1.8;
+  const L=listFor(land,ground,hb,'plant',wet); if(!L) return null;
   const j=hash(ix*2.7+13.9,iz*1.9-4.3);
   if(j>=0.085*d*(wild===undefined?1:wild)) return null;
   return draw(L,hash(Math.floor(ix/5)*3.3-2.2,Math.floor(iz/5)*1.7+8.8));
@@ -164,9 +174,9 @@ function plantAt(land,ground,hb,ix,iz,hash,wild){
    TREE of this country, drawn knee-high: the same species that stands grown
    all round it, so the young oak is under the oaks and the young date palm
    at the oasis. Its own sparse draw again, after the herbs have had theirs. */
-function saplingAt(land,ground,hb,ix,iz,hash,wild){
+function saplingAt(land,ground,hb,ix,iz,hash,wild,wet){
   const d=PLANT_DENS[ground]; if(d===undefined) return null;
-  const L=listFor(land,ground,hb,'tree'); if(!L) return null;
+  const L=listFor(land,ground,hb,'tree',wet); if(!L) return null;
   const j=hash(ix*1.13-21.7,iz*3.41+17.3);
   if(j>=0.018*d*(wild===undefined?1:wild)) return null;
   /* it is drawn from the SAME tile-seed the grown wood is, so the seedlings

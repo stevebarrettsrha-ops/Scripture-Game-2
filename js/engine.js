@@ -1032,10 +1032,34 @@ function initFlora(){ if(floraReady) return; floraReady=true;
 function landNameAt(x,z){ const ci=countryAtUV(x/R_WORLD,z/R_WORLD);
   return (ci&&COUNTRIES[ci-1])?COUNTRIES[ci-1].n:null; }
 let chunkLand=null;          /* whose country the chunk being built is in */
+let chunkRiver=false;        /* and whether running water crosses it at all */
+/* ---- IS THIS GROUND A RIVER BANK? ----
+   A watercourse is stamped one or two map pixels wide — a hundred and
+   seventeen units to the pixel — so it is wider than the chunk it runs
+   through. The BANK is the strip of dry ground within a bowshot of the water,
+   and it is where the reed, the papyrus, the willow and the alder belong.
+   It is asked per CELL, but only in the few chunks that carry water at all:
+   the whole-chunk test below is twenty-five array reads and answers `no` for
+   nearly the whole earth. */
+const RIVER_BANK=46;         /* how far from the water the bank reaches, in units */
+function riverBankCell(x,z){
+  if(riverAtUV(x/R_WORLD,z/R_WORLD)) return true;
+  for(const r of [RIVER_BANK*0.5,RIVER_BANK]) for(let k=0;k<8;k++){
+    const a2=k*0.785398;
+    if(riverAtUV((x+Math.cos(a2)*r)/R_WORLD,(z+Math.sin(a2)*r)/R_WORLD)) return true; }
+  return false;
+}
+function chunkHasRiver(cx,cz){
+  for(let a2=0;a2<=4;a2++) for(let b2=0;b2<=4;b2++){
+    const x=(cx*CH+a2*CH/4)*B, z=(cz*CH+b2*CH/4)*B;
+    if(riverAtUV(x/R_WORLD,z/R_WORLD)) return true; }
+  return false;
+}
 function emitTree(G,ix,iz,cc){
   initFlora();
   if(window.FLORA){
-    const K=FLORA.treeAt(chunkLand,cc.kind,cc.h,ix,iz,hash2);
+    const wet=chunkRiver&&riverBankCell((ix+0.5)*B,(iz+0.5)*B);
+    const K=FLORA.treeAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wet);
     if(K){ FKIT.G=G; FLORA.emitTree(FKIT,K,ix,iz,cc); FKIT.G=null; return; }
   }
   /* ---- AND IF THE FLORA HAS NOTHING FOR THIS GROUND ----
@@ -1100,14 +1124,15 @@ function emitScrub(G,ix,iz,cc,wild){
      cell — where a bush stands, no blade is drawn under it. */
   initFlora();
   if(window.FLORA){
-    const P=FLORA.plantAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wild);
+    const wet=chunkRiver&&riverBankCell((ix+0.5)*B,(iz+0.5)*B);
+    const P=FLORA.plantAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wild,wet);
     if(P){ FKIT.G=G; FLORA.emitPlant(FKIT,P,ix,iz,cc); FKIT.G=null; return; }
     /* ---- AND THE YOUNG GROWTH ----
        A wood with no young trees in it is a plantation, not a wood. A few
        cells in every hundred carry a SAPLING of one of the same kinds that
        stand grown over them — knee-high, the right species for the country,
        and the same one every time you pass. */
-    const S=FLORA.saplingAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wild);
+    const S=FLORA.saplingAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wild,wet);
     if(S){ FKIT.G=G; FLORA.emitSapling(FKIT,S,ix,iz,cc); FKIT.G=null; return; }
   }
   const gr=GRASS.at(ix,iz,cc.kind,wild); if(!gr) return;
@@ -1184,6 +1209,7 @@ function buildChunk(cx,cz){
      one. (A chunk that straddles a border takes its middle's country — a
      chunk is ninety-six metres across and no wood changes at a line.) */
   chunkLand=landNameAt((cx*CH+CH/2)*B,(cz*CH+CH/2)*B);
+  chunkRiver=chunkHasRiver(cx,cz);
   for(let a=0;a<CH;a++) for(let b=0;b<CH;b++){
     const ix=cx*CH+a, iz=cz*CH+b, cc=cell(ix,iz);
     if(!cc){ /* the shelf: solid sandy terraces stepping down from the land,

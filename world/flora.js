@@ -37,10 +37,12 @@
 /* the deciduous wood of the temperate north, and the fields under it */
 const TEMPERATE=['oak','darkoak','sycamore','beech','birch','ash','elm','hazel','rowan','hawthorn','linden',
   'bramble','holly','fern','clover','wheat','barley','poppy','nettle','elderberry',
-  'pear','gooseberry','currant','broom','alder','mint'];
+  'pear','gooseberry','currant','broom','alder','mint','willow','reed','bulrush',
+  'watercress','sedge','waterlily'];
 /* the boreal forest — spruce, pine and birch, and berries in the moss */
 const BOREAL=['spruce','pine','birch','larch','rowan','juniper','willow','alder',
-  'bilberry','lingonberry','heather','moss','fern','cottongrass','barley','currant'];
+  'bilberry','lingonberry','heather','moss','fern','cottongrass','barley','currant',
+  'reed','sedge','watercress','cranberry'];
 /* the tundra beyond the trees: nothing stands above the knee */
 const TUNDRA=['dwarfbirch','arcticwillow','crowberry','cloudberry','lingonberry',
   'heather','moss','lichen','reindeermoss','cottongrass'];
@@ -50,20 +52,20 @@ const MEDIT=['olive','fig','grapevine','almond','cypress','stonepine','laurel',
   'thyme','sage','oregano','boxwood','quince','wheat','barley','poppy'];
 /* the dry country: thorn, tamarisk, the date palm at the well */
 const DESERTS=['datepalm','acacia','tamarisk','doum','saltbush','myrrh',
-  'frankincense','aloe','thistle','barley','creosote','melon'];
+  'frankincense','aloe','thistle','barley','creosote','melon','reed','papyrus','bulrush'];
 /* the rain forest of the equator */
 const RAINFOREST=['ceiba','jungle','rosewood','ironwood','mahogany','rubber','banyan','bodhi','treefern','fern',
   'banana','papaya','mango','cacao','coffee','moss','pandanus','sugarcane',
-  'guava','cassava','waterlily','orchid'];
+  'guava','cassava','waterlily','orchid','mangrove','sedge','lotus','taro','rice'];
 /* the plain of the south — thorn, palm and the great bole of the baobab */
 const SAVANNAH=['acacia','umbrellathorn','mopane','tamboti','baobab','marula','shea','sausagetree',
-  'doum','sorghum','millet','aloe','sagebrush'];
+  'doum','sorghum','millet','aloe','sagebrush','reed','sedge','papyrus','lotus'];
 /* the monsoon lands of the east */
 const MONSOON=['teak','sal','neem','ironwood','jungle','banyan','bodhi','bamboo','mango','banana',
-  'coconut','tamarind','rice','sugarcane','cotton','turmeric'];
+  'coconut','tamarind','rice','sugarcane','cotton','turmeric','mangrove','lotus','sedge','taro'];
 /* the isles and shores of the warm sea */
 const ISLES=['coconut','pandanus','banana','papaya','mango','breadfruit',
-  'mangrove','taro','sugarcane','hibiscus','fern'];
+  'mangrove','taro','sugarcane','hibiscus','fern','reed','sedge'];
 /* the high country above the tree line */
 const ALPINE_P=['juniper','dwarfbirch','heather','moss','lichen','thyme','gentian'];
 
@@ -84,6 +86,12 @@ EARTH.flora({
    g      THE GROUNDS IT WILL GROW ON. It is never planted on any other.
    hh     OPTIONAL [lo,hi] — how high above the sea it grows, in blocks.
    fn/fs  how many fruits, and how big.
+   riv    OPTIONAL true — it grows on a RIVER BANK and nowhere else on the
+          earth: the reed, the papyrus, the bulrush, the water lily, the
+          paddy, the mangrove. (The same flag the beasts use in fauna.js.)
+   wet    OPTIONAL true — it grows away from water too, but where there IS
+          water it crowds it: the willow, the alder, the poplar, the date
+          palm at the oasis.
    ============================================================ */
 kinds:{
 
@@ -97,10 +105,10 @@ maple    :{form:'broad', bole:0x6a4a30, leaf:0x4f8a34, g:['grass','alpine'], wt:
 sugarmaple:{form:'broad',bole:0x6a4a30, leaf:0xd2732a, g:['grass','alpine']},
 linden   :{form:'round', bole:0x6a5238, leaf:0x63a03c, g:['grass']},
 hornbeam :{form:'round', bole:0x8a8272, leaf:0x4e8a34, g:['grass']},
-willow   :{form:'round', bole:0x7a6a4a, leaf:0x8fb054, h:0.85, w:1.3, g:['grass','tundra']},
-poplar   :{form:'column',bole:0x9a8a72, leaf:0x6fa040, g:['grass']},
+willow   :{wet:true, form:'round', bole:0x7a6a4a, leaf:0x8fb054, h:0.85, w:1.3, g:['grass','tundra']},
+poplar   :{wet:true, form:'column',bole:0x9a8a72, leaf:0x6fa040, g:['grass']},
 aspen    :{form:'column',bole:0xd8d4c4, leaf:0x8fbf46, g:['grass','alpine','tundra']},
-alder    :{form:'round', bole:0x5a4a3a, leaf:0x3f7a34, g:['grass','tundra']},
+alder    :{wet:true, form:'round', bole:0x5a4a3a, leaf:0x3f7a34, g:['grass','tundra']},
 chestnut :{form:'broad', bole:0x5f4630, leaf:0x437c2a, fruit:0x7a6a2a, g:['grass']},
 walnut   :{form:'broad', bole:0x4a3a2a, leaf:0x4a8034, fruit:0x6a5a30, g:['grass']},
 hickory  :{form:'broad', bole:0x6a5238, leaf:0x4f8a34, fruit:0x7a6a3a, g:['grass']},
@@ -108,7 +116,7 @@ pecan    :{form:'broad', bole:0x6a5238, leaf:0x4a8034, fruit:0x8a6a40, g:['grass
 rowan    :{form:'round', bole:0x7a6a5a, leaf:0x5e8f3c, fruit:0xc03020, h:0.7, g:['grass','tundra','alpine']},
 holly    :{form:'round', bole:0x5a4a3a, leaf:0x1f5a24, fruit:0xc02818, h:0.6, g:['grass']},
 yew      :{form:'round', bole:0x6a3a2a, leaf:0x1e4a26, h:0.7, g:['grass','alpine']},
-cottonwood:{form:'round',bole:0x8a7a62, leaf:0x7aa83a, g:['grass','desert','badlands']},
+cottonwood:{wet:true, form:'round',bole:0x8a7a62, leaf:0x7aa83a, g:['grass','desert','badlands']},
 magnolia :{form:'blossom',bole:0x7a6a58,leaf:0xf0ece0, h:0.8, g:['grass','tropic']},
 ginkgo   :{form:'round', bole:0x7a6a58, leaf:0xd8c83a, h:1.1, g:['grass']},
 
@@ -121,7 +129,7 @@ hemlock  :{form:'conifer',bole:0x5a4030, leaf:0x2a5230, g:['grass','alpine']},
 douglasfir:{form:'conifer',bole:0x6a4830,leaf:0x2e6234, h:1.5, g:['grass','alpine']},
 cedar    :{form:'conifer',bole:0x6a4630, leaf:0x2e5e3a, h:1.2, w:1.35, g:['grass','alpine'], wt:0.7},
 cypress  :{form:'column', bole:0x5a4630, leaf:0x2a4e30, g:['grass','alpine']},
-baldcypress:{form:'conifer',bole:0x7a5a3a,leaf:0x6a8a4a, g:['grass','tropic']},
+baldcypress:{wet:true, form:'conifer',bole:0x7a5a3a,leaf:0x6a8a4a, g:['grass','tropic']},
 juniper  :{form:'column', bole:0x6a5238, leaf:0x4a6a4a, fruit:0x3a4a7a, h:0.55, g:['grass','alpine','rock','tundra','desert']},
 redwood  :{form:'conifer',bole:0x8a3a24, leaf:0x2a5a34, h:2.2, w:0.85, g:['grass'], wt:0.5},
 sequoia  :{form:'conifer',bole:0x8a4028, leaf:0x2e5e34, h:2.4, w:1.1, g:['grass','alpine'], wt:0.4},
@@ -159,13 +167,13 @@ grapefruit:{form:'round',bole:0x6a4a30, leaf:0x2f6a2e, fruit:0xe8c860, h:0.65, g
 
 /* ---- THE TROPICS ---- */
 coconut  :{form:'palm', bole:0x9a7a52, leaf:0x4f8f3a, fruit:0x8a6a3a, fn:4, fs:0.34, g:['tropic','sand'], wt:1.6},
-oilpalm  :{form:'palm', bole:0x7a5a3a, leaf:0x3f7a2e, fruit:0xc04a20, g:['tropic']},
-datepalm :{form:'palm', bole:0xa08a5e, leaf:0x7a9a4a, fruit:0xa06a28, fn:6, g:['desert','sand','savanna'], wt:1.6},
-doum     :{form:'palm', bole:0x9a7a52, leaf:0x7a9a54, fruit:0xa07a30, h:0.8, g:['desert','savanna','sand']},
-areca    :{form:'palm', bole:0x9a8a62, leaf:0x4a8a3a, h:1.2, w:0.6, g:['tropic']},
-sago     :{form:'palm', bole:0x8a7a52, leaf:0x4a8a3a, g:['tropic']},
+oilpalm  :{wet:true, form:'palm', bole:0x7a5a3a, leaf:0x3f7a2e, fruit:0xc04a20, g:['tropic']},
+datepalm :{wet:true, form:'palm', bole:0xa08a5e, leaf:0x7a9a4a, fruit:0xa06a28, fn:6, g:['desert','sand','savanna'], wt:1.6},
+doum     :{wet:true, form:'palm', bole:0x9a7a52, leaf:0x7a9a54, fruit:0xa07a30, h:0.8, g:['desert','savanna','sand']},
+areca    :{wet:true, form:'palm', bole:0x9a8a62, leaf:0x4a8a3a, h:1.2, w:0.6, g:['tropic']},
+sago     :{wet:true, form:'palm', bole:0x8a7a52, leaf:0x4a8a3a, g:['tropic']},
 pandanus :{form:'palm', bole:0x8a7a5a, leaf:0x4a8a4a, h:0.7, g:['tropic','sand']},
-banana   :{form:'banana',bole:0x6a8a4a,leaf:0x5aa03a, fruit:0xd8c02a, g:['tropic','savanna'], wt:1.4},
+banana   :{wet:true, form:'banana',bole:0x6a8a4a,leaf:0x5aa03a, fruit:0xd8c02a, g:['tropic','savanna'], wt:1.4},
 papaya   :{form:'palm', bole:0x8a8a62, leaf:0x4f9a3a, fruit:0xe0a038, h:0.7, w:0.7, g:['tropic']},
 mango    :{form:'round',bole:0x6a5238, leaf:0x2f6a2a, fruit:0xd8a028, w:1.2, g:['tropic','savanna'], wt:1.2},
 breadfruit:{form:'round',bole:0x8a7a5a,leaf:0x2e6a2e, fruit:0x8aa83a, g:['tropic']},
@@ -198,7 +206,7 @@ cinnamon :{form:'round',bole:0x8a6a4a, leaf:0x3a7a34, h:0.8, g:['tropic']},
 clove    :{form:'round',bole:0x6a5238, leaf:0x2a6a2a, fruit:0x8a2a1a, h:0.8, g:['tropic']},
 nutmeg   :{form:'round',bole:0x6a5238, leaf:0x2a6a2a, fruit:0xc8a050, h:0.8, g:['tropic']},
 sandalwood:{form:'round',bole:0x9a8a6a,leaf:0x5a8a4a, h:0.7, g:['tropic','savanna']},
-mangrove :{form:'mangrove',bole:0x6a5238,leaf:0x2e6a3a, g:['tropic','sand','savanna'], wt:1.2},
+mangrove :{riv:true, form:'mangrove',bole:0x6a5238,leaf:0x2e6a3a, g:['tropic','sand','savanna'], wt:1.2},
 treefern :{form:'fern', bole:0x6a5a42, leaf:0x3f8a3a, g:['tropic','grass'], wt:1.2},
 bamboo   :{form:'bamboo',bole:0xc8c060, leaf:0x6aa83a, g:['tropic','grass','alpine'], wt:1.4},
 
@@ -210,7 +218,7 @@ marula   :{form:'round', bole:0x8a7a62, leaf:0x5a8a3a, fruit:0xd8c860, g:['savan
 shea     :{form:'round', bole:0x6a5a42, leaf:0x5a8a3a, fruit:0x8a6a3a, g:['savanna']},
 sausagetree:{form:'round',bole:0x7a6a52,leaf:0x4a8a3a, fruit:0x6a5a30, fn:3, fs:0.5, g:['savanna']},
 argan    :{form:'round', bole:0x8a7a5a, leaf:0x7a9a5a, fruit:0xc8a838, h:0.7, g:['desert','savanna']},
-tamarisk :{form:'round', bole:0x8a7a62, leaf:0x8aa080, h:0.7, g:['desert','sand','badlands','savanna']},
+tamarisk :{wet:true, form:'round', bole:0x8a7a62, leaf:0x8aa080, h:0.7, g:['desert','sand','badlands','savanna']},
 frankincense:{form:'shrub',leaf:0x8aa07a, h:0.8, g:['desert','badlands','rock']},
 myrrh    :{form:'shrub', leaf:0x8a9a72, h:0.7, g:['desert','badlands','rock']},
 
@@ -255,7 +263,7 @@ cottongrass:{form:'herb',leaf:0x8a9a6a, flower:0xf0f0ea, h:0.6, g:['tundra','gra
 bramble  :{form:'shrub', leaf:0x3a6a2e, fruit:0x2a1030, g:['grass','tropic','alpine'], wt:1.4},
 raspberry:{form:'shrub', leaf:0x4a7a3a, fruit:0xc03050, g:['grass','alpine']},
 blueberry:{form:'shrub', leaf:0x4a7a44, fruit:0x3a4a8a, h:0.5, g:['grass','alpine','tundra']},
-cranberry:{form:'shrub', leaf:0x3a6a3a, fruit:0xc02020, h:0.35, g:['grass','tundra']},
+cranberry:{wet:true, form:'shrub', leaf:0x3a6a3a, fruit:0xc02020, h:0.35, g:['grass','tundra']},
 gooseberry:{form:'shrub',leaf:0x4a7a3a, fruit:0x9ac04a, h:0.5, g:['grass']},
 currant  :{form:'shrub', leaf:0x4a7a3a, fruit:0x8a1020, h:0.55, g:['grass','alpine']},
 elderberry:{form:'shrub',leaf:0x3f7a34, fruit:0x201028, h:1.1, g:['grass']},
@@ -277,7 +285,7 @@ wheat    :{form:'herb', leaf:0xd8c060, h:1.0, g:['grass','savanna'], wt:1.6},
 barley   :{form:'herb', leaf:0xd8c878, h:0.95, g:['grass','tundra','alpine','desert'], wt:1.4},
 rye      :{form:'herb', leaf:0xc8bc70, h:1.2, g:['grass','tundra']},
 oats     :{form:'herb', leaf:0xd0c880, h:0.95, g:['grass','tundra']},
-rice     :{form:'herb', leaf:0x8ac04a, h:0.8, g:['tropic','grass','savanna'], wt:1.4},
+rice     :{riv:true, form:'herb', leaf:0x8ac04a, h:0.8, g:['tropic','grass','savanna'], wt:1.4},
 maize    :{form:'herb', leaf:0x6aa83a, flower:0xd8c060, h:1.4, g:['grass','tropic','savanna']},
 millet   :{form:'herb', leaf:0xc8b850, h:1.0, g:['savanna','desert','grass']},
 sorghum  :{form:'herb', leaf:0xb8a848, flower:0x9a6a30, h:1.3, g:['savanna','desert','grass']},
@@ -289,17 +297,17 @@ hemp     :{form:'herb', leaf:0x5a9a4a, h:1.3, g:['grass','tropic']},
 tobacco  :{form:'herb', leaf:0x6a9a4a, flower:0xe8b0c0, h:1.1, g:['grass','tropic','savanna']},
 sunflower:{form:'herb', leaf:0x5a8a3a, flower:0xe8c020, h:1.5, g:['grass','savanna']},
 turmeric :{form:'herb', leaf:0x5aa03a, flower:0xe8b830, h:0.8, g:['tropic']},
-taro     :{form:'herb', leaf:0x4a9a4a, h:0.9, g:['tropic','sand']},
+taro     :{riv:true, form:'herb', leaf:0x4a9a4a, h:0.9, g:['tropic','sand']},
 pineapple:{form:'rosette',leaf:0x6a9a4a, flower:0xd8b02a, bole:0x7a8a4a, h:0.5, g:['tropic','savanna']},
-sugarcane:{form:'cane', bole:0x9a8a4a, leaf:0x8ac04a, flower:0xc8d08a, h:1.6, g:['tropic','savanna','grass']},
-papyrus  :{form:'cane', bole:0x8a9a52, leaf:0x7aa83a, flower:0x9ab84a, h:1.5, g:['tropic','savanna','desert','grass']},
-reed     :{form:'cane', bole:0x9a8a6a, leaf:0x8aa060, flower:0x9a8a6a, h:1.1, g:['grass','tundra','tropic','savanna']},
-bulrush  :{form:'cane', bole:0x7a8a4a, leaf:0x6a9a4a, flower:0x5a3a20, h:1.2, g:['grass','tundra','tropic']},
+sugarcane:{wet:true, form:'cane', bole:0x9a8a4a, leaf:0x8ac04a, flower:0xc8d08a, h:1.6, g:['tropic','savanna','grass']},
+papyrus  :{riv:true, form:'cane', bole:0x8a9a52, leaf:0x7aa83a, flower:0x9ab84a, h:1.5, g:['tropic','savanna','desert','grass']},
+reed     :{riv:true, form:'cane', bole:0x9a8a6a, leaf:0x8aa060, flower:0x9a8a6a, h:1.1, g:['grass','tundra','tropic','savanna']},
+bulrush  :{riv:true, form:'cane', bole:0x7a8a4a, leaf:0x6a9a4a, flower:0x5a3a20, h:1.2, g:['grass','tundra','tropic']},
 lavender :{form:'herb', leaf:0x8a9a7a, flower:0x8a6ac0, h:0.6, g:['grass','desert','alpine']},
 rosemary :{form:'herb', leaf:0x6a8a6a, flower:0x7a8ac0, h:0.6, g:['grass','desert','rock']},
 thyme    :{form:'herb', leaf:0x7a8a5a, flower:0xb07ac0, h:0.4, g:['grass','desert','rock','alpine']},
 sage     :{form:'herb', leaf:0x9aa88a, flower:0x9a7ac0, h:0.55, g:['grass','desert','alpine']},
-mint     :{form:'herb', leaf:0x4a9a5a, h:0.5, g:['grass','tropic']},
+mint     :{wet:true, form:'herb', leaf:0x4a9a5a, h:0.5, g:['grass','tropic']},
 hyssop   :{form:'herb', leaf:0x7a9a6a, flower:0x6a5ac0, h:0.6, g:['grass','desert','rock']},
 coriander:{form:'herb', leaf:0x6a9a5a, flower:0xf0f0e0, h:0.5, g:['grass','desert']},
 cumin    :{form:'herb', leaf:0x8a9a6a, flower:0xe0e0c0, h:0.5, g:['desert','grass']},
@@ -309,11 +317,11 @@ thistle  :{form:'herb', leaf:0x7a8a5a, flower:0x9a5aa0, h:0.8, g:['grass','deser
 tulip    :{form:'herb', leaf:0x5a8a4a, flower:0xc82848, h:0.5, g:['grass','alpine']},
 gentian  :{form:'herb', leaf:0x5a8a4a, flower:0x2a4ac0, h:0.35, g:['alpine','rock','tundra']},
 clover   :{form:'herb', leaf:0x4a8a3a, flower:0xe0e0f0, h:0.35, g:['grass','alpine'], wt:1.4},
-nettle   :{form:'herb', leaf:0x3a7a34, h:0.7, g:['grass','tropic']},
+nettle   :{wet:true, form:'herb', leaf:0x3a7a34, h:0.7, g:['grass','tropic']},
 fern     :{form:'herb', leaf:0x3a7a3a, h:0.8, g:['grass','tropic','alpine'], wt:1.4},
 moss     :{form:'herb', leaf:0x4a8a4a, h:0.25, g:['grass','tropic','tundra','alpine','rock']},
-lotus    :{form:'herb', leaf:0x4a8a4a, flower:0xf0a8c8, h:0.5, g:['tropic','savanna','grass']},
-waterlily:{form:'herb', leaf:0x4a8a4a, flower:0xf0f0f0, h:0.3, g:['tropic','grass']},
+lotus    :{riv:true, form:'herb', leaf:0x4a8a4a, flower:0xf0a8c8, h:0.5, g:['tropic','savanna','grass']},
+waterlily:{riv:true, form:'herb', leaf:0x4a8a4a, flower:0xf0f0f0, h:0.3, g:['tropic','grass']},
 /* ---- AND THE HEAVY TIMBER ----
    The dark oak, whose canopy comes down to the ground and puts the wood
    beneath it in shadow; the jungle giant, bare for six of its seven parts;
@@ -321,7 +329,7 @@ waterlily:{form:'herb', leaf:0x4a8a4a, flower:0xf0f0f0, h:0.3, g:['tropic','gras
 darkoak  :{form:'darkoak',bole:0x3e2c1c, leaf:0x2a5c22, g:['grass','alpine'], wt:0.8},
 jungle   :{form:'jungle', bole:0x6a5236, leaf:0x2e7a26, g:['tropic'], wt:1.2},
 sycamore :{form:'broad',  bole:0x9a8a72, leaf:0x4a8434, h:1.2, w:1.15, g:['grass','alpine']},
-planetree:{form:'broad',  bole:0xd0c8b8, leaf:0x5a9038, h:1.2, g:['grass']},
+planetree:{wet:true, form:'broad',  bole:0xd0c8b8, leaf:0x5a9038, h:1.2, g:['grass']},
 sweetgum :{form:'round',  bole:0x6a5238, leaf:0xc0603a, g:['grass','tropic']},
 mopane   :{form:'thorn',  bole:0x6a5238, leaf:0x7a9a48, h:0.8, g:['savanna','desert']},
 ironwood :{form:'broad',  bole:0x4a3a2c, leaf:0x2e6a2a, h:1.1, g:['tropic','grass']},
@@ -329,13 +337,19 @@ rosewood :{form:'spread', bole:0x7a3a2a, leaf:0x2e6a2e, h:1.3, g:['tropic'], wt:
 tamboti  :{form:'round',  bole:0x5a4630, leaf:0x5a8a3a, h:0.8, g:['savanna','tropic']},
 blackwood:{form:'thorn',  bole:0x3e3228, leaf:0x6a8a52, h:0.9, g:['grass','savanna']},
 
+/* ---- THE PLANTS OF THE WATER'S EDGE ----
+   These grow on a river bank and nowhere else on the earth. Name them in a
+   country and they will be met only where its rivers run. */
+watercress:{form:'herb', leaf:0x4a9a4a, flower:0xf0f0e8, h:0.35, riv:true, g:['grass','tropic','alpine','tundra']},
+sedge    :{form:'cane', bole:0x7a8a52, leaf:0x6a9a4a, flower:0x8a7a52, h:0.8, riv:true, g:['grass','tundra','tropic','savanna','alpine']},
+
 /* ---- AND THE REST OF WHAT MEN SOW AND GATHER ---- */
 teff     :{form:'herb', leaf:0xc8b868, h:0.8, g:['grass','savanna','alpine']},
 yam      :{form:'herb', leaf:0x4a8a3a, h:0.8, g:['tropic','savanna']},
 vanilla  :{form:'herb', leaf:0x4a9a4a, flower:0xe8e0b0, h:0.7, g:['tropic']},
 pepper   :{form:'herb', leaf:0x3a7a34, fruit:0x2a1a14, h:0.9, g:['tropic']},
 sesame   :{form:'herb', leaf:0x6a9a4a, flower:0xf0e8d8, h:0.8, g:['tropic','savanna','desert']},
-jute     :{form:'herb', leaf:0x6aa03a, h:1.2, g:['tropic','grass']},
+jute     :{wet:true, form:'herb', leaf:0x6aa03a, h:1.2, g:['tropic','grass']},
 ginseng  :{form:'herb', leaf:0x4a8a44, fruit:0xc02828, h:0.4, g:['grass','alpine']},
 melon    :{form:'herb', leaf:0x6a9a4a, fruit:0x8ac04a, h:0.35, g:['desert','grass','sand']},
 paprika  :{form:'herb', leaf:0x4a7a3a, fruit:0xc82818, h:0.6, g:['grass','savanna']},
@@ -358,13 +372,17 @@ yellowwood:{form:'conifer',bole:0x7a6a52,leaf:0x2e6a34, h:1.4, g:['grass','alpin
    uncharted isles of the deep, and any land not yet written.
    ============================================================ */
 wilds:{
-  grass  :['oak','darkoak','birch','pine','ash','hazel','bramble','fern','clover','wheat','poppy','nettle','moss'],
-  tropic :['coconut','jungle','banana','mango','banyan','treefern','fern','moss','papaya','mangrove','rice'],
-  savanna:['acacia','umbrellathorn','mopane','baobab','datepalm','sorghum','millet','aloe','thistle'],
-  desert :['datepalm','acacia','tamarisk','saltbush','aloe','thistle','cumin'],
+  grass  :['oak','darkoak','birch','pine','ash','hazel','bramble','fern','clover','wheat','poppy','nettle','moss',
+           'willow','reed','bulrush','sedge','watercress'],
+  tropic :['coconut','jungle','banana','mango','banyan','treefern','fern','moss','papaya','mangrove','rice',
+           'sedge','lotus','taro'],
+  savanna:['acacia','umbrellathorn','mopane','baobab','datepalm','sorghum','millet','aloe','thistle',
+           'reed','papyrus','sedge','lotus'],
+  desert :['datepalm','acacia','tamarisk','saltbush','aloe','thistle','cumin','reed','papyrus','bulrush'],
   badlands:['saguaro','pricklypear','sagebrush','saltbush','yucca','thistle'],
   sand   :['coconut','pandanus','mangrove','saltbush','gorse'],
-  tundra :['dwarfbirch','arcticwillow','crowberry','lingonberry','lichen','reindeermoss','moss','cottongrass'],
+  tundra :['dwarfbirch','arcticwillow','crowberry','lingonberry','lichen','reindeermoss','moss','cottongrass',
+           'sedge','willow','reed'],
   alpine :['pine','spruce','juniper','dwarfbirch','heather','moss','lichen','gentian','thyme'],
   rock   :['juniper','heather','lichen','moss','thyme','rosemary'],
   snow   :['arcticwillow','lichen','reindeermoss'],
