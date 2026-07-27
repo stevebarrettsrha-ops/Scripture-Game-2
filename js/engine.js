@@ -409,6 +409,54 @@ function holeCutAt(x,z){ let v=0;
     const q=h.m*(t*t*(3-2*t));
     if(q>v) v=q; }
   return v; }
+/* ================= THE BEACHES OF THE WORLD =================
+   The shelf ran straight from the water's edge into the break — two metres
+   deep at the first step off the sand and five within a dozen paces — so
+   there was nowhere for anyone to STAND in the water: no paddling, no wading
+   out, no shallows for a village to enjoy its own shore in.
+   EVERY coast in the world now carries a WADING SHELF at its foot: a broad,
+   near-flat floor of sand a man can walk out across and a village can stand
+   in, and only past it does the ground begin to fall away toward the break.
+   And a land may name its OWN shores. A beach belongs to the country it is
+   in, so it is declared in that country's file (countries/README.md) — Bondi
+   in australia.js, Copacabana in brazil.js, the shingle of Chesil in
+   united-kingdom.js — each with its own width, its own depth and its own
+   sand. They ease into the world's common shore across their radius, so
+   there is never a seam where a named beach stops. */
+const BEACH_DEF={wadeM:2.2, wadeR:240, roll:0.7};   /* what every coast is, unnamed */
+const BEACHES=[];
+for(const C of ((window.EARTH&&window.EARTH.list)||[])){
+  if(!C.beaches) continue;
+  for(const Bh of C.beaches){
+    const [bx,bz]=llToWorld(Bh.lat,Bh.lon);
+    BEACHES.push({x:bx,z:bz,R:(Bh.r||600),n:Bh.n,land:C.n,
+      wadeM:(Bh.wadeM===undefined?BEACH_DEF.wadeM:Bh.wadeM),
+      wadeR:(Bh.wadeR===undefined?BEACH_DEF.wadeR:Bh.wadeR),
+      roll:(Bh.roll===undefined?BEACH_DEF.roll:Bh.roll),
+      sand:Bh.sand||'pale'}); } }
+/* the beach at a place: the nearest named one, EASED into the world's own
+   common shore across its radius, so there is never a seam where a named
+   beach stops and the common one begins. */
+const _bch={wadeM:0,wadeR:0,roll:0,sand:'pale',named:null};
+function beachAt(x,z){
+  let best=null,bw=0;
+  for(const b of BEACHES){ const dx=x-b.x; if(dx>b.R||dx<-b.R) continue;
+    const dz=z-b.z; if(dz>b.R||dz<-b.R) continue;
+    const d=Math.hypot(dx,dz); if(d>=b.R) continue;
+    const t=1-d/b.R, w=t*t*(3-2*t);
+    if(w>bw){ bw=w; best=b; } }
+  if(!best){ _bch.wadeM=BEACH_DEF.wadeM; _bch.wadeR=BEACH_DEF.wadeR;
+    _bch.roll=BEACH_DEF.roll; _bch.sand='pale'; _bch.named=null; return _bch; }
+  _bch.wadeM=BEACH_DEF.wadeM+(best.wadeM-BEACH_DEF.wadeM)*bw;
+  _bch.wadeR=BEACH_DEF.wadeR+(best.wadeR-BEACH_DEF.wadeR)*bw;
+  _bch.roll =BEACH_DEF.roll +(best.roll -BEACH_DEF.roll )*bw;
+  _bch.sand=bw>0.5?best.sand:'pale'; _bch.named=bw>0.35?best:null;
+  return _bch;
+}
+/* the nearest named beach to a place, and how far off it lies */
+function nearestBeach(x,z){ let best=null,bd=1e18;
+  for(const b of BEACHES){ const d=Math.hypot(x-b.x,z-b.z); if(d<bd){bd=d;best=b;} }
+  return best?{beach:best,d:bd}:null; }
 /* the nearest named deep to a place, and how far off it lies */
 function nearestDeep(x,z){ let best=null,bd=1e18;
   for(const t of DEEPS){ const d=Math.hypot(x-t.x,z-t.z); if(d<bd){bd=d;best=t;} }
@@ -2303,12 +2351,30 @@ const POD=[]; let podState=null, songT=-99;
 /* THE POD IS A FAMILY, not three of a size: a cow, her yearling and a calf,
    and a bull orca running with them. The scale here is a beast's AGE — 1 is
    full grown, and every beast's grown size is the metres in its own file. */
-const POD_KINDS=[['whale',1.0],['whale',0.78],['whale',0.52],['orca',1.0]];
+const POD_KINDS=[['whale',1.0],['whale',0.78],['whale',0.52]];
 const POD_LEN=[];      /* how long each of them truly is, in world units */
 function initPod(){ if(POD.length) return;
   for(const [kind,age] of POD_KINDS){ const m=makeBeast(kind);
     m.scale.setScalar(age); m.visible=false; scene.add(m); POD.push(m);
     POD_LEN.push(beastUnits(kind)*age); } }
+/* ================= THE KILLER WHALES KEEP THEIR OWN =================
+   A bull orca swam in the whale pod — a fourth member of the humpback family,
+   riding at her flank and blowing with her. He is not one of them: an orca is
+   a hunter of whales, and the calf she is escorting is what he came for.
+   The killer whales run their OWN matriline now — an old cow, her bull, two
+   juveniles and a calf — and they run it out in the DEEP, off the fishing
+   grounds the humpbacks make for, on their own hunting course. They are
+   RARELY SEEN: a pod is only set out at all where the water is a kilometre
+   deep or more, and then only about one time in seven that the sea is
+   re-seeded, so a voyage may cross an ocean and never meet one. */
+const ORCA_KINDS=[['orca',1.0],['orca',0.88],['orca',0.66],['orca',0.62],['orca',0.42]];
+const ORCA=[], ORCA_LEN=[]; let orcaState=null, orcaSeenT=-99;
+const ORCA_DEEP_M=1000;     /* no killer whale is set out over shallower water */
+const ORCA_CHANCE=0.14;     /* and only this often, where the water will bear them */
+function initOrca(){ if(ORCA.length) return;
+  for(const [kind,age] of ORCA_KINDS){ const m=makeBeast(kind);
+    m.scale.setScalar(age); m.visible=false; scene.add(m); ORCA.push(m);
+    ORCA_LEN.push(beastUnits(kind)*age); } }
 function whaleSong(){ if(!AC||!audioOn) return;
   try{ for(let k=0;k<2;k++){
       const o=AC.createOscillator(), g2=AC.createGain();
@@ -2339,30 +2405,60 @@ function podTick(px,pz,dt,t){
       else { podState.x+=dz/dd*podSp*dt; podState.z-=dx/dd*podSp*dt; } }   /* slide along the coast */
     else { podState.arrived=true; podState.dir+=dt*0.22;
       podState.x=g.x+Math.sin(podState.dir)*120; podState.z=g.z+Math.cos(podState.dir)*120; } }
-  /* THE POD SPREADS TO ITS OWN STATURE. They swam twenty units apart, which
-     was room enough while a whale was seven metres long; grown to sixteen she
-     is ninety-six units of beast, and the family swam THROUGH one another.
-     They keep a length and a half between them now, whatever that length is,
-     so changing `metres` in the file spreads the pod to match. */
-  for(let k=0;k<POD.length;k++){ const m=POD[k], len=POD_LEN[k]||60;
-    const off=k*2.1, lane=len*1.5;
-    const wx=podState.x+Math.sin(t*0.13+off)*40+k*lane*0.55;
-    const wz=podState.z+Math.cos(t*0.11+off)*40-k*lane*0.45;
-    if(landAtWorld(wx,wz)){ m.visible=false; continue; }   /* no whale spouts upon the dry land */
-    const arc=Math.sin(t*0.5+off*1.7);
-    /* she rides with her back awash and rolls up to blow — both measured off
-       her own girth, so a calf does not breach like a bull */
-    const draft=len*0.10;
-    m.position.set(wx, WATER_Y-draft+Math.max(0,arc)*draft*0.75, wz);
-    m.rotation.y=podState.dir+Math.sin(t*0.2+off)*0.4; m.rotation.x=-arc*0.22;
-    m.visible=true;
-    if(arc>0.965&&Math.random()<dt*5) splash(wx,WATER_Y+2.5,wz,true);   /* the spout */
-  }
+  swimPod(POD,POD_LEN,podState,t,dt,0.5,1.0);
   const dNear=Math.hypot(podState.x-px,podState.z-pz);
   if(dNear<430&&t-songT>26){ songT=t; whaleSong();
     if(podState.arrived) toast('The whales sing over teeming waters \u2014 cast the net here, and it will fill.');
     else toast('Whale-song sounds through the hull \u2014 follow the pod, and it will lead you to teeming waters.'); }
 }
+/* THE POD SPREADS TO ITS OWN STATURE. They swam twenty units apart, which
+   was room enough while a whale was seven metres long; grown to sixteen she
+   is ninety-six units of beast, and the family swam THROUGH one another.
+   They keep a length and a half between them now, whatever that length is,
+   so changing `metres` in a creature file spreads its pod to match.
+   `beat` is how fast they roll up to blow, `spout` how freely they throw
+   water — a killer whale is a quicker, tighter thing than a humpback. */
+function swimPod(arr,lens,P,t,dt,beat,spout){
+  for(let k=0;k<arr.length;k++){ const m=arr[k], len=lens[k]||60;
+    const off=k*2.1, lane=len*1.5;
+    const wx=P.x+Math.sin(t*0.13+off)*40+k*lane*0.55;
+    const wz=P.z+Math.cos(t*0.11+off)*40-k*lane*0.45;
+    if(landAtWorld(wx,wz)){ m.visible=false; continue; }   /* nothing spouts upon the dry land */
+    const arc=Math.sin(t*beat+off*1.7);
+    /* she rides with her back awash and rolls up to blow — both measured off
+       her own girth, so a calf does not breach like a bull */
+    const draft=len*0.10;
+    m.position.set(wx, WATER_Y-draft+Math.max(0,arc)*draft*0.75, wz);
+    m.rotation.y=P.dir+Math.sin(t*0.2+off)*0.4; m.rotation.x=-arc*0.22;
+    m.visible=true;
+    if(arc>0.965&&Math.random()<dt*5*spout) splash(wx,WATER_Y+2.5,wz,true);   /* the spout */
+  }
+}
+/* ---- AND THE KILLER WHALES RUN THE DEEP ----
+   They make for no fishing ground: they hold a long straight hunting course
+   out over the abyss, and turn only for the land. */
+function orcaTick(px,pz,dt,t){
+  initOrca();
+  if(!orcaState||Math.hypot(orcaState.x-px,orcaState.z-pz)>3200){
+    const a=Math.random()*6.28, r=700+Math.random()*700;
+    const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
+    /* deep water, and seldom even then */
+    if(landAtWorld(x,z)||Math.random()>ORCA_CHANCE||seabedMetres(x,z)<ORCA_DEEP_M){
+      for(const m of ORCA) m.visible=false; orcaState=null; return; }
+    orcaState={x,z,dir:Math.random()*6.28};
+  }
+  /* the hunting course: long and straight, with a slow wander on it */
+  orcaState.dir+=Math.sin(t*0.07)*0.12*dt;
+  const sp=26;
+  const nx=orcaState.x+Math.sin(orcaState.dir)*sp*dt, nz=orcaState.z+Math.cos(orcaState.dir)*sp*dt;
+  if(!landAtWorld(nx,nz)&&seabedMetres(nx,nz)>ORCA_DEEP_M*0.6){ orcaState.x=nx; orcaState.z=nz; }
+  else orcaState.dir+=2.2;                      /* the shoal turns them back to the deep */
+  swimPod(ORCA,ORCA_LEN,orcaState,t,dt,0.85,0.5);
+  const dNear=Math.hypot(orcaState.x-px,orcaState.z-pz);
+  if(dNear<420&&t-orcaSeenT>90){ orcaSeenT=t;
+    toast('Black fins cut the swell far out — a school of killer whales, running the deep on their own road.'); }
+}
+function hideOrca(){ for(const m of ORCA) m.visible=false; }
 function hidePod(){ for(const m of POD) m.visible=false; }
 
 /* ================= THE TRAVELLER (steve-fashion) ================= */
@@ -2873,6 +2969,9 @@ const D_PLAIN_MIN=3500, D_PLAIN_MAX=5400;    /* the abyssal plains */
    4.5 map pixels (some 88 km) — the true width of a continental shelf; the
    slope and the rise are read off the coarser offshore reach beyond it */
 const O_SHELF=4.5/OFF_PX, O_SLOPE=0.62;
+/* how far the shoal field reaches out from any shore, in world units: 4.5 map
+   pixels at ~117 units each — the true width of a continental shelf */
+const SHOAL_REACH=4.5*117;
 /* how near the surface the bed of the open sea may EVER come. Nothing that is
    not on the chart is allowed to break the water. */
 const SB_MIN_M=180;
@@ -2904,7 +3003,24 @@ function seabedMetres(x,z){
   const o=offshoreAt(x,z);
   const s0=shoalAt(x,z);
   if(s0>0.004){ const p=1-Math.pow(s0,1/1.2);          /* 0 at the strand, 1 at the break */
-    const sm=D_STRAND+(D_BREAK-D_STRAND)*Math.pow(p,2.6);
+    const dOff=p*SHOAL_REACH;                          /* how far out to sea, in units */
+    const Bh=beachAt(x,z);
+    let sm;
+    if(dOff<Bh.wadeR){
+      /* ---- THE WADING SHELF ----
+         Near flat, and it takes the first stretch of every coast. A man walks
+         out across it; a village stands in it. It falls as the SQUARE of the
+         distance, so it is flattest of all right at the water's edge where
+         the children are. */
+      const q=dOff/Bh.wadeR;
+      sm=D_STRAND+(Bh.wadeM-D_STRAND)*q*q;
+      /* sandbars and runnels within it — a wading floor is not a table */
+      sm+=(fbm(x*0.05+31,z*0.05-17)-0.5)*Bh.roll;
+      if(sm<0.4) sm=0.4; }
+    else {
+      /* and only past it does the ground begin to fall away to the break */
+      const q=(dOff-Bh.wadeR)/Math.max(1,SHOAL_REACH-Bh.wadeR);
+      sm=Bh.wadeM+(D_BREAK-Bh.wadeM)*Math.pow(q,2.6); }
     if(sm<m) m=sm; }
   else if(o<1){ let sm;
     if(o<O_SLOPE){ const p=Math.min(1,Math.max(0,(o-O_SHELF)/(O_SLOPE-O_SHELF)));
@@ -3291,6 +3407,75 @@ function updateRays(px,py,pz,murk){ initRays();
 /* ---- fish schools, squid, bubbles ---- */
 const DIVEFISH=[], DF_N=30, DF_R=240;
 const TROPICAL=[0xff8c2a,0xffd23a,0xff5a7a,0x3ad0ff,0x8a5cff,0xf4f4f4,0x2fd08a,0xff4d4d];
+/* ================= THE SHOALS OF THE SEA =================
+   The bright reef fish above is every fish there was: one palm-sized shape in
+   eight colours, in every water on the face of the earth, from the Arctic to
+   the Line. The sea has its OWN NATIONS now, and each keeps to the water it
+   belongs in — its latitude, its depth, and how near it stands to a coast.
+     lat   the band of latitude it is found in
+     m     the depth of water it keeps to, in metres
+     n     how many swim together — a sardine bait-ball is not a cod
+     tight how close they hold: 1 is a wall of fish, 0 is a loose scatter
+     spd   how fast they run
+   Add a creature file, add a line here, and that fish is in the sea. */
+const SHOAL_KINDS=[
+  {name:'sardine', n:26, lat:[-58,62],  m:[4,180],   tight:0.90, spd:17, R:220},
+  {name:'mackerel',n:16, lat:[-52,66],  m:[4,220],   tight:0.62, spd:21, R:250},
+  {name:'salmon',  n:9,  lat:[38,72],   m:[3,140],   tight:0.45, spd:19, R:240, cold:true},
+  {name:'salmon',  n:7,  lat:[-72,-38], m:[3,140],   tight:0.45, spd:19, R:240, cold:true},
+  {name:'cod',     n:6,  lat:[42,76],   m:[25,400],  tight:0.25, spd:9,  R:230, bed:true},
+  {name:'tuna',    n:4,  lat:[-42,42],  m:[10,600],  tight:0.35, spd:30, R:300},
+];
+const SHOALS=[];
+function initShoals(){ if(SHOALS.length) return;
+  for(const K of SHOAL_KINDS){ const fish=[];
+    for(let k=0;k<K.n;k++){ const m=makeBeast(K.name);
+      m.scale.setScalar(0.82+Math.random()*0.4); m.visible=false; scene.add(m);
+      fish.push({m,ph:Math.random()*6.28,ox:0,oy:0,oz:0}); }
+    SHOALS.push({K,fish,x:0,z:0,y:0,dir:Math.random()*6.28,set:false}); } }
+/* is this water fit for this nation of fish? */
+function shoalFits(K,x,z,dm){
+  if(dm<K.m[0]||dm>K.m[1]) return false;
+  const lat=90-(Math.hypot(x,z)/R_WORLD)*180;
+  return lat>=K.lat[0]&&lat<=K.lat[1];
+}
+function updateShoals(px,py,pz,dt,t){ initShoals();
+  for(const S of SHOALS){ const K=S.K;
+    if(!S.set||Math.hypot(S.x-px,S.z-pz)>K.R+140){
+      /* a few tries for water this nation will have; else it is simply not
+         here, and nothing of it is shown */
+      S.set=false;
+      for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28, r=60+Math.random()*K.R;
+        const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
+        if(landAtWorld(x,z)) continue;
+        const fy=seabedDepth(x,z), dm=(SEA_SURF-fy)/U_PER_M;
+        if(!shoalFits(K,x,z,dm)) continue;
+        S.x=x; S.z=z; S.dir=Math.random()*6.28;
+        /* a cod hangs over the ground; the rest run high in the water */
+        S.y=K.bed ? fy+10+Math.random()*20
+                  : Math.min(SEA_SURF-10, fy+Math.max(14,(SEA_SURF-fy)*0.55));
+        for(const f of S.fish){ const sp=1-K.tight;
+          f.ox=(Math.random()-0.5)*(24+sp*150); f.oy=(Math.random()-0.5)*(10+sp*60);
+          f.oz=(Math.random()-0.5)*(30+sp*180); }
+        S.set=true; break; }
+      if(!S.set){ for(const f of S.fish) f.m.visible=false; continue; } }
+    /* the school turns as one thing, and swims as one thing */
+    S.dir+=Math.sin(t*0.31+S.fish[0].ph)*0.9*dt;
+    const nx=S.x+Math.cos(S.dir)*K.spd*dt, nz=S.z+Math.sin(S.dir)*K.spd*dt;
+    if(!landAtWorld(nx,nz)){ S.x=nx; S.z=nz; } else S.dir+=2.1;
+    const fy=seabedDepth(S.x,S.z);
+    S.y=Math.min(SEA_SURF-6,Math.max(fy+7,S.y+Math.sin(t*0.5+S.fish[0].ph)*4*dt));
+    const head=Math.atan2(Math.cos(S.dir),Math.sin(S.dir));
+    for(const f of S.fish){
+      /* each keeps its own place in the school, and breathes about it */
+      const wob=Math.sin(t*1.7+f.ph)*2.2;
+      const c=Math.cos(S.dir), sn=Math.sin(S.dir);
+      const fx=S.x+f.oz*c-f.ox*sn, fz=S.z+f.oz*sn+f.ox*c;
+      f.m.position.set(fx, S.y+f.oy+wob, fz);
+      f.m.rotation.y=head; f.m.rotation.z=Math.sin(t*3.1+f.ph)*0.12;
+      if(f.m.userData.tail) f.m.userData.tail.rotation.y=Math.sin(t*6+f.ph)*0.35;
+      f.m.visible=true; } } }
+function hideShoals(){ for(const S of SHOALS){ S.set=false; for(const f of S.fish) f.m.visible=false; } }
 function initDiveFish(){ if(DIVEFISH.length) return; for(let k=0;k<DF_N;k++){ const m=makeBeast('fish',TROPICAL[Math.floor(Math.random()*TROPICAL.length)]); m.scale.setScalar(0.6+Math.random()*0.8); m.visible=false; scene.add(m);
   DIVEFISH.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,spd:9+Math.random()*11,ph:Math.random()*6.28,set:false}); } }
 function updateDiveFish(px,py,pz,dt,t){ initDiveFish(); for(const f of DIVEFISH){
@@ -3580,12 +3765,12 @@ function nearestPearl(){ if(state.mode!=='dive') return null;
   for(const P of PEARLS){ if(!P.key||!P.m.visible) continue;
     if(Math.hypot(P.x-dv.x,P.z-dv.z)<9&&Math.abs(P.y-dv.y)<13) return P; }
   return null; }
-function initDeep(){ initKelp(); initCoral(); initGrass(); initRays(); initDiveFish(); initSquid(); initDolphins(); initSharks(); initSeaMobs(); initAnglers(); initBub(); initWrecks(); initPearls(); }
+function initDeep(){ initKelp(); initCoral(); initGrass(); initRays(); initDiveFish(); initShoals(); initSquid(); initDolphins(); initSharks(); initSeaMobs(); initAnglers(); initBub(); initWrecks(); initPearls(); }
 function hideDeep(){ seaFloor.visible=false;
   for(const k of KELP)k.m.visible=false; for(const r of CORAL)r.m.visible=false; for(const r of GRASS)r.m.visible=false;
   for(const r of RAYS)r.m.visible=false; for(const f of DIVEFISH)f.m.visible=false; for(const q of SQUIDS)q.m.visible=false;
   for(const d of DOLPHINS)d.m.visible=false; for(const s of SHARKS)s.m.visible=false; hideSeaMobs();
-  for(const b of BUB)b.s.visible=false; for(const w of WRECKS)w.visible=false; hidePearls(); hideAnglers(); deepShown=false; }
+  for(const b of BUB)b.s.visible=false; for(const w of WRECKS)w.visible=false; hidePearls(); hideAnglers(); hideShoals(); deepShown=false; }
 /* ---- IS THE EYE BENEATH THE WAVES, AND HOW FAR? ----
    ONE SEA, not two. Whatever puts the eye under the water puts it in the SAME
    sea the diver swims: the bed, the kelp and the fish are all standing there
@@ -3624,7 +3809,7 @@ function updateDeep(px,py,pz,dt,murk,full){ const t=performance.now()*0.001;
   seaFloor.visible=true; updateSeaFloor(px,pz);   /* updateSeaFloor anchors the mesh itself */
   updateKelp(px,pz,t); updateCoral(px,pz); updateGrass(px,pz,t); updateRays(px,py,pz,murk||0);
   updateDiveFish(px,py,pz,dt,t); updateSquid(px,py,pz,dt,t); updateDolphins(px,py,pz,dt,t); updateSharks(px,py,pz,dt,t);
-  updateSeaMobs(px,py,pz,dt,t); updateAnglers(px,py,pz,dt,t); updateBubbles(px,py,pz,dt);
+  updateSeaMobs(px,py,pz,dt,t); updateShoals(px,py,pz,dt,t); updateAnglers(px,py,pz,dt,t); updateBubbles(px,py,pz,dt);
   if(full){ updateWreck(px,pz); updatePearls(px,pz); }
   else { for(const w of WRECKS)w.visible=false; hidePearls(); }
   deepShown=true; }
@@ -3634,6 +3819,7 @@ function updateDeep(px,py,pz,dt,murk,full){ const t=performance.now()*0.001;
 function updateShallowLife(px,pz,dt,t){
   initDiveFish(); initDolphins(); initSeaMobs();
   updateDiveFish(px,0,pz,dt,t);
+  updateShoals(px,0,pz,dt,t);          /* sardines and mackerel flash in the clear shallows */
   updateDolphins(px,0,pz,dt,t);
   updateSeaMob(TURTLES,px,0,pz,dt,t);
   /* a swimmer in open water is prey — the sharks keep their hunt at the surface */
@@ -3643,6 +3829,7 @@ function updateShallowLife(px,pz,dt,t){
   }
   /* hideDeep may have blanked them on leaving the dive — show the living */
   for(const f of DIVEFISH) if(f.set) f.m.visible=true;
+  for(const S of SHOALS) if(S.set) for(const f of S.fish) f.m.visible=true;
   for(const d2 of DOLPHINS) if(d2.set) d2.m.visible=true;
   if(TURTLES) for(const o of TURTLES) if(o.set) o.m.visible=true;
 }
@@ -7534,7 +7721,7 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
   farLand,updateFarLand,mountUpliftAt,MOUNTS,ridgeNoise,B,R_WORLD,
   AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,
-  domeCeilAt,canTouchDome,touchDome,playScene,endScene,SCENES,sceneActive,sceneRise,seenDeeps,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
+  domeCeilAt,canTouchDome,touchDome,playScene,endScene,SCENES,sceneActive,sceneRise,seenDeeps,BEACHES,SHOALS,ORCA,beachAt,nearestBeach,seabedMetres,orcaState:()=>orcaState,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
   domeInfo:()=>({dome:flyDome?flyDome.material.opacity:0, deep:outerDeep?outerDeep.material.uniforms.uOp.value:0, stars:starGroup.userData.mat.opacity}),
@@ -7855,8 +8042,9 @@ function frame(){
        them twice in one frame doubled their speed and tore the schools apart */
     if(!underEye) updateShallowLife(p.x,p.z,dt,tt);   /* fish and turtles seen through the clear shallows */
     podTick(p.x,p.z,dt,tt);             /* the whale pods, making for the fishing grounds */
+    orcaTick(p.x,p.z,dt,tt);            /* and the killer whales, on their own road in the deep */
     if(state.mode==='boat'||state.mode==='deck'||state.mode==='walk') updateLandLife(p.x,p.z,dt,tt); else hideLandLife(); }
-  else { hideLandLife(); hideAirLife(); hidePod(); }
+  else { hideLandLife(); hideAirLife(); hidePod(); hideOrca(); }
   if(state.firm&&firmMark) firmMark.position.set(p.x,R_WORLD*0.012,p.z);
   seaTex.offset.x=(performance.now()*0.000012)%1; seaTex.offset.y=(performance.now()*0.000009)%1;
   const _pn=performance.now();
