@@ -2710,18 +2710,25 @@ const BEAST_KIT={
     u.legs=(u.legs||[]).concat(out); return out; }
 };
 /* ---- AND HOW BIG A BEAST IS DRAWN ----
-   Every beast of the SEA is drawn at its true stature: a whale is sixteen
-   metres and the six units of a metre make her ninety-six units long, and
-   she reads as the mountain of meat she is.
-   The beasts of the FIELD are drawn at half of theirs, and must be. The
-   world's cattle, sheep and horses were built by hand long before any of
-   this, at about half life-size, mob-fashion — and a zebra dropped in beside
-   them at TRUE size would stand three times the cow in the next field. One
-   scale for the herd, and it is this one: the file still declares the beast's
-   honest length in metres, and the engine halves the lot of them together, so
-   the whole bestiary is in proportion with itself and with the pens, byres
-   and folds already standing in every village on the earth. */
-const LAND_U_PER_M=3;
+   ONE SCALE, AND IT IS THE MAN'S. There were two: the beasts of the sea were
+   built true, at six units to the metre, and the beasts of the field at HALF
+   — not by anybody's decision about how big a cow ought to be, but because
+   the world's first cattle were built by hand at about half life-size, and
+   when eighty new beasts were added they were held down to match. So the
+   whole bestiary was in proportion with ITSELF and out of proportion with
+   the man standing in the middle of it, and a lion came up to his knee.
+   Every creature is built to js/size.js now — the one table of true adult
+   sizes — and every one of them at U_PER_M. A model is MEASURED and scaled
+   to fit whatever it happened to be drawn at, so no model's own numbers ever
+   have to be in proportion with anything. */
+function trueMetres(name,spec){
+  const m=(window.SIZE&&SIZE.of(name))||0;
+  return m||(spec?spec.metres:0);
+}
+function trueAxis(name,spec){
+  if(window.SIZE&&SIZE.metres[name]) return SIZE.axisOf(name);
+  return (spec&&spec.axis)||'z';
+}
 /* how long the built model runs along the axis its file measures it by */
 const _bBox=new THREE.Box3(), _bSize=new THREE.Vector3();
 function beastSpan(g,axis){
@@ -2734,14 +2741,14 @@ function makeBeast(name,arg){
   const spec=BEAST_BY_NAME[name];
   if(!spec) throw new Error('no creature file for "'+name+'"');
   const inner=spec.build(BEAST_KIT,arg);
-  const span=beastSpan(inner,spec.axis);
+  const span=beastSpan(inner,trueAxis(name,spec));
   /* THE BEAST IS WRAPPED, AND THE WRAPPER GROWS IT. The engine sets scale on
      what it is handed (a calf in the pod, a shark rearing) — so the true
      stature is put on an INNER group where nothing can clobber it, and what
      the engine holds is a plain group at scale 1 that means "unremarkable
      for its kind". */
-  const per=(spec.realm==='land')?LAND_U_PER_M:U_PER_M;
-  if(span>0.001&&spec.metres>0) inner.scale.setScalar((spec.metres*per)/span);
+  const m=trueMetres(name,spec);
+  if(span>0.001&&m>0) inner.scale.setScalar((m*U_PER_M)/span);
   const g=new THREE.Group();
   g.rotation.order=inner.rotation.order;
   g.add(inner);
@@ -2749,8 +2756,7 @@ function makeBeast(name,arg){
   return g;
 }
 /* what the file says this beast truly measures, in world units */
-function beastUnits(name){ const s=BEAST_BY_NAME[name];
-  return s?s.metres*((s.realm==='land')?LAND_U_PER_M:U_PER_M):0; }
+function beastUnits(name){ return trueMetres(name,BEAST_BY_NAME[name])*U_PER_M; }
 /* Steve-fashion: dark brown hair in a clean, straight fringe (no ragged edge),
    sideburns down the temples, a bowl of hair on top and round the back. */
 const SKIN_RGB=[199,140,95], HAIR_RGB=[46,32,18], ROBE_A=[56,66,116], ROBE_D=[46,56,100];
@@ -2924,6 +2930,23 @@ function makePerson(seed, role, child, female){
 function makeAnimal(kind){
   const spec=BEAST_BY_NAME[kind];
   if(spec&&spec.realm==='land') return makeBeast(kind);
+  return sizeToTrue(kind,buildOldAnimal(kind));
+}
+/* ---- THE HAND-BUILT BEASTS, BROUGHT TO THE SAME MEASURE ----
+   The world's first cattle, sheep, horses, wolves and lions were built by
+   hand at whatever looked right at the time, which was about half life-size.
+   They are not rebuilt — they are MEASURED, exactly as every creature file's
+   beast is, and scaled to their true size out of js/size.js. The scale goes
+   on an INNER group so the engine may still set scale on what it is handed. */
+function sizeToTrue(kind,inner){
+  const m=(window.SIZE&&SIZE.of(kind))||0;
+  if(!m) return inner;
+  const span=beastSpan(inner,(window.SIZE?SIZE.axisOf(kind):'z'));
+  if(span>0.001) inner.scale.setScalar((m*U_PER_M)/span);
+  const g=new THREE.Group(); g.rotation.order=inner.rotation.order;
+  g.add(inner); g.userData=inner.userData||{}; return g;
+}
+function buildOldAnimal(kind){
   const g=new THREE.Group(); const legs=[];
   function fourLegs(w,d,lh,col){ for(const sx of [1,-1]) for(const sz of [1,-1]){
     const L=lbox(0.9,lh,0.9,col); L.geometry.translate(0,-lh/2,0);   // pivot at the hip
@@ -3136,7 +3159,9 @@ function makeBird(type){ type=type||'crow';
   const carry=lbox(0.75*S.s,0.4*S.s,1.15*S.s,0x9fb6c8);
   carry.position.set(0,-0.42*S.s,1.35*S.s); carry.visible=false; g.add(carry);
   g.userData={wingL,wingR,type,carry};
-  return g;
+  /* and a bird is measured wingtip to wingtip, which is the only measure
+     anybody uses for one in the air */
+  return sizeToTrue(type,g);
 }
 /* ---- A NEST, AND THE YOUNG IN IT ----
    A ring of woven sticks with two chicks that stretch up when the parent
