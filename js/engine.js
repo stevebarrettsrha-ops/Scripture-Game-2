@@ -25,6 +25,13 @@ function cityFor(i){ return CITY_BY_COUNTRY[COUNTRIES[i].n]; }
    the streamed ground, or land would pop in on open view. */
 const R_WORLD=120000, B=6, CH=16, CHW=B*CH, VIEW=13; /* rim = 20,000 km, 1 block = 1 km */
 const ICE_UV=0.948, SHELF_UV=0.915, WATER_Y=0.35;
+/* ---- THE HEIGHT OF THE WALL OF ICE ----
+   Two thousand feet, and level from there to the rim. A block is a METRE in
+   the measure a man walks, swims and dives by (the same U_PER_M every beast
+   is built to and the depth-gauge reports), so the wall stands 610 blocks and
+   its crown is a plain of ice 350 blocks wide at the edge of the world. */
+const WALL_FT=2000, WALL_TOP=Math.round(WALL_FT*0.3048);
+const WALL_CLIMB=0.62;      /* how much of the ice band is the climb; the rest is the crown */
 /* every land is a stone standing in the water: its flanks plunge past the
    waterline down to the bed of the sea, which lies at SUBSEA_Y */
 const SUBSEA_Y=WATER_Y-13;
@@ -360,6 +367,52 @@ for(const L of LANDMARKS){ if(L.kind!=='mount') continue;
   const [mx,mz]=llToWorld(L.lat,L.lon);
   const peak=(L.elev!==undefined)?L.elev/MTN_M_PER_BLOCK:(L.peak||18);
   MOUNTS.push({x:mx,z:mz,R:(L.r||110),peak}); }
+/* ---- THE DEEPS OF THE SEA — the trenches, each at its own place ----
+   world/deeps.js names them with their TRUE soundings in metres, and the
+   engine sinks the bed to meet them. Unlike the mountains these are not
+   scaled at all: a block is a metre in the reckoning a man swims and dives
+   by, so the Challenger Deep is 11,034 blocks down and the gauge says so. */
+const DEEPS=[];
+for(const D2 of ((window.EARTH&&window.EARTH.deepList)||[])){
+  const [dx,dz]=llToWorld(D2.lat,D2.lon);
+  DEEPS.push({x:dx,z:dz,R:(D2.r||800),m:(D2.m||6000),n:D2.n}); }
+/* how deep the named trenches call for the bed to lie at a place, in metres.
+   A trench is not a bowl: it is a broad trough with a narrow GUT cut down the
+   length of it, so the last two kilometres of the descent come suddenly. */
+function trenchDepthAt(x,z){ let m=0;
+  for(const t of DEEPS){ const dx=x-t.x; if(dx>t.R||dx<-t.R) continue;
+    const dz=z-t.z; if(dz>t.R||dz<-t.R) continue;
+    const d=Math.hypot(dx,dz); if(d>=t.R) continue;
+    const tb=1-d/t.R, broad=tb*tb*(3-2*tb);
+    const rs=t.R*0.24, ts=d<rs?1-d/rs:0, gut=ts*ts*(3-2*ts);
+    const v=t.m*(0.56*broad+0.44*gut);
+    if(v>m) m=v; }
+  return m; }
+/* ---- THE BLUE HOLES — sheer shafts sunk through the reefs ----
+   Cut AFTER the shelf is drawn and cut sheer: the mouth is a ring of coral in
+   a few fathoms of turquoise, and inside it the wall goes straight down into
+   ink. It is the one place in the sea where the bed falls hundreds of metres
+   without a slope to walk it. */
+const HOLES=[];
+for(const H of ((window.EARTH&&window.EARTH.holeList)||[])){
+  const [hx,hz]=llToWorld(H.lat,H.lon);
+  HOLES.push({x:hx,z:hz,R:(H.r||80),m:(H.m||120),n:H.n}); }
+/* how much FURTHER the bed drops here than the reef about it. A blue hole is
+   not an absolute depth — it is a shaft sunk below whatever floor it opens
+   in — so it is added to the bed rather than compared against it, and the
+   shaft is as deep below the rim as the charts say it is. */
+function holeCutAt(x,z){ let v=0;
+  for(const h of HOLES){ const dx=x-h.x; if(dx>h.R||dx<-h.R) continue;
+    const dz=z-h.z; if(dz>h.R||dz<-h.R) continue;
+    const d=Math.hypot(dx,dz); if(d>=h.R) continue;
+    const t=Math.min(1,(h.R-d)/(h.R*0.14));      /* the wall stands up in a seventh of the mouth */
+    const q=h.m*(t*t*(3-2*t));
+    if(q>v) v=q; }
+  return v; }
+/* the nearest named deep to a place, and how far off it lies */
+function nearestDeep(x,z){ let best=null,bd=1e18;
+  for(const t of DEEPS){ const d=Math.hypot(x-t.x,z-t.z); if(d<bd){bd=d;best=t;} }
+  return best?{deep:best,d:bd}:null; }
 /* A summit is not a cone. Every great mountain sits in the midst of a massif
    that swells for hundreds of kilometres about it — the plateau under
    Everest, the Alps under Mont Blanc — with the peak a sharp thing standing
@@ -401,8 +454,12 @@ function ridgeNoise(x,z){
    near — along every coast and up every river — the sea stands clear and
    turquoise and the light passes through to the sand; over the true deep
    it keeps its darkness. */
-let SHOAL_DATA=null; const SHOAL_RES=1024;
-const SHOAL_TEX=(()=>{
+/* the raw field: how far every point of the map lies from the nearest dry
+   land, in map pixels (≈117 units each). TWO things are drawn off it — the
+   SHOAL, which is the clear turquoise water of a coast, and the OFFSHORE
+   REACH, by which the bed of the sea falls away from the strand through the
+   shelf, the slope and the rise to the abyssal plain. */
+const LAND_PX=(()=>{
   const N=MAPR, d=new Float32Array(N*N), INF=1e9;
   for(let i=0;i<N*N;i++) d[i]=IDMAP[i]?0:INF;
   for(let y=0;y<N;y++) for(let x=0;x<N;x++){ const i=y*N+x; let v=d[i];   /* forward sweep */
@@ -417,12 +474,11 @@ const SHOAL_TEX=(()=>{
       if(x<N-1&&d[i+N+1]+1.4<v) v=d[i+N+1]+1.4;
       if(x>0&&d[i+N-1]+1.4<v) v=d[i+N-1]+1.4; }
     d[i]=v; }
-  const R2=SHOAL_RES; let f=new Float32Array(R2*R2);
-  for(let y=0;y<R2;y++) for(let x=0;x<R2;x++){
-    const dist=d[Math.min(N-1,y*2)*N+Math.min(N-1,x*2)];   /* in map pixels, ≈117 units each */
-    f[y*R2+x]=Math.max(0,1-dist/4.5); }
-  /* two 3×3 blur passes — no texel facets on the open water */
-  for(let pass=0;pass<2;pass++){ const g2=new Float32Array(R2*R2);
+  return d;
+})();
+/* a 3×3 blur, run a few times — no texel facets on the open water */
+function _blurField(f,R2,passes){
+  for(let pass=0;pass<passes;pass++){ const g2=new Float32Array(R2*R2);
     for(let y=0;y<R2;y++) for(let x=0;x<R2;x++){
       let s2=0,n2=0;
       for(let dy=-1;dy<=1;dy++){ const yy=y+dy; if(yy<0||yy>=R2) continue;
@@ -430,6 +486,15 @@ const SHOAL_TEX=(()=>{
           s2+=f[yy*R2+xx]; n2++; } }
       g2[y*R2+x]=s2/n2; }
     f=g2; }
+  return f;
+}
+let SHOAL_DATA=null; const SHOAL_RES=1024;
+const SHOAL_TEX=(()=>{
+  const N=MAPR, R2=SHOAL_RES; let f=new Float32Array(R2*R2);
+  for(let y=0;y<R2;y++) for(let x=0;x<R2;x++){
+    const dist=LAND_PX[Math.min(N-1,y*2)*N+Math.min(N-1,x*2)];   /* in map pixels, ≈117 units each */
+    f[y*R2+x]=Math.max(0,1-dist/4.5); }
+  f=_blurField(f,R2,2);
   const data=new Uint8Array(R2*R2*4); SHOAL_DATA=new Uint8Array(R2*R2);
   for(let i=0;i<R2*R2;i++){ const b=Math.round(Math.pow(f[i],1.2)*255);
     data[i*4]=b; data[i*4+1]=b; data[i*4+2]=b; data[i*4+3]=255; SHOAL_DATA[i]=b; }
@@ -443,6 +508,31 @@ function shoalAt(x,z){
   const pz=Math.min(R2-1,Math.max(0,Math.round((z/R_WORLD+1)*0.5*R2)));
   return SHOAL_DATA[pz*R2+px]/255;
 }
+/* ---- HOW FAR OUT TO SEA ----
+   0 at the strand, 1 out past the continental rise. OFF_PX map pixels is
+   some 470 km of open water — the width of a true shelf, slope and rise laid
+   end to end. The whole shape of the bed between the beach and the abyssal
+   plain is read off this one number. */
+const OFF_RES=512, OFF_PX=24; let OFF_DATA=null;
+(()=>{ const N=MAPR, R2=OFF_RES, st=Math.floor(N/R2); let f=new Float32Array(R2*R2);
+  for(let y=0;y<R2;y++) for(let x=0;x<R2;x++)
+    f[y*R2+x]=Math.min(1,LAND_PX[Math.min(N-1,y*st)*N+Math.min(N-1,x*st)]/OFF_PX);
+  f=_blurField(f,R2,3);
+  OFF_DATA=new Uint8Array(R2*R2);
+  for(let i=0;i<R2*R2;i++) OFF_DATA[i]=Math.round(f[i]*255);
+})();
+/* read BETWEEN the texels: a texel is 470 units across and the whole
+   continental slope is laid within a few of them, so a nearest-neighbour
+   reading would cut the descent into three or four sheer steps. */
+function offshoreAt(x,z){
+  const R2=OFF_RES;
+  const fx=Math.min(R2-1.001,Math.max(0,(x/R_WORLD+1)*0.5*R2-0.5));
+  const fz=Math.min(R2-1.001,Math.max(0,(z/R_WORLD+1)*0.5*R2-0.5));
+  const ix=fx|0, iz=fz|0, tx=fx-ix, tz=fz-iz;
+  const a=OFF_DATA[iz*R2+ix],       b=OFF_DATA[iz*R2+ix+1];
+  const c=OFF_DATA[(iz+1)*R2+ix],   d=OFF_DATA[(iz+1)*R2+ix+1];
+  return ((a+(b-a)*tx)+((c+(d-c)*tx)-(a+(b-a)*tx))*tz)/255;
+}
 
 /* Each call returns a FRESH object. (A shared scratch object here once meant
    that querying a neighbour clobbered the current cell mid-mesh: cliff side
@@ -455,28 +545,24 @@ function cellRaw(ix,iz){
   const n=fbm(ix*.11,iz*.11), n2=fbm(ix*.023+40,iz*.023-70), j=hash2(ix,iz);
   if(r>=ICE_UV){ const t=(r-ICE_UV)/(0.995-ICE_UV);
     /* ---- THE WALL OF ICE ----
-       It stood 53 blocks when the tallest mountain in the world stood 34.
-       Now that Everest stands 235 it read as a kerb at the world's edge — an
-       ice HILL, not the wall that hems the whole earth in. It climbs 900
-       blocks now (5,400 units, near four times Everest), and then runs out to
-       the rim as a crowned plateau that TILTS UP to meet the firmament
-       coming down — so that at the outermost edge a man may stand and reach
-       the glass. The rise is kept near a block to the pace so it can be
-       walked, and broken by long swells of the ice into buttresses and
-       crevasses. */
-    let wh = t<0.72
-      ? 6+Math.pow(t/0.72,0.86)*894          /* the long climb up out of the sea */
-      : 900+Math.pow((t-0.72)/0.28,1.6)*120; /* the crown, tilting up to the glass */
-    /* buttresses and crevasses in the ice — smoothed away toward the crown,
-       so the shelf against the firmament is level enough to walk */
-    wh+=(n2-0.5)*50*(1-t*0.8)+(n-0.5)*7;   /* the fine break stays, or the
-       radial ramp reads as a corduroy of perfect concentric terraces */
-    /* It is NOT shorn off against the vault. Clamping it to the glass put a
-       fifteen-block cliff in the ice along the line where the firmament first
-       comes down — the descent of the vault there is far steeper than any
-       ground a man could walk. The crown is simply built to pass beneath it:
-       1,020 blocks at the rim against a ceiling of 1,063. */
-    return {h:Math.max(4,Math.floor(wh)), kind:'wall', tree:0, ci:0}; }
+       It climbs out of the sea to TWO THOUSAND FEET — 610 blocks, a block
+       being a metre in the reckoning a man walks, swims and dives by — and
+       there it STOPS CLIMBING. From that height out to the rim it is one
+       flat field of ice, three hundred and fifty blocks across: a crown a man
+       may stand upon and walk to the world's edge, with nothing above him but
+       the firmament coming down to meet the ice ahead.
+       The climb is kept near a block to the pace so it can be walked, and
+       broken by long swells of the ice into buttresses and crevasses — and
+       the break dies away exactly where the crown begins, so the plateau is
+       LEVEL, and reads as the one flat thing at the end of the world. */
+    let wh;
+    if(t<WALL_CLIMB){ const p=t/WALL_CLIMB;
+      wh=6+Math.pow(p,1.1)*(WALL_TOP-6);          /* the long climb up out of the sea */
+      /* buttresses and crevasses, dying away into the crown */
+      const rough=1-p;
+      wh+=((n2-0.5)*44+(n-0.5)*6)*rough*rough; }
+    else wh=WALL_TOP;                             /* THE CROWN — flat, and flat to the rim */
+    return {h:Math.max(4,Math.round(wh)), kind:'wall', tree:0, ci:0}; }
   if(r>=SHELF_UV){ if(n>0.62){ return {h:1, kind:'floe', tree:0, ci:0}; } return null; }
   /* domain-warp the coast: sub-pixel fractal detail where the vector data runs out */
   const du2=(fbm(u*760+13.7,v*760-4.2)-0.5)*(2.6/HALF);
@@ -830,6 +916,22 @@ function emitScrub(G,ix,iz,cc,j,wild){
    bed that follows the diver reads the SAME number and stands aside there, so
    the two never fight for the same ground. */
 const SHELF_SHOAL=0.10;
+/* ...and HOW DEEP it lays them. The shelf was footed at SUBSEA_Y and would
+   lay no block below it, which was right while the near-coast bed sat a
+   couple of metres under the waterline. The shelf truly falls to two hundred
+   metres at its break now, so a footing there left the mesher drawing nothing
+   past the first few paces of sand, and the clear water off every coast had
+   no floor under it when seen from the deck. Each cell is a block standing ON
+   the bed, however deep it lies — but only while the bottom can still be
+   SEEN: past thirty metres the water is its own colour, and the bed that
+   follows the diver has the ground from there out.
+   (180 units — thirty metres, at the six units to the metre everything that
+   swims is built by.) */
+const SHELF_DEEP=180;
+/* the ONE test both floors read, so neither ever lays ground the other has */
+function chunkShelfHere(x,z,bedY){
+  return shoalAt(x,z)>SHELF_SHOAL && bedY>WATER_Y-SHELF_DEEP;
+}
 const chunks=new Map(); const buildQueue=[]; const buildQueued=new Set();
 /* all the streamed land under one root, so it can be taken out of the view
    in a single stroke when the charted face of the earth stands in for it */
@@ -848,7 +950,7 @@ function buildChunk(cx,cz){
         /* breaking surf where the swell meets the strand */
         if(nb.kind==='sand'||nb.kind==='tropic'||nb.kind==='grass'||nb.kind==='desert')
           faceTop(G,'surf',x0,z0,x0+B,z0+B,WATER_Y+0.55,1.0);
-      } else if(shoalAt(x0+B/2,z0+B/2)>SHELF_SHOAL){
+      } else {
         /* ---- AND THE SHELF IS BLOCKS TOO ----
            Past the landing the shore used to fall away in exactly two more
            terraces, at four units and at nine, whatever the ground beneath
@@ -858,10 +960,14 @@ function buildChunk(cx,cz){
            grid, so the shallows carry the same floor the diver swims over and
            the two are one continuous thing. */
         const bedTop=Math.round(seabedDepth(x0+B/2,z0+B/2)/B)*B;
-        const top=Math.min(WATER_Y-1.5,bedTop);
-        if(top>SUBSEA_Y+0.4){
-          const deep=WATER_Y-top;
-          step(top, deep>26?'stone':'sand');
+        if(chunkShelfHere(x0+B/2,z0+B/2,bedTop)){
+          const top=Math.min(WATER_Y-1.5,bedTop), deep=WATER_Y-top;
+          /* and it is FOOTED on what lies beneath it, not on one fixed line:
+             where the bed steps down the shelf steps with it, and the riser
+             is deep enough that no daylight shows under the tread */
+          const mat=deep>26?'stone':'sand';
+          emitBox(G, x0+0.08,Math.min(SUBSEA_Y,top-B*5),z0+0.08,
+                     x0+B-0.08,top,z0+B-0.08, mat,mat,null);
         }
       }
       continue;
@@ -2634,46 +2740,117 @@ TEX.sponge  =mkTex(g=>speckle(g,[224,176,64],28,[190,142,48],0.4));
    (W/S · A/D · SPACE up · SHIFT down), and comes up again to draw breath. */
 const DIVE_TURN=1.7, DIVE_MAXSP=155, DIVE_VMAX=125, DIVE_VACC=320, SEA_SURF=WATER_Y;
 let diveHintShown=false, deepShown=false, swimDeepHintShown=false;
+/* ================= THE TRUE DEPTHS OF THE SEA =================
+   The bed of the open ocean bottomed out at a hundred and sixteen metres —
+   shallower than a great many lakes — and the gauge said so to the traveller's
+   face. The sea now has its REAL depths, to the metre, on the one measure a
+   man walks, swims and dives by (a block is a metre; every beast is built to
+   it and the gauge reports it):
+
+       0 –   200 m   the sunlit water over the continental SHELF
+     200 – 3,000 m   the continental SLOPE, falling away past the break
+   3,000 – 6,000 m   the ABYSSAL PLAINS — the floor of the world ocean
+   6,000 –11,000 m   the HADAL trenches, and the Challenger Deep at 10,935
+
+   The average of the whole is near 3,700 m, as the true ocean's is. The bed
+   is steep for it — the earth is drawn a kilometre to the block ACROSS and a
+   metre to the block DOWN, so any true grade stands up a thousandfold — and
+   the great slopes read as escarpments and the trenches as chasms. That is
+   the price of true soundings on a walkable earth, and it is worth paying:
+   what the gauge says is now what the sea is. */
+const D_STRAND=13/6;      /* the bed at the water's very edge (SUBSEA_Y), in metres */
+const D_BREAK=200;        /* the shelf break — the floor of the epipelagic */
+const D_SLOPE_FOOT=3000;  /* the foot of the continental slope */
+const D_PLAIN_MIN=3500, D_PLAIN_MAX=5400;    /* the abyssal plains */
+/* the shelf is read off the SHOAL field, which is fine-grained and reaches
+   4.5 map pixels (some 88 km) — the true width of a continental shelf; the
+   slope and the rise are read off the coarser offshore reach beyond it */
+const O_SHELF=4.5/OFF_PX, O_SLOPE=0.62;
 /* how near the surface the bed of the open sea may EVER come. Nothing that is
    not on the chart is allowed to break the water. */
-const SB_MIN=34;
+const SB_MIN_M=180;
+/* ---- THE ZONES OF THE DEEP, by their true bounds in metres ---- */
+const SEA_ZONES=[[200,'EPIPELAGIC'],[1000,'MESOPELAGIC'],[4000,'BATHYPELAGIC'],
+                 [6000,'ABYSSOPELAGIC'],[1e9,'HADAL']];
+function seaZone(m){ for(const z of SEA_ZONES) if(m<z[0]) return z[1]; return 'HADAL'; }
+/* the depth of the bed at a place, in METRES below the waterline */
+function seabedMetres(x,z){
+  /* ---- THE ABYSSAL PLAIN ----
+     Long, low swells three and a half to five and a half kilometres down.
+     The wavelength is deliberately vast (some four kilometres as a swimmer
+     measures it): at any shorter one, a two-kilometre change of depth stands
+     up as a sheer wall, and the flattest place on earth would read as a
+     badland. */
+  const basin=fbm(x*0.00026-5,z*0.00026+9);
+  let m=D_PLAIN_MIN+basin*(D_PLAIN_MAX-D_PLAIN_MIN);
+  /* the unnamed troughs of the open sea, between the named deeps */
+  const tr=Math.pow(Math.max(0,fbm(x*0.0016+30,z*0.0016)-0.62)/0.38,1.8);
+  if(tr>0.001) m+=tr*Math.max(0,7200-m);
+  /* ---- SHELF · SLOPE · RISE ----
+     Out from the strand: the SHELF, near flat under the clear water and
+     steepening to the break at 200 m; the SLOPE falling away past it to
+     3,000; then the RISE levelling out into the plain.
+     The shelf is drawn ^2.6 on purpose. A true shelf falls at a tenth of a
+     degree for eighty kilometres and then breaks: draw it as a straight ramp
+     and the reefs, the kelp and the whole clear-water shallows are crushed
+     into a ribbon a few paces wide at the beach. */
+  const o=offshoreAt(x,z);
+  const s0=shoalAt(x,z);
+  if(s0>0.004){ const p=1-Math.pow(s0,1/1.2);          /* 0 at the strand, 1 at the break */
+    const sm=D_STRAND+(D_BREAK-D_STRAND)*Math.pow(p,2.6);
+    if(sm<m) m=sm; }
+  else if(o<1){ let sm;
+    if(o<O_SLOPE){ const p=Math.min(1,Math.max(0,(o-O_SHELF)/(O_SLOPE-O_SHELF)));
+      sm=D_BREAK+(D_SLOPE_FOOT-D_BREAK)*(p*p*(3-2*p)); }
+    else { const p=(o-O_SLOPE)/(1-O_SLOPE); sm=D_SLOPE_FOOT+(m-D_SLOPE_FOOT)*(p*p*(3-2*p)); }
+    if(sm<m) m=sm; }
+  /* ---- the roll of the floor itself, in the measure a swimmer sees ----
+     rock and dune and terrace: tens of metres over a hundred, no more, so the
+     floor is mostly plain with terraces standing in it, as a sea bed is. */
+  m+=(fbm(x*0.006+11,z*0.006-7)-0.5)*Math.min(34,m*0.5)
+    +(fbm(x*0.021-3,z*0.021+6)-0.5)*Math.min(7,m*0.2);
+  /* ---- SEAMOUNTS — the ridges and guyots of the open bed ----
+     NO MOUNTAIN THAT IS NOT ON THE EARTH. The rise is FOLDED: a seamount may
+     climb most of the way up the water column it stands in and approaches the
+     room there is without ever passing it — so the bed keeps its relief, and
+     what stands above the water is the land of the earth and nothing else. */
+  const ridge=Math.pow(Math.max(0,fbm(x*0.003+70,z*0.003-40)-0.47)/0.53,1.7);
+  /* and they belong to the OPEN sea: a seamount raised on the shelf would be
+     a hill of rock standing in the clear water off every beach in the world */
+  const peak=ridge*(900+fbm(x*0.011-3,z*0.011+6)*1800)*Math.max(0,1-s0*5);
+  const roomM=Math.max(0,m-SB_MIN_M);
+  if(peak>0.001&&roomM>0.001) m-=roomM*(1-Math.exp(-peak/roomM));
+  /* ---- THE NAMED DEEPS, AND THEY ARE THE LAST WORD ----
+     They are cut AFTER the seamounts and after the roll, and nothing that
+     comes later may fill them in. Put them in before the fold and the fold
+     ate them: the Atacama lost two kilometres to a seamount that had no
+     business standing in a trench, and a blue hole 124 m deep came out level
+     with the reef around it.
+     After the SHELF, though, because in truth they run close inshore (the
+     Atacama lies but a hundred miles off Chile) — and eased across it, so no
+     trench opens at anybody's beach. */
+  const td=trenchDepthAt(x,z);
+  if(td>m) m+=(td-m)*Math.min(1,o/O_SHELF);
+  /* and the blue holes, which belong to the shelf and are not eased at all */
+  if(HOLES.length) m+=holeCutAt(x,z);
+  return Math.max(0.5,m); }
+/* ONE sea, one bed: at the strand the shelf profile comes out at D_STRAND,
+   which IS the foot of the land (SUBSEA_Y, where every island's flank is cut
+   off), so a swimmer can walk down a coastal flank and keep going — sand at
+   the water's edge, sloping away seamlessly into the kelp and the coral. */
 function seabedDepth(x,z){
-  /* THE FINE ROLL IS LONGER AND LOWER THAN IT WAS. At a wavelength of fifty
-     units and thirty of amplitude, the bed rose and fell five blocks every
-     eight — so once it was cut into blocks the whole floor corrugated, a step
-     at nearly every block, and read as a ploughed field rather than a sea
-     bed. Stretched and flattened, the floor is mostly plain with terraces
-     standing in it, as a sea bed is. */
-  const roll=fbm(x*0.011+11,z*0.011-7), basin=fbm(x*0.004-5,z*0.004+9);
-  const trench=Math.pow(Math.max(0,fbm(x*0.0016+30,z*0.0016)-0.55)/0.45,1.6);
-  const ridge=Math.pow(Math.max(0,fbm(x*0.003+70,z*0.003-40)-0.47)/0.53,1.7);   /* undersea mountains */
-  const peak=ridge*(360+fbm(x*0.011-3,z*0.011+6)*120);                          /* the ridges of the bed */
-  /* how deep the bed lies before any ridge is raised upon it */
-  const base=20+roll*15+basin*120+trench*540;
-  /* ---- NO MOUNTAIN THAT IS NOT ON THE EARTH ----
-     The ridge was SUBTRACTED outright, and it stands three to four hundred
-     units where the bed is often only a hundred deep — so the open sea grew
-     whole ranges of its own that came up out of the water and stood over it
-     as green mountains. They are in NOTHING else: not in the chunks, not on
-     the far ring, not on the chart. Sail past them and they are not there;
-     put the eye under a wave and they are back. That is the whole of "the
-     water shows mountains that are not there".
-     The rise is FOLDED now: a seamount may climb most of the way up the
-     water column it stands in, and approaches the room there is without ever
-     passing it — so the bed keeps its ridges and its relief, and what stands
-     above the water is the land of the earth and nothing else. */
-  const room=Math.max(0,base-SB_MIN);
-  const rise=room>0.001 ? room*(1-Math.exp(-peak/room)) : 0;
-  let y=SEA_SURF-(base-rise);
-  /* ONE sea, one bed: near the coasts the floor rises to meet the shelf at
-     the land's foot (the same shoal field the surface water reads), so a
-     swimmer can go down a coastal flank and keep going — sand at the
-     strand, sloping away seamlessly into the kelp and coral basins */
-  const s=shoalAt(x,z);
-  if(s>0.02){ const t=Math.min(1,s/0.75), tt=t*t*(3-2*t);
-    y=y*(1-tt)+(SUBSEA_Y+0.4)*tt;
-    y=Math.min(y,SEA_SURF-6); }      /* no ridge breaches the surface where a coast is near */
+  let y=SEA_SURF-seabedMetres(x,z)*U_PER_M;
+  if(shoalAt(x,z)>0.02) y=Math.min(y,SEA_SURF-6);   /* nothing breaches the water where a coast is near */
   return y; }
+/* ---- WHERE A BEAST MAY LIE ----
+   Every swimming thing was anchored to the BED — three units off the sand,
+   thirty off it, whatever its bulk asked. That was well while the bed was
+   ninety metres down; with the true ocean beneath it, it puts dolphins on the
+   abyssal plain and reef fish in the hadal dark. A beast is anchored now to
+   the higher of the bed and its own deepest haunt, so the sunlit water keeps
+   its own and the trenches are left to the things that belong in them. */
+function haunt(x,z,maxM){ return Math.max(seabedDepth(x,z), SEA_SURF-maxM*U_PER_M); }
+const H_REEF=90, H_FISH=220, H_DOLPHIN=180, H_SHARK=280, H_SQUID=650, H_JELLY=700, H_WHALE=320;
 /* ================= THE BED OF THE SEA IS BLOCKS =================
    It was a SMOOTH SHEET — a plane pushed up and down by the depth field and
    given averaged normals — while every other thing in the world is lego. So
@@ -2837,20 +3014,22 @@ function updateSeaFloor(px,pz,force){
          Near a coast the chunk mesher lays its own blocky shelf on exactly
          this ground, from exactly this depth field, and two meshes at one
          height tear at each other. So this bed gives that ground up — but
-         ONLY where the shelf truly stands: the chunks lay nothing below the
-         shelf's own footing, and a cover test that ignored that opened the
-         whole floor out from under a diver over any deep water near a coast. */
-      J.cov[c]=(shoalAt(wx,wz)>SHELF_SHOAL&&J.h[c]>SUBSEA_Y+0.4)?1:0;
-      const depth=SEA_SURF-J.h[c];
+         ONLY where the shelf truly stands, or the floor opens out from under
+         a diver over any deep water near a coast. The two read one test. */
+      J.cov[c]=chunkShelfHere(wx,wz,J.h[c])?1:0;
+      /* the depth of this block, in METRES — a block is a metre in the
+         measure a man swims and dives by, and the sea now has its true
+         soundings, so every band below is the real one */
+      const dm=(SEA_SURF-J.h[c])/U_PER_M;
       const n1=fbm(wx*0.03+3,wz*0.03+7), n2=fbm(wx*0.011-5,wz*0.011+2);
       let kind=0;
-      if(depth>300) kind=3;                       /* the dark rock of the deeps */
+      if(dm>1000) kind=3;                         /* below the last light — the dark rock of the deeps */
       else if(n2>0.62) kind=2;                    /* clay beds */
       else if(n2<0.36) kind=1;                    /* gravel */
       else if(n2>0.545) kind=6;                   /* shell sand */
-      if(depth>150&&depth<=300&&n1>0.58) kind=5;  /* prismarine on the slopes */
-      if(n1>0.74&&depth<130) kind=4;              /* weeded ground in the shallows */
-      if(depth<60&&n1<0.30) kind=7;               /* coral rubble on the reef flats */
+      if(dm>200&&dm<=1000&&n1>0.58) kind=5;       /* prismarine down the slopes */
+      if(n1>0.74&&dm<25) kind=4;                  /* weeded ground in the shallows */
+      if(dm<12&&n1<0.30) kind=7;                  /* coral rubble on the reef flats */
       J.k[c]=kind;
     }
     if(!whole&&performance.now()-t0>=SB_MS) return;
@@ -2886,7 +3065,9 @@ function updateSeaFloor(px,pz,force){
       for(let q=0;q<4;q++){
         _sbU[(o+q)*2]=uu[q];     _sbU[(o+q)*2+1]=vv[q];
         _sbU[(o+4+q)*2]=uu[q];   _sbU[(o+4+q)*2+1]=vv[q]; }
-      const depth=SEA_SURF-y, lit=0.34+0.62*Math.max(0,1-depth/430);
+      /* the light does not reach the trenches, and it fails on its TRUE
+         measure: all but spent by 200 m, wholly gone by 1,000 */
+      const dm2=(SEA_SURF-y)/U_PER_M, lit=0.34+0.62*Math.max(0,1-dm2/900);
       const jr=0.94+0.12*hash2(i*1.7+j*0.3,j*2.1-i*0.7);
       /* THE WATER LENDS ITS OWN COLOUR to everything beneath it — but by
          MIXING toward the blue of the sea, not by pulling the red channel
@@ -2925,9 +3106,11 @@ const KELP=[], KELP_N=90, KELP_R=330;
 function initKelp(){ if(KELP.length) return; for(let k=0;k<KELP_N;k++){ const m=makeKelp(); m.visible=false; scene.add(m);
   KELP.push({m,x:0,z:0,fy:0,h:0,ph:Math.random()*6.28,set:false}); } }
 function placeKelp(k,px,pz){ for(let tr=0;tr<6;tr++){ const a=Math.random()*6.28, r=60+Math.random()*(KELP_R-60);
-    const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r, fy=seabedDepth(x,z);
-    if(SEA_SURF-fy>34 && fbm(x*0.012+50,z*0.012-20)>0.5){ k.x=x; k.z=z; k.fy=fy;
-      k.h=Math.min(SEA_SURF-fy-6,40+Math.random()*90); k.set=true;
+    const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r, fy=seabedDepth(x,z), d=(SEA_SURF-fy)/U_PER_M;
+    /* kelp is rooted in the sunlit water and grows to some forty-five metres
+       — it has no business standing on the abyssal plain */
+    if(d>6 && d<50 && fbm(x*0.012+50,z*0.012-20)>0.5){ k.x=x; k.z=z; k.fy=fy;
+      k.h=Math.min(SEA_SURF-fy-6,(14+Math.random()*31)*U_PER_M); k.set=true;
       k.m.position.set(x,fy,z); k.m.scale.set(0.7+Math.random()*0.6,k.h/35,0.7+Math.random()*0.6); k.m.visible=true; return; } }
   k.set=false; k.m.visible=false; }
 function updateKelp(px,pz,t){ initKelp(); for(const k of KELP){
@@ -2958,7 +3141,7 @@ const CORAL=[], CORAL_N=34, CORAL_R=330;
 function initCoral(){ if(CORAL.length) return; for(let k=0;k<CORAL_N;k++){ const m=makeCoral(); m.visible=false; scene.add(m); CORAL.push({m,x:0,z:0,set:false}); } }
 function updateCoral(px,pz){ initCoral(); for(const r of CORAL){ if(r.set&&Math.hypot(r.x-px,r.z-pz)<=CORAL_R+90) continue;
     for(let tr=0;tr<7;tr++){ const a=Math.random()*6.28, rr=50+Math.random()*CORAL_R, x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
-      if(d>10 && d<150 && fbm(x*0.01-9,z*0.01+4)>0.44){ r.x=x; r.z=z; r.set=true; r.m.position.set(x,seabedDepth(x,z),z); r.m.rotation.y=Math.random()*6.28; r.m.visible=true; break; }
+      if(d>10 && d<45*U_PER_M && fbm(x*0.01-9,z*0.01+4)>0.44){   /* reefs live in the light — 45 m and no deeper */ r.x=x; r.z=z; r.set=true; r.m.position.set(x,seabedDepth(x,z),z); r.m.rotation.y=Math.random()*6.28; r.m.visible=true; break; }
       if(tr===6){ r.set=false; r.m.visible=false; } } } }
 /* ---- seagrass — short tufts carpeting the shallow floor ---- */
 const seagrassMat=new THREE.MeshLambertMaterial({map:TEX.seagrass,side:THREE.DoubleSide});
@@ -2969,7 +3152,7 @@ const GRASS=[], GRASS_N=200, GRASS_R=300;
 function initGrass(){ if(GRASS.length) return; for(let k=0;k<GRASS_N;k++){ const m=makeSeagrass(); m.visible=false; scene.add(m); GRASS.push({m,x:0,z:0,ph:Math.random()*6.28,set:false}); } }
 function updateGrass(px,pz,t){ initGrass(); for(const r of GRASS){ if(!r.set||Math.hypot(r.x-px,r.z-pz)>GRASS_R+70){
       for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28, rr=30+Math.random()*GRASS_R, x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
-        if(d>6 && d<170){ r.x=x; r.z=z; r.set=true; r.m.position.set(x,seabedDepth(x,z),z); r.m.visible=true; break; } if(tr===4){ r.set=false; r.m.visible=false; } } }
+        if(d>6 && d<30*U_PER_M){ r.x=x; r.z=z; r.set=true; r.m.position.set(x,seabedDepth(x,z),z); r.m.visible=true; break; } if(tr===4){ r.set=false; r.m.visible=false; } } }
     if(r.set) r.m.rotation.z=Math.sin(t*1.3+r.ph)*0.14; } }
 /* ---- god-rays — shafts of light slanting down from the surface ---- */
 const RAYS=[], RAY_N=9;
@@ -3005,9 +3188,9 @@ function initDiveFish(){ if(DIVEFISH.length) return; for(let k=0;k<DF_N;k++){ co
   DIVEFISH.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,spd:9+Math.random()*11,ph:Math.random()*6.28,set:false}); } }
 function updateDiveFish(px,py,pz,dt,t){ initDiveFish(); for(const f of DIVEFISH){
     if(!f.set||Math.hypot(f.x-px,f.z-pz)>DF_R+70){ const a=Math.random()*6.28, r=40+Math.random()*DF_R; f.x=px+Math.cos(a)*r; f.z=pz+Math.sin(a)*r;
-      const fy=seabedDepth(f.x,f.z); f.y=Math.min(SEA_SURF-8,fy+12+Math.random()*Math.max(6,SEA_SURF-fy-16)); f.dir=Math.random()*6.28; f.set=true; f.m.visible=true; }
+      const fy=haunt(f.x,f.z,H_FISH); f.y=Math.min(SEA_SURF-8,fy+12+Math.random()*Math.max(6,SEA_SURF-fy-16)); f.dir=Math.random()*6.28; f.set=true; f.m.visible=true; }
     f.dir+=Math.sin(t*0.5+f.ph)*0.04; f.x+=Math.cos(f.dir)*f.spd*dt; f.z+=Math.sin(f.dir)*f.spd*dt; f.y+=Math.sin(t*0.8+f.ph)*3*dt;
-    const fy=seabedDepth(f.x,f.z), col=SEA_SURF-fy;
+    const fy=haunt(f.x,f.z,H_FISH), col=SEA_SURF-fy;
     f.y=Math.min(SEA_SURF-6,Math.max(fy+Math.min(4,col-7),f.y));   /* the surface always wins — never above the waves */
     f.m.position.set(f.x,f.y,f.z); f.m.rotation.y=Math.atan2(Math.cos(f.dir),Math.sin(f.dir)); f.m.rotation.z=Math.sin(t*3+f.ph)*0.16; } }
 const SQUIDS=[];
@@ -3015,9 +3198,9 @@ function initSquid(){ if(SQUIDS.length) return; for(let k=0;k<3;k++){ const m=ma
   SQUIDS.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false}); } }
 function updateSquid(px,py,pz,dt,t){ initSquid(); for(const q of SQUIDS){
     if(!q.set||Math.hypot(q.x-px,q.z-pz)>DF_R+140){ const a=Math.random()*6.28, r=90+Math.random()*DF_R; q.x=px+Math.cos(a)*r; q.z=pz+Math.sin(a)*r;
-      const fy=seabedDepth(q.x,q.z); q.y=fy+22+Math.random()*40; q.dir=Math.random()*6.28; q.set=true; q.m.visible=true; }
+      const fy=haunt(q.x,q.z,H_SQUID); q.y=fy+22+Math.random()*40; q.dir=Math.random()*6.28; q.set=true; q.m.visible=true; }
     q.x+=Math.cos(q.dir)*6*dt; q.z+=Math.sin(q.dir)*6*dt; const pulse=0.5+0.5*Math.sin(t*3+q.ph); q.y+=(pulse-0.4)*8*dt;
-    const fy=seabedDepth(q.x,q.z), col=SEA_SURF-fy;
+    const fy=haunt(q.x,q.z,H_SQUID), col=SEA_SURF-fy;
     q.y=Math.min(SEA_SURF-10,Math.max(fy+Math.min(8,col-11),q.y));
     q.m.position.set(q.x,q.y,q.z); q.m.rotation.y=q.dir+Math.PI/2;
     q.m.userData.tents.forEach((tb,i)=>{ tb.rotation.x=Math.sin(t*3+i)*0.3-pulse*0.25; }); } }
@@ -3032,7 +3215,7 @@ function updateDolphins(px,py,pz,dt,t){ initDolphins();
   let escN=0;
   for(const d of DOLPHINS){ if(!d.set||Math.hypot(d.x-px,d.z-pz)>DOL_R+150){
       const a=Math.random()*6.28, r=80+Math.random()*260; d.x=px+Math.cos(a)*r; d.z=pz+Math.sin(a)*r;
-      const fy=seabedDepth(d.x,d.z); d.y=Math.min(SEA_SURF-6,fy+30+Math.random()*40); d.dir=Math.random()*6.28; d.set=true; d.m.visible=true; }
+      const fy=haunt(d.x,d.z,H_DOLPHIN); d.y=Math.min(SEA_SURF-6,fy+30+Math.random()*40); d.dir=Math.random()*6.28; d.set=true; d.m.visible=true; }
     let sp=18;
     const escort=sailing&&escN<2&&Math.hypot(d.x-state.boat.x,d.z-state.boat.z)<420;
     if(escort){ const side=(escN===0)?1:-1; escN++;
@@ -3045,7 +3228,7 @@ function updateDolphins(px,py,pz,dt,t){ initDolphins();
       sp=Math.min(52,Math.abs(state.boat.speed)+14);
     } else d.dir+=Math.sin(t*0.4+d.ph)*0.05;
     d.x+=Math.cos(d.dir)*sp*dt; d.z+=Math.sin(d.dir)*sp*dt;
-    const arc=Math.sin(t*(escort?1.4:0.9)+d.ph); d.y+=arc*(escort?16:10)*dt; const fy=seabedDepth(d.x,d.z), col=SEA_SURF-fy;
+    const arc=Math.sin(t*(escort?1.4:0.9)+d.ph); d.y+=arc*(escort?16:10)*dt; const fy=haunt(d.x,d.z,H_DOLPHIN), col=SEA_SURF-fy;
     d.y=Math.min(SEA_SURF-4,Math.max(fy+Math.min(8,col-5),d.y));
     d.m.position.set(d.x,d.y,d.z); d.m.rotation.y=Math.atan2(Math.cos(d.dir),Math.sin(d.dir)); d.m.rotation.x=-arc*0.4; } }
 /* ---- SHARKS — honest minecraft sharks, no mere grey shapes: countershaded
@@ -3063,7 +3246,7 @@ function initSharks(){ if(SHARKS.length) return; for(let k=0;k<SHK_N;k++){ const
 function updateSharks(px,py,pz,dt,t){ initSharks();
   for(const s of SHARKS){ if(!s.set||Math.hypot(s.x-px,s.z-pz)>SHK_R+180){
       const a=Math.random()*6.28, r=180+Math.random()*320; s.x=px+Math.cos(a)*r; s.z=pz+Math.sin(a)*r;
-      const fy=seabedDepth(s.x,s.z); s.y=fy+18+Math.random()*45; s.dir=Math.random()*6.28; s.set=true; s.m.visible=true; }
+      const fy=haunt(s.x,s.z,H_SHARK); s.y=fy+18+Math.random()*45; s.dir=Math.random()*6.28; s.set=true; s.m.visible=true; }
     s.cool=(s.cool||0)-dt;
     /* THE HUNT — the wolf logic of the land, loosed in the water. A diver
        within scent is run down and bitten: the shark tears fish from the
@@ -3106,28 +3289,28 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
     if(!hunting) s.y+=Math.sin(t*0.5+s.ph)*3*dt;
     /* a hunting shark hugs the bed after a bottom-hugging diver — and rises
        right under the swell to strike a swimmer at the surface */
-    const fy=seabedDepth(s.x,s.z), col=SEA_SURF-fy;
+    const fy=haunt(s.x,s.z,H_SHARK), col=SEA_SURF-fy;
     s.y=Math.min(hunting?SEA_SURF-3:SEA_SURF-8,Math.max(fy+(hunting?3.5:Math.min(10,col-9)),s.y));
     s.m.position.set(s.x,s.y,s.z); s.m.rotation.y=Math.atan2(Math.cos(s.dir),Math.sin(s.dir));
     s.m.userData.tail.rotation.y=Math.sin(t*(hunting?7:4)+s.ph)*(hunting?0.45:0.3); } }
 /* ---- turtles, rays, whales, pufferfish, jellyfish, crabs ---- */
 /* a generic wandering sea-mob pool (turtle/ray/whale/puffer) */
-function mkSeaMob(kind,n,R,rSpawn,near){ const arr=[];
+function mkSeaMob(kind,n,R,rSpawn,near,deepM){ const arr=[];
   for(let k=0;k<n;k++){ const m=makeBeast(kind); m.visible=false; scene.add(m); arr.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false,sp:near?7:12}); }
   /* EVERY BEAST NEEDS ROOM FOR ITS OWN BULK. A whale grown to sixteen metres
      stands three units off the bed at the old clearance and ploughs the sand
      with her belly. The clearance a beast keeps is read off its own length. */
-  arr._R=R; arr._rs=rSpawn; arr._near=near; arr._len=beastUnits(kind); return arr; }
+  arr._R=R; arr._rs=rSpawn; arr._near=near; arr._len=beastUnits(kind); arr._deep=deepM||H_REEF; return arr; }
 function updateSeaMob(arr,px,py,pz,dt,t){ for(const o of arr){
     if(!o.set||Math.hypot(o.x-px,o.z-pz)>arr._R+140){ const a=Math.random()*6.28, r=arr._rs*0.3+Math.random()*arr._rs*0.7;
-      o.x=px+Math.cos(a)*r; o.z=pz+Math.sin(a)*r; const fy=seabedDepth(o.x,o.z);
+      o.x=px+Math.cos(a)*r; o.z=pz+Math.sin(a)*r; const fy=haunt(o.x,o.z,arr._deep||H_REEF);
       const clr=Math.max(4,(arr._len||24)*0.35);   /* she swims a third of her own length clear */
       o.y = arr._near ? fy+clr+Math.random()*14 : Math.min(SEA_SURF-clr,fy+clr+Math.random()*60); o.dir=Math.random()*6.28; o.set=true; o.m.visible=true; }
     o.dir+=Math.sin(t*0.3+o.ph)*0.03;
     { const nx=o.x+Math.cos(o.dir)*o.sp*dt, nz=o.z+Math.sin(o.dir)*o.sp*dt;
       if(!landAtWorld(nx,nz)){ o.x=nx; o.z=nz; } else o.dir+=1.7; }   /* the flank turns the beast */
     o.y+=Math.sin(t*0.6+o.ph)*2*dt;
-    const fy=seabedDepth(o.x,o.z), col=SEA_SURF-fy;
+    const fy=haunt(o.x,o.z,arr._deep||H_REEF), col=SEA_SURF-fy;
     { const clr=Math.max(3,(arr._len||24)*0.30);
       o.y=Math.min(SEA_SURF-clr*0.5,Math.max(fy+clr,o.y)); }
     o.m.position.set(o.x,o.y,o.z); o.m.rotation.y=Math.atan2(Math.cos(o.dir),Math.sin(o.dir));
@@ -3135,21 +3318,64 @@ function updateSeaMob(arr,px,py,pz,dt,t){ for(const o of arr){
     if(o.m.userData.wingL){ o.m.userData.wingL.rotation.z=Math.sin(t*1.6+o.ph)*0.4; o.m.userData.wingR.rotation.z=-Math.sin(t*1.6+o.ph)*0.4; } } }
 let TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS;
 function initSeaMobs(){ if(TURTLES) return;
-  TURTLES=mkSeaMob('turtle',4,360,340,true);
-  RAYS_M=mkSeaMob('ray',3,460,440,true);
-  WHALES=mkSeaMob('whale',1,700,650,false);
-  PUFFERS=mkSeaMob('puffer',6,240,220,true);
+  /* the last number is how deep each keeps, in metres: a turtle on the reef,
+     a whale sounding to three hundred, a pufferfish never off the shallows */
+  TURTLES=mkSeaMob('turtle',4,360,340,true,120);
+  RAYS_M=mkSeaMob('ray',3,460,440,true,200);
+  WHALES=mkSeaMob('whale',1,700,650,false,H_WHALE);
+  PUFFERS=mkSeaMob('puffer',6,240,220,true,60);
   JELLIES=[]; for(let k=0;k<12;k++){ const m=makeBeast('jelly'); m.visible=false; scene.add(m); JELLIES.push({m,x:0,z:0,y:0,ph:Math.random()*6.28,set:false}); }
   CRABS=[]; for(let k=0;k<14;k++){ const m=makeBeast('crab'); m.visible=false; scene.add(m); CRABS.push({m,x:0,z:0,ph:Math.random()*6.28,set:false}); } }
 function updateSeaMobs(px,py,pz,dt,t){ initSeaMobs();
   updateSeaMob(TURTLES,px,py,pz,dt,t); updateSeaMob(RAYS_M,px,py,pz,dt,t); updateSeaMob(WHALES,px,py,pz,dt,t); updateSeaMob(PUFFERS,px,py,pz,dt,t);
-  for(const j of JELLIES){ if(!j.set||Math.hypot(j.x-px,j.z-pz)>360){ const a=Math.random()*6.28,r=40+Math.random()*320; j.x=px+Math.cos(a)*r; j.z=pz+Math.sin(a)*r; const fy=seabedDepth(j.x,j.z); j.y=fy+30+Math.random()*80; j.set=true; j.m.visible=true; }
-    const pulse=0.5+0.5*Math.sin(t*1.4+j.ph); j.y+=(pulse-0.45)*10*dt; const fy=seabedDepth(j.x,j.z), col=SEA_SURF-fy;
+  for(const j of JELLIES){ if(!j.set||Math.hypot(j.x-px,j.z-pz)>360){ const a=Math.random()*6.28,r=40+Math.random()*320; j.x=px+Math.cos(a)*r; j.z=pz+Math.sin(a)*r; const fy=haunt(j.x,j.z,H_JELLY); j.y=fy+30+Math.random()*80; j.set=true; j.m.visible=true; }
+    const pulse=0.5+0.5*Math.sin(t*1.4+j.ph); j.y+=(pulse-0.45)*10*dt; const fy=haunt(j.x,j.z,H_JELLY), col=SEA_SURF-fy;
     j.y=Math.min(SEA_SURF-6,Math.max(fy+Math.min(10,col-7),j.y));
     j.m.position.set(j.x,j.y,j.z); j.m.scale.y=0.8+pulse*0.4; j.m.userData.tents.forEach((te,i)=>{ te.rotation.x=Math.sin(t*2+i)*0.2; }); }
   for(const c of CRABS){ if(!c.set||Math.hypot(c.x-px,c.z-pz)>300){ for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28,r=30+Math.random()*300, x=px+Math.cos(a)*r,z=pz+Math.sin(a)*r, d=SEA_SURF-seabedDepth(x,z);
-        if(d>6&&d<170){ c.x=x; c.z=z; c.set=true; c.m.position.set(x,seabedDepth(x,z)+0.6,z); c.m.rotation.y=Math.random()*6.28; c.m.visible=true; break; } if(tr===4){c.set=false;c.m.visible=false;} } }
+        if(d>6&&d<H_REEF*U_PER_M){ c.x=x; c.z=z; c.set=true; c.m.position.set(x,seabedDepth(x,z)+0.6,z); c.m.rotation.y=Math.random()*6.28; c.m.visible=true; break; } if(tr===4){c.set=false;c.m.visible=false;} } }
     if(c.set) c.m.position.x=c.x+Math.sin(t*2+c.ph)*0.6; } }
+/* ---- THE LAMPS OF THE DARK ----
+   Below a thousand metres the sun is wholly spent, and until now the deep
+   bottomed out before it ever got there. It does not any more: there are
+   kilometres of black water under every keel, and a black room with a floor
+   in it is not the deep — the deep is a black room with LIGHTS in it. The
+   anglerfish hangs there with her lamp lit over her teeth, and she is the
+   only thing to see. She is never met in the sunlit water. */
+const ANGLERS=[], ANG_N=6, ANG_R=130, ANG_MIN_M=800;
+function initAnglers(){ if(ANGLERS.length) return;
+  for(let k=0;k<ANG_N;k++){ const m=makeBeast('anglerfish'); m.visible=false; scene.add(m);
+    /* the bloom of the esca, so the lamp is seen before the fish is */
+    const gs=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexCv,color:0x9ff6e2,
+      transparent:true,opacity:0.55,depthWrite:false,fog:true}));
+    gs.scale.set(16,16,1); scene.add(gs); gs.visible=false;
+    ANGLERS.push({m,gs,x:0,y:0,z:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false}); } }
+function updateAnglers(px,py,pz,dt,t){ initAnglers();
+  const deepEnough=(SEA_SURF-py)/U_PER_M>ANG_MIN_M;
+  for(const a of ANGLERS){
+    if(!deepEnough){ if(a.set){ a.set=false; a.m.visible=false; a.gs.visible=false; } continue; }
+    if(!a.set||Math.hypot(a.x-px,a.z-pz)>ANG_R+120){
+      const ang=Math.random()*6.28, r=34+Math.random()*ANG_R;
+      a.x=px+Math.cos(ang)*r; a.z=pz+Math.sin(ang)*r;
+      const fy=seabedDepth(a.x,a.z);
+      a.y=Math.max(fy+10, Math.min(py+(Math.random()-0.5)*180, SEA_SURF-ANG_MIN_M*U_PER_M));
+      a.dir=Math.random()*6.28; a.set=true; a.m.visible=true; a.gs.visible=true; }
+    /* she does not chase: she hangs almost still and waits, and the lamp
+       breathes. That is the whole of her hunting. */
+    a.dir+=Math.sin(t*0.21+a.ph)*0.02;
+    a.x+=Math.cos(a.dir)*2.2*dt; a.z+=Math.sin(a.dir)*2.2*dt;
+    a.y+=Math.sin(t*0.5+a.ph)*1.6*dt;
+    const fy=seabedDepth(a.x,a.z);
+    a.y=Math.min(SEA_SURF-ANG_MIN_M*U_PER_M,Math.max(fy+7,a.y));
+    a.m.position.set(a.x,a.y,a.z); a.m.rotation.y=Math.atan2(Math.cos(a.dir),Math.sin(a.dir));
+    const pulse=0.55+0.45*Math.sin(t*1.3+a.ph);
+    const u=a.m.userData;
+    if(u.rod) u.rod.rotation.x=Math.sin(t*0.7+a.ph)*0.16;
+    if(u.lure) u.lure.material.color.setRGB(0.42*pulse+0.2,0.96*pulse,0.86*pulse+0.1);
+    /* the bloom rides on the lure itself, wherever the rod has swung it */
+    if(u.lure){ u.lure.getWorldPosition(_wv); a.gs.position.copy(_wv);
+      a.gs.material.opacity=0.30+0.34*pulse; } } }
+function hideAnglers(){ for(const a of ANGLERS){ a.m.visible=false; a.gs.visible=false; a.set=false; } }
 function hideSeaMobs(){ if(!TURTLES) return; for(const arr of [TURTLES,RAYS_M,WHALES,PUFFERS]) for(const o of arr) o.m.visible=false;
   for(const j of JELLIES)j.m.visible=false; for(const c of CRABS)c.m.visible=false; }
 const BUB=[], BUB_N=26;
@@ -3192,7 +3418,11 @@ function updateWreck(px,pz){ initWrecks();
   const CS=900, ci=Math.round(px/CS), cj=Math.round(pz/CS), sites=[];
   for(let di=-2;di<=2;di++)for(let dj=-2;dj<=2;dj++){ const gi=ci+di,gj=cj+dj;
     if(hash2(gi*1.7,gj*3.1)>0.74){ const wx=gi*CS+(hash2(gi,gj)-0.5)*300, wz=gj*CS+(hash2(gj,gi)-0.5)*300, fy=seabedDepth(wx,wz);
-      if(SEA_SURF-fy>36){ sites.push({wx,wz,fy,gi,gj,d:Math.hypot(wx-px,wz-pz)}); } } }
+      /* ships founder on the shelf and the upper slope, where ships go — a
+         wreck laid on the abyssal plain is four kilometres of black water
+         away from anyone who might find it */
+      const wd=(SEA_SURF-fy)/U_PER_M;
+      if(wd>6&&wd<400){ sites.push({wx,wz,fy,gi,gj,d:Math.hypot(wx-px,wz-pz)}); } } }
   sites.sort((a,b)=>a.d-b.d);
   for(let k=0;k<WRECKS.length;k++){ const s=sites[k];
     if(s&&s.d<SB_SIZE*0.55){ WRECKS[k].position.set(s.wx,s.fy,s.wz); WRECKS[k].rotation.y=hash2(s.gi,s.gj)*6.28; WRECKS[k].visible=true;
@@ -3243,12 +3473,12 @@ function nearestPearl(){ if(state.mode!=='dive') return null;
   for(const P of PEARLS){ if(!P.key||!P.m.visible) continue;
     if(Math.hypot(P.x-dv.x,P.z-dv.z)<9&&Math.abs(P.y-dv.y)<13) return P; }
   return null; }
-function initDeep(){ initKelp(); initCoral(); initGrass(); initRays(); initDiveFish(); initSquid(); initDolphins(); initSharks(); initSeaMobs(); initBub(); initWrecks(); initPearls(); }
+function initDeep(){ initKelp(); initCoral(); initGrass(); initRays(); initDiveFish(); initSquid(); initDolphins(); initSharks(); initSeaMobs(); initAnglers(); initBub(); initWrecks(); initPearls(); }
 function hideDeep(){ seaFloor.visible=false;
   for(const k of KELP)k.m.visible=false; for(const r of CORAL)r.m.visible=false; for(const r of GRASS)r.m.visible=false;
   for(const r of RAYS)r.m.visible=false; for(const f of DIVEFISH)f.m.visible=false; for(const q of SQUIDS)q.m.visible=false;
   for(const d of DOLPHINS)d.m.visible=false; for(const s of SHARKS)s.m.visible=false; hideSeaMobs();
-  for(const b of BUB)b.s.visible=false; for(const w of WRECKS)w.visible=false; hidePearls(); deepShown=false; }
+  for(const b of BUB)b.s.visible=false; for(const w of WRECKS)w.visible=false; hidePearls(); hideAnglers(); deepShown=false; }
 /* ---- IS THE EYE BENEATH THE WAVES, AND HOW FAR? ----
    ONE SEA, not two. Whatever puts the eye under the water puts it in the SAME
    sea the diver swims: the bed, the kelp and the fish are all standing there
@@ -3287,7 +3517,7 @@ function updateDeep(px,py,pz,dt,murk,full){ const t=performance.now()*0.001;
   seaFloor.visible=true; updateSeaFloor(px,pz);   /* updateSeaFloor anchors the mesh itself */
   updateKelp(px,pz,t); updateCoral(px,pz); updateGrass(px,pz,t); updateRays(px,py,pz,murk||0);
   updateDiveFish(px,py,pz,dt,t); updateSquid(px,py,pz,dt,t); updateDolphins(px,py,pz,dt,t); updateSharks(px,py,pz,dt,t);
-  updateSeaMobs(px,py,pz,dt,t); updateBubbles(px,py,pz,dt);
+  updateSeaMobs(px,py,pz,dt,t); updateAnglers(px,py,pz,dt,t); updateBubbles(px,py,pz,dt);
   if(full){ updateWreck(px,pz); updatePearls(px,pz); }
   else { for(const w of WRECKS)w.visible=false; hidePearls(); }
   deepShown=true; }
@@ -3329,8 +3559,18 @@ function diveTick(dt){ const dv=state.dive;
   if(landAtWorld(dv.x,dv.z)){
     dv.x-=Math.sin(dv.heading)*dv.sp*dt; dv.z-=Math.cos(dv.heading)*dv.sp*dt; dv.sp*=0.2; }
   let up=flyPad; if(keys.Space) up+=1; if(keys.ShiftLeft||keys.ShiftRight||keys.ControlLeft||keys.ControlRight) up-=1; up=Math.max(-1,Math.min(1,up));
-  if(up!==0){ dv.vy+=up*DIVE_VACC*dt; dv.vy=Math.max(-DIVE_VMAX,Math.min(DIVE_VMAX,dv.vy)); }
-  else dv.vy+=(3.4-dv.vy)*Math.min(1,dt*0.8);   /* true buoyancy — a still body drifts up */
+  /* ---- THE SOUNDING QUICKENS WITH THE DEPTH ----
+     The sea is eleven kilometres deep at the Challenger Deep now, and at a
+     swimmer's twenty metres a second that is a nine-minute fall in the dark
+     each way. So the descent gathers as it goes, as a weighted sounding does:
+     slow and swimmable in the sunlit water where everything is to be seen,
+     and running fast by the time the light has gone. */
+  const dvDeep=Math.max(0,(SEA_SURF-dv.y)/U_PER_M);            /* how deep he is, in metres */
+  const vmax=Math.min(DIVE_VMAX*13, DIVE_VMAX*(1+dvDeep/620));
+  const vacc=Math.min(DIVE_VACC*13, DIVE_VACC*(1+dvDeep/620));
+  if(up!==0){ dv.vy+=up*vacc*dt; dv.vy=Math.max(-vmax,Math.min(vmax,dv.vy)); }
+  else { dv.vy+=(3.4-dv.vy)*Math.min(1,dt*0.8);   /* true buoyancy — a still body drifts up */
+    dv.vy=Math.max(-vmax,Math.min(vmax,dv.vy)); }
   dv.y+=dv.vy*dt;
   let floor=seabedDepth(dv.x,dv.z)+3;
   /* where an undersea mountain breaches the waves, its stone is a WALL, not a
@@ -5786,15 +6026,65 @@ function walkTick(dt){
    the rest of the earth the change is nothing — at half the world's radius
    the ceiling moves by two per cent. */
 const R_DOME=R_WORLD*0.9962, H_DOME=130000, FLY_TURN=1.9, FLY_MAXSP=520, FLY_VACC=1150, FLY_VMAX=4800;
-let flyHintShown=false, flyPad=0, seenFirmament=false, flyDome=null, outerDeep=null;
+let flyHintShown=false, flyPad=0, seenFirmament=false, flyDome=null, outerDeep=null, _domeRimF=0;
 function flyFloorAt(x,z){ return groundInfo(x,z).y+7; }
+/* ---- THE HEM OF THE TENT ----
+   A tent is PEGGED at its edge. The bare sphere came down to 1,063 blocks
+   over the rim and stopped there, which was near enough to reach while the
+   ice crown tilted up 1,020 blocks to meet it — but the crown is a level
+   plain at 610 now, and a man standing on it would have had two thousand
+   feet of empty air between his hand and the glass.
+   So the vault keeps its whole shape over the world (at half the earth's
+   radius the ceiling moves not at all) and then SWEEPS DOWN over the last
+   five hundredths of it, closing onto the ice a few hundred units above the
+   crown. Walk out across the flat of the ice and the firmament comes down
+   out of the sky in front of you and meets the ground at the world's edge:
+   the whole earth shut inside it, plain to the eye. */
+const DOME_HEM_R=0.955;                        /* where the vault begins to come down */
+const DOME_HEM_Y=WALL_TOP*B+320;               /* how high the glass stands over the crown at the rim */
+function domeTentR(r){ const rr=r*R_WORLD/R_DOME; return H_DOME*Math.sqrt(Math.max(0,1-rr*rr)); }
+const DOME_HEM_TOP=domeTentR(DOME_HEM_R);
+/* the height of the firmament above a point on the disc, by the fraction of
+   the world's radius it stands at */
+function domeCeilR(r){
+  if(r<=DOME_HEM_R) return domeTentR(r);
+  if(r>=1) return 0;
+  if(r<=0.995){ const t=(r-DOME_HEM_R)/(0.995-DOME_HEM_R), e=t*t*(3-2*t);
+    return DOME_HEM_TOP+(DOME_HEM_Y-DOME_HEM_TOP)*e; }
+  const t=(r-0.995)/0.005, e=t*t*(3-2*t);      /* past the last of the ice it is pegged down */
+  return DOME_HEM_Y*(1-e);
+}
 /* height of the firmament (the hard vault) directly above a point on the disc */
-function domeCeilAt(x,z){ return H_DOME*Math.sqrt(Math.max(0,1-(x*x+z*z)/(R_DOME*R_DOME))); }
+function domeCeilAt(x,z){ return domeCeilR(Math.hypot(x,z)/R_WORLD); }
 function ensureFlyDome(){ if(flyDome) return;
-  flyDome=new THREE.Mesh(new THREE.SphereGeometry(R_DOME,64,32,0,Math.PI*2,0,Math.PI*0.5),
-    new THREE.MeshBasicMaterial({color:0x9ec7f2,transparent:true,opacity:0,side:THREE.BackSide,fog:false,depthWrite:false}));
-  flyDome.scale.y=H_DOME/R_DOME;                     /* the tent, not the ball */
+  /* the glass is turned from the SAME profile the ceiling is measured by, so
+     what the eye sees and what the hand reaches are one thing. The points are
+     crowded toward the rim, where the whole descent happens. */
+  const pts=[], NP=180;
+  for(let i=0;i<=NP;i++){ const u=i/NP, r=1-Math.pow(1-u,2.6);
+    pts.push(new THREE.Vector2(Math.max(0.001,r*R_WORLD), domeCeilR(r))); }
+  const dgeo=new THREE.LatheGeometry(pts,128);
+  /* ---- THE LIGHT ON THE GLASS ----
+     A vault of one flat colour has no shape to it: stand under it and it is
+     a tinted lens over the whole sky, and nothing tells the eye that it is a
+     THING coming down to meet the ground. So the glass takes the light along
+     its HEM — the last of its descent, where it closes onto the ice — and
+     from the crown a man sees a bright curved wall standing at the world's
+     edge, and the earth shut inside it. */
+  { const pa=dgeo.attributes.position.array, n=pa.length/3;
+    const col=new Float32Array(n*3);
+    for(let i=0;i<n;i++){
+      const rr=Math.hypot(pa[i*3],pa[i*3+2])/R_WORLD;
+      /* the light gathers along the whole of the descent, from where the
+         vault first bends down (0.93) to where it closes on the ice */
+      const t=Math.max(0,Math.min(1,(rr-0.93)/0.062)), hem=t*t*(3-2*t);
+      const g2=1+4.5*hem;
+      col[i*3]=g2; col[i*3+1]=g2; col[i*3+2]=g2; }
+    dgeo.setAttribute('color',new THREE.BufferAttribute(col,3)); }
+  flyDome=new THREE.Mesh(dgeo,
+    new THREE.MeshBasicMaterial({color:0x9ec7f2,vertexColors:true,transparent:true,opacity:0,side:THREE.BackSide,fog:false,depthWrite:false}));
   flyDome.renderOrder=-2;
+  flyDome.frustumCulled=false;
   scene.add(flyDome);
   /* the deep beyond the vault — darkness all around, not a mere circle,
      with the waters above the expanse faint and blue over the apex */
@@ -5856,11 +6146,11 @@ function canTouchDome(){
   const rr=Math.hypot(p.x,p.z)/R_WORLD;
   const y=state.mode==='fly'?state.fly.y:(walkerG.position.y+8);
   const gap=domeCeilAt(p.x,p.z)-y;
-  /* Out upon the last of the ice the vault stands close overhead. A flyer
+  /* Out upon the crown of the ice the vault stands close overhead. A flyer
      may come against it anywhere; a man on his feet only here, where the
-     firmament has come down to the crown of the wall to meet him. */
+     firmament has come down out of the sky to meet the flat of the ice. */
   if(state.mode==='fly') return gap>=-260&&gap<DOME_REACH;
-  return rr>0.9925&&gap>=-400&&gap<3000;
+  return rr>0.985&&gap>=-400&&gap<2200;
 }
 const CINE_LINES=[
   ['\u201cHe stretches out the north over empty space, and hangs the earth upon nothing.\u201d','IYOB 26:7'],
@@ -6380,10 +6670,15 @@ function placeTick(){
         : state.fly.y>CLOUD_Y+8 ? 'ALOFT — '+km.toLocaleString()+' KM ABOVE THE CLOUDS'
         : 'RISING ON THE AIR'; }
   else if(state.mode==='dive'){                        /* in the deep — name the depth below the waves */
-    const m=Math.max(0,Math.round((SEA_SURF-state.dive.y)/6));
-    txt = state.dive.y<=seabedDepth(state.dive.x,state.dive.z)+6 ? 'THE FLOOR OF THE DEEP — '+m.toLocaleString()+' M DOWN'
-        : 'IN THE DEEP — '+m.toLocaleString()+' M DOWN'; }
-  else if(r>0.9){ txt='THE WALL OF ICE';
+    const m=Math.max(0,Math.round((SEA_SURF-state.dive.y)/U_PER_M));
+    const onFloor=state.dive.y<=seabedDepth(state.dive.x,state.dive.z)+30;
+    /* upon the floor of a NAMED trench, the trench is named */
+    let where=onFloor?'THE FLOOR OF THE DEEP':'IN THE '+seaZone(m);
+    if(onFloor){ const nd=nearestDeep(state.dive.x,state.dive.z);
+      if(nd&&nd.d<nd.deep.R*0.55) where=nd.deep.n.toUpperCase(); }
+    txt = where+' — '+m.toLocaleString()+' M DOWN'; }
+  else if(r>0.9){
+    txt = r>=ICE_UV+WALL_CLIMB*(0.995-ICE_UV) ? 'THE CROWN OF THE ICE — 2,000 FT ABOVE THE SEA' : 'THE WALL OF ICE';
     if(!seen.wall){ seen.wall=true; const vs=VERSES.find(q=>q.ref.indexOf('26:10')>=0);
       if(vs) toast(vs.t,vs.ref); } }
   else{
@@ -7090,10 +7385,19 @@ function frame(){
   { const up=!underEye;
     if(sun) sun.visible=up; if(moon) moon.visible=up;
     if(sunHalo) sunHalo.visible=sunHalo.visible&&up;
-    if(moonHalo) moonHalo.visible=moonHalo.visible&&up; }
+    if(moonHalo) moonHalo.visible=moonHalo.visible&&up;
+    /* NOR ARE THE STARS. They are drawn with the fog off, so once the sea was
+       given its true depths — kilometres of black water, and the water-light
+       at full strength — the whole night sky came up THROUGH the deep, and a
+       diver a mile down at midnight hung in a field of stars. There is no sky
+       under the water. */
+    starGroup.visible=up; }
   if(underEye&&scene.fog){
     const eyeY2=state.mode==='dive'?state.dive.y:camera.position.y;
-    const murk=Math.min(1,Math.max(0,SEA_SURF-eyeY2)/560);
+    /* THE LIGHT FAILS ON ITS TRUE MEASURE. Sunlight is spent by a thousand
+       metres — below that the sea is black whatever the hour — so the murk is
+       whole at 1,000 m and not at the ninety-odd the old bed bottomed out at. */
+    const murk=Math.min(1,Math.max(0,SEA_SURF-eyeY2)/(1000*U_PER_M));
     /* deep dark → shallow turquoise. The shallow end was a pale sky-cyan, and
        with the view now closing at three hundred units it washed the whole
        reef out to one flat wash of it. A deeper sea-green holds the blocks
@@ -7135,10 +7439,24 @@ function frame(){
   /* the firmament vault fades into view the higher he climbs, and stands solid
      near the top; beyond it THE DEEP closes around — darkness on every side,
      the waters above glowing faint over the apex, the stars seen through the glass */
+  /* AND IT IS SEEN FROM THE GROUND, out at the rim. The vault used to fade in
+     with height alone, so a man standing on the crown of the ice — with the
+     glass a few hundred units over his head — saw nothing there at all. */
+  { const pw=state.mode==='fly'?state.fly:state.mode==='walk'?state.walk
+        :state.mode==='dive'?state.dive:state.boat;
+    _domeRimF=Math.max(0,Math.min(1,(Math.hypot(pw.x,pw.z)/R_WORLD-0.928)/0.03));
+    if(_domeRimF>0.01&&!flyDome&&!state.firm) ensureFlyDome(); }
   if(flyDome&&!state.firm){
     const climbF=Math.max(0,Math.min(1,(eyeY-3000)/26000));
-    flyDome.material.opacity=climbF*0.55;
-    flyDome.material.color.copy(mix3(0x1c2946,0x53719e,0x9ec7f2,light.dayF));
+    /* from the ground it is a GLAZE, not a lid. At the strength it takes to
+       read from thirty thousand units up, the vault stood a hand's breadth
+       over the crown of the ice and painted the whole world — sky, ice and
+       all — one flat blue. Close to, it is a sheen on glass and the earth
+       shows through it. */
+    flyDome.material.opacity=Math.max(climbF*0.55,_domeRimF*0.30);
+    /* and it is never the colour of the night sky itself: a vault that goes
+       as dark as what is behind it cannot be seen at all */
+    flyDome.material.color.copy(mix3(0x2b3d61,0x5f7ca8,0x9ec7f2,light.dayF));
     if(outerDeep) outerDeep.material.uniforms.uOp.value=Math.max(0,Math.min(1,(eyeY-CLOUD_Y*2)/9000))*0.94;
     const aloftF=Math.max(0,Math.min(1,(eyeY-CLOUD_Y*3)/20000));
     if(aloftF>0) starGroup.userData.mat.opacity=Math.max(starGroup.userData.mat.opacity,aloftF*0.85);
