@@ -546,6 +546,43 @@ view from the deck — because the water's own skin was already shut.
 - The cost lands at 264,914 triangles — more than the old cap, less than the
   useless one, and every block of it visible.
 
+## 4n. Round 15 — the killer whales, the wading shelf, and the nations of fish ✅
+
+**1. A bull orca swam in the humpback pod.** He was a fourth member of the
+family, riding at her flank and blowing with her — and an orca is a hunter of
+whales; the calf she was escorting is what he came for. The killer whales run
+their **own matriline** now (an old cow, her bull, two juveniles and a calf)
+and they run it out in the **deep**, off the fishing grounds the humpbacks
+make for, on their own long hunting course. They are **rarely seen**: a pod is
+only set out where the water is a kilometre deep or more, and then only about
+one time in seven the sea is re-seeded — a voyage may cross an ocean and never
+meet one. `swimPod()` is the shared business of a family in line abreast, so
+both pods keep their own stature and their own beat.
+
+**2. There was nowhere to STAND in the water.** The shelf ran straight from
+the water's edge to the break: two metres at the first step off the sand and
+five within a dozen paces. Every coast in the world now carries a **wading
+shelf** — a broad, near-flat floor of sand a man can walk out across and a
+village can stand in (2.2 m over 240 units by default, falling as the SQUARE
+of the distance so it is flattest of all right at the water's edge) — and only
+past it does the ground begin to fall away toward the break.
+
+A beach belongs to the **country it is in**, so it is declared in that
+country's own file: Bondi and Whitehaven in `australia.js`, Copacabana in
+`brazil.js`, the shingle of Chesil in `united-kingdom.js`, Reynisfjara's black
+sand in `iceland.js` — 38 named shores across 28 lands, each with its own
+`wadeM`, `wadeR`, `roll` and `sand`, easing into the world's common shore
+across its radius so there is never a seam. Documented in `countries/README.md`.
+
+**3. One fish, in eight colours, from the Arctic to the Line.** The sea has
+its own **nations** now, each keeping to the water it belongs in by latitude,
+depth and distance from a coast: **sardine** (bait-balls of thirty, temperate),
+**mackerel** (fast loose shoals, high in the water), **salmon** (cold coasts
+north and south), **cod** (heavy and low over the cold shelf), **tuna** (warm
+open water, and the fastest thing in it). Each is its own creature file; each
+school turns and swims as one thing. Add a file, add a line to `SHOAL_KINDS`,
+and that fish is in the sea.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
