@@ -583,6 +583,32 @@ open water, and the fastest thing in it). Each is its own creature file; each
 school turns and swims as one thing. Add a file, add a line to `SHOAL_KINDS`,
 and that fish is in the sea.
 
+## 4o. Round 16 — the shoals go under, and stay under ✅
+
+The new nations of fish were **flying**: schools hanging in the air over the
+swell beside the ship. Two faults, both mine, both from the round before.
+
+- **Only the MIDDLE of a school was held under the water**, and a school is
+  not a point. A fish thirty units above the middle of it stood clean out
+  above the waves. Every fish is now held on its own account — under the
+  skin of the sea and off the ground beneath it — as well as the school by
+  its own half-height.
+- **They were set out in water that could not hold them.** A sardine asked
+  for four metres; a school thirty units tall in four metres of water is half
+  in the air by construction. Every nation now wants real water under it —
+  forty metres at the shallowest, eighty for tuna — so no shoal is ever set
+  over the wading shelf where a village paddles. The school's height is also
+  fitted to the column it stands in, never more than a third of it.
+- **And they belong to the DEEP.** They were being stirred in the surface
+  pass so they showed from a deck; they are not, now. The little bright reef
+  fish are what is seen through the clear shallows from a ship, and the
+  nations of the sea are met by going down to them.
+
+Checked the way it should have been the first time: every visible fish of
+every school, every frame, at six places from the Marianas to Iceland. The
+highest fish anywhere in the world now sits **26 units below the waterline**,
+and **no** shoal fish is visible from the deck.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

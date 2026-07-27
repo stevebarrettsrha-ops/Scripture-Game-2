@@ -3418,14 +3418,22 @@ const TROPICAL=[0xff8c2a,0xffd23a,0xff5a7a,0x3ad0ff,0x8a5cff,0xf4f4f4,0x2fd08a,0
      tight how close they hold: 1 is a wall of fish, 0 is a loose scatter
      spd   how fast they run
    Add a creature file, add a line here, and that fish is in the sea. */
+/* AND THEY BELONG TO THE DEEP. Set out in four metres of water, a school
+   thirty units tall stood half of itself in the AIR: fish hanging over the
+   swell beside the ship, which is what the shallows cost. Every nation of
+   them now wants real water under it — the shallowest asks forty metres, so
+   there is no shoal at all over the wading shelf where a village paddles. */
 const SHOAL_KINDS=[
-  {name:'sardine', n:26, lat:[-58,62],  m:[4,180],   tight:0.90, spd:17, R:220},
-  {name:'mackerel',n:16, lat:[-52,66],  m:[4,220],   tight:0.62, spd:21, R:250},
-  {name:'salmon',  n:9,  lat:[38,72],   m:[3,140],   tight:0.45, spd:19, R:240, cold:true},
-  {name:'salmon',  n:7,  lat:[-72,-38], m:[3,140],   tight:0.45, spd:19, R:240, cold:true},
-  {name:'cod',     n:6,  lat:[42,76],   m:[25,400],  tight:0.25, spd:9,  R:230, bed:true},
-  {name:'tuna',    n:4,  lat:[-42,42],  m:[10,600],  tight:0.35, spd:30, R:300},
+  {name:'sardine', n:26, lat:[-58,62],  m:[40,600],  tight:0.90, spd:17, R:220},
+  {name:'mackerel',n:16, lat:[-52,66],  m:[45,700],  tight:0.62, spd:21, R:250},
+  {name:'salmon',  n:9,  lat:[38,72],   m:[40,400],  tight:0.45, spd:19, R:240},
+  {name:'salmon',  n:7,  lat:[-72,-38], m:[40,400],  tight:0.45, spd:19, R:240},
+  {name:'cod',     n:6,  lat:[42,76],   m:[60,900],  tight:0.25, spd:9,  R:230, bed:true},
+  {name:'tuna',    n:4,  lat:[-42,42],  m:[80,2000], tight:0.35, spd:30, R:300},
 ];
+/* how far under the skin of the sea the highest fish of a school may come.
+   Nothing of a shoal is ever seen breaking the surface. */
+const SHOAL_TOP=26;
 const SHOALS=[];
 function initShoals(){ if(SHOALS.length) return;
   for(const K of SHOAL_KINDS){ const fish=[];
@@ -3451,11 +3459,17 @@ function updateShoals(px,py,pz,dt,t){ initShoals();
         const fy=seabedDepth(x,z), dm=(SEA_SURF-fy)/U_PER_M;
         if(!shoalFits(K,x,z,dm)) continue;
         S.x=x; S.z=z; S.dir=Math.random()*6.28;
-        /* a cod hangs over the ground; the rest run high in the water */
-        S.y=K.bed ? fy+10+Math.random()*20
-                  : Math.min(SEA_SURF-10, fy+Math.max(14,(SEA_SURF-fy)*0.55));
+        /* THE SCHOOL IS FITTED TO THE WATER IT STANDS IN. A cod hangs over
+           the ground; the rest run in the body of the column — but never in
+           the top of it, and never taller than there is room for. */
+        const col=SEA_SURF-fy;                       /* the whole column, in units */
+        S.spread=Math.min((10+(1-K.tight)*60), Math.max(6,col*0.30));
+        S.y=K.bed ? fy+10+Math.random()*Math.min(20,col*0.15)
+                  : fy+col*(0.35+Math.random()*0.25);
+        S.y=Math.min(S.y, SEA_SURF-SHOAL_TOP-S.spread*0.5);
+        S.y=Math.max(S.y, fy+6+S.spread*0.5);
         for(const f of S.fish){ const sp=1-K.tight;
-          f.ox=(Math.random()-0.5)*(24+sp*150); f.oy=(Math.random()-0.5)*(10+sp*60);
+          f.ox=(Math.random()-0.5)*(24+sp*150); f.oy=(Math.random()-0.5)*S.spread;
           f.oz=(Math.random()-0.5)*(30+sp*180); }
         S.set=true; break; }
       if(!S.set){ for(const f of S.fish) f.m.visible=false; continue; } }
@@ -3463,15 +3477,25 @@ function updateShoals(px,py,pz,dt,t){ initShoals();
     S.dir+=Math.sin(t*0.31+S.fish[0].ph)*0.9*dt;
     const nx=S.x+Math.cos(S.dir)*K.spd*dt, nz=S.z+Math.sin(S.dir)*K.spd*dt;
     if(!landAtWorld(nx,nz)){ S.x=nx; S.z=nz; } else S.dir+=2.1;
-    const fy=seabedDepth(S.x,S.z);
-    S.y=Math.min(SEA_SURF-6,Math.max(fy+7,S.y+Math.sin(t*0.5+S.fish[0].ph)*4*dt));
+    const fy=seabedDepth(S.x,S.z), sp2=S.spread||20;
+    /* the MIDDLE of the school was the only thing held under the water, and a
+       school is not a point: a fish thirty units above the middle of it stood
+       clean out in the air over the swell. Both are held now — the school by
+       its own half-height, and then every fish in it on its own account. */
+    S.y=S.y+Math.sin(t*0.5+S.fish[0].ph)*4*dt;
+    S.y=Math.min(S.y, SEA_SURF-SHOAL_TOP-sp2*0.5);
+    S.y=Math.max(S.y, fy+6+sp2*0.5);
     const head=Math.atan2(Math.cos(S.dir),Math.sin(S.dir));
     for(const f of S.fish){
       /* each keeps its own place in the school, and breathes about it */
       const wob=Math.sin(t*1.7+f.ph)*2.2;
       const c=Math.cos(S.dir), sn=Math.sin(S.dir);
       const fx=S.x+f.oz*c-f.ox*sn, fz=S.z+f.oz*sn+f.ox*c;
-      f.m.position.set(fx, S.y+f.oy+wob, fz);
+      const bed=seabedDepth(fx,fz);
+      let fyy=S.y+f.oy+wob;
+      if(fyy>SEA_SURF-SHOAL_TOP) fyy=SEA_SURF-SHOAL_TOP;   /* never out of the water */
+      if(fyy<bed+3) fyy=bed+3;                             /* nor through the ground */
+      f.m.position.set(fx, fyy, fz);
       f.m.rotation.y=head; f.m.rotation.z=Math.sin(t*3.1+f.ph)*0.12;
       if(f.m.userData.tail) f.m.userData.tail.rotation.y=Math.sin(t*6+f.ph)*0.35;
       f.m.visible=true; } } }
@@ -3819,7 +3843,6 @@ function updateDeep(px,py,pz,dt,murk,full){ const t=performance.now()*0.001;
 function updateShallowLife(px,pz,dt,t){
   initDiveFish(); initDolphins(); initSeaMobs();
   updateDiveFish(px,0,pz,dt,t);
-  updateShoals(px,0,pz,dt,t);          /* sardines and mackerel flash in the clear shallows */
   updateDolphins(px,0,pz,dt,t);
   updateSeaMob(TURTLES,px,0,pz,dt,t);
   /* a swimmer in open water is prey — the sharks keep their hunt at the surface */
@@ -3829,7 +3852,10 @@ function updateShallowLife(px,pz,dt,t){
   }
   /* hideDeep may have blanked them on leaving the dive — show the living */
   for(const f of DIVEFISH) if(f.set) f.m.visible=true;
-  for(const S of SHOALS) if(S.set) for(const f of S.fish) f.m.visible=true;
+  /* AND THE SHOALS ARE NOT STIRRED HERE. They are of the DEEP: the little
+     bright reef fish above are what is seen through the clear shallows from
+     a deck, and the nations of the sea are met by going down to them. */
+  hideShoals();
   for(const d2 of DOLPHINS) if(d2.set) d2.m.visible=true;
   if(TURTLES) for(const o of TURTLES) if(o.set) o.m.visible=true;
 }
