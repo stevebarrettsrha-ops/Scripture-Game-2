@@ -66,10 +66,17 @@ const TEX={};
 TEX.grassTop   = mkTex(g=>speckle(g,[124,178,86],26,[104,158,70],0.35));
 TEX.grassTopTr = mkTex(g=>speckle(g,[96,190,92],26,[76,168,74],0.35));      // tropic, brighter
 TEX.grassTopTu = mkTex(g=>speckle(g,[136,148,96],22,[118,132,84],0.35));    // tundra, dull
+/* THE PLAIN — dun gold burnt off by the sun, with the green only in the
+   roots of it. This is the floor of the whole east African country. */
+TEX.grassTopSv = mkTex(g=>speckle(g,[190,166,96],28,[156,140,80],0.4));
 TEX.dirt       = mkTex(g=>speckle(g,[134,96,67],24,[110,78,52],0.3));
 TEX.grassSide  = mkTex(g=>{ speckle(g,[134,96,67],24,[110,78,52],0.3);
   for(let x=0;x<16;x++){ const d=1+Math.floor(hash2(x,9.1)*3);
     for(let y=0;y<d;y++){ const c=jit([116,170,80],24,x*3+y); P(g,x,y,rgb(c[0],c[1],c[2])); } } });
+/* and the cut side of it: the same red dirt, with dun stubble on the lip */
+TEX.grassSideSv= mkTex(g=>{ speckle(g,[142,102,64],24,[118,84,50],0.3);
+  for(let x=0;x<16;x++){ const d=1+Math.floor(hash2(x*1.7,3.3)*3);
+    for(let y=0;y<d;y++){ const c=jit([186,162,94],26,x*5+y); P(g,x,y,rgb(c[0],c[1],c[2])); } } });
 TEX.path       = mkTex(g=>speckle(g,[148,124,82],20,[132,110,70],0.3));
 TEX.sand       = mkTex(g=>speckle(g,[219,207,163],16,[204,192,148],0.3));
 TEX.stone      = mkTex(g=>speckle(g,[125,125,125],14,[105,105,105],0.28));
@@ -136,6 +143,21 @@ TEX.tallgrass  = mkTex(g=>{ g.clearRect(0,0,16,16);
   for(let k=0;k<9;k++){ const x=1+Math.floor(hash2(k,3)*14); const h2=6+Math.floor(hash2(k,5)*9);
     const c=jit([92,160,64],30,k); g.fillStyle=rgb(c[0],c[1],c[2]);
     for(let y=0;y<h2;y++) g.fillRect(x+(y>h2-3?(hash2(k,9)>0.5?1:-1):0),15-y,1,1); } });
+/* THE TALL GRASS OF THE PLAIN — golden, standing to the shoulder, and thick
+   enough at the root that a lion lying in it is not there at all. Drawn
+   taller in the blade and denser across the tile than the green sward. */
+TEX.savgrass   = mkTex(g=>{ g.clearRect(0,0,16,16);
+  for(let k=0;k<13;k++){ const x=Math.floor(hash2(k,4.1)*16); const h2=10+Math.floor(hash2(k,2.7)*6);
+    const c=jit([196,172,96],34,k); g.fillStyle=rgb(c[0],c[1],c[2]);
+    for(let y=0;y<h2;y++){ const lean=(y>h2-5)?(hash2(k,6.3)>0.5?1:-1):0;
+      g.fillRect((x+lean+16)%16,15-y,1,1); }
+    if(hash2(k,9.9)>0.6){ const s2=jit([150,128,66],20,k); g.fillStyle=rgb(s2[0],s2[1],s2[2]);
+      g.fillRect(x,15-h2,1,2); } } });                     /* the seed head */
+/* the flat crown of the thorn tree, thin and grey-green against the sky */
+TEX.acacia     = mkTex(g=>{ for(let y=0;y<16;y++) for(let x=0;x<16;x++){
+    const n=hash2(x*2.7+y*1.3,y*3.1);
+    if(n<0.30){ g.clearRect(x,y,1,1); continue; }
+    const c=jit([104,126,66],26,x*5+y); P(g,x,y,rgb(c[0],c[1],c[2])); } });
 TEX.flowerR    = mkTex(g=>{ g.clearRect(0,0,16,16); g.fillStyle='rgb(64,120,48)';
   g.fillRect(7,8,1,8); g.fillRect(5,11,2,1);
   g.fillStyle='rgb(200,44,36)'; g.fillRect(5,3,5,5); g.fillStyle='rgb(230,80,60)'; g.fillRect(6,4,3,3);
@@ -181,6 +203,7 @@ function iceMat(name,tex){ const m=new THREE.MeshBasicMaterial({
     map:tex, vertexColors:true, side:THREE.DoubleSide });
   MAT[name]=m; ICE_MATS.push(m); return m; }
 blockMat('grassTop',TEX.grassTop); blockMat('grassTopTr',TEX.grassTopTr); blockMat('grassTopTu',TEX.grassTopTu);
+blockMat('grassTopSv',TEX.grassTopSv); blockMat('grassSideSv',TEX.grassSideSv);
 blockMat('grassSide',TEX.grassSide); blockMat('dirt',TEX.dirt); blockMat('path',TEX.path);
 blockMat('sand',TEX.sand); blockMat('stone',TEX.stone); blockMat('cobble',TEX.cobble);
 blockMat('snow',TEX.snow); blockMat('ice',TEX.ice);
@@ -192,6 +215,7 @@ blockMat('soil',TEX.soil); blockMat('benchTop',TEX.benchTop); blockMat('benchSid
 blockMat('leaves',TEX.leaves,{alphaTest:0.4}); blockMat('leavesTr',TEX.leavesTr,{alphaTest:0.4});
 blockMat('cherry',TEX.cherry,{alphaTest:0.4}); blockMat('badTop',TEX.badTop); blockMat('badSide',TEX.badSide);
 blockMat('tallgrass',TEX.tallgrass,{alphaTest:0.4}); blockMat('flowerR',TEX.flowerR,{alphaTest:0.4});
+blockMat('savgrass',TEX.savgrass,{alphaTest:0.4}); blockMat('acacia',TEX.acacia,{alphaTest:0.4});
 blockMat('flowerY',TEX.flowerY,{alphaTest:0.4}); blockMat('crop',TEX.crop,{alphaTest:0.4});
 blockMat('glass',TEX.glass,{transparent:true,depthWrite:false});
 blockMat('door',TEX.door,{alphaTest:0.1});
@@ -222,6 +246,9 @@ function windSway(mat,amp,rooted){
 }
 windSway(MAT.leaves,0.55,false); windSway(MAT.leavesTr,0.62,false); windSway(MAT.cherry,0.55,false);
 windSway(MAT.tallgrass,0.9,true); windSway(MAT.flowerR,0.6,true); windSway(MAT.flowerY,0.6,true);
+/* the plain moves as one thing when the wind crosses it — the tall grass
+   swings further than the sward, and the thorn crowns ride it */
+windSway(MAT.savgrass,1.5,true); windSway(MAT.acacia,0.5,false);
 windSway(MAT.crop,0.5,true);
 /* breaking surf — clumpy foam that washes the shoreline (scrolled + pulsed) */
 TEX.surf = mkTex(g=>{ g.clearRect(0,0,16,16);
@@ -710,6 +737,28 @@ function cellRaw(ix,iz){
   /* cherry blossom only in the far east — the lands of Yapan, China and Korea */
   const eastAsia = lat>20&&lat<46&&lon>96&&lon<148;
   const cherry   = !snow&&!tundra&&!desert&&eastAsia&&region>0.46;
+  /* ---- THE PLAIN ----
+     The great grassland of the earth had no existence in this world at all.
+     Every acre of the tropics was drawn as either sand or closed jungle — so
+     the one country that the herds of the earth actually live upon was the
+     one country that was missing, and the elephant, the giraffe and the lion
+     had nowhere to stand that was theirs. It is dun grass to the horizon with
+     thorn trees standing singly in it, and it is drawn WHERE IT TRULY LIES:
+       · the Sahel, and the East African plain from Ethiopia to the Cape
+       · the llanos and the cerrado, between the Amazon and the Plate
+       · the Deccan of India
+       · the north of the great south land
+     and not, on any account, in the closed rain forest inside those bounds —
+     the Congo basin, the Amazon and the isles of the east keep their trees. */
+  const inBox=(a,b,c,d)=>lat>a&&lat<b&&lon>c&&lon<d;
+  const savBelt = inBox(-32,17,10,52) || inBox(-24,12,-72,-40)
+               || inBox(6,27,68,89)   || inBox(-25,-10,118,151);
+  const rainForest = inBox(-6,5,11,31) || inBox(-13,6,-76,-49)
+                  || inBox(-11,13,94,132) || inBox(3,9,-17,10);
+  /* and it frays at its own edges — the noise breaks the belt into open plain
+     and standing wood, so no country changes at a straight line */
+  const savanna = savBelt&&!rainForest&&!snow&&!tundra&&!alpine&&!desert&&!badlands
+    && fbm(ix*.02+61,iz*.02-44)>0.37;
   /* a broad, flat, walkable beach along every warm/temperate coast
      (but not where a range comes down to the water — there the rock meets
      the sea, as it does at every mountainous coast on the earth) */
@@ -734,6 +783,9 @@ function cellRaw(ix,iz){
     if(mUp>0.5) h+=Math.round(mUp);                 /* Uluru and its kin rise from the waste */
   }
   else if(desert){ kind='desert'; }
+  /* the plain, and the thorn trees standing SINGLY upon it — a savannah is
+     not a thin wood, it is open ground with a tree in the middle distance */
+  else if(savanna){ kind='savanna'; tree=j<0.008?4:0; }
   else if(cherry){ kind='grass'; tree=j<0.075*dens?3:0; } /* cherry-blossom groves */
   else if(tropic){ kind='tropic'; tree=j<0.062*dens?2:0; }
   else { kind='grass'; tree=j<0.045*dens?1:0; }
@@ -873,6 +925,7 @@ function topMatFor(kind){
   if(kind==='badlands') return 'badTop';
   if(kind==='tropic') return 'grassTopTr';
   if(kind==='tundra') return 'grassTopTu';
+  if(kind==='savanna') return 'grassTopSv';
   return 'grassTop';
 }
 function sideMatsFor(kind){ /* [topBlockSide, lowerSide] */
@@ -882,6 +935,7 @@ function sideMatsFor(kind){ /* [topBlockSide, lowerSide] */
   if(kind==='wall'||kind==='floe') return ['iceSide','iceSide'];
   if(kind==='rock') return ['stone','stone'];
   if(kind==='alpine') return ['dirt','stone'];
+  if(kind==='savanna') return ['grassSideSv','dirt'];
   return ['grassSide','dirt'];
 }
 function emitColumn(G,ix,iz,cc){
@@ -919,16 +973,28 @@ function emitColumn(G,ix,iz,cc){
    tall as its fellows, and the crown is scaled with the trunk. */
 function emitTree(G,ix,iz,cc){
   const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B;
-  const tropic=cc.tree===2, cherry=cc.tree===3;
+  const tropic=cc.tree===2, cherry=cc.tree===3, thorn=cc.tree===4;
   /* a long tail toward the giants: most are middling, a few tower */
   const q=hash2(ix*0.73+11.3,iz*0.91-5.7);
   const S=0.62+Math.pow(q,0.55)*1.25 + (hash2(ix*3.1,iz*2.3)>0.965?0.85:0);
-  const baseH=tropic?B*4.6:cherry?B*3.4:B*3.6;
+  const baseH=tropic?B*4.6:cherry?B*3.4:thorn?B*4.0:B*3.6;
   const trunkH=baseH*S, tw=B*(0.30+0.20*S);
   emitBox(G, x-tw,yT,z-tw, x+tw,yT+trunkH,z+tw, 'logSide','logTop',null);
-  const lm=tropic?'leavesTr':cherry?'cherry':'leaves';
+  const lm=tropic?'leavesTr':cherry?'cherry':thorn?'acacia':'leaves';
   const W=S;                                  /* the crown grows with the bole */
-  if(tropic){                                 /* a palm — fronds thrown out from the head */
+  if(thorn){
+    /* THE THORN TREE — the acacia, and the whole silhouette of the plain. The
+       bole runs up bare and then throws its branches out FLAT at the top into
+       a table of leaf a giraffe can just reach the underside of. Nothing else
+       in the world is that shape, and where it stands you know the country. */
+    for(const d of [[1,0],[-1,0],[0,1],[0,-1]])
+      emitBox(G, x+d[0]*B*0.4*W-B*0.16*W, yT+trunkH-B*0.5*W, z+d[1]*B*0.4*W-B*0.16*W,
+                 x+d[0]*B*1.1*W+B*0.16*W, yT+trunkH+B*0.1*W, z+d[1]*B*1.1*W+B*0.16*W,
+                 'logSide','logSide',null);
+    emitBox(G, x-B*1.9*W,yT+trunkH,z-B*1.9*W, x+B*1.9*W,yT+trunkH+B*0.45*W,z+B*1.9*W, lm,lm,lm);
+    emitBox(G, x-B*1.2*W,yT+trunkH+B*0.45*W,z-B*1.2*W, x+B*1.2*W,yT+trunkH+B*0.75*W,z+B*1.2*W, lm,lm,lm);
+  }
+  else if(tropic){                            /* a palm — fronds thrown out from the head */
     emitBox(G, x-B*1.7*W,yT+trunkH,z-B*0.5*W, x+B*1.7*W,yT+trunkH+B*0.6*W,z+B*0.5*W, lm,lm,lm);
     emitBox(G, x-B*0.5*W,yT+trunkH,z-B*1.7*W, x+B*0.5*W,yT+trunkH+B*0.6*W,z+B*1.7*W, lm,lm,lm);
   } else if(cherry){                          /* a broad, soft pink canopy */
@@ -949,18 +1015,24 @@ function nearSettled(x,z){
 /* ---- AND THE UNDERGROWTH ----
    Bare ground between the trees read as a lawn. Away from the settled places
    the wild grows in: bushes, fern and thicket. The nearer a village, the more
-   it is grazed and cut back — so the wilderness is visibly wilder. */
-function emitScrub(G,ix,iz,cc,j,wild){
+   it is grazed and cut back — so the wilderness is visibly wilder.
+   WHAT STANDS HERE IS NOT DECIDED HERE. It is asked of js/grass.js, which is
+   the one truth about the grass of the earth: the same call the beasts make
+   when they go looking for a bite and the lion when he looks for cover. What
+   is drawn and what is eaten are the same blade, because both came out of
+   GRASS.at(). (Before this the mesher decided alone, nothing else in the
+   world knew where a blade stood, and the herds grazed bare dirt.) */
+function emitScrub(G,ix,iz,cc,wild){
+  const gr=GRASS.at(ix,iz,cc.kind,wild); if(!gr) return;
   const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B;
-  const lm=cc.kind==='tropic'?'leavesTr':'leaves';
-  const s=hash2(ix*1.31-4.4,iz*1.77+8.1);
-  if(j<0.030*wild){                                    /* a true bush, with a woody heart */
-    const r=B*(0.34+s*0.40), hh=B*(0.55+s*0.75);
-    emitBox(G, x-r,yT,z-r, x+r,yT+hh,z+r, lm,lm,null);
-    if(s>0.62) emitBox(G, x-r*0.55,yT+hh,z-r*0.55, x+r*0.55,yT+hh+B*0.4,z+r*0.55, lm,lm,lm);
+  if(gr.m==='bush'){                                   /* a true bush, with a woody heart */
+    const lm=cc.kind==='tropic'?'leavesTr':cc.kind==='savanna'?'acacia':'leaves';
+    const r=gr.w/2;
+    emitBox(G, x-r,yT,z-r, x+r,yT+gr.h,z+r, lm,lm,null);
+    if(gr.cap) emitBox(G, x-r*0.55,yT+gr.h,z-r*0.55, x+r*0.55,yT+gr.h+B*0.4,z+r*0.55, lm,lm,lm);
+    return;
   }
-  else if(j<0.24*wild) cross(G,'tallgrass',x,z,yT,B*(0.7+s*0.5),B*(0.6+s*0.9),0.95);
-  else if(j<0.27*wild) cross(G, s<0.5?'flowerR':'flowerY', x,z,yT,B*0.85,B*0.85,0.95);
+  cross(G,gr.m,x,z,yT,gr.w,gr.h,0.95);
 }
 /* how near a coast the chunk mesher lays a blocky shelf of its own. The sea
    bed that follows the diver reads the SAME number and stands aside there, so
@@ -1055,13 +1127,12 @@ function buildChunk(cx,cz){
     emitColumn(G,ix,iz,cc);
     const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B, j=hash2(ix*1.7,iz*2.9);
     if(cc.tree) emitTree(G,ix,iz,cc);
-    else if(cc.kind==='grass'||cc.kind==='tropic'||cc.kind==='tundra'||cc.kind==='alpine'){
-      /* thickest where no one lives — a village keeps its ground grazed */
-      const wild=nearSettled(x,z)?0.34:1;
-      emitScrub(G,ix,iz,cc,j,cc.kind==='tundra'||cc.kind==='alpine'?wild*0.45:wild);
+    else {
+      /* thickest where no one lives — a village keeps its ground grazed.
+         Every ground the grass file knows is asked; the ones it does not
+         know (sand, stone, snow, the ice) simply bear nothing. */
+      emitScrub(G,ix,iz,cc,nearSettled(x,z)?0.34:1);
     }
-    else if(cc.kind==='desert'&&j<0.035)
-      cross(G,'tallgrass',x,z,yT,B*(0.6+hash2(ix,iz)*0.5),B*0.8,0.8);
     if(cc.kind==='grass'&&j>0.994)
       emitBox(G, x-B*0.5,yT,z-B*0.5, x+B*0.5,yT+B,z+B*0.5,'stone','stone',null);
   }
@@ -2489,8 +2560,33 @@ const BEAST_KIT={
   mat:t=>new THREE.MeshLambertMaterial({map:t}),
   matc:c=>lam(c),
   glass:(c,o)=>new THREE.MeshLambertMaterial({color:c,transparent:true,opacity:o===undefined?0.7:o}),
-  tex:mkTex, speckle, jit, px:P, rgb, hash:hash2
+  tex:mkTex, speckle, jit, px:P, rgb, hash:hash2,
+  /* FOUR LEGS UNDER A BODY — every beast of the field wants them, and every
+     one of them wants the same thing: the pivot at the HIP (so the leg swings
+     from the shoulder and not from the hoof), and to be enrolled on
+     userData.legs, which is what the engine walks. x/z are how far out from
+     the middle they stand, h how long they are, t how thick. */
+  legs4:function(g,x,z,h,col,t){ t=t||0.9; const out=[];
+    for(const sx of [1,-1]) for(const sz of [1,-1]){
+      const L=lbox(t,h,t,col); L.geometry.translate(0,-h/2,0);
+      L.position.set(sx*x,h,sz*z); L.userData.ph=(sx*sz>0)?0:Math.PI;
+      g.add(L); out.push(L); }
+    const u=g.userData||(g.userData={});
+    u.legs=(u.legs||[]).concat(out); return out; }
 };
+/* ---- AND HOW BIG A BEAST IS DRAWN ----
+   Every beast of the SEA is drawn at its true stature: a whale is sixteen
+   metres and the six units of a metre make her ninety-six units long, and
+   she reads as the mountain of meat she is.
+   The beasts of the FIELD are drawn at half of theirs, and must be. The
+   world's cattle, sheep and horses were built by hand long before any of
+   this, at about half life-size, mob-fashion — and a zebra dropped in beside
+   them at TRUE size would stand three times the cow in the next field. One
+   scale for the herd, and it is this one: the file still declares the beast's
+   honest length in metres, and the engine halves the lot of them together, so
+   the whole bestiary is in proportion with itself and with the pens, byres
+   and folds already standing in every village on the earth. */
+const LAND_U_PER_M=3;
 /* how long the built model runs along the axis its file measures it by */
 const _bBox=new THREE.Box3(), _bSize=new THREE.Vector3();
 function beastSpan(g,axis){
@@ -2509,7 +2605,8 @@ function makeBeast(name,arg){
      stature is put on an INNER group where nothing can clobber it, and what
      the engine holds is a plain group at scale 1 that means "unremarkable
      for its kind". */
-  if(span>0.001&&spec.metres>0) inner.scale.setScalar((spec.metres*U_PER_M)/span);
+  const per=(spec.realm==='land')?LAND_U_PER_M:U_PER_M;
+  if(span>0.001&&spec.metres>0) inner.scale.setScalar((spec.metres*per)/span);
   const g=new THREE.Group();
   g.rotation.order=inner.rotation.order;
   g.add(inner);
@@ -2518,7 +2615,7 @@ function makeBeast(name,arg){
 }
 /* what the file says this beast truly measures, in world units */
 function beastUnits(name){ const s=BEAST_BY_NAME[name];
-  return s?s.metres*U_PER_M:0; }
+  return s?s.metres*((s.realm==='land')?LAND_U_PER_M:U_PER_M):0; }
 /* Steve-fashion: dark brown hair in a clean, straight fringe (no ragged edge),
    sideburns down the temples, a bowl of hair on top and round the back. */
 const SKIN_RGB=[199,140,95], HAIR_RGB=[46,32,18], ROBE_A=[56,66,116], ROBE_D=[46,56,100];
@@ -2684,7 +2781,14 @@ function makePerson(seed, role, child, female){
   g.userData={legs:[legL,legR,armL,armR],armL,armR,rod,female:!!female};
   return g;
 }
+/* ---- EVERY BEAST OF THE FIELD, AND WHERE IT IS BUILT ----
+   The cattle, flocks and beasts of the old world are built here, in this one
+   long hand. Everything added since has its OWN FILE in creatures/ with
+   realm:'land' — a file is asked for first, so a new beast is a new file and
+   nothing in the engine need be touched to have it walk the earth. */
 function makeAnimal(kind){
+  const spec=BEAST_BY_NAME[kind];
+  if(spec&&spec.realm==='land') return makeBeast(kind);
   const g=new THREE.Group(); const legs=[];
   function fourLegs(w,d,lh,col){ for(const sx of [1,-1]) for(const sz of [1,-1]){
     const L=lbox(0.9,lh,0.9,col); L.geometry.translate(0,-lh/2,0);   // pivot at the hip
@@ -3371,10 +3475,14 @@ const seagrassMat=new THREE.MeshLambertMaterial({map:TEX.seagrass,side:THREE.Dou
 function makeSeagrass(){ const g=new THREE.Group(), n=3+Math.floor(Math.random()*4);
   for(let i=0;i<n;i++){ const bl=new THREE.Mesh(new THREE.BoxGeometry(0.6,2+Math.random()*2.6,0.6),seagrassMat);
     bl.position.set((Math.random()-0.5)*3.2,1.2,(Math.random()-0.5)*3.2); bl.rotation.z=(Math.random()-0.5)*0.4; g.add(bl); } return g; }
-const GRASS=[], GRASS_N=200, GRASS_R=300;
-function initGrass(){ if(GRASS.length) return; for(let k=0;k<GRASS_N;k++){ const m=makeSeagrass(); m.visible=false; scene.add(m); GRASS.push({m,x:0,z:0,ph:Math.random()*6.28,set:false}); } }
-function updateGrass(px,pz,t){ initGrass(); for(const r of GRASS){ if(!r.set||Math.hypot(r.x-px,r.z-pz)>GRASS_R+70){
-      for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28, rr=30+Math.random()*GRASS_R, x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
+/* the seagrass on the bed of the sea. (It was called GRASS, which is now
+   the name of the file that owns the grass of the DRY land — and the two
+   quietly shadowed one another, so every beast ashore read the seagrass
+   pool and found no sward anywhere in the world.) */
+const SEAGRASS=[], SEAGRASS_N=200, SEAGRASS_R=300;
+function initSeagrass(){ if(SEAGRASS.length) return; for(let k=0;k<SEAGRASS_N;k++){ const m=makeSeagrass(); m.visible=false; scene.add(m); SEAGRASS.push({m,x:0,z:0,ph:Math.random()*6.28,set:false}); } }
+function updateSeagrass(px,pz,t){ initSeagrass(); for(const r of SEAGRASS){ if(!r.set||Math.hypot(r.x-px,r.z-pz)>SEAGRASS_R+70){
+      for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28, rr=30+Math.random()*SEAGRASS_R, x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
         if(d>6 && d<30*U_PER_M){ r.x=x; r.z=z; r.set=true; r.m.position.set(x,seabedDepth(x,z),z); r.m.visible=true; break; } if(tr===4){ r.set=false; r.m.visible=false; } } }
     if(r.set) r.m.rotation.z=Math.sin(t*1.3+r.ph)*0.14; } }
 /* ---- god-rays — shafts of light slanting down from the surface ---- */
@@ -3611,13 +3719,22 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
     s.m.userData.tail.rotation.y=Math.sin(t*(hunting?7:4)+s.ph)*(hunting?0.45:0.3); } }
 /* ---- turtles, rays, whales, pufferfish, jellyfish, crabs ---- */
 /* a generic wandering sea-mob pool (turtle/ray/whale/puffer) */
-function mkSeaMob(kind,n,R,rSpawn,near,deepM){ const arr=[];
+function mkSeaMob(kind,n,R,rSpawn,near,deepM,lat){ const arr=[];
   for(let k=0;k<n;k++){ const m=makeBeast(kind); m.visible=false; scene.add(m); arr.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false,sp:near?7:12}); }
   /* EVERY BEAST NEEDS ROOM FOR ITS OWN BULK. A whale grown to sixteen metres
      stands three units off the bed at the old clearance and ploughs the sand
      with her belly. The clearance a beast keeps is read off its own length. */
-  arr._R=R; arr._rs=rSpawn; arr._near=near; arr._len=beastUnits(kind); arr._deep=deepM||H_REEF; return arr; }
-function updateSeaMob(arr,px,py,pz,dt,t){ for(const o of arr){
+  arr._R=R; arr._rs=rSpawn; arr._near=near; arr._len=beastUnits(kind); arr._deep=deepM||H_REEF;
+  /* AND SOME OF THEM KEEP TO THEIR OWN WATER. A walrus is not met off Ceylon
+     and a manatee is not met under the ice: a nation of beasts may name the
+     band of latitude it belongs to, and it is simply absent from the rest of
+     the sea, as it is on the true earth. */
+  arr._lat=lat||null; return arr; }
+function updateSeaMob(arr,px,py,pz,dt,t){
+  if(arr._lat){ const lat=90-Math.hypot(px/R_WORLD,pz/R_WORLD)*180;
+    if(lat<arr._lat[0]||lat>arr._lat[1]){
+      for(const o of arr) if(o.set){ o.set=false; o.m.visible=false; } return; } }
+  for(const o of arr){
     if(!o.set||Math.hypot(o.x-px,o.z-pz)>arr._R+140){ const a=Math.random()*6.28, r=arr._rs*0.3+Math.random()*arr._rs*0.7;
       o.x=px+Math.cos(a)*r; o.z=pz+Math.sin(a)*r; const fy=haunt(o.x,o.z,arr._deep||H_REEF);
       const clr=Math.max(4,(arr._len||24)*0.35);   /* she swims a third of her own length clear */
@@ -3632,7 +3749,7 @@ function updateSeaMob(arr,px,py,pz,dt,t){ for(const o of arr){
     o.m.position.set(o.x,o.y,o.z); o.m.rotation.y=Math.atan2(Math.cos(o.dir),Math.sin(o.dir));
     if(o.m.userData.flL){ o.m.userData.flL.rotation.z=0.2+Math.sin(t*2+o.ph)*0.3; o.m.userData.flR.rotation.z=-0.2-Math.sin(t*2+o.ph)*0.3; }
     if(o.m.userData.wingL){ o.m.userData.wingL.rotation.z=Math.sin(t*1.6+o.ph)*0.4; o.m.userData.wingR.rotation.z=-Math.sin(t*1.6+o.ph)*0.4; } } }
-let TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS;
+let TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS;
 function initSeaMobs(){ if(TURTLES) return;
   /* the last number is how deep each keeps, in metres: a turtle on the reef,
      a whale sounding to three hundred, a pufferfish never off the shallows */
@@ -3640,10 +3757,24 @@ function initSeaMobs(){ if(TURTLES) return;
   RAYS_M=mkSeaMob('ray',3,460,440,true,200);
   WHALES=mkSeaMob('whale',1,700,650,false,H_WHALE);
   PUFFERS=mkSeaMob('puffer',6,240,220,true,60);
+  /* ---- AND THE REST OF THE NATIONS OF THE SEA ----
+     Each to its own water and its own depth: the seal and the walrus in the
+     cold seas at both ends of the earth, the manatee grazing the weed in the
+     warm shallows and the river mouths, the octopus over the reef bed, and
+     the swordfish and the barracuda out where the bottom drops away. */
+  SEALS=mkSeaMob('seal',5,340,320,true,90,[42,90]);
+  WALRUS=mkSeaMob('walrus',2,320,300,true,70,[58,90]);
+  MANATEES=mkSeaMob('manatee',2,300,280,true,40,[-30,30]);
+  OCTOPI=mkSeaMob('octopus',3,260,240,true,70);
+  SWORDS=mkSeaMob('swordfish',2,520,480,false,400,[-46,46]);
+  CUDAS=mkSeaMob('barracuda',5,300,280,true,110,[-34,34]);
   JELLIES=[]; for(let k=0;k<12;k++){ const m=makeBeast('jelly'); m.visible=false; scene.add(m); JELLIES.push({m,x:0,z:0,y:0,ph:Math.random()*6.28,set:false}); }
   CRABS=[]; for(let k=0;k<14;k++){ const m=makeBeast('crab'); m.visible=false; scene.add(m); CRABS.push({m,x:0,z:0,ph:Math.random()*6.28,set:false}); } }
 function updateSeaMobs(px,py,pz,dt,t){ initSeaMobs();
   updateSeaMob(TURTLES,px,py,pz,dt,t); updateSeaMob(RAYS_M,px,py,pz,dt,t); updateSeaMob(WHALES,px,py,pz,dt,t); updateSeaMob(PUFFERS,px,py,pz,dt,t);
+  updateSeaMob(SEALS,px,py,pz,dt,t); updateSeaMob(WALRUS,px,py,pz,dt,t);
+  updateSeaMob(MANATEES,px,py,pz,dt,t); updateSeaMob(OCTOPI,px,py,pz,dt,t);
+  updateSeaMob(SWORDS,px,py,pz,dt,t); updateSeaMob(CUDAS,px,py,pz,dt,t);
   for(const j of JELLIES){ if(!j.set||Math.hypot(j.x-px,j.z-pz)>360){ const a=Math.random()*6.28,r=40+Math.random()*320; j.x=px+Math.cos(a)*r; j.z=pz+Math.sin(a)*r; const fy=haunt(j.x,j.z,H_JELLY); j.y=fy+30+Math.random()*80; j.set=true; j.m.visible=true; }
     const pulse=0.5+0.5*Math.sin(t*1.4+j.ph); j.y+=(pulse-0.45)*10*dt; const fy=haunt(j.x,j.z,H_JELLY), col=SEA_SURF-fy;
     j.y=Math.min(SEA_SURF-6,Math.max(fy+Math.min(10,col-7),j.y));
@@ -3692,7 +3823,8 @@ function updateAnglers(px,py,pz,dt,t){ initAnglers();
     if(u.lure){ u.lure.getWorldPosition(_wv); a.gs.position.copy(_wv);
       a.gs.material.opacity=0.30+0.34*pulse; } } }
 function hideAnglers(){ for(const a of ANGLERS){ a.m.visible=false; a.gs.visible=false; a.set=false; } }
-function hideSeaMobs(){ if(!TURTLES) return; for(const arr of [TURTLES,RAYS_M,WHALES,PUFFERS]) for(const o of arr) o.m.visible=false;
+function hideSeaMobs(){ if(!TURTLES) return;
+  for(const arr of [TURTLES,RAYS_M,WHALES,PUFFERS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS]) for(const o of arr) o.m.visible=false;
   for(const j of JELLIES)j.m.visible=false; for(const c of CRABS)c.m.visible=false; }
 const BUB=[], BUB_N=26;
 function initBub(){ if(BUB.length) return; for(let k=0;k<BUB_N;k++){ const s=new THREE.Sprite(new THREE.SpriteMaterial({color:0xcdeeff,transparent:true,opacity:0,depthWrite:false,fog:false}));
@@ -3789,9 +3921,9 @@ function nearestPearl(){ if(state.mode!=='dive') return null;
   for(const P of PEARLS){ if(!P.key||!P.m.visible) continue;
     if(Math.hypot(P.x-dv.x,P.z-dv.z)<9&&Math.abs(P.y-dv.y)<13) return P; }
   return null; }
-function initDeep(){ initKelp(); initCoral(); initGrass(); initRays(); initDiveFish(); initShoals(); initSquid(); initDolphins(); initSharks(); initSeaMobs(); initAnglers(); initBub(); initWrecks(); initPearls(); }
+function initDeep(){ initKelp(); initCoral(); initSeagrass(); initRays(); initDiveFish(); initShoals(); initSquid(); initDolphins(); initSharks(); initSeaMobs(); initAnglers(); initBub(); initWrecks(); initPearls(); }
 function hideDeep(){ seaFloor.visible=false;
-  for(const k of KELP)k.m.visible=false; for(const r of CORAL)r.m.visible=false; for(const r of GRASS)r.m.visible=false;
+  for(const k of KELP)k.m.visible=false; for(const r of CORAL)r.m.visible=false; for(const r of SEAGRASS)r.m.visible=false;
   for(const r of RAYS)r.m.visible=false; for(const f of DIVEFISH)f.m.visible=false; for(const q of SQUIDS)q.m.visible=false;
   for(const d of DOLPHINS)d.m.visible=false; for(const s of SHARKS)s.m.visible=false; hideSeaMobs();
   for(const b of BUB)b.s.visible=false; for(const w of WRECKS)w.visible=false; hidePearls(); hideAnglers(); hideShoals(); deepShown=false; }
@@ -3831,7 +3963,7 @@ function eyeUnderwater(){
    surface furnishes the living sea, but not the things he may take. */
 function updateDeep(px,py,pz,dt,murk,full){ const t=performance.now()*0.001;
   seaFloor.visible=true; updateSeaFloor(px,pz);   /* updateSeaFloor anchors the mesh itself */
-  updateKelp(px,pz,t); updateCoral(px,pz); updateGrass(px,pz,t); updateRays(px,py,pz,murk||0);
+  updateKelp(px,pz,t); updateCoral(px,pz); updateSeagrass(px,pz,t); updateRays(px,py,pz,murk||0);
   updateDiveFish(px,py,pz,dt,t); updateSquid(px,py,pz,dt,t); updateDolphins(px,py,pz,dt,t); updateSharks(px,py,pz,dt,t);
   updateSeaMobs(px,py,pz,dt,t); updateShoals(px,py,pz,dt,t); updateAnglers(px,py,pz,dt,t); updateBubbles(px,py,pz,dt);
   if(full){ updateWreck(px,pz); updatePearls(px,pz); }
@@ -3845,6 +3977,11 @@ function updateShallowLife(px,pz,dt,t){
   updateDiveFish(px,0,pz,dt,t);
   updateDolphins(px,0,pz,dt,t);
   updateSeaMob(TURTLES,px,0,pz,dt,t);
+  /* the seal and the manatee are shallow-water beasts, and both are seen
+     from a deck as readily as from under it — the one off the ice at either
+     end of the earth, the other grazing the weed in every warm bay */
+  updateSeaMob(SEALS,px,0,pz,dt,t); updateSeaMob(MANATEES,px,0,pz,dt,t);
+  for(const arr of [SEALS,MANATEES]) for(const o of arr) if(o.set) o.m.visible=true;
   /* a swimmer in open water is prey — the sharks keep their hunt at the surface */
   if(state.mode==='walk'&&state.walk.inWater&&!landAtWorld(px,pz)){
     updateSharks(px,state.walk.feetY!==undefined?state.walk.feetY:-1,pz,dt,t);
@@ -3964,19 +4101,26 @@ function surface(){ const dv=state.dive;
    cattle, horses, deer and wolves in the temperate lands), and birds,
    butterflies and eagles wheeling in the air above land and sea. */
 /* ---- WHERE EACH BEAST BELONGS ----
-   Every creature was drawn from one of two lists by a coin-toss on its
-   position — so a lion might stand in a Norwegian wood. It is placed by the
-   LAND it stands upon now: the latitude, how arid the country is, the biome
-   underfoot, how high it stands, and whether a river runs hard by. The
-   crocodile lies in tropical rivers and in no other water on the earth; the
-   bear keeps the northern forests and the flanks of the mountains; the lion
-   the dry savannah; the wolf the temperate and boreal woods and the high
-   country; the camel the desert; the goat the crags. */
-const WILD_TEMPERATE=['cow','sheep','horse','donkey','pig','deer','wolf','dog','chicken','hare','goat','ox'];
-const WILD_DRY=['camel','ostrich','lion','goat','donkey','lizard','hare'];
-const WILD_SAVANNA=['ostrich','lion','elephant','deer','goat','donkey'];
-const WILD_COLD=['wolf','deer','hare','ox','goat'];
-const WILD_HIGH=['goat','goat','deer','wolf','hare'];
+   Every creature was drawn from one of five short lists by the CLIMATE alone,
+   so the same dozen beasts stood in every country on the earth and no land
+   had anything of its own: a lion might stand in a Norwegian wood, and an
+   elephant was as likely in Peru as in Kenya.
+   IT IS THE LAND THAT SAYS NOW. world/fauna.js keeps, for every nation on
+   the chart, the beasts that truly walk in it; each beast keeps the grounds
+   it will stand upon, how high it goes, and whether it holds to a river. A
+   spot is looked up by its COUNTRY first, and the climate table is only the
+   floor under the uncharted isles and any land not yet written. */
+const FAUNA=(function(){
+  const F=(window.EARTH&&window.EARTH.faunaList&&window.EARTH.faunaList[0])||{};
+  return {roles:F.roles||{}, prey:F.prey||[], keeps:F.keeps||{},
+          wilds:F.wilds||{}, lands:F.lands||{}};
+})();
+/* the fallback, when a land has no list of its own */
+const WILD_TEMPERATE=FAUNA.wilds.grass||['cow','sheep','horse','donkey','pig','deer','wolf','dog','chicken','hare','goat','ox'];
+const WILD_DRY=FAUNA.wilds.desert||['camel','ostrich','lion','goat','donkey','lizard','hare'];
+const WILD_SAVANNA=FAUNA.wilds.savanna||['ostrich','lion','elephant','deer','goat','donkey'];
+const WILD_COLD=FAUNA.wilds.tundra||['wolf','deer','hare','ox','goat'];
+const WILD_HIGH=FAUNA.wilds.alpine||['goat','goat','deer','wolf','hare'];
 /* a river runs here or hard by — and a RIVER, not the sea: the chart says a
    watercourse, and the ground about it belongs to a country */
 function riverBankAt(x,z){
@@ -3989,40 +4133,75 @@ function riverBankAt(x,z){
     if(riverAtUV(u,v)&&countryAtUV(u,v)) return true; }
   return false;
 }
+/* will this beast set foot on this ground, at this height, by this water? */
+function beastFits(name,k,hb,river){
+  const K=FAUNA.keeps[name]; if(!K) return true;         /* unlisted: it goes anywhere */
+  if(K.g&&K.g.indexOf(k)<0) return false;
+  if(K.h&&(hb<K.h[0]||hb>K.h[1])) return false;
+  if(K.riv&&!river) return false;                        /* it keeps the banks and nothing else */
+  return true;
+}
+/* the beasts of THIS land, or the climate's own if the land has no list */
+function faunaFor(x,z,k){
+  const ci=countryAtUV(x/R_WORLD,z/R_WORLD);
+  if(ci&&COUNTRIES[ci-1]){ const L=FAUNA.lands[COUNTRIES[ci-1].n]; if(L&&L.length) return L; }
+  return null;
+}
 function landKindAt(x,z,c){
   const lat=90-Math.hypot(x/R_WORLD,z/R_WORLD)*180;      /* signed: the midst is north */
   const alat=Math.abs(lat), arid=fbm(x*0.0009+5,z*0.0009-8);
+  /* THE DRAW IS SEEDED ON A TILE OF GROUND, not on the beast — so a whole
+     field bears the same kind and a herd stands together in it, and the same
+     field bears the same kind for ever. */
   const j=hash2(Math.floor(x/48),Math.floor(z/48));
-  /* a SEPARATE draw for the two territorial beasts, or the same number that
-     chose their species would also decide whether they were there at all,
-     and the two would move together */
-  const j2=hash2(Math.floor(x/64)+7.3,Math.floor(z/64)-3.1);
   const k=c?c.kind:'grass', hb=c?c.h:1;
+  if(k==='floe'||k==='wall'){                            /* the ice keeps its own */
+    return (lat>0&&j<0.5)?'polarbear':(lat>0?'arcticfox':'penguin'); }
+  const land=faunaFor(x,z,k);
+  if(land){
+    /* only the beasts that will truly stand HERE — the ground underfoot, the
+       height, and whether a watercourse runs by. The river is the dearest
+       question to ask, so it is asked once, and only if some beast of this
+       land actually cares about the answer. */
+    let river=null, fit=[], w=0;
+    for(const nm of land){ const K=FAUNA.keeps[nm];
+      if(K&&K.riv){ if(river===null) river=riverBankAt(x,z); if(!river) continue; }
+      if(!beastFits(nm,k,hb,river)) continue;
+      fit.push(nm); w+=(K&&K.w)||1; }
+    if(fit.length){
+      /* drawn by weight, so the great territorial beasts — the lion, the
+         rhinoceros, the leopard — are met as seldom as they ought to be */
+      let r=j*w;
+      for(const nm of fit){ r-=((FAUNA.keeps[nm]&&FAUNA.keeps[nm].w)||1); if(r<=0) return nm; }
+      return fit[fit.length-1];
+    }
+  }
+  /* ---- AND WHERE NO LIST IS WRITTEN ---- the old climate table */
   const pick=L=>L[Math.floor(j*L.length)%L.length];
-  if(k==='floe'||k==='wall') return 'penguin';          /* the ice keeps one beast only */
-  /* the crocodile lies along the great tropical rivers — the Nile up to its
-     delta, the Congo, the Amazon, the Ganges — and in no other water */
-  if(alat<32&&j2<0.45&&(k==='tropic'||k==='grass'||k==='desert'||k==='sand')&&riverBankAt(x,z)) return 'crocodile';
-  /* and the bear holds a wide territory in the northern woods, so there are
-     never many of them in one country */
-  if(lat>44&&lat<74&&j2<0.20&&(k==='grass'||k==='tundra'||k==='alpine'))
-    return (k==='tundra'||lat>58)?'bear':'blackbear';
+  const byKind=FAUNA.wilds[k];
+  if(byKind&&byKind.length) return pick(byKind);
   if(k==='alpine'||k==='rock'||hb>34) return pick(WILD_HIGH);
   if(k==='snow'||k==='tundra') return pick(WILD_COLD);
   if(k==='desert'||k==='badlands'||(alat<34&&arid>0.54)) return pick(WILD_DRY);
   if(alat<24) return pick(WILD_SAVANNA);
   return pick(WILD_TEMPERATE);
 }
-const LANDLIFE=[], LL_N=26, LL_R=360;
-const AMBIENT_PREY=new Set(['sheep','goat','pig','chicken','hare','deer','donkey','cow','horse','ostrich']);
+/* THE PLAIN CARRIES A CROWD. Six-and-twenty beasts was a thin scattering
+   anywhere, and on the great grassland — which is a place of HERDS, and reads
+   as nothing at all without them — it was three zebra and a lion. */
+const LANDLIFE=[], LL_N=40, LL_R=360;
+const AMBIENT_PREY=new Set(FAUNA.prey.length?FAUNA.prey
+  :['sheep','goat','pig','chicken','hare','deer','donkey','cow','horse','ostrich']);
 /* ---- AND WHAT EACH IS ABOUT ----
    Nothing had any business but to walk to a random point and walk to another.
    Every creature now keeps a trade: the grazers feed, herd and bed down; the
    wolves hunt as a PACK and gather to the kill; the lion creeps in low and
    then charges; the bear forages and fishes the rivers; the crocodile lies
-   sunk to the eyes and lunges at whatever comes within reach. */
-const WILD_ROLE={wolf:'pack', lion:'stalk', bear:'forage', blackbear:'forage',
-  crocodile:'ambush', lizard:'bask'};
+   sunk to the eyes and lunges at whatever comes within reach.
+   Which beast keeps which trade is in world/fauna.js, with everything else
+   about it. */
+const WILD_ROLE=Object.assign({wolf:'pack', lion:'stalk', bear:'forage',
+  blackbear:'forage', crocodile:'ambush', lizard:'bask'}, FAUNA.roles);
 function initLandLife(){ if(LANDLIFE.length) return; for(let k=0;k<LL_N;k++) LANDLIFE.push({m:null,kind:null,hx:0,hz:0,x:0,z:0,heading:0,tx:0,tz:0,t:0,set:false}); }
 function findLandSpot(px,pz){ for(let tr=0;tr<10;tr++){ const a=Math.random()*6.28, r=70+Math.random()*LL_R, x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
     /* beasts keep to the charted lands (ci>0 — the countries and true isles);
@@ -4036,6 +4215,15 @@ function findLandSpot(px,pz){ for(let tr=0;tr<10;tr++){ const a=Math.random()*6.
        bare of every living thing, as such a place ought to be. */
     if((c.kind==='floe'||(c.kind==='wall'&&c.h<=60))) return {x,z,y:c.h*B,c};
   } return null; }
+/* ---- WHAT THE GRASS FILE NEEDS TO KNOW ABOUT A POINT ----
+   The ground it is, and how far it lies from a settled place — a village
+   keeps its own ground grazed and cut, which is the same number the chunk
+   mesher hands GRASS.at when it draws the blades. The beast walking to a
+   bite and the mesher drawing it are asking the same question of the same
+   file, so the beast arrives at grass that is really there. */
+function grassProbe(x,z){ const c=landAtWorld(x,z);
+  if(!c||c.kind==='wall'||!GRASS.SWARD[c.kind]) return null;
+  return {kind:c.kind, wild:nearSettled(x,z)?0.34:1}; }
 function updateLandLife(px,pz,dt,t){ initLandLife();
   const night=(worldNight||0)>0.6;
   for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>LL_R+140){ const sp=findLandSpot(px,pz);
@@ -4044,11 +4232,23 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       if(a.kind!==kind){ if(a.m) scene.remove(a.m); a.m=makeAnimal(kind); scene.add(a.m); a.kind=kind; }
       a.hx=sp.x; a.hz=sp.z; a.x=sp.x; a.z=sp.z; a.tx=sp.x; a.tz=sp.z; a.t=Math.random()*3; a.set=true;
       a.role=WILD_ROLE[kind]||'graze'; a.job='roam'; a.jt=Math.random()*3; a.prey=null; a.cool=0;
-      a.river=riverBankAt(sp.x,sp.z); a.sink=0; a.crouch=false;
+      a.river=riverBankAt(sp.x,sp.z); a.sink=0; a.crouch=false; a.hidden=false;
       a.m.visible=true; a.m.position.set(sp.x,sp.y,sp.z); }
     if(!a.set) continue;
     let spd=7; a.jt=(a.jt||0)-dt; a.cool=(a.cool||0)-dt;
     const role=a.role||'graze';
+    /* the ground this beast is standing in: what it can eat here, and how
+       deep the cover is over it. Asked four times a second and not sixty —
+       grass does not grow that fast, and forty beasts each reading a
+       nine-square of it every frame is a great deal of arithmetic for an
+       answer that cannot have changed. */
+    a.gt=(a.gt||0)-dt;
+    if(a.gt<=0){ a.gt=0.25;
+      const gp=grassProbe(a.x,a.z);
+      a.bare=!gp;                          /* ground that bears no grass at all */
+      a.feed=gp?GRASS.feedAt(a.x,a.z,gp.kind,gp.wild):0;
+      a.cover=gp?GRASS.coverAt(a.x,a.z,gp.kind,gp.wild):0;
+      a.hidden=(a.cover>=GRASS.HIDE_H); }
 
     if(role==='pack'||role==='stalk'){
       /* ---- THE HUNT ---- */
@@ -4062,10 +4262,24 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
           if(a.prey&&role==='pack') for(const b of LANDLIFE)
             if(b!==a&&b.set&&b.role==='pack'&&Math.hypot(b.x-a.x,b.z-a.z)<95){ b.prey=a.prey; b.job='roam'; }
         }
+        /* ---- AND IF THERE IS NOTHING TO HUNT, HE LIES UP IN THE GRASS ----
+           A lion on open ground with no quarry walked about in plain sight
+           all day. He goes to the deep grass instead and lies down in it —
+           which is where a lion actually is when you cannot see one, and it
+           puts him in the cover he will need when a herd does come by. */
+        if(!a.prey&&role==='stalk'){
+          if(a.hidden){ a.crouch=true; if(a.jt<=0){ a.jt=6+Math.random()*8; a.tx=a.x; a.tz=a.z; } spd=0; }
+          else if(a.jt<=0){ const cv=GRASS.findCover(a.x,a.z,150,grassProbe);
+            if(cv){ a.tx=cv.x; a.tz=cv.z; a.jt=3+Math.random()*3; spd=6; } }
+        }
         if(a.prey){ const d2=Math.hypot(a.prey.x-a.x,a.prey.z-a.z);
-          /* the lion creeps in low and long, then breaks into the charge */
-          a.crouch=(role==='stalk'&&d2>26);
-          a.tx=a.prey.x; a.tz=a.prey.z; spd=a.crouch?3.4:13; a.jt=Math.max(a.jt,0.4);
+          /* the lion creeps in low and long, then breaks into the charge —
+             and he creeps THROUGH SOMETHING: while the grass is over him he
+             comes on slowly and is not seen, and he keeps coming low until
+             the cover runs out under him. Where there is none he must make
+             the rush from further off, and the herd has the sight of him. */
+          a.crouch=(role==='stalk'&&(d2>26||(a.hidden&&d2>7)));
+          a.tx=a.prey.x; a.tz=a.prey.z; spd=a.crouch?(a.hidden?4.6:3.4):13; a.jt=Math.max(a.jt,0.4);
           if(d2<3.4){ a.cool=15; a.prey.fear=2.4; a.job='feed'; a.jt=6+Math.random()*5; a.crouch=false;
             /* and the pack comes in to the kill and feeds together */
             if(role==='pack') for(const b of LANDLIFE)
@@ -4103,19 +4317,46 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
     }
     else {
       /* ---- THE GRAZERS ---- heads down in the grass, drawn together into a
-         herd, fleeing what hunts them, and bedded down at night */
+         herd, fleeing what hunts them, and bedded down at night.
+
+         AND THEY GRAZE GRASS NOW. A grazer put its head down wherever it
+         happened to be standing — a sand flat, bare dirt, the swept floor of
+         a village, the scree of a mountain — because nothing in the world but
+         the chunk mesher knew where a blade of grass stood. It asks the grass
+         file what is under its muzzle: if there is a bite there it feeds, and
+         if there is not it WALKS TO WHERE THERE IS and feeds when it arrives.
+         So a herd eats a patch down and moves off it, and the ground they
+         gather on is the green ground you can see them standing in. */
       a.fear=(a.fear||0)-dt;
       let fx=null,fz=null;
       if(state.mode==='walk'&&Math.hypot(state.walk.x-a.x,state.walk.z-a.z)<9){ fx=state.walk.x; fz=state.walk.z; }
       else for(const b of LANDLIFE){ if(!b.set||(b.role!=='pack'&&b.role!=='stalk'&&b.role!=='ambush')) continue;
-        if(Math.hypot(b.x-a.x,b.z-a.z)<18){ fx=b.x; fz=b.z; break; } }
+        /* a hunter lying up in the deep grass is NOT SEEN. It is caught at
+           arm's length or not at all, and that is the whole use of cover. */
+        const see=b.hidden?6:18;
+        if(Math.hypot(b.x-a.x,b.z-a.z)<see){ fx=b.x; fz=b.z; break; } }
       if(fx!==null){ const dd2=Math.hypot(a.x-fx,a.z-fz)||1;
         a.tx=a.x+(a.x-fx)/dd2*34; a.tz=a.z+(a.z-fz)/dd2*34; a.fear=Math.max(a.fear,0.7); a.job='flee'; a.jt=0.7; }
       if(a.fear>0){ spd=12; }
       else if(night){ a.job='bed'; spd=0; a.jt=2; }
-      else if(a.jt<=0){ a.job=(a.job==='feedhead')?'roam':'feedhead';
-        a.jt=a.job==='feedhead'?(3+Math.random()*4):(2.5+Math.random()*3); }
-      if(a.job==='feedhead') spd=0;
+      else if(a.jt<=0){
+        if(a.job==='feedhead'){ a.job='roam'; a.jt=2.5+Math.random()*3; }
+        /* ON GROUND THAT BEARS NO GRASS AT ALL — the snow of the far north,
+           bare rock, the sand — there is nothing to walk to and nothing to
+           look for. The reindeer paws the drift for the moss under it and the
+           goat works the scree, as they did before, and as they must. */
+        else if(a.bare){ a.job='feedhead'; a.jt=3+Math.random()*4; }
+        else if(a.feed>=GRASS.FEED_MIN){ a.job='feedhead'; a.jt=3+Math.random()*4; }
+        else {
+          /* nothing to eat here — go and find some */
+          const gz=GRASS.findGraze(a.x,a.z,190,grassProbe);
+          if(gz){ a.tx=gz.x; a.tz=gz.z; a.job='seek'; a.jt=4+Math.random()*3; spd=8; }
+          else { a.job='roam'; a.jt=2.5+Math.random()*3; }
+        }
+      }
+      /* and it puts its head down the moment it is standing in a bite */
+      if(a.job==='seek'&&a.feed>=GRASS.FEED_MIN){ a.job='feedhead'; a.jt=3+Math.random()*4; }
+      if(a.job==='feedhead') spd=0; else if(a.job==='seek') spd=8;
     }
 
     /* a new place to make for, when the last is reached or the work is done */
@@ -4172,7 +4413,65 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
     if(ud.head&&a.job==='dig') ud.head.rotation.x=0.4+Math.sin(t*3)*0.18;
     else if(ud.head) ud.head.rotation.x=0;
   } }
-function hideLandLife(){ for(const a of LANDLIFE) if(a.m) a.m.visible=false; }
+function hideLandLife(){ for(const a of LANDLIFE) if(a.m) a.m.visible=false;
+  for(const r of RIVERLIFE) if(r.m) r.m.visible=false; }
+/* ================= THE FISH OF THE RIVERS =================
+   The great rivers were open water and nothing else — a road inland with
+   nothing living in it, while the sea beside them carried shoals, whales and
+   sharks. They keep their own now, and each nation of them to its own water:
+   the trout and the salmon in the cold rapids of the north and the south, the
+   sturgeon in the great slow rivers of the temperate belt, the catfish on the
+   warm muddy bottom, and in the Amazon and the Ganges alone the piranha and
+   the pink river dolphin, which never in their lives see the sea.
+   Add a creature file, add a line here, and that fish is in the rivers. */
+const RIVER_KINDS=[
+  {name:'trout',      n:5, lat:[34,72],   spd:9,  y:2.2},
+  {name:'trout',      n:3, lat:[-58,-32], spd:9,  y:2.2},
+  {name:'salmon',     n:4, lat:[40,70],   spd:11, y:3.0},
+  {name:'sturgeon',   n:2, lat:[30,64],   spd:6,  y:5.0},
+  {name:'catfish',    n:4, lat:[-34,46],  spd:5,  y:5.5},
+  /* and these two by their own waters, and no others on the earth */
+  {name:'piranha',    n:7, lat:[-22,10],  lon:[-78,-42], spd:10, y:2.6},
+  {name:'riverdolphin',n:1,lat:[-14,8],   lon:[-76,-48], spd:12, y:4.0},
+  {name:'riverdolphin',n:1,lat:[19,29],   lon:[73,93],   spd:12, y:4.0},
+];
+const RIVERLIFE=[], RL_R=420;
+let riverLifeInit=false;
+function initRiverLife(){ if(riverLifeInit) return; riverLifeInit=true;
+  for(const K of RIVER_KINDS) for(let k=0;k<K.n;k++){
+    const m=makeBeast(K.name); m.visible=false; scene.add(m);
+    RIVERLIFE.push({m,K,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false}); } }
+/* is this point running fresh water — a charted watercourse, in a land, and
+   open (the cell is cut away for the river to run through it)? */
+function riverWaterAt(x,z){
+  const u=x/R_WORLD, v=z/R_WORLD;
+  return !!riverAtUV(u,v) && !!countryAtUV(u,v) && !landAtWorld(x,z);
+}
+function updateRiverLife(px,pz,dt,t){ initRiverLife();
+  const lat=90-Math.hypot(px/R_WORLD,pz/R_WORLD)*180;
+  const lon=Math.atan2(px/R_WORLD,pz/R_WORLD)*180/Math.PI;
+  for(const f of RIVERLIFE){ const K=f.K;
+    const fits=lat>=K.lat[0]&&lat<=K.lat[1]&&(!K.lon||(lon>=K.lon[0]&&lon<=K.lon[1]));
+    if(!fits){ if(f.set){ f.set=false; f.m.visible=false; } continue; }
+    if(!f.set||Math.hypot(f.x-px,f.z-pz)>RL_R+120){
+      f.set=false;
+      /* a watercourse is a thread across the whole country — a handful of
+         tries out from the traveller finds it if he is anywhere near one,
+         and finds nothing at all if he is not, which is the right answer */
+      for(let tr=0;tr<14;tr++){ const a=Math.random()*6.28, r=40+Math.random()*RL_R;
+        const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
+        if(!riverWaterAt(x,z)) continue;
+        f.x=x; f.z=z; f.y=WATER_Y-K.y; f.dir=Math.random()*6.28; f.set=true; f.m.visible=true; break; }
+      if(!f.set){ f.m.visible=false; continue; }
+    }
+    /* it runs the thread of the water and turns back at the bank */
+    f.dir+=Math.sin(t*0.6+f.ph)*0.06;
+    const nx=f.x+Math.cos(f.dir)*K.spd*dt, nz=f.z+Math.sin(f.dir)*K.spd*dt;
+    if(riverWaterAt(nx,nz)){ f.x=nx; f.z=nz; } else f.dir+=2.1+Math.random()*0.8;
+    f.m.position.set(f.x, f.y+Math.sin(t*1.1+f.ph)*0.5, f.z);
+    f.m.rotation.y=Math.atan2(Math.cos(f.dir),Math.sin(f.dir));
+    if(f.m.userData.tail) f.m.userData.tail.rotation.y=Math.sin(t*6+f.ph)*0.4;
+  } }
 /* ================= THE FOWL OF THE AIR, AND THEIR WORK =================
    Every bird flew a fixed circle about a fixed point, for ever. They keep a
    day's work now: they hunt or forage, carry what they take home in the
@@ -8069,7 +8368,9 @@ function frame(){
     if(!underEye) updateShallowLife(p.x,p.z,dt,tt);   /* fish and turtles seen through the clear shallows */
     podTick(p.x,p.z,dt,tt);             /* the whale pods, making for the fishing grounds */
     orcaTick(p.x,p.z,dt,tt);            /* and the killer whales, on their own road in the deep */
-    if(state.mode==='boat'||state.mode==='deck'||state.mode==='walk') updateLandLife(p.x,p.z,dt,tt); else hideLandLife(); }
+    if(state.mode==='boat'||state.mode==='deck'||state.mode==='walk'){
+      updateLandLife(p.x,p.z,dt,tt); updateRiverLife(p.x,p.z,dt,tt); }
+    else hideLandLife(); }
   else { hideLandLife(); hideAirLife(); hidePod(); hideOrca(); }
   if(state.firm&&firmMark) firmMark.position.set(p.x,R_WORLD*0.012,p.z);
   seaTex.offset.x=(performance.now()*0.000012)%1; seaTex.offset.y=(performance.now()*0.000009)%1;
