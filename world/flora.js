@@ -50,9 +50,25 @@ const TUNDRA=['dwarfbirch','arcticwillow','crowberry','cloudberry','lingonberry'
 const MEDIT=['olive','fig','grapevine','almond','cypress','stonepine','laurel',
   'corkoak','holmoak','pomegranate','carob','myrtle','oleander','rosemary','lavender',
   'thyme','sage','oregano','boxwood','quince','wheat','barley','poppy'];
-/* the dry country: thorn, tamarisk, the date palm at the well */
+/* ---- THE WASTES, AND THEY ARE NOT ONE WASTE ----
+   The Sahara and Arabia; the cold gravel from Persia to the Gobi; the mesa
+   country of the new world; and the red centre of the great south land. They
+   grow nothing whatever in common but the tamarisk, the saltbush and the
+   thistle, and to give them one list is to put a saguaro cactus in Mongolia,
+   which is exactly what used to happen. */
 const DESERTS=['datepalm','acacia','tamarisk','doum','saltbush','myrrh',
-  'frankincense','aloe','thistle','barley','creosote','melon','reed','papyrus','bulrush'];
+  'frankincense','aloe','thistle','barley','melon','ghaf','sidr','colocynth',
+  'whitebroom','camelthorn','reed','papyrus','bulrush'];
+/* from Persia to the Gobi — a COLD waste, and it looks like one */
+const DESERT_ASIA=['saxaul','tamarisk','desertpoplar','camelthorn','wormwood',
+  'ephedra','feathergrass','tumbleweed','saltbush','thistle','juniper','melon',
+  'barley','reed','sedge'];
+/* the mesa and the basin of the new world */
+const DESERT_AMER=['saguaro','pricklypear','barrelcactus','ocotillo','joshua',
+  'yucca','agave','mesquite','creosote','sagebrush','saltbush','cottonwood','thistle'];
+/* and the red centre */
+const DESERT_AUS=['mulga','desertoak','ghostgum','spinifex','mallee','saltbush',
+  'pricklypear','wattle','thistle'];
 /* the rain forest of the equator */
 const RAINFOREST=['ceiba','jungle','rosewood','ironwood','mahogany','rubber','banyan','bodhi','treefern','fern',
   'banana','papaya','mango','cacao','coffee','moss','pandanus','sugarcane',
@@ -337,6 +353,37 @@ rosewood :{form:'spread', bole:0x7a3a2a, leaf:0x2e6a2e, h:1.3, g:['tropic'], wt:
 tamboti  :{form:'round',  bole:0x5a4630, leaf:0x5a8a3a, h:0.8, g:['savanna','tropic']},
 blackwood:{form:'thorn',  bole:0x3e3228, leaf:0x6a8a52, h:0.9, g:['grass','savanna']},
 
+/* ---- THE WASTE OF THE EAST ----
+   From Persia to the Gobi is not the Sahara and does not grow like it. It is
+   a COLD waste: salt pan, gravel and clay under a bitter wind, and what
+   holds on there is the saxaul, the camel thorn, the wormwood and the
+   feather grass — and the tumbleweed, which lets go in the autumn and rolls
+   till something stops it. (Before this, the eastern deserts were given
+   whatever the climate table had, which was the AMERICAN waste: there were
+   saguaro cactus in Mongolia and prickly pear in Syria.) */
+camelthorn:{form:'shrub', leaf:0x8a9a62, flower:0xc8a83a, h:0.7, g:['desert','badlands','sand','savanna']},
+wormwood :{form:'shrub', leaf:0xa8ac96, h:0.5, g:['desert','badlands','grass','rock']},
+ephedra  :{form:'shrub', leaf:0x7a8a5a, fruit:0xc03828, h:0.6, g:['desert','badlands','rock','alpine']},
+feathergrass:{form:'herb',leaf:0xd8cca0, flower:0xefe8d0, h:0.9, g:['desert','grass','badlands','alpine']},
+tumbleweed:{form:'shrub',leaf:0xc4b48a, h:0.55, w:1.2, g:['desert','badlands','sand','grass']},
+desertpoplar:{form:'round',bole:0xa89878, leaf:0xc8c060, h:0.9, wet:true, g:['desert','sand','badlands']},
+/* ---- AND THE WASTE OF ARABIA ----
+   The ghaf and the sidr are the two trees a man of the desert knows by name;
+   the colocynth is the wild gourd of the wilderness; the desert rose and the
+   dragon's blood are of Arabia Felix and the isle of Socotra and nowhere
+   else on the earth. */
+ghaf     :{form:'thorn', bole:0x7a6a4a, leaf:0x8aa060, h:0.8, g:['desert','sand','badlands']},
+sidr     :{form:'round', bole:0x8a7a5a, leaf:0x6a9a4a, fruit:0xc8a030, h:0.7, g:['desert','sand','savanna','badlands']},
+colocynth:{form:'herb',  leaf:0x7a9a4a, fruit:0xc8d060, h:0.35, g:['desert','sand','badlands']},
+desertrose:{form:'shrub',leaf:0x6a8a5a, flower:0xd8486a, h:0.6, g:['desert','rock','badlands']},
+dragonblood:{form:'spread',bole:0x8a7a62,leaf:0x4a7a4a, h:0.7, w:0.9, g:['rock','desert','badlands'], wt:0.4},
+whitebroom:{form:'shrub', leaf:0xa8b08a, flower:0xf0eee4, h:0.7, g:['desert','sand','badlands','rock']},
+/* ---- AND OF THE AMERICAN AND THE AUSTRALIAN WASTE ---- */
+ocotillo :{form:'rosette',leaf:0x6a7a44, flower:0xc82828, bole:0x6a5a3a, h:1.6, g:['desert','badlands','rock']},
+barrelcactus:{form:'shrub',leaf:0x5a8a44, flower:0xd8b02a, h:0.5, g:['desert','badlands','rock']},
+mulga    :{form:'thorn', bole:0x5a4a34, leaf:0x8a9a68, h:0.65, g:['desert','badlands','savanna','sand']},
+desertoak:{form:'column',bole:0x6a5a44, leaf:0x5a6a4a, h:1.1, g:['desert','sand','badlands']},
+
 /* ---- THE PLANTS OF THE WATER'S EDGE ----
    These grow on a river bank and nowhere else on the earth. Name them in a
    country and they will be met only where its rivers run. */
@@ -378,13 +425,17 @@ wilds:{
            'sedge','lotus','taro'],
   savanna:['acacia','umbrellathorn','mopane','baobab','datepalm','sorghum','millet','aloe','thistle',
            'reed','papyrus','sedge','lotus'],
-  desert :['datepalm','acacia','tamarisk','saltbush','aloe','thistle','cumin','reed','papyrus','bulrush'],
-  badlands:['saguaro','pricklypear','sagebrush','saltbush','yucca','thistle'],
-  sand   :['coconut','pandanus','mangrove','saltbush','gorse'],
+  /* THE FALLBACK MUST BE OF NO COUNTRY AT ALL. It stands under the uncharted
+     isles and any land not yet written, and it used to be the American waste
+     — so every desert on the earth without its own list grew saguaro. These
+     four grow on every dry continent there is. */
+  desert :['tamarisk','saltbush','thistle','tumbleweed','feathergrass','melon'],
+  badlands:['tamarisk','saltbush','thistle','tumbleweed','wormwood'],
+  sand   :['coconut','pandanus','mangrove','saltbush','tamarisk','thistle'],
   tundra :['dwarfbirch','arcticwillow','crowberry','lingonberry','lichen','reindeermoss','moss','cottongrass',
            'sedge','willow','reed'],
   alpine :['pine','spruce','juniper','dwarfbirch','heather','moss','lichen','gentian','thyme'],
-  rock   :['juniper','heather','lichen','moss','thyme','rosemary'],
+  rock   :['juniper','heather','lichen','moss','thyme','wormwood','ephedra'],
   snow   :['arcticwillow','lichen','reindeermoss'],
 },
 
@@ -403,11 +454,12 @@ lands:{
 'Ethiopia':SAVANNAH.concat(['coffee','frankincense','myrrh','barley','wheat','teff','juniper','aloe']),
 'Eritrea':DESERTS.concat(['sorghum','millet','frankincense','aloe','acacia','doum']),
 'Djibouti':DESERTS.concat(['frankincense','myrrh','doum','aloe','saltbush']),
-'Somalia':DESERTS.concat(['frankincense','myrrh','doum','acacia','aloe','sorghum','banana']),
+'Somalia':DESERTS.concat(['frankincense','myrrh','doum','acacia','aloe','sorghum','banana','dragonblood']),
 'Somaliland':DESERTS.concat(['frankincense','myrrh','acacia','aloe','sorghum']),
 'S. Sudan':SAVANNAH.concat(['papyrus','sorghum','reed','mango','shea','acacia']),
 'Sudan':DESERTS.concat(['sorghum','millet','papyrus','doum','acacia','mango','cotton']),
-'Egypt':DESERTS.concat(['papyrus','datepalm','reed','bulrush','wheat','barley','fig','pomegranate','cumin','flax','lotus','waterlily']),
+'Egypt':DESERTS.concat(['papyrus','datepalm','reed','bulrush','wheat','barley','fig','pomegranate','cumin','flax','lotus','waterlily',
+  'colocynth','whitebroom','sidr','wormwood']),
 'Libya':DESERTS.concat(['olive','fig','datepalm','barley','saltbush']),
 'Tunisia':MEDIT.concat(['datepalm','fig','olive','pomegranate','cumin','tamarisk']),
 'Algeria':MEDIT.concat(['datepalm','corkoak','cedar','fig','tamarisk','saltbush']),
@@ -450,22 +502,27 @@ lands:{
 
 /* ---------------- ASIA ---------------- */
 'Russia':BOREAL.concat(['fir','aspen','oak','rye','oats','flax','sunflower','bilberry','elderberry']),
-'Kazakhstan':['saxaul','wheat','barley','saltbush','tamarisk','poplar','apple','thistle','sagebrush','juniper'],
-'Uzbekistan':DESERTS.concat(['cotton','mulberry','apricot','grapevine','poplar','melon','saltbush']),
-'Turkmenistan':DESERTS.concat(['cotton','saltbush','tamarisk','grapevine','poplar']),
+'Kazakhstan':DESERT_ASIA.concat(['wheat','apple','poplar','birch','pine']),
+'Uzbekistan':DESERT_ASIA.concat(['cotton','mulberry','apricot','grapevine','poplar','pistachio','wheat']),
+'Turkmenistan':DESERT_ASIA.concat(['cotton','grapevine','poplar','pistachio','wheat']),
 'Kyrgyzstan':ALPINE_P.concat(['walnut','apple','spruce','juniper','barley','poplar','tulip']),
 'Tajikistan':ALPINE_P.concat(['apricot','mulberry','walnut','juniper','barley','poplar','cotton']),
-'Mongolia':['larch','pine','birch','saltbush','sagebrush','thistle','barley','juniper','lichen','heather'],
+'Mongolia':DESERT_ASIA.concat(['larch','pine','birch','lichen','heather','moss','poplar']),
 'China':['bamboo','ginkgo','camphor','tea','rice','mulberry','peach','persimmon','pine','spruce',
-  'cypress','wheat','cotton','hemp','lotus','waterlily','fern','moss','rhododendron','apple','pear','ginseng'],
+  'cypress','wheat','cotton','hemp','lotus','waterlily','fern','moss','rhododendron','apple','pear','ginseng',
+  /* and the Gobi and the Taklamakan, which are also China */
+  'saxaul','tamarisk','desertpoplar','camelthorn','wormwood','ephedra','feathergrass',
+  'tumbleweed','saltbush','juniper','melon','thistle'],
 'Taiwan':['bamboo','camphor','tea','rice','banana','pineapple','mango','treefern','fern','sugarcane','moss'],
 'North Korea':['pine','oak','birch','maple','rice','ginseng','fern','moss','barley','apple'],
 'South Korea':['pine','oak','maple','bamboo','rice','tea','persimmon','apple','fern','moss','azalea'],
 'Japan':['cedar','cherry','bamboo','maple','pine','tea','rice','persimmon','plum','azalea','fern','moss','ginkgo','camphor'],
 'Nepal':ALPINE_P.concat(['rhododendron','pine','fir','bamboo','rice','tea','barley','maize','fern']),
 'Bhutan':ALPINE_P.concat(['rhododendron','fir','pine','bamboo','rice','maize','fern','moss']),
-'India':MONSOON.concat(['sal','sandalwood','cotton','tea','turmeric','pepper','mangrove','lotus','papaya']),
-'Pakistan':DESERTS.concat(['cotton','wheat','sugarcane','mango','datepalm','orange','poplar','tamarisk']),
+'India':MONSOON.concat(['sal','sandalwood','cotton','tea','turmeric','pepper','mangrove','lotus','papaya',
+  /* and the Thar, which is also India */
+  'acacia','sidr','ghaf','camelthorn','tamarisk','colocynth','saltbush','thistle','neem','datepalm']),
+'Pakistan':DESERT_ASIA.concat(['cotton','wheat','sugarcane','mango','datepalm','orange','acacia','sidr','neem']),
 'Bangladesh':MONSOON.concat(['mangrove','jute','rice','jackfruit','banana','tea','papaya']),
 'Sri Lanka':MONSOON.concat(['cinnamon','tea','rubber','coconut','clove','nutmeg','pepper','banyan']),
 'Myanmar':MONSOON.concat(['teak','bamboo','rubber','sesame','banyan','mangrove','jackfruit']),
@@ -478,18 +535,24 @@ lands:{
 'Indonesia':RAINFOREST.concat(['oilpalm','rubber','clove','nutmeg','coffee','durian','sago','mangrove','rice','teak']),
 'Timor-Leste':RAINFOREST.concat(['coffee','sandalwood','coconut','maize','mangrove']),
 'Philippines':RAINFOREST.concat(['coconut','rice','sugarcane','mango','banana','mangrove','bamboo','pineapple','starfruit']),
-'Afghanistan':DESERTS.concat(['grapevine','pomegranate','almond','apricot','mulberry','saffron','poplar','juniper']),
-'Iran':DESERTS.concat(['pistachio','pomegranate','datepalm','grapevine','saffron','walnut','cypress','wheat']),
+'Afghanistan':DESERT_ASIA.concat(['grapevine','pomegranate','almond','apricot','mulberry','saffron','poplar','pistachio','wheat']),
+'Iran':DESERT_ASIA.concat(['pistachio','pomegranate','datepalm','grapevine','saffron','walnut','cypress','wheat','fig','papyrus']),
 'Iraq':DESERTS.concat(['datepalm','reed','papyrus','wheat','barley','pomegranate','fig','tamarisk']),
-'Syria':MEDIT.concat(['datepalm','pistachio','cotton','wheat','apricot','tamarisk']),
-'Lebanon':MEDIT.concat(['cedar','apple','cherry','pine','oak','grapevine']),
-'Yasharal':MEDIT.concat(['datepalm','fig','pomegranate','olive','grapevine','wheat','barley','hyssop','tamarisk','almond','myrrh','frankincense']),
-'Yahudah':MEDIT.concat(['datepalm','fig','pomegranate','olive','grapevine','wheat','barley','hyssop','almond','tamarisk','myrrh']),
-'Jordan':DESERTS.concat(['olive','fig','grapevine','datepalm','pomegranate','hyssop','tamarisk','wheat']),
+'Syria':MEDIT.concat(['datepalm','pistachio','cotton','wheat','apricot','tamarisk',
+  'whitebroom','colocynth','camelthorn','saltbush','wormwood','thistle']),
+'Lebanon':MEDIT.concat(['cedar','apple','cherry','pine','oak','grapevine','hyssop','whitebroom','wormwood']),
+'Yasharal':MEDIT.concat(['datepalm','fig','pomegranate','olive','grapevine','wheat','barley','hyssop','tamarisk','almond','myrrh','frankincense',
+  /* and the WILDERNESS of it, which is half the land: the shittah tree, the
+     broom Aliyahu lay down under, the wild gourds of the pot, the lote */
+  'acacia','whitebroom','colocynth','sidr','camelthorn','saltbush','thistle','wormwood']),
+'Yahudah':MEDIT.concat(['datepalm','fig','pomegranate','olive','grapevine','wheat','barley','hyssop','almond','tamarisk','myrrh',
+  'acacia','whitebroom','colocynth','sidr','camelthorn','saltbush','thistle','wormwood']),
+'Jordan':DESERTS.concat(['olive','fig','grapevine','datepalm','pomegranate','hyssop','tamarisk','wheat',
+  'whitebroom','colocynth','sidr','wormwood']),
 'Saudi Arabia':DESERTS.concat(['datepalm','frankincense','myrrh','acacia','tamarisk','coffee','aloe']),
-'Yemen':DESERTS.concat(['coffee','frankincense','myrrh','datepalm','acacia','aloe','sorghum']),
-'Oman':DESERTS.concat(['frankincense','datepalm','mango','acacia','aloe','banana']),
-'United Arab Emirates':DESERTS.concat(['datepalm','mangrove','acacia','saltbush']),
+'Yemen':DESERTS.concat(['coffee','frankincense','myrrh','datepalm','acacia','aloe','sorghum','dragonblood','desertrose']),
+'Oman':DESERTS.concat(['frankincense','datepalm','mango','acacia','aloe','banana','ghaf','sidr','desertrose']),
+'United Arab Emirates':DESERTS.concat(['datepalm','mangrove','acacia','ghaf','sidr','desertrose']),
 'Qatar':DESERTS.concat(['datepalm','mangrove','saltbush','acacia']),
 'Kuwait':DESERTS.concat(['datepalm','saltbush','tamarisk','acacia']),
 'Turkey':MEDIT.concat(['hazel','apricot','fig','walnut','cherry','quince','cotton','cedar','pine','oak','tea']),
@@ -543,10 +606,10 @@ lands:{
 'Greenland':TUNDRA.concat(['arcticwillow','dwarfbirch','moss','lichen','crowberry']),
 'Canada':BOREAL.concat(['sugarmaple','fir','douglasfir','hemlock','aspen','cranberry','blueberry','wheat','oats','cottongrass']),
 'United States of America':TEMPERATE.concat(['sugarmaple','sweetgum','planetree','hickory','pecan','redwood','sequoia','douglasfir',
-  'saguaro','joshua','pricklypear','creosote','sagebrush','cottonwood','maize','cotton','tobacco',
-  'blueberry','magnolia','baldcypress','yucca','hemlock','grapefruit','bulrush']),
-'Mexico':['maize','agave','pricklypear','saguaro','yucca','mesquite','avocado','cacao','vanilla','lime',
-  'pine','oak','tomato','coffee','banana','mango','papaya'],
+  'saguaro','joshua','pricklypear','barrelcactus','ocotillo','creosote','sagebrush','agave','mesquite','yucca','cottonwood','maize','cotton','tobacco',
+  'blueberry','magnolia','baldcypress','hemlock','grapefruit','bulrush']),
+'Mexico':DESERT_AMER.concat(['maize','avocado','cacao','vanilla','lime',
+  'pine','oak','tomato','coffee','banana','mango','papaya']),
 'Guatemala':RAINFOREST.concat(['coffee','maize','avocado','cacao','banana','ceiba','pine']),
 'Belize':RAINFOREST.concat(['mahogany','cacao','banana','coconut','mangrove','ceiba']),
 'Honduras':RAINFOREST.concat(['coffee','banana','mahogany','pine','cacao','maize']),
@@ -565,8 +628,9 @@ lands:{
 'Paraguay':['quebracho','algarrobo','maize','sugarcane','cotton','tea','datepalm','thistle','fern','mango'],
 'Uruguay':TEMPERATE.concat(['algarrobo','wheat','maize','sunflower','grapevine','thistle','clover']),
 'Argentina':['algarrobo','quebracho','araucaria','wheat','maize','sunflower','grapevine','thistle',
-  'poplar','willow','clover','saltbush','pricklypear','quinoa'],
-'Chile':['araucaria','podocarp','grapevine','wheat','potato','quinoa','saltbush','pricklypear','moss','fern','lichen'],
+  'poplar','willow','clover','saltbush','pricklypear','barrelcactus','quinoa','feathergrass'],
+'Chile':['araucaria','podocarp','grapevine','wheat','potato','quinoa','saltbush','pricklypear',
+  'barrelcactus','ocotillo','moss','fern','lichen','tumbleweed'],
 'Cuba':ISLES.concat(['sugarcane','tobacco','coffee','mahogany','mangrove','pineapple']),
 'Haiti':ISLES.concat(['coffee','sugarcane','mango','mahogany','maize']),
 'Dominican Rep.':ISLES.concat(['sugarcane','cacao','coffee','mahogany','mango','tobacco']),
@@ -578,8 +642,8 @@ lands:{
 'Fr. S. Antarctic Lands':TUNDRA.concat(['moss','lichen','reindeermoss']),
 
 /* ---------------- THE GREAT SOUTH LAND AND THE ISLES ---------------- */
-'Australia':['eucalyptus','ghostgum','wattle','blackwood','banksia','bottlebrush','mallee','spinifex','saltbush',
-  'macadamia','mangrove','treefern','fern','wheat','grapevine','pricklypear'],
+'Australia':DESERT_AUS.concat(['eucalyptus','blackwood','banksia','bottlebrush',
+  'macadamia','mangrove','treefern','fern','wheat','grapevine']),
 'New Zealand':['kauri','podocarp','pohutukawa','kowhai','treefern','fern','moss','lichen','clover','wheat','apple','grapevine'],
 'Papua New Guinea':RAINFOREST.concat(['sago','coconut','coffee','cacao','mangrove','pandanus','taro','bamboo']),
 'Solomon Is.':ISLES.concat(['sago','cacao','coconut','mangrove','pandanus','taro']),
