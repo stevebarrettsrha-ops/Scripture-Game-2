@@ -380,6 +380,78 @@ code by hand and fixed:
 - **The trade panel closes itself** when you walk off or change mode (fixed
   in Round 9, confirmed by the audit).
 
+## 4j. Round 11 — the true deep, and the crown of the ice ✅
+
+Two things were wrong, and both were matters of MEASURE.
+
+**1. The deep was not deep.** The bed of the open ocean bottomed out at about
+116 m and the gauge said so to the traveller's face — shallower than a great
+many lakes. The sea now has its real depths, to the metre, on the one measure
+a man walks, swims and dives by (a block is a metre — the same `U_PER_M`
+every beast is built to, and the same the gauge reports):
+
+| water | true depth | in the game |
+|---|---|---|
+| continental shelf, to the break | 0 – 200 m | 0 – 200 m |
+| continental slope | 200 – 3,000 m | 200 – 3,000 m |
+| abyssal plains | 3,000 – 6,000 m | 3,500 – 5,400 m |
+| the hadal trenches | 6,000 – 11,034 m | to 11,034 m |
+| average of the whole ocean | ~3,700 m | ~4,000 m sampled |
+
+- **`world/deeps.js`** — a new file, one line to a trench, each at its real
+  latitude and longitude with its real sounding: the Challenger Deep at
+  11,034, the Horizon Deep, the Kuril–Kamchatka, the Milwaukee Deep, the
+  Richards Deep off Chile, the Molloy Deep under the Arctic ice, and a
+  score more. Sail to the Marianas, dive, and the gauge reads 11,034 M DOWN.
+- **The blue holes** are in the same file: sheer shafts sunk through the
+  reefs — Belize, Dean's, the Dragon Hole, Dahab — cut last of all so nothing
+  fills them in, and as deep below the reef floor as the charts say.
+- **Shelf, slope, rise and plain** are drawn from a new offshore-reach field,
+  so a transect out from any coast reads as a real one: 97 m on the shelf,
+  162 at the break, 1,877 down the slope, and 4,583 on the plain.
+- **The depth-gauge names the zone** it finds — EPIPELAGIC, MESOPELAGIC,
+  BATHYPELAGIC, ABYSSOPELAGIC, HADAL — and names the trench when you touch
+  down on the floor of a named one.
+- **The light fails on its true measure**: sunlight is spent by 1,000 m, so
+  below that the sea is black whatever the hour, and **there is no sky under
+  the water** — the star field used to come up through the deep, and a diver
+  a mile down at midnight hung among stars.
+- **The sounding quickens with the depth**, as a weighted line does: slow and
+  swimmable in the sunlit water where there is something to see, running fast
+  by the time the light has gone, so eleven kilometres is a minute and a half
+  and not nine.
+- **Every creature keeps its own water.** Anchoring a beast to the bed was
+  well while the bed was 90 m down; with the true ocean under it, it put
+  dolphins on the abyssal plain and reef fish in the hadal dark. Each is
+  anchored now to the higher of the bed and its own deepest haunt.
+- **`creatures/anglerfish.js`** — a black room with a floor in it is not the
+  deep; the deep is a black room with LIGHTS in it. She hangs below 800 m
+  with her lamp lit over her glass teeth, and she is the only thing to see.
+
+**2. The wall of ice had no top.** It climbed 900 blocks and then ran out to
+the rim as a crown tilting ever upward — there was nowhere on it to stand.
+
+- **It stops climbing at two thousand feet** (610 blocks, a block to the
+  metre) and from there to the rim it is **one flat field of ice, 357 blocks
+  across**: a crown a man may walk out on to the edge of the world. The
+  buttresses and crevasses of the climb die away exactly where the crown
+  begins, so the plateau is level and reads as the one flat thing at the end
+  of everything. The climb keeps its ~1 block to the pace and is walkable.
+- **The firmament comes down to meet it.** The vault keeps its whole shape
+  over the world and then sweeps down over the last five hundredths of the
+  radius, closing onto the ice a few hundred units above the crown — and the
+  glass is turned from the same profile the ceiling is measured by, so what
+  the eye sees and what the hand reaches are one thing. The light gathers
+  along its hem, so from the crown a man sees a bright curved wall standing
+  at the world's edge with the whole earth shut inside it.
+- **It is seen from the ground**, not only from the air: the vault faded in
+  with height alone, so a man on the crown with the glass over his head saw
+  nothing there at all. Close to it is a glaze, not a lid — the earth shows
+  through it.
+- **The place-line names it**: THE CROWN OF THE ICE — 2,000 FT ABOVE THE SEA,
+  and the touch-the-firmament prompt stands ready across the outer 130 blocks
+  of the plateau.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

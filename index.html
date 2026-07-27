@@ -208,12 +208,16 @@
 /* The registry the land, verse and river files feed into.
    Each file in countries/ calls EARTH.country({...}) — one land per file,
    loaded in a fixed order so the world is identical on every machine. */
-window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],beastList:[],
+window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deepList:[],holeList:[],beastList:[],
   country:function(c){this.list.push(c);},
   verses:function(v){this.verseList=v;},
   river:function(r){this.riverList.push(r);},
   city:function(c){this.cityList.push(c);},
   landmark:function(l){this.landmarkList.push(l);},
+  /* the trenches of the sea, each at its true sounding — see world/deeps.js */
+  deep:function(d){this.deepList.push(d);},
+  /* the blue holes: sheer shafts sunk in the reefs — see world/deeps.js */
+  hole:function(h){this.holeList.push(h);},
   /* every living thing has its own file in creatures/ — see creatures/README.md */
   beast:function(b){this.beastList.push(b);}};
 </script>
@@ -414,6 +418,7 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],beas
 <script src="world/rivers.js"></script>
 <script src="world/verses.js"></script>
 <script src="world/landmarks.js"></script>
+<script src="world/deeps.js"></script>
 <!-- EVERY LIVING THING, ONE TO A FILE. Edit any of these and reload; the
      beast is rebuilt from its own file. `metres` in each file is the beast's
      TRUE adult length, and the game scales the model to match it. -->
@@ -422,6 +427,7 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],beas
 <script src="creatures/jelly.js"></script>
 <script src="creatures/crab.js"></script>
 <script src="creatures/squid.js"></script>
+<script src="creatures/anglerfish.js"></script>
 <script src="creatures/turtle.js"></script>
 <script src="creatures/ray.js"></script>
 <script src="creatures/dolphin.js"></script>
