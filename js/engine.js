@@ -925,11 +925,16 @@ const SHELF_SHOAL=0.10;
    past the first few paces of sand, and the clear water off every coast had
    no floor under it when seen from the deck. Each cell is a block standing ON
    the bed, however deep it lies — but only while the bottom can still be
-   SEEN: past thirty metres the water is its own colour, and the bed that
-   follows the diver has the ground from there out.
-   (180 units — thirty metres, at the six units to the metre everything that
+   SEEN: past this the water is its own colour, and the bed that follows the
+   diver has the ground from there out.
+   IT IS TIED TO THE WATER'S OWN CLARITY, and must stay tied. The skin of the
+   sea goes shut at some sixty metres (`clear`, in the water shader); laid
+   shallower than that and there is bare water where a floor should show from
+   the deck, laid deeper and it is triangles no eye will ever meet — at a
+   hundred and fifty metres it cost half again as many and changed nothing.
+   (360 units — sixty metres, at the six units to the metre everything that
    swims is built by.) */
-const SHELF_DEEP=180;
+const SHELF_DEEP=360;
 /* ================= AND THE LAND GOES DOWN TO THE BED =================
    Every flank of every land ended at SUBSEA_Y — thirteen units under the
    waterline — because that is where the bed used to lie at every coast. The
@@ -1587,7 +1592,22 @@ const waveMat=new THREE.ShaderMaterial({
       col=mix(col,skyR,fres*0.6*above);
       /* transparency by depth: the shallows let the bottom show through,
          the deep keeps its darkness; a mirror-skin at grazing angles */
-      float aa=mix(0.55,0.93,deepF);
+      /* ---- HOW FAR THE EYE SEES DOWN INTO IT ----
+         The skin's transparency followed the SHOAL — a distance-from-land
+         field — so the bottom stopped showing at a fixed distance off the
+         beach whatever the water was actually doing, and it was near enough
+         opaque by thirty metres. Every terrace the mesher laid past that was
+         geometry nobody could ever see: raising the shelf cap to a hundred
+         and fifty metres cost half again as many triangles and changed not
+         one pixel of the view from the deck.
+         It follows the true DEPTH now, and the shelf profile gives that from
+         the very same number (it is how the bed itself is drawn: D_STRAND,
+         the break at 200 m, and the ^2.6 between them). Clear to some sixty
+         metres, as a clear sea is, and shut below it. */
+      float sp=1.0-pow(max(shoalRaw,0.0001),0.83333);
+      float shelfM=2.17+197.8*pow(sp,2.6);           /* the depth here, in metres */
+      float clear=1.0-smoothstep(8.0,62.0,shelfM);
+      float aa=mix(0.93,0.55,clear);
       aa=mix(aa,0.985,fres*0.6*above);
       aa=max(aa,allFoam*0.95*above);
       /* and from beneath, the skin of the sea is thin — the daylight comes
