@@ -576,8 +576,39 @@ function emitSapling(kit,K,ix,iz,cc){
   emitBox(kit.G, x-r*0.5,yT+H*1.0,z-r*0.5, x+r*0.5,yT+H*1.2,z+r*0.5, lm,lm,lm, LF);
 }
 
+/* ---- HOW HIGH THE CROWN OF THIS TREE STANDS ----
+   Asked by anything that must put something IN a tree — and until it existed
+   the one thing that did (the nests of the birds) guessed at a flat three and
+   a third blocks for every tree in the world, so a nest hung in mid air over
+   an olive and sat buried in the bole of a jungle giant. Returns the height
+   above the ground, in UNITS, at which the leaf begins; 0 if the form has no
+   crown to speak of (a cactus, a clump of bamboo). */
+function crownY(K,ix,iz,hash){
+  if(!K) return 0;
+  const q=hash(ix*0.73+11.3,iz*0.91-5.7);
+  const S=(0.62+Math.pow(q,0.55)*1.25+(hash(ix*3.1,iz*2.3)>0.965?0.85:0))*K.h;
+  const F=K.form;
+  switch(F){
+    case 'conifer': return B*5.2*S*(K.bare===undefined?0.28:K.bare)+B*0.4;
+    case 'column':  return B*5.6*S*0.35;
+    case 'palm':    return B*4.6*S;
+    case 'thorn':   return B*4.0*S;
+    case 'baobab':  return B*3.4*S;
+    case 'banana':  return B*2.4*S*0.8;
+    case 'mangrove':return B*3.0*S;
+    case 'fern':    return B*3.0*S;
+    case 'gum':     return B*6.2*S*0.84;
+    case 'spread':  return B*3.8*S;
+    case 'darkoak': return B*3.0*S-B*0.6;
+    case 'jungle':  return B*7.0*S-B*0.5*S*K.w;
+    case 'round': case 'blossom': return B*3.4*S*(F==='blossom'?0.9:1)-B*0.4;
+    case 'cactus': case 'bamboo': return 0;
+    default:        return B*3.6*S-B*0.9;      /* the oak and its kin */
+  }
+}
+
 window.FLORA={
-  load, treeAt, plantAt, saplingAt, emitTree, emitPlant, emitSapling,
+  load, treeAt, plantAt, saplingAt, emitTree, emitPlant, emitSapling, crownY,
   tintOf, kinds:()=>D.kinds, lands:()=>D.lands,
   /* the four grey things everything in the world is drawn with. The engine
      mints them; this file only ever names them. */

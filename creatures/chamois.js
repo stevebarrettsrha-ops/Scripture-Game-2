@@ -18,5 +18,6 @@ build:function(T){
   const muz=T.box(0.55,0.4,0.3,k); muz.position.set(0,3.7,2.5); g.add(muz);
   const tail=T.box(0.2,0.4,0.2,k); tail.position.set(0,2.6,-1.3); g.add(tail);
   T.legs4(g,0.42,0.85,1.9,coat,0.34);
+  g.userData.head=head;
   return g;
 }});

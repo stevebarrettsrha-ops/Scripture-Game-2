@@ -22,5 +22,6 @@ build:function(T){
   tail.position.set(0,3.9,-2.3); g.add(tail);
   const tuft=T.box(0.34,0.8,0.34,dark); tuft.position.set(0,2.6,-2.3); g.add(tuft);
   T.legs4(g,0.72,1.5,3.0,coat,0.6);
+  g.userData.head=head;
   return g;
 }});

@@ -15,5 +15,6 @@ build:function(T){
   const tail=T.box(0.28,0.28,0.9,w); tail.position.set(0,0.8,-1.4); tail.rotation.x=0.3; g.add(tail);
   const tip=T.box(0.3,0.3,0.35,k); tip.position.set(0,0.62,-1.95); g.add(tip);
   T.legs4(g,0.24,0.6,0.42,w,0.2);
+  g.userData.head=head;
   return g;
 }});

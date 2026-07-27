@@ -16,5 +16,6 @@ build:function(T){
   /* the paddle */
   const tail=T.box(1.1,0.22,1.8,0x2e2018); tail.position.set(0,0.5,-2.0); g.add(tail);
   T.legs4(g,0.45,0.7,0.6,dark,0.36);
+  g.userData.head=head;
   return g;
 }});

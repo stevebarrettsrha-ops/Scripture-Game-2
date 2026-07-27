@@ -15,5 +15,6 @@ build:function(T){
     const web2=T.box(0.45,0.12,0.45,bill); web2.position.set(s*0.55,0.16,-0.6); g.add(web2); }
   const tail=T.box(0.9,0.24,1.1,coat); tail.position.set(0,0.4,-1.5); g.add(tail);
   T.legs4(g,0.42,0.65,0.28,coat,0.22);
+  g.userData.head=head;
   return g;
 }});

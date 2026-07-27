@@ -1268,6 +1268,20 @@ function buildChunk(cx,cz){
     chunkRoot.add(m); meshes.push(m); }
   chunks.set(cx+','+cz,{meshes,cx,cz});
 }
+/* ---- A BUCKET OF FACES, MADE INTO A THING THAT STANDS BY ITSELF ----
+   The chunk mesher writes into a bucket and hands it to the renderer. Some
+   things are not part of a chunk and must move about on their own — a nest,
+   a den, a burrow — but they are built out of exactly the same boxes. This
+   makes one group out of a bucket, so the same emit code serves both. */
+function groupFromG(G){ const g=new THREE.Group();
+  for(const mat in G){ const b=G[mat];
+    const bg=new THREE.BufferGeometry();
+    bg.setAttribute('position',new THREE.Float32BufferAttribute(b.p,3));
+    bg.setAttribute('uv',new THREE.Float32BufferAttribute(b.uv,2));
+    bg.setAttribute('color',new THREE.Float32BufferAttribute(b.c,3));
+    bg.setIndex(b.i);
+    g.add(new THREE.Mesh(bg,MAT[mat])); }
+  return g; }
 const _chAt=[NaN,NaN];
 function updateChunks(px,pz,budget){
   const ccx=Math.floor(px/CHW), ccz=Math.floor(pz/CHW);
@@ -4278,12 +4292,39 @@ function riverBankAt(x,z){
     if(riverAtUV(u,v)&&countryAtUV(u,v)) return true; }
   return false;
 }
+/* ---- IS THERE A TREE WITHIN REACH OF THIS POINT? ----
+   The cell a beast is put down on almost never carries a tree — they are one
+   cell in twenty at best. A creature that LIVES in a tree must be looked for
+   over a little ground, not on the one square: this walks out four cells in
+   a ring and hands back the nearest bole, with the true crown height of that
+   species on it. It is what the tree-dwellers are placed by, and what the
+   nests of the birds are hung from. */
+function treeNear(x,z,reach){
+  reach=reach||4;
+  const ix0=Math.floor(x/B), iz0=Math.floor(z/B);
+  for(let r=0;r<=reach;r++){
+    for(let a=-r;a<=r;a++) for(let b2=-r;b2<=r;b2++){
+      if(r>0&&Math.abs(a)!==r&&Math.abs(b2)!==r) continue;
+      const ix=ix0+a, iz=iz0+b2, c=cell(ix,iz);
+      if(!c||!c.tree||c.kind==='wall') continue;
+      if(!window.FLORA) return {ix,iz,c,y:c.h*B+B*2.6,x:(ix+0.5)*B,z:(iz+0.5)*B};
+      const K=FLORA.treeAt(landNameAt((ix+0.5)*B,(iz+0.5)*B),c.kind,c.h,ix,iz,hash2,false);
+      const crown=K?FLORA.crownY(K,ix,iz,hash2):0;
+      if(crown<B*1.2) continue;                 /* a shrub is not a home */
+      return {ix,iz,c,K,crown,y:c.h*B+crown,x:(ix+0.5)*B,z:(iz+0.5)*B}; } }
+  return null;
+}
 /* will this beast set foot on this ground, at this height, by this water? */
-function beastFits(name,k,hb,river){
+function beastFits(name,k,hb,river,tree){
   const K=FAUNA.keeps[name]; if(!K) return true;         /* unlisted: it goes anywhere */
   if(K.g&&K.g.indexOf(k)<0) return false;
   if(K.h&&(hb<K.h[0]||hb>K.h[1])) return false;
   if(K.riv&&!river) return false;                        /* it keeps the banks and nothing else */
+  /* ---- AND THE ONES THAT LIVE IN THE TREES MUST HAVE ONE ----
+     The sloth, the koala, the orangutan and the howler walked about on the
+     open ground at six units a second, which is four things wrong at once.
+     They are not put down at all where no tree stands. */
+  if(K.tr&&!tree) return false;
   return true;
 }
 /* the beasts of THIS land, or the climate's own if the land has no list */
@@ -4324,10 +4365,11 @@ function landKindAt(x,z,c){
        height, and whether a watercourse runs by. The river is the dearest
        question to ask, so it is asked once, and only if some beast of this
        land actually cares about the answer. */
-    let river=null, fit=[], w=0;
+    let river=null, wood=null, fit=[], w=0;
     for(const nm of land){ const K=FAUNA.keeps[nm];
       if(K&&K.riv){ if(river===null) river=riverBankAt(x,z); if(!river) continue; }
-      if(!beastFits(nm,k,hb,river)) continue;
+      if(K&&K.tr&&wood===null) wood=treeNear(x,z,4)||false;
+      if(!beastFits(nm,k,hb,river,!!wood)) continue;
       fit.push(nm); w+=(K&&K.w)||1; }
     if(fit.length){
       /* drawn by weight, so the great territorial beasts — the lion, the
@@ -4385,19 +4427,77 @@ function findLandSpot(px,pz){ for(let tr=0;tr<10;tr++){ const a=Math.random()*6.
 function grassProbe(x,z){ const c=landAtWorld(x,z);
   if(!c||c.kind==='wall'||!GRASS.SWARD[c.kind]) return null;
   return {kind:c.kind, wild:nearSettled(x,z)?0.34:1}; }
+/* give a mother her young, or take them away again */
+function setYoung(a,want){
+  if(a.kids) for(const y of a.kids) scene.remove(y.m);
+  a.kids=null;
+  if(!want||!window.BABY) return;
+  const Y=BABY.youngOf(a.kind); if(!Y) return;
+  const n=Math.max(1,Math.round(Y.n*(0.6+Math.random()*0.6)));
+  a.kids=[];
+  for(let i=0;i<n;i++){
+    const m=BABY.makeYoung(makeAnimal,a.kind); if(!m) break;
+    scene.add(m);
+    a.kids.push({m,x:a.x,z:a.z,heading:a.heading,ph:Math.random()*6.283,suck:0,side:i%2?1:-1}); }
+  if(!a.kids.length) a.kids=null;
+}
+function hideYoung(a){ if(a.kids) for(const y of a.kids) y.m.visible=false; }
 function updateLandLife(px,pz,dt,t){ initLandLife();
   const night=(worldNight||0)>0.6;
   for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>LL_R+140){ const sp=findLandSpot(px,pz);
-      if(!sp){ if(a.m)a.m.visible=false; a.set=false; continue; }
+      if(!sp){ if(a.m)a.m.visible=false; hideYoung(a); a.set=false; continue; }
       const kind=landKindAt(sp.x,sp.z,sp.c);
       if(a.kind!==kind){ if(a.m) scene.remove(a.m); a.m=makeAnimal(kind); scene.add(a.m); a.kind=kind; }
       a.hx=sp.x; a.hz=sp.z; a.x=sp.x; a.z=sp.z; a.tx=sp.x; a.tz=sp.z; a.t=Math.random()*3; a.set=true;
       a.role=WILD_ROLE[kind]||'graze'; a.job='roam'; a.jt=Math.random()*3; a.prey=null; a.cool=0;
+      /* ---- UP THE TREE, IF THAT IS WHERE IT LIVES ----
+         Set at the true crown height of the tree standing on its own cell,
+         the same question the nests ask. It does not roam: it hangs there,
+         and shifts about once in a long while, which is the whole of what a
+         sloth or a koala does with its day. */
+      { const K=FAUNA.keeps[kind]; a.upTree=0;
+        if(K&&K.tr){ const w2=treeNear(sp.x,sp.z,4);
+          if(w2){ /* it is set IN that tree, not on the ground beside it */
+            a.x=a.hx=a.tx=w2.x; a.z=a.hz=a.tz=w2.z;
+            a.upTree=Math.max(B*1.5,w2.crown*0.85); } }
+        /* ---- AND WHETHER IT KEEPS THE NIGHT ----
+           The cats and the wolves hunt in the dark by nature; the badger,
+           the fox cub's supper, the hedgehog, the jerboa and the rest come
+           out when the sun is off the ground. Everything else sleeps. */
+        a.nocturnal=!!(K&&K.night)||a.role==='stalk'||a.role==='pack'; }
       a.river=riverBankAt(sp.x,sp.z); a.sink=0; a.crouch=false; a.hidden=false;
-      a.m.visible=true; a.m.position.set(sp.x,sp.y,sp.z); }
+      a.m.visible=true; a.m.position.set(sp.x,sp.y,sp.z);
+      /* ---- AND SOME OF THEM HAVE YOUNG AT FOOT ----
+         Not every beast and not every season: about one in four, and only
+         the kinds that keep their young WITH them (js/baby-animals.js says
+         which — a fox cub is at the den and is not out here). The young is
+         built from its mother's OWN model, so a zebra's is a small zebra
+         with a near full-sized head, which is what makes a thing read as
+         young without anybody being told. */
+      setYoung(a, window.BABY && BABY.runs(kind) && hash2(sp.x*0.031,sp.z*0.027)<0.26); }
     if(!a.set) continue;
     let spd=7; a.jt=(a.jt||0)-dt; a.cool=(a.cool||0)-dt;
     const role=a.role||'graze';
+    /* ---- WHETHER THIS BEAST IS AWAKE AT ALL ----
+       Only the grazers ever slept. A badger foraged at noon and a lion
+       hunted at noon, and nothing on the earth kept its own hours. A beast
+       that keeps the night is up when the diurnal ones are bedded, and down
+       when they are up — which halves what you meet at any hour and doubles
+       what it is worth meeting. */
+    const asleep=a.nocturnal?!night:night;
+    /* a beast up a tree does not walk anywhere at all */
+    if(a.upTree>0){
+      a.jt-=0; if(a.jt<=0){ a.jt=8+Math.random()*14;
+        const aa=Math.random()*6.28, rr=Math.random()*3;
+        a.tx=a.hx+Math.cos(aa)*rr; a.tz=a.hz+Math.sin(aa)*rr; }
+      const dxt=a.tx-a.x, dzt=a.tz-a.z, ddt=Math.hypot(dxt,dzt)||1;
+      if(ddt>0.6&&!asleep){ a.x+=dxt/ddt*0.7*dt; a.z+=dzt/ddt*0.7*dt; a.heading=Math.atan2(dxt,dzt); }
+      const ct=landAtWorld(a.x,a.z);
+      a.m.position.set(a.x,(ct?ct.h*B:WATER_Y)+a.upTree,a.z);
+      a.m.rotation.y=a.heading; a.m.rotation.x=asleep?0.3:0;
+      if(a.m.userData.legs) for(const L of a.m.userData.legs) L.rotation.x=0;
+      continue;
+    }
     /* the ground this beast is standing in: what it can eat here, and how
        deep the cover is over it. Asked four times a second and not sixty —
        grass does not grow that fast, and forty beasts each reading a
@@ -4464,8 +4564,11 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
     }
     else if(role==='forage'){
       /* ---- THE BEAR ---- it digs the ground for roots, and where it stands
-         by running water it goes down and fishes the shallows */
+         by running water it goes down and fishes the shallows.
+         And it SLEEPS. A forager worked its way round the clock before. */
       spd=6;
+      if(asleep){ a.job='bed'; spd=0; a.jt=2; }
+      else
       if(a.job==='fish'||a.job==='dig'){ spd=0; if(a.jt<=0){ a.job='roam'; a.jt=5+Math.random()*6; } }
       else if(a.jt<=0){
         if(a.river&&Math.random()<0.45){ a.job='fish'; a.jt=5+Math.random()*5; }
@@ -4473,8 +4576,11 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       }
     }
     else if(role==='bask'){
-      spd=4; if(a.jt<=0){ a.job=a.job==='bask'?'roam':'bask'; a.jt=a.job==='bask'?(4+Math.random()*6):(1+Math.random()*2); }
-      if(a.job==='bask') spd=0;
+      /* a cold-blooded thing gets no good of the dark: it lies up under a
+         stone all night and comes out when there is sun to take */
+      if(night){ a.job='bed'; spd=0; a.jt=2; }
+      else { spd=4; if(a.jt<=0){ a.job=a.job==='bask'?'roam':'bask'; a.jt=a.job==='bask'?(4+Math.random()*6):(1+Math.random()*2); }
+        if(a.job==='bask') spd=0; }
     }
     else {
       /* ---- THE GRAZERS ---- heads down in the grass, drawn together into a
@@ -4499,7 +4605,7 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       if(fx!==null){ const dd2=Math.hypot(a.x-fx,a.z-fz)||1;
         a.tx=a.x+(a.x-fx)/dd2*34; a.tz=a.z+(a.z-fz)/dd2*34; a.fear=Math.max(a.fear,0.7); a.job='flee'; a.jt=0.7; }
       if(a.fear>0){ spd=12; }
-      else if(night){ a.job='bed'; spd=0; a.jt=2; }
+      else if(asleep){ a.job='bed'; spd=0; a.jt=2; }
       else if(a.jt<=0){
         if(a.job==='feedhead'){ a.job='roam'; a.jt=2.5+Math.random()*3; }
         /* ON GROUND THAT BEARS NO GRASS AT ALL — the snow of the far north,
@@ -4569,12 +4675,26 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
     if(a.m.userData.legs) for(const L of a.m.userData.legs)
       L.rotation.x=moving?Math.sin(t*(spd>8?10:7)+(L.userData.ph||0))*0.5:0;
     /* the crocodile's jaw and the bear's head keep their own motion */
+    /* ---- THE YOUNG AT HER FOOT ----
+       It keeps station off her flank, falls behind on a turn and hurries to
+       catch up, tucks in tight when she is frightened, and works its way in
+       under her and suckles when she stands still. */
+    if(a.kids&&window.BABY) for(const y of a.kids){
+      const r=BABY.tickYoung(y,a,dt,t);
+      const yc=landAtWorld(y.x,y.z);
+      y.m.visible=true;
+      y.m.position.set(y.x,(yc?yc.h*B:WATER_Y)+(r.sucking?-0.5:0),y.z);
+      y.m.rotation.y=y.heading;
+      y.m.rotation.x=r.sucking?0.34:0;         /* head in under her flank */
+      const legs=y.m.userData.legs;
+      if(legs) for(const L of legs)
+        L.rotation.x=r.moving?Math.sin(t*(r.sp>9?13:9)+(L.userData.ph||0))*0.55:0; }
     const ud=a.m.userData;
     if(ud.jaw) ud.jaw.rotation.x=(a.cool>16.4)?-0.6:0;         /* snapped shut on the strike */
     if(ud.head&&a.job==='dig') ud.head.rotation.x=0.4+Math.sin(t*3)*0.18;
     else if(ud.head) ud.head.rotation.x=0;
   } }
-function hideLandLife(){ for(const a of LANDLIFE) if(a.m) a.m.visible=false;
+function hideLandLife(){ for(const a of LANDLIFE){ if(a.m) a.m.visible=false; hideYoung(a); }
   for(const r of RIVERLIFE) if(r.m) r.m.visible=false; }
 /* ================= THE FISH OF THE RIVERS =================
    The great rivers were open water and nothing else — a road inland with
@@ -4642,11 +4762,73 @@ function updateRiverLife(px,pz,dt,t){ initRiverLife();
    surface, break it, and come up with a fish — and the fish they take is a
    real one out of the shoal, not a mime. */
 const AIRLIFE=[], AL_N=18, AL_R=440;
-const NESTS=[], NEST_N=5, NEST_R=430;
+const NESTS=[], NEST_N=6, NEST_R=430;
 function initNests(){ if(NESTS.length) return;
-  for(let k=0;k<NEST_N;k++){ const m=makeNest(); m.visible=false; scene.add(m);
-    NESTS.push({m,x:0,y:0,z:0,set:false,cheep:0}); } }
-/* the nests stand where their own places put them — seeded by the grid, so
+  for(let k=0;k<NEST_N;k++) NESTS.push({m:null,kind:null,chicks:[],x:0,y:0,z:0,set:false,cheep:0}); }
+/* ---- THE HOME OF A CREATURE, BUILT WHERE THAT CREATURE PUTS IT ----
+   It was one ring of sticks, put down at a flat three and a third blocks
+   above the ground whether a tree stood there or not — so every nest in the
+   world either HUNG IN MID AIR over open field or sat buried in a bole. And
+   nothing but the birds had a home at all.
+   Now the site is looked at and asked WHOSE it is: what flies here, what
+   walks here, and what such a creature actually builds (js/nest.js). A
+   tree-nester's is set at the TRUE crown height of the tree standing on that
+   very cell — asked of the flora, which is the only thing that knows. */
+function homeSiteFor(wx,wz,c,gi,gj){
+  const ix=Math.floor(wx/B), iz=Math.floor(wz/B), yG=c.h*B;
+  const land=landNameAt(wx,wz);
+  const pick=hash2(gi*7.1+3.3,gj*4.9-1.7);
+  /* a treed cell belongs to whatever nests in trees; bare ground to whatever
+     walks on it */
+  if(pick<0.6){
+    /* a nest is hung from the nearest bole about the site — the site itself
+       almost never carries a tree, and that is why every nest in the world
+       used to hang in mid air over open field */
+    const w2=treeNear(wx,wz,5);
+    if(w2){
+      /* whatever flies here — but a BUTTERFLY builds nothing, and was being
+         handed a nest full of chicks */
+      let bird=airKind(w2.x,w2.z,false);
+      if(bird==='butterfly'||!NEST.homeOf(bird)) bird=(hash2(w2.ix*1.9,w2.iz*2.7)<0.5)?'crow':'dove';
+      const home=NEST.homeOf(bird);
+      if(home&&home.where==='tree')
+        return {y:w2.y, x:w2.x, z:w2.z, kind:bird, home, bird:true};
+    }
+  }
+  /* else it is somebody's den, burrow, lair or scrape. Whose? — whatever
+     beast this country puts on this ground, if that beast builds anything. */
+  /* three draws, jittered a little apart: most beasts of a plain build
+     nothing at all (they drop their young in the open and it is running
+     within the hour), so one draw would leave a whole country with no dens */
+  for(let q=0;q<3;q++){
+    const jx=wx+(q-1)*37, jz=wz+(q-1)*29, jc=landAtWorld(jx,jz)||c;
+    const beast=landKindAt(jx,jz,jc);
+    const home=NEST.homeOf(beast);
+    if(home&&home.where!=='tree') return {y:jc.h*B, x:jx, z:jz, kind:beast, home, bird:false}; }
+  /* and where nothing builds, the plain leaves its own mark: a termite
+     mound, which is the one thing standing on half the grassland of the
+     earth and belongs to nobody you will ever see */
+  if((c.kind==='savanna'||c.kind==='tropic')&&pick>0.82)
+    return {y:yG, kind:'termite', home:{form:'termite',where:'ground',n:0,r:1}, bird:false};
+  return null;
+}
+function buildBeastHome(site){
+  const G=newG(); FKIT.G=G;
+  NEST.emitHome(FKIT,site.home,0,0,0); FKIT.G=null;
+  const g=groupFromG(G);
+  /* AND THE YOUNG IN IT — its own kind's, never a generic pair of boxes */
+  const chicks=[];
+  if(site.bird&&window.CHICKS){
+    const n=CHICKS.broodOf(site.kind,site.home.n);
+    for(let i=0;i<n;i++){ const ch=CHICKS.makeChick(BEAST_KIT,site.kind);
+      const a=i/n*6.283, r=B*0.3*(site.home.r||1);
+      ch.userData.nx=Math.cos(a)*r; ch.userData.nz=Math.sin(a)*r;
+      ch.position.set(ch.userData.nx,B*0.1,ch.userData.nz);
+      g.add(ch); chicks.push({m:ch,ph:Math.random()*6.283,baseY:B*0.1,
+        nx:ch.userData.nx,nz:ch.userData.nz,cx:0,cz:0,t:0,face:a}); } }
+  return {g,chicks};
+}
+/* the homes stand where their own places put them — seeded by the grid, so
    the same crag or treetop always bears the same nest */
 function updateNests(px,pz,dt){ initNests();
   const CS=430, ci=Math.round(px/CS), cj=Math.round(pz/CS), sites=[];
@@ -4655,16 +4837,25 @@ function updateNests(px,pz,dt){ initNests();
     if(hash2(gi*2.7,gj*5.1)<0.5) continue;
     const wx=gi*CS+(hash2(gi,gj)-0.5)*300, wz=gj*CS+(hash2(gj,gi)-0.5)*300;
     const c=landAtWorld(wx,wz); if(!c||c.kind==='wall'||!c.ci) continue;
-    sites.push({wx,wz,y:c.h*B+(c.tree?B*3.3:B*0.7),d:Math.hypot(wx-px,wz-pz)}); }
+    const site=homeSiteFor(wx,wz,c,gi,gj); if(!site) continue;
+    sites.push({wx,wz,site,d:Math.hypot(wx-px,wz-pz)}); }
   sites.sort((a,b)=>a.d-b.d);
+  const night=(worldNight||0)>0.6, t=performance.now()*0.001;
   for(let k=0;k<NEST_N;k++){ const N=NESTS[k], s=sites[k];
-    if(s&&s.d<NEST_R+300){ N.x=s.wx; N.y=s.y; N.z=s.wz; N.set=true;
-      N.m.position.set(s.wx,s.y,s.wz); N.m.visible=true; }
-    else { N.set=false; N.m.visible=false; }
-    /* the young stretch up and cheep while a parent is at the nest */
-    if(N.set){ N.cheep=Math.max(0,N.cheep-dt);
-      const up=N.cheep>0?0.45+0.25*Math.sin(performance.now()*0.02):0;
-      for(const ch of N.m.userData.chicks){ ch.body.position.y=0.45+up; ch.beak.position.y=0.5+up; } } } }
+    if(s&&s.d<NEST_R+300){
+      const key=s.site.kind+'|'+s.site.home.form;
+      if(N.kind!==key||!N.m){
+        if(N.m) scene.remove(N.m);
+        const built=buildBeastHome(s.site); N.m=built.g; N.chicks=built.chicks;
+        N.kind=key; scene.add(N.m); }
+      N.x=(s.site.x!==undefined)?s.site.x:s.wx;
+      N.z=(s.site.z!==undefined)?s.site.z:s.wz;
+      N.y=s.site.y; N.set=true; N.bird=s.site.bird;
+      N.m.position.set(N.x,N.y,N.z); N.m.visible=true; }
+    else { N.set=false; if(N.m) N.m.visible=false; }
+    if(N.set&&N.chicks.length&&window.CHICKS){
+      N.cheep=Math.max(0,N.cheep-dt);
+      for(const ch of N.chicks) CHICKS.tickChick(ch,ch.m,N.cheep,night,dt,t); } } }
 function nearestNest(x,z){ let best=null,bd=1e9;
   for(const N of NESTS){ if(!N.set) continue; const d=Math.hypot(N.x-x,N.z-z); if(d<bd){bd=d;best=N;} }
   return best; }
@@ -4815,7 +5006,7 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
       if(b.food) ud.carry.material.color.setHex(b.food==='fish'?0x9fb6c8:0xc8b46a); }
   } }
 function hideAirLife(){ for(const b of AIRLIFE) if(b.m) b.m.visible=false;
-  for(const N of NESTS) N.m.visible=false; }
+  for(const N of NESTS) if(N.m) N.m.visible=false; }
 
 /* ================= VILLAGES (minecraft-fashion) =================
    Cobblestone bases, oak plank walls with log corner posts, glass

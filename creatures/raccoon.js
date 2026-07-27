@@ -19,5 +19,6 @@ build:function(T){
     seg.position.set(0,-0.06*i,-0.34*i); tail.add(seg); }
   g.add(tail);
   T.legs4(g,0.32,0.6,0.7,k,0.28);
+  g.userData.head=head;
   return g;
 }});

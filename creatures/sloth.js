@@ -17,5 +17,6 @@ build:function(T){
     const claw=T.box(0.16,0.5,0.16,0x3e3428); claw.position.set(s*0.5,0.45,1.0); g.add(claw); }
   const muz=T.box(0.3,0.24,0.2,0x3e3428); muz.position.set(0,0.95,1.72); g.add(muz);
   T.legs4(g,0.4,0.7,0.55,fur,0.34);
+  g.userData.head=head;
   return g;
 }});

@@ -17,5 +17,6 @@ build:function(T){
     const wh=T.box(0.4,0.04,0.04,0xe8e0d0); wh.position.set(s*0.3,0.5,1.25); g.add(wh); }
   const tail=T.box(0.14,0.14,0.25,coat); tail.position.set(0,0.55,-0.75); g.add(tail);
   T.legs4(g,0.28,0.42,0.28,pale,0.18);
+  g.userData.head=head;
   return g;
 }});
