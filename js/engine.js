@@ -1340,7 +1340,9 @@ const snow=new THREE.Points(snowGeo,snowMat); snow.frustumCulled=false; snow.vis
 const _coldFog=new THREE.Color(0xb6c6da);
 const _voidC=new THREE.Color(0x02030a);      /* the outer darkness, beyond the rim */
 function updateWallWeather(px,pz,dt){
-  if(state.firm){ snow.visible=false; snowMat.opacity=0; return; }
+  /* and no drift of snow across the scene at the world's edge: it is lit by
+     nothing out there, and it read as grey dust hanging over the deep */
+  if(state.firm||sceneFlag('noSnow')){ snow.visible=false; snowMat.opacity=0; return; }
   const r=Math.hypot(px,pz)/R_WORLD, wallF=Math.max(0,Math.min(1,(r-0.85)/0.1));
   if(wallF>0.01 && scene.fog && !state.firm && state.mode!=='dive'){
     /* a cold haze closes in at the rim — it may shorten an OPEN view (the
@@ -1682,6 +1684,63 @@ const starGroup=new THREE.Group(); scene.add(starGroup);
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pts,3));
   const m=new THREE.PointsMaterial({color:0xdfe8ff,size:2.4,transparent:true,opacity:0,fog:false,sizeAttenuation:false});
   starGroup.add(new THREE.Points(g,m)); starGroup.userData.mat=m; }
+
+/* ================= THE HOST OF THE SHAMAYIM, WITHOUT =================
+   The stars above are set in the sky a man stands under: a half-dome of
+   them, dimmed out by day, turning once with the sun. That is right for a
+   SKY. It is not what is OUTSIDE. Beyond the firmament there is no day and
+   no air — only the darkness, and the whole host standing in it about the
+   earth, above and below and on every side, wheeling slowly about the height
+   while the earth itself does not move. So the outer dark has its own host:
+   a full sphere of them, carried with the eye so it can never be flown out
+   of, each one keeping its own slow twinkle. */
+const voidStars=(()=>{
+  const N=1800, pos=new Float32Array(N*3), sz=new Float32Array(N), ph=new Float32Array(N), sp=new Float32Array(N);
+  for(let i=0;i<N;i++){
+    /* evenly over the whole sphere — cos(e) uniform, or they crowd the poles */
+    const a=Math.random()*Math.PI*2, ce=Math.random()*2-1, se=Math.sqrt(1-ce*ce);
+    pos[i*3]=se*Math.cos(a); pos[i*3+1]=ce; pos[i*3+2]=se*Math.sin(a);
+    sz[i]=0.9+Math.random()*2.1; ph[i]=Math.random()*6.28; sp[i]=0.5+Math.random()*1.4; }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  g.setAttribute('aSize',new THREE.BufferAttribute(sz,1));
+  g.setAttribute('aPhase',new THREE.BufferAttribute(ph,1));
+  g.setAttribute('aSpd',new THREE.BufferAttribute(sp,1));
+  const m=new THREE.ShaderMaterial({
+    uniforms:{uTime:{value:0}, uOp:{value:0}, uPx:{value:Math.min(2,devicePixelRatio||1)}},
+    transparent:true, depthWrite:false, fog:false,
+    vertexShader:`
+      attribute float aSize, aPhase, aSpd;
+      uniform float uTime, uOp, uPx;
+      varying float vA;
+      void main(){
+        gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);
+        vA=uOp*(0.35+0.5*abs(sin(uTime*aSpd+aPhase)));
+        gl_PointSize=aSize*uPx;
+      }`,
+    fragmentShader:`
+      varying float vA;
+      void main(){ if(vA<0.01) discard; gl_FragColor=vec4(0.92,0.94,0.98,vA); }`});
+  const p2=new THREE.Points(g,m); p2.frustumCulled=false; p2.visible=false;
+  /* first of everything that is drawn with a blend: it is the BACKDROP. Left
+     to the ordinary sorting it would be reckoned the nearest thing in the
+     scene — its centre is the eye itself — and would come out on top of the
+     charted earth, which lays down no depth of its own. */
+  p2.renderOrder=-1; scene.add(p2);
+  p2.userData.mat=m; return p2;
+})();
+/* carried with the eye, and set just within the far plane so that every
+   thing that CAN be drawn is drawn in front of it */
+function voidStarTick(op){
+  const m=voidStars.userData.mat;
+  voidStars.visible=op>0.004;
+  if(!voidStars.visible) return;
+  m.uniforms.uOp.value=op;
+  m.uniforms.uTime.value=performance.now()*0.001;
+  voidStars.position.copy(camera.position);
+  voidStars.scale.setScalar(camera.far*0.93);
+  voidStars.rotation.y=performance.now()*0.0000075;   /* one turn in a quarter hour */
+}
 
 /* the two great lights — square, as they ought to be */
 const sunMat2=new THREE.SpriteMaterial({map:TEX.sun,fog:false,transparent:true,depthWrite:false});
@@ -2740,6 +2799,7 @@ TEX.sponge  =mkTex(g=>speckle(g,[224,176,64],28,[190,142,48],0.4));
    (W/S · A/D · SPACE up · SHIFT down), and comes up again to draw breath. */
 const DIVE_TURN=1.7, DIVE_MAXSP=155, DIVE_VMAX=125, DIVE_VACC=320, SEA_SURF=WATER_Y;
 let diveHintShown=false, deepShown=false, swimDeepHintShown=false;
+const seenDeeps=new Set();   /* a named trench is worth the scene once */
 /* ================= THE TRUE DEPTHS OF THE SEA =================
    The bed of the open ocean bottomed out at a hundred and sixteen metres —
    shallower than a great many lakes — and the gauge said so to the traveller's
@@ -3580,6 +3640,20 @@ function diveTick(dt){ const dv=state.dive;
     floor=Math.min(seabedDepth(dv.x,dv.z)+3,SEA_SURF-2);
   }
   if(dv.y<floor){ dv.y=floor; dv.vy=Math.max(0,dv.vy); }
+  /* ---- AND HE HAS COME DOWN ONTO THE DEEPEST GROUND THERE IS ----
+     The other end of the same world from the crown of the ice: eleven
+     kilometres of black water over his head and the floor of a named trench
+     under his feet. Each one is worth the scene once.
+     It is a NEARNESS, not a landing: a still body drifts up of itself, so a
+     diver who lets go a body's length off the bed hangs there and never once
+     satisfies the floor clamp — and the scene would only ever play for
+     someone holding SHIFT at the moment he arrived. */
+  if(!cut&&dv.y<floor+16){ const nd=nearestDeep(dv.x,dv.z);
+    if(nd&&nd.deep.m>=6000&&nd.d<nd.deep.R*0.4&&!seenDeeps.has(nd.deep.n)){
+      seenDeeps.add(nd.deep.n);
+      toast('You stand upon the floor of '+nd.deep.n+' \u2014 '
+        +Math.round((SEA_SURF-dv.y)/U_PER_M).toLocaleString()+' metres beneath the waves.');
+      playScene('hadal',{x:dv.x,y:dv.y,z:dv.z,out:dv.heading}); } }
   /* touch the surface without pressing down, and you break it — the sea
      gives the body back; hold SHIFT to stay under against the buoyancy */
   if(dv.y>SEA_SURF-2){ dv.y=SEA_SURF-2; dv.vy=Math.min(0,dv.vy); if(up>=0){ surface(); return; } }
@@ -4878,7 +4952,7 @@ function canFishHere(){
 let promptStall=null, promptTrader=null, promptPearl=null, promptChest=null;
 function promptTick(){
   const el=$('prompt'); if(!el) return;
-  if(domeCut){ el.style.opacity=0; promptAction=null; return; }
+  if(cut){ el.style.opacity=0; promptAction=null; return; }
   promptDoor=null; promptAction=null; promptPerson=null; promptStall=null; promptTrader=null; promptPearl=null; promptChest=null;
   let label=null;
   if(tradeOpen){ el.style.opacity=0; return; }
@@ -6041,7 +6115,20 @@ function flyFloorAt(x,z){ return groundInfo(x,z).y+7; }
    out of the sky in front of you and meets the ground at the world's edge:
    the whole earth shut inside it, plain to the eye. */
 const DOME_HEM_R=0.955;                        /* where the vault begins to come down */
-const DOME_HEM_Y=WALL_TOP*B+320;               /* how high the glass stands over the crown at the rim */
+/* ---- AND IT COMES DOWN IN TWO STAGES ----
+   One smooth fall from the tent straight to the rim put the glass fifty
+   metres over his head across the whole of the crown — near enough to see,
+   far too far to lay a hand on, and the thing is called TOUCH THE FIRMAMENT.
+   So the vault PLUNGES first, from seven leagues up to a low ceiling by the
+   time the crown is well begun, and then runs in almost level over the last
+   of the ice, closing to a raised hand at the very edge. Two smoothsteps
+   joined at the knee, so there is no kink where one becomes the other:
+   a colossal wall of glass coming down out of the sky, and then a roof. */
+const DOME_KNEE_R=0.986;
+const DOME_KNEE_Y=WALL_TOP*B+150;              /* the ceiling where it levels out */
+/* and how high the glass stands over the crown at the RIM: a raised hand.
+   He must stoop at the last, and there is nothing else it could mean. */
+const DOME_HEM_Y=WALL_TOP*B+14;
 function domeTentR(r){ const rr=r*R_WORLD/R_DOME; return H_DOME*Math.sqrt(Math.max(0,1-rr*rr)); }
 const DOME_HEM_TOP=domeTentR(DOME_HEM_R);
 /* the height of the firmament above a point on the disc, by the fraction of
@@ -6049,8 +6136,12 @@ const DOME_HEM_TOP=domeTentR(DOME_HEM_R);
 function domeCeilR(r){
   if(r<=DOME_HEM_R) return domeTentR(r);
   if(r>=1) return 0;
-  if(r<=0.995){ const t=(r-DOME_HEM_R)/(0.995-DOME_HEM_R), e=t*t*(3-2*t);
-    return DOME_HEM_TOP+(DOME_HEM_Y-DOME_HEM_TOP)*e; }
+  if(r<=DOME_KNEE_R){                          /* the plunge */
+    const t=(r-DOME_HEM_R)/(DOME_KNEE_R-DOME_HEM_R), e=t*t*(3-2*t);
+    return DOME_HEM_TOP+(DOME_KNEE_Y-DOME_HEM_TOP)*e; }
+  if(r<=0.995){                                /* and the low roof over the crown */
+    const t=(r-DOME_KNEE_R)/(0.995-DOME_KNEE_R), e=t*t*(3-2*t);
+    return DOME_KNEE_Y+(DOME_HEM_Y-DOME_KNEE_Y)*e; }
   const t=(r-0.995)/0.005, e=t*t*(3-2*t);      /* past the last of the ice it is pegged down */
   return DOME_HEM_Y*(1-e);
 }
@@ -6138,9 +6229,8 @@ function aloftTick(dt,px,pz){
    scene: the traveller sets his hand upon the vault and looks out past it,
    into the outer darkness that no man may pass. */
 const DOME_REACH=460;                 /* how near the glass must be to be touched */
-let domeCut=null;
 function canTouchDome(){
-  if(state.firm||domeCut) return false;
+  if(state.firm||cut) return false;
   if(state.mode!=='walk'&&state.mode!=='fly') return false;
   const p=state.mode==='fly'?state.fly:state.walk;
   const rr=Math.hypot(p.x,p.z)/R_WORLD;
@@ -6150,64 +6240,130 @@ function canTouchDome(){
      may come against it anywhere; a man on his feet only here, where the
      firmament has come down out of the sky to meet the flat of the ice. */
   if(state.mode==='fly') return gap>=-260&&gap<DOME_REACH;
-  return rr>0.985&&gap>=-400&&gap<2200;
+  /* and only where it is truly WITHIN REACH. At 2,200 units the prompt stood
+     ready across ground where the glass was three kilometres over his head,
+     and the scene played with nothing above him at all. */
+  return rr>0.984&&gap>=-400&&gap<340;
 }
-const CINE_LINES=[
-  ['\u201cHe stretches out the north over empty space, and hangs the earth upon nothing.\u201d','IYOB 26:7'],
-  ['\u201cIt is He who sits above the circle of the earth \u2014 who stretches out the heavens like a curtain, and spreads them out like a tent to dwell in.\u201d','YASHA\u2019YAHU 40:22'],
-  ['\u201cHe has inscribed a circle upon the face of the waters, at the boundary of light and darkness.\u201d','IYOB 26:10'],
-];
-function touchDome(){
-  if(domeCut||!canTouchDome()) return;
-  const p=state.mode==='fly'?state.fly:state.walk;
-  const y=state.mode==='fly'?state.fly.y:walkerG.position.y;
-  const line=CINE_LINES[Math.floor(Math.random()*CINE_LINES.length)];
-  domeCut={t:0,dur:11.5,x:p.x,y,z:p.z,out:Math.atan2(p.x,p.z),line};
+/* ================= THE CUTSCENE ENGINE =================
+   A scene is DATA. world/scenes.js declares each one — how long it runs, the
+   verses it may draw on, how the world is dressed while it plays, what the
+   traveller does, and the marks the eye moves through. This is the machine
+   that plays them, and it knows nothing about any particular scene.
+
+   What it does: takes the body out of the player's hands, drops the
+   letterbox, takes the HUD down, dresses the world on a ramp that comes up at
+   the start and goes down before the end (so the world he stands in is back
+   before the bars lift), leads the eye from mark to mark, holds a verse, and
+   then puts every single thing it touched back as it found it. */
+const SCENES={};
+for(const S of ((window.EARTH&&window.EARTH.sceneList)||[])) SCENES[S.name]=S;
+let cut=null;                       /* the scene now running, if any */
+function sceneActive(){ return !!cut; }
+/* the dressing ramp: 0 at either end of the scene, 1 across the middle */
+function sceneRise(){ return cut?cut.rise:0; }
+/* one dressing value, already multiplied by the ramp — 0 when nothing is on */
+function sceneSet(k){
+  if(!cut||!cut.spec.set) return 0;
+  const v=cut.spec.set[k];
+  return v===undefined?0:(v===true?cut.rise:v*cut.rise);
+}
+/* and one that is simply on or off for the whole scene, ramp or no */
+function sceneFlag(k){ return !!(cut&&cut.spec.set&&cut.spec.set[k]); }
+/* PLAY. `at` says where the scene is anchored: the traveller's place and the
+   bearing he faces. Every mark in the shot list is read off those. */
+function playScene(name,at){
+  const spec=SCENES[name];
+  if(!spec||cut||!spec.shots||spec.shots.length<2) return false;
+  const lines=spec.lines||[];
+  const line=lines.length?lines[Math.floor(Math.random()*lines.length)]:null;
+  cut={spec,t:0,dur:spec.dur||10,rise:0,line,x:at.x,y:at.y,z:at.z,out:at.out};
   ensureFlyDome();
-  walkerG.position.set(p.x,y,p.z);
-  const el=$('cine'); if(el) el.classList.add('on');
+  /* THE WALL OF NIGHT COMES DOWN when a scene asks for it. It is a dark
+     cylinder standing at the rim, and it is the right thing to see from
+     WITHIN the world — but a man out on the crown of the ice with his hand on
+     the glass is not within it, and it stood between him and the whole of the
+     deep: a smooth blank filling two thirds of the sight with not one star in
+     it. The same is done for the firmament view, and for the same reason. */
+  if(spec.set&&spec.set.hideVoidWall) voidWall.visible=false;
+  if(spec.actor&&!spec.actor.keep) walkerG.position.set(at.x,at.y,at.z);
+  /* AND NOTHING ELSE IS ON THE SCREEN. A cutscene with a toolbar down one
+     side of it, and the place-line sitting on top of the verse, is not a
+     cutscene. */
+  if(spec.set&&spec.set.hideHud) D.body.classList.add('cine');
+  if(!spec.set||spec.set.letterbox!==false){ const el=$('cine'); if(el) el.classList.add('on'); }
   const cap=$('cine-cap');
-  if(cap) cap.innerHTML=line[0]+'<span class="ref">'+line[1]+'</span>';
+  if(cap) cap.innerHTML=line?(line[0]+'<span class="ref">'+line[1]+'</span>'):'';
+  return true;
 }
-function endDomeCut(){
-  domeCut=null;
+function endScene(){
+  if(!cut) return;
+  const spec=cut.spec, u=walkerG.userData;
+  if(u&&u.armL&&spec.actor&&spec.actor.reach){    /* the arms come down */
+    u.armL.rotation.x=u.armR.rotation.x=0; u.armL.rotation.z=u.armR.rotation.z=0; }
+  cut=null;
+  if(!state.firm) voidWall.visible=true;
+  voidStarTick(0);
+  D.body.classList.remove('cine');
   const el=$('cine'); if(el) el.classList.remove('on');
   const cap=$('cine-cap'); if(cap) cap.classList.remove('on');
 }
-/* the camera's whole business during the scene: swing round off his shoulder,
-   rise to the glass, hold upon the darkness beyond, and come back again */
+/* where the eye stands and looks at time t, read off the marks. Every value
+   is eased in and out of each mark, so the move never snaps. */
+function sceneMark(shots,t){
+  let i=0; while(i<shots.length-2&&t>=shots[i+1].t) i++;
+  const A=shots[i], Bb=shots[i+1];
+  const u=Math.min(1,Math.max(0,(t-A.t)/Math.max(0.001,Bb.t-A.t)));
+  const e=u*u*(3-2*u);
+  const m=k=>A[k]+((Bb[k]===undefined?A[k]:Bb[k])-A[k])*e;
+  return { d:m('d'), y:m('y'), s:m('s'), L:m('L'), h:m('h') };
+}
 const _cutA=new THREE.Vector3(), _cutB=new THREE.Vector3();
-function domeCutTick(dt){
-  const C=domeCut; C.t+=dt;
-  const cap=$('cine-cap');
-  if(cap) cap.classList.toggle('on', C.t>1.9&&C.t<C.dur-1.6);
-  /* the stars and the glass are brought up, so the scene reads at any hour */
-  const rise=Math.min(1,C.t/2.4);
-  if(flyDome) flyDome.material.opacity=Math.max(flyDome.material.opacity,0.16+0.5*rise);
-  starGroup.userData.mat.opacity=Math.max(starGroup.userData.mat.opacity,0.92*rise);
-  if(outerDeep) outerDeep.material.uniforms.uOp.value=
-    Math.max(outerDeep.material.uniforms.uOp.value,0.92*rise);
-  /* he raises a hand to it */
-  const u=walkerG.userData;
-  const reach=Math.min(1,Math.max(0,(C.t-1.0)/1.4))*(C.t<C.dur-1.8?1:0);
-  if(u&&u.armL){ u.armL.rotation.x=-2.5*reach; u.armR.rotation.x=-2.3*reach;
-    u.armL.rotation.z=0.2*reach; u.armR.rotation.z=-0.2*reach;
-    u.legL.rotation.x=0; u.legR.rotation.x=0; }
-  walkerG.rotation.set(0,C.out,0); walkerG.visible=true;
-  /* the eye: behind and low at first, then swung round and tilted up the glass */
-  const swing=Math.min(1,C.t/2.4), back=Math.min(1,Math.max(0,(C.t-(C.dur-1.9))/1.6));
-  const e=swing*(1-back), s2=e*e*(3-2*e);
-  const dist=66-34*s2, lift=10+64*s2;
-  const az=C.out+Math.PI*(1-s2*0.58);
-  _cutA.set(C.x+Math.sin(az)*dist, C.y+lift, C.z+Math.cos(az)*dist);
-  camera.position.lerp(_cutA,Math.min(1,dt*2.6));
-  const look=340+2600*s2;
-  _cutB.set(C.x+Math.sin(C.out)*look, C.y+look*(0.22+1.6*s2), C.z+Math.cos(C.out)*look);
-  camera.lookAt(_cutB);
-  if(C.t>=C.dur){
-    if(u&&u.armL){ u.armL.rotation.x=u.armR.rotation.x=0; u.armL.rotation.z=u.armR.rotation.z=0; }
-    endDomeCut();
+function sceneTick(dt){
+  const C=cut, spec=C.spec, set=spec.set||{}; C.t+=dt;
+  const capEl=$('cine-cap');
+  if(capEl){ const cp=spec.cap||[C.dur*0.2,C.dur*0.85];
+    capEl.classList.toggle('on', C.t>cp[0]&&C.t<cp[1]); }
+  /* ---- THE DRESSING COMES UP, AND GOES DOWN AGAIN ---- */
+  C.rise=Math.min(1, Math.min(C.t/(set.fadeIn||2.5), (C.dur-C.t)/(set.fadeOut||1.8)));
+  /* enough glass that his hand has something to rest on, and NO MORE: at half
+     again as much the vault's blue lay over the whole of the abyss, and the
+     host in it could barely be made out — which is the sight he came for. */
+  if(flyDome&&set.glass!==undefined) flyDome.material.opacity=set.glass*(0.4+0.6*C.rise);
+  if(set.stars!==undefined)
+    starGroup.userData.mat.opacity=Math.max(starGroup.userData.mat.opacity,set.stars*C.rise);
+  if(outerDeep&&set.outerDeep!==undefined) outerDeep.material.uniforms.uOp.value=
+    Math.max(outerDeep.material.uniforms.uOp.value,set.outerDeep*C.rise);
+  /* ---- THE ACTOR ---- */
+  const A=spec.actor||{}, u=walkerG.userData;
+  if(!A.keep){
+    if(A.reach&&u&&u.armL){ const R=A.reach;
+      const up=Math.min(1,Math.max(0,(C.t-R[0])/Math.max(0.001,R[1]-R[0])));
+      const dn=1-Math.min(1,Math.max(0,(C.t-R[2])/Math.max(0.001,R[3]-R[2])));
+      const reach=Math.min(up,dn);
+      u.armL.rotation.x=-2.5*reach; u.armR.rotation.x=-2.3*reach;
+      u.armL.rotation.z=0.2*reach; u.armR.rotation.z=-0.2*reach;
+      u.legL.rotation.x=0; u.legR.rotation.x=0; }
+    if(A.stand) walkerG.rotation.set(0,C.out,0);
+    walkerG.visible=true;
   }
+  /* ---- THE EYE ---- */
+  const F=sceneMark(spec.shots,C.t);
+  const az=C.out+Math.PI*(1-F.s);
+  _cutA.set(C.x+Math.sin(az)*F.d, C.y+F.y, C.z+Math.cos(az)*F.d);
+  /* it is LED to each mark rather than snapped to it — but firmly enough that
+     it arrives before the beat is out */
+  camera.position.lerp(_cutA,Math.min(1,dt*3.0));
+  _cutB.set(C.x+Math.sin(C.out)*F.L, C.y+F.h, C.z+Math.cos(C.out)*F.L);
+  camera.lookAt(_cutB);
+  if(C.t>=C.dur) endScene();
+}
+/* ---- and the one that is played by walking out to the end of the world ---- */
+function touchDome(){
+  if(cut||!canTouchDome()) return;
+  const p=state.mode==='fly'?state.fly:state.walk;
+  const y=state.mode==='fly'?state.fly.y:walkerG.position.y;
+  playScene('firmament',{x:p.x,y,z:p.z,out:Math.atan2(p.x,p.z)});
 }
 function flyTick(dt){
   const fl=state.fly; const [f,t]=axis();
@@ -6312,6 +6468,10 @@ function poseArms(atWheel){
   u.legL.rotation.x=0; u.legR.rotation.x=0;
 }
 function setMode(m){
+  /* a scene holds the body and the eye. Changing mode under it — surfacing,
+     alighting, a restored voyage — would leave it running over a traveller
+     who is no longer where it left him, with the HUD still down. */
+  if(cut) endScene();
   state.mode=m;
   if(m==='fly') ensureFlyDome();                      /* the vault stands even for a voyage restored aloft */
   if(m==='walk') state.walk.climb=null;               /* a climb interrupted elsewhere must not resume here */
@@ -6533,7 +6693,7 @@ function camInsideShip(wx,wy,wz){
 }
 const _camHold=new THREE.Vector3();
 function cameraTick(dt){
-  if(domeCut){ domeCutTick(dt); return; }
+  if(cut){ sceneTick(dt); return; }
   if(state.firm){ const pit=Math.max(0.3,Math.min(1.5,state.camPitch));
     const Rd=state.firmDist;
     camPos.set(Math.sin(state.camYaw)*Math.cos(pit)*Rd, Math.sin(pit)*Rd+200, Math.cos(state.camYaw)*Math.cos(pit)*Rd);
@@ -7327,7 +7487,7 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
   farLand,updateFarLand,mountUpliftAt,MOUNTS,ridgeNoise,B,R_WORLD,
   AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,
-  domeCeilAt,canTouchDome,touchDome,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
+  domeCeilAt,canTouchDome,touchDome,playScene,endScene,SCENES,sceneActive,sceneRise,seenDeeps,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
   domeInfo:()=>({dome:flyDome?flyDome.material.opacity:0, deep:outerDeep?outerDeep.material.uniforms.uOp.value:0, stars:starGroup.userData.mat.opacity}),
@@ -7352,7 +7512,7 @@ function frame(){
   stormTick(dt);
   boatTick(dt,state.mode==='boat');
   /* the traveller does not stir while he stands with his hand on the glass */
-  if(domeCut){ /* the scene has the body */ }
+  if(cut){ /* the scene has the body */ }
   else if(state.mode==='deck') deckTick(dt);
   else if(state.mode==='walk') walkTick(dt);
   else if(state.mode==='fly') flyTick(dt);
@@ -7453,7 +7613,9 @@ function frame(){
        over the crown of the ice and painted the whole world — sky, ice and
        all — one flat blue. Close to, it is a sheen on glass and the earth
        shows through it. */
-    flyDome.material.opacity=Math.max(climbF*0.55,_domeRimF*0.30);
+    /* while the scene at the world's edge is running it owns the glass — it
+       is set there, after this, and to a lower strength on purpose */
+    if(!sceneActive()) flyDome.material.opacity=Math.max(climbF*0.55,_domeRimF*0.30);
     /* and it is never the colour of the night sky itself: a vault that goes
        as dark as what is behind it cannot be seen at all */
     flyDome.material.color.copy(mix3(0x2b3d61,0x5f7ca8,0x9ec7f2,light.dayF));
@@ -7496,16 +7658,21 @@ function frame(){
   }
   haloTick(state.firm?1:zMapF);   /* the lights get their glow when the earth is beheld whole */
   /* drawn right back, the sky about the disc gives way to the outer darkness,
-     and the earth is beheld standing within it — as she is */
-  if(zMapF>0.002) scene.background.lerp(_voidC,zMapF*0.92);
+     and the earth is beheld standing within it — as she is.
+     AND WITH HIS HAND ON THE GLASS HE IS LOOKING STRAIGHT OUT INTO IT: that
+     is the whole of what the scene at the world's edge is for, so the dark
+     and the host come up there too, on the scene's own ramp. */
+  const voidF=state.firm?1:Math.max(zMapF, sceneSet('voidDark'));
+  if(voidF>0.002) scene.background.lerp(_voidC,Math.min(1,voidF*1.14));
+  voidStarTick(voidF);            /* and the host of the shamayim stands in it */
   /* and the haze of the near world must not blind an eye drawn back off it */
-  if(scene.fog&&zMapF>0.002){
-    scene.fog.near+=(R_WORLD*0.5-scene.fog.near)*zMapF;
-    scene.fog.far +=(R_WORLD*3.0-scene.fog.far )*zMapF;
+  if(scene.fog&&voidF>0.002){
+    scene.fog.near+=(R_WORLD*0.5-scene.fog.near)*voidF;
+    scene.fog.far +=(R_WORLD*3.0-scene.fog.far )*voidF;
     /* the wall of night at the rim takes its colour from the fog, so that it
        blends into the day's sky when stood under — out here it must go dark
        with everything else, or it rings the earth in a band of sunset */
-    scene.fog.color.lerp(_voidC,zMapF*0.92); }
+    scene.fog.color.lerp(_voidC,Math.min(1,voidF*1.06)); }
   updateWallWeather(p.x,p.z,dt);   /* cold fog and blowing snow at the wall of ice */
   waterTick(p.x,p.z,light.dayF,light.storm||0);
   /* below the waterline in the hold, the sea must not wash through the hull;

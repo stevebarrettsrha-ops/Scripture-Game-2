@@ -112,6 +112,17 @@
   #cine{ position:fixed; inset:0; z-index:9; pointer-events:none; opacity:0;
     transition:opacity .8s ease; }
   #cine.on{ opacity:1; }
+  /* ---- AND NOTHING ELSE IS ON THE SCREEN ----
+     The scene at the world's edge ran with the whole HUD still standing over
+     it: the button rail down one side, the compass rose in the corner, the
+     clock, and the place-line sitting exactly on top of the verse. A cutscene
+     with a toolbar across it is not a cutscene. Everything but the letterbox
+     and the verse goes, and comes back with it. */
+  body.cine #ui, body.cine #mini, body.cine #place, body.cine #head,
+  body.cine #clock, body.cine #hint, body.cine #breath, body.cine #prompt,
+  body.cine #joy, body.cine #flypad, body.cine #verse{
+    opacity:0 !important; pointer-events:none !important;
+    transition:opacity .5s ease; }
   #cine .bar{ position:absolute; left:0; right:0; height:13vh; background:#04060c; }
   #cine .bar.t{ top:0; } #cine .bar.b{ bottom:0; }
   #cine .cap{ position:absolute; left:8vw; right:8vw; bottom:17vh; text-align:center;
@@ -208,7 +219,7 @@
 /* The registry the land, verse and river files feed into.
    Each file in countries/ calls EARTH.country({...}) — one land per file,
    loaded in a fixed order so the world is identical on every machine. */
-window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deepList:[],holeList:[],beastList:[],
+window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deepList:[],holeList:[],sceneList:[],beastList:[],
   country:function(c){this.list.push(c);},
   verses:function(v){this.verseList=v;},
   river:function(r){this.riverList.push(r);},
@@ -218,6 +229,8 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
   deep:function(d){this.deepList.push(d);},
   /* the blue holes: sheer shafts sunk in the reefs — see world/deeps.js */
   hole:function(h){this.holeList.push(h);},
+  /* the short films the engine plays with the camera — see world/scenes.js */
+  scene:function(s){this.sceneList.push(s);},
   /* every living thing has its own file in creatures/ — see creatures/README.md */
   beast:function(b){this.beastList.push(b);}};
 </script>
@@ -419,6 +432,7 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
 <script src="world/verses.js"></script>
 <script src="world/landmarks.js"></script>
 <script src="world/deeps.js"></script>
+<script src="world/scenes.js"></script>
 <!-- EVERY LIVING THING, ONE TO A FILE. Edit any of these and reload; the
      beast is rebuilt from its own file. `metres` in each file is the beast's
      TRUE adult length, and the game scales the model to match it. -->
