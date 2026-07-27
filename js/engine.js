@@ -216,6 +216,29 @@ blockMat('leaves',TEX.leaves,{alphaTest:0.4}); blockMat('leavesTr',TEX.leavesTr,
 blockMat('cherry',TEX.cherry,{alphaTest:0.4}); blockMat('badTop',TEX.badTop); blockMat('badSide',TEX.badSide);
 blockMat('tallgrass',TEX.tallgrass,{alphaTest:0.4}); blockMat('flowerR',TEX.flowerR,{alphaTest:0.4});
 blockMat('savgrass',TEX.savgrass,{alphaTest:0.4}); blockMat('acacia',TEX.acacia,{alphaTest:0.4});
+/* ---- THE FOUR GREY THINGS THE WHOLE FLORA OF THE EARTH IS DRAWN WITH ----
+   Leaf, bark, blade and berry, each painted ONCE and in grey, and tinted per
+   species as the faces are laid down. A hundred and seventy kinds of tree in
+   the world, and four materials to draw the lot of them: the number of
+   species costs nothing whatever in draw calls. (Paint any of these in a
+   colour and every plant on the earth inherits it — that is the whole reason
+   they are grey.) */
+TEX.leafW  = mkTex(g=>{ for(let y=0;y<16;y++) for(let x=0;x<16;x++){
+    const n=hash2(x*2.7+y*1.3,y*3.1+x*0.7);
+    if(n<0.16){ g.clearRect(x,y,1,1); continue; }            /* the light through it */
+    const v=Math.round(196+hash2(x*5.1,y*7.3)*58);
+    P(g,x,y,rgb(v,v,v)); } });
+TEX.barkW  = mkTex(g=>{ for(let y=0;y<16;y++) for(let x=0;x<16;x++){
+    const seam=(x%5===0||x%7===3)?0.72:1;                     /* the run of the grain */
+    const v=Math.round((176+hash2(x*3.3,y*9.1)*62)*seam);
+    P(g,x,y,rgb(v,v,v)); } });
+TEX.plantW = mkTex(g=>{ g.clearRect(0,0,16,16);
+    for(let k=0;k<10;k++){ const x=1+Math.floor(hash2(k,3.7)*14), h2=7+Math.floor(hash2(k,5.9)*8);
+      for(let y=0;y<h2;y++){ const v=Math.round(188+hash2(k*3.1,y)*62);
+        g.fillStyle=rgb(v,v,v); g.fillRect(x+(y>h2-3?(hash2(k,9.1)>0.5?1:-1):0),15-y,1,1); } } });
+TEX.solidW = mkTex(g=>speckle(g,[228,228,228],26,[198,198,198],0.35));
+blockMat('leafW',TEX.leafW,{alphaTest:0.4}); blockMat('barkW',TEX.barkW);
+blockMat('plantW',TEX.plantW,{alphaTest:0.4}); blockMat('solidW',TEX.solidW);
 blockMat('flowerY',TEX.flowerY,{alphaTest:0.4}); blockMat('crop',TEX.crop,{alphaTest:0.4});
 blockMat('glass',TEX.glass,{transparent:true,depthWrite:false});
 blockMat('door',TEX.door,{alphaTest:0.1});
@@ -249,6 +272,8 @@ windSway(MAT.tallgrass,0.9,true); windSway(MAT.flowerR,0.6,true); windSway(MAT.f
 /* the plain moves as one thing when the wind crosses it — the tall grass
    swings further than the sward, and the thorn crowns ride it */
 windSway(MAT.savgrass,1.5,true); windSway(MAT.acacia,0.5,false);
+/* and every leaf and every herb on the earth moves with it */
+windSway(MAT.leafW,0.55,false); windSway(MAT.plantW,0.85,true);
 windSway(MAT.crop,0.5,true);
 /* breaking surf — clumpy foam that washes the shoreline (scrolled + pulsed) */
 TEX.surf = mkTex(g=>{ g.clearRect(0,0,16,16);
@@ -776,13 +801,18 @@ function cellRaw(ix,iz){
     kind = h>treeLine+(snowLine-treeLine)*0.45 ? 'rock' : 'alpine';
     tree = (kind==='alpine'&&j<0.016*dens) ? 1 : 0;
   }
-  else if(badlands){ kind='badlands';
+  else if(badlands){ kind='badlands'; tree=j<0.005?1:0;
     const bh=fbm(ix*.045+7,iz*.045-3);              /* the badlands' own eroded relief */
     h=2+Math.floor(bh*8)+Math.floor(Math.pow(mtn,1.2)*inland*8);
     h=Math.max(2,Math.floor(h/2)*2);                /* terraced in steps of two */
     if(mUp>0.5) h+=Math.round(mUp);                 /* Uluru and its kin rise from the waste */
   }
-  else if(desert){ kind='desert'; }
+  /* THE WASTE IS NOT BARE. It bore nothing whatever — not a date palm at a
+     well, not a saguaro, not a thorn — because nothing but the temperate and
+     tropic grounds was ever given a tree at all. It is still a waste: one
+     cell in a hundred and sixty, so what stands there stands ALONE, and is
+     worth walking to. */
+  else if(desert){ kind='desert'; tree=j<0.006?1:0; }
   /* the plain, and the thorn trees standing SINGLY upon it — a savannah is
      not a thin wood, it is open ground with a tree in the middle distance */
   else if(savanna){ kind='savanna'; tree=j<0.008?4:0; }
@@ -890,13 +920,29 @@ function computeSites(){
 const scene=new THREE.Scene();
 function newG(){ return {}; }
 function gm(G,mat){ let g=G[mat]; if(!g){ g={p:[],uv:[],c:[],i:[],n:0}; G[mat]=g; } return g; }
+/* ---- AND A FACE MAY CARRY A COLOUR, NOT ONLY A SHADE ----
+   `s` was one number, the light on the face, written into all three channels.
+   It may now be a TRIPLE — the light already multiplied into a colour. That
+   one change is what lets a hundred kinds of tree stand in the world without
+   a hundred materials to draw them with: the leaf and the bark are drawn in
+   grey, ONCE, and every species tints its own faces as they are laid down.
+   A hundred greens, and not one extra draw call. */
 function quad(G,mat, ax,ay,az, bx,by,bz, cx,cy,cz, dx,dy,dz, u0,v0,u1,v1, s){
   const g=gm(G,mat), o=g.n;
   g.p.push(ax,ay,az, bx,by,bz, cx,cy,cz, dx,dy,dz);
   g.uv.push(u0,v0, u1,v0, u1,v1, u0,v1);
-  for(let k=0;k<4;k++) g.c.push(s,s,s);
+  if(typeof s==='number'){ for(let k=0;k<4;k++) g.c.push(s,s,s); }
+  else { for(let k=0;k<4;k++) g.c.push(s[0],s[1],s[2]); }
   g.i.push(o,o+1,o+2, o,o+2,o+3); g.n+=4;
 }
+/* the light on a face, multiplied into a tint — [r,g,b] in 0..1.
+   (The scratch triple is REUSED, not freshly made: quad copies it into the
+   buffer before anything else can be called, and the mesher lays down tens of
+   thousands of faces a chunk — a new array apiece is a great deal of rubbish
+   for the collector to sweep up for no reason at all.) */
+const _sh=[0,0,0];
+function shade(tint,s){ if(!tint) return s;
+  _sh[0]=tint[0]*s; _sh[1]=tint[1]*s; _sh[2]=tint[2]*s; return _sh; }
 function faceTop(G,mat,x0,z0,x1,z1,y,s,rep){ const r=rep||1;
   quad(G,mat, x0,y,z1, x1,y,z1, x1,y,z0, x0,y,z0, 0,0,(x1-x0)/B*r,(z1-z0)/B*r, s); }
 function faceBottom(G,mat,x0,z0,x1,z1,y,s){ quad(G,mat, x0,y,z0, x1,y,z0, x1,y,z1, x0,y,z1, 0,0,(x1-x0)/B,(z1-z0)/B, s); }
@@ -904,11 +950,11 @@ function facePX(G,mat,x,z0,z1,y0,y1,s){ quad(G,mat, x,y0,z1, x,y0,z0, x,y1,z0, x
 function faceNX(G,mat,x,z0,z1,y0,y1,s){ quad(G,mat, x,y0,z0, x,y0,z1, x,y1,z1, x,y1,z0, 0,0,(z1-z0)/B,(y1-y0)/B, s); }
 function facePZ(G,mat,z,x0,x1,y0,y1,s){ quad(G,mat, x0,y0,z, x1,y0,z, x1,y1,z, x0,y1,z, 0,0,(x1-x0)/B,(y1-y0)/B, s); }
 function faceNZ(G,mat,z,x0,x1,y0,y1,s){ quad(G,mat, x1,y0,z, x0,y0,z, x0,y1,z, x1,y1,z, 0,0,(x1-x0)/B,(y1-y0)/B, s); }
-function emitBox(G, x0,y0,z0, x1,y1,z1, sideMat, topMat, botMat){
-  faceTop(G,topMat,x0,z0,x1,z1,y1,1.0);
-  if(botMat) faceBottom(G,botMat,x0,z0,x1,z1,y0,0.5);
-  facePX(G,sideMat,x1,z0,z1,y0,y1,0.62); faceNX(G,sideMat,x0,z0,z1,y0,y1,0.62);
-  facePZ(G,sideMat,z1,x0,x1,y0,y1,0.8);  faceNZ(G,sideMat,z0,x0,x1,y0,y1,0.8);
+function emitBox(G, x0,y0,z0, x1,y1,z1, sideMat, topMat, botMat, tint){
+  faceTop(G,topMat,x0,z0,x1,z1,y1,shade(tint,1.0));
+  if(botMat) faceBottom(G,botMat,x0,z0,x1,z1,y0,shade(tint,0.5));
+  facePX(G,sideMat,x1,z0,z1,y0,y1,shade(tint,0.62)); faceNX(G,sideMat,x0,z0,z1,y0,y1,shade(tint,0.62));
+  facePZ(G,sideMat,z1,x0,x1,y0,y1,shade(tint,0.8));  faceNZ(G,sideMat,z0,x0,x1,y0,y1,shade(tint,0.8));
 }
 function cross(G,mat,cx,cz,y,size,h,s){
   const r=size/2;
@@ -971,7 +1017,54 @@ function emitColumn(G,ix,iz,cc){
    takes its stature from its own place (so it is the same tree every time
    the chunk is rebuilt), from a sapling to a great old giant half again as
    tall as its fellows, and the crown is scaled with the trunk. */
+/* ---- THE TOOLKIT THE FLORA IS BUILT WITH ----
+   js/flora.js knows the SHAPES — how a conifer differs from a palm from a
+   baobab — and world/flora.js knows what grows where. Neither of them knows
+   anything about chunks, so the mesher lends them the few things they need
+   and takes the geometry back. `G` is swapped in per chunk. */
+const FKIT={ G:null, emitBox, cross, shade, hash:hash2,
+  M:{leaf:'leafW', bark:'barkW', plant:'plantW', solid:'solidW'} };
+let floraReady=false;
+function initFlora(){ if(floraReady) return; floraReady=true;
+  if(window.FLORA) FLORA.load((window.EARTH.floraList||[])[0]||null); }
+/* which land this ground belongs to, by name — the key the flora and the
+   fauna files are both written against */
+function landNameAt(x,z){ const ci=countryAtUV(x/R_WORLD,z/R_WORLD);
+  return (ci&&COUNTRIES[ci-1])?COUNTRIES[ci-1].n:null; }
+let chunkLand=null;          /* whose country the chunk being built is in */
+let chunkRiver=false;        /* and whether running water crosses it at all */
+/* ---- IS THIS GROUND A RIVER BANK? ----
+   A watercourse is stamped one or two map pixels wide — a hundred and
+   seventeen units to the pixel — so it is wider than the chunk it runs
+   through. The BANK is the strip of dry ground within a bowshot of the water,
+   and it is where the reed, the papyrus, the willow and the alder belong.
+   It is asked per CELL, but only in the few chunks that carry water at all:
+   the whole-chunk test below is twenty-five array reads and answers `no` for
+   nearly the whole earth. */
+const RIVER_BANK=46;         /* how far from the water the bank reaches, in units */
+function riverBankCell(x,z){
+  if(riverAtUV(x/R_WORLD,z/R_WORLD)) return true;
+  for(const r of [RIVER_BANK*0.5,RIVER_BANK]) for(let k=0;k<8;k++){
+    const a2=k*0.785398;
+    if(riverAtUV((x+Math.cos(a2)*r)/R_WORLD,(z+Math.sin(a2)*r)/R_WORLD)) return true; }
+  return false;
+}
+function chunkHasRiver(cx,cz){
+  for(let a2=0;a2<=4;a2++) for(let b2=0;b2<=4;b2++){
+    const x=(cx*CH+a2*CH/4)*B, z=(cz*CH+b2*CH/4)*B;
+    if(riverAtUV(x/R_WORLD,z/R_WORLD)) return true; }
+  return false;
+}
 function emitTree(G,ix,iz,cc){
+  initFlora();
+  if(window.FLORA){
+    const wet=chunkRiver&&riverBankCell((ix+0.5)*B,(iz+0.5)*B);
+    const K=FLORA.treeAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wet);
+    if(K){ FKIT.G=G; FLORA.emitTree(FKIT,K,ix,iz,cc); FKIT.G=null; return; }
+  }
+  /* ---- AND IF THE FLORA HAS NOTHING FOR THIS GROUND ----
+     the four trees the world had before it did. Nothing should reach here
+     now, but a world that cannot draw a tree is worse than a dull one. */
   const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B;
   const tropic=cc.tree===2, cherry=cc.tree===3, thorn=cc.tree===4;
   /* a long tail toward the giants: most are middling, a few tower */
@@ -1023,6 +1116,25 @@ function nearSettled(x,z){
    GRASS.at(). (Before this the mesher decided alone, nothing else in the
    world knew where a blade stood, and the herds grazed bare dirt.) */
 function emitScrub(G,ix,iz,cc,wild){
+  /* ---- THE HERB AND THE BUSH COME FIRST ----
+     Before the sward, what this COUNTRY grows low: the vine and the lavender
+     of the south, the bilberry under the northern spruce, the coffee bush,
+     the reed, the agave, the ear of corn. It is a sparser draw than the
+     grass and takes its own number, so the two layers never fight over a
+     cell — where a bush stands, no blade is drawn under it. */
+  initFlora();
+  if(window.FLORA){
+    const wet=chunkRiver&&riverBankCell((ix+0.5)*B,(iz+0.5)*B);
+    const P=FLORA.plantAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wild,wet);
+    if(P){ FKIT.G=G; FLORA.emitPlant(FKIT,P,ix,iz,cc); FKIT.G=null; return; }
+    /* ---- AND THE YOUNG GROWTH ----
+       A wood with no young trees in it is a plantation, not a wood. A few
+       cells in every hundred carry a SAPLING of one of the same kinds that
+       stand grown over them — knee-high, the right species for the country,
+       and the same one every time you pass. */
+    const S=FLORA.saplingAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wild,wet);
+    if(S){ FKIT.G=G; FLORA.emitSapling(FKIT,S,ix,iz,cc); FKIT.G=null; return; }
+  }
   const gr=GRASS.at(ix,iz,cc.kind,wild); if(!gr) return;
   const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B;
   if(gr.m==='bush'){                                   /* a true bush, with a woody heart */
@@ -1089,6 +1201,15 @@ const chunks=new Map(); const buildQueue=[]; const buildQueued=new Set();
 const chunkRoot=new THREE.Group(); scene.add(chunkRoot);
 function buildChunk(cx,cz){
   const G=newG();
+  /* ---- WHOSE COUNTRY THIS CHUNK IS IN ----
+     Every tree and every bush asks what land it grows in, and the answer is
+     the same for the whole chunk within a pixel or two of the chart. Asked
+     per CELL it was two hundred and fifty-six lookups and as many string
+     keys built for the flora's cache, for one answer; asked once here it is
+     one. (A chunk that straddles a border takes its middle's country — a
+     chunk is ninety-six metres across and no wood changes at a line.) */
+  chunkLand=landNameAt((cx*CH+CH/2)*B,(cz*CH+CH/2)*B);
+  chunkRiver=chunkHasRiver(cx,cz);
   for(let a=0;a<CH;a++) for(let b=0;b<CH;b++){
     const ix=cx*CH+a, iz=cz*CH+b, cc=cell(ix,iz);
     if(!cc){ /* the shelf: solid sandy terraces stepping down from the land,
@@ -2967,6 +3088,12 @@ function makeAnimal(kind){
 function makeBird(type){ type=type||'crow';
   const S={crow:{b:0x2e3038,w:0x24262c,s:1},gull:{b:0xeef2f6,w:0xc6ccd4,s:1.1},
     dove:{b:0xf2f0ea,w:0xdad6ce,s:0.9},eagle:{b:0x5a4326,w:0x36290f,s:1.8},
+    /* THE SNOWY OWL — white, barred, and the one bird of the high arctic
+       that hunts by day, because up there in summer there is no night to
+       hunt by. Broad in the wing and silent with it. */
+    owl:{b:0xf4f2ee,w:0xe0ded6,s:1.6},
+    /* and the puffin of the cold coasts, black above and white beneath */
+    puffin:{b:0x22242a,w:0x1a1c22,s:0.7},
     butterfly:{b:0x201820,w:0xff6ea8,s:0.5}}[type]||{b:0x2e3038,w:0x24262c,s:1};
   const g=new THREE.Group();
   const body=lbox(0.8*S.s,0.8*S.s,1.8*S.s,S.b); body.position.y=0; g.add(body);
@@ -2975,6 +3102,19 @@ function makeBird(type){ type=type||'crow';
   const wingR=lbox(2.4*S.s,0.16,1.1*S.s,S.w); wingR.geometry.translate(1.2*S.s,0,0); wingR.position.set(-0.4*S.s,0.2*S.s,0); g.add(wingR);
   if(type==='eagle'){ const beak=lbox(0.5,0.4,0.6,0xe0b040); beak.position.set(0,0.1,1.9*S.s); g.add(beak);
     const tail=lbox(1.0,0.16,1.2,0xffffff); tail.position.set(0,0,-1.4*S.s); g.add(tail); }
+  if(type==='owl'){ const face=lbox(1.0*S.s,0.9*S.s,0.2,0xfbfaf6); face.position.set(0,0.25*S.s,1.4*S.s); g.add(face);
+    const beak=lbox(0.26,0.3,0.3,0x2a2620); beak.position.set(0,0.1*S.s,1.55*S.s); g.add(beak);
+    for(const sd of [1,-1]){ const eye=lbox(0.3,0.3,0.16,0xe8c020); eye.position.set(sd*0.28*S.s,0.34*S.s,1.5*S.s); g.add(eye); }
+    for(let i=0;i<5;i++){ const bar=lbox(0.9*S.s,0.06,0.16,0x9a9a94);
+      bar.position.set(0,0.42*S.s,0.8*S.s-i*0.5*S.s); g.add(bar); }
+    const tail=lbox(0.9*S.s,0.14,1.0*S.s,0xe8e6e0); tail.position.set(0,0,-1.3*S.s); g.add(tail); }
+  if(type==='puffin'){ const belly=lbox(0.7*S.s,0.6*S.s,1.2*S.s,0xf2f0ea); belly.position.set(0,-0.16*S.s,0.2*S.s); g.add(belly);
+    const face=lbox(0.62*S.s,0.6*S.s,0.2,0xf2f0ea); face.position.set(0,0.2*S.s,1.42*S.s); g.add(face);
+    /* the bill — the whole reason anybody knows what a puffin is */
+    const bill=lbox(0.2,0.55*S.s,0.6*S.s,0xd8621f); bill.position.set(0,0.12*S.s,1.75*S.s); g.add(bill);
+    const band=lbox(0.22,0.55*S.s,0.16,0xe8c020); band.position.set(0,0.12*S.s,1.62*S.s); g.add(band);
+    for(const sd of [1,-1]){ const eye=lbox(0.16,0.16,0.12,0x100c0a); eye.position.set(sd*0.2*S.s,0.3*S.s,1.5*S.s); g.add(eye); }
+    const feet=lbox(0.5*S.s,0.12,0.5*S.s,0xd8621f); feet.position.set(0,-0.42*S.s,-0.5*S.s); g.add(feet); }
   if(type==='butterfly'){ const w2=lbox(1.4,0.1,1.0,0xffd23a); w2.geometry.translate(-0.7,0,0); w2.position.set(0.2,0,-0.5); g.add(w2);
     const w3=w2.clone(); w3.geometry=w2.geometry.clone(); w3.scale.x=-1; w3.position.set(-0.2,0,-0.5); g.add(w3); }
   /* what it carries home in its beak — a fish from the sea, or seed from the
@@ -3749,7 +3889,7 @@ function updateSeaMob(arr,px,py,pz,dt,t){
     o.m.position.set(o.x,o.y,o.z); o.m.rotation.y=Math.atan2(Math.cos(o.dir),Math.sin(o.dir));
     if(o.m.userData.flL){ o.m.userData.flL.rotation.z=0.2+Math.sin(t*2+o.ph)*0.3; o.m.userData.flR.rotation.z=-0.2-Math.sin(t*2+o.ph)*0.3; }
     if(o.m.userData.wingL){ o.m.userData.wingL.rotation.z=Math.sin(t*1.6+o.ph)*0.4; o.m.userData.wingR.rotation.z=-Math.sin(t*1.6+o.ph)*0.4; } } }
-let TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS;
+let TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS;
 function initSeaMobs(){ if(TURTLES) return;
   /* the last number is how deep each keeps, in metres: a turtle on the reef,
      a whale sounding to three hundred, a pufferfish never off the shallows */
@@ -3763,6 +3903,10 @@ function initSeaMobs(){ if(TURTLES) return;
      warm shallows and the river mouths, the octopus over the reef bed, and
      the swordfish and the barracuda out where the bottom drops away. */
   SEALS=mkSeaMob('seal',5,340,320,true,90,[42,90]);
+  /* the white whale of the ice, and the shark that lies under it — four
+     hundred years old, blind, and slower than a man walks */
+  BELUGAS=mkSeaMob('beluga',3,420,400,true,120,[55,90]);
+  SLEEPERS=mkSeaMob('greenlandshark',1,560,520,false,600,[52,90]);
   WALRUS=mkSeaMob('walrus',2,320,300,true,70,[58,90]);
   MANATEES=mkSeaMob('manatee',2,300,280,true,40,[-30,30]);
   OCTOPI=mkSeaMob('octopus',3,260,240,true,70);
@@ -3775,6 +3919,7 @@ function updateSeaMobs(px,py,pz,dt,t){ initSeaMobs();
   updateSeaMob(SEALS,px,py,pz,dt,t); updateSeaMob(WALRUS,px,py,pz,dt,t);
   updateSeaMob(MANATEES,px,py,pz,dt,t); updateSeaMob(OCTOPI,px,py,pz,dt,t);
   updateSeaMob(SWORDS,px,py,pz,dt,t); updateSeaMob(CUDAS,px,py,pz,dt,t);
+  updateSeaMob(BELUGAS,px,py,pz,dt,t); updateSeaMob(SLEEPERS,px,py,pz,dt,t);
   for(const j of JELLIES){ if(!j.set||Math.hypot(j.x-px,j.z-pz)>360){ const a=Math.random()*6.28,r=40+Math.random()*320; j.x=px+Math.cos(a)*r; j.z=pz+Math.sin(a)*r; const fy=haunt(j.x,j.z,H_JELLY); j.y=fy+30+Math.random()*80; j.set=true; j.m.visible=true; }
     const pulse=0.5+0.5*Math.sin(t*1.4+j.ph); j.y+=(pulse-0.45)*10*dt; const fy=haunt(j.x,j.z,H_JELLY), col=SEA_SURF-fy;
     j.y=Math.min(SEA_SURF-6,Math.max(fy+Math.min(10,col-7),j.y));
@@ -3824,7 +3969,7 @@ function updateAnglers(px,py,pz,dt,t){ initAnglers();
       a.gs.material.opacity=0.30+0.34*pulse; } } }
 function hideAnglers(){ for(const a of ANGLERS){ a.m.visible=false; a.gs.visible=false; a.set=false; } }
 function hideSeaMobs(){ if(!TURTLES) return;
-  for(const arr of [TURTLES,RAYS_M,WHALES,PUFFERS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS]) for(const o of arr) o.m.visible=false;
+  for(const arr of [TURTLES,RAYS_M,WHALES,PUFFERS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS]) for(const o of arr) o.m.visible=false;
   for(const j of JELLIES)j.m.visible=false; for(const c of CRABS)c.m.visible=false; }
 const BUB=[], BUB_N=26;
 function initBub(){ if(BUB.length) return; for(let k=0;k<BUB_N;k++){ const s=new THREE.Sprite(new THREE.SpriteMaterial({color:0xcdeeff,transparent:true,opacity:0,depthWrite:false,fog:false}));
@@ -3980,8 +4125,8 @@ function updateShallowLife(px,pz,dt,t){
   /* the seal and the manatee are shallow-water beasts, and both are seen
      from a deck as readily as from under it — the one off the ice at either
      end of the earth, the other grazing the weed in every warm bay */
-  updateSeaMob(SEALS,px,0,pz,dt,t); updateSeaMob(MANATEES,px,0,pz,dt,t);
-  for(const arr of [SEALS,MANATEES]) for(const o of arr) if(o.set) o.m.visible=true;
+  updateSeaMob(SEALS,px,0,pz,dt,t); updateSeaMob(MANATEES,px,0,pz,dt,t); updateSeaMob(BELUGAS,px,0,pz,dt,t);
+  for(const arr of [SEALS,MANATEES,BELUGAS]) for(const o of arr) if(o.set) o.m.visible=true;
   /* a swimmer in open water is prey — the sharks keep their hunt at the surface */
   if(state.mode==='walk'&&state.walk.inWater&&!landAtWorld(px,pz)){
     updateSharks(px,state.walk.feetY!==undefined?state.walk.feetY:-1,pz,dt,t);
@@ -4155,8 +4300,24 @@ function landKindAt(x,z,c){
      field bears the same kind for ever. */
   const j=hash2(Math.floor(x/48),Math.floor(z/48));
   const k=c?c.kind:'grass', hb=c?c.h:1;
-  if(k==='floe'||k==='wall'){                            /* the ice keeps its own */
-    return (lat>0&&j<0.5)?'polarbear':(lat>0?'arcticfox':'penguin'); }
+  /* ---- THE ICE KEEPS ITS OWN, AND IT IS NOT THE SAME ICE AT BOTH ENDS ----
+     The floes and the foot of the wall short-circuited the whole system and
+     handed back ONE of three answers for the entire polar region: a polar
+     bear or an arctic fox in the north, a penguin in the south, for ever. The
+     ice goes through the fauna file now like everything else — but the ONE
+     rule that must never break is that the two ends of the earth do not share
+     a creature. A penguin has never seen a polar bear and never will. */
+  if(k==='floe'||k==='wall'){
+    const L=FAUNA.wilds[k]; if(!L||!L.length) return lat>0?'polarbear':'penguin';
+    const south=lat<0, fit=[]; let w=0;
+    for(const n of L){ if(south!==(n==='penguin')) continue;
+      const K=FAUNA.keeps[n];
+      if(K&&K.g&&K.g.indexOf(k)<0) continue;
+      fit.push(n); w+=(K&&K.w)||1; }
+    if(!fit.length) return south?'penguin':'polarbear';
+    let r=j*w;
+    for(const n of fit){ r-=((FAUNA.keeps[n]&&FAUNA.keeps[n].w)||1); if(r<=0) return n; }
+    return fit[fit.length-1]; }
   const land=faunaFor(x,z,k);
   if(land){
     /* only the beasts that will truly stand HERE — the ground underfoot, the
@@ -4428,6 +4589,7 @@ const RIVER_KINDS=[
   {name:'trout',      n:5, lat:[34,72],   spd:9,  y:2.2},
   {name:'trout',      n:3, lat:[-58,-32], spd:9,  y:2.2},
   {name:'salmon',     n:4, lat:[40,70],   spd:11, y:3.0},
+  {name:'arcticchar', n:4, lat:[58,84],   spd:8,  y:2.6},
   {name:'sturgeon',   n:2, lat:[30,64],   spd:6,  y:5.0},
   {name:'catfish',    n:4, lat:[-34,46],  spd:5,  y:5.5},
   /* and these two by their own waters, and no others on the earth */
@@ -4507,7 +4669,15 @@ function nearestNest(x,z){ let best=null,bd=1e9;
   for(const N of NESTS){ if(!N.set) continue; const d=Math.hypot(N.x-x,N.z-z); if(d<bd){bd=d;best=N;} }
   return best; }
 function airKind(px,pz,night){ const overSea=!landAtWorld(px,pz);
-  /* nothing of the field flies out over the ice — only the gulls of the sea */
+  /* ---- AND THE COLD HAS ITS OWN FOWL ----
+     Out over the ice it was gulls and nothing else, at either end of the
+     earth, for ever. The snowy owl hunts the tundra — by DAY, because in an
+     arctic summer there is no night to hunt by — and the puffin works the
+     cold coasts in thousands. */
+  const lat=90-Math.hypot(px,pz)/R_WORLD*180, alat=Math.abs(lat);
+  if(alat>58){ const r=Math.random();
+    if(overSea) return r<0.45?'gull':r<0.8?'puffin':'owl';
+    return r<0.42?'owl':r<0.7?'dove':r<0.88?'gull':'crow'; }
   if(Math.hypot(px,pz)/R_WORLD>0.90) return 'gull';
   if(night) return Math.random()<0.6?'crow':'dove';
   if(overSea) return Math.random()<0.7?'gull':'eagle';
