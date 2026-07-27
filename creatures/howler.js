@@ -21,5 +21,6 @@ build:function(T){
     seg.position.set(0,0.16*i*i*0.2,-0.3*i+0.06*i*i); tail.add(seg); }
   g.add(tail);
   T.legs4(g,0.28,0.5,0.9,fur,0.24);
+  g.userData.head=head;
   return g;
 }});

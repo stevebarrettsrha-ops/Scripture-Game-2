@@ -18,5 +18,6 @@ build:function(T){
     const hand=T.box(0.5,0.6,0.5,skin); hand.position.set(s*1.1,0.7,0.1); g.add(hand); }
   const muz=T.box(0.5,0.4,0.25,skin); muz.position.set(0,3.75,0.82); g.add(muz);
   T.legs4(g,0.5,0.3,1.6,fur,0.6);
+  g.userData.head=head;
   return g;
 }});

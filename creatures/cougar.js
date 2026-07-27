@@ -16,5 +16,6 @@ build:function(T){
     const eye=T.box(0.2,0.18,0.16,0xc0a838); eye.position.set(s*0.34,3.28,2.76); g.add(eye); }
   const tail=T.box(0.44,0.44,3.0,coat); tail.position.set(0,2.7,-2.8); tail.rotation.x=0.3; g.add(tail);
   T.legs4(g,0.58,1.15,2.2,coat,0.58);
+  g.userData.head=head;
   return g;
 }});

@@ -20,5 +20,6 @@ build:function(T){
     arm.position.set(s*1.45,4.2,0.3); arm.rotation.x=-0.12; arm.userData.ph=(s>0)?0:Math.PI; g.add(arm);
     const fist=T.box(0.8,0.5,0.9,skin); fist.position.set(s*1.45,1.35,0.6); g.add(fist); }
   T.legs4(g,0.7,0.4,2.0,fur,0.85);
+  g.userData.head=head;
   return g;
 }});

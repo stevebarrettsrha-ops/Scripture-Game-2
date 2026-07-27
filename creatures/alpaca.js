@@ -16,5 +16,6 @@ build:function(T){
   for(const s of [1,-1]){ const ear=T.box(0.2,0.6,0.2,wool); ear.position.set(s*0.34,8.2,1.35); g.add(ear);
     const eye=T.box(0.16,0.16,0.13,0x0e0a08); eye.position.set(s*0.34,7.4,2.05); g.add(eye); }
   T.legs4(g,0.6,1.0,2.6,wool,0.46);
+  g.userData.head=head;
   return g;
 }});

@@ -19,5 +19,6 @@ build:function(T){
   const tw=T.box(0.3,1.4,0.52,w); tw.geometry.translate(0,0.7,0);
   tw.position.set(0,0.95,-0.9); tw.rotation.x=0.3; g.add(tw);
   T.legs4(g,0.28,0.55,0.45,k,0.22);
+  g.userData.head=head;
   return g;
 }});

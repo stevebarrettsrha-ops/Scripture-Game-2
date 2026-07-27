@@ -19,5 +19,6 @@ build:function(T){
   /* the banner of a tail */
   const tail=T.box(1.5,1.2,1.9,0x4a3c30); tail.position.set(0,2.1,-2.2); g.add(tail);
   T.legs4(g,0.48,0.9,1.3,k,0.44);
+  g.userData.head=head;
   return g;
 }});

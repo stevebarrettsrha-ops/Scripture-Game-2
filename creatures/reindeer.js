@@ -20,5 +20,6 @@ build:function(T){
     const eye=T.box(0.18,0.18,0.14,0x0e0a08); eye.position.set(s*0.45,5.6,3.3); g.add(eye); }
   const tail=T.box(0.24,0.5,0.24,pale); tail.position.set(0,3.6,-1.8); g.add(tail);
   T.legs4(g,0.6,1.3,2.6,pale,0.5);
+  g.userData.head=head;
   return g;
 }});

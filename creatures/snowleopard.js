@@ -21,5 +21,6 @@ build:function(T){
   const tail=new T.THREE.Mesh(new T.THREE.BoxGeometry(0.6,0.6,3.0),coat);
   tail.position.set(0,2.6,-2.6); tail.rotation.x=0.35; g.add(tail);
   T.legs4(g,0.55,1.1,1.9,0xd2d0c8,0.6);
+  g.userData.head=head;
   return g;
 }});

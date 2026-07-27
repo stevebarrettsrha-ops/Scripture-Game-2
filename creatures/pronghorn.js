@@ -20,5 +20,6 @@ build:function(T){
     const ear=T.box(0.42,0.26,0.24,tan); ear.position.set(s*0.5,4.6,1.7); g.add(ear);
     const eye=T.box(0.16,0.16,0.13,0x0e0a08); eye.position.set(s*0.35,4.4,2.35); g.add(eye); }
   T.legs4(g,0.44,0.95,2.2,tan,0.34);
+  g.userData.head=head;
   return g;
 }});

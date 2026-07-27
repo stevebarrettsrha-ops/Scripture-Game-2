@@ -15,5 +15,6 @@ build:function(T){
     const whis=T.box(0.5,0.06,0.06,0xe0d8cc); whis.position.set(s*0.4,0.98,2.0); g.add(whis); }
   const tail=T.box(0.5,0.35,1.8,coat); tail.position.set(0,0.75,-2.1); g.add(tail);
   T.legs4(g,0.34,0.85,0.45,coat,0.3);
+  g.userData.head=head;
   return g;
 }});
