@@ -526,6 +526,26 @@ and you could look up at the underside of Cyprus.
   chunk shelf, the landing at the water's edge and every land flank all read
   them, so the three can never disagree about where the ground stops.
 
+## 4m. Round 14 — the shelf is seen from the deck ✅
+
+The shelf terraces stopped at 30 m and the note said "`SHELF_DEEP` is the one
+number to raise". **It was not.** Raised to 150 m it cost half again as many
+triangles at a coast (151,754 → 367,456) and changed **not one pixel** of the
+view from the deck — because the water's own skin was already shut.
+
+- **The sea's clarity followed the SHOAL** — a distance-from-land field — so
+  the bottom stopped showing at a fixed distance off the beach whatever the
+  water was actually doing, and it was near enough opaque by thirty metres.
+  It follows the true **DEPTH** now, and the shelf profile hands that to the
+  shader from the very same number it already samples (`D_STRAND`, the break
+  at 200 m, and the `^2.6` between them — two `pow`s, no new texture). Clear
+  to some sixty metres, as a clear sea is, and shut below it.
+- **`SHELF_DEEP` is tied to that clarity and must stay tied**: 360 units, or
+  sixty metres. Laid shallower and there is bare water where a floor should
+  show from the deck; laid deeper and it is triangles no eye will ever meet.
+- The cost lands at 264,914 triangles — more than the old cap, less than the
+  useless one, and every block of it visible.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
