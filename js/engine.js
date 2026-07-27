@@ -855,7 +855,9 @@ function emitColumn(G,ix,iz,cc){
     const sh=(d<2)?0.62:0.8;
     /* the sea beside: the flank keeps going below the waterline, all the
        way down to the bed — a stone standing in the glass, not upon it */
-    if(!nc) put((cc.kind==='wall'||cc.kind==='floe'||cc.kind==='snow')?'stone':'sand',SUBSEA_Y,base,sh*0.72);
+    if(!nc){ const jx=ix+nb[d][0], jz=iz+nb[d][1];
+      const foot=Math.min(SUBSEA_Y, bedBlockAt((jx+0.5)*B,(jz+0.5)*B)-B);
+      put((cc.kind==='wall'||cc.kind==='floe'||cc.kind==='snow')?'stone':'sand',foot,base,sh*0.72); }
     if(split){ put(sLow,base,yMid,sh); put(sTop,yMid,yT,sh); }
     else put(sTop,base,yT,sh);
   }
@@ -928,6 +930,30 @@ const SHELF_SHOAL=0.10;
    (180 units — thirty metres, at the six units to the metre everything that
    swims is built by.) */
 const SHELF_DEEP=180;
+/* ================= AND THE LAND GOES DOWN TO THE BED =================
+   Every flank of every land ended at SUBSEA_Y — thirteen units under the
+   waterline — because that is where the bed used to lie at every coast. The
+   bed now falls two hundred metres to the shelf break and kilometres past it,
+   so every island and every continent in the world was left hanging as a SLAB
+   with open water under it and the sea floor a long way below, unattached:
+   swim down off any strand and you could look up at the underside of Cyprus.
+   A block beside the water goes down to WHAT IS BESIDE IT now — the bed of
+   the sea at that place, snapped to the same block grid the diver's floor
+   uses — so the land is one solid mass of blocks running from the strand
+   down the shelf and the slope into the deep, with no daylight anywhere
+   under it. */
+function bedBlockAt(x,z){ return Math.round(seabedDepth(x,z)/B)*B; }
+/* the LOWEST thing standing beside this cell: the bed at each of its four
+   neighbours, or the land's own foot where a neighbour is dry ground. What
+   stands here drops to that, and there is never a gap at the join. */
+function seaFootAt(ix,iz,own){
+  let low=own===undefined?SUBSEA_Y:own;
+  for(const d of [[1,0],[-1,0],[0,1],[0,-1]]){
+    const jx=ix+d[0], jz=iz+d[1];
+    const y=cell(jx,jz)?SUBSEA_Y:bedBlockAt((jx+0.5)*B,(jz+0.5)*B);
+    if(y<low) low=y; }
+  return low-B;              /* a block of overlap, so nothing can crack open */
+}
 /* the ONE test both floors read, so neither ever lays ground the other has */
 function chunkShelfHere(x,z,bedY){
   return shoalAt(x,z)>SHELF_SHOAL && bedY>WATER_Y-SHELF_DEEP;
@@ -943,7 +969,8 @@ function buildChunk(cx,cz){
     if(!cc){ /* the shelf: solid sandy terraces stepping down from the land,
                 each rooted in the bed of the sea — never a floating sheet */
       const x0=ix*B, z0=iz*B;
-      const step=(top,mat)=>emitBox(G, x0+0.08,SUBSEA_Y,z0+0.08, x0+B-0.08,top,z0+B-0.08,mat||'sand',mat||'sand',null);
+      const step=(top,mat)=>emitBox(G, x0+0.08,seaFootAt(ix,iz,Math.min(SUBSEA_Y,top)),z0+0.08,
+                                      x0+B-0.08,top,z0+B-0.08,mat||'sand',mat||'sand',null);
       const nb=cell(ix+1,iz)||cell(ix-1,iz)||cell(ix,iz+1)||cell(ix,iz-1);
       if(nb&&nb.kind!=='wall'&&nb.kind!=='floe'){
         step(WATER_Y-1.5);                       /* the landing at the water's edge */
@@ -966,7 +993,7 @@ function buildChunk(cx,cz){
              where the bed steps down the shelf steps with it, and the riser
              is deep enough that no daylight shows under the tread */
           const mat=deep>26?'stone':'sand';
-          emitBox(G, x0+0.08,Math.min(SUBSEA_Y,top-B*5),z0+0.08,
+          emitBox(G, x0+0.08,seaFootAt(ix,iz,bedTop),z0+0.08,
                      x0+B-0.08,top,z0+B-0.08, mat,mat,null);
         }
       }
