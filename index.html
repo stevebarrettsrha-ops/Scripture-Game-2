@@ -219,7 +219,7 @@
 /* The registry the land, verse and river files feed into.
    Each file in countries/ calls EARTH.country({...}) — one land per file,
    loaded in a fixed order so the world is identical on every machine. */
-window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deepList:[],holeList:[],sceneList:[],beastList:[],
+window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deepList:[],holeList:[],sceneList:[],beastList:[],faunaList:[],
   country:function(c){this.list.push(c);},
   verses:function(v){this.verseList=v;},
   river:function(r){this.riverList.push(r);},
@@ -232,7 +232,10 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
   /* the short films the engine plays with the camera — see world/scenes.js */
   scene:function(s){this.sceneList.push(s);},
   /* every living thing has its own file in creatures/ — see creatures/README.md */
-  beast:function(b){this.beastList.push(b);}};
+  beast:function(b){this.beastList.push(b);},
+  /* WHICH beasts walk in WHICH land, and what ground each keeps to — the
+     whole of it is data, in world/fauna.js */
+  fauna:function(f){this.faunaList.push(f);}};
 </script>
 <script src="countries/fiji.js"></script>
 <script src="countries/tanzania.js"></script>
@@ -433,6 +436,9 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
 <script src="world/landmarks.js"></script>
 <script src="world/deeps.js"></script>
 <script src="world/scenes.js"></script>
+<!-- WHICH BEASTS WALK IN WHICH LAND. One line to a nation; edit it and
+     reload, and that country carries different creatures. -->
+<script src="world/fauna.js"></script>
 <!-- EVERY LIVING THING, ONE TO A FILE. Edit any of these and reload; the
      beast is rebuilt from its own file. `metres` in each file is the beast's
      TRUE adult length, and the game scales the model to match it. -->
@@ -456,6 +462,92 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
 <script src="creatures/orca.js"></script>
 <script src="creatures/narwhal.js"></script>
 <script src="creatures/whale.js"></script>
+<!-- THE BEASTS OF THE FIELD, one to a file, the same as the beasts of the
+     sea above. `metres` is the beast's TRUE adult length (or height, where
+     the file says axis:'y'); the game draws the whole herd of them at one
+     scale, in proportion with the cattle already standing in the villages. -->
+<script src="creatures/giraffe.js"></script>
+<script src="creatures/zebra.js"></script>
+<script src="creatures/wildebeest.js"></script>
+<script src="creatures/gazelle.js"></script>
+<script src="creatures/oryx.js"></script>
+<script src="creatures/buffalo.js"></script>
+<script src="creatures/rhino.js"></script>
+<script src="creatures/hippo.js"></script>
+<script src="creatures/warthog.js"></script>
+<script src="creatures/cheetah.js"></script>
+<script src="creatures/leopard.js"></script>
+<script src="creatures/hyena.js"></script>
+<script src="creatures/jackal.js"></script>
+<script src="creatures/baboon.js"></script>
+<script src="creatures/meerkat.js"></script>
+<script src="creatures/gorilla.js"></script>
+<script src="creatures/chimpanzee.js"></script>
+<script src="creatures/okapi.js"></script>
+<script src="creatures/lemur.js"></script>
+<script src="creatures/tiger.js"></script>
+<script src="creatures/panda.js"></script>
+<script src="creatures/redpanda.js"></script>
+<script src="creatures/orangutan.js"></script>
+<script src="creatures/waterbuffalo.js"></script>
+<script src="creatures/yak.js"></script>
+<script src="creatures/snowleopard.js"></script>
+<script src="creatures/macaque.js"></script>
+<script src="creatures/tapir.js"></script>
+<script src="creatures/komodo.js"></script>
+<script src="creatures/peacock.js"></script>
+<script src="creatures/saiga.js"></script>
+<script src="creatures/boar.js"></script>
+<script src="creatures/fox.js"></script>
+<script src="creatures/arcticfox.js"></script>
+<script src="creatures/badger.js"></script>
+<script src="creatures/lynx.js"></script>
+<script src="creatures/bison.js"></script>
+<script src="creatures/moose.js"></script>
+<script src="creatures/reindeer.js"></script>
+<script src="creatures/chamois.js"></script>
+<script src="creatures/hedgehog.js"></script>
+<script src="creatures/cougar.js"></script>
+<script src="creatures/jaguar.js"></script>
+<script src="creatures/llama.js"></script>
+<script src="creatures/alpaca.js"></script>
+<script src="creatures/capybara.js"></script>
+<script src="creatures/sloth.js"></script>
+<script src="creatures/armadillo.js"></script>
+<script src="creatures/anteater.js"></script>
+<script src="creatures/raccoon.js"></script>
+<script src="creatures/skunk.js"></script>
+<script src="creatures/coyote.js"></script>
+<script src="creatures/pronghorn.js"></script>
+<script src="creatures/howler.js"></script>
+<script src="creatures/kangaroo.js"></script>
+<script src="creatures/koala.js"></script>
+<script src="creatures/wombat.js"></script>
+<script src="creatures/emu.js"></script>
+<script src="creatures/dingo.js"></script>
+<script src="creatures/cassowary.js"></script>
+<script src="creatures/kiwi.js"></script>
+<script src="creatures/tasdevil.js"></script>
+<script src="creatures/polarbear.js"></script>
+<script src="creatures/muskox.js"></script>
+<script src="creatures/otter.js"></script>
+<script src="creatures/beaver.js"></script>
+<script src="creatures/platypus.js"></script>
+<!-- and of the rivers and the deep -->
+<script src="creatures/seal.js"></script>
+<script src="creatures/walrus.js"></script>
+<script src="creatures/octopus.js"></script>
+<script src="creatures/swordfish.js"></script>
+<script src="creatures/barracuda.js"></script>
+<script src="creatures/manatee.js"></script>
+<script src="creatures/trout.js"></script>
+<script src="creatures/catfish.js"></script>
+<script src="creatures/piranha.js"></script>
+<script src="creatures/sturgeon.js"></script>
+<script src="creatures/riverdolphin.js"></script>
+<!-- THE GRASS OF THE EARTH. What grows where, read by the chunk mesher
+     when it draws a blade AND by every beast that walks out to eat one. -->
+<script src="js/grass.js"></script>
 <script src="js/engine.js"></script>
 <script>
 (function(){
