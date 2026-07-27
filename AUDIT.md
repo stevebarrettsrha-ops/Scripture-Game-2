@@ -452,6 +452,58 @@ the rim as a crown tilting ever upward — there was nowhere on it to stand.
   and the touch-the-firmament prompt stands ready across the outer 130 blocks
   of the plateau.
 
+## 4k. Round 12 — a cutscene engine, and two scenes on it ✅
+
+The scene at the world's edge was a camera drifting for eleven seconds with
+the whole HUD standing over it — the button rail down one side, the compass
+rose in the corner, and the place-line sitting exactly on top of the verse.
+It is now a **cutscene engine**, and scenes are DATA like everything else.
+
+- **`world/scenes.js`** — one entry to a scene, in the same shape as
+  `countries/`, `creatures/` and `world/deeps.js`. A scene declares how long
+  it runs, the verses it may draw on (one is taken at random), how the world
+  is **dressed** while it plays, what the traveller **does**, and the
+  **marks the eye moves through**. Add one there and it exists.
+- **The engine** (`playScene` / `sceneTick` / `endScene`) knows nothing about
+  any particular scene. It takes the body out of the player's hands, drops
+  the letterbox, **takes the HUD down**, dresses the world on a ramp that
+  rises at the start and falls before the end (so the world he stands in is
+  back before the bars lift), leads the eye from mark to mark with everything
+  eased, holds the verse, and puts back every single thing it touched.
+  A change of mode ends any scene under it.
+- **A mark** says where the eye stands — distance from him, lift above his
+  feet, and how far it has swung from behind him to in front — and where it
+  LOOKS: so far out along his bearing, and so far above his feet. The look
+  point used to be a tangent along that bearing alone, so the moment the eye
+  swung off the radial line the man left the frame and the close beats came
+  out as bare void with no glass in them, no rim and no man.
+
+**The firmament scene** now plays as it was meant to. The wall of night — a
+dark cylinder at the rim, right to see from WITHIN the world — comes down for
+it; it stood between him and the whole of the deep, a smooth blank filling
+two thirds of the sight with not one star in it. The day drains out of the
+sky into the outer dark, and **the host of the shamayim** stands in it: a
+full sphere of stars carried with the eye, wheeling slowly, since beyond the
+firmament there is no day and no air and no half-dome of sky. The glass is
+held to a third — at half again as much its blue lay over the whole abyss and
+the host could barely be made out, which is the sight he came for.
+
+And the **vault comes down properly to meet him**. It fell in one smooth
+sweep to fifty metres over his head across the whole crown — near enough to
+see, far too far to lay a hand on, and the thing is called TOUCH THE
+FIRMAMENT. It plunges in two stages now: from seven leagues up to a low
+ceiling by the time the crown is well begun, then almost level over the last
+of the ice, closing to **17 units — under three metres — at the rim**. He
+stoops at the last. The prompt only stands where the glass is truly within
+reach (340 units), not across ground where it is three kilometres overhead.
+
+**The floor of the deep** is the second scene, and the proof the engine is
+general: come down onto the floor of any named hadal trench and it plays —
+eleven kilometres of black water overhead, one man in the dark, and a verse.
+It is fired by NEARNESS, not by landing: a still body drifts up of itself, so
+a diver who lets go a body's length off the bed hangs there and never once
+satisfies the floor clamp.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
