@@ -1232,7 +1232,7 @@ snowGeo.setAttribute('position',new THREE.BufferAttribute(snowPos,3));
 const snowMat=new THREE.PointsMaterial({color:0xeef4ff,size:0.85,transparent:true,opacity:0,depthWrite:false,fog:false,sizeAttenuation:true});
 const snow=new THREE.Points(snowGeo,snowMat); snow.frustumCulled=false; snow.visible=false; scene.add(snow);
 const _coldFog=new THREE.Color(0xb6c6da);
-const _voidC=new THREE.Color(0x02030a);      /* the outer darkness, beyond the rim */
+const _voidC=new THREE.Color(0x04060d);      /* the outer darkness, beyond the rim */
 function updateWallWeather(px,pz,dt){
   if(state.firm){ snow.visible=false; snowMat.opacity=0; return; }
   const r=Math.hypot(px,pz)/R_WORLD, wallF=Math.max(0,Math.min(1,(r-0.85)/0.1));
@@ -1576,6 +1576,63 @@ const starGroup=new THREE.Group(); scene.add(starGroup);
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pts,3));
   const m=new THREE.PointsMaterial({color:0xdfe8ff,size:2.4,transparent:true,opacity:0,fog:false,sizeAttenuation:false});
   starGroup.add(new THREE.Points(g,m)); starGroup.userData.mat=m; }
+
+/* ================= THE HOST OF THE SHAMAYIM, WITHOUT =================
+   The stars above are set in the sky a man stands under: a half-dome of
+   them, dimmed out by day, turning once with the sun. That is right for a
+   sky. It is not what is OUTSIDE. Beyond the firmament there is no day and
+   no air — only the darkness, and the whole host standing in it about the
+   earth, above and below and on every side, wheeling slowly about the
+   height while the earth itself does not move. So the outer dark has its
+   own host: a full sphere of them, carried with the eye so it can never be
+   flown out of, each one keeping its own slow twinkle. */
+const voidStars=(()=>{
+  const N=1800, pos=new Float32Array(N*3), sz=new Float32Array(N), ph=new Float32Array(N), sp=new Float32Array(N);
+  for(let i=0;i<N;i++){
+    /* evenly over the whole sphere — cos(e) uniform, or they crowd the poles */
+    const a=Math.random()*Math.PI*2, ce=Math.random()*2-1, se=Math.sqrt(1-ce*ce);
+    pos[i*3]=se*Math.cos(a); pos[i*3+1]=ce; pos[i*3+2]=se*Math.sin(a);
+    sz[i]=0.9+Math.random()*2.1; ph[i]=Math.random()*6.28; sp[i]=0.5+Math.random()*1.4; }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  g.setAttribute('aSize',new THREE.BufferAttribute(sz,1));
+  g.setAttribute('aPhase',new THREE.BufferAttribute(ph,1));
+  g.setAttribute('aSpd',new THREE.BufferAttribute(sp,1));
+  const m=new THREE.ShaderMaterial({
+    uniforms:{uTime:{value:0}, uOp:{value:0}, uPx:{value:Math.min(2,devicePixelRatio||1)}},
+    transparent:true, depthWrite:false, fog:false,
+    vertexShader:`
+      attribute float aSize, aPhase, aSpd;
+      uniform float uTime, uOp, uPx;
+      varying float vA;
+      void main(){
+        gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);
+        vA=uOp*(0.35+0.5*abs(sin(uTime*aSpd+aPhase)));
+        gl_PointSize=aSize*uPx;
+      }`,
+    fragmentShader:`
+      varying float vA;
+      void main(){ if(vA<0.01) discard; gl_FragColor=vec4(0.92,0.94,0.98,vA); }`});
+  const p=new THREE.Points(g,m); p.frustumCulled=false; p.visible=false;
+  /* first of everything that is drawn with a blend: it is the BACKDROP. Left
+     to the ordinary sorting it would be reckoned the nearest thing in the
+     scene — its centre is the eye itself — and would come out on top of the
+     charted earth, which lays down no depth of its own. */
+  p.renderOrder=-1; scene.add(p);
+  p.userData.mat=m; return p;
+})();
+/* carried with the eye, and set just within the far plane so that every
+   thing that CAN be drawn is drawn in front of it */
+function voidStarTick(op){
+  const m=voidStars.userData.mat;
+  voidStars.visible=op>0.004;
+  if(!voidStars.visible) return;
+  m.uniforms.uOp.value=op;
+  m.uniforms.uTime.value=performance.now()*0.001;
+  voidStars.position.copy(camera.position);
+  voidStars.scale.setScalar(camera.far*0.93);
+  voidStars.rotation.y=performance.now()*0.0000075;   /* one turn in a quarter hour */
+}
 
 /* the two great lights — square, as they ought to be */
 const sunMat2=new THREE.SpriteMaterial({map:TEX.sun,fog:false,transparent:true,depthWrite:false});
@@ -5874,6 +5931,13 @@ function touchDome(){
   const line=CINE_LINES[Math.floor(Math.random()*CINE_LINES.length)];
   domeCut={t:0,dur:11.5,x:p.x,y,z:p.z,out:Math.atan2(p.x,p.z),line};
   ensureFlyDome();
+  /* THE WALL OF NIGHT COMES DOWN FOR THIS. It is a dark cylinder standing at
+     the rim, and it is the right thing to see from within the world — but he
+     is not within it now, he is a thousand blocks up on the crown of the ice
+     with his hand on the glass, and it stood between him and the whole of the
+     deep, a smooth blank filling two thirds of the sight with not one star in
+     it. The same is done in the firmament view, and for the same reason. */
+  voidWall.visible=false;
   walkerG.position.set(p.x,y,p.z);
   const el=$('cine'); if(el) el.classList.add('on');
   const cap=$('cine-cap');
@@ -5881,6 +5945,7 @@ function touchDome(){
 }
 function endDomeCut(){
   domeCut=null;
+  if(!state.firm) voidWall.visible=true;
   const el=$('cine'); if(el) el.classList.remove('on');
   const cap=$('cine-cap'); if(cap) cap.classList.remove('on');
 }
@@ -5892,8 +5957,11 @@ function domeCutTick(dt){
   const cap=$('cine-cap');
   if(cap) cap.classList.toggle('on', C.t>1.9&&C.t<C.dur-1.6);
   /* the stars and the glass are brought up, so the scene reads at any hour */
-  const rise=Math.min(1,C.t/2.4);
-  if(flyDome) flyDome.material.opacity=Math.max(flyDome.material.opacity,0.16+0.5*rise);
+  const rise=Math.min(1,C.t/2.4); C.rise=rise;
+  /* enough glass that his hand has something to rest on, and no more: at half
+     again as much the vault's blue lay over the whole of the abyss and the
+     host in it could barely be made out, which is the sight he came for */
+  if(flyDome) flyDome.material.opacity=Math.max(flyDome.material.opacity,0.16+0.24*rise);
   starGroup.userData.mat.opacity=Math.max(starGroup.userData.mat.opacity,0.92*rise);
   if(outerDeep) outerDeep.material.uniforms.uOp.value=
     Math.max(outerDeep.material.uniforms.uOp.value,0.92*rise);
@@ -5922,7 +5990,19 @@ function domeCutTick(dt){
 function flyTick(dt){
   const fl=state.fly; const [f,t]=axis();
   fl.heading+=t*dt*FLY_TURN;
-  const tgt=f*FLY_MAXSP;
+  /* A STRIDE MUST BE AS LONG AS THE COUNTRY IT IS TAKEN OVER. 520 units a
+     second is a good pace over a field, and it is NOTHING at twenty-six
+     thousand up, where the whole earth — two hundred and forty thousand
+     units of it — lies in the view: a man holds the key for half a minute
+     and travels a hundredth part of what he can see, and swears he has not
+     moved at all. So the pace opens out with the eye's own reach, and at the
+     full height a crossing of the whole world takes about a quarter minute
+     instead of eight. Below four thousand nothing changes: the near country
+     is streamed in chunks that cannot be outrun. */
+  const reach=Math.max(fl.y, state.camDist*0.75);
+  const pace=1+Math.min(39,Math.max(0,reach-6000)/900);
+  state.flyPace=pace;      /* the near chunks are shown only while it is 1 */
+  const tgt=f*FLY_MAXSP*pace;
   fl.sp+=(tgt-fl.sp)*Math.min(1,dt*2.4);
   fl.x+=Math.sin(fl.heading)*fl.sp*dt;
   fl.z+=Math.cos(fl.heading)*fl.sp*dt;
@@ -7137,7 +7217,13 @@ function frame(){
      the waters above glowing faint over the apex, the stars seen through the glass */
   if(flyDome&&!state.firm){
     const climbF=Math.max(0,Math.min(1,(eyeY-3000)/26000));
-    flyDome.material.opacity=climbF*0.55;
+    /* THE VAULT IS GLASS, NOT A CEILING OF PAINT. At better than half opaque
+       it washed the whole of the height pale blue from the inside, and what
+       is beyond it — the darkness, and the host standing in it — could not be
+       made out at all. It is now as faint as it is from without (0.16 there),
+       so that a man risen high looks THROUGH the firmament into the deep,
+       which is the whole point of rising. */
+    flyDome.material.opacity=climbF*0.20;
     flyDome.material.color.copy(mix3(0x1c2946,0x53719e,0x9ec7f2,light.dayF));
     if(outerDeep) outerDeep.material.uniforms.uOp.value=Math.max(0,Math.min(1,(eyeY-CLOUD_Y*2)/9000))*0.94;
     const aloftF=Math.max(0,Math.min(1,(eyeY-CLOUD_Y*3)/20000));
@@ -7178,8 +7264,14 @@ function frame(){
   }
   haloTick(state.firm?1:zMapF);   /* the lights get their glow when the earth is beheld whole */
   /* drawn right back, the sky about the disc gives way to the outer darkness,
-     and the earth is beheld standing within it — as she is */
-  if(zMapF>0.002) scene.background.lerp(_voidC,zMapF*0.92);
+     and the earth is beheld standing within it — as she is. It goes ALL the
+     way to the dark: eight parts in a hundred of the day's blue left in it
+     was enough to grey the whole void and put out the stars in it. */
+  /* and with his hand on the glass he is looking straight out into it — that
+     is the whole of what the scene is for, so the host comes up there too */
+  const voidF=state.firm?1:Math.max(zMapF, domeCut?(domeCut.rise||0):0);
+  if(voidF>0.002) scene.background.lerp(_voidC,Math.min(1,voidF*1.14));
+  voidStarTick(voidF);            /* and the host of the shamayim stands in it */
   /* and the haze of the near world must not blind an eye drawn back off it */
   if(scene.fog&&zMapF>0.002){
     scene.fog.near+=(R_WORLD*0.5-scene.fog.near)*zMapF;
@@ -7228,7 +7320,12 @@ function frame(){
      charted face is more than half in, the chunks and the coarse ring are
      taken out of the view altogether and the earth is shown whole. */
   const showNear = !state.firm && zMapF<0.75;
-  chunkRoot.visible = showNear;
+  /* and the chunks go out BEFORE the coarse ring does. Once the flier's pace
+     has opened out with the height — thousands of units a second — the mesher
+     cannot lay ground down fast enough to keep in front of him, and all a
+     768-unit patch of it can do underneath him is flicker in and out. The
+     ring, which reaches thirteen thousand at that height, carries the view. */
+  chunkRoot.visible = showNear && !(state.mode==='fly'&&(state.flyPace||1)>1.35);
   /* the near WATER goes with the near land. The wave grid is a flat square
      5,000 units on a side: left standing while the charted face came up
      under it, it sat on the middle of the world as a pale rectangle with the
