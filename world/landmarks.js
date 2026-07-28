@@ -51,6 +51,6 @@ EARTH.landmark({n:"Kilimanjaro", lat:-3.07, lon:37.35, kind:'mount', elev:5895, 
 EARTH.landmark({n:"Mont Blanc", lat:45.83, lon:6.86, kind:'mount', elev:4808, r:1800});
 EARTH.landmark({n:"Denali", lat:63.07, lon:-151.0, kind:'mount', elev:6190, r:1800});
 EARTH.landmark({n:"Aconcagua", lat:-32.65, lon:-70.01, kind:'mount', elev:6961, r:4200});
-EARTH.landmark({n:"Table Mountain", lat:-33.96, lon:18.40, kind:'mount', elev:1085, r:90});
-EARTH.landmark({n:"Uluru", lat:-25.34, lon:131.03, kind:'mount', elev:863, r:60});
+EARTH.landmark({n:"Table Mountain", lat:-33.96, lon:18.40, kind:'mount', elev:1085, r:90, steep:1});
+EARTH.landmark({n:"Uluru", lat:-25.34, lon:131.03, kind:'mount', elev:863, r:60, steep:1});
 EARTH.landmark({n:"Mount Zaphon", lat:35.95, lon:35.97, kind:'mount', elev:1717, r:150});
