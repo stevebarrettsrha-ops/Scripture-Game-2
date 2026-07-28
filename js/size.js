@@ -65,7 +65,7 @@ const metres={
 /* ================= THE BEASTS OF THE FIELD ================= */
 /* ---- cattle, flocks and the beasts of the household ---- */
 cow:1.4, ox:1.5, sheep:0.9, goat:0.9, pig:0.75, chicken:0.42,
-horse:1.6, donkey:1.25, dog:0.6, camel:2.15,
+horse:1.6, donkey:1.25, mule:1.45, dog:0.6, camel:2.15,
 /* ---- the temperate field and wood ---- */
 deer:1.1, hare:0.4, boar:0.9, fox:1.1, badger:0.8, hedgehog:0.25,
 lynx:1.0, wolf:0.8, bison:1.9, moose:2.0, reindeer:1.2, chamois:0.8,
@@ -128,7 +128,7 @@ const axis={
      when it is standing next to you, which is the whole point of the
      exercise. So these are set down at their true height at the shoulder (or
      at the crown of the head, for the ones that carry it high). */
-  elephant:'y', mammoth:'y', camel:'y', horse:'y', donkey:'y', ox:'y', cow:'y',
+  elephant:'y', mammoth:'y', camel:'y', horse:'y', donkey:'y', mule:'y', ox:'y', cow:'y',
   deer:'y', goat:'y', sheep:'y', pig:'y', bear:'y', blackbear:'y', lion:'y',
   wolf:'y', dog:'y', hare:'y', rhino:'y', hippo:'y', buffalo:'y', bison:'y',
   moose:'y', muskox:'y', yak:'y', waterbuffalo:'y', zebra:'y', wildebeest:'y',

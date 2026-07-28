@@ -4512,6 +4512,21 @@ function treeNear(x,z,reach){
       return {ix,iz,c,K,crown,y:c.h*B+crown,x:(ix+0.5)*B,z:(iz+0.5)*B}; } }
   return null;
 }
+/* ---- MAY THIS BEAST STAND ON THIS GROUND AT ALL? ----
+   The ground it keeps and the height it keeps, and nothing else — the
+   river and the tree are questions for where it is first SET DOWN, not
+   for every step it takes. This is the test a beast's own feet obey as it
+   roams: the habitat table gated only spawning before, so a roe deer put
+   down in a valley simply walked up out of its band onto the bare rock
+   above the tree line and stood there. It turns back at its own frontier
+   now, exactly as it turns back at a cliff. */
+function beastMayStand(name,c){
+  if(!c||c.kind==='wall') return false;
+  const K=FAUNA.keeps[name]; if(!K) return true;
+  if(K.g&&K.g.indexOf(c.kind)<0) return false;
+  if(K.h&&(c.h<K.h[0]||c.h>K.h[1])) return false;
+  return true;
+}
 /* will this beast set foot on this ground, at this height, by this water? */
 function beastFits(name,k,hb,river,tree){
   const K=FAUNA.keeps[name]; if(!K) return true;         /* unlisted: it goes anywhere */
@@ -4577,10 +4592,26 @@ function landKindAt(x,z,c){
       return fit[fit.length-1];
     }
   }
-  /* ---- AND WHERE NO LIST IS WRITTEN ---- the old climate table */
-  const pick=L=>L[Math.floor(j*L.length)%L.length];
-  const byKind=FAUNA.wilds[k];
-  if(byKind&&byKind.length) return pick(byKind);
+  /* ---- AND WHERE NO LIST IS WRITTEN ---- the old climate table.
+     BUT THE ARCTIC IS NOT A CLIMATE, IT IS A PLACE. The snow table is
+     polar bears, arctic foxes and lemmings — and it was reached by ANY
+     ground the mesher happened to call 'snow', which now includes the
+     crown of a Japanese or Chinese alp. So a polar bear could stand on
+     Mount Paektu. Above the true arctic line the table stands; below it,
+     a snowfield in a country whose own beasts cannot live there bears
+     NOTHING AT ALL, which is exactly what a glacier bears. */
+  /* AND THE CLIMATE TABLE MUST OBEY THE HABITATS TOO. It picked blind —
+     a plain index into the list, with no test of ground or height at all
+     — so a country with no list of its own put roe deer and hares on bare
+     rock a thousand metres above the tree line. Every draw is filtered
+     now, by exactly the rule the country lists are filtered by. */
+  const pick=L=>{ if(!L||!L.length) return null;
+    const fit=L.filter(nm=>beastFits(nm,k,hb,false,false));
+    if(!fit.length) return null;
+    return fit[Math.floor(j*fit.length)%fit.length]; };
+  if(k==='snow'&&alat<56) return null;
+  const byKind=pick(FAUNA.wilds[k]);
+  if(byKind) return byKind;
   if(k==='alpine'||k==='rock'||hb>34) return pick(WILD_HIGH);
   if(k==='snow'||k==='tundra') return pick(WILD_COLD);
   if(k==='desert'||k==='badlands'||(alat<34&&arid>0.54)) return pick(WILD_DRY);
@@ -4675,6 +4706,9 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
   for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>LL_R+140){ const sp=findLandSpot(px,pz);
       if(!sp){ if(a.m)a.m.visible=false; hideYoung(a); a.set=false; continue; }
       const kind=landKindAt(sp.x,sp.z,sp.c);
+      /* the ground named no beast — a bare glacier, a crest above the life
+         line. It stays bare; the slot tries elsewhere next tick. */
+      if(!kind){ if(a.m)a.m.visible=false; hideYoung(a); a.set=false; continue; }
       if(a.kind!==kind){ if(a.m) scene.remove(a.m); a.m=makeAnimal(kind); scene.add(a.m); a.kind=kind; }
       a.hx=sp.x; a.hz=sp.z; a.x=sp.x; a.z=sp.z; a.tx=sp.x; a.tz=sp.z; a.t=Math.random()*3; a.set=true;
       a.role=WILD_ROLE[kind]||'graze'; a.job='roam'; a.jt=Math.random()*3; a.prey=null; a.cool=0;
@@ -4941,7 +4975,17 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
     if(moving){ const nx=a.x+dx/dd*spd*dt, nz=a.z+dz/dd*spd*dt, c=landAtWorld(nx,nz);
       /* the step a beast can take is now measured in blocks, not units — on a
          mountain flank the old flat limit stopped everything dead */
-      if(c&&c.kind!=='wall'&&Math.abs(c.h*B-a.m.position.y)<B*1.7){ a.x=nx; a.z=nz; a.heading=Math.atan2(dx,dz); a.stuck=0; }
+      /* ---- AND NO BEAST TAKES A CLIFF THAT DOES NOT TAKE ONE ----
+         Every creature on the earth could step the same block and
+         two-thirds, so an elephant went up a crag stride for stride with
+         a goat and a bear walked to the crown of an alp. The step is the
+         beast's OWN now (js/behavior.js): a goat and a chamois take two
+         and a half blocks, a wolf a block and a half, an elephant or a
+         hippo barely a kerb. A beast turned back by the rock sheers off
+         along it, exactly as it does at any other barrier. */
+      const stepH=B*(window.BEHAVIOR?BEHAVIOR.climbOf(a.kind):1.0);
+      const rise=c?c.h*B-a.m.position.y:0;
+      if(c&&rise<stepH&&rise>-stepH*2.2&&beastMayStand(a.kind,c)){ a.x=nx; a.z=nz; a.heading=Math.atan2(dx,dz); a.stuck=0; }
       else {
         /* ---- A BEAST TURNS AWAY FROM WHAT IT CANNOT CROSS ----
            When the way was barred it only reset its work-timer and kept the
@@ -6309,10 +6353,13 @@ function promptTick(){
     else if(state.fishing){ label=state.fishing.phase==='bite'?'F — STRIKE! a fish is on the line':'F — draw in the line'; promptAction='reel'; }
     else if(canSleep()){ label='F — sleep until morning'; promptAction='sleep'; }
     else if(canTouchDome()){ label='F \u2014 touch the firmament'; promptAction='dome'; }
+    else if(state.mount){ label='F — dismount'; promptAction='dismount'; }
     else {
       promptDoor=nearestDoor(state.walk.x,state.walk.z);
       promptStall=nearestStallVillage();
+      promptMount=nearestMount(state.walk.x,state.walk.z);
       if(promptDoor){ label='F — '+(promptDoor.door.open?'close the door':'open the door'); promptAction='door'; }
+      else if(promptMount){ label='F — mount the '+promptMount.kind; promptAction='ride'; }
       else if(promptStall){ label='F — trade at the stall'; promptAction='trade'; }
       else { promptPerson=nearbyPerson();
         if(promptPerson){ label='F — speak'; promptAction='speak'; }
@@ -7222,6 +7269,51 @@ function doorTick(dt){
   anim(standaloneHouses);
 }
 let promptDoor=null;
+/* ================= THE SADDLE =================
+   Players wanted to RIDE. Walk up to a horse, a donkey or a camel of the
+   open country, and F swings you up: the beast becomes your mount, the
+   walking keys become its reins, and it carries you at a canter twice a
+   man's stride. F again puts you down — and the beast is not despawned
+   like a used tool: it takes a wild slot again and wanders off to graze,
+   the same animal, back about its own business. A horse will not swim:
+   ride into the sea and you part company at the water's edge. */
+const RIDEABLE={horse:1,donkey:1,camel:1,mule:1};
+let promptMount=null;
+function nearestMount(px,pz){ let best=null,bd=1e9;
+  for(const a of LANDLIFE){ if(!a.set||a.dead>0||!RIDEABLE[a.kind]) continue;
+    const d=Math.hypot(a.x-px,a.z-pz); if(d<9&&d<bd){ bd=d; best=a; } }
+  return best; }
+function mountUp(a){
+  if(!a||state.mount) return;
+  a.set=false; a.m.visible=false; hideYoung(a);
+  const m=makeAnimal(a.kind);
+  /* saddled for the road: blanket, seat and girth, set at the beast's own back */
+  { const bu=beastUnits(a.kind), by=bu*0.74;
+    const blanket=lbox(4.4,0.5,5.6,0x8a3030); blanket.position.set(0,by,-0.3); m.add(blanket);
+    const seat=lbox(3.4,1.1,4.4,0x5a3a22); seat.position.set(0,by+0.6,-0.3); m.add(seat);
+    const pommel=lbox(1.0,1.0,1.0,0x4a2f1c); pommel.position.set(0,by+1.3,1.6); m.add(pommel);
+    for(const s of [1,-1]){ const girth=lbox(0.4,bu*0.5,0.5,0x4a2f1c);
+      girth.position.set(s*2.1,by-bu*0.25,-0.3); m.add(girth); } }
+  scene.add(m);
+  state.mount={kind:a.kind,m};
+  state.walk.heading=a.heading;
+  toast('You swing up onto the '+a.kind+' — ride with the walking keys, and F sets you down again.');
+}
+function dismount(quiet){
+  const M=state.mount; if(!M) return; state.mount=null;
+  /* the beast goes back to the wild — a free slot, standing where you left it */
+  for(const a of LANDLIFE){ if(a.set) continue;
+    if(a.m) scene.remove(a.m);
+    a.m=M.m; a.kind=M.kind; a.set=true;
+    a.x=a.hx=a.tx=state.walk.x+Math.sin(state.walk.heading+1.6)*5;
+    a.z=a.hz=a.tz=state.walk.z+Math.cos(state.walk.heading+1.6)*5;
+    a.heading=state.walk.heading; a.role='graze'; a.job='roam'; a.jt=1+Math.random()*2;
+    a.dead=0; a.den=null; a.act=null; a.burst=0; a.fear=0; a.panicT=0; a.upTree=0;
+    a.kids=null; a.day='day'; a.river=false; a.ph=Math.random()*6.283;
+    a.m.visible=true; M.m=null; break; }
+  if(M.m) scene.remove(M.m);      /* no slot free — it slips away into the world's pocket */
+  if(!quiet) toast('You dismount, and the beast falls to grazing.');
+}
 function canSleep(){ if(state.mode!=='walk'||!HOME||worldNight<=0.45) return false;
   /* inside the room among the boughs, OR standing at the foot of the home tree
      (the platform is high in the canopy and hard to gain, so the base serves) */
@@ -7241,6 +7333,8 @@ function interact(){
     case 'door': toggleDoor(); break;
     case 'down': state.deck.level='hold'; state.deck.lx=0; state.deck.lz=HATCH.z; break;
     case 'up': state.deck.level='deck'; state.deck.lx=2.4*SHIP_SX; state.deck.lz=HATCH.z+3*SHIP_S; break;
+    case 'ride': mountUp(promptMount); break;
+    case 'dismount': dismount(false); break;
     case 'speak': speakTo(promptPerson); break;
     case 'enc': encounterAct(); break;
     case 'fish': startFishing(); break;
@@ -7339,6 +7433,7 @@ function walkTick(dt){
      and stroking when swimming forward, treading upright when at rest. */
   const surfY=WATER_Y+seaHeight(w.x,w.z);
   if(swimming){
+    if(state.mount) dismount(true);      /* a horse will not swim — you part at the water's edge */
     if(!w.inWater){
       const plunging=w.vy<-30;
       w.inWater=true; w.spill=0; splash(w.x,surfY+1,w.z,w.vy<-14);
@@ -7433,7 +7528,8 @@ function walkTick(dt){
       w.vy=0; w.grounded=true; } else w.grounded=false;
     if((keys.Space||w.jumpReq)&&w.grounded&&!(w.spill>0)){ w.vy=38; w.grounded=false; } w.jumpReq=false; }
   /* ---- horizontal move, gated by the height of the ground ahead ---- */
-  const sp=(w.spill>0&&!swimming)?0:f*(swimming?16:18);   /* winded — no walking till he is up */
+  /* mounted, the beast's stride is yours: a canter at twice a man's pace */
+  const sp=(w.spill>0&&!swimming)?0:f*(swimming?16:state.mount?38:18);
   const fullX=w.x+Math.sin(w.heading)*sp*dt, fullZ=w.z+Math.cos(w.heading)*sp*dt;
   /* THE BODY IS NOT A POINT. Every test below was made at the traveller's
      midline alone, so he could stand with his centre just inside a cell and
@@ -7550,6 +7646,31 @@ function walkTick(dt){
   { const live=moving||swimming||!w.grounded||w.spill>0;
     jointTick(u.legL,live); jointTick(u.legR,live);
     jointTick(u.armL,live); jointTick(u.armR,live); }
+  /* ---- IN THE SADDLE ----
+     The mount is drawn under the traveller, its legs beating with the
+     pace; he sits it astride, knees bent, hands to the reins, and rises
+     and falls a little with the canter. */
+  if(state.mount&&!swimming){
+    const M=state.mount, ph=performance.now()*0.013;
+    M.m.visible=true;
+    M.m.position.set(w.x,w.feetY,w.z);
+    M.m.rotation.set(0,w.heading,0);
+    const legs=M.m.userData.legs;
+    if(legs) for(const L of legs){
+      L.rotation.x=moving?Math.sin(ph+(L.userData.ph||0))*0.62:0;
+      jointTick(L,moving); }
+    const seat=beastUnits(M.kind)*0.74;
+    const bump=moving?Math.abs(Math.sin(ph))*0.9:0;
+    walkerG.position.y=w.feetY+seat-4.1+bump;
+    walkerG.rotation.x=0;
+    u.legL.rotation.x=-1.2; u.legR.rotation.x=-1.2;
+    u.legL.rotation.z=0.35; u.legR.rotation.z=-0.35;
+    if(u.legL.userData.knee) u.legL.userData.knee.rotation.x=1.25;
+    if(u.legR.userData.knee) u.legR.userData.knee.rotation.x=1.25;
+    u.armL.rotation.x=-0.55; u.armR.rotation.x=-0.55;
+    if(u.armL.userData.elbow) u.armL.userData.elbow.rotation.x=-0.5;
+    if(u.armR.userData.elbow) u.armR.userData.elbow.rotation.x=-0.5;
+  } else { u.legL.rotation.z=0; u.legR.rotation.z=0; }
 }
 /* ================= FLIGHT — LEVITATION ABOVE THE CLOUDS =================
    The traveller is borne up off the deck or the shore into the open air.
@@ -8965,6 +9086,7 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
   farLand,updateFarLand,mountUpliftAt,MOUNTS,ridgeNoise,B,R_WORLD,
   AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,RANGES,FALLS,activeLandmarks,LANDMARKS,
+  mountUp,dismount,nearestMount,promptState:()=>promptAction,
   domeCeilAt,canTouchDome,touchDome,playScene,endScene,SCENES,sceneActive,sceneRise,seenDeeps,BEACHES,SHOALS,ORCA,beachAt,nearestBeach,seabedMetres,orcaState:()=>orcaState,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
