@@ -2217,7 +2217,7 @@ function haloTick(whole){
    going by at a gallop. He sets out at the true reckoning now: an hour is
    an hour and the ship makes her own speed. The other courses are still
    there on the button for anyone in a hurry. */
-const state={ simHours:9.5, speedIdx:0, paused:false,
+const state={ simHours:9.5, speedIdx:0, dayIdx:0, paused:false,
   mode:'boat', boat:{x:0,z:0,heading:Math.PI*0.9,speed:0},
   walk:{x:0,z:0,heading:0}, deck:{lx:2.4,lz:-21,h:Math.PI},
   fly:{x:0,y:0,z:0,heading:0,vy:0,sp:0}, prevGround:'boat',
@@ -2306,6 +2306,63 @@ function stormAt(x,z){ let f=0;
 /* the courses themselves live in js/sun-moon.js — the one file that is the
    whole law of the two great lights. These are the engine's thin hands. */
 function dayOfYear(){ return SUNMOON.dayOfYear(state.simHours); }
+/* ================= THE HOUR OF THE DAY, WHERE YOU STAND =================
+   The clock showed the WORLD hour, which is nobody's hour. The sun makes
+   one circuit of the disc a day, so a single world-clock reading is a
+   different time of day in every country on it: 18:00 is dusk over Kenya
+   and the dead of night over Peru. What a man wants to know is the hour
+   HERE — with the sun overhead at noon and under his feet at midnight —
+   so the longitude is taken out of it, exactly as the cutscene engine
+   takes it out of a scene's requested hour. */
+function playerXZ(){
+  const m=state.mode;
+  return m==='fly'?state.fly : m==='dive'?state.dive
+       : m==='boat'||m==='deck'?state.boat : state.walk;
+}
+function localHourAt(x,z){
+  const lonR=Math.atan2(x,z);
+  return ((state.simHours+12*lonR/Math.PI)%24+24)%24;
+}
+/* and the other way about: set the world clock so that it is `h` o'clock
+   HERE. This is what the real-world clock and the Time of Day option both
+   speak through. */
+function setLocalHour(h,x,z){
+  const lonR=Math.atan2(x,z);
+  const world=((h-12*lonR/Math.PI)%24+24)%24;
+  state.simHours=Math.floor(state.simHours/24)*24+world;
+}
+/* ---- THE TIMES OF DAY ----
+   Dawn about six, noon at twelve, dusk about six again, midnight at twelve:
+   the plain round of the day. 'live' is not an hour at all — it is the
+   clock of the machine the game is played on. */
+const DAYPARTS=[
+  {k:'live',    n:'live (your clock)'},
+  {k:'morning', n:'morning',  h:8.0},
+  {k:'noon',    n:'noon',     h:12.0},
+  {k:'evening', n:'evening',  h:18.5},
+  {k:'night',   n:'night',    h:23.5},
+];
+/* what to CALL the hour that it is — the round of the day as it is named:
+   morning until noon, afternoon until the sun is down, evening, then night */
+function dayPartName(h){
+  if(h<5)  return 'night';
+  if(h<7)  return 'dawn';
+  if(h<12) return 'morning';
+  if(h<13) return 'midday';
+  if(h<17) return 'afternoon';
+  if(h<19) return 'dusk';
+  if(h<22) return 'evening';
+  return 'night';
+}
+/* THE HOUR AS A MAN READS IT — twelve to the half, with A.M and P.M, and
+   never a "00:" or a "23:" about it. Midnight is 12:00 A.M and noon is
+   12:00 P.M, as they are on every clock face. */
+function clockFace(h){
+  const wh=Math.floor(h), mm=Math.floor((h%1)*60);
+  const ap=wh<12?'A.M':'P.M';
+  let hh=wh%12; if(hh===0) hh=12;
+  return hh+':'+String(mm).padStart(2,'0')+' '+ap;
+}
 function sunUV(){ return SUNMOON.sunUV(state.simHours); }
 function moonUV(){ return SUNMOON.moonUV(state.simHours); }
 const _c1=new THREE.Color(), _c2=new THREE.Color(), _c3=new THREE.Color();
@@ -8560,8 +8617,10 @@ function placeTick(){
   if(yahruPos&&!seen.yahru&&Math.hypot(p.x-yahruPos.x,p.z-yahruPos.z)<300){
     seen.yahru=true; const vs=VERSES.find(q=>q.ref.indexOf('5:5')>=0); if(vs) toast(vs.t,vs.ref); }
   $('place').textContent=txt;
-  const hrs=state.simHours%24, hh=String(Math.floor(hrs)).padStart(2,'0'), mm=String(Math.floor(hrs%1*60)).padStart(2,'0');
-  $('clock').innerHTML='DAY '+dayOfYear()+' OF 364<br>'+hh+':'+mm+' \u00b7 course: '+SPEEDS[state.speedIdx][1]
+  /* the hour HERE, on a twelve-hour face, and the name of that hour */
+  const pp=playerXZ(), lh=localHourAt(pp.x,pp.z);
+  $('clock').innerHTML='DAY '+dayOfYear()+' OF 364<br>'+clockFace(lh)
+    +' \u00b7 '+dayPartName(lh)+'<br>course: '+SPEEDS[state.speedIdx][1]
     +'<br>wind: '+windLabel();
 }
 
@@ -8723,7 +8782,7 @@ async function saveState(){
   const payload=JSON.stringify({v:6,R:R_WORLD,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
     t:state.simHours,m:state.mode==='walk'?'walk':'boat',wx:state.walk.x,wz:state.walk.z,wh:state.walk.heading,
     vis:[...state.visited],d:Math.round(state.dist),wm:state.windMode,fi:state.fish||0,
-    co:state.coins,cg:state.cargo,gm:state.game||0,ib:state.immBreath?1:0,pe:state.pearls||0,rp:state.repel?1:0,rr:state.rep||{},wl:[...wreckLooted],vf:state.vf||0});
+    co:state.coins,cg:state.cargo,gm:state.game||0,ib:state.immBreath?1:0,pe:state.pearls||0,rp:state.repel?1:0,rr:state.rep||{},wl:[...wreckLooted],vf:state.vf||0,dp:state.dayIdx});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
 }
@@ -8751,6 +8810,26 @@ $('b-time').onclick=()=>{ state.paused=!state.paused;
 function updateSpeedBtn(){ $('b-speed').textContent='\u23E9 Course: '+SPEEDS[state.speedIdx][1]; }
 $('b-speed').onclick=()=>{ state.speedIdx=(state.speedIdx+1)%SPEEDS.length; updateSpeedBtn(); };
 updateSpeedBtn();
+/* ---- THE TIME OF THE DAY ----
+   The traveller chooses the hour he sails in: the morning, the noon, the
+   evening, the night \u2014 or LIVE, which takes the hour off the clock of the
+   machine he is playing on, so the game's sky keeps the same time as the
+   room he is sitting in. Live re-reads that clock as it runs, so an
+   afternoon's play carries him into a real evening. */
+function updateDayBtn(){ $('b-daypart').textContent='\uD83D\uDD51 Time of day: '+DAYPARTS[state.dayIdx].n; }
+function applyDayPart(){
+  const D2=DAYPARTS[state.dayIdx], p=playerXZ();
+  if(D2.k==='live'){ const d=new Date();
+    setLocalHour(d.getHours()+d.getMinutes()/60+d.getSeconds()/3600, p.x, p.z); }
+  else setLocalHour(D2.h, p.x, p.z);
+}
+$('b-daypart').onclick=()=>{ state.dayIdx=(state.dayIdx+1)%DAYPARTS.length;
+  updateDayBtn(); applyDayPart(); saveState();
+  const D2=DAYPARTS[state.dayIdx];
+  toast(D2.k==='live'
+    ? 'The sky now keeps your own clock \u2014 the hour in the game is the hour where you sit.'
+    : 'You set out in the '+D2.n+'.'); };
+updateDayBtn();
 $('b-map').onclick=toggleMap;
 $('b-ashore').onclick=toggleAshore;
 $('b-fly').onclick=takeFlight;
@@ -9186,9 +9265,13 @@ async function begin(fresh){
     if(saved.rr) state.rep=saved.rr;
     if(saved.wl) for(const k of saved.wl) wreckLooted.add(k);
     if(saved.vf) state.vf=1;
-    if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); } }
+    if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); }
+    if(saved.dp!==undefined&&DAYPARTS[saved.dp]){ state.dayIdx=saved.dp; updateDayBtn(); } }
   else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5; }
   const p0=state.mode==='walk'?state.walk:state.boat;
+  /* the hour is set only NOW — it is a LOCAL hour, and until the traveller
+     has his place there is no longitude to reckon it against */
+  applyDayPart(); updateDayBtn();
   updateChunks(p0.x,p0.z,9999);
   $('title-card').style.display='none'; running=true;
   setMode(state.mode); updateWindBtn(); initAudio();
@@ -9205,6 +9288,7 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,RANGES,FALLS,activeLandmarks,LANDMARKS,
   mountUp,dismount,nearestMount,promptState:()=>promptAction,
   camera,sceneStep:dt=>{ if(cut) sceneTick(dt); },cutTime:()=>cut?cut.t:-1,
+  playerXZ,localHourAt,setLocalHour,clockFace,dayPartName,DAYPARTS,applyDayPart,
   domeCeilAt,canTouchDome,touchDome,playScene,endScene,SCENES,sceneActive,sceneRise,seenDeeps,BEACHES,SHOALS,ORCA,beachAt,nearestBeach,seabedMetres,orcaState:()=>orcaState,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
@@ -9221,12 +9305,25 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   seaMobs:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS})};
 
 /* ================= THE GREAT LOOP ================= */
-const clock=new THREE.Clock(); let miniT=0, labelT=0;
+const clock=new THREE.Clock(); let miniT=0, labelT=0, liveT=0;
 function frame(){
   requestAnimationFrame(frame);
   const dt=Math.min(0.05,clock.getDelta());
   if(!running){ renderer.render(scene,camera); return; }
-  if(!state.paused) state.simHours+=dt*SPEEDS[state.speedIdx][0]/3600;
+  /* ---- THE SKY KEEPS YOUR OWN CLOCK, IF YOU ASK IT TO ----
+     On 'live' the hour is not run forward by the course at all: it is read
+     off the machine's own clock a few times a second, and set as the LOCAL
+     hour wherever the traveller happens to be standing. So the game's sun
+     stands where the real one does, and a whole afternoon's sailing carries
+     him into a real evening. (It is re-read as he moves, too — cross a
+     third of the world and noon is still noon where he now stands.) */
+  if(!state.paused){
+    if(DAYPARTS[state.dayIdx].k==='live'){
+      liveT=(liveT||0)-dt;
+      if(liveT<=0){ liveT=0.25; applyDayPart(); }
+    }
+    else state.simHours+=dt*SPEEDS[state.speedIdx][0]/3600;
+  }
   stormTick(dt);
   boatTick(dt,state.mode==='boat');
   /* the traveller does not stir while he stands with his hand on the glass */
