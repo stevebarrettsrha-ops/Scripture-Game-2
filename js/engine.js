@@ -2211,7 +2211,13 @@ function haloTick(whole){
 }
 
 /* ================= COURSES OF THE LIGHTS ================= */
-const state={ simHours:9.5, speedIdx:1, paused:false,
+/* THE VOYAGE BEGINS AT TRUE COURSE. It opened at 'swift' — twelve hundred
+   times the hour and better than twice the ship's way — so a traveller's
+   first sight of the world was the sun tearing across it and the coast
+   going by at a gallop. He sets out at the true reckoning now: an hour is
+   an hour and the ship makes her own speed. The other courses are still
+   there on the button for anyone in a hurry. */
+const state={ simHours:9.5, speedIdx:0, dayIdx:0, paused:false,
   mode:'boat', boat:{x:0,z:0,heading:Math.PI*0.9,speed:0},
   walk:{x:0,z:0,heading:0}, deck:{lx:2.4,lz:-21,h:Math.PI},
   fly:{x:0,y:0,z:0,heading:0,vy:0,sp:0}, prevGround:'boat',
@@ -2300,6 +2306,63 @@ function stormAt(x,z){ let f=0;
 /* the courses themselves live in js/sun-moon.js — the one file that is the
    whole law of the two great lights. These are the engine's thin hands. */
 function dayOfYear(){ return SUNMOON.dayOfYear(state.simHours); }
+/* ================= THE HOUR OF THE DAY, WHERE YOU STAND =================
+   The clock showed the WORLD hour, which is nobody's hour. The sun makes
+   one circuit of the disc a day, so a single world-clock reading is a
+   different time of day in every country on it: 18:00 is dusk over Kenya
+   and the dead of night over Peru. What a man wants to know is the hour
+   HERE — with the sun overhead at noon and under his feet at midnight —
+   so the longitude is taken out of it, exactly as the cutscene engine
+   takes it out of a scene's requested hour. */
+function playerXZ(){
+  const m=state.mode;
+  return m==='fly'?state.fly : m==='dive'?state.dive
+       : m==='boat'||m==='deck'?state.boat : state.walk;
+}
+function localHourAt(x,z){
+  const lonR=Math.atan2(x,z);
+  return ((state.simHours+12*lonR/Math.PI)%24+24)%24;
+}
+/* and the other way about: set the world clock so that it is `h` o'clock
+   HERE. This is what the real-world clock and the Time of Day option both
+   speak through. */
+function setLocalHour(h,x,z){
+  const lonR=Math.atan2(x,z);
+  const world=((h-12*lonR/Math.PI)%24+24)%24;
+  state.simHours=Math.floor(state.simHours/24)*24+world;
+}
+/* ---- THE TIMES OF DAY ----
+   Dawn about six, noon at twelve, dusk about six again, midnight at twelve:
+   the plain round of the day. 'live' is not an hour at all — it is the
+   clock of the machine the game is played on. */
+const DAYPARTS=[
+  {k:'live',    n:'live (your clock)'},
+  {k:'morning', n:'morning',  h:8.0},
+  {k:'noon',    n:'noon',     h:12.0},
+  {k:'evening', n:'evening',  h:18.5},
+  {k:'night',   n:'night',    h:23.5},
+];
+/* what to CALL the hour that it is — the round of the day as it is named:
+   morning until noon, afternoon until the sun is down, evening, then night */
+function dayPartName(h){
+  if(h<5)  return 'night';
+  if(h<7)  return 'dawn';
+  if(h<12) return 'morning';
+  if(h<13) return 'midday';
+  if(h<17) return 'afternoon';
+  if(h<19) return 'dusk';
+  if(h<22) return 'evening';
+  return 'night';
+}
+/* THE HOUR AS A MAN READS IT — twelve to the half, with A.M and P.M, and
+   never a "00:" or a "23:" about it. Midnight is 12:00 A.M and noon is
+   12:00 P.M, as they are on every clock face. */
+function clockFace(h){
+  const wh=Math.floor(h), mm=Math.floor((h%1)*60);
+  const ap=wh<12?'A.M':'P.M';
+  let hh=wh%12; if(hh===0) hh=12;
+  return hh+':'+String(mm).padStart(2,'0')+' '+ap;
+}
 function sunUV(){ return SUNMOON.sunUV(state.simHours); }
 function moonUV(){ return SUNMOON.moonUV(state.simHours); }
 const _c1=new THREE.Color(), _c2=new THREE.Color(), _c3=new THREE.Color();
@@ -7076,6 +7139,12 @@ function updateLabels(px,pz){
 const keys={};
 addEventListener('keydown',e=>{ keys[e.code]=true;
   if(!running) return;                        /* the title screen is not the helm — no mode changes before the voyage begins */
+  /* ---- A LONG SCENE MUST BE ESCAPABLE ----
+     Fourteen seconds may be sat through; two minutes may not, and a film
+     nobody can leave is a trap rather than a gift. Any of ESC, F or SPACE
+     ends the passage and gives the world straight back. */
+  if(cut&&(e.code==='Escape'||e.code==='KeyF'||e.code==='Space')){
+    e.preventDefault(); endScene(); return; }
   if(e.code==='Space'){ e.preventDefault(); if(state.mode==='walk') state.walk.jumpReq=true; }
   if(e.code==='KeyE') toggleAshore();
   if(e.code==='KeyF') interact();
@@ -7870,7 +7939,29 @@ function playScene(name,at){
   if(!spec||cut||!spec.shots||spec.shots.length<2) return false;
   const lines=spec.lines||[];
   const line=lines.length?lines[Math.floor(Math.random()*lines.length)]:null;
-  cut={spec,t:0,dur:spec.dur||10,rise:0,line,x:at.x,y:at.y,z:at.z,out:at.out};
+  cut={spec,t:0,dur:spec.dur||10,rise:0,line,x:at.x,y:at.y,z:at.z,out:at.out,
+       shotIdx:-1,snap:true,hour0:null,title:null};
+  /* the caption track: the new `caps` list, or the old single verse laid out
+     as a track of one, so both authoring styles run through the same machine */
+  if(spec.caps&&spec.caps.length) cut.track=spec.caps.map(q=>({t:q.t,to:q.to,text:q.text,ref:q.ref||''}));
+  else if(line){ const cp=spec.cap||[(spec.dur||10)*0.2,(spec.dur||10)*0.85];
+    cut.track=[{t:cp[0],to:cp[1],text:line[0],ref:line[1]}]; }
+  else cut.track=[];
+  /* ---- A SCENE MAY SET ITS OWN HOUR ----
+     A passage written for dusk played at whatever o'clock the traveller
+     happened to arrive at. It may now name the hour it wants; the world's
+     own clock is put back untouched when the scene ends. */
+  if(spec.set&&spec.set.hour!==undefined){ cut.hour0=state.simHours;
+    /* and the hour asked for is the LOCAL one, at the place the scene plays.
+       The sun goes round the disc, so a world-clock hour is a different hour
+       of the day in every country: 18:00 is dusk in one land and midnight in
+       the next. The longitude is taken out of it here, so `hour:18.4` means
+       what an author means by it — half past six IN THE EVENING, wherever
+       the passage is played. */
+    const lonR=Math.atan2(at.x,at.z);
+    const local=spec.set.hour-12*lonR/Math.PI;
+    state.simHours=Math.floor(state.simHours/24)*24+((local%24)+24)%24; }
+  cut.fov0=camera.fov;
   ensureFlyDome();
   /* THE WALL OF NIGHT COMES DOWN when a scene asks for it. It is a dark
      cylinder standing at the rim, and it is the right thing to see from
@@ -7894,6 +7985,12 @@ function endScene(){
   const spec=cut.spec, u=walkerG.userData;
   if(u&&u.armL&&spec.actor&&spec.actor.reach){    /* the arms come down */
     u.armL.rotation.x=u.armR.rotation.x=0; u.armL.rotation.z=u.armR.rotation.z=0; }
+  /* every borrowed thing given back: the hour, the lens, the level horizon */
+  if(cut.hour0!==null) state.simHours=cut.hour0;
+  if(cut.fov0!==undefined&&camera.fov!==cut.fov0){ camera.fov=cut.fov0; camera.updateProjectionMatrix(); }
+  camera.rotation.z=0;
+  { const fd=$('cine-fade'); if(fd) fd.style.opacity=0;
+    const ti=$('cine-title'); if(ti){ ti.classList.remove('on'); ti.textContent=''; } }
   cut=null;
   if(!state.firm) voidWall.visible=true;
   voidStarTick(0);
@@ -7901,22 +7998,76 @@ function endScene(){
   const el=$('cine'); if(el) el.classList.remove('on');
   const cap=$('cine-cap'); if(cap) cap.classList.remove('on');
 }
-/* where the eye stands and looks at time t, read off the marks. Every value
-   is eased in and out of each mark, so the move never snaps. */
+/* where the eye stands and looks at time t, read off the marks.
+   ---- WHAT A MARK MAY NOW SAY ----
+   The old six (d,y,s,L,h and t) placed the eye on a circle about ONE fixed
+   point and eased everything. That is a fine ten-second shot and a useless
+   ninety-second one, so a mark may now also carry:
+     fwd/side/up   MOVE THE ANCHOR ITSELF — paces along the traveller's
+                   bearing, to his right, and above him. This is what lets a
+                   long scene TRAVEL: away down a valley, up a mountain,
+                   out over the sea, instead of turning on one spot for ever.
+     lside         and the look-at may swing off the bearing too
+     fov           the lens: low is a long lens and flattens, high is wide
+                   and throws the world away from you (the dolly-zoom)
+     roll          the horizon tipped — the dutch angle
+     cut:true      a HARD CUT. The eye does not travel to this mark, it IS
+                   at it. Without this every shot in a film blends into the
+                   next, which is the whole reason long scenes read as one
+                   endless drifting take.
+     ease          'smooth' (the default), 'linear' for a steady crawl, or
+                   'hold' to sit dead still on the previous mark and then
+                   arrive all at once. */
 function sceneMark(shots,t){
   let i=0; while(i<shots.length-2&&t>=shots[i+1].t) i++;
   const A=shots[i], Bb=shots[i+1];
-  const u=Math.min(1,Math.max(0,(t-A.t)/Math.max(0.001,Bb.t-A.t)));
-  const e=u*u*(3-2*u);
-  const m=k=>A[k]+((Bb[k]===undefined?A[k]:Bb[k])-A[k])*e;
-  return { d:m('d'), y:m('y'), s:m('s'), L:m('L'), h:m('h') };
+  let u=Math.min(1,Math.max(0,(t-A.t)/Math.max(0.001,Bb.t-A.t)));
+  const ez=Bb.ease||(Bb.cut?'hold':'smooth');
+  const e = ez==='linear'?u : ez==='hold'?(u>=1?1:0) : u*u*(3-2*u);
+  const m=(k,dflt)=>{ const a=(A[k]!==undefined)?A[k]:dflt;
+    const b=(Bb[k]!==undefined)?Bb[k]:a; return a+(b-a)*e; };
+  return { d:m('d',40), y:m('y',10), s:m('s',0), L:m('L',120), h:m('h',10),
+           fwd:m('fwd',0), side:m('side',0), up:m('up',0), lside:m('lside',0),
+           fov:m('fov',62), roll:m('roll',0), idx:i };
+}
+/* ---- THE CAPTION TRACK ----
+   A scene used to carry ONE verse for its whole length, which is all a
+   fourteen-second shot wants and nothing a long passage can use. A scene may
+   now carry a TRACK of them — `caps:[{t,to,text,ref}]` — each coming up and
+   going down at its own hour, so a long film can be narrated the whole way
+   through. The old single `lines`/`cap` pair still works exactly as it did. */
+function sceneCaptionAt(C,t){
+  const track=C.track;
+  if(!track||!track.length) return null;
+  for(const q of track) if(t>=q.t&&t<q.to) return q;
+  return null;
 }
 const _cutA=new THREE.Vector3(), _cutB=new THREE.Vector3();
 function sceneTick(dt){
   const C=cut, spec=C.spec, set=spec.set||{}; C.t+=dt;
+  /* ---- THE CAPTION TRACK, spoken line by line ---- */
   const capEl=$('cine-cap');
-  if(capEl){ const cp=spec.cap||[C.dur*0.2,C.dur*0.85];
-    capEl.classList.toggle('on', C.t>cp[0]&&C.t<cp[1]); }
+  if(capEl){ const q=sceneCaptionAt(C,C.t);
+    if(q!==C.capNow){ C.capNow=q;
+      if(q) capEl.innerHTML=q.text+(q.ref?'<span class="ref">'+q.ref+'</span>':''); }
+    capEl.classList.toggle('on', !!q); }
+  /* ---- THE FADES, AND THE TITLES THAT STAND IN THEM ----
+     `fades:[{t,to,hold}]` — the screen goes to black across t..t+hold, sits,
+     and comes back by `to`. A long film is CUT INTO PASSAGES this way, which
+     is the difference between a piece of film and one endless drifting take. */
+  { const fd=$('cine-fade');
+    if(fd){ let op=0;
+      for(const f of (spec.fades||[])){
+        if(C.t<f.t||C.t>f.to) continue;
+        const hold=f.hold||0.6, dn=f.t+((f.to-f.t)-hold)/2, up=dn+hold;
+        op=Math.max(op, C.t<dn?(C.t-f.t)/Math.max(0.001,dn-f.t)
+                  : C.t<up?1 : 1-(C.t-up)/Math.max(0.001,f.to-up)); }
+      fd.style.opacity=Math.max(0,Math.min(1,op)); } }
+  { const ti=$('cine-title');
+    if(ti){ let show=null;
+      for(const q of (spec.titles||[])) if(C.t>=q.t&&C.t<q.to) show=q;
+      if(show!==C.title){ C.title=show; if(show) ti.textContent=show.text; }
+      ti.classList.toggle('on', !!show); } }
   /* ---- THE DRESSING COMES UP, AND GOES DOWN AGAIN ---- */
   C.rise=Math.min(1, Math.min(C.t/(set.fadeIn||2.5), (C.dur-C.t)/(set.fadeOut||1.8)));
   /* enough glass that his hand has something to rest on, and NO MORE: at half
@@ -7942,13 +8093,32 @@ function sceneTick(dt){
   }
   /* ---- THE EYE ---- */
   const F=sceneMark(spec.shots,C.t);
+  /* THE ANCHOR TRAVELS. Every mark used to hang on the one spot the scene
+     started at, so a long take could only ever circle it. A mark may now
+     carry the anchor forward along the traveller's bearing, out to either
+     side of it and up — so the eye crosses real ground. */
+  const fx=Math.sin(C.out), fz=Math.cos(C.out);      /* the way he faces */
+  const sx=Math.cos(C.out), sz=-Math.sin(C.out);     /* and his right hand */
+  const ax=C.x+fx*F.fwd+sx*F.side, ay=C.y+F.up, az0=C.z+fz*F.fwd+sz*F.side;
   const az=C.out+Math.PI*(1-F.s);
-  _cutA.set(C.x+Math.sin(az)*F.d, C.y+F.y, C.z+Math.cos(az)*F.d);
-  /* it is LED to each mark rather than snapped to it — but firmly enough that
-     it arrives before the beat is out */
-  camera.position.lerp(_cutA,Math.min(1,dt*3.0));
-  _cutB.set(C.x+Math.sin(C.out)*F.L, C.y+F.h, C.z+Math.cos(C.out)*F.L);
+  _cutA.set(ax+Math.sin(az)*F.d, ay+F.y, az0+Math.cos(az)*F.d);
+  /* A HARD CUT puts the eye there; anything else LEADS it, firmly enough
+     that it arrives before the beat is out. */
+  const shot=spec.shots[F.idx+1];
+  if(F.idx!==C.shotIdx){ C.shotIdx=F.idx; if(shot&&shot.cut) C.snap=true; }
+  if(C.snap){ camera.position.copy(_cutA); C.snap=false; }
+  else camera.position.lerp(_cutA,Math.min(1,dt*3.0));
+  _cutB.set(ax+fx*F.L+sx*F.lside, ay+F.h, az0+fz*F.L+sz*F.lside);
   camera.lookAt(_cutB);
+  /* the lens, and the horizon tipped off level */
+  if(Math.abs(camera.fov-F.fov)>0.01){ camera.fov=F.fov; camera.updateProjectionMatrix(); }
+  /* THE DUTCH ANGLE, turned about the camera's OWN line of sight. Writing
+     rotation.z outright is wrong twice: lookAt has just decomposed the whole
+     orientation (its z is commonly ±pi and means nothing on its own), and a
+     roll ADDED frame on frame spins the horizon clean over. Rolled about its
+     own forward axis, straight after the look, it is exactly the tilt asked
+     for and nothing else. */
+  if(F.roll) camera.rotateZ(F.roll);
   if(C.t>=C.dur) endScene();
 }
 /* ---- and the one that is played by walking out to the end of the world ---- */
@@ -8447,9 +8617,12 @@ function placeTick(){
   if(yahruPos&&!seen.yahru&&Math.hypot(p.x-yahruPos.x,p.z-yahruPos.z)<300){
     seen.yahru=true; const vs=VERSES.find(q=>q.ref.indexOf('5:5')>=0); if(vs) toast(vs.t,vs.ref); }
   $('place').textContent=txt;
-  const hrs=state.simHours%24, hh=String(Math.floor(hrs)).padStart(2,'0'), mm=String(Math.floor(hrs%1*60)).padStart(2,'0');
-  $('clock').innerHTML='DAY '+dayOfYear()+' OF 364<br>'+hh+':'+mm+' \u00b7 course: '+SPEEDS[state.speedIdx][1]
-    +'<br>wind: '+windLabel();
+  /* the hour HERE, on a twelve-hour face, and the name of that hour */
+  const pp=playerXZ(), lh=localHourAt(pp.x,pp.z);
+  /* THREE LINES, never four: the panel sits above the button rail, and a
+     fourth line pushed it down onto the top button at every screen size. */
+  $('clock').innerHTML='DAY '+dayOfYear()+' OF 364<br>'+clockFace(lh)
+    +' \u00b7 '+dayPartName(lh)+'<br>'+SPEEDS[state.speedIdx][1]+' \u00b7 '+windLabel();
 }
 
 /* ================= THE FACE OF THE EARTH =================
@@ -8610,7 +8783,7 @@ async function saveState(){
   const payload=JSON.stringify({v:6,R:R_WORLD,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
     t:state.simHours,m:state.mode==='walk'?'walk':'boat',wx:state.walk.x,wz:state.walk.z,wh:state.walk.heading,
     vis:[...state.visited],d:Math.round(state.dist),wm:state.windMode,fi:state.fish||0,
-    co:state.coins,cg:state.cargo,gm:state.game||0,ib:state.immBreath?1:0,pe:state.pearls||0,rp:state.repel?1:0,rr:state.rep||{},wl:[...wreckLooted],vf:state.vf||0});
+    co:state.coins,cg:state.cargo,gm:state.game||0,ib:state.immBreath?1:0,pe:state.pearls||0,rp:state.repel?1:0,rr:state.rep||{},wl:[...wreckLooted],vf:state.vf||0,dp:state.dayIdx});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
 }
@@ -8632,8 +8805,32 @@ async function loadSaved(){
 $('b-time').onclick=()=>{ state.paused=!state.paused;
   $('b-time').textContent=state.paused?'\u25B6 Loose the sun':'\u23F8 Hold the sun';
   $('b-time').classList.toggle('off',state.paused); };
-$('b-speed').onclick=()=>{ state.speedIdx=(state.speedIdx+1)%SPEEDS.length;
-  $('b-speed').textContent='\u23E9 Course: '+SPEEDS[state.speedIdx][1]; };
+/* the button reads its word off the STATE, and is set from it at boot \u2014 the
+   label used to be written into the page by hand, so the two could disagree
+   and did: it said one course while the ship kept another */
+function updateSpeedBtn(){ $('b-speed').textContent='\u23E9 Course: '+SPEEDS[state.speedIdx][1]; }
+$('b-speed').onclick=()=>{ state.speedIdx=(state.speedIdx+1)%SPEEDS.length; updateSpeedBtn(); };
+updateSpeedBtn();
+/* ---- THE TIME OF THE DAY ----
+   The traveller chooses the hour he sails in: the morning, the noon, the
+   evening, the night \u2014 or LIVE, which takes the hour off the clock of the
+   machine he is playing on, so the game's sky keeps the same time as the
+   room he is sitting in. Live re-reads that clock as it runs, so an
+   afternoon's play carries him into a real evening. */
+function updateDayBtn(){ $('b-daypart').textContent='\uD83D\uDD51 Time of day: '+DAYPARTS[state.dayIdx].n; }
+function applyDayPart(){
+  const D2=DAYPARTS[state.dayIdx], p=playerXZ();
+  if(D2.k==='live'){ const d=new Date();
+    setLocalHour(d.getHours()+d.getMinutes()/60+d.getSeconds()/3600, p.x, p.z); }
+  else setLocalHour(D2.h, p.x, p.z);
+}
+$('b-daypart').onclick=()=>{ state.dayIdx=(state.dayIdx+1)%DAYPARTS.length;
+  updateDayBtn(); applyDayPart(); saveState();
+  const D2=DAYPARTS[state.dayIdx];
+  toast(D2.k==='live'
+    ? 'The sky now keeps your own clock \u2014 the hour in the game is the hour where you sit.'
+    : 'You set out in the '+D2.n+'.'); };
+updateDayBtn();
 $('b-map').onclick=toggleMap;
 $('b-ashore').onclick=toggleAshore;
 $('b-fly').onclick=takeFlight;
@@ -9069,9 +9266,13 @@ async function begin(fresh){
     if(saved.rr) state.rep=saved.rr;
     if(saved.wl) for(const k of saved.wl) wreckLooted.add(k);
     if(saved.vf) state.vf=1;
-    if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); } }
+    if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); }
+    if(saved.dp!==undefined&&DAYPARTS[saved.dp]){ state.dayIdx=saved.dp; updateDayBtn(); } }
   else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5; }
   const p0=state.mode==='walk'?state.walk:state.boat;
+  /* the hour is set only NOW — it is a LOCAL hour, and until the traveller
+     has his place there is no longitude to reckon it against */
+  applyDayPart(); updateDayBtn();
   updateChunks(p0.x,p0.z,9999);
   $('title-card').style.display='none'; running=true;
   setMode(state.mode); updateWindBtn(); initAudio();
@@ -9087,6 +9288,8 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   farLand,updateFarLand,mountUpliftAt,MOUNTS,ridgeNoise,B,R_WORLD,
   AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,RANGES,FALLS,activeLandmarks,LANDMARKS,
   mountUp,dismount,nearestMount,promptState:()=>promptAction,
+  camera,sceneStep:dt=>{ if(cut) sceneTick(dt); },cutTime:()=>cut?cut.t:-1,
+  playerXZ,localHourAt,setLocalHour,clockFace,dayPartName,DAYPARTS,applyDayPart,
   domeCeilAt,canTouchDome,touchDome,playScene,endScene,SCENES,sceneActive,sceneRise,seenDeeps,BEACHES,SHOALS,ORCA,beachAt,nearestBeach,seabedMetres,orcaState:()=>orcaState,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
@@ -9103,12 +9306,25 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   seaMobs:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS})};
 
 /* ================= THE GREAT LOOP ================= */
-const clock=new THREE.Clock(); let miniT=0, labelT=0;
+const clock=new THREE.Clock(); let miniT=0, labelT=0, liveT=0;
 function frame(){
   requestAnimationFrame(frame);
   const dt=Math.min(0.05,clock.getDelta());
   if(!running){ renderer.render(scene,camera); return; }
-  if(!state.paused) state.simHours+=dt*SPEEDS[state.speedIdx][0]/3600;
+  /* ---- THE SKY KEEPS YOUR OWN CLOCK, IF YOU ASK IT TO ----
+     On 'live' the hour is not run forward by the course at all: it is read
+     off the machine's own clock a few times a second, and set as the LOCAL
+     hour wherever the traveller happens to be standing. So the game's sun
+     stands where the real one does, and a whole afternoon's sailing carries
+     him into a real evening. (It is re-read as he moves, too — cross a
+     third of the world and noon is still noon where he now stands.) */
+  if(!state.paused){
+    if(DAYPARTS[state.dayIdx].k==='live'){
+      liveT=(liveT||0)-dt;
+      if(liveT<=0){ liveT=0.25; applyDayPart(); }
+    }
+    else state.simHours+=dt*SPEEDS[state.speedIdx][0]/3600;
+  }
   stormTick(dt);
   boatTick(dt,state.mode==='boat');
   /* the traveller does not stir while he stands with his hand on the glass */

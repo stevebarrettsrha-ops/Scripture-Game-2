@@ -34,7 +34,41 @@
              s   swung round: 0 straight BEHIND him, 1 out in FRONT of him
              L   where it looks: this far out along his own bearing
              h   and this far above his feet
-           Everything between two marks is eased, so nothing ever snaps.  */
+           Everything between two marks is eased, so nothing ever snaps.
+
+   ================= AND FOR A LONG PASSAGE =================
+   Everything above makes one good short shot. These make a FILM:
+
+   caps    A CAPTION TRACK — as many lines as the passage wants, each with
+           its own hour: [{t, to, text, ref}]. (`lines`+`cap` still gives
+           one random verse for the whole scene, as before.)
+   titles  [{t, to, text}] — a named passage, shown large. Put one inside a
+           fade and it reads as a chapter heading.
+   fades   [{t, to, hold}] — the screen goes to black, sits for `hold`, and
+           comes back by `to`. THIS IS WHAT CUTS A LONG SCENE INTO
+           PASSAGES; without it a two-minute scene is one endless take.
+   set.hour  the hour the scene wants (0..24). The world's own clock is put
+           back untouched at the end — so a passage written for dusk plays
+           at dusk whenever the traveller comes to it.
+
+   and every SHOT may also carry:
+             fwd   carry the anchor this far along his bearing …
+             side  … this far to his right …
+             up    … and this far above him. THIS IS WHAT LETS A SCENE
+                   TRAVEL: down a valley, up a mountain, out over the sea,
+                   instead of circling one spot for ever.
+             lside swing the look-at off the bearing too
+             fov   the lens: 40 is long and flat, 90 is wide and hurls the
+                   world away from you. Move it against `d` for the vertigo
+                   shot — the dolly-zoom.
+             roll  the horizon tipped off level — the dutch angle
+             cut   TRUE for a HARD CUT: the eye does not travel to this
+                   mark, it simply IS there. Without it every shot blends
+                   into the next.
+             ease  'smooth' (default), 'linear' for a steady crawl, 'hold'
+                   to sit dead still and then arrive all at once.
+
+   THE PLAYER MAY ALWAYS LEAVE: ESC, F or SPACE ends any scene at once.   */
 
 /* ---- AT THE WORLD'S EDGE ----
    He has walked out across two thousand feet of ice to where the firmament
@@ -85,5 +119,59 @@ EARTH.scene({
     { t: 3.2, d: 40, y: 16, s:0.55, L:  30, h:  10 },  /* swung round him, low over the ground */
     { t: 6.4, d: 58, y: 40, s:0.95, L:   0, h:   6 },  /* drawn off and up — one man in the dark */
     { t: 9.0, d: 30, y: 11, s:0.10, L: 120, h:  12 },  /* and back to him              */
+  ],
+});
+
+/* ---- THE COMING OF THE EVENING ----
+   A LONG PASSAGE, and the proof that one can be written: seventy seconds in
+   four movements, cut apart by fades, each titled, narrated the whole way
+   through by its own caption track, travelling out across the land instead
+   of turning on one spot, and set at the hour it wants whatever hour the
+   traveller brought with him.
+   It is played by name — __VDBG.playScene('evening', at) — and is here as
+   much to be READ as to be watched: every long-form feature is used once. */
+EARTH.scene({
+  name:'evening',
+  dur:70.0,
+  set:{ letterbox:true, hideHud:true, hour:18.4, fadeIn:2.4, fadeOut:2.2 },
+  actor:{ stand:true },
+  titles:[
+    { t: 0.4, to: 4.0, text:'THE EVENING' },
+    { t:19.4, to:23.0, text:'THE FIELD' },
+    { t:39.4, to:43.0, text:'THE HEIGHT' },
+    { t:57.4, to:61.0, text:'AND THE NIGHT' },
+  ],
+  fades:[
+    { t:18.4, to:24.0, hold:1.6 },     /* between the movements the world goes */
+    { t:38.4, to:44.0, hold:1.6 },     /* dark, is named, and comes back        */
+    { t:56.4, to:62.0, hold:1.6 },
+  ],
+  caps:[
+    { t: 5.0, to:11.0, text:'“The sun knows its going down.”', ref:'TEHILLIM 104:19' },
+    { t:11.8, to:17.6, text:'“You make darkness, and it is night, wherein all the beasts of the forest creep forth.”', ref:'TEHILLIM 104:20' },
+    { t:25.0, to:31.0, text:'“He causes the grass to grow for the cattle, and herb for the service of man.”', ref:'TEHILLIM 104:14' },
+    { t:31.8, to:37.6, text:'“Man goes forth unto his work and to his labour until the evening.”', ref:'TEHILLIM 104:23' },
+    { t:45.0, to:51.0, text:'“The high hills are a refuge for the wild goats, and the rocks for the conies.”', ref:'TEHILLIM 104:18' },
+    { t:51.8, to:55.8, text:'“O YAHUAH, how manifold are Your works! In wisdom You have made them all.”', ref:'TEHILLIM 104:24' },
+    { t:63.0, to:69.0, text:'“The earth is full of Your riches.”', ref:'TEHILLIM 104:24' },
+  ],
+  shots:[
+    /* ---- I. THE EVENING — the eye drawn back and up off his shoulder ---- */
+    { t: 0.0, d: 26, y:  9, s:0.05, L: 200, h:  26, fov:62 },
+    { t: 9.0, d: 62, y: 34, s:0.02, L: 520, h:  60, fov:58, ease:'linear' },
+    { t:18.4, d:110, y: 74, s:0.00, L: 900, h:  90, fov:54, ease:'linear' },
+    /* ---- II. THE FIELD — a HARD CUT, then a long travelling crawl out
+       across the country, the anchor itself carried forward ---- */
+    { t:24.0, d: 20, y:  7, s:0.62, L:  60, h:   8, fov:70, cut:true },
+    { t:31.0, d: 22, y:  8, s:0.70, L:  90, h:  10, fwd: 260, side: 40, ease:'linear' },
+    { t:38.4, d: 26, y: 11, s:0.78, L: 120, h:  12, fwd: 620, side: 90, ease:'linear' },
+    /* ---- III. THE HEIGHT — cut again, and climb: the anchor lifts, the
+       lens goes long, and the horizon tips a little off level ---- */
+    { t:44.0, d: 44, y: 20, s:0.30, L: 300, h:  40, fov:66, up:  60, cut:true },
+    { t:50.0, d: 90, y: 90, s:0.20, L: 700, h: 120, fov:52, up: 320, roll:0.05, ease:'linear' },
+    { t:56.4, d:150, y:170, s:0.12, L:1400, h: 220, fov:44, up: 760, roll:0.09, ease:'linear' },
+    /* ---- IV. AND THE NIGHT — back to the man, small under the whole of it ---- */
+    { t:62.0, d: 34, y: 13, s:0.08, L: 260, h:  30, fov:62, cut:true },
+    { t:70.0, d: 58, y: 26, s:0.04, L: 460, h:  54, fov:60, ease:'linear' },
   ],
 });
