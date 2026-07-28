@@ -187,13 +187,70 @@
   @media (max-width:900px){ #verse{ width:min(44vw,380px); margin-left:-6vw; } }
   @media (max-width:620px){
     #head .t{ font-size:13px; letter-spacing:.16em; }
-    #head .s{ display:none; }
     #clock{ font-size:10px; letter-spacing:.08em; max-width:52vw; }
     .btn{ padding:.7vh .9vh; font-size:9px; letter-spacing:.04em; }
     #mini{ width:92px; height:92px; }
     #hint{ display:none; }              /* no keyboard hints without a keyboard */
     #place{ bottom:12vh; margin-left:-13vw; font-size:11px; letter-spacing:.16em; }
     #verse{ bottom:2.5vh; width:min(58vw,300px); margin-left:-13vw; }
+  }
+
+  /* ================= A GROUND FOR THE WORDS =================
+     Every line of the HUD was set straight upon the sky, and a grey letter
+     on a bright cloud cannot be read at all — the title, the clock and the
+     hint all but vanished over pale sea or noon cloud. Each line now
+     carries its own dark ground: enough to hold the letters and no more,
+     shrink-to-fit, so it never becomes a slab laid over the world. */
+  #clock, #hint, #place, #head .t, #head .s, #verse .vt, #verse .vr{
+    background:rgba(6,10,20,.62);
+    -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+    border-radius:5px; }
+  #clock{ padding:.7vh 1.1vh; }
+  #hint{ padding:.5vh 1.2vh; }
+  #place{ display:inline-block; padding:.5vh 1.4vh; }
+  #head .t{ display:inline-block; padding:.5vh 1.6vh; }
+  #head .s{ display:inline-block; padding:.4vh 1.2vh; margin-top:.7vh; }
+  #verse .vt{ display:inline-block; padding:.6vh 1.4vh; }
+  #verse .vr{ display:inline-block; padding:.3vh 1vh; margin-top:.6vh; }
+  /* the ink itself is lifted a little, now that it has something to sit on */
+  #clock{ color:#c3b795; }
+  #hint{ color:#8b8271; }
+
+  /* ================= THE RAIL FOLDS AWAY =================
+     Sixteen labelled buttons take over half the width of a telephone, and
+     nothing else can be read past them. On a narrow screen the rail is
+     folded behind a single ☰ instead, and the whole of the glass belongs
+     to the world until it is asked for. On a wide screen it is always out
+     and the ☰ never appears. */
+  #b-rail{ position:fixed; z-index:8; right:2vw; bottom:6vh; display:none;
+    width:46px; height:46px; padding:0; text-align:center; line-height:44px;
+    font-size:19px; letter-spacing:0; border-radius:6px; }
+  @media (max-width:900px){
+    #b-rail{ display:block; }
+    #ui{ bottom:calc(6vh + 56px); }
+    body.rail-shut #ui{ display:none; }
+  }
+
+  /* ---- AND THE LAST FEW THINGS PUT OUT OF EACH OTHER'S WAY ----
+     Giving every line a ground made each of them a little larger, and three
+     pairs that had merely been close became touching. */
+  /* the place-line and the verse are given clear air between them */
+  #place{ bottom:19vh; }
+  #verse{ bottom:6vh; }
+  @media (max-height:640px){ #place{ bottom:23vh; } #verse{ bottom:4vh; } }
+  @media (max-width:900px){
+    /* the title and the clock stack instead of meeting in the middle */
+    #clock{ top:9vh; }
+    #head .t{ font-size:12px; letter-spacing:.14em; padding:.4vh 1vh; }
+  }
+  @media (max-width:620px){
+    /* and the rose goes up out of the foot of the screen, which on a
+       telephone belongs to the place-line and the verse */
+    #mini{ top:13vh; bottom:auto; }
+    /* the verse runs to three or four lines at this width, so the
+       place-line is set well above the top of it */
+    #place{ bottom:21vh; }
+    #verse{ bottom:2vh; }
   }
 </style>
 </head>
@@ -218,6 +275,7 @@
   <div class="cap" id="cine-cap"></div></div>
 <div id="cine-fade"></div><div id="cine-title"></div>
 
+<button class="btn" id="b-rail" aria-label="menu">☰</button>
 <div id="ui">
   <button class="btn" id="b-ashore">⚓ Go ashore</button>
   <button class="btn" id="b-fly">🕊 Rise up</button>
