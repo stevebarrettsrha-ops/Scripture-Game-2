@@ -54,3 +54,35 @@ EARTH.landmark({n:"Aconcagua", lat:-32.65, lon:-70.01, kind:'mount', elev:6961, 
 EARTH.landmark({n:"Table Mountain", lat:-33.96, lon:18.40, kind:'mount', elev:1085, r:90, steep:1});
 EARTH.landmark({n:"Uluru", lat:-25.34, lon:131.03, kind:'mount', elev:863, r:60, steep:1});
 EARTH.landmark({n:"Mount Zaphon", lat:35.95, lon:35.97, kind:'mount', elev:1717, r:150});
+
+/* ---- THE SECRET RANGES — mountain country, not one summit ----
+   kind:'range' raises a whole FIELD of jagged peaks (ridge-noise over the
+   massif, so a dozen crests and the valleys between), cut through with
+   slot-canyon CAVES the traveller can walk into and lose the sky in,
+   sunk with mountain BLUE HOLES, and hung with waterfalls off the cliff
+   faces. secret:1 — no name-banner, no chart mark: they are found by
+   going there, which is the whole point of a secret place.
+       style:'cliff' — green hill-country broken by sheer grey cliff faces
+                       and ledges (the classic extreme hills)
+       style:'stony' — bare jagged grey peaks, snow where the height takes
+                       them */
+/* (coordinates are nudged from the true ones where the chart draws an
+   island a little off its geographic seat — the range must stand on the
+   island as DRAWN, or it stands in the sea) */
+EARTH.landmark({n:"The Blue Mountains", lat:18.10, lon:-76.90, kind:'range', elev:2256, r:1400, style:'cliff', secret:1});
+EARTH.landmark({n:"The Northern Range", lat:10.37, lon:-61.33, kind:'range', elev:1740, r:1000, style:'cliff', secret:1});
+EARTH.landmark({n:"The Hida Mountains", lat:36.22, lon:137.60, kind:'range', elev:3800, r:1600, style:'stony', secret:1});
+
+/* ---- THE SECRET FALLS OF THE CARIBBEAN ----
+   kind:'falls' — each at the true place of a real fall, in the land it
+   belongs to: the cliff head is raised, the lagoon sunk, and the water
+   hung on it when the traveller draws near. elev = the TRUE drop in
+   metres, which sets the height of the cliff. All secret:1. */
+EARTH.landmark({n:"Dunn's River Falls",  lat:18.16, lon:-77.24, kind:'falls', elev:55,  secret:1});
+EARTH.landmark({n:"Reach Falls",         lat:18.10, lon:-76.75, kind:'falls', elev:70,  secret:1});
+EARTH.landmark({n:"Maracas Falls",       lat:10.38, lon:-61.28, kind:'falls', elev:91,  secret:1});
+EARTH.landmark({n:"El Limon Falls",      lat:18.93, lon:-69.62, kind:'falls', elev:52,  secret:1});
+EARTH.landmark({n:"La Mina Falls",       lat:18.26, lon:-66.14, kind:'falls', elev:35,  secret:1});
+EARTH.landmark({n:"Saut-d'Eau",          lat:18.90, lon:-72.12, kind:'falls', elev:60,  secret:1});
+EARTH.landmark({n:"Salto del Caburni",   lat:22.20, lon:-79.95, kind:'falls', elev:62,  secret:1});
+EARTH.landmark({n:"Kaieteur Falls",      lat:5.18,  lon:-59.48, kind:'falls', elev:226, secret:1});
