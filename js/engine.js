@@ -2211,7 +2211,13 @@ function haloTick(whole){
 }
 
 /* ================= COURSES OF THE LIGHTS ================= */
-const state={ simHours:9.5, speedIdx:1, paused:false,
+/* THE VOYAGE BEGINS AT TRUE COURSE. It opened at 'swift' — twelve hundred
+   times the hour and better than twice the ship's way — so a traveller's
+   first sight of the world was the sun tearing across it and the coast
+   going by at a gallop. He sets out at the true reckoning now: an hour is
+   an hour and the ship makes her own speed. The other courses are still
+   there on the button for anyone in a hurry. */
+const state={ simHours:9.5, speedIdx:0, paused:false,
   mode:'boat', boat:{x:0,z:0,heading:Math.PI*0.9,speed:0},
   walk:{x:0,z:0,heading:0}, deck:{lx:2.4,lz:-21,h:Math.PI},
   fly:{x:0,y:0,z:0,heading:0,vy:0,sp:0}, prevGround:'boat',
@@ -8739,8 +8745,12 @@ async function loadSaved(){
 $('b-time').onclick=()=>{ state.paused=!state.paused;
   $('b-time').textContent=state.paused?'\u25B6 Loose the sun':'\u23F8 Hold the sun';
   $('b-time').classList.toggle('off',state.paused); };
-$('b-speed').onclick=()=>{ state.speedIdx=(state.speedIdx+1)%SPEEDS.length;
-  $('b-speed').textContent='\u23E9 Course: '+SPEEDS[state.speedIdx][1]; };
+/* the button reads its word off the STATE, and is set from it at boot \u2014 the
+   label used to be written into the page by hand, so the two could disagree
+   and did: it said one course while the ship kept another */
+function updateSpeedBtn(){ $('b-speed').textContent='\u23E9 Course: '+SPEEDS[state.speedIdx][1]; }
+$('b-speed').onclick=()=>{ state.speedIdx=(state.speedIdx+1)%SPEEDS.length; updateSpeedBtn(); };
+updateSpeedBtn();
 $('b-map').onclick=toggleMap;
 $('b-ashore').onclick=toggleAshore;
 $('b-fly').onclick=takeFlight;
