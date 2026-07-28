@@ -7076,6 +7076,12 @@ function updateLabels(px,pz){
 const keys={};
 addEventListener('keydown',e=>{ keys[e.code]=true;
   if(!running) return;                        /* the title screen is not the helm — no mode changes before the voyage begins */
+  /* ---- A LONG SCENE MUST BE ESCAPABLE ----
+     Fourteen seconds may be sat through; two minutes may not, and a film
+     nobody can leave is a trap rather than a gift. Any of ESC, F or SPACE
+     ends the passage and gives the world straight back. */
+  if(cut&&(e.code==='Escape'||e.code==='KeyF'||e.code==='Space')){
+    e.preventDefault(); endScene(); return; }
   if(e.code==='Space'){ e.preventDefault(); if(state.mode==='walk') state.walk.jumpReq=true; }
   if(e.code==='KeyE') toggleAshore();
   if(e.code==='KeyF') interact();
@@ -7870,7 +7876,29 @@ function playScene(name,at){
   if(!spec||cut||!spec.shots||spec.shots.length<2) return false;
   const lines=spec.lines||[];
   const line=lines.length?lines[Math.floor(Math.random()*lines.length)]:null;
-  cut={spec,t:0,dur:spec.dur||10,rise:0,line,x:at.x,y:at.y,z:at.z,out:at.out};
+  cut={spec,t:0,dur:spec.dur||10,rise:0,line,x:at.x,y:at.y,z:at.z,out:at.out,
+       shotIdx:-1,snap:true,hour0:null,title:null};
+  /* the caption track: the new `caps` list, or the old single verse laid out
+     as a track of one, so both authoring styles run through the same machine */
+  if(spec.caps&&spec.caps.length) cut.track=spec.caps.map(q=>({t:q.t,to:q.to,text:q.text,ref:q.ref||''}));
+  else if(line){ const cp=spec.cap||[(spec.dur||10)*0.2,(spec.dur||10)*0.85];
+    cut.track=[{t:cp[0],to:cp[1],text:line[0],ref:line[1]}]; }
+  else cut.track=[];
+  /* ---- A SCENE MAY SET ITS OWN HOUR ----
+     A passage written for dusk played at whatever o'clock the traveller
+     happened to arrive at. It may now name the hour it wants; the world's
+     own clock is put back untouched when the scene ends. */
+  if(spec.set&&spec.set.hour!==undefined){ cut.hour0=state.simHours;
+    /* and the hour asked for is the LOCAL one, at the place the scene plays.
+       The sun goes round the disc, so a world-clock hour is a different hour
+       of the day in every country: 18:00 is dusk in one land and midnight in
+       the next. The longitude is taken out of it here, so `hour:18.4` means
+       what an author means by it — half past six IN THE EVENING, wherever
+       the passage is played. */
+    const lonR=Math.atan2(at.x,at.z);
+    const local=spec.set.hour-12*lonR/Math.PI;
+    state.simHours=Math.floor(state.simHours/24)*24+((local%24)+24)%24; }
+  cut.fov0=camera.fov;
   ensureFlyDome();
   /* THE WALL OF NIGHT COMES DOWN when a scene asks for it. It is a dark
      cylinder standing at the rim, and it is the right thing to see from
@@ -7894,6 +7922,12 @@ function endScene(){
   const spec=cut.spec, u=walkerG.userData;
   if(u&&u.armL&&spec.actor&&spec.actor.reach){    /* the arms come down */
     u.armL.rotation.x=u.armR.rotation.x=0; u.armL.rotation.z=u.armR.rotation.z=0; }
+  /* every borrowed thing given back: the hour, the lens, the level horizon */
+  if(cut.hour0!==null) state.simHours=cut.hour0;
+  if(cut.fov0!==undefined&&camera.fov!==cut.fov0){ camera.fov=cut.fov0; camera.updateProjectionMatrix(); }
+  camera.rotation.z=0;
+  { const fd=$('cine-fade'); if(fd) fd.style.opacity=0;
+    const ti=$('cine-title'); if(ti){ ti.classList.remove('on'); ti.textContent=''; } }
   cut=null;
   if(!state.firm) voidWall.visible=true;
   voidStarTick(0);
@@ -7901,22 +7935,76 @@ function endScene(){
   const el=$('cine'); if(el) el.classList.remove('on');
   const cap=$('cine-cap'); if(cap) cap.classList.remove('on');
 }
-/* where the eye stands and looks at time t, read off the marks. Every value
-   is eased in and out of each mark, so the move never snaps. */
+/* where the eye stands and looks at time t, read off the marks.
+   ---- WHAT A MARK MAY NOW SAY ----
+   The old six (d,y,s,L,h and t) placed the eye on a circle about ONE fixed
+   point and eased everything. That is a fine ten-second shot and a useless
+   ninety-second one, so a mark may now also carry:
+     fwd/side/up   MOVE THE ANCHOR ITSELF — paces along the traveller's
+                   bearing, to his right, and above him. This is what lets a
+                   long scene TRAVEL: away down a valley, up a mountain,
+                   out over the sea, instead of turning on one spot for ever.
+     lside         and the look-at may swing off the bearing too
+     fov           the lens: low is a long lens and flattens, high is wide
+                   and throws the world away from you (the dolly-zoom)
+     roll          the horizon tipped — the dutch angle
+     cut:true      a HARD CUT. The eye does not travel to this mark, it IS
+                   at it. Without this every shot in a film blends into the
+                   next, which is the whole reason long scenes read as one
+                   endless drifting take.
+     ease          'smooth' (the default), 'linear' for a steady crawl, or
+                   'hold' to sit dead still on the previous mark and then
+                   arrive all at once. */
 function sceneMark(shots,t){
   let i=0; while(i<shots.length-2&&t>=shots[i+1].t) i++;
   const A=shots[i], Bb=shots[i+1];
-  const u=Math.min(1,Math.max(0,(t-A.t)/Math.max(0.001,Bb.t-A.t)));
-  const e=u*u*(3-2*u);
-  const m=k=>A[k]+((Bb[k]===undefined?A[k]:Bb[k])-A[k])*e;
-  return { d:m('d'), y:m('y'), s:m('s'), L:m('L'), h:m('h') };
+  let u=Math.min(1,Math.max(0,(t-A.t)/Math.max(0.001,Bb.t-A.t)));
+  const ez=Bb.ease||(Bb.cut?'hold':'smooth');
+  const e = ez==='linear'?u : ez==='hold'?(u>=1?1:0) : u*u*(3-2*u);
+  const m=(k,dflt)=>{ const a=(A[k]!==undefined)?A[k]:dflt;
+    const b=(Bb[k]!==undefined)?Bb[k]:a; return a+(b-a)*e; };
+  return { d:m('d',40), y:m('y',10), s:m('s',0), L:m('L',120), h:m('h',10),
+           fwd:m('fwd',0), side:m('side',0), up:m('up',0), lside:m('lside',0),
+           fov:m('fov',62), roll:m('roll',0), idx:i };
+}
+/* ---- THE CAPTION TRACK ----
+   A scene used to carry ONE verse for its whole length, which is all a
+   fourteen-second shot wants and nothing a long passage can use. A scene may
+   now carry a TRACK of them — `caps:[{t,to,text,ref}]` — each coming up and
+   going down at its own hour, so a long film can be narrated the whole way
+   through. The old single `lines`/`cap` pair still works exactly as it did. */
+function sceneCaptionAt(C,t){
+  const track=C.track;
+  if(!track||!track.length) return null;
+  for(const q of track) if(t>=q.t&&t<q.to) return q;
+  return null;
 }
 const _cutA=new THREE.Vector3(), _cutB=new THREE.Vector3();
 function sceneTick(dt){
   const C=cut, spec=C.spec, set=spec.set||{}; C.t+=dt;
+  /* ---- THE CAPTION TRACK, spoken line by line ---- */
   const capEl=$('cine-cap');
-  if(capEl){ const cp=spec.cap||[C.dur*0.2,C.dur*0.85];
-    capEl.classList.toggle('on', C.t>cp[0]&&C.t<cp[1]); }
+  if(capEl){ const q=sceneCaptionAt(C,C.t);
+    if(q!==C.capNow){ C.capNow=q;
+      if(q) capEl.innerHTML=q.text+(q.ref?'<span class="ref">'+q.ref+'</span>':''); }
+    capEl.classList.toggle('on', !!q); }
+  /* ---- THE FADES, AND THE TITLES THAT STAND IN THEM ----
+     `fades:[{t,to,hold}]` — the screen goes to black across t..t+hold, sits,
+     and comes back by `to`. A long film is CUT INTO PASSAGES this way, which
+     is the difference between a piece of film and one endless drifting take. */
+  { const fd=$('cine-fade');
+    if(fd){ let op=0;
+      for(const f of (spec.fades||[])){
+        if(C.t<f.t||C.t>f.to) continue;
+        const hold=f.hold||0.6, dn=f.t+((f.to-f.t)-hold)/2, up=dn+hold;
+        op=Math.max(op, C.t<dn?(C.t-f.t)/Math.max(0.001,dn-f.t)
+                  : C.t<up?1 : 1-(C.t-up)/Math.max(0.001,f.to-up)); }
+      fd.style.opacity=Math.max(0,Math.min(1,op)); } }
+  { const ti=$('cine-title');
+    if(ti){ let show=null;
+      for(const q of (spec.titles||[])) if(C.t>=q.t&&C.t<q.to) show=q;
+      if(show!==C.title){ C.title=show; if(show) ti.textContent=show.text; }
+      ti.classList.toggle('on', !!show); } }
   /* ---- THE DRESSING COMES UP, AND GOES DOWN AGAIN ---- */
   C.rise=Math.min(1, Math.min(C.t/(set.fadeIn||2.5), (C.dur-C.t)/(set.fadeOut||1.8)));
   /* enough glass that his hand has something to rest on, and NO MORE: at half
@@ -7942,13 +8030,32 @@ function sceneTick(dt){
   }
   /* ---- THE EYE ---- */
   const F=sceneMark(spec.shots,C.t);
+  /* THE ANCHOR TRAVELS. Every mark used to hang on the one spot the scene
+     started at, so a long take could only ever circle it. A mark may now
+     carry the anchor forward along the traveller's bearing, out to either
+     side of it and up — so the eye crosses real ground. */
+  const fx=Math.sin(C.out), fz=Math.cos(C.out);      /* the way he faces */
+  const sx=Math.cos(C.out), sz=-Math.sin(C.out);     /* and his right hand */
+  const ax=C.x+fx*F.fwd+sx*F.side, ay=C.y+F.up, az0=C.z+fz*F.fwd+sz*F.side;
   const az=C.out+Math.PI*(1-F.s);
-  _cutA.set(C.x+Math.sin(az)*F.d, C.y+F.y, C.z+Math.cos(az)*F.d);
-  /* it is LED to each mark rather than snapped to it — but firmly enough that
-     it arrives before the beat is out */
-  camera.position.lerp(_cutA,Math.min(1,dt*3.0));
-  _cutB.set(C.x+Math.sin(C.out)*F.L, C.y+F.h, C.z+Math.cos(C.out)*F.L);
+  _cutA.set(ax+Math.sin(az)*F.d, ay+F.y, az0+Math.cos(az)*F.d);
+  /* A HARD CUT puts the eye there; anything else LEADS it, firmly enough
+     that it arrives before the beat is out. */
+  const shot=spec.shots[F.idx+1];
+  if(F.idx!==C.shotIdx){ C.shotIdx=F.idx; if(shot&&shot.cut) C.snap=true; }
+  if(C.snap){ camera.position.copy(_cutA); C.snap=false; }
+  else camera.position.lerp(_cutA,Math.min(1,dt*3.0));
+  _cutB.set(ax+fx*F.L+sx*F.lside, ay+F.h, az0+fz*F.L+sz*F.lside);
   camera.lookAt(_cutB);
+  /* the lens, and the horizon tipped off level */
+  if(Math.abs(camera.fov-F.fov)>0.01){ camera.fov=F.fov; camera.updateProjectionMatrix(); }
+  /* THE DUTCH ANGLE, turned about the camera's OWN line of sight. Writing
+     rotation.z outright is wrong twice: lookAt has just decomposed the whole
+     orientation (its z is commonly ±pi and means nothing on its own), and a
+     roll ADDED frame on frame spins the horizon clean over. Rolled about its
+     own forward axis, straight after the look, it is exactly the tilt asked
+     for and nothing else. */
+  if(F.roll) camera.rotateZ(F.roll);
   if(C.t>=C.dur) endScene();
 }
 /* ---- and the one that is played by walking out to the end of the world ---- */
@@ -9087,6 +9194,7 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   farLand,updateFarLand,mountUpliftAt,MOUNTS,ridgeNoise,B,R_WORLD,
   AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,RANGES,FALLS,activeLandmarks,LANDMARKS,
   mountUp,dismount,nearestMount,promptState:()=>promptAction,
+  camera,sceneStep:dt=>{ if(cut) sceneTick(dt); },cutTime:()=>cut?cut.t:-1,
   domeCeilAt,canTouchDome,touchDome,playScene,endScene,SCENES,sceneActive,sceneRise,seenDeeps,BEACHES,SHOALS,ORCA,beachAt,nearestBeach,seabedMetres,orcaState:()=>orcaState,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
