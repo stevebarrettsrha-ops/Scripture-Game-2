@@ -850,7 +850,7 @@ function cellCompute(ix,iz){
     const near=siteGrid.get(siteKey(u,v));
     if(near) for(const st of near){
       const d=Math.hypot(x-st.x,z-st.z);
-      if(d<86){ const t=Math.min(1,(86-d)/60);
+      if(d<130){ const t=Math.min(1,(130-d)/90);
         c.h=Math.max(1,Math.round(c.h+(st.h0-c.h)*t*0.92));
         if(c.kind!=='sand'&&c.h===1) c.h=2;
         break; }
@@ -4467,6 +4467,36 @@ function setYoung(a,want){
   if(!a.kids.length) a.kids=null;
 }
 function hideYoung(a){ if(a.kids) for(const y of a.kids) y.m.visible=false; }
+/* ---- A PIECE OF THE DAY'S SMALL BUSINESS, TAKEN UP ----
+   Drawn by weight from the creature's own list in js/behavior.js — the
+   zebra's dust-bath, the meerkat's watch, the elephant's wallow. The acts
+   that want water are only performed where a river truly runs by. Hands
+   back true if the beast took something up. */
+function tryAct(a){
+  if(!window.BEHAVIOR||Math.random()>0.45) return false;
+  const act=BEHAVIOR.drawAct(a.kind,Math.random());
+  if(!act||act==='graze') return false;
+  if((act==='drink'||act==='wallow')&&!a.river) return false;
+  a.job='act'; a.act=act; a.jt=3+Math.random()*4; a.tx=a.x; a.tz=a.z;
+  return true;
+}
+/* ---- WHERE THIS ONE BEAST SLEEPS ----
+   Its OWN bed, not a spot under it when the clock stopped: the built den
+   of its own kind if one stands in reach (the same dens js/nest.js raises
+   on the ground), else its tree, else a remembered spot of its own ground
+   — hashed from its home range, so the same beast makes for the same
+   hollow every dusk. The herd beasts of the open answer null and bed
+   where the herd stands. */
+function findDen(a){
+  for(const N of NESTS){ if(!N.set||N.bird) continue;
+    if(N.kind&&N.kind.indexOf(a.kind+'|')===0&&Math.hypot(N.x-a.x,N.z-a.z)<280)
+      return {x:N.x,z:N.z}; }
+  const H=window.BEHAVIOR?BEHAVIOR.homeOf(a.kind):'open';
+  if(H==='open') return null;
+  if(H==='tree'){ const w2=treeNear(a.hx,a.hz,5); if(w2) return {x:w2.x,z:w2.z}; }
+  const aa=hash2(a.hx*0.13,a.hz*0.17)*6.283, rr=18+hash2(a.hz*0.11,a.hx*0.19)*36;
+  return {x:a.hx+Math.cos(aa)*rr, z:a.hz+Math.sin(aa)*rr};
+}
 function updateLandLife(px,pz,dt,t){ initLandLife();
   const night=(worldNight||0)>0.6;
   for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>LL_R+140){ const sp=findLandSpot(px,pz);
@@ -4475,6 +4505,8 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       if(a.kind!==kind){ if(a.m) scene.remove(a.m); a.m=makeAnimal(kind); scene.add(a.m); a.kind=kind; }
       a.hx=sp.x; a.hz=sp.z; a.x=sp.x; a.z=sp.z; a.tx=sp.x; a.tz=sp.z; a.t=Math.random()*3; a.set=true;
       a.role=WILD_ROLE[kind]||'graze'; a.job='roam'; a.jt=Math.random()*3; a.prey=null; a.cool=0;
+      a.dead=0; a.den=null; a.act=null; a.burst=0; a.fear=0; a.panicT=0; a.ph=Math.random()*6.283;
+      a.m.rotation.set(0,0,0);
       /* ---- UP THE TREE, IF THAT IS WHERE IT LIVES ----
          Set at the true crown height of the tree standing on its own cell,
          the same question the nests ask. It does not roam: it hangs there,
@@ -4485,11 +4517,13 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
           if(w2){ /* it is set IN that tree, not on the ground beside it */
             a.x=a.hx=a.tx=w2.x; a.z=a.hz=a.tz=w2.z;
             a.upTree=Math.max(B*1.5,w2.crown*0.85); } }
-        /* ---- AND WHETHER IT KEEPS THE NIGHT ----
-           The cats and the wolves hunt in the dark by nature; the badger,
-           the fox cub's supper, the hedgehog, the jerboa and the rest come
-           out when the sun is off the ground. Everything else sleeps. */
-        a.nocturnal=!!(K&&K.night)||a.role==='stalk'||a.role==='pack'; }
+        /* ---- AND WHAT HOURS IT KEEPS ----
+           Written per creature in js/behavior.js: 'day' beasts sleep the
+           night, 'night' beasts sleep the day, 'dusk' and 'all' are never
+           caught quite still. The old rule (hunters nocturnal, the rest
+           diurnal) stands under anything the behavior file has no line for. */
+        a.day=(window.BEHAVIOR&&BEHAVIOR.of(kind))?BEHAVIOR.dayOf(kind)
+          :((K&&K.night)||a.role==='stalk'||a.role==='pack')?'night':'day'; }
       a.river=riverBankAt(sp.x,sp.z); a.sink=0; a.crouch=false; a.hidden=false;
       a.m.visible=true; a.m.position.set(sp.x,sp.y,sp.z);
       /* ---- AND SOME OF THEM HAVE YOUNG AT FOOT ----
@@ -4501,7 +4535,26 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
          young without anybody being told. */
       setYoung(a, window.BABY && BABY.runs(kind) && hash2(sp.x*0.031,sp.z*0.027)<0.26); }
     if(!a.set) continue;
-    let spd=7; a.jt=(a.jt||0)-dt; a.cool=(a.cool||0)-dt;
+    /* ---- THE KILL LIES WHERE IT FELL ----
+       A caught beast used to shake itself and trot off while its killer
+       fed on the bare ground beside it, which made every hunt on the earth
+       a mime. The quarry goes DOWN now: it lies on its side where it was
+       pulled down, the hunter feeds over the carcass, and only when the
+       meal is long done does the slot quietly go back into the world's
+       pocket to come out somewhere far off as a living beast again. */
+    if(a.dead>0){ a.dead-=dt;
+      const cD=landAtWorld(a.x,a.z);
+      a.m.position.set(a.x,(cD?cD.h*B:WATER_Y)-0.9,a.z);
+      a.m.rotation.set(0,a.heading,1.35);
+      if(a.m.userData.legs) for(const L of a.m.userData.legs) L.rotation.x=0;
+      hideYoung(a);
+      if(a.dead<=0){ a.set=false; a.m.visible=false; a.m.rotation.set(0,0,0); }
+      continue; }
+    /* its own pace, from the behavior file — a hippo does not walk like a
+       gazelle, and a cheetah's charge is nothing like a lion's */
+    const walkSpd=window.BEHAVIOR?BEHAVIOR.walkOf(a.kind,5):5;
+    const runSpd=window.BEHAVIOR?BEHAVIOR.runOf(a.kind,13):13;
+    let spd=walkSpd; a.jt=(a.jt||0)-dt; a.cool=(a.cool||0)-dt;
     const role=a.role||'graze';
     /* ---- WHETHER THIS BEAST IS AWAKE AT ALL ----
        Only the grazers ever slept. A badger foraged at noon and a lion
@@ -4509,7 +4562,7 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
        that keeps the night is up when the diurnal ones are bedded, and down
        when they are up — which halves what you meet at any hour and doubles
        what it is worth meeting. */
-    const asleep=a.nocturnal?!night:night;
+    const asleep=(a.day==='all'||a.day==='dusk')?false:(a.day==='night'?!night:night);
     /* a beast up a tree does not walk anywhere at all */
     if(a.upTree>0){
       a.jt-=0; if(a.jt<=0){ a.jt=8+Math.random()*14;
@@ -4536,17 +4589,39 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       a.cover=gp?GRASS.coverAt(a.x,a.z,gp.kind,gp.wild):0;
       a.hidden=(a.cover>=GRASS.HIDE_H); }
 
+    /* ---- DUSK SENDS EVERY CREATURE TO ITS OWN BED ----
+       When its sleeping hour came, everything on the earth stopped dead in
+       its tracks and lay down exactly there, mid-stride, mid-field — the
+       world froze like a stopped clock. A beast now WALKS HOME first: to
+       the den of its own kind if one stands in reach, to its tree, its
+       burrow-ground, its remembered spot — and beds down THERE. The herd
+       beasts of the open plain bed where the herd stands, which is what a
+       herd is for. */
+    if(asleep){
+      if(a.job!=='bed'&&a.job!=='home'){
+        a.den=findDen(a); a.job=a.den?'home':'bed'; a.act=null; a.prey=null; a.crouch=false; }
+      if(a.job==='home'){ const dh=Math.hypot(a.den.x-a.x,a.den.z-a.z);
+        if(dh<3.5) a.job='bed';
+        else { a.tx=a.den.x; a.tz=a.den.z; spd=walkSpd*1.4; } }
+      if(a.job==='bed') spd=0;
+    }
+    else{
+    if(a.job==='bed'||a.job==='home'){ a.job='roam'; a.jt=0.3+Math.random(); }
+
     if(role==='pack'||role==='stalk'){
       /* ---- THE HUNT ---- */
       if(a.job==='feed'){ spd=0; if(a.jt<=0){ a.job='roam'; a.jt=4+Math.random()*5; } }
       else if(a.cool<=0){
-        if(!a.prey||!a.prey.set||Math.hypot(a.prey.x-a.x,a.prey.z-a.z)>110){
+        const see=window.BEHAVIOR?BEHAVIOR.seeOf(a.kind,80):80;
+        if(!a.prey||!a.prey.set||a.prey.dead>0||Math.hypot(a.prey.x-a.x,a.prey.z-a.z)>see*1.4){
           a.prey=null; let bd=1e9;
-          for(const b of LANDLIFE){ if(b===a||!b.set||!AMBIENT_PREY.has(b.kind)) continue;
-            const d2=Math.hypot(b.x-a.x,b.z-a.z); if(d2<80&&d2<bd){ bd=d2; a.prey=b; } }
+          for(const b of LANDLIFE){ if(b===a||!b.set||b.dead>0||!AMBIENT_PREY.has(b.kind)) continue;
+            const d2=Math.hypot(b.x-a.x,b.z-a.z); if(d2<see&&d2<bd){ bd=d2; a.prey=b; } }
+          /* a fresh quarry, a fresh wind for the charge */
+          if(a.prey) a.burst=window.BEHAVIOR?BEHAVIOR.burstOf(a.kind,7):7;
           /* a wolf does not hunt alone — the pack takes the same quarry */
           if(a.prey&&role==='pack') for(const b of LANDLIFE)
-            if(b!==a&&b.set&&b.role==='pack'&&Math.hypot(b.x-a.x,b.z-a.z)<95){ b.prey=a.prey; b.job='roam'; }
+            if(b!==a&&b.set&&b.role==='pack'&&Math.hypot(b.x-a.x,b.z-a.z)<95){ b.prey=a.prey; b.job='roam'; b.burst=a.burst; }
         }
         /* ---- AND IF THERE IS NOTHING TO HUNT, HE LIES UP IN THE GRASS ----
            A lion on open ground with no quarry walked about in plain sight
@@ -4565,12 +4640,28 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
              the cover runs out under him. Where there is none he must make
              the rush from further off, and the herd has the sight of him. */
           a.crouch=(role==='stalk'&&(d2>26||(a.hidden&&d2>7)));
-          a.tx=a.prey.x; a.tz=a.prey.z; spd=a.crouch?(a.hidden?4.6:3.4):13; a.jt=Math.max(a.jt,0.4);
-          if(d2<3.4){ a.cool=15; a.prey.fear=2.4; a.job='feed'; a.jt=6+Math.random()*5; a.crouch=false;
+          a.tx=a.prey.x; a.tz=a.prey.z;
+          /* the pounce: the last few strides come faster than anything */
+          spd=a.crouch?(a.hidden?4.6:3.4):(d2<12?runSpd*1.18:runSpd); a.jt=Math.max(a.jt,0.4);
+          /* ---- THE CHARGE BURNS THE WIND ----
+             The chase used to be run at a stroll — hunter 13, quarry 12 —
+             so it went on for ever and nothing was ever caught: the whole
+             predation of the earth was two animals walking briskly. The
+             hunter is truly FASTER now over the burst that is all he has;
+             the crouch refills it, the charge drains it, and when it is
+             spent he pulls up and lets the herd go, as the real one does. */
+          if(a.crouch) a.burst=window.BEHAVIOR?BEHAVIOR.burstOf(a.kind,7):7;
+          else{ a.burst-=dt;
+            if(a.burst<=0){ a.cool=9+Math.random()*7; a.prey=null; a.job='roam'; a.jt=2; } }
+          if(a.prey&&d2<3.4){
+            /* the kill lands: the quarry goes down where it stands */
+            const vic=a.prey; vic.dead=9+Math.random()*6; vic.fear=0;
+            a.cool=20; a.job='feed'; a.jt=7+Math.random()*4; a.crouch=false;
+            a.tx=vic.x; a.tz=vic.z;
             /* and the pack comes in to the kill and feeds together */
             if(role==='pack') for(const b of LANDLIFE)
               if(b!==a&&b.set&&b.role==='pack'&&Math.hypot(b.x-a.x,b.z-a.z)<75){
-                b.tx=a.x; b.tz=a.z; b.job='feed'; b.jt=6+Math.random()*4; b.prey=null; }
+                b.tx=vic.x; b.tz=vic.z; b.job='feed'; b.jt=6+Math.random()*4; b.prey=null; }
             a.prey=null; } }
       }
     }
@@ -4581,31 +4672,29 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       let tx=null,tz=null,td=1e9,vic=null;
       if(state.mode==='walk'){ const d2=Math.hypot(state.walk.x-a.x,state.walk.z-a.z);
         if(d2<24){ tx=state.walk.x; tz=state.walk.z; td=d2; } }
-      for(const b of LANDLIFE){ if(!b.set||!AMBIENT_PREY.has(b.kind)) continue;
+      for(const b of LANDLIFE){ if(!b.set||b.dead>0||!AMBIENT_PREY.has(b.kind)) continue;
         const d2=Math.hypot(b.x-a.x,b.z-a.z); if(d2<22&&d2<td){ td=d2; tx=b.x; tz=b.z; vic=b; } }
-      if(tx!==null&&a.cool<=0){ a.tx=tx; a.tz=tz; spd=18; a.sink=0; a.jt=Math.max(a.jt,0.5);
-        if(td<3.6){ a.cool=18; if(vic) vic.fear=2.6; } }
-      else if(a.jt<=0){ a.jt=6+Math.random()*8; a.tx=a.x; a.tz=a.z; }   /* else it does not stir */
+      if(tx!==null&&a.cool<=0){ a.tx=tx; a.tz=tz; spd=runSpd; a.sink=0; a.jt=Math.max(a.jt,0.5);
+        /* the lunge lands: what it takes at the water's edge is taken */
+        if(td<3.6){ a.cool=22;
+          if(vic){ vic.dead=10+Math.random()*5; vic.fear=0; a.job='feed'; a.jt=8+Math.random()*4; } } }
+      else if(a.jt<=0){ a.jt=6+Math.random()*8; a.tx=a.x; a.tz=a.z; a.job='roam'; }   /* else it does not stir */
     }
     else if(role==='forage'){
       /* ---- THE BEAR ---- it digs the ground for roots, and where it stands
          by running water it goes down and fishes the shallows.
          And it SLEEPS. A forager worked its way round the clock before. */
-      spd=6;
-      if(asleep){ a.job='bed'; spd=0; a.jt=2; }
-      else
-      if(a.job==='fish'||a.job==='dig'){ spd=0; if(a.jt<=0){ a.job='roam'; a.jt=5+Math.random()*6; } }
+      spd=walkSpd;
+      if(a.job==='fish'||a.job==='dig'||a.job==='act'){ spd=0;
+        if(a.jt<=0){ a.job='roam'; a.act=null; a.jt=5+Math.random()*6; } }
       else if(a.jt<=0){
         if(a.river&&Math.random()<0.45){ a.job='fish'; a.jt=5+Math.random()*5; }
-        else { a.job='dig'; a.jt=3+Math.random()*4; }
+        else if(!tryAct(a)) { a.job='dig'; a.jt=3+Math.random()*4; }
       }
     }
     else if(role==='bask'){
-      /* a cold-blooded thing gets no good of the dark: it lies up under a
-         stone all night and comes out when there is sun to take */
-      if(night){ a.job='bed'; spd=0; a.jt=2; }
-      else { spd=4; if(a.jt<=0){ a.job=a.job==='bask'?'roam':'bask'; a.jt=a.job==='bask'?(4+Math.random()*6):(1+Math.random()*2); }
-        if(a.job==='bask') spd=0; }
+      spd=walkSpd; if(a.jt<=0){ a.job=a.job==='bask'?'roam':'bask'; a.jt=a.job==='bask'?(4+Math.random()*6):(1+Math.random()*2); }
+      if(a.job==='bask') spd=0;
     }
     else {
       /* ---- THE GRAZERS ---- heads down in the grass, drawn together into a
@@ -4622,17 +4711,28 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       a.fear=(a.fear||0)-dt;
       let fx=null,fz=null;
       if(state.mode==='walk'&&Math.hypot(state.walk.x-a.x,state.walk.z-a.z)<9){ fx=state.walk.x; fz=state.walk.z; }
-      else for(const b of LANDLIFE){ if(!b.set||(b.role!=='pack'&&b.role!=='stalk'&&b.role!=='ambush')) continue;
+      else for(const b of LANDLIFE){ if(!b.set||b.dead>0||(b.role!=='pack'&&b.role!=='stalk'&&b.role!=='ambush')) continue;
         /* a hunter lying up in the deep grass is NOT SEEN. It is caught at
            arm's length or not at all, and that is the whole use of cover. */
         const see=b.hidden?6:18;
         if(Math.hypot(b.x-a.x,b.z-a.z)<see){ fx=b.x; fz=b.z; break; } }
+      if(fx!==null&&a.fear<=0) a.panicT=0;   /* caught flat — a beat to reach full stride */
       if(fx!==null){ const dd2=Math.hypot(a.x-fx,a.z-fz)||1;
         a.tx=a.x+(a.x-fx)/dd2*34; a.tz=a.z+(a.z-fz)/dd2*34; a.fear=Math.max(a.fear,0.7); a.job='flee'; a.jt=0.7; }
-      if(a.fear>0){ spd=12; }
-      else if(asleep){ a.job='bed'; spd=0; a.jt=2; }
+      /* ---- THE STARTLE ----
+         Full flight is not reached in a stride: the beast that let the
+         hunter inside its own ground pays for the surprise with the first
+         second of the chase, which is exactly the second the whole hunt
+         was ever about. */
+      if(a.fear>0){ a.panicT=(a.panicT||0)+dt;
+        spd=runSpd*(0.55+0.45*Math.min(1,a.panicT/1.2));
+        a.act=null; if(a.job==='act') a.job='flee'; }
       else if(a.jt<=0){
-        if(a.job==='feedhead'){ a.job='roam'; a.jt=2.5+Math.random()*3; }
+        if(a.job==='act'){ a.job='roam'; a.act=null; a.jt=2.5+Math.random()*3; }
+        else if(a.job==='feedhead'){
+          /* the meal done, a moment for the day's small business — the
+             roll in the dust, the watch, the walk down to the water */
+          if(!tryAct(a)){ a.job='roam'; a.jt=2.5+Math.random()*3; } }
         /* ON GROUND THAT BEARS NO GRASS AT ALL — the snow of the far north,
            bare rock, the sand — there is nothing to walk to and nothing to
            look for. The reindeer paws the drift for the moss under it and the
@@ -4642,14 +4742,15 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
         else {
           /* nothing to eat here — go and find some */
           const gz=GRASS.findGraze(a.x,a.z,190,grassProbe);
-          if(gz){ a.tx=gz.x; a.tz=gz.z; a.job='seek'; a.jt=4+Math.random()*3; spd=8; }
+          if(gz){ a.tx=gz.x; a.tz=gz.z; a.job='seek'; a.jt=4+Math.random()*3; spd=walkSpd*1.4; }
           else { a.job='roam'; a.jt=2.5+Math.random()*3; }
         }
       }
       /* and it puts its head down the moment it is standing in a bite */
       if(a.job==='seek'&&a.feed>=GRASS.FEED_MIN){ a.job='feedhead'; a.jt=3+Math.random()*4; }
-      if(a.job==='feedhead') spd=0; else if(a.job==='seek') spd=8;
+      if(a.job==='feedhead'||a.job==='act') spd=0; else if(a.job==='seek') spd=walkSpd*1.4;
     }
+    }   /* end of the waking day's work */
 
     /* a new place to make for, when the last is reached or the work is done */
     if(a.jt<=0&&(a.job==='roam'||a.job==='flee')){
@@ -4688,15 +4789,34 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       } }
     const c2=landAtWorld(a.x,a.z);
     /* how the body carries itself at its work */
-    let lift=0, lean=0;
+    let lift=0, lean=0, roll=0;
     if(a.job==='feedhead'||a.job==='dig') lean=0.26;          /* head down to the ground */
     else if(a.job==='fish'){ lean=0.34; lift=-0.6; }          /* down at the water's edge */
     else if(a.job==='feed') lean=0.30;                        /* over the kill */
     else if(a.job==='bed'){ lift=-1.6; }                      /* bedded down for the night */
+    else if(a.job==='act'){
+      /* ---- THE SMALL BUSINESS OF THE DAY, PERFORMED ----
+         each habit of the behavior file is a real attitude of the body */
+      switch(a.act){
+        case 'browse': lean=-0.30; break;                     /* head up into the leaves */
+        case 'drink':  lean=0.34; break;                      /* muzzle down at the water */
+        case 'wallow': case 'dust':                           /* down and rolling */
+          lift=-1.4; roll=Math.sin(t*2.1+a.ph)*0.62; break;
+        case 'groom':  lean=0.14; roll=0.18; break;           /* turned along the flank */
+        case 'alert':  lean=-0.14; break;                     /* head high, reading the wind */
+        case 'rear':   lean=-0.85; lift=0.6; break;           /* up on the hind legs */
+        case 'dig':    lean=0.26; break;
+        case 'bask':   lift=-1.3; break;                      /* flat out in the sun */
+        case 'play':   roll=Math.sin(t*5+a.ph)*0.3; lift=Math.abs(Math.sin(t*5+a.ph))*0.8; break;
+      }
+    }
     else if(a.crouch) lift=-0.8;                              /* the lion low in the grass */
     if(role==='ambush') lift=-1.5*(a.sink||0);                /* sunk to the eyes */
-    a.m.position.set(a.x,(c2?c2.h*B:WATER_Y)+lift,a.z);
-    a.m.rotation.y=a.heading; a.m.rotation.x=lean;
+    /* the ones that bound instead of walk truly BOUND */
+    const hop=(moving&&window.BEHAVIOR&&BEHAVIOR.gaitOf(a.kind)==='hop')
+      ?Math.abs(Math.sin(t*9+a.ph))*1.3:0;
+    a.m.position.set(a.x,(c2?c2.h*B:WATER_Y)+lift+hop,a.z);
+    a.m.rotation.y=a.heading; a.m.rotation.x=lean; a.m.rotation.z=roll;
     if(a.m.userData.legs) for(const L of a.m.userData.legs)
       L.rotation.x=moving?Math.sin(t*(spd>8?10:7)+(L.userData.ph||0))*0.5:0;
     /* the crocodile's jaw and the bear's head keep their own motion */
@@ -4716,8 +4836,9 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
         L.rotation.x=r.moving?Math.sin(t*(r.sp>9?13:9)+(L.userData.ph||0))*0.55:0; }
     const ud=a.m.userData;
     if(ud.jaw) ud.jaw.rotation.x=(a.cool>16.4)?-0.6:0;         /* snapped shut on the strike */
-    if(ud.head&&a.job==='dig') ud.head.rotation.x=0.4+Math.sin(t*3)*0.18;
-    else if(ud.head) ud.head.rotation.x=0;
+    if(ud.head&&(a.job==='dig'||a.act==='dig')) ud.head.rotation.x=0.4+Math.sin(t*3)*0.18;
+    else if(ud.head&&a.act==='groom') ud.head.rotation.y=Math.sin(t*1.6+a.ph)*0.8;
+    else if(ud.head){ ud.head.rotation.x=0; ud.head.rotation.y=0; }
   } }
 function hideLandLife(){ for(const a of LANDLIFE){ if(a.m) a.m.visible=false; hideYoung(a); }
   for(const r of RIVERLIFE) if(r.m) r.m.visible=false; }
@@ -4787,9 +4908,9 @@ function updateRiverLife(px,pz,dt,t){ initRiverLife();
    surface, break it, and come up with a fish — and the fish they take is a
    real one out of the shoal, not a mime. */
 const AIRLIFE=[], AL_N=18, AL_R=440;
-const NESTS=[], NEST_N=6, NEST_R=430;
+const NESTS=[], NEST_N=10, NEST_R=430;
 function initNests(){ if(NESTS.length) return;
-  for(let k=0;k<NEST_N;k++) NESTS.push({m:null,kind:null,chicks:[],x:0,y:0,z:0,set:false,cheep:0}); }
+  for(let k=0;k<NEST_N;k++) NESTS.push({m:null,kind:null,skey:null,species:null,chicks:[],x:0,y:0,z:0,set:false,cheep:0}); }
 /* ---- THE HOME OF A CREATURE, BUILT WHERE THAT CREATURE PUTS IT ----
    It was one ring of sticks, put down at a flat three and a third blocks
    above the ground whether a tree stood there or not — so every nest in the
@@ -4810,15 +4931,27 @@ function homeSiteFor(wx,wz,c,gi,gj){
        almost never carries a tree, and that is why every nest in the world
        used to hang in mid air over open field */
     const w2=treeNear(wx,wz,5);
+    /* WHOSE nest is drawn by the SITE'S OWN HASH, never the dice — the old
+       code rolled airKind() afresh every frame, so the same tree changed
+       owners sixty times a second and the nest in it was torn down and
+       rebuilt as fast as it could be looked at */
+    const lat=90-Math.hypot(wx,wz)/R_WORLD*180, alat=Math.abs(lat);
+    const br=hash2(gi*13.7+(w2?w2.ix:ix)*0.37, gj*7.9+(w2?w2.iz:iz)*0.53);
     if(w2){
-      /* whatever flies here — but a BUTTERFLY builds nothing, and was being
-         handed a nest full of chicks */
-      let bird=airKind(w2.x,w2.z,false);
-      if(bird==='butterfly'||!NEST.homeOf(bird)) bird=(hash2(w2.ix*1.9,w2.iz*2.7)<0.5)?'crow':'dove';
+      const bird=alat>58?(br<0.55?'owl':'crow')
+        :(br<0.42?'crow':br<0.8?'dove':'owl');
       const home=NEST.homeOf(bird);
-      if(home&&home.where==='tree')
-        return {y:w2.y, x:w2.x, z:w2.z, kind:bird, home, bird:true};
+      if(home) return {y:w2.y, x:w2.x, z:w2.z, kind:bird, home, bird:true};
     }
+    /* and where no tree stands, the birds of the open ground: the eagle's
+       eyrie on the high bare rock, the puffin's burrow in the cold turf,
+       the gull's scrape by the warm sand */
+    if((c.kind==='rock'||c.kind==='alpine'||c.h>=26)&&br<0.6)
+      return {y:yG, kind:'eagle', home:NEST.homeOf('eagle'), bird:true};
+    if(alat>56&&(c.kind==='tundra'||c.kind==='snow')&&br<0.5)
+      return {y:yG, kind:'puffin', home:NEST.homeOf('puffin'), bird:true};
+    if(c.kind==='sand'&&br<0.5)
+      return {y:yG, kind:'gull', home:NEST.homeOf('gull'), bird:true};
   }
   /* else it is somebody's den, burrow, lair or scrape. Whose? — whatever
      beast this country puts on this ground, if that beast builds anything. */
@@ -4863,27 +4996,55 @@ function updateNests(px,pz,dt){ initNests();
     const wx=gi*CS+(hash2(gi,gj)-0.5)*300, wz=gj*CS+(hash2(gj,gi)-0.5)*300;
     const c=landAtWorld(wx,wz); if(!c||c.kind==='wall'||!c.ci) continue;
     const site=homeSiteFor(wx,wz,c,gi,gj); if(!site) continue;
-    sites.push({wx,wz,site,d:Math.hypot(wx-px,wz-pz)}); }
+    sites.push({key:gi+','+gj,wx,wz,site,d:Math.hypot(wx-px,wz-pz)}); }
   sites.sort((a,b)=>a.d-b.d);
   const night=(worldNight||0)>0.6, t=performance.now()*0.001;
-  for(let k=0;k<NEST_N;k++){ const N=NESTS[k], s=sites[k];
-    if(s&&s.d<NEST_R+300){
-      const key=s.site.kind+'|'+s.site.home.form;
-      if(N.kind!==key||!N.m){
-        if(N.m) scene.remove(N.m);
-        const built=buildBeastHome(s.site); N.m=built.g; N.chicks=built.chicks;
-        N.kind=key; scene.add(N.m); }
+  /* ---- THE HOMES OF THE WORLD DO NOT SHUFFLE UNDERFOOT ----
+     The k-th nearest site used to be handed to the k-th slot, so every step
+     the traveller took reshuffled which slot held which home — a nest would
+     leap half a mile, and the bird bound to that slot would dart across the
+     sky after it. A slot now KEEPS its site (by the site's own grid key)
+     for as long as that site is wanted at all. */
+  const want=new Map();
+  for(let k=0;k<sites.length&&want.size<NEST_N;k++){ const s=sites[k];
+    if(s.d<NEST_R+300&&!want.has(s.key)) want.set(s.key,s); }
+  for(const N of NESTS){
+    if(N.set&&want.has(N.skey)){ const s=want.get(N.skey); s.held=true;
       N.x=(s.site.x!==undefined)?s.site.x:s.wx;
-      N.z=(s.site.z!==undefined)?s.site.z:s.wz;
-      N.y=s.site.y; N.set=true; N.bird=s.site.bird;
+      N.z=(s.site.z!==undefined)?s.site.z:s.wz; N.y=s.site.y;
       N.m.position.set(N.x,N.y,N.z); N.m.visible=true; }
-    else { N.set=false; if(N.m) N.m.visible=false; }
+    else if(N.set){ N.set=false; N.skey=null; if(N.m) N.m.visible=false; } }
+  for(const s of want.values()){ if(s.held) continue;
+    let slot=null; for(const N of NESTS) if(!N.set){ slot=N; break; }
+    if(!slot) break;
+    const kindKey=s.site.kind+'|'+s.site.home.form;
+    if(slot.kind!==kindKey||!slot.m){
+      if(slot.m) scene.remove(slot.m);
+      const built=buildBeastHome(s.site); slot.m=built.g; slot.chicks=built.chicks;
+      slot.kind=kindKey; scene.add(slot.m); }
+    slot.skey=s.key; slot.species=s.site.kind; slot.bird=s.site.bird;
+    slot.x=(s.site.x!==undefined)?s.site.x:s.wx;
+    slot.z=(s.site.z!==undefined)?s.site.z:s.wz;
+    slot.y=s.site.y; slot.set=true;
+    slot.m.position.set(slot.x,slot.y,slot.z); slot.m.visible=true; }
+  for(const N of NESTS){
     if(N.set&&N.chicks.length&&window.CHICKS){
       N.cheep=Math.max(0,N.cheep-dt);
       for(const ch of N.chicks) CHICKS.tickChick(ch,ch.m,N.cheep,night,dt,t); } } }
-function nearestNest(x,z){ let best=null,bd=1e9;
-  for(const N of NESTS){ if(!N.set) continue; const d=Math.hypot(N.x-x,N.z-z); if(d<bd){bd=d;best=N;} }
-  return best; }
+/* ---- EVERY BIRD ITS OWN NEST ----
+   All eighteen fowl of the air used to carry every catch to the ONE nearest
+   nest, whos-ever it was — a gull feeding a crow's brood in an oak. A bird
+   now claims a nest OF ITS OWN KIND, and no nest is claimed by more than
+   the pair that keeps it; a bird with no nest of its kind in reach has no
+   nest at all, eats its catch where it takes it, and roosts on a perch of
+   its own choosing like the honest vagrant it is. */
+function claimNest(b){
+  if(b.nest&&b.nest.set&&b.nest.bird&&b.nest.species===b.type) return b.nest;
+  b.nest=null;
+  for(const N of NESTS){ if(!N.set||!N.bird||N.species!==b.type) continue;
+    let claims=0; for(const o of AIRLIFE){ if(o!==b&&o.set&&o.nest===N) claims++; }
+    if(claims<2){ b.nest=N; break; } }
+  return b.nest; }
 function airKind(px,pz,night){ const overSea=!landAtWorld(px,pz);
   /* ---- AND THE COLD HAS ITS OWN FOWL ----
      Out over the ice it was gulls and nothing else, at either end of the
@@ -4895,7 +5056,9 @@ function airKind(px,pz,night){ const overSea=!landAtWorld(px,pz);
     if(overSea) return r<0.45?'gull':r<0.8?'puffin':'owl';
     return r<0.42?'owl':r<0.7?'dove':r<0.88?'gull':'crow'; }
   if(Math.hypot(px,pz)/R_WORLD>0.90) return 'gull';
-  if(night) return Math.random()<0.6?'crow':'dove';
+  /* the night sky belongs to the OWL, which is out working it — the crow
+     and the dove that share it are on their way to a roost, not abroad */
+  if(night){ const r=Math.random(); return r<0.5?'owl':r<0.8?'crow':'dove'; }
   if(overSea) return Math.random()<0.7?'gull':'eagle';
   const r=Math.random(); return r<0.3?'butterfly':r<0.55?'dove':r<0.8?'crow':'eagle'; }
 function initAirLife(){ if(AIRLIFE.length) return; for(let k=0;k<AL_N;k++)
@@ -4948,7 +5111,7 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
          from wherever it last was would set off for it across the whole
          earth — and the firmament's fair wind carries the ship thousands of
          units at a stroke, so this is not a corner case. */
-      b.job='hunt'; b.jt=0; b.food=null; b.nest=null; b.spot=null;
+      b.job='hunt'; b.jt=0; b.food=null; b.nest=null; b.spot=null; b.perch=null;
       b.tx=b.x; b.ty=b.y; b.tz=b.z;
       b.set=true; b.m.visible=true;
     }
@@ -4959,14 +5122,24 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
     b.jt-=dt;
 
     if(b.type==='butterfly'){
-      /* it goes from flower to flower, and never further */
-      if(b.jt<=0){ const a=Math.random()*6.28, r=3+Math.random()*14;
+      /* it goes from flower to flower, and never further — and at night it
+         SITS, folded on a stem, as every butterfly on the earth does */
+      if(night){ if(b.job!=='sit'){ b.job='sit';
+          const c=landAtWorld(b.x,b.z); b.tx=b.x; b.tz=b.z; b.ty=(c?c.h*B:WATER_Y)+1.2; } }
+      else if(b.jt<=0||b.job==='sit'){ b.job='fly';
+        const a=Math.random()*6.28, r=3+Math.random()*14;
         b.tx=b.x+Math.cos(a)*r; b.tz=b.z+Math.sin(a)*r;
         const c=landAtWorld(b.tx,b.tz); b.ty=(c?c.h*B:WATER_Y)+2+Math.random()*4;
         b.jt=1.2+Math.random()*2; }
     } else {
-      if(!b.nest||!b.nest.set) b.nest=nearestNest(b.x,b.z);
-      if(night&&b.nest){ b.job='roost'; }
+      claimNest(b);
+      /* ---- ITS REAL HOURS, from js/behavior.js ----
+         the owl WORKS the night and sleeps the day off in a tree; everything
+         else works the day and roosts at dusk */
+      const BH=window.BEHAVIOR&&BEHAVIOR.birdOf(b.type);
+      const wantRoost=(BH&&BH.night==='hunt')?!night:night;
+      if(wantRoost&&b.job!=='roost'){ b.job='roost'; b.perch=null; }
+      else if(!wantRoost&&b.job==='roost'){ b.job='hunt'; b.spot=null; }
       switch(b.job){
         case 'hunt': {
           if(!b.spot){ b.spot=forageSpot(b,px,pz);
@@ -4988,7 +5161,12 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
           if(b.jt<=0){ b.food='seed'; b.job='carry'; }
           break; }
         case 'carry': {
-          if(!b.nest){ b.job='rest'; b.jt=3; b.food=null; break; }
+          /* no nest of its own kind — it eats its catch where it stands,
+             down on the ground like an honest bird, not hovering in the
+             air over somebody else's brood */
+          if(!b.nest){ b.job='eat'; b.jt=2+Math.random()*2;
+            const c=landAtWorld(b.x,b.z); b.tx=b.x; b.tz=b.z;
+            b.ty=(c?c.h*B:WATER_Y+2)+0.8; break; }
           b.tx=b.nest.x; b.tz=b.nest.z; b.ty=b.nest.y+3;
           if(Math.hypot(b.x-b.tx,b.z-b.tz)<7&&Math.abs(b.y-b.ty)<6){
             b.job='feed'; b.jt=2.2+Math.random(); b.nest.cheep=2.6; }
@@ -4996,10 +5174,20 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
         case 'feed': {
           if(b.jt<=0){ b.food=null; b.job='rest'; b.jt=2.5+Math.random()*4; }
           break; }
+        case 'eat': {
+          if(b.jt<=0){ b.food=null; b.job='rest'; b.jt=2+Math.random()*3; }
+          break; }
         case 'roost': {
-          if(!b.nest){ b.job='rest'; b.jt=4; break; }
-          b.tx=b.nest.x+2.5; b.tz=b.nest.z; b.ty=b.nest.y+2;
-          if(!night){ b.job='hunt'; }
+          /* its own nest if it keeps one; else a perch of its kind — a
+             bough for the crow, the open ground for the gull — and it
+             SITS there, wings in, until its hour comes round again */
+          if(b.nest){ b.tx=b.nest.x; b.tz=b.nest.z; b.ty=b.nest.y+1.1; }
+          else{ if(!b.perch){
+              const w2=(!BH||BH.perch!=='ground')?treeNear(b.x,b.z,6):null;
+              if(w2) b.perch={x:w2.x,y:w2.y+1.0,z:w2.z};
+              else{ const c=landAtWorld(b.x,b.z);
+                b.perch={x:b.x,y:(c?c.h*B:WATER_Y+2)+0.6,z:b.z}; } }
+            b.tx=b.perch.x; b.tz=b.perch.z; b.ty=b.perch.y; }
           break; }
         default: {   /* rest — it circles above the nest and gathers itself */
           const n=b.nest;
@@ -5020,12 +5208,21 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
     const want=Math.atan2(dx,dz);
     let turn=want-b.heading; while(turn>Math.PI)turn-=6.2832; while(turn<-Math.PI)turn+=6.2832;
     b.heading+=turn*Math.min(1,dt*3.4);
-    const bob=(b.job==='roost'||b.job==='feed')?0:Math.sin(t*2+b.ph)*(b.type==='butterfly'?1.4:2.0);
+    /* ---- SAT MEANS SAT ----
+       A bird at rest used to hang two units off its perch, bobbing on the
+       air and slowly milling its wings — the famous mid-air glitch. When it
+       is on a sitting job and has all but arrived, it is SNAPPED DOWN onto
+       the spot, dead still, wings folded, level — and stays there. */
+    const sitting=(b.job==='roost'||b.job==='feed'||b.job==='peck'||b.job==='eat'
+      ||(b.type==='butterfly'&&b.job==='sit'));
+    if(sitting&&dd<1.6&&Math.abs(b.ty-b.y)<2){ b.x=b.tx; b.z=b.tz; b.y=b.ty; }
+    const bob=sitting?0:Math.sin(t*2+b.ph)*(b.type==='butterfly'?1.4:2.0);
     b.m.position.set(b.x,b.y+bob,b.z);
-    b.m.rotation.y=b.heading; b.m.rotation.z=-turn*0.6;      /* it banks into the turn */
-    /* the wings still while it sits at the nest, and beat hard on the stoop */
-    const sitting=(b.job==='roost'||b.job==='feed'||b.job==='peck');
-    const fl=sitting?0.08:(b.type==='butterfly'?Math.sin(t*16+b.ph)*0.9:Math.sin(t*10+b.ph)*0.6);
+    b.m.rotation.y=b.heading;
+    /* it banks into the turn — but never rolls clean over on a hard retarget */
+    b.m.rotation.z=sitting?0:-Math.max(-0.55,Math.min(0.55,turn))*0.6;
+    /* the wings still while it sits, and beat hard on the stoop */
+    const fl=sitting?0.06:(b.type==='butterfly'?Math.sin(t*16+b.ph)*0.9:Math.sin(t*10+b.ph)*0.6);
     if(ud.wingL){ ud.wingL.rotation.z=fl; ud.wingR.rotation.z=-fl; }
     if(ud.carry){ ud.carry.visible=!!b.food;
       if(b.food) ud.carry.material.color.setHex(b.food==='fish'?0x9fb6c8:0xc8b46a); }
@@ -5079,7 +5276,9 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
      and a hearth-light that burns when the sun departs. */
   const rnd=k=>hash2(seed*7.7+k*3.1,seed*3.3+k*9.7);
   const x0=hx-w*B/2, x1=hx+w*B/2, z0=hz-d*B/2, z1=hz+d*B/2;
-  const wallH=3*B, T=B*0.5, gw=B*0.75;
+  /* four blocks to the eaves now, not three — a house a man does not have
+     to stoop into reads as a HOUSE, not a hut */
+  const wallH=4*B, T=B*0.5, gw=B*0.75;
   /* cobble footing and the plank floor laid upon it */
   emitBox(G, x0,y,z0, x1,y+B*0.55,z1, 'cobble','cobble',null);
   faceTop(G,'planks', x0+T,z0+T, x1-T,z1-T, y+B*0.58, 0.95);
@@ -5212,10 +5411,12 @@ function emitStall(G,x,z,y,kind){
    A GENERATOR: it yields between homes so the frame driver can spread a
    city's cost over many frames — no single frame pays for a whole town. */
 function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i){
-  const cx=site.x, cz=site.z, sz2=cfg.size||2, nHomes=cfg.houses||14;
-  emitPlaza(G, cx,cz, wy, B*(4.5+sz2));
+  /* half again the homes, on lots half again apart — a CITY now stands a
+     head taller and a street wider than the villages it lords it over */
+  const cx=site.x, cz=site.z, sz2=cfg.size||2, nHomes=Math.round((cfg.houses||14)*1.4);
+  emitPlaza(G, cx,cz, wy, B*(6+sz2*1.5));
   emitWell(G, cx,cz, wy); solids.push({x:cx,z:cz,r:B*1.7});
-  const spacing=B*7, reach=B*(6+Math.ceil(nHomes/3));
+  const spacing=B*11, reach=B*(9+Math.ceil(nHomes/2));
   emitPathLine(G, cx-reach,cz, cx+reach,cz);            // the two main streets
   emitPathLine(G, cx,cz-reach, cx,cz+reach);
   const lots=[];
@@ -5229,7 +5430,7 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i){
     if(gx===0||gy===0) continue;                        // keep the streets clear
     const hx=cx+gx*spacing+(rnd(placed+1)-0.5)*B*1.5, hz=cz+gy*spacing+(rnd(placed+9)-0.5)*B*1.5;
     const hc=landAtWorld(hx,hz); if(!hc||hc.kind==='wall'||hc.kind==='floe') continue;
-    const w=5+Math.floor(rnd(placed+20)*3), d=6+Math.floor(rnd(placed+25)*3);
+    const w=7+Math.floor(rnd(placed+20)*4), d=8+Math.floor(rnd(placed+25)*4);
     const ddx=cx-hx, ddz=cz-hz;
     const doorDir=Math.abs(ddz)>=Math.abs(ddx)?(ddz>0?0:1):(ddx>0?2:3);
     emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+placed);
@@ -5334,18 +5535,20 @@ function* spawnVillage(i){
     const ci=yield* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i);
     cityHomes=ci.homes;
     /* a fenced pen for the beasts on the outskirts */
-    { const a=rnd(130)*6.28, rr=B*(9+(cfg.size||2)*2);
+    { const a=rnd(130)*6.28, rr=B*(13+(cfg.size||2)*3);
       const px2=site.x+Math.cos(a)*rr, pz2=site.z+Math.sin(a)*rr, pc=landAtWorld(px2,pz2);
-      if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'){ emitPen(G,px2,pz2,pc.h*B,5,4);
+      if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'){ emitPen(G,px2,pz2,pc.h*B,7,5);
         emitPathLine(G,site.x,site.z,px2,pz2); ex.pen={x:px2,z:pz2}; } }
   } else {
-    /* --- a village proper: a broad ring of homes about the well and square --- */
-    const nH=6+Math.floor(rnd(1)*4);
+    /* --- a village proper: a broad ring of homes about the well and square
+       --- grown a full size: more homes, bigger homes, a wider ring to
+       stand them in, so a town reads as a town and not a huddle of huts */
+    const nH=8+Math.floor(rnd(1)*4);
     for(let h=0;h<nH;h++){
-      const ang=(h/nH+rnd(h+2)*0.35)*Math.PI*2, rad=(4.5+rnd(h+9)*5.5)*B;
+      const ang=(h/nH+rnd(h+2)*0.35)*Math.PI*2, rad=(6.5+rnd(h+9)*6.5)*B;
       const hx=site.x+Math.cos(ang)*rad, hz=site.z+Math.sin(ang)*rad;
       const hc=landAtWorld(hx,hz); if(!hc||hc.kind==='wall'||hc.kind==='floe') continue;
-      const w=5+Math.floor(rnd(h+20)*3), d=5+Math.floor(rnd(h+25)*3);
+      const w=7+Math.floor(rnd(h+20)*3), d=7+Math.floor(rnd(h+25)*3);
       const dx=site.x-hx, dz=site.z-hz;
       const doorDir=Math.abs(dz)>=Math.abs(dx) ? (dz>0?0:1) : (dx>0?2:3);
       emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+h);
@@ -5355,7 +5558,7 @@ function* spawnVillage(i){
     for(const dr of ex.doors) emitPathLine(G, site.x,site.z, dr.x,dr.z);
     const nF=2+(rnd(40)>0.55?1:0);
     for(let f=0;f<nF;f++){
-      const ang=rnd(f+44)*Math.PI*2, rad=(7+rnd(f+48)*4)*B;
+      const ang=rnd(f+44)*Math.PI*2, rad=(10+rnd(f+48)*5)*B;
       const fx=site.x+Math.cos(ang)*rad, fz=site.z+Math.sin(ang)*rad;
       const fc=landAtWorld(fx,fz); if(!fc||fc.kind==='wall') continue;
       emitFarm(G, fx,fz, fc.h*B, i*100+f); emitPathLine(G, site.x,site.z, fx,fz);
@@ -5369,19 +5572,19 @@ function* spawnVillage(i){
       ex.stalls.push({x:sx,z:sz});
     }
     for(let hb=0; hb<2+Math.floor(rnd(52)*3); hb++){
-      const ang=rnd(hb+54)*Math.PI*2, rad=(3+rnd(hb+58)*6)*B;
+      const ang=rnd(hb+54)*Math.PI*2, rad=(4+rnd(hb+58)*8)*B;
       const x=site.x+Math.cos(ang)*rad, z=site.z+Math.sin(ang)*rad;
       const c2=landAtWorld(x,z); if(!c2||c2.kind==='wall') continue;
       emitHay(G,x,z,c2.h*B);
     }
-    { const ang=rnd(130)*Math.PI*2, rad=(6+rnd(133)*3)*B;
+    { const ang=rnd(130)*Math.PI*2, rad=(9+rnd(133)*4)*B;
       const px2=site.x+Math.cos(ang)*rad, pz2=site.z+Math.sin(ang)*rad;
       const pc=landAtWorld(px2,pz2);
-      if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'){ emitPen(G,px2,pz2,pc.h*B,4,3);
+      if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'){ emitPen(G,px2,pz2,pc.h*B,6,4);
         emitPathLine(G,site.x,site.z,px2,pz2); ex.pen={x:px2,z:pz2}; } }
     { const bx=site.x+B*1.9, bz=site.z-B*1.4; const bc=landAtWorld(bx,bz);
       if(bc&&bc.kind!=='wall') emitBench(G,bx,bz,bc.h*B); }
-    for(let t=0;t<4;t++){ const ang=rnd(t+62)*Math.PI*2, rad=(2.5+rnd(t+66)*5)*B;
+    for(let t=0;t<5;t++){ const ang=rnd(t+62)*Math.PI*2, rad=(3+rnd(t+66)*7)*B;
       const tx=site.x+Math.cos(ang)*rad, tz=site.z+Math.sin(ang)*rad;
       const tc2=landAtWorld(tx,tz); if(!tc2||tc2.kind==='wall') continue;
       emitBox(G, tx-0.5,tc2.h*B,tz-0.5, tx+0.5,tc2.h*B+B*1.6,tz+0.5, 'logSide','logTop',null);
