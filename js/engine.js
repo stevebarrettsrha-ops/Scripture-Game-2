@@ -8619,9 +8619,10 @@ function placeTick(){
   $('place').textContent=txt;
   /* the hour HERE, on a twelve-hour face, and the name of that hour */
   const pp=playerXZ(), lh=localHourAt(pp.x,pp.z);
+  /* THREE LINES, never four: the panel sits above the button rail, and a
+     fourth line pushed it down onto the top button at every screen size. */
   $('clock').innerHTML='DAY '+dayOfYear()+' OF 364<br>'+clockFace(lh)
-    +' \u00b7 '+dayPartName(lh)+'<br>course: '+SPEEDS[state.speedIdx][1]
-    +'<br>wind: '+windLabel();
+    +' \u00b7 '+dayPartName(lh)+'<br>'+SPEEDS[state.speedIdx][1]+' \u00b7 '+windLabel();
 }
 
 /* ================= THE FACE OF THE EARTH =================

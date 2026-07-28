@@ -18,11 +18,11 @@
     text-shadow:0 0 18px rgba(232,198,106,.35); }
   #head .s{ font-size:clamp(9px,1.5vmin,13px); letter-spacing:.2em; color:#9a8f74; margin-top:.5vh; font-style:italic; }
   #clock{ top:2vh; right:2.2vw; text-align:right; font-size:clamp(10px,1.6vmin,13px);
-    letter-spacing:.14em; color:#9a8f74; line-height:1.7; }
+    letter-spacing:.14em; color:#9a8f74; line-height:1.7; max-width:46vw; }
   #place{ left:50%; bottom:16.5vh; transform:translateX(-50%);
     font-size:clamp(12px,2.2vmin,19px); letter-spacing:.3em; color:var(--gold);
     text-shadow:0 2px 10px rgba(0,0,0,.85); text-align:center; }
-  #verse{ left:50%; bottom:7.5vh; transform:translateX(-50%); width:min(88vw,760px); text-align:center;
+  #verse{ left:50%; bottom:7.5vh; transform:translateX(-50%); width:min(70vw,640px); text-align:center;
     transition:opacity 1.4s ease; opacity:0; }
   #verse .vt{ font-style:italic; font-size:clamp(11px,1.9vmin,16px); line-height:1.55; color:#efe6cf;
     text-shadow:0 2px 8px rgba(0,0,0,.85); }
@@ -34,7 +34,23 @@
     font-size:clamp(11px,1.8vmin,15px); text-transform:uppercase; }
   #hint{ left:50%; bottom:1.6vh; transform:translateX(-50%); font-size:clamp(9px,1.4vmin,12px);
     letter-spacing:.16em; color:#6a6252; white-space:nowrap; }
-  #ui{ position:fixed; z-index:6; right:2vw; bottom:6vh; display:flex; flex-direction:column; gap:.9vh; }
+  /* THE BUTTON RAIL IS BOUNDED. It grew upward from the foot of the screen
+     with no ceiling, so as buttons were added it climbed clean under the
+     clock panel and the two sets of words sat on top of one another. It now
+     stops short of the clock and scrolls within itself if it cannot fit. */
+  #ui{ position:fixed; z-index:6; right:2vw; bottom:6vh; top:13vh;
+    display:flex; flex-direction:column; gap:.9vh;
+    overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; }
+  /* the rail sits at the FOOT of its space when the buttons fit, and simply
+     fills from the top when they do not. (justify-content:flex-end cannot be
+     used here: when the content overflows such a box it escapes out of the
+     TOP of it — which is exactly how the rail climbed back over the clock.
+     An auto top-margin on the first button gives the same look and collapses
+     properly when there is no room to spare.) */
+  #ui > :first-child{ margin-top:auto; }
+  #ui::-webkit-scrollbar{ width:5px; }
+  #ui::-webkit-scrollbar-thumb{ background:rgba(232,198,106,.35); border-radius:3px; }
+  .btn{ flex:0 0 auto; }
   .btn{ pointer-events:auto; background:rgba(14,18,32,.82); color:var(--ink);
     border:1px solid rgba(232,198,106,.45); border-radius:4px; padding:1vh 1.5vh;
     font-family:inherit; font-size:clamp(10px,1.55vmin,13px); letter-spacing:.13em;
@@ -143,6 +159,42 @@
     font-size:clamp(9px,1.5vmin,12px); letter-spacing:.2em; }
   @media (max-width:700px){ #hint{ display:none; } #mini{ width:104px; height:104px; }
     #ui .btn{ padding:1.2vh 1.4vh; } #place{ bottom:19vh; } }
+
+  /* ================= KEEPING THE WORDS APART =================
+     These come LAST on purpose. A media query carries no extra weight of its
+     own, so an override written above the rule it means to beat simply loses
+     to it — which is why the first attempt at this changed nothing at all.
+
+     THE CENTRED WORDS KEEP CLEAR OF THE RAIL. The place-line, the verse and
+     the hint strip are centred on the whole width, so their right-hand ends
+     ran in under the button rail. They are centred on the glass LEFT OVER. */
+  #place, #verse{ margin-left:-11vw; }
+  /* THE HINT STRIP was one unbroken line LONGER THAN THE SCREEN, running off
+     both edges at every size. It is held to a single line still — letting it
+     wrap only made it grow upward into the verse — but bounded to the glass
+     and clipped, so it never reaches past either edge. */
+  #hint{ white-space:nowrap; max-width:94vw; overflow:hidden;
+    text-overflow:ellipsis; margin-left:0; }
+  /* ---- AND ON A NARROW SCREEN EVERYTHING GIVES WAY A LITTLE ----
+     The heading is centred across the whole width, so on a phone it reached
+     across into the clock; the rail's long labels took half the glass; and
+     the rose and the verse sat in the same corner. */
+  /* the rose is a fixed 140px, which is a quarter of a short screen — it is
+     scaled to the glass so it stops crowding the words at the foot */
+  #mini{ width:min(140px,20vh,24vw); height:min(140px,20vh,24vw); }
+  /* and on a middling window the verse is drawn in until it clears both the
+     rose on the left and the rail on the right */
+  @media (max-width:900px){ #verse{ width:min(44vw,380px); margin-left:-6vw; } }
+  @media (max-width:620px){
+    #head .t{ font-size:13px; letter-spacing:.16em; }
+    #head .s{ display:none; }
+    #clock{ font-size:10px; letter-spacing:.08em; max-width:52vw; }
+    .btn{ padding:.7vh .9vh; font-size:9px; letter-spacing:.04em; }
+    #mini{ width:92px; height:92px; }
+    #hint{ display:none; }              /* no keyboard hints without a keyboard */
+    #place{ bottom:12vh; margin-left:-13vw; font-size:11px; letter-spacing:.16em; }
+    #verse{ bottom:2.5vh; width:min(58vw,300px); margin-left:-13vw; }
+  }
 </style>
 </head>
 <body>
