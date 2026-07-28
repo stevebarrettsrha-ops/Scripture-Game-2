@@ -70,8 +70,26 @@ EARTH.landmark({n:"Mount Zaphon", lat:35.95, lon:35.97, kind:'mount', elev:1717,
    island a little off its geographic seat — the range must stand on the
    island as DRAWN, or it stands in the sea) */
 EARTH.landmark({n:"The Blue Mountains", lat:18.10, lon:-76.90, kind:'range', elev:2256, r:1400, style:'cliff', secret:1});
-EARTH.landmark({n:"The Northern Range", lat:10.37, lon:-61.33, kind:'range', elev:1740, r:1000, style:'cliff', secret:1});
-EARTH.landmark({n:"The Hida Mountains", lat:36.22, lon:137.60, kind:'range', elev:3800, r:1600, style:'stony', secret:1});
+EARTH.landmark({n:"The Northern Range", lat:10.37, lon:-61.33, kind:'range', elev:940, r:1000, style:'cliff', secret:1});
+/* snowcap:1 — RESEARCHED, not guessed: a range famous for standing white
+   though it sits under the world's permanent-snow line (which models
+   year-round glacier country). The Hida are the "Japan Alps", snowbound
+   most of the year; Paektu is literally the "ever-white mountain". The
+   Caribbean ranges carry NO snow, because in truth they never do — Pico
+   Duarte sees a morning frost at most. */
+EARTH.landmark({n:"The Hida Mountains", lat:36.22, lon:137.60, kind:'range', elev:3190, r:1600, style:'stony', secret:1, snowcap:1});
+/* ---- the rest of the Caribbean, each island's TRUE mountains ---- */
+EARTH.landmark({n:"The Sierra Maestra", lat:20.41, lon:-76.76, kind:'range', elev:1974, r:1100, style:'cliff', secret:1});
+EARTH.landmark({n:"The Cordillera Central", lat:19.03, lon:-71.01, kind:'range', elev:3098, r:1300, style:'cliff', secret:1});
+EARTH.landmark({n:"The Massif de la Selle", lat:18.64, lon:-71.87, kind:'range', elev:2680, r:1000, style:'cliff', secret:1});
+EARTH.landmark({n:"The Sierra de Luquillo", lat:18.26, lon:-66.18, kind:'range', elev:1080, r:700, style:'cliff', secret:1});
+EARTH.landmark({n:"The Maya Mountains", lat:16.62, lon:-88.99, kind:'range', elev:1124, r:900, style:'cliff', secret:1});
+/* ---- and the east: China, the Koreas, Taiwan ---- */
+EARTH.landmark({n:"Huangshan", lat:30.12, lon:118.17, kind:'range', elev:1864, r:1100, style:'cliff', secret:1});
+EARTH.landmark({n:"Gongga Shan", lat:29.60, lon:101.88, kind:'range', elev:7556, r:3000, style:'stony', secret:1});
+EARTH.landmark({n:"Mount Paektu", lat:41.99, lon:128.05, kind:'range', elev:2744, r:1200, style:'stony', secret:1, snowcap:1});
+EARTH.landmark({n:"Seoraksan", lat:37.88, lon:128.14, kind:'range', elev:1708, r:900, style:'stony', secret:1});
+EARTH.landmark({n:"Yushan", lat:23.56, lon:120.87, kind:'range', elev:3952, r:1100, style:'stony', secret:1});
 
 /* ---- THE SECRET FALLS OF THE CARIBBEAN ----
    kind:'falls' — each at the true place of a real fall, in the land it

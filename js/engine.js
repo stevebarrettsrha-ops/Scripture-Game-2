@@ -455,7 +455,7 @@ for(const L of LANDMARKS){ if(L.kind!=='range') continue;
   const [rx,rz]=llToWorld(L.lat,L.lon);
   const peak=(L.elev!==undefined)?L.elev/MTN_M_PER_BLOCK:(L.peak||30);
   const sd=hash2(rx*0.00013,rz*0.00017)*97;
-  const g={x:rx,z:rz,R:L.r||900,peak,style:L.style||'cliff',sd,holes:[]};
+  const g={x:rx,z:rz,R:L.r||900,peak,style:L.style||'cliff',sd,holes:[],snowcap:!!L.snowcap};
   /* two blue holes to a range, seeded by the range itself */
   for(let k=0;k<2;k++){ const a=hash2(sd,k*3.3)*6.283, rr=g.R*(0.22+hash2(k*7.1,sd)*0.34);
     g.holes.push({x:rx+Math.cos(a)*rr, z:rz+Math.sin(a)*rr, R:26}); }
@@ -497,7 +497,7 @@ function fallsShapeAt(x,z){
 /* what a range does to one spot of ground: the uplift of its peaks, the
    cut of its canyons and shafts, and whether the cliff-ledge look rules */
 function rangeShapeAt(x,z){
-  let up=0, cut=0, cliff=0;
+  let up=0, cut=0, cliff=0, snowTop=false;
   for(const g of RANGES){
     const dx=x-g.x; if(dx>g.R||dx<-g.R) continue;
     const dz=z-g.z; if(dz>g.R||dz<-g.R) continue;
@@ -505,7 +505,9 @@ function rangeShapeAt(x,z){
     const tb=1-d/g.R, broad=tb*tb*(3-2*tb);
     const jag=ridgeNoise(x*0.0042+g.sd, z*0.0042-g.sd);
     const u=g.peak*broad*(0.22+0.78*Math.pow(jag, g.style==='stony'?1.1:1.5));
-    if(u>up){ up=u; cliff=(g.style==='cliff')?broad:0; }
+    if(u>up){ up=u; cliff=(g.style==='cliff')?broad:0;
+      /* a researched snowcap whitens the upper crests only */
+      snowTop=g.snowcap&&u>g.peak*0.72; }
     /* the caves: slot canyons where the vein-field pinches to nothing */
     const vein=1-Math.abs(2*fbm(x*0.0058-g.sd*2, z*0.0058+g.sd*2)-1);
     if(vein>0.84&&broad>0.2){ const c=(vein-0.84)/0.16*14*Math.min(1,broad*1.7);
@@ -515,7 +517,7 @@ function rangeShapeAt(x,z){
       if(hd<H.R){ const t=Math.min(1,(H.R-hd)/(H.R*0.3));
         const c2=17*t*t; if(c2>cut) cut=c2; } }
   }
-  return (up>0.5||cut>0.5)?{up,cut,cliff}:null;
+  return (up>0.5||cut>0.5)?{up,cut,cliff,snowTop}:null;
 }
 /* ---- THE DEEPS OF THE SEA — the trenches, each at its own place ----
    world/deeps.js names them with their TRUE soundings in metres, and the
@@ -873,7 +875,7 @@ function cellRaw(ix,iz){
      to 1,800 m in the Alps, to 3,000 m on Kilimanjaro. */
   const snowLine=Math.max(3, 5000*(1-Math.pow(Math.min(1,Math.abs(lat)/78),1.6))/MTN_M_PER_BLOCK);
   const treeLine=snowLine*0.62;
-  const snow = lat>72 || lat<-55 || h>snowLine;
+  const snow = lat>72 || lat<-55 || h>snowLine || !!(rs&&rs.snowTop);
   const tundra = !snow && lat>58 && lat<=72;
   const alpine = !snow && !tundra && h>treeLine;
   const desert = !alpine && lat>11 && lat<36 && n2>0.42 && inland>0.5;
