@@ -82,20 +82,20 @@ prey:['sheep','goat','pig','chicken','hare','deer','donkey','cow','horse','ostri
         no flag.) */
 keeps:{
   /* cattle, flocks and the beasts of the household */
-  cow:{g:['grass','tropic','savanna','tundra']}, sheep:{g:['grass','alpine','tundra','savanna']},
+  cow:{g:['grass','tropic','savanna','tundra']}, sheep:{g:['grass','alpine','tundra','savanna'],h:[0,56]},
   goat:{g:['grass','alpine','rock','desert','badlands','savanna','sand']},
   pig:{g:['grass','tropic']}, chicken:{g:['grass','tropic','savanna']},
   horse:{g:['grass','savanna','tundra']}, donkey:{g:['grass','desert','savanna','badlands','rock','sand']},
   mule:{g:['grass','savanna','badlands','rock','alpine'],w:0.6},
   ox:{g:['grass','tundra','savanna']}, dog:{g:['grass','tropic','savanna','tundra','desert'],w:0.5},
   /* the beasts of the temperate field and wood */
-  deer:{g:['grass','alpine','tundra','tropic']}, hare:{g:['grass','tundra','alpine','desert','savanna','badlands','rock']},
-  boar:{g:['grass','tropic','alpine']}, fox:{g:['grass','tundra','alpine','desert','badlands','rock','sand'],w:0.5},
-  badger:{g:['grass','alpine'],night:true,w:0.6}, hedgehog:{g:['grass'],night:true,w:0.6},
-  lynx:{g:['grass','tundra','alpine'],w:0.22}, wolf:{g:['grass','tundra','alpine','rock','savanna','desert','badlands'],w:0.4},
-  bison:{g:['grass','tundra'],w:1.8}, moose:{g:['grass','tundra','alpine'],w:1.0},
+  deer:{g:['grass','alpine','tundra','tropic'],h:[0,52]}, hare:{g:['grass','tundra','alpine','desert','savanna','badlands','rock'],h:[0,56]},
+  boar:{g:['grass','tropic','alpine'],h:[0,52]}, fox:{g:['grass','tundra','alpine','desert','badlands','rock','sand'],w:0.5,h:[0,56]},
+  badger:{g:['grass','alpine'],night:true,w:0.6,h:[0,46]}, hedgehog:{g:['grass'],night:true,w:0.6},
+  lynx:{g:['grass','tundra','alpine'],w:0.22,h:[0,60]}, wolf:{g:['grass','tundra','alpine','rock','savanna','desert','badlands'],w:0.4,h:[0,64]},
+  bison:{g:['grass','tundra'],w:1.8}, moose:{g:['grass','tundra','alpine'],w:1.0,h:[0,50]},
   reindeer:{g:['tundra','snow','alpine','grass'],w:1.8}, chamois:{g:['alpine','rock'],h:[26,999]},
-  lizard:{g:['rock','desert','badlands','sand','savanna','alpine','grass']},
+  lizard:{g:['rock','desert','badlands','sand','savanna','alpine','grass'],h:[0,60]},
   /* the plain of the south, and all that is upon it */
   elephant:{g:['savanna','tropic','grass'],h:[0,26],w:0.8}, giraffe:{g:['savanna','grass'],h:[0,24],w:1.2},
   zebra:{g:['savanna','grass'],w:2.4}, wildebeest:{g:['savanna','grass'],w:2.4},
@@ -104,10 +104,10 @@ keeps:{
   warthog:{g:['savanna','grass','tropic']}, ostrich:{g:['savanna','desert','sand','badlands','grass','rock'],w:0.8},
   lion:{g:['savanna','grass','desert','badlands'],w:0.22},
   cheetah:{g:['savanna','grass','desert'],w:0.18},
-  leopard:{g:['savanna','tropic','grass','rock','alpine','desert','badlands'],w:0.2},
+  leopard:{g:['savanna','tropic','grass','rock','alpine','desert','badlands'],w:0.2,h:[0,56]},
   hyena:{g:['savanna','grass','desert','badlands','rock','sand'],w:0.3},
   jackal:{g:['savanna','desert','grass','badlands','sand','rock'],w:0.4},
-  baboon:{g:['savanna','rock','grass','alpine','desert','badlands'],w:0.9}, meerkat:{g:['desert','savanna','sand','badlands','rock'],w:0.7},
+  baboon:{g:['savanna','rock','grass','alpine','desert','badlands'],w:0.9,h:[0,60]}, meerkat:{g:['desert','savanna','sand','badlands','rock'],w:0.7},
   hippo:{g:['savanna','tropic','grass'],h:[0,22],riv:true}, crocodile:{g:['tropic','grass','savanna','desert','sand'],h:[0,20],riv:true},
   camel:{g:['desert','sand','badlands','savanna','rock']},
   /* ---- THE BEASTS OF THE WASTE ----
@@ -134,21 +134,21 @@ keeps:{
   jaguar:{g:['tropic','savanna','grass'],w:0.2}, capybara:{g:['tropic','grass','savanna'],riv:true,w:1.6},
   peacock:{g:['tropic','grass','savanna']}, komodo:{g:['tropic','savanna','sand'],w:0.3},
   /* the east and the high country of Asia */
-  tiger:{g:['tropic','grass','tundra','alpine'],w:0.2}, panda:{g:['alpine','grass'],h:[16,999],w:0.5},
+  tiger:{g:['tropic','grass','tundra','alpine'],w:0.2,h:[0,48]}, panda:{g:['alpine','grass'],h:[16,999],w:0.5},
   redpanda:{g:['alpine','tropic'],h:[14,999],tr:true,night:true,w:0.6}, snowleopard:{g:['rock','alpine','snow'],h:[34,999],w:0.18},
   yak:{g:['alpine','rock','tundra'],h:[26,999]}, saiga:{g:['grass','desert','tundra','badlands']},
   waterbuffalo:{g:['tropic','grass','savanna'],riv:true},
   /* the new world */
-  cougar:{g:['grass','alpine','rock','tropic','desert','badlands'],w:0.2},
+  cougar:{g:['grass','alpine','rock','tropic','desert','badlands'],w:0.2,h:[0,64]},
   coyote:{g:['grass','desert','badlands','savanna','rock','sand'],w:0.45},
   pronghorn:{g:['grass','desert','badlands','sand']}, llama:{g:['alpine','rock','grass','desert'],h:[20,999]},
   alpaca:{g:['alpine','rock','grass'],h:[20,999]}, raccoon:{g:['grass','tropic'],night:true},
-  skunk:{g:['grass','tropic','desert'],night:true}, blackbear:{g:['grass','alpine','tropic'],w:0.3},
+  skunk:{g:['grass','tropic','desert'],night:true}, blackbear:{g:['grass','alpine','tropic'],w:0.3,h:[0,52]},
   /* the great south land */
   kangaroo:{g:['grass','desert','badlands','savanna','sand','rock'],w:1.8}, emu:{g:['grass','desert','badlands','savanna','sand'],w:1.0},
-  koala:{g:['grass','tropic'],tr:true,night:true}, wombat:{g:['grass','alpine','tropic'],night:true},
+  koala:{g:['grass','tropic'],tr:true,night:true}, wombat:{g:['grass','alpine','tropic'],night:true,h:[0,30]},
   dingo:{g:['desert','grass','badlands','savanna','sand','rock'],w:0.4},
-  cassowary:{g:['tropic']}, kiwi:{g:['tropic','grass','alpine'],night:true}, tasdevil:{g:['grass','alpine','tropic'],night:true,w:0.6},
+  cassowary:{g:['tropic']}, kiwi:{g:['tropic','grass','alpine'],night:true,h:[0,30]}, tasdevil:{g:['grass','alpine','tropic'],night:true,w:0.6,h:[0,30]},
   /* ---- THE COLD AND THE ICE ----
      The far north carried four beasts and the ice-foot carried one. It has
      the whole of its own life now: the mammoth over the frozen steppe, the
@@ -162,13 +162,13 @@ keeps:{
   ermine:{g:['snow','tundra','alpine','grass'],night:true,w:0.9},
   lemming:{g:['snow','tundra','alpine'],night:true,w:1.8},
   ptarmigan:{g:['snow','tundra','alpine','rock'],w:1.4},
-  bear:{g:['grass','tundra','alpine','snow'],w:0.25},
+  bear:{g:['grass','tundra','alpine'],h:[0,52],w:0.25},
   polarbear:{g:['snow','floe','wall','tundra'],w:0.3}, arcticfox:{g:['snow','tundra','floe','wall'],w:0.6},
   muskox:{g:['tundra','snow','grass'],w:1.2}, penguin:{g:['floe','wall','snow'],w:1.6},
   /* the beasts of the running water */
-  otter:{g:['grass','tropic','tundra','alpine','savanna'],riv:true,night:true},
-  beaver:{g:['grass','tundra','alpine'],riv:true},
-  platypus:{g:['grass','tropic','alpine'],riv:true,night:true},
+  otter:{g:['grass','tropic','tundra','savanna'],riv:true,night:true},
+  beaver:{g:['grass','tundra'],riv:true},
+  platypus:{g:['grass','tropic'],riv:true,night:true},
 },
 
 /* ---- AND WHERE THERE IS NO LIST ----

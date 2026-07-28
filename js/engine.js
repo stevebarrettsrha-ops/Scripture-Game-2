@@ -4512,6 +4512,21 @@ function treeNear(x,z,reach){
       return {ix,iz,c,K,crown,y:c.h*B+crown,x:(ix+0.5)*B,z:(iz+0.5)*B}; } }
   return null;
 }
+/* ---- MAY THIS BEAST STAND ON THIS GROUND AT ALL? ----
+   The ground it keeps and the height it keeps, and nothing else — the
+   river and the tree are questions for where it is first SET DOWN, not
+   for every step it takes. This is the test a beast's own feet obey as it
+   roams: the habitat table gated only spawning before, so a roe deer put
+   down in a valley simply walked up out of its band onto the bare rock
+   above the tree line and stood there. It turns back at its own frontier
+   now, exactly as it turns back at a cliff. */
+function beastMayStand(name,c){
+  if(!c||c.kind==='wall') return false;
+  const K=FAUNA.keeps[name]; if(!K) return true;
+  if(K.g&&K.g.indexOf(c.kind)<0) return false;
+  if(K.h&&(c.h<K.h[0]||c.h>K.h[1])) return false;
+  return true;
+}
 /* will this beast set foot on this ground, at this height, by this water? */
 function beastFits(name,k,hb,river,tree){
   const K=FAUNA.keeps[name]; if(!K) return true;         /* unlisted: it goes anywhere */
@@ -4577,10 +4592,26 @@ function landKindAt(x,z,c){
       return fit[fit.length-1];
     }
   }
-  /* ---- AND WHERE NO LIST IS WRITTEN ---- the old climate table */
-  const pick=L=>L[Math.floor(j*L.length)%L.length];
-  const byKind=FAUNA.wilds[k];
-  if(byKind&&byKind.length) return pick(byKind);
+  /* ---- AND WHERE NO LIST IS WRITTEN ---- the old climate table.
+     BUT THE ARCTIC IS NOT A CLIMATE, IT IS A PLACE. The snow table is
+     polar bears, arctic foxes and lemmings — and it was reached by ANY
+     ground the mesher happened to call 'snow', which now includes the
+     crown of a Japanese or Chinese alp. So a polar bear could stand on
+     Mount Paektu. Above the true arctic line the table stands; below it,
+     a snowfield in a country whose own beasts cannot live there bears
+     NOTHING AT ALL, which is exactly what a glacier bears. */
+  /* AND THE CLIMATE TABLE MUST OBEY THE HABITATS TOO. It picked blind —
+     a plain index into the list, with no test of ground or height at all
+     — so a country with no list of its own put roe deer and hares on bare
+     rock a thousand metres above the tree line. Every draw is filtered
+     now, by exactly the rule the country lists are filtered by. */
+  const pick=L=>{ if(!L||!L.length) return null;
+    const fit=L.filter(nm=>beastFits(nm,k,hb,false,false));
+    if(!fit.length) return null;
+    return fit[Math.floor(j*fit.length)%fit.length]; };
+  if(k==='snow'&&alat<56) return null;
+  const byKind=pick(FAUNA.wilds[k]);
+  if(byKind) return byKind;
   if(k==='alpine'||k==='rock'||hb>34) return pick(WILD_HIGH);
   if(k==='snow'||k==='tundra') return pick(WILD_COLD);
   if(k==='desert'||k==='badlands'||(alat<34&&arid>0.54)) return pick(WILD_DRY);
@@ -4675,6 +4706,9 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
   for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>LL_R+140){ const sp=findLandSpot(px,pz);
       if(!sp){ if(a.m)a.m.visible=false; hideYoung(a); a.set=false; continue; }
       const kind=landKindAt(sp.x,sp.z,sp.c);
+      /* the ground named no beast — a bare glacier, a crest above the life
+         line. It stays bare; the slot tries elsewhere next tick. */
+      if(!kind){ if(a.m)a.m.visible=false; hideYoung(a); a.set=false; continue; }
       if(a.kind!==kind){ if(a.m) scene.remove(a.m); a.m=makeAnimal(kind); scene.add(a.m); a.kind=kind; }
       a.hx=sp.x; a.hz=sp.z; a.x=sp.x; a.z=sp.z; a.tx=sp.x; a.tz=sp.z; a.t=Math.random()*3; a.set=true;
       a.role=WILD_ROLE[kind]||'graze'; a.job='roam'; a.jt=Math.random()*3; a.prey=null; a.cool=0;
@@ -4941,7 +4975,17 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
     if(moving){ const nx=a.x+dx/dd*spd*dt, nz=a.z+dz/dd*spd*dt, c=landAtWorld(nx,nz);
       /* the step a beast can take is now measured in blocks, not units — on a
          mountain flank the old flat limit stopped everything dead */
-      if(c&&c.kind!=='wall'&&Math.abs(c.h*B-a.m.position.y)<B*1.7){ a.x=nx; a.z=nz; a.heading=Math.atan2(dx,dz); a.stuck=0; }
+      /* ---- AND NO BEAST TAKES A CLIFF THAT DOES NOT TAKE ONE ----
+         Every creature on the earth could step the same block and
+         two-thirds, so an elephant went up a crag stride for stride with
+         a goat and a bear walked to the crown of an alp. The step is the
+         beast's OWN now (js/behavior.js): a goat and a chamois take two
+         and a half blocks, a wolf a block and a half, an elephant or a
+         hippo barely a kerb. A beast turned back by the rock sheers off
+         along it, exactly as it does at any other barrier. */
+      const stepH=B*(window.BEHAVIOR?BEHAVIOR.climbOf(a.kind):1.0);
+      const rise=c?c.h*B-a.m.position.y:0;
+      if(c&&rise<stepH&&rise>-stepH*2.2&&beastMayStand(a.kind,c)){ a.x=nx; a.z=nz; a.heading=Math.atan2(dx,dz); a.stuck=0; }
       else {
         /* ---- A BEAST TURNS AWAY FROM WHAT IT CANNOT CROSS ----
            When the way was barred it only reset its work-timer and kept the
