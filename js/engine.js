@@ -438,6 +438,87 @@ for(const L of LANDMARKS){ if(L.kind!=='mount') continue;
      Mountain — says steep:1 in world/landmarks.js and keeps its walls.) */
   const Rm=L.steep?(L.r||110)*1.75:Math.max((L.r||110)*1.75, peak*B*3.6);
   MOUNTS.push({x:mx,z:mz,R:Rm,peak}); }
+/* ---- THE SECRET RANGES — whole fields of peaks, with caves in them ----
+   kind:'range' in world/landmarks.js. Where a MOUNT is one summit, a RANGE
+   is mountain COUNTRY: ridge-noise over the whole massif raises a dozen
+   jagged crests with valleys between ('stony' — bare grey peaks, snow where
+   the height takes them; 'cliff' — green hill country broken into sheer
+   grey faces and ledges, the classic extreme hills). And they are cut
+   through with what no other ground in the world has:
+     · CAVES — winding slot canyons, sunk to fourteen blocks where the vein
+       pinches, that swallow the sky and give it back at the far end;
+     · BLUE HOLES — sheer round shafts of standing water sunk in the rock,
+       sisters to the ones in the reefs.
+   No banner, no chart mark: these places are found by GOING there. */
+const RANGES=[];
+for(const L of LANDMARKS){ if(L.kind!=='range') continue;
+  const [rx,rz]=llToWorld(L.lat,L.lon);
+  const peak=(L.elev!==undefined)?L.elev/MTN_M_PER_BLOCK:(L.peak||30);
+  const sd=hash2(rx*0.00013,rz*0.00017)*97;
+  const g={x:rx,z:rz,R:L.r||900,peak,style:L.style||'cliff',sd,holes:[],snowcap:!!L.snowcap};
+  /* two blue holes to a range, seeded by the range itself */
+  for(let k=0;k<2;k++){ const a=hash2(sd,k*3.3)*6.283, rr=g.R*(0.22+hash2(k*7.1,sd)*0.34);
+    g.holes.push({x:rx+Math.cos(a)*rr, z:rz+Math.sin(a)*rr, R:26}); }
+  RANGES.push(g); }
+/* ---- THE SECRET FALLS OF THE CARIBBEAN ----
+   kind:'falls' — a whole waterfall PLACE, minecraft-fashion: the land
+   itself is raised into a cliff head on one side and sunk into a lagoon
+   basin on the other, and when the traveller draws near the water is hung
+   on it (lmFalls): the broad blue sheet down the face, white water boiling
+   at the foot, the pool, and the stream running away out of it. Dunn's
+   River, Kaieteur, Trafalgar and their fellows — each in its own land,
+   each secret:1: no banner, no mark, found by walking the island. */
+const FALLS=[];
+for(const L of LANDMARKS){ if(L.kind!=='falls') continue;
+  const [fx,fz]=llToWorld(L.lat,L.lon);
+  /* the face looks a CARDINAL way, so the sheet of water lies square with
+     the world the way every minecraft fall does */
+  const q=Math.floor(hash2(fx*0.00017,fz*0.00013)*4);
+  const dx=[0,1,0,-1][q], dz=[1,0,-1,0][q];
+  FALLS.push({x:fx,z:fz,R:L.r||180,dx,dz,
+    head:L.elev?Math.max(10,Math.min(30,Math.round(L.elev/8))):14});
+}
+function fallsShapeAt(x,z){
+  let v=0;
+  for(const F of FALLS){ const dx=x-F.x; if(dx>F.R||dx<-F.R) continue;
+    const dz=z-F.z; if(dz>F.R||dz<-F.R) continue;
+    const d=Math.hypot(dx,dz); if(d>=F.R) continue;
+    const t=1-d/F.R, broad=t*t*(3-2*t);
+    /* + behind the lip (the head), − before it (the pool) */
+    const s=(dx*F.dx+dz*F.dz)/(F.R*0.32);
+    const rise=Math.min(1,Math.max(0,s*2.6));
+    const up=F.head*broad*rise;
+    const dip=(s<-0.2&&d<F.R*0.62)?-3*broad:0;
+    const q2=up+dip;
+    if(Math.abs(q2)>Math.abs(v)) v=q2;
+  }
+  return v;
+}
+/* what a range does to one spot of ground: the uplift of its peaks, the
+   cut of its canyons and shafts, and whether the cliff-ledge look rules */
+function rangeShapeAt(x,z){
+  let up=0, cut=0, cliff=0, snowTop=false;
+  for(const g of RANGES){
+    const dx=x-g.x; if(dx>g.R||dx<-g.R) continue;
+    const dz=z-g.z; if(dz>g.R||dz<-g.R) continue;
+    const d=Math.hypot(dx,dz); if(d>=g.R) continue;
+    const tb=1-d/g.R, broad=tb*tb*(3-2*tb);
+    const jag=ridgeNoise(x*0.0042+g.sd, z*0.0042-g.sd);
+    const u=g.peak*broad*(0.22+0.78*Math.pow(jag, g.style==='stony'?1.1:1.5));
+    if(u>up){ up=u; cliff=(g.style==='cliff')?broad:0;
+      /* a researched snowcap whitens the upper crests only */
+      snowTop=g.snowcap&&u>g.peak*0.72; }
+    /* the caves: slot canyons where the vein-field pinches to nothing */
+    const vein=1-Math.abs(2*fbm(x*0.0058-g.sd*2, z*0.0058+g.sd*2)-1);
+    if(vein>0.84&&broad>0.2){ const c=(vein-0.84)/0.16*14*Math.min(1,broad*1.7);
+      if(c>cut) cut=c; }
+    /* the blue holes: sheer round shafts */
+    for(const H of g.holes){ const hd=Math.hypot(x-H.x,z-H.z);
+      if(hd<H.R){ const t=Math.min(1,(H.R-hd)/(H.R*0.3));
+        const c2=17*t*t; if(c2>cut) cut=c2; } }
+  }
+  return (up>0.5||cut>0.5)?{up,cut,cliff,snowTop}:null;
+}
 /* ---- THE DEEPS OF THE SEA — the trenches, each at its own place ----
    world/deeps.js names them with their TRUE soundings in metres, and the
    engine sinks the bed to meet them. Unlike the mountains these are not
@@ -758,7 +839,21 @@ function cellRaw(ix,iz){
   if(mUp>0.5) h+=Math.round(mUp);
   /* the crown of a named height is a level court a company can stand on */
   const fh=mountFlatAt(x,z); if(fh){ h=fh; }
-  if(inland<1&&mUp<=0.5){
+  /* ---- THE SECRET RANGES ----
+     peaks first; then the cliff-ledge look (the height part-snapped to
+     terraces, so the flanks break into sheer faces and standing shelves);
+     then the CAVES and BLUE HOLES cut down through all of it */
+  const rs=RANGES.length?rangeShapeAt(x,z):null;
+  if(rs){
+    if(rs.up>0.5) h+=Math.round(rs.up);
+    if(rs.cliff>0.3){ const hq=Math.round(h/5)*5; h=Math.round(hq*0.62+h*0.38); }
+    if(rs.cut>0.5) h=Math.max(3,h-Math.round(rs.cut));
+  }
+  /* the secret falls raise their cliff head and sink their lagoon */
+  const fv=FALLS.length?fallsShapeAt(x,z):0;
+  if(fv>0.5) h+=Math.round(fv);
+  else if(fv<-0.5) h=Math.max(2,h+Math.round(fv));
+  if(inland<1&&mUp<=0.5&&!(rs&&rs.up>0.5)&&fv<=0.5){
     /* the shore terraces gently to the water, so every coast keeps a landing
        (a named summit is never shorn) — but a range that truly runs down to
        the sea is let stand, as ranges do */
@@ -780,7 +875,7 @@ function cellRaw(ix,iz){
      to 1,800 m in the Alps, to 3,000 m on Kilimanjaro. */
   const snowLine=Math.max(3, 5000*(1-Math.pow(Math.min(1,Math.abs(lat)/78),1.6))/MTN_M_PER_BLOCK);
   const treeLine=snowLine*0.62;
-  const snow = lat>72 || lat<-55 || h>snowLine;
+  const snow = lat>72 || lat<-55 || h>snowLine || !!(rs&&rs.snowTop);
   const tundra = !snow && lat>58 && lat<=72;
   const alpine = !snow && !tundra && h>treeLine;
   const desert = !alpine && lat>11 && lat<36 && n2>0.42 && inland>0.5;
@@ -6675,6 +6770,141 @@ function lmStatue(G,x,z,y){
   emitBox(G, x-B*1.35,y+B*2.1,z+B*1.25, x+B*1.35,y+B*2.7,z+B*1.4, 'stone','stone',null); }
 const LM_BUILDERS={pyramid:lmPyramid,ziggurat:lmZiggurat,temple:lmTemple,stonecircle:lmStoneCircle,
   wall:lmWall,lighthouse:lmLighthouse,gate:lmGate,city:lmCity,statue:lmStatue};
+/* ---- THE DRESSING OF A SECRET RANGE ----
+   The land itself (peaks, canyons, shafts) is cut in cellRaw; what is built
+   here when the traveller draws near is the WATER AND THE LIGHT of the
+   place: the falls hung off the sheer faces with their plunge pools, the
+   standing water of the mountain blue holes with a pale glow over it, and
+   crystal spires down in the slot canyons that burn faintly in the dark —
+   so a cave is worth walking into for what waits at the end of it. */
+function lmRange(L){
+  const [rx,rz]=llToWorld(L.lat,L.lon);
+  let Rg=null,bd=1e9; for(const q of RANGES){ const d=Math.hypot(q.x-rx,q.z-rz); if(d<bd){bd=d;Rg=q;} }
+  if(!Rg) return null;
+  const G=newG(), glows=[];
+  /* the waterfalls — wherever a sheer face drops nine blocks at a stroke */
+  const placed=[]; let falls=0;
+  for(let a=0;a<44&&falls<3;a++){
+    const th=hash2(Rg.sd,a*1.7)*6.283, rr=Rg.R*(0.15+hash2(a*2.9,Rg.sd)*0.5);
+    const wx=Rg.x+Math.cos(th)*rr, wz=Rg.z+Math.sin(th)*rr;
+    const ix=Math.floor(wx/B), iz=Math.floor(wz/B);
+    const c0=cell(ix,iz); if(!c0||c0.kind==='wall') continue;
+    let near=false; for(const p of placed) if(Math.hypot(p[0]-wx,p[1]-wz)<300) near=true;
+    if(near) continue;
+    for(const o of [[2,0],[-2,0],[0,2],[0,-2]]){
+      const c1=cell(ix+o[0],iz+o[1]); if(!c1||c1.kind==='wall') continue;
+      if(c0.h-c1.h<9) continue;
+      const y0=c0.h*B, y1=c1.h*B;
+      let bx0,bx1,bz0,bz1;
+      if(o[0]!==0){ const bx=(ix+(o[0]>0?1:0))*B+o[0]*0.4;
+        bx0=bx-1.0; bx1=bx+1.0; bz0=iz*B-B*0.6; bz1=(iz+1)*B+B*0.6; }
+      else { const bz=(iz+(o[1]>0?1:0))*B+o[1]*0.4;
+        bz0=bz-1.0; bz1=bz+1.0; bx0=ix*B-B*0.6; bx1=(ix+1)*B+B*0.6; }
+      emitBox(G,bx0,y1+0.4,bz0,bx1,y0+1.2,bz1,'waterB','waterB','waterB');
+      const px2=(ix+0.5+o[0]*1.6)*B, pz2=(iz+0.5+o[1]*1.6)*B;
+      faceTop(G,'waterB',px2-B*1.8,pz2-B*1.8,px2+B*1.8,pz2+B*1.8,y1+0.9,1.0);
+      placed.push([wx,wz]); falls++; break;
+    }
+  }
+  /* the blue holes' standing water, and the pale light over it */
+  for(const H of Rg.holes){
+    const ix=Math.floor(H.x/B), iz=Math.floor(H.z/B), c=cell(ix,iz);
+    if(!c||c.kind==='wall') continue;
+    const wy=c.h*B+1.4, r=H.R*0.62;
+    faceTop(G,'waterB',H.x-r,H.z-r,H.x+r,H.z+r,wy,1.0);
+    glows.push({x:H.x,y:wy+6,z:H.z,c:0x66c8ff,s:70,o:0.35});
+  }
+  /* crystal spires, only down in a true slot where the sky is a strip */
+  let cr=0;
+  for(let a=0;a<240&&cr<12;a++){
+    const th=hash2(a*3.7,Rg.sd*1.3)*6.283, rr=Rg.R*Math.sqrt(hash2(Rg.sd*2.1,a*1.9))*0.75;
+    const cx2=Rg.x+Math.cos(th)*rr, cz2=Rg.z+Math.sin(th)*rr;
+    const ix=Math.floor(cx2/B), iz=Math.floor(cz2/B), c=cell(ix,iz);
+    if(!c||c.kind==='wall') continue;
+    let hi=0; for(const o of [[2,0],[-2,0],[0,2],[0,-2]]){ const n2=cell(ix+o[0],iz+o[1]); if(n2&&n2.h>hi) hi=n2.h; }
+    if(hi-c.h<7) continue;
+    const gy=c.h*B, s=2+hash2(ix,iz)*3;
+    emitBox(G,cx2-1.1,gy,cz2-1.1,cx2+1.1,gy+B*0.55+s*2.4,cz2+1.1,'glass','glass','glass');
+    glows.push({x:cx2,y:gy+s*1.6,z:cz2,c:0xbfe6ff,s:34,o:0.45});
+    cr++;
+  }
+  const g=new THREE.Group();
+  for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
+    bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
+    bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
+    bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
+    bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
+  for(const q of glows){
+    const gm2=new THREE.SpriteMaterial({map:glowTexCv,color:q.c,transparent:true,opacity:q.o,depthWrite:false});
+    const gs=new THREE.Sprite(gm2); gs.scale.set(q.s,q.s,1); gs.position.set(q.x,q.y,q.z); g.add(gs); }
+  return g;
+}
+/* ---- THE HANGING OF A SECRET FALL ----
+   The land was already raised (fallsShapeAt); this hangs the WATER on it:
+   the lip is found where the ground truly breaks, the broad sheet is hung
+   from it to the pool, two lesser sheets terrace beside it, white water
+   boils along the foot, the lagoon spreads below and a stream runs away
+   out of it down the island. All of it minecraft-fashion: square water,
+   square foam, and the roar left to the imagination. */
+function lmFalls(L){
+  const [fx,fz]=llToWorld(L.lat,L.lon);
+  let F=null,bd=1e9; for(const q of FALLS){ const d=Math.hypot(q.x-fx,q.z-fz); if(d<bd){bd=d;F=q;} }
+  if(!F) return null;
+  const G=newG(), glows=[];
+  const pxp=F.dz, pzp=-F.dx;
+  /* the lip: the boundary along the axis with the greatest single drop */
+  let lipS=null, topH=null, best=0;
+  for(let s=Math.round(F.R*0.35/B); s>=-Math.round(F.R*0.35/B); s--){
+    const ax=F.x+F.dx*s*B, az=F.z+F.dz*s*B;
+    const c0=cell(Math.floor(ax/B),Math.floor(az/B));
+    const c1=cell(Math.floor((ax-F.dx*B)/B),Math.floor((az-F.dz*B)/B));
+    if(!c0||!c1||c0.kind==='wall') continue;
+    const drop=c0.h-c1.h;
+    if(drop>best){ best=drop; lipS=s; topH=c0.h; }
+  }
+  if(lipS===null||best<5) return null;    /* this island did not carry the cliff */
+  const lipX=F.x+F.dx*(lipS-0.5)*B, lipZ=F.z+F.dz*(lipS-0.5)*B;
+  const poolC=cell(Math.floor((F.x-F.dx*F.R*0.28)/B),Math.floor((F.z-F.dz*F.R*0.28)/B));
+  const poolY=(poolC?poolC.h:2)*B;
+  const sheet=(cx,cz,halfW,topY)=>{
+    const ex=Math.abs(pxp)*halfW+Math.abs(F.dx)*0.8, ez=Math.abs(pzp)*halfW+Math.abs(F.dz)*0.8;
+    emitBox(G,cx-ex,poolY+0.4,cz-ez,cx+ex,topY,cz+ez,'waterB','waterB','waterB'); };
+  sheet(lipX,lipZ,B*4,topH*B+1.2);                                   /* the great sheet */
+  sheet(lipX+pxp*B*5.6,lipZ+pzp*B*5.6,B*2,(topH-3)*B+1.0);           /* and its sisters, terraced */
+  sheet(lipX-pxp*B*5.6,lipZ-pzp*B*5.6,B*2,(topH-4)*B+1.0);
+  /* white water boiling along the foot */
+  for(let k=-5;k<=5;k++){
+    const wx=lipX+pxp*k*B*0.95-F.dx*B*0.9, wz=lipZ+pzp*k*B*0.95-F.dz*B*0.9;
+    const j=hash2(k*3.1,F.x*0.01), hgt=1.6+j*2.6;
+    emitBox(G,wx-1.6,poolY+0.2,wz-1.6,wx+1.6,poolY+hgt,wz+1.6,'wool','wool','wool');
+  }
+  glows.push({x:lipX-F.dx*B,y:poolY+7,z:lipZ-F.dz*B,c:0xeaf6ff,s:64,o:0.30});
+  /* the lagoon below */
+  { const cx=F.x-F.dx*F.R*0.28, cz=F.z-F.dz*F.R*0.28;
+    const ex=Math.abs(F.dx)*F.R*0.24+Math.abs(pxp)*F.R*0.32;
+    const ez=Math.abs(F.dz)*F.R*0.24+Math.abs(pzp)*F.R*0.32;
+    faceTop(G,'waterB',cx-ex,cz-ez,cx+ex,cz+ez,poolY+1.1,1.0);
+    glows.push({x:cx,y:poolY+5,z:cz,c:0x66c8ff,s:80,o:0.25}); }
+  /* and the stream running away out of it */
+  let sx=F.x-F.dx*F.R*0.5, sz=F.z-F.dz*F.R*0.5, m=0;
+  for(let k=0;k<16;k++){
+    m+=(hash2(k*1.7,F.z*0.01)-0.5)*1.2;
+    const wx=sx-F.dx*k*B*1.4+pxp*m*B, wz=sz-F.dz*k*B*1.4+pzp*m*B;
+    const c=cell(Math.floor(wx/B),Math.floor(wz/B));
+    if(!c||c.kind==='wall') break;
+    faceTop(G,'waterB',wx-B*0.9,wz-B*0.9,wx+B*0.9,wz+B*0.9,c.h*B+0.5,1.0);
+  }
+  const g=new THREE.Group();
+  for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
+    bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
+    bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
+    bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
+    bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
+  for(const q2 of glows){
+    const gm2=new THREE.SpriteMaterial({map:glowTexCv,color:q2.c,transparent:true,opacity:q2.o,depthWrite:false});
+    const gs=new THREE.Sprite(gm2); gs.scale.set(q2.s,q2.s,1); gs.position.set(q2.x,q2.y,q2.z); g.add(gs); }
+  return g;
+}
 const activeLandmarks=new Map(); const LM_SITE=[];
 function landmarkSite(idx){ if(LM_SITE[idx]!==undefined) return LM_SITE[idx];
   const L=LANDMARKS[idx]; const [wx,wz]=llToWorld(L.lat,L.lon);
@@ -6691,7 +6921,9 @@ function spawnLandmark(i){
   if(!site){ activeLandmarks.set(i,{none:true}); return; }
   const y=topY(site.ix,site.iz), x=site.x, z=site.z;
   let g=null;
-  if(L.kind!=='mount'){
+  if(L.kind==='range'){ g=lmRange(L); if(g) scene.add(g); }
+  else if(L.kind==='falls'){ g=lmFalls(L); if(g) scene.add(g); }
+  else if(L.kind!=='mount'){
     const G=newG();
     (LM_BUILDERS[L.kind]||lmTemple)(G,x,z,y,L.s,i*77.7);
     g=new THREE.Group();
@@ -6706,10 +6938,14 @@ function spawnLandmark(i){
       const gs=new THREE.Sprite(gm2); gs.scale.set(60,60,1); gs.position.set(x,y+B*15.6,z); g.add(gs); }
     scene.add(g);
   }
-  const label=makeLabel(L.n,true);
-  label.position.set(x, y+(L.kind==='mount'?(L.peak||18)*B+30:B*16+24), z);
-  label.scale.set(220,220/6,1);
-  scene.add(label);
+  /* a SECRET place hangs out no banner — it is found, not signposted */
+  let label=null;
+  if(!L.secret){
+    label=makeLabel(L.n,true);
+    label.position.set(x, y+(L.kind==='mount'?(L.peak||18)*B+30:B*16+24), z);
+    label.scale.set(220,220/6,1);
+    scene.add(label);
+  }
   activeLandmarks.set(i,{g,label});
 }
 function updateLandmarks(px,pz){
@@ -6722,8 +6958,9 @@ function updateLandmarks(px,pz){
          pure fog betrays a thing the eye cannot yet have */
       const vis=Math.min(1500, scene.fog?scene.fog.far*1.05:1500);
       if(A.label) A.label.material.opacity=namesOn?Math.max(0,Math.min(0.95,(vis-d)/700)):0; }
-    if(d<1600&&!has) spawnLandmark(i);
-    else if(d>2100&&has){ const A=activeLandmarks.get(i);
+    const trig=(L.kind==='range')?2600:1600;   /* a range's dressing spreads for a mile */
+    if(d<trig&&!has) spawnLandmark(i);
+    else if(d>trig+500&&has){ const A=activeLandmarks.get(i);
       if(A.g){ scene.remove(A.g); A.g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); }
       if(A.label){ scene.remove(A.label);
         if(A.label.material.map) A.label.material.map.dispose(); A.label.material.dispose(); }
@@ -8727,7 +8964,7 @@ $('btn-continue').onclick=()=>begin(false);
 window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
   farLand,updateFarLand,mountUpliftAt,MOUNTS,ridgeNoise,B,R_WORLD,
-  AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,
+  AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,RANGES,FALLS,activeLandmarks,LANDMARKS,
   domeCeilAt,canTouchDome,touchDome,playScene,endScene,SCENES,sceneActive,sceneRise,seenDeeps,BEACHES,SHOALS,ORCA,beachAt,nearestBeach,seabedMetres,orcaState:()=>orcaState,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
