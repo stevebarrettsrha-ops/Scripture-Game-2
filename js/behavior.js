@@ -73,6 +73,7 @@ pig:         {day:'day', walk:5,  run:13, home:'open', acts:[['dig',3],['wallow'
 chicken:     {day:'day', walk:4,  run:9,  home:'open', acts:[['dig',3],['dust',3],['graze',2]]},
 horse:       {day:'day', walk:6,  run:22, home:'open', acts:[['graze',5],['dust',2],['drink',1],['groom',1]]},
 donkey:      {day:'day', walk:5,  run:15, home:'open', acts:[['graze',5],['dust',2],['drink',1]]},
+mule:        {day:'day', walk:5,  run:17, home:'open', acts:[['graze',5],['dust',2],['drink',1],['alert',1]]},
 dog:         {day:'day', walk:6,  run:17, home:'open', acts:[['dig',2],['play',3],['alert',2]]},
 camel:       {day:'day', walk:5,  run:16, home:'open', acts:[['graze',4],['browse',2],['dust',2]]},
 /* ---- the temperate field and wood ---- */
