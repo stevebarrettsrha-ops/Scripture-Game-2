@@ -23,7 +23,15 @@ function cityFor(i){ return CITY_BY_COUNTRY[COUNTRIES[i].n]; }
 /* VIEW=13 reaches 1,248 units, so the haze can stand at 1,140 with a hundred
    units of streaming headroom behind it — the fog must always close INSIDE
    the streamed ground, or land would pop in on open view. */
-const R_WORLD=120000, B=6, CH=16, CHW=B*CH, VIEW=13; /* rim = 20,000 km, 1 block = 1 km */
+/* ---- THE BREADTH OF THE WORLD ----
+   Half again what it was. At 120,000 units the countries stood shoulder to
+   shoulder and every living thing in them was packed like sardines in a
+   tin; at 180,000 the same map breathes — every land is half again as wide
+   and long (two-and-a-quarter times the ground), the herds have their
+   distances, and the sea between the nations is a true sea. Old voyages
+   are carried over: a save remembers the radius it was made at, and its
+   places are scaled to the same spot on the map (see loadSaved). */
+const R_WORLD=180000, B=6, CH=16, CHW=B*CH, VIEW=13; /* rim = 30,000 km, 1 block = 1 km */
 const ICE_UV=0.948, SHELF_UV=0.915, WATER_Y=0.35;
 /* ---- THE HEIGHT OF THE WALL OF ICE ----
    Two thousand feet, and level from there to the rim. A block is a METRE in
@@ -418,7 +426,18 @@ const MOUNTS=[];
 for(const L of LANDMARKS){ if(L.kind!=='mount') continue;
   const [mx,mz]=llToWorld(L.lat,L.lon);
   const peak=(L.elev!==undefined)?L.elev/MTN_M_PER_BLOCK:(L.peak||18);
-  MOUNTS.push({x:mx,z:mz,R:(L.r||110),peak}); }
+  /* ---- A MOUNTAIN IS AS BROAD AS IT IS HIGH — AND THEN SOME ----
+     The heights are drawn at forty metres to the block but the ground at a
+     kilometre, so a summit given only its geographic footprint comes out a
+     POLE IN THE SKY: Hermon stood seventy blocks tall on a base fifty wide.
+     Every named height now claims ground in PROPORTION TO ITS PEAK — flank
+     runs at least three-and-a-half times the rise — so the great summits
+     are true massifs the traveller ascends: mountain country swelling for
+     miles, ridges on the shoulders, and the crown court at the top of the
+     long climb. (A rock that is FAMOUS for standing sheer — Uluru, Table
+     Mountain — says steep:1 in world/landmarks.js and keeps its walls.) */
+  const Rm=L.steep?(L.r||110)*1.75:Math.max((L.r||110)*1.75, peak*B*3.6);
+  MOUNTS.push({x:mx,z:mz,R:Rm,peak}); }
 /* ---- THE DEEPS OF THE SEA — the trenches, each at its own place ----
    world/deeps.js names them with their TRUE soundings in metres, and the
    engine sinks the bed to meet them. Unlike the mountains these are not
@@ -524,7 +543,11 @@ function mountUpliftAt(x,z){ let up=0;
     const dz=z-m.z; if(dz>m.R||dz<-m.R) continue;
     const d=Math.hypot(dx,dz); if(d>=m.R) continue;
     const tb=1-d/m.R, broad=tb*tb*(3-2*tb);
-    const rs=m.R*0.14, ts=d<rs?1-d/rs:0, sharp=ts*ts*(3-2*ts);
+    /* the summit cone is seated OUTSIDE the flat crown — measured from the
+       court's rim, not the centre — so the cone rises to meet the court and
+       carries it, instead of leaving it a table on a pole */
+    const d2=Math.max(0,d-MTN_FLAT_R);
+    const rs=m.R*0.14, ts=d2<rs?1-d2/rs:0, sharp=ts*ts*(3-2*ts);
     const u2=m.peak*(0.58*broad+0.42*sharp);
     /* A massif is not a smooth dome. The ridge field breaks its flanks into
        spurs and corries, so the shoulders are mountain country and not a
@@ -534,6 +557,21 @@ function mountUpliftAt(x,z){ let up=0;
     const t2=u2+relief;
     if(t2>up) up=t2; }
   return up; }
+/* ---- THE SUMMIT COURT ----
+   Every named summit came to a noise-broken point nobody could STAND on —
+   and a mountain men go up (Hermon, Sinai, Ararat) has always had room at
+   the top for the company that climbs it. The crown of every named height
+   is now a LEVEL COURT, about nine blocks across — ground enough for a
+   score of souls to stand together on the top of the world with space to
+   spare. Inside the ring the height is the mountain's own true measure
+   exactly, whatever the ridge noise wanted; the rim falls away as cliff,
+   which is what the top of such a mountain is. */
+const MTN_FLAT_R=27;
+function mountFlatAt(x,z){
+  for(const m of MOUNTS){ const dx=x-m.x; if(dx>MTN_FLAT_R||dx<-MTN_FLAT_R) continue;
+    const dz=z-m.z; if(dz>MTN_FLAT_R||dz<-MTN_FLAT_R) continue;
+    if(dx*dx+dz*dz<=MTN_FLAT_R*MTN_FLAT_R) return 1+Math.round(m.peak); }
+  return 0; }
 /* ---- RIDGED MULTIFRACTAL — the shape a mountain chain actually takes ----
    Plain fbm makes round blobs. Folding it about its midline (1−|2f−1|) puts
    a CREST wherever it crossed the middle, so the field runs in long
@@ -718,6 +756,8 @@ function cellRaw(ix,iz){
      Sinai, Everest and their fellows, each at its own place */
   const mUp=mountUpliftAt(x,z);
   if(mUp>0.5) h+=Math.round(mUp);
+  /* the crown of a named height is a level court a company can stand on */
+  const fh=mountFlatAt(x,z); if(fh){ h=fh; }
   if(inland<1&&mUp<=0.5){
     /* the shore terraces gently to the water, so every coast keeps a landing
        (a named summit is never shorn) — but a range that truly runs down to
@@ -850,7 +890,7 @@ function cellCompute(ix,iz){
     const near=siteGrid.get(siteKey(u,v));
     if(near) for(const st of near){
       const d=Math.hypot(x-st.x,z-st.z);
-      if(d<130){ const t=Math.min(1,(130-d)/90);
+      if(d<170){ const t=Math.min(1,(170-d)/120);
         c.h=Math.max(1,Math.round(c.h+(st.h0-c.h)*t*0.92));
         if(c.kind!=='sand'&&c.h===1) c.h=2;
         break; }
@@ -2162,24 +2202,26 @@ function stormAt(x,z){ let f=0;
   for(const s of STORMS){ const sx=Math.sin(s.a)*s.r*R_WORLD, sz=Math.cos(s.a)*s.r*R_WORLD;
     const d=Math.hypot(x-sx,z-sz); if(d<s.R) f=Math.max(f,1-d/s.R); }
   return f; }
-function dayOfYear(){ return Math.floor(state.simHours/24)%364+1; }
-function sunUV(){ const Dd=dayOfYear();
-  const R2=0.5-0.13*Math.sin(2*Math.PI*(Dd-1)/364);
-  const A=-(state.simHours/24)*2*Math.PI+Math.PI;
-  return [R2*Math.sin(A), R2*Math.cos(A)]; }
-function moonUV(){ const age=(state.simHours/24)%29.53;
-  const A=-(state.simHours/24)*2*Math.PI+Math.PI-2*Math.PI*age/29.53;
-  const R2=0.5-0.13*Math.sin(2*Math.PI*(dayOfYear()-16)/364);
-  return [R2*Math.sin(A), R2*Math.cos(A)]; }
+/* the courses themselves live in js/sun-moon.js — the one file that is the
+   whole law of the two great lights. These are the engine's thin hands. */
+function dayOfYear(){ return SUNMOON.dayOfYear(state.simHours); }
+function sunUV(){ return SUNMOON.sunUV(state.simHours); }
+function moonUV(){ return SUNMOON.moonUV(state.simHours); }
 const _c1=new THREE.Color(), _c2=new THREE.Color(), _c3=new THREE.Color();
 function mix3(hexA,hexB,hexC,t){ // 0=night .5=dusk 1=day
   if(t<0.5){ _c1.setHex(hexA); _c2.setHex(hexB); return _c3.copy(_c1).lerp(_c2,t*2); }
   _c1.setHex(hexB); _c2.setHex(hexC); return _c3.copy(_c1).lerp(_c2,(t-0.5)*2);
 }
 function skyTick(px,pz){
-  const [su,sv]=sunUV(); const pu=px/R_WORLD, pv=pz/R_WORLD;
-  const dUV=Math.hypot(pu-su,pv-sv);
-  const dayF=Math.max(0,Math.min(1,(0.66-dUV)/0.3));
+  /* ---- THE TWO GREAT LIGHTS, WHERE THEY TRULY ARE ----
+     js/sun-moon.js is the whole law: each light's own circuit over the
+     disc, its height in THIS traveller's sky, and how bright it burns.
+     The sun no longer hangs clamped a quarter up the sky and fades like a
+     lamp — as its road carries it off toward other countries the
+     traveller watches it come down, touch the horizon and slip visibly
+     under, at exactly the distance where its daylight gives out. */
+  const S=SUNMOON.place(state.simHours,px,pz,R_WORLD,'sun');
+  const dayF=SUNMOON.dayF(S.dUV);
   let sky=mix3(0x0a1024,0xe58a4a,0x9fc5e8,dayF).getHex();
   const st=stormAt(px,pz);
   if(st>0.01){ _c1.setHex(sky); _c2.setHex(0x4c545e); sky=_c1.lerp(_c2,st*0.75).getHex(); }
@@ -2194,12 +2236,16 @@ function skyTick(px,pz){
   cloudMat.opacity=0.35+dayF*0.5;
   starGroup.userData.mat.opacity=Math.max(0,1-dayF*1.6)*0.95;
   starGroup.rotation.y=-(state.simHours/24)*2*Math.PI;
-  const sy=R_WORLD*0.375-R_WORLD*0.155*Math.min(1,dUV/0.9);
-  sun.position.set(su*R_WORLD,Math.max(R_WORLD*0.065,sy),sv*R_WORLD);
-  sunMat2.opacity=Math.max(0,1-Math.max(0,dUV-0.7)/0.45);
-  const [mu,mv]=moonUV(); const mUVd=Math.hypot(pu-mu,pv-mv);
-  moon.position.set(mu*R_WORLD,Math.max(R_WORLD*0.06,R_WORLD*0.3375-R_WORLD*0.14*Math.min(1,mUVd/0.9)),mv*R_WORLD);
-  moonMat2.opacity=Math.max(0,1-Math.max(0,mUVd-0.7)/0.45);
+  sun.position.set(S.x,S.y,S.z);
+  sunMat2.opacity=S.bright;
+  const M=SUNMOON.place(state.simHours,px,pz,R_WORLD,'moon');
+  moon.position.set(M.x,M.y,M.z);
+  moonMat2.opacity=M.bright;
+  /* and the LIGHT UPON THE LAND falls from where the ruling light truly
+     stands — the long shadows of evening lie away from the sunset, and by
+     night the land is lit from the moon's quarter */
+  if(dayF>0.06) dirL.position.set(S.x-px,Math.max(S.y,R_WORLD*0.03),S.z-pz).normalize();
+  else if(M.bright>0.05) dirL.position.set(M.x-px,Math.max(M.y,R_WORLD*0.03),M.z-pz).normalize();
   return {dayF, nightF:Math.max(0,1-dayF*1.5), storm:st};
 }
 
@@ -2702,13 +2748,32 @@ const BEAST_KIT={
      userData.legs, which is what the engine walks. x/z are how far out from
      the middle they stand, h how long they are, t how thick. */
   legs4:function(g,x,z,h,col,t){ t=t||0.9; const out=[];
+    /* ---- AND EVERY LEG HAS A KNEE NOW ----
+       A leg was one stiff box swung from the hip, so every beast on the
+       earth walked like a toy soldier. It is TWO bones now: the thigh
+       swings from the hip as before, and the shin hangs from a true knee
+       joint at the bottom of it (userData.knee), which the engine folds
+       as the leg swings — set it and the beast picks its feet up. */
     for(const sx of [1,-1]) for(const sz of [1,-1]){
-      const L=lbox(t,h,t,col); L.geometry.translate(0,-h/2,0);
+      const L=lbox(t,h*0.55,t,col); L.geometry.translate(0,-h*0.275,0);
       L.position.set(sx*x,h,sz*z); L.userData.ph=(sx*sz>0)?0:Math.PI;
+      const S=lbox(t*0.88,h*0.5,t*0.88,col); S.geometry.translate(0,-h*0.25,0);
+      S.position.set(0,-h*0.53,0); L.add(S); L.userData.knee=S;
       g.add(L); out.push(L); }
     const u=g.userData||(g.userData={});
     u.legs=(u.legs||[]).concat(out); return out; }
 };
+/* ---- THE FOLDING OF THE JOINTS ----
+   One rule for every knee and every elbow in the world: the shin folds up
+   behind as the leg is swept back (the foot is picked up instead of mown
+   through the ground), and the forearm bends in as the arm swings forward.
+   Any limb that carries userData.knee or userData.elbow — beast, villager
+   or the traveller himself — is folded by this and nothing else. */
+function jointTick(L,moving){
+  const u2=L.userData; if(!u2) return;
+  if(u2.knee)  u2.knee.rotation.x = moving? Math.min(1.15,0.10+Math.max(0,L.rotation.x)*1.1) : 0.05;
+  if(u2.elbow) u2.elbow.rotation.x= moving? -Math.min(0.85,0.16+Math.max(0,-L.rotation.x)*0.5) : -0.14;
+}
 /* ---- AND HOW BIG A BEAST IS DRAWN ----
    ONE SCALE, AND IT IS THE MAN'S. There were two: the beasts of the sea were
    built true, at six units to the metre, and the beasts of the field at HALF
@@ -2813,14 +2878,18 @@ const walkerG=new THREE.Group();
     [robeMatP,robeMatP,robeMatP,robeMatP,robeFrontMatP,robeMatP]);
   body.position.y=6.6; walkerG.add(body);
   const hem=new THREE.Mesh(new THREE.BoxGeometry(3.3,1.0,2.0),robeMatP); hem.position.y=4.1; walkerG.add(hem);
-  const legL=new THREE.Mesh(new THREE.BoxGeometry(1.4,4.2,1.5),legMatP);
-  legL.geometry.translate(0,-2.1,0);
-  legL.position.set(0.74,4.3,0); walkerG.add(legL);
-  const legR=legL.clone(); legR.position.x=-0.74; walkerG.add(legR);
-  const armL=new THREE.Mesh(new THREE.BoxGeometry(1.4,4.4,1.5),sleeveMatP);
-  armL.geometry.translate(0,-2.2,0);
-  armL.position.set(2.25,8.7,0); walkerG.add(armL);
-  const armR=armL.clone(); armR.position.x=-2.25; walkerG.add(armR);
+  /* the traveller's own limbs, two bones apiece — knees and elbows that
+     truly fold, the same joints every soul in the world now carries */
+  const mkWLimb=(w2,len,d2,mat,px2,py,elbow)=>{
+    const U=new THREE.Mesh(new THREE.BoxGeometry(w2,len*0.55,d2),mat);
+    U.geometry.translate(0,-len*0.275,0); U.position.set(px2,py,0);
+    const F=new THREE.Mesh(new THREE.BoxGeometry(w2*0.9,len*0.52,d2*0.9),mat);
+    F.geometry.translate(0,-len*0.26,0); F.position.set(0,-len*0.53,0);
+    U.add(F); U.userData[elbow?'elbow':'knee']=F; walkerG.add(U); return U; };
+  const legL=mkWLimb(1.4,4.2,1.5,legMatP,0.74,4.3,false);
+  const legR=mkWLimb(1.4,4.2,1.5,legMatP,-0.74,4.3,false);
+  const armL=mkWLimb(1.4,4.4,1.5,sleeveMatP,2.25,8.7,true);
+  const armR=mkWLimb(1.4,4.4,1.5,sleeveMatP,-2.25,8.7,true);
   walkerG.visible=false; scene.add(walkerG);
   /* YXZ: heading first, then the prone/lean pitch about the body's OWN axis.
      With the default XYZ order the swim/flight pitch was a world-frame tilt,
@@ -2894,13 +2963,20 @@ function makePerson(seed, role, child, female){
   /* women wear the robe to the ankle; men show sandalled shins */
   const hem=female?new THREE.Mesh(new THREE.BoxGeometry(3.3,3.6,2.1),robeM):lbox(3.2,1.0,2.0,0x3a2c1c);
   hem.position.y=female?2.8:4.1; g.add(hem);
+  /* limbs in TWO BONES apiece: thigh and shin about a knee, upper arm and
+     forearm about an elbow — so the folk of the world walk like people and
+     not like clothes-pegs. The engine folds the joints as the limbs swing. */
   const legMat=lam(0x2e3350);
-  const legL=new THREE.Mesh(new THREE.BoxGeometry(1.35,4.2,1.5),legMat);
-  legL.geometry.translate(0,-2.1,0); legL.position.set(0.74,4.3,0); legL.userData.ph=0; g.add(legL);
-  const legR=legL.clone(); legR.position.x=-0.74; legR.userData.ph=Math.PI; g.add(legR);
-  const armL=new THREE.Mesh(new THREE.BoxGeometry(1.2,4.4,1.5),robeM);
-  armL.geometry.translate(0,-2.2,0); armL.position.set(2.15,8.7,0); armL.userData.ph=Math.PI; g.add(armL);
-  const armR=armL.clone(); armR.position.x=-2.15; armR.userData.ph=0; g.add(armR);
+  const mkLimb=(w2,len,d2,mat,px2,py,elbow)=>{
+    const U=new THREE.Mesh(new THREE.BoxGeometry(w2,len*0.55,d2),mat);
+    U.geometry.translate(0,-len*0.275,0); U.position.set(px2,py,0);
+    const F=new THREE.Mesh(new THREE.BoxGeometry(w2*0.9,len*0.52,d2*0.9),mat);
+    F.geometry.translate(0,-len*0.26,0); F.position.set(0,-len*0.53,0);
+    U.add(F); U.userData[elbow?'elbow':'knee']=F; g.add(U); return U; };
+  const legL=mkLimb(1.35,4.2,1.5,legMat,0.74,4.3,false); legL.userData.ph=0;
+  const legR=mkLimb(1.35,4.2,1.5,legMat,-0.74,4.3,false); legR.userData.ph=Math.PI;
+  const armL=mkLimb(1.2,4.4,1.5,robeM,2.15,8.7,true); armL.userData.ph=Math.PI;
+  const armR=mkLimb(1.2,4.4,1.5,robeM,-2.15,8.7,true); armR.userData.ph=0;
   if(role==='hunter'){ const spear=lbox(0.34,8,0.34,0x6a4a2a); spear.position.set(2.7,8.4,0.6);
       spear.rotation.x=0.25; g.add(spear);
     const tip=lbox(0.55,0.9,0.2,0xb8bcc4); tip.position.set(2.7,12.4,1.6); g.add(tip); }
@@ -2949,8 +3025,10 @@ function sizeToTrue(kind,inner){
 function buildOldAnimal(kind){
   const g=new THREE.Group(); const legs=[];
   function fourLegs(w,d,lh,col){ for(const sx of [1,-1]) for(const sz of [1,-1]){
-    const L=lbox(0.9,lh,0.9,col); L.geometry.translate(0,-lh/2,0);   // pivot at the hip
+    const L=lbox(0.9,lh*0.55,0.9,col); L.geometry.translate(0,-lh*0.275,0);   // thigh, pivot at the hip
     L.position.set(sx*w,lh,sz*d);
+    const S=lbox(0.8,lh*0.5,0.8,col); S.geometry.translate(0,-lh*0.25,0);     // shin, hung from the knee
+    S.position.set(0,-lh*0.53,0); L.add(S); L.userData.knee=S;
     L.userData.ph=(sx*sz>0)?0:Math.PI; g.add(L); legs.push(L); } }
   if(kind==='sheep'){
     const body=new THREE.Mesh(new THREE.BoxGeometry(3.4,2.6,4.6),
@@ -4546,7 +4624,7 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       const cD=landAtWorld(a.x,a.z);
       a.m.position.set(a.x,(cD?cD.h*B:WATER_Y)-0.9,a.z);
       a.m.rotation.set(0,a.heading,1.35);
-      if(a.m.userData.legs) for(const L of a.m.userData.legs) L.rotation.x=0;
+      if(a.m.userData.legs) for(const L of a.m.userData.legs){ L.rotation.x=0; jointTick(L,false); }
       hideYoung(a);
       if(a.dead<=0){ a.set=false; a.m.visible=false; a.m.rotation.set(0,0,0); }
       continue; }
@@ -4573,7 +4651,7 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       const ct=landAtWorld(a.x,a.z);
       a.m.position.set(a.x,(ct?ct.h*B:WATER_Y)+a.upTree,a.z);
       a.m.rotation.y=a.heading; a.m.rotation.x=asleep?0.3:0;
-      if(a.m.userData.legs) for(const L of a.m.userData.legs) L.rotation.x=0;
+      if(a.m.userData.legs) for(const L of a.m.userData.legs){ L.rotation.x=0; jointTick(L,false); }
       continue;
     }
     /* the ground this beast is standing in: what it can eat here, and how
@@ -4817,8 +4895,9 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       ?Math.abs(Math.sin(t*9+a.ph))*1.3:0;
     a.m.position.set(a.x,(c2?c2.h*B:WATER_Y)+lift+hop,a.z);
     a.m.rotation.y=a.heading; a.m.rotation.x=lean; a.m.rotation.z=roll;
-    if(a.m.userData.legs) for(const L of a.m.userData.legs)
+    if(a.m.userData.legs) for(const L of a.m.userData.legs){
       L.rotation.x=moving?Math.sin(t*(spd>8?10:7)+(L.userData.ph||0))*0.5:0;
+      jointTick(L,moving); }
     /* the crocodile's jaw and the bear's head keep their own motion */
     /* ---- THE YOUNG AT HER FOOT ----
        It keeps station off her flank, falls behind on a turn and hurries to
@@ -4832,8 +4911,9 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       y.m.rotation.y=y.heading;
       y.m.rotation.x=r.sucking?0.34:0;         /* head in under her flank */
       const legs=y.m.userData.legs;
-      if(legs) for(const L of legs)
-        L.rotation.x=r.moving?Math.sin(t*(r.sp>9?13:9)+(L.userData.ph||0))*0.55:0; }
+      if(legs) for(const L of legs){
+        L.rotation.x=r.moving?Math.sin(t*(r.sp>9?13:9)+(L.userData.ph||0))*0.55:0;
+        jointTick(L,r.moving); } }
     const ud=a.m.userData;
     if(ud.jaw) ud.jaw.rotation.x=(a.cool>16.4)?-0.6:0;         /* snapped shut on the strike */
     if(ud.head&&(a.job==='dig'||a.act==='dig')) ud.head.rotation.x=0.4+Math.sin(t*3)*0.18;
@@ -5416,7 +5496,8 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i){
   const cx=site.x, cz=site.z, sz2=cfg.size||2, nHomes=Math.round((cfg.houses||14)*1.4);
   emitPlaza(G, cx,cz, wy, B*(6+sz2*1.5));
   emitWell(G, cx,cz, wy); solids.push({x:cx,z:cz,r:B*1.7});
-  const spacing=B*11, reach=B*(9+Math.ceil(nHomes/2));
+  /* lots a street-and-a-garden apart — a city breathes, it does not huddle */
+  const spacing=B*15, reach=B*(12+Math.ceil(nHomes/2));
   emitPathLine(G, cx-reach,cz, cx+reach,cz);            // the two main streets
   emitPathLine(G, cx,cz-reach, cx,cz+reach);
   const lots=[];
@@ -5535,7 +5616,7 @@ function* spawnVillage(i){
     const ci=yield* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i);
     cityHomes=ci.homes;
     /* a fenced pen for the beasts on the outskirts */
-    { const a=rnd(130)*6.28, rr=B*(13+(cfg.size||2)*3);
+    { const a=rnd(130)*6.28, rr=B*(18+(cfg.size||2)*4);
       const px2=site.x+Math.cos(a)*rr, pz2=site.z+Math.sin(a)*rr, pc=landAtWorld(px2,pz2);
       if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'){ emitPen(G,px2,pz2,pc.h*B,7,5);
         emitPathLine(G,site.x,site.z,px2,pz2); ex.pen={x:px2,z:pz2}; } }
@@ -5545,7 +5626,8 @@ function* spawnVillage(i){
        stand them in, so a town reads as a town and not a huddle of huts */
     const nH=8+Math.floor(rnd(1)*4);
     for(let h=0;h<nH;h++){
-      const ang=(h/nH+rnd(h+2)*0.35)*Math.PI*2, rad=(6.5+rnd(h+9)*6.5)*B;
+      /* the ring wide enough that every house keeps its own ground about it */
+      const ang=(h/nH+rnd(h+2)*0.35)*Math.PI*2, rad=(9+rnd(h+9)*9)*B;
       const hx=site.x+Math.cos(ang)*rad, hz=site.z+Math.sin(ang)*rad;
       const hc=landAtWorld(hx,hz); if(!hc||hc.kind==='wall'||hc.kind==='floe') continue;
       const w=7+Math.floor(rnd(h+20)*3), d=7+Math.floor(rnd(h+25)*3);
@@ -5558,7 +5640,7 @@ function* spawnVillage(i){
     for(const dr of ex.doors) emitPathLine(G, site.x,site.z, dr.x,dr.z);
     const nF=2+(rnd(40)>0.55?1:0);
     for(let f=0;f<nF;f++){
-      const ang=rnd(f+44)*Math.PI*2, rad=(10+rnd(f+48)*5)*B;
+      const ang=rnd(f+44)*Math.PI*2, rad=(14+rnd(f+48)*6)*B;
       const fx=site.x+Math.cos(ang)*rad, fz=site.z+Math.sin(ang)*rad;
       const fc=landAtWorld(fx,fz); if(!fc||fc.kind==='wall') continue;
       emitFarm(G, fx,fz, fc.h*B, i*100+f); emitPathLine(G, site.x,site.z, fx,fz);
@@ -5577,7 +5659,7 @@ function* spawnVillage(i){
       const c2=landAtWorld(x,z); if(!c2||c2.kind==='wall') continue;
       emitHay(G,x,z,c2.h*B);
     }
-    { const ang=rnd(130)*Math.PI*2, rad=(9+rnd(133)*4)*B;
+    { const ang=rnd(130)*Math.PI*2, rad=(13+rnd(133)*5)*B;
       const px2=site.x+Math.cos(ang)*rad, pz2=site.z+Math.sin(ang)*rad;
       const pc=landAtWorld(px2,pz2);
       if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'){ emitPen(G,px2,pz2,pc.h*B,6,4);
@@ -5734,7 +5816,8 @@ function moveEnt(ent,dt,sp){
   ent.m.position.y=gHere.land?gHere.y:WATER_Y;
   const legs=ent.m.userData.legs;
   if(legs&&legs.length){ const ph=performance.now()*(ent.panic?0.02:0.012);
-    for(const L of legs) L.rotation.x=moving?Math.sin(ph+(L.userData.ph||0))*(ent.panic?0.85:0.55):0; }
+    for(const L of legs){ L.rotation.x=moving?Math.sin(ph+(L.userData.ph||0))*(ent.panic?0.85:0.55):0;
+      jointTick(L,moving); } }
   else if(moving) ent.m.position.y+=Math.abs(Math.sin(performance.now()*.012))*0.35;
   return moving;
 }
@@ -7226,6 +7309,10 @@ function walkTick(dt){
     u.legL.rotation.x=moving?Math.sin(ph)*0.7:0; u.legR.rotation.x=moving?-Math.sin(ph)*0.7:0;
     u.armL.rotation.x=moving?-Math.sin(ph)*0.5:0; u.armR.rotation.x=moving?Math.sin(ph)*0.5:0;
   }
+  /* and the traveller's own knees and elbows fold with the stride */
+  { const live=moving||swimming||!w.grounded||w.spill>0;
+    jointTick(u.legL,live); jointTick(u.legR,live);
+    jointTick(u.armL,live); jointTick(u.armR,live); }
 }
 /* ================= FLIGHT — LEVITATION ABOVE THE CLOUDS =================
    The traveller is borne up off the deck or the shore into the open air.
@@ -8162,7 +8249,7 @@ $('bigmap').addEventListener('click',toggleMap);
    window.storage API is kept as a secondary channel where it exists. */
 const SAVE_KEY='voyage:state';
 async function saveState(){
-  const payload=JSON.stringify({v:6,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
+  const payload=JSON.stringify({v:6,R:R_WORLD,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
     t:state.simHours,m:state.mode==='walk'?'walk':'boat',wx:state.walk.x,wz:state.walk.z,wh:state.walk.heading,
     vis:[...state.visited],d:Math.round(state.dist),wm:state.windMode,fi:state.fish||0,
     co:state.coins,cg:state.cargo,gm:state.game||0,ib:state.immBreath?1:0,pe:state.pearls||0,rp:state.repel?1:0,rr:state.rep||{},wl:[...wreckLooted],vf:state.vf||0});
@@ -8173,7 +8260,13 @@ async function loadSaved(){
   let raw=null;
   try{ if(window.storage){ const r=await window.storage.get(SAVE_KEY); if(r&&r.value) raw=r.value; } }catch(e){}
   if(!raw){ try{ raw=localStorage.getItem(SAVE_KEY); }catch(e){} }
-  try{ const o=JSON.parse(raw); if(o&&o.v>=2&&o.v<=6) return o; }catch(e){}
+  try{ const o=JSON.parse(raw); if(o&&o.v>=2&&o.v<=6){
+    /* a voyage saved when the world was narrower is carried to the SAME
+       SPOT ON THE MAP: places scale with the radius they were kept at */
+    const sc=R_WORLD/(o.R||120000);
+    if(sc!==1){ o.x*=sc; o.z*=sc;
+      if(o.wx!==undefined) o.wx*=sc; if(o.wz!==undefined) o.wz*=sc; }
+    return o; } }catch(e){}
   return null;
 }
 
