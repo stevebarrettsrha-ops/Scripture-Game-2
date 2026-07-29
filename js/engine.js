@@ -3290,9 +3290,12 @@ function buildOldAnimal(kind){
     const col=0x8f8f96; const body=lbox(4.4,4.2,7.2,col); body.position.y=6.0; g.add(body);
     const head=lbox(3.0,3.0,2.6,col); head.position.set(0,6.6,4.2); g.add(head);
     const trunk=lbox(1.0,3.4,1.0,col); trunk.position.set(0,4.6,5.4); trunk.rotation.x=0.4; g.add(trunk);
-    for(const s of[1,-1]){ const ear=lbox(0.4,2.8,2.4,0x82828a); ear.position.set(s*2.0,6.8,3.6); g.add(ear);
+    const ears=[];
+    for(const s of[1,-1]){ const ear=lbox(0.4,2.8,2.4,0x82828a); ear.position.set(s*2.0,6.8,3.6); g.add(ear); ears.push(ear);
       const tusk=lbox(0.4,0.4,2.0,0xefe8d8); tusk.position.set(s*0.9,5.2,5.4); g.add(tusk); }
     fourLegs(1.6,2.6,4.4,0x76767e);
+    g.userData={legs,ears};
+    return g;
   }
   else if(kind==='crocodile'){
     /* long and low, all jaw and tail, with a ridge of scutes down the back —
@@ -4900,10 +4903,18 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
            puts him in the cover he will need when a herd does come by. */
         if(!a.prey&&role==='stalk'){
           if(a.hidden){ a.crouch=true; if(a.jt<=0){ a.jt=6+Math.random()*8; a.tx=a.x; a.tz=a.z; } spd=0; }
-          else if(a.jt<=0){ const cv=GRASS.findCover(a.x,a.z,150,grassProbe);
-            if(cv){ a.tx=cv.x; a.tz=cv.z; a.jt=3+Math.random()*3; spd=6; } }
+          else if(a.job==='act'){ spd=0; if(a.jt<=0){ a.job='roam'; a.act=null; a.jt=3+Math.random()*4; } }
+          else if(a.jt<=0){ a.crouch=false;
+            /* ---- THE DAY'S SMALL BUSINESS BETWEEN HUNTS ----
+               A cat with no quarry only ever walked from one patch of cover to
+               the next. It now takes up its own habits — the wash, the watch,
+               the claws stropped down the bole of a tree — drawn by weight from
+               its line in behavior.js, exactly as a grazer draws its dust-bath. */
+            if(!tryAct(a)){ const cv=GRASS.findCover(a.x,a.z,150,grassProbe);
+              if(cv){ a.tx=cv.x; a.tz=cv.z; a.jt=3+Math.random()*3; spd=6; } } }
         }
-        if(a.prey){ const d2=Math.hypot(a.prey.x-a.x,a.prey.z-a.z);
+        if(a.prey){ if(a.job==='act'){ a.job='roam'; a.act=null; }   /* quarry sighted — the small business is dropped */
+          const d2=Math.hypot(a.prey.x-a.x,a.prey.z-a.z);
           /* the lion creeps in low and long, then breaks into the charge —
              and he creeps THROUGH SOMETHING: while the grass is over him he
              comes on slowly and is not seen, and he keeps coming low until
@@ -4948,7 +4959,15 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
         /* the lunge lands: what it takes at the water's edge is taken */
         if(td<3.6){ a.cool=22;
           if(vic){ vic.dead=10+Math.random()*5; vic.fear=0; a.job='feed'; a.jt=8+Math.random()*4; } } }
-      else if(a.jt<=0){ a.jt=6+Math.random()*8; a.tx=a.x; a.tz=a.z; a.job='roam'; }   /* else it does not stir */
+      /* ---- AND WHEN NOTHING COMES, IT LIES AND GAPES ----
+         The ambusher used only ever to wait. Between one meal and the next it
+         now takes up a piece of its own small business — the crocodile and the
+         monitor throw their jaws wide in the open-mouthed gape that is half
+         threat and half cooling — drawn by weight from its line in behavior.js. */
+      else if(a.jt<=0){
+        if(a.job==='act'){ a.job='roam'; a.act=null; a.jt=5+Math.random()*6; }
+        else if(!tryAct(a)){ a.jt=6+Math.random()*8; a.tx=a.x; a.tz=a.z; a.job='roam'; }
+      }
     }
     else if(role==='forage'){
       /* ---- THE BEAR ---- it digs the ground for roots, and where it stands
@@ -5088,6 +5107,10 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
         case 'dig':    lean=0.26; break;
         case 'bask':   lift=-1.3; break;                      /* flat out in the sun */
         case 'play':   roll=Math.sin(t*5+a.ph)*0.3; lift=Math.abs(Math.sin(t*5+a.ph))*0.8; break;
+        case 'gape':   lean=-0.16; break;                     /* head up, and the jaws thrown wide (the jaw is worked below) */
+        case 'sharpen':lean=-0.55; lift=0.5; break;           /* reared to the bole, forepaws raking down it */
+        case 'curl':   lift=-0.5; break;                      /* drawn down into a ball (the head is tucked below) */
+        case 'earflap':break;                                 /* the body stands still; the ears do the work (below) */
       }
     }
     else if(a.crouch) lift=-0.8;                              /* the lion low in the grass */
@@ -5117,10 +5140,16 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
         L.rotation.x=r.moving?Math.sin(t*(r.sp>9?13:9)+(L.userData.ph||0))*0.55:0;
         jointTick(L,r.moving); } }
     const ud=a.m.userData;
-    if(ud.jaw) ud.jaw.rotation.x=(a.cool>16.4)?-0.6:0;         /* snapped shut on the strike */
-    if(ud.head&&(a.job==='dig'||a.act==='dig')) ud.head.rotation.x=0.4+Math.sin(t*3)*0.18;
+    const acting=a.job==='act';
+    /* the jaw: thrown wide in a yawn or a threat-gape, else snapped shut but for the strike */
+    if(ud.jaw) ud.jaw.rotation.x=(acting&&a.act==='gape')?-0.85:((a.cool>16.4)?-0.6:0);
+    if(ud.head&&acting&&a.act==='curl') ud.head.rotation.x=1.15;   /* the nose tucked away under the ball */
+    else if(ud.head&&(a.job==='dig'||a.act==='dig')) ud.head.rotation.x=0.4+Math.sin(t*3)*0.18;
     else if(ud.head&&a.act==='groom') ud.head.rotation.y=Math.sin(t*1.6+a.ph)*0.8;
     else if(ud.head){ ud.head.rotation.x=0; ud.head.rotation.y=0; }
+    /* the great ears of the elephant, fanned against the heat */
+    if(ud.ears){ const f=(acting&&a.act==='earflap')?Math.sin(t*2.6+a.ph)*0.5:0;
+      ud.ears[0].rotation.y=-f; ud.ears[1].rotation.y=f; }
   } }
 function hideLandLife(){ for(const a of LANDLIFE){ if(a.m) a.m.visible=false; hideYoung(a); }
   for(const r of RIVERLIFE) if(r.m) r.m.visible=false; }
