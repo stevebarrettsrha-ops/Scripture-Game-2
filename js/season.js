@@ -70,7 +70,7 @@ const SEASONS={
 
 /* the tropical year is not cold-and-heat but WET-and-DRY: the wet half falls
    in the local warm half of the year, the dry in the cool half. */
-const TROPIC={ Wet:{tint:'#3fa05a'}, Dry:{tint:'#b7a24a'} };
+const TROPIC={ Wet:{tint:'#3fa05a', bloom:0.6}, Dry:{tint:'#b7a24a', bloom:0.1} };
 
 const TROPIC_BAND=0.26, POLAR_BAND=0.74;
 
@@ -137,11 +137,17 @@ function breedFactor(latN, doy){
   const s=seasonAt(latN,doy);
   return (s.S&&s.S.breed!==undefined)?s.S.breed:1.0;
 }
+/* how thick the flowers stand here and now, 0 (none) .. 1 (the meadow in full
+   bloom) — spring is the flush, the tropics flower in the wet, winter is bare */
+function bloomFactor(latN, doy){
+  const s=seasonAt(latN,doy);
+  return (s.S&&s.S.bloom!==undefined)?s.S.bloom:0;
+}
 
 window.SEASON={
   NAMES, SEASONS, CENTRE, HIBERNATE,
   TROPIC_BAND, POLAR_BAND,
-  yearPhase, indexOfPhase, zoneOf, seasonAt, label, dormant, breedFactor,
+  yearPhase, indexOfPhase, zoneOf, seasonAt, label, dormant, breedFactor, bloomFactor,
   /* is the year on its natural course, or held by the traveller? */
   isNatural:()=>_override==null,
   overrideName:()=>_override==null?'Natural':NAMES[_override],

@@ -282,7 +282,7 @@ const SEASON_GLSL=
   '  autumn*=temperate; winter*=temperate;\n'+
   '  vColor.rgb=mix(vColor.rgb, vec3(0.74,0.52,0.18), autumn*0.55);\n'+   /* gild to gold */
   '  vColor.rgb=mix(vColor.rgb, vColor.rgb*vec3(0.62,0.60,0.55), winter*0.60); }';  /* grey, dim */
-function windSway(mat,amp,rooted,leafy){
+function windSway(mat,amp,rooted,tint){
   mat.onBeforeCompile=sh=>{
     sh.uniforms.uWindT=WIND_T; sh.uniforms.uWindA=WIND_A;
     let vs=sh.vertexShader.replace(
@@ -295,10 +295,10 @@ function windSway(mat,amp,rooted,leafy){
       '  transformed.x+=ws1*'+amp.toFixed(3)+'*uWindA*wgt;\n'+
       '  transformed.z+=ws2*'+(amp*0.7).toFixed(3)+'*uWindA*wgt; }');
     let head='uniform float uWindT; uniform float uWindA;\n';
-    /* the leaf canopies also take the turn of the year (never the grass, the
-       crop or the herb — those keep their green) */
-    if(leafy){ sh.uniforms.uSeasonY=SEASON_Y; head+='uniform float uSeasonY;\n';
-      vs=vs.replace('#include <color_vertex>','#include <color_vertex>\n'+SEASON_GLSL); }
+    /* and the turn of the year: the leaf canopies GILD ('leaf' — gold in autumn,
+       grey in winter), while the grass and herb blades take the SNOW ('snow') */
+    if(tint){ sh.uniforms.uSeasonY=SEASON_Y; head+='uniform float uSeasonY;\n';
+      vs=vs.replace('#include <color_vertex>','#include <color_vertex>\n'+(tint==='snow'?SNOW_GLSL:SEASON_GLSL)); }
     sh.vertexShader=head+vs;
   };
   mat.needsUpdate=true;
@@ -314,9 +314,9 @@ const SNOW_GLSL=
   '{ float sr=length(position.xz)*'+(1/180000).toExponential()+';\n'+
   '  float latN=1.0-sr*2.0;\n'+
   '  float ph=fract(uSeasonY+(latN<0.0?0.5:0.0));\n'+
-  '  float winter=clamp(smoothstep(0.80,0.94,ph)+(1.0-smoothstep(0.06,0.20,ph)),0.0,1.0);\n'+
-  '  float cold=smoothstep(0.30,0.62,abs(latN));\n'+            /* nothing below the temperate band */
-  '  vColor.rgb=mix(vColor.rgb, vec3(0.93,0.95,0.99), winter*cold*0.85); }';
+  '  float winter=clamp(smoothstep(0.74,0.90,ph)+(1.0-smoothstep(0.10,0.26,ph)),0.0,1.0);\n'+  /* falls as the leaves go bare */
+  '  float cold=smoothstep(0.28,0.56,abs(latN));\n'+            /* the temperate lands take a clear snow, the far north lies deep */
+  '  vColor.rgb=mix(vColor.rgb, vec3(0.94,0.96,1.00), winter*cold*0.92); }';
 function groundSnow(mat){
   mat.onBeforeCompile=sh=>{ sh.uniforms.uSeasonY=SEASON_Y;
     sh.vertexShader='uniform float uSeasonY;\n'+sh.vertexShader.replace(
@@ -325,13 +325,15 @@ function groundSnow(mat){
 }
 groundSnow(MAT.grassTop); groundSnow(MAT.grassTopTr); groundSnow(MAT.grassTopTu);
 groundSnow(MAT.grassTopSv); groundSnow(MAT.path); groundSnow(MAT.cobble);
-windSway(MAT.leaves,0.55,false,true); windSway(MAT.leavesTr,0.62,false,true); windSway(MAT.cherry,0.55,false);
-windSway(MAT.tallgrass,0.9,true); windSway(MAT.flowerR,0.6,true); windSway(MAT.flowerY,0.6,true);
+windSway(MAT.leaves,0.55,false,'leaf'); windSway(MAT.leavesTr,0.62,false,'leaf'); windSway(MAT.cherry,0.55,false);
+/* the grass blades take the snow, so they whiten with the ground and do not
+   stand green out of a white field */
+windSway(MAT.tallgrass,0.9,true,'snow'); windSway(MAT.flowerR,0.6,true); windSway(MAT.flowerY,0.6,true);
 /* the plain moves as one thing when the wind crosses it — the tall grass
    swings further than the sward, and the thorn crowns ride it */
-windSway(MAT.savgrass,1.5,true); windSway(MAT.acacia,0.5,false,true);
+windSway(MAT.savgrass,1.5,true,'snow'); windSway(MAT.acacia,0.5,false,'leaf');
 /* and every leaf and every herb on the earth moves with it */
-windSway(MAT.leafW,0.55,false,true); windSway(MAT.plantW,0.85,true);
+windSway(MAT.leafW,0.55,false,'leaf'); windSway(MAT.plantW,0.85,true,'snow');
 windSway(MAT.crop,0.5,true);
 /* breaking surf — clumpy foam that washes the shoreline (scrolled + pulsed) */
 TEX.surf = mkTex(g=>{ g.clearRect(0,0,16,16);
@@ -4884,6 +4886,41 @@ function findDen(a){
   const aa=hash2(a.hx*0.13,a.hz*0.17)*6.283, rr=18+hash2(a.hz*0.11,a.hx*0.19)*36;
   return {x:a.hx+Math.cos(aa)*rr, z:a.hz+Math.sin(aa)*rr};
 }
+/* ================= THE SPRING BLOOM =================
+   The baked flowers in the chunks are the world's year-round few; this is the
+   FLUSH — a scatter of extra flowers that breaks on the grasslands in the
+   flowering season (spring in the temperate lands, the wet in the tropics, the
+   brief summer at the poles) and dies back as the season turns. Like the sea's
+   weed it is a MOVING POOL set down near the traveller, so no chunk is ever
+   re-meshed: the flowers are simply shown or hidden by the season where each
+   one stands, and thin out toward autumn. */
+const bloomMatR=new THREE.MeshBasicMaterial({map:TEX.flowerR,alphaTest:0.4,side:THREE.DoubleSide});
+const bloomMatY=new THREE.MeshBasicMaterial({map:TEX.flowerY,alphaTest:0.4,side:THREE.DoubleSide});
+windSway(bloomMatR,0.5,true); windSway(bloomMatY,0.5,true);   /* they nod on the wind with the grass */
+function makeBloom(){ const g=new THREE.Group(), n=5+Math.floor(Math.random()*6);
+  for(let i=0;i<n;i++){ const mat=Math.random()<0.5?bloomMatR:bloomMatY;
+    /* two crossed blades apiece, so a flower is seen from any side */
+    for(const rot of [0,Math.PI/2]){ const bl=new THREE.Mesh(new THREE.PlaneGeometry(1.5,1.7),mat);
+      bl.position.set((Math.random()-0.5)*7,0.85,(Math.random()-0.5)*7); bl.rotation.y=rot+(Math.random()-0.5)*0.5;
+      g.add(bl); } }
+  return g; }
+const BLOOMS=[], BLOOMS_N=70, BLOOMS_R=240;
+function initBlooms(){ if(BLOOMS.length) return; for(let k=0;k<BLOOMS_N;k++){ const m=makeBloom(); m.visible=false; scene.add(m); BLOOMS.push({m,x:0,z:0,set:false}); } }
+function updateBlooms(px,pz){ initBlooms(); const doy=dayOfYear();
+  for(const b of BLOOMS){
+    if(!b.set||Math.hypot(b.x-px,b.z-pz)>BLOOMS_R+80){ b.set=false;
+      /* set it down on true grassland — never sand, rock, snow or the sea */
+      for(let tr=0;tr<8;tr++){ const a=Math.random()*6.28, rr=24+Math.random()*BLOOMS_R, x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr;
+        if(grassProbe(x,z)){ const c=landAtWorld(x,z); b.x=x; b.z=z; b.m.position.set(x,(c?c.h*B:WATER_Y),z); b.set=true; break; } }
+      if(!b.set){ b.m.visible=false; continue; } }
+    /* shown only where — and while — the flowers are in season, and thinning
+       as it wanes (js/season.js reckons the bloom for this latitude and day) */
+    const latN=1-Math.hypot(b.x,b.z)/R_WORLD*2;
+    const bloom=window.SEASON?SEASON.bloomFactor(latN,doy):0.4;
+    if(bloom>0.08){ b.m.visible=true; b.m.scale.setScalar(0.45+0.55*bloom); }
+    else b.m.visible=false;
+  } }
+function hideBlooms(){ for(const b of BLOOMS) if(b.m) b.m.visible=false; }
 function updateLandLife(px,pz,dt,t){ initLandLife();
   const night=(worldNight||0)>0.6;
   for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>LL_R+140){ const sp=findLandSpot(px,pz);
@@ -9831,9 +9868,9 @@ function frame(){
     podTick(p.x,p.z,dt,tt);             /* the whale pods, making for the fishing grounds */
     orcaTick(p.x,p.z,dt,tt);            /* and the killer whales, on their own road in the deep */
     if(state.mode==='boat'||state.mode==='deck'||state.mode==='walk'){
-      updateLandLife(p.x,p.z,dt,tt); updateRiverLife(p.x,p.z,dt,tt); }
-    else hideLandLife(); }
-  else { hideLandLife(); hideAirLife(); hidePod(); hideOrca(); }
+      updateLandLife(p.x,p.z,dt,tt); updateRiverLife(p.x,p.z,dt,tt); updateBlooms(p.x,p.z); }
+    else { hideLandLife(); hideBlooms(); } }
+  else { hideLandLife(); hideAirLife(); hidePod(); hideOrca(); hideBlooms(); }
   if(state.firm&&firmMark) firmMark.position.set(p.x,R_WORLD*0.012,p.z);
   seaTex.offset.x=(performance.now()*0.000012)%1; seaTex.offset.y=(performance.now()*0.000009)%1;
   const _pn=performance.now();
