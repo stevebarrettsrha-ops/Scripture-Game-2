@@ -4934,8 +4934,13 @@ function tryAct(a){
    where the herd stands. */
 function findDen(a){
   for(const N of NESTS){ if(!N.set||N.bird) continue;
-    if(N.kind&&N.kind.indexOf(a.kind+'|')===0&&Math.hypot(N.x-a.x,N.z-a.z)<280)
-      return {x:N.x,z:N.z}; }
+    if(N.kind&&N.kind.indexOf(a.kind+'|')===0&&Math.hypot(N.x-a.x,N.z-a.z)<280){
+      /* ---- AND A BEAST THAT WINTERS IN A CAVE LIES *INSIDE* IT ----
+         She used to bed at the mouth, on the doorstep of her own den. The
+         chamber runs back from the site, so she is laid well within it — and
+         the traveller who walks up to a cave in winter finds her in there. */
+      if(N.kind.indexOf('|cave')>0) return {x:N.x, z:N.z-B*1.6};
+      return {x:N.x,z:N.z}; } }
   const H=window.BEHAVIOR?BEHAVIOR.homeOf(a.kind):'open';
   if(H==='open') return null;
   if(H==='tree'){ const w2=treeNear(a.hx,a.hz,5); if(w2) return {x:w2.x,z:w2.z}; }
@@ -5489,11 +5494,40 @@ function homeSiteFor(wx,wz,c,gi,gj){
   /* three draws, jittered a little apart: most beasts of a plain build
      nothing at all (they drop their young in the open and it is running
      within the hour), so one draw would leave a whole country with no dens */
-  for(let q=0;q<3;q++){
-    const jx=wx+(q-1)*37, jz=wz+(q-1)*29, jc=landAtWorld(jx,jz)||c;
-    const beast=landKindAt(jx,jz,jc);
-    const home=NEST.homeOf(beast);
-    if(home&&home.where!=='tree') return {y:jc.h*B, x:jx, z:jz, kind:beast, home, bird:false}; }
+  /* ---- THE WINTER-SLEEPERS MUST HAVE THEIR HOMES RAISED ----
+     The site asked what beast holds this very tile, three times, and took the
+     first that built anything. But the beasts that build most — the fox, the
+     boar, the crow — are also the commonest, and the bear is drawn so seldom
+     that not one of the three draws ever landed on her: her cave was never
+     raised anywhere on the earth, and there was nowhere to find her asleep.
+     So the question is asked the other way about. We look at what this LAND
+     holds (the same list the tile-draw draws from), take the winter-sleepers
+     out of it that will truly stand on this ground, and raise ONE OF THEIR
+     HOMES on a fair share of the sites. A bear's country now has bear caves
+     in it, whether or not the dice ever name her. */
+  { const dice=hash2(wx*0.021+11.3, wz*0.019-4.7);
+    if(dice<0.42){
+      const L2=faunaFor(wx,wz,c.kind)||FAUNA.wilds[c.kind]||null;
+      if(L2&&L2.length){
+        const sleepers=[];
+        for(const nm of L2){ if(!NEST.hibernatesIn(nm)) continue;
+          const H=NEST.homeOf(nm); if(!H||H.where==='tree') continue;
+          if(!beastFits(nm,c.kind,c.h,false,false)) continue;
+          sleepers.push(nm); }
+        if(sleepers.length){
+          const nm=sleepers[Math.floor(hash2(wz*0.013,wx*0.017)*sleepers.length)%sleepers.length];
+          return {y:yG, x:wx, z:wz, kind:nm, home:NEST.homeOf(nm), bird:false}; } } } }
+  /* else, as before: whatever beast this tile holds, if it builds at all */
+  { let first=null, hib=null;
+    for(let q=0;q<3;q++){
+      const jx=wx+(q-1)*37, jz=wz+(q-1)*29, jc=landAtWorld(jx,jz)||c;
+      const beast=landKindAt(jx,jz,jc);
+      const home=NEST.homeOf(beast);
+      if(!home||home.where==='tree') continue;
+      const site={y:jc.h*B, x:jx, z:jz, kind:beast, home, bird:false};
+      if(!first) first=site;
+      if(!hib&&NEST.hibernatesIn(beast)) hib=site; }
+    if(hib||first) return hib||first; }
   /* and where nothing builds, the plain leaves its own mark: a termite
      mound, which is the one thing standing on half the grassland of the
      earth and belongs to nobody you will ever see */
@@ -5528,7 +5562,16 @@ function updateNests(px,pz,dt){ initNests();
     const c=landAtWorld(wx,wz); if(!c||c.kind==='wall'||!c.ci) continue;
     const site=homeSiteFor(wx,wz,c,gi,gj); if(!site) continue;
     sites.push({key:gi+','+gj,wx,wz,site,d:Math.hypot(wx-px,wz-pz)}); }
-  sites.sort((a,b)=>a.d-b.d);
+  /* ---- AND A WINTER-SLEEPER'S HOME IS WORTH A SLOT ----
+     Only ten homes stand in the world at once, and they were given to the ten
+     NEAREST sites — which in wooded country are all birds' nests. So the
+     bear's cave WAS raised by the site-maker (a good seventh of the sites in
+     her country carry one) and then never given a slot to stand in, and the
+     traveller walked her whole country without seeing one. A home that is
+     slept in through the winter now counts as nearer than it truly is, so a
+     few of them always stand. */
+  for(const s of sites) s.pri=s.d-(NEST.hibernatesIn(s.site.kind)?900:0);
+  sites.sort((a,b)=>a.pri-b.pri);
   const night=(worldNight||0)>0.6, t=performance.now()*0.001;
   /* ---- THE HOMES OF THE WORLD DO NOT SHUFFLE UNDERFOOT ----
      The k-th nearest site used to be handed to the k-th slot, so every step
@@ -5538,7 +5581,11 @@ function updateNests(px,pz,dt){ initNests();
      for as long as that site is wanted at all. */
   const want=new Map();
   for(let k=0;k<sites.length&&want.size<NEST_N;k++){ const s=sites[k];
-    if(s.d<NEST_R+300&&!want.has(s.key)) want.set(s.key,s); }
+    /* the reach is measured on the PRIORITY, not the raw distance — so a
+       winter-sleeper's home is admitted from half again as far out, which is
+       what actually puts a bear's cave in the world (the sort alone could not:
+       the gate threw the far ones away before the sort was ever consulted) */
+    if(s.pri<NEST_R+300&&!want.has(s.key)) want.set(s.key,s); }
   for(const N of NESTS){
     if(N.set&&want.has(N.skey)){ const s=want.get(N.skey); s.held=true;
       N.x=(s.site.x!==undefined)?s.site.x:s.wx;
@@ -9654,6 +9701,8 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
     SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS,NARWHALS}),
   /* the reef's lanterns and the spring flush — for the smoke tests */
   coral:()=>CORAL, blooms:()=>BLOOMS, seaCurrent,
+  /* the home-raising itself, so a test may ask WHY a den was or was not built */
+  homeSiteFor, beastFits, faunaFor, FAUNA, villageBuildTick, SITES,
   seaFloor,eyeUnderwater,eyeSub:()=>_eyeSub,
   lights:()=>({ sunY:Math.round(sun.position.y), moonY:Math.round(moon.position.y),
     sunR:+(Math.hypot(sun.position.x,sun.position.z)/R_WORLD).toFixed(3),
