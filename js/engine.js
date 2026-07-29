@@ -271,7 +271,14 @@ const WIND_T={value:0}, WIND_A={value:1};
    the centre. No chunk is ever re-meshed for it; it is all in the shader. */
 const SEASON_Y={value:0};
 const INV_R_STR=(1/180000).toExponential();   /* 1 / R_WORLD, for the shader */
-const SEASON_GLSL=
+/* ---- AND IT MUST BE DONE IN THE FRAGMENT, NOT THE VERTEX COLOUR ----
+   The vertex colour is MULTIPLIED into the block's texture, so whitening it
+   only ever BRIGHTENS what is already there: a white vertex colour over a green
+   grass texture is still green, and no snow would lie however hard it was
+   driven. The season is therefore worked out per-vertex (where the world
+   position is known), handed to the fragment as a varying, and MIXED over the
+   sampled texture there — which can truly bury a green field in white. */
+const SEASON_VS=                                    /* -> vSeas = (autumn, winter) for a leaf */
   '{ float sr=length(position.xz)*'+INV_R_STR+';\n'+
   '  float latN=1.0-sr*2.0;\n'+                                   /* +1 north pole .. -1 south */
   '  float ph=fract(uSeasonY+(latN<0.0?0.5:0.0));\n'+            /* the south is half a year on */
@@ -279,10 +286,20 @@ const SEASON_GLSL=
   '  float winter=clamp(smoothstep(0.74,0.90,ph)+(1.0-smoothstep(0.10,0.26,ph)),0.0,1.0);\n'+
   '  float band=clamp(abs(latN),0.0,1.0);\n'+                     /* 0 equator .. 1 pole */
   '  float temperate=smoothstep(0.12,0.42,band)*(1.0-smoothstep(0.72,1.0,band));\n'+
-  '  autumn*=temperate; winter*=temperate;\n'+
-  '  vColor.rgb=mix(vColor.rgb, vec3(0.74,0.52,0.18), autumn*0.55);\n'+   /* gild to gold */
-  '  vColor.rgb=mix(vColor.rgb, vColor.rgb*vec3(0.62,0.60,0.55), winter*0.60); }';  /* grey, dim */
-function windSway(mat,amp,rooted,leafy){
+  '  vSeas=vec2(autumn*temperate, winter*temperate); }';
+const SEASON_FS=                                    /* the leaf: gilded, then bared */
+  '  diffuseColor.rgb=mix(diffuseColor.rgb, vec3(0.78,0.55,0.16), vSeas.x*0.80);\n'+
+  '  diffuseColor.rgb=mix(diffuseColor.rgb, vec3(0.42,0.34,0.26), vSeas.y*0.72);';
+const SNOW_VS=                                      /* -> vSeas.y = how deep the snow lies */
+  '{ float sr=length(position.xz)*'+INV_R_STR+';\n'+
+  '  float latN=1.0-sr*2.0;\n'+
+  '  float ph=fract(uSeasonY+(latN<0.0?0.5:0.0));\n'+
+  '  float winter=clamp(smoothstep(0.74,0.90,ph)+(1.0-smoothstep(0.10,0.26,ph)),0.0,1.0);\n'+
+  '  float cold=smoothstep(0.28,0.56,abs(latN));\n'+  /* the tropics never take it; the far north lies deep */
+  '  vSeas=vec2(0.0, winter*cold); }';
+const SNOW_FS=
+  '  diffuseColor.rgb=mix(diffuseColor.rgb, vec3(0.93,0.95,1.00), vSeas.y*0.92);';
+function windSway(mat,amp,rooted,tint){
   mat.onBeforeCompile=sh=>{
     sh.uniforms.uWindT=WIND_T; sh.uniforms.uWindA=WIND_A;
     let vs=sh.vertexShader.replace(
@@ -295,21 +312,57 @@ function windSway(mat,amp,rooted,leafy){
       '  transformed.x+=ws1*'+amp.toFixed(3)+'*uWindA*wgt;\n'+
       '  transformed.z+=ws2*'+(amp*0.7).toFixed(3)+'*uWindA*wgt; }');
     let head='uniform float uWindT; uniform float uWindA;\n';
-    /* the leaf canopies also take the turn of the year (never the grass, the
-       crop or the herb — those keep their green) */
-    if(leafy){ sh.uniforms.uSeasonY=SEASON_Y; head+='uniform float uSeasonY;\n';
-      vs=vs.replace('#include <color_vertex>','#include <color_vertex>\n'+SEASON_GLSL); }
+    /* and the turn of the year: the leaf canopies GILD ('leaf' — gold in autumn,
+       bare and brown in winter), while the grass and herb blades take the SNOW */
+    if(tint){ sh.uniforms.uSeasonY=SEASON_Y;
+      head+='uniform float uSeasonY;\nvarying vec2 vSeas;\n';
+      vs=vs.replace('#include <color_vertex>',
+        '#include <color_vertex>\n'+(tint==='snow'?SNOW_VS:SEASON_VS));
+      sh.fragmentShader='varying vec2 vSeas;\n'+sh.fragmentShader.replace(
+        '#include <color_fragment>',
+        '#include <color_fragment>\n'+(tint==='snow'?SNOW_FS:SEASON_FS)); }
     sh.vertexShader=head+vs;
   };
+  /* ---- EVERY PATCHED MATERIAL MUST KEEP ITS OWN PROGRAM ----
+     three.js keys a compiled shader by the SOURCE TEXT of onBeforeCompile, and
+     that text is identical for every material patched here — the amplitude and
+     the tint live in the closure, not in the source. So without a key of its
+     own, every swaying material in the world shared ONE program: whichever
+     compiled first, and every other leaf, blade and crop was drawn with that
+     one's amplitude and that one's season. (It is why the snow would not lie on
+     the grass, and why every plant swayed alike.) */
+  mat.customProgramCacheKey=()=>'sway|'+amp+'|'+(rooted?1:0)+'|'+(tint||'');
   mat.needsUpdate=true;
 }
-windSway(MAT.leaves,0.55,false,true); windSway(MAT.leavesTr,0.62,false,true); windSway(MAT.cherry,0.55,false);
-windSway(MAT.tallgrass,0.9,true); windSway(MAT.flowerR,0.6,true); windSway(MAT.flowerY,0.6,true);
+/* ---- THE SNOW THAT LIES IN WINTER ----
+   The horizontal faces of the ground — the grass tops, the paths, the village
+   cobbles — whiten over as winter comes on, and only in the cold zones: the
+   temperate lands take it, the far north keeps it the year round, and the
+   tropics never take it at all (worked per-face from the distance to the pole,
+   the same reckoning the leaves use). No chunk is re-meshed; it is in the
+   shader, and the traveller's chosen season drives it. */
+function groundSnow(mat){
+  mat.onBeforeCompile=sh=>{ sh.uniforms.uSeasonY=SEASON_Y;
+    sh.vertexShader='uniform float uSeasonY;\nvarying vec2 vSeas;\n'+sh.vertexShader.replace(
+      '#include <color_vertex>','#include <color_vertex>\n'+SNOW_VS);
+    sh.fragmentShader='varying vec2 vSeas;\n'+sh.fragmentShader.replace(
+      '#include <color_fragment>','#include <color_fragment>\n'+SNOW_FS); };
+  mat.customProgramCacheKey=()=>'groundsnow';
+  mat.needsUpdate=true;
+}
+groundSnow(MAT.grassTop); groundSnow(MAT.grassTopTr); groundSnow(MAT.grassTopTu);
+groundSnow(MAT.grassTopSv); groundSnow(MAT.path); groundSnow(MAT.cobble);
+windSway(MAT.leaves,0.55,false,'leaf'); windSway(MAT.leavesTr,0.62,false,'leaf'); windSway(MAT.cherry,0.55,false);
+/* the grass blades take the snow, so they whiten with the ground and do not
+   stand green out of a white field */
+windSway(MAT.tallgrass,0.9,true,'snow');
+/* and the flowers standing in the sward go under the snow with it */
+windSway(MAT.flowerR,0.6,true,'snow'); windSway(MAT.flowerY,0.6,true,'snow');
 /* the plain moves as one thing when the wind crosses it — the tall grass
    swings further than the sward, and the thorn crowns ride it */
-windSway(MAT.savgrass,1.5,true); windSway(MAT.acacia,0.5,false,true);
+windSway(MAT.savgrass,1.5,true,'snow'); windSway(MAT.acacia,0.5,false,'leaf');
 /* and every leaf and every herb on the earth moves with it */
-windSway(MAT.leafW,0.55,false,true); windSway(MAT.plantW,0.85,true);
+windSway(MAT.leafW,0.55,false,'leaf'); windSway(MAT.plantW,0.85,true,'snow');
 windSway(MAT.crop,0.5,true);
 /* breaking surf — clumpy foam that washes the shoreline (scrolled + pulsed) */
 TEX.surf = mkTex(g=>{ g.clearRect(0,0,16,16);
@@ -4862,6 +4915,41 @@ function findDen(a){
   const aa=hash2(a.hx*0.13,a.hz*0.17)*6.283, rr=18+hash2(a.hz*0.11,a.hx*0.19)*36;
   return {x:a.hx+Math.cos(aa)*rr, z:a.hz+Math.sin(aa)*rr};
 }
+/* ================= THE SPRING BLOOM =================
+   The baked flowers in the chunks are the world's year-round few; this is the
+   FLUSH — a scatter of extra flowers that breaks on the grasslands in the
+   flowering season (spring in the temperate lands, the wet in the tropics, the
+   brief summer at the poles) and dies back as the season turns. Like the sea's
+   weed it is a MOVING POOL set down near the traveller, so no chunk is ever
+   re-meshed: the flowers are simply shown or hidden by the season where each
+   one stands, and thin out toward autumn. */
+const bloomMatR=new THREE.MeshBasicMaterial({map:TEX.flowerR,alphaTest:0.4,side:THREE.DoubleSide});
+const bloomMatY=new THREE.MeshBasicMaterial({map:TEX.flowerY,alphaTest:0.4,side:THREE.DoubleSide});
+windSway(bloomMatR,0.5,true); windSway(bloomMatY,0.5,true);   /* they nod on the wind with the grass */
+function makeBloom(){ const g=new THREE.Group(), n=5+Math.floor(Math.random()*6);
+  for(let i=0;i<n;i++){ const mat=Math.random()<0.5?bloomMatR:bloomMatY;
+    /* two crossed blades apiece, so a flower is seen from any side */
+    for(const rot of [0,Math.PI/2]){ const bl=new THREE.Mesh(new THREE.PlaneGeometry(1.5,1.7),mat);
+      bl.position.set((Math.random()-0.5)*7,0.85,(Math.random()-0.5)*7); bl.rotation.y=rot+(Math.random()-0.5)*0.5;
+      g.add(bl); } }
+  return g; }
+const BLOOMS=[], BLOOMS_N=70, BLOOMS_R=240;
+function initBlooms(){ if(BLOOMS.length) return; for(let k=0;k<BLOOMS_N;k++){ const m=makeBloom(); m.visible=false; scene.add(m); BLOOMS.push({m,x:0,z:0,set:false}); } }
+function updateBlooms(px,pz){ initBlooms(); const doy=dayOfYear();
+  for(const b of BLOOMS){
+    if(!b.set||Math.hypot(b.x-px,b.z-pz)>BLOOMS_R+80){ b.set=false;
+      /* set it down on true grassland — never sand, rock, snow or the sea */
+      for(let tr=0;tr<8;tr++){ const a=Math.random()*6.28, rr=24+Math.random()*BLOOMS_R, x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr;
+        if(grassProbe(x,z)){ const c=landAtWorld(x,z); b.x=x; b.z=z; b.m.position.set(x,(c?c.h*B:WATER_Y),z); b.set=true; break; } }
+      if(!b.set){ b.m.visible=false; continue; } }
+    /* shown only where — and while — the flowers are in season, and thinning
+       as it wanes (js/season.js reckons the bloom for this latitude and day) */
+    const latN=1-Math.hypot(b.x,b.z)/R_WORLD*2;
+    const bloom=window.SEASON?SEASON.bloomFactor(latN,doy):0.4;
+    if(bloom>0.08){ b.m.visible=true; b.m.scale.setScalar(0.45+0.55*bloom); }
+    else b.m.visible=false;
+  } }
+function hideBlooms(){ for(const b of BLOOMS) if(b.m) b.m.visible=false; }
 function updateLandLife(px,pz,dt,t){ initLandLife();
   const night=(worldNight||0)>0.6;
   for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>LL_R+140){ const sp=findLandSpot(px,pz);
@@ -4901,7 +4989,12 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
          built from its mother's OWN model, so a zebra's is a small zebra
          with a near full-sized head, which is what makes a thing read as
          young without anybody being told. */
-      setYoung(a, window.BABY && BABY.runs(kind) && hash2(sp.x*0.031,sp.z*0.027)<0.26); }
+      /* ---- THE HERDS HAVE THEIR YOUNG IN THE SPRING ----
+         Spring is the time of birth and winter the barren time, by the season
+         where the herd stands (js/season.js). So a herd met in spring is thick
+         with young at foot, and one met in the snow has almost none. */
+      { const breed=window.SEASON?SEASON.breedFactor(1-Math.hypot(sp.x,sp.z)/R_WORLD*2,dayOfYear()):1;
+        setYoung(a, window.BABY && BABY.runs(kind) && hash2(sp.x*0.031,sp.z*0.027)<0.26*breed); } }
     if(!a.set) continue;
     /* ---- THE KILL LIES WHERE IT FELL ----
        A caught beast used to shake itself and trot off while its killer
@@ -4930,7 +5023,12 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
        that keeps the night is up when the diurnal ones are bedded, and down
        when they are up — which halves what you meet at any hour and doubles
        what it is worth meeting. */
-    const asleep=(a.day==='all'||a.day==='dusk')?false:(a.day==='night'?!night:night);
+    let asleep=(a.day==='all'||a.day==='dusk')?false:(a.day==='night'?!night:night);
+    /* ---- AND SOME SLEEP THE WHOLE WINTER THROUGH ----
+       The bear, the hedgehog and the badger den up when the snow lies and are
+       not seen again until the thaw (js/season.js names the hibernators). They
+       bed down wherever the season is winter about them. */
+    if(window.SEASON&&SEASON.dormant(a.kind,1-Math.hypot(a.hx,a.hz)/R_WORLD*2,dayOfYear())) asleep=true;
     /* a beast up a tree does not walk anywhere at all */
     if(a.upTree>0){
       a.jt-=0; if(a.jt<=0){ a.jt=8+Math.random()*14;
@@ -7293,6 +7391,7 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code==='KeyG') takeFlight();          /* SPACE (handled above) lifts in flight */
   if(e.code==='KeyC') enterDive();           /* dive the deep / surface */
   if(e.code==='KeyM') toggleMap();
+  if(e.code==='KeyK') cycleSeason();
   if(e.code==='KeyL') toggleLog(); });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
 const cv=$('cv'); let drag=null, joy=null;
@@ -8761,7 +8860,12 @@ function placeTick(){
   const pp=playerXZ(), lh=localHourAt(pp.x,pp.z);
   /* THREE LINES, never four: the panel sits above the button rail, and a
      fourth line pushed it down onto the top button at every screen size. */
-  $('clock').innerHTML='DAY '+dayOfYear()+' OF 364<br>'+clockFace(lh)
+  /* the season HERE, at the traveller's own latitude (flipped for the south,
+     wet/dry in the tropics) \u2014 and a mark if he is holding the year by hand */
+  let seasonLabel='';
+  if(window.SEASON){ const latN=1-Math.hypot(pp.x,pp.z)/R_WORLD*2;
+    seasonLabel=' \u00b7 '+SEASON.seasonAt(latN,dayOfYear()).name+(SEASON.isNatural()?'':'*'); }
+  $('clock').innerHTML='DAY '+dayOfYear()+' OF 364'+seasonLabel+'<br>'+clockFace(lh)
     +' \u00b7 '+dayPartName(lh)+'<br>'+SPEEDS[state.speedIdx][1]+' \u00b7 '+windLabel();
 }
 
@@ -8911,6 +9015,20 @@ const mini=$('mini'), minictx=mini.getContext('2d');
 let bigOpen=false;
 function toggleMap(){ bigOpen=!bigOpen; $('bigmap').style.display=bigOpen?'flex':'none';
   if(bigOpen) sizeBig(); }
+/* ---- THE TRAVELLER'S HAND ON THE YEAR (the K key) ----
+   Step round the ring — Spring, Summer, Autumn, Winter, and back to the year's
+   own natural course — and the whole world answers: the leaves gild or green,
+   the snow lies or melts, and the beasts take their season. What the traveller
+   sets is the NORTHERN season; where he himself stands may be the other half
+   of the year, and the word tells him which. */
+function cycleSeason(){ if(!window.SEASON) return;
+  const r=SEASON.cycle();
+  const pp=playerXZ(), latN=1-Math.hypot(pp.x,pp.z)/R_WORLD*2;
+  const here=SEASON.seasonAt(latN,dayOfYear()), z=here.zone;
+  const where=' · '+here.name+(z==='tropical'?' (the tropics keep no winter)':z==='polar'?' (the far cold)':'')+' where you stand';
+  toast(r==='Natural'?('The year runs its own course again'+where+'.')
+                     :('You turn the year to '+r+where+'.'));
+}
 function sizeBig(){ const bc=$('bigcv'); const s=Math.floor(Math.min(innerWidth,innerHeight)*0.86);
   bc.width=bc.height=s; drawMapInto(bc.getContext('2d'),s,true); }
 $('bigmap').addEventListener('click',toggleMap);
@@ -9487,8 +9605,10 @@ function frame(){
   /* the wind in the leaves — phase clock and strength for the sway shader */
   WIND_T.value=performance.now()*0.001;
   { const wnd=windAt(p.x,p.z); WIND_A.value=(0.35+wnd.s*0.9)*(1+(light.storm||0)*1.6); }
-  /* and the turn of the year, for the seasonal gilding of the leaves */
-  SEASON_Y.value=(dayOfYear()-1)/364;
+  /* and the turn of the year, for the seasonal gilding of the leaves and the
+     snow that lies — from the season engine, so the traveller's chosen season
+     drives the whole world's look */
+  SEASON_Y.value=window.SEASON?SEASON.yearPhase(dayOfYear()):(dayOfYear()-1)/364;
   /* aloft the air clears and the eye reaches far — but ONLY aloft, or with
      the eye deliberately drawn back off the world. Down in the played world
      the fog stays shut at the chunks' edge, so gameplay is blocks and haze
@@ -9777,9 +9897,9 @@ function frame(){
     podTick(p.x,p.z,dt,tt);             /* the whale pods, making for the fishing grounds */
     orcaTick(p.x,p.z,dt,tt);            /* and the killer whales, on their own road in the deep */
     if(state.mode==='boat'||state.mode==='deck'||state.mode==='walk'){
-      updateLandLife(p.x,p.z,dt,tt); updateRiverLife(p.x,p.z,dt,tt); }
-    else hideLandLife(); }
-  else { hideLandLife(); hideAirLife(); hidePod(); hideOrca(); }
+      updateLandLife(p.x,p.z,dt,tt); updateRiverLife(p.x,p.z,dt,tt); updateBlooms(p.x,p.z); }
+    else { hideLandLife(); hideBlooms(); } }
+  else { hideLandLife(); hideAirLife(); hidePod(); hideOrca(); hideBlooms(); }
   if(state.firm&&firmMark) firmMark.position.set(p.x,R_WORLD*0.012,p.z);
   seaTex.offset.x=(performance.now()*0.000012)%1; seaTex.offset.y=(performance.now()*0.000009)%1;
   const _pn=performance.now();
