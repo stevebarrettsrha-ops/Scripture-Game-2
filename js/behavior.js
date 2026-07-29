@@ -206,15 +206,175 @@ platypus:    {day:'dusk',walk:2,  run:6,  home:'water', acts:[['dig',4]], climb:
    air-life reads this to give every bird its real day: the owl works
    the night and sleeps it off in a tree; the puffin fishes the sea and
    sleeps at its burrow in the turf; the gull will not go far from
-   water; the dove is on the ground as much as off it. */
+   water; the dove is on the ground as much as off it.
+
+   perch  — where it sits at rest: 'tree', 'ground', 'flower'.
+   night  — what it does in the dark: 'roost' (sleeps), 'hunt' (the owl,
+            which works the dark), or 'sit' (the butterfly, folded on a stem).
+   fish   — true if it takes its living from the water. The engine reads this
+            now (it used to name the gull and eagle by hand), so a fishing
+            bird is made a fisher by its line here and nowhere else.
+   flock  — true if it gathers with its own kind: the crow's rookery, the
+            dove's flight, the gull's wheeling raft. Such birds draw toward
+            one another at rest instead of each sitting alone.
+   soar   — true if it rides the wind on a set wing rather than flapping: the
+            eagle on its thermal, the gull on the sea-breeze. */
 const BIRDS={
-crow:   {perch:'tree',   night:'roost', fish:false},
-dove:   {perch:'tree',   night:'roost', fish:false},
-gull:   {perch:'ground', night:'roost', fish:true },
-eagle:  {perch:'tree',   night:'roost', fish:false},
-owl:    {perch:'tree',   night:'hunt',  fish:false},   /* the one that WORKS the dark */
-puffin: {perch:'ground', night:'roost', fish:true },
-butterfly:{perch:'flower',night:'sit',  fish:false},
+crow:   {perch:'tree',   night:'roost', fish:false, flock:true },
+dove:   {perch:'tree',   night:'roost', fish:false, flock:true },
+gull:   {perch:'ground', night:'roost', fish:true,  flock:true, soar:true },
+eagle:  {perch:'tree',   night:'roost', fish:false, flock:false,soar:true },
+owl:    {perch:'tree',   night:'hunt',  fish:false, flock:false},   /* the one that WORKS the dark */
+puffin: {perch:'ground', night:'roost', fish:true,  flock:true },
+butterfly:{perch:'flower',night:'sit',  fish:false, flock:false},
+};
+
+/* ================= THE FISH OF THE SEA, AND THEIR WORK =================
+   "So is this great and wide sea, wherein are things creeping innumerable,
+    both small and great beasts. There go the ships: there is that leviathan,
+    whom thou hast made to play therein."
+
+   THE FAULT THIS TABLE MENDS. Every nation of the sea swam the one way — a
+   flat wander at one speed, at one depth, by day and by night alike. A whale
+   never came up to blow, a seal never lay logging at the top, an octopus
+   never went to ground in its hole, and the deep-water shoals never rose in
+   the dark to feed and sank again at dawn. Now each keeps its own hours, its
+   own water, its own pace, and its own habits — written here, and the sea-life
+   engine obeys.
+
+   day    — when it is abroad and quick: 'day', 'night', 'dusk', or 'all'.
+            Off its hours it does not stop (nothing stops in the sea) but goes
+            slow and quiet.
+   swim   — its cruising pace, world units a second.
+   fast   — its burst: the flight, or the strike.
+   deep   — the water it keeps to (a label, for the reader; the engine already
+            sinks each nation to its own depth): reef, shelf, open, pelagic,
+            abyss, ice, bed, river.
+   school — true if it holds with its own kind.
+   air    — true if it MUST come up to breathe: every whale, dolphin, seal and
+            turtle. These rise to the surface on their own clock and go down
+            again, which is the plainest sign of life the open sea can show.
+   home   — where it rests or shelters: reef, bed, kelp/weed, ice, cave, open,
+            river.
+   acts   — the small business of its life, drawn by weight. The engine renders
+            what it can as real motion — the dive (sound), the rise to breathe
+            (surface), the hang at the top (logging/bask), the going-to-ground
+            (bottom/den) — and keeps the rest as a stable key for sound and
+            animation, exactly as the land's acts are.
+
+   To put a new fish in the sea: add its creature file, add a line here. */
+const SEA={
+/* ---- the great breathing beasts: whale, dolphin, and their kin ---- */
+whale:        {day:'all',  swim:5, fast:11, deep:'open',    school:true,  air:true,  home:'open', acts:[['sound',4],['surface',3],['breach',1],['spyhop',1]]},
+orca:         {day:'all',  swim:7, fast:16, deep:'open',    school:true,  air:true,  home:'open', acts:[['hunt',3],['surface',3],['spyhop',2],['breach',1]]},
+dolphin:      {day:'day',  swim:8, fast:18, deep:'shelf',   school:true,  air:true,  home:'open', acts:[['surface',3],['play',2],['breach',2],['hunt',1]]},
+riverdolphin: {day:'day',  swim:5, fast:11, deep:'river',   school:false, air:true,  home:'river',acts:[['surface',3],['probe',2],['roll',1]]},
+narwhal:      {day:'all',  swim:5, fast:12, deep:'ice',     school:true,  air:true,  home:'ice',  acts:[['sound',3],['surface',3],['tusk',1]]},
+beluga:       {day:'all',  swim:5, fast:12, deep:'ice',     school:true,  air:true,  home:'ice',  acts:[['surface',3],['sound',2],['song',2]]},
+seal:         {day:'day',  swim:7, fast:16, deep:'shelf',   school:false, air:true,  home:'ice',  acts:[['surface',3],['logging',3],['hunt',2],['bask',1]]},
+walrus:       {day:'day',  swim:4, fast:9,  deep:'shelf',   school:true,  air:true,  home:'ice',  acts:[['surface',3],['bottom',3],['logging',2]]},
+manatee:      {day:'day',  swim:3, fast:7,  deep:'shelf',   school:false, air:true,  home:'weed', acts:[['graze',5],['surface',3],['logging',2]]},
+turtle:       {day:'day',  swim:4, fast:10, deep:'reef',    school:false, air:true,  home:'reef', acts:[['graze',3],['surface',3],['clean',1],['logging',1]]},
+/* ---- the hunters and the great fish of the open water ---- */
+greenlandshark:{day:'all', swim:2, fast:4,  deep:'abyss',   school:false, air:false, home:'bed',  acts:[['sound',4],['logging',3],['scavenge',1]]},
+shark:        {day:'all',  swim:6, fast:20, deep:'open',    school:false, air:false, home:'open', acts:[['hunt',4],['patrol',3],['clean',1]]},
+hammerhead:   {day:'dusk', swim:6, fast:18, deep:'open',    school:true,  air:false, home:'open', acts:[['hunt',3],['school',3],['patrol',2]]},
+whaleshark:   {day:'day',  swim:3, fast:7,  deep:'open',    school:false, air:false, home:'open', acts:[['filter',5],['bask',2],['sound',1]]},
+tuna:         {day:'day',  swim:12,fast:30, deep:'pelagic', school:true,  air:false, home:'open', acts:[['school',4],['hunt',2],['patrol',2]]},
+swordfish:    {day:'dusk', swim:8, fast:22, deep:'pelagic', school:false, air:false, home:'open', acts:[['sound',3],['hunt',3],['patrol',2]]},
+barracuda:    {day:'day',  swim:6, fast:20, deep:'reef',    school:true,  air:false, home:'reef', acts:[['logging',4],['hunt',3],['school',1]]},
+/* ---- the schooling nations ---- */
+sardine:      {day:'night',swim:9, fast:17, deep:'shelf',   school:true,  air:false, home:'open', acts:[['school',5],['bait',3],['flash',1]]},
+mackerel:     {day:'night',swim:11,fast:21, deep:'shelf',   school:true,  air:false, home:'open', acts:[['school',5],['patrol',2]]},
+cod:          {day:'day',  swim:5, fast:9,  deep:'bed',     school:true,  air:false, home:'bed',  acts:[['bottom',4],['forage',3]]},
+/* ---- the bed and the reef ---- */
+ray:          {day:'day',  swim:3, fast:8,  deep:'bed',     school:false, air:false, home:'bed',  acts:[['bottom',4],['glide',3],['bury',2]]},
+octopus:      {day:'night',swim:2, fast:9,  deep:'reef',    school:false, air:false, home:'cave', acts:[['den',4],['crawl',3],['jet',1],['ink',1]]},
+squid:        {day:'night',swim:5, fast:14, deep:'deep',    school:true,  air:false, home:'open', acts:[['hover',3],['jet',3],['school',2]]},
+jelly:        {day:'all',  swim:1, fast:2,  deep:'deep',    school:false, air:false, home:'open', acts:[['pulse',5],['drift',4]]},
+crab:         {day:'night',swim:1, fast:3,  deep:'bed',     school:false, air:false, home:'bed',  acts:[['bottom',4],['bury',2],['forage',2]]},
+puffer:       {day:'day',  swim:2, fast:6,  deep:'reef',    school:false, air:false, home:'reef', acts:[['forage',4],['puff',1],['logging',1]]},
+anglerfish:   {day:'all',  swim:1, fast:5,  deep:'abyss',   school:false, air:false, home:'open', acts:[['lure',6],['hover',3]]},
+fish:         {day:'day',  swim:4, fast:9,  deep:'reef',    school:true,  air:false, home:'reef', acts:[['graze',3],['school',3],['clean',1]]},
+/* ---- the fish of the rivers, that never see the sea ---- */
+salmon:       {day:'day',  swim:6, fast:19, deep:'river',   school:true,  air:false, home:'river',acts:[['run',4],['leap',2],['hold',2]]},
+trout:        {day:'dusk', swim:5, fast:12, deep:'river',   school:false, air:false, home:'river',acts:[['hold',4],['rise',2],['dart',1]]},
+arcticchar:   {day:'day',  swim:5, fast:12, deep:'river',   school:true,  air:false, home:'river',acts:[['hold',3],['school',2]]},
+sturgeon:     {day:'night',swim:3, fast:8,  deep:'river',   school:false, air:false, home:'bed',  acts:[['bottom',5],['probe',2]]},
+catfish:      {day:'night',swim:2, fast:6,  deep:'river',   school:false, air:false, home:'bed',  acts:[['bottom',5],['probe',3]]},
+piranha:      {day:'day',  swim:5, fast:16, deep:'river',   school:true,  air:false, home:'river',acts:[['school',4],['hunt',3]]},
+};
+
+/* ================= THE GRASS, THE HERB, AND THE BEARING TREE =================
+   "And God said, Let the earth bring forth grass, the herb yielding seed, and
+    the fruit tree yielding fruit after his kind: and it was so."
+
+   The beasts have their day's work; the green things have a slower one, and it
+   is written here by FORM (the shapes in js/flora.js), because a poplar and a
+   reed behave alike whatever their names, and a baobab and a cactus alike.
+
+   The land's flora is built once into the ground and does not walk, so most of
+   this is the CATALOGUE — the law of what each form does, kept as the land
+   beasts' acts are kept, against the day the ground is re-meshed by season.
+   What CAN move already (the sea's kelp and seagrass) is driven live by the
+   engine from the 'things' below.
+
+   sway  — how freely it moves on the wind, 0 (the baobab, immovable) to 1
+           (the reed, never still).
+   fold  — true if its leaf or flower closes in the dark (nyctinasty): the
+           acacia, the flowering herb.
+   bear  — what it puts forth in its season: fruit, blossom, cone, berry,
+           spore, flower, or none.
+   grow  — its habit of growth: phototropic (turns to the sun), succulent
+           (stores water against the drought), stilt (walks into the sea on
+           its roots), fire (needs the burn), and so on. */
+const FLORA={
+broad:   {sway:0.5, fold:false, bear:'fruit',   grow:'phototropic', acts:[['sway',4],['fruit',2],['leaf-fall',1]]},
+round:   {sway:0.5, fold:false, bear:'fruit',   grow:'phototropic', acts:[['sway',4],['fruit',2]]},
+conifer: {sway:0.3, fold:false, bear:'cone',    grow:'evergreen',   acts:[['sway',3],['cone',2]]},
+column:  {sway:0.7, fold:false, bear:'none',    grow:'phototropic', acts:[['sway',5]]},
+palm:    {sway:0.8, fold:false, bear:'fruit',   grow:'phototropic', acts:[['sway',5],['fruit',2]]},
+thorn:   {sway:0.4, fold:true,  bear:'blossom', grow:'drought',     acts:[['sway',3],['fold',2],['blossom',1]]},
+blossom: {sway:0.5, fold:false, bear:'blossom', grow:'deciduous',   acts:[['blossom',4],['sway',3],['petal-fall',2]]},
+bamboo:  {sway:0.9, fold:false, bear:'none',    grow:'fast',        acts:[['sway',6]]},
+cactus:  {sway:0.1, fold:false, bear:'fruit',   grow:'succulent',   acts:[['store',4],['flower',1],['fruit',1]]},
+baobab:  {sway:0.1, fold:false, bear:'fruit',   grow:'succulent',   acts:[['store',4],['fruit',1]]},
+banana:  {sway:0.9, fold:false, bear:'fruit',   grow:'fast',        acts:[['sway',5],['fruit',3]]},
+mangrove:{sway:0.3, fold:false, bear:'none',    grow:'stilt',       acts:[['sway',2],['breathe-root',3],['trap-silt',2]]},
+fern:    {sway:0.6, fold:false, bear:'spore',   grow:'shade',       acts:[['sway',4],['sporulate',2]]},
+gum:     {sway:0.6, fold:false, bear:'none',    grow:'fire',        acts:[['sway',4],['shed-bark',2],['scent',1]]},
+spread:  {sway:0.3, fold:false, bear:'fruit',   grow:'buttress',    acts:[['sway',3],['drop-root',2],['fruit',1]]},
+darkoak: {sway:0.4, fold:false, bear:'fruit',   grow:'phototropic', acts:[['sway',3],['fruit',2]]},
+jungle:  {sway:0.5, fold:false, bear:'fruit',   grow:'reach-light', acts:[['sway',4],['reach',2],['fruit',1]]},
+shrub:   {sway:0.7, fold:false, bear:'berry',   grow:'thicket',     acts:[['sway',5],['berry',2]]},
+herb:    {sway:0.9, fold:true,  bear:'flower',  grow:'annual',      acts:[['sway',6],['flower',3],['fold',2],['seed',1]]},
+cane:    {sway:1.0, fold:false, bear:'none',    grow:'reed',        acts:[['sway',7]]},
+pad:     {sway:0.2, fold:false, bear:'fruit',   grow:'succulent',   acts:[['store',3],['flower',1],['fruit',1]]},
+rosette: {sway:0.2, fold:false, bear:'flower',  grow:'succulent',   acts:[['store',3],['bolt',1]]},
+};
+
+/* ================= THE THINGS THAT ARE NOT ALIVE, AND YET MOVE =================
+   The sea's weed, the tide, the current, the light in the deep. Not beasts and
+   not plants, but the game's living furniture — and each has a way of moving.
+   The engine drives the two that stand in the water (kelp, seagrass) live from
+   here; the rest is the catalogue, in the same spirit as the behaviour kit.
+
+   move — how it goes: current (leans and streams with the flow), rise-fall
+          (the tide), drift, sink, flash, slant, rise, spread, gust.
+   day  — when it is at its strongest: day, night, all, or 'moon' (the tide,
+          which keeps the moon's clock, not the sun's). */
+const THINGS={
+kelp:       {move:'current',  day:'all',  acts:[['sway',6],['stream',3]]},
+seagrass:   {move:'current',  day:'all',  acts:[['sway',6],['stream',2]]},
+coral:      {move:'none',     day:'all',  acts:[['polyp-feed',4],['biolum',2],['bleach',1]]},
+tide:       {move:'rise-fall',day:'moon', acts:[['flood',4],['ebb',4]]},
+current:    {move:'drift',    day:'all',  acts:[['drift',6],['upwell',2]]},
+marine_snow:{move:'sink',     day:'all',  acts:[['fall',6]]},
+biolum:     {move:'flash',    day:'night',acts:[['glow',5],['burst',2]]},
+godray:     {move:'slant',    day:'day',  acts:[['shaft',5]]},
+bubble:     {move:'rise',     day:'all',  acts:[['rise',6]]},
+wildfire:   {move:'spread',   day:'all',  acts:[['spread',5],['smoulder',2]]},
+storm:      {move:'gust',     day:'all',  acts:[['gust',5],['surge',2]]},
 };
 
 window.BEHAVIOR={
@@ -237,5 +397,24 @@ window.BEHAVIOR={
     let w=0; for(const a of b.acts) w+=a[1];
     let x=r*w; for(const a of b.acts){ x-=a[1]; if(x<=0) return a[0]; }
     return b.acts[b.acts.length-1][0]; },
+  /* ---- and the same, for the fish of the sea ---- */
+  SEA,
+  seaOf:name=>SEA[name]||null,
+  swimOf:(name,fb)=>{ const b=SEA[name]; return (b&&b.swim)||fb; },
+  seaFastOf:(name,fb)=>{ const b=SEA[name]; return (b&&b.fast)||fb; },
+  seaDayOf:name=>{ const b=SEA[name]; return (b&&b.day)||'day'; },
+  seaAirOf:name=>{ const b=SEA[name]; return !!(b&&b.air); },
+  seaSchoolOf:name=>{ const b=SEA[name]; return !!(b&&b.school); },
+  seaHomeOf:name=>{ const b=SEA[name]; return (b&&b.home)||'open'; },
+  drawSeaAct:(name,r)=>{ const b=SEA[name]; if(!b||!b.acts||!b.acts.length) return null;
+    let w=0; for(const a of b.acts) w+=a[1];
+    let x=r*w; for(const a of b.acts){ x-=a[1]; if(x<=0) return a[0]; }
+    return b.acts[b.acts.length-1][0]; },
+  /* ---- the green things, by form, and the living furniture of the world ---- */
+  FLORA, THINGS,
+  floraOf:form=>FLORA[form]||null,
+  swayOf:(form,fb)=>{ const f=FLORA[form]; return f?f.sway:(fb===undefined?0.5:fb); },
+  foldsOf:form=>{ const f=FLORA[form]; return !!(f&&f.fold); },
+  thingOf:name=>THINGS[name]||null,
 };
 })();

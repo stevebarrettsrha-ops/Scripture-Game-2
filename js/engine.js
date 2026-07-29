@@ -260,10 +260,32 @@ blockMat('waterB',TEX.water);
    canopies breathe as a whole. Amplitude follows the living wind and the
    storms (WIND_A, fed each frame from windAt + stormAt). */
 const WIND_T={value:0}, WIND_A={value:1};
-function windSway(mat,amp,rooted){
+/* ---- THE TURN OF THE YEAR IN THE LEAVES ----
+   uSeasonY runs 0..1 through the game's 364-day year (fed each frame from
+   dayOfYear). A leaf canopy shifts its own baked colour by it: the temperate
+   woods gild toward gold in autumn and go grey and dim in winter, while the
+   tropics keep their green and the far north, where the evergreens stand,
+   hardly turns. The world is a disc with the North Pole at its centre and the
+   South at its rim, so the two hemispheres keep OPPOSITE seasons — the south
+   is half a year on from the north, worked out per-leaf from its distance to
+   the centre. No chunk is ever re-meshed for it; it is all in the shader. */
+const SEASON_Y={value:0};
+const INV_R_STR=(1/180000).toExponential();   /* 1 / R_WORLD, for the shader */
+const SEASON_GLSL=
+  '{ float sr=length(position.xz)*'+INV_R_STR+';\n'+
+  '  float latN=1.0-sr*2.0;\n'+                                   /* +1 north pole .. -1 south */
+  '  float ph=fract(uSeasonY+(latN<0.0?0.5:0.0));\n'+            /* the south is half a year on */
+  '  float autumn=smoothstep(0.50,0.66,ph)*(1.0-smoothstep(0.66,0.82,ph));\n'+
+  '  float winter=clamp(smoothstep(0.74,0.90,ph)+(1.0-smoothstep(0.10,0.26,ph)),0.0,1.0);\n'+
+  '  float band=clamp(abs(latN),0.0,1.0);\n'+                     /* 0 equator .. 1 pole */
+  '  float temperate=smoothstep(0.12,0.42,band)*(1.0-smoothstep(0.72,1.0,band));\n'+
+  '  autumn*=temperate; winter*=temperate;\n'+
+  '  vColor.rgb=mix(vColor.rgb, vec3(0.74,0.52,0.18), autumn*0.55);\n'+   /* gild to gold */
+  '  vColor.rgb=mix(vColor.rgb, vColor.rgb*vec3(0.62,0.60,0.55), winter*0.60); }';  /* grey, dim */
+function windSway(mat,amp,rooted,leafy){
   mat.onBeforeCompile=sh=>{
     sh.uniforms.uWindT=WIND_T; sh.uniforms.uWindA=WIND_A;
-    sh.vertexShader='uniform float uWindT; uniform float uWindA;\n'+sh.vertexShader.replace(
+    let vs=sh.vertexShader.replace(
       '#include <begin_vertex>',
       '#include <begin_vertex>\n'+
       '{ float wph=position.x*0.161+position.z*0.127;\n'+
@@ -272,16 +294,22 @@ function windSway(mat,amp,rooted){
       '  float ws2=sin(uWindT*1.3+wph*1.31)+0.5*sin(uWindT*2.3+wph*0.77);\n'+
       '  transformed.x+=ws1*'+amp.toFixed(3)+'*uWindA*wgt;\n'+
       '  transformed.z+=ws2*'+(amp*0.7).toFixed(3)+'*uWindA*wgt; }');
+    let head='uniform float uWindT; uniform float uWindA;\n';
+    /* the leaf canopies also take the turn of the year (never the grass, the
+       crop or the herb — those keep their green) */
+    if(leafy){ sh.uniforms.uSeasonY=SEASON_Y; head+='uniform float uSeasonY;\n';
+      vs=vs.replace('#include <color_vertex>','#include <color_vertex>\n'+SEASON_GLSL); }
+    sh.vertexShader=head+vs;
   };
   mat.needsUpdate=true;
 }
-windSway(MAT.leaves,0.55,false); windSway(MAT.leavesTr,0.62,false); windSway(MAT.cherry,0.55,false);
+windSway(MAT.leaves,0.55,false,true); windSway(MAT.leavesTr,0.62,false,true); windSway(MAT.cherry,0.55,false);
 windSway(MAT.tallgrass,0.9,true); windSway(MAT.flowerR,0.6,true); windSway(MAT.flowerY,0.6,true);
 /* the plain moves as one thing when the wind crosses it — the tall grass
    swings further than the sward, and the thorn crowns ride it */
-windSway(MAT.savgrass,1.5,true); windSway(MAT.acacia,0.5,false);
+windSway(MAT.savgrass,1.5,true); windSway(MAT.acacia,0.5,false,true);
 /* and every leaf and every herb on the earth moves with it */
-windSway(MAT.leafW,0.55,false); windSway(MAT.plantW,0.85,true);
+windSway(MAT.leafW,0.55,false,true); windSway(MAT.plantW,0.85,true);
 windSway(MAT.crop,0.5,true);
 /* breaking surf — clumpy foam that washes the shoreline (scrolled + pulsed) */
 TEX.surf = mkTex(g=>{ g.clearRect(0,0,16,16);
@@ -3858,9 +3886,21 @@ function placeKelp(k,px,pz){ for(let tr=0;tr<6;tr++){ const a=Math.random()*6.28
       k.h=Math.min(SEA_SURF-fy-6,(14+Math.random()*31)*U_PER_M); k.set=true;
       k.m.position.set(x,fy,z); k.m.scale.set(0.7+Math.random()*0.6,k.h/35,0.7+Math.random()*0.6); k.m.visible=true; return; } }
   k.set=false; k.m.visible=false; }
-function updateKelp(px,pz,t){ initKelp(); for(const k of KELP){
+/* ---- THE CURRENT OF THE SEA ----
+   One slow, wandering flow that all the weed of the sea leans and streams with
+   TOGETHER, so a kelp forest moves as a forest and not as a thousand separate
+   blades each on its own clock. The kelp and the seagrass are the 'things' that
+   move with the current (js/behavior.js names them so). */
+function seaCurrent(t){
+  const dir=Math.sin(t*0.05)*0.8+Math.sin(t*0.017+1.3)*0.5;   /* the lean, wandering */
+  const str=0.55+0.45*Math.sin(t*0.03+0.7);                   /* the surge, low to full */
+  return {dir,str};
+}
+function updateKelp(px,pz,t){ initKelp(); const cur=seaCurrent(t); for(const k of KELP){
     if(!k.set||Math.hypot(k.x-px,k.z-pz)>KELP_R+90) placeKelp(k,px,pz);
-    if(!k.set) continue; const sw=Math.sin(t*1.0+k.ph)*0.12, segs=k.m.userData.segs;
+    if(!k.set) continue;
+    /* its own slow ripple, and the shared lean of the current over it */
+    const sw=(Math.sin(t*1.0+k.ph)*0.06+cur.dir*0.10)*cur.str, segs=k.m.userData.segs;
     for(let s=0;s<segs.length;s++) segs[s].rotation.z=sw*(s+1)*0.5; } }
 /* ---- CORAL REEFS — the glory of the shallows near the coasts ----
    Mounds of coral blocks in living colour, crowned with fans, sponges and
@@ -3879,15 +3919,30 @@ function makeCoral(){ const g=new THREE.Group(), n=9+Math.floor(Math.random()*12
     if(Math.random()<0.55){ const fan=makeFan(Math.floor(Math.random()*coralMats.length));
       fan.position.set(b.position.x,hy+s,b.position.z); g.add(fan); } }
   if(Math.random()<0.7){ const sp=new THREE.Mesh(new THREE.BoxGeometry(4,3.4,4),spongeMat); sp.position.set((Math.random()-0.5)*9,2,(Math.random()-0.5)*9); g.add(sp); }  /* sponge */
-  if(Math.random()<0.6){ const gl=new THREE.Mesh(new THREE.BoxGeometry(0.9,1.3,0.9),
-      new THREE.MeshBasicMaterial({color:0xcdf06a,fog:true})); gl.position.set((Math.random()-0.5)*7,Math.random()*9+1,(Math.random()-0.5)*7); g.add(gl); }  /* sea-pickle glow */
+  /* the sea-pickles — the reef's own lanterns, dim by day and lit after dark.
+     Each keeps its own phase so the reef breathes light, not blinks it. */
+  const glows=[], nGlow=Math.random()<0.65?(1+Math.floor(Math.random()*3)):0;
+  for(let i=0;i<nGlow;i++){ const gl=new THREE.Mesh(new THREE.BoxGeometry(0.9,1.3,0.9),
+      new THREE.MeshBasicMaterial({color:0xcdf06a,fog:true}));
+    gl.position.set((Math.random()-0.5)*8,Math.random()*9+1,(Math.random()-0.5)*8);
+    gl.userData.ph=Math.random()*6.28; g.add(gl); glows.push(gl); }
+  g.userData.glows=glows;
   return g; }
 const CORAL=[], CORAL_N=34, CORAL_R=330;
 function initCoral(){ if(CORAL.length) return; for(let k=0;k<CORAL_N;k++){ const m=makeCoral(); m.visible=false; scene.add(m); CORAL.push({m,x:0,z:0,set:false}); } }
-function updateCoral(px,pz){ initCoral(); for(const r of CORAL){ if(r.set&&Math.hypot(r.x-px,r.z-pz)<=CORAL_R+90) continue;
+function updateCoral(px,pz){ initCoral(); for(const r of CORAL){ if(!(r.set&&Math.hypot(r.x-px,r.z-pz)<=CORAL_R+90)){
     for(let tr=0;tr<7;tr++){ const a=Math.random()*6.28, rr=50+Math.random()*CORAL_R, x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
       if(d>10 && d<45*U_PER_M && fbm(x*0.01-9,z*0.01+4)>0.44){   /* reefs live in the light — 45 m and no deeper */ r.x=x; r.z=z; r.set=true; r.m.position.set(x,seabedDepth(x,z),z); r.m.rotation.y=Math.random()*6.28; r.m.visible=true; break; }
       if(tr===6){ r.set=false; r.m.visible=false; } } } }
+  /* ---- THE SEA-PICKLES LIGHT UP AFTER DARK ----
+     Bioluminescence — a faint thing by day and a lantern by night. Each pickle
+     brightens as the light goes and breathes a slow pulse of its own, so the
+     reef glows rather than blinks. (js/behavior.js marks coral a night-glower.) */
+  const night=(worldNight||0), tt=performance.now()*0.001;
+  for(const r of CORAL){ if(!r.set) continue; const gs=r.m.userData.glows; if(!gs||!gs.length) continue;
+    for(const gl of gs){ const pulse=0.72+0.28*Math.sin(tt*1.6+gl.userData.ph);
+      const bri=(0.16+0.84*night)*pulse;   /* dim green by day; full lantern by night */
+      gl.material.color.setRGB(0.80*bri,0.94*bri,0.42*bri); } } }
 /* ---- seagrass — short tufts carpeting the shallow floor ---- */
 const seagrassMat=new THREE.MeshLambertMaterial({map:TEX.seagrass,side:THREE.DoubleSide});
 function makeSeagrass(){ const g=new THREE.Group(), n=3+Math.floor(Math.random()*4);
@@ -3899,10 +3954,10 @@ function makeSeagrass(){ const g=new THREE.Group(), n=3+Math.floor(Math.random()
    pool and found no sward anywhere in the world.) */
 const SEAGRASS=[], SEAGRASS_N=200, SEAGRASS_R=300;
 function initSeagrass(){ if(SEAGRASS.length) return; for(let k=0;k<SEAGRASS_N;k++){ const m=makeSeagrass(); m.visible=false; scene.add(m); SEAGRASS.push({m,x:0,z:0,ph:Math.random()*6.28,set:false}); } }
-function updateSeagrass(px,pz,t){ initSeagrass(); for(const r of SEAGRASS){ if(!r.set||Math.hypot(r.x-px,r.z-pz)>SEAGRASS_R+70){
+function updateSeagrass(px,pz,t){ initSeagrass(); const cur=seaCurrent(t); for(const r of SEAGRASS){ if(!r.set||Math.hypot(r.x-px,r.z-pz)>SEAGRASS_R+70){
       for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28, rr=30+Math.random()*SEAGRASS_R, x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
         if(d>6 && d<30*U_PER_M){ r.x=x; r.z=z; r.set=true; r.m.position.set(x,seabedDepth(x,z),z); r.m.visible=true; break; } if(tr===4){ r.set=false; r.m.visible=false; } } }
-    if(r.set) r.m.rotation.z=Math.sin(t*1.3+r.ph)*0.14; } }
+    if(r.set) r.m.rotation.z=(Math.sin(t*1.3+r.ph)*0.07+cur.dir*0.12)*cur.str; } }
 /* ---- god-rays — shafts of light slanting down from the surface ---- */
 const RAYS=[], RAY_N=9;
 function initRays(){ if(RAYS.length) return; for(let k=0;k<RAY_N;k++){
@@ -4009,6 +4064,16 @@ function updateShoals(px,py,pz,dt,t){ initShoals();
        clean out in the air over the swell. Both are held now — the school by
        its own half-height, and then every fish in it on its own account. */
     S.y=S.y+Math.sin(t*0.5+S.fish[0].ph)*4*dt;
+    /* ---- THE SCHOOL RISES IN THE DARK AND SINKS BY DAY ----
+       The great vertical migration of the sea: the night-feeding nations (the
+       sardine, the mackerel) climb toward the top after dark to feed on what
+       has risen with them, and go back down into the safe blue by day. Read
+       from js/behavior.js — a slow drift, never a jump. */
+    { const B3=window.BEHAVIOR;
+      if(B3&&B3.seaDayOf(K.name)==='night'){ const night2=(worldNight||0)>0.6;
+        const top=SEA_SURF-SHOAL_TOP-sp2*0.5, low=fy+6+sp2*0.5;
+        const ty=night2?top:(low+(top-low)*0.25);
+        S.y+=(ty-S.y)*Math.min(1,dt*0.05); } }
     S.y=Math.min(S.y, SEA_SURF-SHOAL_TOP-sp2*0.5);
     S.y=Math.max(S.y, fy+6+sp2*0.5);
     const head=Math.atan2(Math.cos(S.dir),Math.sin(S.dir));
@@ -4142,7 +4207,7 @@ function mkSeaMob(kind,n,R,rSpawn,near,deepM,lat){ const arr=[];
   /* EVERY BEAST NEEDS ROOM FOR ITS OWN BULK. A whale grown to sixteen metres
      stands three units off the bed at the old clearance and ploughs the sand
      with her belly. The clearance a beast keeps is read off its own length. */
-  arr._R=R; arr._rs=rSpawn; arr._near=near; arr._len=beastUnits(kind); arr._deep=deepM||H_REEF;
+  arr._R=R; arr._rs=rSpawn; arr._near=near; arr._len=beastUnits(kind); arr._deep=deepM||H_REEF; arr._kind=kind;
   /* AND SOME OF THEM KEEP TO THEIR OWN WATER. A walrus is not met off Ceylon
      and a manatee is not met under the ice: a nation of beasts may name the
      band of latitude it belongs to, and it is simply absent from the rest of
@@ -4152,22 +4217,48 @@ function updateSeaMob(arr,px,py,pz,dt,t){
   if(arr._lat){ const lat=90-Math.hypot(px/R_WORLD,pz/R_WORLD)*180;
     if(lat<arr._lat[0]||lat>arr._lat[1]){
       for(const o of arr) if(o.set){ o.set=false; o.m.visible=false; } return; } }
+  /* ---- WHAT THIS NATION OF THE SEA IS ABOUT ----
+     Its pace, its hours, and whether it must come up to breathe are read from
+     its line in js/behavior.js. Anything the table has no word for keeps the
+     old plain wander, so the sea runs while the table is filled in. */
+  const B2=window.BEHAVIOR, kind=arr._kind;
+  const air=B2?B2.seaAirOf(kind):false;
+  const dayp=B2?B2.seaDayOf(kind):'day';
+  const night=(worldNight||0)>0.6;
+  /* off its own hours it is slow and quiet — but nothing in the sea stands still */
+  const drowsy=(dayp==='all'||dayp==='dusk')?false:(dayp==='night'?!night:night);
   for(const o of arr){
     if(!o.set||Math.hypot(o.x-px,o.z-pz)>arr._R+140){ const a=Math.random()*6.28, r=arr._rs*0.3+Math.random()*arr._rs*0.7;
       o.x=px+Math.cos(a)*r; o.z=pz+Math.sin(a)*r; const fy=haunt(o.x,o.z,arr._deep||H_REEF);
       const clr=Math.max(4,(arr._len||24)*0.35);   /* she swims a third of her own length clear */
-      o.y = arr._near ? fy+clr+Math.random()*14 : Math.min(SEA_SURF-clr,fy+clr+Math.random()*60); o.dir=Math.random()*6.28; o.set=true; o.m.visible=true; }
+      o.y = arr._near ? fy+clr+Math.random()*14 : Math.min(SEA_SURF-clr,fy+clr+Math.random()*60); o.dir=Math.random()*6.28; o.set=true; o.m.visible=true;
+      o.sp=B2?B2.swimOf(kind,arr._near?7:12):(arr._near?7:12);
+      o.breath=air?(3+Math.random()*28):0; o.act=null; o.actT=0; o.surf=0; }
+    /* the piece of business it is at, and the breath it owes the surface */
+    o.actT=(o.actT||0)-dt;
+    if(air){ o.breath-=dt; if(o.breath<=0&&!o.surf) o.surf=1; }   /* time to come up and blow */
+    if(o.actT<=0&&!o.surf){ o.act=B2?B2.drawSeaAct(kind,Math.random()):null; o.actT=4+Math.random()*7; }
+    /* how fast it goes: its cruise, dropped for its off-hours, and near-stopped
+       when it is resting, denned, hovering or lying up */
+    let spF=drowsy?0.4:1;
+    if(o.act==='logging'||o.act==='den'||o.act==='hover'||o.act==='lure'||o.act==='bask') spF*=0.15;
     o.dir+=Math.sin(t*0.3+o.ph)*0.03;
-    { const nx=o.x+Math.cos(o.dir)*o.sp*dt, nz=o.z+Math.sin(o.dir)*o.sp*dt;
+    { const nx=o.x+Math.cos(o.dir)*o.sp*spF*dt, nz=o.z+Math.sin(o.dir)*o.sp*spF*dt;
       if(!landAtWorld(nx,nz)){ o.x=nx; o.z=nz; } else o.dir+=1.7; }   /* the flank turns the beast */
-    o.y+=Math.sin(t*0.6+o.ph)*2*dt;
-    const fy=haunt(o.x,o.z,arr._deep||H_REEF), col=SEA_SURF-fy;
-    { const clr=Math.max(3,(arr._len||24)*0.30);
-      o.y=Math.min(SEA_SURF-clr*0.5,Math.max(fy+clr,o.y)); }
+    /* the water it holds: rising to breathe, sounding to the bed, hanging at
+       the top, or the gentle mid-water bob it keeps between whiles */
+    const fy=haunt(o.x,o.z,arr._deep||H_REEF);
+    const clr=Math.max(3,(arr._len||24)*0.30), loF=fy+clr, hiF=SEA_SURF-clr*0.5;
+    if(o.surf){ o.y+=(hiF-o.y)*Math.min(1,dt*0.7); if(o.y>=hiF-2){ o.surf=0; o.breath=20+Math.random()*26; } }
+    else if(o.act==='sound'||o.act==='bottom'){ const ty=loF+Math.min(6,(hiF-loF)*0.12); o.y+=(ty-o.y)*Math.min(1,dt*0.5); }
+    else if(o.act==='logging'||o.act==='bask'){ o.y+=(hiF-o.y)*Math.min(1,dt*0.4); }
+    else o.y+=Math.sin(t*0.6+o.ph)*2*dt;
+    o.y=Math.min(hiF,Math.max(loF,o.y));
     o.m.position.set(o.x,o.y,o.z); o.m.rotation.y=Math.atan2(Math.cos(o.dir),Math.sin(o.dir));
-    if(o.m.userData.flL){ o.m.userData.flL.rotation.z=0.2+Math.sin(t*2+o.ph)*0.3; o.m.userData.flR.rotation.z=-0.2-Math.sin(t*2+o.ph)*0.3; }
+    const beat=(spF<0.4)?1:2;                        /* fins ease when the beast lies up */
+    if(o.m.userData.flL){ o.m.userData.flL.rotation.z=0.2+Math.sin(t*beat+o.ph)*0.3; o.m.userData.flR.rotation.z=-0.2-Math.sin(t*beat+o.ph)*0.3; }
     if(o.m.userData.wingL){ o.m.userData.wingL.rotation.z=Math.sin(t*1.6+o.ph)*0.4; o.m.userData.wingR.rotation.z=-Math.sin(t*1.6+o.ph)*0.4; } } }
-let TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS;
+let TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS,NARWHALS;
 function initSeaMobs(){ if(TURTLES) return;
   /* the last number is how deep each keeps, in metres: a turtle on the reef,
      a whale sounding to three hundred, a pufferfish never off the shallows */
@@ -4184,6 +4275,9 @@ function initSeaMobs(){ if(TURTLES) return;
   /* the white whale of the ice, and the shark that lies under it — four
      hundred years old, blind, and slower than a man walks */
   BELUGAS=mkSeaMob('beluga',3,420,400,true,120,[55,90]);
+  /* the unicorn of the sea, in the same cold water as the white whale, its
+     long tusk carried before it */
+  NARWHALS=mkSeaMob('narwhal',2,440,410,true,150,[58,90]);
   SLEEPERS=mkSeaMob('greenlandshark',1,560,520,false,600,[52,90]);
   WALRUS=mkSeaMob('walrus',2,320,300,true,70,[58,90]);
   MANATEES=mkSeaMob('manatee',2,300,280,true,40,[-30,30]);
@@ -4198,6 +4292,7 @@ function updateSeaMobs(px,py,pz,dt,t){ initSeaMobs();
   updateSeaMob(MANATEES,px,py,pz,dt,t); updateSeaMob(OCTOPI,px,py,pz,dt,t);
   updateSeaMob(SWORDS,px,py,pz,dt,t); updateSeaMob(CUDAS,px,py,pz,dt,t);
   updateSeaMob(BELUGAS,px,py,pz,dt,t); updateSeaMob(SLEEPERS,px,py,pz,dt,t);
+  updateSeaMob(NARWHALS,px,py,pz,dt,t);
   for(const j of JELLIES){ if(!j.set||Math.hypot(j.x-px,j.z-pz)>360){ const a=Math.random()*6.28,r=40+Math.random()*320; j.x=px+Math.cos(a)*r; j.z=pz+Math.sin(a)*r; const fy=haunt(j.x,j.z,H_JELLY); j.y=fy+30+Math.random()*80; j.set=true; j.m.visible=true; }
     const pulse=0.5+0.5*Math.sin(t*1.4+j.ph); j.y+=(pulse-0.45)*10*dt; const fy=haunt(j.x,j.z,H_JELLY), col=SEA_SURF-fy;
     j.y=Math.min(SEA_SURF-6,Math.max(fy+Math.min(10,col-7),j.y));
@@ -4247,7 +4342,7 @@ function updateAnglers(px,py,pz,dt,t){ initAnglers();
       a.gs.material.opacity=0.30+0.34*pulse; } } }
 function hideAnglers(){ for(const a of ANGLERS){ a.m.visible=false; a.gs.visible=false; a.set=false; } }
 function hideSeaMobs(){ if(!TURTLES) return;
-  for(const arr of [TURTLES,RAYS_M,WHALES,PUFFERS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS]) for(const o of arr) o.m.visible=false;
+  for(const arr of [TURTLES,RAYS_M,WHALES,PUFFERS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS,NARWHALS]) for(const o of arr) o.m.visible=false;
   for(const j of JELLIES)j.m.visible=false; for(const c of CRABS)c.m.visible=false; }
 const BUB=[], BUB_N=26;
 function initBub(){ if(BUB.length) return; for(let k=0;k<BUB_N;k++){ const s=new THREE.Sprite(new THREE.SpriteMaterial({color:0xcdeeff,transparent:true,opacity:0,depthWrite:false,fog:false}));
@@ -5352,9 +5447,18 @@ function updateNests(px,pz,dt){ initNests();
 function claimNest(b){
   if(b.nest&&b.nest.set&&b.nest.bird&&b.nest.species===b.type) return b.nest;
   b.nest=null;
+  /* ---- A BIRD JOINS ITS MATE BEFORE IT OPENS A NEW HOUSE ----
+     Every bird took the first empty nest of its kind, so the nests stood one
+     bird apiece and the pair — which is what a nest is for — hardly ever
+     formed. A bird now looks first for a nest of its kind that already holds
+     ONE of its kind, and makes the pair; only if there is none does it take an
+     empty nest. So the nests fill two-by-two, as they ought. */
+  let pair=null, empty=null;
   for(const N of NESTS){ if(!N.set||!N.bird||N.species!==b.type) continue;
     let claims=0; for(const o of AIRLIFE){ if(o!==b&&o.set&&o.nest===N) claims++; }
-    if(claims<2){ b.nest=N; break; } }
+    if(claims===1){ pair=N; break; }
+    if(claims===0&&!empty) empty=N; }
+  b.nest=pair||empty;
   return b.nest; }
 function airKind(px,pz,night){ const overSea=!landAtWorld(px,pz);
   /* ---- AND THE COLD HAS ITS OWN FOWL ----
@@ -5413,9 +5517,12 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
       b.x=px+Math.cos(a)*r; b.z=pz+Math.sin(a)*r;
       const c=landAtWorld(b.x,b.z), base=c?c.h*B:WATER_Y;
       b.y=type==='butterfly'?base+3:base+30+Math.random()*60;
-      /* the gull is always a fisher; the eagle only where there is water for
-         it to fish — inland it hunts the ground like the rest */
-      b.fisher=(type==='gull')||(type==='eagle'&&!landAtWorld(px,pz));
+      /* WHICH BIRDS FISH is read from js/behavior.js now, not named by hand:
+         the gull and the puffin take their living from the water wherever they
+         are; the eagle only where there is water under it, and inland it hunts
+         the ground like the rest */
+      { const bh0=window.BEHAVIOR&&BEHAVIOR.birdOf(type);
+        b.fisher=(bh0?bh0.fish:(type==='gull'))||(type==='eagle'&&!landAtWorld(px,pz)); }
       b.follow=type==='gull'&&Math.random()<0.4;   /* some gulls take to a passing ship */
       /* the mark it was making for MUST be dropped with everything else. A
          bird set down beside the traveller while still holding a forage spot
@@ -5500,10 +5607,14 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
                 b.perch={x:b.x,y:(c?c.h*B:WATER_Y+2)+0.6,z:b.z}; } }
             b.tx=b.perch.x; b.tz=b.perch.z; b.ty=b.perch.y; }
           break; }
-        default: {   /* rest — it circles above the nest and gathers itself */
+        default: {   /* rest — it circles and gathers itself; a flocking bird
+                        circles with its own kind, not alone */
           const n=b.nest;
+          let cx=n?n.x:b.x, cz=n?n.z:b.z; const cy=(n?n.y:b.y)+34;
+          if(BH&&BH.flock){ let mx=0,mz=0,mn=0;
+            for(const o of AIRLIFE){ if(o!==b&&o.set&&o.type===b.type&&Math.hypot(o.x-b.x,o.z-b.z)<120){ mx+=o.x; mz+=o.z; mn++; } }
+            if(mn){ cx=cx*0.4+(mx/mn)*0.6; cz=cz*0.4+(mz/mn)*0.6; } }
           b.ph+=dt*0.7;
-          const cx=n?n.x:b.x, cz=n?n.z:b.z, cy=(n?n.y:b.y)+34;
           b.tx=cx+Math.cos(b.ph)*26; b.tz=cz+Math.sin(b.ph)*26; b.ty=cy;
           if(b.jt<=0){ b.job='hunt'; b.spot=null; }
         }
@@ -9376,6 +9487,8 @@ function frame(){
   /* the wind in the leaves — phase clock and strength for the sway shader */
   WIND_T.value=performance.now()*0.001;
   { const wnd=windAt(p.x,p.z); WIND_A.value=(0.35+wnd.s*0.9)*(1+(light.storm||0)*1.6); }
+  /* and the turn of the year, for the seasonal gilding of the leaves */
+  SEASON_Y.value=(dayOfYear()-1)/364;
   /* aloft the air clears and the eye reaches far — but ONLY aloft, or with
      the eye deliberately drawn back off the world. Down in the played world
      the fog stays shut at the chunks' edge, so gameplay is blocks and haze
