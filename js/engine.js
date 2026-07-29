@@ -303,6 +303,28 @@ function windSway(mat,amp,rooted,leafy){
   };
   mat.needsUpdate=true;
 }
+/* ---- THE SNOW THAT LIES IN WINTER ----
+   The horizontal faces of the ground — the grass tops, the paths, the village
+   cobbles — whiten over as winter comes on, and only in the cold zones: the
+   temperate lands take it, the far north keeps it the year round, and the
+   tropics never take it at all (worked per-face from the distance to the pole,
+   the same reckoning the leaves use). No chunk is re-meshed; it is in the
+   shader, and the traveller's chosen season drives it. */
+const SNOW_GLSL=
+  '{ float sr=length(position.xz)*'+(1/180000).toExponential()+';\n'+
+  '  float latN=1.0-sr*2.0;\n'+
+  '  float ph=fract(uSeasonY+(latN<0.0?0.5:0.0));\n'+
+  '  float winter=clamp(smoothstep(0.80,0.94,ph)+(1.0-smoothstep(0.06,0.20,ph)),0.0,1.0);\n'+
+  '  float cold=smoothstep(0.30,0.62,abs(latN));\n'+            /* nothing below the temperate band */
+  '  vColor.rgb=mix(vColor.rgb, vec3(0.93,0.95,0.99), winter*cold*0.85); }';
+function groundSnow(mat){
+  mat.onBeforeCompile=sh=>{ sh.uniforms.uSeasonY=SEASON_Y;
+    sh.vertexShader='uniform float uSeasonY;\n'+sh.vertexShader.replace(
+      '#include <color_vertex>','#include <color_vertex>\n'+SNOW_GLSL); };
+  mat.needsUpdate=true;
+}
+groundSnow(MAT.grassTop); groundSnow(MAT.grassTopTr); groundSnow(MAT.grassTopTu);
+groundSnow(MAT.grassTopSv); groundSnow(MAT.path); groundSnow(MAT.cobble);
 windSway(MAT.leaves,0.55,false,true); windSway(MAT.leavesTr,0.62,false,true); windSway(MAT.cherry,0.55,false);
 windSway(MAT.tallgrass,0.9,true); windSway(MAT.flowerR,0.6,true); windSway(MAT.flowerY,0.6,true);
 /* the plain moves as one thing when the wind crosses it — the tall grass
@@ -4901,7 +4923,12 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
          built from its mother's OWN model, so a zebra's is a small zebra
          with a near full-sized head, which is what makes a thing read as
          young without anybody being told. */
-      setYoung(a, window.BABY && BABY.runs(kind) && hash2(sp.x*0.031,sp.z*0.027)<0.26); }
+      /* ---- THE HERDS HAVE THEIR YOUNG IN THE SPRING ----
+         Spring is the time of birth and winter the barren time, by the season
+         where the herd stands (js/season.js). So a herd met in spring is thick
+         with young at foot, and one met in the snow has almost none. */
+      { const breed=window.SEASON?SEASON.breedFactor(1-Math.hypot(sp.x,sp.z)/R_WORLD*2,dayOfYear()):1;
+        setYoung(a, window.BABY && BABY.runs(kind) && hash2(sp.x*0.031,sp.z*0.027)<0.26*breed); } }
     if(!a.set) continue;
     /* ---- THE KILL LIES WHERE IT FELL ----
        A caught beast used to shake itself and trot off while its killer
@@ -4930,7 +4957,12 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
        that keeps the night is up when the diurnal ones are bedded, and down
        when they are up — which halves what you meet at any hour and doubles
        what it is worth meeting. */
-    const asleep=(a.day==='all'||a.day==='dusk')?false:(a.day==='night'?!night:night);
+    let asleep=(a.day==='all'||a.day==='dusk')?false:(a.day==='night'?!night:night);
+    /* ---- AND SOME SLEEP THE WHOLE WINTER THROUGH ----
+       The bear, the hedgehog and the badger den up when the snow lies and are
+       not seen again until the thaw (js/season.js names the hibernators). They
+       bed down wherever the season is winter about them. */
+    if(window.SEASON&&SEASON.dormant(a.kind,1-Math.hypot(a.hx,a.hz)/R_WORLD*2,dayOfYear())) asleep=true;
     /* a beast up a tree does not walk anywhere at all */
     if(a.upTree>0){
       a.jt-=0; if(a.jt<=0){ a.jt=8+Math.random()*14;
@@ -7293,6 +7325,7 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code==='KeyG') takeFlight();          /* SPACE (handled above) lifts in flight */
   if(e.code==='KeyC') enterDive();           /* dive the deep / surface */
   if(e.code==='KeyM') toggleMap();
+  if(e.code==='KeyK') cycleSeason();
   if(e.code==='KeyL') toggleLog(); });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
 const cv=$('cv'); let drag=null, joy=null;
@@ -8761,7 +8794,12 @@ function placeTick(){
   const pp=playerXZ(), lh=localHourAt(pp.x,pp.z);
   /* THREE LINES, never four: the panel sits above the button rail, and a
      fourth line pushed it down onto the top button at every screen size. */
-  $('clock').innerHTML='DAY '+dayOfYear()+' OF 364<br>'+clockFace(lh)
+  /* the season HERE, at the traveller's own latitude (flipped for the south,
+     wet/dry in the tropics) \u2014 and a mark if he is holding the year by hand */
+  let seasonLabel='';
+  if(window.SEASON){ const latN=1-Math.hypot(pp.x,pp.z)/R_WORLD*2;
+    seasonLabel=' \u00b7 '+SEASON.seasonAt(latN,dayOfYear()).name+(SEASON.isNatural()?'':'*'); }
+  $('clock').innerHTML='DAY '+dayOfYear()+' OF 364'+seasonLabel+'<br>'+clockFace(lh)
     +' \u00b7 '+dayPartName(lh)+'<br>'+SPEEDS[state.speedIdx][1]+' \u00b7 '+windLabel();
 }
 
@@ -8911,6 +8949,20 @@ const mini=$('mini'), minictx=mini.getContext('2d');
 let bigOpen=false;
 function toggleMap(){ bigOpen=!bigOpen; $('bigmap').style.display=bigOpen?'flex':'none';
   if(bigOpen) sizeBig(); }
+/* ---- THE TRAVELLER'S HAND ON THE YEAR (the K key) ----
+   Step round the ring — Spring, Summer, Autumn, Winter, and back to the year's
+   own natural course — and the whole world answers: the leaves gild or green,
+   the snow lies or melts, and the beasts take their season. What the traveller
+   sets is the NORTHERN season; where he himself stands may be the other half
+   of the year, and the word tells him which. */
+function cycleSeason(){ if(!window.SEASON) return;
+  const r=SEASON.cycle();
+  const pp=playerXZ(), latN=1-Math.hypot(pp.x,pp.z)/R_WORLD*2;
+  const here=SEASON.seasonAt(latN,dayOfYear()), z=here.zone;
+  const where=' · '+here.name+(z==='tropical'?' (the tropics keep no winter)':z==='polar'?' (the far cold)':'')+' where you stand';
+  toast(r==='Natural'?('The year runs its own course again'+where+'.')
+                     :('You turn the year to '+r+where+'.'));
+}
 function sizeBig(){ const bc=$('bigcv'); const s=Math.floor(Math.min(innerWidth,innerHeight)*0.86);
   bc.width=bc.height=s; drawMapInto(bc.getContext('2d'),s,true); }
 $('bigmap').addEventListener('click',toggleMap);
@@ -9487,8 +9539,10 @@ function frame(){
   /* the wind in the leaves — phase clock and strength for the sway shader */
   WIND_T.value=performance.now()*0.001;
   { const wnd=windAt(p.x,p.z); WIND_A.value=(0.35+wnd.s*0.9)*(1+(light.storm||0)*1.6); }
-  /* and the turn of the year, for the seasonal gilding of the leaves */
-  SEASON_Y.value=(dayOfYear()-1)/364;
+  /* and the turn of the year, for the seasonal gilding of the leaves and the
+     snow that lies — from the season engine, so the traveller's chosen season
+     drives the whole world's look */
+  SEASON_Y.value=window.SEASON?SEASON.yearPhase(dayOfYear()):(dayOfYear()-1)/364;
   /* aloft the air clears and the eye reaches far — but ONLY aloft, or with
      the eye deliberately drawn back off the world. Down in the played world
      the fog stays shut at the chunks' edge, so gameplay is blocks and haze
