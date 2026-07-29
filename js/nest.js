@@ -68,8 +68,13 @@ const KEEPS={
   wolf    :{form:'den', where:'bank', n:5, r:1.2},
   arcticwolf:{form:'den',where:'bank',n:5, r:1.2},
   hyena   :{form:'den', where:'bank', n:3, r:1.15},
-  bear    :{form:'den', where:'bank', n:2, r:1.5},
-  blackbear:{form:'den',where:'bank', n:2, r:1.4},
+  /* ---- THE BEARS KEEP CAVES, AND SLEEP THE WINTER IN THEM ----
+     A bear's den is not a hole in a bank but a CAVE in the rock, and it is
+     where she lies from the first snow to the thaw. It is drawn big enough to
+     walk into, so the traveller who finds one in winter may look in upon her
+     asleep — which is the only way she is ever seen in that season. */
+  bear    :{form:'cave',where:'bank', n:2, r:2.3, hib:true},
+  blackbear:{form:'cave',where:'bank',n:2, r:2.1, hib:true},
   polarbear:{form:'den',where:'ground',n:2, r:1.5},   /* a chamber dug in the drift */
   wolverine:{form:'den',where:'bank', n:3, r:0.9},
   /* ---- THE LAIRS OF THE CATS ----
@@ -93,12 +98,12 @@ const KEEPS={
   meerkat :{form:'warren',where:'ground',n:4, r:1.0},
   jerboa  :{form:'burrow',where:'ground',n:3, r:0.45},
   lemming :{form:'burrow',where:'ground',n:6, r:0.4},
-  badger  :{form:'warren',where:'bank',  n:3, r:1.1},   /* the sett, dug for generations */
-  wombat  :{form:'burrow',where:'bank',  n:1, r:0.9},
+  badger  :{form:'warren',where:'bank',  n:3, r:1.1, hib:true},   /* the sett, dug for generations */
+  wombat  :{form:'burrow',where:'bank',  n:1, r:0.9, hib:true},
   armadillo:{form:'burrow',where:'bank', n:4, r:0.7},
   warthog :{form:'burrow',where:'bank',  n:4, r:1.0},   /* it backs in, tusks out */
   aardvark:{form:'burrow',where:'bank',  n:1, r:1.0},
-  marmot  :{form:'burrow',where:'bank',  n:4, r:0.7},
+  marmot  :{form:'burrow',where:'bank',  n:4, r:0.7, hib:true},
   /* ---- THE WORKS OF THE WATER ---- */
   beaver  :{form:'lodge',where:'water', n:4, r:1.2},
   otter   :{form:'holt', where:'water', n:3, r:0.8},
@@ -108,7 +113,7 @@ const KEEPS={
   /* ---- AND THE REST ---- */
   boar    :{form:'lair', where:'ground', n:6, r:1.0},   /* a bed of bracken */
   deer    :{form:'lair', where:'ground', n:1, r:0.8},
-  hedgehog:{form:'burrow',where:'bank',  n:4, r:0.5},
+  hedgehog:{form:'burrow',where:'bank',  n:4, r:0.5, hib:true},
   raccoon :{form:'nest', where:'tree',   n:4, r:0.9},
   redpanda:{form:'nest', where:'tree',   n:2, r:0.9},
   koala   :{form:'nest', where:'tree',   n:1, r:0.8},
@@ -243,6 +248,42 @@ function emitHome(kit,K,x,z,yG){
       M.bark,M.bark,null, STICK);
     return;
   }
+  if(F==='cave'){
+    /* ---- THE CAVE — where the bear sleeps the winter through ----
+       A mouth in the rock big enough for a man to walk into: two jambs, a
+       lintel over them, a swept floor of stone within, and a black chamber
+       behind it. The bear is not gone in winter — she is IN HERE, and the
+       traveller who walks up to the mouth may look in and see her lying.
+       (The world's other "caves" are the slot canyons of the secret ranges,
+       which are open to the sky. This is a roofed one, and it has a tenant.) */
+    const w=r*1.9, h=r*2.0, dpt=r*2.6;
+    /* the floor of the chamber, swept flat */
+    emitBox(kit.G, x-w,yG-B*0.12,z-dpt, x+w,yG,z+r*0.5, M.solid,M.solid,M.solid, [0.30,0.28,0.26]);
+    /* the two jambs of the mouth */
+    for(const s of [-1,1])
+      emitBox(kit.G, x+s*w-r*0.45,yG,z-r*0.1, x+s*w+r*0.45,yG+h,z+r*0.55,
+              M.bark,M.bark,M.bark, STONE);
+    /* the lintel across the top */
+    emitBox(kit.G, x-w-r*0.45,yG+h,z-r*0.1, x+w+r*0.45,yG+h+r*0.5,z+r*0.55,
+            M.bark,M.bark,M.bark, [0.42,0.42,0.41]);
+    /* the walls and roof of the chamber running back into the hill */
+    for(const s of [-1,1])
+      emitBox(kit.G, x+s*w-r*0.4,yG,z-dpt, x+s*w+r*0.4,yG+h,z-r*0.1,
+              M.bark,M.bark,null, [0.40,0.39,0.38]);
+    emitBox(kit.G, x-w-r*0.4,yG+h,z-dpt, x+w+r*0.4,yG+h+r*0.5,z-r*0.1,
+            M.bark,M.bark,null, [0.38,0.37,0.36]);
+    /* the black at the back of it, which is what makes a cave read as deep */
+    emitBox(kit.G, x-w+r*0.1,yG,z-dpt-r*0.3, x+w-r*0.1,yG+h,z-dpt+r*0.2,
+            M.solid,M.solid,M.solid, [0.04,0.04,0.05]);
+    /* the bed of dry leaves and bracken she lies on */
+    emitBox(kit.G, x-w*0.7,yG,z-dpt*0.72, x+w*0.7,yG+B*0.16,z-dpt*0.18,
+            M.leaf,M.leaf,null, [0.34,0.26,0.15]);
+    /* a boulder or two fallen at the mouth */
+    for(let i=0;i<3;i++){ const bx=x+(hash(x+i*4.7,z)-0.5)*w*2.6, bz=z+r*(0.7+hash(x,z+i*3.1)*0.8);
+      const s2=r*(0.22+hash(x+i,z-i)*0.2);
+      emitBox(kit.G, bx-s2,yG,bz-s2, bx+s2,yG+s2*1.4,bz+s2, M.bark,M.bark,M.bark, STONE); }
+    return;
+  }
   if(F==='mound'){
     /* the crocodile's — a heap of rotting weed she scrapes together, and the
        heat of it rotting is what hatches the eggs. She lies on it for months. */
@@ -262,6 +303,9 @@ window.NEST={
   KEEPS, OPEN, emitHome,
   /* what home does this kind make, if any? */
   homeOf:kind=>KEEPS[kind]||null,
+  /* and is that home one it SLEEPS THE WINTER in? (the bear's cave, the
+     badger's sett, the hedgehog's burrow) */
+  hibernatesIn:kind=>!!(KEEPS[kind]&&KEEPS[kind].hib),
   /* and does it rear its young in the open, needing none? */
   bearsInOpen:kind=>OPEN.has(kind),
   /* the snow-white den of the polar bear wants its own colour */

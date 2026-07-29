@@ -4934,8 +4934,13 @@ function tryAct(a){
    where the herd stands. */
 function findDen(a){
   for(const N of NESTS){ if(!N.set||N.bird) continue;
-    if(N.kind&&N.kind.indexOf(a.kind+'|')===0&&Math.hypot(N.x-a.x,N.z-a.z)<280)
-      return {x:N.x,z:N.z}; }
+    if(N.kind&&N.kind.indexOf(a.kind+'|')===0&&Math.hypot(N.x-a.x,N.z-a.z)<280){
+      /* ---- AND A BEAST THAT WINTERS IN A CAVE LIES *INSIDE* IT ----
+         She used to bed at the mouth, on the doorstep of her own den. The
+         chamber runs back from the site, so she is laid well within it — and
+         the traveller who walks up to a cave in winter finds her in there. */
+      if(N.kind.indexOf('|cave')>0) return {x:N.x, z:N.z-B*1.6};
+      return {x:N.x,z:N.z}; } }
   const H=window.BEHAVIOR?BEHAVIOR.homeOf(a.kind):'open';
   if(H==='open') return null;
   if(H==='tree'){ const w2=treeNear(a.hx,a.hz,5); if(w2) return {x:w2.x,z:w2.z}; }
@@ -5489,11 +5494,22 @@ function homeSiteFor(wx,wz,c,gi,gj){
   /* three draws, jittered a little apart: most beasts of a plain build
      nothing at all (they drop their young in the open and it is running
      within the hour), so one draw would leave a whole country with no dens */
-  for(let q=0;q<3;q++){
-    const jx=wx+(q-1)*37, jz=wz+(q-1)*29, jc=landAtWorld(jx,jz)||c;
-    const beast=landKindAt(jx,jz,jc);
-    const home=NEST.homeOf(beast);
-    if(home&&home.where!=='tree') return {y:jc.h*B, x:jx, z:jz, kind:beast, home, bird:false}; }
+  /* ---- AND THE WINTER-SLEEPERS' HOMES ARE PREFERRED ----
+     The three draws took the FIRST beast that built anything, and the beasts
+     that build most (the fox, the boar, the crow) are also the commonest — so
+     a bear's cave was almost never raised, and there was nowhere on the earth
+     to find her asleep. Where any of the draws turns up a beast that WINTERS
+     in its home (js/nest.js marks them), that one is taken first. */
+  { let first=null, hib=null;
+    for(let q=0;q<3;q++){
+      const jx=wx+(q-1)*37, jz=wz+(q-1)*29, jc=landAtWorld(jx,jz)||c;
+      const beast=landKindAt(jx,jz,jc);
+      const home=NEST.homeOf(beast);
+      if(!home||home.where==='tree') continue;
+      const site={y:jc.h*B, x:jx, z:jz, kind:beast, home, bird:false};
+      if(!first) first=site;
+      if(!hib&&NEST.hibernatesIn(beast)) hib=site; }
+    if(hib||first) return hib||first; }
   /* and where nothing builds, the plain leaves its own mark: a termite
      mound, which is the one thing standing on half the grassland of the
      earth and belongs to nobody you will ever see */
