@@ -3225,16 +3225,31 @@ function makePerson(seed, role, child, female){
   else if(role==='farmer'){ const hoe=lbox(0.3,7.5,0.3,0x7a5a30); hoe.position.set(2.6,8.0,0.4);
       hoe.rotation.x=0.2; g.add(hoe);
     const blade=lbox(1.1,0.4,0.9,0x9aa0a8); blade.position.set(2.6,11.5,1.2); g.add(blade); }
-  let rod=null;
-  if(role==='fisher'){ rod=lbox(0.26,9.5,0.26,0x8a6a3a); rod.position.set(2.5,9.5,2.6);
-      rod.rotation.x=1.05; g.add(rod);
-    const line=lbox(0.09,4.6,0.09,0x20242c); line.position.set(2.5,7.4,6.6); g.add(line);
-    const bob=lbox(0.5,0.5,0.5,0xd0472e); bob.position.set(2.5,5.0,6.6); g.add(bob); }
+  let rod=null, rodLine=null, rodBob=null, rodFish=null;
+  if(role==='fisher'){
+    /* ---- THE ROD IS HELD IN THE HAND, NOT HUNG BESIDE THE MAN ----
+       It used to be parented to the BODY at a fixed offset, so it floated at
+       his side and never moved with him: he stood beside a rod rather than
+       holding one. It is hung on the FOREARM now — the far end of the arm,
+       which is the hand — so it swings with every motion of the arm, and the
+       line and float hang from the ROD'S OWN TIP wherever the rod is pointed. */
+    const hand=armR.userData.elbow;
+    rod=lbox(0.26,9.5,0.26,0x8a6a3a);
+    rod.geometry.translate(0,4.75,0);              /* pivot at the butt, in the fist */
+    rod.position.set(0,-2.1,0.35); rod.rotation.x=-0.95; hand.add(rod);
+    /* the line falls from the tip; it and the float are hung on the ROD */
+    rodLine=lbox(0.09,5.2,0.09,0x20242c); rodLine.geometry.translate(0,-2.6,0);
+    rodLine.position.set(0,9.4,0); rod.add(rodLine);
+    rodBob=lbox(0.5,0.5,0.5,0xd0472e); rodBob.position.set(0,-5.2,0); rodLine.add(rodBob);
+    /* and the fish upon the line — unseen until it is drawn up */
+    rodFish=lbox(1.5,0.7,0.5,0x9fb6c4); rodFish.position.set(0,-0.9,0);
+    rodFish.visible=false; rodBob.add(rodFish);
+  }
   else if(role==='feeder'){ const basket=lbox(1.6,1.1,1.1,0xb08a48); basket.position.set(2.3,6.4,0.9); g.add(basket); }
   else if(role==='water'){ const jar=lbox(1.4,1.8,1.4,0x9a6242); jar.position.set(0,12.9,0); g.add(jar);
     const rim=lbox(1.0,0.4,1.0,0x7a4a32); rim.position.set(0,13.9,0); g.add(rim); }
   if(child) g.scale.set(0.62,0.62,0.62);
-  g.userData={legs:[legL,legR,armL,armR],armL,armR,rod,female:!!female};
+  g.userData={legs:[legL,legR,armL,armR],armL,armR,rod,rodLine,rodBob,rodFish,female:!!female};
   return g;
 }
 /* ---- EVERY BEAST OF THE FIELD, AND WHERE IT IS BUILT ----
@@ -4819,8 +4834,20 @@ function landKindAt(x,z,c){
      — so a country with no list of its own put roe deer and hares on bare
      rock a thousand metres above the tree line. Every draw is filtered
      now, by exactly the rule the country lists are filtered by. */
+  /* ---- AND NO BEAST OUT OF ITS OWN CLIMATE ----
+     The fallback tables are named for the GROUND, not the place, so a patch of
+     sand in the Amazon reached the desert table and put a jerboa in Brazil,
+     and a cold upland in a warm land reached the arctic table. A beast of the
+     ice may not be drawn below the cold line, and a beast of the true desert
+     may not be drawn in the wet tropics, whatever the ground looks like. */
+  const ICE_KIN=new Set(['polarbear','arcticfox','arctichare','arcticwolf','ermine','lemming',
+    'ptarmigan','muskox','reindeer','wolverine','penguin','mammoth','narwhal']);
+  const DRY_KIN=new Set(['jerboa','camel','addax','oryx','scorpion','viper','bustard','wildass']);
+  const wetTropic=alat<24&&arid<=0.54;
+  const climateOK=nm=>{ if(ICE_KIN.has(nm)&&alat<52) return false;
+    if(DRY_KIN.has(nm)&&wetTropic) return false; return true; };
   const pick=L=>{ if(!L||!L.length) return null;
-    const fit=L.filter(nm=>beastFits(nm,k,hb,false,false));
+    const fit=L.filter(nm=>climateOK(nm)&&beastFits(nm,k,hb,false,false));
     if(!fit.length) return null;
     return fit[Math.floor(j*fit.length)%fit.length]; };
   if(k==='snow'&&alat<56) return null;
@@ -6386,7 +6413,11 @@ function personTick(ent,vv,dt){
   const d=Math.hypot(ent.tx-px,ent.tz-pz);
   if(d>2.2){
     ent.acting=false;
-    const sp=ent.role==='child'?(ent.anim==='play'?8.5:5):ent.role==='hunter'?(ent.stalk?4.5:8):ent.role==='water'?6:7;
+    /* every trade goes at its own pace, out of js/behavior.js — the hunter
+       strides, the water-bearer walks under her jar, the child runs */
+    let sp=window.BEHAVIOR?BEHAVIOR.folkPaceOf(ent.role,7):7;
+    if(ent.role==='child'&&ent.anim==='play') sp=8.5;
+    else if(ent.role==='hunter'&&ent.stalk) sp=4.5;
     moveEnt(ent,dt,sp);
   } else {
     if(!ent.acting){ ent.acting=true; ent.pt=ent.actT||2; }
@@ -6404,9 +6435,25 @@ function personTick(ent,vv,dt){
     else if(A==='feed'){ u.armR.rotation.x=-0.7+Math.sin(tnow*5)*0.6; vv.feedT=tnow; vv.feedX=px; vv.feedZ=pz; }
     else if(A==='hawk'){ u.armR.rotation.x=-1.35+Math.sin(tnow*2.4)*0.22; u.armL.rotation.x=-0.2; }
     else if(A==='teach'){ u.armR.rotation.x=-1.0+Math.sin(tnow*1.7)*0.35; }
-    else if(A==='fish'&&u.rod){ u.rod.rotation.x=1.05+Math.sin(tnow*1.7)*0.05;
-      u.armR.rotation.x=-0.85; u.armL.rotation.x=-0.7;
-      if(Math.random()<dt*0.08){ u.rod.rotation.x=0.7; splash(px+Math.sin(ent.m.rotation.y)*7,WATER_Y+1,pz+Math.cos(ent.m.rotation.y)*7,false); } }
+    else if(A==='fish'&&u.rod){
+      /* ---- THE FISHERMAN'S REAL WORK ----
+         He waits with the rod out over the water, feels the tug, STRIKES, and
+         draws up a fish that hangs and kicks on the line before he unhooks it
+         and casts again. It used to be one twitch of a rod that was not even
+         in his hand, and no fish was ever seen. */
+      ent.fishT=(ent.fishT||0)-dt;
+      if(ent.fishT<=0){
+        if(ent.fishSt==='hold'){ ent.fishSt='wait'; ent.fishT=5+Math.random()*7; }
+        else { ent.fishSt='hold'; ent.fishT=2.4+Math.random()*1.8;   /* the catch, held up */
+          splash(px+Math.sin(ent.m.rotation.y)*8,WATER_Y+1,pz+Math.cos(ent.m.rotation.y)*8,true); } }
+      const held=ent.fishSt==='hold';
+      u.armR.rotation.x=held?-1.55:-0.85+Math.sin(tnow*0.9)*0.05;
+      u.armL.rotation.x=held?-1.2:-0.7;
+      u.rod.rotation.x=held?-1.5:-0.95+Math.sin(tnow*1.7)*0.05;
+      if(u.rodFish) u.rodFish.visible=held;
+      if(u.rodFish&&held) u.rodFish.rotation.z=Math.sin(tnow*11)*0.5;   /* it kicks on the line */
+      if(u.rodLine) u.rodLine.scale.y=held?0.34:1;                      /* reeled short as it comes up */
+    }
     else { u.armR.rotation.x=0; u.armL.rotation.x=0; }
     if(ent.pt<=0){ ent.acting=false; nextTask(ent,vv); }
   }
@@ -6736,7 +6783,7 @@ function speakTo(p){ if(!p) return;
 }
 /* ================= FISHING — CAST A LINE UPON THE WATERS ================= */
 const FISH_NAMES=['a bream','a mullet','a carp','a musht','a barbel','a grey eel','a silver sardine','a great catfish'];
-let rodG=null, rodLine=null, rodBob=null;
+let rodG=null, rodLine=null, rodBob=null, rodFish=null, landed=null;
 const _fishTip=new THREE.Vector3(), _fishDir=new THREE.Vector3(), _fishUp=new THREE.Vector3(0,1,0);
 function ensureRod(){ if(rodG) return;
   rodG=new THREE.Group();
@@ -6749,10 +6796,29 @@ function ensureRod(){ if(rodG) return;
   const b2=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.4,0.7),new THREE.MeshBasicMaterial({color:0xf2f2ee}));
   b1.position.y=0.2; b2.position.y=-0.2; rodBob.add(b1); rodBob.add(b2);
   rodBob.visible=false; scene.add(rodBob);
+  /* ---- AND THE FISH ITSELF, UPON THE LINE ----
+     The catch was a line of text and a splash: the traveller struck, was told
+     he had taken a fish, and nothing whatever was seen. There is a real fish
+     on the hook now — it breaks the water, hangs and kicks on the line, and is
+     drawn up before him. */
+  rodFish=new THREE.Group();
+  const fb=new THREE.Mesh(new THREE.BoxGeometry(2.6,1.2,0.8),new THREE.MeshLambertMaterial({color:0x9fb6c4}));
+  const fbel=new THREE.Mesh(new THREE.BoxGeometry(2.2,0.5,0.7),new THREE.MeshLambertMaterial({color:0xe8eef2}));
+  fbel.position.y=-0.5;
+  const ftail=new THREE.Mesh(new THREE.BoxGeometry(0.9,1.3,0.5),new THREE.MeshLambertMaterial({color:0x7f96a6}));
+  ftail.position.x=-1.7;
+  const feye=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.3,0.3),new THREE.MeshBasicMaterial({color:0x14181e}));
+  feye.position.set(0.95,0.3,0.42);
+  rodFish.add(fb); rodFish.add(fbel); rodFish.add(ftail); rodFish.add(feye);
+  rodFish.visible=false; scene.add(rodFish);
 }
 function startFishing(){ ensureRod();
   state.fishing={t:0,dur:4+Math.random()*8,phase:'wait'};
-  walkerG.add(rodG); rodG.position.set(1.9,7.2,0.8);
+  /* the rod goes into the HAND — the far end of the right arm — so it swings
+     with him instead of floating at his side */
+  { const u0=walkerG.userData, hand=u0&&u0.armR&&u0.armR.userData?u0.armR.userData.elbow:null;
+    if(hand){ hand.add(rodG); rodG.position.set(0,-2.1,0.35); rodG.rotation.set(0,0,0); }
+    else { walkerG.add(rodG); rodG.position.set(1.9,7.2,0.8); } }
   rodLine.visible=true; rodBob.visible=true;
   const w=state.walk;
   splash(w.x+Math.sin(w.heading)*11,WATER_Y+0.6,w.z+Math.cos(w.heading)*11,false);
@@ -6761,6 +6827,8 @@ function startFishing(){ ensureRod();
 function endFishing(quiet){
   if(rodG&&rodG.parent) rodG.parent.remove(rodG);
   if(rodLine){ rodLine.visible=false; rodBob.visible=false; }
+  if(rodFish) rodFish.visible=false;
+  landed=null;
   if(state.fishing&&!quiet) toast('You draw in the line.');
   state.fishing=null;
   const u=walkerG.userData; u.armL.rotation.x=0; u.armR.rotation.x=0;
@@ -6772,7 +6840,11 @@ function reelIn(){
     const name=FISH_NAMES[Math.floor(Math.random()*FISH_NAMES.length)];
     const w=state.walk;
     splash(w.x+Math.sin(w.heading)*11,WATER_Y+0.8,w.z+Math.cos(w.heading)*11,true);
-    endFishing(true);
+    /* THE FISH IS SEEN. It comes up on the line where the float was, kicks
+       there a moment in the air, and is drawn in to the hand. */
+    F.phase='landed'; F.t=0;
+    landed={t:0, x:w.x+Math.sin(w.heading)*11, z:w.z+Math.cos(w.heading)*11};
+    if(rodFish) rodFish.visible=true;
     toast('You strike, and draw up '+name+' from the deep — '+state.fish+' taken this voyage.');
     saveState();
   } else endFishing(false);
@@ -6781,10 +6853,26 @@ function fishTick(dt){
   const F=state.fishing; if(!F) return;
   if(state.mode!=='walk'){ endFishing(true); return; }
   const w=state.walk, [f2,t2]=axis();
-  if(Math.abs(f2)>0.2||Math.abs(t2)>0.2||!w.grounded||w.inWater){ endFishing(false); return; }
+  /* a fish being drawn up is not interrupted by a step — it is over in a moment */
+  if(F.phase!=='landed'&&(Math.abs(f2)>0.2||Math.abs(t2)>0.2||!w.grounded||w.inWater)){ endFishing(false); return; }
   F.t+=dt;
-  const bx=w.x+Math.sin(w.heading)*11, bz=w.z+Math.cos(w.heading)*11;
-  const by=WATER_Y+seaHeight(bx,bz)+0.3+(F.phase==='bite'?Math.sin(F.t*26)*0.9:Math.sin(F.t*2.1)*0.3);
+  let bx=w.x+Math.sin(w.heading)*11, bz=w.z+Math.cos(w.heading)*11;
+  let by=WATER_Y+seaHeight(bx,bz)+0.3+(F.phase==='bite'?Math.sin(F.t*26)*0.9:Math.sin(F.t*2.1)*0.3);
+  /* ---- THE CATCH COMES IN ----
+     The float and the fish on it are drawn from the water back to the rod's
+     tip over a second and a half, the fish kicking the whole way, and then it
+     is his and the line is stowed. */
+  if(F.phase==='landed'){
+    const q=Math.min(1,F.t/1.5);
+    const tipX=w.x+Math.sin(w.heading)*6.4, tipZ=w.z+Math.cos(w.heading)*6.4;
+    const tipY=walkerG.position.y+11.0;
+    bx=landed.x+(tipX-landed.x)*q; bz=landed.z+(tipZ-landed.z)*q;
+    by=(WATER_Y+seaHeight(landed.x,landed.z)+0.3)+(tipY-(WATER_Y+seaHeight(landed.x,landed.z)+0.3))*q;
+    if(rodFish){ rodFish.visible=true;
+      rodFish.position.set(bx,by-1.4,bz);
+      rodFish.rotation.set(Math.sin(F.t*16)*0.35, w.heading, Math.sin(F.t*13)*0.55); }
+    if(F.t>=1.9){ endFishing(true); return; }
+  }
   rodBob.position.set(bx,by,bz);
   _fishTip.set(w.x+Math.sin(w.heading)*6.4, walkerG.position.y+12.6, w.z+Math.cos(w.heading)*6.4);
   _fishDir.set(bx-_fishTip.x,by-_fishTip.y,bz-_fishTip.z);

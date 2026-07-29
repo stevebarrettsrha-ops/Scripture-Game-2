@@ -102,9 +102,15 @@ otter:1.2, beaver:1.1, platypus:0.5,
 fish:0.35, puffer:0.45, jelly:0.9, crab:0.45, squid:6.0,
 anglerfish:1.2, sardine:0.2, mackerel:0.38, salmon:0.85, cod:1.0,
 tuna:2.2, turtle:1.8, ray:5.5, dolphin:3.2, shark:5.2,
-hammerhead:4.6, whaleshark:11.0, orca:8.0, narwhal:7.0, whale:16.0,
+/* ---- THE GREAT WHALE IS AS LONG AS THE SHIP, AND SO SHE SHOULD BE ----
+   She stood at sixteen metres — a humpback, not a leviathan — which is barely
+   two-fifths of the galleon's forty. The blue whale is thirty-three metres and
+   the largest creature that has ever lived: laid alongside, she matches the
+   ship almost stem for stern, which is exactly the awe the deep is owed.
+   The whale shark and the sleeper shark were short of their true measure too. */
+hammerhead:4.6, whaleshark:13.0, orca:8.0, narwhal:7.0, whale:31.0,
 seal:1.8, walrus:3.2, octopus:1.2, swordfish:3.0, barracuda:1.4,
-manatee:3.0, beluga:4.2, greenlandshark:5.0,
+manatee:3.0, beluga:4.2, greenlandshark:6.4,
 /* ---- and of the rivers ---- */
 trout:0.45, catfish:1.2, piranha:0.3, sturgeon:2.2, riverdolphin:2.4,
 arcticchar:0.6,
