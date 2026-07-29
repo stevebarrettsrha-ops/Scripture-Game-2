@@ -229,6 +229,48 @@ puffin: {perch:'ground', night:'roost', fish:true,  flock:true },
 butterfly:{perch:'flower',night:'sit',  fish:false, flock:false},
 };
 
+/* ================= THE FOLK OF THE WORLD, AND THEIR DAY =================
+   "Man goeth forth unto his work and to his labour until the evening."
+
+   THE FAULT THIS TABLE MENDS. Every soul in every village kept the SAME day:
+   each worked its one trade at all hours without pause, and the only thing the
+   clock ever did was send them all indoors together at dusk. Nobody rose
+   early, nobody knocked off at noon, nobody ate, nobody rested, and a
+   fisherman worked the same hours as a schoolmaster.
+
+   Each trade now keeps its own hours and its own habits, and the village reads
+   them from here.
+
+   rise  — the hour it is up and about (local, 0..24)
+   bed   — the hour it goes in for the night
+   work  — how much of its waking day is spent at its trade, 0..1 (the rest is
+           the small business of living: eating, talking, resting, idling)
+   pace  — how fast it goes about, in world units a second
+   rest  — the hour it takes its rest in the heat of the day, if it takes one
+           (null for those who do not); it lasts an hour or so
+   acts  — the small business of its own day, drawn by weight when it is not
+           at its trade:
+             eat    sat down to bread
+             talk   fallen in with a neighbour
+             rest   sat still, hands idle
+             tend   seeing to the beasts, the nets, the tools
+             pray   stood still, hands raised
+             carry  bearing something from one place to another
+             watch  stood looking out — at the sea, the road, the flock
+             play   the children, and any grown soul at leisure */
+const FOLK={
+farmer:  {rise:5.5, bed:20.0, work:0.72, pace:7,   rest:13.0, acts:[['tend',4],['eat',3],['rest',2],['talk',2],['pray',1]]},
+herder:  {rise:5.0, bed:20.5, work:0.70, pace:7.5, rest:13.5, acts:[['watch',5],['tend',3],['eat',2],['rest',2],['talk',1]]},
+fisher:  {rise:4.5, bed:19.5, work:0.75, pace:6.5, rest:null, acts:[['tend',5],['watch',3],['eat',2],['talk',1]]},
+hunter:  {rise:4.5, bed:21.0, work:0.68, pace:8,   rest:null, acts:[['watch',5],['tend',3],['eat',2],['rest',1]]},
+water:   {rise:5.5, bed:19.5, work:0.66, pace:6,   rest:13.0, acts:[['carry',5],['talk',3],['rest',2],['eat',2]]},
+feeder:  {rise:5.5, bed:19.5, work:0.64, pace:6.5, rest:13.0, acts:[['tend',5],['eat',2],['talk',2],['rest',1]]},
+vendor:  {rise:6.5, bed:20.0, work:0.78, pace:6,   rest:null, acts:[['talk',5],['eat',2],['rest',2],['watch',1]]},
+shopper: {rise:7.0, bed:20.5, work:0.40, pace:6.5, rest:null, acts:[['talk',5],['carry',3],['watch',2],['eat',2],['rest',1]]},
+teacher: {rise:6.0, bed:21.0, work:0.60, pace:5.5, rest:13.0, acts:[['talk',4],['pray',3],['rest',2],['eat',2]]},
+child:   {rise:6.5, bed:19.0, work:0.20, pace:8.5, rest:13.5, acts:[['play',8],['eat',2],['watch',1],['talk',1]]},
+};
+
 /* ================= THE FISH OF THE SEA, AND THEIR WORK =================
    "So is this great and wide sea, wherein are things creeping innumerable,
     both small and great beasts. There go the ships: there is that leviathan,
@@ -410,6 +452,21 @@ window.BEHAVIOR={
     let w=0; for(const a of b.acts) w+=a[1];
     let x=r*w; for(const a of b.acts){ x-=a[1]; if(x<=0) return a[0]; }
     return b.acts[b.acts.length-1][0]; },
+  /* ---- the folk of the world, and the hours each trade keeps ---- */
+  FOLK,
+  folkOf:role=>FOLK[role]||null,
+  /* is this soul up and about at the given local hour? */
+  folkAwake:(role,h)=>{ const f=FOLK[role]; if(!f) return h>=6&&h<20.5;
+    return h>=f.rise&&h<f.bed; },
+  /* and is it the hour it lies down in the heat of the day? */
+  folkResting:(role,h)=>{ const f=FOLK[role]; if(!f||f.rest==null) return false;
+    return h>=f.rest&&h<f.rest+1.1; },
+  folkPaceOf:(role,fb)=>{ const f=FOLK[role]; return (f&&f.pace)||fb; },
+  /* draw one piece of a soul's own small business, by weight */
+  drawFolkAct:(role,r)=>{ const f=FOLK[role]; if(!f||!f.acts||!f.acts.length) return null;
+    let w=0; for(const a of f.acts) w+=a[1];
+    let x=r*w; for(const a of f.acts){ x-=a[1]; if(x<=0) return a[0]; }
+    return f.acts[f.acts.length-1][0]; },
   /* ---- the green things, by form, and the living furniture of the world ---- */
   FLORA, THINGS,
   floraOf:form=>FLORA[form]||null,
