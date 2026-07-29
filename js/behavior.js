@@ -206,15 +206,27 @@ platypus:    {day:'dusk',walk:2,  run:6,  home:'water', acts:[['dig',4]], climb:
    air-life reads this to give every bird its real day: the owl works
    the night and sleeps it off in a tree; the puffin fishes the sea and
    sleeps at its burrow in the turf; the gull will not go far from
-   water; the dove is on the ground as much as off it. */
+   water; the dove is on the ground as much as off it.
+
+   perch  — where it sits at rest: 'tree', 'ground', 'flower'.
+   night  — what it does in the dark: 'roost' (sleeps), 'hunt' (the owl,
+            which works the dark), or 'sit' (the butterfly, folded on a stem).
+   fish   — true if it takes its living from the water. The engine reads this
+            now (it used to name the gull and eagle by hand), so a fishing
+            bird is made a fisher by its line here and nowhere else.
+   flock  — true if it gathers with its own kind: the crow's rookery, the
+            dove's flight, the gull's wheeling raft. Such birds draw toward
+            one another at rest instead of each sitting alone.
+   soar   — true if it rides the wind on a set wing rather than flapping: the
+            eagle on its thermal, the gull on the sea-breeze. */
 const BIRDS={
-crow:   {perch:'tree',   night:'roost', fish:false},
-dove:   {perch:'tree',   night:'roost', fish:false},
-gull:   {perch:'ground', night:'roost', fish:true },
-eagle:  {perch:'tree',   night:'roost', fish:false},
-owl:    {perch:'tree',   night:'hunt',  fish:false},   /* the one that WORKS the dark */
-puffin: {perch:'ground', night:'roost', fish:true },
-butterfly:{perch:'flower',night:'sit',  fish:false},
+crow:   {perch:'tree',   night:'roost', fish:false, flock:true },
+dove:   {perch:'tree',   night:'roost', fish:false, flock:true },
+gull:   {perch:'ground', night:'roost', fish:true,  flock:true, soar:true },
+eagle:  {perch:'tree',   night:'roost', fish:false, flock:false,soar:true },
+owl:    {perch:'tree',   night:'hunt',  fish:false, flock:false},   /* the one that WORKS the dark */
+puffin: {perch:'ground', night:'roost', fish:true,  flock:true },
+butterfly:{perch:'flower',night:'sit',  fish:false, flock:false},
 };
 
 /* ================= THE FISH OF THE SEA, AND THEIR WORK =================

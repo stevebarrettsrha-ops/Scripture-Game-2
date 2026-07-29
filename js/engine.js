@@ -5392,9 +5392,18 @@ function updateNests(px,pz,dt){ initNests();
 function claimNest(b){
   if(b.nest&&b.nest.set&&b.nest.bird&&b.nest.species===b.type) return b.nest;
   b.nest=null;
+  /* ---- A BIRD JOINS ITS MATE BEFORE IT OPENS A NEW HOUSE ----
+     Every bird took the first empty nest of its kind, so the nests stood one
+     bird apiece and the pair — which is what a nest is for — hardly ever
+     formed. A bird now looks first for a nest of its kind that already holds
+     ONE of its kind, and makes the pair; only if there is none does it take an
+     empty nest. So the nests fill two-by-two, as they ought. */
+  let pair=null, empty=null;
   for(const N of NESTS){ if(!N.set||!N.bird||N.species!==b.type) continue;
     let claims=0; for(const o of AIRLIFE){ if(o!==b&&o.set&&o.nest===N) claims++; }
-    if(claims<2){ b.nest=N; break; } }
+    if(claims===1){ pair=N; break; }
+    if(claims===0&&!empty) empty=N; }
+  b.nest=pair||empty;
   return b.nest; }
 function airKind(px,pz,night){ const overSea=!landAtWorld(px,pz);
   /* ---- AND THE COLD HAS ITS OWN FOWL ----
@@ -5453,9 +5462,12 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
       b.x=px+Math.cos(a)*r; b.z=pz+Math.sin(a)*r;
       const c=landAtWorld(b.x,b.z), base=c?c.h*B:WATER_Y;
       b.y=type==='butterfly'?base+3:base+30+Math.random()*60;
-      /* the gull is always a fisher; the eagle only where there is water for
-         it to fish — inland it hunts the ground like the rest */
-      b.fisher=(type==='gull')||(type==='eagle'&&!landAtWorld(px,pz));
+      /* WHICH BIRDS FISH is read from js/behavior.js now, not named by hand:
+         the gull and the puffin take their living from the water wherever they
+         are; the eagle only where there is water under it, and inland it hunts
+         the ground like the rest */
+      { const bh0=window.BEHAVIOR&&BEHAVIOR.birdOf(type);
+        b.fisher=(bh0?bh0.fish:(type==='gull'))||(type==='eagle'&&!landAtWorld(px,pz)); }
       b.follow=type==='gull'&&Math.random()<0.4;   /* some gulls take to a passing ship */
       /* the mark it was making for MUST be dropped with everything else. A
          bird set down beside the traveller while still holding a forage spot
@@ -5540,10 +5552,14 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
                 b.perch={x:b.x,y:(c?c.h*B:WATER_Y+2)+0.6,z:b.z}; } }
             b.tx=b.perch.x; b.tz=b.perch.z; b.ty=b.perch.y; }
           break; }
-        default: {   /* rest — it circles above the nest and gathers itself */
+        default: {   /* rest — it circles and gathers itself; a flocking bird
+                        circles with its own kind, not alone */
           const n=b.nest;
+          let cx=n?n.x:b.x, cz=n?n.z:b.z; const cy=(n?n.y:b.y)+34;
+          if(BH&&BH.flock){ let mx=0,mz=0,mn=0;
+            for(const o of AIRLIFE){ if(o!==b&&o.set&&o.type===b.type&&Math.hypot(o.x-b.x,o.z-b.z)<120){ mx+=o.x; mz+=o.z; mn++; } }
+            if(mn){ cx=cx*0.4+(mx/mn)*0.6; cz=cz*0.4+(mz/mn)*0.6; } }
           b.ph+=dt*0.7;
-          const cx=n?n.x:b.x, cz=n?n.z:b.z, cy=(n?n.y:b.y)+34;
           b.tx=cx+Math.cos(b.ph)*26; b.tz=cz+Math.sin(b.ph)*26; b.ty=cy;
           if(b.jt<=0){ b.job='hunt'; b.spot=null; }
         }
