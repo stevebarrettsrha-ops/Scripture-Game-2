@@ -271,7 +271,14 @@ const WIND_T={value:0}, WIND_A={value:1};
    the centre. No chunk is ever re-meshed for it; it is all in the shader. */
 const SEASON_Y={value:0};
 const INV_R_STR=(1/180000).toExponential();   /* 1 / R_WORLD, for the shader */
-const SEASON_GLSL=
+/* ---- AND IT MUST BE DONE IN THE FRAGMENT, NOT THE VERTEX COLOUR ----
+   The vertex colour is MULTIPLIED into the block's texture, so whitening it
+   only ever BRIGHTENS what is already there: a white vertex colour over a green
+   grass texture is still green, and no snow would lie however hard it was
+   driven. The season is therefore worked out per-vertex (where the world
+   position is known), handed to the fragment as a varying, and MIXED over the
+   sampled texture there — which can truly bury a green field in white. */
+const SEASON_VS=                                    /* -> vSeas = (autumn, winter) for a leaf */
   '{ float sr=length(position.xz)*'+INV_R_STR+';\n'+
   '  float latN=1.0-sr*2.0;\n'+                                   /* +1 north pole .. -1 south */
   '  float ph=fract(uSeasonY+(latN<0.0?0.5:0.0));\n'+            /* the south is half a year on */
@@ -279,9 +286,19 @@ const SEASON_GLSL=
   '  float winter=clamp(smoothstep(0.74,0.90,ph)+(1.0-smoothstep(0.10,0.26,ph)),0.0,1.0);\n'+
   '  float band=clamp(abs(latN),0.0,1.0);\n'+                     /* 0 equator .. 1 pole */
   '  float temperate=smoothstep(0.12,0.42,band)*(1.0-smoothstep(0.72,1.0,band));\n'+
-  '  autumn*=temperate; winter*=temperate;\n'+
-  '  vColor.rgb=mix(vColor.rgb, vec3(0.74,0.52,0.18), autumn*0.55);\n'+   /* gild to gold */
-  '  vColor.rgb=mix(vColor.rgb, vColor.rgb*vec3(0.62,0.60,0.55), winter*0.60); }';  /* grey, dim */
+  '  vSeas=vec2(autumn*temperate, winter*temperate); }';
+const SEASON_FS=                                    /* the leaf: gilded, then bared */
+  '  diffuseColor.rgb=mix(diffuseColor.rgb, vec3(0.78,0.55,0.16), vSeas.x*0.80);\n'+
+  '  diffuseColor.rgb=mix(diffuseColor.rgb, vec3(0.42,0.34,0.26), vSeas.y*0.72);';
+const SNOW_VS=                                      /* -> vSeas.y = how deep the snow lies */
+  '{ float sr=length(position.xz)*'+INV_R_STR+';\n'+
+  '  float latN=1.0-sr*2.0;\n'+
+  '  float ph=fract(uSeasonY+(latN<0.0?0.5:0.0));\n'+
+  '  float winter=clamp(smoothstep(0.74,0.90,ph)+(1.0-smoothstep(0.10,0.26,ph)),0.0,1.0);\n'+
+  '  float cold=smoothstep(0.28,0.56,abs(latN));\n'+  /* the tropics never take it; the far north lies deep */
+  '  vSeas=vec2(0.0, winter*cold); }';
+const SNOW_FS=
+  '  diffuseColor.rgb=mix(diffuseColor.rgb, vec3(0.93,0.95,1.00), vSeas.y*0.92);';
 function windSway(mat,amp,rooted,tint){
   mat.onBeforeCompile=sh=>{
     sh.uniforms.uWindT=WIND_T; sh.uniforms.uWindA=WIND_A;
@@ -296,11 +313,25 @@ function windSway(mat,amp,rooted,tint){
       '  transformed.z+=ws2*'+(amp*0.7).toFixed(3)+'*uWindA*wgt; }');
     let head='uniform float uWindT; uniform float uWindA;\n';
     /* and the turn of the year: the leaf canopies GILD ('leaf' — gold in autumn,
-       grey in winter), while the grass and herb blades take the SNOW ('snow') */
-    if(tint){ sh.uniforms.uSeasonY=SEASON_Y; head+='uniform float uSeasonY;\n';
-      vs=vs.replace('#include <color_vertex>','#include <color_vertex>\n'+(tint==='snow'?SNOW_GLSL:SEASON_GLSL)); }
+       bare and brown in winter), while the grass and herb blades take the SNOW */
+    if(tint){ sh.uniforms.uSeasonY=SEASON_Y;
+      head+='uniform float uSeasonY;\nvarying vec2 vSeas;\n';
+      vs=vs.replace('#include <color_vertex>',
+        '#include <color_vertex>\n'+(tint==='snow'?SNOW_VS:SEASON_VS));
+      sh.fragmentShader='varying vec2 vSeas;\n'+sh.fragmentShader.replace(
+        '#include <color_fragment>',
+        '#include <color_fragment>\n'+(tint==='snow'?SNOW_FS:SEASON_FS)); }
     sh.vertexShader=head+vs;
   };
+  /* ---- EVERY PATCHED MATERIAL MUST KEEP ITS OWN PROGRAM ----
+     three.js keys a compiled shader by the SOURCE TEXT of onBeforeCompile, and
+     that text is identical for every material patched here — the amplitude and
+     the tint live in the closure, not in the source. So without a key of its
+     own, every swaying material in the world shared ONE program: whichever
+     compiled first, and every other leaf, blade and crop was drawn with that
+     one's amplitude and that one's season. (It is why the snow would not lie on
+     the grass, and why every plant swayed alike.) */
+  mat.customProgramCacheKey=()=>'sway|'+amp+'|'+(rooted?1:0)+'|'+(tint||'');
   mat.needsUpdate=true;
 }
 /* ---- THE SNOW THAT LIES IN WINTER ----
@@ -310,17 +341,13 @@ function windSway(mat,amp,rooted,tint){
    tropics never take it at all (worked per-face from the distance to the pole,
    the same reckoning the leaves use). No chunk is re-meshed; it is in the
    shader, and the traveller's chosen season drives it. */
-const SNOW_GLSL=
-  '{ float sr=length(position.xz)*'+(1/180000).toExponential()+';\n'+
-  '  float latN=1.0-sr*2.0;\n'+
-  '  float ph=fract(uSeasonY+(latN<0.0?0.5:0.0));\n'+
-  '  float winter=clamp(smoothstep(0.74,0.90,ph)+(1.0-smoothstep(0.10,0.26,ph)),0.0,1.0);\n'+  /* falls as the leaves go bare */
-  '  float cold=smoothstep(0.28,0.56,abs(latN));\n'+            /* the temperate lands take a clear snow, the far north lies deep */
-  '  vColor.rgb=mix(vColor.rgb, vec3(0.94,0.96,1.00), winter*cold*0.92); }';
 function groundSnow(mat){
   mat.onBeforeCompile=sh=>{ sh.uniforms.uSeasonY=SEASON_Y;
-    sh.vertexShader='uniform float uSeasonY;\n'+sh.vertexShader.replace(
-      '#include <color_vertex>','#include <color_vertex>\n'+SNOW_GLSL); };
+    sh.vertexShader='uniform float uSeasonY;\nvarying vec2 vSeas;\n'+sh.vertexShader.replace(
+      '#include <color_vertex>','#include <color_vertex>\n'+SNOW_VS);
+    sh.fragmentShader='varying vec2 vSeas;\n'+sh.fragmentShader.replace(
+      '#include <color_fragment>','#include <color_fragment>\n'+SNOW_FS); };
+  mat.customProgramCacheKey=()=>'groundsnow';
   mat.needsUpdate=true;
 }
 groundSnow(MAT.grassTop); groundSnow(MAT.grassTopTr); groundSnow(MAT.grassTopTu);
@@ -328,7 +355,9 @@ groundSnow(MAT.grassTopSv); groundSnow(MAT.path); groundSnow(MAT.cobble);
 windSway(MAT.leaves,0.55,false,'leaf'); windSway(MAT.leavesTr,0.62,false,'leaf'); windSway(MAT.cherry,0.55,false);
 /* the grass blades take the snow, so they whiten with the ground and do not
    stand green out of a white field */
-windSway(MAT.tallgrass,0.9,true,'snow'); windSway(MAT.flowerR,0.6,true); windSway(MAT.flowerY,0.6,true);
+windSway(MAT.tallgrass,0.9,true,'snow');
+/* and the flowers standing in the sward go under the snow with it */
+windSway(MAT.flowerR,0.6,true,'snow'); windSway(MAT.flowerY,0.6,true,'snow');
 /* the plain moves as one thing when the wind crosses it — the tall grass
    swings further than the sward, and the thorn crowns ride it */
 windSway(MAT.savgrass,1.5,true,'snow'); windSway(MAT.acacia,0.5,false,'leaf');
