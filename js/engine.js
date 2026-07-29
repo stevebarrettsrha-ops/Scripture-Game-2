@@ -9562,7 +9562,10 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
   domeInfo:()=>({dome:flyDome?flyDome.material.opacity:0, deep:outerDeep?outerDeep.material.uniforms.uOp.value:0, stars:starGroup.userData.mat.opacity}),
   ENC,nearestEncounter,encounterAct,BARKS,FIREFLIES,SMOKES,rain,rainMat,nextLandfall,checkFulfilled,AIRLIFE,stormAt,COUNTRIES,STORMS,R_WORLD,
-  seaPools:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,POD}),
+  seaPools:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,POD,
+    SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS,NARWHALS}),
+  /* the reef's lanterns and the spring flush — for the smoke tests */
+  coral:()=>CORAL, blooms:()=>BLOOMS, seaCurrent,
   seaFloor,eyeUnderwater,eyeSub:()=>_eyeSub,
   lights:()=>({ sunY:Math.round(sun.position.y), moonY:Math.round(moon.position.y),
     sunR:+(Math.hypot(sun.position.x,sun.position.z)/R_WORLD).toFixed(3),
