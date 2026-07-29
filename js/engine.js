@@ -4009,6 +4009,16 @@ function updateShoals(px,py,pz,dt,t){ initShoals();
        clean out in the air over the swell. Both are held now — the school by
        its own half-height, and then every fish in it on its own account. */
     S.y=S.y+Math.sin(t*0.5+S.fish[0].ph)*4*dt;
+    /* ---- THE SCHOOL RISES IN THE DARK AND SINKS BY DAY ----
+       The great vertical migration of the sea: the night-feeding nations (the
+       sardine, the mackerel) climb toward the top after dark to feed on what
+       has risen with them, and go back down into the safe blue by day. Read
+       from js/behavior.js — a slow drift, never a jump. */
+    { const B3=window.BEHAVIOR;
+      if(B3&&B3.seaDayOf(K.name)==='night'){ const night2=(worldNight||0)>0.6;
+        const top=SEA_SURF-SHOAL_TOP-sp2*0.5, low=fy+6+sp2*0.5;
+        const ty=night2?top:(low+(top-low)*0.25);
+        S.y+=(ty-S.y)*Math.min(1,dt*0.05); } }
     S.y=Math.min(S.y, SEA_SURF-SHOAL_TOP-sp2*0.5);
     S.y=Math.max(S.y, fy+6+sp2*0.5);
     const head=Math.atan2(Math.cos(S.dir),Math.sin(S.dir));
@@ -4142,7 +4152,7 @@ function mkSeaMob(kind,n,R,rSpawn,near,deepM,lat){ const arr=[];
   /* EVERY BEAST NEEDS ROOM FOR ITS OWN BULK. A whale grown to sixteen metres
      stands three units off the bed at the old clearance and ploughs the sand
      with her belly. The clearance a beast keeps is read off its own length. */
-  arr._R=R; arr._rs=rSpawn; arr._near=near; arr._len=beastUnits(kind); arr._deep=deepM||H_REEF;
+  arr._R=R; arr._rs=rSpawn; arr._near=near; arr._len=beastUnits(kind); arr._deep=deepM||H_REEF; arr._kind=kind;
   /* AND SOME OF THEM KEEP TO THEIR OWN WATER. A walrus is not met off Ceylon
      and a manatee is not met under the ice: a nation of beasts may name the
      band of latitude it belongs to, and it is simply absent from the rest of
@@ -4152,22 +4162,48 @@ function updateSeaMob(arr,px,py,pz,dt,t){
   if(arr._lat){ const lat=90-Math.hypot(px/R_WORLD,pz/R_WORLD)*180;
     if(lat<arr._lat[0]||lat>arr._lat[1]){
       for(const o of arr) if(o.set){ o.set=false; o.m.visible=false; } return; } }
+  /* ---- WHAT THIS NATION OF THE SEA IS ABOUT ----
+     Its pace, its hours, and whether it must come up to breathe are read from
+     its line in js/behavior.js. Anything the table has no word for keeps the
+     old plain wander, so the sea runs while the table is filled in. */
+  const B2=window.BEHAVIOR, kind=arr._kind;
+  const air=B2?B2.seaAirOf(kind):false;
+  const dayp=B2?B2.seaDayOf(kind):'day';
+  const night=(worldNight||0)>0.6;
+  /* off its own hours it is slow and quiet — but nothing in the sea stands still */
+  const drowsy=(dayp==='all'||dayp==='dusk')?false:(dayp==='night'?!night:night);
   for(const o of arr){
     if(!o.set||Math.hypot(o.x-px,o.z-pz)>arr._R+140){ const a=Math.random()*6.28, r=arr._rs*0.3+Math.random()*arr._rs*0.7;
       o.x=px+Math.cos(a)*r; o.z=pz+Math.sin(a)*r; const fy=haunt(o.x,o.z,arr._deep||H_REEF);
       const clr=Math.max(4,(arr._len||24)*0.35);   /* she swims a third of her own length clear */
-      o.y = arr._near ? fy+clr+Math.random()*14 : Math.min(SEA_SURF-clr,fy+clr+Math.random()*60); o.dir=Math.random()*6.28; o.set=true; o.m.visible=true; }
+      o.y = arr._near ? fy+clr+Math.random()*14 : Math.min(SEA_SURF-clr,fy+clr+Math.random()*60); o.dir=Math.random()*6.28; o.set=true; o.m.visible=true;
+      o.sp=B2?B2.swimOf(kind,arr._near?7:12):(arr._near?7:12);
+      o.breath=air?(3+Math.random()*28):0; o.act=null; o.actT=0; o.surf=0; }
+    /* the piece of business it is at, and the breath it owes the surface */
+    o.actT=(o.actT||0)-dt;
+    if(air){ o.breath-=dt; if(o.breath<=0&&!o.surf) o.surf=1; }   /* time to come up and blow */
+    if(o.actT<=0&&!o.surf){ o.act=B2?B2.drawSeaAct(kind,Math.random()):null; o.actT=4+Math.random()*7; }
+    /* how fast it goes: its cruise, dropped for its off-hours, and near-stopped
+       when it is resting, denned, hovering or lying up */
+    let spF=drowsy?0.4:1;
+    if(o.act==='logging'||o.act==='den'||o.act==='hover'||o.act==='lure'||o.act==='bask') spF*=0.15;
     o.dir+=Math.sin(t*0.3+o.ph)*0.03;
-    { const nx=o.x+Math.cos(o.dir)*o.sp*dt, nz=o.z+Math.sin(o.dir)*o.sp*dt;
+    { const nx=o.x+Math.cos(o.dir)*o.sp*spF*dt, nz=o.z+Math.sin(o.dir)*o.sp*spF*dt;
       if(!landAtWorld(nx,nz)){ o.x=nx; o.z=nz; } else o.dir+=1.7; }   /* the flank turns the beast */
-    o.y+=Math.sin(t*0.6+o.ph)*2*dt;
-    const fy=haunt(o.x,o.z,arr._deep||H_REEF), col=SEA_SURF-fy;
-    { const clr=Math.max(3,(arr._len||24)*0.30);
-      o.y=Math.min(SEA_SURF-clr*0.5,Math.max(fy+clr,o.y)); }
+    /* the water it holds: rising to breathe, sounding to the bed, hanging at
+       the top, or the gentle mid-water bob it keeps between whiles */
+    const fy=haunt(o.x,o.z,arr._deep||H_REEF);
+    const clr=Math.max(3,(arr._len||24)*0.30), loF=fy+clr, hiF=SEA_SURF-clr*0.5;
+    if(o.surf){ o.y+=(hiF-o.y)*Math.min(1,dt*0.7); if(o.y>=hiF-2){ o.surf=0; o.breath=20+Math.random()*26; } }
+    else if(o.act==='sound'||o.act==='bottom'){ const ty=loF+Math.min(6,(hiF-loF)*0.12); o.y+=(ty-o.y)*Math.min(1,dt*0.5); }
+    else if(o.act==='logging'||o.act==='bask'){ o.y+=(hiF-o.y)*Math.min(1,dt*0.4); }
+    else o.y+=Math.sin(t*0.6+o.ph)*2*dt;
+    o.y=Math.min(hiF,Math.max(loF,o.y));
     o.m.position.set(o.x,o.y,o.z); o.m.rotation.y=Math.atan2(Math.cos(o.dir),Math.sin(o.dir));
-    if(o.m.userData.flL){ o.m.userData.flL.rotation.z=0.2+Math.sin(t*2+o.ph)*0.3; o.m.userData.flR.rotation.z=-0.2-Math.sin(t*2+o.ph)*0.3; }
+    const beat=(spF<0.4)?1:2;                        /* fins ease when the beast lies up */
+    if(o.m.userData.flL){ o.m.userData.flL.rotation.z=0.2+Math.sin(t*beat+o.ph)*0.3; o.m.userData.flR.rotation.z=-0.2-Math.sin(t*beat+o.ph)*0.3; }
     if(o.m.userData.wingL){ o.m.userData.wingL.rotation.z=Math.sin(t*1.6+o.ph)*0.4; o.m.userData.wingR.rotation.z=-Math.sin(t*1.6+o.ph)*0.4; } } }
-let TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS;
+let TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS,NARWHALS;
 function initSeaMobs(){ if(TURTLES) return;
   /* the last number is how deep each keeps, in metres: a turtle on the reef,
      a whale sounding to three hundred, a pufferfish never off the shallows */
@@ -4184,6 +4220,9 @@ function initSeaMobs(){ if(TURTLES) return;
   /* the white whale of the ice, and the shark that lies under it — four
      hundred years old, blind, and slower than a man walks */
   BELUGAS=mkSeaMob('beluga',3,420,400,true,120,[55,90]);
+  /* the unicorn of the sea, in the same cold water as the white whale, its
+     long tusk carried before it */
+  NARWHALS=mkSeaMob('narwhal',2,440,410,true,150,[58,90]);
   SLEEPERS=mkSeaMob('greenlandshark',1,560,520,false,600,[52,90]);
   WALRUS=mkSeaMob('walrus',2,320,300,true,70,[58,90]);
   MANATEES=mkSeaMob('manatee',2,300,280,true,40,[-30,30]);
@@ -4198,6 +4237,7 @@ function updateSeaMobs(px,py,pz,dt,t){ initSeaMobs();
   updateSeaMob(MANATEES,px,py,pz,dt,t); updateSeaMob(OCTOPI,px,py,pz,dt,t);
   updateSeaMob(SWORDS,px,py,pz,dt,t); updateSeaMob(CUDAS,px,py,pz,dt,t);
   updateSeaMob(BELUGAS,px,py,pz,dt,t); updateSeaMob(SLEEPERS,px,py,pz,dt,t);
+  updateSeaMob(NARWHALS,px,py,pz,dt,t);
   for(const j of JELLIES){ if(!j.set||Math.hypot(j.x-px,j.z-pz)>360){ const a=Math.random()*6.28,r=40+Math.random()*320; j.x=px+Math.cos(a)*r; j.z=pz+Math.sin(a)*r; const fy=haunt(j.x,j.z,H_JELLY); j.y=fy+30+Math.random()*80; j.set=true; j.m.visible=true; }
     const pulse=0.5+0.5*Math.sin(t*1.4+j.ph); j.y+=(pulse-0.45)*10*dt; const fy=haunt(j.x,j.z,H_JELLY), col=SEA_SURF-fy;
     j.y=Math.min(SEA_SURF-6,Math.max(fy+Math.min(10,col-7),j.y));
@@ -4247,7 +4287,7 @@ function updateAnglers(px,py,pz,dt,t){ initAnglers();
       a.gs.material.opacity=0.30+0.34*pulse; } } }
 function hideAnglers(){ for(const a of ANGLERS){ a.m.visible=false; a.gs.visible=false; a.set=false; } }
 function hideSeaMobs(){ if(!TURTLES) return;
-  for(const arr of [TURTLES,RAYS_M,WHALES,PUFFERS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS]) for(const o of arr) o.m.visible=false;
+  for(const arr of [TURTLES,RAYS_M,WHALES,PUFFERS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS,NARWHALS]) for(const o of arr) o.m.visible=false;
   for(const j of JELLIES)j.m.visible=false; for(const c of CRABS)c.m.visible=false; }
 const BUB=[], BUB_N=26;
 function initBub(){ if(BUB.length) return; for(let k=0;k<BUB_N;k++){ const s=new THREE.Sprite(new THREE.SpriteMaterial({color:0xcdeeff,transparent:true,opacity:0,depthWrite:false,fog:false}));

@@ -217,6 +217,82 @@ puffin: {perch:'ground', night:'roost', fish:true },
 butterfly:{perch:'flower',night:'sit',  fish:false},
 };
 
+/* ================= THE FISH OF THE SEA, AND THEIR WORK =================
+   "So is this great and wide sea, wherein are things creeping innumerable,
+    both small and great beasts. There go the ships: there is that leviathan,
+    whom thou hast made to play therein."
+
+   THE FAULT THIS TABLE MENDS. Every nation of the sea swam the one way — a
+   flat wander at one speed, at one depth, by day and by night alike. A whale
+   never came up to blow, a seal never lay logging at the top, an octopus
+   never went to ground in its hole, and the deep-water shoals never rose in
+   the dark to feed and sank again at dawn. Now each keeps its own hours, its
+   own water, its own pace, and its own habits — written here, and the sea-life
+   engine obeys.
+
+   day    — when it is abroad and quick: 'day', 'night', 'dusk', or 'all'.
+            Off its hours it does not stop (nothing stops in the sea) but goes
+            slow and quiet.
+   swim   — its cruising pace, world units a second.
+   fast   — its burst: the flight, or the strike.
+   deep   — the water it keeps to (a label, for the reader; the engine already
+            sinks each nation to its own depth): reef, shelf, open, pelagic,
+            abyss, ice, bed, river.
+   school — true if it holds with its own kind.
+   air    — true if it MUST come up to breathe: every whale, dolphin, seal and
+            turtle. These rise to the surface on their own clock and go down
+            again, which is the plainest sign of life the open sea can show.
+   home   — where it rests or shelters: reef, bed, kelp/weed, ice, cave, open,
+            river.
+   acts   — the small business of its life, drawn by weight. The engine renders
+            what it can as real motion — the dive (sound), the rise to breathe
+            (surface), the hang at the top (logging/bask), the going-to-ground
+            (bottom/den) — and keeps the rest as a stable key for sound and
+            animation, exactly as the land's acts are.
+
+   To put a new fish in the sea: add its creature file, add a line here. */
+const SEA={
+/* ---- the great breathing beasts: whale, dolphin, and their kin ---- */
+whale:        {day:'all',  swim:5, fast:11, deep:'open',    school:true,  air:true,  home:'open', acts:[['sound',4],['surface',3],['breach',1],['spyhop',1]]},
+orca:         {day:'all',  swim:7, fast:16, deep:'open',    school:true,  air:true,  home:'open', acts:[['hunt',3],['surface',3],['spyhop',2],['breach',1]]},
+dolphin:      {day:'day',  swim:8, fast:18, deep:'shelf',   school:true,  air:true,  home:'open', acts:[['surface',3],['play',2],['breach',2],['hunt',1]]},
+riverdolphin: {day:'day',  swim:5, fast:11, deep:'river',   school:false, air:true,  home:'river',acts:[['surface',3],['probe',2],['roll',1]]},
+narwhal:      {day:'all',  swim:5, fast:12, deep:'ice',     school:true,  air:true,  home:'ice',  acts:[['sound',3],['surface',3],['tusk',1]]},
+beluga:       {day:'all',  swim:5, fast:12, deep:'ice',     school:true,  air:true,  home:'ice',  acts:[['surface',3],['sound',2],['song',2]]},
+seal:         {day:'day',  swim:7, fast:16, deep:'shelf',   school:false, air:true,  home:'ice',  acts:[['surface',3],['logging',3],['hunt',2],['bask',1]]},
+walrus:       {day:'day',  swim:4, fast:9,  deep:'shelf',   school:true,  air:true,  home:'ice',  acts:[['surface',3],['bottom',3],['logging',2]]},
+manatee:      {day:'day',  swim:3, fast:7,  deep:'shelf',   school:false, air:true,  home:'weed', acts:[['graze',5],['surface',3],['logging',2]]},
+turtle:       {day:'day',  swim:4, fast:10, deep:'reef',    school:false, air:true,  home:'reef', acts:[['graze',3],['surface',3],['clean',1],['logging',1]]},
+/* ---- the hunters and the great fish of the open water ---- */
+greenlandshark:{day:'all', swim:2, fast:4,  deep:'abyss',   school:false, air:false, home:'bed',  acts:[['sound',4],['logging',3],['scavenge',1]]},
+shark:        {day:'all',  swim:6, fast:20, deep:'open',    school:false, air:false, home:'open', acts:[['hunt',4],['patrol',3],['clean',1]]},
+hammerhead:   {day:'dusk', swim:6, fast:18, deep:'open',    school:true,  air:false, home:'open', acts:[['hunt',3],['school',3],['patrol',2]]},
+whaleshark:   {day:'day',  swim:3, fast:7,  deep:'open',    school:false, air:false, home:'open', acts:[['filter',5],['bask',2],['sound',1]]},
+tuna:         {day:'day',  swim:12,fast:30, deep:'pelagic', school:true,  air:false, home:'open', acts:[['school',4],['hunt',2],['patrol',2]]},
+swordfish:    {day:'dusk', swim:8, fast:22, deep:'pelagic', school:false, air:false, home:'open', acts:[['sound',3],['hunt',3],['patrol',2]]},
+barracuda:    {day:'day',  swim:6, fast:20, deep:'reef',    school:true,  air:false, home:'reef', acts:[['logging',4],['hunt',3],['school',1]]},
+/* ---- the schooling nations ---- */
+sardine:      {day:'night',swim:9, fast:17, deep:'shelf',   school:true,  air:false, home:'open', acts:[['school',5],['bait',3],['flash',1]]},
+mackerel:     {day:'night',swim:11,fast:21, deep:'shelf',   school:true,  air:false, home:'open', acts:[['school',5],['patrol',2]]},
+cod:          {day:'day',  swim:5, fast:9,  deep:'bed',     school:true,  air:false, home:'bed',  acts:[['bottom',4],['forage',3]]},
+/* ---- the bed and the reef ---- */
+ray:          {day:'day',  swim:3, fast:8,  deep:'bed',     school:false, air:false, home:'bed',  acts:[['bottom',4],['glide',3],['bury',2]]},
+octopus:      {day:'night',swim:2, fast:9,  deep:'reef',    school:false, air:false, home:'cave', acts:[['den',4],['crawl',3],['jet',1],['ink',1]]},
+squid:        {day:'night',swim:5, fast:14, deep:'deep',    school:true,  air:false, home:'open', acts:[['hover',3],['jet',3],['school',2]]},
+jelly:        {day:'all',  swim:1, fast:2,  deep:'deep',    school:false, air:false, home:'open', acts:[['pulse',5],['drift',4]]},
+crab:         {day:'night',swim:1, fast:3,  deep:'bed',     school:false, air:false, home:'bed',  acts:[['bottom',4],['bury',2],['forage',2]]},
+puffer:       {day:'day',  swim:2, fast:6,  deep:'reef',    school:false, air:false, home:'reef', acts:[['forage',4],['puff',1],['logging',1]]},
+anglerfish:   {day:'all',  swim:1, fast:5,  deep:'abyss',   school:false, air:false, home:'open', acts:[['lure',6],['hover',3]]},
+fish:         {day:'day',  swim:4, fast:9,  deep:'reef',    school:true,  air:false, home:'reef', acts:[['graze',3],['school',3],['clean',1]]},
+/* ---- the fish of the rivers, that never see the sea ---- */
+salmon:       {day:'day',  swim:6, fast:19, deep:'river',   school:true,  air:false, home:'river',acts:[['run',4],['leap',2],['hold',2]]},
+trout:        {day:'dusk', swim:5, fast:12, deep:'river',   school:false, air:false, home:'river',acts:[['hold',4],['rise',2],['dart',1]]},
+arcticchar:   {day:'day',  swim:5, fast:12, deep:'river',   school:true,  air:false, home:'river',acts:[['hold',3],['school',2]]},
+sturgeon:     {day:'night',swim:3, fast:8,  deep:'river',   school:false, air:false, home:'bed',  acts:[['bottom',5],['probe',2]]},
+catfish:      {day:'night',swim:2, fast:6,  deep:'river',   school:false, air:false, home:'bed',  acts:[['bottom',5],['probe',3]]},
+piranha:      {day:'day',  swim:5, fast:16, deep:'river',   school:true,  air:false, home:'river',acts:[['school',4],['hunt',3]]},
+};
+
 window.BEHAVIOR={
   D, BIRDS,
   of:name=>D[name]||null,
@@ -234,6 +310,19 @@ window.BEHAVIOR={
   burstOf:(name,fb)=>{ const b=D[name]; return (b&&b.burst)||fb; },
   /* draw one piece of the day's small business, by weight */
   drawAct:(name,r)=>{ const b=D[name]; if(!b||!b.acts||!b.acts.length) return null;
+    let w=0; for(const a of b.acts) w+=a[1];
+    let x=r*w; for(const a of b.acts){ x-=a[1]; if(x<=0) return a[0]; }
+    return b.acts[b.acts.length-1][0]; },
+  /* ---- and the same, for the fish of the sea ---- */
+  SEA,
+  seaOf:name=>SEA[name]||null,
+  swimOf:(name,fb)=>{ const b=SEA[name]; return (b&&b.swim)||fb; },
+  seaFastOf:(name,fb)=>{ const b=SEA[name]; return (b&&b.fast)||fb; },
+  seaDayOf:name=>{ const b=SEA[name]; return (b&&b.day)||'day'; },
+  seaAirOf:name=>{ const b=SEA[name]; return !!(b&&b.air); },
+  seaSchoolOf:name=>{ const b=SEA[name]; return !!(b&&b.school); },
+  seaHomeOf:name=>{ const b=SEA[name]; return (b&&b.home)||'open'; },
+  drawSeaAct:(name,r)=>{ const b=SEA[name]; if(!b||!b.acts||!b.acts.length) return null;
     let w=0; for(const a of b.acts) w+=a[1];
     let x=r*w; for(const a of b.acts){ x-=a[1]; if(x<=0) return a[0]; }
     return b.acts[b.acts.length-1][0]; },
