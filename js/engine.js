@@ -3858,9 +3858,21 @@ function placeKelp(k,px,pz){ for(let tr=0;tr<6;tr++){ const a=Math.random()*6.28
       k.h=Math.min(SEA_SURF-fy-6,(14+Math.random()*31)*U_PER_M); k.set=true;
       k.m.position.set(x,fy,z); k.m.scale.set(0.7+Math.random()*0.6,k.h/35,0.7+Math.random()*0.6); k.m.visible=true; return; } }
   k.set=false; k.m.visible=false; }
-function updateKelp(px,pz,t){ initKelp(); for(const k of KELP){
+/* ---- THE CURRENT OF THE SEA ----
+   One slow, wandering flow that all the weed of the sea leans and streams with
+   TOGETHER, so a kelp forest moves as a forest and not as a thousand separate
+   blades each on its own clock. The kelp and the seagrass are the 'things' that
+   move with the current (js/behavior.js names them so). */
+function seaCurrent(t){
+  const dir=Math.sin(t*0.05)*0.8+Math.sin(t*0.017+1.3)*0.5;   /* the lean, wandering */
+  const str=0.55+0.45*Math.sin(t*0.03+0.7);                   /* the surge, low to full */
+  return {dir,str};
+}
+function updateKelp(px,pz,t){ initKelp(); const cur=seaCurrent(t); for(const k of KELP){
     if(!k.set||Math.hypot(k.x-px,k.z-pz)>KELP_R+90) placeKelp(k,px,pz);
-    if(!k.set) continue; const sw=Math.sin(t*1.0+k.ph)*0.12, segs=k.m.userData.segs;
+    if(!k.set) continue;
+    /* its own slow ripple, and the shared lean of the current over it */
+    const sw=(Math.sin(t*1.0+k.ph)*0.06+cur.dir*0.10)*cur.str, segs=k.m.userData.segs;
     for(let s=0;s<segs.length;s++) segs[s].rotation.z=sw*(s+1)*0.5; } }
 /* ---- CORAL REEFS — the glory of the shallows near the coasts ----
    Mounds of coral blocks in living colour, crowned with fans, sponges and
@@ -3899,10 +3911,10 @@ function makeSeagrass(){ const g=new THREE.Group(), n=3+Math.floor(Math.random()
    pool and found no sward anywhere in the world.) */
 const SEAGRASS=[], SEAGRASS_N=200, SEAGRASS_R=300;
 function initSeagrass(){ if(SEAGRASS.length) return; for(let k=0;k<SEAGRASS_N;k++){ const m=makeSeagrass(); m.visible=false; scene.add(m); SEAGRASS.push({m,x:0,z:0,ph:Math.random()*6.28,set:false}); } }
-function updateSeagrass(px,pz,t){ initSeagrass(); for(const r of SEAGRASS){ if(!r.set||Math.hypot(r.x-px,r.z-pz)>SEAGRASS_R+70){
+function updateSeagrass(px,pz,t){ initSeagrass(); const cur=seaCurrent(t); for(const r of SEAGRASS){ if(!r.set||Math.hypot(r.x-px,r.z-pz)>SEAGRASS_R+70){
       for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28, rr=30+Math.random()*SEAGRASS_R, x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
         if(d>6 && d<30*U_PER_M){ r.x=x; r.z=z; r.set=true; r.m.position.set(x,seabedDepth(x,z),z); r.m.visible=true; break; } if(tr===4){ r.set=false; r.m.visible=false; } } }
-    if(r.set) r.m.rotation.z=Math.sin(t*1.3+r.ph)*0.14; } }
+    if(r.set) r.m.rotation.z=(Math.sin(t*1.3+r.ph)*0.07+cur.dir*0.12)*cur.str; } }
 /* ---- god-rays — shafts of light slanting down from the surface ---- */
 const RAYS=[], RAY_N=9;
 function initRays(){ if(RAYS.length) return; for(let k=0;k<RAY_N;k++){

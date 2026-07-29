@@ -305,6 +305,78 @@ catfish:      {day:'night',swim:2, fast:6,  deep:'river',   school:false, air:fa
 piranha:      {day:'day',  swim:5, fast:16, deep:'river',   school:true,  air:false, home:'river',acts:[['school',4],['hunt',3]]},
 };
 
+/* ================= THE GRASS, THE HERB, AND THE BEARING TREE =================
+   "And God said, Let the earth bring forth grass, the herb yielding seed, and
+    the fruit tree yielding fruit after his kind: and it was so."
+
+   The beasts have their day's work; the green things have a slower one, and it
+   is written here by FORM (the shapes in js/flora.js), because a poplar and a
+   reed behave alike whatever their names, and a baobab and a cactus alike.
+
+   The land's flora is built once into the ground and does not walk, so most of
+   this is the CATALOGUE — the law of what each form does, kept as the land
+   beasts' acts are kept, against the day the ground is re-meshed by season.
+   What CAN move already (the sea's kelp and seagrass) is driven live by the
+   engine from the 'things' below.
+
+   sway  — how freely it moves on the wind, 0 (the baobab, immovable) to 1
+           (the reed, never still).
+   fold  — true if its leaf or flower closes in the dark (nyctinasty): the
+           acacia, the flowering herb.
+   bear  — what it puts forth in its season: fruit, blossom, cone, berry,
+           spore, flower, or none.
+   grow  — its habit of growth: phototropic (turns to the sun), succulent
+           (stores water against the drought), stilt (walks into the sea on
+           its roots), fire (needs the burn), and so on. */
+const FLORA={
+broad:   {sway:0.5, fold:false, bear:'fruit',   grow:'phototropic', acts:[['sway',4],['fruit',2],['leaf-fall',1]]},
+round:   {sway:0.5, fold:false, bear:'fruit',   grow:'phototropic', acts:[['sway',4],['fruit',2]]},
+conifer: {sway:0.3, fold:false, bear:'cone',    grow:'evergreen',   acts:[['sway',3],['cone',2]]},
+column:  {sway:0.7, fold:false, bear:'none',    grow:'phototropic', acts:[['sway',5]]},
+palm:    {sway:0.8, fold:false, bear:'fruit',   grow:'phototropic', acts:[['sway',5],['fruit',2]]},
+thorn:   {sway:0.4, fold:true,  bear:'blossom', grow:'drought',     acts:[['sway',3],['fold',2],['blossom',1]]},
+blossom: {sway:0.5, fold:false, bear:'blossom', grow:'deciduous',   acts:[['blossom',4],['sway',3],['petal-fall',2]]},
+bamboo:  {sway:0.9, fold:false, bear:'none',    grow:'fast',        acts:[['sway',6]]},
+cactus:  {sway:0.1, fold:false, bear:'fruit',   grow:'succulent',   acts:[['store',4],['flower',1],['fruit',1]]},
+baobab:  {sway:0.1, fold:false, bear:'fruit',   grow:'succulent',   acts:[['store',4],['fruit',1]]},
+banana:  {sway:0.9, fold:false, bear:'fruit',   grow:'fast',        acts:[['sway',5],['fruit',3]]},
+mangrove:{sway:0.3, fold:false, bear:'none',    grow:'stilt',       acts:[['sway',2],['breathe-root',3],['trap-silt',2]]},
+fern:    {sway:0.6, fold:false, bear:'spore',   grow:'shade',       acts:[['sway',4],['sporulate',2]]},
+gum:     {sway:0.6, fold:false, bear:'none',    grow:'fire',        acts:[['sway',4],['shed-bark',2],['scent',1]]},
+spread:  {sway:0.3, fold:false, bear:'fruit',   grow:'buttress',    acts:[['sway',3],['drop-root',2],['fruit',1]]},
+darkoak: {sway:0.4, fold:false, bear:'fruit',   grow:'phototropic', acts:[['sway',3],['fruit',2]]},
+jungle:  {sway:0.5, fold:false, bear:'fruit',   grow:'reach-light', acts:[['sway',4],['reach',2],['fruit',1]]},
+shrub:   {sway:0.7, fold:false, bear:'berry',   grow:'thicket',     acts:[['sway',5],['berry',2]]},
+herb:    {sway:0.9, fold:true,  bear:'flower',  grow:'annual',      acts:[['sway',6],['flower',3],['fold',2],['seed',1]]},
+cane:    {sway:1.0, fold:false, bear:'none',    grow:'reed',        acts:[['sway',7]]},
+pad:     {sway:0.2, fold:false, bear:'fruit',   grow:'succulent',   acts:[['store',3],['flower',1],['fruit',1]]},
+rosette: {sway:0.2, fold:false, bear:'flower',  grow:'succulent',   acts:[['store',3],['bolt',1]]},
+};
+
+/* ================= THE THINGS THAT ARE NOT ALIVE, AND YET MOVE =================
+   The sea's weed, the tide, the current, the light in the deep. Not beasts and
+   not plants, but the game's living furniture — and each has a way of moving.
+   The engine drives the two that stand in the water (kelp, seagrass) live from
+   here; the rest is the catalogue, in the same spirit as the behaviour kit.
+
+   move — how it goes: current (leans and streams with the flow), rise-fall
+          (the tide), drift, sink, flash, slant, rise, spread, gust.
+   day  — when it is at its strongest: day, night, all, or 'moon' (the tide,
+          which keeps the moon's clock, not the sun's). */
+const THINGS={
+kelp:       {move:'current',  day:'all',  acts:[['sway',6],['stream',3]]},
+seagrass:   {move:'current',  day:'all',  acts:[['sway',6],['stream',2]]},
+coral:      {move:'none',     day:'all',  acts:[['polyp-feed',4],['biolum',2],['bleach',1]]},
+tide:       {move:'rise-fall',day:'moon', acts:[['flood',4],['ebb',4]]},
+current:    {move:'drift',    day:'all',  acts:[['drift',6],['upwell',2]]},
+marine_snow:{move:'sink',     day:'all',  acts:[['fall',6]]},
+biolum:     {move:'flash',    day:'night',acts:[['glow',5],['burst',2]]},
+godray:     {move:'slant',    day:'day',  acts:[['shaft',5]]},
+bubble:     {move:'rise',     day:'all',  acts:[['rise',6]]},
+wildfire:   {move:'spread',   day:'all',  acts:[['spread',5],['smoulder',2]]},
+storm:      {move:'gust',     day:'all',  acts:[['gust',5],['surge',2]]},
+};
+
 window.BEHAVIOR={
   D, BIRDS,
   of:name=>D[name]||null,
@@ -338,5 +410,11 @@ window.BEHAVIOR={
     let w=0; for(const a of b.acts) w+=a[1];
     let x=r*w; for(const a of b.acts){ x-=a[1]; if(x<=0) return a[0]; }
     return b.acts[b.acts.length-1][0]; },
+  /* ---- the green things, by form, and the living furniture of the world ---- */
+  FLORA, THINGS,
+  floraOf:form=>FLORA[form]||null,
+  swayOf:(form,fb)=>{ const f=FLORA[form]; return f?f.sway:(fb===undefined?0.5:fb); },
+  foldsOf:form=>{ const f=FLORA[form]; return !!(f&&f.fold); },
+  thingOf:name=>THINGS[name]||null,
 };
 })();
