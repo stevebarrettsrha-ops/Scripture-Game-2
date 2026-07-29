@@ -5562,7 +5562,16 @@ function updateNests(px,pz,dt){ initNests();
     const c=landAtWorld(wx,wz); if(!c||c.kind==='wall'||!c.ci) continue;
     const site=homeSiteFor(wx,wz,c,gi,gj); if(!site) continue;
     sites.push({key:gi+','+gj,wx,wz,site,d:Math.hypot(wx-px,wz-pz)}); }
-  sites.sort((a,b)=>a.d-b.d);
+  /* ---- AND A WINTER-SLEEPER'S HOME IS WORTH A SLOT ----
+     Only ten homes stand in the world at once, and they were given to the ten
+     NEAREST sites — which in wooded country are all birds' nests. So the
+     bear's cave WAS raised by the site-maker (a good seventh of the sites in
+     her country carry one) and then never given a slot to stand in, and the
+     traveller walked her whole country without seeing one. A home that is
+     slept in through the winter now counts as nearer than it truly is, so a
+     few of them always stand. */
+  for(const s of sites) s.pri=s.d-(NEST.hibernatesIn(s.site.kind)?900:0);
+  sites.sort((a,b)=>a.pri-b.pri);
   const night=(worldNight||0)>0.6, t=performance.now()*0.001;
   /* ---- THE HOMES OF THE WORLD DO NOT SHUFFLE UNDERFOOT ----
      The k-th nearest site used to be handed to the k-th slot, so every step
@@ -5572,7 +5581,11 @@ function updateNests(px,pz,dt){ initNests();
      for as long as that site is wanted at all. */
   const want=new Map();
   for(let k=0;k<sites.length&&want.size<NEST_N;k++){ const s=sites[k];
-    if(s.d<NEST_R+300&&!want.has(s.key)) want.set(s.key,s); }
+    /* the reach is measured on the PRIORITY, not the raw distance — so a
+       winter-sleeper's home is admitted from half again as far out, which is
+       what actually puts a bear's cave in the world (the sort alone could not:
+       the gate threw the far ones away before the sort was ever consulted) */
+    if(s.pri<NEST_R+300&&!want.has(s.key)) want.set(s.key,s); }
   for(const N of NESTS){
     if(N.set&&want.has(N.skey)){ const s=want.get(N.skey); s.held=true;
       N.x=(s.site.x!==undefined)?s.site.x:s.wx;
@@ -9688,6 +9701,8 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
     SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS,NARWHALS}),
   /* the reef's lanterns and the spring flush — for the smoke tests */
   coral:()=>CORAL, blooms:()=>BLOOMS, seaCurrent,
+  /* the home-raising itself, so a test may ask WHY a den was or was not built */
+  homeSiteFor, beastFits, faunaFor, FAUNA, villageBuildTick, SITES,
   seaFloor,eyeUnderwater,eyeSub:()=>_eyeSub,
   lights:()=>({ sunY:Math.round(sun.position.y), moonY:Math.round(moon.position.y),
     sunR:+(Math.hypot(sun.position.x,sun.position.z)/R_WORLD).toFixed(3),
