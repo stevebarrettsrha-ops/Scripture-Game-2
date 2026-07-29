@@ -5494,12 +5494,30 @@ function homeSiteFor(wx,wz,c,gi,gj){
   /* three draws, jittered a little apart: most beasts of a plain build
      nothing at all (they drop their young in the open and it is running
      within the hour), so one draw would leave a whole country with no dens */
-  /* ---- AND THE WINTER-SLEEPERS' HOMES ARE PREFERRED ----
-     The three draws took the FIRST beast that built anything, and the beasts
-     that build most (the fox, the boar, the crow) are also the commonest — so
-     a bear's cave was almost never raised, and there was nowhere on the earth
-     to find her asleep. Where any of the draws turns up a beast that WINTERS
-     in its home (js/nest.js marks them), that one is taken first. */
+  /* ---- THE WINTER-SLEEPERS MUST HAVE THEIR HOMES RAISED ----
+     The site asked what beast holds this very tile, three times, and took the
+     first that built anything. But the beasts that build most — the fox, the
+     boar, the crow — are also the commonest, and the bear is drawn so seldom
+     that not one of the three draws ever landed on her: her cave was never
+     raised anywhere on the earth, and there was nowhere to find her asleep.
+     So the question is asked the other way about. We look at what this LAND
+     holds (the same list the tile-draw draws from), take the winter-sleepers
+     out of it that will truly stand on this ground, and raise ONE OF THEIR
+     HOMES on a fair share of the sites. A bear's country now has bear caves
+     in it, whether or not the dice ever name her. */
+  { const dice=hash2(wx*0.021+11.3, wz*0.019-4.7);
+    if(dice<0.42){
+      const L2=faunaFor(wx,wz,c.kind)||FAUNA.wilds[c.kind]||null;
+      if(L2&&L2.length){
+        const sleepers=[];
+        for(const nm of L2){ if(!NEST.hibernatesIn(nm)) continue;
+          const H=NEST.homeOf(nm); if(!H||H.where==='tree') continue;
+          if(!beastFits(nm,c.kind,c.h,false,false)) continue;
+          sleepers.push(nm); }
+        if(sleepers.length){
+          const nm=sleepers[Math.floor(hash2(wz*0.013,wx*0.017)*sleepers.length)%sleepers.length];
+          return {y:yG, x:wx, z:wz, kind:nm, home:NEST.homeOf(nm), bird:false}; } } } }
+  /* else, as before: whatever beast this tile holds, if it builds at all */
   { let first=null, hib=null;
     for(let q=0;q<3;q++){
       const jx=wx+(q-1)*37, jz=wz+(q-1)*29, jc=landAtWorld(jx,jz)||c;
