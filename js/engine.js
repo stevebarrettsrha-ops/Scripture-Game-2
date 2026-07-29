@@ -260,10 +260,32 @@ blockMat('waterB',TEX.water);
    canopies breathe as a whole. Amplitude follows the living wind and the
    storms (WIND_A, fed each frame from windAt + stormAt). */
 const WIND_T={value:0}, WIND_A={value:1};
-function windSway(mat,amp,rooted){
+/* ---- THE TURN OF THE YEAR IN THE LEAVES ----
+   uSeasonY runs 0..1 through the game's 364-day year (fed each frame from
+   dayOfYear). A leaf canopy shifts its own baked colour by it: the temperate
+   woods gild toward gold in autumn and go grey and dim in winter, while the
+   tropics keep their green and the far north, where the evergreens stand,
+   hardly turns. The world is a disc with the North Pole at its centre and the
+   South at its rim, so the two hemispheres keep OPPOSITE seasons — the south
+   is half a year on from the north, worked out per-leaf from its distance to
+   the centre. No chunk is ever re-meshed for it; it is all in the shader. */
+const SEASON_Y={value:0};
+const INV_R_STR=(1/180000).toExponential();   /* 1 / R_WORLD, for the shader */
+const SEASON_GLSL=
+  '{ float sr=length(position.xz)*'+INV_R_STR+';\n'+
+  '  float latN=1.0-sr*2.0;\n'+                                   /* +1 north pole .. -1 south */
+  '  float ph=fract(uSeasonY+(latN<0.0?0.5:0.0));\n'+            /* the south is half a year on */
+  '  float autumn=smoothstep(0.50,0.66,ph)*(1.0-smoothstep(0.66,0.82,ph));\n'+
+  '  float winter=clamp(smoothstep(0.74,0.90,ph)+(1.0-smoothstep(0.10,0.26,ph)),0.0,1.0);\n'+
+  '  float band=clamp(abs(latN),0.0,1.0);\n'+                     /* 0 equator .. 1 pole */
+  '  float temperate=smoothstep(0.12,0.42,band)*(1.0-smoothstep(0.72,1.0,band));\n'+
+  '  autumn*=temperate; winter*=temperate;\n'+
+  '  vColor.rgb=mix(vColor.rgb, vec3(0.74,0.52,0.18), autumn*0.55);\n'+   /* gild to gold */
+  '  vColor.rgb=mix(vColor.rgb, vColor.rgb*vec3(0.62,0.60,0.55), winter*0.60); }';  /* grey, dim */
+function windSway(mat,amp,rooted,leafy){
   mat.onBeforeCompile=sh=>{
     sh.uniforms.uWindT=WIND_T; sh.uniforms.uWindA=WIND_A;
-    sh.vertexShader='uniform float uWindT; uniform float uWindA;\n'+sh.vertexShader.replace(
+    let vs=sh.vertexShader.replace(
       '#include <begin_vertex>',
       '#include <begin_vertex>\n'+
       '{ float wph=position.x*0.161+position.z*0.127;\n'+
@@ -272,16 +294,22 @@ function windSway(mat,amp,rooted){
       '  float ws2=sin(uWindT*1.3+wph*1.31)+0.5*sin(uWindT*2.3+wph*0.77);\n'+
       '  transformed.x+=ws1*'+amp.toFixed(3)+'*uWindA*wgt;\n'+
       '  transformed.z+=ws2*'+(amp*0.7).toFixed(3)+'*uWindA*wgt; }');
+    let head='uniform float uWindT; uniform float uWindA;\n';
+    /* the leaf canopies also take the turn of the year (never the grass, the
+       crop or the herb — those keep their green) */
+    if(leafy){ sh.uniforms.uSeasonY=SEASON_Y; head+='uniform float uSeasonY;\n';
+      vs=vs.replace('#include <color_vertex>','#include <color_vertex>\n'+SEASON_GLSL); }
+    sh.vertexShader=head+vs;
   };
   mat.needsUpdate=true;
 }
-windSway(MAT.leaves,0.55,false); windSway(MAT.leavesTr,0.62,false); windSway(MAT.cherry,0.55,false);
+windSway(MAT.leaves,0.55,false,true); windSway(MAT.leavesTr,0.62,false,true); windSway(MAT.cherry,0.55,false);
 windSway(MAT.tallgrass,0.9,true); windSway(MAT.flowerR,0.6,true); windSway(MAT.flowerY,0.6,true);
 /* the plain moves as one thing when the wind crosses it — the tall grass
    swings further than the sward, and the thorn crowns ride it */
-windSway(MAT.savgrass,1.5,true); windSway(MAT.acacia,0.5,false);
+windSway(MAT.savgrass,1.5,true); windSway(MAT.acacia,0.5,false,true);
 /* and every leaf and every herb on the earth moves with it */
-windSway(MAT.leafW,0.55,false); windSway(MAT.plantW,0.85,true);
+windSway(MAT.leafW,0.55,false,true); windSway(MAT.plantW,0.85,true);
 windSway(MAT.crop,0.5,true);
 /* breaking surf — clumpy foam that washes the shoreline (scrolled + pulsed) */
 TEX.surf = mkTex(g=>{ g.clearRect(0,0,16,16);
@@ -3891,15 +3919,30 @@ function makeCoral(){ const g=new THREE.Group(), n=9+Math.floor(Math.random()*12
     if(Math.random()<0.55){ const fan=makeFan(Math.floor(Math.random()*coralMats.length));
       fan.position.set(b.position.x,hy+s,b.position.z); g.add(fan); } }
   if(Math.random()<0.7){ const sp=new THREE.Mesh(new THREE.BoxGeometry(4,3.4,4),spongeMat); sp.position.set((Math.random()-0.5)*9,2,(Math.random()-0.5)*9); g.add(sp); }  /* sponge */
-  if(Math.random()<0.6){ const gl=new THREE.Mesh(new THREE.BoxGeometry(0.9,1.3,0.9),
-      new THREE.MeshBasicMaterial({color:0xcdf06a,fog:true})); gl.position.set((Math.random()-0.5)*7,Math.random()*9+1,(Math.random()-0.5)*7); g.add(gl); }  /* sea-pickle glow */
+  /* the sea-pickles — the reef's own lanterns, dim by day and lit after dark.
+     Each keeps its own phase so the reef breathes light, not blinks it. */
+  const glows=[], nGlow=Math.random()<0.65?(1+Math.floor(Math.random()*3)):0;
+  for(let i=0;i<nGlow;i++){ const gl=new THREE.Mesh(new THREE.BoxGeometry(0.9,1.3,0.9),
+      new THREE.MeshBasicMaterial({color:0xcdf06a,fog:true}));
+    gl.position.set((Math.random()-0.5)*8,Math.random()*9+1,(Math.random()-0.5)*8);
+    gl.userData.ph=Math.random()*6.28; g.add(gl); glows.push(gl); }
+  g.userData.glows=glows;
   return g; }
 const CORAL=[], CORAL_N=34, CORAL_R=330;
 function initCoral(){ if(CORAL.length) return; for(let k=0;k<CORAL_N;k++){ const m=makeCoral(); m.visible=false; scene.add(m); CORAL.push({m,x:0,z:0,set:false}); } }
-function updateCoral(px,pz){ initCoral(); for(const r of CORAL){ if(r.set&&Math.hypot(r.x-px,r.z-pz)<=CORAL_R+90) continue;
+function updateCoral(px,pz){ initCoral(); for(const r of CORAL){ if(!(r.set&&Math.hypot(r.x-px,r.z-pz)<=CORAL_R+90)){
     for(let tr=0;tr<7;tr++){ const a=Math.random()*6.28, rr=50+Math.random()*CORAL_R, x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
       if(d>10 && d<45*U_PER_M && fbm(x*0.01-9,z*0.01+4)>0.44){   /* reefs live in the light — 45 m and no deeper */ r.x=x; r.z=z; r.set=true; r.m.position.set(x,seabedDepth(x,z),z); r.m.rotation.y=Math.random()*6.28; r.m.visible=true; break; }
       if(tr===6){ r.set=false; r.m.visible=false; } } } }
+  /* ---- THE SEA-PICKLES LIGHT UP AFTER DARK ----
+     Bioluminescence — a faint thing by day and a lantern by night. Each pickle
+     brightens as the light goes and breathes a slow pulse of its own, so the
+     reef glows rather than blinks. (js/behavior.js marks coral a night-glower.) */
+  const night=(worldNight||0), tt=performance.now()*0.001;
+  for(const r of CORAL){ if(!r.set) continue; const gs=r.m.userData.glows; if(!gs||!gs.length) continue;
+    for(const gl of gs){ const pulse=0.72+0.28*Math.sin(tt*1.6+gl.userData.ph);
+      const bri=(0.16+0.84*night)*pulse;   /* dim green by day; full lantern by night */
+      gl.material.color.setRGB(0.80*bri,0.94*bri,0.42*bri); } } }
 /* ---- seagrass — short tufts carpeting the shallow floor ---- */
 const seagrassMat=new THREE.MeshLambertMaterial({map:TEX.seagrass,side:THREE.DoubleSide});
 function makeSeagrass(){ const g=new THREE.Group(), n=3+Math.floor(Math.random()*4);
@@ -9444,6 +9487,8 @@ function frame(){
   /* the wind in the leaves — phase clock and strength for the sway shader */
   WIND_T.value=performance.now()*0.001;
   { const wnd=windAt(p.x,p.z); WIND_A.value=(0.35+wnd.s*0.9)*(1+(light.storm||0)*1.6); }
+  /* and the turn of the year, for the seasonal gilding of the leaves */
+  SEASON_Y.value=(dayOfYear()-1)/364;
   /* aloft the air clears and the eye reaches far — but ONLY aloft, or with
      the eye deliberately drawn back off the world. Down in the played world
      the fog stays shut at the chunks' edge, so gameplay is blocks and haze
