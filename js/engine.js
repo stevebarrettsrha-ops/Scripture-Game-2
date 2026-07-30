@@ -1557,10 +1557,14 @@ function updateChunks(px,pz,budget,view){
      and a cull test a frame. The mesher's own frames were being spent
      carrying fog-bound ground, which is what let the land fall behind the
      haze at speed. One ring of hysteresis is kept. */
+  /* budgeted: coming down from the widened flight ring used to shed ~680
+     chunks in the landing frame — a visible hitch on every touch-down */
+  let reaped=0;
   for(const[k,ch] of chunks){
     const dx2=ch.cx-ccx, dz2=ch.cz-ccz;
     if(dx2*dx2+dz2*dz2>(view+2)*(view+2)){
-      for(const m of ch.meshes){ chunkRoot.remove(m); m.geometry.dispose(); } chunks.delete(k); } }
+      for(const m of ch.meshes){ chunkRoot.remove(m); m.geometry.dispose(); } chunks.delete(k);
+      if(++reaped>=48) break; } }
 }
 
 /* ================= THE FAR LAND =================
@@ -2192,7 +2196,11 @@ function waterTick(px,pz,dayF,storm){
     if(fr){ const k=0.13; r+=(fr.r-r)*k; g+=(fr.g-g)*k; b+=(fr.b-b)*k; }
     farSeaMat.color.setRGB(r,g,b);
     seaDeep.material.color.setRGB(r*0.82,g*0.82,b*0.86); }
-  sun.getWorldPosition(_sunW); u.uSunDir.value.copy(_sunW).normalize();
+  /* the sprite may be drawn pulled-in for the framed views — the sea's
+     specular reads the sun's TRUE station, as the moon's glitter does */
+  if(sun.userData.tx!==undefined) _sunW.set(sun.userData.tx,sun.userData.ty,sun.userData.tz);
+  else sun.getWorldPosition(_sunW);
+  u.uSunDir.value.copy(_sunW).normalize();
   /* the moon rules the water only when she is up and the sun is down, and she
      fades with her own setting as the sun's light comes back over her */
   moon.getWorldPosition(_moonW); u.uMoonDir.value.copy(_moonW).normalize();
@@ -2255,7 +2263,11 @@ cirrus.rotation.x=-Math.PI/2; cirrus.position.y=CIRRUS_Y; scene.add(cirrus);
 const CS_SEG=132, CS_SIZE=46000, CS_AMP=140;
 const cloudGeo=new THREE.PlaneGeometry(CS_SIZE,CS_SIZE,CS_SEG,CS_SEG); cloudGeo.rotateX(-Math.PI/2);
 cloudGeo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(cloudGeo.attributes.position.count*3),3));
-const cloudDeckMat=new THREE.MeshLambertMaterial({color:0xffffff,vertexColors:true,transparent:true,opacity:0,side:THREE.DoubleSide});
+/* the three above-cloud sheets are drawn UNFOGGED: they are only ever shown
+   to an eye above the cloud floor, where they are the far backdrop the open
+   air looks out onto — fogged, they vanished with everything else and the
+   middle heights read as a bare sheet of fog colour */
+const cloudDeckMat=new THREE.MeshLambertMaterial({color:0xffffff,vertexColors:true,transparent:true,opacity:0,side:THREE.DoubleSide,fog:false});
 const cloudDeck=new THREE.Mesh(cloudGeo,cloudDeckMat);
 cloudDeck.position.y=CLOUD_Y; cloudDeck.visible=false; cloudDeck.frustumCulled=false; scene.add(cloudDeck);
 function updateCloudDeck(px,pz){ const pos=cloudGeo.attributes.position, a=pos.array, col=cloudGeo.attributes.color.array;
@@ -2274,7 +2286,7 @@ function makeWispTex(){ const S=256, c=texCanvas(S,S), g=c.getContext('2d');
     d[i]=d[i+1]=255; d[i+2]=255; d[i+3]=Math.round(h*h*150); }
   g.putImageData(img,0,0); const t=new THREE.CanvasTexture(c);
   t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; return t; }
-const wispMat=new THREE.MeshBasicMaterial({map:makeWispTex(),transparent:true,opacity:0,depthWrite:false,fog:true,side:THREE.DoubleSide});
+const wispMat=new THREE.MeshBasicMaterial({map:makeWispTex(),transparent:true,opacity:0,depthWrite:false,fog:false,side:THREE.DoubleSide});
 wispMat.map.repeat.set(30,30);
 const cloudWisp=new THREE.Mesh(new THREE.PlaneGeometry(100000,100000),wispMat);
 cloudWisp.rotation.x=-Math.PI/2; cloudWisp.position.y=CLOUD_Y+64; cloudWisp.visible=false; scene.add(cloudWisp);
@@ -2288,7 +2300,7 @@ function makeCoverTex(){ const S=256, c=texCanvas(S,S), g=c.getContext('2d'), im
   g.putImageData(img,0,0); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; return t; }
 const coverTex=makeCoverTex(); coverTex.repeat.set(ICE_UV*R_WORLD/1200,ICE_UV*R_WORLD/1200);
 const cloudCover=new THREE.Mesh(new THREE.CircleGeometry(ICE_UV*R_WORLD,140),
-  new THREE.MeshBasicMaterial({map:coverTex,transparent:true,opacity:0,depthWrite:false,fog:true,side:THREE.DoubleSide}));
+  new THREE.MeshBasicMaterial({map:coverTex,transparent:true,opacity:0,depthWrite:false,fog:false,side:THREE.DoubleSide}));
 cloudCover.rotation.x=-Math.PI/2; cloudCover.position.y=CLOUD_Y-10; cloudCover.visible=false; scene.add(cloudCover);
 
 /* the stars, circling the pole in the midst */
@@ -2576,6 +2588,7 @@ function skyTick(px,pz){
   starGroup.userData.mat.opacity=Math.max(0,1-dayF*1.6)*0.95;
   starGroup.rotation.y=-(state.simHours/24)*2*Math.PI;
   sun.position.set(S.x,S.y,S.z);
+  sun.userData.tx=S.x; sun.userData.ty=S.y; sun.userData.tz=S.z;   /* the true station, for the water */
   sunMat2.opacity=S.bright; sun.userData.bright=S.bright;
   const M=SUNMOON.place(state.simHours,px,pz,R_WORLD,'moon');
   moon.position.set(M.x,M.y,M.z);
@@ -5195,8 +5208,12 @@ function diveTick(dt){ const dv=state.dive;
   for(const r of CORAL){ if(!r.set) continue;
     const dxc=dv.x-r.x, dzc=dv.z-r.z, dc=Math.hypot(dxc,dzc);
     if(dc<12.5&&dv.y<seabedDepth(r.x,r.z)+17){
-      if(dc>0.4){ dv.x=r.x+dxc/dc*12.5; dv.z=r.z+dzc/dc*12.5; }
-      else { dv.x-=Math.sin(dv.heading)*13; dv.z-=Math.cos(dv.heading)*13; }
+      /* the set-off point is TESTED first — reefs stand hard against
+         shores, and an unchecked shove could put the diver in the rock */
+      let ox2,oz2;
+      if(dc>0.4){ ox2=r.x+dxc/dc*12.5; oz2=r.z+dzc/dc*12.5; }
+      else { ox2=dv.x-Math.sin(dv.heading)*13; oz2=dv.z-Math.cos(dv.heading)*13; }
+      if(!landAtWorld(ox2,oz2)&&seabedDepth(ox2,oz2)+3<=dv.y+8){ dv.x=ox2; dv.z=oz2; }
       dv.sp*=0.4; } }
   /* nor through the timbers of a wreck: her hull is solid, and the way to the
      sea-chest is over the deck, as it is on any honest ship */
@@ -6109,10 +6126,11 @@ function updateRiverLife(px,pz,dt,t){ initRiverLife();
    they roost. The gulls and eagles over water STOOP: they fall on the
    surface, break it, and come up with a fish — and the fish they take is a
    real one out of the shoal, not a mime. */
-/* the birds spawn OUT IN THE HAZE (650–1,250; fog runs 500–1,140) and are
-   reaped beyond it, so no wing ever snaps into being in clear sky; the pool
-   is widened to keep as many overhead across the larger round. Butterflies
-   are the one exception — a thing two units across is invisible past a couple
+/* the birds spawn AT AND PAST the fog line (430–1,200; fog runs 500–1,140 —
+   a wing at 430 is a few pixels against the haze) and are reaped beyond it,
+   so no bird snaps into being in clear sky and none of the near sky is left
+   birdless; the pool is widened for the larger round. Butterflies are the
+   one exception — a thing two units across is invisible past a couple
    hundred anyway, and it must live among the flowers at the traveller's feet. */
 const AIRLIFE=[], AL_N=24, AL_R=1150;
 const NESTS=[], NEST_N=10, NEST_R=430;
@@ -6357,7 +6375,7 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
       const type=airKind(px,pz,night);
       if(b.type!==type){ if(b.m) scene.remove(b.m); b.m=makeBird(type); scene.add(b.m); b.type=type; }
       const a=Math.random()*6.28,
-        r=type==='butterfly'?60+Math.random()*240:650+Math.random()*600;
+        r=type==='butterfly'?60+Math.random()*240:430+Math.random()*770;
       b.x=px+Math.cos(a)*r; b.z=pz+Math.sin(a)*r;
       const c=landAtWorld(b.x,b.z), base=c?c.h*B:WATER_Y;
       b.y=type==='butterfly'?base+3:base+30+Math.random()*60;
@@ -7436,10 +7454,11 @@ $('trade').addEventListener('click',e=>{ if(e.target.id==='trade') closeTrade();
 /* the stall the traveller stands before, and the trader hailed at sea */
 function nearestStallVillage(){
   if(state.mode!=='walk') return null;
+  let bestS=null;
   for(const[i,vv] of activeVillages){ if(vv.none||!vv.stalls||!vv.stalls.length) continue;
     for(const s of vv.stalls){ const d=Math.hypot(state.walk.x-s.x,state.walk.z-s.z);
-      if(d<13) return {i,s,d}; } }
-  return null;
+      if(d<13&&(!bestS||d<bestS.d)) bestS={i,s,d}; } }
+  return bestS;
 }
 function nearestTrader(){
   if(state.mode!=='boat'&&state.mode!=='deck') return null;
@@ -8182,8 +8201,9 @@ function spawnLandmark(i){
   else if(L.kind!=='mount'){
     const G=newG();
     _solidRec=[];                       /* the builder writes its own collision */
-    (LM_BUILDERS[L.kind]||lmTemple)(G,x,z,y,L.s,i*77.7);
-    var lmSolids=_solidRec; _solidRec=null;
+    var lmSolids;
+    try{ (LM_BUILDERS[L.kind]||lmTemple)(G,x,z,y,L.s,i*77.7); }
+    finally{ lmSolids=_solidRec; _solidRec=null; }   /* never left recording */
     g=new THREE.Group();
     for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
       bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
@@ -8219,20 +8239,24 @@ function landmarkSolidAt(x,z,yLo,yHi){
   return null;
 }
 /* the top of the tallest landmark masonry standing over a point (or a very
-   deep nothing where none stands) */
-function landmarkTopAt(x,z){
+   deep nothing where none stands). refY, when given, ignores masonry whose
+   FLOOR is above it — a gate's arch and a trilithon's lintel are roofs over
+   open air, not ground: the flyer was snapped thirty units up the moment he
+   crossed under the Lion Gate, and the camera hopped onto Stonehenge's
+   stones each time it swung beneath one. */
+function landmarkTopAt(x,z,refY){
   let top=-1e9;
   for(const[,A] of activeLandmarks){ if(!A.solids) continue;
     if(Math.hypot(x-A.x,z-A.z)>420) continue;
     for(const b of A.solids)
-      if(x>b.x0&&x<b.x1&&z>b.z0&&z<b.z1&&b.y1>top) top=b.y1; }
+      if(x>b.x0&&x<b.x1&&z>b.z0&&z<b.z1&&(refY===undefined||b.y0<=refY)&&b.y1>top) top=b.y1; }
   return top;
 }
 /* the height of the tallest SOLID standing over a point — the ground, and
    any landmark masonry built upon it. This is what the eye must ride over. */
-function solidTopAt(x,z){
+function solidTopAt(x,z,refY){
   const lc=landAtWorld(x,z);
-  return Math.max(lc?lc.h*B:WATER_Y, landmarkTopAt(x,z));
+  return Math.max(lc?lc.h*B:WATER_Y, landmarkTopAt(x,z,refY));
 }
 function updateLandmarks(px,pz){
   for(let i=0;i<LANDMARKS.length;i++){ const L=LANDMARKS[i];
@@ -8371,10 +8395,15 @@ cv.addEventListener('pointerdown',e=>{ cv.setPointerCapture(e.pointerId);
     tpts.set(e.pointerId,[e.clientX,e.clientY]);
     /* two fingers are a PINCH only when neither is the walking-stick: with
        the joystick held, a second finger is the LOOKING finger — walk and
-       turn the view at once, as every telephone game has it */
-    if(tpts.size===2&&!joy){ const a=[...tpts.values()];
-      pinchD=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]); drag=null;
-      return; }
+       turn the view at once, as every telephone game has it. And the other
+       way about: mid-LOOK, a second finger planted in the stick's own
+       corner takes the stick (it used to become a pinch, so look-then-walk
+       was impossible in that order). */
+    if(tpts.size===2&&!joy){
+      const stickZone=!state.firm&&e.clientX<innerWidth*0.42&&e.clientY>innerHeight*0.35;
+      if(!(stickZone&&drag)){ const a=[...tpts.values()];
+        pinchD=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]); drag=null;
+        return; } }
   }
   /* no walking-stick under the firmament view — a touch there is a LOOK or
      a TAP on a land (the joystick used to swallow every tap in the lower
@@ -8516,8 +8545,12 @@ function boatTick(dt,helm){
     &&!blockedForBoat(nx+rX,nz+rZ)&&!blockedForBoat(nx-rX,nz-rZ)
     &&!blockedForBoat(qX+rX,qZ+rZ)&&!blockedForBoat(qX-rX,qZ-rZ)
     /* nor may she plough through a merchantman — the bow probe fetches up
-       against a passing trader's hull as it does against a skerry */
-    &&!insideTraderHull(bowX,bowZ,10)&&!insideTraderHull(nx,nz,10);
+       against a passing trader's hull as it does against a skerry. But a
+       ship ALREADY overlapped (the trader crossed a stationary player) may
+       always move: without the escape clause she was pinned in the hull
+       until the merchantman happened to sail off her. */
+    &&(insideTraderHull(bt.x,bt.z,10)?true
+       :(!insideTraderHull(bowX,bowZ,10)&&!insideTraderHull(nx,nz,10)));
   if(clear){ state.dist+=Math.hypot(nx-bt.x,nz-bt.z); bt.x=nx; bt.z=nz; }
   else bt.speed*=-0.15;
   /* ride the swell: heave to the wave height, and lean GENTLY to its slope.
@@ -8654,8 +8687,11 @@ function sleep(){
      'wake to a new morning' with no morning in it. Lying down to sleep is
      the traveller choosing the game's morning over the room's night, so the
      course is set to 'morning' and the hour truly holds. */
-  if(DAYPARTS[state.dayIdx].k==='live'){
-    state.dayIdx=DAYPARTS.findIndex(d2=>d2.k==='morning'); updateDayBtn(); }
+  /* and from EVERY course of the day, not only 'live' — applyDayPart()
+     re-asserts the preset's own hour, so sleeping on the 'night' preset
+     woke you into the same night it promised you out of */
+  { const mi=DAYPARTS.findIndex(d2=>d2.k==='morning');
+    if(state.dayIdx!==mi){ state.dayIdx=mi; updateDayBtn(); } }
   applyDayPart();
   toast('You rest in your home among the boughs, and wake to a new morning.');
   saveState();
@@ -9436,7 +9472,7 @@ function flyTick(dt){
   if(up!==0){ fl.vy+=up*FLY_VACC*dt; fl.vy=Math.max(-FLY_VMAX,Math.min(FLY_VMAX,fl.vy)); }
   else fl.vy*=Math.max(0,1-dt*1.4);                 /* let go and he coasts to a hover */
   fl.y+=fl.vy*dt;
-  const terrFloor=flyFloorAt(fl.x,fl.z), lmTop=landmarkTopAt(fl.x,fl.z);
+  const terrFloor=flyFloorAt(fl.x,fl.z), lmTop=landmarkTopAt(fl.x,fl.z,fl.y+2);
   const floor=Math.max(terrFloor,lmTop+6), ceil=domeCeilAt(fl.x,fl.z)-40;
   if(fl.y>=ceil){ fl.y=ceil; fl.vy=Math.min(0,fl.vy);   /* stuck fast against the firmament */
     if(!seenFirmament){ seenFirmament=true;
@@ -9941,13 +9977,20 @@ function cameraTick(dt){
   else { const cp=camera.position;
     const ox=px, oy=baseY+9, oz=pz;
     let clear=1;
+    /* (skipped once the map-fade owns the pitch — the near-overhead eye of
+       the whole-earth band crosses no ridge, and the walk only wobbled it) */
+    if(zf<0.02)
     for(let k2=1;k2<=14;k2++){ const f3=k2/14;
       const sx=ox+(cp.x-ox)*f3, sy=oy+(cp.y-oy)*f3, sz=oz+(cp.z-oz)*f3;
-      if(sy<solidTopAt(sx,sz)+2.0){ clear=Math.max(0.10,(k2-1)/14); break; } }
+      const lc4=landAtWorld(sx,sz);
+      if(sy<(lc4?lc4.h*B:WATER_Y)+2.0||landmarkSolidAt(sx,sz,sy-1.2,sy+1.2)){
+        /* softened with the eye's own distance: the first blocked sample
+           used to slam the eye to a tenth of a long zoom — inside the body */
+        clear=Math.max(Math.min(0.35,120/Math.max(dist,120)),(k2-1)/14); break; } }
     if(clear<1){ cp.x=ox+(cp.x-ox)*clear; cp.y=oy+(cp.y-oy)*clear; cp.z=oz+(cp.z-oz)*clear; }
     /* and the pitch being free to look UP, the ground itself is its floor:
        the eye settles just over the grass, the planks or the water */
-    let floor=solidTopAt(cp.x,cp.z)+1.6;
+    let floor=solidTopAt(cp.x,cp.z,cp.y+0.5)+1.6;
     if(state.mode==='deck') floor=Math.max(floor,baseY+0.8);   /* never under the planks */
     if(cp.y<floor) cp.y=floor;
     /* nor within the hull, when the eye comes down at the ship's side */
@@ -10716,6 +10759,7 @@ let running=false, saveT=0;
 let _begun=false;
 async function begin(fresh){
   if(_begun) return; _begun=true;   /* a double-click on Set sail built the cities twice */
+  try{
   computeSites();
   cellCacheOn=true; CELL_CACHE.clear();   /* sites are fixed — the terrain is now immutable and memoisable */
   buildYahru(); buildHome();
@@ -10748,6 +10792,7 @@ async function begin(fresh){
   $('title-card').style.display='none'; running=true;
   setMode(state.mode); updateWindBtn(); initAudio();
   toast('And Aluahim said, \u201cLet the waters under the shamayim be gathered together into one place, and let the dry land appear.\u201d And it came to be so.','BER\u0114SHITH 1:9');
+  }catch(e){ _begun=false; throw e; }   /* a failed launch frees the buttons for another try */
 }
 loadSaved().then(s=>{ if(s){ const b=$('btn-continue'); b.style.display='inline-block'; } });
 $('btn-sail').onclick=()=>begin(true);
@@ -10858,12 +10903,19 @@ function frame(){
     if(state.mode==='fly'){ const st2=light.storm||0, bound=viewEff*CHW-150;
       const flyFar=(FOG_FAR+(bound-FOG_FAR)*frame._flyAir)*(1-st2*0.5);
       if(scene.fog.far<flyFar) scene.fog.far=flyFar;
-      /* bound inside the blocks below the charted face; released by degrees
-         as the face fades in, so no wall of haze ever falls away in a frame */
-      if(scene.fog.far>bound){ const rel=Math.max(0,Math.min(1,(zMapF-0.02)/0.23));
+      /* bound inside the blocks in LOW flight; released by HEIGHT as well
+         as by the charted face. It used to hold to 9,180 on the face's
+         ramp alone while the near-fog went on growing PAST it — a flyer in
+         the middle heights lost the whole world to a sheet of fog colour,
+         and above ~2,900 near overtook far, which no shader defines. */
+      if(scene.fog.far>bound){
+        const rel=Math.max(Math.max(0,Math.min(1,(zMapF-0.02)/0.23)),
+                           Math.max(0,Math.min(1,(eyeY-1600)/1600)));
         scene.fog.far=bound+(scene.fog.far-bound)*rel; }
       const flyNear=Math.min(scene.fog.far*0.45, FOG_NEAR+(980-FOG_NEAR)*frame._flyAir);
-      if(scene.fog.near<flyNear) scene.fog.near=flyNear; } }
+      if(scene.fog.near<flyNear) scene.fog.near=flyNear;
+      /* and the near may NEVER cross the far, whatever the two asked for */
+      scene.fog.near=Math.min(scene.fog.near, scene.fog.far*0.55); } }
   /* ---- UNDER THE WAVES — the light dims and the water closes in with depth.
      Keyed on the EYE, not on the mode: a swimmer whose camera has rolled
      under the swell stands in the same water as a diver, and must be shown
@@ -11051,8 +11103,9 @@ function frame(){
        Seen from without, the sun is always shining on some country of the
        disc: both lights burn full in the whole-earth views, each standing
        over the lands where its own hour is now. */
-    sunMat2.opacity =Math.max(sunMat2.opacity, wholeF);
-    moonMat2.opacity=Math.max(moonMat2.opacity,wholeF);
+    const opF=state.firm?1:Math.max(0,(wholeF-0.35)/0.65);   /* no ghost discs at a mere half-zoom */
+    sunMat2.opacity =Math.max(sunMat2.opacity, opF);
+    moonMat2.opacity=Math.max(moonMat2.opacity,opF);
     /* and never outside the vault, whatever the hour or the season */
     for(const L of [sun,moon]){ const rr=Math.hypot(L.position.x,L.position.z);
       if(rr>R_DOME*0.94){ const k2=R_DOME*0.94/rr; L.position.x*=k2; L.position.z*=k2; } }
