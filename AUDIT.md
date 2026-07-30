@@ -757,6 +757,54 @@ Verified live: fog 1,140 → 3,178-and-climbing at 380 up with the carpet at
 full strength beneath, the distant coast standing in view ahead; alighting
 eases it all shut again; zero page errors.
 
+## 4s. Round 20 — nothing is passed through, and the flyer's world is true ✅
+
+**1. Solidity, everywhere the player reported it soft.**
+- **The works of the ancients are solid.** While a landmark builds, every box
+  its builder emits is also WRITTEN DOWN (`_solidRec` in `emitBox`), so the
+  pyramids, ziggurats, temples, walls and gates declare their true collision
+  brick for brick — no hand-guessed footprint table to drift from the
+  building. Walker and flyer alike are barred (`landmarkSolidAt`), the eye
+  rides over them (`solidTopAt`), and alighting over masonry sets the
+  traveller down on open ground beside it, never within the stones.
+- **A mountain is a wall to a flyer.** The only law used to be a floor
+  clamp, so flying AT a cliff warped the body up its face, and speed could
+  carry it through between frames. The flyer's move is now walked in
+  substeps against ground and masonry: a face standing more than a short
+  skim above him stops him (sliding along it where an open way lies), and
+  descending onto masonry hovers rather than "landing" where a walker has
+  no footing.
+- **Nothing stands between the eye and the traveller.** The dive camera's
+  line-walk now runs in EVERY mode, against ground and masonry both: a
+  ridge or a pyramid between the two draws the eye in along the sight-line
+  instead of swallowing it (the whole screen used to go mountain).
+- **The reef is solid** — a diver is set off a coral head's rim instead of
+  swimming through the polyps.
+- **The merchantmen are solid** — the ship's bow probe fetches up against a
+  trader's hull, a swimmer cannot pass through her timbers, and a trader
+  gives way to the traveller's ship as she gives way to a shoal.
+
+**2. The flyer's world is REAL LAND, not the carpet.** The coarse far ring's
+terraced blobs read as a broken world from the middle heights. In flight the
+streamed ring itself now WIDENS (13 → 19 chunks with the first few hundred
+units of height, and the reap sheds the extra ring on the way down), the fog
+is bound just inside those true blocks below the charted face — released by
+degrees as the face fades in — and the carpet is never shown to a flyer at
+all. What fills the view is real blocks, then haze, then the mantle of the
+cloud cover; high enough, the charted face comes through as before.
+
+**3. The sky keeps its clouds, and loses its square.**
+- The cloud sheets were faded by the FOLLOW-CAMERA's distance, so a flyer
+  who zoomed out watched every cloud in the sky vanish. That fade now
+  applies only to a traveller UNDER the cloud floor (whom the sheet would
+  otherwise blind); a flyer's clouds stand, thinning only with his own
+  height as designed.
+- The "little square" seen on the sea from high aloft was the detailed
+  wave grid — a 5,000-unit mesh riding the middle of the ocean. Above
+  ~5,000 (with hysteresis) it hands the sea to the colour-matched backdrop
+  discs, which are painted alike on purpose, so nothing is seen to change
+  hands.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

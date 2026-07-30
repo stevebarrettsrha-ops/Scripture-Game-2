@@ -1166,7 +1166,17 @@ function facePX(G,mat,x,z0,z1,y0,y1,s){ quad(G,mat, x,y0,z1, x,y0,z0, x,y1,z0, x
 function faceNX(G,mat,x,z0,z1,y0,y1,s){ quad(G,mat, x,y0,z0, x,y0,z1, x,y1,z1, x,y1,z0, 0,0,(z1-z0)/B,(y1-y0)/B, s); }
 function facePZ(G,mat,z,x0,x1,y0,y1,s){ quad(G,mat, x0,y0,z, x1,y0,z, x1,y1,z, x0,y1,z, 0,0,(x1-x0)/B,(y1-y0)/B, s); }
 function faceNZ(G,mat,z,x0,x1,y0,y1,s){ quad(G,mat, x1,y0,z, x0,y0,z, x0,y1,z, x1,y1,z, 0,0,(x1-x0)/B,(y1-y0)/B, s); }
+/* ---- WHAT IS BUILT IS SOLID ----
+   While _solidRec is set, every box emitted is also WRITTEN DOWN — so a
+   landmark's own builder declares its true collision, brick for brick, and
+   nobody keeps a second, hand-guessed table of footprints that drifts from
+   the building. (The pyramids, the ziggurats, the walls of the ancients
+   were stage scenery: walker, flyer and camera all passed straight through
+   the Great Pyramid, which is not what a pyramid is for.) */
+let _solidRec=null;
 function emitBox(G, x0,y0,z0, x1,y1,z1, sideMat, topMat, botMat, tint){
+  if(_solidRec&&y1-y0>3&&Math.min(x1-x0,z1-z0)>2.5)
+    _solidRec.push({x0,y0,z0,x1,y1,z1});
   faceTop(G,topMat,x0,z0,x1,z1,y1,shade(tint,1.0));
   if(botMat) faceBottom(G,botMat,x0,z0,x1,z1,y0,shade(tint,0.5));
   facePX(G,sideMat,x1,z0,z1,y0,y1,shade(tint,0.62)); faceNX(G,sideMat,x0,z0,z1,y0,y1,shade(tint,0.62));
@@ -1499,12 +1509,16 @@ function groupFromG(G){ const g=new THREE.Group();
     g.add(new THREE.Mesh(bg,MAT[mat])); }
   return g; }
 const _chAt=[NaN,NaN];
-function updateChunks(px,pz,budget){
+/* `view` widens the streamed ring past VIEW for a flyer, whose eye covers
+   more ground than a walker's — the reap keeps the same measure, so coming
+   down again sheds the extra ring */
+function updateChunks(px,pz,budget,view){
+  view=view||VIEW;
   const ccx=Math.floor(px/CHW), ccz=Math.floor(pz/CHW);
   const moved=(ccx!==_chAt[0]||ccz!==_chAt[1]);
   let added=false;
-  for(let dz=-VIEW;dz<=VIEW;dz++) for(let dx=-VIEW;dx<=VIEW;dx++){
-    if(dx*dx+dz*dz>VIEW*VIEW+2) continue;
+  for(let dz=-view;dz<=view;dz++) for(let dx=-view;dx<=view;dx++){
+    if(dx*dx+dz*dz>view*view+2) continue;
     const cx=ccx+dx, cz=ccz+dz, k=cx+','+cz;
     if(!chunks.has(k)&&!buildQueued.has(k)){ buildQueue.push({k,cx,cz}); buildQueued.add(k); added=true; }
   }
@@ -1532,7 +1546,7 @@ function updateChunks(px,pz,budget){
   while(buildQueue.length&&(rush||(n<24&&(n<1||performance.now()-T0<MS)))){
     const q=buildQueue.shift(); buildQueued.delete(q.k);
     if(chunks.has(q.k)) continue;
-    if((q.cx-ccx)**2+(q.cz-ccz)**2>(VIEW+2)*(VIEW+2)) continue;   /* left behind */
+    if((q.cx-ccx)**2+(q.cz-ccz)**2>(view+2)*(view+2)) continue;   /* left behind */
     buildChunk(q.cx,q.cz); n++; }
   /* and the reaping reads the chunk's own numbers rather than parsing them
      back out of its key, two hundred times a frame */
@@ -1545,7 +1559,7 @@ function updateChunks(px,pz,budget){
      haze at speed. One ring of hysteresis is kept. */
   for(const[k,ch] of chunks){
     const dx2=ch.cx-ccx, dz2=ch.cz-ccz;
-    if(dx2*dx2+dz2*dz2>(VIEW+2)*(VIEW+2)){
+    if(dx2*dx2+dz2*dz2>(view+2)*(view+2)){
       for(const m of ch.meshes){ chunkRoot.remove(m); m.geometry.dispose(); } chunks.delete(k); } }
 }
 
@@ -2835,6 +2849,9 @@ function traderTick(px,pz,dt){ initTraders();
     else {
       const ax=T.x+Math.sin(T.h)*140, az=T.z+Math.cos(T.h)*140;
       if(landAtWorld(ax,az)||Math.hypot(ax,az)/R_WORLD>0.93) T.h+=dt*0.8; /* bear away from the shoals */
+      /* and a merchantman gives way to the traveller's ship as she gives way
+         to a shoal — she does not sail through him */
+      else if(Math.hypot(ax-state.boat.x,az-state.boat.z)<170) T.h+=dt*0.8;
       T.x+=Math.sin(T.h)*T.sp*dt; T.z+=Math.cos(T.h)*T.sp*dt;
     }
     /* THE HELMSMAN WORKS HER ROUND. His hands stay on the wheel and he leans
@@ -5156,6 +5173,14 @@ function diveTick(dt){ const dv=state.dive;
      must rise over it as he would climb ashore. A gentle step still rides up. */
   else if(seabedDepth(dv.x,dv.z)+3>dv.y+8){
     dv.x-=Math.sin(dv.heading)*dv.sp*dt; dv.z-=Math.cos(dv.heading)*dv.sp*dt; dv.sp*=0.2; }
+  /* nor through the living reef: a coral head is a standing thing, and the
+     diver is set off its rim rather than passing through the polyps */
+  for(const r of CORAL){ if(!r.set) continue;
+    const dxc=dv.x-r.x, dzc=dv.z-r.z, dc=Math.hypot(dxc,dzc);
+    if(dc<12.5&&dv.y<seabedDepth(r.x,r.z)+17){
+      if(dc>0.4){ dv.x=r.x+dxc/dc*12.5; dv.z=r.z+dzc/dc*12.5; }
+      else { dv.x-=Math.sin(dv.heading)*13; dv.z-=Math.cos(dv.heading)*13; }
+      dv.sp*=0.4; } }
   /* nor through the timbers of a wreck: her hull is solid, and the way to the
      sea-chest is over the deck, as it is on any honest ship */
   for(const w of WRECKS){ if(!w.visible) continue;
@@ -8085,7 +8110,9 @@ function spawnLandmark(i){
   else if(L.kind==='falls'){ g=lmFalls(L); if(g) scene.add(g); }
   else if(L.kind!=='mount'){
     const G=newG();
+    _solidRec=[];                       /* the builder writes its own collision */
     (LM_BUILDERS[L.kind]||lmTemple)(G,x,z,y,L.s,i*77.7);
+    var lmSolids=_solidRec; _solidRec=null;
     g=new THREE.Group();
     for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
       bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
@@ -8106,7 +8133,35 @@ function spawnLandmark(i){
     label.scale.set(220,220/6,1);
     scene.add(label);
   }
-  activeLandmarks.set(i,{g,label});
+  activeLandmarks.set(i,{g,label,x,z,
+    solids:(typeof lmSolids!=='undefined'&&lmSolids&&lmSolids.length)?lmSolids:null});
+}
+/* ---- the works of the ancients bar the way ----
+   Is the span [yLo,yHi] inside any standing stone of a built landmark near
+   (x,z)? Used by the walker, the flyer and the eye alike. The margin keeps
+   a body's breadth out of the faces. */
+function landmarkSolidAt(x,z,yLo,yHi){
+  for(const[,A] of activeLandmarks){ if(!A.solids) continue;
+    if(Math.hypot(x-A.x,z-A.z)>420) continue;
+    for(const b of A.solids){
+      if(x>b.x0-0.8&&x<b.x1+0.8&&z>b.z0-0.8&&z<b.z1+0.8&&yHi>b.y0&&yLo<b.y1) return b; } }
+  return null;
+}
+/* the top of the tallest landmark masonry standing over a point (or a very
+   deep nothing where none stands) */
+function landmarkTopAt(x,z){
+  let top=-1e9;
+  for(const[,A] of activeLandmarks){ if(!A.solids) continue;
+    if(Math.hypot(x-A.x,z-A.z)>420) continue;
+    for(const b of A.solids)
+      if(x>b.x0&&x<b.x1&&z>b.z0&&z<b.z1&&b.y1>top) top=b.y1; }
+  return top;
+}
+/* the height of the tallest SOLID standing over a point — the ground, and
+   any landmark masonry built upon it. This is what the eye must ride over. */
+function solidTopAt(x,z){
+  const lc=landAtWorld(x,z);
+  return Math.max(lc?lc.h*B:WATER_Y, landmarkTopAt(x,z));
 }
 function updateLandmarks(px,pz){
   for(let i=0;i<LANDMARKS.length;i++){ const L=LANDMARKS[i];
@@ -8355,6 +8410,17 @@ function axis(){
 /* ================= MOVEMENT ================= */
 function blockedForBoat(x,z){ const cc=landAtWorld(x,z); if(cc) return true;
   return Math.hypot(x,z)/R_WORLD>0.985; }
+/* is this point within a merchantman's hull? (her true footprint, in her own
+   frame). The ship used to sail clean THROUGH a passing trader. */
+function insideTraderHull(x,z,margin){
+  for(const T of TRADERS){ if(!T.set) continue;
+    if(Math.hypot(x-T.x,z-T.z)>110) continue;
+    const c=Math.cos(T.h), sn=Math.sin(T.h);
+    const dx=x-T.x, dz=z-T.z;
+    const lx=dx*c-dz*sn, lz=dx*sn+dz*c;
+    if(Math.abs(lx)<15+(margin||0)&&Math.abs(lz)<46+(margin||0)) return T; }
+  return null;
+}
 function boatTick(dt,helm){
   const bt=state.boat; const [f,t]=helm?axis():[0,0];
   const st=stormAt(bt.x,bt.z);
@@ -8373,7 +8439,10 @@ function boatTick(dt,helm){
   const qX=nx+fX*24*SHIP_S*sgn, qZ=nz+fZ*24*SHIP_S*sgn;
   const clear=!blockedForBoat(bowX,bowZ)&&!blockedForBoat(nx,nz)
     &&!blockedForBoat(nx+rX,nz+rZ)&&!blockedForBoat(nx-rX,nz-rZ)
-    &&!blockedForBoat(qX+rX,qZ+rZ)&&!blockedForBoat(qX-rX,qZ-rZ);
+    &&!blockedForBoat(qX+rX,qZ+rZ)&&!blockedForBoat(qX-rX,qZ-rZ)
+    /* nor may she plough through a merchantman — the bow probe fetches up
+       against a passing trader's hull as it does against a skerry */
+    &&!insideTraderHull(bowX,bowZ,10)&&!insideTraderHull(nx,nz,10);
   if(clear){ state.dist+=Math.hypot(nx-bt.x,nz-bt.z); bt.x=nx; bt.z=nz; }
   else bt.speed*=-0.15;
   /* ride the swell: heave to the wave height, and lean GENTLY to its slope.
@@ -8671,7 +8740,7 @@ function walkTick(dt){
     w.driftX=(w.driftX||0)+(dxw-(w.driftX||0))*Math.min(1,dt*2.2);
     w.driftZ=(w.driftZ||0)+(dzw-(w.driftZ||0))*Math.min(1,dt*2.2);
     const px2=w.x+w.driftX*dt, pz2=w.z+w.driftZ*dt;
-    if(!groundInfo(px2,pz2).land&&!camInsideShip(px2,surfY,pz2)){ w.x=px2; w.z=pz2; }
+    if(!groundInfo(px2,pz2).land&&!camInsideShip(px2,surfY,pz2)&&!insideTraderHull(px2,pz2,2)){ w.x=px2; w.z=pz2; }
     /* and he lies along the FACE of the wave — pitch and roll off its slope,
        clamped so a steep crest tilts the body and never tumbles it. A figure
        held bolt upright through a passing swell is the whole look of skating */
@@ -8731,7 +8800,8 @@ function walkTick(dt){
     const d2=g2.y-w.feetY;
     const near2=Math.hypot(tx-state.boat.x,tz-state.boat.z)<90;
     const deck2=deckMap.get(Math.floor(tx/B)+','+Math.floor(tz/B))!==undefined;
-    const solid2=blockedByStructure(tx,tz)||treeBlocked(tx,tz)||blockedBySolid(tx,tz)||blockedByEntity(tx,tz,walkerG);
+    const solid2=blockedByStructure(tx,tz)||treeBlocked(tx,tz)||blockedBySolid(tx,tz)||blockedByEntity(tx,tz,walkerG)
+      ||!!landmarkSolidAt(tx,tz,w.feetY+2.2,w.feetY+8);   /* the works of the ancients bar the way */
     let ok=true;
     if(!g2.land) ok = near2||deck2||(Math.hypot(tx,tz)/R_WORLD<0.985)
       ||Math.hypot(tx,tz)<Math.hypot(w.x,w.z);   /* swim; beyond the rim, inward always */
@@ -8741,6 +8811,8 @@ function walkTick(dt){
     else if(d2<=JUMPH) ok = w.feetY>=g2.y-B*0.4;   /* two blocks: only if jumping onto it */
     else ok=false;                                  /* higher — climbed, or gone around */
     if(solid2) ok=false;
+    /* a merchantman's hull is as solid to a swimmer as the traveller's own */
+    if(ok&&swimming&&insideTraderHull(tx,tz,2)&&!insideTraderHull(w.x,w.z,2)) ok=false;
     /* and his shoulders must clear it too, not only his midline */
     if(ok&&!swimming) for(let k=0;k<4;k++){ const aa=k*1.5708;
       const g3=groundInfo(tx+Math.cos(aa)*BODY_R,tz+Math.sin(aa)*BODY_R);
@@ -8755,7 +8827,8 @@ function walkTick(dt){
   }
   if(r0){ canGo=true; tg=r0.g; diff=r0.d; solidBlock=r0.solid; }
   else { nx=fullX; nz=fullZ; tg=groundInfo(nx,nz); diff=tg.y-w.feetY;
-    solidBlock=blockedByStructure(nx,nz)||treeBlocked(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,walkerG);
+    solidBlock=blockedByStructure(nx,nz)||treeBlocked(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,walkerG)
+      ||!!landmarkSolidAt(nx,nz,w.feetY+2.2,w.feetY+8);
     /* three or four blocks of rock is not a wall but a ledge — he climbs it */
     if(tg.land&&diff>JUMPH&&diff<=CLIMBH&&f>0.3&&w.grounded&&!solidBlock&&!w.climb)
       w.climb={t:0,dur:0.8, x0:w.x,z0:w.z,y0:w.feetY,
@@ -9255,8 +9328,26 @@ function flyTick(dt){
   fl.heading+=t*dt*FLY_TURN;
   const tgt=f*FLY_MAXSP;
   fl.sp+=(tgt-fl.sp)*Math.min(1,dt*2.4);
-  fl.x+=Math.sin(fl.heading)*fl.sp*dt;
-  fl.z+=Math.cos(fl.heading)*fl.sp*dt;
+  /* ---- A MOUNTAIN IS A WALL TO A FLYER TOO ----
+     The only law used to be a floor clamp, so flying AT a cliff warped the
+     body up its face — and the works of the ancients had no law at all, so
+     a flyer passed clean through the Great Pyramid. A face standing more
+     than a short skim above him is not flown through and not teleported up:
+     he fetches up against it (sliding along it where an open way lies), and
+     climbs over it with SPACE like everything else. The move is walked in
+     substeps so no speed can carry him through a wall between two frames. */
+  const FLY_STEP=26;
+  const flyWall=(tx,tz)=>groundInfo(tx,tz).y+7-fl.y>FLY_STEP
+    ||!!landmarkSolidAt(tx,tz,fl.y-1.5,fl.y+6.5);
+  { const mvx=Math.sin(fl.heading)*fl.sp*dt, mvz=Math.cos(fl.heading)*fl.sp*dt;
+    const dist2=Math.hypot(mvx,mvz), nSub=Math.max(1,Math.ceil(dist2/(B*0.8)));
+    for(let k2=0;k2<nSub;k2++){
+      const sx=fl.x+mvx/nSub, sz=fl.z+mvz/nSub;
+      if(!flyWall(sx,sz)){ fl.x=sx; fl.z=sz; continue; }
+      if(!flyWall(sx,fl.z)){ fl.x=sx; fl.sp*=0.94; continue; }   /* slide */
+      if(!flyWall(fl.x,sz)){ fl.z=sz; fl.sp*=0.94; continue; }
+      fl.sp*=0.2; break;                                          /* fetched up hard */
+    } }
   /* vertical: hold to rise, and the longer he holds the faster he climbs —
      up through the clouds, past the sun and moon, to the firmament itself */
   let up=flyPad;                                     /* the on-screen ▲▼ pads (touch) */
@@ -9266,12 +9357,16 @@ function flyTick(dt){
   if(up!==0){ fl.vy+=up*FLY_VACC*dt; fl.vy=Math.max(-FLY_VMAX,Math.min(FLY_VMAX,fl.vy)); }
   else fl.vy*=Math.max(0,1-dt*1.4);                 /* let go and he coasts to a hover */
   fl.y+=fl.vy*dt;
-  const floor=flyFloorAt(fl.x,fl.z), ceil=domeCeilAt(fl.x,fl.z)-40;
+  const terrFloor=flyFloorAt(fl.x,fl.z), lmTop=landmarkTopAt(fl.x,fl.z);
+  const floor=Math.max(terrFloor,lmTop+6), ceil=domeCeilAt(fl.x,fl.z)-40;
   if(fl.y>=ceil){ fl.y=ceil; fl.vy=Math.min(0,fl.vy);   /* stuck fast against the firmament */
     if(!seenFirmament){ seenFirmament=true;
       toast('You are come up against the firmament — the hard vault of the shamayim, spread out like a moulded mirror, that no man passes.','IYOB 37:18'); } }
   if(fl.y<floor){ fl.y=floor; fl.vy=Math.max(0,fl.vy);
-    if(up<0){ alight(); return; } }                 /* bearing down onto the ground — set down */
+    /* bearing down onto the GROUND sets him down; masonry only bears him —
+       a walker has no footing on a pyramid's terraces, so alighting waits
+       for the earth itself */
+    if(up<0&&lmTop+6<terrFloor){ alight(); return; } }
   /* the rim is HARD: never past it, and anyone found beyond (an old save,
      an old bug) is pressed back within — inward flight always works */
   { const rr=Math.hypot(fl.x,fl.z)/R_WORLD;
@@ -9309,6 +9404,16 @@ function alight(){
   /* never set a man down in the void past the rim — draw him in to the wall */
   { const rr=Math.hypot(fl.x,fl.z)/R_WORLD;
     if(rr>0.985&&!landAtWorld(fl.x,fl.z)){ const k=0.98/rr; fl.x*=k; fl.z*=k; } }
+  /* nor INSIDE the works of the ancients — over standing masonry he is set
+     down on the open ground beside it, never within the stones */
+  { const g0=groundInfo(fl.x,fl.z).y;
+    if(landmarkSolidAt(fl.x,fl.z,g0+1,g0+9)){
+      for(let rr2=8;rr2<=140;rr2+=8){ let done=false;
+        for(let a2=0;a2<8&&!done;a2++){ const th=a2/8*Math.PI*2;
+          const tx=fl.x+Math.cos(th)*rr2, tz=fl.z+Math.sin(th)*rr2;
+          const g2=groundInfo(tx,tz).y;
+          if(!landmarkSolidAt(tx,tz,g2+1,g2+9)){ fl.x=tx; fl.z=tz; done=true; } }
+        if(done) break; } } }
   const cc=landAtWorld(fl.x,fl.z);
   if(cc){                                             /* land on any ground, the ice wall included */
     state.walk.x=fl.x; state.walk.z=fl.z; state.walk.heading=fl.heading;
@@ -9741,15 +9846,25 @@ function cameraTick(dt){
     const floor=Math.max(seabedDepth(cp.x,cp.z), lc?lc.h*B:-1e9)+3.0;
     if(cp.y<floor) cp.y=floor;
   }
-  /* ---- THE EYE NEVER GOES UNDER THE GROUND ----
-     The pitch is free now to look UP — the eye swings below the traveller's
-     line and gazes past him at the sky and the vault — so the ground itself
-     must stop it: it settles just over the grass, the planks or the water,
-     and looks up from there. (The swimmer's and the diver's eye keep their
-     own law above, where going under the skin of the sea is the point.) */
+  /* ---- NOTHING STANDS BETWEEN THE EYE AND THE TRAVELLER, ON LAND OR IN
+     THE AIR EITHER ----
+     The dive already walked the line from the diver to the eye; ashore and
+     aloft the eye only ever tested the ground of its OWN column, so a ridge
+     or a pyramid lying BETWEEN the two swallowed the camera whole — the
+     whole screen went mountain. The same line-walk runs everywhere now,
+     against the ground AND the standing masonry of the landmarks: the eye
+     is drawn in along the sight-line just short of the first thing that
+     would block it, and it never sits inside anything. */
   else { const cp=camera.position;
-    const lc=landAtWorld(cp.x,cp.z);
-    let floor=(lc?lc.h*B:WATER_Y)+1.6;
+    const ox=px, oy=baseY+9, oz=pz;
+    let clear=1;
+    for(let k2=1;k2<=14;k2++){ const f3=k2/14;
+      const sx=ox+(cp.x-ox)*f3, sy=oy+(cp.y-oy)*f3, sz=oz+(cp.z-oz)*f3;
+      if(sy<solidTopAt(sx,sz)+2.0){ clear=Math.max(0.10,(k2-1)/14); break; } }
+    if(clear<1){ cp.x=ox+(cp.x-ox)*clear; cp.y=oy+(cp.y-oy)*clear; cp.z=oz+(cp.z-oz)*clear; }
+    /* and the pitch being free to look UP, the ground itself is its floor:
+       the eye settles just over the grass, the planks or the water */
+    let floor=solidTopAt(cp.x,cp.z)+1.6;
     if(state.mode==='deck') floor=Math.max(floor,baseY+0.8);   /* never under the planks */
     if(cp.y<floor) cp.y=floor;
     /* nor within the hull, when the eye comes down at the ship's side */
@@ -10547,6 +10662,7 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
   farLand,updateFarLand,mountUpliftAt,MOUNTS,ridgeNoise,B,R_WORLD,
   AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,RANGES,FALLS,activeLandmarks,LANDMARKS,
+  llToWorld,landmarkSolidAt,landmarkTopAt,solidTopAt,insideTraderHull,CORAL,
   mountUp,dismount,nearestMount,promptState:()=>promptAction,
   camera,sceneStep:dt=>{ if(cut) sceneTick(dt); },cutTime:()=>cut?cut.t:-1,
   playerXZ,localHourAt,setLocalHour,clockFace,dayPartName,DAYPARTS,applyDayPart,
@@ -10619,23 +10735,35 @@ function frame(){
      and nothing else; it opens where the carpet takes over. */
   const eyeY=state.mode==='fly'?state.fly.y:20;
   const viewReach=Math.max(eyeY,state.camDist);
-  /* ---- THE AIR IS CLEAR TO A FLYER ----
-     The haze used to stay shut at 1,140 until the flyer had climbed a
-     thousand up — so low flight, whose whole business is seeing where you
-     are going, showed nothing ahead but fog. From the moment the wings take
-     him the air opens to ~3,400 (easing out, and easing shut again as he
-     alights), the far carpet standing in for the ground beyond the chunks;
-     a storm still closes the sky around him, as it should. */
+  /* the whole-earth fade is reckoned HERE, once — the flyer's fog and the
+     carpet both need it before the old computation point further down */
+  const zMapF=state.firm?0:Math.max(
+      Math.max(0,Math.min(1,(eyeY-9000)/9000)),      /* risen high upon the air */
+      zoomMapFade());                                 /* or the eye drawn far back */
+  /* ---- THE FLYER SEES TRUE LAND, AND MORE OF IT ----
+     The streamed ring itself WIDENS with the wings (13 → 19 chunks with the
+     first few hundred units of height), and the fog opens with it — easing
+     out on takeoff and shut again on alighting, a storm still closing the
+     sky. But the fog is also BOUND inside the true blocks while the flyer
+     is below the charted face: the coarse carpet is no longer shown to a
+     flyer at all (its terraced blobs read as a broken world from the middle
+     heights), so what fills his whole view is real land, and past it the
+     haze — and above the cloud floor, the mantle of the cloud cover. */
+  const viewEff=state.mode==='fly'?Math.min(19,13+Math.round(Math.max(0,eyeY-200)/200)):VIEW;
   frame._flyAir=(frame._flyAir||0)
     +(((state.mode==='fly'&&!state.firm)?1:0)-(frame._flyAir||0))*Math.min(1,dt*1.4);
   if(frame._flyAir<0.005) frame._flyAir=0;
   if(scene.fog&&!state.firm){ const climbF=Math.max(0,viewReach-ALOFT_EYE);
     scene.fog.near*=1+climbF/800;
     scene.fog.far=Math.min(scene.fog.far*(1+climbF/22), R_WORLD*3.0);
-    if(frame._flyAir>0){ const st2=light.storm||0;
-      const flyFar=(FOG_FAR+(3400-FOG_FAR)*frame._flyAir)*(1-st2*0.5);
+    if(state.mode==='fly'){ const st2=light.storm||0, bound=viewEff*CHW-150;
+      const flyFar=(FOG_FAR+(bound-FOG_FAR)*frame._flyAir)*(1-st2*0.5);
       if(scene.fog.far<flyFar) scene.fog.far=flyFar;
-      const flyNear=FOG_NEAR+(980-FOG_NEAR)*frame._flyAir;
+      /* bound inside the blocks below the charted face; released by degrees
+         as the face fades in, so no wall of haze ever falls away in a frame */
+      if(scene.fog.far>bound){ const rel=Math.max(0,Math.min(1,(zMapF-0.02)/0.23));
+        scene.fog.far=bound+(scene.fog.far-bound)*rel; }
+      const flyNear=Math.min(scene.fog.far*0.45, FOG_NEAR+(980-FOG_NEAR)*frame._flyAir);
       if(scene.fog.near<flyNear) scene.fog.near=flyNear; } }
   /* ---- UNDER THE WAVES — the light dims and the water closes in with depth.
      Keyed on the EYE, not on the mode: a swimmer whose camera has rolled
@@ -10758,9 +10886,7 @@ function frame(){
      little streamed chunks can no longer be read, so the CHARTED earth is
      brought up under the eye — the true outlines of the countries, their
      real size and shape, not a drawn page — and the world is seen whole. */
-  const zMapF=state.firm?0:Math.max(
-      Math.max(0,Math.min(1,(eyeY-9000)/9000)),      /* risen high upon the air */
-      zoomMapFade());                                 /* or the eye drawn far back */
+  /* (zMapF is reckoned once, up beside the flyer's fog) */
   if(zMapF>0.02){ ensureAloftDisc();
     aloftDisc.visible=true; aloftDisc.material.opacity=zMapF;
     aloftDisc.position.y=175+Math.min(2200,Math.max(0,eyeY-9000)*0.06);  /* over the chunk tops, under the flyer */
@@ -10826,7 +10952,13 @@ function frame(){
        diving, or a swimmer's camera rolled under the swell — they are hidden,
        or they read as a second sea hanging in the deep with fish above and
        below it. */
-    waveGrid.visible=!inHold;
+    /* THE DETAILED WAVES ARE A 5,000-UNIT SQUARE. Seen from miles up they
+       read as a pale dotted patch riding the middle of the ocean — the
+       "little square" — so above ~5,000 the grid hands the sea to the
+       colour-matched backdrop discs (the two are deliberately painted alike,
+       so nothing is seen to change hands) and takes it back on the way down. */
+    frame._wgHi = frame._wgHi ? eyeY>4800 : eyeY>5200;
+    waveGrid.visible=!inHold&&!frame._wgHi;
     sea.visible=seaDeep.visible=!inHold&&!underEye;
     /* over the furnished shallows the discs drop far beneath the lit bed, so
        the true floor and its life show through the clear water — while the
@@ -10851,7 +10983,7 @@ function frame(){
                            p.z-(frame._pz!==undefined?frame._pz:p.z))/Math.max(dt,1e-3);
   frame._px=p.x; frame._pz=p.z;
   const chunkBudget=(state.mode==='fly'||trueSpd>50)?9:4;
-  updateChunks(p.x,p.z,chunkBudget);
+  updateChunks(p.x,p.z,chunkBudget,viewEff);
   /* ---- NOTHING BUT BLOCKS IN GAMEPLAY ----
      The coarse far ring is BANISHED from the played world. Down on the sea,
      ashore, on a summit, rising low over a coast — everything in view is true
@@ -10885,8 +11017,11 @@ function frame(){
      AND IT STANDS UNDER EVERY FLYER, however low — the flyer's opened air
      reaches past the chunks, and what fills that reach is the carpet, or it
      would be bare haze-line and void. */
-  const carpet = frame._carpetOn ? (viewReach>ALOFT_EYE*0.85||zMapF>0.012||frame._flyAir>0.04)
-                                 : (viewReach>ALOFT_EYE||zMapF>0.02||frame._flyAir>0.05);
+  /* AND IT IS NEVER SHOWN TO A FLYER below the charted face — his fog is
+     bound inside the true blocks instead, so his whole view is real land */
+  const flyNoCarpet = state.mode==='fly'&&zMapF<0.02;
+  const carpet = !flyNoCarpet && (frame._carpetOn ? (viewReach>ALOFT_EYE*0.85||zMapF>0.012)
+                                                  : (viewReach>ALOFT_EYE||zMapF>0.02));
   frame._carpetOn = showNear&&!underEye&&carpet;
   farLandMat.opacity+=((frame._carpetOn?1:0)-farLandMat.opacity)*Math.min(1,dt*2.5);
   farLand.visible=farLandMat.opacity>0.02;
@@ -10920,7 +11055,12 @@ function frame(){
        countries are not loading, only the mountains out of the water": the
        land was there all along, under a lid.) They thin as the eye draws
        back, and are gone well before it is far enough to want the chart. */
-    const cloudFade=1-Math.max(0,Math.min(1,(state.camDist-200)/600));
+    /* — but ONLY for a traveller who is UNDER them. A flyer is above the
+       floor of cloud: the sheets are his ground-cover, not his ceiling, and
+       fading them with the follow-camera's distance made the whole sky of
+       clouds vanish the moment his eye rode past 800 out. For him they
+       stand, and thin only with his own height, as they always did. */
+    const cloudFade=above>0.5?1:1-Math.max(0,Math.min(1,(state.camDist-200)/600));
     clouds.visible=cirrus.visible=!underEye;   /* no sky-clouds seen from under the sea */
     clouds.position.x=p.x; clouds.position.z=p.z;
     TEX.clouds.offset.x=(p.x/9600*7+state.simHours*0.004)%1;
