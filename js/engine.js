@@ -4233,7 +4233,14 @@ function updateCoral(px,pz){ initCoral(); for(const r of CORAL){ if(!(r.set&&Mat
     /* a reef head is never set down within 130 of the mask, and it builds
        itself up from the bed rather than standing whole in one frame */
     for(let tr=0;tr<7;tr++){ const a=Math.random()*6.28, rr=130+Math.random()*(CORAL_R-130), x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
-      if(d>10 && d<45*U_PER_M && fbm(x*0.01-9,z*0.01+4)>0.44){   /* reefs live in the light — 45 m and no deeper */ r.x=x; r.z=z; r.set=true; r.age=0; r.m.scale.setScalar(0.12); r.m.position.set(x,seabedDepth(x,z),z); r.m.rotation.y=Math.random()*6.28; r.m.visible=true; break; }
+      if(d>10 && d<45*U_PER_M && fbm(x*0.01-9,z*0.01+4)>0.44){   /* reefs live in the light — 45 m and no deeper */
+        /* two heads set within each other's push-off rings teleported a
+           diver back and forth between them for ever — a head keeps thirty
+           units clear of its neighbours, so no two rings can overlap */
+        let crowd=false;
+        for(const q of CORAL){ if(q!==r&&q.set&&Math.hypot(q.x-x,q.z-z)<30){ crowd=true; break; } }
+        if(crowd) continue;
+        r.x=x; r.z=z; r.set=true; r.age=0; r.m.scale.setScalar(0.12); r.m.position.set(x,seabedDepth(x,z),z); r.m.rotation.y=Math.random()*6.28; r.m.visible=true; break; }
       if(tr===6){ r.set=false; r.m.visible=false; } } }
     if(r.set&&r.age!==undefined&&r.age<1){ r.age=Math.min(1,r.age+0.02); r.m.scale.setScalar(0.12+0.88*r.age); } }
   /* ---- THE SEA-PICKLES LIGHT UP AFTER DARK ----
@@ -4500,8 +4507,16 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
         const m2=Math.hypot(dvx,dvz)||1;
         if(preyDive){
           state.breath=Math.max(0.08,state.breath-0.35);
-          const dv2=state.dive, sx2=dv2.x+dvx/m2*20, sz2=dv2.z+dvz/m2*20;
-          if(!landAtWorld(sx2,sz2)){ dv2.x=sx2; dv2.z=sz2; }   /* never flung into the stone */
+          /* the fling is WALKED, not leapt: landAtWorld only knows dry land,
+             so the shove could pass through an undersea cliff and the floor
+             clamp then hoisted the diver up through the rock. Each stride is
+             tested against the land AND the bed's own walls, and the shove
+             stops at the first that bars it. */
+          const dv2=state.dive;
+          for(let k3=0;k3<4;k3++){
+            const sx2=dv2.x+dvx/m2*5, sz2=dv2.z+dvz/m2*5;
+            if(landAtWorld(sx2,sz2)||seabedDepth(sx2,sz2)+3>dv2.y+8) break;
+            dv2.x=sx2; dv2.z=sz2; }
           dv2.vy=70;                                            /* flung surfaceward */
         } else {
           /* struck at the surface — shoved through the water, white water everywhere */
@@ -5914,7 +5929,9 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
          along it, exactly as it does at any other barrier. */
       const stepH=B*(window.BEHAVIOR?BEHAVIOR.climbOf(a.kind):1.0);
       const rise=c?c.h*B-a.m.position.y:0;
-      if(c&&rise<stepH&&rise>-stepH*2.2&&beastMayStand(a.kind,c)){ a.x=nx; a.z=nz; a.heading=Math.atan2(dx,dz); a.stuck=0; }
+      if(c&&rise<stepH&&rise>-stepH*2.2&&beastMayStand(a.kind,c)
+        &&!landmarkSolidAt(nx,nz,a.m.position.y+2,a.m.position.y+8)){   /* no beast strides through the masonry either */
+        a.x=nx; a.z=nz; a.heading=Math.atan2(dx,dz); a.stuck=0; }
       else {
         /* ---- A BEAST TURNS AWAY FROM WHAT IT CANNOT CROSS ----
            When the way was barred it only reset its work-timer and kept the
@@ -6758,6 +6775,7 @@ function buildPier(G,ex,site,rnd,torches){
   const dx=best.dx, dz=best.dz, t=best.t;
   const shoreX=site.x+dx*(t-1)*B, shoreZ=site.z+dz*(t-1)*B;
   const yD=WATER_Y+2.8, deckKeys=[]; let lastX=shoreX, lastZ=shoreZ;
+  ex.deckKeys=deckKeys;   /* visible to the abort path from the first plank */
   const len=7+Math.floor(rnd(120)*4);
   for(let s2=0;s2<len;s2++){ const x=site.x+dx*(t+s2)*B, z=site.z+dz*(t+s2)*B;
     const ix=Math.floor(x/B), iz=Math.floor(z/B);
@@ -6782,7 +6800,9 @@ function buildPier(G,ex,site,rnd,torches){
   emitBox(G,lastX-0.5,yD,lastZ-0.5,lastX+0.5,yD+B*1.4,lastZ+0.5,'logSide','logTop',null);
   torches.push({x:lastX,y:yD+B*1.4,z:lastZ});
   emitPathLine(G,site.x,site.z,shoreX,shoreZ);
-  ex.pier={x:lastX,z:lastZ};
+  /* the pier's own bearing is kept — it is the only thing that truly knows
+     which way the water lies (radial "outward" is inland on half the coasts) */
+  ex.pier={x:lastX,z:lastZ,dx,dz};
   return deckKeys;
 }
 const activeVillages=new Map();
@@ -6796,7 +6816,11 @@ function villageBuildTick(){
   do{
     const b=villageBuilds[0]; let r;
     try{ r=b.gen.next(); }catch(e){ r={done:true};
-      const vv=activeVillages.get(b.i); if(vv&&vv.building) activeVillages.delete(b.i); }
+      const vv=activeVillages.get(b.i); if(vv&&vv.building) activeVillages.delete(b.i);
+      /* an aborted build must give back its pier tiles, or invisible planks
+         stand on the water and the retry finds every tile "already laid"
+         and raises a village with no pier at all */
+      if(b.ex&&b.ex.deckKeys) for(const k of b.ex.deckKeys) deckMap.delete(k); }
     if(r.done){ villageBuilds.shift();
       const vv=activeVillages.get(b.i);
       if(vv&&vv.building) activeVillages.delete(b.i); }   /* ended without registering — allow a retry */
@@ -6806,10 +6830,11 @@ let worldNight=0;   /* 0 by day .. 1 deep night — sends folk home */
 const standaloneHouses=[];   /* houses not in a village (the player's treehouse) */
 /* A GENERATOR: driven by villageBuildTick a few milliseconds a frame, so a
    town raises itself over many frames and the traveller never feels a hitch. */
-function* spawnVillage(i){
+function* spawnVillage(i,exShell){
   const site=SITES[i]; if(!site){ activeVillages.set(i,{none:true}); return; }
   const rnd=k=>hash2(i*31.7+k*7.7, i*11.3+k*3.9);
-  const G=newG(); const ex={doors:[],houses:[],torchIn:[],farms:[],stalls:[],pen:null};
+  const G=newG(); const ex=exShell||{};
+  Object.assign(ex,{doors:[],houses:[],torchIn:[],farms:[],stalls:[],pen:null});
   const wy=topY(site.ix,site.iz);
   const cfg=cityFor(i);                 /* a great city here, or a small village? */
   const torches=[]; const solids=[];
@@ -7010,7 +7035,8 @@ function moveEnt(ent,dt,sp){
     const hitPlayer=state.mode==='walk'&&Math.hypot(nx-state.walk.x,nz-state.walk.z)<2.6;
     const gN=groundInfo(nx,nz);
     const tooSteep=gN.land&&Math.abs(gN.y-ent.m.position.y)>B*1.35;   /* folk walk steps, not cliff faces */
-    if(!gN.land||tooSteep||blockedByStructureNPC(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,ent.m)||hitPlayer){
+    if(!gN.land||tooSteep||blockedByStructureNPC(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,ent.m)||hitPlayer
+      ||!!landmarkSolidAt(nx,nz,ent.m.position.y+2,ent.m.position.y+8)){   /* the ancients' walls bar the folk as they bar the traveller */
       moving=false; ent.t=0; ent.stuck=(ent.stuck||0)+1;
       if(ent.stuck>2){ ent.stuck=0; ent.acting=false; ent.pt=0; ent.tx=ent.m.position.x; ent.tz=ent.m.position.z; } }
     else { ent.stuck=0; ent.m.position.x=nx; ent.m.position.z=nz; ent.m.rotation.y=Math.atan2(dx,dz); } }
@@ -7081,8 +7107,14 @@ function nextTask(ent,vv){
       ent.faceX=s.x; ent.faceZ=s.z+B*4; break; }
     case 'fisher': { const s=ent.spot||site;
       ent.tx=s.x; ent.tz=s.z; ent.actT=9+R()*7; ent.anim='fish';
-      const rr2=Math.hypot(s.x,s.z)||1;             /* face outward, toward the open sea */
-      ent.faceX=s.x+s.x/rr2*20; ent.faceZ=s.z+s.z/rr2*20; break; }
+      /* he faces down the PIER'S OWN LINE where one stands (radial "outward"
+         faces inland on every coast that looks toward the world's midst —
+         he stood casting into the hillside); the radial guess serves only
+         where there is no pier to read */
+      const pr=(vv.pier&&vv.pier.dx!==undefined)?vv.pier:null;
+      if(pr){ ent.faceX=s.x+pr.dx*20; ent.faceZ=s.z+pr.dz*20; }
+      else { const rr2=Math.hypot(s.x,s.z)||1;
+        ent.faceX=s.x+s.x/rr2*20; ent.faceZ=s.z+s.z/rr2*20; } break; }
     case 'shopper': {
       const st=(vv.stalls&&vv.stalls.length)?vv.stalls[Math.floor(R()*vv.stalls.length)]:null;
       if(st&&ent.leg!=='stall'){ ent.leg='stall'; ent.tx=st.x+(R()-0.5)*3; ent.tz=st.z-B*1.9;
@@ -7275,7 +7307,7 @@ function updateVillages(px,pz,dt,nightF){
        traveller can see the shore — no more building right before his eyes.
        The build itself is spread over frames by villageBuildTick. */
     if(d<1600&&!has){ activeVillages.set(i,{building:true});
-      villageBuilds.push({i,gen:spawnVillage(i)}); }
+      { const bx={}; villageBuilds.push({i,gen:spawnVillage(i,bx),ex:bx}); } }
     else if(d>2100&&has){ const vv=activeVillages.get(i);
       if(vv.building) continue;                        /* let the build finish; torn down next pass */
       if(vv.deckKeys) for(const k of vv.deckKeys) deckMap.delete(k);
@@ -7283,10 +7315,28 @@ function updateVillages(px,pz,dt,nightF){
         const sharedT=new Set(Object.values(TEX));
         const sharedM=new Set(Object.values(MAT).concat(Object.values(ROBETEX)));
         for(const rm of Object.values(ROBETEX)) sharedT.add(rm.map);
+        /* ---- AND EVERY OTHER SINGLETON THE WHOLE WORLD SHARES ----
+           The whitelist covered MAT, ROBETEX and the torch — but the torch
+           GLOW sprites carry glowTexCv (the same texture behind the sun's
+           halo, the pearls, the fireflies and every landmark light), every
+           villager's head shares the personHead material cache with the
+           crew and the traders, and every door leaf in the world is ONE
+           material. Each village despawn was disposing all three out from
+           under the living systems — silently re-uploaded by the renderer,
+           but a full texture delete and shader recompile per teardown, and
+           a hard break the day the renderer stops forgiving it. */
+        sharedT.add(glowTexCv);
+        sharedM.add(doorLeafMat);
+        for(const arr of Object.values(personHead)) for(const m of arr){
+          sharedM.add(m); if(m.map) sharedT.add(m.map); }
         vv.g.traverse(o=>{ if(o.geometry)o.geometry.dispose();
           const mats=Array.isArray(o.material)?o.material:(o.material?[o.material]:[]);
           for(const m of mats){ if(sharedM.has(m)||m===torchMat) continue;
             if(m.map&&!sharedT.has(m.map)) m.map.dispose(); m.dispose(); } }); }
+      /* a word spoken by a villager whose town is torn down must die with
+         the town — the bubble used to hang over the empty ground */
+      if(vv.people) for(const b of BARKS)
+        if(b.ent&&vv.people.includes(b.ent)){ b.ent=null; b.t=0; b.sp.visible=false; }
       activeVillages.delete(i); }
   }
   for(const[,vv] of activeVillages){ if(vv.none||!vv.g) continue;
@@ -7327,7 +7377,7 @@ function addRep(profile,n){ if(tradeSea) return; state.rep=state.rep||{};
   for(const[t2,msg] of tiers){ if(before<t2&&after>=t2){ toast(msg); break; } } }
 function fishSellPrice(){ return Math.max(2,Math.round(fishPriceAt(tradeProfile)*(tradeSea?1:repMult(tradeProfile)))); }
 function pearlSellPrice(){ return Math.max(15,Math.round(pearlPriceAt(tradeProfile)*(tradeSea?0.75:repMult(tradeProfile)))); }
-let tradeOpen=false, tradeProfile=0, tradeTitle='', tradeSea=false, tradeAnchor=null;
+let tradeOpen=false, tradeProfile=0, tradeTitle='', tradeSea=false, tradeAnchor=null, tradeShip=null;
 function openTrade(profile,title,sea){
   tradeOpen=true; tradeProfile=profile; tradeTitle=title; tradeSea=!!sea;
   const p=state.mode==='walk'?state.walk:state.boat;
@@ -7340,7 +7390,11 @@ function tradeGuard(){
   const p=state.mode==='walk'?state.walk:state.boat;
   if(state.mode!==tradeAnchor.mode||Math.hypot(p.x-tradeAnchor.x,p.z-tradeAnchor.z)>26) closeTrade();
 }
-function closeTrade(){ if(!tradeOpen) return; tradeOpen=false; $('trade').style.display='none'; saveState(); }
+function closeTrade(){ if(!tradeOpen) return; tradeOpen=false; $('trade').style.display='none';
+  /* the hailed merchantman fills her sails again a moment after the
+     trading ends, instead of lying hove-to and waving out her full watch */
+  if(tradeShip){ if(tradeShip.halt>3) tradeShip.halt=3; tradeShip=null; }
+  saveState(); }
 function renderTrade(){
   const tier=tradeSea?null:repTier(tradeProfile);
   $('trade-sub').textContent=tradeTitle+' — your purse: '+state.coins+' shekels · cargo '+cargoCount()+' / '+CARGO_MAX
@@ -7468,8 +7522,16 @@ function promptTick(){
       else if(promptMount){ label='F — mount the '+promptMount.kind; promptAction='ride'; }
       else if(promptStall){ label='F — trade at the stall'; promptAction='trade'; }
       else { promptPerson=nearbyPerson();
-        if(promptPerson){ label='F — speak'; promptAction='speak'; }
-        else if(canFishHere()){ label='F — cast a line'; promptAction='fish'; } }
+        /* THE PIER HEAD BELONGS TO THE ROD. The village fisher stands pinned
+           at the one spot where a line can be cast, inside the speak
+           catchment — so "F — speak" stood there for ever and no village
+           pier could be fished from. Where a line CAN be cast and the only
+           soul in reach is the working fisher, the cast wins; everyone else
+           still stops you for a word first. */
+        const fishable=canFishHere();
+        if(promptPerson&&!(fishable&&promptPerson.role==='fisher')){ label='F — speak'; promptAction='speak'; }
+        else if(fishable){ label='F — cast a line'; promptAction='fish'; promptPerson=null; }
+        else if(promptPerson){ label='F — speak'; promptAction='speak'; } }
     }
   }
   if(!label&&state.mode==='fly'&&canTouchDome()){ label='F \u2014 touch the firmament'; promptAction='dome'; }
@@ -8270,6 +8332,10 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   /* P (or ESC, outside a scene) pauses the whole game and gives it back */
   if(e.code==='KeyP'||(e.code==='Escape'&&!cut)){ e.preventDefault(); togglePause(); return; }
   if(gamePaused) return;                      /* a paused world takes no orders */
+  /* a scene has the body: ESC/F/SPACE (above) leave it, and NOTHING else
+     acts — M used to lay the chart over the letterbox, G took flight in
+     the middle of the film, Q cast a spear through it */
+  if(cut) return;
   /* while the whole earth is beheld, the only orders are the view's own:
      ESC/P (above) pauses, and the rest of the world's verbs — going ashore,
      flying, diving, the spear, the net — are not taken from behind the map.
@@ -8561,12 +8627,16 @@ function dismount(quiet){
   /* the beast goes back to the wild — a free slot, standing where you left it */
   for(const a of LANDLIFE){ if(a.set) continue;
     if(a.m) scene.remove(a.m);
+    /* a free slot may still be HOLDING young from its last life — they were
+       only hidden at the reap, and nulling the field bare leaked their
+       meshes into the scene for ever. setYoung removes them properly. */
+    setYoung(a,false);
     a.m=M.m; a.kind=M.kind; a.set=true;
     a.x=a.hx=a.tx=state.walk.x+Math.sin(state.walk.heading+1.6)*5;
     a.z=a.hz=a.tz=state.walk.z+Math.cos(state.walk.heading+1.6)*5;
     a.heading=state.walk.heading; a.role='graze'; a.job='roam'; a.jt=1+Math.random()*2;
     a.dead=0; a.den=null; a.act=null; a.burst=0; a.fear=0; a.panicT=0; a.upTree=0;
-    a.kids=null; a.day='day'; a.river=false; a.ph=Math.random()*6.283;
+    a.day='day'; a.river=false; a.ph=Math.random()*6.283;
     a.m.visible=true; M.m=null; break; }
   if(M.m) scene.remove(M.m);      /* no slot free — it slips away into the world's pocket */
   if(!quiet) toast('You dismount, and the beast falls to grazing.');
@@ -8619,7 +8689,7 @@ function interact(){
     case 'trade': { const st=promptStall;
       const cty=cityFor(st.i);
       openTrade(st.i,'the market of '+(cty?cty.name+', ':'')+COUNTRIES[st.i].n,false); break; }
-    case 'hail': { const h=promptTrader; h.T.halt=25;
+    case 'hail': { const h=promptTrader; h.T.halt=25; tradeShip=h.T;
       toast('You hail the merchantman; she backs her sails and comes alongside to trade.');
       openTrade(500+h.k*7,'a merchantman upon the deep (her prices are her own)',true); break; }
     default: if(canSleep()) sleep(); else toggleDoor();
@@ -9472,6 +9542,10 @@ function setMode(m){
      alighting, a restored voyage — would leave it running over a traveller
      who is no longer where it left him, with the HUD still down. */
   if(cut) endScene();
+  /* the ▲▼ pad's press dies with the mode — a hold interrupted by a forced
+     surface left the pad's display:none swallowing the pointer-up, and the
+     next flight sank of itself on a phantom press */
+  flyPad=0;
   state.mode=m;
   if(m==='fly') ensureFlyDome();                      /* the vault stands even for a voyage restored aloft */
   if(m==='walk') state.walk.climb=null;               /* a climb interrupted elsewhere must not resume here */
@@ -10083,6 +10157,11 @@ function drawMapInto(ctx2,size,withNames,noMark){
   const [su,sv]=sunUV();
   ctx2.beginPath(); ctx2.arc((su+1)*Hh,(sv+1)*Hh,Math.max(3,size/120),0,Math.PI*2);
   ctx2.fillStyle='#ffe9a8'; ctx2.fill();
+  /* and the MOON'S station beside it — the chart knew where the sun stood
+     and not the moon, though the helper had waited unused all along */
+  const [mu,mv]=moonUV();
+  ctx2.beginPath(); ctx2.arc((mu+1)*Hh,(mv+1)*Hh,Math.max(2.4,size/150),0,Math.PI*2);
+  ctx2.fillStyle='#cfd8e8'; ctx2.fill();
   if(noMark) return;
   const p=state.mode==='walk'?state.walk:state.mode==='fly'?state.fly:state.mode==='dive'?state.dive:state.boat;
   const px=(p.x/R_WORLD+1)*Hh, py=(p.z/R_WORLD+1)*Hh;
@@ -10107,7 +10186,7 @@ function updateSeasonBtn(){ const b=$('b-season'); if(!b||!window.SEASON) return
   b.classList.toggle('off',false); }
 function cycleSeason(){ if(!window.SEASON) return;
   const r=SEASON.cycle();
-  updateSeasonBtn();
+  updateSeasonBtn(); saveState();
   const pp=playerXZ(), latN=1-Math.hypot(pp.x,pp.z)/R_WORLD*2;
   const here=SEASON.seasonAt(latN,dayOfYear()), z=here.zone;
   const where=' · '+here.name+(z==='tropical'?' (the tropics keep no winter)':z==='polar'?' (the far cold)':'')+' where you stand';
@@ -10130,7 +10209,10 @@ async function saveState(){
     /* v7: the PLACES of the gathered pearls. The count was kept and the sites
        were not, so every reload regrew every pearl bed — one seabed tile was
        an unbounded silver farm. */
-    pt:[...pearlTaken],vf:state.vf||0,dp:state.dayIdx});
+    pt:[...pearlTaken],vf:state.vf||0,dp:state.dayIdx,
+    /* the chosen season was the one rail toggle NOT saved - every reload
+       silently turned the year back to Natural */
+    sn:(window.SEASON&&!SEASON.isNatural())?SEASON.overrideName():null});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
 }
@@ -10228,7 +10310,11 @@ $('b-net').onclick=toggleNet;
   function bind(el,val){ el.addEventListener('pointerdown',e=>{ e.preventDefault(); flyPad=val; });
     const off=()=>{ if(flyPad===val) flyPad=0; };
     el.addEventListener('pointerup',off); el.addEventListener('pointercancel',off); el.addEventListener('pointerleave',off); }
-  bind(up,1); bind(dn,-1); })();
+  bind(up,1); bind(dn,-1);
+  /* and any pointer-up ANYWHERE lets go of the pad — a button hidden mid-press
+     (display:none) never receives its own up, and the press held for ever */
+  addEventListener('pointerup',()=>{ flyPad=0; });
+  addEventListener('pointercancel',()=>{ flyPad=0; }); })();
 $('b-names').onclick=()=>{ namesOn=!namesOn;
   $('b-names').textContent='\uD83C\uDFF7 Names: '+(namesOn?'on':'off');
   $('b-names').classList.toggle('off',!namesOn); };
@@ -10503,7 +10589,7 @@ function encounterAct(){
     let best=-1,bd=1e9; const p=state.boat;
     for(let i=0;i<COUNTRIES.length;i++){ const c=COUNTRIES[i].c;
       const d=Math.hypot(p.x/R_WORLD-c[0],p.z/R_WORLD-c[1]); if(d<bd){bd=d;best=i;} }
-    if(best>=0){ state.rep=state.rep||{}; state.rep[best]=(state.rep[best]||0)+3; }
+    if(best>=0){ state.rep=state.rep||{}; state.rep[best]=Math.min(50,(state.rep[best]||0)+3);   /* capped, as addRep caps */ }
     toast('You take the castaway aboard. He weeps, presses 25 shekels into your hand, and blesses your ship — word of this kindness will reach the ports.','MATTITHYAHU 25:35');
   }
   retireEnc(); saveState();
@@ -10649,6 +10735,7 @@ async function begin(fresh){
     if(saved.rr) state.rep=saved.rr;
     if(saved.wl) for(const k of saved.wl) wreckLooted.add(k);
     if(saved.pt) for(const k of saved.pt) pearlTaken.add(k);
+    if(saved.sn&&window.SEASON){ SEASON.setSeason(saved.sn); updateSeasonBtn(); }
     if(saved.vf) state.vf=1;
     if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); }
     if(saved.dp!==undefined&&DAYPARTS[saved.dp]){ state.dayIdx=saved.dp; updateDayBtn(); } }
