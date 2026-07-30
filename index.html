@@ -123,20 +123,105 @@
   #paused h2{ color:var(--gold); letter-spacing:.34em; font-weight:600;
     font-size:clamp(16px,3vmin,28px); text-shadow:0 0 24px rgba(232,198,106,.4); }
   #paused .m-hint{ font-size:clamp(10px,1.5vmin,13px); letter-spacing:.2em; color:#9a8f74; }
-  #title-card{ position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
-    background:radial-gradient(ellipse at 50% 35%, #0d1730 0%, #05070f 70%); }
-  #title-inner{ text-align:center; max-width:min(92vw,680px); padding:4vh 4vw; }
-  #title-inner h1{ font-weight:600; font-size:clamp(22px,5vmin,44px); letter-spacing:.3em; color:var(--gold);
-    text-shadow:0 0 30px rgba(232,198,106,.4); }
-  #title-inner .sub{ margin-top:1.6vh; font-style:italic; color:#b7ab8d; font-size:clamp(11px,1.9vmin,16px); line-height:1.6; }
-  #title-inner .ctl{ margin-top:3vh; color:#8d846e; font-size:clamp(10px,1.6vmin,13px); line-height:2; letter-spacing:.08em; }
-  #title-inner .btns{ margin-top:3.4vh; display:flex; gap:1.4vh; justify-content:center; flex-wrap:wrap; }
-  .bigbtn{ pointer-events:auto; background:rgba(232,198,106,.12); color:var(--gold);
-    border:1px solid var(--gold); border-radius:4px; padding:1.6vh 3vh; font-family:inherit;
-    font-size:clamp(12px,2vmin,16px); letter-spacing:.22em; cursor:pointer; text-transform:uppercase; }
-  .bigbtn:hover{ background:rgba(232,198,106,.28); }
-  #btn-continue{ display:none; }
-  #loaderr{ display:none; margin-top:2.5vh; color:#c98a6a; font-size:clamp(10px,1.6vmin,13px); line-height:1.7; }
+  /* ================= THE OPENING OF THE GAME =================
+     The world is heavy, and it is built BEFORE the voyage is offered: first
+     the LOADING SCREEN — the game's mark, the work in hand on a true bar,
+     and the manner of the voyage told in turns while the land is laid — and
+     then the MENU, standing over the living world itself, after the manner
+     of the great finished games. */
+  /* until the voyage begins, the whole HUD stands down — the menu and the
+     world alone are on the glass */
+  body.pregame #head, body.pregame #clock, body.pregame #place, body.pregame #verse,
+  body.pregame #hint, body.pregame #ui, body.pregame #b-rail, body.pregame #mini,
+  body.pregame #breath, body.pregame #prompt, body.pregame #joy, body.pregame #flypad{
+    display:none !important; }
+  #boot{ position:fixed; inset:0; z-index:32; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center;
+    background:radial-gradient(ellipse at 50% 35%, #0d1730 0%, #05070f 70%);
+    padding:4vh 6vw 18vh; }
+  #boot-logo{ width:clamp(110px,20vmin,180px); height:auto;
+    filter:drop-shadow(0 0 26px rgba(232,198,106,.28)); }
+  #boot h1{ margin-top:2.4vh; font-weight:600; font-size:clamp(24px,5.2vmin,46px);
+    letter-spacing:.34em; color:var(--gold); text-shadow:0 0 30px rgba(232,198,106,.4);
+    text-indent:.34em; }
+  #boot .sub{ margin-top:1vh; font-style:italic; color:#b7ab8d;
+    font-size:clamp(11px,1.8vmin,15px); letter-spacing:.06em; }
+  #load-stage{ margin-top:4.4vh; font-size:clamp(10px,1.6vmin,13px); letter-spacing:.24em;
+    text-transform:uppercase; color:#9a8f74; min-height:1.4em; }
+  #load-bar{ margin-top:1.4vh; width:min(72vw,360px); height:7px;
+    border:1px solid rgba(232,198,106,.55); border-radius:4px;
+    background:rgba(7,16,29,.9); overflow:hidden; }
+  #load-fill{ height:100%; width:0%; border-radius:3px; transition:width .35s ease;
+    background:linear-gradient(90deg,#8a6f2e,var(--gold),#fff2c0,var(--gold),#8a6f2e);
+    background-size:200% 100%; animation:sheen 2.2s linear infinite; }
+  @keyframes sheen{ from{ background-position:0% 0; } to{ background-position:200% 0; } }
+  #load-fail{ display:none; margin-top:2.5vh; max-width:min(86vw,520px); color:#c98a6a;
+    font-size:clamp(10px,1.6vmin,13px); line-height:1.7; }
+  /* the manner of the voyage, told in turns at the foot of the glass */
+  #boot-tip{ position:absolute; left:50%; bottom:5vh; transform:translateX(-50%);
+    width:min(86vw,640px); text-align:center; }
+  #tip-inner{ transition:opacity .45s ease; }
+  #tip-head{ font-size:clamp(10px,1.6vmin,13px); letter-spacing:.3em; color:var(--gold);
+    text-transform:uppercase; }
+  #tip-body{ margin-top:.8vh; font-style:italic; color:#cfc5aa;
+    font-size:clamp(11px,1.8vmin,15px); line-height:1.65; }
+  /* ---- THE MENU, OVER THE LIVING WORLD ----
+     A column on the left hand, the built world sailing slowly behind it. */
+  #menu{ position:fixed; inset:0; z-index:28; display:none; }
+  #menu-col{ position:absolute; left:0; top:0; bottom:0; width:min(88vw,420px);
+    display:flex; flex-direction:column; justify-content:center;
+    padding:16vh 3vw 10vh;
+    background:linear-gradient(90deg, rgba(4,6,13,.92) 0%, rgba(4,6,13,.64) 62%, rgba(4,6,13,0) 100%); }
+  #menu-logo{ position:absolute; top:4.6vh; left:3vw; display:flex; align-items:center; gap:1.4vmin; }
+  #menu-logo svg{ width:clamp(46px,7.4vmin,66px); height:auto;
+    filter:drop-shadow(0 0 14px rgba(232,198,106,.3)); }
+  #menu-logo .mt{ font-size:clamp(15px,2.6vmin,24px); letter-spacing:.3em; color:var(--gold);
+    text-shadow:0 0 18px rgba(232,198,106,.35); }
+  #menu-logo .ms{ margin-top:.5vh; font-size:clamp(8px,1.3vmin,11px); font-style:italic;
+    color:#9a8f74; letter-spacing:.08em; }
+  #m-list{ display:flex; flex-direction:column; gap:1vh; }
+  #m-confirm{ display:none; flex-direction:column; gap:1vh; }
+  .mi{ pointer-events:auto; display:block; width:100%; text-align:left; background:transparent;
+    color:var(--ink); border:1px solid transparent; border-radius:3px; padding:1.5vh 1.8vh;
+    font-family:inherit; font-size:clamp(13px,2.1vmin,18px); letter-spacing:.2em;
+    cursor:pointer; text-transform:uppercase; transition:all .15s; }
+  .mi.sel{ border-color:var(--gold); background:rgba(232,198,106,.1); color:#fff;
+    text-shadow:0 0 12px rgba(232,198,106,.5); }
+  #m-continue{ display:none; }
+  #m-confirm .cw{ padding:0 1.8vh 1.4vh; color:#c98a6a; font-style:italic;
+    font-size:clamp(11px,1.7vmin,14px); line-height:1.6; }
+  #menu-hint{ position:absolute; left:3vw; bottom:3.2vh; font-size:clamp(9px,1.4vmin,12px);
+    letter-spacing:.2em; color:#8b8271; }
+  /* the two great books of the menu — the controls and the options */
+  .mmodal{ position:fixed; inset:0; z-index:34; display:none; align-items:center;
+    justify-content:center; background:rgba(4,6,13,.9); }
+  .mmodal .mm-inner{ max-width:min(94vw,780px); max-height:86vh; overflow-y:auto;
+    border:1px solid rgba(232,198,106,.5); border-radius:6px; padding:3.6vh 3.4vw;
+    background:rgba(10,14,26,.94); box-shadow:0 0 60px rgba(0,0,0,.8); }
+  .mmodal h2{ color:var(--gold); letter-spacing:.3em; font-weight:600; text-align:center;
+    font-size:clamp(14px,2.4vmin,22px); margin-bottom:1.6vh; }
+  .ctl-sec{ margin-top:2vh; }
+  .ctl-sec h3{ color:var(--gold); letter-spacing:.24em; font-weight:600;
+    font-size:clamp(11px,1.7vmin,14px); margin-bottom:.9vh; }
+  .ctl-sec .row{ display:grid; grid-template-columns:minmax(96px,158px) 1fr; gap:.5vh 1.6vw;
+    font-size:clamp(10px,1.65vmin,14px); line-height:1.55; }
+  .ctl-sec .k{ color:#efe6cf; letter-spacing:.1em; }
+  .ctl-sec .v{ color:#9a8f74; }
+  .mm-back{ display:block; margin:3vh auto 0; pointer-events:auto;
+    background:rgba(232,198,106,.12); color:var(--gold); border:1px solid var(--gold);
+    border-radius:4px; padding:1.2vh 3vh; font-family:inherit;
+    font-size:clamp(11px,1.8vmin,14px); letter-spacing:.22em; cursor:pointer;
+    text-transform:uppercase; }
+  .mm-back:hover{ background:rgba(232,198,106,.28); }
+  #opt-rows{ display:flex; flex-direction:column; gap:1vh; min-width:min(80vw,400px); }
+  #opt-rows .mo{ pointer-events:auto; background:rgba(14,18,32,.82); color:var(--ink);
+    border:1px solid rgba(232,198,106,.45); border-radius:4px; padding:1.3vh 1.6vh;
+    font-family:inherit; font-size:clamp(11px,1.8vmin,14px); letter-spacing:.12em;
+    cursor:pointer; text-transform:uppercase; text-align:left; transition:all .15s; }
+  #opt-rows .mo:hover{ background:rgba(232,198,106,.16); border-color:var(--gold); }
+  @media (max-width:620px){
+    #menu-col{ width:100vw; background:linear-gradient(90deg, rgba(4,6,13,.9) 0%, rgba(4,6,13,.55) 100%); }
+    #menu-hint{ display:none; } }
   /* ---- THE CUTSCENE AT THE FIRMAMENT ---- letterbox bars and a caption,
      for the moment the traveller lays a hand on the glass and looks out */
   #cine{ position:fixed; inset:0; z-index:9; pointer-events:none; opacity:0;
@@ -273,8 +358,209 @@
   }
 </style>
 </head>
-<body>
+<body class="pregame">
 <canvas id="cv"></canvas>
+
+<!-- ============ THE LOADING OF THE WORLD ============
+     Shown from the first paint. The engine drives the bar through the true
+     stages of the build, and the manner of the voyage is told in turns at
+     the foot while the land is laid. -->
+<div id="boot">
+  <svg id="boot-logo" viewBox="0 0 200 200" aria-hidden="true">
+    <g fill="none" stroke="#e8c66a">
+      <circle cx="100" cy="100" r="92" stroke-width="2.5" opacity=".9"/>
+      <circle cx="100" cy="100" r="85" stroke-width="1" opacity=".4"/>
+      <path d="M26 90 A80 80 0 0 1 174 90" stroke-width="1.2" opacity=".5"/>
+    </g>
+    <g fill="#e8c66a">
+      <circle cx="142" cy="52" r="8" opacity=".95"/>
+      <path d="M64 44 a9 9 0 1 0 6 15 a7.5 7.5 0 1 1 -6 -15 Z" opacity=".8"/>
+      <path d="M100 26 l1.8 4.6 4.6 1.8 -4.6 1.8 -1.8 4.6 -1.8 -4.6 -4.6 -1.8 4.6 -1.8 Z" opacity=".7"/>
+      <path d="M36 72 l1.2 3 3 1.2 -3 1.2 -1.2 3 -1.2 -3 -3 -1.2 3 -1.2 Z" opacity=".55"/>
+      <path d="M166 78 l1.2 3 3 1.2 -3 1.2 -1.2 3 -1.2 -3 -3 -1.2 3 -1.2 Z" opacity=".55"/>
+      <rect x="98.5" y="66" width="3" height="60" opacity=".95"/>
+      <path d="M104 72 Q136 96 104 120 Z" opacity=".9"/>
+      <path d="M96 78 Q74 96 96 114 Z" opacity=".75"/>
+      <path d="M56 128 L146 128 L131 146 L69 146 Z" opacity=".95"/>
+      <path d="M146 128 L158 118 L150 128 Z" opacity=".8"/>
+    </g>
+    <g fill="none" stroke="#e8c66a" stroke-width="2" opacity=".65" stroke-linecap="round">
+      <path d="M42 158 q7 -6 14 0 t14 0 t14 0 t14 0 t14 0 t14 0 t14 0"/>
+      <path d="M56 168 q7 -5 14 0 t14 0 t14 0 t14 0 t14 0 t14 0"/>
+    </g>
+  </svg>
+  <h1>THE VOYAGE</h1>
+  <div class="sub">all the earth within the firmament</div>
+  <div id="load-stage">gathering the nations&hellip;</div>
+  <div id="load-bar"><div id="load-fill"></div></div>
+  <div id="load-fail"></div>
+  <div id="boot-tip"><div id="tip-inner">
+    <div id="tip-head"></div>
+    <div id="tip-body"></div>
+  </div></div>
+</div>
+
+<!-- ============ THE MENU, OVER THE LIVING WORLD ============ -->
+<div id="menu">
+  <div id="menu-col">
+    <div id="m-list">
+      <button class="mi" id="m-continue">&#9875; Continue the voyage</button>
+      <button class="mi" id="m-new">&#9973; Set sail &mdash; a new voyage</button>
+      <button class="mi" id="m-controls-btn">&#9881; Controls</button>
+      <button class="mi" id="m-options-btn">&#9878; Options</button>
+    </div>
+    <div id="m-confirm">
+      <div class="cw">A voyage already stands written in the log. Set sail anew,
+        and the old log is washed away for good.</div>
+      <button class="mi" id="mc-keep">Keep the old voyage</button>
+      <button class="mi" id="mc-anew">Wash it away &mdash; begin anew</button>
+    </div>
+  </div>
+  <div id="menu-logo">
+    <svg viewBox="0 0 200 200" aria-hidden="true">
+      <g fill="none" stroke="#e8c66a">
+        <circle cx="100" cy="100" r="92" stroke-width="4" opacity=".9"/>
+      </g>
+      <g fill="#e8c66a">
+        <circle cx="142" cy="52" r="9" opacity=".95"/>
+        <rect x="98" y="62" width="4" height="66" opacity=".95"/>
+        <path d="M106 70 Q140 96 106 122 Z" opacity=".9"/>
+        <path d="M94 78 Q70 98 94 116 Z" opacity=".75"/>
+        <path d="M54 130 L148 130 L132 150 L68 150 Z" opacity=".95"/>
+      </g>
+      <path d="M40 164 q8 -7 16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0"
+        fill="none" stroke="#e8c66a" stroke-width="3" opacity=".65" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <div class="mt">THE VOYAGE</div>
+      <div class="ms">all the earth within the firmament</div>
+    </div>
+  </div>
+  <div id="menu-hint">&#8593; &#8595; &mdash; choose &nbsp;&middot;&nbsp; ENTER &mdash; set forth &nbsp;&middot;&nbsp; or the pointer</div>
+</div>
+
+<!-- the book of the controls -->
+<div id="ctl-modal" class="mmodal"><div class="mm-inner">
+  <h2>&#9881; THE MANNER OF THE VOYAGE</h2>
+  <div class="ctl-sec"><h3>THE SHIP</h3><div class="row">
+    <span class="k">W A S D</span><span class="v">helm and sail &mdash; or the left thumb on a touch screen</span>
+    <span class="k">drag</span><span class="v">look about</span>
+    <span class="k">E</span><span class="v">take or leave the wheel, walk the deck &mdash; and go ashore from a strand, or board again</span>
+    <span class="k">F</span><span class="v">the hold below the hatch amidships &mdash; and hail a passing trader</span>
+    <span class="k">N</span><span class="v">cast the trawl net &mdash; trawl slow over shoaling water for a hold-filling catch</span>
+    <span class="k">scroll</span><span class="v">draw the eye back, out to the whole earth</span>
+  </div></div>
+  <div class="ctl-sec"><h3>ASHORE</h3><div class="row">
+    <span class="k">W A S D</span><span class="v">walk &mdash; every land holds a village of the ancient time</span>
+    <span class="k">SPACE</span><span class="v">jump and climb</span>
+    <span class="k">F</span><span class="v">open doors &middot; speak with the people &middot; trade in the market &middot; cast a line from strand or pier</span>
+    <span class="k">Q</span><span class="v">throw the spear &mdash; the hunt, ashore and beneath the waves</span>
+  </div></div>
+  <div class="ctl-sec"><h3>THE AIR AND THE DEEP</h3><div class="row">
+    <span class="k">G</span><span class="v">rise into the air &mdash; hold SPACE to climb higher and higher, SHIFT to sink &mdash; up past the clouds to the firmament itself</span>
+    <span class="k">C</span><span class="v">dive the deep from open water &mdash; SPACE to rise, SHIFT to sink &mdash; kelp forests, coral and wrecks of the ancients await</span>
+    <span class="k">SHIFT</span><span class="v">swimming, slip beneath the swell &mdash; the bed runs unbroken from the strand into the deep</span>
+    <span class="k">&#129704;</span><span class="v">mind your breath below &mdash; rise to breathe, or take the immortal breath and rove the deep at leisure</span>
+    <span class="k">&#128737;</span><span class="v">great sharks hunt YOU &mdash; turn them with the spear, flee, or take up the repelling of beasts</span>
+  </div></div>
+  <div class="ctl-sec"><h3>THE CHART AND THE LOG</h3><div class="row">
+    <span class="k">M</span><span class="v">the circle of the whole earth</span>
+    <span class="k">L</span><span class="v">the ship's log &mdash; lands visited, the purse, the cargo and the next landfall</span>
+    <span class="k">P / ESC</span><span class="v">pause the voyage, and the same again to carry on</span>
+    <span class="k">K</span><span class="v">turn the season</span>
+  </div></div>
+  <div class="ctl-sec"><h3>THE DEEP THINGS</h3><div class="row">
+    <span class="k">pearls</span><span class="v">gleam on the sea bed, worth much silver</span>
+    <span class="k">the winds</span><span class="v">are true &mdash; run before them and fly, beat against them and labour</span>
+    <span class="k">storms</span><span class="v">wander the deep &mdash; steer wide &middot; traders pass upon the horizon</span>
+  </div></div>
+  <button class="mm-back" id="ctl-back">Back</button>
+</div></div>
+
+<!-- the book of the options -->
+<div id="opt-modal" class="mmodal"><div class="mm-inner">
+  <h2>&#9878; OPTIONS</h2>
+  <div id="opt-rows">
+    <button class="mo" id="mo-sound"></button>
+    <button class="mo" id="mo-names"></button>
+    <button class="mo" id="mo-daypart"></button>
+    <button class="mo" id="mo-season"></button>
+    <button class="mo" id="mo-wind"></button>
+  </div>
+  <button class="mm-back" id="opt-back">Back</button>
+</div></div>
+
+<script>
+/* ============ THE LOADING SCREEN'S OWN SMALL LIFE ============
+   Runs before the heavy scripts, so the tips turn and the bar stands from
+   the very first moment. The engine drives the bar through window.__BOOTUI. */
+window.__BOOTUI=(function(){
+  var $=function(id){ return document.getElementById(id); };
+  var TIPS=[
+    ['the helm','W A S D or the left thumb steer the ship · drag to look about · E leaves the wheel to walk the deck'],
+    ['going ashore','Bring her near a strand and press E (or ⚓) to wade ashore — every land holds a village of the ancient time'],
+    ['the air','G (or 🕊) rises into the air — hold SPACE to climb, SHIFT to sink — up past the clouds to the firmament itself'],
+    ['the deep','C (or 🤿) dives from open water — SPACE to rise, SHIFT to sink — kelp forests, coral and wrecks of the ancients await below'],
+    ['your breath','Mind your breath beneath the waves — rise to breathe, or take the 🫧 immortal breath and rove the deep at leisure'],
+    ['the hunt','Q throws the spear, ashore and beneath the waves — but great sharks hunt YOU: turn them, flee, or take up 🛡 the repelling of beasts'],
+    ['the catch','Stand on a strand or pier and press F to cast a line · cast the 🕸 net (N) from the ship and trawl slow over shoaling water'],
+    ['the market','Fish, game and pearls are silver in every port — speak with the people (F), and buy and sell in the market'],
+    ['the winds','The winds are true: run before them and fly, beat against them and labour — storms wander the deep, steer wide'],
+    ['the chart','M opens the circle of the whole earth · L the ship’s log · the scroll wheel draws the eye back off the world'],
+    ['the people','Speak with them (F) — a people each at their labour: tilling, drawing water, herding, hunting, children at play'],
+    ['the ship','She bears twelve and more — a crew keeps her deck, and a cargo hold lies below the hatch amidships (F to go below)']];
+  var ti=Math.floor(Math.random()*TIPS.length), timer=null;
+  function setTip(){ var t=TIPS[ti%TIPS.length]; ti++;
+    $('tip-head').textContent=t[0]; $('tip-body').textContent=t[1]; }
+  function turnTip(){ var el=$('tip-inner'); el.style.opacity=0;
+    setTimeout(function(){ setTip(); el.style.opacity=1; },450); }
+  setTip(); timer=setInterval(turnTip,5200);
+  function stage(label,frac){
+    var s=$('load-stage'), f=$('load-fill');
+    if(s&&label!=null) s.textContent=label;
+    if(f&&frac!=null) f.style.width=Math.round(Math.max(0,Math.min(1,frac))*100)+'%'; }
+  function fail(msg){
+    var e=$('load-fail'); if(e){ e.textContent=msg; e.style.display='block'; }
+    var b=$('load-bar'); if(b) b.style.display='none';
+    var s=$('load-stage'); if(s) s.textContent='the voyage could not begin';
+    if(timer){ clearInterval(timer); timer=null; } }
+  function done(){ if(timer){ clearInterval(timer); timer=null; } }
+  return {stage:stage,fail:fail,done:done};
+})();
+
+/* ============ THE MENU'S POINTER AND KEYS ============
+   Selection, arrows and ENTER, and the book of the controls — plain DOM,
+   no engine needed. The engine opens the menu through window.__MENUUI. */
+window.__MENUUI=(function(){
+  var $=function(id){ return document.getElementById(id); };
+  var menu=$('menu'), sel=0;
+  /* rendered-on-the-glass, not computed style — a button whose PARENT is
+     display:none still answers display:block to getComputedStyle, and the
+     hidden confirm buttons were being counted into the arrows' round */
+  function visible(el){ return !!el&&el.getClientRects().length>0; }
+  function items(){ return Array.prototype.filter.call(menu.querySelectorAll('.mi'),visible); }
+  function paint(){ items().forEach(function(b,i){ b.classList.toggle('sel',i===sel); }); }
+  function refresh(){ sel=0; paint(); }
+  function open(){ menu.style.display='block'; refresh(); }
+  function close(){ menu.style.display='none'; }
+  menu.addEventListener('mouseover',function(e){
+    var b=e.target.closest&&e.target.closest('.mi'); if(!b) return;
+    var i=items().indexOf(b); if(i>=0){ sel=i; paint(); } });
+  addEventListener('keydown',function(e){
+    var cm=$('ctl-modal'), om=$('opt-modal');
+    if(visible(cm)||visible(om)){
+      if(e.key==='Escape'){ cm.style.display='none'; om.style.display='none'; e.preventDefault(); }
+      return; }
+    if(!visible(menu)) return;
+    var it=items(); if(!it.length) return;
+    if(e.key==='ArrowDown'){ sel=(sel+1)%it.length; paint(); e.preventDefault(); }
+    else if(e.key==='ArrowUp'){ sel=(sel-1+it.length)%it.length; paint(); e.preventDefault(); }
+    else if(e.key==='Enter'||e.key===' '){ it[Math.min(sel,it.length-1)].click(); e.preventDefault(); } });
+  $('m-controls-btn').addEventListener('click',function(){ $('ctl-modal').style.display='flex'; });
+  $('ctl-back').addEventListener('click',function(){ $('ctl-modal').style.display='none'; });
+  return {open:open,close:close,refresh:refresh};
+})();
+</script>
 
 <div class="hud" id="head">
   <div class="t">THE VOYAGE</div>
@@ -336,31 +622,6 @@
   <div id="trade-sub"></div>
   <table id="trade-rows"></table>
   <div class="m-hint" id="trade-close">tap here to leave the trading</div>
-</div></div>
-
-<div id="title-card"><div id="title-inner">
-  <h1>THE VOYAGE</h1>
-  <div class="sub">The waters gathered into one place, and the dry land appearing — every nation set upon the face of the deep, bounded by the wall of ice, and over all the firmament like a hard mirror. The sun runs his course between the tropics; the moon follows behind. Sail, and see.</div>
-  <div class="ctl">helm — W A S D or the left thumb · look — drag · E or ⚓ — leave the wheel, walk the deck, go ashore, board<br>
-  rise into the air — G or 🕊 · hold SPACE to climb higher and higher, SHIFT to sink · up past the clouds and the lights to the firmament itself<br>
-  dive the deep — C or 🤿 (from open water) · SHIFT to sink, SPACE to rise · kelp forests, coral, fish and squid, and wrecks of the ancients await below<br>
-  every land holds a village of the ancient time — houses to enter, and a people each at their labour: tilling, drawing water, herding,
-  hunting, selling and buying, children at play — speak with them (F), and beware the wolf come down for the pigs<br>
-  the great ship bears twelve and more — a crew keeps her deck, and a cargo hold lies below the hatch amidships (F to go below)<br>
-  stand on a strand or pier and cast a line (F) — the fish of the sea are yours to draw up · swim the swell — hold SHIFT to slip
-  beneath the waves, and the bed runs unbroken from the strand into the kelp-and-coral deep (SPACE at the surface to come up)<br>
-  mind your breath below — rise to breathe, or take the 🫧 immortal breath and rove the deep at leisure · the spear (Q) hunts
-  under the waves too: fish, squid and puffers for the market — but great sharks hunt YOU (turn them with the spear, flee,
-  or take up the 🛡 repelling of beasts) · pearls gleam on the sea bed, worth much silver · cast the 🕸 net (N) from the ship
-  and trawl slow over shoaling water for a hold-filling catch<br>
-  the winds are true: run before them and fly, beat against them and labour ·
-  the great rivers open the inland · storms wander the deep — steer wide · traders pass upon the horizon</div>
-  <div class="btns">
-    <button class="bigbtn" id="btn-sail">⚓ Set sail</button>
-    <button class="bigbtn" id="btn-continue">⛵ Continue the voyage</button>
-  </div>
-  <div id="loaderr">The engine of the world (three.js) could not be reached.<br>
-  For the offline hub: place <b>three.min.js</b> (r128) beside this file and open it again.</div>
 </div></div>
 
 <script>
@@ -788,13 +1049,18 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
 <script src="js/engine.js"></script>
 <script>
 (function(){
-  function boot(){ if(window.THREE&&window.__VOYAGE){ window.__VOYAGE(); }
-    else document.getElementById('loaderr').style.display='block'; }
+  var BUI=window.__BOOTUI;
+  function fail(){ BUI.fail('The engine of the world (three.js) could not be reached. '+
+    'For the offline hub: place three.min.js (r128) beside this file and open it again.'); }
+  function boot(){ if(window.THREE&&window.__VOYAGE){
+      BUI.stage('Kindling the engine of the world…',0.12); window.__VOYAGE(); }
+    else fail(); }
   function tryLocal(){
     var l=document.createElement('script'); l.src='three.min.js';
     l.onload=boot;
-    l.onerror=function(){ document.getElementById('loaderr').style.display='block'; };
+    l.onerror=fail;
     document.head.appendChild(l); }
+  BUI.stage('Raising the firmament…',0.07);
   var s=document.createElement('script');
   s.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
   /* a captive portal or a proxy can answer 200 with something that is not
