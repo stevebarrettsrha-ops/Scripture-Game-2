@@ -2821,9 +2821,13 @@ function initTraders(){ if(TRADERS.length) return;
     g.visible=false; scene.add(g);
     TRADERS.push({g,crew,x:0,z:0,h:0,sp:18+k*7,set:false}); } }
 function traderTick(px,pz,dt){ initTraders();
+  /* a flyer's air is open to ~3,400 — a merchantman must be born beyond his
+     sight as she is beyond the sailor's, so both ring and reap widen with
+     the wings (frame._flyAir is the eased openness of the flyer's fog) */
+  const flyOpen=(typeof frame!=='undefined'&&frame._flyAir>0.1);
   for(const T of TRADERS){
-    if(!T.set||Math.hypot(T.x-px,T.z-pz)>4200){
-      const a=Math.random()*6.28, r=1400+Math.random()*1800;
+    if(!T.set||Math.hypot(T.x-px,T.z-pz)>(flyOpen?5600:4200)){
+      const a=Math.random()*6.28, r=(flyOpen?3600:1400)+Math.random()*1800;
       const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
       if(landAtWorld(x,z)||Math.hypot(x,z)/R_WORLD>0.93){ T.g.visible=false; T.set=false; continue; }
       T.x=x; T.z=z; T.h=Math.random()*6.28; T.set=true; T.g.visible=true; }
@@ -10615,9 +10619,24 @@ function frame(){
      and nothing else; it opens where the carpet takes over. */
   const eyeY=state.mode==='fly'?state.fly.y:20;
   const viewReach=Math.max(eyeY,state.camDist);
+  /* ---- THE AIR IS CLEAR TO A FLYER ----
+     The haze used to stay shut at 1,140 until the flyer had climbed a
+     thousand up — so low flight, whose whole business is seeing where you
+     are going, showed nothing ahead but fog. From the moment the wings take
+     him the air opens to ~3,400 (easing out, and easing shut again as he
+     alights), the far carpet standing in for the ground beyond the chunks;
+     a storm still closes the sky around him, as it should. */
+  frame._flyAir=(frame._flyAir||0)
+    +(((state.mode==='fly'&&!state.firm)?1:0)-(frame._flyAir||0))*Math.min(1,dt*1.4);
+  if(frame._flyAir<0.005) frame._flyAir=0;
   if(scene.fog&&!state.firm){ const climbF=Math.max(0,viewReach-ALOFT_EYE);
     scene.fog.near*=1+climbF/800;
-    scene.fog.far=Math.min(scene.fog.far*(1+climbF/22), R_WORLD*3.0); }
+    scene.fog.far=Math.min(scene.fog.far*(1+climbF/22), R_WORLD*3.0);
+    if(frame._flyAir>0){ const st2=light.storm||0;
+      const flyFar=(FOG_FAR+(3400-FOG_FAR)*frame._flyAir)*(1-st2*0.5);
+      if(scene.fog.far<flyFar) scene.fog.far=flyFar;
+      const flyNear=FOG_NEAR+(980-FOG_NEAR)*frame._flyAir;
+      if(scene.fog.near<flyNear) scene.fog.near=flyNear; } }
   /* ---- UNDER THE WAVES — the light dims and the water closes in with depth.
      Keyed on the EYE, not on the mode: a swimmer whose camera has rolled
      under the swell stands in the same water as a diver, and must be shown
@@ -10862,9 +10881,12 @@ function frame(){
   /* THE CARPET NEITHER BLINKS NOR POPS: the on/off line has a band of
      hysteresis (hover at exactly y=1000 used to flick the whole coarse world
      on and off frame by frame), and the ring FADES in and out instead of
-     appearing whole in one frame. */
-  const carpet = frame._carpetOn ? (viewReach>ALOFT_EYE*0.85||zMapF>0.012)
-                                 : (viewReach>ALOFT_EYE||zMapF>0.02);
+     appearing whole in one frame.
+     AND IT STANDS UNDER EVERY FLYER, however low — the flyer's opened air
+     reaches past the chunks, and what fills that reach is the carpet, or it
+     would be bare haze-line and void. */
+  const carpet = frame._carpetOn ? (viewReach>ALOFT_EYE*0.85||zMapF>0.012||frame._flyAir>0.04)
+                                 : (viewReach>ALOFT_EYE||zMapF>0.02||frame._flyAir>0.05);
   frame._carpetOn = showNear&&!underEye&&carpet;
   farLandMat.opacity+=((frame._carpetOn?1:0)-farLandMat.opacity)*Math.min(1,dt*2.5);
   farLand.visible=farLandMat.opacity>0.02;
