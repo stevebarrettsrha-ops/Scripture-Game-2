@@ -736,6 +736,27 @@ plane restored → helm dead behind the map. `node --check` clean on every file.
   now begins below the clock's three lines. Verified at 390×780: clock
   bottom 132px, rail top 158px, no overlap.
 
+## 4r. Round 19 — the air is clear to a flyer ✅
+
+The haze stood shut at 1,140 units until the flyer had climbed a thousand
+high — so LOW flight, whose whole business is seeing where you are going,
+showed nothing ahead but fog. Now:
+
+- **From the moment the wings take him the air opens** — the fog eases out
+  to ~3,400 units (and further with height, as before), and eases shut again
+  as he alights. A storm still closes the sky around him, as it should.
+- **The far carpet stands under every flyer, however low** — the opened air
+  reaches past the streamed chunks, and what fills that reach is the coarse
+  charted ground (mountains, coasts, plains), not a bare haze-line and void.
+  Its inner edge still dips beneath the chunks, so the seam stays hidden.
+- **The merchantmen are born beyond a flyer's sight** — with the air open,
+  a trader's respawn ring and reap both widen (3,600–5,400 / 5,600), so no
+  sail ever snaps into clear sky under him.
+
+Verified live: fog 1,140 → 3,178-and-climbing at 380 up with the carpet at
+full strength beneath, the distant coast standing in view ahead; alighting
+eases it all shut again; zero page errors.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
