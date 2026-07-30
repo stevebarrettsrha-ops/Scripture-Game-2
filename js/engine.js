@@ -2199,12 +2199,37 @@ function waterTick(px,pz,dayF,storm){
    CLOUD_Y is the floor of cloud the traveller rises through when he takes to
    the air; a higher, thinner cirrus sheet gives the sky depth from above. */
 const CLOUD_Y=238, CIRRUS_Y=560;
+/* ---- THE SHEET HAS NO EDGE ----
+   The cloud planes are drawn with the fog off (fog at 1,140 would erase the
+   whole sheet), so each one used to end in a razor-straight line a few
+   degrees over the horizon — a permanent hard rule across the sky that SLID
+   with the traveller. Each sheet now fades out over its own outer reach (a
+   radial skirt in the shader, cut from the plane's own coordinates), so the
+   clouds thin away into open sky and no rim is ever seen. */
+function radialSkirt(mat,r0,r1){
+  mat.onBeforeCompile=sh=>{
+    sh.uniforms.uSkirt={value:new THREE.Vector2(r0,r1)};
+    /* the falloff is reckoned PER FRAGMENT from the plane's own coordinates
+       — the sheet is a single quad, so anything computed at its four corner
+       vertices (all of them out past the skirt) would interpolate to
+       nothing across the whole face of it */
+    sh.vertexShader=sh.vertexShader
+      .replace('#include <common>','#include <common>\nvarying vec2 vSkirtP;')
+      .replace('#include <begin_vertex>','#include <begin_vertex>\nvSkirtP=position.xy;');
+    sh.fragmentShader=sh.fragmentShader
+      .replace('#include <common>','#include <common>\nuniform vec2 uSkirt;\nvarying vec2 vSkirtP;')
+      .replace('#include <dithering_fragment>','#include <dithering_fragment>\ngl_FragColor.a*=1.0-smoothstep(uSkirt.x,uSkirt.y,length(vSkirtP));');
+  };
+  mat.customProgramCacheKey=()=>'radialSkirt';
+}
 const cloudMat=new THREE.MeshBasicMaterial({map:TEX.clouds,transparent:true,opacity:0.85,depthWrite:false,fog:false,side:THREE.DoubleSide});
+radialSkirt(cloudMat,2500,4550);
 TEX.clouds.repeat.set(7,7);
 const clouds=new THREE.Mesh(new THREE.PlaneGeometry(9600,9600),cloudMat);
 clouds.rotation.x=-Math.PI/2; clouds.position.y=CLOUD_Y; scene.add(clouds);
 /* the high cirrus — a second, fainter, larger-scaled sheet above the first */
 const cirrusMat=new THREE.MeshBasicMaterial({map:TEX.clouds,transparent:true,opacity:0.0,depthWrite:false,fog:false,side:THREE.DoubleSide});
+radialSkirt(cirrusMat,3900,7100);
 const cirrus=new THREE.Mesh(new THREE.PlaneGeometry(15000,15000),cirrusMat);
 cirrus.rotation.x=-Math.PI/2; cirrus.position.y=CIRRUS_Y; scene.add(cirrus);
 
@@ -4079,15 +4104,29 @@ function updateSeaFloor(px,pz,force){
          down. Scaling the channels turned sand (whose green already stands
          over its blue) to pond-weed olive, and the whole floor with it. */
       const m=SB_COOL, im=1-m;
-      const r =(lit*jr)*im + SB_WATER[0]*m*lit;
-      const g2=(lit*jr)*im + SB_WATER[1]*m*lit;
-      const b2=(lit*jr)*im + SB_WATER[2]*m*lit;
+      let r =(lit*jr)*im + SB_WATER[0]*m*lit;
+      let g2=(lit*jr)*im + SB_WATER[1]*m*lit;
+      let b2=(lit*jr)*im + SB_WATER[2]*m*lit;
+      /* THE EDGE OF THE PATCH DISSOLVES INTO THE WATER. The bed is a moving
+         square 672 across; under the waves the water-fog ends the view well
+         inside it, but seen from a DECK through the clear shallows its rim
+         stood as a hard square cut in the sand, sliding along with the ship.
+         The outer cells lean wholly into the water's own colour now, so the
+         floor is lost by degrees into blue — ground fading into deep water —
+         and never ends on a line. */
+      const eN=SB_N-1, ecl=Math.min(Math.min(i,eN-i),Math.min(j,eN-j));
+      const ef=Math.min(1,ecl/9);
+      r =r *ef + SB_WATER[0]*lit*(1-ef);
+      g2=g2*ef + SB_WATER[1]*lit*(1-ef);
+      b2=b2*ef + SB_WATER[2]*lit*(1-ef);
       for(let q=0;q<4;q++){ const t=(o+q)*3;
         _sbC[t]=r; _sbC[t+1]=g2; _sbC[t+2]=b2; }
       /* THE SIDE OF A BLOCK IS DARKER THAN ITS TOP, as it is ashore — that
-         shading is what makes a stair of blocks read as a stair */
+         shading is what makes a stair of blocks read as a stair (the skirt
+         fade eases toward 1 at the rim so the walls dissolve with the tops) */
+      const sd=0.58+0.42*(1-ef);
       for(let q=0;q<4;q++){ const t=(o+4+q)*3;
-        _sbC[t]=r*0.58; _sbC[t+1]=g2*0.58; _sbC[t+2]=b2*0.58; }
+        _sbC[t]=r*sd; _sbC[t+1]=g2*sd; _sbC[t+2]=b2*sd; }
     }
     if(!whole&&performance.now()-t0>=SB_MS) return;
   }

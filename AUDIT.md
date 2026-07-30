@@ -713,6 +713,29 @@ standing over the disc — screenshot) → mouse 360° drag → pitch below the 
 floor → touch look-while-walking → flick-slide → firm-view key guards → near
 plane restored → helm dead behind the map. `node --check` clean on every file.
 
+## 4q. Round 18 — the three nits Round 17 left, taken ✅
+
+- **The cloud sheet has no edge.** The two drifting cloud planes are drawn
+  with the fog off (fog at 1,140 would erase them whole), so each ended in a
+  razor-straight line a few degrees over the horizon — a permanent hard rule
+  across the sky that slid with the traveller. Each sheet now carries a
+  radial skirt in its own shader (reckoned per fragment — the sheet is a
+  single quad, so a per-vertex fade would have interpolated to nothing) and
+  thins away into open sky. Verified live: the programs compile on the
+  shipped r128, the clouds draw, and the horizon shows no line.
+- **The sea-bed patch dissolves into the water.** The furnished bed is a
+  moving square 672 across; under the waves the water-fog ends the view well
+  inside it, but seen from a deck through the clear shallows its rim stood as
+  a hard square cut in the sand. The outer cells now lean wholly into the
+  colour the water lends at that depth, so the floor is lost by degrees into
+  blue. Verified in the built geometry: a rim cell reads water-blue
+  (blueness +0.25) where an interior cell reads bright sand (+0.05).
+- **The clock and the rail no longer meet on a phone.** At ≤900px the rail's
+  top was a height the clock's own bottom could cross on a short screen, and
+  when the buttons overflowed the two sat printed over one another. The rail
+  now begins below the clock's three lines. Verified at 390×780: clock
+  bottom 132px, rail top 158px, no overlap.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

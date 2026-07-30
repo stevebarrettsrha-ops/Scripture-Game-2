@@ -256,6 +256,11 @@
     /* the title and the clock stack instead of meeting in the middle */
     #clock{ top:9vh; }
     #head .t{ font-size:12px; letter-spacing:.14em; padding:.4vh 1vh; }
+    /* and the button rail begins BELOW the clock's three lines, not at a
+       height the clock's own bottom can cross on a short screen — when the
+       buttons overflow they fill from the rail's top, and at 13vh that top
+       lay under the clock panel and the two sat printed over one another */
+    #ui{ top:calc(9vh + 88px); }
   }
   @media (max-width:620px){
     /* and the rose goes up out of the foot of the screen, which on a
