@@ -2382,10 +2382,12 @@ function haloTick(whole){
   const so=whole*0.9*sunMat2.opacity, mo=whole*0.55*moonMat2.opacity;
   sunHalo.material.opacity=so; moonHalo.material.opacity=mo;
   sunHalo.visible=so>0.01; moonHalo.visible=mo>0.01;
+  /* the haloes keep their proportion to the discs they stand about — the
+     discs themselves are resized against the eye in the framed views */
   if(sunHalo.visible){ sunHalo.position.copy(sun.position);
-    const h=R_WORLD*0.30; sunHalo.scale.set(h,h,1); }
+    const h=sun.scale.x*4.0; sunHalo.scale.set(h,h,1); }
   if(moonHalo.visible){ moonHalo.position.copy(moon.position);
-    const h=R_WORLD*0.19; moonHalo.scale.set(h,h,1); }
+    const h=moon.scale.x*3.45; moonHalo.scale.set(h,h,1); }
 }
 
 /* ================= COURSES OF THE LIGHTS ================= */
@@ -10686,7 +10688,10 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
     moonR:+(Math.hypot(moon.position.x,moon.position.z)/R_WORLD).toFixed(3),
     domeR:+(R_DOME/R_WORLD).toFixed(3), faceY:aloftDisc?Math.round(aloftDisc.position.y):null,
     sunVis:sun.visible, moonVis:moon.visible,
-    sunOp:+sunMat2.opacity.toFixed(3), moonOp:+moonMat2.opacity.toFixed(3) }),
+    sunOp:+sunMat2.opacity.toFixed(3), moonOp:+moonMat2.opacity.toFixed(3),
+    sunPd:Math.round(Math.hypot(sun.position.x-playerXZ().x,sun.position.z-playerXZ().z)),
+    moonPd:Math.round(Math.hypot(moon.position.x-playerXZ().x,moon.position.z-playerXZ().z)),
+    sunScale:Math.round(sun.scale.x) }),
   makeBeast,makeAnimal,makeBird,beastUnits,BEASTS,U_PER_M,POD,initPod,SHARKS,initSharks,initSeaMobs,
   seaMobs:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS})};
 
@@ -10910,8 +10915,41 @@ function frame(){
   if(wholeF>0.02){
     const face=state.firm?180:(aloftDisc?aloftDisc.position.y:175);
     const sk=Math.min(1,wholeF*1.15);
+    /* ---- AND THE LIGHTS ARE ALWAYS IN THE FRAME ----
+       Each light stands over its own station — the sun above the lands
+       where it is now midday — which is right when the WHOLE disc is in
+       frame, as the firmament view keeps it. But the drawn-back and aloft
+       views frame only a REGION: stand over Taiwan while the sun stands
+       off Peru, and both lights were simply absent from that part of the
+       sky, returning only when the voyage neared their stations — which
+       read as the lights winking out of the world. In the framed views
+       each light is drawn IN toward the traveller along its own true
+       bearing, just near enough to stand within the frame's reach; it
+       slides back out to its exact station as the view widens, and no
+       quarter of the earth is ever without its lights. */
+    if(!state.firm){
+      const reach=viewReach*0.42+1500;
+      for(const L of [sun,moon]){
+        const dx=L.position.x-p.x, dz=L.position.z-p.z, d=Math.hypot(dx,dz);
+        /* the pull-in RIDES THE SAME RAMP as the height (sk), so crossing
+           into the whole-earth band never snaps a light across the world */
+        if(d>reach){ const k2=(reach+(d-reach)*(1-sk))/d;
+          L.position.x=p.x+dx*k2; L.position.z=p.z+dz*k2; } }
+    }
     sun.position.y +=((face+R_WORLD*0.030)-sun.position.y)*sk;
     moon.position.y+=((face+R_WORLD*0.026)-moon.position.y)*sk;
+    /* the discs were SIZED for the full-disc views (a quarter-million units
+       off); drawn near, at the framed views' distances, that size is the
+       whole screen. Each keeps a steady angular size against its own
+       distance from the eye instead, easing back to the great square of the
+       ground sky as the band is left. */
+    for(const L of [sun,moon]){
+      const baseS=(L===sun?R_WORLD*0.075:R_WORLD*0.055);
+      const cd=camera.position.distanceTo(L.position);
+      const want=Math.min(baseS, Math.max(900, cd*(L===sun?0.052:0.040)));
+      const s2=baseS+(want-baseS)*sk;
+      L.scale.set(s2,s2,1);
+    }
     /* THE WHOLE EARTH NEVER LOSES ITS LIGHTS. The discs kept the traveller's
        local brightness — zero once a light had set at his own feet — so
        beholding the world entire at his local midnight, the sun (and often
@@ -10925,6 +10963,9 @@ function frame(){
     for(const L of [sun,moon]){ const rr=Math.hypot(L.position.x,L.position.z);
       if(rr>R_DOME*0.94){ const k2=R_DOME*0.94/rr; L.position.x*=k2; L.position.z*=k2; } }
   }
+  /* leaving the whole-earth band, the lights take back their ground size */
+  if(wholeF<=0.02){ sun.scale.set(R_WORLD*0.075,R_WORLD*0.075,1);
+    moon.scale.set(R_WORLD*0.055,R_WORLD*0.055,1); }
   haloTick(wholeF);               /* the lights get their glow when the earth is beheld whole */
   /* drawn right back, the sky about the disc gives way to the outer darkness,
      and the earth is beheld standing within it — as she is.
