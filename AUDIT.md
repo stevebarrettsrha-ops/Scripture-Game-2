@@ -805,6 +805,34 @@ cloud cover; high enough, the charted face comes through as before.
   discs, which are painted alike on purpose, so nothing is seen to change
   hands.
 
+## 4t. Round 21 — no quarter of the earth is without its lights ✅
+
+Round 17 set the two lights over their TRUE stations in the whole-earth
+views — the sun above the lands where it is now midday. That is right when
+the whole disc is in frame (the firmament view), but the drawn-back and
+aloft views frame only a REGION of the earth: stand over Taiwan while the
+sun stands off Peru and both lights were simply absent from that part of
+the sky, returning when the voyage neared their stations — which read as
+the lights winking out of the world (player-reported, with screenshots).
+
+- In the framed views each light is now drawn IN toward the traveller
+  **along its own true bearing**, just near enough to stand within the
+  frame's reach; it slides back out to its exact station as the view
+  widens; the full-disc firmament view keeps the stations exact; and the
+  pull-in rides the same ramp as the height, so entering the band never
+  snaps a light across the world.
+- The discs were sized for the full-disc views (a quarter-million units
+  off); drawn near they would have filled the screen. Each keeps a steady
+  angular size against its own distance from the eye in the band, the
+  haloes keep their proportion, and both take back the great square of the
+  ground sky the moment the band is left.
+
+Verified headless at the reported place: the waters off Taiwan at 12:12
+A.M., zoomed out — sun and moon in frame at full strength toward their true
+direction (screenshot); zoomed back in, the ground sky is exactly as it was
+(size 13,500 restored, the sun set and dark at local midnight). Zero page
+errors.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
