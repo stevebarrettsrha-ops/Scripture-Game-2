@@ -1800,7 +1800,9 @@ const FOG_FAR=1140, FOG_NEAR=500;
 const ALOFT_EYE=1000;
 scene.fog=new THREE.Fog(0x9fc5e8,FOG_NEAR,FOG_FAR); const FOG=scene.fog;
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,1,R_WORLD*3.2);
-const renderer=new THREE.WebGLRenderer({canvas:$('cv'),antialias:false});
+/* antialias ON — a world built of blocks is ALL edges, and smoothed edges
+   are half the difference between a tech demo and a finished game */
+const renderer=new THREE.WebGLRenderer({canvas:$('cv'),antialias:true});
 renderer.setPixelRatio(Math.min(2,devicePixelRatio||1));
 renderer.setSize(innerWidth,innerHeight);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
@@ -1810,9 +1812,17 @@ scene.background=new THREE.Color(0x9fc5e8);
 const hemi=new THREE.HemisphereLight(0xffffff,0x777788,0.9); scene.add(hemi);
 const dirL=new THREE.DirectionalLight(0xffffff,0.5); dirL.position.set(0.4,1,0.25); scene.add(dirL);
 
+/* ---- THE TWO BACKDROP DISCS STAND WELL APART ----
+   They lay four units from one another (−12 and −16) with the wave grid
+   eight above, and a depth buffer stretched over a 576,000-unit far plane
+   cannot tell planes that close apart at a glancing angle: looked down on
+   from a mountain, the far water shimmered and striped as the three fought
+   for every pixel — the famous glitch in the sea seen from every summit.
+   They are spread by hundreds of units now (the eye cannot tell a flat
+   backdrop's depth anyway), and the fighting has nothing left to fight. */
 const seaDeep=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),
   new THREE.MeshBasicMaterial({color:0x0c2c48}));
-seaDeep.rotation.x=-Math.PI/2; seaDeep.position.y=WATER_Y-16; scene.add(seaDeep);
+seaDeep.rotation.x=-Math.PI/2; seaDeep.position.y=WATER_Y-300; scene.add(seaDeep);
 /* beyond the wall of ice — the OUTER DARKNESS, that no man may look past:
    a tall wall of night just outside the rim, so nothing of "the other side"
    is ever seen — only blackness set with stars, by day as by night. */
@@ -1875,7 +1885,7 @@ const farSeaMat=new THREE.MeshBasicMaterial({color:0x123353});
 const sea=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),farSeaMat);
 /* the dark bed of the sea sits WELL below the surface now, so the sandy
    shelf along every coast truly shows through the clear shallows above it */
-sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y-12; scene.add(sea);
+sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y-60; scene.add(sea);
 
 /* ================= THE WAVES OF THE DEEP =================
    A true trochoidal (Gerstner) sea: several travelling swells summed, so
@@ -2013,12 +2023,22 @@ const waveMat=new THREE.ShaderMaterial({
          broken ragged by the water texture so no two waves break alike */
       float lap=0.0;
       if(shoalRaw>0.5){
+        /* ---- THE WASH BELONGS TO THE COAST, NOT TO THE RIVERS ----
+           The shore-foam is driven by the distance-to-land field, and a
+           river lies within a pixel of land on BOTH banks — the field reads
+           'water's edge' across its whole surface, and every waterway inland
+           burned as one solid sheet of flashing white. Water that is wholly
+           ENCLOSED by land (the field at its ceiling) takes no surf at all
+           now: the sea still breaks on every beach, and the rivers run
+           smooth and clear as rivers do. */
+        float open=1.0-smoothstep(0.955,0.985,shoalRaw);
         float ring=fract(shoalRaw*7.0-uTime*0.32);
         float crest=smoothstep(0.58,0.88,ring)-smoothstep(0.9,1.0,ring);
         float brk=0.35+0.75*texture2D(uMap, vP*0.008+vec2(uTime*0.006,uTime*0.004)).b;
-        lap=clamp(crest,0.0,1.0)*smoothstep(0.5,0.85,shoalRaw)*brk;
-        /* and a standing line of white wash right at the water's edge */
-        lap+=smoothstep(0.9,0.99,shoalRaw)*brk*(0.5+0.3*sin(uTime*1.7+shoalRaw*40.0));
+        lap=clamp(crest,0.0,1.0)*smoothstep(0.5,0.85,shoalRaw)*brk*open;
+        /* and a line of white wash toward the water's edge — on the open
+           coast alone */
+        lap+=smoothstep(0.9,0.99,shoalRaw)*brk*(0.5+0.3*sin(uTime*1.7+shoalRaw*40.0))*open;
       }
       float allFoam=clamp(foam*0.32+wake*0.95+lap,0.0,1.0);
       /* foam is white ON TOP of the water; from underneath it is only a
@@ -2915,6 +2935,12 @@ function swimPod(arr,lens,P,t,dt,beat,spout){
     const wx=P.x+Math.sin(t*0.13+off)*40+k*lane*0.55;
     const wz=P.z+Math.cos(t*0.11+off)*40-k*lane*0.45;
     if(landAtWorld(wx,wz)){ m.visible=false; continue; }   /* nothing spouts upon the dry land */
+    /* and the whole LENGTH of her stays off it: a whale is half a ship long,
+       and with only her middle tested her head lay through the coast rock */
+    { const nose=len*0.55;
+      if(landAtWorld(wx+Math.sin(P.dir)*nose,wz+Math.cos(P.dir)*nose)
+       ||landAtWorld(wx-Math.sin(P.dir)*nose,wz-Math.cos(P.dir)*nose)
+       ||SEA_SURF-seabedDepth(wx,wz)<len*0.25){ m.visible=false; continue; } }
     const arc=Math.sin(t*beat+off*1.7);
     /* she rides with her back awash and rolls up to blow — both measured off
        her own girth, so a calf does not breach like a bull */
@@ -3277,17 +3303,26 @@ function sizeToTrue(kind,inner){
   g.add(inner); g.userData=inner.userData||{}; return g;
 }
 function buildOldAnimal(kind){
-  const g=new THREE.Group(); const legs=[];
+  const g=new THREE.Group(); const legs=[]; let tailRef=null;
   function fourLegs(w,d,lh,col){ for(const sx of [1,-1]) for(const sz of [1,-1]){
     const L=lbox(0.9,lh*0.55,0.9,col); L.geometry.translate(0,-lh*0.275,0);   // thigh, pivot at the hip
     L.position.set(sx*w,lh,sz*d);
     const S=lbox(0.8,lh*0.5,0.8,col); S.geometry.translate(0,-lh*0.25,0);     // shin, hung from the knee
     S.position.set(0,-lh*0.53,0); L.add(S); L.userData.knee=S;
     L.userData.ph=(sx*sz>0)?0:Math.PI; g.add(L); legs.push(L); } }
+  /* ---- EVERY BEAST HAS A FACE ----
+     Two dark eyes set on the front corners of the head — the one detail that
+     turns a box into a creature looking at you. */
+  function eyes(hx,hy,hz,sz2,col){ for(const sd of [1,-1]){
+    const e=lbox(sz2||0.3,sz2||0.3,0.2,col||0x14100c);
+    e.position.set(sd*hx,hy,hz); g.add(e); } }
   if(kind==='sheep'){
     const body=new THREE.Mesh(new THREE.BoxGeometry(3.4,2.6,4.6),
       new THREE.MeshLambertMaterial({map:TEX.wool})); body.position.y=3.4; g.add(body);
     const head=lbox(1.6,1.7,1.6,0xead9c8); head.position.set(0,4.3,2.9); g.add(head);
+    eyes(0.5,4.6,3.72,0.3);
+    for(const s of [1,-1]){ const ear=lbox(0.6,0.35,0.3,0xdcc9b4); ear.position.set(s*1.0,4.7,2.8); g.add(ear); }
+    tailRef=lbox(0.7,0.7,0.5,0xefe8dc); tailRef.position.set(0,3.6,-2.5); g.add(tailRef);
     fourLegs(1.1,1.5,2.1,0xd9d0c0);
   } else if(kind==='cow'){
     const cowTex=mkTex(gg=>{ speckle(gg,[92,64,44],14);
@@ -3297,100 +3332,143 @@ function buildOldAnimal(kind){
       new THREE.MeshLambertMaterial({map:cowTex})); body.position.y=3.8; g.add(body);
     const head=lbox(1.9,1.9,1.6,0x6b4a34); head.position.set(0,4.7,3.3); g.add(head);
     const muz=lbox(1.4,0.9,0.5,0xd9cfc2); muz.position.set(0,4.3,4.2); g.add(muz);
-    for(const s of [1,-1]){ const h2=lbox(0.4,0.4,0.7,0xe8e2d2); h2.position.set(s*1.05,5.5,3.2); g.add(h2); }
+    for(const s of [1,-1]){ const h2=lbox(0.4,0.4,0.7,0xe8e2d2); h2.position.set(s*1.05,5.5,3.2); g.add(h2);
+      const ear=lbox(0.55,0.4,0.3,0x5a4030); ear.position.set(s*1.1,5.1,3.1); g.add(ear); }
+    eyes(0.6,5.1,4.14,0.34);
+    for(const s of [1,-1]){ const nos=lbox(0.25,0.25,0.2,0x8a7a6a); nos.position.set(s*0.4,4.35,4.48); g.add(nos); }
+    tailRef=lbox(0.4,2.0,0.4,0x4a3626); tailRef.geometry.translate(0,-1.0,0); tailRef.position.set(0,4.8,-2.8); g.add(tailRef);
     fourLegs(1.2,1.9,2.3,0x5a4030);
   } else if(kind==='pig'){
     const body=lbox(3.2,2.4,4.6,0xefa2a2); body.position.y=2.9; g.add(body);
     const head=lbox(2,2,1.4,0xefa2a2); head.position.set(0,3.3,2.9); g.add(head);
     const snout=lbox(1.1,0.8,0.4,0xe58a8a); snout.position.set(0,3.1,3.7); g.add(snout);
+    eyes(0.62,3.8,3.62,0.28);
+    for(const s of [1,-1]){ const nos=lbox(0.2,0.3,0.14,0xc87878); nos.position.set(s*0.24,3.1,3.94); g.add(nos);
+      const ear=lbox(0.55,0.55,0.25,0xdf9494); ear.position.set(s*0.85,4.35,2.7); ear.rotation.z=s*0.3; g.add(ear); }
+    tailRef=lbox(0.3,0.3,0.7,0xe58a8a); tailRef.position.set(0,3.4,-2.5); tailRef.rotation.x=-0.7; g.add(tailRef);
     fourLegs(1.05,1.6,1.6,0xdf9494);
   } else if(kind==='chicken'){
     const body=lbox(1.7,1.7,2.3,0xeeeeea); body.position.y=1.9; g.add(body);
     const head=lbox(1,1.4,1,0xf2f2ee); head.position.set(0,3.3,1.1); g.add(head);
     const beak=lbox(0.7,0.4,0.5,0xdf9c2a); beak.position.set(0,3.2,1.75); g.add(beak);
     const wat=lbox(0.4,0.5,0.3,0xc23a2a); wat.position.set(0,2.7,1.6); g.add(wat);
+    const comb=lbox(0.3,0.55,0.8,0xc23a2a); comb.position.set(0,4.2,1.0); g.add(comb);
+    eyes(0.52,3.6,1.52,0.22);
+    tailRef=lbox(0.9,1.1,0.5,0xdcdcd6); tailRef.position.set(0,2.6,-1.3); tailRef.rotation.x=0.5; g.add(tailRef);
     for(const s of [1,-1]){ const w2=lbox(0.3,1.2,1.9,0xdcdcd6); w2.position.set(s*1,2.1,0.1); g.add(w2); }
     fourLegs(0.45,0.4,0.8,0xdf9c2a);
   } else if(kind==='hare'){       /* a creeping thing of the field */
     const body=lbox(1.1,1.1,1.8,0xb8a184); body.position.y=1.2; g.add(body);
     const head=lbox(0.9,0.9,0.9,0xc8b494); head.position.set(0,1.7,1.1); g.add(head);
+    eyes(0.47,1.85,1.4,0.22);
+    const nose=lbox(0.24,0.2,0.14,0x8a7060); nose.position.set(0,1.6,1.6); g.add(nose);
     for(const s of [1,-1]){ const ear=lbox(0.3,1.3,0.3,0xc8b494); ear.position.set(s*0.3,2.7,0.9); g.add(ear); }
     const tail=lbox(0.5,0.5,0.4,0xefe8dc); tail.position.set(0,1.3,-1); g.add(tail);
     fourLegs(0.4,0.6,0.7,0xa08868);
   } else if(kind==='lizard'){     /* a creeping thing of the rocks */
     const body=lbox(0.7,0.5,2.2,0x6f7a44); body.position.y=0.6; g.add(body);
     const head=lbox(0.8,0.6,0.9,0x7a854c); head.position.set(0,0.7,1.4); g.add(head);
-    const tail=lbox(0.4,0.35,1.8,0x636c3c); tail.position.set(0,0.55,-1.9); g.add(tail);
+    eyes(0.42,0.85,1.6,0.18,0xd9c93f);
+    const tail=lbox(0.4,0.35,1.8,0x636c3c); tail.position.set(0,0.55,-1.9); g.add(tail); tailRef=tail;
     fourLegs(0.55,0.7,0.5,0x5c6438);
   } else if(kind==='goat'){
     const body=lbox(2.4,2.2,3.6,0xcfc4b0); body.position.y=3.0; g.add(body);
     const head=lbox(1.3,1.4,1.4,0xdad0be); head.position.set(0,3.9,2.3); g.add(head);
+    eyes(0.42,4.2,3.02,0.26,0xd9b83f);
+    const beard=lbox(0.35,0.7,0.3,0xb7ac98); beard.position.set(0,3.1,2.9); g.add(beard);
     for(const s of [1,-1]){ const horn=lbox(0.3,0.9,0.3,0x6a5c44); horn.position.set(s*0.4,4.9,2.1);
-      horn.rotation.x=-0.5; g.add(horn); }
+      horn.rotation.x=-0.5; g.add(horn);
+      const ear=lbox(0.5,0.3,0.25,0xcfc4b0); ear.position.set(s*0.85,4.3,2.2); ear.rotation.z=s*0.4; g.add(ear); }
+    tailRef=lbox(0.35,0.7,0.3,0xb7ac98); tailRef.position.set(0,3.9,-1.9); tailRef.rotation.x=0.6; g.add(tailRef);
     fourLegs(0.9,1.3,2.0,0xb7ac98);
   } else if(kind==='camel'){
     const body=lbox(2.8,3,5.6,0xc8a06a); body.position.y=4.8; g.add(body);
     const hump=lbox(1.9,1.4,2,0xb8905a); hump.position.set(0,6.9,0.4); g.add(hump);
     const neck=lbox(1.2,2.8,1.2,0xc8a06a); neck.position.set(0,6.6,2.6); g.add(neck);
     const head=lbox(1.4,1.2,2,0xb8905a); head.position.set(0,8.2,3.2); g.add(head);
+    eyes(0.55,8.5,4.0,0.26);
+    for(const s of [1,-1]){ const ear=lbox(0.35,0.4,0.25,0xb8905a); ear.position.set(s*0.6,8.85,2.7); g.add(ear); }
+    tailRef=lbox(0.35,1.8,0.35,0xa8834f); tailRef.geometry.translate(0,-0.9,0); tailRef.position.set(0,5.6,-2.9); g.add(tailRef);
     fourLegs(1,2.1,3.3,0xb08a56);
   } else if(kind==='horse'){
     const col=0x6a4a2e; const body=lbox(2.2,2.6,5.4,col); body.position.y=4.2; g.add(body);
     const neck=lbox(1.3,2.6,1.3,col); neck.position.set(0,5.6,2.4); neck.rotation.x=-0.5; g.add(neck);
     const head=lbox(1.2,1.5,2.4,col); head.position.set(0,6.6,3.4); g.add(head);
+    eyes(0.5,7.0,4.2,0.28);
+    for(const s of [1,-1]){ const ear=lbox(0.3,0.7,0.3,col); ear.position.set(s*0.4,7.6,2.9); g.add(ear);
+      const nos=lbox(0.22,0.22,0.16,0x3a2a1a); nos.position.set(s*0.3,6.4,4.62); g.add(nos); }
+    const blaze=lbox(0.42,0.9,0.16,0xe8e0d0); blaze.position.set(0,6.9,4.62); g.add(blaze);
     const mane=lbox(0.4,2.4,1.3,0x2e2018); mane.position.set(0,6.0,2.0); mane.rotation.x=-0.5; g.add(mane);
-    const tail=lbox(0.5,2.4,0.5,0x2e2018); tail.position.set(0,4.4,-2.9); tail.rotation.x=0.5; g.add(tail);
+    const tail=lbox(0.5,2.4,0.5,0x2e2018); tail.position.set(0,4.4,-2.9); tail.rotation.x=0.5; g.add(tail); tailRef=tail;
     fourLegs(0.9,2.0,3.2,0x4a3320);
   } else if(kind==='donkey'){
     const col=0x9a938a; const body=lbox(1.8,2.2,4.4,col); body.position.y=3.6; g.add(body);
     const neck=lbox(1.1,2.2,1.1,col); neck.position.set(0,4.8,2.0); neck.rotation.x=-0.5; g.add(neck);
     const head=lbox(1.0,1.3,2.0,col); head.position.set(0,5.6,3.0); g.add(head);
     for(const s of[1,-1]){ const ear=lbox(0.35,1.4,0.35,col); ear.position.set(s*0.4,6.6,2.6); g.add(ear); }
-    const tail=lbox(0.4,1.8,0.4,0x5a534a); tail.position.set(0,3.8,-2.4); tail.rotation.x=0.4; g.add(tail);
+    eyes(0.42,5.9,4.02,0.26);
+    const muz2=lbox(0.7,0.5,0.3,0xc8c2ba); muz2.position.set(0,5.3,4.05); g.add(muz2);
+    const tail=lbox(0.4,1.8,0.4,0x5a534a); tail.position.set(0,3.8,-2.4); tail.rotation.x=0.4; g.add(tail); tailRef=tail;
     fourLegs(0.75,1.6,2.6,0x7a736a);
   } else if(kind==='ox'){
     const body=lbox(3.4,3.0,6.0,0x5a4436); body.position.y=4.2; g.add(body);
     const head=lbox(2.0,2.0,1.8,0x4a3628); head.position.set(0,4.9,3.6); g.add(head);
-    for(const s of[1,-1]){ const horn=lbox(0.35,0.35,1.4,0xe8e0d0); horn.position.set(s*1.2,5.6,3.6); horn.rotation.z=s*0.5; g.add(horn); }
+    eyes(0.62,5.3,4.52,0.32);
+    const muz3=lbox(1.3,0.8,0.4,0xc8bcae); muz3.position.set(0,4.4,4.6); g.add(muz3);
+    for(const s of[1,-1]){ const horn=lbox(0.35,0.35,1.4,0xe8e0d0); horn.position.set(s*1.2,5.6,3.6); horn.rotation.z=s*0.5; g.add(horn);
+      const ear=lbox(0.55,0.4,0.3,0x4a3628); ear.position.set(s*1.15,5.15,3.4); g.add(ear); }
+    tailRef=lbox(0.4,2.2,0.4,0x3a2a1e); tailRef.geometry.translate(0,-1.1,0); tailRef.position.set(0,5.3,-3.1); g.add(tailRef);
     fourLegs(1.3,2.1,2.7,0x4a3628);
   } else if(kind==='wolf'){
     const col=0x8a8f96; const body=lbox(1.6,1.6,3.6,col); body.position.y=2.2; g.add(body);
     const head=lbox(1.3,1.3,1.4,col); head.position.set(0,2.6,2.2); g.add(head);
     const snout=lbox(0.7,0.6,0.8,0x6a6f76); snout.position.set(0,2.4,3.0); g.add(snout);
+    eyes(0.4,2.95,2.92,0.22,0xd9c93f);
+    const nose=lbox(0.3,0.24,0.16,0x14100c); nose.position.set(0,2.5,3.44); g.add(nose);
     for(const s of[1,-1]){ const ear=lbox(0.4,0.7,0.3,col); ear.position.set(s*0.5,3.4,2.1); g.add(ear); }
-    const tail=lbox(0.6,0.6,1.8,col); tail.position.set(0,2.6,-2.2); tail.rotation.x=0.4; g.add(tail);
+    const tail=lbox(0.6,0.6,1.8,col); tail.position.set(0,2.6,-2.2); tail.rotation.x=0.4; g.add(tail); tailRef=tail;
     fourLegs(0.6,1.2,2.0,0x70767c);
   } else if(kind==='dog'){
     const col=0xb98a52; const body=lbox(1.2,1.2,2.8,col); body.position.y=1.9; g.add(body);
     const head=lbox(1.1,1.1,1.2,col); head.position.set(0,2.3,1.7); g.add(head);
     const snout=lbox(0.6,0.5,0.7,0x8a6238); snout.position.set(0,2.1,2.4); g.add(snout);
+    eyes(0.34,2.6,2.32,0.2);
+    const nose=lbox(0.26,0.2,0.14,0x14100c); nose.position.set(0,2.2,2.8); g.add(nose);
     for(const s of[1,-1]){ const ear=lbox(0.4,0.6,0.3,0x8a6238); ear.position.set(s*0.5,3.0,1.6); g.add(ear); }
-    const tail=lbox(0.4,0.4,1.4,col); tail.position.set(0,2.4,-1.8); tail.rotation.x=0.5; g.add(tail);
+    const tail=lbox(0.4,0.4,1.4,col); tail.position.set(0,2.4,-1.8); tail.rotation.x=0.5; g.add(tail); tailRef=tail;
     fourLegs(0.45,0.9,1.6,0x9a723e);
   } else if(kind==='lion'){
     const col=0xcaa25a; const body=lbox(2.0,2.0,4.4,col); body.position.y=2.8; g.add(body);
     const mane=lbox(2.4,2.4,1.2,0x8a5a2a); mane.position.set(0,3.4,2.2); g.add(mane);
     const head=lbox(1.6,1.6,1.6,col); head.position.set(0,3.4,2.9); g.add(head);
     const snout=lbox(0.9,0.7,0.7,0xd8b878); snout.position.set(0,3.1,3.7); g.add(snout);
-    const tail=lbox(0.4,0.4,2.2,col); tail.position.set(0,3.0,-2.6); tail.rotation.x=0.3; g.add(tail);
+    eyes(0.46,3.75,3.72,0.24,0xd9b83f);
+    const nose2=lbox(0.34,0.24,0.16,0x2a1c12); nose2.position.set(0,3.25,4.08); g.add(nose2);
+    for(const s of[1,-1]){ const ear=lbox(0.4,0.4,0.3,0x8a5a2a); ear.position.set(s*0.75,4.25,2.5); g.add(ear); }
+    const tail=lbox(0.4,0.4,2.2,col); tail.position.set(0,3.0,-2.6); tail.rotation.x=0.3; g.add(tail); tailRef=tail;
     const tuft=lbox(0.6,0.6,0.6,0x8a5a2a); tuft.position.set(0,2.4,-3.6); g.add(tuft);
     fourLegs(0.75,1.5,2.4,0xb08a48);
   } else if(kind==='deer'){
     const col=0x9a6a3a; const body=lbox(1.7,2.0,4.2,col); body.position.y=3.4; g.add(body);
     const neck=lbox(1.0,2.2,1.0,col); neck.position.set(0,4.8,2.0); neck.rotation.x=-0.6; g.add(neck);
     const head=lbox(1.0,1.1,1.8,col); head.position.set(0,5.8,2.9); g.add(head);
-    for(const s of[1,-1]){ const ant=lbox(0.25,1.6,0.25,0x6a4a2a); ant.position.set(s*0.5,6.8,2.7); ant.rotation.z=s*0.4; g.add(ant); }
-    const tail=lbox(0.5,0.7,0.4,0xefe0d0); tail.position.set(0,3.6,-2.2); g.add(tail);
+    eyes(0.42,6.05,3.6,0.24);
+    const nose3=lbox(0.3,0.24,0.16,0x14100c); nose3.position.set(0,5.7,3.84); g.add(nose3);
+    for(const s of[1,-1]){ const ant=lbox(0.25,1.6,0.25,0x6a4a2a); ant.position.set(s*0.5,6.8,2.7); ant.rotation.z=s*0.4; g.add(ant);
+      const ear=lbox(0.45,0.3,0.25,col); ear.position.set(s*0.6,6.3,2.7); ear.rotation.z=s*0.5; g.add(ear); }
+    const tail=lbox(0.5,0.7,0.4,0xefe0d0); tail.position.set(0,3.6,-2.2); g.add(tail); tailRef=tail;
     fourLegs(0.6,1.5,2.8,0x7a5230);
   } else if(kind==='elephant'){
     const col=0x8f8f96; const body=lbox(4.4,4.2,7.2,col); body.position.y=6.0; g.add(body);
     const head=lbox(3.0,3.0,2.6,col); head.position.set(0,6.6,4.2); g.add(head);
     const trunk=lbox(1.0,3.4,1.0,col); trunk.position.set(0,4.6,5.4); trunk.rotation.x=0.4; g.add(trunk);
+    eyes(0.9,7.3,5.52,0.3);
+    const etail=lbox(0.35,2.4,0.35,0x76767e); etail.geometry.translate(0,-1.2,0); etail.position.set(0,7.2,-3.7); g.add(etail);
     const ears=[];
     for(const s of[1,-1]){ const ear=lbox(0.4,2.8,2.4,0x82828a); ear.position.set(s*2.0,6.8,3.6); g.add(ear); ears.push(ear);
       const tusk=lbox(0.4,0.4,2.0,0xefe8d8); tusk.position.set(s*0.9,5.2,5.4); g.add(tusk); }
     fourLegs(1.6,2.6,4.4,0x76767e);
-    g.userData={legs,ears};
+    g.userData={legs,ears,tail:etail};
     return g;
   }
   else if(kind==='crocodile'){
@@ -3450,9 +3528,13 @@ function buildOldAnimal(kind){
     const neck=lbox(0.8,4.4,0.8,0xd8b89a); neck.position.set(0,8.4,1.2); neck.rotation.x=-0.2; g.add(neck);
     const head=lbox(0.9,0.9,1.4,0xd8b89a); head.position.set(0,10.6,1.8); g.add(head);
     const beak=lbox(0.5,0.5,0.7,0xd8a030); beak.position.set(0,10.5,2.7); g.add(beak);
-    for(const s of[1,-1]){ const L=lbox(0.5,6,0.5,0xc8b0a0); L.geometry.translate(0,-3,0); L.position.set(s*0.7,6,0); L.userData.ph=(s>0)?0:Math.PI; g.add(L); legs.push(L); }
+    eyes(0.36,10.85,2.3,0.24);
+    tailRef=lbox(1.6,1.4,0.8,0xe8e2d6); tailRef.position.set(0,6.6,-1.9); tailRef.rotation.x=0.4; g.add(tailRef);
+    for(const s of[1,-1]){ const wing=lbox(0.4,1.8,2.2,0x2a2422); wing.position.set(s*1.2,5.9,0); g.add(wing);
+      const L=lbox(0.5,6,0.5,0xc8b0a0); L.geometry.translate(0,-3,0); L.position.set(s*0.7,6,0); L.userData.ph=(s>0)?0:Math.PI; g.add(L); legs.push(L); }
   }
   g.userData={legs};
+  if(tailRef) g.userData.tail=tailRef;
   return g;
 }
 /* a bird — a small body with two flapping wings, for the flocks aloft.
@@ -3472,6 +3554,32 @@ function makeBird(type){ type=type||'crow';
   const head=lbox(0.7*S.s,0.7*S.s,0.7*S.s,S.b); head.position.set(0,0.2*S.s,1.1*S.s); g.add(head);
   const wingL=lbox(2.4*S.s,0.16,1.1*S.s,S.w); wingL.geometry.translate(-1.2*S.s,0,0); wingL.position.set(0.4*S.s,0.2*S.s,0); g.add(wingL);
   const wingR=lbox(2.4*S.s,0.16,1.1*S.s,S.w); wingR.geometry.translate(1.2*S.s,0,0); wingR.position.set(-0.4*S.s,0.2*S.s,0); g.add(wingR);
+  /* ---- A BIRD HAS A FACE ----
+     Every fowl was a pair of boxes and read as a toy. Every one of them now
+     carries the things a bird is KNOWN by: two dark eyes, a beak of its own
+     colour, a fanned tail, feet tucked under — and the wings end in a
+     darker row of primary feathers, so they read as wings and not planks. */
+  if(type!=='butterfly'){
+    const BEAKS={crow:0x1e2026,gull:0xd8a02a,dove:0xb08a72,eagle:0xe0b040,owl:0x2a2620,puffin:0xd8621f};
+    const EYES ={crow:0x0c0c10,gull:0x14100c,dove:0x2a1e1a,eagle:0xe8c020,owl:0xe8c020,puffin:0x100c0a};
+    if(type!=='owl'&&type!=='puffin'){       /* those two carry their own faces below */
+      for(const sd of [1,-1]){ const eye=lbox(0.18*S.s,0.18*S.s,0.12,EYES[type]||0x0c0c10);
+        eye.position.set(sd*0.3*S.s,0.34*S.s,1.42*S.s); g.add(eye); }
+      if(type!=='eagle'){ const beak=lbox(0.24*S.s,0.2*S.s,0.5*S.s,BEAKS[type]||0xd8a02a);
+        beak.position.set(0,0.14*S.s,1.6*S.s); g.add(beak); } }
+    if(type!=='eagle'&&type!=='owl'){        /* the fanned tail the rest were missing */
+      const tail=lbox(0.9*S.s,0.14,1.1*S.s,S.w); tail.position.set(0,0.05*S.s,-1.35*S.s);
+      tail.rotation.x=-0.12; g.add(tail); }
+    /* the primaries — a darker feather-row along each wing's trailing edge */
+    for(const W of [wingL,wingR]){ const s2=W===wingL?-1:1;
+      for(let q=0;q<3;q++){ const f=lbox(0.5*S.s,0.14,0.34*S.s,S.b);
+        f.position.set(s2*(0.7+q*0.62)*S.s,-0.02,-0.62*S.s); W.add(f); } }
+    /* and feet, drawn up under the belly */
+    const feet=lbox(0.34*S.s,0.16,0.3*S.s,0xc8892a); feet.position.set(0,-0.46*S.s,0.2*S.s); g.add(feet);
+    /* the gull's grey mantle and the dove's blush, so neither is one flat white */
+    if(type==='gull'){ const mantle=lbox(0.82*S.s,0.2,1.2*S.s,0xc6ccd4); mantle.position.set(0,0.42*S.s,-0.1); g.add(mantle); }
+    if(type==='dove'){ const blush=lbox(0.72*S.s,0.4*S.s,0.4*S.s,0xd8b8b0); blush.position.set(0,-0.1*S.s,0.9*S.s); g.add(blush); }
+  }
   if(type==='eagle'){ const beak=lbox(0.5,0.4,0.6,0xe0b040); beak.position.set(0,0.1,1.9*S.s); g.add(beak);
     const tail=lbox(1.0,0.16,1.2,0xffffff); tail.position.set(0,0,-1.4*S.s); g.add(tail); }
   if(type==='owl'){ const face=lbox(1.0*S.s,0.9*S.s,0.2,0xfbfaf6); face.position.set(0,0.25*S.s,1.4*S.s); g.add(face);
@@ -4223,7 +4331,9 @@ function updateDolphins(px,py,pz,dt,t){ initDolphins();
       d.dir+=da*Math.min(1,dt*2.4);
       sp=Math.min(52,Math.abs(state.boat.speed)+14);
     } else d.dir+=Math.sin(t*0.4+d.ph)*0.05;
-    d.x+=Math.cos(d.dir)*sp*dt; d.z+=Math.sin(d.dir)*sp*dt;
+    { const nx=d.x+Math.cos(d.dir)*sp*dt, nz=d.z+Math.sin(d.dir)*sp*dt;
+      if(!landAtWorld(nx+Math.cos(d.dir)*10,nz+Math.sin(d.dir)*10)&&!landAtWorld(nx,nz)){ d.x=nx; d.z=nz; }
+      else d.dir+=1.8; }
     const arc=Math.sin(t*(escort?1.4:0.9)+d.ph); d.y+=arc*(escort?16:10)*dt; const fy=haunt(d.x,d.z,H_DOLPHIN), col=SEA_SURF-fy;
     d.y=Math.min(SEA_SURF-4,Math.max(fy+Math.min(8,col-5),d.y));
     d.m.position.set(d.x,d.y,d.z); d.m.rotation.y=Math.atan2(Math.cos(d.dir),Math.sin(d.dir)); d.m.rotation.x=-arc*0.4; } }
@@ -4314,7 +4424,8 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
     }
     if(!hunting) s.dir+=Math.sin(t*0.25+s.ph)*0.03;
     { const nx=s.x+Math.cos(s.dir)*sp*dt, nz=s.z+Math.sin(s.dir)*sp*dt;
-      if(!landAtWorld(nx,nz)){ s.x=nx; s.z=nz; } else s.dir+=1.9; }   /* no shark swims through stone */
+      const nsx=nx+Math.cos(s.dir)*16, nsz=nz+Math.sin(s.dir)*16;   /* the nose leads */
+      if(!landAtWorld(nx,nz)&&!landAtWorld(nsx,nsz)){ s.x=nx; s.z=nz; } else s.dir+=1.9; }   /* no shark swims through stone */
     if(!hunting) s.y+=Math.sin(t*0.5+s.ph)*3*dt;
     /* a hunting shark hugs the bed after a bottom-hugging diver — and rises
        right under the swell to strike a swimmer at the surface */
@@ -4350,8 +4461,22 @@ function updateSeaMob(arr,px,py,pz,dt,t){
   /* off its own hours it is slow and quiet — but nothing in the sea stands still */
   const drowsy=(dayp==='all'||dayp==='dusk')?false:(dayp==='night'?!night:night);
   for(const o of arr){
-    if(!o.set||Math.hypot(o.x-px,o.z-pz)>arr._R+140){ const a=Math.random()*6.28, r=arr._rs*0.3+Math.random()*arr._rs*0.7;
-      o.x=px+Math.cos(a)*r; o.z=pz+Math.sin(a)*r; const fy=haunt(o.x,o.z,arr._deep||H_REEF);
+    if(!o.set||Math.hypot(o.x-px,o.z-pz)>arr._R+140){
+      /* ---- SET DOWN IN WATER, AND IN WATER THAT HOLDS IT ----
+         The pool point was never looked at: a whale could be dropped with
+         her middle on the sand — half a leviathan standing out of a beach.
+         A spot is drawn until it is open water deep enough for the beast's
+         own bulk, or the slot simply waits for the next pass. */
+      o.set=false;
+      let drew=false;
+      for(let tr=0;tr<6;tr++){
+        const a=Math.random()*6.28, r=arr._rs*0.3+Math.random()*arr._rs*0.7;
+        const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
+        if(landAtWorld(x,z)) continue;
+        if(SEA_SURF-seabedDepth(x,z)<Math.max(8,(arr._len||24)*0.45)) continue;
+        o.x=x; o.z=z; drew=true; break; }
+      if(!drew){ o.m.visible=false; continue; }
+      const fy=haunt(o.x,o.z,arr._deep||H_REEF);
       const clr=Math.max(4,(arr._len||24)*0.35);   /* she swims a third of her own length clear */
       o.y = arr._near ? fy+clr+Math.random()*14 : Math.min(SEA_SURF-clr,fy+clr+Math.random()*60); o.dir=Math.random()*6.28; o.set=true; o.m.visible=true;
       o.sp=B2?B2.swimOf(kind,arr._near?7:12):(arr._near?7:12);
@@ -4367,8 +4492,18 @@ function updateSeaMob(arr,px,py,pz,dt,t){
     let spF=drowsy?0.4:1;
     if(o.act==='logging'||o.act==='den'||o.act==='hover'||o.act==='lure'||o.act==='bask') spF*=0.15;
     o.dir+=Math.sin(t*0.3+o.ph)*0.03;
+    /* ---- THE NOSE TURNS THE BEAST, NOT THE NAVEL ----
+       Only the centre point was ever tested against the land, so a beast
+       half a ship long carried her whole head through the face of a cliff
+       before the middle of her arrived to be told no. She is steered by
+       her own NOSE now — and by the depth ahead: water too shallow for her
+       bulk turns her out to sea before she can beach in it. */
     { const nx=o.x+Math.cos(o.dir)*o.sp*spF*dt, nz=o.z+Math.sin(o.dir)*o.sp*spF*dt;
-      if(!landAtWorld(nx,nz)){ o.x=nx; o.z=nz; } else o.dir+=1.7; }   /* the flank turns the beast */
+      const nose=(arr._len||24)*0.55;
+      const hx2=nx+Math.cos(o.dir)*nose, hz2=nz+Math.sin(o.dir)*nose;
+      if(!landAtWorld(nx,nz)&&!landAtWorld(hx2,hz2)
+        &&SEA_SURF-seabedDepth(hx2,hz2)>Math.max(6,(arr._len||24)*0.3)){ o.x=nx; o.z=nz; }
+      else o.dir+=1.7; }   /* the flank turns the beast */
     /* the water it holds: rising to breathe, sounding to the bed, hanging at
        the top, or the gentle mid-water bob it keeps between whiles */
     const fy=haunt(o.x,o.z,arr._deep||H_REEF);
@@ -5643,26 +5778,39 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
     const c2=landAtWorld(a.x,a.z);
     /* how the body carries itself at its work */
     let lift=0, lean=0, roll=0;
-    if(a.job==='feedhead'||a.job==='dig') lean=0.26;          /* head down to the ground */
-    else if(a.job==='fish'){ lean=0.34; lift=-0.6; }          /* down at the water's edge */
-    else if(a.job==='feed') lean=0.30;                        /* over the kill */
+    /* ---- GRAZING IS A LIVING RHYTHM, NOT A FROZEN TIP ----
+       A feeding beast held one fixed pitch for the whole meal and read as a
+       propped-up toy. A real grazer NIBBLES — the muzzle works at the grass —
+       and every little while the head comes up and it stands chewing, reading
+       the wind, before it goes down for the next bite. The whole herd doing
+       this out of phase is most of what makes a field look alive. */
+    if(a.job==='feedhead'||a.job==='dig'){
+      const up=Math.sin(t*0.45+a.ph);                         /* the slow bite-then-look cycle */
+      if(up>0.72) lean=-0.06;                                 /* head up, chewing, watching */
+      else lean=0.26+Math.sin(t*3.1+a.ph)*0.05;               /* down, and the muzzle working */
+    }
+    else if(a.job==='fish'){ lean=0.34+Math.sin(t*2.2+a.ph)*0.05; lift=-0.6; }  /* down at the water's edge */
+    else if(a.job==='feed') lean=0.30+Math.sin(t*2.6+a.ph)*0.06;  /* tearing at the kill */
     else if(a.job==='bed'){ lift=-1.6; }                      /* bedded down for the night */
     else if(a.job==='act'){
       /* ---- THE SMALL BUSINESS OF THE DAY, PERFORMED ----
-         each habit of the behavior file is a real attitude of the body */
+         each habit of the behavior file is a real attitude of the body —
+         and every attitude MOVES: a held pose with nothing stirring in it
+         reads as a glitch, not a habit */
       switch(a.act){
-        case 'browse': lean=-0.30; break;                     /* head up into the leaves */
-        case 'drink':  lean=0.34; break;                      /* muzzle down at the water */
+        case 'browse': lean=-0.30+Math.sin(t*1.7+a.ph)*0.05; break;  /* head working in the leaves */
+        case 'drink':  lean=0.34+Math.sin(t*2.4+a.ph)*0.04; break;   /* the muzzle lapping */
         case 'wallow': case 'dust':                           /* down and rolling */
           lift=-1.4; roll=Math.sin(t*2.1+a.ph)*0.62; break;
-        case 'groom':  lean=0.14; roll=0.18; break;           /* turned along the flank */
-        case 'alert':  lean=-0.14; break;                     /* head high, reading the wind */
-        case 'rear':   lean=-0.85; lift=0.6; break;           /* up on the hind legs */
-        case 'dig':    lean=0.26; break;
-        case 'bask':   lift=-1.3; break;                      /* flat out in the sun */
+        case 'groom':  lean=0.12+Math.sin(t*2.8+a.ph)*0.05;   /* the head works along the flank */
+          roll=0.14+Math.sin(t*1.3+a.ph)*0.06; break;
+        case 'alert':  lean=-0.14; roll=Math.sin(t*0.7+a.ph)*0.02; break;  /* head high, ears turning */
+        case 'rear':   lean=-0.85+Math.sin(t*1.9+a.ph)*0.06; lift=0.6; break;
+        case 'dig':    lean=0.26+Math.sin(t*4.2+a.ph)*0.08; break;   /* the forepaws truly working */
+        case 'bask':   lift=-1.3; lean=Math.sin(t*1.1+a.ph)*0.04; break;  /* flat out, the breath moving in it */
         case 'play':   roll=Math.sin(t*5+a.ph)*0.3; lift=Math.abs(Math.sin(t*5+a.ph))*0.8; break;
         case 'gape':   lean=-0.16; break;                     /* head up, and the jaws thrown wide (the jaw is worked below) */
-        case 'sharpen':lean=-0.55; lift=0.5; break;           /* reared to the bole, forepaws raking down it */
+        case 'sharpen':lean=-0.55; lift=0.5+Math.sin(t*3.4+a.ph)*0.1; break;  /* the paws raking down the bole */
         case 'curl':   lift=-0.5; break;                      /* drawn down into a ball (the head is tucked below) */
         case 'earflap':break;                                 /* the body stands still; the ears do the work (below) */
       }
@@ -5674,9 +5822,21 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       ?Math.abs(Math.sin(t*9+a.ph))*1.3:0;
     a.m.position.set(a.x,(c2?c2.h*B:WATER_Y)+lift+hop,a.z);
     a.m.rotation.y=a.heading; a.m.rotation.x=lean; a.m.rotation.z=roll;
+    /* ---- THE BREATH IN THE BODY ----
+       Nothing standing still was truly still: no flank moved, no tail
+       swished, and a beast at rest read as parked. Every one of them now
+       BREATHES — a slow swell of the body, deeper in sleep — and a beast
+       under way carries a faint roll of the shoulders with its stride. */
+    a.m.scale.y=1+(asleep?0.02:0.012)*Math.sin(t*(asleep?1.1:2.1)+a.ph);
+    if(moving) a.m.rotation.z=roll+Math.sin(t*(spd>8?10:7)+a.ph)*0.03;
     if(a.m.userData.legs) for(const L of a.m.userData.legs){
       L.rotation.x=moving?Math.sin(t*(spd>8?10:7)+(L.userData.ph||0))*0.5:0;
       jointTick(L,moving); }
+    /* and the tail is never dead: the idle swish, the faster swing on the
+       move, the flick that keeps the flies off */
+    { const tl=a.m.userData.tail;
+      if(tl) tl.rotation.y=Math.sin(t*(moving?5.5:1.5)+a.ph)*(moving?0.3:0.15)
+        +(Math.sin(t*0.23+a.ph)>0.94?Math.sin(t*16+a.ph)*0.3:0); }
     /* the crocodile's jaw and the bear's head keep their own motion */
     /* ---- THE YOUNG AT HER FOOT ----
        It keeps station off her flank, falls behind on a turn and hurries to
@@ -6170,6 +6330,13 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
        sign of life a sleeping gull can give. */
     b.m.rotation.z=rafting?Math.sin(t*1.2+b.ph)*0.08
       :sitting?0:-Math.max(-0.55,Math.min(0.55,turn))*0.6;
+    /* ---- THE PECK IS SEEN ----
+       A bird on the ground used to stand bolt still for a second and fly
+       off, having visibly taken nothing. It TIPS now: the whole bird rocks
+       forward and strikes at the ground, again and again, and rises with
+       the seed showing in its beak — a meal anybody can watch happen. */
+    b.m.rotation.x=(b.job==='peck'||b.job==='eat')?Math.max(0,Math.sin(t*5.5+b.ph))*0.55
+      :(b.job==='feed'?Math.max(0,Math.sin(t*4+b.ph))*0.3:0);
     /* the wings still while it sits, and beat hard on the stoop */
     const fl=sitting?0.06:(b.type==='butterfly'?Math.sin(t*16+b.ph)*0.9:Math.sin(t*10+b.ph)*0.6);
     if(ud.wingL){ ud.wingL.rotation.z=fl; ud.wingR.rotation.z=-fl; }
@@ -6909,8 +7076,19 @@ function beastTick(ent,vv,dt){
       const a=Math.random()*6.28, r2=Math.random()*(ent.roamR||4)*B;
       ent.tx=ent.hx+Math.cos(a)*r2; ent.tz=ent.hz+Math.sin(a)*r2; }
   }
-  moveEnt(ent,dt,sp);
+  const mv=moveEnt(ent,dt,sp);
   if(ent.hop!==undefined&&ent.hop>0){ ent.hop-=dt; ent.m.position.y+=Math.sin(Math.max(0,ent.hop)*6.28)*1.4; }
+  /* the pen's beasts breathe and swish like the wild ones — a farmyard of
+     parked statues is no better than a plain of them */
+  const ph2=(ent.seed||0)*6.28;
+  ent.m.scale.y=1+0.012*Math.sin(tnow*2.1+ph2);
+  { const tl=ent.m.userData&&ent.m.userData.tail;
+    if(tl) tl.rotation.y=Math.sin(tnow*(mv?5.5:1.5)+ph2)*(mv?0.3:0.15); }
+  /* and a standing grazer puts its head down to the grass now and then */
+  if(!mv&&!ent.panic&&BEAST_PREY.has(ent.kind)){
+    const gz=Math.sin(tnow*0.4+ph2);
+    ent.m.rotation.x=gz>0.35?0.2+Math.sin(tnow*3+ph2)*0.05:0;
+  } else ent.m.rotation.x=0;
 }
 function birdTick(bd,dt){
   bd.ph+=bd.spd*dt;
@@ -9540,8 +9718,13 @@ function toggleMap(){ bigOpen=!bigOpen; $('bigmap').style.display=bigOpen?'flex'
    the snow lies or melts, and the beasts take their season. What the traveller
    sets is the NORTHERN season; where he himself stands may be the other half
    of the year, and the word tells him which. */
+function updateSeasonBtn(){ const b=$('b-season'); if(!b||!window.SEASON) return;
+  const n=SEASON.overrideName();
+  b.textContent='🍂 Season: '+(n==='Natural'?'natural':n.toLowerCase());
+  b.classList.toggle('off',false); }
 function cycleSeason(){ if(!window.SEASON) return;
   const r=SEASON.cycle();
+  updateSeasonBtn();
   const pp=playerXZ(), latN=1-Math.hypot(pp.x,pp.z)/R_WORLD*2;
   const here=SEASON.seasonAt(latN,dayOfYear()), z=here.zone;
   const where=' · '+here.name+(z==='tropical'?' (the tropics keep no winter)':z==='polar'?' (the far cold)':'')+' where you stand';
@@ -9632,6 +9815,8 @@ $('b-daypart').onclick=()=>{ state.dayIdx=(state.dayIdx+1)%DAYPARTS.length;
     : 'You set out in the '+D2.n+'.'); };
 updateDayBtn();
 $('b-map').onclick=toggleMap;
+$('b-season').onclick=cycleSeason;
+updateSeasonBtn();
 $('b-ashore').onclick=toggleAshore;
 $('b-fly').onclick=takeFlight;
 $('b-dive').onclick=enterDive;
@@ -10110,7 +10295,7 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
     moonR:+(Math.hypot(moon.position.x,moon.position.z)/R_WORLD).toFixed(3),
     domeR:+(R_DOME/R_WORLD).toFixed(3), faceY:aloftDisc?Math.round(aloftDisc.position.y):null,
     sunVis:sun.visible, moonVis:moon.visible }),
-  makeBeast,beastUnits,BEASTS,U_PER_M,POD,initPod,SHARKS,initSharks,initSeaMobs,
+  makeBeast,makeAnimal,makeBird,beastUnits,BEASTS,U_PER_M,POD,initPod,SHARKS,initSharks,initSeaMobs,
   seaMobs:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS})};
 
 /* ================= THE GREAT LOOP ================= */
@@ -10167,6 +10352,21 @@ function frame(){
      the same sea. Near the surface the view stays long, so a coast does not
      vanish a few metres down; it shortens as the deep darkens. */
   const underEye=eyeUnderwater();
+  /* ---- THE CLEAR SHALLOWS SHOW WHAT LIVES IN THEM ----
+     From the deck the sea read as a painted skin: the kelp, the coral, the
+     crabs and the whole blocky bed were only furnished once the eye went
+     UNDER, so the living reef sailed beneath every keel unseen and the ocean
+     looked dead from above. Whenever the traveller is on or beside water
+     with a sunlit bed (to ~70 m), the same sea the diver swims is set out
+     under him — floor, weed, reef and beasts — and the flat backdrop discs
+     are taken away so the clear water truly opens down onto it. */
+  let shallowView=false;
+  if(!state.firm&&!underEye&&(state.mode==='boat'||state.mode==='deck'||state.mode==='walk')){
+    let wx3=p.x, wz3=p.z;
+    if(state.mode==='walk'&&landAtWorld(wx3,wz3)){
+      wx3=p.x+Math.sin(state.walk.heading)*36; wz3=p.z+Math.cos(state.walk.heading)*36; }
+    if(!landAtWorld(wx3,wz3)&&seabedMetres(wx3,wz3)<70) shallowView=true;
+  }
   /* ---- THE TWO GREAT LIGHTS ARE NOT SEEN FROM UNDER THE SEA ----
      They are drawn with the fog off, so from beneath the waves the sun stood
      as a white blaze straight through the water and washed the floor, the
@@ -10314,7 +10514,12 @@ function frame(){
        or they read as a second sea hanging in the deep with fish above and
        below it. */
     waveGrid.visible=!inHold;
-    sea.visible=seaDeep.visible=!inHold&&!underEye; }
+    sea.visible=seaDeep.visible=!inHold&&!underEye;
+    /* over the furnished shallows the discs drop far beneath the lit bed, so
+       the true floor and its life show through the clear water — while the
+       water past the patch still has the deep's own blue standing under it */
+    sea.position.y=shallowView?WATER_Y-520:WATER_Y-60;
+    seaDeep.position.y=shallowView?WATER_Y-820:WATER_Y-300; }
   seaLifeTick(p.x,p.z,dt);
   splashTick(dt);
   fishTick(dt);
@@ -10423,20 +10628,21 @@ function frame(){
      camera dipped under a wave from the strand. It follows the eye, not the
      mode, so there is no longer a seam where one world ends and another
      begins. */
-  if(!state.firm&&underEye){
+  if(!state.firm&&(underEye||shallowView)){
     const dv=state.mode==='dive';
-    const dx2=dv?state.dive.x:camera.position.x, dz2=dv?state.dive.z:camera.position.z;
-    const dy2=dv?state.dive.y:camera.position.y;
+    const dx2=dv?state.dive.x:(underEye?camera.position.x:p.x), dz2=dv?state.dive.z:(underEye?camera.position.z:p.z);
+    const dy2=dv?state.dive.y:(underEye?camera.position.y:SEA_SURF-6);
     initDeep();
-    updateDeep(dx2,dy2,dz2,dt,Math.min(1,Math.max(0,SEA_SURF-dy2)/560),dv);
+    updateDeep(dx2,dy2,dz2,dt,underEye?Math.min(1,Math.max(0,SEA_SURF-dy2)/560):0,dv);
   }
   else if(deepShown) hideDeep();
   /* the beasts of the field and the fowl of the air, over all the earth */
   if(!state.firm&&state.mode!=='dive'){ const tt=performance.now()*0.001, night=(light.nightF||0)>0.5;
     updateAirLife(p.x,p.z,dt,tt,night);
-    /* the same fish are stirred by updateDeep when the eye is under — moving
-       them twice in one frame doubled their speed and tore the schools apart */
-    if(!underEye) updateShallowLife(p.x,p.z,dt,tt);   /* fish and turtles seen through the clear shallows */
+    /* the same fish are stirred by updateDeep when the eye is under — or when
+       the clear shallows are furnished from above — moving them twice in one
+       frame doubled their speed and tore the schools apart */
+    if(!underEye&&!shallowView) updateShallowLife(p.x,p.z,dt,tt);   /* fish and turtles seen through the clear shallows */
     podTick(p.x,p.z,dt,tt);             /* the whale pods, making for the fishing grounds */
     orcaTick(p.x,p.z,dt,tt);            /* and the killer whales, on their own road in the deep */
     if(state.mode==='boat'||state.mode==='deck'||state.mode==='walk'){
