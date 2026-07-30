@@ -1518,14 +1518,35 @@ function updateChunks(px,pz,budget){
      Nearest first still, so what is underfoot is laid before the horizon. */
   if(added||moved){ _chAt[0]=ccx; _chAt[1]=ccz;
     buildQueue.sort((A,Bq)=>((A.cx-ccx)**2+(A.cz-ccz)**2)-((Bq.cx-ccx)**2+(Bq.cz-ccz)**2)); }
+  /* ---- THE BUDGET IS TIME, NOT A COUNT ----
+     Nine chunks was a fine allowance while every chunk was open sea, and a
+     whole frame gone when nine of them were rainforest. The mesher takes a
+     time slice now, as the flora and the sea bed and the villages all do:
+     it builds until the slice is spent, with a hard cap so no frame is ever
+     swallowed whole. Chunks the traveller has left behind are dropped from
+     the queue unbuilt — after a fair-wind crossing the tail of the old
+     coast's queue was being built only to be reaped the same frame. */
+  const rush=budget>100;      /* a landfall set down whole (fair wind, going ashore) */
+  const T0=performance.now(), MS=budget>4?9:4;
   let n=0;
-  while(buildQueue.length&&n<budget){ const q=buildQueue.shift(); buildQueued.delete(q.k);
-    if(chunks.has(q.k)) continue; buildChunk(q.cx,q.cz); n++; }
+  while(buildQueue.length&&(rush||(n<24&&(n<1||performance.now()-T0<MS)))){
+    const q=buildQueue.shift(); buildQueued.delete(q.k);
+    if(chunks.has(q.k)) continue;
+    if((q.cx-ccx)**2+(q.cz-ccz)**2>(VIEW+2)*(VIEW+2)) continue;   /* left behind */
+    buildChunk(q.cx,q.cz); n++; }
   /* and the reaping reads the chunk's own numbers rather than parsing them
      back out of its key, two hundred times a frame */
+  /* THE REAP KEEPS THE ADD'S OWN MEASURE. Chunks were added on a Euclidean
+     disc of 13 but reaped on a SQUARE of 15 — so the corners of the square,
+     which the add would never fill, held nearly twice the needed chunks
+     alive: ~960 resident for ~540 wanted, and every one of them a draw call
+     and a cull test a frame. The mesher's own frames were being spent
+     carrying fog-bound ground, which is what let the land fall behind the
+     haze at speed. One ring of hysteresis is kept. */
   for(const[k,ch] of chunks){
-    const d=Math.max(Math.abs(ch.cx-ccx),Math.abs(ch.cz-ccz));
-    if(d>VIEW+2){ for(const m of ch.meshes){ chunkRoot.remove(m); m.geometry.dispose(); } chunks.delete(k); } }
+    const dx2=ch.cx-ccx, dz2=ch.cz-ccz;
+    if(dx2*dx2+dz2*dz2>(VIEW+2)*(VIEW+2)){
+      for(const m of ch.meshes){ chunkRoot.remove(m); m.geometry.dispose(); } chunks.delete(k); } }
 }
 
 /* ================= THE FAR LAND =================
@@ -1617,7 +1638,7 @@ const FL_SEA=[0.07,0.20,0.32], FL_VOID=[0.01,0.012,0.03];
    here took the hemisphere's blue-grey ground colour on every face turned
    from the sun, so the far ranges came out slate blue while the near land
    stood in daylight, and the seam between them was plain. */
-const farLandMat=new THREE.MeshBasicMaterial({vertexColors:true}); LIT.push(farLandMat);
+const farLandMat=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:0}); LIT.push(farLandMat);
 const farLand=new THREE.Mesh(flGeo,farLandMat);
 farLand.frustumCulled=false; farLand.visible=false; scene.add(farLand);
 const FL_NC=FL_RINGS*FL_SPOKES;          /* cells of far country, one sample each */
@@ -1753,13 +1774,25 @@ function updateFarLand(px,pz,force,eyeY){
      ground he covers while it is being laid out. */
   const lag=_flAt?Math.hypot(_flAt[0]-px,_flAt[1]-pz):0;
   const grown=Math.abs(want-_flR1)/_flR1>0.18;
+  /* ---- THE RING KEEPS ITS FOOTING BETWEEN REBUILDS ----
+     It was re-laid around the RAW eye position, so every rebuild re-sampled
+     the whole horizon on a lattice shifted a couple hundred units from the
+     last — every terrace on the coarse world reshaping at once, a visible
+     whole-horizon reflow each ~220 units of travel. The centre now SNAPS to
+     the FL_STEP grid (at last earning that constant its keep), and the
+     radius holds steady unless the view truly grew — so a rebuild that lands
+     on the same snapped centre is skipped outright, and one that steps does
+     so by a whole, regular stride. */
+  const sxx=Math.round(px/FL_STEP)*FL_STEP, szz=Math.round(pz/FL_STEP)*FL_STEP;
+  const movedC=!_flAt||_flAt[0]!==sxx||_flAt[1]!==szz;
   /* the very first ring has nothing to stand in for it, so it is built whole
      before the frame is drawn rather than showing a black disc for a moment */
   const whole=force||!_flAt;
   if(!_flJob){
-    if(!whole&&lag<220&&!grown) return;
-    _flJob={px,pz,r1:want,kr:Math.log(want/FL_R0),k:0,sk:0};
-  } else if(whole){ _flJob={px,pz,r1:want,kr:Math.log(want/FL_R0),k:0,sk:0}; }
+    if(!whole&&!grown&&(!movedC||lag<220)) return;
+    const r1=(grown||whole)?want:_flR1;
+    _flJob={px:sxx,pz:szz,r1,kr:Math.log(r1/FL_R0),k:0,sk:0};
+  } else if(whole){ _flJob={px:sxx,pz:szz,r1:want,kr:Math.log(want/FL_R0),k:0,sk:0}; }
   /* and if he is outrunning it anyway — flying, or the frames themselves so
      slow that ten of them are seconds — the rebuild stops being polite and
      finishes in the one frame rather than let the hole open. That is the old
@@ -2149,7 +2182,12 @@ function waterTick(px,pz,dayF,storm){
   /* the moon rules the water only when she is up and the sun is down, and she
      fades with her own setting as the sun's light comes back over her */
   moon.getWorldPosition(_moonW); u.uMoonDir.value.copy(_moonW).normalize();
-  u.uMoon.value=Math.max(0,1-dayF*1.5)*moonMat2.opacity*(1-storm*0.55);
+  /* the water reads the moon's TRUE local brightness (userData.bright), not
+     the sprite's drawn opacity — in the whole-earth views the sprite is
+     forced full so the lights never vanish from over the disc, and that
+     forcing must not put moon-glitter on a sea whose moon has set */
+  const moonB=moon.userData.bright!==undefined?moon.userData.bright:moonMat2.opacity;
+  u.uMoon.value=Math.max(0,1-dayF*1.5)*moonB*(1-storm*0.55);
   u.uCamPos.value.copy(camera.position);
   const spd=Math.min(1,Math.abs(state.boat.speed)/30);
   const shown=(state.mode!=='walk')?1:Math.max(0,1-Math.hypot(px-state.boat.x,pz-state.boat.z)/400);
@@ -2324,6 +2362,7 @@ const state={ simHours:9.5, speedIdx:0, dayIdx:0, paused:false,
   fly:{x:0,y:0,z:0,heading:0,vy:0,sp:0}, prevGround:'boat',
   dive:{x:0,y:0,z:0,heading:0,vy:0,sp:0},
   windMode:'true', firm:false, firmDist:0, camYaw:0, camPitch:0.42, camDist:96,
+  camYawVel:0, camPitchVel:0,
   visited:new Set(), dist:0, fish:0, fishing:null, coins:30, cargo:{}, game:0,
   breath:1, immBreath:false, pearls:0, repel:false, net:null, rep:{} };
 
@@ -2496,10 +2535,10 @@ function skyTick(px,pz){
   starGroup.userData.mat.opacity=Math.max(0,1-dayF*1.6)*0.95;
   starGroup.rotation.y=-(state.simHours/24)*2*Math.PI;
   sun.position.set(S.x,S.y,S.z);
-  sunMat2.opacity=S.bright;
+  sunMat2.opacity=S.bright; sun.userData.bright=S.bright;
   const M=SUNMOON.place(state.simHours,px,pz,R_WORLD,'moon');
   moon.position.set(M.x,M.y,M.z);
-  moonMat2.opacity=M.bright;
+  moonMat2.opacity=M.bright; moon.userData.bright=M.bright;
   /* and the LIGHT UPON THE LAND falls from where the ruling light truly
      stands — the long shadows of evening lie away from the sunset, and by
      night the land is lit from the moon's quarter */
@@ -2817,6 +2856,7 @@ function ensureNet(){ if(netG) return;
   netG.userData={bag,bag2};
   netG.visible=false; boatG.add(netG); }
 function toggleNet(){
+  if(state.firm) return;                     /* not from behind the map view */
   if(state.mode!=='boat'&&state.mode!=='deck'){ toast('The net is worked from the ship — take the deck or the helm.'); return; }
   if(!state.net){ ensureNet(); netG.visible=true; state.net={catch:0,t:0};
     $('b-net').textContent='🕸 Haul the net';
@@ -2899,7 +2939,10 @@ function whaleSong(){ if(!AC||!audioOn) return;
 function podTick(px,pz,dt,t){
   initPod();
   if(!podState||Math.hypot(podState.x-px,podState.z-pz)>2800){
-    const a=Math.random()*6.28, r=500+Math.random()*400;
+    /* the pod surfaces beyond the haze (1,250+; fog shuts at 1,140) and
+       swims IN — three whales materialising 500 units off the rail, in
+       clear air, was the sharpest pop on the whole sea */
+    const a=Math.random()*6.28, r=1250+Math.random()*800;
     const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
     if(landAtWorld(x,z)){ for(const m of POD) m.visible=false; return; }
     podState={x,z,dir:0,arrived:false,g:null,gT:0};
@@ -2957,7 +3000,7 @@ function swimPod(arr,lens,P,t,dt,beat,spout){
 function orcaTick(px,pz,dt,t){
   initOrca();
   if(!orcaState||Math.hypot(orcaState.x-px,orcaState.z-pz)>3200){
-    const a=Math.random()*6.28, r=700+Math.random()*700;
+    const a=Math.random()*6.28, r=1250+Math.random()*800;   /* past the haze, as the humpbacks are */
     const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
     /* deep water, and seldom even then */
     if(landAtWorld(x,z)||Math.random()>ORCA_CHANCE||seabedMetres(x,z)<ORCA_DEEP_M){
@@ -3949,13 +3992,21 @@ function updateSeaFloor(px,pz,force){
      is laid, so it is paid for at once. */
   const lag=_sbAt?Math.hypot(_sbAt[0]-px,_sbAt[1]-pz):0;
   const whole=force||!_sbAt||lag>SB_SIZE*0.25;
+  /* ---- THE BED KEEPS ITS BLOCKS BETWEEN REBUILDS ----
+     The patch was re-anchored to the RAW eye position, so each rebuild
+     sampled the height field on a lattice offset ~2 units from the last —
+     every block on the sea floor changing height and colour at once, the
+     whole bed reflowing every 44 units swum. The anchor now snaps to the
+     block grid, so a cell keeps its world identity across rebuilds and only
+     the newly-entered edge rows are new ground. */
+  const sbx=Math.round(px/SB_CS)*SB_CS, sbz=Math.round(pz/SB_CS)*SB_CS;
   if(!_sbJob){
-    if(!whole&&lag<SB_STEP) return;
+    if(!whole&&(lag<SB_STEP||(_sbAt[0]===sbx&&_sbAt[1]===sbz))) return;
     /* the cell heights are read once for the whole patch, so a wall may be
        cut down to exactly what its neighbour stands at */
-    _sbJob={px,pz,j:0,h:new Float32Array(SB_CELLS),k:new Uint8Array(SB_CELLS),cov:new Uint8Array(SB_CELLS),pass:0};
+    _sbJob={px:sbx,pz:sbz,j:0,h:new Float32Array(SB_CELLS),k:new Uint8Array(SB_CELLS),cov:new Uint8Array(SB_CELLS),pass:0};
   } else if(whole||Math.hypot(_sbJob.px-px,_sbJob.pz-pz)>SB_SIZE*0.25){
-    _sbJob={px,pz,j:0,h:new Float32Array(SB_CELLS),k:new Uint8Array(SB_CELLS),cov:new Uint8Array(SB_CELLS),pass:0}; }
+    _sbJob={px:sbx,pz:sbz,j:0,h:new Float32Array(SB_CELLS),k:new Uint8Array(SB_CELLS),cov:new Uint8Array(SB_CELLS),pass:0}; }
   const J=_sbJob, t0=performance.now(), half=SB_SIZE/2;
   /* ---- first pass: the height and the kind of every cell ---- */
   while(J.pass===0&&J.j<SB_N){
@@ -4059,13 +4110,16 @@ function makeKelp(){ const g=new THREE.Group(), segs=[];
 const KELP=[], KELP_N=90, KELP_R=330;
 function initKelp(){ if(KELP.length) return; for(let k=0;k<KELP_N;k++){ const m=makeKelp(); m.visible=false; scene.add(m);
   KELP.push({m,x:0,z:0,fy:0,h:0,ph:Math.random()*6.28,set:false}); } }
-function placeKelp(k,px,pz){ for(let tr=0;tr<6;tr++){ const a=Math.random()*6.28, r=60+Math.random()*(KELP_R-60);
+function placeKelp(k,px,pz){ for(let tr=0;tr<6;tr++){ const a=Math.random()*6.28, r=140+Math.random()*(KELP_R-140);
     const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r, fy=seabedDepth(x,z), d=(SEA_SURF-fy)/U_PER_M;
     /* kelp is rooted in the sunlit water and grows to some forty-five metres
-       — it has no business standing on the abyssal plain */
+       — it has no business standing on the abyssal plain.
+       Never set down nearer than 140 (a strand snapping into being an arm's
+       length from the mask is the sharpest pop in the deep), and it GROWS
+       up out of the bed over the first moment rather than standing whole. */
     if(d>6 && d<50 && fbm(x*0.012+50,z*0.012-20)>0.5){ k.x=x; k.z=z; k.fy=fy;
-      k.h=Math.min(SEA_SURF-fy-6,(14+Math.random()*31)*U_PER_M); k.set=true;
-      k.m.position.set(x,fy,z); k.m.scale.set(0.7+Math.random()*0.6,k.h/35,0.7+Math.random()*0.6); k.m.visible=true; return; } }
+      k.h=Math.min(SEA_SURF-fy-6,(14+Math.random()*31)*U_PER_M); k.set=true; k.age=0; k.sy=k.h/35;
+      k.m.position.set(x,fy,z); k.m.scale.set(0.7+Math.random()*0.6,k.sy*0.1,0.7+Math.random()*0.6); k.m.visible=true; return; } }
   k.set=false; k.m.visible=false; }
 /* ---- THE CURRENT OF THE SEA ----
    One slow, wandering flow that all the weed of the sea leans and streams with
@@ -4080,6 +4134,8 @@ function seaCurrent(t){
 function updateKelp(px,pz,t){ initKelp(); const cur=seaCurrent(t); for(const k of KELP){
     if(!k.set||Math.hypot(k.x-px,k.z-pz)>KELP_R+90) placeKelp(k,px,pz);
     if(!k.set) continue;
+    if(k.age!==undefined&&k.age<1){ k.age=Math.min(1,k.age+0.02);      /* the growing-in */
+      k.m.scale.y=k.sy*(0.1+0.9*k.age); }
     /* its own slow ripple, and the shared lean of the current over it */
     const sw=(Math.sin(t*1.0+k.ph)*0.06+cur.dir*0.10)*cur.str, segs=k.m.userData.segs;
     for(let s=0;s<segs.length;s++) segs[s].rotation.z=sw*(s+1)*0.5; } }
@@ -4112,9 +4168,12 @@ function makeCoral(){ const g=new THREE.Group(), n=9+Math.floor(Math.random()*12
 const CORAL=[], CORAL_N=34, CORAL_R=330;
 function initCoral(){ if(CORAL.length) return; for(let k=0;k<CORAL_N;k++){ const m=makeCoral(); m.visible=false; scene.add(m); CORAL.push({m,x:0,z:0,set:false}); } }
 function updateCoral(px,pz){ initCoral(); for(const r of CORAL){ if(!(r.set&&Math.hypot(r.x-px,r.z-pz)<=CORAL_R+90)){
-    for(let tr=0;tr<7;tr++){ const a=Math.random()*6.28, rr=50+Math.random()*CORAL_R, x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
-      if(d>10 && d<45*U_PER_M && fbm(x*0.01-9,z*0.01+4)>0.44){   /* reefs live in the light — 45 m and no deeper */ r.x=x; r.z=z; r.set=true; r.m.position.set(x,seabedDepth(x,z),z); r.m.rotation.y=Math.random()*6.28; r.m.visible=true; break; }
-      if(tr===6){ r.set=false; r.m.visible=false; } } } }
+    /* a reef head is never set down within 130 of the mask, and it builds
+       itself up from the bed rather than standing whole in one frame */
+    for(let tr=0;tr<7;tr++){ const a=Math.random()*6.28, rr=130+Math.random()*(CORAL_R-130), x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
+      if(d>10 && d<45*U_PER_M && fbm(x*0.01-9,z*0.01+4)>0.44){   /* reefs live in the light — 45 m and no deeper */ r.x=x; r.z=z; r.set=true; r.age=0; r.m.scale.setScalar(0.12); r.m.position.set(x,seabedDepth(x,z),z); r.m.rotation.y=Math.random()*6.28; r.m.visible=true; break; }
+      if(tr===6){ r.set=false; r.m.visible=false; } } }
+    if(r.set&&r.age!==undefined&&r.age<1){ r.age=Math.min(1,r.age+0.02); r.m.scale.setScalar(0.12+0.88*r.age); } }
   /* ---- THE SEA-PICKLES LIGHT UP AFTER DARK ----
      Bioluminescence — a faint thing by day and a lantern by night. Each pickle
      brightens as the light goes and breathes a slow pulse of its own, so the
@@ -4136,9 +4195,12 @@ function makeSeagrass(){ const g=new THREE.Group(), n=3+Math.floor(Math.random()
 const SEAGRASS=[], SEAGRASS_N=200, SEAGRASS_R=300;
 function initSeagrass(){ if(SEAGRASS.length) return; for(let k=0;k<SEAGRASS_N;k++){ const m=makeSeagrass(); m.visible=false; scene.add(m); SEAGRASS.push({m,x:0,z:0,ph:Math.random()*6.28,set:false}); } }
 function updateSeagrass(px,pz,t){ initSeagrass(); const cur=seaCurrent(t); for(const r of SEAGRASS){ if(!r.set||Math.hypot(r.x-px,r.z-pz)>SEAGRASS_R+70){
-      for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28, rr=30+Math.random()*SEAGRASS_R, x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
-        if(d>6 && d<30*U_PER_M){ r.x=x; r.z=z; r.set=true; r.m.position.set(x,seabedDepth(x,z),z); r.m.visible=true; break; } if(tr===4){ r.set=false; r.m.visible=false; } } }
-    if(r.set) r.m.rotation.z=(Math.sin(t*1.3+r.ph)*0.07+cur.dir*0.12)*cur.str; } }
+      /* the tufts keep off the diver's own patch of sand (90+) and sprout
+         up out of it rather than appearing full-grown */
+      for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28, rr=90+Math.random()*(SEAGRASS_R-90), x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
+        if(d>6 && d<30*U_PER_M){ r.x=x; r.z=z; r.set=true; r.age=0; r.m.scale.y=0.1; r.m.position.set(x,seabedDepth(x,z),z); r.m.visible=true; break; } if(tr===4){ r.set=false; r.m.visible=false; } } }
+    if(r.set){ if(r.age!==undefined&&r.age<1){ r.age=Math.min(1,r.age+0.025); r.m.scale.y=0.1+0.9*r.age; }
+      r.m.rotation.z=(Math.sin(t*1.3+r.ph)*0.07+cur.dir*0.12)*cur.str; } } }
 /* ---- god-rays — shafts of light slanting down from the surface ---- */
 const RAYS=[], RAY_N=9;
 function initRays(){ if(RAYS.length) return; for(let k=0;k<RAY_N;k++){
@@ -4291,7 +4353,7 @@ function hideShoals(){ for(const S of SHOALS){ S.set=false; for(const f of S.fis
 function initDiveFish(){ if(DIVEFISH.length) return; for(let k=0;k<DF_N;k++){ const m=makeBeast('fish',TROPICAL[Math.floor(Math.random()*TROPICAL.length)]); m.scale.setScalar(0.6+Math.random()*0.8); m.visible=false; scene.add(m);
   DIVEFISH.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,spd:9+Math.random()*11,ph:Math.random()*6.28,set:false}); } }
 function updateDiveFish(px,py,pz,dt,t){ initDiveFish(); for(const f of DIVEFISH){
-    if(!f.set||Math.hypot(f.x-px,f.z-pz)>DF_R+70){ const a=Math.random()*6.28, r=40+Math.random()*DF_R; f.x=px+Math.cos(a)*r; f.z=pz+Math.sin(a)*r;
+    if(!f.set||Math.hypot(f.x-px,f.z-pz)>DF_R+70){ const a=Math.random()*6.28, r=120+Math.random()*(DF_R-120); f.x=px+Math.cos(a)*r; f.z=pz+Math.sin(a)*r;
       const fy=haunt(f.x,f.z,H_FISH); f.y=Math.min(SEA_SURF-8,fy+12+Math.random()*Math.max(6,SEA_SURF-fy-16)); f.dir=Math.random()*6.28; f.set=true; f.m.visible=true; }
     f.dir+=Math.sin(t*0.5+f.ph)*0.04; f.x+=Math.cos(f.dir)*f.spd*dt; f.z+=Math.sin(f.dir)*f.spd*dt; f.y+=Math.sin(t*0.8+f.ph)*3*dt;
     const fy=haunt(f.x,f.z,H_FISH), col=SEA_SURF-fy;
@@ -4587,11 +4649,11 @@ function updateSeaMobs(px,py,pz,dt,t){ initSeaMobs();
   updateSeaMob(LIONFS,px,py,pz,dt,t); updateSeaMob(MARLINS,px,py,pz,dt,t);
   updateSeaMob(SUNFS,px,py,pz,dt,t); updateSeaMob(WSHARKS,px,py,pz,dt,t);
   updateSeaMob(SPERMS,px,py,pz,dt,t);
-  for(const j of JELLIES){ if(!j.set||Math.hypot(j.x-px,j.z-pz)>360){ const a=Math.random()*6.28,r=40+Math.random()*320; j.x=px+Math.cos(a)*r; j.z=pz+Math.sin(a)*r; const fy=haunt(j.x,j.z,H_JELLY); j.y=fy+30+Math.random()*80; j.set=true; j.m.visible=true; }
+  for(const j of JELLIES){ if(!j.set||Math.hypot(j.x-px,j.z-pz)>360){ const a=Math.random()*6.28,r=130+Math.random()*230; j.x=px+Math.cos(a)*r; j.z=pz+Math.sin(a)*r; const fy=haunt(j.x,j.z,H_JELLY); j.y=fy+30+Math.random()*80; j.set=true; j.m.visible=true; }
     const pulse=0.5+0.5*Math.sin(t*1.4+j.ph); j.y+=(pulse-0.45)*10*dt; const fy=haunt(j.x,j.z,H_JELLY), col=SEA_SURF-fy;
     j.y=Math.min(SEA_SURF-6,Math.max(fy+Math.min(10,col-7),j.y));
     j.m.position.set(j.x,j.y,j.z); j.m.scale.y=0.8+pulse*0.4; j.m.userData.tents.forEach((te,i)=>{ te.rotation.x=Math.sin(t*2+i)*0.2; }); }
-  for(const c of CRABS){ if(!c.set||Math.hypot(c.x-px,c.z-pz)>300){ for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28,r=30+Math.random()*300, x=px+Math.cos(a)*r,z=pz+Math.sin(a)*r, d=SEA_SURF-seabedDepth(x,z);
+  for(const c of CRABS){ if(!c.set||Math.hypot(c.x-px,c.z-pz)>300){ for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28,r=80+Math.random()*220, x=px+Math.cos(a)*r,z=pz+Math.sin(a)*r, d=SEA_SURF-seabedDepth(x,z);
         if(d>6&&d<H_REEF*U_PER_M){ c.x=x; c.z=z; c.set=true; c.m.position.set(x,seabedDepth(x,z)+0.6,z); c.m.rotation.y=Math.random()*6.28; c.m.visible=true; break; } if(tr===4){c.set=false;c.m.visible=false;} } }
     if(c.set) c.m.position.x=c.x+Math.sin(t*2+c.ph)*0.6; } }
 /* ---- THE LAMPS OF THE DARK ----
@@ -4652,7 +4714,7 @@ function updateAnems(px,pz,dt,t){ initAnems();
   for(const A of ANEMS){
     if(!A.set||Math.hypot(A.x-px,A.z-pz)>300){
       A.set=false;
-      for(let tr=0;tr<6;tr++){ const a=Math.random()*6.28, rr=30+Math.random()*260;
+      for(let tr=0;tr<6;tr++){ const a=Math.random()*6.28, rr=90+Math.random()*200;
         const x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr;
         const lat=90-Math.hypot(x,z)/R_WORLD*180;
         if(Math.abs(lat)>38) break;                     /* the anemone keeps the warm sea */
@@ -4702,7 +4764,7 @@ function updateMorays(px,pz,dt,t){ initMorays();
   for(const o of MORAYS){
     if(!o.set||Math.hypot(o.x-px,o.z-pz)>280){
       o.set=false;
-      for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28, rr=40+Math.random()*230;
+      for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28, rr=90+Math.random()*180;
         const x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr;
         const fy=seabedDepth(x,z), d=(SEA_SURF-fy)/U_PER_M;
         if(d>5&&d<45&&fbm(x*0.01-9,z*0.01+4)>0.44){ o.x=x; o.z=z; o.y=fy;
@@ -4795,7 +4857,7 @@ function updateDeepLife(px,py,pz,dt,t){ initDeepLife();
     if(pm<K.m[0]-180||pm>K.m[1]+500){
       if(o.set){ o.set=false; o.m.visible=false; if(o.gsp)o.gsp.visible=false; } continue; }
     if(!o.set||Math.hypot(o.x-px,o.z-pz)>250){
-      const a=Math.random()*6.28, r=30+Math.random()*170;
+      const a=Math.random()*6.28, r=80+Math.random()*130;
       const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
       const fy=seabedDepth(x,z), bedM=(SEA_SURF-fy)/U_PER_M;
       if(K.bed){
@@ -5115,7 +5177,8 @@ function diveTick(dt){ const dv=state.dive;
   u.armL.rotation.x=-3.0+Math.sin(ph)*0.22; u.armR.rotation.x=-3.0+Math.sin(ph+0.4)*0.22;
   u.armL.rotation.z=0.14; u.armR.rotation.z=-0.14;
   u.legL.rotation.x=Math.sin(ph*1.5)*0.5; u.legR.rotation.x=-Math.sin(ph*1.5)*0.5; }
-function enterDive(){ if(state.mode==='dive'){ surface(); return; }
+function enterDive(){ if(state.firm) return;  /* not from behind the map view */
+  if(state.mode==='dive'){ surface(); return; }
   let x,z,h,jump=null;
   if(state.mode==='walk'){ x=state.walk.x; z=state.walk.z; h=state.walk.heading; }
   else if(state.mode==='boat'||state.mode==='deck'){
@@ -5326,7 +5389,15 @@ function landKindAt(x,z,c){
 /* THE PLAIN CARRIES A CROWD. Six-and-twenty beasts was a thin scattering
    anywhere, and on the great grassland — which is a place of HERDS, and reads
    as nothing at all without them — it was three zebra and a lion. */
-const LANDLIFE=[], LL_N=40, LL_R=360;
+/* ---- THE BEASTS COME OUT OF THE HAZE, NEVER OUT OF NOTHING ----
+   The pool spawned 70–430 units out — in front of the traveller's face, in
+   clear air (the fog only begins at 500) — and was reaped at exactly 500,
+   right ON the fog line, so herds materialised and vanished in plain sight.
+   A beast is now set down deep IN the haze (850–1,250; the fog runs 500 to
+   1,140, so a spawn is at least half-swallowed and mostly whole-swallowed)
+   and reaped past it (1,350). The pool is grown to keep the plain as
+   thickly peopled as before across the wider ground it now covers. */
+const LANDLIFE=[], LL_N=96, LL_R=1250, LL_MIN=850, LL_REAP=1350;
 const AMBIENT_PREY=new Set(FAUNA.prey.length?FAUNA.prey
   :['sheep','goat','pig','chicken','hare','deer','donkey','cow','horse','ostrich']);
 /* ---- AND WHAT EACH IS ABOUT ----
@@ -5339,8 +5410,9 @@ const AMBIENT_PREY=new Set(FAUNA.prey.length?FAUNA.prey
    about it. */
 const WILD_ROLE=Object.assign({wolf:'pack', lion:'stalk', bear:'forage',
   blackbear:'forage', crocodile:'ambush', lizard:'bask'}, FAUNA.roles);
-function initLandLife(){ if(LANDLIFE.length) return; for(let k=0;k<LL_N;k++) LANDLIFE.push({m:null,kind:null,hx:0,hz:0,x:0,z:0,heading:0,tx:0,tz:0,t:0,set:false}); }
-function findLandSpot(px,pz){ for(let tr=0;tr<10;tr++){ const a=Math.random()*6.28, r=70+Math.random()*LL_R, x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
+function initLandLife(){ if(LANDLIFE.length) return; for(let k=0;k<LL_N;k++) LANDLIFE.push({m:null,kind:null,hx:0,hz:0,x:0,z:0,heading:0,tx:0,tz:0,t:0,set:false,
+  retry:Math.random()*2.2 /* the first filling is STAGGERED — ninety-six beasts built in one frame is a hitch */ }); }
+function findLandSpot(px,pz){ for(let tr=0;tr<10;tr++){ const a=Math.random()*6.28, r=LL_MIN+Math.random()*(LL_R-LL_MIN), x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
     /* beasts keep to the charted lands (ci>0 — the countries and true isles);
        the bare rocks and skerries of the open ocean stay bare.
        (The old bar of six blocks kept every creature off the high country —
@@ -5429,26 +5501,35 @@ function makeBloom(){ const g=new THREE.Group(), n=5+Math.floor(Math.random()*6)
       bl.position.set((Math.random()-0.5)*7,0.85,(Math.random()-0.5)*7); bl.rotation.y=rot+(Math.random()-0.5)*0.5;
       g.add(bl); } }
   return g; }
-const BLOOMS=[], BLOOMS_N=70, BLOOMS_R=240;
+const BLOOMS=[], BLOOMS_N=70, BLOOMS_R=420;
 function initBlooms(){ if(BLOOMS.length) return; for(let k=0;k<BLOOMS_N;k++){ const m=makeBloom(); m.visible=false; scene.add(m); BLOOMS.push({m,x:0,z:0,set:false}); } }
 function updateBlooms(px,pz){ initBlooms(); const doy=dayOfYear();
   for(const b of BLOOMS){
     if(!b.set||Math.hypot(b.x-px,b.z-pz)>BLOOMS_R+80){ b.set=false;
-      /* set it down on true grassland — never sand, rock, snow or the sea */
-      for(let tr=0;tr<8;tr++){ const a=Math.random()*6.28, rr=24+Math.random()*BLOOMS_R, x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr;
-        if(grassProbe(x,z)){ const c=landAtWorld(x,z); b.x=x; b.z=z; b.m.position.set(x,(c?c.h*B:WATER_Y),z); b.set=true; break; } }
+      /* set it down on true grassland — never sand, rock, snow or the sea.
+         Never at the traveller's feet: a clump breaking ground in clear air
+         reads as a glitch, so it is set down from 140 out and GROWS in
+         (the sprout ramp below), the way the true spring flush would. */
+      for(let tr=0;tr<8;tr++){ const a=Math.random()*6.28, rr=140+Math.random()*(BLOOMS_R-140), x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr;
+        if(grassProbe(x,z)){ const c=landAtWorld(x,z); b.x=x; b.z=z; b.m.position.set(x,(c?c.h*B:WATER_Y),z); b.set=true; b.age=0; break; } }
       if(!b.set){ b.m.visible=false; continue; } }
     /* shown only where — and while — the flowers are in season, and thinning
        as it wanes (js/season.js reckons the bloom for this latitude and day) */
     const latN=1-Math.hypot(b.x,b.z)/R_WORLD*2;
     const bloom=window.SEASON?SEASON.bloomFactor(latN,doy):0.4;
-    if(bloom>0.08){ b.m.visible=true; b.m.scale.setScalar(0.45+0.55*bloom); }
+    b.age=Math.min(1,(b.age===undefined?1:b.age)+0.016);   /* the sprout ramp — up in ~1s */
+    if(bloom>0.08){ b.m.visible=true; b.m.scale.setScalar((0.45+0.55*bloom)*(0.15+0.85*b.age)); }
     else b.m.visible=false;
   } }
 function hideBlooms(){ for(const b of BLOOMS) if(b.m) b.m.visible=false; }
 function updateLandLife(px,pz,dt,t){ initLandLife();
   const night=(worldNight||0)>0.6;
-  for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>LL_R+140){ const sp=findLandSpot(px,pz);
+  for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>LL_REAP){
+      /* an empty slot cools off between tries — over open water every slot
+         was running ten land probes EVERY frame, for nothing */
+      a.retry=(a.retry||0)-dt; if(!a.set&&a.retry>0) continue;
+      a.retry=1.2+Math.random()*0.8;
+      const sp=findLandSpot(px,pz);
       if(!sp){ if(a.m)a.m.visible=false; hideYoung(a); a.set=false; continue; }
       const kind=landKindAt(sp.x,sp.z,sp.c);
       /* the ground named no beast — a bare glacier, a crest above the life
@@ -5911,7 +5992,9 @@ function updateRiverLife(px,pz,dt,t){ initRiverLife();
       /* a watercourse is a thread across the whole country — a handful of
          tries out from the traveller finds it if he is anywhere near one,
          and finds nothing at all if he is not, which is the right answer */
-      for(let tr=0;tr<14;tr++){ const a=Math.random()*6.28, r=40+Math.random()*RL_R;
+      /* never set down at the bank the traveller is standing on — from 170
+         out a fish below the water's skin arrives unseen */
+      for(let tr=0;tr<14;tr++){ const a=Math.random()*6.28, r=170+Math.random()*(RL_R-170);
         const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
         if(!riverWaterAt(x,z)) continue;
         f.x=x; f.z=z; f.y=WATER_Y-K.y; f.dir=Math.random()*6.28; f.set=true; f.m.visible=true; break; }
@@ -5932,7 +6015,12 @@ function updateRiverLife(px,pz,dt,t){ initRiverLife();
    they roost. The gulls and eagles over water STOOP: they fall on the
    surface, break it, and come up with a fish — and the fish they take is a
    real one out of the shoal, not a mime. */
-const AIRLIFE=[], AL_N=18, AL_R=440;
+/* the birds spawn OUT IN THE HAZE (650–1,250; fog runs 500–1,140) and are
+   reaped beyond it, so no wing ever snaps into being in clear sky; the pool
+   is widened to keep as many overhead across the larger round. Butterflies
+   are the one exception — a thing two units across is invisible past a couple
+   hundred anyway, and it must live among the flowers at the traveller's feet. */
+const AIRLIFE=[], AL_N=24, AL_R=1150;
 const NESTS=[], NEST_N=10, NEST_R=430;
 function initNests(){ if(NESTS.length) return;
   for(let k=0;k<NEST_N;k++) NESTS.push({m:null,kind:null,skey:null,species:null,chicks:[],x:0,y:0,z:0,set:false,cheep:0}); }
@@ -6174,7 +6262,8 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
     if(!b.set||Math.hypot(b.x-px,b.z-pz)>AL_R+220){
       const type=airKind(px,pz,night);
       if(b.type!==type){ if(b.m) scene.remove(b.m); b.m=makeBird(type); scene.add(b.m); b.type=type; }
-      const a=Math.random()*6.28, r=60+Math.random()*AL_R;
+      const a=Math.random()*6.28,
+        r=type==='butterfly'?60+Math.random()*240:650+Math.random()*600;
       b.x=px+Math.cos(a)*r; b.z=pz+Math.sin(a)*r;
       const c=landAtWorld(b.x,b.z), base=c?c.h*B:WATER_Y;
       b.y=type==='butterfly'?base+3:base+30+Math.random()*60;
@@ -7217,7 +7306,8 @@ $('trade').addEventListener('click',e=>{ if(e.target.id==='trade') closeTrade();
 function nearestStallVillage(){
   if(state.mode!=='walk') return null;
   for(const[i,vv] of activeVillages){ if(vv.none||!vv.stalls||!vv.stalls.length) continue;
-    for(const s of vv.stalls){ if(Math.hypot(state.walk.x-s.x,state.walk.z-s.z)<13) return {i,s}; } }
+    for(const s of vv.stalls){ const d=Math.hypot(state.walk.x-s.x,state.walk.z-s.z);
+      if(d<13) return {i,s,d}; } }
   return null;
 }
 function nearestTrader(){
@@ -7250,16 +7340,23 @@ function canFishHere(){
 let promptStall=null, promptTrader=null, promptPearl=null, promptChest=null;
 function promptTick(){
   const el=$('prompt'); if(!el) return;
-  if(cut){ el.style.opacity=0; promptAction=null; return; }
+  /* AN UNSEEN PROMPT TAKES NO CLICKS. The button is faded with opacity, and
+     an opacity-nought element still swallows every pointer that lands on it
+     — a dead ~190×36 px band sat mid-screen eating look-drags and firmament
+     taps, and a click on the empty air could put the traveller to bed
+     (interact() falls through to sleep). It follows its own visibility now. */
+  const show=v=>{ el.style.opacity=v?1:0; el.style.pointerEvents=v?'auto':'none'; };
+  if(cut||state.firm){ show(false); promptAction=null; return; }
   promptDoor=null; promptAction=null; promptPerson=null; promptStall=null; promptTrader=null; promptPearl=null; promptChest=null;
+  promptMount=null;   /* it was the one mark not cleared — a stale mount could linger */
   let label=null;
-  if(tradeOpen){ el.style.opacity=0; return; }
+  if(tradeOpen){ show(false); return; }
   if(state.mode==='dive'){
     promptPearl=nearestPearl();
-    if(promptPearl){ el.textContent='F — gather the pearl'; el.style.opacity=1; promptAction='pearl'; }
+    if(promptPearl){ el.textContent='F — gather the pearl'; show(true); promptAction='pearl'; }
     else { promptChest=nearestWreckChest();
-      if(promptChest){ el.textContent='F — break open the sea-chest'; el.style.opacity=1; promptAction='chest'; }
-      else el.style.opacity=0; }
+      if(promptChest){ el.textContent='F — break open the sea-chest'; show(true); promptAction='chest'; }
+      else show(false); }
     return; }
   if(state.mode==='deck'){
     const d=state.deck;
@@ -7286,7 +7383,11 @@ function promptTick(){
       promptDoor=nearestDoor(state.walk.x,state.walk.z);
       promptStall=nearestStallVillage();
       promptMount=nearestMount(state.walk.x,state.walk.z);
-      if(promptDoor){ label='F — '+(promptDoor.door.open?'close the door':'open the door'); promptAction='door'; }
+      /* a stall STOOD AT wins over a door eleven units off — in a packed
+         market square the widest catchment (13) had the lowest word, and a
+         trader standing at his own counter was told to open somebody's door */
+      if(promptStall&&promptStall.d<7){ label='F — trade at the stall'; promptAction='trade'; }
+      else if(promptDoor){ label='F — '+(promptDoor.door.open?'close the door':'open the door'); promptAction='door'; }
       else if(promptMount){ label='F — mount the '+promptMount.kind; promptAction='ride'; }
       else if(promptStall){ label='F — trade at the stall'; promptAction='trade'; }
       else { promptPerson=nearbyPerson();
@@ -7295,7 +7396,7 @@ function promptTick(){
     }
   }
   if(!label&&state.mode==='fly'&&canTouchDome()){ label='F \u2014 touch the firmament'; promptAction='dome'; }
-  if(label){ el.textContent=label; el.style.opacity=1; } else el.style.opacity=0;
+  if(label){ el.textContent=label; show(true); } else show(false);
 }
 /* ---- the words of the people, by their callings ---- */
 const SPEECH={
@@ -7479,7 +7580,7 @@ function ensureSpear(){ if(spearM) return;
   spearM.visible=false; scene.add(spearM);
 }
 function throwSpear(){
-  if(spear.active||state.fishing) return;
+  if(state.firm||spear.active||state.fishing) return;
   if(state.mode==='walk'){
     ensureSpear();
     const w=state.walk;
@@ -8062,6 +8163,12 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   /* P (or ESC, outside a scene) pauses the whole game and gives it back */
   if(e.code==='KeyP'||(e.code==='Escape'&&!cut)){ e.preventDefault(); togglePause(); return; }
   if(gamePaused) return;                      /* a paused world takes no orders */
+  /* while the whole earth is beheld, the only orders are the view's own:
+     ESC/P (above) pauses, and the rest of the world's verbs — going ashore,
+     flying, diving, the spear, the net — are not taken from behind the map.
+     They used to run underneath it: C set the diver draining breath under
+     the overlay, G took flight, E went ashore, all unseen. */
+  if(state.firm){ if(e.code==='KeyM') toggleMap(); if(e.code==='KeyL') toggleLog(); return; }
   if(e.code==='Space'){ e.preventDefault(); if(state.mode==='walk') state.walk.jumpReq=true; }
   if(e.code==='KeyE') toggleAshore();
   if(e.code==='KeyF') interact();
@@ -8075,18 +8182,35 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
 addEventListener('keyup',e=>{ keys[e.code]=false; });
 const cv=$('cv'); let drag=null, joy=null;
 const tpts=new Map(); let pinchD=0;      /* two-finger pinch state */
+/* ---- THE FULL SWEEP OF THE EYE ----
+   The view turns the whole way round (yaw is unbounded), and the pitch runs
+   from looking DOWN upon the traveller to looking UP past him at the sky and
+   the firmament — the old floor of 0.04 kept the eye forever above the
+   horizon, and the vault overhead could never be looked at from the ground.
+   (The camera itself is kept out of the ground by cameraTick, not by
+   narrowing the drag.) In the firmament view the disc is the whole sight, so
+   there the pitch keeps to the upper half. */
+const PITCH_MIN=-1.25, PITCH_MAX=1.52;
+function pitchClamp(v){ const lo=state.firm?0.05:PITCH_MIN;
+  return Math.max(lo,Math.min(PITCH_MAX,v)); }
 cv.addEventListener('pointerdown',e=>{ cv.setPointerCapture(e.pointerId);
   if(e.pointerType==='touch'){
     tpts.set(e.pointerId,[e.clientX,e.clientY]);
-    if(tpts.size===2){ const a=[...tpts.values()];
+    /* two fingers are a PINCH only when neither is the walking-stick: with
+       the joystick held, a second finger is the LOOKING finger — walk and
+       turn the view at once, as every telephone game has it */
+    if(tpts.size===2&&!joy){ const a=[...tpts.values()];
       pinchD=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]); drag=null;
-      if(joy){ joy=null; $('joy').style.display='none'; $('joyk').style.transform=''; }
       return; }
   }
-  if(e.pointerType==='touch'&&e.clientX<innerWidth*0.42&&e.clientY>innerHeight*0.35){
+  /* no walking-stick under the firmament view — a touch there is a LOOK or
+     a TAP on a land (the joystick used to swallow every tap in the lower
+     left of the map, so a phone could never travel to half the world) */
+  if(e.pointerType==='touch'&&!joy&&!state.firm&&e.clientX<innerWidth*0.42&&e.clientY>innerHeight*0.35){
     joy={id:e.pointerId,x0:e.clientX,y0:e.clientY,dx:0,dy:0};
     const j=$('joy'); j.style.display='block'; j.style.left=(e.clientX-52)+'px'; j.style.top=(e.clientY-52)+'px';
-  } else drag={id:e.pointerId,x:e.clientX,y:e.clientY,mv:0}; });
+  } else if(!drag){ drag={id:e.pointerId,x:e.clientX,y:e.clientY,mv:0,vx:0,vy:0,t:performance.now()};
+    state.camYawVel=0; state.camPitchVel=0; } });
 cv.addEventListener('pointermove',e=>{
   if(e.pointerType==='touch'&&tpts.has(e.pointerId)){
     tpts.set(e.pointerId,[e.clientX,e.clientY]);
@@ -8104,12 +8228,33 @@ cv.addEventListener('pointermove',e=>{
   if(drag&&e.pointerId===drag.id){ const ddx=e.clientX-drag.x, ddy=e.clientY-drag.y;
     drag.mv+=Math.abs(ddx)+Math.abs(ddy);
     state.camYaw-=ddx*0.0048;
-    state.camPitch=Math.max(0.04,Math.min(1.52,state.camPitch+ddy*0.004));
+    state.camPitch=pitchClamp(state.camPitch+ddy*0.004);
+    /* the pace of the finger, remembered for the glide when it lifts —
+       smoothed over the last few moves so one long coalesced event or one
+       short one does not swing it wildly. drag.iv is the beat of the move
+       events themselves (they ride the frame clock), so stillness can be
+       judged in FRAMES and not in milliseconds, whatever the machine. */
+    const now=performance.now(), dtm=Math.max(8,now-drag.t)/1000;
+    drag.iv=(drag.iv||dtm*1000)*0.6+dtm*1000*0.4;
+    drag.vx=drag.vx*0.5-(ddx*0.0048/dtm)*0.5;
+    drag.vy=drag.vy*0.5+(ddy*0.004/dtm)*0.5; drag.t=now;
     drag.x=e.clientX; drag.y=e.clientY; } });
 function endPtr(e){ if(joy&&e.pointerId===joy.id){ joy=null; $('joy').style.display='none'; $('joyk').style.transform=''; }
   tpts.delete(e.pointerId); if(tpts.size<2) pinchD=0;
-  if(drag&&e.pointerId===drag.id){ const tap=drag.mv<8; drag=null;
-    if(tap&&state.firm&&running) firmTravel(e); } }
+  if(drag&&e.pointerId===drag.id){ const tap=drag.mv<8; const d=drag; drag=null;
+    /* a flick SLIDES: the view keeps the finger's pace and glides to rest.
+       A finger that truly STOPPED before lifting hands over none — but that
+       stillness is judged by cameraTick decaying the remembered pace while
+       the pointer holds still (measured in the machine's own frames), so a
+       laboured frame never eats an honest flick. */
+    if(!tap){
+      state.camYawVel  =Math.max(-6,Math.min(6,d.vx));
+      state.camPitchVel=Math.max(-4,Math.min(4,d.vy)); }
+    if(tap&&state.firm&&running) firmTravel(e); }
+  /* a pinch let go one finger at a time: the finger still down carries
+     straight on as a look-drag, never as a stray tap */
+  if(!drag&&!joy&&tpts.size===1){ const [pid,pt]=[...tpts.entries()][0];
+    drag={id:pid,x:pt[0],y:pt[1],mv:99,vx:0,vy:0,t:performance.now()}; } }
 cv.addEventListener('pointerup',endPtr); cv.addEventListener('pointercancel',endPtr);
 
 /* tap a visited land in the firmament view and a fair wind carries you there */
@@ -8151,6 +8296,10 @@ cv.addEventListener('wheel',e=>{ e.preventDefault();
   const unit=e.deltaMode===1?16:e.deltaMode===2?innerHeight:1;
   state.zoom=Math.max(0,Math.min(1,state.zoom+e.deltaY*unit*0.00028)); },{passive:false});
 function axis(){
+  /* the helm takes no orders while the whole earth is beheld — WASD used to
+     sail the ship BLIND under the map view, the camera pinned to the disc
+     while the hull ran on toward whatever coast lay ahead */
+  if(state.firm) return [0,0];
   let f=0,t=0;
   if(keys.KeyW||keys.ArrowUp)f+=1; if(keys.KeyS||keys.ArrowDown)f-=1;
   if(keys.KeyA||keys.ArrowLeft)t-=1; if(keys.KeyD||keys.ArrowRight)t+=1;
@@ -8309,10 +8458,19 @@ function canSleep(){ if(state.mode!=='walk'||!HOME||worldNight<=0.45) return fal
 function sleep(){
   const day=Math.floor(state.simHours/24);
   state.simHours=(day+1)*24+7;                    /* wake at seven, next morning */
+  /* ON THE LIVE CLOCK, SLEEP HELD NOTHING: the machine's own hour is re-read
+     four times a second and snapped the sky straight back to real night —
+     'wake to a new morning' with no morning in it. Lying down to sleep is
+     the traveller choosing the game's morning over the room's night, so the
+     course is set to 'morning' and the hour truly holds. */
+  if(DAYPARTS[state.dayIdx].k==='live'){
+    state.dayIdx=DAYPARTS.findIndex(d2=>d2.k==='morning'); updateDayBtn(); }
+  applyDayPart();
   toast('You rest in your home among the boughs, and wake to a new morning.');
   saveState();
 }
 function interact(){
+  if(state.firm) return;                        /* no verbs from behind the map view */
   if(tradeOpen){ closeTrade(); return; }        /* F also leaves the trading */
   switch(promptAction){
     case 'dome': touchDome(); break;
@@ -8800,6 +8958,9 @@ function aloftTick(dt,px,pz){
   if(!aloftDisc||!aloftDisc.visible||aloftDisc.material.opacity<0.02) return;
   if(aloftMark){ aloftMark.visible=true;
     aloftMark.position.set(px,aloftDisc.position.y+40,pz);
+    /* the mark fades in WITH the charted face — drawn over everything at
+       full gold while the face was two percent in, it appeared from nothing */
+    aloftMark.material.opacity=aloftDisc.material.opacity;
     const s=Math.max(120,state.camDist*0.0127); aloftMark.scale.set(s,s,1); }
   /* (the face itself is a made thing, laid brick by brick once and for all —
      only the traveller's own mark upon it moves) */ }
@@ -9083,6 +9244,7 @@ function flyTick(dt){
   u.legL.rotation.x=0.16+Math.sin(ph*1.3)*0.06; u.legR.rotation.x=-0.10-Math.sin(ph*1.3)*0.06;
 }
 function takeFlight(){
+  if(state.firm) return;                     /* not from behind the map view */
   if(state.mode==='fly'){ alight(); return; }
   if(state.mode==='deck'&&state.deck.level==='hold'){ toast('The hold has a roof — come up on deck to take the air.'); return; }
   ensureFlyDome();
@@ -9208,6 +9370,7 @@ function goAshoreFromShip(){
   return false;
 }
 function toggleAshore(){
+  if(state.firm) return;                     /* not from behind the map view */
   if(state.mode==='fly'){ alight(); return; }    /* come down out of the air */
   if(state.mode==='dive'){ surface(); return; }  /* come up out of the deep */
   if(state.mode==='boat'){                       /* step back from the wheel */
@@ -9328,21 +9491,28 @@ function buildFirmament(){
     new THREE.MeshBasicMaterial({map:ftex,transparent:true,fog:false,depthWrite:false}));
   frame.rotation.x=-Math.PI/2; frame.position.y=60; firmG.add(frame);   /* well clear of the disc at 180 */
 
-  /* the sun's glow standing over the midst of the lands */
-  const glowC=texCanvas(128), glg=glowC.getContext('2d');
-  const gr2=glg.createRadialGradient(64,64,0,64,64,64);
-  gr2.addColorStop(0,'rgba(255,247,214,0.7)'); gr2.addColorStop(0.28,'rgba(255,224,150,0.28)'); gr2.addColorStop(1,'rgba(255,224,150,0)');
-  glg.fillStyle=gr2; glg.fillRect(0,0,128,128);
-  const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(glowC),
-    blending:THREE.AdditiveBlending,transparent:true,fog:false,depthTest:false}));
-  glow.scale.set(R_WORLD*0.3,R_WORLD*0.3,1); glow.position.set(0,R_WORLD*0.03,0); firmG.add(glow);
+  /* (the painted glow that stood fixed over the midst of the lands is gone:
+     the TRUE sun and moon now stand over the disc in this view, each above
+     the countries where its own hour is, with their haloes about them — a
+     second, motionless glow at the centre read as a second sun) */
 
   firmG.visible=false; scene.add(firmG);
 }
 let firmHintShown=false;
 function enterFirm(){
+  if(state.firm) return;
+  /* the hold has a roof — there is no beholding the heavens from below
+     deck (flight and the dive already refuse it; and the whole-earth near
+     plane, left on a first-person eye inside a hull, clipped the whole
+     world away) */
+  if(state.mode==='deck'&&state.deck.level==='hold'){
+    toast('The whole earth cannot be beheld from the hold — climb up to the deck first.'); return; }
+  if(cut) endScene();                  /* a running scene must not keep the camera under the map view */
   if(state.mode==='dive') surface();   /* no map-gazing from under the sea — breath would drain beneath the overlay */
+  closeTrade();                        /* no shop laid over the whole earth */
+  if(state.fishing) endFishing(true);  /* nor a rod left casting under the overlay */
   buildFirmament(); state.firm=true; firmG.visible=true;
+  state.camYawVel=0; state.camPitchVel=0;
   scene.fog=null; state.firmDist=R_WORLD*1.62; state.camPitch=1.02;
   sea.visible=false; seaDeep.visible=false; waveGrid.visible=false;
   if(!firmHintShown&&running){ firmHintShown=true;
@@ -9353,6 +9523,11 @@ function enterFirm(){
   $('b-firm').textContent='\u26F5 Return to the ship'; }
 function exitFirm(){ state.firm=false; if(firmG) firmG.visible=false;
   scene.fog=FOG; state.camPitch=0.42; state.camDist=200; state.zoom=distToZoom(200);
+  state.camYawVel=0; state.camPitchVel=0;
+  /* the near plane was opened to thousands for the whole-earth depth range —
+     hand it straight back, or a first-person eye (a house, the hold) is left
+     with the entire world clipped away until the next mode change */
+  camera.near=camInside?0.3:1; camera.updateProjectionMatrix();
   sea.visible=true; seaDeep.visible=true; waveGrid.visible=true;
   clouds.visible=true; clouds.scale.set(1,1,1); clouds.position.y=CLOUD_Y; cirrus.visible=true; voidWall.visible=true;
   $('b-firm').textContent='\uD83D\udd4A The firmament'; }
@@ -9375,7 +9550,29 @@ function camInsideShip(wx,wy,wz){
 const _camHold=new THREE.Vector3();
 function cameraTick(dt){
   if(cut){ sceneTick(dt); return; }
-  if(state.firm){ const pit=Math.max(0.3,Math.min(1.5,state.camPitch));
+  /* ---- THE SLIDE ----
+     A flick of the finger or the mouse hands its pace to the view, and the
+     view glides on with it and comes softly to rest — until the next touch,
+     which takes the wheel back at once (the drag handler zeroes the pace). */
+  if(!drag&&(state.camYawVel||state.camPitchVel)){
+    state.camYaw+=state.camYawVel*dt;
+    state.camPitch=pitchClamp(state.camPitch+state.camPitchVel*dt);
+    const k=Math.max(0,1-dt*3.4);
+    state.camYawVel*=k; state.camPitchVel*=k;
+    if(Math.abs(state.camYawVel)<0.02) state.camYawVel=0;
+    if(Math.abs(state.camPitchVel)<0.02) state.camPitchVel=0;
+  }
+  /* a HELD-STILL pointer sheds its remembered pace — so a drag that stops
+     dead and then lifts hands over no glide, while a true flick (lifted
+     within a frame or two of its last move) keeps all of it. Stillness is
+     measured against the beat of the move events themselves, which ride the
+     frame clock — never against wall time, which a slow machine would fail. */
+  if(drag&&drag.t&&(drag.vx||drag.vy)){
+    const idle=performance.now()-drag.t;
+    if(idle>Math.max(40,(drag.iv||16)*2.5)){
+      const k2=Math.max(0,1-dt*6);
+      drag.vx*=k2; drag.vy*=k2; } }
+  if(state.firm){ const pit=Math.max(0.05,Math.min(1.52,state.camPitch));
     const Rd=state.firmDist;
     camPos.set(Math.sin(state.camYaw)*Math.cos(pit)*Rd, Math.sin(pit)*Rd+200, Math.cos(state.camYaw)*Math.cos(pit)*Rd);
     camera.position.lerp(camPos,Math.min(1,dt*2.5));
@@ -9429,7 +9626,11 @@ function cameraTick(dt){
     px=dv.x; pz=dv.z; baseY=dv.y; phead=dv.heading; dist=Math.max(16,Math.min(state.camDist,300)); }
   else{ const w=state.walk;
     px=w.x; pz=w.z; baseY=walkerG.position.y; phead=w.heading; dist=Math.max(14,state.camDist); }
-  const [f2]=axis(); if(Math.abs(f2)>0.2) state.camYaw*=Math.max(0,1-dt*0.5);
+  /* walking on, the view drifts back behind the traveller — but NEVER while
+     a finger or the mouse is holding it, and never against a live glide:
+     the player's own turn of the eye always wins over the auto-centring */
+  const [f2]=axis();
+  if(Math.abs(f2)>0.2&&!drag&&!state.camYawVel) state.camYaw*=Math.max(0,1-dt*0.5);
   const az=phead+Math.PI+state.camYaw;
   /* as the eye draws back off the world it also rises over it — the pitch
      the traveller dragged for himself still rules close in, and gives way to
@@ -9496,6 +9697,21 @@ function cameraTick(dt){
     const lc=landAtWorld(cp.x,cp.z);
     const floor=Math.max(seabedDepth(cp.x,cp.z), lc?lc.h*B:-1e9)+3.0;
     if(cp.y<floor) cp.y=floor;
+  }
+  /* ---- THE EYE NEVER GOES UNDER THE GROUND ----
+     The pitch is free now to look UP — the eye swings below the traveller's
+     line and gazes past him at the sky and the vault — so the ground itself
+     must stop it: it settles just over the grass, the planks or the water,
+     and looks up from there. (The swimmer's and the diver's eye keep their
+     own law above, where going under the skin of the sea is the point.) */
+  else { const cp=camera.position;
+    const lc=landAtWorld(cp.x,cp.z);
+    let floor=(lc?lc.h*B:WATER_Y)+1.6;
+    if(state.mode==='deck') floor=Math.max(floor,baseY+0.8);   /* never under the planks */
+    if(cp.y<floor) cp.y=floor;
+    /* nor within the hull, when the eye comes down at the ship's side */
+    if((state.mode==='boat'||state.mode==='deck')&&camInsideShip(cp.x,cp.y,cp.z))
+      cp.y=Math.max(cp.y,boatG.position.y+SD.qdeckY+3.0);
   }
   /* the eye stays WITHIN the firmament — never through the glass, whatever
      the pitch: pressed back inside the tent-vault's skin. (Drawn right back
@@ -9740,10 +9956,14 @@ $('bigmap').addEventListener('click',toggleMap);
    window.storage API is kept as a secondary channel where it exists. */
 const SAVE_KEY='voyage:state';
 async function saveState(){
-  const payload=JSON.stringify({v:6,R:R_WORLD,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
+  const payload=JSON.stringify({v:7,R:R_WORLD,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
     t:state.simHours,m:state.mode==='walk'?'walk':'boat',wx:state.walk.x,wz:state.walk.z,wh:state.walk.heading,
     vis:[...state.visited],d:Math.round(state.dist),wm:state.windMode,fi:state.fish||0,
-    co:state.coins,cg:state.cargo,gm:state.game||0,ib:state.immBreath?1:0,pe:state.pearls||0,rp:state.repel?1:0,rr:state.rep||{},wl:[...wreckLooted],vf:state.vf||0,dp:state.dayIdx});
+    co:state.coins,cg:state.cargo,gm:state.game||0,ib:state.immBreath?1:0,pe:state.pearls||0,rp:state.repel?1:0,rr:state.rep||{},wl:[...wreckLooted],
+    /* v7: the PLACES of the gathered pearls. The count was kept and the sites
+       were not, so every reload regrew every pearl bed — one seabed tile was
+       an unbounded silver farm. */
+    pt:[...pearlTaken],vf:state.vf||0,dp:state.dayIdx});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
 }
@@ -9751,7 +9971,7 @@ async function loadSaved(){
   let raw=null;
   try{ if(window.storage){ const r=await window.storage.get(SAVE_KEY); if(r&&r.value) raw=r.value; } }catch(e){}
   if(!raw){ try{ raw=localStorage.getItem(SAVE_KEY); }catch(e){} }
-  try{ const o=JSON.parse(raw); if(o&&o.v>=2&&o.v<=6){
+  try{ const o=JSON.parse(raw); if(o&&o.v>=2&&o.v<=7){
     /* a voyage saved when the world was narrower is carried to the SAME
        SPOT ON THE MAP: places scale with the radius they were kept at */
     const sc=R_WORLD/(o.R||120000);
@@ -9787,7 +10007,13 @@ $('b-time').onclick=()=>{ state.paused=!state.paused;
    not a wall of buttons; on a wide screen it is always out and the ☰ is
    never shown. Turning a telephone on its side gives it back. */
 function railFits(){ return innerWidth>900; }
-function syncRail(){ if(railFits()) D.body.classList.remove('rail-shut'); }
+/* opening OR closing with the width — it only ever opened before, so turning
+   a phone back upright left the full wall of buttons across half the screen */
+let _railWide=railFits();
+function syncRail(){ const wide=railFits();
+  if(wide) D.body.classList.remove('rail-shut');
+  else if(_railWide) D.body.classList.add('rail-shut');
+  _railWide=wide; }
 $('b-rail').onclick=()=>{ D.body.classList.toggle('rail-shut'); };
 if(!railFits()) D.body.classList.add('rail-shut');
 addEventListener('resize',syncRail);
@@ -10023,7 +10249,10 @@ function fireflyTick(px,pz,dt,t,nightF){
     f.x+=Math.sin(t*0.7+f.ph)*2.4*dt; f.z+=Math.cos(t*0.5+f.ph*1.7)*2.4*dt;
     f.m.visible=true;
     f.m.position.set(f.x,f.y+Math.sin(t*1.3+f.ph)*0.9,f.z);
-    f.m.material.opacity=0.2+0.6*Math.max(0,Math.sin(t*2.1+f.ph*3)); }
+    /* a spark at the edge of its round dims away instead of blinking out —
+       the pool edge (170) used to cut a lit fly off in one frame */
+    const edge=Math.max(0,Math.min(1,(170-Math.hypot(f.x-px,f.z-pz))/45));
+    f.m.material.opacity=(0.2+0.6*Math.max(0,Math.sin(t*2.1+f.ph*3)))*edge; }
 }
 
 /* ---- CHANCE MEETINGS ON THE DEEP — the sea has stories in it ----
@@ -10062,7 +10291,7 @@ function encounterTick(px,pz,dt,t){
     ENC.cool-=dt;
     if(ENC.cool>0) return;
     ENC.cool=8;                                          /* try again soon if this spot fails */
-    const a=Math.random()*6.28, r=420+Math.random()*800;
+    const a=Math.random()*6.28, r=700+Math.random()*520;   /* born in the haze, met by sailing */
     const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
     if(landAtWorld(x,z)||shoalAt(x,z)>0.55||Math.hypot(x,z)/R_WORLD>0.93) return;
     const roll=Math.random();
@@ -10231,7 +10460,9 @@ function findStart(){
   return [0.17*R_WORLD,0.26*R_WORLD];
 }
 let running=false, saveT=0;
+let _begun=false;
 async function begin(fresh){
+  if(_begun) return; _begun=true;   /* a double-click on Set sail built the cities twice */
   computeSites();
   cellCacheOn=true; CELL_CACHE.clear();   /* sites are fixed — the terrain is now immutable and memoisable */
   buildYahru(); buildHome();
@@ -10250,6 +10481,7 @@ async function begin(fresh){
     if(saved.rp){ state.repel=true; updateRepelBtn(); }
     if(saved.rr) state.rep=saved.rr;
     if(saved.wl) for(const k of saved.wl) wreckLooted.add(k);
+    if(saved.pt) for(const k of saved.pt) pearlTaken.add(k);
     if(saved.vf) state.vf=1;
     if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); }
     if(saved.dp!==undefined&&DAYPARTS[saved.dp]){ state.dayIdx=saved.dp; updateDayBtn(); } }
@@ -10294,7 +10526,8 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
     sunR:+(Math.hypot(sun.position.x,sun.position.z)/R_WORLD).toFixed(3),
     moonR:+(Math.hypot(moon.position.x,moon.position.z)/R_WORLD).toFixed(3),
     domeR:+(R_DOME/R_WORLD).toFixed(3), faceY:aloftDisc?Math.round(aloftDisc.position.y):null,
-    sunVis:sun.visible, moonVis:moon.visible }),
+    sunVis:sun.visible, moonVis:moon.visible,
+    sunOp:+sunMat2.opacity.toFixed(3), moonOp:+moonMat2.opacity.toFixed(3) }),
   makeBeast,makeAnimal,makeBird,beastUnits,BEASTS,U_PER_M,POD,initPod,SHARKS,initSharks,initSeaMobs,
   seaMobs:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS})};
 
@@ -10365,8 +10598,15 @@ function frame(){
     let wx3=p.x, wz3=p.z;
     if(state.mode==='walk'&&landAtWorld(wx3,wz3)){
       wx3=p.x+Math.sin(state.walk.heading)*36; wz3=p.z+Math.cos(state.walk.heading)*36; }
-    if(!landAtWorld(wx3,wz3)&&seabedMetres(wx3,wz3)<70) shallowView=true;
+    /* WITH A BAND OF HYSTERESIS, exactly as the underwater eye has (and for
+       the same written reason): the bed is a continuous field, and a ship
+       sailing ALONG the 70 m line flipped this every frame — and each flip
+       hid or refurnished the whole reef, kelp, fish and floor in one go.
+       It opens at 70 m and does not close again until 86 m. */
+    if(!landAtWorld(wx3,wz3)){ const bedM=seabedMetres(wx3,wz3);
+      shallowView=frame._shv?bedM<86:bedM<70; }
   }
+  frame._shv=shallowView;
   /* ---- THE TWO GREAT LIGHTS ARE NOT SEEN FROM UNDER THE SEA ----
      They are drawn with the fog off, so from beneath the waves the sun stood
      as a white blaze straight through the water and washed the floor, the
@@ -10477,16 +10717,31 @@ function frame(){
      world into the outer darkness. Drawn back on the wheel, or risen high
      enough that the chart takes over, they are brought down to hang just over
      that charted face, and keep their place above the earth as they should. */
-  if(zMapF>0.02&&!state.firm){
-    const face=(aloftDisc?aloftDisc.position.y:175);
-    const sk=Math.min(1,zMapF*1.15);
+  /* AND THE FIRMAMENT VIEW IS A WHOLE-EARTH VIEW LIKE ANY OTHER: it used to
+     be passed over here (!state.firm), so the lights kept the TRAVELLER's
+     own sky — a sun that had set where he stood sat half a world's radius
+     BELOW the disc, under the bronze table, and the view from the firmament
+     had no sun and no moon in it at all. */
+  const wholeF=state.firm?1:zMapF;
+  if(wholeF>0.02){
+    const face=state.firm?180:(aloftDisc?aloftDisc.position.y:175);
+    const sk=Math.min(1,wholeF*1.15);
     sun.position.y +=((face+R_WORLD*0.030)-sun.position.y)*sk;
     moon.position.y+=((face+R_WORLD*0.026)-moon.position.y)*sk;
+    /* THE WHOLE EARTH NEVER LOSES ITS LIGHTS. The discs kept the traveller's
+       local brightness — zero once a light had set at his own feet — so
+       beholding the world entire at his local midnight, the sun (and often
+       the moon with it) simply vanished from over the face of the earth.
+       Seen from without, the sun is always shining on some country of the
+       disc: both lights burn full in the whole-earth views, each standing
+       over the lands where its own hour is now. */
+    sunMat2.opacity =Math.max(sunMat2.opacity, wholeF);
+    moonMat2.opacity=Math.max(moonMat2.opacity,wholeF);
     /* and never outside the vault, whatever the hour or the season */
     for(const L of [sun,moon]){ const rr=Math.hypot(L.position.x,L.position.z);
       if(rr>R_DOME*0.94){ const k2=R_DOME*0.94/rr; L.position.x*=k2; L.position.z*=k2; } }
   }
-  haloTick(state.firm?1:zMapF);   /* the lights get their glow when the earth is beheld whole */
+  haloTick(wholeF);               /* the lights get their glow when the earth is beheld whole */
   /* drawn right back, the sky about the disc gives way to the outer darkness,
      and the earth is beheld standing within it — as she is.
      AND WITH HIS HAND ON THE GLASS HE IS LOOKING STRAIGHT OUT INTO IT: that
@@ -10518,8 +10773,11 @@ function frame(){
     /* over the furnished shallows the discs drop far beneath the lit bed, so
        the true floor and its life show through the clear water — while the
        water past the patch still has the deep's own blue standing under it */
-    sea.position.y=shallowView?WATER_Y-520:WATER_Y-60;
-    seaDeep.position.y=shallowView?WATER_Y-820:WATER_Y-300; }
+    /* the discs EASE between their two stations — dropped 460 units in one
+       frame, what showed through the water everywhere changed in one frame
+       with them, a whole-ocean flicker at every crossing of the shelf line */
+    sea.position.y    +=((shallowView?WATER_Y-520:WATER_Y-60 )-sea.position.y    )*Math.min(1,dt*2.5);
+    seaDeep.position.y+=((shallowView?WATER_Y-820:WATER_Y-300)-seaDeep.position.y)*Math.min(1,dt*2.5); }
   seaLifeTick(p.x,p.z,dt);
   splashTick(dt);
   fishTick(dt);
@@ -10528,9 +10786,13 @@ function frame(){
   netTick(dt);
   if(!state.firm&&state.mode!=='dive') traderTick(p.x,p.z,dt); else hideTraders();
   audioTick(light.storm||0);
-  /* stream faster when the traveller outruns the mesher — a swift ship or a
-     flyer eats chunks at 300+ units/s and 4-a-frame falls behind the fog line */
-  const chunkBudget=(state.mode==='fly'||Math.abs(state.boat.speed)>70)?9:4;
+  /* stream faster when the traveller outruns the mesher — judged by how fast
+     he is TRULY moving, whatever is carrying him (ship, wings, or a fair
+     wind), so the ground always arrives behind the haze and never inside it */
+  const trueSpd=Math.hypot(p.x-(frame._px!==undefined?frame._px:p.x),
+                           p.z-(frame._pz!==undefined?frame._pz:p.z))/Math.max(dt,1e-3);
+  frame._px=p.x; frame._pz=p.z;
+  const chunkBudget=(state.mode==='fly'||trueSpd>50)?9:4;
   updateChunks(p.x,p.z,chunkBudget);
   /* ---- NOTHING BUT BLOCKS IN GAMEPLAY ----
      The coarse far ring is BANISHED from the played world. Down on the sea,
@@ -10547,7 +10809,10 @@ function frame(){
      complaint: a fragment of the world instead of the world. Once the
      charted face is more than half in, the chunks and the coarse ring are
      taken out of the view altogether and the earth is shown whole. */
-  const showNear = !state.firm && zMapF<0.75;
+  /* the cut waits until the charted face is nearly OPAQUE (0.97, not 0.75) —
+     at three-quarters faded a quarter of the near world still showed, and
+     then vanished in a single frame */
+  const showNear = !state.firm && zMapF<0.97;
   chunkRoot.visible = showNear;
   /* the near WATER goes with the near land. The wave grid is a flat square
      5,000 units on a side: left standing while the charted face came up
@@ -10555,9 +10820,16 @@ function frame(){
      little patch of streamed land inside it — which is worse than either on
      its own. The two backdrop sheets go with it. */
   if(!showNear){ waveGrid.visible=false; sea.visible=false; seaDeep.visible=false; }
-  const carpet = viewReach>ALOFT_EYE || zMapF>0.02;
-  if(showNear&&!underEye&&carpet){ farLand.visible=true; updateFarLand(p.x,p.z,false,eyeY); }
-  else farLand.visible=false;
+  /* THE CARPET NEITHER BLINKS NOR POPS: the on/off line has a band of
+     hysteresis (hover at exactly y=1000 used to flick the whole coarse world
+     on and off frame by frame), and the ring FADES in and out instead of
+     appearing whole in one frame. */
+  const carpet = frame._carpetOn ? (viewReach>ALOFT_EYE*0.85||zMapF>0.012)
+                                 : (viewReach>ALOFT_EYE||zMapF>0.02);
+  frame._carpetOn = showNear&&!underEye&&carpet;
+  farLandMat.opacity+=((frame._carpetOn?1:0)-farLandMat.opacity)*Math.min(1,dt*2.5);
+  farLand.visible=farLandMat.opacity>0.02;
+  if(frame._carpetOn) updateFarLand(p.x,p.z,false,eyeY);
   updateVillages(p.x,p.z,dt,light.nightF);
   updateLandmarks(p.x,p.z);
   /* the living world — weather, hearths, fireflies, meetings, murmurs */
@@ -10609,7 +10881,15 @@ function frame(){
     cloudCover.visible=above>0.003&&cloudFade>0.01;
     cloudDeck.visible=cloudWisp.visible=above>0.003&&deckFade>0.01&&cloudFade>0.01;
     if(above>0.003){
-      cloudDeck.position.set(p.x,CLOUD_Y,p.z); updateCloudDeck(p.x,p.z);
+      /* the deck's 17k-vertex re-noise ran EVERY frame however far above it
+         the eye stood — a steady tax paid exactly when the flyer needs the
+         frames. Close over the deck it still runs each frame (there it must
+         be glassy-smooth); high above, where a lagging edge cannot be seen,
+         it takes a breath between rebuilds. */
+      const nearDeck=Math.abs(eyeY-CLOUD_Y)<520;
+      frame._cdT=(frame._cdT||0)-dt;
+      if(nearDeck||frame._cdT<=0){ frame._cdT=0.28;
+        cloudDeck.position.set(p.x,CLOUD_Y,p.z); updateCloudDeck(p.x,p.z); }
       cloudDeckMat.opacity=above*deckFade*cloudFade; cloudDeckMat.color.copy(mix3(0x6b7690,0xe6cba4,0xffffff,light.dayF));
       cloudWisp.position.x=p.x; cloudWisp.position.z=p.z;
       wispMat.opacity=above*0.5*deckFade*cloudFade; wispMat.color.copy(mix3(0x4a5570,0xe0c49c,0xffffff,light.dayF));
@@ -10629,13 +10909,17 @@ function frame(){
      mode, so there is no longer a seam where one world ends and another
      begins. */
   if(!state.firm&&(underEye||shallowView)){
+    frame._deepHold=0.75;
     const dv=state.mode==='dive';
     const dx2=dv?state.dive.x:(underEye?camera.position.x:p.x), dz2=dv?state.dive.z:(underEye?camera.position.z:p.z);
     const dy2=dv?state.dive.y:(underEye?camera.position.y:SEA_SURF-6);
     initDeep();
     updateDeep(dx2,dy2,dz2,dt,underEye?Math.min(1,Math.max(0,SEA_SURF-dy2)/560):0,dv);
   }
-  else if(deepShown) hideDeep();
+  /* the furnished deep is not struck the instant the eye leaves it — a short
+     hold rides out a wave crest or a step ashore, so the reef never strobes */
+  else if(deepShown){ frame._deepHold=(frame._deepHold||0)-dt;
+    if(frame._deepHold<=0) hideDeep(); }
   /* the beasts of the field and the fowl of the air, over all the earth */
   if(!state.firm&&state.mode!=='dive'){ const tt=performance.now()*0.001, night=(light.nightF||0)>0.5;
     updateAirLife(p.x,p.z,dt,tt,night);
