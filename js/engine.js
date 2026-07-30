@@ -1800,7 +1800,9 @@ const FOG_FAR=1140, FOG_NEAR=500;
 const ALOFT_EYE=1000;
 scene.fog=new THREE.Fog(0x9fc5e8,FOG_NEAR,FOG_FAR); const FOG=scene.fog;
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,1,R_WORLD*3.2);
-const renderer=new THREE.WebGLRenderer({canvas:$('cv'),antialias:false});
+/* antialias ON — a world built of blocks is ALL edges, and smoothed edges
+   are half the difference between a tech demo and a finished game */
+const renderer=new THREE.WebGLRenderer({canvas:$('cv'),antialias:true});
 renderer.setPixelRatio(Math.min(2,devicePixelRatio||1));
 renderer.setSize(innerWidth,innerHeight);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
@@ -1810,9 +1812,17 @@ scene.background=new THREE.Color(0x9fc5e8);
 const hemi=new THREE.HemisphereLight(0xffffff,0x777788,0.9); scene.add(hemi);
 const dirL=new THREE.DirectionalLight(0xffffff,0.5); dirL.position.set(0.4,1,0.25); scene.add(dirL);
 
+/* ---- THE TWO BACKDROP DISCS STAND WELL APART ----
+   They lay four units from one another (−12 and −16) with the wave grid
+   eight above, and a depth buffer stretched over a 576,000-unit far plane
+   cannot tell planes that close apart at a glancing angle: looked down on
+   from a mountain, the far water shimmered and striped as the three fought
+   for every pixel — the famous glitch in the sea seen from every summit.
+   They are spread by hundreds of units now (the eye cannot tell a flat
+   backdrop's depth anyway), and the fighting has nothing left to fight. */
 const seaDeep=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),
   new THREE.MeshBasicMaterial({color:0x0c2c48}));
-seaDeep.rotation.x=-Math.PI/2; seaDeep.position.y=WATER_Y-16; scene.add(seaDeep);
+seaDeep.rotation.x=-Math.PI/2; seaDeep.position.y=WATER_Y-300; scene.add(seaDeep);
 /* beyond the wall of ice — the OUTER DARKNESS, that no man may look past:
    a tall wall of night just outside the rim, so nothing of "the other side"
    is ever seen — only blackness set with stars, by day as by night. */
@@ -1875,7 +1885,7 @@ const farSeaMat=new THREE.MeshBasicMaterial({color:0x123353});
 const sea=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),farSeaMat);
 /* the dark bed of the sea sits WELL below the surface now, so the sandy
    shelf along every coast truly shows through the clear shallows above it */
-sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y-12; scene.add(sea);
+sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y-60; scene.add(sea);
 
 /* ================= THE WAVES OF THE DEEP =================
    A true trochoidal (Gerstner) sea: several travelling swells summed, so
@@ -2013,12 +2023,22 @@ const waveMat=new THREE.ShaderMaterial({
          broken ragged by the water texture so no two waves break alike */
       float lap=0.0;
       if(shoalRaw>0.5){
+        /* ---- THE WASH BELONGS TO THE COAST, NOT TO THE RIVERS ----
+           The shore-foam is driven by the distance-to-land field, and a
+           river lies within a pixel of land on BOTH banks — the field reads
+           'water's edge' across its whole surface, and every waterway inland
+           burned as one solid sheet of flashing white. Water that is wholly
+           ENCLOSED by land (the field at its ceiling) takes no surf at all
+           now: the sea still breaks on every beach, and the rivers run
+           smooth and clear as rivers do. */
+        float open=1.0-smoothstep(0.955,0.985,shoalRaw);
         float ring=fract(shoalRaw*7.0-uTime*0.32);
         float crest=smoothstep(0.58,0.88,ring)-smoothstep(0.9,1.0,ring);
         float brk=0.35+0.75*texture2D(uMap, vP*0.008+vec2(uTime*0.006,uTime*0.004)).b;
-        lap=clamp(crest,0.0,1.0)*smoothstep(0.5,0.85,shoalRaw)*brk;
-        /* and a standing line of white wash right at the water's edge */
-        lap+=smoothstep(0.9,0.99,shoalRaw)*brk*(0.5+0.3*sin(uTime*1.7+shoalRaw*40.0));
+        lap=clamp(crest,0.0,1.0)*smoothstep(0.5,0.85,shoalRaw)*brk*open;
+        /* and a line of white wash toward the water's edge — on the open
+           coast alone */
+        lap+=smoothstep(0.9,0.99,shoalRaw)*brk*(0.5+0.3*sin(uTime*1.7+shoalRaw*40.0))*open;
       }
       float allFoam=clamp(foam*0.32+wake*0.95+lap,0.0,1.0);
       /* foam is white ON TOP of the water; from underneath it is only a
@@ -2915,6 +2935,12 @@ function swimPod(arr,lens,P,t,dt,beat,spout){
     const wx=P.x+Math.sin(t*0.13+off)*40+k*lane*0.55;
     const wz=P.z+Math.cos(t*0.11+off)*40-k*lane*0.45;
     if(landAtWorld(wx,wz)){ m.visible=false; continue; }   /* nothing spouts upon the dry land */
+    /* and the whole LENGTH of her stays off it: a whale is half a ship long,
+       and with only her middle tested her head lay through the coast rock */
+    { const nose=len*0.55;
+      if(landAtWorld(wx+Math.sin(P.dir)*nose,wz+Math.cos(P.dir)*nose)
+       ||landAtWorld(wx-Math.sin(P.dir)*nose,wz-Math.cos(P.dir)*nose)
+       ||SEA_SURF-seabedDepth(wx,wz)<len*0.25){ m.visible=false; continue; } }
     const arc=Math.sin(t*beat+off*1.7);
     /* she rides with her back awash and rolls up to blow — both measured off
        her own girth, so a calf does not breach like a bull */
@@ -3277,17 +3303,26 @@ function sizeToTrue(kind,inner){
   g.add(inner); g.userData=inner.userData||{}; return g;
 }
 function buildOldAnimal(kind){
-  const g=new THREE.Group(); const legs=[];
+  const g=new THREE.Group(); const legs=[]; let tailRef=null;
   function fourLegs(w,d,lh,col){ for(const sx of [1,-1]) for(const sz of [1,-1]){
     const L=lbox(0.9,lh*0.55,0.9,col); L.geometry.translate(0,-lh*0.275,0);   // thigh, pivot at the hip
     L.position.set(sx*w,lh,sz*d);
     const S=lbox(0.8,lh*0.5,0.8,col); S.geometry.translate(0,-lh*0.25,0);     // shin, hung from the knee
     S.position.set(0,-lh*0.53,0); L.add(S); L.userData.knee=S;
     L.userData.ph=(sx*sz>0)?0:Math.PI; g.add(L); legs.push(L); } }
+  /* ---- EVERY BEAST HAS A FACE ----
+     Two dark eyes set on the front corners of the head — the one detail that
+     turns a box into a creature looking at you. */
+  function eyes(hx,hy,hz,sz2,col){ for(const sd of [1,-1]){
+    const e=lbox(sz2||0.3,sz2||0.3,0.2,col||0x14100c);
+    e.position.set(sd*hx,hy,hz); g.add(e); } }
   if(kind==='sheep'){
     const body=new THREE.Mesh(new THREE.BoxGeometry(3.4,2.6,4.6),
       new THREE.MeshLambertMaterial({map:TEX.wool})); body.position.y=3.4; g.add(body);
     const head=lbox(1.6,1.7,1.6,0xead9c8); head.position.set(0,4.3,2.9); g.add(head);
+    eyes(0.5,4.6,3.72,0.3);
+    for(const s of [1,-1]){ const ear=lbox(0.6,0.35,0.3,0xdcc9b4); ear.position.set(s*1.0,4.7,2.8); g.add(ear); }
+    tailRef=lbox(0.7,0.7,0.5,0xefe8dc); tailRef.position.set(0,3.6,-2.5); g.add(tailRef);
     fourLegs(1.1,1.5,2.1,0xd9d0c0);
   } else if(kind==='cow'){
     const cowTex=mkTex(gg=>{ speckle(gg,[92,64,44],14);
@@ -3297,100 +3332,143 @@ function buildOldAnimal(kind){
       new THREE.MeshLambertMaterial({map:cowTex})); body.position.y=3.8; g.add(body);
     const head=lbox(1.9,1.9,1.6,0x6b4a34); head.position.set(0,4.7,3.3); g.add(head);
     const muz=lbox(1.4,0.9,0.5,0xd9cfc2); muz.position.set(0,4.3,4.2); g.add(muz);
-    for(const s of [1,-1]){ const h2=lbox(0.4,0.4,0.7,0xe8e2d2); h2.position.set(s*1.05,5.5,3.2); g.add(h2); }
+    for(const s of [1,-1]){ const h2=lbox(0.4,0.4,0.7,0xe8e2d2); h2.position.set(s*1.05,5.5,3.2); g.add(h2);
+      const ear=lbox(0.55,0.4,0.3,0x5a4030); ear.position.set(s*1.1,5.1,3.1); g.add(ear); }
+    eyes(0.6,5.1,4.14,0.34);
+    for(const s of [1,-1]){ const nos=lbox(0.25,0.25,0.2,0x8a7a6a); nos.position.set(s*0.4,4.35,4.48); g.add(nos); }
+    tailRef=lbox(0.4,2.0,0.4,0x4a3626); tailRef.geometry.translate(0,-1.0,0); tailRef.position.set(0,4.8,-2.8); g.add(tailRef);
     fourLegs(1.2,1.9,2.3,0x5a4030);
   } else if(kind==='pig'){
     const body=lbox(3.2,2.4,4.6,0xefa2a2); body.position.y=2.9; g.add(body);
     const head=lbox(2,2,1.4,0xefa2a2); head.position.set(0,3.3,2.9); g.add(head);
     const snout=lbox(1.1,0.8,0.4,0xe58a8a); snout.position.set(0,3.1,3.7); g.add(snout);
+    eyes(0.62,3.8,3.62,0.28);
+    for(const s of [1,-1]){ const nos=lbox(0.2,0.3,0.14,0xc87878); nos.position.set(s*0.24,3.1,3.94); g.add(nos);
+      const ear=lbox(0.55,0.55,0.25,0xdf9494); ear.position.set(s*0.85,4.35,2.7); ear.rotation.z=s*0.3; g.add(ear); }
+    tailRef=lbox(0.3,0.3,0.7,0xe58a8a); tailRef.position.set(0,3.4,-2.5); tailRef.rotation.x=-0.7; g.add(tailRef);
     fourLegs(1.05,1.6,1.6,0xdf9494);
   } else if(kind==='chicken'){
     const body=lbox(1.7,1.7,2.3,0xeeeeea); body.position.y=1.9; g.add(body);
     const head=lbox(1,1.4,1,0xf2f2ee); head.position.set(0,3.3,1.1); g.add(head);
     const beak=lbox(0.7,0.4,0.5,0xdf9c2a); beak.position.set(0,3.2,1.75); g.add(beak);
     const wat=lbox(0.4,0.5,0.3,0xc23a2a); wat.position.set(0,2.7,1.6); g.add(wat);
+    const comb=lbox(0.3,0.55,0.8,0xc23a2a); comb.position.set(0,4.2,1.0); g.add(comb);
+    eyes(0.52,3.6,1.52,0.22);
+    tailRef=lbox(0.9,1.1,0.5,0xdcdcd6); tailRef.position.set(0,2.6,-1.3); tailRef.rotation.x=0.5; g.add(tailRef);
     for(const s of [1,-1]){ const w2=lbox(0.3,1.2,1.9,0xdcdcd6); w2.position.set(s*1,2.1,0.1); g.add(w2); }
     fourLegs(0.45,0.4,0.8,0xdf9c2a);
   } else if(kind==='hare'){       /* a creeping thing of the field */
     const body=lbox(1.1,1.1,1.8,0xb8a184); body.position.y=1.2; g.add(body);
     const head=lbox(0.9,0.9,0.9,0xc8b494); head.position.set(0,1.7,1.1); g.add(head);
+    eyes(0.47,1.85,1.4,0.22);
+    const nose=lbox(0.24,0.2,0.14,0x8a7060); nose.position.set(0,1.6,1.6); g.add(nose);
     for(const s of [1,-1]){ const ear=lbox(0.3,1.3,0.3,0xc8b494); ear.position.set(s*0.3,2.7,0.9); g.add(ear); }
     const tail=lbox(0.5,0.5,0.4,0xefe8dc); tail.position.set(0,1.3,-1); g.add(tail);
     fourLegs(0.4,0.6,0.7,0xa08868);
   } else if(kind==='lizard'){     /* a creeping thing of the rocks */
     const body=lbox(0.7,0.5,2.2,0x6f7a44); body.position.y=0.6; g.add(body);
     const head=lbox(0.8,0.6,0.9,0x7a854c); head.position.set(0,0.7,1.4); g.add(head);
-    const tail=lbox(0.4,0.35,1.8,0x636c3c); tail.position.set(0,0.55,-1.9); g.add(tail);
+    eyes(0.42,0.85,1.6,0.18,0xd9c93f);
+    const tail=lbox(0.4,0.35,1.8,0x636c3c); tail.position.set(0,0.55,-1.9); g.add(tail); tailRef=tail;
     fourLegs(0.55,0.7,0.5,0x5c6438);
   } else if(kind==='goat'){
     const body=lbox(2.4,2.2,3.6,0xcfc4b0); body.position.y=3.0; g.add(body);
     const head=lbox(1.3,1.4,1.4,0xdad0be); head.position.set(0,3.9,2.3); g.add(head);
+    eyes(0.42,4.2,3.02,0.26,0xd9b83f);
+    const beard=lbox(0.35,0.7,0.3,0xb7ac98); beard.position.set(0,3.1,2.9); g.add(beard);
     for(const s of [1,-1]){ const horn=lbox(0.3,0.9,0.3,0x6a5c44); horn.position.set(s*0.4,4.9,2.1);
-      horn.rotation.x=-0.5; g.add(horn); }
+      horn.rotation.x=-0.5; g.add(horn);
+      const ear=lbox(0.5,0.3,0.25,0xcfc4b0); ear.position.set(s*0.85,4.3,2.2); ear.rotation.z=s*0.4; g.add(ear); }
+    tailRef=lbox(0.35,0.7,0.3,0xb7ac98); tailRef.position.set(0,3.9,-1.9); tailRef.rotation.x=0.6; g.add(tailRef);
     fourLegs(0.9,1.3,2.0,0xb7ac98);
   } else if(kind==='camel'){
     const body=lbox(2.8,3,5.6,0xc8a06a); body.position.y=4.8; g.add(body);
     const hump=lbox(1.9,1.4,2,0xb8905a); hump.position.set(0,6.9,0.4); g.add(hump);
     const neck=lbox(1.2,2.8,1.2,0xc8a06a); neck.position.set(0,6.6,2.6); g.add(neck);
     const head=lbox(1.4,1.2,2,0xb8905a); head.position.set(0,8.2,3.2); g.add(head);
+    eyes(0.55,8.5,4.0,0.26);
+    for(const s of [1,-1]){ const ear=lbox(0.35,0.4,0.25,0xb8905a); ear.position.set(s*0.6,8.85,2.7); g.add(ear); }
+    tailRef=lbox(0.35,1.8,0.35,0xa8834f); tailRef.geometry.translate(0,-0.9,0); tailRef.position.set(0,5.6,-2.9); g.add(tailRef);
     fourLegs(1,2.1,3.3,0xb08a56);
   } else if(kind==='horse'){
     const col=0x6a4a2e; const body=lbox(2.2,2.6,5.4,col); body.position.y=4.2; g.add(body);
     const neck=lbox(1.3,2.6,1.3,col); neck.position.set(0,5.6,2.4); neck.rotation.x=-0.5; g.add(neck);
     const head=lbox(1.2,1.5,2.4,col); head.position.set(0,6.6,3.4); g.add(head);
+    eyes(0.5,7.0,4.2,0.28);
+    for(const s of [1,-1]){ const ear=lbox(0.3,0.7,0.3,col); ear.position.set(s*0.4,7.6,2.9); g.add(ear);
+      const nos=lbox(0.22,0.22,0.16,0x3a2a1a); nos.position.set(s*0.3,6.4,4.62); g.add(nos); }
+    const blaze=lbox(0.42,0.9,0.16,0xe8e0d0); blaze.position.set(0,6.9,4.62); g.add(blaze);
     const mane=lbox(0.4,2.4,1.3,0x2e2018); mane.position.set(0,6.0,2.0); mane.rotation.x=-0.5; g.add(mane);
-    const tail=lbox(0.5,2.4,0.5,0x2e2018); tail.position.set(0,4.4,-2.9); tail.rotation.x=0.5; g.add(tail);
+    const tail=lbox(0.5,2.4,0.5,0x2e2018); tail.position.set(0,4.4,-2.9); tail.rotation.x=0.5; g.add(tail); tailRef=tail;
     fourLegs(0.9,2.0,3.2,0x4a3320);
   } else if(kind==='donkey'){
     const col=0x9a938a; const body=lbox(1.8,2.2,4.4,col); body.position.y=3.6; g.add(body);
     const neck=lbox(1.1,2.2,1.1,col); neck.position.set(0,4.8,2.0); neck.rotation.x=-0.5; g.add(neck);
     const head=lbox(1.0,1.3,2.0,col); head.position.set(0,5.6,3.0); g.add(head);
     for(const s of[1,-1]){ const ear=lbox(0.35,1.4,0.35,col); ear.position.set(s*0.4,6.6,2.6); g.add(ear); }
-    const tail=lbox(0.4,1.8,0.4,0x5a534a); tail.position.set(0,3.8,-2.4); tail.rotation.x=0.4; g.add(tail);
+    eyes(0.42,5.9,4.02,0.26);
+    const muz2=lbox(0.7,0.5,0.3,0xc8c2ba); muz2.position.set(0,5.3,4.05); g.add(muz2);
+    const tail=lbox(0.4,1.8,0.4,0x5a534a); tail.position.set(0,3.8,-2.4); tail.rotation.x=0.4; g.add(tail); tailRef=tail;
     fourLegs(0.75,1.6,2.6,0x7a736a);
   } else if(kind==='ox'){
     const body=lbox(3.4,3.0,6.0,0x5a4436); body.position.y=4.2; g.add(body);
     const head=lbox(2.0,2.0,1.8,0x4a3628); head.position.set(0,4.9,3.6); g.add(head);
-    for(const s of[1,-1]){ const horn=lbox(0.35,0.35,1.4,0xe8e0d0); horn.position.set(s*1.2,5.6,3.6); horn.rotation.z=s*0.5; g.add(horn); }
+    eyes(0.62,5.3,4.52,0.32);
+    const muz3=lbox(1.3,0.8,0.4,0xc8bcae); muz3.position.set(0,4.4,4.6); g.add(muz3);
+    for(const s of[1,-1]){ const horn=lbox(0.35,0.35,1.4,0xe8e0d0); horn.position.set(s*1.2,5.6,3.6); horn.rotation.z=s*0.5; g.add(horn);
+      const ear=lbox(0.55,0.4,0.3,0x4a3628); ear.position.set(s*1.15,5.15,3.4); g.add(ear); }
+    tailRef=lbox(0.4,2.2,0.4,0x3a2a1e); tailRef.geometry.translate(0,-1.1,0); tailRef.position.set(0,5.3,-3.1); g.add(tailRef);
     fourLegs(1.3,2.1,2.7,0x4a3628);
   } else if(kind==='wolf'){
     const col=0x8a8f96; const body=lbox(1.6,1.6,3.6,col); body.position.y=2.2; g.add(body);
     const head=lbox(1.3,1.3,1.4,col); head.position.set(0,2.6,2.2); g.add(head);
     const snout=lbox(0.7,0.6,0.8,0x6a6f76); snout.position.set(0,2.4,3.0); g.add(snout);
+    eyes(0.4,2.95,2.92,0.22,0xd9c93f);
+    const nose=lbox(0.3,0.24,0.16,0x14100c); nose.position.set(0,2.5,3.44); g.add(nose);
     for(const s of[1,-1]){ const ear=lbox(0.4,0.7,0.3,col); ear.position.set(s*0.5,3.4,2.1); g.add(ear); }
-    const tail=lbox(0.6,0.6,1.8,col); tail.position.set(0,2.6,-2.2); tail.rotation.x=0.4; g.add(tail);
+    const tail=lbox(0.6,0.6,1.8,col); tail.position.set(0,2.6,-2.2); tail.rotation.x=0.4; g.add(tail); tailRef=tail;
     fourLegs(0.6,1.2,2.0,0x70767c);
   } else if(kind==='dog'){
     const col=0xb98a52; const body=lbox(1.2,1.2,2.8,col); body.position.y=1.9; g.add(body);
     const head=lbox(1.1,1.1,1.2,col); head.position.set(0,2.3,1.7); g.add(head);
     const snout=lbox(0.6,0.5,0.7,0x8a6238); snout.position.set(0,2.1,2.4); g.add(snout);
+    eyes(0.34,2.6,2.32,0.2);
+    const nose=lbox(0.26,0.2,0.14,0x14100c); nose.position.set(0,2.2,2.8); g.add(nose);
     for(const s of[1,-1]){ const ear=lbox(0.4,0.6,0.3,0x8a6238); ear.position.set(s*0.5,3.0,1.6); g.add(ear); }
-    const tail=lbox(0.4,0.4,1.4,col); tail.position.set(0,2.4,-1.8); tail.rotation.x=0.5; g.add(tail);
+    const tail=lbox(0.4,0.4,1.4,col); tail.position.set(0,2.4,-1.8); tail.rotation.x=0.5; g.add(tail); tailRef=tail;
     fourLegs(0.45,0.9,1.6,0x9a723e);
   } else if(kind==='lion'){
     const col=0xcaa25a; const body=lbox(2.0,2.0,4.4,col); body.position.y=2.8; g.add(body);
     const mane=lbox(2.4,2.4,1.2,0x8a5a2a); mane.position.set(0,3.4,2.2); g.add(mane);
     const head=lbox(1.6,1.6,1.6,col); head.position.set(0,3.4,2.9); g.add(head);
     const snout=lbox(0.9,0.7,0.7,0xd8b878); snout.position.set(0,3.1,3.7); g.add(snout);
-    const tail=lbox(0.4,0.4,2.2,col); tail.position.set(0,3.0,-2.6); tail.rotation.x=0.3; g.add(tail);
+    eyes(0.46,3.75,3.72,0.24,0xd9b83f);
+    const nose2=lbox(0.34,0.24,0.16,0x2a1c12); nose2.position.set(0,3.25,4.08); g.add(nose2);
+    for(const s of[1,-1]){ const ear=lbox(0.4,0.4,0.3,0x8a5a2a); ear.position.set(s*0.75,4.25,2.5); g.add(ear); }
+    const tail=lbox(0.4,0.4,2.2,col); tail.position.set(0,3.0,-2.6); tail.rotation.x=0.3; g.add(tail); tailRef=tail;
     const tuft=lbox(0.6,0.6,0.6,0x8a5a2a); tuft.position.set(0,2.4,-3.6); g.add(tuft);
     fourLegs(0.75,1.5,2.4,0xb08a48);
   } else if(kind==='deer'){
     const col=0x9a6a3a; const body=lbox(1.7,2.0,4.2,col); body.position.y=3.4; g.add(body);
     const neck=lbox(1.0,2.2,1.0,col); neck.position.set(0,4.8,2.0); neck.rotation.x=-0.6; g.add(neck);
     const head=lbox(1.0,1.1,1.8,col); head.position.set(0,5.8,2.9); g.add(head);
-    for(const s of[1,-1]){ const ant=lbox(0.25,1.6,0.25,0x6a4a2a); ant.position.set(s*0.5,6.8,2.7); ant.rotation.z=s*0.4; g.add(ant); }
-    const tail=lbox(0.5,0.7,0.4,0xefe0d0); tail.position.set(0,3.6,-2.2); g.add(tail);
+    eyes(0.42,6.05,3.6,0.24);
+    const nose3=lbox(0.3,0.24,0.16,0x14100c); nose3.position.set(0,5.7,3.84); g.add(nose3);
+    for(const s of[1,-1]){ const ant=lbox(0.25,1.6,0.25,0x6a4a2a); ant.position.set(s*0.5,6.8,2.7); ant.rotation.z=s*0.4; g.add(ant);
+      const ear=lbox(0.45,0.3,0.25,col); ear.position.set(s*0.6,6.3,2.7); ear.rotation.z=s*0.5; g.add(ear); }
+    const tail=lbox(0.5,0.7,0.4,0xefe0d0); tail.position.set(0,3.6,-2.2); g.add(tail); tailRef=tail;
     fourLegs(0.6,1.5,2.8,0x7a5230);
   } else if(kind==='elephant'){
     const col=0x8f8f96; const body=lbox(4.4,4.2,7.2,col); body.position.y=6.0; g.add(body);
     const head=lbox(3.0,3.0,2.6,col); head.position.set(0,6.6,4.2); g.add(head);
     const trunk=lbox(1.0,3.4,1.0,col); trunk.position.set(0,4.6,5.4); trunk.rotation.x=0.4; g.add(trunk);
+    eyes(0.9,7.3,5.52,0.3);
+    const etail=lbox(0.35,2.4,0.35,0x76767e); etail.geometry.translate(0,-1.2,0); etail.position.set(0,7.2,-3.7); g.add(etail);
     const ears=[];
     for(const s of[1,-1]){ const ear=lbox(0.4,2.8,2.4,0x82828a); ear.position.set(s*2.0,6.8,3.6); g.add(ear); ears.push(ear);
       const tusk=lbox(0.4,0.4,2.0,0xefe8d8); tusk.position.set(s*0.9,5.2,5.4); g.add(tusk); }
     fourLegs(1.6,2.6,4.4,0x76767e);
-    g.userData={legs,ears};
+    g.userData={legs,ears,tail:etail};
     return g;
   }
   else if(kind==='crocodile'){
@@ -3450,9 +3528,13 @@ function buildOldAnimal(kind){
     const neck=lbox(0.8,4.4,0.8,0xd8b89a); neck.position.set(0,8.4,1.2); neck.rotation.x=-0.2; g.add(neck);
     const head=lbox(0.9,0.9,1.4,0xd8b89a); head.position.set(0,10.6,1.8); g.add(head);
     const beak=lbox(0.5,0.5,0.7,0xd8a030); beak.position.set(0,10.5,2.7); g.add(beak);
-    for(const s of[1,-1]){ const L=lbox(0.5,6,0.5,0xc8b0a0); L.geometry.translate(0,-3,0); L.position.set(s*0.7,6,0); L.userData.ph=(s>0)?0:Math.PI; g.add(L); legs.push(L); }
+    eyes(0.36,10.85,2.3,0.24);
+    tailRef=lbox(1.6,1.4,0.8,0xe8e2d6); tailRef.position.set(0,6.6,-1.9); tailRef.rotation.x=0.4; g.add(tailRef);
+    for(const s of[1,-1]){ const wing=lbox(0.4,1.8,2.2,0x2a2422); wing.position.set(s*1.2,5.9,0); g.add(wing);
+      const L=lbox(0.5,6,0.5,0xc8b0a0); L.geometry.translate(0,-3,0); L.position.set(s*0.7,6,0); L.userData.ph=(s>0)?0:Math.PI; g.add(L); legs.push(L); }
   }
   g.userData={legs};
+  if(tailRef) g.userData.tail=tailRef;
   return g;
 }
 /* a bird — a small body with two flapping wings, for the flocks aloft.
@@ -3472,6 +3554,32 @@ function makeBird(type){ type=type||'crow';
   const head=lbox(0.7*S.s,0.7*S.s,0.7*S.s,S.b); head.position.set(0,0.2*S.s,1.1*S.s); g.add(head);
   const wingL=lbox(2.4*S.s,0.16,1.1*S.s,S.w); wingL.geometry.translate(-1.2*S.s,0,0); wingL.position.set(0.4*S.s,0.2*S.s,0); g.add(wingL);
   const wingR=lbox(2.4*S.s,0.16,1.1*S.s,S.w); wingR.geometry.translate(1.2*S.s,0,0); wingR.position.set(-0.4*S.s,0.2*S.s,0); g.add(wingR);
+  /* ---- A BIRD HAS A FACE ----
+     Every fowl was a pair of boxes and read as a toy. Every one of them now
+     carries the things a bird is KNOWN by: two dark eyes, a beak of its own
+     colour, a fanned tail, feet tucked under — and the wings end in a
+     darker row of primary feathers, so they read as wings and not planks. */
+  if(type!=='butterfly'){
+    const BEAKS={crow:0x1e2026,gull:0xd8a02a,dove:0xb08a72,eagle:0xe0b040,owl:0x2a2620,puffin:0xd8621f};
+    const EYES ={crow:0x0c0c10,gull:0x14100c,dove:0x2a1e1a,eagle:0xe8c020,owl:0xe8c020,puffin:0x100c0a};
+    if(type!=='owl'&&type!=='puffin'){       /* those two carry their own faces below */
+      for(const sd of [1,-1]){ const eye=lbox(0.18*S.s,0.18*S.s,0.12,EYES[type]||0x0c0c10);
+        eye.position.set(sd*0.3*S.s,0.34*S.s,1.42*S.s); g.add(eye); }
+      if(type!=='eagle'){ const beak=lbox(0.24*S.s,0.2*S.s,0.5*S.s,BEAKS[type]||0xd8a02a);
+        beak.position.set(0,0.14*S.s,1.6*S.s); g.add(beak); } }
+    if(type!=='eagle'&&type!=='owl'){        /* the fanned tail the rest were missing */
+      const tail=lbox(0.9*S.s,0.14,1.1*S.s,S.w); tail.position.set(0,0.05*S.s,-1.35*S.s);
+      tail.rotation.x=-0.12; g.add(tail); }
+    /* the primaries — a darker feather-row along each wing's trailing edge */
+    for(const W of [wingL,wingR]){ const s2=W===wingL?-1:1;
+      for(let q=0;q<3;q++){ const f=lbox(0.5*S.s,0.14,0.34*S.s,S.b);
+        f.position.set(s2*(0.7+q*0.62)*S.s,-0.02,-0.62*S.s); W.add(f); } }
+    /* and feet, drawn up under the belly */
+    const feet=lbox(0.34*S.s,0.16,0.3*S.s,0xc8892a); feet.position.set(0,-0.46*S.s,0.2*S.s); g.add(feet);
+    /* the gull's grey mantle and the dove's blush, so neither is one flat white */
+    if(type==='gull'){ const mantle=lbox(0.82*S.s,0.2,1.2*S.s,0xc6ccd4); mantle.position.set(0,0.42*S.s,-0.1); g.add(mantle); }
+    if(type==='dove'){ const blush=lbox(0.72*S.s,0.4*S.s,0.4*S.s,0xd8b8b0); blush.position.set(0,-0.1*S.s,0.9*S.s); g.add(blush); }
+  }
   if(type==='eagle'){ const beak=lbox(0.5,0.4,0.6,0xe0b040); beak.position.set(0,0.1,1.9*S.s); g.add(beak);
     const tail=lbox(1.0,0.16,1.2,0xffffff); tail.position.set(0,0,-1.4*S.s); g.add(tail); }
   if(type==='owl'){ const face=lbox(1.0*S.s,0.9*S.s,0.2,0xfbfaf6); face.position.set(0,0.25*S.s,1.4*S.s); g.add(face);
@@ -3518,8 +3626,11 @@ function makeNest(){ const g=new THREE.Group();
 const SEAFISH=[]; let seaLifeInit=false, nextLeap=0;
 function seaLifeTick(px,pz,dt){
   if(!seaLifeInit){ seaLifeInit=true;
-    for(let k=0;k<6;k++){ const f=makeBeast('fish'); f.visible=false; scene.add(f);
-      SEAFISH.push({m:f,active:false,t:0,dur:1,x:0,z:0,dx:0,dz:0,peak:0}); } }
+    /* half the leapers are TRUE FLYING FISH now — they do not merely jump,
+       they spread their pectoral sails and GLIDE a bowshot over the swell,
+       exactly as they do off every warm bow on the real sea */
+    for(let k=0;k<8;k++){ const f=makeBeast(k<4?'fish':'flyingfish'); f.visible=false; scene.add(f);
+      SEAFISH.push({m:f,fly:k>=4,active:false,t:0,dur:1,x:0,z:0,dx:0,dz:0,peak:0}); } }
   nextLeap-=dt;
   const overWater=state.mode!=='walk' || !landAtWorld(px,pz);
   if(nextLeap<=0 && overWater){
@@ -3528,10 +3639,10 @@ function seaLifeTick(px,pz,dt){
     if(fish){ const a=Math.random()*Math.PI*2, r=40+Math.random()*160;
       const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
       if(!landAtWorld(x,z)&&Math.hypot(x,z)/R_WORLD<0.98){
-        const dir=Math.random()*Math.PI*2, len=6+Math.random()*10;
-        fish.active=true; fish.t=0; fish.dur=1.0+Math.random()*0.7;
+        const dir=Math.random()*Math.PI*2, len=fish.fly?(34+Math.random()*36):(6+Math.random()*10);
+        fish.active=true; fish.t=0; fish.dur=fish.fly?(1.8+Math.random()*1.0):(1.0+Math.random()*0.7);
         fish.x=x; fish.z=z; fish.dx=Math.cos(dir)*len; fish.dz=Math.sin(dir)*len;
-        fish.peak=7+Math.random()*7; fish.m.visible=true; } }
+        fish.peak=fish.fly?(4+Math.random()*3):(7+Math.random()*7); fish.m.visible=true; } }
   }
   for(const f of SEAFISH){ if(!f.active) continue;
     f.t+=dt; const u=f.t/f.dur;
@@ -3540,7 +3651,9 @@ function seaLifeTick(px,pz,dt){
     const y=WATER_Y+seaHeight(x,z)+f.peak*Math.sin(Math.PI*u)-1.5;
     f.m.position.set(x,y,z);
     f.m.rotation.y=Math.atan2(f.dx,f.dz);
-    f.m.rotation.x=(u-0.5)*2.6;               /* nose up, then dives */
+    /* a leaper arcs nose-up-then-down; a glider holds nearly level on its sails */
+    f.m.rotation.x=(u-0.5)*(f.fly?0.7:2.6);
+    if(f.fly&&f.m.userData.tail) f.m.userData.tail.rotation.y=u<0.15?Math.sin(f.t*40)*0.6:0;
   }
 }
 
@@ -4054,7 +4167,8 @@ function updateRays(px,py,pz,murk){ initRays();
     const near=Math.min(1,Math.max(0,(Math.hypot(r.x-px,r.z-pz)-90)/110));
     r.m.material.opacity=(1-murk)*0.05*near; r.m.visible=near>0.02; } }
 /* ---- fish schools, squid, bubbles ---- */
-const DIVEFISH=[], DF_N=30, DF_R=240;
+/* the bright reef fish — doubled, because a living reef is never sparse */
+const DIVEFISH=[], DF_N=60, DF_R=240;
 const TROPICAL=[0xff8c2a,0xffd23a,0xff5a7a,0x3ad0ff,0x8a5cff,0xf4f4f4,0x2fd08a,0xff4d4d];
 /* ================= THE SHOALS OF THE SEA =================
    The bright reef fish above is every fish there was: one palm-sized shape in
@@ -4079,6 +4193,11 @@ const SHOAL_KINDS=[
   {name:'salmon',  n:7,  lat:[-72,-38], m:[40,400],  tight:0.45, spd:19, R:240},
   {name:'cod',     n:6,  lat:[42,76],   m:[60,900],  tight:0.25, spd:9,  R:230, bed:true},
   {name:'tuna',    n:4,  lat:[-42,42],  m:[80,2000], tight:0.35, spd:30, R:300},
+  /* the silver the whole sea lives on: the herring of the cold shelves and
+     the anchovy of the warm coasts, in the tightest bait-balls of all */
+  {name:'herring', n:22, lat:[36,74],   m:[40,500],  tight:0.88, spd:16, R:220},
+  {name:'herring', n:14, lat:[-64,-36], m:[40,500],  tight:0.88, spd:16, R:220},
+  {name:'anchovy', n:26, lat:[-46,48],  m:[40,300],  tight:0.94, spd:14, R:200},
 ];
 /* how far under the skin of the sea the highest fish of a school may come.
    Nothing of a shoal is ever seen breaking the surface. */
@@ -4122,9 +4241,15 @@ function updateShoals(px,py,pz,dt,t){ initShoals();
           f.oz=(Math.random()-0.5)*(30+sp*180); }
         S.set=true; break; }
       if(!S.set){ for(const f of S.fish) f.m.visible=false; continue; } }
-    /* the school turns as one thing, and swims as one thing */
-    S.dir+=Math.sin(t*0.31+S.fish[0].ph)*0.9*dt;
-    const nx=S.x+Math.cos(S.dir)*K.spd*dt, nz=S.z+Math.sin(S.dir)*K.spd*dt;
+    /* the school turns as one thing, and swims as one thing — and when a
+       shark has just torn through it, it BURSTS: the ball blows open, every
+       fish flying wide and fast, and draws itself together again as the
+       fright drains away. That burst is the oldest sight in the sea. */
+    S.panic=Math.max(0,(S.panic||0)-dt);
+    const panicF=Math.min(1,S.panic);
+    S.dir+=Math.sin(t*0.31+S.fish[0].ph)*0.9*dt+(panicF?Math.sin(t*6.3+S.panic*4)*2.4*dt:0);
+    const spd2=K.spd*(1+panicF*1.1);
+    const nx=S.x+Math.cos(S.dir)*spd2*dt, nz=S.z+Math.sin(S.dir)*spd2*dt;
     if(!landAtWorld(nx,nz)){ S.x=nx; S.z=nz; } else S.dir+=2.1;
     const fy=seabedDepth(S.x,S.z), sp2=S.spread||20;
     /* the MIDDLE of the school was the only thing held under the water, and a
@@ -4145,11 +4270,15 @@ function updateShoals(px,py,pz,dt,t){ initShoals();
     S.y=Math.min(S.y, SEA_SURF-SHOAL_TOP-sp2*0.5);
     S.y=Math.max(S.y, fy+6+sp2*0.5);
     const head=Math.atan2(Math.cos(S.dir),Math.sin(S.dir));
+    const scat=1+panicF*2.4;                     /* the burst: the ball blown open */
     for(const f of S.fish){
+      /* one that was truly taken is gone from the water for a while — the
+         sea replaces it in time, but the bite was not a mime */
+      if(f.gone){ f.gone-=dt; f.m.visible=false; if(f.gone<=0) f.gone=0; continue; }
       /* each keeps its own place in the school, and breathes about it */
       const wob=Math.sin(t*1.7+f.ph)*2.2;
       const c=Math.cos(S.dir), sn=Math.sin(S.dir);
-      const fx=S.x+f.oz*c-f.ox*sn, fz=S.z+f.oz*sn+f.ox*c;
+      const fx=S.x+(f.oz*c-f.ox*sn)*scat, fz=S.z+(f.oz*sn+f.ox*c)*scat;
       const bed=seabedDepth(fx,fz);
       let fyy=S.y+f.oy+wob;
       if(fyy>SEA_SURF-SHOAL_TOP) fyy=SEA_SURF-SHOAL_TOP;   /* never out of the water */
@@ -4202,7 +4331,9 @@ function updateDolphins(px,py,pz,dt,t){ initDolphins();
       d.dir+=da*Math.min(1,dt*2.4);
       sp=Math.min(52,Math.abs(state.boat.speed)+14);
     } else d.dir+=Math.sin(t*0.4+d.ph)*0.05;
-    d.x+=Math.cos(d.dir)*sp*dt; d.z+=Math.sin(d.dir)*sp*dt;
+    { const nx=d.x+Math.cos(d.dir)*sp*dt, nz=d.z+Math.sin(d.dir)*sp*dt;
+      if(!landAtWorld(nx+Math.cos(d.dir)*10,nz+Math.sin(d.dir)*10)&&!landAtWorld(nx,nz)){ d.x=nx; d.z=nz; }
+      else d.dir+=1.8; }
     const arc=Math.sin(t*(escort?1.4:0.9)+d.ph); d.y+=arc*(escort?16:10)*dt; const fy=haunt(d.x,d.z,H_DOLPHIN), col=SEA_SURF-fy;
     d.y=Math.min(SEA_SURF-4,Math.max(fy+Math.min(8,col-5),d.y));
     d.m.position.set(d.x,d.y,d.z); d.m.rotation.y=Math.atan2(Math.cos(d.dir),Math.sin(d.dir)); d.m.rotation.x=-arc*0.4; } }
@@ -4213,9 +4344,9 @@ function updateDolphins(px,py,pz,dt,t){ initDolphins();
 /* THE HUNTERS OF THE DEEP — a great white and a hammerhead, each from its own
    file. Add 'whaleshark' here and one will cruise with them (he hunts nothing
    at all, but the pool does not know that). */
-const SHK_KINDS=['shark','hammerhead'];
-const SHARKS=[], SHK_N=2, SHK_R=560;
-let sharkWarnT=-99;
+const SHK_KINDS=['shark','hammerhead','tigershark'];
+const SHARKS=[], SHK_N=3, SHK_R=560;
+let sharkWarnT=-99, sharkFeedToastT=-99;
 function initSharks(){ if(SHARKS.length) return; for(let k=0;k<SHK_N;k++){ const m=makeBeast(SHK_KINDS[k%SHK_KINDS.length]); m.visible=false; scene.add(m);
   SHARKS.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false,cool:0}); } }
 function updateSharks(px,py,pz,dt,t){ initSharks();
@@ -4258,9 +4389,43 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
         saveState();
       }
     }
+    /* ---- THE SHARK EARNS ITS LIVING ----
+       It did nothing between divers: it cruised, for ever, and the deep had
+       no drama in it. Every so often now its hunger comes round, it marks
+       the nearest bait-ball, runs it down and TEARS THROUGH it — the school
+       bursts apart, a fish or two is truly taken, and the water is all
+       fright for a moment. Stand near and you will see the oldest scene in
+       the sea play itself. */
+    if(!hunting){
+      s.feedT=(s.feedT===undefined?10+Math.random()*25:s.feedT-dt);
+      if(s.feed>0&&s.prey&&s.prey.set){
+        s.feed-=dt; hunting=true; sp=30;
+        const pdx=s.prey.x-s.x, pdz=s.prey.z-s.z, pdd=Math.hypot(pdx,pdz);
+        s.dir=Math.atan2(pdz,pdx);
+        s.y+=((s.prey.y||s.y)-s.y)*Math.min(1,dt*1.8);
+        if(pdd<(s.prey.spread||20)+12&&!s.prey.panic){
+          s.prey.panic=3.5;                       /* the strike — the ball bursts */
+          let ate=0;
+          for(const f of s.prey.fish){ if(ate>=2) break;
+            if(!f.gone&&Math.random()<0.35){ f.gone=20+Math.random()*20; if(f.m) f.m.visible=false; ate++; } }
+          if(Math.hypot(s.x-px,s.z-pz)<340&&t-sharkFeedToastT>35){ sharkFeedToastT=t;
+            toast('A great shark tears through the bait-ball — the school bursts like spray, and the water is full of silver and fright.'); }
+          s.feed=0; s.prey=null; s.feedT=40+Math.random()*50;
+        }
+        else if(s.feed<=0){ s.prey=null; s.feedT=20+Math.random()*20; }
+      }
+      else if(s.feedT<=0){
+        let best=null,bd2=1e9;
+        for(const S2 of SHOALS){ if(!S2.set||S2.panic) continue;
+          const d2=Math.hypot(S2.x-s.x,S2.z-s.z); if(d2<620&&d2<bd2){ bd2=d2; best=S2; } }
+        if(best){ s.prey=best; s.feed=9; }
+        else s.feedT=8+Math.random()*10;
+      }
+    }
     if(!hunting) s.dir+=Math.sin(t*0.25+s.ph)*0.03;
     { const nx=s.x+Math.cos(s.dir)*sp*dt, nz=s.z+Math.sin(s.dir)*sp*dt;
-      if(!landAtWorld(nx,nz)){ s.x=nx; s.z=nz; } else s.dir+=1.9; }   /* no shark swims through stone */
+      const nsx=nx+Math.cos(s.dir)*16, nsz=nz+Math.sin(s.dir)*16;   /* the nose leads */
+      if(!landAtWorld(nx,nz)&&!landAtWorld(nsx,nsz)){ s.x=nx; s.z=nz; } else s.dir+=1.9; }   /* no shark swims through stone */
     if(!hunting) s.y+=Math.sin(t*0.5+s.ph)*3*dt;
     /* a hunting shark hugs the bed after a bottom-hugging diver — and rises
        right under the swell to strike a swimmer at the surface */
@@ -4296,8 +4461,22 @@ function updateSeaMob(arr,px,py,pz,dt,t){
   /* off its own hours it is slow and quiet — but nothing in the sea stands still */
   const drowsy=(dayp==='all'||dayp==='dusk')?false:(dayp==='night'?!night:night);
   for(const o of arr){
-    if(!o.set||Math.hypot(o.x-px,o.z-pz)>arr._R+140){ const a=Math.random()*6.28, r=arr._rs*0.3+Math.random()*arr._rs*0.7;
-      o.x=px+Math.cos(a)*r; o.z=pz+Math.sin(a)*r; const fy=haunt(o.x,o.z,arr._deep||H_REEF);
+    if(!o.set||Math.hypot(o.x-px,o.z-pz)>arr._R+140){
+      /* ---- SET DOWN IN WATER, AND IN WATER THAT HOLDS IT ----
+         The pool point was never looked at: a whale could be dropped with
+         her middle on the sand — half a leviathan standing out of a beach.
+         A spot is drawn until it is open water deep enough for the beast's
+         own bulk, or the slot simply waits for the next pass. */
+      o.set=false;
+      let drew=false;
+      for(let tr=0;tr<6;tr++){
+        const a=Math.random()*6.28, r=arr._rs*0.3+Math.random()*arr._rs*0.7;
+        const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
+        if(landAtWorld(x,z)) continue;
+        if(SEA_SURF-seabedDepth(x,z)<Math.max(8,(arr._len||24)*0.45)) continue;
+        o.x=x; o.z=z; drew=true; break; }
+      if(!drew){ o.m.visible=false; continue; }
+      const fy=haunt(o.x,o.z,arr._deep||H_REEF);
       const clr=Math.max(4,(arr._len||24)*0.35);   /* she swims a third of her own length clear */
       o.y = arr._near ? fy+clr+Math.random()*14 : Math.min(SEA_SURF-clr,fy+clr+Math.random()*60); o.dir=Math.random()*6.28; o.set=true; o.m.visible=true;
       o.sp=B2?B2.swimOf(kind,arr._near?7:12):(arr._near?7:12);
@@ -4305,35 +4484,78 @@ function updateSeaMob(arr,px,py,pz,dt,t){
     /* the piece of business it is at, and the breath it owes the surface */
     o.actT=(o.actT||0)-dt;
     if(air){ o.breath-=dt; if(o.breath<=0&&!o.surf) o.surf=1; }   /* time to come up and blow */
-    if(o.actT<=0&&!o.surf){ o.act=B2?B2.drawSeaAct(kind,Math.random()):null; o.actT=4+Math.random()*7; }
+    if(o.actT<=0&&!o.surf){ o.act=B2?B2.drawSeaAct(kind,Math.random()):null; o.actT=4+Math.random()*7;
+      /* a breach is a moment, not an errand — up, out, and back in */
+      if(o.act==='breach') o.actT=2.6; }
     /* how fast it goes: its cruise, dropped for its off-hours, and near-stopped
        when it is resting, denned, hovering or lying up */
     let spF=drowsy?0.4:1;
     if(o.act==='logging'||o.act==='den'||o.act==='hover'||o.act==='lure'||o.act==='bask') spF*=0.15;
     o.dir+=Math.sin(t*0.3+o.ph)*0.03;
+    /* ---- THE NOSE TURNS THE BEAST, NOT THE NAVEL ----
+       Only the centre point was ever tested against the land, so a beast
+       half a ship long carried her whole head through the face of a cliff
+       before the middle of her arrived to be told no. She is steered by
+       her own NOSE now — and by the depth ahead: water too shallow for her
+       bulk turns her out to sea before she can beach in it. */
     { const nx=o.x+Math.cos(o.dir)*o.sp*spF*dt, nz=o.z+Math.sin(o.dir)*o.sp*spF*dt;
-      if(!landAtWorld(nx,nz)){ o.x=nx; o.z=nz; } else o.dir+=1.7; }   /* the flank turns the beast */
+      const nose=(arr._len||24)*0.55;
+      const hx2=nx+Math.cos(o.dir)*nose, hz2=nz+Math.sin(o.dir)*nose;
+      if(!landAtWorld(nx,nz)&&!landAtWorld(hx2,hz2)
+        &&SEA_SURF-seabedDepth(hx2,hz2)>Math.max(6,(arr._len||24)*0.3)){ o.x=nx; o.z=nz; }
+      else o.dir+=1.7; }   /* the flank turns the beast */
     /* the water it holds: rising to breathe, sounding to the bed, hanging at
        the top, or the gentle mid-water bob it keeps between whiles */
     const fy=haunt(o.x,o.z,arr._deep||H_REEF);
     const clr=Math.max(3,(arr._len||24)*0.30), loF=fy+clr, hiF=SEA_SURF-clr*0.5;
     if(o.surf){ o.y+=(hiF-o.y)*Math.min(1,dt*0.7); if(o.y>=hiF-2){ o.surf=0; o.breath=20+Math.random()*26; } }
-    else if(o.act==='sound'||o.act==='bottom'){ const ty=loF+Math.min(6,(hiF-loF)*0.12); o.y+=(ty-o.y)*Math.min(1,dt*0.5); }
+    /* ---- THE BREACH ----
+       "There is that leviathan, whom thou hast made to play therein." A
+       whale that draws the breach hurls herself at the light, breaks the
+       skin of the sea in white water, hangs an instant clear of it, and
+       comes down in white water again. */
+    else if(o.act==='breach'&&air){
+      o.y+=((SEA_SURF+(arr._len||24)*0.22)-o.y)*Math.min(1,dt*1.5);
+      if(o.y>SEA_SURF-3&&!o.brs){ o.brs=1; splash(o.x,SEA_SURF+2,o.z,true); }
+      if(o.y>=SEA_SURF+(arr._len||24)*0.16){ o.act='sound'; }   /* over the top — down she comes */
+    }
+    else if(o.act==='sound'||o.act==='bottom'||o.act==='graze'||o.act==='forage'||o.act==='den'||o.act==='bury'){
+      const ty=loF+Math.min(6,(hiF-loF)*0.12); o.y+=(ty-o.y)*Math.min(1,dt*0.5); }
     else if(o.act==='logging'||o.act==='bask'){ o.y+=(hiF-o.y)*Math.min(1,dt*0.4); }
     else o.y+=Math.sin(t*0.6+o.ph)*2*dt;
-    o.y=Math.min(hiF,Math.max(loF,o.y));
+    /* the fall home from the leap ends in spray, and the flag with it */
+    if(o.brs&&o.act!=='breach'){ if(o.y<=SEA_SURF-2){ o.brs=0; splash(o.x,SEA_SURF+2,o.z,true); } }
+    const hiCap=(o.brs||(o.act==='breach'&&air))?SEA_SURF+(arr._len||24)*0.26:hiF;
+    o.y=Math.min(hiCap,Math.max(loF,o.y));
+    /* she pitches with her way — nose up rising to blow, nose down sounding */
+    { const py2=(o.py===undefined)?o.y:o.py, vy2=(o.y-py2)/Math.max(dt,1e-3); o.py=o.y;
+      o.pitch=(o.pitch||0)+(Math.max(-0.5,Math.min(0.5,-vy2*0.03))-(o.pitch||0))*Math.min(1,dt*3); }
     o.m.position.set(o.x,o.y,o.z); o.m.rotation.y=Math.atan2(Math.cos(o.dir),Math.sin(o.dir));
+    o.m.rotation.x=o.pitch;
     const beat=(spF<0.4)?1:2;                        /* fins ease when the beast lies up */
     if(o.m.userData.flL){ o.m.userData.flL.rotation.z=0.2+Math.sin(t*beat+o.ph)*0.3; o.m.userData.flR.rotation.z=-0.2-Math.sin(t*beat+o.ph)*0.3; }
     if(o.m.userData.wingL){ o.m.userData.wingL.rotation.z=Math.sin(t*1.6+o.ph)*0.4; o.m.userData.wingR.rotation.z=-Math.sin(t*1.6+o.ph)*0.4; } } }
 let TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS,NARWHALS;
+let PARROTS,ANGELS,LIONFS,MARLINS,SUNFS,WSHARKS,SPERMS;
 function initSeaMobs(){ if(TURTLES) return;
   /* the last number is how deep each keeps, in metres: a turtle on the reef,
      a whale sounding to three hundred, a pufferfish never off the shallows */
-  TURTLES=mkSeaMob('turtle',4,360,340,true,120);
-  RAYS_M=mkSeaMob('ray',3,460,440,true,200);
-  WHALES=mkSeaMob('whale',1,700,650,false,H_WHALE);
-  PUFFERS=mkSeaMob('puffer',6,240,220,true,60);
+  TURTLES=mkSeaMob('turtle',7,360,340,true,120);
+  RAYS_M=mkSeaMob('ray',4,460,440,true,200);
+  WHALES=mkSeaMob('whale',2,700,650,false,H_WHALE);
+  PUFFERS=mkSeaMob('puffer',8,240,220,true,60);
+  /* ---- THE SEA FILLED OUT TO ITS TRUE COMPANY ----
+     The reef gets its grazers and its hovering hunter; the open warm water
+     its spear and its swimming head; and the deep its greatest diver — the
+     sperm whale, who breathes at the top and sounds two kilometres after
+     the giant squid, which is a hunt this engine now actually stages. */
+  PARROTS=mkSeaMob('parrotfish',5,300,280,true,55,[-38,38]);
+  ANGELS=mkSeaMob('angelfish',6,260,240,true,45,[-38,38]);
+  LIONFS=mkSeaMob('lionfish',3,240,220,true,45,[-36,36]);
+  MARLINS=mkSeaMob('marlin',2,560,520,false,350,[-48,48]);
+  SUNFS=mkSeaMob('sunfish',1,600,560,false,480,[-54,54]);
+  WSHARKS=mkSeaMob('whaleshark',1,700,650,false,300,[-36,36]);
+  SPERMS=mkSeaMob('spermwhale',2,820,760,false,2200,[-64,64]);
   /* ---- AND THE REST OF THE NATIONS OF THE SEA ----
      Each to its own water and its own depth: the seal and the walrus in the
      cold seas at both ends of the earth, the manatee grazing the weed in the
@@ -4352,8 +4574,8 @@ function initSeaMobs(){ if(TURTLES) return;
   OCTOPI=mkSeaMob('octopus',3,260,240,true,70);
   SWORDS=mkSeaMob('swordfish',2,520,480,false,400,[-46,46]);
   CUDAS=mkSeaMob('barracuda',5,300,280,true,110,[-34,34]);
-  JELLIES=[]; for(let k=0;k<12;k++){ const m=makeBeast('jelly'); m.visible=false; scene.add(m); JELLIES.push({m,x:0,z:0,y:0,ph:Math.random()*6.28,set:false}); }
-  CRABS=[]; for(let k=0;k<14;k++){ const m=makeBeast('crab'); m.visible=false; scene.add(m); CRABS.push({m,x:0,z:0,ph:Math.random()*6.28,set:false}); } }
+  JELLIES=[]; for(let k=0;k<16;k++){ const m=makeBeast('jelly'); m.visible=false; scene.add(m); JELLIES.push({m,x:0,z:0,y:0,ph:Math.random()*6.28,set:false}); }
+  CRABS=[]; for(let k=0;k<18;k++){ const m=makeBeast('crab'); m.visible=false; scene.add(m); CRABS.push({m,x:0,z:0,ph:Math.random()*6.28,set:false}); } }
 function updateSeaMobs(px,py,pz,dt,t){ initSeaMobs();
   updateSeaMob(TURTLES,px,py,pz,dt,t); updateSeaMob(RAYS_M,px,py,pz,dt,t); updateSeaMob(WHALES,px,py,pz,dt,t); updateSeaMob(PUFFERS,px,py,pz,dt,t);
   updateSeaMob(SEALS,px,py,pz,dt,t); updateSeaMob(WALRUS,px,py,pz,dt,t);
@@ -4361,6 +4583,10 @@ function updateSeaMobs(px,py,pz,dt,t){ initSeaMobs();
   updateSeaMob(SWORDS,px,py,pz,dt,t); updateSeaMob(CUDAS,px,py,pz,dt,t);
   updateSeaMob(BELUGAS,px,py,pz,dt,t); updateSeaMob(SLEEPERS,px,py,pz,dt,t);
   updateSeaMob(NARWHALS,px,py,pz,dt,t);
+  updateSeaMob(PARROTS,px,py,pz,dt,t); updateSeaMob(ANGELS,px,py,pz,dt,t);
+  updateSeaMob(LIONFS,px,py,pz,dt,t); updateSeaMob(MARLINS,px,py,pz,dt,t);
+  updateSeaMob(SUNFS,px,py,pz,dt,t); updateSeaMob(WSHARKS,px,py,pz,dt,t);
+  updateSeaMob(SPERMS,px,py,pz,dt,t);
   for(const j of JELLIES){ if(!j.set||Math.hypot(j.x-px,j.z-pz)>360){ const a=Math.random()*6.28,r=40+Math.random()*320; j.x=px+Math.cos(a)*r; j.z=pz+Math.sin(a)*r; const fy=haunt(j.x,j.z,H_JELLY); j.y=fy+30+Math.random()*80; j.set=true; j.m.visible=true; }
     const pulse=0.5+0.5*Math.sin(t*1.4+j.ph); j.y+=(pulse-0.45)*10*dt; const fy=haunt(j.x,j.z,H_JELLY), col=SEA_SURF-fy;
     j.y=Math.min(SEA_SURF-6,Math.max(fy+Math.min(10,col-7),j.y));
@@ -4409,8 +4635,221 @@ function updateAnglers(px,py,pz,dt,t){ initAnglers();
     if(u.lure){ u.lure.getWorldPosition(_wv); a.gs.position.copy(_wv);
       a.gs.material.opacity=0.30+0.34*pulse; } } }
 function hideAnglers(){ for(const a of ANGLERS){ a.m.visible=false; a.gs.visible=false; a.set=false; } }
+/* ================= THE REEF IN FULL =================
+   The clear shallows had fish, coral and weed, and nothing that LIVED
+   anywhere: no anemone with its clownfish family, no seahorse holding to
+   the grass, no moray in its hole, nothing still upon the sand. The reef
+   keeps its whole household now, each thing at its real business. */
+const ANEMS=[], ANEM_N=8;
+function initAnems(){ if(ANEMS.length) return;
+  for(let k=0;k<ANEM_N;k++){
+    const m=makeBeast('anemone'); m.visible=false; scene.add(m);
+    const fam=[], n=2+Math.floor(Math.random()*2);
+    for(let i=0;i<n;i++){ const f=makeBeast('clownfish'); f.visible=false; scene.add(f);
+      fam.push({m:f,ph:Math.random()*6.28,r:2.5+Math.random()*3,h:2+Math.random()*2.5,sp:0.9+Math.random()*0.9}); }
+    ANEMS.push({m,fam,x:0,z:0,y:0,ph:Math.random()*6.28,set:false}); } }
+function updateAnems(px,pz,dt,t){ initAnems();
+  for(const A of ANEMS){
+    if(!A.set||Math.hypot(A.x-px,A.z-pz)>300){
+      A.set=false;
+      for(let tr=0;tr<6;tr++){ const a=Math.random()*6.28, rr=30+Math.random()*260;
+        const x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr;
+        const lat=90-Math.hypot(x,z)/R_WORLD*180;
+        if(Math.abs(lat)>38) break;                     /* the anemone keeps the warm sea */
+        const fy=seabedDepth(x,z), d=(SEA_SURF-fy)/U_PER_M;
+        if(d>4&&d<40&&fbm(x*0.01-9,z*0.01+4)>0.4){ A.x=x; A.z=z; A.y=fy;
+          A.m.position.set(x,fy,z); A.set=true; A.m.visible=true; break; } }
+      if(!A.set){ A.m.visible=false; for(const f of A.fam) f.m.visible=false; continue; } }
+    const tents=A.m.userData.tents;
+    if(tents) for(let i2=0;i2<tents.length;i2++) tents[i2].rotation.y=Math.sin(t*1.2+A.ph+i2)*0.16;
+    /* the family circles the crown — and when a shark stands near, the whole
+       household tucks itself down into the arms, which is the entire deal
+       the clownfish ever struck */
+    let fear=0;
+    for(const s of SHARKS){ if(s.set&&Math.hypot(s.x-A.x,s.z-A.z)<70){ fear=1; break; } }
+    for(const f of A.fam){ f.ph+=dt*f.sp*(fear?2.2:1);
+      const rr=f.r*(fear?0.3:1), hh=fear?1.1:f.h;
+      f.m.position.set(A.x+Math.cos(f.ph)*rr, A.y+hh+Math.sin(t*2.2+f.ph)*0.7, A.z+Math.sin(f.ph)*rr);
+      f.m.rotation.y=-f.ph;
+      if(f.m.userData.tail) f.m.userData.tail.rotation.y=Math.sin(t*8+f.ph)*0.4;
+      f.m.visible=true; } } }
+/* the seahorse holds to the weed and goes nowhere — bobbing on the spot is
+   the whole of its day, and the truest thing about it */
+const SEAHORSES=[], SEAH_N=5;
+function initSeahorses(){ if(SEAHORSES.length) return;
+  for(let k=0;k<SEAH_N;k++){ const m=makeBeast('seahorse'); m.visible=false; scene.add(m);
+    SEAHORSES.push({m,x:0,z:0,y:0,ph:Math.random()*6.28,set:false}); } }
+function updateSeahorses(px,pz,dt,t){ initSeahorses();
+  for(const s of SEAHORSES){
+    if(!s.set||Math.hypot(s.x-px,s.z-pz)>260){
+      s.set=false;
+      for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28, rr=25+Math.random()*220;
+        const x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr;
+        const fy=seabedDepth(x,z), d=(SEA_SURF-fy)/U_PER_M;
+        if(d>3&&d<28){ s.x=x; s.z=z; s.y=fy; s.set=true; s.m.visible=true; break; } }
+      if(!s.set){ s.m.visible=false; continue; } }
+    s.m.position.set(s.x, s.y+1.2+Math.sin(t*0.9+s.ph)*0.6, s.z);
+    s.m.rotation.y=Math.sin(t*0.3+s.ph)*0.8;
+    if(s.m.userData.tail) s.m.userData.tail.rotation.y=Math.sin(t*10+s.ph)*0.5; } }
+/* the moray keeps a hole in the reef and hangs from it to the waist, jaws
+   working on its breath — which is how a moray breathes, not a threat,
+   though nobody who meets one believes that */
+const MORAYS=[], MOR_N=3;
+function initMorays(){ if(MORAYS.length) return;
+  for(let k=0;k<MOR_N;k++){ const m=makeBeast('moray'); m.visible=false; scene.add(m);
+    MORAYS.push({m,x:0,z:0,y:0,ph:Math.random()*6.28,set:false}); } }
+function updateMorays(px,pz,dt,t){ initMorays();
+  for(const o of MORAYS){
+    if(!o.set||Math.hypot(o.x-px,o.z-pz)>280){
+      o.set=false;
+      for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28, rr=40+Math.random()*230;
+        const x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr;
+        const fy=seabedDepth(x,z), d=(SEA_SURF-fy)/U_PER_M;
+        if(d>5&&d<45&&fbm(x*0.01-9,z*0.01+4)>0.44){ o.x=x; o.z=z; o.y=fy;
+          o.m.position.set(x,fy+0.8,z); o.m.rotation.y=Math.random()*6.28;
+          o.set=true; o.m.visible=true; break; } }
+      if(!o.set){ o.m.visible=false; continue; } }
+    /* head riding out of the den, swaying; the jaw opens and shuts on the breath */
+    o.m.position.y=o.y+0.8+Math.sin(t*0.7+o.ph)*0.3;
+    o.m.rotation.y+=Math.sin(t*0.4+o.ph)*0.1*dt;
+    if(o.m.userData.jaw) o.m.userData.jaw.rotation.x=0.25+Math.abs(Math.sin(t*1.1+o.ph))*0.3; } }
+/* and the still things of the bed: the starfish, the urchin, and the
+   lobster walking its slow beat among them by night */
+const BEDLIFE=[], BEDL_N=18, BEDL_KINDS=['starfish','starfish','urchin','urchin','lobster'];
+function initBedLife(){ if(BEDLIFE.length) return;
+  for(let k=0;k<BEDL_N;k++){ const kind=BEDL_KINDS[k%BEDL_KINDS.length];
+    const m=makeBeast(kind); m.visible=false; scene.add(m);
+    BEDLIFE.push({m,kind,x:0,z:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false}); } }
+function updateBedLife(px,pz,dt,t){ initBedLife();
+  for(const b of BEDLIFE){
+    if(!b.set||Math.hypot(b.x-px,b.z-pz)>280){
+      b.set=false;
+      for(let tr=0;tr<5;tr++){ const a=Math.random()*6.28, rr=25+Math.random()*240;
+        const x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr;
+        const fy=seabedDepth(x,z), d=(SEA_SURF-fy)/U_PER_M;
+        if(d>3&&d<70){ b.x=x; b.z=z; b.set=true;
+          b.m.position.set(x,fy+0.2,z); b.m.rotation.y=Math.random()*6.28; b.m.visible=true; break; } }
+      if(!b.set){ b.m.visible=false; continue; } }
+    if(b.kind==='lobster'){                       /* the lobster alone goes anywhere */
+      b.dir+=Math.sin(t*0.5+b.ph)*0.05;
+      const nx=b.x+Math.cos(b.dir)*1.2*dt, nz=b.z+Math.sin(b.dir)*1.2*dt;
+      if(!landAtWorld(nx,nz)){ b.x=nx; b.z=nz; }
+      b.m.position.set(b.x,seabedDepth(b.x,b.z)+0.2,b.z);
+      b.m.rotation.y=Math.atan2(Math.cos(b.dir),Math.sin(b.dir)); } } }
+function hideReefLife(){
+  for(const A of ANEMS){ A.m.visible=false; for(const f of A.fam) f.m.visible=false; }
+  for(const s of SEAHORSES) s.m.visible=false;
+  for(const o of MORAYS) o.m.visible=false;
+  for(const b of BEDLIFE) b.m.visible=false; }
+function updateReefLife(px,py,pz,dt,t){
+  /* the reef's household lives in the sunlit water — below it, nothing to do */
+  if((SEA_SURF-py)/U_PER_M>230){ hideReefLife(); return; }
+  updateAnems(px,pz,dt,t); updateSeahorses(px,pz,dt,t);
+  updateMorays(px,pz,dt,t); updateBedLife(px,pz,dt,t); }
+/* ================= THE DEEP, PEOPLED AT LAST =================
+   Below the sunlit water the sea had the anglerfish and nothing else —
+   kilometres of black water with one lamp in it. The true deep is BUSY:
+   every zone has its own tenants, and each is met only in its own water.
+     200–1,000 m   the TWILIGHT: lanternfish (rising nightly to the top and
+                   sinking at dawn — the greatest migration on the earth,
+                   made daily), hatchetfish, the barreleye, the siphonophore
+   1,000–4,000 m   the MIDNIGHT: viperfish, dragonfish, gulper eel — the
+                   lures and the fangs — and the giant squid, with the sperm
+                   whale sounding down after it
+   3,000–6,000 m   the PLAIN: grenadier, dumbo octopus, tripod fish, the
+                   giant isopod and the sea cucumber walking the mud
+   6,000 m and down  the TRENCHES: the pale hadal snailfish — the deepest
+                   fish ever seen alive — and the swarming amphipods.
+   Their lamps are drawn as true lights, because below a thousand metres
+   the light the sea makes for itself is all the light there is. */
+const DEEP_KINDS=[
+  {kind:'lanternfish', n:12, m:[220,1000],  glow:0x9fd8ff, gs:4,  spd:6,   rise:true},
+  {kind:'hatchetfish', n:5,  m:[250,1000],  glow:0xa8e0f8, gs:4,  spd:2.5},
+  {kind:'barreleye',   n:2,  m:[420,1000],  glow:0x5ad078, gs:4,  spd:1.5},
+  {kind:'siphonophore',n:2,  m:[350,2400],  glow:0x9fb0ff, gs:10, spd:0.6},
+  {kind:'viperfish',   n:4,  m:[650,2400],  glow:0x9ff6e2, gs:5,  spd:3},
+  {kind:'dragonfish',  n:3,  m:[850,2600],  glow:0xff5a48, gs:5,  spd:3},
+  {kind:'gulper',      n:3,  m:[900,3400],  glow:0xff8fb0, gs:5,  spd:2},
+  {kind:'giantsquid',  n:1,  m:[500,2300],  spd:5},
+  {kind:'grenadier',   n:5,  m:[1800,5600], bed:true, spd:2.5},
+  {kind:'dumbo',       n:3,  m:[2400,5600], bed:true, spd:1.5},
+  {kind:'isopod',      n:5,  m:[1800,6600], bed:true, crawl:true, spd:0.8},
+  {kind:'seacucumber', n:6,  m:[2200,6600], bed:true, crawl:true, spd:0.25},
+  {kind:'tripodfish',  n:4,  m:[2800,6200], bed:true, still:true},
+  {kind:'snailfish',   n:6,  m:[6000,11200],bed:true, spd:2.2},
+  {kind:'amphipod',    n:10, m:[6000,11200],bed:true, glow:0xcfe8ff, gs:2.5, crawl:true, spd:1.4},
+];
+const DEEPLIFE=[];
+function initDeepLife(){ if(DEEPLIFE.length) return;
+  for(const K of DEEP_KINDS) for(let i=0;i<K.n;i++){
+    const m=makeBeast(K.kind); m.visible=false; scene.add(m);
+    let gsp=null;
+    if(K.glow){ gsp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexCv,color:K.glow,
+        transparent:true,opacity:0.4,depthWrite:false,fog:true}));
+      gsp.scale.set(K.gs||5,K.gs||5,1); gsp.visible=false; scene.add(gsp); }
+    DEEPLIFE.push({K,m,gsp,x:0,y:0,z:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false}); } }
+let squidToastT=-999;
+function updateDeepLife(px,py,pz,dt,t){ initDeepLife();
+  const pm=(SEA_SURF-py)/U_PER_M, night=(worldNight||0)>0.6;
+  for(const o of DEEPLIFE){ const K=o.K;
+    if(pm<K.m[0]-180||pm>K.m[1]+500){
+      if(o.set){ o.set=false; o.m.visible=false; if(o.gsp)o.gsp.visible=false; } continue; }
+    if(!o.set||Math.hypot(o.x-px,o.z-pz)>250){
+      const a=Math.random()*6.28, r=30+Math.random()*170;
+      const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
+      const fy=seabedDepth(x,z), bedM=(SEA_SURF-fy)/U_PER_M;
+      if(K.bed){
+        /* a walker of the mud wants mud IN ITS OWN BAND under it */
+        if(bedM<K.m[0]||bedM>K.m[1]){
+          if(o.set){ o.set=false; o.m.visible=false; if(o.gsp)o.gsp.visible=false; } continue; }
+        o.x=x; o.z=z; o.y=fy+((K.still||K.crawl)?0.3:3+Math.random()*8); }
+      else{ const lo=Math.max(fy+6,SEA_SURF-K.m[1]*U_PER_M), hi=SEA_SURF-K.m[0]*U_PER_M;
+        if(hi<lo) continue;
+        o.x=x; o.z=z; o.y=Math.max(lo,Math.min(hi,py+(Math.random()-0.5)*160)); }
+      o.dir=Math.random()*6.28; o.set=true; o.m.visible=true; if(o.gsp)o.gsp.visible=true; }
+    /* its way of going */
+    if(!K.still){
+      o.dir+=Math.sin(t*0.23+o.ph)*0.03;
+      let sp=K.spd||2;
+      /* ---- THE HUNT OF THE TITANS ----
+         The one predation the abyss is famous for: a sperm whale that has
+         sounded deep enough turns after the great squid, and the squid
+         JETS — full flight into the dark. Stand near it and you are told. */
+      if(K.kind==='giantsquid'&&SPERMS){ for(const w of SPERMS){ if(!w.set) continue;
+        const dd=Math.hypot(w.x-o.x,w.z-o.z);
+        if(dd<280&&Math.abs(w.y-o.y)<200){
+          o.dir=Math.atan2(o.z-w.z,o.x-w.x); sp=16;
+          w.dir=Math.atan2(o.z-w.z,o.x-w.x); w.y+=(o.y-w.y)*Math.min(1,dt*0.6);
+          if(t-squidToastT>150&&Math.hypot(o.x-px,o.z-pz)<320){ squidToastT=t;
+            toast('A sperm whale has sounded into the dark after the great squid — two vast shadows contending, and every small lamp about them scattering.'); }
+          break; } } }
+      const nx=o.x+Math.cos(o.dir)*sp*dt, nz=o.z+Math.sin(o.dir)*sp*dt;
+      if(!landAtWorld(nx,nz)){ o.x=nx; o.z=nz; } else o.dir+=1.7;
+    }
+    const fy=seabedDepth(o.x,o.z);
+    if(K.bed) o.y=fy+((K.still||K.crawl)?0.3:Math.max(2,Math.min(o.y-fy,14)));
+    else{
+      if(K.rise){ const bandLo=SEA_SURF-K.m[1]*U_PER_M, bandHi=SEA_SURF-K.m[0]*U_PER_M;
+        const ty=night?bandHi:bandLo+(bandHi-bandLo)*0.3;
+        o.y+=(ty-o.y)*Math.min(1,dt*0.02); }               /* the nightly rise — a drift, never a jump */
+      o.y+=Math.sin(t*0.5+o.ph)*1.5*dt;
+      const lo=Math.max(fy+4,SEA_SURF-K.m[1]*U_PER_M);
+      o.y=Math.max(lo,Math.min(SEA_SURF-K.m[0]*0.55*U_PER_M,o.y));
+    }
+    o.m.position.set(o.x,o.y,o.z);
+    if(!K.still) o.m.rotation.y=Math.atan2(Math.cos(o.dir),Math.sin(o.dir));
+    const u=o.m.userData||{};
+    if(u.tail) u.tail.rotation.y=Math.sin(t*4+o.ph)*0.3;
+    if(u.tents) u.tents.forEach((te,i2)=>{ te.rotation.z=Math.sin(t*1.2+i2+o.ph)*0.1; });
+    if(u.rod) u.rod.rotation.x=Math.sin(t*0.7+o.ph)*0.2;
+    if(u.jaw) u.jaw.rotation.x=0.25+Math.abs(Math.sin(t*0.8+o.ph))*0.3;
+    if(u.wingL){ u.wingL.rotation.z=Math.sin(t*2+o.ph)*0.5; u.wingR.rotation.z=-Math.sin(t*2+o.ph)*0.5; }
+    if(o.gsp){ o.gsp.position.set(o.x,o.y+1,o.z);
+      o.gsp.material.opacity=0.22+0.3*(0.5+0.5*Math.sin(t*1.5+o.ph)); } } }
+function hideDeepLife(){ for(const o of DEEPLIFE){ o.set=false; o.m.visible=false; if(o.gsp)o.gsp.visible=false; } }
 function hideSeaMobs(){ if(!TURTLES) return;
-  for(const arr of [TURTLES,RAYS_M,WHALES,PUFFERS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS,NARWHALS]) for(const o of arr) o.m.visible=false;
+  for(const arr of [TURTLES,RAYS_M,WHALES,PUFFERS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS,NARWHALS,
+    PARROTS,ANGELS,LIONFS,MARLINS,SUNFS,WSHARKS,SPERMS]) for(const o of arr) o.m.visible=false;
   for(const j of JELLIES)j.m.visible=false; for(const c of CRABS)c.m.visible=false; }
 const BUB=[], BUB_N=26;
 function initBub(){ if(BUB.length) return; for(let k=0;k<BUB_N;k++){ const s=new THREE.Sprite(new THREE.SpriteMaterial({color:0xcdeeff,transparent:true,opacity:0,depthWrite:false,fog:false}));
@@ -4507,12 +4946,14 @@ function nearestPearl(){ if(state.mode!=='dive') return null;
   for(const P of PEARLS){ if(!P.key||!P.m.visible) continue;
     if(Math.hypot(P.x-dv.x,P.z-dv.z)<9&&Math.abs(P.y-dv.y)<13) return P; }
   return null; }
-function initDeep(){ initKelp(); initCoral(); initSeagrass(); initRays(); initDiveFish(); initShoals(); initSquid(); initDolphins(); initSharks(); initSeaMobs(); initAnglers(); initBub(); initWrecks(); initPearls(); }
+function initDeep(){ initKelp(); initCoral(); initSeagrass(); initRays(); initDiveFish(); initShoals(); initSquid(); initDolphins(); initSharks(); initSeaMobs(); initAnglers(); initBub(); initWrecks(); initPearls();
+  initAnems(); initSeahorses(); initMorays(); initBedLife(); initDeepLife(); }
 function hideDeep(){ seaFloor.visible=false;
   for(const k of KELP)k.m.visible=false; for(const r of CORAL)r.m.visible=false; for(const r of SEAGRASS)r.m.visible=false;
   for(const r of RAYS)r.m.visible=false; for(const f of DIVEFISH)f.m.visible=false; for(const q of SQUIDS)q.m.visible=false;
   for(const d of DOLPHINS)d.m.visible=false; for(const s of SHARKS)s.m.visible=false; hideSeaMobs();
-  for(const b of BUB)b.s.visible=false; for(const w of WRECKS)w.visible=false; hidePearls(); hideAnglers(); hideShoals(); deepShown=false; }
+  for(const b of BUB)b.s.visible=false; for(const w of WRECKS)w.visible=false; hidePearls(); hideAnglers(); hideShoals();
+  hideReefLife(); hideDeepLife(); deepShown=false; }
 /* ---- IS THE EYE BENEATH THE WAVES, AND HOW FAR? ----
    ONE SEA, not two. Whatever puts the eye under the water puts it in the SAME
    sea the diver swims: the bed, the kelp and the fish are all standing there
@@ -4552,6 +4993,7 @@ function updateDeep(px,py,pz,dt,murk,full){ const t=performance.now()*0.001;
   updateKelp(px,pz,t); updateCoral(px,pz); updateSeagrass(px,pz,t); updateRays(px,py,pz,murk||0);
   updateDiveFish(px,py,pz,dt,t); updateSquid(px,py,pz,dt,t); updateDolphins(px,py,pz,dt,t); updateSharks(px,py,pz,dt,t);
   updateSeaMobs(px,py,pz,dt,t); updateShoals(px,py,pz,dt,t); updateAnglers(px,py,pz,dt,t); updateBubbles(px,py,pz,dt);
+  updateReefLife(px,py,pz,dt,t); updateDeepLife(px,py,pz,dt,t);
   if(full){ updateWreck(px,pz); updatePearls(px,pz); }
   else { for(const w of WRECKS)w.visible=false; hidePearls(); }
   deepShown=true; }
@@ -4601,6 +5043,28 @@ function diveTick(dt){ const dv=state.dive;
   /* the land's flank stops the swimmer — no passing through the stone */
   if(landAtWorld(dv.x,dv.z)){
     dv.x-=Math.sin(dv.heading)*dv.sp*dt; dv.z-=Math.cos(dv.heading)*dv.sp*dt; dv.sp*=0.2; }
+  /* ---- AND THE BED'S OWN WALLS STOP HIM TOO ----
+     The floor clamp was the only law under the sea: swim at an undersea
+     cliff and the clamp lifted the body straight UP THROUGH the face of it,
+     which read as passing through the stone. Rock standing more than a
+     stride over the chest is a WALL now — the way is barred, and the swimmer
+     must rise over it as he would climb ashore. A gentle step still rides up. */
+  else if(seabedDepth(dv.x,dv.z)+3>dv.y+8){
+    dv.x-=Math.sin(dv.heading)*dv.sp*dt; dv.z-=Math.cos(dv.heading)*dv.sp*dt; dv.sp*=0.2; }
+  /* nor through the timbers of a wreck: her hull is solid, and the way to the
+     sea-chest is over the deck, as it is on any honest ship */
+  for(const w of WRECKS){ if(!w.visible) continue;
+    const dx3=dv.x-w.position.x, dz3=dv.z-w.position.z;
+    if(Math.abs(dx3)>44||Math.abs(dz3)>44) continue;
+    const cr=Math.cos(w.rotation.y), sr=Math.sin(w.rotation.y);
+    const lx=dx3*cr-dz3*sr, lz=dx3*sr+dz3*cr;
+    const deckY=w.position.y+8.2;
+    if(Math.abs(lx)<7&&Math.abs(lz)<17.5&&dv.y<deckY){
+      if(dv.y>deckY-3.5){ dv.y=deckY; dv.vy=Math.max(0,dv.vy); }   /* skimming — he stands on the deck */
+      else{ const pux=7-Math.abs(lx), puz=17.5-Math.abs(lz);       /* below it — shoved out the near flank */
+        let nlx=lx, nlz=lz;
+        if(pux<puz) nlx=(lx>=0?1:-1)*7.2; else nlz=(lz>=0?1:-1)*17.7;
+        dv.x=w.position.x+nlx*cr+nlz*sr; dv.z=w.position.z-nlx*sr+nlz*cr; dv.sp*=0.3; } } }
   let up=flyPad; if(keys.Space) up+=1; if(keys.ShiftLeft||keys.ShiftRight||keys.ControlLeft||keys.ControlRight) up-=1; up=Math.max(-1,Math.min(1,up));
   /* ---- THE SOUNDING QUICKENS WITH THE DEPTH ----
      The sea is eleven kilometres deep at the Challenger Deep now, and at a
@@ -5314,26 +5778,39 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
     const c2=landAtWorld(a.x,a.z);
     /* how the body carries itself at its work */
     let lift=0, lean=0, roll=0;
-    if(a.job==='feedhead'||a.job==='dig') lean=0.26;          /* head down to the ground */
-    else if(a.job==='fish'){ lean=0.34; lift=-0.6; }          /* down at the water's edge */
-    else if(a.job==='feed') lean=0.30;                        /* over the kill */
+    /* ---- GRAZING IS A LIVING RHYTHM, NOT A FROZEN TIP ----
+       A feeding beast held one fixed pitch for the whole meal and read as a
+       propped-up toy. A real grazer NIBBLES — the muzzle works at the grass —
+       and every little while the head comes up and it stands chewing, reading
+       the wind, before it goes down for the next bite. The whole herd doing
+       this out of phase is most of what makes a field look alive. */
+    if(a.job==='feedhead'||a.job==='dig'){
+      const up=Math.sin(t*0.45+a.ph);                         /* the slow bite-then-look cycle */
+      if(up>0.72) lean=-0.06;                                 /* head up, chewing, watching */
+      else lean=0.26+Math.sin(t*3.1+a.ph)*0.05;               /* down, and the muzzle working */
+    }
+    else if(a.job==='fish'){ lean=0.34+Math.sin(t*2.2+a.ph)*0.05; lift=-0.6; }  /* down at the water's edge */
+    else if(a.job==='feed') lean=0.30+Math.sin(t*2.6+a.ph)*0.06;  /* tearing at the kill */
     else if(a.job==='bed'){ lift=-1.6; }                      /* bedded down for the night */
     else if(a.job==='act'){
       /* ---- THE SMALL BUSINESS OF THE DAY, PERFORMED ----
-         each habit of the behavior file is a real attitude of the body */
+         each habit of the behavior file is a real attitude of the body —
+         and every attitude MOVES: a held pose with nothing stirring in it
+         reads as a glitch, not a habit */
       switch(a.act){
-        case 'browse': lean=-0.30; break;                     /* head up into the leaves */
-        case 'drink':  lean=0.34; break;                      /* muzzle down at the water */
+        case 'browse': lean=-0.30+Math.sin(t*1.7+a.ph)*0.05; break;  /* head working in the leaves */
+        case 'drink':  lean=0.34+Math.sin(t*2.4+a.ph)*0.04; break;   /* the muzzle lapping */
         case 'wallow': case 'dust':                           /* down and rolling */
           lift=-1.4; roll=Math.sin(t*2.1+a.ph)*0.62; break;
-        case 'groom':  lean=0.14; roll=0.18; break;           /* turned along the flank */
-        case 'alert':  lean=-0.14; break;                     /* head high, reading the wind */
-        case 'rear':   lean=-0.85; lift=0.6; break;           /* up on the hind legs */
-        case 'dig':    lean=0.26; break;
-        case 'bask':   lift=-1.3; break;                      /* flat out in the sun */
+        case 'groom':  lean=0.12+Math.sin(t*2.8+a.ph)*0.05;   /* the head works along the flank */
+          roll=0.14+Math.sin(t*1.3+a.ph)*0.06; break;
+        case 'alert':  lean=-0.14; roll=Math.sin(t*0.7+a.ph)*0.02; break;  /* head high, ears turning */
+        case 'rear':   lean=-0.85+Math.sin(t*1.9+a.ph)*0.06; lift=0.6; break;
+        case 'dig':    lean=0.26+Math.sin(t*4.2+a.ph)*0.08; break;   /* the forepaws truly working */
+        case 'bask':   lift=-1.3; lean=Math.sin(t*1.1+a.ph)*0.04; break;  /* flat out, the breath moving in it */
         case 'play':   roll=Math.sin(t*5+a.ph)*0.3; lift=Math.abs(Math.sin(t*5+a.ph))*0.8; break;
         case 'gape':   lean=-0.16; break;                     /* head up, and the jaws thrown wide (the jaw is worked below) */
-        case 'sharpen':lean=-0.55; lift=0.5; break;           /* reared to the bole, forepaws raking down it */
+        case 'sharpen':lean=-0.55; lift=0.5+Math.sin(t*3.4+a.ph)*0.1; break;  /* the paws raking down the bole */
         case 'curl':   lift=-0.5; break;                      /* drawn down into a ball (the head is tucked below) */
         case 'earflap':break;                                 /* the body stands still; the ears do the work (below) */
       }
@@ -5345,9 +5822,21 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       ?Math.abs(Math.sin(t*9+a.ph))*1.3:0;
     a.m.position.set(a.x,(c2?c2.h*B:WATER_Y)+lift+hop,a.z);
     a.m.rotation.y=a.heading; a.m.rotation.x=lean; a.m.rotation.z=roll;
+    /* ---- THE BREATH IN THE BODY ----
+       Nothing standing still was truly still: no flank moved, no tail
+       swished, and a beast at rest read as parked. Every one of them now
+       BREATHES — a slow swell of the body, deeper in sleep — and a beast
+       under way carries a faint roll of the shoulders with its stride. */
+    a.m.scale.y=1+(asleep?0.02:0.012)*Math.sin(t*(asleep?1.1:2.1)+a.ph);
+    if(moving) a.m.rotation.z=roll+Math.sin(t*(spd>8?10:7)+a.ph)*0.03;
     if(a.m.userData.legs) for(const L of a.m.userData.legs){
       L.rotation.x=moving?Math.sin(t*(spd>8?10:7)+(L.userData.ph||0))*0.5:0;
       jointTick(L,moving); }
+    /* and the tail is never dead: the idle swish, the faster swing on the
+       move, the flick that keeps the flies off */
+    { const tl=a.m.userData.tail;
+      if(tl) tl.rotation.y=Math.sin(t*(moving?5.5:1.5)+a.ph)*(moving?0.3:0.15)
+        +(Math.sin(t*0.23+a.ph)>0.94?Math.sin(t*16+a.ph)*0.3:0); }
     /* the crocodile's jaw and the bear's head keep their own motion */
     /* ---- THE YOUNG AT HER FOOT ----
        It keeps station off her flank, falls behind on a turn and hurries to
@@ -5776,8 +6265,30 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
               const w2=(!BH||BH.perch!=='ground')?treeNear(b.x,b.z,6):null;
               if(w2) b.perch={x:w2.x,y:w2.y+1.0,z:w2.z};
               else{ const c=landAtWorld(b.x,b.z);
-                b.perch={x:b.x,y:(c?c.h*B:WATER_Y+2)+0.6,z:b.z}; } }
-            b.tx=b.perch.x; b.tz=b.perch.z; b.ty=b.perch.y; }
+                if(c) b.perch={x:b.x,y:c.h*B+0.6,z:b.z};
+                /* ---- NO DEAD BIRDS ON THE NIGHT SEA ----
+                   A bird benighted over open water used to be set down ON the
+                   waves, stone-still, wings folded — a floating corpse to any
+                   eye. The sea-fowl truly do sleep afloat, so the gull and the
+                   puffin RAFT now: they ride the swell itself, bobbing and
+                   rocking, plainly alive. A land bird does not raft at all — it
+                   makes for the nearest shore to roost, and if no shore is in
+                   reach it simply keeps the air, circling slow till morning. */
+                else if(BH&&BH.fish) b.perch={x:b.x,y:WATER_Y+0.9,z:b.z,water:true};
+                else{ let fx2=null,fz2=null,fy2=0;
+                  for(const rr of [140,280,430]){ for(let q=0;q<10;q++){ const a2=q/10*6.283;
+                      const x2=b.x+Math.cos(a2)*rr, z2=b.z+Math.sin(a2)*rr, c2=landAtWorld(x2,z2);
+                      if(c2&&c2.kind!=='wall'){ fx2=x2; fz2=z2; fy2=c2.h*B+0.6; break; } }
+                    if(fx2!==null) break; }
+                  if(fx2!==null) b.perch={x:fx2,y:fy2,z:fz2};
+                  else b.perch={x:b.x,y:0,z:b.z,air:true}; } } }
+            if(b.perch.air){ /* nowhere to set down — it stays on the wing */
+              b.ph+=dt*0.5;
+              b.tx=b.perch.x+Math.cos(b.ph)*30; b.tz=b.perch.z+Math.sin(b.ph)*30;
+              b.ty=WATER_Y+42; }
+            else{ b.tx=b.perch.x; b.tz=b.perch.z;
+              /* a rafting bird's seat is the swell itself, wherever it stands */
+              b.ty=b.perch.water?WATER_Y+seaHeight(b.perch.x,b.perch.z)+0.9:b.perch.y; } }
           break; }
         default: {   /* rest — it circles and gathers itself; a flocking bird
                         circles with its own kind, not alone */
@@ -5807,14 +6318,25 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
        air and slowly milling its wings — the famous mid-air glitch. When it
        is on a sitting job and has all but arrived, it is SNAPPED DOWN onto
        the spot, dead still, wings folded, level — and stays there. */
-    const sitting=(b.job==='roost'||b.job==='feed'||b.job==='peck'||b.job==='eat'
+    const sitting=((b.job==='roost'&&!(b.perch&&b.perch.air))||b.job==='feed'||b.job==='peck'||b.job==='eat'
       ||(b.type==='butterfly'&&b.job==='sit'));
+    const rafting=sitting&&b.job==='roost'&&b.perch&&b.perch.water;
     if(sitting&&dd<1.6&&Math.abs(b.ty-b.y)<2){ b.x=b.tx; b.z=b.tz; b.y=b.ty; }
     const bob=sitting?0:Math.sin(t*2+b.ph)*(b.type==='butterfly'?1.4:2.0);
     b.m.position.set(b.x,b.y+bob,b.z);
     b.m.rotation.y=b.heading;
-    /* it banks into the turn — but never rolls clean over on a hard retarget */
-    b.m.rotation.z=sitting?0:-Math.max(-0.55,Math.min(0.55,turn))*0.6;
+    /* it banks into the turn — but never rolls clean over on a hard retarget.
+       A bird rafting on the sea is rocked by the swell it rides — the plainest
+       sign of life a sleeping gull can give. */
+    b.m.rotation.z=rafting?Math.sin(t*1.2+b.ph)*0.08
+      :sitting?0:-Math.max(-0.55,Math.min(0.55,turn))*0.6;
+    /* ---- THE PECK IS SEEN ----
+       A bird on the ground used to stand bolt still for a second and fly
+       off, having visibly taken nothing. It TIPS now: the whole bird rocks
+       forward and strikes at the ground, again and again, and rises with
+       the seed showing in its beak — a meal anybody can watch happen. */
+    b.m.rotation.x=(b.job==='peck'||b.job==='eat')?Math.max(0,Math.sin(t*5.5+b.ph))*0.55
+      :(b.job==='feed'?Math.max(0,Math.sin(t*4+b.ph))*0.3:0);
     /* the wings still while it sits, and beat hard on the stoop */
     const fl=sitting?0.06:(b.type==='butterfly'?Math.sin(t*16+b.ph)*0.9:Math.sin(t*10+b.ph)*0.6);
     if(ud.wingL){ ud.wingL.rotation.z=fl; ud.wingR.rotation.z=-fl; }
@@ -6554,8 +7076,19 @@ function beastTick(ent,vv,dt){
       const a=Math.random()*6.28, r2=Math.random()*(ent.roamR||4)*B;
       ent.tx=ent.hx+Math.cos(a)*r2; ent.tz=ent.hz+Math.sin(a)*r2; }
   }
-  moveEnt(ent,dt,sp);
+  const mv=moveEnt(ent,dt,sp);
   if(ent.hop!==undefined&&ent.hop>0){ ent.hop-=dt; ent.m.position.y+=Math.sin(Math.max(0,ent.hop)*6.28)*1.4; }
+  /* the pen's beasts breathe and swish like the wild ones — a farmyard of
+     parked statues is no better than a plain of them */
+  const ph2=(ent.seed||0)*6.28;
+  ent.m.scale.y=1+0.012*Math.sin(tnow*2.1+ph2);
+  { const tl=ent.m.userData&&ent.m.userData.tail;
+    if(tl) tl.rotation.y=Math.sin(tnow*(mv?5.5:1.5)+ph2)*(mv?0.3:0.15); }
+  /* and a standing grazer puts its head down to the grass now and then */
+  if(!mv&&!ent.panic&&BEAST_PREY.has(ent.kind)){
+    const gz=Math.sin(tnow*0.4+ph2);
+    ent.m.rotation.x=gz>0.35?0.2+Math.sin(tnow*3+ph2)*0.05:0;
+  } else ent.m.rotation.x=0;
 }
 function birdTick(bd,dt){
   bd.ph+=bd.spd*dt;
@@ -7440,7 +7973,9 @@ function updateLandmarks(px,pz){
       /* and never BEFORE the haze gives its ground up — a title floating on
          pure fog betrays a thing the eye cannot yet have */
       const vis=Math.min(1500, scene.fog?scene.fog.far*1.05:1500);
-      if(A.label) A.label.material.opacity=namesOn?Math.max(0,Math.min(0.95,(vis-d)/700)):0; }
+      /* and a landmark's title is no more readable through the sea than a land's */
+      const lblOn=namesOn&&!(state.mode==='dive'||_eyeUnder);
+      if(A.label) A.label.material.opacity=lblOn?Math.max(0,Math.min(0.95,(vis-d)/700)):0; }
     const trig=(L.kind==='range')?2600:1600;   /* a range's dressing spreads for a mile */
     if(d<trig&&!has) spawnLandmark(i);
     else if(d>trig+500&&has){ const A=activeLandmarks.get(i);
@@ -7485,11 +8020,17 @@ function updateLabels(px,pz){
      eye rises or draws back, and the names open with it). */
   const vis=Math.min(6000, scene.fog?scene.fog.far*1.05:6000);
   const fade=Math.max(380,vis*0.27);
+  /* ---- AND NO NAME IS READ THROUGH THE SEA ----
+     The banners are drawn over everything (no depth test), so from under the
+     waves the titles of the lands hung in the water itself. The names belong
+     to the air: the moment the eye goes beneath the surface they are gone,
+     and they come back with the sky. */
+  const under=state.mode==='dive'||_eyeUnder;
   for(let i=0;i<COUNTRIES.length;i++){
     const site=SITES[i], c=COUNTRIES[i].c;
     const wx=site?site.x:c[0]*R_WORLD, wz=site?site.z:c[1]*R_WORLD;
     const d=Math.hypot(px-wx,pz-wz);
-    const want=namesOn&&d<vis;
+    const want=namesOn&&!under&&d<vis;
     const has=shownLabels.has(i);
     if(want&&!has){ let sp=labelCache.get(i);
       if(!sp){ sp=makeLabel(COUNTRIES[i].n,false); labelCache.set(i,sp); }
@@ -7502,10 +8043,10 @@ function updateLabels(px,pz){
       sp.material.opacity=op*0.95; const sc=Math.max(200,Math.min(900,d*0.16));
       sp.scale.set(sc,sc/6,1); }
   }
-  if(yahruPos&&namesOn){ if(!shownLabels.has(-1)){ const sp=makeLabel('Yahrushalayim',true);
+  if(yahruPos&&namesOn&&!under){ if(!shownLabels.has(-1)){ const sp=makeLabel('Yahrushalayim',true);
       sp.position.set(yahruPos.x,topY(yahruPos.ix,yahruPos.iz)+120,yahruPos.z);
       scene.add(sp); shownLabels.set(-1,sp); } }
-  else if(shownLabels.has(-1)&&!namesOn){ scene.remove(shownLabels.get(-1)); shownLabels.delete(-1); }
+  else if(shownLabels.has(-1)&&(!namesOn||under)){ scene.remove(shownLabels.get(-1)); shownLabels.delete(-1); }
 }
 
 /* ================= CONTROLS ================= */
@@ -7518,6 +8059,9 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
      ends the passage and gives the world straight back. */
   if(cut&&(e.code==='Escape'||e.code==='KeyF'||e.code==='Space')){
     e.preventDefault(); endScene(); return; }
+  /* P (or ESC, outside a scene) pauses the whole game and gives it back */
+  if(e.code==='KeyP'||(e.code==='Escape'&&!cut)){ e.preventDefault(); togglePause(); return; }
+  if(gamePaused) return;                      /* a paused world takes no orders */
   if(e.code==='Space'){ e.preventDefault(); if(state.mode==='walk') state.walk.jumpReq=true; }
   if(e.code==='KeyE') toggleAshore();
   if(e.code==='KeyF') interact();
@@ -8925,6 +9469,24 @@ function cameraTick(dt){
      TARGET so the follow settles above the floor rather than fighting it, and
      again after the ease so no lag can carry it under. */
   if(state.mode==='dive'||swimCam){
+    /* ---- NOTHING STANDS BETWEEN THE EYE AND THE DIVER ----
+       Lifting the eye over the bed was the only law, so with a cliff at the
+       diver's back the eye was hoisted up the far side of it — or sat inside
+       the stone — and the swimmer was lost from the view. The line from the
+       diver to the eye is now WALKED, and the moment it would pass into the
+       bed the eye is drawn in along it, just short of the stone: the diver
+       is always in sight, and no wall is ever crossed. */
+    const ox=px, oy=baseY+8, oz=pz;
+    let clear=1;
+    for(let k2=1;k2<=12;k2++){ const f3=k2/12;
+      const sx=ox+(camPos.x-ox)*f3, sy=oy+(camPos.y-oy)*f3, sz=oz+(camPos.z-oz)*f3;
+      const lc3=landAtWorld(sx,sz);
+      const fl3=Math.max(seabedDepth(sx,sz), lc3?lc3.h*B:-1e9);
+      if(sy<fl3+2.5){ clear=Math.max(0.08,(k2-1)/12); break; } }
+    if(clear<1){
+      camPos.x=ox+(camPos.x-ox)*clear;
+      camPos.y=oy+(camPos.y-oy)*clear;
+      camPos.z=oz+(camPos.z-oz)*clear; }
     const lc=landAtWorld(camPos.x,camPos.z);
     const floor=Math.max(seabedDepth(camPos.x,camPos.z), lc?lc.h*B:-1e9)+4.0;
     if(camPos.y<floor) camPos.y=floor;
@@ -9156,8 +9718,13 @@ function toggleMap(){ bigOpen=!bigOpen; $('bigmap').style.display=bigOpen?'flex'
    the snow lies or melts, and the beasts take their season. What the traveller
    sets is the NORTHERN season; where he himself stands may be the other half
    of the year, and the word tells him which. */
+function updateSeasonBtn(){ const b=$('b-season'); if(!b||!window.SEASON) return;
+  const n=SEASON.overrideName();
+  b.textContent='🍂 Season: '+(n==='Natural'?'natural':n.toLowerCase());
+  b.classList.toggle('off',false); }
 function cycleSeason(){ if(!window.SEASON) return;
   const r=SEASON.cycle();
+  updateSeasonBtn();
   const pp=playerXZ(), latN=1-Math.hypot(pp.x,pp.z)/R_WORLD*2;
   const here=SEASON.seasonAt(latN,dayOfYear()), z=here.zone;
   const where=' · '+here.name+(z==='tropical'?' (the tropics keep no winter)':z==='polar'?' (the far cold)':'')+' where you stand';
@@ -9195,6 +9762,20 @@ async function loadSaved(){
 }
 
 /* ================= BUTTONS ================= */
+/* ---- A TRUE PAUSE ----
+   'Hold the sun' only pinned the hour; the beasts, the sea and the ship all
+   ran on. This stops the whole simulation dead — nothing ticks, nothing
+   moves, nothing hunts — and gives it back exactly as it stood. */
+let gamePaused=false;
+function setPaused(p){ if(gamePaused===p) return; gamePaused=p;
+  const el=$('paused'); if(el) el.style.display=p?'flex':'none';
+  const b=$('b-pause'); if(b){ b.textContent=p?'▶ Carry on':'⏸ Pause the game';
+    b.classList.toggle('off',p); }
+  if(AC){ if(p) AC.suspend(); else if(audioOn) AC.resume(); }
+}
+function togglePause(){ if(!running) return; setPaused(!gamePaused); }
+$('b-pause').onclick=togglePause;
+$('paused').addEventListener('click',()=>setPaused(false));
 $('b-time').onclick=()=>{ state.paused=!state.paused;
   $('b-time').textContent=state.paused?'\u25B6 Loose the sun':'\u23F8 Hold the sun';
   $('b-time').classList.toggle('off',state.paused); };
@@ -9234,6 +9815,8 @@ $('b-daypart').onclick=()=>{ state.dayIdx=(state.dayIdx+1)%DAYPARTS.length;
     : 'You set out in the '+D2.n+'.'); };
 updateDayBtn();
 $('b-map').onclick=toggleMap;
+$('b-season').onclick=cycleSeason;
+updateSeasonBtn();
 $('b-ashore').onclick=toggleAshore;
 $('b-fly').onclick=takeFlight;
 $('b-dive').onclick=enterDive;
@@ -9698,7 +10281,10 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   domeInfo:()=>({dome:flyDome?flyDome.material.opacity:0, deep:outerDeep?outerDeep.material.uniforms.uOp.value:0, stars:starGroup.userData.mat.opacity}),
   ENC,nearestEncounter,encounterAct,BARKS,FIREFLIES,SMOKES,rain,rainMat,nextLandfall,checkFulfilled,AIRLIFE,stormAt,COUNTRIES,STORMS,R_WORLD,
   seaPools:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,POD,
-    SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS,NARWHALS}),
+    SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS,NARWHALS,
+    PARROTS,ANGELS,LIONFS,MARLINS,SUNFS,WSHARKS,SPERMS}),
+  /* the reef household and the tenants of the deep, for the smoke tests */
+  DEEPLIFE,DEEP_KINDS,ANEMS,SEAHORSES,MORAYS,BEDLIFE,SHOALS,
   /* the reef's lanterns and the spring flush — for the smoke tests */
   coral:()=>CORAL, blooms:()=>BLOOMS, seaCurrent,
   /* the home-raising itself, so a test may ask WHY a den was or was not built */
@@ -9709,7 +10295,7 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
     moonR:+(Math.hypot(moon.position.x,moon.position.z)/R_WORLD).toFixed(3),
     domeR:+(R_DOME/R_WORLD).toFixed(3), faceY:aloftDisc?Math.round(aloftDisc.position.y):null,
     sunVis:sun.visible, moonVis:moon.visible }),
-  makeBeast,beastUnits,BEASTS,U_PER_M,POD,initPod,SHARKS,initSharks,initSeaMobs,
+  makeBeast,makeAnimal,makeBird,beastUnits,BEASTS,U_PER_M,POD,initPod,SHARKS,initSharks,initSeaMobs,
   seaMobs:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS})};
 
 /* ================= THE GREAT LOOP ================= */
@@ -9718,6 +10304,8 @@ function frame(){
   requestAnimationFrame(frame);
   const dt=Math.min(0.05,clock.getDelta());
   if(!running){ renderer.render(scene,camera); return; }
+  /* paused — the world is drawn as it stands, and not one thing in it stirs */
+  if(gamePaused){ renderer.render(scene,camera); return; }
   /* ---- THE SKY KEEPS YOUR OWN CLOCK, IF YOU ASK IT TO ----
      On 'live' the hour is not run forward by the course at all: it is read
      off the machine's own clock a few times a second, and set as the LOCAL
@@ -9764,6 +10352,21 @@ function frame(){
      the same sea. Near the surface the view stays long, so a coast does not
      vanish a few metres down; it shortens as the deep darkens. */
   const underEye=eyeUnderwater();
+  /* ---- THE CLEAR SHALLOWS SHOW WHAT LIVES IN THEM ----
+     From the deck the sea read as a painted skin: the kelp, the coral, the
+     crabs and the whole blocky bed were only furnished once the eye went
+     UNDER, so the living reef sailed beneath every keel unseen and the ocean
+     looked dead from above. Whenever the traveller is on or beside water
+     with a sunlit bed (to ~70 m), the same sea the diver swims is set out
+     under him — floor, weed, reef and beasts — and the flat backdrop discs
+     are taken away so the clear water truly opens down onto it. */
+  let shallowView=false;
+  if(!state.firm&&!underEye&&(state.mode==='boat'||state.mode==='deck'||state.mode==='walk')){
+    let wx3=p.x, wz3=p.z;
+    if(state.mode==='walk'&&landAtWorld(wx3,wz3)){
+      wx3=p.x+Math.sin(state.walk.heading)*36; wz3=p.z+Math.cos(state.walk.heading)*36; }
+    if(!landAtWorld(wx3,wz3)&&seabedMetres(wx3,wz3)<70) shallowView=true;
+  }
   /* ---- THE TWO GREAT LIGHTS ARE NOT SEEN FROM UNDER THE SEA ----
      They are drawn with the fog off, so from beneath the waves the sun stood
      as a white blaze straight through the water and washed the floor, the
@@ -9911,7 +10514,12 @@ function frame(){
        or they read as a second sea hanging in the deep with fish above and
        below it. */
     waveGrid.visible=!inHold;
-    sea.visible=seaDeep.visible=!inHold&&!underEye; }
+    sea.visible=seaDeep.visible=!inHold&&!underEye;
+    /* over the furnished shallows the discs drop far beneath the lit bed, so
+       the true floor and its life show through the clear water — while the
+       water past the patch still has the deep's own blue standing under it */
+    sea.position.y=shallowView?WATER_Y-520:WATER_Y-60;
+    seaDeep.position.y=shallowView?WATER_Y-820:WATER_Y-300; }
   seaLifeTick(p.x,p.z,dt);
   splashTick(dt);
   fishTick(dt);
@@ -10020,20 +10628,21 @@ function frame(){
      camera dipped under a wave from the strand. It follows the eye, not the
      mode, so there is no longer a seam where one world ends and another
      begins. */
-  if(!state.firm&&underEye){
+  if(!state.firm&&(underEye||shallowView)){
     const dv=state.mode==='dive';
-    const dx2=dv?state.dive.x:camera.position.x, dz2=dv?state.dive.z:camera.position.z;
-    const dy2=dv?state.dive.y:camera.position.y;
+    const dx2=dv?state.dive.x:(underEye?camera.position.x:p.x), dz2=dv?state.dive.z:(underEye?camera.position.z:p.z);
+    const dy2=dv?state.dive.y:(underEye?camera.position.y:SEA_SURF-6);
     initDeep();
-    updateDeep(dx2,dy2,dz2,dt,Math.min(1,Math.max(0,SEA_SURF-dy2)/560),dv);
+    updateDeep(dx2,dy2,dz2,dt,underEye?Math.min(1,Math.max(0,SEA_SURF-dy2)/560):0,dv);
   }
   else if(deepShown) hideDeep();
   /* the beasts of the field and the fowl of the air, over all the earth */
   if(!state.firm&&state.mode!=='dive'){ const tt=performance.now()*0.001, night=(light.nightF||0)>0.5;
     updateAirLife(p.x,p.z,dt,tt,night);
-    /* the same fish are stirred by updateDeep when the eye is under — moving
-       them twice in one frame doubled their speed and tore the schools apart */
-    if(!underEye) updateShallowLife(p.x,p.z,dt,tt);   /* fish and turtles seen through the clear shallows */
+    /* the same fish are stirred by updateDeep when the eye is under — or when
+       the clear shallows are furnished from above — moving them twice in one
+       frame doubled their speed and tore the schools apart */
+    if(!underEye&&!shallowView) updateShallowLife(p.x,p.z,dt,tt);   /* fish and turtles seen through the clear shallows */
     podTick(p.x,p.z,dt,tt);             /* the whale pods, making for the fishing grounds */
     orcaTick(p.x,p.z,dt,tt);            /* and the killer whales, on their own road in the deep */
     if(state.mode==='boat'||state.mode==='deck'||state.mode==='walk'){

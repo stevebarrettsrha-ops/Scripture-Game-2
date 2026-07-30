@@ -93,7 +93,11 @@
   .tbtn:hover{ background:rgba(232,198,106,.28); }
   .tbtn:disabled{ opacity:.35; cursor:default; }
   #trade .m-hint{ margin-top:2vh; text-align:center; font-size:clamp(9px,1.4vmin,12px); letter-spacing:.2em; color:#6a6252; cursor:pointer; }
-  #breath{ position:fixed; z-index:6; left:50%; bottom:20vh; transform:translateX(-50%);
+  /* THE BREATH BAR KEEPS CLEAR OF THE WORDS. It sat at 20vh, square on top of
+     the place-line at 19vh, and covered the depth reading whenever the diver
+     was under. It rides BELOW the place-line now, on the same centre axis. */
+  #breath{ position:fixed; z-index:6; left:50%; bottom:16.5vh; transform:translateX(-50%);
+    margin-left:-11vw;
     width:min(40vw,240px); height:10px; border:1px solid rgba(232,198,106,.55); border-radius:5px;
     background:rgba(7,16,29,.78); display:none; pointer-events:none; }
   #breath-fill{ height:100%; width:100%; border-radius:4px;
@@ -109,6 +113,14 @@
     border:1px solid rgba(232,198,106,.5); background:rgba(14,18,32,.72); color:var(--gold);
     font-size:22px; cursor:pointer; touch-action:none; }
   .fpb:active{ background:rgba(232,198,106,.3); border-color:var(--gold); }
+  /* ---- THE GAME MAY BE PAUSED ----
+     A true pause: the whole simulation stands still, not only the sun.
+     P or ESC (or the button on the rail) — and the same again to carry on. */
+  #paused{ position:fixed; inset:0; z-index:24; display:none; align-items:center; justify-content:center;
+    flex-direction:column; gap:1.8vh; background:rgba(4,6,13,.74); cursor:pointer; }
+  #paused h2{ color:var(--gold); letter-spacing:.34em; font-weight:600;
+    font-size:clamp(16px,3vmin,28px); text-shadow:0 0 24px rgba(232,198,106,.4); }
+  #paused .m-hint{ font-size:clamp(10px,1.5vmin,13px); letter-spacing:.2em; color:#9a8f74; }
   #title-card{ position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
     background:radial-gradient(ellipse at 50% 35%, #0d1730 0%, #05070f 70%); }
   #title-inner{ text-align:center; max-width:min(92vw,680px); padding:4vh 4vw; }
@@ -287,9 +299,11 @@
   <button class="btn" id="b-firm">🕊 The firmament</button>
   <button class="btn" id="b-map">🗺 The whole earth</button>
   <button class="btn" id="b-log">📜 The log</button>
+  <button class="btn" id="b-pause">⏸ Pause the game</button>
   <button class="btn" id="b-time">⏸ Hold the sun</button>
   <button class="btn" id="b-speed">⏩ Course: true</button>
   <button class="btn" id="b-daypart">🕑 Time of day: live (your clock)</button>
+  <button class="btn" id="b-season">🍂 Season: natural</button>
   <button class="btn" id="b-names">🏷 Names: on</button>
   <button class="btn" id="b-sound">🔊 Sound: on</button>
   <button class="btn" id="b-spear">🗡 Throw spear</button>
@@ -304,6 +318,11 @@
   <div id="log-lands"></div>
   <div class="m-hint">tap to close</div>
 </div></div>
+
+<div id="paused">
+  <h2>&#9208; THE VOYAGE STANDS STILL</h2>
+  <div class="m-hint">P or ESC &mdash; or tap here &mdash; to carry on</div>
+</div>
 
 <div id="trade"><div id="trade-inner">
   <h2>⚖ THE MARKET</h2>
@@ -694,6 +713,44 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
 <script src="creatures/beluga.js"></script>
 <script src="creatures/greenlandshark.js"></script>
 <script src="creatures/arcticchar.js"></script>
+<!-- THE REEF IN FULL: the anemone and its clownfish, the grazers and the
+     hunters of the coral, and the still things of the bed. -->
+<script src="creatures/clownfish.js"></script>
+<script src="creatures/anemone.js"></script>
+<script src="creatures/seahorse.js"></script>
+<script src="creatures/parrotfish.js"></script>
+<script src="creatures/angelfish.js"></script>
+<script src="creatures/lionfish.js"></script>
+<script src="creatures/moray.js"></script>
+<script src="creatures/lobster.js"></script>
+<script src="creatures/starfish.js"></script>
+<script src="creatures/urchin.js"></script>
+<!-- THE OPEN SEA: the great pelagic fish, the schooling silver, and the
+     whales and sharks that were wanting. -->
+<script src="creatures/marlin.js"></script>
+<script src="creatures/sunfish.js"></script>
+<script src="creatures/flyingfish.js"></script>
+<script src="creatures/herring.js"></script>
+<script src="creatures/anchovy.js"></script>
+<script src="creatures/spermwhale.js"></script>
+<script src="creatures/tigershark.js"></script>
+<!-- THE DEEP, PEOPLED AT LAST: the twilight zone, the midnight zone, the
+     abyssal plain and the hadal trenches, each with its true tenants. -->
+<script src="creatures/lanternfish.js"></script>
+<script src="creatures/hatchetfish.js"></script>
+<script src="creatures/barreleye.js"></script>
+<script src="creatures/viperfish.js"></script>
+<script src="creatures/dragonfish.js"></script>
+<script src="creatures/gulper.js"></script>
+<script src="creatures/siphonophore.js"></script>
+<script src="creatures/giantsquid.js"></script>
+<script src="creatures/dumbo.js"></script>
+<script src="creatures/isopod.js"></script>
+<script src="creatures/seacucumber.js"></script>
+<script src="creatures/tripodfish.js"></script>
+<script src="creatures/grenadier.js"></script>
+<script src="creatures/snailfish.js"></script>
+<script src="creatures/amphipod.js"></script>
 <!-- THE GRASS OF THE EARTH. What grows where, read by the chunk mesher
      when it draws a blade AND by every beast that walks out to eat one. -->
 <!-- THE MEASURE OF EVERY LIVING THING. One table of true adult sizes, in

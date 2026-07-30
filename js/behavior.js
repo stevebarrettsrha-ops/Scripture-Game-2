@@ -325,9 +325,16 @@ whaleshark:   {day:'day',  swim:3, fast:7,  deep:'open',    school:false, air:fa
 tuna:         {day:'day',  swim:12,fast:30, deep:'pelagic', school:true,  air:false, home:'open', acts:[['school',4],['hunt',2],['patrol',2]]},
 swordfish:    {day:'dusk', swim:8, fast:22, deep:'pelagic', school:false, air:false, home:'open', acts:[['sound',3],['hunt',3],['patrol',2]]},
 barracuda:    {day:'day',  swim:6, fast:20, deep:'reef',    school:true,  air:false, home:'reef', acts:[['logging',4],['hunt',3],['school',1]]},
+spermwhale:   {day:'all',  swim:5, fast:12, deep:'abyss',   school:true,  air:true,  home:'open', acts:[['sound',5],['surface',3],['logging',1]]},
+tigershark:   {day:'night',swim:5, fast:19, deep:'open',    school:false, air:false, home:'open', acts:[['hunt',4],['patrol',3],['scavenge',1]]},
+marlin:       {day:'day',  swim:10,fast:34, deep:'pelagic', school:false, air:false, home:'open', acts:[['hunt',3],['patrol',3],['leap',1]]},
+sunfish:      {day:'day',  swim:2, fast:5,  deep:'open',    school:false, air:false, home:'open', acts:[['bask',4],['sound',2],['clean',2]]},
+flyingfish:   {day:'day',  swim:8, fast:18, deep:'shelf',   school:true,  air:false, home:'open', acts:[['school',4],['leap',3]]},
 /* ---- the schooling nations ---- */
 sardine:      {day:'night',swim:9, fast:17, deep:'shelf',   school:true,  air:false, home:'open', acts:[['school',5],['bait',3],['flash',1]]},
 mackerel:     {day:'night',swim:11,fast:21, deep:'shelf',   school:true,  air:false, home:'open', acts:[['school',5],['patrol',2]]},
+herring:      {day:'night',swim:8, fast:16, deep:'shelf',   school:true,  air:false, home:'open', acts:[['school',5],['bait',2],['flash',1]]},
+anchovy:      {day:'night',swim:7, fast:14, deep:'shelf',   school:true,  air:false, home:'open', acts:[['school',5],['bait',3]]},
 cod:          {day:'day',  swim:5, fast:9,  deep:'bed',     school:true,  air:false, home:'bed',  acts:[['bottom',4],['forage',3]]},
 /* ---- the bed and the reef ---- */
 ray:          {day:'day',  swim:3, fast:8,  deep:'bed',     school:false, air:false, home:'bed',  acts:[['bottom',4],['glide',3],['bury',2]]},
@@ -338,6 +345,38 @@ crab:         {day:'night',swim:1, fast:3,  deep:'bed',     school:false, air:fa
 puffer:       {day:'day',  swim:2, fast:6,  deep:'reef',    school:false, air:false, home:'reef', acts:[['forage',4],['puff',1],['logging',1]]},
 anglerfish:   {day:'all',  swim:1, fast:5,  deep:'abyss',   school:false, air:false, home:'open', acts:[['lure',6],['hover',3]]},
 fish:         {day:'day',  swim:4, fast:9,  deep:'reef',    school:true,  air:false, home:'reef', acts:[['graze',3],['school',3],['clean',1]]},
+/* ---- the reef in full ---- */
+clownfish:    {day:'day',  swim:2, fast:6,  deep:'reef',    school:true,  air:false, home:'reef', acts:[['hover',4],['clean',2],['den',2]]},
+parrotfish:   {day:'day',  swim:3, fast:8,  deep:'reef',    school:false, air:false, home:'reef', acts:[['graze',5],['clean',1]]},   /* sleeps the night in a spun cocoon */
+angelfish:    {day:'day',  swim:3, fast:7,  deep:'reef',    school:false, air:false, home:'reef', acts:[['graze',3],['clean',2],['patrol',1]]},
+lionfish:     {day:'dusk', swim:2, fast:6,  deep:'reef',    school:false, air:false, home:'reef', acts:[['hover',4],['hunt',2]]},
+seahorse:     {day:'day',  swim:0.5,fast:1.5,deep:'reef',   school:false, air:false, home:'weed', acts:[['hover',6],['hold',2]]},
+moray:        {day:'night',swim:2, fast:8,  deep:'reef',    school:false, air:false, home:'cave', acts:[['den',5],['gape',3],['hunt',1]]},
+lobster:      {day:'night',swim:1, fast:4,  deep:'bed',     school:false, air:false, home:'cave', acts:[['bottom',4],['forage',3]]},
+starfish:     {day:'all',  swim:0.1,fast:0.2,deep:'bed',    school:false, air:false, home:'bed',  acts:[['bottom',6]]},
+urchin:       {day:'night',swim:0.1,fast:0.2,deep:'bed',    school:false, air:false, home:'bed',  acts:[['bottom',5],['graze',2]]},
+/* ---- THE TENANTS OF THE DEEP ----
+   The twilight zone (200–1,000 m): the lanternfish that rise every night to
+   the surface waters and sink at dawn — the greatest migration on the earth,
+   made daily — the hatchetfish, the barreleye under its glass dome.
+   The midnight zone (1,000–4,000 m): the lures and the fangs.
+   The plain and the trenches: the walkers of the mud, and the pale
+   snailfish that holds the deepest water on the planet. */
+lanternfish:  {day:'night',swim:4, fast:9,  deep:'pelagic', school:true,  air:false, home:'open', acts:[['school',4],['flash',3]]},
+hatchetfish:  {day:'night',swim:2, fast:5,  deep:'pelagic', school:true,  air:false, home:'open', acts:[['hover',4],['flash',2]]},
+barreleye:    {day:'all',  swim:1, fast:3,  deep:'pelagic', school:false, air:false, home:'open', acts:[['hover',6],['watch',3]]},
+viperfish:    {day:'night',swim:2, fast:9,  deep:'abyss',   school:false, air:false, home:'open', acts:[['lure',4],['hover',3],['hunt',1]]},
+dragonfish:   {day:'night',swim:2, fast:8,  deep:'abyss',   school:false, air:false, home:'open', acts:[['lure',4],['hover',3],['hunt',1]]},
+gulper:       {day:'all',  swim:1.5,fast:4, deep:'abyss',   school:false, air:false, home:'open', acts:[['drift',5],['gape',3]]},
+siphonophore: {day:'all',  swim:0.5,fast:1, deep:'abyss',   school:false, air:false, home:'open', acts:[['drift',5],['glow',3]]},
+giantsquid:   {day:'all',  swim:5, fast:16, deep:'abyss',   school:false, air:false, home:'open', acts:[['hover',3],['jet',2],['hunt',2]]},
+dumbo:        {day:'all',  swim:1.5,fast:4, deep:'abyss',   school:false, air:false, home:'bed',  acts:[['hover',4],['bottom',3]]},
+isopod:       {day:'all',  swim:0.5,fast:1.5,deep:'bed',    school:false, air:false, home:'bed',  acts:[['bottom',5],['scavenge',3]]},
+seacucumber:  {day:'all',  swim:0.2,fast:0.4,deep:'bed',    school:false, air:false, home:'bed',  acts:[['bottom',6],['forage',3]]},
+tripodfish:   {day:'all',  swim:0.5,fast:3, deep:'bed',     school:false, air:false, home:'bed',  acts:[['hold',7],['hover',1]]},
+grenadier:    {day:'all',  swim:2, fast:6,  deep:'bed',     school:false, air:false, home:'bed',  acts:[['bottom',4],['scavenge',3],['patrol',2]]},
+snailfish:    {day:'all',  swim:2, fast:6,  deep:'bed',     school:false, air:false, home:'bed',  acts:[['bottom',4],['forage',3]]},
+amphipod:     {day:'all',  swim:1.5,fast:4, deep:'bed',     school:true,  air:false, home:'bed',  acts:[['bottom',4],['scavenge',4]]},
 /* ---- the fish of the rivers, that never see the sea ---- */
 salmon:       {day:'day',  swim:6, fast:19, deep:'river',   school:true,  air:false, home:'river',acts:[['run',4],['leap',2],['hold',2]]},
 trout:        {day:'dusk', swim:5, fast:12, deep:'river',   school:false, air:false, home:'river',acts:[['hold',4],['rise',2],['dart',1]]},
