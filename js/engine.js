@@ -5482,7 +5482,14 @@ const WILD_ROLE=Object.assign({wolf:'pack', lion:'stalk', bear:'forage',
   blackbear:'forage', crocodile:'ambush', lizard:'bask'}, FAUNA.roles);
 function initLandLife(){ if(LANDLIFE.length) return; for(let k=0;k<LL_N;k++) LANDLIFE.push({m:null,kind:null,hx:0,hz:0,x:0,z:0,heading:0,tx:0,tz:0,t:0,set:false,
   retry:Math.random()*2.2 /* the first filling is STAGGERED — ninety-six beasts built in one frame is a hitch */ }); }
-function findLandSpot(px,pz){ for(let tr=0;tr<10;tr++){ const a=Math.random()*6.28, r=LL_MIN+Math.random()*(LL_R-LL_MIN), x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
+/* the far ring first (out in the haze, where a spawn is unseen) — but a
+   SMALL ISLE is narrower than that ring, and a traveller ashore on one
+   found it stripped of every living thing: all ten casts landed in the sea.
+   The last few casts fall back to a nearer ring (420–850, at least half
+   into the fog), used only where the far ring found no land at all. */
+function findLandSpot(px,pz){ for(let tr=0;tr<10;tr++){ const a=Math.random()*6.28,
+    r=tr<6?LL_MIN+Math.random()*(LL_R-LL_MIN):420+Math.random()*430,
+    x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
     /* beasts keep to the charted lands (ci>0 — the countries and true isles);
        the bare rocks and skerries of the open ocean stay bare.
        (The old bar of six blocks kept every creature off the high country —
@@ -10998,7 +11005,10 @@ function frame(){
        "little square" — so above ~5,000 the grid hands the sea to the
        colour-matched backdrop discs (the two are deliberately painted alike,
        so nothing is seen to change hands) and takes it back on the way down. */
-    frame._wgHi = frame._wgHi ? eyeY>4800 : eyeY>5200;
+    /* keyed on the VIEW's reach, not the flyer's height alone — the eye
+       drawn far back from the deck sees the same pale square from the same
+       distance, and must lose it the same way */
+    frame._wgHi = frame._wgHi ? viewReach>4800 : viewReach>5200;
     waveGrid.visible=!inHold&&!frame._wgHi;
     sea.visible=seaDeep.visible=!inHold&&!underEye;
     /* over the furnished shallows the discs drop far beneath the lit bed, so
