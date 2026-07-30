@@ -111,6 +111,21 @@ tuna:2.2, turtle:1.8, ray:5.5, dolphin:3.2, shark:5.2,
 hammerhead:4.6, whaleshark:13.0, orca:8.0, narwhal:7.0, whale:31.0,
 seal:1.8, walrus:3.2, octopus:1.2, swordfish:3.0, barracuda:1.4,
 manatee:3.0, beluga:4.2, greenlandshark:6.4,
+/* ---- the reef in full ---- */
+clownfish:0.15, anemone:0.6, seahorse:0.25, parrotfish:0.5, angelfish:0.35,
+lionfish:0.38, moray:1.5, lobster:0.5, starfish:0.35, urchin:0.2,
+/* ---- the open sea, filled out ---- */
+marlin:4.3, sunfish:3.1, flyingfish:0.45, herring:0.3, anchovy:0.15,
+spermwhale:16.0, tigershark:4.9,
+/* ---- THE TENANTS OF THE DEEP, at their honest sizes ----
+   Most of the midnight zone is SMALL — a viperfish is a hand and a half, a
+   lanternfish a finger — and their lamps, not their bulk, are what is seen.
+   The giant squid and the sperm whale are the two exceptions, and they are
+   exceptions to everything. */
+lanternfish:0.12, hatchetfish:0.1, barreleye:0.15, viperfish:0.35,
+dragonfish:0.4, gulper:0.75, siphonophore:10.0, giantsquid:12.0,
+dumbo:0.3, isopod:0.35, seacucumber:0.5, tripodfish:0.35, grenadier:0.9,
+snailfish:0.25, amphipod:0.1,
 /* ---- and of the rivers ---- */
 trout:0.45, catfish:1.2, piranha:0.3, sturgeon:2.2, riverdolphin:2.4,
 arcticchar:0.6,
@@ -146,7 +161,9 @@ const axis={
   llama:'y', alpaca:'y', kangaroo:'y', koala:'y', emu:'y', cassowary:'y',
   ostrich:'y', penguin:'y', bustard:'y', chicken:'y', squid:'y', jelly:'y',
   /* and the ones wider than they are long */
-  crab:'x', ray:'x',
+  crab:'x', ray:'x', starfish:'x', urchin:'x',
+  /* the upright things of the sea */
+  seahorse:'y', sunfish:'y', anemone:'y',
   /* every bird in the air, wingtip to wingtip */
   crow:'x', dove:'x', gull:'x', eagle:'x', owl:'x', puffin:'x', butterfly:'x',
 };
