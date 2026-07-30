@@ -10245,6 +10245,12 @@ $('bigmap').addEventListener('click',toggleMap);
    window.storage API is kept as a secondary channel where it exists. */
 const SAVE_KEY='voyage:state';
 async function saveState(){
+  /* NOTHING IS WRITTEN BEFORE THE VOYAGE BEGINS. The menu's options lean on
+     the rail buttons, and several of those save on click — fired before
+     begin() they would write the menu's empty stand-in state straight over
+     a real voyage. (The error handler saves too, and a fault at the menu
+     must not wash the log away either.) */
+  if(!running) return;
   const payload=JSON.stringify({v:7,R:R_WORLD,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
     t:state.simHours,m:state.mode==='walk'?'walk':'boat',wx:state.walk.x,wz:state.walk.z,wh:state.walk.heading,
     vis:[...state.visited],d:Math.round(state.dist),wm:state.windMode,fi:state.fish||0,
@@ -10757,12 +10763,17 @@ function findStart(){
 }
 let running=false, saveT=0;
 let _begun=false;
+/* the loading screen and the menu, both standing in the page itself */
+const BOOT=window.__BOOTUI||{stage:function(){},fail:function(){},done:function(){}};
+let menuView=null;    /* {x,z,yaw,t} — the slow drift behind the menu; null once sailing */
+let menuSave=null;    /* the save as the menu read it, for the CONTINUE line */
 async function begin(fresh){
   if(_begun) return; _begun=true;   /* a double-click on Set sail built the cities twice */
   try{
-  computeSites();
-  cellCacheOn=true; CELL_CACHE.clear();   /* sites are fixed — the terrain is now immutable and memoisable */
-  buildYahru(); buildHome();
+  /* the sites, Yahru, the home port and the anchorage's chunks were all
+     built by preload() while the loading screen stood — none of it may run
+     twice (twice-computed sites double the villages; twice-built ports
+     stand two houses in one place) */
   const saved=fresh?null:await loadSaved();
   if(saved){ state.boat.x=saved.x; state.boat.z=saved.z; state.boat.heading=saved.h; state.simHours=saved.t;
     if(saved.v>=3&&saved.m==='walk'){ state.walk.x=saved.wx; state.walk.z=saved.wz;
@@ -10789,14 +10800,113 @@ async function begin(fresh){
      has his place there is no longitude to reckon it against */
   applyDayPart(); updateDayBtn();
   updateChunks(p0.x,p0.z,9999);
-  $('title-card').style.display='none'; running=true;
+  $('boot').style.display='none';
+  if(window.__MENUUI) __MENUUI.close(); else $('menu').style.display='none';
+  D.body.classList.remove('pregame');       /* the HUD stands up with the voyage */
+  menuView=null; running=true;
   setMode(state.mode); updateWindBtn(); initAudio();
   toast('And Aluahim said, \u201cLet the waters under the shamayim be gathered together into one place, and let the dry land appear.\u201d And it came to be so.','BER\u0114SHITH 1:9');
   }catch(e){ _begun=false; throw e; }   /* a failed launch frees the buttons for another try */
 }
-loadSaved().then(s=>{ if(s){ const b=$('btn-continue'); b.style.display='inline-block'; } });
-$('btn-sail').onclick=()=>begin(true);
-$('btn-continue').onclick=()=>begin(false);
+/* ================= THE LOADING OF THE WORLD =================
+   The whole build runs UNDER the loading screen, stage by stage on a true
+   bar, so the menu — when it comes — stands over a world already made:
+   the sites of every nation, Yahru and the home port, and the full disc of
+   chunks about the anchorage, laid a slice a frame so the bar can move. */
+async function preload(){
+  const raf=()=>new Promise(r=>requestAnimationFrame(r));
+  BOOT.stage('Charting the coasts of every nation…',0.16); await raf(); await raf();
+  computeSites();
+  cellCacheOn=true; CELL_CACHE.clear();   /* sites are fixed — the terrain is now immutable and memoisable */
+  BOOT.stage('Raising Yahru and the home port…',0.30); await raf();
+  buildYahru(); buildHome();
+  menuSave=await loadSaved();
+  /* the backdrop is built where the voyage will open: the ship's saved
+     berth, or the harbour of the first sailing */
+  let ax,az;
+  if(menuSave){ ax=menuSave.x; az=menuSave.z; }
+  else { const s0=findStart(); ax=s0[0]; az=s0[1]; }
+  state.boat.x=ax; state.boat.z=az;       /* begin() sets it again from the save */
+  if(menuSave&&menuSave.h!==undefined) state.boat.heading=menuSave.h;
+  applyDayPart();                          /* the menu keeps the traveller's own hour */
+  BOOT.stage('Laying the dry land, block by block…',0.34); await raf();
+  updateChunks(ax,az,1);
+  const total=Math.max(1,buildQueue.length+1);
+  while(buildQueue.length){
+    updateChunks(ax,az,50);                /* a 9 ms slice a frame, so the bar moves */
+    BOOT.stage(null,0.34+0.64*(1-buildQueue.length/total));
+    await raf(); }
+  BOOT.stage('The world stands ready',1); await raf();
+  openMenu();
+}
+
+/* ================= THE MENU ================= */
+function openMenu(){
+  BOOT.done();
+  $('boot').style.display='none';
+  if(menuSave) $('m-continue').style.display='block';
+  if(window.__MENUUI) __MENUUI.open(); else $('menu').style.display='block';
+  menuView={x:state.boat.x, z:state.boat.z, yaw:Math.random()*Math.PI*2, t:0};
+}
+/* the world sails on behind the menu: its own sky, its own sea, the ship at
+   her anchorage — and the eye carried slowly round her */
+function menuTick(dt){
+  const a=menuView; a.t+=dt; a.yaw+=dt*0.03;
+  boatTick(dt,false);                      /* she rides the swell while the menu stands */
+  const light=skyTick(a.x,a.z);
+  waterTick(a.x,a.z,light.dayF,light.storm||0);
+  WIND_T.value=performance.now()*0.001;
+  { const wnd=windAt(a.x,a.z); WIND_A.value=(0.35+wnd.s*0.9)*(1+(light.storm||0)*1.6); }
+  SEASON_Y.value=window.SEASON?SEASON.yearPhase(dayOfYear()):(dayOfYear()-1)/364;
+  seaTex.offset.x=(performance.now()*0.000012)%1; seaTex.offset.y=(performance.now()*0.000009)%1;
+  const _pn=performance.now();
+  TEX.surf.offset.x=(_pn*0.00006)%1; TEX.surf.offset.y=(_pn*0.00013)%1;
+  surfMat.opacity=0.42+0.28*Math.sin(_pn*0.0022);
+  updateChunks(a.x,a.z,4);                 /* keep the ring whole if anything was left */
+  const R2=235, h=62+Math.sin(a.t*0.11)*7;
+  camera.position.set(a.x+Math.sin(a.yaw)*R2, h, a.z+Math.cos(a.yaw)*R2);
+  camera.lookAt(a.x,22,a.z);
+}
+/* setting forth from the menu: the near work is already built, so this is a
+   breath — save for a voyage saved far ASHORE, whose ground is rush-built
+   here, which is what the returned loading screen stands over */
+let _launching=false;
+function menuLaunch(fresh){
+  if(_begun||_launching) return; _launching=true;
+  if(window.__MENUUI) __MENUUI.close(); else $('menu').style.display='none';
+  const bo=$('boot'); bo.style.display='flex';
+  BOOT.stage(fresh?'Setting sail…':'Returning to the voyage…',1);
+  /* two frames, so the loading screen is truly painted before the rush */
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    begin(fresh).then(()=>{ _launching=false; },
+      e=>{ _launching=false;
+        BOOT.fail('The voyage could not be launched: '+(e&&e.message||e));
+        throw e; });
+  }));
+}
+$('m-continue').onclick=()=>menuLaunch(false);
+$('m-new').onclick=()=>{
+  if(!menuSave){ menuLaunch(true); return; }
+  /* a voyage stands in the log — it is not washed away on one click */
+  $('m-list').style.display='none'; $('m-confirm').style.display='flex';
+  if(window.__MENUUI) __MENUUI.refresh(); };
+$('mc-keep').onclick=()=>{
+  $('m-confirm').style.display='none'; $('m-list').style.display='flex';
+  if(window.__MENUUI) __MENUUI.refresh(); };
+$('mc-anew').onclick=()=>menuLaunch(true);
+/* the options lean on the rail's own buttons, so the two can never disagree */
+const OPTMAP=[['mo-sound','b-sound'],['mo-names','b-names'],
+  ['mo-daypart','b-daypart'],['mo-season','b-season'],['mo-wind','b-wind']];
+function syncOpts(){ for(const[a,b] of OPTMAP){
+  const A=$(a), B2=$(b); if(A&&B2) A.textContent=B2.textContent; } }
+for(const[a,b] of OPTMAP){ const A=$(a);
+  if(A) A.onclick=()=>{ const B2=$(b); if(B2) B2.click(); syncOpts(); }; }
+$('m-options-btn').onclick=()=>{ syncOpts(); $('opt-modal').style.display='flex'; };
+$('opt-back').onclick=()=>{ $('opt-modal').style.display='none'; };
+
+preload().catch(e=>{
+  BOOT.fail('The world could not be built: '+(e&&e.message||e));
+  throw e; });
 
 /* a small debug handle — used by the automated smoke tests; harmless in play */
 window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
@@ -10839,7 +10949,10 @@ const clock=new THREE.Clock(); let miniT=0, labelT=0, liveT=0;
 function frame(){
   requestAnimationFrame(frame);
   const dt=Math.min(0.05,clock.getDelta());
-  if(!running){ renderer.render(scene,camera); return; }
+  /* before the voyage begins the MENU stands over the living world: the sky
+     keeps its hour, the sea runs, the ship rides the swell at her anchorage,
+     and the eye is carried slowly round her */
+  if(!running){ if(menuView) menuTick(dt); renderer.render(scene,camera); return; }
   /* paused — the world is drawn as it stands, and not one thing in it stirs */
   if(gamePaused){ renderer.render(scene,camera); return; }
   /* ---- THE SKY KEEPS YOUR OWN CLOCK, IF YOU ASK IT TO ----
