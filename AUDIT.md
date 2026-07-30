@@ -609,6 +609,133 @@ every school, every frame, at six places from the Marianas to Iceland. The
 highest fish anywhere in the world now sits **26 units below the waterline**,
 and **no** shoal fish is visible from the deck.
 
+## 4p. Round 17 — the lights never leave the whole-earth view, the eye is freed, and nothing pops ✅
+
+*A full-system audit (two adversarial passes: one over every streaming/spawning
+system for pop-in, one over the mode state machine, save integrity, input and
+UI wiring), then fixes, then a headless end-to-end run (boot → sail → night →
+zoom-out → firmament → camera gestures → firm-view guards) with screenshots.*
+
+**1. The two great lights kept the traveller's own sky in the whole-earth
+views — and vanished.** Their discs took his LOCAL brightness (zero once a
+light had set where he stood) and their height was his local altitude (a set
+sun sat half a world's radius BELOW the disc, under the bronze table). So
+beholding the earth entire at his local midnight, the sun — and often the moon
+— was simply gone. Now the firmament view is a whole-earth view like any
+other: both lights stand over the countries where their own hour is, just
+above the charted face, burning full, with their haloes — and the painted glow
+that stood fixed at the middle of the firmament view (a second, motionless
+sun) is removed. The water still reads the moon's TRUE local brightness for
+its glitter, so a moon set at the traveller's feet lights no waves.
+
+**2. The full sweep of the eye — mouse and finger.** Yaw was already
+unbounded; the pitch ran only 0.04–1.52, so the sky could never be looked at.
+It runs −1.25 to 1.52 now: drag down past the horizon and the eye swings
+below the traveller's line and gazes UP past him at the clouds, the lights
+and the vault — with the ground, the planks, the water and the ship's hull
+all stopping the camera (it settles just over them and looks up from there;
+the swimmer's dip-under eye keeps its own law). A flick SLIDES: the view
+keeps the finger's pace and glides to rest, until the next touch takes the
+wheel back. While a finger or the mouse holds the view, the walk-recentring
+never fights it. On touch: with the joystick held, a second finger is the
+LOOKING finger (it used to become a pinch and kill the stick — walk-and-look
+was impossible on a phone); a pinch let go one finger at a time carries
+straight on as a look-drag; and under the firmament view a touch is never a
+joystick, so every land on the map can be tapped from a phone.
+
+**3. Nothing behind the map.** While the whole earth was beheld, the world
+underneath stayed live: WASD sailed the ship blind, C set a diver draining
+breath beneath the overlay, E/G/Q/N all acted unseen, and the ⚓/🕊/🤿 buttons
+kept working. All of it is gated now (the helm, the keys and the verbs alike);
+entering the view closes the trade panel and the fishing line, ends any
+running scene, and is refused from the hold; leaving it restores the camera's
+near plane (it was left at ~5,800 — enter a house or the hold after the map
+and the whole world was clipped to black).
+
+**4. Pop-in, hunted through every streaming system.**
+- **Chunks:** the reap used a SQUARE of 15 against an add-disc of 13, holding
+  ~960 chunks alive where ~540 were wanted — the mesher's frames were spent
+  carrying fog-bound ground, which is what let land arrive inside the haze at
+  speed. Reap now matches the add (Euclidean, one ring of hysteresis). The
+  build budget is a TIME slice (9/4 ms) with a hard cap, not a count of nine
+  chunks that might all be rainforest; abandoned queue entries are dropped
+  unbuilt; and the fast-stream trigger reads the traveller's TRUE speed.
+- **Beasts, birds, whales:** everything that used to materialise in clear air
+  (land beasts at 70–430 with the fog starting at 500; birds at 60–500; whale
+  pods 500 off the rail; orcas at 700; sea-encounters at 420) now spawns in or
+  beyond the haze (beasts 850–1,250, birds 650–1,250, pods and orcas 1,250+,
+  encounters 700+) and is reaped beyond it, walking into view through the fog
+  as the traders always did. The pools are widened (96 beasts, 24 birds) so
+  the plain stays as thickly peopled across the larger round, first fills are
+  staggered, and empty slots cool off between probes instead of running ten
+  land tests per slot per frame over open ocean.
+- **The reef:** `shallowView` flipped on the 70 m contour with no hysteresis —
+  sailing ALONG the shelf line hid and refurnished the whole reef (kelp,
+  coral, fish, floor) every frame, and dropped the backdrop discs 460 units in
+  one step. It has the same hysteresis band the underwater eye has (70 in /
+  86 out), a hold before `hideDeep()`, and the discs ease between stations.
+  Kelp, coral and seagrass keep a minimum distance from the mask and GROW in;
+  fish, jellies, crabs, anemones and morays keep their distance too.
+- **The far carpet:** it blinked (a hard boolean at exactly y=1000) and it
+  re-laid the whole horizon around the raw eye every ~220 units. It fades in
+  and out with hysteresis now, snaps its rebuild centre to the FL_STEP grid
+  (that constant at last earning its keep), and holds its radius unless the
+  view truly grew. The near-world cut under the charted face waits until the
+  face is 97 % opaque (was 75 % — a quarter of the world vanished in one
+  frame). The gold position-mark fades in WITH the face instead of appearing
+  at full strength over everything. The sea-bed patch anchors to the block
+  grid, so the floor no longer reflows every 44 units swum. Blooms sprout
+  from 140 out; fireflies dim at the edge of their round instead of blinking
+  out; the cloud-deck re-noise takes a breath between rebuilds when the eye
+  is far above it.
+
+**5. The audit's other findings, fixed.**
+- The invisible `#prompt` button swallowed every pointer that landed on a
+  ~190×36 px band mid-screen (opacity 0 still takes clicks), and a click on
+  the empty air could put the traveller to bed. It is click-transparent
+  unless truly shown.
+- `sleep()` was a no-op on the default 'live' clock — the machine's hour was
+  re-read four times a second and snapped the sky back to real night. Lying
+  down now sets the course to 'morning' and the rest holds.
+- The pearl beds regrew on every reload (the count was saved, the SITES were
+  not) — save v7 keeps the gathered places; v2–v6 voyages still load.
+- A double-click on Set sail built the cities twice; a market stall's prompt
+  (widest catchment, lowest priority) was unreachable within 11 units of any
+  door — a stall stood AT now wins; the stale-mount mark is cleared with the
+  other prompt marks; the ☰ rail joins the cutscene hide-list; the rail
+  re-folds when a phone turns upright; the offline three.min.js fallback now
+  fires when a captive portal answers 200 with something that is not
+  three.js; `viewport-fit=cover` for notched phones.
+
+**Verified headless end-to-end**: boot → set sail → forced local midnight →
+zoomed-out (lights above the disc, opacity 1) → firmament view (sun and moon
+standing over the disc — screenshot) → mouse 360° drag → pitch below the old
+floor → touch look-while-walking → flick-slide → firm-view key guards → near
+plane restored → helm dead behind the map. `node --check` clean on every file.
+
+## 4q. Round 18 — the three nits Round 17 left, taken ✅
+
+- **The cloud sheet has no edge.** The two drifting cloud planes are drawn
+  with the fog off (fog at 1,140 would erase them whole), so each ended in a
+  razor-straight line a few degrees over the horizon — a permanent hard rule
+  across the sky that slid with the traveller. Each sheet now carries a
+  radial skirt in its own shader (reckoned per fragment — the sheet is a
+  single quad, so a per-vertex fade would have interpolated to nothing) and
+  thins away into open sky. Verified live: the programs compile on the
+  shipped r128, the clouds draw, and the horizon shows no line.
+- **The sea-bed patch dissolves into the water.** The furnished bed is a
+  moving square 672 across; under the waves the water-fog ends the view well
+  inside it, but seen from a deck through the clear shallows its rim stood as
+  a hard square cut in the sand. The outer cells now lean wholly into the
+  colour the water lends at that depth, so the floor is lost by degrees into
+  blue. Verified in the built geometry: a rim cell reads water-blue
+  (blueness +0.25) where an interior cell reads bright sand (+0.05).
+- **The clock and the rail no longer meet on a phone.** At ≤900px the rail's
+  top was a height the clock's own bottom could cross on a short screen, and
+  when the buttons overflowed the two sat printed over one another. The rail
+  now begins below the clock's three lines. Verified at 390×780: clock
+  bottom 132px, rail top 158px, no overlap.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

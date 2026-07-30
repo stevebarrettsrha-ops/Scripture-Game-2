@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#05070f">
 <title>THE VOYAGE — All the Earth Within the Firmament</title>
 <style>
@@ -28,7 +28,9 @@
     text-shadow:0 2px 8px rgba(0,0,0,.85); }
   #verse .vr{ margin-top:.7vh; font-size:clamp(9px,1.4vmin,12px); letter-spacing:.24em; color:var(--gold); }
   #prompt{ position:fixed; z-index:7; left:50%; bottom:26vh; transform:translateX(-50%);
-    pointer-events:auto; opacity:0; transition:opacity .18s; cursor:pointer;
+    /* click-transparent until the engine shows it — an opacity-0 element
+       still swallows pointers, and this one sat mid-screen eating look-drags */
+    pointer-events:none; opacity:0; transition:opacity .18s; cursor:pointer;
     background:rgba(14,18,32,.9); color:var(--gold); border:1px solid var(--gold);
     border-radius:5px; padding:1.1vh 2.2vh; font-family:inherit; letter-spacing:.14em;
     font-size:clamp(11px,1.8vmin,15px); text-transform:uppercase; }
@@ -148,7 +150,7 @@
      and the verse goes, and comes back with it. */
   body.cine #ui, body.cine #mini, body.cine #place, body.cine #head,
   body.cine #clock, body.cine #hint, body.cine #breath, body.cine #prompt,
-  body.cine #joy, body.cine #flypad, body.cine #verse{
+  body.cine #joy, body.cine #flypad, body.cine #verse, body.cine #b-rail{
     opacity:0 !important; pointer-events:none !important;
     transition:opacity .5s ease; }
   #cine .bar{ position:absolute; left:0; right:0; height:13vh; background:#04060c; }
@@ -254,6 +256,11 @@
     /* the title and the clock stack instead of meeting in the middle */
     #clock{ top:9vh; }
     #head .t{ font-size:12px; letter-spacing:.14em; padding:.4vh 1vh; }
+    /* and the button rail begins BELOW the clock's three lines, not at a
+       height the clock's own bottom can cross on a short screen — when the
+       buttons overflow they fill from the rail's top, and at 13vh that top
+       lay under the clock panel and the two sat printed over one another */
+    #ui{ top:calc(9vh + 88px); }
   }
   @media (max-width:620px){
     /* and the rose goes up out of the foot of the screen, which on a
@@ -783,14 +790,18 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
 (function(){
   function boot(){ if(window.THREE&&window.__VOYAGE){ window.__VOYAGE(); }
     else document.getElementById('loaderr').style.display='block'; }
-  var s=document.createElement('script');
-  s.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-  s.onload=boot;
-  s.onerror=function(){
+  function tryLocal(){
     var l=document.createElement('script'); l.src='three.min.js';
     l.onload=boot;
     l.onerror=function(){ document.getElementById('loaderr').style.display='block'; };
-    document.head.appendChild(l); };
+    document.head.appendChild(l); }
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+  /* a captive portal or a proxy can answer 200 with something that is not
+     three.js — that fires onload with no THREE, and the shipped offline copy
+     was never tried. If the CDN 'loaded' but THREE is absent, fall back. */
+  s.onload=function(){ if(window.THREE) boot(); else tryLocal(); };
+  s.onerror=tryLocal;
   document.head.appendChild(s);
 })();
 </script>
