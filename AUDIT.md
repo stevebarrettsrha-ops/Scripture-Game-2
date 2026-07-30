@@ -833,6 +833,59 @@ direction (screenshot); zoomed back in, the ground sky is exactly as it was
 (size 13,500 restored, the sun set and dark at local midnight). Zero page
 errors.
 
+## 4u. Round 22 — the audit audited: two adversarial passes over everything ✅
+
+*Two independent audits ran in parallel: one adversarially re-reading every
+change of rounds 17–21 in context, one deep-reading the systems no earlier
+round had covered (villages and their folk, the trade economy, fishing and
+the spear and the net, the dive ecosystem, the cutscene engine, audio, the
+chart overlay, the season/nest/young modules). Twenty-six findings were
+confirmed against the code and fixed; the claims that did not survive
+verification were discarded.*
+
+**The one that mattered most (HIGH, self-inflicted in Round 20):** the
+flyer's fog bound held to ~1,674 all the way up to the charted face at
+9,180 while the climb went on WIDENING the near-fog past it — a flyer
+between ~1,700 and 9,000 lost the entire world to a sheet of fog colour,
+and above ~2,900 near overtook far, which no shader defines. The bound is
+now released by height as well as by the face (open by ~2,500), the near
+may never cross the far, and the three above-cloud sheets are drawn
+unfogged — they are only ever shown to an eye above the cloud floor, where
+they ARE the far backdrop the open air looks onto. Verified: far 45,000 at
+2,500 up, 208,000 at 5,000, the mantle and the land through its gaps in
+frame — and low flight still bound inside its true blocks.
+
+**Solidity, second pass:** a gate's arch and a trilithon's lintel are
+roofs over open air, not ground — the flyer was snapped thirty units up
+crossing under the Lion Gate and the camera hopped onto Stonehenge's
+stones (masonry above the reference height no longer counts as floor; the
+camera's sight-line test is volumetric, so it sees THROUGH an open
+gateway). The ship already overlapped by a crossing merchantman may always
+move (it used to be pinned inside her hull). The shark-fling and
+coral-push destinations are validated. The folk, the beasts and the
+landmark builders' recorder are exception-safe.
+
+**The world's shared things (deep audit):** a village teardown was
+disposing textures and materials the whole world shares — the glow behind
+every halo, pearl, firefly and lantern; the head materials of every soul
+afloat and ashore; the one door-leaf — re-uploaded silently each time, a
+hard break in waiting. All whitelisted. Dismounting no longer leaks the
+young of the beast's former life; a torn-down villager's speech dies with
+his town; an aborted village build gives back its pier tiles.
+
+**Playability:** a cutscene now gates EVERY key (M laid the chart over
+the letterbox, G took flight mid-film); sleep lands on morning from every
+course of the day (on the night preset it woke you into the same night);
+the village pier can be fished (the pinned fisher's speak-prompt yielded
+to the rod) and the fisherman faces down his own pier instead of casting
+into the hillside; the nearest stall wins, not the first found; the ▲▼
+pad's press dies with the mode; mid-look, a second finger in the stick's
+corner takes the stick; a failed launch frees the title buttons; landing
+sheds its extra chunk ring over frames, not in one hitch; no ghost sun at
+a mere half-zoom; the sea's specular reads the sun's true station; the
+chart shows the moon's station; the chosen season survives a reload; the
+small isles keep their beasts; the near sky keeps its birds.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

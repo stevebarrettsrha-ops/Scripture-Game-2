@@ -1557,10 +1557,14 @@ function updateChunks(px,pz,budget,view){
      and a cull test a frame. The mesher's own frames were being spent
      carrying fog-bound ground, which is what let the land fall behind the
      haze at speed. One ring of hysteresis is kept. */
+  /* budgeted: coming down from the widened flight ring used to shed ~680
+     chunks in the landing frame — a visible hitch on every touch-down */
+  let reaped=0;
   for(const[k,ch] of chunks){
     const dx2=ch.cx-ccx, dz2=ch.cz-ccz;
     if(dx2*dx2+dz2*dz2>(view+2)*(view+2)){
-      for(const m of ch.meshes){ chunkRoot.remove(m); m.geometry.dispose(); } chunks.delete(k); } }
+      for(const m of ch.meshes){ chunkRoot.remove(m); m.geometry.dispose(); } chunks.delete(k);
+      if(++reaped>=48) break; } }
 }
 
 /* ================= THE FAR LAND =================
@@ -2192,7 +2196,11 @@ function waterTick(px,pz,dayF,storm){
     if(fr){ const k=0.13; r+=(fr.r-r)*k; g+=(fr.g-g)*k; b+=(fr.b-b)*k; }
     farSeaMat.color.setRGB(r,g,b);
     seaDeep.material.color.setRGB(r*0.82,g*0.82,b*0.86); }
-  sun.getWorldPosition(_sunW); u.uSunDir.value.copy(_sunW).normalize();
+  /* the sprite may be drawn pulled-in for the framed views — the sea's
+     specular reads the sun's TRUE station, as the moon's glitter does */
+  if(sun.userData.tx!==undefined) _sunW.set(sun.userData.tx,sun.userData.ty,sun.userData.tz);
+  else sun.getWorldPosition(_sunW);
+  u.uSunDir.value.copy(_sunW).normalize();
   /* the moon rules the water only when she is up and the sun is down, and she
      fades with her own setting as the sun's light comes back over her */
   moon.getWorldPosition(_moonW); u.uMoonDir.value.copy(_moonW).normalize();
@@ -2255,7 +2263,11 @@ cirrus.rotation.x=-Math.PI/2; cirrus.position.y=CIRRUS_Y; scene.add(cirrus);
 const CS_SEG=132, CS_SIZE=46000, CS_AMP=140;
 const cloudGeo=new THREE.PlaneGeometry(CS_SIZE,CS_SIZE,CS_SEG,CS_SEG); cloudGeo.rotateX(-Math.PI/2);
 cloudGeo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(cloudGeo.attributes.position.count*3),3));
-const cloudDeckMat=new THREE.MeshLambertMaterial({color:0xffffff,vertexColors:true,transparent:true,opacity:0,side:THREE.DoubleSide});
+/* the three above-cloud sheets are drawn UNFOGGED: they are only ever shown
+   to an eye above the cloud floor, where they are the far backdrop the open
+   air looks out onto — fogged, they vanished with everything else and the
+   middle heights read as a bare sheet of fog colour */
+const cloudDeckMat=new THREE.MeshLambertMaterial({color:0xffffff,vertexColors:true,transparent:true,opacity:0,side:THREE.DoubleSide,fog:false});
 const cloudDeck=new THREE.Mesh(cloudGeo,cloudDeckMat);
 cloudDeck.position.y=CLOUD_Y; cloudDeck.visible=false; cloudDeck.frustumCulled=false; scene.add(cloudDeck);
 function updateCloudDeck(px,pz){ const pos=cloudGeo.attributes.position, a=pos.array, col=cloudGeo.attributes.color.array;
@@ -2274,7 +2286,7 @@ function makeWispTex(){ const S=256, c=texCanvas(S,S), g=c.getContext('2d');
     d[i]=d[i+1]=255; d[i+2]=255; d[i+3]=Math.round(h*h*150); }
   g.putImageData(img,0,0); const t=new THREE.CanvasTexture(c);
   t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; return t; }
-const wispMat=new THREE.MeshBasicMaterial({map:makeWispTex(),transparent:true,opacity:0,depthWrite:false,fog:true,side:THREE.DoubleSide});
+const wispMat=new THREE.MeshBasicMaterial({map:makeWispTex(),transparent:true,opacity:0,depthWrite:false,fog:false,side:THREE.DoubleSide});
 wispMat.map.repeat.set(30,30);
 const cloudWisp=new THREE.Mesh(new THREE.PlaneGeometry(100000,100000),wispMat);
 cloudWisp.rotation.x=-Math.PI/2; cloudWisp.position.y=CLOUD_Y+64; cloudWisp.visible=false; scene.add(cloudWisp);
@@ -2288,7 +2300,7 @@ function makeCoverTex(){ const S=256, c=texCanvas(S,S), g=c.getContext('2d'), im
   g.putImageData(img,0,0); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; return t; }
 const coverTex=makeCoverTex(); coverTex.repeat.set(ICE_UV*R_WORLD/1200,ICE_UV*R_WORLD/1200);
 const cloudCover=new THREE.Mesh(new THREE.CircleGeometry(ICE_UV*R_WORLD,140),
-  new THREE.MeshBasicMaterial({map:coverTex,transparent:true,opacity:0,depthWrite:false,fog:true,side:THREE.DoubleSide}));
+  new THREE.MeshBasicMaterial({map:coverTex,transparent:true,opacity:0,depthWrite:false,fog:false,side:THREE.DoubleSide}));
 cloudCover.rotation.x=-Math.PI/2; cloudCover.position.y=CLOUD_Y-10; cloudCover.visible=false; scene.add(cloudCover);
 
 /* the stars, circling the pole in the midst */
@@ -2576,6 +2588,7 @@ function skyTick(px,pz){
   starGroup.userData.mat.opacity=Math.max(0,1-dayF*1.6)*0.95;
   starGroup.rotation.y=-(state.simHours/24)*2*Math.PI;
   sun.position.set(S.x,S.y,S.z);
+  sun.userData.tx=S.x; sun.userData.ty=S.y; sun.userData.tz=S.z;   /* the true station, for the water */
   sunMat2.opacity=S.bright; sun.userData.bright=S.bright;
   const M=SUNMOON.place(state.simHours,px,pz,R_WORLD,'moon');
   moon.position.set(M.x,M.y,M.z);
@@ -4233,7 +4246,14 @@ function updateCoral(px,pz){ initCoral(); for(const r of CORAL){ if(!(r.set&&Mat
     /* a reef head is never set down within 130 of the mask, and it builds
        itself up from the bed rather than standing whole in one frame */
     for(let tr=0;tr<7;tr++){ const a=Math.random()*6.28, rr=130+Math.random()*(CORAL_R-130), x=px+Math.cos(a)*rr, z=pz+Math.sin(a)*rr, d=SEA_SURF-seabedDepth(x,z);
-      if(d>10 && d<45*U_PER_M && fbm(x*0.01-9,z*0.01+4)>0.44){   /* reefs live in the light — 45 m and no deeper */ r.x=x; r.z=z; r.set=true; r.age=0; r.m.scale.setScalar(0.12); r.m.position.set(x,seabedDepth(x,z),z); r.m.rotation.y=Math.random()*6.28; r.m.visible=true; break; }
+      if(d>10 && d<45*U_PER_M && fbm(x*0.01-9,z*0.01+4)>0.44){   /* reefs live in the light — 45 m and no deeper */
+        /* two heads set within each other's push-off rings teleported a
+           diver back and forth between them for ever — a head keeps thirty
+           units clear of its neighbours, so no two rings can overlap */
+        let crowd=false;
+        for(const q of CORAL){ if(q!==r&&q.set&&Math.hypot(q.x-x,q.z-z)<30){ crowd=true; break; } }
+        if(crowd) continue;
+        r.x=x; r.z=z; r.set=true; r.age=0; r.m.scale.setScalar(0.12); r.m.position.set(x,seabedDepth(x,z),z); r.m.rotation.y=Math.random()*6.28; r.m.visible=true; break; }
       if(tr===6){ r.set=false; r.m.visible=false; } } }
     if(r.set&&r.age!==undefined&&r.age<1){ r.age=Math.min(1,r.age+0.02); r.m.scale.setScalar(0.12+0.88*r.age); } }
   /* ---- THE SEA-PICKLES LIGHT UP AFTER DARK ----
@@ -4500,8 +4520,16 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
         const m2=Math.hypot(dvx,dvz)||1;
         if(preyDive){
           state.breath=Math.max(0.08,state.breath-0.35);
-          const dv2=state.dive, sx2=dv2.x+dvx/m2*20, sz2=dv2.z+dvz/m2*20;
-          if(!landAtWorld(sx2,sz2)){ dv2.x=sx2; dv2.z=sz2; }   /* never flung into the stone */
+          /* the fling is WALKED, not leapt: landAtWorld only knows dry land,
+             so the shove could pass through an undersea cliff and the floor
+             clamp then hoisted the diver up through the rock. Each stride is
+             tested against the land AND the bed's own walls, and the shove
+             stops at the first that bars it. */
+          const dv2=state.dive;
+          for(let k3=0;k3<4;k3++){
+            const sx2=dv2.x+dvx/m2*5, sz2=dv2.z+dvz/m2*5;
+            if(landAtWorld(sx2,sz2)||seabedDepth(sx2,sz2)+3>dv2.y+8) break;
+            dv2.x=sx2; dv2.z=sz2; }
           dv2.vy=70;                                            /* flung surfaceward */
         } else {
           /* struck at the surface — shoved through the water, white water everywhere */
@@ -5180,8 +5208,12 @@ function diveTick(dt){ const dv=state.dive;
   for(const r of CORAL){ if(!r.set) continue;
     const dxc=dv.x-r.x, dzc=dv.z-r.z, dc=Math.hypot(dxc,dzc);
     if(dc<12.5&&dv.y<seabedDepth(r.x,r.z)+17){
-      if(dc>0.4){ dv.x=r.x+dxc/dc*12.5; dv.z=r.z+dzc/dc*12.5; }
-      else { dv.x-=Math.sin(dv.heading)*13; dv.z-=Math.cos(dv.heading)*13; }
+      /* the set-off point is TESTED first — reefs stand hard against
+         shores, and an unchecked shove could put the diver in the rock */
+      let ox2,oz2;
+      if(dc>0.4){ ox2=r.x+dxc/dc*12.5; oz2=r.z+dzc/dc*12.5; }
+      else { ox2=dv.x-Math.sin(dv.heading)*13; oz2=dv.z-Math.cos(dv.heading)*13; }
+      if(!landAtWorld(ox2,oz2)&&seabedDepth(ox2,oz2)+3<=dv.y+8){ dv.x=ox2; dv.z=oz2; }
       dv.sp*=0.4; } }
   /* nor through the timbers of a wreck: her hull is solid, and the way to the
      sea-chest is over the deck, as it is on any honest ship */
@@ -5482,7 +5514,14 @@ const WILD_ROLE=Object.assign({wolf:'pack', lion:'stalk', bear:'forage',
   blackbear:'forage', crocodile:'ambush', lizard:'bask'}, FAUNA.roles);
 function initLandLife(){ if(LANDLIFE.length) return; for(let k=0;k<LL_N;k++) LANDLIFE.push({m:null,kind:null,hx:0,hz:0,x:0,z:0,heading:0,tx:0,tz:0,t:0,set:false,
   retry:Math.random()*2.2 /* the first filling is STAGGERED — ninety-six beasts built in one frame is a hitch */ }); }
-function findLandSpot(px,pz){ for(let tr=0;tr<10;tr++){ const a=Math.random()*6.28, r=LL_MIN+Math.random()*(LL_R-LL_MIN), x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
+/* the far ring first (out in the haze, where a spawn is unseen) — but a
+   SMALL ISLE is narrower than that ring, and a traveller ashore on one
+   found it stripped of every living thing: all ten casts landed in the sea.
+   The last few casts fall back to a nearer ring (420–850, at least half
+   into the fog), used only where the far ring found no land at all. */
+function findLandSpot(px,pz){ for(let tr=0;tr<10;tr++){ const a=Math.random()*6.28,
+    r=tr<6?LL_MIN+Math.random()*(LL_R-LL_MIN):420+Math.random()*430,
+    x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
     /* beasts keep to the charted lands (ci>0 — the countries and true isles);
        the bare rocks and skerries of the open ocean stay bare.
        (The old bar of six blocks kept every creature off the high country —
@@ -5907,7 +5946,9 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
          along it, exactly as it does at any other barrier. */
       const stepH=B*(window.BEHAVIOR?BEHAVIOR.climbOf(a.kind):1.0);
       const rise=c?c.h*B-a.m.position.y:0;
-      if(c&&rise<stepH&&rise>-stepH*2.2&&beastMayStand(a.kind,c)){ a.x=nx; a.z=nz; a.heading=Math.atan2(dx,dz); a.stuck=0; }
+      if(c&&rise<stepH&&rise>-stepH*2.2&&beastMayStand(a.kind,c)
+        &&!landmarkSolidAt(nx,nz,a.m.position.y+2,a.m.position.y+8)){   /* no beast strides through the masonry either */
+        a.x=nx; a.z=nz; a.heading=Math.atan2(dx,dz); a.stuck=0; }
       else {
         /* ---- A BEAST TURNS AWAY FROM WHAT IT CANNOT CROSS ----
            When the way was barred it only reset its work-timer and kept the
@@ -6085,10 +6126,11 @@ function updateRiverLife(px,pz,dt,t){ initRiverLife();
    they roost. The gulls and eagles over water STOOP: they fall on the
    surface, break it, and come up with a fish — and the fish they take is a
    real one out of the shoal, not a mime. */
-/* the birds spawn OUT IN THE HAZE (650–1,250; fog runs 500–1,140) and are
-   reaped beyond it, so no wing ever snaps into being in clear sky; the pool
-   is widened to keep as many overhead across the larger round. Butterflies
-   are the one exception — a thing two units across is invisible past a couple
+/* the birds spawn AT AND PAST the fog line (430–1,200; fog runs 500–1,140 —
+   a wing at 430 is a few pixels against the haze) and are reaped beyond it,
+   so no bird snaps into being in clear sky and none of the near sky is left
+   birdless; the pool is widened for the larger round. Butterflies are the
+   one exception — a thing two units across is invisible past a couple
    hundred anyway, and it must live among the flowers at the traveller's feet. */
 const AIRLIFE=[], AL_N=24, AL_R=1150;
 const NESTS=[], NEST_N=10, NEST_R=430;
@@ -6333,7 +6375,7 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
       const type=airKind(px,pz,night);
       if(b.type!==type){ if(b.m) scene.remove(b.m); b.m=makeBird(type); scene.add(b.m); b.type=type; }
       const a=Math.random()*6.28,
-        r=type==='butterfly'?60+Math.random()*240:650+Math.random()*600;
+        r=type==='butterfly'?60+Math.random()*240:430+Math.random()*770;
       b.x=px+Math.cos(a)*r; b.z=pz+Math.sin(a)*r;
       const c=landAtWorld(b.x,b.z), base=c?c.h*B:WATER_Y;
       b.y=type==='butterfly'?base+3:base+30+Math.random()*60;
@@ -6751,6 +6793,7 @@ function buildPier(G,ex,site,rnd,torches){
   const dx=best.dx, dz=best.dz, t=best.t;
   const shoreX=site.x+dx*(t-1)*B, shoreZ=site.z+dz*(t-1)*B;
   const yD=WATER_Y+2.8, deckKeys=[]; let lastX=shoreX, lastZ=shoreZ;
+  ex.deckKeys=deckKeys;   /* visible to the abort path from the first plank */
   const len=7+Math.floor(rnd(120)*4);
   for(let s2=0;s2<len;s2++){ const x=site.x+dx*(t+s2)*B, z=site.z+dz*(t+s2)*B;
     const ix=Math.floor(x/B), iz=Math.floor(z/B);
@@ -6775,7 +6818,9 @@ function buildPier(G,ex,site,rnd,torches){
   emitBox(G,lastX-0.5,yD,lastZ-0.5,lastX+0.5,yD+B*1.4,lastZ+0.5,'logSide','logTop',null);
   torches.push({x:lastX,y:yD+B*1.4,z:lastZ});
   emitPathLine(G,site.x,site.z,shoreX,shoreZ);
-  ex.pier={x:lastX,z:lastZ};
+  /* the pier's own bearing is kept — it is the only thing that truly knows
+     which way the water lies (radial "outward" is inland on half the coasts) */
+  ex.pier={x:lastX,z:lastZ,dx,dz};
   return deckKeys;
 }
 const activeVillages=new Map();
@@ -6789,7 +6834,11 @@ function villageBuildTick(){
   do{
     const b=villageBuilds[0]; let r;
     try{ r=b.gen.next(); }catch(e){ r={done:true};
-      const vv=activeVillages.get(b.i); if(vv&&vv.building) activeVillages.delete(b.i); }
+      const vv=activeVillages.get(b.i); if(vv&&vv.building) activeVillages.delete(b.i);
+      /* an aborted build must give back its pier tiles, or invisible planks
+         stand on the water and the retry finds every tile "already laid"
+         and raises a village with no pier at all */
+      if(b.ex&&b.ex.deckKeys) for(const k of b.ex.deckKeys) deckMap.delete(k); }
     if(r.done){ villageBuilds.shift();
       const vv=activeVillages.get(b.i);
       if(vv&&vv.building) activeVillages.delete(b.i); }   /* ended without registering — allow a retry */
@@ -6799,10 +6848,11 @@ let worldNight=0;   /* 0 by day .. 1 deep night — sends folk home */
 const standaloneHouses=[];   /* houses not in a village (the player's treehouse) */
 /* A GENERATOR: driven by villageBuildTick a few milliseconds a frame, so a
    town raises itself over many frames and the traveller never feels a hitch. */
-function* spawnVillage(i){
+function* spawnVillage(i,exShell){
   const site=SITES[i]; if(!site){ activeVillages.set(i,{none:true}); return; }
   const rnd=k=>hash2(i*31.7+k*7.7, i*11.3+k*3.9);
-  const G=newG(); const ex={doors:[],houses:[],torchIn:[],farms:[],stalls:[],pen:null};
+  const G=newG(); const ex=exShell||{};
+  Object.assign(ex,{doors:[],houses:[],torchIn:[],farms:[],stalls:[],pen:null});
   const wy=topY(site.ix,site.iz);
   const cfg=cityFor(i);                 /* a great city here, or a small village? */
   const torches=[]; const solids=[];
@@ -7003,7 +7053,8 @@ function moveEnt(ent,dt,sp){
     const hitPlayer=state.mode==='walk'&&Math.hypot(nx-state.walk.x,nz-state.walk.z)<2.6;
     const gN=groundInfo(nx,nz);
     const tooSteep=gN.land&&Math.abs(gN.y-ent.m.position.y)>B*1.35;   /* folk walk steps, not cliff faces */
-    if(!gN.land||tooSteep||blockedByStructureNPC(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,ent.m)||hitPlayer){
+    if(!gN.land||tooSteep||blockedByStructureNPC(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,ent.m)||hitPlayer
+      ||!!landmarkSolidAt(nx,nz,ent.m.position.y+2,ent.m.position.y+8)){   /* the ancients' walls bar the folk as they bar the traveller */
       moving=false; ent.t=0; ent.stuck=(ent.stuck||0)+1;
       if(ent.stuck>2){ ent.stuck=0; ent.acting=false; ent.pt=0; ent.tx=ent.m.position.x; ent.tz=ent.m.position.z; } }
     else { ent.stuck=0; ent.m.position.x=nx; ent.m.position.z=nz; ent.m.rotation.y=Math.atan2(dx,dz); } }
@@ -7074,8 +7125,14 @@ function nextTask(ent,vv){
       ent.faceX=s.x; ent.faceZ=s.z+B*4; break; }
     case 'fisher': { const s=ent.spot||site;
       ent.tx=s.x; ent.tz=s.z; ent.actT=9+R()*7; ent.anim='fish';
-      const rr2=Math.hypot(s.x,s.z)||1;             /* face outward, toward the open sea */
-      ent.faceX=s.x+s.x/rr2*20; ent.faceZ=s.z+s.z/rr2*20; break; }
+      /* he faces down the PIER'S OWN LINE where one stands (radial "outward"
+         faces inland on every coast that looks toward the world's midst —
+         he stood casting into the hillside); the radial guess serves only
+         where there is no pier to read */
+      const pr=(vv.pier&&vv.pier.dx!==undefined)?vv.pier:null;
+      if(pr){ ent.faceX=s.x+pr.dx*20; ent.faceZ=s.z+pr.dz*20; }
+      else { const rr2=Math.hypot(s.x,s.z)||1;
+        ent.faceX=s.x+s.x/rr2*20; ent.faceZ=s.z+s.z/rr2*20; } break; }
     case 'shopper': {
       const st=(vv.stalls&&vv.stalls.length)?vv.stalls[Math.floor(R()*vv.stalls.length)]:null;
       if(st&&ent.leg!=='stall'){ ent.leg='stall'; ent.tx=st.x+(R()-0.5)*3; ent.tz=st.z-B*1.9;
@@ -7268,7 +7325,7 @@ function updateVillages(px,pz,dt,nightF){
        traveller can see the shore — no more building right before his eyes.
        The build itself is spread over frames by villageBuildTick. */
     if(d<1600&&!has){ activeVillages.set(i,{building:true});
-      villageBuilds.push({i,gen:spawnVillage(i)}); }
+      { const bx={}; villageBuilds.push({i,gen:spawnVillage(i,bx),ex:bx}); } }
     else if(d>2100&&has){ const vv=activeVillages.get(i);
       if(vv.building) continue;                        /* let the build finish; torn down next pass */
       if(vv.deckKeys) for(const k of vv.deckKeys) deckMap.delete(k);
@@ -7276,10 +7333,28 @@ function updateVillages(px,pz,dt,nightF){
         const sharedT=new Set(Object.values(TEX));
         const sharedM=new Set(Object.values(MAT).concat(Object.values(ROBETEX)));
         for(const rm of Object.values(ROBETEX)) sharedT.add(rm.map);
+        /* ---- AND EVERY OTHER SINGLETON THE WHOLE WORLD SHARES ----
+           The whitelist covered MAT, ROBETEX and the torch — but the torch
+           GLOW sprites carry glowTexCv (the same texture behind the sun's
+           halo, the pearls, the fireflies and every landmark light), every
+           villager's head shares the personHead material cache with the
+           crew and the traders, and every door leaf in the world is ONE
+           material. Each village despawn was disposing all three out from
+           under the living systems — silently re-uploaded by the renderer,
+           but a full texture delete and shader recompile per teardown, and
+           a hard break the day the renderer stops forgiving it. */
+        sharedT.add(glowTexCv);
+        sharedM.add(doorLeafMat);
+        for(const arr of Object.values(personHead)) for(const m of arr){
+          sharedM.add(m); if(m.map) sharedT.add(m.map); }
         vv.g.traverse(o=>{ if(o.geometry)o.geometry.dispose();
           const mats=Array.isArray(o.material)?o.material:(o.material?[o.material]:[]);
           for(const m of mats){ if(sharedM.has(m)||m===torchMat) continue;
             if(m.map&&!sharedT.has(m.map)) m.map.dispose(); m.dispose(); } }); }
+      /* a word spoken by a villager whose town is torn down must die with
+         the town — the bubble used to hang over the empty ground */
+      if(vv.people) for(const b of BARKS)
+        if(b.ent&&vv.people.includes(b.ent)){ b.ent=null; b.t=0; b.sp.visible=false; }
       activeVillages.delete(i); }
   }
   for(const[,vv] of activeVillages){ if(vv.none||!vv.g) continue;
@@ -7320,7 +7395,7 @@ function addRep(profile,n){ if(tradeSea) return; state.rep=state.rep||{};
   for(const[t2,msg] of tiers){ if(before<t2&&after>=t2){ toast(msg); break; } } }
 function fishSellPrice(){ return Math.max(2,Math.round(fishPriceAt(tradeProfile)*(tradeSea?1:repMult(tradeProfile)))); }
 function pearlSellPrice(){ return Math.max(15,Math.round(pearlPriceAt(tradeProfile)*(tradeSea?0.75:repMult(tradeProfile)))); }
-let tradeOpen=false, tradeProfile=0, tradeTitle='', tradeSea=false, tradeAnchor=null;
+let tradeOpen=false, tradeProfile=0, tradeTitle='', tradeSea=false, tradeAnchor=null, tradeShip=null;
 function openTrade(profile,title,sea){
   tradeOpen=true; tradeProfile=profile; tradeTitle=title; tradeSea=!!sea;
   const p=state.mode==='walk'?state.walk:state.boat;
@@ -7333,7 +7408,11 @@ function tradeGuard(){
   const p=state.mode==='walk'?state.walk:state.boat;
   if(state.mode!==tradeAnchor.mode||Math.hypot(p.x-tradeAnchor.x,p.z-tradeAnchor.z)>26) closeTrade();
 }
-function closeTrade(){ if(!tradeOpen) return; tradeOpen=false; $('trade').style.display='none'; saveState(); }
+function closeTrade(){ if(!tradeOpen) return; tradeOpen=false; $('trade').style.display='none';
+  /* the hailed merchantman fills her sails again a moment after the
+     trading ends, instead of lying hove-to and waving out her full watch */
+  if(tradeShip){ if(tradeShip.halt>3) tradeShip.halt=3; tradeShip=null; }
+  saveState(); }
 function renderTrade(){
   const tier=tradeSea?null:repTier(tradeProfile);
   $('trade-sub').textContent=tradeTitle+' — your purse: '+state.coins+' shekels · cargo '+cargoCount()+' / '+CARGO_MAX
@@ -7375,10 +7454,11 @@ $('trade').addEventListener('click',e=>{ if(e.target.id==='trade') closeTrade();
 /* the stall the traveller stands before, and the trader hailed at sea */
 function nearestStallVillage(){
   if(state.mode!=='walk') return null;
+  let bestS=null;
   for(const[i,vv] of activeVillages){ if(vv.none||!vv.stalls||!vv.stalls.length) continue;
     for(const s of vv.stalls){ const d=Math.hypot(state.walk.x-s.x,state.walk.z-s.z);
-      if(d<13) return {i,s,d}; } }
-  return null;
+      if(d<13&&(!bestS||d<bestS.d)) bestS={i,s,d}; } }
+  return bestS;
 }
 function nearestTrader(){
   if(state.mode!=='boat'&&state.mode!=='deck') return null;
@@ -7461,8 +7541,16 @@ function promptTick(){
       else if(promptMount){ label='F — mount the '+promptMount.kind; promptAction='ride'; }
       else if(promptStall){ label='F — trade at the stall'; promptAction='trade'; }
       else { promptPerson=nearbyPerson();
-        if(promptPerson){ label='F — speak'; promptAction='speak'; }
-        else if(canFishHere()){ label='F — cast a line'; promptAction='fish'; } }
+        /* THE PIER HEAD BELONGS TO THE ROD. The village fisher stands pinned
+           at the one spot where a line can be cast, inside the speak
+           catchment — so "F — speak" stood there for ever and no village
+           pier could be fished from. Where a line CAN be cast and the only
+           soul in reach is the working fisher, the cast wins; everyone else
+           still stops you for a word first. */
+        const fishable=canFishHere();
+        if(promptPerson&&!(fishable&&promptPerson.role==='fisher')){ label='F — speak'; promptAction='speak'; }
+        else if(fishable){ label='F — cast a line'; promptAction='fish'; promptPerson=null; }
+        else if(promptPerson){ label='F — speak'; promptAction='speak'; } }
     }
   }
   if(!label&&state.mode==='fly'&&canTouchDome()){ label='F \u2014 touch the firmament'; promptAction='dome'; }
@@ -8113,8 +8201,9 @@ function spawnLandmark(i){
   else if(L.kind!=='mount'){
     const G=newG();
     _solidRec=[];                       /* the builder writes its own collision */
-    (LM_BUILDERS[L.kind]||lmTemple)(G,x,z,y,L.s,i*77.7);
-    var lmSolids=_solidRec; _solidRec=null;
+    var lmSolids;
+    try{ (LM_BUILDERS[L.kind]||lmTemple)(G,x,z,y,L.s,i*77.7); }
+    finally{ lmSolids=_solidRec; _solidRec=null; }   /* never left recording */
     g=new THREE.Group();
     for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
       bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
@@ -8150,20 +8239,24 @@ function landmarkSolidAt(x,z,yLo,yHi){
   return null;
 }
 /* the top of the tallest landmark masonry standing over a point (or a very
-   deep nothing where none stands) */
-function landmarkTopAt(x,z){
+   deep nothing where none stands). refY, when given, ignores masonry whose
+   FLOOR is above it — a gate's arch and a trilithon's lintel are roofs over
+   open air, not ground: the flyer was snapped thirty units up the moment he
+   crossed under the Lion Gate, and the camera hopped onto Stonehenge's
+   stones each time it swung beneath one. */
+function landmarkTopAt(x,z,refY){
   let top=-1e9;
   for(const[,A] of activeLandmarks){ if(!A.solids) continue;
     if(Math.hypot(x-A.x,z-A.z)>420) continue;
     for(const b of A.solids)
-      if(x>b.x0&&x<b.x1&&z>b.z0&&z<b.z1&&b.y1>top) top=b.y1; }
+      if(x>b.x0&&x<b.x1&&z>b.z0&&z<b.z1&&(refY===undefined||b.y0<=refY)&&b.y1>top) top=b.y1; }
   return top;
 }
 /* the height of the tallest SOLID standing over a point — the ground, and
    any landmark masonry built upon it. This is what the eye must ride over. */
-function solidTopAt(x,z){
+function solidTopAt(x,z,refY){
   const lc=landAtWorld(x,z);
-  return Math.max(lc?lc.h*B:WATER_Y, landmarkTopAt(x,z));
+  return Math.max(lc?lc.h*B:WATER_Y, landmarkTopAt(x,z,refY));
 }
 function updateLandmarks(px,pz){
   for(let i=0;i<LANDMARKS.length;i++){ const L=LANDMARKS[i];
@@ -8263,6 +8356,10 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   /* P (or ESC, outside a scene) pauses the whole game and gives it back */
   if(e.code==='KeyP'||(e.code==='Escape'&&!cut)){ e.preventDefault(); togglePause(); return; }
   if(gamePaused) return;                      /* a paused world takes no orders */
+  /* a scene has the body: ESC/F/SPACE (above) leave it, and NOTHING else
+     acts — M used to lay the chart over the letterbox, G took flight in
+     the middle of the film, Q cast a spear through it */
+  if(cut) return;
   /* while the whole earth is beheld, the only orders are the view's own:
      ESC/P (above) pauses, and the rest of the world's verbs — going ashore,
      flying, diving, the spear, the net — are not taken from behind the map.
@@ -8298,10 +8395,15 @@ cv.addEventListener('pointerdown',e=>{ cv.setPointerCapture(e.pointerId);
     tpts.set(e.pointerId,[e.clientX,e.clientY]);
     /* two fingers are a PINCH only when neither is the walking-stick: with
        the joystick held, a second finger is the LOOKING finger — walk and
-       turn the view at once, as every telephone game has it */
-    if(tpts.size===2&&!joy){ const a=[...tpts.values()];
-      pinchD=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]); drag=null;
-      return; }
+       turn the view at once, as every telephone game has it. And the other
+       way about: mid-LOOK, a second finger planted in the stick's own
+       corner takes the stick (it used to become a pinch, so look-then-walk
+       was impossible in that order). */
+    if(tpts.size===2&&!joy){
+      const stickZone=!state.firm&&e.clientX<innerWidth*0.42&&e.clientY>innerHeight*0.35;
+      if(!(stickZone&&drag)){ const a=[...tpts.values()];
+        pinchD=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]); drag=null;
+        return; } }
   }
   /* no walking-stick under the firmament view — a touch there is a LOOK or
      a TAP on a land (the joystick used to swallow every tap in the lower
@@ -8443,8 +8545,12 @@ function boatTick(dt,helm){
     &&!blockedForBoat(nx+rX,nz+rZ)&&!blockedForBoat(nx-rX,nz-rZ)
     &&!blockedForBoat(qX+rX,qZ+rZ)&&!blockedForBoat(qX-rX,qZ-rZ)
     /* nor may she plough through a merchantman — the bow probe fetches up
-       against a passing trader's hull as it does against a skerry */
-    &&!insideTraderHull(bowX,bowZ,10)&&!insideTraderHull(nx,nz,10);
+       against a passing trader's hull as it does against a skerry. But a
+       ship ALREADY overlapped (the trader crossed a stationary player) may
+       always move: without the escape clause she was pinned in the hull
+       until the merchantman happened to sail off her. */
+    &&(insideTraderHull(bt.x,bt.z,10)?true
+       :(!insideTraderHull(bowX,bowZ,10)&&!insideTraderHull(nx,nz,10)));
   if(clear){ state.dist+=Math.hypot(nx-bt.x,nz-bt.z); bt.x=nx; bt.z=nz; }
   else bt.speed*=-0.15;
   /* ride the swell: heave to the wave height, and lean GENTLY to its slope.
@@ -8554,12 +8660,16 @@ function dismount(quiet){
   /* the beast goes back to the wild — a free slot, standing where you left it */
   for(const a of LANDLIFE){ if(a.set) continue;
     if(a.m) scene.remove(a.m);
+    /* a free slot may still be HOLDING young from its last life — they were
+       only hidden at the reap, and nulling the field bare leaked their
+       meshes into the scene for ever. setYoung removes them properly. */
+    setYoung(a,false);
     a.m=M.m; a.kind=M.kind; a.set=true;
     a.x=a.hx=a.tx=state.walk.x+Math.sin(state.walk.heading+1.6)*5;
     a.z=a.hz=a.tz=state.walk.z+Math.cos(state.walk.heading+1.6)*5;
     a.heading=state.walk.heading; a.role='graze'; a.job='roam'; a.jt=1+Math.random()*2;
     a.dead=0; a.den=null; a.act=null; a.burst=0; a.fear=0; a.panicT=0; a.upTree=0;
-    a.kids=null; a.day='day'; a.river=false; a.ph=Math.random()*6.283;
+    a.day='day'; a.river=false; a.ph=Math.random()*6.283;
     a.m.visible=true; M.m=null; break; }
   if(M.m) scene.remove(M.m);      /* no slot free — it slips away into the world's pocket */
   if(!quiet) toast('You dismount, and the beast falls to grazing.');
@@ -8577,8 +8687,11 @@ function sleep(){
      'wake to a new morning' with no morning in it. Lying down to sleep is
      the traveller choosing the game's morning over the room's night, so the
      course is set to 'morning' and the hour truly holds. */
-  if(DAYPARTS[state.dayIdx].k==='live'){
-    state.dayIdx=DAYPARTS.findIndex(d2=>d2.k==='morning'); updateDayBtn(); }
+  /* and from EVERY course of the day, not only 'live' — applyDayPart()
+     re-asserts the preset's own hour, so sleeping on the 'night' preset
+     woke you into the same night it promised you out of */
+  { const mi=DAYPARTS.findIndex(d2=>d2.k==='morning');
+    if(state.dayIdx!==mi){ state.dayIdx=mi; updateDayBtn(); } }
   applyDayPart();
   toast('You rest in your home among the boughs, and wake to a new morning.');
   saveState();
@@ -8612,7 +8725,7 @@ function interact(){
     case 'trade': { const st=promptStall;
       const cty=cityFor(st.i);
       openTrade(st.i,'the market of '+(cty?cty.name+', ':'')+COUNTRIES[st.i].n,false); break; }
-    case 'hail': { const h=promptTrader; h.T.halt=25;
+    case 'hail': { const h=promptTrader; h.T.halt=25; tradeShip=h.T;
       toast('You hail the merchantman; she backs her sails and comes alongside to trade.');
       openTrade(500+h.k*7,'a merchantman upon the deep (her prices are her own)',true); break; }
     default: if(canSleep()) sleep(); else toggleDoor();
@@ -9359,7 +9472,7 @@ function flyTick(dt){
   if(up!==0){ fl.vy+=up*FLY_VACC*dt; fl.vy=Math.max(-FLY_VMAX,Math.min(FLY_VMAX,fl.vy)); }
   else fl.vy*=Math.max(0,1-dt*1.4);                 /* let go and he coasts to a hover */
   fl.y+=fl.vy*dt;
-  const terrFloor=flyFloorAt(fl.x,fl.z), lmTop=landmarkTopAt(fl.x,fl.z);
+  const terrFloor=flyFloorAt(fl.x,fl.z), lmTop=landmarkTopAt(fl.x,fl.z,fl.y+2);
   const floor=Math.max(terrFloor,lmTop+6), ceil=domeCeilAt(fl.x,fl.z)-40;
   if(fl.y>=ceil){ fl.y=ceil; fl.vy=Math.min(0,fl.vy);   /* stuck fast against the firmament */
     if(!seenFirmament){ seenFirmament=true;
@@ -9465,6 +9578,10 @@ function setMode(m){
      alighting, a restored voyage — would leave it running over a traveller
      who is no longer where it left him, with the HUD still down. */
   if(cut) endScene();
+  /* the ▲▼ pad's press dies with the mode — a hold interrupted by a forced
+     surface left the pad's display:none swallowing the pointer-up, and the
+     next flight sank of itself on a phantom press */
+  flyPad=0;
   state.mode=m;
   if(m==='fly') ensureFlyDome();                      /* the vault stands even for a voyage restored aloft */
   if(m==='walk') state.walk.climb=null;               /* a climb interrupted elsewhere must not resume here */
@@ -9860,13 +9977,20 @@ function cameraTick(dt){
   else { const cp=camera.position;
     const ox=px, oy=baseY+9, oz=pz;
     let clear=1;
+    /* (skipped once the map-fade owns the pitch — the near-overhead eye of
+       the whole-earth band crosses no ridge, and the walk only wobbled it) */
+    if(zf<0.02)
     for(let k2=1;k2<=14;k2++){ const f3=k2/14;
       const sx=ox+(cp.x-ox)*f3, sy=oy+(cp.y-oy)*f3, sz=oz+(cp.z-oz)*f3;
-      if(sy<solidTopAt(sx,sz)+2.0){ clear=Math.max(0.10,(k2-1)/14); break; } }
+      const lc4=landAtWorld(sx,sz);
+      if(sy<(lc4?lc4.h*B:WATER_Y)+2.0||landmarkSolidAt(sx,sz,sy-1.2,sy+1.2)){
+        /* softened with the eye's own distance: the first blocked sample
+           used to slam the eye to a tenth of a long zoom — inside the body */
+        clear=Math.max(Math.min(0.35,120/Math.max(dist,120)),(k2-1)/14); break; } }
     if(clear<1){ cp.x=ox+(cp.x-ox)*clear; cp.y=oy+(cp.y-oy)*clear; cp.z=oz+(cp.z-oz)*clear; }
     /* and the pitch being free to look UP, the ground itself is its floor:
        the eye settles just over the grass, the planks or the water */
-    let floor=solidTopAt(cp.x,cp.z)+1.6;
+    let floor=solidTopAt(cp.x,cp.z,cp.y+0.5)+1.6;
     if(state.mode==='deck') floor=Math.max(floor,baseY+0.8);   /* never under the planks */
     if(cp.y<floor) cp.y=floor;
     /* nor within the hull, when the eye comes down at the ship's side */
@@ -10076,6 +10200,11 @@ function drawMapInto(ctx2,size,withNames,noMark){
   const [su,sv]=sunUV();
   ctx2.beginPath(); ctx2.arc((su+1)*Hh,(sv+1)*Hh,Math.max(3,size/120),0,Math.PI*2);
   ctx2.fillStyle='#ffe9a8'; ctx2.fill();
+  /* and the MOON'S station beside it — the chart knew where the sun stood
+     and not the moon, though the helper had waited unused all along */
+  const [mu,mv]=moonUV();
+  ctx2.beginPath(); ctx2.arc((mu+1)*Hh,(mv+1)*Hh,Math.max(2.4,size/150),0,Math.PI*2);
+  ctx2.fillStyle='#cfd8e8'; ctx2.fill();
   if(noMark) return;
   const p=state.mode==='walk'?state.walk:state.mode==='fly'?state.fly:state.mode==='dive'?state.dive:state.boat;
   const px=(p.x/R_WORLD+1)*Hh, py=(p.z/R_WORLD+1)*Hh;
@@ -10100,7 +10229,7 @@ function updateSeasonBtn(){ const b=$('b-season'); if(!b||!window.SEASON) return
   b.classList.toggle('off',false); }
 function cycleSeason(){ if(!window.SEASON) return;
   const r=SEASON.cycle();
-  updateSeasonBtn();
+  updateSeasonBtn(); saveState();
   const pp=playerXZ(), latN=1-Math.hypot(pp.x,pp.z)/R_WORLD*2;
   const here=SEASON.seasonAt(latN,dayOfYear()), z=here.zone;
   const where=' · '+here.name+(z==='tropical'?' (the tropics keep no winter)':z==='polar'?' (the far cold)':'')+' where you stand';
@@ -10123,7 +10252,10 @@ async function saveState(){
     /* v7: the PLACES of the gathered pearls. The count was kept and the sites
        were not, so every reload regrew every pearl bed — one seabed tile was
        an unbounded silver farm. */
-    pt:[...pearlTaken],vf:state.vf||0,dp:state.dayIdx});
+    pt:[...pearlTaken],vf:state.vf||0,dp:state.dayIdx,
+    /* the chosen season was the one rail toggle NOT saved - every reload
+       silently turned the year back to Natural */
+    sn:(window.SEASON&&!SEASON.isNatural())?SEASON.overrideName():null});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
 }
@@ -10221,7 +10353,11 @@ $('b-net').onclick=toggleNet;
   function bind(el,val){ el.addEventListener('pointerdown',e=>{ e.preventDefault(); flyPad=val; });
     const off=()=>{ if(flyPad===val) flyPad=0; };
     el.addEventListener('pointerup',off); el.addEventListener('pointercancel',off); el.addEventListener('pointerleave',off); }
-  bind(up,1); bind(dn,-1); })();
+  bind(up,1); bind(dn,-1);
+  /* and any pointer-up ANYWHERE lets go of the pad — a button hidden mid-press
+     (display:none) never receives its own up, and the press held for ever */
+  addEventListener('pointerup',()=>{ flyPad=0; });
+  addEventListener('pointercancel',()=>{ flyPad=0; }); })();
 $('b-names').onclick=()=>{ namesOn=!namesOn;
   $('b-names').textContent='\uD83C\uDFF7 Names: '+(namesOn?'on':'off');
   $('b-names').classList.toggle('off',!namesOn); };
@@ -10496,7 +10632,7 @@ function encounterAct(){
     let best=-1,bd=1e9; const p=state.boat;
     for(let i=0;i<COUNTRIES.length;i++){ const c=COUNTRIES[i].c;
       const d=Math.hypot(p.x/R_WORLD-c[0],p.z/R_WORLD-c[1]); if(d<bd){bd=d;best=i;} }
-    if(best>=0){ state.rep=state.rep||{}; state.rep[best]=(state.rep[best]||0)+3; }
+    if(best>=0){ state.rep=state.rep||{}; state.rep[best]=Math.min(50,(state.rep[best]||0)+3);   /* capped, as addRep caps */ }
     toast('You take the castaway aboard. He weeps, presses 25 shekels into your hand, and blesses your ship — word of this kindness will reach the ports.','MATTITHYAHU 25:35');
   }
   retireEnc(); saveState();
@@ -10623,6 +10759,7 @@ let running=false, saveT=0;
 let _begun=false;
 async function begin(fresh){
   if(_begun) return; _begun=true;   /* a double-click on Set sail built the cities twice */
+  try{
   computeSites();
   cellCacheOn=true; CELL_CACHE.clear();   /* sites are fixed — the terrain is now immutable and memoisable */
   buildYahru(); buildHome();
@@ -10642,6 +10779,7 @@ async function begin(fresh){
     if(saved.rr) state.rep=saved.rr;
     if(saved.wl) for(const k of saved.wl) wreckLooted.add(k);
     if(saved.pt) for(const k of saved.pt) pearlTaken.add(k);
+    if(saved.sn&&window.SEASON){ SEASON.setSeason(saved.sn); updateSeasonBtn(); }
     if(saved.vf) state.vf=1;
     if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); }
     if(saved.dp!==undefined&&DAYPARTS[saved.dp]){ state.dayIdx=saved.dp; updateDayBtn(); } }
@@ -10654,6 +10792,7 @@ async function begin(fresh){
   $('title-card').style.display='none'; running=true;
   setMode(state.mode); updateWindBtn(); initAudio();
   toast('And Aluahim said, \u201cLet the waters under the shamayim be gathered together into one place, and let the dry land appear.\u201d And it came to be so.','BER\u0114SHITH 1:9');
+  }catch(e){ _begun=false; throw e; }   /* a failed launch frees the buttons for another try */
 }
 loadSaved().then(s=>{ if(s){ const b=$('btn-continue'); b.style.display='inline-block'; } });
 $('btn-sail').onclick=()=>begin(true);
@@ -10764,12 +10903,19 @@ function frame(){
     if(state.mode==='fly'){ const st2=light.storm||0, bound=viewEff*CHW-150;
       const flyFar=(FOG_FAR+(bound-FOG_FAR)*frame._flyAir)*(1-st2*0.5);
       if(scene.fog.far<flyFar) scene.fog.far=flyFar;
-      /* bound inside the blocks below the charted face; released by degrees
-         as the face fades in, so no wall of haze ever falls away in a frame */
-      if(scene.fog.far>bound){ const rel=Math.max(0,Math.min(1,(zMapF-0.02)/0.23));
+      /* bound inside the blocks in LOW flight; released by HEIGHT as well
+         as by the charted face. It used to hold to 9,180 on the face's
+         ramp alone while the near-fog went on growing PAST it — a flyer in
+         the middle heights lost the whole world to a sheet of fog colour,
+         and above ~2,900 near overtook far, which no shader defines. */
+      if(scene.fog.far>bound){
+        const rel=Math.max(Math.max(0,Math.min(1,(zMapF-0.02)/0.23)),
+                           Math.max(0,Math.min(1,(eyeY-1600)/1600)));
         scene.fog.far=bound+(scene.fog.far-bound)*rel; }
       const flyNear=Math.min(scene.fog.far*0.45, FOG_NEAR+(980-FOG_NEAR)*frame._flyAir);
-      if(scene.fog.near<flyNear) scene.fog.near=flyNear; } }
+      if(scene.fog.near<flyNear) scene.fog.near=flyNear;
+      /* and the near may NEVER cross the far, whatever the two asked for */
+      scene.fog.near=Math.min(scene.fog.near, scene.fog.far*0.55); } }
   /* ---- UNDER THE WAVES — the light dims and the water closes in with depth.
      Keyed on the EYE, not on the mode: a swimmer whose camera has rolled
      under the swell stands in the same water as a diver, and must be shown
@@ -10957,8 +11103,9 @@ function frame(){
        Seen from without, the sun is always shining on some country of the
        disc: both lights burn full in the whole-earth views, each standing
        over the lands where its own hour is now. */
-    sunMat2.opacity =Math.max(sunMat2.opacity, wholeF);
-    moonMat2.opacity=Math.max(moonMat2.opacity,wholeF);
+    const opF=state.firm?1:Math.max(0,(wholeF-0.35)/0.65);   /* no ghost discs at a mere half-zoom */
+    sunMat2.opacity =Math.max(sunMat2.opacity, opF);
+    moonMat2.opacity=Math.max(moonMat2.opacity,opF);
     /* and never outside the vault, whatever the hour or the season */
     for(const L of [sun,moon]){ const rr=Math.hypot(L.position.x,L.position.z);
       if(rr>R_DOME*0.94){ const k2=R_DOME*0.94/rr; L.position.x*=k2; L.position.z*=k2; } }
@@ -10998,7 +11145,10 @@ function frame(){
        "little square" — so above ~5,000 the grid hands the sea to the
        colour-matched backdrop discs (the two are deliberately painted alike,
        so nothing is seen to change hands) and takes it back on the way down. */
-    frame._wgHi = frame._wgHi ? eyeY>4800 : eyeY>5200;
+    /* keyed on the VIEW's reach, not the flyer's height alone — the eye
+       drawn far back from the deck sees the same pale square from the same
+       distance, and must lose it the same way */
+    frame._wgHi = frame._wgHi ? viewReach>4800 : viewReach>5200;
     waveGrid.visible=!inHold&&!frame._wgHi;
     sea.visible=seaDeep.visible=!inHold&&!underEye;
     /* over the furnished shallows the discs drop far beneath the lit bed, so
