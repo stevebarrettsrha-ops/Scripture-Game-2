@@ -5111,13 +5111,16 @@ function nearestWreckChest(){ if(state.mode!=='dive') return null;
    It is one object and one colour at a time, so there is never any question
    which of the two it is answering.                                       */
 const GUIDE={m:null,mat:null,glow:null,mode:'scroll',t:0};
+const _gF=new THREE.Vector3(), _gU=new THREE.Vector3();
 const GUIDE_GOLD=0xffc61e, GUIDE_BLUE=0x35a7ff;
 function makeGuideArrow(){
   const g=new THREE.Group();
   /* a broad chevron, built of blocks like everything else in this world:
      a head, and two barbs swept back from it */
+  /* depthTest OFF: it is a thing on the GLASS, not a thing in the world —
+     it must never be buried in a hillside or lost behind the rigging */
   const mat=new THREE.MeshBasicMaterial({color:GUIDE_GOLD,transparent:true,
-    opacity:0.95,depthWrite:false,fog:false});
+    opacity:0.97,depthWrite:false,depthTest:false,fog:false});
   const add=(w,h,d,x,y,z,ry)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
     m.position.set(x,y,z); if(ry) m.rotation.y=ry; g.add(m); return m; };
   add(3.4,1.5,3.4, 0,0,2.4);                       /* the point, out in front */
@@ -5126,9 +5129,9 @@ function makeGuideArrow(){
   add(2.4,1.5,2.4, -3.8,0,-2.2);
   add(2.4,1.5,2.4,  3.8,0,-2.2);
   const gm=new THREE.SpriteMaterial({map:glowTexCv,color:GUIDE_GOLD,transparent:true,
-    opacity:0.5,depthWrite:false,fog:false});
-  const gs=new THREE.Sprite(gm); gs.scale.set(19,19,1); g.add(gs);
-  g.renderOrder=6;
+    opacity:0.5,depthWrite:false,depthTest:false,fog:false});
+  const gs=new THREE.Sprite(gm); gs.scale.set(17,17,1); g.add(gs);
+  g.renderOrder=999;                       /* last of all — over everything */
   GUIDE.mat=mat; GUIDE.glow=gs;
   return g;
 }
@@ -5138,35 +5141,59 @@ function guideTarget(){
   const sc=nextScroll();
   return sc?{x:sc.x,z:sc.z}:null;
 }
+/* ---- IT HANGS AT THE TOP OF THE GLASS, AND IT TURNS EVERY WAY ----
+   It used to float over the traveller's head out in the world, which meant
+   it went behind hills, was lost in the rigging, and left the frame the
+   moment he looked away from it. It is a HUD compass now, after the manner
+   of the racing games: pinned at the top of the screen, always in view, and
+   turning in the plane of the glass to say which way the mark lies.
+
+     pointing UP        straight ahead — go on
+     pointing RIGHT     off the starboard beam — turn right
+     pointing DOWN      BEHIND you — turn about
+
+   It is carried in world space and set from the camera's own basis every
+   frame, rather than parented to the camera (which is not in the scene
+   graph) — the same thing on the glass, and it touches nothing else. */
 function guideTick(dt){
-  /* it is not shown behind the map, in a scene, or when there is no body */
-  const off=state.firm||cut||!running;
+  /* Not behind the chart, not in a scene, not before the voyage begins — and
+     not at all when another game is driving this engine. SCRIPTURE UNFOLDS
+     plays the scrolls; it does not send anyone out to find them, and an
+     arrow hanging over the creation of the world would be absurd. */
+  const off=state.firm||cut||!running||window.__HOST_BOOT;
   const tgt=off?null:guideTarget();
   if(!tgt){ if(GUIDE.m) GUIDE.m.visible=false; return; }
   if(!GUIDE.m){ GUIDE.m=makeGuideArrow(); scene.add(GUIDE.m); }
-  const p=playerXZ();
-  /* it rides over whatever is carrying him — the ship's masts are tall, so
-     it stands well clear of them and is never lost in the rigging */
-  const base=state.mode==='boat'?boatG.position.y+SD.qdeckY+34
-    :state.mode==='fly'?state.fly.y
-    :state.mode==='dive'?state.dive.y
-    :walkerG.position.y;
   GUIDE.t+=dt;
-  const bob=Math.sin(GUIDE.t*2.2)*1.1;
-  GUIDE.m.position.set(p.x,base+15.5+bob,p.z);
-  /* aimed along the ground bearing to the mark, and tipped nose-down so it
-     reads as pointing THE WAY rather than lying flat */
-  const dx=tgt.x-p.x, dz=tgt.z-p.z;
-  GUIDE.m.rotation.set(0,Math.atan2(dx,dz),0);
-  GUIDE.m.rotation.x=0.62;
+  const p=playerXZ();
+  const dx=tgt.x-p.x, dz=tgt.z-p.z, d=Math.hypot(dx,dz);
+
+  /* ---- where it hangs ----
+     a fixed way in FRONT of the eye, lifted to the top of the frame. The
+     distance is taken off the near plane (which opens as the eye draws back)
+     and the size off that distance, so it keeps exactly the same size on the
+     glass however far the wheel is spun. */
+  const dist=Math.max(17,camera.near*2.8);
+  _gF.set(0,0,-1).applyQuaternion(camera.quaternion);
+  _gU.set(0,1,0).applyQuaternion(camera.quaternion);
+  const halfH=Math.tan(camera.fov*Math.PI/360)*dist;
+  GUIDE.m.position.copy(camera.position)
+    .addScaledVector(_gF,dist)
+    .addScaledVector(_gU,halfH*0.60);          /* clear of the title strip */
+
+  /* ---- which way it turns ----
+     the bearing to the mark, less the bearing the eye is facing */
+  const camYaw=Math.atan2(_gF.x,_gF.z);
+  const rel=Math.atan2(dx,dz)-camYaw;
+  GUIDE.m.quaternion.copy(camera.quaternion);
+  GUIDE.m.rotateX(-Math.PI/2+0.34);            /* laid into the glass, tipped for depth */
+  GUIDE.m.rotateY(rel);                        /* and turned to the mark */
+
   const col=GUIDE.mode==='ship'?GUIDE_BLUE:GUIDE_GOLD;
   GUIDE.mat.color.setHex(col); GUIDE.glow.material.color.setHex(col);
-  GUIDE.glow.material.opacity=0.24+0.14*Math.sin(GUIDE.t*2.6);
-  /* close enough to see the thing itself, and the arrow stands aside */
-  const d=Math.hypot(dx,dz);
-  GUIDE.m.visible=d>(tgt.ship?70:14);
-  const sc2=Math.max(0.55,Math.min(1.35,d/900));
-  GUIDE.m.scale.setScalar(sc2);
+  GUIDE.glow.material.opacity=0.22+0.12*Math.sin(GUIDE.t*2.6);
+  GUIDE.m.scale.setScalar(dist/17*0.30);       /* one size on the glass, always */
+  GUIDE.m.visible=d>(tgt.ship?70:14);          /* stands down once he is on it */
 }
 function guideLabel(){
   if(GUIDE.mode==='ship') return '\uD83D\uDD37 Arrow: to the ship';
@@ -11294,6 +11321,7 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   /* the scrolls and the arrow that leads to them, for the smoke tests */
   SCROLLS,scrollTaken,nextScroll,takeScroll,nearestScrollProp,toggleGuide,
+  guideMesh:()=>GUIDE.m,
   guideInfo:()=>({mode:GUIDE.mode,
     colour:GUIDE.mode==='ship'?'blue':'gold',
     visible:!!(GUIDE.m&&GUIDE.m.visible),
