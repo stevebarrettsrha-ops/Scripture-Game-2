@@ -5218,7 +5218,7 @@ function guideTick(dt){
   const col=GUIDE.mode==='ship'?GUIDE_BLUE:GUIDE_GOLD;
   GUIDE.mat.color.setHex(col); GUIDE.glow.material.color.setHex(col);
   GUIDE.glow.material.opacity=0.22+0.12*Math.sin(GUIDE.t*2.6);
-  GUIDE.m.scale.setScalar(dist/17*0.30);       /* one size on the glass, always */
+  GUIDE.m.scale.setScalar(dist/17*0.15);       /* one size on the glass, always */
   GUIDE.m.visible=d>(tgt.ship?70:14);          /* stands down once he is on it */
 }
 function guideLabel(){
