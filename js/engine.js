@@ -5113,25 +5113,51 @@ function nearestWreckChest(){ if(state.mode!=='dive') return null;
 const GUIDE={m:null,mat:null,glow:null,mode:'scroll',t:0};
 const _gF=new THREE.Vector3(), _gU=new THREE.Vector3();
 const GUIDE_GOLD=0xffc61e, GUIDE_BLUE=0x35a7ff;
+/* ---- AND IT HAS A BODY ----
+   It was box geometry already, but drawn with a flat basic material — every
+   face the same yellow, so the whole of it read as one silhouette cut out of
+   paper. It carries the world's OWN per-face shading now, baked into its
+   vertices: top 1.0, z-sides 0.8, x-sides 0.62, bottom 0.5, exactly as every
+   block in the world is lit. The material's colour is multiplied over that,
+   so the one arrow still goes gold and blue as it always did — and it is
+   thick enough, and tipped enough, that the top faces and the side faces are
+   both in view and it reads as a solid thing. */
+/* the world's own block shading is top 1.0 / z 0.8 / x 0.62 / bottom 0.5,
+   and that is right for a hillside. This is a thing on the GLASS, and it
+   must read the same whichever way it is turned — at 0.62 it went visibly
+   dim every time it pointed to port or starboard. The same order of light,
+   lifted off the floor: it still has an obvious top, sides and underside. */
+const _GSHADE=[0.76,0.76,1.00,0.66,0.90,0.90];   /* +X -X +Y -Y +Z -Z */
+function shadedBoxGeo(w,h,d){
+  const g=new THREE.BoxGeometry(w,h,d);
+  const n=g.attributes.position.count, col=new Float32Array(n*3);
+  for(let f=0;f<6;f++){ const sh=_GSHADE[f];
+    for(let v=0;v<4;v++){ const i=(f*4+v)*3; col[i]=sh; col[i+1]=sh; col[i+2]=sh; } }
+  g.setAttribute('color',new THREE.BufferAttribute(col,3));
+  return g;
+}
 function makeGuideArrow(){
   const g=new THREE.Group();
-  /* a broad chevron, built of blocks like everything else in this world:
-     a head, and two barbs swept back from it */
-  /* depthTest OFF: it is a thing on the GLASS, not a thing in the world —
-     it must never be buried in a hillside or lost behind the rigging */
-  const mat=new THREE.MeshBasicMaterial({color:GUIDE_GOLD,transparent:true,
-    opacity:0.97,depthWrite:false,depthTest:false,fog:false});
-  const add=(w,h,d,x,y,z,ry)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
-    m.position.set(x,y,z); if(ry) m.rotation.y=ry; g.add(m); return m; };
-  add(3.4,1.5,3.4, 0,0,2.4);                       /* the point, out in front */
-  add(3.0,1.5,3.0, -2.1,0,0.2,  0.0);              /* the barbs, swept back  */
-  add(3.0,1.5,3.0,  2.1,0,0.2,  0.0);
-  add(2.4,1.5,2.4, -3.8,0,-2.2);
-  add(2.4,1.5,2.4,  3.8,0,-2.2);
+  /* depthTest OFF and vertexColors ON: a thing on the GLASS, never buried in
+     a hillside — but shaded like everything else in the world */
+  const mat=new THREE.MeshBasicMaterial({color:GUIDE_GOLD,vertexColors:true,
+    transparent:true,opacity:0.97,depthWrite:false,depthTest:false,fog:false});
+  const TH=3.2;                                  /* its thickness — the depth you see */
+  const put=(w,d,x,z)=>{ const m=new THREE.Mesh(shadedBoxGeo(w,TH,d),mat);
+    m.position.set(x,0,z); g.add(m); return m; };
+  /* the head, stepped out to a point like everything else in this world */
+  put( 2.2,1.5,  0, 4.15);
+  put( 5.0,1.5,  0, 2.65);
+  put( 7.8,1.5,  0, 1.15);
+  put(10.6,1.5,  0,-0.35);
+  /* the notch: the two barbs run back and the middle is cut away, which is
+     what makes it an arrow and not a wedge */
+  put( 3.2,1.5, -3.7,-1.85); put( 3.2,1.5, 3.7,-1.85);
+  put( 3.4,1.6,  0,-1.80);                       /* and a short shaft between them */
   const gm=new THREE.SpriteMaterial({map:glowTexCv,color:GUIDE_GOLD,transparent:true,
     opacity:0.5,depthWrite:false,depthTest:false,fog:false});
   const gs=new THREE.Sprite(gm); gs.scale.set(17,17,1); g.add(gs);
-  g.renderOrder=999;                       /* last of all — over everything */
+  g.renderOrder=999;                             /* last of all — over everything */
   GUIDE.mat=mat; GUIDE.glow=gs;
   return g;
 }
