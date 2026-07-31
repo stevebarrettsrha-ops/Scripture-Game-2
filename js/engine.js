@@ -5156,7 +5156,9 @@ function makeGuideArrow(){
   put( 3.4,1.6,  0,-1.80);                       /* and a short shaft between them */
   const gm=new THREE.SpriteMaterial({map:glowTexCv,color:GUIDE_GOLD,transparent:true,
     opacity:0.5,depthWrite:false,depthTest:false,fog:false});
-  const gs=new THREE.Sprite(gm); gs.scale.set(17,17,1); g.add(gs);
+  /* the halo is trimmed with the arrow — at the old size it was wider than
+     the arrow itself and a small arrow sat inside a blob of light */
+  const gs=new THREE.Sprite(gm); gs.scale.set(12,12,1); g.add(gs);
   g.renderOrder=999;                             /* last of all — over everything */
   GUIDE.mat=mat; GUIDE.glow=gs;
   return g;
@@ -5218,7 +5220,7 @@ function guideTick(dt){
   const col=GUIDE.mode==='ship'?GUIDE_BLUE:GUIDE_GOLD;
   GUIDE.mat.color.setHex(col); GUIDE.glow.material.color.setHex(col);
   GUIDE.glow.material.opacity=0.22+0.12*Math.sin(GUIDE.t*2.6);
-  GUIDE.m.scale.setScalar(dist/17*0.15);       /* one size on the glass, always */
+  GUIDE.m.scale.setScalar(dist/17*0.053);      /* one size on the glass, always — ~2.5% of the width */
   GUIDE.m.visible=d>(tgt.ship?70:14);          /* stands down once he is on it */
 }
 function guideLabel(){
