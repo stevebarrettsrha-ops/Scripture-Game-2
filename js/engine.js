@@ -2417,7 +2417,17 @@ const state={ simHours:9.5, speedIdx:0, dayIdx:0, paused:false,
   windMode:'true', firm:false, firmDist:0, camYaw:0, camPitch:0.42, camDist:96,
   camYawVel:0, camPitchVel:0,
   visited:new Set(), dist:0, fish:0, fishing:null, coins:30, cargo:{}, game:0,
-  breath:1, immBreath:false, pearls:0, repel:false, net:null, rep:{} };
+  breath:1, immBreath:false, pearls:0, repel:false, net:null, rep:{},
+  /* ---- FREE ROAM ----
+     Some of what the rail offers is not sailing at all: rising bodily into
+     the air, stopping the sun in the sky, running the course at five times
+     true, choosing the hour, choosing the season. They are the powers of
+     somebody LOOKING at the world rather than voyaging in it, and having
+     them to hand makes the voyage itself no voyage.
+     They belong to FREE ROAM, and are chosen at the menu. Set sail instead
+     and the world keeps its own hours, its own seasons and its own weather,
+     and the only way up is the mast. */
+  freeroam:false };
 
 /* ================= THE ONE ZOOM =================
    The zoom was two disconnected axes with a cliff between them: camDist ran
@@ -3907,7 +3917,16 @@ function seabedDepth(x,z){
    abyssal plain and reef fish in the hadal dark. A beast is anchored now to
    the higher of the bed and its own deepest haunt, so the sunlit water keeps
    its own and the trenches are left to the things that belong in them. */
-function haunt(x,z,maxM){ return Math.max(seabedDepth(x,z), SEA_SURF-maxM*U_PER_M); }
+/* ---- THE TOP OF THE BED, AS IT IS ACTUALLY DRAWN ----
+   seabedDepth is the smooth height FIELD. The sea floor the eye sees is not
+   smooth: it is blocks, snapped to the block grid exactly as the land is
+   (see sbBlockY). Everything that must MEET the floor — the diver's feet,
+   the clearance every swimming thing keeps over the sand — was reading the
+   field instead of the blocks, and the two differ by up to half a block. So
+   the diver swam through the face of the bed, and the octopus stood with
+   half her bulk inside it. There is one bed now, and this is its top. */
+function bedTop(x,z){ return Math.round(seabedDepth(x,z)/B)*B; }
+function haunt(x,z,maxM){ return Math.max(bedTop(x,z), SEA_SURF-maxM*U_PER_M); }
 const H_REEF=90, H_FISH=220, H_DOLPHIN=180, H_SHARK=280, H_SQUID=650, H_JELLY=700, H_WHALE=320;
 /* ================= THE BED OF THE SEA IS BLOCKS =================
    It was a SMOOTH SHEET — a plane pushed up and down by the depth field and
@@ -5122,7 +5141,14 @@ function hideDeep(){ seaFloor.visible=false;
 let _eyeUnder=false, _eyeSub=0;
 function eyeUnderwater(){
   if(state.firm){ _eyeUnder=false; _eyeSub=0; return false; }
-  if(state.mode==='dive'){ _eyeUnder=true; _eyeSub=1; return true; }
+  /* ---- THE EYE IS UNDER WHEN THE EYE IS UNDER ----
+     This used to answer TRUE the instant the mode became 'dive', whatever
+     the eye was actually doing. Press dive on the ship and the diver is
+     still standing at the rail, mid-leap THROUGH THE AIR — and the whole
+     world was repainted in water-light around him: the ship, her masts, the
+     sky and the horizon all drowned together. That is the "everything sinks
+     into the deep" of it. The dive mode is tested against the true water
+     line now, exactly as every other mode is. */
   /* the hold is a room inside a hull. It lies below the waterline by build,
      and the sea has no business in it. */
   if(state.mode==='deck'&&state.deck.level==='hold'){ _eyeUnder=false; _eyeSub=0; return false; }
@@ -5134,7 +5160,12 @@ function eyeUnderwater(){
   const surf=WATER_Y+seaHeight(cp.x,cp.z);
   _eyeUnder = _eyeUnder ? cp.y<surf+0.55 : cp.y<surf-0.15;
   /* HOW FAR UNDER — 0 at the very skin of the water, whole a few units down */
-  _eyeSub = _eyeUnder ? Math.min(1,Math.max(0,(surf-cp.y)/3.4)) : 0;
+  /* HOW FAR UNDER. At 3.4 units the whole world went to full water-light
+     within half a metre of the surface — a swimmer with his chin wet saw the
+     same sea as a diver a kilometre down. It comes in over a fathom and a
+     half now, so the skin of the water is a wash and only true depth is
+     wholly water. */
+  _eyeSub = _eyeUnder ? Math.min(1,Math.max(0,(surf-cp.y)/26)) : 0;
   return _eyeUnder;
 }
 /* full — the traveller is truly down in the deep, so the wrecks of the
@@ -5144,7 +5175,14 @@ function updateDeep(px,py,pz,dt,murk,full){ const t=performance.now()*0.001;
   seaFloor.visible=true; updateSeaFloor(px,pz);   /* updateSeaFloor anchors the mesh itself */
   updateKelp(px,pz,t); updateCoral(px,pz); updateSeagrass(px,pz,t); updateRays(px,py,pz,murk||0);
   updateDiveFish(px,py,pz,dt,t); updateSquid(px,py,pz,dt,t); updateDolphins(px,py,pz,dt,t); updateSharks(px,py,pz,dt,t);
-  updateSeaMobs(px,py,pz,dt,t); updateShoals(px,py,pz,dt,t); updateAnglers(px,py,pz,dt,t); updateBubbles(px,py,pz,dt);
+  updateSeaMobs(px,py,pz,dt,t); updateShoals(px,py,pz,dt,t); updateAnglers(px,py,pz,dt,t);
+  /* ---- AND BUBBLES ONLY WHERE THERE IS BREATH TO MAKE THEM ----
+     The furnished deep is also raised when the traveller merely STANDS BESIDE
+     clear shallow water (see shallowView) — and this was spawning a rising
+     column of bubbles at his own feet while he stood on dry rock in the
+     night. Bubbles belong to a body that is actually under the water. */
+  if(full) updateBubbles(px,py,pz,dt);
+  else for(const b of BUB) b.s.visible=false;
   updateReefLife(px,py,pz,dt,t); updateDeepLife(px,py,pz,dt,t);
   if(full){ updateWreck(px,pz); updatePearls(px,pz); }
   else { for(const w of WRECKS)w.visible=false; hidePearls(); }
@@ -5201,7 +5239,7 @@ function diveTick(dt){ const dv=state.dive;
      which read as passing through the stone. Rock standing more than a
      stride over the chest is a WALL now — the way is barred, and the swimmer
      must rise over it as he would climb ashore. A gentle step still rides up. */
-  else if(seabedDepth(dv.x,dv.z)+3>dv.y+8){
+  else if(bedTop(dv.x,dv.z)+3>dv.y+8){
     dv.x-=Math.sin(dv.heading)*dv.sp*dt; dv.z-=Math.cos(dv.heading)*dv.sp*dt; dv.sp*=0.2; }
   /* nor through the living reef: a coral head is a standing thing, and the
      diver is set off its rim rather than passing through the polyps */
@@ -5213,7 +5251,7 @@ function diveTick(dt){ const dv=state.dive;
       let ox2,oz2;
       if(dc>0.4){ ox2=r.x+dxc/dc*12.5; oz2=r.z+dzc/dc*12.5; }
       else { ox2=dv.x-Math.sin(dv.heading)*13; oz2=dv.z-Math.cos(dv.heading)*13; }
-      if(!landAtWorld(ox2,oz2)&&seabedDepth(ox2,oz2)+3<=dv.y+8){ dv.x=ox2; dv.z=oz2; }
+      if(!landAtWorld(ox2,oz2)&&bedTop(ox2,oz2)+3<=dv.y+8){ dv.x=ox2; dv.z=oz2; }
       dv.sp*=0.4; } }
   /* nor through the timbers of a wreck: her hull is solid, and the way to the
      sea-chest is over the deck, as it is on any honest ship */
@@ -5243,12 +5281,12 @@ function diveTick(dt){ const dv=state.dive;
   else { dv.vy+=(3.4-dv.vy)*Math.min(1,dt*0.8);   /* true buoyancy — a still body drifts up */
     dv.vy=Math.max(-vmax,Math.min(vmax,dv.vy)); }
   dv.y+=dv.vy*dt;
-  let floor=seabedDepth(dv.x,dv.z)+3;
+  let floor=bedTop(dv.x,dv.z)+3;
   /* where an undersea mountain breaches the waves, its stone is a WALL, not a
      ramp over the surface — the floor clamp must never fight the surface cap */
   if(floor>SEA_SURF-2){
     dv.x-=Math.sin(dv.heading)*dv.sp*dt; dv.z-=Math.cos(dv.heading)*dv.sp*dt; dv.sp*=0.2;
-    floor=Math.min(seabedDepth(dv.x,dv.z)+3,SEA_SURF-2);
+    floor=Math.min(bedTop(dv.x,dv.z)+3,SEA_SURF-2);
   }
   if(dv.y<floor){ dv.y=floor; dv.vy=Math.max(0,dv.vy); }
   /* ---- AND HE HAS COME DOWN ONTO THE DEEPEST GROUND THERE IS ----
@@ -8371,10 +8409,10 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code==='KeyF') interact();
   if(e.code==='KeyQ') throwSpear();
   if(e.code==='KeyN') toggleNet();
-  if(e.code==='KeyG') takeFlight();          /* SPACE (handled above) lifts in flight */
+  if(e.code==='KeyG'){ if(roamOnly()) takeFlight(); }   /* free roam only */
   if(e.code==='KeyC') enterDive();           /* dive the deep / surface */
   if(e.code==='KeyM') toggleMap();
-  if(e.code==='KeyK') cycleSeason();
+  if(e.code==='KeyK'){ if(roamOnly()) cycleSeason(); }  /* free roam only */
   if(e.code==='KeyL') toggleLog(); });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
 const cv=$('cv'); let drag=null, joy=null;
@@ -9604,6 +9642,10 @@ function updateFlyBtn(){ const b=$('b-fly'); if(!b) return;
   const fp=$('flypad'); if(fp) fp.style.display=(state.mode==='fly'||state.mode==='dive')?'flex':'none'; }
 function updateDiveBtn(){ const b=$('b-dive'); if(!b) return;
   b.textContent=state.mode==='dive'?'🌊 Surface':'🤿 Dive';
+  /* under the sea the anchor button ALREADY reads Surface, so the rail
+     carried two identical Surface buttons one above the other. One is
+     enough — the same rule the flyer's Alight button keeps. */
+  b.style.display=state.mode==='dive'?'none':'';
   b.classList.toggle('off',state.mode==='dive'); }
 function nearWheel(){ return state.mode==='deck'&&state.deck.level!=='hold'
   &&state.deck.lz<SD.qdeckZ+1.5*SHIP_S&&Math.abs(state.deck.lx)<4.2*SHIP_SX; }
@@ -10260,7 +10302,7 @@ async function saveState(){
     /* v7: the PLACES of the gathered pearls. The count was kept and the sites
        were not, so every reload regrew every pearl bed — one seabed tile was
        an unbounded silver farm. */
-    pt:[...pearlTaken],vf:state.vf||0,dp:state.dayIdx,
+    pt:[...pearlTaken],vf:state.vf||0,dp:state.dayIdx,fr:state.freeroam?1:0,
     /* the chosen season was the one rail toggle NOT saved - every reload
        silently turned the year back to Natural */
     sn:(window.SEASON&&!SEASON.isNatural())?SEASON.overrideName():null});
@@ -10282,6 +10324,22 @@ async function loadSaved(){
 }
 
 /* ================= BUTTONS ================= */
+/* ---- THE POWERS THAT BELONG TO FREE ROAM ALONE ----
+   One list, obeyed by the rail, by the keyboard and by the menu, so the
+   three can never disagree about what a voyage may and may not do. */
+const FREEROAM_ONLY=['b-fly','b-time','b-speed','b-daypart','b-season'];
+/* The gate is a BODY CLASS and a stylesheet rule, never an inline display:
+   updateFlyBtn sets its own inline display on b-fly whenever the mode
+   changes, and an inline style beats anything set here — so the Rise Up
+   button came back on a voyage the moment the traveller went ashore. */
+function applyFreeroam(){ D.body.classList.toggle('roaming',!!state.freeroam); }
+/* and the keys those buttons stand for are shut with them */
+function roamOnly(what){
+  if(state.freeroam) return true;
+  toast('That belongs to FREE ROAM. On a voyage the world keeps its own hours, its own seasons and its own weather \u2014 and the only way up is the mast.');
+  return false;
+}
+
 /* ---- A TRUE PAUSE ----
    'Hold the sun' only pinned the hour; the beasts, the sea and the ship all
    ran on. This stops the whole simulation dead — nothing ticks, nothing
@@ -10341,10 +10399,10 @@ $('b-daypart').onclick=()=>{ state.dayIdx=(state.dayIdx+1)%DAYPARTS.length;
     : 'You set out in the '+D2.n+'.'); };
 updateDayBtn();
 $('b-map').onclick=toggleMap;
-$('b-season').onclick=cycleSeason;
+$('b-season').onclick=()=>{ if(roamOnly()) cycleSeason(); };
 updateSeasonBtn();
 $('b-ashore').onclick=toggleAshore;
-$('b-fly').onclick=takeFlight;
+$('b-fly').onclick=()=>{ if(roamOnly()) takeFlight(); };
 $('b-dive').onclick=enterDive;
 function updateBreathBtn(){ $('b-breath').textContent='🫧 Breath: '+(state.immBreath?'immortal':'mortal'); }
 $('b-breath').onclick=()=>{ state.immBreath=!state.immBreath; updateBreathBtn();
@@ -10726,7 +10784,10 @@ function ambientAudioTick(dt,light,p){
   ensureCricket();
   if(cricketGain){
     const onLand=state.mode==='walk'&&!state.walk.inWater&&landAtWorld(p.x,p.z);
-    const want=(onLand&&(light.nightF||0)>0.5&&storm<0.3)?0.028:0;
+    /* they were the loudest thing in the world at night — a wall of chirp
+       over the sea, the wind and the whole of the rest of it. They are an
+       AMBIENCE now: heard, and not listened to. */
+    const want=(onLand&&(light.nightF||0)>0.5&&storm<0.3)?0.0075:0;
     cricketGain.gain.value+=(want-cricketGain.gain.value)*Math.min(1,dt*2); }
 }
 
@@ -10769,7 +10830,7 @@ let _begun=false;
 const BOOT=window.__BOOTUI||{stage:function(){},fail:function(){},done:function(){}};
 let menuView=null;    /* {x,z,yaw,t} — the slow drift behind the menu; null once sailing */
 let menuSave=null;    /* the save as the menu read it, for the CONTINUE line */
-async function begin(fresh){
+async function begin(fresh,roam){
   if(_begun) return; _begun=true;   /* a double-click on Set sail built the cities twice */
   try{
   /* the sites, Yahru, the home port and the anchorage's chunks were all
@@ -10795,8 +10856,13 @@ async function begin(fresh){
     if(saved.sn&&window.SEASON){ SEASON.setSeason(saved.sn); updateSeasonBtn(); }
     if(saved.vf) state.vf=1;
     if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); }
-    if(saved.dp!==undefined&&DAYPARTS[saved.dp]){ state.dayIdx=saved.dp; updateDayBtn(); } }
+    if(saved.dp!==undefined&&DAYPARTS[saved.dp]){ state.dayIdx=saved.dp; updateDayBtn(); }
+    state.freeroam=!!saved.fr; }
   else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5; }
+  /* a NEW beginning takes the manner it was chosen with; a continued one
+     keeps whatever manner it was begun in, out of the log */
+  if(fresh) state.freeroam=!!roam;
+  applyFreeroam();
   const p0=state.mode==='walk'?state.walk:state.boat;
   /* the hour is set only NOW — it is a LOCAL hour, and until the traveller
      has his place there is no longitude to reckon it against */
@@ -10808,7 +10874,8 @@ async function begin(fresh){
   D.body.classList.remove('pregame');       /* the HUD stands up with the voyage */
   menuView=null; running=true;
   setMode(state.mode); updateWindBtn(); initAudio();
-  toast('And Aluahim said, \u201cLet the waters under the shamayim be gathered together into one place, and let the dry land appear.\u201d And it came to be so.','BER\u0114SHITH 1:9');
+  if(state.freeroam) toast('FREE ROAM \u2014 the air, the sun, the hour and the season are yours. Rise up (G), hold the sun, turn the year, and go where you will.');
+  else toast('And Aluahim said, \u201cLet the waters under the shamayim be gathered together into one place, and let the dry land appear.\u201d And it came to be so.','BER\u0114SHITH 1:9');
   }catch(e){ _begun=false; throw e; }   /* a failed launch frees the buttons for another try */
 }
 /* ================= THE WORLD, LENT OUT =================
@@ -10903,29 +10970,34 @@ function menuTick(dt){
    breath — save for a voyage saved far ASHORE, whose ground is rush-built
    here, which is what the returned loading screen stands over */
 let _launching=false;
-function menuLaunch(fresh){
+function menuLaunch(fresh,roam){
   if(_begun||_launching) return; _launching=true;
   if(window.__MENUUI) __MENUUI.close(); else $('menu').style.display='none';
   const bo=$('boot'); bo.style.display='flex';
-  BOOT.stage(fresh?'Setting sail…':'Returning to the voyage…',1);
+  BOOT.stage(roam?'Opening the whole world…':fresh?'Setting sail…':'Returning to the voyage…',1);
   /* two frames, so the loading screen is truly painted before the rush */
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    begin(fresh).then(()=>{ _launching=false; },
+    begin(fresh,roam).then(()=>{ _launching=false; },
       e=>{ _launching=false;
         BOOT.fail('The voyage could not be launched: '+(e&&e.message||e));
         throw e; });
   }));
 }
 $('m-continue').onclick=()=>menuLaunch(false);
-$('m-new').onclick=()=>{
-  if(!menuSave){ menuLaunch(true); return; }
+/* WHICH new beginning was asked for, while the confirm is up */
+let _pendingRoam=false;
+function askOrBegin(roam){
+  _pendingRoam=roam;
+  if(!menuSave){ menuLaunch(true,roam); return; }
   /* a voyage stands in the log — it is not washed away on one click */
   $('m-list').style.display='none'; $('m-confirm').style.display='flex';
-  if(window.__MENUUI) __MENUUI.refresh(); };
+  if(window.__MENUUI) __MENUUI.refresh(); }
+$('m-new').onclick=()=>askOrBegin(false);
+{ const r=$('m-roam'); if(r) r.onclick=()=>askOrBegin(true); }
 $('mc-keep').onclick=()=>{
   $('m-confirm').style.display='none'; $('m-list').style.display='flex';
   if(window.__MENUUI) __MENUUI.refresh(); };
-$('mc-anew').onclick=()=>menuLaunch(true);
+$('mc-anew').onclick=()=>menuLaunch(true,_pendingRoam);
 /* the options lean on the rail's own buttons, so the two can never disagree */
 const OPTMAP=[['mo-sound','b-sound'],['mo-names','b-names'],
   ['mo-daypart','b-daypart'],['mo-season','b-season'],['mo-wind','b-wind']];

@@ -315,6 +315,19 @@
   #clock{ color:#c3b795; }
   #hint{ color:#8b8271; }
 
+  /* ================= WHAT A VOYAGE MAY NOT DO =================
+     Rising bodily into the air, stopping the sun, running the course at five
+     times true, choosing the hour and turning the year belong to FREE ROAM.
+     On a voyage they are not on the rail at all.
+     !important, because the engine sets its OWN inline display on some of
+     these as the mode changes (updateFlyBtn), and an inline style beats an
+     ordinary rule — which is how Rise Up came back on a voyage. */
+  body:not(.roaming) #b-fly,
+  body:not(.roaming) #b-time,
+  body:not(.roaming) #b-speed,
+  body:not(.roaming) #b-daypart,
+  body:not(.roaming) #b-season{ display:none !important; }
+
   /* ================= THE RAIL FOLDS AWAY =================
      Sixteen labelled buttons take over half the width of a telephone, and
      nothing else can be read past them. On a narrow screen the rail is
@@ -406,11 +419,12 @@
     <div id="m-list">
       <button class="mi" id="m-continue">&#9875; Continue the voyage</button>
       <button class="mi" id="m-new">&#9973; Set sail &mdash; a new voyage</button>
+      <button class="mi" id="m-roam">&#128330; Free roam &mdash; the world, and its hours</button>
       <button class="mi" id="m-controls-btn">&#9881; Controls</button>
       <button class="mi" id="m-options-btn">&#9878; Options</button>
     </div>
     <div id="m-confirm">
-      <div class="cw">A voyage already stands written in the log. Set sail anew,
+      <div class="cw">A voyage already stands written in the log. Begin anew,
         and the old log is washed away for good.</div>
       <button class="mi" id="mc-keep">Keep the old voyage</button>
       <button class="mi" id="mc-anew">Wash it away &mdash; begin anew</button>
@@ -455,6 +469,14 @@
     <span class="k">SPACE</span><span class="v">jump and climb</span>
     <span class="k">F</span><span class="v">open doors &middot; speak with the people &middot; trade in the market &middot; cast a line from strand or pier</span>
     <span class="k">Q</span><span class="v">throw the spear &mdash; the hunt, ashore and beneath the waves</span>
+  </div></div>
+  <div class="ctl-sec"><h3>FREE ROAM ONLY</h3><div class="row">
+    <span class="k">&#128330; rise up (G)</span><span class="v">leave the ground bodily and go up past the clouds to the firmament</span>
+    <span class="k">&#9208; hold the sun</span><span class="v">stop the hour where it stands</span>
+    <span class="k">&#9193; course</span><span class="v">run the voyage at two or five times true</span>
+    <span class="k">&#128337; time of day</span><span class="v">choose the hour you sail in</span>
+    <span class="k">&#127810; season</span><span class="v">turn the year to any season you please</span>
+    <span class="k">&mdash;</span><span class="v"><i>Set sail instead and the world keeps its own hours, its own seasons and its own weather &mdash; and the only way up is the mast.</i></span>
   </div></div>
   <div class="ctl-sec"><h3>THE AIR AND THE DEEP</h3><div class="row">
     <span class="k">G</span><span class="v">rise into the air &mdash; hold SPACE to climb higher and higher, SHIFT to sink &mdash; up past the clouds to the firmament itself</span>
