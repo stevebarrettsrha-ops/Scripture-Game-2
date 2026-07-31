@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0806">
+<title>SCRIPTURE UNFOLDS — The Scrolls, Scene by Scene</title>
+<style>
+  :root{ --gold:#d4af37; --gold-lt:#f1d573; --ink:#f4ead5; --dim:#c9b893; --bg:#0b0806; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ width:100%; height:100%; overflow:hidden; background:var(--bg);
+    font-family:"Cardo","EB Garamond",Georgia,'Times New Roman',serif; color:var(--ink);
+    -webkit-user-select:none; user-select:none; touch-action:none; }
+  #cv{ position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+
+  /* ---------------- THE OPENING ---------------- */
+  #boot{ position:fixed; inset:0; z-index:40; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center;
+    background:radial-gradient(ellipse at 50% 38%, #1f1710 0%, #0b0806 72%); padding:4vh 6vw 16vh; }
+  #boot svg{ width:clamp(96px,17vmin,150px); filter:drop-shadow(0 0 26px rgba(212,175,55,.3)); }
+  #boot h1{ margin-top:2.2vh; font-size:clamp(20px,4.4vmin,40px); letter-spacing:.32em;
+    color:var(--gold); text-indent:.32em; text-shadow:0 0 30px rgba(212,175,55,.35); }
+  #boot .sub{ margin-top:1vh; font-style:italic; color:var(--dim); font-size:clamp(11px,1.8vmin,15px); }
+  #load-stage{ margin-top:4vh; font-size:clamp(10px,1.55vmin,13px); letter-spacing:.24em;
+    text-transform:uppercase; color:#9a8f74; min-height:1.4em; }
+  #load-bar{ margin-top:1.3vh; width:min(72vw,360px); height:7px; border:1px solid rgba(212,175,55,.55);
+    border-radius:4px; background:rgba(20,14,10,.9); overflow:hidden; }
+  #load-fill{ height:100%; width:0%; border-radius:3px; transition:width .35s ease;
+    background:linear-gradient(90deg,#6b5418,var(--gold),#fff3b8,var(--gold),#6b5418);
+    background-size:200% 100%; animation:sheen 2.4s linear infinite; }
+  @keyframes sheen{ from{ background-position:0% 0; } to{ background-position:200% 0; } }
+  #load-fail{ display:none; margin-top:2.4vh; max-width:min(86vw,540px); color:#c98a6a;
+    font-size:clamp(10px,1.6vmin,13px); line-height:1.7; }
+  #boot-verse{ position:absolute; left:50%; bottom:5vh; transform:translateX(-50%);
+    width:min(86vw,660px); text-align:center; }
+  #bv-inner{ transition:opacity .5s ease; }
+  #bv-t{ font-style:italic; color:var(--dim); font-size:clamp(11px,1.85vmin,15px); line-height:1.65; }
+  #bv-r{ margin-top:.8vh; font-size:clamp(9px,1.4vmin,12px); letter-spacing:.28em; color:var(--gold); }
+
+  /* ---------------- THE SHELF OF SCROLLS ---------------- */
+  #shelf{ position:fixed; inset:0; z-index:38; display:none; }
+  #shelf-col{ position:absolute; left:0; top:0; bottom:0; width:min(90vw,460px);
+    display:flex; flex-direction:column; justify-content:center; padding:16vh 3vw 10vh;
+    background:linear-gradient(90deg, rgba(11,8,6,.95) 0%, rgba(11,8,6,.7) 60%, rgba(11,8,6,0) 100%); }
+  #shelf-logo{ position:absolute; top:4.4vh; left:3vw; display:flex; align-items:center; gap:1.4vmin; }
+  #shelf-logo svg{ width:clamp(44px,7vmin,62px); filter:drop-shadow(0 0 14px rgba(212,175,55,.3)); }
+  #shelf-logo .t{ font-size:clamp(14px,2.4vmin,22px); letter-spacing:.28em; color:var(--gold); }
+  #shelf-logo .s{ margin-top:.5vh; font-size:clamp(8px,1.25vmin,11px); font-style:italic; color:#9a8f74; }
+  .sc-item{ pointer-events:auto; display:block; width:100%; text-align:left; background:transparent;
+    color:var(--ink); border:1px solid transparent; border-radius:3px; padding:1.4vh 1.7vh;
+    font-family:inherit; cursor:pointer; transition:all .15s; }
+  .sc-item .n{ font-size:clamp(12px,2vmin,17px); letter-spacing:.2em; text-transform:uppercase; }
+  .sc-item .r{ margin-top:.5vh; font-size:clamp(9px,1.45vmin,12px); font-style:italic; color:#9a8f74; }
+  .sc-item.sel{ border-color:var(--gold); background:rgba(212,175,55,.1); }
+  .sc-item.sel .n{ color:#fff; text-shadow:0 0 12px rgba(212,175,55,.5); }
+  #shelf-hint{ position:absolute; left:3vw; bottom:3.2vh; font-size:clamp(9px,1.4vmin,12px);
+    letter-spacing:.2em; color:#8b8271; }
+
+  /* ---------------- A SCENE ON THE SCREEN ---------------- */
+  #sc-cine{ position:fixed; inset:0; z-index:20; pointer-events:none; opacity:0; transition:opacity .9s ease; }
+  #sc-cine.on{ opacity:1; }
+  #sc-cine .bar{ position:absolute; left:0; right:0; height:12vh; background:#070504; }
+  #sc-cine .bar.t{ top:0; } #sc-cine .bar.b{ bottom:0; }
+  #sc-cap{ position:fixed; z-index:22; left:8vw; right:8vw; bottom:16vh; text-align:center;
+    pointer-events:none; opacity:0; transition:opacity 1s ease; }
+  #sc-cap.on{ opacity:1; }
+  #sc-cap-t{ font-style:italic; color:#f4ead5; font-size:clamp(13px,2.35vmin,22px); line-height:1.72;
+    text-shadow:0 2px 16px rgba(0,0,0,.95); }
+  #sc-cap-r{ margin-top:1.1vh; font-size:clamp(9px,1.45vmin,12px); letter-spacing:.28em; color:var(--gold);
+    text-shadow:0 2px 10px rgba(0,0,0,.9); }
+  #sc-fade{ position:fixed; inset:0; z-index:23; pointer-events:none; background:#070504; opacity:0; }
+  #sc-title{ position:fixed; z-index:24; left:8vw; right:8vw; top:50%; transform:translateY(-50%);
+    text-align:center; pointer-events:none; opacity:0; transition:opacity 1s ease;
+    color:var(--gold); letter-spacing:.34em; font-size:clamp(15px,2.9vmin,28px);
+    text-shadow:0 0 26px rgba(212,175,55,.42); }
+  #sc-title.on{ opacity:1; }
+  #sc-skip{ position:fixed; z-index:25; right:2.4vw; bottom:3vh; opacity:0; transition:opacity .6s ease;
+    font-size:clamp(9px,1.35vmin,12px); letter-spacing:.2em; color:#7d7361; pointer-events:none; }
+  #sc-skip.on{ opacity:1; }
+  body.in-scene{ cursor:none; }
+  @media (max-width:620px){ #shelf-col{ width:100vw; } #shelf-hint{ display:none; } }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<!-- ============ THE OPENING ============ -->
+<div id="boot">
+  <svg viewBox="0 0 200 200" aria-hidden="true">
+    <g fill="none" stroke="#d4af37" stroke-width="3" stroke-linecap="round">
+      <path d="M52 40 q-14 0 -14 14 v92 q0 14 14 14"/>
+      <path d="M148 40 q14 0 14 14 v92 q0 14 -14 14"/>
+      <path d="M52 40 h96 M52 160 h96 M100 40 v120"/>
+      <path d="M66 70 h20 M114 70 h20 M66 96 h20 M114 96 h20 M66 122 h20 M114 122 h20" stroke-width="2" opacity=".72"/>
+    </g>
+    <circle cx="100" cy="26" r="7" fill="#d4af37" opacity=".9"/>
+    <path d="M100 168 l2.6 6.6 6.6 2.6 -6.6 2.6 -2.6 6.6 -2.6 -6.6 -6.6 -2.6 6.6 -2.6 Z" fill="#d4af37" opacity=".8"/>
+  </svg>
+  <h1>SCRIPTURE UNFOLDS</h1>
+  <div class="sub">the scrolls, scene by scene &mdash; and verse by verse</div>
+  <div id="load-stage">opening the scrolls&hellip;</div>
+  <div id="load-bar"><div id="load-fill"></div></div>
+  <div id="load-fail"></div>
+  <div id="boot-verse"><div id="bv-inner"><div id="bv-t"></div><div id="bv-r"></div></div></div>
+</div>
+
+<!-- ============ THE SHELF ============ -->
+<div id="shelf">
+  <div id="shelf-col"><div id="shelf-list"></div></div>
+  <div id="shelf-logo">
+    <svg viewBox="0 0 200 200" aria-hidden="true">
+      <g fill="none" stroke="#d4af37" stroke-width="5" stroke-linecap="round">
+        <path d="M52 40 q-14 0 -14 14 v92 q0 14 14 14"/>
+        <path d="M148 40 q14 0 14 14 v92 q0 14 -14 14"/>
+        <path d="M52 40 h96 M52 160 h96 M100 40 v120"/>
+      </g>
+    </svg>
+    <div><div class="t">SCRIPTURE UNFOLDS</div><div class="s">the scrolls, scene by scene</div></div>
+  </div>
+  <div id="shelf-hint">&#8593; &#8595; &mdash; choose &nbsp;&middot;&nbsp; ENTER &mdash; unroll the scroll &nbsp;&middot;&nbsp; ESC in a scene &mdash; leave it</div>
+</div>
+
+<!-- ============ THE SCENE OVERLAY ============ -->
+<div id="sc-cine"><div class="bar t"></div><div class="bar b"></div></div>
+<div id="sc-cap"><div id="sc-cap-t"></div><div id="sc-cap-r"></div></div>
+<div id="sc-fade"></div>
+<div id="sc-title"></div>
+<div id="sc-skip">ESC &mdash; leave the scene</div>
+
+<script>
+/* THE HOST DRIVES THE OPENING. The shared engine boots the VOYAGE by itself;
+   told there is a host, it raises the same world and then stands back. */
+window.__HOST_BOOT=true;
+
+window.__BOOTUI=(function(){
+  var $=function(id){ return document.getElementById(id); };
+  /* the loading screen reads scripture while the world is raised */
+  var WORDS=[
+    ['In the beginning Aluahim created the shamayim and the earth.','BERĔSHITH 1:1'],
+    ['And the earth came to be formless and empty and darkness was on the face of the deep.','BERĔSHITH 1:2'],
+    ['And Aluahim said, “Let light come to be,” and light came to be.','BERĔSHITH 1:3'],
+    ['And Aluahim said, “Let the waters under the shamayim be gathered together into one place and let the dry land appear.”','BERĔSHITH 1:9'],
+    ['And Aluahim made two great lights: the greater light to rule the day and the lesser light to rule the night and the stars.','BERĔSHITH 1:16'],
+    ['And Aluahim created the man in His image, in the image of Aluahim He created him.','BERĔSHITH 1:27'],
+    ['And on the seventh day Aluahim completed His work which He had done and He rested.','BERĔSHITH 2:2'],
+    ['And (YAHUAH) HWHY Aluahim planted a garden in Ĕḏen, to the east and there He put the man whom He had formed.','BERĔSHITH 2:8'],
+  ];
+  var i=Math.floor(Math.random()*WORDS.length), timer=null;
+  function setW(){ var w=WORDS[i%WORDS.length]; i++; $('bv-t').textContent=w[0]; $('bv-r').textContent=w[1]; }
+  function turn(){ var e=$('bv-inner'); e.style.opacity=0;
+    setTimeout(function(){ setW(); e.style.opacity=1; },500); }
+  setW(); timer=setInterval(turn,5600);
+  return {
+    stage:function(label,frac){ var s=$('load-stage'), f=$('load-fill');
+      if(s&&label!=null) s.textContent=label;
+      if(f&&frac!=null) f.style.width=Math.round(Math.max(0,Math.min(1,frac))*100)+'%'; },
+    fail:function(msg){ var e=$('load-fail'); if(e){ e.textContent=msg; e.style.display='block'; }
+      var b=$('load-bar'); if(b) b.style.display='none';
+      var s=$('load-stage'); if(s) s.textContent='the scroll could not be opened';
+      if(timer){ clearInterval(timer); timer=null; } },
+    done:function(){ if(timer){ clearInterval(timer); timer=null; } }
+  };
+})();
+</script>
+
+<!-- ============ THE SOCKETS THE SHARED ENGINE EXPECTS ============
+     The engine is the VOYAGE's engine, and it reaches for the VOYAGE's HUD
+     by name — the button rail, the clock, the compass rose, the log. This
+     game shows none of that, but an engine that finds nothing where a
+     button should be throws, and a thrown frame is a black screen.
+
+     So every socket it reaches for is provided here, empty and unseen. They
+     cost nothing, they are never shown, and they mean the shared engine can
+     be updated for the voyage without ever having to know this game exists. -->
+<div id="engine-sockets" aria-hidden="true"
+     style="position:fixed;left:-9999px;top:-9999px;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none">
+  <button id="b-ashore"></button>
+  <button id="b-breath"></button>
+  <button id="b-daypart"></button>
+  <button id="b-dive"></button>
+  <button id="b-firm"></button>
+  <button id="b-fly"></button>
+  <button id="b-jump"></button>
+  <button id="b-log"></button>
+  <button id="b-map"></button>
+  <button id="b-names"></button>
+  <button id="b-net"></button>
+  <button id="b-pause"></button>
+  <button id="b-rail"></button>
+  <button id="b-repel"></button>
+  <button id="b-season"></button>
+  <button id="b-sound"></button>
+  <button id="b-spear"></button>
+  <button id="b-speed"></button>
+  <button id="b-time"></button>
+  <button id="b-wind"></button>
+  <canvas id="bigcv" width="8" height="8"></canvas>
+  <div id="bigmap"></div>
+  <div id="breath"></div>
+  <div id="breath-fill"></div>
+  <div id="cine"></div>
+  <div id="cine-cap"></div>
+  <div id="cine-fade"></div>
+  <div id="cine-title"></div>
+  <div id="clock"></div>
+  <div id="flypad"></div>
+  <button id="fp-dn"></button>
+  <button id="fp-up"></button>
+  <div id="joy"></div>
+  <div id="joyk"></div>
+  <div id="log-lands"></div>
+  <div id="log-stats"></div>
+  <div id="logbook"></div>
+  <button id="m-confirm"></button>
+  <button id="m-continue"></button>
+  <button id="m-list"></button>
+  <button id="m-new"></button>
+  <button id="m-options-btn"></button>
+  <button id="mc-anew"></button>
+  <button id="mc-keep"></button>
+  <div id="menu"></div>
+  <canvas id="mini" width="8" height="8"></canvas>
+  <button id="opt-back"></button>
+  <button id="opt-modal"></button>
+  <div id="paused"></div>
+  <div id="place"></div>
+  <div id="prompt"></div>
+  <div id="trade"></div>
+  <div id="trade-close"></div>
+  <table id="trade-rows"></table>
+  <div id="trade-sub"></div>
+  <div id="verse"></div>
+  <div id="verse-r"></div>
+  <div id="verse-t"></div>
+</div>
+
+<!-- ============ THE SHARED WORLD ============
+     The very same earth, beasts, flora, cities and engine the VOYAGE is
+     played on — loaded from where they already live, never copied. A fix
+     made to the world lands in both games at once. -->
+<script>
+window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deepList:[],holeList:[],sceneList:[],beastList:[],faunaList:[],floraList:[],
+  country:function(c){this.list.push(c);},
+  verses:function(v){this.verseList=v;},
+  river:function(r){this.riverList.push(r);},
+  city:function(c){this.cityList.push(c);},
+  landmark:function(l){this.landmarkList.push(l);},
+  deep:function(d){this.deepList.push(d);},
+  hole:function(h){this.holeList.push(h);},
+  scene:function(s){this.sceneList.push(s);},
+  beast:function(b){this.beastList.push(b);},
+  fauna:function(f){this.faunaList.push(f);},
+  flora:function(f){this.floraList.push(f);}};
+</script>
+<script src="../countries/fiji.js"></script>
+<script src="../countries/tanzania.js"></script>
+<script src="../countries/w-sahara.js"></script>
+<script src="../countries/canada.js"></script>
+<script src="../countries/united-states-of-america.js"></script>
+<script src="../countries/kazakhstan.js"></script>
+<script src="../countries/uzbekistan.js"></script>
+<script src="../countries/papua-new-guinea.js"></script>
+<script src="../countries/indonesia.js"></script>
+<script src="../countries/argentina.js"></script>
+<script src="../countries/chile.js"></script>
+<script src="../countries/dem-rep-congo.js"></script>
+<script src="../countries/somalia.js"></script>
+<script src="../countries/kenya.js"></script>
+<script src="../countries/sudan.js"></script>
+<script src="../countries/chad.js"></script>
+<script src="../countries/haiti.js"></script>
+<script src="../countries/dominican-rep.js"></script>
+<script src="../countries/russia.js"></script>
+<script src="../countries/bahamas.js"></script>
+<script src="../countries/falkland-is.js"></script>
+<script src="../countries/norway.js"></script>
+<script src="../countries/greenland.js"></script>
+<script src="../countries/fr-s-antarctic-lands.js"></script>
+<script src="../countries/timor-leste.js"></script>
+<script src="../countries/south-africa.js"></script>
+<script src="../countries/lesotho.js"></script>
+<script src="../countries/mexico.js"></script>
+<script src="../countries/uruguay.js"></script>
+<script src="../countries/brazil.js"></script>
+<script src="../countries/bolivia.js"></script>
+<script src="../countries/peru.js"></script>
+<script src="../countries/colombia.js"></script>
+<script src="../countries/panama.js"></script>
+<script src="../countries/costa-rica.js"></script>
+<script src="../countries/nicaragua.js"></script>
+<script src="../countries/honduras.js"></script>
+<script src="../countries/el-salvador.js"></script>
+<script src="../countries/guatemala.js"></script>
+<script src="../countries/belize.js"></script>
+<script src="../countries/venezuela.js"></script>
+<script src="../countries/guyana.js"></script>
+<script src="../countries/suriname.js"></script>
+<script src="../countries/france.js"></script>
+<script src="../countries/ecuador.js"></script>
+<script src="../countries/puerto-rico.js"></script>
+<script src="../countries/jamaica.js"></script>
+<script src="../countries/cuba.js"></script>
+<script src="../countries/zimbabwe.js"></script>
+<script src="../countries/botswana.js"></script>
+<script src="../countries/namibia.js"></script>
+<script src="../countries/senegal.js"></script>
+<script src="../countries/mali.js"></script>
+<script src="../countries/mauritania.js"></script>
+<script src="../countries/benin.js"></script>
+<script src="../countries/niger.js"></script>
+<script src="../countries/nigeria.js"></script>
+<script src="../countries/cameroon.js"></script>
+<script src="../countries/togo.js"></script>
+<script src="../countries/ghana.js"></script>
+<script src="../countries/cote-d-ivoire.js"></script>
+<script src="../countries/guinea.js"></script>
+<script src="../countries/guinea-bissau.js"></script>
+<script src="../countries/liberia.js"></script>
+<script src="../countries/sierra-leone.js"></script>
+<script src="../countries/burkina-faso.js"></script>
+<script src="../countries/central-african-rep.js"></script>
+<script src="../countries/congo.js"></script>
+<script src="../countries/gabon.js"></script>
+<script src="../countries/eq-guinea.js"></script>
+<script src="../countries/zambia.js"></script>
+<script src="../countries/malawi.js"></script>
+<script src="../countries/mozambique.js"></script>
+<script src="../countries/eswatini.js"></script>
+<script src="../countries/angola.js"></script>
+<script src="../countries/burundi.js"></script>
+<script src="../countries/israel.js"></script>
+<script src="../countries/lebanon.js"></script>
+<script src="../countries/madagascar.js"></script>
+<script src="../countries/palestine.js"></script>
+<script src="../countries/gambia.js"></script>
+<script src="../countries/tunisia.js"></script>
+<script src="../countries/algeria.js"></script>
+<script src="../countries/jordan.js"></script>
+<script src="../countries/united-arab-emirates.js"></script>
+<script src="../countries/qatar.js"></script>
+<script src="../countries/kuwait.js"></script>
+<script src="../countries/iraq.js"></script>
+<script src="../countries/oman.js"></script>
+<script src="../countries/vanuatu.js"></script>
+<script src="../countries/cambodia.js"></script>
+<script src="../countries/thailand.js"></script>
+<script src="../countries/laos.js"></script>
+<script src="../countries/myanmar.js"></script>
+<script src="../countries/vietnam.js"></script>
+<script src="../countries/north-korea.js"></script>
+<script src="../countries/south-korea.js"></script>
+<script src="../countries/mongolia.js"></script>
+<script src="../countries/india.js"></script>
+<script src="../countries/bangladesh.js"></script>
+<script src="../countries/bhutan.js"></script>
+<script src="../countries/nepal.js"></script>
+<script src="../countries/pakistan.js"></script>
+<script src="../countries/afghanistan.js"></script>
+<script src="../countries/tajikistan.js"></script>
+<script src="../countries/kyrgyzstan.js"></script>
+<script src="../countries/turkmenistan.js"></script>
+<script src="../countries/iran.js"></script>
+<script src="../countries/syria.js"></script>
+<script src="../countries/armenia.js"></script>
+<script src="../countries/sweden.js"></script>
+<script src="../countries/belarus.js"></script>
+<script src="../countries/ukraine.js"></script>
+<script src="../countries/poland.js"></script>
+<script src="../countries/austria.js"></script>
+<script src="../countries/hungary.js"></script>
+<script src="../countries/moldova.js"></script>
+<script src="../countries/romania.js"></script>
+<script src="../countries/lithuania.js"></script>
+<script src="../countries/latvia.js"></script>
+<script src="../countries/estonia.js"></script>
+<script src="../countries/germany.js"></script>
+<script src="../countries/bulgaria.js"></script>
+<script src="../countries/greece.js"></script>
+<script src="../countries/turkey.js"></script>
+<script src="../countries/albania.js"></script>
+<script src="../countries/croatia.js"></script>
+<script src="../countries/switzerland.js"></script>
+<script src="../countries/luxembourg.js"></script>
+<script src="../countries/belgium.js"></script>
+<script src="../countries/netherlands.js"></script>
+<script src="../countries/portugal.js"></script>
+<script src="../countries/spain.js"></script>
+<script src="../countries/ireland.js"></script>
+<script src="../countries/new-caledonia.js"></script>
+<script src="../countries/solomon-is.js"></script>
+<script src="../countries/new-zealand.js"></script>
+<script src="../countries/australia.js"></script>
+<script src="../countries/sri-lanka.js"></script>
+<script src="../countries/china.js"></script>
+<script src="../countries/taiwan.js"></script>
+<script src="../countries/italy.js"></script>
+<script src="../countries/denmark.js"></script>
+<script src="../countries/united-kingdom.js"></script>
+<script src="../countries/iceland.js"></script>
+<script src="../countries/azerbaijan.js"></script>
+<script src="../countries/georgia.js"></script>
+<script src="../countries/philippines.js"></script>
+<script src="../countries/malaysia.js"></script>
+<script src="../countries/brunei.js"></script>
+<script src="../countries/slovenia.js"></script>
+<script src="../countries/finland.js"></script>
+<script src="../countries/slovakia.js"></script>
+<script src="../countries/czechia.js"></script>
+<script src="../countries/eritrea.js"></script>
+<script src="../countries/japan.js"></script>
+<script src="../countries/paraguay.js"></script>
+<script src="../countries/yemen.js"></script>
+<script src="../countries/saudi-arabia.js"></script>
+<script src="../countries/n-cyprus.js"></script>
+<script src="../countries/cyprus.js"></script>
+<script src="../countries/morocco.js"></script>
+<script src="../countries/egypt.js"></script>
+<script src="../countries/libya.js"></script>
+<script src="../countries/ethiopia.js"></script>
+<script src="../countries/djibouti.js"></script>
+<script src="../countries/somaliland.js"></script>
+<script src="../countries/uganda.js"></script>
+<script src="../countries/rwanda.js"></script>
+<script src="../countries/bosnia-and-herz.js"></script>
+<script src="../countries/north-macedonia.js"></script>
+<script src="../countries/serbia.js"></script>
+<script src="../countries/montenegro.js"></script>
+<script src="../countries/kosovo.js"></script>
+<script src="../countries/trinidad-and-tobago.js"></script>
+<script src="../countries/s-sudan.js"></script>
+<script src="../cities/tsor.js"></script>
+<script src="../cities/yapho.js"></script>
+<script src="../cities/no-amon.js"></script>
+<script src="../cities/korinthos.js"></script>
+<script src="../cities/ostia.js"></script>
+<script src="../cities/tarshish.js"></script>
+<script src="../cities/ephesus.js"></script>
+<script src="../cities/londin.js"></script>
+<script src="../cities/massilia.js"></script>
+<script src="../cities/lisbon.js"></script>
+<script src="../cities/tingis.js"></script>
+<script src="../cities/muziris.js"></script>
+<script src="../cities/canton.js"></script>
+<script src="../cities/sakai.js"></script>
+<script src="../cities/new-haven.js"></script>
+<script src="../cities/bahia.js"></script>
+<script src="../cities/cape.js"></script>
+<script src="../cities/amsteldam.js"></script>
+<script src="../world/rivers.js"></script>
+<script src="../world/verses.js"></script>
+<script src="../world/landmarks.js"></script>
+<script src="../world/deeps.js"></script>
+<script src="../world/scenes.js"></script>
+<script src="../world/fauna.js"></script>
+<script src="../world/flora.js"></script>
+<script src="../creatures/fish.js"></script>
+<script src="../creatures/puffer.js"></script>
+<script src="../creatures/jelly.js"></script>
+<script src="../creatures/crab.js"></script>
+<script src="../creatures/squid.js"></script>
+<script src="../creatures/anglerfish.js"></script>
+<script src="../creatures/sardine.js"></script>
+<script src="../creatures/mackerel.js"></script>
+<script src="../creatures/salmon.js"></script>
+<script src="../creatures/cod.js"></script>
+<script src="../creatures/tuna.js"></script>
+<script src="../creatures/turtle.js"></script>
+<script src="../creatures/ray.js"></script>
+<script src="../creatures/dolphin.js"></script>
+<script src="../creatures/shark.js"></script>
+<script src="../creatures/hammerhead.js"></script>
+<script src="../creatures/whale-shark.js"></script>
+<script src="../creatures/orca.js"></script>
+<script src="../creatures/narwhal.js"></script>
+<script src="../creatures/whale.js"></script>
+<script src="../creatures/giraffe.js"></script>
+<script src="../creatures/zebra.js"></script>
+<script src="../creatures/wildebeest.js"></script>
+<script src="../creatures/gazelle.js"></script>
+<script src="../creatures/oryx.js"></script>
+<script src="../creatures/buffalo.js"></script>
+<script src="../creatures/rhino.js"></script>
+<script src="../creatures/hippo.js"></script>
+<script src="../creatures/warthog.js"></script>
+<script src="../creatures/cheetah.js"></script>
+<script src="../creatures/leopard.js"></script>
+<script src="../creatures/hyena.js"></script>
+<script src="../creatures/jackal.js"></script>
+<script src="../creatures/baboon.js"></script>
+<script src="../creatures/meerkat.js"></script>
+<script src="../creatures/gorilla.js"></script>
+<script src="../creatures/chimpanzee.js"></script>
+<script src="../creatures/okapi.js"></script>
+<script src="../creatures/lemur.js"></script>
+<script src="../creatures/tiger.js"></script>
+<script src="../creatures/panda.js"></script>
+<script src="../creatures/redpanda.js"></script>
+<script src="../creatures/mule.js"></script>
+<script src="../creatures/orangutan.js"></script>
+<script src="../creatures/waterbuffalo.js"></script>
+<script src="../creatures/yak.js"></script>
+<script src="../creatures/snowleopard.js"></script>
+<script src="../creatures/macaque.js"></script>
+<script src="../creatures/tapir.js"></script>
+<script src="../creatures/komodo.js"></script>
+<script src="../creatures/peacock.js"></script>
+<script src="../creatures/saiga.js"></script>
+<script src="../creatures/boar.js"></script>
+<script src="../creatures/fox.js"></script>
+<script src="../creatures/arcticfox.js"></script>
+<script src="../creatures/badger.js"></script>
+<script src="../creatures/lynx.js"></script>
+<script src="../creatures/bison.js"></script>
+<script src="../creatures/moose.js"></script>
+<script src="../creatures/reindeer.js"></script>
+<script src="../creatures/chamois.js"></script>
+<script src="../creatures/hedgehog.js"></script>
+<script src="../creatures/cougar.js"></script>
+<script src="../creatures/jaguar.js"></script>
+<script src="../creatures/llama.js"></script>
+<script src="../creatures/alpaca.js"></script>
+<script src="../creatures/capybara.js"></script>
+<script src="../creatures/sloth.js"></script>
+<script src="../creatures/armadillo.js"></script>
+<script src="../creatures/anteater.js"></script>
+<script src="../creatures/raccoon.js"></script>
+<script src="../creatures/skunk.js"></script>
+<script src="../creatures/coyote.js"></script>
+<script src="../creatures/pronghorn.js"></script>
+<script src="../creatures/howler.js"></script>
+<script src="../creatures/kangaroo.js"></script>
+<script src="../creatures/koala.js"></script>
+<script src="../creatures/wombat.js"></script>
+<script src="../creatures/emu.js"></script>
+<script src="../creatures/dingo.js"></script>
+<script src="../creatures/cassowary.js"></script>
+<script src="../creatures/kiwi.js"></script>
+<script src="../creatures/tasdevil.js"></script>
+<script src="../creatures/polarbear.js"></script>
+<script src="../creatures/muskox.js"></script>
+<script src="../creatures/otter.js"></script>
+<script src="../creatures/beaver.js"></script>
+<script src="../creatures/platypus.js"></script>
+<script src="../creatures/wildass.js"></script>
+<script src="../creatures/addax.js"></script>
+<script src="../creatures/blackbuck.js"></script>
+<script src="../creatures/caracal.js"></script>
+<script src="../creatures/bustard.js"></script>
+<script src="../creatures/jerboa.js"></script>
+<script src="../creatures/viper.js"></script>
+<script src="../creatures/scorpion.js"></script>
+<script src="../creatures/mammoth.js"></script>
+<script src="../creatures/arcticwolf.js"></script>
+<script src="../creatures/wolverine.js"></script>
+<script src="../creatures/arctichare.js"></script>
+<script src="../creatures/ermine.js"></script>
+<script src="../creatures/lemming.js"></script>
+<script src="../creatures/ptarmigan.js"></script>
+<script src="../creatures/seal.js"></script>
+<script src="../creatures/walrus.js"></script>
+<script src="../creatures/octopus.js"></script>
+<script src="../creatures/swordfish.js"></script>
+<script src="../creatures/barracuda.js"></script>
+<script src="../creatures/manatee.js"></script>
+<script src="../creatures/trout.js"></script>
+<script src="../creatures/catfish.js"></script>
+<script src="../creatures/piranha.js"></script>
+<script src="../creatures/sturgeon.js"></script>
+<script src="../creatures/riverdolphin.js"></script>
+<script src="../creatures/beluga.js"></script>
+<script src="../creatures/greenlandshark.js"></script>
+<script src="../creatures/arcticchar.js"></script>
+<script src="../creatures/clownfish.js"></script>
+<script src="../creatures/anemone.js"></script>
+<script src="../creatures/seahorse.js"></script>
+<script src="../creatures/parrotfish.js"></script>
+<script src="../creatures/angelfish.js"></script>
+<script src="../creatures/lionfish.js"></script>
+<script src="../creatures/moray.js"></script>
+<script src="../creatures/lobster.js"></script>
+<script src="../creatures/starfish.js"></script>
+<script src="../creatures/urchin.js"></script>
+<script src="../creatures/marlin.js"></script>
+<script src="../creatures/sunfish.js"></script>
+<script src="../creatures/flyingfish.js"></script>
+<script src="../creatures/herring.js"></script>
+<script src="../creatures/anchovy.js"></script>
+<script src="../creatures/spermwhale.js"></script>
+<script src="../creatures/tigershark.js"></script>
+<script src="../creatures/lanternfish.js"></script>
+<script src="../creatures/hatchetfish.js"></script>
+<script src="../creatures/barreleye.js"></script>
+<script src="../creatures/viperfish.js"></script>
+<script src="../creatures/dragonfish.js"></script>
+<script src="../creatures/gulper.js"></script>
+<script src="../creatures/siphonophore.js"></script>
+<script src="../creatures/giantsquid.js"></script>
+<script src="../creatures/dumbo.js"></script>
+<script src="../creatures/isopod.js"></script>
+<script src="../creatures/seacucumber.js"></script>
+<script src="../creatures/tripodfish.js"></script>
+<script src="../creatures/grenadier.js"></script>
+<script src="../creatures/snailfish.js"></script>
+<script src="../creatures/amphipod.js"></script>
+<script src="../js/size.js"></script>
+<script src="../js/grass.js"></script>
+<script src="../js/flora.js"></script>
+<script src="../js/nest.js"></script>
+<script src="../js/chicks.js"></script>
+<script src="../js/baby-animals.js"></script>
+<script src="../js/behavior.js"></script>
+<script src="../js/sun-moon.js"></script>
+<script src="../js/season.js"></script>
+<script src="../js/engine.js"></script>
+
+<!-- ============ THE SCROLLS THEMSELVES ============
+     The scripture as data, generated out of the offline Besorah. -->
+<script src="js/besorah.js"></script>
+<script src="scripture/bereshith.js"></script>
+<script src="scripture/adam-eve-1.js"></script>
+<script src="scripture/adam-eve-2.js"></script>
+
+<script>
+/* ============ THE OPENING OF THIS GAME ============ */
+(function(){
+  var BUI=window.__BOOTUI;
+  function fail(m){ BUI.fail(m); }
+  function boot(){
+    if(!(window.THREE&&window.__VOYAGE)){ fail('The engine of the world (three.js) could not be reached. Place three.min.js (r128) beside the main game and open this again.'); return; }
+    BUI.stage('Kindling the engine of the world…',0.10);
+    window.__VOYAGE();                       /* the shared world wakes, and stands back */
+    loadStory();
+  }
+  function loadStory(){
+    /* the stage, the story runner and the scrolls are loaded only once the
+       engine is awake, because every one of them speaks to window.__WORLD */
+    var files=['js/stage.js','js/story.js','scrolls/01-creation.js','scrolls/02-eden.js','js/unfold.js'];
+    (function next(k){
+      if(k>=files.length) return;
+      var s=document.createElement('script'); s.src=files[k];
+      s.onload=function(){ next(k+1); };
+      s.onerror=function(){ fail('A scroll could not be opened: '+files[k]); };
+      document.head.appendChild(s);
+    })(0);
+  }
+  function tryLocal(){
+    var l=document.createElement('script'); l.src='../three.min.js';
+    l.onload=boot; l.onerror=function(){ fail('three.js could not be reached, and no offline copy was found beside the main game.'); };
+    document.head.appendChild(l);
+  }
+  BUI.stage('Raising the firmament…',0.05);
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+  s.onload=function(){ if(window.THREE) boot(); else tryLocal(); };
+  s.onerror=tryLocal;
+  document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>

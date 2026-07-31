@@ -10014,8 +10014,10 @@ function cameraTick(dt){
 }
 
 /* ================= HUD ================= */
-function toast(txt,ref){ $('verse-t').textContent=txt; $('verse-r').textContent=ref||'';
-  const v=$('verse'); v.style.opacity=1;
+function toast(txt,ref){ const vt=$('verse-t'), vr=$('verse-r'), v=$('verse');
+  if(!vt||!v) return;              /* a host page may carry no verse line at all */
+  vt.textContent=txt; if(vr) vr.textContent=ref||'';
+  v.style.opacity=1;
   clearTimeout(toast._t); toast._t=setTimeout(()=>{v.style.opacity=0;}, ref?11000:5200); }
 const seen={wall:false,yahru:false};
 function placeTick(){
@@ -10800,20 +10802,49 @@ async function begin(fresh){
      has his place there is no longitude to reckon it against */
   applyDayPart(); updateDayBtn();
   updateChunks(p0.x,p0.z,9999);
-  $('boot').style.display='none';
-  if(window.__MENUUI) __MENUUI.close(); else $('menu').style.display='none';
+  { const bo=$('boot'); if(bo) bo.style.display='none';
+    if(window.__MENUUI) __MENUUI.close();
+    else { const mu=$('menu'); if(mu) mu.style.display='none'; } }
   D.body.classList.remove('pregame');       /* the HUD stands up with the voyage */
   menuView=null; running=true;
   setMode(state.mode); updateWindBtn(); initAudio();
   toast('And Aluahim said, \u201cLet the waters under the shamayim be gathered together into one place, and let the dry land appear.\u201d And it came to be so.','BER\u0114SHITH 1:9');
   }catch(e){ _begun=false; throw e; }   /* a failed launch frees the buttons for another try */
 }
+/* ================= THE WORLD, LENT OUT =================
+   SCRIPTURE UNFOLDS (../scripture-unfolds/) is a second game built on this
+   same engine — the same earth, the same beasts, the same sea — telling the
+   scrolls scene by scene. It needs to DRESS the world in ways the voyage
+   never does: to put out the lights and hang the darkness on the face of
+   the deep, to raise the expanse, to make the dry land appear.
+
+   So the world's own furniture is lent out here, and a hook is called at
+   the very END of every frame — after the sky, the sea and every tick have
+   had their say — so that whatever the other game sets, STAYS set for that
+   frame. When nothing is hooked (the voyage, played by itself) both of
+   these cost one undefined check a frame and change nothing whatever. */
+window.__WORLD={
+  scene,camera,renderer,THREE,
+  sun,moon,sunMat2,moonMat2,sunHalo,moonHalo,starGroup,
+  chunkRoot,sea,seaDeep,waveGrid,voidWall,cloudMat,surfMat,
+  waveMat,farSeaMat,farLand,farLandMat,
+  hemi,dirL,walkerG,boatG,
+  ensureFlyDome,flyDome:()=>flyDome,
+  R_WORLD,B,WATER_Y,SEA_SURF,CLOUD_Y,U_PER_M,
+  state,setMode,updateChunks,landAtWorld,seaHeight,findStart,
+  hideLandLife,hideAirLife,hidePod,hideOrca,hideBlooms,hideDeep,hideTraders,
+  hideSeaMobs,hideDeepLife,SEAFISH,DIVEFISH,SHARKS,
+  toast,playScene,endScene,sceneActive,
+  running:()=>running, setRunning:v=>{running=v;},
+};
+function stageHook(dt){ if(window.__STAGE_TICK){ try{ window.__STAGE_TICK(dt); }catch(e){} } }
+
 /* ================= THE LOADING OF THE WORLD =================
    The whole build runs UNDER the loading screen, stage by stage on a true
    bar, so the menu — when it comes — stands over a world already made:
    the sites of every nation, Yahru and the home port, and the full disc of
    chunks about the anchorage, laid a slice a frame so the bar can move. */
-async function preload(){
+async function buildWorld(){
   const raf=()=>new Promise(r=>requestAnimationFrame(r));
   BOOT.stage('Charting the coasts of every nation…',0.16); await raf(); await raf();
   computeSites();
@@ -10837,8 +10868,9 @@ async function preload(){
     BOOT.stage(null,0.34+0.64*(1-buildQueue.length/total));
     await raf(); }
   BOOT.stage('The world stands ready',1); await raf();
-  openMenu();
 }
+/* the voyage's own opening: raise the world, then offer the menu */
+async function preload(){ await buildWorld(); openMenu(); }
 
 /* ================= THE MENU ================= */
 function openMenu(){
@@ -10904,9 +10936,18 @@ for(const[a,b] of OPTMAP){ const A=$(a);
 $('m-options-btn').onclick=()=>{ syncOpts(); $('opt-modal').style.display='flex'; };
 $('opt-back').onclick=()=>{ $('opt-modal').style.display='none'; };
 
-preload().catch(e=>{
-  BOOT.fail('The world could not be built: '+(e&&e.message||e));
-  throw e; });
+/* ---- ANOTHER GAME MAY RAISE THIS SAME WORLD ----
+   SCRIPTURE UNFOLDS sets __HOST_BOOT before loading the engine and then
+   drives the opening itself: it wants this earth, these beasts and this sea,
+   but its own loading screen, its own menu and its own first scene. Played
+   by itself the voyage boots exactly as it always did. */
+window.__WORLD.buildWorld=buildWorld;
+window.__WORLD.beginVoyage=begin;
+if(!window.__HOST_BOOT){
+  preload().catch(e=>{
+    BOOT.fail('The world could not be built: '+(e&&e.message||e));
+    throw e; });
+}
 
 /* a small debug handle — used by the automated smoke tests; harmless in play */
 window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
@@ -10952,9 +10993,9 @@ function frame(){
   /* before the voyage begins the MENU stands over the living world: the sky
      keeps its hour, the sea runs, the ship rides the swell at her anchorage,
      and the eye is carried slowly round her */
-  if(!running){ if(menuView) menuTick(dt); renderer.render(scene,camera); return; }
+  if(!running){ if(menuView) menuTick(dt); stageHook(dt); renderer.render(scene,camera); return; }
   /* paused — the world is drawn as it stands, and not one thing in it stirs */
-  if(gamePaused){ renderer.render(scene,camera); return; }
+  if(gamePaused){ stageHook(dt); renderer.render(scene,camera); return; }
   /* ---- THE SKY KEEPS YOUR OWN CLOCK, IF YOU ASK IT TO ----
      On 'live' the hour is not run forward by the course at all: it is read
      off the machine's own clock a few times a second, and set as the LOCAL
@@ -11443,6 +11484,7 @@ function frame(){
   const _pn=performance.now();
   TEX.surf.offset.x=(_pn*0.00006)%1; TEX.surf.offset.y=(_pn*0.00013)%1;
   surfMat.opacity=0.42+0.28*Math.sin(_pn*0.0022);      /* the wash advancing and drawing back */
+  stageHook(dt);
   renderer.render(scene,camera);
 }
 frame();
