@@ -5098,6 +5098,169 @@ function nearestWreckChest(){ if(state.mode!=='dive') return null;
   return null; }
 /* ---- PEARLS OF THE DEEP — rare oysters on the sea bed, agleam, and worth
    much silver at any market. Gathered ones do not regrow this voyage. ---- */
+/* ================= THE ARROW THAT LEADS =================
+   A chevron of light standing over the traveller's head, tipped over toward
+   the thing he is looking for and turning with it as he goes.
+
+     GOLD  — to the nearest scroll he has not yet found. This is what it
+             does when it is left alone.
+     BLUE  — to the ship. Pressed once it swings to her and stays there
+             however far he wanders inland; pressed again it goes gold and
+             returns to the scrolls.
+
+   It is one object and one colour at a time, so there is never any question
+   which of the two it is answering.                                       */
+const GUIDE={m:null,mat:null,glow:null,mode:'scroll',t:0};
+const GUIDE_GOLD=0xffc61e, GUIDE_BLUE=0x35a7ff;
+function makeGuideArrow(){
+  const g=new THREE.Group();
+  /* a broad chevron, built of blocks like everything else in this world:
+     a head, and two barbs swept back from it */
+  const mat=new THREE.MeshBasicMaterial({color:GUIDE_GOLD,transparent:true,
+    opacity:0.95,depthWrite:false,fog:false});
+  const add=(w,h,d,x,y,z,ry)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+    m.position.set(x,y,z); if(ry) m.rotation.y=ry; g.add(m); return m; };
+  add(3.4,1.5,3.4, 0,0,2.4);                       /* the point, out in front */
+  add(3.0,1.5,3.0, -2.1,0,0.2,  0.0);              /* the barbs, swept back  */
+  add(3.0,1.5,3.0,  2.1,0,0.2,  0.0);
+  add(2.4,1.5,2.4, -3.8,0,-2.2);
+  add(2.4,1.5,2.4,  3.8,0,-2.2);
+  const gm=new THREE.SpriteMaterial({map:glowTexCv,color:GUIDE_GOLD,transparent:true,
+    opacity:0.5,depthWrite:false,fog:false});
+  const gs=new THREE.Sprite(gm); gs.scale.set(19,19,1); g.add(gs);
+  g.renderOrder=6;
+  GUIDE.mat=mat; GUIDE.glow=gs;
+  return g;
+}
+/* what the arrow is answering to just now, and where it stands */
+function guideTarget(){
+  if(GUIDE.mode==='ship') return {x:state.boat.x,z:state.boat.z,ship:true};
+  const sc=nextScroll();
+  return sc?{x:sc.x,z:sc.z}:null;
+}
+function guideTick(dt){
+  /* it is not shown behind the map, in a scene, or when there is no body */
+  const off=state.firm||cut||!running;
+  const tgt=off?null:guideTarget();
+  if(!tgt){ if(GUIDE.m) GUIDE.m.visible=false; return; }
+  if(!GUIDE.m){ GUIDE.m=makeGuideArrow(); scene.add(GUIDE.m); }
+  const p=playerXZ();
+  /* it rides over whatever is carrying him — the ship's masts are tall, so
+     it stands well clear of them and is never lost in the rigging */
+  const base=state.mode==='boat'?boatG.position.y+SD.qdeckY+34
+    :state.mode==='fly'?state.fly.y
+    :state.mode==='dive'?state.dive.y
+    :walkerG.position.y;
+  GUIDE.t+=dt;
+  const bob=Math.sin(GUIDE.t*2.2)*1.1;
+  GUIDE.m.position.set(p.x,base+15.5+bob,p.z);
+  /* aimed along the ground bearing to the mark, and tipped nose-down so it
+     reads as pointing THE WAY rather than lying flat */
+  const dx=tgt.x-p.x, dz=tgt.z-p.z;
+  GUIDE.m.rotation.set(0,Math.atan2(dx,dz),0);
+  GUIDE.m.rotation.x=0.62;
+  const col=GUIDE.mode==='ship'?GUIDE_BLUE:GUIDE_GOLD;
+  GUIDE.mat.color.setHex(col); GUIDE.glow.material.color.setHex(col);
+  GUIDE.glow.material.opacity=0.24+0.14*Math.sin(GUIDE.t*2.6);
+  /* close enough to see the thing itself, and the arrow stands aside */
+  const d=Math.hypot(dx,dz);
+  GUIDE.m.visible=d>(tgt.ship?70:14);
+  const sc2=Math.max(0.55,Math.min(1.35,d/900));
+  GUIDE.m.scale.setScalar(sc2);
+}
+function guideLabel(){
+  if(GUIDE.mode==='ship') return '\uD83D\uDD37 Arrow: to the ship';
+  const sc=nextScroll();
+  return sc?'\uD83D\uDD36 Arrow: to the scrolls':'\uD83D\uDD36 Arrow: every scroll found';
+}
+function updateGuideBtn(){ const b=$('b-guide'); if(!b) return;
+  b.textContent=guideLabel(); b.classList.toggle('off',GUIDE.mode==='ship'); }
+function toggleGuide(){
+  GUIDE.mode=GUIDE.mode==='ship'?'scroll':'ship';
+  updateGuideBtn();
+  if(GUIDE.mode==='ship') toast('The arrow turns blue, and leads you back to your ship.');
+  else { const sc=nextScroll();
+    toast(sc?'The arrow turns gold, and leads you to '+sc.name+', hidden in '+sc.country+'.'
+            :'The arrow turns gold — but every scroll is gathered, and it has nothing left to point at.'); }
+}
+
+/* ================= THE SCROLLS IN THE EARTH =================
+   Declared in world/scrolls.js, one to a land. Each is set down near its
+   country's own site, a little way out on its own bearing so two never come
+   to the same stone, and it stands there until it is taken up. What has
+   been taken is kept in the log, so a voyage remembers its scrolls. */
+const SCROLLS=(window.EARTH&&window.EARTH.scrollList)||[];
+const scrollTaken=new Set();
+let _scrollPlaced=false;
+function makeScrollProp(){
+  const g=new THREE.Group();
+  /* a rolled scroll on a low stone, with a light on it so it is FOUND */
+  const stone=lbox(3.2,1.1,3.2,0x8d8578); stone.position.y=0.55; g.add(stone);
+  const roll=lbox(3.0,0.95,0.95,0xe8dfc8); roll.position.y=1.6; g.add(roll);
+  for(const sx of [-1,1]){ const cap=lbox(0.45,1.15,1.15,0xc8a33a);
+    cap.position.set(sx*1.6,1.6,0); g.add(cap); }
+  const tie=lbox(3.05,0.42,0.42,0xa8863a); tie.position.set(0,1.6,0.34); g.add(tie);
+  const gm=new THREE.SpriteMaterial({map:glowTexCv,color:0xffe89a,transparent:true,
+    opacity:0.62,depthWrite:false,fog:false});
+  const gs=new THREE.Sprite(gm); gs.scale.set(20,20,1); gs.position.y=2.4; g.add(gs);
+  g.userData.glow=gs;
+  return g;
+}
+/* set every scroll down once the country sites are known */
+function placeScrolls(){
+  if(_scrollPlaced||!SITES.length) return; _scrollPlaced=true;
+  for(const sc of SCROLLS){
+    let ci=-1;
+    for(let i=0;i<COUNTRIES.length;i++) if(COUNTRIES[i].n===sc.country){ ci=i; break; }
+    const st=ci>=0?SITES[ci]:null;
+    if(!st){ sc.gone=true; continue; }        /* a land that is not on this earth */
+    /* a little way out from the village, on its own bearing, and on dry ground */
+    let x=st.x, z=st.z, ok=false;
+    for(let r=74;r<=190&&!ok;r+=22){
+      const tx=st.x+Math.sin(sc.bearing)*r, tz=st.z+Math.cos(sc.bearing)*r;
+      const c=landAtWorld(tx,tz);
+      if(c&&c.kind!=='wall'&&c.kind!=='floe'){ x=tx; z=tz; ok=true; } }
+    sc.x=x; sc.z=z; sc.m=null;
+  }
+}
+function updateScrolls(px,pz){
+  if(!_scrollPlaced) return;
+  for(const sc of SCROLLS){
+    if(sc.gone) continue;
+    const near=Math.hypot(sc.x-px,sc.z-pz)<620 && !scrollTaken.has(sc.id);
+    if(near&&!sc.m){ sc.m=makeScrollProp(); scene.add(sc.m);
+      const c=landAtWorld(sc.x,sc.z); sc.y=c?c.h*B:WATER_Y;
+      sc.m.position.set(sc.x,sc.y,sc.z); sc.m.rotation.y=hash2(sc.x,sc.z)*6.28; }
+    if(sc.m){ sc.m.visible=near;
+      if(near&&sc.m.userData.glow)
+        sc.m.userData.glow.material.opacity=0.42+0.24*Math.sin(performance.now()*0.0022); }
+  }
+}
+function nearestScrollProp(){
+  if(state.mode!=='walk') return null;
+  const w=state.walk;
+  for(const sc of SCROLLS){ if(sc.gone||scrollTaken.has(sc.id)||!sc.m||!sc.m.visible) continue;
+    if(Math.hypot(sc.x-w.x,sc.z-w.z)<9) return sc; }
+  return null;
+}
+function takeScroll(sc){
+  if(!sc||scrollTaken.has(sc.id)) return;
+  scrollTaken.add(sc.id);
+  if(sc.m){ scene.remove(sc.m); sc.m=null; }
+  const left=SCROLLS.filter(x=>!x.gone&&!scrollTaken.has(x.id)).length;
+  toast(sc.name+' \u2014 '+sc.words+(left
+    ? '  ('+scrollTaken.size+' of '+SCROLLS.filter(x=>!x.gone).length+' scrolls gathered \u2014 the golden arrow points to the next.)'
+    : '  EVERY SCROLL IS GATHERED. The whole of it is open to you.'), sc.book);
+  saveState();
+}
+/* the one the golden arrow is for: the nearest that is still hidden */
+function nextScroll(){
+  const p=playerXZ(); let best=null,bd=1e18;
+  for(const sc of SCROLLS){ if(sc.gone||scrollTaken.has(sc.id)) continue;
+    const d=(sc.x-p.x)**2+(sc.z-p.z)**2; if(d<bd){ bd=d; best=sc; } }
+  return best;
+}
+
 const PEARLS=[], PEARL_N=6, pearlTaken=new Set();
 function makeOyster(){ const g=new THREE.Group();
   const bottom=lbox(2.4,0.7,2.4,0x8a949a); bottom.position.y=0.35; g.add(bottom);
@@ -7563,7 +7726,7 @@ function nearestTrader(){
 /* ================= THE PROMPT — every close-at-hand deed on one key =================
    Sleep at home · open and shut doors · go below to the hold and up again ·
    speak with the people of the land · cast a line and fish the waters. */
-let promptAction=null, promptPerson=null;
+let promptAction=null, promptPerson=null, promptScroll=null;
 function nearbyPerson(){
   if(state.mode!=='walk') return null;
   let best=null,bd=1e9;
@@ -7591,6 +7754,7 @@ function promptTick(){
   const show=v=>{ el.style.opacity=v?1:0; el.style.pointerEvents=v?'auto':'none'; };
   if(cut||state.firm){ show(false); promptAction=null; return; }
   promptDoor=null; promptAction=null; promptPerson=null; promptStall=null; promptTrader=null; promptPearl=null; promptChest=null;
+  promptScroll=nearestScrollProp();
   promptMount=null;   /* it was the one mark not cleared — a stale mount could linger */
   let label=null;
   if(tradeOpen){ show(false); return; }
@@ -7630,6 +7794,7 @@ function promptTick(){
          market square the widest catchment (13) had the lowest word, and a
          trader standing at his own counter was told to open somebody's door */
       if(promptStall&&promptStall.d<7){ label='F — trade at the stall'; promptAction='trade'; }
+      else if(promptScroll){ label='F \u2014 take up the scroll'; promptAction='scroll'; }
       else if(promptDoor){ label='F — '+(promptDoor.door.open?'close the door':'open the door'); promptAction='door'; }
       else if(promptMount){ label='F — mount the '+promptMount.kind; promptAction='ride'; }
       else if(promptStall){ label='F — trade at the stall'; promptAction='trade'; }
@@ -8801,6 +8966,7 @@ function interact(){
   if(state.firm) return;                        /* no verbs from behind the map view */
   if(tradeOpen){ closeTrade(); return; }        /* F also leaves the trading */
   switch(promptAction){
+    case 'scroll': takeScroll(promptScroll); updateGuideBtn(); break;
     case 'dome': touchDome(); break;
     case 'sleep': sleep(); break;
     case 'door': toggleDoor(); break;
@@ -10366,6 +10532,9 @@ async function saveState(){
        were not, so every reload regrew every pearl bed — one seabed tile was
        an unbounded silver farm. */
     pt:[...pearlTaken],vf:state.vf||0,dp:state.dayIdx,fr:state.freeroam?1:0,
+    /* the scrolls gathered — SCRIPTURE UNFOLDS reads the same log, and
+       opens the passage of every scroll that has been found */
+    sr:[...scrollTaken],
     /* the chosen season was the one rail toggle NOT saved - every reload
        silently turned the year back to Natural */
     sn:(window.SEASON&&!SEASON.isNatural())?SEASON.overrideName():null});
@@ -10532,6 +10701,9 @@ function toggleLog(){
     'Distance sailed: <b>'+Math.round(state.dist/B).toLocaleString()+' km</b><br>'+
     'Purse: <b>'+(state.coins||0)+' shekels</b> · Cargo: <b>'+cargoCount()+' / '+CARGO_MAX+'</b> ('+cargoTxt+')<br>'+
     'Fish drawn from the deep: <b>'+(state.fish||0)+'</b> · Game taken by the spear: <b>'+(state.game||0)+'</b> · Pearls: <b>'+(state.pearls||0)+'</b><br>'+
+    'Scrolls gathered: <b>'+scrollTaken.size+' / '+SCROLLS.filter(x=>!x.gone).length+'</b>'+
+      (function(){ const nx=nextScroll();
+        return nx?' \u2014 next: <b>'+nx.name+'</b>, in '+nx.country:' \u2014 <b>all found</b>'; })()+'<br>'+
     'Day of the voyage: <b>'+dayOfYear()+'</b><br>'+
     (function(){ const nl=nextLandfall();
       return nl?('Next landfall: <b>'+nl.n+'</b> — away to the <b>'+nl.dir+'</b>, some '+nl.km.toLocaleString()+' km over the deep.')
@@ -10539,6 +10711,8 @@ function toggleLog(){
   $('log-lands').textContent=names.length?names.join(' \u00B7 '):'No land yet \u2014 the deep awaits.';
 }
 $('b-log').onclick=toggleLog;
+{ const gb=$('b-guide'); if(gb) gb.onclick=toggleGuide; }
+updateGuideBtn();
 $('prompt').onclick=interact;
 $('b-spear').onclick=throwSpear;
 $('b-jump').onclick=()=>{ if(state.mode==='walk') state.walk.jumpReq=true; };
@@ -10941,7 +11115,8 @@ async function begin(fresh,roam){
     if(saved.vf) state.vf=1;
     if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); }
     if(saved.dp!==undefined&&DAYPARTS[saved.dp]){ state.dayIdx=saved.dp; updateDayBtn(); }
-    state.freeroam=!!saved.fr; }
+    state.freeroam=!!saved.fr;
+    if(saved.sr) for(const k of saved.sr) scrollTaken.add(k); }
   else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5; }
   /* a NEW beginning takes the manner it was chosen with; a continued one
      keeps whatever manner it was begun in, out of the log */
@@ -11002,6 +11177,7 @@ async function buildWorld(){
   cellCacheOn=true; CELL_CACHE.clear();   /* sites are fixed — the terrain is now immutable and memoisable */
   BOOT.stage('Raising Yahru and the home port…',0.30); await raf();
   buildYahru(); buildHome();
+  placeScrolls(); updateGuideBtn();   /* the scrolls are set in their lands, and the arrow can now name the next */
   menuSave=await loadSaved();
   /* the backdrop is built where the voyage will open: the ship's saved
      berth, or the harbour of the first sailing */
@@ -11116,6 +11292,14 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   playerXZ,localHourAt,setLocalHour,clockFace,dayPartName,DAYPARTS,applyDayPart,
   domeCeilAt,canTouchDome,touchDome,playScene,endScene,SCENES,sceneActive,sceneRise,seenDeeps,BEACHES,SHOALS,ORCA,beachAt,nearestBeach,seabedMetres,orcaState:()=>orcaState,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
+  /* the scrolls and the arrow that leads to them, for the smoke tests */
+  SCROLLS,scrollTaken,nextScroll,takeScroll,nearestScrollProp,toggleGuide,
+  guideInfo:()=>({mode:GUIDE.mode,
+    colour:GUIDE.mode==='ship'?'blue':'gold',
+    visible:!!(GUIDE.m&&GUIDE.m.visible),
+    aimedAt:(function(){const t=guideTarget(); if(!t) return null;
+      const p=playerXZ(); return {km:Math.round(Math.hypot(t.x-p.x,t.z-p.z)/B),ship:!!t.ship};})(),
+    taken:[...scrollTaken], left:SCROLLS.filter(x=>!x.gone&&!scrollTaken.has(x.id)).length}),
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
   domeInfo:()=>({dome:flyDome?flyDome.material.opacity:0, deep:outerDeep?outerDeep.material.uniforms.uOp.value:0, stars:starGroup.userData.mat.opacity}),
   ENC,nearestEncounter,encounterAct,BARKS,FIREFLIES,SMOKES,rain,rainMat,nextLandfall,checkFulfilled,AIRLIFE,stormAt,COUNTRIES,STORMS,R_WORLD,
@@ -11541,6 +11725,8 @@ function frame(){
   } else { rain.visible=false; if(ENC.kind&&ENC.models[ENC.kind]) ENC.models[ENC.kind].visible=false;
     for(const b of BARKS){ b.ent=null; b.sp.visible=false; } }
   tradeGuard();
+  updateScrolls(p.x,p.z);        /* the scrolls stand in their places */
+  guideTick(dt);                 /* and the arrow leads to the next of them */
   cameraTick(dt);
   labelT-=dt; if(labelT<=0){ labelT=0.4; updateLabels(p.x,p.z); placeTick(); }
   miniT-=dt; if(miniT<=0){ miniT=0.5; drawMapInto(minictx,mini.width,false);
