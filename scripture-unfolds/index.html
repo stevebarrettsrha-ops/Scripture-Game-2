@@ -239,7 +239,7 @@ window.__BOOTUI=(function(){
      played on — loaded from where they already live, never copied. A fix
      made to the world lands in both games at once. -->
 <script>
-window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deepList:[],holeList:[],sceneList:[],beastList:[],faunaList:[],floraList:[],
+window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deepList:[],holeList:[],sceneList:[],scrollList:[],beastList:[],faunaList:[],floraList:[],
   country:function(c){this.list.push(c);},
   verses:function(v){this.verseList=v;},
   river:function(r){this.riverList.push(r);},
@@ -248,6 +248,7 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
   deep:function(d){this.deepList.push(d);},
   hole:function(h){this.holeList.push(h);},
   scene:function(s){this.sceneList.push(s);},
+  scroll:function(s){this.scrollList.push(s);},
   beast:function(b){this.beastList.push(b);},
   fauna:function(f){this.faunaList.push(f);},
   flora:function(f){this.floraList.push(f);}};
@@ -451,6 +452,7 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
 <script src="../world/landmarks.js"></script>
 <script src="../world/deeps.js"></script>
 <script src="../world/scenes.js"></script>
+<script src="../world/scrolls.js"></script>
 <script src="../world/fauna.js"></script>
 <script src="../world/flora.js"></script>
 <script src="../creatures/fish.js"></script>

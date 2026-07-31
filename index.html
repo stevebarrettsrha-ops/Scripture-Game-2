@@ -641,6 +641,7 @@ window.__MENUUI=(function(){
   <button class="btn" id="b-wind">🌬 Winds: true</button>
   <button class="btn" id="b-firm">🕊 The firmament</button>
   <button class="btn" id="b-map">🗺 The whole earth</button>
+  <button class="btn" id="b-guide">🔶 Arrow: to the scrolls</button>
   <button class="btn" id="b-log">📜 The log</button>
   <button class="btn" id="b-pause">⏸ Pause the game</button>
   <button class="btn" id="b-time">⏸ Hold the sun</button>
@@ -679,7 +680,7 @@ window.__MENUUI=(function(){
 /* The registry the land, verse and river files feed into.
    Each file in countries/ calls EARTH.country({...}) — one land per file,
    loaded in a fixed order so the world is identical on every machine. */
-window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deepList:[],holeList:[],sceneList:[],beastList:[],faunaList:[],floraList:[],
+window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deepList:[],holeList:[],sceneList:[],scrollList:[],beastList:[],faunaList:[],floraList:[],
   country:function(c){this.list.push(c);},
   verses:function(v){this.verseList=v;},
   river:function(r){this.riverList.push(r);},
@@ -691,6 +692,8 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
   hole:function(h){this.holeList.push(h);},
   /* the short films the engine plays with the camera — see world/scenes.js */
   scene:function(s){this.sceneList.push(s);},
+  /* the scrolls hidden in the lands — see world/scrolls.js */
+  scroll:function(s){this.scrollList.push(s);},
   /* every living thing has its own file in creatures/ — see creatures/README.md */
   beast:function(b){this.beastList.push(b);},
   /* WHICH beasts walk in WHICH land, and what ground each keeps to — the
@@ -899,6 +902,8 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
 <script src="world/landmarks.js"></script>
 <script src="world/deeps.js"></script>
 <script src="world/scenes.js"></script>
+<!-- THE SCROLLS HIDDEN IN THE EARTH — what the voyage is for -->
+<script src="world/scrolls.js"></script>
 <!-- WHICH BEASTS WALK IN WHICH LAND. One line to a nation; edit it and
      reload, and that country carries different creatures. -->
 <script src="world/fauna.js"></script>
