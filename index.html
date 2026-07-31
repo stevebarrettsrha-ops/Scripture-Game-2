@@ -123,6 +123,7 @@
   #paused h2{ color:var(--gold); letter-spacing:.34em; font-weight:600;
     font-size:clamp(16px,3vmin,28px); text-shadow:0 0 24px rgba(232,198,106,.4); }
   #paused .m-hint{ font-size:clamp(10px,1.5vmin,13px); letter-spacing:.2em; color:#9a8f74; }
+  #p-menu{ margin-top:2.4vh; }
   /* ================= THE OPENING OF THE GAME =================
      The world is heavy, and it is built BEFORE the voyage is offered: first
      the LOADING SCREEN — the game's mark, the work in hand on a true bar,
@@ -314,6 +315,33 @@
   /* the ink itself is lifted a little, now that it has something to sit on */
   #clock{ color:#c3b795; }
   #hint{ color:#8b8271; }
+
+  /* ================= THE WORDS HAVE A COLUMN OF THEIR OWN =================
+     The place-line and the verse were centred on the WHOLE width and then
+     dragged left by a negative margin to dodge the button rail — which put
+     them straight under the compass rose in the other corner, and on a
+     narrow screen the rose sat on top of the words every time. They are
+     given a real column instead: it begins clear of the rose and ends clear
+     of the rail, they are centred IN IT, and they WRAP inside it rather than
+     running out past either edge. */
+  :root{ --rose: min(140px,20vh,24vw); --rail: 216px; }
+  #place, #verse{
+    left:calc(3vw + var(--rose) + 1.5vw);
+    right:calc(2vw + var(--rail) + 1.5vw);
+    width:auto; max-width:none; transform:none; margin-left:0;
+    text-align:center; }
+  #place{ white-space:normal; overflow-wrap:anywhere; }
+  #verse .vt, #verse .vr{ overflow-wrap:anywhere; }
+  /* THE INSTRUCTION STRIP IS GONE from the foot of the screen — the controls
+     live in the menu's own book now, where they can be read properly. */
+  #hint{ display:none !important; }
+  /* with the rail folded away on a narrow screen, the column takes its half back */
+  @media (max-width:900px){
+    body.rail-shut #place, body.rail-shut #verse{ right:calc(2vw + 56px); } }
+  @media (max-width:620px){
+    /* the rose has gone up to the top on a telephone, so the foot is all theirs */
+    #place, #verse{ left:3vw; right:3vw; }
+  }
 
   /* ================= WHAT A VOYAGE MAY NOT DO =================
      Rising bodily into the air, stopping the sun, running the course at five
@@ -592,7 +620,7 @@ window.__MENUUI=(function(){
 <div class="hud" id="place"></div>
 <button id="prompt">F — open the door</button>
 <div class="hud" id="verse"><div class="vt" id="verse-t"></div><div class="vr" id="verse-r"></div></div>
-<div class="hud" id="hint">W A S D — helm and sail &nbsp;·&nbsp; drag — look &nbsp;·&nbsp; E — the wheel · the deck · the shore &nbsp;·&nbsp; SPACE — jump / climb &nbsp;·&nbsp; F — doors · speak · trade · fish · the hold · hail &nbsp;·&nbsp; Q — the spear (ashore and beneath the waves) &nbsp;·&nbsp; N — the trawl net &nbsp;·&nbsp; G — rise into the air (SPACE up · SHIFT down) &nbsp;·&nbsp; C — dive the deep (SHIFT down · SPACE up) &nbsp;·&nbsp; M — the map &nbsp;·&nbsp; L — the log &nbsp;·&nbsp; scroll — draw back, out to the whole earth</div>
+<div class="hud" id="hint" hidden>W A S D — helm and sail &nbsp;·&nbsp; drag — look &nbsp;·&nbsp; E — the wheel · the deck · the shore &nbsp;·&nbsp; SPACE — jump / climb &nbsp;·&nbsp; F — doors · speak · trade · fish · the hold · hail &nbsp;·&nbsp; Q — the spear (ashore and beneath the waves) &nbsp;·&nbsp; N — the trawl net &nbsp;·&nbsp; G — rise into the air (SPACE up · SHIFT down) &nbsp;·&nbsp; C — dive the deep (SHIFT down · SPACE up) &nbsp;·&nbsp; M — the map &nbsp;·&nbsp; L — the log &nbsp;·&nbsp; scroll — draw back, out to the whole earth</div>
 
 <canvas id="mini" width="280" height="280"></canvas>
 <div id="breath"><div id="breath-fill"></div></div>
@@ -637,6 +665,7 @@ window.__MENUUI=(function(){
 <div id="paused">
   <h2>&#9208; THE VOYAGE STANDS STILL</h2>
   <div class="m-hint">P or ESC &mdash; or tap here &mdash; to carry on</div>
+  <button class="bigbtn" id="p-menu">&#9204; Back to the selection screen</button>
 </div>
 
 <div id="trade"><div id="trade-inner">
@@ -988,6 +1017,7 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
 <script src="creatures/ermine.js"></script>
 <script src="creatures/lemming.js"></script>
 <script src="creatures/ptarmigan.js"></script>
+<script src="creatures/penguin.js"></script>
 <!-- and of the rivers and the deep -->
 <script src="creatures/seal.js"></script>
 <script src="creatures/walrus.js"></script>

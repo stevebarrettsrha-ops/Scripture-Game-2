@@ -1067,7 +1067,16 @@ function cellCompute(ix,iz){
     if(near) for(const st of near){
       const d=Math.hypot(x-st.x,z-st.z);
       if(d<170){ const t=Math.min(1,(170-d)/120);
-        c.h=Math.max(1,Math.round(c.h+(st.h0-c.h)*t*0.92));
+        /* ---- AND THE CORE IS LEVEL, NOT NEARLY LEVEL ----
+           The flattening only ever reached 92 per cent of the way, so where
+           a village stood against a mountain the remaining eight per cent of
+           a two-hundred-block peak was still sixteen blocks of rock — coming
+           up THROUGH the floors and roofs of the houses built on it. Within
+           the ring the houses actually stand in, the ground is now taken to
+           the site's own height exactly; the skirt beyond still eases out
+           into the true land so no village sits on a cut-out plate. */
+        const k=(t>=1)?1:t*0.92;
+        c.h=Math.max(1,Math.round(c.h+(st.h0-c.h)*k));
         if(c.kind!=='sand'&&c.h===1) c.h=2;
         break; }
     }
@@ -6375,6 +6384,8 @@ function airKind(px,pz,night){ const overSea=!landAtWorld(px,pz);
   if(night){ const r=Math.random(); return r<0.5?'owl':r<0.8?'crow':'dove'; }
   if(overSea) return Math.random()<0.7?'gull':'eagle';
   const r=Math.random(); return r<0.3?'butterfly':r<0.55?'dove':r<0.8?'crow':'eagle'; }
+/* how fast a bird flies, and how far ahead of itself it looks on a circle */
+const AL_SPD=30, AL_LEAD=0.85;
 function initAirLife(){ if(AIRLIFE.length) return; for(let k=0;k<AL_N;k++)
   AIRLIFE.push({m:null,type:null,x:0,y:0,z:0,tx:0,ty:0,tz:0,ph:Math.random()*6.28,heading:0,set:false}); }
 /* a place to look for food: over the water for a fisher, on the ground for
@@ -6415,6 +6426,13 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
       const a=Math.random()*6.28,
         r=type==='butterfly'?60+Math.random()*240:430+Math.random()*770;
       b.x=px+Math.cos(a)*r; b.z=pz+Math.sin(a)*r;
+      /* ---- AND NOTHING FLIES BEYOND THE WALL OF ICE ----
+         Out on the crown of the ice the ground stands two thousand feet up,
+         but the wall is not 'land' to landAtWorld — so every bird set down
+         out here took the SEA as its floor and was born six hundred blocks
+         underneath the ice, which is the flock seen dropping through the
+         world at the rim. Past the foot of the wall there are no fowl. */
+      if(Math.hypot(b.x,b.z)/R_WORLD>SHELF_UV){ b.m.visible=false; b.set=false; continue; }
       const c=landAtWorld(b.x,b.z), base=c?c.h*B:WATER_Y;
       b.y=type==='butterfly'?base+3:base+30+Math.random()*60;
       /* WHICH BIRDS FISH is read from js/behavior.js now, not named by hand:
@@ -6522,8 +6540,9 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
                   if(fx2!==null) b.perch={x:fx2,y:fy2,z:fz2};
                   else b.perch={x:b.x,y:0,z:b.z,air:true}; } } }
             if(b.perch.air){ /* nowhere to set down — it stays on the wing */
-              b.ph+=dt*0.5;
-              b.tx=b.perch.x+Math.cos(b.ph)*30; b.tz=b.perch.z+Math.sin(b.ph)*30;
+              b.ph+=dt*(AL_SPD/30);          /* the point goes round at the bird's own pace */
+              b.tx=b.perch.x+Math.cos(b.ph+AL_LEAD)*30;
+              b.tz=b.perch.z+Math.sin(b.ph+AL_LEAD)*30;
               b.ty=WATER_Y+42; }
             else{ b.tx=b.perch.x; b.tz=b.perch.z;
               /* a rafting bird's seat is the swell itself, wherever it stands */
@@ -6536,8 +6555,16 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
           if(BH&&BH.flock){ let mx=0,mz=0,mn=0;
             for(const o of AIRLIFE){ if(o!==b&&o.set&&o.type===b.type&&Math.hypot(o.x-b.x,o.z-b.z)<120){ mx+=o.x; mz+=o.z; mn++; } }
             if(mn){ cx=cx*0.4+(mx/mn)*0.6; cz=cz*0.4+(mz/mn)*0.6; } }
-          b.ph+=dt*0.7;
-          b.tx=cx+Math.cos(b.ph)*26; b.tz=cz+Math.sin(b.ph)*26; b.ty=cy;
+          /* ---- AND IT FLIES ROUND ITS CIRCLE FORWARDS ----
+             The mark went round at 26 × 0.7 = 18 units a second while the
+             bird flies at 30, so it overhauled its own target on every lap,
+             found it beside and then behind itself, and turned to face it —
+             which is the crow over the market flying backwards. The mark now
+             travels at exactly the bird's own speed, and is set a little
+             AHEAD on the circle, so there is always something in front to
+             fly at and the tangent is the way it points. */
+          b.ph+=dt*(AL_SPD/26);
+          b.tx=cx+Math.cos(b.ph+AL_LEAD)*26; b.tz=cz+Math.sin(b.ph+AL_LEAD)*26; b.ty=cy;
           if(b.jt<=0){ b.job='hunt'; b.spot=null; }
         }
       }
@@ -6545,7 +6572,7 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
 
     /* --- the flight itself --- */
     const dx=b.tx-b.x, dz=b.tz-b.z, dy=b.ty-b.y, dd=Math.hypot(dx,dz)||1;
-    const spd=b.type==='butterfly'?7:(b.job==='hunt'&&b.spot&&b.ty<=b.spot.y+2)?58:30;
+    const spd=b.type==='butterfly'?7:(b.job==='hunt'&&b.spot&&b.ty<=b.spot.y+2)?58:AL_SPD;
     const step=Math.min(dd,spd*dt);
     b.x+=dx/dd*step; b.z+=dz/dd*step;
     b.y+=Math.max(-52*dt,Math.min(52*dt,dy));
@@ -6801,7 +6828,7 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i){
   if(cfg.market!==false){ market={x:cx+B*4,z:cz};
     for(let k=0;k<3+sz2;k++){ const sx=cx+B*(3+k*2.6), sz=cz+B*2.3;
       const c=landAtWorld(sx,sz); if(!c||c.kind==='wall') continue;
-      emitStall(G,sx,sz,c.h*B,'market'); solids.push({x:sx,z:sz,r:B*1.2});
+      emitStall(G,sx,sz,c.h*B,'market'); solids.push({x:sx,z:sz,r:B*1.6});
       ex.stalls.push({x:sx,z:sz}); } }
   /* extra wells of water */
   for(let w2=1;w2<(cfg.wells||1);w2++){ const a=rnd(w2+70)*6.28, rr=B*(6+w2*3);
@@ -6933,7 +6960,7 @@ function* spawnVillage(i,exShell){
     for(let s=0;s<1+(rnd(46)>0.5?1:0);s++){
       const sx=site.x+B*(2.6+s*3.1), sz=site.z+B*(2.4-s*4.6);
       const sc=landAtWorld(sx,sz); if(!sc||sc.kind==='wall') continue;
-      emitStall(G,sx,sz,sc.h*B, s?'fish':'market'); solids.push({x:sx,z:sz,r:B*1.2});
+      emitStall(G,sx,sz,sc.h*B, s?'fish':'market'); solids.push({x:sx,z:sz,r:B*1.6});
       ex.stalls.push({x:sx,z:sz});
     }
     for(let hb=0; hb<2+Math.floor(rnd(52)*3); hb++){
@@ -6967,7 +6994,7 @@ function* spawnVillage(i,exShell){
     for(let rr=1;rr<8;rr++){ const c=landAtWorld(fx+Math.cos(rr)*rr*B, fz+Math.sin(rr)*rr*B);
       if(c&&c.kind!=='wall'){ px3=fx+Math.cos(rr)*rr*B; pz3=fz+Math.sin(rr)*rr*B; break; } }
     const c=landAtWorld(px3,pz3); if(c&&c.kind!=='wall'){ emitStall(G,px3,pz3,c.h*B,'fish');
-      solids.push({x:px3,z:pz3,r:B*1.2}); ex.stalls.push({x:px3,z:pz3}); }
+      solids.push({x:px3,z:pz3,r:B*1.6}); ex.stalls.push({x:px3,z:pz3}); }
   }
   /* build the merged meshes */
   const g=new THREE.Group();
@@ -7084,7 +7111,35 @@ function* spawnVillage(i,exShell){
    waypoint and the work to do there; personTick runs walk → work →
    next; beastTick gives the beasts their fears, their hungers and
    their herding. */
+/* ---- AND ANYONE ALREADY STANDING IN A THING IS PUT OUT OF IT ----
+   moveEnt has always refused to walk a body INTO a standing thing, but
+   nothing ever helped one that was SET DOWN in it: the folk are placed when
+   the village is raised, and a stall or a well built on the same spot left
+   somebody standing inside it for good — which is most of what is seen in
+   the market. A body that finds itself inside one is eased out the nearest
+   way, and is then kept out by the ordinary rule. */
+function pushOutOfSolids(ent,dt){
+  const P=1.5;
+  for(const[,vv] of activeVillages){ if(!vv.solids||!vv.site) continue;
+    if(Math.hypot(ent.m.position.x-vv.site.x,ent.m.position.z-vv.site.z)>420) continue;
+    for(const s of vv.solids){
+      const ox=ent.m.position.x-s.x, oz=ent.m.position.z-s.z;
+      const d=Math.hypot(ox,oz), need=s.r+P;
+      if(d>=need) continue;
+      let ux,uz;
+      if(d>0.05){ ux=ox/d; uz=oz/d; }
+      else { const a=hash2(s.x,s.z)*6.2832; ux=Math.cos(a); uz=Math.sin(a); }
+      const step=Math.min(need-d, Math.max(6,sp0OfEnt(ent))*dt*2.2);
+      const nx=ent.m.position.x+ux*step, nz=ent.m.position.z+uz*step;
+      const g=groundInfo(nx,nz);
+      if(g.land&&!blockedByStructureNPC(nx,nz)){ ent.m.position.x=nx; ent.m.position.z=nz; }
+      ent.tx=ent.m.position.x; ent.tz=ent.m.position.z;   /* and it stops making for wherever it was going */
+      return true; } }
+  return false;
+}
+function sp0OfEnt(ent){ return ent.panic?12:6; }
 function moveEnt(ent,dt,sp){
+  if(pushOutOfSolids(ent,dt)) return true;   /* getting clear IS this frame's business */
   const dx=ent.tx-ent.m.position.x, dz=ent.tz-ent.m.position.z;
   const d=Math.hypot(dx,dz); let moving=d>0.6;
   if(moving){ const nx=ent.m.position.x+dx/d*sp*dt, nz=ent.m.position.z+dz/d*sp*dt;
@@ -8626,10 +8681,18 @@ function blockedByStructure(nx,nz){
   return false;
 }
 /* the well, hay-bales and pens block the way */
-function blockedBySolid(nx,nz){
+/* ---- A BODY HAS WIDTH ----
+   This tested the walker's CENTRE POINT against the standing thing's radius
+   and nothing else, so a villager could bring her middle to within a hair of
+   a stall post and stand there with half her shoulders inside it — which is
+   the clipping seen all over the market. Every walker now keeps its own bulk
+   clear, as it does of every other body (see blockedByEntity, which has
+   always added exactly this). */
+function blockedBySolid(nx,nz,pad){
+  const P=(pad===undefined)?1.5:pad;
   for(const[,vv] of activeVillages){ if(!vv.solids||!vv.site) continue;
     if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue;
-    for(const s of vv.solids) if(Math.hypot(nx-s.x,nz-s.z)<s.r) return true;
+    for(const s of vv.solids) if(Math.hypot(nx-s.x,nz-s.z)<s.r+P) return true;
   }
   return false;
 }
@@ -10353,6 +10416,27 @@ function setPaused(p){ if(gamePaused===p) return; gamePaused=p;
 }
 function togglePause(){ if(!running) return; setPaused(!gamePaused); }
 $('b-pause').onclick=togglePause;
+/* ---- AND THE PAUSE IS A WAY OUT, NOT ONLY A WAY TO STAND STILL ----
+   The log is written first, so nothing of the voyage is lost, and the world
+   itself is left standing exactly as it is — it was built once and there is
+   no reason on earth to build it again to show a menu over it. */
+function backToMenu(){
+  if(!running) return;
+  saveState();
+  setPaused(false);
+  running=false; _begun=false; _launching=false;
+  D.body.classList.add('pregame');
+  const el=$('paused'); if(el) el.style.display='none';
+  if(cut) endScene();
+  if(state.firm) exitFirm();
+  loadSaved().then(sv=>{ menuSave=sv;
+    const c=$('m-continue'); if(c) c.style.display=sv?'block':'none';
+    const l=$('m-list'), cf=$('m-confirm');
+    if(l) l.style.display='flex'; if(cf) cf.style.display='none';
+    openMenu(); });
+}
+{ const pm=$('p-menu');
+  if(pm) pm.onclick=e=>{ e.stopPropagation(); backToMenu(); }; }
 $('paused').addEventListener('click',()=>setPaused(false));
 $('b-time').onclick=()=>{ state.paused=!state.paused;
   $('b-time').textContent=state.paused?'\u25B6 Loose the sun':'\u23F8 Hold the sun';
