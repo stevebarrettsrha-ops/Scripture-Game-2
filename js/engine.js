@@ -3104,6 +3104,39 @@ function hidePod(){ for(const m of POD) m.visible=false; }
 /* ================= THE TRAVELLER (steve-fashion) ================= */
 function lam(col){ return new THREE.MeshLambertMaterial({color:col}); }
 function lbox(w,h,d,col){ return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),lam(col)); }
+/* ---- AND WHAT IS TAKEN OUT OF THE WORLD IS GIVEN BACK ----
+   Taking a thing out of the scene does not free it. Its geometry and its
+   materials belong to the CARD, uploaded there, and they are held until they
+   are told to let go. And every beast, bird, nest and young thing in this
+   world is built fresh out of lbox — a new BoxGeometry AND a new material
+   for every limb of it — while the slots re-home continually as the
+   traveller moves. So what was merely removed piled up, unseen, for the
+   whole of a voyage: four thousand geometries at the outset and sixty-one
+   thousand after two dozen landfalls, with the scene itself no bigger than
+   it began. That is a world that grows heavier the longer it is played in.
+
+   The TEXTURES are not ours to free. Every one of these things wraps a
+   texture the whole world shares — the wool of the flocks, the one glow
+   behind every lamp and pearl and firefly in the earth — in a material of
+   its own. The material is ours to give back; the map beneath it is not,
+   and disposing that would strip the world bare. Nor are the terrain and
+   billboard materials ours: those tables are held out of the way. */
+let _shMats=null, _shN=-1;
+function sharedMats(){
+  const n=Object.keys(MAT).length+Object.keys(ENTMAT).length;
+  if(_shMats&&_shN===n) return _shMats;      /* rebuilt only when a new one is registered */
+  _shN=n; _shMats=new Set(Object.values(MAT).concat(Object.values(ENTMAT)));
+  return _shMats;
+}
+function freeTree(o){
+  if(!o) return;
+  const keep=sharedMats();
+  o.traverse(n=>{
+    if(n.geometry) n.geometry.dispose();
+    const m=n.material; if(!m) return;
+    for(const mm of (Array.isArray(m)?m:[m])) if(mm&&!keep.has(mm)) mm.dispose();
+  });
+}
 
 /* ================= THE LIVING THINGS, ONE TO A FILE =================
    Every beast has its own file in creatures/, and declares there the one
@@ -4502,7 +4535,7 @@ function updateDolphins(px,py,pz,dt,t){ initDolphins();
       let da=want-d.dir; while(da>Math.PI)da-=2*Math.PI; while(da<-Math.PI)da+=2*Math.PI;
       d.dir+=da*Math.min(1,dt*2.4);
       sp=Math.min(52,Math.abs(state.boat.speed)+14);
-    } else d.dir+=Math.sin(t*0.4+d.ph)*0.05;
+    } else d.dir+=Math.sin(t*0.4+d.ph)*0.05*dt*60;
     { const nx=d.x+Math.cos(d.dir)*sp*dt, nz=d.z+Math.sin(d.dir)*sp*dt;
       if(!landAtWorld(nx+Math.cos(d.dir)*10,nz+Math.sin(d.dir)*10)&&!landAtWorld(nx,nz)){ d.x=nx; d.z=nz; }
       else d.dir+=1.8; }
@@ -4602,7 +4635,7 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
         else s.feedT=8+Math.random()*10;
       }
     }
-    if(!hunting) s.dir+=Math.sin(t*0.25+s.ph)*0.03;
+    if(!hunting) s.dir+=Math.sin(t*0.25+s.ph)*0.03*dt*60;
     { const nx=s.x+Math.cos(s.dir)*sp*dt, nz=s.z+Math.sin(s.dir)*sp*dt;
       const nsx=nx+Math.cos(s.dir)*16, nsz=nz+Math.sin(s.dir)*16;   /* the nose leads */
       if(!landAtWorld(nx,nz)&&!landAtWorld(nsx,nsz)){ s.x=nx; s.z=nz; } else s.dir+=1.9; }   /* no shark swims through stone */
@@ -4671,7 +4704,7 @@ function updateSeaMob(arr,px,py,pz,dt,t){
        when it is resting, denned, hovering or lying up */
     let spF=drowsy?0.4:1;
     if(o.act==='logging'||o.act==='den'||o.act==='hover'||o.act==='lure'||o.act==='bask') spF*=0.15;
-    o.dir+=Math.sin(t*0.3+o.ph)*0.03;
+    o.dir+=Math.sin(t*0.3+o.ph)*0.03*dt*60;
     /* ---- THE NOSE TURNS THE BEAST, NOT THE NAVEL ----
        Only the centre point was ever tested against the land, so a beast
        half a ship long carried her whole head through the face of a cliff
@@ -4801,7 +4834,7 @@ function updateAnglers(px,py,pz,dt,t){ initAnglers();
       a.dir=Math.random()*6.28; a.set=true; a.m.visible=true; a.gs.visible=true; }
     /* she does not chase: she hangs almost still and waits, and the lamp
        breathes. That is the whole of her hunting. */
-    a.dir+=Math.sin(t*0.21+a.ph)*0.02;
+    a.dir+=Math.sin(t*0.21+a.ph)*0.02*dt*60;
     a.x+=Math.cos(a.dir)*2.2*dt; a.z+=Math.sin(a.dir)*2.2*dt;
     a.y+=Math.sin(t*0.5+a.ph)*1.6*dt;
     const fy=seabedDepth(a.x,a.z);
@@ -4911,7 +4944,7 @@ function updateBedLife(px,pz,dt,t){ initBedLife();
           b.m.position.set(x,fy+0.2,z); b.m.rotation.y=Math.random()*6.28; b.m.visible=true; break; } }
       if(!b.set){ b.m.visible=false; continue; } }
     if(b.kind==='lobster'){                       /* the lobster alone goes anywhere */
-      b.dir+=Math.sin(t*0.5+b.ph)*0.05;
+      b.dir+=Math.sin(t*0.5+b.ph)*0.05*dt*60;
       const nx=b.x+Math.cos(b.dir)*1.2*dt, nz=b.z+Math.sin(b.dir)*1.2*dt;
       if(!landAtWorld(nx,nz)){ b.x=nx; b.z=nz; }
       b.m.position.set(b.x,seabedDepth(b.x,b.z)+0.2,b.z);
@@ -4989,7 +5022,7 @@ function updateDeepLife(px,py,pz,dt,t){ initDeepLife();
       o.dir=Math.random()*6.28; o.set=true; o.m.visible=true; if(o.gsp)o.gsp.visible=true; }
     /* its way of going */
     if(!K.still){
-      o.dir+=Math.sin(t*0.23+o.ph)*0.03;
+      o.dir+=Math.sin(t*0.23+o.ph)*0.03*dt*60;
       let sp=K.spd||2;
       /* ---- THE HUNT OF THE TITANS ----
          The one predation the abyss is famous for: a sperm whale that has
@@ -5349,7 +5382,7 @@ function nearestScrollProp(){
 function takeScroll(sc){
   if(!sc||scrollTaken.has(sc.id)) return;
   scrollTaken.add(sc.id);
-  if(sc.m){ scene.remove(sc.m); sc.m=null; }
+  if(sc.m){ scene.remove(sc.m); freeTree(sc.m); sc.m=null; }
   const left=SCROLLS.filter(x=>!x.gone&&!scrollTaken.has(x.id)).length;
   toast(sc.name+' \u2014 '+sc.words+(left
     ? '  ('+scrollTaken.size+' of '+SCROLLS.filter(x=>!x.gone).length+' scrolls gathered \u2014 the golden needle lies on the next.)'
@@ -5857,7 +5890,7 @@ function grassProbe(x,z){ const c=landAtWorld(x,z);
   return {kind:c.kind, wild:nearSettled(x,z)?0.34:1}; }
 /* give a mother her young, or take them away again */
 function setYoung(a,want){
-  if(a.kids) for(const y of a.kids) scene.remove(y.m);
+  if(a.kids) for(const y of a.kids){ scene.remove(y.m); freeTree(y.m); }
   a.kids=null;
   if(!want||!window.BABY) return;
   const Y=BABY.youngOf(a.kind); if(!Y) return;
@@ -5925,7 +5958,7 @@ function makeBloom(){ const g=new THREE.Group(), n=5+Math.floor(Math.random()*6)
   return g; }
 const BLOOMS=[], BLOOMS_N=70, BLOOMS_R=420;
 function initBlooms(){ if(BLOOMS.length) return; for(let k=0;k<BLOOMS_N;k++){ const m=makeBloom(); m.visible=false; scene.add(m); BLOOMS.push({m,x:0,z:0,set:false}); } }
-function updateBlooms(px,pz){ initBlooms(); const doy=dayOfYear();
+function updateBlooms(px,pz,dt){ initBlooms(); const doy=dayOfYear();
   for(const b of BLOOMS){
     if(!b.set||Math.hypot(b.x-px,b.z-pz)>BLOOMS_R+80){ b.set=false;
       /* set it down on true grassland — never sand, rock, snow or the sea.
@@ -5939,7 +5972,10 @@ function updateBlooms(px,pz){ initBlooms(); const doy=dayOfYear();
        as it wanes (js/season.js reckons the bloom for this latitude and day) */
     const latN=1-Math.hypot(b.x,b.z)/R_WORLD*2;
     const bloom=window.SEASON?SEASON.bloomFactor(latN,doy):0.4;
-    b.age=Math.min(1,(b.age===undefined?1:b.age)+0.016);   /* the sprout ramp — up in ~1s */
+    /* the sprout ramp — one second, reckoned in SECONDS. Counted per frame
+       it grew in a third of the time on a fast screen and three times over
+       on a slow one. */
+    b.age=Math.min(1,(b.age===undefined?1:b.age)+dt);
     if(bloom>0.08){ b.m.visible=true; b.m.scale.setScalar((0.45+0.55*bloom)*(0.15+0.85*b.age)); }
     else b.m.visible=false;
   } }
@@ -5957,7 +5993,8 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       /* the ground named no beast — a bare glacier, a crest above the life
          line. It stays bare; the slot tries elsewhere next tick. */
       if(!kind){ if(a.m)a.m.visible=false; hideYoung(a); a.set=false; continue; }
-      if(a.kind!==kind){ if(a.m) scene.remove(a.m); a.m=makeAnimal(kind); scene.add(a.m); a.kind=kind; }
+      if(a.kind!==kind){ if(a.m){ scene.remove(a.m); freeTree(a.m); }   /* the old beast is given back */
+        a.m=makeAnimal(kind); scene.add(a.m); a.kind=kind; }
       a.hx=sp.x; a.hz=sp.z; a.x=sp.x; a.z=sp.z; a.tx=sp.x; a.tz=sp.z; a.t=Math.random()*3; a.set=true;
       a.role=WILD_ROLE[kind]||'graze'; a.job='roam'; a.jt=Math.random()*3; a.prey=null; a.cool=0;
       a.dead=0; a.den=null; a.act=null; a.burst=0; a.fear=0; a.panicT=0; a.ph=Math.random()*6.283;
@@ -6425,7 +6462,7 @@ function updateRiverLife(px,pz,dt,t){ initRiverLife();
       if(!f.set){ f.m.visible=false; continue; }
     }
     /* it runs the thread of the water and turns back at the bank */
-    f.dir+=Math.sin(t*0.6+f.ph)*0.06;
+    f.dir+=Math.sin(t*0.6+f.ph)*0.06*dt*60;
     const nx=f.x+Math.cos(f.dir)*K.spd*dt, nz=f.z+Math.sin(f.dir)*K.spd*dt;
     if(riverWaterAt(nx,nz)){ f.x=nx; f.z=nz; } else f.dir+=2.1+Math.random()*0.8;
     f.m.position.set(f.x, f.y+Math.sin(t*1.1+f.ph)*0.5, f.z);
@@ -6599,7 +6636,7 @@ function updateNests(px,pz,dt){ initNests();
     if(!slot) break;
     const kindKey=s.site.kind+'|'+s.site.home.form;
     if(slot.kind!==kindKey||!slot.m){
-      if(slot.m) scene.remove(slot.m);
+      if(slot.m){ scene.remove(slot.m); freeTree(slot.m); }   /* nest, chicks and all */
       const built=buildBeastHome(s.site); slot.m=built.g; slot.chicks=built.chicks;
       slot.kind=kindKey; scene.add(slot.m); }
     slot.skey=s.key; slot.species=s.site.kind; slot.bird=s.site.bird;
@@ -6688,7 +6725,8 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
   for(const b of AIRLIFE){
     if(!b.set||Math.hypot(b.x-px,b.z-pz)>AL_R+220){
       const type=airKind(px,pz,night);
-      if(b.type!==type){ if(b.m) scene.remove(b.m); b.m=makeBird(type); scene.add(b.m); b.type=type; }
+      if(b.type!==type){ if(b.m){ scene.remove(b.m); freeTree(b.m); }   /* and the old fowl with it */
+        b.m=makeBird(type); scene.add(b.m); b.type=type; }
       const a=Math.random()*6.28,
         r=type==='butterfly'?60+Math.random()*240:430+Math.random()*770;
       b.x=px+Math.cos(a)*r; b.z=pz+Math.sin(a)*r;
@@ -8698,7 +8736,14 @@ function updateLabels(px,pz){
       sp.material.opacity=op*0.95; const sc=Math.max(200,Math.min(900,d*0.16));
       sp.scale.set(sc,sc/6,1); }
   }
-  if(yahruPos&&namesOn&&!under){ if(!shownLabels.has(-1)){ const sp=makeLabel('Yahrushalayim',true);
+  /* the holy city's name is CACHED like every other, in labelCache under -1.
+     It alone was built fresh each time it was wanted — and it is wanted again
+     every time the names are turned off and on, and every time the traveller
+     goes under the sea and comes up — so each of those left a whole canvas
+     texture behind it on the card, for ever. */
+  if(yahruPos&&namesOn&&!under){ if(!shownLabels.has(-1)){
+      let sp=labelCache.get(-1);
+      if(!sp){ sp=makeLabel('Yahrushalayim',true); labelCache.set(-1,sp); }
       sp.position.set(yahruPos.x,topY(yahruPos.ix,yahruPos.iz)+120,yahruPos.z);
       scene.add(sp); shownLabels.set(-1,sp); } }
   else if(shownLabels.has(-1)&&(!namesOn||under)){ scene.remove(shownLabels.get(-1)); shownLabels.delete(-1); }
@@ -9028,7 +9073,7 @@ function dismount(quiet){
   const M=state.mount; if(!M) return; state.mount=null;
   /* the beast goes back to the wild — a free slot, standing where you left it */
   for(const a of LANDLIFE){ if(a.set) continue;
-    if(a.m) scene.remove(a.m);
+    if(a.m){ scene.remove(a.m); freeTree(a.m); }   /* the slot's own stale beast */
     /* a free slot may still be HOLDING young from its last life — they were
        only hidden at the reap, and nulling the field bare leaked their
        meshes into the scene for ever. setYoung removes them properly. */
@@ -9040,7 +9085,7 @@ function dismount(quiet){
     a.dead=0; a.den=null; a.act=null; a.burst=0; a.fear=0; a.panicT=0; a.upTree=0;
     a.day='day'; a.river=false; a.ph=Math.random()*6.283;
     a.m.visible=true; M.m=null; break; }
-  if(M.m) scene.remove(M.m);      /* no slot free — it slips away into the world's pocket */
+  if(M.m){ scene.remove(M.m); freeTree(M.m); }   /* no slot free — it slips away, and is given back */
   if(!quiet) toast('You dismount, and the beast falls to grazing.');
 }
 function canSleep(){ if(state.mode!=='walk'||!HOME||worldNight<=0.45) return false;
@@ -11326,6 +11371,42 @@ async function begin(fresh,roam){
      built by preload() while the loading screen stood — none of it may run
      twice (twice-computed sites double the villages; twice-built ports
      stand two houses in one place) */
+  /* ---- AND ANEW MEANS ANEW ----
+     'Wash it away — begin anew' set the ship's place and the hour, and
+     nothing else. Everything a voyage GATHERS — the silver, the catch, the
+     pearls, the cargo, the lands seen, the miles run, the standing at every
+     market, the scrolls taken up, the wrecks broken open, the pearl beds
+     already stripped, the immortal breath, the repelling of beasts — lives
+     in this module and not in the log, and so it lived straight through the
+     washing. A voyage begun anew after another began with the whole of the
+     old one still in hand, and wrote it back over the log at the next save.
+     Worse: the MODE came through with it, so a traveller who went to the
+     menu from dry land began his new voyage standing in the old land, half
+     a world from his ship.
+
+     (Reloading the page washed it clean, which is the only reason this was
+     ever survivable — and the reason it never showed on a first launch.)
+
+     Everything is emptied here, BEFORE the log is read back, so a continued
+     voyage lays its own record over a clean state and carries nothing of
+     whatever was played before it either. */
+  if(state.mount) dismount(true);
+  state.mode='boat'; state.prevGround='boat'; state.firm=false;
+  state.visited=new Set(); state.dist=0; state.fish=0; state.fishing=null;
+  state.coins=30; state.cargo={}; state.game=0; state.pearls=0; state.rep={};
+  state.breath=1; state.immBreath=false; state.repel=false; state.vf=0;
+  state.windMode='true'; state.speedIdx=0; state.dayIdx=0; state.paused=false;
+  state.simHours=9.5; state.freeroam=false;
+  if(state.net){ state.net=null; if(typeof netG!=='undefined'&&netG) netG.visible=false; }
+  Object.assign(state.walk,{x:0,z:0,heading:0,feetY:undefined,vy:0,grounded:true,
+    stepOff:0,climb:null,inWater:false,spill:0});
+  Object.assign(state.boat,{heading:Math.PI*0.9,speed:0});
+  state.camYaw=0; state.camPitch=0.42; state.camYawVel=0; state.camPitchVel=0;
+  camClear=1; camFloor=-1e9;
+  scrollTaken.clear(); pearlTaken.clear(); wreckLooted.clear();
+  GUIDE.mode='scroll';
+  if(window.SEASON&&SEASON.clear) SEASON.clear();
+
   const saved=fresh?null:await loadSaved();
   if(saved){ state.boat.x=saved.x; state.boat.z=saved.z; state.boat.heading=saved.h; state.simHours=saved.t;
     if(saved.v>=3&&saved.m==='walk'){ state.walk.x=saved.wx; state.walk.z=saved.wz;
@@ -11363,7 +11444,14 @@ async function begin(fresh,roam){
     else { const mu=$('menu'); if(mu) mu.style.display='none'; } }
   D.body.classList.remove('pregame');       /* the HUD stands up with the voyage */
   menuView=null; running=true;
-  setMode(state.mode); updateWindBtn(); initAudio();
+  setMode(state.mode);
+  /* every switch on the rail reads its word off the STATE, and is set from
+     it here — after the washing AND after the log has been read back, so the
+     rail can never stand telling one tale while the voyage keeps another
+     (a voyage begun anew still offered the immortal breath on its button) */
+  updateWindBtn(); updateBreathBtn(); updateRepelBtn(); updateSpeedBtn();
+  updateSeasonBtn(); updateGuideBtn();
+  initAudio();
   if(state.freeroam) toast('FREE ROAM \u2014 the air, the sun, the hour and the season are yours. Rise up (G), hold the sun, turn the year, and go where you will.');
   else toast('And Aluahim said, \u201cLet the waters under the shamayim be gathered together into one place, and let the dry land appear.\u201d And it came to be so.','BER\u0114SHITH 1:9');
   }catch(e){ _begun=false; throw e; }   /* a failed launch frees the buttons for another try */
@@ -12053,7 +12141,7 @@ function frame(){
     podTick(p.x,p.z,dt,tt);             /* the whale pods, making for the fishing grounds */
     orcaTick(p.x,p.z,dt,tt);            /* and the killer whales, on their own road in the deep */
     if(state.mode==='boat'||state.mode==='deck'||state.mode==='walk'){
-      updateLandLife(p.x,p.z,dt,tt); updateRiverLife(p.x,p.z,dt,tt); updateBlooms(p.x,p.z); }
+      updateLandLife(p.x,p.z,dt,tt); updateRiverLife(p.x,p.z,dt,tt); updateBlooms(p.x,p.z,dt); }
     else { hideLandLife(); hideBlooms(); } }
   else { hideLandLife(); hideAirLife(); hidePod(); hideOrca(); hideBlooms(); }
   if(state.firm&&firmMark) firmMark.position.set(p.x,R_WORLD*0.012,p.z);
