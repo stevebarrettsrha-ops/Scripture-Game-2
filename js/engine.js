@@ -5098,145 +5098,193 @@ function nearestWreckChest(){ if(state.mode!=='dive') return null;
   return null; }
 /* ---- PEARLS OF THE DEEP — rare oysters on the sea bed, agleam, and worth
    much silver at any market. Gathered ones do not regrow this voyage. ---- */
-/* ================= THE ARROW THAT LEADS =================
-   A chevron of light standing over the traveller's head, tipped over toward
-   the thing he is looking for and turning with it as he goes.
+/* ================= THE COMPASS THAT LEADS =================
+   There was a chevron of light hung at the top of the glass, laid over
+   toward the thing sought. It gave a bearing and nothing besides: the
+   traveller turned, and it turned with him, and at the end of the turn he
+   still did not know which way to walk. A lone arrow on a moving frame is
+   unreadable — there is nothing standing still behind it to read it against.
 
-     GOLD  — to the nearest scroll he has not yet found. This is what it
-             does when it is left alone.
-     BLUE  — to the ship. Pressed once it swings to her and stays there
-             however far he wanders inland; pressed again it goes gold and
-             returns to the scrolls.
+   So it is a MARINER'S COMPASS now, set in the corner over the little
+   chart, and it answers both questions at once:
 
-   It is one object and one colour at a time, so there is never any question
-   which of the two it is answering.                                       */
-const GUIDE={m:null,mat:null,glow:null,mode:'scroll',t:0};
-const _gF=new THREE.Vector3(), _gU=new THREE.Vector3();
-const GUIDE_GOLD=0xffc61e, GUIDE_BLUE=0x35a7ff;
-/* ---- AND IT HAS A BODY ----
-   It was box geometry already, but drawn with a flat basic material — every
-   face the same yellow, so the whole of it read as one silhouette cut out of
-   paper. It carries the world's OWN per-face shading now, baked into its
-   vertices: top 1.0, z-sides 0.8, x-sides 0.62, bottom 0.5, exactly as every
-   block in the world is lit. The material's colour is multiplied over that,
-   so the one arrow still goes gold and blue as it always did — and it is
-   thick enough, and tipped enough, that the top faces and the side faces are
-   both in view and it reads as a solid thing. */
-/* the world's own block shading is top 1.0 / z 0.8 / x 0.62 / bottom 0.5,
-   and that is right for a hillside. This is a thing on the GLASS, and it
-   must read the same whichever way it is turned — at 0.62 it went visibly
-   dim every time it pointed to port or starboard. The same order of light,
-   lifted off the floor: it still has an obvious top, sides and underside. */
-const _GSHADE=[0.76,0.76,1.00,0.66,0.90,0.90];   /* +X -X +Y -Y +Z -Z */
-function shadedBoxGeo(w,h,d){
-  const g=new THREE.BoxGeometry(w,h,d);
-  const n=g.attributes.position.count, col=new Float32Array(n*3);
-  for(let f=0;f<6;f++){ const sh=_GSHADE[f];
-    for(let v=0;v<4;v++){ const i=(f*4+v)*3; col[i]=sh; col[i+1]=sh; col[i+2]=sh; } }
-  g.setAttribute('color',new THREE.BufferAttribute(col,3));
-  return g;
+     THE CARD    turns with the world. North on this earth is the MIDST —
+                 the centre of the disc — so the rose is set from where the
+                 traveller stands, and N always lies toward the midst.
+     THE NEEDLE  lies on the mark, and is
+                   GOLD — to the nearest scroll he has not yet found; this
+                          is what it does when it is left alone.
+                   BLUE — to the ship. Pressed once it swings to her and
+                          stays there however far he wanders inland; pressed
+                          again it goes gold and returns to the scrolls.
+     THE LUBBER MARK at the head of the case is fixed, and is AHEAD.
+
+   Which gives one plain rule, and it is the whole of the thing: TURN UNTIL
+   THE NEEDLE STANDS UNDER THE MARK AT THE TOP, AND THEN WALK. The card
+   turning beneath says how far round he has come, and the reading at the
+   foot counts the miles down, so he can see he is closing on it.        */
+const GUIDE={mode:'scroll',t:0,shown:false};
+const _gF=new THREE.Vector3();
+const GUIDE_GOLD='#ffc61e', GUIDE_BLUE='#35a7ff';
+const cmpCv=$('compass'), cmpCx=cmpCv?cmpCv.getContext('2d'):null;
+let ROSE=null;                     /* the card, drawn but once and turned ever after */
+/* ---- THE CARD ----
+   Drawn once into a canvas of its own and thereafter only turned under the
+   needle: the rim of degrees ticked five by five, the eight-pointed star,
+   and the four letters. Laying all of that down again every frame, for a
+   thing 140 px across, would be a waste of the world's time. */
+function buildRose(S){
+  const c=document.createElement('canvas'); c.width=c.height=S;
+  const x=c.getContext('2d'), R=S/2, r=R-1, rIn=r*0.845;
+  x.translate(R,R);
+  /* the case: a dark band, gold-edged, after the manner of a boxed compass */
+  x.beginPath(); x.arc(0,0,r,0,6.2832); x.fillStyle='#080d18'; x.fill();
+  x.lineWidth=Math.max(1,S*0.013); x.strokeStyle='rgba(232,198,106,.85)'; x.stroke();
+  const g=x.createRadialGradient(-r*0.3,-r*0.34,r*0.04,0,0,rIn);
+  g.addColorStop(0,'#1c2742'); g.addColorStop(1,'#070d1a');
+  x.beginPath(); x.arc(0,0,rIn,0,6.2832); x.fillStyle=g; x.fill();
+  x.lineWidth=Math.max(1,S*0.006); x.strokeStyle='rgba(232,198,106,.5)'; x.stroke();
+  /* the degrees, ticked five by five round the band, and long at the eight */
+  for(let i=0;i<72;i++){
+    const a=i*Math.PI/36, maj=i%9===0, mid=i%3===0;
+    const l=maj?r*0.125:mid?r*0.082:r*0.048, o=r*0.985;
+    x.beginPath();
+    x.moveTo(Math.sin(a)*o,-Math.cos(a)*o);
+    x.lineTo(Math.sin(a)*(o-l),-Math.cos(a)*(o-l));
+    x.lineWidth=maj?Math.max(1.4,S*0.011):mid?Math.max(1,S*0.006):Math.max(0.6,S*0.0035);
+    x.strokeStyle=maj?'rgba(232,198,106,.95)':mid?'rgba(232,198,106,.6)':'rgba(232,198,106,.32)';
+    x.stroke();
+  }
+  /* THE STAR. Every point is split down its own axis, one half to the light
+     and one to the shade — that is what makes a rose read as a solid star
+     and not a shape cut out of paper.
+
+     And the whole star is IVORY AND SLATE, with no gold in it anywhere. The
+     first cut of this had a gold north point, and then there were two gold
+     spikes on the face — the north point and the needle — and at a glance
+     across a corner of the screen you could not tell which of them was the
+     one that meant anything. The card is grey; the needle alone has colour;
+     the eye goes straight to it. North is known by its longer point and by
+     the one gold letter over it. */
+  const pt=(a,len,w,lit,shade)=>{
+    const s=Math.sin(a), co=Math.cos(a);
+    const tx=s*len, ty=-co*len, bx=co*w, by=s*w;
+    x.beginPath(); x.moveTo(0,0); x.lineTo(bx,by); x.lineTo(tx,ty); x.closePath();
+    x.fillStyle=shade; x.fill();
+    x.beginPath(); x.moveTo(0,0); x.lineTo(-bx,-by); x.lineTo(tx,ty); x.closePath();
+    x.fillStyle=lit; x.fill();
+  };
+  for(let k=0;k<4;k++) pt(Math.PI/4+k*Math.PI/2, rIn*0.42, r*0.046, '#9aa2b2', '#3f4658');
+  for(let k=1;k<4;k++) pt(k*Math.PI/2,           rIn*0.68, r*0.062, '#cec5ac', '#4a5266');
+  pt(0, rIn*0.76, r*0.062, '#f7f1e0', '#6e7789');      /* north stands longest */
+  /* the four letters, set between the star's points and the ticked band */
+  x.font='600 '+Math.round(S*0.095)+'px Georgia,"Times New Roman",serif';
+  x.textAlign='center'; x.textBaseline='middle';
+  const CARD=[['N',0,'#ffdf8a'],['E',Math.PI/2,'#d8cead'],
+              ['S',Math.PI,'#d8cead'],['W',-Math.PI/2,'#d8cead']];
+  for(const q of CARD){ x.fillStyle=q[2];
+    x.fillText(q[0],Math.sin(q[1])*rIn*0.905,-Math.cos(q[1])*rIn*0.905); }
+  return c;
 }
-function makeGuideArrow(){
-  const g=new THREE.Group();
-  /* depthTest OFF and vertexColors ON: a thing on the GLASS, never buried in
-     a hillside — but shaded like everything else in the world */
-  const mat=new THREE.MeshBasicMaterial({color:GUIDE_GOLD,vertexColors:true,
-    transparent:true,opacity:0.97,depthWrite:false,depthTest:false,fog:false});
-  const TH=3.2;                                  /* its thickness — the depth you see */
-  const put=(w,d,x,z)=>{ const m=new THREE.Mesh(shadedBoxGeo(w,TH,d),mat);
-    m.position.set(x,0,z); g.add(m); return m; };
-  /* the head, stepped out to a point like everything else in this world */
-  put( 2.2,1.5,  0, 4.15);
-  put( 5.0,1.5,  0, 2.65);
-  put( 7.8,1.5,  0, 1.15);
-  put(10.6,1.5,  0,-0.35);
-  /* the notch: the two barbs run back and the middle is cut away, which is
-     what makes it an arrow and not a wedge */
-  put( 3.2,1.5, -3.7,-1.85); put( 3.2,1.5, 3.7,-1.85);
-  put( 3.4,1.6,  0,-1.80);                       /* and a short shaft between them */
-  const gm=new THREE.SpriteMaterial({map:glowTexCv,color:GUIDE_GOLD,transparent:true,
-    opacity:0.5,depthWrite:false,depthTest:false,fog:false});
-  /* the halo is trimmed with the arrow — at the old size it was wider than
-     the arrow itself and a small arrow sat inside a blob of light */
-  const gs=new THREE.Sprite(gm); gs.scale.set(12,12,1); g.add(gs);
-  g.renderOrder=999;                             /* last of all — over everything */
-  GUIDE.mat=mat; GUIDE.glow=gs;
-  return g;
-}
-/* what the arrow is answering to just now, and where it stands */
+/* what the needle is answering to just now, and where it stands */
 function guideTarget(){
   if(GUIDE.mode==='ship') return {x:state.boat.x,z:state.boat.z,ship:true};
   const sc=nextScroll();
   return sc?{x:sc.x,z:sc.z}:null;
 }
-/* ---- IT HANGS AT THE TOP OF THE GLASS, AND IT TURNS EVERY WAY ----
-   It used to float over the traveller's head out in the world, which meant
-   it went behind hills, was lost in the rigging, and left the frame the
-   moment he looked away from it. It is a HUD compass now, after the manner
-   of the racing games: pinned at the top of the screen, always in view, and
-   turning in the plane of the glass to say which way the mark lies.
-
-     pointing UP        straight ahead — go on
-     pointing RIGHT     off the starboard beam — turn right
-     pointing DOWN      BEHIND you — turn about
-
-   It is carried in world space and set from the camera's own basis every
-   frame, rather than parented to the camera (which is not in the scene
-   graph) — the same thing on the glass, and it touches nothing else. */
+/* ---- LAYING A BEARING ONTO THE GLASS ----
+   The compass is drawn HEAD-UP: whatever is straight ahead of the eye stands
+   at the top of it. A world bearing b, seen from an eye facing camYaw, falls
+   at the screen angle (camYaw - b) — clockwise on the canvas, which is what
+   turning a compass card to the right does. The card and the needle are both
+   laid on with that one conversion, so the two can never disagree. */
 function guideTick(dt){
+  if(!cmpCx) return;
   /* Not behind the chart, not in a scene, not before the voyage begins — and
      not at all when another game is driving this engine. SCRIPTURE UNFOLDS
-     plays the scrolls; it does not send anyone out to find them, and an
-     arrow hanging over the creation of the world would be absurd. */
+     plays the scrolls; it does not send anyone out to find them. */
   const off=state.firm||cut||!running||window.__HOST_BOOT;
-  const tgt=off?null:guideTarget();
-  if(!tgt){ if(GUIDE.m) GUIDE.m.visible=false; return; }
-  if(!GUIDE.m){ GUIDE.m=makeGuideArrow(); scene.add(GUIDE.m); }
+  if(off){ if(GUIDE.shown){ cmpCv.classList.remove('on'); GUIDE.shown=false; } return; }
+  if(!GUIDE.shown){ cmpCv.classList.add('on'); GUIDE.shown=true; }
   GUIDE.t+=dt;
+  const S=cmpCv.width, R=S/2, r=R-1;
+  if(!ROSE) ROSE=buildRose(S);
+
   const p=playerXZ();
-  const dx=tgt.x-p.x, dz=tgt.z-p.z, d=Math.hypot(dx,dz);
-
-  /* ---- where it hangs ----
-     a fixed way in FRONT of the eye, lifted to the top of the frame. The
-     distance is taken off the near plane (which opens as the eye draws back)
-     and the size off that distance, so it keeps exactly the same size on the
-     glass however far the wheel is spun. */
-  const dist=Math.max(17,camera.near*2.8);
   _gF.set(0,0,-1).applyQuaternion(camera.quaternion);
-  _gU.set(0,1,0).applyQuaternion(camera.quaternion);
-  const halfH=Math.tan(camera.fov*Math.PI/360)*dist;
-  GUIDE.m.position.copy(camera.position)
-    .addScaledVector(_gF,dist)
-    .addScaledVector(_gU,halfH*0.60);          /* clear of the title strip */
-
-  /* ---- which way it turns ----
-     the bearing to the mark, less the bearing the eye is facing */
   const camYaw=Math.atan2(_gF.x,_gF.z);
-  const rel=Math.atan2(dx,dz)-camYaw;
-  GUIDE.m.quaternion.copy(camera.quaternion);
-  GUIDE.m.rotateX(-Math.PI/2+0.34);            /* laid into the glass, tipped for depth */
-  GUIDE.m.rotateY(rel);                        /* and turned to the mark */
+  /* north is toward the midst of the disc, and so is read off where he stands */
+  const rr=Math.hypot(p.x,p.z)||1e-9;
 
+  const x=cmpCx;
+  x.clearRect(0,0,S,S);
+  x.save(); x.translate(R,R);
+  x.save(); x.rotate(camYaw-Math.atan2(-p.x/rr,-p.z/rr)); x.drawImage(ROSE,-R,-R); x.restore();
+
+  const tgt=guideTarget();
   const col=GUIDE.mode==='ship'?GUIDE_BLUE:GUIDE_GOLD;
-  GUIDE.mat.color.setHex(col); GUIDE.glow.material.color.setHex(col);
-  GUIDE.glow.material.opacity=0.22+0.12*Math.sin(GUIDE.t*2.6);
-  GUIDE.m.scale.setScalar(dist/17*0.053);      /* one size on the glass, always — ~2.5% of the width */
-  GUIDE.m.visible=d>(tgt.ship?70:14);          /* stands down once he is on it */
+  let near=false, txt=null;
+  if(tgt){
+    const dx=tgt.x-p.x, dz=tgt.z-p.z, d=Math.hypot(dx,dz);
+    near=d<=(tgt.ship?70:14);                  /* he is on it, and the needle stands down */
+    const km=Math.round(d/B);
+    txt=near?'HERE':(km>=1000?(km/1000).toFixed(1).replace('.0','')+'k KM':km+' KM');
+    x.save();
+    x.rotate(camYaw-Math.atan2(dx,dz));        /* and the needle is laid on the mark */
+    x.globalAlpha=near?0.4:1;
+    x.shadowColor=col; x.shadowBlur=S*(0.028+0.016*Math.sin(GUIDE.t*2.6));
+    /* Every part of the needle is OUTLINED in the dark of the case. It lies
+       over a star of ivory points, and a gold edge against an ivory edge is
+       no edge at all — the outline cuts it away from the card, so the needle
+       is one unbroken shape however the two happen to lie. */
+    x.lineJoin='round'; x.lineWidth=Math.max(1.2,S*0.009); x.strokeStyle='rgba(4,8,16,.9)';
+    /* the counterweight behind the pivot, so a needle reads as a needle */
+    x.beginPath(); x.moveTo(0,r*0.34); x.lineTo(-r*0.05,0); x.lineTo(r*0.05,0); x.closePath();
+    x.fillStyle='rgba(226,214,180,.34)'; x.fill(); x.stroke();
+    /* the needle itself */
+    x.beginPath(); x.moveTo(0,-r*0.80); x.lineTo(r*0.062,0); x.lineTo(-r*0.062,0); x.closePath();
+    x.fillStyle=col; x.fill(); x.stroke();
+    /* and the lozenge at its head — the pointing end is plain at a glance */
+    x.beginPath(); x.moveTo(0,-r*0.675); x.lineTo(r*0.095,-r*0.545);
+    x.lineTo(0,-r*0.415); x.lineTo(-r*0.095,-r*0.545); x.closePath();
+    x.fillStyle=col; x.fill(); x.stroke();
+    x.restore();
+  }
+  /* the pivot it swings upon */
+  x.beginPath(); x.arc(0,0,r*0.055,0,6.2832); x.fillStyle='#080d18'; x.fill();
+  x.lineWidth=Math.max(1,S*0.008); x.strokeStyle=tgt?col:'rgba(232,198,106,.7)'; x.stroke();
+  /* THE LUBBER MARK — fixed at the head of the case, and never turning with
+     the card: it is STRAIGHT AHEAD. Bring the needle under it, and walk. */
+  x.beginPath(); x.moveTo(0,-r*0.80); x.lineTo(r*0.095,-r*0.995);
+  x.lineTo(-r*0.095,-r*0.995); x.closePath();
+  x.fillStyle='#ffe8a8'; x.fill();
+  x.lineWidth=Math.max(1,S*0.006); x.strokeStyle='rgba(4,8,16,.8)'; x.stroke();
+  /* and how far off the mark lies, counting down as he closes upon it */
+  if(txt){
+    x.font='600 '+Math.round(S*0.066)+'px Georgia,"Times New Roman",serif';
+    x.textAlign='center'; x.textBaseline='middle';
+    const w=x.measureText(txt).width, ty=r*0.54;
+    x.fillStyle='rgba(6,10,20,.88)';
+    x.fillRect(-w/2-S*0.035,ty-S*0.055,w+S*0.07,S*0.11);
+    x.fillStyle=near?'#e8dfc8':col;
+    x.fillText(txt,0,ty);
+  }
+  x.restore();
 }
 function guideLabel(){
-  if(GUIDE.mode==='ship') return '\uD83D\uDD37 Arrow: to the ship';
+  if(GUIDE.mode==='ship') return '\uD83E\uDDED Compass: to the ship';
   const sc=nextScroll();
-  return sc?'\uD83D\uDD36 Arrow: to the scrolls':'\uD83D\uDD36 Arrow: every scroll found';
+  return sc?'\uD83E\uDDED Compass: to the scrolls':'\uD83E\uDDED Compass: every scroll found';
 }
 function updateGuideBtn(){ const b=$('b-guide'); if(!b) return;
   b.textContent=guideLabel(); b.classList.toggle('off',GUIDE.mode==='ship'); }
 function toggleGuide(){
   GUIDE.mode=GUIDE.mode==='ship'?'scroll':'ship';
   updateGuideBtn();
-  if(GUIDE.mode==='ship') toast('The arrow turns blue, and leads you back to your ship.');
+  if(GUIDE.mode==='ship') toast('The needle turns blue, and lies on your ship.');
   else { const sc=nextScroll();
-    toast(sc?'The arrow turns gold, and leads you to '+sc.name+', hidden in '+sc.country+'.'
-            :'The arrow turns gold — but every scroll is gathered, and it has nothing left to point at.'); }
+    toast(sc?'The needle turns gold, and lies on '+sc.name+', hidden in '+sc.country+'.'
+            :'The needle turns gold — but every scroll is gathered, and it has nothing left to lie on.'); }
 }
 
 /* ================= THE SCROLLS IN THE EARTH =================
@@ -5304,11 +5352,11 @@ function takeScroll(sc){
   if(sc.m){ scene.remove(sc.m); sc.m=null; }
   const left=SCROLLS.filter(x=>!x.gone&&!scrollTaken.has(x.id)).length;
   toast(sc.name+' \u2014 '+sc.words+(left
-    ? '  ('+scrollTaken.size+' of '+SCROLLS.filter(x=>!x.gone).length+' scrolls gathered \u2014 the golden arrow points to the next.)'
+    ? '  ('+scrollTaken.size+' of '+SCROLLS.filter(x=>!x.gone).length+' scrolls gathered \u2014 the golden needle lies on the next.)'
     : '  EVERY SCROLL IS GATHERED. The whole of it is open to you.'), sc.book);
   saveState();
 }
-/* the one the golden arrow is for: the nearest that is still hidden */
+/* the one the golden needle is for: the nearest that is still hidden */
 function nextScroll(){
   const p=playerXZ(); let best=null,bd=1e18;
   for(const sc of SCROLLS){ if(sc.gone||scrollTaken.has(sc.id)) continue;
@@ -11347,12 +11395,12 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   playerXZ,localHourAt,setLocalHour,clockFace,dayPartName,DAYPARTS,applyDayPart,
   domeCeilAt,canTouchDome,touchDome,playScene,endScene,SCENES,sceneActive,sceneRise,seenDeeps,BEACHES,SHOALS,ORCA,beachAt,nearestBeach,seabedMetres,orcaState:()=>orcaState,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
-  /* the scrolls and the arrow that leads to them, for the smoke tests */
+  /* the scrolls and the compass that leads to them, for the smoke tests */
   SCROLLS,scrollTaken,nextScroll,takeScroll,nearestScrollProp,toggleGuide,
-  guideMesh:()=>GUIDE.m,
+  guideMesh:()=>cmpCv,             /* it is on the glass now, not in the scene */
   guideInfo:()=>({mode:GUIDE.mode,
     colour:GUIDE.mode==='ship'?'blue':'gold',
-    visible:!!(GUIDE.m&&GUIDE.m.visible),
+    visible:GUIDE.shown,
     aimedAt:(function(){const t=guideTarget(); if(!t) return null;
       const p=playerXZ(); return {km:Math.round(Math.hypot(t.x-p.x,t.z-p.z)/B),ship:!!t.ship};})(),
     taken:[...scrollTaken], left:SCROLLS.filter(x=>!x.gone&&!scrollTaken.has(x.id)).length}),
@@ -11782,7 +11830,7 @@ function frame(){
     for(const b of BARKS){ b.ent=null; b.sp.visible=false; } }
   tradeGuard();
   updateScrolls(p.x,p.z);        /* the scrolls stand in their places */
-  guideTick(dt);                 /* and the arrow leads to the next of them */
+  guideTick(dt);                 /* and the compass needle lies on the next of them */
   cameraTick(dt);
   labelT-=dt; if(labelT<=0){ labelT=0.4; updateLabels(p.x,p.z); placeTick(); }
   miniT-=dt; if(miniT<=0){ miniT=0.5; drawMapInto(minictx,mini.width,false);
