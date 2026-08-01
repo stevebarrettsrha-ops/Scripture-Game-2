@@ -9155,6 +9155,7 @@ function walkTick(dt){
   if(w.climb){ const cm=w.climb; cm.t+=dt; const p=Math.min(1,cm.t/cm.dur);
     const e=p<0.5?2*p*p:1-Math.pow(1-p,2);
     w.x=cm.x0+(cm.x1-cm.x0)*p; w.z=cm.z0+(cm.z1-cm.z0)*p; w.feetY=cm.y0+(cm.y1-cm.y0)*e;
+    w.stepOff=0;                    /* the climb is its own smooth rise — nothing held back */
     walkerG.position.set(w.x,w.feetY,w.z); walkerG.rotation.y=w.heading;
     const pull=Math.max(0,(p-0.55)/0.45);
     u.armL.rotation.x=-2.5+pull*2.0; u.armR.rotation.x=u.armL.rotation.x;
@@ -9319,6 +9320,7 @@ function walkTick(dt){
       w.climb={t:0,dur:0.8, x0:w.x,z0:w.z,y0:w.feetY,
         x1:nx+Math.sin(w.heading)*B*0.6, z1:nz+Math.cos(w.heading)*B*0.6, y1:tg.y};
   }
+  const _fy0=w.feetY;                    /* the height he stood at before the step */
   if(canGo){ state.dist+=Math.hypot(nx-w.x,nz-w.z); w.x=nx; w.z=nz;
     /* snap small steps — but NEVER onto open water. groundInfo hands back a
        FLAT WATER_Y-2.2 for every wave in the sea, so this line was pinning
@@ -9328,6 +9330,30 @@ function walkTick(dt){
        water his buoyancy rules; snapping resumes the moment he touches land
        (so he may still haul out onto the strand). */
     if(w.grounded && (!swimming||tg.land) && diff>=-B*3 && diff<=(swimming?JUMPH+3:STEP)) w.feetY=tg.y; }
+  /* ---- AND THE STEP IS NOT A JOLT ----
+     The ground of this world is cut in whole blocks, so the height under a
+     traveller's feet does not RISE as he walks — it JUMPS, seven units at a
+     stride going up and as much as three blocks going down. His feet were
+     set straight onto it and his body drawn there the same frame; and the
+     eye, which takes its height from the body, was thrown up and down the
+     face of every rock and every mountain skirt he walked beside. That is
+     the shaking, and it was never a collision at all — only the ground
+     arriving all at once.
+
+     Nothing of the walking is changed: his feet still stand exactly where
+     the rock puts them, and every test of what bars the way, what may be
+     stepped up, jumped or climbed, is the same. What is changed is the
+     DRAWING of him. The height he was lifted or dropped by is held back as
+     an offset and paid off over about a tenth of a second, so the body
+     rides up a step instead of being snapped up it. A fall is not touched —
+     this is only ever a step taken while he is on his feet. */
+  { const rise=w.feetY-_fy0;
+    if(rise!==0&&w.grounded&&!swimming&&Math.abs(rise)<=B*3.2){
+      const cap=B*3.2;
+      w.stepOff=(w.stepOff||0)+rise;
+      w.stepOff=w.stepOff>cap?cap:w.stepOff<-cap?-cap:w.stepOff; } }
+  w.stepOff=(w.stepOff||0)*Math.max(0,1-dt*13);
+  if(Math.abs(w.stepOff)<0.02) w.stepOff=0;
   walkerG.position.set(w.x,w.feetY,w.z); walkerG.rotation.y=w.heading;
   /* ---- animation ---- */
   const moving=Math.abs(sp)>0.5;
@@ -9417,6 +9443,11 @@ function walkTick(dt){
     if(u.armL.userData.elbow) u.armL.userData.elbow.rotation.x=-0.5;
     if(u.armR.userData.elbow) u.armR.userData.elbow.rotation.x=-0.5;
   } else { u.legL.rotation.z=0; u.legR.rotation.z=0; }
+  /* the held-back height is paid out of the DRAWING, last of all and over
+     every pose above — the body and the beast under it ride the step up
+     together, and the eye behind them rides it with them */
+  if(w.stepOff){ walkerG.position.y-=w.stepOff;
+    if(state.mount&&state.mount.m) state.mount.m.position.y-=w.stepOff; }
 }
 /* ================= FLIGHT — LEVITATION ABOVE THE CLOUDS =================
    The traveller is borne up off the deck or the shore into the open air.
@@ -9953,8 +9984,13 @@ function setMode(m){
      next flight sank of itself on a phantom press */
   flyPad=0;
   state.mode=m;
+  /* the eye's boom opens again with the new mode. Carried over, a pull-in
+     earned against a cliff ashore would hold the eye jammed against the
+     traveller's back for the first half-second of the next thing he did. */
+  camClear=1; camFloor=-1e9;
   if(m==='fly') ensureFlyDome();                      /* the vault stands even for a voyage restored aloft */
-  if(m==='walk') state.walk.climb=null;               /* a climb interrupted elsewhere must not resume here */
+  if(m==='walk'){ state.walk.climb=null;              /* a climb interrupted elsewhere must not resume here */
+    state.walk.stepOff=0; }                           /* nor a step half-paid from a shore he has left */
   if(m!=='fly'&&m!=='dive'){ walkerG.rotation.x=0; walkerG.rotation.z=0; }   /* clear the flight/swim lean and heel */
   if(m==='walk'||m==='fly'||m==='dive'){              /* a free body in the world, not aboard */
     if(walkerG.parent!==scene){ if(walkerG.parent) walkerG.parent.remove(walkerG); scene.add(walkerG); }
@@ -10176,6 +10212,19 @@ function exitFirm(){ state.firm=false; if(firmG) firmG.visible=false;
 /* ================= CAMERA ================= */
 const camTgt=new THREE.Vector3(), camPos=new THREE.Vector3(), _wv=new THREE.Vector3();
 let camInside=false;
+/* how much of the boom stands clear of the world — carried between frames and
+   eased, so the eye is never yanked in and out from one frame to the next */
+let camClear=1;
+/* and the ground under the eye, rate-limited. The ground of this world is cut
+   in whole blocks, so the top beneath the camera does not rise as it travels
+   — it JUMPS six units at a column's edge, and clamping the eye straight onto
+   it threw the eye up the whole six in a single frame. That was the largest
+   jolt of all of them, larger than the step under the traveller's own feet.
+   The floor is let up at a PACE instead — quick enough to stay ahead of a
+   walking man, who crosses a column every third of a second — and let down
+   more gently still, so a ridge passing under the eye lifts it and sets it
+   down rather than kicking it. */
+let camFloor=-1e9;
 function setCamInside(on){ if(on===camInside) return; camInside=on;
   camera.near=on?0.3:1; camera.updateProjectionMatrix();
   if(on){ if(state.mode==='walk'||state.mode==='deck') walkerG.visible=false; } /* hide the body in first-person */
@@ -10289,12 +10338,6 @@ function cameraTick(dt){
       dist*=0.82;
     }
   }
-  /* far out, a near plane of one unit against a 384,000-unit far plane leaves
-     the depth buffer nothing to work with and the world z-fights — open it
-     with the distance */
-  if(!camInside){ const wantNear=Math.max(1,Math.min(600,dist*0.02));
-    if(Math.abs(camera.near-wantNear)>Math.max(0.5,camera.near*0.15)){
-      camera.near=wantNear; camera.updateProjectionMatrix(); } }
   /* swimming, the eye rides low along the waterline. The swell rolls over it
      and off again without the world being repainted in water-light: a crest
      passing the lens is not the same thing as going under (see eyeUnderwater). */
@@ -10333,12 +10376,6 @@ function cameraTick(dt){
     const floor=Math.max(seabedDepth(camPos.x,camPos.z), lc?lc.h*B:-1e9)+4.0;
     if(camPos.y<floor) camPos.y=floor;
   }
-  camera.position.lerp(camPos,Math.min(1,dt*5));
-  if(state.mode==='dive'||swimCam){ const cp=camera.position;
-    const lc=landAtWorld(cp.x,cp.z);
-    const floor=Math.max(seabedDepth(cp.x,cp.z), lc?lc.h*B:-1e9)+3.0;
-    if(cp.y<floor) cp.y=floor;
-  }
   /* ---- NOTHING STANDS BETWEEN THE EYE AND THE TRAVELLER, ON LAND OR IN
      THE AIR EITHER ----
      The dive already walked the line from the diver to the eye; ashore and
@@ -10347,30 +10384,110 @@ function cameraTick(dt){
      whole screen went mountain. The same line-walk runs everywhere now,
      against the ground AND the standing masonry of the landmarks: the eye
      is drawn in along the sight-line just short of the first thing that
-     would block it, and it never sits inside anything. */
-  else { const cp=camera.position;
+     would block it, and it never sits inside anything.
+
+     ---- AND IT RANG LIKE A BELL, WHICH IT NO LONGER DOES ----
+     Three faults stood in this, and every one of them showed as shaking:
+
+       IT WAS LAID ON AFTER THE FOLLOW. The pull-in was applied to the
+       camera once the ease had already moved it, and the sight-line was
+       cast out to WHERE THE CAMERA HAD GOT TO. So the eye pulled itself in,
+       the next frame's ease pushed it back out toward the seat it wanted,
+       and that longer line found a different answer and pulled it in again
+       — a loop that could not settle for as long as you stood by the rock.
+       The line is now cast to the eye's true SEAT, which does not move
+       under it, the share is applied to the SEAT, and the follow eases
+       ONCE, at the end. There is nothing left to ring against.
+
+       IT STOOD ON RUNGS. The walk took the last CLEAR sample of fourteen
+       and sat there, so the boom could only ever be one of fourteen
+       lengths. A step sideways that moved the blocking sample by a single
+       rung moved the eye by a fourteenth of the whole zoom IN ONE FRAME.
+       That is the shimmer. The face of the stone is now found between the
+       rungs by halving, and the length of the boom is a smooth thing.
+
+       AND IT COULD NOT COME IN. The floor on the pull-in was a THIRD OF
+       THE ZOOM, so drawn well back the eye could not come nearer than a
+       hundred units however close the mountain was — and simply sat inside
+       the thing it was meant to be kept out of. The floor is measured in
+       UNITS now, off the traveller's own shoulder. */
+  /* (the deep keeps its own law, above — and the boom is handed back whole
+     while he is under, so it is not still half drawn-in when he comes out) */
+  if(state.mode==='dive'||swimCam) camClear=1;
+  else {
     const ox=px, oy=baseY+9, oz=pz;
-    let clear=1;
+    const blocked=(sx,sy,sz)=>{ const lc4=landAtWorld(sx,sz);
+      return sy<(lc4?lc4.h*B:WATER_Y)+2.0||!!landmarkSolidAt(sx,sz,sy-1.2,sy+1.2); };
+    let want=1;
     /* (skipped once the map-fade owns the pitch — the near-overhead eye of
        the whole-earth band crosses no ridge, and the walk only wobbled it) */
-    if(zf<0.02)
-    for(let k2=1;k2<=14;k2++){ const f3=k2/14;
-      const sx=ox+(cp.x-ox)*f3, sy=oy+(cp.y-oy)*f3, sz=oz+(cp.z-oz)*f3;
-      const lc4=landAtWorld(sx,sz);
-      if(sy<(lc4?lc4.h*B:WATER_Y)+2.0||landmarkSolidAt(sx,sz,sy-1.2,sy+1.2)){
-        /* softened with the eye's own distance: the first blocked sample
-           used to slam the eye to a tenth of a long zoom — inside the body */
-        clear=Math.max(Math.min(0.35,120/Math.max(dist,120)),(k2-1)/14); break; } }
-    if(clear<1){ cp.x=ox+(cp.x-ox)*clear; cp.y=oy+(cp.y-oy)*clear; cp.z=oz+(cp.z-oz)*clear; }
+    if(zf<0.02){
+      const N=18, dx4=camPos.x-ox, dy4=camPos.y-oy, dz4=camPos.z-oz;
+      for(let k2=1;k2<=N;k2++){ const f3=k2/N;
+        if(!blocked(ox+dx4*f3,oy+dy4*f3,oz+dz4*f3)) continue;
+        let lo=(k2-1)/N, hi=f3;                    /* the face lies between these two */
+        for(let b2=0;b2<6;b2++){ const mid=(lo+hi)*0.5;
+          if(blocked(ox+dx4*mid,oy+dy4*mid,oz+dz4*mid)) hi=mid; else lo=mid; }
+        want=lo; break; }
+      if(want<1){
+        /* a hand's breadth short of the stone — and never in past the
+           traveller's own shoulder (the ship being a far larger body than a
+           man, the eye keeps further off her) */
+        const minD=state.mode==='boat'?34:state.mode==='deck'?14:9;
+        want=Math.max(Math.min(0.92,minD/Math.max(dist,minD)),want-0.015); }
+    }
+    /* eased, and never snapped: QUICKLY IN, so no stone ever crosses the
+       lens, and SLOWLY OUT, so the view opens again without a lurch */
+    camClear+=(want-camClear)*Math.min(1,dt*(want<camClear?16:2.6));
+    camClear=camClear>1?1:camClear<0.02?0.02:camClear;
+    if(camClear<0.999){
+      camPos.x=ox+(camPos.x-ox)*camClear;
+      camPos.y=oy+(camPos.y-oy)*camClear;
+      camPos.z=oz+(camPos.z-oz)*camClear; }
     /* and the pitch being free to look UP, the ground itself is its floor:
-       the eye settles just over the grass, the planks or the water */
-    let floor=solidTopAt(cp.x,cp.z,cp.y+0.5)+1.6;
+       the eye settles just over the grass, the planks or the water — let up
+       and down at a pace, never snapped (see camFloor). A gap too wide to be
+       a step at all — a landfall, a mode change, the eye swung right round —
+       is taken whole, since a slow climb through a hillside is worse than
+       one honest jump. */
+    const fWant=solidTopAt(camPos.x,camPos.z,camPos.y+0.5)+1.6;
+    if(camFloor<-1e8||Math.abs(fWant-camFloor)>14) camFloor=fWant;
+    else camFloor+=fWant>camFloor?Math.min(fWant-camFloor,48*dt)
+                                 :Math.max(fWant-camFloor,-24*dt);
+    let floor=camFloor;
     if(state.mode==='deck') floor=Math.max(floor,baseY+0.8);   /* never under the planks */
-    if(cp.y<floor) cp.y=floor;
+    if(camPos.y<floor) camPos.y=floor;
     /* nor within the hull, when the eye comes down at the ship's side */
-    if((state.mode==='boat'||state.mode==='deck')&&camInsideShip(cp.x,cp.y,cp.z))
-      cp.y=Math.max(cp.y,boatG.position.y+SD.qdeckY+3.0);
+    if((state.mode==='boat'||state.mode==='deck')&&camInsideShip(camPos.x,camPos.y,camPos.z))
+      camPos.y=Math.max(camPos.y,boatG.position.y+SD.qdeckY+3.0);
   }
+  /* far out, a near plane of one unit against a 384,000-unit far plane leaves
+     the depth buffer nothing to work with and the world z-fights — open it
+     with the distance. But with the distance the eye TRULY sits at, now that
+     it has been drawn in: reckoned off the full length of the boom, a near
+     plane six units out cut clean through the face of the very rock the eye
+     had just been pulled in against, and the world was seen through the
+     stone. That is the other half of the shimmer. */
+  if(!camInside){
+    const wantNear=Math.max(1,Math.min(600,
+      Math.hypot(camPos.x-px,camPos.y-baseY,camPos.z-pz)*0.02));
+    if(Math.abs(camera.near-wantNear)>Math.max(0.5,camera.near*0.15)){
+      camera.near=wantNear; camera.updateProjectionMatrix(); } }
+  camera.position.lerp(camPos,Math.min(1,dt*5));
+  if(state.mode==='dive'||swimCam){ const cp=camera.position;
+    const lc=landAtWorld(cp.x,cp.z);
+    const floor=Math.max(seabedDepth(cp.x,cp.z), lc?lc.h*B:-1e9)+3.0;
+    if(cp.y<floor) cp.y=floor;
+  }
+  /* a last one-sided catch, so a floor that rises under the ease is never
+     walked through. It is set against the PACED floor and not the true one:
+     against the true one it was itself the worst snapper in the whole camera
+     — it fired exactly when the ground jumped a block, and threw the eye up
+     the block in one frame. Against the paced floor it can only ever lift the
+     eye by what the pace allows, and it never presses down, so it cannot ring
+     against the follow either. */
+  else { const cp=camera.position;
+    if(cp.y<camFloor-0.4) cp.y=camFloor-0.4; }
   /* the eye stays WITHIN the firmament — never through the glass, whatever
      the pitch: pressed back inside the tent-vault's skin. (Drawn right back
      to behold the whole earth, the eye stands outside the vault of set
@@ -11397,6 +11514,9 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   /* the scrolls and the compass that leads to them, for the smoke tests */
   SCROLLS,scrollTaken,nextScroll,takeScroll,nearestScrollProp,toggleGuide,
+  /* the eye's boom and its near plane, for the smoke tests — the shaking
+     beside a rock was read off these two */
+  camInfo:()=>({clear:camClear, near:camera.near, stepOff:state.walk.stepOff||0}),
   guideMesh:()=>cmpCv,             /* it is on the glass now, not in the scene */
   guideInfo:()=>({mode:GUIDE.mode,
     colour:GUIDE.mode==='ship'?'blue':'gold',
