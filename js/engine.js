@@ -10451,9 +10451,20 @@ function cameraTick(dt){
        is taken whole, since a slow climb through a hillside is worse than
        one honest jump. */
     const fWant=solidTopAt(camPos.x,camPos.z,camPos.y+0.5)+1.6;
-    if(camFloor<-1e8||Math.abs(fWant-camFloor)>14) camFloor=fWant;
-    else camFloor+=fWant>camFloor?Math.min(fWant-camFloor,48*dt)
-                                 :Math.max(fWant-camFloor,-24*dt);
+    /* ONLY THE RISE IS PACED. Ground falling away beneath the eye cannot
+       kick it — the floor simply stops holding it, and the follow-ease
+       carries it down. Pacing the fall as well was worse than useless: off
+       the shoulder of a mountain the floor lagged the true ground by
+       hundreds of units, held the eye up in the air behind a falling man,
+       and then dropped it the whole way at once when the gap grew too wide
+       to be a step. (Measured: a 453-unit kick in a single frame, where the
+       thing it was meant to cure was six.) So it falls freely, and climbs
+       at a pace — quick enough to stay ahead of a walking man, who crosses
+       a column every third of a second, and quicker still when the gap is
+       no mere step at all, so a landfall on a mountainside is not spent
+       climbing out of the hill. */
+    if(camFloor<-1e8||fWant<camFloor) camFloor=fWant;
+    else camFloor+=Math.min(fWant-camFloor,Math.max(48*dt,(fWant-camFloor)*0.30));
     let floor=camFloor;
     if(state.mode==='deck') floor=Math.max(floor,baseY+0.8);   /* never under the planks */
     if(camPos.y<floor) camPos.y=floor;
