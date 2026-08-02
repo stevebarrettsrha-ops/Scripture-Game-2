@@ -10709,6 +10709,21 @@ function cameraTick(dt){
         const minD=(kindHit>=2)?3.4:(state.mode==='boat'?34:state.mode==='deck'?14:9);
         const back=(kindHit>=2)?1.0/Math.max(dist,1):0.015;
         want=Math.max(Math.min(0.92,minD/Math.max(dist,minD)),want-back); }
+      /* ---- AND THE EYE'S OWN COLUMN STANDS CLEAR OF THE HOMES ----
+         A house on a terrace can win the sight-line walk as GROUND (the
+         terrace at its foot blocks first), which kept the terrain's wider
+         shoulder floor — parking the eye's column inside the wall band,
+         where the camera-floor then walked it up onto the roof and the
+         whole frame was rafters. The boom is drawn in, a step at a time,
+         until the column stands off every house footprint; the traveller
+         himself stays in the frame, in front of his own wall. */
+      if(want<1){
+        const runXZ=Math.max(1,Math.sqrt(dx4*dx4+dz4*dz4));
+        for(let g2=0;g2<10&&want>0.021;g2++){
+          const ht=houseTopAt(ox+dx4*want,oz+dz4*want);
+          if(ht<=-1e8||oy+dy4*want>ht+1.2) break;   /* clear ground, or clear OVER the ridge */
+          want=Math.max(0.02,want-1.6/runXZ); }
+      }
     }
     /* eased, and never snapped: QUICKLY IN, so no stone ever crosses the
        lens, and SLOWLY OUT, so the view opens again without a lurch */
