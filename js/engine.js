@@ -10702,9 +10702,13 @@ function cameraTick(dt){
            at the traveller's back is not a hillside: held at the shoulder
            floor the eye sat inside the thing and was hoisted onto its roof,
            and the whole frame was rafters. Against a standing structure the
-           eye comes in as near as it must, and the traveller stays in it. */
+           eye comes in as near as it must, and the traveller stays in it —
+           and its step back from the face is a HAND'S BREADTH IN UNITS, not
+           a share of the whole boom (a share re-entered the wall band from
+           any distance, and the floor hoisted the eye onto the roof anyway). */
         const minD=(kindHit>=2)?3.4:(state.mode==='boat'?34:state.mode==='deck'?14:9);
-        want=Math.max(Math.min(0.92,minD/Math.max(dist,minD)),want-0.015); }
+        const back=(kindHit>=2)?1.0/Math.max(dist,1):0.015;
+        want=Math.max(Math.min(0.92,minD/Math.max(dist,minD)),want-back); }
     }
     /* eased, and never snapped: QUICKLY IN, so no stone ever crosses the
        lens, and SLOWLY OUT, so the view opens again without a lurch */
