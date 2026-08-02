@@ -3104,6 +3104,39 @@ function hidePod(){ for(const m of POD) m.visible=false; }
 /* ================= THE TRAVELLER (steve-fashion) ================= */
 function lam(col){ return new THREE.MeshLambertMaterial({color:col}); }
 function lbox(w,h,d,col){ return new THREE.Mesh(new THREE.BoxGeometry(w,h,d),lam(col)); }
+/* ---- AND WHAT IS TAKEN OUT OF THE WORLD IS GIVEN BACK ----
+   Taking a thing out of the scene does not free it. Its geometry and its
+   materials belong to the CARD, uploaded there, and they are held until they
+   are told to let go. And every beast, bird, nest and young thing in this
+   world is built fresh out of lbox — a new BoxGeometry AND a new material
+   for every limb of it — while the slots re-home continually as the
+   traveller moves. So what was merely removed piled up, unseen, for the
+   whole of a voyage: four thousand geometries at the outset and sixty-one
+   thousand after two dozen landfalls, with the scene itself no bigger than
+   it began. That is a world that grows heavier the longer it is played in.
+
+   The TEXTURES are not ours to free. Every one of these things wraps a
+   texture the whole world shares — the wool of the flocks, the one glow
+   behind every lamp and pearl and firefly in the earth — in a material of
+   its own. The material is ours to give back; the map beneath it is not,
+   and disposing that would strip the world bare. Nor are the terrain and
+   billboard materials ours: those tables are held out of the way. */
+let _shMats=null, _shN=-1;
+function sharedMats(){
+  const n=Object.keys(MAT).length+Object.keys(ENTMAT).length;
+  if(_shMats&&_shN===n) return _shMats;      /* rebuilt only when a new one is registered */
+  _shN=n; _shMats=new Set(Object.values(MAT).concat(Object.values(ENTMAT)));
+  return _shMats;
+}
+function freeTree(o){
+  if(!o) return;
+  const keep=sharedMats();
+  o.traverse(n=>{
+    if(n.geometry) n.geometry.dispose();
+    const m=n.material; if(!m) return;
+    for(const mm of (Array.isArray(m)?m:[m])) if(mm&&!keep.has(mm)) mm.dispose();
+  });
+}
 
 /* ================= THE LIVING THINGS, ONE TO A FILE =================
    Every beast has its own file in creatures/, and declares there the one
@@ -4502,7 +4535,7 @@ function updateDolphins(px,py,pz,dt,t){ initDolphins();
       let da=want-d.dir; while(da>Math.PI)da-=2*Math.PI; while(da<-Math.PI)da+=2*Math.PI;
       d.dir+=da*Math.min(1,dt*2.4);
       sp=Math.min(52,Math.abs(state.boat.speed)+14);
-    } else d.dir+=Math.sin(t*0.4+d.ph)*0.05;
+    } else d.dir+=Math.sin(t*0.4+d.ph)*0.05*dt*60;
     { const nx=d.x+Math.cos(d.dir)*sp*dt, nz=d.z+Math.sin(d.dir)*sp*dt;
       if(!landAtWorld(nx+Math.cos(d.dir)*10,nz+Math.sin(d.dir)*10)&&!landAtWorld(nx,nz)){ d.x=nx; d.z=nz; }
       else d.dir+=1.8; }
@@ -4602,7 +4635,7 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
         else s.feedT=8+Math.random()*10;
       }
     }
-    if(!hunting) s.dir+=Math.sin(t*0.25+s.ph)*0.03;
+    if(!hunting) s.dir+=Math.sin(t*0.25+s.ph)*0.03*dt*60;
     { const nx=s.x+Math.cos(s.dir)*sp*dt, nz=s.z+Math.sin(s.dir)*sp*dt;
       const nsx=nx+Math.cos(s.dir)*16, nsz=nz+Math.sin(s.dir)*16;   /* the nose leads */
       if(!landAtWorld(nx,nz)&&!landAtWorld(nsx,nsz)){ s.x=nx; s.z=nz; } else s.dir+=1.9; }   /* no shark swims through stone */
@@ -4671,7 +4704,7 @@ function updateSeaMob(arr,px,py,pz,dt,t){
        when it is resting, denned, hovering or lying up */
     let spF=drowsy?0.4:1;
     if(o.act==='logging'||o.act==='den'||o.act==='hover'||o.act==='lure'||o.act==='bask') spF*=0.15;
-    o.dir+=Math.sin(t*0.3+o.ph)*0.03;
+    o.dir+=Math.sin(t*0.3+o.ph)*0.03*dt*60;
     /* ---- THE NOSE TURNS THE BEAST, NOT THE NAVEL ----
        Only the centre point was ever tested against the land, so a beast
        half a ship long carried her whole head through the face of a cliff
@@ -4801,7 +4834,7 @@ function updateAnglers(px,py,pz,dt,t){ initAnglers();
       a.dir=Math.random()*6.28; a.set=true; a.m.visible=true; a.gs.visible=true; }
     /* she does not chase: she hangs almost still and waits, and the lamp
        breathes. That is the whole of her hunting. */
-    a.dir+=Math.sin(t*0.21+a.ph)*0.02;
+    a.dir+=Math.sin(t*0.21+a.ph)*0.02*dt*60;
     a.x+=Math.cos(a.dir)*2.2*dt; a.z+=Math.sin(a.dir)*2.2*dt;
     a.y+=Math.sin(t*0.5+a.ph)*1.6*dt;
     const fy=seabedDepth(a.x,a.z);
@@ -4911,7 +4944,7 @@ function updateBedLife(px,pz,dt,t){ initBedLife();
           b.m.position.set(x,fy+0.2,z); b.m.rotation.y=Math.random()*6.28; b.m.visible=true; break; } }
       if(!b.set){ b.m.visible=false; continue; } }
     if(b.kind==='lobster'){                       /* the lobster alone goes anywhere */
-      b.dir+=Math.sin(t*0.5+b.ph)*0.05;
+      b.dir+=Math.sin(t*0.5+b.ph)*0.05*dt*60;
       const nx=b.x+Math.cos(b.dir)*1.2*dt, nz=b.z+Math.sin(b.dir)*1.2*dt;
       if(!landAtWorld(nx,nz)){ b.x=nx; b.z=nz; }
       b.m.position.set(b.x,seabedDepth(b.x,b.z)+0.2,b.z);
@@ -4989,7 +5022,7 @@ function updateDeepLife(px,py,pz,dt,t){ initDeepLife();
       o.dir=Math.random()*6.28; o.set=true; o.m.visible=true; if(o.gsp)o.gsp.visible=true; }
     /* its way of going */
     if(!K.still){
-      o.dir+=Math.sin(t*0.23+o.ph)*0.03;
+      o.dir+=Math.sin(t*0.23+o.ph)*0.03*dt*60;
       let sp=K.spd||2;
       /* ---- THE HUNT OF THE TITANS ----
          The one predation the abyss is famous for: a sperm whale that has
@@ -5349,7 +5382,7 @@ function nearestScrollProp(){
 function takeScroll(sc){
   if(!sc||scrollTaken.has(sc.id)) return;
   scrollTaken.add(sc.id);
-  if(sc.m){ scene.remove(sc.m); sc.m=null; }
+  if(sc.m){ scene.remove(sc.m); freeTree(sc.m); sc.m=null; }
   const left=SCROLLS.filter(x=>!x.gone&&!scrollTaken.has(x.id)).length;
   toast(sc.name+' \u2014 '+sc.words+(left
     ? '  ('+scrollTaken.size+' of '+SCROLLS.filter(x=>!x.gone).length+' scrolls gathered \u2014 the golden needle lies on the next.)'
@@ -5857,7 +5890,7 @@ function grassProbe(x,z){ const c=landAtWorld(x,z);
   return {kind:c.kind, wild:nearSettled(x,z)?0.34:1}; }
 /* give a mother her young, or take them away again */
 function setYoung(a,want){
-  if(a.kids) for(const y of a.kids) scene.remove(y.m);
+  if(a.kids) for(const y of a.kids){ scene.remove(y.m); freeTree(y.m); }
   a.kids=null;
   if(!want||!window.BABY) return;
   const Y=BABY.youngOf(a.kind); if(!Y) return;
@@ -5925,7 +5958,7 @@ function makeBloom(){ const g=new THREE.Group(), n=5+Math.floor(Math.random()*6)
   return g; }
 const BLOOMS=[], BLOOMS_N=70, BLOOMS_R=420;
 function initBlooms(){ if(BLOOMS.length) return; for(let k=0;k<BLOOMS_N;k++){ const m=makeBloom(); m.visible=false; scene.add(m); BLOOMS.push({m,x:0,z:0,set:false}); } }
-function updateBlooms(px,pz){ initBlooms(); const doy=dayOfYear();
+function updateBlooms(px,pz,dt){ initBlooms(); const doy=dayOfYear();
   for(const b of BLOOMS){
     if(!b.set||Math.hypot(b.x-px,b.z-pz)>BLOOMS_R+80){ b.set=false;
       /* set it down on true grassland — never sand, rock, snow or the sea.
@@ -5939,7 +5972,10 @@ function updateBlooms(px,pz){ initBlooms(); const doy=dayOfYear();
        as it wanes (js/season.js reckons the bloom for this latitude and day) */
     const latN=1-Math.hypot(b.x,b.z)/R_WORLD*2;
     const bloom=window.SEASON?SEASON.bloomFactor(latN,doy):0.4;
-    b.age=Math.min(1,(b.age===undefined?1:b.age)+0.016);   /* the sprout ramp — up in ~1s */
+    /* the sprout ramp — one second, reckoned in SECONDS. Counted per frame
+       it grew in a third of the time on a fast screen and three times over
+       on a slow one. */
+    b.age=Math.min(1,(b.age===undefined?1:b.age)+dt);
     if(bloom>0.08){ b.m.visible=true; b.m.scale.setScalar((0.45+0.55*bloom)*(0.15+0.85*b.age)); }
     else b.m.visible=false;
   } }
@@ -5957,7 +5993,8 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       /* the ground named no beast — a bare glacier, a crest above the life
          line. It stays bare; the slot tries elsewhere next tick. */
       if(!kind){ if(a.m)a.m.visible=false; hideYoung(a); a.set=false; continue; }
-      if(a.kind!==kind){ if(a.m) scene.remove(a.m); a.m=makeAnimal(kind); scene.add(a.m); a.kind=kind; }
+      if(a.kind!==kind){ if(a.m){ scene.remove(a.m); freeTree(a.m); }   /* the old beast is given back */
+        a.m=makeAnimal(kind); scene.add(a.m); a.kind=kind; }
       a.hx=sp.x; a.hz=sp.z; a.x=sp.x; a.z=sp.z; a.tx=sp.x; a.tz=sp.z; a.t=Math.random()*3; a.set=true;
       a.role=WILD_ROLE[kind]||'graze'; a.job='roam'; a.jt=Math.random()*3; a.prey=null; a.cool=0;
       a.dead=0; a.den=null; a.act=null; a.burst=0; a.fear=0; a.panicT=0; a.ph=Math.random()*6.283;
@@ -6425,7 +6462,7 @@ function updateRiverLife(px,pz,dt,t){ initRiverLife();
       if(!f.set){ f.m.visible=false; continue; }
     }
     /* it runs the thread of the water and turns back at the bank */
-    f.dir+=Math.sin(t*0.6+f.ph)*0.06;
+    f.dir+=Math.sin(t*0.6+f.ph)*0.06*dt*60;
     const nx=f.x+Math.cos(f.dir)*K.spd*dt, nz=f.z+Math.sin(f.dir)*K.spd*dt;
     if(riverWaterAt(nx,nz)){ f.x=nx; f.z=nz; } else f.dir+=2.1+Math.random()*0.8;
     f.m.position.set(f.x, f.y+Math.sin(t*1.1+f.ph)*0.5, f.z);
@@ -6599,7 +6636,7 @@ function updateNests(px,pz,dt){ initNests();
     if(!slot) break;
     const kindKey=s.site.kind+'|'+s.site.home.form;
     if(slot.kind!==kindKey||!slot.m){
-      if(slot.m) scene.remove(slot.m);
+      if(slot.m){ scene.remove(slot.m); freeTree(slot.m); }   /* nest, chicks and all */
       const built=buildBeastHome(s.site); slot.m=built.g; slot.chicks=built.chicks;
       slot.kind=kindKey; scene.add(slot.m); }
     slot.skey=s.key; slot.species=s.site.kind; slot.bird=s.site.bird;
@@ -6688,7 +6725,8 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
   for(const b of AIRLIFE){
     if(!b.set||Math.hypot(b.x-px,b.z-pz)>AL_R+220){
       const type=airKind(px,pz,night);
-      if(b.type!==type){ if(b.m) scene.remove(b.m); b.m=makeBird(type); scene.add(b.m); b.type=type; }
+      if(b.type!==type){ if(b.m){ scene.remove(b.m); freeTree(b.m); }   /* and the old fowl with it */
+        b.m=makeBird(type); scene.add(b.m); b.type=type; }
       const a=Math.random()*6.28,
         r=type==='butterfly'?60+Math.random()*240:430+Math.random()*770;
       b.x=px+Math.cos(a)*r; b.z=pz+Math.sin(a)*r;
@@ -8698,7 +8736,14 @@ function updateLabels(px,pz){
       sp.material.opacity=op*0.95; const sc=Math.max(200,Math.min(900,d*0.16));
       sp.scale.set(sc,sc/6,1); }
   }
-  if(yahruPos&&namesOn&&!under){ if(!shownLabels.has(-1)){ const sp=makeLabel('Yahrushalayim',true);
+  /* the holy city's name is CACHED like every other, in labelCache under -1.
+     It alone was built fresh each time it was wanted — and it is wanted again
+     every time the names are turned off and on, and every time the traveller
+     goes under the sea and comes up — so each of those left a whole canvas
+     texture behind it on the card, for ever. */
+  if(yahruPos&&namesOn&&!under){ if(!shownLabels.has(-1)){
+      let sp=labelCache.get(-1);
+      if(!sp){ sp=makeLabel('Yahrushalayim',true); labelCache.set(-1,sp); }
       sp.position.set(yahruPos.x,topY(yahruPos.ix,yahruPos.iz)+120,yahruPos.z);
       scene.add(sp); shownLabels.set(-1,sp); } }
   else if(shownLabels.has(-1)&&(!namesOn||under)){ scene.remove(shownLabels.get(-1)); shownLabels.delete(-1); }
@@ -9028,7 +9073,7 @@ function dismount(quiet){
   const M=state.mount; if(!M) return; state.mount=null;
   /* the beast goes back to the wild — a free slot, standing where you left it */
   for(const a of LANDLIFE){ if(a.set) continue;
-    if(a.m) scene.remove(a.m);
+    if(a.m){ scene.remove(a.m); freeTree(a.m); }   /* the slot's own stale beast */
     /* a free slot may still be HOLDING young from its last life — they were
        only hidden at the reap, and nulling the field bare leaked their
        meshes into the scene for ever. setYoung removes them properly. */
@@ -9040,7 +9085,7 @@ function dismount(quiet){
     a.dead=0; a.den=null; a.act=null; a.burst=0; a.fear=0; a.panicT=0; a.upTree=0;
     a.day='day'; a.river=false; a.ph=Math.random()*6.283;
     a.m.visible=true; M.m=null; break; }
-  if(M.m) scene.remove(M.m);      /* no slot free — it slips away into the world's pocket */
+  if(M.m){ scene.remove(M.m); freeTree(M.m); }   /* no slot free — it slips away, and is given back */
   if(!quiet) toast('You dismount, and the beast falls to grazing.');
 }
 function canSleep(){ if(state.mode!=='walk'||!HOME||worldNight<=0.45) return false;
@@ -9155,6 +9200,7 @@ function walkTick(dt){
   if(w.climb){ const cm=w.climb; cm.t+=dt; const p=Math.min(1,cm.t/cm.dur);
     const e=p<0.5?2*p*p:1-Math.pow(1-p,2);
     w.x=cm.x0+(cm.x1-cm.x0)*p; w.z=cm.z0+(cm.z1-cm.z0)*p; w.feetY=cm.y0+(cm.y1-cm.y0)*e;
+    w.stepOff=0;                    /* the climb is its own smooth rise — nothing held back */
     walkerG.position.set(w.x,w.feetY,w.z); walkerG.rotation.y=w.heading;
     const pull=Math.max(0,(p-0.55)/0.45);
     u.armL.rotation.x=-2.5+pull*2.0; u.armR.rotation.x=u.armL.rotation.x;
@@ -9319,6 +9365,7 @@ function walkTick(dt){
       w.climb={t:0,dur:0.8, x0:w.x,z0:w.z,y0:w.feetY,
         x1:nx+Math.sin(w.heading)*B*0.6, z1:nz+Math.cos(w.heading)*B*0.6, y1:tg.y};
   }
+  const _fy0=w.feetY;                    /* the height he stood at before the step */
   if(canGo){ state.dist+=Math.hypot(nx-w.x,nz-w.z); w.x=nx; w.z=nz;
     /* snap small steps — but NEVER onto open water. groundInfo hands back a
        FLAT WATER_Y-2.2 for every wave in the sea, so this line was pinning
@@ -9328,6 +9375,30 @@ function walkTick(dt){
        water his buoyancy rules; snapping resumes the moment he touches land
        (so he may still haul out onto the strand). */
     if(w.grounded && (!swimming||tg.land) && diff>=-B*3 && diff<=(swimming?JUMPH+3:STEP)) w.feetY=tg.y; }
+  /* ---- AND THE STEP IS NOT A JOLT ----
+     The ground of this world is cut in whole blocks, so the height under a
+     traveller's feet does not RISE as he walks — it JUMPS, seven units at a
+     stride going up and as much as three blocks going down. His feet were
+     set straight onto it and his body drawn there the same frame; and the
+     eye, which takes its height from the body, was thrown up and down the
+     face of every rock and every mountain skirt he walked beside. That is
+     the shaking, and it was never a collision at all — only the ground
+     arriving all at once.
+
+     Nothing of the walking is changed: his feet still stand exactly where
+     the rock puts them, and every test of what bars the way, what may be
+     stepped up, jumped or climbed, is the same. What is changed is the
+     DRAWING of him. The height he was lifted or dropped by is held back as
+     an offset and paid off over about a tenth of a second, so the body
+     rides up a step instead of being snapped up it. A fall is not touched —
+     this is only ever a step taken while he is on his feet. */
+  { const rise=w.feetY-_fy0;
+    if(rise!==0&&w.grounded&&!swimming&&Math.abs(rise)<=B*3.2){
+      const cap=B*3.2;
+      w.stepOff=(w.stepOff||0)+rise;
+      w.stepOff=w.stepOff>cap?cap:w.stepOff<-cap?-cap:w.stepOff; } }
+  w.stepOff=(w.stepOff||0)*Math.max(0,1-dt*13);
+  if(Math.abs(w.stepOff)<0.02) w.stepOff=0;
   walkerG.position.set(w.x,w.feetY,w.z); walkerG.rotation.y=w.heading;
   /* ---- animation ---- */
   const moving=Math.abs(sp)>0.5;
@@ -9417,6 +9488,11 @@ function walkTick(dt){
     if(u.armL.userData.elbow) u.armL.userData.elbow.rotation.x=-0.5;
     if(u.armR.userData.elbow) u.armR.userData.elbow.rotation.x=-0.5;
   } else { u.legL.rotation.z=0; u.legR.rotation.z=0; }
+  /* the held-back height is paid out of the DRAWING, last of all and over
+     every pose above — the body and the beast under it ride the step up
+     together, and the eye behind them rides it with them */
+  if(w.stepOff){ walkerG.position.y-=w.stepOff;
+    if(state.mount&&state.mount.m) state.mount.m.position.y-=w.stepOff; }
 }
 /* ================= FLIGHT — LEVITATION ABOVE THE CLOUDS =================
    The traveller is borne up off the deck or the shore into the open air.
@@ -9953,8 +10029,13 @@ function setMode(m){
      next flight sank of itself on a phantom press */
   flyPad=0;
   state.mode=m;
+  /* the eye's boom opens again with the new mode. Carried over, a pull-in
+     earned against a cliff ashore would hold the eye jammed against the
+     traveller's back for the first half-second of the next thing he did. */
+  camClear=1; camFloor=-1e9;
   if(m==='fly') ensureFlyDome();                      /* the vault stands even for a voyage restored aloft */
-  if(m==='walk') state.walk.climb=null;               /* a climb interrupted elsewhere must not resume here */
+  if(m==='walk'){ state.walk.climb=null;              /* a climb interrupted elsewhere must not resume here */
+    state.walk.stepOff=0; }                           /* nor a step half-paid from a shore he has left */
   if(m!=='fly'&&m!=='dive'){ walkerG.rotation.x=0; walkerG.rotation.z=0; }   /* clear the flight/swim lean and heel */
   if(m==='walk'||m==='fly'||m==='dive'){              /* a free body in the world, not aboard */
     if(walkerG.parent!==scene){ if(walkerG.parent) walkerG.parent.remove(walkerG); scene.add(walkerG); }
@@ -10176,6 +10257,19 @@ function exitFirm(){ state.firm=false; if(firmG) firmG.visible=false;
 /* ================= CAMERA ================= */
 const camTgt=new THREE.Vector3(), camPos=new THREE.Vector3(), _wv=new THREE.Vector3();
 let camInside=false;
+/* how much of the boom stands clear of the world — carried between frames and
+   eased, so the eye is never yanked in and out from one frame to the next */
+let camClear=1;
+/* and the ground under the eye, rate-limited. The ground of this world is cut
+   in whole blocks, so the top beneath the camera does not rise as it travels
+   — it JUMPS six units at a column's edge, and clamping the eye straight onto
+   it threw the eye up the whole six in a single frame. That was the largest
+   jolt of all of them, larger than the step under the traveller's own feet.
+   The floor is let up at a PACE instead — quick enough to stay ahead of a
+   walking man, who crosses a column every third of a second — and let down
+   more gently still, so a ridge passing under the eye lifts it and sets it
+   down rather than kicking it. */
+let camFloor=-1e9;
 function setCamInside(on){ if(on===camInside) return; camInside=on;
   camera.near=on?0.3:1; camera.updateProjectionMatrix();
   if(on){ if(state.mode==='walk'||state.mode==='deck') walkerG.visible=false; } /* hide the body in first-person */
@@ -10289,12 +10383,6 @@ function cameraTick(dt){
       dist*=0.82;
     }
   }
-  /* far out, a near plane of one unit against a 384,000-unit far plane leaves
-     the depth buffer nothing to work with and the world z-fights — open it
-     with the distance */
-  if(!camInside){ const wantNear=Math.max(1,Math.min(600,dist*0.02));
-    if(Math.abs(camera.near-wantNear)>Math.max(0.5,camera.near*0.15)){
-      camera.near=wantNear; camera.updateProjectionMatrix(); } }
   /* swimming, the eye rides low along the waterline. The swell rolls over it
      and off again without the world being repainted in water-light: a crest
      passing the lens is not the same thing as going under (see eyeUnderwater). */
@@ -10333,12 +10421,6 @@ function cameraTick(dt){
     const floor=Math.max(seabedDepth(camPos.x,camPos.z), lc?lc.h*B:-1e9)+4.0;
     if(camPos.y<floor) camPos.y=floor;
   }
-  camera.position.lerp(camPos,Math.min(1,dt*5));
-  if(state.mode==='dive'||swimCam){ const cp=camera.position;
-    const lc=landAtWorld(cp.x,cp.z);
-    const floor=Math.max(seabedDepth(cp.x,cp.z), lc?lc.h*B:-1e9)+3.0;
-    if(cp.y<floor) cp.y=floor;
-  }
   /* ---- NOTHING STANDS BETWEEN THE EYE AND THE TRAVELLER, ON LAND OR IN
      THE AIR EITHER ----
      The dive already walked the line from the diver to the eye; ashore and
@@ -10347,30 +10429,121 @@ function cameraTick(dt){
      whole screen went mountain. The same line-walk runs everywhere now,
      against the ground AND the standing masonry of the landmarks: the eye
      is drawn in along the sight-line just short of the first thing that
-     would block it, and it never sits inside anything. */
-  else { const cp=camera.position;
+     would block it, and it never sits inside anything.
+
+     ---- AND IT RANG LIKE A BELL, WHICH IT NO LONGER DOES ----
+     Three faults stood in this, and every one of them showed as shaking:
+
+       IT WAS LAID ON AFTER THE FOLLOW. The pull-in was applied to the
+       camera once the ease had already moved it, and the sight-line was
+       cast out to WHERE THE CAMERA HAD GOT TO. So the eye pulled itself in,
+       the next frame's ease pushed it back out toward the seat it wanted,
+       and that longer line found a different answer and pulled it in again
+       — a loop that could not settle for as long as you stood by the rock.
+       The line is now cast to the eye's true SEAT, which does not move
+       under it, the share is applied to the SEAT, and the follow eases
+       ONCE, at the end. There is nothing left to ring against.
+
+       IT STOOD ON RUNGS. The walk took the last CLEAR sample of fourteen
+       and sat there, so the boom could only ever be one of fourteen
+       lengths. A step sideways that moved the blocking sample by a single
+       rung moved the eye by a fourteenth of the whole zoom IN ONE FRAME.
+       That is the shimmer. The face of the stone is now found between the
+       rungs by halving, and the length of the boom is a smooth thing.
+
+       AND IT COULD NOT COME IN. The floor on the pull-in was a THIRD OF
+       THE ZOOM, so drawn well back the eye could not come nearer than a
+       hundred units however close the mountain was — and simply sat inside
+       the thing it was meant to be kept out of. The floor is measured in
+       UNITS now, off the traveller's own shoulder. */
+  /* (the deep keeps its own law, above — and the boom is handed back whole
+     while he is under, so it is not still half drawn-in when he comes out) */
+  if(state.mode==='dive'||swimCam) camClear=1;
+  else {
     const ox=px, oy=baseY+9, oz=pz;
-    let clear=1;
+    const blocked=(sx,sy,sz)=>{ const lc4=landAtWorld(sx,sz);
+      return sy<(lc4?lc4.h*B:WATER_Y)+2.0||!!landmarkSolidAt(sx,sz,sy-1.2,sy+1.2); };
+    let want=1;
     /* (skipped once the map-fade owns the pitch — the near-overhead eye of
        the whole-earth band crosses no ridge, and the walk only wobbled it) */
-    if(zf<0.02)
-    for(let k2=1;k2<=14;k2++){ const f3=k2/14;
-      const sx=ox+(cp.x-ox)*f3, sy=oy+(cp.y-oy)*f3, sz=oz+(cp.z-oz)*f3;
-      const lc4=landAtWorld(sx,sz);
-      if(sy<(lc4?lc4.h*B:WATER_Y)+2.0||landmarkSolidAt(sx,sz,sy-1.2,sy+1.2)){
-        /* softened with the eye's own distance: the first blocked sample
-           used to slam the eye to a tenth of a long zoom — inside the body */
-        clear=Math.max(Math.min(0.35,120/Math.max(dist,120)),(k2-1)/14); break; } }
-    if(clear<1){ cp.x=ox+(cp.x-ox)*clear; cp.y=oy+(cp.y-oy)*clear; cp.z=oz+(cp.z-oz)*clear; }
+    if(zf<0.02){
+      const N=18, dx4=camPos.x-ox, dy4=camPos.y-oy, dz4=camPos.z-oz;
+      for(let k2=1;k2<=N;k2++){ const f3=k2/N;
+        if(!blocked(ox+dx4*f3,oy+dy4*f3,oz+dz4*f3)) continue;
+        let lo=(k2-1)/N, hi=f3;                    /* the face lies between these two */
+        for(let b2=0;b2<6;b2++){ const mid=(lo+hi)*0.5;
+          if(blocked(ox+dx4*mid,oy+dy4*mid,oz+dz4*mid)) hi=mid; else lo=mid; }
+        want=lo; break; }
+      if(want<1){
+        /* a hand's breadth short of the stone — and never in past the
+           traveller's own shoulder (the ship being a far larger body than a
+           man, the eye keeps further off her) */
+        const minD=state.mode==='boat'?34:state.mode==='deck'?14:9;
+        want=Math.max(Math.min(0.92,minD/Math.max(dist,minD)),want-0.015); }
+    }
+    /* eased, and never snapped: QUICKLY IN, so no stone ever crosses the
+       lens, and SLOWLY OUT, so the view opens again without a lurch */
+    camClear+=(want-camClear)*Math.min(1,dt*(want<camClear?16:2.6));
+    camClear=camClear>1?1:camClear<0.02?0.02:camClear;
+    if(camClear<0.999){
+      camPos.x=ox+(camPos.x-ox)*camClear;
+      camPos.y=oy+(camPos.y-oy)*camClear;
+      camPos.z=oz+(camPos.z-oz)*camClear; }
     /* and the pitch being free to look UP, the ground itself is its floor:
-       the eye settles just over the grass, the planks or the water */
-    let floor=solidTopAt(cp.x,cp.z,cp.y+0.5)+1.6;
+       the eye settles just over the grass, the planks or the water — let up
+       and down at a pace, never snapped (see camFloor). A gap too wide to be
+       a step at all — a landfall, a mode change, the eye swung right round —
+       is taken whole, since a slow climb through a hillside is worse than
+       one honest jump. */
+    const fWant=solidTopAt(camPos.x,camPos.z,camPos.y+0.5)+1.6;
+    /* ONLY THE RISE IS PACED. Ground falling away beneath the eye cannot
+       kick it — the floor simply stops holding it, and the follow-ease
+       carries it down. Pacing the fall as well was worse than useless: off
+       the shoulder of a mountain the floor lagged the true ground by
+       hundreds of units, held the eye up in the air behind a falling man,
+       and then dropped it the whole way at once when the gap grew too wide
+       to be a step. (Measured: a 453-unit kick in a single frame, where the
+       thing it was meant to cure was six.) So it falls freely, and climbs
+       at a pace — quick enough to stay ahead of a walking man, who crosses
+       a column every third of a second, and quicker still when the gap is
+       no mere step at all, so a landfall on a mountainside is not spent
+       climbing out of the hill. */
+    if(camFloor<-1e8||fWant<camFloor) camFloor=fWant;
+    else camFloor+=Math.min(fWant-camFloor,Math.max(48*dt,(fWant-camFloor)*0.30));
+    let floor=camFloor;
     if(state.mode==='deck') floor=Math.max(floor,baseY+0.8);   /* never under the planks */
-    if(cp.y<floor) cp.y=floor;
+    if(camPos.y<floor) camPos.y=floor;
     /* nor within the hull, when the eye comes down at the ship's side */
-    if((state.mode==='boat'||state.mode==='deck')&&camInsideShip(cp.x,cp.y,cp.z))
-      cp.y=Math.max(cp.y,boatG.position.y+SD.qdeckY+3.0);
+    if((state.mode==='boat'||state.mode==='deck')&&camInsideShip(camPos.x,camPos.y,camPos.z))
+      camPos.y=Math.max(camPos.y,boatG.position.y+SD.qdeckY+3.0);
   }
+  /* far out, a near plane of one unit against a 384,000-unit far plane leaves
+     the depth buffer nothing to work with and the world z-fights — open it
+     with the distance. But with the distance the eye TRULY sits at, now that
+     it has been drawn in: reckoned off the full length of the boom, a near
+     plane six units out cut clean through the face of the very rock the eye
+     had just been pulled in against, and the world was seen through the
+     stone. That is the other half of the shimmer. */
+  if(!camInside){
+    const wantNear=Math.max(1,Math.min(600,
+      Math.hypot(camPos.x-px,camPos.y-baseY,camPos.z-pz)*0.02));
+    if(Math.abs(camera.near-wantNear)>Math.max(0.5,camera.near*0.15)){
+      camera.near=wantNear; camera.updateProjectionMatrix(); } }
+  camera.position.lerp(camPos,Math.min(1,dt*5));
+  if(state.mode==='dive'||swimCam){ const cp=camera.position;
+    const lc=landAtWorld(cp.x,cp.z);
+    const floor=Math.max(seabedDepth(cp.x,cp.z), lc?lc.h*B:-1e9)+3.0;
+    if(cp.y<floor) cp.y=floor;
+  }
+  /* a last one-sided catch, so a floor that rises under the ease is never
+     walked through. It is set against the PACED floor and not the true one:
+     against the true one it was itself the worst snapper in the whole camera
+     — it fired exactly when the ground jumped a block, and threw the eye up
+     the block in one frame. Against the paced floor it can only ever lift the
+     eye by what the pace allows, and it never presses down, so it cannot ring
+     against the follow either. */
+  else { const cp=camera.position;
+    if(cp.y<camFloor-0.4) cp.y=camFloor-0.4; }
   /* the eye stays WITHIN the firmament — never through the glass, whatever
      the pitch: pressed back inside the tent-vault's skin. (Drawn right back
      to behold the whole earth, the eye stands outside the vault of set
@@ -11198,6 +11371,42 @@ async function begin(fresh,roam){
      built by preload() while the loading screen stood — none of it may run
      twice (twice-computed sites double the villages; twice-built ports
      stand two houses in one place) */
+  /* ---- AND ANEW MEANS ANEW ----
+     'Wash it away — begin anew' set the ship's place and the hour, and
+     nothing else. Everything a voyage GATHERS — the silver, the catch, the
+     pearls, the cargo, the lands seen, the miles run, the standing at every
+     market, the scrolls taken up, the wrecks broken open, the pearl beds
+     already stripped, the immortal breath, the repelling of beasts — lives
+     in this module and not in the log, and so it lived straight through the
+     washing. A voyage begun anew after another began with the whole of the
+     old one still in hand, and wrote it back over the log at the next save.
+     Worse: the MODE came through with it, so a traveller who went to the
+     menu from dry land began his new voyage standing in the old land, half
+     a world from his ship.
+
+     (Reloading the page washed it clean, which is the only reason this was
+     ever survivable — and the reason it never showed on a first launch.)
+
+     Everything is emptied here, BEFORE the log is read back, so a continued
+     voyage lays its own record over a clean state and carries nothing of
+     whatever was played before it either. */
+  if(state.mount) dismount(true);
+  state.mode='boat'; state.prevGround='boat'; state.firm=false;
+  state.visited=new Set(); state.dist=0; state.fish=0; state.fishing=null;
+  state.coins=30; state.cargo={}; state.game=0; state.pearls=0; state.rep={};
+  state.breath=1; state.immBreath=false; state.repel=false; state.vf=0;
+  state.windMode='true'; state.speedIdx=0; state.dayIdx=0; state.paused=false;
+  state.simHours=9.5; state.freeroam=false;
+  if(state.net){ state.net=null; if(typeof netG!=='undefined'&&netG) netG.visible=false; }
+  Object.assign(state.walk,{x:0,z:0,heading:0,feetY:undefined,vy:0,grounded:true,
+    stepOff:0,climb:null,inWater:false,spill:0});
+  Object.assign(state.boat,{heading:Math.PI*0.9,speed:0});
+  state.camYaw=0; state.camPitch=0.42; state.camYawVel=0; state.camPitchVel=0;
+  camClear=1; camFloor=-1e9;
+  scrollTaken.clear(); pearlTaken.clear(); wreckLooted.clear();
+  GUIDE.mode='scroll';
+  if(window.SEASON&&SEASON.clear) SEASON.clear();
+
   const saved=fresh?null:await loadSaved();
   if(saved){ state.boat.x=saved.x; state.boat.z=saved.z; state.boat.heading=saved.h; state.simHours=saved.t;
     if(saved.v>=3&&saved.m==='walk'){ state.walk.x=saved.wx; state.walk.z=saved.wz;
@@ -11235,7 +11444,14 @@ async function begin(fresh,roam){
     else { const mu=$('menu'); if(mu) mu.style.display='none'; } }
   D.body.classList.remove('pregame');       /* the HUD stands up with the voyage */
   menuView=null; running=true;
-  setMode(state.mode); updateWindBtn(); initAudio();
+  setMode(state.mode);
+  /* every switch on the rail reads its word off the STATE, and is set from
+     it here — after the washing AND after the log has been read back, so the
+     rail can never stand telling one tale while the voyage keeps another
+     (a voyage begun anew still offered the immortal breath on its button) */
+  updateWindBtn(); updateBreathBtn(); updateRepelBtn(); updateSpeedBtn();
+  updateSeasonBtn(); updateGuideBtn();
+  initAudio();
   if(state.freeroam) toast('FREE ROAM \u2014 the air, the sun, the hour and the season are yours. Rise up (G), hold the sun, turn the year, and go where you will.');
   else toast('And Aluahim said, \u201cLet the waters under the shamayim be gathered together into one place, and let the dry land appear.\u201d And it came to be so.','BER\u0114SHITH 1:9');
   }catch(e){ _begun=false; throw e; }   /* a failed launch frees the buttons for another try */
@@ -11397,6 +11613,9 @@ window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeV
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   /* the scrolls and the compass that leads to them, for the smoke tests */
   SCROLLS,scrollTaken,nextScroll,takeScroll,nearestScrollProp,toggleGuide,
+  /* the eye's boom and its near plane, for the smoke tests — the shaking
+     beside a rock was read off these two */
+  camInfo:()=>({clear:camClear, near:camera.near, stepOff:state.walk.stepOff||0}),
   guideMesh:()=>cmpCv,             /* it is on the glass now, not in the scene */
   guideInfo:()=>({mode:GUIDE.mode,
     colour:GUIDE.mode==='ship'?'blue':'gold',
@@ -11922,7 +12141,7 @@ function frame(){
     podTick(p.x,p.z,dt,tt);             /* the whale pods, making for the fishing grounds */
     orcaTick(p.x,p.z,dt,tt);            /* and the killer whales, on their own road in the deep */
     if(state.mode==='boat'||state.mode==='deck'||state.mode==='walk'){
-      updateLandLife(p.x,p.z,dt,tt); updateRiverLife(p.x,p.z,dt,tt); updateBlooms(p.x,p.z); }
+      updateLandLife(p.x,p.z,dt,tt); updateRiverLife(p.x,p.z,dt,tt); updateBlooms(p.x,p.z,dt); }
     else { hideLandLife(); hideBlooms(); } }
   else { hideLandLife(); hideAirLife(); hidePod(); hideOrca(); hideBlooms(); }
   if(state.firm&&firmMark) firmMark.position.set(p.x,R_WORLD*0.012,p.z);
