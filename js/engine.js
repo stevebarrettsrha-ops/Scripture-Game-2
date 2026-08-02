@@ -1540,7 +1540,14 @@ function updateChunks(px,pz,budget,view){
      which is why the land came in slowly as the traveller drew near it.
      Nearest first still, so what is underfoot is laid before the horizon. */
   if(added||moved){ _chAt[0]=ccx; _chAt[1]=ccz;
-    buildQueue.sort((A,Bq)=>((A.cx-ccx)**2+(A.cz-ccz)**2)-((Bq.cx-ccx)**2+(Bq.cz-ccz)**2)); }
+    /* nearest first — but a fast FLYER'S queue is ranked from a point led
+       out along his heading, so the ground he is rushing toward is laid
+       before the ring behind him, and the frontier never breaks the haze */
+    let lcx=ccx, lcz=ccz;
+    if(state.mode==='fly'&&(frame._spd||0)>140){
+      lcx=ccx+Math.round(Math.sin(state.fly.heading)*2);
+      lcz=ccz+Math.round(Math.cos(state.fly.heading)*2); }
+    buildQueue.sort((A,Bq)=>((A.cx-lcx)**2+(A.cz-lcz)**2)-((Bq.cx-lcx)**2+(Bq.cz-lcz)**2)); }
   /* ---- THE BUDGET IS TIME, NOT A COUNT ----
      Nine chunks was a fine allowance while every chunk was open sea, and a
      whole frame gone when nine of them were rainforest. The mesher takes a
@@ -1550,7 +1557,7 @@ function updateChunks(px,pz,budget,view){
      the queue unbuilt — after a fair-wind crossing the tail of the old
      coast's queue was being built only to be reaped the same frame. */
   const rush=budget>100;      /* a landfall set down whole (fair wind, going ashore) */
-  const T0=performance.now(), MS=budget>4?9:4;
+  const T0=performance.now(), MS=budget>9?14:budget>4?9:4;
   let n=0;
   while(buildQueue.length&&(rush||(n<24&&(n<1||performance.now()-T0<MS)))){
     const q=buildQueue.shift(); buildQueued.delete(q.k);
@@ -3018,11 +3025,14 @@ function whaleSong(){ if(!AC||!audioOn) return;
 }
 function podTick(px,pz,dt,t){
   initPod();
-  if(!podState||Math.hypot(podState.x-px,podState.z-pz)>2800){
+  if(!podState||Math.hypot(podState.x-px,podState.z-pz)>Math.max(2800,(scene.fog?scene.fog.far:1140)*1.2)){
     /* the pod surfaces beyond the haze (1,250+; fog shuts at 1,140) and
        swims IN — three whales materialising 500 units off the rail, in
-       clear air, was the sharpest pop on the whole sea */
-    const a=Math.random()*6.28, r=1250+Math.random()*800;
+       clear air, was the sharpest pop on the whole sea. Under a flyer's
+       OPENED air the ring rides the fog's own reach, so whales never
+       appear inside his clear view either. */
+    const ffP=scene.fog?scene.fog.far:1140;
+    const a=Math.random()*6.28, r=Math.min(2600,Math.max(1250,ffP*1.02))+Math.random()*800;
     const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
     if(landAtWorld(x,z)){ for(const m of POD) m.visible=false; return; }
     podState={x,z,dir:0,arrived:false,g:null,gT:0};
@@ -3079,8 +3089,9 @@ function swimPod(arr,lens,P,t,dt,beat,spout){
    out over the abyss, and turn only for the land. */
 function orcaTick(px,pz,dt,t){
   initOrca();
-  if(!orcaState||Math.hypot(orcaState.x-px,orcaState.z-pz)>3200){
-    const a=Math.random()*6.28, r=1250+Math.random()*800;   /* past the haze, as the humpbacks are */
+  if(!orcaState||Math.hypot(orcaState.x-px,orcaState.z-pz)>Math.max(3200,(scene.fog?scene.fog.far:1140)*1.25)){
+    const a=Math.random()*6.28,
+      r=Math.min(2600,Math.max(1250,(scene.fog?scene.fog.far:1140)*1.02))+Math.random()*800;   /* past the haze, as the humpbacks are */
     const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
     /* deep water, and seldom even then */
     if(landAtWorld(x,z)||Math.random()>ORCA_CHANCE||seabedMetres(x,z)<ORCA_DEEP_M){
@@ -5342,6 +5353,28 @@ function makeScrollProp(){
   g.userData.glow=gs;
   return g;
 }
+/* what a scroll's resting place must be: dry, LEVEL, open ground — never a
+   cliff face to be buried in, never under a tree, and never in the court of
+   a landmark whose masonry would swallow it when the traveller draws near
+   (the works of the ancients only BUILD within ~1,600, long after the scroll
+   was set down — so they are kept off by their charted stations, which are
+   known from the first). */
+function scrollSpotClear(x,z){
+  const c=landAtWorld(x,z);
+  if(!c||c.kind==='wall'||c.kind==='floe'||c.tree) return false;
+  const ix=Math.floor(x/B), iz=Math.floor(z/B);
+  for(let dx=-1;dx<=1;dx++) for(let dz=-1;dz<=1;dz++){
+    if(!dx&&!dz) continue;
+    const n=cell(ix+dx,iz+dz);
+    if(!n||n.kind==='wall'||Math.abs(n.h-c.h)>2) return false;  /* level, and never at a cliff's foot */
+  }
+  for(let i=0;i<LANDMARKS.length;i++){ const L=LANDMARKS[i];
+    if(L.kind==='mount') continue;                 /* a mount is the land itself — the slope test rules it */
+    const w=llToWorld(L.lat,L.lon);
+    const keep=L.kind==='range'?1000:L.kind==='wall'?340:L.kind==='city'?220:170;
+    if(Math.hypot(x-w[0],z-w[1])<keep) return false; }
+  return true;
+}
 /* set every scroll down once the country sites are known */
 function placeScrolls(){
   if(_scrollPlaced||!SITES.length) return; _scrollPlaced=true;
@@ -5350,12 +5383,30 @@ function placeScrolls(){
     for(let i=0;i<COUNTRIES.length;i++) if(COUNTRIES[i].n===sc.country){ ci=i; break; }
     const st=ci>=0?SITES[ci]:null;
     if(!st){ sc.gone=true; continue; }        /* a land that is not on this earth */
-    /* a little way out from the village, on its own bearing, and on dry ground */
-    let x=st.x, z=st.z, ok=false;
-    for(let r=74;r<=190&&!ok;r+=22){
-      const tx=st.x+Math.sin(sc.bearing)*r, tz=st.z+Math.cos(sc.bearing)*r;
-      const c=landAtWorld(tx,tz);
-      if(c&&c.kind!=='wall'&&c.kind!=='floe'){ x=tx; z=tz; ok=true; } }
+    /* BEYOND the town's whole footprint, on its own bearing. The old reach
+       (74–190) landed squarely inside the ring where a village raises its
+       houses — and deeper still inside a great city's lots — which is how
+       scrolls came to lie under floors and inside hills the town was cut
+       into. A village's outermost works stop near 160 out; a city's near
+       380. The scroll starts past them and walks outward, swinging off its
+       bearing a little at a time until it finds level, open ground. */
+    const r0=cityFor(ci)?400:210, r1=r0+360;
+    let x=NaN, z=NaN;
+    outer:
+    for(let r=r0;r<=r1;r+=16){
+      for(let k=0;k<9;k++){                    /* its own bearing first, then swept wider */
+        const th=sc.bearing+(k%2?1:-1)*Math.ceil(k/2)*0.55;
+        const tx=st.x+Math.sin(th)*r, tz=st.z+Math.cos(th)*r;
+        if(scrollSpotClear(tx,tz)){ x=tx; z=tz; break outer; }
+      }
+    }
+    if(isNaN(x)){                              /* no clear court found — any dry ground past the town */
+      x=st.x; z=st.z;
+      for(let r=r0;r<=r1;r+=22){
+        const tx=st.x+Math.sin(sc.bearing)*r, tz=st.z+Math.cos(sc.bearing)*r;
+        const c=landAtWorld(tx,tz);
+        if(c&&c.kind!=='wall'&&c.kind!=='floe'){ x=tx; z=tz; break; } }
+    }
     sc.x=x; sc.z=z; sc.m=null;
   }
 }
@@ -5364,8 +5415,18 @@ function updateScrolls(px,pz){
   for(const sc of SCROLLS){
     if(sc.gone) continue;
     const near=Math.hypot(sc.x-px,sc.z-pz)<620 && !scrollTaken.has(sc.id);
-    if(near&&!sc.m){ sc.m=makeScrollProp(); scene.add(sc.m);
-      const c=landAtWorld(sc.x,sc.z); sc.y=c?c.h*B:WATER_Y;
+    if(near&&!sc.m){
+      /* if the town has since raised a wall, a stall or a well over the very
+         stone (an old save, or a layout the placer could not foresee), the
+         scroll steps out along its bearing until it stands in the open */
+      if(!sc._chk){ sc._chk=true;
+        for(let t2=0;t2<24;t2++){
+          if(!(blockedByStructureNPC(sc.x,sc.z)||blockedBySolid(sc.x,sc.z,1.0)||treeBlocked(sc.x,sc.z))) break;
+          const nx=sc.x+Math.sin(sc.bearing)*12, nz=sc.z+Math.cos(sc.bearing)*12;
+          const nc=landAtWorld(nx,nz); if(!nc||nc.kind==='wall'||nc.kind==='floe') break;
+          sc.x=nx; sc.z=nz; } }
+      sc.m=makeScrollProp(); scene.add(sc.m);
+      sc.y=groundInfo(sc.x,sc.z).y;            /* the true walking surface, pier decks included */
       sc.m.position.set(sc.x,sc.y,sc.z); sc.m.rotation.y=hash2(sc.x,sc.z)*6.28; }
     if(sc.m){ sc.m.visible=near;
       if(near&&sc.m.userData.glow)
@@ -5865,14 +5926,17 @@ function initLandLife(){ if(LANDLIFE.length) return; for(let k=0;k<LL_N;k++) LAN
    found it stripped of every living thing: all ten casts landed in the sea.
    The last few casts fall back to a nearer ring (420–850, at least half
    into the fog), used only where the far ring found no land at all. */
-function findLandSpot(px,pz){ for(let tr=0;tr<10;tr++){ const a=Math.random()*6.28,
-    r=tr<6?LL_MIN+Math.random()*(LL_R-LL_MIN):420+Math.random()*430,
+function findLandSpot(px,pz,rMin,rMax){ rMin=rMin||LL_MIN; rMax=rMax||LL_R;
+  for(let tr=0;tr<10;tr++){ const a=Math.random()*6.28,
+    r=tr<6?rMin+Math.random()*(rMax-rMin):Math.max(420,rMin*0.55)+Math.random()*Math.max(430,rMin*0.45),
     x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
     /* beasts keep to the charted lands (ci>0 — the countries and true isles);
        the bare rocks and skerries of the open ocean stay bare.
        (The old bar of six blocks kept every creature off the high country —
        now that there IS high country, the goats and wolves may have it.) */
     const c=landAtWorld(x,z); if(!c) continue;
+    if(c.tree&&treeBlocked(x,z)) continue;      /* never born inside a bole */
+    if(landmarkSolidAt(x,z,c.h*B+1,c.h*B+8)) continue;   /* nor inside the ancients' stones */
     if(c.ci&&c.kind!=='wall'&&Math.hypot(x,z)/R_WORLD<0.9) return {x,z,y:c.h*B,c};
     /* THE ICE BEARS ITS OWN. Penguins stand on the floes and about the FOOT
        of the wall — but the high crown of it, up against the firmament, is
@@ -5982,12 +6046,23 @@ function updateBlooms(px,pz,dt){ initBlooms(); const doy=dayOfYear();
 function hideBlooms(){ for(const b of BLOOMS) if(b.m) b.m.visible=false; }
 function updateLandLife(px,pz,dt,t){ initLandLife();
   const night=(worldNight||0)>0.6;
-  for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>LL_REAP){
+  /* ---- THE RING RIDES THE HAZE ----
+     The spawn ring (850–1,250) was tuned to a fog that shuts at 1,140 — a
+     beast was born half-swallowed. A FLYER'S air stands open (the fog eases
+     out to thousands of units), so the same numbers set beasts down in clear
+     view below him, popping into being. The ring now rides the fog's own
+     reach, capped where a beast is beneath seeing anyway — so a spawn is
+     born in the haze on the ground and beyond notice from the air alike. */
+  const ff=scene.fog?scene.fog.far:1140;
+  const llMin=Math.min(2400,Math.max(LL_MIN,ff*0.75));
+  const llMax=Math.min(2800,Math.max(LL_R,ff*1.02));
+  const llReap=Math.min(3050,Math.max(LL_REAP,ff*1.12));
+  for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>llReap){
       /* an empty slot cools off between tries — over open water every slot
          was running ten land probes EVERY frame, for nothing */
       a.retry=(a.retry||0)-dt; if(!a.set&&a.retry>0) continue;
       a.retry=1.2+Math.random()*0.8;
-      const sp=findLandSpot(px,pz);
+      const sp=findLandSpot(px,pz,llMin,llMax);
       if(!sp){ if(a.m)a.m.visible=false; hideYoung(a); a.set=false; continue; }
       const kind=landKindAt(sp.x,sp.z,sp.c);
       /* the ground named no beast — a bare glacier, a crest above the life
@@ -6722,13 +6797,19 @@ function takeFish(x,z){
   return false;
 }
 function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
+  /* the fowl ride the haze as the beasts do — born beyond the fog on the
+     ground, and beyond noticing under a flyer's opened air */
+  const ffA=scene.fog?scene.fog.far:1140;
+  const alMin=Math.min(2100,Math.max(430,ffA*0.65));
+  const alMax=Math.min(2500,Math.max(1200,ffA*0.98));
+  const alReap=Math.min(2750,Math.max(AL_R+220,ffA*1.1));
   for(const b of AIRLIFE){
-    if(!b.set||Math.hypot(b.x-px,b.z-pz)>AL_R+220){
+    if(!b.set||Math.hypot(b.x-px,b.z-pz)>alReap){
       const type=airKind(px,pz,night);
       if(b.type!==type){ if(b.m){ scene.remove(b.m); freeTree(b.m); }   /* and the old fowl with it */
         b.m=makeBird(type); scene.add(b.m); b.type=type; }
       const a=Math.random()*6.28,
-        r=type==='butterfly'?60+Math.random()*240:430+Math.random()*770;
+        r=type==='butterfly'?60+Math.random()*240:alMin+Math.random()*(alMax-alMin);
       b.x=px+Math.cos(a)*r; b.z=pz+Math.sin(a)*r;
       /* ---- AND NOTHING FLIES BEYOND THE WALL OF ICE ----
          Out on the crown of the ice the ground stands two thousand feet up,
@@ -6924,33 +7005,47 @@ function hideAirLife(){ for(const b of AIRLIFE) if(b.m) b.m.visible=false;
 /* furnish a room: a big bed, a table with chairs, bookshelves along a wall,
    a chest, a woven rug, and corner lamps — scaled to the room, off the door */
 function emitFurniture(G, ex, x0,x1,z0,z1, fy, T, hx,hz, doorDir){
+  /* ---- THE ROOM IS A ROOM, NOT A STOREHOUSE ----
+     The table used to stand in the middle of the floor with its chairs
+     beside it, square across the way in — a room a man could hardly cross.
+     Everything stands against the walls now: the bed in the far corner from
+     the door, the table and its chairs against a side wall, the shelves
+     along the far wall, the chest by the door — and the way in, door to
+     hearth, stays a clear aisle two blocks wide. What will not fit in a
+     small room is left out of it rather than crammed in. */
   const ix0=x0+T, ix1=x1-T, iz0=z0+T, iz1=z1-T;
-  const rw=Math.min(ix1-ix0, iz1-iz0);
-  const onZ1=doorDir===0, onZ0=doorDir===1, onX1=doorDir===2, onX0=doorDir===3;
-  faceTop(G,'haySide', hx-rw*0.34,hz-rw*0.34, hx+rw*0.34,hz+rw*0.34, fy+0.05, 0.95);   /* rug */
-  /* bed in a corner away from the door */
-  const bx = onX0? ix1-B*0.95 : ix0+B*0.95;
-  const bz = onZ0? iz1-B*1.2  : iz0+B*1.2;
-  emitBox(G, bx-B*0.85,fy,bz-B*1.1, bx+B*0.85,fy+B*0.42,bz+B*1.1,'planks','wool',null);
-  emitBox(G, bx-B*0.7,fy+B*0.42,bz-B*1.0, bx+B*0.7,fy+B*0.6,bz-B*0.5,'wool','wool',null);
-  emitBox(G, bx-B*0.9,fy,bz-B*1.28, bx+B*0.9,fy+B*0.95,bz-B*1.1,'logSide','logTop',null);
-  /* table + two chairs near the middle */
-  const tx=hx+(onX1?-B*1.5:B*1.3), tz=hz;
-  emitBox(G, tx-B*0.15,fy,tz-B*0.15, tx+B*0.15,fy+B*0.72,tz+B*0.15,'logSide','logTop',null);
-  emitBox(G, tx-B*0.8,fy+B*0.72,tz-B*0.6, tx+B*0.8,fy+B*0.86,tz+B*0.6,'planks','benchTop',null);
-  for(const s of [-1,1]){ const chz=tz+s*B*0.95;
-    emitBox(G, tx-B*0.32,fy,chz-B*0.32, tx+B*0.32,fy+B*0.44,chz+B*0.32,'planks','planks',null);
-    emitBox(G, tx-B*0.32,fy+B*0.44,chz+s*B*0.2, tx+B*0.32,fy+B*1.05,chz+s*B*0.32,'planks','planks',null); }
-  /* bookshelves along a wall that is not the door wall */
-  if(!onZ0&&!onZ1){ for(let sx=ix0+B*0.7; sx<ix1-B*0.5; sx+=B*1.05){
-      emitBox(G, sx-B*0.45,fy,iz0+0.2, sx+B*0.45,fy+B*2.0,iz0+B*0.5,'logSide','logTop',null);
-      emitBox(G, sx-B*0.4,fy+B*0.4,iz0+0.25, sx+B*0.4,fy+B*1.7,iz0+B*0.45,'planks','planks',null); } }
-  else { for(let sz=iz0+B*0.7; sz<iz1-B*0.5; sz+=B*1.05){
-      emitBox(G, ix0+0.2,fy,sz-B*0.45, ix0+B*0.5,fy+B*2.0,sz+B*0.45,'logSide','logTop',null);
-      emitBox(G, ix0+0.25,fy+B*0.4,sz-B*0.4, ix0+B*0.45,fy+B*1.7,sz+B*0.4,'planks','planks',null); } }
-  /* a chest in a corner */
-  const kx=onX1?ix0+B*0.6:ix1-B*0.6, kz=onZ1?iz0+B*0.6:iz1-B*0.6;
-  emitBox(G, kx-B*0.5,fy,kz-B*0.4, kx+B*0.5,fy+B*0.6,kz+B*0.4,'logSide','logTop',null);
+  const rw=ix1-ix0, rd=iz1-iz0, rmin=Math.min(rw,rd);
+  faceTop(G,'haySide', hx-rmin*0.26,hz-rmin*0.26, hx+rmin*0.26,hz+rmin*0.26, fy+0.05, 0.95);   /* rug */
+  /* a frame laid against the FAR wall (opposite the door): `a` runs from the
+     far wall toward the door, `b` across the room from one side wall */
+  const ax=(doorDir>=2);                          /* the door stands in an X wall */
+  const aDir=(doorDir===0||doorDir===2)?1:-1;
+  const aO=ax?(aDir>0?ix0:ix1):(aDir>0?iz0:iz1);
+  const bO=ax?iz0:ix0;
+  const aLen=ax?rw:rd, bLen=ax?rd:rw;
+  const R=(a0,a1,b0,b1)=>{
+    const aLo=aDir>0?aO+a0:aO-a1, aHi=aDir>0?aO+a1:aO-a0;
+    return ax?[aLo,aHi,bO+b0,bO+b1]:[bO+b0,bO+b1,aLo,aHi]; };   /* [x0,x1,z0,z1] */
+  const box=(r,y0,y1,side,top)=>emitBox(G,r[0],y0,r[2],r[1],y1,r[3],side,top,null);
+  /* the bed — headboard on the far wall, side against the side wall */
+  box(R(0.05,B*0.24,B*0.15,B*1.9),   fy,fy+B*0.95,'logSide','logTop');
+  box(R(B*0.24,B*2.5,B*0.2,B*1.85),  fy,fy+B*0.42,'planks','wool');
+  box(R(B*0.34,B*0.9,B*0.4,B*1.65),  fy+B*0.42,fy+B*0.6,'wool','wool');
+  /* the table and its chairs, drawn back against the OTHER side wall */
+  const ta=aLen*0.52, tb1=bLen-B*0.35;
+  box(R(ta-B*0.15,ta+B*0.15,bLen-B*1.2,bLen-B*0.9), fy,fy+B*0.72,'logSide','logTop');
+  box(R(ta-B*0.8,ta+B*0.8,bLen-B*1.75,tb1),         fy+B*0.72,fy+B*0.86,'planks','benchTop');
+  for(const s of [-1,1]){ const ca=ta+s*B*1.15;
+    box(R(ca-B*0.3,ca+B*0.3,bLen-B*1.35,bLen-B*0.75), fy,fy+B*0.44,'planks','planks');
+    box(R(ca+(s>0?B*0.18:-B*0.3),ca+(s>0?B*0.3:-B*0.18),bLen-B*1.35,bLen-B*0.75),
+        fy+B*0.44,fy+B*1.05,'planks','planks'); }
+  /* shelves along the far wall, in the span the bed leaves free */
+  { const s0=B*2.1, s1=bLen-B*2.0;
+    for(let sb=s0; sb+B*0.9<=s1; sb+=B*1.1){
+      box(R(0.05,B*0.5,sb,sb+B*0.9),      fy,fy+B*2.0,'logSide','logTop');
+      box(R(0.1,B*0.45,sb+0.05,sb+B*0.85),fy+B*0.4,fy+B*1.7,'planks','planks'); } }
+  /* a chest by the door, on the bed's side of the way in */
+  box(R(aLen-B*0.95,aLen-B*0.2,B*0.3,B*1.2), fy,fy+B*0.6,'logSide','logTop');
   /* corner lamps */
   ex.torchIn.push({x:ix0+B*0.5,y:fy+B*2.2,z:iz0+B*0.5});
   ex.torchIn.push({x:ix1-B*0.5,y:fy+B*2.2,z:iz1-B*0.5});
@@ -7018,6 +7113,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   const baseAng = (doorDir>=2)?-Math.PI/2:0;
   const swing = (doorDir===0||doorDir===3)?1.7:-1.7;   /* open outward */
   ex.houses.push({x0,x1,z0,z1, dx:gapCX, dz:gapCZ, gw,
+    yb:y, top:y+wallH+steps*B*0.55+B*0.6,   /* footing and ridge — the eye rides over these */
     door:{dir:doorDir, hx:hingeX, hz:hingeZ, base:baseAng, y:y+B*0.05,
       w:gw*2.0, h:B*2.05, swing, open:false, ang:baseAng, target:baseAng}});
 }
@@ -7096,12 +7192,14 @@ function emitStall(G,x,z,y,kind){
    stall, and rows of homes (one per resident). Returns {homes, market, fish}.
    A GENERATOR: it yields between homes so the frame driver can spread a
    city's cost over many frames — no single frame pays for a whole town. */
-function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i){
+function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
   /* half again the homes, on lots half again apart — a CITY now stands a
      head taller and a street wider than the villages it lords it over */
+  rectFree=rectFree||(()=>true); addRect=addRect||(()=>{});
   const cx=site.x, cz=site.z, sz2=cfg.size||2, nHomes=Math.round((cfg.houses||14)*1.4);
   emitPlaza(G, cx,cz, wy, B*(6+sz2*1.5));
   emitWell(G, cx,cz, wy); solids.push({x:cx,z:cz,r:B*1.7});
+  addRect(cx-B*1.7,cx+B*1.7,cz-B*1.7,cz+B*1.7);
   /* lots a street-and-a-garden apart — a city breathes, it does not huddle */
   const spacing=B*15, reach=B*(12+Math.ceil(nHomes/2));
   emitPathLine(G, cx-reach,cz, cx+reach,cz);            // the two main streets
@@ -7117,10 +7215,12 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i){
     if(gx===0||gy===0) continue;                        // keep the streets clear
     const hx=cx+gx*spacing+(rnd(placed+1)-0.5)*B*1.5, hz=cz+gy*spacing+(rnd(placed+9)-0.5)*B*1.5;
     const hc=landAtWorld(hx,hz); if(!hc||hc.kind==='wall'||hc.kind==='floe') continue;
-    const w=7+Math.floor(rnd(placed+20)*4), d=8+Math.floor(rnd(placed+25)*4);
+    const w=8+Math.floor(rnd(placed+20)*3), d=8+Math.floor(rnd(placed+25)*3);
+    if(!rectFree(hx-w*B/2-B,hx+w*B/2+B,hz-d*B/2-B,hz+d*B/2+B,B)) continue;
     const ddx=cx-hx, ddz=cz-hz;
     const doorDir=Math.abs(ddz)>=Math.abs(ddx)?(ddz>0?0:1):(ddx>0?2:3);
     emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+placed);
+    addRect(hx-w*B/2-B,hx+w*B/2+B,hz-d*B/2-B,hz+d*B/2+B);
     const H=ex.houses[ex.houses.length-1];
     emitPathLine(G, H.dx,H.dz, cx+gx*spacing, cz);      // a lane to the street
     emitPathLine(G, cx+gx*spacing, cz, cx+gx*spacing, cz+gy*spacing);
@@ -7132,12 +7232,16 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i){
   if(cfg.market!==false){ market={x:cx+B*4,z:cz};
     for(let k=0;k<3+sz2;k++){ const sx=cx+B*(3+k*2.6), sz=cz+B*2.3;
       const c=landAtWorld(sx,sz); if(!c||c.kind==='wall') continue;
+      if(!rectFree(sx-B*1.6,sx+B*1.6,sz-B*1.4,sz+B*1.4,0)) continue;
       emitStall(G,sx,sz,c.h*B,'market'); solids.push({x:sx,z:sz,r:B*1.6});
+      addRect(sx-B*1.6,sx+B*1.6,sz-B*1.4,sz+B*1.4);
       ex.stalls.push({x:sx,z:sz}); } }
-  /* extra wells of water */
+  /* extra wells of water — never inside a home's lot */
   for(let w2=1;w2<(cfg.wells||1);w2++){ const a=rnd(w2+70)*6.28, rr=B*(6+w2*3);
     const wx=cx+Math.cos(a)*rr, wz=cz+Math.sin(a)*rr, c=landAtWorld(wx,wz);
-    if(c&&c.kind!=='wall'){ emitWell(G,wx,wz,c.h*B); solids.push({x:wx,z:wz,r:B*1.7}); } }
+    if(c&&c.kind!=='wall'&&rectFree(wx-B*1.7,wx+B*1.7,wz-B*1.7,wz+B*1.7,B*0.5)){
+      emitWell(G,wx,wz,c.h*B); solids.push({x:wx,z:wz,r:B*1.7});
+      addRect(wx-B*1.7,wx+B*1.7,wz-B*1.7,wz+B*1.7); } }
   /* lamp posts along the streets */
   for(let t=-3;t<=3;t++){ if(!t) continue;
     for(const p of [[cx+t*spacing*0.5,cz],[cx,cz+t*spacing*0.5]]){
@@ -7225,64 +7329,102 @@ function* spawnVillage(i,exShell){
   const wy=topY(site.ix,site.iz);
   const cfg=cityFor(i);                 /* a great city here, or a small village? */
   const torches=[]; const solids=[];
+  /* ---- NOTHING IS BUILT INSIDE ANYTHING ELSE ----
+     Every footprint laid — house, farm, pen, stall, well — is written down,
+     and everything after it must find ground of its own. Houses used to be
+     rung out with no regard for one another (two homes could share the same
+     stones), and the hay, the torch posts, the farms and the pen were all
+     cast by radius alone, so any of them could land inside a house. */
+  const rects=[];
+  const rectFree=(x0,x1,z0,z1,m)=>{ m=m||0;
+    for(const r of rects) if(x0-m<r.x1&&x1+m>r.x0&&z0-m<r.z1&&z1+m>r.z0) return false;
+    return true; };
+  const addRect=(x0,x1,z0,z1)=>{ rects.push({x0,x1,z0,z1}); };
   let cityHomes=null;
   if(cfg){
-    const ci=yield* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i);
+    const ci=yield* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect);
     cityHomes=ci.homes;
-    /* a fenced pen for the beasts on the outskirts */
-    { const a=rnd(130)*6.28, rr=B*(18+(cfg.size||2)*4);
+    /* a fenced pen for the beasts on the outskirts — on ground of its own */
+    for(let tr=0;tr<10;tr++){ const a=rnd(130+tr*7)*6.28, rr=B*(18+(cfg.size||2)*4+tr);
       const px2=site.x+Math.cos(a)*rr, pz2=site.z+Math.sin(a)*rr, pc=landAtWorld(px2,pz2);
-      if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'){ emitPen(G,px2,pz2,pc.h*B,7,5);
-        emitPathLine(G,site.x,site.z,px2,pz2); ex.pen={x:px2,z:pz2}; } }
+      if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'&&rectFree(px2-B*3.5,px2+B*3.5,pz2-B*2.5,pz2+B*2.5,B)){
+        emitPen(G,px2,pz2,pc.h*B,7,5);
+        emitPathLine(G,site.x,site.z,px2,pz2); ex.pen={x:px2,z:pz2};
+        addRect(px2-B*3.5,px2+B*3.5,pz2-B*2.5,pz2+B*2.5); break; } }
   } else {
     /* --- a village proper: a broad ring of homes about the well and square
        --- grown a full size: more homes, bigger homes, a wider ring to
        stand them in, so a town reads as a town and not a huddle of huts */
     const nH=8+Math.floor(rnd(1)*4);
     for(let h=0;h<nH;h++){
-      /* the ring wide enough that every house keeps its own ground about it */
-      const ang=(h/nH+rnd(h+2)*0.35)*Math.PI*2, rad=(9+rnd(h+9)*9)*B;
-      const hx=site.x+Math.cos(ang)*rad, hz=site.z+Math.sin(ang)*rad;
-      const hc=landAtWorld(hx,hz); if(!hc||hc.kind==='wall'||hc.kind==='floe') continue;
-      const w=7+Math.floor(rnd(h+20)*3), d=7+Math.floor(rnd(h+25)*3);
+      /* a full-grown home (8–10 blocks a side), and a ring wide enough that
+         every house keeps its own ground about it — each candidate is tested
+         against everything already standing, and drawn again until it fits */
+      const w=8+Math.floor(rnd(h+20)*3), d=8+Math.floor(rnd(h+25)*3);
+      let hx=0,hz=0,hc=null,found=false;
+      for(let tr=0;tr<10&&!found;tr++){
+        const ang=(h/nH+rnd(h*10+tr+2)*0.35)*Math.PI*2, rad=(10+rnd(h*10+tr+9)*10)*B;
+        const tx=site.x+Math.cos(ang)*rad, tz=site.z+Math.sin(ang)*rad;
+        const tc=landAtWorld(tx,tz); if(!tc||tc.kind==='wall'||tc.kind==='floe') continue;
+        /* the roof overhangs a block on every side, and a lane runs between */
+        if(!rectFree(tx-w*B/2-B,tx+w*B/2+B,tz-d*B/2-B,tz+d*B/2+B,B*1.5)) continue;
+        hx=tx; hz=tz; hc=tc; found=true;
+      }
+      if(!found) continue;
       const dx=site.x-hx, dz=site.z-hz;
       const doorDir=Math.abs(dz)>=Math.abs(dx) ? (dz>0?0:1) : (dx>0?2:3);
       emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+h);
+      addRect(hx-w*B/2-B,hx+w*B/2+B,hz-d*B/2-B,hz+d*B/2+B);
       if(h%2===1) yield;
     }
     emitWell(G, site.x, site.z, wy); solids.push({x:site.x,z:site.z,r:B*1.5});
+    addRect(site.x-B*1.5,site.x+B*1.5,site.z-B*1.5,site.z+B*1.5);
     for(const dr of ex.doors) emitPathLine(G, site.x,site.z, dr.x,dr.z);
     const nF=2+(rnd(40)>0.55?1:0);
     for(let f=0;f<nF;f++){
-      const ang=rnd(f+44)*Math.PI*2, rad=(14+rnd(f+48)*6)*B;
-      const fx=site.x+Math.cos(ang)*rad, fz=site.z+Math.sin(ang)*rad;
-      const fc=landAtWorld(fx,fz); if(!fc||fc.kind==='wall') continue;
+      let fx=0,fz=0,fc=null,found=false;
+      for(let tr=0;tr<8&&!found;tr++){
+        const ang=rnd(f*9+tr+44)*Math.PI*2, rad=(15+rnd(f*9+tr+48)*7)*B;
+        const tx=site.x+Math.cos(ang)*rad, tz=site.z+Math.sin(ang)*rad;
+        const tc=landAtWorld(tx,tz); if(!tc||tc.kind==='wall') continue;
+        if(!rectFree(tx-B*2.5,tx+B*2.5,tz-B*1.7,tz+B*1.7,B)) continue;
+        fx=tx; fz=tz; fc=tc; found=true; }
+      if(!found) continue;
       emitFarm(G, fx,fz, fc.h*B, i*100+f); emitPathLine(G, site.x,site.z, fx,fz);
+      addRect(fx-B*2.5,fx+B*2.5,fz-B*1.7,fz+B*1.7);
       ex.farms.push({x:fx,z:fz});
     }
     /* a market stall or two upon the square — folk selling their goods */
     for(let s=0;s<1+(rnd(46)>0.5?1:0);s++){
       const sx=site.x+B*(2.6+s*3.1), sz=site.z+B*(2.4-s*4.6);
       const sc=landAtWorld(sx,sz); if(!sc||sc.kind==='wall') continue;
+      if(!rectFree(sx-B*1.6,sx+B*1.6,sz-B*1.4,sz+B*1.4,0)) continue;
       emitStall(G,sx,sz,sc.h*B, s?'fish':'market'); solids.push({x:sx,z:sz,r:B*1.6});
+      addRect(sx-B*1.6,sx+B*1.6,sz-B*1.4,sz+B*1.4);
       ex.stalls.push({x:sx,z:sz});
     }
     for(let hb=0; hb<2+Math.floor(rnd(52)*3); hb++){
       const ang=rnd(hb+54)*Math.PI*2, rad=(4+rnd(hb+58)*8)*B;
       const x=site.x+Math.cos(ang)*rad, z=site.z+Math.sin(ang)*rad;
       const c2=landAtWorld(x,z); if(!c2||c2.kind==='wall') continue;
-      emitHay(G,x,z,c2.h*B);
+      if(!rectFree(x-B*0.5,x+B*0.5,z-B*0.5,z+B*0.5,B*0.4)) continue;
+      emitHay(G,x,z,c2.h*B); solids.push({x,z,r:B*0.8});
+      addRect(x-B*0.5,x+B*0.5,z-B*0.5,z+B*0.5);
     }
-    { const ang=rnd(130)*Math.PI*2, rad=(13+rnd(133)*5)*B;
+    for(let tr=0;tr<10;tr++){ const ang=rnd(130+tr*7)*Math.PI*2, rad=(14+rnd(133+tr*7)*6)*B;
       const px2=site.x+Math.cos(ang)*rad, pz2=site.z+Math.sin(ang)*rad;
       const pc=landAtWorld(px2,pz2);
-      if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'){ emitPen(G,px2,pz2,pc.h*B,6,4);
-        emitPathLine(G,site.x,site.z,px2,pz2); ex.pen={x:px2,z:pz2}; } }
+      if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'&&rectFree(px2-B*3,px2+B*3,pz2-B*2,pz2+B*2,B)){
+        emitPen(G,px2,pz2,pc.h*B,6,4);
+        emitPathLine(G,site.x,site.z,px2,pz2); ex.pen={x:px2,z:pz2};
+        addRect(px2-B*3,px2+B*3,pz2-B*2,pz2+B*2); break; } }
     { const bx=site.x+B*1.9, bz=site.z-B*1.4; const bc=landAtWorld(bx,bz);
-      if(bc&&bc.kind!=='wall') emitBench(G,bx,bz,bc.h*B); }
+      if(bc&&bc.kind!=='wall'&&rectFree(bx-B*0.5,bx+B*0.5,bz-B*0.5,bz+B*0.5,0)){
+        emitBench(G,bx,bz,bc.h*B); solids.push({x:bx,z:bz,r:B*0.8}); } }
     for(let t=0;t<5;t++){ const ang=rnd(t+62)*Math.PI*2, rad=(3+rnd(t+66)*7)*B;
       const tx=site.x+Math.cos(ang)*rad, tz=site.z+Math.sin(ang)*rad;
       const tc2=landAtWorld(tx,tz); if(!tc2||tc2.kind==='wall') continue;
+      if(!rectFree(tx-0.5,tx+0.5,tz-0.5,tz+0.5,B*0.3)) continue;
       emitBox(G, tx-0.5,tc2.h*B,tz-0.5, tx+0.5,tc2.h*B+B*1.6,tz+0.5, 'logSide','logTop',null);
       torches.push({x:tx,y:tc2.h*B+B*1.6,z:tz});
     }
@@ -7297,8 +7439,10 @@ function* spawnVillage(i,exShell){
     let px3=fx,pz3=fz;
     for(let rr=1;rr<8;rr++){ const c=landAtWorld(fx+Math.cos(rr)*rr*B, fz+Math.sin(rr)*rr*B);
       if(c&&c.kind!=='wall'){ px3=fx+Math.cos(rr)*rr*B; pz3=fz+Math.sin(rr)*rr*B; break; } }
-    const c=landAtWorld(px3,pz3); if(c&&c.kind!=='wall'){ emitStall(G,px3,pz3,c.h*B,'fish');
-      solids.push({x:px3,z:pz3,r:B*1.6}); ex.stalls.push({x:px3,z:pz3}); }
+    const c=landAtWorld(px3,pz3); if(c&&c.kind!=='wall'&&rectFree(px3-B*1.6,px3+B*1.6,pz3-B*1.4,pz3+B*1.4,0)){
+      emitStall(G,px3,pz3,c.h*B,'fish');
+      solids.push({x:px3,z:pz3,r:B*1.6}); addRect(px3-B*1.6,px3+B*1.6,pz3-B*1.4,pz3+B*1.4);
+      ex.stalls.push({x:px3,z:pz3}); }
   }
   /* build the merged meshes */
   const g=new THREE.Group();
@@ -7332,15 +7476,39 @@ function* spawnVillage(i,exShell){
   const nextHome=()=>{ if(!ex.houses.length) return null;
     const H=ex.houses[homeIdx++%ex.houses.length];
     return {x:(H.x0+H.x1)/2,z:(H.z0+H.z1)/2}; };
+  /* ---- NOBODY IS SET DOWN INSIDE ANYTHING ----
+     A soul or a beast used to be placed by its calling's radius alone, so it
+     could stand embedded in the well, a stall, a hay-bale, a tree, a house
+     wall — or in ANOTHER body (most of the clipping seen in every market).
+     Every spawn now finds clear ground: outside every footprint, off every
+     solid, and a body's breadth from everyone already standing. */
+  const placedAt=[];
+  const spawnFree=(x,z)=>{
+    const c=landAtWorld(x,z);
+    if(!c||c.kind==='wall'||c.kind==='floe') return false;
+    if(treeBlocked(x,z)) return false;
+    for(const H of ex.houses)
+      if(x>H.x0-1.2&&x<H.x1+1.2&&z>H.z0-1.2&&z<H.z1+1.2) return false;
+    for(const s of solids) if(Math.hypot(x-s.x,z-s.z)<s.r+2.0) return false;
+    for(const e of placedAt) if(Math.hypot(x-e.x,z-e.z)<3.6) return false;
+    return true; };
+  const clearSpawn=(wx,wz)=>{
+    if(spawnFree(wx,wz)) return {x:wx,z:wz};
+    for(let r=3;r<=66;r+=3) for(let a2=0;a2<10;a2++){
+      const th=hash2(wx*0.71+r*1.3,wz*0.93+a2*2.1)*6.2832;
+      const x=wx+Math.cos(th)*r, z=wz+Math.sin(th)*r;
+      if(spawnFree(x,z)) return {x,z}; }
+    return {x:wx,z:wz}; };
   const addPerson=(role,hx,hz,roamR,child,female,data)=>{
     const seed=i*1000+people.length*7;
-    const cc=landAtWorld(hx,hz), onDk=deckMap.get(Math.floor(hx/B)+','+Math.floor(hz/B))!==undefined;
-    if((!cc||cc.kind==='wall')&&!onDk){ hx=cx; hz=cz; }
-    /* never leave a soul embedded in a wall: nudge into the room, or out to the square */
-    for(const H of ex.houses){ if(houseBlocks(hx,hz,H)){
-      if(hx>H.x0&&hx<H.x1&&hz>H.z0&&hz<H.z1){ hx=(H.x0+H.x1)/2; hz=(H.z0+H.z1)/2; } else { hx=cx; hz=cz; } break; } }
+    const onDk=deckMap.get(Math.floor(hx/B)+','+Math.floor(hz/B))!==undefined;
+    if(!onDk){                       /* the fisher stands on his own pier planks */
+      const cc=landAtWorld(hx,hz);
+      if(!cc||cc.kind==='wall'){ hx=cx; hz=cz; }
+      const sp=clearSpawn(hx,hz); hx=sp.x; hz=sp.z; }
     const per=makePerson(seed,role,child,female);
     per.position.set(hx,topY(Math.floor(hx/B),Math.floor(hz/B)),hz); g.add(per);
+    placedAt.push({x:hx,z:hz});
     const ent=Object.assign({m:per,role,hx,hz,roamR:roamR||3,tx:hx,tz:hz,t:hash2(seed,7)*4,
       pt:0,acting:false,seed,child:!!child,female:!!female,home:nextHome(),
       name:personName(seed,female)},data||{});
@@ -7370,11 +7538,13 @@ function* spawnVillage(i,exShell){
   for(let p=0;p<nFolk;p++)
     addPerson(ex.stalls.length&&p%2?'shopper':'folk',
       cx+(rnd(p+30)-0.5)*B*5,cz+(rnd(p+40)-0.5)*B*5,4,false,rnd(p+31)>0.5);
-  /* a great city: a resident in every home besides */
+  /* a great city: a resident in every home besides — set down at their own
+     DOORSTEP, not in the middle of a furnished room */
   if(cityHomes&&cityHomes.length){
     for(let h=0;h<cityHomes.length;h++){ const hm=cityHomes[h];
-      addPerson(h%3===0?'shopper':'folk', hm.x, hm.z, 2.4, false, h%2===0,
-        {home:{x:hm.x,z:hm.z}});
+      addPerson(h%3===0?'shopper':'folk',
+        hm.doorx!==undefined?hm.doorx:hm.x, hm.doorz!==undefined?hm.doorz:hm.z,
+        2.4, false, h%2===0, {home:{x:hm.x,z:hm.z}});
       if(h%4===3) yield; }
   }
   yield;
@@ -7390,14 +7560,18 @@ function* spawnVillage(i,exShell){
   const hx0=ex.pen?ex.pen.x:cx, hz0=ex.pen?ex.pen.z:cz;
   for(let a2=0;a2<nA;a2++){ const kind=roster[Math.floor(rnd(a2+95)*roster.length)]||'sheep';
     const an=makeAnimal(kind);
-    const bx=(a2%2?hx0:cx)-B+(rnd(a2)-0.5)*B*6, bz=(a2%2?hz0:cz)-B+(rnd(a2+5)-0.5)*B*6;
-    an.position.set(bx,wy,bz); g.add(an);
+    let bx=(a2%2?hx0:cx)-B+(rnd(a2)-0.5)*B*6, bz=(a2%2?hz0:cz)-B+(rnd(a2+5)-0.5)*B*6;
+    { const sp=clearSpawn(bx,bz); bx=sp.x; bz=sp.z; }
+    an.position.set(bx,topY(Math.floor(bx/B),Math.floor(bz/B)),bz); g.add(an);
+    placedAt.push({x:bx,z:bz});
     beasts.push({m:an,kind,hx:bx,hz:bz,tx:bx,tz:bz,t:rnd(a2+97)*4,seed:i*100+50+a2,
       roamR:(kind==='hare'||kind==='lizard')?6:4}); }
   if(baseKind!=='desert'&&rnd(303)>0.45){        /* the wolf come down from the hills */
     const wa=rnd(305)*6.28, an=makeAnimal('wolf');
-    const bx=cx+Math.cos(wa)*B*13, bz=cz+Math.sin(wa)*B*13;
-    an.position.set(bx,wy,bz); g.add(an);
+    let bx=cx+Math.cos(wa)*B*13, bz=cz+Math.sin(wa)*B*13;
+    { const sp=clearSpawn(bx,bz); bx=sp.x; bz=sp.z; }
+    an.position.set(bx,topY(Math.floor(bx/B),Math.floor(bz/B)),bz); g.add(an);
+    placedAt.push({x:bx,z:bz});
     beasts.push({m:an,kind:'wolf',hx:bx,hz:bz,tx:bx,tz:bz,t:2,seed:i*100+99,roamR:10,cool:6}); }
   /* birds of the air, wheeling above the land */
   const birds=[]; const nBirds=4+Math.floor(rnd(88)*4);
@@ -7713,17 +7887,20 @@ function birdTick(bd,dt){
 function updateVillages(px,pz,dt,nightF){
   worldNight=nightF;
   villageBuildTick();                          /* advance any towns under construction */
+  /* spawn well BEYOND the fog line so a town is standing whole before the
+     traveller can see the shore — and under a FLYER'S opened air the line
+     rides out with the fog itself, so no town is ever raised inside his
+     clear view. The build is spread over frames by villageBuildTick. */
+  const trigV=state.mode==='fly'
+    ?Math.max(1600,Math.min(3000,(scene.fog?scene.fog.far:1140)*0.92)):1600;
   for(let i=0;i<COUNTRIES.length;i++){
     const s0=SITES[i]; const c=COUNTRIES[i].c;
     const sxp=s0?s0.x:c[0]*R_WORLD, szp=s0?s0.z:c[1]*R_WORLD;
     const d=Math.hypot(px-sxp, pz-szp);
     const has=activeVillages.has(i);
-    /* spawn well BEYOND the fog line so a town is standing whole before the
-       traveller can see the shore — no more building right before his eyes.
-       The build itself is spread over frames by villageBuildTick. */
-    if(d<1600&&!has){ activeVillages.set(i,{building:true});
+    if(d<trigV&&!has){ activeVillages.set(i,{building:true});
       { const bx={}; villageBuilds.push({i,gen:spawnVillage(i,bx),ex:bx}); } }
-    else if(d>2100&&has){ const vv=activeVillages.get(i);
+    else if(d>Math.max(2100,trigV+500)&&has){ const vv=activeVillages.get(i);
       if(vv.building) continue;                        /* let the build finish; torn down next pass */
       if(vv.deckKeys) for(const k of vv.deckKeys) deckMap.delete(k);
       if(vv.g){ scene.remove(vv.g);
@@ -8651,11 +8828,14 @@ function landmarkTopAt(x,z,refY){
       if(x>b.x0&&x<b.x1&&z>b.z0&&z<b.z1&&(refY===undefined||b.y0<=refY)&&b.y1>top) top=b.y1; }
   return top;
 }
-/* the height of the tallest SOLID standing over a point — the ground, and
-   any landmark masonry built upon it. This is what the eye must ride over. */
+/* the height of the tallest SOLID standing over a point — the ground, any
+   landmark masonry built upon it, and the roofs of the homes. This is what
+   the eye must ride over. */
 function solidTopAt(x,z,refY){
   const lc=landAtWorld(x,z);
-  return Math.max(lc?lc.h*B:WATER_Y, landmarkTopAt(x,z,refY));
+  let t=Math.max(lc?lc.h*B:WATER_Y, landmarkTopAt(x,z,refY));
+  const ht=houseTopAt(x,z); if(ht>t) t=ht;
+  return t;
 }
 function updateLandmarks(px,pz){
   for(let i=0;i<LANDMARKS.length;i++){ const L=LANDMARKS[i];
@@ -8669,7 +8849,12 @@ function updateLandmarks(px,pz){
       /* and a landmark's title is no more readable through the sea than a land's */
       const lblOn=namesOn&&!(state.mode==='dive'||_eyeUnder);
       if(A.label) A.label.material.opacity=lblOn?Math.max(0,Math.min(0.95,(vis-d)/700)):0; }
-    const trig=(L.kind==='range')?2600:1600;   /* a range's dressing spreads for a mile */
+    /* a range's dressing spreads for a mile — and under a flyer's opened
+       air every trigger rides out with the fog, so the works of the
+       ancients stand whole before his eye can reach them */
+    const open=state.mode==='fly'
+      ?Math.max(0,Math.min(1,((scene.fog?scene.fog.far:1140)-1700)/1600)):0;
+    const trig=((L.kind==='range')?2600:1600)*(1+open*0.8);
     if(d<trig&&!has) spawnLandmark(i);
     else if(d>trig+500&&has){ const A=activeLandmarks.get(i);
       if(A.g){ scene.remove(A.g); A.g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); }
@@ -8992,6 +9177,33 @@ function blockedByStructure(nx,nz){
   }
   for(const H of standaloneHouses) if(houseBlocks(nx,nz,H)) return true;
   return false;
+}
+/* the ridge of any house roof standing over a point — for the EYE, which
+   must ride over the homes as it rides over the ground and the ancients'
+   stones, instead of passing through their walls and rafters. The band is
+   the WALLS' footprint and a hand's breadth, NOT the eave: an eye drawn in
+   just clear of the wall must stand on open ground, or the camera-floor
+   would hoist it onto the roof from under the overhang and the whole frame
+   would be rafters again. */
+function houseTopAt(x,z){
+  let top=-1e9;
+  const scan=arr=>{ for(const H of arr){
+    if(x>H.x0-0.4&&x<H.x1+0.4&&z>H.z0-0.4&&z<H.z1+0.4){
+      const t=H.top!==undefined?H.top:(H.door?H.door.y:0)+B*6.5;
+      if(t>top) top=t; } } };
+  for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
+    if(Math.hypot(x-vv.site.x,z-vv.site.z)>420) continue; scan(vv.houses); }
+  scan(standaloneHouses);
+  return top;
+}
+/* the crown of the tree standing on a cell — an envelope over the flora's
+   true builds, near enough that the eye keeps out of the leaves. The stature
+   is drawn from the same hashes the mesher grows the tree by. */
+function treeTopAt(x,z,c){
+  const ix=Math.floor(x/B), iz=Math.floor(z/B);
+  const q=hash2(ix*0.73+11.3,iz*0.91-5.7);
+  const S=0.62+Math.pow(q,0.55)*1.25+(hash2(ix*3.1,iz*2.3)>0.965?0.85:0);
+  return c.h*B+B*6.0*S;
 }
 /* the well, hay-bales and pens block the way */
 /* ---- A BODY HAS WIDTH ----
@@ -10461,30 +10673,67 @@ function cameraTick(dt){
   if(state.mode==='dive'||swimCam) camClear=1;
   else {
     const ox=px, oy=baseY+9, oz=pz;
+    /* what stops the sight-line: the ground and the ancients' masonry (1) —
+       and now the TREES (2) and the HOUSES (3), which the eye used to pass
+       clean through (player-reported: the camera inside homes, foliage and
+       hillsides). The KIND is returned, because the answer to a hill and
+       the answer to a house are not the same. */
     const blocked=(sx,sy,sz)=>{ const lc4=landAtWorld(sx,sz);
-      return sy<(lc4?lc4.h*B:WATER_Y)+2.0||!!landmarkSolidAt(sx,sz,sy-1.2,sy+1.2); };
-    let want=1;
+      if(sy<(lc4?lc4.h*B:WATER_Y)+2.0) return 1;
+      if(landmarkSolidAt(sx,sz,sy-1.2,sy+1.2)) return 1;
+      if(lc4&&lc4.tree&&sy<treeTopAt(sx,sz,lc4)+0.8) return 2;
+      return sy<houseTopAt(sx,sz)+0.6?3:0; };
+    let want=1, kindHit=0;
     /* (skipped once the map-fade owns the pitch — the near-overhead eye of
        the whole-earth band crosses no ridge, and the walk only wobbled it) */
     if(zf<0.02){
       const N=18, dx4=camPos.x-ox, dy4=camPos.y-oy, dz4=camPos.z-oz;
       for(let k2=1;k2<=N;k2++){ const f3=k2/N;
-        if(!blocked(ox+dx4*f3,oy+dy4*f3,oz+dz4*f3)) continue;
-        let lo=(k2-1)/N, hi=f3;                    /* the face lies between these two */
+        const c0=blocked(ox+dx4*f3,oy+dy4*f3,oz+dz4*f3); if(!c0) continue;
+        let lo=(k2-1)/N, hi=f3; kindHit=c0;         /* the face lies between these two */
         for(let b2=0;b2<6;b2++){ const mid=(lo+hi)*0.5;
-          if(blocked(ox+dx4*mid,oy+dy4*mid,oz+dz4*mid)) hi=mid; else lo=mid; }
+          const cm=blocked(ox+dx4*mid,oy+dy4*mid,oz+dz4*mid);
+          if(cm){ hi=mid; kindHit=cm; } else lo=mid; }
         want=lo; break; }
       if(want<1){
         /* a hand's breadth short of the stone — and never in past the
            traveller's own shoulder (the ship being a far larger body than a
-           man, the eye keeps further off her) */
-        const minD=state.mode==='boat'?34:state.mode==='deck'?14:9;
-        want=Math.max(Math.min(0.92,minD/Math.max(dist,minD)),want-0.015); }
+           man, the eye keeps further off her). But a HOUSE or a TREE right
+           at the traveller's back is not a hillside: held at the shoulder
+           floor the eye sat inside the thing and was hoisted onto its roof,
+           and the whole frame was rafters. Against a standing structure the
+           eye comes in as near as it must, and the traveller stays in it —
+           and its step back from the face is a HAND'S BREADTH IN UNITS, not
+           a share of the whole boom (a share re-entered the wall band from
+           any distance, and the floor hoisted the eye onto the roof anyway). */
+        const minD=(kindHit>=2)?3.4:(state.mode==='boat'?34:state.mode==='deck'?14:9);
+        const back=(kindHit>=2)?1.0/Math.max(dist,1):0.015;
+        want=Math.max(Math.min(0.92,minD/Math.max(dist,minD)),want-back); }
+      /* ---- AND THE EYE'S OWN COLUMN STANDS CLEAR OF THE HOMES ----
+         A house on a terrace can win the sight-line walk as GROUND (the
+         terrace at its foot blocks first), which kept the terrain's wider
+         shoulder floor — parking the eye's column inside the wall band,
+         where the camera-floor then walked it up onto the roof and the
+         whole frame was rafters. The boom is drawn in, a step at a time,
+         until the column stands off every house footprint; the traveller
+         himself stays in the frame, in front of his own wall. */
+      if(want<1){
+        const runXZ=Math.max(1,Math.sqrt(dx4*dx4+dz4*dz4));
+        const wMin=Math.min(0.5,2.4/Math.max(dist,2.4));
+        for(let g2=0;g2<10&&want>wMin+0.001;g2++){
+          const ht=houseTopAt(ox+dx4*want,oz+dz4*want);
+          if(ht<=-1e8||oy+dy4*want>ht+1.2) break;   /* clear ground, or clear OVER the ridge */
+          want=Math.max(wMin,want-1.6/runXZ); }
+      }
     }
     /* eased, and never snapped: QUICKLY IN, so no stone ever crosses the
-       lens, and SLOWLY OUT, so the view opens again without a lurch */
+       lens, and SLOWLY OUT, so the view opens again without a lurch.
+       The bottom of the ease is measured in UNITS, not in shares: two
+       hundredths of a long boom is eight units, which quietly stood the
+       eye back inside the very wall the walk had just come in short of. */
+    const clearMin=Math.min(0.5,2.4/Math.max(dist,2.4));
     camClear+=(want-camClear)*Math.min(1,dt*(want<camClear?16:2.6));
-    camClear=camClear>1?1:camClear<0.02?0.02:camClear;
+    camClear=camClear>1?1:camClear<clearMin?clearMin:camClear;
     if(camClear<0.999){
       camPos.x=ox+(camPos.x-ox)*camClear;
       camPos.y=oy+(camPos.y-oy)*camClear;
@@ -11481,6 +11730,10 @@ window.__WORLD={
   hideSeaMobs,hideDeepLife,SEAFISH,DIVEFISH,SHARKS,
   toast,playScene,endScene,sceneActive,
   running:()=>running, setRunning:v=>{running=v;},
+  /* read-only probes for the audit harness (nothing in the game reads these) */
+  sites:()=>SITES, villages:()=>activeVillages, scrolls:()=>SCROLLS,
+  cell,groundInfo,solidTopAt,houseTopAt,takeFlight,alight,
+  camDbg:()=>({seat:{x:camPos.x,y:camPos.y,z:camPos.z},camClear,camFloor}),
 };
 function stageHook(dt){ if(window.__STAGE_TICK){ try{ window.__STAGE_TICK(dt); }catch(e){} } }
 
@@ -11710,7 +11963,13 @@ function frame(){
      flyer at all (its terraced blobs read as a broken world from the middle
      heights), so what fills his whole view is real land, and past it the
      haze — and above the cloud floor, the mantle of the cloud cover. */
-  const viewEff=state.mode==='fly'?Math.min(19,13+Math.round(Math.max(0,eyeY-200)/200)):VIEW;
+  /* the ring widens with HEIGHT (13 → 19) and, riding fast, with SPEED as
+     well (+2) — at full wing (520 u/s) the frontier is crossed in seconds,
+     and the extra ring keeps the new ground rising behind the haze instead
+     of popping inside the view */
+  const viewEff=state.mode==='fly'
+    ?Math.min(21,13+Math.round(Math.max(0,eyeY-200)/200)+Math.min(2,Math.round((frame._spd||0)/260)))
+    :VIEW;
   frame._flyAir=(frame._flyAir||0)
     +(((state.mode==='fly'&&!state.firm)?1:0)-(frame._flyAir||0))*Math.min(1,dt*1.4);
   if(frame._flyAir<0.005) frame._flyAir=0;
@@ -11989,8 +12248,10 @@ function frame(){
      wind), so the ground always arrives behind the haze and never inside it */
   const trueSpd=Math.hypot(p.x-(frame._px!==undefined?frame._px:p.x),
                            p.z-(frame._pz!==undefined?frame._pz:p.z))/Math.max(dt,1e-3);
-  frame._px=p.x; frame._pz=p.z;
-  const chunkBudget=(state.mode==='fly'||trueSpd>50)?9:4;
+  frame._px=p.x; frame._pz=p.z; frame._spd=trueSpd;
+  /* at full wing the mesher takes a deeper slice — the widened ring must be
+     FILLED at 520 u/s, or the frontier is built inside the opened air */
+  const chunkBudget=(state.mode==='fly'&&trueSpd>260)?14:(state.mode==='fly'||trueSpd>50)?9:4;
   updateChunks(p.x,p.z,chunkBudget,viewEff);
   /* ---- NOTHING BUT BLOCKS IN GAMEPLAY ----
      The coarse far ring is BANISHED from the played world. Down on the sea,
@@ -12025,9 +12286,14 @@ function frame(){
      AND IT STANDS UNDER EVERY FLYER, however low — the flyer's opened air
      reaches past the chunks, and what fills that reach is the carpet, or it
      would be bare haze-line and void. */
-  /* AND IT IS NEVER SHOWN TO A FLYER below the charted face — his fog is
-     bound inside the true blocks instead, so his whole view is real land */
-  const flyNoCarpet = state.mode==='fly'&&zMapF<0.02;
+  /* AND A LOW FLYER IS NOT SHOWN IT — his fog is bound inside the true
+     blocks instead, so his whole view is real land. But in the MIDDLE
+     heights, where the fog is released and the charted face is still far
+     off, the world used to simply END at the chunk ring: bare backdrop
+     where countries should stand, and every new chunk popping into open
+     air. There the carpet DOES stand under him — coarse lego beyond the
+     fine — so the earth runs unbroken to the horizon at every height. */
+  const flyNoCarpet = state.mode==='fly'&&zMapF<0.02&&eyeY<1400;
   const carpet = !flyNoCarpet && (frame._carpetOn ? (viewReach>ALOFT_EYE*0.85||zMapF>0.012)
                                                   : (viewReach>ALOFT_EYE||zMapF>0.02));
   frame._carpetOn = showNear&&!underEye&&carpet;
