@@ -886,6 +886,92 @@ a mere half-zoom; the sea's specular reads the sun's true station; the
 chart shows the moon's station; the chosen season survives a reload; the
 small isles keep their beasts; the near sky keeps its birds.
 
+## 4v. Round 23 — nothing spawns inside anything, the eye passes through nothing, and the flyer's world never pops ✅
+
+*Player-reported, all five: folk standing inside beasts and stalls, houses
+crammed and overlapping, the camera passing through homes, trees and hills,
+the world popping into view under a flyer, and scrolls buried under hills
+and houses. Verified end-to-end headless (Chromium/SwiftShader): village
+audit ran clean (0 souls in walls, 0 in solids, 0 bodies overlapping),
+every scroll on level open ground, the camera's own seat pulled in short
+of the house and floored on its ridge, and the flyer's fog/carpet handoff
+measured at every height.*
+
+**1. Nothing is set down inside anything (`spawnVillage`).**
+- Every footprint laid — house, farm, pen, stall, well, hay, bench, torch
+  post — is written into a rect list, and everything after it must find
+  ground of its own (`rectFree`): houses no longer overlap one another, and
+  hay-bales, torch posts, farms and the pen can no longer stand inside a
+  home. Cities check their extra wells and stalls against the same list.
+- Every soul and beast spawns through `clearSpawn`: on land, outside every
+  house footprint, off every solid (the well, the stalls, the hay, the
+  bench — the last two are solids now), out of tree boles, and a body's
+  breadth from everyone already placed — the market-square pile-ups of
+  villagers standing inside cows are gone at the root. City residents
+  spawn at their own doorstep, not in the middle of a furnished room.
+  Beasts seat on the ground at their own feet, not the well's height.
+- Wild beasts (`findLandSpot`) no longer spawn inside tree trunks.
+
+**2. Houses a family could live in (`emitHouse`/`emitFurniture`).**
+- Village homes grew to 8–10 blocks a side (cities 8–10 too), and the ring
+  they stand on widened with them.
+- The room is a room, not a storehouse: bed in the far corner with its
+  headboard on the far wall, table and chairs drawn back against a side
+  wall, shelves along the far wall in the span the bed leaves free, the
+  chest by the door — and the way in, door to hearth, stays a clear aisle
+  about two blocks wide. What will not fit in a small room is left out.
+
+**3. The eye passes through nothing (`cameraTick`).**
+- The camera's sight-line walk now tests the HOUSES (each records its
+  footing and ridge — `houseTopAt`) and the TREES (`treeTopAt`, an
+  envelope grown from the same hashes the mesher grows the tree by), as
+  well as the ground and the ancients' masonry it already knew.
+- And the walk answers a house differently from a hillside: against
+  GROUND the eye keeps the old shoulder floor and rides the slope, but
+  against a standing STRUCTURE it comes in as near as it must (to ~3.4
+  units) — held at the shoulder floor it sat inside the walls and was
+  hoisted onto the roof, and the whole frame was rafters.
+- `solidTopAt` — the camera's floor — rides over house roofs too, so an
+  eye pressed over a home settles on the ridge instead of inside the
+  rafters.
+
+**4. The flyer's world is loaded before he can see it.**
+- **The middle heights had no world.** Round 20 took the coarse carpet
+  from every flyer and Round 22 released his fog by height — so from
+  ~1,600 up to the charted face at ~9,000 the world simply ENDED at the
+  chunk ring: bare backdrop where countries should stand, and every chunk
+  popping into clear air. The carpet (coarse lego since Round 17 — it no
+  longer reads as blobs) now stands under every flyer above ~1,400, so
+  the earth runs unbroken to the horizon at every height. Verified: fog
+  1,287 and carpet off at 800 up (bound inside true blocks); fog ~92,000
+  and carpet at full strength at 3,000 up.
+- **The streamed ring widens with speed** as well as height (13 → up to
+  21), the mesher's slice deepens at full wing (9 → 14 ms), and the build
+  queue is ranked from a point led out along the flyer's heading — the
+  ground he is rushing toward is laid first, not the ring behind him.
+- **Every living spawn ring rides the haze.** Land beasts (850–1,250),
+  birds (430–1,200) and the whale pods (1,250+) were all tuned to a fog
+  that shuts at 1,140 — under a flyer's opened air they materialised in
+  plain sight. Each ring now follows `fog.far` (capped where a beast is
+  beneath seeing anyway), and villages and landmarks raise themselves
+  further out under an open sky (villages to ~3,000, landmarks ×1.8), so
+  no town or temple pops inside the view.
+
+**5. The scrolls lie on open ground (`placeScrolls`).**
+- The old reach (74–190 from the site) landed squarely inside the ring
+  where a village raises its houses — and deeper still inside a great
+  city's lots — which is how scrolls came to lie under floors and inside
+  the hills towns are cut into. A scroll now starts PAST the town's whole
+  footprint (210+ for villages, 400+ for cities) and walks outward,
+  swinging off its bearing a little at a time, until it finds LEVEL, open,
+  dry ground: never at a cliff's foot (no neighbour cell more than 2
+  blocks off), never on a tree, never in the court of a landmark (kept
+  off by their charted stations, known before any masonry builds).
+- At first sight the scroll re-seats on the true walking surface and, if
+  a town has since raised a wall over the very stone, steps out along its
+  bearing until it stands in the open. Verified: all eight scrolls on
+  level open ground, none steep, none treed, none in masonry.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
