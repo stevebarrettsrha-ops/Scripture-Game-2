@@ -10719,16 +10719,21 @@ function cameraTick(dt){
          himself stays in the frame, in front of his own wall. */
       if(want<1){
         const runXZ=Math.max(1,Math.sqrt(dx4*dx4+dz4*dz4));
-        for(let g2=0;g2<10&&want>0.021;g2++){
+        const wMin=Math.min(0.5,2.4/Math.max(dist,2.4));
+        for(let g2=0;g2<10&&want>wMin+0.001;g2++){
           const ht=houseTopAt(ox+dx4*want,oz+dz4*want);
           if(ht<=-1e8||oy+dy4*want>ht+1.2) break;   /* clear ground, or clear OVER the ridge */
-          want=Math.max(0.02,want-1.6/runXZ); }
+          want=Math.max(wMin,want-1.6/runXZ); }
       }
     }
     /* eased, and never snapped: QUICKLY IN, so no stone ever crosses the
-       lens, and SLOWLY OUT, so the view opens again without a lurch */
+       lens, and SLOWLY OUT, so the view opens again without a lurch.
+       The bottom of the ease is measured in UNITS, not in shares: two
+       hundredths of a long boom is eight units, which quietly stood the
+       eye back inside the very wall the walk had just come in short of. */
+    const clearMin=Math.min(0.5,2.4/Math.max(dist,2.4));
     camClear+=(want-camClear)*Math.min(1,dt*(want<camClear?16:2.6));
-    camClear=camClear>1?1:camClear<0.02?0.02:camClear;
+    camClear=camClear>1?1:camClear<clearMin?clearMin:camClear;
     if(camClear<0.999){
       camPos.x=ox+(camPos.x-ox)*camClear;
       camPos.y=oy+(camPos.y-oy)*camClear;
