@@ -67,41 +67,41 @@ is a warm shift at constant value.
 
 | texture | was | now | recipe | why |
 |---|---|---|---|---|
-| `grassTop` | `124,178,86` | `119,131,89` | `mix(terreVerte,olivine,.35)` | Mediterranean olive, not an English lawn |
-| `grassTopTr` | `96,190,92` | `81,120,73` | `shade(mix(sap,malachite,.45),.94)` | rain forest reads **dark**, never acid |
-| `grassTopTu` | `136,148,96` | `138,145,104` | `mix(olivine,ash,.34)` | tundra, dulled |
+| `grassTop` | `124,178,86` | `119,131,87` | `mix(terreVerte,olivine,.35)` | Mediterranean olive, not an English lawn |
+| `grassTopTr` | `96,190,92` | `81,118,69` | `shade(mix(sap,malachite,.45),.94)` | rain forest reads **dark**, never acid |
+| `grassTopTu` | `136,148,96` | `138,144,104` | `mix(olivine,ash,.34)` | tundra, dulled |
 | `grassTopSv` | `190,166,96` | `192,157,88` | `mix(ochre,darkOchre,.18)` | the plain was already right — barely moved |
 | `grassSide` | `134,96,67` | `137,105,74` | `mix(rawUmber,clay,.30)` | with a `terreVerte` lip |
 | `grassSideSv` | `142,102,64` | `164,106,74` | `mix(clay,redOchre,.28)` | red dirt under dun stubble |
-| `dirt` | `134,96,67` | `134,104,73` | `mix(rawUmber,clay,.24)` | more value spread |
+| `dirt` | `134,96,67` | `135,104,73` | `mix(rawUmber,clay,.24)` | more value spread |
 | `path` | `148,124,82` | `166,141,95` | `mix(darkOchre,ash,.30)` | trodden pale |
 | `soil` | `96,66,42` | `85,58,40` | `shade(burntUmber,.92)` | with drawn furrows |
-| `sand` | `219,207,163` | `188,163,127` | `mix(sandstone,ochre,.26)` | warmer, browner — desert, not bleached bone |
+| `sand` | `219,207,163` | `192,163,113` | `mix(sandstone,ochre,.26)` | warmer, browner — desert, not bleached bone |
 | `stone` | `125,125,125` | `146,138,122` | `limestone`, + pale bedding veins | **the stone of that world is limestone** |
-| `cobble` | `92,92,92` | `142,134,116` on dark mortar | `mix(limestone,ash,.18)` | hewn courses, not crushed gravel |
+| `cobble` | `92,92,92` | `150,142,127` on dark mortar | `mix(limestone,ash,.18)` | hewn courses, not crushed gravel |
 | `snow` | `240,246,250` | `236,242,248` | `snow` | |
 | `ice` | `160,190,230` | `156,186,222` | `glacier` + `rime` glints | |
 | `water` | `52,94,168` | `46,102,128` | `teal` | teal-leaning; not cobalt |
 | `surf` | fixed white-blue | `lift(teal,.86)` | | |
-| `planks` | `168,134,80` | `186,148,84` | `mix(rawSienna,ochre,.34)` | + a true run of grain |
-| `roof` | `122,88,54` | `138,92,60` | `mix(burntSienna,rawUmber,.36)` | fired clay tile |
-| `logSide` | `104,82,50` | `113,88,61` | `mix(rawUmber,burntUmber,.34)` | deep fissures + fine checking |
-| `logTop` | `104,82,50` | `139,113,67` | `mix(rawUmber,ochre,.20)` | + drawn annual rings |
-| `leaves` | `64,120,44` | `107,129,75` | `mix(sap,terreVerte,.42)` | + per-species tint (already in the flora) |
-| `leavesTr` | `52,138,52` | `87,126,73` | `mix(sap,malachite,.42)` | |
-| `acacia` | `104,126,66` | `127,137,102` | `mix(terreVerte,ash,.22)` | thin and grey against the sky |
-| `cherry` | `244,170,205` | `210,176,178` | `mix(madder,chalk,.66)` | madder, not bubblegum |
-| `tallgrass` | `92,160,64` | `109,129,80` | `mix(terreVerte,sap,.34)` | |
-| `savgrass` | `196,172,96` | `205,178,109` | `mix(ochre,bone,.20)` | |
+| `planks` | `168,134,80` | `183,140,77` | `mix(rawSienna,ochre,.34)` | + a true run of grain |
+| `roof` | `122,88,54` | `138,90,58` | `mix(burntSienna,rawUmber,.36)` | fired clay tile |
+| `logSide` | `104,82,50` | `113,87,61` | `mix(rawUmber,burntUmber,.34)` | deep fissures + fine checking |
+| `logTop` | `104,82,50` | `139,113,74` | `mix(rawUmber,ochre,.20)` | + drawn annual rings |
+| `leaves` | `64,120,44` | `104,127,74` | `mix(sap,terreVerte,.42)` | + per-species tint (already in the flora) |
+| `leavesTr` | `52,138,52` | `87,126,72` | `mix(sap,malachite,.42)` | |
+| `acacia` | `104,126,66` | `127,137,104` | `mix(terreVerte,ash,.22)` | thin and grey against the sky |
+| `cherry` | `244,170,205` | `210,175,170` | `mix(madder,chalk,.66)` | madder, not bubblegum |
+| `tallgrass` | `92,160,64` | `109,128,80` | `mix(terreVerte,sap,.34)` | |
+| `savgrass` | `196,172,96` | `204,175,115` | `mix(ochre,bone,.20)` | |
 | `flowerR` | `200,44,36` | `190,64,46` | `cinnabar` | |
 | `flowerY` | `232,208,60` | `222,176,70` | `saffron` | |
-| `crop` | `96,178,66` | `139,141,80` | `mix(sap,ochre,.34)` | |
-| `haySide`/`hayTop` | `196,160,58` | `206,172,79` | `mix(ochre,saffron,.26)` | |
+| `crop` | `96,178,66` | `131,137,72` | `mix(sap,ochre,.34)` | |
+| `haySide`/`hayTop` | `196,160,58` | `204,166,86` | `mix(ochre,saffron,.26)` | |
 | `wool` | `236,233,226` | `230,223,206` | `bone` + a **woven** over-and-under | |
-| `glass` | `200,225,235` | `162,213,187` @ .30 | `mix(verdigris,chalk,.72)` | old glass is green |
-| `badTop` | `201,120,66` | `174,104,68` | `mix(terracotta,burntSienna,.30)` | |
+| `glass` | `200,225,235` | `193,207,196` @ .30 | `mix(verdigris,chalk,.72)` | old glass is green |
+| `badTop` | `201,120,66` | `174,104,67` | `mix(terracotta,burntSienna,.30)` | |
 | `badSide` | 5 fixed bands | 5 pigment bands | terracotta/sienna/sandstone/bone/redOchre | |
-| `benchTop`/`benchSide` | `168,134,80` | `186,148,84` | `mix(rawSienna,ochre,.34)` + `iron` | |
+| `benchTop`/`benchSide` | `168,134,80` | `183,140,77` | `mix(rawSienna,ochre,.34)` + `iron` | |
 | `door` | `124,94,56` | `mix(rawUmber,rawSienna,.35)` | + `bronze` handle, `indigo` glass | |
 | `kelp` | `40,118,64`/`58,164,90` | terre verte + malachite | | §8: the feeling, not the palette |
 | `seagrass` | `70,168,86` | malachite + sap | | |
@@ -410,9 +410,13 @@ hundred frames standing still** at each, reporting mean, p95, triangles and draw
 is the frame budget the brief asks to be watched like a hawk, and it is now one command.
 
 Acceptance tests 1–12 are written as `tools/acceptance.js`, one function per test, each
-returning `{n, ok, got}`. Tests **10 and 12 pass today** (AO present; ocean and plains chunk
-build unchanged); 1–9 and 11 are red and will stay red, by design, until Phases 1–3 land —
-a red test that names exactly what is missing is worth more than an absent one.
+returning `{n, ok, got}`. Tests **10 and 12 pass today** — the occlusion is measurably baked
+into 90,352 vertices of built grass (darkest corner 0.550, where every one of them was
+exactly 1.000 before), and ocean and plains chunks build at 2.253 and 2.131 ms against a
+2.152 / 1.970 baseline taken from a `git worktree` of the commit before Phase 0. Tests 1–9
+and 11 report PENDING and name exactly what they wait on; they will stay that way, by
+design, until Phases 1–3 land. A red test that says what it wants is worth more than an
+absent one.
 
 ---
 
@@ -472,6 +476,11 @@ that gets cheaper the sooner it is done.
 - two live bugs found by the harness and fixed (`setLocalHour` NaN-ing the world clock;
   `audioTick` throwing out of the render loop on a non-finite gain)
 - `tools/harness.js`, `tools/shots.js`, `tools/acceptance.js`
+
+Two further items from §2 were cheap enough to take now and are in as well: the **haze
+graded per country and per hour** (§2.1.5) and **`js/gait.js` — six true quadruped gaits**
+(§2.3.2), chosen by speed in the beast's own body lengths, with `pace:true` the only thing
+any species says about its own going and it says it in data.
 
 **Next, in the brief's own order:** Phase 1 — spans, gated volumetric caves, span-aware
 `groundInfo`, underground light, the torch. Acceptance tests 1–4 and 11.

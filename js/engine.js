@@ -2808,9 +2808,9 @@ function gradeHaze(px,pz,dayF,storm){
      no country under the eye at all */
   if(hz) _hazeT.setRGB(hz[0]/255,hz[1]/255,hz[2]/255);
   else _hazeT.copy(scene.fog.color);
-  _hazeC.lerp(_hazeT,0.035);           /* a slow turn of the horizon, never a switch */
+  _hazeC.lerp(_hazeT,0.055);           /* a slow turn of the horizon, never a switch */
   const wantK=hz?1:0;
-  _hazeK+=(wantK-_hazeK)*0.035;
+  _hazeK+=(wantK-_hazeK)*0.055;
   /* the strength: full in the middle of the day, gone by night, and put
      down in foul weather when the storm owns the air */
   const k=_hazeK*Math.max(0,dayF*1.15-0.15)*(1-storm*0.85);
@@ -3459,10 +3459,16 @@ function jointTick(L,moving,knee){
    A body of fewer or more than four legs is left exactly as it was: the
    folk on the deck, the villagers in the street and the fowl of the air
    keep the walk they have always had. */
+/* a beast's own length never changes, and it is asked once a frame for every
+   beast on the ground — so it is looked up once and remembered */
+const _bodyLen=new Map();
+function bodyLenOf(kind){ let v=_bodyLen.get(kind);
+  if(v===undefined){ v=Math.max(2,beastUnits(kind)||12); _bodyLen.set(kind,v); }
+  return v; }
 function tickGait(ent,kind,spd,dt,amp0){
   const legs=ent.m&&ent.m.userData&&ent.m.userData.legs;
   if(!legs||legs.length!==4||!window.GAIT||legs[0].userData.foot===undefined) return null;
-  const len=Math.max(2,beastUnits(kind)||12);
+  const len=bodyLenOf(kind);
   const bl=Math.max(0,spd)/len;                    /* body lengths a second */
   if(bl<0.035){ for(const L of legs){ L.rotation.x=0; jointTick(L,false); } ent.gph=0; return null; }
   const B2=window.BEHAVIOR;
@@ -12153,7 +12159,7 @@ if(!window.__HOST_BOOT){
 /* a small debug handle — used by the automated smoke tests; harmless in play */
 window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   /* the light in the corners, and the count of standing chunks — tools/acceptance.js */
-  aoLevel,aoTop,chunkCount:()=>chunks.size,
+  aoLevel,aoTop,chunkCount:()=>chunks.size,bodyLenOf,
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
   farLand,updateFarLand,mountUpliftAt,MOUNTS,ridgeNoise,B,R_WORLD,
   AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,RANGES,FALLS,activeLandmarks,LANDMARKS,

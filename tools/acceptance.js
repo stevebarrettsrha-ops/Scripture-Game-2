@@ -191,6 +191,23 @@ T[12]={name:'ocean and plains chunks build no slower than they did',
   const nums=(want.length?want:Object.keys(T).map(Number)).sort((a,b)=>a-b);
   const {browser,page,errs}=await open({});
   await sail(page,true);
+  /* ---- AND THE TESTS ARE RUN ASHORE ----
+     Setting sail leaves the traveller at the helm in open water, where there
+     is no ground under him, no house beside him and no grass in view — and a
+     test for the shading of a grass block that is run out at sea does not
+     fail, it simply finds nothing, which is worse. Every test below wants
+     land, so the world is stood on before any of them is asked. */
+  await page.evaluate(async()=>{
+    const D=window.__VDBG, W=window.__WORLD, S=W.sites();
+    let site=null;
+    for(let i=0;i<S.length;i++) if(S[i]&&D.COUNTRIES[i].n==='Yasharal'){ site=S[i]; break; }
+    if(!site) for(let i=0;i<S.length;i++) if(S[i]){ site=S[i]; break; }
+    const idx=D.DAYPARTS.findIndex(d=>d.k==='noon'); if(idx>=0) D.state.dayIdx=idx;
+    D.state.walk.x=site.x; D.state.walk.z=site.z-260; D.state.walk.feetY=undefined;
+    D.setMode('walk'); D.applyDayPart();
+    for(let k=0;k<40;k++){ D.updateChunks(site.x,site.z,400);
+      await new Promise(r=>requestAnimationFrame(r)); }
+  });
   const ctx={ reload:async()=>{ await page.reload();
     await page.waitForFunction(()=>window.__VDBG&&document.getElementById('menu')&&
       getComputedStyle(document.getElementById('menu')).display!=='none',null,{timeout:180000});

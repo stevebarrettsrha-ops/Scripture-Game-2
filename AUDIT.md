@@ -1131,10 +1131,46 @@ the commit before Phase 0 on the same machine and the same software
 rasteriser. *(SwiftShader is neither a phone nor a GPU: these are
 comparative numbers between builds, not absolute ones.)*
 
-PERF_TABLE_HERE
+| station | before | after | triangles before → after |
+|---|---|---|---|
+| a village at noon | 668.90 ms · p95 762.7 | **598.96 ms** · p95 633.2 | 469,264 → 469,624 |
+| the cedar coast | 671.99 ms · p95 789.7 | **595.25 ms** · p95 636.1 | 490,352 → 491,408 |
+| open sand | 624.20 ms · p95 722.8 | **575.56 ms** · p95 607.8 | 420,834 → 424,098 |
+| closed rain forest | 878.09 ms · p95 1010.5 | **806.91 ms** · p95 861.8 | 682,076 → 682,776 |
+| alpine rock and snow | 603.02 ms · p95 648.9 | **592.68 ms** · p95 627.6 | 497,106 → 494,910 |
+| a cold coast | 505.33 ms · p95 530.8 | **506.14 ms** · p95 540.6 | 392,658 → 387,402 |
 
-Ocean and plains chunks build at BUILD_HERE — acceptance test 12, the
-regression that matters most, holds.
+**Triangles are unchanged to within a tenth of a per cent** — which is the
+whole point of baking the occlusion into vertex colours that were already
+being written: it adds no geometry, no material and no draw call. Frame time
+came out level or a little better at every station; that is run-to-run
+variance on a software rasteriser, not a speed-up, and the honest reading is
+**no measurable cost**.
+
+The mesher itself is a few per cent dearer, as it should be — four extra
+neighbour lookups on every land column (cache hits) and one branch per face:
+
+
+**2.253 ms/chunk over open ocean (was 2.152) and 2.131 ms/chunk over open
+plain (was 1.970)** — +4.7% and +8.2%, inside test 12's 15% tolerance and
+paid only at build time. Acceptance test 12 — the regression that matters
+most — holds, and its baseline is a `git worktree` of the commit before
+Phase 0 measured with the same probe on the same machine.
+
+**Acceptance:** 10 and 12 PASS. 1–9 and 11 report PENDING and name what they
+wait on (spans, the edit overlay, the block stamps). Test 10 reads both the
+rule and the world: `aoLevel(0,0,0)` is exactly 1, one neighbour gives 0.87,
+an inside corner 0.55 — and across 193 top-face meshes and 90,352 vertices of
+built grass the darkest baked corner is 0.550. Before this round every one of
+those vertices was exactly 1.000.
+
+**The gaits, seen on the plain:** 92 of 96 standing beasts carry four named
+feet (the rest are not four-footed). Caught under way at noon in Kenya — a
+**gazelle** at `[0.380, −0.426, −0.426, 0.380]`, the diagonal pairs together:
+a true TROT; an **oryx** and a **donkey** at `[−0.243, 0.373, 0.053, −0.266]`,
+all four feet at different moments and only ONE knee folded at a time: a true
+four-beat WALK. Two gaits, chosen by nothing but speed, on the same ground in
+the same second — which the world could not do at all before this round.
 
 **Still ahead, and not begun:** Phase 1 — spans, gated volumetric caves,
 span-aware collision, the light underground and the torch. `PLAN.md` sets
