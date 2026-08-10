@@ -18,8 +18,17 @@ const {open,sail}=require('./harness.js');
    commit before Phase 0 (`git worktree` at HEAD~1, same probe, same run).
    Test 12 holds the line here. These are comparative numbers between
    builds, not absolute ones — SwiftShader is not a phone and is not a GPU.
-   If you move them, say so in AUDIT.md and say why. */
-const BASELINE={ ocean:2.152, plain:1.970, slack:1.15 };
+   If you move them, say so in AUDIT.md and say why.
+
+   AND THE SLACK IS WIDE ON PURPOSE. These were taken on a quiet machine;
+   the same probe on the same commit reads 20–45 % higher when the box is
+   busy, and this test has cried wolf over exactly that. Measured back to
+   back on a loaded machine, the commit BEFORE the caves read 3.144 ms and
+   the commit after read 2.993 — the code got no slower, the machine got
+   busier. So the guard is set to catch a real regression (a third again as
+   dear) and not to catch the weather. If it fails, re-measure the previous
+   commit in a worktree before believing it. */
+const BASELINE={ ocean:2.152, plain:1.970, slack:1.35 };
 
 const T={};   /* n -> {name, run(page) -> {ok, got, pending?}} */
 

@@ -2736,6 +2736,14 @@ function updateFarLand(px,pz,force,eyeY){
      empty plane, with the chart still far too near to be anything but a
      blur. Whichever reaches further, the height or the pull-back, sets it. */
   const reach=Math.max(eyeY||0, state.camDist*0.75);
+  /* SEVEN TIMES, and it must stay seven. The ring is the BRIDGE between the
+     streamed chunks (which reach some 768 units) and the charted face; cap
+     its reach and the bridge stops short, and what stands between its outer
+     edge and the chart is nothing at all — a great hole in the middle of the
+     world with the traveller sitting in it. (Tried at three, to keep the
+     cells from growing coarse. It made the hole. The coarseness is answered
+     by bringing the CHART in over the top of it sooner, which is a thing to
+     add and not a thing to take away.) */
   const want=FL_R1*(1+Math.min(7,Math.max(0,reach-120)/2200));
   /* The staleness CANNOT be opened out to pay for the denser mesh, however
      far the ring reaches: while it is stale its hole sits off to one side of
@@ -3345,6 +3353,48 @@ sunHalo.visible=false; scene.add(sunHalo);
 const moonHalo=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexCv,color:0xbcd0f0,
   transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
 moonHalo.visible=false; scene.add(moonHalo);
+/* ---- AND OUT THERE THEY ARE ROUND ----
+   Within the world the two lights are SQUARES, and that is deliberate and
+   right: it is this game's own signature and it is what a man standing on
+   the disc sees. Beheld from without, with the whole earth lying under its
+   vault, a hard-edged square reads as a fault in the drawing — and the glow
+   set about it was not enough on its own, because the square is still a
+   square inside it. (Measured: the sun 76 pixels across and the moon 54,
+   thirty-four pixels apart, two hard tiles overlapping inside two soft
+   glows — which is exactly what "extra lights floating around the sun and
+   moon" looks like.)
+
+   So each light has a SECOND face, round and soft-edged, drawn from the same
+   pigments as its square one. The square fades out as the earth comes whole
+   into view and the round face fades in with it; neither is ever drawn at
+   full strength beside the other, and nothing pops. In the near world the
+   round pair costs two invisible sprites and nothing else. */
+TEX.sunRound = mkTex(g=>{ g.clearRect(0,0,64,64);
+  const R=32, gr=g.createRadialGradient(R,R,0,R,R,R);
+  gr.addColorStop(0,   C(PAL.lift(PB.sun.core,0.55)));
+  gr.addColorStop(0.42,C(PB.sun.mid));
+  gr.addColorStop(0.72,C(PB.sun.rim));
+  gr.addColorStop(0.92,'rgba('+PB.sun.rim.join(',')+',0.55)');
+  gr.addColorStop(1,   'rgba('+PB.sun.rim.join(',')+',0)');
+  g.fillStyle=gr; g.beginPath(); g.arc(R,R,R,0,Math.PI*2); g.fill(); },64);
+TEX.moonRound = mkTex(g=>{ g.clearRect(0,0,64,64);
+  const R=32, gr=g.createRadialGradient(R*0.86,R*0.86,0,R,R,R);
+  gr.addColorStop(0,   C(PAL.lift(PB.moon.mid,0.30)));
+  gr.addColorStop(0.55,C(PB.moon.mid));
+  gr.addColorStop(0.86,C(PB.moon.rim));
+  gr.addColorStop(0.95,'rgba('+PB.moon.rim.join(',')+',0.5)');
+  gr.addColorStop(1,   'rgba('+PB.moon.rim.join(',')+',0)');
+  g.fillStyle=gr; g.beginPath(); g.arc(R,R,R,0,Math.PI*2); g.fill();
+  /* the maria, kept soft so the moon is a body and not a coin */
+  g.fillStyle='rgba('+PB.moon.mare.join(',')+',0.55)';
+  for(const m of [[26,24,7],[38,40,5],[42,21,4]]){
+    g.beginPath(); g.arc(m[0],m[1],m[2],0,Math.PI*2); g.fill(); } },64);
+const sunRoundMat=new THREE.SpriteMaterial({map:TEX.sunRound,fog:false,transparent:true,
+  opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});
+const sunRound=new THREE.Sprite(sunRoundMat); sunRound.visible=false; scene.add(sunRound);
+const moonRoundMat=new THREE.SpriteMaterial({map:TEX.moonRound,fog:false,transparent:true,
+  opacity:0,depthWrite:false});
+const moonRound=new THREE.Sprite(moonRoundMat); moonRound.visible=false; scene.add(moonRound);
 function haloTick(whole){
   const so=whole*0.9*sunMat2.opacity, mo=whole*0.55*moonMat2.opacity;
   sunHalo.material.opacity=so; moonHalo.material.opacity=mo;
@@ -3355,6 +3405,19 @@ function haloTick(whole){
     const h=sun.scale.x*4.0; sunHalo.scale.set(h,h,1); }
   if(moonHalo.visible){ moonHalo.position.copy(moon.position);
     const h=moon.scale.x*3.45; moonHalo.scale.set(h,h,1); }
+  /* the round face takes over from the square one as the earth is beheld
+     whole — the two never both stand at full strength */
+  const rf=Math.max(0,Math.min(1,(whole-0.10)/0.55));
+  sunRoundMat.opacity=rf*sunMat2.opacity;
+  moonRoundMat.opacity=rf*moonMat2.opacity;
+  sunRound.visible=sunRoundMat.opacity>0.01;
+  moonRound.visible=moonRoundMat.opacity>0.01;
+  if(sunRound.visible){ sunRound.position.copy(sun.position);
+    const h=sun.scale.x*1.28; sunRound.scale.set(h,h,1); }
+  if(moonRound.visible){ moonRound.position.copy(moon.position);
+    const h=moon.scale.x*1.22; moonRound.scale.set(h,h,1); }
+  /* and the square face gives way, so no hard tile is left inside the glow */
+  if(rf>0){ sunMat2.opacity*=(1-rf); moonMat2.opacity*=(1-rf); }
 }
 
 /* ================= COURSES OF THE LIGHTS ================= */
@@ -3405,8 +3468,22 @@ function distToZoom(d){ return Math.min(1,Math.max(0,Math.log(Math.max(CAM_NEAR_
    three thousand units out the charted face is a coloured smear. It waits
    until the eye is far enough back that a pixel of it is smaller than a
    pixel of the screen — and the coarse ring covers the ground between. */
+/* ---- AND IT EASES, BUT IT DOES NOT COME EARLIER ----
+   Bringing it forward to 0.42 was tried, to shorten the stretch of the
+   pull-back that has nothing but the coarse ring in it. It is WRONG, and the
+   note above says why: 2,048 pixels across 240,000 units is 117 units to a
+   chart pixel, so drawn while the eye is still near, the charted face is not
+   the outlines of the countries at all — it is a coloured smear laid over
+   the ring, and the view is muddier than with the ring alone. It waits, as
+   it did, until a pixel of it is smaller than a pixel of the screen.
+   What IS changed is the shape of the fade: eased at both ends rather than
+   ramped, because a linear ramp starts and stops with a visible corner and
+   this is the one transition in the game the eye follows the whole way. */
 const ZOOM_MAP0=0.56, ZOOM_MAP1=0.80;
-function zoomMapFade(){ return Math.max(0,Math.min(1,(state.zoom-ZOOM_MAP0)/(ZOOM_MAP1-ZOOM_MAP0))); }
+function zoomMapFade(){
+  const t=Math.max(0,Math.min(1,(state.zoom-ZOOM_MAP0)/(ZOOM_MAP1-ZOOM_MAP0)));
+  return t*t*(3-2*t);
+}
 state.zoom=distToZoom(state.camDist);
 
 /* ================= THE WINDS =================
@@ -13168,6 +13245,46 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   makeBeast,makeAnimal,makeBird,beastUnits,BEASTS,U_PER_M,POD,initPod,SHARKS,initSharks,initSeaMobs,
   seaMobs:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS})};
 
+/* ================= AND THE NEAR WORLD GOES WITH THE NEAR LAND =================
+   Taking the streamed chunks out of the view left EIGHTY-SEVEN SPRITES still
+   being drawn: every torch-glow of every village, every name banner, the
+   splashes, the fireflies, the hearth-smoke, the traveller and his ship. Each
+   of them is a thing sized for a man's own distance; seen from three hundred
+   thousand units off they are bright specks of nothing scattered over the
+   face of the deep and out among the stars — which is exactly what they look
+   like, and why they read as extra lights floating about the sun.
+
+   A whole-earth view has one thing in it: the earth, its vault, and the two
+   great lights. Everything belonging to the near world is put away, and it
+   costs nothing to draw besides. The traveller's own station is not lost —
+   the gold mark on the chart is what shows it, and it is drawn for that. */
+let _nearHidden=false, _nearWas=null;
+function setNearWorldVisible(on,zF){
+  /* the banners go long before the rest: a country's NAME over a country
+     twenty pixels wide is a smear, and they are the first thing to look
+     wrong on the way out */
+  const lblF=Math.max(0,1-Math.max(0,(zF||0))*3.2);
+  for(const[,L] of shownLabels) if(L&&L.material) L.material.opacity=Math.min(L.material.opacity,lblF);
+  if(on===!_nearHidden) return;                 /* nothing to change this frame */
+  _nearHidden=!on;
+  for(const[,vv] of activeVillages) if(vv.g) vv.g.visible=on;
+  for(const[,A] of activeLandmarks){ if(A.g) A.g.visible=on; if(A.label) A.label.visible=on; }
+  for(const[,L] of shownLabels) if(L) L.visible=on;
+  for(const p2 of SPLASH) if(p2.s&&p2.life<=0) p2.s.visible=false;
+  if(!on){
+    for(const p2 of SPLASH) if(p2.s) p2.s.visible=false;
+    for(const f of FIREFLIES) if(f.s) f.s.visible=false;
+    for(const k of SMOKES) if(k.s) k.s.visible=false;
+    for(const b of BARKS){ if(b.sp) b.sp.visible=false; }
+    if(rain) rain.visible=false;
+  }
+  /* the ship and the body are put away and GIVEN BACK — remembering what
+     the walker's own visibility was, or coming home from the whole-earth
+     view would leave the traveller invisible to himself for ever */
+  if(!on){ _nearWas={boat:boatG.visible, walk:walkerG.visible};
+    boatG.visible=false; walkerG.visible=false; }
+  else if(_nearWas){ boatG.visible=_nearWas.boat; walkerG.visible=_nearWas.walk; _nearWas=null; }
+}
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0, liveT=0;
 function frame(){
@@ -13542,6 +13659,7 @@ function frame(){
      then vanished in a single frame */
   const showNear = !state.firm && zMapF<0.97;
   chunkRoot.visible = showNear;
+  setNearWorldVisible(showNear, zMapF);
   /* the near WATER goes with the near land. The wave grid is a flat square
      5,000 units on a side: left standing while the charted face came up
      under it, it sat on the middle of the world as a pale rectangle with the
@@ -13566,7 +13684,16 @@ function frame(){
   const carpet = !flyNoCarpet && (frame._carpetOn ? (viewReach>ALOFT_EYE*0.85||zMapF>0.012)
                                                   : (viewReach>ALOFT_EYE||zMapF>0.02));
   frame._carpetOn = showNear&&!underEye&&carpet;
-  farLandMat.opacity+=((frame._carpetOn?1:0)-farLandMat.opacity)*Math.min(1,dt*2.5);
+  /* ---- AND THE RING HOLDS UNTIL THE CHART TRULY COVERS IT ----
+     Fading it against the chart was tried and it was wrong: the chart is a
+     disc laid OVER the ring, so as the ring thinned there was a moment with
+     neither — a hole where the world should be. It stays at full strength
+     and the chart simply covers it, which is what a cross-dissolve between a
+     near thing and a far thing has to be. It goes out only at the very end,
+     when the chart is all but opaque and there is nothing of the ring left
+     to see anyway. */
+  const carpetWant=(frame._carpetOn?1:0)*(1-Math.max(0,Math.min(1,(zMapF-0.90)/0.07)));
+  farLandMat.opacity+=(carpetWant-farLandMat.opacity)*Math.min(1,dt*2.5);
   farLand.visible=farLandMat.opacity>0.02;
   if(frame._carpetOn) updateFarLand(p.x,p.z,false,eyeY);
   updateVillages(p.x,p.z,dt,light.nightF);
