@@ -283,6 +283,28 @@ TEX.benchSide  = mkTex(g=>{ speckle(g,PB.benchSide.b,14,PB.benchSide.a,0.3);
   g.fillStyle=C(PB.benchSide.seam); g.fillRect(3,9,2,3);
   g.fillStyle=C(PB.benchSide.b); g.fillRect(10,5,4,2);
   g.fillStyle=C(PB.benchSide.iron); g.fillRect(11,7,2,4); },16,16,RIM);
+/* ---- AND THE MATERIALS OF SCRIPTURE ----
+   Brick, slime and salt: the three the world of §4 is actually built with
+   and the three the palette already had pigments for. Every one of them is
+   generated here like all the rest — nothing in this game is an image file. */
+TEX.brick      = mkTex(g=>{ speckle(g,PB.brick.mortar,8);
+  /* courses of squared brick, offset row by row, with the mortar recessed */
+  for(let r=0;r<4;r++){ const y=r*4, off=(r%2)?-2:0;
+    for(let c=-1;c<3;c++){ const x=off+c*6;
+      const t=jit(PB.brick.b,22,r*7+c);
+      g.fillStyle=rgb(t[0],t[1],t[2]); g.fillRect(x+FG,y+FG,6-2*FG,4-2*FG);
+      const hi=jit(PB.brick.face,12,r*3+c);
+      g.fillStyle=rgb(hi[0],hi[1],hi[2]); g.fillRect(x+FG,y+FG,6-2*FG,FG); } } },16,16,RIM);
+TEX.bitumen    = mkTex(g=>{ speckle(g,PB.bitumen.b,10,PB.bitumen.a,0.35);
+  /* it is WET, and the light lies on it in slicks rather than in grains */
+  g.fillStyle='rgba(120,132,140,0.16)';
+  for(let k=0;k<7;k++){ const x=hash2(k,3.1)*16, y=hash2(k,7.7)*16;
+    g.fillRect(x,y,2+hash2(k,1.3)*3,FG); } },16,16,RIM);
+TEX.salt       = mkTex(g=>{ speckle(g,PB.salt.b,14,PB.salt.a,0.3);
+  /* crystal: hard little facets that catch the light square-on */
+  for(let k=0;k<26;k++){ const x=Math.floor(hash2(k,2.7)*32)*FG, y=Math.floor(hash2(k,5.3)*32)*FG;
+    g.fillStyle=C(PB.salt.glint); g.fillRect(x,y,FG,FG);
+    if(hash2(k,9.1)>0.5) g.fillRect(x+FG,y,FG,FG); } },16,16,RIM);
 TEX.clouds     = mkTex(g=>{ g.clearRect(0,0,64,64);
   g.fillStyle='rgba(255,255,255,0.92)';
   for(let k=0;k<26;k++){ const x=Math.floor(hash2(k,11)*64), y=Math.floor(hash2(k,23)*64);
@@ -350,6 +372,7 @@ blockMat('flowerY',TEX.flowerY,{alphaTest:0.4}); blockMat('crop',TEX.crop,{alpha
 blockMat('glass',TEX.glass,{transparent:true,depthWrite:false});
 blockMat('door',TEX.door,{alphaTest:0.1});
 blockMat('waterB',TEX.water);
+blockMat('brick',TEX.brick); blockMat('bitumen',TEX.bitumen); blockMat('salt',TEX.salt);
 /* ---- THE WIND IN THE LEAVES ----
    Every leaf canopy, blade of grass, flower and crop sways on the wind: a
    vertex-shader ripple patched into the shared block materials. The chunk
@@ -480,8 +503,117 @@ const seaTex=TEX.water.clone(); seaTex.needsUpdate=true; seaTex.repeat.set(R_WOR
 seaTex.generateMipmaps=true; seaTex.minFilter=THREE.LinearMipmapLinearFilter;
 const seaMat=new THREE.MeshBasicMaterial({map:seaTex,transparent:true,opacity:0.82,side:THREE.DoubleSide});
 LIT.push(seaMat);
+/* ================= THE LIGHT A MAN CARRIES =================
+   A cave you can see in with no light source is not a cave — and a cave you
+   CANNOT see in with one is not a place, it is a wall. So the traveller
+   carries fire.
+
+   Every block in this world is drawn with an unlit material: the light on a
+   face is baked into its vertex colour and the whole set is tinted once by
+   the hour of the day. Nothing in it responds to a lamp, and putting a real
+   point light in the scene would mean lighting the entire earth per-pixel to
+   light nine blocks of it. So the torch is a UNIFORM instead — one position,
+   one reach, one strength, shared by every block material in the game and
+   worked out in the fragment: three instructions, no extra draw call, and
+   nothing whatever paid while it is out.
+
+   (The chunk mesher bakes its geometry in WORLD coordinates — the same
+   property the wind in the leaves leans on — so the vertex position IS the
+   world position and the distance to the flame is one subtraction.) */
+const TORCH_P={value:new THREE.Vector3(0,-1e7,0)}, TORCH_R={value:78}, TORCH_S={value:0};
+/* a material may already carry a patch (the wind, the snow, the turn of the
+   year). Chain onto it rather than over it — and give the chain its own key,
+   or three.js hands every patched material the first one's program. */
+function addPatch(mat,fn,key){
+  const prev=mat.onBeforeCompile, prevKey=mat.customProgramCacheKey;
+  mat.onBeforeCompile=sh=>{ if(prev) prev(sh); fn(sh); };
+  /* three.js's OWN default customProgramCacheKey reads `this.onBeforeCompile`
+     — so it must be called ON the material. Called bare it throws inside the
+     renderer, every frame, out of the render and out of the world with it. */
+  mat.customProgramCacheKey=function(){ return (prevKey?prevKey.call(this):'')+'|'+key; };
+  mat.needsUpdate=true;
+}
+function torchLight(mat){
+  addPatch(mat,sh=>{
+    sh.uniforms.uTorchP=TORCH_P; sh.uniforms.uTorchR=TORCH_R; sh.uniforms.uTorchS=TORCH_S;
+    sh.vertexShader='varying vec3 vTPos;\n'+sh.vertexShader.replace(
+      '#include <begin_vertex>','#include <begin_vertex>\n  vTPos=position;');
+    sh.fragmentShader='uniform vec3 uTorchP;\nuniform float uTorchR;\nuniform float uTorchS;\nvarying vec3 vTPos;\n'+
+      sh.fragmentShader.replace('#include <color_fragment>',
+        '#include <color_fragment>\n'+
+        '  if(uTorchS>0.001){ float d=distance(vTPos,uTorchP);\n'+
+        '    float t=max(0.0,1.0-d/uTorchR);\n'+
+        '    diffuseColor.rgb*=1.0+uTorchS*t*t*7.0; }');
+  },'torch');
+}
+/* every block material that exists at this point takes the torch, and so
+   does every one made later — the far land, the beasts' own materials and
+   the villagers' cloth are all enrolled in LIT after this line, and a man
+   holding a lamp lights the creature in front of him or he does not have a
+   lamp. `torched` is a WeakSet rather than a flag on the material so
+   nothing has to remember to set it. */
+const _torched=new WeakSet();
+function torchAll(){
+  for(const m of LIT) if(!_torched.has(m)){ _torched.add(m); torchLight(m); }
+  for(const m of ICE_MATS) if(!_torched.has(m)){ _torched.add(m); torchLight(m); }
+}
+torchAll();
 const torchMat=new THREE.MeshBasicMaterial({color:0xffd75e});           // full-bright, never dimmed
 function setBlockLight(r,g2,b2){ for(const m of LIT) m.color.setRGB(r,g2,b2); }
+/* ---- THE FLAME ITSELF ----
+   Where it stands, how far it reaches, and how hard it burns — with a
+   flicker, because a steady lamp is a torch nobody believes. */
+const TORCH={on:false, s:0, t:0};
+function torchTick(dt){
+  torchAll();                                  /* anything newly made takes it too */
+  TORCH.t+=dt;
+  const want=TORCH.on?1:0;
+  TORCH.s+=(want-TORCH.s)*Math.min(1,dt*(TORCH.on?5:9));
+  if(TORCH.s<0.002){ TORCH_S.value=0; TORCH_P.value.y=-1e7; torchPropTick(); return; }
+  const fl=0.86+0.14*Math.sin(TORCH.t*11.3)+0.06*Math.sin(TORCH.t*27.7);
+  TORCH_S.value=TORCH.s*fl;
+  torchPropTick();
+  const p=playerXZ();
+  const y=(state.mode==='walk')?(state.walk.feetY!==undefined?state.walk.feetY+B*1.5:WATER_Y)
+        :(state.mode==='fly')?state.fly.y:(state.mode==='dive')?state.dive.y:WATER_Y+8;
+  TORCH_P.value.set(p.x,y,p.z);
+}
+/* ---- AND IT IS IN HIS HAND ----
+   A light with no lamp under it is a trick. A short haft of wood with a
+   knot of flame on its head, hung off the traveller's right arm so it
+   swings with his stride and is seen over his shoulder by his own camera. */
+let torchProp=null;
+function ensureTorchProp(){
+  if(torchProp||!walkerG.userData||!walkerG.userData.armR) return torchProp;
+  const g=new THREE.Group();
+  const haft=new THREE.Mesh(new THREE.BoxGeometry(0.55,3.4,0.55),MAT.logSide||MAT.barkW);
+  haft.position.y=-1.7; g.add(haft);
+  const fl=new THREE.Mesh(new THREE.BoxGeometry(1.05,1.25,1.05),torchMat);
+  fl.position.y=-3.5; g.add(fl);
+  const em=new THREE.Mesh(new THREE.BoxGeometry(1.7,1.9,1.7),
+    new THREE.MeshBasicMaterial({color:0xffb347,transparent:true,opacity:0.42,depthWrite:false}));
+  em.position.y=-3.5; g.add(em);
+  g.position.set(0,-4.0,0.9);
+  g.userData.flame=fl; g.userData.halo=em;
+  walkerG.userData.armR.add(g);
+  torchProp=g; g.visible=false;
+  return g;
+}
+function torchPropTick(){
+  const g=ensureTorchProp(); if(!g) return;
+  const show=TORCH.s>0.01&&(state.mode==='walk'||state.mode==='deck'||state.mode==='fly');
+  g.visible=show;
+  if(!show) return;
+  const f=0.8+0.35*Math.sin(TORCH.t*13.1)+0.1*Math.sin(TORCH.t*31.3);
+  g.userData.flame.scale.set(1,f,1);
+  g.userData.halo.scale.setScalar(0.9+0.25*f);
+  g.userData.halo.material.opacity=0.30+0.18*f;
+}
+function setTorch(on){ TORCH.on=!!on; updateTorchBtn();
+  if(on) toast('You strike a light. The dark of the earth gives back only what the flame reaches — carry it, and go down.'); }
+function updateTorchBtn(){ const b=$('b-torch'); if(!b) return;
+  b.textContent='\uD83D\uDD25 Torch: '+(TORCH.on?'lit':'out');
+  b.classList.toggle('off',!TORCH.on); }
 /* ================= THE ICE KEEPS ITS OWN LIGHT =================
    Every block in the world takes one global day-light. Out at the rim the sun
    is always far off — it runs its course between the tropics and never comes
@@ -504,6 +636,53 @@ function setIceLight(r,g2,b2){
   const t=Math.max(0,Math.min(1,(lum-0.26)/0.26));
   _iceC.copy(ICE_HUE).multiplyScalar(0.34+0.72*t);
   for(const m of ICE_MATS) m.color.copy(_iceC);
+}
+
+/* ================= THE BLOCKS THE WORLD IS MADE OF =================
+   blocks/ holds one file per kind of block, each calling EARTH.block({…}).
+   The mesher used to carry a table of ad-hoc material NAMES — 'grassTop',
+   'cobble', 'haySide' — which is a table of TEXTURES, not of materials: it
+   could say what a thing looked like and nothing whatever about how long it
+   took to break, what tool served, what it dropped or whether it stood on
+   nothing. This is the table of materials, and like everything else in this
+   project it is data.
+
+   A block has TWO names. Its `id` is a string and is stable for ever — it is
+   what a save file speaks, and it must never be renumbered. Its number is
+   assigned here, in load order, purely so that an edit can be written down
+   in two bytes instead of twelve; and because that number is an accident of
+   load order, EVERY SAVE CARRIES ITS OWN TABLE of name-to-number, so a block
+   inserted into the manifest next year cannot turn a man's house to salt. */
+const BLOCK_DEFS=(window.EARTH&&EARTH.blockList)||[];
+const BLOCKS=[null], BLOCK_BY_ID=Object.create(null);
+for(let i=0;i<BLOCK_DEFS.length;i++){
+  const d=BLOCK_DEFS[i];
+  const b={ n:i+1, id:d.id, name:d.name||d.id, tex:d.tex||{},
+    hardness:(d.hardness===undefined?1.5:d.hardness), tool:d.tool||null,
+    drops:(d.drops===undefined?d.id:d.drops),
+    light:d.light||0, opaque:d.opaque!==false, gravity:!!d.gravity,
+    liquid:!!d.liquid, verse:d.verse||null };
+  /* the three faces the mesher asks for, resolved once so it never has to */
+  b.mTop=b.tex.top||b.tex.all||'stone';
+  b.mSide=b.tex.side||b.tex.all||b.mTop;
+  b.mBottom=b.tex.bottom||b.tex.all||b.mSide;
+  BLOCKS.push(b); BLOCK_BY_ID[d.id]=b;
+}
+function blockOf(n){ return BLOCKS[n]||null; }
+function blockId(id){ const b=BLOCK_BY_ID[id]; return b?b.n:0; }
+function blockName(n){ const b=BLOCKS[n]; return b?b.name:'Air'; }
+/* the block a stretch of ground is MADE of, so that breaking the world gives
+   back the thing that was there and not a generic lump. The mesher's own
+   kinds are the key; anything it has no word for gives stone. */
+const KIND_BLOCK={ grass:'grass', tropic:'grass', tundra:'grass', savanna:'grass',
+  sand:'sand', desert:'sand', snow:'snow', wall:'ice', floe:'ice',
+  rock:'stone', alpine:'dirt', badlands:'clay-band' };
+function surfaceBlockOf(kind){ return blockId(KIND_BLOCK[kind]||'stone'); }
+function depthBlockOf(kind){
+  if(kind==='sand'||kind==='desert') return blockId('sand');
+  if(kind==='badlands') return blockId('clay-band');
+  if(kind==='wall'||kind==='floe') return blockId('ice');
+  return blockId('stone');
 }
 
 /* ================= TERRAIN (heightmap voxels) ================= */
@@ -649,6 +828,19 @@ for(const L of LANDMARKS){ if(L.kind!=='range') continue;
    at the foot, the pool, and the stream running away out of it. Dunn's
    River, Kaieteur, Trafalgar and their fellows — each in its own land,
    each secret:1: no banner, no mark, found by walking the island. */
+/* ================= AND THE HOLLOW PLACES UNDER THEM =================
+   js/caves.js is the whole law of the caves and knows nothing of this
+   world; it is handed the countries the caves belong to, once, here. Every
+   named range and every named summit carries a cave country about it, so
+   the hollow places are where a traveller would go looking for them — and
+   js/caves.js adds a sparse worldwide scatter of its own besides, so a man
+   who never climbs a named mountain still finds a way down. */
+if(window.CAVES){
+  const seeds=[];
+  for(const g of RANGES) seeds.push({x:g.x,z:g.z,r:Math.max(3200,g.R*3.6)});
+  for(const m of MOUNTS) seeds.push({x:m.x,z:m.z,r:Math.max(2200,(m.R||900)*2.4)});
+  CAVES.seed(seeds);
+}
 const FALLS=[];
 for(const L of LANDMARKS){ if(L.kind!=='falls') continue;
   const [fx,fz]=llToWorld(L.lat,L.lon);
@@ -1139,7 +1331,18 @@ function cellRaw(ix,iz){
      stripping its trees is gone — it belonged to a world whose tallest thing
      was a hill. The tree line does that work now, and does it by altitude
      and by latitude both, so the forest climbs the flanks.) */
-  return {h, kind, tree, ci};
+  /* ---- AND WHAT HAS BEEN HOLLOWED OUT OF IT ----
+     `spans` is the third dimension, and it is `null` for very nearly every
+     column on the earth — which is the whole reason the ordinary world stays
+     exactly as cheap as it was. Where it is not null it is a short, sorted,
+     disjoint list of AIR RUNS in blocks: solid below the first, solid from
+     the last up to h, and nothing in between. The law of them is entirely in
+     js/caves.js; the terrain only asks.
+     The top block is never taken, so the surface a man walks on, a village
+     is laid on and a tree grows out of is solid everywhere on the earth —
+     which is why none of the eighty-seven places that read `h` had to move. */
+  const spans=window.CAVES?CAVES.spansAt(x,z,h):null;
+  return spans?{h, kind, tree, ci, spans}:{h, kind, tree, ci};
 }
 /* villages flatten the ground around them (computed at boot) */
 let SITES=[], siteGrid=new Map();
@@ -1159,6 +1362,18 @@ function cell(ix,iz){
     CELL_CACHE.set(k,c); }
   return c;
 }
+/* keep every air run under a surface that has moved: nothing may reach
+   within a block of the top, and a run left with no rock over it is gone */
+function clipSpans(sp,h){
+  const top=h-1; const out=[];
+  for(let i=0;i<sp.length;i+=2){
+    const lo=sp[i]; let hi=sp[i+1];
+    if(lo>=top) continue;
+    if(hi>top) hi=top;
+    if(hi-lo>=2) out.push(lo,hi);
+  }
+  return out.length?Int16Array.from(out):null;
+}
 function cellCompute(ix,iz){
   const c=cellRaw(ix,iz); if(!c) return null;
   if(SITES.length&&c.kind!=='wall'&&c.kind!=='floe'){
@@ -1176,8 +1391,18 @@ function cellCompute(ix,iz){
            the site's own height exactly; the skirt beyond still eases out
            into the true land so no village sits on a cut-out plate. */
         const k=(t>=1)?1:t*0.92;
+        const h0=c.h;
         c.h=Math.max(1,Math.round(c.h+(st.h0-c.h)*k));
         if(c.kind!=='sand'&&c.h===1) c.h=2;
+        /* ---- AND THE HOLLOW UNDER IT COMES DOWN WITH THE GROUND ----
+           A village levels the land for eighty-six units about it. Where it
+           levels a hill that had a passage in it the ground can drop THROUGH
+           the roof of that passage, and an air run standing over the new
+           surface is a hole in the world — you would see daylight from inside
+           the rock and fall through the market square. Every run is clipped
+           back under the new surface, and any that no longer has rock over it
+           is dropped outright. */
+        if(c.spans&&c.h<h0) c.spans=clipSpans(c.spans,c.h);
         break; }
     }
   }
@@ -1368,15 +1593,139 @@ function aoTop(ix,iz,h){
   _aoT[3]=aoLevel(nx,nz,e(-1,-1));
   return _aoT;
 }
+/* ================= THE LIGHT THAT REACHES A HOLLOW =================
+   A cave you can see in with no light source is not a cave. Every face cut
+   inside the rock is baked dark, and how dark is how far it stands from the
+   nearest place the daylight can get in — which is any column near enough
+   whose SURFACE is lower than the face itself. A mouth is bright; a dozen
+   blocks in is dim; the third chamber is black.
+
+   Twenty-four cell reads, and they are paid ONLY by a column that has been
+   hollowed out at all — which is a fraction of a fraction of the earth. It
+   is baked once at mesh time and costs nothing per frame, exactly as the
+   occlusion above it does. */
+const CAVE_DARK=0.085;              /* what is left of the light where none reaches */
+const _LR=[2,8,18], _LF=[0.92,0.46,0.15];
+const _L8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+/* ---- AND IT IS HOW MUCH IS OPEN, NOT WHETHER ANYTHING IS ----
+   Asked as "is there ANY direction in which the ground falls below this
+   height", a passage running forty blocks under a mountain but hugging its
+   flank came out as bright as its own mouth: one grazing line of sight to
+   the daylight lit the whole of it. The day is SHARED OUT instead — each of
+   the eight bearings at each of three distances contributes its own eighth,
+   and the further off it is the less it brings. A mouth, open on half the
+   compass at arm's length, is bright; a passage with one distant chink is
+   very nearly black, which is the truth of it. */
+function caveLightAt(ix,iz,y){
+  let f=0;
+  for(let k=0;k<3;k++){ const r=_LR[k]; let open=0;
+    for(let q=0;q<8;q++) if(nH(ix+_L8[q][0]*r, iz+_L8[q][1]*r) <= y) open++;
+    if(open){ f+=_LF[k]*(open/8); if(f>=1) return 1; } }
+  return f;
+}
+/* ---- AND IT IS ASKED ONCE FOR THE WHOLE PASSAGE, NOT ONCE A FACE ----
+   The floor, the roof and all four walls of one air run are the same room
+   and take the same light. Asked per face it was six times twenty-four cell
+   reads for every hollowed column in the chunk; asked once per run it is
+   one, and the answer is the same. */
+const _lit=[];
+function litRuns(ix,iz,sp,out){
+  out.length=0;
+  for(let i=0;i<sp.length;i+=2){
+    const f=caveLightAt(ix,iz,(sp[i]+sp[i+1])*0.5);
+    out.push(CAVE_DARK+(1-CAVE_DARK)*f);
+  }
+  return out;
+}
+/* which air run of this column a height falls in, and how lit it is; 1 where
+   the height is not in any run at all (open sky, and it keeps the day) */
+function litAt(sp,lit,y){
+  for(let i=0;i<sp.length;i+=2) if(y>=sp[i]-0.5&&y<=sp[i+1]+0.5) return lit[i>>1];
+  return lit.length?lit[lit.length-1]:1;
+}
+/* the solid runs of a column, in BLOCKS, as a flat list [a0,b0,a1,b1,…] —
+   the complement of its air runs between its foot and its surface */
+function solidRuns(cc,foot,out){
+  out.length=0;
+  const sp=cc&&cc.spans;
+  if(!sp){ if(cc&&cc.h>foot) out.push(foot,cc.h); return out; }
+  let y=foot;
+  for(let i=0;i<sp.length;i+=2){
+    const lo=sp[i], hi=sp[i+1];
+    if(lo>y) out.push(y,lo);
+    if(hi>y) y=hi;
+  }
+  if(cc.h>y) out.push(y,cc.h);
+  return out;
+}
+const _myR=[], _nbR=[];
+/* ---- A COLUMN AS THE HAND HAS LEFT IT ----
+   The procedural air runs with the broken blocks added to them and the
+   placed blocks taken out. It hands back a cell-shaped thing the rest of the
+   mesher already understands, so nothing below has to know that anybody has
+   been digging. Only ever called for a column somebody has touched. */
+const _ecc={h:0,kind:'',tree:0,ci:0,spans:null};
+function editedCell(ix,iz,cc,em){
+  let hi=cc.h-1, lo=0;
+  for(const y of em.keys()){ if(y>hi) hi=y; if(y<lo) lo=y; }
+  /* the surface may have moved: a man may break the ground he stands on, or
+     pile blocks over his head, and the top of the column follows him */
+  let top=cc.h;
+  for(let y=hi;y>=cc.h;y--) if(blockSolidAt(ix,y,iz)){ top=y+1; break; }
+  while(top>0&&!blockSolidAt(ix,top-1,iz)) top--;
+  const air=[]; let run=-1;
+  for(let y=Math.min(lo,0);y<top;y++){
+    if(!blockSolidAt(ix,y,iz)){ if(run<0) run=y; }
+    else if(run>=0){ air.push(run,y); run=-1; }
+  }
+  if(run>=0&&run<top) air.push(run,top);
+  _ecc.h=Math.max(1,top); _ecc.kind=cc.kind; _ecc.tree=0; _ecc.ci=cc.ci;
+  _ecc.spans=air.length?Int16Array.from(air):null;
+  return _ecc;
+}
+/* and the blocks he SET DOWN are drawn one at a time, each in its own
+   material — six faces, every one of them culled against what stands beside
+   it. A man's edits are sparse; a cube apiece is the honest price for
+   letting him build in whatever he likes. */
+function emitPlaced(G,ix,iz,em,surfaceH){
+  const x0=ix*B, x1=x0+B, z0=iz*B, z1=z0+B;
+  for(const [y,n] of em){
+    if(!n) continue;
+    const b=blockOf(n); if(!b) continue;
+    const ya=y*B, yb=ya+B;
+    /* under the ground it takes the cave's darkness; above it, the day */
+    const lit=(y<surfaceH-1)?(CAVE_DARK+(1-CAVE_DARK)*caveLightAt(ix,iz,y+0.5)):1;
+    if(!blockSolidAt(ix,y+1,iz)) faceTop(G,b.mTop,x0,z0,x1,z1,yb,1.0*lit);
+    if(!blockSolidAt(ix,y-1,iz)) faceBottom(G,b.mBottom,x0,z0,x1,z1,ya,0.5*lit);
+    if(!blockSolidAt(ix+1,y,iz)) facePX(G,b.mSide,x1,z0,z1,ya,yb,0.62*lit);
+    if(!blockSolidAt(ix-1,y,iz)) faceNX(G,b.mSide,x0,z0,z1,ya,yb,0.62*lit);
+    if(!blockSolidAt(ix,y,iz+1)) facePZ(G,b.mSide,z1,x0,x1,ya,yb,0.8*lit);
+    if(!blockSolidAt(ix,y,iz-1)) faceNZ(G,b.mSide,z0,x0,x1,ya,yb,0.8*lit);
+  }
+}
 function emitColumn(G,ix,iz,cc){
   const x0=ix*B, x1=x0+B, z0=iz*B, z1=z0+B, yT=cc.h*B;
   faceTop(G,topMatFor(cc.kind),x0,z0,x1,z1,yT,1.0,1,aoTop(ix,iz,cc.h));
   const [sTop,sLow]=sideMatsFor(cc.kind);
   const nb=[[1,0],[-1,0],[0,1],[0,-1]];
+  /* ---- THE HOLLOW OF THIS COLUMN, IF IT HAS ONE ----
+     The floors and the ceilings first — the underside of every roof and the
+     top of every floor the caves have cut through this column. */
+  let myLit=null;
+  if(cc.spans){
+    const sp=cc.spans;
+    myLit=litRuns(ix,iz,sp,_lit).slice();
+    for(let i=0;i<sp.length;i+=2){
+      const lo=sp[i], hi=sp[i+1], f=myLit[i>>1];
+      faceTop(G,sLow,x0,z0,x1,z1,lo*B,1.0*f);           /* the floor of the passage */
+      faceBottom(G,sLow,x0,z0,x1,z1,hi*B,0.5*f);        /* and the roof over it */
+    }
+  }
   for(let d=0;d<4;d++){
     const nc=cell(ix+nb[d][0],iz+nb[d][1]);
     const nh=nc?nc.h:0, base=Math.min(nh,cc.h)*B;
-    if(cc.h<=nh) continue;
+    const hollow=!!(cc.spans||(nc&&nc.spans));
+    if(cc.h<=nh&&!hollow) continue;
     const split=(sTop!==sLow)&&(cc.h-1>nh);
     const yMid=split?(cc.h-1)*B:base;
     /* ---- AND THE FLANKS TAKE IT TOO ----
@@ -1415,8 +1764,55 @@ function emitColumn(G,ix,iz,cc){
     if(!nc){ const jx=ix+nb[d][0], jz=iz+nb[d][1];
       const foot=Math.min(SUBSEA_Y, bedBlockAt((jx+0.5)*B,(jz+0.5)*B)-B);
       put((cc.kind==='wall'||cc.kind==='floe'||cc.kind==='snow')?'stone':'sand',foot,base,sh*0.72); }
-    if(split){ put(sLow,base,yMid,sh); put(sTop,yMid,yT,sh); }
-    else put(sTop,base,yT,sh);
+    /* ---- THE COMMON CASE, AND IT IS VERY NEARLY EVERY CASE ----
+       Neither this column nor the one beside it has been hollowed: the flank
+       is one unbroken band from the neighbour's ground to our own, exactly as
+       it has always been drawn, and nothing below costs it a thing. */
+    if(!hollow){
+      if(split){ put(sLow,base,yMid,sh); put(sTop,yMid,yT,sh); }
+      else put(sTop,base,yT,sh);
+      continue;
+    }
+    /* ---- AND WHERE SOMETHING HAS BEEN HOLLOWED ----
+       The wall is whatever is solid HERE and not solid THERE. Both columns
+       are taken as their solid runs and one is subtracted from the other,
+       which is the ordinary work of a voxel mesher and the reason a cave has
+       walls at all. Two things fall out of it for nothing: the far side of a
+       passage is drawn (so a cave is a room and not a hole in a wall), and
+       where the neighbour's ground has fallen away past the passage the wall
+       is simply absent — and THAT is a cave mouth. Nothing places them. */
+    /* both columns must be described from the SAME floor, and that floor has
+       to reach under the deepest thing either of them has had cut out — read
+       from the shallower of the two grounds, as the unhollowed case is, the
+       whole passage would sit below the bottom of the reckoning and no cave
+       would have a wall anywhere in the world. */
+    let hfoot=Math.min(nh,cc.h);
+    if(cc.spans&&cc.spans[0]<hfoot) hfoot=cc.spans[0];
+    if(nc&&nc.spans&&nc.spans[0]<hfoot) hfoot=nc.spans[0];
+    solidRuns(cc, hfoot, _myR);
+    solidRuns(nc, hfoot, _nbR);
+    for(let m=0;m<_myR.length;m+=2){
+      let y=_myR[m];
+      const my1=_myR[m+1];
+      for(let k=0;k<=_nbR.length;k+=2){
+        const na=(k<_nbR.length)?_nbR[k]:1e9, nbv=(k<_nbR.length)?_nbR[k+1]:1e9;
+        if(nbv<=y) continue;
+        const cut=Math.min(na,my1);
+        if(cut>y){
+          /* a face with the neighbour's own rock standing over it is INSIDE
+             the earth and takes the cave's darkness; one with open sky over
+             it is a cliff, and keeps the day */
+          const enclosed=!!nc&&cut<=nc.h-0.001;
+          const lit=!enclosed?1
+            :(myLit?litAt(cc.spans,myLit,(y+cut)*0.5)
+                   :(nc.spans?litAt(nc.spans,litRuns(ix+nb[d][0],iz+nb[d][1],nc.spans,_lit),(y+cut)*0.5)
+                             :CAVE_DARK));
+          put(my1>=cc.h&&cut>=cc.h-1?sTop:sLow, y*B, cut*B, sh*lit);
+        }
+        if(nbv>y) y=nbv;
+        if(y>=my1) break;
+      }
+    }
   }
 }
 /* ---- THE TREES OF THE FIELD ----
@@ -1441,6 +1837,7 @@ function initFlora(){ if(floraReady) return; floraReady=true;
 function landNameAt(x,z){ const ci=countryAtUV(x/R_WORLD,z/R_WORLD);
   return (ci&&COUNTRIES[ci-1])?COUNTRIES[ci-1].n:null; }
 let chunkLand=null;          /* whose country the chunk being built is in */
+let chunkEdits=null;         /* and what hands have done in it, by column */
 let chunkRiver=false;        /* and whether running water crosses it at all */
 /* ---- IS THIS GROUND A RIVER BANK? ----
    A watercourse is stamped one or two map pixels wide — a hundred and
@@ -1604,6 +2001,220 @@ function seaFootAt(ix,iz,own){
 function chunkShelfHere(x,z,bedY){
   return shoalAt(x,z)>SHELF_SHOAL && bedY>WATER_Y-SHELF_DEEP;
 }
+/* ================= THE WORLD MADE MUTABLE =================
+   `cellRaw` is a pure function of place: it recomputes the same answer every
+   time, so anything the traveller changed was erased the moment the chunk
+   was rebuilt. The EDIT OVERLAY is the sparse, persistent record of every
+   block he has broken or set down, applied on top of the procedural answer
+   at mesh time and read by every collision test in the game:
+
+       procedural spans  →  apply the edits  →  mesh
+
+   `setBlock` is the ONE way terrain is changed. Nothing else in the engine
+   may write it — every future hand, tool, work and authored place goes
+   through this door, so there is exactly one place where dirtying a chunk,
+   marking its neighbour and writing to the record can be got wrong.
+
+   THE INDEX PUTS Y FASTEST ON PURPOSE. A man's edits are towers, walls,
+   shafts and staircases — runs UP. Laid out with y fastest, a wall of forty
+   blocks is one run of forty in the record instead of forty separate
+   entries, and the run-length coding below gets it for nothing. */
+const EY_MIN=-64, EY_MAX=1024, EY_SPAN=EY_MAX-EY_MIN;
+const EDIT_VER=1;
+const EDITS=new Map();          /* chunkKey -> Map<index, block number>  (0 = broken) */
+const EDIT_DIRTY=new Set();     /* the chunks awaiting a remesh */
+let EDIT_TOUCHED=false;         /* is there anything not yet written down? */
+function eIndex(lx,ly,lz){ return (lx*CH+lz)*EY_SPAN + (ly-EY_MIN); }
+function eLx(i){ return Math.floor(i/EY_SPAN/CH); }
+function eLz(i){ return Math.floor(i/EY_SPAN)%CH; }
+function eLy(i){ return (i%EY_SPAN)+EY_MIN; }
+function chunkKeyOf(ix,iz){ return Math.floor(ix/CH)+','+Math.floor(iz/CH); }
+function editAt(ix,iy,iz){
+  if(!EDITS.size) return undefined;
+  const m=EDITS.get(chunkKeyOf(ix,iz)); if(!m) return undefined;
+  return m.get(eIndex(((ix%CH)+CH)%CH, iy, ((iz%CH)+CH)%CH));
+}
+/* what the world would be here with nobody's hand in it */
+function proceduralSolid(ix,iy,iz){
+  const c=cell(ix,iz); if(!c) return false;
+  if(iy>=c.h||iy<0) return false;
+  const sp=c.spans; if(!sp) return true;
+  for(let i=0;i<sp.length;i+=2) if(iy>=sp[i]&&iy<sp[i+1]) return false;
+  return true;
+}
+function proceduralBlock(ix,iy,iz){
+  if(!proceduralSolid(ix,iy,iz)) return 0;
+  const c=cell(ix,iz);
+  return (iy>=c.h-1)?surfaceBlockOf(c.kind):depthBlockOf(c.kind);
+}
+/* and what it IS, hand and all — the one truth every test in the game reads */
+function blockAt(ix,iy,iz){
+  const e=editAt(ix,iy,iz);
+  return e!==undefined ? e : proceduralBlock(ix,iy,iz);
+}
+function blockSolidAt(ix,iy,iz){
+  const e=editAt(ix,iy,iz);
+  return e!==undefined ? e!==0 : proceduralSolid(ix,iy,iz);
+}
+/* ---- THE ONE DOOR ----
+   World coordinates in, because everything that will ever call it — the
+   hand, a falling block, a stamped house — thinks in the world and not in
+   indices. Answers true if anything actually changed. */
+function setBlock(wx,wy,wz,n){
+  const ix=Math.floor(wx/B), iy=Math.floor(wy/B), iz=Math.floor(wz/B);
+  if(iy<EY_MIN||iy>=EY_MAX) return false;
+  const key=chunkKeyOf(ix,iz);
+  const lx=((ix%CH)+CH)%CH, lz=((iz%CH)+CH)%CH;
+  const idx=eIndex(lx,iy,lz);
+  let m=EDITS.get(key);
+  const was=(m&&m.get(idx));
+  const nowIs=(was!==undefined)?was:proceduralBlock(ix,iy,iz);
+  if(nowIs===n) return false;                       /* it is already that */
+  /* an edit that merely restores what the world would have done anyway is
+     not kept — it is a hole in the record, not a fact */
+  if(proceduralBlock(ix,iy,iz)===n){ if(m){ m.delete(idx); if(!m.size) EDITS.delete(key); } }
+  else { if(!m){ m=new Map(); EDITS.set(key,m); } m.set(idx,n); }
+  EDIT_TOUCHED=true; EDIT_DIRTY.add(key); EDIT_SAVE.add(key); editsTouch();
+  /* a block on a chunk's edge changes what its neighbour must draw */
+  if(lx===0) EDIT_DIRTY.add((Math.floor(ix/CH)-1)+','+Math.floor(iz/CH));
+  if(lx===CH-1) EDIT_DIRTY.add((Math.floor(ix/CH)+1)+','+Math.floor(iz/CH));
+  if(lz===0) EDIT_DIRTY.add(Math.floor(ix/CH)+','+(Math.floor(iz/CH)-1));
+  if(lz===CH-1) EDIT_DIRTY.add(Math.floor(ix/CH)+','+(Math.floor(iz/CH)+1));
+  return true;
+}
+/* the edits of one column, gathered for the mesher: a small map of
+   y -> block number, or null, which is the answer nearly everywhere */
+function editColumn(ix,iz){
+  if(!EDITS.size) return null;
+  const m=EDITS.get(chunkKeyOf(ix,iz)); if(!m) return null;
+  const lx=((ix%CH)+CH)%CH, lz=((iz%CH)+CH)%CH;
+  const base=(lx*CH+lz)*EY_SPAN;
+  let out=null;
+  for(const [i,n] of m){ if(i<base||i>=base+EY_SPAN) continue;
+    (out||(out=new Map())).set((i%EY_SPAN)+EY_MIN,n); }
+  return out;
+}
+/* ================= AND IT IS WRITTEN DOWN =================
+   localStorage is capped near five megabytes and is SYNCHRONOUS: an hour of
+   digging would both overflow it and stall the frame in the act of doing so.
+   The block edits go to IndexedDB, one record to an edited chunk, run-length
+   coded; the small state — where the ship lies, the log, the scrolls — stays
+   in localStorage, which is what it is good for.
+
+   THE RECORD CARRIES ITS OWN BLOCK TABLE. A block's number is an accident of
+   the order blocks/ is read in; its `id` is for ever. So every save writes
+   the list of ids in number order beside the edits, and a load maps the old
+   numbers through it. Insert a block into the manifest next year and an old
+   world still opens with its walls the right stone.
+
+   The format is versioned from the first line, and a record of a version
+   this build does not know is LEFT ALONE rather than guessed at. */
+const EDB={db:null,ready:null,fail:false};
+const EDB_NAME='the-voyage', EDB_ST='edits', EDB_MT='meta';
+const EDIT_SAVE=new Set();       /* chunks changed since the last writing-down */
+function edbOpen(){
+  if(EDB.ready) return EDB.ready;
+  EDB.ready=new Promise(res=>{
+    let rq; try{ rq=indexedDB.open(EDB_NAME,1); }catch(e){ EDB.fail=true; res(null); return; }
+    rq.onupgradeneeded=()=>{ const db=rq.result;
+      if(!db.objectStoreNames.contains(EDB_ST)) db.createObjectStore(EDB_ST,{keyPath:'k'});
+      if(!db.objectStoreNames.contains(EDB_MT)) db.createObjectStore(EDB_MT,{keyPath:'k'}); };
+    rq.onsuccess=()=>{ EDB.db=rq.result; res(rq.result); };
+    rq.onerror=()=>{ EDB.fail=true; res(null); };
+    rq.onblocked=()=>{ EDB.fail=true; res(null); };
+  });
+  return EDB.ready;
+}
+/* runs of the same block at neighbouring indices become one entry — and
+   because the index runs Y FASTEST, a wall is one entry and not forty */
+function rleEncode(m){
+  const ks=Array.from(m.keys()).sort((a,b)=>a-b), out=[];
+  let i=0;
+  while(i<ks.length){
+    const s=ks[i], n=m.get(s); let len=1;
+    while(i+len<ks.length&&ks[i+len]===s+len&&m.get(ks[i+len])===n) len++;
+    out.push(s,len,n); i+=len;
+  }
+  return Int32Array.from(out);
+}
+function rleDecode(arr,remap){
+  const m=new Map();
+  for(let i=0;i<arr.length;i+=3){ const s=arr[i],len=arr[i+1];
+    let n=arr[i+2]; if(remap) n=(n===0?0:(remap[n]||0));
+    for(let k=0;k<len;k++) m.set(s+k,n); }
+  return m;
+}
+/* ---- THE SAVES STAND IN A LINE, AND WAITING ON ONE WAITS ON ALL ----
+   Two writers over the same records is a race, and the loser of a race like
+   this is somebody's afternoon of digging. So: the pending timer is cancelled
+   (whoever calls IS the save), and — the part that actually bit — a call made
+   while another save is still open does not return "done" over the top of it.
+   It CHAINS. That is what `await editsSave()` has to mean before a reload or
+   a page teardown, or the browser closes the door on a transaction that was
+   still writing and the record it was writing is simply not there.
+   (Seen as: reload, and one chunk of two comes back. A race loses rarely,
+   which is the worst rate there is.) */
+let _inFlight=null;
+function editsSave(){
+  if(EDB.fail) return Promise.resolve(false);
+  if(_saveT){ clearTimeout(_saveT); _saveT=null; }
+  const prev=_inFlight;
+  const p=(async()=>{
+    if(prev){ try{ await prev; }catch(e){} }
+    return editsWrite();
+  })();
+  _inFlight=p;
+  p.then(()=>{ if(_inFlight===p) _inFlight=null; },
+         ()=>{ if(_inFlight===p) _inFlight=null; });
+  return p;
+}
+async function editsWrite(){
+  const db=await edbOpen(); if(!db) return false;
+  const keys=Array.from(EDIT_SAVE); EDIT_SAVE.clear();
+  if(!keys.length) return true;
+  try{
+    const tx=db.transaction([EDB_ST,EDB_MT],'readwrite');
+    const st=tx.objectStore(EDB_ST);
+    for(const k of keys){ const m=EDITS.get(k);
+      if(!m||!m.size) st.delete(k);
+      else st.put({k, v:EDIT_VER, d:rleEncode(m)}); }
+    tx.objectStore(EDB_MT).put({k:'blocks', v:EDIT_VER, ids:BLOCKS.map(b=>b?b.id:null)});
+    await new Promise((res,rej)=>{ tx.oncomplete=res; tx.onerror=()=>rej(tx.error); });
+    return true;
+  }catch(e){
+    /* it did not land: put the keys back AND ask again in a moment, or they
+       would sit unwritten until the next blow of the pick */
+    for(const k of keys) EDIT_SAVE.add(k); editsTouch(); return false; }
+}
+async function editsLoad(){
+  const db=await edbOpen(); if(!db) return 0;
+  try{
+    const tx=db.transaction([EDB_ST,EDB_MT],'readonly');
+    const meta=await new Promise(res=>{ const r=tx.objectStore(EDB_MT).get('blocks');
+      r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); });
+    /* old number -> new number, by the id each stood for when it was saved */
+    let remap=null;
+    if(meta&&meta.ids){ remap=[];
+      for(let i=1;i<meta.ids.length;i++){ const b=BLOCK_BY_ID[meta.ids[i]];
+        remap[i]=b?b.n:0; } }
+    const all=await new Promise(res=>{ const r=tx.objectStore(EDB_ST).getAll();
+      r.onsuccess=()=>res(r.result||[]); r.onerror=()=>res([]); });
+    let n=0;
+    for(const rec of all){
+      if(rec.v!==EDIT_VER) continue;          /* a version we do not know: left alone */
+      const m=rleDecode(rec.d,remap);
+      if(m.size){ EDITS.set(rec.k,m); n+=m.size; }
+    }
+    return n;
+  }catch(e){ return 0; }
+}
+/* written down a breath after the last blow, not on every one of them */
+let _saveT=null;
+function editsTouch(){ if(_saveT) clearTimeout(_saveT);
+  _saveT=setTimeout(()=>{ _saveT=null; editsSave(); },900); }
+addEventListener('pagehide',()=>{ if(EDIT_SAVE.size) editsSave(); });
+addEventListener('visibilitychange',()=>{ if(document.hidden&&EDIT_SAVE.size) editsSave(); });
+
 const chunks=new Map(); const buildQueue=[]; const buildQueued=new Set();
 /* all the streamed land under one root, so it can be taken out of the view
    in a single stroke when the charted face of the earth stands in for it */
@@ -1625,6 +2236,16 @@ function buildChunk(cx,cz){
      chunk is ninety-six metres across and no wood changes at a line.) */
   chunkLand=landNameAt((cx*CH+CH/2)*B,(cz*CH+CH/2)*B);
   chunkRiver=chunkHasRiver(cx,cz);
+  /* the whole chunk's edits, indexed by column, ONCE — asked per column it
+     would be two hash lookups apiece for the answer `nothing`, two hundred
+     and fifty-six times a chunk, over a world where nobody has dug */
+  chunkEdits=null;
+  { const m=EDITS.get(cx+','+cz);
+    if(m&&m.size){ chunkEdits=new Map();
+      for(const [i,n] of m){ const k=eLx(i)*CH+eLz(i);
+        let c=chunkEdits.get(k); if(!c){ c=new Map(); chunkEdits.set(k,c); }
+        c.set(eLy(i),n); }
+    } }
   for(let a=0;a<CH;a++) for(let b=0;b<CH;b++){
     const ix=cx*CH+a, iz=cz*CH+b, cc=cell(ix,iz);
     if(!cc){ /* the shelf: solid sandy terraces stepping down from the land,
@@ -1660,6 +2281,17 @@ function buildChunk(cx,cz){
       }
       continue;
     }
+    /* ---- AND WHAT THE HAND HAS DONE HERE ----
+       An untouched column is meshed exactly as it always was. A touched one
+       is meshed from what it has BECOME, and the blocks set down in it are
+       drawn after, each in its own material. */
+    const em=chunkEdits&&chunkEdits.get(a*CH+b);
+    if(em){
+      const ec=editedCell(ix,iz,cc,em);
+      emitColumn(G,ix,iz,ec);
+      emitPlaced(G,ix,iz,em,ec.h);
+      continue;
+    }
     emitColumn(G,ix,iz,cc);
     const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B, j=hash2(ix*1.7,iz*2.9);
     if(cc.tree) emitTree(G,ix,iz,cc);
@@ -1682,6 +2314,33 @@ function buildChunk(cx,cz){
     const m=new THREE.Mesh(bg,MAT[mat]); m.frustumCulled=true;
     chunkRoot.add(m); meshes.push(m); }
   chunks.set(cx+','+cz,{meshes,cx,cz});
+}
+/* ---- ONE BLOW, ONE CHUNK, ONE FRAME ----
+   A block broken marks its chunk — and its neighbour, if it sat on the join
+   — and the mark is answered by rebuilding that chunk and nothing else. The
+   per-frame slice is the same idea the streamer already runs on, so a man
+   hammering at a wall cannot starve the ground he is walking toward. A chunk
+   that is not resident is not built: it will be, with the edit in it, the
+   next time he comes near enough to want it. */
+let REMESHES=0;                 /* how many chunks a hand has caused to be laid again */
+function remeshChunk(key){
+  const ch=chunks.get(key); if(!ch) return false;
+  REMESHES++;
+  for(const m of ch.meshes){ chunkRoot.remove(m); m.geometry.dispose(); }
+  chunks.delete(key);
+  const p=key.split(',');
+  buildChunk(+p[0],+p[1]);
+  return true;
+}
+function flushEdits(ms){
+  if(!EDIT_DIRTY.size) return 0;
+  const t0=performance.now(); let n=0;
+  for(const key of EDIT_DIRTY){
+    EDIT_DIRTY.delete(key);
+    if(remeshChunk(key)) n++;
+    if(performance.now()-t0>(ms||7)) break;
+  }
+  return n;
 }
 /* ---- A BUCKET OF FACES, MADE INTO A THING THAT STANDS BY ITSELF ----
    The chunk mesher writes into a bucket and hands it to the renderer. Some
@@ -9131,7 +9790,10 @@ function landmarkTopAt(x,z,refY){
    the eye must ride over. */
 function solidTopAt(x,z,refY){
   const lc=landAtWorld(x,z);
-  let t=Math.max(lc?lc.h*B:WATER_Y, landmarkTopAt(x,z,refY));
+  /* inside a mountain the eye's floor is the floor of the PASSAGE, not the
+     summit overhead — floored on the summit the camera was thrown up
+     through the roof and out of the hill the moment its man stepped in */
+  let t=Math.max(lc?(lc.spans?groundYIn(lc,refY).y:lc.h*B):WATER_Y, landmarkTopAt(x,z,refY));
   const ht=houseTopAt(x,z); if(ht>t) t=ht;
   return t;
 }
@@ -9264,6 +9926,7 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code==='KeyC') enterDive();           /* dive the deep / surface */
   if(e.code==='KeyM') toggleMap();
   if(e.code==='KeyK'){ if(roamOnly()) cycleSeason(); }  /* free roam only */
+  if(e.code==='KeyT') setTorch(!TORCH.on);   /* strike a light, and put it out */
   if(e.code==='KeyL') toggleLog(); });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
 const cv=$('cv'); let drag=null, joy=null;
@@ -9665,12 +10328,65 @@ function treeBlocked(nx,nz){
   return Math.hypot(nx-(ix+.5)*B, nz-(iz+.5)*B)<B*0.55;
 }
 /* the walking surface under a point — a pier deck, the land, or the swim line */
-function groundInfo(x,z){
+/* ================= THE GROUND UNDER A POINT IN THE AIR =================
+   The whole of the walker's world used to be one number a column: the
+   surface. With the hollow places cut into the earth that is no longer the
+   question — the question is what is solid UNDER THIS HEIGHT and what is
+   solid OVER IT, and the answer inside a mountain is not the mountain top.
+
+   `refY` is the height the asking body stands at. Given none, the surface
+   is meant and the answer is exactly what it always was — which is why the
+   fifty other callers of this needed no change at all.
+
+   The runs come sorted, so this walks them from the top down and stops at
+   the first one it is at or inside. It is two comparisons for the common
+   carved column and NOT ENTERED AT ALL for a column that is not carved. */
+function groundYIn(c,refY){
+  if(!c.spans||refY===undefined) return {y:c.h*B, ceil:Infinity};
+  const sp=c.spans, ry=refY/B;
+  let y=c.h*B, ceil=Infinity;
+  for(let i=sp.length-2;i>=0;i-=2){
+    const lo=sp[i], hi=sp[i+1];
+    if(ry>=hi) break;               /* above this hollow: the rock over it is the ground */
+    y=lo*B; ceil=hi*B;              /* on the floor of this hollow, with its roof above */
+    if(ry>=lo) break;               /* and truly inside it */
+  }
+  return {y,ceil};
+}
+/* ---- AND WHERE A HAND HAS BEEN, THE COLUMN IS WALKED ----
+   The procedural answer is arithmetic on a sorted list. An edited column has
+   no such shape — a man may leave a block hanging in mid air forty above the
+   ground and a shaft cut two hundred below it — so that one is WALKED, block
+   by block, from the asking height. It is bounded, and it is entered only by
+   a column somebody has actually touched. */
+const EDIT_SCAN=140;
+function groundYEdited(ix,iz,c,refY){
+  const top=(refY===undefined)?((c?c.h:0)+2):Math.floor(refY/B);
+  let y=top, floor=null;
+  for(let k=0;k<EDIT_SCAN&&y>=EY_MIN;k++,y--) if(blockSolidAt(ix,y,iz)){ floor=y; break; }
+  let ceil=Infinity;
+  let u=(floor===null?top:floor)+1;
+  for(let k=0;k<EDIT_SCAN&&u<EY_MAX;k++,u++) if(blockSolidAt(ix,u,iz)){ ceil=u*B; break; }
+  return { y:(floor===null?(c?c.h*B:WATER_Y):(floor+1)*B), ceil };
+}
+function groundInfo(x,z,refY){
   const dk=deckMap.get(Math.floor(x/B)+','+Math.floor(z/B));
   if(dk!==undefined) return {y:dk,land:true};
+  const ix=Math.floor(x/B), iz=Math.floor(z/B);
   const c=landAtWorld(x,z);
-  if(c) return {y:c.h*B, land:true, wall:c.kind==='wall'};   /* the ice wall is walkable — one may mount it */
+  const em=EDITS.size?editColumn(ix,iz):null;
+  if(em){ const g=groundYEdited(ix,iz,c,refY);
+    return {y:g.y, ceil:g.ceil, hollow:true, edited:true, land:true,
+      wall:!!(c&&c.kind==='wall')}; }
+  if(c){ if(!c.spans) return {y:c.h*B, land:true, wall:c.kind==='wall'};
+    const g=groundYIn(c,refY);
+    return {y:g.y, ceil:g.ceil, hollow:true, land:true, wall:c.kind==='wall'}; }
   return {y:WATER_Y-2.2, land:false, water:true};
+}
+/* is this very point inside the rock? The one test every hollow thing in
+   the world is judged by, and the one the acceptance tests ask. */
+function solidAt(x,y,z){
+  return blockSolidAt(Math.floor(x/B),Math.floor(y/B),Math.floor(z/B));
 }
 /* is a point within the room of a house (used for the inside-the-home camera) */
 function insideHouseIn(x,z,arr){ const T2=B*0.5+0.5;
@@ -9702,6 +10418,7 @@ function splashTick(dt){ if(!SPLASH.length) return;
     p.s.material.opacity=Math.max(0,Math.min(0.85,p.life*1.6));
     if(p.life<=0) p.s.visible=false; } }
 const STEP=B*1.2, JUMPH=B*2.3, CLIMBH=B*4.6;   /* step / must-jump / can-climb heights */
+const HEAD_R=B*1.9;   /* a man's own height, for the roof of a passage */
 const BODY_R=1.9;   /* the traveller's own half-breadth — he is a body, not a point */
 function walkTick(dt){
   const w=state.walk, u=walkerG.userData; const [f,t]=axis();
@@ -9720,7 +10437,7 @@ function walkTick(dt){
     return;
   }
   w.heading+=t*dt*2.4;
-  const gi=groundInfo(w.x,w.z);
+  const gi=groundInfo(w.x,w.z,w.feetY+0.1);
   /* over water the body SWIMS — no man walks upon the sea. But a body still
      IN THE AIR above the water (a leap off a cliff, a jump from a pier) falls
      under gravity until it truly meets the surface — no mid-air snap-down. */
@@ -9824,7 +10541,13 @@ function walkTick(dt){
          units a second and walking on as though nothing had happened. */
       if(wasFalling&&!w.climb) w.spill=Math.min(1.5,0.45+(-w.vy)/190*1.05);
       w.vy=0; w.grounded=true; } else w.grounded=false;
-    if((keys.Space||w.jumpReq)&&w.grounded&&!(w.spill>0)){ w.vy=38; w.grounded=false; } w.jumpReq=false; }
+    if((keys.Space||w.jumpReq)&&w.grounded&&!(w.spill>0)){ w.vy=38; w.grounded=false; } w.jumpReq=false;
+    /* ---- AND A ROOF IS A ROOF ----
+       In a passage a man may not jump up through the rock over his head.
+       Asked only of a column that has actually been hollowed, so nothing
+       under the open sky pays a thing for it. */
+    if(gi.hollow&&isFinite(gi.ceil)&&w.feetY+HEAD_R>gi.ceil){
+      w.feetY=gi.ceil-HEAD_R; if(w.vy>0) w.vy=0; } }
   /* ---- horizontal move, gated by the height of the ground ahead ---- */
   /* mounted, the beast's stride is yours: a canter at twice a man's pace */
   const sp=(w.spill>0&&!swimming)?0:f*(swimming?16:state.mount?38:18);
@@ -9835,9 +10558,9 @@ function walkTick(dt){
      lying between two frames' sample points was walked clean through. His
      whole breadth is tested now, and if the way is barred he SLIDES along
      it (trying each axis alone) instead of sticking fast against it. */
-  let nx=fullX, nz=fullZ, tg=groundInfo(nx,nz), diff=0, solidBlock=false, canGo=false;
+  let nx=fullX, nz=fullZ, tg=groundInfo(nx,nz,w.feetY+0.1), diff=0, solidBlock=false, canGo=false;
   const tryStep=(tx,tz)=>{
-    const g2=groundInfo(tx,tz);
+    const g2=groundInfo(tx,tz,w.feetY+0.1);
     const d2=g2.y-w.feetY;
     const near2=Math.hypot(tx-state.boat.x,tz-state.boat.z)<90;
     const deck2=deckMap.get(Math.floor(tx/B)+','+Math.floor(tz/B))!==undefined;
@@ -9856,8 +10579,16 @@ function walkTick(dt){
     if(ok&&swimming&&insideTraderHull(tx,tz,2)&&!insideTraderHull(w.x,w.z,2)) ok=false;
     /* and his shoulders must clear it too, not only his midline */
     if(ok&&!swimming) for(let k=0;k<4;k++){ const aa=k*1.5708;
-      const g3=groundInfo(tx+Math.cos(aa)*BODY_R,tz+Math.sin(aa)*BODY_R);
+      const g3=groundInfo(tx+Math.cos(aa)*BODY_R,tz+Math.sin(aa)*BODY_R,w.feetY+0.1);
       if(g3.land&&g3.y-w.feetY>STEP){ ok=false; break; } }
+    /* ---- AND HIS HEAD MUST GO WHERE HIS FEET DO ----
+       Under the open sky the rise test above is the whole of it: nothing
+       stands over a man but air. In a passage it is not — the floor ahead
+       may be level with his feet and the rock still come down to his chest.
+       Asked only where something has actually been hollowed, so no step,
+       no ledge and no climb anywhere else in the world is touched by it. */
+    if(ok&&!swimming&&(g2.hollow||gi.hollow||g2.edited||gi.edited)){
+      if(solidAt(tx,w.feetY+STEP+1,tz)||solidAt(tx,w.feetY+HEAD_R*0.92,tz)) ok=false; }
     return ok?{g:g2,d:d2,solid:solid2}:null;
   };
   let r0=tryStep(fullX,fullZ);
@@ -11486,6 +12217,8 @@ $('b-breath').onclick=()=>{ state.immBreath=!state.immBreath; updateBreathBtn();
   else toast('Your breath is your own again — watch the bar below, and rise to breathe.');
   saveState(); };
 function updateRepelBtn(){ $('b-repel').textContent='🛡 Repel beasts: '+(state.repel?'on':'off'); }
+{ const bt=$('b-torch'); if(bt) bt.onclick=()=>setTorch(!TORCH.on); }
+updateTorchBtn();
 $('b-repel').onclick=()=>{ state.repel=!state.repel; updateRepelBtn();
   if(state.repel) toast('“You shall tread upon the lion and the adder…” — no beast of the deep will touch you.','TEHILLIM 91:13');
   else toast('The beasts of the deep are wild again — mind the great grey shapes.');
@@ -12048,6 +12781,10 @@ function stageHook(dt){ if(window.__STAGE_TICK){ try{ window.__STAGE_TICK(dt); }
 async function buildWorld(){
   const raf=()=>new Promise(r=>requestAnimationFrame(r));
   BOOT.stage('Charting the coasts of every nation…',0.16); await raf(); await raf();
+  /* what other hands have done here is read BEFORE the first chunk is laid,
+     so no chunk is ever built once without the edits and again with them */
+  try{ const n=await editsLoad(); if(n) console.info('the voyage: '+n+' blocks remembered'); }
+  catch(e){}
   computeSites();
   cellCacheOn=true; CELL_CACHE.clear();   /* sites are fixed — the terrain is now immutable and memoisable */
   BOOT.stage('Raising Yahru and the home port…',0.30); await raf();
@@ -12160,6 +12897,110 @@ if(!window.__HOST_BOOT){
 window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   /* the light in the corners, and the count of standing chunks — tools/acceptance.js */
   aoLevel,aoTop,chunkCount:()=>chunks.size,bodyLenOf,
+  /* ---- THE THIRD DIMENSION, FOR tools/acceptance.js ----
+     Read-only probes. Nothing in the game reads any of these; they exist so
+     the acceptance tests can ask the RUNNING WORLD rather than the source. */
+  cellSpans:(ix,iz)=>{ const c=cell(ix,iz); return c&&c.spans||null; },
+  caveLightAt,solidRuns,solidAt,groundInfo,
+  caveAt:(x,z)=>window.CAVES?CAVES.regionAt(x,z):0,
+  caveSeeds:()=>RANGES.map(g=>({ix:Math.floor(g.x/B),iz:Math.floor(g.z/B)})),
+  lightTorch:on=>{ setTorch(on); TORCH.s=on?1:0; TORCH_S.value=on?1:0;
+    const p=playerXZ(); TORCH_P.value.set(p.x,(state.walk.feetY||0)+B*1.5,p.z); },
+  /* the light truly standing on a point: what the mesher baked there, and
+     what the flame adds to it */
+  lightAt:(x,y,z)=>{ const c=landAtWorld(x,z);
+    let base=1;
+    if(c&&c.spans){ const yb=y/B; let inRun=false;
+      for(let i=0;i<c.spans.length;i+=2) if(yb>=c.spans[i]&&yb<=c.spans[i+1]) inRun=true;
+      if(inRun) base=CAVE_DARK+(1-CAVE_DARK)*caveLightAt(Math.floor(x/B),Math.floor(z/B),y/B); }
+    const d=Math.hypot(x-TORCH_P.value.x,y-TORCH_P.value.y,z-TORCH_P.value.z);
+    const t=Math.max(0,1-d/TORCH_R.value);
+    return Math.min(1,base*(1+TORCH_S.value*t*t*7)); },
+  /* what stands over a point, if anything */
+  solidAbove:(x,y,z,maxDy)=>{ for(let d=1;d<=(maxDy||40);d++){
+      if(solidAt(x,y+d*B,z)) return {dy:d}; } return null; },
+  /* the best walk-in cave mouth near a named range, and a point well inside it */
+  nearestCaveMouth:()=>{
+    let best=null;
+    for(const g of RANGES){
+      const cx=Math.floor(g.x/B), cz=Math.floor(g.z/B);
+      for(let a=-90;a<=90;a+=2) for(let b=-90;b<=90;b+=2){
+        const ix=cx+a, iz=cz+b, c=cell(ix,iz); if(!c||!c.spans) continue;
+        const lo=c.spans[0], hi=c.spans[1];
+        for(const d of [[1,0],[-1,0],[0,1],[0,-1]]){
+          const n=cell(ix+d[0],iz+d[1]); if(!n||n.h>lo+1) continue;
+          let run=0; const my=Math.floor((lo+hi)/2);
+          for(let k=1;k<=60;k++){ const q=cell(ix-d[0]*k,iz-d[1]*k);
+            if(!q||!q.spans||my<q.spans[0]||my>q.spans[1]) break; run=k; }
+          const score=run*3+(hi-lo)*2+Math.min(40,c.h);
+          if(!best||score>best.score) best={score,ix,iz,lo,hi,my,run,
+            dx:d[0],dz:d[1],x:(ix+0.5)*B,y:(lo+0.6)*B,z:(iz+0.5)*B};
+          break; } } }
+    return best; },
+  caveWalkIn:(m,n)=>{ const k=Math.min(n,m.run);
+    if(k<1) return null;
+    const ix=m.ix-m.dx*k, iz=m.iz-m.dz*k, c=cell(ix,iz);
+    if(!c||!c.spans) return null;
+    return {x:(ix+0.5)*B,y:(c.spans[0]+0.6)*B,z:(iz+0.5)*B,ix,iz}; },
+  /* drive the traveller at the rock for a while and report whether his body
+     was EVER found inside it — the plainest reading of "he passes through
+     nothing", and it exercises the real walker, not a proxy for him */
+  shoveWalker:async(m,dir,frames)=>{
+    const inn=Math.min(m.run,6);
+    state.walk.x=(m.ix-m.dx*inn+0.5)*B; state.walk.z=(m.iz-m.dz*inn+0.5)*B;
+    state.walk.feetY=(m.lo+0.4)*B; state.walk.vy=0; state.walk.climb=null; state.walk.spill=0;
+    setMode('walk');
+    await new Promise(r=>requestAnimationFrame(r));
+    const y0=state.walk.feetY;
+    if(dir[0]||dir[2]) state.walk.heading=Math.atan2(dir[0],dir[2]);
+    keys.KeyW=!!(dir[0]||dir[2]); keys.Space=dir[1]>0;
+    let inside=0, worst=null;
+    for(let k=0;k<frames;k++){
+      await new Promise(r=>requestAnimationFrame(r));
+      const w=state.walk;
+      for(const dy of [0.6,B*1.0,B*1.7]){
+        if(solidAt(w.x,w.feetY+dy,w.z)){ inside++;
+          if(!worst) worst={x:Math.round(w.x),y:Math.round(w.feetY),z:Math.round(w.z),dy}; } }
+      if(dir[1]<0&&w.feetY<y0-B*3) { worst=worst||{fell:Math.round((y0-w.feetY)/B)}; }
+    }
+    keys.KeyW=false; keys.Space=false;
+    const w=state.walk;
+    const fellThrough=dir[1]<0&&w.feetY<y0-B*3;
+    return {escaped:inside>0||fellThrough, inside, worst,
+      moved:Math.round(Math.hypot(w.x-(m.ix-m.dx*inn+0.5)*B, w.z-(m.iz-m.dz*inn+0.5)*B)/B)}; },
+  settle:async n=>{ for(let k=0;k<(n||2);k++) await new Promise(r=>requestAnimationFrame(r));
+    flushEdits(1e9); await new Promise(r=>requestAnimationFrame(r)); },
+  /* ---- THE MUTABLE WORLD, FOR tools/acceptance.js ---- */
+  setBlock, blockId, blockAt, blockOf, blockSolidAt, editsSave, editsLoad,
+  remeshes:()=>REMESHES,
+  /* the remesh ALONE, in milliseconds — not the frame it happens to sit in */
+  flushNow:()=>{ const t=performance.now(); const n=flushEdits(1e9);
+    return {ms:performance.now()-t, chunks:n}; },
+  BLOCKS:()=>BLOCKS, edits:()=>EDITS,
+  /* the topmost solid block under a point, in world coordinates */
+  blockUnder:(x,z)=>{ const ix=Math.floor(x/B), iz=Math.floor(z/B), c=cell(ix,iz);
+    if(!c) return null;
+    for(let y=c.h+8;y>EY_MIN;y--) if(blockSolidAt(ix,y,iz))
+      return {ix,iy:y,iz,x:(ix+0.5)*B,y:(y+0.5)*B,z:(iz+0.5)*B,cx:Math.floor(ix/CH),cz:Math.floor(iz/CH)};
+    return null; },
+  chunkTriangleCount:(cx,cz)=>{ const ch=chunks.get(cx+','+cz); if(!ch) return -1;
+    let n=0; for(const m of ch.meshes){ const idx=m.geometry.getIndex(); n+=idx?idx.count/3:0; }
+    return n; },
+  /* what the world remembers of two particular deeds, after a reload */
+  editMark:(x,y,z)=>blockAt(Math.floor(x/B),Math.floor(y/B),Math.floor(z/B)),
+  timeFrames:async n=>{ const t=[]; let last=performance.now();
+    for(let k=0;k<(n||120);k++){ await new Promise(r=>requestAnimationFrame(r));
+      const now=performance.now(); t.push(now-last); last=now; }
+    t.sort((a,b)=>a-b); return t.reduce((a,b)=>a+b,0)/t.length; },
+  /* set the traveller down well inside a passage, with the ground about him
+     laid, so the frame there can be timed against open ground */
+  standInCave:async()=>{ const m=window.__VDBG.nearestCaveMouth(); if(!m) return null;
+    const inn=Math.min(m.run,14);
+    state.walk.x=(m.ix-m.dx*inn+0.5)*B; state.walk.z=(m.iz-m.dz*inn+0.5)*B;
+    state.walk.feetY=(m.lo+0.4)*B; state.walk.vy=0; setMode('walk');
+    for(let k=0;k<40;k++){ updateChunks(state.walk.x,state.walk.z,400);
+      await new Promise(r=>requestAnimationFrame(r)); }
+    return {x:state.walk.x,z:state.walk.z,run:m.run}; },
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
   farLand,updateFarLand,mountUpliftAt,MOUNTS,ridgeNoise,B,R_WORLD,
   AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,RANGES,FALLS,activeLandmarks,LANDMARKS,
@@ -12548,6 +13389,8 @@ function frame(){
   netTick(dt);
   if(!state.firm&&state.mode!=='dive') traderTick(p.x,p.z,dt); else hideTraders();
   audioTick(light.storm||0);
+  torchTick(dt);                     /* the flame the traveller carries */
+  flushEdits(7);                     /* and any chunk a hand has changed is laid again */
   /* stream faster when the traveller outruns the mesher — judged by how fast
      he is TRULY moving, whatever is carrying him (ship, wings, or a fair
      wind), so the ground always arrives behind the haze and never inside it */

@@ -482,8 +482,22 @@ graded per country and per hour** (§2.1.5) and **`js/gait.js` — six true quad
 (§2.3.2), chosen by speed in the beast's own body lengths, with `pace:true` the only thing
 any species says about its own going and it says it in data.
 
-**Next, in the brief's own order:** Phase 1 — spans, gated volumetric caves, span-aware
-`groundInfo`, underground light, the torch. Acceptance tests 1–4 and 11.
+**Phase 1 is now in as well** (Round 25 in `AUDIT.md`): `js/caves.js`, air-run spans on
+`cellRaw`, gated tube-carved caves with 129 walk-in mouths among the named ranges alone,
+span-aware meshing with baked underground light, span-aware collision through the single
+`groundInfo` funnel, and a torch carried as a shader uniform rather than a scene light.
+Acceptance 1, 2, 3, 4, 10, 11 and 12 pass; 5–9 remain PENDING on Phases 2 and 3.
 
-I have not begun Phase 1. Per §15 I am stopping here for you to read this, and in
-particular to disagree with §9 above before any of it is built on.
+Two things in §3 above were revised by building it, and the revisions are the honest
+record: the bore of a passage is the **distance to the vein**, not a threshold on a ridged
+field — thresholded thin enough to avoid a sponge, the band on the ground is 0.7 blocks
+wide, which is a slot; and an air run stops **three** blocks short of the surface, not one,
+because one block of roof reads as a covered trench rather than a cave.
+
+**Next, in the brief's own order:** Phase 2 — the manifest loader, the block registry under
+`blocks/`, `setBlock`, the edit overlay, dirty-chunk remeshing and IndexedDB. Tests 5, 6, 7
+and the edited-chunk half of 11.
+
+§9 above still stands and I would still rather be argued with on it — particularly on
+`buildPier` and `deckMap` (§9.3) and on the true-stature animals being a Phase 3 dependency
+rather than a Phase 6 item (§9.5), both of which bite in the phase after next.

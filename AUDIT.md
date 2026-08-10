@@ -1177,6 +1177,304 @@ span-aware collision, the light underground and the torch. `PLAN.md` sets
 out the encoding, the gating, the edit overlay, the Phase 3 conversion order
 and the five places I think the brief is wrong.
 
+## 4x. Round 25 — the third dimension: the earth is hollow, and dark, and a man carries fire ✅
+
+*The brief's Phase 1 in full. Verified live in a headless browser: 129
+walk-in cave mouths counted among the named ranges alone, the best of them
+photographed from outside, from within looking out, and from within looking
+in — lit and unlit — and acceptance tests 1, 2, 3, 4 and 11 driven against
+the running world.*
+
+**1. `js/caves.js` — the law of the hollow places, and it knows nothing of
+this world.**
+- **The fault.** The terrain was a HEIGHT PER COLUMN, and a height cannot
+  describe a roof. What `rangeShapeAt` called caves were slot canyons — the
+  height function subtracted inside a vein of noise, open to the sky along
+  their whole length. There was no overhang anywhere on the earth, no arch,
+  no tunnel, no chamber, and nothing whatever to go down into.
+- A column now carries, besides its height, a short list of **AIR RUNS** —
+  air and not solid, because the common carved column has exactly one hole
+  and two solid parts, and one hole is half the writing. `Int16Array`, one
+  allocation. A column with nothing cut out of it carries `null`, and `null`
+  costs nothing — which is the whole reason the ordinary earth is exactly as
+  cheap as it was.
+- **The surface is never broken.** An air run always stops three blocks short
+  of the top, so the ground a man walks on, a village is laid on, a tree
+  grows out of and a beast beds down upon is solid everywhere on the earth.
+  That one rule is why **none of the eighty-seven places in the engine that
+  read a column's height had to move** — and why Rounds 20 and 23 were not
+  re-broken.
+- **So the way in is sideways, as it is in the world.** A passage keeps its
+  own slow elevation (one field, wandering over ~2,400 units) while the land
+  above it rises and falls far faster; where a gully or a cliff cuts the
+  ground past the passage, the passage is laid open on the rock face.
+  *Nothing places the mouths. The land does.*
+- **A cave is a tube, not a threshold.** Thresholding a ridged field was
+  built first and measured: at a threshold thin enough to keep the passages
+  from becoming a sponge — one column in fifty — the band on the ground is
+  **seven tenths of a block wide**. That is a slot, not a passage. The bore
+  is the *distance to the vein* instead (the field value over its own
+  gradient, two more reads), and it comes out round, of a stated width, and
+  tapering to nothing at its edge. Measured in cave country: **12.1 % of
+  columns carved, passages ~7 blocks across and 8 blocks tall, standing some
+  32 blocks apart**.
+- **And a flat place in the field is not a cavern.** Where the field barely
+  changes, "distance to the line" comes out small over a great blank patch
+  and the carve spread into a hall sixty blocks across with no passage
+  leading anywhere. Gradients below a third of the measured norm are refused.
+
+**2. It is never sampled volumetrically.** Three gates, and the cost of each
+was measured on this machine:
+| gate | what it asks | cost |
+|---|---|---|
+| 1 | is the ground high enough to have anything under it | **22 ns** a column — the whole ocean and every plain leave here |
+| 2 | is this cave country at all (bucketed seeds + a sparse scatter) | **300 ns** on high ground that is not |
+| 3 | does a worm actually run through this column | **1,475 ns** in cave country |
+Cave country is **4.3 % of the disc** from the worldwide scatter, plus a
+country about every named range and summit — handed in from
+`world/landmarks.js`, so the engine never names a mountain and the cave law
+never hears of one. Worst measured chunk: **175 of 256 columns carved, 7.5 KB
+of spans**. An ocean or plains chunk: **0 bytes**.
+
+**3. The mesher emits at every span boundary.** Floors, roofs, and the wall
+as *whatever is solid here and not solid there* — both columns taken as
+solid runs and one subtracted from the other. Two things fall out of that for
+nothing: the far side of a passage is drawn, so a cave is a room and not a
+hole in a wall; and where the neighbour's ground has fallen past the passage
+there is simply no wall, **and that is the mouth**. The common case — neither
+column hollowed — takes the old unbroken band and pays a single boolean.
+
+**4. The light underground.** Every face cut inside the rock is baked dark by
+how much of the sky it can see. Asked as a plain *"is there any line at all
+to the daylight"*, a passage forty blocks under a mountain but hugging its
+flank came out **as bright as its own mouth** — one grazing sight-line lit
+the whole of it. The day is **shared out** instead: eight bearings at three
+distances, each contributing its own eighth, the further the less. Measured
+at the best mouth: **0.555 at the entrance, 0.019 forty blocks in.** It is
+one reading per room, not per face — asked per face it was six times
+twenty-four cell reads for every hollowed column in the chunk.
+
+**5. The light a man carries.** Every block in this world is drawn with an
+unlit material — the light on a face is baked into its vertex colour and the
+whole set tinted once by the hour. Nothing in it responds to a lamp, and a
+real point light would mean lighting the entire earth per-pixel to light nine
+blocks of it. So the torch is a **uniform**: one position, one reach, one
+strength, shared by every block material in the game, three instructions in
+the fragment, and **nothing whatever paid while it is out**. `T` strikes it;
+the traveller carries a haft with a knot of flame on it that swings with his
+stride. (The chunk mesher bakes geometry in world coordinates — the same
+property the wind in the leaves leans on — so the vertex position *is* the
+world position and the distance to the flame is one subtraction.)
+
+**6. Collision reads the spans — through the one funnel it already had.**
+`groundInfo(x,z,refY)` now takes the height of the asking body and answers
+what is solid under it *and what is over it*. **Given no height it answers
+exactly what it always did**, which is why its fifty other callers needed no
+change at all. The walker passes his own feet in; so does the camera's floor
+(`solidTopAt`), or the eye would be hoisted up through the roof and out of
+the hill the moment its man stepped in. A roof is a roof — no man jumps up
+through the rock over his head. And **a man's head must go where his feet
+do**: the rise test is the whole story under the open sky, where nothing
+stands over a man but air, and is not the whole story in a passage where the
+floor ahead may be level with his feet and the rock still come down to his
+chest. That test is asked **only where something has actually been
+hollowed**, so no step, no ledge and no climb anywhere else in the world is
+touched by it.
+
+**7. One live bug, found by the acceptance run.** Chaining a second
+`onBeforeCompile` onto a material must also chain its
+`customProgramCacheKey` — and three.js's own default implementation of that
+reads `this.onBeforeCompile`. Called bare it throws **inside the renderer,
+every frame**, taking the render and the whole world with it. It is called on
+the material now.
+
+**8. Acceptance, and what it costs.**
+
+    PASS  1 · a cave mouth at a named range, with solid overhead    ceiling at +7
+    PASS  2 · dark deep in, and a torch lifts it                    40 blocks in
+                                                                   (the passage runs 44):
+                                                                   dark 0.189 → lit 1.000
+    PASS  3 · the walker passes through no ceiling, floor or wall   held on all six
+    PASS  4 · an overhang — solid, air, solid in one column         found
+    PASS 10 · ambient occlusion present and measurable              107,896 vertices,
+                                                                   darkest 0.550
+    PASS 11 · standing in a cave costs no more than open ground×1.5 0.89×
+    PASS 12 · ocean and plains chunks build no slower than they did 2.106 / 1.838 ms
+                                                                   (was 2.152 / 1.970)
+
+Test 3 drives the **real walker** at the rock in all six directions for
+sixty frames apiece and asserts his body was never once found inside it —
+not a proxy, the walking code. Test 11's edited-chunk half is named as still
+owing rather than reported as tested.
+
+Six stations, two hundred frames standing still at each, against the same
+worktree of the commit before Phase 0:
+
+| station | before Phase 0 | after Phase 0 | after Phase 1 |
+|---|---|---|---|
+| a village at noon | 668.9 ms | 599.0 ms | **618.2 ms** |
+| the cedar coast | 672.0 ms | 595.3 ms | **639.3 ms** |
+| open sand | 624.2 ms | 575.6 ms | **570.8 ms** |
+| closed rain forest | 878.1 ms | 806.9 ms | **811.6 ms** |
+| alpine rock and snow | 603.0 ms | 592.7 ms | **610.7 ms** |
+| a cold coast | 505.3 ms | 506.1 ms | **488.0 ms** |
+
+Every station is still at or under what it cost before any of this began.
+The alpine station draws 4 % more triangles than it did — those are cave
+walls, floors and roofs, and they are the only new geometry in the world.
+
+**Still ahead:** Phase 2 — the manifest loader, the block registry,
+`setBlock`, the edit overlay, dirty-chunk remeshing and IndexedDB. Tests 5,
+6 and 7, and the other half of 11.
+
+## 4y. Round 26 — the world made mutable: one list, one table of blocks, one door ✅
+
+*The brief's §10 manifest and Phase 2 in full. Verified live: 209 blocks laid
+into a village at noon and photographed, a hundred-block brick hut raised
+over the sand with a plank roof and a salt course, and acceptance tests 5, 6,
+7 and the whole of 11 driven against the running world — the persistence test
+five times over, because it failed once and a race that loses rarely is the
+worst rate there is.*
+
+**1. `world/manifest.js` — every file of the world named once (§10).**
+- `index.html` carried **365** `<script src>` tags and
+  `scripture-unfolds/index.html` carried the same 365 again with `../` in
+  front of each: the same ORDERED list, written twice, and about to be
+  written twice more as the blocks and the authored places arrived. Two
+  copies of an ordered list is a bug with a date on it — the day somebody
+  adds a country to one and not the other, the two games are different
+  worlds. It is one list now, and both pages read it.
+- **The order is the whole point** — the registry before anything that
+  declares into it, every country before the engine that rasterises them,
+  every creature before the fauna table that names it, `js/engine.js` last
+  — so it is a list, not a set, and nothing in it may be sorted.
+- All of them are appended at once with **`async=false`**, which is the one
+  thing that makes a dynamically inserted script keep its place in the queue:
+  the browser fetches them in parallel and runs them strictly in order. It is
+  **faster** than the parser-blocking tags it replaces, and it is the reason
+  this could be done at all without a build step.
+- `index.html` fell from 1,161 lines to 781; `scripture-unfolds/index.html`
+  from 680 to 318. Verified: the voyage boots in 19.1 s (was 19.8) and
+  SCRIPTURE UNFOLDS raises the shared world in 5.3 s with 176 countries, 150
+  beasts and 8 scrolls, reading the same manifest through `'../'`.
+
+**2. `blocks/` — a table of materials, where there was a table of textures.**
+- The mesher carried ad-hoc material *names* — `grassTop`, `cobble`,
+  `haySide`. That is a table of what things LOOK like; it could say nothing
+  whatever about how long a thing takes to break, what tool serves it, what
+  it drops, or whether it stands on nothing. **22 blocks**, one to a file,
+  each calling `EARTH.block({…})` — the same rule every country, creature and
+  landmark keeps.
+- Nineteen are drawn with textures the world already had. Three are new and
+  are the materials of §4 the palette already had pigments for: **baked
+  brick** in courses with recessed mortar, **slime** — the asphalt of the
+  pits of Siddim, wet, with the light lying on it in slicks — and **salt**,
+  crystalline. Each carries its verse **quoted exactly** from the repository's
+  own generated Berĕshith (`BERĔSHITH 11:3`, `6:14`, `14:3`), never
+  paraphrased and never invented.
+- **A block has two names.** Its `id` is a string and is stable for ever — it
+  is what a save speaks. Its number is assigned in load order purely so an
+  edit can be written in two bytes; and because that number is an accident of
+  load order, **every save carries its own table of name-to-number**. Insert a
+  block into the manifest next year and an old world still opens with its
+  walls the right stone.
+
+**3. The edit overlay, and one door.**
+- `cellRaw` is a pure function of place, so anything the traveller changed was
+  erased the moment the chunk rebuilt. Now:
+  **procedural spans → apply the edits → mesh.**
+- **`setBlock` is the ONE way terrain is changed.** Nothing else in the engine
+  may write it, so there is exactly one place where dirtying a chunk, marking
+  its neighbour and writing the record can be got wrong. Every future hand,
+  tool, work and authored place goes through that door.
+- **The index puts Y fastest on purpose.** A man's edits are towers, walls,
+  shafts and stairs — runs *up*. Laid out with y fastest, a wall of forty
+  blocks is **one** entry in the record instead of forty, and the run-length
+  coding gets it for nothing.
+- An edit that merely restores what the world would have done anyway is not
+  kept: it is a hole in the record, not a fact.
+- The mesher applies a column's edits to its spans and hands the rest of
+  itself a cell-shaped thing it already understands, so nothing downstream
+  had to learn that anybody has been digging. **Blocks set down are drawn one
+  at a time in their own material**, six faces each, every one culled against
+  what stands beside it — a man's edits are sparse, and a cube apiece is the
+  honest price for letting him build in whatever he likes.
+- **Collision needed no new funnel.** `solidAt` became one line over
+  `blockSolidAt`, and `groundInfo` walks an edited column block by block —
+  bounded, and entered only by a column somebody has actually touched, because
+  an edited column has no sorted shape to do arithmetic on: a man may leave a
+  block hanging forty above the ground and a shaft cut two hundred below it.
+
+**4. It is written down — IndexedDB, versioned from the first line.**
+- localStorage caps near five megabytes and is synchronous: an hour of digging
+  would both overflow it and stall the frame in the act. Block edits go to
+  IndexedDB, one record to an edited chunk, run-length coded. The small state
+  — where the ship lies, the log, the scrolls — stays in localStorage, which
+  is what it is good for. A record of a version this build does not know is
+  **left alone** rather than guessed at.
+- **Bound: everything is kept, and that is written down as a decision** (see
+  `PLAN.md` §5). A player edits a vanishing fraction of a 60,000-block disc.
+
+**5. One live bug, and it is the interesting one of the round.**
+- Test 7 passed alone, passed in pairs, and **failed roughly one run in
+  four** with all three persistence tests together: the reload came back with
+  the right chunks and the wrong blocks in them.
+- The cause: a save asked for by hand while the debounced save was still open
+  found `EDIT_SAVE` already drained, **returned `true` over the top of a
+  transaction that was still writing**, and the reload then closed the door
+  on it. Under a software rasteriser a frame is half a second, so the 900 ms
+  debounce fired reliably inside the two-frame settle — which is why it
+  showed up here and would have shown up on a phone.
+- The fix is not "cancel the timer" (that was the first attempt, and it still
+  failed 1 in 3). Saves now **stand in a line**: a call made while another is
+  open chains onto it, so `await editsSave()` means *everything outstanding
+  has landed* — which is what it has to mean before a reload or a page
+  teardown. Five consecutive clean runs after.
+- And a save that fails now re-arms the timer as well as putting its keys
+  back, or the work would sit unwritten until the next blow of the pick.
+
+**6. Acceptance, and what it costs.**
+
+    PASS  5 · a broken block is gone, the chunk remeshed, the neighbour drawn
+    PASS  6 · a block placed in mid-air is solid, lit and collidable
+    PASS  7 · both changes survive a reload
+    PASS 11 · a cave and an edited chunk cost no more than open ground ×1.5
+    PASS 1,2,3,4,10,12 — all still green
+    PENDING 8, 9 — houses are still decoration until Phase 3
+
+**10 pass · 0 fail · 2 pending.**
+
+Test 5's first draft asserted the chunk's triangle count changed, and it does
+not: breaking the top block of flat ground takes one face away at *h* and puts
+one back at *h−1*. The chunk is genuinely rebuilt and the count is genuinely
+identical. It asks the right question now — that the chunk **was laid again**
+(a counter), that the ground fell by exactly one block, and that the block
+beside it now stands with an open face where it had none.
+
+Test 11's first draft reported *1,798 ms* for a remesh. That was three
+SwiftShader frames of waiting, not the work. Timed by itself, laying two
+edited chunks again takes **10.3 ms** — inside the mesher's own existing
+per-frame slice, so one blow of the pick costs one chunk rebuild in one frame,
+as the brief asks.
+
+| station | before Phase 0 | Phase 1 | Phase 2 |
+|---|---|---|---|
+| a village at noon | 668.9 ms | 618.2 ms | **614.7 ms** |
+| the cedar coast | 672.0 ms | 639.3 ms | **667.2 ms** |
+| open sand | 624.2 ms | 570.8 ms | **583.4 ms** |
+| closed rain forest | 878.1 ms | 811.6 ms | **817.2 ms** |
+| alpine rock and snow | 603.0 ms | 610.7 ms | **616.0 ms** |
+| a cold coast | 505.3 ms | 488.0 ms | **503.5 ms** |
+
+Standing in a chunk with 243 blocks laid into it costs **1.00×** open ground,
+which is what it should: an edited chunk differs from an unedited one by a
+remesh, not by any per-frame cost.
+
+**Still ahead:** Phase 3 — every `emit*` and `lm*` builder converted from
+triangles to block stamps, structure edits kept apart from player edits, and
+the geometric diff harness that proves a converted village is the same village
+before anybody is allowed to mine it. Tests 8 and 9. *The long one.*
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
