@@ -480,8 +480,117 @@ const seaTex=TEX.water.clone(); seaTex.needsUpdate=true; seaTex.repeat.set(R_WOR
 seaTex.generateMipmaps=true; seaTex.minFilter=THREE.LinearMipmapLinearFilter;
 const seaMat=new THREE.MeshBasicMaterial({map:seaTex,transparent:true,opacity:0.82,side:THREE.DoubleSide});
 LIT.push(seaMat);
+/* ================= THE LIGHT A MAN CARRIES =================
+   A cave you can see in with no light source is not a cave — and a cave you
+   CANNOT see in with one is not a place, it is a wall. So the traveller
+   carries fire.
+
+   Every block in this world is drawn with an unlit material: the light on a
+   face is baked into its vertex colour and the whole set is tinted once by
+   the hour of the day. Nothing in it responds to a lamp, and putting a real
+   point light in the scene would mean lighting the entire earth per-pixel to
+   light nine blocks of it. So the torch is a UNIFORM instead — one position,
+   one reach, one strength, shared by every block material in the game and
+   worked out in the fragment: three instructions, no extra draw call, and
+   nothing whatever paid while it is out.
+
+   (The chunk mesher bakes its geometry in WORLD coordinates — the same
+   property the wind in the leaves leans on — so the vertex position IS the
+   world position and the distance to the flame is one subtraction.) */
+const TORCH_P={value:new THREE.Vector3(0,-1e7,0)}, TORCH_R={value:78}, TORCH_S={value:0};
+/* a material may already carry a patch (the wind, the snow, the turn of the
+   year). Chain onto it rather than over it — and give the chain its own key,
+   or three.js hands every patched material the first one's program. */
+function addPatch(mat,fn,key){
+  const prev=mat.onBeforeCompile, prevKey=mat.customProgramCacheKey;
+  mat.onBeforeCompile=sh=>{ if(prev) prev(sh); fn(sh); };
+  /* three.js's OWN default customProgramCacheKey reads `this.onBeforeCompile`
+     — so it must be called ON the material. Called bare it throws inside the
+     renderer, every frame, out of the render and out of the world with it. */
+  mat.customProgramCacheKey=function(){ return (prevKey?prevKey.call(this):'')+'|'+key; };
+  mat.needsUpdate=true;
+}
+function torchLight(mat){
+  addPatch(mat,sh=>{
+    sh.uniforms.uTorchP=TORCH_P; sh.uniforms.uTorchR=TORCH_R; sh.uniforms.uTorchS=TORCH_S;
+    sh.vertexShader='varying vec3 vTPos;\n'+sh.vertexShader.replace(
+      '#include <begin_vertex>','#include <begin_vertex>\n  vTPos=position;');
+    sh.fragmentShader='uniform vec3 uTorchP;\nuniform float uTorchR;\nuniform float uTorchS;\nvarying vec3 vTPos;\n'+
+      sh.fragmentShader.replace('#include <color_fragment>',
+        '#include <color_fragment>\n'+
+        '  if(uTorchS>0.001){ float d=distance(vTPos,uTorchP);\n'+
+        '    float t=max(0.0,1.0-d/uTorchR);\n'+
+        '    diffuseColor.rgb*=1.0+uTorchS*t*t*7.0; }');
+  },'torch');
+}
+/* every block material that exists at this point takes the torch, and so
+   does every one made later — the far land, the beasts' own materials and
+   the villagers' cloth are all enrolled in LIT after this line, and a man
+   holding a lamp lights the creature in front of him or he does not have a
+   lamp. `torched` is a WeakSet rather than a flag on the material so
+   nothing has to remember to set it. */
+const _torched=new WeakSet();
+function torchAll(){
+  for(const m of LIT) if(!_torched.has(m)){ _torched.add(m); torchLight(m); }
+  for(const m of ICE_MATS) if(!_torched.has(m)){ _torched.add(m); torchLight(m); }
+}
+torchAll();
 const torchMat=new THREE.MeshBasicMaterial({color:0xffd75e});           // full-bright, never dimmed
 function setBlockLight(r,g2,b2){ for(const m of LIT) m.color.setRGB(r,g2,b2); }
+/* ---- THE FLAME ITSELF ----
+   Where it stands, how far it reaches, and how hard it burns — with a
+   flicker, because a steady lamp is a torch nobody believes. */
+const TORCH={on:false, s:0, t:0};
+function torchTick(dt){
+  torchAll();                                  /* anything newly made takes it too */
+  TORCH.t+=dt;
+  const want=TORCH.on?1:0;
+  TORCH.s+=(want-TORCH.s)*Math.min(1,dt*(TORCH.on?5:9));
+  if(TORCH.s<0.002){ TORCH_S.value=0; TORCH_P.value.y=-1e7; torchPropTick(); return; }
+  const fl=0.86+0.14*Math.sin(TORCH.t*11.3)+0.06*Math.sin(TORCH.t*27.7);
+  TORCH_S.value=TORCH.s*fl;
+  torchPropTick();
+  const p=playerXZ();
+  const y=(state.mode==='walk')?(state.walk.feetY!==undefined?state.walk.feetY+B*1.5:WATER_Y)
+        :(state.mode==='fly')?state.fly.y:(state.mode==='dive')?state.dive.y:WATER_Y+8;
+  TORCH_P.value.set(p.x,y,p.z);
+}
+/* ---- AND IT IS IN HIS HAND ----
+   A light with no lamp under it is a trick. A short haft of wood with a
+   knot of flame on its head, hung off the traveller's right arm so it
+   swings with his stride and is seen over his shoulder by his own camera. */
+let torchProp=null;
+function ensureTorchProp(){
+  if(torchProp||!walkerG.userData||!walkerG.userData.armR) return torchProp;
+  const g=new THREE.Group();
+  const haft=new THREE.Mesh(new THREE.BoxGeometry(0.55,3.4,0.55),MAT.logSide||MAT.barkW);
+  haft.position.y=-1.7; g.add(haft);
+  const fl=new THREE.Mesh(new THREE.BoxGeometry(1.05,1.25,1.05),torchMat);
+  fl.position.y=-3.5; g.add(fl);
+  const em=new THREE.Mesh(new THREE.BoxGeometry(1.7,1.9,1.7),
+    new THREE.MeshBasicMaterial({color:0xffb347,transparent:true,opacity:0.42,depthWrite:false}));
+  em.position.y=-3.5; g.add(em);
+  g.position.set(0,-4.0,0.9);
+  g.userData.flame=fl; g.userData.halo=em;
+  walkerG.userData.armR.add(g);
+  torchProp=g; g.visible=false;
+  return g;
+}
+function torchPropTick(){
+  const g=ensureTorchProp(); if(!g) return;
+  const show=TORCH.s>0.01&&(state.mode==='walk'||state.mode==='deck'||state.mode==='fly');
+  g.visible=show;
+  if(!show) return;
+  const f=0.8+0.35*Math.sin(TORCH.t*13.1)+0.1*Math.sin(TORCH.t*31.3);
+  g.userData.flame.scale.set(1,f,1);
+  g.userData.halo.scale.setScalar(0.9+0.25*f);
+  g.userData.halo.material.opacity=0.30+0.18*f;
+}
+function setTorch(on){ TORCH.on=!!on; updateTorchBtn();
+  if(on) toast('You strike a light. The dark of the earth gives back only what the flame reaches — carry it, and go down.'); }
+function updateTorchBtn(){ const b=$('b-torch'); if(!b) return;
+  b.textContent='\uD83D\uDD25 Torch: '+(TORCH.on?'lit':'out');
+  b.classList.toggle('off',!TORCH.on); }
 /* ================= THE ICE KEEPS ITS OWN LIGHT =================
    Every block in the world takes one global day-light. Out at the rim the sun
    is always far off — it runs its course between the tropics and never comes
@@ -649,6 +758,19 @@ for(const L of LANDMARKS){ if(L.kind!=='range') continue;
    at the foot, the pool, and the stream running away out of it. Dunn's
    River, Kaieteur, Trafalgar and their fellows — each in its own land,
    each secret:1: no banner, no mark, found by walking the island. */
+/* ================= AND THE HOLLOW PLACES UNDER THEM =================
+   js/caves.js is the whole law of the caves and knows nothing of this
+   world; it is handed the countries the caves belong to, once, here. Every
+   named range and every named summit carries a cave country about it, so
+   the hollow places are where a traveller would go looking for them — and
+   js/caves.js adds a sparse worldwide scatter of its own besides, so a man
+   who never climbs a named mountain still finds a way down. */
+if(window.CAVES){
+  const seeds=[];
+  for(const g of RANGES) seeds.push({x:g.x,z:g.z,r:Math.max(3200,g.R*3.6)});
+  for(const m of MOUNTS) seeds.push({x:m.x,z:m.z,r:Math.max(2200,(m.R||900)*2.4)});
+  CAVES.seed(seeds);
+}
 const FALLS=[];
 for(const L of LANDMARKS){ if(L.kind!=='falls') continue;
   const [fx,fz]=llToWorld(L.lat,L.lon);
@@ -1139,7 +1261,18 @@ function cellRaw(ix,iz){
      stripping its trees is gone — it belonged to a world whose tallest thing
      was a hill. The tree line does that work now, and does it by altitude
      and by latitude both, so the forest climbs the flanks.) */
-  return {h, kind, tree, ci};
+  /* ---- AND WHAT HAS BEEN HOLLOWED OUT OF IT ----
+     `spans` is the third dimension, and it is `null` for very nearly every
+     column on the earth — which is the whole reason the ordinary world stays
+     exactly as cheap as it was. Where it is not null it is a short, sorted,
+     disjoint list of AIR RUNS in blocks: solid below the first, solid from
+     the last up to h, and nothing in between. The law of them is entirely in
+     js/caves.js; the terrain only asks.
+     The top block is never taken, so the surface a man walks on, a village
+     is laid on and a tree grows out of is solid everywhere on the earth —
+     which is why none of the eighty-seven places that read `h` had to move. */
+  const spans=window.CAVES?CAVES.spansAt(x,z,h):null;
+  return spans?{h, kind, tree, ci, spans}:{h, kind, tree, ci};
 }
 /* villages flatten the ground around them (computed at boot) */
 let SITES=[], siteGrid=new Map();
@@ -1159,6 +1292,18 @@ function cell(ix,iz){
     CELL_CACHE.set(k,c); }
   return c;
 }
+/* keep every air run under a surface that has moved: nothing may reach
+   within a block of the top, and a run left with no rock over it is gone */
+function clipSpans(sp,h){
+  const top=h-1; const out=[];
+  for(let i=0;i<sp.length;i+=2){
+    const lo=sp[i]; let hi=sp[i+1];
+    if(lo>=top) continue;
+    if(hi>top) hi=top;
+    if(hi-lo>=2) out.push(lo,hi);
+  }
+  return out.length?Int16Array.from(out):null;
+}
 function cellCompute(ix,iz){
   const c=cellRaw(ix,iz); if(!c) return null;
   if(SITES.length&&c.kind!=='wall'&&c.kind!=='floe'){
@@ -1176,8 +1321,18 @@ function cellCompute(ix,iz){
            the site's own height exactly; the skirt beyond still eases out
            into the true land so no village sits on a cut-out plate. */
         const k=(t>=1)?1:t*0.92;
+        const h0=c.h;
         c.h=Math.max(1,Math.round(c.h+(st.h0-c.h)*k));
         if(c.kind!=='sand'&&c.h===1) c.h=2;
+        /* ---- AND THE HOLLOW UNDER IT COMES DOWN WITH THE GROUND ----
+           A village levels the land for eighty-six units about it. Where it
+           levels a hill that had a passage in it the ground can drop THROUGH
+           the roof of that passage, and an air run standing over the new
+           surface is a hole in the world — you would see daylight from inside
+           the rock and fall through the market square. Every run is clipped
+           back under the new surface, and any that no longer has rock over it
+           is dropped outright. */
+        if(c.spans&&c.h<h0) c.spans=clipSpans(c.spans,c.h);
         break; }
     }
   }
@@ -1368,15 +1523,95 @@ function aoTop(ix,iz,h){
   _aoT[3]=aoLevel(nx,nz,e(-1,-1));
   return _aoT;
 }
+/* ================= THE LIGHT THAT REACHES A HOLLOW =================
+   A cave you can see in with no light source is not a cave. Every face cut
+   inside the rock is baked dark, and how dark is how far it stands from the
+   nearest place the daylight can get in — which is any column near enough
+   whose SURFACE is lower than the face itself. A mouth is bright; a dozen
+   blocks in is dim; the third chamber is black.
+
+   Twenty-four cell reads, and they are paid ONLY by a column that has been
+   hollowed out at all — which is a fraction of a fraction of the earth. It
+   is baked once at mesh time and costs nothing per frame, exactly as the
+   occlusion above it does. */
+const CAVE_DARK=0.085;              /* what is left of the light where none reaches */
+const _LR=[2,8,18], _LF=[0.92,0.46,0.15];
+const _L8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+/* ---- AND IT IS HOW MUCH IS OPEN, NOT WHETHER ANYTHING IS ----
+   Asked as "is there ANY direction in which the ground falls below this
+   height", a passage running forty blocks under a mountain but hugging its
+   flank came out as bright as its own mouth: one grazing line of sight to
+   the daylight lit the whole of it. The day is SHARED OUT instead — each of
+   the eight bearings at each of three distances contributes its own eighth,
+   and the further off it is the less it brings. A mouth, open on half the
+   compass at arm's length, is bright; a passage with one distant chink is
+   very nearly black, which is the truth of it. */
+function caveLightAt(ix,iz,y){
+  let f=0;
+  for(let k=0;k<3;k++){ const r=_LR[k]; let open=0;
+    for(let q=0;q<8;q++) if(nH(ix+_L8[q][0]*r, iz+_L8[q][1]*r) <= y) open++;
+    if(open){ f+=_LF[k]*(open/8); if(f>=1) return 1; } }
+  return f;
+}
+/* ---- AND IT IS ASKED ONCE FOR THE WHOLE PASSAGE, NOT ONCE A FACE ----
+   The floor, the roof and all four walls of one air run are the same room
+   and take the same light. Asked per face it was six times twenty-four cell
+   reads for every hollowed column in the chunk; asked once per run it is
+   one, and the answer is the same. */
+const _lit=[];
+function litRuns(ix,iz,sp,out){
+  out.length=0;
+  for(let i=0;i<sp.length;i+=2){
+    const f=caveLightAt(ix,iz,(sp[i]+sp[i+1])*0.5);
+    out.push(CAVE_DARK+(1-CAVE_DARK)*f);
+  }
+  return out;
+}
+/* which air run of this column a height falls in, and how lit it is; 1 where
+   the height is not in any run at all (open sky, and it keeps the day) */
+function litAt(sp,lit,y){
+  for(let i=0;i<sp.length;i+=2) if(y>=sp[i]-0.5&&y<=sp[i+1]+0.5) return lit[i>>1];
+  return lit.length?lit[lit.length-1]:1;
+}
+/* the solid runs of a column, in BLOCKS, as a flat list [a0,b0,a1,b1,…] —
+   the complement of its air runs between its foot and its surface */
+function solidRuns(cc,foot,out){
+  out.length=0;
+  const sp=cc&&cc.spans;
+  if(!sp){ if(cc&&cc.h>foot) out.push(foot,cc.h); return out; }
+  let y=foot;
+  for(let i=0;i<sp.length;i+=2){
+    const lo=sp[i], hi=sp[i+1];
+    if(lo>y) out.push(y,lo);
+    if(hi>y) y=hi;
+  }
+  if(cc.h>y) out.push(y,cc.h);
+  return out;
+}
+const _myR=[], _nbR=[];
 function emitColumn(G,ix,iz,cc){
   const x0=ix*B, x1=x0+B, z0=iz*B, z1=z0+B, yT=cc.h*B;
   faceTop(G,topMatFor(cc.kind),x0,z0,x1,z1,yT,1.0,1,aoTop(ix,iz,cc.h));
   const [sTop,sLow]=sideMatsFor(cc.kind);
   const nb=[[1,0],[-1,0],[0,1],[0,-1]];
+  /* ---- THE HOLLOW OF THIS COLUMN, IF IT HAS ONE ----
+     The floors and the ceilings first — the underside of every roof and the
+     top of every floor the caves have cut through this column. */
+  let myLit=null;
+  if(cc.spans){
+    const sp=cc.spans;
+    myLit=litRuns(ix,iz,sp,_lit).slice();
+    for(let i=0;i<sp.length;i+=2){
+      const lo=sp[i], hi=sp[i+1], f=myLit[i>>1];
+      faceTop(G,sLow,x0,z0,x1,z1,lo*B,1.0*f);           /* the floor of the passage */
+      faceBottom(G,sLow,x0,z0,x1,z1,hi*B,0.5*f);        /* and the roof over it */
+    }
+  }
   for(let d=0;d<4;d++){
     const nc=cell(ix+nb[d][0],iz+nb[d][1]);
     const nh=nc?nc.h:0, base=Math.min(nh,cc.h)*B;
-    if(cc.h<=nh) continue;
+    const hollow=!!(cc.spans||(nc&&nc.spans));
+    if(cc.h<=nh&&!hollow) continue;
     const split=(sTop!==sLow)&&(cc.h-1>nh);
     const yMid=split?(cc.h-1)*B:base;
     /* ---- AND THE FLANKS TAKE IT TOO ----
@@ -1415,8 +1650,55 @@ function emitColumn(G,ix,iz,cc){
     if(!nc){ const jx=ix+nb[d][0], jz=iz+nb[d][1];
       const foot=Math.min(SUBSEA_Y, bedBlockAt((jx+0.5)*B,(jz+0.5)*B)-B);
       put((cc.kind==='wall'||cc.kind==='floe'||cc.kind==='snow')?'stone':'sand',foot,base,sh*0.72); }
-    if(split){ put(sLow,base,yMid,sh); put(sTop,yMid,yT,sh); }
-    else put(sTop,base,yT,sh);
+    /* ---- THE COMMON CASE, AND IT IS VERY NEARLY EVERY CASE ----
+       Neither this column nor the one beside it has been hollowed: the flank
+       is one unbroken band from the neighbour's ground to our own, exactly as
+       it has always been drawn, and nothing below costs it a thing. */
+    if(!hollow){
+      if(split){ put(sLow,base,yMid,sh); put(sTop,yMid,yT,sh); }
+      else put(sTop,base,yT,sh);
+      continue;
+    }
+    /* ---- AND WHERE SOMETHING HAS BEEN HOLLOWED ----
+       The wall is whatever is solid HERE and not solid THERE. Both columns
+       are taken as their solid runs and one is subtracted from the other,
+       which is the ordinary work of a voxel mesher and the reason a cave has
+       walls at all. Two things fall out of it for nothing: the far side of a
+       passage is drawn (so a cave is a room and not a hole in a wall), and
+       where the neighbour's ground has fallen away past the passage the wall
+       is simply absent — and THAT is a cave mouth. Nothing places them. */
+    /* both columns must be described from the SAME floor, and that floor has
+       to reach under the deepest thing either of them has had cut out — read
+       from the shallower of the two grounds, as the unhollowed case is, the
+       whole passage would sit below the bottom of the reckoning and no cave
+       would have a wall anywhere in the world. */
+    let hfoot=Math.min(nh,cc.h);
+    if(cc.spans&&cc.spans[0]<hfoot) hfoot=cc.spans[0];
+    if(nc&&nc.spans&&nc.spans[0]<hfoot) hfoot=nc.spans[0];
+    solidRuns(cc, hfoot, _myR);
+    solidRuns(nc, hfoot, _nbR);
+    for(let m=0;m<_myR.length;m+=2){
+      let y=_myR[m];
+      const my1=_myR[m+1];
+      for(let k=0;k<=_nbR.length;k+=2){
+        const na=(k<_nbR.length)?_nbR[k]:1e9, nbv=(k<_nbR.length)?_nbR[k+1]:1e9;
+        if(nbv<=y) continue;
+        const cut=Math.min(na,my1);
+        if(cut>y){
+          /* a face with the neighbour's own rock standing over it is INSIDE
+             the earth and takes the cave's darkness; one with open sky over
+             it is a cliff, and keeps the day */
+          const enclosed=!!nc&&cut<=nc.h-0.001;
+          const lit=!enclosed?1
+            :(myLit?litAt(cc.spans,myLit,(y+cut)*0.5)
+                   :(nc.spans?litAt(nc.spans,litRuns(ix+nb[d][0],iz+nb[d][1],nc.spans,_lit),(y+cut)*0.5)
+                             :CAVE_DARK));
+          put(my1>=cc.h&&cut>=cc.h-1?sTop:sLow, y*B, cut*B, sh*lit);
+        }
+        if(nbv>y) y=nbv;
+        if(y>=my1) break;
+      }
+    }
   }
 }
 /* ---- THE TREES OF THE FIELD ----
@@ -9131,7 +9413,10 @@ function landmarkTopAt(x,z,refY){
    the eye must ride over. */
 function solidTopAt(x,z,refY){
   const lc=landAtWorld(x,z);
-  let t=Math.max(lc?lc.h*B:WATER_Y, landmarkTopAt(x,z,refY));
+  /* inside a mountain the eye's floor is the floor of the PASSAGE, not the
+     summit overhead — floored on the summit the camera was thrown up
+     through the roof and out of the hill the moment its man stepped in */
+  let t=Math.max(lc?(lc.spans?groundYIn(lc,refY).y:lc.h*B):WATER_Y, landmarkTopAt(x,z,refY));
   const ht=houseTopAt(x,z); if(ht>t) t=ht;
   return t;
 }
@@ -9264,6 +9549,7 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code==='KeyC') enterDive();           /* dive the deep / surface */
   if(e.code==='KeyM') toggleMap();
   if(e.code==='KeyK'){ if(roamOnly()) cycleSeason(); }  /* free roam only */
+  if(e.code==='KeyT') setTorch(!TORCH.on);   /* strike a light, and put it out */
   if(e.code==='KeyL') toggleLog(); });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
 const cv=$('cv'); let drag=null, joy=null;
@@ -9665,12 +9951,49 @@ function treeBlocked(nx,nz){
   return Math.hypot(nx-(ix+.5)*B, nz-(iz+.5)*B)<B*0.55;
 }
 /* the walking surface under a point — a pier deck, the land, or the swim line */
-function groundInfo(x,z){
+/* ================= THE GROUND UNDER A POINT IN THE AIR =================
+   The whole of the walker's world used to be one number a column: the
+   surface. With the hollow places cut into the earth that is no longer the
+   question — the question is what is solid UNDER THIS HEIGHT and what is
+   solid OVER IT, and the answer inside a mountain is not the mountain top.
+
+   `refY` is the height the asking body stands at. Given none, the surface
+   is meant and the answer is exactly what it always was — which is why the
+   fifty other callers of this needed no change at all.
+
+   The runs come sorted, so this walks them from the top down and stops at
+   the first one it is at or inside. It is two comparisons for the common
+   carved column and NOT ENTERED AT ALL for a column that is not carved. */
+function groundYIn(c,refY){
+  if(!c.spans||refY===undefined) return {y:c.h*B, ceil:Infinity};
+  const sp=c.spans, ry=refY/B;
+  let y=c.h*B, ceil=Infinity;
+  for(let i=sp.length-2;i>=0;i-=2){
+    const lo=sp[i], hi=sp[i+1];
+    if(ry>=hi) break;               /* above this hollow: the rock over it is the ground */
+    y=lo*B; ceil=hi*B;              /* on the floor of this hollow, with its roof above */
+    if(ry>=lo) break;               /* and truly inside it */
+  }
+  return {y,ceil};
+}
+function groundInfo(x,z,refY){
   const dk=deckMap.get(Math.floor(x/B)+','+Math.floor(z/B));
   if(dk!==undefined) return {y:dk,land:true};
   const c=landAtWorld(x,z);
-  if(c) return {y:c.h*B, land:true, wall:c.kind==='wall'};   /* the ice wall is walkable — one may mount it */
+  if(c){ if(!c.spans) return {y:c.h*B, land:true, wall:c.kind==='wall'};
+    const g=groundYIn(c,refY);
+    return {y:g.y, ceil:g.ceil, hollow:true, land:true, wall:c.kind==='wall'}; }
   return {y:WATER_Y-2.2, land:false, water:true};
+}
+/* is this very point inside the rock? The one test every hollow thing in
+   the world is judged by, and the one the acceptance tests ask. */
+function solidAt(x,y,z){
+  const c=landAtWorld(x,z); if(!c) return false;
+  const yb=y/B;
+  if(yb>=c.h) return false;
+  const sp=c.spans; if(!sp) return true;
+  for(let i=0;i<sp.length;i+=2) if(yb>sp[i]&&yb<sp[i+1]) return false;
+  return true;
 }
 /* is a point within the room of a house (used for the inside-the-home camera) */
 function insideHouseIn(x,z,arr){ const T2=B*0.5+0.5;
@@ -9702,6 +10025,7 @@ function splashTick(dt){ if(!SPLASH.length) return;
     p.s.material.opacity=Math.max(0,Math.min(0.85,p.life*1.6));
     if(p.life<=0) p.s.visible=false; } }
 const STEP=B*1.2, JUMPH=B*2.3, CLIMBH=B*4.6;   /* step / must-jump / can-climb heights */
+const HEAD_R=B*1.9;   /* a man's own height, for the roof of a passage */
 const BODY_R=1.9;   /* the traveller's own half-breadth — he is a body, not a point */
 function walkTick(dt){
   const w=state.walk, u=walkerG.userData; const [f,t]=axis();
@@ -9720,7 +10044,7 @@ function walkTick(dt){
     return;
   }
   w.heading+=t*dt*2.4;
-  const gi=groundInfo(w.x,w.z);
+  const gi=groundInfo(w.x,w.z,w.feetY+0.1);
   /* over water the body SWIMS — no man walks upon the sea. But a body still
      IN THE AIR above the water (a leap off a cliff, a jump from a pier) falls
      under gravity until it truly meets the surface — no mid-air snap-down. */
@@ -9824,7 +10148,13 @@ function walkTick(dt){
          units a second and walking on as though nothing had happened. */
       if(wasFalling&&!w.climb) w.spill=Math.min(1.5,0.45+(-w.vy)/190*1.05);
       w.vy=0; w.grounded=true; } else w.grounded=false;
-    if((keys.Space||w.jumpReq)&&w.grounded&&!(w.spill>0)){ w.vy=38; w.grounded=false; } w.jumpReq=false; }
+    if((keys.Space||w.jumpReq)&&w.grounded&&!(w.spill>0)){ w.vy=38; w.grounded=false; } w.jumpReq=false;
+    /* ---- AND A ROOF IS A ROOF ----
+       In a passage a man may not jump up through the rock over his head.
+       Asked only of a column that has actually been hollowed, so nothing
+       under the open sky pays a thing for it. */
+    if(gi.hollow&&isFinite(gi.ceil)&&w.feetY+HEAD_R>gi.ceil){
+      w.feetY=gi.ceil-HEAD_R; if(w.vy>0) w.vy=0; } }
   /* ---- horizontal move, gated by the height of the ground ahead ---- */
   /* mounted, the beast's stride is yours: a canter at twice a man's pace */
   const sp=(w.spill>0&&!swimming)?0:f*(swimming?16:state.mount?38:18);
@@ -9835,9 +10165,9 @@ function walkTick(dt){
      lying between two frames' sample points was walked clean through. His
      whole breadth is tested now, and if the way is barred he SLIDES along
      it (trying each axis alone) instead of sticking fast against it. */
-  let nx=fullX, nz=fullZ, tg=groundInfo(nx,nz), diff=0, solidBlock=false, canGo=false;
+  let nx=fullX, nz=fullZ, tg=groundInfo(nx,nz,w.feetY+0.1), diff=0, solidBlock=false, canGo=false;
   const tryStep=(tx,tz)=>{
-    const g2=groundInfo(tx,tz);
+    const g2=groundInfo(tx,tz,w.feetY+0.1);
     const d2=g2.y-w.feetY;
     const near2=Math.hypot(tx-state.boat.x,tz-state.boat.z)<90;
     const deck2=deckMap.get(Math.floor(tx/B)+','+Math.floor(tz/B))!==undefined;
@@ -9856,8 +10186,16 @@ function walkTick(dt){
     if(ok&&swimming&&insideTraderHull(tx,tz,2)&&!insideTraderHull(w.x,w.z,2)) ok=false;
     /* and his shoulders must clear it too, not only his midline */
     if(ok&&!swimming) for(let k=0;k<4;k++){ const aa=k*1.5708;
-      const g3=groundInfo(tx+Math.cos(aa)*BODY_R,tz+Math.sin(aa)*BODY_R);
+      const g3=groundInfo(tx+Math.cos(aa)*BODY_R,tz+Math.sin(aa)*BODY_R,w.feetY+0.1);
       if(g3.land&&g3.y-w.feetY>STEP){ ok=false; break; } }
+    /* ---- AND HIS HEAD MUST GO WHERE HIS FEET DO ----
+       Under the open sky the rise test above is the whole of it: nothing
+       stands over a man but air. In a passage it is not — the floor ahead
+       may be level with his feet and the rock still come down to his chest.
+       Asked only where something has actually been hollowed, so no step,
+       no ledge and no climb anywhere else in the world is touched by it. */
+    if(ok&&!swimming&&(g2.hollow||gi.hollow)){
+      if(solidAt(tx,w.feetY+STEP+1,tz)||solidAt(tx,w.feetY+HEAD_R*0.92,tz)) ok=false; }
     return ok?{g:g2,d:d2,solid:solid2}:null;
   };
   let r0=tryStep(fullX,fullZ);
@@ -11486,6 +11824,8 @@ $('b-breath').onclick=()=>{ state.immBreath=!state.immBreath; updateBreathBtn();
   else toast('Your breath is your own again — watch the bar below, and rise to breathe.');
   saveState(); };
 function updateRepelBtn(){ $('b-repel').textContent='🛡 Repel beasts: '+(state.repel?'on':'off'); }
+{ const bt=$('b-torch'); if(bt) bt.onclick=()=>setTorch(!TORCH.on); }
+updateTorchBtn();
 $('b-repel').onclick=()=>{ state.repel=!state.repel; updateRepelBtn();
   if(state.repel) toast('“You shall tread upon the lion and the adder…” — no beast of the deep will touch you.','TEHILLIM 91:13');
   else toast('The beasts of the deep are wild again — mind the great grey shapes.');
@@ -12160,6 +12500,78 @@ if(!window.__HOST_BOOT){
 window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   /* the light in the corners, and the count of standing chunks — tools/acceptance.js */
   aoLevel,aoTop,chunkCount:()=>chunks.size,bodyLenOf,
+  /* ---- THE THIRD DIMENSION, FOR tools/acceptance.js ----
+     Read-only probes. Nothing in the game reads any of these; they exist so
+     the acceptance tests can ask the RUNNING WORLD rather than the source. */
+  cellSpans:(ix,iz)=>{ const c=cell(ix,iz); return c&&c.spans||null; },
+  caveLightAt,solidRuns,solidAt,groundInfo,
+  caveAt:(x,z)=>window.CAVES?CAVES.regionAt(x,z):0,
+  caveSeeds:()=>RANGES.map(g=>({ix:Math.floor(g.x/B),iz:Math.floor(g.z/B)})),
+  lightTorch:on=>{ setTorch(on); TORCH.s=on?1:0; TORCH_S.value=on?1:0;
+    const p=playerXZ(); TORCH_P.value.set(p.x,(state.walk.feetY||0)+B*1.5,p.z); },
+  /* the light truly standing on a point: what the mesher baked there, and
+     what the flame adds to it */
+  lightAt:(x,y,z)=>{ const c=landAtWorld(x,z);
+    let base=1;
+    if(c&&c.spans){ const yb=y/B; let inRun=false;
+      for(let i=0;i<c.spans.length;i+=2) if(yb>=c.spans[i]&&yb<=c.spans[i+1]) inRun=true;
+      if(inRun) base=CAVE_DARK+(1-CAVE_DARK)*caveLightAt(Math.floor(x/B),Math.floor(z/B),y/B); }
+    const d=Math.hypot(x-TORCH_P.value.x,y-TORCH_P.value.y,z-TORCH_P.value.z);
+    const t=Math.max(0,1-d/TORCH_R.value);
+    return Math.min(1,base*(1+TORCH_S.value*t*t*7)); },
+  /* what stands over a point, if anything */
+  solidAbove:(x,y,z,maxDy)=>{ for(let d=1;d<=(maxDy||40);d++){
+      if(solidAt(x,y+d*B,z)) return {dy:d}; } return null; },
+  /* the best walk-in cave mouth near a named range, and a point well inside it */
+  nearestCaveMouth:()=>{
+    let best=null;
+    for(const g of RANGES){
+      const cx=Math.floor(g.x/B), cz=Math.floor(g.z/B);
+      for(let a=-90;a<=90;a+=2) for(let b=-90;b<=90;b+=2){
+        const ix=cx+a, iz=cz+b, c=cell(ix,iz); if(!c||!c.spans) continue;
+        const lo=c.spans[0], hi=c.spans[1];
+        for(const d of [[1,0],[-1,0],[0,1],[0,-1]]){
+          const n=cell(ix+d[0],iz+d[1]); if(!n||n.h>lo+1) continue;
+          let run=0; const my=Math.floor((lo+hi)/2);
+          for(let k=1;k<=60;k++){ const q=cell(ix-d[0]*k,iz-d[1]*k);
+            if(!q||!q.spans||my<q.spans[0]||my>q.spans[1]) break; run=k; }
+          const score=run*3+(hi-lo)*2+Math.min(40,c.h);
+          if(!best||score>best.score) best={score,ix,iz,lo,hi,my,run,
+            dx:d[0],dz:d[1],x:(ix+0.5)*B,y:(lo+0.6)*B,z:(iz+0.5)*B};
+          break; } } }
+    return best; },
+  caveWalkIn:(m,n)=>{ const k=Math.min(n,m.run);
+    if(k<1) return null;
+    const ix=m.ix-m.dx*k, iz=m.iz-m.dz*k, c=cell(ix,iz);
+    if(!c||!c.spans) return null;
+    return {x:(ix+0.5)*B,y:(c.spans[0]+0.6)*B,z:(iz+0.5)*B,ix,iz}; },
+  /* drive the traveller at the rock for a while and report whether his body
+     was EVER found inside it — the plainest reading of "he passes through
+     nothing", and it exercises the real walker, not a proxy for him */
+  shoveWalker:async(m,dir,frames)=>{
+    const inn=Math.min(m.run,6);
+    state.walk.x=(m.ix-m.dx*inn+0.5)*B; state.walk.z=(m.iz-m.dz*inn+0.5)*B;
+    state.walk.feetY=(m.lo+0.4)*B; state.walk.vy=0; state.walk.climb=null; state.walk.spill=0;
+    setMode('walk');
+    await new Promise(r=>requestAnimationFrame(r));
+    const y0=state.walk.feetY;
+    if(dir[0]||dir[2]) state.walk.heading=Math.atan2(dir[0],dir[2]);
+    keys.KeyW=!!(dir[0]||dir[2]); keys.Space=dir[1]>0;
+    let inside=0, worst=null;
+    for(let k=0;k<frames;k++){
+      await new Promise(r=>requestAnimationFrame(r));
+      const w=state.walk;
+      for(const dy of [0.6,B*1.0,B*1.7]){
+        if(solidAt(w.x,w.feetY+dy,w.z)){ inside++;
+          if(!worst) worst={x:Math.round(w.x),y:Math.round(w.feetY),z:Math.round(w.z),dy}; } }
+      if(dir[1]<0&&w.feetY<y0-B*3) { worst=worst||{fell:Math.round((y0-w.feetY)/B)}; }
+    }
+    keys.KeyW=false; keys.Space=false;
+    const w=state.walk;
+    const fellThrough=dir[1]<0&&w.feetY<y0-B*3;
+    return {escaped:inside>0||fellThrough, inside, worst,
+      moved:Math.round(Math.hypot(w.x-(m.ix-m.dx*inn+0.5)*B, w.z-(m.iz-m.dz*inn+0.5)*B)/B)}; },
+  settle:async n=>{ for(let k=0;k<(n||2);k++) await new Promise(r=>requestAnimationFrame(r)); },
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
   farLand,updateFarLand,mountUpliftAt,MOUNTS,ridgeNoise,B,R_WORLD,
   AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,RANGES,FALLS,activeLandmarks,LANDMARKS,
@@ -12548,6 +12960,7 @@ function frame(){
   netTick(dt);
   if(!state.firm&&state.mode!=='dive') traderTick(p.x,p.z,dt); else hideTraders();
   audioTick(light.storm||0);
+  torchTick(dt);                     /* the flame the traveller carries */
   /* stream faster when the traveller outruns the mesher — judged by how fast
      he is TRULY moving, whatever is carrying him (ship, wings, or a fair
      wind), so the ground always arrives behind the haze and never inside it */

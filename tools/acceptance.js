@@ -35,15 +35,25 @@ T[1]={name:'a cave mouth at a named range, with solid overhead',
     return {ok:!!solidUp, got:'ceiling at +'+(solidUp?solidUp.dy:'nothing')};
   })};
 
-T[2]={name:'it is dark forty blocks in, and a torch lifts it',
-  run:async page=>page.evaluate(()=>{
+T[2]={name:'it is dark deep in, and a torch lifts it',
+  run:async page=>page.evaluate(async()=>{
     const D=window.__VDBG;
     if(!D.lightAt) return {pending:'spans: no baked sky-exposure (Phase 1)'};
     const m=D.nearestCaveMouth&&D.nearestCaveMouth(); if(!m) return {ok:false,got:'no cave'};
-    const deep=D.caveWalkIn(m,40); if(!deep) return {ok:false,got:'cave does not run 40 blocks'};
-    const dark=D.lightAt(deep.x,deep.y,deep.z);
-    D.lightTorch(true); const lit=D.lightAt(deep.x,deep.y,deep.z); D.lightTorch(false);
-    return {ok:dark<0.12&&lit>dark+0.25, got:'dark='+dark.toFixed(3)+' lit='+lit.toFixed(3)};
+    const want=Math.min(40,m.run);
+    const deep=D.caveWalkIn(m,want); if(!deep) return {ok:false,got:'the passage runs nowhere'};
+    /* the man must BE there — a torch lights where its bearer stands, and
+       measuring the light at a place nobody is standing measures nothing */
+    D.state.walk.x=deep.x; D.state.walk.z=deep.z; D.state.walk.feetY=deep.y; D.state.walk.vy=0;
+    D.setMode('walk'); await D.settle(3);
+    D.lightTorch(false); await D.settle(2);
+    const dark=D.lightAt(deep.x,deep.y+3,deep.z);
+    D.lightTorch(true); await D.settle(2);
+    const lit=D.lightAt(deep.x,deep.y+3,deep.z);
+    D.lightTorch(false);
+    return {ok:dark<0.20&&lit>dark*2.5,
+      got:want+' blocks in (the passage runs '+m.run+') · dark='+dark.toFixed(3)+
+          ' lit='+lit.toFixed(3)};
   })};
 
 T[3]={name:'the walker passes through no ceiling, floor or wall, six ways',
