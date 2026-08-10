@@ -12572,6 +12572,19 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
     return {escaped:inside>0||fellThrough, inside, worst,
       moved:Math.round(Math.hypot(w.x-(m.ix-m.dx*inn+0.5)*B, w.z-(m.iz-m.dz*inn+0.5)*B)/B)}; },
   settle:async n=>{ for(let k=0;k<(n||2);k++) await new Promise(r=>requestAnimationFrame(r)); },
+  timeFrames:async n=>{ const t=[]; let last=performance.now();
+    for(let k=0;k<(n||120);k++){ await new Promise(r=>requestAnimationFrame(r));
+      const now=performance.now(); t.push(now-last); last=now; }
+    t.sort((a,b)=>a-b); return t.reduce((a,b)=>a+b,0)/t.length; },
+  /* set the traveller down well inside a passage, with the ground about him
+     laid, so the frame there can be timed against open ground */
+  standInCave:async()=>{ const m=window.__VDBG.nearestCaveMouth(); if(!m) return null;
+    const inn=Math.min(m.run,14);
+    state.walk.x=(m.ix-m.dx*inn+0.5)*B; state.walk.z=(m.iz-m.dz*inn+0.5)*B;
+    state.walk.feetY=(m.lo+0.4)*B; state.walk.vy=0; setMode('walk');
+    for(let k=0;k<40;k++){ updateChunks(state.walk.x,state.walk.z,400);
+      await new Promise(r=>requestAnimationFrame(r)); }
+    return {x:state.walk.x,z:state.walk.z,run:m.run}; },
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
   farLand,updateFarLand,mountUpliftAt,MOUNTS,ridgeNoise,B,R_WORLD,
   AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,RANGES,FALLS,activeLandmarks,LANDMARKS,

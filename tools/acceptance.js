@@ -162,13 +162,23 @@ T[10]={name:'ambient occlusion is present and measurable',
   })};
 
 /* ---------- 11 · the frame budget ---------- */
-T[11]={name:'a cave and an edited chunk cost no more than open ground ×1.5',
+/* Half of this can be answered the moment the caves exist, and it is the
+   half that carries the risk — an edited chunk differs from an unedited one
+   by a remesh, not by any per-frame cost, while a cave interior truly draws
+   more faces. So the cave half is measured now and the edit half named as
+   still owing, rather than the whole thing reported as untested. */
+T[11]={name:'standing in a cave costs no more than open ground ×1.5',
   run:async page=>page.evaluate(async()=>{
     const D=window.__VDBG;
-    if(!D.setBlock) return {pending:'nothing to edit and no cave to stand in (Phases 1–2)'};
+    if(!D.standInCave) return {pending:'no caves to stand in (Phase 1)'};
     const open=await D.timeFrames(120);
-    await D.standInCave(); const cave=await D.timeFrames(120);
-    return {ok:cave<open*1.5, got:'open '+open.toFixed(2)+' ms · cave '+cave.toFixed(2)+' ms'};
+    const at=await D.standInCave();
+    if(!at) return {ok:false,got:'no cave found to stand in'};
+    const cave=await D.timeFrames(120);
+    const editPending=!D.setBlock?' · the edited-chunk half awaits Phase 2':'';
+    return {ok:cave<open*1.5,
+      got:'open '+open.toFixed(1)+' ms · in a passage '+cave.toFixed(1)+' ms ('+
+          (cave/open).toFixed(2)+'×)'+editPending};
   })};
 
 /* ---------- 12 · the regression that matters most.  PASSES TODAY ---------- */
