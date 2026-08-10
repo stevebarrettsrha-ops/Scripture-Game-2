@@ -54,152 +54,241 @@ function vnoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
   return a+(b-a)*fx+(c-a)*fy+(a-b-c+d2)*fx*fy;}
 function fbm(x,y){return vnoise(x,y)*.55+vnoise(x*2.13,y*2.13)*.3+vnoise(x*4.7,y*4.7)*.15;}
 
-/* ================= MINECRAFT-STYLE PIXEL TEXTURES =================
-   Every block face is a 16×16 canvas, nearest-filtered so the pixels
-   stay crisp — the heart of the look.                               */
-function texCanvas(w,h){ const c=D.createElement('canvas'); c.width=w; c.height=h||w; return c; }
+/* ================= THE PIXEL TEXTURES OF THE EARTH =================
+   Every block face is a canvas painted here and nearest-filtered, so the
+   pixels stay crisp — and the crispness is kept, because crispness is good.
+   What is NOT kept is the coarseness. The faces of this world are drawn at
+   THIRTY-TWO texels, not sixteen: four times the grain, which is room for
+   real mortar between the stones, a true run of grain in a plank, the
+   fissures in bark, the weave in cloth. Sixteen is Minecraft's own
+   signature and is inseparable from it; thirty-two reads as another game
+   entirely, at a cost of three parts in a thousand of a megabyte per face.
+
+   The art is still composed in the OLD sixteen-unit square — `mkTex` scales
+   the brush before the drawing begins — so every hand-placed seam, mortar
+   line and growth ring in this file still lands where it was put. What runs
+   at the true thirty-two is the GRAIN: `speckle` and its kin lay one true
+   pixel at a time, so the noise in every surface is four times finer than
+   it was and the eye reads stone and sand and soil rather than confetti.
+
+   And every colour comes out of world/palette.js. Not one raw triple is
+   written here. Re-grade that file and the whole earth moves with it. */
+const PAL=window.PALETTE, PB=PAL.block, PP=PAL.pigment;
+const TEXEL=32, TS=TEXEL/16;         /* the grain of a face, and true pixels to the old texel */
+const FG=1/TS;                       /* one true pixel, in the old sixteen-unit space */
+function texCanvas(w,h){ const c=D.createElement('canvas');
+  c.width=Math.round((w||16)*TS); c.height=Math.round((h||w||16)*TS); return c; }
 function P(g,x,y,col){ g.fillStyle=col; g.fillRect(x,y,1,1); }
+function Pf(g,x,y,col){ g.fillStyle=col; g.fillRect(x,y,FG,FG); }   /* one TRUE pixel */
 function rgb(r,g2,b2){ return 'rgb('+r+','+g2+','+b2+')'; }
+function C(c){ return 'rgb('+c[0]+','+c[1]+','+c[2]+')'; }          /* a palette colour, as ink */
 function jit(base,amt,seed){ const t=hash2(seed*7.31,seed*3.7)-0.5;
   return base.map(v=>Math.max(0,Math.min(255,Math.round(v+t*amt)))); }
-function speckle(g,base,amt,alt,altP){
-  let s=0; for(let y=0;y<16;y++)for(let x=0;x<16;x++){ s++;
+/* ---- THE GRAIN OF A SURFACE ----
+   Laid one TRUE pixel at a time, so a 32-texel face carries four times the
+   grains a 16 did: sand reads as sand and not as gravel, and limestone
+   reads as a worked stone and not as static. */
+function speckle(g,base,amt,alt,altP,w,h){
+  const W=w||16, H=h||W; let s=0;
+  for(let y=0;y<H;y+=FG) for(let x=0;x<W;x+=FG){ s++;
     const c=(alt&&hash2(x*3.1+s,y*7.7)<altP)?jit(alt,amt,x+y*16+s):jit(base,amt,x*17+y+s);
-    P(g,x,y,rgb(c[0],c[1],c[2])); } }
-function mkTex(draw,w,h){ const c=texCanvas(w||16,h); draw(c.getContext('2d'),c);
+    Pf(g,x,y,rgb(c[0],c[1],c[2])); } }
+/* ---- THE HEWN EDGE ----
+   A rim of one true pixel round every solid face: darker along the bottom
+   and the right, lighter along the top and the left. The silhouette of the
+   cube does not change by a hair. What changes is that each block stops
+   reading as a game cube and starts reading as a DRESSED STONE or a squared
+   timber with an arris worked on it — and the joints between blocks stay
+   legible at a distance without the hard bright grid that comes of drawing
+   them in outline. It is four hundred pixels of work per texture, once, at
+   load; it costs nothing whatever at run time. */
+function hewnEdge(cv){
+  const g=cv.getContext('2d'), W=cv.width, H=cv.height, E=PAL.edge;
+  const d=g.getImageData(0,0,W,H), px=d.data;
+  const mul=(x,y,f)=>{ const i=((y*W+x)<<2);
+    if(px[i+3]<8) return;                         /* nothing is worked into empty air */
+    px[i]=Math.min(255,px[i]*f); px[i+1]=Math.min(255,px[i+1]*f); px[i+2]=Math.min(255,px[i+2]*f); };
+  for(let k=0;k<E.px;k++){
+    for(let x=0;x<W;x++){ mul(x,H-1-k,E.dark); mul(x,k,E.light); }
+    for(let y=0;y<H;y++){ mul(W-1-k,y,E.dark);  mul(k,y,E.light); } }
+  g.putImageData(d,0,0);
+}
+/* `rim` asks for the hewn edge. It is given to every SOLID block face and
+   withheld from everything drawn with a hole in it — a leaf canopy, a blade
+   of grass, a flower, a pane — where a rim would draw a box in mid-air. */
+function mkTex(draw,w,h,opt){
+  const c=texCanvas(w,h), g=c.getContext('2d');
+  g.imageSmoothingEnabled=false;
+  g.save(); g.scale(TS,TS); draw(g,c); g.restore();
+  if(opt&&opt.rim) hewnEdge(c);
   const t=new THREE.CanvasTexture(c); t.magFilter=THREE.NearestFilter;
   t.minFilter=THREE.NearestFilter; t.wrapS=t.wrapT=THREE.RepeatWrapping; t.generateMipmaps=false; return t; }
+const RIM={rim:true};
 
 const TEX={};
-TEX.grassTop   = mkTex(g=>speckle(g,[124,178,86],26,[104,158,70],0.35));
-TEX.grassTopTr = mkTex(g=>speckle(g,[96,190,92],26,[76,168,74],0.35));      // tropic, brighter
-TEX.grassTopTu = mkTex(g=>speckle(g,[136,148,96],22,[118,132,84],0.35));    // tundra, dull
+TEX.grassTop   = mkTex(g=>speckle(g,PB.grassTop.b,26,PB.grassTop.a,0.35));
+TEX.grassTopTr = mkTex(g=>speckle(g,PB.grassTopTr.b,26,PB.grassTopTr.a,0.35));   // tropic — deep, not acid
+TEX.grassTopTu = mkTex(g=>speckle(g,PB.grassTopTu.b,22,PB.grassTopTu.a,0.35));   // tundra, dull
 /* THE PLAIN — dun gold burnt off by the sun, with the green only in the
    roots of it. This is the floor of the whole east African country. */
-TEX.grassTopSv = mkTex(g=>speckle(g,[190,166,96],28,[156,140,80],0.4));
-TEX.dirt       = mkTex(g=>speckle(g,[134,96,67],24,[110,78,52],0.3));
-TEX.grassSide  = mkTex(g=>{ speckle(g,[134,96,67],24,[110,78,52],0.3);
-  for(let x=0;x<16;x++){ const d=1+Math.floor(hash2(x,9.1)*3);
-    for(let y=0;y<d;y++){ const c=jit([116,170,80],24,x*3+y); P(g,x,y,rgb(c[0],c[1],c[2])); } } });
+TEX.grassTopSv = mkTex(g=>speckle(g,PB.grassTopSv.b,28,PB.grassTopSv.a,0.4));
+TEX.dirt       = mkTex(g=>speckle(g,PB.dirt.b,24,PB.dirt.a,0.3));
+TEX.grassSide  = mkTex(g=>{ speckle(g,PB.grassSide.b,24,PB.grassSide.a,0.3);
+  for(let x=0;x<16;x+=FG){ const d=(1+Math.floor(hash2(x,9.1)*3))*FG*2;
+    for(let y=0;y<d;y+=FG){ const c=jit(PB.grassSide.lip,24,x*3+y); Pf(g,x,y,rgb(c[0],c[1],c[2])); } } });
 /* and the cut side of it: the same red dirt, with dun stubble on the lip */
-TEX.grassSideSv= mkTex(g=>{ speckle(g,[142,102,64],24,[118,84,50],0.3);
-  for(let x=0;x<16;x++){ const d=1+Math.floor(hash2(x*1.7,3.3)*3);
-    for(let y=0;y<d;y++){ const c=jit([186,162,94],26,x*5+y); P(g,x,y,rgb(c[0],c[1],c[2])); } } });
-TEX.path       = mkTex(g=>speckle(g,[148,124,82],20,[132,110,70],0.3));
-TEX.sand       = mkTex(g=>speckle(g,[219,207,163],16,[204,192,148],0.3));
-TEX.stone      = mkTex(g=>speckle(g,[125,125,125],14,[105,105,105],0.28));
-TEX.snow       = mkTex(g=>speckle(g,[240,246,250],8,[226,234,242],0.25));
-TEX.ice        = mkTex(g=>{ speckle(g,[160,190,230],12,[145,175,220],0.3);
-  for(let k=0;k<5;k++){ const x=Math.floor(hash2(k,1)*16), y=Math.floor(hash2(k,2)*16);
-    P(g,x,y,'rgb(210,228,250)'); P(g,(x+1)%16,(y+1)%16,'rgb(210,228,250)'); } });
-TEX.cobble     = mkTex(g=>{ speckle(g,[92,92,92],10);
+TEX.grassSideSv= mkTex(g=>{ speckle(g,PB.grassSideSv.b,24,PB.grassSideSv.a,0.3);
+  for(let x=0;x<16;x+=FG){ const d=(1+Math.floor(hash2(x*1.7,3.3)*3))*FG*2;
+    for(let y=0;y<d;y+=FG){ const c=jit(PB.grassSideSv.lip,26,x*5+y); Pf(g,x,y,rgb(c[0],c[1],c[2])); } } });
+TEX.path       = mkTex(g=>speckle(g,PB.path.b,20,PB.path.a,0.3));
+TEX.sand       = mkTex(g=>speckle(g,PB.sand.b,16,PB.sand.a,0.3));
+/* ---- THE STONE OF THAT WORLD IS LIMESTONE ----
+   Flat neutral grey was granite, and granite is not what that country is
+   built of or standing on. It is warm now, and it is BEDDED: faint pale
+   veins run across the face, as they do in every limestone quarry. */
+TEX.stone      = mkTex(g=>{ speckle(g,PB.stone.b,14,PB.stone.a,0.28);
+  for(let k=0;k<3;k++){ const y0=1+hash2(k,4.7)*13;
+    for(let x=0;x<16;x+=FG){ const y=y0+Math.sin(x*0.7+k)*0.6;
+      if(hash2(x*2.3+k,y)>0.42){ const c=jit(PB.stone.vein,10,x+k); Pf(g,x,Math.round(y/FG)*FG,rgb(c[0],c[1],c[2])); } } } },16,16,RIM);
+TEX.snow       = mkTex(g=>speckle(g,PB.snow.b,8,PB.snow.a,0.25));
+TEX.ice        = mkTex(g=>{ speckle(g,PB.ice.b,12,PB.ice.a,0.3);
+  for(let k=0;k<9;k++){ const x=Math.floor(hash2(k,1)*32)*FG, y=Math.floor(hash2(k,2)*32)*FG;
+    Pf(g,x,y,C(PB.ice.glint)); Pf(g,(x+FG)%16,(y+FG)%16,C(PB.ice.glint)); } },16,16,RIM);
+/* ---- HEWN, NOT CRUSHED ----
+   Nine flat pebbles in a grey field was a crushed-gravel block. This is a
+   COURSE of dressed stones with real mortar run between them: the stones
+   sit proud and warm, the mortar lies dark and recessed, and the 32-texel
+   grain is what makes the mortar readable at all. */
+TEX.cobble     = mkTex(g=>{ speckle(g,PB.cobble.mortar,10);
   const st=[[0,0,5,4],[6,0,5,3],[12,0,4,4],[0,5,4,4],[5,4,6,5],[12,5,4,4],[0,10,6,5],[7,10,4,5],[12,10,4,5]];
-  for(let i2=0;i2<st.length;i2++){ const s=st[i2], c=jit([132,132,132],26,i2);
-    g.fillStyle=rgb(c[0],c[1],c[2]); g.fillRect(s[0]+0.5,s[1]+0.5,s[2]-1,s[3]-1); } });
-TEX.planks     = mkTex(g=>{ speckle(g,[168,134,80],14,[156,122,72],0.3);
-  g.fillStyle='rgb(96,72,42)';
-  for(let y=3;y<16;y+=4) g.fillRect(0,y,16,1);
-  g.fillRect(4,0,1,3); g.fillRect(11,4,1,3); g.fillRect(6,8,1,3); g.fillRect(13,12,1,3); });
-TEX.roof       = mkTex(g=>{ speckle(g,[122,88,54],14,[110,78,46],0.3);
-  g.fillStyle='rgb(66,46,26)';
-  for(let y=3;y<16;y+=4) g.fillRect(0,y,16,1);
-  g.fillRect(5,0,1,3); g.fillRect(10,4,1,3); g.fillRect(3,8,1,3); g.fillRect(12,12,1,3); });
-TEX.logSide    = mkTex(g=>{ speckle(g,[104,82,50],12,[92,72,44],0.3);
-  g.fillStyle='rgb(70,54,32)';
-  for(const x of [1,5,9,13]) for(let y=0;y<16;y++){ if(hash2(x,y)>0.2) g.fillRect(x,y,1,1); } });
-TEX.logTop     = mkTex(g=>{ speckle(g,[104,82,50],10);
-  const sh=['rgb(178,148,96)','rgb(150,120,74)','rgb(122,96,58)','rgb(96,74,44)'];
-  for(let r=0;r<4;r++){ g.fillStyle=sh[r]; g.fillRect(2+r,2+r,12-2*r,12-2*r); } });
+  for(let i2=0;i2<st.length;i2++){ const s=st[i2], c=jit(PB.cobble.b,26,i2);
+    g.fillStyle=rgb(c[0],c[1],c[2]); g.fillRect(s[0]+FG,s[1]+FG,s[2]-2*FG,s[3]-2*FG);
+    const hi=jit(PB.cobble.a,14,i2+7);                       /* the worked face catches the light */
+    g.fillStyle=rgb(hi[0],hi[1],hi[2]); g.fillRect(s[0]+FG,s[1]+FG,s[2]-2*FG,FG); } },16,16,RIM);
+TEX.planks     = mkTex(g=>{ speckle(g,PB.planks.b,14,PB.planks.a,0.3);
+  g.fillStyle=C(PB.planks.seam);
+  for(let y=3;y<16;y+=4) g.fillRect(0,y,16,FG);
+  g.fillRect(4,0,FG,3); g.fillRect(11,4,FG,3); g.fillRect(6,8,FG,3); g.fillRect(13,12,FG,3);
+  /* the run of the grain along each board — what 32 texels buys you */
+  g.fillStyle='rgba(0,0,0,0.13)';
+  for(let y=0;y<16;y+=4) for(let k=0;k<3;k++){ const yy=y+1+k*0.9;
+    for(let x=0;x<16;x+=FG) if(hash2(x*1.7+y,k*3.1)>0.42) g.fillRect(x,yy,FG,FG); } },16,16,RIM);
+TEX.roof       = mkTex(g=>{ speckle(g,PB.roof.b,14,PB.roof.a,0.3);
+  g.fillStyle=C(PB.roof.seam);
+  for(let y=3;y<16;y+=4) g.fillRect(0,y,16,FG);
+  g.fillRect(5,0,FG,3); g.fillRect(10,4,FG,3); g.fillRect(3,8,FG,3); g.fillRect(12,12,FG,3); },16,16,RIM);
+TEX.logSide    = mkTex(g=>{ speckle(g,PB.logSide.b,12,PB.logSide.a,0.3);
+  g.fillStyle=C(PB.logSide.fissure);
+  for(const x of [1,5,9,13]) for(let y=0;y<16;y+=FG){ if(hash2(x,y)>0.2) g.fillRect(x,y,FG,FG); }
+  /* and the fine checks between the deep fissures */
+  g.fillStyle='rgba(0,0,0,0.10)';
+  for(const x of [2.5,7,10.5,14.5]) for(let y=0;y<16;y+=FG) if(hash2(x*2.7,y*1.3)>0.5) g.fillRect(x,y,FG,FG); },16,16,RIM);
+TEX.logTop     = mkTex(g=>{ speckle(g,PB.logTop.b,10);
+  const sh=PB.logTop.rings;
+  for(let r=0;r<4;r++){ g.fillStyle=C(sh[r]); g.fillRect(2+r,2+r,12-2*r,12-2*r); }
+  /* the annual rings, drawn true now that there is grain to draw them in */
+  g.strokeStyle='rgba(0,0,0,0.22)'; g.lineWidth=FG;
+  for(let r=1;r<7;r++) g.strokeRect(8-r,8-r,r*2,r*2); },16,16,RIM);
 TEX.leaves     = mkTex(g=>{ g.clearRect(0,0,16,16);
-  for(let y=0;y<16;y++)for(let x=0;x<16;x++){ if(hash2(x*5.1,y*3.3)<0.86){
-    const c=jit([64,120,44],36,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } } });
+  for(let y=0;y<16;y+=FG)for(let x=0;x<16;x+=FG){ if(hash2(x*5.1,y*3.3)<0.86){
+    const c=jit(PB.leaves.b,36,x+y*16); Pf(g,x,y,rgb(c[0],c[1],c[2])); } } });
 TEX.leavesTr   = mkTex(g=>{ g.clearRect(0,0,16,16);
-  for(let y=0;y<16;y++)for(let x=0;x<16;x++){ if(hash2(x*5.7,y*4.3)<0.87){
-    const c=jit([52,138,52],36,x+y*16+9); P(g,x,y,rgb(c[0],c[1],c[2])); } } });
-TEX.water      = mkTex(g=>{ speckle(g,[52,94,168],14,[44,82,152],0.4);
-  g.fillStyle='rgba(120,160,220,0.6)';
-  for(const y of [2,7,12]) for(let x=0;x<16;x++){ if(hash2(x,y*2.2)>0.55) g.fillRect(x,y,2,1); } });
+  for(let y=0;y<16;y+=FG)for(let x=0;x<16;x+=FG){ if(hash2(x*5.7,y*4.3)<0.87){
+    const c=jit(PB.leavesTr.b,36,x+y*16+9); Pf(g,x,y,rgb(c[0],c[1],c[2])); } } });
+TEX.water      = mkTex(g=>{ speckle(g,PB.water.b,14,PB.water.a,0.4);
+  g.fillStyle='rgba('+PB.water.sheen[0]+','+PB.water.sheen[1]+','+PB.water.sheen[2]+',0.55)';
+  for(const y of [2,7,12]) for(let x=0;x<16;x+=FG){ if(hash2(x,y*2.2)>0.55) g.fillRect(x,y,2*FG,FG); } });
 /* cherry blossom — soft pink canopy */
 TEX.cherry     = mkTex(g=>{ g.clearRect(0,0,16,16);
-  for(let y=0;y<16;y++)for(let x=0;x<16;x++){ if(hash2(x*5.1,y*3.7)<0.9){
-    const base=hash2(x*2.3,y*1.9)<0.25?[255,214,232]:[244,170,205];
-    const c=jit(base,26,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } } });
-/* badlands — orange top, and horizontal strata of red/orange/tan/white clay */
-TEX.badTop     = mkTex(g=>speckle(g,[201,120,66],18,[184,104,54],0.3));
-TEX.badSide    = mkTex(g=>{ const bands=[[201,120,66],[168,86,50],[212,150,92],[224,206,178],[190,104,58]];
-  for(let y=0;y<16;y++){ const bc=bands[Math.floor((y/16)*bands.length+ (hash2(0,y)*0.6))%bands.length];
-    for(let x=0;x<16;x++){ const c=jit(bc,14,x*3+y); P(g,x,y,rgb(c[0],c[1],c[2])); } } });
-TEX.haySide    = mkTex(g=>{ speckle(g,[196,160,58],22,[176,142,48],0.35);
-  g.fillStyle='rgb(130,102,34)'; for(const y of [0,5,10,15]) g.fillRect(0,y,16,1); });
-TEX.hayTop     = mkTex(g=>{ speckle(g,[204,168,64],22);
-  g.strokeStyle='rgb(140,110,38)'; g.lineWidth=1;
-  g.strokeRect(1.5,1.5,13,13); g.strokeRect(4.5,4.5,7,7); });
-TEX.wool       = mkTex(g=>speckle(g,[236,233,226],10,[220,216,206],0.3));
+  for(let y=0;y<16;y+=FG)for(let x=0;x<16;x+=FG){ if(hash2(x*5.1,y*3.7)<0.9){
+    const base=hash2(x*2.3,y*1.9)<0.25?PB.cherry.pale:PB.cherry.b;
+    const c=jit(base,26,x+y*16); Pf(g,x,y,rgb(c[0],c[1],c[2])); } } });
+/* badlands — banded clay: red, orange, tan and white strata */
+TEX.badTop     = mkTex(g=>speckle(g,PB.badTop.b,18,PB.badTop.a,0.3));
+TEX.badSide    = mkTex(g=>{ const bands=PB.badSide.bands;
+  for(let y=0;y<16;y+=FG){ const bc=bands[Math.floor((y/16)*bands.length+(hash2(0,y)*0.6))%bands.length];
+    for(let x=0;x<16;x+=FG){ const c=jit(bc,14,x*3+y); Pf(g,x,y,rgb(c[0],c[1],c[2])); } } },16,16,RIM);
+TEX.haySide    = mkTex(g=>{ speckle(g,PB.haySide.b,22,PB.haySide.a,0.35);
+  g.fillStyle=C(PB.haySide.band); for(const y of [0,5,10,15]) g.fillRect(0,y,16,FG); },16,16,RIM);
+TEX.hayTop     = mkTex(g=>{ speckle(g,PB.hayTop.b,22);
+  g.strokeStyle=C(PB.hayTop.twine); g.lineWidth=FG;
+  g.strokeRect(1.5,1.5,13,13); g.strokeRect(4.5,4.5,7,7); },16,16,RIM);
+/* ---- CLOTH IS WOVEN ----
+   Flat speckle read as felt. At 32 texels a true over-and-under weave can
+   be drawn, and wool, sailcloth and linen all come off this one tile. */
+TEX.wool       = mkTex(g=>{ speckle(g,PB.wool.b,10,PB.wool.a,0.3);
+  g.fillStyle='rgba(0,0,0,0.10)';
+  for(let y=0;y<16;y+=FG*2) g.fillRect(0,y,16,FG);
+  g.fillStyle='rgba(255,255,255,0.09)';
+  for(let x=0;x<16;x+=FG*2) g.fillRect(x,0,FG,16); },16,16,RIM);
 TEX.glass      = mkTex(g=>{ g.clearRect(0,0,16,16);
-  g.fillStyle='rgba(200,225,235,0.35)'; g.fillRect(0,0,16,16);
+  g.fillStyle='rgba('+PB.glass.b[0]+','+PB.glass.b[1]+','+PB.glass.b[2]+',0.30)'; g.fillRect(0,0,16,16);
   g.fillStyle='rgba(255,255,255,0.85)';
-  g.fillRect(0,0,16,1); g.fillRect(0,15,16,1); g.fillRect(0,0,1,16); g.fillRect(15,0,1,16);
-  g.fillRect(2,10,3,1); g.fillRect(4,8,1,3); });
-TEX.door       = mkTex((g,c)=>{ g.fillStyle='rgb(124,94,56)'; g.fillRect(0,0,16,32);
-  g.fillStyle='rgb(92,68,40)';
-  g.fillRect(1,1,14,30); g.fillStyle='rgb(140,108,66)'; g.fillRect(2,2,12,28);
-  g.fillStyle='rgb(84,62,36)';
+  g.fillRect(0,0,16,FG); g.fillRect(0,16-FG,16,FG); g.fillRect(0,0,FG,16); g.fillRect(16-FG,0,FG,16);
+  g.fillStyle='rgba(255,255,255,0.55)';
+  g.fillRect(2,10,3,FG); g.fillRect(4,8,FG,3); });
+TEX.door       = mkTex((g,c)=>{ g.fillStyle=C(PB.door.b); g.fillRect(0,0,16,32);
+  g.fillStyle=C(PB.door.frame);
+  g.fillRect(1,1,14,30); g.fillStyle=C(PB.door.panel); g.fillRect(2,2,12,28);
+  g.fillStyle=C(PB.door.sunk);
   g.fillRect(3,3,4,10); g.fillRect(9,3,4,10); g.fillRect(3,17,4,11); g.fillRect(9,17,4,11);
-  g.fillStyle='rgb(40,48,60)'; g.fillRect(4,4,2,3); g.fillRect(10,4,2,3);
-  g.fillStyle='rgb(220,220,220)'; g.fillRect(13,15,1,2); },16,32);
+  g.fillStyle=C(PB.door.glass); g.fillRect(4,4,2,3); g.fillRect(10,4,2,3);
+  g.fillStyle=C(PB.door.handle); g.fillRect(13,15,FG,2); },16,32);
 TEX.tallgrass  = mkTex(g=>{ g.clearRect(0,0,16,16);
-  for(let k=0;k<9;k++){ const x=1+Math.floor(hash2(k,3)*14); const h2=6+Math.floor(hash2(k,5)*9);
-    const c=jit([92,160,64],30,k); g.fillStyle=rgb(c[0],c[1],c[2]);
-    for(let y=0;y<h2;y++) g.fillRect(x+(y>h2-3?(hash2(k,9)>0.5?1:-1):0),15-y,1,1); } });
+  for(let k=0;k<18;k++){ const x=(1+Math.floor(hash2(k,3)*14))+ (k%2?FG:0); const h2=6+Math.floor(hash2(k,5)*9);
+    const c=jit(PB.tallgrass.b,30,k); g.fillStyle=rgb(c[0],c[1],c[2]);
+    for(let y=0;y<h2;y+=FG) g.fillRect(x+(y>h2-3?(hash2(k,9)>0.5?FG:-FG):0),16-FG-y,FG,FG); } });
 /* THE TALL GRASS OF THE PLAIN — golden, standing to the shoulder, and thick
-   enough at the root that a lion lying in it is not there at all. Drawn
-   taller in the blade and denser across the tile than the green sward. */
+   enough at the root that a lion lying in it is not there at all. */
 TEX.savgrass   = mkTex(g=>{ g.clearRect(0,0,16,16);
-  for(let k=0;k<13;k++){ const x=Math.floor(hash2(k,4.1)*16); const h2=10+Math.floor(hash2(k,2.7)*6);
-    const c=jit([196,172,96],34,k); g.fillStyle=rgb(c[0],c[1],c[2]);
-    for(let y=0;y<h2;y++){ const lean=(y>h2-5)?(hash2(k,6.3)>0.5?1:-1):0;
-      g.fillRect((x+lean+16)%16,15-y,1,1); }
-    if(hash2(k,9.9)>0.6){ const s2=jit([150,128,66],20,k); g.fillStyle=rgb(s2[0],s2[1],s2[2]);
-      g.fillRect(x,15-h2,1,2); } } });                     /* the seed head */
+  for(let k=0;k<26;k++){ const x=Math.floor(hash2(k,4.1)*32)*FG; const h2=10+Math.floor(hash2(k,2.7)*6);
+    const c=jit(PB.savgrass.b,34,k); g.fillStyle=rgb(c[0],c[1],c[2]);
+    for(let y=0;y<h2;y+=FG){ const lean=(y>h2-5)?(hash2(k,6.3)>0.5?FG:-FG):0;
+      g.fillRect((x+lean+16)%16,16-FG-y,FG,FG); }
+    if(hash2(k,9.9)>0.6){ const s2=jit(PB.savgrass.seed,20,k); g.fillStyle=rgb(s2[0],s2[1],s2[2]);
+      g.fillRect(x,16-FG-h2,FG,2*FG); } } });                     /* the seed head */
 /* the flat crown of the thorn tree, thin and grey-green against the sky */
-TEX.acacia     = mkTex(g=>{ for(let y=0;y<16;y++) for(let x=0;x<16;x++){
+TEX.acacia     = mkTex(g=>{ for(let y=0;y<16;y+=FG) for(let x=0;x<16;x+=FG){
     const n=hash2(x*2.7+y*1.3,y*3.1);
-    if(n<0.30){ g.clearRect(x,y,1,1); continue; }
-    const c=jit([104,126,66],26,x*5+y); P(g,x,y,rgb(c[0],c[1],c[2])); } });
-TEX.flowerR    = mkTex(g=>{ g.clearRect(0,0,16,16); g.fillStyle='rgb(64,120,48)';
-  g.fillRect(7,8,1,8); g.fillRect(5,11,2,1);
-  g.fillStyle='rgb(200,44,36)'; g.fillRect(5,3,5,5); g.fillStyle='rgb(230,80,60)'; g.fillRect(6,4,3,3);
-  g.fillStyle='rgb(40,40,40)'; g.fillRect(7,5,1,1); });
-TEX.flowerY    = mkTex(g=>{ g.clearRect(0,0,16,16); g.fillStyle='rgb(64,120,48)';
-  g.fillRect(8,8,1,8);
-  g.fillStyle='rgb(232,208,60)'; g.fillRect(6,3,5,5); g.fillStyle='rgb(250,236,120)'; g.fillRect(7,4,3,3); });
+    if(n<0.30){ g.clearRect(x,y,FG,FG); continue; }
+    const c=jit(PB.acacia.b,26,x*5+y); Pf(g,x,y,rgb(c[0],c[1],c[2])); } });
+TEX.flowerR    = mkTex(g=>{ g.clearRect(0,0,16,16); g.fillStyle=C(PB.flowerR.stem);
+  g.fillRect(7,8,FG,8); g.fillRect(5,11,2,FG);
+  g.fillStyle=C(PB.flowerR.b); g.fillRect(5,3,5,5);
+  g.fillStyle=C(PB.flowerR.pale); g.fillRect(6,4,3,3);
+  g.fillStyle=C(PB.flowerR.eye); g.fillRect(7,5,FG,FG); });
+TEX.flowerY    = mkTex(g=>{ g.clearRect(0,0,16,16); g.fillStyle=C(PB.flowerY.stem);
+  g.fillRect(8,8,FG,8);
+  g.fillStyle=C(PB.flowerY.b); g.fillRect(6,3,5,5);
+  g.fillStyle=C(PB.flowerY.pale); g.fillRect(7,4,3,3); });
 TEX.crop       = mkTex(g=>{ g.clearRect(0,0,16,16);
-  for(const x of [2,6,10,14]){ const c=jit([96,178,66],26,x); g.fillStyle=rgb(c[0],c[1],c[2]);
-    for(let y=0;y<10;y++){ g.fillRect(x,15-y,1,1); if(y>4&&hash2(x,y)>0.5) g.fillRect(x-1,15-y,1,1); } } });
-TEX.soil       = mkTex(g=>{ speckle(g,[96,66,42],18,[80,54,34],0.3);
-  g.fillStyle='rgb(66,44,28)'; for(const y of [3,8,13]) g.fillRect(0,y,16,2); });
-TEX.sun        = mkTex(g=>{ g.fillStyle='rgb(255,238,160)'; g.fillRect(0,0,16,16);
-  g.fillStyle='rgb(255,250,214)'; g.fillRect(2,2,12,12);
-  g.fillStyle='rgb(255,255,240)'; g.fillRect(4,4,8,8); });
-TEX.moon       = mkTex(g=>{ g.fillStyle='rgb(214,222,236)'; g.fillRect(0,0,16,16);
-  g.fillStyle='rgb(232,238,248)'; g.fillRect(2,2,12,12);
-  g.fillStyle='rgb(196,206,224)'; g.fillRect(4,5,3,3); g.fillRect(9,9,3,2); g.fillRect(10,3,2,2); });
-TEX.benchTop   = mkTex(g=>{ speckle(g,[168,134,80],14,[156,122,72],0.3);
-  g.strokeStyle='rgb(84,62,36)'; g.lineWidth=1; g.strokeRect(1.5,1.5,13,13);
-  g.fillStyle='rgb(120,92,54)'; g.fillRect(4,4,8,8);
-  g.fillStyle='rgb(190,160,110)'; g.fillRect(5,5,6,6);
-  g.fillStyle='rgb(84,62,36)'; g.fillRect(7,4,1,8); g.fillRect(4,7,8,1); });
-TEX.benchSide  = mkTex(g=>{ speckle(g,[168,134,80],14,[156,122,72],0.3);
-  g.fillStyle='rgb(96,72,42)'; for(let y2=3;y2<16;y2+=4) g.fillRect(0,y2,16,1);
-  g.fillStyle='rgb(140,140,146)'; g.fillRect(3,4,2,5); g.fillStyle='rgb(90,66,40)'; g.fillRect(3,9,2,3);
-  g.fillStyle='rgb(150,120,74)'; g.fillRect(10,5,4,2); g.fillStyle='rgb(120,120,126)'; g.fillRect(11,7,2,4); });
+  for(const x of [2,6,10,14]){ const c=jit(PB.crop.b,26,x); g.fillStyle=rgb(c[0],c[1],c[2]);
+    for(let y=0;y<10;y+=FG){ g.fillRect(x,16-FG-y,FG,FG); if(y>4&&hash2(x,y)>0.5) g.fillRect(x-FG,16-FG-y,FG,FG); } } });
+TEX.soil       = mkTex(g=>{ speckle(g,PB.soil.b,18,PB.soil.a,0.3);
+  g.fillStyle=C(PB.soil.furrow); for(const y of [3,8,13]) g.fillRect(0,y,16,2); });
+TEX.sun        = mkTex(g=>{ g.fillStyle=C(PB.sun.rim); g.fillRect(0,0,16,16);
+  g.fillStyle=C(PB.sun.mid); g.fillRect(2,2,12,12);
+  g.fillStyle=C(PB.sun.core); g.fillRect(4,4,8,8); });
+TEX.moon       = mkTex(g=>{ g.fillStyle=C(PB.moon.rim); g.fillRect(0,0,16,16);
+  g.fillStyle=C(PB.moon.mid); g.fillRect(2,2,12,12);
+  g.fillStyle=C(PB.moon.mare); g.fillRect(4,5,3,3); g.fillRect(9,9,3,2); g.fillRect(10,3,2,2); });
+TEX.benchTop   = mkTex(g=>{ speckle(g,PB.benchTop.b,14,PB.benchTop.a,0.3);
+  g.strokeStyle=C(PB.benchTop.groove); g.lineWidth=FG; g.strokeRect(1.5,1.5,13,13);
+  g.fillStyle=C(PB.benchTop.groove); g.fillRect(4,4,8,8);
+  g.fillStyle=C(PB.benchTop.inlay); g.fillRect(5,5,6,6);
+  g.fillStyle=C(PB.benchTop.groove); g.fillRect(7,4,FG,8); g.fillRect(4,7,8,FG); },16,16,RIM);
+TEX.benchSide  = mkTex(g=>{ speckle(g,PB.benchSide.b,14,PB.benchSide.a,0.3);
+  g.fillStyle=C(PB.benchSide.seam); for(let y2=3;y2<16;y2+=4) g.fillRect(0,y2,16,FG);
+  g.fillStyle=C(PB.benchSide.iron); g.fillRect(3,4,2,5);
+  g.fillStyle=C(PB.benchSide.seam); g.fillRect(3,9,2,3);
+  g.fillStyle=C(PB.benchSide.b); g.fillRect(10,5,4,2);
+  g.fillStyle=C(PB.benchSide.iron); g.fillRect(11,7,2,4); },16,16,RIM);
 TEX.clouds     = mkTex(g=>{ g.clearRect(0,0,64,64);
   g.fillStyle='rgba(255,255,255,0.92)';
   for(let k=0;k<26;k++){ const x=Math.floor(hash2(k,11)*64), y=Math.floor(hash2(k,23)*64);
     const w=4+Math.floor(hash2(k,31)*12), h2=2+Math.floor(hash2(k,41)*5);
     g.fillRect(x,y,w,h2); if(hash2(k,7)>0.4) g.fillRect(x+2,y-1,Math.max(2,w-4),1);
     if(x+w>64) g.fillRect(0,y,x+w-64,h2); } },64);
-
 /* ---------------- shared block materials + global light ---------------- */
 const MAT={}, LIT=[];
 function blockMat(name,tex,opts){ const m=new THREE.MeshBasicMaterial(Object.assign({
@@ -231,20 +320,30 @@ blockMat('savgrass',TEX.savgrass,{alphaTest:0.4}); blockMat('acacia',TEX.acacia,
    species costs nothing whatever in draw calls. (Paint any of these in a
    colour and every plant on the earth inherits it — that is the whole reason
    they are grey.) */
-TEX.leafW  = mkTex(g=>{ for(let y=0;y<16;y++) for(let x=0;x<16;x++){
+/* At thirty-two texels these four carry what they never could at sixteen:
+   the leaf gets a midrib and a serrated edge, the bark gets deep fissures
+   with fine checking between them, the blade gets a taper. Every plant on
+   the earth is drawn with them, so this is the cheapest detail in the game
+   — four textures, and a hundred and seventy species wear the benefit. */
+TEX.leafW  = mkTex(g=>{ for(let y=0;y<16;y+=FG) for(let x=0;x<16;x+=FG){
     const n=hash2(x*2.7+y*1.3,y*3.1+x*0.7);
-    if(n<0.16){ g.clearRect(x,y,1,1); continue; }            /* the light through it */
-    const v=Math.round(196+hash2(x*5.1,y*7.3)*58);
-    P(g,x,y,rgb(v,v,v)); } });
-TEX.barkW  = mkTex(g=>{ for(let y=0;y<16;y++) for(let x=0;x<16;x++){
-    const seam=(x%5===0||x%7===3)?0.72:1;                     /* the run of the grain */
-    const v=Math.round((176+hash2(x*3.3,y*9.1)*62)*seam);
-    P(g,x,y,rgb(v,v,v)); } });
+    if(n<0.16){ g.clearRect(x,y,FG,FG); continue; }           /* the light through it */
+    let v=196+hash2(x*5.1,y*7.3)*58;
+    /* the midribs — a leaf mass is not a fog of dots, it has veins in it */
+    const rib=Math.abs(((x*0.9+y*0.35)%4)-2);
+    if(rib<0.6) v*=0.86; else if(rib>1.8) v*=1.05;
+    Pf(g,x,y,rgb(Math.round(Math.min(255,v)),Math.round(Math.min(255,v)),Math.round(Math.min(255,v)))); } });
+TEX.barkW  = mkTex(g=>{ for(let y=0;y<16;y+=FG) for(let x=0;x<16;x+=FG){
+    const seam=(x%5<FG||Math.abs(x%7-3)<FG)?0.72:1;           /* the deep fissures */
+    const check=hash2(x*0.9,y*4.3)>0.62?0.93:1;               /* and the fine checking between */
+    const v=Math.round(Math.min(255,(176+hash2(x*3.3,y*9.1)*62)*seam*check));
+    Pf(g,x,y,rgb(v,v,v)); } });
 TEX.plantW = mkTex(g=>{ g.clearRect(0,0,16,16);
-    for(let k=0;k<10;k++){ const x=1+Math.floor(hash2(k,3.7)*14), h2=7+Math.floor(hash2(k,5.9)*8);
-      for(let y=0;y<h2;y++){ const v=Math.round(188+hash2(k*3.1,y)*62);
-        g.fillStyle=rgb(v,v,v); g.fillRect(x+(y>h2-3?(hash2(k,9.1)>0.5?1:-1):0),15-y,1,1); } } });
-TEX.solidW = mkTex(g=>speckle(g,[228,228,228],26,[198,198,198],0.35));
+    for(let k=0;k<20;k++){ const x=(1+Math.floor(hash2(k,3.7)*14))+(k%2?FG:0), h2=7+Math.floor(hash2(k,5.9)*8);
+      for(let y=0;y<h2;y+=FG){ const v=Math.round(188+hash2(k*3.1,y)*62);
+        g.fillStyle=rgb(v,v,v);
+        g.fillRect(x+(y>h2-3?(hash2(k,9.1)>0.5?FG:-FG):0),16-FG-y,FG,FG); } } });
+TEX.solidW = mkTex(g=>speckle(g,[228,228,228],26,[198,198,198],0.35),16,16,RIM);
 blockMat('leafW',TEX.leafW,{alphaTest:0.4}); blockMat('barkW',TEX.barkW);
 blockMat('plantW',TEX.plantW,{alphaTest:0.4}); blockMat('solidW',TEX.solidW);
 blockMat('flowerY',TEX.flowerY,{alphaTest:0.4}); blockMat('crop',TEX.crop,{alphaTest:0.4});
@@ -366,11 +465,12 @@ windSway(MAT.leafW,0.55,false,'leaf'); windSway(MAT.plantW,0.85,true,'snow');
 windSway(MAT.crop,0.5,true);
 /* breaking surf — clumpy foam that washes the shoreline (scrolled + pulsed) */
 TEX.surf = mkTex(g=>{ g.clearRect(0,0,16,16);
-  for(let y=0;y<16;y++)for(let x=0;x<16;x++){
+  const F=PB.surf.b;
+  for(let y=0;y<16;y+=FG)for(let x=0;x<16;x+=FG){
     const n=fbm(x*0.5+1.3,y*0.9-2.1);
-    if(n>0.52){ const w=210+Math.floor(hash2(x,y)*40);
-      g.fillStyle='rgba('+w+','+Math.min(255,w+12)+',255,'+Math.min(1,(n-0.4)*2.2)+')';
-      g.fillRect(x,y,1,1); } } });
+    if(n>0.52){ const w=Math.min(255,F[0]+Math.floor(hash2(x,y)*40));
+      g.fillStyle='rgba('+w+','+Math.min(255,w+10)+','+Math.min(255,F[2]+16)+','+Math.min(1,(n-0.4)*2.2)+')';
+      g.fillRect(x,y,FG,FG); } } });
 const surfMat=blockMat('surf',TEX.surf,{transparent:true,alphaTest:0.02,depthWrite:false,opacity:0.6});
 /* a swinging door leaf (its own mesh so it can open/close) */
 const doorLeafMat=new THREE.MeshBasicMaterial({map:TEX.door,side:THREE.DoubleSide,alphaTest:0.1});
@@ -1152,12 +1252,21 @@ function gm(G,mat){ let g=G[mat]; if(!g){ g={p:[],uv:[],c:[],i:[],n:0}; G[mat]=g
    a hundred materials to draw them with: the leaf and the bark are drawn in
    grey, ONCE, and every species tints its own faces as they are laid down.
    A hundred greens, and not one extra draw call. */
-function quad(G,mat, ax,ay,az, bx,by,bz, cx,cy,cz, dx,dy,dz, u0,v0,u1,v1, s){
+/* ---- AND EACH OF THE FOUR CORNERS MAY CARRY ITS OWN ----
+   `ao` is four multipliers, one to a vertex, in the order the corners are
+   pushed. It is what the ambient occlusion of §2.1 is written with: a
+   corner with solid ground standing over two of its three diagonals goes
+   dark, and the shading between the four is interpolated across the face
+   by the rasteriser for nothing. Passed nothing, every corner is 1 and the
+   face is exactly the flat-shaded face it always was. */
+function quad(G,mat, ax,ay,az, bx,by,bz, cx,cy,cz, dx,dy,dz, u0,v0,u1,v1, s, ao){
   const g=gm(G,mat), o=g.n;
   g.p.push(ax,ay,az, bx,by,bz, cx,cy,cz, dx,dy,dz);
   g.uv.push(u0,v0, u1,v0, u1,v1, u0,v1);
-  if(typeof s==='number'){ for(let k=0;k<4;k++) g.c.push(s,s,s); }
-  else { for(let k=0;k<4;k++) g.c.push(s[0],s[1],s[2]); }
+  if(typeof s==='number'){ if(ao) for(let k=0;k<4;k++){ const f=s*ao[k]; g.c.push(f,f,f); }
+    else for(let k=0;k<4;k++) g.c.push(s,s,s); }
+  else { if(ao) for(let k=0;k<4;k++){ const f=ao[k]; g.c.push(s[0]*f,s[1]*f,s[2]*f); }
+    else for(let k=0;k<4;k++) g.c.push(s[0],s[1],s[2]); }
   g.i.push(o,o+1,o+2, o,o+2,o+3); g.n+=4;
 }
 /* the light on a face, multiplied into a tint — [r,g,b] in 0..1.
@@ -1168,13 +1277,17 @@ function quad(G,mat, ax,ay,az, bx,by,bz, cx,cy,cz, dx,dy,dz, u0,v0,u1,v1, s){
 const _sh=[0,0,0];
 function shade(tint,s){ if(!tint) return s;
   _sh[0]=tint[0]*s; _sh[1]=tint[1]*s; _sh[2]=tint[2]*s; return _sh; }
-function faceTop(G,mat,x0,z0,x1,z1,y,s,rep){ const r=rep||1;
-  quad(G,mat, x0,y,z1, x1,y,z1, x1,y,z0, x0,y,z0, 0,0,(x1-x0)/B*r,(z1-z0)/B*r, s); }
-function faceBottom(G,mat,x0,z0,x1,z1,y,s){ quad(G,mat, x0,y,z0, x1,y,z0, x1,y,z1, x0,y,z1, 0,0,(x1-x0)/B,(z1-z0)/B, s); }
-function facePX(G,mat,x,z0,z1,y0,y1,s){ quad(G,mat, x,y0,z1, x,y0,z0, x,y1,z0, x,y1,z1, 0,0,(z1-z0)/B,(y1-y0)/B, s); }
-function faceNX(G,mat,x,z0,z1,y0,y1,s){ quad(G,mat, x,y0,z0, x,y0,z1, x,y1,z1, x,y1,z0, 0,0,(z1-z0)/B,(y1-y0)/B, s); }
-function facePZ(G,mat,z,x0,x1,y0,y1,s){ quad(G,mat, x0,y0,z, x1,y0,z, x1,y1,z, x0,y1,z, 0,0,(x1-x0)/B,(y1-y0)/B, s); }
-function faceNZ(G,mat,z,x0,x1,y0,y1,s){ quad(G,mat, x1,y0,z, x0,y0,z, x0,y1,z, x1,y1,z, 0,0,(x1-x0)/B,(y1-y0)/B, s); }
+/* Each takes an optional `ao` — four corner multipliers in the same order
+   its own vertices are pushed. faceTop's run  (x0,z1) (x1,z1) (x1,z0) (x0,z0);
+   the four side faces run bottom-left, bottom-right, top-right, top-left as
+   each is wound. */
+function faceTop(G,mat,x0,z0,x1,z1,y,s,rep,ao){ const r=rep||1;
+  quad(G,mat, x0,y,z1, x1,y,z1, x1,y,z0, x0,y,z0, 0,0,(x1-x0)/B*r,(z1-z0)/B*r, s, ao); }
+function faceBottom(G,mat,x0,z0,x1,z1,y,s,ao){ quad(G,mat, x0,y,z0, x1,y,z0, x1,y,z1, x0,y,z1, 0,0,(x1-x0)/B,(z1-z0)/B, s, ao); }
+function facePX(G,mat,x,z0,z1,y0,y1,s,ao){ quad(G,mat, x,y0,z1, x,y0,z0, x,y1,z0, x,y1,z1, 0,0,(z1-z0)/B,(y1-y0)/B, s, ao); }
+function faceNX(G,mat,x,z0,z1,y0,y1,s,ao){ quad(G,mat, x,y0,z0, x,y0,z1, x,y1,z1, x,y1,z0, 0,0,(z1-z0)/B,(y1-y0)/B, s, ao); }
+function facePZ(G,mat,z,x0,x1,y0,y1,s,ao){ quad(G,mat, x0,y0,z, x1,y0,z, x1,y1,z, x0,y1,z, 0,0,(x1-x0)/B,(y1-y0)/B, s, ao); }
+function faceNZ(G,mat,z,x0,x1,y0,y1,s,ao){ quad(G,mat, x1,y0,z, x0,y0,z, x0,y1,z, x1,y1,z, 0,0,(x1-x0)/B,(y1-y0)/B, s, ao); }
 /* ---- WHAT IS BUILT IS SOLID ----
    While _solidRec is set, every box emitted is also WRITTEN DOWN — so a
    landmark's own builder declares its true collision, brick for brick, and
@@ -1219,9 +1332,45 @@ function sideMatsFor(kind){ /* [topBlockSide, lowerSide] */
   if(kind==='savanna') return ['grassSideSv','dirt'];
   return ['grassSide','dirt'];
 }
+/* ================= THE LIGHT IN THE CORNERS =================
+   Minecraft's lighting is flat per face: four values, one to a side, and no
+   shading whatever where two faces meet. It is the single loudest tell in
+   the whole look, and undoing it is the cheapest thing in this brief.
+
+   A corner of a face is DARKENED by how much solid ground stands about it.
+   For a top face the three things that can shadow a corner are the two
+   columns edge-on to it and the one on its diagonal; where two of the three
+   stand higher than this cell, the corner is in a true inside corner and
+   goes darkest. The shading between the four corners is interpolated across
+   the face by the rasteriser for nothing at all — so a step, a doorway, a
+   gully, an undercut and the foot of every cliff in the world all read with
+   real depth, and not one extra triangle is drawn for it.
+
+   It is baked into the vertex colour ONCE, at mesh time, and costs nothing
+   per frame. The four extra neighbour lookups a column are cache hits.
+   (When the spans of §3.1 land, this same pass is where the floors, the
+   ceilings and the cave mouths take their shading too — the neighbour data
+   is already in hand here and will never be cheaper.) */
+const AO_LV=[0.55,0.72,0.87,1.0];   /* two sides solid · two of three · one · open */
+const AO_CREASE=0.70;               /* the crease where a flank meets the ground beside it */
+function aoLevel(s1,s2,c){ return (s1&&s2)?AO_LV[0]:AO_LV[3-(s1+s2+c)]; }
+/* how high the ground stands in a neighbouring column, in blocks; open water
+   and the edge of the world stand at nothing */
+function nH(ix,iz){ const c=cell(ix,iz); return c?c.h:0; }
+const _aoT=[1,1,1,1], _aoS=[1,1,1,1];
+function aoTop(ix,iz,h){
+  /* the corners, in faceTop's own winding: (-x,+z) (+x,+z) (+x,-z) (-x,-z) */
+  const e=(dx,dz)=>nH(ix+dx,iz+dz)>h?1:0;
+  const px=e(1,0), nx=e(-1,0), pz=e(0,1), nz=e(0,-1);
+  _aoT[0]=aoLevel(nx,pz,e(-1, 1));
+  _aoT[1]=aoLevel(px,pz,e( 1, 1));
+  _aoT[2]=aoLevel(px,nz,e( 1,-1));
+  _aoT[3]=aoLevel(nx,nz,e(-1,-1));
+  return _aoT;
+}
 function emitColumn(G,ix,iz,cc){
   const x0=ix*B, x1=x0+B, z0=iz*B, z1=z0+B, yT=cc.h*B;
-  faceTop(G,topMatFor(cc.kind),x0,z0,x1,z1,yT,1.0);
+  faceTop(G,topMatFor(cc.kind),x0,z0,x1,z1,yT,1.0,1,aoTop(ix,iz,cc.h));
   const [sTop,sLow]=sideMatsFor(cc.kind);
   const nb=[[1,0],[-1,0],[0,1],[0,-1]];
   for(let d=0;d<4;d++){
@@ -1230,11 +1379,36 @@ function emitColumn(G,ix,iz,cc){
     if(cc.h<=nh) continue;
     const split=(sTop!==sLow)&&(cc.h-1>nh);
     const yMid=split?(cc.h-1)*B:base;
+    /* ---- AND THE FLANKS TAKE IT TOO ----
+       A wall face is shadowed at its two upper corners by whatever stands
+       beside and behind them — the inside corner of a step, of a gully, of
+       a doorway — and along its whole foot by the ground it rises out of.
+       The two are worked out once for the face and then carried down it,
+       so a face split into an upper and a lower band keeps one unbroken
+       gradient across the join instead of showing a seam. */
+    const ex=nb[d][0], ez=nb[d][1];
+    const perpX=ez, perpZ=ex;                 /* the two ways ALONG the face */
+    /* What can shadow the end of a wall face is what stands FORWARD of it
+       and beside — the column on the diagonal, out past the low ground this
+       face looks over. The column beside us in our own row lies in the same
+       plane as the face and shadows nothing; testing it would have laid a
+       dark band down every joint of every straight cliff in the world. */
+    const endF=dh=> dh>=cc.h ? AO_LV[1] : (dh>nh ? AO_LV[2] : AO_LV[3]);
+    const aNear=endF(nH(ix+ex-perpX, iz+ez-perpZ));
+    const aFar =endF(nH(ix+ex+perpX, iz+ez+perpZ));
     const put=(mat,ya,yb,sh)=>{ if(yb<=ya) return;
-      if(d===0) facePX(G,mat,x1,z0,z1,ya,yb,sh);
-      else if(d===1) faceNX(G,mat,x0,z0,z1,ya,yb,sh);
-      else if(d===2) facePZ(G,mat,z1,x0,x1,ya,yb,sh);
-      else faceNZ(G,mat,z0,x0,x1,ya,yb,sh); };
+      /* the crease dies away over the first block and a half of the rise */
+      const fall=y=>{ const t=Math.max(0,Math.min(1,(y-base)/(B*1.5))); return AO_CREASE+(1-AO_CREASE)*t; };
+      const fa=fall(ya), fb=fall(yb);
+      /* bottom-left, bottom-right, top-right, top-left, as each face winds */
+      if(d===0){ _aoS[0]=aFar*fa; _aoS[1]=aNear*fa; _aoS[2]=aNear*fb; _aoS[3]=aFar*fb;
+        facePX(G,mat,x1,z0,z1,ya,yb,sh,_aoS); }
+      else if(d===1){ _aoS[0]=aNear*fa; _aoS[1]=aFar*fa; _aoS[2]=aFar*fb; _aoS[3]=aNear*fb;
+        faceNX(G,mat,x0,z0,z1,ya,yb,sh,_aoS); }
+      else if(d===2){ _aoS[0]=aNear*fa; _aoS[1]=aFar*fa; _aoS[2]=aFar*fb; _aoS[3]=aNear*fb;
+        facePZ(G,mat,z1,x0,x1,ya,yb,sh,_aoS); }
+      else { _aoS[0]=aFar*fa; _aoS[1]=aNear*fa; _aoS[2]=aNear*fb; _aoS[3]=aFar*fb;
+        faceNZ(G,mat,z0,x0,x1,ya,yb,sh,_aoS); } };
     const sh=(d<2)?0.62:0.8;
     /* the sea beside: the flank keeps going below the waterline, all the
        way down to the bed — a stone standing in the glass, not upon it */
@@ -2545,9 +2719,17 @@ function localHourAt(x,z){
 /* and the other way about: set the world clock so that it is `h` o'clock
    HERE. This is what the real-world clock and the Time of Day option both
    speak through. */
+/* ---- AND IT TAKES THE PLACE IT IS NOT GIVEN ----
+   Called without a place, `Math.atan2(undefined,undefined)` is NaN, and the
+   NaN goes into the world clock — and out of the world clock into the
+   courses of the lights, the winds, the ship's way through the water and
+   the very sound of the sea, all in one silent stroke. Where the caller
+   names no place, the traveller's own is meant. */
 function setLocalHour(h,x,z){
+  if(!isFinite(x)||!isFinite(z)){ const p=playerXZ(); x=p.x; z=p.z; }
   const lonR=Math.atan2(x,z);
   const world=((h-12*lonR/Math.PI)%24+24)%24;
+  if(!isFinite(world)) return;               /* an hour that is not a number sets nothing */
   state.simHours=Math.floor(state.simHours/24)*24+world;
 }
 /* ---- THE TIMES OF DAY ----
@@ -3824,13 +4006,22 @@ function seaLifeTick(px,pz,dt){
   }
 }
 
-/* ---- underwater block textures, minecraft-fashion pixel art ---- */
+/* ---- THE BLOCKS UNDER THE WATER ----
+   The weed of the sea is drawn out of the same paint box as the land: the
+   kelp in green earth gone dark, the eel-grass in green earth lifted, the
+   sponge in ochre. The CORAL is left a grey master on purpose — every head
+   of it is tinted as it is laid down (madder, terre verte, ochre, tyrian),
+   which is how a reef comes up in a hundred colours for one material. */
 TEX.seasand=TEX.sand.clone(); TEX.seasand.needsUpdate=true; TEX.seasand.wrapS=TEX.seasand.wrapT=THREE.RepeatWrapping;
 TEX.seasand.generateMipmaps=true; TEX.seasand.minFilter=THREE.NearestMipmapLinearFilter; TEX.seasand.anisotropy=4;
-TEX.kelp    =mkTex(g=>{ for(let y=0;y<16;y++)for(let x=0;x<16;x++){ const base=(x%5<2)?[40,118,64]:[58,164,90]; const c=jit(base,26,x*7+y*3); P(g,x,y,rgb(c[0],c[1],c[2])); } });
-TEX.seagrass=mkTex(g=>{ for(let y=0;y<16;y++)for(let x=0;x<16;x++){ const base=(x%4<2)?[70,168,86]:[96,198,112]; const c=jit(base,24,x*5+y*2); P(g,x,y,rgb(c[0],c[1],c[2])); } });
-TEX.coral   =mkTex(g=>{ for(let y=0;y<16;y++)for(let x=0;x<16;x++){ const n=hash2(x*2.1+y*3.3,y*1.7+x*0.7); const v=n>0.72?150:n>0.42?208:246; const c=jit([v,v,v],18,x+y*4); P(g,x,y,rgb(c[0],c[1],c[2])); } });
-TEX.sponge  =mkTex(g=>speckle(g,[224,176,64],28,[190,142,48],0.4));
+const KELP_D=PAL.shade(PAL.mix(PP.terreVerte,PP.malachite,0.5),0.74),
+      KELP_L=PAL.mix(PP.malachite,PP.olivine,0.35),
+      EEL_D =PAL.mix(PP.malachite,PP.terreVerte,0.35),
+      EEL_L =PAL.lift(PAL.mix(PP.malachite,PP.sap,0.4),0.14);
+TEX.kelp    =mkTex(g=>{ for(let y=0;y<16;y+=FG)for(let x=0;x<16;x+=FG){ const base=(x%5<2)?KELP_D:KELP_L; const c=jit(base,26,x*7+y*3); Pf(g,x,y,rgb(c[0],c[1],c[2])); } });
+TEX.seagrass=mkTex(g=>{ for(let y=0;y<16;y+=FG)for(let x=0;x<16;x+=FG){ const base=(x%4<2)?EEL_D:EEL_L; const c=jit(base,24,x*5+y*2); Pf(g,x,y,rgb(c[0],c[1],c[2])); } });
+TEX.coral   =mkTex(g=>{ for(let y=0;y<16;y+=FG)for(let x=0;x<16;x+=FG){ const n=hash2(x*2.1+y*3.3,y*1.7+x*0.7); const v=n>0.72?150:n>0.42?208:246; const c=jit([v,v,v],18,x+y*4); Pf(g,x,y,rgb(c[0],c[1],c[2])); } });
+TEX.sponge  =mkTex(g=>speckle(g,PAL.mix(PP.ochre,PP.saffron,0.3),28,PAL.shade(PP.darkOchre,0.96),0.4));
 
 /* ================= THE DEEP — DIVE & DISCOVER THE SEA =================
    Below the waves lies a world of its own: a bumpy seabed that plunges into
@@ -11268,9 +11459,14 @@ function initAudio(){
 function audioTick(storm){
   if(!AC||!audioOn||!seaGain) return;
   const t=performance.now()*0.001, swell=0.75+0.25*Math.sin(t*0.5);
-  const sp=Math.abs(state.boat.speed);
+  /* a gain that is not a number is not a quiet sea — it THROWS, out of the
+     tick and out of the whole frame with it, and the world stands still
+     with its last picture on the glass. Whatever comes in, what goes to
+     the ear is a number between silence and full. */
+  const num=(v,d)=>isFinite(v)?v:d;
+  const sp=Math.abs(num(state.boat.speed,0)), st=Math.max(0,Math.min(1,num(storm,0)));
   seaGain.gain.value=(state.mode==='boat'?0.11+Math.min(0.08,sp/500):0.045)*swell;
-  windGain.gain.value=0.015+Math.min(0.06,sp/900)+storm*0.1;
+  windGain.gain.value=0.015+Math.min(0.06,sp/900)+st*0.1;
 }
 $('b-sound').onclick=()=>{
   audioOn=!audioOn;
@@ -11855,6 +12051,8 @@ if(!window.__HOST_BOOT){
 
 /* a small debug handle — used by the automated smoke tests; harmless in play */
 window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
+  /* the light in the corners, and the count of standing chunks — tools/acceptance.js */
+  aoLevel,aoTop,chunkCount:()=>chunks.size,
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,
   farLand,updateFarLand,mountUpliftAt,MOUNTS,ridgeNoise,B,R_WORLD,
   AIRLIFE,NESTS,landKindAt,riverBankAt,WILD_ROLE,RANGES,FALLS,activeLandmarks,LANDMARKS,
