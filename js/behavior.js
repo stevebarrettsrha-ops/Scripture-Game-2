@@ -26,6 +26,12 @@
              'all'   it keeps no hours at all (the lion, who sleeps
                      twenty hours and hunts whenever he pleases; the
                      elephant, who cannot afford to stop eating)
+   pace  — true only of the beasts that PACE: both legs of a side swing
+           together instead of the diagonal pair. The camelids and the
+           giraffe do it, and the roll of it is why a camel is called the
+           ship of the desert. Everything else trots. (js/gait.js knows
+           the six gaits; this is the ONE thing a species says about its
+           own going, and it is said here, in data.)
    walk  — its going-about pace, in world units a second
    run   — its flat-out pace: what it flees at, or charges at. These
            are in TRUE PROPORTION: a cheetah outruns a gazelle, a
@@ -96,7 +102,7 @@ horse:       {day:'day', walk:6,  run:22, home:'open', acts:[['graze',5],['dust'
 donkey:      {day:'day', walk:5,  run:15, home:'open', acts:[['graze',5],['dust',2],['drink',1]], climb:1.8},
 mule:        {day:'day', walk:5,  run:17, home:'open', acts:[['graze',5],['dust',2],['drink',1],['alert',1]], climb:2.2},
 dog:         {day:'day', walk:6,  run:17, home:'open', acts:[['dig',2],['play',3],['alert',2]], climb:1.4},
-camel:       {day:'day', walk:5,  run:16, home:'open', acts:[['graze',4],['browse',2],['dust',2]], climb:0.9},
+camel:       {day:'day', walk:5,  run:16, home:'open', acts:[['graze',4],['browse',2],['dust',2]], climb:0.9, pace:true},
 /* ---- the temperate field and wood ---- */
 deer:        {day:'dusk',walk:5,  run:20, home:'open', acts:[['graze',4],['browse',2],['alert',3],['drink',1]], climb:1.5},
 hare:        {day:'dusk',walk:4,  run:20, home:'open', gait:'hop', acts:[['graze',4],['alert',3],['groom',1]], climb:1.6},
@@ -115,7 +121,7 @@ bear:        {day:'dusk',walk:5,  run:14, home:'den',  acts:[['dig',3],['rear',2
 blackbear:   {day:'dusk',walk:5,  run:14, home:'den',  acts:[['dig',3],['rear',2],['browse',1]], climb:1.3},
 /* ---- the plain of the south ---- */
 elephant:    {day:'all', walk:5,  run:14, home:'open', acts:[['browse',3],['graze',3],['wallow',2],['dust',2],['drink',2],['earflap',2]], climb:0.7},
-giraffe:     {day:'day', walk:5,  run:16, home:'open', acts:[['browse',6],['alert',1],['drink',1]], climb:0.8},
+giraffe:     {day:'day', walk:5,  run:16, home:'open', acts:[['browse',6],['alert',1],['drink',1]], climb:0.8, pace:true},
 zebra:       {day:'day', walk:5,  run:18, home:'open', acts:[['graze',5],['dust',2],['alert',2],['drink',1]], climb:1.2},
 wildebeest:  {day:'day', walk:5,  run:18, home:'open', acts:[['graze',6],['alert',2],['drink',1]], climb:1.2},
 gazelle:     {day:'day', walk:5,  run:24, home:'open', acts:[['graze',4],['alert',4],['drink',1]], climb:1.6},
@@ -161,8 +167,8 @@ waterbuffalo:{day:'day', walk:4,  run:14, home:'water', acts:[['graze',4],['wall
 cougar:      {day:'dusk',walk:5,  run:20, see:85, burst:6, home:'rock', acts:[['alert',3],['groom',2],['sharpen',1]], climb:1.7},
 coyote:      {day:'dusk',walk:5,  run:17, see:80, burst:10, home:'den', acts:[['alert',2],['dig',1]], climb:1.5},
 pronghorn:   {day:'day', walk:5,  run:26, home:'open', acts:[['graze',5],['alert',3]], climb:1.5},
-llama:       {day:'day', walk:5,  run:14, home:'open', acts:[['graze',5],['alert',2],['dust',1]], climb:1.9},
-alpaca:      {day:'day', walk:4,  run:12, home:'open', acts:[['graze',6],['dust',1]], climb:1.8},
+llama:       {day:'day', walk:5,  run:14, home:'open', acts:[['graze',5],['alert',2],['dust',1]], climb:1.9, pace:true},
+alpaca:      {day:'day', walk:4,  run:12, home:'open', acts:[['graze',6],['dust',1]], climb:1.8, pace:true},
 raccoon:     {day:'night',walk:4, run:11, home:'tree', acts:[['dig',4],['groom',2],['play',1]], climb:1.5},
 skunk:       {day:'night',walk:3, run:8,  home:'den',  acts:[['dig',5]], climb:0.9},
 /* ---- the great south land ---- */
@@ -468,6 +474,8 @@ window.BEHAVIOR={
   dayOf:name=>{ const b=D[name]; return (b&&b.day)||'day'; },
   homeOf:name=>{ const b=D[name]; return (b&&b.home)||'open'; },
   gaitOf:name=>{ const b=D[name]; return (b&&b.gait)||'walk'; },
+  /* does this beast PACE rather than trot at its middle speed? */
+  pacesOf:name=>{ const b=D[name]; return !!(b&&b.pace); },
   /* how big a step this beast can take, in blocks — a goat's cliff or an
      elephant's kerb. Anything unnamed steps a plain block. */
   climbOf:name=>{ const b=D[name]; return (b&&b.climb)||1.0; },
