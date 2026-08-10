@@ -248,6 +248,48 @@ const WOOD = {
   palm:     { plank: mix(P.darkOchre,P.bone,0.28),        bark: mix(P.rawUmber,P.ochre,0.34) }
 };
 
+/* ---------------- THE PEOPLE OF THE LANDS ----------------
+   The traveller and the villagers were painted in loose triples too. Their
+   cloth is now named out of the same box as the world they walk in — and
+   named out of the materials the tabernacle was hung with: blue, purple,
+   scarlet and fine linen, and gold upon the hem. */
+const FOLK = {
+  skin:      [199,140, 95],
+  hair:      mix(P.burntUmber, P.lampblack, 0.42),
+  robe:      mix(P.indigo, P.lapis, 0.30),          /* the blue */
+  robeDeep:  shade(mix(P.indigo, P.lapis, 0.30), 0.86),
+  trim:      mix(P.gold, P.darkOchre, 0.22),        /* gold upon the hem */
+  clasp:     shade(mix(P.gold, P.darkOchre, 0.22), 0.80),
+  eye:       mix(P.tyrian, P.lapis, 0.44),
+  nose:      [160,105, 70],
+  mouth:     shade([160,105,70], 0.70),
+  leg:       mix(P.indigo, P.slate, 0.24)
+};
+
+/* ---------------- THE HAZE OF EACH COUNTRY ----------------
+   Minecraft's distance fog is one colour everywhere on the earth, taken
+   straight off the sky. But haze is not sky — it is what hangs in the air of
+   THAT place: dust off a desert, moisture off a rain forest, ice-crystal off
+   a polar plain, the pale burn off a limestone country at noon. Naming them
+   here is what lets a traveller know what land he stands in with his eyes
+   shut to everything but the horizon. Each is the colour the far distance
+   takes; HOW STRONGLY it is taken is the engine's business, not the paint
+   box's. */
+const HAZE = {
+  grass:    mix(P.terreVerte, P.chalk,     0.66),   /* temperate: a soft green-grey */
+  tropic:   mix(P.malachite,  P.chalk,     0.60),   /* rain forest: green-grey and heavy */
+  savanna:  mix(P.ochre,      P.chalk,     0.54),   /* the plain: dust and dry gold */
+  desert:   mix(P.ochre,      P.sandstone, 0.42),   /* warm ochre — the whole waste is in the air */
+  sand:     mix(P.sandstone,  P.chalk,     0.52),   /* the strand: pale and salt-bright */
+  badlands: mix(P.terracotta, P.bone,      0.56),
+  tundra:   mix(P.ash,        P.glacier,   0.46),
+  rock:     mix(P.limestone,  P.chalk,     0.52),
+  alpine:   mix(P.limestone,  P.glacier,   0.44),
+  snow:     mix(P.glacier,    P.chalk,     0.52),
+  wall:     mix(P.glacier,    P.rime,      0.50),   /* cold blue on the wall of ice */
+  floe:     mix(P.glacier,    P.rime,      0.50)
+};
+
 /* ---------------- THE HEWN EDGE ----------------
    How dark the rim drawn round every solid block face is, and how far it
    reaches in. This one number is most of the difference between a game cube
@@ -256,7 +298,7 @@ const WOOD = {
 const EDGE = { dark: 0.74, light: 1.10, px: 1 };
 
 window.PALETTE = {
-  pigment: P, block: B, wood: WOOD, edge: EDGE,
+  pigment: P, block: B, wood: WOOD, folk: FOLK, haze: HAZE, edge: EDGE,
   mix, shade, lift, warm,
   rgb(c){ return 'rgb('+c[0]+','+c[1]+','+c[2]+')'; }
 };

@@ -1608,6 +1608,12 @@ const chunks=new Map(); const buildQueue=[]; const buildQueued=new Set();
 /* all the streamed land under one root, so it can be taken out of the view
    in a single stroke when the charted face of the earth stands in for it */
 const chunkRoot=new THREE.Group(); scene.add(chunkRoot);
+/* ---- WHAT A CHUNK COSTS TO BUILD ----
+   Kept as a running total so the audit can state the mesher's price in
+   milliseconds rather than in adjectives. One clock read a chunk. */
+const BUILD_STATS={n:0,ms:0};
+function buildChunkTimed(cx,cz){ const t0=performance.now();
+  buildChunk(cx,cz); BUILD_STATS.ms+=performance.now()-t0; BUILD_STATS.n++; }
 function buildChunk(cx,cz){
   const G=newG();
   /* ---- WHOSE COUNTRY THIS CHUNK IS IN ----
@@ -1737,7 +1743,7 @@ function updateChunks(px,pz,budget,view){
     const q=buildQueue.shift(); buildQueued.delete(q.k);
     if(chunks.has(q.k)) continue;
     if((q.cx-ccx)**2+(q.cz-ccz)**2>(view+2)*(view+2)) continue;   /* left behind */
-    buildChunk(q.cx,q.cz); n++; }
+    buildChunkTimed(q.cx,q.cz); n++; }
   /* and the reaping reads the chunk's own numbers rather than parsing them
      back out of its key, two hundred times a frame */
   /* THE REAP KEEPS THE ADD'S OWN MEASURE. Chunks were added on a Euclidean
@@ -2771,6 +2777,47 @@ function mix3(hexA,hexB,hexC,t){ // 0=night .5=dusk 1=day
   if(t<0.5){ _c1.setHex(hexA); _c2.setHex(hexB); return _c3.copy(_c1).lerp(_c2,t*2); }
   _c1.setHex(hexB); _c2.setHex(hexC); return _c3.copy(_c1).lerp(_c2,(t-0.5)*2);
 }
+/* ================= THE HAZE OF THE COUNTRY =================
+   One fog colour for the whole earth, taken straight off the sky, is
+   Minecraft's answer and it is the wrong one: haze is not sky. It is what
+   hangs in the air of THAT place — dust blown off a desert, moisture
+   standing in a rain forest, ice-crystal over a polar plain, the pale burn
+   of a limestone country at noon. world/palette.js names the colour of each;
+   here is how much of it is taken.
+
+   Three rules keep it honest. It is worked only against the ground the
+   traveller is actually ON — out on the open sea the haze is the sea's own
+   and the sky keeps it. It DIES WITH THE LIGHT, because a coloured haze at
+   midnight is a lie; and it is put down in a storm, when what hangs in the
+   air is the storm. And it is eased rather than set, so crossing from
+   forest to plain is a slow turn of the whole horizon and not a switch.
+
+   The sky itself takes a weaker dose of the same colour than the ground fog
+   does — which is exactly how real haze reads, thickening down toward the
+   horizon — and that keeps the join where the land meets the sky from
+   showing as a seam. */
+const _hazeC=new THREE.Color(0.62,0.77,0.91), _hazeT=new THREE.Color();
+const HAZE_FOG=0.34, HAZE_SKY=0.15;
+let _hazeK=0;                          /* how much country there is to take it from */
+function gradeHaze(px,pz,dayF,storm){
+  /* under the sea the water is the haze, and it has its own law */
+  if(state.mode==='dive'||_eyeUnder){ _hazeK*=0.9; return; }
+  const c=landAtWorld(px,pz);
+  const hz=c&&PAL.haze[c.kind];
+  /* the target: this country's own haze, or simply the sky where there is
+     no country under the eye at all */
+  if(hz) _hazeT.setRGB(hz[0]/255,hz[1]/255,hz[2]/255);
+  else _hazeT.copy(scene.fog.color);
+  _hazeC.lerp(_hazeT,0.035);           /* a slow turn of the horizon, never a switch */
+  const wantK=hz?1:0;
+  _hazeK+=(wantK-_hazeK)*0.035;
+  /* the strength: full in the middle of the day, gone by night, and put
+     down in foul weather when the storm owns the air */
+  const k=_hazeK*Math.max(0,dayF*1.15-0.15)*(1-storm*0.85);
+  if(k<=0.002) return;
+  scene.fog.color.lerp(_hazeC,HAZE_FOG*k);
+  scene.background.lerp(_hazeC,HAZE_SKY*k);
+}
 function skyTick(px,pz){
   /* ---- THE TWO GREAT LIGHTS, WHERE THEY TRULY ARE ----
      js/sun-moon.js is the whole law: each light's own circuit over the
@@ -2786,7 +2833,8 @@ function skyTick(px,pz){
   if(st>0.01){ _c1.setHex(sky); _c2.setHex(0x4c545e); sky=_c1.lerp(_c2,st*0.75).getHex(); }
   scene.background.setHex(sky);
   if(scene.fog){ scene.fog.color.setHex(sky); /* fog is detached in the firmament view */
-    scene.fog.near=FOG_NEAR*(1-st*0.55); scene.fog.far=FOG_FAR-st*260; }
+    scene.fog.near=FOG_NEAR*(1-st*0.55); scene.fog.far=FOG_FAR-st*260;
+    gradeHaze(px,pz,dayF,st); }
   const l=mix3(0x38405e,0xd9a878,0xffffff,dayF);
   const dim=1-st*0.38;
   setBlockLight(l.r*dim,l.g*dim,l.b*dim);
@@ -3371,6 +3419,11 @@ const BEAST_KIT={
     for(const sx of [1,-1]) for(const sz of [1,-1]){
       const L=lbox(t,h*0.55,t,col); L.geometry.translate(0,-h*0.275,0);
       L.position.set(sx*x,h,sz*z); L.userData.ph=(sx*sz>0)?0:Math.PI;
+      /* AND EVERY FOOT KNOWS WHICH FOOT IT IS — near fore 0, off fore 1,
+         near hind 2, off hind 3. The gait law is nothing but four numbers
+         against these four names. (The head is built toward +z in every
+         creature file, so +z is the fore.) */
+      L.userData.foot=(sx>0?0:1)+(sz>0?0:2);
       const S=lbox(t*0.88,h*0.5,t*0.88,col); S.geometry.translate(0,-h*0.25,0);
       S.position.set(0,-h*0.53,0); L.add(S); L.userData.knee=S;
       g.add(L); out.push(L); }
@@ -3383,10 +3436,46 @@ const BEAST_KIT={
    through the ground), and the forearm bends in as the arm swings forward.
    Any limb that carries userData.knee or userData.elbow — beast, villager
    or the traveller himself — is folded by this and nothing else. */
-function jointTick(L,moving){
+function jointTick(L,moving,knee){
   const u2=L.userData; if(!u2) return;
-  if(u2.knee)  u2.knee.rotation.x = moving? Math.min(1.15,0.10+Math.max(0,L.rotation.x)*1.1) : 0.05;
+  /* `knee` is the fold the GAIT LAW asks for (js/gait.js), in radians. Where
+     it is given it wins: a foot in the swing picks itself up over the ground
+     it is crossing, which a fold read back off the hip angle can never do —
+     that one always folded hardest at the END of the sweep, when the foot is
+     planted, which is precisely backwards. Where it is not given, the old
+     rule stands, and every biped in the world keeps its own walk. */
+  if(u2.knee)  u2.knee.rotation.x = knee!==undefined ? knee
+    : (moving? Math.min(1.15,0.10+Math.max(0,L.rotation.x)*1.1) : 0.05);
   if(u2.elbow) u2.elbow.rotation.x= moving? -Math.min(0.85,0.16+Math.max(0,-L.rotation.x)*0.5) : -0.14;
+}
+/* ================= THE GOING OF A BEAST =================
+   js/gait.js is the whole law of the footfall; this is the engine's one
+   hand on it. Hand it a body, how fast that body is going and how long it
+   is, and every leg under it is set for this frame — walking, pacing,
+   trotting, cantering, galloping or bounding, chosen by SPEED IN ITS OWN
+   BODY LENGTHS, which is how a real creature chooses. Nothing here names
+   a single species, and nothing in gait.js knows what a beast is.
+
+   A body of fewer or more than four legs is left exactly as it was: the
+   folk on the deck, the villagers in the street and the fowl of the air
+   keep the walk they have always had. */
+function tickGait(ent,kind,spd,dt,amp0){
+  const legs=ent.m&&ent.m.userData&&ent.m.userData.legs;
+  if(!legs||legs.length!==4||!window.GAIT||legs[0].userData.foot===undefined) return null;
+  const len=Math.max(2,beastUnits(kind)||12);
+  const bl=Math.max(0,spd)/len;                    /* body lengths a second */
+  if(bl<0.035){ for(const L of legs){ L.rotation.x=0; jointTick(L,false); } ent.gph=0; return null; }
+  const B2=window.BEHAVIOR;
+  const g=GAIT.pick(bl, !!(B2&&B2.pacesOf&&B2.pacesOf(kind)),
+                        !!(B2&&B2.gaitOf&&B2.gaitOf(kind)==='hop'));
+  ent.gph=((ent.gph||0)+GAIT.stridesPerSec(bl,g)*dt)%1;
+  const amp=(amp0||0.34)+Math.min(0.40,bl*0.15);
+  for(const L of legs){
+    const sw=GAIT.legSwing(g,L.userData.foot,ent.gph,amp);
+    L.rotation.x=sw.hip; jointTick(L,true,sw.knee); }
+  return { gait:g, phase:ent.gph, len,
+           rise:GAIT.bodyRise(g,ent.gph)*len*0.42,     /* the withers rise and fall with it */
+           roll:GAIT.bodyRoll(g,ent.gph) };            /* and a pacing beast rolls like a ship */
 }
 /* ---- AND HOW BIG A BEAST IS DRAWN ----
    ONE SCALE, AND IT IS THE MAN'S. There were two: the beasts of the sea were
@@ -3438,16 +3527,20 @@ function makeBeast(name,arg){
 function beastUnits(name){ return trueMetres(name,BEAST_BY_NAME[name])*U_PER_M; }
 /* Steve-fashion: dark brown hair in a clean, straight fringe (no ragged edge),
    sideburns down the temples, a bowl of hair on top and round the back. */
-const SKIN_RGB=[199,140,95], HAIR_RGB=[46,32,18], ROBE_A=[56,66,116], ROBE_D=[46,56,100];
+/* skin, hair and cloth all come out of world/palette.js now — the robe is
+   the blue of the veil with gold upon its hem, and not a game primary */
+const PF=PAL.folk;
+const SKIN_RGB=PF.skin, HAIR_RGB=PF.hair, ROBE_A=PF.robe, ROBE_D=PF.robeDeep;
+const TRIM_C=C(PF.trim), CLASP_C=C(PF.clasp);
 const faceTexP=mkTex(g=>{ g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,0,16,16);
   for(let y=0;y<4;y++) for(let x=0;x<16;x++){                 /* the straight fringe */
     const c=jit(HAIR_RGB,16,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); }
   for(let y=4;y<8;y++) for(const x of [0,1,14,15]){           /* sideburns */
     const c=jit(HAIR_RGB,16,x*7+y); P(g,x,y,rgb(c[0],c[1],c[2])); }
   g.fillStyle='rgb(255,255,255)'; g.fillRect(3,8,2,2); g.fillRect(11,8,2,2);  /* eyes */
-  g.fillStyle='rgb(84,60,150)';  g.fillRect(5,8,2,2); g.fillRect(9,8,2,2);    /* violet-blue, steve-fashion */
-  g.fillStyle='rgb(160,105,70)'; g.fillRect(7,10,2,2);                         /* the nose */
-  g.fillStyle='rgb(106,66,40)'; g.fillRect(6,13,4,1); g.fillRect(5,12,1,1); g.fillRect(10,12,1,1); /* the mouth */ });
+  g.fillStyle=C(PF.eye);         g.fillRect(5,8,2,2); g.fillRect(9,8,2,2);    /* the blue of the veil */
+  g.fillStyle=C(PF.nose);        g.fillRect(7,10,2,2);                         /* the nose */
+  g.fillStyle=C(PF.mouth); g.fillRect(6,13,4,FG); g.fillRect(5,12,FG,FG); g.fillRect(10,12,FG,FG); /* the mouth */ });
 const hairTopTex=mkTex(g=>speckle(g,HAIR_RGB,14,[38,26,14],0.35));
 const hairSideTex=mkTex(g=>{ g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,0,16,16);
   for(let y=0;y<7;y++) for(let x=0;x<16;x++){                 /* a straight bowl edge */
@@ -3458,19 +3551,19 @@ const hairBackTex=mkTex(g=>{ g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,0,16,16)
 /* the ancient robe: indigo cloth, folds, gold trim; front carries the neckline */
 const robeSideTexP=mkTex(g=>{ speckle(g,ROBE_A,16,ROBE_D,0.3);
   g.fillStyle='rgba(0,0,0,0.25)'; for(const x of [2,7,12]) g.fillRect(x,3,1,13);
-  g.fillStyle='rgb(190,158,84)'; g.fillRect(0,9,16,2);
-  g.fillStyle='rgb(150,120,58)'; g.fillRect(7,9,2,2);
+  g.fillStyle=TRIM_C; g.fillRect(0,9,16,2);
+  g.fillStyle=CLASP_C; g.fillRect(7,9,2,2);
   g.fillStyle='rgba(0,0,0,0.3)'; g.fillRect(0,15,16,1); });
 const robeFrontTexP=mkTex(g=>{ speckle(g,ROBE_A,16,ROBE_D,0.3);
   g.fillStyle='rgba(0,0,0,0.25)'; for(const x of [3,12]) g.fillRect(x,3,1,13);
   g.fillStyle=rgb(...SKIN_RGB); g.fillRect(6,0,4,1); g.fillRect(7,1,2,1);     /* neckline */
-  g.fillStyle='rgb(190,158,84)'; g.fillRect(5,0,1,2); g.fillRect(10,0,1,2);   /* collar trim */
-  g.fillStyle='rgb(190,158,84)'; g.fillRect(0,9,16,2);
-  g.fillStyle='rgb(150,120,58)'; g.fillRect(7,9,2,2);                          /* the clasp */
+  g.fillStyle=TRIM_C; g.fillRect(5,0,1,2); g.fillRect(10,0,1,2);   /* collar trim */
+  g.fillStyle=TRIM_C; g.fillRect(0,9,16,2);
+  g.fillStyle=CLASP_C; g.fillRect(7,9,2,2);                          /* the clasp */
   g.fillStyle='rgba(0,0,0,0.3)'; g.fillRect(0,15,16,1); });
 const sleeveTexP=mkTex(g=>{ speckle(g,ROBE_A,16,ROBE_D,0.3);
   g.fillStyle='rgba(0,0,0,0.22)'; g.fillRect(0,4,16,1);
-  g.fillStyle='rgb(190,158,84)'; g.fillRect(0,11,16,1);                        /* cuff trim */
+  g.fillStyle=TRIM_C; g.fillRect(0,11,16,1);                        /* cuff trim */
   g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,12,16,4); });                     /* the hand */
 const legTexP=mkTex(g=>{ speckle(g,[46,52,86],14,[38,44,74],0.3);
   g.fillStyle='rgba(0,0,0,0.25)'; g.fillRect(0,7,16,1);
@@ -3658,7 +3751,8 @@ function buildOldAnimal(kind){
     L.position.set(sx*w,lh,sz*d);
     const S=lbox(0.8,lh*0.5,0.8,col); S.geometry.translate(0,-lh*0.25,0);     // shin, hung from the knee
     S.position.set(0,-lh*0.53,0); L.add(S); L.userData.knee=S;
-    L.userData.ph=(sx*sz>0)?0:Math.PI; g.add(L); legs.push(L); } }
+    L.userData.ph=(sx*sz>0)?0:Math.PI; L.userData.foot=(sx>0?0:1)+(sz>0?0:2);
+    g.add(L); legs.push(L); } }
   /* ---- EVERY BEAST HAS A FACE ----
      Two dark eyes set on the front corners of the head — the one detail that
      turns a box into a creature looking at you. */
@@ -3837,7 +3931,8 @@ function buildOldAnimal(kind){
     const t2=lbox(1.0,0.9,2.8,lt); t2.position.set(0,1.5,-6.7); g.add(t2);
     for(const sx of [1,-1]) for(const sz of [2.0,-2.2]){
       const L=lbox(0.8,1.0,0.8,lt); L.geometry.translate(0,-0.5,0);
-      L.position.set(sx*1.55,1.05,sz); L.userData.ph=(sx*sz>0)?0:Math.PI; g.add(L); legs.push(L); }
+      L.position.set(sx*1.55,1.05,sz); L.userData.ph=(sx*sz>0)?0:Math.PI;
+      L.userData.foot=(sx>0?0:1)+(sz>0?0:2); g.add(L); legs.push(L); }
     g.userData={legs,jaw:jawB,tail:t2};
     return g;
   } else if(kind==='bear'||kind==='blackbear'){
@@ -6625,10 +6720,12 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
     }
     else if(a.crouch) lift=-0.8;                              /* the lion low in the grass */
     if(role==='ambush') lift=-1.5*(a.sink||0);                /* sunk to the eyes */
-    /* the ones that bound instead of walk truly BOUND */
-    const hop=(moving&&window.BEHAVIOR&&BEHAVIOR.gaitOf(a.kind)==='hop')
-      ?Math.abs(Math.sin(t*9+a.ph))*1.3:0;
-    a.m.position.set(a.x,(c2?c2.h*B:WATER_Y)+lift+hop,a.z);
+    /* THE GOING OF IT — walk, pace, trot, canter, gallop or bound, chosen
+       by how fast it is travelling in its own body lengths. The rise and
+       fall of the withers comes off the same law, so a bounding hare truly
+       leaves the ground and a walking elephant truly does not. */
+    const GT=tickGait(a,a.kind,moving?spd:0,dt);
+    a.m.position.set(a.x,(c2?c2.h*B:WATER_Y)+lift+(GT?Math.max(0,GT.rise):0),a.z);
     a.m.rotation.y=a.heading; a.m.rotation.x=lean; a.m.rotation.z=roll;
     /* ---- THE BREATH IN THE BODY ----
        Nothing standing still was truly still: no flank moved, no tail
@@ -6636,8 +6733,9 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
        BREATHES — a slow swell of the body, deeper in sleep — and a beast
        under way carries a faint roll of the shoulders with its stride. */
     a.m.scale.y=1+(asleep?0.02:0.012)*Math.sin(t*(asleep?1.1:2.1)+a.ph);
-    if(moving) a.m.rotation.z=roll+Math.sin(t*(spd>8?10:7)+a.ph)*0.03;
-    if(a.m.userData.legs) for(const L of a.m.userData.legs){
+    if(moving) a.m.rotation.z=roll+(GT?GT.roll:Math.sin(t*(spd>8?10:7)+a.ph)*0.03);
+    /* a beast with any number of legs but four keeps the walk it had */
+    if(!GT&&a.m.userData.legs) for(const L of a.m.userData.legs){
       L.rotation.x=moving?Math.sin(t*(spd>8?10:7)+(L.userData.ph||0))*0.5:0;
       jointTick(L,moving); }
     /* and the tail is never dead: the idle swish, the faster swing on the
@@ -7823,7 +7921,10 @@ function moveEnt(ent,dt,sp){
   const gHere=groundInfo(ent.m.position.x,ent.m.position.z);
   ent.m.position.y=gHere.land?gHere.y:WATER_Y;
   const legs=ent.m.userData.legs;
-  if(legs&&legs.length){ const ph=performance.now()*(ent.panic?0.02:0.012);
+  /* the penned and the herded go by the same law as the wild ones */
+  const GT=ent.kind?tickGait(ent,ent.kind,moving?sp:0,dt):null;
+  if(GT){ if(GT.rise>0) ent.m.position.y+=GT.rise; ent.m.rotation.z=GT.roll; }
+  else if(legs&&legs.length){ const ph=performance.now()*(ent.panic?0.02:0.012);
     for(const L of legs){ L.rotation.x=moving?Math.sin(ph+(L.userData.ph||0))*(ent.panic?0.85:0.55):0;
       jointTick(L,moving); } }
   else if(moving) ent.m.position.y+=Math.abs(Math.sin(performance.now()*.012))*0.35;
@@ -12050,7 +12151,7 @@ if(!window.__HOST_BOOT){
 }
 
 /* a small debug handle — used by the automated smoke tests; harmless in play */
-window.__VDBG={state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
+window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   /* the light in the corners, and the count of standing chunks — tools/acceptance.js */
   aoLevel,aoTop,chunkCount:()=>chunks.size,
   TRADERS,throwSpear,openTrade,cellRaw,sea,seaDeep,waveGrid,shoalAt,camera,scene,seaHeight,WATER_Y,seabedDepth,

@@ -972,6 +972,175 @@ measured at every height.*
   bearing until it stands in the open. Verified: all eight scrolls on
   level open ground, none steep, none treed, none in masonry.
 
+## 4w. Round 24 — the look of it made its own: a paint box, thirty-two texels, a hewn edge, the light in the corners, the haze of the country, and the going of a beast ✅
+
+*Against the v3 brief's §2 (art direction) and Phase 0, plus two of the five
+levers that were not scheduled until later and are cheap enough to have now.
+Every claim below was seen live in a headless browser (Chromium/SwiftShader):
+six fixed stations shot before and after at local noon, two hundred frames
+timed standing still at each, and the mesher's own per-chunk cost measured
+against a `git worktree` of the commit before any of this.*
+
+**The tools are committed this round, not thrown away.** `tools/harness.js`
+raises the world headless; `tools/shots.js` stands at six stations — a
+village, the cedar coast, open sand, closed rain forest, alpine rock, a cold
+coast — pins the hour, shoots each and times it; `tools/acceptance.js` holds
+the twelve acceptance tests of the brief's §3, written **before** the
+features, so the ten that wait on Phases 1–3 report PENDING and name exactly
+what is missing instead of not existing. `PLAN.md` answers the brief's nine
+questions.
+
+**1. `world/palette.js` — every colour in the world, named once.**
+- The look of this earth lived in ~140 loose RGB triples through the mesher,
+  every one of them chosen to sit beside Minecraft's: grass `124,178,86`,
+  stone a flat `125,125,125`, sand `219,207,163`. Those are video-game
+  primaries — high chroma, one saturation, one value.
+- They are **pigments** now, named as a painter of that world named them:
+  ochre, raw and burnt sienna, raw and burnt umber, terre verte, sap,
+  malachite, verdigris, madder, cinnabar, tyrian, lapis, azurite, indigo,
+  saffron, orpiment, limestone, sandstone, basalt, marble, alabaster,
+  bitumen, chalk, bone, ash, lampblack — and the metals and the stones of
+  the breastplate besides, ready for the material economy of §4.
+- **The stone of that world is limestone**, and it is warm: `146,138,122`
+  with pale bedding veins, not granite grey. Cobble is a mortared course of
+  dressed stones, not crushed gravel. Sand is warmer and browner. The rain
+  forest reads DARK, not acid. Water is teal-leaning, not cobalt. The full
+  before/after table for every texture is in `PLAN.md` §1.
+- Not one raw triple is left in the mesher. The whole earth can be re-graded
+  from one file — which is what makes trying three palettes an afternoon's
+  work rather than a fortnight's.
+
+**2. Thirty-two texels, and the resolution SPENT.**
+- Every block face is a 32×32 canvas now (`TEXEL`/`TS` in the engine),
+  nearest-filtered as before. Sixteen is inseparable from Minecraft; thirty
+  two reads as another game at a cost of three parts in a thousand of a
+  megabyte per face.
+- **The art was not redrawn.** `mkTex` scales the brush before the drawing
+  begins, so every hand-placed seam, mortar line, plank edge and growth ring
+  in the file still lands exactly where it was put. What runs at the true 32
+  is the GRAIN: `speckle` lays one true pixel at a time, so the noise in
+  every surface is four times finer and sand reads as sand instead of gravel.
+- And the room is used: real mortar between the stones of a cobble course, a
+  run of grain along every plank, deep fissures with fine checking between
+  them in bark, annual rings on a cut log, an over-and-under weave in wool,
+  bedding veins in limestone, a midrib and a serrated edge in the leaf
+  master — which every one of the ~170 species of the flora inherits for
+  nothing.
+- **Texture memory measured:** 1,024 B a face → 4,096 B. At 251 textures
+  resident that is **0.25 MB → 1.00 MB** across the whole game. 24 was
+  offered as a fallback and is not needed.
+
+**3. The hewn edge — and NOT on everything.**
+- A rim of one true pixel baked into the texture at load: darker along the
+  bottom and right, lighter along the top and left, so every block reads as
+  lit from the upper left and each one as a dressed stone with an arris
+  worked on it rather than a game cube.
+- **It is withheld from loose ground.** The brief asks for it on every block
+  texture; that was built first and shot, and sand and grass become bathroom
+  tiling — a hard rectilinear grid across every dune and meadow in the world,
+  which is MORE Minecraft-grid than what it replaced. A dressed stone has an
+  arris; a dune does not. It now goes on worked materials only — stone,
+  cobble, plank, roof, log, bench, hay, wool, ice, badlands cliff, the
+  flora's solid master — and never on anything drawn with a hole in it,
+  where a rim would draw a box in mid-air. *Recorded as a departure from the
+  brief in `PLAN.md` §9.1.*
+
+**4. The light in the corners — vertex-baked ambient occlusion (§2.1.3).**
+- Minecraft's lighting is flat per face: four values, one to a side, and
+  nothing whatever where two faces meet. It is the loudest tell in the look.
+- A top face's corner is now darkened by how much solid ground stands about
+  it — the two columns edge-on and the one on the diagonal; two of the three
+  standing higher is a true inside corner and goes darkest (`aoLevel`,
+  `aoTop`). A wall face is shadowed at its two ends by what stands FORWARD
+  of it and beside — never by the column in its own row, which is coplanar
+  and shadows nothing; testing that would have laid a dark band down every
+  joint of every straight cliff on the earth — and along its whole foot by
+  the ground it rises out of, dying away over a block and a half of rise.
+- It is baked into the vertex colour ONCE at mesh time and costs **nothing**
+  per frame. The four extra neighbour lookups a column are hits on the cell
+  cache. Steps, gullies, terraces, undercuts and the foot of every cliff read
+  with real depth, and not one extra triangle is drawn for any of it.
+- Acceptance test 10 passes: `aoLevel(0,0,0)` is exactly 1, one neighbour is
+  darker, an inside corner darker still, and `grassTop` — a top-face-only
+  material laid at a flat 1.0 before this change — now carries vertex
+  colours below 1 in the built world.
+
+**5. The haze takes its colour from the country (§2.1.5).**
+- One fog colour for the whole earth, taken straight off the sky, is the
+  wrong answer: haze is not sky. It is dust off a desert, moisture standing
+  in a rain forest, ice-crystal over a polar plain, the pale burn of a
+  limestone country at noon. `world/palette.js` names one for each ground and
+  `gradeHaze` takes it.
+- Three rules keep it honest: it is worked only against the ground the
+  traveller is actually ON (out at sea the sea keeps its own); it dies with
+  the light, because a coloured haze at midnight is a lie; and it is put
+  down in a storm, when what hangs in the air is the storm. It is eased
+  rather than set, so crossing from forest to plain is a slow turn of the
+  whole horizon. The sky takes a weaker dose than the ground fog, which is
+  how real haze reads and keeps the join from showing as a seam.
+
+**6. The going of a beast — `js/gait.js`, and six true gaits (§2.3.2).**
+- **Every four-footed thing on this earth moved its legs in one pattern, at
+  every speed, from the shrew to the elephant**: near fore with off hind, off
+  fore with near hind, forever (`L.userData.ph=(sx*sz>0)?0:Math.PI`). That is
+  a trot, and it is the only gait a voxel game has ever had.
+- Six gaits are written now, one line each, as the four moments the four feet
+  come down: **walk** (four-beat lateral — three or four feet down at every
+  instant and never once airborne), **trot** (two-beat diagonal), **pace**
+  (two-beat lateral — both legs of a side together), **canter** (three-beat,
+  asymmetric, with its moment of suspension), **gallop** (four-beat
+  transverse) and **bound**.
+- **The gait is chosen by speed in the beast's own body lengths a second** —
+  exactly as a real animal chooses — so one rule carries the mouse and the
+  elephant alike and not one species is named anywhere in the engine or in
+  the gait law. The only thing a species says about its own going is
+  `pace:true`, and it says it in `js/behavior.js`, in data: the camel, the
+  giraffe, the llama and the alpaca.
+- A leg's cycle is two unequal halves now. Through the STANCE the foot is
+  planted and the hip sweeps steadily back, which is what makes a footfall
+  read as planted instead of skated; through the SWING it comes forward
+  faster and **the knee folds to pick the foot up over the ground it is
+  crossing**. The old knee rule read the fold back off the hip angle, so it
+  folded hardest at the end of the sweep — when the foot is planted — which
+  is precisely backwards.
+- The body goes with it: the withers rise and fall on the gait's own beat
+  (four to the stride at a walk, two at a trot, one at a gallop) and a
+  pacing camel rolls like the ship it is called. Verified in the world:
+  every four-legged beast carries named feet, and walking, trotting,
+  pacing and galloping beasts were all observed on the plain.
+- Bipeds — the villagers, the crew, the fowl — are untouched and keep the
+  walk they had.
+
+**7. Two live bugs, found by the harness and fixed.**
+- **`setLocalHour(h)` called without a place NaN-ed the world clock.**
+  `Math.atan2(undefined,undefined)` is NaN, and the NaN went into
+  `state.simHours` — and out of the clock into the courses of the lights,
+  the winds, the ship's way through the water and the very sound of the sea,
+  in one silent stroke. Where no place is named, the traveller's own is now
+  meant, and an hour that is not a number sets nothing.
+- **`audioTick` then THREW on it, and took the whole frame with it.**
+  `windGain.gain.value = … + NaN` raises a TypeError from the Web Audio API;
+  raised inside `frame()` it aborted the tick, the render and everything
+  after it, and the world stood still with its last picture on the glass —
+  a total freeze from a bad clock. Whatever comes in, what goes to the ear
+  is now a number between silence and full.
+
+**8. What it costs.** Six stations, two hundred frames standing still at
+each, and the mesher's own per-chunk cost, measured against a worktree of
+the commit before Phase 0 on the same machine and the same software
+rasteriser. *(SwiftShader is neither a phone nor a GPU: these are
+comparative numbers between builds, not absolute ones.)*
+
+PERF_TABLE_HERE
+
+Ocean and plains chunks build at BUILD_HERE — acceptance test 12, the
+regression that matters most, holds.
+
+**Still ahead, and not begun:** Phase 1 — spans, gated volumetric caves,
+span-aware collision, the light underground and the torch. `PLAN.md` sets
+out the encoding, the gating, the edit overlay, the Phase 3 conversion order
+and the five places I think the brief is wrong.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

@@ -13,11 +13,13 @@
    headless browser and asks the running world. */
 const {open,sail}=require('./harness.js');
 
-/* what an ocean and a plains chunk cost to build, in milliseconds, measured
-   on this machine BEFORE any of the span work — test 12 holds the line here.
-   Re-measure with `node tools/acceptance.js 12 --record` and say so in the
-   audit if you move it. */
-const BASELINE={ ocean:1.30, plain:6.40, slack:1.25 };
+/* What an ocean chunk and a plains chunk cost the mesher to build, in
+   milliseconds, measured on THIS machine's software rasteriser at the
+   commit before Phase 0 (`git worktree` at HEAD~1, same probe, same run).
+   Test 12 holds the line here. These are comparative numbers between
+   builds, not absolute ones — SwiftShader is not a phone and is not a GPU.
+   If you move them, say so in AUDIT.md and say why. */
+const BASELINE={ ocean:2.152, plain:1.970, slack:1.15 };
 
 const T={};   /* n -> {name, run(page) -> {ok, got, pending?}} */
 
@@ -162,29 +164,26 @@ T[11]={name:'a cave and an edited chunk cost no more than open ground ×1.5',
 /* ---------- 12 · the regression that matters most.  PASSES TODAY ---------- */
 T[12]={name:'ocean and plains chunks build no slower than they did',
   run:async page=>page.evaluate(async B=>{
-    const D=window.__VDBG;
-    /* time a clean build of N chunks over open ocean, then over open plain,
-       by dropping the traveller there and draining the queue by hand */
-    const timeAt=async(x,z,n)=>{
+    const D=window.__VDBG, S=D.BUILD_STATS;
+    /* The mesher keeps its own running total (one clock read a chunk), so
+       this is the true cost of buildChunk and not of the frame around it. */
+    const timeAt=async(x,z)=>{
       D.state.walk.x=x; D.state.walk.z=z; D.state.walk.feetY=undefined; D.setMode('walk');
-      D.updateChunks(x,z,1);                       /* prime the queue */
       await new Promise(r=>requestAnimationFrame(r));
-      const t0=performance.now(); let built=0;
-      while(built<n){ const before=D.chunkCount(); D.updateChunks(x,z,400);
-        const made=D.chunkCount()-before; if(!made) break; built+=made;
-        await new Promise(r=>requestAnimationFrame(r)); }
-      return built?(performance.now()-t0)/built:NaN;
+      const n0=S.n, m0=S.ms;
+      for(let k=0;k<25;k++){ D.updateChunks(x,z,400); await new Promise(r=>requestAnimationFrame(r)); }
+      const n=S.n-n0; return n?(S.ms-m0)/n:NaN;
     };
-    /* open ocean: the middle of the Pacific, far from any coast */
+    /* open ocean: the middle of the great sea, far from any coast */
     const R=D.R_WORLD;
-    const ocean=await timeAt(-0.42*R, 0.16*R, 60);
-    /* open plain: the great grassland, inland and flat */
+    const ocean=await timeAt(-0.42*R, 0.16*R);
+    /* open plain: the steppe, inland and flat */
     let plainSite=null; const sites=window.__WORLD.sites();
     for(let i=0;i<sites.length;i++){ if(sites[i]&&D.COUNTRIES[i].n==='Kazakhstan'){ plainSite=sites[i]; break; } }
-    const plain=plainSite?await timeAt(plainSite.x+9000,plainSite.z,60):NaN;
+    const plain=plainSite?await timeAt(plainSite.x+9000,plainSite.z):NaN;
     const ok=(!isFinite(ocean)||ocean<=B.ocean*B.slack)&&(!isFinite(plain)||plain<=B.plain*B.slack);
-    return {ok, got:'ocean '+ocean.toFixed(2)+' ms/chunk (was '+B.ocean+') · plain '+
-      plain.toFixed(2)+' ms/chunk (was '+B.plain+')'};
+    return {ok, got:'ocean '+ocean.toFixed(3)+' ms/chunk (was '+B.ocean+') · plain '+
+      plain.toFixed(3)+' ms/chunk (was '+B.plain+')'};
   },BASELINE)};
 
 (async()=>{

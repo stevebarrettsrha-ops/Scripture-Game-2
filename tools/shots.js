@@ -35,7 +35,10 @@ const STATIONS=[
          read back every frame and the world is dark whenever the box is */
       const idx=D.DAYPARTS.findIndex(d=>d.k==='noon');
       if(idx>=0) D.state.dayIdx=idx;
-      D.state.walk.x=site.x; D.state.walk.z=site.z-60; D.state.walk.heading=0;
+      /* stand OUTSIDE the village and look in — a village flattens 170 units
+         about it and raises houses well inside that, so a station any nearer
+         drops the eye into somebody's front room */
+      D.state.walk.x=site.x; D.state.walk.z=site.z-260; D.state.walk.heading=0;
       D.state.walk.feetY=undefined; D.state.walk.vy=0;
       D.setMode('walk');
       D.applyDayPart();                       /* noon HERE, wherever here is */
