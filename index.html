@@ -732,7 +732,14 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
   fauna:function(f){this.faunaList.push(f);},
   /* and WHAT GROWS in each — every tree, orchard, bush, berry and herb on
      the earth, in world/flora.js */
-  flora:function(f){this.floraList.push(f);}};
+  flora:function(f){this.floraList.push(f);},
+  /* EVERY KIND OF BLOCK THE WORLD IS MADE OF, one to a file under blocks/ —
+     what it is called, what it is drawn with, how long it takes to break,
+     what tool serves, what it drops, and whether it stands on nothing. The
+     mesher used to carry a table of ad-hoc material NAMES; this is a table
+     of MATERIALS, and it is data like everything else. */
+  blockList:[],
+  block:function(b){this.blockList.push(b);}};
 </script>
 <!-- EVERY FILE OF THE WORLD, IN THE ORDER IT MUST BE READ.
      The three hundred and sixty-five tags that used to stand here are

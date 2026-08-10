@@ -439,6 +439,32 @@ const FILES=[
   /* THE FOUR SEASONS: the law of the year and its zones — tropical, */
   /* temperate and polar — and the traveller's hand upon it. */
   'js/season.js',
+  /* EVERY KIND OF BLOCK THE WORLD IS MADE OF, one to a file. They declare
+     into the registry and are read by the mesher, the hand and the works;
+     the order among them fixes nothing but their numbering, and the save
+     carries a table of their names so that numbering may change safely. */
+  'blocks/bench.js',
+  'blocks/bitumen.js',
+  'blocks/brick.js',
+  'blocks/clay-band.js',
+  'blocks/cobble.js',
+  'blocks/dirt.js',
+  'blocks/glass.js',
+  'blocks/grass.js',
+  'blocks/hay.js',
+  'blocks/ice.js',
+  'blocks/leaves.js',
+  'blocks/log.js',
+  'blocks/path.js',
+  'blocks/planks.js',
+  'blocks/roof-tile.js',
+  'blocks/salt.js',
+  'blocks/sand.js',
+  'blocks/snow.js',
+  'blocks/soil.js',
+  'blocks/stone.js',
+  'blocks/water.js',
+  'blocks/wool.js',
   'js/engine.js',
 ];
 

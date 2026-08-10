@@ -1327,6 +1327,154 @@ walls, floors and roofs, and they are the only new geometry in the world.
 `setBlock`, the edit overlay, dirty-chunk remeshing and IndexedDB. Tests 5,
 6 and 7, and the other half of 11.
 
+## 4y. Round 26 — the world made mutable: one list, one table of blocks, one door ✅
+
+*The brief's §10 manifest and Phase 2 in full. Verified live: 209 blocks laid
+into a village at noon and photographed, a hundred-block brick hut raised
+over the sand with a plank roof and a salt course, and acceptance tests 5, 6,
+7 and the whole of 11 driven against the running world — the persistence test
+five times over, because it failed once and a race that loses rarely is the
+worst rate there is.*
+
+**1. `world/manifest.js` — every file of the world named once (§10).**
+- `index.html` carried **365** `<script src>` tags and
+  `scripture-unfolds/index.html` carried the same 365 again with `../` in
+  front of each: the same ORDERED list, written twice, and about to be
+  written twice more as the blocks and the authored places arrived. Two
+  copies of an ordered list is a bug with a date on it — the day somebody
+  adds a country to one and not the other, the two games are different
+  worlds. It is one list now, and both pages read it.
+- **The order is the whole point** — the registry before anything that
+  declares into it, every country before the engine that rasterises them,
+  every creature before the fauna table that names it, `js/engine.js` last
+  — so it is a list, not a set, and nothing in it may be sorted.
+- All of them are appended at once with **`async=false`**, which is the one
+  thing that makes a dynamically inserted script keep its place in the queue:
+  the browser fetches them in parallel and runs them strictly in order. It is
+  **faster** than the parser-blocking tags it replaces, and it is the reason
+  this could be done at all without a build step.
+- `index.html` fell from 1,161 lines to 781; `scripture-unfolds/index.html`
+  from 680 to 318. Verified: the voyage boots in 19.1 s (was 19.8) and
+  SCRIPTURE UNFOLDS raises the shared world in 5.3 s with 176 countries, 150
+  beasts and 8 scrolls, reading the same manifest through `'../'`.
+
+**2. `blocks/` — a table of materials, where there was a table of textures.**
+- The mesher carried ad-hoc material *names* — `grassTop`, `cobble`,
+  `haySide`. That is a table of what things LOOK like; it could say nothing
+  whatever about how long a thing takes to break, what tool serves it, what
+  it drops, or whether it stands on nothing. **22 blocks**, one to a file,
+  each calling `EARTH.block({…})` — the same rule every country, creature and
+  landmark keeps.
+- Nineteen are drawn with textures the world already had. Three are new and
+  are the materials of §4 the palette already had pigments for: **baked
+  brick** in courses with recessed mortar, **slime** — the asphalt of the
+  pits of Siddim, wet, with the light lying on it in slicks — and **salt**,
+  crystalline. Each carries its verse **quoted exactly** from the repository's
+  own generated Berĕshith (`BERĔSHITH 11:3`, `6:14`, `14:3`), never
+  paraphrased and never invented.
+- **A block has two names.** Its `id` is a string and is stable for ever — it
+  is what a save speaks. Its number is assigned in load order purely so an
+  edit can be written in two bytes; and because that number is an accident of
+  load order, **every save carries its own table of name-to-number**. Insert a
+  block into the manifest next year and an old world still opens with its
+  walls the right stone.
+
+**3. The edit overlay, and one door.**
+- `cellRaw` is a pure function of place, so anything the traveller changed was
+  erased the moment the chunk rebuilt. Now:
+  **procedural spans → apply the edits → mesh.**
+- **`setBlock` is the ONE way terrain is changed.** Nothing else in the engine
+  may write it, so there is exactly one place where dirtying a chunk, marking
+  its neighbour and writing the record can be got wrong. Every future hand,
+  tool, work and authored place goes through that door.
+- **The index puts Y fastest on purpose.** A man's edits are towers, walls,
+  shafts and stairs — runs *up*. Laid out with y fastest, a wall of forty
+  blocks is **one** entry in the record instead of forty, and the run-length
+  coding gets it for nothing.
+- An edit that merely restores what the world would have done anyway is not
+  kept: it is a hole in the record, not a fact.
+- The mesher applies a column's edits to its spans and hands the rest of
+  itself a cell-shaped thing it already understands, so nothing downstream
+  had to learn that anybody has been digging. **Blocks set down are drawn one
+  at a time in their own material**, six faces each, every one culled against
+  what stands beside it — a man's edits are sparse, and a cube apiece is the
+  honest price for letting him build in whatever he likes.
+- **Collision needed no new funnel.** `solidAt` became one line over
+  `blockSolidAt`, and `groundInfo` walks an edited column block by block —
+  bounded, and entered only by a column somebody has actually touched, because
+  an edited column has no sorted shape to do arithmetic on: a man may leave a
+  block hanging forty above the ground and a shaft cut two hundred below it.
+
+**4. It is written down — IndexedDB, versioned from the first line.**
+- localStorage caps near five megabytes and is synchronous: an hour of digging
+  would both overflow it and stall the frame in the act. Block edits go to
+  IndexedDB, one record to an edited chunk, run-length coded. The small state
+  — where the ship lies, the log, the scrolls — stays in localStorage, which
+  is what it is good for. A record of a version this build does not know is
+  **left alone** rather than guessed at.
+- **Bound: everything is kept, and that is written down as a decision** (see
+  `PLAN.md` §5). A player edits a vanishing fraction of a 60,000-block disc.
+
+**5. One live bug, and it is the interesting one of the round.**
+- Test 7 passed alone, passed in pairs, and **failed roughly one run in
+  four** with all three persistence tests together: the reload came back with
+  the right chunks and the wrong blocks in them.
+- The cause: a save asked for by hand while the debounced save was still open
+  found `EDIT_SAVE` already drained, **returned `true` over the top of a
+  transaction that was still writing**, and the reload then closed the door
+  on it. Under a software rasteriser a frame is half a second, so the 900 ms
+  debounce fired reliably inside the two-frame settle — which is why it
+  showed up here and would have shown up on a phone.
+- The fix is not "cancel the timer" (that was the first attempt, and it still
+  failed 1 in 3). Saves now **stand in a line**: a call made while another is
+  open chains onto it, so `await editsSave()` means *everything outstanding
+  has landed* — which is what it has to mean before a reload or a page
+  teardown. Five consecutive clean runs after.
+- And a save that fails now re-arms the timer as well as putting its keys
+  back, or the work would sit unwritten until the next blow of the pick.
+
+**6. Acceptance, and what it costs.**
+
+    PASS  5 · a broken block is gone, the chunk remeshed, the neighbour drawn
+    PASS  6 · a block placed in mid-air is solid, lit and collidable
+    PASS  7 · both changes survive a reload
+    PASS 11 · a cave and an edited chunk cost no more than open ground ×1.5
+    PASS 1,2,3,4,10,12 — all still green
+    PENDING 8, 9 — houses are still decoration until Phase 3
+
+**10 pass · 0 fail · 2 pending.**
+
+Test 5's first draft asserted the chunk's triangle count changed, and it does
+not: breaking the top block of flat ground takes one face away at *h* and puts
+one back at *h−1*. The chunk is genuinely rebuilt and the count is genuinely
+identical. It asks the right question now — that the chunk **was laid again**
+(a counter), that the ground fell by exactly one block, and that the block
+beside it now stands with an open face where it had none.
+
+Test 11's first draft reported *1,798 ms* for a remesh. That was three
+SwiftShader frames of waiting, not the work. Timed by itself, laying two
+edited chunks again takes **10.3 ms** — inside the mesher's own existing
+per-frame slice, so one blow of the pick costs one chunk rebuild in one frame,
+as the brief asks.
+
+| station | before Phase 0 | Phase 1 | Phase 2 |
+|---|---|---|---|
+| a village at noon | 668.9 ms | 618.2 ms | **614.7 ms** |
+| the cedar coast | 672.0 ms | 639.3 ms | **667.2 ms** |
+| open sand | 624.2 ms | 570.8 ms | **583.4 ms** |
+| closed rain forest | 878.1 ms | 811.6 ms | **817.2 ms** |
+| alpine rock and snow | 603.0 ms | 610.7 ms | **616.0 ms** |
+| a cold coast | 505.3 ms | 488.0 ms | **503.5 ms** |
+
+Standing in a chunk with 243 blocks laid into it costs **1.00×** open ground,
+which is what it should: an edited chunk differs from an unedited one by a
+remesh, not by any per-frame cost.
+
+**Still ahead:** Phase 3 — every `emit*` and `lm*` builder converted from
+triangles to block stamps, structure edits kept apart from player edits, and
+the geometric diff harness that proves a converted village is the same village
+before anybody is allowed to mine it. Tests 8 and 9. *The long one.*
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

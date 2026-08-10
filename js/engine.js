@@ -283,6 +283,28 @@ TEX.benchSide  = mkTex(g=>{ speckle(g,PB.benchSide.b,14,PB.benchSide.a,0.3);
   g.fillStyle=C(PB.benchSide.seam); g.fillRect(3,9,2,3);
   g.fillStyle=C(PB.benchSide.b); g.fillRect(10,5,4,2);
   g.fillStyle=C(PB.benchSide.iron); g.fillRect(11,7,2,4); },16,16,RIM);
+/* ---- AND THE MATERIALS OF SCRIPTURE ----
+   Brick, slime and salt: the three the world of §4 is actually built with
+   and the three the palette already had pigments for. Every one of them is
+   generated here like all the rest — nothing in this game is an image file. */
+TEX.brick      = mkTex(g=>{ speckle(g,PB.brick.mortar,8);
+  /* courses of squared brick, offset row by row, with the mortar recessed */
+  for(let r=0;r<4;r++){ const y=r*4, off=(r%2)?-2:0;
+    for(let c=-1;c<3;c++){ const x=off+c*6;
+      const t=jit(PB.brick.b,22,r*7+c);
+      g.fillStyle=rgb(t[0],t[1],t[2]); g.fillRect(x+FG,y+FG,6-2*FG,4-2*FG);
+      const hi=jit(PB.brick.face,12,r*3+c);
+      g.fillStyle=rgb(hi[0],hi[1],hi[2]); g.fillRect(x+FG,y+FG,6-2*FG,FG); } } },16,16,RIM);
+TEX.bitumen    = mkTex(g=>{ speckle(g,PB.bitumen.b,10,PB.bitumen.a,0.35);
+  /* it is WET, and the light lies on it in slicks rather than in grains */
+  g.fillStyle='rgba(120,132,140,0.16)';
+  for(let k=0;k<7;k++){ const x=hash2(k,3.1)*16, y=hash2(k,7.7)*16;
+    g.fillRect(x,y,2+hash2(k,1.3)*3,FG); } },16,16,RIM);
+TEX.salt       = mkTex(g=>{ speckle(g,PB.salt.b,14,PB.salt.a,0.3);
+  /* crystal: hard little facets that catch the light square-on */
+  for(let k=0;k<26;k++){ const x=Math.floor(hash2(k,2.7)*32)*FG, y=Math.floor(hash2(k,5.3)*32)*FG;
+    g.fillStyle=C(PB.salt.glint); g.fillRect(x,y,FG,FG);
+    if(hash2(k,9.1)>0.5) g.fillRect(x+FG,y,FG,FG); } },16,16,RIM);
 TEX.clouds     = mkTex(g=>{ g.clearRect(0,0,64,64);
   g.fillStyle='rgba(255,255,255,0.92)';
   for(let k=0;k<26;k++){ const x=Math.floor(hash2(k,11)*64), y=Math.floor(hash2(k,23)*64);
@@ -350,6 +372,7 @@ blockMat('flowerY',TEX.flowerY,{alphaTest:0.4}); blockMat('crop',TEX.crop,{alpha
 blockMat('glass',TEX.glass,{transparent:true,depthWrite:false});
 blockMat('door',TEX.door,{alphaTest:0.1});
 blockMat('waterB',TEX.water);
+blockMat('brick',TEX.brick); blockMat('bitumen',TEX.bitumen); blockMat('salt',TEX.salt);
 /* ---- THE WIND IN THE LEAVES ----
    Every leaf canopy, blade of grass, flower and crop sways on the wind: a
    vertex-shader ripple patched into the shared block materials. The chunk
@@ -613,6 +636,53 @@ function setIceLight(r,g2,b2){
   const t=Math.max(0,Math.min(1,(lum-0.26)/0.26));
   _iceC.copy(ICE_HUE).multiplyScalar(0.34+0.72*t);
   for(const m of ICE_MATS) m.color.copy(_iceC);
+}
+
+/* ================= THE BLOCKS THE WORLD IS MADE OF =================
+   blocks/ holds one file per kind of block, each calling EARTH.block({…}).
+   The mesher used to carry a table of ad-hoc material NAMES — 'grassTop',
+   'cobble', 'haySide' — which is a table of TEXTURES, not of materials: it
+   could say what a thing looked like and nothing whatever about how long it
+   took to break, what tool served, what it dropped or whether it stood on
+   nothing. This is the table of materials, and like everything else in this
+   project it is data.
+
+   A block has TWO names. Its `id` is a string and is stable for ever — it is
+   what a save file speaks, and it must never be renumbered. Its number is
+   assigned here, in load order, purely so that an edit can be written down
+   in two bytes instead of twelve; and because that number is an accident of
+   load order, EVERY SAVE CARRIES ITS OWN TABLE of name-to-number, so a block
+   inserted into the manifest next year cannot turn a man's house to salt. */
+const BLOCK_DEFS=(window.EARTH&&EARTH.blockList)||[];
+const BLOCKS=[null], BLOCK_BY_ID=Object.create(null);
+for(let i=0;i<BLOCK_DEFS.length;i++){
+  const d=BLOCK_DEFS[i];
+  const b={ n:i+1, id:d.id, name:d.name||d.id, tex:d.tex||{},
+    hardness:(d.hardness===undefined?1.5:d.hardness), tool:d.tool||null,
+    drops:(d.drops===undefined?d.id:d.drops),
+    light:d.light||0, opaque:d.opaque!==false, gravity:!!d.gravity,
+    liquid:!!d.liquid, verse:d.verse||null };
+  /* the three faces the mesher asks for, resolved once so it never has to */
+  b.mTop=b.tex.top||b.tex.all||'stone';
+  b.mSide=b.tex.side||b.tex.all||b.mTop;
+  b.mBottom=b.tex.bottom||b.tex.all||b.mSide;
+  BLOCKS.push(b); BLOCK_BY_ID[d.id]=b;
+}
+function blockOf(n){ return BLOCKS[n]||null; }
+function blockId(id){ const b=BLOCK_BY_ID[id]; return b?b.n:0; }
+function blockName(n){ const b=BLOCKS[n]; return b?b.name:'Air'; }
+/* the block a stretch of ground is MADE of, so that breaking the world gives
+   back the thing that was there and not a generic lump. The mesher's own
+   kinds are the key; anything it has no word for gives stone. */
+const KIND_BLOCK={ grass:'grass', tropic:'grass', tundra:'grass', savanna:'grass',
+  sand:'sand', desert:'sand', snow:'snow', wall:'ice', floe:'ice',
+  rock:'stone', alpine:'dirt', badlands:'clay-band' };
+function surfaceBlockOf(kind){ return blockId(KIND_BLOCK[kind]||'stone'); }
+function depthBlockOf(kind){
+  if(kind==='sand'||kind==='desert') return blockId('sand');
+  if(kind==='badlands') return blockId('clay-band');
+  if(kind==='wall'||kind==='floe') return blockId('ice');
+  return blockId('stone');
 }
 
 /* ================= TERRAIN (heightmap voxels) ================= */
@@ -1589,6 +1659,50 @@ function solidRuns(cc,foot,out){
   return out;
 }
 const _myR=[], _nbR=[];
+/* ---- A COLUMN AS THE HAND HAS LEFT IT ----
+   The procedural air runs with the broken blocks added to them and the
+   placed blocks taken out. It hands back a cell-shaped thing the rest of the
+   mesher already understands, so nothing below has to know that anybody has
+   been digging. Only ever called for a column somebody has touched. */
+const _ecc={h:0,kind:'',tree:0,ci:0,spans:null};
+function editedCell(ix,iz,cc,em){
+  let hi=cc.h-1, lo=0;
+  for(const y of em.keys()){ if(y>hi) hi=y; if(y<lo) lo=y; }
+  /* the surface may have moved: a man may break the ground he stands on, or
+     pile blocks over his head, and the top of the column follows him */
+  let top=cc.h;
+  for(let y=hi;y>=cc.h;y--) if(blockSolidAt(ix,y,iz)){ top=y+1; break; }
+  while(top>0&&!blockSolidAt(ix,top-1,iz)) top--;
+  const air=[]; let run=-1;
+  for(let y=Math.min(lo,0);y<top;y++){
+    if(!blockSolidAt(ix,y,iz)){ if(run<0) run=y; }
+    else if(run>=0){ air.push(run,y); run=-1; }
+  }
+  if(run>=0&&run<top) air.push(run,top);
+  _ecc.h=Math.max(1,top); _ecc.kind=cc.kind; _ecc.tree=0; _ecc.ci=cc.ci;
+  _ecc.spans=air.length?Int16Array.from(air):null;
+  return _ecc;
+}
+/* and the blocks he SET DOWN are drawn one at a time, each in its own
+   material — six faces, every one of them culled against what stands beside
+   it. A man's edits are sparse; a cube apiece is the honest price for
+   letting him build in whatever he likes. */
+function emitPlaced(G,ix,iz,em,surfaceH){
+  const x0=ix*B, x1=x0+B, z0=iz*B, z1=z0+B;
+  for(const [y,n] of em){
+    if(!n) continue;
+    const b=blockOf(n); if(!b) continue;
+    const ya=y*B, yb=ya+B;
+    /* under the ground it takes the cave's darkness; above it, the day */
+    const lit=(y<surfaceH-1)?(CAVE_DARK+(1-CAVE_DARK)*caveLightAt(ix,iz,y+0.5)):1;
+    if(!blockSolidAt(ix,y+1,iz)) faceTop(G,b.mTop,x0,z0,x1,z1,yb,1.0*lit);
+    if(!blockSolidAt(ix,y-1,iz)) faceBottom(G,b.mBottom,x0,z0,x1,z1,ya,0.5*lit);
+    if(!blockSolidAt(ix+1,y,iz)) facePX(G,b.mSide,x1,z0,z1,ya,yb,0.62*lit);
+    if(!blockSolidAt(ix-1,y,iz)) faceNX(G,b.mSide,x0,z0,z1,ya,yb,0.62*lit);
+    if(!blockSolidAt(ix,y,iz+1)) facePZ(G,b.mSide,z1,x0,x1,ya,yb,0.8*lit);
+    if(!blockSolidAt(ix,y,iz-1)) faceNZ(G,b.mSide,z0,x0,x1,ya,yb,0.8*lit);
+  }
+}
 function emitColumn(G,ix,iz,cc){
   const x0=ix*B, x1=x0+B, z0=iz*B, z1=z0+B, yT=cc.h*B;
   faceTop(G,topMatFor(cc.kind),x0,z0,x1,z1,yT,1.0,1,aoTop(ix,iz,cc.h));
@@ -1723,6 +1837,7 @@ function initFlora(){ if(floraReady) return; floraReady=true;
 function landNameAt(x,z){ const ci=countryAtUV(x/R_WORLD,z/R_WORLD);
   return (ci&&COUNTRIES[ci-1])?COUNTRIES[ci-1].n:null; }
 let chunkLand=null;          /* whose country the chunk being built is in */
+let chunkEdits=null;         /* and what hands have done in it, by column */
 let chunkRiver=false;        /* and whether running water crosses it at all */
 /* ---- IS THIS GROUND A RIVER BANK? ----
    A watercourse is stamped one or two map pixels wide — a hundred and
@@ -1886,6 +2001,220 @@ function seaFootAt(ix,iz,own){
 function chunkShelfHere(x,z,bedY){
   return shoalAt(x,z)>SHELF_SHOAL && bedY>WATER_Y-SHELF_DEEP;
 }
+/* ================= THE WORLD MADE MUTABLE =================
+   `cellRaw` is a pure function of place: it recomputes the same answer every
+   time, so anything the traveller changed was erased the moment the chunk
+   was rebuilt. The EDIT OVERLAY is the sparse, persistent record of every
+   block he has broken or set down, applied on top of the procedural answer
+   at mesh time and read by every collision test in the game:
+
+       procedural spans  →  apply the edits  →  mesh
+
+   `setBlock` is the ONE way terrain is changed. Nothing else in the engine
+   may write it — every future hand, tool, work and authored place goes
+   through this door, so there is exactly one place where dirtying a chunk,
+   marking its neighbour and writing to the record can be got wrong.
+
+   THE INDEX PUTS Y FASTEST ON PURPOSE. A man's edits are towers, walls,
+   shafts and staircases — runs UP. Laid out with y fastest, a wall of forty
+   blocks is one run of forty in the record instead of forty separate
+   entries, and the run-length coding below gets it for nothing. */
+const EY_MIN=-64, EY_MAX=1024, EY_SPAN=EY_MAX-EY_MIN;
+const EDIT_VER=1;
+const EDITS=new Map();          /* chunkKey -> Map<index, block number>  (0 = broken) */
+const EDIT_DIRTY=new Set();     /* the chunks awaiting a remesh */
+let EDIT_TOUCHED=false;         /* is there anything not yet written down? */
+function eIndex(lx,ly,lz){ return (lx*CH+lz)*EY_SPAN + (ly-EY_MIN); }
+function eLx(i){ return Math.floor(i/EY_SPAN/CH); }
+function eLz(i){ return Math.floor(i/EY_SPAN)%CH; }
+function eLy(i){ return (i%EY_SPAN)+EY_MIN; }
+function chunkKeyOf(ix,iz){ return Math.floor(ix/CH)+','+Math.floor(iz/CH); }
+function editAt(ix,iy,iz){
+  if(!EDITS.size) return undefined;
+  const m=EDITS.get(chunkKeyOf(ix,iz)); if(!m) return undefined;
+  return m.get(eIndex(((ix%CH)+CH)%CH, iy, ((iz%CH)+CH)%CH));
+}
+/* what the world would be here with nobody's hand in it */
+function proceduralSolid(ix,iy,iz){
+  const c=cell(ix,iz); if(!c) return false;
+  if(iy>=c.h||iy<0) return false;
+  const sp=c.spans; if(!sp) return true;
+  for(let i=0;i<sp.length;i+=2) if(iy>=sp[i]&&iy<sp[i+1]) return false;
+  return true;
+}
+function proceduralBlock(ix,iy,iz){
+  if(!proceduralSolid(ix,iy,iz)) return 0;
+  const c=cell(ix,iz);
+  return (iy>=c.h-1)?surfaceBlockOf(c.kind):depthBlockOf(c.kind);
+}
+/* and what it IS, hand and all — the one truth every test in the game reads */
+function blockAt(ix,iy,iz){
+  const e=editAt(ix,iy,iz);
+  return e!==undefined ? e : proceduralBlock(ix,iy,iz);
+}
+function blockSolidAt(ix,iy,iz){
+  const e=editAt(ix,iy,iz);
+  return e!==undefined ? e!==0 : proceduralSolid(ix,iy,iz);
+}
+/* ---- THE ONE DOOR ----
+   World coordinates in, because everything that will ever call it — the
+   hand, a falling block, a stamped house — thinks in the world and not in
+   indices. Answers true if anything actually changed. */
+function setBlock(wx,wy,wz,n){
+  const ix=Math.floor(wx/B), iy=Math.floor(wy/B), iz=Math.floor(wz/B);
+  if(iy<EY_MIN||iy>=EY_MAX) return false;
+  const key=chunkKeyOf(ix,iz);
+  const lx=((ix%CH)+CH)%CH, lz=((iz%CH)+CH)%CH;
+  const idx=eIndex(lx,iy,lz);
+  let m=EDITS.get(key);
+  const was=(m&&m.get(idx));
+  const nowIs=(was!==undefined)?was:proceduralBlock(ix,iy,iz);
+  if(nowIs===n) return false;                       /* it is already that */
+  /* an edit that merely restores what the world would have done anyway is
+     not kept — it is a hole in the record, not a fact */
+  if(proceduralBlock(ix,iy,iz)===n){ if(m){ m.delete(idx); if(!m.size) EDITS.delete(key); } }
+  else { if(!m){ m=new Map(); EDITS.set(key,m); } m.set(idx,n); }
+  EDIT_TOUCHED=true; EDIT_DIRTY.add(key); EDIT_SAVE.add(key); editsTouch();
+  /* a block on a chunk's edge changes what its neighbour must draw */
+  if(lx===0) EDIT_DIRTY.add((Math.floor(ix/CH)-1)+','+Math.floor(iz/CH));
+  if(lx===CH-1) EDIT_DIRTY.add((Math.floor(ix/CH)+1)+','+Math.floor(iz/CH));
+  if(lz===0) EDIT_DIRTY.add(Math.floor(ix/CH)+','+(Math.floor(iz/CH)-1));
+  if(lz===CH-1) EDIT_DIRTY.add(Math.floor(ix/CH)+','+(Math.floor(iz/CH)+1));
+  return true;
+}
+/* the edits of one column, gathered for the mesher: a small map of
+   y -> block number, or null, which is the answer nearly everywhere */
+function editColumn(ix,iz){
+  if(!EDITS.size) return null;
+  const m=EDITS.get(chunkKeyOf(ix,iz)); if(!m) return null;
+  const lx=((ix%CH)+CH)%CH, lz=((iz%CH)+CH)%CH;
+  const base=(lx*CH+lz)*EY_SPAN;
+  let out=null;
+  for(const [i,n] of m){ if(i<base||i>=base+EY_SPAN) continue;
+    (out||(out=new Map())).set((i%EY_SPAN)+EY_MIN,n); }
+  return out;
+}
+/* ================= AND IT IS WRITTEN DOWN =================
+   localStorage is capped near five megabytes and is SYNCHRONOUS: an hour of
+   digging would both overflow it and stall the frame in the act of doing so.
+   The block edits go to IndexedDB, one record to an edited chunk, run-length
+   coded; the small state — where the ship lies, the log, the scrolls — stays
+   in localStorage, which is what it is good for.
+
+   THE RECORD CARRIES ITS OWN BLOCK TABLE. A block's number is an accident of
+   the order blocks/ is read in; its `id` is for ever. So every save writes
+   the list of ids in number order beside the edits, and a load maps the old
+   numbers through it. Insert a block into the manifest next year and an old
+   world still opens with its walls the right stone.
+
+   The format is versioned from the first line, and a record of a version
+   this build does not know is LEFT ALONE rather than guessed at. */
+const EDB={db:null,ready:null,fail:false};
+const EDB_NAME='the-voyage', EDB_ST='edits', EDB_MT='meta';
+const EDIT_SAVE=new Set();       /* chunks changed since the last writing-down */
+function edbOpen(){
+  if(EDB.ready) return EDB.ready;
+  EDB.ready=new Promise(res=>{
+    let rq; try{ rq=indexedDB.open(EDB_NAME,1); }catch(e){ EDB.fail=true; res(null); return; }
+    rq.onupgradeneeded=()=>{ const db=rq.result;
+      if(!db.objectStoreNames.contains(EDB_ST)) db.createObjectStore(EDB_ST,{keyPath:'k'});
+      if(!db.objectStoreNames.contains(EDB_MT)) db.createObjectStore(EDB_MT,{keyPath:'k'}); };
+    rq.onsuccess=()=>{ EDB.db=rq.result; res(rq.result); };
+    rq.onerror=()=>{ EDB.fail=true; res(null); };
+    rq.onblocked=()=>{ EDB.fail=true; res(null); };
+  });
+  return EDB.ready;
+}
+/* runs of the same block at neighbouring indices become one entry — and
+   because the index runs Y FASTEST, a wall is one entry and not forty */
+function rleEncode(m){
+  const ks=Array.from(m.keys()).sort((a,b)=>a-b), out=[];
+  let i=0;
+  while(i<ks.length){
+    const s=ks[i], n=m.get(s); let len=1;
+    while(i+len<ks.length&&ks[i+len]===s+len&&m.get(ks[i+len])===n) len++;
+    out.push(s,len,n); i+=len;
+  }
+  return Int32Array.from(out);
+}
+function rleDecode(arr,remap){
+  const m=new Map();
+  for(let i=0;i<arr.length;i+=3){ const s=arr[i],len=arr[i+1];
+    let n=arr[i+2]; if(remap) n=(n===0?0:(remap[n]||0));
+    for(let k=0;k<len;k++) m.set(s+k,n); }
+  return m;
+}
+/* ---- THE SAVES STAND IN A LINE, AND WAITING ON ONE WAITS ON ALL ----
+   Two writers over the same records is a race, and the loser of a race like
+   this is somebody's afternoon of digging. So: the pending timer is cancelled
+   (whoever calls IS the save), and — the part that actually bit — a call made
+   while another save is still open does not return "done" over the top of it.
+   It CHAINS. That is what `await editsSave()` has to mean before a reload or
+   a page teardown, or the browser closes the door on a transaction that was
+   still writing and the record it was writing is simply not there.
+   (Seen as: reload, and one chunk of two comes back. A race loses rarely,
+   which is the worst rate there is.) */
+let _inFlight=null;
+function editsSave(){
+  if(EDB.fail) return Promise.resolve(false);
+  if(_saveT){ clearTimeout(_saveT); _saveT=null; }
+  const prev=_inFlight;
+  const p=(async()=>{
+    if(prev){ try{ await prev; }catch(e){} }
+    return editsWrite();
+  })();
+  _inFlight=p;
+  p.then(()=>{ if(_inFlight===p) _inFlight=null; },
+         ()=>{ if(_inFlight===p) _inFlight=null; });
+  return p;
+}
+async function editsWrite(){
+  const db=await edbOpen(); if(!db) return false;
+  const keys=Array.from(EDIT_SAVE); EDIT_SAVE.clear();
+  if(!keys.length) return true;
+  try{
+    const tx=db.transaction([EDB_ST,EDB_MT],'readwrite');
+    const st=tx.objectStore(EDB_ST);
+    for(const k of keys){ const m=EDITS.get(k);
+      if(!m||!m.size) st.delete(k);
+      else st.put({k, v:EDIT_VER, d:rleEncode(m)}); }
+    tx.objectStore(EDB_MT).put({k:'blocks', v:EDIT_VER, ids:BLOCKS.map(b=>b?b.id:null)});
+    await new Promise((res,rej)=>{ tx.oncomplete=res; tx.onerror=()=>rej(tx.error); });
+    return true;
+  }catch(e){
+    /* it did not land: put the keys back AND ask again in a moment, or they
+       would sit unwritten until the next blow of the pick */
+    for(const k of keys) EDIT_SAVE.add(k); editsTouch(); return false; }
+}
+async function editsLoad(){
+  const db=await edbOpen(); if(!db) return 0;
+  try{
+    const tx=db.transaction([EDB_ST,EDB_MT],'readonly');
+    const meta=await new Promise(res=>{ const r=tx.objectStore(EDB_MT).get('blocks');
+      r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); });
+    /* old number -> new number, by the id each stood for when it was saved */
+    let remap=null;
+    if(meta&&meta.ids){ remap=[];
+      for(let i=1;i<meta.ids.length;i++){ const b=BLOCK_BY_ID[meta.ids[i]];
+        remap[i]=b?b.n:0; } }
+    const all=await new Promise(res=>{ const r=tx.objectStore(EDB_ST).getAll();
+      r.onsuccess=()=>res(r.result||[]); r.onerror=()=>res([]); });
+    let n=0;
+    for(const rec of all){
+      if(rec.v!==EDIT_VER) continue;          /* a version we do not know: left alone */
+      const m=rleDecode(rec.d,remap);
+      if(m.size){ EDITS.set(rec.k,m); n+=m.size; }
+    }
+    return n;
+  }catch(e){ return 0; }
+}
+/* written down a breath after the last blow, not on every one of them */
+let _saveT=null;
+function editsTouch(){ if(_saveT) clearTimeout(_saveT);
+  _saveT=setTimeout(()=>{ _saveT=null; editsSave(); },900); }
+addEventListener('pagehide',()=>{ if(EDIT_SAVE.size) editsSave(); });
+addEventListener('visibilitychange',()=>{ if(document.hidden&&EDIT_SAVE.size) editsSave(); });
+
 const chunks=new Map(); const buildQueue=[]; const buildQueued=new Set();
 /* all the streamed land under one root, so it can be taken out of the view
    in a single stroke when the charted face of the earth stands in for it */
@@ -1907,6 +2236,16 @@ function buildChunk(cx,cz){
      chunk is ninety-six metres across and no wood changes at a line.) */
   chunkLand=landNameAt((cx*CH+CH/2)*B,(cz*CH+CH/2)*B);
   chunkRiver=chunkHasRiver(cx,cz);
+  /* the whole chunk's edits, indexed by column, ONCE — asked per column it
+     would be two hash lookups apiece for the answer `nothing`, two hundred
+     and fifty-six times a chunk, over a world where nobody has dug */
+  chunkEdits=null;
+  { const m=EDITS.get(cx+','+cz);
+    if(m&&m.size){ chunkEdits=new Map();
+      for(const [i,n] of m){ const k=eLx(i)*CH+eLz(i);
+        let c=chunkEdits.get(k); if(!c){ c=new Map(); chunkEdits.set(k,c); }
+        c.set(eLy(i),n); }
+    } }
   for(let a=0;a<CH;a++) for(let b=0;b<CH;b++){
     const ix=cx*CH+a, iz=cz*CH+b, cc=cell(ix,iz);
     if(!cc){ /* the shelf: solid sandy terraces stepping down from the land,
@@ -1942,6 +2281,17 @@ function buildChunk(cx,cz){
       }
       continue;
     }
+    /* ---- AND WHAT THE HAND HAS DONE HERE ----
+       An untouched column is meshed exactly as it always was. A touched one
+       is meshed from what it has BECOME, and the blocks set down in it are
+       drawn after, each in its own material. */
+    const em=chunkEdits&&chunkEdits.get(a*CH+b);
+    if(em){
+      const ec=editedCell(ix,iz,cc,em);
+      emitColumn(G,ix,iz,ec);
+      emitPlaced(G,ix,iz,em,ec.h);
+      continue;
+    }
     emitColumn(G,ix,iz,cc);
     const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B, j=hash2(ix*1.7,iz*2.9);
     if(cc.tree) emitTree(G,ix,iz,cc);
@@ -1964,6 +2314,33 @@ function buildChunk(cx,cz){
     const m=new THREE.Mesh(bg,MAT[mat]); m.frustumCulled=true;
     chunkRoot.add(m); meshes.push(m); }
   chunks.set(cx+','+cz,{meshes,cx,cz});
+}
+/* ---- ONE BLOW, ONE CHUNK, ONE FRAME ----
+   A block broken marks its chunk — and its neighbour, if it sat on the join
+   — and the mark is answered by rebuilding that chunk and nothing else. The
+   per-frame slice is the same idea the streamer already runs on, so a man
+   hammering at a wall cannot starve the ground he is walking toward. A chunk
+   that is not resident is not built: it will be, with the edit in it, the
+   next time he comes near enough to want it. */
+let REMESHES=0;                 /* how many chunks a hand has caused to be laid again */
+function remeshChunk(key){
+  const ch=chunks.get(key); if(!ch) return false;
+  REMESHES++;
+  for(const m of ch.meshes){ chunkRoot.remove(m); m.geometry.dispose(); }
+  chunks.delete(key);
+  const p=key.split(',');
+  buildChunk(+p[0],+p[1]);
+  return true;
+}
+function flushEdits(ms){
+  if(!EDIT_DIRTY.size) return 0;
+  const t0=performance.now(); let n=0;
+  for(const key of EDIT_DIRTY){
+    EDIT_DIRTY.delete(key);
+    if(remeshChunk(key)) n++;
+    if(performance.now()-t0>(ms||7)) break;
+  }
+  return n;
 }
 /* ---- A BUCKET OF FACES, MADE INTO A THING THAT STANDS BY ITSELF ----
    The chunk mesher writes into a bucket and hands it to the renderer. Some
@@ -9976,10 +10353,31 @@ function groundYIn(c,refY){
   }
   return {y,ceil};
 }
+/* ---- AND WHERE A HAND HAS BEEN, THE COLUMN IS WALKED ----
+   The procedural answer is arithmetic on a sorted list. An edited column has
+   no such shape — a man may leave a block hanging in mid air forty above the
+   ground and a shaft cut two hundred below it — so that one is WALKED, block
+   by block, from the asking height. It is bounded, and it is entered only by
+   a column somebody has actually touched. */
+const EDIT_SCAN=140;
+function groundYEdited(ix,iz,c,refY){
+  const top=(refY===undefined)?((c?c.h:0)+2):Math.floor(refY/B);
+  let y=top, floor=null;
+  for(let k=0;k<EDIT_SCAN&&y>=EY_MIN;k++,y--) if(blockSolidAt(ix,y,iz)){ floor=y; break; }
+  let ceil=Infinity;
+  let u=(floor===null?top:floor)+1;
+  for(let k=0;k<EDIT_SCAN&&u<EY_MAX;k++,u++) if(blockSolidAt(ix,u,iz)){ ceil=u*B; break; }
+  return { y:(floor===null?(c?c.h*B:WATER_Y):(floor+1)*B), ceil };
+}
 function groundInfo(x,z,refY){
   const dk=deckMap.get(Math.floor(x/B)+','+Math.floor(z/B));
   if(dk!==undefined) return {y:dk,land:true};
+  const ix=Math.floor(x/B), iz=Math.floor(z/B);
   const c=landAtWorld(x,z);
+  const em=EDITS.size?editColumn(ix,iz):null;
+  if(em){ const g=groundYEdited(ix,iz,c,refY);
+    return {y:g.y, ceil:g.ceil, hollow:true, edited:true, land:true,
+      wall:!!(c&&c.kind==='wall')}; }
   if(c){ if(!c.spans) return {y:c.h*B, land:true, wall:c.kind==='wall'};
     const g=groundYIn(c,refY);
     return {y:g.y, ceil:g.ceil, hollow:true, land:true, wall:c.kind==='wall'}; }
@@ -9988,12 +10386,7 @@ function groundInfo(x,z,refY){
 /* is this very point inside the rock? The one test every hollow thing in
    the world is judged by, and the one the acceptance tests ask. */
 function solidAt(x,y,z){
-  const c=landAtWorld(x,z); if(!c) return false;
-  const yb=y/B;
-  if(yb>=c.h) return false;
-  const sp=c.spans; if(!sp) return true;
-  for(let i=0;i<sp.length;i+=2) if(yb>sp[i]&&yb<sp[i+1]) return false;
-  return true;
+  return blockSolidAt(Math.floor(x/B),Math.floor(y/B),Math.floor(z/B));
 }
 /* is a point within the room of a house (used for the inside-the-home camera) */
 function insideHouseIn(x,z,arr){ const T2=B*0.5+0.5;
@@ -10194,7 +10587,7 @@ function walkTick(dt){
        may be level with his feet and the rock still come down to his chest.
        Asked only where something has actually been hollowed, so no step,
        no ledge and no climb anywhere else in the world is touched by it. */
-    if(ok&&!swimming&&(g2.hollow||gi.hollow)){
+    if(ok&&!swimming&&(g2.hollow||gi.hollow||g2.edited||gi.edited)){
       if(solidAt(tx,w.feetY+STEP+1,tz)||solidAt(tx,w.feetY+HEAD_R*0.92,tz)) ok=false; }
     return ok?{g:g2,d:d2,solid:solid2}:null;
   };
@@ -12388,6 +12781,10 @@ function stageHook(dt){ if(window.__STAGE_TICK){ try{ window.__STAGE_TICK(dt); }
 async function buildWorld(){
   const raf=()=>new Promise(r=>requestAnimationFrame(r));
   BOOT.stage('Charting the coasts of every nation…',0.16); await raf(); await raf();
+  /* what other hands have done here is read BEFORE the first chunk is laid,
+     so no chunk is ever built once without the edits and again with them */
+  try{ const n=await editsLoad(); if(n) console.info('the voyage: '+n+' blocks remembered'); }
+  catch(e){}
   computeSites();
   cellCacheOn=true; CELL_CACHE.clear();   /* sites are fixed — the terrain is now immutable and memoisable */
   BOOT.stage('Raising Yahru and the home port…',0.30); await raf();
@@ -12571,7 +12968,26 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
     const fellThrough=dir[1]<0&&w.feetY<y0-B*3;
     return {escaped:inside>0||fellThrough, inside, worst,
       moved:Math.round(Math.hypot(w.x-(m.ix-m.dx*inn+0.5)*B, w.z-(m.iz-m.dz*inn+0.5)*B)/B)}; },
-  settle:async n=>{ for(let k=0;k<(n||2);k++) await new Promise(r=>requestAnimationFrame(r)); },
+  settle:async n=>{ for(let k=0;k<(n||2);k++) await new Promise(r=>requestAnimationFrame(r));
+    flushEdits(1e9); await new Promise(r=>requestAnimationFrame(r)); },
+  /* ---- THE MUTABLE WORLD, FOR tools/acceptance.js ---- */
+  setBlock, blockId, blockAt, blockOf, blockSolidAt, editsSave, editsLoad,
+  remeshes:()=>REMESHES,
+  /* the remesh ALONE, in milliseconds — not the frame it happens to sit in */
+  flushNow:()=>{ const t=performance.now(); const n=flushEdits(1e9);
+    return {ms:performance.now()-t, chunks:n}; },
+  BLOCKS:()=>BLOCKS, edits:()=>EDITS,
+  /* the topmost solid block under a point, in world coordinates */
+  blockUnder:(x,z)=>{ const ix=Math.floor(x/B), iz=Math.floor(z/B), c=cell(ix,iz);
+    if(!c) return null;
+    for(let y=c.h+8;y>EY_MIN;y--) if(blockSolidAt(ix,y,iz))
+      return {ix,iy:y,iz,x:(ix+0.5)*B,y:(y+0.5)*B,z:(iz+0.5)*B,cx:Math.floor(ix/CH),cz:Math.floor(iz/CH)};
+    return null; },
+  chunkTriangleCount:(cx,cz)=>{ const ch=chunks.get(cx+','+cz); if(!ch) return -1;
+    let n=0; for(const m of ch.meshes){ const idx=m.geometry.getIndex(); n+=idx?idx.count/3:0; }
+    return n; },
+  /* what the world remembers of two particular deeds, after a reload */
+  editMark:(x,y,z)=>blockAt(Math.floor(x/B),Math.floor(y/B),Math.floor(z/B)),
   timeFrames:async n=>{ const t=[]; let last=performance.now();
     for(let k=0;k<(n||120);k++){ await new Promise(r=>requestAnimationFrame(r));
       const now=performance.now(); t.push(now-last); last=now; }
@@ -12974,6 +13390,7 @@ function frame(){
   if(!state.firm&&state.mode!=='dive') traderTick(p.x,p.z,dt); else hideTraders();
   audioTick(light.storm||0);
   torchTick(dt);                     /* the flame the traveller carries */
+  flushEdits(7);                     /* and any chunk a hand has changed is laid again */
   /* stream faster when the traveller outruns the mesher — judged by how fast
      he is TRULY moving, whatever is carrying him (ship, wings, or a fair
      wind), so the ground always arrives behind the haze and never inside it */

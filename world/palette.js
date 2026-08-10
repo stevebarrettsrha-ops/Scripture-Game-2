@@ -219,6 +219,13 @@ const B = {
   wool:        { b: P.bone, a: shade(P.bone,0.94) },
   glass:       { b: mix(P.verdigris,P.chalk,0.72) },
 
+  /* --- the materials of scripture: brick, slime and salt --- */
+  brick:       { b: mix(P.terracotta, P.redOchre, 0.24),
+                 face: mix(P.terracotta, P.ochre, 0.30),
+                 mortar: mix(P.bone, P.ash, 0.34) },
+  bitumen:     { b: P.bitumen, a: shade(P.bitumen,0.72) },   /* the slime pits of Siddim */
+  salt:        { b: P.salt, a: shade(P.salt,0.95), glint: [255,255,255] },
+
   /* --- the badlands: banded clay, the tan wastes of the map --- */
   badTop:      { b: mix(P.terracotta, P.burntSienna, 0.30), a: shade(P.burntSienna,0.94) },
   badSide:     { bands:[ mix(P.terracotta,P.burntSienna,0.30), shade(P.burntSienna,0.88),

@@ -85,35 +85,80 @@ T[4]={name:'an overhang exists — solid, air, solid in one column',
 /* ---------- 5..7 · the world made mutable ---------- */
 T[5]={name:'a broken block is gone, the chunk remeshed, the neighbour drawn',
   run:async page=>page.evaluate(async()=>{
-    const D=window.__VDBG;
+    const D=window.__VDBG, B=D.B;
     if(!D.setBlock) return {pending:'no setBlock / edit overlay (Phase 2)'};
-    const p=D.playerXZ(), t=D.blockUnder(p.x,p.z);
-    const before=D.chunkTriangleCount(t.cx,t.cz);
-    D.setBlock(t.x,t.y,t.z,0);
+    const p=D.playerXZ(), t=D.blockUnder(p.x+3*B,p.z);
+    if(!t) return {ok:false,got:'no ground under the traveller'};
+    const was=D.blockAt(t.ix,t.iy,t.iz);
+    const g0=D.groundInfo(t.x,t.z).y;
+    const r0=D.remeshes();
+    const changed=D.setBlock(t.x,t.y,t.z,0);
     await D.settle(2);
-    return {ok:!D.solidAt(t.x,t.y+0.5,t.z)&&D.chunkTriangleCount(t.cx,t.cz)!==before,
-      got:'solid='+D.solidAt(t.x,t.y+0.5,t.z)+' tris '+before+'→'+D.chunkTriangleCount(t.cx,t.cz)};
+    const g1=D.groundInfo(t.x,t.z).y;
+    /* THE TRIANGLE COUNT IS NOT THE TEST. Breaking the top block of flat
+       ground takes one face away at h and puts one back at h−1: the chunk is
+       genuinely rebuilt and the count is genuinely identical. What is asked
+       here is that the chunk WAS laid again, that the block is gone, that
+       the ground fell by exactly one block, and that the block beside it now
+       stands with an open face where it had none. */
+    const remeshed=D.remeshes()-r0;
+    const fell=Math.abs((g0-g1)-D.B)<0.001;
+    const sideNowOpen=!D.blockSolidAt(t.ix,t.iy,t.iz)&&D.blockSolidAt(t.ix+1,t.iy,t.iz);
+    return {ok:changed&&!D.solidAt(t.x,t.y,t.z)&&remeshed>0&&fell&&sideNowOpen,
+      got:'broke '+D.blockOf(was).name+' · gone='+!D.solidAt(t.x,t.y,t.z)+
+          ' · '+remeshed+' chunk(s) laid again · ground fell one block='+fell+
+          ' · neighbour now faced='+sideNowOpen};
   })};
 
 T[6]={name:'a block placed in mid-air is solid, lit and collidable',
   run:async page=>page.evaluate(async()=>{
-    const D=window.__VDBG;
+    const D=window.__VDBG, B=D.B;
     if(!D.setBlock) return {pending:'no setBlock / edit overlay (Phase 2)'};
-    const p=D.playerXZ(), t=D.blockUnder(p.x,p.z);
-    const y=t.y+6*D.B;
-    D.setBlock(t.x,y,t.z,D.blockId('stone'));
+    const p=D.playerXZ(), t=D.blockUnder(p.x-3*B,p.z);
+    if(!t) return {ok:false,got:'no ground under the traveller'};
+    const y=t.y+6*B, n=D.blockId('brick');
+    if(!n) return {ok:false,got:'the registry does not know brick'};
+    const before=D.chunkTriangleCount(t.cx,t.cz);
+    D.setBlock(t.x,y,t.z,n);
     await D.settle(2);
-    return {ok:D.solidAt(t.x,y+0.5,t.z)&&D.lightAt(t.x,y+0.5,t.z)>0.2,
-      got:'solid='+D.solidAt(t.x,y+0.5,t.z)+' light='+D.lightAt(t.x,y+0.5,t.z)};
+    const after=D.chunkTriangleCount(t.cx,t.cz);
+    /* collidable: the ground under a body standing at its height IS its top */
+    const g=D.groundInfo(t.x,t.z,y+B*0.5);
+    const stands=Math.abs(g.y-(Math.floor(y/B)+1)*B)<0.001;
+    return {ok:D.solidAt(t.x,y,t.z)&&after>before&&stands&&D.lightAt(t.x,y,t.z)>0.2,
+      got:'a '+D.blockOf(n).name+' six blocks up · solid='+D.solidAt(t.x,y,t.z)+
+          ' · drawn (tris '+before+'→'+after+') · stood on='+stands+
+          ' · light='+D.lightAt(t.x,y,t.z).toFixed(2)};
   })};
 
 T[7]={name:'both changes survive a reload',
   run:async(page,ctx)=>{
     const has=await page.evaluate(()=>!!window.__VDBG.setBlock);
     if(!has) return {pending:'no persistence to test yet (Phase 2)'};
+    /* set two deeds down at named places, write them, and come back */
+    const marks=await page.evaluate(async()=>{
+      const D=window.__VDBG, B=D.B, p=D.playerXZ();
+      const t=D.blockUnder(p.x+9*B,p.z+9*B);
+      if(!t) return null;
+      const hi=t.y+7*B;
+      D.setBlock(t.x,t.y,t.z,0);                    /* one broken */
+      D.setBlock(t.x,hi,t.z,D.blockId('salt'));     /* and one set down */
+      await D.settle(2);
+      await D.editsSave();
+      return {bx:t.x,by:t.y,bz:t.z,px:t.x,py:hi,pz:t.z,salt:D.blockId('salt')};
+    });
+    if(!marks) return {ok:false,got:'nowhere to stand'};
     await ctx.reload();
-    return page.evaluate(()=>{ const D=window.__VDBG; const m=D.lastEditMarks();
-      return {ok:m.broken&&m.placed, got:'broken='+m.broken+' placed='+m.placed}; });
+    return page.evaluate(m=>{ const D=window.__VDBG;
+      const b=D.editMark(m.bx,m.by,m.bz), p=D.editMark(m.px,m.py,m.pz);
+      let entries=0; for(const v of D.edits().values()) entries+=v.size;
+      /* a failure here must say WHAT it found, or the next person has to
+         re-derive the whole round trip to learn one number */
+      return {ok:b===0&&p===m.salt,
+        got:'the hole reads '+b+' (wanted 0) · the high block reads '+p+
+            ' (wanted '+m.salt+') · '+D.edits().size+' chunks, '+entries+
+            ' blocks remembered'};
+    },marks);
   }};
 
 /* ---------- 8..9 · structures made real ---------- */
@@ -167,18 +212,35 @@ T[10]={name:'ambient occlusion is present and measurable',
    by a remesh, not by any per-frame cost, while a cave interior truly draws
    more faces. So the cave half is measured now and the edit half named as
    still owing, rather than the whole thing reported as untested. */
-T[11]={name:'standing in a cave costs no more than open ground ×1.5',
+T[11]={name:'a cave and an edited chunk cost no more than open ground ×1.5',
   run:async page=>page.evaluate(async()=>{
-    const D=window.__VDBG;
+    const D=window.__VDBG, B=D.B;
     if(!D.standInCave) return {pending:'no caves to stand in (Phase 1)'};
     const open=await D.timeFrames(120);
+    /* (a) a passage under a mountain */
     const at=await D.standInCave();
     if(!at) return {ok:false,got:'no cave found to stand in'};
     const cave=await D.timeFrames(120);
-    const editPending=!D.setBlock?' · the edited-chunk half awaits Phase 2':'';
-    return {ok:cave<open*1.5,
+    /* (b) and a chunk somebody has built in: two hundred blocks laid, then
+       stood in. An edited chunk differs from an unedited one by a REMESH,
+       not by any per-frame cost, so this ought to come out level — and the
+       remesh itself is timed separately, because a hitch on every blow of
+       the pick is the thing that would actually be felt. */
+    const p=D.playerXZ(), g=D.groundInfo(p.x,p.z).y, b0=Math.floor(g/B);
+    let laid=0;
+    for(let x=-4;x<=4;x++) for(let z=-4;z<=4;z++) for(let y=1;y<=3;y++)
+      if(D.setBlock(p.x+x*B,(b0+y)*B+1,p.z+z*B,D.blockId('brick'))) laid++;
+    /* the REMESH, and not the frame it happens to sit in: under a software
+       rasteriser a frame is half a second, and timing `settle` would report
+       three frames of waiting as the cost of laying a chunk again. */
+    const fl=D.flushNow();
+    await D.settle(1);
+    const edited=await D.timeFrames(120);
+    return {ok:cave<open*1.5&&edited<open*1.5,
       got:'open '+open.toFixed(1)+' ms · in a passage '+cave.toFixed(1)+' ms ('+
-          (cave/open).toFixed(2)+'×)'+editPending};
+          (cave/open).toFixed(2)+'×) · in a chunk with '+laid+' blocks laid in it '+
+          edited.toFixed(1)+' ms ('+(edited/open).toFixed(2)+'×) · laying those '+
+          fl.chunks+' chunks again took '+fl.ms.toFixed(1)+' ms'};
   })};
 
 /* ---------- 12 · the regression that matters most.  PASSES TODAY ---------- */
