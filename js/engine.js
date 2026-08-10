@@ -1522,6 +1522,10 @@ function faceNZ(G,mat,z,x0,x1,y0,y1,s,ao){ quad(G,mat, x1,y0,z, x0,y0,z, x0,y1,z
    the Great Pyramid, which is not what a pyramid is for.) */
 let _solidRec=null;
 function emitBox(G, x0,y0,z0, x1,y1,z1, sideMat, topMat, botMat, tint){
+  /* ---- AND WHILE A STAMP IS OPEN, A BOX IS BLOCKS ----
+     No triangles are laid at all: the chunk mesher draws what was written,
+     and it is the same rock the pick meets. */
+  if(_stampOn){ stampBox(x0,y0,z0,x1,y1,z1, sideMat||topMat); return; }
   if(_solidRec&&y1-y0>3&&Math.min(x1-x0,z1-z0)>2.5)
     _solidRec.push({x0,y0,z0,x1,y1,z1});
   faceTop(G,topMat,x0,z0,x1,z1,y1,shade(tint,1.0));
@@ -2029,10 +2033,24 @@ function eLx(i){ return Math.floor(i/EY_SPAN/CH); }
 function eLz(i){ return Math.floor(i/EY_SPAN)%CH; }
 function eLy(i){ return (i%EY_SPAN)+EY_MIN; }
 function chunkKeyOf(ix,iz){ return Math.floor(ix/CH)+','+Math.floor(iz/CH); }
+/* ---- TWO LAYERS, AND THE HAND ALWAYS WINS ----
+   A village, a temple, a pyramid is DERIVED: it can be worked out again from
+   its site any time it is wanted, so writing every house on the earth to disk
+   would be writing down something nobody said. Those go in the STRUCTURE
+   layer — stamped when the place is raised, dropped when it is left behind,
+   never saved.
+   What the traveller himself did is the other thing entirely. It is not
+   derivable from anything, it is the only record of him, and it is
+   authoritative: a plank he took out of a wall stays out of that wall even
+   though the village re-stamps itself from scratch every time he sails back.
+   So: player first, structure second, the world underneath. */
+const SEDITS=new Map();         /* the structures: derived, dropped, never written down */
 function editAt(ix,iy,iz){
-  if(!EDITS.size) return undefined;
-  const m=EDITS.get(chunkKeyOf(ix,iz)); if(!m) return undefined;
-  return m.get(eIndex(((ix%CH)+CH)%CH, iy, ((iz%CH)+CH)%CH));
+  if(!EDITS.size&&!SEDITS.size) return undefined;
+  const key=chunkKeyOf(ix,iz), idx=eIndex(((ix%CH)+CH)%CH, iy, ((iz%CH)+CH)%CH);
+  if(EDITS.size){ const m=EDITS.get(key); if(m){ const v=m.get(idx); if(v!==undefined) return v; } }
+  if(SEDITS.size){ const m=SEDITS.get(key); if(m){ const v=m.get(idx); if(v!==undefined) return v; } }
+  return undefined;
 }
 /* what the world would be here with nobody's hand in it */
 function proceduralSolid(ix,iy,iz){
@@ -2067,12 +2085,15 @@ function setBlock(wx,wy,wz,n){
   const lx=((ix%CH)+CH)%CH, lz=((iz%CH)+CH)%CH;
   const idx=eIndex(lx,iy,lz);
   let m=EDITS.get(key);
-  const was=(m&&m.get(idx));
-  const nowIs=(was!==undefined)?was:proceduralBlock(ix,iy,iz);
-  if(nowIs===n) return false;                       /* it is already that */
-  /* an edit that merely restores what the world would have done anyway is
-     not kept — it is a hole in the record, not a fact */
-  if(proceduralBlock(ix,iy,iz)===n){ if(m){ m.delete(idx); if(!m.size) EDITS.delete(key); } }
+  if(blockAt(ix,iy,iz)===n) return false;           /* it is already that */
+  /* an edit that merely restores what would have stood here anyway — the
+     world's own rock, or the structure's own stone — is not kept. It is a
+     hole in the record, not a fact. But it must be judged against what would
+     stand here WITHOUT the hand, which is the structure layer and the ground
+     under it, and never against the hand's own earlier work. */
+  let under=proceduralBlock(ix,iy,iz);
+  { const sm=SEDITS.get(key); if(sm){ const v=sm.get(idx); if(v!==undefined) under=v; } }
+  if(under===n){ if(m){ m.delete(idx); if(!m.size) EDITS.delete(key); } }
   else { if(!m){ m=new Map(); EDITS.set(key,m); } m.set(idx,n); }
   EDIT_TOUCHED=true; EDIT_DIRTY.add(key); EDIT_SAVE.add(key); editsTouch();
   /* a block on a chunk's edge changes what its neighbour must draw */
@@ -2082,16 +2103,90 @@ function setBlock(wx,wy,wz,n){
   if(lz===CH-1) EDIT_DIRTY.add(Math.floor(ix/CH)+','+(Math.floor(iz/CH)+1));
   return true;
 }
+/* ================= WHAT IS BUILT IS BLOCKS =================
+   Every village house, city wall, temple, pyramid, ziggurat, well, farm,
+   pier, fence and stall was built by `emitBox` into merged decoration
+   geometry. None of it existed in the block world at all: you could not mine
+   a temple wall, break into a house, or take a plank from a pier — and the
+   moment a man CAN mine, every house on the earth visibly floats on nothing.
+
+   A builder is converted by being RUN IN STAMP MODE, not by being rewritten.
+   While `_stampOn` is set, `emitBox` writes blocks instead of triangles and
+   the chunk mesher draws them like any other ground. That is deliberate: a
+   rewrite is a chance to change the building by accident, and running the
+   same code means the diff harness in tools/ is comparing the SAME builder
+   against itself.
+
+   THE RULE FOR A THIN THING. House walls are half a block thick and roof
+   steps are a little over half a block high. A "centre of the cell inside
+   the box" rule loses every one of them — a half-block wall on a block
+   boundary has no cell centre in it at all, and the house comes out with no
+   walls. So a cell is filled when the box genuinely PASSES THROUGH it: an
+   overlap of more than a sixth of a block on every axis. A thin wall becomes
+   one block thick, an aligned box fills exactly its own cells, and a box
+   merely touching a face fills nothing. */
+const MAT_BLOCK=Object.create(null);
+for(const b of BLOCKS){ if(!b) continue;
+  for(const k of ['top','side','bottom','all']){ const t=b.tex[k];
+    if(t&&MAT_BLOCK[t]===undefined) MAT_BLOCK[t]=b.n; } }
+/* the mesher's own greys and a few names no block claims */
+MAT_BLOCK.iceTop=MAT_BLOCK.iceTop||blockId('ice');
+MAT_BLOCK.iceSide=MAT_BLOCK.iceSide||blockId('ice');
+MAT_BLOCK.solidW=MAT_BLOCK.solidW||blockId('stone');
+MAT_BLOCK.barkW=MAT_BLOCK.barkW||blockId('log');
+function blockForMat(m){ const n=MAT_BLOCK[m]; return n===undefined?blockId('stone'):n; }
+
+let _stampOn=null;              /* the group being stamped, or null */
+const STAMP_EPS=1/6;            /* how much of a cell a box must cross to fill it */
+function stampBegin(){ _stampOn={cells:[]}; return _stampOn; }
+function stampEnd(){ const g=_stampOn; _stampOn=null; return g; }
+function stampBlock(ix,iy,iz,n){
+  if(iy<EY_MIN||iy>=EY_MAX) return;
+  const key=chunkKeyOf(ix,iz);
+  const idx=eIndex(((ix%CH)+CH)%CH, iy, ((iz%CH)+CH)%CH);
+  let m=SEDITS.get(key); if(!m){ m=new Map(); SEDITS.set(key,m); }
+  if(!m.has(idx)&&_stampOn) _stampOn.cells.push(key,idx);
+  m.set(idx,n);
+  EDIT_DIRTY.add(key);
+}
+function stampBox(x0,y0,z0,x1,y1,z1,mat){
+  const n=blockForMat(mat); if(!n) return;
+  const e=STAMP_EPS*B;
+  const ix0=Math.floor((x0+e)/B), ix1=Math.ceil((x1-e)/B)-1;
+  const iy0=Math.floor((y0+e)/B), iy1=Math.ceil((y1-e)/B)-1;
+  const iz0=Math.floor((z0+e)/B), iz1=Math.ceil((z1-e)/B)-1;
+  for(let ix=ix0;ix<=ix1;ix++) for(let iz=iz0;iz<=iz1;iz++) for(let iy=iy0;iy<=iy1;iy++)
+    stampBlock(ix,iy,iz,n);
+}
+/* and a builder may name a single block outright where a face used to be a
+   face — a floor laid, a pane set, water standing in a well */
+function stampAt(x,y,z,id){ stampBlock(Math.floor(x/B),Math.floor(y/B),Math.floor(z/B),blockId(id)); }
+/* everything a stamp group wrote, taken out again — a village left behind */
+function stampDrop(g){
+  if(!g) return;
+  for(let i=0;i<g.cells.length;i+=2){
+    const key=g.cells[i], idx=g.cells[i+1];
+    const m=SEDITS.get(key); if(m){ m.delete(idx); if(!m.size) SEDITS.delete(key); }
+    EDIT_DIRTY.add(key);
+  }
+  g.cells.length=0;
+}
+
 /* the edits of one column, gathered for the mesher: a small map of
    y -> block number, or null, which is the answer nearly everywhere */
 function editColumn(ix,iz){
-  if(!EDITS.size) return null;
-  const m=EDITS.get(chunkKeyOf(ix,iz)); if(!m) return null;
+  if(!EDITS.size&&!SEDITS.size) return null;
+  const key=chunkKeyOf(ix,iz);
   const lx=((ix%CH)+CH)%CH, lz=((iz%CH)+CH)%CH;
   const base=(lx*CH+lz)*EY_SPAN;
   let out=null;
-  for(const [i,n] of m){ if(i<base||i>=base+EY_SPAN) continue;
-    (out||(out=new Map())).set((i%EY_SPAN)+EY_MIN,n); }
+  /* structure first, then the hand OVER it — the later write wins, and the
+     hand is written later on purpose */
+  for(const src of [SEDITS,EDITS]){
+    const m=src.get(key); if(!m) continue;
+    for(const [i,n] of m){ if(i<base||i>=base+EY_SPAN) continue;
+      (out||(out=new Map())).set((i%EY_SPAN)+EY_MIN,n); }
+  }
   return out;
 }
 /* ================= AND IT IS WRITTEN DOWN =================
@@ -2240,8 +2335,13 @@ function buildChunk(cx,cz){
      would be two hash lookups apiece for the answer `nothing`, two hundred
      and fifty-six times a chunk, over a world where nobody has dug */
   chunkEdits=null;
-  { const m=EDITS.get(cx+','+cz);
-    if(m&&m.size){ chunkEdits=new Map();
+  { const key=cx+','+cz;
+    /* BOTH LAYERS, and the hand laid over the structure — indexing only the
+       player's edits left every stamped well, wall and temple SOLID TO THE
+       TOUCH AND INVISIBLE, which is the worst of both worlds. */
+    for(const src of [SEDITS,EDITS]){
+      const m=src.get(key); if(!m||!m.size) continue;
+      if(!chunkEdits) chunkEdits=new Map();
       for(const [i,n] of m){ const k=eLx(i)*CH+eLz(i);
         let c=chunkEdits.get(k); if(!c){ c=new Map(); chunkEdits.set(k,c); }
         c.set(eLy(i),n); }
@@ -8087,9 +8187,21 @@ function emitFarm(G, fx,fz,y, seed){
     cross(G,'crop',px,pz,y+B*0.36,B*0.8,B*0.7,0.95);
   }
 }
+/* ---- THE FIRST BUILDER CONVERTED (Phase 3) ----
+   A well is the smallest self-contained thing a village raises — a ring of
+   coursed stone, four posts and a little roof — and it appears in every
+   village on the earth. If the stamp machinery is wrong, it is wrong here in
+   twenty blocks rather than in a temple.
+
+   The body of it is UNCHANGED: the same boxes, in the same places, run
+   through emitBox. All that differs is that a stamp is open while it runs,
+   so the boxes become rock. The one thing added is the water standing in it,
+   which used to be a single decorative face and is now a block a man could
+   in principle take a bucket from. */
 function emitWell(G, wx,wz,y){
   emitBox(G, wx-B,y,wz-B, wx+B,y+B*0.8,wz+B, 'cobble','cobble',null);
-  faceTop(G,'waterB', wx-B*0.6,wz-B*0.6, wx+B*0.6,wz+B*0.6, y+B*0.55, 0.9);
+  if(_stampOn) stampAt(wx,y+B*0.4,wz,'water');
+  else faceTop(G,'waterB', wx-B*0.6,wz-B*0.6, wx+B*0.6,wz+B*0.6, y+B*0.55, 0.9);
   for(const sx of [-1,1]) for(const sz of [-1,1])
     emitBox(G, wx+sx*B-B*0.18,y+B*0.8,wz+sz*B-B*0.18, wx+sx*B+B*0.18,y+B*2.4,wz+sz*B+B*0.18, 'logSide','logTop',null);
   emitBox(G, wx-B*1.3,y+B*2.4,wz-B*1.3, wx+B*1.3,y+B*2.9,wz+B*1.3, 'roof','roof','roof');
@@ -8152,7 +8264,8 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
   rectFree=rectFree||(()=>true); addRect=addRect||(()=>{});
   const cx=site.x, cz=site.z, sz2=cfg.size||2, nHomes=Math.round((cfg.houses||14)*1.4);
   emitPlaza(G, cx,cz, wy, B*(6+sz2*1.5));
-  emitWell(G, cx,cz, wy); solids.push({x:cx,z:cz,r:B*1.7});
+  { stampBegin(); emitWell(G, cx,cz, wy); ex.stamps.push(stampEnd()); }
+  solids.push({x:cx,z:cz,r:B*1.7});
   addRect(cx-B*1.7,cx+B*1.7,cz-B*1.7,cz+B*1.7);
   /* lots a street-and-a-garden apart — a city breathes, it does not huddle */
   const spacing=B*15, reach=B*(12+Math.ceil(nHomes/2));
@@ -8194,7 +8307,8 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
   for(let w2=1;w2<(cfg.wells||1);w2++){ const a=rnd(w2+70)*6.28, rr=B*(6+w2*3);
     const wx=cx+Math.cos(a)*rr, wz=cz+Math.sin(a)*rr, c=landAtWorld(wx,wz);
     if(c&&c.kind!=='wall'&&rectFree(wx-B*1.7,wx+B*1.7,wz-B*1.7,wz+B*1.7,B*0.5)){
-      emitWell(G,wx,wz,c.h*B); solids.push({x:wx,z:wz,r:B*1.7});
+      { stampBegin(); emitWell(G,wx,wz,c.h*B); ex.stamps.push(stampEnd()); }
+      solids.push({x:wx,z:wz,r:B*1.7});
       addRect(wx-B*1.7,wx+B*1.7,wz-B*1.7,wz+B*1.7); } }
   /* lamp posts along the streets */
   for(let t=-3;t<=3;t++){ if(!t) continue;
@@ -8279,7 +8393,7 @@ function* spawnVillage(i,exShell){
   const site=SITES[i]; if(!site){ activeVillages.set(i,{none:true}); return; }
   const rnd=k=>hash2(i*31.7+k*7.7, i*11.3+k*3.9);
   const G=newG(); const ex=exShell||{};
-  Object.assign(ex,{doors:[],houses:[],torchIn:[],farms:[],stalls:[],pen:null});
+  Object.assign(ex,{doors:[],houses:[],torchIn:[],farms:[],stalls:[],pen:null,stamps:[]});
   const wy=topY(site.ix,site.iz);
   const cfg=cityFor(i);                 /* a great city here, or a small village? */
   const torches=[]; const solids=[];
@@ -8331,7 +8445,8 @@ function* spawnVillage(i,exShell){
       addRect(hx-w*B/2-B,hx+w*B/2+B,hz-d*B/2-B,hz+d*B/2+B);
       if(h%2===1) yield;
     }
-    emitWell(G, site.x, site.z, wy); solids.push({x:site.x,z:site.z,r:B*1.5});
+    { stampBegin(); emitWell(G, site.x, site.z, wy); ex.stamps.push(stampEnd()); }
+    solids.push({x:site.x,z:site.z,r:B*1.5});
     addRect(site.x-B*1.5,site.x+B*1.5,site.z-B*1.5,site.z+B*1.5);
     for(const dr of ex.doors) emitPathLine(G, site.x,site.z, dr.x,dr.z);
     const nF=2+(rnd(40)>0.55?1:0);
@@ -8535,7 +8650,7 @@ function* spawnVillage(i,exShell){
     birds.push({m:bd,ph,rad,h:h2,spd:0.2+rnd(b2+132)*0.25,cx,cz}); }
   scene.add(g);
   activeVillages.set(i,{g,site,people,beasts,birds,torchMats,deckKeys,houses:ex.houses,solids,
-    farms:ex.farms,stalls:ex.stalls,pen:ex.pen,pier:ex.pier,feedT:-99});
+    farms:ex.farms,stalls:ex.stalls,pen:ex.pen,pier:ex.pier,stamps:ex.stamps,feedT:-99});
 }
 /* =================== THE LABOURS OF THE PEOPLE ===================
    A little task engine. moveEnt walks a body toward its mark with
@@ -8886,6 +9001,11 @@ function updateVillages(px,pz,dt,nightF){
          the town — the bubble used to hang over the empty ground */
       if(vv.people) for(const b of BARKS)
         if(b.ent&&vv.people.includes(b.ent)){ b.ent=null; b.t=0; b.sp.visible=false; }
+      /* and what it STAMPED into the rock goes with it — a village left
+         behind takes its own stone away and leaves the ground as it found
+         it. Anything the traveller himself did there is in the other layer
+         and is not touched. */
+      if(vv.stamps) for(const g2 of vv.stamps) stampDrop(g2);
       activeVillages.delete(i); }
   }
   for(const[,vv] of activeVillages){ if(vv.none||!vv.g) continue;
@@ -12976,7 +13096,8 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   /* the remesh ALONE, in milliseconds — not the frame it happens to sit in */
   flushNow:()=>{ const t=performance.now(); const n=flushEdits(1e9);
     return {ms:performance.now()-t, chunks:n}; },
-  BLOCKS:()=>BLOCKS, edits:()=>EDITS,
+  BLOCKS:()=>BLOCKS, edits:()=>EDITS, sedits:()=>SEDITS,
+  stampCells:()=>{ let n=0; for(const m of SEDITS.values()) n+=m.size; return n; },
   /* the topmost solid block under a point, in world coordinates */
   blockUnder:(x,z)=>{ const ix=Math.floor(x/B), iz=Math.floor(z/B), c=cell(ix,iz);
     if(!c) return null;
