@@ -2209,6 +2209,14 @@ function stamped(ex,fn){
   try{ return fn(); }
   finally{ const g=stampEnd(); if(g&&g.cells.length&&ex&&ex.stamps) ex.stamps.push(g); }
 }
+/* the same, for a thing that keeps its own group rather than a village's */
+function stampedGroup(fn){
+  if(_stampOn){ fn(); return null; }
+  stampBegin();
+  let g=null;
+  try{ fn(); } finally{ g=stampEnd(); }
+  return (g&&g.cells.length)?g:null;
+}
 /* everything a stamp group wrote, taken out again — a village left behind */
 function stampDrop(g){
   if(!g) return;
@@ -10093,21 +10101,40 @@ function spawnLandmark(i){
   const L=LANDMARKS[i], site=landmarkSite(i);
   if(!site){ activeLandmarks.set(i,{none:true}); return; }
   const y=topY(site.ix,site.iz), x=site.x, z=site.z;
-  let g=null;
+  let g=null, gStruct=null, stamp=null;
   if(L.kind==='range'){ g=lmRange(L); if(g) scene.add(g); }
   else if(L.kind==='falls'){ g=lmFalls(L); if(g) scene.add(g); }
   else if(L.kind!=='mount'){
     const G=newG();
     _solidRec=[];                       /* the builder writes its own collision */
     var lmSolids;
-    try{ (LM_BUILDERS[L.kind]||lmTemple)(G,x,z,y,L.s,i*77.7); }
+    const build=(GG)=>(LM_BUILDERS[L.kind]||lmTemple)(GG,x,z,y,L.s,i*77.7);
+    try{ build(G); }
     finally{ lmSolids=_solidRec; _solidRec=null; }   /* never left recording */
+    /* ---- AND THE WORK OF THE ANCIENTS IS RAISED TWICE ----
+       Once in triangles, as it always was, and once in BLOCKS. Not because
+       either is wrong, but because they answer different distances.
+       A landmark exists to be SEEN FROM FAR OFF — that is the whole of what
+       a landmark is — and blocks are only laid inside the streamed ring, some
+       two thousand units. Converted to blocks alone, every pyramid and
+       lighthouse on the earth would simply cease to exist the moment the
+       haze opened far enough to look for it, which is the opposite of a
+       landmark.
+       So the triangles stand as the FAR SILHOUETTE and are put away the
+       moment the true blocks under them are standing; the man who walks up
+       to the temple walks up to a temple he can take apart, and the man
+       looking for it from the deck still sees it on the skyline.
+       The builder is simply run a second time — these are a few dozen boxes
+       apiece, and running the same code is the whole discipline of this
+       phase. */
+    stamp=stampedGroup(()=>build(newG()));
     g=new THREE.Group();
+    gStruct=new THREE.Group(); g.add(gStruct);
     for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
       bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
       bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
       bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
-      bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
+      bg.setIndex(gg.i); gStruct.add(new THREE.Mesh(bg,MAT[mat])); }
     if(L.kind==='lighthouse'){                             /* the fire at the top, ever burning */
       const tip=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),torchMat); tip.position.set(x,y+B*15.4,z); g.add(tip);
       const gm2=new THREE.SpriteMaterial({map:glowTexCv,transparent:true,opacity:0.6,depthWrite:false});
@@ -10122,7 +10149,7 @@ function spawnLandmark(i){
     label.scale.set(220,220/6,1);
     scene.add(label);
   }
-  activeLandmarks.set(i,{g,label,x,z,
+  activeLandmarks.set(i,{g,gStruct,stamp,label,x,z,
     solids:(typeof lmSolids!=='undefined'&&lmSolids&&lmSolids.length)?lmSolids:null});
 }
 /* ---- the works of the ancients bar the way ----
@@ -10182,6 +10209,7 @@ function updateLandmarks(px,pz){
     const trig=((L.kind==='range')?2600:1600)*(1+open*0.8);
     if(d<trig&&!has) spawnLandmark(i);
     else if(d>trig+500&&has){ const A=activeLandmarks.get(i);
+      if(A.stamp) stampDrop(A.stamp);      /* the blocks go with the triangles */
       if(A.g){ scene.remove(A.g); A.g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); }
       if(A.label){ scene.remove(A.label);
         if(A.label.material.map) A.label.material.map.dispose(); A.label.material.dispose(); }
@@ -13493,6 +13521,23 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
    great lights. Everything belonging to the near world is put away, and it
    costs nothing to draw besides. The traveller's own station is not lost —
    the gold mark on the chart is what shows it, and it is drawn for that. */
+/* ---- THE FAR SHAPE, OR THE THING ITSELF ----
+   A landmark stands twice: in triangles, which reach as far as the eye does,
+   and in blocks, which reach only as far as the mesher. Whichever is right
+   for the distance is the one that is drawn, and never both — two copies of
+   a temple in the same place fight each other face for face.
+   The test is not the traveller's distance but whether the CHUNK the thing
+   stands in has actually been laid, which is the same question asked
+   properly: while its blocks are standing, they are what is seen.
+   It keeps its hands off while the near world is put away for the whole-earth
+   view — that law has the last word, and this one must not undo it. */
+function silhouetteTick(){
+  if(_nearHidden) return;
+  for(const[,A] of activeLandmarks){
+    if(!A.gStruct||!A.stamp) continue;
+    A.gStruct.visible=!chunks.has(Math.floor(A.x/CHW)+','+Math.floor(A.z/CHW));
+  }
+}
 let _nearHidden=false, _nearWas=null;
 function setNearWorldVisible(on,zF){
   /* the banners go long before the rest: a country's NAME over a country
@@ -13929,6 +13974,7 @@ function frame(){
      then vanished in a single frame */
   const showNear = !state.firm && zMapF<0.97;
   chunkRoot.visible = showNear;
+  silhouetteTick();                  /* the far shape of a thing, or the thing */
   setNearWorldVisible(showNear, zMapF);
   /* the near WATER goes with the near land. The wave grid is a flat square
      5,000 units on a side: left standing while the charted face came up

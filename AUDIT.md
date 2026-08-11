@@ -1593,7 +1593,7 @@ Putting the smallest things away as the eye draws back would be worth more
 than any further trimming of the ring, and it is a change with a pop in it if
 it is done carelessly. It belongs in its own round.
 
-## 4aa. Round 28 — Phase 3: the town made of blocks, and two lies the ground was telling ✅
+## 4aa. Round 28 — Phase 3: the town and the ancients made of blocks, and two lies the ground was telling ✅
 
 *The brief's Phase 3, for everything a village raises. Every `emit*` builder of
 a town now writes BLOCKS rather than triangles; the two acceptance tests that
@@ -1703,9 +1703,31 @@ nine-by-nine wall back to one quad and would pay for the whole of this round
 several times over, on the terrain as much as on the houses. It is a change to
 the heart of `emitColumn` and it wants a round of its own.
 
-**Still ahead in Phase 3:** the `lm*` landmark builders (pyramid, ziggurat,
-temple, stone circle, wall, lighthouse, gate, city, statue), `buildPier` last
-with `deckMap`, and the geometric diff harness.
+**7. And the works of the ancients, raised twice.**
+- All nine `lm*` builders — pyramid, ziggurat, temple, stone circle, wall,
+  lighthouse, gate, city, statue — are pure `emitBox`, so they converted by
+  being run. **The Pyramids of Giza now stand as 2,646 blocks.**
+- But they are raised TWICE, in triangles and in blocks, and this is the one
+  place in Phase 3 where that is right. **A landmark exists to be seen from
+  far off — that is the whole of what a landmark is** — and blocks are only
+  laid inside the streamed ring. Converted to blocks alone, every pyramid and
+  lighthouse on the earth would cease to exist the moment the haze opened far
+  enough to look for it, which is the opposite of a landmark.
+- So the triangles are the FAR SILHOUETTE, and they are put away the moment
+  the true blocks under them are standing. The test is not the traveller's
+  distance but whether **the chunk the thing stands in has actually been
+  laid** — the same question asked properly. Never both at once: two copies
+  of a temple in one place fight each other face for face.
+- Verified at Giza: at **150 units the silhouette is hidden** and 2,646 blocks
+  stand; at **1,950 units the silhouette is shown** and the pyramid is on the
+  skyline in the haze, where without it there would be empty sky.
+- A village gets no such silhouette, and does not want one: it spawns at 1,600
+  units, just beyond a fog that closes at 1,140, so it is never looked at from
+  outside the ring. Its structure geometry is also tangled with its people in
+  one group and would have to be separated first. Noted, not done.
+
+**Still ahead in Phase 3:** `buildPier` last with `deckMap`, and the geometric
+diff harness.
 
 ## 5. Further recommendations (future work)
 
