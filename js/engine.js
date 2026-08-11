@@ -2106,7 +2106,7 @@ function setBlock(wx,wy,wz,n){
   { const sm=SEDITS.get(key); if(sm){ const v=sm.get(idx); if(v!==undefined) under=v; } }
   if(under===n){ if(m){ m.delete(idx); if(!m.size) EDITS.delete(key); } }
   else { if(!m){ m=new Map(); EDITS.set(key,m); } m.set(idx,n); }
-  EDIT_TOUCHED=true; EDIT_DIRTY.add(key); EDIT_SAVE.add(key); editsTouch();
+  EDIT_TOUCHED=true; EDIT_DIRTY.add(key); EDIT_SAVE.add(key); editsTouch(); editColumnsChanged();
   /* a block on a chunk's edge changes what its neighbour must draw */
   if(lx===0) EDIT_DIRTY.add((Math.floor(ix/CH)-1)+','+Math.floor(iz/CH));
   if(lx===CH-1) EDIT_DIRTY.add((Math.floor(ix/CH)+1)+','+Math.floor(iz/CH));
@@ -2158,7 +2158,7 @@ function stampBlock(ix,iy,iz,n){
   let m=SEDITS.get(key); if(!m){ m=new Map(); SEDITS.set(key,m); }
   if(!m.has(idx)&&_stampOn) _stampOn.cells.push(key,idx);
   m.set(idx,n);
-  EDIT_DIRTY.add(key);
+  EDIT_DIRTY.add(key); editColumnsChanged();
 }
 function stampBox(x0,y0,z0,x1,y1,z1,mat){
   const n=blockForMat(mat); if(!n) return;
@@ -2172,21 +2172,75 @@ function stampBox(x0,y0,z0,x1,y1,z1,mat){
 /* and a builder may name a single block outright where a face used to be a
    face — a floor laid, a pane set, water standing in a well */
 function stampAt(x,y,z,id){ stampBlock(Math.floor(x/B),Math.floor(y/B),Math.floor(z/B),blockId(id)); }
+/* ---- A LAID SURFACE ----
+   A plaza, a trodden way, a plank floor, a bed of tilled soil: these were all
+   ONE HORIZONTAL FACE laid a finger above the ground, because a face is all
+   the eye needs when nothing may be dug. They are the top of a real block
+   now. The face was drawn at the TOP of the course it stands for, so the
+   course is the one whose lid it is — `round(y/B)−1`, which puts a plaza and
+   a path into the surface block itself (the grass becomes cobble, as trodden
+   ground should), and a plank floor into the course laid on the footing. */
+function stampTop(x0,z0,x1,z1,y,mat){
+  const n=blockForMat(mat); if(n===undefined) return;
+  const e=STAMP_EPS*B, iy=Math.round(y/B)-1;
+  const ix0=Math.floor((x0+e)/B), ix1=Math.ceil((x1-e)/B)-1;
+  const iz0=Math.floor((z0+e)/B), iz1=Math.ceil((z1-e)/B)-1;
+  for(let ix=ix0;ix<=ix1;ix++) for(let iz=iz0;iz<=iz1;iz++) stampBlock(ix,iy,iz,n);
+}
+/* `emitTop` is `faceTop` for a surface that OUGHT to be a course of blocks.
+   It is deliberately not `faceTop` itself: a good many faces in this engine
+   are genuinely faces — a rug on a floor, the sheen on still water, the wash
+   of a shelf — and turning every one of them into rock would fill the world
+   with blocks nobody meant to lay. The call sites are converted one at a
+   time, by hand, where a block is the truer thing. */
+function emitTop(G,mat,x0,z0,x1,z1,y,s,rep,ao){
+  if(_stampOn) stampTop(x0,z0,x1,z1,y,mat);
+  else faceTop(G,mat,x0,z0,x1,z1,y,s,rep,ao);
+}
+/* ---- A BUILDER RUN AS A STAMP ----
+   The one door through which a builder is converted. It opens a group, runs
+   the builder unchanged, and hands the group to the village that raised it so
+   that it can be taken out again when the village is left behind. A builder
+   called from inside another JOINS the group already open rather than opening
+   a second one — a house within a city is not a separate thing to forget. */
+function stamped(ex,fn){
+  if(_stampOn) return fn();
+  stampBegin();
+  try{ return fn(); }
+  finally{ const g=stampEnd(); if(g&&g.cells.length&&ex&&ex.stamps) ex.stamps.push(g); }
+}
 /* everything a stamp group wrote, taken out again — a village left behind */
 function stampDrop(g){
   if(!g) return;
   for(let i=0;i<g.cells.length;i+=2){
     const key=g.cells[i], idx=g.cells[i+1];
     const m=SEDITS.get(key); if(m){ m.delete(idx); if(!m.size) SEDITS.delete(key); }
-    EDIT_DIRTY.add(key);
+    EDIT_DIRTY.add(key); editColumnsChanged();
   }
   g.cells.length=0;
 }
 
 /* the edits of one column, gathered for the mesher: a small map of
    y -> block number, or null, which is the answer nearly everywhere */
+/* ---- AND THE ANSWER IS REMEMBERED ----
+   This walks EVERY block written into the chunk to answer for ONE column of
+   it — a chunk with a house in it holds some four hundred, and the column
+   wanted is sixteen of them. That was a fair price while it was paid once per
+   blow of a pick. It is not a fair price now: the ground query reads this
+   layer for every creature in a town, twice a frame, and a village puts four
+   hundred blocks in every chunk it stands in. Fifty thousand wasted steps a
+   frame, to answer questions about ground nobody has touched.
+   The answers are kept in a small table instead, thrown away WHOLE the moment
+   anything anywhere is written — which is the only correctness this needs,
+   and costs nothing, because a hand that lays a block has already bought a
+   remesh in the same breath. */
+let _colCache=new Map();
+function editColumnsChanged(){ if(_colCache.size) _colCache=new Map(); }
+const COL_CACHE_MAX=4096;      /* a town's worth of columns, and then some */
 function editColumn(ix,iz){
   if(!EDITS.size&&!SEDITS.size) return null;
+  const ck=ix+','+iz;
+  const hit=_colCache.get(ck); if(hit!==undefined) return hit;
   const key=chunkKeyOf(ix,iz);
   const lx=((ix%CH)+CH)%CH, lz=((iz%CH)+CH)%CH;
   const base=(lx*CH+lz)*EY_SPAN;
@@ -2198,6 +2252,8 @@ function editColumn(ix,iz){
     for(const [i,n] of m){ if(i<base||i>=base+EY_SPAN) continue;
       (out||(out=new Map())).set((i%EY_SPAN)+EY_MIN,n); }
   }
+  if(_colCache.size>=COL_CACHE_MAX) _colCache=new Map();
+  _colCache.set(ck,out);
   return out;
 }
 /* ================= AND IT IS WRITTEN DOWN =================
@@ -2311,6 +2367,7 @@ async function editsLoad(){
       const m=rleDecode(rec.d,remap);
       if(m.size){ EDITS.set(rec.k,m); n+=m.size; }
     }
+    editColumnsChanged();     /* a world reopened is a world of new answers */
     return n;
   }catch(e){ return 0; }
 }
@@ -8287,7 +8344,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   const wallH=4*B, T=B*0.5, gw=B*0.75;
   /* cobble footing and the plank floor laid upon it */
   emitBox(G, x0,y,z0, x1,y+B*0.55,z1, 'cobble','cobble',null);
-  faceTop(G,'planks', x0+T,z0+T, x1-T,z1-T, y+B*0.58, 0.95);
+  emitTop(G,'planks', x0+T,z0+T, x1-T,z1-T, y+B*0.58, 0.95);
   /* four hollow walls; the doorway is left open on doorDir (0=+z 1=-z 2=+x 3=-x) */
   const wy0=y+B*0.55, wy1=y+wallH, ly=y+B*2.75;   /* ly = lintel underside */
   const wall=(ax0,az0,ax1,az1)=>emitBox(G,ax0,wy0,az0,ax1,wy1,az1,'planks','planks',null);
@@ -8350,8 +8407,8 @@ function emitFarm(G, fx,fz,y, seed){
   emitBox(G, x0,y,z0, x0+B*0.5,y+B*0.5,z1, 'logSide','logTop',null);
   emitBox(G, x1-B*0.5,y,z0, x1,y+B*0.5,z1, 'logSide','logTop',null);
   /* tilled soil + centre water channel + crops */
-  faceTop(G,'soil', x0+B*0.5,z0+B*0.5, x1-B*0.5,z1-B*0.5, y+B*0.34, 0.95);
-  faceTop(G,'waterB', fx-B*0.35,z0+B*0.5, fx+B*0.35,z1-B*0.5, y+B*0.38, 1.0);
+  emitTop(G,'soil', x0+B*0.5,z0+B*0.5, x1-B*0.5,z1-B*0.5, y+B*0.34, 0.95);
+  emitTop(G,'waterB', fx-B*0.35,z0+B*0.5, fx+B*0.35,z1-B*0.5, y+B*0.38, 1.0);
   for(let cx=0;cx<4;cx++) for(let cz=0;cz<3;cz++){
     const px=x0+B*(1+cx), pz=z0+B*(1+cz*0.9);
     if(Math.abs(px-fx)<B*0.6) continue;
@@ -8379,7 +8436,7 @@ function emitWell(G, wx,wz,y){
 }
 function emitHay(G, x,z,y){ emitBox(G, x-B*0.5,y,z-B*0.5, x+B*0.5,y+B,z+B*0.5, 'haySide','hayTop','haySide'); }
 function emitPathCell(G, ix,iz){ const c=cell(ix,iz); if(!c||c.kind==='wall') return;
-  faceTop(G,'path', ix*B+0.05, iz*B+0.05, (ix+1)*B-0.05, (iz+1)*B-0.05, c.h*B+0.06, 1.0); }
+  emitTop(G,'path', ix*B+0.05, iz*B+0.05, (ix+1)*B-0.05, (iz+1)*B-0.05, c.h*B+0.06, 1.0); }
 function emitPathLine(G, x0,z0, x1,z1){
   const steps=Math.ceil(Math.hypot(x1-x0,z1-z0)/(B*0.8));
   let last='';
@@ -8410,7 +8467,7 @@ function emitPlaza(G,cx,cz,y,rad){
   for(let a=-r;a<=r;a++) for(let b2=-r;b2<=r;b2++){
     if(a*a+b2*b2>r*r) continue;
     const ix=ci+a, iz=cj+b2, c=cell(ix,iz); if(!c||c.kind==='wall'||c.kind==='floe') continue;
-    faceTop(G,'cobble', ix*B+0.04, iz*B+0.04, (ix+1)*B-0.04,(iz+1)*B-0.04, c.h*B+0.06, 0.95);
+    emitTop(G,'cobble', ix*B+0.04, iz*B+0.04, (ix+1)*B-0.04,(iz+1)*B-0.04, c.h*B+0.06, 0.95);
   }
 }
 /* a market / fish stall — posts, a striped canopy, a counter, and goods */
@@ -8434,14 +8491,14 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
      head taller and a street wider than the villages it lords it over */
   rectFree=rectFree||(()=>true); addRect=addRect||(()=>{});
   const cx=site.x, cz=site.z, sz2=cfg.size||2, nHomes=Math.round((cfg.houses||14)*1.4);
-  emitPlaza(G, cx,cz, wy, B*(6+sz2*1.5));
-  { stampBegin(); emitWell(G, cx,cz, wy); ex.stamps.push(stampEnd()); }
+  stamped(ex,()=>emitPlaza(G, cx,cz, wy, B*(6+sz2*1.5)));
+  stamped(ex,()=>emitWell(G, cx,cz, wy));
   solids.push({x:cx,z:cz,r:B*1.7});
   addRect(cx-B*1.7,cx+B*1.7,cz-B*1.7,cz+B*1.7);
   /* lots a street-and-a-garden apart — a city breathes, it does not huddle */
   const spacing=B*15, reach=B*(12+Math.ceil(nHomes/2));
-  emitPathLine(G, cx-reach,cz, cx+reach,cz);            // the two main streets
-  emitPathLine(G, cx,cz-reach, cx,cz+reach);
+  stamped(ex,()=>emitPathLine(G, cx-reach,cz, cx+reach,cz));   // the two main streets
+  stamped(ex,()=>emitPathLine(G, cx,cz-reach, cx,cz+reach));
   const lots=[];
   for(let gy=-3;gy<=3;gy++) for(let gx=-3;gx<=3;gx++){
     if(Math.abs(gx)<=0&&Math.abs(gy)<=0) continue;
@@ -8457,11 +8514,11 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
     if(!rectFree(hx-w*B/2-B,hx+w*B/2+B,hz-d*B/2-B,hz+d*B/2+B,B)) continue;
     const ddx=cx-hx, ddz=cz-hz;
     const doorDir=Math.abs(ddz)>=Math.abs(ddx)?(ddz>0?0:1):(ddx>0?2:3);
-    emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+placed);
+    stamped(ex,()=>emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+placed));
     addRect(hx-w*B/2-B,hx+w*B/2+B,hz-d*B/2-B,hz+d*B/2+B);
     const H=ex.houses[ex.houses.length-1];
-    emitPathLine(G, H.dx,H.dz, cx+gx*spacing, cz);      // a lane to the street
-    emitPathLine(G, cx+gx*spacing, cz, cx+gx*spacing, cz+gy*spacing);
+    stamped(ex,()=>{ emitPathLine(G, H.dx,H.dz, cx+gx*spacing, cz);   // a lane to the street
+      emitPathLine(G, cx+gx*spacing, cz, cx+gx*spacing, cz+gy*spacing); });
     homes.push({x:hx,z:hz,doorx:H.dx,doorz:H.dz}); placed++;
     if(placed%3===0) yield;                              /* breathe between the houses */
   }
@@ -8471,14 +8528,14 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
     for(let k=0;k<3+sz2;k++){ const sx=cx+B*(3+k*2.6), sz=cz+B*2.3;
       const c=landAtWorld(sx,sz); if(!c||c.kind==='wall') continue;
       if(!rectFree(sx-B*1.6,sx+B*1.6,sz-B*1.4,sz+B*1.4,0)) continue;
-      emitStall(G,sx,sz,c.h*B,'market'); solids.push({x:sx,z:sz,r:B*1.6});
+      stamped(ex,()=>emitStall(G,sx,sz,c.h*B,'market')); solids.push({x:sx,z:sz,r:B*1.6});
       addRect(sx-B*1.6,sx+B*1.6,sz-B*1.4,sz+B*1.4);
       ex.stalls.push({x:sx,z:sz}); } }
   /* extra wells of water — never inside a home's lot */
   for(let w2=1;w2<(cfg.wells||1);w2++){ const a=rnd(w2+70)*6.28, rr=B*(6+w2*3);
     const wx=cx+Math.cos(a)*rr, wz=cz+Math.sin(a)*rr, c=landAtWorld(wx,wz);
     if(c&&c.kind!=='wall'&&rectFree(wx-B*1.7,wx+B*1.7,wz-B*1.7,wz+B*1.7,B*0.5)){
-      { stampBegin(); emitWell(G,wx,wz,c.h*B); ex.stamps.push(stampEnd()); }
+      stamped(ex,()=>emitWell(G,wx,wz,c.h*B));
       solids.push({x:wx,z:wz,r:B*1.7});
       addRect(wx-B*1.7,wx+B*1.7,wz-B*1.7,wz+B*1.7); } }
   /* lamp posts along the streets */
@@ -8529,7 +8586,7 @@ function buildPier(G,ex,site,rnd,torches){
   if(!deckKeys.length) return null;
   emitBox(G,lastX-0.5,yD,lastZ-0.5,lastX+0.5,yD+B*1.4,lastZ+0.5,'logSide','logTop',null);
   torches.push({x:lastX,y:yD+B*1.4,z:lastZ});
-  emitPathLine(G,site.x,site.z,shoreX,shoreZ);
+  stamped(ex,()=>emitPathLine(G,site.x,site.z,shoreX,shoreZ));
   /* the pier's own bearing is kept — it is the only thing that truly knows
      which way the water lies (radial "outward" is inland on half the coasts) */
   ex.pier={x:lastX,z:lastZ,dx,dz};
@@ -8587,8 +8644,8 @@ function* spawnVillage(i,exShell){
     for(let tr=0;tr<10;tr++){ const a=rnd(130+tr*7)*6.28, rr=B*(18+(cfg.size||2)*4+tr);
       const px2=site.x+Math.cos(a)*rr, pz2=site.z+Math.sin(a)*rr, pc=landAtWorld(px2,pz2);
       if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'&&rectFree(px2-B*3.5,px2+B*3.5,pz2-B*2.5,pz2+B*2.5,B)){
-        emitPen(G,px2,pz2,pc.h*B,7,5);
-        emitPathLine(G,site.x,site.z,px2,pz2); ex.pen={x:px2,z:pz2};
+        stamped(ex,()=>{ emitPen(G,px2,pz2,pc.h*B,7,5);
+          emitPathLine(G,site.x,site.z,px2,pz2); }); ex.pen={x:px2,z:pz2};
         addRect(px2-B*3.5,px2+B*3.5,pz2-B*2.5,pz2+B*2.5); break; } }
   } else {
     /* --- a village proper: a broad ring of homes about the well and square
@@ -8612,14 +8669,14 @@ function* spawnVillage(i,exShell){
       if(!found) continue;
       const dx=site.x-hx, dz=site.z-hz;
       const doorDir=Math.abs(dz)>=Math.abs(dx) ? (dz>0?0:1) : (dx>0?2:3);
-      emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+h);
+      stamped(ex,()=>emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+h));
       addRect(hx-w*B/2-B,hx+w*B/2+B,hz-d*B/2-B,hz+d*B/2+B);
       if(h%2===1) yield;
     }
-    { stampBegin(); emitWell(G, site.x, site.z, wy); ex.stamps.push(stampEnd()); }
+    stamped(ex,()=>emitWell(G, site.x, site.z, wy));
     solids.push({x:site.x,z:site.z,r:B*1.5});
     addRect(site.x-B*1.5,site.x+B*1.5,site.z-B*1.5,site.z+B*1.5);
-    for(const dr of ex.doors) emitPathLine(G, site.x,site.z, dr.x,dr.z);
+    stamped(ex,()=>{ for(const dr of ex.doors) emitPathLine(G, site.x,site.z, dr.x,dr.z); });
     const nF=2+(rnd(40)>0.55?1:0);
     for(let f=0;f<nF;f++){
       let fx=0,fz=0,fc=null,found=false;
@@ -8630,7 +8687,7 @@ function* spawnVillage(i,exShell){
         if(!rectFree(tx-B*2.5,tx+B*2.5,tz-B*1.7,tz+B*1.7,B)) continue;
         fx=tx; fz=tz; fc=tc; found=true; }
       if(!found) continue;
-      emitFarm(G, fx,fz, fc.h*B, i*100+f); emitPathLine(G, site.x,site.z, fx,fz);
+      stamped(ex,()=>{ emitFarm(G, fx,fz, fc.h*B, i*100+f); emitPathLine(G, site.x,site.z, fx,fz); });
       addRect(fx-B*2.5,fx+B*2.5,fz-B*1.7,fz+B*1.7);
       ex.farms.push({x:fx,z:fz});
     }
@@ -8639,7 +8696,7 @@ function* spawnVillage(i,exShell){
       const sx=site.x+B*(2.6+s*3.1), sz=site.z+B*(2.4-s*4.6);
       const sc=landAtWorld(sx,sz); if(!sc||sc.kind==='wall') continue;
       if(!rectFree(sx-B*1.6,sx+B*1.6,sz-B*1.4,sz+B*1.4,0)) continue;
-      emitStall(G,sx,sz,sc.h*B, s?'fish':'market'); solids.push({x:sx,z:sz,r:B*1.6});
+      stamped(ex,()=>emitStall(G,sx,sz,sc.h*B, s?'fish':'market')); solids.push({x:sx,z:sz,r:B*1.6});
       addRect(sx-B*1.6,sx+B*1.6,sz-B*1.4,sz+B*1.4);
       ex.stalls.push({x:sx,z:sz});
     }
@@ -8648,19 +8705,19 @@ function* spawnVillage(i,exShell){
       const x=site.x+Math.cos(ang)*rad, z=site.z+Math.sin(ang)*rad;
       const c2=landAtWorld(x,z); if(!c2||c2.kind==='wall') continue;
       if(!rectFree(x-B*0.5,x+B*0.5,z-B*0.5,z+B*0.5,B*0.4)) continue;
-      emitHay(G,x,z,c2.h*B); solids.push({x,z,r:B*0.8});
+      stamped(ex,()=>emitHay(G,x,z,c2.h*B)); solids.push({x,z,r:B*0.8});
       addRect(x-B*0.5,x+B*0.5,z-B*0.5,z+B*0.5);
     }
     for(let tr=0;tr<10;tr++){ const ang=rnd(130+tr*7)*Math.PI*2, rad=(14+rnd(133+tr*7)*6)*B;
       const px2=site.x+Math.cos(ang)*rad, pz2=site.z+Math.sin(ang)*rad;
       const pc=landAtWorld(px2,pz2);
       if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'&&rectFree(px2-B*3,px2+B*3,pz2-B*2,pz2+B*2,B)){
-        emitPen(G,px2,pz2,pc.h*B,6,4);
-        emitPathLine(G,site.x,site.z,px2,pz2); ex.pen={x:px2,z:pz2};
+        stamped(ex,()=>{ emitPen(G,px2,pz2,pc.h*B,6,4);
+          emitPathLine(G,site.x,site.z,px2,pz2); }); ex.pen={x:px2,z:pz2};
         addRect(px2-B*3,px2+B*3,pz2-B*2,pz2+B*2); break; } }
     { const bx=site.x+B*1.9, bz=site.z-B*1.4; const bc=landAtWorld(bx,bz);
       if(bc&&bc.kind!=='wall'&&rectFree(bx-B*0.5,bx+B*0.5,bz-B*0.5,bz+B*0.5,0)){
-        emitBench(G,bx,bz,bc.h*B); solids.push({x:bx,z:bz,r:B*0.8}); } }
+        stamped(ex,()=>emitBench(G,bx,bz,bc.h*B)); solids.push({x:bx,z:bz,r:B*0.8}); } }
     for(let t=0;t<5;t++){ const ang=rnd(t+62)*Math.PI*2, rad=(3+rnd(t+66)*7)*B;
       const tx=site.x+Math.cos(ang)*rad, tz=site.z+Math.sin(ang)*rad;
       const tc2=landAtWorld(tx,tz); if(!tc2||tc2.kind==='wall') continue;
@@ -8680,7 +8737,7 @@ function* spawnVillage(i,exShell){
     for(let rr=1;rr<8;rr++){ const c=landAtWorld(fx+Math.cos(rr)*rr*B, fz+Math.sin(rr)*rr*B);
       if(c&&c.kind!=='wall'){ px3=fx+Math.cos(rr)*rr*B; pz3=fz+Math.sin(rr)*rr*B; break; } }
     const c=landAtWorld(px3,pz3); if(c&&c.kind!=='wall'&&rectFree(px3-B*1.6,px3+B*1.6,pz3-B*1.4,pz3+B*1.4,0)){
-      emitStall(G,px3,pz3,c.h*B,'fish');
+      stamped(ex,()=>emitStall(G,px3,pz3,c.h*B,'fish'));
       solids.push({x:px3,z:pz3,r:B*1.6}); addRect(px3-B*1.6,px3+B*1.6,pz3-B*1.4,pz3+B*1.4);
       ex.stalls.push({x:px3,z:pz3}); }
   }
@@ -8849,7 +8906,7 @@ function pushOutOfSolids(ent,dt){
       else { const a=hash2(s.x,s.z)*6.2832; ux=Math.cos(a); uz=Math.sin(a); }
       const step=Math.min(need-d, Math.max(6,sp0OfEnt(ent))*dt*2.2);
       const nx=ent.m.position.x+ux*step, nz=ent.m.position.z+uz*step;
-      const g=groundInfo(nx,nz);
+      const g=groundInfo(nx,nz,ent.m.position.y+0.1);
       if(g.land&&!blockedByStructureNPC(nx,nz)){ ent.m.position.x=nx; ent.m.position.z=nz; }
       ent.tx=ent.m.position.x; ent.tz=ent.m.position.z;   /* and it stops making for wherever it was going */
       return true; } }
@@ -8862,14 +8919,25 @@ function moveEnt(ent,dt,sp){
   const d=Math.hypot(dx,dz); let moving=d>0.6;
   if(moving){ const nx=ent.m.position.x+dx/d*sp*dt, nz=ent.m.position.z+dz/d*sp*dt;
     const hitPlayer=state.mode==='walk'&&Math.hypot(nx-state.walk.x,nz-state.walk.z)<2.6;
-    const gN=groundInfo(nx,nz);
+    /* ---- AND A CREATURE IS ASKED WHERE THE GROUND IS *NEAR HIM* ----
+       The reference height was left off, so a hollow column answered with the
+       TOPMOST surface in it. That was harmless while the only hollow thing in
+       the world was a cave, which folk do not walk over. A house makes every
+       column it stands in hollow — and the moment the houses became blocks,
+       a villager who strayed into one was answered with the RIDGE OF ITS
+       ROOF: eight-and-forty townsfolk lifted three courses into the air and
+       set walking about inside the planks and the tiles.
+       With his own height for a reference he is given the floor he is
+       standing on, and the wall beside him reads as the four-block step it is
+       and turns him back, as a wall should. */
+    const gN=groundInfo(nx,nz,ent.m.position.y+0.1);
     const tooSteep=gN.land&&Math.abs(gN.y-ent.m.position.y)>B*1.35;   /* folk walk steps, not cliff faces */
     if(!gN.land||tooSteep||blockedByStructureNPC(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,ent.m)||hitPlayer
       ||!!landmarkSolidAt(nx,nz,ent.m.position.y+2,ent.m.position.y+8)){   /* the ancients' walls bar the folk as they bar the traveller */
       moving=false; ent.t=0; ent.stuck=(ent.stuck||0)+1;
       if(ent.stuck>2){ ent.stuck=0; ent.acting=false; ent.pt=0; ent.tx=ent.m.position.x; ent.tz=ent.m.position.z; } }
     else { ent.stuck=0; ent.m.position.x=nx; ent.m.position.z=nz; ent.m.rotation.y=Math.atan2(dx,dz); } }
-  const gHere=groundInfo(ent.m.position.x,ent.m.position.z);
+  const gHere=groundInfo(ent.m.position.x,ent.m.position.z,ent.m.position.y+0.1);
   ent.m.position.y=gHere.land?gHere.y:WATER_Y;
   const legs=ent.m.userData.legs;
   /* the penned and the herded go by the same law as the wild ones */
@@ -9672,7 +9740,11 @@ let yahruPos=null;
     const jx=ix0+Math.round(Math.cos(th)*rad), jz=iz0+Math.round(Math.sin(th)*rad);
     const cc=cellRaw(jx,jz); if(cc&&cc.kind!=='wall') yahruPos={ix:jx,iz:jz,x:(jx+.5)*B,z:(jz+.5)*B};
   } }
-function buildYahru(){ if(!yahruPos) return;
+function buildYahru(){ if(!yahruPos) return; stamped(null,()=>buildYahruIn()); }
+/* the city of the great king, raised in stone. She is set down ONCE and never
+   taken up again, so her stamp is owned by nobody: there is no village to
+   hand the group to and nothing that could ever drop it. */
+function buildYahruIn(){
   const y=topY(yahruPos.ix,yahruPos.iz), x=yahruPos.x, z=yahruPos.z;
   const G=newG();
   const rnd=k=>hash2(k*3.17+9.1,k*7.31-2.2);
@@ -9696,7 +9768,7 @@ function buildYahru(){ if(!yahruPos) return;
     const c=landAtWorld(wx,wz); if(!c||c.kind==='wall') continue;
     emitBox(G, wx-B*1.1,c.h*B-B*0.5,wz-B*1.1, wx+B*1.1,wallTop+B*1.8,wz+B*1.1, 'cobble','cobble',null); }
   /* the street of the city: gate to gate, and up to the courts */
-  emitPathLine(G, x,z-RB, x,z+RB); emitPathLine(G, x,z, x+B*9,z);
+  emitPathLine(G, x,z-RB, x,z+RB); emitPathLine(G, x,z, x+B*9,z);   /* street and court way */
   /* ---- the Temple platform and its stair, eastward ---- */
   const tp=y+B*1.6;
   emitBox(G, x-B*8,y-B*0.5,z-B*6, x+B*8,tp,z+B*6, 'stone','cobble',null);
@@ -9754,7 +9826,9 @@ let homePos=null, HOME=null;
     const jx=ix0+Math.round(Math.cos(th)*rad), jz=iz0+Math.round(Math.sin(th)*rad);
     const cc=cellRaw(jx,jz); if(cc&&cc.kind!=='wall'&&cc.kind!=='floe') homePos={ix:jx,iz:jz,x:(jx+.5)*B,z:(jz+.5)*B};
   } }
-function buildHome(){ if(!homePos) return;
+function buildHome(){ if(!homePos) return; stamped(null,()=>buildHomeIn()); }
+/* and the traveller's own house in the tree, likewise raised once for good */
+function buildHomeIn(){
   const gy=topY(homePos.ix,homePos.iz), cx=homePos.x, cz=homePos.z;
   const G=newG(); const ex={doors:[],houses:[],torchIn:[]};
   const tr=B*1.1, plat=gy+B*10;
@@ -9769,8 +9843,8 @@ function buildHome(){ if(!homePos) return;
       sx+Math.cos(ang)*B*0.7+0.25,sy+B*1.2,sz+Math.sin(ang)*B*0.7+0.25,'logSide','logTop',null); }
   /* the railed platform */
   const pr=B*6;
-  faceTop(G,'planks', cx-pr,cz-pr, cx+pr,cz+pr, plat, 1.0);
-  faceBottom(G,'planks', cx-pr,cz-pr, cx+pr,cz+pr, plat-0.5, 0.5);
+  emitTop(G,'planks', cx-pr,cz-pr, cx+pr,cz+pr, plat, 1.0);
+  if(!_stampOn) faceBottom(G,'planks', cx-pr,cz-pr, cx+pr,cz+pr, plat-0.5, 0.5);
   for(const sgn of [[-1,-1],[1,-1],[-1,1],[1,1]])
     emitBox(G, cx+sgn[0]*pr*0.82-0.4,gy,cz+sgn[1]*pr*0.82-0.4, cx+sgn[0]*pr*0.82+0.4,plat,cz+sgn[1]*pr*0.82+0.4,'logSide','logTop',null);
   for(let a=0;a<48;a++){ const ang=a/48*6.283, rx=cx+Math.cos(ang)*pr*0.97, rz=cz+Math.sin(ang)*pr*0.97;
@@ -10665,7 +10739,15 @@ function groundInfo(x,z,refY){
   if(dk!==undefined) return {y:dk,land:true};
   const ix=Math.floor(x/B), iz=Math.floor(z/B);
   const c=landAtWorld(x,z);
-  const em=EDITS.size?editColumn(ix,iz):null;
+  /* BOTH LAYERS, or the ground is blind to everything anybody has BUILT.
+     This asked `EDITS.size` alone — the hands' own layer — while the whole of
+     Phase 3 writes into SEDITS, the structures' layer. Every query of where
+     the ground is therefore read straight through a village: a man walked to
+     the middle of a house and stood at the height of the FIELD it was raised
+     on, knee-deep in his own plank floor, and so did all eight-and-forty of
+     his neighbours. (editColumn has always read both; it was the gate in
+     front of it that was half-open.) */
+  const em=(EDITS.size||SEDITS.size)?editColumn(ix,iz):null;
   if(em){ const g=groundYEdited(ix,iz,c,refY);
     return {y:g.y, ceil:g.ceil, hollow:true, edited:true, land:true,
       wall:!!(c&&c.kind==='wall')}; }
@@ -13269,6 +13351,65 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
     return {ms:performance.now()-t, chunks:n}; },
   BLOCKS:()=>BLOCKS, edits:()=>EDITS, sedits:()=>SEDITS,
   stampCells:()=>{ let n=0; for(const m of SEDITS.values()) n+=m.size; return n; },
+  /* ---- STAND IN A TOWN AND WAIT FOR IT TO BE RAISED ----
+     A village is built over MANY FRAMES (villageBuildTick takes five
+     milliseconds at a time), and after the reload in test 7 there is no town
+     anywhere yet. A test that asks for a house the frame it arrives finds
+     none and reports that houses do not exist — which is a lie about the
+     world and was exactly what test 8 reported. It waits here instead, and
+     gives up loudly rather than quietly. */
+  standInVillage:async name=>{
+    let site=null, idx=-1;
+    for(let i=0;i<COUNTRIES.length;i++){ if(SITES[i]&&COUNTRIES[i].n===(name||'Yasharal')){ site=SITES[i]; idx=i; break; } }
+    if(!site) for(let i=0;i<SITES.length;i++) if(SITES[i]){ site=SITES[i]; idx=i; break; }
+    if(!site) return null;
+    state.walk.x=site.x+B*22; state.walk.z=site.z+B*22; state.walk.feetY=undefined; setMode('walk');
+    for(let k=0;k<600;k++){
+      updateChunks(state.walk.x,state.walk.z,400);
+      await new Promise(r=>requestAnimationFrame(r));
+      const vv=activeVillages.get(idx);
+      if(vv&&!vv.building&&vv.houses&&vv.houses.length){ flushEdits(1e9);
+        await new Promise(r=>requestAnimationFrame(r));
+        return {x:state.walk.x,z:state.walk.z,houses:vv.houses.length,frames:k}; }
+    }
+    return null; },
+  /* ---- A WALL OF SOMEBODY'S HOUSE, FOR tools/acceptance.js (Phase 3) ----
+     The lowest course of a standing wall, taken from the side of the house
+     the door is NOT in, and away from its corner posts — so what is broken is
+     wall and not a post, a footing or an open doorway. Returned with the
+     block above it, because a hole a man walks through is two blocks high and
+     a test that breaks one and calls it walkable is testing nothing. */
+  houseWallBlock:()=>{
+    for(const [,vv] of activeVillages){ const ex=vv.ex||vv; const hs=ex&&ex.houses;
+      if(!hs||!hs.length) continue;
+      for(const H of hs){
+        const fy=H.yb+B*0.55;                       /* the top of the footing */
+        const iy=Math.floor(fy/B)+1;                /* the first course of wall above it */
+        /* walk the four walls; the door's own wall is known by its gap */
+        const mid=(a,b)=>(a+b)/2;
+        const tries=[
+          {x:mid(H.x0,H.x1)+B*1.5, z:H.z0+B*0.25},
+          {x:mid(H.x0,H.x1)-B*1.5, z:H.z1-B*0.25},
+          {x:H.x0+B*0.25, z:mid(H.z0,H.z1)+B*1.5},
+          {x:H.x1-B*0.25, z:mid(H.z0,H.z1)-B*1.5}];
+        for(const t of tries){
+          const ix=Math.floor(t.x/B), iz=Math.floor(t.z/B);
+          if(!blockSolidAt(ix,iy,iz)||!blockSolidAt(ix,iy+1,iz)) continue;
+          /* it must be WALL: open air on both sides of it, in or out */
+          return {x:(ix+0.5)*B, y:(iy+0.5)*B, z:(iz+0.5)*B, ix,iy,iz,
+                  above:{x:(ix+0.5)*B, y:(iy+1.5)*B, z:(iz+0.5)*B},
+                  floor:H.yb+B*0.58, house:{x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1}};
+        }
+      }
+    }
+    return null; },
+  /* can a man stand where the wall stood? Two blocks of clear air over solid
+     footing, judged by the SAME test the walker's own legs use. */
+  walkerCanPass:w=>{
+    if(!w) return false;
+    const clear=!solidAt(w.x,w.y,w.z)&&!solidAt(w.x,w.above.y,w.z);
+    const stands=solidAt(w.x,w.y-B*0.6,w.z);      /* the course under the hole holds him up */
+    return clear&&stands; },
   /* the topmost solid block under a point, in world coordinates */
   blockUnder:(x,z)=>{ const ix=Math.floor(x/B), iz=Math.floor(z/B), c=cell(ix,iz);
     if(!c) return null;

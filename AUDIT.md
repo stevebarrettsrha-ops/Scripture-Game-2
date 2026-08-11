@@ -1474,6 +1474,8 @@ remesh, not by any per-frame cost.
 triangles to block stamps, structure edits kept apart from player edits, and
 the geometric diff harness that proves a converted village is the same village
 before anybody is allowed to mine it. Tests 8 and 9. *The long one.*
+(The village half of it is done in Round 28 below; the landmarks and the pier
+are not.)
 
 ## 4z. Round 27 — the earth restored to her own face, and the world made to zoom out as itself ✅
 
@@ -1590,6 +1592,120 @@ furniture, banners and flora that are a few pixels across and cannot be read.
 Putting the smallest things away as the eye draws back would be worth more
 than any further trimming of the ring, and it is a change with a pop in it if
 it is done carelessly. It belongs in its own round.
+
+## 4aa. Round 28 — Phase 3: the town made of blocks, and two lies the ground was telling ✅
+
+*The brief's Phase 3, for everything a village raises. Every `emit*` builder of
+a town now writes BLOCKS rather than triangles; the two acceptance tests that
+have stood PENDING since the brief was opened are green, and the suite is
+**12 pass · 0 fail · 0 pending** for the first time.*
+
+**1. Converted by being RUN, not rewritten.**
+- `stamped(ex,fn)` is the one door: it opens a stamp group, runs the builder
+  **unchanged**, and hands the group to the village that raised it so it can
+  be taken out again when the village is left behind. A builder called from
+  inside another JOINS the group already open — a house within a city is not
+  a separate thing to forget.
+- Converted: the houses and all their furniture, the pens and their rails and
+  hay, the farms, the market and fish stalls, the benches, the plaza, the
+  trodden ways, the wells, and both of the one-off standing places — the city
+  of Yahrushalayim, and the traveller's own house in the tree. Seventeen call
+  sites. **A village at Yasharal now writes 16,435 blocks across 41 chunks.**
+- `buildPier` is deliberately NOT among them. It is the one builder that
+  writes into `deckMap` — the table that tells the whole world where a plank
+  deck stands over open water — and converting it means converting that table
+  with it. PLAN.md §9.3 said it goes last; it goes last.
+
+**2. A laid surface is a course of blocks.**
+- A plaza, a trodden way, a plank floor, a bed of tilled soil and its water
+  channel were each ONE HORIZONTAL FACE laid a finger above the ground,
+  because a face is all the eye needs when nothing may be dug.
+- `emitTop` gives them the block whose lid they are (`round(y/B)−1`): a plaza
+  and a path go into the SURFACE course, so trodden ground is trodden ground
+  and not grass with a picture on it; a plank floor goes into the course laid
+  on the footing.
+- It is deliberately **not** `faceTop` itself. A good many faces in this
+  engine are genuinely faces — a rug on a floor, the sheen on still water, the
+  wash of a shelf — and turning every one of them to rock would fill the world
+  with blocks nobody meant to lay. Five call sites converted by hand.
+
+**3. Tests 8 and 9, at last.**
+
+    PASS  8 · a wall block breaks out of a house, and the hole is walkable
+              broke Planks twice over · hole open=true · a man passes=true
+    PASS  9 · dig under a house and its blocks stay put
+              4 block(s) taken from under it · the wall still stands=true
+
+- Test 8 breaks **two** blocks, not one. A hole a man walks through is two
+  blocks high, and a test that breaks one and calls it walkable is testing
+  nothing.
+- Both first reported *"no house near"* — and that was the TEST lying, not the
+  world. A village is raised over many frames, and test 7 reloads the page; by
+  the time test 8 ran there was no town anywhere yet. `standInVillage` waits
+  for one to stand (up to six hundred frames) and gives up loudly rather than
+  quietly.
+
+**4. Two lies the ground was telling, both found by looking at the townsfolk.**
+
+Forty-eight villagers were photographed and their feet measured. Eight of them
+stood inside solid blocks. Neither cause was in the conversion; both were
+older faults that only a town of real blocks could expose.
+
+- **`groundInfo` read one layer of two.** It asked `EDITS.size` — the hands'
+  own layer — while the whole of Phase 3 writes into `SEDITS`, the structures'
+  layer. So every query of where the ground is read straight *through* a
+  village: a man walked into a house and stood at the height of the field it
+  was raised on, knee-deep in his own plank floor. (`editColumn` has always
+  read both. It was the gate in front of it that was half-open.)
+- **A creature never said where it was standing.** `groundInfo` takes a
+  reference height for exactly this, and the villagers' three calls all
+  omitted it — so a hollow column answered with the TOPMOST surface in it.
+  Harmless while the only hollow thing in the world was a cave, which folk do
+  not walk over. A house makes every column it stands in hollow: eight-and-
+  forty townsfolk were lifted three courses into the air and set walking about
+  inside the planks and the tiles. With his own height for a reference each is
+  given the floor he is on — **and the wall beside him now reads as the
+  four-block step it is and turns him back, as a wall should.**
+- Measured after: **0 of 48 inside a block, 0 on a roof, 32 walking.**
+
+**5. And the ground query made to pay for itself.**
+`editColumn` walks every block written into a chunk to answer for ONE column
+of it — four hundred, to be asked about sixteen. A fair price once per blow of
+a pick; not a fair price when the ground query reads that layer for every
+creature in a town, twice a frame. The answers are kept in a small table now,
+thrown away WHOLE on any write anywhere — the only correctness this needs, and
+free, because a hand that lays a block has already bought a remesh in the same
+breath.
+
+**6. What a mineable town costs.**
+
+Back to back, the same box, the same run, `ed0ce58` against this commit:
+
+| station | before | now | triangles |
+|---|---|---|---|
+| a village at noon | 722.3 ms | **784.6 ms** (+8.6 %) | 469 K → 530 K (+12.9 %) |
+| the cedar coast | 693.0 ms | **793.3 ms** (+14.5 %) | 504 K → 553 K (+9.9 %) |
+| open sand | 623.8 ms | **637.6 ms** (+2.2 %) | 423 K → 434 K |
+| closed rain forest | 861.6 ms | **878.4 ms** (+1.9 %) | 684 K → 692 K |
+| alpine rock and snow | 661.1 ms | **696.9 ms** (+5.4 %) | 516 K → 535 K |
+| a cold coast | 537.7 ms | **561.6 ms** (+4.4 %) | 389 K → 397 K |
+
+The cost is where the towns are, and it is inherent: a house drawn as boxes
+emits six quads a box, and the same house drawn as BLOCKS emits a face per
+exposed block face — a nine-by-nine wall is eighty-one quads where it was one.
+That is what a wall a man can break is made of. An earlier reading of this
+same pair said +22 %; it was taken on a box running four browsers and the
+triangle counts did not agree with it. These do.
+
+**The obvious next saving, and it is NOT done here:** the mesher emits every
+exposed face separately. Greedy merging of coplanar faces would collapse that
+nine-by-nine wall back to one quad and would pay for the whole of this round
+several times over, on the terrain as much as on the houses. It is a change to
+the heart of `emitColumn` and it wants a round of its own.
+
+**Still ahead in Phase 3:** the `lm*` landmark builders (pyramid, ziggurat,
+temple, stone circle, wall, lighthouse, gate, city, statue), `buildPier` last
+with `deckMap`, and the geometric diff harness.
 
 ## 5. Further recommendations (future work)
 

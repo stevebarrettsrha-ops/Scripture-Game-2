@@ -187,20 +187,35 @@ T[8]={name:'a wall block breaks out of a house, and the hole is walkable',
   run:async page=>page.evaluate(async()=>{
     const D=window.__VDBG;
     if(!D.setBlock||!D.houseWallBlock) return {pending:'houses are still decoration (Phase 3)'};
-    const w=D.houseWallBlock(); if(!w) return {ok:false,got:'no house near'};
-    D.setBlock(w.x,w.y,w.z,0); await D.settle(2);
-    return {ok:!D.solidAt(w.x,w.y+0.5,w.z)&&D.walkerCanPass(w),
-      got:'hole open and walkable'};
+    const v=await D.standInVillage(); if(!v) return {ok:false,got:'no town would stand within six hundred frames'};
+    const w=D.houseWallBlock(); if(!w) return {ok:false,got:'a town of '+v.houses+' houses, and no wall found in it'};
+    const was=D.blockOf(D.blockAt(w.ix,w.iy,w.iz));
+    /* a hole a man walks through is TWO blocks high; breaking one and calling
+       it walkable would be testing nothing */
+    const b1=D.setBlock(w.x,w.y,w.z,0), b2=D.setBlock(w.above.x,w.above.y,w.above.z,0);
+    await D.settle(2);
+    const gone=!D.solidAt(w.x,w.y,w.z)&&!D.solidAt(w.above.x,w.above.y,w.above.z);
+    const pass=D.walkerCanPass(w);
+    return {ok:b1&&b2&&gone&&pass,
+      got:'broke '+(was?was.name:'?')+' twice over · hole open='+gone+' · a man passes='+pass};
   })};
 
 T[9]={name:'dig under a house and its blocks stay put',
   run:async page=>page.evaluate(async()=>{
     const D=window.__VDBG;
     if(!D.setBlock||!D.houseWallBlock) return {pending:'houses are still decoration (Phase 3)'};
-    const w=D.houseWallBlock(); if(!w) return {ok:false,got:'no house near'};
-    for(let k=1;k<=4;k++) D.setBlock(w.x,w.y-k*D.B,w.z,0);
+    const v=await D.standInVillage(); if(!v) return {ok:false,got:'no town would stand within six hundred frames'};
+    const w=D.houseWallBlock(); if(!w) return {ok:false,got:'a town of '+v.houses+' houses, and no wall found in it'};
+    /* mine the ground out from under a standing wall. Nothing in this world
+       falls of its own weight, and a house that collapsed when its footing
+       was dug would be a physics nobody has written. */
+    let dug=0;
+    for(let k=1;k<=4;k++) if(D.setBlock(w.x,w.y-k*D.B,w.z,0)) dug++;
     await D.settle(3);
-    return {ok:D.solidAt(w.x,w.y+0.5,w.z), got:'the wall still stands over the void'};
+    const stands=D.solidAt(w.x,w.y,w.z);
+    const hollow=!D.solidAt(w.x,w.y-D.B*2,w.z);
+    return {ok:stands&&hollow&&dug>0,
+      got:dug+' block(s) taken from under it · the wall still stands='+stands+' · the hole is open='+hollow};
   })};
 
 /* ---------- 10 · the light in the corners.  PASSES TODAY ---------- */
