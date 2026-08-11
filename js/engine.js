@@ -76,8 +76,18 @@ function fbm(x,y){return vnoise(x,y)*.55+vnoise(x*2.13,y*2.13)*.3+vnoise(x*4.7,y
 const PAL=window.PALETTE, PB=PAL.block, PP=PAL.pigment;
 const TEXEL=32, TS=TEXEL/16;         /* the grain of a face, and true pixels to the old texel */
 const FG=1/TS;                       /* one true pixel, in the old sixteen-unit space */
+/* A canvas of as many TRUE pixels as are asked for, and not one more. Only
+   `mkTex` below speaks the old sixteen-unit texel tongue, and it does its own
+   reckoning into true pixels before it asks. THIS FUNCTION ONCE DID THAT
+   RECKONING FOR EVERY CALLER, and every caller that had always asked in true
+   pixels — the chart of the whole earth, the sea-floor sheet, the name
+   banners, the glow of the two lights — was handed a canvas twice as wide and
+   twice as tall as it painted into, and drew its whole work into the top-left
+   quarter of it. The earth was beheld a quarter of her size, in the corner of
+   her own face, with the wall of night showing through where the rest of her
+   should have been. */
 function texCanvas(w,h){ const c=D.createElement('canvas');
-  c.width=Math.round((w||16)*TS); c.height=Math.round((h||w||16)*TS); return c; }
+  c.width=Math.round(w||16); c.height=Math.round(h||w||16); return c; }
 function P(g,x,y,col){ g.fillStyle=col; g.fillRect(x,y,1,1); }
 function Pf(g,x,y,col){ g.fillStyle=col; g.fillRect(x,y,FG,FG); }   /* one TRUE pixel */
 function rgb(r,g2,b2){ return 'rgb('+r+','+g2+','+b2+')'; }
@@ -117,7 +127,8 @@ function hewnEdge(cv){
    withheld from everything drawn with a hole in it — a leaf canopy, a blade
    of grass, a flower, a pane — where a rim would draw a box in mid-air. */
 function mkTex(draw,w,h,opt){
-  const c=texCanvas(w,h), g=c.getContext('2d');
+  const W=w||16, H=h||W;                    /* asked in old texels, cut in true pixels */
+  const c=texCanvas(Math.round(W*TS),Math.round(H*TS)), g=c.getContext('2d');
   g.imageSmoothingEnabled=false;
   g.save(); g.scale(TS,TS); draw(g,c); g.restore();
   if(opt&&opt.rim) hewnEdge(c);
