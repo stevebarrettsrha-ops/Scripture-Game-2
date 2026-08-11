@@ -1474,6 +1474,260 @@ remesh, not by any per-frame cost.
 triangles to block stamps, structure edits kept apart from player edits, and
 the geometric diff harness that proves a converted village is the same village
 before anybody is allowed to mine it. Tests 8 and 9. *The long one.*
+(The village half of it is done in Round 28 below; the landmarks and the pier
+are not.)
+
+## 4z. Round 27 — the earth restored to her own face, and the world made to zoom out as itself ✅
+
+*Not a phase of the brief but a repair and a piece of polish, both raised from
+the field: a hole in the middle of the world that was my own doing, and the
+long-standing complaint that drawing the eye back does not show the world
+drawing away — it hands over to a coarse stand-in and then that stand-in
+zooms out. Verified live, side by side against a worktree at the commit
+before Phase 0, at seven stations of the pull-back.*
+
+**1. The hole in the middle of the world — one function, every caller but one.**
+- Phase 0 raised the grain of a block face from sixteen texels to thirty-two,
+  and put the reckoning in the wrong door: `texCanvas(w,h)` was made to
+  multiply what it was asked for by `TS` (=2).
+- **Only `mkTex` speaks texels.** Every other caller in the engine had always
+  asked in TRUE PIXELS — the chart of the whole earth at 2048, the sea-floor
+  sheet at 64×32, the name banners at 1024×170, the glow of the two lights at
+  128, the wall of night at 512, the cloud sheets at 256, the minimap at
+  whatever it is drawn — and every one of them was handed a canvas twice as
+  wide and twice as tall as it painted into. Each drew its whole work into the
+  **top-left quarter** and left three quarters transparent.
+- What that looked like from the field: drawn back on the wheel, **the earth
+  was a quarter of her size, up in the corner of her own disc**, with the wall
+  of night showing through the empty three quarters where the rest of her
+  should have been — which is exactly the "big hole in the middle" that was
+  reported. The glow of the sun and of the moon sat up and to the left of the
+  light it belonged to and read as **a second light floating beside the
+  first**, which is exactly the "extra lights around the sun and moon" that
+  was reported in the same breath. Two complaints, one line of code.
+- **Found by measurement, not by reading.** The two great objects at zoom 1.0
+  were enumerated in both builds and came out identical to the digit —
+  `CylinderGeometry r=179820` at `#0a0c18`, `CircleGeometry r=180000` with a
+  map, same distances, same flags, same render order. Nothing in the SCENE
+  differed. That is what pointed at the TEXTURE, and the canvas is 4096 where
+  the paint stops at 2048.
+- `texCanvas` is cut to the size it is asked for, as it always was; `mkTex`
+  does its own reckoning into true pixels before it asks. **The grain of the
+  block faces is unchanged** — that was never the bug.
+
+**2. The world must zoom out as itself.**
+- The streamed ring stayed at thirteen chunks (1,248 units) however far the
+  eye was drawn back, while the haze opened with the pull-back to miles. So
+  from about 1,300 units out, what filled the view was the coarse carpet with
+  one small crisp patch of true blocks under the ship.
+- The ring now **widens with the pull-back exactly as it widens with the
+  wings**, to the same cap of twenty-one chunks — and, unlike the wings, it is
+  **given back** as the view outgrows anything a ring of real chunks could
+  fill (it fades out between 4,500 and 9,000 units) and again as the charted
+  face comes over the top. Held on all the way out it was costing five
+  thousand draw calls a frame for a coin in the middle of the window.
+
+**3. A block is a block until it is a county.**
+- Every cell of the far ring was laid as a flat-topped brick with a wall down
+  to its neighbour. That is right where a cell is a few blocks across — it is
+  the same grammar as the chunks beside it and the seam cannot be found. But
+  the ring's cells grow with its reach: drawn back a few thousand units, one
+  cell is four hundred units — **sixty-six blocks** — across, and sixty-six
+  blocks of country flattened to one height with a sheer wall round it is not
+  block grammar at all. It is a terraced wedding cake laid over the earth in
+  rings and spokes, and it is precisely what read as an overlay thrown over
+  the world instead of the world itself.
+- The brick is now **kept while a cell is block-sized and given up as it
+  grows** (over 24 → 170 units of cell width): the corners walk out onto the
+  cell's true edges, the walls between cells close to nothing, and each corner
+  takes the mean of the cells that meet at it. The far country resolves into
+  ground with ranges and valleys in it.
+- **The coasts are not smoothed.** A corner where dry land meets open water
+  keeps its hard step. The one line the eye truly reads out there is the shape
+  of the coast, and a shore eased into the sea over four hundred units is a
+  world with no coastline. The turn-shading is averaged with the heights, or
+  it would put back in light the very cell edges the blending has taken out in
+  shape.
+- It costs a third pass over the ring (the corners cannot be settled until
+  every cell that meets at them has been read AND shaded, and one of those
+  lies in the ring that has not been walked yet). It is sliced at the same six
+  milliseconds a frame as the other two, and no half-built ring is ever shown.
+
+**4. What it costs, measured back to back.**
+
+Standing ashore at Yapho at noon, median of fifty frames, the same box, the
+same run, the commit before Phase 0 against this one:
+
+| pull-back | before | now | draw calls | triangles |
+|---|---|---|---|---|
+| zoom 0.55 (3,470 out) | 1,064.9 ms | **1,510.1 ms** | 8,873 → 9,580 | 1.11 M → 1.30 M |
+| zoom 0.62 (6,990 out) | 914.9 ms | **1,880.6 ms** | 9,130 → 12,928 | 1.07 M → 1.77 M |
+| zoom 0.70 (15,580 out) | 860.1 ms | **1,257.5 ms** | 9,191 → 10,081 | 1.07 M → 1.24 M |
+
+**This is a real bill and it is written down as one.** It is 1.4× to 2.1× on a
+software rasteriser, which is fill-bound and so charges the triangles harder
+than a GPU would; on hardware the draw calls (1.08× to 1.42×) are the truer
+guide. It falls **only inside the pull-back band**: gameplay — the deck, the
+shore, anything under about 900 units of camera — is untouched, and the same
+twenty-one rings are what a flyer at any height has always paid for. The band
+is a deliberate, transient view, and what it buys is the whole of the
+complaint. Untapered it was 2,105 K triangles and 14,933 calls at zoom 0.62;
+the taper gives back a fifth of that where it was buying nothing.
+
+**5. Test 12 made to measure rather than to guess.**
+- It failed once in three on unchanged code. One sample is one sample, and a
+  scheduler that takes the box away for forty milliseconds mid-run turns a
+  3.0 ms chunk into a 3.8 ms one and calls it a regression.
+- The interference only ever runs ONE WAY — it can add time to a build, never
+  take it away — so the test now measures **three times on fresh ground of the
+  same kind and keeps the least**, and prints all three passes beside the
+  verdict, so a real slowdown (all three dear) is told apart from a busy box
+  (one dear, two not). `ocean 1.005 ms (passes 2.70/2.44/1.01) · plain 2.375 ms
+  (passes 2.37/2.65/2.67)`.
+- The baseline and the 1.35 slack are unchanged.
+
+**Noted and NOT done:** at 6,990 units out the frame carries eleven draw calls
+per chunk where it carries six at arm's length — the surplus is village
+furniture, banners and flora that are a few pixels across and cannot be read.
+Putting the smallest things away as the eye draws back would be worth more
+than any further trimming of the ring, and it is a change with a pop in it if
+it is done carelessly. It belongs in its own round.
+
+## 4aa. Round 28 — Phase 3: the town and the ancients made of blocks, and two lies the ground was telling ✅
+
+*The brief's Phase 3, for everything a village raises. Every `emit*` builder of
+a town now writes BLOCKS rather than triangles; the two acceptance tests that
+have stood PENDING since the brief was opened are green, and the suite is
+**12 pass · 0 fail · 0 pending** for the first time.*
+
+**1. Converted by being RUN, not rewritten.**
+- `stamped(ex,fn)` is the one door: it opens a stamp group, runs the builder
+  **unchanged**, and hands the group to the village that raised it so it can
+  be taken out again when the village is left behind. A builder called from
+  inside another JOINS the group already open — a house within a city is not
+  a separate thing to forget.
+- Converted: the houses and all their furniture, the pens and their rails and
+  hay, the farms, the market and fish stalls, the benches, the plaza, the
+  trodden ways, the wells, and both of the one-off standing places — the city
+  of Yahrushalayim, and the traveller's own house in the tree. Seventeen call
+  sites. **A village at Yasharal now writes 16,435 blocks across 41 chunks.**
+- `buildPier` is deliberately NOT among them. It is the one builder that
+  writes into `deckMap` — the table that tells the whole world where a plank
+  deck stands over open water — and converting it means converting that table
+  with it. PLAN.md §9.3 said it goes last; it goes last.
+
+**2. A laid surface is a course of blocks.**
+- A plaza, a trodden way, a plank floor, a bed of tilled soil and its water
+  channel were each ONE HORIZONTAL FACE laid a finger above the ground,
+  because a face is all the eye needs when nothing may be dug.
+- `emitTop` gives them the block whose lid they are (`round(y/B)−1`): a plaza
+  and a path go into the SURFACE course, so trodden ground is trodden ground
+  and not grass with a picture on it; a plank floor goes into the course laid
+  on the footing.
+- It is deliberately **not** `faceTop` itself. A good many faces in this
+  engine are genuinely faces — a rug on a floor, the sheen on still water, the
+  wash of a shelf — and turning every one of them to rock would fill the world
+  with blocks nobody meant to lay. Five call sites converted by hand.
+
+**3. Tests 8 and 9, at last.**
+
+    PASS  8 · a wall block breaks out of a house, and the hole is walkable
+              broke Planks twice over · hole open=true · a man passes=true
+    PASS  9 · dig under a house and its blocks stay put
+              4 block(s) taken from under it · the wall still stands=true
+
+- Test 8 breaks **two** blocks, not one. A hole a man walks through is two
+  blocks high, and a test that breaks one and calls it walkable is testing
+  nothing.
+- Both first reported *"no house near"* — and that was the TEST lying, not the
+  world. A village is raised over many frames, and test 7 reloads the page; by
+  the time test 8 ran there was no town anywhere yet. `standInVillage` waits
+  for one to stand (up to six hundred frames) and gives up loudly rather than
+  quietly.
+
+**4. Two lies the ground was telling, both found by looking at the townsfolk.**
+
+Forty-eight villagers were photographed and their feet measured. Eight of them
+stood inside solid blocks. Neither cause was in the conversion; both were
+older faults that only a town of real blocks could expose.
+
+- **`groundInfo` read one layer of two.** It asked `EDITS.size` — the hands'
+  own layer — while the whole of Phase 3 writes into `SEDITS`, the structures'
+  layer. So every query of where the ground is read straight *through* a
+  village: a man walked into a house and stood at the height of the field it
+  was raised on, knee-deep in his own plank floor. (`editColumn` has always
+  read both. It was the gate in front of it that was half-open.)
+- **A creature never said where it was standing.** `groundInfo` takes a
+  reference height for exactly this, and the villagers' three calls all
+  omitted it — so a hollow column answered with the TOPMOST surface in it.
+  Harmless while the only hollow thing in the world was a cave, which folk do
+  not walk over. A house makes every column it stands in hollow: eight-and-
+  forty townsfolk were lifted three courses into the air and set walking about
+  inside the planks and the tiles. With his own height for a reference each is
+  given the floor he is on — **and the wall beside him now reads as the
+  four-block step it is and turns him back, as a wall should.**
+- Measured after: **0 of 48 inside a block, 0 on a roof, 32 walking.**
+
+**5. And the ground query made to pay for itself.**
+`editColumn` walks every block written into a chunk to answer for ONE column
+of it — four hundred, to be asked about sixteen. A fair price once per blow of
+a pick; not a fair price when the ground query reads that layer for every
+creature in a town, twice a frame. The answers are kept in a small table now,
+thrown away WHOLE on any write anywhere — the only correctness this needs, and
+free, because a hand that lays a block has already bought a remesh in the same
+breath.
+
+**6. What a mineable town costs.**
+
+Back to back, the same box, the same run, `ed0ce58` against this commit:
+
+| station | before | now | triangles |
+|---|---|---|---|
+| a village at noon | 722.3 ms | **784.6 ms** (+8.6 %) | 469 K → 530 K (+12.9 %) |
+| the cedar coast | 693.0 ms | **793.3 ms** (+14.5 %) | 504 K → 553 K (+9.9 %) |
+| open sand | 623.8 ms | **637.6 ms** (+2.2 %) | 423 K → 434 K |
+| closed rain forest | 861.6 ms | **878.4 ms** (+1.9 %) | 684 K → 692 K |
+| alpine rock and snow | 661.1 ms | **696.9 ms** (+5.4 %) | 516 K → 535 K |
+| a cold coast | 537.7 ms | **561.6 ms** (+4.4 %) | 389 K → 397 K |
+
+The cost is where the towns are, and it is inherent: a house drawn as boxes
+emits six quads a box, and the same house drawn as BLOCKS emits a face per
+exposed block face — a nine-by-nine wall is eighty-one quads where it was one.
+That is what a wall a man can break is made of. An earlier reading of this
+same pair said +22 %; it was taken on a box running four browsers and the
+triangle counts did not agree with it. These do.
+
+**The obvious next saving, and it is NOT done here:** the mesher emits every
+exposed face separately. Greedy merging of coplanar faces would collapse that
+nine-by-nine wall back to one quad and would pay for the whole of this round
+several times over, on the terrain as much as on the houses. It is a change to
+the heart of `emitColumn` and it wants a round of its own.
+
+**7. And the works of the ancients, raised twice.**
+- All nine `lm*` builders — pyramid, ziggurat, temple, stone circle, wall,
+  lighthouse, gate, city, statue — are pure `emitBox`, so they converted by
+  being run. **The Pyramids of Giza now stand as 2,646 blocks.**
+- But they are raised TWICE, in triangles and in blocks, and this is the one
+  place in Phase 3 where that is right. **A landmark exists to be seen from
+  far off — that is the whole of what a landmark is** — and blocks are only
+  laid inside the streamed ring. Converted to blocks alone, every pyramid and
+  lighthouse on the earth would cease to exist the moment the haze opened far
+  enough to look for it, which is the opposite of a landmark.
+- So the triangles are the FAR SILHOUETTE, and they are put away the moment
+  the true blocks under them are standing. The test is not the traveller's
+  distance but whether **the chunk the thing stands in has actually been
+  laid** — the same question asked properly. Never both at once: two copies
+  of a temple in one place fight each other face for face.
+- Verified at Giza: at **150 units the silhouette is hidden** and 2,646 blocks
+  stand; at **1,950 units the silhouette is shown** and the pyramid is on the
+  skyline in the haze, where without it there would be empty sky.
+- A village gets no such silhouette, and does not want one: it spawns at 1,600
+  units, just beyond a fog that closes at 1,140, so it is never looked at from
+  outside the ring. Its structure geometry is also tangled with its people in
+  one group and would have to be separated first. Noted, not done.
+
+**Still ahead in Phase 3:** `buildPier` last with `deckMap`, and the geometric
+diff harness.
 
 ## 5. Further recommendations (future work)
 

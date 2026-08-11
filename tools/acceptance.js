@@ -27,8 +27,20 @@ const {open,sail}=require('./harness.js');
    the commit after read 2.993 — the code got no slower, the machine got
    busier. So the guard is set to catch a real regression (a third again as
    dear) and not to catch the weather. If it fails, re-measure the previous
-   commit in a worktree before believing it. */
-const BASELINE={ ocean:2.152, plain:1.970, slack:1.35 };
+   commit in a worktree before believing it.
+
+   AND IT IS MEASURED THREE TIMES AND THE LEAST IS TAKEN. Widening the slack
+   was not enough on its own: one sample is one sample, and a scheduler that
+   takes the box away for forty milliseconds in the middle of it turns a
+   3.0 ms chunk into a 3.8 ms chunk and calls that a regression. Run alone,
+   the same commit failed once in three. The interference only ever runs ONE
+   WAY — it can add time to a build, never take it away — so the LEAST of
+   several passes is the honest reading of what the code costs, and the
+   spread between the passes is printed beside it, so a real slowdown (all
+   three dear) is told apart from a busy box (one dear, two not). Each pass
+   stands on fresh ground of the same kind, since a chunk already built is
+   not built again. */
+const BASELINE={ ocean:2.152, plain:1.970, slack:1.35, passes:3 };
 
 const T={};   /* n -> {name, run(page) -> {ok, got, pending?}} */
 
@@ -175,20 +187,35 @@ T[8]={name:'a wall block breaks out of a house, and the hole is walkable',
   run:async page=>page.evaluate(async()=>{
     const D=window.__VDBG;
     if(!D.setBlock||!D.houseWallBlock) return {pending:'houses are still decoration (Phase 3)'};
-    const w=D.houseWallBlock(); if(!w) return {ok:false,got:'no house near'};
-    D.setBlock(w.x,w.y,w.z,0); await D.settle(2);
-    return {ok:!D.solidAt(w.x,w.y+0.5,w.z)&&D.walkerCanPass(w),
-      got:'hole open and walkable'};
+    const v=await D.standInVillage(); if(!v) return {ok:false,got:'no town would stand within six hundred frames'};
+    const w=D.houseWallBlock(); if(!w) return {ok:false,got:'a town of '+v.houses+' houses, and no wall found in it'};
+    const was=D.blockOf(D.blockAt(w.ix,w.iy,w.iz));
+    /* a hole a man walks through is TWO blocks high; breaking one and calling
+       it walkable would be testing nothing */
+    const b1=D.setBlock(w.x,w.y,w.z,0), b2=D.setBlock(w.above.x,w.above.y,w.above.z,0);
+    await D.settle(2);
+    const gone=!D.solidAt(w.x,w.y,w.z)&&!D.solidAt(w.above.x,w.above.y,w.above.z);
+    const pass=D.walkerCanPass(w);
+    return {ok:b1&&b2&&gone&&pass,
+      got:'broke '+(was?was.name:'?')+' twice over · hole open='+gone+' · a man passes='+pass};
   })};
 
 T[9]={name:'dig under a house and its blocks stay put',
   run:async page=>page.evaluate(async()=>{
     const D=window.__VDBG;
     if(!D.setBlock||!D.houseWallBlock) return {pending:'houses are still decoration (Phase 3)'};
-    const w=D.houseWallBlock(); if(!w) return {ok:false,got:'no house near'};
-    for(let k=1;k<=4;k++) D.setBlock(w.x,w.y-k*D.B,w.z,0);
+    const v=await D.standInVillage(); if(!v) return {ok:false,got:'no town would stand within six hundred frames'};
+    const w=D.houseWallBlock(); if(!w) return {ok:false,got:'a town of '+v.houses+' houses, and no wall found in it'};
+    /* mine the ground out from under a standing wall. Nothing in this world
+       falls of its own weight, and a house that collapsed when its footing
+       was dug would be a physics nobody has written. */
+    let dug=0;
+    for(let k=1;k<=4;k++) if(D.setBlock(w.x,w.y-k*D.B,w.z,0)) dug++;
     await D.settle(3);
-    return {ok:D.solidAt(w.x,w.y+0.5,w.z), got:'the wall still stands over the void'};
+    const stands=D.solidAt(w.x,w.y,w.z);
+    const hollow=!D.solidAt(w.x,w.y-D.B*2,w.z);
+    return {ok:stands&&hollow&&dug>0,
+      got:dug+' block(s) taken from under it · the wall still stands='+stands+' · the hole is open='+hollow};
   })};
 
 /* ---------- 10 · the light in the corners.  PASSES TODAY ---------- */
@@ -265,16 +292,25 @@ T[12]={name:'ocean and plains chunks build no slower than they did',
       for(let k=0;k<25;k++){ D.updateChunks(x,z,400); await new Promise(r=>requestAnimationFrame(r)); }
       const n=S.n-n0; return n?(S.ms-m0)/n:NaN;
     };
+    /* the same kind of ground, several times over, and the least is kept —
+       each pass a good way off the last so the chunks are new ground */
+    const least=async(x,z,dx,dz)=>{ const all=[];
+      for(let i=0;i<B.passes;i++){ const t=await timeAt(x+dx*i,z+dz*i);
+        if(isFinite(t)) all.push(t); }
+      return all.length?{ms:Math.min.apply(null,all),all}:{ms:NaN,all:[]};
+    };
+    const say=r=>r.all.map(v=>v.toFixed(2)).join('/');
     /* open ocean: the middle of the great sea, far from any coast */
     const R=D.R_WORLD;
-    const ocean=await timeAt(-0.42*R, 0.16*R);
+    const ocean=await least(-0.42*R, 0.16*R, 3000, 1200);
     /* open plain: the steppe, inland and flat */
     let plainSite=null; const sites=window.__WORLD.sites();
     for(let i=0;i<sites.length;i++){ if(sites[i]&&D.COUNTRIES[i].n==='Kazakhstan'){ plainSite=sites[i]; break; } }
-    const plain=plainSite?await timeAt(plainSite.x+9000,plainSite.z):NaN;
-    const ok=(!isFinite(ocean)||ocean<=B.ocean*B.slack)&&(!isFinite(plain)||plain<=B.plain*B.slack);
-    return {ok, got:'ocean '+ocean.toFixed(3)+' ms/chunk (was '+B.ocean+') · plain '+
-      plain.toFixed(3)+' ms/chunk (was '+B.plain+')'};
+    const plain=plainSite?await least(plainSite.x+9000,plainSite.z,900,0):{ms:NaN,all:[]};
+    const ok=(!isFinite(ocean.ms)||ocean.ms<=B.ocean*B.slack)&&
+             (!isFinite(plain.ms)||plain.ms<=B.plain*B.slack);
+    return {ok, got:'ocean '+ocean.ms.toFixed(3)+' ms/chunk (was '+B.ocean+', passes '+say(ocean)+
+      ') · plain '+plain.ms.toFixed(3)+' ms/chunk (was '+B.plain+', passes '+say(plain)+')'};
   },BASELINE)};
 
 (async()=>{
