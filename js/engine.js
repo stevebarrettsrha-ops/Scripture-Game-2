@@ -2583,13 +2583,39 @@ function updateChunks(px,pz,budget,view){
 const FL_RINGS=64, FL_SPOKES=112, FL_R0=420, FL_R1=3600, FL_FADE=330, FL_STEP=300;
 const FL_NR2=FL_RINGS*2, FL_NS2=FL_SPOKES*2;   /* the woven grid is twice as fine */
 const FL_INSET=0.035;         /* how far in from a cell's edge its corners sit */
-/* the angle of every vertex column: two per cell, just inside its two edges */
+/* the angle of every vertex column: two per cell, just inside its two edges.
+   And the same angles again WITHOUT the inset, on the cell's true edges, for
+   the far rings that give up the brick and close into open ground. */
 const FL_COS=new Float32Array(FL_NS2), FL_SIN=new Float32Array(FL_NS2);
+const FL_COS0=new Float32Array(FL_NS2), FL_SIN0=new Float32Array(FL_NS2);
 { const dth=Math.PI*2/FL_SPOKES;
   for(let s=0;s<FL_SPOKES;s++){ const t0=s*dth;
     const a=t0+dth*FL_INSET, b=t0+dth*(1-FL_INSET);
     FL_COS[s*2]=Math.cos(a); FL_SIN[s*2]=Math.sin(a);
-    FL_COS[s*2+1]=Math.cos(b); FL_SIN[s*2+1]=Math.sin(b); } }
+    FL_COS[s*2+1]=Math.cos(b); FL_SIN[s*2+1]=Math.sin(b);
+    FL_COS0[s*2]=Math.cos(t0); FL_SIN0[s*2]=Math.sin(t0);
+    FL_COS0[s*2+1]=Math.cos(t0+dth); FL_SIN0[s*2+1]=Math.sin(t0+dth); } }
+/* ---- A BLOCK IS A BLOCK UNTIL IT IS A COUNTY ----
+   Every cell of the ring is laid as one flat-topped brick with a wall down to
+   its neighbour, which is right where a cell is a few blocks across: it is
+   the same grammar as the chunks it stands beside, and the seam cannot be
+   found. But the ring's cells grow with its reach, and drawn back a few
+   thousand units a single cell is four hundred units — SIXTY-SIX BLOCKS —
+   across. Sixty-six blocks of country flattened to one height with a sheer
+   wall round it is not the block grammar at all; it is a terraced wedding
+   cake laid over the earth in rings and spokes, and it is exactly what read
+   as a coarse overlay thrown over the world instead of the world itself
+   drawing away.
+   So the brick is kept while a cell is block-sized and GIVEN UP as it grows:
+   past about four blocks the corners walk out onto the cell's true edges (the
+   walls between cells closing to nothing) and each corner takes the mean of
+   the cells that meet at it, so the far country resolves into ground with
+   ranges and valleys in it rather than steps.
+   THE COASTS ARE NOT SMOOTHED. A corner where dry land meets open water keeps
+   the hard step: the one line out there the eye truly reads is the shape of
+   the coast, and a shore eased into the sea over four hundred units is a
+   world with no coastline at all. */
+const FL_SM0=24, FL_SM1=170;      /* cell width, in units, over which the brick is given up */
 const flGeo=(()=>{
   const g=new THREE.BufferGeometry(), nv=FL_NR2*FL_NS2;
   const pos=new Float32Array(nv*3), col=new Float32Array(nv*3), idx=[];
@@ -2638,6 +2664,10 @@ const _flH=new Float32Array(FL_NC);
    never shown. */
 const _flPB=new Float32Array(FL_NV*3), _flCB=new Float32Array(FL_NV*3);
 const _flLand=new Uint8Array(FL_NC);   /* dry ground, which may never be sunk */
+const _flC=new Float32Array(FL_NC*3);  /* the colour each cell read, for the blending */
+const _flY=new Float32Array(FL_NC);    /* the height it finally stands at */
+const _flSh=new Float32Array(FL_NC);   /* and how the turn of it takes the light */
+const _flSm=new Float32Array(FL_RINGS);/* how far each ring has given up the brick */
 const _flRad=new Float32Array(FL_RINGS);  /* the middle radius of each cell ring */
 const FL_MS=6;                 /* the slice of a frame the rebuild may take */
 let _flAt=null, _flR1=FL_R1, _flJob=null;
@@ -2656,7 +2686,12 @@ function flFillRing(k,px,pz,kr,fine){
   _flRad[k]=rr;
   /* the two vertex radii of this cell: just inside either edge, so that what
      lies between one cell and the next is a wall standing on end */
-  const ra=rIn+(rOut-rIn)*FL_INSET, rb=rOut-(rOut-rIn)*FL_INSET;
+  /* — unless the cell has outgrown the block grammar, when they walk out onto
+     the true edges and the wall between one cell and the next closes up */
+  const sm=Math.max(0,Math.min(1,(rr*6.2832/FL_SPOKES-FL_SM0)/(FL_SM1-FL_SM0)));
+  _flSm[k]=sm;
+  const ins=FL_INSET*(1-sm);
+  const ra=rIn+(rOut-rIn)*ins, rb=rOut-(rOut-rIn)*ins;
   /* ---- A RANGE, NOT A TENT ----
      One point sample per vertex, at a spacing that grows from sixteen units
      at the inner edge to hundreds at the outer, and a massif is barely a
@@ -2699,15 +2734,27 @@ function flFillRing(k,px,pz,kr,fine){
       y=-900; c=FL_VOID; }
     else { y=WATER_Y-6; c=FL_SEA; }     /* well under the trough of any wave */
     _flH[c0]=y; _flLand[c0]=cc?1:0;
-    /* the brick's four corners: the same colour on every one of them, so the
-       top is flat-shaded and the wall to the next brick is a hard edge */
+    _flC[c0*3]=c[0]; _flC[c0*3+1]=c[1]; _flC[c0*3+2]=c[2];
+    /* the brick's four corners. The colours and the heights are settled in the
+       shading pass, which alone has the whole ring to hand and can ask what
+       stands on the other side of a cell's edge; here only the ground plan is
+       laid — and it eases from the inset brick to the closed sheet as the
+       cells outgrow the blocks they stand for. */
     flCorners(k,s,_flQ);
     for(let q=0;q<4;q++){ const i=_flQ[q]*3;
       const rq=(q<2)?ra:rb, jq=(q&1)?s*2+1:s*2;
-      _flPB[i]=FL_COS[jq]*rq; _flPB[i+2]=FL_SIN[jq]*rq;
+      const cs2=FL_COS[jq]+(FL_COS0[jq]-FL_COS[jq])*sm;
+      const sn2=FL_SIN[jq]+(FL_SIN0[jq]-FL_SIN[jq])*sm;
+      _flPB[i]=cs2*rq; _flPB[i+2]=sn2*rq;
       _flCB[i]=c[0]; _flCB[i+1]=c[1]; _flCB[i+2]=c[2]; }
   }
 }
+/* a cell index, with the spokes running round and the rings stopping at the
+   ends — so the blending at the ring's own two edges leans on itself */
+function flAt(k,s){ return (k<0?0:k>=FL_RINGS?FL_RINGS-1:k)*FL_SPOKES
+  +((s%FL_SPOKES)+FL_SPOKES)%FL_SPOKES; }
+/* which three OTHER cells meet this cell at each of its four corners */
+const FL_NB=[[-1,-1,-1,0,0,-1],[-1,0,-1,1,0,1],[1,-1,1,0,0,-1],[1,0,1,1,0,1]];
 /* one ring of shading: a brick that stands over its neighbours is darkened on
    the turn, as the flanks of the near blocks are, so a stair of them reads as
    a stair and not as one flat field of colour */
@@ -2718,7 +2765,7 @@ function flShadeRing(k,r1){
     const c0=k*FL_SPOKES+s;
     const cr=(k<FL_RINGS-1?k+1:k-1)*FL_SPOKES+s, cs=k*FL_SPOKES+(s+1)%FL_SPOKES;
     const fall=(Math.abs(_flH[c0]-_flH[cr])+Math.abs(_flH[c0]-_flH[cs]))/(step*1.7);
-    const sh=1-0.40*Math.min(1,fall);
+    _flSh[c0]=1-0.40*Math.min(1,fall);
     /* THE SINK MAY NOT DROWN THE COUNTRY. The ring dips beneath the chunks at
        its inner edge so the seam between coarse and fine ground cannot be
        seen — but the flat country of the world stands ONE BLOCK above the
@@ -2730,10 +2777,44 @@ function flShadeRing(k,r1){
     const sink=Math.max(0,1-Math.max(0,r-FL_R0)/FL_FADE);
     let y=_flH[c0]-sink*B*1.4;
     if(_flLand[c0]) y=Math.max(y,Math.min(_flH[c0],WATER_Y+2.2));
+    _flY[c0]=y;
+  }
+}
+/* ---- AND THE CORNERS ARE SET LAST OF ALL ----
+   A corner may only be settled once every cell that meets at it has been
+   read and shaded, which is why this is a pass of its own and not the tail
+   of the one above: the cells that meet at a corner lie in the ring on
+   either side, and one of those two has not been shaded yet while the ring
+   between them is being walked. */
+function flCornerRing(k){
+  const sm=_flSm[k];
+  for(let s=0;s<FL_SPOKES;s++){
+    const c0=k*FL_SPOKES+s;
     flCorners(k,s,_flQ);
-    for(let q=0;q<4;q++){ const i=_flQ[q]*3;
-      _flPB[i+1]=y;
-      _flCB[i]*=sh; _flCB[i+1]*=sh; _flCB[i+2]*=sh; }
+    const y0=_flY[c0], sh0=_flSh[c0], land0=_flLand[c0];
+    const r0=_flC[c0*3], g0=_flC[c0*3+1], b0=_flC[c0*3+2];
+    if(sm<0.004){                    /* a block-sized cell stays a block */
+      for(let q=0;q<4;q++){ const i=_flQ[q]*3;
+        _flPB[i+1]=y0;
+        _flCB[i]=r0*sh0; _flCB[i+1]=g0*sh0; _flCB[i+2]=b0*sh0; }
+      continue; }
+    /* the corner takes the mean of the cells that meet there — of those
+       cells only that are of the same element as this one, so a shore is
+       never eased out into the water it stands over. The turn-shading is
+       averaged with them: left flat per cell it would put back, in light,
+       the very cell edges the blending has just taken out in shape. */
+    for(let q=0;q<4;q++){ const i=_flQ[q]*3, nb=FL_NB[q];
+      let ys=y0, n=1, cr=r0, cg=g0, cb=b0, ss=sh0;
+      for(let m=0;m<6;m+=2){ const c2=flAt(k+nb[m],s+nb[m+1]);
+        if(_flLand[c2]!==land0) continue;
+        ys+=_flY[c2]; ss+=_flSh[c2];
+        cr+=_flC[c2*3]; cg+=_flC[c2*3+1]; cb+=_flC[c2*3+2]; n++; }
+      const inv=1/n;
+      const sh=sh0+(ss*inv-sh0)*sm;
+      _flPB[i+1]=y0+(ys*inv-y0)*sm;
+      _flCB[i]  =(r0+(cr*inv-r0)*sm)*sh;
+      _flCB[i+1]=(g0+(cg*inv-g0)*sm)*sh;
+      _flCB[i+2]=(b0+(cb*inv-b0)*sm)*sh; }
   }
 }
 function updateFarLand(px,pz,force,eyeY){
@@ -2783,8 +2864,8 @@ function updateFarLand(px,pz,force,eyeY){
   if(!_flJob){
     if(!whole&&!grown&&(!movedC||lag<220)) return;
     const r1=(grown||whole)?want:_flR1;
-    _flJob={px:sxx,pz:szz,r1,kr:Math.log(r1/FL_R0),k:0,sk:0};
-  } else if(whole){ _flJob={px:sxx,pz:szz,r1:want,kr:Math.log(want/FL_R0),k:0,sk:0}; }
+    _flJob={px:sxx,pz:szz,r1,kr:Math.log(r1/FL_R0),k:0,sk:0,ck:0};
+  } else if(whole){ _flJob={px:sxx,pz:szz,r1:want,kr:Math.log(want/FL_R0),k:0,sk:0,ck:0}; }
   /* and if he is outrunning it anyway — flying, or the frames themselves so
      slow that ten of them are seconds — the rebuild stops being polite and
      finishes in the one frame rather than let the hole open. That is the old
@@ -2802,6 +2883,8 @@ function updateFarLand(px,pz,force,eyeY){
   while(J.k<FL_RINGS){ flFillRing(J.k++,J.px,J.pz,J.kr,fine);
     if(!rush&&performance.now()-t0>=FL_MS) return; }
   while(J.sk<FL_RINGS){ flShadeRing(J.sk++,J.r1);
+    if(!rush&&performance.now()-t0>=FL_MS) return; }
+  while(J.ck<FL_RINGS){ flCornerRing(J.ck++);
     if(!rush&&performance.now()-t0>=FL_MS) return; }
   /* done — the new ring takes the place of the old one in a single step */
   flGeo.attributes.position.array.set(_flPB);
@@ -13362,9 +13445,40 @@ function frame(){
      well (+2) — at full wing (520 u/s) the frontier is crossed in seconds,
      and the extra ring keeps the new ground rising behind the haze instead
      of popping inside the view */
-  const viewEff=state.mode==='fly'
-    ?Math.min(21,13+Math.round(Math.max(0,eyeY-200)/200)+Math.min(2,Math.round((frame._spd||0)/260)))
-    :VIEW;
+  /* ---- AND THE DRAWN-BACK EYE IS SHOWN TRUE LAND, AS FAR AS TRUE LAND CAN
+         BE GIVEN ----
+     Pulling the eye back off the world opens the haze with it — at three
+     thousand units out the view runs for miles — but the streamed ring stayed
+     at thirteen chunks (1,248 units) whatever the eye did. So the whole of
+     the middle of the pull-back was the COARSE CARPET with one small crisp
+     patch of true blocks under the ship: the world did not zoom out, it
+     handed over to a lego stand-in and then that stand-in zoomed out.
+     The ring widens with the pull-back now exactly as it widens with the
+     wings, and to the same cap of twenty-one chunks — 2,016 units, which
+     carries true blocks to about 3,400 units of pull-back, better than half
+     the way to the charted face. Past that no ring of real chunks could fill
+     the view and the carpet fairly inherits it.
+     And it is GIVEN BACK as the chart comes over the top: chunks under a
+     charted face at half strength are chunks nobody can see, and the frame
+     should not be paying for them at the very moment the whole earth is
+     being drawn. */
+  /* AND IT IS SPENT WHERE IT BUYS THE VIEW AND NOWHERE ELSE. Held on all the
+     way out, the widened ring went on costing five thousand draw calls a
+     frame at seven thousand units of pull-back — where 2,016 units of true
+     blocks is a coin in the middle of the window and the carpet has the rest
+     of it regardless. It comes in as the haze opens and goes out again as the
+     view outgrows anything the mesher could fill. */
+  const _cd=state.camDist;
+  const backF=Math.max(0,Math.min(1,(_cd-820)/2200))
+             *Math.max(0,Math.min(1,(9000-_cd)/4500));
+  const backW=Math.round(8*backF*(1-Math.max(0,Math.min(1,(zMapF-0.35)/0.35))));
+  /* the ring widens with HEIGHT (13 → 19) and, riding fast, with SPEED as
+     well (+2) — at full wing (520 u/s) the frontier is crossed in seconds,
+     and the extra ring keeps the new ground rising behind the haze instead
+     of popping inside the view */
+  const viewEff=Math.min(21,(state.mode==='fly'
+    ?13+Math.round(Math.max(0,eyeY-200)/200)+Math.min(2,Math.round((frame._spd||0)/260))
+    :VIEW)+backW);
   frame._flyAir=(frame._flyAir||0)
     +(((state.mode==='fly'&&!state.firm)?1:0)-(frame._flyAir||0))*Math.min(1,dt*1.4);
   if(frame._flyAir<0.005) frame._flyAir=0;
@@ -13648,7 +13762,11 @@ function frame(){
   frame._px=p.x; frame._pz=p.z; frame._spd=trueSpd;
   /* at full wing the mesher takes a deeper slice — the widened ring must be
      FILLED at 520 u/s, or the frontier is built inside the opened air */
-  const chunkBudget=(state.mode==='fly'&&trueSpd>260)?14:(state.mode==='fly'||trueSpd>50)?9:4;
+  /* and the widened ring of a pull-back must be FILLED while the eye is going
+     out, or the wheel is turned faster than the ground can be laid and the
+     traveller watches his own world arrive in pieces behind him */
+  const chunkBudget=(state.mode==='fly'&&trueSpd>260)?14
+    :(state.mode==='fly'||trueSpd>50||backW>0)?9:4;
   updateChunks(p.x,p.z,chunkBudget,viewEff);
   /* ---- NOTHING BUT BLOCKS IN GAMEPLAY ----
      The coarse far ring is BANISHED from the played world. Down on the sea,

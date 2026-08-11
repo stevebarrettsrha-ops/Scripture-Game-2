@@ -1475,6 +1475,122 @@ triangles to block stamps, structure edits kept apart from player edits, and
 the geometric diff harness that proves a converted village is the same village
 before anybody is allowed to mine it. Tests 8 and 9. *The long one.*
 
+## 4z. Round 27 — the earth restored to her own face, and the world made to zoom out as itself ✅
+
+*Not a phase of the brief but a repair and a piece of polish, both raised from
+the field: a hole in the middle of the world that was my own doing, and the
+long-standing complaint that drawing the eye back does not show the world
+drawing away — it hands over to a coarse stand-in and then that stand-in
+zooms out. Verified live, side by side against a worktree at the commit
+before Phase 0, at seven stations of the pull-back.*
+
+**1. The hole in the middle of the world — one function, every caller but one.**
+- Phase 0 raised the grain of a block face from sixteen texels to thirty-two,
+  and put the reckoning in the wrong door: `texCanvas(w,h)` was made to
+  multiply what it was asked for by `TS` (=2).
+- **Only `mkTex` speaks texels.** Every other caller in the engine had always
+  asked in TRUE PIXELS — the chart of the whole earth at 2048, the sea-floor
+  sheet at 64×32, the name banners at 1024×170, the glow of the two lights at
+  128, the wall of night at 512, the cloud sheets at 256, the minimap at
+  whatever it is drawn — and every one of them was handed a canvas twice as
+  wide and twice as tall as it painted into. Each drew its whole work into the
+  **top-left quarter** and left three quarters transparent.
+- What that looked like from the field: drawn back on the wheel, **the earth
+  was a quarter of her size, up in the corner of her own disc**, with the wall
+  of night showing through the empty three quarters where the rest of her
+  should have been — which is exactly the "big hole in the middle" that was
+  reported. The glow of the sun and of the moon sat up and to the left of the
+  light it belonged to and read as **a second light floating beside the
+  first**, which is exactly the "extra lights around the sun and moon" that
+  was reported in the same breath. Two complaints, one line of code.
+- **Found by measurement, not by reading.** The two great objects at zoom 1.0
+  were enumerated in both builds and came out identical to the digit —
+  `CylinderGeometry r=179820` at `#0a0c18`, `CircleGeometry r=180000` with a
+  map, same distances, same flags, same render order. Nothing in the SCENE
+  differed. That is what pointed at the TEXTURE, and the canvas is 4096 where
+  the paint stops at 2048.
+- `texCanvas` is cut to the size it is asked for, as it always was; `mkTex`
+  does its own reckoning into true pixels before it asks. **The grain of the
+  block faces is unchanged** — that was never the bug.
+
+**2. The world must zoom out as itself.**
+- The streamed ring stayed at thirteen chunks (1,248 units) however far the
+  eye was drawn back, while the haze opened with the pull-back to miles. So
+  from about 1,300 units out, what filled the view was the coarse carpet with
+  one small crisp patch of true blocks under the ship.
+- The ring now **widens with the pull-back exactly as it widens with the
+  wings**, to the same cap of twenty-one chunks — and, unlike the wings, it is
+  **given back** as the view outgrows anything a ring of real chunks could
+  fill (it fades out between 4,500 and 9,000 units) and again as the charted
+  face comes over the top. Held on all the way out it was costing five
+  thousand draw calls a frame for a coin in the middle of the window.
+
+**3. A block is a block until it is a county.**
+- Every cell of the far ring was laid as a flat-topped brick with a wall down
+  to its neighbour. That is right where a cell is a few blocks across — it is
+  the same grammar as the chunks beside it and the seam cannot be found. But
+  the ring's cells grow with its reach: drawn back a few thousand units, one
+  cell is four hundred units — **sixty-six blocks** — across, and sixty-six
+  blocks of country flattened to one height with a sheer wall round it is not
+  block grammar at all. It is a terraced wedding cake laid over the earth in
+  rings and spokes, and it is precisely what read as an overlay thrown over
+  the world instead of the world itself.
+- The brick is now **kept while a cell is block-sized and given up as it
+  grows** (over 24 → 170 units of cell width): the corners walk out onto the
+  cell's true edges, the walls between cells close to nothing, and each corner
+  takes the mean of the cells that meet at it. The far country resolves into
+  ground with ranges and valleys in it.
+- **The coasts are not smoothed.** A corner where dry land meets open water
+  keeps its hard step. The one line the eye truly reads out there is the shape
+  of the coast, and a shore eased into the sea over four hundred units is a
+  world with no coastline. The turn-shading is averaged with the heights, or
+  it would put back in light the very cell edges the blending has taken out in
+  shape.
+- It costs a third pass over the ring (the corners cannot be settled until
+  every cell that meets at them has been read AND shaded, and one of those
+  lies in the ring that has not been walked yet). It is sliced at the same six
+  milliseconds a frame as the other two, and no half-built ring is ever shown.
+
+**4. What it costs, measured back to back.**
+
+Standing ashore at Yapho at noon, median of fifty frames, the same box, the
+same run, the commit before Phase 0 against this one:
+
+| pull-back | before | now | draw calls | triangles |
+|---|---|---|---|---|
+| zoom 0.55 (3,470 out) | 1,064.9 ms | **1,510.1 ms** | 8,873 → 9,580 | 1.11 M → 1.30 M |
+| zoom 0.62 (6,990 out) | 914.9 ms | **1,880.6 ms** | 9,130 → 12,928 | 1.07 M → 1.77 M |
+| zoom 0.70 (15,580 out) | 860.1 ms | **1,257.5 ms** | 9,191 → 10,081 | 1.07 M → 1.24 M |
+
+**This is a real bill and it is written down as one.** It is 1.4× to 2.1× on a
+software rasteriser, which is fill-bound and so charges the triangles harder
+than a GPU would; on hardware the draw calls (1.08× to 1.42×) are the truer
+guide. It falls **only inside the pull-back band**: gameplay — the deck, the
+shore, anything under about 900 units of camera — is untouched, and the same
+twenty-one rings are what a flyer at any height has always paid for. The band
+is a deliberate, transient view, and what it buys is the whole of the
+complaint. Untapered it was 2,105 K triangles and 14,933 calls at zoom 0.62;
+the taper gives back a fifth of that where it was buying nothing.
+
+**5. Test 12 made to measure rather than to guess.**
+- It failed once in three on unchanged code. One sample is one sample, and a
+  scheduler that takes the box away for forty milliseconds mid-run turns a
+  3.0 ms chunk into a 3.8 ms one and calls it a regression.
+- The interference only ever runs ONE WAY — it can add time to a build, never
+  take it away — so the test now measures **three times on fresh ground of the
+  same kind and keeps the least**, and prints all three passes beside the
+  verdict, so a real slowdown (all three dear) is told apart from a busy box
+  (one dear, two not). `ocean 1.005 ms (passes 2.70/2.44/1.01) · plain 2.375 ms
+  (passes 2.37/2.65/2.67)`.
+- The baseline and the 1.35 slack are unchanged.
+
+**Noted and NOT done:** at 6,990 units out the frame carries eleven draw calls
+per chunk where it carries six at arm's length — the surplus is village
+furniture, banners and flora that are a few pixels across and cannot be read.
+Putting the smallest things away as the eye draws back would be worth more
+than any further trimming of the ring, and it is a change with a pop in it if
+it is done carelessly. It belongs in its own round.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
