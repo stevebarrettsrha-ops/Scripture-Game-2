@@ -1987,6 +1987,92 @@ of it, the same darkness at the far end. Nothing was skipped that had anything
 in it.
 
 **Still ahead in Phase 3:** the geometric diff harness, and nothing else.
+*(Done in Round 32 below. Phase 3 is complete.)*
+
+## 4ae. Round 32 — the geometric diff: PHASE 3 COMPLETE ✅
+
+*The last item of Phase 3, and the one PLAN.md §6 said must not be
+hand-waved: proof that a builder run as blocks fills the SAME SPACE it filled
+as triangles. `tools/stampdiff.js` — **14 pass · 0 fail**, and the game's own
+suite still 12 pass · 0 fail · 0 pending.*
+
+**1. What nothing else was asking.**
+Tests 8 and 9 prove a house is FUNCTIONAL — a wall breaks out of it and a man
+walks through the hole; it does not fall when the ground is dug from under it.
+Neither would notice if the house came out **a block wider**, or a wall a
+course short, or a doorway shifted half a block. That is the exact failure
+mode of `STAMP_EPS`, the rule that a box fills a cell when it crosses more
+than a sixth of it: get it wrong at a corner and every building on the earth
+is wrong in the same direction, and nothing says a word.
+
+**2. Voxels, not triangles.**
+A stamped wall is meshed as merged runs (Round 30) and legitimately has far
+fewer triangles than the boxes it replaced, so comparing geometry would fail
+on correct work. The builder is run **twice** — once recording every box with
+the stone it is made of, once writing blocks — the boxes are rasterised to the
+grid by the SAME rule `stampBox` uses, and the two sets of cells are compared.
+The probe drops its own stamp before it returns, and refuses outright if it
+finds the test ground already carries built blocks (a stamp that meets a cell
+already written does not record it as its own, and the diff would read short
+and blame the builder).
+
+**3. Three ways they can differ, and only one of them is a fault.**
+
+| | meaning | verdict |
+|---|---|---|
+| **missing** | a cell a box asked for, and the stamp has not | always wrong |
+| **swapped** | both have it, in different stone | right, but must be DECLARED |
+| **extra** | the stamp has it, no box asked | right, but must be DECLARED |
+
+`missing = 0` for all fourteen builders. The declarations are the valuable
+part: **every deviation of the block world from the triangles it replaced is
+now a line in a table with a reason beside it**, and a builder that acquires a
+new one fails until somebody writes down why. There were exactly two, and
+neither was recorded anywhere before this round asked:
+
+- **the well** — 1 cell, `Coursed Stone → Water`: the water standing in its own
+  shaft, which used to be a single drawn face and is now a block a man could
+  in principle take a bucket from.
+- **the house** — 49 cells, `Coursed Stone → Planks`: the plank floor laid on
+  the cobble footing. In a block world the two share a course; as triangles
+  the floor was a face lying on top of the cobble.
+- **the farm** — 15 cells added, `Tilled Ground` and `Water`: the bed and its
+  channel, laid by `emitTop`.
+
+**4. The reading.**
+
+    PASS  well          6 boxes →   21 cells · stamped   21 · missing 0
+    PASS  pen          14 boxes →   12 cells · stamped   12 · missing 0
+    PASS  farm          4 boxes →   22 cells · stamped   37 · missing 0
+    PASS  stall         9 boxes →   25 cells · stamped   25 · missing 0
+    PASS  bench         1 box    →    2 cells · stamped    2 · missing 0
+    PASS  hay           1 box    →    1 cell  · stamped    1 · missing 0
+    PASS  house        33 boxes →  487 cells · stamped  487 · missing 0
+    PASS  stonecircle  15 boxes →  160 cells · stamped  160 · missing 0
+    PASS  gate          5 boxes →  114 cells · stamped  114 · missing 0
+    PASS  statue        3 boxes →   48 cells · stamped   48 · missing 0
+    PASS  lighthouse    4 boxes →  458 cells · stamped  458 · missing 0
+    PASS  pyramid      10 boxes → 1299 cells · stamped 1299 · missing 0
+    PASS  ziggurat     19 boxes → 1001 cells · stamped 1001 · missing 0
+    PASS  temple       19 boxes →  910 cells · stamped  910 · missing 0
+
+Ten boxes of pyramid rasterise to 1,299 cells and the stamp holds exactly
+those 1,299. Nineteen boxes of temple to 910, and 910.
+
+**5. What it cost the game: one null check.**
+`emitBox` gained `if(_boxRec) _boxRec.push(...)`, and `_boxRec` is null in every
+frame the game has ever drawn — it is set only by this tool. `stampDiff` lives
+on `__VDBG` with the other read-only probes and nothing in the game reads it.
+The suite was re-run afterwards to say so: **12 pass · 0 fail · 0 pending**.
+
+---
+
+### PHASE 3 IS COMPLETE
+
+Every `emit*` and `lm*` builder converted from triangles to block stamps;
+structure edits kept in their own layer and dropped with the thing that laid
+them; `buildPier` and `deckMap` last, as PLAN.md §9.3 asked; tests 8 and 9
+green; and the geometric diff standing behind all of it.
 
 ## 5. Further recommendations (future work)
 

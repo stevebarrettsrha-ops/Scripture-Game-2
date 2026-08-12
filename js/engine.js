@@ -1532,7 +1532,16 @@ function faceNZ(G,mat,z,x0,x1,y0,y1,s,ao){ quad(G,mat, x1,y0,z, x0,y0,z, x0,y1,z
    were stage scenery: walker, flyer and camera all passed straight through
    the Great Pyramid, which is not what a pyramid is for.) */
 let _solidRec=null;
+/* ---- AND EVERY BOX, WITH THE STONE IT IS MADE OF ----
+   `_solidRec` above keeps only the boxes big enough to bar a man's way, and
+   keeps no material. `_boxRec` keeps EVERY box and what it is made of, and is
+   set only by the geometric diff in tools/stampdiff.js — the check that a
+   builder run as blocks fills exactly the space it filled as triangles.
+   It is recorded BEFORE the stamp branch returns, so the same builder can be
+   asked the same question in either mode. */
+let _boxRec=null;
 function emitBox(G, x0,y0,z0, x1,y1,z1, sideMat, topMat, botMat, tint){
+  if(_boxRec) _boxRec.push({x0,y0,z0,x1,y1,z1,mat:sideMat||topMat});
   /* ---- AND WHILE A STAMP IS OPEN, A BOX IS BLOCKS ----
      No triangles are laid at all: the chunk mesher draws what was written,
      and it is the same rock the pick meets. */
@@ -13542,6 +13551,100 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   /* the remesh ALONE, in milliseconds — not the frame it happens to sit in */
   flushNow:()=>{ const t=performance.now(); const n=flushEdits(1e9);
     return {ms:performance.now()-t, chunks:n}; },
+  /* ---- THE GEOMETRIC DIFF (PLAN.md §6.1), FOR tools/stampdiff.js ----
+     A builder converted to blocks must fill the SAME SPACE it filled as
+     triangles. Comparing the triangles themselves would be wrong — a stamped
+     wall merges into greedy runs and legitimately has far fewer — so the
+     comparison is on a VOXEL OCCUPANCY SET: the builder is run twice, once
+     recording every box it emits and once writing blocks, the boxes are
+     rasterised to the grid by the SAME rule `stampBox` uses, and the two sets
+     of cells are compared.
+     What must hold is `missing = 0`: not one cell a box asked for may be
+     absent from the stamp. Cells the stamp has and the boxes do not are
+     EXPECTED for some builders and are reported by name — a well's standing
+     water, a floor or a path laid by `emitTop`, the planks of a pier — all of
+     them things deliberately named as blocks where they used to be a single
+     drawn face. The tool holds the list of which builders may have them.
+     It leaves the world exactly as it found it: the stamp it opens is dropped
+     before it returns. */
+  stampDiff:(kind,ox,oz)=>{
+    const B2=B;
+    const runners={
+      well:      (G,x,z,y)=>emitWell(G,x,z,y),
+      pen:       (G,x,z,y)=>emitPen(G,x,z,y,7,5),
+      farm:      (G,x,z,y)=>emitFarm(G,x,z,y,3),
+      stall:     (G,x,z,y)=>emitStall(G,x,z,y,'market'),
+      bench:     (G,x,z,y)=>emitBench(G,x,z,y),
+      hay:       (G,x,z,y)=>emitHay(G,x,z,y),
+      house:     (G,x,z,y)=>emitHouse(G,{doors:[],houses:[],torchIn:[]},x,z,y,9,9,0,11),
+      pyramid:   (G,x,z,y)=>lmPyramid(G,x,z,y,1),
+      ziggurat:  (G,x,z,y)=>lmZiggurat(G,x,z,y),
+      temple:    (G,x,z,y)=>lmTemple(G,x,z,y,1),
+      stonecircle:(G,x,z,y)=>lmStoneCircle(G,x,z,y),
+      lighthouse:(G,x,z,y)=>lmLighthouse(G,x,z,y),
+      gate:      (G,x,z,y)=>lmGate(G,x,z,y),
+      statue:    (G,x,z,y)=>lmStatue(G,x,z,y)
+    };
+    const run=runners[kind]; if(!run) return {err:'no such builder: '+kind};
+    const x=ox, z=oz, c=landAtWorld(x,z);
+    if(!c) return {err:'no ground at the test spot'};
+    const y=c.h*B2;
+    /* the ground here must be UNBUILT, or a stamp that finds a cell already
+       written does not record it as its own and the diff would read short */
+    let dirty=0;
+    for(let dx=-2;dx<=2;dx++) for(let dz=-2;dz<=2;dz++){
+      const k=(Math.floor(Math.floor(x/B2)/CH)+dx)+','+(Math.floor(Math.floor(z/B2)/CH)+dz);
+      const m=SEDITS.get(k); if(m) dirty+=m.size; }
+    if(dirty) return {err:'the test ground already carries '+dirty+' stamped blocks'};
+    /* 1 — the builder as it was: every box, with its stone */
+    _boxRec=[]; let boxes=null;
+    try{ run(newG(),x,z,y); } finally{ boxes=_boxRec; _boxRec=null; }
+    /* 2 — the same builder as blocks */
+    stampBegin(); let grp=null;
+    try{ run(newG(),x,z,y); } finally{ grp=stampEnd(); }
+    /* 3 — the boxes rasterised by stampBox's own rule */
+    const want=new Map(), e=STAMP_EPS*B2;
+    for(const b of boxes){
+      const n=blockForMat(b.mat); if(n===undefined) continue;
+      const ix0=Math.floor((b.x0+e)/B2), ix1=Math.ceil((b.x1-e)/B2)-1;
+      const iy0=Math.floor((b.y0+e)/B2), iy1=Math.ceil((b.y1-e)/B2)-1;
+      const iz0=Math.floor((b.z0+e)/B2), iz1=Math.ceil((b.z1-e)/B2)-1;
+      for(let ix=ix0;ix<=ix1;ix++) for(let iz=iz0;iz<=iz1;iz++) for(let iy=iy0;iy<=iy1;iy++){
+        if(iy<EY_MIN||iy>=EY_MAX) continue;
+        want.set(ix+','+iy+','+iz,n); } }
+    /* 4 — and what the stamp actually wrote */
+    const got=new Map();
+    for(let i=0;i<grp.cells.length;i+=2){
+      const key=grp.cells[i], idx=grp.cells[i+1];
+      const p=key.split(','), cx=+p[0], cz=+p[1];
+      const ix=cx*CH+eLx(idx), iz=cz*CH+eLz(idx), iy=eLy(idx);
+      const m=SEDITS.get(key);
+      got.set(ix+','+iy+','+iz, m?m.get(idx):0); }
+    stampDrop(grp);            /* the world is left as it was found */
+    /* 5 — the verdict */
+    /* Three ways the two can differ, and they are not the same thing:
+         MISSING — a cell a box asked for and the stamp has not. Always wrong.
+         SWAPPED — a cell both have, of different stone. A later named block
+                   deliberately standing where a box was (a well's water in
+                   its own shaft, a plank floor laid on its cobble footing):
+                   right, but it must be DECLARED by the builder that does it.
+         EXTRA   — a cell the stamp has and no box asked for (a laid surface
+                   that used to be one drawn face): likewise declared. */
+    const missing=[], swaps=new Map(), extra=new Map();
+    let nMissing=0;
+    const nameOf=n=>{ const b2=blockOf(n); return b2?b2.name:String(n); };
+    for(const [k,n] of want){
+      if(!got.has(k)){ nMissing++; if(missing.length<6) missing.push(k); continue; }
+      const g=got.get(k);
+      if(g!==n){ const key=nameOf(n)+' → '+nameOf(g);
+        swaps.set(key,(swaps.get(key)||0)+1); } }
+    for(const [k,n] of got) if(!want.has(k)){
+      const nm=nameOf(n); extra.set(nm,(extra.get(nm)||0)+1); }
+    const fmt=m=>Array.from(m).map(p=>p[1]+'x '+p[0]);
+    return {kind, boxes:boxes.length, cellsFromBoxes:want.size, cellsStamped:got.size,
+      missing:nMissing, missingAt:missing, swaps:fmt(swaps), extra:fmt(extra),
+      swapKeys:Array.from(swaps.keys()), extraKeys:Array.from(extra.keys())};
+  },
   BLOCKS:()=>BLOCKS, edits:()=>EDITS, sedits:()=>SEDITS,
   stampCells:()=>{ let n=0; for(const m of SEDITS.values()) n+=m.size; return n; },
   /* ---- STAND IN A TOWN AND WAIT FOR IT TO BE RAISED ----
