@@ -2197,6 +2197,67 @@ Measured at the block's own projected position, on the face being struck:
 what is broken becomes a thing on the ground, and the first place a block's
 `verse` is spoken.
 
+## 4ah. Round 35 — Phase 4 step 3: the drop, and the gathering ✅
+
+*§11 step 3. What is broken does not vanish: it falls, it lies on the ground,
+and it is taken up by whoever walks over it. Acceptance **15 pass · 0 fail ·
+5 pending**.*
+
+**1. `drops` was written down in Phase 2 and read by nothing until now** —
+the third field of the block registry to come into use this phase, after
+`hardness` and `verse`. A block gives back the thing it names, which is
+usually itself and sometimes is not.
+
+**2. It is the first place a block SPEAKS.**
+Every block may carry a `verse`, and this is the moment for it: **the first
+time a substance is ever gathered, the word that belongs to it is given.** Not
+every time — a verse said over every handful of dirt is a verse nobody reads.
+Once, on first taking, and thereafter it is his. Five blocks carry one today
+(bitumen, brick, dirt, salt, water) and the rest will as the material economy
+of step 7 arrives.
+
+**3. What it does, and what it deliberately does not.**
+A drop is a small turning cube of the substance's own face; it is thrown a
+little way out of the block that was struck, falls under gravity, and settles
+on whatever ground is under it — the same `groundInfo` the traveller's own
+feet use, so it lies on a pier deck or a house floor as readily as on a field.
+Within a pace and a half of the traveller it flies to him and is taken. Not
+instantly: a third of a second must pass first, **or a man would swallow his
+own pick-swing before it landed.** Six minutes untaken and the earth has it
+back. Sixty-four at once is the cap — more than that on the ground is a fault
+rather than a feature.
+
+The tally it goes into is a plain count. **The satchel proper — stacks,
+capacity, and the writing of it into the save — is step 4, and will take this
+tally over rather than sit beside it.**
+
+**4. Two tests of mine that were wrong in two different ways.**
+Both are recorded because both are the same failure of imagination: a test
+that assumes where it is standing.
+- **It broke a block it never walked to.** Three paces off, and the gathering
+  reach is a pace and a half. A thing lying three paces away is not gathered
+  by wishing.
+- **Then, stood on the block, it asked for two things that exclude each
+  other.** A block broken at a man's own FEET is gathered as it falls and
+  never comes to rest at all — so one striking cannot show both "it rested"
+  and "it was taken". It is broken out of reach now, watched down, and THEN
+  walked to.
+- And underneath both: run after the cave tests the traveller is UNDER a
+  mountain, so `blockUnder` answered with the roof of the passage. The block
+  was set above THAT and what fell from it came to rest on the mountain-top
+  while he stood in the dark beneath. It passed alone and failed in the suite,
+  which is the signature of exactly this fault. He is stood on the very ground
+  the test is about to build over, and everything after is within a pace of
+  him by construction.
+
+**5. The reading.**
+
+    PASS 15 · broke=true · it fell and came to rest=true · taken up=true
+              · the hoard gained 1 · its word was spoken=true
+
+**Still ahead in Phase 4:** steps 4–10. Next is the satchel — stacks,
+capacity, and the save bumped to carry it.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

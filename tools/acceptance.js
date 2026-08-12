@@ -366,9 +366,64 @@ T[14]={name:'a blow of the hand breaks a block in the time its hardness says',
   })};
 
 T[15]={name:'what is broken becomes a thing on the ground, and comes into the satchel',
-  run:async page=>page.evaluate(()=>{ const D=window.__VDBG;
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
     if(!D.drops) return {pending:'no drops: nothing falls from a broken block (Phase 4 step 3)'};
-    return {ok:false,got:'unwritten'}; })};
+    const p=D.playerXZ(), t=D.blockUnder(p.x+3*B,p.z);
+    if(!t) return {ok:false,got:'no ground under the traveller'};
+    /* ---- HE IS STOOD ON THE VERY GROUND FIRST ----
+       Run after the cave tests, the traveller is UNDER a mountain, and
+       `blockUnder` answers with the roof of the passage — a long way over his
+       head. The block was then set above THAT, and what fell from it came to
+       rest on the mountain-top while he stood in the dark beneath, out of
+       reach of a thing he was supposed to walk onto. The test passed alone
+       and failed in the suite, which is the signature of a test that assumed
+       where it was.
+       So he is set on the block this test is about to build over, and
+       everything after is within a pace of him by construction. */
+    D.setMode('walk');
+    D.state.walk.x=t.x; D.state.walk.z=t.z; D.state.walk.feetY=undefined;
+    await D.settle(2);
+    const n=D.blockId('brick'), b=D.blockOf(n);
+    /* THREE PACES OFF, not underfoot. A block broken at a man's own feet is
+       gathered as it falls and never comes to rest at all — so asking one
+       striking for both "it rested" and "it was taken" asks for two things
+       that exclude each other. It is broken out of reach, watched down, and
+       THEN walked to. */
+    const ix=t.ix+3, iy=t.iy+1, iz=t.iz;
+    const cx=(ix+0.5)*B, cy=(iy+0.5)*B, cz=(iz+0.5)*B;
+    const had=(D.hoard()['brick']||0);
+    D.setBlock(cx,cy,cz,n); await D.settle(2);
+    /* strike it through */
+    D.mineDrive(true); D.mineAt(ix,iy,iz,0,0,-1); D.mineHold(true);
+    const STEP=1/60;
+    for(let k=0;k<Math.ceil(b.hardness*D.handSlow()*70);k++){
+      D.mineStep(STEP);
+      if(!D.blockSolidAt(ix,iy,iz)) break; }
+    D.mineHold(false); D.mineAt(null); D.mineDrive(false);
+    const broke=!D.blockSolidAt(ix,iy,iz);
+    /* it falls, and it comes to rest on the ground rather than in the air */
+    let rested=false;
+    for(let k=0;k<300;k++){ D.dropStep(STEP);
+      const ds=D.drops().filter(d=>d.id==='brick');
+      if(ds.length&&ds[0].rest){ rested=true; break; }
+      if(!ds.length) break; }
+    const lay=D.drops().filter(d=>d.id==='brick')[0];
+    /* and NOW the traveller walks onto it and takes it up */
+    D.setMode('walk');
+    D.state.walk.x=lay?lay.x:cx; D.state.walk.z=lay?lay.z:cz; D.state.walk.feetY=undefined;
+    await D.settle(2);
+    let took=(D.hoard()['brick']||0)>had;
+    for(let k=0;k<200&&!took;k++){ D.dropStep(STEP);
+      if((D.hoard()['brick']||0)>had) took=true; }
+    const gained=(D.hoard()['brick']||0)-had;
+    /* the word of the substance is given once, and only once */
+    const spoke=D.spoken().indexOf('brick')>=0;
+    return {ok:broke&&rested&&took&&gained===1&&spoke,
+      got:'broke='+broke+' · it fell and came to rest='+rested+
+          ' · taken up='+took+' · the hoard gained '+gained+
+          ' · its word was spoken='+spoke};
+  })};
 
 T[16]={name:'the satchel stacks, and survives a reload',
   run:async page=>page.evaluate(()=>{ const D=window.__VDBG;

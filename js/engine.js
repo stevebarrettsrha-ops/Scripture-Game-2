@@ -13670,6 +13670,11 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   /* while the probe drives the blow, the loop must not drive it too — one
      SwiftShader frame is half a second and would carry the work past the end */
   mineDrive:on=>{ mineDriven=!!on; },
+  /* ---- THE DROP AND THE HOARD, FOR tools/acceptance.js ---- */
+  drops:()=>DROPS.map(d=>({id:d.id,x:d.x,y:d.y,z:d.z,rest:d.rest,t:d.t,taken:d.take>0})),
+  hoard:()=>Object.fromEntries(HOARD),
+  dropStep:dt=>dropTick(dt),
+  spoken:()=>[...SPOKEN],
   mineProgress:()=>MINE.on?{cell:[MINE.ix,MINE.iy,MINE.iz],t:MINE.t,need:MINE.need,
     f:Math.min(1,MINE.t/MINE.need),cracks:crackN}:null,
   mineStep:dt=>mineTick(dt),
@@ -14073,13 +14078,98 @@ function mineTick(dt){
   g.visible=true;
   g.geometry.setDrawRange(0, Math.max(2, Math.round(f*crackN)*2));
   if(MINE.t>=MINE.need){
-    setBlock((MINE.ix+0.5)*B,(MINE.iy+0.5)*B,(MINE.iz+0.5)*B, 0);
+    const cx=(MINE.ix+0.5)*B, cy=(MINE.iy+0.5)*B, cz=(MINE.iz+0.5)*B;
+    const was=MINE.n;
+    setBlock(cx,cy,cz,0);
+    spawnDrop(cx,cy,cz,was);        /* and it leaves something behind */
     mineStop();
   }
 }
 function mineStop(){
   if(MINE.on){ MINE.on=false; MINE.t=0; }
   if(crackG) crackG.visible=false;
+}
+
+/* ================= THE DROP, AND THE GATHERING =================
+   Phase 4, step 3. What is broken does not vanish: it falls, it lies on the
+   ground, and it is taken up by whoever walks over it.
+
+   `drops` was written into every `blocks/*.js` in Phase 2 and, like
+   `hardness` before it, has been read by nothing until now. A block gives
+   back the thing it names — which is usually itself, and sometimes is not.
+
+   IT IS THE FIRST PLACE A BLOCK SPEAKS. Every block may carry a `verse`, and
+   this is the moment for it: the FIRST time a substance is ever gathered, the
+   word that belongs to it is given. Not every time — a verse said on every
+   handful of dirt is a verse nobody reads. Once, on first taking, and then it
+   is his.
+
+   The hoard here is a plain tally of what has been taken. The satchel proper
+   — stacks, capacity, and the writing of it into the save — is step 4, and it
+   will take this tally over rather than sit beside it. */
+const DROP_MAX=64;                 /* more than this on the ground at once is a fault, not a feature */
+const DROPS=[];
+const HOARD=new Map();             /* block id -> how many are held */
+const SPOKEN=new Set();            /* the substances whose word has been given */
+let dropGeo=null;
+function ensureDropGeo(){ if(!dropGeo) dropGeo=new THREE.BoxGeometry(B*0.34,B*0.34,B*0.34);
+  return dropGeo; }
+/* what a broken block leaves behind */
+function spawnDrop(x,y,z,n){
+  const b=blockOf(n); if(!b) return null;
+  const give=BLOCK_BY_ID[b.drops]; if(!give) return null;   /* a block may give nothing */
+  if(DROPS.length>=DROP_MAX){ const old=DROPS.shift(); if(old.m){ scene.remove(old.m); } }
+  const mat=MAT[give.mSide]||MAT[give.mTop];
+  if(!mat) return null;
+  const m=new THREE.Mesh(ensureDropGeo(),mat);
+  m.position.set(x,y,z); scene.add(m);
+  /* a little life out of the face it was struck from, and then it falls */
+  const d={id:give.id,n:give.n,m,x,y,z,
+    vx:(hash2(x*0.7,z*1.3)-0.5)*7, vy:5.5, vz:(hash2(z*0.9,x*1.1)-0.5)*7,
+    t:0, rest:false, take:0};
+  DROPS.push(d); return d;
+}
+/* one frame of everything lying about on the ground */
+function dropTick(dt){
+  if(!DROPS.length) return;
+  const walking=state.mode==='walk'&&!state.firm;
+  const px=state.walk.x, pz=state.walk.z, py=(state.walk.feetY||0);
+  for(let i=DROPS.length-1;i>=0;i--){
+    const d=DROPS[i]; d.t+=dt;
+    if(d.take>0){
+      /* taken up: it flies the last little way to him and is gone */
+      d.take+=dt;
+      const k=Math.min(1,d.take/0.22);
+      d.m.position.set(d.x+(px-d.x)*k, d.y+(py+B*0.9-d.y)*k, d.z+(pz-d.z)*k);
+      d.m.scale.setScalar(1-k*0.85);
+      if(k>=1){ scene.remove(d.m); DROPS.splice(i,1); }
+      continue;
+    }
+    if(!d.rest){
+      d.vy-=26*dt;
+      d.x+=d.vx*dt; d.y+=d.vy*dt; d.z+=d.vz*dt;
+      const g=groundInfo(d.x,d.z,d.y+0.1);
+      const floor=(g.land?g.y:WATER_Y)+B*0.18;
+      if(d.y<=floor){ d.y=floor; d.rest=true; d.vx=d.vy=d.vz=0; }
+      d.m.position.set(d.x,d.y,d.z);
+    } else {
+      /* at rest it turns slowly and breathes, so the eye finds it in grass */
+      d.m.position.y=d.y+Math.sin(d.t*2.1)*0.5;
+    }
+    d.m.rotation.y+=dt*1.1;
+    /* and it is taken up by whoever comes near — but not the instant it is
+       struck, or a man would swallow his own pick-swing before it landed */
+    if(walking&&d.t>0.35&&Math.hypot(px-d.x,pz-d.z)<B*1.6&&Math.abs(py-d.y)<B*3)
+      takeUp(d);
+    else if(d.t>360){ scene.remove(d.m); DROPS.splice(i,1); }   /* six minutes, and the earth has it back */
+  }
+}
+function takeUp(d){
+  d.take=0.0001;
+  HOARD.set(d.id,(HOARD.get(d.id)||0)+1);
+  /* the word of a substance, once, on the first taking of it */
+  const b=BLOCK_BY_ID[d.id];
+  if(b&&b.verse&&!SPOKEN.has(d.id)){ SPOKEN.add(d.id); toast(b.verse.t,b.verse.ref); }
 }
 
 /* ================= THE GREAT LOOP ================= */
@@ -14478,6 +14568,7 @@ function frame(){
   zoomMapFadeCache=zMapF;
   aimTick();                         /* the block at the end of the traveller's arm */
   if(!mineDriven) mineTick(dt);      /* and the hand held to it until it gives */
+  dropTick(dt);                      /* and what it left lying on the ground */
   /* ---- NOTHING BUT BLOCKS IN GAMEPLAY ----
      The coarse far ring is BANISHED from the played world. Down on the sea,
      ashore, on a summit, rising low over a coast — everything in view is true
