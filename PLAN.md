@@ -501,3 +501,97 @@ and the edited-chunk half of 11.
 §9 above still stands and I would still rather be argued with on it — particularly on
 `buildPier` and `deckMap` (§9.3) and on the true-stature animals being a Phase 3 dependency
 rather than a Phase 6 item (§9.5), both of which bite in the phase after next.
+
+---
+
+## 11. Phase 4 — the hand and the hoard: the order, and why it is that order
+
+Phases 0–3 are in `AUDIT.md` with screenshots (Rounds 24–32). Phase 3 closed with the
+geometric diff at 14 pass · 0 fail and the game's own suite at 12 pass · 0 fail · 0
+pending, so by §12's rule this phase may begin.
+
+**The happy fact this phase starts from:** the block registry already declares
+`hardness`, `tool`, `drops`, `gravity`, `liquid`, `light` and `verse` — written in Phase 2
+against exactly this day and, until now, read by nothing. Phase 4 is in large part the
+*using* of what is already declared, which is why the early steps are small.
+
+### The order
+
+Each step is bootable on its own, each is verifiable on its own, and each is only ever
+allowed to depend on the ones above it.
+
+**1. The reach and the mark.** Voxel DDA raycast from the eye, reach ~5 blocks, returning
+the hit cell AND the face. A thin gold outline on the aimed block — this game's gold, not
+a black wireframe. *Changes nothing in the world.* It is the ground everything else stands
+on and it can be proved by itself: aim at a known block, assert the cell and the face.
+
+**2. The blow.** Hold to break. Progress scales with `hardness` and the held tool.
+Fracture drawn as cracks spreading from the point struck. On completion `setBlock(…,0)` —
+which exists, is one door, and is already covered by tests 5 and 7.
+
+**3. The drop, and the gathering.** A broken block yields its `drops` as a thing that falls,
+settles on the ground and is taken up on approach. A small item-entity system, and the
+first place the traveller's `verse` on a block can be spoken.
+
+**4. The satchel.** The inventory as DATA only — stacks, counts, ids, capacity. No UI at
+all. It goes into the save beside the block edits, which is already versioned and has a
+migration path.
+
+**5. The belt, and the page.** Only now the UI, and per §2.2 this is where the phase is won
+or lost: **a row of clay tokens on a leather belt**, and a satchel that opens as an
+illuminated page. Number keys, wheel, and the twin-zone touch scheme extended without
+becoming unusable — which the brief rightly calls a real design problem, so it gets its
+own step rather than being an afterthought of step 4.
+
+**6. The placing.** Against the hit face, on the air side. **Refuses to place inside the
+traveller, a villager or a beast** — the brief flags this as immediately world-breaking and
+it is, so it is written with the test beside it.
+
+**7. The material economy.** `world/minerals.js` on the same per-land data pattern as
+`world/fauna.js`: gold in Havilah, copper in the Aravah, bitumen at the Dead Sea,
+alabaster in Egypt, cedar in Lebanon — distributed by land AND by depth, into the caves
+Phase 1 dug. New `blocks/` files for what the works actually need.
+
+**8. Gravity, and finite water.** Sand and gravel fall when unsupported. Water spreads N
+blocks and down, and stops. Measured, and then **stopped** — the brief calls fluid
+simulation a rabbit hole and it is right.
+
+**9. The named works.** `world/works.js`, one `EARTH.work({…})` apiece, ten to twenty, each
+with its verse: the altar of unhewn stone **that refuses hewn stone**, the tent of goat
+hair, the ark of gopher wood pitched within and without, the tower of brick and slime, the
+tools. Not a tech tree.
+
+**10. The free hand.** The second mode at the menu: unlimited blocks, flight, instant
+break. Same world, same save. It is last because it is the mode in which Phase 8's
+schematic tool will be used, and it wants everything above it to exist first.
+
+### Two things I will not do, and say so now
+
+**I will not build the whole catalogue of substances in §4.** The brief names metals,
+stones, woods, breastplate gems, cloth, dyes and spices — well over sixty blocks. Making
+sixty blocks nobody can use is exactly the "placeholder content" §14 forbids. The rule I
+will hold to: **a substance ships when a work needs it, an ore ships when a land holds
+it.** The rest is a list in `world/minerals.js` waiting for its work.
+
+**I will not let the interaction loop reach the sea, the ship or the beasts.** Break and
+place act on the block world only. The ship, the creatures, the villagers and the traveller
+stay decoration, as §6 of this plan already committed for Phase 3 and for the same reason.
+
+### The tests, written before the features
+
+As with 1–12, in `tools/acceptance.js`, PENDING until their step lands:
+
+13. the mark falls on the block the eye is on, and on the right face of it
+14. a blow of the hand breaks a block in the time its `hardness` says, and no faster
+15. what is broken becomes a thing on the ground, and comes into the satchel
+16. the satchel stacks, and survives a reload
+17. a block placed against a face stands on the air side of it
+18. no block may be placed inside the traveller, a villager or a beast
+19. sand falls when the ground is taken from under it, and stops when it lands
+20. an altar of unhewn stone refuses hewn stone
+
+### What it must not cost
+
+The measurement rule of Round 28 onward stands: the stations before and after, in
+`AUDIT.md`, and the raycast is per-frame work in the hot path — it is one DDA walk of five
+cells and it will be measured, not assumed.
