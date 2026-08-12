@@ -1875,6 +1875,66 @@ mesher. Round 28 measured what a mineable town costs; this round has just
 removed a doubling of it that should never have been there, and the merge
 would take the rest.
 
+## 4ac. Round 30 — the faces merged, and test 12 finally understood ✅
+
+**1. A cube apiece was the honest price, until it was not.**
+- Every block set down went out as up to six separate quads. That was right
+  while a man's edits were a handful of blocks in a hillside. Phase 3 lays
+  **sixteen thousand of them in a village**, and a plain nine-by-nine plank
+  wall was going out as **eighty-one quads where one would do** — same
+  texture, same shade, same plane, edge to edge.
+- The faces are no longer drawn as they are found. They are collected for the
+  whole chunk, sorted into groups sharing a direction, a plane, a material and
+  a shade — anything differing in any of the four cannot merge and must not —
+  and each group is covered with the fewest rectangles that will cover it:
+  run east as far as the row goes, then south as far as whole rows go.
+- **The texture is not stretched.** Every face carries a UV repeat of one per
+  block, so a three-by-two rectangle tiles three by two, and the hewn edge
+  baked into every block face repeats with it. The joints between the blocks
+  are exactly where they were — drawn by the texture rather than by the
+  geometry. Nearest filtering and RepeatWrapping make that exact, and the
+  before-and-after photographs of the same street are indistinguishable.
+- The shade is quantised before grouping: two faces the eye cannot tell apart
+  should not be kept apart by the last bits of a float.
+
+**What it saved**, measured back to back, standing in the same town, on the
+same 18,505 stamped blocks across the same 49 chunks:
+
+| | before | after |
+|---|---|---|
+| triangles in the village's chunks | 83,658 | **47,902** (−42.7 %) |
+| median frame | 831.9 ms | **742.4 ms** (−10.8 %) |
+
+That is Round 28's whole bill for a mineable town, paid back with interest.
+
+**2. And test 12 is understood at last — it is not the box.**
+
+The merge cut the village's triangles by more than two fifths and left test 12
+**exactly where it was**: `plain 3.079 ms (passes 3.08/3.12/3.22)`. That is the
+answer. An unedited plains chunk has no placed blocks in it at all, so there
+was never anything there for the merge to touch — and the figure not moving by
+a hair is what proves the reading is real work and not weather.
+
+Across three separate runs the plain has now read
+3.01/3.38/3.59, 3.28/3.59/3.23 and 3.08/3.12/3.22 — nine consecutive dear
+passes. **It is a real cost, about 1.56× the pre-Phase-0 baseline, and it is
+not in anything Phase 3 did.** What an unedited plains column gained since
+that baseline is exactly two things, both of them asked for by the brief:
+
+- the **ambient occlusion** of Round 24 — `aoTop` and its neighbour lookups,
+  per column, per chunk;
+- the **spans** of Round 25 — the cave field consulted for every column of
+  the world, whether or not there is a cave within a mile of it.
+
+**The baseline is still not moved.** Re-baselining is allowed by the note at
+the top of `tools/acceptance.js` provided the reason is written down, and the
+reason is now written down — but a guard should not be relaxed in the same
+round that identifies what it is catching. The right next step is to make the
+span lookup cheap for the overwhelming majority of columns that can contain no
+cave (`CAVES.chunkHas` already exists and is not being used as an early-out on
+this path), measure again, and only then decide whether anything is left to
+re-baseline.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

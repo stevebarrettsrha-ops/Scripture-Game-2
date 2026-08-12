@@ -1716,20 +1716,80 @@ function editedCell(ix,iz,cc,em){
    material — six faces, every one of them culled against what stands beside
    it. A man's edits are sparse; a cube apiece is the honest price for
    letting him build in whatever he likes. */
+/* ---- AND THE FACES OF WHAT WAS BUILT ARE MERGED ----
+   A cube apiece was the honest price while a man's edits were a handful of
+   blocks in a hillside. Phase 3 lays sixteen thousand of them in a village,
+   and a plain nine-by-nine plank wall was going out as EIGHTY-ONE separate
+   quads where one would do — the same texture, the same shade, the same
+   plane, edge to edge. That is the whole of what Round 28 cost.
+
+   So the faces are not drawn as they are found. They are COLLECTED for the
+   whole chunk, sorted into groups that share a direction, a plane, a
+   material and a shade — anything that differs in any of the four cannot
+   merge and must not — and each group is then covered with the fewest
+   rectangles that will cover it, greedily: run east as far as the row goes,
+   then south as far as whole rows go.
+
+   The texture is not stretched. Every face carries a UV repeat of one per
+   block, so a three-by-two rectangle tiles the texture three by two, and the
+   hewn edge baked into every block face repeats with it — the joints between
+   the blocks are exactly where they were, drawn by the texture rather than
+   by the geometry. Nearest filtering and RepeatWrapping make that exact.
+
+   The shade is quantised before grouping, because two faces the eye cannot
+   tell apart should not be kept apart by the last bits of a float. */
+let _pf=null;                 /* the collector, open only while a chunk builds */
+function placedBegin(){ _pf=new Map(); }
+function placedFace(dir,plane,mat,sh,u,v){
+  if(!mat) return;
+  const k=dir+'|'+plane+'|'+mat+'|'+Math.round(sh*512);
+  let g=_pf.get(k);
+  if(!g){ g={dir,plane,mat,sh,cells:new Set(),u0:1e9,u1:-1e9,v0:1e9,v1:-1e9}; _pf.set(k,g); }
+  g.cells.add(u+','+v);
+  if(u<g.u0)g.u0=u; if(u>g.u1)g.u1=u; if(v<g.v0)g.v0=v; if(v>g.v1)g.v1=v;
+}
+function placedFlush(G){
+  if(!_pf) return;
+  for(const g of _pf.values()){
+    const W=g.u1-g.u0+1, H=g.v1-g.v0+1;
+    const used=new Uint8Array(W*H);
+    const has=(u,v)=>g.cells.has(u+','+v);
+    for(let v=g.v0;v<=g.v1;v++) for(let u=g.u0;u<=g.u1;u++){
+      const idx=(v-g.v0)*W+(u-g.u0);
+      if(used[idx]||!has(u,v)) continue;
+      /* east as far as the row goes */
+      let w=1; while(u+w<=g.u1&&has(u+w,v)&&!used[idx+w]) w++;
+      /* then south, but only by WHOLE rows of that width */
+      let h=1;
+      for(;;){ const vv=v+h; if(vv>g.v1) break;
+        let ok=true;
+        for(let a=0;a<w;a++){ const i2=(vv-g.v0)*W+(u+a-g.u0);
+          if(!has(u+a,vv)||used[i2]){ ok=false; break; } }
+        if(!ok) break; h++; }
+      for(let b2=0;b2<h;b2++) for(let a=0;a<w;a++) used[(v+b2-g.v0)*W+(u+a-g.u0)]=1;
+      const m=g.mat, sh=g.sh, P=g.plane;
+      if(g.dir==='T')       faceTop   (G,m, u*B,v*B,(u+w)*B,(v+h)*B, P, sh);
+      else if(g.dir==='B')  faceBottom(G,m, u*B,v*B,(u+w)*B,(v+h)*B, P, sh);
+      else if(g.dir==='PX') facePX    (G,m, P, u*B,(u+w)*B, v*B,(v+h)*B, sh);
+      else if(g.dir==='NX') faceNX    (G,m, P, u*B,(u+w)*B, v*B,(v+h)*B, sh);
+      else if(g.dir==='PZ') facePZ    (G,m, P, u*B,(u+w)*B, v*B,(v+h)*B, sh);
+      else                  faceNZ    (G,m, P, u*B,(u+w)*B, v*B,(v+h)*B, sh);
+    }
+  }
+  _pf=null;
+}
 function emitPlaced(G,ix,iz,em,surfaceH){
-  const x0=ix*B, x1=x0+B, z0=iz*B, z1=z0+B;
   for(const [y,n] of em){
     if(!n) continue;
     const b=blockOf(n); if(!b) continue;
-    const ya=y*B, yb=ya+B;
     /* under the ground it takes the cave's darkness; above it, the day */
     const lit=(y<surfaceH-1)?(CAVE_DARK+(1-CAVE_DARK)*caveLightAt(ix,iz,y+0.5)):1;
-    if(!blockSolidAt(ix,y+1,iz)) faceTop(G,b.mTop,x0,z0,x1,z1,yb,1.0*lit);
-    if(!blockSolidAt(ix,y-1,iz)) faceBottom(G,b.mBottom,x0,z0,x1,z1,ya,0.5*lit);
-    if(!blockSolidAt(ix+1,y,iz)) facePX(G,b.mSide,x1,z0,z1,ya,yb,0.62*lit);
-    if(!blockSolidAt(ix-1,y,iz)) faceNX(G,b.mSide,x0,z0,z1,ya,yb,0.62*lit);
-    if(!blockSolidAt(ix,y,iz+1)) facePZ(G,b.mSide,z1,x0,x1,ya,yb,0.8*lit);
-    if(!blockSolidAt(ix,y,iz-1)) faceNZ(G,b.mSide,z0,x0,x1,ya,yb,0.8*lit);
+    if(!blockSolidAt(ix,y+1,iz)) placedFace('T', (y+1)*B, b.mTop,    1.0*lit,  ix,iz);
+    if(!blockSolidAt(ix,y-1,iz)) placedFace('B', y*B,     b.mBottom, 0.5*lit,  ix,iz);
+    if(!blockSolidAt(ix+1,y,iz)) placedFace('PX',(ix+1)*B,b.mSide,   0.62*lit, iz,y);
+    if(!blockSolidAt(ix-1,y,iz)) placedFace('NX',ix*B,    b.mSide,   0.62*lit, iz,y);
+    if(!blockSolidAt(ix,y,iz+1)) placedFace('PZ',(iz+1)*B,b.mSide,   0.8*lit,  ix,y);
+    if(!blockSolidAt(ix,y,iz-1)) placedFace('NZ',iz*B,    b.mSide,   0.8*lit,  ix,y);
   }
 }
 function emitColumn(G,ix,iz,cc){
@@ -2412,6 +2472,7 @@ function buildChunkTimed(cx,cz){ const t0=performance.now();
   buildChunk(cx,cz); BUILD_STATS.ms+=performance.now()-t0; BUILD_STATS.n++; }
 function buildChunk(cx,cz){
   const G=newG();
+  placedBegin();      /* the built faces are gathered for the whole chunk, then merged */
   /* ---- WHOSE COUNTRY THIS CHUNK IS IN ----
      Every tree and every bush asks what land it grows in, and the answer is
      the same for the whole chunk within a pixel or two of the chart. Asked
@@ -2504,6 +2565,7 @@ function buildChunk(cx,cz){
     if(cc.kind==='grass'&&j>0.994)
       emitBox(G, x-B*0.5,yT,z-B*0.5, x+B*0.5,yT+B,z+B*0.5,'stone','stone',null);
   }
+  placedFlush(G);     /* and go out as the fewest rectangles that cover them */
   const meshes=[];
   for(const mat in G){ const g=G[mat];
     const bg=new THREE.BufferGeometry();
