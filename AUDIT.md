@@ -1935,6 +1935,59 @@ cave (`CAVES.chunkHas` already exists and is not being used as an early-out on
 this path), measure again, and only then decide whether anything is left to
 re-baseline.
 
+## 4ad. Round 31 — the quiet tile: the caves stop charging the countries that have none ✅
+
+*The step Round 30 named, taken. The suite is **12 pass · 0 fail · 0 pending**
+and test 12 is green on its own merits, with the baseline untouched.*
+
+**1. What the caves were costing the whole earth.**
+`spansAt` has three gates and they are in the right order, but gate 2 —
+*is this cave country at all* — is a field read, and a field read is not cheap
+**two hundred and fifty-six times a chunk**. Each one builds a bucket key
+string and then, finding no named country near, evaluates the scatter noise in
+full. Over a world where very nearly every column has no cave within a mile of
+it, that is the standing cost of the caves — **paid most heavily by the
+countries that have none.**
+
+**2. The tile is asked once, and remembered.**
+A tile ninety-six units square — the mesher's own chunk — is sampled every
+sixteen units and carried a quarter of a tile PAST its own edges: seven-and-
+forty reads. If nothing in that reaches cave country, every column in the tile
+answers `null` at once, for ever after.
+
+**It cannot lose a cave.** The scatter field's own feature is some seventeen
+hundred units across and a named country's is larger still, so nothing that
+could reach a column of the tile can fall between samples sixteen units apart
+— and the margin covers what bleeds in from outside. The table is asked only
+to say *quiet*; a tile that answers anything else is walked column by column
+exactly as before. The table is cleared whenever the countries are re-seeded.
+
+**3. What it saved, and the proof that nothing was lost.**
+
+| | before | now |
+|---|---|---|
+| **test 12 · plain** | 3.079 ms (3.08/3.12/3.22) | **1.888 ms** (1.89/2.12/2.09) |
+| **test 12 · ocean** | 1.118 ms | **0.650 ms** |
+| test 11 · open ground | 852.0 ms | **540.8 ms** |
+
+**Plains chunks now build faster than they did before Phase 0** — 1.888 ms
+against a 1.970 ms baseline — with the ambient occlusion of Round 24 and the
+caves of Round 25 both still in them. The baseline was never moved, and it did
+not have to be.
+
+And the caves themselves are untouched, which the suite states exactly:
+
+    PASS 1 · ceiling at +7
+    PASS 2 · 40 blocks in (the passage runs 44) · dark=0.189 lit=1.000
+    PASS 4 · 1 overhangs in 131 columns
+
+Those are the same numbers, to the digit, that tests 1, 2 and 4 have printed
+in every run since Round 25. The same mouth, the same passage, the same run
+of it, the same darkness at the far end. Nothing was skipped that had anything
+in it.
+
+**Still ahead in Phase 3:** the geometric diff harness, and nothing else.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

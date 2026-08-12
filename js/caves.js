@@ -162,9 +162,41 @@ function regionAt(x,z){
      1. is the ground high enough to have anything under it        (a compare)
      2. is this cave country at all                                (one field)
      3. does a worm actually run through this column               (one field)  */
+/* ---- AND A QUIET TILE IS ANSWERED ONCE FOR ALL OF IT ----
+   Gate 2 is one field read, and it is cheap. It is not cheap TWO HUNDRED AND
+   FIFTY-SIX TIMES A CHUNK, over a world where very nearly every column has no
+   cave within a mile of it — and each of those reads builds a bucket key
+   string and, finding nothing, evaluates the scatter noise in full. That is
+   the standing cost of the caves upon the whole earth, paid most heavily by
+   the countries that have none.
+
+   So the question is asked of a TILE rather than a column, and remembered. A
+   tile that no cave country touches answers `null` for every column in it
+   after seven-and-forty reads instead of two hundred and fifty-six.
+
+   IT CANNOT LOSE A CAVE. The scatter field's own feature is some seventeen
+   hundred units across and a named country's is larger still; the tile is
+   ninety-six, sampled every sixteen units and carried a quarter of a tile
+   PAST its own edges, so nothing that could reach a column of this tile can
+   fall between the samples. And it is asked only to say `quiet` — a tile that
+   answers anything else is walked column by column exactly as before. */
+const TILE=96;                /* the mesher's own chunk, in world units */
+const QUIET=new Map();
+function tileQuiet(x,z){
+  const tx=Math.floor(x/TILE), tz=Math.floor(z/TILE), k=tx+','+tz;
+  const m=QUIET.get(k); if(m!==undefined) return m;
+  const mg=TILE/4, x0=tx*TILE-mg, z0=tz*TILE-mg, span=TILE+2*mg;
+  let quiet=true;
+  for(let a=0;a<=6&&quiet;a++) for(let b=0;b<=6;b++)
+    if(regionAt(x0+a*span/6, z0+b*span/6)>0.02){ quiet=false; break; }
+  if(QUIET.size>40000) QUIET.clear();     /* a voyage round the world, and then some */
+  QUIET.set(k,quiet);
+  return quiet;
+}
 const _iv=[];                 /* scratch: the intervals of this column, reused */
 function spansAt(x,z,h){
   if(h<MIN_H) return null;                                   /* gate 1 */
+  if(tileQuiet(x,z)) return null;                            /* gate 1b */
   const reg=regionAt(x,z);
   if(reg<=0.02) return null;                                 /* gate 2 */
   /* a passage thins away toward the edge of its country, so no cave ever
@@ -213,6 +245,7 @@ window.CAVES={
   seed(list){
     SEEDS=list.map(s=>({x:s.x,z:s.z,r:s.r,r2:s.r*s.r}));
     BUCKETS=new Map();
+    QUIET.clear();            /* the countries have changed; forget every answer */
     for(const s of SEEDS){
       const i0=Math.floor((s.x-s.r)/BKT), i1=Math.floor((s.x+s.r)/BKT);
       const j0=Math.floor((s.z-s.r)/BKT), j1=Math.floor((s.z+s.r)/BKT);
@@ -228,6 +261,9 @@ window.CAVES={
     for(let a=0;a<=4;a++) for(let b=0;b<=4;b++)
       if(regionAt(x0+a*w/4, z0+b*w/4)>0.02) return true;
     return false; },
+  /* what the quiet-tile table has learned, for the audit */
+  quietStats:()=>{ let q=0; for(const v of QUIET.values()) if(v) q++;
+    return {tiles:QUIET.size, quiet:q}; },
   /* named, so the audit and the acceptance tests can speak about them */
   MIN_H, ROOF, FLOOR, CY_LO, CY_HI, R_H, R_V
 };
