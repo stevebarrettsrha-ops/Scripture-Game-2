@@ -1683,14 +1683,28 @@ const _ecc={h:0,kind:'',tree:0,ci:0,spans:null};
 function editedCell(ix,iz,cc,em){
   let hi=cc.h-1, lo=0;
   for(const y of em.keys()){ if(y>hi) hi=y; if(y<lo) lo=y; }
+  /* ---- WHAT IS TERRAIN HERE, AND WHAT IS NOT ----
+     A cell the overlay names is NOT terrain, whatever stands in it. This
+     asked `blockSolidAt`, which sees BOTH — so every block anybody had set
+     down was counted into the ground column, drawn by `emitColumn` in the
+     GROUND'S material, and then drawn a second time by `emitPlaced` in its
+     own. Two coplanar faces in the same place, and the depth buffer picking
+     between them afresh every frame as the eye moves: that is the flicker,
+     and it is why a plank floor could read as sand.
+     It was almost invisible while a man's edits were a handful of blocks in
+     a hillside. Phase 3 lays sixteen thousand of them in every village, and
+     it became the look of the world.
+     The overlay is drawn ONCE, by `emitPlaced`, which culls its own faces
+     against `blockSolidAt` and so still meets the true ground correctly. */
+  const tS=y=>blockSolidAt(ix,y,iz)&&!em.has(y);
   /* the surface may have moved: a man may break the ground he stands on, or
      pile blocks over his head, and the top of the column follows him */
   let top=cc.h;
-  for(let y=hi;y>=cc.h;y--) if(blockSolidAt(ix,y,iz)){ top=y+1; break; }
-  while(top>0&&!blockSolidAt(ix,top-1,iz)) top--;
+  for(let y=hi;y>=cc.h;y--) if(tS(y)){ top=y+1; break; }
+  while(top>0&&!tS(top-1)) top--;
   const air=[]; let run=-1;
   for(let y=Math.min(lo,0);y<top;y++){
-    if(!blockSolidAt(ix,y,iz)){ if(run<0) run=y; }
+    if(!tS(y)){ if(run<0) run=y; }
     else if(run>=0){ air.push(run,y); run=-1; }
   }
   if(run>=0&&run<top) air.push(run,top);
@@ -2455,6 +2469,16 @@ function buildChunk(cx,cz){
                      x0+B-0.08,top,z0+B-0.08, mat,mat,null);
         }
       }
+      /* ---- AND WHAT IS BUILT OVER OPEN WATER IS BUILT ----
+         A column with no land in it fell straight through to the next one,
+         so the edit layers were never even asked about it. Anything set down
+         out on the water — the planks of a pier, a block laid from a boat —
+         went into the overlay, answered SOLID to every foot and every test,
+         and was drawn nowhere at all: a man stood on the open sea at the
+         right height, on nothing. The faces of a placed block need no ground
+         under them; only the asking was missing. */
+      { const emW=chunkEdits&&chunkEdits.get(a*CH+b);
+        if(emW) emitPlaced(G,ix,iz,emW,-1e9); }   /* no surface: full daylight */
       continue;
     }
     /* ---- AND WHAT THE HAND HAS DONE HERE ----
@@ -8569,7 +8593,21 @@ function buildPier(G,ex,site,rnd,torches){
   if(!best||best.t>34) return null;
   const dx=best.dx, dz=best.dz, t=best.t;
   const shoreX=site.x+dx*(t-1)*B, shoreZ=site.z+dz*(t-1)*B;
-  const yD=WATER_Y+2.8, deckKeys=[]; let lastX=shoreX, lastZ=shoreZ;
+  /* ---- THE LAST BUILDER, AND THE ONE THAT CARRIES A TABLE WITH IT ----
+     A deck was a SLAB half a unit thick floating 2.8 above the waterline, and
+     `deckMap` told the whole world — the walker, the fishers, the boat looking
+     for somewhere to put in — that the walking surface at that column was
+     3.15. A deck of BLOCKS cannot be half a unit thick. It is a course, six
+     units, and its top is where a man's feet go; so the table must be told
+     the course's top and not the old slab's, or every fisher on every pier in
+     the world stands three units inside his own planks.
+     `deckY` is that course top, reckoned once here and written into the table,
+     into the piles, into the lamp post and into ex.pier — one number, one
+     place, and nothing left reading the old one. */
+  const yD=WATER_Y+2.8;
+  const deckIY=Math.round(yD/B)-1;         /* the course whose lid the deck is */
+  const deckY=(deckIY+1)*B;                /* and where that lid actually is */
+  const deckKeys=[]; let lastX=shoreX, lastZ=shoreZ;
   ex.deckKeys=deckKeys;   /* visible to the abort path from the first plank */
   const len=7+Math.floor(rnd(120)*4);
   for(let s2=0;s2<len;s2++){ const x=site.x+dx*(t+s2)*B, z=site.z+dz*(t+s2)*B;
@@ -8578,26 +8616,27 @@ function buildPier(G,ex,site,rnd,torches){
     const r=Math.hypot(x,z)/R_WORLD; if(r>=SHELF_UV) break;
     const key=ix+','+iz; if(deckMap.has(key)) continue;
     const x0=ix*B, z0=iz*B;
-    faceTop(G,'planks',x0+0.2,z0+0.2,x0+B-0.2,z0+B-0.2,yD,1.0);
-    faceBottom(G,'planks',x0+0.2,z0+0.2,x0+B-0.2,z0+B-0.2,yD-0.5,0.5);
-    facePX(G,'planks',x0+B-0.2,z0+0.2,z0+B-0.2,yD-0.5,yD,0.62);
-    faceNX(G,'planks',x0+0.2,z0+0.2,z0+B-0.2,yD-0.5,yD,0.62);
-    facePZ(G,'planks',z0+B-0.2,x0+0.2,x0+B-0.2,yD-0.5,yD,0.8);
-    faceNZ(G,'planks',z0+0.2,x0+0.2,x0+B-0.2,yD-0.5,yD,0.8);
+    /* one course of planks IS the deck: six faces of a slab become a block,
+       and the mesher draws its sides and its underside for free */
+    stampBlock(ix,deckIY,iz,blockId('planks'));
     if(s2%2===0){   /* the piles stand on the bed of the sea, not in the water */
-      emitBox(G,x0+0.6,SUBSEA_Y,z0+0.6,x0+1.5,yD-0.1,z0+1.5,'logSide','logTop',null);
-      emitBox(G,x0+B-1.5,SUBSEA_Y,z0+B-1.5,x0+B-0.6,yD-0.1,z0+B-0.6,'logSide','logTop',null);
+      /* a post 0.9 units square cannot be told from its neighbour in a world
+         of six-unit blocks, so the two corner piles become the one column of
+         timber that a six-unit cell can hold, run from the bed to the deck */
+      const nLog=blockId('log');
+      for(let iy=Math.floor(SUBSEA_Y/B); iy<deckIY; iy++) stampBlock(ix,iy,iz,nLog);
     }
-    deckMap.set(key,yD); deckKeys.push(key);
+    deckMap.set(key,deckY); deckKeys.push(key);
     lastX=x0+B/2; lastZ=z0+B/2;
   }
   if(!deckKeys.length) return null;
-  emitBox(G,lastX-0.5,yD,lastZ-0.5,lastX+0.5,yD+B*1.4,lastZ+0.5,'logSide','logTop',null);
-  torches.push({x:lastX,y:yD+B*1.4,z:lastZ});
+  { const ix=Math.floor(lastX/B), iz=Math.floor(lastZ/B), nLog=blockId('log');
+    for(let k=1;k<=2;k++) stampBlock(ix,deckIY+k,iz,nLog); }   /* the lamp post */
+  torches.push({x:lastX,y:deckY+B*2,z:lastZ});
   stamped(ex,()=>emitPathLine(G,site.x,site.z,shoreX,shoreZ));
   /* the pier's own bearing is kept — it is the only thing that truly knows
      which way the water lies (radial "outward" is inland on half the coasts) */
-  ex.pier={x:lastX,z:lastZ,dx,dz};
+  ex.pier={x:lastX,z:lastZ,dx,dz,y:deckY};
   return deckKeys;
 }
 const activeVillages=new Map();
@@ -8737,7 +8776,10 @@ function* spawnVillage(i,exShell){
   torches.push(...ex.torchIn);          /* the hearth-lights within the houses */
   yield;
   /* the pier, if the sea lies near */
-  const deckKeys=buildPier(G,ex,site,rnd,torches)||[];
+  /* the pier's planks and piles belong to the village that laid them, and go
+     into the sea again with it — the deck TABLE is given back separately, on
+     the same teardown, because the world reads that table and not the blocks */
+  const deckKeys=stamped(ex,()=>buildPier(G,ex,site,rnd,torches))||[];
   /* a fishmonger's stall by the pier, in the great cities */
   if(cfg&&cfg.fishStall!==false&&ex.pier){
     const fx=ex.pier.x, fz=ex.pier.z, fc=landAtWorld(fx-B,fz);
@@ -8796,6 +8838,18 @@ function* spawnVillage(i,exShell){
       if(x>H.x0-1.2&&x<H.x1+1.2&&z>H.z0-1.2&&z<H.z1+1.2) return false;
     for(const s of solids) if(Math.hypot(x-s.x,z-s.z)<s.r+2.0) return false;
     for(const e of placedAt) if(Math.hypot(x-e.x,z-e.z)<3.6) return false;
+    /* ---- AND NOTHING MAY BE STANDING WHERE HIS BODY GOES ----
+       The old tests were all FOOTPRINTS — house rectangles and recorded
+       solids — and they were enough while everything a village raised was
+       triangles that nobody could stand in. The village is blocks now, and
+       the hay, the fence rails, the benches, the stall counters and the
+       lamp posts are all outside every footprint this knows about. A man set
+       down on one of them begins his life inside it and, standing still, has
+       no occasion ever to leave.
+       Two courses of clear air over the field, which is the same law the
+       walking rule keeps. */
+    { const ix=Math.floor(x/B), iz=Math.floor(z/B);
+      if(blockSolidAt(ix,c.h,iz)||blockSolidAt(ix,c.h+1,iz)) return false; }
     return true; };
   const clearSpawn=(wx,wz)=>{
     if(spawnFree(wx,wz)) return {x:wx,z:wz};
@@ -8940,13 +8994,62 @@ function moveEnt(ent,dt,sp){
        and turns him back, as a wall should. */
     const gN=groundInfo(nx,nz,ent.m.position.y+0.1);
     const tooSteep=gN.land&&Math.abs(gN.y-ent.m.position.y)>B*1.35;   /* folk walk steps, not cliff faces */
-    if(!gN.land||tooSteep||blockedByStructureNPC(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,ent.m)||hitPlayer
+    /* ---- AND A MAN DOES NOT CLIMB THE FURNITURE ----
+       One course is a step, and folk have always been allowed to take one.
+       That was a rule about GROUND. Phase 3 laid the whole village in blocks,
+       and now every footing, bench, hay bale, stall counter, fence rail and
+       plaza edge is a one-course ledge — so a stack of them is a staircase,
+       and the townsfolk climbed the sides of their own houses a course at a
+       time and stood about on the roofs.
+       A BUILT surface more than a course above the true ground of that spot
+       is a wall, a roof or a counter-top, and none of them is a floor. The
+       doorstep of a house (its footing, exactly one course) is still a floor,
+       and a paved way is level with the ground it paves, so nothing a man
+       ought to walk on is taken from him. Pier decks answer from `deckMap`
+       and never carry the `edited` mark, so the fishers keep their planks. */
+    const cN=landAtWorld(nx,nz);
+    const climbBuilt=gN.edited&&cN&&gN.y>cN.h*B+B*1.2;
+    /* ---- AND HE MUST HAVE ROOM TO STAND UP IN IT ----
+       Forbidding the climb was not enough on its own. A footing runs UNDER
+       the walls it carries, and a stall's counter has its canopy posts on it.
+       Both are one course above the field, which the climb rule allows, and
+       both have a wall or a post standing in the very space a man's body
+       would occupy — so the folk walked onto the footing and stood inside
+       their own walls, and fifteen men on the roofs became twenty-one in the
+       masonry.
+       Two courses of clear air over a floor, or it is not a floor. That is
+       the whole of it, and it is the rule that lets a doorway through and
+       keeps a wall shut. `groundInfo` has always reported the ceiling over a
+       hollow column; it was simply never asked. */
+    const noRoom=gN.land&&isFinite(gN.ceil)&&(gN.ceil-gN.y)<B*1.9;
+    if(!gN.land||tooSteep||climbBuilt||noRoom||blockedByStructureNPC(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,ent.m)||hitPlayer
       ||!!landmarkSolidAt(nx,nz,ent.m.position.y+2,ent.m.position.y+8)){   /* the ancients' walls bar the folk as they bar the traveller */
       moving=false; ent.t=0; ent.stuck=(ent.stuck||0)+1;
       if(ent.stuck>2){ ent.stuck=0; ent.acting=false; ent.pt=0; ent.tx=ent.m.position.x; ent.tz=ent.m.position.z; } }
     else { ent.stuck=0; ent.m.position.x=nx; ent.m.position.z=nz; ent.m.rotation.y=Math.atan2(dx,dz); } }
   const gHere=groundInfo(ent.m.position.x,ent.m.position.z,ent.m.position.y+0.1);
+  /* ---- AND ONE ALREADY UP THERE IS BROUGHT DOWN ----
+     A rule that only forbids the climb leaves whoever climbed before it
+     stranded on the tiles for ever. But he must not simply be DROPPED to the
+     bare field either: the ground under a roof is the ground under a HOUSE,
+     and setting him there puts him waist-deep in its footing — which is what
+     the first draft of this did, and it traded fifteen men on the roofs for
+     eight men inside the walls.
+     Every creature keeps the last place it stood that this rule allowed. That
+     place was reached by walking, so it is outside every wall by
+     construction, and it is where a stranded one is put back. */
+  const cH=(gHere.edited)?landAtWorld(ent.m.position.x,ent.m.position.z):null;
+  const hereBad=(cH&&gHere.y>cH.h*B+B*1.2)
+    ||(gHere.land&&isFinite(gHere.ceil)&&(gHere.ceil-gHere.y)<B*1.9);
+  if(hereBad){
+    if(ent.gx!==undefined){ ent.m.position.x=ent.gx; ent.m.position.z=ent.gz; ent.m.position.y=ent.gy; }
+    else ent.m.position.y=cH.h*B;
+    ent.tx=ent.m.position.x; ent.tz=ent.m.position.z;
+    ent.acting=false; ent.pt=0; ent.t=0;
+    return moving; }
   ent.m.position.y=gHere.land?gHere.y:WATER_Y;
+  /* this footing was reached lawfully; it is the one to come back to */
+  ent.gx=ent.m.position.x; ent.gz=ent.m.position.z; ent.gy=ent.m.position.y;
   const legs=ent.m.userData.legs;
   /* the penned and the herded go by the same law as the wild ones */
   const GT=ent.kind?tickGait(ent,ent.kind,moving?sp:0,dt):null;
@@ -13810,7 +13913,11 @@ function frame(){
      real size and shape, not a drawn page — and the world is seen whole. */
   /* (zMapF is reckoned once, up beside the flyer's fog) */
   if(zMapF>0.02){ ensureAloftDisc();
-    aloftDisc.visible=true; aloftDisc.material.opacity=zMapF;
+    aloftDisc.visible=true;
+    /* full strength at 0.75, so that the coarse ring beneath can be taken
+       away without ever opening a hole between the two — see the ring's own
+       note further down */
+    aloftDisc.material.opacity=Math.min(1,zMapF/0.75);
     aloftDisc.position.y=175+Math.min(2200,Math.max(0,eyeY-9000)*0.06);  /* over the chunk tops, under the flyer */
     aloftTick(dt,p.x,p.z); }
   else if(aloftDisc){ aloftDisc.visible=false; if(aloftMark) aloftMark.visible=false; }
@@ -14000,15 +14107,28 @@ function frame(){
   const carpet = !flyNoCarpet && (frame._carpetOn ? (viewReach>ALOFT_EYE*0.85||zMapF>0.012)
                                                   : (viewReach>ALOFT_EYE||zMapF>0.02));
   frame._carpetOn = showNear&&!underEye&&carpet;
-  /* ---- AND THE RING HOLDS UNTIL THE CHART TRULY COVERS IT ----
-     Fading it against the chart was tried and it was wrong: the chart is a
-     disc laid OVER the ring, so as the ring thinned there was a moment with
-     neither — a hole where the world should be. It stays at full strength
-     and the chart simply covers it, which is what a cross-dissolve between a
-     near thing and a far thing has to be. It goes out only at the very end,
-     when the chart is all but opaque and there is nothing of the ring left
-     to see anyway. */
-  const carpetWant=(frame._carpetOn?1:0)*(1-Math.max(0,Math.min(1,(zMapF-0.90)/0.07)));
+  /* ---- AND THE RING GOES OUT AS THE CHART COMES FULLY IN ----
+     Fading it against the chart was once tried and was wrong, and the reason
+     was recorded here: the chart is a disc laid OVER the ring, so as the ring
+     thinned there was a moment with NEITHER — a hole where the world should
+     be. So it was held at full strength until 0.90, and the chart simply
+     covered it.
+     But the chart only reached full strength at 1.0, so through the whole of
+     the middle band the eye was given a mixture — and the ring's cells are
+     sixteen hundred units across up there, one sample to two hundred and
+     seventy blocks. Aloft, that mixture is a SHARP CHART WITH A BLURRED
+     SMEAR PAINTED OVER ITS MIDDLE, and ragged navy shapes where the ring's
+     coarse sampling struck water in the midst of dry countries. From the
+     flyer's own height it is the ugliest thing in the game.
+     The answer to the old hole was never to hold the ring on; it was to
+     bring the CHART to full opacity BEFORE the ring is taken away. It reaches
+     1.0 at 0.75 now, and the ring goes out between 0.60 and 0.75 under it —
+     so the two overlap the whole way (at worst some five parts in a hundred
+     of the sky shows through, against a sky already going dark) and above
+     0.75 the charted earth is beheld clean, with nothing smeared across her.
+     Below 0.60 — the whole of the pull-back band, where the ring is the only
+     thing carrying the country — nothing whatever is changed. */
+  const carpetWant=(frame._carpetOn?1:0)*(1-Math.max(0,Math.min(1,(zMapF-0.60)/0.15)));
   farLandMat.opacity+=(carpetWant-farLandMat.opacity)*Math.min(1,dt*2.5);
   farLand.visible=farLandMat.opacity>0.02;
   if(frame._carpetOn) updateFarLand(p.x,p.z,false,eyeY);

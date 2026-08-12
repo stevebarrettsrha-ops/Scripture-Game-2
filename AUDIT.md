@@ -1727,7 +1727,122 @@ the heart of `emitColumn` and it wants a round of its own.
   one group and would have to be separated first. Noted, not done.
 
 **Still ahead in Phase 3:** `buildPier` last with `deckMap`, and the geometric
-diff harness.
+diff harness. *(The pier is done in Round 29 below.)*
+
+## 4ab. Round 29 — the pier, and three faults the field found before I did ✅
+
+*Phase 3 finished — `buildPier` and `deckMap` with it — and then three reports
+from the field, every one of them a real fault and every one of them caused by
+work of mine. They are set down here in the order they were found, with what
+was measured before and after.*
+
+**1. The pier, and the table it carries.**
+- A deck was a SLAB half a unit thick floating 2.8 above the waterline, and
+  `deckMap` told the whole world — the walker, the fishers, the boat looking
+  for somewhere to put in — that the walking surface there was 3.15.
+- A deck of blocks cannot be half a unit thick. It is a course, six units, and
+  **its top is where a man's feet go**, so the table is told the course's top
+  and not the old slab's, or every fisher on every pier stands three units
+  inside his own planks. One number, reckoned once, written into the table,
+  the piles, the lamp post and `ex.pier`.
+- The two corner piles become the one column of timber a six-unit cell can
+  hold, run from the bed of the sea to the deck. Ten planks at Norway,
+  measured: table 6.0, walker's feet 6.0, block under him `Planks`.
+
+**2. And what is built over open water is built.**
+A column with no land in it fell straight through the mesher to the next one,
+so the edit layers were never even ASKED about it. Anything set down out on
+the water — the planks of a pier, a block laid from a boat — went into the
+overlay, answered **solid to every foot and every test, and was drawn nowhere
+at all**: a man stood on the open sea at the right height, on nothing. The
+faces of a placed block need no ground under them; only the asking was
+missing. (This was a Phase 2 fault. Nothing had ever been built at sea before
+the pier, so nothing had ever found it.)
+
+**3. THE FLICKER — the overlay drawn twice.**
+- Reported from the field: *"buildings and some tree and tile and ground are
+  flickering."*
+- `editedCell` asked `blockSolidAt` to decide what was terrain, and that sees
+  BOTH layers. So every block anybody had set down was counted into the ground
+  column, drawn by `emitColumn` **in the ground's material**, and then drawn a
+  second time by `emitPlaced` in its own. Two coplanar faces in the same
+  place, and the depth buffer choosing afresh between them every frame as the
+  eye moves. That is the flicker — and it is why a plank floor could read as
+  sand.
+- It was nearly invisible while a man's edits were a handful of blocks in a
+  hillside. **Phase 3 lays sixteen thousand of them in every village**, and it
+  became the look of the world. A cell the overlay names is not terrain now,
+  whatever stands in it; the overlay is drawn once, by `emitPlaced`, which
+  culls its own faces against both layers and so still meets the true ground
+  correctly.
+- Test 6 had been reading `tris 1366→1390` for one placed block — twenty-four
+  triangles, which is two cubes. It passed, and it was showing the bug.
+
+**4. THE TOWNSFOLK ON THE ROOFS — and then in the walls.**
+Reported: *"npcs are spawning trap in the sides of houses and some trap on the
+top of houses."* Measured before anything was changed: **9 on the roofs at
+noon, 15 at dusk, 0 inside solid.** Three faults, found one at a time by
+fixing the one in front:
+
+- **One course is a step, and folk have always been allowed to take one.** That
+  was a rule about GROUND. Every footing, bench, hay bale, stall counter,
+  fence rail and plaza edge is now a one-course ledge, so a stack of them is a
+  staircase and the townsfolk climbed the sides of their own houses a course
+  at a time. A BUILT surface more than a course above the true ground of that
+  spot is a wall, a roof or a counter-top, and none of them is a floor.
+  → roofs **15 → 1**.
+- **The first rescue traded roofs for masonry.** Whoever was already up there
+  had to be brought down, and the first draft simply dropped them to the bare
+  field — but the ground under a roof is the ground under a HOUSE, and that
+  put them waist-deep in its footing. **15 on the roofs became 21 in the
+  walls.** Each creature now keeps the last place it stood that the rule
+  allowed; that place was reached by walking, so it is outside every wall by
+  construction, and it is where a stranded one is put back.
+- **Forbidding the climb was not enough on its own.** A footing runs UNDER the
+  walls it carries and a stall's counter has its canopy posts standing on it —
+  both one course above the field, which the climb rule allows, and both with
+  something standing in the very space a body would occupy. **Two courses of
+  clear air over a floor, or it is not a floor.** `groundInfo` has always
+  reported the ceiling over a hollow column; it was never asked. That is also
+  the rule that lets a doorway through and keeps a wall shut.
+- **And nobody is set down inside anything.** The spawn tests were all
+  FOOTPRINTS — house rectangles and recorded solids — enough while everything
+  a village raised was triangles nobody could stand in. The hay, the rails,
+  the benches and the lamp posts lie outside every footprint it knew. A man
+  set down on one begins his life inside it and, standing still, has no
+  occasion ever to leave. Same law: two courses of clear air.
+
+Measured after, at all three hours: **0 of 48 inside solid, 0 on roofs.**
+
+**5. THE CARPET ALOFT.**
+- Reported: *"the coarse carpet is affecting how the game looks when the player
+  is rising up and zooms out."* From 2,629 km the earth was a sharp chart with
+  **a blurred smear painted over its middle** and ragged navy shapes across
+  dry countries.
+- The ring was held at full strength until zMapF 0.90 — a rule written to
+  close an old hole — while the chart only reached full strength at 1.0. So
+  through the whole middle band the eye was given a MIXTURE, and up there the
+  ring's cells are sixteen hundred units across: **one sample to two hundred
+  and seventy blocks.** Round 27's smoothing did not cause this, but it turned
+  the coarse terraces into an airbrush, which is worse to look at.
+- The answer to the old hole was never to hold the ring on; it was to bring
+  the CHART fully in **before** the ring is taken away. The chart reaches 1.0
+  at 0.75 now and the ring goes out between 0.60 and 0.75 beneath it, so the
+  two overlap the whole way (at worst some five parts in a hundred of a
+  darkening sky shows through) and above 0.75 the charted earth is beheld
+  clean.
+- **Below 0.60 — the whole of the pull-back band, where the ring is the only
+  thing carrying the country — nothing whatever is changed.** Measured: at
+  3,000 and 9,000 units of height the ring stands at full strength; at 15,774
+  (the height reported from the field) it is gone.
+
+**Still ahead in Phase 3:** the geometric diff harness. Every builder is
+converted.
+
+**And still noted, still not done:** greedy merging of coplanar faces in the
+mesher. Round 28 measured what a mineable town costs; this round has just
+removed a doubling of it that should never have been there, and the merge
+would take the rest.
 
 ## 5. Further recommendations (future work)
 
