@@ -2310,6 +2310,76 @@ from it. It reloads now, as test 7 does. After the reload he still carries
 **Still ahead in Phase 4:** steps 5–10. Next is the belt and the page — the
 UI, and by §2.2 the place this phase is won or lost.
 
+## 4aj. Round 37 — Phase 4 step 5: the belt, and the page ✅
+
+*§11 step 5. The satchel of Round 36 given a face. By §2.2 this is where the
+phase is won or lost — the interface is the cheapest and most-seen
+differentiator there is, and a grey hotbar of grey squares would undo every
+other thing in this phase at a glance. Acceptance **16 pass · 0 fail ·
+4 pending**.*
+
+**1. Clay on leather, not grey on grey.**
+A strap of tooled leather, and on it eight **clay tokens**, each fired with
+the face of the substance it holds — **drawn out of the very texture the
+mesher lays on the block**, so a token of cedar and a wall of cedar are the
+same picture, by construction and not by resemblance. The token in the hand
+stands proud of the strap and takes a gold rim; the rest lie flat. The count
+is set in the HUD's own gold Georgia, as every number in this game is.
+
+**2. The satchel opens as an illuminated page.**
+Parchment, a gold rule, and a lettered initial in madder red: *The Satchel*.
+The four-and-twenty slots upon the page, and the eight of the belt on a strap
+beneath it under the line *"the belt — what the hand can reach"*. A thing is
+moved to the hand by **two touches and no dragging**, which is the only
+scheme that works the same with a finger and with a mouse. Two part-stacks of
+one substance **pour together** before they trade places.
+
+**3. THE WHEEL IS NOT TAKEN.**
+Every other game of this kind puts the belt on the scroll wheel. In this one
+the wheel has drawn the eye back off the world since long before there was a
+belt — out to the whole earth — and that is a better use of it. The tokens are
+chosen by the number keys and by being touched.
+
+**4. And that touch is also the answer to the phone.**
+A token is a DOM button lying over the canvas, so a finger on it **never
+reaches the look-drag beneath**; and the walking-stick's own corner (the left,
+below a third of the way up) is nowhere near the strap. **Nothing of the
+twin-zone scheme is changed** — not a line of the pointer handling was
+touched. The brief calls this a real design problem rather than an
+afterthought, which is why it got a step of its own rather than being folded
+into step 4.
+
+**5. The belt is redrawn when it changes and not when it does not.**
+A signature of *(shown, held, the eight slots)* is compared each frame and the
+HUD is rebuilt only when it differs. A HUD rebuilt every frame is a HUD that
+costs a frame.
+
+**6. And step 2's promise is kept — with a correction.**
+Round 34 said the multiplier for what is held would enter in **exactly one
+place**, `toolSpeed`, and it has. But the first draft of it was wrong in a way
+worth recording: `tool` on a BLOCK names *the tool that breaks it* — it does
+not make the block into that tool. Asking whether the held thing's own `tool`
+matched would have meant **holding a brick sped the breaking of brick**, which
+is nonsense dressed as a feature. What is asked is whether the held thing
+`serves` as that tool — a field no block declares, and which the works of step
+9 will put on the pick, the axe and the rest. **Today every hand is still bare
+and the blow reads exactly as it did in Round 34** — but it now reads the hand
+rather than assuming it.
+
+*(And the test I wrote for it was wrong too: it took grass for a thing that
+asks no tool. Grass asks for a SPADE. Hay asks for nothing.)*
+
+**7. The reading.**
+
+    PASS 14 · Baked Brick broke at 6.52s · 16 cracks cut
+              · the hand taken off loses the work: true
+              · the speed is read out of the hand: true
+    PASS 16 · after the reload he still carries 5 brick and 5 cobble, in his own order
+
+**Still ahead in Phase 4:** steps 6–10. Next is the placing — against the hit
+face, on the air side, and refusing to stand inside the traveller, a villager
+or a beast.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

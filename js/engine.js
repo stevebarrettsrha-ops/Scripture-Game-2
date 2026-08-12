@@ -672,7 +672,10 @@ for(let i=0;i<BLOCK_DEFS.length;i++){
     hardness:(d.hardness===undefined?1.5:d.hardness), tool:d.tool||null,
     drops:(d.drops===undefined?d.id:d.drops),
     light:d.light||0, opaque:d.opaque!==false, gravity:!!d.gravity,
-    liquid:!!d.liquid, verse:d.verse||null };
+    liquid:!!d.liquid, verse:d.verse||null,
+    /* what this thing SERVES AS in the hand — 'pick', 'axe' and the rest.
+       No block is a tool; the works of Phase 4 step 9 declare these. */
+    serves:d.serves||null };
   /* the three faces the mesher asks for, resolved once so it never has to */
   b.mTop=b.tex.top||b.tex.all||'stone';
   b.mSide=b.tex.side||b.tex.all||b.mTop;
@@ -10494,7 +10497,14 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code==='KeyM') toggleMap();
   if(e.code==='KeyK'){ if(roamOnly()) cycleSeason(); }  /* free roam only */
   if(e.code==='KeyT') setTorch(!TORCH.on);   /* strike a light, and put it out */
-  if(e.code==='KeyL') toggleLog(); });
+  if(e.code==='KeyL') toggleLog();
+  /* ---- THE EIGHT, AND THE PAGE ----
+     Number keys take a token; I opens the satchel. The wheel is NOT taken —
+     it has drawn the eye back off the world since long before there was a
+     belt, and that is a better use of it. */
+  if(e.code.indexOf('Digit')===0){ const k=+e.code.slice(5);
+    if(k>=1&&k<=BELT_N){ heldSlot=k-1; beltDraw(); } }
+  if(e.code==='KeyI'){ e.preventDefault(); togglePage(); } });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
 const cv=$('cv'); let drag=null, joy=null;
 const tpts=new Map(); let pinchD=0;      /* two-finger pinch state */
@@ -13687,6 +13697,11 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   hoard:()=>{ const o={}; for(const sl of SATCHEL) if(sl) o[sl.id]=(o[sl.id]||0)+sl.n; return o; },
   satchel:()=>SATCHEL.map(sl=>sl?{id:sl.id,n:sl.n}:null),
   satchelAdd, satchelTake, satchelRoom,
+  /* ---- THE BELT AND THE PAGE, FOR tools/acceptance.js ---- */
+  held:()=>heldSlot, setHeld:i=>{ heldSlot=Math.max(0,Math.min(BELT_N-1,i|0)); beltDraw(); },
+  heldBlock:()=>{ const b=heldBlock(); return b?b.id:null; },
+  pageOpen:()=>pageOpen, togglePage, pageTouch, beltDraw, pageDraw,
+  toolSpeedOf:id=>toolSpeed(BLOCK_BY_ID[id]),
   /* the save, driven and read back, so a test need not guess at its timing */
   saveNow:()=>saveState(),
   savedRaw:async()=>{ try{ if(window.storage){ const r=await window.storage.get(SAVE_KEY);
@@ -14021,9 +14036,25 @@ const HAND_SLOW=2.5;              /* the price of the wrong tool, or none */
 const MINE={ix:0,iy:0,iz:0,t:0,need:0,on:false,n:0};
 let mineHeld=false, mineTestAt=null, mineDriven=false;
 function toolSpeed(b){
-  /* the belt will speak here. Until then every hand is bare, and a block
-     that asks for iron is had the slow way. */
-  return b&&b.tool?1/HAND_SLOW:1;
+  /* ---- AND HERE THE BELT SPEAKS, AS STEP 2 PROMISED IT WOULD ----
+     One place, as it was written. A block that asks for a tool is had at full
+     speed by the hand that holds one and the slow way by the hand that does
+     not. There are no tool blocks to hold yet — they are works, and works are
+     step 9 — so today every hand is still bare and this reads exactly as it
+     did. What has changed is that it now reads the HAND rather than assuming
+     it, and the day a bronze pick exists it will be believed without another
+     line here. */
+  if(!b||!b.tool) return 1;
+  /* `tool` on a BLOCK names the tool that breaks it — it does not make the
+     block into that tool. Asking whether the held thing's own `tool` matches
+     would have meant that holding a brick sped the breaking of brick, which
+     is nonsense dressed as a feature. What is asked is whether the thing in
+     the hand SERVES as that tool, which is a field no block declares and
+     which the works of step 9 will put on the pick, the axe and the rest.
+     So today every hand is still bare and this reads exactly as it did in
+     Round 34 — but it now reads the HAND rather than assuming it. */
+  const h=heldBlock();
+  return (h&&h.serves===b.tool)?1:1/HAND_SLOW;
 }
 /* the crack figure of one block: branches out of the middle of a face, in
    face-space, each segment appearing after the one before it */
@@ -14249,6 +14280,88 @@ function takeUp(d){
 let _satT=null;
 function satchelTouch(){ if(_satT) clearTimeout(_satT);
   _satT=setTimeout(()=>{ _satT=null; saveState(); }, 900); }
+
+/* ================= THE BELT, AND THE PAGE =================
+   Phase 4, step 5. The satchel of step 4 given a face, and by §2.2 this is
+   where the phase is won or lost: the interface is the cheapest and
+   most-seen differentiator there is, and a grey hotbar of grey squares would
+   undo every other thing in this phase at a glance.
+
+   So: a strap of leather, and on it CLAY TOKENS, each fired with the face of
+   the substance it holds — drawn out of the very texture the mesher lays on
+   the block, so a token of cedar and a wall of cedar are the same picture.
+   The token in the hand stands proud of the strap and takes a gold rim.
+   Behind it the satchel opens as an ILLUMINATED PAGE: parchment, a gold rule,
+   a lettered initial in madder red, and the four-and-twenty slots upon it.
+
+   THE WHEEL IS NOT TAKEN. Every other game puts the belt on the scroll
+   wheel; in this one the wheel has drawn the eye back off the world since
+   long before there was a belt, out to the whole earth, and that is a better
+   use of it. The tokens are chosen by the number keys and by being touched —
+   which is also the answer to the phone: a token is a DOM button lying over
+   the canvas, so a finger on it never reaches the look-drag beneath, and the
+   walking-stick's own corner (the left, below a third of the way up) is
+   nowhere near the strap. Nothing of the twin-zone scheme is changed. */
+let heldSlot=0;                    /* which of the belt's eight is in the hand */
+let pageOpen=false, pagePick=-1;   /* the page, and the token lifted off it */
+function heldStack(){ return SATCHEL[heldSlot]||null; }
+function heldBlock(){ const h=heldStack(); return h?BLOCK_BY_ID[h.id]:null; }
+/* one clay token, with the face of its substance fired into it */
+function tokenEl(slot,idx,inPage){
+  const d=D.createElement('div');
+  d.className='tok'+(slot?'':' bare')+(!inPage&&idx===heldSlot?' held':'')
+    +(inPage&&idx===pagePick?' pick':'');
+  if(slot){
+    const b=BLOCK_BY_ID[slot.id];
+    const t=b&&TEX[b.mTop];
+    if(t&&t.image){ const c=D.createElement('canvas'); c.width=c.height=TEXEL;
+      const g=c.getContext('2d'); g.imageSmoothingEnabled=false;
+      try{ g.drawImage(t.image,0,0,c.width,c.height); }catch(e){}
+      d.appendChild(c); }
+    if(slot.n>1){ const n=D.createElement('div'); n.className='n'; n.textContent=slot.n; d.appendChild(n); }
+    d.title=(b?b.name:slot.id)+' — '+slot.n;
+  }
+  return d;
+}
+function beltDraw(){
+  const el=$('belt'); if(!el) return;
+  el.style.display=beltWanted()?'flex':'none';
+  if(!beltWanted()) return;
+  el.textContent='';
+  for(let i=0;i<BELT_N;i++){ const t=tokenEl(SATCHEL[i],i,false);
+    t.onpointerdown=e=>{ e.preventDefault(); e.stopPropagation(); heldSlot=i; beltDraw(); };
+    el.appendChild(t); }
+}
+/* the belt is shown where a hand could use it, and nowhere else */
+function beltWanted(){ return running&&!state.firm&&!cut&&state.mode==='walk'&&zoomMapFadeCache<0.02; }
+function pageDraw(){
+  const el=$('page'); if(!el) return;
+  el.style.display=pageOpen?'flex':'none';
+  if(!pageOpen) return;
+  const g=$('page-grid'), b2=$('page-belt');
+  g.textContent=''; b2.textContent='';
+  /* the page holds the four-and-twenty; the strap beneath holds the eight,
+     so a thing is moved down to the hand by two touches and no dragging —
+     which is the only scheme that works the same with a finger and a mouse */
+  for(let i=BELT_N;i<SATCHEL_N;i++){ const t=tokenEl(SATCHEL[i],i,true);
+    t.onpointerdown=e=>{ e.preventDefault(); pageTouch(i); }; g.appendChild(t); }
+  for(let i=0;i<BELT_N;i++){ const t=tokenEl(SATCHEL[i],i,true);
+    t.onpointerdown=e=>{ e.preventDefault(); pageTouch(i); }; b2.appendChild(t); }
+}
+function pageTouch(i){
+  if(pagePick<0){ if(SATCHEL[i]) pagePick=i; }
+  else if(pagePick===i){ pagePick=-1; }
+  else {
+    const a2=SATCHEL[pagePick], b3=SATCHEL[i];
+    /* two part-stacks of one substance pour together before they trade places */
+    if(a2&&b3&&a2.id===b3.id&&b3.n<STACK){ const put=Math.min(STACK-b3.n,a2.n);
+      b3.n+=put; a2.n-=put; if(a2.n<=0) SATCHEL[pagePick]=null; }
+    else { SATCHEL[i]=a2; SATCHEL[pagePick]=b3; }
+    pagePick=-1; satchelTouch();
+  }
+  pageDraw(); beltDraw();
+}
+function togglePage(){ pageOpen=!pageOpen; pagePick=-1; pageDraw(); beltDraw(); }
 
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0, liveT=0;
@@ -14647,6 +14760,11 @@ function frame(){
   aimTick();                         /* the block at the end of the traveller's arm */
   if(!mineDriven) mineTick(dt);      /* and the hand held to it until it gives */
   dropTick(dt);                      /* and what it left lying on the ground */
+  /* the belt is redrawn only when what it shows has CHANGED — a HUD rebuilt
+     every frame is a HUD that costs a frame */
+  { const sig=(beltWanted()?1:0)+'|'+heldSlot+'|'+
+      SATCHEL.slice(0,BELT_N).map(sl=>sl?sl.id+':'+sl.n:'-').join(',');
+    if(sig!==frame._beltSig){ frame._beltSig=sig; beltDraw(); if(pageOpen) pageDraw(); } }
   /* ---- NOTHING BUT BLOCKS IN GAMEPLAY ----
      The coarse far ring is BANISHED from the played world. Down on the sea,
      ashore, on a summit, rising low over a coast — everything in view is true

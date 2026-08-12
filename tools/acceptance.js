@@ -358,11 +358,24 @@ T[14]={name:'a blow of the hand breaks a block in the time its hardness says',
     D.mineHold(false);
     const dropped=D.mineProgress()===null;
     D.mineAt(null); D.setBlock(cx,cy,cz,0); await D.settle(2);
-    return {ok:!early&&!late&&cracks>0&&dropped,
+    /* and the speed is read out of the HAND, not assumed. No thing in the
+       world SERVES as a pick yet — tools are works, and works are step 9 —
+       so every hand is bare and a block that asks for iron is had the slow
+       way whatever is being carried. What is asserted here is that the
+       question is asked at all, and that holding a substance does not turn
+       that substance into the tool that breaks it. */
+    D.satchelAdd('brick',1); D.setHeld(0);
+    /* brick asks for a pick; hay asks for nothing. (Grass asks for a SPADE,
+       which the first draft of this line did not know, and it read the right
+       answer as a failure.) */
+    const bare=D.toolSpeedOf('brick'), free=D.toolSpeedOf('hay');
+    const asksTheHand=(Math.abs(bare-1/D.handSlow())<1e-6)&&(free===1);
+    return {ok:!early&&!late&&cracks>0&&dropped&&asksTheHand,
       got:b.name+' (hardness '+b.hardness+', by hand ×'+D.handSlow()+' = '+want.toFixed(2)+'s) '+
           'broke at '+(broke<0?'NEVER':broke.toFixed(2)+'s')+
           ' · '+cracks+' cracks cut · half-broken at '+(half===null?'—':half.toFixed(2)+'s')+
-          ' · the hand taken off loses the work: '+dropped};
+          ' · the hand taken off loses the work: '+dropped+
+          ' · the speed is read out of the hand: '+asksTheHand};
   })};
 
 T[15]={name:'what is broken becomes a thing on the ground, and comes into the satchel',
