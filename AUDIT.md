@@ -2380,6 +2380,60 @@ asks no tool. Grass asks for a SPADE. Hay asks for nothing.)*
 face, on the air side, and refusing to stand inside the traveller, a villager
 or a beast.
 
+## 4ak. Round 38 — Phase 4 step 6: the placing ✅
+
+*§11 step 6. A block set down against the face that was struck, on the AIR
+side of it. Acceptance **18 pass · 0 fail · 2 pending**.*
+
+**1. This is what step 1 answered with a FACE for.**
+The grid walk gives the cell AND the face; the cell to build in is the cell
+plus the face's own normal, and there is nothing to work out. Proved six ways:
+the arm brought to each face of one block in turn, and what is laid appears
+back the way the arm came, every time.
+
+**2. It refuses to stand inside a living thing.**
+The brief calls this immediately world-breaking and it is — **a man who walls
+himself into his own body is stuck for ever, and a man who buries a villager
+has silently killed something the world will go on trying to walk.** So the
+cell is measured against the traveller's own body, and against every villager
+and beast standing within reach of it. Nothing of it is a guess: each is a box
+about a known point, and the cell either crosses it or it does not.
+
+Measured: **the two cells of his own body are refused, and 48 of 48 villagers
+in a town cannot be built into** (33 of 33 in the run where a smaller town was
+standing).
+
+**3. A tap lays; a hold mines.**
+They are told apart by the clock and by nothing else. The blow of Round 34
+needs the pointer held STILL for a fifth of a second before it begins, so a
+quick tap has done no mining at all by the time it is let go and is free to
+mean something else. It is the same distinction a hand makes on a real wall,
+and it costs the touch scheme nothing — a look-drag MOVES, and neither of
+these fires on a drag. The right button lays at once for a mouse, `V` for a
+keyboard, and the menu that usually comes with a right button is not wanted
+over a world.
+
+**4. And it costs him what he lays.** One taken out of the satchel per block
+set down, and the belt redrawn to show it. A hand with nothing in it lays
+nothing.
+
+**5. A third test of mine that assumed where it was standing.**
+Fired from three blocks off, four of the six rays began INSIDE a hillside —
+and the arm rightly refuses to answer for a cell a man's own head is in, so
+the test read the right refusal as *"the arm missed"*. The six lanes are
+emptied before anything is asked of them. **That is now three rounds running
+(35, 37, 38) where the code was right and my test was wrong**, and all three
+in the same way: assuming the shape of the ground it happened to land on.
+
+**6. The reading.**
+
+    PASS 17 · 6 of 6 faces laid on the air side · and it costs him what he lays=true
+    PASS 18 · the two cells of his own body are refused=true
+              · 48 of 48 villagers cannot be built into
+
+**Still ahead in Phase 4:** steps 7–10. Next is the material economy —
+`world/minerals.js`, ores by land and by depth, into the caves Phase 1 dug.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

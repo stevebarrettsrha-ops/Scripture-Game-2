@@ -10504,7 +10504,10 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
      belt, and that is a better use of it. */
   if(e.code.indexOf('Digit')===0){ const k=+e.code.slice(5);
     if(k>=1&&k<=BELT_N){ heldSlot=k-1; beltDraw(); } }
-  if(e.code==='KeyI'){ e.preventDefault(); togglePage(); } });
+  if(e.code==='KeyI'){ e.preventDefault(); togglePage(); }
+  if(e.code==='KeyV'){ e.preventDefault();
+    const r=placeBlock();
+    if(r&&r.no&&r.no!=='nothing is within reach') toast('Not there — '+r.no+'.'); } });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
 const cv=$('cv'); let drag=null, joy=null;
 const tpts=new Map(); let pinchD=0;      /* two-finger pinch state */
@@ -10519,7 +10522,15 @@ const tpts=new Map(); let pinchD=0;      /* two-finger pinch state */
 const PITCH_MIN=-1.25, PITCH_MAX=1.52;
 function pitchClamp(v){ const lo=state.firm?0.05:PITCH_MIN;
   return Math.max(lo,Math.min(PITCH_MAX,v)); }
+/* the right hand lays a block where the left breaks one; the menu that
+   usually comes with it is not wanted over a world */
+cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('pointerdown',e=>{ cv.setPointerCapture(e.pointerId);
+  if(e.button===2&&running&&!state.firm&&!cut&&!gamePaused&&state.mode==='walk'){
+    e.preventDefault();
+    const r=placeBlock();
+    if(r&&r.no&&r.no!=='nothing is within reach') toast('Not there — '+r.no+'.');
+    return; }
   if(e.pointerType==='touch'){
     tpts.set(e.pointerId,[e.clientX,e.clientY]);
     /* two fingers are a PINCH only when neither is the walking-stick: with
@@ -10582,7 +10593,19 @@ function endPtr(e){ if(joy&&e.pointerId===joy.id){ joy=null; $('joy').style.disp
     if(!tap){
       state.camYawVel  =Math.max(-6,Math.min(6,d.vx));
       state.camPitchVel=Math.max(-4,Math.min(4,d.vy)); }
-    if(tap&&state.firm&&running) firmTravel(e); }
+    if(tap&&state.firm&&running) firmTravel(e);
+    /* ---- A TAP LAYS, A HOLD MINES ----
+       They are told apart by the clock and by nothing else: the blow needs
+       the pointer held STILL for a fifth of a second before it begins, so a
+       quick tap has done no mining at all by the time it is let go and is
+       free to mean something else. It is the same distinction a hand makes
+       on a real wall, and it costs the touch scheme nothing — a look-drag
+       moves, and neither of these fires on a drag. */
+    if(tap&&running&&!state.firm&&!cut&&!gamePaused&&state.mode==='walk'&&
+       d.t0!==undefined&&performance.now()-d.t0<240){
+      const r=placeBlock();
+      if(r&&r.no&&r.no!=='nothing is within reach') toast('Not there — '+r.no+'.');
+    } }
   /* a pinch let go one finger at a time: the finger still down carries
      straight on as a look-drag, never as a stray tap */
   if(!drag&&!joy&&tpts.size===1){ const [pid,pt]=[...tpts.entries()][0];
@@ -13701,6 +13724,11 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   held:()=>heldSlot, setHeld:i=>{ heldSlot=Math.max(0,Math.min(BELT_N-1,i|0)); beltDraw(); },
   heldBlock:()=>{ const b=heldBlock(); return b?b.id:null; },
   pageOpen:()=>pageOpen, togglePage, pageTouch, beltDraw, pageDraw,
+  placeBlock, cellHitsAnyLiving,
+  /* the same placing, from a named reach — so a test need not steer a camera
+     to ask which side of a face a block lands on */
+  placeFrom:a=>{ const was=AIM; AIM=a; try{ return placeBlock(); } finally{ AIM=was; } },
+  activeVillages:()=>activeVillages,
   toolSpeedOf:id=>toolSpeed(BLOCK_BY_ID[id]),
   /* the save, driven and read back, so a test need not guess at its timing */
   saveNow:()=>saveState(),
@@ -14362,6 +14390,67 @@ function pageTouch(i){
   pageDraw(); beltDraw();
 }
 function togglePage(){ pageOpen=!pageOpen; pagePick=-1; pageDraw(); beltDraw(); }
+
+/* ================= THE PLACING =================
+   Phase 4, step 6. A block set down against the face that was struck, on the
+   AIR side of it — which is what the grid walk of step 1 answers with, and
+   the reason it answers with a face at all.
+
+   AND IT REFUSES TO STAND INSIDE A LIVING THING. The brief calls this
+   immediately world-breaking and it is: a man who walls himself into his own
+   body is stuck for ever, and a man who buries a villager has silently killed
+   something the world will go on trying to walk. So the cell is measured
+   against the traveller's own body, against every villager and beast standing
+   near, and against the crew and the traders — anything that moves and is not
+   a block. Nothing of this is a guess: each is a box about a known point, and
+   the cell either crosses it or it does not.
+
+   IT IS THE BLOCK WORLD ONLY, as everything in this phase is. The ship is not
+   asked about; a man may not build inside her hull because he cannot reach
+   through her planks, and if that ever changes it will be a rule written here
+   on purpose rather than an accident. */
+const PLACE_PAD=0.35;              /* how much of a body's breadth counts as inside it */
+/* does the cell (ix,iy,iz) cross a body of this half-breadth and height,
+   standing with its feet at (x,y,z)? */
+function cellHitsBody(ix,iy,iz, x,y,z, half, tall){
+  const x0=ix*B, x1=x0+B, z0=iz*B, z1=z0+B, y0=iy*B, y1=y0+B;
+  return (x+half>x0-PLACE_PAD && x-half<x1+PLACE_PAD &&
+          z+half>z0-PLACE_PAD && z-half<z1+PLACE_PAD &&
+          y+tall>y0            && y      <y1);
+}
+/* everything alive that stands near enough to be built into */
+function cellHitsAnyLiving(ix,iy,iz){
+  /* the traveller himself, first and always */
+  if(state.mode==='walk'&&state.walk.feetY!==undefined&&
+     cellHitsBody(ix,iy,iz, state.walk.x,state.walk.feetY,state.walk.z, BODY_R, HEAD_R)) return 'the traveller';
+  const cx=(ix+0.5)*B, cz=(iz+0.5)*B;
+  for(const[,vv] of activeVillages){
+    if(!vv.site||Math.hypot(cx-vv.site.x,cz-vv.site.z)>460) continue;
+    if(vv.people) for(const e of vv.people){ const P=e.m&&e.m.position; if(!P) continue;
+      if(cellHitsBody(ix,iy,iz,P.x,P.y,P.z, 2.0, B*1.9)) return e.name||'a villager'; }
+    if(vv.beasts) for(const e of vv.beasts){ const P=e.m&&e.m.position; if(!P) continue;
+      const bl=(bodyLenOf&&bodyLenOf(e.kind))||8;
+      if(cellHitsBody(ix,iy,iz,P.x,P.y,P.z, Math.max(2.2,bl*0.4), Math.max(B,bl*0.9))) return 'a beast'; }
+  }
+  return null;
+}
+/* set down what is in the hand, against the face the arm is on */
+function placeBlock(){
+  const a=AIM; if(!a) return {no:'nothing is within reach'};
+  const h=heldStack(); if(!h) return {no:'his hand is empty'};
+  const b=BLOCK_BY_ID[h.id]; if(!b) return {no:'he holds nothing that can be laid'};
+  /* the AIR side of the struck face — the whole reason the arm answers with
+     a face and not merely a cell */
+  const ix=a.ix+a.nx, iy=a.iy+a.ny, iz=a.iz+a.nz;
+  if(iy<EY_MIN||iy>=EY_MAX) return {no:'there is nothing there to build on'};
+  if(blockSolidAt(ix,iy,iz)) return {no:'something already stands there'};
+  const who=cellHitsAnyLiving(ix,iy,iz);
+  if(who) return {no:who+' is standing there'};
+  if(!satchelTake(h.id,1)) return {no:'his hand is empty'};
+  setBlock((ix+0.5)*B,(iy+0.5)*B,(iz+0.5)*B, b.n);
+  beltDraw(); satchelTouch();
+  return {laid:b.id, at:[ix,iy,iz]};
+}
 
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0, liveT=0;

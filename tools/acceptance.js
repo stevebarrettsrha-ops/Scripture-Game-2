@@ -483,14 +483,88 @@ T[16]={name:'the satchel stacks, and survives a reload',
   }};
 
 T[17]={name:'a block placed against a face stands on the air side of it',
-  run:async page=>page.evaluate(()=>{ const D=window.__VDBG;
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
     if(!D.placeBlock) return {pending:'no placing (Phase 4 step 6)'};
-    return {ok:false,got:'unwritten'}; })};
+    const p=D.playerXZ(), t=D.blockUnder(p.x+6*B,p.z+6*B);
+    if(!t) return {ok:false,got:'no ground under the traveller'};
+    /* stand him on that ground, so nothing below is a cave roof */
+    D.setMode('walk');
+    D.state.walk.x=t.x; D.state.walk.z=t.z; D.state.walk.feetY=undefined;
+    await D.settle(2);
+    /* one block in open air, and the arm brought to each of its six faces in
+       turn: what is laid must appear on the AIR side and nowhere else */
+    const n=D.blockId('brick');
+    const ix=t.ix+4, iy=t.iy+9, iz=t.iz+4;
+    const cx=(ix+0.5)*B, cy=(iy+0.5)*B, cz=(iz+0.5)*B;
+    /* ---- THE SIX WAYS ARE CLEARED FIRST ----
+       The arm refuses to answer for a cell a man's own head is in, and quite
+       rightly. Fired from three blocks off through country that happens to
+       RISE, four of the six rays began inside a hillside and the test read
+       the right refusal as "the arm missed". The lanes are emptied before
+       anything is asked of them, and then every answer is forced. */
+    for(const d of [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]])
+      for(let k=1;k<=4;k++) D.setBlock((ix+d[0]*k+0.5)*B,(iy+d[1]*k+0.5)*B,(iz+d[2]*k+0.5)*B,0);
+    await D.settle(2);
+    const wrong=[]; let laid=0;
+    for(const d of [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]){
+      D.setBlock(cx,cy,cz,n); await D.settle(1);
+      /* clear the cell the block would go into, so each way is judged alone */
+      D.setBlock((ix+d[0]+0.5)*B,(iy+d[1]+0.5)*B,(iz+d[2]+0.5)*B,0); await D.settle(1);
+      D.satchelTake('cobble',1e9); D.satchelAdd('cobble',1); D.setHeld(0);
+      /* reach at it from outside, along that axis */
+      const A=D.aimFrom(cx-d[0]*B*3, cy-d[1]*B*3, cz-d[2]*B*3, d[0],d[1],d[2], 6);
+      if(!A||A.ix!==ix||A.iy!==iy||A.iz!==iz){ wrong.push(d.join(',')+':the arm missed'); continue; }
+      const r=D.placeFrom(A);
+      if(r.no){ wrong.push(d.join(',')+':'+r.no); continue; }
+      const wx=ix-d[0], wy=iy-d[1], wz=iz-d[2];   /* the air side is back the way the arm came */
+      if(r.at[0]!==wx||r.at[1]!==wy||r.at[2]!==wz){ wrong.push(d.join(',')+':laid at the wrong cell'); continue; }
+      if(!D.blockSolidAt(wx,wy,wz)){ wrong.push(d.join(',')+':nothing stands there'); continue; }
+      laid++;
+      D.setBlock((wx+0.5)*B,(wy+0.5)*B,(wz+0.5)*B,0); await D.settle(1);
+    }
+    /* and it costs him what he laid */
+    D.satchelTake('cobble',1e9); D.satchelAdd('cobble',2); D.setHeld(0);
+    const A2=D.aimFrom(cx-B*3,cy,cz, 1,0,0, 6);
+    const before=(D.hoard()['cobble']||0);
+    if(A2) D.placeFrom(A2);
+    const after=(D.hoard()['cobble']||0);
+    const paid=(before-after===1);
+    D.setBlock(cx,cy,cz,0); await D.settle(2);
+    return {ok:!wrong.length&&laid===6&&paid,
+      got:laid+' of 6 faces laid on the air side'+(wrong.length?' · '+wrong.join(' | '):'')+
+          ' · and it costs him what he lays='+paid};
+  })};
 
 T[18]={name:'no block may be placed inside the traveller, a villager or a beast',
-  run:async page=>page.evaluate(()=>{ const D=window.__VDBG;
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
     if(!D.placeBlock) return {pending:'no placing (Phase 4 step 6)'};
-    return {ok:false,got:'unwritten'}; })};
+    /* THE TRAVELLER HIMSELF. He is stood on known ground, and the cells his
+       own body fills are asked for by name. */
+    const p=D.playerXZ(), t=D.blockUnder(p.x+2*B,p.z);
+    if(!t) return {ok:false,got:'no ground under the traveller'};
+    D.setMode('walk');
+    D.state.walk.x=(t.ix+0.5)*B; D.state.walk.z=(t.iz+0.5)*B; D.state.walk.feetY=undefined;
+    await D.settle(3);
+    const fy=D.state.walk.feetY, iy0=Math.floor((fy+0.1)/B);
+    const inHim=[];
+    for(let k=0;k<2;k++) inHim.push(D.cellHitsAnyLiving(t.ix,iy0+k,t.iz));
+    const guardsHim=inHim.every(w=>w==='the traveller');
+    /* AND A VILLAGER. A town is stood in, and every cell each of its folk
+       fills is asked for — not one of them may be built into. */
+    let folk=0, guarded=0;
+    const v=await D.standInVillage();
+    if(v) for(const [,vv] of D.activeVillages()){
+      if(!vv.people) continue;
+      for(const e of vv.people){ const P=e.m&&e.m.position; if(!P) continue; folk++;
+        const jx=Math.floor(P.x/B), jz=Math.floor(P.z/B), jy=Math.floor((P.y+B*0.5)/B);
+        if(D.cellHitsAnyLiving(jx,jy,jz)) guarded++; } }
+    const allGuarded=folk>0&&guarded===folk;
+    return {ok:guardsHim&&allGuarded,
+      got:'the two cells of his own body are refused='+guardsHim+
+          ' · '+guarded+' of '+folk+' villagers cannot be built into'};
+  })};
 
 T[19]={name:'sand falls when the ground is taken from under it, and stops when it lands',
   run:async page=>page.evaluate(()=>{ const D=window.__VDBG;
