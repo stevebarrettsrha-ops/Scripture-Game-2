@@ -2074,6 +2074,69 @@ structure edits kept in their own layer and dropped with the thing that laid
 them; `buildPier` and `deckMap` last, as PLAN.md §9.3 asked; tests 8 and 9
 green; and the geometric diff standing behind all of it.
 
+## 4af. Round 33 — Phase 4 step 1: the reach, and the mark ✅
+
+*PLAN.md §11 step 1. The traveller's arm: where it begins, how far it goes,
+and the one block at the end of it. It changes nothing in the world — it is
+the ground the other nine steps stand on.*
+
+**1. It walks the grid; it does not cast at the triangles.**
+A `THREE.Raycaster` would have to be handed every chunk mesh in view and would
+answer with a TRIANGLE, which is the wrong answer twice over: **the merged
+faces of Round 30 mean one triangle now spans many blocks**, and a triangle
+tells you nothing about which side of a boundary the air is on. The grid walk
+(Amanatides and Woo) answers with the CELL and the FACE, which is exactly what
+a hand needs — the block to break, and the empty cell to build in. At most
+five or six steps of integer arithmetic, one `blockSolidAt` apiece.
+
+**2. And the arm begins at his head, not at the camera.**
+Found by pointing it at the ground and getting nothing. The camera stands well
+behind the traveller's shoulder and a good way above it; a reach measured from
+there is measured from the wrong place, and looking down at his own feet the
+camera is **eight blocks off ground the five-block arm should reach** — he
+would be unable to mine the block he is standing on. The arm begins at his
+head and runs along the way the camera LOOKS, which is what a third-person
+view means: the eye is out there, the hand is here.
+
+**3. The mark is this game's own.**
+Twelve thin gold lines standing a hair off the block's faces, in `#e8c66a` —
+the gold of the compass rose and the banners — not a black wireframe. Depth-
+tested against the world, so a block half behind a hill shows only the half of
+its mark that is in front of the hill.
+
+**Verified by pixels, not by squinting.** The marked block's eight corners
+were projected to the screen and the window scanned: gold at (484–487, 355)
+reading `(255,239,108)` — the line, lifted by the day tint. Photographing it
+took three attempts and every failure was the PROBE, not the mark: at zoom
+0.02 the camera sits on the traveller's back and the block a pace in front of
+him is behind his own body.
+
+**4. Two faults of my own, both caught before they could ship.**
+- **The boot broke.** `window.__VDBG` is built at module scope and I put a bare
+  `REACH` in it; the `const` is declared below, beside the loop that uses it,
+  so it was read in its own temporal dead zone and the world would not raise
+  at all. Every probe on that object is a thunk for exactly this reason, and
+  this one is now too.
+- **Test 13 read `0 of 0 side faces` in the suite and passed alone.** It was
+  reaching at the GROUND, and on flat country the block beside the one under
+  your feet is solid at the same height — so a level ray starts INSIDE it, and
+  the arm rightly refuses to answer for the cell a man's own head is in. The
+  test relied on the terrain being interesting. It builds its own situation
+  now: one block set in open air, reached at from all six ways through
+  nothing but air, and put back afterwards.
+
+**5. The reading.**
+
+    PASS 13 · 6 of 6 ways struck the right cell and the right face
+              · beyond the reach: nothing
+
+and the twelve before it unchanged: **12 pass · 0 fail**, with 14–20 PENDING
+and each naming the step of §11 it waits on.
+
+**Still ahead in Phase 4:** steps 2–10. Next is the blow — hold to break,
+progress by `hardness` and the held tool, fracture drawn as cracks spreading
+from the point struck.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

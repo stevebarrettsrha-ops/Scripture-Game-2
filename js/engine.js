@@ -13645,6 +13645,17 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
       missing:nMissing, missingAt:missing, swaps:fmt(swaps), extra:fmt(extra),
       swapKeys:Array.from(swaps.keys()), extraKeys:Array.from(extra.keys())};
   },
+  /* ---- THE REACH, FOR tools/acceptance.js (Phase 4) ----
+     `aim()` is whatever the traveller's arm is on this frame; `aimFrom` walks
+     the grid from a given eye and bearing, so a test can ask the question
+     without having to steer a camera. */
+  /* every one of these is a THUNK: this object is built at module scope, and
+     the reach and the mark are declared below it, beside the loop that uses
+     them. A bare `REACH` here is read before its `const` has run. */
+  aim:()=>AIM, reach:()=>REACH,
+  aimFrom:(ox,oy,oz,dx,dy,dz,reach)=>{ const L=Math.hypot(dx,dy,dz)||1;
+    return aimAt(ox,oy,oz,dx/L,dy/L,dz/L,reach||REACH); },
+  markVisible:()=>!!(markG&&markG.visible),
   BLOCKS:()=>BLOCKS, edits:()=>EDITS, sedits:()=>SEDITS,
   stampCells:()=>{ let n=0; for(const m of SEDITS.values()) n+=m.size; return n; },
   /* ---- STAND IN A TOWN AND WAIT FOR IT TO BE RAISED ----
@@ -13832,6 +13843,111 @@ function setNearWorldVisible(on,zF){
   if(!on){ _nearWas={boat:boatG.visible, walk:walkerG.visible};
     boatG.visible=false; walkerG.visible=false; }
   else if(_nearWas){ boatG.visible=_nearWas.boat; walkerG.visible=_nearWas.walk; _nearWas=null; }
+}
+/* ================= THE REACH AND THE MARK =================
+   Phase 4, step 1. The traveller's arm: where his eye is set, how far he can
+   reach, and the one block at the end of it.
+
+   It walks the grid rather than casting a ray at the triangles. A raycaster
+   would have to be given every chunk mesh in the view and would answer with a
+   TRIANGLE, which is the wrong answer twice over — the merged faces of Round
+   30 mean one triangle now spans many blocks, and a face tells you nothing
+   about which side of the boundary the air is on. The grid walk (Amanatides
+   and Woo's DDA) answers with the CELL and the FACE, which is exactly what a
+   hand needs: the block to break, and the empty cell to build in.
+
+   It costs at most REACH+1 steps of integer arithmetic — five or six cells —
+   and asks `blockSolidAt` once apiece. That is nothing beside a frame, and it
+   is measured rather than assumed.
+
+   THE MARK IS THIS GAME'S OWN. Not a black wireframe: twelve thin gold lines
+   standing a hair off the block's faces, in the gold this HUD has used since
+   the first round — the same gold as the compass rose and the banners. It is
+   drawn without depth-testing against nothing; it simply sits on the block,
+   and a block half behind a hill shows only the half of the mark that is in
+   front of the hill, as it should. */
+const REACH=5.2;                        /* blocks — a man's arm and a little */
+let zoomMapFadeCache=0;                 /* set by the frame, read by the aim */
+const _aimP=new THREE.Vector3(), _aimD=new THREE.Vector3();
+let AIM=null;                           /* {ix,iy,iz, nx,ny,nz, n, dist} or null */
+/* the six faces, as the step that last carried us across one */
+function aimAt(ox,oy,oz, dx,dy,dz, reach){
+  /* the cell the eye is in, and which way each axis is going */
+  let ix=Math.floor(ox/B), iy=Math.floor(oy/B), iz=Math.floor(oz/B);
+  const sx=dx>0?1:-1, sy=dy>0?1:-1, sz=dz>0?1:-1;
+  /* how far along the ray one whole cell of each axis is, and how far to the
+     first boundary. A ray flat against an axis never crosses it: Infinity is
+     the honest answer and it falls out of the arithmetic. */
+  const tdx=Math.abs(dx)>1e-9?Math.abs(B/dx):Infinity;
+  const tdy=Math.abs(dy)>1e-9?Math.abs(B/dy):Infinity;
+  const tdz=Math.abs(dz)>1e-9?Math.abs(B/dz):Infinity;
+  const bx=(dx>0?(ix+1)*B-ox:ox-ix*B), by=(dy>0?(iy+1)*B-oy:oy-iy*B), bz=(dz>0?(iz+1)*B-oz:oz-iz*B);
+  let tx=tdx===Infinity?Infinity:bx/Math.abs(dx)*1;
+  let ty=tdy===Infinity?Infinity:by/Math.abs(dy)*1;
+  let tz=tdz===Infinity?Infinity:bz/Math.abs(dz)*1;
+  /* tdx above is in units of t per CELL; the first crossings are in the same
+     units, so the walk is three compares and an add */
+  let nx=0,ny=0,nz=0, t=0;
+  const far=reach*B;
+  /* the cell the eye stands in is skipped: a man does not mine his own head */
+  if(blockSolidAt(ix,iy,iz)) return null;
+  for(let step=0;step<64;step++){
+    if(tx<=ty&&tx<=tz){ ix+=sx; t=tx; tx+=tdx; nx=-sx; ny=0; nz=0; }
+    else if(ty<=tz){    iy+=sy; t=ty; ty+=tdy; nx=0; ny=-sy; nz=0; }
+    else {              iz+=sz; t=tz; tz+=tdz; nx=0; ny=0; nz=-sz; }
+    if(t>far) return null;
+    if(iy<EY_MIN||iy>=EY_MAX) return null;
+    if(blockSolidAt(ix,iy,iz))
+      return {ix,iy,iz,nx,ny,nz,n:blockAt(ix,iy,iz),dist:t};
+  }
+  return null;
+}
+/* ---- WHERE THE ARM BEGINS ----
+   Not at the camera. The camera stands well behind the traveller's shoulder
+   and a good way above it, and a reach measured from there is measured from
+   the wrong place entirely: looking down at the ground at his own feet, the
+   camera is eight blocks off it and the arm — five — falls short of the very
+   block he is standing on. He would be unable to mine the ground beneath him.
+   The arm begins at HIS HEAD and runs along the way the CAMERA looks, which
+   is what a third-person view means: the eye is out there, the hand is here.
+   The camera's own position is used only when there is no body to reach from
+   — a free-flying eye, which by the rule above cannot reach anyway. */
+function eyeRay(){
+  _aimD.set(0,0,-1).applyQuaternion(camera.quaternion);
+  const w=state.walk;
+  if(state.mode==='walk'&&w&&w.feetY!==undefined) _aimP.set(w.x, w.feetY+HEAD_R, w.z);
+  else camera.getWorldPosition(_aimP);
+  return true;
+}
+/* the twelve gold lines */
+let markG=null;
+function ensureMark(){
+  if(markG) return markG;
+  const g=new THREE.BufferGeometry();
+  const e=0.06*B, a=-e, b2=B+e;      /* a hair proud of the block, all round */
+  const P=[[a,a,a],[b2,a,a],[b2,a,b2],[a,a,b2],
+           [a,b2,a],[b2,b2,a],[b2,b2,b2],[a,b2,b2]];
+  const E=[0,1,1,2,2,3,3,0, 4,5,5,6,6,7,7,4, 0,4,1,5,2,6,3,7];
+  const pos=new Float32Array(E.length*3);
+  for(let i=0;i<E.length;i++){ const p=P[E[i]];
+    pos[i*3]=p[0]; pos[i*3+1]=p[1]; pos[i*3+2]=p[2]; }
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  markG=new THREE.LineSegments(g,new THREE.LineBasicMaterial({
+    color:0xe8c66a, transparent:true, opacity:0.9, fog:false }));
+  markG.renderOrder=3; markG.visible=false; markG.frustumCulled=false;
+  scene.add(markG);
+  return markG;
+}
+/* asked once a frame, and only where a hand could reach anything */
+function aimTick(){
+  const can = !state.firm && state.mode!=='fly' && zoomMapFadeCache<0.02;
+  if(!can){ AIM=null; if(markG) markG.visible=false; return; }
+  eyeRay();
+  AIM=aimAt(_aimP.x,_aimP.y,_aimP.z, _aimD.x,_aimD.y,_aimD.z, REACH);
+  const m=ensureMark();
+  if(!AIM){ m.visible=false; return; }
+  m.visible=true;
+  m.position.set(AIM.ix*B, AIM.iy*B, AIM.iz*B);
 }
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0, liveT=0;
@@ -14226,6 +14342,8 @@ function frame(){
   const chunkBudget=(state.mode==='fly'&&trueSpd>260)?14
     :(state.mode==='fly'||trueSpd>50||backW>0)?9:4;
   updateChunks(p.x,p.z,chunkBudget,viewEff);
+  zoomMapFadeCache=zMapF;
+  aimTick();                         /* the block at the end of the traveller's arm */
   /* ---- NOTHING BUT BLOCKS IN GAMEPLAY ----
      The coarse far ring is BANISHED from the played world. Down on the sea,
      ashore, on a summit, rising low over a coast — everything in view is true

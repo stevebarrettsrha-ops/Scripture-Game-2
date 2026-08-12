@@ -279,6 +279,86 @@ T[11]={name:'a cave and an edited chunk cost no more than open ground ×1.5',
           fl.chunks+' chunks again took '+fl.ms.toFixed(1)+' ms'};
   })};
 
+/* ---------- 13..20 · THE HAND AND THE HOARD (Phase 4) ----------
+   Written before the features, as 1–12 were. Each reports PENDING and names
+   what is missing until its step of PLAN.md §11 lands. */
+T[13]={name:'the mark falls on the block the eye is on, and on the right face of it',
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    if(!D.aimFrom) return {pending:'no reach: the arm is not built (Phase 4 step 1)'};
+    /* ---- THE TEST BUILDS ITS OWN SITUATION ----
+       Reaching at the GROUND cannot answer this. On flat country the block
+       beside the one under your feet is solid at the same height, so a level
+       ray fired at it starts INSIDE it — and the arm rightly refuses to
+       answer for the cell a man's own head is in. The first draft of this
+       test relied on the terrain and read `0 of 0 side faces` wherever the
+       land happened to be flat, which is most of the earth.
+       So: one block is set in open air, and reached at from all six ways
+       through nothing but air. Every answer is then forced. */
+    const p=D.playerXZ(), t=D.blockUnder(p.x+5*B,p.z);
+    if(!t) return {ok:false,got:'no ground under the traveller'};
+    const n=D.blockId('brick'); if(!n) return {ok:false,got:'the registry does not know brick'};
+    const ix=t.ix, iy=t.iy+5, iz=t.iz;            /* well clear of the ground */
+    const cx=(ix+0.5)*B, cy=(iy+0.5)*B, cz=(iz+0.5)*B;
+    D.setBlock(cx,cy,cz,n);
+    await D.settle(2);
+    const ways=[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+    const wrong=[];
+    for(const d of ways){
+      /* stand three blocks off along the axis and reach back along it */
+      const ox=cx-d[0]*B*3, oy=cy-d[1]*B*3, oz=cz-d[2]*B*3;
+      const h=D.aimFrom(ox,oy,oz, d[0],d[1],d[2], 6);
+      if(!h){ wrong.push(d.join(',')+':nothing'); continue; }
+      if(h.ix!==ix||h.iy!==iy||h.iz!==iz){ wrong.push(d.join(',')+':wrong cell'); continue; }
+      /* the face struck is the one that looks back the way the arm came */
+      if(h.nx!==-d[0]||h.ny!==-d[1]||h.nz!==-d[2]) wrong.push(d.join(',')+':wrong face');
+    }
+    /* the reach is finite: the same block, further off than the arm is long */
+    const far=D.aimFrom(cx,cy+B*40,cz, 0,-1,0, D.reach());
+    /* and the block is put back as it was found */
+    D.setBlock(cx,cy,cz,0);
+    await D.settle(2);
+    return {ok:!wrong.length&&!far,
+      got:(6-wrong.length)+' of 6 ways struck the right cell and the right face'+
+          (wrong.length?' · '+wrong.join(' | '):'')+
+          ' · beyond the reach: '+(far?'STRUCK':'nothing')};
+  })};
+
+T[14]={name:'a blow of the hand breaks a block in the time its hardness says',
+  run:async page=>page.evaluate(()=>{ const D=window.__VDBG;
+    if(!D.mineProgress) return {pending:'no blow: hold-to-break is not built (Phase 4 step 2)'};
+    return {ok:false,got:'unwritten'}; })};
+
+T[15]={name:'what is broken becomes a thing on the ground, and comes into the satchel',
+  run:async page=>page.evaluate(()=>{ const D=window.__VDBG;
+    if(!D.drops) return {pending:'no drops: nothing falls from a broken block (Phase 4 step 3)'};
+    return {ok:false,got:'unwritten'}; })};
+
+T[16]={name:'the satchel stacks, and survives a reload',
+  run:async page=>page.evaluate(()=>{ const D=window.__VDBG;
+    if(!D.satchel) return {pending:'no satchel (Phase 4 step 4)'};
+    return {ok:false,got:'unwritten'}; })};
+
+T[17]={name:'a block placed against a face stands on the air side of it',
+  run:async page=>page.evaluate(()=>{ const D=window.__VDBG;
+    if(!D.placeBlock) return {pending:'no placing (Phase 4 step 6)'};
+    return {ok:false,got:'unwritten'}; })};
+
+T[18]={name:'no block may be placed inside the traveller, a villager or a beast',
+  run:async page=>page.evaluate(()=>{ const D=window.__VDBG;
+    if(!D.placeBlock) return {pending:'no placing (Phase 4 step 6)'};
+    return {ok:false,got:'unwritten'}; })};
+
+T[19]={name:'sand falls when the ground is taken from under it, and stops when it lands',
+  run:async page=>page.evaluate(()=>{ const D=window.__VDBG;
+    if(!D.fallTick) return {pending:'no gravity blocks (Phase 4 step 8)'};
+    return {ok:false,got:'unwritten'}; })};
+
+T[20]={name:'an altar of unhewn stone refuses hewn stone',
+  run:async page=>page.evaluate(()=>{ const D=window.__VDBG;
+    if(!D.works) return {pending:'no works (Phase 4 step 9)'};
+    return {ok:false,got:'unwritten'}; })};
+
 /* ---------- 12 · the regression that matters most.  PASSES TODAY ---------- */
 T[12]={name:'ocean and plains chunks build no slower than they did',
   run:async page=>page.evaluate(async B=>{
