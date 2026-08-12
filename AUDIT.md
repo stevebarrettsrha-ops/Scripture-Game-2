@@ -1836,6 +1836,37 @@ Measured after, at all three hours: **0 of 48 inside solid, 0 on roofs.**
   3,000 and 9,000 units of height the ring stands at full strength; at 15,774
   (the height reported from the field) it is gone.
 
+**6. And one test left red, honestly.**
+
+Run alone on a quiet box after all of the above:
+
+    PASS  11 · a cave and an edited chunk cost no more than open ground x1.5
+              open 1180.3 ms · in a passage 1062.2 ms (0.90x) · edited chunk 907.5 ms (0.77x)
+    FAIL  12 · ocean and plains chunks build no slower than they did
+              ocean 1.159 ms/chunk (was 2.152, passes 5.77/3.76/1.16)
+              plain 3.011 ms/chunk (was 1.97,  passes 3.01/3.38/3.59)
+
+Test 11 was the box: run beside two other headless browsers it read 1.40x, and
+run alone it reads 0.90x. Test 12 is **not** settled that way, and it is left
+RED rather than explained away:
+
+- The plain figure is consistent across all three passes (3.01/3.38/3.59), and
+  three dear passes is exactly the signature this test was rewritten to tell
+  apart from a busy box. That argues for a real cost.
+- But the ocean figure spread **five-fold within the same run** (5.77 down to
+  1.16) on identical code, which says this machine cannot presently deliver a
+  trustworthy millisecond. That argues the plain figure is not trustworthy
+  either.
+- Earlier runs of the same test on this same branch read the plain at 1.904,
+  2.141, 2.375, 2.387, 2.432, 2.527 and 2.952 ms — a spread that already
+  straddles the limit.
+
+**The slack is NOT being widened to make it green.** That is the one thing the
+note at the top of the file forbids, and moving a baseline to match the code
+is how a performance guard stops being one. What is wanted is a measurement on
+a quiet machine, at this commit and at the commit before Phase 0, back to back
+— and until somebody has that, this test says *unknown*, not *fine*.
+
 **Still ahead in Phase 3:** the geometric diff harness. Every builder is
 converted.
 
