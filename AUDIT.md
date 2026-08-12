@@ -2137,6 +2137,66 @@ and each naming the step of §11 it waits on.
 progress by `hardness` and the held tool, fracture drawn as cracks spreading
 from the point struck.
 
+## 4ag. Round 34 — Phase 4 step 2: the blow ✅
+
+*§11 step 2. Holding the hand to a block until it gives. Acceptance
+**14 pass · 0 fail · 6 pending**.*
+
+**1. The law of the time it takes was already written down.**
+Every block has carried its `hardness` in seconds since Phase 2, put into
+`blocks/*.js` against this very day and read by nothing until now. A block
+that names a TOOL is not refused to the bare hand, but it comes hard: the hand
+pays `HAND_SLOW` (2.5×) for want of the right iron. **When the belt is built
+(step 5) the multiplier for what is held enters in exactly one place —
+`toolSpeed` — and nothing else in the blow need change.**
+
+**2. The fracture is not an overlay.**
+A crack drawn as a texture laid over the face is the borrowed idiom this
+project is at pains to avoid. These are real cracks: **five branches struck
+out from the middle of the face that is struck**, each wandering as a split in
+stone wanders, and revealed IN ORDER as the blow goes on — so the fracture
+spreads outward and the eye reads how near the block is to going. The figure
+is cut once when the hand settles on a new block; what changes per frame is
+one integer, the draw range.
+
+**3. A block half broken and left is whole again.**
+The hand moving to another block closes the old fracture and strikes a new
+one. That is the honest behaviour and the one every player expects, and the
+test asserts it rather than assuming it.
+
+**4. Held, without disturbing look or walk.**
+`R`, or the pointer held STILL for a fifth of a second — a pointer that moves
+is a look-drag and always was. The existing twin-zone touch scheme is not
+touched: the left-lower stick and the look-drag behave exactly as before. The
+belt (step 5) is where the touch question is properly answered.
+
+**5. Two photographs that were not evidence, and the count that was.**
+The first pictures of the fracture showed nothing, and it would have been easy
+to call the cracks broken. They were not: **the test hook was fabricating the
+face**, naming the block's TOP, and a crack figure laid on the top of a wall
+block is drawn edge-on to a level eye. The hook names the face now. And the
+loop was driving the blow at the same time as the probe — one SwiftShader
+frame is half a second, which carried the work past the end before the shutter
+opened — so a test that drives the blow now says so and the loop stands off.
+
+Measured at the block's own projected position, on the face being struck:
+
+| through the blow | segments drawn | ink pixels on the block |
+|---|---|---|
+| 0.35 | 6 of 16 | 17 |
+| 0.70 | 11 of 16 | 25 |
+| 0.95 | 15 of 16 | 39 |
+
+**6. The reading.**
+
+    PASS 14 · Baked Brick (hardness 2.6, by hand ×2.5 = 6.50s) broke at 6.52s
+              · 16 cracks cut · half-broken at 3.27s
+              · the hand taken off loses the work: true
+
+**Still ahead in Phase 4:** steps 3–10. Next is the drop and the gathering —
+what is broken becomes a thing on the ground, and the first place a block's
+`verse` is spoken.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

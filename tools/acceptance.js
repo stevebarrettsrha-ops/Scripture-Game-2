@@ -325,9 +325,45 @@ T[13]={name:'the mark falls on the block the eye is on, and on the right face of
   })};
 
 T[14]={name:'a blow of the hand breaks a block in the time its hardness says',
-  run:async page=>page.evaluate(()=>{ const D=window.__VDBG;
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
     if(!D.mineProgress) return {pending:'no blow: hold-to-break is not built (Phase 4 step 2)'};
-    return {ok:false,got:'unwritten'}; })};
+    const p=D.playerXZ(), t=D.blockUnder(p.x+7*B,p.z);
+    if(!t) return {ok:false,got:'no ground under the traveller'};
+    /* a block of known hardness, set in open air where nothing else stands */
+    const id='brick', n=D.blockId(id), b=D.blockOf(n);
+    const ix=t.ix, iy=t.iy+5, iz=t.iz;
+    const cx=(ix+0.5)*B, cy=(iy+0.5)*B, cz=(iz+0.5)*B;
+    D.setBlock(cx,cy,cz,n); await D.settle(2);
+    /* brick asks for a pick; the bare hand pays HAND_SLOW times over */
+    const want=b.hardness*D.handSlow();
+    D.mineAt(ix,iy,iz); D.mineHold(true);
+    /* the clock is DRIVEN, not waited on: a software rasteriser's frames are
+       half a second apiece and a test that slept would measure the machine */
+    const STEP=1/60; let spent=0, broke=-1, cracks=0, half=null;
+    for(let k=0;k<Math.ceil(want*90/1);k++){
+      D.mineStep(STEP); spent+=STEP;
+      const m=D.mineProgress();
+      if(m){ cracks=Math.max(cracks,m.cracks); if(half===null&&m.f>=0.5) half=spent; }
+      if(!D.blockSolidAt(ix,iy,iz)){ broke=spent; break; }
+    }
+    D.mineHold(false); D.mineAt(null);
+    /* it must not break early, and it must break */
+    const early=broke>=0&&broke<want-STEP*2;
+    const late =broke<0;
+    /* and a hand taken off it loses the work: the block heals */
+    D.setBlock(cx,cy,cz,n); await D.settle(1);
+    D.mineAt(ix,iy,iz); D.mineHold(true);
+    for(let k=0;k<30;k++) D.mineStep(STEP);
+    D.mineHold(false);
+    const dropped=D.mineProgress()===null;
+    D.mineAt(null); D.setBlock(cx,cy,cz,0); await D.settle(2);
+    return {ok:!early&&!late&&cracks>0&&dropped,
+      got:b.name+' (hardness '+b.hardness+', by hand ×'+D.handSlow()+' = '+want.toFixed(2)+'s) '+
+          'broke at '+(broke<0?'NEVER':broke.toFixed(2)+'s')+
+          ' · '+cracks+' cracks cut · half-broken at '+(half===null?'—':half.toFixed(2)+'s')+
+          ' · the hand taken off loses the work: '+dropped};
+  })};
 
 T[15]={name:'what is broken becomes a thing on the ground, and comes into the satchel',
   run:async page=>page.evaluate(()=>{ const D=window.__VDBG;

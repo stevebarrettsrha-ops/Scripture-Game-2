@@ -10530,7 +10530,8 @@ cv.addEventListener('pointerdown',e=>{ cv.setPointerCapture(e.pointerId);
   if(e.pointerType==='touch'&&!joy&&!state.firm&&e.clientX<innerWidth*0.42&&e.clientY>innerHeight*0.35){
     joy={id:e.pointerId,x0:e.clientX,y0:e.clientY,dx:0,dy:0};
     const j=$('joy'); j.style.display='block'; j.style.left=(e.clientX-52)+'px'; j.style.top=(e.clientY-52)+'px';
-  } else if(!drag){ drag={id:e.pointerId,x:e.clientX,y:e.clientY,mv:0,vx:0,vy:0,t:performance.now()};
+  } else if(!drag){ drag={id:e.pointerId,x:e.clientX,y:e.clientY,mv:0,vx:0,vy:0,
+      t:performance.now(), t0:performance.now()};   /* t0: when the hand was laid on */
     state.camYawVel=0; state.camPitchVel=0; } });
 cv.addEventListener('pointermove',e=>{
   if(e.pointerType==='touch'&&tpts.has(e.pointerId)){
@@ -13653,6 +13654,26 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      the reach and the mark are declared below it, beside the loop that uses
      them. A bare `REACH` here is read before its `const` has run. */
   aim:()=>AIM, reach:()=>REACH,
+  /* ---- THE BLOW, FOR tools/acceptance.js ----
+     `mineHold` is the hand held to the block; `mineAt` names the block it is
+     held to, so a test need not steer a camera to ask what the timing law
+     does. Everything else — the law, the fracture, the breaking — is the one
+     path the game itself runs. */
+  mineHold:on=>{ mineHeld=!!on; if(!on) mineStop(); },
+  /* the FACE matters and must be given: the fracture is cut on the face that
+     is struck, and a crack figure laid on the top of a wall block is drawn
+     edge-on to a level eye and cannot be seen at all — which is exactly what
+     the first photographs of it showed, and it took a pixel count to tell
+     that from the cracks not being drawn. */
+  mineAt:(ix,iy,iz,nx,ny,nz)=>{ mineTestAt=(ix===null)?null:
+    {ix,iy,iz,nx:nx||0,ny:(nx||nz)?0:(ny===undefined?1:ny),nz:nz||0,n:blockAt(ix,iy,iz)}; },
+  /* while the probe drives the blow, the loop must not drive it too — one
+     SwiftShader frame is half a second and would carry the work past the end */
+  mineDrive:on=>{ mineDriven=!!on; },
+  mineProgress:()=>MINE.on?{cell:[MINE.ix,MINE.iy,MINE.iz],t:MINE.t,need:MINE.need,
+    f:Math.min(1,MINE.t/MINE.need),cracks:crackN}:null,
+  mineStep:dt=>mineTick(dt),
+  handSlow:()=>HAND_SLOW,
   aimFrom:(ox,oy,oz,dx,dy,dz,reach)=>{ const L=Math.hypot(dx,dy,dz)||1;
     return aimAt(ox,oy,oz,dx/L,dy/L,dz/L,reach||REACH); },
   markVisible:()=>!!(markG&&markG.visible),
@@ -13949,6 +13970,118 @@ function aimTick(){
   m.visible=true;
   m.position.set(AIM.ix*B, AIM.iy*B, AIM.iz*B);
 }
+/* ================= THE BLOW =================
+   Phase 4, step 2. Holding the hand to a block until it gives.
+
+   THE LAW OF THE TIME IT TAKES. Every block already carries its `hardness`
+   in seconds, written into `blocks/*.js` in Phase 2 against this very day and
+   read by nothing until now. A block that names a TOOL — the pick for stone,
+   the axe for timber — is not refused to the bare hand, but it comes hard:
+   the hand pays HAND_SLOW times over for want of the right iron. When the
+   belt is built (§11 step 5) the multiplier for what is held will enter in
+   exactly one place, `toolSpeed`, and nothing else here need change.
+
+   THE FRACTURE IS NOT AN OVERLAY. A crack drawn as a texture laid over the
+   face is the borrowed idiom this project is at pains to avoid. These are
+   real cracks: a figure of five branches struck out from the point of impact,
+   each wandering as a split in stone wanders, and REVEALED IN ORDER as the
+   blow goes on — so the fracture spreads from the middle outward and the eye
+   reads how near the block is to going. The figure is cut once when the hand
+   settles on a new block and costs nothing thereafter; what changes each
+   frame is how much of it is drawn, which is one integer.
+
+   IT IS THE BLOCK WORLD ONLY. The ship, the beasts, the villagers and the
+   traveller are not blocks and are not struck. */
+const HAND_SLOW=2.5;              /* the price of the wrong tool, or none */
+const MINE={ix:0,iy:0,iz:0,t:0,need:0,on:false,n:0};
+let mineHeld=false, mineTestAt=null, mineDriven=false;
+function toolSpeed(b){
+  /* the belt will speak here. Until then every hand is bare, and a block
+     that asks for iron is had the slow way. */
+  return b&&b.tool?1/HAND_SLOW:1;
+}
+/* the crack figure of one block: branches out of the middle of a face, in
+   face-space, each segment appearing after the one before it */
+const CRACK_MAX=30;
+const _crackPos=new Float32Array(CRACK_MAX*2*3);
+let crackG=null, crackN=0;
+function ensureCrack(){
+  if(crackG) return crackG;
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(_crackPos,3));
+  crackG=new THREE.LineSegments(g,new THREE.LineBasicMaterial({
+    color:0x141008, transparent:true, opacity:0.85, fog:false }));
+  crackG.renderOrder=4; crackG.visible=false; crackG.frustumCulled=false;
+  scene.add(crackG);
+  return crackG;
+}
+/* cut the figure for the block now under the hand, on the face being struck */
+function cutCrack(ix,iy,iz,nx,ny,nz){
+  const g=ensureCrack();
+  const seed=ix*3.7+iy*11.3+iz*7.1;
+  const R=k=>hash2(seed*3.1+k*7.7, seed*1.7-k*2.3);
+  /* the face's own two ways, and the corner it starts from */
+  let ox,oy,oz, ux,uy,uz, vx,vy,vz;
+  const e=0.035*B;                        /* a hair proud, so it is not in the face */
+  const x0=ix*B, y0=iy*B, z0=iz*B;
+  if(ny!==0){ oy=y0+(ny>0?B+e:-e); ox=x0; oz=z0;
+    ux=B;uy=0;uz=0; vx=0;vy=0;vz=B; }
+  else if(nx!==0){ ox=x0+(nx>0?B+e:-e); oy=y0; oz=z0;
+    ux=0;uy=0;uz=B; vx=0;vy=B;vz=0; }
+  else { oz=z0+(nz>0?B+e:-e); ox=x0; oy=y0;
+    ux=B;uy=0;uz=0; vx=0;vy=B;vz=0; }
+  let n=0;
+  for(let br=0;br<5&&n<CRACK_MAX;br++){
+    let u=0.5, v=0.5, a=(br/5)*6.2832+R(br)*1.0;
+    const segs=3+Math.floor(R(br+40)*3);
+    for(let i=0;i<segs&&n<CRACK_MAX;i++){
+      a+=(R(br*10+i)-0.5)*1.15;
+      const len=0.09+R(br*10+i+70)*0.10;
+      const u2=u+Math.cos(a)*len, v2=v+Math.sin(a)*len;
+      if(u2<0.05||u2>0.95||v2<0.05||v2>0.95) break;
+      const p=n*6;
+      _crackPos[p  ]=ox+ux*u +vx*v;  _crackPos[p+1]=oy+uy*u +vy*v;  _crackPos[p+2]=oz+uz*u +vz*v;
+      _crackPos[p+3]=ox+ux*u2+vx*v2; _crackPos[p+4]=oy+uy*u2+vy*v2; _crackPos[p+5]=oz+uz*u2+vz*v2;
+      u=u2; v=v2; n++;
+    }
+  }
+  crackN=n;
+  g.geometry.attributes.position.needsUpdate=true;
+  g.geometry.setDrawRange(0,0);
+}
+/* one frame of the hand at work */
+function mineTick(dt){
+  const tgt = mineTestAt || AIM;
+  const held = mineHeld || !!keys.KeyR ||
+    (drag && drag.mv<6 && drag.t0!==undefined && performance.now()-drag.t0>120);
+  if(!held||!tgt||gamePaused||cut){ mineStop(); return; }
+  const b=blockOf(tgt.n||blockAt(tgt.ix,tgt.iy,tgt.iz));
+  if(!b){ mineStop(); return; }
+  /* the hand moved to another block: the old fracture closes and a new one
+     is struck. A block half broken and left is whole again when you return —
+     which is the honest behaviour and the one every player expects. */
+  if(!MINE.on||MINE.ix!==tgt.ix||MINE.iy!==tgt.iy||MINE.iz!==tgt.iz){
+    MINE.on=true; MINE.ix=tgt.ix; MINE.iy=tgt.iy; MINE.iz=tgt.iz;
+    MINE.t=0; MINE.n=b.n;
+    MINE.need=Math.max(0.05, b.hardness/Math.max(0.01,toolSpeed(b)));
+    cutCrack(tgt.ix,tgt.iy,tgt.iz, tgt.nx||0, tgt.ny!==undefined?tgt.ny:1, tgt.nz||0);
+    ensureCrack().visible=true;
+  }
+  MINE.t+=dt;
+  const f=Math.min(1,MINE.t/MINE.need);
+  const g=ensureCrack();
+  g.visible=true;
+  g.geometry.setDrawRange(0, Math.max(2, Math.round(f*crackN)*2));
+  if(MINE.t>=MINE.need){
+    setBlock((MINE.ix+0.5)*B,(MINE.iy+0.5)*B,(MINE.iz+0.5)*B, 0);
+    mineStop();
+  }
+}
+function mineStop(){
+  if(MINE.on){ MINE.on=false; MINE.t=0; }
+  if(crackG) crackG.visible=false;
+}
+
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0, liveT=0;
 function frame(){
@@ -14344,6 +14477,7 @@ function frame(){
   updateChunks(p.x,p.z,chunkBudget,viewEff);
   zoomMapFadeCache=zMapF;
   aimTick();                         /* the block at the end of the traveller's arm */
+  if(!mineDriven) mineTick(dt);      /* and the hand held to it until it gives */
   /* ---- NOTHING BUT BLOCKS IN GAMEPLAY ----
      The coarse far ring is BANISHED from the played world. Down on the sea,
      ashore, on a summit, rising low over a coast — everything in view is true
