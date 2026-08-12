@@ -12654,7 +12654,7 @@ async function saveState(){
      a real voyage. (The error handler saves too, and a fault at the menu
      must not wash the log away either.) */
   if(!running) return;
-  const payload=JSON.stringify({v:7,R:R_WORLD,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
+  const payload=JSON.stringify({v:8,R:R_WORLD,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
     t:state.simHours,m:state.mode==='walk'?'walk':'boat',wx:state.walk.x,wz:state.walk.z,wh:state.walk.heading,
     vis:[...state.visited],d:Math.round(state.dist),wm:state.windMode,fi:state.fish||0,
     co:state.coins,cg:state.cargo,gm:state.game||0,ib:state.immBreath?1:0,pe:state.pearls||0,rp:state.repel?1:0,rr:state.rep||{},wl:[...wreckLooted],
@@ -12667,7 +12667,12 @@ async function saveState(){
     sr:[...scrollTaken],
     /* the chosen season was the one rail toggle NOT saved - every reload
        silently turned the year back to Natural */
-    sn:(window.SEASON&&!SEASON.isNatural())?SEASON.overrideName():null});
+    sn:(window.SEASON&&!SEASON.isNatural())?SEASON.overrideName():null,
+    /* v8: what he carries, and the substances whose word he has already been
+       given. The satchel is written slot by slot — the ORDER is his, he
+       arranged it, and a save that re-sorted his belt would be a save that
+       rearranged his hands. */
+    sa:SATCHEL.map(sl=>sl?[sl.id,sl.n]:0), sp:[...SPOKEN]});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
 }
@@ -12675,7 +12680,7 @@ async function loadSaved(){
   let raw=null;
   try{ if(window.storage){ const r=await window.storage.get(SAVE_KEY); if(r&&r.value) raw=r.value; } }catch(e){}
   if(!raw){ try{ raw=localStorage.getItem(SAVE_KEY); }catch(e){} }
-  try{ const o=JSON.parse(raw); if(o&&o.v>=2&&o.v<=7){
+  try{ const o=JSON.parse(raw); if(o&&o.v>=2&&o.v<=8){
     /* a voyage saved when the world was narrower is carried to the SAME
        SPOT ON THE MAP: places scale with the radius they were kept at */
     const sc=R_WORLD/(o.R||120000);
@@ -13289,7 +13294,13 @@ async function begin(fresh,roam){
     if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); }
     if(saved.dp!==undefined&&DAYPARTS[saved.dp]){ state.dayIdx=saved.dp; updateDayBtn(); }
     state.freeroam=!!saved.fr;
-    if(saved.sr) for(const k of saved.sr) scrollTaken.add(k); }
+    if(saved.sr) for(const k of saved.sr) scrollTaken.add(k);
+    /* v8 — and what he was carrying, in the order he had it. A slot naming a
+       substance this build no longer knows is dropped rather than guessed at:
+       the block table is read by ID for exactly this reason. */
+    if(saved.sa) for(let i=0;i<SATCHEL_N&&i<saved.sa.length;i++){ const e=saved.sa[i];
+      SATCHEL[i]=(e&&BLOCK_BY_ID[e[0]]&&e[1]>0)?{id:e[0],n:Math.min(STACK,e[1])}:null; }
+    if(saved.sp) for(const k of saved.sp) SPOKEN.add(k); }
   else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5; }
   /* a NEW beginning takes the manner it was chosen with; a continued one
      keeps whatever manner it was begun in, out of the log */
@@ -13672,7 +13683,16 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   mineDrive:on=>{ mineDriven=!!on; },
   /* ---- THE DROP AND THE HOARD, FOR tools/acceptance.js ---- */
   drops:()=>DROPS.map(d=>({id:d.id,x:d.x,y:d.y,z:d.z,rest:d.rest,t:d.t,taken:d.take>0})),
-  hoard:()=>Object.fromEntries(HOARD),
+  /* the tally, now DERIVED from the satchel rather than kept beside it */
+  hoard:()=>{ const o={}; for(const sl of SATCHEL) if(sl) o[sl.id]=(o[sl.id]||0)+sl.n; return o; },
+  satchel:()=>SATCHEL.map(sl=>sl?{id:sl.id,n:sl.n}:null),
+  satchelAdd, satchelTake, satchelRoom,
+  /* the save, driven and read back, so a test need not guess at its timing */
+  saveNow:()=>saveState(),
+  savedRaw:async()=>{ try{ if(window.storage){ const r=await window.storage.get(SAVE_KEY);
+      if(r&&r.value) return r.value; } }catch(e){}
+    try{ return localStorage.getItem(SAVE_KEY); }catch(e){ return null; } },
+  STACK:()=>STACK, BELT_N:()=>BELT_N, SATCHEL_N:()=>SATCHEL_N,
   dropStep:dt=>dropTick(dt),
   spoken:()=>[...SPOKEN],
   mineProgress:()=>MINE.on?{cell:[MINE.ix,MINE.iy,MINE.iz],t:MINE.t,need:MINE.need,
@@ -14109,8 +14129,54 @@ function mineStop(){
    will take this tally over rather than sit beside it. */
 const DROP_MAX=64;                 /* more than this on the ground at once is a fault, not a feature */
 const DROPS=[];
-const HOARD=new Map();             /* block id -> how many are held */
 const SPOKEN=new Set();            /* the substances whose word has been given */
+
+/* ---- THE SATCHEL (§11 step 4) ----
+   What the traveller carries, as DATA. Not a picture of it — the belt of clay
+   tokens and the satchel that opens as an illuminated page are step 5, and
+   they will read this and nothing else.
+
+   THE MEASURES ARE THIS WORLD'S, NOT ANOTHER GAME'S. A stack is a SCORE —
+   twenty — which is a number this earth counts in and is nothing like the
+   sixty-four everyone will recognise. Eight go on the belt, where the hand
+   can reach them; four-and-twenty more lie in the satchel behind. Two and
+   thirty in all, and a man who fills them must leave something behind, which
+   is the point of a satchel having a size at all.
+
+   ONE ARRAY, and the belt is simply its first eight slots. A token moved from
+   the page to the belt is an index change and nothing else — no second
+   container to keep in step with the first, and no way for the two to
+   disagree, which is the bug that owns every inventory ever written. */
+const STACK=20, BELT_N=8, SATCHEL_N=32;
+const SATCHEL=new Array(SATCHEL_N).fill(null);   /* {id,n} or null */
+/* how many of a substance are held, all told */
+function satchelCount(id){ let k=0;
+  for(const sl of SATCHEL) if(sl&&sl.id===id) k+=sl.n;
+  return k; }
+/* put in as many as will go, and answer how many DID. A satchel with no room
+   takes nothing and says so; the caller leaves the rest on the ground. */
+function satchelAdd(id,n){
+  if(!BLOCK_BY_ID[id]||n<=0) return 0;
+  let left=n;
+  /* onto a part-filled stack of the same thing first, then into empty slots */
+  for(let i=0;i<SATCHEL_N&&left>0;i++){ const sl=SATCHEL[i];
+    if(sl&&sl.id===id&&sl.n<STACK){ const put=Math.min(STACK-sl.n,left); sl.n+=put; left-=put; } }
+  for(let i=0;i<SATCHEL_N&&left>0;i++){ if(!SATCHEL[i]){
+    const put=Math.min(STACK,left); SATCHEL[i]={id,n:put}; left-=put; } }
+  return n-left;
+}
+/* take out as many as are there, and answer how many came */
+function satchelTake(id,n){
+  let left=n;
+  for(let i=SATCHEL_N-1;i>=0&&left>0;i--){ const sl=SATCHEL[i];
+    if(sl&&sl.id===id){ const got=Math.min(sl.n,left); sl.n-=got; left-=got;
+      if(sl.n<=0) SATCHEL[i]=null; } }
+  return n-left;
+}
+function satchelRoom(id){
+  for(const sl of SATCHEL){ if(!sl) return true; if(sl.id===id&&sl.n<STACK) return true; }
+  return false;
+}
 let dropGeo=null;
 function ensureDropGeo(){ if(!dropGeo) dropGeo=new THREE.BoxGeometry(B*0.34,B*0.34,B*0.34);
   return dropGeo; }
@@ -14165,12 +14231,24 @@ function dropTick(dt){
   }
 }
 function takeUp(d){
+  /* a full satchel takes nothing: the thing stays lying where it fell rather
+     than being swallowed into nowhere */
+  if(!satchelAdd(d.id,1)) return;
   d.take=0.0001;
-  HOARD.set(d.id,(HOARD.get(d.id)||0)+1);
   /* the word of a substance, once, on the first taking of it */
   const b=BLOCK_BY_ID[d.id];
   if(b&&b.verse&&!SPOKEN.has(d.id)){ SPOKEN.add(d.id); toast(b.verse.t,b.verse.ref); }
+  satchelTouch();
 }
+/* ---- AND WHAT HE CARRIES IS WRITTEN DOWN ----
+   Not on every pebble. `saveState` stringifies the whole voyage — the log,
+   the visited lands, the wrecks, the pearls — and doing that once per block
+   gathered would write a hundred kilobytes a second while a man mines. It is
+   written a breath after the last thing taken, the same way the block edits
+   are, and the last write always wins. */
+let _satT=null;
+function satchelTouch(){ if(_satT) clearTimeout(_satT);
+  _satT=setTimeout(()=>{ _satT=null; saveState(); }, 900); }
 
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0, liveT=0;

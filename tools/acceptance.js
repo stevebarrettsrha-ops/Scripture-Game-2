@@ -426,9 +426,48 @@ T[15]={name:'what is broken becomes a thing on the ground, and comes into the sa
   })};
 
 T[16]={name:'the satchel stacks, and survives a reload',
-  run:async page=>page.evaluate(()=>{ const D=window.__VDBG;
-    if(!D.satchel) return {pending:'no satchel (Phase 4 step 4)'};
-    return {ok:false,got:'unwritten'}; })};
+  run:async(page,ctx)=>{
+    const has=await page.evaluate(()=>!!window.__VDBG.satchel);
+    if(!has) return {pending:'no satchel (Phase 4 step 4)'};
+    const before=await page.evaluate(async()=>{
+      const D=window.__VDBG, STACK=D.STACK(), N=D.SATCHEL_N();
+      /* empty it, so what is counted is this test's own doing */
+      for(const id of Object.keys(D.hoard())) D.satchelTake(id,1e9);
+      /* a score and a half of one substance must lie as a FULL stack and a
+         part one — not as thirty loose things in thirty slots */
+      const put=D.satchelAdd('brick',Math.floor(STACK*1.5));
+      const sl=D.satchel().filter(s=>s&&s.id==='brick');
+      const full=sl.filter(s=>s.n===STACK).length, part=sl.filter(s=>s.n<STACK).length;
+      const stacked=(sl.length===2&&full===1&&part===1);
+      /* it fills, and then it REFUSES — a satchel with a size is the point */
+      for(let i=0;i<N+4;i++) D.satchelAdd('stone',STACK);
+      const refused=!D.satchelRoom('salt')&&D.satchelAdd('salt',1)===0;
+      /* taking out gives back exactly what is there and no more */
+      const asked=Math.floor(STACK*1.5)+7;
+      const back=D.satchelTake('brick',asked);
+      const tookRight=(back===Math.floor(STACK*1.5));
+      /* and now a small, ordered load to carry through the reload */
+      D.satchelTake('stone',1e9);
+      D.satchelAdd('brick',3); D.satchelAdd('cobble',5); D.satchelAdd('brick',2);
+      await D.saveNow();
+      return {stacked,refused,tookRight,put,full,part,back,asked,STACK,
+        held:D.satchel().slice(0,4)};
+    });
+    /* THE RELOAD IS THE TEST. Writing the save and reading the same object
+       back proves nothing about a world raised again from it. */
+    await ctx.reload();
+    return page.evaluate(b0=>{ const D=window.__VDBG;
+      const now=D.satchel().slice(0,4);
+      const same=JSON.stringify(now)===JSON.stringify(b0.held);
+      const brick=(D.hoard()['brick']||0), cobble=(D.hoard()['cobble']||0);
+      return {ok:b0.stacked&&b0.refused&&b0.tookRight&&same&&brick===5&&cobble===5,
+        got:'a score is '+b0.STACK+' · '+b0.put+' bricks lay as '+b0.full+
+            ' full stack and '+b0.part+' part · a full satchel refuses='+b0.refused+
+            ' · taking gave back '+b0.back+' of '+b0.asked+' asked'+
+            ' · after the reload he still carries '+brick+' brick and '+cobble+
+            ' cobble, in his own order='+same};
+    },before);
+  }};
 
 T[17]={name:'a block placed against a face stands on the air side of it',
   run:async page=>page.evaluate(()=>{ const D=window.__VDBG;

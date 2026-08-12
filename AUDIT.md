@@ -2258,6 +2258,58 @@ that assumes where it is standing.
 **Still ahead in Phase 4:** steps 4–10. Next is the satchel — stacks,
 capacity, and the save bumped to carry it.
 
+## 4ai. Round 36 — Phase 4 step 4: the satchel ✅
+
+*§11 step 4. What the traveller carries, as DATA — no picture of it. The belt
+of clay tokens and the satchel that opens as an illuminated page are step 5,
+and they will read this and nothing else. Acceptance **16 pass · 0 fail ·
+4 pending**.*
+
+**1. The measures are this world's, not another game's.**
+A stack is a **SCORE — twenty** — a number this earth counts in, and nothing
+like the sixty-four every player would recognise on sight. **Eight** go on the
+belt where the hand can reach them; **four-and-twenty** more lie in the
+satchel behind. Two and thirty in all, and a man who fills them must leave
+something behind, which is the whole point of a satchel having a size.
+
+**2. One array, and the belt is its first eight slots.**
+A token moved from the page to the belt is an index change and nothing else.
+There is no second container to keep in step with the first and no way for the
+two to disagree — **which is the bug that owns every inventory ever written.**
+
+**3. A full satchel takes nothing, and says so.**
+`satchelAdd` answers how many it actually took. A drop that will not fit
+**stays lying where it fell** rather than being swallowed into nowhere. The
+gathering of step 3 was rewritten to ask before it takes.
+
+**4. The save is v8, and it keeps his order.**
+`sa` is the satchel slot by slot and `sp` the substances whose word has been
+given. **The order is his** — he arranged it — and a save that re-sorted his
+belt would be a save that rearranged his hands. A slot naming a substance a
+later build no longer knows is dropped rather than guessed at, which is what
+the block table's string `id` has been for since Phase 2.
+
+It is written **a breath after the last thing taken**, not on every pebble:
+`saveState` stringifies the whole voyage — the log, the visited lands, the
+wrecks, the pearls — and doing that once per block gathered would write a
+hundred kilobytes a second while a man mines.
+
+**5. And the test was made to mean what it says.**
+Its name is *"survives a reload"*, and the first draft wrote the save and read
+the same object back, which proves nothing whatever about a world raised again
+from it. It reloads now, as test 7 does. After the reload he still carries
+**5 brick and 5 cobble, in his own order**.
+
+**6. The reading.**
+
+    PASS 16 · a score is 20 · 30 bricks lay as 1 full stack and 1 part
+              · a full satchel refuses=true
+              · taking gave back 30 of 37 asked
+              · after the reload he still carries 5 brick and 5 cobble, in his own order
+
+**Still ahead in Phase 4:** steps 5–10. Next is the belt and the page — the
+UI, and by §2.2 the place this phase is won or lost.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
