@@ -638,3 +638,75 @@ As with 1–12, in `tools/acceptance.js`, PENDING until their step lands:
 The measurement rule of Round 28 onward stands: the stations before and after, in
 `AUDIT.md`, and the raycast is per-frame work in the hot path — it is one DDA walk of five
 cells and it will be measured, not assumed.
+
+## 12. Phase 5 — the mountains and the deep: the order, and what was measured first
+
+*"Overhangs, arches, undercut cliffs, tunnels through ridges, crystal chambers, sea caves,
+ore distribution by land and depth, summits that are real climbs."*
+
+**One of the seven is already done.** Ore distribution by land and by depth shipped as
+Phase 4 step 7 (`world/minerals.js`, AUDIT Round 39), and the mesher was taught to draw
+the seams in the same round. Struck off rather than done twice.
+
+**AND ANOTHER WAS ALREADY TRUE, WHICH IS WHY IT IS NOT A STEP.** My instinct was to open
+the phase with *"summits that are real climbs"*, on the assumption that a mountain in a
+block world is a wall. It was measured before it was built — a flood fill over the ground
+under the walker's OWN climb rule, four courses at a stride, from the rim of a
+three-hundred-block square inward to each peak — and the assumption was wrong twice over.
+
+First over the anonymous ranges: seven in eight already reached. Then, aimed correctly at
+the mounts the brief NAMES and Phase 7 will put scrolls upon:
+
+    Mount Ararat  167 · YES     Mount Everest 243 · YES     Denali      157 · YES
+    Mount Sinai    94 · YES     Kilimanjaro   149 · YES     Aconcagua   207 · YES
+    Mount Hermon   95 · YES     Mont Blanc    131 · YES     Mount Fuji  141 · YES
+    Mount Olympus  83 · YES     Table Mountain 48 · YES     Uluru        68 · YES
+                                                            Mount Zaphon 49 · YES
+
+**Thirteen of thirteen, with the terrain untouched.** Everest at two hundred and forty
+three courses has a way up it, and so does Ararat.
+
+I had written a bench term into `cellRaw` before measuring properly — a terrace on high
+ground, meant to break the flanks into shelves. It moved summits by a course or two across
+the whole earth and fixed nothing, because there was nothing to fix. **It has been taken
+out again.** A change to the shape of the world needs a defect to point at, and §12's rule
+about not re-solving what is ticked applies just as much to things nobody thought to tick.
+
+What the measurement left behind is worth more than the change would have been:
+**acceptance test 24, "every named summit can be reached on foot"** — which will fail the
+day a terrain change quietly walls off Ararat, and will fail BEFORE Phase 7 puts a scroll
+on top of it.
+
+*(One anonymous range still has an unreachable top: a three-block-wide spire standing
+sixty-four courses out of ground at height eight, found by cross-section. That is a
+pinnacle, not a mountain without a path, and pinnacles are welcome. Recorded so it is not
+re-discovered as a bug.)*
+
+### The order
+
+**1. Overhangs and undercut cliffs.** Test 4 has reported *"1 overhangs in 131 columns"*
+since Round 24 — they exist, barely, as an accident of the cave carve. The brief wants
+them as a FEATURE of cliff faces. The spans already carry them; what is missing is
+anything that deliberately cuts one.
+
+**2. Arches, and tunnels through a ridge.** A passage that goes in one side of a range and
+comes out the other with rock overhead the whole way — which the cave carve can already
+represent and does not currently aim at.
+
+**3. Crystal chambers.** §4's stones of the breastplate — onyx, sapphire, jasper, topaz,
+emerald, sardius — *"rare, deep, worth the descent"*. This is where they belong, and it
+settles the debt `world/minerals.js` names: the gems ship when there is a place that holds
+them.
+
+**4. Sea caves at the waterline.** Half-flooded, entered by boat or by swimming, dark,
+with something at the back. Last because it wants the water rules of Phase 4 step 8 and
+the light falloff of Phase 1, and both now exist.
+
+### What I will not do
+
+**I will not change the shape of the world without a defect to point at.** The bench term
+above is the cautionary case: written on an assumption, measured afterwards, reverted.
+Measure first — and if the world already does the thing, ship the TEST and not the change.
+
+**I will not carve a staircase.** A path cut to a summit is a level designer's answer to a
+terrain problem; it would read as built, and nothing built it.

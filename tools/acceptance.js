@@ -885,6 +885,56 @@ T[23]={name:'the free hand lays without cost, breaks at a touch, and builds the 
           tools+' tools · what was laid stands in the one overlay: '+stands};
   })};
 
+T[24]={name:'every named summit can be reached on foot',
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    if(!D.llToWorld) return {ok:false,got:'the world will not say where a mount stands'};
+    /* CLIMBH is 4.6 blocks — four whole courses at a stride. A flood fill over
+       the ground under that one rule answers the only question that matters
+       about a mountain in a game where scrolls sit on summits: is there a WAY
+       UP. Not the shortest way, not a pretty way — any way at all. */
+    const CLIMB=4, R=150;
+    const reach=(cx,cz)=>{
+      const N=2*R+1, H=new Int16Array(N*N);
+      let top=-1,tx=0,tz=0;
+      for(let a=0;a<N;a++) for(let b=0;b<N;b++){
+        const c=D.cellRaw(cx-R+a,cz-R+b);
+        const h=(c&&c.kind!=='floe')?c.h:-999;
+        H[a*N+b]=h; if(h>top){ top=h; tx=a; tz=b; } }
+      const seen=new Uint8Array(N*N), q=[];
+      /* seeded from the rim AS IT LIES. Asking for rim cells below some
+         lowland height found none at all about Ararat, Everest or Denali —
+         they stand in high country — so the fill never began and reported
+         "reaches 0", which reads exactly like an unclimbable mountain and is
+         nothing of the kind. A climber arrives from whatever ground is there. */
+      for(let a=0;a<N;a++) for(const b of [0,N-1])
+        for(const [x,y] of [[a,b],[b,a]]){
+          if(H[x*N+y]<0||seen[x*N+y]) continue;
+          seen[x*N+y]=1; q.push(x,y); }
+      let head=0;
+      while(head<q.length){
+        const x=q[head++], y=q[head++], h=H[x*N+y];
+        for(const d of [[1,0],[-1,0],[0,1],[0,-1]]){
+          const nx=x+d[0], ny=y+d[1];
+          if(nx<0||ny<0||nx>=N||ny>=N) continue;
+          const i=nx*N+ny; if(seen[i]) continue;
+          const nh=H[i]; if(nh<0||nh-h>CLIMB) continue;
+          seen[i]=1; q.push(nx,ny); } }
+      return {top, got:seen[tx*N+tz]===1};
+    };
+    const LM=((window.EARTH&&EARTH.landmarkList)||[]).filter(l=>l.kind==='mount');
+    if(!LM.length) return {ok:false,got:'no named mount in world/landmarks.js'};
+    const bad=[]; let n=0, highest=0;
+    for(const l of LM){
+      const p=D.llToWorld(l.lat,l.lon);
+      const r=reach(Math.floor(p[0]/B),Math.floor(p[1]/B));
+      n++; if(r.top>highest) highest=r.top;
+      if(!r.got) bad.push(l.n+' (summit '+r.top+')'); }
+    return {ok:!bad.length,
+      got:(n-bad.length)+' of '+n+' named summits can be walked to, the highest '+
+          highest+' courses'+(bad.length?' · NO WAY UP: '+bad.join(', '):'')};
+  })};
+
 /* ---------- 12 · the regression that matters most.  PASSES TODAY ---------- */
 T[12]={name:'ocean and plains chunks build no slower than they did',
   run:async page=>page.evaluate(async B=>{
