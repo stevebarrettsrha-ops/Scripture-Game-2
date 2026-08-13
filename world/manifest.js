@@ -237,6 +237,9 @@ const FILES=[
   /* WHICH BEASTS WALK IN WHICH LAND. One line to a nation; edit it and */
   /* reload, and that country carries different creatures. */
   'world/fauna.js',
+  /* WHICH SUBSTANCES LIE UNDER WHICH LAND, and how deep, and how often. */
+  /* The same shape again: one line to a substance, naming the countries. */
+  'world/minerals.js',
   /* AND WHAT GROWS IN IT. The same shape: one line to a nation, naming the */
   /* trees, orchards, bushes, berries and herbs that land bears. */
   'world/flora.js',
@@ -443,16 +446,21 @@ const FILES=[
      into the registry and are read by the mesher, the hand and the works;
      the order among them fixes nothing but their numbering, and the save
      carries a table of their names so that numbering may change safely. */
+  'blocks/alabaster.js',
   'blocks/bench.js',
   'blocks/bitumen.js',
   'blocks/brick.js',
   'blocks/clay-band.js',
   'blocks/cobble.js',
+  'blocks/copper-ore.js',
   'blocks/dirt.js',
+  'blocks/flint.js',
   'blocks/glass.js',
+  'blocks/gold-ore.js',
   'blocks/grass.js',
   'blocks/hay.js',
   'blocks/ice.js',
+  'blocks/iron-ore.js',
   'blocks/leaves.js',
   'blocks/log.js',
   'blocks/path.js',
@@ -460,6 +468,7 @@ const FILES=[
   'blocks/roof-tile.js',
   'blocks/salt.js',
   'blocks/sand.js',
+  'blocks/silver-ore.js',
   'blocks/snow.js',
   'blocks/soil.js',
   'blocks/stone.js',

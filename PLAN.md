@@ -547,10 +547,16 @@ own step rather than being an afterthought of step 4.
 traveller, a villager or a beast** — the brief flags this as immediately world-breaking and
 it is, so it is written with the test beside it.
 
-**7. The material economy.** `world/minerals.js` on the same per-land data pattern as
-`world/fauna.js`: gold in Havilah, copper in the Aravah, bitumen at the Dead Sea,
-alabaster in Egypt, cedar in Lebanon — distributed by land AND by depth, into the caves
-Phase 1 dug. New `blocks/` files for what the works actually need.
+**7. The material economy.** ✅ *Round 39.* `world/minerals.js` on the same per-land data
+pattern as `world/fauna.js`: gold in Havilah, copper in the Aravah, bitumen at the Dead
+Sea, alabaster in Egypt — distributed by land AND by depth, into the caves Phase 1 dug.
+Eight substances, 63 holdings across 44 lands, six new `blocks/` files. **What the ground
+taught it:** the rock is only as thick as the land is high — there is no underworld — so
+the deep metals are metals of the HILLS, and the bands are written knowing it. **And the
+mesher had to be taught to draw them:** it took every face's material from the terrain
+kind and never asked the block model, so a seam was breakable and invisible. The flank
+bands are cut at the seam now, and the floor and roof of a passage take the stone they
+are cut in.
 
 **8. Gravity, and finite water.** Sand and gravel fall when unsupported. Water spreads N
 blocks and down, and stops. Measured, and then **stopped** — the brief calls fluid

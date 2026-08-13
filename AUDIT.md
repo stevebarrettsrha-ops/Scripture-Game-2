@@ -2434,6 +2434,164 @@ in the same way: assuming the shape of the ground it happened to land on.
 **Still ahead in Phase 4:** steps 7–10. Next is the material economy —
 `world/minerals.js`, ores by land and by depth, into the caves Phase 1 dug.
 
+## 4al. Round 39 — Phase 4 step 7: what lies under every land, and the seam in the face ✅
+
+*§11 step 7. Eight substances as data, drawn in the rock, and the caves given a
+reason. Acceptance **19 pass · 0 fail · 2 pending**; the geometric diff
+**14 pass · 0 fail**.*
+
+**1. One file, and the engine knows no country by name.**
+`world/minerals.js` is a list of eight lines: a substance, the lands that hold
+it, the band of depth it lies in, and how often. The lands are resolved to
+country numbers ONCE at load into `MIN_BY_CI`, an array indexed by the number
+the cell already carries — so *"what ore is under this block"* is one array
+lookup and a walk of a list that is nearly always empty and never longer than
+five, and it is asked only of blocks BELOW the surface course. Add a land to a
+line in that file and that land holds that ore with **not a line changed in
+`js/engine.js`**, which is the rule `world/fauna.js` and `world/flora.js`
+already keep.
+
+Measured: **8 substances declared, 8 placed, 63 holdings across 44 lands.**
+
+**2. It is seeded on the PLACE, not on the visit.**
+The same shaft always holds the same vein. Two men digging the same hill find
+the same gold, and a man who leaves and comes back finds his working where he
+left it — which is the only version of this worth having, and it costs a hash
+of the coordinates rather than a stored table of anything.
+
+**3. WHAT THE GROUND ACTUALLY IS, and how it changed the data.**
+I wrote the bands first and then went to look, and the world corrected me:
+**rock exists only for `0 ≤ iy < c.h`.** There is no underworld beneath the
+sea's floor. The stone of a column runs from its own surface down to nothing,
+so a plain standing three courses above the water has three courses of rock
+beneath it and no more — and a band beginning twenty courses down therefore
+exists ONLY under high country.
+
+That is not a defect; it is the truth of this world, and it is a better truth
+than the one I had assumed. **The deep metals are metals of the HILLS, and a
+man who wants gold must climb before he digs.** So gold came in from 22–70 to
+18–64 and silver from 16–60 to 14–56, and the fact itself is now written at
+the head of `world/minerals.js` rather than left for the next person to
+discover by finding nothing.
+
+**4. Six new stones, and not sixty.**
+`gold-ore`, `silver-ore`, `copper-ore`, `iron-ore`, `alabaster`, `flint`.
+Salt and bitumen already existed and are now put in the ground where they
+belong rather than only in the hand of whoever placed them. The ores are cut
+as a limestone body with a metal grain — a shadow pixel down and to the right
+of each grain, and one bright facet on the larger ones where the light catches
+— so they read as metal IN rock and not as painted cubes. Alabaster is banded;
+flint breaks in shells. **§11's refusal stands**: the brief's sixty substances
+are still not here, and a substance still ships when a work needs it.
+
+**5. A fourth round where the code was right and my test was wrong — and it
+was the same fault as the other three.**
+Test 21 failed twice on its first writing:
+
+- *Silver not found anywhere.* It was searching thirty blocks about each
+  CAPITAL — and a capital stands on low ground, where by §3 there is no rock
+  deep enough to hold it. Silver was in the hills three valleys over the whole
+  time; Chile's high country runs to 145 courses.
+- *21 of 4568 cells "outside their own band".* Every one of them was a cell in
+  a NEIGHBOURING country. The sweep took the ore it found near a site and
+  judged it against the site's country rather than **the cell's own**.
+
+Both are the fault of Rounds 35, 37 and 38 wearing a new coat: **assuming the
+shape of the ground it happened to land on.** The rewritten test sweeps each
+country across ITS OWN EXTENT — a lattice over the bounds of its outline — and
+digs only columns the map agrees lie in that country.
+
+**6. The reading.**
+
+    PASS 21 · every land holds what its data says, and the ore is truly in the rock
+             8 substances declared · 8 placed in 63 lands
+             6405 columns dug in 44 lands:
+               Iron 283, Silver 25, Gold 4, Flint 299, Copper 32,
+               Salt 35, Slime 42, Alabaster 28
+             0 of 29454 cells outside their own band
+
+Gold four times in 6405 columns is not a thin seam badly tuned — it is gold, at
+eighteen courses, under the only ground high enough to have eighteen courses.
+A shaft sunk in the right hill has about one chance in fourteen; a drift run
+along the band finds a vein every hundred blocks or so. It is meant to be the
+thing a man goes down into the dark for.
+
+**And the test knows where to look when the lattice does not.** A lattice over
+a country's bounds lands almost everywhere on its LOW ground, because almost
+all of a country is low ground — so a substance can be genuinely present and
+still be missed. Anything the sweep does not turn up is now looked for the way
+a man would look for it: **at the tallest ground the sweep saw in that land,
+and about it.** It runs only for what is still missing, so it costs nothing on
+a good day, and it is the difference between a test that reports the world and
+one that reports its own sampling.
+
+**7. AND THE ORE WAS INVISIBLE — the fault that nearly shipped.**
+Everything above was true and the step was still not done. The terrain mesher
+takes a face's material from `sideMatsFor(kind)` — 'dirt', 'stone', 'sand' —
+and **never consults the block model at all**. `blockAt` is read by the aim
+raycast, by `setBlock` and by the tests, and by nothing that draws. So the ore
+was in the ground, breakable, and it dropped what it should, and **no man
+could ever have seen it.** A seam found only by breaking the stone in front of
+it at random is not a reason to walk into a cave; it is a lottery.
+
+So the flank bands are CUT. A wall face is one unbroken run of the country's
+own rock unless a seam crosses it, and where one does the band is split at
+that course and the ore's own face drawn in the gap — through the same `put`
+that already carries the ambient-occlusion gradient, so a face split in three
+keeps one unbroken crease across the joins instead of showing a seam where no
+seam is. The floor of a passage takes the top of the block beneath it and its
+roof the underside of the one above, which is what a man walking in with a
+light actually looks at.
+
+**It is gated so that the earth does not pay for it.** One array read per
+column says whether that country holds anything at all, and for nearly the
+whole world the answer is no. Where it is yes, the union of that land's own
+bands is kept on the list, so the cutter walks only the courses at depths
+something of that country can lie at — at most some sixty, and usually none of
+them exposed.
+
+Measured, on a natural cliff in Iran with sixteen ore blocks standing in its
+face: **302 triangles of iron, 342 of salt, 178 of bitumen and 102 of silver
+standing in the chunk meshes**, counted by material identity and not by eye.
+And the cost, over the whole suite: **`plain 1.862 ms/chunk` against a baseline
+of 1.970** — the seam cutter is inside the noise, and still under the figure
+this project started from — with ocean at 0.648 (was 2.152) and a cave chunk at
+1.06× open ground. The gate is what makes it free: a country holding nothing
+pays one array read for the column, and one holding something looks only at the
+depths its own substances lie at.
+
+And the fourteen builders were run through the geometric diff again afterwards,
+because a change to the mesher is exactly the thing that moves a wall half a
+block without anybody noticing: **14 pass · 0 fail, `missing 0` on every one.**
+
+**8. AND A VEIN THAT MOVED WHEN I SORTED A LIST.**
+Test 21 passed, and then passed again with **different numbers** — Gold 1 → 0,
+Alabaster 33 → 50. Nothing about the world had changed. What had changed was
+that I had alphabetised the block entries in `world/manifest.js`.
+
+The seed took the BLOCK's number, and a block's number is only its position in
+that list. So adding a block file — or tidying the order of one — **moved every
+vein in the world**: a man's working gone, and a hill he had never touched
+holding it, and not a word said anywhere. It is exactly the class of fault this
+audit exists to catch, and it was caught by the one property I had written the
+test to check: that the same question asked twice gives the same answer.
+
+The seed is taken off the substance's own `id` now — a fact about the world
+rather than about a file — with a check at load that no two substances share
+one. Asked twice, test 21 now answers identically to the block.
+
+**9. A trap worth writing down.** `setBlock` takes WORLD coordinates and
+`blockAt` takes BLOCK INDICES. Nothing shipped is wrong — the aim raycast
+hands `setBlock` world space and always has — but a probe of mine passed
+indices to both and quietly cut its shaft near the origin, six times smaller
+and eight thousand blocks away, and looked for twenty minutes like a mesher
+fault. It is noted here rather than changed: the signatures are each right for
+their callers, and §12 says not to re-solve what is ticked.
+
+**Still ahead in Phase 4:** steps 8–10. Next is gravity and finite water —
+sand and gravel that fall when unsupported, and water that spreads N blocks
+and **stops**.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

@@ -576,6 +576,93 @@ T[20]={name:'an altar of unhewn stone refuses hewn stone',
     if(!D.works) return {pending:'no works (Phase 4 step 9)'};
     return {ok:false,got:'unwritten'}; })};
 
+T[21]={name:'every land holds what its data says, and the ore is truly in the rock',
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B, R=180000;
+    if(!D.minerals) return {pending:'no minerals (Phase 4 step 7)'};
+    const defs=D.minerals();
+    if(!defs.length) return {ok:false,got:'world/minerals.js declares nothing'};
+    /* 1 — every substance declared must have resolved to a block AND to at
+       least one land the map actually has. A line naming a country this
+       build has not got is silently useless, and silence is the fault. */
+    const byBlock={}, holders=[];
+    for(let ci=1;ci<=D.COUNTRIES.length;ci++){
+      const list=D.mineralsOf(ci); if(!list.length) continue;
+      holders.push(ci);
+      for(const m of list) (byBlock[m.name]||(byBlock[m.name]=[])).push(ci);
+    }
+    const unplaced=[];
+    for(const d of defs){ const nm=D.blockOf(D.blockId(d.block));
+      if(!nm||!byBlock[nm.name]) unplaced.push(d.id); }
+    /* 2 and 3 in ONE SWEEP OF THE LANDS THEMSELVES.
+       NOT a window about the capital: a capital stands on low ground, and the
+       rock is only as thick as the land is high, so a bearing of thirty blocks
+       round a river town finds no seam that begins fourteen courses down and
+       reports the ore missing when it is in the hills three valleys over. Each
+       country is swept across ITS OWN EXTENT — a lattice over the bounds of
+       its outline — and only columns the map agrees lie in that country are
+       dug, from the surface course down to bedrock.
+         found[]     · the substance is truly in the ground, not only in a table
+         outOfBand   · every ore cell lies within the band its own data names,
+                       which is the one thing a seeded hash gets wrong quietly */
+    const found={}; for(const k in byBlock) found[k]=0;
+    const peaks=[], lists=[];
+    const list_=ci=>lists[ci]||(lists[ci]=D.mineralsOf(ci));
+    let outOfBand=0, checked=0, columns=0, S=18;
+    for(const ci of holders){
+      const C=D.COUNTRIES[ci-1], list=list_(ci);
+      let u0=9,u1=-9,v0=9,v1=-9;
+      for(const ring of C.p) for(const q of ring){
+        if(q[0]<u0)u0=q[0]; if(q[0]>u1)u1=q[0];
+        if(q[1]<v0)v0=q[1]; if(q[1]>v1)v1=q[1]; }
+      for(let a=0;a<S;a++) for(let b=0;b<S;b++){
+        const u=u0+(u1-u0)*(a+0.5)/S, v=v0+(v1-v0)*(b+0.5)/S;
+        const ix=Math.round(u*R/B-0.5), iz=Math.round(v*R/B-0.5);
+        const c=D.cellRaw(ix,iz);
+        if(!c||c.ci!==ci) continue;          /* the cell must own the country */
+        columns++;
+        if(!peaks[ci]||c.h>peaks[ci].h) peaks[ci]={ix,iz,h:c.h};
+        for(let iy=c.h-1;iy>0;iy--){ checked++;
+          const n=D.oreAt(ix,iy,iz); if(!n) continue;
+          const nm=D.blockOf(n); if(nm) found[nm.name]=(found[nm.name]||0)+1;
+          const m=list.find(q=>q.n===n), down=c.h-iy;
+          if(!m||down<m.lo||down>m.hi) outOfBand++; } }
+    }
+    /* ---- AND WHERE THE LATTICE IS TOO COARSE, GO WHERE A PROSPECTOR GOES ----
+       A lattice over a country's bounds lands almost everywhere on its LOW
+       ground, because almost all of a country is low ground — and the deepest
+       bands exist only under the high. Gold at eighteen courses needs a
+       nineteen-course hill under it, and one in fifty of the sampled columns
+       is that. So anything the sweep did not turn up is looked for the way a
+       man would look for it: at the tallest ground the sweep saw in each land
+       that holds it, and about it. This runs only for what is still missing,
+       so it costs nothing on a good day. */
+    for(const name of Object.keys(byBlock).filter(k=>!found[k])){
+      for(const ci of byBlock[name]){
+        if(found[name]) break;
+        const peak=peaks[ci]; if(!peak) continue;
+        for(let dx=-14;dx<=14&&!found[name];dx+=2) for(let dz=-14;dz<=14&&!found[name];dz+=2){
+          const ix=peak.ix+dx, iz=peak.iz+dz;
+          const c=D.cellRaw(ix,iz); if(!c||c.ci!==ci) continue;
+          columns++;
+          for(let iy=c.h-1;iy>0;iy--){ checked++;
+            const n=D.oreAt(ix,iy,iz); if(!n) continue;
+            const nm=D.blockOf(n); if(nm) found[nm.name]=(found[nm.name]||0)+1;
+            const m=list_(ci).find(q=>q.n===n), down=c.h-iy;
+            if(!m||down<m.lo||down>m.hi) outOfBand++; }
+        }
+      }
+    }
+    const missing=Object.keys(byBlock).filter(k=>!found[k]);
+    return {ok:!unplaced.length&&!missing.length&&outOfBand===0,
+      got:defs.length+' substances declared · '+Object.keys(byBlock).length+
+          ' placed in '+Object.values(byBlock).reduce((a,b)=>a+b.length,0)+' lands'+
+          (unplaced.length?' · NOT PLACED: '+unplaced.join(','):'')+
+          ' · '+columns+' columns dug in '+holders.length+' lands: '+
+          Object.entries(found).map(([k,v])=>k.replace(' in the Rock','')+' '+(v||'✗')).join(', ')+
+          ' · '+outOfBand+' of '+checked+' cells outside their own band'};
+  })};
+
 /* ---------- 12 · the regression that matters most.  PASSES TODAY ---------- */
 T[12]={name:'ocean and plains chunks build no slower than they did',
   run:async page=>page.evaluate(async B=>{

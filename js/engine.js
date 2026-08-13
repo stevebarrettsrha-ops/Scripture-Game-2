@@ -311,6 +311,41 @@ TEX.bitumen    = mkTex(g=>{ speckle(g,PB.bitumen.b,10,PB.bitumen.a,0.35);
   g.fillStyle='rgba(120,132,140,0.16)';
   for(let k=0;k<7;k++){ const x=hash2(k,3.1)*16, y=hash2(k,7.7)*16;
     g.fillRect(x,y,2+hash2(k,1.3)*3,FG); } },16,16,RIM);
+/* ---- THE ORE IN THE ROCK ----
+   The country's own stone with the metal SHOWING IN IT. The body is the very
+   limestone the deep rock is drawn with, so an ore face and a stone face are
+   plainly the same rock; over it lie a handful of grains of metal, each with
+   its own shadow under it, so the vein has depth at thirty-two texels rather
+   than reading as a coloured cube with dots on. Struck once, at load, by the
+   same `mkTex` machinery as everything else in this world. */
+function oreTex(rec,grains,size){
+  return mkTex(g=>{
+    speckle(g,rec.b,14,rec.a,0.28);
+    for(let k=0;k<grains;k++){
+      const x=Math.floor(hash2(k*1.7,3.1)*(16-size)), y=Math.floor(hash2(k*2.3,5.9)*(16-size));
+      const w=size*(0.6+hash2(k,7.7)*0.8), h=size*(0.6+hash2(k,9.1)*0.8);
+      /* the shadow first, a true pixel down and to the right, then the metal */
+      g.fillStyle=C(rec.s); g.fillRect(x+FG,y+FG,w,h);
+      g.fillStyle=C(rec.m); g.fillRect(x,y,w,h);
+      /* one bright facet on the largest grains, where the light catches */
+      if(hash2(k,4.4)>0.55){ g.fillStyle=C(PAL.lift(rec.m,0.30)); g.fillRect(x,y,FG*2,FG*2); }
+    }
+  },16,16,RIM);
+}
+TEX.goldOre    = oreTex(PB.goldOre,   7, 2.1);
+TEX.silverOre  = oreTex(PB.silverOre, 8, 1.8);
+TEX.copperOre  = oreTex(PB.copperOre, 9, 1.9);
+TEX.ironOre    = oreTex(PB.ironOre,  10, 1.6);
+/* alabaster: a pale, warm, banded stone — the Egyptian vessel-stone */
+TEX.alabaster  = mkTex(g=>{ speckle(g,PB.alabaster.b,10,PB.alabaster.a,0.24);
+  for(let k=0;k<4;k++){ const y0=2+hash2(k,6.1)*12;
+    for(let x=0;x<16;x+=FG){ const y=y0+Math.sin(x*0.45+k*1.7)*0.9;
+      g.fillStyle=C(PB.alabaster.vein); g.fillRect(x,Math.round(y/FG)*FG,FG,FG); } } },16,16,RIM);
+/* flint: dark, glassy, and it breaks in shells */
+TEX.flint      = mkTex(g=>{ speckle(g,PB.flint.b,18,PB.flint.a,0.34);
+  for(let k=0;k<9;k++){ const cx=hash2(k,1.9)*16, cy=hash2(k,8.3)*16, r=1.2+hash2(k,3.3)*1.6;
+    g.strokeStyle=C(PB.flint.glint); g.lineWidth=FG;
+    g.beginPath(); g.arc(cx,cy,r,0.6,2.6); g.stroke(); } },16,16,RIM);
 TEX.salt       = mkTex(g=>{ speckle(g,PB.salt.b,14,PB.salt.a,0.3);
   /* crystal: hard little facets that catch the light square-on */
   for(let k=0;k<26;k++){ const x=Math.floor(hash2(k,2.7)*32)*FG, y=Math.floor(hash2(k,5.3)*32)*FG;
@@ -335,6 +370,9 @@ function iceMat(name,tex){ const m=new THREE.MeshBasicMaterial({
 blockMat('grassTop',TEX.grassTop); blockMat('grassTopTr',TEX.grassTopTr); blockMat('grassTopTu',TEX.grassTopTu);
 blockMat('grassTopSv',TEX.grassTopSv); blockMat('grassSideSv',TEX.grassSideSv);
 blockMat('grassSide',TEX.grassSide); blockMat('dirt',TEX.dirt); blockMat('path',TEX.path);
+blockMat('goldOre',TEX.goldOre); blockMat('silverOre',TEX.silverOre);
+blockMat('copperOre',TEX.copperOre); blockMat('ironOre',TEX.ironOre);
+blockMat('alabaster',TEX.alabaster); blockMat('flint',TEX.flint);
 blockMat('sand',TEX.sand); blockMat('stone',TEX.stone); blockMat('cobble',TEX.cobble);
 blockMat('snow',TEX.snow); blockMat('ice',TEX.ice);
 iceMat('iceTop',TEX.snow); iceMat('iceSide',TEX.ice);   /* the wall of ice and the floes */
@@ -697,6 +735,75 @@ function depthBlockOf(kind){
   if(kind==='badlands') return blockId('clay-band');
   if(kind==='wall'||kind==='floe') return blockId('ice');
   return blockId('stone');
+}
+/* ================= WHAT LIES UNDER EVERY LAND =================
+   Phase 4, step 7. Phase 1 dug the caves; this is what makes them worth
+   walking into.
+
+   THE ENGINE KNOWS NO COUNTRY BY NAME. It knows how to read
+   world/minerals.js: a substance, the lands that hold it, the band of depth
+   it lies in, and how often. Add a land to a line there and that land holds
+   that ore with not a line changed here — the same rule the beasts and the
+   flora keep.
+
+   THE COST IS ONE ARRAY LOOKUP. The lands are resolved to country indices
+   ONCE, at load, into an array indexed by that country's own number; the
+   cell already carries which country it is in, so the question "what ore is
+   under this block" is `MIN_BY_CI[c.ci]` and then a walk of a list that is
+   nearly always empty and never longer than five. It is asked only for
+   blocks BELOW the surface course, which is where an ore can be.
+
+   AND IT IS SEEDED ON THE PLACE. The same shaft always holds the same vein:
+   two men digging the same hill find the same gold, and a man who leaves and
+   comes back finds his working where he left it. */
+const MIN_DEFS=(window.EARTH&&EARTH.mineralList)||[];
+const MIN_BY_CI=[];              /* country number -> [{n,sd,lo,hi,often}] */
+/* ---- A VEIN IS ANCHORED TO THE SUBSTANCE'S NAME, NOT TO ITS NUMBER ----
+   The seed took the BLOCK's number to begin with, and a block's number is
+   only its place in the list in world/manifest.js. So adding a block file, or
+   sorting that list, MOVED EVERY VEIN IN THE WORLD: a man's working would be
+   gone, and a hill he had never touched would hold it, and nothing would say
+   a word. The seed is taken off the substance's own id now — which is a fact
+   about the world, and not about a file. */
+function mineralSeed(id){ let h=2166136261;
+  for(let i=0;i<id.length;i++){ h^=id.charCodeAt(i); h=Math.imul(h,16777619); }
+  return (h>>>0)%89+3; }
+{
+  const byName=Object.create(null);
+  for(let i=0;i<COUNTRIES.length;i++) byName[COUNTRIES[i].n]=i+1;   /* ci is 1-based */
+  const taken=new Set();
+  for(const m of MIN_DEFS){
+    const n=blockId(m.block);
+    if(!n) continue;             /* a substance whose block this build has not got */
+    /* and no two substances may share a seed, or their veins would fall in
+       the very same cells and the shallower would hide the deeper */
+    let sd=mineralSeed(m.id); while(taken.has(sd)) sd=sd%89+3;
+    taken.add(sd);
+    for(const land of (m.lands||[])){
+      const ci=byName[land]; if(!ci) continue;    /* a land the map has not got */
+      (MIN_BY_CI[ci]||(MIN_BY_CI[ci]=[])).push({n,sd,lo:m.lo,hi:m.hi,often:m.often});
+    }
+  }
+  /* AND THE UNION OF EVERY BAND THE LAND HOLDS, kept on the list itself. The
+     mesher asks it before it goes looking for a seam in a face, so it never
+     walks a course at a depth where nothing of that country can lie — which
+     is nearly the whole of a mountain. */
+  for(const list of MIN_BY_CI){ if(!list) continue;
+    let lo=1e9, hi=0;
+    for(const m of list){ if(m.lo<lo) lo=m.lo; if(m.hi>hi) hi=m.hi; }
+    list.dLo=lo; list.dHi=hi; }
+}
+/* the block of rock at (ix,iy,iz), in a column whose ground stands at c.h */
+function oreAt(c,ix,iy,iz){
+  const list=MIN_BY_CI[c.ci]; if(!list) return 0;
+  const down=c.h-iy;                       /* courses below the surface */
+  for(let k=0;k<list.length;k++){ const m=list[k];
+    if(down<m.lo||down>m.hi) continue;
+    /* seeded on the place, and on the substance, so two ores in one land do
+       not fall in the same cells */
+    if(hash2(ix*1.37+iy*4.11+m.sd*7.3, iz*2.53-iy*1.79+m.sd*3.1)<m.often) return m.n;
+  }
+  return 0;
 }
 
 /* ================= TERRAIN (heightmap voxels) ================= */
@@ -1808,6 +1915,12 @@ function emitColumn(G,ix,iz,cc){
   const x0=ix*B, x1=x0+B, z0=iz*B, z1=z0+B, yT=cc.h*B;
   faceTop(G,topMatFor(cc.kind),x0,z0,x1,z1,yT,1.0,1,aoTop(ix,iz,cc.h));
   const [sTop,sLow]=sideMatsFor(cc.kind);
+  /* ---- WHETHER ANYTHING LIES UNDER THIS COUNTRY AT ALL ----
+     One array read for the whole column, and for nearly the whole earth the
+     answer is no and nothing below costs a thing. */
+  const ores=MIN_BY_CI[cc.ci]||null;
+  /* the stone of a seam, at a course of this column, or 0 */
+  const seamAt=iy=>(ores&&iy>=0&&iy<cc.h-1)?oreAt(cc,ix,iy,iz):0;
   const nb=[[1,0],[-1,0],[0,1],[0,-1]];
   /* ---- THE HOLLOW OF THIS COLUMN, IF IT HAS ONE ----
      The floors and the ceilings first — the underside of every roof and the
@@ -1818,8 +1931,12 @@ function emitColumn(G,ix,iz,cc){
     myLit=litRuns(ix,iz,sp,_lit).slice();
     for(let i=0;i<sp.length;i+=2){
       const lo=sp[i], hi=sp[i+1], f=myLit[i>>1];
-      faceTop(G,sLow,x0,z0,x1,z1,lo*B,1.0*f);           /* the floor of the passage */
-      faceBottom(G,sLow,x0,z0,x1,z1,hi*B,0.5*f);        /* and the roof over it */
+      /* THE FLOOR IS THE TOP OF THE BLOCK BENEATH IT and the roof the underside
+         of the one above, so where either of those is a seam it is the seam a
+         man sees when he walks in with a light. */
+      const nF=seamAt(lo-1), nR=seamAt(hi);
+      faceTop(G,nF?blockOf(nF).mTop:sLow,x0,z0,x1,z1,lo*B,1.0*f);      /* the floor of the passage */
+      faceBottom(G,nR?blockOf(nR).mBottom:sLow,x0,z0,x1,z1,hi*B,0.5*f); /* and the roof over it */
     }
   }
   for(let d=0;d<4;d++){
@@ -1859,6 +1976,30 @@ function emitColumn(G,ix,iz,cc){
         facePZ(G,mat,z1,x0,x1,ya,yb,sh,_aoS); }
       else { _aoS[0]=aFar*fa; _aoS[1]=aNear*fa; _aoS[2]=aNear*fb; _aoS[3]=aFar*fb;
         faceNZ(G,mat,z0,x0,x1,ya,yb,sh,_aoS); } };
+    /* ---- AND WHERE A SEAM CROSSES THE FACE ----
+       A flank is one unbroken band of the country's own rock unless an ore
+       lies in it. Where one does, the band is CUT at that course and the ore's
+       own face drawn in the gap — so a seam is SEEN, in a cliff and in the
+       wall of a cave, and is not merely found by breaking. Without this the
+       whole of step 7 is a fact about the save file and nothing a man could
+       ever look at.
+       It walks only the courses that lie within the depths that country's own
+       substances lie at, which is at most some sixty and is usually none. */
+    const putB=(mat,ya,yb,sh)=>{
+      if(!ores||yb<=ya){ put(mat,ya,yb,sh); return; }
+      const c0=Math.max(Math.floor(ya/B), cc.h-ores.dHi);
+      const c1=Math.min(Math.ceil(yb/B),  cc.h-ores.dLo+1, cc.h-1);
+      if(c1<=c0){ put(mat,ya,yb,sh); return; }
+      let y=ya;
+      for(let iy=c0;iy<c1;iy++){
+        const n=oreAt(cc,ix,iy,iz); if(!n) continue;
+        const a2=Math.max(ya,iy*B), b2=Math.min(yb,(iy+1)*B); if(b2<=a2) continue;
+        if(a2>y) put(mat,y,a2,sh);
+        put(blockOf(n).mSide,a2,b2,sh);
+        y=b2;
+      }
+      if(yb>y) put(mat,y,yb,sh);
+    };
     const sh=(d<2)?0.62:0.8;
     /* the sea beside: the flank keeps going below the waterline, all the
        way down to the bed — a stone standing in the glass, not upon it */
@@ -1870,8 +2011,8 @@ function emitColumn(G,ix,iz,cc){
        is one unbroken band from the neighbour's ground to our own, exactly as
        it has always been drawn, and nothing below costs it a thing. */
     if(!hollow){
-      if(split){ put(sLow,base,yMid,sh); put(sTop,yMid,yT,sh); }
-      else put(sTop,base,yT,sh);
+      if(split){ putB(sLow,base,yMid,sh); put(sTop,yMid,yT,sh); }
+      else putB(sTop,base,yT,sh);
       continue;
     }
     /* ---- AND WHERE SOMETHING HAS BEEN HOLLOWED ----
@@ -1908,7 +2049,7 @@ function emitColumn(G,ix,iz,cc){
             :(myLit?litAt(cc.spans,myLit,(y+cut)*0.5)
                    :(nc.spans?litAt(nc.spans,litRuns(ix+nb[d][0],iz+nb[d][1],nc.spans,_lit),(y+cut)*0.5)
                              :CAVE_DARK));
-          put(my1>=cc.h&&cut>=cc.h-1?sTop:sLow, y*B, cut*B, sh*lit);
+          putB(my1>=cc.h&&cut>=cc.h-1?sTop:sLow, y*B, cut*B, sh*lit);
         }
         if(nbv>y) y=nbv;
         if(y>=my1) break;
@@ -2160,7 +2301,10 @@ function proceduralSolid(ix,iy,iz){
 function proceduralBlock(ix,iy,iz){
   if(!proceduralSolid(ix,iy,iz)) return 0;
   const c=cell(ix,iz);
-  return (iy>=c.h-1)?surfaceBlockOf(c.kind):depthBlockOf(c.kind);
+  if(iy>=c.h-1) return surfaceBlockOf(c.kind);
+  /* under the surface course, the land may hold something better than stone */
+  const ore=oreAt(c,ix,iy,iz);
+  return ore||depthBlockOf(c.kind);
 }
 /* and what it IS, hand and all — the one truth every test in the game reads */
 function blockAt(ix,iy,iz){
@@ -13725,6 +13869,10 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   heldBlock:()=>{ const b=heldBlock(); return b?b.id:null; },
   pageOpen:()=>pageOpen, togglePage, pageTouch, beltDraw, pageDraw,
   placeBlock, cellHitsAnyLiving,
+  /* ---- WHAT LIES UNDER, FOR tools/acceptance.js ---- */
+  minerals:()=>MIN_DEFS.map(m=>({id:m.id,block:m.block,lands:m.lands.length,lo:m.lo,hi:m.hi,often:m.often})),
+  mineralsOf:ci=>(MIN_BY_CI[ci]||[]).map(m=>({n:m.n,name:blockName(m.n),lo:m.lo,hi:m.hi,often:m.often})),
+  oreAt:(ix,iy,iz)=>{ const c=cell(ix,iz); return c?oreAt(c,ix,iy,iz):0; },
   /* the same placing, from a named reach — so a test need not steer a camera
      to ask which side of a face a block lands on */
   placeFrom:a=>{ const was=AIM; AIM=a; try{ return placeBlock(); } finally{ AIM=was; } },

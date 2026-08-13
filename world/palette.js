@@ -168,6 +168,27 @@ const B = {
                  a: lift(P.limestone,0.10),
                  mortar: shade(mix(P.limestone,P.rawUmber,0.4),0.62) },
 
+  /* --- THE ORE IN THE ROCK (§4, the material economy) ---
+     An ore is the country's own stone with the metal SHOWING IN IT, and it
+     must read as that and not as a coloured cube: the body is limestone, as
+     every deep rock in this world is, and the grain of metal is laid over it
+     in a few bright specks. Two tones apiece — the metal, and its own
+     shadow — so a vein has depth in it at thirty-two texels. */
+  goldOre:     { b: P.limestone, a: shade(mix(P.limestone,P.rawUmber,0.18),0.88),
+                 m: P.gold,   s: shade(P.gold,0.72) },
+  silverOre:   { b: P.limestone, a: shade(mix(P.limestone,P.rawUmber,0.18),0.88),
+                 m: P.silver, s: shade(P.silver,0.74) },
+  copperOre:   { b: P.limestone, a: shade(mix(P.limestone,P.rawUmber,0.18),0.88),
+                 m: P.copper, s: shade(P.copper,0.70) },
+  ironOre:     { b: P.limestone, a: shade(mix(P.limestone,P.rawUmber,0.18),0.88),
+                 m: P.iron,   s: shade(P.iron,0.74) },
+  /* and two stones that are worth the digging for their own sake */
+  alabaster:   { b: P.alabaster, a: shade(mix(P.alabaster,P.ochre,0.14),0.95),
+                 /* the banding of the Egyptian vessel-stone is HONEY, not
+                    white — it is the one thing that tells it from marble */
+                 vein: shade(mix(P.alabaster,P.ochre,0.26),0.97) },
+  flint:       { b: P.flint, a: shade(P.flint,0.86), glint: lift(P.flint,0.34) },
+
   /* --- the cold end of the world --- */
   snow:        { b: P.snow, a: shade(P.snow,0.96) },
   ice:         { b: P.glacier, a: shade(P.glacier,0.94), glint: P.rime },

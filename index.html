@@ -772,7 +772,7 @@ window.__MENUUI=(function(){
 /* The registry the land, verse and river files feed into.
    Each file in countries/ calls EARTH.country({...}) — one land per file,
    loaded in a fixed order so the world is identical on every machine. */
-window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deepList:[],holeList:[],sceneList:[],scrollList:[],beastList:[],faunaList:[],floraList:[],
+window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deepList:[],holeList:[],sceneList:[],scrollList:[],beastList:[],faunaList:[],floraList:[],mineralList:[],
   country:function(c){this.list.push(c);},
   verses:function(v){this.verseList=v;},
   river:function(r){this.riverList.push(r);},
@@ -794,6 +794,10 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
   /* and WHAT GROWS in each — every tree, orchard, bush, berry and herb on
      the earth, in world/flora.js */
   flora:function(f){this.floraList.push(f);},
+  /* and WHAT LIES UNDER each — which ore in which land, and how deep, in
+     world/minerals.js. This is what makes the caves of Phase 1 worth
+     walking into. */
+  mineral:function(m){this.mineralList.push(m);},
   /* EVERY KIND OF BLOCK THE WORLD IS MADE OF, one to a file under blocks/ —
      what it is called, what it is drawn with, how long it takes to break,
      what tool serves, what it drops, and whether it stands on nothing. The
