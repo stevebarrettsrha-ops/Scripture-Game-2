@@ -75,7 +75,7 @@ EARTH.mineral({
   lands:['Israel','Jordan','Cyprus','Oman','Yasharal'],
   lo:8, hi:40,
   often:0.030,
-  verse:{ t:'A land whose stones are iron, and out of whose hills you dig copper.',
+  verse:{ t:'a land whose stones are iron and out of whose hills you dig copper.',
           ref:'DEḆARIM 8:9' }
 });
 
@@ -87,7 +87,7 @@ EARTH.mineral({
          'South Africa','United States of America','Russia','Kazakhstan'],
   lo:6, hi:56,
   often:0.026,
-  verse:{ t:'A land whose stones are iron, and out of whose hills you dig copper.',
+  verse:{ t:'a land whose stones are iron and out of whose hills you dig copper.',
           ref:'DEḆARIM 8:9' }
 });
 
@@ -97,7 +97,7 @@ EARTH.mineral({
   lands:['Turkey','Greece','Spain','Iran','Mexico','Peru','Bolivia','Chile'],
   lo:14, hi:56,
   often:0.016,
-  verse:{ t:'For there is a mine for silver, and a place for gold that they refine.',
+  verse:{ t:'there is a mine for silver and a place where gold is refined.',
           ref:'IYOḆ 28:1' }
 });
 
@@ -119,7 +119,7 @@ EARTH.mineral({
          'United Kingdom','France','Denmark','Germany','Poland','Belgium'],
   lo:3, hi:30,
   often:0.034,
-  verse:{ t:'Who brought you water out of the rock of flint.', ref:'DEḆARIM 8:15' }
+  verse:{ t:'who brought water for you out of the flinty rock', ref:'DEḆARIM 8:15' }
 });
 
 /* --- SALT — the Valley of Siddim, that is the Salt Sea ---
@@ -143,5 +143,5 @@ EARTH.mineral({
   lands:['Israel','Yasharal','Jordan','Iraq','Iran','Azerbaijan'],
   lo:6, hi:38,
   often:0.024,
-  verse:{ t:'And the Valley of Siddim was filled with tar pits.', ref:'BERĔSHITH 14:10' }
+  verse:{ t:'And the Valley of Siddim had many tar pits.', ref:'BERĔSHITH 14:10' }
 });

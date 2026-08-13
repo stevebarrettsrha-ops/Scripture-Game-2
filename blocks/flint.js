@@ -10,6 +10,6 @@ EARTH.block({
   hardness:2.0,
   tool:'pick', drops:'flint',
   opaque:true, gravity:false,
-  verse:{ t:'Who brought you water out of the rock of flint.',
+  verse:{ t:'who brought water for you out of the flinty rock',
           ref:'DEḆARIM 8:15' }
 });

@@ -39,7 +39,7 @@ EARTH.verses([
  },
  {
   "ref": "YEḤEZQAL 5:5",
-  "t": "“Thus said the Master YAHUAH, ‘This is Yahrushalayim which I have set in the midst of the gentiles, with the other lands all around her."
+  "t": "“Thus said the Master (YAHUAH) HWHY, ‘This is Yahrushalayim which I have set in the midst of the gentiles, with the other lands all around her."
  },
  {
   "ref": "DANIAL 4:10–11",

@@ -12,6 +12,6 @@ EARTH.block({
   hardness:4.5,         /* seconds to break it by hand */
   tool:'pick', drops:'gold-ore',
   opaque:true, gravity:false,
-  verse:{ t:'And the gold of that land is good. Bdellium and the onyx stone are there.',
+  verse:{ t:'And the gold of that land is good. Bdellium is there and the shoham stone.',
           ref:'BERĔSHITH 2:12' }
 });

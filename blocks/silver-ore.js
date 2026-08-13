@@ -10,6 +10,6 @@ EARTH.block({
   hardness:3.8,
   tool:'pick', drops:'silver-ore',
   opaque:true, gravity:false,
-  verse:{ t:'For there is a mine for silver, and a place for gold that they refine.',
+  verse:{ t:'there is a mine for silver and a place where gold is refined.',
           ref:'IYOḆ 28:1' }
 });
