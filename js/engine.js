@@ -2337,6 +2337,20 @@ function setBlock(wx,wy,wz,n){
   if(under===n){ if(m){ m.delete(idx); if(!m.size) EDITS.delete(key); } }
   else { if(!m){ m=new Map(); EDITS.set(key,m); } m.set(idx,n); }
   EDIT_TOUCHED=true; EDIT_DIRTY.add(key); EDIT_SAVE.add(key); editsTouch(); editColumnsChanged();
+  /* ---- AND THE WORLD PUTS ITSELF RIGHT (§11 step 8) ----
+     A cell that has just been EMPTIED is the only thing either rule cares
+     about: what stood on it may not stand, and what water lay beside it now
+     has somewhere to go. Nothing is done here — the cell is written down and
+     looked at in the frame, so no edit ever runs a cascade inside itself. */
+  if(!_stampOn){
+    if(n===0) settleWake(ix,iy,iz);
+    /* AND A BANK OF SAND SET DOWN ON NOTHING IS STILL SET DOWN ON NOTHING.
+       The rule is about the block and not about how it came to be there: a
+       hand that lays sand over a hole is answered the same as a hand that
+       digs the hole out from under it. */
+    else { const b2=blockOf(n);
+      if(b2&&b2.gravity&&!blockSolidAt(ix,iy-1,iz)) settleWake(ix,iy-1,iz); }
+  }
   /* a block on a chunk's edge changes what its neighbour must draw */
   if(lx===0) EDIT_DIRTY.add((Math.floor(ix/CH)-1)+','+Math.floor(iz/CH));
   if(lx===CH-1) EDIT_DIRTY.add((Math.floor(ix/CH)+1)+','+Math.floor(iz/CH));
@@ -2613,8 +2627,16 @@ async function editsLoad(){
 let _saveT=null;
 function editsTouch(){ if(_saveT) clearTimeout(_saveT);
   _saveT=setTimeout(()=>{ _saveT=null; editsSave(); },900); }
-addEventListener('pagehide',()=>{ if(EDIT_SAVE.size) editsSave(); });
-addEventListener('visibilitychange',()=>{ if(document.hidden&&EDIT_SAVE.size) editsSave(); });
+/* ---- AND NOTHING MAY BE LOST IN THE AIR ----
+   A block on its way down is OUT of the world — lifted out of the overlay by
+   `fallCheck` and not yet set down again. Close the page in that second and
+   it is gone, and a rule whose whole claim is that nothing is made and
+   nothing is lost would be quietly untrue once in every hundred landslips.
+   So before the world is written down, whatever is still falling is set
+   down where it stands. (Declared below; called only from these two.) */
+addEventListener('pagehide',()=>{ looseSettleAll(); if(EDIT_SAVE.size) editsSave(); });
+addEventListener('visibilitychange',()=>{ if(document.hidden){ looseSettleAll();
+  if(EDIT_SAVE.size) editsSave(); } });
 
 const chunks=new Map(); const buildQueue=[]; const buildQueued=new Set();
 /* all the streamed land under one root, so it can be taken out of the view
@@ -13869,6 +13891,19 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   heldBlock:()=>{ const b=heldBlock(); return b?b.id:null; },
   pageOpen:()=>pageOpen, togglePage, pageTouch, beltDraw, pageDraw,
   placeBlock, cellHitsAnyLiving,
+  /* ---- WHAT WILL NOT STAND, FOR tools/acceptance.js ---- */
+  fallTick, looseSettleAll, looseCount:()=>LOOSE.length, flowLeft:()=>flowLeft,
+  flowBudget:()=>FLOW_BUDGET, flowReach:()=>FLOW_REACH,
+  settlePending:()=>SETTLE.length/3,
+  /* the frame drives both rules already — unlike the blow, which a test must
+     drive itself; here a test need only WAIT, and be told when the world has
+     stopped moving */
+  settleDrive:async n=>{ let still=0;
+    for(let k=0;k<(n||240)&&still<6;k++){
+      await new Promise(r=>requestAnimationFrame(r));
+      still=(LOOSE.length||SETTLE.length||FLOW.length)?0:still+1; }
+    return {loose:LOOSE.length,pending:SETTLE.length/3,flow:FLOW.length/4,
+            spent:flowMoved}; },
   /* ---- WHAT LIES UNDER, FOR tools/acceptance.js ---- */
   minerals:()=>MIN_DEFS.map(m=>({id:m.id,block:m.block,lands:m.lands.length,lo:m.lo,hi:m.hi,often:m.often})),
   mineralsOf:ci=>(MIN_BY_CI[ci]||[]).map(m=>({n:m.n,name:blockName(m.n),lo:m.lo,hi:m.hi,often:m.often})),
@@ -14447,6 +14482,212 @@ function takeUp(d){
   if(b&&b.verse&&!SPOKEN.has(d.id)){ SPOKEN.add(d.id); toast(b.verse.t,b.verse.ref); }
   satchelTouch();
 }
+/* ============ WHAT WILL NOT STAND, AND WHAT WILL NOT LIE STILL ============
+   Phase 4, step 8. Two rules about the world, and then STOPPED. §11 calls
+   fluid simulation a rabbit hole and it is right: what is written here is the
+   least that is TRUE, and there is a budget on it in plain sight.
+
+   THE FIRST RULE. A bank of sand will not stand on nothing. Cut what is under
+   it and it comes down, and what stood on THAT comes down after it, up the
+   whole column — which is the first thing the desert teaches, and the first
+   thing a man learns not to do to himself in a shaft.
+
+   THE SECOND RULE. Water will not lie still with somewhere to go. It stands
+   in the wells and in the channels of the farms; break the wall of a well and
+   the water finds the hole and runs out along the cut, down before sideways,
+   and it POOLS at the bottom and stops. It is not made: it is MOVED. There is
+   exactly as much water in the world after a flow as there was before it, so
+   a well can be emptied and cannot be milked.
+
+   AND NOTHING HERE RUNS EVERY FRAME FOR NOTHING. Both rules are woken by the
+   one door — `setBlock` — and only where a cell has just been EMPTIED (and by
+   the one other case that is the same case wearing a coat: a gravity block
+   LAID over a hole, which is a bank standing on nothing however it got
+   there). A world nobody is digging in pays three length checks a frame and
+   returns.
+
+   WHAT IS DELIBERATELY NOT HERE. Water is not swum in. It is moved and it is
+   finite and it is drawn, and a man stands on top of it as he stands on the
+   standing water of a well today. Swimming in it wants the breath, the walker
+   and the beasts' pathing all opened at once, and that is a step of its own
+   and not a corner of this one. It is named here so it is not mistaken for an
+   oversight. */
+const LOOSE_MAX=64;            /* how many blocks may be in the air at once */
+const LOOSE_G=30;              /* and how hard they are pulled down */
+const SETTLE=[];               /* cells lately emptied, three numbers apiece */
+const SETTLE_PER_FRAME=24;
+const LOOSE=[];
+let looseGeo=null;
+function ensureLooseGeo(){
+  if(looseGeo) return looseGeo;
+  looseGeo=new THREE.BoxGeometry(B,B,B);
+  /* the block materials are all vertex-coloured, because the mesher bakes the
+     light into the corners; a loose cube has no such light, so it is given a
+     plain white one and takes the day's tint like everything else */
+  const n=looseGeo.attributes.position.count, col=new Float32Array(n*3).fill(1);
+  looseGeo.setAttribute('color',new THREE.BufferAttribute(col,3));
+  return looseGeo;
+}
+/* THE ONE DOOR RINGS HERE. A cell has been emptied: whatever stood on it may
+   not stand any longer, and whatever water lay beside it now has somewhere to
+   go. Both are put on a list and looked at in the frame, never in the middle
+   of the edit itself. */
+let _settling=false;                   /* the world is putting itself right */
+function settleWake(ix,iy,iz){
+  if(SETTLE.length>4096) return;         /* a man cannot dig faster than this */
+  SETTLE.push(ix,iy,iz);
+  /* ---- AND THIS IS WHY IT CANNOT RUN FOR EVER ----
+     The budget is refilled by a HAND and by nothing else. Water's own moves
+     go through this same door — they must, or a bank of sand over a draining
+     channel would never come down — but while the world is settling itself
+     the purse is shut. So a cut is answered by at most FLOW_BUDGET blocks of
+     movement, once, and then it is over. */
+  if(!_settling){ flowLeft=FLOW_BUDGET; flowMoved=0; }
+}
+function isLiquid(n){ const b=blockOf(n); return !!(b&&b.liquid); }
+/* what stood on the cell that was emptied — and it comes down */
+function fallCheck(ix,iy,iz){
+  /* THE AIR IS FULL — and a bank bigger than the air can hold must not be
+     left half in the sky. The cell goes back on the list and is asked again
+     next frame, so a great collapse comes down in courses rather than in one
+     breath, and every block of it comes down. */
+  if(LOOSE.length>=LOOSE_MAX){ SETTLE.push(ix,iy,iz); return; }
+  const n=blockAt(ix,iy+1,iz); if(!n) return;
+  const b=blockOf(n); if(!b||!b.gravity) return;
+  const mat=MAT[b.mSide]||MAT[b.mTop]; if(!mat) return;
+  /* out of the world, into the air — and the emptying of ITS cell wakes
+     whatever stood above it, so a whole bank comes down and not one course */
+  setBlock((ix+0.5)*B,(iy+1.5)*B,(iz+0.5)*B,0);
+  const m=new THREE.Mesh(ensureLooseGeo(),mat);
+  m.position.set((ix+0.5)*B,(iy+1.5)*B,(iz+0.5)*B);
+  scene.add(m);
+  LOOSE.push({ix,iz,n,y:(iy+1)*B,vy:0,m});
+}
+/* and the water beside it, which now has a way out */
+function flowWake(ix,iy,iz,reach){
+  if(FLOW.length>FLOW_MAX) return;
+  const r=(reach===undefined)?FLOW_REACH:reach;
+  const put=(x,y,z)=>{ if(isLiquid(blockAt(x,y,z))) FLOW.push(x,y,z,r); };
+  put(ix,iy+1,iz); put(ix+1,iy,iz); put(ix-1,iy,iz); put(ix,iy,iz+1); put(ix,iy,iz-1);
+}
+/* ---- N BLOCKS, AND THEN IT STOPS ----
+   §11: "Water spreads N blocks and down, and stops." THIS IS N, and it is
+   carried by the water itself.
+
+   I wrote the rules first without it and they churned: a walled pool broken
+   at one side drained six blocks and cost a THOUSAND moves doing it, because
+   water may go from a cell to its neighbour and, a moment later, come back.
+   Down always lowers the water, but a step SIDEWAYS does not, and nothing
+   stopped it being taken twice.
+
+   So every parcel of water carries a reach. A fall RESETS it — water that has
+   found a drop has earned the right to run again — and every sideways step
+   spends one of it. At nothing it stands still. Down is therefore unbounded,
+   which is right (a stream runs to the sea), and across is bounded to N,
+   which is what makes it stop. The cistern of test 22 costs four moves. */
+const FLOW_REACH=3;
+/* AND A BACKSTOP BESIDES, because a bound in plain sight is worth more than a
+   promise about my own reasoning: no one cut may move more water than this,
+   whatever shape of ground I have not thought of. It is refilled by a HAND
+   emptying a cell and never by water's own moving. */
+const FLOW_BUDGET=1024, FLOW_MAX=8192, FLOW_PER_FRAME=8;
+const FLOW=[];
+let flowLeft=0, flowMoved=0;   /* what is left of it, and what a flow has cost */
+const FLOW_D=[[1,0],[0,1],[-1,0],[0,-1]];
+function flowStep(){
+  if(flowLeft<=0){ FLOW.length=0; return; }
+  for(let k=0;k<FLOW_PER_FRAME&&FLOW.length&&flowLeft>0;k++){
+    const reach=FLOW.pop(), iz=FLOW.pop(), iy=FLOW.pop(), ix=FLOW.pop();
+    const n=blockAt(ix,iy,iz); if(!isLiquid(n)) continue;
+    /* `r2` is what the parcel has left AFTER this step: a fall gives it all
+       of its reach back, a step across spends one */
+    const move=(tx,ty,tz,r2)=>{
+      setBlock((ix+0.5)*B,(iy+0.5)*B,(iz+0.5)*B,0);
+      setBlock((tx+0.5)*B,(ty+0.5)*B,(tz+0.5)*B,n);
+      flowLeft--; flowMoved++;
+      /* where it came from and where it went both wake their neighbours —
+         and those neighbours are woken with the reach of the parcel that
+         disturbed them, so a long slow run does not begin again at full */
+      flowWake(ix,iy,iz,r2); flowWake(tx,ty,tz,r2); FLOW.push(tx,ty,tz,r2);
+    };
+    /* DOWN FIRST, always — it is the only rule water truly keeps, and it is
+       the only one that gives the parcel its reach back */
+    if(blockAt(ix,iy-1,iz)===0&&iy-1>=EY_MIN){ move(ix,iy-1,iz,FLOW_REACH); continue; }
+    if(reach<=0) continue;                           /* it has run its N and stands */
+    /* then to any side that has a fall under it: water finds the hole */
+    const t0=Math.floor(hash2(ix*0.31,iz*0.57)*4);   /* and not always eastward */
+    let went=false;
+    for(let d=0;d<4&&!went;d++){ const q=FLOW_D[(t0+d)&3];
+      const tx=ix+q[0], tz=iz+q[1];
+      if(blockAt(tx,iy,tz)!==0) continue;
+      if(blockAt(tx,iy-1,tz)!==0) continue;
+      move(tx,iy,tz,reach-1); went=true; }
+    if(went) continue;
+    /* and last it spreads out flat — but ONLY under the weight of water
+       standing over it, which is what keeps a puddle from sliding about the
+       world of its own accord */
+    if(!isLiquid(blockAt(ix,iy+1,iz))) continue;
+    for(let d=0;d<4&&!went;d++){ const q=FLOW_D[(t0+d)&3];
+      const tx=ix+q[0], tz=iz+q[1];
+      if(blockAt(tx,iy,tz)!==0) continue;
+      move(tx,iy,tz,reach-1); went=true; }
+  }
+  /* AND WHAT IS LEFT OF THE PURSE IS LEFT ALONE. Zeroing it here — because
+     the queue had emptied — would strand the tail of a flow: a cell woken a
+     frame later, by a block landing in the water it had just left, would find
+     nothing to spend. It is refilled by the next hand and by nothing else,
+     and an unspent remainder harms nobody. */
+}
+/* whatever is still in the air, set down where it is — for the writing down
+   of the world, which may happen at any moment and must never lose a block */
+function looseSettleAll(){
+  if(!LOOSE.length) return;
+  _settling=true;
+  try{
+    for(let i=LOOSE.length-1;i>=0;i--){ const f=LOOSE[i];
+      let ly=Math.max(Math.floor(f.y/B),EY_MIN+1);
+      while(ly<EY_MAX&&blockSolidAt(f.ix,ly,f.iz)) ly++;
+      setBlock((f.ix+0.5)*B,(ly+0.5)*B,(f.iz+0.5)*B,f.n);
+      scene.remove(f.m); }
+    LOOSE.length=0;
+  } finally { _settling=false; }
+}
+/* one frame of everything the world is putting right */
+function fallTick(dt){
+  if(!SETTLE.length&&!FLOW.length&&!LOOSE.length) return;   /* a world nobody is digging */
+  _settling=true;
+  try{ fallTickIn(dt); } finally { _settling=false; }
+}
+function fallTickIn(dt){
+  /* the cells lately emptied, a bounded number of them a frame */
+  for(let k=0;k<SETTLE_PER_FRAME&&SETTLE.length;k++){
+    const ix=SETTLE.shift(), iy=SETTLE.shift(), iz=SETTLE.shift();
+    fallCheck(ix,iy,iz); flowWake(ix,iy,iz);
+  }
+  flowStep();
+  if(!LOOSE.length) return;
+  for(let i=LOOSE.length-1;i>=0;i--){
+    const f=LOOSE[i];
+    f.vy-=LOOSE_G*dt;
+    /* never more than a block in a step, or a fast fall would pass through
+       the floor it is meant to land on */
+    f.y+=Math.max(-B*0.9,f.vy*dt);
+    const iy=Math.floor(f.y/B);
+    if(iy>EY_MIN&&!blockSolidAt(f.ix,iy-1,f.iz)&&f.y>EY_MIN*B){ f.m.position.y=f.y; continue; }
+    /* IT HAS LANDED. It rests in the first cell above what stopped it — and
+       if water is standing there the water is not destroyed but pushed up,
+       because there is as much water after a fall as there was before it. */
+    let ly=Math.max(iy,EY_MIN+1);
+    while(ly<EY_MAX&&blockSolidAt(f.ix,ly,f.iz)){
+      const q=blockAt(f.ix,ly,f.iz);
+      if(isLiquid(q)&&!blockSolidAt(f.ix,ly+1,f.iz)){
+        setBlock((f.ix+0.5)*B,(ly+1.5)*B,(f.iz+0.5)*B,q); break; }
+      ly++;
+    }
+    setBlock((f.ix+0.5)*B,(ly+0.5)*B,(f.iz+0.5)*B,f.n);
+    scene.remove(f.m); LOOSE.splice(i,1);
+  }
+}
 /* ---- AND WHAT HE CARRIES IS WRITTEN DOWN ----
    Not on every pebble. `saveState` stringifies the whole voyage — the log,
    the visited lands, the wrecks, the pearls — and doing that once per block
@@ -14997,6 +15238,7 @@ function frame(){
   aimTick();                         /* the block at the end of the traveller's arm */
   if(!mineDriven) mineTick(dt);      /* and the hand held to it until it gives */
   dropTick(dt);                      /* and what it left lying on the ground */
+  fallTick(dt);                      /* and the bank that came down after it */
   /* the belt is redrawn only when what it shows has CHANGED — a HUD rebuilt
      every frame is a HUD that costs a frame */
   { const sig=(beltWanted()?1:0)+'|'+heldSlot+'|'+

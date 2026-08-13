@@ -558,9 +558,21 @@ kind and never asked the block model, so a seam was breakable and invisible. The
 bands are cut at the seam now, and the floor and roof of a passage take the stone they
 are cut in.
 
-**8. Gravity, and finite water.** Sand and gravel fall when unsupported. Water spreads N
-blocks and down, and stops. Measured, and then **stopped** — the brief calls fluid
-simulation a rabbit hole and it is right.
+**8. Gravity, and finite water.** ✅ *Round 40.* Sand falls when unsupported — and the
+same rule answers a bank BUILT on nothing as answers one dug out from under. Water is
+moved and never made: as much after a flow as before it, down first, then to a fall, then
+out flat under the weight over it. Both hang off the one door and only on an EMPTIED cell,
+so a world nobody is digging pays nothing.
+
+**N blocks, and it took a measurement to find I had not written it.** I reasoned the rules
+must settle and put the reasoning in a comment; the first pool measured drained seven
+blocks at a cost of a thousand moves. Down lowers the water, a step sideways does not.
+Every parcel carries a reach now — a fall gives it back, a step across spends one — which
+is what §11 asked for in the first place. Measured, and then **stopped**: 394 moves to
+breach a pool of twenty-seven, 133.81 ms/frame against 130.55 standing still.
+
+*Gravel is not shipped, and water is not swum in — both named in AUDIT Round 40 §8 with
+the reason, rather than left to be found missing.*
 
 **9. The named works.** `world/works.js`, one `EARTH.work({…})` apiece, ten to twenty, each
 with its verse: the altar of unhewn stone **that refuses hewn stone**, the tent of goat

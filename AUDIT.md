@@ -2592,6 +2592,146 @@ their callers, and §12 says not to re-solve what is ticked.
 sand and gravel that fall when unsupported, and water that spreads N blocks
 and **stops**.
 
+## 4am. Round 40 — Phase 4 step 8: what will not stand, and what will not lie still ✅
+
+*§11 step 8. Two rules about the world, and then STOPPED. Acceptance
+**TALLY**.*
+
+**1. Both rules hang off the ONE DOOR, and a world nobody is digging pays
+nothing.**
+`setBlock` is the only way a block changes, and it is the only thing that
+wakes either rule — and only where a cell has been EMPTIED, which is the only
+event either rule cares about: what stood on that cell may not stand, and what
+water lay beside it now has somewhere to go. The cell is written on a list and
+looked at in the FRAME, never in the middle of the edit itself, so no blow of
+a pick ever runs a cascade inside its own bookkeeping. `fallTick` returns on
+its first line — three length checks — unless something is actually falling,
+flowing or waiting. (There is one other waking, and it is the same case
+wearing a coat: a gravity block LAID over a hole, which is a bank standing on
+nothing however it came to be there.)
+
+**2. THE FIRST RULE — a bank of sand will not stand on nothing.**
+Cut what is under it and it comes down; the emptying of ITS cell wakes what
+stood over that, and so on up the column, so a whole bank comes down and not
+one course of it. It falls as a real cube, drawn with its own stone, and it
+lands in the first cell above whatever stopped it.
+
+And it is the same rule whichever way the sand came to be there: **a hand that
+lays sand over a hole is answered exactly as a hand that digs the hole out
+from under it.** That was not true when I first wrote it — the rule only ever
+woke on an emptying, so a bank BUILT in mid-air hung there — and a bank of
+thirty-six blocks laid on a pier proved it by leaving eight columns of nine
+floating when the pier came out.
+
+Measured: a bank of thirty-six on a pier, the pier taken out at a stroke —
+**36 of 36 went loose, 36 of 36 landed, none left in the air.**
+
+**And then a bank far bigger than the air can hold.** Only sixty-four blocks
+may be falling at once — a cap, so that a careless cut cannot put ten thousand
+meshes in the scene in one frame. Written first, that cap silently ABANDONED
+the rest: `fallCheck` found the air full and simply returned, and the remainder
+of the bank hung in the sky for ever. A cell refused now goes back on the list
+and is asked again next frame, so a great collapse comes down in COURSES and
+all of it comes down. Proved on seven-and-forty columns of sand fourteen deep:
+
+    686 blocks built · 686 standing after · 0 lost · 0 left hanging
+    never more than 64 in the air at once
+
+**3. THE SECOND RULE — water will not lie still with somewhere to go.**
+It is not made: it is MOVED. There is exactly as much water in the world after
+a flow as there was before it, so a cistern can be emptied and cannot be
+milked. Down first, always; then to any side that has a fall under it, which
+is water finding the hole; and last out flat, but only under the weight of
+water standing over it.
+
+Measured, on a walled pool of twenty-seven with its south wall broken: **27
+before, 27 after** — seven of them outside the wall, four blocks from it, and
+the flow stopped of its own accord.
+
+**4. AND N BLOCKS, WHICH I DID NOT HAVE AND THOUGHT I DID.**
+I wrote the three rules above and reasoned my way to the conclusion that they
+must settle: down lowers the water, and the flat spread spends the weight that
+allowed it. I put that reasoning in a comment. Then I measured it, and the
+pool drained seven blocks **at a cost of a thousand moves** — the whole
+backstop, spent, to move seven blocks of water four paces.
+
+Down always lowers the water. **A step sideways does not**, and nothing in
+what I had written stopped it being taken twice. So every parcel of water now
+carries a REACH: a fall gives it back — water that has found a drop has earned
+the right to run again — and every sideways step spends one of it. At nothing
+it stands still. Down is unbounded, which is right, a stream runs to the sea;
+across is bounded to N, which is what makes it stop. **That is §11's "spreads
+N blocks and down, and stops", exactly as written, and it took a measurement
+rather than an argument to find that I had not implemented it.**
+
+The comment claiming it terminated of itself has been replaced by the account
+above, because a wrong comment is worse than none.
+
+**5. What it costs, which is the question that matters.**
+The same pool, breached, with the reach in: **394 moves, and it stops.** Seven
+blocks of water rearranging themselves 394 times is a great deal more
+shuffling than the result needs — water here has no notion of a LEVEL, so a
+draining body reorganises itself invisibly — and that is the price of not
+building the fluid simulation §11 forbids. What matters is whether it can be
+felt, so it was timed rather than guessed at:
+
+    standing still   130.55 ms mean · 146.70 ms p95
+    the pool draining 133.81 ms mean · 140.10 ms p95
+
+Two and a half per cent, once, for about a second, and inside the run-to-run
+spread. (These are SwiftShader's software frames — the ABSOLUTE figures mean
+nothing; the comparison is the whole point.) Behind that sits the backstop:
+no one cut may move more than FLOW_BUDGET blocks of water whatever shape of
+ground I have not thought of — a bound in plain sight rather than another
+promise about my own reasoning, and refilled by a HAND and never by water's
+own moving.
+
+**6. Nothing is lost in the air.**
+A block on its way down is OUT of the world — lifted from the overlay and not
+yet set down. Close the page in that second and it is gone, and a rule whose
+whole claim is that nothing is made and nothing is lost would be quietly
+untrue once in every hundred landslips. Whatever is still falling is set down
+where it stands before the world is written. And a world REOPENED does not
+rain sand: `editsLoad` writes into the overlay directly and not through the
+door, so a saved hole is a hole and not an event.
+
+**7. The reading.**
+
+    PASS 19 · three of sand stood on stone=true · the stone taken out: 3 of 3
+              came down, resting at 18 (the ground of the column is 18)
+              · on solid ground=true · in one piece=true · none left in the air=true
+    PASS 22 · two of water stood in the cistern=true · the wall broken: it ran
+              out=true (1 of 2 still within the walls) as far as 2 block(s)
+              · water before 2, after 2 (nothing made, nothing lost=true)
+              · it stopped of itself=true · 4 of a budget of 1024 spent
+
+**8. What is deliberately not here.**
+
+**Water is not swum in.** It is moved, it is finite, it is drawn, and a man
+stands on top of it exactly as he stands on the standing water of a well
+today. Swimming in it wants the breath, the walker and the beasts' pathing
+opened at once, and that is a step of its own and not a corner of this one.
+
+**Gravel is not here.** §11 names it beside sand, and §14 forbids placeholder
+content, and those two pull opposite ways: a gravel block nothing puts in the
+ground and no work asks for is a block nobody can obtain. The rule this
+project already holds to — *a substance ships when a work needs it, an ore
+ships when a land holds it* — decides it. Sand carries the rule today, and
+sand is in every desert and on every shore of the world. Gravel ships when
+something gives it a home.
+
+**And there is very little water in blocks yet.** A well holds one cell of it
+and a farm's channel three. The rule is right and it is reachable — break a
+well's kerb and the cupful runs out and downhill — but the pools worth
+breaching are the ones a man builds himself, until something in Phase 5 or
+step 9 puts more water in the ground. That is worth saying plainly rather than
+leaving to be discovered.
+
+**Still ahead in Phase 4:** steps 9 and 10. Next are the named works —
+`world/works.js`, the altar of unhewn stone that refuses hewn stone, the tent
+of goat hair, the ark pitched within and without — and the tools, which is
+where `serves` and the whole material economy finally come to something.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

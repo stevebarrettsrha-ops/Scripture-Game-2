@@ -567,9 +567,119 @@ T[18]={name:'no block may be placed inside the traveller, a villager or a beast'
   })};
 
 T[19]={name:'sand falls when the ground is taken from under it, and stops when it lands',
-  run:async page=>page.evaluate(()=>{ const D=window.__VDBG;
+  run:async page=>page.evaluate(async()=>{ const D=window.__VDBG, B=D.B;
     if(!D.fallTick) return {pending:'no gravity blocks (Phase 4 step 8)'};
-    return {ok:false,got:'unwritten'}; })};
+    const W=window.__WORLD, S=W.sites();
+    /* open ground far from any town, so nothing built is disturbed */
+    let sp=null;
+    for(let i=0;i<S.length&&!sp;i++){ const st=S[i]; if(!st) continue;
+      for(let a2=0;a2<8&&!sp;a2++){ const th=a2/8*6.2832;
+        const x=st.x+Math.cos(th)*3200, z=st.z+Math.sin(th)*3200;
+        const c=D.cellRaw(Math.floor(x/B),Math.floor(z/B));
+        if(c&&c.kind!=='wall'&&c.kind!=='floe'&&c.h>=6) sp={x,z,h:c.h}; } }
+    if(!sp) return {ok:false,got:'no open ground'};
+    D.state.walk.x=sp.x; D.state.walk.z=sp.z; D.state.walk.feetY=undefined; D.setMode('walk');
+    for(let k=0;k<40;k++){ D.updateChunks(sp.x,sp.z,400);
+      await new Promise(r=>requestAnimationFrame(r)); }
+    const ix=Math.floor(sp.x/B), iz=Math.floor(sp.z/B);
+    const sand=D.blockId('sand'), stone=D.blockId('stone');
+    const at=(y,n)=>D.setBlock((ix+0.5)*B,(y+0.5)*B,(iz+0.5)*B,n);
+    const rd=y=>D.blockAt(ix,y,iz);
+    /* ---- A PILLAR, AND A GAP UNDER IT ----
+       Three of sand on one of stone, standing four courses clear of the
+       ground, so that what happens is the RULE and not the shape of a hill. */
+    const base=sp.h+4;
+    for(let y=base;y<base+6;y++) at(y,0);
+    at(base,stone); at(base+1,sand); at(base+2,sand); at(base+3,sand);
+    await D.settleDrive(60);
+    const stood=[rd(base+1),rd(base+2),rd(base+3)].every(v=>v===sand);
+    /* now take the stone out from under the whole bank */
+    at(base,0);
+    const r=await D.settleDrive(300);
+    /* the three must be DOWN, and stopped, and still three: nothing made and
+       nothing lost. They come to rest on the true ground of the column. */
+    let found=0, top=null, bot=null;
+    for(let y=base+5;y>=sp.h-2;y--) if(rd(y)===sand){ found++; if(top===null) top=y; bot=y; }
+    const onGround=bot!==null&&!!D.blockSolidAt(ix,bot-1,iz);
+    const contiguous=top!==null&&(top-bot===found-1);
+    /* and clear the ground again, so no later test walks into a heap */
+    for(let y=base+6;y>=sp.h-2;y--) at(y,D.blockAt(ix,y,iz)&&y<sp.h?D.blockAt(ix,y,iz):0);
+    return {ok:stood&&found===3&&onGround&&contiguous&&r.loose===0,
+      got:'three of sand stood on stone='+stood+
+          ' · the stone taken out: '+found+' of 3 came down, resting at '+bot+
+          ' (the ground of the column is '+sp.h+')'+
+          ' · on solid ground='+onGround+' · in one piece='+contiguous+
+          ' · none left in the air='+(r.loose===0)};
+  })};
+
+T[22]={name:'water runs out of a broken well, and stops',
+  run:async page=>page.evaluate(async()=>{ const D=window.__VDBG, B=D.B;
+    if(!D.flowBudget) return {pending:'no finite water (Phase 4 step 8)'};
+    const W=window.__WORLD, S=W.sites();
+    let sp=null;
+    for(let i=0;i<S.length&&!sp;i++){ const st=S[i]; if(!st) continue;
+      for(let a2=0;a2<8&&!sp;a2++){ const th=a2/8*6.2832;
+        const x=st.x+Math.cos(th)*3200, z=st.z+Math.sin(th)*3200;
+        const c=D.cellRaw(Math.floor(x/B),Math.floor(z/B));
+        if(!c||c.kind==='wall'||c.kind==='floe'||c.h<6) continue;
+        /* and level ground to the east for the water to run along */
+        let flat=true;
+        for(let o=1;o<=10&&flat;o++){ const c2=D.cellRaw(Math.floor(x/B)+o,Math.floor(z/B));
+          if(!c2||c2.h!==c.h) flat=false; }
+        if(flat) sp={x,z,h:c.h}; } }
+    if(!sp) return {ok:false,got:'no level ground'};
+    D.state.walk.x=sp.x; D.state.walk.z=sp.z; D.state.walk.feetY=undefined; D.setMode('walk');
+    for(let k=0;k<40;k++){ D.updateChunks(sp.x,sp.z,400);
+      await new Promise(r=>requestAnimationFrame(r)); }
+    const ix=Math.floor(sp.x/B), iz=Math.floor(sp.z/B);
+    const water=D.blockId('water'), stone=D.blockId('stone');
+    const at=(x,y,z,n)=>D.setBlock((x+0.5)*B,(y+0.5)*B,(z+0.5)*B,n);
+    const rd=(x,y,z)=>D.blockAt(x,y,z);
+    /* ---- A CISTERN, WALLED, WITH FOUR OF WATER STANDING IN IT ----
+       Built on the surface so the run is plain to read: a floor, a wall about
+       it, and one course of the wall to be broken. */
+    const y0=sp.h;
+    for(let dx=-1;dx<=1;dx++) for(let dz=-1;dz<=1;dz++)
+      for(let y=y0;y<y0+4;y++) at(ix+dx,y,iz+dz,0);
+    for(let dx=-1;dx<=1;dx++) for(let dz=-1;dz<=1;dz++) at(ix+dx,y0,iz+dz,stone);
+    for(let dx=-1;dx<=1;dx++) for(let dz=-1;dz<=1;dz++)
+      if(dx||dz) for(let y=y0+1;y<=y0+2;y++) at(ix+dx,y,iz+dz,stone);
+    at(ix,y0+1,iz,water); at(ix,y0+2,iz,water);
+    await D.settleDrive(60);
+    const held=rd(ix,y0+1,iz)===water&&rd(ix,y0+2,iz)===water;
+    /* count what is in the world before the wall is broken */
+    const count=()=>{ let n=0;
+      for(let dx=-2;dx<=12;dx++) for(let dz=-3;dz<=3;dz++)
+        for(let y=y0-3;y<=y0+4;y++) if(rd(ix+dx,y,iz+dz)===water) n++;
+      return n; };
+    const before=count();
+    /* BREAK THE WALL, at the level of the water */
+    at(ix+1,y0+1,iz,0);
+    const r=await D.settleDrive(400);
+    const after=count();
+    /* it must have LEFT the cistern, and there must be exactly as much water
+       as there was, and it must have stopped of its own accord */
+    /* IT HAS LEFT THE CISTERN — and where it comes to rest is the ground's
+       business, not the test's. It ran out through the break, and it will
+       have gone on running: out of the hole, off the lip of the floor, and
+       down to the true ground of the column. So what is asked is that it is
+       no longer INSIDE the walls, not that it is standing in the doorway. */
+    let inside=0;
+    for(let y=y0+1;y<=y0+3;y++) if(rd(ix,y,iz)===water) inside++;
+    const ranOut=inside<before;
+    let furthest=0;
+    for(let dx=0;dx<=12;dx++) for(let y=y0-3;y<=y0+3;y++)
+      if(rd(ix+dx,y,iz)===water&&dx>furthest) furthest=dx;
+    for(let dx=-2;dx<=12;dx++) for(let dz=-3;dz<=3;dz++)
+      for(let y=y0-3;y<=y0+4;y++) if(rd(ix+dx,y,iz+dz)) at(ix+dx,y,iz+dz,0);
+    return {ok:held&&ranOut&&after===before&&r.flow===0&&r.spent<=D.flowBudget(),
+      got:'two of water stood in the cistern='+held+
+          ' · the wall broken: it ran out='+ranOut+' ('+inside+' of '+before+
+          ' still within the walls) as far as '+furthest+' block(s)'+
+          ' · water before '+before+', after '+after+' (nothing made, nothing lost='+(after===before)+')'+
+          ' · it stopped of itself='+(r.flow===0)+
+          ' · '+r.spent+' of a budget of '+D.flowBudget()+' spent'};
+  })};
 
 T[20]={name:'an altar of unhewn stone refuses hewn stone',
   run:async page=>page.evaluate(()=>{ const D=window.__VDBG;
