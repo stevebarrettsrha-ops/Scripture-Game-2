@@ -684,10 +684,14 @@ re-discovered as a bug.)*
 
 ### The order
 
-**1. Overhangs and undercut cliffs.** Test 4 has reported *"1 overhangs in 131 columns"*
-since Round 24 — they exist, barely, as an accident of the cave carve. The brief wants
-them as a FEATURE of cliff faces. The spans already carry them; what is missing is
-anything that deliberately cuts one.
+**1. Overhangs and undercut cliffs.** ✅ *Round 43.* Censused first: nine cliff faces in
+twelve hundred were undercut, because `ROOF` keeps every carve deep and a cliff can only
+cut a round hole in the middle of a face. An undercut is not a cave — it is a BAND of
+softer stone weathered back with the hard rock left standing over it, and rock is BEDDED,
+so the band recurs every thirteen courses and every face gets a stack of recesses.
+**Nine undercut cliffs became sixty-three, with no plate buried under any plain.**
+And test 12 cried wolf for the second time in the project's life; it now measures the
+machine before it reads its own figure.
 
 **2. Arches, and tunnels through a ridge.** A passage that goes in one side of a range and
 comes out the other with rock overhead the whole way — which the cave carve can already

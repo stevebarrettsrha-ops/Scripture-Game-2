@@ -193,6 +193,56 @@ function tileQuiet(x,z){
   QUIET.set(k,quiet);
   return quiet;
 }
+/* ---- THE UNDERCUT — Phase 5 step 1 ----
+   A CENSUS FIRST, because the plan says measure before carving. Eighteen
+   thousand columns of range country: 899 hollowed, every one of them with
+   rock standing over air — and ELEVEN of them open to the side. Of 1,211
+   cliff faces, NINE were undercut. The rock is full of holes and the faces
+   never show one.
+
+   The reason is `ROOF`: three blocks of stone are always left over a
+   tunnel's head, on purpose, so the ground is never broken. That is right
+   for a tunnel and it is what keeps the surface sound, but it means the
+   carve is always DEEP, and a cliff only ever cuts a round hole in the
+   middle of a face.
+
+   AN UNDERCUT IS NOT A CAVE. It is a cliff with its FOOT EATEN OUT — and in
+   the rock it is not a tube at all but a BAND: a course or two of softer
+   stone lying at one elevation across the whole country, weathered back
+   further than the hard rock above it, which is left standing over the
+   hollow. Every undercut cliff on the earth is made that way.
+
+   So it is written as a band and not as a worm. Its elevation wanders very
+   slowly — far slower than the ground does — so the land rises and falls
+   THROUGH it, and wherever the surface comes down to within a few courses of
+   the band, the band is laid open along the face. That is the same trick the
+   cave mouths already turn, and nothing places these either.
+
+   AND IT IS CUT ONLY WHERE IT WOULD SHOW. The one condition is that the rock
+   over it be thin — at least ROOF, and no more than a few courses beyond it.
+   Thicker than that and nothing is carved at all, so the band never becomes
+   a buried plate under a plain: it exists only in the narrow ribbon of
+   country where the ground surface passes through it, which on steep ground
+   is exactly the foot of the cliff. */
+const LEDGE_P    = 13;        /* the BEDDING: how often a soft course recurs */
+const LEDGE_FREQ = 0.00026;   /* and how slowly the bedding tilts (~4,000 units) */
+const LEDGE_TH   = 0.575;     /* how much of cave country is bedded at all */
+const LEDGE_T    = 2;         /* how thick a soft course is — a recess, not a room */
+const LEDGE_NEAR = 5;         /* how thin the rock over it must be for it to show.
+                                 TIGHT ON PURPOSE, and it is a COST gate as much
+                                 as a look one: a soft course under level ground
+                                 is a void nobody can ever see, and it still
+                                 costs the mesher every face of it. At five the
+                                 plains chunk went from 1.86 ms to 3.08 and test
+                                 12 said so. Only the courses nearest the surface
+                                 are cut, which are the ones a cliff lays open. */
+
+/* the bedding may be switched off from outside — NOT a game setting, but so
+   that the cost of it can be measured against the very same chunks in the very
+   same page. A machine under load makes absolute milliseconds meaningless; the
+   only honest question is what THIS change costs, and that wants a control. */
+let BEDS=true;
+
 const _iv=[];                 /* scratch: the intervals of this column, reused */
 function spansAt(x,z,h){
   if(h<MIN_H) return null;                                   /* gate 1 */
@@ -218,6 +268,29 @@ function spansAt(x,z,h){
     const c=cy+W.dy;
     _iv.push(c-vr, c+vr);
   }
+  /* ---- AND THE SOFT BAND, asked whether a worm ran here or not ----
+     An undercut is not a cave and does not wait on one. Two fields, and both
+     of them behind the three gates above, so the ordinary earth never asks. */
+  { const soft=BEDS?fbm(x*0.00071-31.3, z*0.00071+58.9):0;
+    if(soft>LEDGE_TH){
+      /* ---- ROCK IS BEDDED, AND THAT IS WHY A CLIFF HAS MANY LEDGES ----
+         One soft seam gives one undercut on one contour of one hill, which
+         measured at two cliff faces in a hundred. Sedimentary rock does not
+         work that way: soft and hard alternate all the way up, which is why
+         a real limestone face is a stack of recesses and not a wall with a
+         single notch in it. So the seam RECURS every LEDGE_P courses, and the
+         whole bedding is tilted by a field that wanders far more slowly than
+         the ground — so the courses are level over a valley and rise across a
+         range, as beds do. The one nearest under the surface is the one that
+         shows; the rest are rock and cost nothing to leave alone. */
+      const ph=LEDGE_P*fbm(x*LEDGE_FREQ+41.7, z*LEDGE_FREQ-19.3);
+      const want=h-ROOF-LEDGE_T;                     /* the deepest that could show */
+      const ly=ph+Math.floor((want-ph)/LEDGE_P)*LEDGE_P;
+      const over=h-(ly+LEDGE_T);
+      /* thin rock over it, or nothing: the gate that keeps a soft course from
+         becoming a plate buried under level country */
+      if(ly>=FLOOR&&over>=ROOF&&over<=ROOF+LEDGE_NEAR) _iv.push(ly,ly+LEDGE_T);
+    } }
   if(!_iv.length) return null;
   /* clip to the rock: never through the surface, never into the bedrock */
   const top=h-ROOF, bot=FLOOR;
@@ -254,6 +327,7 @@ window.CAVES={
     } },
   seeds:()=>SEEDS,
   regionAt, spansAt,
+  beds(on){ BEDS=!!on; },
   /* is there ANY cave country in this chunk? Twenty-five reads, and it
      answers `no` for very nearly the whole earth — the same shape of test
      the rivers already use, and paid at the same rate. */

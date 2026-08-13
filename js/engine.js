@@ -14001,6 +14001,11 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   workState:id=>{ const w=WORK_BY_ID[id]; return w?workState(w):null; },
   workMake, workPlaceAt, satchelAdd, satchelTake,
   /* ---- WHAT WILL NOT STAND, FOR tools/acceptance.js ---- */
+  /* every standing chunk thrown away, so the next build is a TRUE build and
+     not a cache read — for measuring one change against a control */
+  dropChunks:()=>{ for(const[k,ch] of chunks){
+      for(const m of ch.meshes){ chunkRoot.remove(m); m.geometry.dispose(); } }
+    chunks.clear(); buildQueue.length=0; buildQueued.clear(); },
   fallTick, looseSettleAll, looseCount:()=>LOOSE.length, flowLeft:()=>flowLeft,
   flowBudget:()=>FLOW_BUDGET, flowReach:()=>FLOW_REACH,
   settlePending:()=>SETTLE.length/3,
