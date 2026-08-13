@@ -12977,7 +12977,28 @@ const FREEROAM_ONLY=['b-fly','b-time','b-speed','b-daypart','b-season'];
    updateFlyBtn sets its own inline display on b-fly whenever the mode
    changes, and an inline style beats anything set here — so the Rise Up
    button came back on a voyage the moment the traveller went ashore. */
-function applyFreeroam(){ D.body.classList.toggle('roaming',!!state.freeroam); }
+function applyFreeroam(){ D.body.classList.toggle('roaming',!!state.freeroam);
+  D.body.classList.toggle('freehand',!!state.freeroam); }
+/* ================= THE FREE HAND =================
+   Phase 4, step 10, and the last of the phase. §11: "The second mode at the
+   menu: unlimited blocks, flight, instant break. Same world, same save."
+
+   IT IS NOT A THIRD MODE. The second mode at the menu already exists and has
+   since long before there was a hand at all: FREE ROAM, which gives the air,
+   the sun, the hour and the season. Adding a third would leave a man choosing
+   between flying and building, which is exactly backwards — the mode a place
+   is BUILT in is the mode a place is FLOWN around in. So the free hand is
+   what free roam becomes now that there is a hand: the same flag, the same
+   line in the log, three more freedoms.
+
+   AND THE SAME WORLD, WHICH IT ALREADY WAS. Beginning anew washes the LOG —
+   the voyage, the visited lands, the cargo — and it has never touched the
+   block edits, which live in their own store and are keyed to the world and
+   not to the voyage. So a place built with the free hand is standing there on
+   the next voyage, and always has been. Nothing had to be done to make that
+   true; it is written down here because it is the whole of what "same world,
+   same save" means and it would be easy to assume otherwise. */
+function freeHand(){ return !!state.freeroam; }
 /* and the keys those buttons stand for are shut with them */
 function roamOnly(what){
   if(state.freeroam) return true;
@@ -13971,6 +13992,9 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   pageOpen:()=>pageOpen, togglePage, pageTouch, beltDraw, pageDraw,
   placeBlock, cellHitsAnyLiving,
   /* ---- THE NAMED WORKS, FOR tools/acceptance.js ---- */
+  /* ---- THE FREE HAND, FOR tools/acceptance.js ---- */
+  freeHand, applyFreeroam, storesDraw,
+  beltPick:i=>{ heldSlot=Math.max(0,Math.min(BELT_N-1,i)); beltDraw(); },
   works:()=>WORKS.map(w=>({id:w.id,name:w.name,at:w.at,needs:w.needs,
     of:w.of.map(q=>q.id+' x'+q.c), gives:w.gives.map(q=>q.id+' x'+q.c),
     refuses:w.refuses?w.refuses.id:null, verse:!!w.verse})),
@@ -14415,7 +14439,10 @@ function mineTick(dt){
   if(!MINE.on||MINE.ix!==tgt.ix||MINE.iy!==tgt.iy||MINE.iz!==tgt.iz){
     MINE.on=true; MINE.ix=tgt.ix; MINE.iy=tgt.iy; MINE.iz=tgt.iz;
     MINE.t=0; MINE.n=b.n;
-    MINE.need=Math.max(0.05, b.hardness/Math.max(0.01,toolSpeed(b)));
+    /* THE FREE HAND BREAKS AT A TOUCH. Not "very fast" — at a touch, on the
+       first frame the hand is on it, because a man laying out a place should
+       never be waiting on a hardness table. */
+    MINE.need=freeHand()?0:Math.max(0.05, b.hardness/Math.max(0.01,toolSpeed(b)));
     cutCrack(tgt.ix,tgt.iy,tgt.iz, tgt.nx||0, tgt.ny!==undefined?tgt.ny:1, tgt.nz||0);
     ensureCrack().visible=true;
   }
@@ -14428,7 +14455,10 @@ function mineTick(dt){
     const cx=(MINE.ix+0.5)*B, cy=(MINE.iy+0.5)*B, cz=(MINE.iz+0.5)*B;
     const was=MINE.n;
     setBlock(cx,cy,cz,0);
-    spawnDrop(cx,cy,cz,was);        /* and it leaves something behind */
+    /* and it leaves something behind — but NOT in the free hand, where the
+       satchel already holds everything and a stream of pickups behind a man
+       clearing a hillside is nothing but litter he cannot refuse */
+    if(!freeHand()) spawnDrop(cx,cy,cz,was);
     mineStop();
   }
 }
@@ -14934,6 +14964,10 @@ function pageDraw(){
   const el=$('page'); if(!el) return;
   el.style.display=pageOpen?'flex':'none';
   if(!pageOpen) return;
+  /* the page says which hand it is — a man must never be in doubt about
+     whether what he lays is costing him anything */
+  { const h=$('page-head'); if(h) h.children[1].textContent=
+      freeHand()?'he Free Hand':'he Satchel'; }
   const g=$('page-grid'), b2=$('page-belt');
   g.textContent=''; b2.textContent='';
   /* the page holds the four-and-twenty; the strap beneath holds the eight,
@@ -14943,7 +14977,41 @@ function pageDraw(){
     t.onpointerdown=e=>{ e.preventDefault(); pageTouch(i); }; g.appendChild(t); }
   for(let i=0;i<BELT_N;i++){ const t=tokenEl(SATCHEL[i],i,true);
     t.onpointerdown=e=>{ e.preventDefault(); pageTouch(i); }; b2.appendChild(t); }
-  worksDraw();
+  worksDraw(); storesDraw();
+}
+/* ---- THE STORES ----
+   §11's "unlimited blocks", and the only honest reading of it: not a satchel
+   that never empties, but every stone in the world laid out to be picked up.
+   One touch puts a full stack of a thing into the hand, so a place is laid
+   out by choosing what to lay rather than by going to find it.
+
+   It is drawn ONLY in the free hand, and it is not merely hidden on a voyage:
+   the rows are not built at all, so a voyage pays nothing for a leaf it can
+   never open. A tool is not here — a tool is made at the works, and a man who
+   could take a pick out of the air would never make one. */
+function storesDraw(){
+  const el=$('page-stores'); if(!el) return;
+  el.textContent='';
+  if(!freeHand()) return;
+  for(let n=1;n<BLOCKS.length;n++){ const b=BLOCKS[n];
+    if(!b||b.place===false) continue;
+    /* n:1 so no tally is painted on it — a store is not a count of anything,
+       and `-1,true` keeps it out of both the held mark and the picked one */
+    const t=tokenEl({id:b.id,n:1},-1,true);
+    t.title=b.name;
+    t.onpointerdown=e=>{ e.preventDefault(); storeTake(b.id); };
+    el.appendChild(t); }
+}
+/* a full stack of it, into the slot he has picked or the first that is free —
+   and if he already holds that very thing, it is simply filled up again */
+function storeTake(id){
+  let i=(pagePick>=0)?pagePick:-1;
+  if(i<0) for(let k=0;k<SATCHEL_N;k++){
+    if(SATCHEL[k]&&SATCHEL[k].id===id&&SATCHEL[k].n<STACK){ i=k; break; } }
+  if(i<0) for(let k=0;k<SATCHEL_N;k++) if(!SATCHEL[k]){ i=k; break; }
+  if(i<0) i=heldSlot;                      /* every slot full: the hand's own */
+  SATCHEL[i]={id,n:STACK};
+  pagePick=-1; satchelTouch(); pageDraw(); beltDraw();
 }
 /* ---- THE WORKS, AS A LEDGER ----
    Every work the world has, always, in the order world/works.js gives them —
@@ -15057,7 +15125,9 @@ function placeBlock(){
   if(blockSolidAt(ix,iy,iz)) return {no:'something already stands there'};
   const who=cellHitsAnyLiving(ix,iy,iz);
   if(who) return {no:who+' is standing there'};
-  if(!satchelTake(h.id,1)) return {no:'his hand is empty'};
+  /* IT COSTS NOTHING IN THE FREE HAND. The stack is not touched at all, so
+     what he holds never runs out and never has to be fetched again. */
+  if(!freeHand()&&!satchelTake(h.id,1)) return {no:'his hand is empty'};
   setBlock((ix+0.5)*B,(iy+0.5)*B,(iz+0.5)*B, b.n);
   beltDraw(); satchelTouch();
   return {laid:b.id, at:[ix,iy,iz]};

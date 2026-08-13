@@ -80,6 +80,17 @@
   #page-head2 .cap{ font-size:4.2vmin; color:#8a2f24; text-shadow:0 .2vmin 0 rgba(255,255,255,.5); }
   #page-head2 .ttl{ font-size:2.4vmin; font-style:italic; color:#4a3c22; }
   #page-works{ max-height:30vh; overflow-y:auto; }
+  /* THE STORES — only the free hand has them, and only the free hand ever
+     shows them. Every block in the world, laid out to be picked up. */
+  #page-rule3,#page-head3,#page-stores{ display:none; }
+  body.freehand #page-rule3{ display:block; height:.22vmin; margin:2vmin 0 1.4vmin;
+    background:linear-gradient(90deg,transparent,rgba(74,60,34,.5),transparent); }
+  body.freehand #page-head3{ display:block; text-align:center; margin:.6vmin 0 1.2vmin;
+    letter-spacing:.22em; }
+  #page-head3 .cap{ font-size:4.2vmin; color:#8a2f24; text-shadow:0 .2vmin 0 rgba(255,255,255,.5); }
+  #page-head3 .ttl{ font-size:2.4vmin; font-style:italic; color:#4a3c22; }
+  body.freehand #page-stores{ display:grid; grid-template-columns:repeat(8,1fr);
+    gap:.7vmin; max-height:24vh; overflow-y:auto; }
   /* a work reads as a LINE IN A LEDGER: what it makes, and what it costs */
   #page-works .wk{ display:flex; align-items:baseline; gap:.8vmin; cursor:pointer;
     padding:.5vmin .8vmin; border-bottom:.14vmin solid rgba(74,60,34,.22); }
@@ -534,7 +545,7 @@
     <div id="m-list">
       <button class="mi" id="m-continue">&#9875; Continue the voyage</button>
       <button class="mi" id="m-new">&#9973; Set sail &mdash; a new voyage</button>
-      <button class="mi" id="m-roam">&#128330; Free roam &mdash; the world, and its hours</button>
+      <button class="mi" id="m-roam">&#128330; The free hand &mdash; the world, its hours, and every stone in it</button>
       <button class="mi" id="m-controls-btn">&#9881; Controls</button>
       <button class="mi" id="m-options-btn">&#9878; Options</button>
     </div>
@@ -727,6 +738,9 @@ window.__MENUUI=(function(){
     <div id="page-rule"></div>
     <div id="page-head2"><span class="cap">T</span><span class="ttl">he Works</span></div>
     <div id="page-works"></div>
+    <div id="page-rule3"></div>
+    <div id="page-head3"><span class="cap">T</span><span class="ttl">he Stores</span></div>
+    <div id="page-stores"></div>
   </div>
 </div>
 

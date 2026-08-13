@@ -2882,6 +2882,126 @@ with hoes is not this one.
 flight, instant break, the same world and the same save. It is last because
 it is the mode Phase 8's schematic tool will be used in.
 
+## 4ao. Round 42 — Phase 4 step 10: the free hand. PHASE 4 COMPLETE ✅
+
+*§11 step 10, the last of the phase. Acceptance **23 pass · 0 fail · 0
+pending**; the geometric diff **14 pass · 0 fail**; the verses **41 exact · 0
+paraphrased**.*
+
+**1. IT IS NOT A THIRD MODE, AND THAT IS THE WHOLE DESIGN DECISION.**
+§11 says *"the second mode at the menu: unlimited blocks, flight, instant
+break."* The obvious reading is: add a mode. The right reading is that **the
+second mode at the menu already exists**, and has since long before there was
+a hand at all — FREE ROAM, which gives the air, the sun, the hour and the
+season, and which already answers `true` to every `roamOnly()` gate in the
+game including the one that lets a man leave the ground.
+
+A third mode would have put a man in front of a menu choosing between
+**flying** and **building**, which is exactly backwards: the mode a place is
+built in is the mode a place is flown around in. So the free hand is what free
+roam BECOMES now that there is a hand — the same flag, the same line in the
+log, the same save version, three more freedoms — and the menu item is
+renamed to say so.
+
+**2. Same world, same save — which was already true and had never been said.**
+Beginning anew washes the LOG: the voyage, the visited lands, the cargo, the
+pearls. It has never touched the block edits, which live in their own store
+and are keyed to the world rather than to the voyage. **So a place built with
+the free hand is standing there on the next voyage, and always would have
+been.** Nothing had to be built to make that true. It is written down because
+it is the whole of what §11 means by that phrase and because it is exactly the
+sort of thing one would otherwise assume was broken.
+
+Proved rather than asserted: a block laid in the free hand is read back
+through `blockAt` — the one overlay every test, the walker and the mesher all
+read — with the flag put back to what it was first.
+
+**3. The three freedoms, and what each one is careful about.**
+
+**It costs nothing to lay.** Not "a very large satchel": the stack is not
+touched at all, so what he holds never runs out and never has to be fetched.
+On a voyage the same block still costs him exactly one, which is the half of
+this test that matters — a freedom nobody can turn off is not a freedom, it is
+a bug.
+
+**It breaks at a touch.** Not "very fast" — `need` is zero, so the block is
+gone on the first frame the hand is on it. A man laying out a place should
+never be waiting on a hardness table.
+
+**And it leaves no litter.** The drop is suppressed, because the satchel
+already holds everything and a stream of pickups behind a man clearing a
+hillside is refuse he cannot refuse. Measured: nothing lying on the ground
+after the blow.
+
+**4. THE STORES — the honest reading of "unlimited blocks".**
+Not a satchel that never empties, which would still leave him hunting for the
+one stone he wants. **Every block in the world, laid out on the page to be
+picked up**, one touch for a full stack into the slot he has picked or the
+first that is free. That is how a place gets laid out: by choosing what to
+lay, not by going to find it.
+
+Two things it is careful about. It is drawn ONLY in the free hand, and not
+merely hidden on a voyage — the rows are not built at all, so a voyage pays
+nothing for a leaf it can never open. And **no tool is in it**: a tool is made
+at the works, and a man who could take a pick out of the air would never make
+one, which would quietly undo step 9 the day after it shipped.
+
+Measured: **31 of 31 placeable blocks offered, and none of the 5 tools.**
+
+**5. And the page says which hand it is.** The head reads *The Satchel* on a
+voyage and *The Free Hand* in the free hand. A man must never be in any doubt
+about whether what he lays is costing him anything.
+
+**6. AND THE SUITE HAD BEEN SAILING IN FREE ROAM FOR FORTY ROUNDS.**
+The moment the free hand shipped, tests 14 and 15 failed: a brick of hardness
+2.6 *"broke at 0.02s"*, and what broke left nothing to gather. Both readings
+were TRUE, and both were the free hand working exactly as written.
+
+`tools/harness.js` sets sail with `sail(page,true)` — free roam — and every
+tool has done so from the beginning, because the tools need the air and the
+hours: flight, a pinned noon, a season held still. **That cost nothing for
+forty rounds, because free roam touched the WORLD and never the hand.** Step
+10 is the first change that made the two overlap, and the suite found it
+within a minute of the code existing.
+
+The fix is not to sail differently — the tools genuinely need the air. **The
+hand is now DECLARED before every test**, a voyage unless the test says
+otherwise, set by the runner rather than inside the tests so that no test can
+be left holding the mode a previous one wanted. Test 23 marks itself
+`freeHand:true` because it asks for both hands in turn and switches them
+itself.
+
+One more of the same family, caught immediately after: test 23 counted the
+drops lying on the ground as an absolute rather than a DELTA, and test 15 —
+which runs earlier, in the same page — leaves its own drop lying about. The
+blow was blamed for litter it had not made.
+
+**7. The reading.**
+
+    PASS 23 · on a voyage a laid block costs 1 · in the free hand three cost 0
+              · a blow of one frame took it: true (and left nothing lying: true)
+              · the stores offer 31 of 31 blocks, and none of the 5 tools
+              · what was laid stands in the one overlay: true
+
+## PHASE 4 IS COMPLETE
+
+All ten steps, each bootable on its own and each verified on its own: the
+reach and the mark, the blow, the drop, the satchel, the belt and the page,
+the placing, the material economy, gravity and finite water, the named works,
+and the free hand. **Acceptance 23 pass · 0 fail · 0 pending** — and the
+pending column is empty for the first time in the project's life, because
+tests 19, 20 and 23 were written as refusals in earlier rounds and have now
+all come due.
+
+What the phase cost, and where the faults were, is worth one line each,
+because the shape of them is consistent: **the code was right and the test was
+wrong four times running** (Rounds 35, 37, 38 and 39, all of them assuming the
+shape of the ground they landed on); **a comment was right and the code was
+wrong twice** (the vein seed anchored to a manifest position, and a water rule
+that "obviously terminated" and did not); and **twice the work was invisible**
+— ore the mesher never drew, and a verse tool the brief asked for by name that
+would have caught thirteen paraphrases in phase 2 had it existed then.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

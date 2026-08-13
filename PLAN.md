@@ -591,9 +591,22 @@ structure is untouched), and hewn stone is what a work makes of it.
 AUDIT Round 41 §7 as waiting on materials the world has not got, rather than shipped as
 recipes nobody can attempt.*
 
-**10. The free hand.** The second mode at the menu: unlimited blocks, flight, instant
-break. Same world, same save. It is last because it is the mode in which Phase 8's
-schematic tool will be used, and it wants everything above it to exist first.
+**10. The free hand.** ✅ *Round 42.* Unlimited blocks, flight, instant break, same world,
+same save — **and it is not a third mode**. The second mode at the menu already existed
+and had since long before there was a hand: FREE ROAM, which gives the air, the sun, the
+hour and the season. A third would have left a man choosing between flying and building,
+which is backwards. So the free hand is what free roam BECOMES now that there is a hand:
+the same flag, the same line in the log, three more freedoms — a laid block costs
+nothing, a blow takes at a touch and leaves no litter, and **the Stores** open on the
+page with every stone in the world laid out to be picked up (and no tool among them: a
+tool is made at the works, and a man who could take a pick out of the air would never
+make one).
+
+*Same world, same save was already true and had never been said:* beginning anew washes
+the LOG and has never touched the block edits, which are keyed to the world and not to
+the voyage. A place built with the free hand stands there on the next voyage.
+
+**PHASE 4 IS COMPLETE.** Acceptance 23 pass · 0 fail · 0 pending.
 
 ### Two things I will not do, and say so now
 

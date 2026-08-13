@@ -814,6 +814,77 @@ T[21]={name:'every land holds what its data says, and the ore is truly in the ro
           ' · '+outOfBand+' of '+checked+' cells outside their own band'};
   })};
 
+T[23]={name:'the free hand lays without cost, breaks at a touch, and builds the same world',
+  /* this one asks for BOTH hands in turn and sets them itself; it is marked
+     so the runner's own declaration does not fight it */
+  freeHand:true,
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    if(!D.freeHand) return {pending:'no free hand (Phase 4 step 10)'};
+    const W=window.__WORLD, S=W.sites();
+    let sp=null;
+    for(let i=0;i<S.length&&!sp;i++){ const st=S[i]; if(!st) continue;
+      for(let a=0;a<8&&!sp;a++){ const th=a/8*6.2832;
+        const x=st.x+Math.cos(th)*3200, z=st.z+Math.sin(th)*3200;
+        const c=D.cellRaw(Math.floor(x/B),Math.floor(z/B));
+        if(c&&c.kind!=='wall'&&c.kind!=='floe'&&c.h>=5) sp={x,z,h:c.h}; } }
+    if(!sp) return {ok:false,got:'no open ground'};
+    D.state.walk.x=sp.x; D.state.walk.z=sp.z; D.state.walk.feetY=undefined; D.setMode('walk');
+    for(let k=0;k<40;k++){ D.updateChunks(sp.x,sp.z,400);
+      await new Promise(r=>requestAnimationFrame(r)); }
+    const ix=Math.floor(sp.x/B), iz=Math.floor(sp.z/B), iy=sp.h+3;
+    const was=D.state.freeroam;
+    const lay=()=>{ /* lay one block against the top face of a known cell */
+      D.setBlock((ix+0.5)*B,(iy-1+0.5)*B,(iz+0.5)*B,D.blockId('cobble'));
+      return D.placeFrom({ix,iy:iy-1,iz,nx:0,ny:1,nz:0,n:D.blockId('cobble')}); };
+    const stock=()=>{ for(const id of Object.keys(D.hoard())) D.satchelTake(id,999);
+      D.satchelAdd('brick',3); D.beltPick(0); };
+    /* ---- ON A VOYAGE it costs him what he lays ---- */
+    D.state.freeroam=false; D.applyFreeroam();
+    stock();
+    const v0=D.hoard()['brick']||0; lay();
+    const v1=D.hoard()['brick']||0;
+    const voyageCost=v0-v1;
+    /* ---- IN THE FREE HAND it costs nothing ---- */
+    D.state.freeroam=true; D.applyFreeroam();
+    stock();
+    const f0=D.hoard()['brick']||0;
+    for(let k=0;k<3;k++) lay();
+    const f1=D.hoard()['brick']||0;
+    const handCost=f0-f1;
+    /* ---- AND IT BREAKS AT A TOUCH ---- */
+    D.setBlock((ix+0.5)*B,(iy+0.5)*B,(iz+0.5)*B,D.blockId('stone'));
+    /* the DELTA, not the tally: the suite runs in one page and test 15 leaves
+       its own drop lying about, so an absolute count here read that as litter
+       this blow had made */
+    const dropsBefore=D.drops().length;
+    D.mineAt(ix,iy,iz,0,1,0); D.mineDrive(true); D.mineHold(true);
+    D.mineStep(1/60);
+    const goneAtOnce=D.blockAt(ix,iy,iz)===0;
+    const dropsAfter=D.drops().length-dropsBefore;
+    D.mineHold(false); D.mineDrive(false); D.mineAt(null);
+    /* ---- AND THE STORES OFFER THE WHOLE EARTH, AND NO TOOL ---- */
+    if(!D.pageOpen()) D.togglePage();
+    D.pageDraw();
+    await new Promise(r=>requestAnimationFrame(r));
+    const store=document.querySelectorAll('#page-stores .tok').length;
+    const placeable=D.BLOCKS().filter(b=>b&&b.place!==false).length;
+    const tools=D.BLOCKS().filter(b=>b&&b.place===false).length;
+    if(D.pageOpen()) D.togglePage();
+    /* ---- AND WHAT HE LAID IS IN THE ONE OVERLAY THE VOYAGE READS ---- */
+    const stands=D.blockAt(ix,iy-1,iz)!==0;
+    D.state.freeroam=was; D.applyFreeroam();
+    for(let y=iy-2;y<=iy+2;y++) D.setBlock((ix+0.5)*B,(y+0.5)*B,(iz+0.5)*B,0);
+    return {ok:voyageCost===1&&handCost===0&&goneAtOnce&&dropsAfter===0&&
+              store===placeable&&tools>0&&stands,
+      got:'on a voyage a laid block costs '+voyageCost+
+          ' · in the free hand three cost '+handCost+
+          ' · a blow of one frame took it: '+goneAtOnce+
+          ' (and left nothing lying: '+(dropsAfter===0)+')'+
+          ' · the stores offer '+store+' of '+placeable+' blocks, and none of the '+
+          tools+' tools · what was laid stands in the one overlay: '+stands};
+  })};
+
 /* ---------- 12 · the regression that matters most.  PASSES TODAY ---------- */
 T[12]={name:'ocean and plains chunks build no slower than they did',
   run:async page=>page.evaluate(async B=>{
@@ -878,6 +949,23 @@ T[12]={name:'ocean and plains chunks build no slower than they did',
   let pass=0, pend=0, fail=0;
   for(const n of nums){
     const t=T[n];
+    /* ---- WHICH HAND EACH TEST IS RUN WITH, SAID OUT LOUD ----
+       The suite SETS SAIL IN FREE ROAM (above) and always has, because the
+       tools need the air and the hours: flight, a pinned noon, a season held
+       still. That cost nothing for forty rounds, because free roam touched
+       the WORLD and never the hand.
+
+       Phase 4 step 10 changed that: free roam is now the free hand, where a
+       block costs nothing and a blow takes at a touch. So the suite began
+       reporting that a brick of hardness 2.6 broke in 0.02s — which was true,
+       and was the free hand working exactly as written, and was not what the
+       test meant to ask.
+
+       So the hand is now DECLARED, once, before every test: a voyage unless
+       the test says otherwise. It is set here rather than inside each test so
+       that no test can be left holding the mode a previous one wanted. */
+    await page.evaluate(f=>{ const D=window.__VDBG;
+      if(D.applyFreeroam){ D.state.freeroam=!!f; D.applyFreeroam(); } }, !!t.freeHand);
     let r; try{ r=await t.run(page,ctx); }catch(e){ r={ok:false,got:'threw: '+e.message}; }
     const mark=r.pending?'PENDING':r.ok?'PASS   ':'FAIL   ';
     if(r.pending) pend++; else if(r.ok) pass++; else fail++;
