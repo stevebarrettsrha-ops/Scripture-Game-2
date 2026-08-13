@@ -571,7 +571,7 @@ Every parcel carries a reach now — a fall gives it back, a step across spends 
 is what §11 asked for in the first place. Measured, and then **stopped**: 394 moves to
 breach a pool of twenty-seven, 133.81 ms/frame against 130.55 standing still.
 
-*Gravel is not shipped, and water is not swum in — both named in AUDIT Round 40 §8 with
+*Gravel is not shipped, and water is not swum in — both named in AUDIT Round 40 §9 with
 the reason, rather than left to be found missing.*
 
 **9. The named works.** `world/works.js`, one `EARTH.work({…})` apiece, ten to twenty, each

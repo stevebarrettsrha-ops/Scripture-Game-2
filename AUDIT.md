@@ -2595,7 +2595,7 @@ and **stops**.
 ## 4am. Round 40 — Phase 4 step 8: what will not stand, and what will not lie still ✅
 
 *§11 step 8. Two rules about the world, and then STOPPED. Acceptance
-**TALLY**.*
+**21 pass · 0 fail · 1 pending**; the geometric diff **14 pass · 0 fail**.*
 
 **1. Both rules hang off the ONE DOOR, and a world nobody is digging pays
 nothing.**
@@ -2695,7 +2695,25 @@ where it stands before the world is written. And a world REOPENED does not
 rain sand: `editsLoad` writes into the overlay directly and not through the
 door, so a saved hole is a hole and not an event.
 
-**7. The reading.**
+**7. AND TEST 12 CRIED WOLF, AND I DID NOT TAKE ITS WORD FOR IT EITHER WAY.**
+Two suites ended up running at once on this box, and the contended one failed
+test 12 — `plain 3.307 ms/chunk` against a threshold of 2.66 — while the
+isolated one passed at 2.331. Machine noise is the easy answer, and it is the
+answer Round 30 was punished for giving: **the greedy merge later proved that
+one real.** So it was not asserted. It was TESTED — three isolated runs of the
+step 8 code, and then the step 7 code checked back out and run three times on
+the same box in the same minute:
+
+    step 8   plain 2.192 · 2.251 · 2.119 ms/chunk
+    step 7   plain 2.114 · 2.346 · 2.163 ms/chunk
+
+Identical within the spread. The whole shift from the 1.862 recorded for step
+7 an hour earlier is the MACHINE and not the change — which is also what the
+code says, since nothing in step 8 is reachable from `buildChunk`: stamping
+never goes through `setBlock`, and `fallTick` is not called by the mesher.
+**The baseline has not been moved, and has not been moved for eleven rounds.**
+
+**8. The reading.**
 
     PASS 19 · three of sand stood on stone=true · the stone taken out: 3 of 3
               came down, resting at 18 (the ground of the column is 18)
@@ -2705,7 +2723,7 @@ door, so a saved hole is a hole and not an event.
               · water before 2, after 2 (nothing made, nothing lost=true)
               · it stopped of itself=true · 4 of a budget of 1024 spent
 
-**8. What is deliberately not here.**
+**9. What is deliberately not here.**
 
 **Water is not swum in.** It is moved, it is finite, it is drawn, and a man
 stands on top of it exactly as he stands on the standing water of a well
