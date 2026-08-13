@@ -693,9 +693,13 @@ so the band recurs every thirteen courses and every face gets a stack of recesse
 And test 12 cried wolf for the second time in the project's life; it now measures the
 machine before it reads its own figure.
 
-**2. Arches, and tunnels through a ridge.** A passage that goes in one side of a range and
-comes out the other with rock overhead the whole way — which the cave carve can already
-represent and does not currently aim at.
+**2. Arches, and tunnels through a ridge.** ✅ *Round 44.* Censused first: **zero** arches
+in forty thousand columns of range country. Nothing was aiming at one and nothing could —
+an arch is a NEIGHBOURHOOD fact and `spansAt` is handed one column, which is what keeps it
+cheap. So it is not detected, it is PLACED, exactly as the blue holes are. And an arch and
+a tunnel are ONE THING: a horizontal bore is a way through where the ridge is thick and an
+arch where it is thin, and the land decides which. **13 bores driven, 7 come out the other
+side**, the thickest crossing 27 steps of rock.
 
 **3. Crystal chambers.** §4's stones of the breastplate — onyx, sapphire, jasper, topaz,
 emerald, sardius — *"rare, deep, worth the descent"*. This is where they belong, and it

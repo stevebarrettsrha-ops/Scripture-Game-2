@@ -1020,6 +1020,7 @@ for(const L of LANDMARKS){ if(L.kind!=='range') continue;
   for(let k=0;k<2;k++){ const a=hash2(sd,k*3.3)*6.283, rr=g.R*(0.22+hash2(k*7.1,sd)*0.34);
     g.holes.push({x:rx+Math.cos(a)*rr, z:rz+Math.sin(a)*rr, R:26}); }
   RANGES.push(g); }
+
 /* ---- THE SECRET FALLS OF THE CARIBBEAN ----
    kind:'falls' — a whole waterfall PLACE, minecraft-fashion: the land
    itself is raised into a cliff head on one side and sunk into a lagoon
@@ -2879,7 +2880,51 @@ const _chAt=[NaN,NaN];
 /* `view` widens the streamed ring past VIEW for a flyer, whose eye covers
    more ground than a walker's — the reap keeps the same measure, so coming
    down again sheds the extra ring */
+/* ---- THE ARCHES, AND THE WAYS THROUGH A RIDGE — Phase 5 step 2 ----
+   A census of forty thousand columns of range country found ZERO arches: not
+   one air run anywhere laid open on two opposite sides. Nothing in the world
+   was aiming at one, and nothing could — an arch is a NEIGHBOURHOOD fact (is
+   the rock thin on both sides of me?) and `spansAt` is handed one column and
+   its height, which is what keeps it cheap.
+
+   So it is not detected. It is PLACED, exactly as the blue holes are: a
+   short list seeded off each range's own number, and a pure function of
+   position thereafter.
+
+   AND AN ARCH AND A TUNNEL ARE ONE THING. A horizontal bore driven through
+   the rock is a WAY THROUGH where the ridge is thick and an ARCH where it is
+   thin — the same cylinder, and which of the two it reads as is decided by
+   the land it happens to pass through rather than by a flag. That is why
+   §12 lists them as one step.
+
+   The elevation is taken from the GROUND at the mouth, and that is why this
+   is done ONCE AND LATE rather than beside the ranges: `cellRaw` leans on a
+   dozen constants declared below the ranges, so asking it up there is a
+   reference before its own declaration and the world does not boot at all.
+   It is seeded on the first call for chunks instead — after everything is
+   standing, and before a single column has been asked for. An arch adds
+   nothing to the height, so there is no circle in asking. */
+const ARCHES=[];
+let _archesDone=false;
+function seedArches(){
+  if(_archesDone) return; _archesDone=true;
+  for(const g of RANGES){
+  for(let k=0;k<2;k++){
+    const a2=hash2(g.sd+k*11.7, k*5.1)*6.283;
+    const rr=g.R*(0.30+hash2(k*3.7,g.sd+2)*0.40);
+    const ax=g.x+Math.cos(a2)*rr, az=g.z+Math.sin(a2)*rr;
+    const c=cellRaw(Math.floor(ax/B),Math.floor(az/B));
+    if(!c||c.h<14) continue;                 /* nothing to drive a bore through */
+    const R=5+Math.round(hash2(k*9.3,g.sd)*4);          /* the bore, in blocks */
+    ARCHES.push({ x:ax, z:az,
+      /* the bearing it is driven on, and how far it runs */
+      ang:hash2(g.sd*1.7,k*2.9)*6.283, len:70+hash2(k,g.sd*0.7)*110,
+      R, y:Math.max(6,c.h-R-2) });           /* springing just under the crest */
+  } }
+  if(window.CAVES&&CAVES.arches) CAVES.arches(ARCHES);
+}
 function updateChunks(px,pz,budget,view){
+  seedArches();          /* once, and only when the world is standing */
   view=view||VIEW;
   const ccx=Math.floor(px/CHW), ccz=Math.floor(pz/CHW);
   const moved=(ccx!==_chAt[0]||ccz!==_chAt[1]);

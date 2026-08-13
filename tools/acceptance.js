@@ -935,6 +935,34 @@ T[24]={name:'every named summit can be reached on foot',
           highest+' courses'+(bad.length?' · NO WAY UP: '+bad.join(', '):'')};
   })};
 
+T[25]={name:'a bore comes out the other side of a ridge',
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    if(!window.CAVES||!window.CAVES.bores) return {pending:'no bores (Phase 5 step 2)'};
+    D.updateChunks(0,0,1);                 /* the bores are seeded on first ask */
+    const bores=window.CAVES.bores();
+    if(!bores.length) return {ok:false,got:'no bore was driven anywhere'};
+    /* WALK EACH ONE ALONG ITS OWN AXIS. At every step the bore's roof is
+       either under the ground — rock over your head, a tunnel — or above it,
+       which is daylight. A WAY THROUGH is open near both ends with rock in
+       between; that is what makes it a passage and not a notch. */
+    let through=0, deepest=0;
+    for(const b of bores){
+      let buried=0, first=null, last=null;
+      for(let t=-b.len;t<=b.len;t+=B){
+        const c=D.cellRaw(Math.floor((b.x+b.cos*t)/B), Math.floor((b.z+b.sin*t)/B));
+        if(!c) continue;
+        if(c.h>b.y+b.R+1) buried++;
+        else { if(first===null) first=t; last=t; }
+      }
+      if(buried>deepest) deepest=buried;
+      if(first!==null&&first<-b.len*0.3&&last>b.len*0.3&&buried>2) through++;
+    }
+    return {ok:through>0,
+      got:bores.length+' bores driven · '+through+' come out the other side'+
+          ' · the thickest ridge one crosses is '+deepest+' steps of rock'};
+  })};
+
 /* ---- HOW FAST IS THE MACHINE UNDER US, RIGHT NOW ----
    Test 12 compares a measured millisecond figure against a constant recorded
    in an earlier round. That is only a regression test while the machine is

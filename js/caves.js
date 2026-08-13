@@ -243,12 +243,34 @@ const LEDGE_NEAR = 5;         /* how thin the rock over it must be for it to sho
    only honest question is what THIS change costs, and that wants a control. */
 let BEDS=true;
 
+/* ---- THE BORES — the arches and the ways through a ridge ----
+   Handed in from the engine at boot, each a horizontal cylinder: a place, a
+   bearing, a length, a radius and the elevation of its axis. Where the ridge
+   it is driven through is thick this is a TUNNEL a man walks through and out
+   the far side; where the ridge is thin the same cylinder is an ARCH, with
+   the sky on both sides of it and rock standing over. It is the land that
+   decides which, not a flag.
+
+   They are held in the same kind of bucket the range seeds are, so a column
+   asks a short list and nearly always an empty one. */
+let BORES=[], BOREB=new Map();
+const BORE_BKT=4000;
+function boresNear(x,z){
+  return BOREB.get(Math.floor(x/BORE_BKT)+','+Math.floor(z/BORE_BKT));
+}
+
 const _iv=[];                 /* scratch: the intervals of this column, reused */
 function spansAt(x,z,h){
   if(h<MIN_H) return null;                                   /* gate 1 */
-  if(tileQuiet(x,z)) return null;                            /* gate 1b */
+  /* A BORE IS NOT A WORM and does not pass the worms' gates: it is placed,
+     it is rare, and its bucket is empty for all but a few thousand columns
+     on the earth, which is a cheaper gate than either of the two below. */
+  const bores=boresNear(x,z);
+  if(!bores){
+    if(tileQuiet(x,z)) return null;                          /* gate 1b */
+  }
   const reg=regionAt(x,z);
-  if(reg<=0.02) return null;                                 /* gate 2 */
+  if(!bores&&reg<=0.02) return null;                          /* gate 2 */
   /* a passage thins away toward the edge of its country, so no cave ever
      stops dead at a straight line on the chart */
   const bore=Math.min(1,0.42+reg*0.86);
@@ -268,6 +290,22 @@ function spansAt(x,z,h){
     const c=cy+W.dy;
     _iv.push(c-vr, c+vr);
   }
+  /* ---- AND ANY BORE DRIVEN THROUGH HERE ----
+     A cylinder, so the opening is a true round arch: full height on its axis
+     and closing to nothing at the springing. Asked before the soft band and
+     outside the worms entirely, because a bore is neither. */
+  { const bl=bores;
+    if(bl) for(let k=0;k<bl.length;k++){ const b2=bl[k];
+      const dx=x-b2.x, dz=z-b2.z;
+      /* along the bearing, and across it */
+      const al=dx*b2.cos+dz*b2.sin, pe=-dx*b2.sin+dz*b2.cos;
+      if(al<-b2.len||al>b2.len) continue;
+      const pb=pe/U_PER_B;                       /* across, in blocks */
+      if(pb<=-b2.R||pb>=b2.R) continue;
+      const vr=b2.R*Math.sqrt(1-(pb/b2.R)*(pb/b2.R));
+      if(vr<1.4) continue;
+      _iv.push(b2.y-vr*0.55, b2.y+vr);           /* a round head on a low springing */
+    } }
   /* ---- AND THE SOFT BAND, asked whether a worm ran here or not ----
      An undercut is not a cave and does not wait on one. Two fields, and both
      of them behind the three gates above, so the ordinary earth never asks. */
@@ -328,6 +366,20 @@ window.CAVES={
   seeds:()=>SEEDS,
   regionAt, spansAt,
   beds(on){ BEDS=!!on; },
+  /* the engine hands in the bores once, at boot, after the heights are ready */
+  arches(list){
+    BORES=list.map(a=>({x:a.x,z:a.z,y:a.y,R:a.R,len:a.len,
+      cos:Math.cos(a.ang), sin:Math.sin(a.ang)}));
+    BOREB=new Map();
+    for(const b of BORES){
+      /* every bucket the cylinder can reach, so no column has to search */
+      const rad=b.len+b.R*U_PER_B+BORE_BKT;
+      const i0=Math.floor((b.x-rad)/BORE_BKT), i1=Math.floor((b.x+rad)/BORE_BKT);
+      const j0=Math.floor((b.z-rad)/BORE_BKT), j1=Math.floor((b.z+rad)/BORE_BKT);
+      for(let i=i0;i<=i1;i++) for(let j=j0;j<=j1;j++){
+        const k=i+','+j; let a=BOREB.get(k); if(!a){ a=[]; BOREB.set(k,a); } a.push(b); }
+    } },
+  bores:()=>BORES,
   /* is there ANY cave country in this chunk? Twenty-five reads, and it
      answers `no` for very nearly the whole earth — the same shape of test
      the rivers already use, and paid at the same rate. */
