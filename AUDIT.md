@@ -2750,6 +2750,138 @@ leaving to be discovered.
 of goat hair, the ark pitched within and without — and the tools, which is
 where `serves` and the whole material economy finally come to something.
 
+## 4an. Round 41 — Phase 4 step 9: the named works, and every verse in the game put on oath ✅
+
+*§11 step 9, and §5's extractor, which had never been written. Acceptance
+**22 pass · 0 fail · 0 pending** — the first round in which the suite has
+nothing outstanding at all; the geometric diff **14 pass · 0 fail**.*
+
+**1. THE TOOL THE BRIEF ASKS FOR BY NAME, AND WHAT IT FOUND.**
+§5: *"Do not paraphrase. Do not summarise a verse into a caption. Do not
+invent a reference. Write `tools/extract-besorah.js` so it is repeatable, and
+commit it."* It had not been written, through eight phases and forty rounds,
+and the reason that matters turned up the moment it was.
+
+The scripture is not in the markup of the offline Besorah — it is one JSON
+blob in a `<script id="text-data">` tag, keyed by book, chapter and verse. The
+tool reads it and will quote a reference, search for a half-remembered
+phrase, list the books, or emit verses in this project's own format. And it
+**checks**: `--check` runs every file under `world/`, `blocks/`, `countries/`,
+`cities/` and `creatures/` against a stand-in `EARTH`, collects every verse
+they register, resolves the reference and compares the text to the letter. It
+does not read the files with a regular expression — it RUNS them, so what is
+checked is what ships.
+
+Its first reading of the world as it stood:
+
+    18 exact · 13 paraphrased · 0 sourceable by their own references
+
+**Thirteen paraphrases** — among them the gold of Havilah, the stones of
+iron, the mine for silver, the tar pits of Siddim, and the welcome of two
+countries. Most were mine, written in step 7 from memory because the source
+was right there and I did not open it. All thirteen are corrected to the
+source's own words in the commit before this one.
+
+**2. AND THE NAMES OF THE BOOKS DO NOT CHANGE.**
+The Besorah spells several books differently from the way this project has
+spelled them since its first round — DAḆARIM against DEḆARIM, 1 MALAḴIM
+against MELAKIM ALEPH, YAHAZQ'AL against YEḤEZQAL. The obvious move is to
+rewrite the world's references to match the source. **That is the wrong
+move**, and it is not what was done: a reader who has seen DEḆARIM on a block
+since the beginning should go on seeing it. The difference is reconciled
+inside the tool, in one alias table with a reason beside it, and a reference
+is always printed back **in the name it was asked in** — so the tool cannot
+walk its own spelling into the game one pasted verse at a time.
+
+Two smaller things the comparison caught that no eye would have:
+`norm()` threw diacritics away instead of folding them, so DEḆARIM became
+"derim" and matched nothing; and my own first draft of the altar's verse used
+a curly apostrophe where the source has a straight one. **The checker caught
+its author within the hour.**
+
+**3. AND ONE PLACE WHERE THE SOURCE ITSELF IS SHORT.**
+SHEMOTH 20:25 reads, in this Besorah: *"…for if you use your chisel on it,
+you have it."* The clause is plainly missing a word. There were three things
+I could do: quote it as it stands and propagate a defect; repair it from
+memory, which is the exact thing §5 forbids; or **quote the command as far as
+it runs clean** — *"And if you make Me an mizbe'ach of stone, do not build it
+of cut stone"* — which is contiguous, exact, and says the whole of what the
+work needs to say. The third. It is written here so that nobody later reads
+the short quotation as carelessness.
+
+**4. THE WORKS THEMSELVES — thirteen, and NOT A TECH TREE.**
+`world/works.js` on the pattern the minerals and the fauna keep: a work names
+what it takes, what it gives, whether it wants a fire, whether it wants a
+tool in the hand, and what it REFUSES. The engine knows none of them by name.
+
+There is no research and no unlock graph. **The whole list is on the page
+from the first minute** — greyed where he lacks the materials, so the page
+tells him what to go and look for, which is the only direction-giving this
+game has ever wanted.
+
+**5. THE ALTAR, AND WHY `refuses` IS THE WHOLE STEP.**
+A recipe that is merely short of a material says *"you have not got it"* and a
+man shrugs. But a man at the altar with a satchel of DRESSED stone **is not
+short of stone**. He has plenty. It is forbidden, and he is meant to be told
+so in the words of the command.
+
+So a work may name a substance that would otherwise serve perfectly well and
+refuse it outright; and when the hand holds enough of the refused thing and
+lacks the true material, the work is not withheld but REFUSED, with its
+verse spoken. On the page that row is not greyed like the others — it is in
+madder, because it is not a want, it is a no.
+
+Measured: **with twelve hewn stones the altar is refused (`why:'refused'`,
+not `'short'`), it is not made, and the twelve are still his** — nothing is
+consumed by a refusal. With twelve of the living rock it is allowed, made,
+and gives.
+
+**6. AND THE LIVING ROCK WAS RENAMED TO WHAT IT IS.**
+None of the above meant anything while the world's own bedrock shipped under
+the name **"Hewn Stone"** — as though a mason had dressed every hill on the
+earth. The altar would have refused a block with the same name as the block
+it required. It is `Unhewn Stone` now; hewn stone is a separate block with a
+dressed face and drafted margins, and it is what the hewing WORK gives.
+
+**The id is untouched.** `stone` is still `stone`, because an id is never
+renamed: every save ever written, every structure that stamps stone, and
+every line of `KIND_BLOCK` depends on it. What changed is what a man reads
+when he holds it, which is the part that was wrong.
+
+**7. What is deliberately not here.**
+
+**The tent of goat hair, the ark of gopher wood, the furnishings in acacia
+and gold.** All three are named in §4 and none is shipped, because the world
+has no goat hair, no gopher wood and no acacia in it. A recipe nobody can
+attempt is worse than one that is not written — it is the placeholder content
+§14 forbids, wearing a verse. They ship when something puts their materials
+in the ground, which is the same rule the ores keep.
+
+**The smelting of copper and iron.** The ore is in the hills already, and the
+metal wants a fire hotter than a kiln and a work of its own. The tools that
+ship are of flint and riven plank, which is what a man had before he had a
+furnace, and they make the whole material economy pay: held, a pick takes the
+rock in a fraction of the time a bare hand does, and `serves` — declared in
+step 2 and read by nothing until today — finally means something.
+
+**8. And a tool is not a cubic metre of tool.** `place:false`, read at the one
+door a block enters the world through. A world in which a man paves his yard
+with hoes is not this one.
+
+**9. The reading.**
+
+    PASS 20 · 13 works declared · with 12 hewn-stone: refused=true (and not
+              merely "short"), made=false, and the stone is still his: 12
+              · with 12 stone: allowed=true, made=true, it gave 1
+              · brick away from a kiln: place
+
+    tools/extract-besorah.js --check
+              41 exact · 0 paraphrased · 0 unsourceable
+
+**Still ahead in Phase 4:** step 10, the free hand — unlimited blocks,
+flight, instant break, the same world and the same save. It is last because
+it is the mode Phase 8's schematic tool will be used in.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

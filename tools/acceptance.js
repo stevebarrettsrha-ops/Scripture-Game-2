@@ -682,9 +682,50 @@ T[22]={name:'water runs out of a broken well, and stops',
   })};
 
 T[20]={name:'an altar of unhewn stone refuses hewn stone',
-  run:async page=>page.evaluate(()=>{ const D=window.__VDBG;
+  run:async page=>page.evaluate(async()=>{ const D=window.__VDBG;
     if(!D.works) return {pending:'no works (Phase 4 step 9)'};
-    return {ok:false,got:'unwritten'}; })};
+    const W=D.works();
+    if(!W.length) return {ok:false,got:'world/works.js declares nothing'};
+    /* 1 — every work must resolve: its materials, its product and its
+       refusal are all block ids, and one this build has not got would have
+       been dropped at the door, so a work that is MISSING is the fault */
+    const declared=W.length;
+    const altar=W.find(w=>w.refuses);
+    if(!altar) return {ok:false,got:'no work refuses anything — '+declared+' works'};
+    /* 2 — THE REFUSAL. He is given twelve of the DRESSED stone and none of
+       the living rock. He is not short of stone. He has plenty, and it is
+       forbidden, and the work must say so rather than say "you lack". */
+    const clear=()=>{ for(const id of Object.keys(D.hoard())) D.satchelTake(id,999); };
+    clear();
+    D.satchelAdd(altar.refuses,12);
+    const refused=D.workState(altar.id);
+    const madeWrong=D.workMake(altar.id);
+    const stillHas=D.hoard()[altar.refuses]||0;
+    /* 3 — AND THE TRUE MATERIAL IS ACCEPTED. The same work, the same man,
+       the same number of stones — and the only difference is that they came
+       out of the ground as they are. */
+    const want=altar.of[0].split(' x')[0], n=+altar.of[0].split(' x')[1];
+    clear();
+    D.satchelAdd(want,n);
+    const allowed=D.workState(altar.id);
+    const madeRight=D.workMake(altar.id);
+    const gave=D.hoard()[altar.gives[0].split(' x')[0]]||0;
+    clear();
+    /* 4 — and a work of the fire must want its fire, standing here in the
+       open where there is no kiln */
+    const fire=W.find(w=>w.at);
+    const fireSt=fire?D.workState(fire.id):null;
+    return {ok:declared>=10&&refused.why==='refused'&&!madeWrong.ok&&stillHas===12&&
+              allowed.can===true&&madeRight.ok&&gave>=1&&
+              (!fire||fireSt.why==='place'),
+      got:declared+' works declared · with 12 '+altar.refuses+
+          ': refused='+(refused.why==='refused')+
+          ' (and not merely "short"), made='+madeWrong.ok+
+          ', and the stone is still his: '+stillHas+
+          ' · with '+n+' '+want+': allowed='+allowed.can+', made='+madeRight.ok+
+          ', it gave '+gave+
+          (fire?' · '+fire.id+' away from a '+fire.at+': '+fireSt.why:'')};
+  })};
 
 T[21]={name:'every land holds what its data says, and the ore is truly in the rock',
   run:async page=>page.evaluate(async()=>{

@@ -574,10 +574,22 @@ breach a pool of twenty-seven, 133.81 ms/frame against 130.55 standing still.
 *Gravel is not shipped, and water is not swum in — both named in AUDIT Round 40 §9 with
 the reason, rather than left to be found missing.*
 
-**9. The named works.** `world/works.js`, one `EARTH.work({…})` apiece, ten to twenty, each
-with its verse: the altar of unhewn stone **that refuses hewn stone**, the tent of goat
-hair, the ark of gopher wood pitched within and without, the tower of brick and slime, the
-tools. Not a tech tree.
+**9. The named works.** ✅ *Round 41.* `world/works.js`, one `EARTH.work({…})` apiece —
+**thirteen**, each with its verse quoted exactly. The altar of unhewn stone **that refuses
+hewn stone**; the hewing that makes hewn stone a thing to refuse; the mason's courses;
+knives of flint and four tools of flint and riven plank; a kiln, and the works of the fire
+that need one — brick, tile and glass, because *"bake them thoroughly"* is a method and
+not a flourish. Not a tech tree: the whole list is on the page from the first minute,
+greyed where he lacks, in madder where he is refused.
+
+**And the living rock was renamed to what it is.** It shipped as "Hewn Stone" — the
+world's own bedrock, described as though a mason had dressed it — which made the altar's
+refusal meaningless. It is **Unhewn Stone** now (id unchanged, so every save and every
+structure is untouched), and hewn stone is what a work makes of it.
+
+*The tent of goat hair, the ark of gopher wood and the smelting of metal are named in
+AUDIT Round 41 §7 as waiting on materials the world has not got, rather than shipped as
+recipes nobody can attempt.*
 
 **10. The free hand.** The second mode at the menu: unlimited blocks, flight, instant
 break. Same world, same save. It is last because it is the mode in which Phase 8's

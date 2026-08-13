@@ -346,6 +346,76 @@ TEX.flint      = mkTex(g=>{ speckle(g,PB.flint.b,18,PB.flint.a,0.34);
   for(let k=0;k<9;k++){ const cx=hash2(k,1.9)*16, cy=hash2(k,8.3)*16, r=1.2+hash2(k,3.3)*1.6;
     g.strokeStyle=C(PB.flint.glint); g.lineWidth=FG;
     g.beginPath(); g.arc(cx,cy,r,0.6,2.6); g.stroke(); } },16,16,RIM);
+/* ---- THE MADE THINGS (§11 step 9, the named works) ----
+   Each must read as something a HAND did to the living rock, set beside the
+   rock itself: squared where the rock is bedded, sooted where it is clean. */
+/* hewn stone: a dressed face, with the draft-lines of the chisel across it */
+TEX.hewnStone  = mkTex(g=>{ speckle(g,PB.hewnStone.b,9,PB.hewnStone.a,0.20);
+  /* the drafted margin — a squared edge all round, which is the whole tell */
+  g.fillStyle=C(PB.hewnStone.edge);
+  g.fillRect(0,0,16,FG); g.fillRect(0,16-FG,16,FG);
+  g.fillStyle=C(PB.hewnStone.a);
+  g.fillRect(0,0,FG,16); g.fillRect(16-FG,0,FG,16);
+  /* and the tool marks, raked at one angle as a mason works */
+  g.fillStyle=C(PB.hewnStone.tool);
+  for(let k=0;k<9;k++){ const y=2+k*1.5;
+    for(let x=1;x<15;x+=2) g.fillRect(x+((k&1)?FG:0),Math.round(y/FG)*FG,FG,FG); } },16,16,RIM);
+/* the altar: unhewn, so the stones are ROUND and the joints are wide */
+TEX.altar      = mkTex(g=>{ speckle(g,PB.altar.b,11,PB.altar.a,0.26);
+  g.strokeStyle=C(PB.altar.joint); g.lineWidth=FG*1.4;
+  /* five field stones, none of them square, none of them alike */
+  const S=[[4,4,3.2],[11,4,2.6],[4,11,2.6],[11,11,3.0],[8,8,2.2]];
+  for(const q of S){ g.beginPath(); g.arc(q[0],q[1],q[2],0,6.2832); g.stroke(); } },16,16,RIM);
+/* the kiln: sooted stone, ash at the foot, and the mouth of it burning */
+TEX.kilnSide   = mkTex(g=>{ speckle(g,PB.kiln.b,13,PB.kiln.a,0.34);
+  g.fillStyle=C(PB.kiln.ash); for(let x=0;x<16;x+=FG)
+    if(hash2(x,3.1)>0.4) g.fillRect(x,16-FG*2,FG,FG*2);
+  /* the fire-mouth, an arch low in the face */
+  g.fillStyle=C(PB.kiln.a); g.fillRect(5,8,6,7);
+  g.fillStyle=C(PB.kiln.mouth); g.fillRect(6,10,4,5);
+  g.fillStyle=C(PAL.lift(PB.kiln.mouth,0.35)); g.fillRect(7,12,2,3); },16,16,RIM);
+TEX.kilnTop    = mkTex(g=>{ speckle(g,PB.kiln.a,13,PB.kiln.b,0.30);
+  /* the flue, open, with the fire showing far down it */
+  g.fillStyle=C(PB.kiln.mouth); g.fillRect(6,6,4,4);
+  g.fillStyle=C(PAL.lift(PB.kiln.mouth,0.4)); g.fillRect(7,7,2,2); },16,16,RIM);
+/* ---- AND THE TOOLS ----
+   Drawn as the THING, not as a cube of stuff: a haft up the middle and the
+   stone lashed across the head of it, so a token on the belt reads at a
+   glance as a pick and not as a grey square. */
+function toolTex(head){
+  return mkTex(g=>{
+    g.clearRect(0,0,16,16);
+    /* the haft, and its shadow down one side */
+    g.fillStyle=C(PB.toolHaft.a); g.fillRect(8,4,2,11);
+    g.fillStyle=C(PB.toolHaft.b); g.fillRect(7,4,2,11);
+    head(g);
+    /* the cord that lashes the stone to the wood */
+    g.fillStyle=C(PB.toolStone.cord); g.fillRect(6,5,4,FG*2);
+  },16,16,RIM);
+}
+const _hd=(g)=>{ g.fillStyle=C(PB.toolStone.a); return g; };
+TEX.flintPick  = toolTex(g=>{ _hd(g); g.fillRect(2,2,12,2);
+  g.fillStyle=C(PB.toolStone.b); g.fillRect(2,1,12,2);
+  g.fillStyle=C(PB.toolStone.glint); g.fillRect(3,1,2,FG); g.fillRect(12,1,2,FG); });
+TEX.flintAxe   = toolTex(g=>{ _hd(g); g.fillRect(3,2,7,5);
+  g.fillStyle=C(PB.toolStone.b); g.fillRect(3,1,6,5);
+  g.fillStyle=C(PB.toolStone.glint); g.fillRect(3,2,FG,3); });
+TEX.flintSpade = toolTex(g=>{ _hd(g); g.fillRect(5,1,7,6);
+  g.fillStyle=C(PB.toolStone.b); g.fillRect(5,1,6,5);
+  g.fillStyle=C(PB.toolStone.glint); g.fillRect(6,2,2,FG); });
+TEX.flintHoe   = toolTex(g=>{ _hd(g); g.fillRect(2,3,8,3);
+  g.fillStyle=C(PB.toolStone.b); g.fillRect(2,2,7,3);
+  g.fillStyle=C(PB.toolStone.glint); g.fillRect(3,2,2,FG); });
+TEX.flintKnife = mkTex(g=>{ g.clearRect(0,0,16,16);
+  g.fillStyle=C(PB.toolHaft.a); g.fillRect(9,10,4,4);
+  g.fillStyle=C(PB.toolHaft.b); g.fillRect(9,9,4,4);
+  /* the blade, struck in shells, tapering to the point */
+  g.fillStyle=C(PB.toolStone.a);
+  for(let k=0;k<8;k++) g.fillRect(3+k,9-k,2+Math.floor(k/3),2);
+  g.fillStyle=C(PB.toolStone.b);
+  for(let k=0;k<8;k++) g.fillRect(3+k,8-k,2,2);
+  g.fillStyle=C(PB.toolStone.glint); g.fillRect(4,7,FG,FG); g.fillRect(8,3,FG,FG);
+  g.fillStyle=C(PB.toolStone.cord); g.fillRect(8,8,3,FG*2); },16,16,RIM);
 TEX.salt       = mkTex(g=>{ speckle(g,PB.salt.b,14,PB.salt.a,0.3);
   /* crystal: hard little facets that catch the light square-on */
   for(let k=0;k<26;k++){ const x=Math.floor(hash2(k,2.7)*32)*FG, y=Math.floor(hash2(k,5.3)*32)*FG;
@@ -370,6 +440,13 @@ function iceMat(name,tex){ const m=new THREE.MeshBasicMaterial({
 blockMat('grassTop',TEX.grassTop); blockMat('grassTopTr',TEX.grassTopTr); blockMat('grassTopTu',TEX.grassTopTu);
 blockMat('grassTopSv',TEX.grassTopSv); blockMat('grassSideSv',TEX.grassSideSv);
 blockMat('grassSide',TEX.grassSide); blockMat('dirt',TEX.dirt); blockMat('path',TEX.path);
+blockMat('hewnStone',TEX.hewnStone); blockMat('altar',TEX.altar);
+blockMat('kilnSide',TEX.kilnSide); blockMat('kilnTop',TEX.kilnTop);
+blockMat('flintPick',TEX.flintPick,{transparent:true});
+blockMat('flintAxe',TEX.flintAxe,{transparent:true});
+blockMat('flintSpade',TEX.flintSpade,{transparent:true});
+blockMat('flintHoe',TEX.flintHoe,{transparent:true});
+blockMat('flintKnife',TEX.flintKnife,{transparent:true});
 blockMat('goldOre',TEX.goldOre); blockMat('silverOre',TEX.silverOre);
 blockMat('copperOre',TEX.copperOre); blockMat('ironOre',TEX.ironOre);
 blockMat('alabaster',TEX.alabaster); blockMat('flint',TEX.flint);
@@ -713,7 +790,9 @@ for(let i=0;i<BLOCK_DEFS.length;i++){
     liquid:!!d.liquid, verse:d.verse||null,
     /* what this thing SERVES AS in the hand — 'pick', 'axe' and the rest.
        No block is a tool; the works of Phase 4 step 9 declare these. */
-    serves:d.serves||null };
+    serves:d.serves||null,
+    /* whether it may be SET DOWN at all — a tool may not */
+    place:d.place!==false };
   /* the three faces the mesher asks for, resolved once so it never has to */
   b.mTop=b.tex.top||b.tex.all||'stone';
   b.mSide=b.tex.side||b.tex.all||b.mTop;
@@ -13891,6 +13970,12 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   heldBlock:()=>{ const b=heldBlock(); return b?b.id:null; },
   pageOpen:()=>pageOpen, togglePage, pageTouch, beltDraw, pageDraw,
   placeBlock, cellHitsAnyLiving,
+  /* ---- THE NAMED WORKS, FOR tools/acceptance.js ---- */
+  works:()=>WORKS.map(w=>({id:w.id,name:w.name,at:w.at,needs:w.needs,
+    of:w.of.map(q=>q.id+' x'+q.c), gives:w.gives.map(q=>q.id+' x'+q.c),
+    refuses:w.refuses?w.refuses.id:null, verse:!!w.verse})),
+  workState:id=>{ const w=WORK_BY_ID[id]; return w?workState(w):null; },
+  workMake, workPlaceAt, satchelAdd, satchelTake,
   /* ---- WHAT WILL NOT STAND, FOR tools/acceptance.js ---- */
   fallTick, looseSettleAll, looseCount:()=>LOOSE.length, flowLeft:()=>flowLeft,
   flowBudget:()=>FLOW_BUDGET, flowReach:()=>FLOW_REACH,
@@ -14482,6 +14567,100 @@ function takeUp(d){
   if(b&&b.verse&&!SPOKEN.has(d.id)){ SPOKEN.add(d.id); toast(b.verse.t,b.verse.ref); }
   satchelTouch();
 }
+/* ==================== THE NAMED WORKS ====================
+   Phase 4, step 9. §4: "Not a tech tree — a set of works, each drawn from
+   scripture, each with its verse." Ten to twenty of those beat a hundred
+   generic recipes, and this is the reading of world/works.js that makes them
+   real.
+
+   THE ENGINE KNOWS NO WORK BY NAME. It knows how to read a line: what the
+   work takes, what it gives, whether it wants a fire, whether it wants a tool
+   in the hand, and what it REFUSES. Add a line there and the thing can be
+   made with not one line changed here — the same rule the minerals, the
+   beasts and the flora keep.
+
+   AND ONE OF THEM SAYS NO. A recipe that is merely short of a material says
+   "you have not got it" and a man shrugs. But a man at the altar with a
+   satchel of DRESSED stone is not short of stone: he has plenty, and it is
+   forbidden, and he is meant to be told so IN THE WORDS OF THE COMMAND. So a
+   work may name a substance that would otherwise serve perfectly well and
+   refuse it outright — and when the hand holds enough of the refused thing
+   and lacks the true material, the work is not withheld, it is REFUSED, with
+   its verse. That is the difference between having read the account and
+   having a crafting grid. */
+const WORK_DEFS=(window.EARTH&&EARTH.workList)||[];
+const WORKS=[], WORK_BY_ID=Object.create(null);
+for(const w of WORK_DEFS){
+  /* a work whose materials or product this build has not got is dropped at
+     the door rather than offered and then failing in the hand */
+  const of=[], gives=[];
+  let good=true;
+  for(const k in (w.of||{})){ const n=blockId(k); if(!n){ good=false; break; } of.push({n,id:k,c:w.of[k]}); }
+  for(const k in (w.gives||{})){ const n=blockId(k); if(!n){ good=false; break; } gives.push({n,id:k,c:w.gives[k]}); }
+  if(!good||!of.length||!gives.length) continue;
+  const rf=w.refuses&&blockId(w.refuses.id)?{...w.refuses,n:blockId(w.refuses.id)}:null;
+  const rec={id:w.id, name:w.name||w.id, of, gives, at:w.at||null,
+             needs:w.needs||null, refuses:rf, verse:w.verse||null};
+  WORKS.push(rec); WORK_BY_ID[w.id]=rec;
+}
+/* ---- IS HE STANDING AT A FIRE? ----
+   A work of the fire wants a kiln within reach of where he stands. It is
+   asked only when such a work is looked at, and it looks at the blocks about
+   him rather than keeping a register of kilns — a kiln is a block like any
+   other, and a man may break one, and a register would go stale. */
+const WORK_R=4;                    /* how far a fire reaches, in blocks */
+function workPlaceAt(kind){
+  if(!kind) return true;           /* the bare hand is everywhere */
+  const n=blockId(kind); if(!n) return false;
+  const p=playerXZ(), fy=(state.mode==='walk'&&state.walk.feetY!==undefined)?state.walk.feetY:WATER_Y;
+  const ix=Math.floor(p.x/B), iy=Math.floor(fy/B), iz=Math.floor(p.z/B);
+  for(let dx=-WORK_R;dx<=WORK_R;dx++) for(let dz=-WORK_R;dz<=WORK_R;dz++)
+    for(let dy=-2;dy<=2;dy++)
+      if(blockAt(ix+dx,iy+dy,iz+dz)===n) return true;
+  return false;
+}
+/* what stands between a man and this work: nothing, a want, a place, a tool,
+   or a REFUSAL — which is a want with a verse against it */
+function workState(w){
+  if(!w) return null;
+  if(w.at&&!workPlaceAt(w.at)) return {can:false, why:'place', at:w.at};
+  if(w.needs){ const h=heldBlock(); if(!h||h.serves!==w.needs)
+    return {can:false, why:'tool', needs:w.needs}; }
+  const short=[];
+  for(const q of w.of){ const have=satchelCount(q.id);
+    if(have<q.c) short.push({id:q.id, name:blockName(q.n), have, want:q.c}); }
+  if(!short.length) return {can:true};
+  /* ---- AND HERE IS THE REFUSAL ----
+     He is not short of stone. He is short of the RIGHT stone, and he is
+     holding the wrong one, and the account has something to say about that. */
+  if(w.refuses&&satchelCount(w.refuses.id)>=(w.of[0]?w.of[0].c:1))
+    return {can:false, why:'refused', refused:w.refuses, short};
+  return {can:false, why:'short', short};
+}
+/* AND THE MAKING ITSELF. One door: it asks `workState` and does nothing at
+   all unless the answer is yes, so there is no path by which a work is half
+   done — the materials are taken and the thing is given in the one breath. */
+function workMake(id){
+  const w=WORK_BY_ID[id]; if(!w) return {ok:false, why:'unknown'};
+  const st=workState(w);
+  if(!st.can){
+    /* the refusal SPEAKS, because being told why is the whole of it */
+    if(st.why==='refused'&&st.refused.why)
+      toast(st.refused.why.t, st.refused.why.ref);
+    return {ok:false, why:st.why, state:st};
+  }
+  /* room for what it gives, before a thing is taken for it */
+  for(const q of w.gives) if(!satchelRoom(q.id)) return {ok:false, why:'full'};
+  for(const q of w.of) satchelTake(q.id,q.c);
+  for(const q of w.gives) satchelAdd(q.id,q.c);
+  /* a work speaks its own verse the first time it is done, as a substance
+     does the first time it is gathered */
+  if(w.verse&&!SPOKEN.has('work:'+w.id)){ SPOKEN.add('work:'+w.id);
+    toast(w.verse.t, w.verse.ref); }
+  satchelTouch();
+  return {ok:true, gave:w.gives.map(q=>q.id+' x'+q.c).join(', ')};
+}
+
 /* ============ WHAT WILL NOT STAND, AND WHAT WILL NOT LIE STILL ============
    Phase 4, step 8. Two rules about the world, and then STOPPED. §11 calls
    fluid simulation a rabbit hole and it is right: what is written here is the
@@ -14764,6 +14943,43 @@ function pageDraw(){
     t.onpointerdown=e=>{ e.preventDefault(); pageTouch(i); }; g.appendChild(t); }
   for(let i=0;i<BELT_N;i++){ const t=tokenEl(SATCHEL[i],i,true);
     t.onpointerdown=e=>{ e.preventDefault(); pageTouch(i); }; b2.appendChild(t); }
+  worksDraw();
+}
+/* ---- THE WORKS, AS A LEDGER ----
+   Every work the world has, always, in the order world/works.js gives them —
+   never a list that grows as things are "unlocked", because §4 says this is
+   NOT A TECH TREE and a list that appears piece by piece is a tech tree with
+   the label filed off. What he cannot do yet is greyed and still legible, so
+   the page tells him what to go and look for. And what is REFUSED is not
+   greyed at all: it is in madder, because it is not a want, it is a no. */
+function worksDraw(){
+  const el=$('page-works'); if(!el) return;
+  el.textContent='';
+  for(const w of WORKS){
+    const st=workState(w);
+    const row=D.createElement('div');
+    row.className='wk'+(st.can?'':' no')+(st.why==='refused'?' refused':'');
+    const nm=D.createElement('span'); nm.className='nm'; nm.textContent=w.name;
+    const of=D.createElement('span'); of.className='of';
+    of.textContent=workLine(w,st);
+    row.appendChild(nm); row.appendChild(of);
+    row.onpointerdown=e=>{ e.preventDefault();
+      const r=workMake(w.id);
+      if(r.ok||r.why==='refused'){ pageDraw(); beltDraw(); } else worksDraw(); };
+    el.appendChild(row);
+  }
+}
+/* what a work costs, written the way a man would say it */
+function workLine(w,st){
+  const cost=w.of.map(q=>q.c+' '+blockName(q.n)).join(', ');
+  if(st.can) return cost;
+  if(st.why==='refused') return 'not of '+blockName(st.refused.n);
+  /* the works name themselves as a man would — "A Kiln", "An Altar" — so an
+     article stuck on the front of them gives "at a A Kiln" */
+  if(st.why==='place'){ const nm=blockName(blockId(w.at));
+    return 'at '+(/^(a|an|the) /i.test(nm)?nm:'a '+nm); }
+  if(st.why==='tool')    return 'wants a '+w.needs+' in the hand';
+  return cost;
 }
 function pageTouch(i){
   if(pagePick<0){ if(SATCHEL[i]) pagePick=i; }
@@ -14825,6 +15041,12 @@ function cellHitsAnyLiving(ix,iy,iz){
 }
 /* set down what is in the hand, against the face the arm is on */
 function placeBlock(){
+  /* ---- A TOOL IS NOT A CUBIC METRE OF TOOL ----
+     §11 step 9 gives the hand things that are HELD and not laid: a pick, an
+     axe, a knife. `place:false` on the block is the whole of the rule, and it
+     is read here because this is the one door a block goes into the world
+     through. */
+  { const h=heldBlock(); if(h&&h.place===false) return null; }
   const a=AIM; if(!a) return {no:'nothing is within reach'};
   const h=heldStack(); if(!h) return {no:'his hand is empty'};
   const b=BLOCK_BY_ID[h.id]; if(!b) return {no:'he holds nothing that can be laid'};

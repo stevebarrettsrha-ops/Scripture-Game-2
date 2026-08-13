@@ -76,6 +76,24 @@
     background:linear-gradient(90deg,transparent,#8d7648,transparent); }
   #page-foot{ text-align:center; margin-top:1.3vmin; font-style:italic;
     font-size:1.9vmin; letter-spacing:.16em; color:#6d5c39; }
+  #page-head2{ text-align:center; margin:.6vmin 0 1.2vmin; letter-spacing:.22em; }
+  #page-head2 .cap{ font-size:4.2vmin; color:#8a2f24; text-shadow:0 .2vmin 0 rgba(255,255,255,.5); }
+  #page-head2 .ttl{ font-size:2.4vmin; font-style:italic; color:#4a3c22; }
+  #page-works{ max-height:30vh; overflow-y:auto; }
+  /* a work reads as a LINE IN A LEDGER: what it makes, and what it costs */
+  #page-works .wk{ display:flex; align-items:baseline; gap:.8vmin; cursor:pointer;
+    padding:.5vmin .8vmin; border-bottom:.14vmin solid rgba(74,60,34,.22); }
+  #page-works .wk:hover{ background:rgba(138,47,36,.07); }
+  #page-works .wk .nm{ flex:0 0 auto; font-size:1.9vmin; color:#3b2f18; }
+  #page-works .wk .of{ flex:1 1 auto; text-align:right; font-size:1.6vmin;
+    font-style:italic; color:#6b5a38; }
+  /* what he cannot do is not hidden — it is greyed, so he can see what to go
+     and find, which is the whole of the game's direction-giving */
+  #page-works .wk.no{ opacity:.45; }
+  #page-works .wk.no .nm{ color:#6b5a38; }
+  /* and what is REFUSED is not grey but MADDER — it is not a want, it is a no */
+  #page-works .wk.refused .nm{ color:#8a2f24; }
+  #page-works .wk.refused .of{ color:#8a2f24; }
   #page .tok{ width:6.4vmin; height:6.4vmin; }
   #page .tok.pick{ outline:.3vmin solid #8a2f24; outline-offset:.2vmin; }
   #hint{ left:50%; bottom:1.6vh; transform:translateX(-50%); font-size:clamp(9px,1.4vmin,12px);
@@ -706,6 +724,9 @@ window.__MENUUI=(function(){
     <div id="page-rule"></div>
     <div id="page-belt"></div>
     <div id="page-foot">the belt — what the hand can reach</div>
+    <div id="page-rule"></div>
+    <div id="page-head2"><span class="cap">T</span><span class="ttl">he Works</span></div>
+    <div id="page-works"></div>
   </div>
 </div>
 
@@ -772,7 +793,7 @@ window.__MENUUI=(function(){
 /* The registry the land, verse and river files feed into.
    Each file in countries/ calls EARTH.country({...}) — one land per file,
    loaded in a fixed order so the world is identical on every machine. */
-window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deepList:[],holeList:[],sceneList:[],scrollList:[],beastList:[],faunaList:[],floraList:[],mineralList:[],
+window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deepList:[],holeList:[],sceneList:[],scrollList:[],beastList:[],faunaList:[],floraList:[],mineralList:[],workList:[],
   country:function(c){this.list.push(c);},
   verses:function(v){this.verseList=v;},
   river:function(r){this.riverList.push(r);},
@@ -798,6 +819,10 @@ window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deep
      world/minerals.js. This is what makes the caves of Phase 1 worth
      walking into. */
   mineral:function(m){this.mineralList.push(m);},
+  /* THE NAMED WORKS — what a man can make, what it takes, where it must be
+     done, and what it REFUSES. One line to a work in world/works.js, and the
+     engine knows none of them by name. */
+  work:function(w){this.workList.push(w);},
   /* EVERY KIND OF BLOCK THE WORLD IS MADE OF, one to a file under blocks/ —
      what it is called, what it is drawn with, how long it takes to break,
      what tool serves, what it drops, and whether it stands on nothing. The
