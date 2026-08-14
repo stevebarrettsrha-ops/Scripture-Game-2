@@ -935,6 +935,42 @@ T[24]={name:'every named summit can be reached on foot',
           highest+' courses'+(bad.length?' · NO WAY UP: '+bad.join(', '):'')};
   })};
 
+T[26]={name:'a stone of the breastplate is only ever in the wall of a chamber',
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    if(!D.mineralsOf) return {pending:'no minerals'};
+    /* which substances say they want a room, and how tall a one */
+    const want={};
+    for(let ci=1;ci<=D.COUNTRIES.length;ci++)
+      for(const m of D.mineralsOf(ci)) if(m.room) want[m.n]=m.room;
+    const ids=Object.keys(want).map(Number);
+    if(!ids.length) return {pending:'no chamber stones (Phase 5 step 3)'};
+    /* SWEEP THE CAVE COUNTRY and check every one of them where it lies. A
+       stone of the breastplate found anywhere but the floor or the roof of a
+       room would mean §4's "worth the descent" was decoration. */
+    let found=0, wrong=0, cols=0, inRoom=0;
+    for(let gi=0;gi<D.RANGES.length&&cols<60000;gi++){
+      const g=D.RANGES[gi]; if(!g) continue;
+      const cx=Math.floor(g.x/B), cz=Math.floor(g.z/B);
+      for(let dx=-70;dx<=70;dx+=2) for(let dz=-70;dz<=70;dz+=2){
+        const ix=cx+dx, iz=cz+dz;
+        const c=D.cellRaw(ix,iz); if(!c) continue; cols++;
+        const sp=D.cellSpans(ix,iz);
+        for(let iy=1;iy<c.h;iy++){
+          const n=D.oreAt(ix,iy,iz); if(!n||ids.indexOf(n)<0) continue;
+          found++;
+          /* it must sit on the floor or under the roof of a run tall enough */
+          let ok=false;
+          if(sp) for(let i=0;i<sp.length;i+=2){
+            if(sp[i+1]-sp[i]<want[n]) continue;
+            if(iy===sp[i]-1||iy===sp[i+1]){ ok=true; break; } }
+          if(ok) inRoom++; else wrong++;
+        } } }
+    return {ok:found>0&&wrong===0,
+      got:ids.length+' stones want a room · '+found+' found in '+cols+
+          ' columns of cave country · '+inRoom+' in the wall of one, '+wrong+' anywhere else'};
+  })};
+
 T[25]={name:'a bore comes out the other side of a ridge',
   run:async page=>page.evaluate(async()=>{
     const D=window.__VDBG, B=D.B;

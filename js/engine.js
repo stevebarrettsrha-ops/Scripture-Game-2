@@ -416,6 +416,31 @@ TEX.flintKnife = mkTex(g=>{ g.clearRect(0,0,16,16);
   for(let k=0;k<8;k++) g.fillRect(3+k,8-k,2,2);
   g.fillStyle=C(PB.toolStone.glint); g.fillRect(4,7,FG,FG); g.fillRect(8,3,FG,FG);
   g.fillStyle=C(PB.toolStone.cord); g.fillRect(8,8,3,FG*2); },16,16,RIM);
+/* ---- THE STONES OF THE BREASTPLATE ----
+   A gem is the country's own rock with the crystal growing OUT of it — never
+   a coloured cube. Faceted, so the light breaks on it: a dark shoulder, the
+   stone itself, and one bright face where it catches. */
+function gemTex(rec){
+  return mkTex(g=>{
+    speckle(g,PB.gemBody.b,12,PB.gemBody.a,0.26);
+    /* five crystals, none of them alike, none of them square to the block */
+    const S=[[4,4,3.0],[11,5,2.4],[5,11,2.6],[12,12,2.2],[8,8,1.8]];
+    for(let k=0;k<S.length;k++){ const q=S[k];
+      const r=q[2]*(0.8+hash2(k,3.7)*0.5);
+      g.fillStyle=C(rec.s);
+      g.fillRect(q[0]-r+FG,q[1]-r+FG,r*2,r*2);       /* the shoulder under it */
+      g.fillStyle=C(rec.m);
+      g.fillRect(q[0]-r,q[1]-r,r*2,r*2);             /* the stone */
+      g.fillStyle=C(rec.g);
+      g.fillRect(q[0]-r,q[1]-r,Math.max(FG,r*0.7),Math.max(FG,r*0.7)); }  /* the glint */
+  },16,16,RIM);
+}
+TEX.sapphire = gemTex(PB.sapphire);
+TEX.jasper   = gemTex(PB.jasper);
+TEX.topaz    = gemTex(PB.topaz);
+TEX.shoham   = gemTex(PB.shoham);
+TEX.emerald  = gemTex(PB.emerald);
+TEX.ruby     = gemTex(PB.ruby);
 TEX.salt       = mkTex(g=>{ speckle(g,PB.salt.b,14,PB.salt.a,0.3);
   /* crystal: hard little facets that catch the light square-on */
   for(let k=0;k<26;k++){ const x=Math.floor(hash2(k,2.7)*32)*FG, y=Math.floor(hash2(k,5.3)*32)*FG;
@@ -440,6 +465,9 @@ function iceMat(name,tex){ const m=new THREE.MeshBasicMaterial({
 blockMat('grassTop',TEX.grassTop); blockMat('grassTopTr',TEX.grassTopTr); blockMat('grassTopTu',TEX.grassTopTu);
 blockMat('grassTopSv',TEX.grassTopSv); blockMat('grassSideSv',TEX.grassSideSv);
 blockMat('grassSide',TEX.grassSide); blockMat('dirt',TEX.dirt); blockMat('path',TEX.path);
+blockMat('sapphire',TEX.sapphire); blockMat('jasper',TEX.jasper);
+blockMat('topaz',TEX.topaz); blockMat('shoham',TEX.shoham);
+blockMat('emerald',TEX.emerald); blockMat('ruby',TEX.ruby);
 blockMat('hewnStone',TEX.hewnStone); blockMat('altar',TEX.altar);
 blockMat('kilnSide',TEX.kilnSide); blockMat('kilnTop',TEX.kilnTop);
 blockMat('flintPick',TEX.flintPick,{transparent:true});
@@ -860,7 +888,9 @@ function mineralSeed(id){ let h=2166136261;
     taken.add(sd);
     for(const land of (m.lands||[])){
       const ci=byName[land]; if(!ci) continue;    /* a land the map has not got */
-      (MIN_BY_CI[ci]||(MIN_BY_CI[ci]=[])).push({n,sd,lo:m.lo,hi:m.hi,often:m.often});
+      (MIN_BY_CI[ci]||(MIN_BY_CI[ci]=[])).push({n,sd,lo:m.lo,hi:m.hi,often:m.often,
+        /* a substance may want a PLACE and not a depth — see world/minerals.js */
+        room:(m.in==='chamber')?(m.room||8):0});
     }
   }
   /* AND THE UNION OF EVERY BAND THE LAND HOLDS, kept on the list itself. The
@@ -873,11 +903,27 @@ function mineralSeed(id){ let h=2166136261;
     list.dLo=lo; list.dHi=hi; }
 }
 /* the block of rock at (ix,iy,iz), in a column whose ground stands at c.h */
+/* ---- IS THIS BLOCK IN THE WALL OF A ROOM? ----
+   The floor under a hollow or the roof over one, where the hollow is at least
+   `room` courses tall. It is read straight off the column's own air runs, so
+   it costs nothing and asks no neighbour — a gem in the FLOOR and the CEILING
+   of a chamber is where a man walking in with a light would see one anyway. */
+function inChamberWall(c,iy,room){
+  const sp=c.spans; if(!sp) return false;
+  for(let i=0;i<sp.length;i+=2){
+    if(sp[i+1]-sp[i]<room) continue;                    /* a crawl, not a room */
+    if(iy===sp[i]-1||iy===sp[i+1]) return true;         /* its floor, or its roof */
+  }
+  return false;
+}
 function oreAt(c,ix,iy,iz){
   const list=MIN_BY_CI[c.ci]; if(!list) return 0;
   const down=c.h-iy;                       /* courses below the surface */
   for(let k=0;k<list.length;k++){ const m=list[k];
     if(down<m.lo||down>m.hi) continue;
+    /* a stone of the breastplate is not in the ground at all: it is in the
+       wall of a hollow, and no amount of digging straight down will find one */
+    if(m.room&&!inChamberWall(c,iy,m.room)) continue;
     /* seeded on the place, and on the substance, so two ores in one land do
        not fall in the same cells */
     if(hash2(ix*1.37+iy*4.11+m.sd*7.3, iz*2.53-iy*1.79+m.sd*3.1)<m.often) return m.n;
@@ -14065,7 +14111,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
             spent:flowMoved}; },
   /* ---- WHAT LIES UNDER, FOR tools/acceptance.js ---- */
   minerals:()=>MIN_DEFS.map(m=>({id:m.id,block:m.block,lands:m.lands.length,lo:m.lo,hi:m.hi,often:m.often})),
-  mineralsOf:ci=>(MIN_BY_CI[ci]||[]).map(m=>({n:m.n,name:blockName(m.n),lo:m.lo,hi:m.hi,often:m.often})),
+  mineralsOf:ci=>(MIN_BY_CI[ci]||[]).map(m=>({n:m.n,name:blockName(m.n),lo:m.lo,hi:m.hi,often:m.often,room:m.room})),
   oreAt:(ix,iy,iz)=>{ const c=cell(ix,iz); return c?oreAt(c,ix,iy,iz):0; },
   /* the same placing, from a named reach — so a test need not steer a camera
      to ask which side of a face a block lands on */

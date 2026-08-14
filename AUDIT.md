@@ -3107,6 +3107,78 @@ feels like.
 **Still ahead in Phase 5:** arches and tunnels through a ridge; crystal
 chambers with the stones of the breastplate; sea caves at the waterline.
 
+## 4ar. Round 45 — Phase 5 step 3: the stones of the breastplate ✅
+
+*§12 step 3. Acceptance **26 pass · 0 fail · 0 pending** — and test 12 passed
+on its own merits, the machine having come back to itself, which is the
+calibration of Round 43 doing exactly what it was put there for.*
+
+**1. THE CHAMBERS WERE ALREADY THERE.**
+Censused before anything was carved, which is now the standing rule:
+
+    40,833 columns of range country · 5,710 hollowed
+    1,295 air runs of eight courses or more · the tallest, sixteen
+
+`js/caves.js` has always said *"chambers where worms meet"* and it was telling
+the truth. So step 3 needed no carve at all. **What was missing was not the
+room. It was the crystal** — and that is a much smaller and much better step
+than the one I had planned.
+
+**2. AND THE SOURCE NAMES TWELVE, NOT SIX.**
+§4 of the brief lists *"onyx, sapphire, jasper, topaz, emerald, sardius"*.
+SHEMOTH 28:17-20, pulled through the extractor, names twelve in four rows:
+ruby, topaz and emerald; turquoise, sapphire and diamond; jacinth, agate and
+amethyst; beryl, shoham and jasper. **The brief was quoting from memory** —
+"onyx" is *shoham* and "sardius" is *ruby* — and the whole reason
+`tools/extract-besorah.js` exists is that nobody's memory is the source.
+
+Six ship, under the source's own names. The other six wait on pigments: the
+paint box has no turquoise, no diamond, no jacinth, no agate, no amethyst and
+no beryl, and inventing one to fill out a row is exactly the placeholder §14
+forbids.
+
+**3. A SUBSTANCE MAY WANT A PLACE AND NOT A DEPTH.**
+`in:'chamber'` — the thing does not lie in a band at all. It grows in the wall
+of a hollow, in the floor and the roof of a room, and nowhere else. That is
+the whole of what *"rare, deep, worth the descent"* means: not a rarer roll of
+the same dice, but a thing that **cannot be had by digging straight down**.
+You have to find the cave, and go in, and go further in.
+
+It costs nothing: the condition is read straight off the column's own air
+runs, asks no neighbour, and only runs for a substance that declares it.
+
+**4. TWO FAULTS THE TESTS CAUGHT, AND BOTH WERE IN THE DATA.**
+
+**Three lines that could never once have fired.** Ruby, topaz and emerald were
+first written with the lands the stones truly come from — Myanmar, Sri Lanka,
+Colombia, Zambia — and **not one of those lands has a cave in it.** Only some
+thirty-four countries have cave country at all. An ore only wants a country
+with rock in it; a chamber stone wants a country the world actually HOLLOWS.
+Test 21 caught all three the first time it was asked, which is exactly the
+silently-useless line it was written for. Each keeps its true lands and has
+cave country added: Nepal and China for the ruby, the Swiss Alps and Tanzania
+for the emerald, Japan and the Americas for the topaz — every one a place that
+stone is genuinely found.
+
+**And `room` is not where rarity goes.** It was tempting to make the rarest
+stones want the biggest rooms. It is wrong, because **the gates compound**: a
+stone wanting a ten-course chamber, in eleven countries, in one course of its
+floor, at four rolls in a hundred, exists in arithmetic and never once in the
+world. Emerald and ruby were both written that way and neither could be found
+anywhere on the earth. The room says what KIND of place holds the thing;
+`often` says how rare it is. One gate, one roll.
+
+**5. The reading.**
+
+    PASS 21 · 14 substances declared · 14 placed in 128 lands
+              Emerald 4, Ruby 2, Jasper 1, Topaz 3, Sapphire 3, Shoham 2
+              · 0 of 172,358 cells outside their own band
+    PASS 26 · 6 stones want a room · 113 found in 59,019 columns of cave
+              country · 113 in the wall of one, 0 anywhere else
+
+**Still ahead in Phase 5:** sea caves at the waterline — half-flooded, entered
+by boat or by swimming, dark, with something at the back.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

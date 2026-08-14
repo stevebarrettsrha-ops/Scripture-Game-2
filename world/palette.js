@@ -207,6 +207,21 @@ const B = {
   toolStone:   { b: P.flint, a: shade(P.flint,0.84), glint: lift(P.flint,0.38),
                  cord: mix(P.ochre,P.rawUmber,0.35) },
 
+  /* --- THE STONES OF THE BREASTPLATE (§4) ---
+     SHEMOTH 28:17-20 names twelve; these are the six the paint box already
+     had pigments for, and they are named as the SOURCE names them — shoham,
+     not onyx; ruby, not sardius. A gem is drawn as the country's own rock
+     with the crystal growing OUT of it, so it reads as a thing found in a
+     wall and not as a coloured cube: body, facet, and one bright glint where
+     a face catches the light. */
+  gemBody:     { b: shade(P.limestone,0.86), a: shade(P.limestone,0.74) },
+  sapphire:    { m: P.sapphire, s: shade(P.sapphire,0.66), g: lift(P.sapphire,0.42) },
+  jasper:      { m: P.jasper,   s: shade(P.jasper,0.68),   g: lift(P.jasper,0.34) },
+  topaz:       { m: P.topaz,    s: shade(P.topaz,0.70),    g: lift(P.topaz,0.38) },
+  shoham:      { m: P.onyx,     s: shade(P.onyx,0.62),     g: lift(P.onyx,0.46) },
+  emerald:     { m: P.malachite,s: shade(P.malachite,0.66),g: lift(P.malachite,0.40) },
+  ruby:        { m: P.cinnabar, s: shade(P.cinnabar,0.64), g: lift(P.cinnabar,0.40) },
+
   /* --- the cold end of the world --- */
   snow:        { b: P.snow, a: shade(P.snow,0.96) },
   ice:         { b: P.glacier, a: shade(P.glacier,0.94), glint: P.rime },

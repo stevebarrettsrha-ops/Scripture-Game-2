@@ -701,10 +701,14 @@ a tunnel are ONE THING: a horizontal bore is a way through where the ridge is th
 arch where it is thin, and the land decides which. **13 bores driven, 7 come out the other
 side**, the thickest crossing 27 steps of rock.
 
-**3. Crystal chambers.** §4's stones of the breastplate — onyx, sapphire, jasper, topaz,
-emerald, sardius — *"rare, deep, worth the descent"*. This is where they belong, and it
-settles the debt `world/minerals.js` names: the gems ship when there is a place that holds
-them.
+**3. Crystal chambers.** ✅ *Round 45.* Censused first, and **the chambers were already
+there** — 1,295 air runs of eight courses or more, the tallest sixteen. What was missing
+was not the room but the CRYSTAL. Six stones of the breastplate ship, named as SHEMOTH 28
+names them (shoham, not onyx; ruby, not sardius — the brief was quoting from memory, and
+the source names twelve). `in:'chamber'` is a new kind of rule in `world/minerals.js`: not
+a band of depth in a land, but the floor and the roof of a room, so no amount of digging
+straight down turns one up. **113 stones found, 113 in the wall of a chamber, none
+anywhere else.**
 
 **4. Sea caves at the waterline.** Half-flooded, entered by boat or by swimming, dark,
 with something at the back. Last because it wants the water rules of Phase 4 step 8 and
