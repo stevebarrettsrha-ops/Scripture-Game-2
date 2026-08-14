@@ -51,6 +51,12 @@
     font-family:inherit; cursor:pointer; transition:all .15s; }
   .sc-item .n{ font-size:clamp(12px,2vmin,17px); letter-spacing:.2em; text-transform:uppercase; }
   .sc-item .r{ margin-top:.5vh; font-size:clamp(9px,1.45vmin,12px); font-style:italic; color:#9a8f74; }
+  /* A PASSAGE WHOSE SCROLL IS STILL IN THE EARTH — shown, and shut. Not
+     hidden: a man should see what he has not found, so he knows to go and
+     look for it. (§5: taking a scroll up in the voyage unlocks its passage
+     here, and this page reads the very same log.) */
+  .sc-item.shut{ cursor:default; opacity:.42; }
+  .sc-item.shut:hover{ background:transparent; }
   .sc-item.sel{ border-color:var(--gold); background:rgba(212,175,55,.1); }
   .sc-item.sel .n{ color:#fff; text-shadow:0 0 12px rgba(212,175,55,.5); }
   #shelf-hint{ position:absolute; left:3vw; bottom:3.2vh; font-size:clamp(9px,1.4vmin,12px);

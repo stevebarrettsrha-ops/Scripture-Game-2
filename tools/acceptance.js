@@ -935,6 +935,57 @@ T[24]={name:'every named summit can be reached on foot',
           highest+' courses'+(bad.length?' · NO WAY UP: '+bad.join(', '):'')};
   })};
 
+T[30]={name:'a scroll taken in the voyage opens its passage in Scripture Unfolds',
+  /* THE ONLY TEST THAT OPENS THE SECOND GAME. §5 says the two share a log:
+     "unlock its long-form passage in Scripture Unfolds, which reads the same
+     log." Believing that without looking is how it came to be false — nothing
+     under scripture-unfolds/ mentioned the voyage's save at all. */
+  ownPage:true,
+  run:async (_p,ctx)=>{
+    const {open}=require('./harness.js');
+    const {browser,page}=await open({page:'scripture-unfolds/index.html'});
+    try{
+      await page.waitForFunction(()=>window.__UNFOLD&&window.STORY&&window.BESORAH,
+        null,{timeout:180000});
+      /* 1 — WITH NO VOYAGE, everything is open. A man who has not played the
+         other game has not failed to find anything. */
+      const openAll=await page.evaluate(()=>{
+        localStorage.removeItem('voyage:state');
+        window.__UNFOLD.rebuild();
+        const it=[...document.querySelectorAll('.sc-item')];
+        return {n:it.length, shut:it.filter(e=>e.classList.contains('shut')).length,
+          found:window.__UNFOLD.found()};
+      });
+      /* 2 — WITH A VOYAGE that has taken nothing, every passage is shut */
+      const none=await page.evaluate(()=>{
+        localStorage.setItem('voyage:state',JSON.stringify({v:8,sr:[]}));
+        window.__UNFOLD.rebuild();
+        const it=[...document.querySelectorAll('.sc-item')];
+        return {n:it.length, shut:it.filter(e=>e.classList.contains('shut')).length};
+      });
+      /* 3 — AND TAKING THE SCROLL OF THE BEGINNING opens the passages drawn
+         from that very book, and only those. */
+      const one=await page.evaluate(()=>{
+        localStorage.setItem('voyage:state',JSON.stringify({v:8,sr:['bereshith']}));
+        window.__UNFOLD.rebuild();
+        const it=[...document.querySelectorAll('.sc-item')];
+        const openIds=[];
+        for(const s of window.STORY.list())
+          if(s.book==='bereshith') openIds.push(s.id);
+        return {n:it.length, shut:it.filter(e=>e.classList.contains('shut')).length,
+          fromBereshith:openIds.length};
+      });
+      const ok = openAll.shut===0 && openAll.found===null &&
+                 none.n>0 && none.shut===none.n &&
+                 one.shut===one.n-one.fromBereshith && one.fromBereshith>0;
+      return {ok, got:'the shelf holds '+openAll.n+' passages · '+
+        'no voyage: '+openAll.shut+' shut · '+
+        'a voyage with nothing taken: '+none.shut+' of '+none.n+' shut · '+
+        'the scroll of the beginning taken: '+one.shut+' shut, '+
+        one.fromBereshith+' of that book opened'};
+    } finally { await browser.close(); }
+  }};
+
 T[29]={name:'taking a scroll plays a scene at the place, holding that scroll\'s own verse',
   run:async page=>page.evaluate(async()=>{
     const D=window.__VDBG, B=D.B;

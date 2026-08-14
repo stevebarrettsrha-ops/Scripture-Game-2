@@ -25,7 +25,11 @@ async function open(opts){
   const errs=[];
   page.on('pageerror',e=>errs.push(String((e&&e.stack)||(e&&e.message)||e)));
   page.on('console',m=>{ if(m.type()==='error') errs.push('console: '+m.text()); });
-  await page.goto('file://'+path.join(ROOT,'index.html'));
+  /* the second game is opened by the same machinery — it is the same engine,
+     the same world and the same Besorah, and the acceptance suite has to be
+     able to ask it questions too (§5's handshake) */
+  await page.goto('file://'+path.join(ROOT,opts.page||'index.html'));
+  if(opts.page) return {browser,page,errs};
   /* the world builds under the loading screen; the menu is the sign it stands */
   await page.waitForFunction(()=>window.__VDBG&&document.getElementById('menu')&&
     getComputedStyle(document.getElementById('menu')).display!=='none',null,{timeout:180000});

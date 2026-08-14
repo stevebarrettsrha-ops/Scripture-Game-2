@@ -28,6 +28,60 @@
     return a;
   }
 
+  /* ================= THE HANDSHAKE WITH THE VOYAGE =================
+     §5: taking a scroll up in the voyage must *"unlock its long-form passage
+     in Scripture Unfolds, which reads the same log."*
+
+     IT DID NOT. Neither this file nor any other under scripture-unfolds/ so
+     much as mentioned the voyage's save; the shelf listed every passage it
+     had, always, to everybody. The two games shared an engine, a world and a
+     Besorah, and shared nothing at all about what the traveller had actually
+     done — which is the whole of what makes finding a scroll matter.
+
+     THE LOG IS ONE STRING UNDER ONE KEY. `voyage:state`, written by the
+     voyage's own `saveState`, carrying `sr` — the ids of the scrolls taken
+     up. This reads it and never writes it: the second game is a READER of
+     the first, and a bug here must never be able to cost anybody a voyage.
+
+     AND WITH NO VOYAGE AT ALL, EVERYTHING IS OPEN. Someone who opens this
+     page on its own has not failed to find anything — they have simply not
+     played the other game, and locking them out of their own scrolls to
+     enforce a rule about a save file they do not have would be absurd. The
+     gate closes only when there IS a log to gate against. */
+  const VOYAGE_KEY='voyage:state';
+  function voyageLog(){
+    let raw=null;
+    try{ raw=localStorage.getItem(VOYAGE_KEY); }catch(e){}
+    if(!raw) return null;
+    try{ return JSON.parse(raw); }catch(e){ return null; }
+  }
+  /* the marks fold away — ḆERĔSHITH and bereshith are the one book */
+  function norm(t){ return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().replace(/[^a-z0-9]/g,''); }
+  /* WHICH BOOKS HE HAS FOUND. The voyage's scrolls name their book the way a
+     man reads it ('BERĔSHITH'); a passage here names it the way the Besorah
+     files it ('bereshith'). They are matched on the folded name, through
+     world/scrolls.js, which both games load. */
+  function foundBooks(){
+    const log=voyageLog();
+    if(!log||!log.sr) return null;              /* no voyage: nothing is gated */
+    const taken=new Set(log.sr);
+    const out=new Set();
+    const list=(window.EARTH&&EARTH.scrollList)||[];
+    for(const sc of list){
+      if(!taken.has(sc.id)) continue;
+      const want=norm(sc.book||'');
+      if(BESORAH&&BESORAH.list) for(const k of BESORAH.list()){
+        const bk=BESORAH.get(k);
+        if(!bk) continue;
+        if(norm(k)===want||norm(bk.hebrew||'')===want||norm(bk.english||'')===want){
+          out.add(k); break; }
+      }
+      out.add(want);                            /* and by its own folded name */
+    }
+    return out;
+  }
+
   /* ---------------- THE SHELF ---------------- */
   let sel=0;
   function items(){ return Array.prototype.slice.call(D.querySelectorAll('.sc-item')); }
@@ -35,14 +89,23 @@
   function buildShelf(){
     const list=$('shelf-list');
     list.innerHTML='';
+    const found=foundBooks();          /* null when there is no voyage at all */
     for(const s of STORY.list()){
       const b=D.createElement('button');
-      b.className='sc-item';
+      /* A PASSAGE IS OPEN IF ITS SCROLL HAS BEEN TAKEN UP, or if there is no
+         voyage to ask. What is shut is SHOWN and greyed and says why — the
+         same rule the works page keeps: a man should be able to see what he
+         has not got yet, so he knows what to go and do. */
+      const open=!found||found.has(s.book)||found.has(norm(s.book));
+      b.className='sc-item'+(open?'':' shut');
       const bk=BESORAH.has(s.book)?BESORAH.get(s.book):null;
       b.innerHTML='<div class="n">'+s.name+'</div>'+
-        '<div class="r">'+(bk?bk.hebrew+' &mdash; '+bk.english:'')+'</div>';
-      b.onclick=()=>openScroll(s.id);
-      b.onmouseover=()=>{ sel=items().indexOf(b); paint(); };
+        '<div class="r">'+(open?(bk?bk.hebrew+' &mdash; '+bk.english:'')
+          :'the scroll of this passage is still hidden in the earth')+'</div>';
+      if(open){
+        b.onclick=()=>openScroll(s.id);
+        b.onmouseover=()=>{ sel=items().indexOf(b); paint(); };
+      }
       list.appendChild(b);
     }
     paint();
@@ -66,6 +129,9 @@
   function hideShelf(){ $('shelf').style.display='none'; }
 
   function openScroll(id){ hideShelf(); STORY.play(id); }
+
+  /* the voyage's log, and what it has opened — for the acceptance suite */
+  window.__UNFOLD={ log:voyageLog, found:foundBooks, rebuild:buildShelf };
 
   /* when a scroll runs out, or is left, the shelf comes back */
   window.__STORY_DONE=function(){ showShelf(); };

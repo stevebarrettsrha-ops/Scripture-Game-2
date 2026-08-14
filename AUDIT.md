@@ -3371,6 +3371,64 @@ in place.
 **Still ahead in Phase 7:** the six missing long films, and the handshake
 between the ship's log and Scripture Unfolds.
 
+## 4av. Round 49 — Phase 7 step 4: the handshake, which did not exist ✅
+
+*§13 step 4, taken BEFORE step 3 on purpose. Acceptance **30 pass · 0 fail ·
+0 pending**.*
+
+**1. WHY THIS STEP WENT FIRST.**
+The plan put the six long films at step 3 and the log handshake at step 4. I
+took step 4 first, because §13 step 4 says *"verify the handshake rather than
+assume it"* — and the handshake is the pipe six films would flow through. It
+is far cheaper to look at a pipe than to push six films down it and find out.
+
+**2. IT DID NOT EXIST.**
+Not "it was broken". **Nothing under `scripture-unfolds/` so much as mentioned
+the voyage's save** — no `voyage:state`, no `localStorage`, nothing. Grep
+returns empty. `buildShelf` listed every passage it had, always, to everybody.
+
+The two games shared an engine, a world, a Besorah and a manifest, and shared
+**nothing at all about what the traveller had actually done**. §5 describes
+the opposite in plain words: taking a scroll *"unlocks its long-form passage
+in Scripture Unfolds, which reads the same log"*. It was written down, and it
+was not true, and nobody had looked.
+
+**3. THE LOG IS ONE STRING UNDER ONE KEY.**
+`voyage:state`, written by the voyage's own `saveState`, carrying `sr` — the
+ids of the scrolls taken up. The second game reads it, and **reads it and
+never writes it**: it is a READER of the first, and a bug here must never be
+able to cost anybody a voyage.
+
+The two name their books differently — a scroll says `BERĔSHITH` the way a man
+reads it, a passage says `bereshith` the way the Besorah files it — so they
+are matched on the folded name, marks and all dropped, through
+`world/scrolls.js`, which both games already load.
+
+**4. AND WITH NO VOYAGE AT ALL, EVERYTHING IS OPEN.**
+This is the part that would have been easy to get wrong. Someone who opens
+Scripture Unfolds on its own has not *failed to find* anything — they have
+simply not played the other game, and locking them out of their own scrolls to
+enforce a rule about a save file they do not have would be absurd. **The gate
+closes only when there is a log to gate against.**
+
+And what is shut is SHOWN, greyed, saying *"the scroll of this passage is
+still hidden in the earth"* — the same rule the works page keeps. A man should
+be able to see what he has not got, so he knows what to go and do.
+
+**5. The reading.**
+
+    PASS 30 · the shelf holds 2 passages
+              · no voyage: 0 shut
+              · a voyage with nothing taken: 2 of 2 shut
+              · the scroll of the beginning taken: 0 shut, 2 of that book opened
+
+This is **the only test in the suite that opens the second game**, and the
+harness was taught to do it in one line — the same machinery, because it is
+the same engine.
+
+**Still ahead in Phase 7:** the six missing long films, which now have a
+working shelf to appear on.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

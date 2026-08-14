@@ -760,9 +760,14 @@ verse, which is the distinction §5 insists on.
 tool, so every caption is a fetch or narration in the game's own voice and never a
 paraphrase.
 
-**4. The log and Scripture Unfolds.** Taking a scroll writes it to the ship's log AND
-unlocks its long-form passage in the second game, which reads the same log. Verify the
-handshake rather than assume it.
+**4. The log and Scripture Unfolds.** ✅ *Round 49, taken BEFORE step 3 — it is the pipe
+six films would flow through, and it was cheap to measure.* **It did not exist.** Nothing
+under `scripture-unfolds/` so much as mentioned the voyage's save; the shelf listed every
+passage it had, always, to everybody. The two games shared an engine, a world and a
+Besorah and shared nothing about what the traveller had done. It reads `voyage:state` now
+— reads and never writes — and a passage whose scroll is still in the earth is shown and
+greyed and says why. **With no voyage at all, everything is open**: someone who has not
+played the other game has not failed to find anything.
 
 ### What I will not do
 
