@@ -7096,10 +7096,67 @@ function scrollSpotClear(x,z){
     if(Math.hypot(x-w[0],z-w[1])<keep) return false; }
   return true;
 }
+/* ---- WHERE A GREAT SCROLL BELONGS — Phase 7 ----
+   §5: *"With caves in the world, put them where they belong."* Phase 5 built
+   the caves and the summits; this is what they were built for.
+
+   A scroll may name a PLACE instead of taking its country's bearing, and the
+   engine knows no scroll by name — it reads `at` and nothing else:
+
+     at:{ mount:'Mount Sinai' }   the highest ground of that named height
+     at:{ cave:true }             deep in a hollow, under real rock
+
+   THE POINT OF IT IS THE COST. A scroll lying on open grass two hundred paces
+   from a village is a thing a man walks past. The same scroll at the top of a
+   climb, or at the end of a dark passage with a torch in his hand, is a thing
+   he went and GOT — and that is the whole of what §5 means by making the
+   great scrolls cost something. */
+function scrollAtMount(name){
+  for(const L of LANDMARKS){
+    if(L.kind!=='mount'||L.n!==name) continue;
+    const [mx,mz]=llToWorld(L.lat,L.lon);
+    const ix0=Math.floor(mx/B), iz0=Math.floor(mz/B);
+    let best=null;
+    for(let dx=-40;dx<=40;dx++) for(let dz=-40;dz<=40;dz++){
+      const c=cellRaw(ix0+dx,iz0+dz); if(!c||c.kind==='floe') continue;
+      if(!best||c.h>best.h) best={h:c.h,ix:ix0+dx,iz:iz0+dz};
+    }
+    if(best) return {x:(best.ix+0.5)*B, z:(best.iz+0.5)*B};
+  }
+  return null;
+}
+/* the DARKEST hollow near a place — and darkness is the point, not depth.
+   Scored on rock overhead first, this put the Cave of Treasures thirty-three
+   courses under a mountain at a light of 0.85: deep, and standing in a shaft
+   of daylight, because a column can lie far under the rock and still be a few
+   paces from a mouth. §5 asks for a cave that is DARK and wants a torch, so
+   the light is what is scored — `caveLightAt` is the very same field the
+   mesher bakes into the walls, so the search and the eye agree. */
+function scrollInCave(cx,cz,R){
+  const ix0=Math.floor(cx/B), iz0=Math.floor(cz/B), rr=Math.floor(R/B);
+  let best=null;
+  for(let dx=-rr;dx<=rr;dx+=2) for(let dz=-rr;dz<=rr;dz+=2){
+    const ix=ix0+dx, iz=iz0+dz;
+    const c=cellRaw(ix,iz); if(!c||!c.spans) continue;
+    for(let i=0;i<c.spans.length;i+=2){
+      const lo=c.spans[i], hi=c.spans[i+1];
+      if(hi-lo<2) continue;                       /* he must stand up in it */
+      if(c.h-hi<4) continue;                      /* real rock over him, not a lip */
+      const lit=caveLightAt(ix,iz,lo+0.6);        /* what the wall itself will be */
+      if(!best||lit<best.lit)
+        best={lit, over:c.h-hi, x:(ix+0.5)*B, z:(iz+0.5)*B, refY:(lo+0.6)*B};
+    } }
+  return best;
+}
 /* set every scroll down once the country sites are known */
 function placeScrolls(){
   if(_scrollPlaced||!SITES.length) return; _scrollPlaced=true;
   for(const sc of SCROLLS){
+    /* ---- A NAMED PLACE OVERRIDES THE COUNTRY AND ITS BEARING ---- */
+    if(sc.at&&sc.at.mount){
+      const p=scrollAtMount(sc.at.mount);
+      if(p){ sc.x=p.x; sc.z=p.z; sc.m=null; sc.placed='mount'; continue; }
+    }
     let ci=-1;
     for(let i=0;i<COUNTRIES.length;i++) if(COUNTRIES[i].n===sc.country){ ci=i; break; }
     const st=ci>=0?SITES[ci]:null;
@@ -7128,6 +7185,15 @@ function placeScrolls(){
         const c=landAtWorld(tx,tz);
         if(c&&c.kind!=='wall'&&c.kind!=='floe'){ x=tx; z=tz; break; } }
     }
+    /* ---- AND A CAVE SCROLL GOES IN, from the ground its country gave it ---- */
+    if(sc.at&&sc.at.cave){
+      const p=scrollInCave(isNaN(x)?st.x:x, isNaN(z)?st.z:z, 900)
+           || scrollInCave(st.x,st.z,2600);
+      if(p){ sc.x=p.x; sc.z=p.z; sc.refY=p.refY; sc.m=null; sc.placed='cave'; continue; }
+      /* no hollow anywhere near it — it lies on the open ground it would have
+         had anyway, rather than not existing. Said out loud in the probe. */
+      sc.placed='no cave found';
+    }
     sc.x=x; sc.z=z; sc.m=null;
   }
 }
@@ -7140,14 +7206,18 @@ function updateScrolls(px,pz){
       /* if the town has since raised a wall, a stall or a well over the very
          stone (an old save, or a layout the placer could not foresee), the
          scroll steps out along its bearing until it stands in the open */
-      if(!sc._chk){ sc._chk=true;
+      if(!sc._chk&&!sc.placed){ sc._chk=true;      /* a placed scroll is not nudged:
+             the nudge walks it along its bearing, which would walk it out of
+             the very cave it was put in */
         for(let t2=0;t2<24;t2++){
           if(!(blockedByStructureNPC(sc.x,sc.z)||blockedBySolid(sc.x,sc.z,1.0)||treeBlocked(sc.x,sc.z))) break;
           const nx=sc.x+Math.sin(sc.bearing)*12, nz=sc.z+Math.cos(sc.bearing)*12;
           const nc=landAtWorld(nx,nz); if(!nc||nc.kind==='wall'||nc.kind==='floe') break;
           sc.x=nx; sc.z=nz; } }
       sc.m=makeScrollProp(); scene.add(sc.m);
-      sc.y=groundInfo(sc.x,sc.z).y;            /* the true walking surface, pier decks included */
+      /* the true walking surface — and for a scroll laid in a hollow, the
+         floor OF THAT HOLLOW, which is what the reference height is for */
+      sc.y=groundInfo(sc.x,sc.z,sc.refY).y;
       sc.m.position.set(sc.x,sc.y,sc.z); sc.m.rotation.y=hash2(sc.x,sc.z)*6.28; }
     if(sc.m){ sc.m.visible=near;
       if(near&&sc.m.userData.glow)
@@ -13745,6 +13815,7 @@ window.__WORLD={
   running:()=>running, setRunning:v=>{running=v;},
   /* read-only probes for the audit harness (nothing in the game reads these) */
   sites:()=>SITES, villages:()=>activeVillages, scrolls:()=>SCROLLS,
+  placeScrolls,
   cell,groundInfo,solidTopAt,houseTopAt,takeFlight,alight,
   camDbg:()=>({seat:{x:camPos.x,y:camPos.y,z:camPos.z},camClear,camFloor}),
 };

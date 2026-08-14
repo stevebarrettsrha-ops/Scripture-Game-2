@@ -3249,6 +3249,69 @@ carve cost five per cent while the box was sixty per cent slow, and the
 land-list check that caught three stones declared in countries with no caves
 in them.
 
+## 4at. Round 47 — Phase 7 step 1: the great scrolls put where they belong ✅
+
+*§13 step 1. Acceptance **28 pass · 0 fail · 0 pending**, with two new ranges
+standing in the world.*
+
+**1. THIS IS WHAT PHASE 5 WAS FOR.**
+§5: *"Make the great scrolls cost something. With caves in the world, put them
+where they belong."* The caves and the summits exist now, and a scroll lying
+on open grass two hundred paces from a village is a thing a man walks past.
+
+A scroll may now name a PLACE instead of taking its country's bearing —
+`at:{mount:'Mount Sinai'}` or `at:{cave:true}` — and **the engine knows no
+scroll by name**: it reads `at` and nothing else, the same rule the minerals,
+the works, the beasts and the flora all keep.
+
+**2. AND THE WORLD HAD NOWHERE TO PUT TWO OF THEM.**
+The first run reported `no cave found` for both cave scrolls. Neither Iraq nor
+Ethiopia has a single hollow anywhere in it — they were not among the
+thirty-four lands with cave country.
+
+§5 had already said what to do about that: *"Add the `kind:'range'` and
+`kind:'mount'` entries these need to `world/landmarks.js` with true
+elevations."* **The Zagros (4,548 m) and the Simien Mountains (4,550 m)** are
+those entries, and they were added because the scrolls asked for them and the
+world answered that it had none — which is a better reason than a map having
+a gap in it.
+
+**3. DARKNESS IS THE POINT, NOT DEPTH — and scoring the wrong one showed it.**
+The cave search first took the column with the most rock over its head. That
+put the Cave of Treasures **thirty-three courses under a mountain at a light
+of 0.85**: deep, and standing in a shaft of daylight, because a column can lie
+far under the rock and still be a few paces from a mouth.
+
+§5 asks for a cave that is *dark, torch required*. So the LIGHT is what is
+scored, using `caveLightAt` — the very field the mesher bakes into the walls,
+so the search and the eye agree by construction.
+
+    adam-eve-1  light 0.85  →  0.04
+    chanok      light 0.14  →  0.00
+
+**4. And a scroll nobody can reach is not a reward, it is a bug.**
+§5 asks for *"placement verified on reachable ground"*, so test 28 does not
+take it on trust: it floods the hollow itself, column to column and course to
+course, and asks whether the air the scroll lies in ever comes up into the
+day. Both do — one in 1,050 steps, the other in 4,265.
+
+**5. The reading.**
+
+    PASS 28 · 3 scrolls name a place
+              adam-eve-1 in a cave: light 0.04 (dark ✓), reaches the day ✓
+              chanok     in a cave: light 0.00 (dark ✓), reaches the day ✓
+              shamoth    on Mount Sinai: 94 of 94 ✓
+
+**6. And Ararat is left empty, deliberately.**
+§5 says *"Mount Ararat — the scroll on the summit"* and does not say which
+scroll. None of the eight is the account of the flood, and choosing one to
+stand for it would be inventing an assignment the brief did not make. Ararat
+waits, and `world/scrolls.js` says so where a reader will find it — so the
+omission is a decision and not an oversight.
+
+**Still ahead in Phase 7:** the short scene on discovery; the six missing long
+films; and the handshake between the log and Scripture Unfolds.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

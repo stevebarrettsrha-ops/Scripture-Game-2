@@ -935,6 +935,59 @@ T[24]={name:'every named summit can be reached on foot',
           highest+' courses'+(bad.length?' · NO WAY UP: '+bad.join(', '):'')};
   })};
 
+T[28]={name:'a great scroll lies where it costs something, and can still be got at',
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    const SC=D.SCROLLS||[];
+    if(!SC.length) return {ok:false,got:'no scrolls'};
+    D.placeScrolls&&D.placeScrolls();
+    const placed=SC.filter(s=>s.at);
+    if(!placed.length) return {pending:'no scroll names a place (Phase 7)'};
+    const rows=[]; let bad=0;
+    for(const sc of placed){
+      if(sc.at.mount){
+        /* ON A SUMMIT: it must be at or very near the top of that height,
+           not on its skirt — the climb IS the cost */
+        const ix=Math.floor(sc.x/B), iz=Math.floor(sc.z/B);
+        const c=D.cellRaw(ix,iz);
+        let top=0;
+        for(let dx=-40;dx<=40;dx+=2) for(let dz=-40;dz<=40;dz+=2){
+          const q=D.cellRaw(ix+dx,iz+dz); if(q&&q.h>top) top=q.h; }
+        const ok=!!c&&c.h>=top-1;
+        if(!ok) bad++;
+        rows.push(sc.id+' on '+sc.at.mount+': '+(c?c.h:'?')+' of '+top+(ok?' ✓':' ✗'));
+        continue;
+      }
+      /* IN A CAVE: it must be DARK, and it must be REACHABLE — a scroll in a
+         sealed pocket is not a reward, it is a bug nobody can ever see. The
+         reach is walked through the air runs themselves, out to daylight. */
+      const g=D.groundInfo(sc.x,sc.z,sc.refY);
+      const lit=D.caveLightAt(Math.floor(sc.x/B),Math.floor(sc.z/B),g.y/B);
+      const dark=lit<0.35;
+      /* flood the hollow, column to column, and see if it ever reaches a
+         place open to the sky */
+      const seen=new Set(), q=[[Math.floor(sc.x/B),Math.floor(sc.z/B),Math.floor(g.y/B)]];
+      let out=false, n=0;
+      while(q.length&&n<9000&&!out){
+        const [ix,iz,iy]=q.pop(); n++;
+        const k=ix+','+iz+','+iy; if(seen.has(k)) continue; seen.add(k);
+        const c=D.cellRaw(ix,iz); if(!c) { out=true; break; }
+        if(iy>=c.h-1){ out=true; break; }        /* it has come up into the day */
+        if(!c.spans) continue;
+        let inRun=false;
+        for(let i=0;i<c.spans.length;i+=2)
+          if(iy>=c.spans[i]&&iy<=c.spans[i+1]) inRun=true;
+        if(!inRun) continue;
+        for(const d of [[1,0,0],[-1,0,0],[0,0,1],[0,0,-1],[0,1,0],[0,-1,0]])
+          q.push([ix+d[0],iz+d[2],iy+d[1]]);
+      }
+      if(!dark||!out) bad++;
+      rows.push(sc.id+' in a cave: light '+lit.toFixed(2)+(dark?' (dark ✓)':' (NOT DARK ✗)')+
+        ', '+(out?'reaches the day ✓':'SEALED IN ✗')+' in '+n+' steps');
+    }
+    return {ok:bad===0, got:placed.length+' scrolls name a place · '+rows.join(' · ')};
+  })};
+
 T[27]={name:'the sea has cut caves at the waterline, open to the water',
   run:async page=>page.evaluate(async()=>{
     const D=window.__VDBG, B=D.B;

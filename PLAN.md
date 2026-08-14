@@ -729,3 +729,42 @@ Measure first — and if the world already does the thing, ship the TEST and not
 
 **I will not carve a staircase.** A path cut to a summit is a level designer's answer to a
 terrain problem; it would read as built, and nothing built it.
+
+## 13. Phase 7 — the scrolls: the order
+
+*"Six new films, BESORAH extraction, short in-world scenes on discovery, the great scrolls
+relocated into the caves and summits Phase 5 built."*
+
+**The extraction is already done.** `tools/extract-besorah.js` shipped in Round 41 — §5 asks
+for it by name and it had never been written. It quotes, searches, lists the books, emits
+this project's own format, and **checks every verse the world ships against the source**.
+Struck off rather than done twice.
+
+### The order
+
+**1. The great scrolls put where they belong.** ✅ *Round 47.* §5: *"Make the great scrolls
+cost something."* Phase 5 built the caves and the summits for exactly this. A scroll may
+now name a PLACE — `at:{mount:…}` or `at:{cave:true}` — and the engine knows no scroll by
+name, it reads `at`. **The Scroll of the Going Out stands at 94 of 94 on Sinai; the Cave
+of Treasures and Ḥanoḵ lie in the dark at light 0.04 and 0.00, both reachable.**
+
+**2. The short scene on discovery.** §5: taking a scroll must fire a 15–30 s in-world
+scene at the place it was found, camera marks over the actual landscape, one verse held.
+*"This is what makes discovery feel like reward."* The cutscene engine exists; six scrolls
+have no scene.
+
+**3. The six missing long films.** Only two of eight have them. Text extracted through the
+tool, so every caption is a fetch or narration in the game's own voice and never a
+paraphrase.
+
+**4. The log and Scripture Unfolds.** Taking a scroll writes it to the ship's log AND
+unlocks its long-form passage in the second game, which reads the same log. Verify the
+handshake rather than assume it.
+
+### What I will not do
+
+**I will not assign a scroll to Ararat.** §5 says *"Mount Ararat — the scroll on the
+summit"* and does not say which. None of the eight is the account of the flood, and
+choosing one to stand for it would be inventing an assignment the brief did not make.
+Ararat waits for a scroll that belongs on it, and `world/scrolls.js` says so where a
+reader will find it.
