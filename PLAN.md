@@ -710,9 +710,16 @@ a band of depth in a land, but the floor and the roof of a room, so no amount of
 straight down turns one up. **113 stones found, 113 in the wall of a chamber, none
 anywhere else.**
 
-**4. Sea caves at the waterline.** Half-flooded, entered by boat or by swimming, dark,
-with something at the back. Last because it wants the water rules of Phase 4 step 8 and
-the light falloff of Phase 1, and both now exist.
+**4. Sea caves at the waterline.** ✅ *Round 46.* Censused first: of 2,629 coastal columns
+and 628 of them true sea cliff, **seven** had any hollow at the waterline. `MIN_H` keeps
+the carve out of low country and `FLOOR` keeps it off the bottom — both right for a
+mountain tunnel and both exactly wrong for a cave the sea cut, which is LOW by definition.
+A band pinned to the waterline rather than to the bedding, gated on the column being low.
+**Seven became eighty-four, every one with rock standing over it.** *The something at the
+back is NOT here* — §8 asks for it and Phase 8 is where it belongs, with a schematic
+format and a capture tool; a hoard invented now would be placeholder that had to move.
+
+**PHASE 5 IS COMPLETE.**
 
 ### What I will not do
 

@@ -224,6 +224,36 @@ function tileQuiet(x,z){
    a buried plate under a plain: it exists only in the narrow ribbon of
    country where the ground surface passes through it, which on steep ground
    is exactly the foot of the cliff. */
+/* ---- THE SEA CAVES — Phase 5 step 4 ----
+   §8: "Sea caves at the waterline, now possible: half-flooded, entered by
+   boat or swimming, dark, with something at the back."
+
+   Censused first: of 2,629 coastal columns and 628 of them true sea CLIFF,
+   seven had any hollow at the waterline at all. One in ninety.
+
+   The reason is the same one as everything else in this file: `MIN_H` keeps
+   the carve out of low country and `FLOOR` keeps it off the bottom, both of
+   them right for a mountain tunnel and both of them exactly wrong for a cave
+   the sea cut. A sea cave is not deep. It is a notch at the waterline in a
+   cliff the swell has been working at, and it is LOW by definition.
+
+   So it is a band like the soft courses above, but pinned to the WATERLINE
+   rather than to the bedding — and gated on the column being LOW, which on
+   this earth means a coast or a valley floor. Where the sea lies beside it
+   the band is laid open and a man may swim or row in; where it does not, it
+   is a small hollow in low ground and nothing is harmed.
+
+   WHAT IS NOT HERE: the something at the back. §8 asks for it and §7 is where
+   it belongs — authored places, a schematic format and a capture tool, none
+   of which exist yet. A wreck or a hoard invented here would be the same
+   placeholder §14 forbids, and it would have to be moved when Phase 8 comes.
+   The CAVE ships; what is in it waits for the phase that authors places. */
+const SEA_LO     = 1;         /* the band sits at the waterline itself */
+const SEA_T      = 4;         /* three courses — a man swims or rows in */
+const SEA_MIN_H  = 6;         /* the lowest cliff the sea will cut */
+const SEA_MAX_H  = 17;        /* and the highest: above this it is not a notch */
+const SEA_TH     = 0.50;      /* how much of the coast the swell has worked at */
+
 const LEDGE_P    = 13;        /* the BEDDING: how often a soft course recurs */
 const LEDGE_FREQ = 0.00026;   /* and how slowly the bedding tilts (~4,000 units) */
 const LEDGE_TH   = 0.575;     /* how much of cave country is bedded at all */
@@ -261,7 +291,11 @@ function boresNear(x,z){
 
 const _iv=[];                 /* scratch: the intervals of this column, reused */
 function spansAt(x,z,h){
-  if(h<MIN_H) return null;                                   /* gate 1 */
+  /* a SEA CAVE is low by nature and must be let past the gate that keeps
+     tunnels out of low country — but only in the narrow band of heights a
+     sea cliff actually stands at */
+  const lowCoast=(h>=SEA_MIN_H&&h<=SEA_MAX_H);
+  if(h<MIN_H&&!lowCoast) return null;                        /* gate 1 */
   /* A BORE IS NOT A WORM and does not pass the worms' gates: it is placed,
      it is rare, and its bucket is empty for all but a few thousand columns
      on the earth, which is a cheaper gate than either of the two below. */
@@ -306,6 +340,13 @@ function spansAt(x,z,h){
       if(vr<1.4) continue;
       _iv.push(b2.y-vr*0.55, b2.y+vr);           /* a round head on a low springing */
     } }
+  /* ---- AND THE SEA CAVE, where the swell has been at a low cliff ----
+     Pinned to the waterline, so wherever the land falls to the sea beside it
+     the notch is laid open and can be swum or rowed into. */
+  if(lowCoast){
+    const swell=fbm(x*0.00094+77.3, z*0.00094-12.9);
+    if(swell>SEA_TH) _iv.push(SEA_LO, SEA_LO+SEA_T);
+  }
   /* ---- AND THE SOFT BAND, asked whether a worm ran here or not ----
      An undercut is not a cave and does not wait on one. Two fields, and both
      of them behind the three gates above, so the ordinary earth never asks. */

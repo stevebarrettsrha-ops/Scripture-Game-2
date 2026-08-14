@@ -935,6 +935,40 @@ T[24]={name:'every named summit can be reached on foot',
           highest+' courses'+(bad.length?' · NO WAY UP: '+bad.join(', '):'')};
   })};
 
+T[27]={name:'the sea has cut caves at the waterline, open to the water',
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    const S=window.__WORLD.sites();
+    let coast=0, cliff=0, atWater=0, openSea=0;
+    const spots=[];
+    for(const g of D.RANGES) spots.push([g.x,g.z]);
+    for(let i=0;i<10;i++) if(S[i]) spots.push([S[i].x,S[i].z]);
+    for(const [sx,sz] of spots){
+      const cx=Math.floor(sx/B), cz=Math.floor(sz/B);
+      for(let dx=-120;dx<=120;dx+=2) for(let dz=-120;dz<=120;dz+=2){
+        const ix=cx+dx, iz=cz+dz;
+        const c=D.cellRaw(ix,iz); if(!c||c.kind==='floe') continue;
+        /* A COAST is land with open sea beside it — no cell at all next door */
+        let sea=false;
+        for(const d of [[1,0],[-1,0],[0,1],[0,-1]])
+          if(!D.cellRaw(ix+d[0],iz+d[1])){ sea=true; break; }
+        if(!sea) continue;
+        coast++;
+        if(c.h>=8) cliff++;
+        const sp=D.cellSpans(ix,iz); if(!sp||!sp.length) continue;
+        for(let i=0;i<sp.length;i+=2){
+          if(sp[i]>4) continue;                     /* not down at the water */
+          atWater++;
+          /* and it must have rock over it, or it is a notch and not a cave */
+          if(sp[i+1]<c.h-1) openSea++;
+          break;
+        } } }
+    return {ok:openSea>=20,
+      got:coast+' coastal columns · '+cliff+' of them sea cliff · '+
+          atWater+' with a hollow at the waterline, '+openSea+
+          ' of those with rock standing over it'};
+  })};
+
 T[26]={name:'a stone of the breastplate is only ever in the wall of a chamber',
   run:async page=>page.evaluate(async()=>{
     const D=window.__VDBG, B=D.B;

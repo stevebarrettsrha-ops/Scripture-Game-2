@@ -3179,6 +3179,76 @@ anywhere on the earth. The room says what KIND of place holds the thing;
 **Still ahead in Phase 5:** sea caves at the waterline — half-flooded, entered
 by boat or by swimming, dark, with something at the back.
 
+## 4as. Round 46 — Phase 5 step 4: the sea caves. PHASE 5 COMPLETE ✅
+
+*§12 step 4, the last of the phase. Acceptance **27 pass · 0 fail · 0 pending**.*
+
+**1. THE CENSUS, and it is the same shape as the other three.**
+
+    2,629 coastal columns · 628 of them true sea CLIFF
+    ·   7 with any hollow at the waterline
+
+Seven. One coastal cliff in ninety.
+
+**2. AND THE REASON WAS TWO RULES THAT ARE BOTH RIGHT.**
+`MIN_H` keeps the carve out of low country; `FLOOR` keeps it off the bottom.
+Both are correct for a mountain tunnel — they are why the ordinary world is
+cheap and why the bedrock is sound — and both are **exactly wrong for a cave
+the sea cut**, because a sea cave is not deep. It is a notch at the waterline
+in a cliff the swell has been working at, and it is LOW by definition.
+
+So the band is pinned to the WATERLINE rather than to the bedding, and the
+gate is inverted: not *"is there rock enough above"* but *"is this column low
+enough to be a sea cliff at all"*. Where the sea lies beside it the notch is
+laid open and can be swum or rowed into; where it does not, it is a small
+hollow in low ground and nothing is harmed.
+
+    after: 84 with a hollow at the waterline · 84 of them with rock over it
+
+**Seven became eighty-four**, every single one with rock standing over it —
+which is the difference between a cave and a dent in a beach.
+
+**3. What is deliberately NOT here: the something at the back.**
+§8 asks for it in the same breath as the cave itself, and it is right to. But
+Phase 8 is *authored places* — a schematic format, an in-game capture tool,
+the Cave of Treasures — and none of it exists yet. A wreck or a hoard invented
+here would be placeholder content by §14's own definition, and it would have
+to be picked up and moved the day Phase 8 arrives. **The cave ships. What is
+in it waits for the phase whose whole job is putting things in places.**
+
+**4. The reading.**
+
+    PASS 27 · 2629 coastal columns · 628 of them sea cliff · 84 with a hollow
+              at the waterline, 84 of those with rock standing over it
+
+## PHASE 5 IS COMPLETE
+
+Four steps, and **three of the seven things §12 asked for turned out to be
+already true** — which is the whole story of this phase and the reason it took
+four rounds rather than seven:
+
+  · *ore by land and depth* — shipped in Phase 4 step 7, struck off rather
+    than done twice;
+  · *summits that are real climbs* — measured before building, thirteen named
+    mounts of thirteen already had a way up, and the terrace term written to
+    "fix" it was reverted with `js/engine.js` byte-identical;
+  · *crystal chambers* — the chambers were there all along; only the crystal
+    was missing.
+
+The four that were real all had the same shape of cause, and it is worth
+naming because it will recur: **a rule that is correct for the thing it was
+written for, applied where it was never meant to go.** `ROOF` is right for a
+tunnel and made every cliff face blank. `MIN_H` and `FLOOR` are right for a
+mountain and made every sea cliff solid. `spansAt` taking one column is right
+for cost and made an arch impossible to detect — so an arch is placed instead
+of found.
+
+And the measuring instruments earned their keep three times over: the census
+that found nine undercut cliffs in twelve hundred, the A/B that proved the
+carve cost five per cent while the box was sixty per cent slow, and the
+land-list check that caught three stones declared in countries with no caves
+in them.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
