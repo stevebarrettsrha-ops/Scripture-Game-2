@@ -13824,6 +13824,15 @@ window.__WORLD={
   ensureFlyDome,flyDome:()=>flyDome,
   R_WORLD,B,WATER_Y,SEA_SURF,CLOUD_Y,U_PER_M,
   state,setMode,updateChunks,landAtWorld,seaHeight,findStart,
+  /* THE HOUR, for a stage that is staged somewhere the traveller is not.
+     `setLocalHour` takes the longitude out of the world clock, so an hour
+     asked for is the hour of the DAY at the place named — the same rule
+     world/scenes.js keeps with `set.hour`. It was reachable only through
+     __VDBG, which is the debug surface and not a thing the second game may
+     lean on. DAYPARTS is beside it because a scene must be able to take the
+     clock off 'live' first, or the real-world hour is read back over it four
+     times a second. */
+  setLocalHour,DAYPARTS,
   hideLandLife,hideAirLife,hidePod,hideOrca,hideBlooms,hideDeep,hideTraders,
   hideSeaMobs,hideDeepLife,SEAFISH,DIVEFISH,SHARKS,
   toast,playScene,endScene,sceneActive,

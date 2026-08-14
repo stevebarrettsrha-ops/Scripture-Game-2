@@ -71,11 +71,14 @@
     for(const sc of list){
       if(!taken.has(sc.id)) continue;
       const want=norm(sc.book||'');
-      if(BESORAH&&BESORAH.list) for(const k of BESORAH.list()){
-        const bk=BESORAH.get(k);
-        if(!bk) continue;
-        if(norm(k)===want||norm(bk.hebrew||'')===want||norm(bk.english||'')===want){
-          out.add(k); break; }
+      /* THE SPINE, NOT THE BOOK. This asked BESORAH for each scroll in turn
+         and read its names off the open book — which worked only while every
+         book was loaded at boot, and would now have fetched two megabytes of
+         scripture to answer a question about a save file. The index carries
+         both names of every scroll and is a kilobyte. */
+      for(const bk of (BESORAH.titles?BESORAH.titles():[])){
+        if(norm(bk.id)===want||norm(bk.hebrew||'')===want||norm(bk.english||'')===want){
+          out.add(bk.id); break; }
       }
       out.add(want);                            /* and by its own folded name */
     }
@@ -92,16 +95,30 @@
     const found=foundBooks();          /* null when there is no voyage at all */
     for(const s of STORY.list()){
       const b=D.createElement('button');
-      /* A PASSAGE IS OPEN IF ITS SCROLL HAS BEEN TAKEN UP, or if there is no
-         voyage to ask. What is shut is SHOWN and greyed and says why — the
-         same rule the works page keeps: a man should be able to see what he
-         has not got yet, so he knows what to go and do. */
-      const open=!found||found.has(s.book)||found.has(norm(s.book));
+      /* A PASSAGE IS OPEN WHEN EVERY SCROLL IT READS HAS BEEN TAKEN UP, or
+         when there is no voyage to ask. What is shut is SHOWN and greyed and
+         NAMES WHAT IS MISSING — the same rule the works page keeps: a man
+         should be able to see what he has not got yet, so he knows what to go
+         and do.
+
+         EVERY SCROLL IT READS, not the one it is filed under. This asked
+         about `s.book` alone, and the garden is filed under BERĔSHITH and
+         spends its last minute in ADAM AND HAWWAH 1 — so taking up the scroll
+         of the beginning opened a passage half of which was still buried in a
+         cave in the Zagros, and finding that cave opened nothing at all. The
+         books are read off the caption track (STORY.booksOf), so a film can
+         never come apart from the scrolls it quotes. */
+      const need=STORY.booksOf(s);
+      const miss=found?need.filter(id=>!found.has(id)&&!found.has(norm(id))):[];
+      const open=!found||!miss.length;
       b.className='sc-item'+(open?'':' shut');
-      const bk=BESORAH.has(s.book)?BESORAH.get(s.book):null;
-      b.innerHTML='<div class="n">'+s.name+'</div>'+
-        '<div class="r">'+(open?(bk?bk.hebrew+' &mdash; '+bk.english:'')
-          :'the scroll of this passage is still hidden in the earth')+'</div>';
+      const heb=id=>{ const k=BESORAH.name?BESORAH.name(id):null; return k?k.hebrew:id; };
+      let row;
+      if(!open) row='still in the earth: '+miss.map(heb).join(' &middot; ');
+      else if(need.length===1){ const k=BESORAH.name?BESORAH.name(need[0]):null;
+        row=k?k.hebrew+' &mdash; '+k.english:''; }
+      else row=need.map(heb).join(' &middot; ');
+      b.innerHTML='<div class="n">'+s.name+'</div><div class="r">'+row+'</div>';
       if(open){
         b.onclick=()=>openScroll(s.id);
         b.onmouseover=()=>{ sel=items().indexOf(b); paint(); };
@@ -128,7 +145,12 @@
   }
   function hideShelf(){ $('shelf').style.display='none'; }
 
-  function openScroll(id){ hideShelf(); STORY.play(id); }
+  /* the scroll is fetched here, and if it cannot be the shelf comes straight
+     back rather than leaving a man staring at an idling world */
+  function openScroll(id){
+    hideShelf();
+    Promise.resolve(STORY.play(id)).then(function(ok){ if(!ok) showShelf(); });
+  }
 
   /* the voyage's log, and what it has opened — for the acceptance suite */
   window.__UNFOLD={ log:voyageLog, found:foundBooks, rebuild:buildShelf };

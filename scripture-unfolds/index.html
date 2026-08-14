@@ -67,6 +67,14 @@
   #sc-cine.on{ opacity:1; }
   #sc-cine .bar{ position:absolute; left:0; right:0; height:12vh; background:#070504; }
   #sc-cine .bar.t{ top:0; } #sc-cine .bar.b{ bottom:0; }
+  /* THE GROUND UNDER THE WORDS. Every film on this shelf used to be played
+     at whatever murky hour the world's clock happened to hold, and white
+     italic on a dark hillside needs nothing behind it. Now a scene names its
+     own hour, and the going out opens on a noon beach — white on bright sand,
+     with a gold reference line that all but vanished. This rises out of the
+     lower bar, not out of nowhere, so it reads as part of the letterbox. */
+  #sc-cine .scrim{ position:absolute; left:0; right:0; bottom:12vh; height:26vh;
+    background:linear-gradient(to top, rgba(7,5,4,.82), rgba(7,5,4,0)); }
   #sc-cap{ position:fixed; z-index:22; left:8vw; right:8vw; bottom:16vh; text-align:center;
     pointer-events:none; opacity:0; transition:opacity 1s ease; }
   #sc-cap.on{ opacity:1; }
@@ -127,7 +135,7 @@
 </div>
 
 <!-- ============ THE SCENE OVERLAY ============ -->
-<div id="sc-cine"><div class="bar t"></div><div class="bar b"></div></div>
+<div id="sc-cine"><div class="bar t"></div><div class="scrim"></div><div class="bar b"></div></div>
 <div id="sc-cap"><div id="sc-cap-t"></div><div id="sc-cap-r"></div></div>
 <div id="sc-fade"></div>
 <div id="sc-title"></div>
@@ -245,21 +253,11 @@ window.__BOOTUI=(function(){
      The very same earth, beasts, flora, cities and engine the VOYAGE is
      played on — loaded from where they already live, never copied. A fix
      made to the world lands in both games at once. -->
-<script>
-window.EARTH={list:[],verseList:[],riverList:[],cityList:[],landmarkList:[],deepList:[],holeList:[],sceneList:[],scrollList:[],beastList:[],faunaList:[],floraList:[],
-  country:function(c){this.list.push(c);},
-  verses:function(v){this.verseList=v;},
-  river:function(r){this.riverList.push(r);},
-  city:function(c){this.cityList.push(c);},
-  landmark:function(l){this.landmarkList.push(l);},
-  deep:function(d){this.deepList.push(d);},
-  hole:function(h){this.holeList.push(h);},
-  scene:function(s){this.sceneList.push(s);},
-  scroll:function(s){this.scrollList.push(s);},
-  beast:function(b){this.beastList.push(b);},
-  fauna:function(f){this.faunaList.push(f);},
-  flora:function(f){this.floraList.push(f);}};
-</script>
+<!-- THE SAME REGISTRY THE VOYAGE READS, and it must be the same file.
+     This page carried its own copy of it, and the copy fell three
+     registrars behind: forty-two blocks, fourteen substances and thirteen
+     works all threw on load and this game ran with an empty block table. -->
+<script src="../world/registry.js"></script>
 <!-- EVERY FILE OF THE WORLD, IN THE ORDER IT MUST BE READ.
      The three hundred and sixty-five tags that used to stand here are
      now one list in world/manifest.js, read by both this page and
@@ -275,9 +273,9 @@ window.__WORLDFILES=MANIFEST.load("../", function(done,total){
 <!-- ============ THE SCROLLS THEMSELVES ============
      The scripture as data, generated out of the offline Besorah. -->
 <script src="js/besorah.js"></script>
-<script src="scripture/bereshith.js"></script>
-<script src="scripture/adam-eve-1.js"></script>
-<script src="scripture/adam-eve-2.js"></script>
+<!-- THE SPINE OF THE SHELF, AND NOTHING MORE. Eight books is two megabytes;
+     each one is fetched when it is taken down to be read. See js/besorah.js. -->
+<script src="scripture/index.js"></script>
 
 <script>
 /* ============ THE OPENING OF THIS GAME ============ */
@@ -298,7 +296,21 @@ window.__WORLDFILES=MANIFEST.load("../", function(done,total){
   function loadStory(){
     /* the stage, the story runner and the scrolls are loaded only once the
        engine is awake, because every one of them speaks to window.__WORLD */
-    var files=['js/stage.js','js/story.js','scrolls/01-creation.js','scrolls/02-eden.js','js/unfold.js'];
+    /* THE SHELF IS THIS LIST, IN THIS ORDER — the scrolls are read in the
+       order they happened in, and STORY.list() keeps it. Add a file here and
+       a passage exists; the scripture it quotes is fetched when it is opened
+       (js/besorah.js), so a new film costs this page nothing until it is
+       chosen. */
+    var files=['js/stage.js','js/story.js',
+      'scrolls/01-creation.js',    /* BERĔSHITH          the making of the world */
+      'scrolls/02-eden.js',        /* + ADAM AND HAWWAH 1  the garden, and where it stood */
+      'scrolls/03-after-eden.js',  /* ADAM AND HAWWAH 2  the days after it */
+      'scrolls/04-chanok.js',      /* ḤANOḴ              the seventh from Adawm */
+      'scrolls/05-yashar.js',      /* YASHAR             the years between the words */
+      'scrolls/06-yobelim.js',     /* YOḆELIM            the division of the days */
+      'scrolls/07-chanok-eth.js',  /* ḤANOḴ HABASHIY     the courses of the lights */
+      'scrolls/08-shamoth.js',     /* SHAMOTH            the going out */
+      'js/unfold.js'];
     (function next(k){
       if(k>=files.length) return;
       var s=document.createElement('script'); s.src=files[k];

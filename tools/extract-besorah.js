@@ -6,6 +6,8 @@
      node tools/extract-besorah.js --js works "Shemoth 20:25" ...
      node tools/extract-besorah.js --books
      node tools/extract-besorah.js --find "altar of stone"
+     node tools/extract-besorah.js --emit chanok apoc-jubilees:yobelim
+     node tools/extract-besorah.js --check
 
    THE RULE IT EXISTS TO KEEP. *Do not paraphrase. Do not summarise a verse
    into a caption. Do not invent a reference.* A verse written into this
@@ -150,6 +152,96 @@ if(args[0]==='--find'){
   process.exit(0);
 }
 
+/* --emit: A WHOLE BOOK, into scripture-unfolds/scripture/, in the format the
+   Unfolds reads. §5: *"If a scene needs a book not yet extracted, extract it
+   from the offline Besorah HTML into a new generated .js in the same
+   format."* Three books were extracted before this tool existed and there
+   was no repeatable way to make a fourth — so a film could not be written
+   for five of the eight scrolls without hand-building a quarter of a
+   megabyte of JSON, which is precisely the thing §5 forbids.
+
+     node tools/extract-besorah.js --emit chanok shamoth
+     node tools/extract-besorah.js --emit apoc-jubilees:yobelim
+
+   THE NAME ON THE LEFT IS THE BESORAH'S; THE NAME ON THE RIGHT IS OURS. The
+   source files Jubilees under `apoc-jubilees` and the Ethiopic Ḥanoḵ under
+   `apoc-eth-enoch`, which are cataloguing ids, not names of scrolls. This
+   project already has names for both — the scrolls in world/scrolls.js are
+   `yobelim` and `chanok-eth` — and a film that had to write
+   `q:['apoc-jubilees',1,1]` would be citing a filing cabinet. So an id may
+   be renamed on the way out, and NOTHING ELSE is: `hebrew` and `english`
+   come through untouched, and they are what a reader ever sees. The same
+   principle as the ALIAS table above, at the other end of the pipe. */
+if(args[0]==='--emit'){
+  const want=args.slice(1);
+  if(!want.length){ console.error('--emit wants at least one book (run --books)'); process.exit(2); }
+  const dir=path.join(__dirname,'..','scripture-unfolds','scripture');
+  if(!fs.existsSync(dir)){ console.error('no scripture-unfolds/scripture/ to write into'); process.exit(2); }
+  const HEAD='/* GENERATED from BESORAH - SCRIPTURAL/besorah-offline (1).html — do not hand-edit.\n'+
+    '   The scripture itself, as data. Every cutscene and every mission in this\n'+
+    '   game is directed from these verses; nothing is paraphrased in a scene\n'+
+    '   file, it is QUOTED from here, so the words can never drift from the source. */\n';
+  let bad=0;
+  for(const spec of want){
+    const [src,as]=spec.split(':');
+    const key=norm(src);
+    let id=null;
+    for(const k of Object.keys(TEXT)){ const b=TEXT[k];
+      if(norm(k)===key||norm(b.hebrew||'')===key||norm(b.english||'')===key){ id=k; break; } }
+    if(!id){ console.error('MISSING  no such book: '+src+'   (run --books)'); bad++; continue; }
+    const b=TEXT[id], out=(as||id);
+    const chapters={};
+    let verses=0;
+    for(const ch of Object.keys(b.chapters||{})){
+      chapters[ch]=(b.chapters[ch].verses||[]).map(r=>{ verses++; return [r.n,plain(r.t)]; });
+    }
+    const body='BESORAH.book('+JSON.stringify({ id:out, hebrew:b.hebrew, english:b.english,
+      section:b.section, chapters })+');\n';
+    const f=path.join(dir,out+'.js');
+    fs.writeFileSync(f,HEAD+body);
+    console.log('  '+String(b.hebrew||b.english).padEnd(20)+String(out+'.js').padEnd(20)+
+      String(Object.keys(chapters).length).padStart(4)+' ch  '+
+      String(verses).padStart(6)+' v  '+
+      String(Math.round((HEAD.length+body.length)/1024)).padStart(5)+' KB');
+  }
+
+  /* ---- AND THE INDEX, REBUILT FROM WHATEVER IS ON THE SHELF ----
+     The books are two megabytes and they are NOT loaded at boot: a scroll is
+     fetched when it is taken down and read, which is what a scroll is for.
+     But the shelf must be able to NAME a book it has not opened yet — and a
+     row that read "the scroll of this passage is still hidden in the earth"
+     with no name against it would tell a man nothing about what he is
+     looking for. So this is the spine of every scroll: id, both names, and
+     how many chapters. Eight books, under a kilobyte.
+
+     It is rebuilt from the DIRECTORY and not from the source, so a book that
+     was emitted under a name of ours is indexed under that name, and a file
+     deleted by hand drops out of the index the next time this is run. */
+  const idx=[];
+  for(const f of fs.readdirSync(dir).sort()){
+    if(!f.endsWith('.js')||f==='index.js') continue;
+    const s=fs.readFileSync(path.join(dir,f),'utf8');
+    const i=s.indexOf('BESORAH.book(');
+    if(i<0){ console.error('  not a scroll: '+f); bad++; continue; }
+    let b; try{ b=JSON.parse(s.slice(i+13,s.lastIndexOf(')'))); }
+    catch(e){ console.error('  unreadable: '+f+'  ('+e.message+')'); bad++; continue; }
+    idx.push({ id:b.id, hebrew:b.hebrew, english:b.english,
+      chapters:Object.keys(b.chapters||{}).length });
+  }
+  const ix='/* GENERATED by tools/extract-besorah.js --emit — do not hand-edit.\n'+
+    '   THE SPINE OF EVERY SCROLL ON THE SHELF, and nothing else. The books\n'+
+    '   themselves are fetched one at a time, when one is taken down to read;\n'+
+    '   this is the only part of the scripture the page loads at boot, so that\n'+
+    '   the shelf can be drawn and a passage named before a word of it is read. */\n'+
+    'BESORAH.index('+JSON.stringify(idx)+');\n';
+  fs.writeFileSync(path.join(dir,'index.js'),ix);
+  console.log('\n  the index         index.js         '+String(idx.length).padStart(4)+
+    ' books'+String(Math.round(ix.length/1024)).padStart(12)+' KB');
+
+  if(bad) process.exit(1);
+  process.exit(0);
+}
+
 /* --check: EVERY VERSE THIS PROJECT SHIPS, SET AGAINST THE SOURCE.
    The extractor is only half the rule. A verse can be extracted correctly on
    Monday and edited into a paraphrase on Tuesday, and nothing would say a
@@ -209,8 +301,71 @@ if(args[0]==='--check'){
     console.log('   ships:  '+a2);
     console.log('   source: '+b2);
   }
+  /* ================= AND THE CAPTIONS OF THE LONG FILMS =================
+     THE OTHER HALF OF THE RULE, AND IT HAD NO GUARD AT ALL. §5 forbids three
+     things: do not paraphrase, do not summarise a verse into a caption, do
+     not invent a reference. Everything above catches the first two, because
+     a `verse:{t,ref}` carries its words and its citation together and the
+     two can be set against each other.
+
+     A FILM CAPTION CARRIES NO WORDS. It is `{q:['shamoth',14,21]}` and the
+     words are fetched at run time — which is exactly why it cannot be
+     paraphrased, and exactly why nothing could tell you that `['shamoth',
+     14,210]` is not a verse. It would fail silently in the one place nobody
+     is looking: a caption that simply never appears, in the middle of a
+     film, three minutes in.
+
+     So every `q` in every scroll under scripture-unfolds/scrolls/ is
+     resolved here against the emitted book it names — the file the game will
+     actually read, not the source HTML, because a book that was never
+     emitted is just as broken as a chapter that does not exist. */
+  const sdir=path.join(__dirname,'..','scripture-unfolds','scrolls');
+  const bdir=path.join(__dirname,'..','scripture-unfolds','scripture');
+  let caps=0, capBad=0, films=0;
+  if(fs.existsSync(sdir)&&fs.existsSync(bdir)){
+    /* the emitted books, read the way the page reads them */
+    const BOOK={};
+    for(const f of fs.readdirSync(bdir)){
+      if(!f.endsWith('.js')||f==='index.js') continue;
+      const s=fs.readFileSync(path.join(bdir,f),'utf8');
+      const i=s.indexOf('BESORAH.book(');
+      if(i<0) continue;
+      try{ const b=JSON.parse(s.slice(i+13,s.lastIndexOf(')'))); BOOK[b.id]=b; }catch(e){}
+    }
+    /* the scenes, RUN, not read — the same rule the world's files keep */
+    const scenes=[];
+    const STORY={ scene:s=>scenes.push(s) };
+    for(const f of fs.readdirSync(sdir).sort()){
+      if(!f.endsWith('.js')) continue;
+      const src=fs.readFileSync(path.join(sdir,f),'utf8');
+      try{ new Function('STORY',src)(STORY); films++; }
+      catch(e){ console.log('SKIP   scripture-unfolds/scrolls/'+f+'  ('+e.message+')'); capBad++; }
+    }
+    for(const sc of scenes){
+      for(const c of sc.caps||[]){
+        if(!c.q){ continue; }
+        caps++;
+        const [id,ch,v0,v1]=c.q;
+        const b=BOOK[id];
+        if(!b){ capBad++;
+          console.log('NO SCROLL  '+sc.id+' at '+c.t+'s  wants '+id+
+            ' — run --emit, it is not in scripture-unfolds/scripture/'); continue; }
+        const rows=b.chapters[String(ch)];
+        if(!rows){ capBad++;
+          console.log('NO CHAPTER '+sc.id+' at '+c.t+'s  '+b.hebrew+' has no chapter '+ch); continue; }
+        let gone=null;
+        for(let v=v0;v<=(v1===undefined?v0:v1);v++)
+          if(!rows.some(r=>r[0]===v)){ gone=v; break; }
+        if(gone!==null){ capBad++;
+          console.log('NO VERSE   '+sc.id+' at '+c.t+'s  '+b.hebrew+' '+ch+':'+gone+
+            ' is not written'); }
+      }
+    }
+  }
+
   console.log('\n'+ok+' exact · '+wrong+' paraphrased · '+missing+' unsourceable  ('+verses.length+' verses)');
-  process.exit(wrong||missing?1:0);
+  console.log(caps+' film captions resolve · '+capBad+' do not  ('+films+' scrolls)');
+  process.exit(wrong||missing||capBad?1:0);
 }
 
 /* --js <name>: print the verses as this project writes them, ready to paste

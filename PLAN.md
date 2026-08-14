@@ -730,7 +730,7 @@ Measure first — and if the world already does the thing, ship the TEST and not
 **I will not carve a staircase.** A path cut to a summit is a level designer's answer to a
 terrain problem; it would read as built, and nothing built it.
 
-## 13. Phase 7 — the scrolls: the order
+## 13. Phase 7 — the scrolls: the order — **COMPLETE** ✅
 
 *"Six new films, BESORAH extraction, short in-world scenes on discovery, the great scrolls
 relocated into the caves and summits Phase 5 built."*
@@ -756,9 +756,26 @@ scroll now carries a verse from its OWN book, sourced through the extractor and 
 `--check`; `words` beside it stays narration in the game's voice with no chapter and
 verse, which is the distinction §5 insists on.
 
-**3. The six missing long films.** Only two of eight have them. Text extracted through the
-tool, so every caption is a fetch or narration in the game's own voice and never a
-paraphrase.
+**3. The six missing long films.** ✅ *Round 50.* Only two of eight had them; the shelf
+holds **eight** now — 77 new captions across 27 minutes. `--emit` was added to the
+extractor because §5 asks for it and nothing could make a fourth book; it re-emitted the
+three that already existed **byte for byte**, which is how I know the format is the one
+that ships. Then the scripture was two megabytes, so **a scroll is unrolled when it is
+taken down**: one kilobyte of spine at boot, the book fetched when it is chosen, measured
+at **0 of 8 open at boot**. Which books a scene reads is derived off its own caption
+track, which closed a hole Round 49 left — the garden is filed under BERĔSHITH and ends in
+ADAM AND HAWWAH 1, so finding one scroll opened half a film. And §5's *"do not invent a
+reference"* had no guard at all over captions, because a caption carries no words to check
+against: `--check` resolves all 124 of them now, and test 31 makes the same fetch on the
+real page.
+
+Three old faults came out of looking: the second game carried its own copy of the world
+registry and had fallen **three registrars behind** (42 blocks, 14 substances and 13 works
+all threw on load, silently); the stage eased the sky's hex as one integer, so *every*
+film slid through hues neither of its keys named; and the films were played at whatever
+hour the world clock held, because every stage dial paints the sky and the ground is lit
+by the engine's day tint. There is one `world/registry.js`, colours ease per channel, and
+`hour` is a dial.
 
 **4. The log and Scripture Unfolds.** ✅ *Round 49, taken BEFORE step 3 — it is the pipe
 six films would flow through, and it was cheap to measure.* **It did not exist.** Nothing

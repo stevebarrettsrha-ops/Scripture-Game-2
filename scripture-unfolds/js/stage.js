@@ -29,6 +29,14 @@
      ship    0..1  the great ship. There is no ship in the creation of the
                    world, so a scene has none unless it asks for one
      man     0..1  and no man either, until the sixth day
+     far     0..1  THE COARSE CARPET, and a scene must ASK for it — see below
+     hour    0..24 THE HOUR OF THE DAY at the place the scene is staged, and
+                   the one dial here that reaches past the dressing into the
+                   world's own clock. Every dial above this line changes what
+                   the SKY looks like; the ground is lit by the engine's day
+                   tint, which knows nothing of any of them — so a film could
+                   put a noon sky over a world still shaded for dusk, and did.
+                   Absent, the clock is left exactly as it was found.
      fogN/fogF     how far the eye reaches
 
    THE EYE, on the same track:
@@ -47,11 +55,31 @@ window.STAGE=(function(){
 
   const DEFAULT={ dark:0, light:1, sky:null, sun:1, moon:1, stars:1, firm:0,
     land:1, sea:1, clouds:1, lifeSea:1, lifeAir:1, lifeLand:1, ship:0, man:0,
-    fogN:null, fogF:null,
+    far:0, hour:null, fogN:null, fogF:null,
     cd:120, cy:40, ca:0, cl:10, cfov:62, cut:false };
 
   function lerp(a,b,u){ return a+(b-a)*u; }
   function smooth(u){ return u*u*(3-2*u); }
+
+  /* ---- A COLOUR IS THREE NUMBERS, NOT ONE ----
+     `sky` is the one dial on this track that is a colour, and it was eased
+     the way every other dial is eased: straight down the middle between two
+     JavaScript numbers. But 0x332c26 IS the number 3,353,638, and halfway
+     between it and 0x241f1c is 2,860,705 — which unpacks to 0x2BA5E1, a
+     bright blue. The going out ran from one brown to another brown through
+     a GREEN SKY, and the creation had been sliding through hues neither of
+     its keys named since the day it was written; it was never caught because
+     most of that film eases out of black, where the error is small.
+
+     The channels are taken apart and eased one at a time. Every scene on the
+     shelf is corrected by this and not one of them had to be touched. */
+  const HEX={sky:1};
+  function lerpHex(a,b,u){
+    const r=Math.round(lerp((a>>16)&255,(b>>16)&255,u));
+    const g=Math.round(lerp((a>>8)&255,(b>>8)&255,u));
+    const l=Math.round(lerp(a&255,b&255,u));
+    return (r<<16)|(g<<8)|l;
+  }
 
   /* the value of one dial at time tt, read off the track */
   function at(tt){
@@ -70,7 +98,8 @@ window.STAGE=(function(){
     /* and eased toward whatever the NEXT key names */
     for(const k in B){ if(k==='t'||k==='cut') continue;
       const a=merged[k], b=B[k];
-      if(typeof a==='number'&&typeof b==='number') out[k]=lerp(a,b,u);
+      if(typeof a==='number'&&typeof b==='number')
+        out[k]=HEX[k]?lerpHex(a,b,u):lerp(a,b,u);
       else if(u>0.5||B.cut) out[k]=b; }
     return out;
   }
@@ -91,7 +120,12 @@ window.STAGE=(function(){
     held={ chunkY:W.chunkRoot.position.y, fov:W.camera.fov,
       ship:W.boatG.visible, man:W.walkerG.visible,
       fogN:W.scene.fog?W.scene.fog.near:null, fogF:W.scene.fog?W.scene.fog.far:null,
-      voidWall:W.voidWall.visible, cloudOp:W.cloudMat.opacity };
+      voidWall:W.voidWall.visible, cloudOp:W.cloudMat.opacity,
+      cloudCol:W.cloudMat.color.getHex(),
+      farVis:W.farLand?W.farLand.visible:false,
+      farOp:W.farLandMat?W.farLandMat.opacity:0,
+      /* the world's own clock, which a scene may move and must not keep */
+      simHours:W.state.simHours, dayIdx:W.state.dayIdx };
   }
   function give(){
     if(!held) return;
@@ -99,8 +133,11 @@ window.STAGE=(function(){
     W.camera.fov=held.fov; W.camera.updateProjectionMatrix();
     if(W.scene.fog){ W.scene.fog.near=held.fogN; W.scene.fog.far=held.fogF; }
     W.voidWall.visible=held.voidWall;
-    W.cloudMat.opacity=held.cloudOp;
+    W.cloudMat.opacity=held.cloudOp; W.cloudMat.color.setHex(held.cloudCol);
     W.boatG.visible=held.ship; W.walkerG.visible=held.man;
+    if(W.farLand) W.farLand.visible=held.farVis;
+    if(W.farLandMat) W.farLandMat.opacity=held.farOp;
+    W.state.simHours=held.simHours; W.state.dayIdx=held.dayIdx;
     W.chunkRoot.visible=true;
     held=null;
   }
@@ -141,15 +178,34 @@ window.STAGE=(function(){
     const lf=Math.max(0,Math.min(1,d.land));
     W.chunkRoot.position.y=-SINK*(1-lf);
     W.chunkRoot.visible=d.land>0.0005;
-    /* THE COARSE CARPET IS NEVER IN A SCENE. It is the engine's stand-in
-       for the world BEYOND the streamed chunks, drawn only when the eye is
-       high above the earth or drawn far back off it — seen from a shore it
-       is a handful of enormous flat planes lying across the whole view,
-       which is exactly how it looked when the dry land first rose. Down
-       here it is blocks and haze and nothing else, as the voyage's own
-       rule has it. */
-    if(W.farLand){ W.farLand.visible=false;
-      if(W.farLandMat) W.farLandMat.opacity=0; }
+    /* ---- THE COARSE CARPET, AND WHEN A SCENE MAY HAVE IT ----
+       It was NEVER in a scene, and for a good reason: it is the engine's
+       stand-in for the world BEYOND the streamed chunks, and seen from a
+       shore it is a handful of enormous flat planes lying across the whole
+       view — which is exactly how it looked when the dry land first rose.
+       Down at head height a scene wants blocks and haze and nothing else.
+
+       BUT THAT RULE WAS WRITTEN FOR A SCENE STAGED AT SEA LEVEL, and it was
+       then applied to every scene there could ever be. The streamed ring is
+       some twelve hundred units across; lift the eye eight hundred units to
+       look at the courses of the lights and the earth simply stops, and a
+       film about the ends of the earth shows a small patch of blocks adrift
+       in the sky. So a scene ASKS, with `far`, and gets nothing unless it
+       does — every scene written before this one is unchanged.
+
+       And the carpet must be told where to stand: the engine sizes its ring
+       off the TRAVELLER's eye, and in a scene the traveller does not move —
+       the camera does. It is given the camera's own height. */
+    if(W.farLand){
+      if(d.far>0.004){
+        if(W.updateFarLand) W.updateFarLand(anchor.x,anchor.z,true,Math.max(1,d.cy));
+        W.farLand.visible=true;
+        if(W.farLandMat) W.farLandMat.opacity=Math.min(1,d.far);
+      }else{
+        W.farLand.visible=false;
+        if(W.farLandMat) W.farLandMat.opacity=0;
+      }
+    }
     /* ---- the waters ----
        THE SEA IS LIT BY THE STAGE, NOT BY THE SUN. The water shader takes
        its light off the sun's own station and the hour of the day — which
@@ -174,8 +230,16 @@ window.STAGE=(function(){
         if(W.farSeaMat) W.farSeaMat.color.setRGB(r,g,b);
         W.seaDeep.material.color.setRGB(r*0.82,g*0.82,b*0.86); }
     }
-    /* ---- the waters above ---- */
+    /* ---- the waters above ----
+       AND THEY ARE LIT BY THE STAGE TOO, for the same reason the sea is. The
+       cloud sheet is drawn white against whatever sky it is over, and the
+       engine only ever varies how SOLID it is, never how bright — which is
+       right for a world where the sky and the cloud go dark together, and
+       wrong the moment a scene darkens the sky on its own. Sinai in smoke had
+       a brown-black sky with bright white cloud lying across it. */
     W.cloudMat.opacity=d.clouds*0.85;
+    { const cl=Math.max(0.06,d.light)*(1-d.dark*0.88);
+      W.cloudMat.color.setRGB(cl,cl,cl); }
     /* ---- EVERY LIVING THING KEEPS OUT OF THE WORLD UNTIL ITS OWN DAY ----
        Not the beasts of the field only. The sea is furnished by a different
        set of pools altogether — the shoals, the turtles, the rays, the great
@@ -201,6 +265,18 @@ window.STAGE=(function(){
     if(sc.fog){ if(d.fogN!==null&&d.fogN!==undefined) sc.fog.near=d.fogN;
       if(d.fogF!==null&&d.fogF!==undefined) sc.fog.far=d.fogF; }
     W.voidWall.visible=false;     /* no wall of night stands across a making world */
+    /* ---- AND THE HOUR OF THE DAY, WHERE THE SCENE IS STAGED ----
+       The clock is taken off 'live' first. Left on it, the engine re-reads
+       the machine's own wall clock four times a second and writes it back
+       over whatever the scene asked for — so the hour would hold for a
+       quarter of a second and then be somebody's real afternoon again. */
+    if(d.hour!==null&&d.hour!==undefined&&W.setLocalHour){
+      if(W.DAYPARTS&&W.DAYPARTS[W.state.dayIdx]&&W.DAYPARTS[W.state.dayIdx].k==='live'){
+        const i=W.DAYPARTS.findIndex(p=>p.k==='noon');
+        if(i>=0) W.state.dayIdx=i;
+      }
+      W.setLocalHour(d.hour,anchor.x,anchor.z);
+    }
     /* ---- and the eye itself ---- */
     const a=d.ca*Math.PI*2;
     W.camera.position.set(anchor.x+Math.sin(a)*d.cd, d.cy, anchor.z+Math.cos(a)*d.cd);

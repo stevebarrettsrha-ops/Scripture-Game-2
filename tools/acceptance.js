@@ -963,26 +963,93 @@ T[30]={name:'a scroll taken in the voyage opens its passage in Scripture Unfolds
         const it=[...document.querySelectorAll('.sc-item')];
         return {n:it.length, shut:it.filter(e=>e.classList.contains('shut')).length};
       });
-      /* 3 — AND TAKING THE SCROLL OF THE BEGINNING opens the passages drawn
-         from that very book, and only those. */
+      /* 3 — AND TAKING THE SCROLL OF THE BEGINNING opens the passages EVERY
+         book of which has been found, and only those. The garden reads two
+         scrolls and must stay shut on one of them; a shut row must also NAME
+         what is missing, or it tells a man nothing about where to go. */
       const one=await page.evaluate(()=>{
         localStorage.setItem('voyage:state',JSON.stringify({v:8,sr:['bereshith']}));
         window.__UNFOLD.rebuild();
         const it=[...document.querySelectorAll('.sc-item')];
-        const openIds=[];
-        for(const s of window.STORY.list())
-          if(s.book==='bereshith') openIds.push(s.id);
-        return {n:it.length, shut:it.filter(e=>e.classList.contains('shut')).length,
-          fromBereshith:openIds.length};
+        const want=window.STORY.list()
+          .filter(s=>window.STORY.booksOf(s).every(b=>b==='bereshith')).length;
+        const shut=it.filter(e=>e.classList.contains('shut'));
+        return {n:it.length, shut:shut.length, want:want,
+          named:shut.filter(e=>/still in the earth: \S/.test(e.textContent)).length};
+      });
+      /* 4 — and taking BOTH scrolls the garden is drawn from opens it */
+      const two=await page.evaluate(()=>{
+        localStorage.setItem('voyage:state',
+          JSON.stringify({v:8,sr:['bereshith','adam-eve-1']}));
+        window.__UNFOLD.rebuild();
+        const it=[...document.querySelectorAll('.sc-item')];
+        const want=window.STORY.list().filter(s=>window.STORY.booksOf(s)
+          .every(b=>b==='bereshith'||b==='adam-eve-1')).length;
+        return {n:it.length, open:it.length-it.filter(e=>e.classList.contains('shut')).length,
+          want:want};
       });
       const ok = openAll.shut===0 && openAll.found===null &&
                  none.n>0 && none.shut===none.n &&
-                 one.shut===one.n-one.fromBereshith && one.fromBereshith>0;
+                 one.shut===one.n-one.want && one.want>0 && one.named===one.shut &&
+                 two.open===two.want && two.want>one.want;
       return {ok, got:'the shelf holds '+openAll.n+' passages · '+
         'no voyage: '+openAll.shut+' shut · '+
         'a voyage with nothing taken: '+none.shut+' of '+none.n+' shut · '+
-        'the scroll of the beginning taken: '+one.shut+' shut, '+
-        one.fromBereshith+' of that book opened'};
+        'the beginning taken: '+(one.n-one.shut)+' open of '+one.want+' owed, '+
+        one.named+' of '+one.shut+' shut rows name what is missing · '+
+        'the beginning and the cave: '+two.open+' open of '+two.want+' owed'};
+    } finally { await browser.close(); }
+  }};
+
+T[31]={name:'every caption of every long film fetches a real verse out of the Besorah',
+  /* §5's THIRD PROHIBITION, which had no guard until now: "do not invent a
+     reference." The first two — do not paraphrase, do not summarise — are
+     kept by tools/extract-besorah.js --check, because a `verse:{t,ref}`
+     carries its words next to its citation and the two can be set against
+     each other. A FILM CAPTION CARRIES NO WORDS: it is `{q:['shamoth',14,21]}`
+     and the text is fetched as the film runs. So a wrong chapter does not
+     read wrongly, it simply never appears — three minutes into a film, with
+     nobody watching.
+
+     --check now resolves every `q` against the emitted books, which is the
+     authoritative guard and costs no browser. THIS test is the other half:
+     it opens the real page and makes the real fetch, so a book that is on
+     disk but not reachable from the page — misspelled in the index, missing
+     from the directory the loader looks in — fails here and not in front of
+     somebody watching a film. */
+  ownPage:true,
+  run:async ()=>{
+    const {open}=require('./harness.js');
+    const {browser,page}=await open({page:'scripture-unfolds/index.html'});
+    try{
+      await page.waitForFunction(()=>window.STORY&&window.BESORAH,null,{timeout:180000});
+      const r=await page.evaluate(async()=>{
+        const out={films:0,caps:0,bad:[],overrun:[],books:0,boot:0};
+        /* NOTHING is open at boot — the whole point of fetching a scroll when
+           it is taken down. If this is ever non-zero the page has gone back
+           to parsing two megabytes of scripture before it can draw a shelf. */
+        out.boot=BESORAH.titles().filter(b=>BESORAH.loaded(b.id)).length;
+        for(const s of STORY.list()){
+          out.films++;
+          for(const b of STORY.booksOf(s)) await BESORAH.open(b);
+          const dur=s.stage&&s.stage.length?s.stage[s.stage.length-1].t:0;
+          for(const c of s.caps||[]){
+            out.caps++;
+            if(c.to>dur) out.overrun.push(s.id+' at '+c.t+'s');
+            let q=null;
+            try{ q=STORY.capText(c); }catch(e){ out.bad.push(s.id+' '+c.t+'s: '+e.message); continue; }
+            if(!q||!q.text||!q.text.trim()) out.bad.push(s.id+' '+c.t+'s: no words');
+            else if(c.q&&!q.ref) out.bad.push(s.id+' '+c.t+'s: no chapter and verse');
+          }
+        }
+        out.books=BESORAH.titles().filter(b=>BESORAH.loaded(b.id)).length;
+        return out;
+      });
+      const ok=!r.bad.length&&!r.overrun.length&&r.films>=8&&r.boot===0;
+      return {ok, got:r.caps+' captions across '+r.films+' films, out of '+r.books+
+        ' scrolls · none open at boot: '+(r.boot===0?'yes':'NO, '+r.boot+' were')+
+        (r.bad.length?' · UNFETCHABLE: '+r.bad.slice(0,4).join('; '):'')+
+        (r.overrun.length?' · PAST THE END OF THE FILM: '+r.overrun.slice(0,4).join('; '):'')};
     } finally { await browser.close(); }
   }};
 

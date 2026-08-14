@@ -3429,6 +3429,179 @@ the same engine.
 **Still ahead in Phase 7:** the six missing long films, which now have a
 working shelf to appear on.
 
+## 4aw. Round 50 — Phase 7 step 3: the six missing long films. PHASE 7 COMPLETE ✅
+
+*§5: "Only two have films. Build the remaining six: text extracted, short scene,
+long film, placement verified."*
+
+Eight scrolls lie in the earth. Two had passages. The shelf now holds **eight**,
+and the six new ones are 77 captions across 27 minutes of film, every word of it
+fetched from the Besorah at run time.
+
+    THE CREATION                 BERĔSHITH                       (had one)
+    THE GARDEN IN ĔḎEN           BERĔSHITH · ADAM AND HAWWAH 1   (had one)
+    THE DAYS AFTER THE GARDEN    ADAM AND HAWWAH 2      12 caps · 196 s
+    THE SEVENTH FROM ADAWM       ḤANOḴ                  13 caps · 266 s
+    THE YEARS BETWEEN THE WORDS  YASHAR                 13 caps · 292 s
+    THE DIVISION OF THE DAYS     YOḆELIM                12 caps · 296 s
+    THE COURSES OF THE LIGHTS    ḤANOḴ HABASHIY         12 caps · 322 s
+    THE GOING OUT                SHAMOTH                13 caps · 316 s
+
+**1. THE EXTRACTOR HAD NO WAY TO EMIT A BOOK.**
+Three books were in `scripture-unfolds/scripture/` and five were needed, and
+nothing could make the fourth. §5 says plainly: *"If a scene needs a book not
+yet extracted, extract it from the offline Besorah HTML into a new generated
+.js in the same format."* `--emit` does that now, and the first thing it was
+asked to do was **re-emit the three that already existed** — git reported no
+change, byte for byte, which is how I know the format is the one that ships and
+not one I reconstructed from reading.
+
+    node tools/extract-besorah.js --emit chanok shamoth yashar \
+        apoc-jubilees:yobelim apoc-eth-enoch:chanok-eth
+
+The name on the left is the Besorah's, the name on the right is ours. The source
+files Jubilees under `apoc-jubilees` and the Ethiopic Ḥanoḵ under
+`apoc-eth-enoch`, which are cataloguing ids and not names of scrolls; a film
+that had to write `q:['apoc-jubilees',1,1]` would be citing a filing cabinet.
+**The id may be renamed on the way out and nothing else is** — `hebrew` and
+`english` come through untouched, and they are what a reader ever sees. The same
+principle as the ALIAS table of Round 41, at the other end of the pipe.
+
+**2. AND THEN THE SCRIPTURE WAS TWO MEGABYTES, AND THE PAGE LOADED ALL OF IT.**
+Measured before deciding: the three books that shipped cost 47.8 ms to parse;
+all eight cost 102.6 ms, and 1.66 MB more to fetch, *before the shelf can be
+drawn*. The brief says this has to run on a phone.
+
+So a scroll is now **unrolled when it is taken down**. The page loads one
+kilobyte at boot — `scripture/index.js`, the spine of every scroll: its id, its
+two names, how many chapters — which is enough to draw the shelf and name a
+passage. The book itself is fetched the moment somebody chooses it, once, and
+kept. Verified: **at boot, 0 of 8 books are open**; the creation film opens
+`bereshith` and nothing else.
+
+Which books a scene needs is **derived, not declared**: `STORY.booksOf(s)` reads
+every `q` off the caption track and unions it with the scene's own book. That
+matters because the garden is filed under BERĔSHITH and spends its last minute
+in ADAM AND HAWWAH 1.
+
+**3. WHICH EXPOSED A HOLE IN THE GATE ROUND 49 LEFT.**
+The shelf asked whether `s.book` had been found. So taking up the scroll of the
+beginning opened a passage *half of which was still buried in a cave in the
+Zagros*, and finding that cave opened nothing at all. It asks `booksOf` now —
+every scroll a passage reads — and a shut row **names what is missing** rather
+than saying only that something is:
+
+    THE GARDEN IN ĔḎEN
+    still in the earth: ADAM AND HAWWAH 1
+
+**4. §5's THIRD PROHIBITION HAD NO GUARD.**
+*Do not paraphrase. Do not summarise a verse into a caption. Do not invent a
+reference.* `--check` kept the first two, because a `verse:{t,ref}` carries its
+words beside its citation and the two can be set against each other. **A film
+caption carries no words** — it is `{q:['shamoth',14,21]}` and the text arrives
+at run time — so a wrong chapter does not read wrongly, it simply never appears,
+three minutes into a film, with nobody watching.
+
+`--check` now resolves every `q` in every scroll against the emitted books, and
+**test 31** makes the same fetch on the real page, so a book that is on disk but
+unreachable from the loader fails in the suite and not in front of somebody.
+
+    61 exact · 0 paraphrased · 0 unsourceable  (61 verses)
+    124 film captions resolve · 0 do not  (8 scrolls)
+
+**5. THREE THINGS WERE FOUND BY LOOKING, AND ALL THREE WERE OLD.**
+
+**(a) The second game had an empty block table.** `scripture-unfolds/index.html`
+carried its own copy of `window.EARTH`, and the copy had fallen three
+registrars behind: `block`, `mineral` and `work` were added to the voyage over
+Phases 4 and 5 and never reached it. Forty-two block files, fourteen substances
+and thirteen works **all threw on load** — 45 errors on that page against 1 on
+the voyage's — and nothing said a word, because the mesher already had its
+materials by the time anything asked. There is one `world/registry.js` now and
+both pages read it. *It changed nothing about how the page looks, and I checked
+rather than claiming it: the shelf frame is pixel-identical either side of the
+fix. What it changed is that the world is now actually registered.*
+
+**(b) The stage eased colours as one number.** `sky` is a hex, and it was lerped
+the way every other dial is lerped — straight down the middle between two
+JavaScript numbers. But `0x332c26` is 3,353,638, and halfway between it and
+`0x241f1c` is 2,860,705, which unpacks to `0x2BA5E1`. **The going out ran from
+one brown to another brown through a bright green sky**, and the creation had
+been sliding through hues neither of its keys named since the day it was
+written — never caught, because most of that film eases out of black, where the
+error is small. The channels are taken apart now. Every scene on the shelf is
+corrected and not one of them had to be touched.
+
+**(c) The films were played at whatever hour the clock happened to hold.** Every
+dial on that stage changes what the *sky* looks like; the ground is lit by the
+engine's day tint, which knows nothing of any of them. So a noon sky stood over
+a world still shaded for dusk, and every film on this shelf was murky. There is
+an `hour` dial now, and it keeps the rule `world/scenes.js` already keeps: **the
+hour asked for is the LOCAL hour at the place the scene is staged**, because the
+sun goes round the disc and 18:00 is dusk in one land and midnight in the next.
+It takes the clock off 'live' first — left there, the engine reads the machine's
+own wall clock back over it four times a second — and gives both back when the
+scene ends.
+
+The two films that already shipped **do not name an hour**, so nothing about
+them changed. That is deliberate: the creation is a film about light made three
+days before the sun was, and it is ticked.
+
+**6. Two smaller things the new light made necessary.**
+The cloud sheet is drawn white against whatever sky it is over, and the engine
+only ever varies how *solid* it is, never how bright — right for a world where
+sky and cloud darken together, wrong the moment a scene darkens the sky on its
+own. Sinai in smoke had bright white cloud lying across a brown-black sky. The
+clouds are lit by the stage now, as the sea already was.
+
+And the captions got a scrim rising out of the lower letterbox bar. White italic
+needs nothing behind it on a dark hillside; on the noon beach the going out now
+opens on, the gold reference line all but vanished.
+
+**7. The carpet, and a rule applied where it was never meant to go.**
+`stage.js` said *"THE COARSE CARPET IS NEVER IN A SCENE"* and it was right — for
+a scene staged at a shore, where it is a handful of enormous flat planes lying
+across the whole view. But the streamed ring is some twelve hundred units
+across, and three of these films leave the ground: lift the eye eight hundred
+units to look at the courses of the lights and **the earth simply stops**. A
+scene asks with `far` and gets nothing unless it does, so every scene written
+before this one is unchanged. This is the fourth time this round-up has named
+the same root cause: *a rule that is correct for the thing it was written for,
+applied where it was never meant to go.*
+
+**8. What I did NOT do, and why.**
+
+**I did not correct the source's typography.** Two verses this game now ships
+carry a drop-cap the offline Besorah flattened with a space in it — `YASHAR
+1:1` reads *"A nd Aluahim said"* and `YOḆELIM 2:1` reads *"W rite the complete
+history"* — and both are captions on screen. The space is in the source JSON,
+before any markup is stripped; the extractor reproduces it faithfully, which is
+the whole promise of the extractor. Of 11,186 verses in the eight books, 94
+begin with a lone capital and a space and **all but three of those are ordinary
+English** — *"I saw"*, *"A fiery"*, *"A great"* — so any rule that joined them
+would produce *"Ithank"* far more often than it fixed anything. Bending the
+films around it to hide it would be worse: the next person would put the verse
+back. It is written here so that it is a measured, known defect in the supplied
+file and not a surprise.
+
+**I did not raise the eye far enough to look down on the whole disc.** The
+voyage has a chart for that and the chart is not a place — it is a map that
+takes over as the eye leaves the world. A film about the ends of the earth is
+filmed *from* the earth, looking out.
+
+**9. The reading.**
+
+    PASS 30 · the shelf holds 8 passages · no voyage: 0 shut
+              · a voyage with nothing taken: 8 of 8 shut
+              · the beginning taken: 1 open of 1 owed,
+                7 of 7 shut rows name what is missing
+              · the beginning and the cave: 2 open of 2 owed
+    PASS 31 · 124 captions across 8 films, out of 8 scrolls
+              · none open at boot: yes
+
+**Phase 7 is complete.** Steps 1, 2 and 4 were taken in Rounds 47–49; this is
+step 3, and there is nothing left in it.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
