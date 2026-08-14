@@ -793,3 +793,70 @@ summit"* and does not say which. None of the eight is the account of the flood, 
 choosing one to stand for it would be inventing an assignment the brief did not make.
 Ararat waits for a scroll that belongs on it, and `world/scrolls.js` says so where a
 reader will find it.
+
+---
+
+## 14. Phase 6 — the living things: the order, and what was already there
+
+*"§2.3 and §2.4 in full: coats, gaits, true stature, finer creature grain, herd structure;
+branching trees, canopy forms per species, bark, seasonal colour, the ground layer, crops
+that grow."*
+
+Phase 7 was taken out of order because it was asked for. This is the earliest phase still
+open, and **two of its twelve items are already done** — so before planning anything I
+went and looked, rather than planning work that exists:
+
+| §2.3 fauna | state |
+|---|---|
+| 1. Coats, countershading, markings | **nothing.** `lbox` gives every limb one flat Lambert colour |
+| 2. Real gaits | ✅ `js/gait.js`, six gaits, chosen by speed, one datum per species in `js/behavior.js` |
+| 3. True stature | ✅ `js/size.js` — the half-scale field beasts are gone, one measure and it is the man's |
+| 4. Finer voxel grain | partial: two-bone limbs with knees, but 12–15 parts on the large mammals |
+| 5. Herd and flock structure | partial: roles and flight in `js/behavior.js`, no matriarch, no vigilance |
+| 6. The daily round | partial: `day:` and `acts:` exist, no drinking, wallowing, bedding |
+
+| §2.4 flora | state |
+|---|---|
+| 1. Branching | **nothing.** A bole and a canopy; no branch orders anywhere in `js/flora.js` |
+| 2. Canopy per species | ✅ `form:` in `world/flora.js`, a dozen forms built in `js/flora.js` |
+| 3. Bark per species | partial: one grey bark, tinted per species — not a texture each |
+| 4. Seasonal colour | partial: `js/season.js` exists; the leaves do not read it |
+| 5. A real ground layer | partial: `js/grass.js` is the sward, no litter, deadfall, moss or fungi |
+| 6. Crops in stages | partial: farms and farmers exist, no agricultural year |
+
+### The order
+
+**1. The coat.** ✅ *Round 51.* §2.3.1, and the headline of it is *countershading* —
+*"near-universal in real animals and almost absent in Minecraft."* It went first because
+it is the only item here that touches **all 150 species at once without editing one
+creature file**: the beast is built as it always was, and `makeBeast` grades the finished
+model. **150 files, 2534 meshes, 0 left flat, at 1.13× the build cost and no per-frame
+cost at all.** The first cut graded by HEIGHT on the animal and had good numbers and was
+wrong — a gazelle's body spans a fifth of its height, so the body moved four parts in a
+hundred and the head went dark. Countershading is about which way a face is turned, not
+how high it is. The test was written twice for the same reason, and the second one was
+proved by putting the broken version back and watching it fail. Markings — spots, stripes,
+dorsal lines — are data and come after, per species.
+
+**2. Branching.** §2.4.1. The other change that alters every one of a thing at a stroke:
+*"Every tree in the world stops looking like every other tree."* Costs geometry, so it is
+measured against the frame budget before it is believed, and the forms already in
+`js/flora.js` are extended rather than replaced.
+
+**3. Seasonal colour**, which is nearly free — the season system stands and the leaves
+simply do not ask it anything.
+
+**4. Herd structure and the daily round**, together, because they are one loop: a
+matriarch, juveniles at the centre, one head always up, and beasts that go to water at
+dawn and dusk and bed down in cover at night.
+
+**5. Finer grain on the twenty most-seen species.** Last, and explicitly not all 151 —
+the brief says so, and it is the item most able to cost frames for the least reach.
+
+### What I will not do
+
+**I will not re-grade the 32 creature files that already build a belly of their own
+colour.** They shade themselves discretely — a pale box under a dark one — and the pass in
+step 1 grades *within* each box, which reads as gradation and not as doubling. Where it
+does double, the beast's own file says so with one datum and the engine goes on knowing no
+beast by name.

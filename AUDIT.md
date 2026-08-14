@@ -3602,6 +3602,97 @@ filmed *from* the earth, looking out.
 **Phase 7 is complete.** Steps 1, 2 and 4 were taken in Rounds 47–49; this is
 step 3, and there is nothing left in it.
 
+## 4ax. Round 51 — Phase 6 step 1: the coat ✅
+
+*§2.3.1, and the first thing it names: "Coats, not flat colours … countershading
+(dark back, pale belly — near-universal in real animals and almost absent in
+Minecraft)."*
+
+**1. THE FAULT.** `lbox(w,h,d,col)` gives every limb of every beast ONE flat
+Lambert colour, and a hundred and fifty-one creature files were built out of it.
+Nothing on any animal in this world was lighter underneath than it was on top —
+which is the one thing that is true of very nearly every animal there is. Worse
+than plain: a directional light from above made the BACK the *brightest* surface
+on the beast, so a gazelle read as a bright slab with legs.
+
+**2. WHY IT IS DONE IN THE ENGINE AND NOT IN THE FILES.** A hundred and fifty-one
+files would have to be edited to say a thing that is true of all of them, and the
+next creature written would forget. `makeBeast` is the one gate every beast comes
+through: the file builds it exactly as it always did, and the finished model is
+GRADED before it is scaled to its true stature. **Not one creature file changed.**
+
+**3. AND THE FIRST VERSION WAS WRONG, WITH GOOD NUMBERS.**
+It graded every vertex by how high it stood on the whole animal. Every mesh was
+touched; the tint ran 0.72 to 1.14; nothing was left flat. It was wrong:
+
+> a gazelle's body spans about a fifth of its height. So the body — the part
+> anybody actually looks at — moved by **four parts in a hundred**, and the
+> HEAD, standing high, went dark. A gazelle whose head is darker than its back
+> is not countershaded, it is wrong.
+
+I nearly shipped it, because the measurement I had taken was *"is every mesh
+graded"* and the answer was yes. **The measurement was about the wrong thing.**
+
+Countershading is not about how high a surface is. It is about **which way it
+faces**: a surface turned up to the sky is pigmented dark, a surface turned down
+to the ground is pale. So a horizontal face takes its shade from its normal
+outright, and a vertical face — the flank, which is most of what is seen —
+grades across ITS OWN height and gets the whole range to itself. Every box is
+treated alike and none of them has to know where on the animal it sits. The
+gazelle's body now runs the full 0.70…1.18 from back to belly.
+
+**4. WHAT IT COSTS.** Nothing per frame and nothing per draw call. It is not a
+texture and not a second material: it is a colour attribute on geometry the beast
+already has, written once at build, multiplied into the Lambert diffuse by the
+shader that was already running.
+
+    150 creature files · 2534 meshes in one of each
+    building all of them twice, flat : 225.9 ms
+    building all of them twice, coat : 254.8 ms   (1.13×, ~0.1 ms a beast)
+    the colour attributes: 60,891 vertices · 713 KB for the ENTIRE bestiary
+
+and 713 KB is the upper bound if every species on earth stood in one place,
+which never happens. Measured warm: cold, the *flat* build came out slower than
+the graded one, which cannot be true — the first pass was paying for everything
+the second found ready. That is written down because it nearly went in as a
+finding.
+
+**5. A SPECIES MAY REFUSE IT.** `shade:0` in a creature file turns it off and any
+number between scales it — for the thirty-two files that already build a pale
+belly of their own and might double. Verified on the shark, which countershades
+itself: the coat grades *within* each of its boxes and reads as gradation, not as
+doubling, so nothing was set. **The engine still knows no beast by name**: it
+reads a datum, as it reads `metres` and `realm`.
+
+**6. THE TEST, AND WHY IT WAS WRITTEN TWICE.**
+The first test asked *"is the up-face darker than the down-face"* — and I wrote in
+its own comment that this would have caught the broken version. **It would not.**
+Under a height ramp a box's top is always higher than its bottom, so every beast
+passes. I checked the claim instead of leaving it standing, and it was false.
+
+What catches it is the **spread on the torso**: the largest mesh on an animal is
+its body, and countershading means that body runs the full range from back to
+belly. So the test finds the biggest box and asks for at least 0.35 of tint
+across it. Then I put the broken version back and ran it:
+
+    FAIL 32 · the narrowest body runs -0.41 of tint from back to belly
+              · NOT COUNTERSHADED: lobster (up 1.11 is not darker than down 0.70) …
+              · TOO SLIGHT TO SEE: squid (0.30); anglerfish (0.29) … (+95 more)
+
+A hundred species too slight to see, and several **inverted** — a lobster's
+largest box sits low on it, so the height ramp made its top paler than its
+bottom. The claim is now proved rather than asserted.
+
+    PASS 32 · 150 creature files · 2534 meshes graded, 0 left flat
+              · the narrowest body runs 0.48 of tint from back to belly
+              · a species that refuses it stays flat: yes
+
+**7. What is NOT in this round.** The rest of §2.3.1 — spots, stripes, dorsal
+lines, muzzle and eye markings, seasonal coat change — is **data**, one line per
+species, and belongs in the creature files where a reader can see it. This round
+is the base every one of those sits on: nothing that follows has to think about
+which way a face is turned.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

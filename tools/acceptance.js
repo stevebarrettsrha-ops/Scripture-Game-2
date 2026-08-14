@@ -1001,6 +1001,92 @@ T[30]={name:'a scroll taken in the voyage opens its passage in Scripture Unfolds
     } finally { await browser.close(); }
   }};
 
+T[32]={name:'every beast is countershaded — dark above, pale beneath — and none of them by name',
+  /* §2.3.1: *"Coats, not flat colours … countershading (dark back, pale belly
+     — near-universal in real animals and almost absent in Minecraft)."* Every
+     limb of every beast was one flat Lambert colour, and 151 files were built
+     out of it.
+
+     WHAT THIS TEST IS REALLY FOR, and it took two goes to write honestly.
+     The first cut of the coat graded every vertex by how high it stood on the
+     WHOLE animal, and the numbers looked right — 0.70 to 1.18, every mesh
+     touched, nothing left flat. It was wrong: a gazelle's body spans about a
+     fifth of its height, so the body moved by four parts in a hundred while
+     the head, standing high, went dark.
+
+     "Is the up-face darker than the down-face" does NOT catch that — under a
+     height ramp a box's top is always higher than its bottom, so it passes.
+     What catches it is the SPREAD ON THE TORSO: the largest mesh on the
+     animal is its body, and countershading means that body runs the full
+     range from its back to its belly. Under the height ramp the gazelle's
+     body spanned 0.11 of tint; it spans the whole 0.48 now. The test asks for
+     0.35, which the broken version cannot reach on any quadruped. */
+  run:async page=>page.evaluate(()=>{
+    const D=window.__VDBG, T=window.__WORLD.THREE;
+    if(!D.coatBeast||!D.BEAST_BY_NAME) return {pending:'no coat (Phase 6 step 1)'};
+    const names=Object.keys(D.BEAST_BY_NAME);
+    if(!names.length) return {ok:false,got:'no creature files'};
+    const n3=new T.Vector3(), bb=new T.Box3(), sz=new T.Vector3();
+    /* the tint on the faces that look up and down, and the biggest mesh */
+    function read(g){
+      let flat=0, done=0, big=null, bigV=-1;
+      g.traverse(o=>{
+        if(!o.isMesh||!o.geometry) return;
+        const c=o.geometry.attributes.color;
+        if(!c){ flat++; return; }
+        done++;
+        bb.setFromObject(o); bb.getSize(sz);
+        const v=sz.x*sz.y*sz.z;
+        if(v>bigV){ bigV=v; big=o; }
+      });
+      let up=null, dn=null;
+      if(big){
+        const c=big.geometry.attributes.color, nA=big.geometry.attributes.normal;
+        big.updateWorldMatrix(true,false);
+        if(nA) for(let i=0;i<c.count;i++){
+          n3.fromBufferAttribute(nA,i).transformDirection(big.matrixWorld);
+          const t=c.getX(i);
+          if(n3.y>0.5){ if(up===null||t>up) up=t; }
+          else if(n3.y<-0.5){ if(dn===null||t<dn) dn=t; }
+        }
+      }
+      return {up,dn,flat,done};
+    }
+    D.coatOn(true);
+    const bad=[], thin=[], noSky=[];
+    let graded=0, flatMesh=0, worst=9;
+    for(const nm of names){
+      let g=null; try{ g=D.makeBeast(nm); }catch(e){ continue; }
+      const f=read(g);
+      graded+=f.done; flatMesh+=f.flat;
+      if(f.flat) noSky.push(nm);
+      if(f.up===null||f.dn===null) continue;
+      if(!(f.up<f.dn)) bad.push(nm+' (up '+f.up.toFixed(2)+' is not darker than down '+f.dn.toFixed(2)+')');
+      const spread=f.dn-f.up;
+      if(spread<worst) worst=spread;
+      if(spread<0.35) thin.push(nm+' ('+spread.toFixed(2)+')');
+    }
+    /* AND A SPECIES MAY REFUSE IT — the engine reads a datum, not a name */
+    const one=names[0], spec=D.BEAST_BY_NAME[one];
+    const keep=spec.shade; spec.shade=0;
+    const off=read(D.makeBeast(one));
+    spec.shade=keep;
+    const refused=off.done===0&&off.flat>0;
+    /* and with the coat switched off nothing anywhere is graded */
+    D.coatOn(false);
+    const none=read(D.makeBeast(one));
+    D.coatOn(true);
+    const ok=!bad.length&&!thin.length&&!flatMesh&&refused&&none.done===0;
+    return {ok, got:names.length+' creature files · '+graded+' meshes graded, '+
+      flatMesh+' left flat · the narrowest body runs '+worst.toFixed(2)+
+      ' of tint from back to belly (0.35 is the least that reads) · '+
+      'a species that refuses it stays flat: '+(refused?'yes':'NO')+
+      (bad.length?' · NOT COUNTERSHADED: '+bad.slice(0,4).join('; '):'')+
+      (thin.length?' · TOO SLIGHT TO SEE: '+thin.slice(0,5).join('; ')+
+        (thin.length>5?' (+'+(thin.length-5)+' more)':''):'')+
+      (noSky.length?' · MESHES MISSED IN: '+noSky.slice(0,4).join(', '):'')};
+  })};
+
 T[31]={name:'every caption of every long film fetches a real verse out of the Besorah',
   /* §5's THIRD PROHIBITION, which had no guard until now: "do not invent a
      reference." The first two — do not paraphrase, do not summarise — are

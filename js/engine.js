@@ -4938,12 +4938,114 @@ function beastSpan(g,axis){
   _bBox.setFromObject(g); _bBox.getSize(_bSize);
   return axis==='x'?_bSize.x : axis==='y'?_bSize.y : _bSize.z;
 }
+/* ================= THE COAT =================
+   §2.3.1 of the brief, and the first thing it names: *"Coats, not flat
+   colours … countershading (dark back, pale belly — near-universal in real
+   animals and almost absent in Minecraft)."*
+
+   THE FAULT. `lbox` gives every limb of every beast ONE flat Lambert colour,
+   and a hundred and fifty-one species were built out of it. A gazelle in
+   full sun and a gazelle under a thundercloud were the same eleven flat
+   patches of fawn; nothing on any animal in this world was lighter
+   underneath than it was on top, which is the one thing that is true of
+   nearly every animal there is.
+
+   WHY IT IS DONE HERE AND NOT IN THE FILES. One hundred and fifty-one files
+   would have to be edited to say what is true of all of them, and the next
+   creature written would forget. `makeBeast` is the one gate every beast in
+   the world comes through, so the beast is built exactly as it always was
+   and then GRADED — over its own height, in its own space, before it is
+   scaled to its true stature.
+
+   HOW IT COSTS NOTHING. It is not a texture and not a second material: it is
+   a colour attribute on the geometry the beast already has, written once at
+   build time, multiplied into the Lambert diffuse by the shader that was
+   already running. No draw call is added. The 24 vertices of a box carry 72
+   floats — a lynx of thirty parts costs some eight kilobytes, once.
+
+   AND THE DARK HALF CARRIES IT. The first cut ramped evenly from the crown
+   to the ground, which put the strongest paling on the HOOVES — the lowest
+   thing on a quadruped is its feet, not its belly, and a gazelle whose feet
+   glowed was worse than one that was flat. Real countershading is mostly
+   *dark above*; the pale underside spends its life in shadow and reads
+   quietly. So the top is taken down hard and the bottom lifted gently, and
+   the two meet at the middle of the animal, which is about where a belly is.
+
+   A SPECIES MAY REFUSE IT. `shade:0` in a creature file turns it off, and
+   any number between scales it — for the thirty-two files that already build
+   a pale belly of their own and might double. The engine still knows no
+   beast by name: it reads a datum, as it reads `metres` and `realm`. */
+/* ---- AND IT IS THE FACE THAT DECIDES, NOT THE HEIGHT ----
+   The first cut graded every vertex by how high it stood on the whole beast.
+   Measured on a gazelle, the BODY — which is the part anybody looks at —
+   spans barely a fifth of the animal's height, so it received a fifth of the
+   range and moved by four parts in a hundred, while the HEAD, standing high,
+   went dark. A gazelle whose head is darker than its back is not
+   countershaded, it is wrong, and it was very nearly shipped because the
+   numbers said 0.72…1.14 and the numbers were about the wrong thing.
+
+   Countershading is not about how high a surface is. It is about WHICH WAY
+   IT FACES: a surface turned up to the sky is pigmented dark, a surface
+   turned down to the ground is pale. So a horizontal face takes its shade
+   from its normal outright, and a vertical face — the flank, which is most
+   of what is seen — grades across ITS OWN height, top to bottom, and gets
+   the whole range for itself. Every box is treated the same way and none of
+   them has to know where on the animal it sits. */
+const COAT_TOP=0.70, COAT_BELLY=1.18;
+/* the A/B switch, so the coat can be set beside the flat colour it
+   replaced in ONE page rather than across two commits — the same way the
+   undercut bedding was measured in Phase 5 */
+let COAT_ON=true;
+const _coatV=new THREE.Vector3(), _coatN=new THREE.Vector3();
+function smooth01(u){ return u*u*(3-2*u); }
+function coatBeast(inner,spec){
+  const s=COAT_ON?((spec&&spec.shade!==undefined)?spec.shade:1):0;
+  if(!(s>0)) return;
+  const top=1-(1-COAT_TOP)*s, belly=1+(COAT_BELLY-1)*s;
+  /* every node's world matrix brought up to date; `inner` has no parent yet,
+     so this IS the beast's own space and up is up */
+  inner.updateWorldMatrix(false,true);
+  inner.traverse(o=>{
+    if(!o.isMesh||!o.geometry) return;
+    const g=o.geometry, p=g.attributes&&g.attributes.position,
+          nA=g.attributes&&g.attributes.normal;
+    /* a file that painted its own vertex colours has said what it wants */
+    if(!p||g.attributes.color) return;
+    /* the box's own height, in the beast's space */
+    let lo=Infinity, hi=-Infinity;
+    for(let i=0;i<p.count;i++){
+      _coatV.fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld);
+      if(_coatV.y<lo) lo=_coatV.y; if(_coatV.y>hi) hi=_coatV.y;
+    }
+    const h=hi-lo;
+    const n=p.count, col=new Float32Array(n*3);
+    for(let i=0;i<n;i++){
+      _coatV.fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld);
+      let ny=0;
+      if(nA){ _coatN.fromBufferAttribute(nA,i).transformDirection(o.matrixWorld); ny=_coatN.y; }
+      let k;
+      if(ny>0.5) k=-1;             /* turned up to the sky — dark */
+      else if(ny<-0.5) k=1;        /* turned down to the ground — pale */
+      else if(h>1e-4){             /* the flank: graded over its own height */
+        let u=(_coatV.y-lo)/h; u=u<0?0:u>1?1:u;
+        k=1-2*smooth01(u);
+      } else k=0;
+      const f=1+(k<0?(1-top)*k:(belly-1)*k);
+      col[i*3]=col[i*3+1]=col[i*3+2]=f;
+    }
+    g.setAttribute('color',new THREE.BufferAttribute(col,3));
+    const ms=Array.isArray(o.material)?o.material:[o.material];
+    for(const m of ms) if(m&&!m.vertexColors){ m.vertexColors=true; m.needsUpdate=true; }
+  });
+}
+
 /* build one beast, grown to its true stature. Extra arguments are passed
    through to the file's build (the fish takes its colour that way). */
 function makeBeast(name,arg){
   const spec=BEAST_BY_NAME[name];
   if(!spec) throw new Error('no creature file for "'+name+'"');
   const inner=spec.build(BEAST_KIT,arg);
+  coatBeast(inner,spec);
   const span=beastSpan(inner,trueAxis(name,spec));
   /* THE BEAST IS WRAPPED, AND THE WRAPPER GROWS IT. The engine sets scale on
      what it is handed (a calf in the pod, a shark rearing) — so the true
@@ -14320,6 +14422,9 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   mountUp,dismount,nearestMount,promptState:()=>promptAction,
   camera,sceneStep:dt=>{ if(cut) sceneTick(dt); },cutTime:()=>cut?cut.t:-1,
   playerXZ,localHourAt,setLocalHour,clockFace,dayPartName,DAYPARTS,applyDayPart,
+  /* the coat, for the suite and for setting it beside what it replaced */
+  makeBeast,coatBeast,coatOn:v=>{ if(v!==undefined) COAT_ON=!!v; return COAT_ON; },
+  BEAST_BY_NAME,
   domeCeilAt,canTouchDome,touchDome,playScene,endScene,SCENES,sceneActive,sceneRise,seenDeeps,BEACHES,SHOALS,ORCA,beachAt,nearestBeach,seabedMetres,orcaState:()=>orcaState,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   /* the scrolls and the compass that leads to them, for the smoke tests */
