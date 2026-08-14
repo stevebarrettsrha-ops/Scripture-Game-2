@@ -7235,6 +7235,17 @@ function takeScroll(sc){
   if(!sc||scrollTaken.has(sc.id)) return;
   scrollTaken.add(sc.id);
   if(sc.m){ scene.remove(sc.m); freeTree(sc.m); sc.m=null; }
+  /* ---- AND THE SHORT SCENE AT THE PLACE IT WAS FOUND (§5, step 2) ----
+     Nineteen seconds of the actual landscape he found it in, holding the
+     scroll's own verse. It is played BEFORE the toast, so the words of the
+     book stand on the screen and the log's line follows after it rather than
+     fighting it. If a scene is already running the taking is not lost — only
+     its film is, which is the right way round. */
+  if(sc.verse&&sc.verse.t&&SCENES['scroll-taken']){
+    const p=playerXZ();
+    playScene('scroll-taken',{ x:p.x, y:(state.walk.feetY!==undefined?state.walk.feetY:WATER_Y),
+      z:p.z, out:state.walk.heading, line:[sc.verse.t, sc.verse.ref] });
+  }
   const left=SCROLLS.filter(x=>!x.gone&&!scrollTaken.has(x.id)).length;
   toast(sc.name+' \u2014 '+sc.words+(left
     ? '  ('+scrollTaken.size+' of '+SCROLLS.filter(x=>!x.gone).length+' scrolls gathered \u2014 the golden needle lies on the next.)'
@@ -11950,7 +11961,11 @@ function playScene(name,at){
   const spec=SCENES[name];
   if(!spec||cut||!spec.shots||spec.shots.length<2) return false;
   const lines=spec.lines||[];
-  const line=lines.length?lines[Math.floor(Math.random()*lines.length)]:null;
+  /* A CALLER MAY HAND IN THE VERSE. The taking of a scroll wants the words of
+     the very book just picked up, which the scene itself cannot know — so
+     `at.line` wins over the scene's own list when it is given. */
+  const line=(at&&at.line)?at.line
+    :(lines.length?lines[Math.floor(Math.random()*lines.length)]:null);
   cut={spec,t:0,dur:spec.dur||10,rise:0,line,x:at.x,y:at.y,z:at.z,out:at.out,
        shotIdx:-1,snap:true,hour0:null,title:null};
   /* the caption track: the new `caps` list, or the old single verse laid out
@@ -14300,6 +14315,8 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   /* the scrolls and the compass that leads to them, for the smoke tests */
   SCROLLS,scrollTaken,nextScroll,takeScroll,nearestScrollProp,toggleGuide,
+  /* what film is running, and what it is holding — tools/acceptance.js */
+  cutInfo:()=>cut?{name:cut.spec&&cut.spec.name,t:cut.t,dur:cut.dur,line:cut.line}:null,
   /* the eye's boom and its near plane, for the smoke tests — the shaking
      beside a rock was read off these two */
   camInfo:()=>({clear:camClear, near:camera.near, stepOff:state.walk.stepOff||0}),

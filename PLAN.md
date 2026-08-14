@@ -748,10 +748,13 @@ now name a PLACE — `at:{mount:…}` or `at:{cave:true}` — and the engine kno
 name, it reads `at`. **The Scroll of the Going Out stands at 94 of 94 on Sinai; the Cave
 of Treasures and Ḥanoḵ lie in the dark at light 0.04 and 0.00, both reachable.**
 
-**2. The short scene on discovery.** §5: taking a scroll must fire a 15–30 s in-world
-scene at the place it was found, camera marks over the actual landscape, one verse held.
-*"This is what makes discovery feel like reward."* The cutscene engine exists; six scrolls
-have no scene.
+**2. The short scene on discovery.** ✅ *Round 48.* Nineteen seconds, six marks, over the
+actual landscape, holding the scroll's own verse. **One scene serves all eight** — every
+mark is measured from the traveller, so it films whatever he is standing in: the whole
+range from the summit of Sinai, four walls and a torch in the Cave of Treasures. Each
+scroll now carries a verse from its OWN book, sourced through the extractor and checked by
+`--check`; `words` beside it stays narration in the game's voice with no chapter and
+verse, which is the distinction §5 insists on.
 
 **3. The six missing long films.** Only two of eight have them. Text extracted through the
 tool, so every caption is a fetch or narration in the game's own voice and never a

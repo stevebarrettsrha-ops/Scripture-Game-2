@@ -75,6 +75,46 @@
    comes down to meet it, and he sets his hand upon the glass. The wall of
    night goes down, the day drains out of the sky, and the host of the
    shamayim stands in the outer dark on every side. */
+/* ---- THE TAKING UP OF A SCROLL — §5, Phase 7 step 2 ----
+   *"Taking up a scroll must fire a short in-world scene at the place it was
+   found — 15-30 s, camera marks over the actual landscape, one verse held.
+   This is what makes discovery feel like reward."*
+
+   ONE SCENE SERVES ALL EIGHT, and that is not a shortcut — it is why the
+   format was built this way. Every mark is measured from the TRAVELLER: so
+   far behind him, so far above his feet, looking so far out along his own
+   bearing. It films whatever he is standing in. Taken on the summit of Sinai
+   it sweeps the whole range; taken in the dark of the Cave of Treasures it
+   finds four walls and a torch, and the same six marks do both.
+
+   THE VERSE IS THE SCROLL'S OWN. `lines` here is empty on purpose: the engine
+   hands in the verse of the scroll being taken, sourced from the Besorah by
+   tools/extract-besorah.js, so what is held on the screen is the words of the
+   very book he has just picked up.
+
+   NINETEEN SECONDS, which is inside §5's fifteen to thirty. It opens close on
+   him as he straightens with it, draws back and up so the place he found it
+   in reads as a PLACE, holds there while the verse stands, and settles back
+   to his shoulder. The hour is not touched: a scroll found at dusk is a scene
+   at dusk. */
+EARTH.scene({
+  name:'scroll-taken',
+  dur:19.0,
+  cap:[3.0,15.5],
+  lines:[],                       /* the scroll hands in its own — see above */
+  set:{ letterbox:true, hideHud:true, noSnow:true, fadeIn:1.4, fadeOut:1.8 },
+  actor:{ stand:true, reach:[0.4,1.9,16.6,18.4] },
+  shots:[
+    /*  t     dist  lift  swing   out    up      what is seen                */
+    { t: 0.0, d: 11, y:  3, s:0.62, L:   3, h:   3 },  /* close, in front — the thing in his hands */
+    { t: 3.0, d: 17, y:  5, s:0.30, L:  16, h:   4 },  /* easing round to his shoulder */
+    { t: 7.5, d: 40, y: 16, s:0.06, L:  90, h:  10 },  /* back and up — the place itself */
+    { t:12.0, d: 62, y: 30, s:0.02, L: 200, h:  18 },  /* the hold, while the verse stands */
+    { t:16.0, d: 30, y: 10, s:0.14, L:  40, h:   6 },  /* coming back down to him */
+    { t:19.0, d: 14, y:  4, s:0.40, L:   8, h:   3 },  /* and back where it began */
+  ]
+});
+
 EARTH.scene({
   name:'firmament',
   dur:14.0,

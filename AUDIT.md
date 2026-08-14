@@ -3312,6 +3312,65 @@ omission is a decision and not an oversight.
 **Still ahead in Phase 7:** the short scene on discovery; the six missing long
 films; and the handshake between the log and Scripture Unfolds.
 
+## 4au. Round 48 — Phase 7 step 2: the scene at the place it was found ✅
+
+*§13 step 2. Acceptance **29 pass · 0 fail · 0 pending**; the verses **61 exact
+· 0 paraphrased**.*
+
+**1. WHAT TAKING A SCROLL DID BEFORE THIS.** It toasted and it saved. That was
+all — the whole reward for crossing an ocean and climbing a mountain was a
+line of text sliding across the bottom of the screen. §5 is blunt about the
+gap: a short in-world scene, *"15-30 s, camera marks over the actual
+landscape, one verse held. **This is what makes discovery feel like reward.**"*
+
+**2. ONE SCENE SERVES ALL EIGHT, and that is not a shortcut.**
+It is why `world/scenes.js` was built the way it was. Every mark in a scene is
+measured **from the traveller** — so far behind him, so far above his feet,
+looking so far out along his own bearing. It does not know or care what it is
+pointed at. So a single definition films whatever he is standing in: taken on
+the summit of Sinai it draws back until the whole range is under him; taken in
+the dark of the Cave of Treasures the same six marks find four walls and a
+torch.
+
+Nineteen seconds, inside §5's fifteen to thirty. It opens close on him as he
+straightens with the thing in his hands, draws back and up until the place
+reads as a PLACE, holds there while the verse stands, and settles to his
+shoulder. **The hour is not touched**: a scroll found at dusk is a scene at
+dusk.
+
+**3. AND THE VERSE IS THE SCROLL'S OWN.**
+The scene's `lines` list is empty on purpose. `playScene` now takes a line
+from its caller, so what is held on the screen is a verse of **the very book
+just picked up** — BERĔSHITH 1:1 for the scroll of the beginning, SHAMOTH 3:2
+for the Going Out, and so on for all eight, every one of them pulled out of
+the Besorah by `tools/extract-besorah.js` and every one checked by `--check`.
+
+That keeps §5's other rule, the one it says must never be broken: *"No cutscene
+may ever put words in scripture's mouth."* The scroll's `verse` is scripture
+and carries chapter and verse; its `words` beside it is narration in the
+game's own voice and carries none. Two fields, and the difference between them
+is visible in the file.
+
+**4. The reading.**
+
+    PASS 29 · the scene runs 19s over 6 marks · 8 scrolls, 8 with a verse of
+              their own · taking bereshith: it played=true, holding
+              BERĔSHITH 1:1 (its own is BERĔSHITH 1:1)
+
+And photographed on the summit of Sinai at the hold: the letterbox down, the
+rail and the rose gone, the traveller alone on the summit stone with his hands
+raised, and the words of the burning bush standing over the whole range.
+
+**5. A note on the first photograph, which showed nothing.**
+It was taken at 1.3 s — before the caption track opens at 3.0 — and at an hour
+that read as night, because the hour was pinned BEFORE he was set down and the
+local hour is reckoned from where a man stands. Both are mistakes this audit
+has recorded before. The second was taken at the hold, at noon, after he was
+in place.
+
+**Still ahead in Phase 7:** the six missing long films, and the handshake
+between the ship's log and Scripture Unfolds.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

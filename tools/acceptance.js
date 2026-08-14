@@ -935,6 +935,37 @@ T[24]={name:'every named summit can be reached on foot',
           highest+' courses'+(bad.length?' · NO WAY UP: '+bad.join(', '):'')};
   })};
 
+T[29]={name:'taking a scroll plays a scene at the place, holding that scroll\'s own verse',
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    const SC=D.SCROLLS||[];
+    if(!SC.length||!D.SCENES||!D.SCENES['scroll-taken'])
+      return {pending:'no taking scene (Phase 7 step 2)'};
+    const spec=D.SCENES['scroll-taken'];
+    /* §5 asks for fifteen to thirty seconds, and camera marks */
+    const dur=spec.dur||0;
+    const marks=(spec.shots||[]).length;
+    /* every scroll must carry a verse of its own, or it has nothing to hold */
+    const noVerse=SC.filter(s=>!s.verse||!s.verse.t||!s.verse.ref).map(s=>s.id);
+    /* AND IT MUST ACTUALLY PLAY, with THAT scroll's words on the screen.
+       Take one for real and read what the caption track was given. */
+    const sc=SC.find(s=>!s.gone&&!D.scrollTaken.has(s.id));
+    if(!sc) return {ok:false,got:'every scroll is already taken'};
+    D.state.walk.feetY=D.state.walk.feetY||0;
+    D.takeScroll(sc);
+    await new Promise(r=>requestAnimationFrame(r));
+    const c=D.cutInfo?D.cutInfo():null;
+    const played=!!c;
+    const heldIt=!!(c&&c.line&&c.line[1]===sc.verse.ref);
+    return {ok:dur>=15&&dur<=30&&marks>=4&&!noVerse.length&&played&&heldIt,
+      got:'the scene runs '+dur+'s over '+marks+' marks · '+
+          SC.length+' scrolls, '+(SC.length-noVerse.length)+' with a verse of their own'+
+          (noVerse.length?' · NO VERSE: '+noVerse.join(','):'')+
+          ' · taking '+sc.id+': it played='+played+
+          ', holding '+(c&&c.line?c.line[1]:'nothing')+
+          ' (its own is '+sc.verse.ref+')'};
+  })};
+
 T[28]={name:'a great scroll lies where it costs something, and can still be got at',
   run:async page=>page.evaluate(async()=>{
     const D=window.__VDBG, B=D.B;
