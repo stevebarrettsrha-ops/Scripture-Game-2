@@ -838,10 +838,16 @@ how high it is. The test was written twice for the same reason, and the second o
 proved by putting the broken version back and watching it fail. Markings — spots, stripes,
 dorsal lines — are data and come after, per species.
 
-**2. Branching.** §2.4.1. The other change that alters every one of a thing at a stroke:
-*"Every tree in the world stops looking like every other tree."* Costs geometry, so it is
-measured against the frame budget before it is believed, and the forms already in
-`js/flora.js` are extended rather than replaced.
+**2. Branching.** ✅ *Round 52.* §2.4.1. The other change that alters every one of a thing
+at a stroke: *"Every tree in the world stops looking like every other tree."* **85 species
+branch, 55 keep their own form** — a cypress is a green pillar and a palm is a stem with
+fronds, and branching those would be drawing something else. Cost, counted directly and
+then in a real wood: the boughed forms are **2.5× their own geometry**, which comes to
+**+11.7% triangles in a German wood and +9.9% in the Congo**, built once into the chunk
+mesh with no new material and no new draw call. The first cut made the wood WORSE — the
+boughs reached on their own scale and a crown 1.9 blocks across became nearly three, so a
+stand of oak read as one green slab. The envelope is struck off the crown radius the form
+already had; the test guards it, and was proved by putting the sprawl back.
 
 **3. Seasonal colour**, which is nearly free — the season system stands and the leaves
 simply do not ask it anything.

@@ -3693,6 +3693,96 @@ species, and belongs in the creature files where a reader can see it. This round
 is the base every one of those sits on: nothing that follows has to think about
 which way a face is turned.
 
+## 4ay. Round 52 — Phase 6 step 2: the boughs ✅
+
+*§2.4.1: "Branching. Two or three orders of branch by a small L-system, with real
+taper. **Every tree in the world stops looking like every other tree.**"*
+
+**1. THE FAULT.** The oak — which is the DEFAULT form in `js/flora.js`, and most
+of the world's wood — was one bole and three crown boxes stacked on the middle of
+it. Not a branch anywhere. The crown was centred on the trunk and symmetrical
+about both axes, so **every oak on the earth was the same oak at a different
+size**, and the only thing that varied from one tree to the next was how big the
+identical shape was. A wood of a hundred of them read as one tree stamped a
+hundred times, which is precisely the fault §2.4 opens by naming.
+
+**2. WHAT IT DOES.** Three or four boughs are thrown from the top of the bole,
+each in its own direction, each of its own length and rise, each in two segments
+that taper as they go — and the leaf is no longer a blob on the trunk but a
+cluster **on the end of each bough**, with a smaller mass at the heart. Every
+number comes off the cell's own hash, so no two trees on the earth are alike and
+the wood is the same wood every time it is meshed.
+
+**3. WHICH FORMS, AND WHY NOT ALL.** A cypress is a green pillar and a palm is a
+bare stem with fronds on its head; branching them would be drawing something that
+is not a cypress and not a palm. The boughed forms are the ones a bough is TRUE
+of — `broad`, `round`, `blossom` — and the list lives in `js/flora.js` because it
+is a fact about the FORM, not about any species. **85 species branch; 55 keep
+their own shape.** The dark oak, the eucalypt and the jungle giant are hardwoods
+too and are deliberately NOT on the list yet: each builds its own crown for its
+own reason and wants its own hand. Saying so is cheaper than a list that claims
+more than it does.
+
+**4. AND THE FIRST CUT MADE THE WOOD WORSE.**
+The boughs reached out on their own scale and hung a full-sized leaf cluster on
+each tip. Measured, it looked like progress: every boughed species gained boxes,
+nothing threw, the geometry was there. Photographed, it was a disaster — a crown
+that had been 1.9 blocks across became nearly **three**, every tree overlapped its
+neighbours, and a stand of oak read as **one green slab**. Worse than the blob it
+replaced.
+
+> **THE ENVELOPE DOES NOT GROW.** The reach and the leaf are struck off the crown
+> radius the form already had, so a branched tree occupies the room an unbranched
+> one did. What changes is its SHAPE, which was the whole point.
+
+Measured after: the crown moved at most **9% across and 18% up**. Before: 138%.
+
+**5. WHAT IT COSTS.** Counted directly, by calling `FLORA.emitTree` with a kit
+whose `emitBox` only counts — not inferred from a chunk that is mostly ground:
+
+    form        species   boxes/tree  with boughs
+      round        60          6.4        16.0    2.52×
+      broad        18          5.8        14.5    2.48×
+      blossom       7          7.6        17.3    2.26×
+      ALL TREES   140          7.0        12.8    1.82×
+
+and in a real wood, which is what actually matters, because a chunk is mostly
+ground and trees are a minority of what it carries:
+
+    a German wood      1,123,466 → 1,255,238 triangles   +11.7%
+    Congo rain forest  1,585,820 → 1,742,852 triangles    +9.9%
+
+Ten to twelve parts in a hundred, in the densest wood on the earth. §2.5 says
+*"beauty that halves the frame rate is not beauty"* — this is nowhere near
+halving anything, and it is geometry built once into a chunk mesh, not work done
+per frame. **No new material and no new draw call**: the boughs go into the same
+batched geometry, through the same four grey masters, tinted as they are laid.
+
+*The wall-clock figures the probe also printed are NOT quoted, and should not be:
+they are paced by `requestAnimationFrame` under SwiftShader, so they measure the
+software renderer's frame time and not the mesher at all. Triangles are the real
+number here.*
+
+**6. THE TEST, and it was proved the same way as the coat.**
+Test 33 calls `emitTree` with a recording kit and asks three things: that a
+boughed form gains boxes, that two cells of the same species differ, and — the
+clause that matters — **that the crown does not grow**. Then the sprawling first
+cut was put back:
+
+    FAIL 33 · the crown moved at most 138% across
+              · THE CROWN GREW: oak (across 123%); beech (138%); birch (138%); ash (123%)
+
+    PASS 33 · 85 species branch, 55 keep their own form
+              · the crown moved at most 9% across and 18% up
+
+It also asserts that a form which is NOT boughed comes out **byte-identical** with
+the switch on and off, so a cypress can never quietly acquire branches.
+
+**7. What is not here.** Bark per species (§2.4.3) is still one grey master tinted
+per species rather than a texture each; seasonal colour (§2.4.4) is next in the
+order and is nearly free, since `js/season.js` already stands and the leaves
+simply do not ask it anything.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

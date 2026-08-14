@@ -1087,6 +1087,78 @@ T[32]={name:'every beast is countershaded — dark above, pale beneath — and n
       (noSky.length?' · MESHES MISSED IN: '+noSky.slice(0,4).join(', '):'')};
   })};
 
+T[33]={name:'a hardwood has boughs, no two are alike, and the crown does not grow',
+  /* §2.4.1: *"Branching. Two or three orders of branch by a small L-system,
+     with real taper. Every tree in the world stops looking like every other
+     tree."* The oak — the DEFAULT form, and most of the world's wood — was one
+     bole and three crown boxes stacked on the middle of it, symmetrical about
+     both axes, so every oak on earth was the same oak at a different size.
+
+     THE THIRD CLAUSE IS THE ONE THAT MATTERS. The first cut of the boughs
+     reached out on their own scale and hung a full-sized leaf cluster on each
+     tip, so a crown 1.9 blocks across became nearly 3 — every tree overlapped
+     its neighbours and a stand of oak read as ONE GREEN SLAB, which is worse
+     than the blob it replaced. It looked fine in a box count and was obvious
+     the moment a wood was photographed. So the envelope is measured here: a
+     branched tree must occupy about the room an unbranched one did. What
+     changed is its shape.
+
+     Nothing is drawn: FLORA.emitTree is called with a kit whose emitBox only
+     records, which is exactly the geometry the mesher would have been given. */
+  run:async page=>page.evaluate(()=>{
+    const F=window.FLORA;
+    if(!F||!F.boughsOn||!F.boughed) return {pending:'no boughs (Phase 6 step 2)'};
+    const K=F.kinds(), M={leaf:0,bark:1,plant:2,solid:3};
+    const boughed=F.boughed();
+    /* a kit that records instead of drawing */
+    let n=0, lo=null, hi=null, sig='';
+    const kit={ G:null, M,
+      hash:(a,b)=>{ const s=Math.sin(a*127.1+b*311.7)*43758.5453; return s-Math.floor(s); },
+      emitBox:(G,x0,y0,z0,x1,y1,z1)=>{ n++;
+        if(lo===null){ lo=[x0,y0,z0]; hi=[x1,y1,z1]; }
+        else { lo[0]=Math.min(lo[0],x0); lo[1]=Math.min(lo[1],y0); lo[2]=Math.min(lo[2],z0);
+               hi[0]=Math.max(hi[0],x1); hi[1]=Math.max(hi[1],y1); hi[2]=Math.max(hi[2],z1); }
+        sig+=(x0.toFixed(1)+','+y0.toFixed(1)+','+z0.toFixed(1)+';'); } };
+    const draw=(spec,ix,iz)=>{ n=0; lo=null; hi=null; sig='';
+      F.emitTree(kit,spec,ix,iz,{h:20});
+      return {n, w:hi?Math.max(hi[0]-lo[0],hi[2]-lo[2]):0, h:hi?hi[1]-lo[1]:0, sig}; };
+
+    const grew=[], same=[], alike=[], drifted=[];
+    let boughedForms=0, plainForms=0, worstW=0, worstH=0;
+    for(const name in K){
+      const spec=K[name]; if(spec.layer!=='tree') continue;
+      const f=spec.form||'broad';
+      F.boughsOn(false); const a=draw(spec,140,260);
+      F.boughsOn(true);  const b=draw(spec,140,260);
+      if(boughed[f]){
+        boughedForms++;
+        /* it must actually branch */
+        if(!(b.n>a.n)) grew.push(name+' ('+a.n+'→'+b.n+' boxes)');
+        /* and it must not sprawl: within a fifth of the room it had */
+        const dw=a.w?Math.abs(b.w-a.w)/a.w:0, dh=a.h?Math.abs(b.h-a.h)/a.h:0;
+        if(dw>worstW) worstW=dw;
+        if(dh>worstH) worstH=dh;
+        if(dw>0.20||dh>0.20) drifted.push(name+' (across '+(dw*100).toFixed(0)+'%, up '+(dh*100).toFixed(0)+'%)');
+        /* and no two of them alike */
+        const c=draw(spec,141,263);
+        if(c.sig===b.sig) alike.push(name);
+      } else {
+        plainForms++;
+        /* a form that is not boughed must be untouched, to the byte */
+        if(a.sig!==b.sig) same.push(name+' ('+f+')');
+      }
+    }
+    F.boughsOn(true);
+    const ok=!grew.length&&!same.length&&!alike.length&&!drifted.length&&boughedForms>0;
+    return {ok, got:boughedForms+' species branch, '+plainForms+' keep their own form · '+
+      'the crown moved at most '+(worstW*100).toFixed(0)+'% across and '+
+      (worstH*100).toFixed(0)+'% up'+
+      (grew.length?' · NO BOUGHS: '+grew.slice(0,4).join('; '):'')+
+      (drifted.length?' · THE CROWN GREW: '+drifted.slice(0,4).join('; '):'')+
+      (alike.length?' · TWO TREES ALIKE: '+alike.slice(0,4).join(', '):'')+
+      (same.length?' · A FORM THAT SHOULD NOT HAVE CHANGED DID: '+same.slice(0,4).join(', '):'')};
+  })};
+
 T[31]={name:'every caption of every long film fetches a real verse out of the Besorah',
   /* §5's THIRD PROHIBITION, which had no guard until now: "do not invent a
      reference." The first two — do not paraphrase, do not summarise — are
