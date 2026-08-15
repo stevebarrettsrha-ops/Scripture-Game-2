@@ -882,8 +882,13 @@ it stands down — 29% watched when hung on the end of a meal, 44% asked at ever
 **62–69% handed on**. I do not claim "always"; the audit gives the number, and the record of the test I first wrote wrong.
 
 **Still open in §2.3.5:** the matriarch and juveniles at the centre of the herd, and real
-flocking for the birds (they have cohesion and neither separation nor alignment). Fish
-schooling already stands.
+flocking for the birds. Fish schooling already stands. **The flocking was built and taken
+back out** — the mechanism works (a flock must TRAVEL, since alignment cannot be added to a
+circle; measured at 44° of heading between flock-mates against 86°), but a bird has nowhere
+in its day to BE in a flock: 95% of them are in 'hunt' at any moment, and a gull on open
+water never reaches the end of a meal. That is a question about the bird's day, not about
+the geometry, and it wants its own round. AUDIT Round 54 carries the working mechanism for
+whoever takes it up.
 
 **5. Finer grain on the twenty most-seen species.** Last, and explicitly not all 151 —
 the brief says so, and it is the item most able to cost frames for the least reach.

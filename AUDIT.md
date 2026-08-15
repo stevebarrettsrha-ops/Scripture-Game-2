@@ -4037,6 +4037,32 @@ slack of 1.35 is what covers it.
 - **birds in real flocking.** They have COHESION only — the mean of their own
   kind within a hundred and twenty units — and neither separation nor alignment,
   so a flock is a cloud that drifts together and never a flock that turns.
+
+  **I BUILT IT, MEASURED IT THREE TIMES, AND TOOK IT BACK OUT.** The mechanism
+  was sound and is worth writing down for whoever picks it up: alignment cannot
+  be added to a CIRCLE, because birds going round one centre only head the same
+  way if they are at the same point on it — so a flock has to TRAVEL. One bird
+  leads and wanders as birds always did; every other holds a station in a wedge
+  turned with the leader's own heading, which gives cohesion and alignment out
+  of one mechanism, and then separation is the only rule left to add. It works:
+  measured on the open sea, **136 bird-samples flying together against 14, and
+  44° of heading between them against 86° for birds merely near each other**.
+
+  What defeated it is that a bird has nowhere in its day to BE in a flock.
+    · Hung on the 'rest' branch it changed nothing, because measured over four
+      hundred frames **95% of the birds in this world are in 'hunt'** and 2.5%
+      ever reach 'rest'.
+    · Made a job of its own, entered after feeding, it worked where I first
+      measured it and produced **zero pairs** where the suite stands (inland,
+      where the birds aloft are eagles, which do not flock) and **zero
+      bird-samples** at the voyage's opening on open water, where a gull fishes
+      without pause and never gets to the end of a meal.
+
+  The flock is not a movement rule to bolt on; it is a part of a bird's day that
+  does not exist yet, and giving it one means deciding when a gull stops
+  fishing — which is a question about the bird, not about the geometry. Better
+  taken as its own round than shipped as a thing I could not show working.
+  Reverted; the tree carries none of it.
 - **fish in true schooling** already stands: a school turns as one thing, rises
   in the dark and sinks by day, and bursts when a shark tears through it.
 
