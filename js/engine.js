@@ -521,6 +521,15 @@ TEX.plantW = mkTex(g=>{ g.clearRect(0,0,16,16);
         g.fillRect(x+(y>h2-3?(hash2(k,9.1)>0.5?FG:-FG):0),16-FG-y,FG,FG); } } });
 TEX.solidW = mkTex(g=>speckle(g,[228,228,228],26,[198,198,198],0.35),16,16,RIM);
 blockMat('leafW',TEX.leafW,{alphaTest:0.4}); blockMat('barkW',TEX.barkW);
+/* ---- AND A SECOND LEAF, FOR THE TREES THAT DO NOT TURN ----
+   §2.4.4 asks for autumn colour with *"evergreens unchanged"*, and there
+   was ONE leaf material in the world. The gilding is worked out in the
+   shader from LATITUDE — which is right for the zone and blind to the
+   tree — so every pine, cypress, olive and palm standing in a temperate
+   land went gold in October and brown in January along with the oak beside
+   it. The same texture and the same sway; it simply is not given the
+   season. Which trees take it is data (see js/flora.js). */
+blockMat('everW',TEX.leafW,{alphaTest:0.4});
 blockMat('plantW',TEX.plantW,{alphaTest:0.4}); blockMat('solidW',TEX.solidW);
 blockMat('flowerY',TEX.flowerY,{alphaTest:0.4}); blockMat('crop',TEX.crop,{alphaTest:0.4});
 blockMat('glass',TEX.glass,{transparent:true,depthWrite:false});
@@ -638,7 +647,8 @@ windSway(MAT.flowerR,0.6,true,'snow'); windSway(MAT.flowerY,0.6,true,'snow');
    swings further than the sward, and the thorn crowns ride it */
 windSway(MAT.savgrass,1.5,true,'snow'); windSway(MAT.acacia,0.5,false,'leaf');
 /* and every leaf and every herb on the earth moves with it */
-windSway(MAT.leafW,0.55,false,'leaf'); windSway(MAT.plantW,0.85,true,'snow');
+windSway(MAT.leafW,0.55,false,'leaf'); windSway(MAT.everW,0.55,false,null);
+windSway(MAT.plantW,0.85,true,'snow');
 windSway(MAT.crop,0.5,true);
 /* breaking surf — clumpy foam that washes the shoreline (scrolled + pulsed) */
 TEX.surf = mkTex(g=>{ g.clearRect(0,0,16,16);
@@ -2196,7 +2206,7 @@ function emitColumn(G,ix,iz,cc){
    anything about chunks, so the mesher lends them the few things they need
    and takes the geometry back. `G` is swapped in per chunk. */
 const FKIT={ G:null, emitBox, cross, shade, hash:hash2,
-  M:{leaf:'leafW', bark:'barkW', plant:'plantW', solid:'solidW'} };
+  M:{leaf:'leafW', ever:'everW', bark:'barkW', plant:'plantW', solid:'solidW'} };
 let floraReady=false;
 function initFlora(){ if(floraReady) return; floraReady=true;
   if(window.FLORA) FLORA.load((window.EARTH.floraList||[])[0]||null); }
@@ -2515,6 +2525,7 @@ MAT_BLOCK.iceTop=MAT_BLOCK.iceTop||blockId('ice');
 MAT_BLOCK.iceSide=MAT_BLOCK.iceSide||blockId('ice');
 MAT_BLOCK.solidW=MAT_BLOCK.solidW||blockId('stone');
 MAT_BLOCK.barkW=MAT_BLOCK.barkW||blockId('log');
+MAT_BLOCK.everW=MAT_BLOCK.everW||MAT_BLOCK.leafW||blockId('leaves');
 function blockForMat(m){ const n=MAT_BLOCK[m]; return n===undefined?blockId('stone'):n; }
 
 let _stampOn=null;              /* the group being stamped, or null */

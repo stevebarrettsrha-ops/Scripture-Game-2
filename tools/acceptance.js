@@ -1159,6 +1159,81 @@ T[33]={name:'a hardwood has boughs, no two are alike, and the crown does not gro
       (same.length?' · A FORM THAT SHOULD NOT HAVE CHANGED DID: '+same.slice(0,4).join(', '):'')};
   })};
 
+T[34]={name:'the wood gilds in autumn and the evergreens do not turn with it',
+  /* §2.4.4: *"Seasonal colour … spring blossom, high-summer deep green, autumn
+     turn, bare winter branches on the deciduous, **evergreens unchanged**."*
+
+     I WROTE IN PLAN.md THAT THE LEAVES DID NOT READ THE SEASON. They do, and
+     have all along: `SEASON_VS`/`SEASON_FS` in js/engine.js gild the canopy
+     toward gold through autumn and grey it through winter, per hemisphere and
+     per zone, in the shader, with no chunk ever re-meshed. I had grepped for
+     `SEASON` in the flora and found nothing, and concluded from the wrong file.
+
+     What was actually wrong is the last clause. The gilding is worked out from
+     LATITUDE — correct for the zone and blind to the tree — and there was ONE
+     leaf material in the world, so every spruce, pine, cypress and olive
+     standing in a temperate land went gold in October with the oak beside it.
+     A Norwegian wood in autumn was uniformly yellow, spruces and all.
+
+     So this test does not ask whether the season exists. It asks the two things
+     that were untrue: that the material an evergreen draws with is NOT given
+     the season, and that each species draws with the right one. */
+  run:async page=>page.evaluate(()=>{
+    const F=window.FLORA, D=window.__VDBG, W=window.__WORLD;
+    if(!F||!F.everOf) return {pending:'no evergreen leaf (Phase 6 step 3)'};
+    const MAT=D.MAT||{};
+    if(!MAT.everW||!MAT.leafW) return {pending:'no second leaf material'};
+    /* 1 — the two materials, and only one of them takes the turn of the year.
+       three.js keys a patched program by this string, so it IS the season. */
+    const kLeaf=MAT.leafW.customProgramCacheKey?MAT.leafW.customProgramCacheKey():'',
+          kEver=MAT.everW.customProgramCacheKey?MAT.everW.customProgramCacheKey():'';
+    const gilds=/leaf/.test(kLeaf), holds=!/leaf/.test(kEver);
+    /* and they must be two materials, not one thing twice */
+    const two=MAT.everW!==MAT.leafW;
+
+    /* 2 — the species whose FORM gets it wrong, which is the whole reason
+       `ever` is a datum and not a lookup on the shape of the tree */
+    const want={ larch:false, baldcypress:false, aspen:false, poplar:false, ceiba:false,
+                 spruce:true, pine:true, cypress:true, juniper:true,
+                 holly:true, yew:true, olive:true, holmoak:true, corkoak:true,
+                 oak:false, beech:false, birch:false, maple:false };
+    const wrong=[];
+    for(const n in want){
+      const got=F.everOf(n);
+      if(got===null) continue;                 /* a species this world does not grow */
+      if(got!==want[n]) wrong.push(n+' is '+(got?'evergreen':'deciduous')+', wanted the other');
+    }
+
+    /* 3 — and the canopy is actually LAID DOWN on the right material. Nothing
+       is drawn: emitTree is called with a kit that only records. */
+    const K=F.kinds(), M={leaf:'L', ever:'E', bark:'B', plant:'P', solid:'S'};
+    let seen=null;
+    const kit={ G:null, M,
+      hash:(a,b)=>{ const s=Math.sin(a*127.1+b*311.7)*43758.5453; return s-Math.floor(s); },
+      emitBox:(G,x0,y0,z0,x1,y1,z1,side,top)=>{ if(side==='L') seen.L=1; if(side==='E') seen.E=1;
+                                                if(top==='L') seen.L=1; if(top==='E') seen.E=1; } };
+    const mixed=[]; let ever=0, decid=0;
+    for(const n in K){
+      const spec=K[n]; if(spec.layer!=='tree') continue;
+      seen={};
+      F.emitTree(kit,spec,220,340,{h:20});
+      if(!seen.L&&!seen.E) continue;           /* a cactus has no leaf at all */
+      if(seen.L&&seen.E) mixed.push(n);
+      else if(seen.E) ever++;
+      else decid++;
+      const wantEver=F.everOf(n);
+      if(wantEver&&seen.L) mixed.push(n+' (evergreen, drew on the leaf that turns)');
+      if(!wantEver&&seen.E) mixed.push(n+' (deciduous, drew on the leaf that does not)');
+    }
+    const ok=gilds&&holds&&two&&!wrong.length&&!mixed.length&&ever>0&&decid>0;
+    return {ok, got:ever+' species keep their leaf, '+decid+' turn · '+
+      'the turning leaf takes the season: '+(gilds?'yes':'NO')+
+      ' · the evergreen leaf does not: '+(holds?'yes':'NO')+
+      (two?'':' · THEY ARE THE SAME MATERIAL')+
+      (wrong.length?' · WRONG: '+wrong.slice(0,5).join('; '):'')+
+      (mixed.length?' · DREW ON THE WRONG LEAF: '+mixed.slice(0,5).join('; '):'')};
+  })};
+
 T[31]={name:'every caption of every long film fetches a real verse out of the Besorah',
   /* §5's THIRD PROHIBITION, which had no guard until now: "do not invent a
      reference." The first two — do not paraphrase, do not summarise — are

@@ -3783,6 +3783,109 @@ per species rather than a texture each; seasonal colour (§2.4.4) is next in the
 order and is nearly free, since `js/season.js` already stands and the leaves
 simply do not ask it anything.
 
+## 4az. Round 53 — Phase 6 step 3: the evergreens, and a correction to PLAN.md
+
+*§2.4.4: "Seasonal colour, driven by the season system that already exists — spring
+blossom, high-summer deep green, autumn turn, bare winter branches on the
+deciduous, **evergreens unchanged**."*
+
+**1. I HAD WRITTEN THAT THE LEAVES DID NOT READ THE SEASON, AND THAT WAS WRONG.**
+The table I set down at the head of Phase 6 says *"partial: `js/season.js` exists;
+the leaves do not read it."* They read it, and have all along. `SEASON_VS` and
+`SEASON_FS` in `js/engine.js` gild the canopy toward gold through autumn and grey
+it through winter — worked per-vertex from the distance to the pole, so the two
+hemispheres keep opposite years, the tropics never turn and the far north hardly
+does — and `SNOW_VS`/`SNOW_FS` lie the snow on the ground the same way. **No chunk
+is ever re-meshed for any of it.**
+
+I had grepped the flora for `SEASON`, found nothing, and concluded from the wrong
+file. The rule this project keeps is written in PLAN §12: *measure first, and if
+the world already does the thing, ship the TEST and not the change.* I nearly
+spent a round rebuilding a system that was finished.
+
+**2. WHAT WAS ACTUALLY UNTRUE was the last clause of that sentence.**
+The gilding is worked out from **latitude** — which is right for the zone and
+blind to the tree — and there was **one leaf material in the entire world**. So
+every spruce, pine, fir, cypress, juniper, holly, yew and olive standing in a
+temperate land went gold in October and brown in January along with the oak beside
+it. **A Norwegian wood in autumn was uniformly yellow, spruces and all**, which is
+not what a northern wood looks like in any month there is.
+
+There is a second leaf now — the same texture, the same wind, simply never given
+the season — and the canopy of a species that keeps its leaf is laid on it.
+
+**3. AND EVERGREENNESS IS A FACT ABOUT THE SPECIES, NOT THE SHAPE.**
+The obvious implementation is a lookup on the form, and it is wrong in both
+directions: a **larch** is a conifer and stands bare all winter; an **aspen** is a
+column and is the most golden tree there is; a **holly** is round and green in
+January. So the form gives a sensible default and any species may say otherwise
+with one datum in `world/flora.js`, where a reader will find it. Fourteen say so:
+
+    ever:0   larch · baldcypress · ceiba
+    ever:1   cypress · juniper · desertoak · holly · yew · olive
+             laurel · kauri · camphor · holmoak · corkoak
+
+**54 species keep their leaf; 84 turn.**
+
+**4. WHAT IT COSTS.** A second material is a second draw call in any chunk that
+carries both kinds of tree, and that is the whole of the price:
+
+    a boreal wood, one leaf   4421 meshes ·  958,370 triangles
+    a boreal wood, two leaves 4670 meshes ·  958,370 triangles
+                              +249 (+5.6%)   +0
+
+**Not one extra triangle** — it is the same geometry, split. 5.6% more draw calls
+in the most conifer-heavy view on the earth, and none at all in a land that grows
+only one kind.
+
+**5. THE TEST.** It does not ask whether the season exists — that was the mistake
+that started this round. It asks the two things that were untrue: that the
+material an evergreen draws with is **not given the season** (three.js keys a
+patched program by `customProgramCacheKey`, so that string *is* the season), and
+that every species lays its canopy on the right one. Proved by putting the
+one-leaf world back:
+
+    FAIL 34 · 0 species keep their leaf, 138 turn
+              · DREW ON THE WRONG LEAF: holly (evergreen, drew on the leaf that turns);
+                yew; pine; spruce; fir …
+
+    PASS 34 · 54 species keep their leaf, 84 turn
+              · the turning leaf takes the season: yes
+              · the evergreen leaf does not: yes
+
+**6. AND TEST 12 PENDED, SO I WENT AND CHECKED WHETHER I HAD CAUSED IT.**
+The chunk-build benchmark came back **PENDING**: *"the machine is 1.42× slower
+than the one these figures were taken on (66.7 ms against 47.0)."* That is the
+guard from Round 44 doing its job, but a pending benchmark on the round that
+added geometry and a material is exactly the moment to stop believing it and
+measure. Both changes were set against themselves **in one page**, where the
+machine's own speed cancels:
+
+    the steppe, no boughs   2.474 ms/chunk    with boughs   2.355   0.95×
+    the steppe, one leaf    2.496 ms/chunk    two leaves    2.275   0.91×
+
+Neither is measurable, and both come out nominally FASTER — which only means the
+difference is below what this measurement can see. The order had to be alternated
+to get even that: run one first every time and it pays for the warm-up while the
+other collects the benefit, which is how the coat's first measurement came out
+saying the flat build was slower than the graded one.
+
+*Also in that suite run, tests 30 and 31 failed with `page.goto: Timeout`. Both
+open a browser of their own, and I had probes of my own running against the same
+container while the suite ran. On a quiet machine they pass. Recorded because a
+red test that was my own fault is still a red test, and the next person reading
+this log should know which it was.*
+
+**7. What is still not done, and why it is not a small thing.**
+§2.4.4 also asks for *"bare winter branches on the deciduous"*. The shader browns
+and greys the leaf; it cannot **remove** it, because the whole design of the
+seasonal colour is that *no chunk is ever re-meshed for the turn of the year* —
+and taking the leaf off a tree is geometry, not colour. Now that the trees have
+boughs (Round 52) there is something worth baring, so it is worth doing properly:
+either an alpha the shader can drive to nothing, or a re-mesh on the turn of the
+season, and each wants measuring against the frame budget on its own. Written down
+here so it is a decision and not an oversight.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

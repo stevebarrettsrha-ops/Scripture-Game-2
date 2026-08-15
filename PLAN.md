@@ -820,7 +820,7 @@ went and looked, rather than planning work that exists:
 | 1. Branching | **nothing.** A bole and a canopy; no branch orders anywhere in `js/flora.js` |
 | 2. Canopy per species | ✅ `form:` in `world/flora.js`, a dozen forms built in `js/flora.js` |
 | 3. Bark per species | partial: one grey bark, tinted per species — not a texture each |
-| 4. Seasonal colour | partial: `js/season.js` exists; the leaves do not read it |
+| 4. Seasonal colour | ✅ *and it already was* — see the correction below |
 | 5. A real ground layer | partial: `js/grass.js` is the sward, no litter, deadfall, moss or fungi |
 | 6. Crops in stages | partial: farms and farmers exist, no agricultural year |
 
@@ -849,8 +849,23 @@ boughs reached on their own scale and a crown 1.9 blocks across became nearly th
 stand of oak read as one green slab. The envelope is struck off the crown radius the form
 already had; the test guards it, and was proved by putting the sprawl back.
 
-**3. Seasonal colour**, which is nearly free — the season system stands and the leaves
-simply do not ask it anything.
+**3. Seasonal colour.** ✅ *Round 53, and mostly by correcting this document.* I wrote in
+the table above that *"`js/season.js` exists; the leaves do not read it."* **That was
+wrong.** `SEASON_VS`/`SEASON_FS` in `js/engine.js` have gilded the canopy toward gold
+through autumn and greyed it through winter all along — per hemisphere, per zone, in the
+shader, with no chunk ever re-meshed — and the ground takes its snow the same way. I had
+grepped the flora for `SEASON`, found nothing, and concluded from the wrong file. Measure
+first, and if the world already does the thing, ship the TEST and not the change.
+
+What WAS untrue is §2.4.4's last clause, *"evergreens unchanged"*: the gilding is worked
+out from LATITUDE — right for the zone, blind to the tree — and there was **one leaf
+material in the world**, so every spruce, pine, cypress and olive in a temperate land went
+gold in October with the oak beside it. A Norwegian wood in autumn was uniformly yellow.
+There is a second leaf now, the same texture and sway but never given the season, and
+which trees take it is data: the form gives a default and fourteen species say otherwise,
+because a larch is a conifer and bare all winter and an aspen is a column and the most
+golden tree there is. **54 species keep their leaf, 84 turn**, for +249 meshes in a boreal
+view (+5.6% draw calls) and **not one extra triangle**.
 
 **4. Herd structure and the daily round**, together, because they are one loop: a
 matriarch, juveniles at the centre, one head always up, and beasts that go to water at

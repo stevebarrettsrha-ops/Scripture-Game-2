@@ -80,9 +80,27 @@ function load(d){
     K._flower=K.flower===undefined?null:tintOf(K.flower);
     if(K.h===undefined) K.h=1; if(K.w===undefined) K.w=1;
     if(K.wt===undefined) K.wt=1;
-    K.layer=K.layer||(LOW[K.form]?'plant':'tree'); }
+    K.layer=K.layer||(LOW[K.form]?'plant':'tree');
+    K._ever=(K.ever!==undefined)?!!K.ever:!!EVER_FORM[K.form]; }
 }
 const LOW={shrub:1,herb:1,cane:1,pad:1,rosette:1};
+/* ---- WHICH TREES DO NOT TURN ----
+   §2.4.4 wants the autumn colour with *"evergreens unchanged"*, and the
+   gilding is worked out in the shader from LATITUDE — right for the zone,
+   and blind to the tree. So a pine, a cypress and an olive standing in a
+   temperate land went gold in October along with the oak beside them.
+
+   EVERGREENNESS IS A FACT ABOUT THE SPECIES, NOT THE FORM. A larch is a
+   conifer and bare all winter; an aspen is a column and the most golden tree
+   there is; a holly is round and green in January. So the FORM gives a
+   sensible default and any species may say otherwise with one datum —
+   `ever:1` or `ever:0` in world/flora.js, where a reader can see it. */
+const EVER_FORM={conifer:1, palm:1, cactus:1, pad:1, rosette:1, bamboo:1,
+  jungle:1, mangrove:1, banana:1, fern:1, gum:1, thorn:1, spread:1};
+/* the A/B switch: off, every leaf in the world is the one that turns, which
+   is exactly how it stood before. A second material has to be paid for in
+   draw calls and the price has to be measured, not assumed. */
+let EVER=true;
 function tintOf(hex){ return [((hex>>16)&255)/255, ((hex>>8)&255)/255, (hex&255)/255]; }
 
 /* ---- WHAT WILL GROW HERE ----
@@ -307,7 +325,10 @@ function emitTree(kit,K,ix,iz,cc){
   const q=hash(ix*0.73+11.3,iz*0.91-5.7);
   const S=(0.62+Math.pow(q,0.55)*1.25+(hash(ix*3.1,iz*2.3)>0.965?0.85:0))*K.h;
   const W=S*K.w;
-  const LF=K._leaf, lm=M.leaf;
+  const LF=K._leaf;
+  /* the evergreen's leaf is the same leaf, drawn with the material that is
+     never given the season — see js/engine.js */
+  const lm=(EVER&&K._ever&&M.ever)?M.ever:M.leaf;
   const F=K.form;
 
   if(F==='conifer'){
@@ -648,7 +669,7 @@ function emitSapling(kit,K,ix,iz,cc){
   const x=(ix+0.5)*B, z=(iz+0.5)*B, yT=cc.h*B;
   const s=hash(ix*1.7+5.5,iz*2.3-9.9);
   const H=B*(0.5+0.75*s);                       /* knee to waist */
-  const LF=K._leaf, lm=M.leaf, F=K.form;
+  const LF=K._leaf, lm=(EVER&&K._ever&&M.ever)?M.ever:M.leaf, F=K.form;
   if(F==='palm'||F==='banana'||F==='fern'){
     /* straight out of the ground — fronds and nothing else */
     const r=B*(0.34+0.24*s);
@@ -711,6 +732,9 @@ function crownY(K,ix,iz,hash){
 window.FLORA={
   load, treeAt, plantAt, saplingAt, emitTree, emitPlant, emitSapling, crownY,
   tintOf, kinds:()=>D.kinds, lands:()=>D.lands,
+  /* whether a species keeps its leaf through the winter, for the suite */
+  everOf:n=>{ const K=D.kinds[n]; return K?!!K._ever:null; },
+  everOn:v=>{ if(v!==undefined) EVER=!!v; return EVER; },
   /* the boughs, and the switch that sets a branched wood beside the wood it
      replaced in ONE page — geometry has to be measured, not asserted */
   boughed:()=>BOUGHED,
