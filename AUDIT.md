@@ -4034,6 +4034,38 @@ slack of 1.35 is what covers it.
   pull uses the plain mean of the herd's positions; nothing leads it, and
   `js/baby-animals.js` has a calf follow its mother but not the herd close round
   the calf.
+
+  **BUILT TWICE, MEASURED TWICE, AND TAKEN BACK OUT — and the numbers are the
+  useful part.** The test is comparative within each sample and so needs no A/B
+  and no quiet machine: for every herd with young in it, the calf's distance
+  from the herd's centroid against the mean adult's. If the young are held in
+  the middle the calf is nearer; if they are merely IN the herd the two numbers
+  are the same, because a point drawn at random in a crowd sits at the mean
+  distance by definition.
+
+    | | calf | mean adult | nearer |
+    |---|---|---|---|
+    | gather the herd ONTO the calf | 25.0 | 26.5 | 63% |
+    | make the MOTHER keep the middle, hard | 34.9 | 36.7 | 40% |
+
+  The first is circular and I should have seen it before building it: a calf is
+  anchored to its mother and goes where she goes, so pulling the herd toward the
+  calf pulls it toward wherever SHE stands, which is an adult's place in the
+  herd. The second is the right model — *"she puts herself between"* is
+  `js/baby-animals.js`'s own words — and it made things WORSE, and told me why
+  in the same breath: herds with young fell from 132 samples to 31.
+
+  **The substrate cannot carry it.** The gathering pull fires only when a beast
+  picks a new wander target — `jt<=0` on a `roam` or a `flee` — and most of the
+  time a grazer's target is set by where the grass is. So a "herd" is a loose
+  correlation and not a structure, and no amount of arithmetic laid on top of an
+  occasional nudge will hold a calf in the middle of one. Holding young at the
+  centre needs per-frame station-keeping in the herd, which is the same thing
+  the birds needed and the same reason both were reverted: **the mechanism is
+  not wrong, the thing underneath it will not bear it.**
+
+  That is one piece of work — give a herd a real structure — and it would serve
+  the matriarch, the young, and the flocking together. It wants its own round.
 - **birds in real flocking.** They have COHESION only — the mean of their own
   kind within a hundred and twenty units — and neither separation nor alignment,
   so a flock is a cloud that drifts together and never a flock that turns.
