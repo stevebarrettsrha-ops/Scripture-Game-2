@@ -1234,6 +1234,117 @@ T[34]={name:'the wood gilds in autumn and the evergreens do not turn with it',
       (mixed.length?' · DREW ON THE WRONG LEAF: '+mixed.slice(0,5).join('; '):'')};
   })};
 
+T[35]={name:'each beast breaks at its own distance, and a herd keeps one head up',
+  /* §2.3.5 asks for *"species-specific flight distance"* and *"vigilance
+     alternating with grazing (one head always up)."* There were TWO flight
+     numbers in the whole world — nine units for a man walking up and eighteen
+     for a hunter, written into js/engine.js — so a hare let a wolf come as
+     close as a bull elephant did. And `alert` was one act among a beast's
+     others, drawn by weight, so a herd of eight had nobody watching most of
+     the time and three staring at once now and then, which is the one thing a
+     herd never does.
+
+     THE SECOND HALF IS MEASURED ON THE LIVING WORLD, not on a contrived herd:
+     the traveller is stood on the great plain, the world is left to run, and
+     every herd that forms is sampled. What must NEVER be seen is two heads up
+     in one herd; what must be seen often is one. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=window.BEHAVIOR;
+    if(!B||!B.flightOf||!D.herdWatch) return {pending:'no flight distance or watch (Phase 6 step 4)'};
+
+    /* ---- 1. the distances, and that they are the beast's own ---- */
+    const f=n=>B.flightOf(n);
+    const named=['elephant','rhino','hippo','buffalo','chicken','cow','sheep','dog'];
+    const wild =['gazelle','hare','zebra','wildebeest','ostrich','deer','oryx'];
+    const all=named.concat(wild).map(f);
+    const distinct=new Set(all).size;
+    const faults=[];
+    /* the heavy stand and the light break early — the whole point of the datum */
+    if(!(f('elephant')<f('gazelle'))) faults.push('an elephant breaks sooner than a gazelle');
+    if(!(f('rhino')<f('hare'))) faults.push('a rhino breaks sooner than a hare');
+    if(!(f('chicken')<f('ostrich'))) faults.push('a chicken breaks later than an ostrich');
+    if(!(f('dog')<f('deer'))) faults.push('the dog of the village is as wild as a deer');
+    /* and a species nobody wrote down follows its own legs */
+    const derived=Math.max(7,Math.min(38,6+B.runOf('deer',12)*1.1));
+    if(Math.abs(f('deer')-derived)>0.001) faults.push('the unwritten rule is not read off `run`');
+    if(distinct<6) faults.push('only '+distinct+' distinct distances in fifteen species');
+
+    /* ---- 2. the watch, over the living world ---- */
+    const W=window.__WORLD, sites=W.sites();
+    let site=null;
+    for(const n of ['Kenya','Tanzania','South Africa','Botswana','Sudan'])
+      { for(let i=0;i<sites.length&&!site;i++)
+          if(sites[i]&&D.COUNTRIES[i].n===n) site=sites[i];
+        if(site) break; }
+    if(!site) for(let i=0;i<sites.length&&!site;i++) if(sites[i]) site=sites[i];
+    D.state.walk.x=site.x+700; D.state.walk.z=site.z+700; D.state.walk.feetY=undefined;
+    D.setMode('walk');
+    const noon=D.DAYPARTS.findIndex(d=>d.k==='noon'); if(noon>=0) D.state.dayIdx=noon;
+    D.applyDayPart();
+    for(let k=0;k<40;k++){ D.updateChunks(D.state.walk.x,D.state.walk.z,600);
+      await new Promise(r=>requestAnimationFrame(r)); }
+
+    let herds=0, twoUp=0, oneUp=0, seen=0;
+    /* ---- WHAT "ONE HEAD" ACTUALLY MEANS, and my first test asked it wrong ----
+       A herd has no identity here: it is whatever of a kind stands within
+       eighty units OF A GIVEN BEAST, and those neighbourhoods overlap without
+       being the same set. So a group seeded from one member reaches eighty
+       units from THAT beast and can hold two watchers a hundred and fifty
+       apart — each of which correctly saw nobody near it when it looked up.
+       My first cut counted that as a fault and it caught one in a hundred and
+       fifty-seven samples, which is exactly the rate you would expect from
+       two herds drifting together.
+
+       The invariant the code actually keeps, and the one worth keeping, is
+       about a beast's OWN neighbourhood: no two watchers of a kind within
+       eighty units of each other. That is checked separately below, and it is
+       absolute. */
+    for(let k=0;k<540;k++){
+      await new Promise(r=>requestAnimationFrame(r));
+      if(k%15) continue;
+      /* every distinct herd once: the beast with the lowest index speaks for it */
+      const L=D.LANDLIFE, done=new Set();
+      /* the true invariant: no two watchers of a kind within a herd's radius */
+      for(let i=0;i<L.length;i++){ const a1=L[i];
+        if(!a1.set||a1.dead>0||a1.job!=='act'||a1.act!=='alert') continue;
+        for(let j=i+1;j<L.length;j++){ const b1=L[j];
+          if(!b1.set||b1.dead>0||b1.kind!==a1.kind) continue;
+          if(b1.job!=='act'||b1.act!=='alert') continue;
+          if(Math.hypot(b1.x-a1.x,b1.z-a1.z)<=D.HERD_R) twoUp++; } }
+      for(let i=0;i<L.length;i++){
+        const a=L[i]; if(!a.set||a.dead>0||done.has(a)) continue;
+        const mob=[];
+        for(let j=0;j<L.length;j++){ const b=L[j];
+          if(!b.set||b.dead>0||b.kind!==a.kind) continue;
+          if(Math.hypot(b.x-a.x,b.z-a.z)<=D.HERD_R) mob.push(b); }
+        if(mob.length<3) continue;
+        for(const b of mob) done.add(b);
+        herds++;
+        const up=mob.filter(b=>b.job==='act'&&b.act==='alert').length;
+        if(up>=1) oneUp++;
+        seen++;
+      }
+    }
+    const watched=seen?oneUp/seen:0;
+    if(twoUp) faults.push(twoUp+' times two watchers of a kind stood within '+D.HERD_R+' units of each other');
+    /* a herd with nobody up at all is allowed for a moment — they are walking,
+       fleeing, going to water — but it must not be the usual state */
+    /* THE FLOOR IS SET FROM WHAT WAS MEASURED, NOT FROM A WISH. Hung on the
+       end of a meal alone the watch stood at 29%; asked at every decision,
+       44%; handed on when the watcher stands down, 63–68% across runs. The
+       bar is 45%, which the old behaviour cannot reach and the new one clears
+       with room for the run-to-run spread this measurement genuinely has. */
+    if(seen>=12&&watched<0.45) faults.push('only '+(watched*100).toFixed(0)+'% of herd-samples had a head up');
+    const ok=!faults.length;
+    return {ok, got:distinct+' distinct flight distances in 15 species '+
+      '(elephant '+f('elephant').toFixed(0)+', gazelle '+f('gazelle').toFixed(0)+
+      ', hare '+f('hare').toFixed(0)+', chicken '+f('chicken').toFixed(0)+') · '+
+      seen+' herd-samples of three or more: '+oneUp+' watched ('+
+      (watched*100).toFixed(0)+'%) · two watchers within a herd\'s radius: '+twoUp+' times'+
+      (seen<12?' (too few herds formed to judge the watch)':'')+
+      (faults.length?' · '+faults.join(' · '):'')};
+  })};
+
 T[31]={name:'every caption of every long film fetches a real verse out of the Besorah',
   /* §5's THIRD PROHIBITION, which had no guard until now: "do not invent a
      reference." The first two — do not paraphrase, do not summarise — are
@@ -1541,20 +1652,35 @@ T[12]={name:'ocean and plains chunks build no slower than they did',
     let plainSite=null; const sites=window.__WORLD.sites();
     for(let i=0;i<sites.length;i++){ if(sites[i]&&D.COUNTRIES[i].n==='Kazakhstan'){ plainSite=sites[i]; break; } }
     const plain=plainSite?await least(plainSite.x+9000,plainSite.z,900,0):{ms:NaN,all:[]};
-    const ok=(!isFinite(ocean.ms)||ocean.ms<=B.ocean*B.slack)&&
-             (!isFinite(plain.ms)||plain.ms<=B.plain*B.slack);
-    return {ok, got:'ocean '+ocean.ms.toFixed(3)+' ms/chunk (was '+B.ocean+', passes '+say(ocean)+
-      ') · plain '+plain.ms.toFixed(3)+' ms/chunk (was '+B.plain+', passes '+say(plain)+')'};
+    return {ocean, plain, say:{ocean:say(ocean), plain:say(plain)}};
   },BASELINE);
-  /* ---- AND THE FIGURE IS ONLY READ IF THE MACHINE CAN BE TRUSTED ----
-     A red line nobody believes is worse than no line at all. */
-  if(!r.ok){
-    const m=await machineSpeed(page);
-    if(m.factor>1.25)
-      return {pending:'the machine is '+m.factor+'× slower than the one these '+
-        'figures were taken on ('+m.ms+' ms against 47.0) — '+r.got};
-  }
-  return r;
+
+  /* ---- THE FIGURE IS NORMALISED BY THE MACHINE, NOT GATED ON IT ----
+     It used to be compared raw against a baseline taken on another box, and
+     the machine was consulted only to excuse a failure that had already
+     happened — a cutoff at 1.25× against a slack of 1.35×. Those two numbers
+     do not agree: a container running 1.24× slow is *trusted*, and has
+     already spent nine tenths of the slack on being slow, so any real drift
+     at all tips it red. It failed by four parts in a thousand on exactly that
+     arithmetic (plain 2.670 against a ceiling of 2.660) on a day when nothing
+     in the mesher had changed and two in-page A/B runs said so.
+
+     So the loop is timed EVERY run and the readings are divided by what it
+     says. What is compared is the work, with the machine taken out of it. */
+  const m=await machineSpeed(page);
+  const f=Math.max(0.5,m.factor);
+  const norm=v=>isFinite(v)?v/f:v;
+  const oc=norm(r.ocean.ms), pl=norm(r.plain.ms);
+  const BL=BASELINE;
+  const ok=(!isFinite(oc)||oc<=BL.ocean*BL.slack)&&(!isFinite(pl)||pl<=BL.plain*BL.slack);
+  const got='ocean '+r.ocean.ms.toFixed(3)+' ms/chunk → '+oc.toFixed(3)+
+    ' on the reference box (was '+BL.ocean+', passes '+r.say.ocean+') · '+
+    'plain '+r.plain.ms.toFixed(3)+' → '+pl.toFixed(3)+
+    ' (was '+BL.plain+', passes '+r.say.plain+') · this machine reads '+
+    m.factor+'× the reference ('+m.ms+' ms against 47.0)';
+  /* and past a point the reading is not worth believing at all */
+  if(!ok&&m.factor>2.5) return {pending:'the machine is '+m.factor+'× slower — '+got};
+  return {ok, got};
 }};
 
 (async()=>{

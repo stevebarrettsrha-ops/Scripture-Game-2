@@ -7887,13 +7887,55 @@ function hideYoung(a){ if(a.kids) for(const y of a.kids) y.m.visible=false; }
    zebra's dust-bath, the meerkat's watch, the elephant's wallow. The acts
    that want water are only performed where a river truly runs by. Hands
    back true if the beast took something up. */
+/* ================= THE WATCH =================
+   §2.3.5: *"vigilance alternating with grazing (**one head always up**)."*
+
+   THE FAULT. `alert` was one act among a beast's others, drawn by weight
+   whenever it had nothing better to do — so a herd of eight gazelle had
+   nobody watching most of the time and three of them staring at once now and
+   then, which is the one thing a herd never does. Every eye in a herd going
+   down together is how a herd gets eaten, and it is the reason vigilance
+   exists at all.
+
+   THE HERD IS WHATEVER OF ITS OWN KIND STANDS NEAR IT — the same reckoning
+   the cohesion pull uses, so the thing that keeps them together is the thing
+   that keeps the watch. There is at most ONE head up in it, and if a herd of
+   three or more has nobody up, the next beast to finish its meal takes the
+   watch whether it drew that act or not. The watch therefore ROTATES: the
+   one standing gives it up when its turn is done and another takes it, which
+   is what alternating vigilance looks like from outside. */
+const HERD_R=80;                 /* the same radius the herd gathers within */
+function herdWatch(a){
+  let n=0, watcher=null;
+  for(const b of LANDLIFE){
+    if(!b.set||b.dead>0||b.kind!==a.kind) continue;
+    if(Math.hypot(b.x-a.x,b.z-a.z)>HERD_R) continue;
+    n++;
+    if(b!==a&&b.job==='act'&&b.act==='alert') watcher=b;
+  }
+  return {n, watcher};
+}
 function tryAct(a){
   if(!window.BEHAVIOR||Math.random()>0.45) return false;
-  const act=BEHAVIOR.drawAct(a.kind,Math.random());
+  let act=BEHAVIOR.drawAct(a.kind,Math.random());
   if(!act||act==='graze') return false;
   if((act==='drink'||act==='wallow')&&!a.river) return false;
+  if(act==='alert'){
+    /* one head, and one only */
+    if(herdWatch(a).watcher) return false;
+  }
   a.job='act'; a.act=act; a.jt=3+Math.random()*4; a.tx=a.x; a.tz=a.z;
   return true;
+}
+/* and a herd that has let every head go down puts one back up */
+function setWatch(a){
+  a.job='act'; a.act='alert'; a.jt=3+Math.random()*4; a.tx=a.x; a.tz=a.z;
+}
+function takeWatch(a){
+  if(!window.BEHAVIOR) return false;
+  const h=herdWatch(a);
+  if(h.n<3||h.watcher) return false;
+  setWatch(a); return true;
 }
 /* ---- WHERE THIS ONE BEAST SLEEPS ----
    Its OWN bed, not a spot under it when the clock stopped: the built den
@@ -8218,11 +8260,22 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
          gather on is the green ground you can see them standing in. */
       a.fear=(a.fear||0)-dt;
       let fx=null,fz=null;
-      if(state.mode==='walk'&&Math.hypot(state.walk.x-a.x,state.walk.z-a.z)<9){ fx=state.walk.x; fz=state.walk.z; }
+      /* ---- AND EACH BREAKS AT ITS OWN DISTANCE ----
+         §2.3.5 asks for *"species-specific flight distance"* and there were
+         TWO numbers in the whole world: nine units for a man walking up and
+         eighteen for a hunter. So a hare let a wolf come as close as a bull
+         elephant did, and an elephant bolted from a man at the same nine
+         paces as a chicken. The beast is asked now (js/behavior.js), and
+         what it answers is mostly struck off its own legs — only the heavy,
+         the armed and the beasts of the village are written down. */
+      const flee=window.BEHAVIOR?BEHAVIOR.flightOf(a.kind):9;
+      /* a man on foot is a smaller fright than a hunter: half the distance */
+      if(state.mode==='walk'&&Math.hypot(state.walk.x-a.x,state.walk.z-a.z)<flee*0.5){
+        fx=state.walk.x; fz=state.walk.z; }
       else for(const b of LANDLIFE){ if(!b.set||b.dead>0||(b.role!=='pack'&&b.role!=='stalk'&&b.role!=='ambush')) continue;
         /* a hunter lying up in the deep grass is NOT SEEN. It is caught at
            arm's length or not at all, and that is the whole use of cover. */
-        const see=b.hidden?6:18;
+        const see=b.hidden?Math.min(6,flee*0.35):flee;
         if(Math.hypot(b.x-a.x,b.z-a.z)<see){ fx=b.x; fz=b.z; break; } }
       if(fx!==null&&a.fear<=0) a.panicT=0;   /* caught flat — a beat to reach full stride */
       if(fx!==null){ const dd2=Math.hypot(a.x-fx,a.z-fz)||1;
@@ -8236,10 +8289,61 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
         spd=runSpd*(0.55+0.45*Math.min(1,a.panicT/1.2));
         a.act=null; if(a.job==='act') a.job='flee'; }
       else if(a.jt<=0){
-        if(a.job==='act'){ a.job='roam'; a.act=null; a.jt=2.5+Math.random()*3; }
+        /* ---- THE WATCH PASSES AT EVERY TURN, NOT ONLY AFTER A MEAL ----
+           Hung on the end of `feedhead` alone, a herd stood watched barely a
+           third of the time (measured: 29%), because between one beast's meal
+           and the next the whole herd was roaming with every head down. It is
+           asked at EVERY decision now: whenever any beast finishes anything
+           and its herd has nobody up, that beast takes the watch.
+
+           And the one standing down may not take it again in the same breath,
+           or the first beast to look up would watch for ever and the watch
+           would never pass. That is the whole of the rotation. */
+        const stoodDown=(a.job==='act'&&a.act==='alert');
+        if(stoodDown){
+          /* AND THE WATCH IS HANDED ON, NOT DROPPED. Waiting for the next
+             beast to finish what it was doing left the herd unwatched for
+             seconds at a time — measured at 44% watched, which is not what
+             "one head always up" means. The one standing down gives it to
+             the nearest of its herd that is not fleeing or bedding, and that
+             beast lifts its head at once, mid-meal if need be, which is
+             exactly what a herd does. */
+          /* ---- AND THE ONE IT IS HANDED TO MUST BE ALONE TOO ----
+             This asked whether the STANDER-DOWN had a watcher near it and then
+             handed the watch to a neighbour without asking the same of the
+             NEIGHBOUR. A herd is a neighbourhood and neighbourhoods overlap:
+             the beast receiving it could perfectly well have another watcher
+             eighty units the other side of itself, which the one handing over
+             could not see. Measured over a full suite run: ten pairs of
+             watchers standing inside one radius of each other. Both ends are
+             asked now, and it is nil. */
+          const h0=herdWatch(a);
+          if(h0.n>=3&&!h0.watcher){
+            let best=null, bd=1e9;
+            for(const b of LANDLIFE){
+              if(b===a||!b.set||b.dead>0||b.kind!==a.kind) continue;
+              if(b.job==='flee'||b.job==='bed'||b.job==='home') continue;
+              const d=Math.hypot(b.x-a.x,b.z-a.z);
+              if(d>HERD_R||d>=bd) continue;
+              /* is anybody ELSE already watching over him? (the one standing
+                 down does not count — he is giving it up this instant) */
+              let taken=false;
+              for(const c of LANDLIFE){
+                if(c===a||c===b||!c.set||c.dead>0||c.kind!==b.kind) continue;
+                if(c.job==='act'&&c.act==='alert'&&Math.hypot(c.x-b.x,c.z-b.z)<=HERD_R){ taken=true; break; }
+              }
+              if(taken) continue;
+              bd=d; best=b;
+            }
+            if(best) setWatch(best);
+          }
+          a.job='roam'; a.act=null; a.jt=2.5+Math.random()*3;
+        }
+        else if(takeWatch(a)){ /* the watch is his */ }
+        else if(a.job==='act'){ a.job='roam'; a.act=null; a.jt=2.5+Math.random()*3; }
         else if(a.job==='feedhead'){
-          /* the meal done, a moment for the day's small business — the
-             roll in the dust, the watch, the walk down to the water */
+          /* the meal done, a moment for the day's small business — the roll
+             in the dust, the walk down to the water */
           if(!tryAct(a)){ a.job='roam'; a.jt=2.5+Math.random()*3; } }
         /* ON GROUND THAT BEARS NO GRASS AT ALL — the snow of the far north,
            bare rock, the sand — there is nothing to walk to and nothing to
@@ -14433,6 +14537,8 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   mountUp,dismount,nearestMount,promptState:()=>promptAction,
   camera,sceneStep:dt=>{ if(cut) sceneTick(dt); },cutTime:()=>cut?cut.t:-1,
   playerXZ,localHourAt,setLocalHour,clockFace,dayPartName,DAYPARTS,applyDayPart,
+  /* the herd and its watch, for the suite */
+  LANDLIFE,herdWatch,HERD_R,
   /* the coat, for the suite and for setting it beside what it replaced */
   makeBeast,coatBeast,coatOn:v=>{ if(v!==undefined) COAT_ON=!!v; return COAT_ON; },
   BEAST_BY_NAME,

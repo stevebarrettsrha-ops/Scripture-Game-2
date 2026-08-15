@@ -867,9 +867,23 @@ because a larch is a conifer and bare all winter and an aspen is a column and th
 golden tree there is. **54 species keep their leaf, 84 turn**, for +249 meshes in a boreal
 view (+5.6% draw calls) and **not one extra triangle**.
 
-**4. Herd structure and the daily round**, together, because they are one loop: a
-matriarch, juveniles at the centre, one head always up, and beasts that go to water at
-dawn and dusk and bed down in cover at night.
+**4. Herd structure and the daily round.** *Round 54 — partly, and the audit says which
+parts.* **The daily round was already there**: `js/behavior.js` has every beast keeping its
+own hours, walking to its own den at dusk, and drawing from its own list of drink, wallow,
+dust, groom, alert, bask, dig and play. Measure first.
+
+What was untrue: **there were two flight distances in the whole world** — nine units for a
+man and eighteen for a hunter, written into the engine — so a hare let a wolf come as close
+as a bull elephant did. It is the beast's own now, struck off its `run` by default with
+twenty-six rows saying otherwise where that rule is wrong. And **the watch**: `alert` was
+drawn as an act, so a herd had nobody up most of the time and three staring at once now and
+then. A herd now keeps **at most one head up, ever**, and the watcher **hands it on** when
+it stands down — 29% watched when hung on the end of a meal, 44% asked at every decision,
+**62–69% handed on**. I do not claim "always"; the audit gives the number, and the record of the test I first wrote wrong.
+
+**Still open in §2.3.5:** the matriarch and juveniles at the centre of the herd, and real
+flocking for the birds (they have cohesion and neither separation nor alignment). Fish
+schooling already stands.
 
 **5. Finer grain on the twenty most-seen species.** Last, and explicitly not all 151 —
 the brief says so, and it is the item most able to cost frames for the least reach.
