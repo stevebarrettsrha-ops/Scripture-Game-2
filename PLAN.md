@@ -881,14 +881,17 @@ then. A herd now keeps **at most one head up, ever**, and the watcher **hands it
 it stands down — 29% watched when hung on the end of a meal, 44% asked at every decision,
 **62–69% handed on**. I do not claim "always"; the audit gives the number, and the record of the test I first wrote wrong.
 
-**Still open in §2.3.5, and now known to be ONE piece of work rather than three:** the
-matriarch, juveniles at the centre, and real flocking for the birds. Each was built and
-measured this round and each failed for the same reason — the herd and the flock are loose
-correlations, not structures. A grazer gathers only when it happens to pick a new wander
-target, and most of the time its target is set by where the grass is; a bird has nowhere in
-its day to *be* in a flock. **Give a herd (and a flock) per-frame station-keeping and all
-three fall out of it.** AUDIT Round 54 carries the measurements and the two working
-mechanisms. Fish schooling already stands. **The flocking was built and taken
+**Still open in §2.3.5:** the matriarch, juveniles at the centre, and real flocking for the
+birds. Four attempts this round, all reverted. What is genuinely known is that the herd
+gathering rule fires only when a beast picks a new wander target — visible in the code, and
+it needed no measuring — so a herd here is a loose correlation and not a structure.
+
+**What is NOT known is whether any of it helped**, because the metric I built for it is
+worthless: it reports hundreds of "calf-samples" that are two or three animals looked at
+every twelfth frame, so n is three, and the same unmodified build read **80% one run and
+10% the next**. Before this item is touched again it needs a measurement over many
+INDEPENDENT herds — different lands, one reading apiece — built first. AUDIT Round 54
+carries the whole of it, including the two mechanisms that are worth keeping. Fish schooling already stands. **The flocking was built and taken
 back out** — the mechanism works (a flock must TRAVEL, since alignment cannot be added to a
 circle; measured at 44° of heading between flock-mates against 86°), but a bird has nowhere
 in its day to BE in a flock: 95% of them are in 'hunt' at any moment, and a gull on open

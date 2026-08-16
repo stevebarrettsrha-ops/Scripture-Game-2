@@ -4035,8 +4035,12 @@ slack of 1.35 is what covers it.
   `js/baby-animals.js` has a calf follow its mother but not the herd close round
   the calf.
 
-  **BUILT TWICE, MEASURED TWICE, AND TAKEN BACK OUT — and the numbers are the
-  useful part.** The test is comparative within each sample and so needs no A/B
+  **BUILT THREE TIMES, TAKEN BACK OUT THREE TIMES — AND THE NUMBERS BELOW ARE
+  NOT TO BE TRUSTED.** Read the correction at the end of this entry before you
+  read the table; it is the only part of this that is worth anything.
+
+  **BUILT TWICE, MEASURED TWICE, AND TAKEN BACK OUT — and the numbers looked
+  like the useful part.** The test is comparative within each sample and so needs no A/B
   and no quiet machine: for every herd with young in it, the calf's distance
   from the herd's centroid against the mean adult's. If the young are held in
   the middle the calf is nearer; if they are merely IN the herd the two numbers
@@ -4064,8 +4068,44 @@ slack of 1.35 is what covers it.
   the birds needed and the same reason both were reverted: **the mechanism is
   not wrong, the thing underneath it will not bear it.**
 
-  That is one piece of work — give a herd a real structure — and it would serve
-  the matriarch, the young, and the flocking together. It wants its own round.
+  So I built that: a per-frame DRIFT, applied only while a beast stands still,
+  easing it toward the herd's middle at a fraction of a walking pace, with a
+  mother drifting harder — the herd easing together as it grazes, which is what
+  a herd actually does. And it made no difference either: herd spread 26.0 →
+  25.5, the calf metric 80% → 70%.
+
+  **AND THEN I MEASURED THE WORLD AS IT ALREADY STANDS, WHICH I SHOULD HAVE
+  DONE FIRST, AND IT READ 80% — better than all three of my attempts.** I was
+  a few minutes from writing "§2.3.5's juveniles-at-the-centre is already
+  satisfied" into this log. So I ran the same probe on the same unmodified
+  build again:
+
+    the shipped world, run one   calf 20.7 · adult 26.0 · 80% nearer
+    the shipped world, run two   calf 30.9 · adult 26.1 · 10% nearer
+
+  **The same code, and the number swings from 80% to 10%.**
+
+  ---- AND THAT IS THE FINDING, AND IT IS ABOUT THE MEASUREMENT ----
+  Every figure in this entry — 63%, 40%, 70%, 80%, 10% — is inside the noise of
+  a metric I built badly, and none of them should be quoted. The fault is that
+  the samples are not independent: a run reports "250 calf-samples", but it is
+  a handful of calves looked at every twelfth frame for half a minute. Two or
+  three animals, counted eighty times each. **n is three, not two hundred and
+  fifty**, and which three depends on which herds happened to form near the
+  station that run.
+
+  A valid measurement of this needs many INDEPENDENT herds — different lands,
+  different runs, one reading apiece — and it needs to be built before the
+  feature, not after it. I have neither, so I have no evidence that §2.3.5's
+  juveniles-at-the-centre is or is not satisfied, and no evidence that any of
+  my three attempts helped or hurt. **The item stays open and unclaimed.**
+
+  What is genuinely known, and cost three attempts to learn: the herd gathering
+  rule fires only when a beast picks a new wander target, so a herd here is a
+  loose correlation and not a structure — that much was visible in the code and
+  did not need measuring. Giving a herd real structure would serve the
+  matriarch, the young and the flocking together, and it wants its own round,
+  beginning with a measurement that can tell whether it worked.
 - **birds in real flocking.** They have COHESION only — the mean of their own
   kind within a hundred and twenty units — and neither separation nor alignment,
   so a flock is a cloud that drifts together and never a flock that turns.
