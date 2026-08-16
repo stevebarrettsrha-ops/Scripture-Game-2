@@ -3512,10 +3512,17 @@ function updateFarLand(px,pz,force,eyeY){
   flGeo.attributes.position.needsUpdate=true; flGeo.attributes.color.needsUpdate=true;
   farLand.position.set(J.px,0,J.pz);
   _flAt=[J.px,J.pz]; _flR1=J.r1; _flJob=null;
-  /* and the rim feathers over the outermost seventh of THIS ring's radius —
+  /* and the rim feathers over the outermost QUARTER of THIS ring's radius —
      the ring grows and shrinks with the eye, so a fixed distance would be a
-     wide haze up close and a hard edge from miles up */
-  FL_SKIRT.value.set(J.r1*0.86, J.r1*0.998);
+     wide haze up close and a hard edge from miles up.
+     A SEVENTH WAS TRIED FIRST AND WAS NOT ENOUGH, and the reason is
+     perspective and not arithmetic: the rim is furthest from the eye and
+     therefore most foreshortened, so a band that is a seventh of the radius
+     on the ground is a handful of pixels tall on the screen — which is a
+     softened edge and still an edge. A quarter of the radius spends the
+     outermost cells of the ring, which are the coarsest and the least worth
+     looking at, on being got rid of gently. */
+  FL_SKIRT.value.set(J.r1*0.74, J.r1*0.998);
 }
 
 /* ================= RENDERER · SKY · SEA ================= */
