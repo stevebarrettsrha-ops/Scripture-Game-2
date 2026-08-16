@@ -16236,10 +16236,40 @@ function frame(){
     /* and never outside the vault, whatever the hour or the season */
     for(const L of [sun,moon]){ const rr=Math.hypot(L.position.x,L.position.z);
       if(rr>R_DOME*0.94){ const k2=R_DOME*0.94/rr; L.position.x*=k2; L.position.z*=k2; } }
+    /* ---- AND NOTHING OF THE EARTH IS EVER IN FRONT OF THEM OUT HERE ----
+       THE FAULT: "prevent the sun and moon from going under the world when
+       the camera is viewed from various angles — from certain angles they
+       completely disappear." They were not going under the world; they were
+       being PAINTED OVER by it.
+
+       The charted face is a transparent thing, and three.js sorts transparent
+       things back-to-front BY THE DISTANCE TO THEIR CENTRES. The chart's
+       centre is the middle of the disc — the world's origin. So whenever the
+       eye happens to be nearer the middle of the earth than it is to a light
+       standing off over some far country, the chart sorts as the NEARER of
+       the two, is drawn last, and lays a quarter-million units of opaque
+       country over a sun that is five thousand units above it. Move the
+       camera a little and the ordering flips back and the sun returns, which
+       is exactly "from certain angles". A disc of that size has no meaningful
+       centre-distance, so no amount of sorting will ever get it right.
+
+       Out here they are simply drawn LAST and without the depth test, which
+       is not a trick but the truth of this world: the two lights ride within
+       the firmament, ABOVE the earth, and from outside her nothing of the
+       earth can stand in front of them.
+
+       IN THE NEAR WORLD THEY KEEP THE DEPTH TEST, and must — a sun drawn
+       over the mountain it has gone down behind is a worse fault than this
+       one. The flags are set here, in the band, and given back below. */
+    for(const L of [sun,moon,sunHalo,moonHalo]){
+      L.renderOrder=900; L.material.depthTest=false; }
   }
-  /* leaving the whole-earth band, the lights take back their ground size */
+  /* leaving the whole-earth band, the lights take back their ground size —
+     and the depth test with it, so a mountain hides the setting sun again */
   if(wholeF<=0.02){ sun.scale.set(R_WORLD*0.075,R_WORLD*0.075,1);
-    moon.scale.set(R_WORLD*0.055,R_WORLD*0.055,1); }
+    moon.scale.set(R_WORLD*0.055,R_WORLD*0.055,1);
+    for(const L of [sun,moon,sunHalo,moonHalo]){
+      L.renderOrder=0; L.material.depthTest=true; } }
   haloTick(wholeF);               /* the lights get their glow when the earth is beheld whole */
   /* drawn right back, the sky about the disc gives way to the outer darkness,
      and the earth is beheld standing within it — as she is.
