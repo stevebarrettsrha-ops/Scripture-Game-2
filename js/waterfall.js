@@ -57,10 +57,27 @@
 let K=null;              /* the kit the engine lends: B, R_WORLD, llToWorld, fbm, hash2 */
 const FALLS=[];          /* the data, turned into world coordinates and blocks */
 
-/* how many metres of true height make one block of the world's own reckoning.
-   The engine holds this for the mountains; a fall must use the SAME one or a
-   cliff and the summit beside it are drawn at two different scales. */
-let M_PER_BLOCK=40;
+/* ---- A FALL KEEPS ITS OWN VERTICAL SCALE, AND THAT IS DELIBERATE ----
+   The mountains are drawn at forty metres to the block, and they must be: a
+   summit is read from MILES OFF, and at any finer measure the great ranges
+   would be walls into the firmament. Falls were given that same measure and
+   the result was arithmetic rather than a waterfall — Angel 24 blocks, and
+   NIAGARA AND IGUAZU TWO. At two blocks there is no room for a lip, a wall
+   and a pool; there is a step in the ground.
+
+   A fall is the opposite kind of thing from a summit. Nobody looks at one
+   from miles away; a man stands at the foot of it and looks UP. So it is
+   drawn at NINE metres to the block, and at that measure the world's falls
+   come right: Niagara a six-block wall, Victoria twelve, Iguazu nine, Ein
+   Gedi three, Yosemite eighty-two, Angel a hundred and nine.
+
+   THE COST IS REAL AND IS NOT HIDDEN: a fall no longer stands in true
+   proportion to the hill beside it. That was weighed and chosen — a world
+   whose waterfalls are all one block tall is wrong in a way every player
+   sees, and a proportion nobody can measure by eye is wrong in a way none
+   of them ever will. */
+let M_PER_BLOCK=40;              /* the mountains' measure, for reference */
+const FALL_M_PER_BLOCK=9;        /* and a fall's own */
 
 /* ---- THE FORMS, AS NUMBERS ----
    Each answers three questions: how far the wall is set back from the lip
@@ -81,7 +98,7 @@ function load(list,kit){
   const B=K.B;
   for(const f of (list||[])){
     const p=K.llToWorld(f.lat,f.lon);
-    const drop=Math.max(2,Math.round((f.drop||30)/M_PER_BLOCK));   /* in BLOCKS */
+    const drop=Math.max(3,Math.round((f.drop||30)/FALL_M_PER_BLOCK));   /* in BLOCKS */
     /* the lip's half-breadth, in blocks. A metre is a block on the ground, so
        the true width is the true number of blocks — but Victoria at 1,708 is
        a wall a quarter of a chunk-ring across, which is right and is why the
@@ -136,15 +153,30 @@ function heightAt(x,z,h){
     if(au>shoulder) continue;
 
     const F=f.F;
-    /* the shelf the river runs on, and the floor of the gorge under it */
-    const lip=h;                         /* the land above keeps its own height */
-    const foot=lip-f.drop;
+    /* ---- THE FALL IS RAISED, NOT DUG ----
+       Cutting `drop` blocks DOWN from the natural land was the first draft,
+       and at the falls' own scale it is a disaster: Angel's terrain stands at
+       one block above the sea, so a hundred-and-nine-block cut is a shaft to
+       bedrock and no fall at all. And it is backwards besides — Angel comes
+       off a TEPUI, a table mountain standing a kilometre over the forest;
+       the land there is high, and the game's coarse terrain simply has not
+       got the tepui.
+
+       So the gorge floor is set just under the surrounding land and THE
+       SHELF IS RAISED to meet it: the fall builds its own cliff out of the
+       ground, which is what the ground did over the ages anyway. Nothing is
+       ever taken below the waterline. */
+    const foot=Math.max(2,h-2);
+    const lip=foot+f.drop;
+    /* and the shelf eases back down to the true land at the edge of the
+       claim, so a tepui is a headland and not a box dropped on a plain */
+    const edge=Math.max(0,Math.min(1,(shoulder-au)/Math.max(1,shoulder*0.45)));
 
     /* --- upstream of the lip: the shelf, flat and a little dished so the
        water is gathered to the notch rather than spread over the shelf --- */
     if(v<=0){
       const dish=(au<f.half)?-1:0;
-      return lip+dish;
+      return Math.round(h+(lip-h)*edge)+dish;
     }
     /* --- the wall --- */
     const set=F.under*f.drop;            /* how far the wall is set back */
