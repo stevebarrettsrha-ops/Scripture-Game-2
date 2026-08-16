@@ -14902,6 +14902,14 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      not be landed in twenty. (It did exactly that, which is why this is
      here.) Passing null gives the hand back to the eye. */
   mineAt:a=>{ mineTestAt=a||null; },
+  /* WHOSE GROUND IS THIS — by the real country outlines, which are real
+     vector data. It is the one question that catches every way a place's
+     coordinates go wrong: a swapped latitude and longitude, a dropped minus,
+     a decimal in the wrong column. A named place that lands in the wrong
+     nation is wrong by more than a nation's breadth, and one that lands in
+     open sea is wrong outright. tools/acceptance.js asks it of the falling
+     waters; nothing in the game reads it. */
+  landNameAt,
   handSlow:()=>HAND_SLOW,
   aimFrom:(ox,oy,oz,dx,dy,dz,reach)=>{ const L=Math.hypot(dx,dy,dz)||1;
     return aimAt(ox,oy,oz,dx/L,dy/L,dz/L,reach||REACH); },

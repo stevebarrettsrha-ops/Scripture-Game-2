@@ -121,10 +121,20 @@ EARTH.waterfall({n:"Dettifoss — the Falling Water", lat:65.8148, lon:-16.3844,
 EARTH.waterfall({n:"Gullfoss — the Golden Fall", lat:64.3271, lon:-20.1199,
   drop:32, width:70, form:'chute', tiers:2,
   wood:['birch','willow','moss','heather'], girth:1});
-EARTH.waterfall({n:"Seljalandsfoss, that a man walks behind", lat:63.6156, lon:-19.9886,
+/* ---- THE TWO ICELANDIC FALLS ARE NUDGED A MILE INLAND, AND HERE IS WHY ----
+   Both truly stand about four kilometres from the south coast. The world's
+   coastline is a raster of 2048 pixels across the whole disc — some eighteen
+   kilometres to the pixel — so at their TRUE coordinates the game placed both
+   of them in the open sea, which is wronger than moving them. They are set
+   the width of one raster pixel further north, which is inside the coastline's
+   own error and puts them on the land they belong to. The true figures are
+   kept here beside them so nothing is quietly lost:
+     Seljalandsfoss  63.6156 N, 19.9886 W
+     Skogafoss       63.5321 N, 19.5114 W */
+EARTH.waterfall({n:"Seljalandsfoss, that a man walks behind", lat:63.6560, lon:-19.9886,
   drop:60, width:10, form:'horsetail',
   wood:['birch','willow','moss','fern'], girth:1});
-EARTH.waterfall({n:"Skogafoss of the Cliff", lat:63.5321, lon:-19.5114,
+EARTH.waterfall({n:"Skogafoss of the Cliff", lat:63.5720, lon:-19.5114,
   drop:60, width:25, form:'plunge',
   wood:['birch','willow','moss','heather'], girth:1});
 EARTH.waterfall({n:"The Rhine Fall at Schaffhausen", lat:47.6779, lon:8.6152,
