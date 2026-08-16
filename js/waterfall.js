@@ -87,11 +87,13 @@ function load(list,kit){
        a wall a quarter of a chunk-ring across, which is right and is why the
        data carries the real figure. */
     const half=Math.max(1,Math.round((f.width||20)/2/ (B/ B) /6));
-    /* THE FALL FACES DOWNHILL, and which way that is, is a thing about the
-       ground and not about the fall — so it is settled once, here, by asking
-       the land which way it drops away. A fall built facing uphill is a
-       waterfall running INTO a mountain. */
-    const face=K.downhillAt?K.downhillAt(p[0],p[1]):0;
+    /* WHICH WAY THE FALL FACES. It ought to be downhill, and downhill is a
+       question for the terrain — but this file is loaded before the terrain
+       can answer (see the note beside the call in js/engine.js: asking it
+       there threw as the engine loaded and the world would not boot). The
+       facing is drawn off the world's own noise instead: deterministic, the
+       same on every machine, and asking nothing of anything. */
+    const face=K.faceAt?K.faceAt(p[0],p[1]):0;
     const F=FORM[f.form]||FORM.plunge;
     FALLS.push({ n:f.n, x:p[0], z:p[1], drop, half,
       form:f.form||'plunge', tiers:Math.max(1,f.tiers||1),

@@ -1172,31 +1172,25 @@ for(const L of LANDMARKS){ if(L.kind!=='mount') continue;
    the fall, so it is settled once, here, off the terrain itself. */
 { const WF=(window.EARTH&&window.EARTH.waterfallList)||[];
   if(window.WATERFALL&&WF.length){
+    /* ---- AND NOT ONE QUESTION IS ASKED OF THE TERRAIN HERE ----
+       The first draft of this asked the land which way it fell away from
+       each waterfall, so that none of them faced uphill. It called cellRaw
+       to do it — from module top level, ABOVE the line that declares
+       RANGES — and cellRaw reads RANGES. That is the `let` dead zone again,
+       one level up: the engine threw as it loaded, and the world did not
+       boot at all. Twice, because I mended the flag and not the cause.
+
+       So the facing is drawn off the world's own noise instead: it is
+       deterministic, it is the same on every machine, and it asks the
+       terrain NOTHING. A fall may therefore face across the slope rather
+       than down it, which is a thing worth improving and is written down
+       here rather than pretended away — but it is improved by deferring the
+       load to buildWorld, not by calling cellRaw from a place that cannot. */
     const n=WATERFALL.load(WF,{ B, R_WORLD, llToWorld, mPerBlock:MTN_M_PER_BLOCK,
-      /* the steepest way down within a few hundred units, in radians */
-      downhillAt:(x,z)=>{
-        let best=0, bd=0;
-        for(let a=0;a<8;a++){ const th=a/8*6.2832, r=B*24;
-          const c0=cellRaw(Math.floor(x/B),Math.floor(z/B));
-          const c1=cellRaw(Math.floor((x+Math.cos(th)*r)/B),Math.floor((z+Math.sin(th)*r)/B));
-          const d=(c0?c0.h:0)-(c1?c1.h:0);
-          if(d>bd){ bd=d; best=th; } }
-        return best; } });
+      faceAt:(x,z)=>fbm(x*0.00021+7.3, z*0.00021-2.9)*6.2832 });
     _fallsOn=n>0;
     if(window.console&&n) console.info('the voyage: '+n+' falling waters of the earth');
   } }
-/* ---- THE SECRET RANGES — whole fields of peaks, with caves in them ----
-   kind:'range' in world/landmarks.js. Where a MOUNT is one summit, a RANGE
-   is mountain COUNTRY: ridge-noise over the whole massif raises a dozen
-   jagged crests with valleys between ('stony' — bare grey peaks, snow where
-   the height takes them; 'cliff' — green hill country broken into sheer
-   grey faces and ledges, the classic extreme hills). And they are cut
-   through with what no other ground in the world has:
-     · CAVES — winding slot canyons, sunk to fourteen blocks where the vein
-       pinches, that swallow the sky and give it back at the far end;
-     · BLUE HOLES — sheer round shafts of standing water sunk in the rock,
-       sisters to the ones in the reefs.
-   No banner, no chart mark: these places are found by GOING there. */
 const RANGES=[];
 for(const L of LANDMARKS){ if(L.kind!=='range') continue;
   const [rx,rz]=llToWorld(L.lat,L.lon);
