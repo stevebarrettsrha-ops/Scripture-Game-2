@@ -1138,6 +1138,14 @@ function llToWorld(lat,lon){ const r=(90-lat)/180, a=lon*Math.PI/180;
 const MTN_M_PER_BLOCK=40;
 /* and how high a range that bears no name may climb of itself */
 const MTN_MAX=170;
+/* ---- RAISED ONCE THE FALLING WATERS ARE LAID IN ----
+   It must be declared HERE, above the block that sets it, and not beside the
+   hot path that reads it: `let` has a dead zone, and an assignment that runs
+   before the declaration is evaluated THROWS. Put below, it threw during the
+   world's build and the game did not boot at all — the same class of fault as
+   the manifest's, and found the same way: a probe timing out on a menu that
+   never came. */
+let _fallsOn=false;
 const MOUNTS=[];
 for(const L of LANDMARKS){ if(L.kind!=='mount') continue;
   const [mx,mz]=llToWorld(L.lat,L.lon);
@@ -1735,9 +1743,7 @@ function cellRaw(ix,iz){
   const spans=window.CAVES?CAVES.spansAt(x,z,h):null;
   return spans?{h, kind, tree, ci, spans}:{h, kind, tree, ci};
 }
-/* raised once the falls are laid in, so the hot path above is one boolean
-   for every column in a world that has none */
-let _fallsOn=false;
+
 /* villages flatten the ground around them (computed at boot) */
 let SITES=[], siteGrid=new Map();
 function siteKey(u,v){ return Math.floor((u+1)*16)+','+Math.floor((v+1)*16); }
@@ -15322,6 +15328,17 @@ function aimTick(){
 const HAND_SLOW=2.5;              /* the price of the wrong tool, or none */
 const MINE={ix:0,iy:0,iz:0,t:0,need:0,on:false,n:0};
 let mineHeld=false, mineTestAt=null, mineDriven=false;
+/* what the hand SERVES as — the one question the tool rule asks */
+function handServes(t){ const h=heldBlock(); return !!(h&&h.serves===t); }
+let _toolSaid=null;                     /* so a refusal is said once, not sixty times a second */
+/* and it is said in the world's own voice, and never as a error message */
+const TOOL_WORD={
+  pick :'The rock will not give to bare hands. You want a pick — flint will do, and flint is in the gravel of every river.',
+  axe  :'Timber will not come away in the hand. You want an axe.',
+  spade:'The ground is packed too hard for fingers. You want a spade.',
+  knife:'It will not part without an edge. You want a knife.',
+  hoe  :'It wants a hoe, not a hand.'
+};
 function toolSpeed(b){
   /* ---- AND HERE THE BELT SPEAKS, AS STEP 2 PROMISED IT WOULD ----
      One place, as it was written. A block that asks for a tool is had at full
@@ -15428,6 +15445,23 @@ function mineTick(dt){
   if(!held||!tgt||gamePaused||cut){ mineStop(); return; }
   const b=blockOf(tgt.n||blockAt(tgt.ix,tgt.iy,tgt.iz));
   if(!b){ mineStop(); return; }
+  /* ---- AND THE TOOL IS A REQUIREMENT, NOT A DISCOUNT ----
+     A block that names a tool was had by a bare hand at two and a half times
+     the labour — so a man could claw an emerald out of the rock with his
+     fingers if he waited twelve seconds, and there was no reason on earth to
+     make a pick. The tool the block asks for must now BE IN THE HAND, and
+     without it the rock does not give at all.
+
+     AND IT SAYS SO, which is the half that matters. A hand that silently
+     does nothing is indistinguishable from a hand that is broken — that is
+     precisely how four working mechanics came to be reported as dead — so
+     the refusal is spoken once for each kind of block and not again, and it
+     names the tool that is wanted. The free hand is not asked for anything:
+     a man laying out a place is not fetching a pick first. */
+  if(!freeHand()&&b.tool&&!handServes(b.tool)){
+    if(_toolSaid!==b.id){ _toolSaid=b.id;
+      toast(TOOL_WORD[b.tool]||('It will not give: you want a '+b.tool+'.')); }
+    mineStop(); return; }
   /* the hand moved to another block: the old fracture closes and a new one
      is struck. A block half broken and left is whole again when you return —
      which is the honest behaviour and the one every player expects. */
