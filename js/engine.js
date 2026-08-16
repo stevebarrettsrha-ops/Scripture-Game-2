@@ -1154,6 +1154,29 @@ for(const L of LANDMARKS){ if(L.kind!=='mount') continue;
      Mountain — says steep:1 in world/landmarks.js and keeps its walls.) */
   const Rm=L.steep?(L.r||110)*1.75:Math.max((L.r||110)*1.75, peak*B*3.6);
   MOUNTS.push({x:mx,z:mz,R:Rm,peak}); }
+/* ---- AND THE FALLING WATERS, LAID IN THE SAME WAY ----
+   world/waterfalls.js is data exactly as world/landmarks.js is, and it is
+   turned into world coordinates here for the same reason: the file that
+   knows the FORMS (js/waterfall.js) must not have to know the projection.
+   A fall is also asked which way the land drops away from it, because a
+   waterfall built facing uphill is a waterfall running into a mountain --
+   and which way is downhill is a question about the ground and not about
+   the fall, so it is settled once, here, off the terrain itself. */
+{ const WF=(window.EARTH&&window.EARTH.waterfallList)||[];
+  if(window.WATERFALL&&WF.length){
+    const n=WATERFALL.load(WF,{ B, R_WORLD, llToWorld, mPerBlock:MTN_M_PER_BLOCK,
+      /* the steepest way down within a few hundred units, in radians */
+      downhillAt:(x,z)=>{
+        let best=0, bd=0;
+        for(let a=0;a<8;a++){ const th=a/8*6.2832, r=B*24;
+          const c0=cellRaw(Math.floor(x/B),Math.floor(z/B));
+          const c1=cellRaw(Math.floor((x+Math.cos(th)*r)/B),Math.floor((z+Math.sin(th)*r)/B));
+          const d=(c0?c0.h:0)-(c1?c1.h:0);
+          if(d>bd){ bd=d; best=th; } }
+        return best; } });
+    _fallsOn=n>0;
+    if(window.console&&n) console.info('the voyage: '+n+' falling waters of the earth');
+  } }
 /* ---- THE SECRET RANGES — whole fields of peaks, with caves in them ----
    kind:'range' in world/landmarks.js. Where a MOUNT is one summit, a RANGE
    is mountain COUNTRY: ridge-noise over the whole massif raises a dozen
@@ -1698,9 +1721,23 @@ function cellRaw(ix,iz){
      The top block is never taken, so the surface a man walks on, a village
      is laid on and a tree grows out of is solid everywhere on the earth —
      which is why none of the eighty-seven places that read `h` had to move. */
+  /* ---- AND THE FALLING WATERS CUT THE ROCK ----
+     world/waterfalls.js names thirty-odd falls of the true earth at their
+     true places, heights and breadths; js/waterfall.js turns each into a
+     SHAPE OF GROUND — a shelf, a lip, a wall, a plunge pool and a gorge
+     running away from it — and answers here with the height this column
+     ought to stand at. It is last, so the fall cuts whatever the land, the
+     ranges and the named summits left standing; and its very first act is a
+     box test that throws out every column not near a fall, which is all but
+     a handful in the world. */
+  if(_fallsOn){ const fh=WATERFALL.heightAt(x,z,h);
+    if(fh!==h){ h=Math.max(1,fh); } }
   const spans=window.CAVES?CAVES.spansAt(x,z,h):null;
   return spans?{h, kind, tree, ci, spans}:{h, kind, tree, ci};
 }
+/* raised once the falls are laid in, so the hot path above is one boolean
+   for every column in a world that has none */
+let _fallsOn=false;
 /* villages flatten the ground around them (computed at boot) */
 let SITES=[], siteGrid=new Map();
 function siteKey(u,v){ return Math.floor((u+1)*16)+','+Math.floor((v+1)*16); }

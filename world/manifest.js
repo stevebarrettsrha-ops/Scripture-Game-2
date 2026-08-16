@@ -253,6 +253,7 @@ const FILES=[
   'world/rivers.js',
   'world/verses.js',
   'world/landmarks.js',
+  'world/waterfalls.js',
   'world/deeps.js',
   'world/scenes.js',
   /* THE SCROLLS HIDDEN IN THE EARTH — what the voyage is for */
@@ -446,6 +447,7 @@ const FILES=[
   /* cane and herb in the world is built out of. */
   'js/flora.js',
   'js/water.js',
+  'js/waterfall.js',
   /* WHERE EVERY CREATURE MAKES ITS HOME — nest, eyrie, scrape, den, burrow, */
   /* warren, lair, lodge, holt and mound, each to the kind that builds it. */
   'js/nest.js',
