@@ -909,3 +909,44 @@ colour.** They shade themselves discretely — a pale box under a dark one — a
 step 1 grades *within* each box, which reads as gradation and not as doubling. Where it
 does double, the beast's own file says so with one datum and the engine goes on knowing no
 beast by name.
+
+## 15. Round 55 — two faults reported from a player's own screen
+
+Not a phase. A player sent photographs of their own screen, and feature work stops for
+that: at the end of it the game has to work.
+
+**1. "THE VOYAGE COULD NOT BEGIN — could not read creatures/jerboa.js"** ✅
+
+The file was there and always had been. `MANIFEST.load` appended all three hundred and
+sixty-five `<script>` tags in one go, so **one `onerror` rejected the whole promise** — no
+retry, and a world of a hundred and seventy-six countries refusing to start over one
+gerbil. It loads in ordered batches of thirty-two now, each file asked for three times, and
+what may be let go of is written down rather than guessed at: a **creature or a city** is
+looked up by NAME and costs one beast or one town, so the voyage sails and names it; a
+**country or a block** is POSITIONAL — its id is the file's place in the list — so one
+missing would build a different world under the same save file, and that stops the boot and
+says why. `tools/thin-connection.js` serves the repository from a server that drops a named
+file and puts six trials to it; acceptance test 36 keeps the cheap half on every run.
+
+**2. "holes are appearing in the world view when zooming out"**
+
+The far carpet reads the land at the MIDDLE of each cell and nowhere else. Drawn far back
+a cell is some sixteen hundred units across and the Nile is forty, so a cell whose middle
+fell in the river was given to the sea entire — six units under the waterline, walled, and
+painted `FL_SEA`, which is half the brightness of the charted sea over it. A navy trench
+across dry Egypt.
+
+**The engine had already named the artefact and answered it in the wrong place**: the note
+beside the ring's fade calls them "ragged navy shapes where the ring's coarse sampling
+struck water in the midst of dry countries" and answers by taking the RING away sooner,
+which hides them at the far end of the pull-back and leaves them standing through the whole
+middle of it — which is where they were reported from. **The fault is in the sampling.**
+
+`riverBlock`, set beside `cellRaw`, answers whether the water at a block is a river inside
+some nation: the same warped coast, the same two rasters, two lookups and no search. A
+coarse cell whose middle is such a block stands as that country's ground at the height of
+the lowest bank inside it. **Nothing else is touched** — not a coastline, not a bay, not an
+island, not a league of open sea, because none of them is a river. A vote of the four
+corners was tried first and taken back out: it mended the rivers and ate the edges of
+genuine bays narrower than a cell. Acceptance test 37 lays whole rings at an eye of 24,000
+and counts the river cells with dry bank inside them that the ring nonetheless called sea.

@@ -1397,6 +1397,83 @@ T[31]={name:'every caption of every long film fetches a real verse out of the Be
     } finally { await browser.close(); }
   }};
 
+T[37]={name:'no county is given to the sea by a river running through it',
+  /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
+     zooming out", and they were holes exactly.
+
+     The far carpet reads the land at the MIDDLE of each of its cells and
+     nowhere else. Near the traveller a cell is a few blocks across and one
+     point is the whole of it. Drawn far back the ring opens out to eight
+     times its radius on the same 64 × 112 lattice, so a cell out there is
+     some sixteen hundred units across — and the Nile is forty. A cell whose
+     centre happened to fall in the river was given to the sea entire: sunk
+     six units under the waterline, walled on four sides, and coloured FL_SEA,
+     which is half the brightness of the charted sea laid over the top of it.
+     A navy trench across dry Egypt, a chain of them down every great river,
+     and a pit for every lake and inlet too small to be a sea at that grain.
+
+     THE RULE NOW: a coarse cell whose middle falls in a RIVER RUNNING
+     THROUGH A NATION stands as that nation's ground, at the height of the
+     lowest bank inside the cell. Nothing else is touched — not a coastline,
+     not a bay, not an island, not a league of open sea — because none of
+     them is a river.
+
+     This puts that rule to the RUNNING WORLD and not to the source. Every
+     coarse cell of a freshly laid ring is read off the terrain again; a cell
+     whose middle is river water and which has dry bank inside it, and which
+     the ring nonetheless called sea, is a DROWNED county. There may be none.
+
+     RIVERS is printed beside it — how many such cells there were to get
+     right — so that a run which found no fault can be told from a run that
+     laid a ring over open ocean and never asked the question. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    if(!D.farRing||!D.farAudit) return {pending:'the carpet has no probe (farRing/farAudit)'};
+    const W=window.__WORLD;
+    /* THE EYE IS PUT WAY OUT, because that is what makes the cells coarse:
+       the ring's reach follows the height, and the fault does not exist at
+       all until a cell is wider than the water it is asked about. */
+    const EYE=24000;
+    const at=[];
+    /* the traveller's own ground, and then the three widest countries with a
+       river in them — named by NOTHING here: they are taken by size out of
+       the country table, which is data, so this test cannot go stale when a
+       country is added or its outline redrawn */
+    const p=D.state.mode==='walk'?D.state.walk:D.state.boat;
+    at.push({n:'where he stands',x:p.x,z:p.z});
+    const S=W.sites();
+    const big=[];
+    for(let i=0;i<S.length;i++){ if(!S[i]) continue;
+      const c=D.COUNTRIES[i];
+      let a=0; for(const ring of c.p) a+=ring.length;   /* outline detail stands for size */
+      big.push({n:c.n,x:S[i].x,z:S[i].z,a}); }
+    big.sort((a,b)=>b.a-a.a);
+    for(const b of big.slice(0,3)) at.push(b);
+
+    let drowned=0, rivers=0, coarse=0, ms=0;
+    const worst=[];
+    for(const w of at){
+      ms+=D.farRing(w.x,w.z,EYE);
+      const r=D.farAudit();
+      if(!r) return {ok:false,got:'the ring would not lay at '+w.n};
+      drowned+=r.drowned; rivers+=r.rivers; coarse+=r.coarse;
+      if(r.drowned) worst.push(w.n+': '+r.drowned);
+      await new Promise(r=>requestAnimationFrame(r));
+    }
+    /* and the ring is put back where the traveller is standing, so no test
+       after this one is handed a carpet laid half a world away */
+    D.farRing(p.x,p.z,600);
+    /* a run that never saw a river proved nothing, and says so rather than
+       passing quietly */
+    if(!rivers) return {pending:'no river fell under any of the '+at.length+
+      ' rings laid ('+coarse+' coarse cells) — nothing to get right'};
+    return {ok:drowned===0,
+      got:coarse+' coarse cells over '+at.length+' grounds · '+rivers+
+        ' of them with a river through the middle · DROWNED (a river county called sea): '+
+        drowned+(worst.length?' — '+worst.join(', '):'')+
+        ' · '+(ms/at.length).toFixed(0)+' ms to lay a whole ring'};
+  })};
+
 T[36]={name:'nothing of the world was lost on the way in, and its ids are still its places',
   /* THE FAULT THIS GUARDS. The manifest appended all three hundred and
      sixty-five files at once, and one that failed to arrive rejected the

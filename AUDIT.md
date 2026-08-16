@@ -4138,6 +4138,120 @@ slack of 1.35 is what covers it.
 - **fish in true schooling** already stands: a school turns as one thing, rises
   in the dark and sinks by day, and bursts when a shark tears through it.
 
+## 4bb. Round 55 — two faults reported from a player's own screen
+
+Not a step of any phase. A player sent a photograph of the loading screen and,
+later, of the pull-back. Both were real, both were mine, and feature work stops
+for them: at the end of it the game has to work.
+
+### 1. "THE VOYAGE COULD NOT BEGIN — could not read creatures/jerboa.js" ✅
+
+**The file was there.** Committed at `878b91d`, 1,820 bytes, parsing, at line
+350 of the manifest, and loading on every machine I have. All 386 data files
+parse. Both games boot clean here — 176 countries, 42 blocks, 14 minerals, 13
+works, 150 creatures, 8 scrolls, 18 cities, 59 landmarks, 0 errors. It simply
+did not arrive that once, on their machine, that time.
+
+**And `MANIFEST.load` appended all three hundred and sixty-five `<script>` tags
+in one go, so one `onerror` rejected the whole promise.** No retry. A world of a
+hundred and seventy-six countries refusing to start over one gerbil. A browser
+asked for 365 files at once over `file://` — or a phone on a thin connection, or
+a disk with a scanner sitting on it — will drop one sooner or later; it is not a
+rare event, it is a Tuesday.
+
+**It is loaded in ordered batches of thirty-two now**, each awaited before the
+next is appended, so the order — which is the entire point of that file — is
+exactly what it was, and `async=false` still does the real work. A file that
+fails is asked for **twice more, in its own place**, before the batch closes.
+
+**And what happens if it still will not come is written down rather than
+guessed at**, because the answer is not the same for every file:
+
+| | looked up by | one missing costs | so |
+|---|---|---|---|
+| `creatures/`, `cities/` | **name** | one beast, one town | the voyage sails, and says which |
+| `countries/`, `blocks/` | **its place in the list** | every id after it shifts | the boot stops, and says why |
+
+That second row is the whole reason `skippable()` is a rule and not a shrug: a
+world built without `blocks/stone.js` is a *different world under the same save
+file*, and would hand the traveller different stone in every chunk he had
+already walked. `MANIFEST.lost` names what was let go of and the menu tells him,
+rather than leaving a hole where a beast should be.
+
+**`tools/thin-connection.js` is the proof, and it is a committed file.** It
+serves the repository over http from a server that drops a named file, and puts
+six trials to it. Nothing is moved on disk.
+
+| | trial | kept |
+|---|---|---|
+| 1 | the whole world, nothing dropped | 176 countries · 42 blocks · 150 beasts |
+| 2 | a creature dropped **twice**, served the third time | 150 beasts — the asking again works |
+| 3 | a creature that **never** comes | stands, **149 beasts**, and the menu names it |
+| 4 | a block that never comes | **refuses**, and says why |
+| 5 | a country that never comes | **refuses**, and says why |
+| 6 | Scripture Unfolds, short a creature | stands, 149 beasts |
+
+**Trial 5 caught a second fault on the way in.** Nothing watches
+`__WORLDFILES` until three.js has landed, and three.js comes over a wire that
+may take seconds or may fall back to the shipped copy — so a file near the TOP
+of the manifest rejects long before anything is listening, and the console
+filled with an unhandled rejection on top of a boot that was already failing.
+Both pages take the rejection at the point they make it now. The handler is a
+receipt and not a remedy: the promise still rejects, and `boot()` still reads it.
+
+**Acceptance test 36** keeps the cheap half on every run: as many countries as
+there are `countries/` lines, as many blocks as `blocks/` lines, the by-name
+lists short only by what was declared lost, and nothing positional ever called
+skippable.
+
+### 2. "holes are appearing in the world view when zooming out"
+
+**They were holes exactly, and they were the far carpet.** Near the traveller a
+cell of the ring is a few blocks across and the one point sampled at its middle
+IS the cell. Drawn far back the ring opens to eight times its radius on the same
+64 × 112 lattice, so a cell out there is some **sixteen hundred units** across —
+and the Nile is **forty**. A cell whose middle happened to fall in the river was
+given to the sea entire: sunk six units under the waterline, walled on four
+sides, and coloured `FL_SEA` = `#123352`, which is **half the brightness of the
+charted sea laid over the top of it** and is, to the byte, the navy in the
+player's photograph. A trench gouged across dry Egypt, and a chain of them down
+every great river of the earth. Reproduced headlessly at Egypt before touching
+anything.
+
+**The engine had already named this artefact and answered it in the wrong
+place.** The note beside the ring's fade calls them "ragged navy shapes where
+the ring's coarse sampling struck water in the midst of dry countries" and
+answers by taking the RING away sooner — which hides them at the far end of the
+pull-back and leaves them standing through the whole middle of it, which is
+exactly where they were reported from. The fault is in the SAMPLING.
+
+**A vote of the four corners was tried first and taken back out.** Land if three
+of the five points are dry: it mended the rivers, and it ate the edges of
+genuine bays narrower than a cell, which is a worse thing than the fault. Kept
+here because the next person will think of it too.
+
+**What ships is one exact question.** `cellRaw` answers `null` for a block of
+river and a block of ocean alike, and rightly — asked for a *block*, both are
+water. But the ring is asking what stands over sixteen hundred units, and at
+that grain a river running through a country is THE COUNTRY. `riverBlock`, set
+beside `cellRaw`, reads the same warped coast off the same two rasters and
+answers whether the water at a block is a river inside some nation: two array
+lookups and no search. Nothing else in the world is touched — not one coastline,
+not one bay, not one island, not one league of open sea, because none of them is
+a river. The lowest of the four bank samples gives the cell its height, so a
+county lifted out of the water comes back as the river plain it is and never as
+a cliff; and where a mouth is so wide that no bank falls inside the cell it
+stays water, which is right — that is an estuary.
+
+**Acceptance test 37** lays a whole ring at an eye of 24,000 over the
+traveller's own ground and the three widest countries (taken by outline detail
+out of the country table, so it cannot go stale when a country is added), reads
+every coarse cell off the terrain again, and counts the cells whose middle is
+river water with dry bank inside the same cell that the ring nonetheless called
+sea. There may be none. It reports how many rivers it found, so a run that
+laid its rings over open ocean and never asked the question reports PENDING
+instead of passing quietly.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
