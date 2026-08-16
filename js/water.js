@@ -87,7 +87,15 @@ const FALLING=8;       /* fed from above: drawn full, spreads at 1 when it lands
    And the two rules answer different halves of the same thing: the sea takes
    what reaches it AT ONCE, which is what a river mouth does, and the air
    takes what stops moving, which is what a puddle does. */
-const EVAP_TICKS=14;            /* about three seconds of standing still */
+/* ---- AND WHETHER THE AIR TAKES IT AT ALL ----
+   Minecraft's water NEVER evaporates, and that is not an oversight: with the
+   level rule kept properly, water does not need to be taken away, because it
+   never grows past seven blocks from its source in the first place. This was
+   added when the level rule was broken and the water was running away at
+   forty times its proper rate — that is, it was added to hide a bug.
+   Now the bug is mended, so it is put to the question: 0 turns the air off
+   and the water is bounded by its own levels alone, as in the game. */
+let EVAP_TICKS=14;              /* about three seconds of standing still; 0 = never */
 const REST=new Map();           /* how long each cell has stood unchanged */
 
 /* how often the water moves, and how much of a frame it may have */
@@ -317,7 +325,7 @@ function visit(ix,iy,iz){
      A cell that starts running again — because a hand dug it a way out, or
      the ground fell away — has its count wiped by `put`, so only water that
      truly stands still is taken. A SOURCE is never counted here at all. */
-  if(!gave&&lev!==SOURCE){
+  if(!gave&&lev!==SOURCE&&EVAP_TICKS>0){
     const k=key(ix,iy,iz), t=(REST.get(k)||0)+1;
     if(t>=EVAP_TICKS){ evaporated++; clear(ix,iy,iz); return; }
     REST.set(k,t);
@@ -412,6 +420,9 @@ function restore(list){
 
 window.WATER={
   load, step, spill, take, surge, withdraw, disturb,
+  /* for the measuring: 0 shuts the air off entirely */
+  setEvap:t=>{ EVAP_TICKS=Math.max(0,t|0); },
+  evapTicks:()=>EVAP_TICKS,
   levelAt, serialise, restore,
   /* read-only, for tools/acceptance.js and for nothing else */
   count:()=>LEV.size, waiting:()=>WAKE.length/3,
