@@ -1017,6 +1017,22 @@ function riverAtUV(u,v){
   if(px<0||py<0||px>=MAPR||py>=MAPR) return 0;
   return RIVMAP[py*MAPR+px];
 }
+/* ---- AND WHETHER THE WATER AT A BLOCK IS A RIVER OR THE SEA ----
+   cellRaw answers `null` for both alike, and rightly: it is asked for a
+   BLOCK, and a block of river is a block of water like any other. Only one
+   thing in the world needs them told apart, and that is the far ring, whose
+   cells are hundreds of blocks across where a river is one — see flFillRing,
+   which is where the reason is written out.
+   It reads the SAME warped coast cellRaw reads, from the same two rasters,
+   so it agrees with it to the block and costs two lookups and no search. */
+function riverBlock(ix,iz){
+  const x=(ix+.5)*B, z=(iz+.5)*B, u=x/R_WORLD, v=z/R_WORLD;
+  if(Math.hypot(u,v)>=SHELF_UV) return 0;      /* the shelf and the ice have no rivers */
+  const du2=(fbm(u*760+13.7,v*760-4.2)-0.5)*(2.6/HALF);
+  const dv2=(fbm(u*760-8.1,v*760+9.3)-0.5)*(2.6/HALF);
+  const wu=u+du2, wv=v+dv2;
+  return (countryAtUV(wu,wv)&&riverAtUV(wu,wv))?1:0;
+}
 
 /* ================= THE NAMED PLACES OF THE EARTH =================
    world/landmarks.js names the true summits and the famous works of the
@@ -3161,6 +3177,44 @@ const FL_SEA=[0.07,0.20,0.32], FL_VOID=[0.01,0.012,0.03];
 const farLandMat=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:0}); LIT.push(farLandMat);
 const farLand=new THREE.Mesh(flGeo,farLandMat);
 farLand.frustumCulled=false; farLand.visible=false; scene.add(farLand);
+/* ---- AND THE RIM OF THE CARPET IS NOT A CUT EDGE ----
+   A disc laid over the charted face ENDS IN A CIRCLE, and that circle was
+   drawn: a hard curved seam across the middle of the world, bright coarse
+   country on the near side of it and the dim charted face on the far, with
+   the raised profile of the ring's own edge standing against the chart like
+   the lip of a saucer. Rising or drawing back, the eye follows that arc all
+   the way out, and it is the one thing in the pull-back that says "two
+   pictures" rather than "one world".
+
+   The INNER seam — where the coarse ring meets the fine chunks — was solved
+   long ago and differently: the ring SINKS beneath them there (see the sink
+   in flShadeRing), which works because both sides are ground and one may
+   simply be hidden under the other. Nothing can be hidden under the chart:
+   the chart is above.
+
+   So the rim gives up its ALPHA instead, over the outermost seventh of
+   whatever radius the ring was last laid at — thinning away into the chart
+   rather than stopping at it. It is reckoned PER FRAGMENT from the mesh's
+   own polar coordinates (the ring is built about its own centre, so the
+   local x and z ARE the radius vector), because the cells out there are
+   hundreds of units wide and anything computed at their corners would step
+   from one to the next in visible bands.
+
+   It is the same trick radialSkirt plays on the cloud sheets, and it is not
+   that function because those are flat quads whose plane is x/y and this is
+   a polar mesh whose plane is x/z — and because farLandMat is enrolled in
+   LIT and already carries the torch patch, so the patch must be COMPOSED
+   (addPatch) and not assigned over the top of it. */
+const FL_SKIRT={value:new THREE.Vector2(FL_R1*0.86,FL_R1)};
+addPatch(farLandMat,sh=>{
+  sh.uniforms.uFlSkirt=FL_SKIRT;
+  sh.vertexShader='varying vec2 vFlP;\n'+sh.vertexShader.replace(
+    '#include <begin_vertex>','#include <begin_vertex>\n  vFlP=position.xz;');
+  sh.fragmentShader='uniform vec2 uFlSkirt;\nvarying vec2 vFlP;\n'+
+    sh.fragmentShader.replace('#include <dithering_fragment>',
+      '#include <dithering_fragment>\n'+
+      '  gl_FragColor.a*=1.0-smoothstep(uFlSkirt.x,uFlSkirt.y,length(vFlP));');
+},'flskirt');
 const FL_NC=FL_RINGS*FL_SPOKES;          /* cells of far country, one sample each */
 const FL_NV=FL_NR2*FL_NS2;               /* vertices of the woven grid */
 const _flH=new Float32Array(FL_NC);
@@ -3218,7 +3272,18 @@ function flFillRing(k,px,pz,kr,fine){
      sample, so no land is ever grown out over the water; and the plains — the
      most of the earth, and flat, with nothing for a wider look to find — are
      not made to pay for a thing only the mountains need. */
-  const span=fine?Math.min(80,Math.round(rr*6.2832/FL_SPOKES/B*0.34)):0;
+  /* a third of a cell's width, in blocks — how far off the middle the ring
+     looks when it looks at all */
+  const reach=Math.min(80,Math.round(rr*6.2832/FL_SPOKES/B*0.34));
+  /* THE RANGE LOOK is dropped when the traveller is outrunning the ring: no
+     point paying for the true stature of a chain that will be thrown away and
+     built again before the second is out. */
+  const span=fine?reach:0;
+  /* THE BANK LOOK IS NOT DROPPED. It is asked only of cells that a river runs
+     through — a handful in a ring of seven thousand — and if it went with the
+     range look the trenches would come back the moment he took to the air,
+     which is the very place they were seen from. */
+  const bank=reach;
   const dth=Math.PI*2/FL_SPOKES;
   for(let s=0;s<FL_SPOKES;s++){
     const c0=k*FL_SPOKES+s;
@@ -3235,6 +3300,51 @@ function flFillRing(k,px,pz,kr,fine){
       const a2=cellRaw(ix-span,iz+span); if(a2&&a2.h>cc.h) cc=a2;
       const a3=cellRaw(ix+span,iz-span); if(a3&&a3.h>cc.h) cc=a3;
       const a4=cellRaw(ix-span,iz-span); if(a4&&a4.h>cc.h) cc=a4;
+    }
+    /* ---- AND A RIVER DOES NOT MAKE A COUNTY INTO A SEA ----
+       THE FAULT: "holes are appearing in the world view when zooming out",
+       and they were holes exactly. Near the traveller a cell of this ring is
+       a few blocks across and the one point at its middle IS the cell. Drawn
+       far back it opens to eight times its radius on the same lattice, so a
+       cell out there is some sixteen hundred units across — and the Nile is
+       forty. A cell whose middle happened to fall in the river was given to
+       the sea entire: sunk six units under the waterline, walled on four
+       sides, and coloured FL_SEA, which is half the brightness of the
+       charted sea laid over the top of it. What the traveller saw was a navy
+       trench gouged across dry Egypt, and a chain of them down every great
+       river of the earth.
+
+       The note further down (the ring going out under the chart) had already
+       named these "ragged navy shapes where the ring's coarse sampling
+       struck water in the midst of dry countries", and answered them by
+       taking the RING away sooner. That hid them at the far end of the
+       pull-back and left them standing through the whole middle of it, which
+       is where they were reported from. This answers the SAMPLING, which is
+       where the fault is.
+
+       THE RULE, and why it is this one. cellRaw answers `null` for a block of
+       river and a block of ocean alike, and rightly — asked for a block, both
+       are water. The far ring is not asking about a block; it is asking what
+       stands over sixteen hundred units, and at that grain a river running
+       through a country is THE COUNTRY. So the one thing this asks is
+       whether the water at the middle is a river inside some nation, which
+       the world already knows exactly (riverBlock, beside cellRaw: two
+       raster lookups off the same warped coast). Nothing else is touched —
+       not one coastline, not one bay, not one island, not one league of open
+       sea — because none of them is a river.
+       (A vote of the four corners was tried first and is not what is here: it
+       mended the rivers and ate the edges of genuine bays narrower than a
+       cell, which is a worse thing than the fault. It is recorded in AUDIT.)
+       The LOWEST of the four bank samples is taken, so a cell lifted out of
+       the water comes back as the river plain it is and never as a cliff;
+       and where a mouth is so wide that no bank falls inside the cell, it
+       stays water, which is right — that is an estuary and not a river. */
+    else if(!cc&&bank>1&&riverBlock(ix,iz)){
+      let low=null;
+      for(let q=0;q<4;q++){
+        const a=cellRaw(ix+((q&1)?bank:-bank), iz+((q&2)?bank:-bank));
+        if(a&&(!low||a.h<low.h)) low=a; }
+      if(low) cc=low;
     }
     let y,c;
     if(cc){ y=cc.h*B; c=FL_COL[cc.kind]||FL_COL.grass; }
@@ -3402,6 +3512,17 @@ function updateFarLand(px,pz,force,eyeY){
   flGeo.attributes.position.needsUpdate=true; flGeo.attributes.color.needsUpdate=true;
   farLand.position.set(J.px,0,J.pz);
   _flAt=[J.px,J.pz]; _flR1=J.r1; _flJob=null;
+  /* and the rim feathers over the outermost QUARTER of THIS ring's radius —
+     the ring grows and shrinks with the eye, so a fixed distance would be a
+     wide haze up close and a hard edge from miles up.
+     A SEVENTH WAS TRIED FIRST AND WAS NOT ENOUGH, and the reason is
+     perspective and not arithmetic: the rim is furthest from the eye and
+     therefore most foreshortened, so a band that is a seventh of the radius
+     on the ground is a handful of pixels tall on the screen — which is a
+     softened edge and still an edge. A quarter of the radius spends the
+     outermost cells of the ring, which are the coarsest and the least worth
+     looking at, on being got rid of gently. */
+  FL_SKIRT.value.set(J.r1*0.74, J.r1*0.998);
 }
 
 /* ================= RENDERER · SKY · SEA ================= */
@@ -14581,7 +14702,56 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
     moonPd:Math.round(Math.hypot(moon.position.x-playerXZ().x,moon.position.z-playerXZ().z)),
     sunScale:Math.round(sun.scale.x) }),
   makeBeast,makeAnimal,makeBird,beastUnits,BEASTS,U_PER_M,POD,initPod,SHARKS,initSharks,initSeaMobs,
-  seaMobs:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS})};
+  seaMobs:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS}),
+  /* ---- THE CARPET OF THE FAR COUNTRY ----
+     What a whole ring costs to lay, and what it decided. `farRing` forces a
+     rebuild at the given centre and eye and answers the milliseconds — the
+     only honest way to weigh the cell vote, since the ring is otherwise laid
+     six milliseconds at a time across a dozen frames. `farSays` counts how
+     much of it reads as sea, which is the number the vote is about: a river
+     drawn as a county-wide navy trench shows up here as sea cells in the
+     midst of a dry land, and tools/acceptance.js asks for exactly that. */
+  farRing:(px,pz,eyeY)=>{ const t0=performance.now();
+    updateFarLand(px,pz,true,eyeY===undefined?24000:eyeY);
+    return performance.now()-t0; },
+  farSays:()=>{ let sea=0,land=0;
+    for(let i=0;i<_flLand.length;i++) _flLand[i]?land++:sea++;
+    return {land,sea,cells:_flLand.length,r1:Math.round(_flR1),
+      at:_flAt?{x:Math.round(_flAt[0]),z:Math.round(_flAt[1])}:null}; },
+  /* AND WHETHER THE RING TOLD THE TRUTH ABOUT THE GROUND UNDER IT. Every
+     coarse cell as it now stands is read off the terrain again and three
+     numbers come back:
+       RIVERS  — coarse cells whose middle falls in a river running through a
+         nation, and which therefore ought to stand as that nation's ground.
+       DROWNED — how many of those the ring nonetheless called sea WHILE DRY
+         BANK STOOD INSIDE THE SAME CELL. That is the fault exactly: the navy
+         trench gouged across Egypt by a forty-unit river. There may be none.
+       COARSE  — how many cells were wide enough for the question to mean
+         anything at all, so a run that found nothing can be told from a run
+         that looked at nothing.
+     It reports and judges nothing; tools/acceptance.js judges. */
+  farAudit:()=>{
+    if(!_flAt) return null;
+    const px=_flAt[0], pz=_flAt[1], dth=Math.PI*2/FL_SPOKES;
+    let rivers=0, drowned=0, coarse=0;
+    for(let k=0;k<FL_RINGS;k++){
+      const rr=_flRad[k]||FL_R0;
+      const span=Math.min(80,Math.round(rr*6.2832/FL_SPOKES/B*0.34));
+      if(span<=1) continue;                       /* fine enough that one point is the cell */
+      for(let s=0;s<FL_SPOKES;s++){
+        coarse++;
+        const th=(s+0.5)*dth;
+        const wx=Math.cos(th)*rr+px, wz=Math.sin(th)*rr+pz;
+        const ix=Math.floor(wx/B), iz=Math.floor(wz/B);
+        if(cellRaw(ix,iz)||!riverBlock(ix,iz)) continue;   /* dry, or true water */
+        rivers++;
+        let bank=false;
+        for(let q=0;q<4&&!bank;q++)
+          if(cellRaw(ix+((q&1)?span:-span), iz+((q&2)?span:-span))) bank=true;
+        if(bank&&!_flLand[k*FL_SPOKES+s]) drowned++;
+      }
+    }
+    return {rivers,drowned,coarse}; }};
 
 /* ================= AND THE NEAR WORLD GOES WITH THE NEAR LAND =================
    Taking the streamed chunks out of the view left EIGHTY-SEVEN SPRITES still

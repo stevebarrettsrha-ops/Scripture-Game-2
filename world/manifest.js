@@ -15,12 +15,35 @@
    it, and `js/engine.js` last of all. So this is a LIST, not a set, and
    nothing here may be sorted.
 
-   HOW IT IS LOADED. All of them are appended at once with `async=false`,
-   which is the one thing that makes a dynamically inserted script keep
-   its place in the queue: the browser fetches them all in parallel and
-   runs them strictly in the order they were added. That is faster than
-   the parser-blocking tags it replaces, not slower, and it is the reason
-   this could be done at all without a build step.
+   HOW IT IS LOADED, AND WHY IT IS NOT ALL AT ONCE ANY MORE.
+   `async=false` is the one thing that makes a dynamically inserted script
+   keep its place in the queue: the browser fetches in parallel and runs
+   strictly in the order the tags were added. That much is unchanged, and
+   it is the reason this could be done at all without a build step.
+
+   WHAT WAS WRONG WITH IT. All three hundred and sixty-five were appended
+   in one go, and **one file that failed to arrive killed the whole
+   world**: the promise rejected, the loading screen said "A file of the
+   world could not be read: creatures/jerboa.js", and that was the end of
+   it — a game of a hundred and seventy-six countries refusing to start
+   over one gerbil. There was no retry, and a browser asked for three
+   hundred and sixty-five files at once over `file://` — or a phone on a
+   thin connection, or a disk with a scanner sitting on it — will drop one
+   sooner or later. It is not a rare event; it is a Tuesday.
+
+   SO IT IS LOADED IN ORDERED BATCHES, and each batch is awaited before
+   the next is appended. The order is therefore exactly what it always
+   was, and a file that fails is TRIED AGAIN — twice more, in its own
+   place, before the next batch exists.
+
+   AND WHAT HAPPENS IF IT STILL WILL NOT COME. That depends entirely on
+   whether the world can stand without it, and the answer is written into
+   SKIPPABLE below rather than guessed at: a CREATURE or a CITY is looked
+   up by name and its absence costs exactly one beast or one town, so the
+   voyage sails without it and says so. A COUNTRY or a BLOCK is positional
+   — country ids and block ids are the file's place in this list — so one
+   missing would silently shift every id after it and hand the traveller a
+   different world with the same save file. Those are fatal, and rightly.
 
    ADDING A THING TO THE WORLD is still: write the file, add one line
    here. That property is the project's most important, and it is not
@@ -502,28 +525,70 @@ window.MANIFEST={
      same world. `onProgress(done,total)` is called as they land, so a
      loading screen can move. Resolves when the last of them has RUN, not
      merely arrived. */
+  /* a file whose absence costs one thing and not the world — see the head
+     of this file. Everything else is positional and its loss is fatal. */
+  skippable(f){ return /^(creatures|cities)\//.test(f); },
+  /* the files that were asked for three times and never came, and that the
+     world could stand without. Empty on a whole world; the page names them
+     to the traveller rather than leaving a hole where a beast should be. */
+  lost:[],
+
   load(prefix,onProgress){
     prefix=prefix||'';
-    return new Promise((resolve,reject)=>{
-      let done=0, failed=null;
-      const head=document.head||document.documentElement;
-      for(let i=0;i<FILES.length;i++){
+    const FILES2=FILES, BATCH=32, TRIES=3;
+    const head=document.head||document.documentElement;
+    let done=0;
+    const lost=[];
+    /* one file, in its own place in the queue, tried until it comes */
+    function one(f,attempt){
+      return new Promise(res=>{
         const s=document.createElement('script');
-        s.src=prefix+FILES[i];
+        s.src=prefix+f;
         /* THE ONE LINE THAT MATTERS: without it a dynamically inserted
-           script is async, and three hundred and sixty-five files would
-           run in whatever order they happened to arrive in — which for an
-           ordered world is no order at all. */
+           script is async, and the files would run in whatever order they
+           happened to arrive in — which for an ordered world is no order
+           at all. */
         s.async=false;
-        s.onload=()=>{ done++; if(onProgress) onProgress(done,FILES.length);
-          if(done===FILES.length){ failed?reject(failed):resolve(); } };
-        s.onerror=()=>{ done++; failed=failed||new Error('could not read '+prefix+FILES[i]);
-          if(onProgress) onProgress(done,FILES.length);
-          if(done===FILES.length) reject(failed); };
+        s.onload=()=>res(null);
+        s.onerror=()=>res(new Error('could not read '+prefix+f));
         head.appendChild(s);
+      }).then(err=>{
+        if(!err) return null;
+        if(attempt<TRIES) return one(f,attempt+1);   /* again, in its place */
+        return err;
+      });
+    }
+    function batch(i){
+      if(i>=FILES2.length){
+        if(lost.length) MANIFEST.lost=lost.slice();
+        return Promise.resolve();
       }
-      if(!FILES.length) resolve();
-    });
+      const slice=FILES2.slice(i,i+BATCH);
+      return Promise.all(slice.map(f=>one(f,1).then(err=>{
+        done++; if(onProgress) onProgress(done,FILES2.length);
+        return err?{f,err}:null;
+      }))).then(res=>{
+        for(const r of res){
+          if(!r) continue;
+          if(MANIFEST.skippable(r.f)){
+            lost.push(r.f); MANIFEST.lost=lost.slice();
+            if(window.console) console.warn('THE WORLD IS SHORT ONE THING: '+r.err.message+
+              ' — it is looked up by name, so the voyage sails without it.');
+          }
+          /* positional — its place in this list IS its id, and a world built
+             without it would hand the traveller different stone under the same
+             save file. Better to stop, and say plainly why. */
+          else throw new Error('A file of the world could not be read: '+prefix+r.f+
+            '. The world cannot stand without it — every block and every country is '+
+            'known by its place in the list, so what was built would be a different '+
+            'world under the same log. Open it again; if it still will not come, that '+
+            'file is missing from beside this page.');
+        }
+        return batch(i+BATCH);
+      });
+    }
+    if(!FILES.length) return Promise.resolve();
+    return batch(0);
   }
 };
 })();
