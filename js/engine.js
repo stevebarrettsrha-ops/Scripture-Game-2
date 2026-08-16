@@ -2310,6 +2310,19 @@ const FKIT={ G:null, emitBox, cross, shade, hash:hash2,
 let floraReady=false;
 function initFlora(){ if(floraReady) return; floraReady=true;
   if(window.FLORA) FLORA.load((window.EARTH.floraList||[])[0]||null); }
+/* ---- AND THE WATER THAT IS SPILLED IS LENT THE SAME FEW THINGS ----
+   js/water.js owns the water a hand spills and a surge throws ashore, and
+   NOTHING ELSE. It is given a door to the edit overlay and no other door at
+   all — so it cannot reach the sea's Gerstner surface or the rivers stamped
+   in the terrain, and the two of them go on exactly as they were whatever it
+   does. That is the whole reason it is a separate file with a kit: the
+   promise is kept by what it was never handed. */
+let waterReady=false;
+function initWater(){ if(waterReady||!window.WATER) return; waterReady=true;
+  WATER.load({ B, EY_MIN, EY_MAX,
+    blockAt, setBlock, isLiquid,
+    waterN:blockId('water'),
+    now:()=>performance.now() }); }
 /* which land this ground belongs to, by name — the key the flora and the
    fauna files are both written against */
 function landNameAt(x,z){ const ci=countryAtUV(x/R_WORLD,z/R_WORLD);
@@ -2579,6 +2592,9 @@ function setBlock(wx,wy,wz,n){
      has somewhere to go. Nothing is done here — the cell is written down and
      looked at in the frame, so no edit ever runs a cascade inside itself. */
   if(!_stampOn){
+    /* the water hears of it too — a cell newly emptied is somewhere a stream
+       may go, and a cell newly filled is somewhere it may not */
+    if(window.WATER&&WATER.disturb) WATER.disturb(ix,iy,iz);
     if(n===0) settleWake(ix,iy,iz);
     /* AND A BANK OF SAND SET DOWN ON NOTHING IS STILL SET DOWN ON NOTHING.
        The rule is about the block and not about how it came to be there: a
@@ -14841,6 +14857,14 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   mineProgress:()=>MINE.on?{cell:[MINE.ix,MINE.iy,MINE.iz],t:MINE.t,need:MINE.need,
     f:Math.min(1,MINE.t/MINE.need),cracks:crackN}:null,
   mineStep:dt=>mineTick(dt),
+  /* WHICH BLOCK A DRIVEN BLOW IS STRUCK AT. The live AIM follows the camera,
+     and mineTick starts the fracture afresh every time the target changes —
+     so a headless test that drives the hand without saying what it means
+     mines whatever the eye happens to be crossing, resets on every frame it
+     wanders, and reports that a blow of one and three-quarter seconds could
+     not be landed in twenty. (It did exactly that, which is why this is
+     here.) Passing null gives the hand back to the eye. */
+  mineAt:a=>{ mineTestAt=a||null; },
   handSlow:()=>HAND_SLOW,
   aimFrom:(ox,oy,oz,dx,dy,dz,reach)=>{ const L=Math.hypot(dx,dy,dz)||1;
     return aimAt(ox,oy,oz,dx/L,dy/L,dz/L,reach||REACH); },
@@ -16062,6 +16086,13 @@ function placeBlock(){
   /* IT COSTS NOTHING IN THE FREE HAND. The stack is not touched at all, so
      what he holds never runs out and never has to be fetched again. */
   if(!freeHand()&&!satchelTake(h.id,1)) return {no:'his hand is empty'};
+  /* ---- AND WATER LAID BY HAND IS SPILLED, NOT SET ----
+     A block of water set down as though it were a block of stone is a cube
+     of water hanging in the air, which is not what water is. It goes in as a
+     SOURCE and runs from there — down every fall it meets and seven blocks
+     out over every flat — which is js/water.js's whole business. */
+  if(b.liquid&&window.WATER){ WATER.spill(ix,iy,iz);
+    beltDraw(); satchelTouch(); return {laid:b.id, at:[ix,iy,iz], spilled:true}; }
   setBlock((ix+0.5)*B,(iy+0.5)*B,(iz+0.5)*B, b.n);
   beltDraw(); satchelTouch();
   return {laid:b.id, at:[ix,iy,iz]};
@@ -16495,6 +16526,10 @@ function frame(){
   if(!mineDriven) mineTick(dt);      /* and the hand held to it until it gives */
   dropTick(dt);                      /* and what it left lying on the ground */
   fallTick(dt);                      /* and the bank that came down after it */
+  /* and the water he spilled, which runs on its own five-to-the-second beat
+     and inside its own millisecond. It touches nothing but the edit overlay;
+     the sea and the rivers are not its business and never were. */
+  if(window.WATER){ initWater(); WATER.step(dt); }
   /* the belt is redrawn only when what it shows has CHANGED — a HUD rebuilt
      every frame is a HUD that costs a frame */
   { const sig=(beltWanted()?1:0)+'|'+heldSlot+'|'+

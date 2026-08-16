@@ -445,6 +445,7 @@ const FILES=[
   /* AND EVERYTHING WOODY AND EVERYTHING BEARING: the forms every tree, bush, */
   /* cane and herb in the world is built out of. */
   'js/flora.js',
+  'js/water.js',
   /* WHERE EVERY CREATURE MAKES ITS HOME — nest, eyrie, scrape, den, burrow, */
   /* warren, lair, lodge, holt and mound, each to the kind that builds it. */
   'js/nest.js',
