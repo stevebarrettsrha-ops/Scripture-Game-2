@@ -29,6 +29,7 @@ window.EARTH={
   list:[], verseList:[], riverList:[], cityList:[], landmarkList:[],
   deepList:[], holeList:[], sceneList:[], scrollList:[], beastList:[],
   faunaList:[], floraList:[], mineralList:[], workList:[], blockList:[],
+  waterfallList:[],
 
   country:function(c){this.list.push(c);},
   verses:function(v){this.verseList=v;},
@@ -64,5 +65,10 @@ window.EARTH={
      what tool serves, what it drops, and whether it stands on nothing. The
      mesher used to carry a table of ad-hoc material NAMES; this is a table
      of MATERIALS, and it is data like everything else. */
-  block:function(b){this.blockList.push(b);}
+  block:function(b){this.blockList.push(b);},
+  /* THE FALLING WATERS OF THE EARTH — every one at its true place, with its
+     true height and breadth and the FORM it takes, in world/waterfalls.js.
+     js/waterfall.js cuts the rock to those numbers and js/water.js runs the
+     water down it; neither knows one fall from another by name. */
+  waterfall:function(w){this.waterfallList.push(w);}
 };

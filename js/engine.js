@@ -521,6 +521,90 @@ TEX.plantW = mkTex(g=>{ g.clearRect(0,0,16,16);
         g.fillRect(x+(y>h2-3?(hash2(k,9.1)>0.5?FG:-FG):0),16-FG-y,FG,FG); } } });
 TEX.solidW = mkTex(g=>speckle(g,[228,228,228],26,[198,198,198],0.35),16,16,RIM);
 blockMat('leafW',TEX.leafW,{alphaTest:0.4}); blockMat('barkW',TEX.barkW);
+/* ================= §2.4.3 — THE BARK OF EACH KIND =================
+   *"Bark per species. Silver-birch paper, cork oak, cedar fissures, palm
+   rings, olive's twisted grey. One 32×32 texture each, generated."*
+
+   ONE TEXTURE EACH IS ONE MATERIAL EACH, AND THERE ARE A HUNDRED AND SEVENTY
+   SPECIES. The whole reason a hundred and seventy species cost nothing in
+   this game is the rule written twenty lines above: leaf, bark, blade and
+   fruit are drawn ONCE, in grey, and every species tints its own faces as
+   they are laid. A texture per species tears that up and hands the mesher a
+   hundred and seventy material groups to sort every chunk. An atlas would
+   dodge it, and cannot: the mesher's UVs are (width/B, height/B) so the
+   texture REPEATS once per block up a bole, and a repeat cannot be confined
+   to a band of a sheet.
+
+   SO THE BARK IS ASSIGNED, NOT INVENTED PER SPECIES — which is exactly what
+   §2.4.2 says to do with the canopy, and for the same reason. There are only
+   so many ways a bark can be, and every tree on the earth wears one of them:
+
+     bark      the deep-fissured default — the oak, the ash, the elm
+     paper     the birch — fine horizontal lenticels peeling in ribbons
+     ring      the palm, the tree fern — the stacked scars of fallen fronds
+     plate     the pine, the plane — broad flat plates with dark seams
+     twist     the olive, the yew — grain running crosswise round the bole
+     cork      the cork oak, the redwood — thick spongy furrows, soft-edged
+     smooth    the beech, the gum — near-bare, with faint horizontal streaks
+
+   Six new textures, six new materials, and the per-species TINT still sits on
+   top of every one of them — so a birch and an aspen wear the same paper in
+   two different greys, as they do. What it costs in draw calls is measured
+   and written into AUDIT, not assumed: a stand of one wood runs fifty metres
+   (world/flora.js), so a chunk holds one or two barks and not six. */
+TEX.barkPaper = mkTex(g=>{ for(let y=0;y<16;y+=FG) for(let x=0;x<16;x+=FG){
+    /* a pale sheet, and the lenticels lie ACROSS it — that mark alone is
+       what makes a birch a birch at forty paces */
+    let v=214+hash2(x*4.7,y*2.1)*34;
+    const len=hash2(Math.floor(y/FG)*3.1,7.7);              /* which rows carry them */
+    if(len>0.80&&hash2(x*1.9,y*0.3)>0.34) v*=0.58;          /* the dark dashes */
+    else if(len>0.72) v*=0.88;
+    if(hash2(x*0.5,y*6.1)>0.93) v*=0.74;                    /* a curl of peeling ribbon */
+    Pf(g,x,y,rgb(...[0,0,0].map(()=>Math.round(Math.min(255,v))))); } });
+TEX.barkRing = mkTex(g=>{ for(let y=0;y<16;y+=FG) for(let x=0;x<16;x+=FG){
+    /* the scars of fallen fronds, stacked in rings up the stem, each one
+       stepped a little so the bole does not read as a barcode */
+    const step=Math.floor(hash2(Math.floor(y/FG/3),2.3)*3)*FG;
+    const band=(y+step)%(3*FG);
+    let v=178+hash2(x*2.3,y*5.7)*46;
+    if(band<FG) v*=0.62;                                    /* the scar itself */
+    else if(band<2*FG) v*=1.06;                             /* the swell under it */
+    Pf(g,x,y,rgb(...[0,0,0].map(()=>Math.round(Math.min(255,v))))); } });
+TEX.barkPlate = mkTex(g=>{ for(let y=0;y<16;y+=FG) for(let x=0;x<16;x+=FG){
+    /* broad flat plates, the seams between them dark and irregular — a pine
+       is not fissured, it is TILED */
+    const px2=Math.floor(x/FG/4), py2=Math.floor(y/FG/3);
+    const jx=hash2(px2*1.7,py2*3.3), jy=hash2(px2*5.1,py2*0.9);
+    const ex=Math.abs((x/FG)%4-jx*3.4), ey=Math.abs((y/FG)%3-jy*2.4);
+    let v=186+hash2(px2*9.1,py2*4.7)*54;                    /* each plate its own tone */
+    if(ex<0.9||ey<0.9) v*=0.66;                             /* the seam */
+    v*=0.94+hash2(x*7.3,y*3.1)*0.12;
+    Pf(g,x,y,rgb(...[0,0,0].map(()=>Math.round(Math.min(255,v))))); } });
+TEX.barkTwist = mkTex(g=>{ for(let y=0;y<16;y+=FG) for(let x=0;x<16;x+=FG){
+    /* the grain runs round the bole and not up it — an old olive is a rope */
+    const d=(x*0.62+y*1.0);
+    const groove=Math.abs((d%4.6)-2.3);
+    let v=170+hash2(x*3.7,y*2.9)*52;
+    if(groove<0.75) v*=0.64; else if(groove>1.9) v*=1.10;
+    if(hash2(x*8.3,y*1.1)>0.90) v*=0.80;                    /* the knots and welts */
+    Pf(g,x,y,rgb(...[0,0,0].map(()=>Math.round(Math.min(255,v))))); } });
+TEX.barkCork = mkTex(g=>{ for(let y=0;y<16;y+=FG) for(let x=0;x<16;x+=FG){
+    /* thick and spongy: the furrows are WIDE and their edges soft, which is
+       what tells cork from the hard-edged fissure of an oak */
+    const f=Math.abs(((x*1.0+hash2(0,Math.floor(y/FG/2))*2.2)%6)-3);
+    let v=192+hash2(x*2.1,y*3.9)*40;
+    v*=0.62+0.38*Math.min(1,f/2.2);                          /* the soft-sided furrow */
+    v*=0.93+hash2(x*6.7,y*6.1)*0.14;                         /* and the pitting all over */
+    Pf(g,x,y,rgb(...[0,0,0].map(()=>Math.round(Math.min(255,v))))); } });
+TEX.barkSmooth = mkTex(g=>{ for(let y=0;y<16;y+=FG) for(let x=0;x<16;x+=FG){
+    /* a beech is nearly bare — faint horizontal streaking and nothing else.
+       Its whole character is that it has none. */
+    let v=206+hash2(x*1.3,Math.floor(y/FG)*4.1)*30;
+    if(hash2(Math.floor(y/FG)*2.7,1.9)>0.86) v*=0.90;
+    Pf(g,x,y,rgb(...[0,0,0].map(()=>Math.round(Math.min(255,v))))); } });
+blockMat('barkPaper',TEX.barkPaper);   blockMat('barkRing',TEX.barkRing);
+blockMat('barkPlate',TEX.barkPlate);   blockMat('barkTwist',TEX.barkTwist);
+blockMat('barkCork',TEX.barkCork);     blockMat('barkSmooth',TEX.barkSmooth);
 /* ---- AND A SECOND LEAF, FOR THE TREES THAT DO NOT TURN ----
    §2.4.4 asks for autumn colour with *"evergreens unchanged"*, and there
    was ONE leaf material in the world. The gilding is worked out in the
@@ -1054,6 +1138,14 @@ function llToWorld(lat,lon){ const r=(90-lat)/180, a=lon*Math.PI/180;
 const MTN_M_PER_BLOCK=40;
 /* and how high a range that bears no name may climb of itself */
 const MTN_MAX=170;
+/* ---- RAISED ONCE THE FALLING WATERS ARE LAID IN ----
+   It must be declared HERE, above the block that sets it, and not beside the
+   hot path that reads it: `let` has a dead zone, and an assignment that runs
+   before the declaration is evaluated THROWS. Put below, it threw during the
+   world's build and the game did not boot at all — the same class of fault as
+   the manifest's, and found the same way: a probe timing out on a menu that
+   never came. */
+let _fallsOn=false;
 const MOUNTS=[];
 for(const L of LANDMARKS){ if(L.kind!=='mount') continue;
   const [mx,mz]=llToWorld(L.lat,L.lon);
@@ -1070,18 +1162,35 @@ for(const L of LANDMARKS){ if(L.kind!=='mount') continue;
      Mountain — says steep:1 in world/landmarks.js and keeps its walls.) */
   const Rm=L.steep?(L.r||110)*1.75:Math.max((L.r||110)*1.75, peak*B*3.6);
   MOUNTS.push({x:mx,z:mz,R:Rm,peak}); }
-/* ---- THE SECRET RANGES — whole fields of peaks, with caves in them ----
-   kind:'range' in world/landmarks.js. Where a MOUNT is one summit, a RANGE
-   is mountain COUNTRY: ridge-noise over the whole massif raises a dozen
-   jagged crests with valleys between ('stony' — bare grey peaks, snow where
-   the height takes them; 'cliff' — green hill country broken into sheer
-   grey faces and ledges, the classic extreme hills). And they are cut
-   through with what no other ground in the world has:
-     · CAVES — winding slot canyons, sunk to fourteen blocks where the vein
-       pinches, that swallow the sky and give it back at the far end;
-     · BLUE HOLES — sheer round shafts of standing water sunk in the rock,
-       sisters to the ones in the reefs.
-   No banner, no chart mark: these places are found by GOING there. */
+/* ---- AND THE FALLING WATERS, LAID IN THE SAME WAY ----
+   world/waterfalls.js is data exactly as world/landmarks.js is, and it is
+   turned into world coordinates here for the same reason: the file that
+   knows the FORMS (js/waterfall.js) must not have to know the projection.
+   A fall is also asked which way the land drops away from it, because a
+   waterfall built facing uphill is a waterfall running into a mountain --
+   and which way is downhill is a question about the ground and not about
+   the fall, so it is settled once, here, off the terrain itself. */
+{ const WF=(window.EARTH&&window.EARTH.waterfallList)||[];
+  if(window.WATERFALL&&WF.length){
+    /* ---- AND NOT ONE QUESTION IS ASKED OF THE TERRAIN HERE ----
+       The first draft of this asked the land which way it fell away from
+       each waterfall, so that none of them faced uphill. It called cellRaw
+       to do it — from module top level, ABOVE the line that declares
+       RANGES — and cellRaw reads RANGES. That is the `let` dead zone again,
+       one level up: the engine threw as it loaded, and the world did not
+       boot at all. Twice, because I mended the flag and not the cause.
+
+       So the facing is drawn off the world's own noise instead: it is
+       deterministic, it is the same on every machine, and it asks the
+       terrain NOTHING. A fall may therefore face across the slope rather
+       than down it, which is a thing worth improving and is written down
+       here rather than pretended away — but it is improved by deferring the
+       load to buildWorld, not by calling cellRaw from a place that cannot. */
+    const n=WATERFALL.load(WF,{ B, R_WORLD, llToWorld, mPerBlock:MTN_M_PER_BLOCK,
+      faceAt:(x,z)=>fbm(x*0.00021+7.3, z*0.00021-2.9)*6.2832 });
+    _fallsOn=n>0;
+    if(window.console&&n) console.info('the voyage: '+n+' falling waters of the earth');
+  } }
 const RANGES=[];
 for(const L of LANDMARKS){ if(L.kind!=='range') continue;
   const [rx,rz]=llToWorld(L.lat,L.lon);
@@ -1614,9 +1723,21 @@ function cellRaw(ix,iz){
      The top block is never taken, so the surface a man walks on, a village
      is laid on and a tree grows out of is solid everywhere on the earth —
      which is why none of the eighty-seven places that read `h` had to move. */
+  /* ---- AND THE FALLING WATERS CUT THE ROCK ----
+     world/waterfalls.js names thirty-odd falls of the true earth at their
+     true places, heights and breadths; js/waterfall.js turns each into a
+     SHAPE OF GROUND — a shelf, a lip, a wall, a plunge pool and a gorge
+     running away from it — and answers here with the height this column
+     ought to stand at. It is last, so the fall cuts whatever the land, the
+     ranges and the named summits left standing; and its very first act is a
+     box test that throws out every column not near a fall, which is all but
+     a handful in the world. */
+  if(_fallsOn){ const fh=WATERFALL.heightAt(x,z,h);
+    if(fh!==h){ h=Math.max(1,fh); } }
   const spans=window.CAVES?CAVES.spansAt(x,z,h):null;
   return spans?{h, kind, tree, ci, spans}:{h, kind, tree, ci};
 }
+
 /* villages flatten the ground around them (computed at boot) */
 let SITES=[], siteGrid=new Map();
 function siteKey(u,v){ return Math.floor((u+1)*16)+','+Math.floor((v+1)*16); }
@@ -2226,6 +2347,23 @@ const FKIT={ G:null, emitBox, cross, shade, hash:hash2,
 let floraReady=false;
 function initFlora(){ if(floraReady) return; floraReady=true;
   if(window.FLORA) FLORA.load((window.EARTH.floraList||[])[0]||null); }
+/* ---- AND THE WATER THAT IS SPILLED IS LENT THE SAME FEW THINGS ----
+   js/water.js owns the water a hand spills and a surge throws ashore, and
+   NOTHING ELSE. It is given a door to the edit overlay and no other door at
+   all — so it cannot reach the sea's Gerstner surface or the rivers stamped
+   in the terrain, and the two of them go on exactly as they were whatever it
+   does. That is the whole reason it is a separate file with a kit: the
+   promise is kept by what it was never handed. */
+let waterReady=false;
+function initWater(){ if(waterReady||!window.WATER) return; waterReady=true;
+  WATER.load({ B, EY_MIN, EY_MAX,
+    blockAt, setBlock, isLiquid,
+    waterN:blockId('water'),
+    /* THE WATERLINE, IN BLOCKS — everything at or under it is the sea's, and
+       spilled water that reaches it has run home and is given up. This one
+       number is what makes a fall a closed thing instead of a flood. */
+    seaBlock:Math.floor(SEA_SURF/B),
+    now:()=>performance.now() }); }
 /* which land this ground belongs to, by name — the key the flora and the
    fauna files are both written against */
 function landNameAt(x,z){ const ci=countryAtUV(x/R_WORLD,z/R_WORLD);
@@ -2495,6 +2633,9 @@ function setBlock(wx,wy,wz,n){
      has somewhere to go. Nothing is done here — the cell is written down and
      looked at in the frame, so no edit ever runs a cascade inside itself. */
   if(!_stampOn){
+    /* the water hears of it too — a cell newly emptied is somewhere a stream
+       may go, and a cell newly filled is somewhere it may not */
+    if(window.WATER&&WATER.disturb) WATER.disturb(ix,iy,iz);
     if(n===0) settleWake(ix,iy,iz);
     /* AND A BANK OF SAND SET DOWN ON NOTHING IS STILL SET DOWN ON NOTHING.
        The rule is about the block and not about how it came to be there: a
@@ -2541,6 +2682,13 @@ MAT_BLOCK.iceTop=MAT_BLOCK.iceTop||blockId('ice');
 MAT_BLOCK.iceSide=MAT_BLOCK.iceSide||blockId('ice');
 MAT_BLOCK.solidW=MAT_BLOCK.solidW||blockId('stone');
 MAT_BLOCK.barkW=MAT_BLOCK.barkW||blockId('log');
+/* §2.4.3 — every bark is the same BLOCK when a hand breaks it. The six
+   patterns are how a birch differs from a palm to the eye; to the pick they
+   are all log, and a stack of logs is a stack of logs whichever wood it came
+   from. (Without these the mesher's stamp would answer `stone` for a bole,
+   and a birch would break into rubble.) */
+for(const m of ['barkPaper','barkRing','barkPlate','barkTwist','barkCork','barkSmooth'])
+  MAT_BLOCK[m]=MAT_BLOCK[m]||MAT_BLOCK.barkW;
 MAT_BLOCK.everW=MAT_BLOCK.everW||MAT_BLOCK.leafW||blockId('leaves');
 function blockForMat(m){ const n=MAT_BLOCK[m]; return n===undefined?blockId('stone'):n; }
 
@@ -6071,7 +6219,26 @@ function seabedDepth(x,z){
    field instead of the blocks, and the two differ by up to half a block. So
    the diver swam through the face of the bed, and the octopus stood with
    half her bulk inside it. There is one bed now, and this is its top. */
-function bedTop(x,z){ return Math.round(seabedDepth(x,z)/B)*B; }
+/* ---- AND A BLOCK TAKES ITS HEIGHT FROM ITS OWN CENTRE ----
+   THE OCTOPUS CAME BACK. This function was written to mend exactly the fault
+   above and mended half of it: it snaps the height to the block grid, which
+   was the first half, and it reads the field AT THE BEAST'S OWN POINT, which
+   is the second half and was wrong.
+
+   Neither floor is drawn that way. The sea-floor patch takes one height per
+   cell at THE CELL'S CENTRE (see updateSeaFloor: `(i+0.5)*SB_CS`), and the
+   chunk mesher's coastal shelf does the same on the block grid. So wherever
+   the depth field moves within one block — which is everywhere near a coast,
+   and the coast is where the small reef beasts live — the floor the eye sees
+   and the floor a beast was seated on differed by up to a whole block, and
+   the beast was seated the LOWER of the two. She sank to her eyes in the
+   sand, and only her head stood out of it.
+
+   It reads the centre of the block she is over now, which is the one point
+   both meshes agree on, so there is one floor again and it is the drawn one. */
+function bedTop(x,z){
+  const cx=(Math.floor(x/B)+0.5)*B, cz=(Math.floor(z/B)+0.5)*B;
+  return Math.round(seabedDepth(cx,cz)/B)*B; }
 function haunt(x,z,maxM){ return Math.max(bedTop(x,z), SEA_SURF-maxM*U_PER_M); }
 const H_REEF=90, H_FISH=220, H_DOLPHIN=180, H_SHARK=280, H_SQUID=650, H_JELLY=700, H_WHALE=320;
 /* ================= THE BED OF THE SEA IS BLOCKS =================
@@ -6752,12 +6919,24 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
     s.m.userData.tail.rotation.y=Math.sin(t*(hunting?7:4)+s.ph)*(hunting?0.45:0.3); } }
 /* ---- turtles, rays, whales, pufferfish, jellyfish, crabs ---- */
 /* a generic wandering sea-mob pool (turtle/ray/whale/puffer) */
+/* how far a built beast reaches below the point she is positioned by */
+const _dropBox=new THREE.Box3();
+function beastDrop(m){ if(!m) return 0;
+  _dropBox.setFromObject(m); return Math.max(0,-_dropBox.min.y); }
 function mkSeaMob(kind,n,R,rSpawn,near,deepM,lat){ const arr=[];
   for(let k=0;k<n;k++){ const m=makeBeast(kind); m.visible=false; scene.add(m); arr.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false,sp:near?7:12}); }
   /* EVERY BEAST NEEDS ROOM FOR ITS OWN BULK. A whale grown to sixteen metres
      stands three units off the bed at the old clearance and ploughs the sand
      with her belly. The clearance a beast keeps is read off its own length. */
   arr._R=R; arr._rs=rSpawn; arr._near=near; arr._len=beastUnits(kind); arr._deep=deepM||H_REEF; arr._kind=kind;
+  /* ---- AND HOW FAR SHE HANGS BELOW HER OWN ORIGIN, MEASURED ----
+     The clearance was a fraction of her LENGTH, which is a guess and is only
+     right for things shaped like a fish. An octopus is a head with eight arms
+     hanging under it: a third of her length does not reach the ends of them,
+     so she was seated with her arms — and then her mantle — in the sand. It
+     is read off the model she is actually drawn with, once, here, and nothing
+     needs to know any beast by name. */
+  arr._drop=beastDrop(arr[0]&&arr[0].m);
   /* AND SOME OF THEM KEEP TO THEIR OWN WATER. A walrus is not met off Ceylon
      and a manatee is not met under the ice: a nation of beasts may name the
      band of latitude it belongs to, and it is simply absent from the rest of
@@ -6794,7 +6973,7 @@ function updateSeaMob(arr,px,py,pz,dt,t){
         o.x=x; o.z=z; drew=true; break; }
       if(!drew){ o.m.visible=false; continue; }
       const fy=haunt(o.x,o.z,arr._deep||H_REEF);
-      const clr=Math.max(4,(arr._len||24)*0.35);   /* she swims a third of her own length clear */
+      const clr=Math.max(4,(arr._drop||0)+1.5,(arr._len||24)*0.35);   /* clear of the sand by her own reach */
       o.y = arr._near ? fy+clr+Math.random()*14 : Math.min(SEA_SURF-clr,fy+clr+Math.random()*60); o.dir=Math.random()*6.28; o.set=true; o.m.visible=true;
       o.sp=B2?B2.swimOf(kind,arr._near?7:12):(arr._near?7:12);
       o.breath=air?(3+Math.random()*28):0; o.act=null; o.actT=0; o.surf=0; }
@@ -6824,7 +7003,7 @@ function updateSeaMob(arr,px,py,pz,dt,t){
     /* the water it holds: rising to breathe, sounding to the bed, hanging at
        the top, or the gentle mid-water bob it keeps between whiles */
     const fy=haunt(o.x,o.z,arr._deep||H_REEF);
-    const clr=Math.max(3,(arr._len||24)*0.30), loF=fy+clr, hiF=SEA_SURF-clr*0.5;
+    const clr=Math.max(3,(arr._drop||0)+1.5,(arr._len||24)*0.30), loF=fy+clr, hiF=SEA_SURF-clr*0.5;
     if(o.surf){ o.y+=(hiF-o.y)*Math.min(1,dt*0.7); if(o.y>=hiF-2){ o.surf=0; o.breath=20+Math.random()*26; } }
     /* ---- THE BREACH ----
        "There is that leviathan, whom thou hast made to play therein." A
@@ -14719,6 +14898,22 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   mineProgress:()=>MINE.on?{cell:[MINE.ix,MINE.iy,MINE.iz],t:MINE.t,need:MINE.need,
     f:Math.min(1,MINE.t/MINE.need),cracks:crackN}:null,
   mineStep:dt=>mineTick(dt),
+  /* WHICH BLOCK A DRIVEN BLOW IS STRUCK AT. The live AIM follows the camera,
+     and mineTick starts the fracture afresh every time the target changes —
+     so a headless test that drives the hand without saying what it means
+     mines whatever the eye happens to be crossing, resets on every frame it
+     wanders, and reports that a blow of one and three-quarter seconds could
+     not be landed in twenty. (It did exactly that, which is why this is
+     here.) Passing null gives the hand back to the eye. */
+  mineAt:a=>{ mineTestAt=a||null; },
+  /* WHOSE GROUND IS THIS — by the real country outlines, which are real
+     vector data. It is the one question that catches every way a place's
+     coordinates go wrong: a swapped latitude and longitude, a dropped minus,
+     a decimal in the wrong column. A named place that lands in the wrong
+     nation is wrong by more than a nation's breadth, and one that lands in
+     open sea is wrong outright. tools/acceptance.js asks it of the falling
+     waters; nothing in the game reads it. */
+  landNameAt,
   handSlow:()=>HAND_SLOW,
   aimFrom:(ox,oy,oz,dx,dy,dz,reach)=>{ const L=Math.hypot(dx,dy,dz)||1;
     return aimAt(ox,oy,oz,dx/L,dy/L,dz/L,reach||REACH); },
@@ -15139,6 +15334,17 @@ function aimTick(){
 const HAND_SLOW=2.5;              /* the price of the wrong tool, or none */
 const MINE={ix:0,iy:0,iz:0,t:0,need:0,on:false,n:0};
 let mineHeld=false, mineTestAt=null, mineDriven=false;
+/* what the hand SERVES as — the one question the tool rule asks */
+function handServes(t){ const h=heldBlock(); return !!(h&&h.serves===t); }
+let _toolSaid=null;                     /* so a refusal is said once, not sixty times a second */
+/* and it is said in the world's own voice, and never as a error message */
+const TOOL_WORD={
+  pick :'The rock will not give to bare hands. You want a pick — flint will do, and flint is in the gravel of every river.',
+  axe  :'Timber will not come away in the hand. You want an axe.',
+  spade:'The ground is packed too hard for fingers. You want a spade.',
+  knife:'It will not part without an edge. You want a knife.',
+  hoe  :'It wants a hoe, not a hand.'
+};
 function toolSpeed(b){
   /* ---- AND HERE THE BELT SPEAKS, AS STEP 2 PROMISED IT WOULD ----
      One place, as it was written. A block that asks for a tool is had at full
@@ -15212,11 +15418,56 @@ function cutCrack(ix,iy,iz,nx,ny,nz){
 /* one frame of the hand at work */
 function mineTick(dt){
   const tgt = mineTestAt || AIM;
+  /* ---- WHY A BLOW WOULD NOT LAND, AND IT NEVER COULD ----
+     THE FAULT: "the blocks do not behave like Minecraft does." The mechanics
+     were sound — the hardness table gives stone eight and a half seconds to a
+     bare hand, which is Minecraft's own figure to within a second, the crack
+     figure runs, the drop spawns, the satchel takes it. NONE OF IT COULD EVER
+     RUN, because of the gate on this line.
+
+     `drag.mv` is the TOTAL movement of a press and IS NEVER RESET. Six pixels
+     of drift at any moment in a press put it over the bar for the whole of
+     the rest of that press. A block takes SECONDS of holding, and no hand on
+     a mouse holds within six pixels of one spot for eight seconds. So on a
+     desktop the blow could not be struck at all, and everything downstream of
+     it went with it: nothing broke, so nothing dropped, so nothing was picked
+     up, so the belt stayed empty, so `placeBlock` refused for want of
+     anything to lay. Four faults reported, one line.
+
+     (This is the price of the acceptance suite testing the FREE hand only —
+     where a blow lands on the first frame and the gate is never felt. The
+     voyage hand, the one actually played, had no test at all.)
+
+     STILLNESS IS JUDGED OVER THE LAST MOMENT INSTEAD, which is what was meant
+     all along: `drag.t` is when the pointer last moved, so a press that has
+     settled strikes, and a press that is sweeping the view does not. AND A
+     BLOW ALREADY STRUCK GOES ON while the button is down — a man does not
+     stop digging because he turned his head, and the aim moving to another
+     block already closes the old fracture and opens a new one, twenty lines
+     below. */
+  const still = drag && (performance.now()-drag.t)>90;
   const held = mineHeld || !!keys.KeyR ||
-    (drag && drag.mv<6 && drag.t0!==undefined && performance.now()-drag.t0>120);
+    (drag && drag.t0!==undefined && performance.now()-drag.t0>120 && (still||MINE.on));
   if(!held||!tgt||gamePaused||cut){ mineStop(); return; }
   const b=blockOf(tgt.n||blockAt(tgt.ix,tgt.iy,tgt.iz));
   if(!b){ mineStop(); return; }
+  /* ---- AND THE TOOL IS A REQUIREMENT, NOT A DISCOUNT ----
+     A block that names a tool was had by a bare hand at two and a half times
+     the labour — so a man could claw an emerald out of the rock with his
+     fingers if he waited twelve seconds, and there was no reason on earth to
+     make a pick. The tool the block asks for must now BE IN THE HAND, and
+     without it the rock does not give at all.
+
+     AND IT SAYS SO, which is the half that matters. A hand that silently
+     does nothing is indistinguishable from a hand that is broken — that is
+     precisely how four working mechanics came to be reported as dead — so
+     the refusal is spoken once for each kind of block and not again, and it
+     names the tool that is wanted. The free hand is not asked for anything:
+     a man laying out a place is not fetching a pick first. */
+  if(!freeHand()&&b.tool&&!handServes(b.tool)){
+    if(_toolSaid!==b.id){ _toolSaid=b.id;
+      toast(TOOL_WORD[b.tool]||('It will not give: you want a '+b.tool+'.')); }
+    mineStop(); return; }
   /* the hand moved to another block: the old fracture closes and a new one
      is struck. A block half broken and left is whole again when you return —
      which is the honest behaviour and the one every player expects. */
@@ -15912,9 +16163,82 @@ function placeBlock(){
   /* IT COSTS NOTHING IN THE FREE HAND. The stack is not touched at all, so
      what he holds never runs out and never has to be fetched again. */
   if(!freeHand()&&!satchelTake(h.id,1)) return {no:'his hand is empty'};
+  /* ---- AND WATER LAID BY HAND IS SPILLED, NOT SET ----
+     A block of water set down as though it were a block of stone is a cube
+     of water hanging in the air, which is not what water is. It goes in as a
+     SOURCE and runs from there — down every fall it meets and seven blocks
+     out over every flat — which is js/water.js's whole business. */
+  if(b.liquid&&window.WATER){ WATER.spill(ix,iy,iz);
+    beltDraw(); satchelTouch(); return {laid:b.id, at:[ix,iy,iz], spilled:true}; }
   setBlock((ix+0.5)*B,(iy+0.5)*B,(iz+0.5)*B, b.n);
   beltDraw(); satchelTouch();
   return {laid:b.id, at:[ix,iy,iz]};
+}
+
+/* ---- THE SPRING AT THE HEAD OF EVERY FALL ----
+   js/waterfall.js cut the rock and js/water.js knows how to take a source
+   down a wall and pool it at the foot. This is the one line between them: as
+   the traveller comes near a fall, a source is laid along its lip and the
+   water does the rest — down the wall as a full falling column, spreading at
+   the foot, and running on for as long as the source stands, which is what a
+   spring IS.
+
+   IT IS LAID ONCE. A source re-laid every frame would wake the whole flow
+   sixty times a second for nothing; the falls that have been sprung are
+   remembered, and a fall the traveller has left is left running — the water
+   is in the edit overlay and stays there, as a real river does.
+
+   AND ONLY WHERE THE GROUND IS ACTUALLY BUILT. setBlock on a chunk that has
+   not been laid writes into a record that the mesher has already passed, so
+   the spring is held until the lip is truly standing. */
+const _sprung=new Set();
+/* ---- THE SPRINGS ARE OFF, AND HERE IS THE MEASUREMENT THAT TURNED THEM OFF ----
+   Standing at three falls with the spring laid and the world let run:
+
+     Angel     lip raised h=1 -> h=111 (the tepui works), water in the
+               column 0, and 549 cells of water standing somewhere else
+     Niagara   water in the column 3, and 13,989 cells standing
+     Multnomah water in the column 2, and 23,025 cells standing, with 7,292
+               still queued to spread
+
+   TWENTY-THREE THOUSAND CELLS IS NOT A WATERFALL, IT IS A FLOOD, and the
+   picture shows it: the camera at the foot of Niagara is buried inside a
+   solid mass of water. Two faults, and both are mine:
+
+   1. THE WALL IS A RAMP. FORM.steep was meant as "1 = sheer", but the code
+      reads `wallEnd = drop / steep` — so steep:1 gives a wall that takes as
+      many blocks of ground as it drops. That is a forty-five degree slope.
+      Angel's profile proves it: 110 110 110 111 111 111 111 ... flat for the
+      whole ten blocks sampled, because its "wall" is a hundred and nine
+      blocks long. Water does not fall down a ramp; it RUNS down it, and a
+      source that runs instead of falling floods whatever is below.
+
+   2. A LINE OF SOURCES ON A PLATEAU IS A LINE OF SPRINGS. Each spreads seven
+      blocks every way and then follows every slope it finds, for ever,
+      because a source is never consumed. Niagara's lip is two hundred blocks
+      wide and got seven of them.
+
+   The mending is to make a sheer wall sheer (wallEnd of a block or two,
+   whatever the drop) and to lay ONE source that is fed rather than a line of
+   them — but that is a change to be measured, not guessed, and shipping a
+   world that floods while I work it out is not a trade worth making. The
+   rock stands cut and dry until then, which is a waterfall without water
+   rather than a country under one. */
+const SPRINGS_ON=false;
+function updateFalls(px,pz){
+  if(!SPRINGS_ON||!_fallsOn||!window.WATER||!window.WATERFALL) return;
+  const near=WATERFALL.nearest(px,pz,700);
+  if(!near||_sprung.has(near.n)) return;
+  const pts=WATERFALL.springs(near);
+  let laid=0;
+  for(const [x,z] of pts){
+    const c=landAtWorld(x,z); if(!c) continue;
+    const ix=Math.floor(x/B), iz=Math.floor(z/B);
+    if(!chunks.has(Math.floor(ix/CH)+','+Math.floor(iz/CH))) return;   /* not built yet — wait */
+    if(WATER.spill(ix,c.h,iz)) laid++;
+  }
+  if(laid){ _sprung.add(near.n);
+    if(window.console) console.info('the voyage: the spring is laid at '+near.n+' ('+laid+' heads)'); }
 }
 
 /* ================= THE GREAT LOOP ================= */
@@ -16345,6 +16669,10 @@ function frame(){
   if(!mineDriven) mineTick(dt);      /* and the hand held to it until it gives */
   dropTick(dt);                      /* and what it left lying on the ground */
   fallTick(dt);                      /* and the bank that came down after it */
+  /* and the water he spilled, which runs on its own five-to-the-second beat
+     and inside its own millisecond. It touches nothing but the edit overlay;
+     the sea and the rivers are not its business and never were. */
+  if(window.WATER){ initWater(); WATER.step(dt); }
   /* the belt is redrawn only when what it shows has CHANGED — a HUD rebuilt
      every frame is a HUD that costs a frame */
   { const sig=(beltWanted()?1:0)+'|'+heldSlot+'|'+
@@ -16423,6 +16751,7 @@ function frame(){
   if(frame._carpetOn) updateFarLand(p.x,p.z,false,eyeY);
   updateVillages(p.x,p.z,dt,light.nightF);
   updateLandmarks(p.x,p.z);
+  updateFalls(p.x,p.z);          /* and the springs at the head of every fall */
   /* the living world — weather, hearths, fireflies, meetings, murmurs */
   if(!state.firm){ const _t=performance.now()*0.001;
     weatherTick(p.x,p.z,dt,light.storm||0);

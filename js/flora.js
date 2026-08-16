@@ -81,7 +81,8 @@ function load(d){
     if(K.h===undefined) K.h=1; if(K.w===undefined) K.w=1;
     if(K.wt===undefined) K.wt=1;
     K.layer=K.layer||(LOW[K.form]?'plant':'tree');
-    K._ever=(K.ever!==undefined)?!!K.ever:!!EVER_FORM[K.form]; }
+    K._ever=(K.ever!==undefined)?!!K.ever:!!EVER_FORM[K.form];
+    K._bark=barkOf(K); }                 /* §2.4.3 — settled once, never in the mesher */
 }
 const LOW={shrub:1,herb:1,cane:1,pad:1,rosette:1};
 /* ---- WHICH TREES DO NOT TURN ----
@@ -101,6 +102,40 @@ const EVER_FORM={conifer:1, palm:1, cactus:1, pad:1, rosette:1, bamboo:1,
    is exactly how it stood before. A second material has to be paid for in
    draw calls and the price has to be measured, not assumed. */
 let EVER=true;
+/* ---- §2.4.3 — THE BARK OF EACH KIND ----
+   The brief asks for a texture per species. A texture per species is a
+   MATERIAL per species, and the one rule this whole file is built on is that
+   a hundred and seventy species share four grey materials and tint their own
+   faces — which is why a new species costs nothing at all. So the bark is
+   ASSIGNED, exactly as the canopy form is assigned in §2.4.2, and for exactly
+   the same reason. Six patterns, and the per-species TINT still sits on top
+   of every one of them: a birch and an aspen wear the same paper in two
+   different greys, as they do.
+
+     paper   the birch — lenticels lying across a pale sheet
+     ring    the palm, the tree fern — the scars of fallen fronds
+     plate   the pine, the plane — broad plates with dark seams
+     twist   the olive, the yew — the grain running round the bole
+     cork    the cork oak, the redwood — wide soft-sided furrows
+     smooth  the beech, the gum — near-bare, faintly streaked
+     bark    the deep fissures — the oak, the ash, and the default
+
+   A KIND SAYS `bark:'paper'` IN world/flora.js OR SAYS NOTHING, in which case
+   its FORM answers for it below — a palm rings, a conifer plates, a gum is
+   smooth. That way the whole earth is barked by adding one table, and a
+   species that wants its own says so in its own line, where a reader sees it
+   beside its leaf colour. Nothing here knows a species by name. */
+const BARK_MAT={paper:'barkPaper', ring:'barkRing', plate:'barkPlate',
+  twist:'barkTwist', cork:'barkCork', smooth:'barkSmooth', bark:'barkW'};
+const BARK_FORM={palm:'ring', fern:'ring', banana:'ring', bamboo:'ring',
+  conifer:'plate', column:'plate',
+  gum:'smooth', round:'smooth', blossom:'smooth',
+  thorn:'twist', spread:'cork', baobab:'cork', mangrove:'cork',
+  jungle:'plate', darkoak:'bark', broad:'bark', cactus:'smooth'};
+function barkOf(K){
+  const w=K.bark||BARK_FORM[K.form]||'bark';
+  return BARK_MAT[w]||'barkW';
+}
 function tintOf(hex){ return [((hex>>16)&255)/255, ((hex>>8)&255)/255, (hex&255)/255]; }
 
 /* ---- WHAT WILL GROW HERE ----
@@ -234,8 +269,9 @@ function fruitOn(kit,K,x,z,y0,y1,r,S){
 }
 /* a bole, tapering or straight */
 function bole(kit,K,x,z,yT,h,w){
+  const BK=K._bark||kit.M.bark;   /* §2.4.3 — this kind's own bark */
   const {emitBox,M}=kit;
-  emitBox(kit.G, x-w,yT,z-w, x+w,yT+h,z+w, M.bark,M.bark,null, K._bole);
+  emitBox(kit.G, x-w,yT,z-w, x+w,yT+h,z+w, BK,BK,null, K._bole);
 }
 
 /* ============================================================
@@ -288,6 +324,7 @@ let BOUGHS=true;
    already had, so a branched tree occupies the same room an unbranched one
    did. What changes is its SHAPE, which was the point. */
 function boughsOn(kit,K,x,z,yB,tw,rad,ix,iz,out){
+  const BK=K._bark||kit.M.bark;   /* §2.4.3 — this kind's own bark */
   const {emitBox,hash,M}=kit;
   const n=3+(hash(ix*0.41+3.7,iz*0.53-2.9)>0.52?1:0);
   const a0=hash(ix*0.77-1.1,iz*0.29+4.3)*6.283;
@@ -303,7 +340,7 @@ function boughsOn(kit,K,x,z,yB,tw,rad,ix,iz,out){
       const nx=px+ca*reach, nz=pz+sa*reach, ny=py+rise*(k?0.60:1);
       emitBox(kit.G, Math.min(px,nx)-r, py-r*0.5, Math.min(pz,nz)-r,
                      Math.max(px,nx)+r, ny+r*0.5, Math.max(pz,nz)+r,
-              M.bark,M.bark,M.bark, K._bole);
+              BK,BK,BK, K._bole);
       px=nx; pz=nz; py=ny; r*=0.58;
     }
     out.push({x:px, z:pz, y:py});
@@ -319,6 +356,7 @@ function leafOnBoughs(kit,K,tips,rad,lm,LF){
 }
 
 function emitTree(kit,K,ix,iz,cc){
+  const BK=K._bark||kit.M.bark;   /* §2.4.3 — this kind's own bark */
   const {emitBox,hash,M}=kit;
   const x=(ix+0.5)*B, z=(iz+0.5)*B, yT=cc.h*B;
   /* a long tail toward the giants: most are middling, a few tower */
@@ -381,7 +419,7 @@ function emitTree(kit,K,ix,iz,cc){
     for(const d of [[1,0],[-1,0],[0,1],[0,-1]])
       emitBox(kit.G, x+d[0]*B*0.4*W-B*0.16*W, yT+H-B*0.5*W, z+d[1]*B*0.4*W-B*0.16*W,
                      x+d[0]*B*1.1*W+B*0.16*W, yT+H+B*0.1*W, z+d[1]*B*1.1*W+B*0.16*W,
-                     M.bark,M.bark,null, K._bole);
+                     BK,BK,null, K._bole);
     emitBox(kit.G, x-B*1.9*W,yT+H,z-B*1.9*W, x+B*1.9*W,yT+H+B*0.45*W,z+B*1.9*W, lm,lm,lm, LF);
     emitBox(kit.G, x-B*1.2*W,yT+H+B*0.45*W,z-B*1.2*W, x+B*1.2*W,yT+H+B*0.75*W,z+B*1.2*W, lm,lm,lm, LF);
     fruitOn(kit,K,x,z,yT+H,yT+H+B*0.4*W,B*1.4*W,S);
@@ -391,15 +429,15 @@ function emitTree(kit,K,ix,iz,cc){
     /* THE BAOBAB — the fattest bole on the earth under a stub of crown, so
        that it looks for all the world like a tree planted upside down. */
     const H=B*3.4*S, tw=B*(0.95+0.35*S);
-    emitBox(kit.G, x-tw,yT,z-tw, x+tw,yT+H*0.72,z+tw, M.bark,M.bark,null, K._bole);
-    emitBox(kit.G, x-tw*0.62,yT+H*0.72,z-tw*0.62, x+tw*0.62,yT+H,z+tw*0.62, M.bark,M.bark,null, K._bole);
+    emitBox(kit.G, x-tw,yT,z-tw, x+tw,yT+H*0.72,z+tw, BK,BK,null, K._bole);
+    emitBox(kit.G, x-tw*0.62,yT+H*0.72,z-tw*0.62, x+tw*0.62,yT+H,z+tw*0.62, BK,BK,null, K._bole);
     /* the boughs go up and OUT, and the leaf sits on the ends of them like a
        handful of twigs held up — which is exactly what a baobab looks like */
     for(const d of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){
       const ax=x+d[0]*tw*1.25, az=z+d[1]*tw*1.25;
       emitBox(kit.G, Math.min(x,ax)-B*0.16*W, yT+H, Math.min(z,az)-B*0.16*W,
                      Math.max(x,ax)+B*0.16*W, yT+H+B*1.0*W, Math.max(z,az)+B*0.16*W,
-                     M.bark,M.bark,null, K._bole);
+                     BK,BK,null, K._bole);
       emitBox(kit.G, ax-B*0.95*W,yT+H+B*0.85*W,az-B*0.95*W,
                      ax+B*0.95*W,yT+H+B*1.35*W,az+B*0.95*W, lm,lm,lm, LF); }
     emitBox(kit.G, x-tw*1.1,yT+H+B*0.9*W,z-tw*1.1, x+tw*1.1,yT+H+B*1.3*W,z+tw*1.1, lm,lm,lm, LF);
@@ -433,7 +471,7 @@ function emitTree(kit,K,ix,iz,cc){
     const H=B*3.0*S, tw=B*0.28*S;
     for(const d of [[1,1],[1,-1],[-1,1],[-1,-1]]){
       const rx=x+d[0]*B*0.75*W, rz=z+d[1]*B*0.75*W;
-      emitBox(kit.G, rx-B*0.13,yT-B*1.2,rz-B*0.13, rx+B*0.13,yT+H*0.42,rz+B*0.13, M.bark,M.bark,null, K._bole); }
+      emitBox(kit.G, rx-B*0.13,yT-B*1.2,rz-B*0.13, rx+B*0.13,yT+H*0.42,rz+B*0.13, BK,BK,null, K._bole); }
     bole(kit,K,x,z,yT+H*0.30,H*0.7,tw);
     const r=B*1.5*W;
     emitBox(kit.G, x-r,yT+H,z-r, x+r,yT+H+B*0.85*W,z+r, lm,lm,lm, LF);
@@ -447,7 +485,7 @@ function emitTree(kit,K,ix,iz,cc){
       const a=hash(ix+i*3.7,iz-i*1.9)*6.283, rr=B*(0.3+1.1*hash(ix-i,iz+i))*W;
       const cx=x+Math.cos(a)*rr, cz=z+Math.sin(a)*rr;
       const H=B*(4.0+3.0*hash(ix*1.7+i,iz*2.3-i))*S, tw=B*0.15;
-      emitBox(kit.G, cx-tw,yT,cz-tw, cx+tw,yT+H,cz+tw, M.bark,M.bark,null, K._bole);
+      emitBox(kit.G, cx-tw,yT,cz-tw, cx+tw,yT+H,cz+tw, BK,BK,null, K._bole);
       for(let k=2;k<5;k++){ const yy=yT+H*(k/5);
         emitBox(kit.G, cx-B*0.42,yy,cz-B*0.42, cx+B*0.42,yy+B*0.28,cz+B*0.42, lm,lm,lm, LF); }
       emitBox(kit.G, cx-B*0.5,yT+H-B*0.3,cz-B*0.5, cx+B*0.5,yT+H+B*0.35,cz+B*0.5, lm,lm,lm, LF);
@@ -458,11 +496,11 @@ function emitTree(kit,K,ix,iz,cc){
     /* a column with two arms and no leaf on it anywhere. It is drawn in the
        leaf material so it keeps the sway — a saguaro in a gale does move. */
     const H=B*(2.6+2.4*S), r=B*0.36*S;
-    emitBox(kit.G, x-r,yT,z-r, x+r,yT+H,z+r, M.bark,M.bark,null, K._leaf);
+    emitBox(kit.G, x-r,yT,z-r, x+r,yT+H,z+r, BK,BK,null, K._leaf);
     for(const s of [1,-1]){ if(hash(ix*1.9+s,iz*2.7)<0.42) continue;
       const ax=x+s*B*0.75*S, yy=yT+H*0.42;
-      emitBox(kit.G, x+(s>0?r:-B*0.9*S),yy,z-r*0.8, x+(s>0?B*0.9*S:-r),yy+B*0.34,z+r*0.8, M.bark,M.bark,null, K._leaf);
-      emitBox(kit.G, ax-r*0.8,yy,z-r*0.8, ax+r*0.8,yy+H*0.42,z+r*0.8, M.bark,M.bark,null, K._leaf); }
+      emitBox(kit.G, x+(s>0?r:-B*0.9*S),yy,z-r*0.8, x+(s>0?B*0.9*S:-r),yy+B*0.34,z+r*0.8, BK,BK,null, K._leaf);
+      emitBox(kit.G, ax-r*0.8,yy,z-r*0.8, ax+r*0.8,yy+H*0.42,z+r*0.8, BK,BK,null, K._leaf); }
     fruitOn(kit,K,x,z,yT+H*0.85,yT+H,r*1.2,S*0.6);
     return;
   }
@@ -486,7 +524,7 @@ function emitTree(kit,K,ix,iz,cc){
     for(const d of [[1,1],[-1,1],[1,-1],[-1,-1]]){
       const bx=x+d[0]*B*0.9*W, bz=z+d[1]*B*0.9*W;
       emitBox(kit.G, Math.min(x,bx)-B*0.1,yT+H*0.74,Math.min(z,bz)-B*0.1,
-                     Math.max(x,bx)+B*0.1,yT+H*0.86,Math.max(z,bz)+B*0.1, M.bark,M.bark,null, K._bole);
+                     Math.max(x,bx)+B*0.1,yT+H*0.86,Math.max(z,bz)+B*0.1, BK,BK,null, K._bole);
       emitBox(kit.G, bx-B*0.85*W,yT+H*0.84,bz-B*0.85*W, bx+B*0.85*W,yT+H*1.02,bz+B*0.85*W, lm,lm,lm, LF); }
     emitBox(kit.G, x-B*0.9*W,yT+H*0.96,z-B*0.9*W, x+B*0.9*W,yT+H*1.12,z+B*0.9*W, lm,lm,lm, LF);
     return;
@@ -499,7 +537,7 @@ function emitTree(kit,K,ix,iz,cc){
     bole(kit,K,x,z,yT,H,tw);
     for(const d of [[1,0],[-1,0],[0,1],[0,-1]]){          /* the buttresses */
       const bx=x+d[0]*tw*1.5, bz=z+d[1]*tw*1.5;
-      emitBox(kit.G, bx-B*0.22,yT,bz-B*0.22, bx+B*0.22,yT+H*0.34,bz+B*0.22, M.bark,M.bark,null, K._bole); }
+      emitBox(kit.G, bx-B*0.22,yT,bz-B*0.22, bx+B*0.22,yT+H*0.34,bz+B*0.22, BK,BK,null, K._bole); }
     const r=B*2.5*W;
     emitBox(kit.G, x-r,yT+H,z-r, x+r,yT+H+B*0.8*W,z+r, lm,lm,lm, LF);
     emitBox(kit.G, x-r*0.62,yT+H+B*0.8*W,z-r*0.62, x+r*0.62,yT+H+B*1.25*W,z+r*0.62, lm,lm,lm, LF);
@@ -507,7 +545,7 @@ function emitTree(kit,K,ix,iz,cc){
        ground to root again. A mahogany on stilts is not a mahogany. */
     if(K.props) for(const d of [[1,1],[-1,-1],[1,-1]]){
       const px=x+d[0]*r*0.66, pz=z+d[1]*r*0.66;
-      emitBox(kit.G, px-B*0.15,yT,pz-B*0.15, px+B*0.15,yT+H+B*0.3,pz+B*0.15, M.bark,M.bark,null, K._bole); }
+      emitBox(kit.G, px-B*0.15,yT,pz-B*0.15, px+B*0.15,yT+H+B*0.3,pz+B*0.15, BK,BK,null, K._bole); }
     fruitOn(kit,K,x,z,yT+H,yT+H+B*0.7*W,r*0.8,S);
     return;
   }
@@ -516,7 +554,7 @@ function emitTree(kit,K,ix,iz,cc){
        comes down almost to the ground and puts the wood under it in shadow.
        Where these stand you cannot see far, and that is the point of them. */
     const H=B*3.0*S, tw=B*(0.52+0.26*S);
-    emitBox(kit.G, x-tw,yT,z-tw, x+tw,yT+H,z+tw, M.bark,M.bark,null, K._bole);
+    emitBox(kit.G, x-tw,yT,z-tw, x+tw,yT+H,z+tw, BK,BK,null, K._bole);
     const r=B*2.3*W;
     emitBox(kit.G, x-r,yT+H-B*1.1*W,z-r, x+r,yT+H+B*0.2*W,z+r, lm,lm,lm, LF);
     emitBox(kit.G, x-r*0.72,yT+H+B*0.2*W,z-r*0.72, x+r*0.72,yT+H+B*0.7*W,z+r*0.72, lm,lm,lm, LF);
@@ -589,6 +627,7 @@ function emitTree(kit,K,ix,iz,cc){
    THE LOW GROWTH — bushes, herbs, canes, pads and rosettes
    ============================================================ */
 function emitPlant(kit,K,ix,iz,cc){
+  const BK=K._bark||kit.M.bark;   /* §2.4.3 — this kind's own bark */
   const {emitBox,cross,hash,M}=kit;
   const x=(ix+0.5)*B, z=(iz+0.5)*B, yT=cc.h*B;
   const s=hash(ix*1.31-4.4,iz*1.77+8.1);
@@ -612,7 +651,7 @@ function emitPlant(kit,K,ix,iz,cc){
       const a=hash(ix+i*2.3,iz-i*4.1)*6.283, rr=B*0.4*hash(ix-i*1.3,iz+i*0.7);
       const cx=x+Math.cos(a)*rr, cz=z+Math.sin(a)*rr;
       const hh=B*(1.1+1.5*hash(ix*1.1+i,iz*1.9-i))*K.h;
-      emitBox(kit.G, cx-B*0.07,yT,cz-B*0.07, cx+B*0.07,yT+hh,cz+B*0.07, M.bark,M.bark,null, K._bole);
+      emitBox(kit.G, cx-B*0.07,yT,cz-B*0.07, cx+B*0.07,yT+hh,cz+B*0.07, BK,BK,null, K._bole);
       emitBox(kit.G, cx-B*0.2,yT+hh-B*0.1,cz-B*0.2, cx+B*0.2,yT+hh+B*0.4,cz+B*0.2,
               M.leaf,M.leaf,M.leaf, K._flower||K._leaf); }
     return;
@@ -642,7 +681,7 @@ function emitPlant(kit,K,ix,iz,cc){
                      M.leaf,M.leaf,M.leaf, K._leaf); }
     emitBox(kit.G, x-B*0.2,yT,z-B*0.2, x+B*0.2,yT+bh*0.35,z+B*0.2, M.leaf,M.leaf,M.leaf, K._leaf);
     if(K._flower){
-      emitBox(kit.G, x-B*0.08,yT,z-B*0.08, x+B*0.08,yT+bh+B*1.1*K.h,z+B*0.08, M.bark,M.bark,null, K._bole);
+      emitBox(kit.G, x-B*0.08,yT,z-B*0.08, x+B*0.08,yT+bh+B*1.1*K.h,z+B*0.08, BK,BK,null, K._bole);
       emitBox(kit.G, x-B*0.26,yT+bh+B*0.8*K.h,z-B*0.26, x+B*0.26,yT+bh+B*1.3*K.h,z+B*0.26,
               M.solid,M.solid,M.solid, K._flower); }
     return;
@@ -665,6 +704,7 @@ function emitPlant(kit,K,ix,iz,cc){
    no stem at all (which is exactly how a palm begins), and everything else
    as a stem with a leafy head on it. */
 function emitSapling(kit,K,ix,iz,cc){
+  const BK=K._bark||kit.M.bark;   /* §2.4.3 — this kind's own bark */
   const {emitBox,hash,M}=kit;
   const x=(ix+0.5)*B, z=(iz+0.5)*B, yT=cc.h*B;
   const s=hash(ix*1.7+5.5,iz*2.3-9.9);
@@ -673,7 +713,7 @@ function emitSapling(kit,K,ix,iz,cc){
   if(F==='palm'||F==='banana'||F==='fern'){
     /* straight out of the ground — fronds and nothing else */
     const r=B*(0.34+0.24*s);
-    emitBox(kit.G, x-B*0.09,yT,z-B*0.09, x+B*0.09,yT+H*0.5,z+B*0.09, M.bark,M.bark,null, K._bole);
+    emitBox(kit.G, x-B*0.09,yT,z-B*0.09, x+B*0.09,yT+H*0.5,z+B*0.09, BK,BK,null, K._bole);
     emitBox(kit.G, x-r,yT+H*0.42,z-B*0.13, x+r,yT+H*0.62,z+B*0.13, lm,lm,lm, LF);
     emitBox(kit.G, x-B*0.13,yT+H*0.42,z-r, x+B*0.13,yT+H*0.62,z+r, lm,lm,lm, LF);
     return;
@@ -682,11 +722,11 @@ function emitSapling(kit,K,ix,iz,cc){
     /* a young saguaro is a thumb of green; a young baobab a stick with a
        tuft, and both of them take a century to be anything else */
     emitBox(kit.G, x-B*0.16,yT,z-B*0.16, x+B*0.16,yT+H*0.9,z+B*0.16,
-            M.bark,M.bark,null, F==='cactus'?K._leaf:K._bole);
+            BK,BK,null, F==='cactus'?K._leaf:K._bole);
     if(F==='baobab') emitBox(kit.G, x-B*0.3,yT+H*0.8,z-B*0.3, x+B*0.3,yT+H*1.1,z+B*0.3, lm,lm,lm, LF);
     return;
   }
-  emitBox(kit.G, x-B*0.1,yT,z-B*0.1, x+B*0.1,yT+H*0.55,z+B*0.1, M.bark,M.bark,null, K._bole);
+  emitBox(kit.G, x-B*0.1,yT,z-B*0.1, x+B*0.1,yT+H*0.55,z+B*0.1, BK,BK,null, K._bole);
   if(F==='conifer'||F==='column'){
     const r=B*(0.28+0.16*s);
     emitBox(kit.G, x-r,yT+H*0.35,z-r, x+r,yT+H*0.8,z+r, lm,lm,lm, LF);
