@@ -4269,7 +4269,7 @@ hidden under the other. Nothing can be hidden under the chart: the chart is
 above.
 
 So the rim gives up its **alpha** instead, thinning away into the chart over the
-outermost seventh of whatever radius the ring was last laid at. Three things
+outermost **quarter** of whatever radius the ring was last laid at. Four things
 about it are deliberate:
 
 - **Per fragment, from the mesh's own polar coordinates.** The ring is built
@@ -4284,6 +4284,15 @@ about it are deliberate:
   enrolled in `LIT`, so it already carries the torch patch. Assigning
   `onBeforeCompile` over the top of it, as `radialSkirt` does, would have
   silently taken the traveller's lamp off the far country.
+- **A QUARTER, and a seventh was tried first and was not enough.** Measured
+  against the picture and not against the arithmetic: at a seventh the disc's
+  raised lip went and the colour bled instead of stopping, but an arc was still
+  readable on the shoulders. The reason is PERSPECTIVE — the rim is the
+  furthest part of the carpet from the eye and so the most foreshortened, and a
+  band a seventh of the radius wide on the ground is a handful of pixels tall on
+  the screen. A softened edge is still an edge. At a quarter the arc is gone.
+  What it spends is the outermost cells of the ring, which are the coarsest in
+  it and the least worth looking at.
 
 ## 5. Further recommendations (future work)
 
