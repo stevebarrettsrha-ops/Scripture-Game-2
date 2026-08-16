@@ -219,7 +219,13 @@ const _w=[0,0,0,0];   /* the weight of each way out, reused */
    And nothing of the sea is touched to do it — the sea is not asked, it is
    not written to, it does not even know. A cell at or under the waterline is
    simply not somewhere spilled water may stand. */
-function reachedTheSea(iy){ return K.seaBlock!==undefined&&iy<=K.seaBlock; }
+/* ---- AND IT MAY POOL A BLOCK DEEP FIRST ----
+   A sink that claims water the instant it touches leaves no water AT the
+   meeting: a fall standing on a river would have its plunge pool taken from
+   under it and the column would read shorter, not longer. So the waterline
+   block ITSELF may hold water, and only what tries to stand BELOW it is the
+   sea's. One block of pooling, and the sea has the rest. */
+function reachedTheSea(iy){ return K.seaBlock!==undefined&&iy<K.seaBlock; }
 
 /* ---- THE FLOW WEIGHT: WATER GOES THE SHORTEST WAY DOWN, NOT EVERY WAY ----
    The rule, as the game states it: when water spreads horizontally, every
@@ -264,8 +270,12 @@ function visit(ix,iy,iz){
      it has joined the river, and the river carries it away. It is given up
      exactly as at the waterline — which is what keeps a fall standing on a
      river from filling the valley it came out of. */
-  if(levelAt(ix,iy,iz)!==null){
-    let met=isWater(ix,iy-1,iz)&&levelAt(ix,iy-1,iz)===null;
+  /* AND THE SAME BLOCK OF GRACE AT A RIVER. Only water that has something
+     WET UNDER IT is taken — the lowest course, lying on the rock, is allowed
+     to stand. So a fall on a river keeps its plunge pool a block deep and the
+     river takes everything above it, which is what a plunge pool IS. */
+  if(levelAt(ix,iy,iz)!==null&&isWater(ix,iy-1,iz)){
+    let met=levelAt(ix,iy-1,iz)===null;
     for(let d2=0;d2<4&&!met;d2++){
       const q=DIR[d2];
       if(isWater(ix+q[0],iy,iz+q[1])&&levelAt(ix+q[0],iy,iz+q[1])===null) met=true; }
