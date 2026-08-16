@@ -69,6 +69,17 @@ EARTH.landmark({n:"Mount Zaphon", lat:35.95, lon:35.97, kind:'mount', elev:1717,
 /* (coordinates are nudged from the true ones where the chart draws an
    island a little off its geographic seat — the range must stand on the
    island as DRAWN, or it stands in the sea) */
+/* ---- THE TWO RANGES THE GREAT SCROLLS NEED (§5, Phase 7) ----
+   §5: "Add the kind:'range' and kind:'mount' entries these need to
+   world/landmarks.js with true elevations." These are those entries, and they
+   were added because the scrolls asked for them and the world answered that
+   it had no cave to put them in: neither Iraq nor Ethiopia had a single
+   hollow anywhere in it, so "the Cave of Treasures in the Zagros" and
+   "Ḥanoḵ in the Ethiopian highlands" had nowhere to be.
+   Both carry their TRUE elevations; MTN_M_PER_BLOCK keeps them in proportion
+   with every other height on the earth. */
+EARTH.landmark({n:"The Zagros", lat:33.40, lon:46.30, kind:'range', elev:4548, r:2100, style:'stony', secret:1});
+EARTH.landmark({n:"The Simien Mountains", lat:13.19, lon:38.37, kind:'range', elev:4550, r:1500, style:'stony', secret:1});
 EARTH.landmark({n:"The Blue Mountains", lat:18.10, lon:-76.90, kind:'range', elev:2256, r:1400, style:'cliff', secret:1});
 EARTH.landmark({n:"The Northern Range", lat:10.37, lon:-61.33, kind:'range', elev:940, r:1000, style:'cliff', secret:1});
 /* snowcap:1 — RESEARCHED, not guessed: a range famous for standing white

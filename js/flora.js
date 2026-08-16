@@ -80,9 +80,27 @@ function load(d){
     K._flower=K.flower===undefined?null:tintOf(K.flower);
     if(K.h===undefined) K.h=1; if(K.w===undefined) K.w=1;
     if(K.wt===undefined) K.wt=1;
-    K.layer=K.layer||(LOW[K.form]?'plant':'tree'); }
+    K.layer=K.layer||(LOW[K.form]?'plant':'tree');
+    K._ever=(K.ever!==undefined)?!!K.ever:!!EVER_FORM[K.form]; }
 }
 const LOW={shrub:1,herb:1,cane:1,pad:1,rosette:1};
+/* ---- WHICH TREES DO NOT TURN ----
+   §2.4.4 wants the autumn colour with *"evergreens unchanged"*, and the
+   gilding is worked out in the shader from LATITUDE — right for the zone,
+   and blind to the tree. So a pine, a cypress and an olive standing in a
+   temperate land went gold in October along with the oak beside them.
+
+   EVERGREENNESS IS A FACT ABOUT THE SPECIES, NOT THE FORM. A larch is a
+   conifer and bare all winter; an aspen is a column and the most golden tree
+   there is; a holly is round and green in January. So the FORM gives a
+   sensible default and any species may say otherwise with one datum —
+   `ever:1` or `ever:0` in world/flora.js, where a reader can see it. */
+const EVER_FORM={conifer:1, palm:1, cactus:1, pad:1, rosette:1, bamboo:1,
+  jungle:1, mangrove:1, banana:1, fern:1, gum:1, thorn:1, spread:1};
+/* the A/B switch: off, every leaf in the world is the one that turns, which
+   is exactly how it stood before. A second material has to be paid for in
+   draw calls and the price has to be measured, not assumed. */
+let EVER=true;
 function tintOf(hex){ return [((hex>>16)&255)/255, ((hex>>8)&255)/255, (hex&255)/255]; }
 
 /* ---- WHAT WILL GROW HERE ----
@@ -220,6 +238,86 @@ function bole(kit,K,x,z,yT,h,w){
   emitBox(kit.G, x-w,yT,z-w, x+w,yT+h,z+w, M.bark,M.bark,null, K._bole);
 }
 
+/* ============================================================
+   THE BOUGHS — §2.4.1, and the reason every wood looked the same
+   ------------------------------------------------------------
+   *"Branching. Two or three orders of branch by a small L-system, with real
+   taper. Every tree in the world stops looking like every other tree."*
+
+   THE FAULT. The oak — which is the DEFAULT form, and most of the world's
+   wood — was one bole and three crown boxes stacked on the middle of it,
+   with not a branch anywhere. Every oak in the world was therefore the same
+   oak at a different size: the crown was centred on the trunk, symmetrical
+   about both axes, and the only thing that varied between one tree and the
+   next was how big the identical shape was. A wood of a hundred of them read
+   as one tree stamped a hundred times, which is exactly Minecraft's fault
+   and exactly what §2.4 says to stop doing.
+
+   WHAT IT DOES. Three or four boughs are thrown out from the top of the
+   bole, each in its own direction, each of its own length and rise, each in
+   TWO segments that taper as they go — and the leaf is no longer a blob on
+   the trunk but a cluster ON THE END OF EACH BOUGH, with a smaller mass at
+   the heart. Every number in it comes off the cell's own hash, so no two
+   trees on the earth are alike and the wood is the same wood every time it
+   is meshed.
+
+   WHICH FORMS GET THEM, AND WHY NOT ALL. A cypress is a green pillar and a
+   palm is a bare stem with fronds on the head; branching them would be
+   drawing something that is not a cypress and not a palm. The forms that get
+   boughs are the ones a bough is TRUE of — the hardwoods — and the list is
+   here, not in world/flora.js, because it is a fact about the FORM and not
+   about any species. Add `broad` to a new species and it branches; nothing
+   else has to be said.
+
+   AND IT IS SWITCHED, because it costs geometry and the brief is plain that
+   beauty which halves the frame rate is not beauty. See AUDIT for what it
+   measured at.
+   ============================================================ */
+/* the forms a bough is TRUE of, and that are wired for one. The dark oak,
+   the gum and the jungle giant are hardwoods too and are not here yet: each
+   builds its own crown for its own reason and wants its own hand. Saying so
+   here is cheaper than a list that claims more than it does. */
+const BOUGHED={broad:1, round:1, blossom:1};
+let BOUGHS=true;
+/* THE ENVELOPE DOES NOT GROW. This is the one number that matters and the
+   first cut got it wrong: the boughs reached out on their own scale and hung
+   a full-sized cluster on each tip, so a crown that had been 1.9 blocks
+   across became nearly 3, every tree in the wood overlapped its neighbours,
+   and a stand of oak read as ONE GREEN SLAB — worse than the blob it
+   replaced. The reach and the leaf are struck off the crown radius the form
+   already had, so a branched tree occupies the same room an unbranched one
+   did. What changes is its SHAPE, which was the point. */
+function boughsOn(kit,K,x,z,yB,tw,rad,ix,iz,out){
+  const {emitBox,hash,M}=kit;
+  const n=3+(hash(ix*0.41+3.7,iz*0.53-2.9)>0.52?1:0);
+  const a0=hash(ix*0.77-1.1,iz*0.29+4.3)*6.283;
+  for(let i=0;i<n;i++){
+    /* evenly round, then knocked off true — a tree with its boughs at exact
+       thirds is as regular as no boughs at all */
+    const a=a0+i*(6.283/n)+(hash(ix+i*5.1,iz-i*3.3)-0.5)*0.85;
+    const ca=Math.cos(a), sa=Math.sin(a);
+    let px=x, pz=z, py=yB, r=tw*0.58;
+    const reach=rad*(0.19+0.15*hash(ix*2.1+i*1.7,iz*1.7-i*2.3));
+    const rise =rad*(0.15+0.19*hash(ix*1.3-i*3.1,iz*2.7+i*1.1));
+    for(let k=0;k<2;k++){
+      const nx=px+ca*reach, nz=pz+sa*reach, ny=py+rise*(k?0.60:1);
+      emitBox(kit.G, Math.min(px,nx)-r, py-r*0.5, Math.min(pz,nz)-r,
+                     Math.max(px,nx)+r, ny+r*0.5, Math.max(pz,nz)+r,
+              M.bark,M.bark,M.bark, K._bole);
+      px=nx; pz=nz; py=ny; r*=0.58;
+    }
+    out.push({x:px, z:pz, y:py});
+  }
+}
+/* and the leaf, hung on the ends of them — small enough that the tips and
+   the heart together come to about the crown the form always had */
+function leafOnBoughs(kit,K,tips,rad,lm,LF){
+  const {emitBox}=kit;
+  const s=rad*0.42;
+  for(const t of tips)
+    emitBox(kit.G, t.x-s,t.y-s*0.66,t.z-s, t.x+s,t.y+s*0.74,t.z+s, lm,lm,lm, LF);
+}
+
 function emitTree(kit,K,ix,iz,cc){
   const {emitBox,hash,M}=kit;
   const x=(ix+0.5)*B, z=(iz+0.5)*B, yT=cc.h*B;
@@ -227,7 +325,10 @@ function emitTree(kit,K,ix,iz,cc){
   const q=hash(ix*0.73+11.3,iz*0.91-5.7);
   const S=(0.62+Math.pow(q,0.55)*1.25+(hash(ix*3.1,iz*2.3)>0.965?0.85:0))*K.h;
   const W=S*K.w;
-  const LF=K._leaf, lm=M.leaf;
+  const LF=K._leaf;
+  /* the evergreen's leaf is the same leaf, drawn with the material that is
+     never given the season — see js/engine.js */
+  const lm=(EVER&&K._ever&&M.ever)?M.ever:M.leaf;
   const F=K.form;
 
   if(F==='conifer'){
@@ -448,6 +549,16 @@ function emitTree(kit,K,ix,iz,cc){
     const H=B*3.4*S*(F==='blossom'?0.9:1), tw=B*(0.28+0.2*S);
     bole(kit,K,x,z,yT,H,tw);
     const r=B*1.9*W;
+    if(BOUGHS&&BOUGHED[F]){
+      /* the dome is broken open: a smaller heart, and the rest of the leaf
+         carried out on the boughs, so the crown sits where the wood is */
+      const tips=[];
+      boughsOn(kit,K,x,z,yT+H-B*0.30*W,tw,r,ix,iz,tips);
+      emitBox(kit.G, x-r*0.55,yT+H-B*0.40*W,z-r*0.55, x+r*0.55,yT+H+B*0.58*W,z+r*0.55, lm,lm,lm, LF);
+      leafOnBoughs(kit,K,tips,r,lm,LF);
+      fruitOn(kit,K,x,z,yT+H-B*0.5*W,yT+H+B*0.6*W,r*0.9,S);
+      return;
+    }
     emitBox(kit.G, x-r,yT+H-B*0.5*W,z-r, x+r,yT+H+B*0.5*W,z+r, lm,lm,lm, LF);
     emitBox(kit.G, x-r*0.6,yT+H+B*0.5*W,z-r*0.6, x+r*0.6,yT+H+B*1.15*W,z+r*0.6, lm,lm,lm, LF);
     fruitOn(kit,K,x,z,yT+H-B*0.5*W,yT+H+B*0.6*W,r*0.85,S);
@@ -457,6 +568,17 @@ function emitTree(kit,K,ix,iz,cc){
      the shoulder. This is the default, and most of the world's wood is it. */
   const H=B*3.6*S, tw=B*(0.30+0.20*S);
   bole(kit,K,x,z,yT,H,tw);
+  if(BOUGHS&&BOUGHED[F]){
+    /* THE OAK, BRANCHED. The three stacked tiers went with the boughs: they
+       were what a crown looks like when there is nothing to hang it on. */
+    const cr=B*1.45*W;                  /* the room the three old tiers filled */
+    const tips=[];
+    boughsOn(kit,K,x,z,yT+H-B*0.95*W,tw,cr,ix,iz,tips);
+    emitBox(kit.G, x-cr*0.56,yT+H-B*1.05*W,z-cr*0.56, x+cr*0.56,yT+H+B*0.45*W,z+cr*0.56, lm,lm,lm, LF);
+    leafOnBoughs(kit,K,tips,cr,lm,LF);
+    fruitOn(kit,K,x,z,yT+H-B*1.0*W,yT+H+B*0.5*W,B*1.35*W,S);
+    return;
+  }
   emitBox(kit.G, x-B*1.05*W,yT+H-B*1.5*W,z-B*1.05*W, x+B*1.05*W,yT+H-B*0.8*W,z+B*1.05*W, lm,lm,lm, LF);
   emitBox(kit.G, x-B*1.55*W,yT+H-B*0.9*W,z-B*1.55*W, x+B*1.55*W,yT+H+B*0.35*W,z+B*1.55*W, lm,lm,lm, LF);
   emitBox(kit.G, x-B*0.8*W, yT+H+B*0.35*W,z-B*0.8*W,  x+B*0.8*W, yT+H+B*1.25*W,z+B*0.8*W,  lm,lm,lm, LF);
@@ -547,7 +669,7 @@ function emitSapling(kit,K,ix,iz,cc){
   const x=(ix+0.5)*B, z=(iz+0.5)*B, yT=cc.h*B;
   const s=hash(ix*1.7+5.5,iz*2.3-9.9);
   const H=B*(0.5+0.75*s);                       /* knee to waist */
-  const LF=K._leaf, lm=M.leaf, F=K.form;
+  const LF=K._leaf, lm=(EVER&&K._ever&&M.ever)?M.ever:M.leaf, F=K.form;
   if(F==='palm'||F==='banana'||F==='fern'){
     /* straight out of the ground — fronds and nothing else */
     const r=B*(0.34+0.24*s);
@@ -610,6 +732,13 @@ function crownY(K,ix,iz,hash){
 window.FLORA={
   load, treeAt, plantAt, saplingAt, emitTree, emitPlant, emitSapling, crownY,
   tintOf, kinds:()=>D.kinds, lands:()=>D.lands,
+  /* whether a species keeps its leaf through the winter, for the suite */
+  everOf:n=>{ const K=D.kinds[n]; return K?!!K._ever:null; },
+  everOn:v=>{ if(v!==undefined) EVER=!!v; return EVER; },
+  /* the boughs, and the switch that sets a branched wood beside the wood it
+     replaced in ONE page — geometry has to be measured, not asserted */
+  boughed:()=>BOUGHED,
+  boughsOn:v=>{ if(v!==undefined) BOUGHS=!!v; return BOUGHS; },
   /* the four grey things everything in the world is drawn with. The engine
      mints them; this file only ever names them. */
   MATERIALS:['leaf','bark','plant','solid'],

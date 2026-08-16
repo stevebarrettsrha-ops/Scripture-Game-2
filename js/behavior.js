@@ -66,6 +66,19 @@
              sharpen the claws stropped, reared up against the bole of a tree
                     — the solitary cats, and no others
              earflap the great ears fanned against the heat (the elephant)
+   flight— HOW CLOSE A THING MAY COME BEFORE IT BREAKS, in world units.
+           §2.3.5 asks for *"species-specific flight distance"*, and every
+           beast on the earth had the SAME one: nine units for a man walking
+           up and eighteen for a hunter, written into js/engine.js. So a hare
+           let a wolf come as near as a bull elephant did, and an elephant
+           bolted from a man at the same nine paces as a chicken.
+
+           It is not written on most rows, and it should not be: a beast's
+           nerve follows its LEGS, and the default is struck off `run`, so a
+           gazelle that runs at 24 breaks at 32 and a hedgehog that runs at 4
+           breaks at 10. What is written down is only where that rule is
+           WRONG — the heavy and the armed, who stand and look at you, and
+           the beasts of the village, who have seen men all their lives.
    gait  — 'hop' for the ones that bound instead of walk.
    climb — HOW BIG A STEP IT CAN TAKE, in blocks. Every beast on the earth
            used to take the same one — a block and two-thirds — so an
@@ -92,42 +105,42 @@
 const D={
 /* ================= THE BEASTS OF THE FIELD ================= */
 /* ---- cattle, flocks and the beasts of the household ---- */
-cow:         {day:'day', walk:5,  run:13, home:'open', acts:[['graze',5],['drink',1],['groom',1]], climb:0.9},
+cow:         {flight:9, day:'day', walk:5,  run:13, home:'open', acts:[['graze',5],['drink',1],['groom',1]], climb:0.9},
 ox:          {day:'day', walk:5,  run:12, home:'open', acts:[['graze',5],['drink',1],['wallow',1]], climb:0.9},
-sheep:       {day:'day', walk:5,  run:14, home:'open', acts:[['graze',6],['drink',1]], climb:1.8},
-goat:        {day:'day', walk:6,  run:15, home:'rock', acts:[['graze',4],['browse',3],['rear',1]], climb:2.6},
-pig:         {day:'day', walk:5,  run:13, home:'open', acts:[['dig',3],['wallow',3],['graze',2]], climb:0.9},
-chicken:     {day:'day', walk:4,  run:9,  home:'open', acts:[['dig',3],['dust',3],['graze',2]], climb:0.8},
-horse:       {day:'day', walk:6,  run:22, home:'open', acts:[['graze',5],['dust',2],['drink',1],['groom',1]], climb:1.2},
-donkey:      {day:'day', walk:5,  run:15, home:'open', acts:[['graze',5],['dust',2],['drink',1]], climb:1.8},
-mule:        {day:'day', walk:5,  run:17, home:'open', acts:[['graze',5],['dust',2],['drink',1],['alert',1]], climb:2.2},
-dog:         {day:'day', walk:6,  run:17, home:'open', acts:[['dig',2],['play',3],['alert',2]], climb:1.4},
-camel:       {day:'day', walk:5,  run:16, home:'open', acts:[['graze',4],['browse',2],['dust',2]], climb:0.9, pace:true},
+sheep:       {flight:9, day:'day', walk:5,  run:14, home:'open', acts:[['graze',6],['drink',1]], climb:1.8},
+goat:        {flight:9, day:'day', walk:6,  run:15, home:'rock', acts:[['graze',4],['browse',3],['rear',1]], climb:2.6},
+pig:         {flight:8, day:'day', walk:5,  run:13, home:'open', acts:[['dig',3],['wallow',3],['graze',2]], climb:0.9},
+chicken:     {flight:6, day:'day', walk:4,  run:9,  home:'open', acts:[['dig',3],['dust',3],['graze',2]], climb:0.8},
+horse:       {flight:10, day:'day', walk:6,  run:22, home:'open', acts:[['graze',5],['dust',2],['drink',1],['groom',1]], climb:1.2},
+donkey:      {flight:9, day:'day', walk:5,  run:15, home:'open', acts:[['graze',5],['dust',2],['drink',1]], climb:1.8},
+mule:        {flight:9, day:'day', walk:5,  run:17, home:'open', acts:[['graze',5],['dust',2],['drink',1],['alert',1]], climb:2.2},
+dog:         {flight:5, day:'day', walk:6,  run:17, home:'open', acts:[['dig',2],['play',3],['alert',2]], climb:1.4},
+camel:       {flight:10, day:'day', walk:5,  run:16, home:'open', acts:[['graze',4],['browse',2],['dust',2]], climb:0.9, pace:true},
 /* ---- the temperate field and wood ---- */
 deer:        {day:'dusk',walk:5,  run:20, home:'open', acts:[['graze',4],['browse',2],['alert',3],['drink',1]], climb:1.5},
-hare:        {day:'dusk',walk:4,  run:20, home:'open', gait:'hop', acts:[['graze',4],['alert',3],['groom',1]], climb:1.6},
+hare:        {flight:34, day:'dusk',walk:4,  run:20, home:'open', gait:'hop', acts:[['graze',4],['alert',3],['groom',1]], climb:1.6},
 boar:        {day:'dusk',walk:5,  run:14, home:'den',  acts:[['dig',4],['wallow',2],['graze',2]], climb:1.2},
 fox:         {day:'night',walk:5, run:17, home:'den',  acts:[['dig',2],['alert',2],['play',1],['groom',1]], climb:1.5},
 badger:      {day:'night',walk:4, run:10, home:'den',  acts:[['dig',5],['graze',1]], climb:1.0},
 hedgehog:    {day:'night',walk:2, run:4,  home:'den',  acts:[['dig',4],['graze',2],['curl',1]], climb:0.6},
 lynx:        {day:'night',walk:5, run:18, see:70, burst:6,  home:'den',  acts:[['alert',3],['groom',2],['sharpen',1]], climb:1.7},
 wolf:        {day:'dusk',walk:6,  run:18, see:95, burst:14, home:'den',  acts:[['alert',2],['play',1],['groom',1]], climb:1.5},
-bison:       {day:'day', walk:5,  run:16, home:'open', acts:[['graze',6],['dust',2],['drink',1]], climb:0.9},
-moose:       {day:'dusk',walk:5,  run:16, home:'open', acts:[['browse',4],['graze',2],['drink',2]], climb:1.0},
+bison:       {flight:15, day:'day', walk:5,  run:16, home:'open', acts:[['graze',6],['dust',2],['drink',1]], climb:0.9},
+moose:       {flight:18, day:'dusk',walk:5,  run:16, home:'open', acts:[['browse',4],['graze',2],['drink',2]], climb:1.0},
 reindeer:    {day:'day', walk:5,  run:17, home:'open', acts:[['graze',5],['dig',2],['alert',1]], climb:1.4},
 chamois:     {day:'day', walk:5,  run:15, home:'rock', acts:[['graze',4],['alert',3]], climb:2.6},
 lizard:      {day:'day', walk:3,  run:8,  home:'rock', acts:[['bask',6],['dig',1]], climb:1.2},
 bear:        {day:'dusk',walk:5,  run:14, home:'den',  acts:[['dig',3],['rear',2],['groom',1]], climb:1.3},
 blackbear:   {day:'dusk',walk:5,  run:14, home:'den',  acts:[['dig',3],['rear',2],['browse',1]], climb:1.3},
 /* ---- the plain of the south ---- */
-elephant:    {day:'all', walk:5,  run:14, home:'open', acts:[['browse',3],['graze',3],['wallow',2],['dust',2],['drink',2],['earflap',2]], climb:0.7},
-giraffe:     {day:'day', walk:5,  run:16, home:'open', acts:[['browse',6],['alert',1],['drink',1]], climb:0.8, pace:true},
+elephant:    {flight:11, day:'all', walk:5,  run:14, home:'open', acts:[['browse',3],['graze',3],['wallow',2],['dust',2],['drink',2],['earflap',2]], climb:0.7},
+giraffe:     {flight:22, day:'day', walk:5,  run:16, home:'open', acts:[['browse',6],['alert',1],['drink',1]], climb:0.8, pace:true},
 zebra:       {day:'day', walk:5,  run:18, home:'open', acts:[['graze',5],['dust',2],['alert',2],['drink',1]], climb:1.2},
 wildebeest:  {day:'day', walk:5,  run:18, home:'open', acts:[['graze',6],['alert',2],['drink',1]], climb:1.2},
 gazelle:     {day:'day', walk:5,  run:24, home:'open', acts:[['graze',4],['alert',4],['drink',1]], climb:1.6},
 oryx:        {day:'day', walk:5,  run:17, home:'open', acts:[['graze',5],['alert',2]], climb:1.3},
-buffalo:     {day:'day', walk:5,  run:16, home:'open', acts:[['graze',5],['wallow',3],['drink',1]], climb:0.8},
-rhino:       {day:'dusk',walk:4,  run:15, home:'open', acts:[['graze',4],['wallow',3],['dust',1]], climb:0.6},
+buffalo:     {flight:15, day:'day', walk:5,  run:16, home:'open', acts:[['graze',5],['wallow',3],['drink',1]], climb:0.8},
+rhino:       {flight:12, day:'dusk',walk:4,  run:15, home:'open', acts:[['graze',4],['wallow',3],['dust',1]], climb:0.6},
 warthog:     {day:'day', walk:5,  run:14, home:'burrow', acts:[['dig',3],['graze',3],['wallow',2]], climb:0.9},
 ostrich:     {day:'day', walk:6,  run:22, home:'open', acts:[['graze',3],['alert',3],['dust',2]], climb:1.0},
 lion:        {day:'all', walk:5,  run:21, see:95, burst:7,  home:'open', acts:[['groom',2],['alert',2]], climb:1.5},
@@ -136,8 +149,8 @@ leopard:     {day:'night',walk:5, run:19, see:80, burst:6,  home:'tree', acts:[[
 hyena:       {day:'night',walk:5, run:17, see:90, burst:12, home:'den',  acts:[['alert',2],['dig',1]], climb:1.4},
 jackal:      {day:'dusk',walk:5,  run:16, see:70, burst:9,  home:'den',  acts:[['alert',2],['dig',1]], climb:1.5},
 baboon:      {day:'day', walk:5,  run:14, home:'rock', acts:[['dig',2],['groom',4],['alert',2],['play',2]], climb:2.3},
-meerkat:     {day:'day', walk:4,  run:10, home:'burrow', acts:[['rear',5],['dig',3],['play',1]], climb:1.6},
-hippo:       {day:'night',walk:4, run:13, home:'water', acts:[['wallow',4],['graze',3],['drink',1],['gape',2]], climb:0.5},
+meerkat:     {flight:26, day:'day', walk:4,  run:10, home:'burrow', acts:[['rear',5],['dig',3],['play',1]], climb:1.6},
+hippo:       {flight:13, day:'night',walk:4, run:13, home:'water', acts:[['wallow',4],['graze',3],['drink',1],['gape',2]], climb:0.5},
 crocodile:   {day:'all', walk:2,  run:16, see:24, burst:3,  home:'water', acts:[['bask',6],['gape',3]], climb:0.5},
 /* ---- the forests of the tropics ---- */
 gorilla:     {day:'day', walk:4,  run:11, home:'den',  acts:[['graze',3],['groom',3],['rear',2],['browse',1]], climb:1.2},
@@ -160,15 +173,15 @@ tiger:       {day:'night',walk:5, run:20, see:90, burst:7, home:'den',  acts:[['
 panda:       {day:'all', walk:3,  run:9,  home:'den',  acts:[['graze',6],['rear',1],['play',1]], climb:1.1},
 redpanda:    {day:'dusk',walk:3,  run:8,  home:'tree', acts:[['browse',4],['groom',2]], climb:1.5},
 snowleopard: {day:'dusk',walk:5,  run:19, see:85, burst:6, home:'rock', acts:[['alert',3],['groom',2],['sharpen',1]], climb:2.4},
-yak:         {day:'day', walk:4,  run:13, home:'open', acts:[['graze',6],['dust',1]], climb:2.2},
+yak:         {flight:14, day:'day', walk:4,  run:13, home:'open', acts:[['graze',6],['dust',1]], climb:2.2},
 saiga:       {day:'day', walk:5,  run:19, home:'open', acts:[['graze',5],['alert',2]], climb:1.4},
 waterbuffalo:{day:'day', walk:4,  run:14, home:'water', acts:[['graze',4],['wallow',4],['drink',1]], climb:0.8},
 /* ---- the new world ---- */
 cougar:      {day:'dusk',walk:5,  run:20, see:85, burst:6, home:'rock', acts:[['alert',3],['groom',2],['sharpen',1]], climb:1.7},
 coyote:      {day:'dusk',walk:5,  run:17, see:80, burst:10, home:'den', acts:[['alert',2],['dig',1]], climb:1.5},
 pronghorn:   {day:'day', walk:5,  run:26, home:'open', acts:[['graze',5],['alert',3]], climb:1.5},
-llama:       {day:'day', walk:5,  run:14, home:'open', acts:[['graze',5],['alert',2],['dust',1]], climb:1.9, pace:true},
-alpaca:      {day:'day', walk:4,  run:12, home:'open', acts:[['graze',6],['dust',1]], climb:1.8, pace:true},
+llama:       {flight:10, day:'day', walk:5,  run:14, home:'open', acts:[['graze',5],['alert',2],['dust',1]], climb:1.9, pace:true},
+alpaca:      {flight:10, day:'day', walk:4,  run:12, home:'open', acts:[['graze',6],['dust',1]], climb:1.8, pace:true},
 raccoon:     {day:'night',walk:4, run:11, home:'tree', acts:[['dig',4],['groom',2],['play',1]], climb:1.5},
 skunk:       {day:'night',walk:3, run:8,  home:'den',  acts:[['dig',5]], climb:0.9},
 /* ---- the great south land ---- */
@@ -181,9 +194,9 @@ cassowary:   {day:'day', walk:4,  run:18, home:'open', acts:[['graze',3],['alert
 kiwi:        {day:'night',walk:3, run:7,  home:'burrow', acts:[['dig',6]], climb:0.7},
 tasdevil:    {day:'night',walk:4, run:11, home:'den',  acts:[['dig',3],['alert',2]], climb:1.0},
 /* ---- the cold and the ice ---- */
-polarbear:   {day:'all', walk:5,  run:16, see:90, burst:8, home:'ice',  acts:[['alert',3],['dig',1],['groom',1]], climb:1.3},
+polarbear:   {flight:14, day:'all', walk:5,  run:16, see:90, burst:8, home:'ice',  acts:[['alert',3],['dig',1],['groom',1]], climb:1.3},
 arcticfox:   {day:'all', walk:5,  run:15, home:'den',  acts:[['dig',3],['alert',3],['play',1]], climb:1.5},
-muskox:      {day:'day', walk:4,  run:13, home:'open', acts:[['graze',5],['dig',2],['alert',1]], climb:1.3},
+muskox:      {flight:14, day:'day', walk:4,  run:13, home:'open', acts:[['graze',5],['dig',2],['alert',1]], climb:1.3},
 penguin:     {day:'day', walk:2,  run:5,  home:'ice',  acts:[['alert',3],['groom',3],['play',1]], climb:0.5},
 mammoth:     {day:'all', walk:4,  run:12, home:'open', acts:[['graze',4],['dig',2],['dust',1]], climb:0.7},
 arcticwolf:  {day:'all', walk:6,  run:18, see:95, burst:14, home:'den', acts:[['alert',2],['play',1]], climb:1.5},
@@ -198,7 +211,7 @@ addax:       {day:'dusk',walk:4,  run:16, home:'open', acts:[['graze',5],['dig',
 blackbuck:   {day:'day', walk:5,  run:22, home:'open', acts:[['graze',5],['alert',3]], climb:1.6},
 caracal:     {day:'night',walk:5, run:20, see:75, burst:5, home:'den', acts:[['alert',3],['groom',2],['sharpen',1]], climb:1.7},
 bustard:     {day:'day', walk:4,  run:12, home:'open', acts:[['graze',3],['alert',3],['dust',1]], climb:0.9},
-jerboa:      {day:'night',walk:3, run:12, home:'burrow', gait:'hop', acts:[['dig',4],['graze',2]], climb:1.2},
+jerboa:      {flight:22, day:'night',walk:3, run:12, home:'burrow', gait:'hop', acts:[['dig',4],['graze',2]], climb:1.2},
 viper:       {day:'night',walk:1, run:5,  home:'rock', acts:[['bask',5]], climb:0.5},
 scorpion:    {day:'night',walk:2, run:5,  home:'rock', acts:[['dig',3],['alert',2]], climb:0.5},
 /* ---- the running water ---- */
@@ -320,7 +333,7 @@ riverdolphin: {day:'day',  swim:5, fast:11, deep:'river',   school:false, air:tr
 narwhal:      {day:'all',  swim:5, fast:12, deep:'ice',     school:true,  air:true,  home:'ice',  acts:[['sound',3],['surface',3],['tusk',1]]},
 beluga:       {day:'all',  swim:5, fast:12, deep:'ice',     school:true,  air:true,  home:'ice',  acts:[['surface',3],['sound',2],['song',2]]},
 seal:         {day:'day',  swim:7, fast:16, deep:'shelf',   school:false, air:true,  home:'ice',  acts:[['surface',3],['logging',3],['hunt',2],['bask',1]]},
-walrus:       {day:'day',  swim:4, fast:9,  deep:'shelf',   school:true,  air:true,  home:'ice',  acts:[['surface',3],['bottom',3],['logging',2]]},
+walrus:       {flight:10, day:'day',  swim:4, fast:9,  deep:'shelf',   school:true,  air:true,  home:'ice',  acts:[['surface',3],['bottom',3],['logging',2]]},
 manatee:      {day:'day',  swim:3, fast:7,  deep:'shelf',   school:false, air:true,  home:'weed', acts:[['graze',5],['surface',3],['logging',2]]},
 turtle:       {day:'day',  swim:4, fast:10, deep:'reef',    school:false, air:true,  home:'reef', acts:[['graze',3],['surface',3],['clean',1],['logging',1]]},
 /* ---- the hunters and the great fish of the open water ---- */
@@ -480,6 +493,12 @@ window.BEHAVIOR={
      elephant's kerb. Anything unnamed steps a plain block. */
   climbOf:name=>{ const b=D[name]; return (b&&b.climb)||1.0; },
   seeOf:(name,fb)=>{ const b=D[name]; return (b&&b.see)||fb; },
+  /* HOW CLOSE A THING MAY COME BEFORE IT BREAKS. Written on a row only where
+     the rule below is wrong; everywhere else a beast's nerve follows its legs. */
+  flightOf:name=>{ const b=D[name];
+    if(b&&b.flight!==undefined) return b.flight;
+    const run=(b&&b.run)||12;
+    return Math.max(7,Math.min(38,6+run*1.1)); },
   burstOf:(name,fb)=>{ const b=D[name]; return (b&&b.burst)||fb; },
   /* draw one piece of the day's small business, by weight */
   drawAct:(name,r)=>{ const b=D[name]; if(!b||!b.acts||!b.acts.length) return null;

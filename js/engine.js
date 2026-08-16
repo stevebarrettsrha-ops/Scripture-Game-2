@@ -311,6 +311,136 @@ TEX.bitumen    = mkTex(g=>{ speckle(g,PB.bitumen.b,10,PB.bitumen.a,0.35);
   g.fillStyle='rgba(120,132,140,0.16)';
   for(let k=0;k<7;k++){ const x=hash2(k,3.1)*16, y=hash2(k,7.7)*16;
     g.fillRect(x,y,2+hash2(k,1.3)*3,FG); } },16,16,RIM);
+/* ---- THE ORE IN THE ROCK ----
+   The country's own stone with the metal SHOWING IN IT. The body is the very
+   limestone the deep rock is drawn with, so an ore face and a stone face are
+   plainly the same rock; over it lie a handful of grains of metal, each with
+   its own shadow under it, so the vein has depth at thirty-two texels rather
+   than reading as a coloured cube with dots on. Struck once, at load, by the
+   same `mkTex` machinery as everything else in this world. */
+function oreTex(rec,grains,size){
+  return mkTex(g=>{
+    speckle(g,rec.b,14,rec.a,0.28);
+    for(let k=0;k<grains;k++){
+      const x=Math.floor(hash2(k*1.7,3.1)*(16-size)), y=Math.floor(hash2(k*2.3,5.9)*(16-size));
+      const w=size*(0.6+hash2(k,7.7)*0.8), h=size*(0.6+hash2(k,9.1)*0.8);
+      /* the shadow first, a true pixel down and to the right, then the metal */
+      g.fillStyle=C(rec.s); g.fillRect(x+FG,y+FG,w,h);
+      g.fillStyle=C(rec.m); g.fillRect(x,y,w,h);
+      /* one bright facet on the largest grains, where the light catches */
+      if(hash2(k,4.4)>0.55){ g.fillStyle=C(PAL.lift(rec.m,0.30)); g.fillRect(x,y,FG*2,FG*2); }
+    }
+  },16,16,RIM);
+}
+TEX.goldOre    = oreTex(PB.goldOre,   7, 2.1);
+TEX.silverOre  = oreTex(PB.silverOre, 8, 1.8);
+TEX.copperOre  = oreTex(PB.copperOre, 9, 1.9);
+TEX.ironOre    = oreTex(PB.ironOre,  10, 1.6);
+/* alabaster: a pale, warm, banded stone — the Egyptian vessel-stone */
+TEX.alabaster  = mkTex(g=>{ speckle(g,PB.alabaster.b,10,PB.alabaster.a,0.24);
+  for(let k=0;k<4;k++){ const y0=2+hash2(k,6.1)*12;
+    for(let x=0;x<16;x+=FG){ const y=y0+Math.sin(x*0.45+k*1.7)*0.9;
+      g.fillStyle=C(PB.alabaster.vein); g.fillRect(x,Math.round(y/FG)*FG,FG,FG); } } },16,16,RIM);
+/* flint: dark, glassy, and it breaks in shells */
+TEX.flint      = mkTex(g=>{ speckle(g,PB.flint.b,18,PB.flint.a,0.34);
+  for(let k=0;k<9;k++){ const cx=hash2(k,1.9)*16, cy=hash2(k,8.3)*16, r=1.2+hash2(k,3.3)*1.6;
+    g.strokeStyle=C(PB.flint.glint); g.lineWidth=FG;
+    g.beginPath(); g.arc(cx,cy,r,0.6,2.6); g.stroke(); } },16,16,RIM);
+/* ---- THE MADE THINGS (§11 step 9, the named works) ----
+   Each must read as something a HAND did to the living rock, set beside the
+   rock itself: squared where the rock is bedded, sooted where it is clean. */
+/* hewn stone: a dressed face, with the draft-lines of the chisel across it */
+TEX.hewnStone  = mkTex(g=>{ speckle(g,PB.hewnStone.b,9,PB.hewnStone.a,0.20);
+  /* the drafted margin — a squared edge all round, which is the whole tell */
+  g.fillStyle=C(PB.hewnStone.edge);
+  g.fillRect(0,0,16,FG); g.fillRect(0,16-FG,16,FG);
+  g.fillStyle=C(PB.hewnStone.a);
+  g.fillRect(0,0,FG,16); g.fillRect(16-FG,0,FG,16);
+  /* and the tool marks, raked at one angle as a mason works */
+  g.fillStyle=C(PB.hewnStone.tool);
+  for(let k=0;k<9;k++){ const y=2+k*1.5;
+    for(let x=1;x<15;x+=2) g.fillRect(x+((k&1)?FG:0),Math.round(y/FG)*FG,FG,FG); } },16,16,RIM);
+/* the altar: unhewn, so the stones are ROUND and the joints are wide */
+TEX.altar      = mkTex(g=>{ speckle(g,PB.altar.b,11,PB.altar.a,0.26);
+  g.strokeStyle=C(PB.altar.joint); g.lineWidth=FG*1.4;
+  /* five field stones, none of them square, none of them alike */
+  const S=[[4,4,3.2],[11,4,2.6],[4,11,2.6],[11,11,3.0],[8,8,2.2]];
+  for(const q of S){ g.beginPath(); g.arc(q[0],q[1],q[2],0,6.2832); g.stroke(); } },16,16,RIM);
+/* the kiln: sooted stone, ash at the foot, and the mouth of it burning */
+TEX.kilnSide   = mkTex(g=>{ speckle(g,PB.kiln.b,13,PB.kiln.a,0.34);
+  g.fillStyle=C(PB.kiln.ash); for(let x=0;x<16;x+=FG)
+    if(hash2(x,3.1)>0.4) g.fillRect(x,16-FG*2,FG,FG*2);
+  /* the fire-mouth, an arch low in the face */
+  g.fillStyle=C(PB.kiln.a); g.fillRect(5,8,6,7);
+  g.fillStyle=C(PB.kiln.mouth); g.fillRect(6,10,4,5);
+  g.fillStyle=C(PAL.lift(PB.kiln.mouth,0.35)); g.fillRect(7,12,2,3); },16,16,RIM);
+TEX.kilnTop    = mkTex(g=>{ speckle(g,PB.kiln.a,13,PB.kiln.b,0.30);
+  /* the flue, open, with the fire showing far down it */
+  g.fillStyle=C(PB.kiln.mouth); g.fillRect(6,6,4,4);
+  g.fillStyle=C(PAL.lift(PB.kiln.mouth,0.4)); g.fillRect(7,7,2,2); },16,16,RIM);
+/* ---- AND THE TOOLS ----
+   Drawn as the THING, not as a cube of stuff: a haft up the middle and the
+   stone lashed across the head of it, so a token on the belt reads at a
+   glance as a pick and not as a grey square. */
+function toolTex(head){
+  return mkTex(g=>{
+    g.clearRect(0,0,16,16);
+    /* the haft, and its shadow down one side */
+    g.fillStyle=C(PB.toolHaft.a); g.fillRect(8,4,2,11);
+    g.fillStyle=C(PB.toolHaft.b); g.fillRect(7,4,2,11);
+    head(g);
+    /* the cord that lashes the stone to the wood */
+    g.fillStyle=C(PB.toolStone.cord); g.fillRect(6,5,4,FG*2);
+  },16,16,RIM);
+}
+const _hd=(g)=>{ g.fillStyle=C(PB.toolStone.a); return g; };
+TEX.flintPick  = toolTex(g=>{ _hd(g); g.fillRect(2,2,12,2);
+  g.fillStyle=C(PB.toolStone.b); g.fillRect(2,1,12,2);
+  g.fillStyle=C(PB.toolStone.glint); g.fillRect(3,1,2,FG); g.fillRect(12,1,2,FG); });
+TEX.flintAxe   = toolTex(g=>{ _hd(g); g.fillRect(3,2,7,5);
+  g.fillStyle=C(PB.toolStone.b); g.fillRect(3,1,6,5);
+  g.fillStyle=C(PB.toolStone.glint); g.fillRect(3,2,FG,3); });
+TEX.flintSpade = toolTex(g=>{ _hd(g); g.fillRect(5,1,7,6);
+  g.fillStyle=C(PB.toolStone.b); g.fillRect(5,1,6,5);
+  g.fillStyle=C(PB.toolStone.glint); g.fillRect(6,2,2,FG); });
+TEX.flintHoe   = toolTex(g=>{ _hd(g); g.fillRect(2,3,8,3);
+  g.fillStyle=C(PB.toolStone.b); g.fillRect(2,2,7,3);
+  g.fillStyle=C(PB.toolStone.glint); g.fillRect(3,2,2,FG); });
+TEX.flintKnife = mkTex(g=>{ g.clearRect(0,0,16,16);
+  g.fillStyle=C(PB.toolHaft.a); g.fillRect(9,10,4,4);
+  g.fillStyle=C(PB.toolHaft.b); g.fillRect(9,9,4,4);
+  /* the blade, struck in shells, tapering to the point */
+  g.fillStyle=C(PB.toolStone.a);
+  for(let k=0;k<8;k++) g.fillRect(3+k,9-k,2+Math.floor(k/3),2);
+  g.fillStyle=C(PB.toolStone.b);
+  for(let k=0;k<8;k++) g.fillRect(3+k,8-k,2,2);
+  g.fillStyle=C(PB.toolStone.glint); g.fillRect(4,7,FG,FG); g.fillRect(8,3,FG,FG);
+  g.fillStyle=C(PB.toolStone.cord); g.fillRect(8,8,3,FG*2); },16,16,RIM);
+/* ---- THE STONES OF THE BREASTPLATE ----
+   A gem is the country's own rock with the crystal growing OUT of it — never
+   a coloured cube. Faceted, so the light breaks on it: a dark shoulder, the
+   stone itself, and one bright face where it catches. */
+function gemTex(rec){
+  return mkTex(g=>{
+    speckle(g,PB.gemBody.b,12,PB.gemBody.a,0.26);
+    /* five crystals, none of them alike, none of them square to the block */
+    const S=[[4,4,3.0],[11,5,2.4],[5,11,2.6],[12,12,2.2],[8,8,1.8]];
+    for(let k=0;k<S.length;k++){ const q=S[k];
+      const r=q[2]*(0.8+hash2(k,3.7)*0.5);
+      g.fillStyle=C(rec.s);
+      g.fillRect(q[0]-r+FG,q[1]-r+FG,r*2,r*2);       /* the shoulder under it */
+      g.fillStyle=C(rec.m);
+      g.fillRect(q[0]-r,q[1]-r,r*2,r*2);             /* the stone */
+      g.fillStyle=C(rec.g);
+      g.fillRect(q[0]-r,q[1]-r,Math.max(FG,r*0.7),Math.max(FG,r*0.7)); }  /* the glint */
+  },16,16,RIM);
+}
+TEX.sapphire = gemTex(PB.sapphire);
+TEX.jasper   = gemTex(PB.jasper);
+TEX.topaz    = gemTex(PB.topaz);
+TEX.shoham   = gemTex(PB.shoham);
+TEX.emerald  = gemTex(PB.emerald);
+TEX.ruby     = gemTex(PB.ruby);
 TEX.salt       = mkTex(g=>{ speckle(g,PB.salt.b,14,PB.salt.a,0.3);
   /* crystal: hard little facets that catch the light square-on */
   for(let k=0;k<26;k++){ const x=Math.floor(hash2(k,2.7)*32)*FG, y=Math.floor(hash2(k,5.3)*32)*FG;
@@ -335,6 +465,19 @@ function iceMat(name,tex){ const m=new THREE.MeshBasicMaterial({
 blockMat('grassTop',TEX.grassTop); blockMat('grassTopTr',TEX.grassTopTr); blockMat('grassTopTu',TEX.grassTopTu);
 blockMat('grassTopSv',TEX.grassTopSv); blockMat('grassSideSv',TEX.grassSideSv);
 blockMat('grassSide',TEX.grassSide); blockMat('dirt',TEX.dirt); blockMat('path',TEX.path);
+blockMat('sapphire',TEX.sapphire); blockMat('jasper',TEX.jasper);
+blockMat('topaz',TEX.topaz); blockMat('shoham',TEX.shoham);
+blockMat('emerald',TEX.emerald); blockMat('ruby',TEX.ruby);
+blockMat('hewnStone',TEX.hewnStone); blockMat('altar',TEX.altar);
+blockMat('kilnSide',TEX.kilnSide); blockMat('kilnTop',TEX.kilnTop);
+blockMat('flintPick',TEX.flintPick,{transparent:true});
+blockMat('flintAxe',TEX.flintAxe,{transparent:true});
+blockMat('flintSpade',TEX.flintSpade,{transparent:true});
+blockMat('flintHoe',TEX.flintHoe,{transparent:true});
+blockMat('flintKnife',TEX.flintKnife,{transparent:true});
+blockMat('goldOre',TEX.goldOre); blockMat('silverOre',TEX.silverOre);
+blockMat('copperOre',TEX.copperOre); blockMat('ironOre',TEX.ironOre);
+blockMat('alabaster',TEX.alabaster); blockMat('flint',TEX.flint);
 blockMat('sand',TEX.sand); blockMat('stone',TEX.stone); blockMat('cobble',TEX.cobble);
 blockMat('snow',TEX.snow); blockMat('ice',TEX.ice);
 iceMat('iceTop',TEX.snow); iceMat('iceSide',TEX.ice);   /* the wall of ice and the floes */
@@ -378,6 +521,15 @@ TEX.plantW = mkTex(g=>{ g.clearRect(0,0,16,16);
         g.fillRect(x+(y>h2-3?(hash2(k,9.1)>0.5?FG:-FG):0),16-FG-y,FG,FG); } } });
 TEX.solidW = mkTex(g=>speckle(g,[228,228,228],26,[198,198,198],0.35),16,16,RIM);
 blockMat('leafW',TEX.leafW,{alphaTest:0.4}); blockMat('barkW',TEX.barkW);
+/* ---- AND A SECOND LEAF, FOR THE TREES THAT DO NOT TURN ----
+   §2.4.4 asks for autumn colour with *"evergreens unchanged"*, and there
+   was ONE leaf material in the world. The gilding is worked out in the
+   shader from LATITUDE — which is right for the zone and blind to the
+   tree — so every pine, cypress, olive and palm standing in a temperate
+   land went gold in October and brown in January along with the oak beside
+   it. The same texture and the same sway; it simply is not given the
+   season. Which trees take it is data (see js/flora.js). */
+blockMat('everW',TEX.leafW,{alphaTest:0.4});
 blockMat('plantW',TEX.plantW,{alphaTest:0.4}); blockMat('solidW',TEX.solidW);
 blockMat('flowerY',TEX.flowerY,{alphaTest:0.4}); blockMat('crop',TEX.crop,{alphaTest:0.4});
 blockMat('glass',TEX.glass,{transparent:true,depthWrite:false});
@@ -495,7 +647,8 @@ windSway(MAT.flowerR,0.6,true,'snow'); windSway(MAT.flowerY,0.6,true,'snow');
    swings further than the sward, and the thorn crowns ride it */
 windSway(MAT.savgrass,1.5,true,'snow'); windSway(MAT.acacia,0.5,false,'leaf');
 /* and every leaf and every herb on the earth moves with it */
-windSway(MAT.leafW,0.55,false,'leaf'); windSway(MAT.plantW,0.85,true,'snow');
+windSway(MAT.leafW,0.55,false,'leaf'); windSway(MAT.everW,0.55,false,null);
+windSway(MAT.plantW,0.85,true,'snow');
 windSway(MAT.crop,0.5,true);
 /* breaking surf — clumpy foam that washes the shoreline (scrolled + pulsed) */
 TEX.surf = mkTex(g=>{ g.clearRect(0,0,16,16);
@@ -672,7 +825,12 @@ for(let i=0;i<BLOCK_DEFS.length;i++){
     hardness:(d.hardness===undefined?1.5:d.hardness), tool:d.tool||null,
     drops:(d.drops===undefined?d.id:d.drops),
     light:d.light||0, opaque:d.opaque!==false, gravity:!!d.gravity,
-    liquid:!!d.liquid, verse:d.verse||null };
+    liquid:!!d.liquid, verse:d.verse||null,
+    /* what this thing SERVES AS in the hand — 'pick', 'axe' and the rest.
+       No block is a tool; the works of Phase 4 step 9 declare these. */
+    serves:d.serves||null,
+    /* whether it may be SET DOWN at all — a tool may not */
+    place:d.place!==false };
   /* the three faces the mesher asks for, resolved once so it never has to */
   b.mTop=b.tex.top||b.tex.all||'stone';
   b.mSide=b.tex.side||b.tex.all||b.mTop;
@@ -694,6 +852,93 @@ function depthBlockOf(kind){
   if(kind==='badlands') return blockId('clay-band');
   if(kind==='wall'||kind==='floe') return blockId('ice');
   return blockId('stone');
+}
+/* ================= WHAT LIES UNDER EVERY LAND =================
+   Phase 4, step 7. Phase 1 dug the caves; this is what makes them worth
+   walking into.
+
+   THE ENGINE KNOWS NO COUNTRY BY NAME. It knows how to read
+   world/minerals.js: a substance, the lands that hold it, the band of depth
+   it lies in, and how often. Add a land to a line there and that land holds
+   that ore with not a line changed here — the same rule the beasts and the
+   flora keep.
+
+   THE COST IS ONE ARRAY LOOKUP. The lands are resolved to country indices
+   ONCE, at load, into an array indexed by that country's own number; the
+   cell already carries which country it is in, so the question "what ore is
+   under this block" is `MIN_BY_CI[c.ci]` and then a walk of a list that is
+   nearly always empty and never longer than five. It is asked only for
+   blocks BELOW the surface course, which is where an ore can be.
+
+   AND IT IS SEEDED ON THE PLACE. The same shaft always holds the same vein:
+   two men digging the same hill find the same gold, and a man who leaves and
+   comes back finds his working where he left it. */
+const MIN_DEFS=(window.EARTH&&EARTH.mineralList)||[];
+const MIN_BY_CI=[];              /* country number -> [{n,sd,lo,hi,often}] */
+/* ---- A VEIN IS ANCHORED TO THE SUBSTANCE'S NAME, NOT TO ITS NUMBER ----
+   The seed took the BLOCK's number to begin with, and a block's number is
+   only its place in the list in world/manifest.js. So adding a block file, or
+   sorting that list, MOVED EVERY VEIN IN THE WORLD: a man's working would be
+   gone, and a hill he had never touched would hold it, and nothing would say
+   a word. The seed is taken off the substance's own id now — which is a fact
+   about the world, and not about a file. */
+function mineralSeed(id){ let h=2166136261;
+  for(let i=0;i<id.length;i++){ h^=id.charCodeAt(i); h=Math.imul(h,16777619); }
+  return (h>>>0)%89+3; }
+{
+  const byName=Object.create(null);
+  for(let i=0;i<COUNTRIES.length;i++) byName[COUNTRIES[i].n]=i+1;   /* ci is 1-based */
+  const taken=new Set();
+  for(const m of MIN_DEFS){
+    const n=blockId(m.block);
+    if(!n) continue;             /* a substance whose block this build has not got */
+    /* and no two substances may share a seed, or their veins would fall in
+       the very same cells and the shallower would hide the deeper */
+    let sd=mineralSeed(m.id); while(taken.has(sd)) sd=sd%89+3;
+    taken.add(sd);
+    for(const land of (m.lands||[])){
+      const ci=byName[land]; if(!ci) continue;    /* a land the map has not got */
+      (MIN_BY_CI[ci]||(MIN_BY_CI[ci]=[])).push({n,sd,lo:m.lo,hi:m.hi,often:m.often,
+        /* a substance may want a PLACE and not a depth — see world/minerals.js */
+        room:(m.in==='chamber')?(m.room||8):0});
+    }
+  }
+  /* AND THE UNION OF EVERY BAND THE LAND HOLDS, kept on the list itself. The
+     mesher asks it before it goes looking for a seam in a face, so it never
+     walks a course at a depth where nothing of that country can lie — which
+     is nearly the whole of a mountain. */
+  for(const list of MIN_BY_CI){ if(!list) continue;
+    let lo=1e9, hi=0;
+    for(const m of list){ if(m.lo<lo) lo=m.lo; if(m.hi>hi) hi=m.hi; }
+    list.dLo=lo; list.dHi=hi; }
+}
+/* the block of rock at (ix,iy,iz), in a column whose ground stands at c.h */
+/* ---- IS THIS BLOCK IN THE WALL OF A ROOM? ----
+   The floor under a hollow or the roof over one, where the hollow is at least
+   `room` courses tall. It is read straight off the column's own air runs, so
+   it costs nothing and asks no neighbour — a gem in the FLOOR and the CEILING
+   of a chamber is where a man walking in with a light would see one anyway. */
+function inChamberWall(c,iy,room){
+  const sp=c.spans; if(!sp) return false;
+  for(let i=0;i<sp.length;i+=2){
+    if(sp[i+1]-sp[i]<room) continue;                    /* a crawl, not a room */
+    if(iy===sp[i]-1||iy===sp[i+1]) return true;         /* its floor, or its roof */
+  }
+  return false;
+}
+function oreAt(c,ix,iy,iz){
+  const list=MIN_BY_CI[c.ci]; if(!list) return 0;
+  const down=c.h-iy;                       /* courses below the surface */
+  for(let k=0;k<list.length;k++){ const m=list[k];
+    if(down<m.lo||down>m.hi) continue;
+    /* a stone of the breastplate is not in the ground at all: it is in the
+       wall of a hollow, and no amount of digging straight down will find one */
+    if(m.room&&!inChamberWall(c,iy,m.room)) continue;
+    /* seeded on the place, and on the substance, so two ores in one land do
+       not fall in the same cells */
+    if(hash2(ix*1.37+iy*4.11+m.sd*7.3, iz*2.53-iy*1.79+m.sd*3.1)<m.often) return m.n;
+  }
+  return 0;
 }
 
 /* ================= TERRAIN (heightmap voxels) ================= */
@@ -831,6 +1076,7 @@ for(const L of LANDMARKS){ if(L.kind!=='range') continue;
   for(let k=0;k<2;k++){ const a=hash2(sd,k*3.3)*6.283, rr=g.R*(0.22+hash2(k*7.1,sd)*0.34);
     g.holes.push({x:rx+Math.cos(a)*rr, z:rz+Math.sin(a)*rr, R:26}); }
   RANGES.push(g); }
+
 /* ---- THE SECRET FALLS OF THE CARIBBEAN ----
    kind:'falls' — a whole waterfall PLACE, minecraft-fashion: the land
    itself is raised into a cliff head on one side and sunk into a lagoon
@@ -1532,7 +1778,16 @@ function faceNZ(G,mat,z,x0,x1,y0,y1,s,ao){ quad(G,mat, x1,y0,z, x0,y0,z, x0,y1,z
    were stage scenery: walker, flyer and camera all passed straight through
    the Great Pyramid, which is not what a pyramid is for.) */
 let _solidRec=null;
+/* ---- AND EVERY BOX, WITH THE STONE IT IS MADE OF ----
+   `_solidRec` above keeps only the boxes big enough to bar a man's way, and
+   keeps no material. `_boxRec` keeps EVERY box and what it is made of, and is
+   set only by the geometric diff in tools/stampdiff.js — the check that a
+   builder run as blocks fills exactly the space it filled as triangles.
+   It is recorded BEFORE the stamp branch returns, so the same builder can be
+   asked the same question in either mode. */
+let _boxRec=null;
 function emitBox(G, x0,y0,z0, x1,y1,z1, sideMat, topMat, botMat, tint){
+  if(_boxRec) _boxRec.push({x0,y0,z0,x1,y1,z1,mat:sideMat||topMat});
   /* ---- AND WHILE A STAMP IS OPEN, A BOX IS BLOCKS ----
      No triangles are laid at all: the chunk mesher draws what was written,
      and it is the same rock the pick meets. */
@@ -1683,14 +1938,28 @@ const _ecc={h:0,kind:'',tree:0,ci:0,spans:null};
 function editedCell(ix,iz,cc,em){
   let hi=cc.h-1, lo=0;
   for(const y of em.keys()){ if(y>hi) hi=y; if(y<lo) lo=y; }
+  /* ---- WHAT IS TERRAIN HERE, AND WHAT IS NOT ----
+     A cell the overlay names is NOT terrain, whatever stands in it. This
+     asked `blockSolidAt`, which sees BOTH — so every block anybody had set
+     down was counted into the ground column, drawn by `emitColumn` in the
+     GROUND'S material, and then drawn a second time by `emitPlaced` in its
+     own. Two coplanar faces in the same place, and the depth buffer picking
+     between them afresh every frame as the eye moves: that is the flicker,
+     and it is why a plank floor could read as sand.
+     It was almost invisible while a man's edits were a handful of blocks in
+     a hillside. Phase 3 lays sixteen thousand of them in every village, and
+     it became the look of the world.
+     The overlay is drawn ONCE, by `emitPlaced`, which culls its own faces
+     against `blockSolidAt` and so still meets the true ground correctly. */
+  const tS=y=>blockSolidAt(ix,y,iz)&&!em.has(y);
   /* the surface may have moved: a man may break the ground he stands on, or
      pile blocks over his head, and the top of the column follows him */
   let top=cc.h;
-  for(let y=hi;y>=cc.h;y--) if(blockSolidAt(ix,y,iz)){ top=y+1; break; }
-  while(top>0&&!blockSolidAt(ix,top-1,iz)) top--;
+  for(let y=hi;y>=cc.h;y--) if(tS(y)){ top=y+1; break; }
+  while(top>0&&!tS(top-1)) top--;
   const air=[]; let run=-1;
   for(let y=Math.min(lo,0);y<top;y++){
-    if(!blockSolidAt(ix,y,iz)){ if(run<0) run=y; }
+    if(!tS(y)){ if(run<0) run=y; }
     else if(run>=0){ air.push(run,y); run=-1; }
   }
   if(run>=0&&run<top) air.push(run,top);
@@ -1702,26 +1971,92 @@ function editedCell(ix,iz,cc,em){
    material — six faces, every one of them culled against what stands beside
    it. A man's edits are sparse; a cube apiece is the honest price for
    letting him build in whatever he likes. */
+/* ---- AND THE FACES OF WHAT WAS BUILT ARE MERGED ----
+   A cube apiece was the honest price while a man's edits were a handful of
+   blocks in a hillside. Phase 3 lays sixteen thousand of them in a village,
+   and a plain nine-by-nine plank wall was going out as EIGHTY-ONE separate
+   quads where one would do — the same texture, the same shade, the same
+   plane, edge to edge. That is the whole of what Round 28 cost.
+
+   So the faces are not drawn as they are found. They are COLLECTED for the
+   whole chunk, sorted into groups that share a direction, a plane, a
+   material and a shade — anything that differs in any of the four cannot
+   merge and must not — and each group is then covered with the fewest
+   rectangles that will cover it, greedily: run east as far as the row goes,
+   then south as far as whole rows go.
+
+   The texture is not stretched. Every face carries a UV repeat of one per
+   block, so a three-by-two rectangle tiles the texture three by two, and the
+   hewn edge baked into every block face repeats with it — the joints between
+   the blocks are exactly where they were, drawn by the texture rather than
+   by the geometry. Nearest filtering and RepeatWrapping make that exact.
+
+   The shade is quantised before grouping, because two faces the eye cannot
+   tell apart should not be kept apart by the last bits of a float. */
+let _pf=null;                 /* the collector, open only while a chunk builds */
+function placedBegin(){ _pf=new Map(); }
+function placedFace(dir,plane,mat,sh,u,v){
+  if(!mat) return;
+  const k=dir+'|'+plane+'|'+mat+'|'+Math.round(sh*512);
+  let g=_pf.get(k);
+  if(!g){ g={dir,plane,mat,sh,cells:new Set(),u0:1e9,u1:-1e9,v0:1e9,v1:-1e9}; _pf.set(k,g); }
+  g.cells.add(u+','+v);
+  if(u<g.u0)g.u0=u; if(u>g.u1)g.u1=u; if(v<g.v0)g.v0=v; if(v>g.v1)g.v1=v;
+}
+function placedFlush(G){
+  if(!_pf) return;
+  for(const g of _pf.values()){
+    const W=g.u1-g.u0+1, H=g.v1-g.v0+1;
+    const used=new Uint8Array(W*H);
+    const has=(u,v)=>g.cells.has(u+','+v);
+    for(let v=g.v0;v<=g.v1;v++) for(let u=g.u0;u<=g.u1;u++){
+      const idx=(v-g.v0)*W+(u-g.u0);
+      if(used[idx]||!has(u,v)) continue;
+      /* east as far as the row goes */
+      let w=1; while(u+w<=g.u1&&has(u+w,v)&&!used[idx+w]) w++;
+      /* then south, but only by WHOLE rows of that width */
+      let h=1;
+      for(;;){ const vv=v+h; if(vv>g.v1) break;
+        let ok=true;
+        for(let a=0;a<w;a++){ const i2=(vv-g.v0)*W+(u+a-g.u0);
+          if(!has(u+a,vv)||used[i2]){ ok=false; break; } }
+        if(!ok) break; h++; }
+      for(let b2=0;b2<h;b2++) for(let a=0;a<w;a++) used[(v+b2-g.v0)*W+(u+a-g.u0)]=1;
+      const m=g.mat, sh=g.sh, P=g.plane;
+      if(g.dir==='T')       faceTop   (G,m, u*B,v*B,(u+w)*B,(v+h)*B, P, sh);
+      else if(g.dir==='B')  faceBottom(G,m, u*B,v*B,(u+w)*B,(v+h)*B, P, sh);
+      else if(g.dir==='PX') facePX    (G,m, P, u*B,(u+w)*B, v*B,(v+h)*B, sh);
+      else if(g.dir==='NX') faceNX    (G,m, P, u*B,(u+w)*B, v*B,(v+h)*B, sh);
+      else if(g.dir==='PZ') facePZ    (G,m, P, u*B,(u+w)*B, v*B,(v+h)*B, sh);
+      else                  faceNZ    (G,m, P, u*B,(u+w)*B, v*B,(v+h)*B, sh);
+    }
+  }
+  _pf=null;
+}
 function emitPlaced(G,ix,iz,em,surfaceH){
-  const x0=ix*B, x1=x0+B, z0=iz*B, z1=z0+B;
   for(const [y,n] of em){
     if(!n) continue;
     const b=blockOf(n); if(!b) continue;
-    const ya=y*B, yb=ya+B;
     /* under the ground it takes the cave's darkness; above it, the day */
     const lit=(y<surfaceH-1)?(CAVE_DARK+(1-CAVE_DARK)*caveLightAt(ix,iz,y+0.5)):1;
-    if(!blockSolidAt(ix,y+1,iz)) faceTop(G,b.mTop,x0,z0,x1,z1,yb,1.0*lit);
-    if(!blockSolidAt(ix,y-1,iz)) faceBottom(G,b.mBottom,x0,z0,x1,z1,ya,0.5*lit);
-    if(!blockSolidAt(ix+1,y,iz)) facePX(G,b.mSide,x1,z0,z1,ya,yb,0.62*lit);
-    if(!blockSolidAt(ix-1,y,iz)) faceNX(G,b.mSide,x0,z0,z1,ya,yb,0.62*lit);
-    if(!blockSolidAt(ix,y,iz+1)) facePZ(G,b.mSide,z1,x0,x1,ya,yb,0.8*lit);
-    if(!blockSolidAt(ix,y,iz-1)) faceNZ(G,b.mSide,z0,x0,x1,ya,yb,0.8*lit);
+    if(!blockSolidAt(ix,y+1,iz)) placedFace('T', (y+1)*B, b.mTop,    1.0*lit,  ix,iz);
+    if(!blockSolidAt(ix,y-1,iz)) placedFace('B', y*B,     b.mBottom, 0.5*lit,  ix,iz);
+    if(!blockSolidAt(ix+1,y,iz)) placedFace('PX',(ix+1)*B,b.mSide,   0.62*lit, iz,y);
+    if(!blockSolidAt(ix-1,y,iz)) placedFace('NX',ix*B,    b.mSide,   0.62*lit, iz,y);
+    if(!blockSolidAt(ix,y,iz+1)) placedFace('PZ',(iz+1)*B,b.mSide,   0.8*lit,  ix,y);
+    if(!blockSolidAt(ix,y,iz-1)) placedFace('NZ',iz*B,    b.mSide,   0.8*lit,  ix,y);
   }
 }
 function emitColumn(G,ix,iz,cc){
   const x0=ix*B, x1=x0+B, z0=iz*B, z1=z0+B, yT=cc.h*B;
   faceTop(G,topMatFor(cc.kind),x0,z0,x1,z1,yT,1.0,1,aoTop(ix,iz,cc.h));
   const [sTop,sLow]=sideMatsFor(cc.kind);
+  /* ---- WHETHER ANYTHING LIES UNDER THIS COUNTRY AT ALL ----
+     One array read for the whole column, and for nearly the whole earth the
+     answer is no and nothing below costs a thing. */
+  const ores=MIN_BY_CI[cc.ci]||null;
+  /* the stone of a seam, at a course of this column, or 0 */
+  const seamAt=iy=>(ores&&iy>=0&&iy<cc.h-1)?oreAt(cc,ix,iy,iz):0;
   const nb=[[1,0],[-1,0],[0,1],[0,-1]];
   /* ---- THE HOLLOW OF THIS COLUMN, IF IT HAS ONE ----
      The floors and the ceilings first — the underside of every roof and the
@@ -1732,8 +2067,12 @@ function emitColumn(G,ix,iz,cc){
     myLit=litRuns(ix,iz,sp,_lit).slice();
     for(let i=0;i<sp.length;i+=2){
       const lo=sp[i], hi=sp[i+1], f=myLit[i>>1];
-      faceTop(G,sLow,x0,z0,x1,z1,lo*B,1.0*f);           /* the floor of the passage */
-      faceBottom(G,sLow,x0,z0,x1,z1,hi*B,0.5*f);        /* and the roof over it */
+      /* THE FLOOR IS THE TOP OF THE BLOCK BENEATH IT and the roof the underside
+         of the one above, so where either of those is a seam it is the seam a
+         man sees when he walks in with a light. */
+      const nF=seamAt(lo-1), nR=seamAt(hi);
+      faceTop(G,nF?blockOf(nF).mTop:sLow,x0,z0,x1,z1,lo*B,1.0*f);      /* the floor of the passage */
+      faceBottom(G,nR?blockOf(nR).mBottom:sLow,x0,z0,x1,z1,hi*B,0.5*f); /* and the roof over it */
     }
   }
   for(let d=0;d<4;d++){
@@ -1773,6 +2112,30 @@ function emitColumn(G,ix,iz,cc){
         facePZ(G,mat,z1,x0,x1,ya,yb,sh,_aoS); }
       else { _aoS[0]=aFar*fa; _aoS[1]=aNear*fa; _aoS[2]=aNear*fb; _aoS[3]=aFar*fb;
         faceNZ(G,mat,z0,x0,x1,ya,yb,sh,_aoS); } };
+    /* ---- AND WHERE A SEAM CROSSES THE FACE ----
+       A flank is one unbroken band of the country's own rock unless an ore
+       lies in it. Where one does, the band is CUT at that course and the ore's
+       own face drawn in the gap — so a seam is SEEN, in a cliff and in the
+       wall of a cave, and is not merely found by breaking. Without this the
+       whole of step 7 is a fact about the save file and nothing a man could
+       ever look at.
+       It walks only the courses that lie within the depths that country's own
+       substances lie at, which is at most some sixty and is usually none. */
+    const putB=(mat,ya,yb,sh)=>{
+      if(!ores||yb<=ya){ put(mat,ya,yb,sh); return; }
+      const c0=Math.max(Math.floor(ya/B), cc.h-ores.dHi);
+      const c1=Math.min(Math.ceil(yb/B),  cc.h-ores.dLo+1, cc.h-1);
+      if(c1<=c0){ put(mat,ya,yb,sh); return; }
+      let y=ya;
+      for(let iy=c0;iy<c1;iy++){
+        const n=oreAt(cc,ix,iy,iz); if(!n) continue;
+        const a2=Math.max(ya,iy*B), b2=Math.min(yb,(iy+1)*B); if(b2<=a2) continue;
+        if(a2>y) put(mat,y,a2,sh);
+        put(blockOf(n).mSide,a2,b2,sh);
+        y=b2;
+      }
+      if(yb>y) put(mat,y,yb,sh);
+    };
     const sh=(d<2)?0.62:0.8;
     /* the sea beside: the flank keeps going below the waterline, all the
        way down to the bed — a stone standing in the glass, not upon it */
@@ -1784,8 +2147,8 @@ function emitColumn(G,ix,iz,cc){
        is one unbroken band from the neighbour's ground to our own, exactly as
        it has always been drawn, and nothing below costs it a thing. */
     if(!hollow){
-      if(split){ put(sLow,base,yMid,sh); put(sTop,yMid,yT,sh); }
-      else put(sTop,base,yT,sh);
+      if(split){ putB(sLow,base,yMid,sh); put(sTop,yMid,yT,sh); }
+      else putB(sTop,base,yT,sh);
       continue;
     }
     /* ---- AND WHERE SOMETHING HAS BEEN HOLLOWED ----
@@ -1822,7 +2185,7 @@ function emitColumn(G,ix,iz,cc){
             :(myLit?litAt(cc.spans,myLit,(y+cut)*0.5)
                    :(nc.spans?litAt(nc.spans,litRuns(ix+nb[d][0],iz+nb[d][1],nc.spans,_lit),(y+cut)*0.5)
                              :CAVE_DARK));
-          put(my1>=cc.h&&cut>=cc.h-1?sTop:sLow, y*B, cut*B, sh*lit);
+          putB(my1>=cc.h&&cut>=cc.h-1?sTop:sLow, y*B, cut*B, sh*lit);
         }
         if(nbv>y) y=nbv;
         if(y>=my1) break;
@@ -1843,7 +2206,7 @@ function emitColumn(G,ix,iz,cc){
    anything about chunks, so the mesher lends them the few things they need
    and takes the geometry back. `G` is swapped in per chunk. */
 const FKIT={ G:null, emitBox, cross, shade, hash:hash2,
-  M:{leaf:'leafW', bark:'barkW', plant:'plantW', solid:'solidW'} };
+  M:{leaf:'leafW', ever:'everW', bark:'barkW', plant:'plantW', solid:'solidW'} };
 let floraReady=false;
 function initFlora(){ if(floraReady) return; floraReady=true;
   if(window.FLORA) FLORA.load((window.EARTH.floraList||[])[0]||null); }
@@ -2074,7 +2437,10 @@ function proceduralSolid(ix,iy,iz){
 function proceduralBlock(ix,iy,iz){
   if(!proceduralSolid(ix,iy,iz)) return 0;
   const c=cell(ix,iz);
-  return (iy>=c.h-1)?surfaceBlockOf(c.kind):depthBlockOf(c.kind);
+  if(iy>=c.h-1) return surfaceBlockOf(c.kind);
+  /* under the surface course, the land may hold something better than stone */
+  const ore=oreAt(c,ix,iy,iz);
+  return ore||depthBlockOf(c.kind);
 }
 /* and what it IS, hand and all — the one truth every test in the game reads */
 function blockAt(ix,iy,iz){
@@ -2107,6 +2473,20 @@ function setBlock(wx,wy,wz,n){
   if(under===n){ if(m){ m.delete(idx); if(!m.size) EDITS.delete(key); } }
   else { if(!m){ m=new Map(); EDITS.set(key,m); } m.set(idx,n); }
   EDIT_TOUCHED=true; EDIT_DIRTY.add(key); EDIT_SAVE.add(key); editsTouch(); editColumnsChanged();
+  /* ---- AND THE WORLD PUTS ITSELF RIGHT (§11 step 8) ----
+     A cell that has just been EMPTIED is the only thing either rule cares
+     about: what stood on it may not stand, and what water lay beside it now
+     has somewhere to go. Nothing is done here — the cell is written down and
+     looked at in the frame, so no edit ever runs a cascade inside itself. */
+  if(!_stampOn){
+    if(n===0) settleWake(ix,iy,iz);
+    /* AND A BANK OF SAND SET DOWN ON NOTHING IS STILL SET DOWN ON NOTHING.
+       The rule is about the block and not about how it came to be there: a
+       hand that lays sand over a hole is answered the same as a hand that
+       digs the hole out from under it. */
+    else { const b2=blockOf(n);
+      if(b2&&b2.gravity&&!blockSolidAt(ix,iy-1,iz)) settleWake(ix,iy-1,iz); }
+  }
   /* a block on a chunk's edge changes what its neighbour must draw */
   if(lx===0) EDIT_DIRTY.add((Math.floor(ix/CH)-1)+','+Math.floor(iz/CH));
   if(lx===CH-1) EDIT_DIRTY.add((Math.floor(ix/CH)+1)+','+Math.floor(iz/CH));
@@ -2145,6 +2525,7 @@ MAT_BLOCK.iceTop=MAT_BLOCK.iceTop||blockId('ice');
 MAT_BLOCK.iceSide=MAT_BLOCK.iceSide||blockId('ice');
 MAT_BLOCK.solidW=MAT_BLOCK.solidW||blockId('stone');
 MAT_BLOCK.barkW=MAT_BLOCK.barkW||blockId('log');
+MAT_BLOCK.everW=MAT_BLOCK.everW||MAT_BLOCK.leafW||blockId('leaves');
 function blockForMat(m){ const n=MAT_BLOCK[m]; return n===undefined?blockId('stone'):n; }
 
 let _stampOn=null;              /* the group being stamped, or null */
@@ -2383,8 +2764,16 @@ async function editsLoad(){
 let _saveT=null;
 function editsTouch(){ if(_saveT) clearTimeout(_saveT);
   _saveT=setTimeout(()=>{ _saveT=null; editsSave(); },900); }
-addEventListener('pagehide',()=>{ if(EDIT_SAVE.size) editsSave(); });
-addEventListener('visibilitychange',()=>{ if(document.hidden&&EDIT_SAVE.size) editsSave(); });
+/* ---- AND NOTHING MAY BE LOST IN THE AIR ----
+   A block on its way down is OUT of the world — lifted out of the overlay by
+   `fallCheck` and not yet set down again. Close the page in that second and
+   it is gone, and a rule whose whole claim is that nothing is made and
+   nothing is lost would be quietly untrue once in every hundred landslips.
+   So before the world is written down, whatever is still falling is set
+   down where it stands. (Declared below; called only from these two.) */
+addEventListener('pagehide',()=>{ looseSettleAll(); if(EDIT_SAVE.size) editsSave(); });
+addEventListener('visibilitychange',()=>{ if(document.hidden){ looseSettleAll();
+  if(EDIT_SAVE.size) editsSave(); } });
 
 const chunks=new Map(); const buildQueue=[]; const buildQueued=new Set();
 /* all the streamed land under one root, so it can be taken out of the view
@@ -2398,6 +2787,7 @@ function buildChunkTimed(cx,cz){ const t0=performance.now();
   buildChunk(cx,cz); BUILD_STATS.ms+=performance.now()-t0; BUILD_STATS.n++; }
 function buildChunk(cx,cz){
   const G=newG();
+  placedBegin();      /* the built faces are gathered for the whole chunk, then merged */
   /* ---- WHOSE COUNTRY THIS CHUNK IS IN ----
      Every tree and every bush asks what land it grows in, and the answer is
      the same for the whole chunk within a pixel or two of the chart. Asked
@@ -2455,6 +2845,16 @@ function buildChunk(cx,cz){
                      x0+B-0.08,top,z0+B-0.08, mat,mat,null);
         }
       }
+      /* ---- AND WHAT IS BUILT OVER OPEN WATER IS BUILT ----
+         A column with no land in it fell straight through to the next one,
+         so the edit layers were never even asked about it. Anything set down
+         out on the water — the planks of a pier, a block laid from a boat —
+         went into the overlay, answered SOLID to every foot and every test,
+         and was drawn nowhere at all: a man stood on the open sea at the
+         right height, on nothing. The faces of a placed block need no ground
+         under them; only the asking was missing. */
+      { const emW=chunkEdits&&chunkEdits.get(a*CH+b);
+        if(emW) emitPlaced(G,ix,iz,emW,-1e9); }   /* no surface: full daylight */
       continue;
     }
     /* ---- AND WHAT THE HAND HAS DONE HERE ----
@@ -2480,6 +2880,7 @@ function buildChunk(cx,cz){
     if(cc.kind==='grass'&&j>0.994)
       emitBox(G, x-B*0.5,yT,z-B*0.5, x+B*0.5,yT+B,z+B*0.5,'stone','stone',null);
   }
+  placedFlush(G);     /* and go out as the fewest rectangles that cover them */
   const meshes=[];
   for(const mat in G){ const g=G[mat];
     const bg=new THREE.BufferGeometry();
@@ -2536,7 +2937,51 @@ const _chAt=[NaN,NaN];
 /* `view` widens the streamed ring past VIEW for a flyer, whose eye covers
    more ground than a walker's — the reap keeps the same measure, so coming
    down again sheds the extra ring */
+/* ---- THE ARCHES, AND THE WAYS THROUGH A RIDGE — Phase 5 step 2 ----
+   A census of forty thousand columns of range country found ZERO arches: not
+   one air run anywhere laid open on two opposite sides. Nothing in the world
+   was aiming at one, and nothing could — an arch is a NEIGHBOURHOOD fact (is
+   the rock thin on both sides of me?) and `spansAt` is handed one column and
+   its height, which is what keeps it cheap.
+
+   So it is not detected. It is PLACED, exactly as the blue holes are: a
+   short list seeded off each range's own number, and a pure function of
+   position thereafter.
+
+   AND AN ARCH AND A TUNNEL ARE ONE THING. A horizontal bore driven through
+   the rock is a WAY THROUGH where the ridge is thick and an ARCH where it is
+   thin — the same cylinder, and which of the two it reads as is decided by
+   the land it happens to pass through rather than by a flag. That is why
+   §12 lists them as one step.
+
+   The elevation is taken from the GROUND at the mouth, and that is why this
+   is done ONCE AND LATE rather than beside the ranges: `cellRaw` leans on a
+   dozen constants declared below the ranges, so asking it up there is a
+   reference before its own declaration and the world does not boot at all.
+   It is seeded on the first call for chunks instead — after everything is
+   standing, and before a single column has been asked for. An arch adds
+   nothing to the height, so there is no circle in asking. */
+const ARCHES=[];
+let _archesDone=false;
+function seedArches(){
+  if(_archesDone) return; _archesDone=true;
+  for(const g of RANGES){
+  for(let k=0;k<2;k++){
+    const a2=hash2(g.sd+k*11.7, k*5.1)*6.283;
+    const rr=g.R*(0.30+hash2(k*3.7,g.sd+2)*0.40);
+    const ax=g.x+Math.cos(a2)*rr, az=g.z+Math.sin(a2)*rr;
+    const c=cellRaw(Math.floor(ax/B),Math.floor(az/B));
+    if(!c||c.h<14) continue;                 /* nothing to drive a bore through */
+    const R=5+Math.round(hash2(k*9.3,g.sd)*4);          /* the bore, in blocks */
+    ARCHES.push({ x:ax, z:az,
+      /* the bearing it is driven on, and how far it runs */
+      ang:hash2(g.sd*1.7,k*2.9)*6.283, len:70+hash2(k,g.sd*0.7)*110,
+      R, y:Math.max(6,c.h-R-2) });           /* springing just under the crest */
+  } }
+  if(window.CAVES&&CAVES.arches) CAVES.arches(ARCHES);
+}
 function updateChunks(px,pz,budget,view){
+  seedArches();          /* once, and only when the world is standing */
   view=view||VIEW;
   const ccx=Math.floor(px/CHW), ccz=Math.floor(pz/CHW);
   const moved=(ccx!==_chAt[0]||ccz!==_chAt[1]);
@@ -4504,12 +4949,114 @@ function beastSpan(g,axis){
   _bBox.setFromObject(g); _bBox.getSize(_bSize);
   return axis==='x'?_bSize.x : axis==='y'?_bSize.y : _bSize.z;
 }
+/* ================= THE COAT =================
+   §2.3.1 of the brief, and the first thing it names: *"Coats, not flat
+   colours … countershading (dark back, pale belly — near-universal in real
+   animals and almost absent in Minecraft)."*
+
+   THE FAULT. `lbox` gives every limb of every beast ONE flat Lambert colour,
+   and a hundred and fifty-one species were built out of it. A gazelle in
+   full sun and a gazelle under a thundercloud were the same eleven flat
+   patches of fawn; nothing on any animal in this world was lighter
+   underneath than it was on top, which is the one thing that is true of
+   nearly every animal there is.
+
+   WHY IT IS DONE HERE AND NOT IN THE FILES. One hundred and fifty-one files
+   would have to be edited to say what is true of all of them, and the next
+   creature written would forget. `makeBeast` is the one gate every beast in
+   the world comes through, so the beast is built exactly as it always was
+   and then GRADED — over its own height, in its own space, before it is
+   scaled to its true stature.
+
+   HOW IT COSTS NOTHING. It is not a texture and not a second material: it is
+   a colour attribute on the geometry the beast already has, written once at
+   build time, multiplied into the Lambert diffuse by the shader that was
+   already running. No draw call is added. The 24 vertices of a box carry 72
+   floats — a lynx of thirty parts costs some eight kilobytes, once.
+
+   AND THE DARK HALF CARRIES IT. The first cut ramped evenly from the crown
+   to the ground, which put the strongest paling on the HOOVES — the lowest
+   thing on a quadruped is its feet, not its belly, and a gazelle whose feet
+   glowed was worse than one that was flat. Real countershading is mostly
+   *dark above*; the pale underside spends its life in shadow and reads
+   quietly. So the top is taken down hard and the bottom lifted gently, and
+   the two meet at the middle of the animal, which is about where a belly is.
+
+   A SPECIES MAY REFUSE IT. `shade:0` in a creature file turns it off, and
+   any number between scales it — for the thirty-two files that already build
+   a pale belly of their own and might double. The engine still knows no
+   beast by name: it reads a datum, as it reads `metres` and `realm`. */
+/* ---- AND IT IS THE FACE THAT DECIDES, NOT THE HEIGHT ----
+   The first cut graded every vertex by how high it stood on the whole beast.
+   Measured on a gazelle, the BODY — which is the part anybody looks at —
+   spans barely a fifth of the animal's height, so it received a fifth of the
+   range and moved by four parts in a hundred, while the HEAD, standing high,
+   went dark. A gazelle whose head is darker than its back is not
+   countershaded, it is wrong, and it was very nearly shipped because the
+   numbers said 0.72…1.14 and the numbers were about the wrong thing.
+
+   Countershading is not about how high a surface is. It is about WHICH WAY
+   IT FACES: a surface turned up to the sky is pigmented dark, a surface
+   turned down to the ground is pale. So a horizontal face takes its shade
+   from its normal outright, and a vertical face — the flank, which is most
+   of what is seen — grades across ITS OWN height, top to bottom, and gets
+   the whole range for itself. Every box is treated the same way and none of
+   them has to know where on the animal it sits. */
+const COAT_TOP=0.70, COAT_BELLY=1.18;
+/* the A/B switch, so the coat can be set beside the flat colour it
+   replaced in ONE page rather than across two commits — the same way the
+   undercut bedding was measured in Phase 5 */
+let COAT_ON=true;
+const _coatV=new THREE.Vector3(), _coatN=new THREE.Vector3();
+function smooth01(u){ return u*u*(3-2*u); }
+function coatBeast(inner,spec){
+  const s=COAT_ON?((spec&&spec.shade!==undefined)?spec.shade:1):0;
+  if(!(s>0)) return;
+  const top=1-(1-COAT_TOP)*s, belly=1+(COAT_BELLY-1)*s;
+  /* every node's world matrix brought up to date; `inner` has no parent yet,
+     so this IS the beast's own space and up is up */
+  inner.updateWorldMatrix(false,true);
+  inner.traverse(o=>{
+    if(!o.isMesh||!o.geometry) return;
+    const g=o.geometry, p=g.attributes&&g.attributes.position,
+          nA=g.attributes&&g.attributes.normal;
+    /* a file that painted its own vertex colours has said what it wants */
+    if(!p||g.attributes.color) return;
+    /* the box's own height, in the beast's space */
+    let lo=Infinity, hi=-Infinity;
+    for(let i=0;i<p.count;i++){
+      _coatV.fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld);
+      if(_coatV.y<lo) lo=_coatV.y; if(_coatV.y>hi) hi=_coatV.y;
+    }
+    const h=hi-lo;
+    const n=p.count, col=new Float32Array(n*3);
+    for(let i=0;i<n;i++){
+      _coatV.fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld);
+      let ny=0;
+      if(nA){ _coatN.fromBufferAttribute(nA,i).transformDirection(o.matrixWorld); ny=_coatN.y; }
+      let k;
+      if(ny>0.5) k=-1;             /* turned up to the sky — dark */
+      else if(ny<-0.5) k=1;        /* turned down to the ground — pale */
+      else if(h>1e-4){             /* the flank: graded over its own height */
+        let u=(_coatV.y-lo)/h; u=u<0?0:u>1?1:u;
+        k=1-2*smooth01(u);
+      } else k=0;
+      const f=1+(k<0?(1-top)*k:(belly-1)*k);
+      col[i*3]=col[i*3+1]=col[i*3+2]=f;
+    }
+    g.setAttribute('color',new THREE.BufferAttribute(col,3));
+    const ms=Array.isArray(o.material)?o.material:[o.material];
+    for(const m of ms) if(m&&!m.vertexColors){ m.vertexColors=true; m.needsUpdate=true; }
+  });
+}
+
 /* build one beast, grown to its true stature. Extra arguments are passed
    through to the file's build (the fish takes its colour that way). */
 function makeBeast(name,arg){
   const spec=BEAST_BY_NAME[name];
   if(!spec) throw new Error('no creature file for "'+name+'"');
   const inner=spec.build(BEAST_KIT,arg);
+  coatBeast(inner,spec);
   const span=beastSpan(inner,trueAxis(name,spec));
   /* THE BEAST IS WRAPPED, AND THE WRAPPER GROWS IT. The engine sets scale on
      what it is handed (a calf in the pod, a shark rearing) — so the true
@@ -6662,10 +7209,67 @@ function scrollSpotClear(x,z){
     if(Math.hypot(x-w[0],z-w[1])<keep) return false; }
   return true;
 }
+/* ---- WHERE A GREAT SCROLL BELONGS — Phase 7 ----
+   §5: *"With caves in the world, put them where they belong."* Phase 5 built
+   the caves and the summits; this is what they were built for.
+
+   A scroll may name a PLACE instead of taking its country's bearing, and the
+   engine knows no scroll by name — it reads `at` and nothing else:
+
+     at:{ mount:'Mount Sinai' }   the highest ground of that named height
+     at:{ cave:true }             deep in a hollow, under real rock
+
+   THE POINT OF IT IS THE COST. A scroll lying on open grass two hundred paces
+   from a village is a thing a man walks past. The same scroll at the top of a
+   climb, or at the end of a dark passage with a torch in his hand, is a thing
+   he went and GOT — and that is the whole of what §5 means by making the
+   great scrolls cost something. */
+function scrollAtMount(name){
+  for(const L of LANDMARKS){
+    if(L.kind!=='mount'||L.n!==name) continue;
+    const [mx,mz]=llToWorld(L.lat,L.lon);
+    const ix0=Math.floor(mx/B), iz0=Math.floor(mz/B);
+    let best=null;
+    for(let dx=-40;dx<=40;dx++) for(let dz=-40;dz<=40;dz++){
+      const c=cellRaw(ix0+dx,iz0+dz); if(!c||c.kind==='floe') continue;
+      if(!best||c.h>best.h) best={h:c.h,ix:ix0+dx,iz:iz0+dz};
+    }
+    if(best) return {x:(best.ix+0.5)*B, z:(best.iz+0.5)*B};
+  }
+  return null;
+}
+/* the DARKEST hollow near a place — and darkness is the point, not depth.
+   Scored on rock overhead first, this put the Cave of Treasures thirty-three
+   courses under a mountain at a light of 0.85: deep, and standing in a shaft
+   of daylight, because a column can lie far under the rock and still be a few
+   paces from a mouth. §5 asks for a cave that is DARK and wants a torch, so
+   the light is what is scored — `caveLightAt` is the very same field the
+   mesher bakes into the walls, so the search and the eye agree. */
+function scrollInCave(cx,cz,R){
+  const ix0=Math.floor(cx/B), iz0=Math.floor(cz/B), rr=Math.floor(R/B);
+  let best=null;
+  for(let dx=-rr;dx<=rr;dx+=2) for(let dz=-rr;dz<=rr;dz+=2){
+    const ix=ix0+dx, iz=iz0+dz;
+    const c=cellRaw(ix,iz); if(!c||!c.spans) continue;
+    for(let i=0;i<c.spans.length;i+=2){
+      const lo=c.spans[i], hi=c.spans[i+1];
+      if(hi-lo<2) continue;                       /* he must stand up in it */
+      if(c.h-hi<4) continue;                      /* real rock over him, not a lip */
+      const lit=caveLightAt(ix,iz,lo+0.6);        /* what the wall itself will be */
+      if(!best||lit<best.lit)
+        best={lit, over:c.h-hi, x:(ix+0.5)*B, z:(iz+0.5)*B, refY:(lo+0.6)*B};
+    } }
+  return best;
+}
 /* set every scroll down once the country sites are known */
 function placeScrolls(){
   if(_scrollPlaced||!SITES.length) return; _scrollPlaced=true;
   for(const sc of SCROLLS){
+    /* ---- A NAMED PLACE OVERRIDES THE COUNTRY AND ITS BEARING ---- */
+    if(sc.at&&sc.at.mount){
+      const p=scrollAtMount(sc.at.mount);
+      if(p){ sc.x=p.x; sc.z=p.z; sc.m=null; sc.placed='mount'; continue; }
+    }
     let ci=-1;
     for(let i=0;i<COUNTRIES.length;i++) if(COUNTRIES[i].n===sc.country){ ci=i; break; }
     const st=ci>=0?SITES[ci]:null;
@@ -6694,6 +7298,15 @@ function placeScrolls(){
         const c=landAtWorld(tx,tz);
         if(c&&c.kind!=='wall'&&c.kind!=='floe'){ x=tx; z=tz; break; } }
     }
+    /* ---- AND A CAVE SCROLL GOES IN, from the ground its country gave it ---- */
+    if(sc.at&&sc.at.cave){
+      const p=scrollInCave(isNaN(x)?st.x:x, isNaN(z)?st.z:z, 900)
+           || scrollInCave(st.x,st.z,2600);
+      if(p){ sc.x=p.x; sc.z=p.z; sc.refY=p.refY; sc.m=null; sc.placed='cave'; continue; }
+      /* no hollow anywhere near it — it lies on the open ground it would have
+         had anyway, rather than not existing. Said out loud in the probe. */
+      sc.placed='no cave found';
+    }
     sc.x=x; sc.z=z; sc.m=null;
   }
 }
@@ -6706,14 +7319,18 @@ function updateScrolls(px,pz){
       /* if the town has since raised a wall, a stall or a well over the very
          stone (an old save, or a layout the placer could not foresee), the
          scroll steps out along its bearing until it stands in the open */
-      if(!sc._chk){ sc._chk=true;
+      if(!sc._chk&&!sc.placed){ sc._chk=true;      /* a placed scroll is not nudged:
+             the nudge walks it along its bearing, which would walk it out of
+             the very cave it was put in */
         for(let t2=0;t2<24;t2++){
           if(!(blockedByStructureNPC(sc.x,sc.z)||blockedBySolid(sc.x,sc.z,1.0)||treeBlocked(sc.x,sc.z))) break;
           const nx=sc.x+Math.sin(sc.bearing)*12, nz=sc.z+Math.cos(sc.bearing)*12;
           const nc=landAtWorld(nx,nz); if(!nc||nc.kind==='wall'||nc.kind==='floe') break;
           sc.x=nx; sc.z=nz; } }
       sc.m=makeScrollProp(); scene.add(sc.m);
-      sc.y=groundInfo(sc.x,sc.z).y;            /* the true walking surface, pier decks included */
+      /* the true walking surface — and for a scroll laid in a hollow, the
+         floor OF THAT HOLLOW, which is what the reference height is for */
+      sc.y=groundInfo(sc.x,sc.z,sc.refY).y;
       sc.m.position.set(sc.x,sc.y,sc.z); sc.m.rotation.y=hash2(sc.x,sc.z)*6.28; }
     if(sc.m){ sc.m.visible=near;
       if(near&&sc.m.userData.glow)
@@ -6731,6 +7348,17 @@ function takeScroll(sc){
   if(!sc||scrollTaken.has(sc.id)) return;
   scrollTaken.add(sc.id);
   if(sc.m){ scene.remove(sc.m); freeTree(sc.m); sc.m=null; }
+  /* ---- AND THE SHORT SCENE AT THE PLACE IT WAS FOUND (§5, step 2) ----
+     Nineteen seconds of the actual landscape he found it in, holding the
+     scroll's own verse. It is played BEFORE the toast, so the words of the
+     book stand on the screen and the log's line follows after it rather than
+     fighting it. If a scene is already running the taking is not lost — only
+     its film is, which is the right way round. */
+  if(sc.verse&&sc.verse.t&&SCENES['scroll-taken']){
+    const p=playerXZ();
+    playScene('scroll-taken',{ x:p.x, y:(state.walk.feetY!==undefined?state.walk.feetY:WATER_Y),
+      z:p.z, out:state.walk.heading, line:[sc.verse.t, sc.verse.ref] });
+  }
   const left=SCROLLS.filter(x=>!x.gone&&!scrollTaken.has(x.id)).length;
   toast(sc.name+' \u2014 '+sc.words+(left
     ? '  ('+scrollTaken.size+' of '+SCROLLS.filter(x=>!x.gone).length+' scrolls gathered \u2014 the golden needle lies on the next.)'
@@ -7259,13 +7887,55 @@ function hideYoung(a){ if(a.kids) for(const y of a.kids) y.m.visible=false; }
    zebra's dust-bath, the meerkat's watch, the elephant's wallow. The acts
    that want water are only performed where a river truly runs by. Hands
    back true if the beast took something up. */
+/* ================= THE WATCH =================
+   §2.3.5: *"vigilance alternating with grazing (**one head always up**)."*
+
+   THE FAULT. `alert` was one act among a beast's others, drawn by weight
+   whenever it had nothing better to do — so a herd of eight gazelle had
+   nobody watching most of the time and three of them staring at once now and
+   then, which is the one thing a herd never does. Every eye in a herd going
+   down together is how a herd gets eaten, and it is the reason vigilance
+   exists at all.
+
+   THE HERD IS WHATEVER OF ITS OWN KIND STANDS NEAR IT — the same reckoning
+   the cohesion pull uses, so the thing that keeps them together is the thing
+   that keeps the watch. There is at most ONE head up in it, and if a herd of
+   three or more has nobody up, the next beast to finish its meal takes the
+   watch whether it drew that act or not. The watch therefore ROTATES: the
+   one standing gives it up when its turn is done and another takes it, which
+   is what alternating vigilance looks like from outside. */
+const HERD_R=80;                 /* the same radius the herd gathers within */
+function herdWatch(a){
+  let n=0, watcher=null;
+  for(const b of LANDLIFE){
+    if(!b.set||b.dead>0||b.kind!==a.kind) continue;
+    if(Math.hypot(b.x-a.x,b.z-a.z)>HERD_R) continue;
+    n++;
+    if(b!==a&&b.job==='act'&&b.act==='alert') watcher=b;
+  }
+  return {n, watcher};
+}
 function tryAct(a){
   if(!window.BEHAVIOR||Math.random()>0.45) return false;
-  const act=BEHAVIOR.drawAct(a.kind,Math.random());
+  let act=BEHAVIOR.drawAct(a.kind,Math.random());
   if(!act||act==='graze') return false;
   if((act==='drink'||act==='wallow')&&!a.river) return false;
+  if(act==='alert'){
+    /* one head, and one only */
+    if(herdWatch(a).watcher) return false;
+  }
   a.job='act'; a.act=act; a.jt=3+Math.random()*4; a.tx=a.x; a.tz=a.z;
   return true;
+}
+/* and a herd that has let every head go down puts one back up */
+function setWatch(a){
+  a.job='act'; a.act='alert'; a.jt=3+Math.random()*4; a.tx=a.x; a.tz=a.z;
+}
+function takeWatch(a){
+  if(!window.BEHAVIOR) return false;
+  const h=herdWatch(a);
+  if(h.n<3||h.watcher) return false;
+  setWatch(a); return true;
 }
 /* ---- WHERE THIS ONE BEAST SLEEPS ----
    Its OWN bed, not a spot under it when the clock stopped: the built den
@@ -7590,11 +8260,22 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
          gather on is the green ground you can see them standing in. */
       a.fear=(a.fear||0)-dt;
       let fx=null,fz=null;
-      if(state.mode==='walk'&&Math.hypot(state.walk.x-a.x,state.walk.z-a.z)<9){ fx=state.walk.x; fz=state.walk.z; }
+      /* ---- AND EACH BREAKS AT ITS OWN DISTANCE ----
+         §2.3.5 asks for *"species-specific flight distance"* and there were
+         TWO numbers in the whole world: nine units for a man walking up and
+         eighteen for a hunter. So a hare let a wolf come as close as a bull
+         elephant did, and an elephant bolted from a man at the same nine
+         paces as a chicken. The beast is asked now (js/behavior.js), and
+         what it answers is mostly struck off its own legs — only the heavy,
+         the armed and the beasts of the village are written down. */
+      const flee=window.BEHAVIOR?BEHAVIOR.flightOf(a.kind):9;
+      /* a man on foot is a smaller fright than a hunter: half the distance */
+      if(state.mode==='walk'&&Math.hypot(state.walk.x-a.x,state.walk.z-a.z)<flee*0.5){
+        fx=state.walk.x; fz=state.walk.z; }
       else for(const b of LANDLIFE){ if(!b.set||b.dead>0||(b.role!=='pack'&&b.role!=='stalk'&&b.role!=='ambush')) continue;
         /* a hunter lying up in the deep grass is NOT SEEN. It is caught at
            arm's length or not at all, and that is the whole use of cover. */
-        const see=b.hidden?6:18;
+        const see=b.hidden?Math.min(6,flee*0.35):flee;
         if(Math.hypot(b.x-a.x,b.z-a.z)<see){ fx=b.x; fz=b.z; break; } }
       if(fx!==null&&a.fear<=0) a.panicT=0;   /* caught flat — a beat to reach full stride */
       if(fx!==null){ const dd2=Math.hypot(a.x-fx,a.z-fz)||1;
@@ -7608,10 +8289,61 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
         spd=runSpd*(0.55+0.45*Math.min(1,a.panicT/1.2));
         a.act=null; if(a.job==='act') a.job='flee'; }
       else if(a.jt<=0){
-        if(a.job==='act'){ a.job='roam'; a.act=null; a.jt=2.5+Math.random()*3; }
+        /* ---- THE WATCH PASSES AT EVERY TURN, NOT ONLY AFTER A MEAL ----
+           Hung on the end of `feedhead` alone, a herd stood watched barely a
+           third of the time (measured: 29%), because between one beast's meal
+           and the next the whole herd was roaming with every head down. It is
+           asked at EVERY decision now: whenever any beast finishes anything
+           and its herd has nobody up, that beast takes the watch.
+
+           And the one standing down may not take it again in the same breath,
+           or the first beast to look up would watch for ever and the watch
+           would never pass. That is the whole of the rotation. */
+        const stoodDown=(a.job==='act'&&a.act==='alert');
+        if(stoodDown){
+          /* AND THE WATCH IS HANDED ON, NOT DROPPED. Waiting for the next
+             beast to finish what it was doing left the herd unwatched for
+             seconds at a time — measured at 44% watched, which is not what
+             "one head always up" means. The one standing down gives it to
+             the nearest of its herd that is not fleeing or bedding, and that
+             beast lifts its head at once, mid-meal if need be, which is
+             exactly what a herd does. */
+          /* ---- AND THE ONE IT IS HANDED TO MUST BE ALONE TOO ----
+             This asked whether the STANDER-DOWN had a watcher near it and then
+             handed the watch to a neighbour without asking the same of the
+             NEIGHBOUR. A herd is a neighbourhood and neighbourhoods overlap:
+             the beast receiving it could perfectly well have another watcher
+             eighty units the other side of itself, which the one handing over
+             could not see. Measured over a full suite run: ten pairs of
+             watchers standing inside one radius of each other. Both ends are
+             asked now, and it is nil. */
+          const h0=herdWatch(a);
+          if(h0.n>=3&&!h0.watcher){
+            let best=null, bd=1e9;
+            for(const b of LANDLIFE){
+              if(b===a||!b.set||b.dead>0||b.kind!==a.kind) continue;
+              if(b.job==='flee'||b.job==='bed'||b.job==='home') continue;
+              const d=Math.hypot(b.x-a.x,b.z-a.z);
+              if(d>HERD_R||d>=bd) continue;
+              /* is anybody ELSE already watching over him? (the one standing
+                 down does not count — he is giving it up this instant) */
+              let taken=false;
+              for(const c of LANDLIFE){
+                if(c===a||c===b||!c.set||c.dead>0||c.kind!==b.kind) continue;
+                if(c.job==='act'&&c.act==='alert'&&Math.hypot(c.x-b.x,c.z-b.z)<=HERD_R){ taken=true; break; }
+              }
+              if(taken) continue;
+              bd=d; best=b;
+            }
+            if(best) setWatch(best);
+          }
+          a.job='roam'; a.act=null; a.jt=2.5+Math.random()*3;
+        }
+        else if(takeWatch(a)){ /* the watch is his */ }
+        else if(a.job==='act'){ a.job='roam'; a.act=null; a.jt=2.5+Math.random()*3; }
         else if(a.job==='feedhead'){
-          /* the meal done, a moment for the day's small business — the
-             roll in the dust, the watch, the walk down to the water */
+          /* the meal done, a moment for the day's small business — the roll
+             in the dust, the walk down to the water */
           if(!tryAct(a)){ a.job='roam'; a.jt=2.5+Math.random()*3; } }
         /* ON GROUND THAT BEARS NO GRASS AT ALL — the snow of the far north,
            bare rock, the sand — there is nothing to walk to and nothing to
@@ -8569,7 +9301,21 @@ function buildPier(G,ex,site,rnd,torches){
   if(!best||best.t>34) return null;
   const dx=best.dx, dz=best.dz, t=best.t;
   const shoreX=site.x+dx*(t-1)*B, shoreZ=site.z+dz*(t-1)*B;
-  const yD=WATER_Y+2.8, deckKeys=[]; let lastX=shoreX, lastZ=shoreZ;
+  /* ---- THE LAST BUILDER, AND THE ONE THAT CARRIES A TABLE WITH IT ----
+     A deck was a SLAB half a unit thick floating 2.8 above the waterline, and
+     `deckMap` told the whole world — the walker, the fishers, the boat looking
+     for somewhere to put in — that the walking surface at that column was
+     3.15. A deck of BLOCKS cannot be half a unit thick. It is a course, six
+     units, and its top is where a man's feet go; so the table must be told
+     the course's top and not the old slab's, or every fisher on every pier in
+     the world stands three units inside his own planks.
+     `deckY` is that course top, reckoned once here and written into the table,
+     into the piles, into the lamp post and into ex.pier — one number, one
+     place, and nothing left reading the old one. */
+  const yD=WATER_Y+2.8;
+  const deckIY=Math.round(yD/B)-1;         /* the course whose lid the deck is */
+  const deckY=(deckIY+1)*B;                /* and where that lid actually is */
+  const deckKeys=[]; let lastX=shoreX, lastZ=shoreZ;
   ex.deckKeys=deckKeys;   /* visible to the abort path from the first plank */
   const len=7+Math.floor(rnd(120)*4);
   for(let s2=0;s2<len;s2++){ const x=site.x+dx*(t+s2)*B, z=site.z+dz*(t+s2)*B;
@@ -8578,26 +9324,27 @@ function buildPier(G,ex,site,rnd,torches){
     const r=Math.hypot(x,z)/R_WORLD; if(r>=SHELF_UV) break;
     const key=ix+','+iz; if(deckMap.has(key)) continue;
     const x0=ix*B, z0=iz*B;
-    faceTop(G,'planks',x0+0.2,z0+0.2,x0+B-0.2,z0+B-0.2,yD,1.0);
-    faceBottom(G,'planks',x0+0.2,z0+0.2,x0+B-0.2,z0+B-0.2,yD-0.5,0.5);
-    facePX(G,'planks',x0+B-0.2,z0+0.2,z0+B-0.2,yD-0.5,yD,0.62);
-    faceNX(G,'planks',x0+0.2,z0+0.2,z0+B-0.2,yD-0.5,yD,0.62);
-    facePZ(G,'planks',z0+B-0.2,x0+0.2,x0+B-0.2,yD-0.5,yD,0.8);
-    faceNZ(G,'planks',z0+0.2,x0+0.2,x0+B-0.2,yD-0.5,yD,0.8);
+    /* one course of planks IS the deck: six faces of a slab become a block,
+       and the mesher draws its sides and its underside for free */
+    stampBlock(ix,deckIY,iz,blockId('planks'));
     if(s2%2===0){   /* the piles stand on the bed of the sea, not in the water */
-      emitBox(G,x0+0.6,SUBSEA_Y,z0+0.6,x0+1.5,yD-0.1,z0+1.5,'logSide','logTop',null);
-      emitBox(G,x0+B-1.5,SUBSEA_Y,z0+B-1.5,x0+B-0.6,yD-0.1,z0+B-0.6,'logSide','logTop',null);
+      /* a post 0.9 units square cannot be told from its neighbour in a world
+         of six-unit blocks, so the two corner piles become the one column of
+         timber that a six-unit cell can hold, run from the bed to the deck */
+      const nLog=blockId('log');
+      for(let iy=Math.floor(SUBSEA_Y/B); iy<deckIY; iy++) stampBlock(ix,iy,iz,nLog);
     }
-    deckMap.set(key,yD); deckKeys.push(key);
+    deckMap.set(key,deckY); deckKeys.push(key);
     lastX=x0+B/2; lastZ=z0+B/2;
   }
   if(!deckKeys.length) return null;
-  emitBox(G,lastX-0.5,yD,lastZ-0.5,lastX+0.5,yD+B*1.4,lastZ+0.5,'logSide','logTop',null);
-  torches.push({x:lastX,y:yD+B*1.4,z:lastZ});
+  { const ix=Math.floor(lastX/B), iz=Math.floor(lastZ/B), nLog=blockId('log');
+    for(let k=1;k<=2;k++) stampBlock(ix,deckIY+k,iz,nLog); }   /* the lamp post */
+  torches.push({x:lastX,y:deckY+B*2,z:lastZ});
   stamped(ex,()=>emitPathLine(G,site.x,site.z,shoreX,shoreZ));
   /* the pier's own bearing is kept — it is the only thing that truly knows
      which way the water lies (radial "outward" is inland on half the coasts) */
-  ex.pier={x:lastX,z:lastZ,dx,dz};
+  ex.pier={x:lastX,z:lastZ,dx,dz,y:deckY};
   return deckKeys;
 }
 const activeVillages=new Map();
@@ -8737,7 +9484,10 @@ function* spawnVillage(i,exShell){
   torches.push(...ex.torchIn);          /* the hearth-lights within the houses */
   yield;
   /* the pier, if the sea lies near */
-  const deckKeys=buildPier(G,ex,site,rnd,torches)||[];
+  /* the pier's planks and piles belong to the village that laid them, and go
+     into the sea again with it — the deck TABLE is given back separately, on
+     the same teardown, because the world reads that table and not the blocks */
+  const deckKeys=stamped(ex,()=>buildPier(G,ex,site,rnd,torches))||[];
   /* a fishmonger's stall by the pier, in the great cities */
   if(cfg&&cfg.fishStall!==false&&ex.pier){
     const fx=ex.pier.x, fz=ex.pier.z, fc=landAtWorld(fx-B,fz);
@@ -8796,6 +9546,18 @@ function* spawnVillage(i,exShell){
       if(x>H.x0-1.2&&x<H.x1+1.2&&z>H.z0-1.2&&z<H.z1+1.2) return false;
     for(const s of solids) if(Math.hypot(x-s.x,z-s.z)<s.r+2.0) return false;
     for(const e of placedAt) if(Math.hypot(x-e.x,z-e.z)<3.6) return false;
+    /* ---- AND NOTHING MAY BE STANDING WHERE HIS BODY GOES ----
+       The old tests were all FOOTPRINTS — house rectangles and recorded
+       solids — and they were enough while everything a village raised was
+       triangles that nobody could stand in. The village is blocks now, and
+       the hay, the fence rails, the benches, the stall counters and the
+       lamp posts are all outside every footprint this knows about. A man set
+       down on one of them begins his life inside it and, standing still, has
+       no occasion ever to leave.
+       Two courses of clear air over the field, which is the same law the
+       walking rule keeps. */
+    { const ix=Math.floor(x/B), iz=Math.floor(z/B);
+      if(blockSolidAt(ix,c.h,iz)||blockSolidAt(ix,c.h+1,iz)) return false; }
     return true; };
   const clearSpawn=(wx,wz)=>{
     if(spawnFree(wx,wz)) return {x:wx,z:wz};
@@ -8940,13 +9702,62 @@ function moveEnt(ent,dt,sp){
        and turns him back, as a wall should. */
     const gN=groundInfo(nx,nz,ent.m.position.y+0.1);
     const tooSteep=gN.land&&Math.abs(gN.y-ent.m.position.y)>B*1.35;   /* folk walk steps, not cliff faces */
-    if(!gN.land||tooSteep||blockedByStructureNPC(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,ent.m)||hitPlayer
+    /* ---- AND A MAN DOES NOT CLIMB THE FURNITURE ----
+       One course is a step, and folk have always been allowed to take one.
+       That was a rule about GROUND. Phase 3 laid the whole village in blocks,
+       and now every footing, bench, hay bale, stall counter, fence rail and
+       plaza edge is a one-course ledge — so a stack of them is a staircase,
+       and the townsfolk climbed the sides of their own houses a course at a
+       time and stood about on the roofs.
+       A BUILT surface more than a course above the true ground of that spot
+       is a wall, a roof or a counter-top, and none of them is a floor. The
+       doorstep of a house (its footing, exactly one course) is still a floor,
+       and a paved way is level with the ground it paves, so nothing a man
+       ought to walk on is taken from him. Pier decks answer from `deckMap`
+       and never carry the `edited` mark, so the fishers keep their planks. */
+    const cN=landAtWorld(nx,nz);
+    const climbBuilt=gN.edited&&cN&&gN.y>cN.h*B+B*1.2;
+    /* ---- AND HE MUST HAVE ROOM TO STAND UP IN IT ----
+       Forbidding the climb was not enough on its own. A footing runs UNDER
+       the walls it carries, and a stall's counter has its canopy posts on it.
+       Both are one course above the field, which the climb rule allows, and
+       both have a wall or a post standing in the very space a man's body
+       would occupy — so the folk walked onto the footing and stood inside
+       their own walls, and fifteen men on the roofs became twenty-one in the
+       masonry.
+       Two courses of clear air over a floor, or it is not a floor. That is
+       the whole of it, and it is the rule that lets a doorway through and
+       keeps a wall shut. `groundInfo` has always reported the ceiling over a
+       hollow column; it was simply never asked. */
+    const noRoom=gN.land&&isFinite(gN.ceil)&&(gN.ceil-gN.y)<B*1.9;
+    if(!gN.land||tooSteep||climbBuilt||noRoom||blockedByStructureNPC(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,ent.m)||hitPlayer
       ||!!landmarkSolidAt(nx,nz,ent.m.position.y+2,ent.m.position.y+8)){   /* the ancients' walls bar the folk as they bar the traveller */
       moving=false; ent.t=0; ent.stuck=(ent.stuck||0)+1;
       if(ent.stuck>2){ ent.stuck=0; ent.acting=false; ent.pt=0; ent.tx=ent.m.position.x; ent.tz=ent.m.position.z; } }
     else { ent.stuck=0; ent.m.position.x=nx; ent.m.position.z=nz; ent.m.rotation.y=Math.atan2(dx,dz); } }
   const gHere=groundInfo(ent.m.position.x,ent.m.position.z,ent.m.position.y+0.1);
+  /* ---- AND ONE ALREADY UP THERE IS BROUGHT DOWN ----
+     A rule that only forbids the climb leaves whoever climbed before it
+     stranded on the tiles for ever. But he must not simply be DROPPED to the
+     bare field either: the ground under a roof is the ground under a HOUSE,
+     and setting him there puts him waist-deep in its footing — which is what
+     the first draft of this did, and it traded fifteen men on the roofs for
+     eight men inside the walls.
+     Every creature keeps the last place it stood that this rule allowed. That
+     place was reached by walking, so it is outside every wall by
+     construction, and it is where a stranded one is put back. */
+  const cH=(gHere.edited)?landAtWorld(ent.m.position.x,ent.m.position.z):null;
+  const hereBad=(cH&&gHere.y>cH.h*B+B*1.2)
+    ||(gHere.land&&isFinite(gHere.ceil)&&(gHere.ceil-gHere.y)<B*1.9);
+  if(hereBad){
+    if(ent.gx!==undefined){ ent.m.position.x=ent.gx; ent.m.position.z=ent.gz; ent.m.position.y=ent.gy; }
+    else ent.m.position.y=cH.h*B;
+    ent.tx=ent.m.position.x; ent.tz=ent.m.position.z;
+    ent.acting=false; ent.pt=0; ent.t=0;
+    return moving; }
   ent.m.position.y=gHere.land?gHere.y:WATER_Y;
+  /* this footing was reached lawfully; it is the one to come back to */
+  ent.gx=ent.m.position.x; ent.gz=ent.m.position.z; ent.gy=ent.m.position.y;
   const legs=ent.m.userData.legs;
   /* the penned and the herded go by the same law as the wild ones */
   const GT=ent.kind?tickGait(ent,ent.kind,moving?sp:0,dt):null;
@@ -10320,7 +11131,17 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code==='KeyM') toggleMap();
   if(e.code==='KeyK'){ if(roamOnly()) cycleSeason(); }  /* free roam only */
   if(e.code==='KeyT') setTorch(!TORCH.on);   /* strike a light, and put it out */
-  if(e.code==='KeyL') toggleLog(); });
+  if(e.code==='KeyL') toggleLog();
+  /* ---- THE EIGHT, AND THE PAGE ----
+     Number keys take a token; I opens the satchel. The wheel is NOT taken —
+     it has drawn the eye back off the world since long before there was a
+     belt, and that is a better use of it. */
+  if(e.code.indexOf('Digit')===0){ const k=+e.code.slice(5);
+    if(k>=1&&k<=BELT_N){ heldSlot=k-1; beltDraw(); } }
+  if(e.code==='KeyI'){ e.preventDefault(); togglePage(); }
+  if(e.code==='KeyV'){ e.preventDefault();
+    const r=placeBlock();
+    if(r&&r.no&&r.no!=='nothing is within reach') toast('Not there — '+r.no+'.'); } });
 addEventListener('keyup',e=>{ keys[e.code]=false; });
 const cv=$('cv'); let drag=null, joy=null;
 const tpts=new Map(); let pinchD=0;      /* two-finger pinch state */
@@ -10335,7 +11156,15 @@ const tpts=new Map(); let pinchD=0;      /* two-finger pinch state */
 const PITCH_MIN=-1.25, PITCH_MAX=1.52;
 function pitchClamp(v){ const lo=state.firm?0.05:PITCH_MIN;
   return Math.max(lo,Math.min(PITCH_MAX,v)); }
+/* the right hand lays a block where the left breaks one; the menu that
+   usually comes with it is not wanted over a world */
+cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('pointerdown',e=>{ cv.setPointerCapture(e.pointerId);
+  if(e.button===2&&running&&!state.firm&&!cut&&!gamePaused&&state.mode==='walk'){
+    e.preventDefault();
+    const r=placeBlock();
+    if(r&&r.no&&r.no!=='nothing is within reach') toast('Not there — '+r.no+'.');
+    return; }
   if(e.pointerType==='touch'){
     tpts.set(e.pointerId,[e.clientX,e.clientY]);
     /* two fingers are a PINCH only when neither is the walking-stick: with
@@ -10356,7 +11185,8 @@ cv.addEventListener('pointerdown',e=>{ cv.setPointerCapture(e.pointerId);
   if(e.pointerType==='touch'&&!joy&&!state.firm&&e.clientX<innerWidth*0.42&&e.clientY>innerHeight*0.35){
     joy={id:e.pointerId,x0:e.clientX,y0:e.clientY,dx:0,dy:0};
     const j=$('joy'); j.style.display='block'; j.style.left=(e.clientX-52)+'px'; j.style.top=(e.clientY-52)+'px';
-  } else if(!drag){ drag={id:e.pointerId,x:e.clientX,y:e.clientY,mv:0,vx:0,vy:0,t:performance.now()};
+  } else if(!drag){ drag={id:e.pointerId,x:e.clientX,y:e.clientY,mv:0,vx:0,vy:0,
+      t:performance.now(), t0:performance.now()};   /* t0: when the hand was laid on */
     state.camYawVel=0; state.camPitchVel=0; } });
 cv.addEventListener('pointermove',e=>{
   if(e.pointerType==='touch'&&tpts.has(e.pointerId)){
@@ -10397,7 +11227,19 @@ function endPtr(e){ if(joy&&e.pointerId===joy.id){ joy=null; $('joy').style.disp
     if(!tap){
       state.camYawVel  =Math.max(-6,Math.min(6,d.vx));
       state.camPitchVel=Math.max(-4,Math.min(4,d.vy)); }
-    if(tap&&state.firm&&running) firmTravel(e); }
+    if(tap&&state.firm&&running) firmTravel(e);
+    /* ---- A TAP LAYS, A HOLD MINES ----
+       They are told apart by the clock and by nothing else: the blow needs
+       the pointer held STILL for a fifth of a second before it begins, so a
+       quick tap has done no mining at all by the time it is let go and is
+       free to mean something else. It is the same distinction a hand makes
+       on a real wall, and it costs the touch scheme nothing — a look-drag
+       moves, and neither of these fires on a drag. */
+    if(tap&&running&&!state.firm&&!cut&&!gamePaused&&state.mode==='walk'&&
+       d.t0!==undefined&&performance.now()-d.t0<240){
+      const r=placeBlock();
+      if(r&&r.no&&r.no!=='nothing is within reach') toast('Not there — '+r.no+'.');
+    } }
   /* a pinch let go one finger at a time: the finger still down carries
      straight on as a look-drag, never as a stray tap */
   if(!drag&&!joy&&tpts.size===1){ const [pid,pt]=[...tpts.entries()][0];
@@ -11336,7 +12178,11 @@ function playScene(name,at){
   const spec=SCENES[name];
   if(!spec||cut||!spec.shots||spec.shots.length<2) return false;
   const lines=spec.lines||[];
-  const line=lines.length?lines[Math.floor(Math.random()*lines.length)]:null;
+  /* A CALLER MAY HAND IN THE VERSE. The taking of a scroll wants the words of
+     the very book just picked up, which the scene itself cannot know — so
+     `at.line` wins over the scene's own list when it is given. */
+  const line=(at&&at.line)?at.line
+    :(lines.length?lines[Math.floor(Math.random()*lines.length)]:null);
   cut={spec,t:0,dur:spec.dur||10,rise:0,line,x:at.x,y:at.y,z:at.z,out:at.out,
        shotIdx:-1,snap:true,hour0:null,title:null};
   /* the caption track: the new `caps` list, or the old single verse laid out
@@ -12479,7 +13325,7 @@ async function saveState(){
      a real voyage. (The error handler saves too, and a fault at the menu
      must not wash the log away either.) */
   if(!running) return;
-  const payload=JSON.stringify({v:7,R:R_WORLD,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
+  const payload=JSON.stringify({v:8,R:R_WORLD,x:state.boat.x,z:state.boat.z,h:state.boat.heading,
     t:state.simHours,m:state.mode==='walk'?'walk':'boat',wx:state.walk.x,wz:state.walk.z,wh:state.walk.heading,
     vis:[...state.visited],d:Math.round(state.dist),wm:state.windMode,fi:state.fish||0,
     co:state.coins,cg:state.cargo,gm:state.game||0,ib:state.immBreath?1:0,pe:state.pearls||0,rp:state.repel?1:0,rr:state.rep||{},wl:[...wreckLooted],
@@ -12492,7 +13338,12 @@ async function saveState(){
     sr:[...scrollTaken],
     /* the chosen season was the one rail toggle NOT saved - every reload
        silently turned the year back to Natural */
-    sn:(window.SEASON&&!SEASON.isNatural())?SEASON.overrideName():null});
+    sn:(window.SEASON&&!SEASON.isNatural())?SEASON.overrideName():null,
+    /* v8: what he carries, and the substances whose word he has already been
+       given. The satchel is written slot by slot — the ORDER is his, he
+       arranged it, and a save that re-sorted his belt would be a save that
+       rearranged his hands. */
+    sa:SATCHEL.map(sl=>sl?[sl.id,sl.n]:0), sp:[...SPOKEN]});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
 }
@@ -12500,7 +13351,7 @@ async function loadSaved(){
   let raw=null;
   try{ if(window.storage){ const r=await window.storage.get(SAVE_KEY); if(r&&r.value) raw=r.value; } }catch(e){}
   if(!raw){ try{ raw=localStorage.getItem(SAVE_KEY); }catch(e){} }
-  try{ const o=JSON.parse(raw); if(o&&o.v>=2&&o.v<=7){
+  try{ const o=JSON.parse(raw); if(o&&o.v>=2&&o.v<=8){
     /* a voyage saved when the world was narrower is carried to the SAME
        SPOT ON THE MAP: places scale with the radius they were kept at */
     const sc=R_WORLD/(o.R||120000);
@@ -12519,7 +13370,28 @@ const FREEROAM_ONLY=['b-fly','b-time','b-speed','b-daypart','b-season'];
    updateFlyBtn sets its own inline display on b-fly whenever the mode
    changes, and an inline style beats anything set here — so the Rise Up
    button came back on a voyage the moment the traveller went ashore. */
-function applyFreeroam(){ D.body.classList.toggle('roaming',!!state.freeroam); }
+function applyFreeroam(){ D.body.classList.toggle('roaming',!!state.freeroam);
+  D.body.classList.toggle('freehand',!!state.freeroam); }
+/* ================= THE FREE HAND =================
+   Phase 4, step 10, and the last of the phase. §11: "The second mode at the
+   menu: unlimited blocks, flight, instant break. Same world, same save."
+
+   IT IS NOT A THIRD MODE. The second mode at the menu already exists and has
+   since long before there was a hand at all: FREE ROAM, which gives the air,
+   the sun, the hour and the season. Adding a third would leave a man choosing
+   between flying and building, which is exactly backwards — the mode a place
+   is BUILT in is the mode a place is FLOWN around in. So the free hand is
+   what free roam becomes now that there is a hand: the same flag, the same
+   line in the log, three more freedoms.
+
+   AND THE SAME WORLD, WHICH IT ALREADY WAS. Beginning anew washes the LOG —
+   the voyage, the visited lands, the cargo — and it has never touched the
+   block edits, which live in their own store and are keyed to the world and
+   not to the voyage. So a place built with the free hand is standing there on
+   the next voyage, and always has been. Nothing had to be done to make that
+   true; it is written down here because it is the whole of what "same world,
+   same save" means and it would be easy to assume otherwise. */
+function freeHand(){ return !!state.freeroam; }
 /* and the keys those buttons stand for are shut with them */
 function roamOnly(what){
   if(state.freeroam) return true;
@@ -13114,7 +13986,13 @@ async function begin(fresh,roam){
     if(saved.wm){ state.windMode=saved.wm; updateWindBtn(); }
     if(saved.dp!==undefined&&DAYPARTS[saved.dp]){ state.dayIdx=saved.dp; updateDayBtn(); }
     state.freeroam=!!saved.fr;
-    if(saved.sr) for(const k of saved.sr) scrollTaken.add(k); }
+    if(saved.sr) for(const k of saved.sr) scrollTaken.add(k);
+    /* v8 — and what he was carrying, in the order he had it. A slot naming a
+       substance this build no longer knows is dropped rather than guessed at:
+       the block table is read by ID for exactly this reason. */
+    if(saved.sa) for(let i=0;i<SATCHEL_N&&i<saved.sa.length;i++){ const e=saved.sa[i];
+      SATCHEL[i]=(e&&BLOCK_BY_ID[e[0]]&&e[1]>0)?{id:e[0],n:Math.min(STACK,e[1])}:null; }
+    if(saved.sp) for(const k of saved.sp) SPOKEN.add(k); }
   else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5; }
   /* a NEW beginning takes the manner it was chosen with; a continued one
      keeps whatever manner it was begun in, out of the log */
@@ -13163,12 +14041,22 @@ window.__WORLD={
   ensureFlyDome,flyDome:()=>flyDome,
   R_WORLD,B,WATER_Y,SEA_SURF,CLOUD_Y,U_PER_M,
   state,setMode,updateChunks,landAtWorld,seaHeight,findStart,
+  /* THE HOUR, for a stage that is staged somewhere the traveller is not.
+     `setLocalHour` takes the longitude out of the world clock, so an hour
+     asked for is the hour of the DAY at the place named — the same rule
+     world/scenes.js keeps with `set.hour`. It was reachable only through
+     __VDBG, which is the debug surface and not a thing the second game may
+     lean on. DAYPARTS is beside it because a scene must be able to take the
+     clock off 'live' first, or the real-world hour is read back over it four
+     times a second. */
+  setLocalHour,DAYPARTS,
   hideLandLife,hideAirLife,hidePod,hideOrca,hideBlooms,hideDeep,hideTraders,
   hideSeaMobs,hideDeepLife,SEAFISH,DIVEFISH,SHARKS,
   toast,playScene,endScene,sceneActive,
   running:()=>running, setRunning:v=>{running=v;},
   /* read-only probes for the audit harness (nothing in the game reads these) */
   sites:()=>SITES, villages:()=>activeVillages, scrolls:()=>SCROLLS,
+  placeScrolls,
   cell,groundInfo,solidTopAt,houseTopAt,takeFlight,alight,
   camDbg:()=>({seat:{x:camPos.x,y:camPos.y,z:camPos.z},camClear,camFloor}),
 };
@@ -13377,6 +14265,186 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   /* the remesh ALONE, in milliseconds — not the frame it happens to sit in */
   flushNow:()=>{ const t=performance.now(); const n=flushEdits(1e9);
     return {ms:performance.now()-t, chunks:n}; },
+  /* ---- THE GEOMETRIC DIFF (PLAN.md §6.1), FOR tools/stampdiff.js ----
+     A builder converted to blocks must fill the SAME SPACE it filled as
+     triangles. Comparing the triangles themselves would be wrong — a stamped
+     wall merges into greedy runs and legitimately has far fewer — so the
+     comparison is on a VOXEL OCCUPANCY SET: the builder is run twice, once
+     recording every box it emits and once writing blocks, the boxes are
+     rasterised to the grid by the SAME rule `stampBox` uses, and the two sets
+     of cells are compared.
+     What must hold is `missing = 0`: not one cell a box asked for may be
+     absent from the stamp. Cells the stamp has and the boxes do not are
+     EXPECTED for some builders and are reported by name — a well's standing
+     water, a floor or a path laid by `emitTop`, the planks of a pier — all of
+     them things deliberately named as blocks where they used to be a single
+     drawn face. The tool holds the list of which builders may have them.
+     It leaves the world exactly as it found it: the stamp it opens is dropped
+     before it returns. */
+  stampDiff:(kind,ox,oz)=>{
+    const B2=B;
+    const runners={
+      well:      (G,x,z,y)=>emitWell(G,x,z,y),
+      pen:       (G,x,z,y)=>emitPen(G,x,z,y,7,5),
+      farm:      (G,x,z,y)=>emitFarm(G,x,z,y,3),
+      stall:     (G,x,z,y)=>emitStall(G,x,z,y,'market'),
+      bench:     (G,x,z,y)=>emitBench(G,x,z,y),
+      hay:       (G,x,z,y)=>emitHay(G,x,z,y),
+      house:     (G,x,z,y)=>emitHouse(G,{doors:[],houses:[],torchIn:[]},x,z,y,9,9,0,11),
+      pyramid:   (G,x,z,y)=>lmPyramid(G,x,z,y,1),
+      ziggurat:  (G,x,z,y)=>lmZiggurat(G,x,z,y),
+      temple:    (G,x,z,y)=>lmTemple(G,x,z,y,1),
+      stonecircle:(G,x,z,y)=>lmStoneCircle(G,x,z,y),
+      lighthouse:(G,x,z,y)=>lmLighthouse(G,x,z,y),
+      gate:      (G,x,z,y)=>lmGate(G,x,z,y),
+      statue:    (G,x,z,y)=>lmStatue(G,x,z,y)
+    };
+    const run=runners[kind]; if(!run) return {err:'no such builder: '+kind};
+    const x=ox, z=oz, c=landAtWorld(x,z);
+    if(!c) return {err:'no ground at the test spot'};
+    const y=c.h*B2;
+    /* the ground here must be UNBUILT, or a stamp that finds a cell already
+       written does not record it as its own and the diff would read short */
+    let dirty=0;
+    for(let dx=-2;dx<=2;dx++) for(let dz=-2;dz<=2;dz++){
+      const k=(Math.floor(Math.floor(x/B2)/CH)+dx)+','+(Math.floor(Math.floor(z/B2)/CH)+dz);
+      const m=SEDITS.get(k); if(m) dirty+=m.size; }
+    if(dirty) return {err:'the test ground already carries '+dirty+' stamped blocks'};
+    /* 1 — the builder as it was: every box, with its stone */
+    _boxRec=[]; let boxes=null;
+    try{ run(newG(),x,z,y); } finally{ boxes=_boxRec; _boxRec=null; }
+    /* 2 — the same builder as blocks */
+    stampBegin(); let grp=null;
+    try{ run(newG(),x,z,y); } finally{ grp=stampEnd(); }
+    /* 3 — the boxes rasterised by stampBox's own rule */
+    const want=new Map(), e=STAMP_EPS*B2;
+    for(const b of boxes){
+      const n=blockForMat(b.mat); if(n===undefined) continue;
+      const ix0=Math.floor((b.x0+e)/B2), ix1=Math.ceil((b.x1-e)/B2)-1;
+      const iy0=Math.floor((b.y0+e)/B2), iy1=Math.ceil((b.y1-e)/B2)-1;
+      const iz0=Math.floor((b.z0+e)/B2), iz1=Math.ceil((b.z1-e)/B2)-1;
+      for(let ix=ix0;ix<=ix1;ix++) for(let iz=iz0;iz<=iz1;iz++) for(let iy=iy0;iy<=iy1;iy++){
+        if(iy<EY_MIN||iy>=EY_MAX) continue;
+        want.set(ix+','+iy+','+iz,n); } }
+    /* 4 — and what the stamp actually wrote */
+    const got=new Map();
+    for(let i=0;i<grp.cells.length;i+=2){
+      const key=grp.cells[i], idx=grp.cells[i+1];
+      const p=key.split(','), cx=+p[0], cz=+p[1];
+      const ix=cx*CH+eLx(idx), iz=cz*CH+eLz(idx), iy=eLy(idx);
+      const m=SEDITS.get(key);
+      got.set(ix+','+iy+','+iz, m?m.get(idx):0); }
+    stampDrop(grp);            /* the world is left as it was found */
+    /* 5 — the verdict */
+    /* Three ways the two can differ, and they are not the same thing:
+         MISSING — a cell a box asked for and the stamp has not. Always wrong.
+         SWAPPED — a cell both have, of different stone. A later named block
+                   deliberately standing where a box was (a well's water in
+                   its own shaft, a plank floor laid on its cobble footing):
+                   right, but it must be DECLARED by the builder that does it.
+         EXTRA   — a cell the stamp has and no box asked for (a laid surface
+                   that used to be one drawn face): likewise declared. */
+    const missing=[], swaps=new Map(), extra=new Map();
+    let nMissing=0;
+    const nameOf=n=>{ const b2=blockOf(n); return b2?b2.name:String(n); };
+    for(const [k,n] of want){
+      if(!got.has(k)){ nMissing++; if(missing.length<6) missing.push(k); continue; }
+      const g=got.get(k);
+      if(g!==n){ const key=nameOf(n)+' → '+nameOf(g);
+        swaps.set(key,(swaps.get(key)||0)+1); } }
+    for(const [k,n] of got) if(!want.has(k)){
+      const nm=nameOf(n); extra.set(nm,(extra.get(nm)||0)+1); }
+    const fmt=m=>Array.from(m).map(p=>p[1]+'x '+p[0]);
+    return {kind, boxes:boxes.length, cellsFromBoxes:want.size, cellsStamped:got.size,
+      missing:nMissing, missingAt:missing, swaps:fmt(swaps), extra:fmt(extra),
+      swapKeys:Array.from(swaps.keys()), extraKeys:Array.from(extra.keys())};
+  },
+  /* ---- THE REACH, FOR tools/acceptance.js (Phase 4) ----
+     `aim()` is whatever the traveller's arm is on this frame; `aimFrom` walks
+     the grid from a given eye and bearing, so a test can ask the question
+     without having to steer a camera. */
+  /* every one of these is a THUNK: this object is built at module scope, and
+     the reach and the mark are declared below it, beside the loop that uses
+     them. A bare `REACH` here is read before its `const` has run. */
+  aim:()=>AIM, reach:()=>REACH,
+  /* ---- THE BLOW, FOR tools/acceptance.js ----
+     `mineHold` is the hand held to the block; `mineAt` names the block it is
+     held to, so a test need not steer a camera to ask what the timing law
+     does. Everything else — the law, the fracture, the breaking — is the one
+     path the game itself runs. */
+  mineHold:on=>{ mineHeld=!!on; if(!on) mineStop(); },
+  /* the FACE matters and must be given: the fracture is cut on the face that
+     is struck, and a crack figure laid on the top of a wall block is drawn
+     edge-on to a level eye and cannot be seen at all — which is exactly what
+     the first photographs of it showed, and it took a pixel count to tell
+     that from the cracks not being drawn. */
+  mineAt:(ix,iy,iz,nx,ny,nz)=>{ mineTestAt=(ix===null)?null:
+    {ix,iy,iz,nx:nx||0,ny:(nx||nz)?0:(ny===undefined?1:ny),nz:nz||0,n:blockAt(ix,iy,iz)}; },
+  /* while the probe drives the blow, the loop must not drive it too — one
+     SwiftShader frame is half a second and would carry the work past the end */
+  mineDrive:on=>{ mineDriven=!!on; },
+  /* ---- THE DROP AND THE HOARD, FOR tools/acceptance.js ---- */
+  drops:()=>DROPS.map(d=>({id:d.id,x:d.x,y:d.y,z:d.z,rest:d.rest,t:d.t,taken:d.take>0})),
+  /* the tally, now DERIVED from the satchel rather than kept beside it */
+  hoard:()=>{ const o={}; for(const sl of SATCHEL) if(sl) o[sl.id]=(o[sl.id]||0)+sl.n; return o; },
+  satchel:()=>SATCHEL.map(sl=>sl?{id:sl.id,n:sl.n}:null),
+  satchelAdd, satchelTake, satchelRoom,
+  /* ---- THE BELT AND THE PAGE, FOR tools/acceptance.js ---- */
+  held:()=>heldSlot, setHeld:i=>{ heldSlot=Math.max(0,Math.min(BELT_N-1,i|0)); beltDraw(); },
+  heldBlock:()=>{ const b=heldBlock(); return b?b.id:null; },
+  pageOpen:()=>pageOpen, togglePage, pageTouch, beltDraw, pageDraw,
+  placeBlock, cellHitsAnyLiving,
+  /* ---- THE NAMED WORKS, FOR tools/acceptance.js ---- */
+  /* ---- THE FREE HAND, FOR tools/acceptance.js ---- */
+  freeHand, applyFreeroam, storesDraw,
+  beltPick:i=>{ heldSlot=Math.max(0,Math.min(BELT_N-1,i)); beltDraw(); },
+  works:()=>WORKS.map(w=>({id:w.id,name:w.name,at:w.at,needs:w.needs,
+    of:w.of.map(q=>q.id+' x'+q.c), gives:w.gives.map(q=>q.id+' x'+q.c),
+    refuses:w.refuses?w.refuses.id:null, verse:!!w.verse})),
+  workState:id=>{ const w=WORK_BY_ID[id]; return w?workState(w):null; },
+  workMake, workPlaceAt, satchelAdd, satchelTake,
+  /* ---- WHAT WILL NOT STAND, FOR tools/acceptance.js ---- */
+  /* every standing chunk thrown away, so the next build is a TRUE build and
+     not a cache read — for measuring one change against a control */
+  dropChunks:()=>{ for(const[k,ch] of chunks){
+      for(const m of ch.meshes){ chunkRoot.remove(m); m.geometry.dispose(); } }
+    chunks.clear(); buildQueue.length=0; buildQueued.clear(); },
+  fallTick, looseSettleAll, looseCount:()=>LOOSE.length, flowLeft:()=>flowLeft,
+  flowBudget:()=>FLOW_BUDGET, flowReach:()=>FLOW_REACH,
+  settlePending:()=>SETTLE.length/3,
+  /* the frame drives both rules already — unlike the blow, which a test must
+     drive itself; here a test need only WAIT, and be told when the world has
+     stopped moving */
+  settleDrive:async n=>{ let still=0;
+    for(let k=0;k<(n||240)&&still<6;k++){
+      await new Promise(r=>requestAnimationFrame(r));
+      still=(LOOSE.length||SETTLE.length||FLOW.length)?0:still+1; }
+    return {loose:LOOSE.length,pending:SETTLE.length/3,flow:FLOW.length/4,
+            spent:flowMoved}; },
+  /* ---- WHAT LIES UNDER, FOR tools/acceptance.js ---- */
+  minerals:()=>MIN_DEFS.map(m=>({id:m.id,block:m.block,lands:m.lands.length,lo:m.lo,hi:m.hi,often:m.often})),
+  mineralsOf:ci=>(MIN_BY_CI[ci]||[]).map(m=>({n:m.n,name:blockName(m.n),lo:m.lo,hi:m.hi,often:m.often,room:m.room})),
+  oreAt:(ix,iy,iz)=>{ const c=cell(ix,iz); return c?oreAt(c,ix,iy,iz):0; },
+  /* the same placing, from a named reach — so a test need not steer a camera
+     to ask which side of a face a block lands on */
+  placeFrom:a=>{ const was=AIM; AIM=a; try{ return placeBlock(); } finally{ AIM=was; } },
+  activeVillages:()=>activeVillages,
+  toolSpeedOf:id=>toolSpeed(BLOCK_BY_ID[id]),
+  /* the save, driven and read back, so a test need not guess at its timing */
+  saveNow:()=>saveState(),
+  savedRaw:async()=>{ try{ if(window.storage){ const r=await window.storage.get(SAVE_KEY);
+      if(r&&r.value) return r.value; } }catch(e){}
+    try{ return localStorage.getItem(SAVE_KEY); }catch(e){ return null; } },
+  STACK:()=>STACK, BELT_N:()=>BELT_N, SATCHEL_N:()=>SATCHEL_N,
+  dropStep:dt=>dropTick(dt),
+  spoken:()=>[...SPOKEN],
+  mineProgress:()=>MINE.on?{cell:[MINE.ix,MINE.iy,MINE.iz],t:MINE.t,need:MINE.need,
+    f:Math.min(1,MINE.t/MINE.need),cracks:crackN}:null,
+  mineStep:dt=>mineTick(dt),
+  handSlow:()=>HAND_SLOW,
+  aimFrom:(ox,oy,oz,dx,dy,dz,reach)=>{ const L=Math.hypot(dx,dy,dz)||1;
+    return aimAt(ox,oy,oz,dx/L,dy/L,dz/L,reach||REACH); },
+  markVisible:()=>!!(markG&&markG.visible),
   BLOCKS:()=>BLOCKS, edits:()=>EDITS, sedits:()=>SEDITS,
   stampCells:()=>{ let n=0; for(const m of SEDITS.values()) n+=m.size; return n; },
   /* ---- STAND IN A TOWN AND WAIT FOR IT TO BE RAISED ----
@@ -13469,10 +14537,17 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   mountUp,dismount,nearestMount,promptState:()=>promptAction,
   camera,sceneStep:dt=>{ if(cut) sceneTick(dt); },cutTime:()=>cut?cut.t:-1,
   playerXZ,localHourAt,setLocalHour,clockFace,dayPartName,DAYPARTS,applyDayPart,
+  /* the herd and its watch, for the suite */
+  LANDLIFE,herdWatch,HERD_R,
+  /* the coat, for the suite and for setting it beside what it replaced */
+  makeBeast,coatBeast,coatOn:v=>{ if(v!==undefined) COAT_ON=!!v; return COAT_ON; },
+  BEAST_BY_NAME,
   domeCeilAt,canTouchDome,touchDome,playScene,endScene,SCENES,sceneActive,sceneRise,seenDeeps,BEACHES,SHOALS,ORCA,beachAt,nearestBeach,seabedMetres,orcaState:()=>orcaState,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
   /* the scrolls and the compass that leads to them, for the smoke tests */
   SCROLLS,scrollTaken,nextScroll,takeScroll,nearestScrollProp,toggleGuide,
+  /* what film is running, and what it is holding — tools/acceptance.js */
+  cutInfo:()=>cut?{name:cut.spec&&cut.spec.name,t:cut.t,dur:cut.dur,line:cut.line}:null,
   /* the eye's boom and its near plane, for the smoke tests — the shaking
      beside a rock was read off these two */
   camInfo:()=>({clear:camClear, near:camera.near, stepOff:state.walk.stepOff||0}),
@@ -13565,6 +14640,914 @@ function setNearWorldVisible(on,zF){
     boatG.visible=false; walkerG.visible=false; }
   else if(_nearWas){ boatG.visible=_nearWas.boat; walkerG.visible=_nearWas.walk; _nearWas=null; }
 }
+/* ================= THE REACH AND THE MARK =================
+   Phase 4, step 1. The traveller's arm: where his eye is set, how far he can
+   reach, and the one block at the end of it.
+
+   It walks the grid rather than casting a ray at the triangles. A raycaster
+   would have to be given every chunk mesh in the view and would answer with a
+   TRIANGLE, which is the wrong answer twice over — the merged faces of Round
+   30 mean one triangle now spans many blocks, and a face tells you nothing
+   about which side of the boundary the air is on. The grid walk (Amanatides
+   and Woo's DDA) answers with the CELL and the FACE, which is exactly what a
+   hand needs: the block to break, and the empty cell to build in.
+
+   It costs at most REACH+1 steps of integer arithmetic — five or six cells —
+   and asks `blockSolidAt` once apiece. That is nothing beside a frame, and it
+   is measured rather than assumed.
+
+   THE MARK IS THIS GAME'S OWN. Not a black wireframe: twelve thin gold lines
+   standing a hair off the block's faces, in the gold this HUD has used since
+   the first round — the same gold as the compass rose and the banners. It is
+   drawn without depth-testing against nothing; it simply sits on the block,
+   and a block half behind a hill shows only the half of the mark that is in
+   front of the hill, as it should. */
+const REACH=5.2;                        /* blocks — a man's arm and a little */
+let zoomMapFadeCache=0;                 /* set by the frame, read by the aim */
+const _aimP=new THREE.Vector3(), _aimD=new THREE.Vector3();
+let AIM=null;                           /* {ix,iy,iz, nx,ny,nz, n, dist} or null */
+/* the six faces, as the step that last carried us across one */
+function aimAt(ox,oy,oz, dx,dy,dz, reach){
+  /* the cell the eye is in, and which way each axis is going */
+  let ix=Math.floor(ox/B), iy=Math.floor(oy/B), iz=Math.floor(oz/B);
+  const sx=dx>0?1:-1, sy=dy>0?1:-1, sz=dz>0?1:-1;
+  /* how far along the ray one whole cell of each axis is, and how far to the
+     first boundary. A ray flat against an axis never crosses it: Infinity is
+     the honest answer and it falls out of the arithmetic. */
+  const tdx=Math.abs(dx)>1e-9?Math.abs(B/dx):Infinity;
+  const tdy=Math.abs(dy)>1e-9?Math.abs(B/dy):Infinity;
+  const tdz=Math.abs(dz)>1e-9?Math.abs(B/dz):Infinity;
+  const bx=(dx>0?(ix+1)*B-ox:ox-ix*B), by=(dy>0?(iy+1)*B-oy:oy-iy*B), bz=(dz>0?(iz+1)*B-oz:oz-iz*B);
+  let tx=tdx===Infinity?Infinity:bx/Math.abs(dx)*1;
+  let ty=tdy===Infinity?Infinity:by/Math.abs(dy)*1;
+  let tz=tdz===Infinity?Infinity:bz/Math.abs(dz)*1;
+  /* tdx above is in units of t per CELL; the first crossings are in the same
+     units, so the walk is three compares and an add */
+  let nx=0,ny=0,nz=0, t=0;
+  const far=reach*B;
+  /* the cell the eye stands in is skipped: a man does not mine his own head */
+  if(blockSolidAt(ix,iy,iz)) return null;
+  for(let step=0;step<64;step++){
+    if(tx<=ty&&tx<=tz){ ix+=sx; t=tx; tx+=tdx; nx=-sx; ny=0; nz=0; }
+    else if(ty<=tz){    iy+=sy; t=ty; ty+=tdy; nx=0; ny=-sy; nz=0; }
+    else {              iz+=sz; t=tz; tz+=tdz; nx=0; ny=0; nz=-sz; }
+    if(t>far) return null;
+    if(iy<EY_MIN||iy>=EY_MAX) return null;
+    if(blockSolidAt(ix,iy,iz))
+      return {ix,iy,iz,nx,ny,nz,n:blockAt(ix,iy,iz),dist:t};
+  }
+  return null;
+}
+/* ---- WHERE THE ARM BEGINS ----
+   Not at the camera. The camera stands well behind the traveller's shoulder
+   and a good way above it, and a reach measured from there is measured from
+   the wrong place entirely: looking down at the ground at his own feet, the
+   camera is eight blocks off it and the arm — five — falls short of the very
+   block he is standing on. He would be unable to mine the ground beneath him.
+   The arm begins at HIS HEAD and runs along the way the CAMERA looks, which
+   is what a third-person view means: the eye is out there, the hand is here.
+   The camera's own position is used only when there is no body to reach from
+   — a free-flying eye, which by the rule above cannot reach anyway. */
+function eyeRay(){
+  _aimD.set(0,0,-1).applyQuaternion(camera.quaternion);
+  const w=state.walk;
+  if(state.mode==='walk'&&w&&w.feetY!==undefined) _aimP.set(w.x, w.feetY+HEAD_R, w.z);
+  else camera.getWorldPosition(_aimP);
+  return true;
+}
+/* the twelve gold lines */
+let markG=null;
+function ensureMark(){
+  if(markG) return markG;
+  const g=new THREE.BufferGeometry();
+  const e=0.06*B, a=-e, b2=B+e;      /* a hair proud of the block, all round */
+  const P=[[a,a,a],[b2,a,a],[b2,a,b2],[a,a,b2],
+           [a,b2,a],[b2,b2,a],[b2,b2,b2],[a,b2,b2]];
+  const E=[0,1,1,2,2,3,3,0, 4,5,5,6,6,7,7,4, 0,4,1,5,2,6,3,7];
+  const pos=new Float32Array(E.length*3);
+  for(let i=0;i<E.length;i++){ const p=P[E[i]];
+    pos[i*3]=p[0]; pos[i*3+1]=p[1]; pos[i*3+2]=p[2]; }
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  markG=new THREE.LineSegments(g,new THREE.LineBasicMaterial({
+    color:0xe8c66a, transparent:true, opacity:0.9, fog:false }));
+  markG.renderOrder=3; markG.visible=false; markG.frustumCulled=false;
+  scene.add(markG);
+  return markG;
+}
+/* asked once a frame, and only where a hand could reach anything */
+function aimTick(){
+  const can = !state.firm && state.mode!=='fly' && zoomMapFadeCache<0.02;
+  if(!can){ AIM=null; if(markG) markG.visible=false; return; }
+  eyeRay();
+  AIM=aimAt(_aimP.x,_aimP.y,_aimP.z, _aimD.x,_aimD.y,_aimD.z, REACH);
+  const m=ensureMark();
+  if(!AIM){ m.visible=false; return; }
+  m.visible=true;
+  m.position.set(AIM.ix*B, AIM.iy*B, AIM.iz*B);
+}
+/* ================= THE BLOW =================
+   Phase 4, step 2. Holding the hand to a block until it gives.
+
+   THE LAW OF THE TIME IT TAKES. Every block already carries its `hardness`
+   in seconds, written into `blocks/*.js` in Phase 2 against this very day and
+   read by nothing until now. A block that names a TOOL — the pick for stone,
+   the axe for timber — is not refused to the bare hand, but it comes hard:
+   the hand pays HAND_SLOW times over for want of the right iron. When the
+   belt is built (§11 step 5) the multiplier for what is held will enter in
+   exactly one place, `toolSpeed`, and nothing else here need change.
+
+   THE FRACTURE IS NOT AN OVERLAY. A crack drawn as a texture laid over the
+   face is the borrowed idiom this project is at pains to avoid. These are
+   real cracks: a figure of five branches struck out from the point of impact,
+   each wandering as a split in stone wanders, and REVEALED IN ORDER as the
+   blow goes on — so the fracture spreads from the middle outward and the eye
+   reads how near the block is to going. The figure is cut once when the hand
+   settles on a new block and costs nothing thereafter; what changes each
+   frame is how much of it is drawn, which is one integer.
+
+   IT IS THE BLOCK WORLD ONLY. The ship, the beasts, the villagers and the
+   traveller are not blocks and are not struck. */
+const HAND_SLOW=2.5;              /* the price of the wrong tool, or none */
+const MINE={ix:0,iy:0,iz:0,t:0,need:0,on:false,n:0};
+let mineHeld=false, mineTestAt=null, mineDriven=false;
+function toolSpeed(b){
+  /* ---- AND HERE THE BELT SPEAKS, AS STEP 2 PROMISED IT WOULD ----
+     One place, as it was written. A block that asks for a tool is had at full
+     speed by the hand that holds one and the slow way by the hand that does
+     not. There are no tool blocks to hold yet — they are works, and works are
+     step 9 — so today every hand is still bare and this reads exactly as it
+     did. What has changed is that it now reads the HAND rather than assuming
+     it, and the day a bronze pick exists it will be believed without another
+     line here. */
+  if(!b||!b.tool) return 1;
+  /* `tool` on a BLOCK names the tool that breaks it — it does not make the
+     block into that tool. Asking whether the held thing's own `tool` matches
+     would have meant that holding a brick sped the breaking of brick, which
+     is nonsense dressed as a feature. What is asked is whether the thing in
+     the hand SERVES as that tool, which is a field no block declares and
+     which the works of step 9 will put on the pick, the axe and the rest.
+     So today every hand is still bare and this reads exactly as it did in
+     Round 34 — but it now reads the HAND rather than assuming it. */
+  const h=heldBlock();
+  return (h&&h.serves===b.tool)?1:1/HAND_SLOW;
+}
+/* the crack figure of one block: branches out of the middle of a face, in
+   face-space, each segment appearing after the one before it */
+const CRACK_MAX=30;
+const _crackPos=new Float32Array(CRACK_MAX*2*3);
+let crackG=null, crackN=0;
+function ensureCrack(){
+  if(crackG) return crackG;
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(_crackPos,3));
+  crackG=new THREE.LineSegments(g,new THREE.LineBasicMaterial({
+    color:0x141008, transparent:true, opacity:0.85, fog:false }));
+  crackG.renderOrder=4; crackG.visible=false; crackG.frustumCulled=false;
+  scene.add(crackG);
+  return crackG;
+}
+/* cut the figure for the block now under the hand, on the face being struck */
+function cutCrack(ix,iy,iz,nx,ny,nz){
+  const g=ensureCrack();
+  const seed=ix*3.7+iy*11.3+iz*7.1;
+  const R=k=>hash2(seed*3.1+k*7.7, seed*1.7-k*2.3);
+  /* the face's own two ways, and the corner it starts from */
+  let ox,oy,oz, ux,uy,uz, vx,vy,vz;
+  const e=0.035*B;                        /* a hair proud, so it is not in the face */
+  const x0=ix*B, y0=iy*B, z0=iz*B;
+  if(ny!==0){ oy=y0+(ny>0?B+e:-e); ox=x0; oz=z0;
+    ux=B;uy=0;uz=0; vx=0;vy=0;vz=B; }
+  else if(nx!==0){ ox=x0+(nx>0?B+e:-e); oy=y0; oz=z0;
+    ux=0;uy=0;uz=B; vx=0;vy=B;vz=0; }
+  else { oz=z0+(nz>0?B+e:-e); ox=x0; oy=y0;
+    ux=B;uy=0;uz=0; vx=0;vy=B;vz=0; }
+  let n=0;
+  for(let br=0;br<5&&n<CRACK_MAX;br++){
+    let u=0.5, v=0.5, a=(br/5)*6.2832+R(br)*1.0;
+    const segs=3+Math.floor(R(br+40)*3);
+    for(let i=0;i<segs&&n<CRACK_MAX;i++){
+      a+=(R(br*10+i)-0.5)*1.15;
+      const len=0.09+R(br*10+i+70)*0.10;
+      const u2=u+Math.cos(a)*len, v2=v+Math.sin(a)*len;
+      if(u2<0.05||u2>0.95||v2<0.05||v2>0.95) break;
+      const p=n*6;
+      _crackPos[p  ]=ox+ux*u +vx*v;  _crackPos[p+1]=oy+uy*u +vy*v;  _crackPos[p+2]=oz+uz*u +vz*v;
+      _crackPos[p+3]=ox+ux*u2+vx*v2; _crackPos[p+4]=oy+uy*u2+vy*v2; _crackPos[p+5]=oz+uz*u2+vz*v2;
+      u=u2; v=v2; n++;
+    }
+  }
+  crackN=n;
+  g.geometry.attributes.position.needsUpdate=true;
+  g.geometry.setDrawRange(0,0);
+}
+/* one frame of the hand at work */
+function mineTick(dt){
+  const tgt = mineTestAt || AIM;
+  const held = mineHeld || !!keys.KeyR ||
+    (drag && drag.mv<6 && drag.t0!==undefined && performance.now()-drag.t0>120);
+  if(!held||!tgt||gamePaused||cut){ mineStop(); return; }
+  const b=blockOf(tgt.n||blockAt(tgt.ix,tgt.iy,tgt.iz));
+  if(!b){ mineStop(); return; }
+  /* the hand moved to another block: the old fracture closes and a new one
+     is struck. A block half broken and left is whole again when you return —
+     which is the honest behaviour and the one every player expects. */
+  if(!MINE.on||MINE.ix!==tgt.ix||MINE.iy!==tgt.iy||MINE.iz!==tgt.iz){
+    MINE.on=true; MINE.ix=tgt.ix; MINE.iy=tgt.iy; MINE.iz=tgt.iz;
+    MINE.t=0; MINE.n=b.n;
+    /* THE FREE HAND BREAKS AT A TOUCH. Not "very fast" — at a touch, on the
+       first frame the hand is on it, because a man laying out a place should
+       never be waiting on a hardness table. */
+    MINE.need=freeHand()?0:Math.max(0.05, b.hardness/Math.max(0.01,toolSpeed(b)));
+    cutCrack(tgt.ix,tgt.iy,tgt.iz, tgt.nx||0, tgt.ny!==undefined?tgt.ny:1, tgt.nz||0);
+    ensureCrack().visible=true;
+  }
+  MINE.t+=dt;
+  const f=Math.min(1,MINE.t/MINE.need);
+  const g=ensureCrack();
+  g.visible=true;
+  g.geometry.setDrawRange(0, Math.max(2, Math.round(f*crackN)*2));
+  if(MINE.t>=MINE.need){
+    const cx=(MINE.ix+0.5)*B, cy=(MINE.iy+0.5)*B, cz=(MINE.iz+0.5)*B;
+    const was=MINE.n;
+    setBlock(cx,cy,cz,0);
+    /* and it leaves something behind — but NOT in the free hand, where the
+       satchel already holds everything and a stream of pickups behind a man
+       clearing a hillside is nothing but litter he cannot refuse */
+    if(!freeHand()) spawnDrop(cx,cy,cz,was);
+    mineStop();
+  }
+}
+function mineStop(){
+  if(MINE.on){ MINE.on=false; MINE.t=0; }
+  if(crackG) crackG.visible=false;
+}
+
+/* ================= THE DROP, AND THE GATHERING =================
+   Phase 4, step 3. What is broken does not vanish: it falls, it lies on the
+   ground, and it is taken up by whoever walks over it.
+
+   `drops` was written into every `blocks/*.js` in Phase 2 and, like
+   `hardness` before it, has been read by nothing until now. A block gives
+   back the thing it names — which is usually itself, and sometimes is not.
+
+   IT IS THE FIRST PLACE A BLOCK SPEAKS. Every block may carry a `verse`, and
+   this is the moment for it: the FIRST time a substance is ever gathered, the
+   word that belongs to it is given. Not every time — a verse said on every
+   handful of dirt is a verse nobody reads. Once, on first taking, and then it
+   is his.
+
+   The hoard here is a plain tally of what has been taken. The satchel proper
+   — stacks, capacity, and the writing of it into the save — is step 4, and it
+   will take this tally over rather than sit beside it. */
+const DROP_MAX=64;                 /* more than this on the ground at once is a fault, not a feature */
+const DROPS=[];
+const SPOKEN=new Set();            /* the substances whose word has been given */
+
+/* ---- THE SATCHEL (§11 step 4) ----
+   What the traveller carries, as DATA. Not a picture of it — the belt of clay
+   tokens and the satchel that opens as an illuminated page are step 5, and
+   they will read this and nothing else.
+
+   THE MEASURES ARE THIS WORLD'S, NOT ANOTHER GAME'S. A stack is a SCORE —
+   twenty — which is a number this earth counts in and is nothing like the
+   sixty-four everyone will recognise. Eight go on the belt, where the hand
+   can reach them; four-and-twenty more lie in the satchel behind. Two and
+   thirty in all, and a man who fills them must leave something behind, which
+   is the point of a satchel having a size at all.
+
+   ONE ARRAY, and the belt is simply its first eight slots. A token moved from
+   the page to the belt is an index change and nothing else — no second
+   container to keep in step with the first, and no way for the two to
+   disagree, which is the bug that owns every inventory ever written. */
+const STACK=20, BELT_N=8, SATCHEL_N=32;
+const SATCHEL=new Array(SATCHEL_N).fill(null);   /* {id,n} or null */
+/* how many of a substance are held, all told */
+function satchelCount(id){ let k=0;
+  for(const sl of SATCHEL) if(sl&&sl.id===id) k+=sl.n;
+  return k; }
+/* put in as many as will go, and answer how many DID. A satchel with no room
+   takes nothing and says so; the caller leaves the rest on the ground. */
+function satchelAdd(id,n){
+  if(!BLOCK_BY_ID[id]||n<=0) return 0;
+  let left=n;
+  /* onto a part-filled stack of the same thing first, then into empty slots */
+  for(let i=0;i<SATCHEL_N&&left>0;i++){ const sl=SATCHEL[i];
+    if(sl&&sl.id===id&&sl.n<STACK){ const put=Math.min(STACK-sl.n,left); sl.n+=put; left-=put; } }
+  for(let i=0;i<SATCHEL_N&&left>0;i++){ if(!SATCHEL[i]){
+    const put=Math.min(STACK,left); SATCHEL[i]={id,n:put}; left-=put; } }
+  return n-left;
+}
+/* take out as many as are there, and answer how many came */
+function satchelTake(id,n){
+  let left=n;
+  for(let i=SATCHEL_N-1;i>=0&&left>0;i--){ const sl=SATCHEL[i];
+    if(sl&&sl.id===id){ const got=Math.min(sl.n,left); sl.n-=got; left-=got;
+      if(sl.n<=0) SATCHEL[i]=null; } }
+  return n-left;
+}
+function satchelRoom(id){
+  for(const sl of SATCHEL){ if(!sl) return true; if(sl.id===id&&sl.n<STACK) return true; }
+  return false;
+}
+let dropGeo=null;
+function ensureDropGeo(){ if(!dropGeo) dropGeo=new THREE.BoxGeometry(B*0.34,B*0.34,B*0.34);
+  return dropGeo; }
+/* what a broken block leaves behind */
+function spawnDrop(x,y,z,n){
+  const b=blockOf(n); if(!b) return null;
+  const give=BLOCK_BY_ID[b.drops]; if(!give) return null;   /* a block may give nothing */
+  if(DROPS.length>=DROP_MAX){ const old=DROPS.shift(); if(old.m){ scene.remove(old.m); } }
+  const mat=MAT[give.mSide]||MAT[give.mTop];
+  if(!mat) return null;
+  const m=new THREE.Mesh(ensureDropGeo(),mat);
+  m.position.set(x,y,z); scene.add(m);
+  /* a little life out of the face it was struck from, and then it falls */
+  const d={id:give.id,n:give.n,m,x,y,z,
+    vx:(hash2(x*0.7,z*1.3)-0.5)*7, vy:5.5, vz:(hash2(z*0.9,x*1.1)-0.5)*7,
+    t:0, rest:false, take:0};
+  DROPS.push(d); return d;
+}
+/* one frame of everything lying about on the ground */
+function dropTick(dt){
+  if(!DROPS.length) return;
+  const walking=state.mode==='walk'&&!state.firm;
+  const px=state.walk.x, pz=state.walk.z, py=(state.walk.feetY||0);
+  for(let i=DROPS.length-1;i>=0;i--){
+    const d=DROPS[i]; d.t+=dt;
+    if(d.take>0){
+      /* taken up: it flies the last little way to him and is gone */
+      d.take+=dt;
+      const k=Math.min(1,d.take/0.22);
+      d.m.position.set(d.x+(px-d.x)*k, d.y+(py+B*0.9-d.y)*k, d.z+(pz-d.z)*k);
+      d.m.scale.setScalar(1-k*0.85);
+      if(k>=1){ scene.remove(d.m); DROPS.splice(i,1); }
+      continue;
+    }
+    if(!d.rest){
+      d.vy-=26*dt;
+      d.x+=d.vx*dt; d.y+=d.vy*dt; d.z+=d.vz*dt;
+      const g=groundInfo(d.x,d.z,d.y+0.1);
+      const floor=(g.land?g.y:WATER_Y)+B*0.18;
+      if(d.y<=floor){ d.y=floor; d.rest=true; d.vx=d.vy=d.vz=0; }
+      d.m.position.set(d.x,d.y,d.z);
+    } else {
+      /* at rest it turns slowly and breathes, so the eye finds it in grass */
+      d.m.position.y=d.y+Math.sin(d.t*2.1)*0.5;
+    }
+    d.m.rotation.y+=dt*1.1;
+    /* and it is taken up by whoever comes near — but not the instant it is
+       struck, or a man would swallow his own pick-swing before it landed */
+    if(walking&&d.t>0.35&&Math.hypot(px-d.x,pz-d.z)<B*1.6&&Math.abs(py-d.y)<B*3)
+      takeUp(d);
+    else if(d.t>360){ scene.remove(d.m); DROPS.splice(i,1); }   /* six minutes, and the earth has it back */
+  }
+}
+function takeUp(d){
+  /* a full satchel takes nothing: the thing stays lying where it fell rather
+     than being swallowed into nowhere */
+  if(!satchelAdd(d.id,1)) return;
+  d.take=0.0001;
+  /* the word of a substance, once, on the first taking of it */
+  const b=BLOCK_BY_ID[d.id];
+  if(b&&b.verse&&!SPOKEN.has(d.id)){ SPOKEN.add(d.id); toast(b.verse.t,b.verse.ref); }
+  satchelTouch();
+}
+/* ==================== THE NAMED WORKS ====================
+   Phase 4, step 9. §4: "Not a tech tree — a set of works, each drawn from
+   scripture, each with its verse." Ten to twenty of those beat a hundred
+   generic recipes, and this is the reading of world/works.js that makes them
+   real.
+
+   THE ENGINE KNOWS NO WORK BY NAME. It knows how to read a line: what the
+   work takes, what it gives, whether it wants a fire, whether it wants a tool
+   in the hand, and what it REFUSES. Add a line there and the thing can be
+   made with not one line changed here — the same rule the minerals, the
+   beasts and the flora keep.
+
+   AND ONE OF THEM SAYS NO. A recipe that is merely short of a material says
+   "you have not got it" and a man shrugs. But a man at the altar with a
+   satchel of DRESSED stone is not short of stone: he has plenty, and it is
+   forbidden, and he is meant to be told so IN THE WORDS OF THE COMMAND. So a
+   work may name a substance that would otherwise serve perfectly well and
+   refuse it outright — and when the hand holds enough of the refused thing
+   and lacks the true material, the work is not withheld, it is REFUSED, with
+   its verse. That is the difference between having read the account and
+   having a crafting grid. */
+const WORK_DEFS=(window.EARTH&&EARTH.workList)||[];
+const WORKS=[], WORK_BY_ID=Object.create(null);
+for(const w of WORK_DEFS){
+  /* a work whose materials or product this build has not got is dropped at
+     the door rather than offered and then failing in the hand */
+  const of=[], gives=[];
+  let good=true;
+  for(const k in (w.of||{})){ const n=blockId(k); if(!n){ good=false; break; } of.push({n,id:k,c:w.of[k]}); }
+  for(const k in (w.gives||{})){ const n=blockId(k); if(!n){ good=false; break; } gives.push({n,id:k,c:w.gives[k]}); }
+  if(!good||!of.length||!gives.length) continue;
+  const rf=w.refuses&&blockId(w.refuses.id)?{...w.refuses,n:blockId(w.refuses.id)}:null;
+  const rec={id:w.id, name:w.name||w.id, of, gives, at:w.at||null,
+             needs:w.needs||null, refuses:rf, verse:w.verse||null};
+  WORKS.push(rec); WORK_BY_ID[w.id]=rec;
+}
+/* ---- IS HE STANDING AT A FIRE? ----
+   A work of the fire wants a kiln within reach of where he stands. It is
+   asked only when such a work is looked at, and it looks at the blocks about
+   him rather than keeping a register of kilns — a kiln is a block like any
+   other, and a man may break one, and a register would go stale. */
+const WORK_R=4;                    /* how far a fire reaches, in blocks */
+function workPlaceAt(kind){
+  if(!kind) return true;           /* the bare hand is everywhere */
+  const n=blockId(kind); if(!n) return false;
+  const p=playerXZ(), fy=(state.mode==='walk'&&state.walk.feetY!==undefined)?state.walk.feetY:WATER_Y;
+  const ix=Math.floor(p.x/B), iy=Math.floor(fy/B), iz=Math.floor(p.z/B);
+  for(let dx=-WORK_R;dx<=WORK_R;dx++) for(let dz=-WORK_R;dz<=WORK_R;dz++)
+    for(let dy=-2;dy<=2;dy++)
+      if(blockAt(ix+dx,iy+dy,iz+dz)===n) return true;
+  return false;
+}
+/* what stands between a man and this work: nothing, a want, a place, a tool,
+   or a REFUSAL — which is a want with a verse against it */
+function workState(w){
+  if(!w) return null;
+  if(w.at&&!workPlaceAt(w.at)) return {can:false, why:'place', at:w.at};
+  if(w.needs){ const h=heldBlock(); if(!h||h.serves!==w.needs)
+    return {can:false, why:'tool', needs:w.needs}; }
+  const short=[];
+  for(const q of w.of){ const have=satchelCount(q.id);
+    if(have<q.c) short.push({id:q.id, name:blockName(q.n), have, want:q.c}); }
+  if(!short.length) return {can:true};
+  /* ---- AND HERE IS THE REFUSAL ----
+     He is not short of stone. He is short of the RIGHT stone, and he is
+     holding the wrong one, and the account has something to say about that. */
+  if(w.refuses&&satchelCount(w.refuses.id)>=(w.of[0]?w.of[0].c:1))
+    return {can:false, why:'refused', refused:w.refuses, short};
+  return {can:false, why:'short', short};
+}
+/* AND THE MAKING ITSELF. One door: it asks `workState` and does nothing at
+   all unless the answer is yes, so there is no path by which a work is half
+   done — the materials are taken and the thing is given in the one breath. */
+function workMake(id){
+  const w=WORK_BY_ID[id]; if(!w) return {ok:false, why:'unknown'};
+  const st=workState(w);
+  if(!st.can){
+    /* the refusal SPEAKS, because being told why is the whole of it */
+    if(st.why==='refused'&&st.refused.why)
+      toast(st.refused.why.t, st.refused.why.ref);
+    return {ok:false, why:st.why, state:st};
+  }
+  /* room for what it gives, before a thing is taken for it */
+  for(const q of w.gives) if(!satchelRoom(q.id)) return {ok:false, why:'full'};
+  for(const q of w.of) satchelTake(q.id,q.c);
+  for(const q of w.gives) satchelAdd(q.id,q.c);
+  /* a work speaks its own verse the first time it is done, as a substance
+     does the first time it is gathered */
+  if(w.verse&&!SPOKEN.has('work:'+w.id)){ SPOKEN.add('work:'+w.id);
+    toast(w.verse.t, w.verse.ref); }
+  satchelTouch();
+  return {ok:true, gave:w.gives.map(q=>q.id+' x'+q.c).join(', ')};
+}
+
+/* ============ WHAT WILL NOT STAND, AND WHAT WILL NOT LIE STILL ============
+   Phase 4, step 8. Two rules about the world, and then STOPPED. §11 calls
+   fluid simulation a rabbit hole and it is right: what is written here is the
+   least that is TRUE, and there is a budget on it in plain sight.
+
+   THE FIRST RULE. A bank of sand will not stand on nothing. Cut what is under
+   it and it comes down, and what stood on THAT comes down after it, up the
+   whole column — which is the first thing the desert teaches, and the first
+   thing a man learns not to do to himself in a shaft.
+
+   THE SECOND RULE. Water will not lie still with somewhere to go. It stands
+   in the wells and in the channels of the farms; break the wall of a well and
+   the water finds the hole and runs out along the cut, down before sideways,
+   and it POOLS at the bottom and stops. It is not made: it is MOVED. There is
+   exactly as much water in the world after a flow as there was before it, so
+   a well can be emptied and cannot be milked.
+
+   AND NOTHING HERE RUNS EVERY FRAME FOR NOTHING. Both rules are woken by the
+   one door — `setBlock` — and only where a cell has just been EMPTIED (and by
+   the one other case that is the same case wearing a coat: a gravity block
+   LAID over a hole, which is a bank standing on nothing however it got
+   there). A world nobody is digging in pays three length checks a frame and
+   returns.
+
+   WHAT IS DELIBERATELY NOT HERE. Water is not swum in. It is moved and it is
+   finite and it is drawn, and a man stands on top of it as he stands on the
+   standing water of a well today. Swimming in it wants the breath, the walker
+   and the beasts' pathing all opened at once, and that is a step of its own
+   and not a corner of this one. It is named here so it is not mistaken for an
+   oversight. */
+const LOOSE_MAX=64;            /* how many blocks may be in the air at once */
+const LOOSE_G=30;              /* and how hard they are pulled down */
+const SETTLE=[];               /* cells lately emptied, three numbers apiece */
+const SETTLE_PER_FRAME=24;
+const LOOSE=[];
+let looseGeo=null;
+function ensureLooseGeo(){
+  if(looseGeo) return looseGeo;
+  looseGeo=new THREE.BoxGeometry(B,B,B);
+  /* the block materials are all vertex-coloured, because the mesher bakes the
+     light into the corners; a loose cube has no such light, so it is given a
+     plain white one and takes the day's tint like everything else */
+  const n=looseGeo.attributes.position.count, col=new Float32Array(n*3).fill(1);
+  looseGeo.setAttribute('color',new THREE.BufferAttribute(col,3));
+  return looseGeo;
+}
+/* THE ONE DOOR RINGS HERE. A cell has been emptied: whatever stood on it may
+   not stand any longer, and whatever water lay beside it now has somewhere to
+   go. Both are put on a list and looked at in the frame, never in the middle
+   of the edit itself. */
+let _settling=false;                   /* the world is putting itself right */
+function settleWake(ix,iy,iz){
+  if(SETTLE.length>4096) return;         /* a man cannot dig faster than this */
+  SETTLE.push(ix,iy,iz);
+  /* ---- AND THIS IS WHY IT CANNOT RUN FOR EVER ----
+     The budget is refilled by a HAND and by nothing else. Water's own moves
+     go through this same door — they must, or a bank of sand over a draining
+     channel would never come down — but while the world is settling itself
+     the purse is shut. So a cut is answered by at most FLOW_BUDGET blocks of
+     movement, once, and then it is over. */
+  if(!_settling){ flowLeft=FLOW_BUDGET; flowMoved=0; }
+}
+function isLiquid(n){ const b=blockOf(n); return !!(b&&b.liquid); }
+/* what stood on the cell that was emptied — and it comes down */
+function fallCheck(ix,iy,iz){
+  /* THE AIR IS FULL — and a bank bigger than the air can hold must not be
+     left half in the sky. The cell goes back on the list and is asked again
+     next frame, so a great collapse comes down in courses rather than in one
+     breath, and every block of it comes down. */
+  if(LOOSE.length>=LOOSE_MAX){ SETTLE.push(ix,iy,iz); return; }
+  const n=blockAt(ix,iy+1,iz); if(!n) return;
+  const b=blockOf(n); if(!b||!b.gravity) return;
+  const mat=MAT[b.mSide]||MAT[b.mTop]; if(!mat) return;
+  /* out of the world, into the air — and the emptying of ITS cell wakes
+     whatever stood above it, so a whole bank comes down and not one course */
+  setBlock((ix+0.5)*B,(iy+1.5)*B,(iz+0.5)*B,0);
+  const m=new THREE.Mesh(ensureLooseGeo(),mat);
+  m.position.set((ix+0.5)*B,(iy+1.5)*B,(iz+0.5)*B);
+  scene.add(m);
+  LOOSE.push({ix,iz,n,y:(iy+1)*B,vy:0,m});
+}
+/* and the water beside it, which now has a way out */
+function flowWake(ix,iy,iz,reach){
+  if(FLOW.length>FLOW_MAX) return;
+  const r=(reach===undefined)?FLOW_REACH:reach;
+  const put=(x,y,z)=>{ if(isLiquid(blockAt(x,y,z))) FLOW.push(x,y,z,r); };
+  put(ix,iy+1,iz); put(ix+1,iy,iz); put(ix-1,iy,iz); put(ix,iy,iz+1); put(ix,iy,iz-1);
+}
+/* ---- N BLOCKS, AND THEN IT STOPS ----
+   §11: "Water spreads N blocks and down, and stops." THIS IS N, and it is
+   carried by the water itself.
+
+   I wrote the rules first without it and they churned: a walled pool broken
+   at one side drained six blocks and cost a THOUSAND moves doing it, because
+   water may go from a cell to its neighbour and, a moment later, come back.
+   Down always lowers the water, but a step SIDEWAYS does not, and nothing
+   stopped it being taken twice.
+
+   So every parcel of water carries a reach. A fall RESETS it — water that has
+   found a drop has earned the right to run again — and every sideways step
+   spends one of it. At nothing it stands still. Down is therefore unbounded,
+   which is right (a stream runs to the sea), and across is bounded to N,
+   which is what makes it stop. The cistern of test 22 costs four moves. */
+const FLOW_REACH=3;
+/* AND A BACKSTOP BESIDES, because a bound in plain sight is worth more than a
+   promise about my own reasoning: no one cut may move more water than this,
+   whatever shape of ground I have not thought of. It is refilled by a HAND
+   emptying a cell and never by water's own moving. */
+const FLOW_BUDGET=1024, FLOW_MAX=8192, FLOW_PER_FRAME=8;
+const FLOW=[];
+let flowLeft=0, flowMoved=0;   /* what is left of it, and what a flow has cost */
+const FLOW_D=[[1,0],[0,1],[-1,0],[0,-1]];
+function flowStep(){
+  if(flowLeft<=0){ FLOW.length=0; return; }
+  for(let k=0;k<FLOW_PER_FRAME&&FLOW.length&&flowLeft>0;k++){
+    const reach=FLOW.pop(), iz=FLOW.pop(), iy=FLOW.pop(), ix=FLOW.pop();
+    const n=blockAt(ix,iy,iz); if(!isLiquid(n)) continue;
+    /* `r2` is what the parcel has left AFTER this step: a fall gives it all
+       of its reach back, a step across spends one */
+    const move=(tx,ty,tz,r2)=>{
+      setBlock((ix+0.5)*B,(iy+0.5)*B,(iz+0.5)*B,0);
+      setBlock((tx+0.5)*B,(ty+0.5)*B,(tz+0.5)*B,n);
+      flowLeft--; flowMoved++;
+      /* where it came from and where it went both wake their neighbours —
+         and those neighbours are woken with the reach of the parcel that
+         disturbed them, so a long slow run does not begin again at full */
+      flowWake(ix,iy,iz,r2); flowWake(tx,ty,tz,r2); FLOW.push(tx,ty,tz,r2);
+    };
+    /* DOWN FIRST, always — it is the only rule water truly keeps, and it is
+       the only one that gives the parcel its reach back */
+    if(blockAt(ix,iy-1,iz)===0&&iy-1>=EY_MIN){ move(ix,iy-1,iz,FLOW_REACH); continue; }
+    if(reach<=0) continue;                           /* it has run its N and stands */
+    /* then to any side that has a fall under it: water finds the hole */
+    const t0=Math.floor(hash2(ix*0.31,iz*0.57)*4);   /* and not always eastward */
+    let went=false;
+    for(let d=0;d<4&&!went;d++){ const q=FLOW_D[(t0+d)&3];
+      const tx=ix+q[0], tz=iz+q[1];
+      if(blockAt(tx,iy,tz)!==0) continue;
+      if(blockAt(tx,iy-1,tz)!==0) continue;
+      move(tx,iy,tz,reach-1); went=true; }
+    if(went) continue;
+    /* and last it spreads out flat — but ONLY under the weight of water
+       standing over it, which is what keeps a puddle from sliding about the
+       world of its own accord */
+    if(!isLiquid(blockAt(ix,iy+1,iz))) continue;
+    for(let d=0;d<4&&!went;d++){ const q=FLOW_D[(t0+d)&3];
+      const tx=ix+q[0], tz=iz+q[1];
+      if(blockAt(tx,iy,tz)!==0) continue;
+      move(tx,iy,tz,reach-1); went=true; }
+  }
+  /* AND WHAT IS LEFT OF THE PURSE IS LEFT ALONE. Zeroing it here — because
+     the queue had emptied — would strand the tail of a flow: a cell woken a
+     frame later, by a block landing in the water it had just left, would find
+     nothing to spend. It is refilled by the next hand and by nothing else,
+     and an unspent remainder harms nobody. */
+}
+/* whatever is still in the air, set down where it is — for the writing down
+   of the world, which may happen at any moment and must never lose a block */
+function looseSettleAll(){
+  if(!LOOSE.length) return;
+  _settling=true;
+  try{
+    for(let i=LOOSE.length-1;i>=0;i--){ const f=LOOSE[i];
+      let ly=Math.max(Math.floor(f.y/B),EY_MIN+1);
+      while(ly<EY_MAX&&blockSolidAt(f.ix,ly,f.iz)) ly++;
+      setBlock((f.ix+0.5)*B,(ly+0.5)*B,(f.iz+0.5)*B,f.n);
+      scene.remove(f.m); }
+    LOOSE.length=0;
+  } finally { _settling=false; }
+}
+/* one frame of everything the world is putting right */
+function fallTick(dt){
+  if(!SETTLE.length&&!FLOW.length&&!LOOSE.length) return;   /* a world nobody is digging */
+  _settling=true;
+  try{ fallTickIn(dt); } finally { _settling=false; }
+}
+function fallTickIn(dt){
+  /* the cells lately emptied, a bounded number of them a frame */
+  for(let k=0;k<SETTLE_PER_FRAME&&SETTLE.length;k++){
+    const ix=SETTLE.shift(), iy=SETTLE.shift(), iz=SETTLE.shift();
+    fallCheck(ix,iy,iz); flowWake(ix,iy,iz);
+  }
+  flowStep();
+  if(!LOOSE.length) return;
+  for(let i=LOOSE.length-1;i>=0;i--){
+    const f=LOOSE[i];
+    f.vy-=LOOSE_G*dt;
+    /* never more than a block in a step, or a fast fall would pass through
+       the floor it is meant to land on */
+    f.y+=Math.max(-B*0.9,f.vy*dt);
+    const iy=Math.floor(f.y/B);
+    if(iy>EY_MIN&&!blockSolidAt(f.ix,iy-1,f.iz)&&f.y>EY_MIN*B){ f.m.position.y=f.y; continue; }
+    /* IT HAS LANDED. It rests in the first cell above what stopped it — and
+       if water is standing there the water is not destroyed but pushed up,
+       because there is as much water after a fall as there was before it. */
+    let ly=Math.max(iy,EY_MIN+1);
+    while(ly<EY_MAX&&blockSolidAt(f.ix,ly,f.iz)){
+      const q=blockAt(f.ix,ly,f.iz);
+      if(isLiquid(q)&&!blockSolidAt(f.ix,ly+1,f.iz)){
+        setBlock((f.ix+0.5)*B,(ly+1.5)*B,(f.iz+0.5)*B,q); break; }
+      ly++;
+    }
+    setBlock((f.ix+0.5)*B,(ly+0.5)*B,(f.iz+0.5)*B,f.n);
+    scene.remove(f.m); LOOSE.splice(i,1);
+  }
+}
+/* ---- AND WHAT HE CARRIES IS WRITTEN DOWN ----
+   Not on every pebble. `saveState` stringifies the whole voyage — the log,
+   the visited lands, the wrecks, the pearls — and doing that once per block
+   gathered would write a hundred kilobytes a second while a man mines. It is
+   written a breath after the last thing taken, the same way the block edits
+   are, and the last write always wins. */
+let _satT=null;
+function satchelTouch(){ if(_satT) clearTimeout(_satT);
+  _satT=setTimeout(()=>{ _satT=null; saveState(); }, 900); }
+
+/* ================= THE BELT, AND THE PAGE =================
+   Phase 4, step 5. The satchel of step 4 given a face, and by §2.2 this is
+   where the phase is won or lost: the interface is the cheapest and
+   most-seen differentiator there is, and a grey hotbar of grey squares would
+   undo every other thing in this phase at a glance.
+
+   So: a strap of leather, and on it CLAY TOKENS, each fired with the face of
+   the substance it holds — drawn out of the very texture the mesher lays on
+   the block, so a token of cedar and a wall of cedar are the same picture.
+   The token in the hand stands proud of the strap and takes a gold rim.
+   Behind it the satchel opens as an ILLUMINATED PAGE: parchment, a gold rule,
+   a lettered initial in madder red, and the four-and-twenty slots upon it.
+
+   THE WHEEL IS NOT TAKEN. Every other game puts the belt on the scroll
+   wheel; in this one the wheel has drawn the eye back off the world since
+   long before there was a belt, out to the whole earth, and that is a better
+   use of it. The tokens are chosen by the number keys and by being touched —
+   which is also the answer to the phone: a token is a DOM button lying over
+   the canvas, so a finger on it never reaches the look-drag beneath, and the
+   walking-stick's own corner (the left, below a third of the way up) is
+   nowhere near the strap. Nothing of the twin-zone scheme is changed. */
+let heldSlot=0;                    /* which of the belt's eight is in the hand */
+let pageOpen=false, pagePick=-1;   /* the page, and the token lifted off it */
+function heldStack(){ return SATCHEL[heldSlot]||null; }
+function heldBlock(){ const h=heldStack(); return h?BLOCK_BY_ID[h.id]:null; }
+/* one clay token, with the face of its substance fired into it */
+function tokenEl(slot,idx,inPage){
+  const d=D.createElement('div');
+  d.className='tok'+(slot?'':' bare')+(!inPage&&idx===heldSlot?' held':'')
+    +(inPage&&idx===pagePick?' pick':'');
+  if(slot){
+    const b=BLOCK_BY_ID[slot.id];
+    const t=b&&TEX[b.mTop];
+    if(t&&t.image){ const c=D.createElement('canvas'); c.width=c.height=TEXEL;
+      const g=c.getContext('2d'); g.imageSmoothingEnabled=false;
+      try{ g.drawImage(t.image,0,0,c.width,c.height); }catch(e){}
+      d.appendChild(c); }
+    if(slot.n>1){ const n=D.createElement('div'); n.className='n'; n.textContent=slot.n; d.appendChild(n); }
+    d.title=(b?b.name:slot.id)+' — '+slot.n;
+  }
+  return d;
+}
+function beltDraw(){
+  const el=$('belt'); if(!el) return;
+  el.style.display=beltWanted()?'flex':'none';
+  if(!beltWanted()) return;
+  el.textContent='';
+  for(let i=0;i<BELT_N;i++){ const t=tokenEl(SATCHEL[i],i,false);
+    t.onpointerdown=e=>{ e.preventDefault(); e.stopPropagation(); heldSlot=i; beltDraw(); };
+    el.appendChild(t); }
+}
+/* the belt is shown where a hand could use it, and nowhere else */
+function beltWanted(){ return running&&!state.firm&&!cut&&state.mode==='walk'&&zoomMapFadeCache<0.02; }
+function pageDraw(){
+  const el=$('page'); if(!el) return;
+  el.style.display=pageOpen?'flex':'none';
+  if(!pageOpen) return;
+  /* the page says which hand it is — a man must never be in doubt about
+     whether what he lays is costing him anything */
+  { const h=$('page-head'); if(h) h.children[1].textContent=
+      freeHand()?'he Free Hand':'he Satchel'; }
+  const g=$('page-grid'), b2=$('page-belt');
+  g.textContent=''; b2.textContent='';
+  /* the page holds the four-and-twenty; the strap beneath holds the eight,
+     so a thing is moved down to the hand by two touches and no dragging —
+     which is the only scheme that works the same with a finger and a mouse */
+  for(let i=BELT_N;i<SATCHEL_N;i++){ const t=tokenEl(SATCHEL[i],i,true);
+    t.onpointerdown=e=>{ e.preventDefault(); pageTouch(i); }; g.appendChild(t); }
+  for(let i=0;i<BELT_N;i++){ const t=tokenEl(SATCHEL[i],i,true);
+    t.onpointerdown=e=>{ e.preventDefault(); pageTouch(i); }; b2.appendChild(t); }
+  worksDraw(); storesDraw();
+}
+/* ---- THE STORES ----
+   §11's "unlimited blocks", and the only honest reading of it: not a satchel
+   that never empties, but every stone in the world laid out to be picked up.
+   One touch puts a full stack of a thing into the hand, so a place is laid
+   out by choosing what to lay rather than by going to find it.
+
+   It is drawn ONLY in the free hand, and it is not merely hidden on a voyage:
+   the rows are not built at all, so a voyage pays nothing for a leaf it can
+   never open. A tool is not here — a tool is made at the works, and a man who
+   could take a pick out of the air would never make one. */
+function storesDraw(){
+  const el=$('page-stores'); if(!el) return;
+  el.textContent='';
+  if(!freeHand()) return;
+  for(let n=1;n<BLOCKS.length;n++){ const b=BLOCKS[n];
+    if(!b||b.place===false) continue;
+    /* n:1 so no tally is painted on it — a store is not a count of anything,
+       and `-1,true` keeps it out of both the held mark and the picked one */
+    const t=tokenEl({id:b.id,n:1},-1,true);
+    t.title=b.name;
+    t.onpointerdown=e=>{ e.preventDefault(); storeTake(b.id); };
+    el.appendChild(t); }
+}
+/* a full stack of it, into the slot he has picked or the first that is free —
+   and if he already holds that very thing, it is simply filled up again */
+function storeTake(id){
+  let i=(pagePick>=0)?pagePick:-1;
+  if(i<0) for(let k=0;k<SATCHEL_N;k++){
+    if(SATCHEL[k]&&SATCHEL[k].id===id&&SATCHEL[k].n<STACK){ i=k; break; } }
+  if(i<0) for(let k=0;k<SATCHEL_N;k++) if(!SATCHEL[k]){ i=k; break; }
+  if(i<0) i=heldSlot;                      /* every slot full: the hand's own */
+  SATCHEL[i]={id,n:STACK};
+  pagePick=-1; satchelTouch(); pageDraw(); beltDraw();
+}
+/* ---- THE WORKS, AS A LEDGER ----
+   Every work the world has, always, in the order world/works.js gives them —
+   never a list that grows as things are "unlocked", because §4 says this is
+   NOT A TECH TREE and a list that appears piece by piece is a tech tree with
+   the label filed off. What he cannot do yet is greyed and still legible, so
+   the page tells him what to go and look for. And what is REFUSED is not
+   greyed at all: it is in madder, because it is not a want, it is a no. */
+function worksDraw(){
+  const el=$('page-works'); if(!el) return;
+  el.textContent='';
+  for(const w of WORKS){
+    const st=workState(w);
+    const row=D.createElement('div');
+    row.className='wk'+(st.can?'':' no')+(st.why==='refused'?' refused':'');
+    const nm=D.createElement('span'); nm.className='nm'; nm.textContent=w.name;
+    const of=D.createElement('span'); of.className='of';
+    of.textContent=workLine(w,st);
+    row.appendChild(nm); row.appendChild(of);
+    row.onpointerdown=e=>{ e.preventDefault();
+      const r=workMake(w.id);
+      if(r.ok||r.why==='refused'){ pageDraw(); beltDraw(); } else worksDraw(); };
+    el.appendChild(row);
+  }
+}
+/* what a work costs, written the way a man would say it */
+function workLine(w,st){
+  const cost=w.of.map(q=>q.c+' '+blockName(q.n)).join(', ');
+  if(st.can) return cost;
+  if(st.why==='refused') return 'not of '+blockName(st.refused.n);
+  /* the works name themselves as a man would — "A Kiln", "An Altar" — so an
+     article stuck on the front of them gives "at a A Kiln" */
+  if(st.why==='place'){ const nm=blockName(blockId(w.at));
+    return 'at '+(/^(a|an|the) /i.test(nm)?nm:'a '+nm); }
+  if(st.why==='tool')    return 'wants a '+w.needs+' in the hand';
+  return cost;
+}
+function pageTouch(i){
+  if(pagePick<0){ if(SATCHEL[i]) pagePick=i; }
+  else if(pagePick===i){ pagePick=-1; }
+  else {
+    const a2=SATCHEL[pagePick], b3=SATCHEL[i];
+    /* two part-stacks of one substance pour together before they trade places */
+    if(a2&&b3&&a2.id===b3.id&&b3.n<STACK){ const put=Math.min(STACK-b3.n,a2.n);
+      b3.n+=put; a2.n-=put; if(a2.n<=0) SATCHEL[pagePick]=null; }
+    else { SATCHEL[i]=a2; SATCHEL[pagePick]=b3; }
+    pagePick=-1; satchelTouch();
+  }
+  pageDraw(); beltDraw();
+}
+function togglePage(){ pageOpen=!pageOpen; pagePick=-1; pageDraw(); beltDraw(); }
+
+/* ================= THE PLACING =================
+   Phase 4, step 6. A block set down against the face that was struck, on the
+   AIR side of it — which is what the grid walk of step 1 answers with, and
+   the reason it answers with a face at all.
+
+   AND IT REFUSES TO STAND INSIDE A LIVING THING. The brief calls this
+   immediately world-breaking and it is: a man who walls himself into his own
+   body is stuck for ever, and a man who buries a villager has silently killed
+   something the world will go on trying to walk. So the cell is measured
+   against the traveller's own body, against every villager and beast standing
+   near, and against the crew and the traders — anything that moves and is not
+   a block. Nothing of this is a guess: each is a box about a known point, and
+   the cell either crosses it or it does not.
+
+   IT IS THE BLOCK WORLD ONLY, as everything in this phase is. The ship is not
+   asked about; a man may not build inside her hull because he cannot reach
+   through her planks, and if that ever changes it will be a rule written here
+   on purpose rather than an accident. */
+const PLACE_PAD=0.35;              /* how much of a body's breadth counts as inside it */
+/* does the cell (ix,iy,iz) cross a body of this half-breadth and height,
+   standing with its feet at (x,y,z)? */
+function cellHitsBody(ix,iy,iz, x,y,z, half, tall){
+  const x0=ix*B, x1=x0+B, z0=iz*B, z1=z0+B, y0=iy*B, y1=y0+B;
+  return (x+half>x0-PLACE_PAD && x-half<x1+PLACE_PAD &&
+          z+half>z0-PLACE_PAD && z-half<z1+PLACE_PAD &&
+          y+tall>y0            && y      <y1);
+}
+/* everything alive that stands near enough to be built into */
+function cellHitsAnyLiving(ix,iy,iz){
+  /* the traveller himself, first and always */
+  if(state.mode==='walk'&&state.walk.feetY!==undefined&&
+     cellHitsBody(ix,iy,iz, state.walk.x,state.walk.feetY,state.walk.z, BODY_R, HEAD_R)) return 'the traveller';
+  const cx=(ix+0.5)*B, cz=(iz+0.5)*B;
+  for(const[,vv] of activeVillages){
+    if(!vv.site||Math.hypot(cx-vv.site.x,cz-vv.site.z)>460) continue;
+    if(vv.people) for(const e of vv.people){ const P=e.m&&e.m.position; if(!P) continue;
+      if(cellHitsBody(ix,iy,iz,P.x,P.y,P.z, 2.0, B*1.9)) return e.name||'a villager'; }
+    if(vv.beasts) for(const e of vv.beasts){ const P=e.m&&e.m.position; if(!P) continue;
+      const bl=(bodyLenOf&&bodyLenOf(e.kind))||8;
+      if(cellHitsBody(ix,iy,iz,P.x,P.y,P.z, Math.max(2.2,bl*0.4), Math.max(B,bl*0.9))) return 'a beast'; }
+  }
+  return null;
+}
+/* set down what is in the hand, against the face the arm is on */
+function placeBlock(){
+  /* ---- A TOOL IS NOT A CUBIC METRE OF TOOL ----
+     §11 step 9 gives the hand things that are HELD and not laid: a pick, an
+     axe, a knife. `place:false` on the block is the whole of the rule, and it
+     is read here because this is the one door a block goes into the world
+     through. */
+  { const h=heldBlock(); if(h&&h.place===false) return null; }
+  const a=AIM; if(!a) return {no:'nothing is within reach'};
+  const h=heldStack(); if(!h) return {no:'his hand is empty'};
+  const b=BLOCK_BY_ID[h.id]; if(!b) return {no:'he holds nothing that can be laid'};
+  /* the AIR side of the struck face — the whole reason the arm answers with
+     a face and not merely a cell */
+  const ix=a.ix+a.nx, iy=a.iy+a.ny, iz=a.iz+a.nz;
+  if(iy<EY_MIN||iy>=EY_MAX) return {no:'there is nothing there to build on'};
+  if(blockSolidAt(ix,iy,iz)) return {no:'something already stands there'};
+  const who=cellHitsAnyLiving(ix,iy,iz);
+  if(who) return {no:who+' is standing there'};
+  /* IT COSTS NOTHING IN THE FREE HAND. The stack is not touched at all, so
+     what he holds never runs out and never has to be fetched again. */
+  if(!freeHand()&&!satchelTake(h.id,1)) return {no:'his hand is empty'};
+  setBlock((ix+0.5)*B,(iy+0.5)*B,(iz+0.5)*B, b.n);
+  beltDraw(); satchelTouch();
+  return {laid:b.id, at:[ix,iy,iz]};
+}
+
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0, liveT=0;
 function frame(){
@@ -13810,7 +15793,11 @@ function frame(){
      real size and shape, not a drawn page — and the world is seen whole. */
   /* (zMapF is reckoned once, up beside the flyer's fog) */
   if(zMapF>0.02){ ensureAloftDisc();
-    aloftDisc.visible=true; aloftDisc.material.opacity=zMapF;
+    aloftDisc.visible=true;
+    /* full strength at 0.75, so that the coarse ring beneath can be taken
+       away without ever opening a hole between the two — see the ring's own
+       note further down */
+    aloftDisc.material.opacity=Math.min(1,zMapF/0.75);
     aloftDisc.position.y=175+Math.min(2200,Math.max(0,eyeY-9000)*0.06);  /* over the chunk tops, under the flyer */
     aloftTick(dt,p.x,p.z); }
   else if(aloftDisc){ aloftDisc.visible=false; if(aloftMark) aloftMark.visible=false; }
@@ -13954,6 +15941,16 @@ function frame(){
   const chunkBudget=(state.mode==='fly'&&trueSpd>260)?14
     :(state.mode==='fly'||trueSpd>50||backW>0)?9:4;
   updateChunks(p.x,p.z,chunkBudget,viewEff);
+  zoomMapFadeCache=zMapF;
+  aimTick();                         /* the block at the end of the traveller's arm */
+  if(!mineDriven) mineTick(dt);      /* and the hand held to it until it gives */
+  dropTick(dt);                      /* and what it left lying on the ground */
+  fallTick(dt);                      /* and the bank that came down after it */
+  /* the belt is redrawn only when what it shows has CHANGED — a HUD rebuilt
+     every frame is a HUD that costs a frame */
+  { const sig=(beltWanted()?1:0)+'|'+heldSlot+'|'+
+      SATCHEL.slice(0,BELT_N).map(sl=>sl?sl.id+':'+sl.n:'-').join(',');
+    if(sig!==frame._beltSig){ frame._beltSig=sig; beltDraw(); if(pageOpen) pageDraw(); } }
   /* ---- NOTHING BUT BLOCKS IN GAMEPLAY ----
      The coarse far ring is BANISHED from the played world. Down on the sea,
      ashore, on a summit, rising low over a coast — everything in view is true
@@ -14000,15 +15997,28 @@ function frame(){
   const carpet = !flyNoCarpet && (frame._carpetOn ? (viewReach>ALOFT_EYE*0.85||zMapF>0.012)
                                                   : (viewReach>ALOFT_EYE||zMapF>0.02));
   frame._carpetOn = showNear&&!underEye&&carpet;
-  /* ---- AND THE RING HOLDS UNTIL THE CHART TRULY COVERS IT ----
-     Fading it against the chart was tried and it was wrong: the chart is a
-     disc laid OVER the ring, so as the ring thinned there was a moment with
-     neither — a hole where the world should be. It stays at full strength
-     and the chart simply covers it, which is what a cross-dissolve between a
-     near thing and a far thing has to be. It goes out only at the very end,
-     when the chart is all but opaque and there is nothing of the ring left
-     to see anyway. */
-  const carpetWant=(frame._carpetOn?1:0)*(1-Math.max(0,Math.min(1,(zMapF-0.90)/0.07)));
+  /* ---- AND THE RING GOES OUT AS THE CHART COMES FULLY IN ----
+     Fading it against the chart was once tried and was wrong, and the reason
+     was recorded here: the chart is a disc laid OVER the ring, so as the ring
+     thinned there was a moment with NEITHER — a hole where the world should
+     be. So it was held at full strength until 0.90, and the chart simply
+     covered it.
+     But the chart only reached full strength at 1.0, so through the whole of
+     the middle band the eye was given a mixture — and the ring's cells are
+     sixteen hundred units across up there, one sample to two hundred and
+     seventy blocks. Aloft, that mixture is a SHARP CHART WITH A BLURRED
+     SMEAR PAINTED OVER ITS MIDDLE, and ragged navy shapes where the ring's
+     coarse sampling struck water in the midst of dry countries. From the
+     flyer's own height it is the ugliest thing in the game.
+     The answer to the old hole was never to hold the ring on; it was to
+     bring the CHART to full opacity BEFORE the ring is taken away. It reaches
+     1.0 at 0.75 now, and the ring goes out between 0.60 and 0.75 under it —
+     so the two overlap the whole way (at worst some five parts in a hundred
+     of the sky shows through, against a sky already going dark) and above
+     0.75 the charted earth is beheld clean, with nothing smeared across her.
+     Below 0.60 — the whole of the pull-back band, where the ring is the only
+     thing carrying the country — nothing whatever is changed. */
+  const carpetWant=(frame._carpetOn?1:0)*(1-Math.max(0,Math.min(1,(zMapF-0.60)/0.15)));
   farLandMat.opacity+=(carpetWant-farLandMat.opacity)*Math.min(1,dt*2.5);
   farLand.visible=farLandMat.opacity>0.02;
   if(frame._carpetOn) updateFarLand(p.x,p.z,false,eyeY);

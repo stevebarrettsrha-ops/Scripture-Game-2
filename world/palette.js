@@ -168,6 +168,60 @@ const B = {
                  a: lift(P.limestone,0.10),
                  mortar: shade(mix(P.limestone,P.rawUmber,0.4),0.62) },
 
+  /* --- THE ORE IN THE ROCK (§4, the material economy) ---
+     An ore is the country's own stone with the metal SHOWING IN IT, and it
+     must read as that and not as a coloured cube: the body is limestone, as
+     every deep rock in this world is, and the grain of metal is laid over it
+     in a few bright specks. Two tones apiece — the metal, and its own
+     shadow — so a vein has depth in it at thirty-two texels. */
+  goldOre:     { b: P.limestone, a: shade(mix(P.limestone,P.rawUmber,0.18),0.88),
+                 m: P.gold,   s: shade(P.gold,0.72) },
+  silverOre:   { b: P.limestone, a: shade(mix(P.limestone,P.rawUmber,0.18),0.88),
+                 m: P.silver, s: shade(P.silver,0.74) },
+  copperOre:   { b: P.limestone, a: shade(mix(P.limestone,P.rawUmber,0.18),0.88),
+                 m: P.copper, s: shade(P.copper,0.70) },
+  ironOre:     { b: P.limestone, a: shade(mix(P.limestone,P.rawUmber,0.18),0.88),
+                 m: P.iron,   s: shade(P.iron,0.74) },
+  /* and two stones that are worth the digging for their own sake */
+  alabaster:   { b: P.alabaster, a: shade(mix(P.alabaster,P.ochre,0.14),0.95),
+                 /* the banding of the Egyptian vessel-stone is HONEY, not
+                    white — it is the one thing that tells it from marble */
+                 vein: shade(mix(P.alabaster,P.ochre,0.26),0.97) },
+  flint:       { b: P.flint, a: shade(P.flint,0.86), glint: lift(P.flint,0.34) },
+
+  /* --- THE MADE THINGS (§4, the named works) ---
+     Everything here is something a HAND made, and it must read that way
+     beside the living rock it was made from: squared where the rock is
+     bedded, sooted where the rock is clean, hafted where the rock is whole. */
+  hewnStone:   { b: lift(P.limestone,0.06), a: shade(P.limestone,0.90),
+                 /* the chisel's own draft-lines across a dressed face */
+                 tool: shade(P.limestone,0.80), edge: lift(P.limestone,0.16) },
+  altar:       { b: P.limestone, a: shade(mix(P.limestone,P.rawUmber,0.22),0.88),
+                 /* unhewn: the joints are wide and the stones are ROUND */
+                 joint: shade(P.limestone,0.62) },
+  kiln:        { b: shade(mix(P.limestone,P.lampblack,0.30),0.94),
+                 a: shade(mix(P.limestone,P.lampblack,0.44),0.90),
+                 mouth: mix(P.cinnabar,P.saffron,0.35), ash: lift(P.ash,0.10) },
+  /* the tools: a haft of riven plank, and the stone lashed to it */
+  toolHaft:    { b: mix(P.rawSienna,P.darkOchre,0.34), a: shade(mix(P.rawSienna,P.rawUmber,0.30),0.86) },
+  toolStone:   { b: P.flint, a: shade(P.flint,0.84), glint: lift(P.flint,0.38),
+                 cord: mix(P.ochre,P.rawUmber,0.35) },
+
+  /* --- THE STONES OF THE BREASTPLATE (§4) ---
+     SHEMOTH 28:17-20 names twelve; these are the six the paint box already
+     had pigments for, and they are named as the SOURCE names them — shoham,
+     not onyx; ruby, not sardius. A gem is drawn as the country's own rock
+     with the crystal growing OUT of it, so it reads as a thing found in a
+     wall and not as a coloured cube: body, facet, and one bright glint where
+     a face catches the light. */
+  gemBody:     { b: shade(P.limestone,0.86), a: shade(P.limestone,0.74) },
+  sapphire:    { m: P.sapphire, s: shade(P.sapphire,0.66), g: lift(P.sapphire,0.42) },
+  jasper:      { m: P.jasper,   s: shade(P.jasper,0.68),   g: lift(P.jasper,0.34) },
+  topaz:       { m: P.topaz,    s: shade(P.topaz,0.70),    g: lift(P.topaz,0.38) },
+  shoham:      { m: P.onyx,     s: shade(P.onyx,0.62),     g: lift(P.onyx,0.46) },
+  emerald:     { m: P.malachite,s: shade(P.malachite,0.66),g: lift(P.malachite,0.40) },
+  ruby:        { m: P.cinnabar, s: shade(P.cinnabar,0.64), g: lift(P.cinnabar,0.40) },
+
   /* --- the cold end of the world --- */
   snow:        { b: P.snow, a: shade(P.snow,0.96) },
   ice:         { b: P.glacier, a: shade(P.glacier,0.94), glint: P.rime },

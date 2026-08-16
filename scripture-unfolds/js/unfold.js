@@ -28,6 +28,63 @@
     return a;
   }
 
+  /* ================= THE HANDSHAKE WITH THE VOYAGE =================
+     §5: taking a scroll up in the voyage must *"unlock its long-form passage
+     in Scripture Unfolds, which reads the same log."*
+
+     IT DID NOT. Neither this file nor any other under scripture-unfolds/ so
+     much as mentioned the voyage's save; the shelf listed every passage it
+     had, always, to everybody. The two games shared an engine, a world and a
+     Besorah, and shared nothing at all about what the traveller had actually
+     done — which is the whole of what makes finding a scroll matter.
+
+     THE LOG IS ONE STRING UNDER ONE KEY. `voyage:state`, written by the
+     voyage's own `saveState`, carrying `sr` — the ids of the scrolls taken
+     up. This reads it and never writes it: the second game is a READER of
+     the first, and a bug here must never be able to cost anybody a voyage.
+
+     AND WITH NO VOYAGE AT ALL, EVERYTHING IS OPEN. Someone who opens this
+     page on its own has not failed to find anything — they have simply not
+     played the other game, and locking them out of their own scrolls to
+     enforce a rule about a save file they do not have would be absurd. The
+     gate closes only when there IS a log to gate against. */
+  const VOYAGE_KEY='voyage:state';
+  function voyageLog(){
+    let raw=null;
+    try{ raw=localStorage.getItem(VOYAGE_KEY); }catch(e){}
+    if(!raw) return null;
+    try{ return JSON.parse(raw); }catch(e){ return null; }
+  }
+  /* the marks fold away — ḆERĔSHITH and bereshith are the one book */
+  function norm(t){ return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().replace(/[^a-z0-9]/g,''); }
+  /* WHICH BOOKS HE HAS FOUND. The voyage's scrolls name their book the way a
+     man reads it ('BERĔSHITH'); a passage here names it the way the Besorah
+     files it ('bereshith'). They are matched on the folded name, through
+     world/scrolls.js, which both games load. */
+  function foundBooks(){
+    const log=voyageLog();
+    if(!log||!log.sr) return null;              /* no voyage: nothing is gated */
+    const taken=new Set(log.sr);
+    const out=new Set();
+    const list=(window.EARTH&&EARTH.scrollList)||[];
+    for(const sc of list){
+      if(!taken.has(sc.id)) continue;
+      const want=norm(sc.book||'');
+      /* THE SPINE, NOT THE BOOK. This asked BESORAH for each scroll in turn
+         and read its names off the open book — which worked only while every
+         book was loaded at boot, and would now have fetched two megabytes of
+         scripture to answer a question about a save file. The index carries
+         both names of every scroll and is a kilobyte. */
+      for(const bk of (BESORAH.titles?BESORAH.titles():[])){
+        if(norm(bk.id)===want||norm(bk.hebrew||'')===want||norm(bk.english||'')===want){
+          out.add(bk.id); break; }
+      }
+      out.add(want);                            /* and by its own folded name */
+    }
+    return out;
+  }
+
   /* ---------------- THE SHELF ---------------- */
   let sel=0;
   function items(){ return Array.prototype.slice.call(D.querySelectorAll('.sc-item')); }
@@ -35,14 +92,37 @@
   function buildShelf(){
     const list=$('shelf-list');
     list.innerHTML='';
+    const found=foundBooks();          /* null when there is no voyage at all */
     for(const s of STORY.list()){
       const b=D.createElement('button');
-      b.className='sc-item';
-      const bk=BESORAH.has(s.book)?BESORAH.get(s.book):null;
-      b.innerHTML='<div class="n">'+s.name+'</div>'+
-        '<div class="r">'+(bk?bk.hebrew+' &mdash; '+bk.english:'')+'</div>';
-      b.onclick=()=>openScroll(s.id);
-      b.onmouseover=()=>{ sel=items().indexOf(b); paint(); };
+      /* A PASSAGE IS OPEN WHEN EVERY SCROLL IT READS HAS BEEN TAKEN UP, or
+         when there is no voyage to ask. What is shut is SHOWN and greyed and
+         NAMES WHAT IS MISSING — the same rule the works page keeps: a man
+         should be able to see what he has not got yet, so he knows what to go
+         and do.
+
+         EVERY SCROLL IT READS, not the one it is filed under. This asked
+         about `s.book` alone, and the garden is filed under BERĔSHITH and
+         spends its last minute in ADAM AND HAWWAH 1 — so taking up the scroll
+         of the beginning opened a passage half of which was still buried in a
+         cave in the Zagros, and finding that cave opened nothing at all. The
+         books are read off the caption track (STORY.booksOf), so a film can
+         never come apart from the scrolls it quotes. */
+      const need=STORY.booksOf(s);
+      const miss=found?need.filter(id=>!found.has(id)&&!found.has(norm(id))):[];
+      const open=!found||!miss.length;
+      b.className='sc-item'+(open?'':' shut');
+      const heb=id=>{ const k=BESORAH.name?BESORAH.name(id):null; return k?k.hebrew:id; };
+      let row;
+      if(!open) row='still in the earth: '+miss.map(heb).join(' &middot; ');
+      else if(need.length===1){ const k=BESORAH.name?BESORAH.name(need[0]):null;
+        row=k?k.hebrew+' &mdash; '+k.english:''; }
+      else row=need.map(heb).join(' &middot; ');
+      b.innerHTML='<div class="n">'+s.name+'</div><div class="r">'+row+'</div>';
+      if(open){
+        b.onclick=()=>openScroll(s.id);
+        b.onmouseover=()=>{ sel=items().indexOf(b); paint(); };
+      }
       list.appendChild(b);
     }
     paint();
@@ -65,7 +145,15 @@
   }
   function hideShelf(){ $('shelf').style.display='none'; }
 
-  function openScroll(id){ hideShelf(); STORY.play(id); }
+  /* the scroll is fetched here, and if it cannot be the shelf comes straight
+     back rather than leaving a man staring at an idling world */
+  function openScroll(id){
+    hideShelf();
+    Promise.resolve(STORY.play(id)).then(function(ok){ if(!ok) showShelf(); });
+  }
+
+  /* the voyage's log, and what it has opened — for the acceptance suite */
+  window.__UNFOLD={ log:voyageLog, found:foundBooks, rebuild:buildShelf };
 
   /* when a scroll runs out, or is left, the shelf comes back */
   window.__STORY_DONE=function(){ showShelf(); };

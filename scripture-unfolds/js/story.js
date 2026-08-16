@@ -90,8 +90,35 @@ window.STORY=(function(){
     return _coast;
   }
 
+  /* ---- WHICH SCROLLS A SCENE READS, read off the scene ----
+     Not declared, DERIVED. A scene names its own book, but a caption track
+     may quote another and often should: the garden is told by BERĔSHITH and
+     then taken up by ADAM AND HAWWAH 1, because that is the order the two
+     accounts happened in. Every `q` is a book, so every book a scene needs
+     is already written in its captions and nothing has to be kept in step by
+     hand. The engine knows no scene's scrolls by name. */
+  function booksOf(s){
+    const set={}; if(s.book) set[s.book]=1;
+    for(const c of s.caps||[]) if(c.q&&c.q[0]) set[c.q[0]]=1;
+    return Object.keys(set);
+  }
+
+  /* A SCROLL IS UNROLLED BEFORE IT IS READ. The books are fetched one at a
+     time (see js/besorah.js) so a phone is not asked to parse two megabytes
+     of scripture to reach a shelf, which means `play` can no longer be
+     instantaneous. It answers a promise: true when the scene ran, false when
+     the scroll could not be opened — and a caller that ignores it is no
+     worse off than before. */
   function play(id){
-    const s=SCENES[id]; if(!s){ console.warn('STORY: no scene',id); return false; }
+    const s=SCENES[id]; if(!s){ console.warn('STORY: no scene',id); return Promise.resolve(false); }
+    const want=booksOf(s).filter(b=>!BESORAH.loaded(b));
+    if(!want.length){ begin(s); return Promise.resolve(true); }
+    return Promise.all(want.map(b=>BESORAH.open(b)))
+      .then(()=>{ begin(s); return true; })
+      .catch(e=>{ console.warn('STORY: '+(e&&e.message||e)); return false; });
+  }
+
+  function begin(s){
     if(cur) end(true);
     cur=s; capIdx=-1; titleIdx=-1;
     $('sc-cine').classList.add('on');
@@ -164,5 +191,6 @@ window.STORY=(function(){
   const _st=window.__STAGE_TICK;
   window.__STAGE_TICK=function(dt){ _st(dt); tickCaps(); };
 
-  return {scene,get,list,play,skip,end,anchorFor,playing:()=>cur,current:()=>cur};
+  return {scene,get,list,play,skip,end,anchorFor,booksOf,capText,
+          playing:()=>cur,current:()=>cur};
 })();
