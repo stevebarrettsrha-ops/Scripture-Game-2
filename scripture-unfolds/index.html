@@ -268,6 +268,10 @@ window.__BOOTUI=(function(){
 window.__WORLDFILES=MANIFEST.load("../", function(done,total){
   if(window.__BOOTUI&&done%24===0) __BOOTUI.stage(null, 0.02+0.08*(done/total));
 });
+/* the rejection is owned here and now — nothing watches this until three.js
+   has landed, and a file near the top of the manifest fails long before
+   then. See the same three lines in the voyage's index.html. */
+window.__WORLDFILES.catch(function(){});
 </script>
 
 <!-- ============ THE SCROLLS THEMSELVES ============
@@ -290,8 +294,13 @@ window.__WORLDFILES=MANIFEST.load("../", function(done,total){
       if(!window.__VOYAGE){ fail('The engine of the world could not be raised.'); return; }
       BUI.stage('Kindling the engine of the world…',0.10);
       window.__VOYAGE();                     /* the shared world wakes, and stands back */
+      /* a thing the manifest gave up on. Nothing here reads a creature or a
+         town by name, so the films are whole either way — but it is said. */
+      var lost=window.MANIFEST&&MANIFEST.lost;
+      if(lost&&lost.length&&window.console)
+        console.warn('THE WORLD IS SHORT '+lost.length+': '+lost.join(', '));
       loadStory();
-    },function(e){ fail('A file of the world could not be read: '+(e&&e.message||e)); });
+    },function(e){ fail((e&&e.message||String(e))); });
   }
   function loadStory(){
     /* the stage, the story runner and the scrolls are loaded only once the

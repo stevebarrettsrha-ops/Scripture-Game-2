@@ -1397,6 +1397,56 @@ T[31]={name:'every caption of every long film fetches a real verse out of the Be
     } finally { await browser.close(); }
   }};
 
+T[36]={name:'nothing of the world was lost on the way in, and its ids are still its places',
+  /* THE FAULT THIS GUARDS. The manifest appended all three hundred and
+     sixty-five files at once, and one that failed to arrive rejected the
+     whole promise: the loading screen read "A file of the world could not be
+     read: creatures/jerboa.js" and that was the end of a hundred and
+     seventy-six countries. It is loaded in ordered batches now, each file
+     tried three times, and a CREATURE or a CITY that still will not come is
+     let go of — the voyage sails without it and names it.
+
+     WHAT MUST NOT BE LET GO OF is the point of this test. A country's id is
+     its place in EARTH.list and a block's id is its place in EARTH.blockList
+     — both of them the file's place in the manifest — so ONE missing country
+     file would shift every id after it and hand the traveller a different
+     world under the same save. The manifest calls those fatal. This asks the
+     running world whether the two agree: as many countries as there are
+     `countries/` lines, as many blocks as `blocks/` lines, and every path
+     the manifest is willing to lose genuinely looked up by NAME.
+
+     It cannot see a dropped file itself — that wants a server that drops one,
+     and tools/thin-connection.js is that. This is the cheap half, and it runs
+     on every suite. */
+  run:async page=>page.evaluate(()=>{
+    const M=window.MANIFEST, E=window.EARTH;
+    if(!M||!M.files) return {pending:'no manifest on the page'};
+    const count=re=>M.files.filter(f=>re.test(f)).length;
+    const want={countries:count(/^countries\//), blocks:count(/^blocks\//),
+                beasts:count(/^creatures\//),    cities:count(/^cities\//)};
+    const got={countries:E.list.length, blocks:E.blockList.length,
+               beasts:E.beastList.length, cities:E.cityList.length};
+    const faults=[];
+    /* the two positional lists must match to the file, or an id has moved */
+    for(const k of ['countries','blocks'])
+      if(got[k]!==want[k]) faults.push(k+': '+got[k]+' stood but the manifest lists '+want[k]);
+    /* the two by-name lists may fall short, but only by what was declared lost */
+    const lost=M.lost||[];
+    for(const k of ['beasts','cities']){
+      const short=want[k]-got[k];
+      const owned=lost.filter(f=>new RegExp('^'+(k==='beasts'?'creatures':'cities')+'/').test(f)).length;
+      if(short!==owned) faults.push(k+': '+got[k]+' of '+want[k]+', and '+owned+' declared lost');
+    }
+    /* and nothing positional may ever be called skippable */
+    const wrong=M.files.filter(f=>M.skippable(f)&&!/^(creatures|cities)\//.test(f));
+    if(wrong.length) faults.push('these are positional and yet let go of: '+wrong.slice(0,3).join(', '));
+    if(lost.length) faults.push('THIS RUN LOST: '+lost.join(', '));
+    return {ok:!faults.length,
+      got:M.files.length+' files · '+got.countries+'/'+want.countries+' countries · '+
+        got.blocks+'/'+want.blocks+' blocks · '+got.beasts+'/'+want.beasts+' beasts · '+
+        got.cities+'/'+want.cities+' cities'+(faults.length?' · '+faults.join(' · '):'')};
+  })};
+
 T[29]={name:'taking a scroll plays a scene at the place, holding that scroll\'s own verse',
   run:async page=>page.evaluate(async()=>{
     const D=window.__VDBG, B=D.B;

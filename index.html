@@ -280,6 +280,10 @@
     font-size:clamp(11px,1.7vmin,14px); line-height:1.6; }
   #menu-hint{ position:absolute; left:3vw; bottom:3.2vh; font-size:clamp(9px,1.4vmin,12px);
     letter-spacing:.2em; color:#8b8271; }
+  /* said only when a file of the world would not come and the voyage sailed
+     without it — see world/manifest.js. Empty and unseen on a whole world. */
+  #m-short{ display:none; margin-top:2.2vh; padding:0 1.8vh; color:#c98a6a;
+    font-style:italic; font-size:clamp(10px,1.6vmin,13px); line-height:1.6; }
   /* the two great books of the menu — the controls and the options */
   .mmodal{ position:fixed; inset:0; z-index:34; display:none; align-items:center;
     justify-content:center; background:rgba(4,6,13,.9); }
@@ -555,6 +559,9 @@
       <button class="mi" id="mc-keep">Keep the old voyage</button>
       <button class="mi" id="mc-anew">Wash it away &mdash; begin anew</button>
     </div>
+    <!-- a file of the world that would not come, named plainly rather than
+         swallowed. Stays empty and unseen on a whole world. -->
+    <div id="m-short"></div>
   </div>
   <div id="menu-logo">
     <svg viewBox="0 0 200 200" aria-hidden="true">
@@ -817,6 +824,15 @@ window.__MENUUI=(function(){
 window.__WORLDFILES=MANIFEST.load("", function(done,total){
   if(window.__BOOTUI&&done%24===0) __BOOTUI.stage(null, 0.02+0.08*(done/total));
 });
+/* THE REJECTION IS OWNED HERE AND NOW. Nothing watches __WORLDFILES until
+   three.js has landed, and three.js comes over a wire that may take seconds
+   or may take a fall back to the shipped copy. A file near the TOP of the
+   manifest that will not come rejects long before then, and a rejected
+   promise with nobody on it is an "unhandled rejection" in the console —
+   noise on top of a boot that is already failing, and on some browsers a
+   thrown error box over the loading screen. This handler is a receipt, not a
+   remedy: the promise still rejects, and boot() below still reads it. */
+window.__WORLDFILES.catch(function(){});
 </script>
 <script>
 (function(){
@@ -831,8 +847,20 @@ window.__WORLDFILES=MANIFEST.load("", function(done,total){
     if(!window.THREE){ fail(); return; }
     window.__WORLDFILES.then(function(){
       if(!window.__VOYAGE){ fail(); return; }
+      /* a thing the manifest gave up on after three askings. The world stands
+         — it is a creature or a town, looked up by name — but the traveller
+         is told which, rather than left to wonder where the jerboas went. */
+      var lost=window.MANIFEST&&MANIFEST.lost;
+      if(lost&&lost.length){
+        var el=document.getElementById('m-short');
+        if(el){ el.textContent='The world sails short '+
+          (lost.length===1?'one thing':lost.length+' things')+
+          ' that would not be read — '+lost.join(', ')+
+          '. All else stands. Open it again and it may come.';
+          el.style.display='block'; }
+      }
       BUI.stage('Kindling the engine of the world…',0.12); window.__VOYAGE();
-    },function(e){ BUI.fail('A file of the world could not be read: '+(e&&e.message||e)); });
+    },function(e){ BUI.fail((e&&e.message||String(e))); });
   }
   function tryLocal(){
     var l=document.createElement('script'); l.src='three.min.js';
