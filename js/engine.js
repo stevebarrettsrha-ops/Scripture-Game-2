@@ -521,6 +521,90 @@ TEX.plantW = mkTex(g=>{ g.clearRect(0,0,16,16);
         g.fillRect(x+(y>h2-3?(hash2(k,9.1)>0.5?FG:-FG):0),16-FG-y,FG,FG); } } });
 TEX.solidW = mkTex(g=>speckle(g,[228,228,228],26,[198,198,198],0.35),16,16,RIM);
 blockMat('leafW',TEX.leafW,{alphaTest:0.4}); blockMat('barkW',TEX.barkW);
+/* ================= §2.4.3 — THE BARK OF EACH KIND =================
+   *"Bark per species. Silver-birch paper, cork oak, cedar fissures, palm
+   rings, olive's twisted grey. One 32×32 texture each, generated."*
+
+   ONE TEXTURE EACH IS ONE MATERIAL EACH, AND THERE ARE A HUNDRED AND SEVENTY
+   SPECIES. The whole reason a hundred and seventy species cost nothing in
+   this game is the rule written twenty lines above: leaf, bark, blade and
+   fruit are drawn ONCE, in grey, and every species tints its own faces as
+   they are laid. A texture per species tears that up and hands the mesher a
+   hundred and seventy material groups to sort every chunk. An atlas would
+   dodge it, and cannot: the mesher's UVs are (width/B, height/B) so the
+   texture REPEATS once per block up a bole, and a repeat cannot be confined
+   to a band of a sheet.
+
+   SO THE BARK IS ASSIGNED, NOT INVENTED PER SPECIES — which is exactly what
+   §2.4.2 says to do with the canopy, and for the same reason. There are only
+   so many ways a bark can be, and every tree on the earth wears one of them:
+
+     bark      the deep-fissured default — the oak, the ash, the elm
+     paper     the birch — fine horizontal lenticels peeling in ribbons
+     ring      the palm, the tree fern — the stacked scars of fallen fronds
+     plate     the pine, the plane — broad flat plates with dark seams
+     twist     the olive, the yew — grain running crosswise round the bole
+     cork      the cork oak, the redwood — thick spongy furrows, soft-edged
+     smooth    the beech, the gum — near-bare, with faint horizontal streaks
+
+   Six new textures, six new materials, and the per-species TINT still sits on
+   top of every one of them — so a birch and an aspen wear the same paper in
+   two different greys, as they do. What it costs in draw calls is measured
+   and written into AUDIT, not assumed: a stand of one wood runs fifty metres
+   (world/flora.js), so a chunk holds one or two barks and not six. */
+TEX.barkPaper = mkTex(g=>{ for(let y=0;y<16;y+=FG) for(let x=0;x<16;x+=FG){
+    /* a pale sheet, and the lenticels lie ACROSS it — that mark alone is
+       what makes a birch a birch at forty paces */
+    let v=214+hash2(x*4.7,y*2.1)*34;
+    const len=hash2(Math.floor(y/FG)*3.1,7.7);              /* which rows carry them */
+    if(len>0.80&&hash2(x*1.9,y*0.3)>0.34) v*=0.58;          /* the dark dashes */
+    else if(len>0.72) v*=0.88;
+    if(hash2(x*0.5,y*6.1)>0.93) v*=0.74;                    /* a curl of peeling ribbon */
+    Pf(g,x,y,rgb(...[0,0,0].map(()=>Math.round(Math.min(255,v))))); } });
+TEX.barkRing = mkTex(g=>{ for(let y=0;y<16;y+=FG) for(let x=0;x<16;x+=FG){
+    /* the scars of fallen fronds, stacked in rings up the stem, each one
+       stepped a little so the bole does not read as a barcode */
+    const step=Math.floor(hash2(Math.floor(y/FG/3),2.3)*3)*FG;
+    const band=(y+step)%(3*FG);
+    let v=178+hash2(x*2.3,y*5.7)*46;
+    if(band<FG) v*=0.62;                                    /* the scar itself */
+    else if(band<2*FG) v*=1.06;                             /* the swell under it */
+    Pf(g,x,y,rgb(...[0,0,0].map(()=>Math.round(Math.min(255,v))))); } });
+TEX.barkPlate = mkTex(g=>{ for(let y=0;y<16;y+=FG) for(let x=0;x<16;x+=FG){
+    /* broad flat plates, the seams between them dark and irregular — a pine
+       is not fissured, it is TILED */
+    const px2=Math.floor(x/FG/4), py2=Math.floor(y/FG/3);
+    const jx=hash2(px2*1.7,py2*3.3), jy=hash2(px2*5.1,py2*0.9);
+    const ex=Math.abs((x/FG)%4-jx*3.4), ey=Math.abs((y/FG)%3-jy*2.4);
+    let v=186+hash2(px2*9.1,py2*4.7)*54;                    /* each plate its own tone */
+    if(ex<0.9||ey<0.9) v*=0.66;                             /* the seam */
+    v*=0.94+hash2(x*7.3,y*3.1)*0.12;
+    Pf(g,x,y,rgb(...[0,0,0].map(()=>Math.round(Math.min(255,v))))); } });
+TEX.barkTwist = mkTex(g=>{ for(let y=0;y<16;y+=FG) for(let x=0;x<16;x+=FG){
+    /* the grain runs round the bole and not up it — an old olive is a rope */
+    const d=(x*0.62+y*1.0);
+    const groove=Math.abs((d%4.6)-2.3);
+    let v=170+hash2(x*3.7,y*2.9)*52;
+    if(groove<0.75) v*=0.64; else if(groove>1.9) v*=1.10;
+    if(hash2(x*8.3,y*1.1)>0.90) v*=0.80;                    /* the knots and welts */
+    Pf(g,x,y,rgb(...[0,0,0].map(()=>Math.round(Math.min(255,v))))); } });
+TEX.barkCork = mkTex(g=>{ for(let y=0;y<16;y+=FG) for(let x=0;x<16;x+=FG){
+    /* thick and spongy: the furrows are WIDE and their edges soft, which is
+       what tells cork from the hard-edged fissure of an oak */
+    const f=Math.abs(((x*1.0+hash2(0,Math.floor(y/FG/2))*2.2)%6)-3);
+    let v=192+hash2(x*2.1,y*3.9)*40;
+    v*=0.62+0.38*Math.min(1,f/2.2);                          /* the soft-sided furrow */
+    v*=0.93+hash2(x*6.7,y*6.1)*0.14;                         /* and the pitting all over */
+    Pf(g,x,y,rgb(...[0,0,0].map(()=>Math.round(Math.min(255,v))))); } });
+TEX.barkSmooth = mkTex(g=>{ for(let y=0;y<16;y+=FG) for(let x=0;x<16;x+=FG){
+    /* a beech is nearly bare — faint horizontal streaking and nothing else.
+       Its whole character is that it has none. */
+    let v=206+hash2(x*1.3,Math.floor(y/FG)*4.1)*30;
+    if(hash2(Math.floor(y/FG)*2.7,1.9)>0.86) v*=0.90;
+    Pf(g,x,y,rgb(...[0,0,0].map(()=>Math.round(Math.min(255,v))))); } });
+blockMat('barkPaper',TEX.barkPaper);   blockMat('barkRing',TEX.barkRing);
+blockMat('barkPlate',TEX.barkPlate);   blockMat('barkTwist',TEX.barkTwist);
+blockMat('barkCork',TEX.barkCork);     blockMat('barkSmooth',TEX.barkSmooth);
 /* ---- AND A SECOND LEAF, FOR THE TREES THAT DO NOT TURN ----
    §2.4.4 asks for autumn colour with *"evergreens unchanged"*, and there
    was ONE leaf material in the world. The gilding is worked out in the
@@ -6071,7 +6155,26 @@ function seabedDepth(x,z){
    field instead of the blocks, and the two differ by up to half a block. So
    the diver swam through the face of the bed, and the octopus stood with
    half her bulk inside it. There is one bed now, and this is its top. */
-function bedTop(x,z){ return Math.round(seabedDepth(x,z)/B)*B; }
+/* ---- AND A BLOCK TAKES ITS HEIGHT FROM ITS OWN CENTRE ----
+   THE OCTOPUS CAME BACK. This function was written to mend exactly the fault
+   above and mended half of it: it snaps the height to the block grid, which
+   was the first half, and it reads the field AT THE BEAST'S OWN POINT, which
+   is the second half and was wrong.
+
+   Neither floor is drawn that way. The sea-floor patch takes one height per
+   cell at THE CELL'S CENTRE (see updateSeaFloor: `(i+0.5)*SB_CS`), and the
+   chunk mesher's coastal shelf does the same on the block grid. So wherever
+   the depth field moves within one block — which is everywhere near a coast,
+   and the coast is where the small reef beasts live — the floor the eye sees
+   and the floor a beast was seated on differed by up to a whole block, and
+   the beast was seated the LOWER of the two. She sank to her eyes in the
+   sand, and only her head stood out of it.
+
+   It reads the centre of the block she is over now, which is the one point
+   both meshes agree on, so there is one floor again and it is the drawn one. */
+function bedTop(x,z){
+  const cx=(Math.floor(x/B)+0.5)*B, cz=(Math.floor(z/B)+0.5)*B;
+  return Math.round(seabedDepth(cx,cz)/B)*B; }
 function haunt(x,z,maxM){ return Math.max(bedTop(x,z), SEA_SURF-maxM*U_PER_M); }
 const H_REEF=90, H_FISH=220, H_DOLPHIN=180, H_SHARK=280, H_SQUID=650, H_JELLY=700, H_WHALE=320;
 /* ================= THE BED OF THE SEA IS BLOCKS =================
@@ -6752,12 +6855,24 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
     s.m.userData.tail.rotation.y=Math.sin(t*(hunting?7:4)+s.ph)*(hunting?0.45:0.3); } }
 /* ---- turtles, rays, whales, pufferfish, jellyfish, crabs ---- */
 /* a generic wandering sea-mob pool (turtle/ray/whale/puffer) */
+/* how far a built beast reaches below the point she is positioned by */
+const _dropBox=new THREE.Box3();
+function beastDrop(m){ if(!m) return 0;
+  _dropBox.setFromObject(m); return Math.max(0,-_dropBox.min.y); }
 function mkSeaMob(kind,n,R,rSpawn,near,deepM,lat){ const arr=[];
   for(let k=0;k<n;k++){ const m=makeBeast(kind); m.visible=false; scene.add(m); arr.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false,sp:near?7:12}); }
   /* EVERY BEAST NEEDS ROOM FOR ITS OWN BULK. A whale grown to sixteen metres
      stands three units off the bed at the old clearance and ploughs the sand
      with her belly. The clearance a beast keeps is read off its own length. */
   arr._R=R; arr._rs=rSpawn; arr._near=near; arr._len=beastUnits(kind); arr._deep=deepM||H_REEF; arr._kind=kind;
+  /* ---- AND HOW FAR SHE HANGS BELOW HER OWN ORIGIN, MEASURED ----
+     The clearance was a fraction of her LENGTH, which is a guess and is only
+     right for things shaped like a fish. An octopus is a head with eight arms
+     hanging under it: a third of her length does not reach the ends of them,
+     so she was seated with her arms — and then her mantle — in the sand. It
+     is read off the model she is actually drawn with, once, here, and nothing
+     needs to know any beast by name. */
+  arr._drop=beastDrop(arr[0]&&arr[0].m);
   /* AND SOME OF THEM KEEP TO THEIR OWN WATER. A walrus is not met off Ceylon
      and a manatee is not met under the ice: a nation of beasts may name the
      band of latitude it belongs to, and it is simply absent from the rest of
@@ -6794,7 +6909,7 @@ function updateSeaMob(arr,px,py,pz,dt,t){
         o.x=x; o.z=z; drew=true; break; }
       if(!drew){ o.m.visible=false; continue; }
       const fy=haunt(o.x,o.z,arr._deep||H_REEF);
-      const clr=Math.max(4,(arr._len||24)*0.35);   /* she swims a third of her own length clear */
+      const clr=Math.max(4,(arr._drop||0)+1.5,(arr._len||24)*0.35);   /* clear of the sand by her own reach */
       o.y = arr._near ? fy+clr+Math.random()*14 : Math.min(SEA_SURF-clr,fy+clr+Math.random()*60); o.dir=Math.random()*6.28; o.set=true; o.m.visible=true;
       o.sp=B2?B2.swimOf(kind,arr._near?7:12):(arr._near?7:12);
       o.breath=air?(3+Math.random()*28):0; o.act=null; o.actT=0; o.surf=0; }
@@ -6824,7 +6939,7 @@ function updateSeaMob(arr,px,py,pz,dt,t){
     /* the water it holds: rising to breathe, sounding to the bed, hanging at
        the top, or the gentle mid-water bob it keeps between whiles */
     const fy=haunt(o.x,o.z,arr._deep||H_REEF);
-    const clr=Math.max(3,(arr._len||24)*0.30), loF=fy+clr, hiF=SEA_SURF-clr*0.5;
+    const clr=Math.max(3,(arr._drop||0)+1.5,(arr._len||24)*0.30), loF=fy+clr, hiF=SEA_SURF-clr*0.5;
     if(o.surf){ o.y+=(hiF-o.y)*Math.min(1,dt*0.7); if(o.y>=hiF-2){ o.surf=0; o.breath=20+Math.random()*26; } }
     /* ---- THE BREACH ----
        "There is that leviathan, whom thou hast made to play therein." A
