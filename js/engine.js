@@ -2625,6 +2625,13 @@ MAT_BLOCK.iceTop=MAT_BLOCK.iceTop||blockId('ice');
 MAT_BLOCK.iceSide=MAT_BLOCK.iceSide||blockId('ice');
 MAT_BLOCK.solidW=MAT_BLOCK.solidW||blockId('stone');
 MAT_BLOCK.barkW=MAT_BLOCK.barkW||blockId('log');
+/* §2.4.3 — every bark is the same BLOCK when a hand breaks it. The six
+   patterns are how a birch differs from a palm to the eye; to the pick they
+   are all log, and a stack of logs is a stack of logs whichever wood it came
+   from. (Without these the mesher's stamp would answer `stone` for a bole,
+   and a birch would break into rubble.) */
+for(const m of ['barkPaper','barkRing','barkPlate','barkTwist','barkCork','barkSmooth'])
+  MAT_BLOCK[m]=MAT_BLOCK[m]||MAT_BLOCK.barkW;
 MAT_BLOCK.everW=MAT_BLOCK.everW||MAT_BLOCK.leafW||blockId('leaves');
 function blockForMat(m){ const n=MAT_BLOCK[m]; return n===undefined?blockId('stone'):n; }
 
@@ -15327,8 +15334,36 @@ function cutCrack(ix,iy,iz,nx,ny,nz){
 /* one frame of the hand at work */
 function mineTick(dt){
   const tgt = mineTestAt || AIM;
+  /* ---- WHY A BLOW WOULD NOT LAND, AND IT NEVER COULD ----
+     THE FAULT: "the blocks do not behave like Minecraft does." The mechanics
+     were sound — the hardness table gives stone eight and a half seconds to a
+     bare hand, which is Minecraft's own figure to within a second, the crack
+     figure runs, the drop spawns, the satchel takes it. NONE OF IT COULD EVER
+     RUN, because of the gate on this line.
+
+     `drag.mv` is the TOTAL movement of a press and IS NEVER RESET. Six pixels
+     of drift at any moment in a press put it over the bar for the whole of
+     the rest of that press. A block takes SECONDS of holding, and no hand on
+     a mouse holds within six pixels of one spot for eight seconds. So on a
+     desktop the blow could not be struck at all, and everything downstream of
+     it went with it: nothing broke, so nothing dropped, so nothing was picked
+     up, so the belt stayed empty, so `placeBlock` refused for want of
+     anything to lay. Four faults reported, one line.
+
+     (This is the price of the acceptance suite testing the FREE hand only —
+     where a blow lands on the first frame and the gate is never felt. The
+     voyage hand, the one actually played, had no test at all.)
+
+     STILLNESS IS JUDGED OVER THE LAST MOMENT INSTEAD, which is what was meant
+     all along: `drag.t` is when the pointer last moved, so a press that has
+     settled strikes, and a press that is sweeping the view does not. AND A
+     BLOW ALREADY STRUCK GOES ON while the button is down — a man does not
+     stop digging because he turned his head, and the aim moving to another
+     block already closes the old fracture and opens a new one, twenty lines
+     below. */
+  const still = drag && (performance.now()-drag.t)>90;
   const held = mineHeld || !!keys.KeyR ||
-    (drag && drag.mv<6 && drag.t0!==undefined && performance.now()-drag.t0>120);
+    (drag && drag.t0!==undefined && performance.now()-drag.t0>120 && (still||MINE.on));
   if(!held||!tgt||gamePaused||cut){ mineStop(); return; }
   const b=blockOf(tgt.n||blockAt(tgt.ix,tgt.iy,tgt.iz));
   if(!b){ mineStop(); return; }

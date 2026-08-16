@@ -1397,6 +1397,79 @@ T[31]={name:'every caption of every long film fetches a real verse out of the Be
     } finally { await browser.close(); }
   }};
 
+T[38]={name:'in a VOYAGE, a blow breaks, what breaks drops, the drop is taken up, and it lays back',
+  /* THE HOLE THIS FILLS, AND IT IS A HOLE IN THIS FILE AND NOT IN THE GAME.
+     Round 42 made free roam THE FREE HAND: a blow lands on the first frame,
+     a block costs nothing, and nothing drops at all — deliberately, because a
+     stream of pickups behind a man clearing a hillside is litter. Every test
+     since has declared `freeHand` or inherited it, so for fourteen rounds the
+     suite has tested a hand nobody plays with.
+
+     The hand that IS played — the voyage — takes hardness ÷ tool speed per
+     blow and spawns a drop, and it had no test whatever. When it broke, four
+     things broke with it and every one of them was reported by a player
+     rather than by me: nothing broke, so nothing dropped, so nothing was
+     taken up, so the belt stayed empty, so nothing could be laid. One gate,
+     four symptoms, and no test between them and him.
+
+     So this walks the WHOLE chain in the voyage hand and reports where it
+     stops. It drives the hand through mineHold/mineStep rather than a mouse,
+     because a headless browser has no hand — which means it guards the
+     MECHANICS. The gate that actually failed was in the INPUT, and the note
+     in mineTick carries that; a test cannot hold a mouse still. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, W=window.__WORLD, B=D.B||6;
+    const raf=()=>new Promise(r=>requestAnimationFrame(r));
+    if(!D.aimFrom||!D.mineHold||!D.mineStep) return {pending:'the hand has no probes'};
+    /* THE VOYAGE HAND, said out loud — the runner sets it per test, and this
+       one would be meaningless in the other */
+    if(D.applyFreeroam){ D.state.freeroam=false; D.applyFreeroam(); }
+    const p=D.state.walk;
+    const fx=p.x, fz=p.z, fy=(p.feetY||0)+B*1.5;
+    let aim=null;
+    for(const d of [[0,-1,0],[0,-0.6,0.9],[0.9,-0.6,0],[-0.9,-0.6,0],[0,-0.6,-0.9]]){
+      aim=D.aimFrom(fx,fy,fz,d[0],d[1],d[2],30); if(aim) break; }
+    if(!aim) return {ok:false,got:'the arm reaches no block at all from where he stands'};
+    const solid=()=>D.solidAt((aim.ix+0.5)*B,(aim.iy+0.5)*B,(aim.iz+0.5)*B);
+    if(!solid()) return {ok:false,got:'the block the arm found is already air'};
+    const was=(D.BLOCKS()[aim.n-1]||{}).name||('#'+aim.n);
+
+    /* ---- the blow ---- */
+    const had=D.drops().length;
+    D.mineHold(true);
+    let t=0, need=null, ran=0;
+    for(let k=0;k<1500&&solid();k++){
+      D.mineStep(1/60); t+=1/60;
+      const g=D.mineProgress(); if(g){ ran++; need=g.need; }
+      if(k%8===0) await raf(); }
+    D.mineHold(false);
+    const broke=!solid();
+    if(!broke) return {ok:false,got:'the blow did not break '+was+' in '+t.toFixed(0)+'s'+
+      (ran?' (it ran '+ran+' frames and wants '+need.toFixed(1)+'s)':' — and never ran at all')};
+
+    /* ---- the drop, and the taking up ---- */
+    const made=D.drops().length-had;
+    for(let k=0;k<300;k++){ D.dropStep(1/60); if(k%8===0) await raf(); }
+    const hoard=D.hoard();
+    const took=Object.keys(hoard).length;
+
+    /* ---- and laying it back ---- */
+    let laid='(nothing in hand to lay)';
+    const slot=D.satchel().find(Boolean);
+    if(slot){ const r=D.placeFrom(aim);
+      laid=(r&&r.no)?('REFUSED — '+r.no):(solid()?'laid, and it stands':'said it laid but nothing stands'); }
+
+    const faults=[];
+    if(made<1) faults.push('nothing dropped from it');
+    if(!took) faults.push('nothing reached the satchel');
+    if(slot&&!/laid, and it stands/.test(laid)) faults.push('it would not lay back: '+laid);
+    if(!slot) faults.push('the satchel was empty, so nothing could be laid');
+    return {ok:!faults.length,
+      got:'broke '+was+' in '+t.toFixed(1)+'s (it wanted '+(need===null?'?':need.toFixed(1))+
+        's) · dropped '+made+' · satchel '+JSON.stringify(hoard)+' · laying back: '+laid+
+        (faults.length?' · '+faults.join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.
