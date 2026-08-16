@@ -4294,6 +4294,104 @@ about it are deliberate:
   What it spends is the outermost cells of the ring, which are the coarsest in
   it and the least worth looking at.
 
+## 4bc. Round 56 — three more from the player's own screen
+
+### 1. The holes again — and the census that said my last fix was aimed too narrowly
+
+Round 55 fixed the RIVERS: a coarse cell whose middle fell in one was given to
+the sea entire, and a chain of navy trenches ran down every great river. That
+was real and it is fixed. It was not the whole of it.
+
+**So I counted instead of guessing.** `farWhy` (a read-only probe on `__VDBG`)
+lays a ring at a far eye and sorts every LANDLOCKED cell — one the ring calls
+sea while all four of its neighbours in the ring are dry, which is a hole in a
+country by definition — by cause. Over the eight widest countries of the earth,
+**54,656 coarse cells**:
+
+| cause | cells |
+|---|---|
+| a narrow water with land on some sides — a lake, a tarn, an inlet | **40** |
+| no dry ground within a raster pixel in any direction | 6 |
+| a HAIRLINE in the country raster — one pixel of nothing between two nations | 5 |
+| a river whose cell held no dry bank to stand on | 2 |
+| **total** | **53** |
+
+Four causes. Hunting them one at a time would be four rules, four sets of
+samples and four ways to be wrong — **and they are all the same shape**: a body
+of water narrower than the cell it is drawn in, drawn as a cell-wide pit. That
+shape has a definition needing no terrain at all: *a cell with dry country on
+all four sides is not the sea.*
+
+`flFillHoles` sweeps the ring once as it is laid and gives any such cell the
+lowest of its four neighbours' heights and the mean of their colours. **It costs
+no sampling whatever** — four array reads a cell over seven thousand cells.
+What it cannot touch is the point of doing it by the neighbours: a lake or bay
+WIDER than a cell keeps a wet neighbour and is left exactly as it was, and so is
+every coast and every league of open sea. The river rule still earns its keep —
+a river runs in a CHAIN, so its cells have wet neighbours upstream and down and
+are never enclosed. It reads from a snapshot, so a cell filled early cannot help
+fill its neighbour and eat a narrow lake from one end.
+
+### 2. "If the user zooms too quick only the circle of the carpet is seen"
+
+**The politeness was measured in the wrong thing.** The ring rebuilds six
+milliseconds a frame unless the traveller is outrunning it, and outrunning it
+was reckoned as LAG — how far he has walked from where the ring was laid —
+because when that was written, travelling was the only way to outrun it.
+
+Spinning the wheel moves him nowhere. Lag stays at zero, the rebuild stays
+polite, and the ring crawls from three thousand units to twenty-eight thousand
+over a dozen frames while the eye is already at forty thousand and climbing.
+What is on the screen for the whole of that is the OLD ring at the OLD radius: a
+small bright disc of country adrift on an empty plane. That is the circle.
+
+A radius that has outrun the ring by half again now counts as outrunning it,
+exactly as the ground does. An ordinary drift of the view still rebuilds
+politely (the threshold that STARTS a rebuild is a fifth), and only a wheel spun
+hard enough to leave the ring behind pays the one-frame hitch — which is the
+trade the file already makes for the traveller who flies.
+
+### 3. The ship was not a solid thing, and the birds went through her
+
+*"Birds are landing in the water through the boat."* Exactly so. A sea-fowl
+benighted over open water RAFTS: it sets its perch at the waterline wherever it
+happens to be. It happened to be over the ship as often as anywhere else, and
+the waterline under a galleon is two fathoms below her deck — so the gull sank
+through the planks and sat bobbing inside the hold. The same hole let a diving
+bird stoop THROUGH her at a fish and a bird with a catch eat its supper inside
+her timbers.
+
+**Nothing asked where she was, because nothing had a way to ask.** The deck knew
+its own shape — `deckAllowed`, `deckHeightAt`, in ship-local coordinates — but
+there was no way in from the world, and the birds live in the world.
+`overShip`/`besideShip` are that way in.
+
+**And nothing is ever set down UPON her**, which is the less obvious half. A
+gull on the rail is the charming picture and it is wrong here: a perch is a
+FIXED POINT OF THE WORLD and she SAILS, so a bird perched on her would be
+standing on open water within the minute — the very fault reported, upside down.
+What would settle where she is is put BESIDE her, out along her beam, which is
+where a gull waiting on a ship actually sits. And because she moves, a rafting
+bird she comes over is re-seated beside her rather than run down.
+
+### 4. The two lights are square again, at every distance
+
+The round faces are struck out. They were built because a hard tile beheld from
+outside the world "reads as a fault in the drawing" — **which was my judgement
+of it, written into the file, and not a report from anyone looking at the game.**
+What came back from the man looking at it was *"replace the circles with
+rectangle as it is in the world."*
+
+He is right, and the old note says why without noticing: the square IS this
+game's own signature, and it is what a man standing on the disc sees. **A world
+whose sun changes shape depending on how far back the eye is drawn has two
+suns.** The haloes remain — they are what makes a light read as a LIGHT rather
+than a yellow tile, they are soft-edged so they put no second shape in the sky,
+and they were never what was complained of. The old complaint of "extra lights
+floating around the sun and moon" was the two FACES overlapping inside them, and
+with one face there is nothing left to overlap. The round pair is left in the
+file, dark and never drawn, so the reason it was tried is not lost with it.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
