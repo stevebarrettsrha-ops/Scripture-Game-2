@@ -180,7 +180,16 @@ function heightAt(x,z,h){
     }
     /* --- the wall --- */
     const set=F.under*f.drop;            /* how far the wall is set back */
-    const wallEnd=Math.max(1,f.drop*(1/Math.max(0.3,F.steep)));
+    /* ---- A SHEER WALL IS SHEER, WHATEVER THE DROP ----
+       This read `drop / steep`, so steep:1 — which the table above calls
+       SHEER — gave a wall that took as many blocks of ground as it fell:
+       a forty-five degree ramp. Angel's profile came back 110 110 110 111
+       111 111 111 … flat for every block sampled, because its wall was a
+       hundred and nine blocks long. Water does not FALL down a ramp, it RUNS
+       down it, and that is half of why a spring at the lip flooded a county.
+       `steep` is now what it always said it was: the fraction of the drop the
+       wall is allowed to spend in ground. Sheer spends one block. */
+    const wallEnd=Math.max(1,Math.round(f.drop*(1-F.steep))+1);
     if(v<=set) return lip;               /* the lip itself, standing proud */
     if(v<=set+wallEnd){
       const t=(v-set)/wallEnd;           /* 0 at the lip, 1 at the foot */

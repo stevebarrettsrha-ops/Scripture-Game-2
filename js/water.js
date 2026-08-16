@@ -108,6 +108,9 @@ function wakeAround(ix,iy,iz){
 
 /* ---- SETTING AND UNSETTING, THE ONLY TWO DOORS ---- */
 function put(ix,iy,iz,lev){
+  /* water is never laid at or under the waterline — that is the sea, and the
+     sea keeps its own level without any help from this file */
+  if(reachedTheSea(iy)) return;
   LEV.set(key(ix,iy,iz),lev);
   K.setBlock((ix+0.5)*K.B,(iy+0.5)*K.B,(iz+0.5)*K.B, K.waterN);
   moved++; wakeAround(ix,iy,iz);
@@ -139,8 +142,33 @@ function wants(ix,iy,iz){
 }
 const DIR=[[1,0],[0,1],[-1,0],[0,-1]];
 
+/* ---- AND THE SEA IS AN INFINITE SINK, WHICH IS WHAT STOPS THE FLOOD ----
+   THE FAULT IT MENDS, measured: a spring laid at Niagara's lip put THIRTEEN
+   THOUSAND cells of standing water into the world, and one at Multnomah
+   twenty-three thousand with seven thousand more still queued. The camera at
+   the foot was buried inside a solid mass of water. A source is never
+   consumed, so water that has nowhere to go simply keeps arriving.
+
+   Every real river answers this the same way and it costs nothing: IT RUNS TO
+   THE SEA AND THE SEA TAKES IT. So water that reaches the waterline has
+   reached the sea, and it ENDS THERE — the cell is given up, and the water in
+   it is the sea's now. A fall is then a closed thing: a spring at the head, a
+   column down the wall, a run down the gorge, and the sea at the bottom of
+   it, with only the water actually in transit standing at any moment. It
+   cannot flood a country because a country is above the waterline and the
+   water never stops moving toward what is below it.
+
+   And nothing of the sea is touched to do it — the sea is not asked, it is
+   not written to, it does not even know. A cell at or under the waterline is
+   simply not somewhere spilled water may stand. */
+function reachedTheSea(iy){ return K.seaBlock!==undefined&&iy<=K.seaBlock; }
+
 /* ---- ONE CELL, LOOKED AT ---- */
 function visit(ix,iy,iz){
+  /* it has run down to the sea: the sea has it, and it is no longer ours */
+  if(reachedTheSea(iy)){
+    if(levelAt(ix,iy,iz)!==null) clear(ix,iy,iz);
+    return; }
   const lev=levelAt(ix,iy,iz);
   const here=isWater(ix,iy,iz);
 

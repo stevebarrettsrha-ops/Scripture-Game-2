@@ -2359,6 +2359,10 @@ function initWater(){ if(waterReady||!window.WATER) return; waterReady=true;
   WATER.load({ B, EY_MIN, EY_MAX,
     blockAt, setBlock, isLiquid,
     waterN:blockId('water'),
+    /* THE WATERLINE, IN BLOCKS — everything at or under it is the sea's, and
+       spilled water that reaches it has run home and is given up. This one
+       number is what makes a fall a closed thing instead of a flood. */
+    seaBlock:Math.floor(SEA_SURF/B),
     now:()=>performance.now() }); }
 /* which land this ground belongs to, by name — the key the flora and the
    fauna files are both written against */
