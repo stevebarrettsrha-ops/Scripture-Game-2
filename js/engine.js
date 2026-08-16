@@ -3373,6 +3373,60 @@ function flFillRing(k,px,pz,kr,fine){
    ends — so the blending at the ring's own two edges leans on itself */
 function flAt(k,s){ return (k<0?0:k>=FL_RINGS?FL_RINGS-1:k)*FL_SPOKES
   +((s%FL_SPOKES)+FL_SPOKES)%FL_SPOKES; }
+/* ---- AND A CELL WITH DRY COUNTRY ON ALL FOUR SIDES IS NOT A SEA ----
+   THE RIVER RULE ABOVE WAS AIMED TOO NARROWLY, and the census said so rather
+   than my judgement. Rings laid over the eight widest countries of the earth
+   — 54,656 coarse cells — left 53 cells that the ring called sea while all
+   four of their neighbours in the ring were dry, which is a hole in a country
+   by definition. Sorted by cause:
+
+     40  a narrow water with land on some sides — a lake, a tarn, an inlet
+      6  no dry ground within a raster pixel in any direction at all
+      5  a HAIRLINE in the country raster: one pixel of nothing between two
+         nations, which is a seam and not a sea
+      2  a river the bank rule could not lift, its cell holding no dry bank
+
+   Four causes, and hunting them one at a time would be four rules, four
+   sets of samples and four ways to be wrong. THEY ARE ALL THE SAME SHAPE: a
+   body of water narrower than the cell it is drawn in, drawn as a cell-wide
+   pit. And the shape has a definition that needs no terrain at all — a cell
+   whose four neighbours are ALL dry is surrounded by land, and a thing
+   surrounded by land is not the sea.
+
+   So the ring is swept once when it is laid, and any such cell is given the
+   LOWEST of its four neighbours' heights and the mean of their colours. It
+   costs no sampling whatever — four array reads a cell over seven thousand
+   cells, which is nothing beside the sampling that built them.
+
+   WHAT IT CANNOT TOUCH, and this is the point of doing it by the neighbours:
+   a lake or a bay WIDER than a cell keeps at least one wet neighbour and is
+   left exactly as it was; so does every league of open sea; so does every
+   coast. Only what is entirely enclosed is filled. And the river rule above
+   still earns its keep, because a river runs in a CHAIN — a cell along it
+   has wet neighbours up- and downstream and is never landlocked.
+
+   IT READS FROM A SNAPSHOT so that a cell filled early in the sweep cannot
+   then help to fill its neighbour, which would eat a narrow lake a cell at a
+   time from one end. Every cell is judged against the ring as it was laid. */
+const _flWas=new Uint8Array(FL_NC);
+function flFillHoles(){
+  _flWas.set(_flLand);
+  const wet=(k,s)=>!_flWas[k*FL_SPOKES+((s%FL_SPOKES)+FL_SPOKES)%FL_SPOKES];
+  /* the innermost and outermost rings have no ring beyond them, so a cell
+     there cannot be judged enclosed and is left alone */
+  for(let k=1;k<FL_RINGS-1;k++)
+    for(let s=0;s<FL_SPOKES;s++){
+      const c=k*FL_SPOKES+s;
+      if(_flWas[c]) continue;
+      if(wet(k-1,s)||wet(k+1,s)||wet(k,s-1)||wet(k,s+1)) continue;
+      const n=[flAt(k-1,s),flAt(k+1,s),flAt(k,s-1),flAt(k,s+1)];
+      let low=Infinity, cr=0,cg=0,cb=0;
+      for(const q of n){ if(_flH[q]<low) low=_flH[q];
+        cr+=_flC[q*3]; cg+=_flC[q*3+1]; cb+=_flC[q*3+2]; }
+      _flLand[c]=1; _flH[c]=low;
+      _flC[c*3]=cr*0.25; _flC[c*3+1]=cg*0.25; _flC[c*3+2]=cb*0.25;
+    }
+}
 /* which three OTHER cells meet this cell at each of its four corners */
 const FL_NB=[[-1,-1,-1,0,0,-1],[-1,0,-1,1,0,1],[1,-1,1,0,0,-1],[1,0,1,1,0,1]];
 /* one ring of shading: a brick that stands over its neighbours is darkened on
@@ -3491,7 +3545,25 @@ function updateFarLand(px,pz,force,eyeY){
      finishes in the one frame rather than let the hole open. That is the old
      50 ms hitch, but only ever in the case where politeness has already lost;
      it is no longer the price of every step. */
-  const rush=whole||lag>380;
+  /* ---- AND THE EYE MAY OUTRUN THE RING BY GOING NOWHERE AT ALL ----
+     THE FAULT: "if the user zooms too quick only the circle of the carpet is
+     seen." The politeness above is measured in LAG — how far the traveller
+     has walked from where the ring was laid — because when this was written
+     the only way to outrun the ring was to travel. Spinning the wheel does
+     not move him one unit: lag stays zero, the rebuild stays polite at six
+     milliseconds a frame, and the ring crawls out from three thousand to
+     twenty-eight thousand over a dozen frames while the eye is already at
+     forty thousand and rising. What is on the screen through all of that is
+     the OLD ring at the OLD radius: a small bright disc of country adrift on
+     an empty plane, which is exactly the circle he reports.
+
+     So the RADIUS outrunning the ring counts as outrunning it, the same as
+     the ground does. Half again as wide is the line: an ordinary drift of
+     the view rebuilds politely as it always did (the `grown` threshold that
+     starts a rebuild is a fifth), and only a wheel spun hard enough to leave
+     the ring behind pays the one-frame hitch — which is the trade the note
+     above already makes for the traveller who flies. */
+  const rush=whole||lag>380||Math.abs(want-_flR1)/_flR1>0.5;
   /* and the footprint sampling is dropped ONLY when he is outrunning the ring
      — there is no point paying for the true shape of a range that will be
      thrown away and built again before the next second is out. A ring asked
@@ -3502,6 +3574,11 @@ function updateFarLand(px,pz,force,eyeY){
   const J=_flJob, t0=performance.now();
   while(J.k<FL_RINGS){ flFillRing(J.k++,J.px,J.pz,J.kr,fine);
     if(!rush&&performance.now()-t0>=FL_MS) return; }
+  /* every ring is laid; now the holes are stopped, ONCE, before anything is
+     shaded — the shading and the corners both read the heights and the
+     land flags this sweep corrects. (`hf` because this function is re-entered
+     every frame until the job is done, and this must not run on each pass.) */
+  if(!J.hf){ J.hf=1; flFillHoles(); }
   while(J.sk<FL_RINGS){ flShadeRing(J.sk++,J.r1);
     if(!rush&&performance.now()-t0>=FL_MS) return; }
   while(J.ck<FL_RINGS){ flCornerRing(J.ck++);
@@ -4120,6 +4197,27 @@ const sunRound=new THREE.Sprite(sunRoundMat); sunRound.visible=false; scene.add(
 const moonRoundMat=new THREE.SpriteMaterial({map:TEX.moonRound,fog:false,transparent:true,
   opacity:0,depthWrite:false});
 const moonRound=new THREE.Sprite(moonRoundMat); moonRound.visible=false; scene.add(moonRound);
+/* ---- AND THE LIGHTS ARE SQUARE EVERYWHERE, INSIDE THE WORLD AND OUT ----
+   THE ROUND FACES ARE GONE, and the reason is that they were asked for and
+   then unasked for. The round pair was built because a hard tile beheld from
+   outside the world "reads as a fault in the drawing" — which was MY
+   judgement of it, written into the note above, and not a report from anyone
+   looking at the game. What came back from the man looking at it was:
+   "replace the circles with rectangle as it is in the world."
+
+   He is right, and the reason he is right is written in the old note itself:
+   the square IS this game's own signature, and it is what a man standing on
+   the disc sees. A world whose sun changes shape depending on how far back
+   the eye is drawn has two suns; and the one thing every picture of this
+   world agrees on is that the lights are square.
+
+   So the square face stands at every distance and the round pair is struck
+   out. THE HALOES REMAIN — they are what makes a light read as a LIGHT and
+   not as a yellow tile, they were never the thing complained of, and they
+   are soft-edged, so they do not put a second shape into the sky. The old
+   complaint of "extra lights floating around the sun and moon" was the two
+   FACES overlapping inside them, and with one face there is nothing left to
+   overlap. */
 function haloTick(whole){
   const so=whole*0.9*sunMat2.opacity, mo=whole*0.55*moonMat2.opacity;
   sunHalo.material.opacity=so; moonHalo.material.opacity=mo;
@@ -4130,19 +4228,10 @@ function haloTick(whole){
     const h=sun.scale.x*4.0; sunHalo.scale.set(h,h,1); }
   if(moonHalo.visible){ moonHalo.position.copy(moon.position);
     const h=moon.scale.x*3.45; moonHalo.scale.set(h,h,1); }
-  /* the round face takes over from the square one as the earth is beheld
-     whole — the two never both stand at full strength */
-  const rf=Math.max(0,Math.min(1,(whole-0.10)/0.55));
-  sunRoundMat.opacity=rf*sunMat2.opacity;
-  moonRoundMat.opacity=rf*moonMat2.opacity;
-  sunRound.visible=sunRoundMat.opacity>0.01;
-  moonRound.visible=moonRoundMat.opacity>0.01;
-  if(sunRound.visible){ sunRound.position.copy(sun.position);
-    const h=sun.scale.x*1.28; sunRound.scale.set(h,h,1); }
-  if(moonRound.visible){ moonRound.position.copy(moon.position);
-    const h=moon.scale.x*1.22; moonRound.scale.set(h,h,1); }
-  /* and the square face gives way, so no hard tile is left inside the glow */
-  if(rf>0){ sunMat2.opacity*=(1-rf); moonMat2.opacity*=(1-rf); }
+  /* the round pair is kept in the file, dark and never shown, so that the
+     reason it was tried is not lost with the code — see the note above */
+  sunRound.visible=false; moonRound.visible=false;
+  sunRoundMat.opacity=0; moonRoundMat.opacity=0;
 }
 
 /* ================= COURSES OF THE LIGHTS ================= */
@@ -4589,6 +4678,55 @@ function deckAllowed(lx,lz){
   return true;
 }
 function deckHeightAt(lz){ return lz<SD.qdeckZ?SD.qdeckY:(lz>SD.fdeckZ?SD.fdeckY:SD.deckY); }
+/* ---- AND SHE IS A SOLID THING TO EVERYTHING THAT WOULD SET DOWN ----
+   THE FAULT: "the boat is not being treated as a physical structure — birds
+   are landing in the water through the boat." Exactly so. A sea-fowl
+   benighted over open water RAFTS: it sets its perch at the waterline
+   wherever it happens to be and rides the swell there. It happened to be
+   over the ship as often as anywhere else, and the waterline under a galleon
+   is two fathoms below her deck — so the gull sank through the planks and
+   sat bobbing inside the hold. The same hole let a diving bird stoop THROUGH
+   her at a fish, and a bird with a catch and no nest eat its supper inside
+   her timbers.
+
+   Nothing asked where she was, because nothing had a way to ask. The deck
+   knew its own shape — deckAllowed and deckHeightAt, in ship-local
+   coordinates — but there was no way in from the world, and the birds live
+   in the world.
+
+   AND NOTHING IS EVER SET DOWN UPON HER, which is the other half of the
+   answer and the less obvious one. A gull on the rail is the charming
+   picture, and it is wrong here: a perch is a FIXED POINT OF THE WORLD and
+   she SAILS. A bird perched on her would be standing on open water within
+   the minute, which is the very fault reported, only upside down. So what
+   would settle where she is is put BESIDE her — out along her beam to open
+   water, which is where a gull waiting on a ship actually sits. */
+const SHIP_HALFX=6.2*SHIP_SX, SHIP_Z0=-28.5*SHIP_S, SHIP_Z1=26.5*SHIP_S;
+const _shipL={x:0,z:0};
+/* a point of the world, in the ship's own frame (she yaws by state.boat.heading) */
+function shipLocalOf(x,z,out){
+  const b=state.boat, c=Math.cos(b.heading), s=Math.sin(b.heading);
+  const dx=x-b.x, dz=z-b.z;
+  out.x=c*dx-s*dz; out.z=s*dx+c*dz; return out;
+}
+/* does she stand over this water? (her whole plan, a little proud of the
+   rail, so nothing settles half inside her topsides) */
+function overShip(x,z){
+  if(!boatG.visible) return false;
+  const L=shipLocalOf(x,z,_shipL);
+  return Math.abs(L.x)<=SHIP_HALFX&&L.z>=SHIP_Z0&&L.z<=SHIP_Z1;
+}
+/* the same point, moved clear of her along the beam — the side it was
+   already nearest, so nothing is ever swept across her from one side to the
+   other, and a little way out so a swell does not carry it back under */
+function besideShip(x,z,out){
+  out=out||{x:0,z:0};
+  if(!overShip(x,z)){ out.x=x; out.z=z; return out; }
+  const b=state.boat, c=Math.cos(b.heading), s=Math.sin(b.heading);
+  const lx=(_shipL.x>=0?1:-1)*(SHIP_HALFX+4+Math.random()*10), lz=_shipL.z;
+  out.x=b.x+c*lx+s*lz; out.z=b.z-s*lx+c*lz;
+  return out;
+}
 /* walkable aisle of the cargo hold (between the cargo rows) */
 function holdAllowed(lx,lz){
   return Math.abs(lx)<HOLD.halfX && lz>HOLD.z0 && lz<HOLD.z1;
@@ -9008,6 +9146,11 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
         case 'hunt': {
           if(!b.spot){ b.spot=forageSpot(b,px,pz);
             if(!b.spot){ b.job='rest'; b.jt=3; break; }
+            /* no stooping THROUGH the ship at a fish under her keel — the
+               strike is moved out along her beam to open water */
+            if(b.spot.water&&overShip(b.spot.x,b.spot.z)){
+              const w3=besideShip(b.spot.x,b.spot.z);
+              b.spot.x=w3.x; b.spot.z=w3.z; }
             b.tx=b.spot.x; b.tz=b.spot.z; b.ty=b.spot.y+(b.spot.water?46:26); }
           /* over the mark, it drops on it — the stoop */
           if(Math.hypot(b.x-b.tx,b.z-b.tz)<26){ b.ty=b.spot.y; }
@@ -9029,7 +9172,10 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
              down on the ground like an honest bird, not hovering in the
              air over somebody else's brood */
           if(!b.nest){ b.job='eat'; b.jt=2+Math.random()*2;
-            const c=landAtWorld(b.x,b.z); b.tx=b.x; b.tz=b.z;
+            const c=landAtWorld(b.x,b.z);
+            /* and it does not eat its supper inside her timbers either */
+            const w3=c?null:besideShip(b.x,b.z);
+            b.tx=w3?w3.x:b.x; b.tz=w3?w3.z:b.z;
             b.ty=(c?c.h*B:WATER_Y+2)+0.8; break; }
           b.tx=b.nest.x; b.tz=b.nest.z; b.ty=b.nest.y+3;
           if(Math.hypot(b.x-b.tx,b.z-b.tz)<7&&Math.abs(b.y-b.ty)<6){
@@ -9059,7 +9205,10 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
                    rocking, plainly alive. A land bird does not raft at all — it
                    makes for the nearest shore to roost, and if no shore is in
                    reach it simply keeps the air, circling slow till morning. */
-                else if(BH&&BH.fish) b.perch={x:b.x,y:WATER_Y+0.9,z:b.z,water:true};
+                /* — and NOT under the ship: she is solid, and her waterline
+                   is two fathoms below her deck. See besideShip. */
+                else if(BH&&BH.fish){ const w3=besideShip(b.x,b.z);
+                  b.perch={x:w3.x,y:WATER_Y+0.9,z:w3.z,water:true}; }
                 else{ let fx2=null,fz2=null,fy2=0;
                   for(const rr of [140,280,430]){ for(let q=0;q<10;q++){ const a2=q/10*6.283;
                       const x2=b.x+Math.cos(a2)*rr, z2=b.z+Math.sin(a2)*rr, c2=landAtWorld(x2,z2);
@@ -9072,7 +9221,15 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
               b.tx=b.perch.x+Math.cos(b.ph+AL_LEAD)*30;
               b.tz=b.perch.z+Math.sin(b.ph+AL_LEAD)*30;
               b.ty=WATER_Y+42; }
-            else{ b.tx=b.perch.x; b.tz=b.perch.z;
+            else{
+              /* AND SHE MAY COME OVER IT WHILE IT SITS. The raft was chosen
+                 clear of her, but she sails, and a gull that does not shift
+                 when a galleon runs over it is the same fault again. It is
+                 re-seated beside her, which is what a real one does. */
+              if(b.perch.water&&overShip(b.perch.x,b.perch.z)){
+                const w3=besideShip(b.perch.x,b.perch.z);
+                b.perch.x=w3.x; b.perch.z=w3.z; }
+              b.tx=b.perch.x; b.tz=b.perch.z;
               /* a rafting bird's seat is the swell itself, wherever it stands */
               b.ty=b.perch.water?WATER_Y+seaHeight(b.perch.x,b.perch.z)+0.9:b.perch.y; } }
           break; }
@@ -14751,7 +14908,49 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
         if(bank&&!_flLand[k*FL_SPOKES+s]) drowned++;
       }
     }
-    return {rivers,drowned,coarse}; }};
+    return {rivers,drowned,coarse}; },
+  /* AND WHY EACH REMAINING HOLE IS A HOLE. A LANDLOCKED cell — one the ring
+     calls sea while all four of its neighbours in the ring are dry — is a
+     hole in a country by definition, whatever put it there. This counts them
+     and sorts them by CAUSE, so the next fix is aimed at what is actually
+     there and not at what I expect to be there:
+       river    — a river through the middle. Should be nil; test 37 gates it.
+       hairline — the water is one pixel of the country raster with dry
+                  country on all four sides of it: a SEAM between two nations,
+                  not a sea.
+       isle     — some dry ground within a pixel, but not all round: a true
+                  coast, narrow water, the edge of a lake.
+       open     — no dry ground within a pixel in any direction. Genuine
+                  water, and the ring is right to draw it. */
+  farWhy:()=>{
+    if(!_flAt) return null;
+    const px=_flAt[0], pz=_flAt[1], dth=Math.PI*2/FL_SPOKES, e=1/HALF;
+    const at=(kk,ss)=>_flLand[Math.max(0,Math.min(FL_RINGS-1,kk))*FL_SPOKES
+      +((ss%FL_SPOKES)+FL_SPOKES)%FL_SPOKES];
+    const out={coarse:0,sea:0,locked:0,river:0,hairline:0,isle:0,open:0,rim:0};
+    for(let k=1;k<FL_RINGS-1;k++){
+      const rr=_flRad[k]||FL_R0;
+      if(Math.min(80,Math.round(rr*6.2832/FL_SPOKES/B*0.34))<=1) continue;
+      for(let s=0;s<FL_SPOKES;s++){
+        out.coarse++;
+        if(_flLand[k*FL_SPOKES+s]){ continue; }
+        out.sea++;
+        if(!(at(k-1,s)&&at(k+1,s)&&at(k,s-1)&&at(k,s+1))) continue;
+        out.locked++;                       /* a hole in a country, by definition */
+        const th=(s+0.5)*dth, wx=Math.cos(th)*rr+px, wz=Math.sin(th)*rr+pz;
+        if(Math.hypot(wx,wz)>R_WORLD*0.9955){ out.rim++; continue; }
+        const ix=Math.floor(wx/B), iz=Math.floor(wz/B);
+        if(riverBlock(ix,iz)){ out.river++; continue; }
+        const u=(ix+.5)*B/R_WORLD, v=(iz+.5)*B/R_WORLD;
+        const wu=u+(fbm(u*760+13.7,v*760-4.2)-0.5)*(2.6/HALF);
+        const wv=v+(fbm(u*760-8.1,v*760+9.3)-0.5)*(2.6/HALF);
+        let n=0;
+        if(countryAtUV(wu+e,wv))n++; if(countryAtUV(wu-e,wv))n++;
+        if(countryAtUV(wu,wv+e))n++; if(countryAtUV(wu,wv-e))n++;
+        if(n>=4) out.hairline++; else if(n>0) out.isle++; else out.open++;
+      }
+    }
+    return out; }};
 
 /* ================= AND THE NEAR WORLD GOES WITH THE NEAR LAND =================
    Taking the streamed chunks out of the view left EIGHTY-SEVEN SPRITES still
@@ -16037,10 +16236,40 @@ function frame(){
     /* and never outside the vault, whatever the hour or the season */
     for(const L of [sun,moon]){ const rr=Math.hypot(L.position.x,L.position.z);
       if(rr>R_DOME*0.94){ const k2=R_DOME*0.94/rr; L.position.x*=k2; L.position.z*=k2; } }
+    /* ---- AND NOTHING OF THE EARTH IS EVER IN FRONT OF THEM OUT HERE ----
+       THE FAULT: "prevent the sun and moon from going under the world when
+       the camera is viewed from various angles — from certain angles they
+       completely disappear." They were not going under the world; they were
+       being PAINTED OVER by it.
+
+       The charted face is a transparent thing, and three.js sorts transparent
+       things back-to-front BY THE DISTANCE TO THEIR CENTRES. The chart's
+       centre is the middle of the disc — the world's origin. So whenever the
+       eye happens to be nearer the middle of the earth than it is to a light
+       standing off over some far country, the chart sorts as the NEARER of
+       the two, is drawn last, and lays a quarter-million units of opaque
+       country over a sun that is five thousand units above it. Move the
+       camera a little and the ordering flips back and the sun returns, which
+       is exactly "from certain angles". A disc of that size has no meaningful
+       centre-distance, so no amount of sorting will ever get it right.
+
+       Out here they are simply drawn LAST and without the depth test, which
+       is not a trick but the truth of this world: the two lights ride within
+       the firmament, ABOVE the earth, and from outside her nothing of the
+       earth can stand in front of them.
+
+       IN THE NEAR WORLD THEY KEEP THE DEPTH TEST, and must — a sun drawn
+       over the mountain it has gone down behind is a worse fault than this
+       one. The flags are set here, in the band, and given back below. */
+    for(const L of [sun,moon,sunHalo,moonHalo]){
+      L.renderOrder=900; L.material.depthTest=false; }
   }
-  /* leaving the whole-earth band, the lights take back their ground size */
+  /* leaving the whole-earth band, the lights take back their ground size —
+     and the depth test with it, so a mountain hides the setting sun again */
   if(wholeF<=0.02){ sun.scale.set(R_WORLD*0.075,R_WORLD*0.075,1);
-    moon.scale.set(R_WORLD*0.055,R_WORLD*0.055,1); }
+    moon.scale.set(R_WORLD*0.055,R_WORLD*0.055,1);
+    for(const L of [sun,moon,sunHalo,moonHalo]){
+      L.renderOrder=0; L.material.depthTest=true; } }
   haloTick(wholeF);               /* the lights get their glow when the earth is beheld whole */
   /* drawn right back, the sky about the disc gives way to the outer darkness,
      and the earth is beheld standing within it — as she is.
