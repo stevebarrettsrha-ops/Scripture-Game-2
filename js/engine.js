@@ -16171,6 +16171,39 @@ function placeBlock(){
   return {laid:b.id, at:[ix,iy,iz]};
 }
 
+/* ---- THE SPRING AT THE HEAD OF EVERY FALL ----
+   js/waterfall.js cut the rock and js/water.js knows how to take a source
+   down a wall and pool it at the foot. This is the one line between them: as
+   the traveller comes near a fall, a source is laid along its lip and the
+   water does the rest — down the wall as a full falling column, spreading at
+   the foot, and running on for as long as the source stands, which is what a
+   spring IS.
+
+   IT IS LAID ONCE. A source re-laid every frame would wake the whole flow
+   sixty times a second for nothing; the falls that have been sprung are
+   remembered, and a fall the traveller has left is left running — the water
+   is in the edit overlay and stays there, as a real river does.
+
+   AND ONLY WHERE THE GROUND IS ACTUALLY BUILT. setBlock on a chunk that has
+   not been laid writes into a record that the mesher has already passed, so
+   the spring is held until the lip is truly standing. */
+const _sprung=new Set();
+function updateFalls(px,pz){
+  if(!_fallsOn||!window.WATER||!window.WATERFALL) return;
+  const near=WATERFALL.nearest(px,pz,700);
+  if(!near||_sprung.has(near.n)) return;
+  const pts=WATERFALL.springs(near);
+  let laid=0;
+  for(const [x,z] of pts){
+    const c=landAtWorld(x,z); if(!c) continue;
+    const ix=Math.floor(x/B), iz=Math.floor(z/B);
+    if(!chunks.has(Math.floor(ix/CH)+','+Math.floor(iz/CH))) return;   /* not built yet — wait */
+    if(WATER.spill(ix,c.h,iz)) laid++;
+  }
+  if(laid){ _sprung.add(near.n);
+    if(window.console) console.info('the voyage: the spring is laid at '+near.n+' ('+laid+' heads)'); }
+}
+
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0, liveT=0;
 function frame(){
@@ -16681,6 +16714,7 @@ function frame(){
   if(frame._carpetOn) updateFarLand(p.x,p.z,false,eyeY);
   updateVillages(p.x,p.z,dt,light.nightF);
   updateLandmarks(p.x,p.z);
+  updateFalls(p.x,p.z);          /* and the springs at the head of every fall */
   /* the living world — weather, hearths, fireflies, meetings, murmurs */
   if(!state.firm){ const _t=performance.now()*0.001;
     weatherTick(p.x,p.z,dt,light.storm||0);
