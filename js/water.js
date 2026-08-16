@@ -87,11 +87,19 @@ const FALLING=8;       /* fed from above: drawn full, spreads at 1 when it lands
    And the two rules answer different halves of the same thing: the sea takes
    what reaches it AT ONCE, which is what a river mouth does, and the air
    takes what stops moving, which is what a puddle does. */
-const EVAP_TICKS=14;            /* about three seconds of standing still */
+/* ---- AND WHETHER THE AIR TAKES IT AT ALL ----
+   Minecraft's water NEVER evaporates, and that is not an oversight: with the
+   level rule kept properly, water does not need to be taken away, because it
+   never grows past seven blocks from its source in the first place. This was
+   added when the level rule was broken and the water was running away at
+   forty times its proper rate — that is, it was added to hide a bug.
+   Now the bug is mended, so it is put to the question: 0 turns the air off
+   and the water is bounded by its own levels alone, as in the game. */
+let EVAP_TICKS=14;              /* about three seconds of standing still; 0 = never */
 const REST=new Map();           /* how long each cell has stood unchanged */
 
 /* how often the water moves, and how much of a frame it may have */
-const TICK=1/5;                 /* five moves to the second, as water does */
+const TICK=1/4;                 /* FOUR moves to the second — one block every five game ticks */
 const MS_PER_FRAME=1.2;         /* and never more of a frame than this */
 const WAKE_MAX=20000;           /* a runaway is capped rather than trusted */
 
@@ -164,12 +172,22 @@ function wants(ix,iy,iz){
     const l=levelAt(tx,iy,tz);
     /* water that was always in the world — a stamped trough — feeds like a
        source and is never drained by anything here */
-    const eff=(l===null)?SOURCE:(l===FALLING?SOURCE:l);
+    /* AND A FALLING COLUMN DOES NOT FEED ITS SIDES. Only the block a fall has
+       LANDED on spreads, at level 1, as it does in the game this follows —
+       otherwise every cell beside a column is renewed at 1 for ever and the
+       seven-block reach below is never once reached, which is the other half
+       of the same flood. */
+    let eff;
+    if(l===null) eff=SOURCE;                       /* the world's own water: a spring */
+    else if(l===FALLING)
+      eff=(!open(tx,iy-1,tz)&&!isWater(tx,iy-1,tz))?SOURCE:99;   /* landed, or still in the air */
+    else eff=l;
     if(eff+1<best) best=eff+1;
   }
   return best>THINNEST?null:best;
 }
 const DIR=[[1,0],[0,1],[-1,0],[0,-1]];
+const _w=[0,0,0,0];   /* the weight of each way out, reused */
 
 /* ---- AND THE SEA IS AN INFINITE SINK, WHICH IS WHAT STOPS THE FLOOD ----
    THE FAULT IT MENDS, measured: a spring laid at Niagara's lip put THIRTEEN
@@ -191,6 +209,37 @@ const DIR=[[1,0],[0,1],[-1,0],[0,-1]];
    not written to, it does not even know. A cell at or under the waterline is
    simply not somewhere spilled water may stand. */
 function reachedTheSea(iy){ return K.seaBlock!==undefined&&iy<=K.seaBlock; }
+
+/* ---- THE FLOW WEIGHT: WATER GOES THE SHORTEST WAY DOWN, NOT EVERY WAY ----
+   The rule, as the game states it: when water spreads horizontally, every
+   direction is given a weight of 1000; then for each direction it looks for a
+   way DOWN reachable in four blocks or fewer from the block it would flow
+   into, and if it finds one the weight becomes that distance. Water then
+   spreads ONLY in the directions of lowest weight.
+
+   THIS IS WHAT MAKES A STREAM A STREAM. Without it — and mine was without it
+   — water spreads every way at once, so a fall does not run down its gorge,
+   it fills the gorge and then the country: a sheet, not a river. With it, a
+   fall at the head of a valley picks the way down and RUNS, and only water
+   that has found genuinely flat ground spreads out in all directions, which
+   is the seven-block disc and is bounded.
+
+   It costs a search of at most four blocks in three directions, and only for
+   a cell that is actually about to spread. Nothing else in the world pays. */
+const FLOW_SEARCH=4;
+function wayDown(ix,iy,iz,depth,back){
+  if(open(ix,iy-1,iz)) return depth;          /* here it could fall */
+  if(depth>=FLOW_SEARCH) return 1000;
+  let best=1000;
+  for(let d=0;d<4;d++){
+    if(d===back) continue;                    /* never straight back the way it came */
+    const q=DIR[d], tx=ix+q[0], tz=iz+q[1];
+    if(!open(tx,iy,tz)) continue;
+    const w=wayDown(tx,iy,tz,depth+1,(d+2)&3);
+    if(w<best) best=w;
+  }
+  return best;
+}
 
 /* ---- ONE CELL, LOOKED AT ---- */
 function visit(ix,iy,iz){
@@ -223,18 +272,49 @@ function visit(ix,iy,iz){
     if(w!==lev){ LEV.set(key(ix,iy,iz),w); wakeAround(ix,iy,iz); }
   }
 
-  /* (d) DOWN FIRST, and if it can go down it does nothing else. That single
-     rule is the whole difference between a waterfall and a wet patch. */
-  if(iy-1>=K.EY_MIN&&open(ix,iy-1,iz)){ put(ix,iy-1,iz,FALLING); return; }
+  /* (d) DOWN FIRST, AND WHAT COUNTS AS "DOWN" — the bug that made the flood.
+     THE MEASUREMENT: seven springs at Niagara's lip put 31,629 cells of
+     standing water into the world and were still climbing at thirty seconds.
+     The same seven sources in Minecraft would wet under a thousand: one
+     source on flat ground reaches SEVEN BLOCKS and stops. Mine was forty
+     times the game it is meant to behave like, so the fault was never a
+     missing sink or a missing evaporation — it was here.
+
+     `open` means AIR, and only air. So a block in the MIDDLE of a falling
+     column — which has water below it, not air — failed this test, fell
+     through to the spreading rule underneath, and SPRAYED SEVEN BLOCKS
+     SIDEWAYS OUT OF ITS OWN MIDDLE. Every block of every column did it, at
+     every height, and each of those spread and fell and sprayed again. A
+     six-block fall at Niagara is six sprays deep before it has touched the
+     ground.
+
+     Minecraft's rule is that water spreads horizontally only when it CANNOT
+     go down, and water already standing below you is still the way down —
+     you are a column, not a fountain. So: air below, fall into it; water
+     below, you are still falling and you spread NOTHING; solid below, and
+     only then do you spread. */
+  const canFall=iy-1>=K.EY_MIN;
+  if(canFall&&open(ix,iy-1,iz)){ put(ix,iy-1,iz,FALLING); return; }
+  if(canFall&&isWater(ix,iy-1,iz)) return;      /* still going down — no spray */
 
   /* (e) and otherwise it spreads, one level thinner, to every side it can.
      A falling column spreads at 1 where it lands, as a source does. */
   const out=(lev===FALLING?SOURCE:lev)+1;
   let gave=false;
   if(out<=THINNEST){
+    /* the weight of every way out, and the shortest of them */
+    let best=1000;
     for(let d=0;d<4;d++){
       const q=DIR[d], tx=ix+q[0], tz=iz+q[1];
-      if(!open(tx,iy,tz)) continue;
+      if(!open(tx,iy,tz)){ _w[d]=1e9; continue; }
+      _w[d]=wayDown(tx,iy,tz,1,(d+2)&3);
+      if(_w[d]<best) best=_w[d];
+    }
+    /* and it goes THAT way, and not the others. On truly flat ground every
+       way is 1000 and every way is taken, which is the seven-block disc. */
+    for(let d=0;d<4;d++){
+      if(_w[d]!==best) continue;
+      const q=DIR[d], tx=ix+q[0], tz=iz+q[1];
       const cur=levelAt(tx,iy,tz);
       if(cur===null||cur>out){ put(tx,iy,tz,out); gave=true; }
     }
@@ -245,7 +325,7 @@ function visit(ix,iy,iz){
      A cell that starts running again — because a hand dug it a way out, or
      the ground fell away — has its count wiped by `put`, so only water that
      truly stands still is taken. A SOURCE is never counted here at all. */
-  if(!gave&&lev!==SOURCE){
+  if(!gave&&lev!==SOURCE&&EVAP_TICKS>0){
     const k=key(ix,iy,iz), t=(REST.get(k)||0)+1;
     if(t>=EVAP_TICKS){ evaporated++; clear(ix,iy,iz); return; }
     REST.set(k,t);
@@ -340,6 +420,9 @@ function restore(list){
 
 window.WATER={
   load, step, spill, take, surge, withdraw, disturb,
+  /* for the measuring: 0 shuts the air off entirely */
+  setEvap:t=>{ EVAP_TICKS=Math.max(0,t|0); },
+  evapTicks:()=>EVAP_TICKS,
   levelAt, serialise, restore,
   /* read-only, for tools/acceptance.js and for nothing else */
   count:()=>LEV.size, waiting:()=>WAKE.length/3,
