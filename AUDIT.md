@@ -4252,6 +4252,39 @@ sea. There may be none. It reports how many rivers it found, so a run that
 laid its rings over open ocean and never asked the question reports PENDING
 instead of passing quietly.
 
+### 3. "Can the circle be blurred at the edges to look more seamless"
+
+Asked of the same picture, and it is the carpet's own rim. **A disc laid over
+the charted face ends in a CIRCLE, and that circle was drawn**: a hard curved
+seam across the middle of the world, bright coarse country on the near side and
+the dim charted face on the far, with the raised profile of the ring's edge
+standing against the chart like the lip of a saucer. Rising or drawing back, the
+eye follows that arc the whole way out, and it is the one thing in the pull-back
+that says *two pictures* rather than *one world*.
+
+**The inner seam was solved long ago and cannot be solved the same way.** Where
+the coarse ring meets the fine chunks the ring SINKS beneath them (the sink in
+`flShadeRing`), which works because both sides are ground and one may simply be
+hidden under the other. Nothing can be hidden under the chart: the chart is
+above.
+
+So the rim gives up its **alpha** instead, thinning away into the chart over the
+outermost seventh of whatever radius the ring was last laid at. Three things
+about it are deliberate:
+
+- **Per fragment, from the mesh's own polar coordinates.** The ring is built
+  about its own centre, so the local x and z ARE the radius vector. Reckoned at
+  cell corners it would step from one cell to the next in visible bands, because
+  the cells out there are hundreds of units wide.
+- **A fraction of the CURRENT radius, set at every ring swap.** The ring grows
+  and shrinks with the eye; a fixed width would be a wide haze up close and a
+  hard edge from miles up.
+- **`addPatch`, not `radialSkirt`.** The cloud sheets that helper serves are
+  flat quads on x/y and this is a polar mesh on x/z — and `farLandMat` is
+  enrolled in `LIT`, so it already carries the torch patch. Assigning
+  `onBeforeCompile` over the top of it, as `radialSkirt` does, would have
+  silently taken the traveller's lamp off the far country.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

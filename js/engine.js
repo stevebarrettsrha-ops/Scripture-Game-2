@@ -3177,6 +3177,44 @@ const FL_SEA=[0.07,0.20,0.32], FL_VOID=[0.01,0.012,0.03];
 const farLandMat=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:0}); LIT.push(farLandMat);
 const farLand=new THREE.Mesh(flGeo,farLandMat);
 farLand.frustumCulled=false; farLand.visible=false; scene.add(farLand);
+/* ---- AND THE RIM OF THE CARPET IS NOT A CUT EDGE ----
+   A disc laid over the charted face ENDS IN A CIRCLE, and that circle was
+   drawn: a hard curved seam across the middle of the world, bright coarse
+   country on the near side of it and the dim charted face on the far, with
+   the raised profile of the ring's own edge standing against the chart like
+   the lip of a saucer. Rising or drawing back, the eye follows that arc all
+   the way out, and it is the one thing in the pull-back that says "two
+   pictures" rather than "one world".
+
+   The INNER seam — where the coarse ring meets the fine chunks — was solved
+   long ago and differently: the ring SINKS beneath them there (see the sink
+   in flShadeRing), which works because both sides are ground and one may
+   simply be hidden under the other. Nothing can be hidden under the chart:
+   the chart is above.
+
+   So the rim gives up its ALPHA instead, over the outermost seventh of
+   whatever radius the ring was last laid at — thinning away into the chart
+   rather than stopping at it. It is reckoned PER FRAGMENT from the mesh's
+   own polar coordinates (the ring is built about its own centre, so the
+   local x and z ARE the radius vector), because the cells out there are
+   hundreds of units wide and anything computed at their corners would step
+   from one to the next in visible bands.
+
+   It is the same trick radialSkirt plays on the cloud sheets, and it is not
+   that function because those are flat quads whose plane is x/y and this is
+   a polar mesh whose plane is x/z — and because farLandMat is enrolled in
+   LIT and already carries the torch patch, so the patch must be COMPOSED
+   (addPatch) and not assigned over the top of it. */
+const FL_SKIRT={value:new THREE.Vector2(FL_R1*0.86,FL_R1)};
+addPatch(farLandMat,sh=>{
+  sh.uniforms.uFlSkirt=FL_SKIRT;
+  sh.vertexShader='varying vec2 vFlP;\n'+sh.vertexShader.replace(
+    '#include <begin_vertex>','#include <begin_vertex>\n  vFlP=position.xz;');
+  sh.fragmentShader='uniform vec2 uFlSkirt;\nvarying vec2 vFlP;\n'+
+    sh.fragmentShader.replace('#include <dithering_fragment>',
+      '#include <dithering_fragment>\n'+
+      '  gl_FragColor.a*=1.0-smoothstep(uFlSkirt.x,uFlSkirt.y,length(vFlP));');
+},'flskirt');
 const FL_NC=FL_RINGS*FL_SPOKES;          /* cells of far country, one sample each */
 const FL_NV=FL_NR2*FL_NS2;               /* vertices of the woven grid */
 const _flH=new Float32Array(FL_NC);
@@ -3474,6 +3512,10 @@ function updateFarLand(px,pz,force,eyeY){
   flGeo.attributes.position.needsUpdate=true; flGeo.attributes.color.needsUpdate=true;
   farLand.position.set(J.px,0,J.pz);
   _flAt=[J.px,J.pz]; _flR1=J.r1; _flJob=null;
+  /* and the rim feathers over the outermost seventh of THIS ring's radius —
+     the ring grows and shrinks with the eye, so a fixed distance would be a
+     wide haze up close and a hard edge from miles up */
+  FL_SKIRT.value.set(J.r1*0.86, J.r1*0.998);
 }
 
 /* ================= RENDERER · SKY · SEA ================= */
