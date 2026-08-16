@@ -16188,8 +16188,41 @@ function placeBlock(){
    not been laid writes into a record that the mesher has already passed, so
    the spring is held until the lip is truly standing. */
 const _sprung=new Set();
+/* ---- THE SPRINGS ARE OFF, AND HERE IS THE MEASUREMENT THAT TURNED THEM OFF ----
+   Standing at three falls with the spring laid and the world let run:
+
+     Angel     lip raised h=1 -> h=111 (the tepui works), water in the
+               column 0, and 549 cells of water standing somewhere else
+     Niagara   water in the column 3, and 13,989 cells standing
+     Multnomah water in the column 2, and 23,025 cells standing, with 7,292
+               still queued to spread
+
+   TWENTY-THREE THOUSAND CELLS IS NOT A WATERFALL, IT IS A FLOOD, and the
+   picture shows it: the camera at the foot of Niagara is buried inside a
+   solid mass of water. Two faults, and both are mine:
+
+   1. THE WALL IS A RAMP. FORM.steep was meant as "1 = sheer", but the code
+      reads `wallEnd = drop / steep` — so steep:1 gives a wall that takes as
+      many blocks of ground as it drops. That is a forty-five degree slope.
+      Angel's profile proves it: 110 110 110 111 111 111 111 ... flat for the
+      whole ten blocks sampled, because its "wall" is a hundred and nine
+      blocks long. Water does not fall down a ramp; it RUNS down it, and a
+      source that runs instead of falling floods whatever is below.
+
+   2. A LINE OF SOURCES ON A PLATEAU IS A LINE OF SPRINGS. Each spreads seven
+      blocks every way and then follows every slope it finds, for ever,
+      because a source is never consumed. Niagara's lip is two hundred blocks
+      wide and got seven of them.
+
+   The mending is to make a sheer wall sheer (wallEnd of a block or two,
+   whatever the drop) and to lay ONE source that is fed rather than a line of
+   them — but that is a change to be measured, not guessed, and shipping a
+   world that floods while I work it out is not a trade worth making. The
+   rock stands cut and dry until then, which is a waterfall without water
+   rather than a country under one. */
+const SPRINGS_ON=false;
 function updateFalls(px,pz){
-  if(!_fallsOn||!window.WATER||!window.WATERFALL) return;
+  if(!SPRINGS_ON||!_fallsOn||!window.WATER||!window.WATERFALL) return;
   const near=WATERFALL.nearest(px,pz,700);
   if(!near||_sprung.has(near.n)) return;
   const pts=WATERFALL.springs(near);
