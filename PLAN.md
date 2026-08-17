@@ -1079,3 +1079,79 @@ allowed to reshape, and it wants a picture before it wants a number.
 **The curtain.** Seven heads make seven threads, and the falls that now run are thin ones. A
 head every other block gives the volume back and will not unwind — that is not understood
 yet, and a fall that cannot be turned off is worse than a fall that is thin.
+
+---
+
+## 17. What is queued behind the water, and the state each one is actually in
+
+Named so it is a record and not a memory. Each was checked against the code today
+rather than recalled, because two of them turned out to be further along than this
+document said and one turned out to be a missing NUMBER rather than a missing feature.
+
+### 1. The bark measurement — the feature exists, the number does not
+
+**§2.4.3, and it is BUILT.** `BARK_MAT` in `js/flora.js` carries six barks — paper,
+ring, plate, twist, cork, smooth — and the default deep fissure; a kind says
+`bark:'paper'` in `world/flora.js` or says nothing, `K._bark` is settled once per
+kind and never in the mesher, and PLAN §14's table above is out of date where it
+says *"partial: one grey bark, tinted per species"*. **What is missing is the
+measurement**: what six barks cost in materials, draw calls and triangles in a real
+wood, set beside the one. Every other item of Phase 6 shipped with that number and
+this one did not, which is the only reason it is on this list.
+
+### 2. Tree boles as mineable blocks
+
+Every tree in the world is `emitBox` into the chunk geometry — `js/flora.js` draws
+the bole with the kind's own bark material and the mesher merges it. **So a tree is
+scenery: an axe passes through it.** `blocks/log.js` already exists (Timber,
+`tool:'axe'`, `drops:'log'`) and `blocks/flint-axe.js` is written for felling
+timber, so the block and the tool are both standing and only the BOLE is not made
+of them. The work is the one Phase 3 did for the villages: run the bole through
+`stampBox` into the structure layer instead of into geometry, and leave the crown
+as it is — a canopy of blocks is a different and much dearer question.
+
+### 3. The bucket
+
+There is no bucket. `js/water.js` has had both halves of one since Round 56 —
+`spill` lays a source and `take` lifts it, and since Round 58 a hand's own source
+is a deed that survives a reload while the stream that runs out of it does not.
+What is missing is the ITEM: a thing in the satchel that fills at water, empties on
+the ground, and is the player's own way into the flow that now runs.
+
+### 4. Planting
+
+`blocks/soil.js` exists. Farms and farmers exist in the villages. What does not
+exist is a hand that sows: a seed in the satchel, ground that will take it, and a
+crop that comes on with the season the world already keeps (`js/season.js` gilds
+the canopy per hemisphere and per zone, and the agricultural year would read off
+the same clock).
+
+### 5. Building from gathered materials
+
+The satchel stacks, survives a reload, and pays for what it lays; the free hand
+lays without cost. **There is no making** — no bench, no recipe, nothing that turns
+what was gathered into what was not. This is the largest of the five and the one
+that most wants its shape argued before any of it is built.
+
+### And then Phases 8, 9 and 10
+
+**Phase 8 is authored places** — a schematic format, an in-game capture tool, and
+the Cave of Treasures. AUDIT Round 46 already refused to invent a hoard for the sea
+caves on the grounds that it *"would have to be picked up and moved the day Phase 8
+arrives"*, so there is at least one thing waiting on it by name.
+
+**Phases 9 and 10 are named in the brief and are not restated in this repository**,
+and I will not guess at them here: whatever is written down about them should be
+what the brief says, in the brief's own words, and it belongs in this section as
+soon as it is to hand.
+
+### The order I would take them in, and why
+
+**The bark measurement first** — it is an afternoon, it closes a Phase 6 item that
+is shipped but unproven, and this project's whole rule is that nothing stands in
+the record unmeasured. **Then the bucket**, because the water it pours now runs
+properly and the item is small. **Then the boles**, which is a known conversion
+with a known pattern and a real gain: an axe that works. **Then planting**, which
+wants the season and the soil that already exist. **Building last of the five**,
+because it is the one that should be designed in writing before it is coded.
+
