@@ -1115,13 +1115,19 @@ of them. The work is the one Phase 3 did for the villages: run the bole through
 `stampBox` into the structure layer instead of into geometry, and leave the crown
 as it is — a canopy of blocks is a different and much dearer question.
 
-### 3. The bucket
+### 3. The bucket — ✅ *Round 60*
 
-There is no bucket. `js/water.js` has had both halves of one since Round 56 —
-`spill` lays a source and `take` lifts it, and since Round 58 a hand's own source
-is a deed that survives a reload while the stream that runs out of it does not.
-What is missing is the ITEM: a thing in the satchel that fills at water, empties on
-the ground, and is the player's own way into the flow that now runs.
+`blocks/bucket.js` and `blocks/water-bucket.js` — two blocks and not one with a flag,
+because a stack in this satchel is of one kind and a man may carry three full and two
+empty. A jar of baked clay, made at a kiln of three banded clay, with the words it is
+drawn from beside it. The engine knows no bucket by name: `serves:'bucket'`, and `fills`
+and `empties` naming what each becomes.
+
+Poured, it lays a SOURCE and it is a DEED — in the record, and there when he sails back,
+while the stream out of it is worked out again. Dipped, it takes a source of ours up (so
+a man may pick his own spring back up) and merely draws from the world's own water, as a
+well is drawn from and does not empty. Running water is refused. Acceptance test 42 walks
+the whole chain.
 
 ### 4. Planting
 

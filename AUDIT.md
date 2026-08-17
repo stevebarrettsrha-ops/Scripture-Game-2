@@ -4904,6 +4904,79 @@ all), and that the geometry does not move by a single triangle.
              (+355, +8.6%) · triangles 865306 → 865306 (+0) · the barks in view:
              Smooth 282, Twist 199, Ring 109, W 108, Cork 27
 
+## 4bi. Round 60 — the bucket: the one way the hand carries water
+
+Second of the five. **The mechanism has been finished for four rounds and there
+was no way for a player to touch it**: `spill` lays a source and `take` lifts
+one, a hand's source is a deed that survives a reload while the stream out of it
+is derived and is not — and none of that was reachable, because a bucket is a
+thing in the hand and there was no thing.
+
+### Two blocks, because that is how a satchel counts
+
+`blocks/bucket.js` and `blocks/water-bucket.js`. Not one item with a flag on it:
+a man may carry three full and two empty, and a stack in this satchel is of one
+kind. A jar of baked clay, made at a kiln of three banded clay — which is what a
+man of that country carried water in, and the account is full of them at wells
+(BERĔSHITH 24:20, on the page beside the work).
+
+**The engine knows no bucket by name.** It reads `serves:'bucket'` — the same
+datum a pick and an axe carry — and two new ones: `fills` names what an empty
+vessel BECOMES when it is dipped, `empties` what a full one becomes when it is
+poured. Add a vessel to `blocks/` that says those things and it is a bucket, with
+not one line changed in `js/engine.js`, which is the rule `world/works.js`,
+`world/minerals.js` and `world/flora.js` all keep.
+
+### What it does, and what it refuses
+
+It is used through `placeBlock` — the one door a held thing goes through — and
+before the line that throws every `place:false` thing out, which is where a
+bucket would otherwise have died silently.
+
+- **Poured**, it lays a SOURCE and never a cube of water hanging in the air, and
+  because a hand laid it, it is a DEED: it is in the player's own record and is
+  there when he sails back, while the stream that runs out of it is worked out
+  again. Test 40 keeps that second half.
+- **Dipped**, it fills at any water the arm can reach. A source of OURS comes up
+  with it, so a man may pick his own spring back up. The world's own water — a
+  river, a trough, the sea — is drawn from and stays where it is, as a well is
+  drawn from and does not empty. **Running water is refused**: *"it is running
+  water, and will not be caught."*
+
+### Two faults, both mine, both found by the test
+
+**`satchelAdd` takes an ID and I handed it a number.** `satchelAdd(blockId(...))`
+looked right and is not: the satchel knows blocks by their stable id and never by
+the number that is an accident of the order `blocks/` is read in. So the bucket
+was taken out of the hand and nothing was given back — a man dipped his bucket
+and lost it. The test caught it on its first run.
+
+**And the test lied in its own report.** It asserted the poured source was in the
+record at the moment it was poured — correctly — and then PRINTED that fact at
+the end, by which time the source had been picked back up again, so a passing
+test printed *"in the record: false"* under an assertion that had just passed on
+its being true. A reading is taken at the moment it is true and reported from
+that reading.
+
+### Acceptance test 42
+
+`a bucket fills at water, pours a source that runs, and comes back empty` — the
+whole chain, because a bucket is only worth anything if every link holds: it
+fills, what it pours is a source and RUNS (more than the one cell he poured), what
+he poured is his own and in the record, the vessel comes back empty, and his own
+spring can be taken back up.
+
+    PASS 42  dipped → a full bucket · poured a source that ran to 388 cells ·
+             his own, in the record when he poured it: true · came back empty:
+             true · his own spring taken back up: true
+
+**It counts about the pouring and not over the world.** The springs at the falls
+are live now and their water is in the same map; a global count read fourteen
+hundred cells of somebody else's waterfall and called it a bucket.
+
+Test 36 passes at **44/44 blocks** — the two new files are in `world/manifest.js`
+and every block's id is still its place.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

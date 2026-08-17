@@ -1620,6 +1620,102 @@ T[39]={name:'a spring at a fall pours over the brink, stays at the fall, and dra
     return {ok:!faults.length, got:said.join(' · ')+(faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
+T[42]={name:'a bucket fills at water, pours a source that runs, and comes back empty',
+  /* THE HOLE THIS FILLS. js/water.js has had both halves of a bucket since
+     the flow was written — `spill` lays a source, `take` lifts one — and
+     since the flow got a layer of its own a hand's source is a DEED that
+     survives a reload while the stream out of it does not. What was missing
+     was the thing in the hand: there was no way for a player to touch any of
+     it. Every other way water moves in this world, the world does for itself.
+
+     THE WHOLE CHAIN, and it is a chain: a bucket is only worth anything if
+     every link holds.
+       1. It fills at water — and the vessel he holds becomes the full one.
+       2. What he pours is a SOURCE and not a cube of water hanging in the
+          air, so it RUNS: the cells about it must be more than the one he
+          poured.
+       3. What he poured is a DEED — it is in the player's own record, where
+          the stream that runs out of it must not be (test 40 keeps that half).
+       4. The vessel comes back EMPTY, or he has water for nothing.
+       5. And a source of his own can be picked back up.
+
+     It is driven through placeBlock, which is the one door a held thing goes
+     through, rather than through a mouse a headless browser has not got. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    const B=D.B;
+    if(!D.blockId('bucket')||!D.blockId('water-bucket'))
+      return {pending:'no bucket in blocks/ (the vessel)'};
+    if(!window.WATER) return {pending:'no flow (js/water.js)'};
+    if(!D.placeFrom||!D.holdId) return {pending:'no place/hold probe'};
+
+    /* dry ground the traveller is standing on, with air over it */
+    const p=D.playerXZ(), c=D.landAtWorld(p.x,p.z);
+    if(!c) return {ok:false,got:'he stands on nothing'};
+    const ix=Math.floor(p.x/B)+3, iz=Math.floor(p.z/B), iy=c.h;
+    const faults=[];
+
+    /* ---- 1 · A CISTERN TO DIP IN, laid as the world's own water would be ---- */
+    D.setBlock((ix+0.5)*B,(iy+0.5)*B,(iz+0.5)*B, D.blockId('water'));
+    await D.settle(2);
+    D.satchelAdd('bucket',1); D.holdId('bucket');
+    /* the arm on the water, struck on its top face */
+    const dip=D.placeFrom({ix,iy,iz,nx:0,ny:1,nz:0,n:D.blockAt(ix,iy,iz),dist:2});
+    const gotFull=D.satchelCount('water-bucket');
+    if(!gotFull) faults.push('dipping gave no full bucket ('+JSON.stringify(dip)+')');
+
+    /* ---- 2 · POURED OUT, AND IT RUNS ----
+       COUNTED ABOUT THE POURING AND NOT OVER THE WORLD. The springs at the
+       falls are live and their water is in the same map; a global count here
+       read fourteen hundred cells of somebody else's waterfall and called it
+       a bucket. */
+    const near=(cx,cz,r)=>{ let n=0;
+      for(const st of WATER.serialise()){ const q=st.slice(0,st.lastIndexOf(':')).split(',');
+        if(Math.abs(+q[0]-cx)<=r&&Math.abs(+q[2]-cz)<=r) n++; }
+      return n; };
+    D.holdId('water-bucket');
+    const px=Math.floor(p.x/B)-3, pz=Math.floor(p.z/B), py=(D.landAtWorld((px+0.5)*B,(pz+0.5)*B)||c).h;
+    /* the arm on the ground beside him, struck on its top face */
+    const pour=D.placeFrom({ix:px,iy:py-1,iz:pz,nx:0,ny:1,nz:0,n:D.blockAt(px,py-1,pz),dist:2});
+    const before=near(px,pz,12);
+    const source=WATER.levelAt(px,py,pz);
+    if(source!==WATER.SOURCE) faults.push('what was poured is not a source ('+JSON.stringify(pour)+')');
+    /* let it run, and it must be more than the one cell he poured */
+    for(let t=0;t<400;t++){ WATER.step(0.25);
+      if(t%50===0) await new Promise(r=>setTimeout(r,0)); }
+    const ran=near(px,pz,12);
+    if(ran<2) faults.push('the poured source did not run ('+ran+' cells)');
+    /* and it is HIS: in the record, where the stream must not be */
+    /* READ AT THE MOMENT IT IS TRUE, and reported from that reading. The first
+       cut of this asserted it here and PRINTED it at the end — by which time
+       the source had been picked back up, so the line said "in the record:
+       false" under a test that had just passed on its being true. */
+    const wasRecorded=D.recordedAt?D.recordedAt(px,py,pz):null;
+    if(wasRecorded===false) faults.push('his own source is not in the record');
+
+    /* ---- 3 · THE VESSEL COMES BACK EMPTY ---- */
+    const backEmpty=D.satchelCount('bucket');
+    if(!backEmpty) faults.push('the bucket did not come back empty');
+
+    /* ---- 4 · AND HE MAY PICK HIS OWN SPRING BACK UP ---- */
+    D.holdId('bucket');
+    D.placeFrom({ix:px,iy:py,iz:pz,nx:0,ny:1,nz:0,n:D.blockAt(px,py,pz),dist:2});
+    const lifted=WATER.levelAt(px,py,pz)===null;
+    if(!lifted) faults.push('his own source could not be taken back up');
+    /* the world is left as it was found */
+    for(let t=0;t<600&&near(px,pz,12);t++){ WATER.step(0.25);
+      if(t%50===0) await new Promise(r=>setTimeout(r,0)); }
+    D.setBlock((ix+0.5)*B,(iy+0.5)*B,(iz+0.5)*B, 0);
+    D.satchelTake('bucket',9); D.satchelTake('water-bucket',9);
+
+    return {ok:!faults.length,
+      got:'dipped → '+(gotFull?'a full bucket':'nothing')+
+        ' · poured a source that ran to '+ran+' cells'+
+        ' · his own, in the record when he poured it: '+wasRecorded+
+        ' · came back empty: '+!!backEmpty+' · his own spring taken back up: '+lifted+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[41]={name:'a wood wears more than one bark, and the six cost draw calls and not one triangle',
   /* §2.4.3 asks for a bark per species. A texture per species is a MATERIAL
      per species, and the rule this whole flora is built on is that a hundred

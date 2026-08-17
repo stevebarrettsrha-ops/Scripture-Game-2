@@ -397,6 +397,27 @@ const _hd=(g)=>{ g.fillStyle=C(PB.toolStone.a); return g; };
 TEX.flintPick  = toolTex(g=>{ _hd(g); g.fillRect(2,2,12,2);
   g.fillStyle=C(PB.toolStone.b); g.fillRect(2,1,12,2);
   g.fillStyle=C(PB.toolStone.glint); g.fillRect(3,1,2,FG); g.fillRect(12,1,2,FG); });
+/* ---- THE BUCKET, AND THE SAME BUCKET CARRYING ----
+   A jar of baked clay: a body, a shoulder drawn in, and a handle over. The
+   full one is the same vessel with the water standing in the neck of it, so
+   the two read as one thing in two states at a glance on the belt, which is
+   the whole job of an icon. */
+function vesselTex(fill){
+  return mkTex(g=>{
+    g.clearRect(0,0,16,16);
+    const body=C(PB.brick.b), rim=C(PB.toolHaft.a);
+    g.fillStyle=rim; g.fillRect(5,2,6,1);          /* the handle over the mouth */
+    g.fillRect(4,3,1,1); g.fillRect(11,3,1,1);
+    g.fillStyle=body;
+    g.fillRect(4,4,8,2);                            /* the neck */
+    g.fillRect(3,6,10,8);                           /* the belly */
+    g.fillStyle=C(PB.brick.b.map(v=>Math.round(v*0.78)));
+    g.fillRect(3,6,2,8);                            /* and its shadowed side */
+    if(fill){ g.fillStyle=C(PB.water.b); g.fillRect(5,4,6,2); }
+  });
+}
+TEX.bucket     = vesselTex(false);
+TEX.bucketFull = vesselTex(true);
 TEX.flintAxe   = toolTex(g=>{ _hd(g); g.fillRect(3,2,7,5);
   g.fillStyle=C(PB.toolStone.b); g.fillRect(3,1,6,5);
   g.fillStyle=C(PB.toolStone.glint); g.fillRect(3,2,FG,3); });
@@ -471,6 +492,8 @@ blockMat('emerald',TEX.emerald); blockMat('ruby',TEX.ruby);
 blockMat('hewnStone',TEX.hewnStone); blockMat('altar',TEX.altar);
 blockMat('kilnSide',TEX.kilnSide); blockMat('kilnTop',TEX.kilnTop);
 blockMat('flintPick',TEX.flintPick,{transparent:true});
+blockMat('bucket',TEX.bucket,{transparent:true});
+blockMat('bucketFull',TEX.bucketFull,{transparent:true});
 blockMat('flintAxe',TEX.flintAxe,{transparent:true});
 blockMat('flintSpade',TEX.flintSpade,{transparent:true});
 blockMat('flintHoe',TEX.flintHoe,{transparent:true});
@@ -913,6 +936,13 @@ for(let i=0;i<BLOCK_DEFS.length;i++){
     /* what this thing SERVES AS in the hand — 'pick', 'axe' and the rest.
        No block is a tool; the works of Phase 4 step 9 declare these. */
     serves:d.serves||null,
+    /* ---- AND WHAT A VESSEL BECOMES WHEN IT IS USED ----
+       A bucket is two things — empty and full — and each names the other, so
+       the engine may pour one into the other without ever knowing either by
+       name. It is the same rule world/works.js keeps: the data says what the
+       thing is, and js/ says only how a thing of that shape behaves. */
+    fills:d.fills||null,        /* what it becomes when dipped in water */
+    empties:d.empties||null,    /* and what it becomes when poured out */
     /* whether it may be SET DOWN at all — a tool may not */
     place:d.place!==false };
   /* the three faces the mesher asks for, resolved once so it never has to */
@@ -15133,6 +15163,13 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   /* the same placing, from a named reach — so a test need not steer a camera
      to ask which side of a face a block lands on */
   placeFrom:a=>{ const was=AIM; AIM=a; try{ return placeBlock(); } finally{ AIM=was; } },
+  /* how many of a thing he carries, and taking one of them INTO THE HAND by
+     its own name — a test that wants to use a bucket should not have to know
+     which of the belt's eight slots the satchel happened to put it in */
+  satchelCount,
+  holdId:id=>{ for(let i=0;i<BELT_N;i++){ const sl=SATCHEL[i];
+      if(sl&&sl.id===id){ heldSlot=i; beltDraw(); return true; } }
+    return false; },
   activeVillages:()=>activeVillages,
   toolSpeedOf:id=>toolSpeed(BLOCK_BY_ID[id]),
   /* the save, driven and read back, so a test need not guess at its timing */
@@ -16391,7 +16428,58 @@ function cellHitsAnyLiving(ix,iy,iz){
   return null;
 }
 /* set down what is in the hand, against the face the arm is on */
+/* ---- THE BUCKET: THE ONE WAY THE HAND CARRIES WATER ----
+   Everything else that moves water in this world the world does for itself —
+   a spring at a lip, a channel cut to a river, a storm over a wall. This is
+   the one that is HIS.
+
+   IT IS DONE THROUGH THE DOOR THAT WAS ALREADY THERE. js/water.js has had
+   both halves of a bucket since the flow was written: `spill` lays a source,
+   `take` lifts one, and since the flow got a layer of its own a hand's source
+   is a DEED that is in the world when he sails back while the stream that
+   runs out of it is not. Nothing here touches water; it asks for those two.
+
+   AND THE ENGINE KNOWS NO BUCKET BY NAME. A block that says `serves:'bucket'`
+   is one, `fills` names what an empty one becomes, `empties` what a full one
+   becomes. Add a vessel to blocks/ that says those things and it is a bucket;
+   this function is not touched.
+
+   WHAT IT MAY DIP INTO. Any water the arm can reach — a river, a village
+   trough, the sea's own edge, or a stream of ours. If it is OURS and it is a
+   source, it is TAKEN UP, so a man may pick his own spring back up; the
+   world's own water is not ours to remove and is merely drawn from, as a well
+   is drawn from and does not empty. */
+function useBucket(b,h){
+  const a=AIM; if(!a) return {no:'nothing is within reach'};
+  const free=freeHand();
+  if(b.empties){                               /* it is full: pour it out */
+    const ix=a.ix+a.nx, iy=a.iy+a.ny, iz=a.iz+a.nz;
+    if(iy<EY_MIN||iy>=EY_MAX) return {no:'there is nothing there to pour on'};
+    if(blockSolidAt(ix,iy,iz)) return {no:'something already stands there'};
+    if(!window.WATER||!WATER.spill(ix,iy,iz,true)) return {no:'the water will not stand there'};
+    if(!free){ satchelTake(h.id,1); satchelAdd(b.empties,1); }   /* by its ID: satchelAdd knows no numbers */
+    beltDraw(); satchelTouch();
+    return {poured:b.id, at:[ix,iy,iz], now:b.empties};
+  }
+  if(b.fills){                                 /* it is empty: dip it */
+    if(!isLiquid(blockAt(a.ix,a.iy,a.iz))) return {no:'there is no water there'};
+    /* a source of OURS comes up with it; the world's own water is drawn from
+       and stays where it is */
+    const lev=window.WATER?WATER.levelAt(a.ix,a.iy,a.iz):null;
+    if(lev===WATER.SOURCE) WATER.take(a.ix,a.iy,a.iz);
+    else if(lev!==null) return {no:'it is running water, and will not be caught'};
+    if(!free){ satchelTake(h.id,1); satchelAdd(b.fills,1); }      /* by its ID: satchelAdd knows no numbers */
+    beltDraw(); satchelTouch();
+    return {filled:b.id, at:[a.ix,a.iy,a.iz], now:b.fills};
+  }
+  return {no:'it is not a vessel'};
+}
 function placeBlock(){
+  /* the vessel is used before the rule below throws every held thing out —
+     a bucket is `place:false` like any held thing, and doing nothing with it
+     would be the whole of the bug */
+  { const h=heldBlock(), st=heldStack();
+    if(h&&h.serves==='bucket'&&st) return useBucket(h,st); }
   /* ---- A TOOL IS NOT A CUBIC METRE OF TOOL ----
      §11 step 9 gives the hand things that are HELD and not laid: a pick, an
      axe, a knife. `place:false` on the block is the whole of the rule, and it
