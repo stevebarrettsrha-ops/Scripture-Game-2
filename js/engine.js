@@ -1117,6 +1117,30 @@ function riverBlock(ix,iz){
   const wu=u+du2, wv=v+dv2;
   return (countryAtUV(wu,wv)&&riverAtUV(wu,wv))?1:0;
 }
+/* ---- AND WHERE A WATERFALL MAY EMPTY ITSELF ----
+   The same two lookups and the same warped coast, asked the other way about:
+   is this column OPEN WATER that a fall could run into? A river inside a
+   nation is 1, the sea itself is 2, dry land is 0.
+
+   js/waterfall.js aims each fall's channel at the nearest of these, and that
+   is what makes the water of a fall a river rather than a pond: the flow
+   gives up whatever reaches the world's own water ("when it reaches the sea
+   and river it goes nowhere but disappear out"), so a channel with an
+   OUTFALL leaves only what is in transit standing at the fall. Without one
+   the fall fills its basin and stops there, which is bounded but is a lake.
+
+   It reads the rasters and nothing else — no terrain, no cell, no cache — so
+   it may be asked before the world is generated and cannot recurse into the
+   very heights it is helping to decide. */
+function outfallWater(ix,iz){
+  const x=(ix+.5)*B, z=(iz+.5)*B, u=x/R_WORLD, v=z/R_WORLD;
+  if(Math.hypot(u,v)>=SHELF_UV) return 0;      /* the shelf and the ice: no outfall */
+  const du2=(fbm(u*760+13.7,v*760-4.2)-0.5)*(2.6/HALF);
+  const dv2=(fbm(u*760-8.1,v*760+9.3)-0.5)*(2.6/HALF);
+  const wu=u+du2, wv=v+dv2;
+  if(!countryAtUV(wu,wv)) return 2;            /* the sea */
+  return riverAtUV(wu,wv)?1:0;                 /* a river running through the land */
+}
 
 /* ================= THE NAMED PLACES OF THE EARTH =================
    world/landmarks.js names the true summits and the famous works of the
@@ -1187,7 +1211,14 @@ for(const L of LANDMARKS){ if(L.kind!=='mount') continue;
        here rather than pretended away — but it is improved by deferring the
        load to buildWorld, not by calling cellRaw from a place that cannot. */
     const n=WATERFALL.load(WF,{ B, R_WORLD, llToWorld, mPerBlock:MTN_M_PER_BLOCK,
-      faceAt:(x,z)=>fbm(x*0.00021+7.3, z*0.00021-2.9)*6.2832 });
+      faceAt:(x,z)=>fbm(x*0.00021+7.3, z*0.00021-2.9)*6.2832,
+      /* where a fall may empty itself, and the height of the water it empties
+         into. Both are read from the rasters alone and ask the terrain
+         nothing, so the dead zone that broke the boot twice cannot recur; the
+         waterline is a closure for the same reason — SEA_SURF is declared
+         further down this file, and a function is not read until it is
+         called. */
+      outWater:outfallWater, seaBlock:()=>Math.floor(SEA_SURF/B) });
     _fallsOn=n>0;
     if(window.console&&n) console.info('the voyage: '+n+' falling waters of the earth');
   } }

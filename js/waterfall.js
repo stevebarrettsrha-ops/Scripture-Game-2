@@ -122,7 +122,18 @@ function load(list,kit){
          apron and the water walked out on to the flat. A channel wants room to
          descend and to find the river, and the claim must be a box that
          actually holds it. */
-      run:Math.max(40,drop*3), R:Math.max(half*6,drop*B*2.6,Math.max(40,drop*3)*B*1.15) });
+      run:Math.max(40,drop*3), R:Math.max(half*6,drop*B*2.6,Math.max(40,drop*3)*B*1.15),
+      /* ---- THE BASIN'S OWN MEASURES, AND WHY THEY ARE NOT ONE NUMBER ----
+         The pool was `half * F.pool` in BOTH directions, which for a cataract
+         is not a pool but a county: Niagara's half-lip is a hundred blocks, so
+         its "pool" came out a hundred and eighty-two blocks deep as well as
+         wide — wider than the fall's whole claim, so every column near it was
+         pool and the channel had nowhere to begin.
+         A plunge basin is the shape of the curtain that fills it: as WIDE as
+         the lip and a few blocks DEEP, which is two numbers and not one. */
+      bd:Math.max(2,Math.min(5,Math.round(drop*0.35))),
+      poolU:half+Math.max(2,Math.min(5,Math.round(drop*0.35)))+2,
+      poolV:Math.max(3,Math.min(Math.round(drop*0.35),10)) });
   }
   return FALLS.length;
 }
@@ -137,6 +148,92 @@ function localOf(f,x,z,out){
 }
 const _uv=[0,0];
 
+/* ---- WHERE THIS FALL EMPTIES ITSELF, AND HOW IT IS FOUND ----
+   THE POINT OF IT: js/water.js gives up whatever reaches the world's own
+   water — "when it reaches the sea and river it goes nowhere but disappear
+   out" — so a channel that MEETS a river is a true outfall, and the only
+   water then standing at a fall is what is in transit down it. Without one
+   the fall fills its basin and stops, which is bounded and is a lake.
+
+   THE SEARCH is a fan of rays out of the plunge pool, downstream and to
+   either side, asking `outWater` at every other block: two raster lookups,
+   no terrain, no cell, no cache. The nearest hit wins. It is done ONCE per
+   fall, the first time the terrain asks about that fall, and there are
+   thirty-four falls in the world.
+
+   WHY IT IS NOT DONE AT LOAD. The falls are loaded from module top level,
+   above the line that declares RANGES, and the note beside that call says
+   what happened the two times something here asked the terrain a question
+   from there: the engine threw as it loaded and the world did not boot.
+   `outWater` asks the rasters and nothing else and would be safe — but the
+   waterline is `SEA_SURF`, declared five thousand lines further down, and
+   reading it at load would be the same dead zone again. So the whole of it
+   waits until the first column is asked for, by which time the file is
+   read and everything in it is standing. */
+const OUT_FAN=9;             /* rays, spread across the downstream half */
+const OUT_SPREAD=1.25;       /* radians either side of straight downstream */
+function findOutfall(f){
+  if(!K.outWater) return null;
+  const B=K.B, start=f.poolV+2;
+  const maxD=Math.min(f.run,Math.round(f.R/B)-2);
+  let best=null;
+  for(let r=0;r<OUT_FAN;r++){
+    const a=(r/(OUT_FAN-1)*2-1)*OUT_SPREAD;
+    const su=Math.sin(a), sv=Math.cos(a);
+    for(let d=start;d<=maxD;d+=2){
+      const u=su*d, v=sv*d;
+      const x=f.x+(u*f.cs+v*f.sn)*B, z=f.z+(-u*f.sn+v*f.cs)*B;
+      const w=K.outWater(Math.floor(x/B),Math.floor(z/B));
+      if(!w) continue;
+      if(!best||d<best.d) best={u,v,d,kind:w};
+      break;                        /* this ray has found its water */
+    }
+  }
+  return best;
+}
+/* ---- THE OUTFALL AND THE GRADE ARE ONE ACT, AND ARE DONE IN ONE PLACE ----
+   They were two, and it bit within the hour: the read-only probe set the
+   outfall and left the grade unset, so the terrain the probe reported was cut
+   to a DIFFERENT SHAPE from the terrain the game builds — a flat channel in
+   the one and a staircase in the other, off the same fall in the same world.
+   A thing worked out once is worked out in one function, and everything that
+   wants it calls that.
+
+   ---- AND THE FALL IS RAISED ENOUGH FOR THE CHANNEL TO RUN ----
+   THE FAULT, measured: the channel to Niagara's outfall was cut and came out
+   DEAD FLAT at height 1 — the waterline — for the whole twenty-five blocks,
+   because the basin floor was already there and there was nothing underneath.
+   Water reaches seven blocks from a source and no further on the flat, so it
+   died a third of the way along and lay in a sheet exactly as before. A stream
+   is not a channel; it is a channel with a FALL in it, and it wants a step
+   down every few blocks the whole way or it stops being a stream.
+
+   So a fall with an outfall is set high enough to reach it: a block of grade
+   for every five blocks of distance, on top of the basin it must also hold.
+   Niagara's lip stands some blocks higher than the plain for it, eased back to
+   the true land at the edge of the claim as everything else here is — which is
+   the same trade this file has made since its first line: a waterfall is a
+   SHAPE OF GROUND. Its gorge now reads 7 6 6 6 5 5 5 5 4 4 4 3 3 3 3 2 2 2 2 1
+   where it read 1 1 1 1 1 1 1 1 1 1, and that staircase is the stream. */
+function prepare(f){
+  if(f.out!==undefined) return f;
+  f.out=findOutfall(f);
+  f.grade=f.out?Math.min(9,Math.ceil(f.out.d/5)):0;
+  return f;
+}
+/* the distance from a column to the channel's own line, and how far along it
+   that column stands — the two numbers the cut is made of */
+function onChannel(f,u,v,out){
+  const o=f.out, u0=0, v0=f.poolV;
+  const du=o.u-u0, dv=o.v-v0, len2=du*du+dv*dv;
+  let t=len2>0?((u-u0)*du+(v-v0)*dv)/len2:0;
+  if(t<0) t=0; else if(t>1) t=1;
+  out[0]=Math.hypot(u-(u0+du*t), v-(v0+dv*t));
+  out[1]=t;
+  return out;
+}
+const _ch=[0,0];
+
 /* ---- THE HOOK THE TERRAIN CALLS ----
    Given a column and the height the world would otherwise give it, answer
    the height it stands at. Returns the height unchanged for all but the
@@ -150,6 +247,27 @@ function heightAt(x,z,h){
     const dz=z-f.z; if(dz>f.R||dz<-f.R) continue;
     localOf(f,x,z,_uv);
     const u=_uv[0], v=_uv[1];
+    /* ---- THE CHANNEL TO THE OUTFALL, WHICH IS ASKED BEFORE ANYTHING ELSE ----
+       It is asked first because it may run ANYWHERE inside the claim — a
+       river is where it is, and it is not obliged to lie downstream of the
+       lip — and because it must not drag the shelf with it: the shoulder
+       easing below raises the ground across its whole width, and a shoulder
+       widened to reach a river would raise a county. The channel is a narrow
+       CUT and nothing more. It never raises the land, only lowers it: where
+       the ground is already lower than the channel would be, the ground is
+       left as it is and the water runs down it of its own accord. */
+    prepare(f);
+    if(f.out){
+      onChannel(f,u,v,_ch);
+      const cw=Math.max(1,Math.min(f.half,Math.round(2+f.drop*0.12)));
+      if(_ch[0]<=cw){
+        /* from the basin's floor down to the water it empties into, a step at
+           a time, so the water always has a way down within its own reach */
+        const top=Math.max(2+f.bd+(f.grade||0),h-2)-f.bd;
+        const end=Math.max(1,K.seaBlock?K.seaBlock():1);
+        return Math.max(1,Math.round(top+(end-top)*_ch[1]));
+      }
+    }
     if(v<-f.run*0.5||v>f.run) continue;
     const au=Math.abs(u);
     /* the shoulders of the gorge: outside them the land is the world's own */
@@ -180,8 +298,8 @@ function heightAt(x,z,h){
        needs, which is a lift of two or three blocks at the falls that sit on
        low ground, and the shelf eases back to the true land at the edge of the
        claim exactly as it always did. */
-    const basin=Math.max(2,Math.min(5,Math.round(f.drop*0.35)));
-    const foot=Math.max(2+basin,h-2);
+    const basin=f.bd;
+    const foot=Math.max(2+basin+(f.grade||0),h-2);
     const lip=foot+f.drop;
     /* and the shelf eases back down to the true land at the edge of the
        claim, so a tepui is a headland and not a box dropped on a plain */
@@ -231,10 +349,9 @@ function heightAt(x,z,h){
        which is what the man asked for, and it is also what a plunge pool is.
        Its own rim keeps it: water spreads sideways only when it cannot go
        down, and inside the basin down is always toward the middle. */
-    const poolR=Math.max(3,f.half*F.pool+basin);
     const dv=v-(set+wallEnd);
     const poolFloor=foot-basin;
-    if(dv<poolR&&au<poolR) return poolFloor;
+    if(dv<f.poolV&&au<f.poolU) return poolFloor;
     /* ---- AND THE WATER HAS SOMEWHERE TO GO ----
        THE FAULT, and it was reported from a picture: at the foot of Niagara
        the traveller stood in a LAKE. Not a flood — the level rule bounds it at
@@ -263,13 +380,24 @@ function heightAt(x,z,h){
        the channel's own end is its lowest point and the water gathers there —
        a cistern by construction, and bounded, because the channel is cut and
        the banks are not. */
+    /* ---- AND THE GORGE FLOOR COMES BACK DOWN TO THE COUNTRY ----
+       It returned `foot` flat to the edge of the claim, which was invisible
+       while the foot sat a block or two under the natural land and is a
+       PLATEAU WITH A CLIFF ROUND IT the moment a fall is raised to reach its
+       outfall. So the floor eases from the foot at the pool to the world's own
+       land at the edge of the run, exactly as the shelf above already eases,
+       and a man walking away from the fall walks down a slope and not off a
+       step. The channel is cut into that slope. */
+    const tail=Math.max(1,f.run-f.poolV);
+    const tEdge=Math.max(0,Math.min(1,(dv-f.poolV)/tail));
+    const floorHere=Math.round(foot+(Math.max(1,h-1)-foot)*tEdge);
     const cw=Math.max(1,Math.min(f.half,Math.round(2+f.drop*0.12)));
     if(au<=cw){
-      const d=dv-poolR;                            /* how far down the gorge */
+      const d=dv-f.poolV;                          /* how far down the gorge */
       const step=Math.max(2,Math.round(6-f.drop*0.02));   /* a block down every few */
-      return Math.max(1,Math.min(poolFloor,foot-1-Math.floor(d/step)));
+      return Math.max(1,Math.min(poolFloor,floorHere-1,foot-1-Math.floor(d/step)));
     }
-    return foot;
+    return floorHere;
   }
   return h;
 }
@@ -357,5 +485,7 @@ function nearest(x,z,within){
 }
 
 window.WATERFALL={ load, heightAt, channelAt, springs, woodAt, nearest,
+  /* read-only, for the measuring: where this fall was found to empty itself */
+  outfall:f=>prepare(f).out, grade:f=>prepare(f).grade,
   list:()=>FALLS, count:()=>FALLS.length, FORM };
 })();

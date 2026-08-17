@@ -4758,6 +4758,84 @@ the engine answers "is this column a river" in two lookups and no search; the
 step is to find the nearest river to each fall at load and aim the channel at it.
 That is the next thing, and it is what "flow into rivers" finally means.
 
+## 4bg. Round 58c — the outfall: the channel aimed at the nearest river
+
+*"Do the outfall — aim the channel at the nearest river."* Done, and it took
+three measured attempts, each of which failed for a different reason worth
+keeping.
+
+### Finding the water
+
+`outfallWater(ix,iz)` in the engine, beside `riverBlock` and built the same way:
+the same warped coast, the same two rasters, no terrain, no cell, no cache — 1
+for a river inside a nation, 2 for the sea, 0 for dry land. Because it asks the
+rasters and nothing else it may be called while the terrain is being generated
+and cannot recurse into the very heights it is helping to decide.
+
+The search is a fan of nine rays out of the plunge pool, downstream and to
+either side, every other block, nearest hit wins — done ONCE per fall, the first
+time the terrain asks about it. What it finds:
+
+| fall | outfall | distance |
+|---|---|---|
+| Iguazu | the sea | 9 blocks |
+| Mosi-oa-Tunya | **a river** | 16 blocks |
+| Niagara | the sea | 25 blocks |
+| Angel, Gocta, Yosemite, Multnomah, Tugela | nothing within the claim | — |
+
+The great plunges have no outfall and keep their basin, which is the right
+answer for a fall off a tepui in the middle of a forest.
+
+### The first cut was flat, and so was the second
+
+**The pool was not a pool, it was a county.** `poolR` was `half × F.pool` in BOTH
+directions, so Niagara's hundred-block half-lip gave a "pool" a hundred and
+eighty-two blocks DEEP as well as wide — wider than the fall's whole claim, so
+every column near the fall was pool and the channel had nowhere to begin. A
+plunge basin is the shape of the curtain that fills it: as wide as the lip, a
+few blocks deep. Two numbers, not one.
+
+**Then the channel was cut and came out DEAD FLAT at height 1** — the waterline
+— for the whole twenty-five blocks, because the basin floor was already there
+and there was nothing underneath. Water reaches seven blocks from a source and
+no further on the flat, so it died a third of the way along and lay in a sheet
+exactly as before. **A stream is not a channel; it is a channel with a fall in
+it.** A fall with an outfall is now raised enough to reach it — a block of grade
+for every five blocks of distance, on top of the basin it must also hold.
+
+Niagara's gorge, before and after:
+
+    1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+    7 6 6 6 5 5 5 5 4 4 4 3 3 3 3 2 2 2 2 1
+
+That staircase is the stream. And because a raised fall that ended at its claim
+edge would be **a plateau with a cliff round it**, the gorge floor now eases from
+the foot back down to the world's own land across the run, as the shelf above it
+always did.
+
+### And a probe that lied, which is the lesson of the round
+
+The outfall and the grade were worked out in two places — the search in one, the
+raise in the other — and the read-only probe called only the first. **So the
+terrain the probe reported was cut to a different shape from the terrain the
+game builds**: a flat channel in the one and a staircase in the other, off the
+same fall in the same world, and I read the probe's answer for a quarter of an
+hour before noticing it disagreed with the profile beside it. A thing worked out
+once is worked out in ONE function (`prepare`), and everything that wants it
+calls that.
+
+### What it costs, said plainly
+
+**The standing water at Niagara went UP, from 3,807 cells to 5,216**, and that is
+not a regression: there is now twenty-five blocks of sloping apron with water
+running down it where before there was a sheet dying seven blocks out. Water in
+transit is the thing a river IS. The count stays bounded and inside the gorge
+(114 blocks of a claim of 129), test 39 still drains every fall to zero, and
+test 40 still finds not one cell of it in the record.
+
+Tests 22, 24, 39 and 40 pass. 24 is the one that matters for a round that raises
+ground: every named summit must still be walkable, and all thirteen are.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

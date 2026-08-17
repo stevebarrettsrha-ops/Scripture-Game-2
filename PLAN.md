@@ -1046,13 +1046,35 @@ it, descending, with banks. And the fall is raised enough to hold them: `foot` w
 to cut into — which is why the first channel came out as flat as the plain it was meant to
 drain. Niagara reads `9 9 9 9 6 2 2 2 …` now.
 
+### The outfall — done
+
+`outfallWater` in the engine answers "river, sea, or dry land" from the rasters alone, and a
+fan of nine rays out of each plunge pool finds the nearest water: **Iguazu the sea at 9
+blocks, Mosi-oa-Tunya a RIVER at 16, Niagara the sea at 25.** The great plunges — Angel,
+Gocta, Yosemite, Tugela — find nothing within their claim and keep their basin, which is the
+right answer for a fall off a tepui.
+
+Two attempts failed first and both are written into the file. The "pool" was `half × F.pool`
+in both directions, so Niagara's was a hundred and eighty-two blocks deep as well as wide —
+wider than the whole claim, leaving the channel nowhere to begin. And the channel, once it
+had somewhere to begin, came out **dead flat at the waterline**, because the basin floor was
+already there and there was nothing underneath: water reaches seven blocks on the flat and
+died a third of the way along. **A stream is not a channel; it is a channel with a fall in
+it.** A fall with an outfall is raised a block of grade for every five blocks of distance,
+and its gorge floor eases back to the world's own land across the run so that a raised fall
+is not a plateau with a cliff round it.
+
+Niagara's gorge reads `7 6 6 6 5 5 5 5 4 4 4 3 3 3 3 2 2 2 2 1` where it read `1 1 1 1 …`.
+The standing water there went UP, 3,807 cells to 5,216, and that is the point rather than a
+cost: there is twenty-five blocks of running stream where there was a sheet dying seven
+blocks out. Water in transit is what a river is.
+
 ### What is still owed
 
-**The outfall.** A river is open water and the flow already gives up whatever reaches one, so
-a channel that MEETS a river is a true outfall and the water standing at a fall would be only
-what is in transit. `riverBlock` answers "is this column a river" in two lookups and no
-search; the step is to find the nearest river to each fall at load and aim the channel at it.
-That is what *"flow into rivers"* finally means, and it is the next thing.
+**The far falls.** Five of the great plunges find no water within their claim and end in a
+basin. Whether they should reach further — a channel of a hundred blocks to the nearest
+river, with the grade that implies — is a question about how much ground a fall may be
+allowed to reshape, and it wants a picture before it wants a number.
 
 **The curtain.** Seven heads make seven threads, and the falls that now run are thin ones. A
 head every other block gives the volume back and will not unwind — that is not understood
