@@ -2456,7 +2456,34 @@ function emitColumn(G,ix,iz,cc){
    baobab — and world/flora.js knows what grows where. Neither of them knows
    anything about chunks, so the mesher lends them the few things they need
    and takes the geometry back. `G` is swapped in per chunk. */
-const FKIT={ G:null, emitBox, cross, shade, hash:hash2,
+/* ---- AND THE BOLE OF A TREE IS BLOCKS ----
+   Everything else the flora draws is geometry merged into the chunk, which is
+   right: a canopy of blocks is a different and much dearer world, and nobody
+   asked to mine a leaf. But a TREE IS FELLED, and `blocks/log.js` and
+   `blocks/flint-axe.js` have both stood since Phase 4 — Timber that drops to
+   an axe, and an axe written to fell it — with nothing in the world for the
+   axe to bite: every bole was a merged box and the blow passed through it.
+
+   This is the one door between them. The flora asks for its trunk through
+   `kit.bole` instead of `kit.emitBox`, and the engine stamps that box into the
+   STRUCTURE layer — derived, dropped, never written down, exactly as a village
+   wall is — where the mesher draws it, the hand breaks it and it drops timber.
+   `MAT_BLOCK` already sent every bark to `log` against this very day, with a
+   note saying that without it a birch would break into rubble.
+
+   WHAT IT COSTS, AND IT IS NOT HIDDEN: a bole drawn as blocks is drawn with
+   the LOG's own texture, so the six barks of §2.4.3 stand on the crown's own
+   geometry and no longer on the trunk. Six barks are six materials; six kinds
+   of timber block would be six more blocks in the world and a stack of timber
+   that no longer stacks. That is a trade to be argued, not assumed, and it is
+   argued in AUDIT Round 61. */
+function boleBox(x0,y0,z0,x1,y1,z1,mat){
+  const was=_stampOn;
+  if(!was) _stampOn={cells:[]};
+  try{ stampBox(x0,y0,z0,x1,y1,z1,mat); }
+  finally{ if(!was) _stampOn=null; }
+}
+const FKIT={ G:null, emitBox, bole:boleBox, cross, shade, hash:hash2,
   M:{leaf:'leafW', ever:'everW', bark:'barkW', plant:'plantW', solid:'solidW'} };
 let floraReady=false;
 function initFlora(){ if(floraReady) return; floraReady=true;
@@ -2908,6 +2935,14 @@ function stampBlock(ix,iy,iz,n){
   const key=chunkKeyOf(ix,iz);
   const idx=eIndex(((ix%CH)+CH)%CH, iy, ((iz%CH)+CH)%CH);
   let m=SEDITS.get(key); if(!m){ m=new Map(); SEDITS.set(key,m); }
+  /* ---- A STAMP THAT CHANGES NOTHING MARKS NOTHING ----
+     Every stamp marked its chunk for a remesh whether or not the cell already
+     held that very block, which was harmless while stamping happened once when
+     a village was raised. The BOLES stamp from inside the chunk build itself,
+     so a chunk that re-stamped the same trees on every build would mark itself
+     dirty on every build, remesh, and stamp again — for ever. Writing the same
+     block twice is not an event. */
+  if(m.get(idx)===n) return;
   if(!m.has(idx)&&_stampOn) _stampOn.cells.push(key,idx);
   m.set(idx,n);
   EDIT_DIRTY.add(key); editColumnsChanged();

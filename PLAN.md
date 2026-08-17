@@ -1104,16 +1104,28 @@ the two builds stood on 545 chunks and 709. `holdWorld` stops the world laying g
 its own while a measurement is taken, and the test asserts the two chunk counts are equal
 rather than assuming it.
 
-### 2. Tree boles as mineable blocks
+### 2. Tree boles as mineable blocks — *begun, and stopped on purpose (Round 61)*
 
-Every tree in the world is `emitBox` into the chunk geometry — `js/flora.js` draws
-the bole with the kind's own bark material and the mesher merges it. **So a tree is
-scenery: an axe passes through it.** `blocks/log.js` already exists (Timber,
-`tool:'axe'`, `drops:'log'`) and `blocks/flint-axe.js` is written for felling
-timber, so the block and the tool are both standing and only the BOLE is not made
-of them. The work is the one Phase 3 did for the villages: run the bole through
-`stampBox` into the structure layer instead of into geometry, and leave the crown
-as it is — a canopy of blocks is a different and much dearer question.
+The door is built and proved: `kit.bole` stamps a trunk into the structure layer, the
+mesher draws it, the axe breaks it, it drops Timber — read once, end to end, off a real
+acacia. `FLORA.boleBlocks` is the switch and it is **off**, for two reasons the tests
+found rather than I did:
+
+**The first build of every chunk would be trunkless.** `buildChunk` gathers its edits once
+at the top and then meshes, so a bole stamped during that pass cannot be drawn by the build
+that stamped it — the trunks arrive on the remesh, and a wood pops in as crowns over
+nothing. Test 41, written for the bark, measured it as 63,466 triangles of difference
+between two builds of the same wood.
+
+**And the bole loses its bark.** Blocks are drawn from the block table, which has one
+texture for Timber; the six barks live on the material a mesh is drawn with. Right for
+breaking, a real loss to the eye.
+
+The next round: stamp BEFORE the chunk gathers its edits — a pass over the columns that
+grow trees, which the builder already walks — and then decide the bark, which is either six
+Timber blocks (and a stack of timber that no longer stacks) or a tint the block table has no
+room for. The second is a question about what a block IS here, and wants asking before it is
+answered.
 
 ### 3. The bucket — ✅ *Round 60*
 

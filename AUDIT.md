@@ -4977,6 +4977,70 @@ hundred cells of somebody else's waterfall and called it a bucket.
 Test 36 passes at **44/44 blocks** — the two new files are in `world/manifest.js`
 and every block's id is still its place.
 
+## 4bj. Round 61 — the boles: the door built, the tree not yet sent through it
+
+Third of the five, and it is the first of these rounds to stop short. **The
+mechanism works and is not switched on**, for two reasons the test found, and
+both are about WHEN a stamp lands rather than whether it can be made to.
+
+### What is in
+
+**`kit.bole` — the door.** The flora asks for its trunk through it and the engine
+stamps that box into the STRUCTURE layer, where the mesher draws it, the hand
+breaks it, and it drops Timber. `MAT_BLOCK` has sent every bark to `log` since
+§2.4.3 against this very day, with a note saying that without it *"a birch would
+break into rubble"*.
+
+**And a stamp that changes nothing marks nothing.** `stampBlock` marked its chunk
+for a remesh whether or not the cell already held that block — harmless while
+stamping happened once when a village was raised, and a **loop** the moment boles
+stamp from inside the chunk build: the chunk marks itself dirty, remeshes, stamps
+the same trees, marks itself dirty. Writing the same block twice is not an event.
+That fix is in and stands on its own.
+
+**It was proved once, end to end.** With the switch on, test 43 read: *a acacia
+at 5539,7923 · solid: true · the block is Timber · in the player's record: false ·
+it drops log · broken: true*. The chain works — `blocks/log.js` and
+`blocks/flint-axe.js` have stood since Phase 4 with nothing for the axe to bite,
+and for one run there was something.
+
+### Why it is off
+
+**1. THE FIRST BUILD OF EVERY CHUNK WOULD BE TRUNKLESS.** `buildChunk` gathers
+the chunk's edits ONCE at the top and then meshes. A bole stamped during the mesh
+pass lands in the layer AFTER the gathering, so the build that stamped it cannot
+draw it: the trunks arrive on the remesh the stamp marks, a frame or several
+later, and a wood pops in as crowns floating over nothing. **Acceptance test 41
+measured it without being asked to** — 63,466 triangles of difference between two
+builds of the same wood, which is the trunks of a whole view arriving late. That
+test was written for the bark and caught this instead, which is the best argument
+for keeping an A/B test after the change it was written for has shipped.
+
+**2. AND THE BOLE LOSES ITS BARK.** Blocks are drawn from the block table, which
+has one texture for Timber; the six barks of §2.4.3 and the per-species tint live
+on the material a MESH is drawn with. `MAT_BLOCK` collapsing every bark to `log`
+is right for BREAKING — a stack of logs is a stack of logs whichever wood it came
+from — and is a real loss to the eye, one round after that eye was measured.
+
+### What the next round does, and it is not a guess
+
+The stamp wants to run **before** the chunk gathers its edits: a pass over the
+columns that grow trees, which the builder already walks. And the bark wants
+either a Timber block per bark pattern — six more blocks, and a stack of timber
+that no longer stacks — or a tint the block table has no room for. The first is
+a morning's work; the second is a question about what a block IS in this engine,
+and it should be asked before it is answered.
+
+`FLORA.boleBlocks` is the switch, off, so the next round begins where this one
+stopped rather than from the beginning. Test 43 states what it wants and waits:
+
+    PENDING 43  the boles are still geometry (FLORA.boleBlocks is off) —
+                a tamarisk at 12121,2040 is drawn and cannot be struck
+
+Tests 12, 17, 19, 34, 36 and 41 pass with the door in and the switch off — 41
+back to `meshes 4139 → 4494 (+8.6%) · triangles +0`, exactly where Round 59 left
+it.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

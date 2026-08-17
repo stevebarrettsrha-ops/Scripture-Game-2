@@ -1620,6 +1620,93 @@ T[39]={name:'a spring at a fall pours over the brink, stays at the fall, and dra
     return {ok:!faults.length, got:said.join(' · ')+(faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
+T[43]={name:'a tree stands in blocks: the axe bites the bole and it gives timber',
+  /* THE HOLE THIS FILLS, AND IT IS AN OLD ONE. `blocks/log.js` (Timber, to an
+     axe, dropping log) and `blocks/flint-axe.js` ("For the wood. A cedar that
+     takes a hand a slow minute takes an axe a moment") have both stood since
+     Phase 4 — and THERE WAS NOTHING IN THE WORLD FOR THE AXE TO BITE. Every
+     bole was a box merged into the chunk's geometry and a blow went straight
+     through it. Two files written for felling timber that could not be felled.
+
+     So: find a tree by asking the flora where one grows, and put four things
+     to the world at that trunk —
+       1. THE WORLD SAYS SOLID THERE. `blockSolidAt` is what the hand, the
+          walker and the blow all read; if it is false the tree is a picture.
+       2. IT IS TIMBER, not stone. The mesher's stamp answers `stone` for any
+          material no block claims, so a bole that came out as rock would look
+          right, break wrong, and nobody would know until they mined one.
+       3. IT IS IN THE STRUCTURE LAYER and not the player's record — a tree is
+          DERIVED, like a village wall, and a world that wrote every trunk it
+          ever grew to the disc would be writing down a forest.
+       4. AND IT BREAKS INTO WHAT IT IS: broken, the cell is empty and the
+          block it drops is timber.
+
+     THE TREE IS FOUND BY ASKING, not by hunting: `FLORA.treeAt` is what the
+     chunk builder itself asks, so the test and the world agree by
+     construction about where a tree is. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, F=window.FLORA, B=D.B;
+    if(!F||!F.treeAt) return {pending:'no flora'};
+    if(!D.blockId('log')) return {pending:'no timber block'};
+    const p=D.playerXZ();
+    const cix=Math.floor(p.x/B), ciz=Math.floor(p.z/B);
+    /* the nearest column the flora would grow a tree in */
+    let at=null, wooded=0;
+    for(let d=0;d<80&&!at;d++) for(let a=-d;a<=d&&!at;a++) for(let b=-d;b<=d&&!at;b++){
+      if(Math.max(Math.abs(a),Math.abs(b))!==d) continue;      /* the ring at d */
+      const ix=cix+a, iz=ciz+b;
+      const c=D.landAtWorld((ix+0.5)*B,(iz+0.5)*B);
+      if(!c||!c.tree) continue;
+      wooded++;
+      /* the same call the chunk builder makes, so the test and the world
+         agree by construction about where a tree is */
+      const K=F.treeAt(D.landNameAt?D.landNameAt((ix+0.5)*B,(iz+0.5)*B):null,
+                       c.kind,c.h,ix,iz,D.hash2,false);
+      if(K) at={ix,iz,h:c.h,kind:K.name||'?'};
+    }
+    if(!at) return {pending:'no tree grows within eighty blocks of where he stands ('+
+      wooded+' wooded columns looked at)'};
+
+    /* the ground about it laid, as the traveller walking up to it would lay it */
+    for(let k=0;k<25;k++){ D.updateChunks((at.ix+0.5)*B,(at.iz+0.5)*B,900);
+      await new Promise(r=>requestAnimationFrame(r)); }
+
+    /* the trunk: the first course above the ground, at the tree's own column */
+    const iy=at.h;
+    const solid=D.blockSolidAt(at.ix,iy,at.iz);
+    const n=D.blockAt(at.ix,iy,at.iz);
+    const b=D.blockOf(n);
+    const isTimber=!!(b&&b.id==='log');
+    const inRecord=D.recordedAt?D.recordedAt(at.ix,iy,at.iz):null;
+
+    /* and it breaks into what it is */
+    let broke=false, gave=null;
+    if(isTimber){
+      gave=b.drops;
+      D.setBlock((at.ix+0.5)*B,(iy+0.5)*B,(at.iz+0.5)*B,0);
+      broke=!D.blockSolidAt(at.ix,iy,at.iz);
+      await D.settle(2);
+    }
+
+    /* WHILE THE BOLES ARE STILL GEOMETRY this test states what it wants and
+       waits, rather than standing red against a thing nobody has claimed to
+       have done: FLORA.boleBlocks is the switch, and it is off. */
+    if(!solid&&F.boleBlocks&&!F.boleBlocks())
+      return {pending:'the boles are still geometry (FLORA.boleBlocks is off) — '+
+        'a '+at.kind+' at '+at.ix+','+at.iz+' is drawn and cannot be struck'};
+    const faults=[];
+    if(!solid) faults.push('the bole is not solid — the tree is a picture and a blow goes through it');
+    else if(!isTimber) faults.push('the bole is '+(b?b.name:'nothing')+' and not Timber'+
+      (b&&b.id==='stone'?' (the stamp answered stone, which is what it answers for a material no block claims)':''));
+    if(isTimber&&!broke) faults.push('the bole would not break');
+    if(inRecord) faults.push('the bole is in the PLAYER\'S record, and a tree is derived');
+    return {ok:!faults.length,
+      got:'a '+at.kind+' at '+at.ix+','+at.iz+' · solid: '+solid+' · the block is '+
+        (b?b.name:'nothing')+' · in the player\'s record: '+inRecord+
+        ' · it drops '+gave+' · broken: '+broke+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[42]={name:'a bucket fills at water, pours a source that runs, and comes back empty',
   /* THE HOLE THIS FILLS. js/water.js has had both halves of a bucket since
      the flow was written — `spill` lays a source, `take` lifts one — and
