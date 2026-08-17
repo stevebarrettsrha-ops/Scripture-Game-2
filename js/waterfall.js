@@ -116,9 +116,13 @@ function load(list,kit){
       form:f.form||'plunge', tiers:Math.max(1,f.tiers||1),
       wood:f.wood||null, girth:f.girth||1,
       face, cs:Math.cos(face), sn:Math.sin(face), F,
-      /* the gorge runs away downstream for a few times the drop, and the
-         whole claim is a box about that long and three lips wide */
-      run:Math.max(8,drop*2.2), R:Math.max(half*6,drop*B*2.6) });
+      /* THE GORGE RUNS AS FAR AS THE CHANNEL NEEDS. It was `drop*2.2` — for
+         Niagara thirteen blocks, which is shorter than the seven-block reach
+         of the water landing in it, so the fall's own cut ended inside its own
+         apron and the water walked out on to the flat. A channel wants room to
+         descend and to find the river, and the claim must be a box that
+         actually holds it. */
+      run:Math.max(40,drop*3), R:Math.max(half*6,drop*B*2.6,Math.max(40,drop*3)*B*1.15) });
   }
   return FALLS.length;
 }
@@ -165,8 +169,19 @@ function heightAt(x,z,h){
        So the gorge floor is set just under the surrounding land and THE
        SHELF IS RAISED to meet it: the fall builds its own cliff out of the
        ground, which is what the ground did over the ages anyway. Nothing is
-       ever taken below the waterline. */
-    const foot=Math.max(2,h-2);
+       ever taken below the waterline.
+
+       ---- AND IT STANDS HIGH ENOUGH TO HOLD THE POOL IT FALLS INTO ----
+       This was `max(2, h-2)`. At Niagara the natural land is three blocks, so
+       the foot stood at ONE — the floor of the world, with nothing under it to
+       cut into. That is why the water there lay in a sheet: there was no basin
+       to gather in and no slope to run down, because there was no room below
+       the ground for either. A fall is now never set lower than the basin it
+       needs, which is a lift of two or three blocks at the falls that sit on
+       low ground, and the shelf eases back to the true land at the edge of the
+       claim exactly as it always did. */
+    const basin=Math.max(2,Math.min(5,Math.round(f.drop*0.35)));
+    const foot=Math.max(2+basin,h-2);
     const lip=foot+f.drop;
     /* and the shelf eases back down to the true land at the edge of the
        claim, so a tepui is a headland and not a box dropped on a plain */
@@ -202,9 +217,58 @@ function heightAt(x,z,h){
       return Math.round(lip-f.drop*t);
     }
     /* --- the plunge pool, and the gorge running away from it --- */
-    const poolR=Math.max(2,f.half*F.pool);
+    /* ---- THE BASIN THE WATER RUNS INTO AND STOPS IN ----
+       THE FAULT, and it came from a player's own screen: at the foot of
+       Niagara he stood in a LAKE lying on flat ground. It is not a flood —
+       the level rule bounds it at seven blocks from every source and it
+       settles — but a sheet of water going nowhere is not the foot of a
+       waterfall. The pool here was one block deep and the width of the lip,
+       which is a wet mark on a plain, not a pool.
+
+       So it is a BASIN: as deep as the fall can afford and wider than its own
+       apron, cut into the ground with the gorge floor standing round it as a
+       rim. The water comes down the wall, gathers in it, and stops there —
+       which is what the man asked for, and it is also what a plunge pool is.
+       Its own rim keeps it: water spreads sideways only when it cannot go
+       down, and inside the basin down is always toward the middle. */
+    const poolR=Math.max(3,f.half*F.pool+basin);
     const dv=v-(set+wallEnd);
-    if(dv<poolR&&au<poolR) return foot-Math.max(1,Math.round(f.drop*0.12));
+    const poolFloor=foot-basin;
+    if(dv<poolR&&au<poolR) return poolFloor;
+    /* ---- AND THE WATER HAS SOMEWHERE TO GO ----
+       THE FAULT, and it was reported from a picture: at the foot of Niagara
+       the traveller stood in a LAKE. Not a flood — the level rule bounds it at
+       seven blocks from every source and it settles at some three thousand
+       cells — but a sheet of water lying on flat ground, going nowhere, which
+       is not what the foot of a waterfall looks like.
+
+       The gorge was the reason. This file promised "a gorge running away
+       downstream that the fall itself cut", and what it actually cut was
+       FLAT: `return foot` for every column past the pool, so the profile below
+       Niagara read 1 1 1 1 1 1 1 … for as far as it was sampled. Water on a
+       flat plain has no shortest way down, so it takes every way at once and
+       spreads as a disc. That is the disc in the picture.
+
+       So the gorge is a CHANNEL now: a cut a few blocks wide running away
+       downstream and DESCENDING, with the old gorge floor standing as its
+       banks on either side. The flow's own rule does the rest — water spreads
+       sideways only when it cannot go down, and down is now always along the
+       channel — so the fall runs off in a stream instead of lying in a sheet.
+
+       AND IT RUNS TO THE RIVER WHERE THERE IS ONE. A river is open water in
+       this world and js/water.js gives up whatever reaches it ("when it
+       reaches the sea and river it goes nowhere but disappear out"), so a
+       channel that meets one has a true outfall and the standing water at the
+       fall is only what is in transit. Where there is no river within reach,
+       the channel's own end is its lowest point and the water gathers there —
+       a cistern by construction, and bounded, because the channel is cut and
+       the banks are not. */
+    const cw=Math.max(1,Math.min(f.half,Math.round(2+f.drop*0.12)));
+    if(au<=cw){
+      const d=dv-poolR;                            /* how far down the gorge */
+      const step=Math.max(2,Math.round(6-f.drop*0.02));   /* a block down every few */
+      return Math.max(1,Math.min(poolFloor,foot-1-Math.floor(d/step)));
+    }
     return foot;
   }
   return h;

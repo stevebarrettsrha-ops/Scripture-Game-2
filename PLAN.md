@@ -992,27 +992,68 @@ make seven threads. A head every other block was tried and taken back out — it
 volume back and will not unwind. A fall that cannot be turned off is worse than a fall
 that is thin, so it stands at seven until that is understood.
 
-### The one thing left, and why the springs are still off
+### The one thing that was left, and it is done — the springs are ON
 
 A settled fall is not a still fall. Measured over two hundred ticks after the standing total
 had stopped moving, Angel laid 11,696 blocks and took up 11,676 — **eleven thousand writes
 to hold eight hundred and sixty-three cells still**, and thinning the water did not help it
-at all, because what is counted is the FLOW and not the pond. Every write marks its chunk
-for the SAVE and re-arms the writer,
-so the springs as they stand would have every fall the traveller has ever passed writing the
-world to the disc every 900 ms for the rest of the voyage, and would file a waterfall in the
-record of *what hands have done*.
+at all, because what is counted is the FLOW and not the pond. Every write marked its chunk
+for the SAVE and re-armed the writer, so the springs would have had every fall the traveller
+ever passed writing the world to the disc every 900 ms for the rest of the voyage, and would
+have filed a waterfall in the record of *what hands have done*.
 
-**The flow wants a layer of its own, and the engine already has the pattern**: `SEDITS`, the
-structures' layer — *"derived, dropped, never written down"*. A hand's own source is a deed
-and belongs in the save; the water that runs out of it is derived, is never written, and
-re-establishes from the source in the two or three minutes the traces show. That is the next
-step, it is one step, and after it `SPRINGS_ON` is `true` and the falls of the earth run.
+**Round 58 gave the flow a layer of its own** — `WEDITS`, beside the structures' `SEDITS`,
+*derived, dropped, never written down*. It is drawn, it is walked into, it is collided with,
+and it is not in the save. A fall is worked out again from its spring the next time the
+traveller comes near, exactly as a village is worked out again from its site.
 
-### What I will not do
+The order is the part that wanted care, and getting it wrong would have been invisible until
+somebody dug a channel: water stands in AIR, so a non-zero block of the player's or the
+structures' layer beats water, and **water beats a `0`** — because a dug cell is a `0` in the
+player's own layer, and a channel a man has cut is exactly where he expects his water to run.
+A block laid where water runs takes the cell outright, or the stone would merely hide the
+stream and breaking it later would let out a puddle nobody poured.
 
-**I will not turn the springs on and mend the save afterwards.** The whole reason this
-feature has been measured four times instead of shipped once is that a world which writes
-itself to the disc four times a second is a fault the player would feel and could not name,
-and it would be shipped under a headline — *the waterfalls now run* — that would make it
-very hard to take back out.
+**A hand's own source is still a deed** and still goes in the record; only the flow is
+derived. And since the flow is never written, every water block in a save is by construction
+a source somebody poured — so the boot spills them again and the stream re-forms in the
+first minute of the voyage.
+
+**What it measures at.** Thirty-three thousand blocks of water laid and taken up across three
+falls; **the writer's queue does not move once**, and the record moves by fourteen cells in
+all — the world's own doings elsewhere, not the water, which acceptance test 40 proves cell
+by cell rather than by a total: of 2,698 cells of a running Iguazu, **none is in the record**.
+
+`SPRINGS_ON` is `true`. Thirty-four falls, and the spring is laid as the traveller comes
+within seven hundred units of one.
+
+### The foot of the fall, reported from a picture
+
+A photograph came back from Niagara with the springs live: **the traveller standing in a
+lake.** Not the flood — it settles at three thousand cells and stays in its gorge — but a
+sheet of water lying on flat ground, which is a fair complaint and a different one.
+
+The gorge was the reason. This file's own promise was "a gorge running away downstream that
+the fall itself cut", and what it cut was FLAT — the same height for every column past the
+pool, so the profile below Niagara read `1 1 1 1 1 …`. **Water on a flat plain has no
+shortest way down**, so it takes every way at once and lies in a disc. The flow was working
+exactly as written and the ground gave it nothing to work with.
+
+There is a **basin** at the foot now — two to five blocks deep, wider than the fall's own
+apron, with the gorge floor standing round it as a rim — and a **channel** running away from
+it, descending, with banks. And the fall is raised enough to hold them: `foot` was
+`max(2, h-2)`, and at Niagara that is ONE, the floor of the world, with nothing underneath
+to cut into — which is why the first channel came out as flat as the plain it was meant to
+drain. Niagara reads `9 9 9 9 6 2 2 2 …` now.
+
+### What is still owed
+
+**The outfall.** A river is open water and the flow already gives up whatever reaches one, so
+a channel that MEETS a river is a true outfall and the water standing at a fall would be only
+what is in transit. `riverBlock` answers "is this column a river" in two lookups and no
+search; the step is to find the nearest river to each fall at load and aim the channel at it.
+That is what *"flow into rivers"* finally means, and it is the next thing.
+
+**The curtain.** Seven heads make seven threads, and the falls that now run are thin ones. A
+head every other block gives the volume back and will not unwind — that is not understood
+yet, and a fall that cannot be turned off is worse than a fall that is thin.

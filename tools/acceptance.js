@@ -1522,14 +1522,22 @@ T[39]={name:'a spring at a fall pours over the brink, stays at the fall, and dra
     if(!chosen.length) return {pending:'no fall of any known form'};
 
     const faults=[], said=[];
-    /* EACH FALL IS ASKED ABOUT ITS OWN WATER ONLY. WATER.serialise() is the
-       whole world's, and the first cut of this test read it whole: Angel
-       drained all but a few hundred cells, those few hundred were still in
-       the map when Iguazu was measured, and Iguazu was reported as having
-       thrown water FIVE THOUSAND BLOCKS — which was Angel, a continent away,
-       and not Iguazu at all. So what stood before this fall began is set
-       aside, and only what THIS spring put into the world is judged. */
-    const before=new Set(WATER.serialise().map(s=>s.slice(0,s.lastIndexOf(':'))));
+    /* ---- EACH FALL IS ASKED ABOUT ITS OWN WATER, AND ONLY ITS OWN ----
+       WATER.serialise() is the whole world's water, and reading it whole was
+       wrong twice over. First: Angel drained all but a few hundred cells and
+       those were still standing when Iguazu was measured, so Iguazu was
+       reported as having thrown water five thousand blocks — which was Angel,
+       a continent away. Second, once the springs were turned ON: the engine
+       lays a spring at whatever fall the traveller is near, all through this
+       test, and that water is nobody's business here at all.
+
+       So a cell belongs to the fall it is NEAREST to. It needs no bookkeeping,
+       it cannot go stale, and it is the plain meaning of the question — "did
+       THIS fall throw water out of its gorge" is a question about which fall
+       the water is at. */
+    const whose=(ix,iz)=>{ let best=null,bd=1e18;
+      for(const g of list){ const d=(ix*B-g.x)**2+(iz*B-g.z)**2; if(d<bd){ bd=d; best=g; } }
+      return best; };
     for(const f of chosen){
       const wx=(u,v)=>f.x+(u*f.cs+v*f.sn)*B, wz=(u,v)=>f.z+(-u*f.sn+v*f.cs)*B;
       const ground=(u,v)=>{ const c=D.landAtWorld(wx(u,v),wz(u,v)); return c?c.h:null; };
@@ -1544,9 +1552,12 @@ T[39]={name:'a spring at a fall pours over the brink, stays at the fall, and dra
       if(!heads.length){ faults.push(f.n+': no head could be laid'); continue; }
 
       /* beaten until the standing total stops moving, or 4,000 ticks */
-      const mine=()=>WATER.serialise().filter(s=>!before.has(s.slice(0,s.lastIndexOf(':'))));
+      const mine=()=>WATER.serialise().filter(s=>{
+        const p=s.slice(0,s.lastIndexOf(':')).split(',');
+        return whose(+p[0],+p[2])===f; });
       let prev=-1, still=0, t=0;
-      for(t=1;t<=4000;t++){
+      const seen=[];                 /* one reading a hundred ticks, for the verdict */
+      for(t=1;t<=6000;t++){
         WATER.step(0.25);
         if(t%50===0) await new Promise(r=>setTimeout(r,0));
         /* SETTLED IS NOT FROZEN. A live flow is water arriving and water
@@ -1554,12 +1565,28 @@ T[39]={name:'a spring at a fall pours over the brink, stays at the fall, and dra
            column flickers by a dozen cells from tick to tick — a tolerance of
            one per cent of nine hundred is nine cells, and Angel was reported
            "climbing" for four thousand ticks on that. Twenty cells, or two
-           per cent, whichever is the wider. */
-        if(t%100===0){ const c=WATER.count();
+           per cent, whichever is the wider.
+
+           AND IT IS THIS FALL'S OWN COUNT, not the world's. With the springs
+           live the engine keeps a fall of its own running whereever the
+           traveller stands, and the world's total never stops moving — so all
+           three falls were reported as "climbing" while each of them stood
+           perfectly still. */
+        if(t%100===0){ const c=mine().length; seen.push(c);
           if(prev>=0&&Math.abs(c-prev)<=Math.max(20,prev*0.02)) still++; else still=0;
           prev=c; if(still>=2) break; }
       }
-      const settled=still>=2, standing=mine(), held=standing.length;
+      /* ---- SETTLED, OR AT LEAST NOT CLIMBING, WHICH IS THE REAL QUESTION ----
+         The fault this guards is a FLOOD — 31,629 cells and rising fast — and
+         the wide cataracts take their time filling their aprons: Iguazu was
+         reported "climbing" at four thousand ticks while standing within a few
+         per cent of where it finished. So a fall that has not settled is
+         judged on whether it is still GROWING: more than a tenth added over
+         its last thousand ticks is a fall that has not found its bounds, and
+         anything less has. */
+      const standing=mine(), held=standing.length;
+      const back=seen.length>10?seen[seen.length-11]:seen[0];
+      const settled=still>=2||!(held>back*1.1);
 
       /* IT POURED: water standing in the shaft, between the foot and the lip,
          within the first few blocks downstream of the brink */
@@ -1582,16 +1609,115 @@ T[39]={name:'a spring at a fall pours over the brink, stays at the fall, and dra
       for(let k=0;k<4000;k++){ WATER.step(0.25);
         if(k%50===0){ await new Promise(r=>setTimeout(r,0)); if(!mine().length) break; } }
       const left=mine().length;
-      for(const s of mine()) before.add(s.slice(0,s.lastIndexOf(':')));
 
       said.push(f.n.split(/[ —]/)[0]+': '+held+' cells, '+shaft+' in the shaft, '+
         Math.round(far)+' blocks at furthest (of '+Math.round(claim)+'), drained to '+left);
       if(!shaft) faults.push(f.n+' ran dry — nothing went over the brink');
-      if(!settled) faults.push(f.n+' never settled ('+held+' cells and climbing)');
+      if(!settled) faults.push(f.n+' is still climbing ('+back+' → '+held+' cells over its last thousand ticks)');
       if(far>claim) faults.push(f.n+' left its own gorge ('+Math.round(far)+' blocks out)');
       if(left>Math.max(20,held*0.05)) faults.push(f.n+' would not unwind ('+left+' cells left standing)');
     }
     return {ok:!faults.length, got:said.join(' · ')+(faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[40]={name:'a running fall writes nothing into the record, and a hand\'s own source writes itself',
+  /* WHAT THIS IS FOR. A waterfall that has SETTLED is not still: Angel lays
+     11,696 blocks and takes up 11,676 over two hundred ticks simply to stand
+     where it is. While every one of those went through the engine's one door,
+     each marked its chunk for the SAVE and re-armed the 900 ms writer — so
+     turning the springs on would have had the world writing itself to the
+     disc four times a second at every fall the traveller had ever passed, for
+     the rest of the voyage, and would have filed a waterfall in the record of
+     what HANDS have done.
+
+     The flow has its own layer now (WEDITS), as the villages do. This is the
+     test of the only two things that must be true of it:
+
+     1. A FALL RUNS AND THE RECORD DOES NOT MOVE. Not "moves a little" — the
+        count of recorded cells and the count of chunks queued for the writer
+        must be EXACTLY what they were before the spring was laid, after
+        thousands of blocks have been laid and taken up.
+     2. THE WATER IS STILL THERE. A layer nobody can see is not a fix, it is a
+        deletion: `blockAt` must answer water at the cells the flow filled,
+        because that one answer is what the mesher, the collision and the
+        traveller's own feet all read.
+
+     And the other half of the arrangement: A HAND'S OWN SOURCE IS A DEED and
+     DOES go in the record, or a bucket emptied on a hillside would be gone on
+     the next voyage. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    if(!window.WATER||!D.recorded||!D.flowing) return {pending:'no water layer (WEDITS)'};
+    const list=window.WATERFALL?WATERFALL.list():[];
+    if(!list.length) return {pending:'no falls in world/waterfalls.js'};
+    const f=list.filter(x=>x.form==='cataract').sort((a,b)=>b.half-a.half)[0]||list[0];
+
+    const rec0=D.recorded(), save0=D.queuedToSave(), flow0=D.flowing();
+    const heads=[];
+    for(const [x,z] of WATERFALL.springs(f)){
+      const c=D.landAtWorld(x,z); if(!c) continue;
+      const ix=Math.floor(x/B), iz=Math.floor(z/B);
+      if(WATER.spill(ix,c.h,iz)) heads.push([ix,c.h,iz]);      /* the world's own spring: no deed */
+    }
+    if(!heads.length) return {ok:false,got:'no head could be laid at '+f.n};
+    let prev=-1, still=0;
+    for(let t=1;t<=4000;t++){
+      WATER.step(0.25);
+      if(t%50===0) await new Promise(r=>setTimeout(r,0));
+      if(t%100===0){ const c=WATER.count();
+        if(prev>=0&&Math.abs(c-prev)<=Math.max(20,prev*0.02)) still++; else still=0;
+        prev=c; if(still>=2) break; }
+    }
+    const st=WATER.stats(), cells=WATER.count();
+    const rec1=D.recorded(), save1=D.queuedToSave(), flow1=D.flowing();
+
+    /* the water is in the WORLD, whatever layer it lies in: every cell the
+       flow believes it filled must answer as water at the one door the game
+       reads. AND NOT ONE OF THEM MAY BE IN THE RECORD — which is asked cell by
+       cell, because a TOTAL cannot answer it: the world does other things
+       while a fall runs (a bank of sand comes down, a village lays a wall) and
+       those are records rightly kept. */
+    let seen=0, blind=0, inRecord=0;
+    for(const s of WATER.serialise()){
+      const p=s.slice(0,s.lastIndexOf(':')).split(',');
+      const ix=+p[0], iy=+p[1], iz=+p[2];
+      if(D.blockAt(ix,iy,iz)) seen++; else blind++;
+      if(D.recordedAt(ix,iy,iz)) inRecord++;
+    }
+
+    /* AND A HAND'S OWN SOURCE IS THE OTHER CASE. One bucket, on dry ground
+       well away from the fall, laid as a DEED. */
+    const p=D.playerXZ(), c=D.landAtWorld(p.x,p.z);
+    let deedRec=-1;
+    if(c){ const r=D.recorded();
+      WATER.spill(Math.floor(p.x/B), c.h+1, Math.floor(p.z/B), true);
+      deedRec=D.recorded()-r; }
+
+    /* the world is left as it was found */
+    for(const h of heads) WATER.take(h[0],h[1],h[2]);
+    if(c) WATER.take(Math.floor(p.x/B), c.h+1, Math.floor(p.z/B));
+    for(let k=0;k<4000&&WATER.count();k++){ WATER.step(0.25);
+      if(k%50===0) await new Promise(r=>setTimeout(r,0)); }
+
+    const faults=[];
+    if(inRecord) faults.push(inRecord+' cells of the running flow are IN THE RECORD');
+    if(!(flow1>flow0)) faults.push('the water\'s own layer never filled');
+    if(blind) faults.push(blind+' cells of water the world cannot see');
+    if(deedRec!==1) faults.push('a hand\'s own source put '+deedRec+' cells in the record, wanted 1');
+    /* the record's TOTAL is reported and not judged: thousands of blocks of
+       water moved through here, and if the world's own doings have moved it by
+       a handful in the same minutes, that is the world and not the water. A
+       drift of more than a hundred would not be. */
+    if(Math.abs(rec1-rec0)>100) faults.push('the record moved by '+(rec1-rec0)+
+      ' cells, which is too many to be the world going about its business');
+    return {ok:!faults.length,
+      got:f.n.split(/[ —]/)[0]+': '+cells+' cells standing, '+st.moved+' laid and '+st.dried+
+        ' taken up · NONE of them in the record ('+inRecord+') · the flow\'s own layer '+
+        flow0+' → '+flow1+' · '+seen+' of '+(seen+blind)+
+        ' cells answer as water · a hand\'s bucket puts '+deedRec+' in the record · '+
+        'the record itself '+rec0+' → '+rec1+' and the writer\'s queue '+save0+' → '+save1+
+        ' (the world\'s own doings)'+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
 T[37]={name:'no county is given to the sea by a river running through it',

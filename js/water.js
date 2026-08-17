@@ -9,13 +9,27 @@
    surface with a shaded bed under it; a river is a line stamped in the
    country raster that the terrain reads as it is generated. Neither is made
    of cells and neither passes through this file at any point. That is not a
-   promise kept by care — it is kept by construction: nothing here reads or
-   writes anything but the EDIT OVERLAY, which is the record of what hands
-   have done. Delete this file and the sea and the rivers are exactly as they
-   were.
+   promise kept by care — it is kept by construction: this file is handed two
+   doors and nothing else, and neither of them opens on the sea. Delete this
+   file and the sea and the rivers are exactly as they were.
 
-   What DOES pass through here is the water a hand spills, the water a storm
-   or a surge throws over a shore, and the water that runs out of either.
+   What DOES pass through here is the water a hand spills, the spring at the
+   head of every fall, the water a storm or a surge throws over a shore, and
+   the water that runs out of any of them.
+
+   ---- AND WHICH OF THE TWO DOORS, WHICH IS THE POINT OF ROUND 58 ----
+   RUNNING WATER GOES IN A LAYER OF ITS OWN — drawn, walked into, collided
+   with, and never written to the disc. It is derived: it is worked out again
+   from its source the next time the traveller comes near, exactly as a
+   village is worked out again from its site. That is not tidiness. A settled
+   waterfall lays and takes up eleven thousand blocks every fifty seconds just
+   to stand still, and every one of those through the record would have had
+   the world writing itself to the disc four times a second for ever.
+
+   A SOURCE A HAND LAID GOES IN THE RECORD, because a bucket emptied is a
+   thing the traveller DID and nothing can work it out again. Since the flow
+   is never written now, every water block in a save is by construction a
+   source somebody laid, and the load spills them again.
 
    ---- WHY IT IS NOT THE FLOW THAT WAS HERE BEFORE ----
    The engine already carried finite water, and it was a CONSERVATIVE PARCEL:
@@ -140,18 +154,35 @@ function wakeAround(ix,iy,iz){
   wake(ix,iy+1,iz); wake(ix,iy-1,iz);
 }
 
-/* ---- SETTING AND UNSETTING, THE ONLY TWO DOORS ---- */
-function put(ix,iy,iz,lev){
+/* ---- SETTING AND UNSETTING, THE ONLY TWO DOORS ----
+   And each of them opens onto one of two places, which is the arrangement
+   Round 58 was built for: RUNNING WATER goes in the flow's own layer, which
+   is drawn and walked into and never written to the disc, and A SOURCE A HAND
+   LAID goes in the record, because that is a thing the traveller DID. The
+   flow is derived from the source and is worked out again on the next voyage;
+   the source is not derivable from anything.
+
+   `DEED` is the handful of cells that went in by a hand. It is a handful by
+   construction: a bucket is one cell, and everything that runs out of it is
+   the other kind. */
+const DEED=new Set();
+function put(ix,iy,iz,lev,deed){
   /* water is never laid at or under the waterline — that is the sea, and the
      sea keeps its own level without any help from this file */
   if(reachedTheSea(iy)) return;
-  LEV.set(key(ix,iy,iz),lev);
-  K.setBlock((ix+0.5)*K.B,(iy+0.5)*K.B,(iz+0.5)*K.B, K.waterN);
+  const k=key(ix,iy,iz);
+  LEV.set(k,lev);
+  if(deed) DEED.add(k);
+  const door=DEED.has(k)?K.setDeed:K.setBlock;
+  door((ix+0.5)*K.B,(iy+0.5)*K.B,(iz+0.5)*K.B, K.waterN);
   moved++; wakeAround(ix,iy,iz);
 }
 function clear(ix,iy,iz){
-  LEV.delete(key(ix,iy,iz));
-  K.setBlock((ix+0.5)*K.B,(iy+0.5)*K.B,(iz+0.5)*K.B, 0);
+  const k=key(ix,iy,iz);
+  LEV.delete(k);
+  const door=DEED.has(k)?K.setDeed:K.setBlock;
+  DEED.delete(k);
+  door((ix+0.5)*K.B,(iy+0.5)*K.B,(iz+0.5)*K.B, 0);
   dried++; wakeAround(ix,iy,iz);
 }
 
@@ -401,11 +432,17 @@ function step(dt){
 /* ---- THE THREE WAYS WATER GETS INTO THE WORLD ---- */
 /* A HAND SPILLS IT. One source, laid where he says, and it finds its own
    level from there — down every fall it meets and seven blocks out over
-   every flat. */
-function spill(ix,iy,iz){
+   every flat.
+
+   `deed` says whose it is, and it decides which of the two doors the source
+   goes through: TRUE for a hand — a bucket emptied, and a thing the world
+   must remember — and false for the world's own springs at the head of a
+   fall, which are laid again out of world/waterfalls.js whenever the
+   traveller comes near and want no more remembering than a village does. */
+function spill(ix,iy,iz,deed){
   if(!K) return false;
   if(!open(ix,iy,iz)&&!isWater(ix,iy,iz)) return false;
-  put(ix,iy,iz,SOURCE);
+  put(ix,iy,iz,SOURCE,!!deed);
   return true;
 }
 /* A HAND TAKES IT UP AGAIN. The source goes and the stream that hung on it
@@ -444,7 +481,7 @@ function disturb(ix,iy,iz){ if(K) wakeAround(ix,iy,iz); }
 
 function load(kit){
   K=kit;
-  LEV.clear(); WAKE.length=0; INQ.clear();
+  LEV.clear(); DEED.clear(); WAKE.length=0; INQ.clear();
   acc=0; moved=0; dried=0; ticks=0;
 }
 /* the whole of the spilled water, for a save — and to be put back on a load.
