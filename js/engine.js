@@ -2170,10 +2170,45 @@ function placedFlush(G){
   }
   _pf=null;
 }
+/* ---- HOW HIGH A BLOCK OF WATER STANDS, BY ITS LEVEL ----
+   The rule as the game states it: a block one step from the source stands a
+   full block high, and each step out is thinner, down to an eighth or a
+   quarter at seven. A SOURCE is full, and so is FALLING water however far it
+   has fallen.
+
+   Every water cell in this world drew as a FULL CUBE before this, and that is
+   why a proper seven-block spread still read as a slab of blue stone with a
+   hard edge instead of a film thinning away to nothing. It is the largest
+   single difference between water that reads as water and water that reads as
+   a solid. */
+function waterHeight(lev){
+  if(lev===null||lev===undefined) return 1;         /* the world's own water */
+  if(lev<=0||lev>=8) return 1;                      /* a source, or a fall */
+  return 1-lev*(0.75/7);                            /* 1 at the source, a quarter at seven */
+}
 function emitPlaced(G,ix,iz,em,surfaceH){
   for(const [y,n] of em){
     if(!n) continue;
     const b=blockOf(n); if(!b) continue;
+    /* ---- WATER LEAVES THE GREEDY PATH AND STANDS AT ITS OWN HEIGHT ----
+       The mesher merges faces plane by plane, which wants every block to be
+       the same cube; water is not, so it draws its own box. There are never
+       many of them — a stream is a line and a puddle is a disc of a hundred
+       — and the top is left off where more water stands above, so a column
+       is not a stack of lids. */
+    if(b.liquid){
+      const lv=window.WATER?WATER.levelAt(ix,y,iz):null;
+      const hh=waterHeight(lv);
+      const capped=isLiquid(blockAt(ix,y+1,iz));
+      const lit2=(y<surfaceH-1)?(CAVE_DARK+(1-CAVE_DARK)*caveLightAt(ix,iz,y+0.5)):1;
+      const yy=y*B, x0=ix*B, z0=iz*B;
+      if(!capped) faceTop(G,b.mTop,x0,z0,x0+B,z0+B,yy+hh*B,1.0*lit2);
+      facePX(G,b.mSide,x0+B,z0,z0+B,yy,yy+hh*B,0.62*lit2);
+      faceNX(G,b.mSide,x0,  z0,z0+B,yy,yy+hh*B,0.62*lit2);
+      facePZ(G,b.mSide,z0+B,x0,x0+B,yy,yy+hh*B,0.8*lit2);
+      faceNZ(G,b.mSide,z0,  x0,x0+B,yy,yy+hh*B,0.8*lit2);
+      continue;
+    }
     /* under the ground it takes the cave's darkness; above it, the day */
     const lit=(y<surfaceH-1)?(CAVE_DARK+(1-CAVE_DARK)*caveLightAt(ix,iz,y+0.5)):1;
     if(!blockSolidAt(ix,y+1,iz)) placedFace('T', (y+1)*B, b.mTop,    1.0*lit,  ix,iz);

@@ -178,7 +178,18 @@ function wants(ix,iy,iz){
        seven-block reach below is never once reached, which is the other half
        of the same flood. */
     let eff;
-    if(l===null) eff=SOURCE;                       /* the world's own water: a spring */
+    /* ---- AND THE WORLD'S OWN WATER IS NOT A SPRING ----
+       THE FAULT, measured: with the springs at Niagara TAKEN AWAY, 9,301
+       cells of water went on standing. Without a source they ought to unwind
+       from the far end a level at a time, and they would not — because a cell
+       whose level is `null` is water this file never placed (a river, a pond,
+       a village trough) and it was counted as a SOURCE. Niagara STANDS ON A
+       RIVER. So the sheet touched the river, was renewed at level one out of
+       it, never thinned to seven, and never once unwound.
+       The world's own water feeds nothing here. It is not a spring; it is
+       where spilled water GOES, which is the rule already kept for the sea
+       and is now kept for the river. */
+    if(l===null) eff=99;                           /* the world's own water: no feed */
     else if(l===FALLING)
       eff=(!open(tx,iy-1,tz)&&!isWater(tx,iy-1,tz))?SOURCE:99;   /* landed, or still in the air */
     else eff=l;
@@ -208,7 +219,13 @@ const _w=[0,0,0,0];   /* the weight of each way out, reused */
    And nothing of the sea is touched to do it — the sea is not asked, it is
    not written to, it does not even know. A cell at or under the waterline is
    simply not somewhere spilled water may stand. */
-function reachedTheSea(iy){ return K.seaBlock!==undefined&&iy<=K.seaBlock; }
+/* ---- AND IT MAY POOL A BLOCK DEEP FIRST ----
+   A sink that claims water the instant it touches leaves no water AT the
+   meeting: a fall standing on a river would have its plunge pool taken from
+   under it and the column would read shorter, not longer. So the waterline
+   block ITSELF may hold water, and only what tries to stand BELOW it is the
+   sea's. One block of pooling, and the sea has the rest. */
+function reachedTheSea(iy){ return K.seaBlock!==undefined&&iy<K.seaBlock; }
 
 /* ---- THE FLOW WEIGHT: WATER GOES THE SHORTEST WAY DOWN, NOT EVERY WAY ----
    The rule, as the game states it: when water spreads horizontally, every
@@ -247,6 +264,23 @@ function visit(ix,iy,iz){
   if(reachedTheSea(iy)){
     if(levelAt(ix,iy,iz)!==null) clear(ix,iy,iz);
     return; }
+  /* ---- AND A RIVER TAKES IT THE SAME WAY THE SEA DOES ----
+     "when it reaches the sea and river it goes nowhere but disappear out."
+     Water of ours that has run up against the world's own water has arrived:
+     it has joined the river, and the river carries it away. It is given up
+     exactly as at the waterline — which is what keeps a fall standing on a
+     river from filling the valley it came out of. */
+  /* AND THE SAME BLOCK OF GRACE AT A RIVER. Only water that has something
+     WET UNDER IT is taken — the lowest course, lying on the rock, is allowed
+     to stand. So a fall on a river keeps its plunge pool a block deep and the
+     river takes everything above it, which is what a plunge pool IS. */
+  if(levelAt(ix,iy,iz)!==null&&isWater(ix,iy-1,iz)){
+    let met=levelAt(ix,iy-1,iz)===null;
+    for(let d2=0;d2<4&&!met;d2++){
+      const q=DIR[d2];
+      if(isWater(ix+q[0],iy,iz+q[1])&&levelAt(ix+q[0],iy,iz+q[1])===null) met=true; }
+    if(met){ clear(ix,iy,iz); return; }
+  }
   const lev=levelAt(ix,iy,iz);
   const here=isWater(ix,iy,iz);
 
