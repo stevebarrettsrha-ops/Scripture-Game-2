@@ -4392,6 +4392,208 @@ floating around the sun and moon" was the two FACES overlapping inside them, and
 with one face there is nothing left to overlap. The round pair is left in the
 file, dark and never drawn, so the reason it was tried is not lost with it.
 
+## 4bd. Round 57 — the falls measured at last: what the water costs, and the one thing still in the way
+
+The round before this left a `?` in its own table and a question written into
+the file: *"the next measurement runs the same spring at Niagara twice, once
+each way. If the two numbers are close the air is doing nothing and should go."*
+This is that measurement, and it turned up two faults nobody had reported.
+
+### How it was measured, because the method is half the finding
+
+Waiting on frames measures the RASTERISER. The flow moves at four ticks to the
+second and takes at most 1.2 ms of a frame; under SwiftShader a frame is the
+better part of a second, so a fall that needs six hundred ticks to settle needs
+**half an hour of wall clock** to be watched that way — and the first two
+attempts at this measurement were killed by their own timeouts having printed
+nothing at all. `WATER.step(0.25)` is exactly one tick with exactly the budget
+the game gives it: same queue, same order, same millisecond. The same six
+hundred ticks then cost **twenty-three seconds**.
+
+The second thing that made it cheap: **the water does not need the mesher.**
+`blockAt` answers procedurally whether a chunk has been built or not, and
+js/water.js reads nothing else — so the whole flow runs correctly at a fall on
+the other side of the world from the eye, and the three or four minutes a
+software rasteriser spends meshing a rainforest are not spent at all.
+
+**And the flow is not deterministic**, which is worth writing down: the queue is
+worked under a WALL-CLOCK budget, so a busier machine visits fewer cells per
+tick and settles somewhere slightly different. Multnomah read 3,815 on one run
+and 2,914 on another with identical rules. Every number below is a reading, not
+a constant, and the acceptance test is written to bound them rather than match
+them.
+
+### 1. The air was doing nothing, and was charging for it
+
+The same three falls, run twice, once each way:
+
+| fall | standing, air on | air off | queue on | queue off |
+|---|---|---|---|---|
+| Niagara | 7,121 | 7,197 | 3,792 | 278 |
+| Multnomah | 3,875 | 3,815 | 2,041 | 290 |
+| Angel | 533 | 549 | 562 | 0 |
+
+**The standing total is the same to within a hundredth or two.** It is the
+LEVELS that bound the water — seven blocks from a source and no further — and
+the air was contributing nothing whatever to the shape of it. What it *was*
+doing is the last two columns: it dried cells that were refilled the next tick,
+and every drying and every refilling wakes six neighbours, so the queue never
+emptied and the flow paid its whole millisecond of every frame **for ever**, at
+falls the traveller had long since walked away from. Angel is the plainest case
+— a still puddle on a tabletop with 562 cells awake in perpetuity, and **not one
+awake with the air off**.
+
+It was added, by my own note in the file, "to hide a bug". The bug is mended and
+the air is gone.
+
+### 2. THE TALLEST FALL ON EARTH WAS DRY, and the cell count said it was the best-behaved of them
+
+Angel: 549 cells standing, **shaft 0**, furthest cell nineteen blocks from the
+head. Not one drop went over the brink. A round that had only counted cells
+would have called that the tidiest fall in the world and shipped it.
+
+`heightAt` holds the lip proud for the whole of `under × drop` — which is what
+an OVERHANG is, and it is the making of a plunge fall. `springs()` laid the
+heads at v = 0. For Angel that is **seventeen blocks upstream of the brink**,
+and water reaches seven blocks from a source. It never came within ten blocks of
+the edge.
+
+Niagara (`under` 0.05 of a six-block drop) and Multnomah (tiered, `under` 0) were
+untouched by this — their brink already *was* v = 0, which is exactly why those
+two poured and Angel did not, and why the fault survived a round of measuring
+the other two. The head goes at the brink now. Angel: **549 cells and nothing
+over the edge → 24,674 cells and a curtain a hundred and nine blocks deep.**
+
+### 3. A PLUNGE POOL WAS A PERPETUAL-MOTION MACHINE — and the new test found it
+
+Acceptance test 39 was written to assert three things, and the third — *take the
+head away and the stream unwinds* — failed on its first run: **Krimml kept 2,787
+cells of 4,485 standing for ever with no source anywhere in the world.** Angel
+kept 1%, Iguazu 4.8%, Krimml sixty-two.
+
+`wants` read *"is there water above me? then I am FALLING"* — any water at all.
+So every cell of a body two or more blocks deep was FALLING; FALLING is a full
+block; and a FALLING cell with solid ground under it counts as a SOURCE to its
+four sides. **A filled basin was therefore a ring of little springs feeding each
+other in a circle, needing nothing and draining never** — and the plunge pool,
+the very shape the round before this one was built to make, is the commonest
+such basin in the world.
+
+**Falling comes DOWN FROM A SOURCE.** A cell is falling if what stands over it
+is a SOURCE or is itself FALLING — never merely because water lies on it. A real
+column is falling the whole way down and its pool with it, because the chain
+runs unbroken to the spring at the head; a pool with nothing coming into it is
+ordinary levelled water, which thins from the edge and goes. **Test 39 now
+drains all three of its falls to zero cells.**
+
+**And it cost the curtain, which is written down rather than hidden.** The old
+rule spread water along the brink of its own accord, so the whole breadth
+poured; without it, seven heads make seven threads. Angel fell from 24,556 cells
+to 908. **A head every other block was tried and taken back out**: it gives the
+volume back (Iguazu 12,738) and it will not unwind — with the hundred heads
+taken up the water went on *growing*, and the fall measured after it inherited a
+lake. That is not understood yet, and a fall that cannot be turned off is worse
+than a fall that is thin, so it stands at seven heads until it is.
+
+### 4. What the four falls now cost, and that they stay where they are put
+
+| fall | form | drop | standing | furthest | its own gorge |
+|---|---|---|---|---|---|
+| Niagara | cataract | 6 | 2,298 | 112 | 129 |
+| Mosi-oa-Tunya | cataract | 12 | 1,534 | 154 | 184 |
+| Angel | plunge | 109 | 908 | 28 | 269 |
+| Multnomah | tiered | 21 | 124 | 8 | 63 |
+
+**Not one of them leaves the gorge it cut.** The flood that turned the springs
+off was 13,989 cells at Niagara and 23,025 at Multnomah *and still climbing when
+the reading was taken*; Multnomah is a hundred and twenty-four cells now.
+
+### 5. Forty-odd per cent of the water was being drawn inside itself
+
+Water leaves the greedy mesher and emits its own box, and it emitted **all four
+side faces whatever stood against them** — including faces pressed against solid
+rock and faces buried inside a column of water.
+
+Rock now hides a face entirely and water hides as much of it as it stands up to,
+which also draws the step where a thinner block stands beside a fuller one:
+
+| fall | faces before | after | struck off |
+|---|---|---|---|
+| Niagara | 10,714 | 6,149 | 43% |
+| Mosi-oa-Tunya | 7,212 | 4,387 | 39% |
+| Angel | 4,198 | 2,253 | 46% |
+| Multnomah | 544 | 306 | 44% |
+
+Measured against the water as it *now* stands, which is thin. Against the water
+as it stood before the pool rule — a genuine curtain — the same change struck
+off **85% of Angel's hundred thousand faces** and about 64% of the other three,
+which is the number that matters for whenever the curtain comes back.
+
+### 6. And the springs are STILL off — for a reason nobody had measured
+
+A fall that has settled is not still. It is a FLOW, and a flow at equilibrium is
+water arriving, falling, landing and being taken by the sea at the same rate.
+Over two hundred ticks *after* the standing total stopped moving:
+
+| fall | standing | blocks laid | blocks taken up |
+|---|---|---|---|
+| Niagara | 3,284 | 9,620 | 10,261 |
+| Angel | 863 | 11,696 | 11,676 |
+
+**Eleven thousand writes to hold eight hundred cells still.** Every one goes
+through the engine's `setBlock`, and `setBlock` marks the chunk for the SAVE and
+re-arms the 900 ms writer. So the springs as they stand would have **every fall
+the traveller has ever walked past writing the world to the disc every 900 ms
+for the rest of the voyage**, and would file a waterfall in the record of *what
+hands have done*, which is not what it is. Note that thinning the water did not
+help this at all — Angel holds a thirtieth of the cells it held before the pool
+rule and does twice the writing, because what is being counted is the FLOW and
+not the pond.
+
+**The next step is one step, and the engine already has the pattern for it.**
+`SEDITS` is the structures' layer — "derived, dropped, never written down".
+The flow wants the same: a hand's own source is a deed and belongs in the save;
+the water that runs out of it is derived, is never written, and re-establishes
+from the source in the two or three minutes these traces show. Then
+`SPRINGS_ON` is `true` and the falls of the earth run.
+
+### 7. Acceptance test 39, and the two faults it found in itself first
+
+`a spring at a fall pours over the brink, stays at the fall, and drains when it
+is taken up` — three falls chosen **by form and not by name** (the tallest
+plunge, the widest cataract, the tallest tiered stair, taken out of the data so
+that adding a fall cannot make the test stale). It asserts that water stands in
+the shaft between lip and foot (the dry-fall fault), that nothing stands outside
+the fall's own claim (the flood), that the total settles, and that taking the
+heads up unwinds the stream — which is both the third assertion and the cleaning
+up of a fall's water, which no later test wants in its world.
+
+**It reported a fault that was its own.** The first run had Iguazu throwing water
+five thousand seven hundred blocks — which was ANGEL, a continent away, left over
+from the fall measured before it, because `WATER.serialise()` is the whole
+world's water and not this fall's. What stood before each spring is set aside
+now, and only what that spring put into the world is judged.
+
+**And it called a live flow "climbing".** The tip of a falling column flickers by
+a dozen cells from tick to tick; a tolerance of one per cent of nine hundred is
+nine cells, so Angel was reported as never settling through four thousand ticks
+of standing perfectly still. Twenty cells, or two per cent, whichever is wider.
+
+Final run: `Salto: 817 cells, 78 in the shaft, 28 blocks at furthest (of 269),
+drained to 0 · Iguazu: 2441 cells, 610 in the shaft, 233 (of 261), drained to 0 ·
+Krimml: 332 cells, 40 in the shaft, 10 (of 110), drained to 0`.
+
+### 8. And one red test that is not this round's, said out loud rather than left
+
+Tests 19, 22 and 39 pass. **Test 38 — the voyage's own hand: a blow breaks, the
+drop is taken up, it lays back — FAILS**, with *"the blow did not break Sapphire
+in 25s — and never ran at all"*. It was put to a worktree at the commit before
+any of this round's changes and **it fails there identically**, so it is not the
+water's doing and it is not fixed here. It is the hand a player actually plays
+with, the same chain Round 55 was called out to mend, and it wants a round of its
+own. It is written here so that the next reader finds it rather than the
+player.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

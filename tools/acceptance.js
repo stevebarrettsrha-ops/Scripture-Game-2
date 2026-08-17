@@ -1470,6 +1470,130 @@ T[38]={name:'in a VOYAGE, a blow breaks, what breaks drops, the drop is taken up
         (faults.length?' · '+faults.join(' · '):'')};
   })};
 
+T[39]={name:'a spring at a fall pours over the brink, stays at the fall, and drains when it is taken up',
+  /* THE THREE FAULTS THIS GUARDS, and every one of them has already happened.
+
+     1. THE FLOOD. A spring laid at Niagara put 13,989 cells of standing water
+        into the world and Multnomah 23,025 with 7,292 still queued — the
+        camera at the foot buried inside a solid mass of water, and the count
+        still climbing when the measurement was cut off. Four rules were
+        wrong: a column sprayed sideways out of its own middle, a sheet took
+        every direction instead of the way down, the sea was not a sink, and
+        the world's own rivers were feeding our water like infinite springs.
+
+     2. THE DRY FALL. The heads were laid at the fall's origin, and for a
+        PLUNGE the lip is held proud for `under × drop` blocks past it — so
+        at Angel the spring stood SEVENTEEN BLOCKS BACK from the brink,
+        water reaches seven blocks and no further, and the tallest fall on
+        earth had 549 cells of puddle on the tabletop and nothing whatever
+        going over. A test that only counted cells would have called that
+        the best-behaved fall in the world.
+
+     3. THE STREAM THAT WILL NOT UNWIND. Take the spring away and the water
+        must retreat from the far end a level a tick. It did not, for a whole
+        round, because a river counted as a source.
+
+     So: it pours (there is water in the shaft between lip and foot), it
+     STAYS (nothing stands further from the fall than the fall's own claim),
+     it SETTLES (the total stops moving), and it GOES when the source does.
+
+     WHY IT BEATS THE WATER DIRECTLY. WATER.step(0.25) is exactly one tick
+     with exactly the budget the game gives it — the same queue, the same
+     order, the same millisecond. Waiting on frames instead would measure the
+     rasteriser: a settled fall takes some six hundred ticks, which is half an
+     hour of software-rendered frames and two seconds of this.
+
+     AND IT LEAVES THE WORLD DRY. The last act is to take every head up and
+     unwind the stream, which is both the third assertion and the cleaning up
+     of twenty thousand cells of water that no test after this one wants. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    if(!window.WATER||!window.WATERFALL) return {pending:'no falling water (js/water.js, js/waterfall.js)'};
+    const list=WATERFALL.list();
+    if(!list||!list.length) return {pending:'no falls in world/waterfalls.js'};
+    /* THREE FALLS, CHOSEN BY FORM AND NOT BY NAME — the tallest plunge (the
+       overhang, which is where the brink is not the origin), the widest
+       cataract (the greatest number of heads), and the tallest tiered stair
+       (which lands and lands again). Data picks them, so adding a fall or
+       redrawing one cannot make this test stale. */
+    const pick=(form,by)=>list.filter(f=>f.form===form).sort((a,b)=>by(b)-by(a))[0];
+    const chosen=[pick('plunge',f=>f.drop),pick('cataract',f=>f.half),
+                  pick('tiered',f=>f.drop)].filter(Boolean);
+    if(!chosen.length) return {pending:'no fall of any known form'};
+
+    const faults=[], said=[];
+    /* EACH FALL IS ASKED ABOUT ITS OWN WATER ONLY. WATER.serialise() is the
+       whole world's, and the first cut of this test read it whole: Angel
+       drained all but a few hundred cells, those few hundred were still in
+       the map when Iguazu was measured, and Iguazu was reported as having
+       thrown water FIVE THOUSAND BLOCKS — which was Angel, a continent away,
+       and not Iguazu at all. So what stood before this fall began is set
+       aside, and only what THIS spring put into the world is judged. */
+    const before=new Set(WATER.serialise().map(s=>s.slice(0,s.lastIndexOf(':'))));
+    for(const f of chosen){
+      const wx=(u,v)=>f.x+(u*f.cs+v*f.sn)*B, wz=(u,v)=>f.z+(-u*f.sn+v*f.cs)*B;
+      const ground=(u,v)=>{ const c=D.landAtWorld(wx(u,v),wz(u,v)); return c?c.h:null; };
+      const lip=ground(0,-1)||0;
+
+      const heads=[];
+      for(const [x,z] of WATERFALL.springs(f)){
+        const c=D.landAtWorld(x,z); if(!c) continue;
+        const ix=Math.floor(x/B), iz=Math.floor(z/B);
+        if(WATER.spill(ix,c.h,iz)) heads.push([ix,c.h,iz]);
+      }
+      if(!heads.length){ faults.push(f.n+': no head could be laid'); continue; }
+
+      /* beaten until the standing total stops moving, or 4,000 ticks */
+      const mine=()=>WATER.serialise().filter(s=>!before.has(s.slice(0,s.lastIndexOf(':'))));
+      let prev=-1, still=0, t=0;
+      for(t=1;t<=4000;t++){
+        WATER.step(0.25);
+        if(t%50===0) await new Promise(r=>setTimeout(r,0));
+        /* SETTLED IS NOT FROZEN. A live flow is water arriving and water
+           being taken by the sea at the same rate, and the tip of a falling
+           column flickers by a dozen cells from tick to tick — a tolerance of
+           one per cent of nine hundred is nine cells, and Angel was reported
+           "climbing" for four thousand ticks on that. Twenty cells, or two
+           per cent, whichever is the wider. */
+        if(t%100===0){ const c=WATER.count();
+          if(prev>=0&&Math.abs(c-prev)<=Math.max(20,prev*0.02)) still++; else still=0;
+          prev=c; if(still>=2) break; }
+      }
+      const settled=still>=2, standing=mine(), held=standing.length;
+
+      /* IT POURED: water standing in the shaft, between the foot and the lip,
+         within the first few blocks downstream of the brink */
+      let shaft=0, far=0;
+      const brink=Math.max(0,Math.floor(f.F.under*f.drop));
+      for(let v=brink;v<=brink+4;v++) for(let u=-f.half;u<=f.half;u++){
+        const ix=Math.floor(wx(u,v)/B), iz=Math.floor(wz(u,v)/B);
+        for(let iy=lip-1;iy>lip-f.drop;iy--) if(WATER.levelAt(ix,iy,iz)!==null) shaft++;
+      }
+      /* IT STAYED: the fall's own claim is its lip and the gorge it cut, and
+         nothing of ours may stand outside it */
+      const claim=f.half+f.run+16;
+      for(const s of standing){
+        const p=s.slice(0,s.lastIndexOf(':')).split(',');
+        const d=Math.hypot((+p[0])*B-f.x,(+p[2])*B-f.z)/B; if(d>far) far=d;
+      }
+
+      /* AND IT GOES WHEN THE SOURCE DOES */
+      for(const h of heads) WATER.take(h[0],h[1],h[2]);
+      for(let k=0;k<4000;k++){ WATER.step(0.25);
+        if(k%50===0){ await new Promise(r=>setTimeout(r,0)); if(!mine().length) break; } }
+      const left=mine().length;
+      for(const s of mine()) before.add(s.slice(0,s.lastIndexOf(':')));
+
+      said.push(f.n.split(/[ —]/)[0]+': '+held+' cells, '+shaft+' in the shaft, '+
+        Math.round(far)+' blocks at furthest (of '+Math.round(claim)+'), drained to '+left);
+      if(!shaft) faults.push(f.n+' ran dry — nothing went over the brink');
+      if(!settled) faults.push(f.n+' never settled ('+held+' cells and climbing)');
+      if(far>claim) faults.push(f.n+' left its own gorge ('+Math.round(far)+' blocks out)');
+      if(left>Math.max(20,held*0.05)) faults.push(f.n+' would not unwind ('+left+' cells left standing)');
+    }
+    return {ok:!faults.length, got:said.join(' · ')+(faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

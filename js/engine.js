@@ -2203,10 +2203,28 @@ function emitPlaced(G,ix,iz,em,surfaceH){
       const lit2=(y<surfaceH-1)?(CAVE_DARK+(1-CAVE_DARK)*caveLightAt(ix,iz,y+0.5)):1;
       const yy=y*B, x0=ix*B, z0=iz*B;
       if(!capped) faceTop(G,b.mTop,x0,z0,x0+B,z0+B,yy+hh*B,1.0*lit2);
-      facePX(G,b.mSide,x0+B,z0,z0+B,yy,yy+hh*B,0.62*lit2);
-      faceNX(G,b.mSide,x0,  z0,z0+B,yy,yy+hh*B,0.62*lit2);
-      facePZ(G,b.mSide,z0+B,x0,x0+B,yy,yy+hh*B,0.8*lit2);
-      faceNZ(G,b.mSide,z0,  x0,x0+B,yy,yy+hh*B,0.8*lit2);
+      /* ---- AND ONLY THE FACES A MAN CAN SEE ----
+         All four sides were drawn whatever stood against them, which is
+         nothing at all while water is a stream or a puddle and is ruinous the
+         moment it is a WATERFALL: Angel is a curtain twenty-seven blocks wide
+         and a hundred and nine tall, and all but its skin is water pressed
+         against water. Every buried face was being built, buffered and drawn.
+         So: rock hides a face entirely, water hides as much of it as it
+         stands up to, and what is left is the strip that is genuinely open —
+         which is also how a thinner block beside a fuller one comes to show
+         the step between them. */
+      const upTo=(dx,dz)=>{ const n2=blockAt(ix+dx,y,iz+dz);
+        if(!n2) return 0;                         /* air: the whole face is seen */
+        if(!isLiquid(n2)) return hh;              /* rock: none of it is */
+        return waterHeight(window.WATER?WATER.levelAt(ix+dx,y,iz+dz):null); };
+      let f=upTo(1,0);
+      if(f<hh) facePX(G,b.mSide,x0+B,z0,z0+B,yy+f*B,yy+hh*B,0.62*lit2);
+      f=upTo(-1,0);
+      if(f<hh) faceNX(G,b.mSide,x0,  z0,z0+B,yy+f*B,yy+hh*B,0.62*lit2);
+      f=upTo(0,1);
+      if(f<hh) facePZ(G,b.mSide,z0+B,x0,x0+B,yy+f*B,yy+hh*B,0.8*lit2);
+      f=upTo(0,-1);
+      if(f<hh) faceNZ(G,b.mSide,z0,  x0,x0+B,yy+f*B,yy+hh*B,0.8*lit2);
       continue;
     }
     /* under the ground it takes the cave's darkness; above it, the day */
@@ -16227,38 +16245,45 @@ function placeBlock(){
    not been laid writes into a record that the mesher has already passed, so
    the spring is held until the lip is truly standing. */
 const _sprung=new Set();
-/* ---- THE SPRINGS ARE OFF, AND HERE IS THE MEASUREMENT THAT TURNED THEM OFF ----
-   Standing at three falls with the spring laid and the world let run:
+/* ---- THE SPRINGS ARE STILL OFF, AND FOR A DIFFERENT REASON THAN BEFORE ----
+   THE FLOOD IS ANSWERED. What turned them off was 13,989 cells of standing
+   water at Niagara and 23,025 at Multnomah, still climbing — a wall that was
+   a forty-five degree ramp, a column spraying sideways out of its own middle,
+   a sheet taking every direction at once, no sink at the sea, and the world's
+   own rivers feeding our water like infinite springs. All five are mended,
+   and a seventh besides — a plunge pool two blocks deep was a ring of little
+   springs feeding each other and needing no source at all. The falls now run,
+   settle, STAY AT THE FALL, and unwind to nothing when the head is taken up:
 
-     Angel     lip raised h=1 -> h=111 (the tepui works), water in the
-               column 0, and 549 cells of water standing somewhere else
-     Niagara   water in the column 3, and 13,989 cells standing
-     Multnomah water in the column 2, and 23,025 cells standing, with 7,292
-               still queued to spread
+     fall        standing   furthest from the fall   its own gorge
+     Niagara        2,298          112 blocks           129
+     Mosi-oa-Tunya  1,534          154                  184
+     Angel            908           28                  269
+     Multnomah        124            8                   63
 
-   TWENTY-THREE THOUSAND CELLS IS NOT A WATERFALL, IT IS A FLOOD, and the
-   picture shows it: the camera at the foot of Niagara is buried inside a
-   solid mass of water. Two faults, and both are mine:
+   Not one of the four leaves the gorge it cut, and acceptance test 39 drains
+   all three of its falls to ZERO cells.
 
-   1. THE WALL IS A RAMP. FORM.steep was meant as "1 = sheer", but the code
-      reads `wallEnd = drop / steep` — so steep:1 gives a wall that takes as
-      many blocks of ground as it drops. That is a forty-five degree slope.
-      Angel's profile proves it: 110 110 110 111 111 111 111 ... flat for the
-      whole ten blocks sampled, because its "wall" is a hundred and nine
-      blocks long. Water does not fall down a ramp; it RUNS down it, and a
-      source that runs instead of falling floods whatever is below.
+   WHAT IS NOT ANSWERED IS THE RECORD. A fall that has settled is not still —
+   it is a flow, and a flow at equilibrium is water arriving, falling, landing
+   and being taken by the sea at the same rate. Measured over two hundred
+   ticks AFTER the standing total stopped moving:
 
-   2. A LINE OF SOURCES ON A PLATEAU IS A LINE OF SPRINGS. Each spreads seven
-      blocks every way and then follows every slope it finds, for ever,
-      because a source is never consumed. Niagara's lip is two hundred blocks
-      wide and got seven of them.
+     Niagara    9,620 blocks laid, 10,261 taken up, standing 3,284
+     Angel     11,696 laid,        11,676 taken up, standing   863
 
-   The mending is to make a sheer wall sheer (wallEnd of a block or two,
-   whatever the drop) and to lay ONE source that is fed rather than a line of
-   them — but that is a change to be measured, not guessed, and shipping a
-   world that floods while I work it out is not a trade worth making. The
-   rock stands cut and dry until then, which is a waterfall without water
-   rather than a country under one. */
+   ELEVEN THOUSAND WRITES TO HOLD EIGHT HUNDRED CELLS STILL. Every one goes
+   through setBlock, and setBlock marks the chunk for the SAVE and re-arms the
+   writer. So the springs as they stand would have every fall the traveller
+   has ever walked past writing the world to the disc every 900 ms for the
+   rest of the voyage — and would file a waterfall in the record of WHAT HANDS
+   HAVE DONE, which it is not.
+
+   THE NEXT STEP, and it is one step: the flow wants a layer of its own, as
+   the structures already have one (SEDITS — "derived, dropped, never written
+   down"). A hand's own source is a deed and belongs in the save; the water
+   that runs out of it is derived and re-establishes from the source in a
+   couple of minutes. Then this is `true` and the falls run. */
 const SPRINGS_ON=false;
 function updateFalls(px,pz){
   if(!SPRINGS_ON||!_fallsOn||!window.WATER||!window.WATERFALL) return;

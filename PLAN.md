@@ -950,3 +950,69 @@ island, not a league of open sea, because none of them is a river. A vote of the
 corners was tried first and taken back out: it mended the rivers and ate the edges of
 genuine bays narrower than a cell. Acceptance test 37 lays whole rings at an eye of 24,000
 and counts the river cells with dry bank inside them that the ring nonetheless called sea.
+
+---
+
+## 16. The falling waters — where the work stands, and the one thing left
+
+Not a phase either. A player asked for waterfalls, and the falls of the earth were cut into
+the rock (§15's rounds), given a flow to run down them, and then **turned off** because the
+first spring laid at Niagara put fourteen thousand cells of standing water into the world.
+Rounds 56–57 are the answering of that, and this is where it stands.
+
+**Mended, and each one measured before and after.** The wall that was a forty-five degree
+ramp; the falling column that sprayed seven blocks sideways out of its own middle; the
+sheet that took every direction instead of the way down; the sea, which is now a sink; the
+world's own rivers, which were feeding our water as though every one of them were an
+infinite spring; the level rule, which now draws a block at the height its level gives it
+rather than a full cube; and the plunge pool, which is one block of grace at the meeting so
+that a fall standing on a river is not robbed of its own bottom.
+
+**Three more found in Round 57, and not one of them had been reported by anyone.** The
+air — evaporation — was doing nothing to the standing total (within a hundredth or two, at
+three falls, run both ways) while keeping thousands of cells awake for ever; it is gone.
+**The tallest fall on earth was dry**: the springs were laid at the fall's origin, but a
+plunge holds its lip proud for `under × drop` blocks past that, so Angel's heads stood
+seventeen blocks back from its brink and 549 cells of water sat on the tabletop. And **a
+plunge pool was a perpetual-motion machine** — any cell with water over it counted as
+FALLING, a landed FALLING cell feeds its sides like a spring, so a basin two deep was a
+ring of little springs needing no source and draining never. Krimml kept 2,787 cells of
+4,485 standing with nothing in the world feeding them. Falling comes down from a SOURCE
+now, and every fall unwinds to nothing when its head is taken up.
+
+**Where the numbers stand.** Niagara 2,298 cells, Mosi-oa-Tunya 1,534, Angel 908,
+Multnomah 124 — settled, **not one of them outside the gorge it cut**, and acceptance
+test 39 drains all three of its falls to zero. Forty-odd per cent of the water's faces
+were being drawn inside itself and are struck off (eighty-five per cent of Angel's, back
+when Angel was a curtain).
+
+**And the curtain is the debt this leaves.** The pool rule cost it: the old rule spread
+water along the brink of its own accord and the whole breadth poured, and seven heads now
+make seven threads. A head every other block was tried and taken back out — it gives the
+volume back and will not unwind. A fall that cannot be turned off is worse than a fall
+that is thin, so it stands at seven until that is understood.
+
+### The one thing left, and why the springs are still off
+
+A settled fall is not a still fall. Measured over two hundred ticks after the standing total
+had stopped moving, Angel laid 11,696 blocks and took up 11,676 — **eleven thousand writes
+to hold eight hundred and sixty-three cells still**, and thinning the water did not help it
+at all, because what is counted is the FLOW and not the pond. Every write marks its chunk
+for the SAVE and re-arms the writer,
+so the springs as they stand would have every fall the traveller has ever passed writing the
+world to the disc every 900 ms for the rest of the voyage, and would file a waterfall in the
+record of *what hands have done*.
+
+**The flow wants a layer of its own, and the engine already has the pattern**: `SEDITS`, the
+structures' layer — *"derived, dropped, never written down"*. A hand's own source is a deed
+and belongs in the save; the water that runs out of it is derived, is never written, and
+re-establishes from the source in the two or three minutes the traces show. That is the next
+step, it is one step, and after it `SPRINGS_ON` is `true` and the falls of the earth run.
+
+### What I will not do
+
+**I will not turn the springs on and mend the save afterwards.** The whole reason this
+feature has been measured four times instead of shipped once is that a world which writes
+itself to the disc four times a second is a fault the player would feel and could not name,
+and it would be shipped under a headline — *the waterfalls now run* — that would make it
+very hard to take back out.

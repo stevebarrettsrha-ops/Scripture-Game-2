@@ -233,13 +233,48 @@ function channelAt(x,z){
    One source at the middle of each lip is enough: js/water.js takes it down
    the wall, spreads it at the foot and keeps it running for as long as the
    source stands — which is what a spring IS. A wide cataract gets a source
-   every few blocks along its lip instead, or Victoria would be a trickle. */
+   every few blocks along its lip instead, or Victoria would be a trickle.
+
+   ---- AND THE HEAD STANDS AT THE BRINK, NOT AT THE MIDDLE OF THE SHELF ----
+   THE FAULT, measured: a spring laid at Angel put 549 cells of water into the
+   world and NOT ONE OF THEM WENT OVER — shaft 0, and the furthest cell
+   nineteen blocks from the head. A hundred-and-nine-block fall stood
+   completely dry while a puddle sat on the tabletop behind it.
+
+   The heads were laid at v = 0, and v = 0 is not the brink. `heightAt` holds
+   the lip proud for the whole of `under × drop` — which is what an OVERHANG
+   is, and it is the making of a plunge fall — so for Angel the brink is
+   SEVENTEEN BLOCKS DOWNSTREAM of where the spring stood. Water reaches seven
+   blocks from a source and no further, so it never came within ten blocks of
+   the edge and had nowhere to fall from.
+
+   The head goes at the brink itself. Niagara (under 0.05 of a six-block drop)
+   and Multnomah (under 0, a tiered stair) are unmoved by this — their brink
+   already was v = 0, which is why they poured and Angel did not. It is the
+   great plunges, the very falls the form was written for, that were dry. */
+/* ---- HOW MANY HEADS, AND WHY IT IS STILL SEVEN ----
+   Seven was enough while a landed column fed its own sides like a spring:
+   the water spread along the brink of itself and the whole breadth poured.
+   That rule is gone — it was the same rule that made a plunge pool a
+   perpetual-motion machine (js/water.js: a pool is not a fall) — and the
+   curtain went with it. Angel is 921 cells now against 24,556: seven threads
+   down a cliff twenty-seven blocks wide, which is bounded, drains perfectly,
+   and does not look like Angel.
+
+   A HEAD EVERY OTHER BLOCK WAS TRIED AND TAKEN BACK OUT. It gives the volume
+   back (Iguazu 12,738 cells) and it will not unwind: with the hundred heads
+   taken up, the water went on growing rather than retreating, and the run
+   after it inherited a lake. Whatever that is, it is not understood yet, and
+   a fall that cannot be turned off is worse than a fall that is thin — so
+   this stands at seven until the drain is understood at a hundred.
+   Acceptance test 39 is what found it, in the run it was written for. */
 function springs(f){
   const out=[];
   const step=Math.max(1,Math.round(f.half/3));
+  const v=Math.max(0,Math.floor(f.F.under*f.drop));    /* the brink */
   for(let u=-f.half;u<=f.half;u+=step){
-    const x=f.x+( u*K.B)*f.cs+(0)*f.sn;
-    const z=f.z+(-u*K.B)*f.sn+(0)*f.cs;
+    const x=f.x+( u*f.cs+v*f.sn)*K.B;
+    const z=f.z+(-u*f.sn+v*f.cs)*K.B;
     out.push([x,z]);
   }
   return out;
