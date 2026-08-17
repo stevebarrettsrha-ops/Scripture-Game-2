@@ -819,7 +819,7 @@ went and looked, rather than planning work that exists:
 |---|---|
 | 1. Branching | **nothing.** A bole and a canopy; no branch orders anywhere in `js/flora.js` |
 | 2. Canopy per species | ✅ `form:` in `world/flora.js`, a dozen forms built in `js/flora.js` |
-| 3. Bark per species | partial: one grey bark, tinted per species — not a texture each |
+| 3. Bark per species | ✅ *Round 59, and it was built in Round 52 and left unmeasured* — six barks assigned by kind in `js/flora.js`, the tint still on top, +8.6–16.7% draw calls and **not one triangle** |
 | 4. Seasonal colour | ✅ *and it already was* — see the correction below |
 | 5. A real ground layer | partial: `js/grass.js` is the sward, no litter, deadfall, moss or fungi |
 | 6. Crops in stages | partial: farms and farmers exist, no agricultural year |
@@ -1088,16 +1088,21 @@ Named so it is a record and not a memory. Each was checked against the code toda
 rather than recalled, because two of them turned out to be further along than this
 document said and one turned out to be a missing NUMBER rather than a missing feature.
 
-### 1. The bark measurement — the feature exists, the number does not
+### 1. The bark measurement — ✅ *Round 59*
 
-**§2.4.3, and it is BUILT.** `BARK_MAT` in `js/flora.js` carries six barks — paper,
-ring, plate, twist, cork, smooth — and the default deep fissure; a kind says
-`bark:'paper'` in `world/flora.js` or says nothing, `K._bark` is settled once per
-kind and never in the mesher, and PLAN §14's table above is out of date where it
-says *"partial: one grey bark, tinted per species"*. **What is missing is the
-measurement**: what six barks cost in materials, draw calls and triangles in a real
-wood, set beside the one. Every other item of Phase 6 shipped with that number and
-this one did not, which is the only reason it is on this list.
+**§2.4.3 was built in Round 52 and never measured**, and PLAN §14's table went on
+calling it *"partial: one grey bark"* for three rounds after it had stopped being that.
+`FLORA.barkOn` is the A/B switch now, cut to the same pattern as `everOn` and `boughsOn`,
+and the same wood is built twice in one page: **+8.6% draw calls in India, +16.7% in
+Bolivia, and NOT ONE TRIANGLE in either.** The whole of the price is bark meshes and
+nothing else. Acceptance test 41 guards it.
+
+The reading took three goes, and the reason is worth more than the number: the first two
+reported a quarter of a million extra triangles from a change that touches no geometry,
+because the frame lays its own ring every frame and reaps whatever falls outside it, so
+the two builds stood on 545 chunks and 709. `holdWorld` stops the world laying ground of
+its own while a measurement is taken, and the test asserts the two chunk counts are equal
+rather than assuming it.
 
 ### 2. Tree boles as mineable blocks
 

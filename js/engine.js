@@ -15087,6 +15087,33 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   dropChunks:()=>{ for(const[k,ch] of chunks){
       for(const m of ch.meshes){ chunkRoot.remove(m); m.geometry.dispose(); } }
     chunks.clear(); buildQueue.length=0; buildQueued.clear(); },
+  /* ---- WHAT IS STANDING IN THE VIEW, FOR MEASURING ONE BUILD AGAINST ANOTHER ----
+     A MESH IS A DRAW CALL. That is the whole reason this exists: every feature
+     of the flora that adds a MATERIAL — the second leaf that does not gild, the
+     six barks — is paid for in draw calls and not in triangles, and a claim
+     about the cost of one is worth nothing without the two numbers side by
+     side. The materials are tallied by their own names out of the engine's own
+     table, so a reading says WHICH material the meshes went to and not merely
+     how many there were. */
+  /* ---- AND THE WORLD HELD STILL WHILE IT IS MEASURED ----
+     The frame calls updateChunks with its OWN view every frame and reaps
+     whatever falls outside it. So a measurement that lays its own ring across
+     several frames is measuring a ring the game is pulling back at the same
+     time: the first cut of the bark measurement read 545 chunks for one build
+     and 709 for the other and reported a quarter of a million extra TRIANGLES
+     from a change that touches no geometry at all. It was a hundred and
+     sixty-four extra chunks and nothing else. A paused world takes no orders
+     and lays no ground, so an A/B build stands on the disc it was given. */
+  holdWorld:v=>{ setPaused(!!v); return gamePaused; },
+  viewStats:()=>{ const nameOf=new Map();
+    for(const k in MAT) nameOf.set(MAT[k],k);
+    const byMat=new Map(); let meshes=0, tris=0;
+    for(const [,ch] of chunks) for(const m of ch.meshes){ meshes++;
+      const idx=m.geometry.getIndex(); tris+=idx?idx.count/3:0;
+      const n=nameOf.get(m.material)||'?';
+      byMat.set(n,(byMat.get(n)||0)+1); }
+    return {chunks:chunks.size, meshes, tris,
+      byMat:[...byMat].sort((a,b)=>b[1]-a[1])}; },
   fallTick, looseSettleAll, looseCount:()=>LOOSE.length, flowLeft:()=>flowLeft,
   flowBudget:()=>FLOW_BUDGET, flowReach:()=>FLOW_REACH,
   settlePending:()=>SETTLE.length/3,

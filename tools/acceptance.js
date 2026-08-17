@@ -1620,6 +1620,97 @@ T[39]={name:'a spring at a fall pours over the brink, stays at the fall, and dra
     return {ok:!faults.length, got:said.join(' · ')+(faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
+T[41]={name:'a wood wears more than one bark, and the six cost draw calls and not one triangle',
+  /* §2.4.3 asks for a bark per species. A texture per species is a MATERIAL
+     per species, and the rule this whole flora is built on is that a hundred
+     and seventy species share four grey materials and tint their own faces —
+     so the bark is ASSIGNED out of six patterns, exactly as the canopy form is
+     assigned, and the per-species tint still sits on top of every one of them.
+
+     THE FEATURE SHIPPED WITHOUT ITS NUMBER, which is the only reason this test
+     exists: every other item of Phase 6 was measured against the thing it
+     replaced and this one was not, and PLAN.md still called it *"one grey
+     bark, tinted per species"* three rounds after it had stopped being that.
+
+     So the wood is built TWICE in one page — six barks, then the one they
+     replaced — and the two things that must be true of the difference are
+     asserted:
+
+       IT COSTS DRAW CALLS. A material is a mesh is a draw call, and more
+       barks in view must mean more meshes, or the barks are not reaching the
+       ground at all.
+       IT COSTS NO GEOMETRY. Not one triangle may move. A bark is a texture on
+       faces that were already there, and a single triangle of difference would
+       mean something else changed with it.
+
+     AND BOTH BUILDS STAND ON THE SAME DISC. The first cut of this measurement
+     did not: the frame lays its own ring every frame and reaps whatever falls
+     outside it, so one build read 545 chunks and the other 709, and it
+     reported a quarter of a million extra triangles from a change that touches
+     no geometry whatever. `holdWorld` stops the world laying ground of its own
+     while a measurement is taken, and the chunk counts are asserted equal
+     rather than assumed so that this can never be read that way again. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, W=window.__WORLD, F=window.FLORA;
+    if(!F||!F.barkOn||!F.barkOf) return {pending:'no bark per kind (Phase 6 §2.4.3)'};
+    if(!D.viewStats||!D.dropChunks||!D.holdWorld) return {pending:'no A/B build probes'};
+
+    /* THE WOOD IS CHOSEN BY ITS OWN GROWTH AND NOT BY NAME: the country whose
+       flora lists the most DISTINCT barks, which is what makes it a wood worth
+       asking. Data picks it, so a country renamed cannot make this stale. */
+    const lands=F.lands(), kinds=F.kinds(), score=[];
+    for(const n in lands){
+      const l=lands[n], list=(l&&l.tree)||l||[];
+      const names=Array.isArray(list)?list:Object.keys(list||{});
+      const barks=new Set();
+      for(const k of names){ const K=kinds[k]; if(K&&K._bark) barks.add(K._bark); }
+      score.push({n,trees:names.length,barks:barks.size});
+    }
+    score.sort((a,b)=>b.barks-a.barks||b.trees-a.trees);
+    const S=W.sites(); let at=null;
+    for(const c of score){
+      for(let i=0;i<S.length;i++){ if(S[i]&&D.COUNTRIES[i].n===c.n){
+        at={n:c.n,x:S[i].x,z:S[i].z,barks:c.barks,trees:c.trees}; break; } }
+      if(at) break;
+    }
+    if(!at||at.barks<3) return {pending:'no wood of three barks or more stands on the chart'};
+
+    const build=async on=>{
+      F.barkOn(on);
+      D.holdWorld(true); D.dropChunks();
+      for(let k=0;k<25;k++){ D.updateChunks(at.x,at.z,900,13);
+        await new Promise(r=>requestAnimationFrame(r)); }
+      D.updateChunks(at.x,at.z,900,13);
+      const st=D.viewStats();
+      D.holdWorld(false);
+      return st;
+    };
+    D.state.fly.x=at.x; D.state.fly.z=at.z; D.setMode('fly');
+    const six=await build(true), one=await build(false);
+    F.barkOn(true);
+    const barks=st=>st.byMat.filter(m=>/^bark/.test(m[0]));
+    const sixBark=barks(six), oneBark=barks(one);
+
+    const faults=[];
+    if(six.chunks!==one.chunks)
+      faults.push('the two builds stood on different discs ('+one.chunks+' against '+six.chunks+
+        ') — nothing below this line means anything');
+    else {
+      if(sixBark.length<3) faults.push('only '+sixBark.length+' bark(s) reached the ground');
+      if(oneBark.length!==1) faults.push('with the switch off the wood wore '+oneBark.length+' barks, wanted 1');
+      if(!(six.meshes>one.meshes)) faults.push('six barks cost no draw calls at all — they are not being drawn');
+      if(six.tris!==one.tris) faults.push('the geometry moved by '+(six.tris-one.tris)+
+        ' triangles, and a bark is a texture and not a shape');
+    }
+    return {ok:!faults.length,
+      got:at.n+' ('+at.trees+' kinds, '+at.barks+' barks) over '+six.chunks+' chunks · meshes '+
+        one.meshes+' → '+six.meshes+' (+'+(six.meshes-one.meshes)+', +'+
+        ((six.meshes/one.meshes-1)*100).toFixed(1)+'%) · triangles '+one.tris+' → '+six.tris+
+        ' (+'+(six.tris-one.tris)+') · the barks in view: '+
+        sixBark.map(m=>m[0].replace(/^bark/,'')+' '+m[1]).join(', ')+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[40]={name:'a running fall writes nothing into the record, and a hand\'s own source writes itself',
   /* WHAT THIS IS FOR. A waterfall that has SETTLED is not still: Angel lays
      11,696 blocks and takes up 11,676 over two hundred ticks simply to stand

@@ -4836,6 +4836,74 @@ test 40 still finds not one cell of it in the record.
 Tests 22, 24, 39 and 40 pass. 24 is the one that matters for a round that raises
 ground: every named summit must still be walkable, and all thirteen are.
 
+## 4bh. Round 59 — the bark measurement: the number a shipped feature never had
+
+First of the five queued behind the water, and it is not a feature at all: **the
+bark per species has been in the world since Round 52 and was never measured.**
+Every other item of Phase 6 shipped with its cost set beside the thing it
+replaced — the coat at 1.13× the build and no per-frame cost, the boughs at 2.5×
+their own geometry for +11.7% triangles in a German wood, the second leaf at +249
+meshes and not one extra triangle — and this one shipped with nothing. PLAN.md
+went on calling it *"partial: one grey bark, tinted per species — not a texture
+each"* for three rounds after it had stopped being that.
+
+### What is actually there
+
+`BARK_MAT` in `js/flora.js`: six patterns — paper, ring, plate, twist, cork,
+smooth — and the deep fissure as the default. A kind names its own in
+`world/flora.js` or says nothing and its FORM answers for it (a palm rings, a
+conifer plates, a gum is smooth). `K._bark` is settled once per kind at load and
+never in the mesher, and the per-species TINT still sits on top of every one of
+them, so a birch and an aspen wear the same paper in two different greys.
+
+### The measurement, and it took three goes to be worth anything
+
+`FLORA.barkOn(false)` is the A/B switch — every bole in the world wearing the one
+grey bark, exactly as it stood before §2.4.3 — cut to the same pattern as
+`everOn` and `boughsOn` that the two rounds before it used. The same wood is
+built twice in one page, and `viewStats` reports MESHES (which are draw calls),
+triangles, and which material every mesh went to.
+
+**The first two readings were of the wrong thing, and the reason is worth more
+than the numbers.** They reported *a quarter of a million extra triangles* from a
+change that touches no geometry whatever — and, read properly, that was **545
+chunks against 709**. The frame lays its own ring every frame with its own view
+and reaps whatever falls outside it, so a measurement that lays a ring of its own
+across thirty frames is measuring a ring the game is pulling back underneath it.
+Topping the ring up and reading it in the same tick did not fix it either. What
+fixed it is `holdWorld` — **a paused world takes no orders and lays no ground** —
+and the A/B now stands on the disc it was given. Acceptance test 41 asserts the
+two chunk counts are EQUAL rather than assuming it, so this can never be read
+that way again.
+
+### The number
+
+| wood | chunks | meshes, one bark | six barks | triangles |
+|---|---|---|---|---|
+| India (39 kinds, 6 barks) | 545 | 4,139 | 4,494 (**+8.6%**) | 865,306 → 865,306 (**+0**) |
+| Bolivia (34 kinds, 6 barks) | 545 | 6,253 | 7,295 (**+16.7%**) | 1,267,306 → 1,267,306 (**+0**) |
+
+**Not one triangle**, in either wood, which is what a bark ought to cost: it is a
+texture on faces that were already there. The whole of the price is draw calls,
+and it is exactly the bark meshes and nothing else — India's 370 bark meshes
+become 725, and 725 − 370 is 355, which is the entire mesh difference. Build time
+moved +5% and +14% across the two woods, which is within the spread this
+machine's software rasteriser gives the same commit twice, and is reported rather
+than claimed.
+
+### Acceptance test 41
+
+`a wood wears more than one bark, and the six cost draw calls and not one
+triangle` — the wood chosen by its own growth (the country whose flora lists the
+most distinct barks) and not by name, so a country renamed cannot make it stale.
+It asserts that at least three barks reach the ground, that the switch off gives
+exactly one, that six barks cost MORE draw calls (or they are not being drawn at
+all), and that the geometry does not move by a single triangle.
+
+    PASS 41  India (39 kinds, 6 barks) over 545 chunks · meshes 4139 → 4494
+             (+355, +8.6%) · triangles 865306 → 865306 (+0) · the barks in view:
+             Smooth 282, Twist 199, Ring 109, W 108, Cork 27
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

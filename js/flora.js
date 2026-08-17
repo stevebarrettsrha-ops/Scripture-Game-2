@@ -125,6 +125,13 @@ let EVER=true;
    smooth. That way the whole earth is barked by adding one table, and a
    species that wants its own says so in its own line, where a reader sees it
    beside its leaf colour. Nothing here knows a species by name. */
+/* THE A/B SWITCH, as the leaf and the boughs each have one: off, every bole in
+   the world wears the one grey bark and tints it, which is exactly how it
+   stood before §2.4.3. Six patterns are six MATERIALS and six materials are
+   six draw calls a chunk, and a price is measured and not assumed — see AUDIT
+   Round 59, which is that measurement and is the only reason this switch
+   exists. */
+let BARK=true;
 const BARK_MAT={paper:'barkPaper', ring:'barkRing', plate:'barkPlate',
   twist:'barkTwist', cork:'barkCork', smooth:'barkSmooth', bark:'barkW'};
 const BARK_FORM={palm:'ring', fern:'ring', banana:'ring', bamboo:'ring',
@@ -269,7 +276,7 @@ function fruitOn(kit,K,x,z,y0,y1,r,S){
 }
 /* a bole, tapering or straight */
 function bole(kit,K,x,z,yT,h,w){
-  const BK=K._bark||kit.M.bark;   /* §2.4.3 — this kind's own bark */
+  const BK=(BARK&&K._bark)||kit.M.bark;   /* §2.4.3 — this kind's own bark */
   const {emitBox,M}=kit;
   emitBox(kit.G, x-w,yT,z-w, x+w,yT+h,z+w, BK,BK,null, K._bole);
 }
@@ -324,7 +331,7 @@ let BOUGHS=true;
    already had, so a branched tree occupies the same room an unbranched one
    did. What changes is its SHAPE, which was the point. */
 function boughsOn(kit,K,x,z,yB,tw,rad,ix,iz,out){
-  const BK=K._bark||kit.M.bark;   /* §2.4.3 — this kind's own bark */
+  const BK=(BARK&&K._bark)||kit.M.bark;   /* §2.4.3 — this kind's own bark */
   const {emitBox,hash,M}=kit;
   const n=3+(hash(ix*0.41+3.7,iz*0.53-2.9)>0.52?1:0);
   const a0=hash(ix*0.77-1.1,iz*0.29+4.3)*6.283;
@@ -356,7 +363,7 @@ function leafOnBoughs(kit,K,tips,rad,lm,LF){
 }
 
 function emitTree(kit,K,ix,iz,cc){
-  const BK=K._bark||kit.M.bark;   /* §2.4.3 — this kind's own bark */
+  const BK=(BARK&&K._bark)||kit.M.bark;   /* §2.4.3 — this kind's own bark */
   const {emitBox,hash,M}=kit;
   const x=(ix+0.5)*B, z=(iz+0.5)*B, yT=cc.h*B;
   /* a long tail toward the giants: most are middling, a few tower */
@@ -627,7 +634,7 @@ function emitTree(kit,K,ix,iz,cc){
    THE LOW GROWTH — bushes, herbs, canes, pads and rosettes
    ============================================================ */
 function emitPlant(kit,K,ix,iz,cc){
-  const BK=K._bark||kit.M.bark;   /* §2.4.3 — this kind's own bark */
+  const BK=(BARK&&K._bark)||kit.M.bark;   /* §2.4.3 — this kind's own bark */
   const {emitBox,cross,hash,M}=kit;
   const x=(ix+0.5)*B, z=(iz+0.5)*B, yT=cc.h*B;
   const s=hash(ix*1.31-4.4,iz*1.77+8.1);
@@ -704,7 +711,7 @@ function emitPlant(kit,K,ix,iz,cc){
    no stem at all (which is exactly how a palm begins), and everything else
    as a stem with a leafy head on it. */
 function emitSapling(kit,K,ix,iz,cc){
-  const BK=K._bark||kit.M.bark;   /* §2.4.3 — this kind's own bark */
+  const BK=(BARK&&K._bark)||kit.M.bark;   /* §2.4.3 — this kind's own bark */
   const {emitBox,hash,M}=kit;
   const x=(ix+0.5)*B, z=(iz+0.5)*B, yT=cc.h*B;
   const s=hash(ix*1.7+5.5,iz*2.3-9.9);
@@ -779,6 +786,12 @@ window.FLORA={
      replaced in ONE page — geometry has to be measured, not asserted */
   boughed:()=>BOUGHED,
   boughsOn:v=>{ if(v!==undefined) BOUGHS=!!v; return BOUGHS; },
+  /* the bark each kind wears, and the switch that sets six barks beside the
+     one they replaced in a single page — a material is a draw call, and a
+     draw call is measured and not assumed */
+  barkOf:n=>{ const K=D.kinds[n]; return K?K._bark:null; },
+  barkOn:v=>{ if(v!==undefined) BARK=!!v; return BARK; },
+  barkKinds:()=>BARK_MAT,
   /* the four grey things everything in the world is drawn with. The engine
      mints them; this file only ever names them. */
   MATERIALS:['leaf','bark','plant','solid'],
