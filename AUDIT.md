@@ -4635,6 +4635,145 @@ From the water rules as they were given, in the order they are worth having:
    is a change to the terrain carving in every country a fall stands in, and it
    wants its own round and its own geometric diff.
 
+## 4be. Round 58 — the hand that could not break anything, and the world that was shut
+
+Round 57 left four tests red — 14, 15, 23 and 38 — and proved they were red without any
+of that round's work in the tree. They looked like one broken chain wearing four coats:
+*a blow lands · what breaks drops · the drop is taken up · it lays back*.
+
+**They were three separate faults, and the middle one meant the game could not be played.**
+
+### 0. First, WHEN — because a regression with no date is an opinion
+
+A `git worktree` at **`eceeb03`** — the commit before the water sessions — was raised and
+the same four tests run in it:
+
+| test | at `eceeb03` | at HEAD |
+|---|---|---|
+| 14 · a blow breaks in the time its hardness says | **PASS** — brick broke at 6.52 s of 6.50 wanted, 15 cracks | FAIL — "broke at NEVER · 0 cracks cut" |
+| 15 · what breaks drops and comes into the satchel | **PASS** | FAIL |
+| 23 · the free hand breaks at a touch | **PASS** | FAIL |
+| 38 · in a VOYAGE, the whole chain | FAIL — "it ran 1497 frames and wants 8.5 s" | FAIL |
+
+So three of them were green and went red in the two commits after: `f5a75d8` and
+`b27c625`. **The fourth has never passed in its life**, and for a different reason again.
+
+### 1. A probe that answered, and its answer was nothing
+
+`window.__VDBG` declared **`mineAt` twice in the same object literal**:
+
+| line | what it was | from |
+|---|---|---|
+| ~14873 | `mineAt:(ix,iy,iz,nx,ny,nz)=>` — a real target, with the struck face | `bde514c`, Phase 4 step 2 |
+| ~14943 | `mineAt:a=>{ mineTestAt=a\|\|null; }` — a stale one-argument version | `f5a75d8`, the water round |
+
+**The later key wins.** So every test calling `mineAt(ix,iy,iz)` set `mineTestAt` to the
+NUMBER `ix`; `mineTick` read `tgt.ix` off a number, got `undefined`, found no block and
+abandoned the blow before it began. Three tests reported *"broke at NEVER · 0 cracks cut"*
+and the hand they were testing was never once touched.
+
+A missing probe fails loudly. **A shadowed probe answers, and its answer is nothing.** The
+whole debug surface was swept for the same fault: twelve other keys appear twice, and all
+twelve are the same binding written twice over (`SITES, … SITES`), which is harmless.
+`mineAt` was the only one where two DIFFERENT implementations collided.
+
+### 2. The world was shut, and the data says so in four lines
+
+`b27c625` — *"the tool is a requirement, not a discount"* — was right about the rock: a man
+should not claw an emerald out of a seam with his fingers. It was applied to **every** tool
+at once, and the world's own data then closed on itself:
+
+```
+flint   wants a PICK  ·  a pick is made of  flint 3 + planks 2
+log     wants an AXE  ·  an axe is made of  flint 3 + planks 2
+planks  are riven from a log
+```
+
+Of the world's **42 blocks, 8 gave to a bare hand**: the five flint tools — which could not
+be made — and glass, hay, leaves, water and wool. **In a voyage no tool could ever be come
+by, and no rock, ore, timber or earth could ever be broken.** Free roam is exempt from the
+rule, and free roam is the hand this suite runs almost everything with, which is the only
+reason it went unseen for two rounds.
+
+And the refusal the game spoke — *"flint is in the gravel of every river"* — named a block
+this world does not have. `world/minerals.js` puts flint in the chalk and the limestone,
+3 to 30 courses down, in thirteen countries.
+
+**THE RULE NOW HAS TWO TIERS**, which is both the game everybody knows and the way it truly
+went. It is one field on the table that already held the five tools' words:
+
+| tool | may bare hands stand in? |
+|---|---|
+| **pick** | **no** — the rock refuses, and says which tool it wants |
+| axe · spade · knife · hoe | yes, at `HAND_SLOW` (×2.5) |
+
+and **flint asks for a spade, not a pick** — it lies in nodules, not in seams; a man picks
+one out of the chalk of a cave wall with his fingers. The chain runs again:
+
+    fingers → timber → rive planks · fingers → flint → knap a pick → the rock gives
+
+The spoken refusal now names where flint truly lies. No block file changed but
+`blocks/flint.js`, and the engine still knows no block by name.
+
+### 3. And the tests were holding a repealed law
+
+T[14] asserted the rule of Round 34 — *a block that names a tool is had by the bare hand at
+2.5× the labour* — which `b27c625` replaced. **A test that holds a repealed law is worse
+than no test: it shouts, and what it shouts is out of date.** It now asks the rule as it
+stands, in three parts, and each part is a number:
+
+    the rock refuses a bare hand      REFUSED, and it said "you want a pick"
+    the timber gives to it, slowly    log broke in 5.02 s of 5.00 wanted, 15 cracks
+    the tool ends the argument        stone with a flint pick, 3.42 s of 3.40 wanted
+
+T[15] keeps its brick and puts a pick in the hand — it is about the drop and the satchel,
+not the tool rule. T[23] needed nothing but §1.
+
+**T[38] had never passed**, and mending it turned up seven more faults, every one in the
+test and not in the game: it trusted the live camera aim (which in a headless run points
+wherever it was left, so the fracture restarted every frame — *"it ran 1497 frames"*); it
+struck at a reach of thirty blocks and its drop landed in a field too far to walk to; it
+laid the flint pick back, and a tool is `place:false`; it struck the block underfoot and
+then tried to lay one back inside the traveller's own legs; it asked whether the block
+stood in the cell it had STRUCK, when a block goes in on the AIR SIDE of a struck face;
+and it laid from where it stood — but the face a man strikes is the one FACING HIM, so the
+air side of a block at arm's length is very often the cell he is standing in, and the
+world rightly refused to build a wall through his legs. He steps four blocks back along
+the struck face's own normal before he lays now.
+
+The last two are the ones worth remembering, because they PASS ALONE AND FAIL IN COMPANY.
+**It inherited whatever ground the test before it left it standing on** — test 37 lays
+rings at an eye of twenty-four thousand half a world away, and 38 came to its feet over
+nothing (*"the arm reaches no block at all from where he stands"*) while the same test run
+by itself was green; and the block the ray happened to find differed run to run, so the
+laying refusal only appeared when the whole suite had moved the world about first. Both
+are now settled by construction rather than by luck: it stands in a town of its own
+accord, waits for the chunks as the runner's own preamble does, and steps clear before it
+lays. It now reads:
+
+    broke Sapphire in 1.8 s (it wanted 1.7) · dropped 1 · taken up
+    · laying back: laid at 5544,3,7917, and it stands
+
+### 4. T[40] — the test that would have caught the shut world
+
+**'a man who begins with nothing can come by a pick, and then the rock gives'.** The
+satchel is emptied, the voyage hand declared, and the whole bootstrap walked with every
+link named:
+
+    began with nothing=true · timber by hand 5.02 s · flint by hand 5.02 s
+    · rock by hand: refused, rightly · rive planks: planks x4
+    · knap a pick: flint-pick x1 · rock with that pick: 3.42 s
+
+It does not re-prove the drop and the taking-up — that is test 15's, and saying so is
+better than implying it. What it proves is the one thing no test asked for fifty-eight
+rounds: **that the game can be played at all.**
+
+### 5. And the suite, whole
+
+**40 pass · 0 fail · 0 pending** — every test in the file green at once, which it has not
+been for at least two rounds. Test 39, the falls of Round 57, still reads Angel at 348
+cells with a column 80 blocks of 109.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

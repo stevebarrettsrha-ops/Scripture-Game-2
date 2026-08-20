@@ -1005,3 +1005,50 @@ current that carries a man at about 1.39 m/s, mining underwater at five times th
 twenty-five if he is not standing, and the gorge that ought to run to the sea rather than
 stopping at its plunge pool. Water and lava is not on that list for one reason: **this
 world has no lava**, so there is nothing for water to meet.
+
+## 17. Round 58 — the hand that could not break anything
+
+Round 57 ended by reporting four red tests — 14, 15, 23 and 38 — and saying they were not
+that round's doing. They were not one fault wearing four coats either. **They were three,
+and the middle one meant the game could not be played.**
+
+**First, when.** A `git worktree` at `eceeb03`, before the water sessions, was raised and
+the four run in it: 14, 15 and 23 all **PASS** there. So they went red in the two commits
+after it, and test 38 has never passed in its life.
+
+**A probe that answered, and its answer was nothing.** `__VDBG` declared `mineAt` twice in
+one object literal — the real one, which builds a target with the struck face, and a stale
+one-argument version added during the water round. The later key wins, so every test that
+called `mineAt(ix,iy,iz)` set the target to the NUMBER `ix`; `mineTick` read `.ix` off a
+number and abandoned the blow. A missing probe fails loudly; a shadowed one answers, and
+its answer is nothing.
+
+**The world was shut.** "The tool is a requirement, not a discount" was right about the
+rock and was applied to every tool at once — and the data closed on itself: flint wants a
+pick, a pick is made of flint; timber wants an axe, an axe is made of timber. Of
+forty-two blocks, **eight** gave to a bare hand, five of them tools that could not be
+made. In a voyage no tool could ever be come by and nothing but hay, wool, glass and
+leaves could ever be broken. Free roam is exempt, and free roam is the hand this suite
+runs nearly everything with, which is why nobody saw it.
+
+**The rule has two tiers now**, which is both the game everybody knows and the way it truly
+went: the ROCK refuses the bare hand and says which tool it wants; timber, earth, sod and
+hide give to it at ×2.5; and flint asks for a spade, not a pick, because it lies in
+nodules and not in seams. One field on the table that already held the five tools' words,
+one field in `blocks/flint.js`, and the engine still knows no block by name.
+
+**And the tests were holding a repealed law.** Test 14 now asks the rule as it stands and
+every part of it is a number — the rock refuses and names the pick; a log gives to the
+hand in 5.02 s of the 5.00 its hardness asks; stone with a flint pick, 3.42 s of 3.40.
+Test 38, mended, turned up five faults of its own — all in the test: a wandering camera
+aim, no ground under it, a reach of thirty blocks that dropped its prize out of walking
+range, a tool laid back as though it were a wall, and a block asked for in the cell it had
+struck rather than on the air side of the struck face.
+
+**Test 40 is the one that would have caught it**, and it is the point of the round: with an
+empty satchel and the voyage hand — timber by hand, flint by hand, the rock refused, the
+planks riven, the pick knapped, and the rock giving to that pick in 3.42 s. What no test
+had asked in fifty-eight rounds is whether the game can be played at all. Now one does.
+
+The suite reads **40 pass · 0 fail · 0 pending** — every test in the file green at once,
+which it has not been for at least two rounds.
