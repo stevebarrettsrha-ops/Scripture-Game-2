@@ -4692,8 +4692,19 @@ planks  are riven from a log
 Of the world's **42 blocks, 8 gave to a bare hand**: the five flint tools — which could not
 be made — and glass, hay, leaves, water and wool. **In a voyage no tool could ever be come
 by, and no rock, ore, timber or earth could ever be broken.** Free roam is exempt from the
-rule, and free roam is the hand this suite runs almost everything with, which is the only
-reason it went unseen for two rounds.
+rule.
+
+**AND THE SUITE WAS NOT BLIND TO IT — IT SAID SO, AND WAS NOT BELIEVED.** Round 58 first
+recorded here that free roam is the hand the suite runs nearly everything with, and that is
+FLATLY WRONG: the runner declares the hand before every test (`freeroam = !!t.freeHand`)
+and only ONE test of the forty asks for the free hand. Thirty-nine run the voyage. So tests
+14, 15 and 38 went red the moment the world shut, exactly as they were built to.
+
+What actually happened is worse, and is the lesson: **the shadowed `mineAt` had reddened
+those same tests first**, for an unrelated reason. When the tool gate landed on top of it
+there was no green left to go red, and a fault that closes the world arrived under cover of
+one that only broke a probe. A red test left standing is a blindfold, and two rounds were
+worked with it on. **A suite is only as sharp as its greenest run.**
 
 And the refusal the game spoke — *"flint is in the gravel of every river"* — named a block
 this world does not have. `world/minerals.js` puts flint in the chalk and the limestone,
@@ -4773,6 +4784,88 @@ rounds: **that the game can be played at all.**
 **40 pass · 0 fail · 0 pending** — every test in the file green at once, which it has not
 been for at least two rounds. Test 39, the falls of Round 57, still reads Angel at 348
 cells with a column 80 blocks of 109.
+
+## 4bf. Round 59 — what a voyage may not do, which nothing had ever asked
+
+Round 58 closed by saying the shut world went unseen because the suite runs almost
+everything with the free hand. **That was wrong, and it was wrong in the pushed record**
+(§4be, PLAN §17 and the comment above `TOOL_WORD` are all corrected). The runner declares
+the hand before every test — `freeroam = !!t.freeHand` — and **only one test of the forty
+asks for the free hand. Thirty-nine run the voyage.**
+
+So the suite was never blind. It reported the shut world at once. What it could not do was
+report it AUDIBLY: the shadowed `mineAt` had already reddened those same tests for an
+unrelated reason, so when the tool gate landed there was no green left to go red, and the
+fault that closed the world arrived under cover of the one that only broke a probe.
+**A suite is only as sharp as its greenest run**, and two rounds were worked with three
+reds standing.
+
+### 1. The real gap: every rule the voyage BEARS was tested; no rule it FORBIDS was
+
+| voyage-only rule | tested before this round? |
+|---|---|
+| the rock refuses the bare hand | ✅ T[14], T[40] |
+| a blow costs `hardness ÷ toolSpeed` | ✅ T[14] voyage, T[23] free |
+| what breaks drops and must be picked up | ✅ T[15], T[38], T[23] |
+| laying costs a block out of the satchel | ✅ T[23], both hands |
+| **the stores are the free hand's alone** | ⚠️ the free-hand half only |
+| **flight belongs to free roam** | ❌ nothing |
+| **the year belongs to free roam** | ❌ nothing |
+| **the hour belongs to free roam** | ❌ nothing |
+| **the five roam-only buttons are hidden on a voyage** | ❌ nothing — *and it had regressed once already* |
+| **the manner is saved and read back** | ❌ nothing |
+
+Every rule a voyage BEARS had a guard. Every rule it FORBIDS had none. That is not an
+accident of this suite — it is what happens when tests are written by walking forward
+through a feature: you check that the thing you built works, and never that the thing you
+forbade is still forbidden.
+
+### 2. And one of the locks was open — Options → Time of day
+
+`FREEROAM_ONLY` is described in its own comment as *"one list, obeyed by the rail, by the
+keyboard and by the menu, so the three can never disagree about what a voyage may and may
+not do."* **The menu did not obey it.**
+
+The rail hides the Time of Day button on a voyage with `display:none !important`. The
+options modal mirrors the rail by CLICKING the button underneath — `mo-daypart` →
+`b-daypart.click()` — and **a hidden button fires its onclick exactly like a shown one.**
+`b-season` and `b-fly` both carry `roamOnly()` on their own click and refuse properly;
+`b-daypart` never had it. So on a voyage, three clicks — Options, Time of day — set the
+hour, while the game's own refusal says in as many words that *"on a voyage the world keeps
+its own hours"*.
+
+The gate is on `b-daypart`'s own click now, which mends the rail, the key and the menu at
+once, because all three end there. **Everything else in the table above was measured and is
+sound**: `setMode('fly')` is reachable only from `takeFlight`, and `takeFlight` only from
+the two gated call sites.
+
+### 3. T[41] and T[42], and both were made to fail before being believed
+
+**T[41] — 'a voyage may not fly, may not turn the year, may not set the hour, and is not
+offered the stores'.** It drives the real paths — the window's own keydown listener, the
+rail's own buttons, the modal's own mirror, `getComputedStyle` on what a player would see —
+and it asks BOTH halves of every rule, because a locked door proves nothing unless the key
+also works:
+
+    ON A VOYAGE — flight refused · the year held · the hour held
+                  · 0 of 5 roam-only buttons shown · 0 in the stores ("he Satchel")
+    IN FREE ROAM — flight taken · the year turned · the hour set
+                  · 5 of 5 buttons shown · 37 in the stores ("he Free Hand")
+
+**T[42] — 'the manner a voyage was begun in survives a reload'.** A flag that comes back
+wrong gives away every rule above at once, silently. It asks for the flag AND for the thing
+the flag governs, in both directions.
+
+**AND EACH WAS PUT TO A FAULT BEFORE IT WAS TRUSTED**, because a guard that has never been
+seen to fail is not yet a guard:
+
+| the fault put to it | what the test said |
+|---|---|
+| the `roamOnly` gate taken back off `b-daypart` | *"the hour SET · a VOYAGE set the hour through the options menu"* |
+| the roam-only CSS rule deleted | *"5 of 5 roam-only buttons shown"* |
+| `fr` dropped from the save payload | *"FREE ROAM came back as a voyage"* |
+
+Each fault was injected, measured, and taken back out.
 
 ## 5. Further recommendations (future work)
 

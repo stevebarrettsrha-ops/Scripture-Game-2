@@ -1813,6 +1813,152 @@ T[40]={name:'a man who begins with nothing can come by a pick, and then the rock
         (faults.length?' · '+faults.join(' · '):'')};
   })};
 
+T[41]={name:'a voyage may not fly, may not turn the year, may not set the hour, and is not offered the stores',
+  /* this one asks for BOTH hands in turn and sets them itself, as test 23
+     does; it is marked so the runner's own declaration does not fight it */
+  freeHand:true,
+  /* ---- WHY THIS EXISTS: THE SUITE ONLY EVER TESTED WHAT A VOYAGE PERMITS ----
+     Every rule that a VOYAGE bears and the free hand is spared had a test —
+     the rock that refuses bare fingers, the blow that costs its hardness, the
+     drop that must be picked up, the block that costs a block to lay. Every
+     rule that a voyage FORBIDS had none. Flight, the year and the hour belong
+     to free roam; the stores belong to the free hand; and nothing anywhere
+     asked whether a voyage could reach them.
+
+     One of them could. `FREEROAM_ONLY` is called "one list, obeyed by the
+     rail, by the keyboard and by the menu, so the three can never disagree
+     about what a voyage may and may not do" — and the menu did not obey it.
+     The rail hides the Time of Day button on a voyage with a stylesheet rule;
+     the options modal mirrors the rail by CLICKING the button underneath; and
+     a hidden button fires its onclick exactly like a shown one. Options →
+     Time of day set the hour on a voyage, three clicks from anywhere.
+
+     SO IT DRIVES THE REAL PATHS AND NOT A PROBE WRITTEN FOR THE OCCASION: the
+     window's own keydown listener, the rail's own buttons, the modal's own
+     mirror, and getComputedStyle on what a player would see. And it asks BOTH
+     halves of every rule — a locked door proves nothing unless the key also
+     works, and a test that only sees the refusal cannot tell a rule from a
+     thing that is simply broken. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    if(!D.applyFreeroam) return {pending:'no free roam in this build'};
+    const raf=()=>new Promise(r=>requestAnimationFrame(r));
+    const key=async code=>{ window.dispatchEvent(new KeyboardEvent('keydown',{code}));
+      window.dispatchEvent(new KeyboardEvent('keyup',{code})); await raf(); };
+    const BTNS=['b-fly','b-time','b-speed','b-daypart','b-season'];
+    const shown=id=>{ const e=document.getElementById(id);
+      return !!e&&getComputedStyle(e).display!=='none'; };
+    const seasonNow=()=>window.SEASON?window.SEASON.overrideName():null;
+    const stores=()=>{ if(!D.pageOpen()) D.togglePage(); D.pageDraw();
+      const n=document.querySelectorAll('#page-stores .tok').length;
+      const h=document.getElementById('page-head');
+      const head=h&&h.children[1]?h.children[1].textContent:'';
+      if(D.pageOpen()) D.togglePage();
+      return {n,head}; };
+    /* he is set down on the ground, out of any scene, so the keys are heard:
+       the listener drops everything while a film runs or the map is up */
+    if(D.sceneActive&&D.sceneActive()) D.endScene();
+    if(D.state.firm) D.state.firm=false;
+    if(D.state.mode==='fly') D.setMode('walk');
+    const season0=seasonNow(), day0=D.state.dayIdx;
+
+    const ask=async()=>{
+      await raf();
+      const mode0=D.state.mode, s0=seasonNow(), d0=D.state.dayIdx;
+      await key('KeyG');
+      const flew=D.state.mode==='fly';
+      if(flew){ await key('KeyG'); await raf(); }          /* set him down again */
+      await key('KeyK');
+      const turned=seasonNow()!==s0;
+      if(turned&&window.SEASON) window.SEASON.setSeason(s0==='Natural'?null:s0);
+      /* THE HOUR IS ASKED THROUGH THE MENU'S OWN MIRROR, which is where the
+         hole was: the rail's button is hidden on a voyage and the modal
+         clicks it anyway. */
+      const mo=document.getElementById('mo-daypart'); if(mo) mo.click();
+      const hourSet=D.state.dayIdx!==d0;
+      if(hourSet){ D.state.dayIdx=d0; D.applyDayPart(); }
+      const st=stores();
+      return {mode0, flew, turned, hourSet, rail:BTNS.filter(shown),
+              stores:st.n, head:st.head};
+    };
+
+    /* ---- ON A VOYAGE: every one of them refused ---- */
+    D.state.freeroam=false; D.applyFreeroam(); await raf();
+    const v=await ask();
+    const said=(document.getElementById('verse-t')||{}).textContent||'';
+
+    /* ---- IN FREE ROAM: every one of them given ---- */
+    D.state.freeroam=true; D.applyFreeroam(); await raf();
+    const f=await ask();
+
+    /* and the world is left as it was found */
+    D.state.freeroam=false; D.applyFreeroam();
+    if(window.SEASON) window.SEASON.setSeason(season0==='Natural'?null:season0);
+    D.state.dayIdx=day0; D.applyDayPart();
+    if(D.state.mode==='fly') D.setMode('walk');
+
+    const faults=[];
+    if(v.flew) faults.push('a VOYAGE took flight');
+    if(v.turned) faults.push('a VOYAGE turned the year');
+    if(v.hourSet) faults.push('a VOYAGE set the hour through the options menu');
+    if(v.rail.length) faults.push('a VOYAGE is shown '+v.rail.join(', '));
+    if(v.stores) faults.push('a VOYAGE is offered '+v.stores+' blocks from the stores');
+    if(!/FREE ROAM/i.test(said)) faults.push('the refusal was not spoken (it said: "'+said.slice(0,48)+'")');
+    if(!f.flew) faults.push('FREE ROAM could not take flight');
+    if(!f.turned) faults.push('FREE ROAM could not turn the year');
+    if(!f.hourSet) faults.push('FREE ROAM could not set the hour');
+    if(f.rail.length!==BTNS.length) faults.push('FREE ROAM is shown only '+f.rail.length+' of '+BTNS.length+' of its own buttons');
+    if(!f.stores) faults.push('FREE ROAM is offered no stores');
+    return {ok:!faults.length,
+      got:'ON A VOYAGE — flight '+(v.flew?'TAKEN':'refused')+
+        ' · the year '+(v.turned?'TURNED':'held')+
+        ' · the hour '+(v.hourSet?'SET':'held')+
+        ' · '+v.rail.length+' of '+BTNS.length+' roam-only buttons shown'+
+        ' · '+v.stores+' in the stores ("'+v.head+'")'+
+        ' | IN FREE ROAM — flight '+(f.flew?'taken':'REFUSED')+
+        ' · the year '+(f.turned?'turned':'HELD')+
+        ' · the hour '+(f.hourSet?'set':'HELD')+
+        ' · '+f.rail.length+' of '+BTNS.length+' buttons shown'+
+        ' · '+f.stores+' in the stores ("'+f.head+'")'+
+        (faults.length?' · '+faults.join(' · '):'')};
+  })};
+
+T[42]={name:'the manner a voyage was begun in survives a reload',
+  /* A FLAG THAT COMES BACK WRONG GIVES AWAY EVERY RULE ABOVE AT ONCE: a
+     voyage that resumed as free roam would have flight, the year, the hour,
+     the stores and a hand that breaks rock at a touch, and nothing would say
+     so. `fr` is written into the save and read back out of it, and nothing
+     has ever checked the round trip.
+
+     AND IT ASKS FOR THE THING THE FLAG GOVERNS, not merely the flag: a
+     restore that sets state.freeroam without calling applyFreeroam would put
+     the body class out of step with it, and the rail would tell the traveller
+     the opposite of what the hand does. Both directions are held, because a
+     flag that always comes back false would pass half of this. */
+  run:async(page,ctx)=>{
+    const set=async roam=>page.evaluate(r=>{ const D=window.__VDBG;
+      D.state.freeroam=r; D.applyFreeroam(); D.saveNow(); return !!D.state.freeroam; },roam);
+    const read=async()=>page.evaluate(()=>{ const D=window.__VDBG;
+      const BTNS=['b-fly','b-time','b-speed','b-daypart','b-season'];
+      const shown=BTNS.filter(id=>{ const e=document.getElementById(id);
+        return !!e&&getComputedStyle(e).display!=='none'; });
+      return {flag:!!D.state.freeroam, shown:shown.length, of:BTNS.length}; });
+    await set(false); await ctx.reload();
+    const v=await read();
+    await set(true); await ctx.reload();
+    const f=await read();
+    await set(false);                     /* left as a voyage, as it was found */
+    const faults=[];
+    if(v.flag) faults.push('a VOYAGE came back as free roam');
+    if(v.shown) faults.push('a voyage came back showing '+v.shown+' roam-only buttons');
+    if(!f.flag) faults.push('FREE ROAM came back as a voyage');
+    if(f.shown!==f.of) faults.push('free roam came back showing only '+f.shown+' of '+f.of+' of its buttons');
+    return {ok:!faults.length,
+      got:'a voyage came back: freeroam='+v.flag+', '+v.shown+' of '+v.of+' roam-only buttons shown'+
+        ' · free roam came back: freeroam='+f.flag+', '+f.shown+' of '+f.of+' shown'+
+        (faults.length?' · '+faults.join(' · '):'')};
+  }};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

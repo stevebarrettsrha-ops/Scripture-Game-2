@@ -13963,7 +13963,21 @@ function applyDayPart(){
     setLocalHour(d.getHours()+d.getMinutes()/60+d.getSeconds()/3600, p.x, p.z); }
   else setLocalHour(D2.h, p.x, p.z);
 }
-$('b-daypart').onclick=()=>{ state.dayIdx=(state.dayIdx+1)%DAYPARTS.length;
+/* ---- AND THE HOUR BELONGS TO FREE ROAM TOO, WHICH THIS DID NOT SAY ----
+   THE HOLE, and it was open to any player in three clicks. FREEROAM_ONLY is
+   called "one list, obeyed by the rail, by the keyboard and by the menu, so
+   the three can never disagree about what a voyage may and may not do" — and
+   the menu did not obey it. The rail hides `b-daypart` on a voyage with a
+   stylesheet rule, but the options modal mirrors the rail by CLICKING the
+   button underneath (`mo-daypart` → `b-daypart.click()`), and a hidden button
+   fires its onclick exactly like a shown one. So Options → Time of day set
+   the hour on a voyage, while the game's own refusal says in as many words
+   that "on a voyage the world keeps its own hours".
+   The season and the flight had the gate; the hour did not. It has it now,
+   which mends the rail, the key and the menu at once, because all three end
+   up here. */
+$('b-daypart').onclick=()=>{ if(!roamOnly()) return;
+  state.dayIdx=(state.dayIdx+1)%DAYPARTS.length;
   updateDayBtn(); applyDayPart(); saveState();
   const D2=DAYPARTS[state.dayIdx];
   toast(D2.k==='live'
@@ -15420,7 +15434,13 @@ let _toolSaid=null;                     /* so a refusal is said once, not sixty 
    Of forty-two blocks, EIGHT gave to a bare hand: the five flint tools, which
    could not be made, and glass, hay, leaves, water and wool. So in a voyage no
    tool could ever be come by and no rock, ore, timber or earth could ever be
-   broken. Free roam was exempt, which is the only reason it went unseen.
+   broken. Free roam was exempt.
+
+   AND THE SUITE SAID SO AT THE TIME — thirty-nine of its forty tests run the
+   voyage hand, and three of them went red the moment this landed. They were
+   ALREADY RED, for an unrelated reason (a shadowed mineAt probe), so a fault
+   that shut the world arrived under cover of one that only broke a probe.
+   Nothing here is guarded by a test that is already failing.
 
    THE RULE NOW, which is the one the game everybody knows keeps: the ROCK
    refuses the bare hand outright, and everything else — timber, earth, sand,

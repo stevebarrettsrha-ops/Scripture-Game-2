@@ -1028,8 +1028,14 @@ rock and was applied to every tool at once — and the data closed on itself: fl
 pick, a pick is made of flint; timber wants an axe, an axe is made of timber. Of
 forty-two blocks, **eight** gave to a bare hand, five of them tools that could not be
 made. In a voyage no tool could ever be come by and nothing but hay, wool, glass and
-leaves could ever be broken. Free roam is exempt, and free roam is the hand this suite
-runs nearly everything with, which is why nobody saw it.
+leaves could ever be broken.
+
+**The suite was not blind to it — it said so, and was not believed.** (This entry first
+claimed the suite runs nearly everything with the free hand. It does not: the runner
+declares the hand before every test and only one test of forty asks for the free hand.)
+Tests 14, 15 and 38 went red the moment the world shut. But the shadowed `mineAt` had
+reddened those same tests FIRST, for an unrelated reason — so when the gate landed there
+was no green left to go red, and the worse fault arrived under cover of the lesser one.
 
 **The rule has two tiers now**, which is both the game everybody knows and the way it truly
 went: the ROCK refuses the bare hand and says which tool it wants; timber, earth, sod and
@@ -1052,3 +1058,40 @@ had asked in fifty-eight rounds is whether the game can be played at all. Now on
 
 The suite reads **40 pass · 0 fail · 0 pending** — every test in the file green at once,
 which it has not been for at least two rounds.
+
+## 18. Round 59 — what a voyage may not do
+
+Round 58 ended with a claim that turned out to be false, and it went into the record before
+it was checked: that the shut world went unseen because the suite runs almost everything
+with the free hand. **The runner declares the hand before every test, and only ONE test of
+the forty asks for the free hand — thirty-nine run the voyage.** §17 above and the audit
+are corrected.
+
+The suite was never blind, then. It reported the shut world at once. What it could not do
+was be HEARD: the shadowed `mineAt` had already reddened those same tests for an unrelated
+reason, so when the tool gate landed there was no green left to go red. **A suite is only
+as sharp as its greenest run.**
+
+**The real gap was the other way round.** Every rule a voyage BEARS had a guard — the rock
+that refuses bare fingers, the blow that costs its hardness, the drop that must be picked
+up, the block that costs a block to lay. Every rule a voyage FORBIDS had none: flight, the
+year, the hour, the stores, and the manner itself surviving a reload. That is what happens
+when tests are written by walking forward through a feature — you check that what you built
+works, and never that what you forbade is still forbidden.
+
+**And one of those locks was open.** `FREEROAM_ONLY` is called "one list, obeyed by the
+rail, by the keyboard and by the menu, so the three can never disagree about what a voyage
+may and may not do", and the menu did not obey it: the rail hides the Time of Day button on
+a voyage with a stylesheet rule, the options modal mirrors the rail by CLICKING the button
+underneath, and a hidden button fires its onclick exactly like a shown one. Three clicks —
+Options, Time of day — set the hour on a voyage. The season and the flight had the gate on
+their own click; the hour did not. It has it now, which mends all three paths at once
+because all three end there.
+
+**Test 41** asks both halves of every one of those rules, driving the window's own keydown
+listener, the rail's own buttons and the modal's own mirror — a locked door proves nothing
+unless the key also works. **Test 42** holds the manner across a save and a reload, in both
+directions, because a flag that comes back wrong gives away every rule at once and says
+nothing. And **both were put to a real fault before being trusted** — the gate taken back
+off, the CSS rule deleted, `fr` dropped from the save — and each reported exactly the fault
+it was built for.
