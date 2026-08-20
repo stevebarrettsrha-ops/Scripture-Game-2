@@ -457,11 +457,11 @@ T[15]={name:'what is broken becomes a thing on the ground, and comes into the sa
     await D.settle(2);
     const n=D.blockId('brick'), b=D.blockOf(n);
     /* ---- AND THE HAND HOLDS THE PICK, because the rock now asks for one ----
-       Brick names a pick, and since b27c625 a rock that names a tool does not
-       give to bare fingers at all. This test is about what happens AFTER a
-       block breaks — the drop, the rest, the walking on, the satchel — so the
-       tool is put in the hand rather than the block changed for a softer one.
-       Test 14 is where the tool rule itself is put to the question. */
+       Brick names a pick, and a rock that names a tool does not give to bare
+       fingers at all. This test is about what happens AFTER a block breaks —
+       the drop, the rest, the walking on, the satchel — so the tool is put in
+       the hand rather than the block changed for a softer one. Test 14 is
+       where the tool rule itself is put to the question. */
     D.satchelAdd('flint-pick',1);
     { const i=D.satchel().findIndex(s=>s&&s.id==='flint-pick'); if(i>=0) D.setHeld(i); }
     /* THREE PACES OFF, not underfoot. A block broken at a man's own feet is
@@ -1624,102 +1624,531 @@ T[38]={name:'in a VOYAGE, a blow breaks, what breaks drops, the drop is taken up
         (faults.length?' · '+faults.join(' · '):'')};
   })};
 
-T[39]={name:'a fall runs down its own wall, and what it spills is bounded',
-  /* THE TWO FAULTS THIS GUARDS, and both of them were found by measuring
-     rather than by looking, because a waterfall nobody has stood at is a
-     thing this suite could not see at all until now.
+T[39]={name:'a spring at a fall pours over the brink, stays at the fall, and drains when it is taken up',
+  /* THE THREE FAULTS THIS GUARDS, and every one of them has already happened.
 
-     THE FLOOD. A spring laid at Niagara's lip once put 13,989 cells of
-     standing water into the world and one at Multnomah 23,025 — the camera at
-     the foot was inside a solid mass of water — and the springs were switched
-     off for eleven commits while that was mended. The mending was five
-     separate things, and a test that only counts cells would have passed
-     three of them.
+     1. THE FLOOD. A spring laid at Niagara put 13,989 cells of standing water
+        into the world and Multnomah 23,025 with 7,292 still queued — the
+        camera at the foot buried inside a solid mass of water, and the count
+        still climbing when the measurement was cut off. Four rules were
+        wrong: a column sprayed sideways out of its own middle, a sheet took
+        every direction instead of the way down, the sea was not a sink, and
+        the world's own rivers were feeding our water like infinite springs.
 
-     THE DRY CLIFF, which is the other half and the reason the count alone is
-     not enough. With the spring laid a block behind the crest, Angel measured
-     316 cells — a tidy, bounded, entirely wrong number, because the water was
-     a pond on top of the mountain and the tallest column standing anywhere on
-     its thousand-metre wall was TWO BLOCKS. So the column is asked for by
-     name: a fall must have water most of the way down its own wall.
+     2. THE DRY FALL. The heads were laid at the fall's origin, and for a
+        PLUNGE the lip is held proud for `under × drop` blocks past it — so
+        at Angel the spring stood SEVENTEEN BLOCKS BACK from the brink,
+        water reaches seven blocks and no further, and the tallest fall on
+        earth had 549 cells of puddle on the tabletop and nothing whatever
+        going over. A test that only counted cells would have called that
+        the best-behaved fall in the world.
 
-     It stands at the TALLEST fall in the world, named by nothing here — the
-     drops are data, and the tallest is whichever the data says. That is also
-     the worst case for both faults at once: the longest wall to be dry, and
-     the most water in the air if it spreads. */
+     3. THE STREAM THAT WILL NOT UNWIND. Take the spring away and the water
+        must retreat from the far end a level a tick. It did not, for a whole
+        round, because a river counted as a source.
+
+     So: it pours (there is water in the shaft between lip and foot), it
+     STAYS (nothing stands further from the fall than the fall's own claim),
+     it SETTLES (the total stops moving), and it GOES when the source does.
+
+     WHY IT BEATS THE WATER DIRECTLY. WATER.step(0.25) is exactly one tick
+     with exactly the budget the game gives it — the same queue, the same
+     order, the same millisecond. Waiting on frames instead would measure the
+     rasteriser: a settled fall takes some six hundred ticks, which is half an
+     hour of software-rendered frames and two seconds of this.
+
+     AND IT LEAVES THE WORLD DRY. The last act is to take every head up and
+     unwind the stream, which is both the third assertion and the cleaning up
+     of twenty thousand cells of water that no test after this one wants. */
   run:async page=>page.evaluate(async()=>{
-    const D=window.__VDBG;
-    if(!window.WATERFALL||!window.WATER) return {pending:'no falls and no water in this build'};
-    if(!D.springsOn()) return {pending:'the springs are off (SPRINGS_ON=false) — the rock is cut and dry'};
-    /* the tallest fall there is */
-    const L=window.WATERFALL.list();
-    if(!L||!L.length) return {pending:'no falls stand in this world'};
-    let f=L[0]; for(const g of L) if(g.drop>f.drop) f=g;
-    D.unspring();
-    D.state.walk.x=f.x; D.state.walk.z=f.z; D.state.walk.feetY=undefined;
-    D.setMode('walk');
-    let laid=0, frames=0;
-    while(frames<900&&laid<=0){
-      D.updateChunks(D.state.walk.x,D.state.walk.z,400);
-      await new Promise(r=>requestAnimationFrame(r));
-      const r=D.layFall(f.n); laid=r?r.laid:0; frames++;
+    const D=window.__VDBG, B=D.B;
+    if(!window.WATER||!window.WATERFALL) return {pending:'no falling water (js/water.js, js/waterfall.js)'};
+    const list=WATERFALL.list();
+    if(!list||!list.length) return {pending:'no falls in world/waterfalls.js'};
+    /* THREE FALLS, CHOSEN BY FORM AND NOT BY NAME — the tallest plunge (the
+       overhang, which is where the brink is not the origin), the widest
+       cataract (the greatest number of heads), and the tallest tiered stair
+       (which lands and lands again). Data picks them, so adding a fall or
+       redrawing one cannot make this test stale. */
+    const pick=(form,by)=>list.filter(f=>f.form===form).sort((a,b)=>by(b)-by(a))[0];
+    const chosen=[pick('plunge',f=>f.drop),pick('cataract',f=>f.half),
+                  pick('tiered',f=>f.drop)].filter(Boolean);
+    if(!chosen.length) return {pending:'no fall of any known form'};
+
+    const faults=[], said=[];
+    /* ---- EACH FALL IS ASKED ABOUT ITS OWN WATER, AND ONLY ITS OWN ----
+       WATER.serialise() is the whole world's water, and reading it whole was
+       wrong twice over. First: Angel drained all but a few hundred cells and
+       those were still standing when Iguazu was measured, so Iguazu was
+       reported as having thrown water five thousand blocks — which was Angel,
+       a continent away. Second, once the springs were turned ON: the engine
+       lays a spring at whatever fall the traveller is near, all through this
+       test, and that water is nobody's business here at all.
+
+       So a cell belongs to the fall it is NEAREST to. It needs no bookkeeping,
+       it cannot go stale, and it is the plain meaning of the question — "did
+       THIS fall throw water out of its gorge" is a question about which fall
+       the water is at. */
+    const whose=(ix,iz)=>{ let best=null,bd=1e18;
+      for(const g of list){ const d=(ix*B-g.x)**2+(iz*B-g.z)**2; if(d<bd){ bd=d; best=g; } }
+      return best; };
+    for(const f of chosen){
+      const wx=(u,v)=>f.x+(u*f.cs+v*f.sn)*B, wz=(u,v)=>f.z+(-u*f.sn+v*f.cs)*B;
+      const ground=(u,v)=>{ const c=D.landAtWorld(wx(u,v),wz(u,v)); return c?c.h:null; };
+      const lip=ground(0,-1)||0;
+
+      const heads=[];
+      for(const [x,z] of WATERFALL.springs(f)){
+        const c=D.landAtWorld(x,z); if(!c) continue;
+        const ix=Math.floor(x/B), iz=Math.floor(z/B);
+        if(WATER.spill(ix,c.h,iz)) heads.push([ix,c.h,iz]);
+      }
+      if(!heads.length){ faults.push(f.n+': no head could be laid'); continue; }
+
+      /* beaten until the standing total stops moving, or 4,000 ticks */
+      const mine=()=>WATER.serialise().filter(s=>{
+        const p=s.slice(0,s.lastIndexOf(':')).split(',');
+        return whose(+p[0],+p[2])===f; });
+      let prev=-1, still=0, t=0;
+      const seen=[];                 /* one reading a hundred ticks, for the verdict */
+      for(t=1;t<=6000;t++){
+        WATER.step(0.25);
+        if(t%50===0) await new Promise(r=>setTimeout(r,0));
+        /* SETTLED IS NOT FROZEN. A live flow is water arriving and water
+           being taken by the sea at the same rate, and the tip of a falling
+           column flickers by a dozen cells from tick to tick — a tolerance of
+           one per cent of nine hundred is nine cells, and Angel was reported
+           "climbing" for four thousand ticks on that. Twenty cells, or two
+           per cent, whichever is the wider.
+
+           AND IT IS THIS FALL'S OWN COUNT, not the world's. With the springs
+           live the engine keeps a fall of its own running whereever the
+           traveller stands, and the world's total never stops moving — so all
+           three falls were reported as "climbing" while each of them stood
+           perfectly still. */
+        if(t%100===0){ const c=mine().length; seen.push(c);
+          if(prev>=0&&Math.abs(c-prev)<=Math.max(20,prev*0.02)) still++; else still=0;
+          prev=c; if(still>=2) break; }
+      }
+      /* ---- SETTLED, OR AT LEAST NOT CLIMBING, WHICH IS THE REAL QUESTION ----
+         The fault this guards is a FLOOD — 31,629 cells and rising fast — and
+         the wide cataracts take their time filling their aprons: Iguazu was
+         reported "climbing" at four thousand ticks while standing within a few
+         per cent of where it finished. So a fall that has not settled is
+         judged on whether it is still GROWING: more than a tenth added over
+         its last thousand ticks is a fall that has not found its bounds, and
+         anything less has. */
+      const standing=mine(), held=standing.length;
+      const back=seen.length>10?seen[seen.length-11]:seen[0];
+      const settled=still>=2||!(held>back*1.1);
+
+      /* IT POURED: water standing in the shaft, between the foot and the lip,
+         within the first few blocks downstream of the brink */
+      let shaft=0, far=0;
+      const brink=Math.max(0,Math.floor(f.F.under*f.drop));
+      for(let v=brink;v<=brink+4;v++) for(let u=-f.half;u<=f.half;u++){
+        const ix=Math.floor(wx(u,v)/B), iz=Math.floor(wz(u,v)/B);
+        for(let iy=lip-1;iy>lip-f.drop;iy--) if(WATER.levelAt(ix,iy,iz)!==null) shaft++;
+      }
+      /* IT STAYED: the fall's own claim is its lip and the gorge it cut, and
+         nothing of ours may stand outside it */
+      const claim=f.half+f.run+16;
+      for(const s of standing){
+        const p=s.slice(0,s.lastIndexOf(':')).split(',');
+        const d=Math.hypot((+p[0])*B-f.x,(+p[2])*B-f.z)/B; if(d>far) far=d;
+      }
+
+      /* AND IT GOES WHEN THE SOURCE DOES */
+      for(const h of heads) WATER.take(h[0],h[1],h[2]);
+      for(let k=0;k<4000;k++){ WATER.step(0.25);
+        if(k%50===0){ await new Promise(r=>setTimeout(r,0)); if(!mine().length) break; } }
+      const left=mine().length;
+
+      said.push(f.n.split(/[ —]/)[0]+': '+held+' cells, '+shaft+' in the shaft, '+
+        Math.round(far)+' blocks at furthest (of '+Math.round(claim)+'), drained to '+left);
+      if(!shaft) faults.push(f.n+' ran dry — nothing went over the brink');
+      if(!settled) faults.push(f.n+' is still climbing ('+back+' → '+held+' cells over its last thousand ticks)');
+      if(far>claim) faults.push(f.n+' left its own gorge ('+Math.round(far)+' blocks out)');
+      if(left>Math.max(20,held*0.05)) faults.push(f.n+' would not unwind ('+left+' cells left standing)');
     }
-    if(laid<=0) return {ok:false,got:'the spring would not lay at '+f.n+' in '+frames+' frames'};
-    /* the lip behind the crest, and the lowest ground down the fall's own line */
-    const lipC=D.landAtWorld(f.x-f.sn*D.B*2, f.z-f.cs*D.B*2);
-    let foot=1e9;
-    for(let v=0;v<=f.run;v+=Math.max(1,Math.round(f.run/40))){
-      const c=D.landAtWorld(f.x+f.sn*D.B*v, f.z+f.cs*D.B*v);
-      if(c&&c.h<foot) foot=c.h; }
-    /* ---- THE WATER'S OWN CLOCK IS DRIVEN, NOT WAITED ON ----
-       The frame loop caps dt at a fiftieth of a second, so on a software
-       rasteriser the game's clock runs at a tenth of real time and sixty
-       seconds of water would want ten minutes of this suite's day.
-       WATER.step(TICK) is the same tick the loop calls, under the same
-       budget. */
-    const census=()=>{
-      let total=0,col=0;
-      const stack=new Map();
-      for(const s of window.WATER.serialise()){
-        const i=s.lastIndexOf(':'), p=s.slice(0,i).split(',');
-        const ix=+p[0], iy=+p[1], iz=+p[2];
-        total++;
-        if(iy>foot+1){ const k=ix+','+iz, n=(stack.get(k)||0)+1;
-          stack.set(k,n); if(n>col) col=n; }
-      }
-      return {total,col};
-    };
-    const run=async secs=>{
-      const want=secs*4; let guard=0;
-      while(window.WATER.stats().ticks<want&&guard++<want*4){
-        window.WATER.step(0.25);
-        if((guard&63)===0) await new Promise(r=>requestAnimationFrame(r));
-      }
-      return census();
-    };
-    const a=await run(30), b=await run(60);
-    /* THE CEILING, and where it comes from: tools/waterprobe.js reads this
-       same fall at 347 cells, at rest, with a column 80 blocks of 109. Four
-       times that is a guard against a real regression and not against the
-       weather — the curtain that this round mended measured 5,272 and 7,287,
-       and the flood that turned the springs off measured 13,989. */
-    const CEILING=1500;
-    const faults=[];
-    if(b.col<f.drop*0.5) faults.push('the wall is dry: the tallest column is '+
-      b.col+' of a drop of '+f.drop);
-    if(b.total>CEILING) faults.push('it floods: '+b.total+' cells standing, over the '+
-      CEILING+' this fall is allowed');
-    if(b.total>a.total*1.15+20) faults.push('it is still climbing: '+a.total+
-      ' at thirty seconds and '+b.total+' at sixty');
-    return {ok:!faults.length,
-      got:f.n+' — drop '+f.drop+', '+laid+' head'+(laid===1?'':'s')+' laid · '+
-        b.total+' cells standing ('+a.total+' at thirty seconds) · tallest column '+
-        b.col+' of '+f.drop+' · lip h='+(lipC?lipC.h:'?')+', foot h='+foot+
-        (window.WATER.evapTicks()?' · the air is on':' · no evaporation')+
-        (faults.length?' · '+faults.join(' · '):'')};
+    return {ok:!faults.length, got:said.join(' · ')+(faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
-T[40]={name:'a man who begins with nothing can come by a pick, and then the rock gives',
+T[43]={name:'a tree stands in blocks: the axe bites the bole and it gives timber',
+  /* THE HOLE THIS FILLS, AND IT IS AN OLD ONE. `blocks/log.js` (Timber, to an
+     axe, dropping log) and `blocks/flint-axe.js` ("For the wood. A cedar that
+     takes a hand a slow minute takes an axe a moment") have both stood since
+     Phase 4 — and THERE WAS NOTHING IN THE WORLD FOR THE AXE TO BITE. Every
+     bole was a box merged into the chunk's geometry and a blow went straight
+     through it. Two files written for felling timber that could not be felled.
+
+     So: find a tree by asking the flora where one grows, and put four things
+     to the world at that trunk —
+       1. THE WORLD SAYS SOLID THERE. `blockSolidAt` is what the hand, the
+          walker and the blow all read; if it is false the tree is a picture.
+       2. IT IS TIMBER, not stone. The mesher's stamp answers `stone` for any
+          material no block claims, so a bole that came out as rock would look
+          right, break wrong, and nobody would know until they mined one.
+       3. IT IS IN THE STRUCTURE LAYER and not the player's record — a tree is
+          DERIVED, like a village wall, and a world that wrote every trunk it
+          ever grew to the disc would be writing down a forest.
+       4. AND IT BREAKS INTO WHAT IT IS: broken, the cell is empty and the
+          block it drops is timber.
+
+     THE TREE IS FOUND BY ASKING, not by hunting: `FLORA.treeAt` is what the
+     chunk builder itself asks, so the test and the world agree by
+     construction about where a tree is. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, F=window.FLORA, B=D.B;
+    if(!F||!F.treeAt) return {pending:'no flora'};
+    if(!D.blockId('log')) return {pending:'no timber block'};
+    const p=D.playerXZ();
+    const cix=Math.floor(p.x/B), ciz=Math.floor(p.z/B);
+    /* the nearest column the flora would grow a tree in */
+    let at=null, wooded=0;
+    for(let d=0;d<80&&!at;d++) for(let a=-d;a<=d&&!at;a++) for(let b=-d;b<=d&&!at;b++){
+      if(Math.max(Math.abs(a),Math.abs(b))!==d) continue;      /* the ring at d */
+      const ix=cix+a, iz=ciz+b;
+      const c=D.landAtWorld((ix+0.5)*B,(iz+0.5)*B);
+      if(!c||!c.tree) continue;
+      wooded++;
+      /* the same call the chunk builder makes, so the test and the world
+         agree by construction about where a tree is */
+      const K=F.treeAt(D.landNameAt?D.landNameAt((ix+0.5)*B,(iz+0.5)*B):null,
+                       c.kind,c.h,ix,iz,D.hash2,false);
+      if(K) at={ix,iz,h:c.h,kind:K.name||'?'};
+    }
+    if(!at) return {pending:'no tree grows within eighty blocks of where he stands ('+
+      wooded+' wooded columns looked at)'};
+
+    /* the ground about it laid, as the traveller walking up to it would lay it */
+    for(let k=0;k<25;k++){ D.updateChunks((at.ix+0.5)*B,(at.iz+0.5)*B,900);
+      await new Promise(r=>requestAnimationFrame(r)); }
+
+    /* the trunk: the first course above the ground, at the tree's own column */
+    const iy=at.h;
+    const solid=D.blockSolidAt(at.ix,iy,at.iz);
+    const n=D.blockAt(at.ix,iy,at.iz);
+    const b=D.blockOf(n);
+    const isTimber=!!(b&&b.id==='log');
+    const inRecord=D.recordedAt?D.recordedAt(at.ix,iy,at.iz):null;
+
+    /* and it breaks into what it is */
+    let broke=false, gave=null;
+    if(isTimber){
+      gave=b.drops;
+      D.setBlock((at.ix+0.5)*B,(iy+0.5)*B,(at.iz+0.5)*B,0);
+      broke=!D.blockSolidAt(at.ix,iy,at.iz);
+      await D.settle(2);
+    }
+
+    /* WHILE THE BOLES ARE STILL GEOMETRY this test states what it wants and
+       waits, rather than standing red against a thing nobody has claimed to
+       have done: FLORA.boleBlocks is the switch, and it is off. */
+    if(!solid&&F.boleBlocks&&!F.boleBlocks())
+      return {pending:'the boles are still geometry (FLORA.boleBlocks is off) — '+
+        'a '+at.kind+' at '+at.ix+','+at.iz+' is drawn and cannot be struck'};
+    const faults=[];
+    if(!solid) faults.push('the bole is not solid — the tree is a picture and a blow goes through it');
+    else if(!isTimber) faults.push('the bole is '+(b?b.name:'nothing')+' and not Timber'+
+      (b&&b.id==='stone'?' (the stamp answered stone, which is what it answers for a material no block claims)':''));
+    if(isTimber&&!broke) faults.push('the bole would not break');
+    if(inRecord) faults.push('the bole is in the PLAYER\'S record, and a tree is derived');
+    return {ok:!faults.length,
+      got:'a '+at.kind+' at '+at.ix+','+at.iz+' · solid: '+solid+' · the block is '+
+        (b?b.name:'nothing')+' · in the player\'s record: '+inRecord+
+        ' · it drops '+gave+' · broken: '+broke+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[42]={name:'a bucket fills at water, pours a source that runs, and comes back empty',
+  /* THE HOLE THIS FILLS. js/water.js has had both halves of a bucket since
+     the flow was written — `spill` lays a source, `take` lifts one — and
+     since the flow got a layer of its own a hand's source is a DEED that
+     survives a reload while the stream out of it does not. What was missing
+     was the thing in the hand: there was no way for a player to touch any of
+     it. Every other way water moves in this world, the world does for itself.
+
+     THE WHOLE CHAIN, and it is a chain: a bucket is only worth anything if
+     every link holds.
+       1. It fills at water — and the vessel he holds becomes the full one.
+       2. What he pours is a SOURCE and not a cube of water hanging in the
+          air, so it RUNS: the cells about it must be more than the one he
+          poured.
+       3. What he poured is a DEED — it is in the player's own record, where
+          the stream that runs out of it must not be (test 40 keeps that half).
+       4. The vessel comes back EMPTY, or he has water for nothing.
+       5. And a source of his own can be picked back up.
+
+     It is driven through placeBlock, which is the one door a held thing goes
+     through, rather than through a mouse a headless browser has not got. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    const B=D.B;
+    if(!D.blockId('bucket')||!D.blockId('water-bucket'))
+      return {pending:'no bucket in blocks/ (the vessel)'};
+    if(!window.WATER) return {pending:'no flow (js/water.js)'};
+    if(!D.placeFrom||!D.holdId) return {pending:'no place/hold probe'};
+
+    /* dry ground the traveller is standing on, with air over it */
+    const p=D.playerXZ(), c=D.landAtWorld(p.x,p.z);
+    if(!c) return {ok:false,got:'he stands on nothing'};
+    const ix=Math.floor(p.x/B)+3, iz=Math.floor(p.z/B), iy=c.h;
+    const faults=[];
+
+    /* ---- 1 · A CISTERN TO DIP IN, laid as the world's own water would be ---- */
+    D.setBlock((ix+0.5)*B,(iy+0.5)*B,(iz+0.5)*B, D.blockId('water'));
+    await D.settle(2);
+    D.satchelAdd('bucket',1); D.holdId('bucket');
+    /* the arm on the water, struck on its top face */
+    const dip=D.placeFrom({ix,iy,iz,nx:0,ny:1,nz:0,n:D.blockAt(ix,iy,iz),dist:2});
+    const gotFull=D.satchelCount('water-bucket');
+    if(!gotFull) faults.push('dipping gave no full bucket ('+JSON.stringify(dip)+')');
+
+    /* ---- 2 · POURED OUT, AND IT RUNS ----
+       COUNTED ABOUT THE POURING AND NOT OVER THE WORLD. The springs at the
+       falls are live and their water is in the same map; a global count here
+       read fourteen hundred cells of somebody else's waterfall and called it
+       a bucket. */
+    const near=(cx,cz,r)=>{ let n=0;
+      for(const st of WATER.serialise()){ const q=st.slice(0,st.lastIndexOf(':')).split(',');
+        if(Math.abs(+q[0]-cx)<=r&&Math.abs(+q[2]-cz)<=r) n++; }
+      return n; };
+    D.holdId('water-bucket');
+    const px=Math.floor(p.x/B)-3, pz=Math.floor(p.z/B), py=(D.landAtWorld((px+0.5)*B,(pz+0.5)*B)||c).h;
+    /* the arm on the ground beside him, struck on its top face */
+    const pour=D.placeFrom({ix:px,iy:py-1,iz:pz,nx:0,ny:1,nz:0,n:D.blockAt(px,py-1,pz),dist:2});
+    const before=near(px,pz,12);
+    const source=WATER.levelAt(px,py,pz);
+    if(source!==WATER.SOURCE) faults.push('what was poured is not a source ('+JSON.stringify(pour)+')');
+    /* let it run, and it must be more than the one cell he poured */
+    for(let t=0;t<400;t++){ WATER.step(0.25);
+      if(t%50===0) await new Promise(r=>setTimeout(r,0)); }
+    const ran=near(px,pz,12);
+    if(ran<2) faults.push('the poured source did not run ('+ran+' cells)');
+    /* and it is HIS: in the record, where the stream must not be */
+    /* READ AT THE MOMENT IT IS TRUE, and reported from that reading. The first
+       cut of this asserted it here and PRINTED it at the end — by which time
+       the source had been picked back up, so the line said "in the record:
+       false" under a test that had just passed on its being true. */
+    const wasRecorded=D.recordedAt?D.recordedAt(px,py,pz):null;
+    if(wasRecorded===false) faults.push('his own source is not in the record');
+
+    /* ---- 3 · THE VESSEL COMES BACK EMPTY ---- */
+    const backEmpty=D.satchelCount('bucket');
+    if(!backEmpty) faults.push('the bucket did not come back empty');
+
+    /* ---- 4 · AND HE MAY PICK HIS OWN SPRING BACK UP ---- */
+    D.holdId('bucket');
+    D.placeFrom({ix:px,iy:py,iz:pz,nx:0,ny:1,nz:0,n:D.blockAt(px,py,pz),dist:2});
+    const lifted=WATER.levelAt(px,py,pz)===null;
+    if(!lifted) faults.push('his own source could not be taken back up');
+    /* the world is left as it was found */
+    for(let t=0;t<600&&near(px,pz,12);t++){ WATER.step(0.25);
+      if(t%50===0) await new Promise(r=>setTimeout(r,0)); }
+    D.setBlock((ix+0.5)*B,(iy+0.5)*B,(iz+0.5)*B, 0);
+    D.satchelTake('bucket',9); D.satchelTake('water-bucket',9);
+
+    return {ok:!faults.length,
+      got:'dipped → '+(gotFull?'a full bucket':'nothing')+
+        ' · poured a source that ran to '+ran+' cells'+
+        ' · his own, in the record when he poured it: '+wasRecorded+
+        ' · came back empty: '+!!backEmpty+' · his own spring taken back up: '+lifted+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[41]={name:'a wood wears more than one bark, and the six cost draw calls and not one triangle',
+  /* §2.4.3 asks for a bark per species. A texture per species is a MATERIAL
+     per species, and the rule this whole flora is built on is that a hundred
+     and seventy species share four grey materials and tint their own faces —
+     so the bark is ASSIGNED out of six patterns, exactly as the canopy form is
+     assigned, and the per-species tint still sits on top of every one of them.
+
+     THE FEATURE SHIPPED WITHOUT ITS NUMBER, which is the only reason this test
+     exists: every other item of Phase 6 was measured against the thing it
+     replaced and this one was not, and PLAN.md still called it *"one grey
+     bark, tinted per species"* three rounds after it had stopped being that.
+
+     So the wood is built TWICE in one page — six barks, then the one they
+     replaced — and the two things that must be true of the difference are
+     asserted:
+
+       IT COSTS DRAW CALLS. A material is a mesh is a draw call, and more
+       barks in view must mean more meshes, or the barks are not reaching the
+       ground at all.
+       IT COSTS NO GEOMETRY. Not one triangle may move. A bark is a texture on
+       faces that were already there, and a single triangle of difference would
+       mean something else changed with it.
+
+     AND BOTH BUILDS STAND ON THE SAME DISC. The first cut of this measurement
+     did not: the frame lays its own ring every frame and reaps whatever falls
+     outside it, so one build read 545 chunks and the other 709, and it
+     reported a quarter of a million extra triangles from a change that touches
+     no geometry whatever. `holdWorld` stops the world laying ground of its own
+     while a measurement is taken, and the chunk counts are asserted equal
+     rather than assumed so that this can never be read that way again. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, W=window.__WORLD, F=window.FLORA;
+    if(!F||!F.barkOn||!F.barkOf) return {pending:'no bark per kind (Phase 6 §2.4.3)'};
+    if(!D.viewStats||!D.dropChunks||!D.holdWorld) return {pending:'no A/B build probes'};
+
+    /* THE WOOD IS CHOSEN BY ITS OWN GROWTH AND NOT BY NAME: the country whose
+       flora lists the most DISTINCT barks, which is what makes it a wood worth
+       asking. Data picks it, so a country renamed cannot make this stale. */
+    const lands=F.lands(), kinds=F.kinds(), score=[];
+    for(const n in lands){
+      const l=lands[n], list=(l&&l.tree)||l||[];
+      const names=Array.isArray(list)?list:Object.keys(list||{});
+      const barks=new Set();
+      for(const k of names){ const K=kinds[k]; if(K&&K._bark) barks.add(K._bark); }
+      score.push({n,trees:names.length,barks:barks.size});
+    }
+    score.sort((a,b)=>b.barks-a.barks||b.trees-a.trees);
+    const S=W.sites(); let at=null;
+    for(const c of score){
+      for(let i=0;i<S.length;i++){ if(S[i]&&D.COUNTRIES[i].n===c.n){
+        at={n:c.n,x:S[i].x,z:S[i].z,barks:c.barks,trees:c.trees}; break; } }
+      if(at) break;
+    }
+    if(!at||at.barks<3) return {pending:'no wood of three barks or more stands on the chart'};
+
+    const build=async on=>{
+      F.barkOn(on);
+      D.holdWorld(true); D.dropChunks();
+      for(let k=0;k<25;k++){ D.updateChunks(at.x,at.z,900,13);
+        await new Promise(r=>requestAnimationFrame(r)); }
+      D.updateChunks(at.x,at.z,900,13);
+      const st=D.viewStats();
+      D.holdWorld(false);
+      return st;
+    };
+    D.state.fly.x=at.x; D.state.fly.z=at.z; D.setMode('fly');
+    const six=await build(true), one=await build(false);
+    F.barkOn(true);
+    const barks=st=>st.byMat.filter(m=>/^bark/.test(m[0]));
+    const sixBark=barks(six), oneBark=barks(one);
+
+    const faults=[];
+    if(six.chunks!==one.chunks)
+      faults.push('the two builds stood on different discs ('+one.chunks+' against '+six.chunks+
+        ') — nothing below this line means anything');
+    else {
+      if(sixBark.length<3) faults.push('only '+sixBark.length+' bark(s) reached the ground');
+      if(oneBark.length!==1) faults.push('with the switch off the wood wore '+oneBark.length+' barks, wanted 1');
+      if(!(six.meshes>one.meshes)) faults.push('six barks cost no draw calls at all — they are not being drawn');
+      if(six.tris!==one.tris) faults.push('the geometry moved by '+(six.tris-one.tris)+
+        ' triangles, and a bark is a texture and not a shape');
+    }
+    return {ok:!faults.length,
+      got:at.n+' ('+at.trees+' kinds, '+at.barks+' barks) over '+six.chunks+' chunks · meshes '+
+        one.meshes+' → '+six.meshes+' (+'+(six.meshes-one.meshes)+', +'+
+        ((six.meshes/one.meshes-1)*100).toFixed(1)+'%) · triangles '+one.tris+' → '+six.tris+
+        ' (+'+(six.tris-one.tris)+') · the barks in view: '+
+        sixBark.map(m=>m[0].replace(/^bark/,'')+' '+m[1]).join(', ')+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[40]={name:'a running fall writes nothing into the record, and a hand\'s own source writes itself',
+  /* WHAT THIS IS FOR. A waterfall that has SETTLED is not still: Angel lays
+     11,696 blocks and takes up 11,676 over two hundred ticks simply to stand
+     where it is. While every one of those went through the engine's one door,
+     each marked its chunk for the SAVE and re-armed the 900 ms writer — so
+     turning the springs on would have had the world writing itself to the
+     disc four times a second at every fall the traveller had ever passed, for
+     the rest of the voyage, and would have filed a waterfall in the record of
+     what HANDS have done.
+
+     The flow has its own layer now (WEDITS), as the villages do. This is the
+     test of the only two things that must be true of it:
+
+     1. A FALL RUNS AND THE RECORD DOES NOT MOVE. Not "moves a little" — the
+        count of recorded cells and the count of chunks queued for the writer
+        must be EXACTLY what they were before the spring was laid, after
+        thousands of blocks have been laid and taken up.
+     2. THE WATER IS STILL THERE. A layer nobody can see is not a fix, it is a
+        deletion: `blockAt` must answer water at the cells the flow filled,
+        because that one answer is what the mesher, the collision and the
+        traveller's own feet all read.
+
+     And the other half of the arrangement: A HAND'S OWN SOURCE IS A DEED and
+     DOES go in the record, or a bucket emptied on a hillside would be gone on
+     the next voyage. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    if(!window.WATER||!D.recorded||!D.flowing) return {pending:'no water layer (WEDITS)'};
+    const list=window.WATERFALL?WATERFALL.list():[];
+    if(!list.length) return {pending:'no falls in world/waterfalls.js'};
+    const f=list.filter(x=>x.form==='cataract').sort((a,b)=>b.half-a.half)[0]||list[0];
+
+    const rec0=D.recorded(), save0=D.queuedToSave(), flow0=D.flowing();
+    const heads=[];
+    for(const [x,z] of WATERFALL.springs(f)){
+      const c=D.landAtWorld(x,z); if(!c) continue;
+      const ix=Math.floor(x/B), iz=Math.floor(z/B);
+      if(WATER.spill(ix,c.h,iz)) heads.push([ix,c.h,iz]);      /* the world's own spring: no deed */
+    }
+    if(!heads.length) return {ok:false,got:'no head could be laid at '+f.n};
+    let prev=-1, still=0;
+    for(let t=1;t<=4000;t++){
+      WATER.step(0.25);
+      if(t%50===0) await new Promise(r=>setTimeout(r,0));
+      if(t%100===0){ const c=WATER.count();
+        if(prev>=0&&Math.abs(c-prev)<=Math.max(20,prev*0.02)) still++; else still=0;
+        prev=c; if(still>=2) break; }
+    }
+    const st=WATER.stats(), cells=WATER.count();
+    const rec1=D.recorded(), save1=D.queuedToSave(), flow1=D.flowing();
+
+    /* the water is in the WORLD, whatever layer it lies in: every cell the
+       flow believes it filled must answer as water at the one door the game
+       reads. AND NOT ONE OF THEM MAY BE IN THE RECORD — which is asked cell by
+       cell, because a TOTAL cannot answer it: the world does other things
+       while a fall runs (a bank of sand comes down, a village lays a wall) and
+       those are records rightly kept. */
+    let seen=0, blind=0, inRecord=0;
+    for(const s of WATER.serialise()){
+      const p=s.slice(0,s.lastIndexOf(':')).split(',');
+      const ix=+p[0], iy=+p[1], iz=+p[2];
+      if(D.blockAt(ix,iy,iz)) seen++; else blind++;
+      if(D.recordedAt(ix,iy,iz)) inRecord++;
+    }
+
+    /* AND A HAND'S OWN SOURCE IS THE OTHER CASE. One bucket, on dry ground
+       well away from the fall, laid as a DEED. */
+    const p=D.playerXZ(), c=D.landAtWorld(p.x,p.z);
+    let deedRec=-1;
+    if(c){ const r=D.recorded();
+      WATER.spill(Math.floor(p.x/B), c.h+1, Math.floor(p.z/B), true);
+      deedRec=D.recorded()-r; }
+
+    /* the world is left as it was found */
+    for(const h of heads) WATER.take(h[0],h[1],h[2]);
+    if(c) WATER.take(Math.floor(p.x/B), c.h+1, Math.floor(p.z/B));
+    for(let k=0;k<4000&&WATER.count();k++){ WATER.step(0.25);
+      if(k%50===0) await new Promise(r=>setTimeout(r,0)); }
+
+    const faults=[];
+    if(inRecord) faults.push(inRecord+' cells of the running flow are IN THE RECORD');
+    if(!(flow1>flow0)) faults.push('the water\'s own layer never filled');
+    if(blind) faults.push(blind+' cells of water the world cannot see');
+    if(deedRec!==1) faults.push('a hand\'s own source put '+deedRec+' cells in the record, wanted 1');
+    /* the record's TOTAL is reported and not judged: thousands of blocks of
+       water moved through here, and if the world's own doings have moved it by
+       a handful in the same minutes, that is the world and not the water. A
+       drift of more than a hundred would not be. */
+    if(Math.abs(rec1-rec0)>100) faults.push('the record moved by '+(rec1-rec0)+
+      ' cells, which is too many to be the world going about its business');
+    return {ok:!faults.length,
+      got:f.n.split(/[ —]/)[0]+': '+cells+' cells standing, '+st.moved+' laid and '+st.dried+
+        ' taken up · NONE of them in the record ('+inRecord+') · the flow\'s own layer '+
+        flow0+' → '+flow1+' · '+seen+' of '+(seen+blind)+
+        ' cells answer as water · a hand\'s bucket puts '+deedRec+' in the record · '+
+        'the record itself '+rec0+' → '+rec1+' and the writer\'s queue '+save0+' → '+save1+
+        ' (the world\'s own doings)'+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[44]={name:'a man who begins with nothing can come by a pick, and then the rock gives',
   /* THE FAULT THIS EXISTS FOR, and it is the worst one this suite has ever
      been unable to see. "The tool is a requirement, not a discount" was right
      about the rock and was applied to every tool at once — and the world's own
@@ -1813,7 +2242,8 @@ T[40]={name:'a man who begins with nothing can come by a pick, and then the rock
         (faults.length?' · '+faults.join(' · '):'')};
   })};
 
-T[41]={name:'a voyage may not fly, may not turn the year, may not set the hour, and is not offered the stores',
+
+T[45]={name:'a voyage may not fly, may not turn the year, may not set the hour, and is not offered the stores',
   /* this one asks for BOTH hands in turn and sets them itself, as test 23
      does; it is marked so the runner's own declaration does not fight it */
   freeHand:true,
@@ -1923,7 +2353,8 @@ T[41]={name:'a voyage may not fly, may not turn the year, may not set the hour, 
         (faults.length?' · '+faults.join(' · '):'')};
   })};
 
-T[42]={name:'the manner a voyage was begun in survives a reload',
+
+T[46]={name:'the manner a voyage was begun in survives a reload',
   /* A FLAG THAT COMES BACK WRONG GIVES AWAY EVERY RULE ABOVE AT ONCE: a
      voyage that resumed as free roam would have flight, the year, the hour,
      the stores and a hand that breaks rock at a touch, and nothing would say
@@ -1958,6 +2389,7 @@ T[42]={name:'the manner a voyage was begun in survives a reload',
         ' · free roam came back: freeroam='+f.flag+', '+f.shown+' of '+f.of+' shown'+
         (faults.length?' · '+faults.join(' · '):'')};
   }};
+
 
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when

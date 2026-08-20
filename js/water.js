@@ -9,13 +9,27 @@
    surface with a shaded bed under it; a river is a line stamped in the
    country raster that the terrain reads as it is generated. Neither is made
    of cells and neither passes through this file at any point. That is not a
-   promise kept by care — it is kept by construction: nothing here reads or
-   writes anything but the EDIT OVERLAY, which is the record of what hands
-   have done. Delete this file and the sea and the rivers are exactly as they
-   were.
+   promise kept by care — it is kept by construction: this file is handed two
+   doors and nothing else, and neither of them opens on the sea. Delete this
+   file and the sea and the rivers are exactly as they were.
 
-   What DOES pass through here is the water a hand spills, the water a storm
-   or a surge throws over a shore, and the water that runs out of either.
+   What DOES pass through here is the water a hand spills, the spring at the
+   head of every fall, the water a storm or a surge throws over a shore, and
+   the water that runs out of any of them.
+
+   ---- AND WHICH OF THE TWO DOORS, WHICH IS THE POINT OF ROUND 58 ----
+   RUNNING WATER GOES IN A LAYER OF ITS OWN — drawn, walked into, collided
+   with, and never written to the disc. It is derived: it is worked out again
+   from its source the next time the traveller comes near, exactly as a
+   village is worked out again from its site. That is not tidiness. A settled
+   waterfall lays and takes up eleven thousand blocks every fifty seconds just
+   to stand still, and every one of those through the record would have had
+   the world writing itself to the disc four times a second for ever.
+
+   A SOURCE A HAND LAID GOES IN THE RECORD, because a bucket emptied is a
+   thing the traveller DID and nothing can work it out again. Since the flow
+   is never written now, every water block in a save is by construction a
+   source somebody laid, and the load spills them again.
 
    ---- WHY IT IS NOT THE FLOW THAT WAS HERE BEFORE ----
    The engine already carried finite water, and it was a CONSERVATIVE PARCEL:
@@ -62,61 +76,39 @@ const SOURCE=0;        /* a spring, a spilled bucket, the sea's own edge */
 const THINNEST=7;      /* the last step a sheet reaches before it is nothing */
 const FALLING=8;       /* fed from above: drawn full, spreads at 1 when it lands */
 
-/* ---- AND WATER THAT HAS NOWHERE LEFT TO GO GOES INTO THE AIR ----
-   THE RULE, put to me plainly and better than the one I had: a man pours
-   water on the ground and it does not stand there for ever — it soaks and it
-   dries and it goes up into the cloud, and the cloud lets it fall again, and
-   the river runs on. So the water in this world is a CYCLE and not a
-   quantity: the spring at the head of a fall never stops giving, the stream
-   never stops running, and at the far end of it the water simply goes.
+/* ---- AND THE AIR DOES NOT TAKE IT, WHICH WAS PUT TO THE QUESTION ----
+   There was an evaporation here: water that had come to rest — fed, feeding
+   nothing, standing unchanged for about three seconds — was given up wherever
+   it was. It was added because a fall on high ground had no waterline within
+   reach and its water pooled and spread until it had flooded a county:
+   Multnomah, twenty-three thousand cells.
 
-   WHY IT IS BETTER THAN THE SINK ALONE. The sea takes whatever reaches the
-   waterline — but a fall standing on high ground has no waterline within
-   reach, so its water pooled, filled, and spread until it had flooded a
-   county. That is measured: Multnomah, whose gorge floor is sixteen blocks
-   over the sea, put twenty-three thousand cells of standing water into the
-   world. Evaporation needs no sea and no coast and no channel: water that has
-   come to REST — that is fed, but is feeding nothing, and has stood
-   unchanged — is given up wherever it is. The standing total then settles at
-   the LENGTH OF THE STREAMS and not the AREA OF THE COUNTRY, which is a
-   number that cannot run away.
+   BUT THAT WAS THE LEVEL RULE BEING BROKEN, and the air was hiding it. Water
+   kept properly never grows past seven blocks from its source in the first
+   place, so it does not need taking away — which is why Minecraft's water
+   never evaporates and is not the poorer for it. So the air was made
+   switchable and the same three falls were run twice, once each way (under
+   the rules as they stood that hour — the pool rule below came later and cut
+   every one of these totals by a factor; what the question asked was whether
+   the two columns of a PAIR differ, and they do not):
 
-   A SOURCE NEVER EVAPORATES. A spring is a spring; it is fed by the cloud,
-   which is fed by this. Only water that has run out of anywhere to go dries.
+     fall        standing, air on   air off    queue on   queue off
+     Niagara            7,121        7,197       3,792        278
+     Multnomah          3,875        3,815       2,041        290
+     Angel                533          549         562          0
 
-   And the two rules answer different halves of the same thing: the sea takes
-   what reaches it AT ONCE, which is what a river mouth does, and the air
-   takes what stops moving, which is what a puddle does. */
-/* ---- AND WHETHER THE AIR TAKES IT AT ALL: IT DOES NOT, AND HERE IS WHY ----
-   Minecraft's water NEVER evaporates, and that is not an oversight: with the
-   level rule kept properly, water does not need to be taken away, because it
-   never grows past seven blocks from its source in the first place. The air
-   was added here when the level rule was broken and the water was running
-   away at forty times its proper rate — that is, it was added to hide a bug.
+   THE STANDING TOTAL IS THE SAME TO WITHIN A HUNDREDTH OR TWO, and it is the
+   levels that hold it — the air was doing nothing whatever to the shape of
+   the water. What it WAS doing is in the last two columns: it dried cells
+   that were immediately refilled, and each drying and each refilling wakes
+   six neighbours, so the queue never emptied and the flow paid its whole
+   millisecond of every frame FOR EVER at a fall the traveller had walked away
+   from. Angel is the plainest case: a still puddle on a tabletop, 562 cells
+   awake in perpetuity with the air on and NOT ONE with it off.
 
-   THE BUG IS MENDED, AND THE AIR WAS PUT TO THE QUESTION. Three falls, both
-   ways, one head at each, sixty seconds of the water's own clock
-   (tools/waterprobe.js):
-
-                     the air on      the air off
-     Angel            333 cells       347, AT REST
-     Niagara           81             90, AT REST
-     Multnomah         78             83, AT REST
-
-   FIVE CELLS IN A HUNDRED, and it costs the one thing worth having: with the
-   air on, no fall in the world ever comes to rest. A standing cell wakes
-   itself every tick to be counted toward its drying, so the queue never
-   empties and a waterfall nobody is looking at goes on being worked for as
-   long as the game runs — and 227 cells of a LIVING fall were taken into the
-   air in that minute, which is a stream drying in mid-run. With it off, every
-   fall measured settled and STOPPED: nothing queued, nothing moving, no work
-   at all until a hand or the ground disturbs it.
-
-   So it is off, and it stays here because a storm surge over a shore is the
-   one case that may yet want it: water thrown a mile inland by a wave has no
-   channel to run down and no sea within reach. WATER.setEvap turns it on. */
-let EVAP_TICKS=0;               /* 0 = never; 14 is about three seconds of standing still */
-const REST=new Map();           /* how long each cell has stood unchanged */
+   So it is gone, and a puddle stands as a puddle does. The sea and the river
+   still take whatever reaches them — that rule is about water ARRIVING
+   somewhere, which is a different thing from water standing still. */
 
 /* how often the water moves, and how much of a frame it may have */
 const TICK=1/4;                 /* FOUR moves to the second — one block every five game ticks */
@@ -131,7 +123,7 @@ let K=null;                     /* the kit the engine lends */
 const LEV=new Map();
 const WAKE=[];                  /* ix,iy,iz, flat, oldest first */
 const INQ=new Set();            /* what is already waiting, so it is not queued twice */
-let acc=0, moved=0, dried=0, ticks=0, evaporated=0;
+let acc=0, moved=0, dried=0, ticks=0;
 
 function key(ix,iy,iz){ return ix+','+iy+','+iz; }
 
@@ -147,27 +139,6 @@ function isWater(ix,iy,iz){ return K.isLiquid(K.blockAt(ix,iy,iz)); }
 /* a cell water may run into: empty air, and nothing else. It does not wash
    away what a hand has built, and it does not eat the world's own rock. */
 function open(ix,iy,iz){ return K.blockAt(ix,iy,iz)===0; }
-/* ---- AND A CELL WATER MAY RUN THROUGH, WHICH IS NOT THE SAME THING ----
-   THE FAULT: `open` means AIR, and the weight of a way out was reckoned with
-   it — so the moment the cell over the edge held the water the source had
-   just given it, the way down stopped counting as a way down at all. Its
-   weight went to infinity, the ways ALONG the lip won by default, and the
-   source turned and fed the lip instead, seven blocks each way, every one of
-   those cells pouring over the edge in its turn.
-
-   Water flowing down its own channel is not a wall. A cell already holding
-   water is a cell water RUNS THROUGH, and the rule this file keeps elsewhere
-   already says so: "water already standing below you is still the way down".
-   That is now kept when the ways are weighed as well as when the fall is
-   taken, and the two agree.
-
-   MEASURED, at Angel, everything else being equal:
-
-     air alone counts as a way down    1,693 cells, 29 falling columns
-     water counts too                    347 cells,  7 falling columns
-
-   Five times the water and four times the front, from one word. */
-function flowable(ix,iy,iz){ const n=K.blockAt(ix,iy,iz); return n===0||K.isLiquid(n); }
 
 function wake(ix,iy,iz){
   if(iy<K.EY_MIN||iy>=K.EY_MAX) return;
@@ -183,29 +154,68 @@ function wakeAround(ix,iy,iz){
   wake(ix,iy+1,iz); wake(ix,iy-1,iz);
 }
 
-/* ---- SETTING AND UNSETTING, THE ONLY TWO DOORS ---- */
-function put(ix,iy,iz,lev){
+/* ---- SETTING AND UNSETTING, THE ONLY TWO DOORS ----
+   And each of them opens onto one of two places, which is the arrangement
+   Round 58 was built for: RUNNING WATER goes in the flow's own layer, which
+   is drawn and walked into and never written to the disc, and A SOURCE A HAND
+   LAID goes in the record, because that is a thing the traveller DID. The
+   flow is derived from the source and is worked out again on the next voyage;
+   the source is not derivable from anything.
+
+   `DEED` is the handful of cells that went in by a hand. It is a handful by
+   construction: a bucket is one cell, and everything that runs out of it is
+   the other kind. */
+const DEED=new Set();
+function put(ix,iy,iz,lev,deed){
   /* water is never laid at or under the waterline — that is the sea, and the
      sea keeps its own level without any help from this file */
   if(reachedTheSea(iy)) return;
-  LEV.set(key(ix,iy,iz),lev);
-  REST.delete(key(ix,iy,iz));            /* it has just moved: it is not at rest */
-  K.setBlock((ix+0.5)*K.B,(iy+0.5)*K.B,(iz+0.5)*K.B, K.waterN);
+  const k=key(ix,iy,iz);
+  LEV.set(k,lev);
+  if(deed) DEED.add(k);
+  const door=DEED.has(k)?K.setDeed:K.setBlock;
+  door((ix+0.5)*K.B,(iy+0.5)*K.B,(iz+0.5)*K.B, K.waterN);
   moved++; wakeAround(ix,iy,iz);
 }
 function clear(ix,iy,iz){
-  LEV.delete(key(ix,iy,iz)); REST.delete(key(ix,iy,iz));
-  K.setBlock((ix+0.5)*K.B,(iy+0.5)*K.B,(iz+0.5)*K.B, 0);
+  const k=key(ix,iy,iz);
+  LEV.delete(k);
+  const door=DEED.has(k)?K.setDeed:K.setBlock;
+  DEED.delete(k);
+  door((ix+0.5)*K.B,(iy+0.5)*K.B,(iz+0.5)*K.B, 0);
   dried++; wakeAround(ix,iy,iz);
 }
 
 /* ---- WHAT LEVEL A CELL OUGHT TO HAVE ----
    A source answers for itself. Everything else is one thinner than the best
-   of its feeders: the cell above if that is water at all (which makes it
+   of its feeders: the cell above if a fall is coming down it (which makes it
    FALLING, and a fall is full whatever the height it fell from), or the
    thinnest of its four sides. Nothing feeds it — it dries. */
+/* ---- AND A POOL IS NOT A FALL, WHICH IS WHY POOLS WOULD NOT UNWIND ----
+   THE FAULT, found by acceptance test 39: take the springs away from Krimml
+   and 2,787 cells of 4,485 went on standing for ever — sixty-two per cent of
+   the water, with no source anywhere in the world feeding it.
+
+   This read `isWater(above)`, which is ANY water at all, so every cell of a
+   body two or more deep was FALLING. And FALLING is full, and a FALLING cell
+   with solid under it counts as a SOURCE to its sides (below) — so a filled
+   basin was a ring of little springs feeding each other in a circle, needing
+   nothing, draining never. A fall's plunge pool is the commonest such basin
+   in the world, so the very shape the last round was built to make was the
+   shape that could not be taken away again.
+
+   FALLING COMES DOWN FROM A SOURCE. A cell is falling if what stands over it
+   is a SOURCE or is ITSELF FALLING — never merely because water lies on it.
+   So a real column is falling all the way down and its pool with it, because
+   the chain runs unbroken to the spring at the head; and a pool with nothing
+   coming into it is a pool of ordinary levelled water, which thins from the
+   edge and goes. (The world's own water overhead — a river on a shelf — is
+   not a source either, by the rule below.) */
 function wants(ix,iy,iz){
-  if(isWater(ix,iy+1,iz)) return FALLING;
+  if(isWater(ix,iy+1,iz)){
+    const la=levelAt(ix,iy+1,iz);
+    if(la===SOURCE||la===FALLING) return FALLING;
+  }
   let best=THINNEST+1;
   for(let d=0;d<4;d++){
     const q=DIR[d], tx=ix+q[0], tz=iz+q[1];
@@ -286,13 +296,13 @@ function reachedTheSea(iy){ return K.seaBlock!==undefined&&iy<K.seaBlock; }
    a cell that is actually about to spread. Nothing else in the world pays. */
 const FLOW_SEARCH=4;
 function wayDown(ix,iy,iz,depth,back){
-  if(flowable(ix,iy-1,iz)) return depth;      /* here it could fall — or is already falling */
+  if(open(ix,iy-1,iz)) return depth;          /* here it could fall */
   if(depth>=FLOW_SEARCH) return 1000;
   let best=1000;
   for(let d=0;d<4;d++){
     if(d===back) continue;                    /* never straight back the way it came */
     const q=DIR[d], tx=ix+q[0], tz=iz+q[1];
-    if(!flowable(tx,iy,tz)) continue;
+    if(!open(tx,iy,tz)) continue;
     const w=wayDown(tx,iy,tz,depth+1,(d+2)&3);
     if(w<best) best=w;
   }
@@ -329,33 +339,13 @@ function visit(ix,iy,iz){
      a hand has taken it up, or a block was laid in it. Forget it. */
   if(lev!==null&&!here){ LEV.delete(key(ix,iy,iz)); wakeAround(ix,iy,iz); return; }
 
-  /* (b) not our water at all — an empty cell, or a hollow a hand has dug
-     beside a stream. It TELLS THE WATER BESIDE IT that it is here, and the
-     water decides for itself whether it may come.
-
-     ---- AND IT DOES NOT PULL THE WATER IN, WHICH IT USED TO ----
-     THE FAULT, and it is measured: a spring at Angel's crest painted a
-     CURTAIN a hundred and twenty-two columns wide down a thousand-metre
-     cliff, five and seven thousand cells of it, where a plunge fall wants ONE
-     column of a hundred and nine.
-
-     This asked `wants` of the empty cell and filled it if anything beside it
-     could feed it — which is a SECOND way for water to spread, and one that
-     knows nothing of the weights. So the whole of the shortest-way-down rule
-     in (e) — the rule that makes a stream a stream instead of a sheet — was
-     being gone round the back of by every air cell in the world: the source
-     stood at the crest, the cells along the lip pulled themselves full out of
-     it a level at a time, and the fall poured over a front seven blocks each
-     way instead of over its own notch.
-
-     The water beside it is WOKEN instead, and it spreads or does not spread
-     by (e), where the ways out are weighed. Nothing is lost by this: the
-     hollow is still filled the next tick if the stream may go there. */
+  /* (b) not our water at all, and nothing to do but tell the neighbours it
+     is there — a hollow beside a stream is a place the stream may go */
   if(lev===null){
     if(!here&&K.blockAt(ix,iy,iz)===0){
-      for(let d=0;d<4;d++){ const q=DIR[d];
-        if(isWater(ix+q[0],iy,iz+q[1])) wake(ix+q[0],iy,iz+q[1]); }
-      if(isWater(ix,iy+1,iz)) wake(ix,iy+1,iz);
+      /* an empty cell: does anything above or beside it feed it? */
+      const w=wants(ix,iy,iz);
+      if(w!==null&&w<=THINNEST) put(ix,iy,iz,w);
     }
     return;
   }
@@ -395,13 +385,12 @@ function visit(ix,iy,iz){
   /* (e) and otherwise it spreads, one level thinner, to every side it can.
      A falling column spreads at 1 where it lands, as a source does. */
   const out=(lev===FALLING?SOURCE:lev)+1;
-  let gave=false;
   if(out<=THINNEST){
     /* the weight of every way out, and the shortest of them */
     let best=1000;
     for(let d=0;d<4;d++){
       const q=DIR[d], tx=ix+q[0], tz=iz+q[1];
-      if(!flowable(tx,iy,tz)){ _w[d]=1e9; continue; }
+      if(!open(tx,iy,tz)){ _w[d]=1e9; continue; }
       _w[d]=wayDown(tx,iy,tz,1,(d+2)&3);
       if(_w[d]<best) best=_w[d];
     }
@@ -411,28 +400,13 @@ function visit(ix,iy,iz){
       if(_w[d]!==best) continue;
       const q=DIR[d], tx=ix+q[0], tz=iz+q[1];
       const cur=levelAt(tx,iy,tz);
-      /* it is WEIGHED through water and it is POURED only into air or into
-         water of ours that is thinner than what is offered. The world's own
-         water — a river, a trough — is a way through and never a place to
-         put anything: that is the same promise kept at the waterline. */
-      /* and never into a cell that is FALLING: that one is fed from above,
-         it is full by right, and thinning it only for it to be made full
-         again next tick is a cell that never stops being worked */
-      if(open(tx,iy,tz)?true:(cur!==null&&cur!==FALLING&&cur>out)){ put(tx,iy,tz,out); gave=true; }
+      if(cur===null||cur>out) put(tx,iy,tz,out);
     }
   }
-  /* ---- AND IF IT GAVE NOTHING AND WENT NOWHERE, IT IS AT REST ----
-     It is fed, so it does not dry for want of a feeder; it simply has
-     nowhere left to go. That is a puddle, and a puddle goes into the air.
-     A cell that starts running again — because a hand dug it a way out, or
-     the ground fell away — has its count wiped by `put`, so only water that
-     truly stands still is taken. A SOURCE is never counted here at all. */
-  if(!gave&&lev!==SOURCE&&EVAP_TICKS>0){
-    const k=key(ix,iy,iz), t=(REST.get(k)||0)+1;
-    if(t>=EVAP_TICKS){ evaporated++; clear(ix,iy,iz); return; }
-    REST.set(k,t);
-    wake(ix,iy,iz);                 /* look again next tick, or it never dries */
-  }
+  /* and if it gave nothing and went nowhere, it is a puddle, and a puddle
+     stands. It is not woken again until something happens to it or to one of
+     its six neighbours — which is the whole reason a settled fall costs
+     nothing at all. */
 }
 
 /* ---- THE TICK ---- */
@@ -458,11 +432,17 @@ function step(dt){
 /* ---- THE THREE WAYS WATER GETS INTO THE WORLD ---- */
 /* A HAND SPILLS IT. One source, laid where he says, and it finds its own
    level from there — down every fall it meets and seven blocks out over
-   every flat. */
-function spill(ix,iy,iz){
+   every flat.
+
+   `deed` says whose it is, and it decides which of the two doors the source
+   goes through: TRUE for a hand — a bucket emptied, and a thing the world
+   must remember — and false for the world's own springs at the head of a
+   fall, which are laid again out of world/waterfalls.js whenever the
+   traveller comes near and want no more remembering than a village does. */
+function spill(ix,iy,iz,deed){
   if(!K) return false;
   if(!open(ix,iy,iz)&&!isWater(ix,iy,iz)) return false;
-  put(ix,iy,iz,SOURCE);
+  put(ix,iy,iz,SOURCE,!!deed);
   return true;
 }
 /* A HAND TAKES IT UP AGAIN. The source goes and the stream that hung on it
@@ -501,7 +481,7 @@ function disturb(ix,iy,iz){ if(K) wakeAround(ix,iy,iz); }
 
 function load(kit){
   K=kit;
-  LEV.clear(); REST.clear(); WAKE.length=0; INQ.clear();
+  LEV.clear(); DEED.clear(); WAKE.length=0; INQ.clear();
   acc=0; moved=0; dried=0; ticks=0;
 }
 /* the whole of the spilled water, for a save — and to be put back on a load.
@@ -522,13 +502,10 @@ function restore(list){
 
 window.WATER={
   load, step, spill, take, surge, withdraw, disturb,
-  /* for the measuring: 0 shuts the air off entirely */
-  setEvap:t=>{ EVAP_TICKS=Math.max(0,t|0); },
-  evapTicks:()=>EVAP_TICKS,
   levelAt, serialise, restore,
   /* read-only, for tools/acceptance.js and for nothing else */
   count:()=>LEV.size, waiting:()=>WAKE.length/3,
-  stats:()=>({cells:LEV.size,waiting:WAKE.length/3,ticks,moved,dried,evaporated}),
+  stats:()=>({cells:LEV.size,waiting:WAKE.length/3,ticks,moved,dried}),
   SOURCE, THINNEST, FALLING
 };
 })();
