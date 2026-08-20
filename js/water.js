@@ -139,6 +139,24 @@ function isWater(ix,iy,iz){ return K.isLiquid(K.blockAt(ix,iy,iz)); }
 /* a cell water may run into: empty air, and nothing else. It does not wash
    away what a hand has built, and it does not eat the world's own rock. */
 function open(ix,iy,iz){ return K.blockAt(ix,iy,iz)===0; }
+/* ---- AND A CELL WATER MAY RUN THROUGH, WHICH IS NOT THE SAME THING ----
+   THE FAULT: `open` means AIR, and the weight of a way out was reckoned with
+   it — so the moment the cell over the edge held the water the source had just
+   given it, the way down stopped counting as a way down at all. Its weight
+   went to infinity, the ways ALONG the lip won by default, and the source
+   turned and fed the lip, seven blocks each way, every one of those cells
+   pouring over the edge in its turn.
+
+   Water flowing down its own channel is not a wall. A cell already holding
+   water is a cell water RUNS THROUGH, and the rule this file keeps in (d)
+   already says so — "water already standing below you is still the way down".
+   That is now kept when the ways are WEIGHED as well as when the fall is
+   taken, and the two agree.
+
+   WHAT MAY BE POURED INTO IS UNCHANGED: air, or water of ours that is thinner
+   than what is offered, and never the world's own river. Weighing through a
+   thing and putting a thing into it are different questions. */
+function flowable(ix,iy,iz){ const n=K.blockAt(ix,iy,iz); return n===0||K.isLiquid(n); }
 
 function wake(ix,iy,iz){
   if(iy<K.EY_MIN||iy>=K.EY_MAX) return;
@@ -217,6 +235,9 @@ function wants(ix,iy,iz){
     if(la===SOURCE||la===FALLING) return FALLING;
   }
   let best=THINNEST+1;
+  /* (the sides are gathered first; whether this is a LEVEL or a FALL is
+     settled at the bottom of this function, where it is known that it is fed
+     at all — see "AND WATER WITH NOTHING UNDER IT IS FALLING WATER") */
   for(let d=0;d<4;d++){
     const q=DIR[d], tx=ix+q[0], tz=iz+q[1];
     if(!isWater(tx,iy,tz)) continue;
@@ -246,7 +267,45 @@ function wants(ix,iy,iz){
     else eff=l;
     if(eff+1<best) best=eff+1;
   }
-  return best>THINNEST?null:best;
+  if(best>THINNEST) return null;
+  /* ---- AND WATER WITH NOTHING UNDER IT IS FALLING WATER ----
+     THE FAULT THIS MENDS, and it only became visible once the air cells
+     stopped PULLING water into themselves. Falling was read off the cell
+     ABOVE alone — a source or another fall — and water that spills over a
+     brink is neither: it is a LEVEL, one thinner than the head that fed it.
+     So the cell under it was fed by nothing, `wants` answered null, and the
+     column was cleared the tick after it formed. Nothing could hold a shaft
+     open but the pull, which refilled those mid-air cells every tick out of
+     their neighbours and made a curtain that LOOKED like a column. Take the
+     pull away and the truth showed: Angel, a fall of a hundred and nine
+     blocks, stood 9 cells of falling water in a shaft of 7.
+
+     A cell that is fed and has AIR UNDER IT cannot hold a level — there is
+     nothing for it to lie on. It is falling, which is what (d) does with it
+     the moment it is looked at, and what the mesher already draws it as.
+
+     AND THE TEST IS "WHAT HOLDS IT UP", NOT "WHAT IS UNDER IT THIS TICK" —
+     which the first draft of this line got wrong, and the queue caught it
+     where the count could not. Written as `open(below)` alone, the topmost
+     cell of a column flipped every tick: air below, so FALLING; the column
+     forms beneath it, so its below is water, so a LEVEL; the cell under it
+     then has a level above, is fed by nothing, and is cleared; and its below
+     is air again. Angel held a perfectly steady 2,491 cells while LAYING AND
+     DRYING 2,611 OF THEM EVERY HUNDRED TICKS, with a queue that never emptied
+     — the exact thing this file's design forbids: "a settled fall costs
+     nothing at all until a hand or the ground disturbs it".
+
+     Falling water does not hold anything up. So a cell is falling if what is
+     under it is AIR or MORE FALLING WATER, and the column is stable from the
+     brink to the pool.
+
+     AND IT DOES NOT WAKE THE OLD PERPETUAL MOTION, which is why it is written
+     this narrowly: a filled basin has water AT A LEVEL under it — water that
+     is lying on something — so every cell of a pool answers exactly as it did
+     before and no ring of little springs can form in one. Only water in the
+     air, and water standing on water that is itself in the air, is falling. */
+  if(open(ix,iy-1,iz)||levelAt(ix,iy-1,iz)===FALLING) return FALLING;
+  return best;
 }
 const DIR=[[1,0],[0,1],[-1,0],[0,-1]];
 const _w=[0,0,0,0];   /* the weight of each way out, reused */
@@ -296,13 +355,13 @@ function reachedTheSea(iy){ return K.seaBlock!==undefined&&iy<K.seaBlock; }
    a cell that is actually about to spread. Nothing else in the world pays. */
 const FLOW_SEARCH=4;
 function wayDown(ix,iy,iz,depth,back){
-  if(open(ix,iy-1,iz)) return depth;          /* here it could fall */
+  if(flowable(ix,iy-1,iz)) return depth;      /* here it could fall — or is already falling */
   if(depth>=FLOW_SEARCH) return 1000;
   let best=1000;
   for(let d=0;d<4;d++){
     if(d===back) continue;                    /* never straight back the way it came */
     const q=DIR[d], tx=ix+q[0], tz=iz+q[1];
-    if(!open(tx,iy,tz)) continue;
+    if(!flowable(tx,iy,tz)) continue;
     const w=wayDown(tx,iy,tz,depth+1,(d+2)&3);
     if(w<best) best=w;
   }
@@ -339,13 +398,36 @@ function visit(ix,iy,iz){
      a hand has taken it up, or a block was laid in it. Forget it. */
   if(lev!==null&&!here){ LEV.delete(key(ix,iy,iz)); wakeAround(ix,iy,iz); return; }
 
-  /* (b) not our water at all, and nothing to do but tell the neighbours it
-     is there — a hollow beside a stream is a place the stream may go */
+  /* (b) not our water at all — an empty cell, or a hollow a hand has dug
+     beside a stream. It TELLS THE WATER BESIDE IT that it is here, and the
+     water decides for itself whether it may come.
+
+     ---- AND IT DOES NOT PULL THE WATER IN, WHICH IT USED TO ----
+     THE FAULT, and it is measured on this very water: Angel's SEVEN heads
+     came down in ONE HUNDRED AND SEVENTY-ONE columns, on a front thirty-seven
+     blocks across a lip twenty-six blocks wide — a curtain wider than the rock
+     it pours off. Krimml's five heads made fifty-nine columns over a lip four
+     blocks wide.
+
+     This asked `wants` of the empty cell and filled it if anything beside it
+     could feed it — which is a SECOND way for water to spread, and one that
+     knows nothing of the weights. So the whole of the shortest-way-down rule
+     in (e) — the rule that makes a stream a stream instead of a sheet — was
+     being gone round the back of by every air cell in the world: the source
+     stood at the brink, the cells along the lip pulled themselves full out of
+     it a level at a time, and the fall poured over a front seven blocks each
+     way instead of over its own notch.
+
+     The water beside it is WOKEN instead, and it spreads or does not spread by
+     (e), where the ways out are weighed. Nothing is lost by this: the hollow a
+     hand digs beside a stream is still filled on the next tick if the stream
+     may go there — the digging wakes this cell, and this cell wakes the
+     stream. */
   if(lev===null){
     if(!here&&K.blockAt(ix,iy,iz)===0){
-      /* an empty cell: does anything above or beside it feed it? */
-      const w=wants(ix,iy,iz);
-      if(w!==null&&w<=THINNEST) put(ix,iy,iz,w);
+      for(let d=0;d<4;d++){ const q=DIR[d];
+        if(isWater(ix+q[0],iy,iz+q[1])) wake(ix+q[0],iy,iz+q[1]); }
+      if(isWater(ix,iy+1,iz)) wake(ix,iy+1,iz);
     }
     return;
   }
@@ -390,7 +472,7 @@ function visit(ix,iy,iz){
     let best=1000;
     for(let d=0;d<4;d++){
       const q=DIR[d], tx=ix+q[0], tz=iz+q[1];
-      if(!open(tx,iy,tz)){ _w[d]=1e9; continue; }
+      if(!flowable(tx,iy,tz)){ _w[d]=1e9; continue; }
       _w[d]=wayDown(tx,iy,tz,1,(d+2)&3);
       if(_w[d]<best) best=_w[d];
     }
@@ -400,7 +482,11 @@ function visit(ix,iy,iz){
       if(_w[d]!==best) continue;
       const q=DIR[d], tx=ix+q[0], tz=iz+q[1];
       const cur=levelAt(tx,iy,tz);
-      if(cur===null||cur>out) put(tx,iy,tz,out);
+      /* poured only into air, or into water of ours that is thinner than what
+         is offered — and NEVER into a cell that is FALLING, which is fed from
+         above and full by right: thinning it only for it to be made full again
+         next tick is a cell that never stops being worked. */
+      if(open(tx,iy,tz)?true:(cur!==null&&cur!==FALLING&&cur>out)) put(tx,iy,tz,out);
     }
   }
   /* and if it gave nothing and went nowhere, it is a puddle, and a puddle

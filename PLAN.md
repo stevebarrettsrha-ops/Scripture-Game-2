@@ -1215,3 +1215,35 @@ and the menu did not obey it — the options modal mirrors the rail by CLICKING 
 underneath, and a hidden button fires its onclick like any other, so Options → Time of day
 set the hour on a voyage. **Tests 45 and 46** hold all of it, both halves of every rule,
 and both were put to a real fault before they were trusted.
+
+## 19. Round 65 — the two water findings, measured on this water at last
+
+§18 left two faults standing in `js/water.js` and said the honest thing about them: they
+were measured on the *other* branch's water, so they wanted a measurement here before they
+wanted a fix. Taking that measurement turned up something worse than either.
+
+**The instrument** is `tools/waterfront.js`, and it is test 39's own method — the same three
+falls by form, the same heads, the same `WATER.step(0.25)` beaten to stillness — asking the
+one question test 39 did not: **how wide a front does the fall come down in?** That question
+matters because a curtain pours, stays and settles perfectly well, which is all test 39 ever
+asked. Before anything was touched, Angel's seven heads came down in **175 columns across a
+lip 26 blocks wide**.
+
+**Taking the two faults out narrowed the front to 9 columns and dried the fall** — 82 cells
+in the shaft became 7. That exposed a third: `wants` reads falling off the cell above alone,
+and water spilling over a brink is a LEVEL, not a source or a fall, so the cell beneath it
+was cleared the tick after it formed. **Nothing had been holding a shaft open but the pull**,
+refilling mid-air cells out of their neighbours every tick. The rule that mends it is what
+holds a cell up rather than what is under it this tick: air, or more falling water.
+
+**And the finding of the round is one nobody had ever asked for.** Standing still, per
+hundred ticks, Angel was **laying and drying 12,564 cells with 760 always in the queue**;
+Iguazu 4,435 with a queue of 3,869. §16 built the flow its own layer because a settled fall
+"lays and takes up eleven thousand blocks every fifty seconds simply to stand still" — and
+moved those writes out of the save without ever stopping them. They are stopped now: every
+fall reads **queue 0, laid 0, dried 0**. It shows in a test with nothing to do with water —
+test 35's herd watch went 68% → 94%.
+
+Test 39 now asks about the front, with a bound taken from the rule (a source reaches seven
+blocks, so a head opens seven or eight columns), and both faults were put back in turn to
+prove it reports them.
