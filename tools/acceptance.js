@@ -1750,6 +1750,37 @@ T[39]={name:'a spring at a fall pours over the brink, stays at the fall, and dra
         const ix=Math.floor(wx(u,v)/B), iz=Math.floor(wz(u,v)/B);
         for(let iy=lip-1;iy>lip-f.drop;iy--) if(WATER.levelAt(ix,iy,iz)!==null) shaft++;
       }
+      /* ---- AND IT CAME DOWN IN A FRONT, NOT A CURTAIN ----
+         THE FAULT THIS CATCHES, and it is the one that hid behind the other
+         three questions this test asks: A CURTAIN POURS, STAYS AND SETTLES
+         PERFECTLY WELL. It is simply not a waterfall. Two faults in
+         js/water.js widened the front and moved none of the three:
+
+           an air cell PULLED water into itself, going round the back of the
+             shortest-way-down weights that make a stream a stream;
+           a way down STOPPED COUNTING as one the moment water stood in it, so
+             a source whose own way down was occupied fed the lip instead.
+
+         Measured with both in: Angel's SEVEN heads came down in ONE HUNDRED
+         AND SEVENTY-ONE columns, and Iguazu's seven in two hundred and
+         fifty-five. With both out: forty-nine and eleven.
+
+         THE BOUND IS PER HEAD, because that is what the rule gives. A source
+         reaches seven blocks and no further, so one head can open at most
+         some seven or eight columns over a brink; twelve is that with room
+         for a lip lying at an angle to the lattice, and it is nowhere near
+         the twenty-four and thirty-six a curtain reads. */
+      let front=0; const fcols=new Set();
+      for(const s of standing){
+        const i=s.lastIndexOf(':'), p=s.slice(0,i).split(',');
+        if(+s.slice(i+1)!==8) continue;              /* falling water only: a wide
+                                                        POOL at the foot is a plunge
+                                                        basin and is right */
+        fcols.add(p[0]+','+p[2]);
+      }
+      front=fcols.size;
+      const widest=heads.length*12;
+
       /* IT STAYED: the fall's own claim is its lip and the gorge it cut, and
          nothing of ours may stand outside it */
       const claim=f.half+f.run+16;
@@ -1765,8 +1796,11 @@ T[39]={name:'a spring at a fall pours over the brink, stays at the fall, and dra
       const left=mine().length;
 
       said.push(f.n.split(/[ —]/)[0]+': '+held+' cells, '+shaft+' in the shaft, '+
+        front+' columns off '+heads.length+' heads, '+
         Math.round(far)+' blocks at furthest (of '+Math.round(claim)+'), drained to '+left);
       if(!shaft) faults.push(f.n+' ran dry — nothing went over the brink');
+      if(front>widest) faults.push(f.n+' came down as a CURTAIN — '+front+
+        ' columns of falling water off '+heads.length+' heads (a head opens seven or eight)');
       if(!settled) faults.push(f.n+' is still climbing ('+back+' → '+held+' cells over its last thousand ticks)');
       if(far>claim) faults.push(f.n+' left its own gorge ('+Math.round(far)+' blocks out)');
       if(left>Math.max(20,held*0.05)) faults.push(f.n+' would not unwind ('+left+' cells left standing)');

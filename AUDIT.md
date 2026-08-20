@@ -5281,6 +5281,127 @@ on purpose); the fail is 12, which reads the same on `origin/main` alone and is 
 the water rounds began, and so are 39 through 42, the water and the bucket, under the
 two-tier tool rule.
 
+## 4bn. Round 65 — the two findings measured at last, and the fall that never rested
+
+§4bk left two faults standing in `js/water.js` and said so rather than mending them inside a
+merge: an air cell that PULLS water into itself past the shortest-way-down weights, and a
+way down that STOPS COUNTING the moment water stands in it. It also said the honest thing:
+**those faults were measured on the other branch's water, not on this one**, and *"it wants
+the measurement before it wants the fix."* This is that measurement, and what it turned up
+was worse than either finding.
+
+### 1. The instrument, and why test 39 could not see it
+
+`tools/waterfront.js` takes **test 39's own method** — the same three falls chosen by form
+and not by name, the same heads out of `WATERFALL.springs`, the same `WATER.step(0.25)`
+beaten until the total stops moving, the same attribution of each cell to the fall it is
+nearest — and asks the one thing test 39 did not: **how wide is the front it comes down
+in?**
+
+That question matters because **a curtain pours, stays and settles perfectly well.** All
+three of test 39's questions are answered correctly by a fall that comes over its brink on
+a front eighty columns wide, which is not a waterfall at all.
+
+### 2. The reading, before anything was touched
+
+    Angel     7 heads → 175 columns of falling water, 37 blocks across a lip 26 wide
+    Iguazu    7 heads → 299 columns
+    Krimml    5 heads → 57 columns over a lip 4 blocks wide
+
+A front wider than the rock it pours off. Both faults were live here, exactly as they were
+on the branch that found them.
+
+### 3. Taking them out, and what that exposed
+
+**The pull, out** (`visit` case (b) wakes the water beside it now and lets that water choose
+by the weights): Angel 175 → **17 columns**. And the shaft went with it — **82 cells → 7**.
+
+**The ways weighed through water, not air** (`flowable`, and never pouring into the world's
+river or thinning a falling cell): Angel → **9 columns**, shaft still 7.
+
+**Which is a fall that no longer falls**, and it exposed a third fault the other two had
+been hiding. `wants` reads falling off the cell ABOVE alone — a source, or another fall —
+and water that spills over a brink is neither: it is a LEVEL, one thinner than the head
+that fed it. So the cell beneath it was fed by nothing, `wants` answered null, and the
+column was cleared the tick after it formed. **Nothing had been holding a shaft open but
+the pull**, refilling those mid-air cells out of their neighbours every tick. Angel — a
+fall of a hundred and nine blocks — stood 9 cells of falling water in a shaft of 7.
+
+### 4. And the third fix got it wrong once, where only the queue could tell
+
+Written as *"a fed cell with AIR under it is falling"*, the column stood up at once: Angel
+2,404 cells in the shaft. **And it oscillated.** The topmost cell flipped every tick — air
+below so FALLING, the column forms beneath it so its below is water so a LEVEL, and then
+the cell under it has a level above, is fed by nothing, and is cleared. The count never
+moved. The work never stopped:
+
+    Angel, "settled": 2,491 cells standing — and 2,611 laid and 2,611 dried
+                      every hundred ticks, with 376 always in the queue
+
+**A count that has stopped moving does not prove a thing is at rest**, and this is why the
+instrument now reads the QUEUE and counts the laying and the drying over a hundred further
+ticks. The rule is what holds a cell up, not what happens to be under it this tick:
+**air, or more falling water.** The column is then stable from the brink to the pool.
+
+### 5. AND THE FALLS OF THIS WORLD HAVE NEVER ONCE BEEN AT REST
+
+Turning that same reading on the water **as it stood before any of this** is the finding of
+the round, and nothing in the suite had ever asked it:
+
+| standing still, per 100 ticks | before | after |
+|---|---|---|
+| **Angel** — laid / dried · queue | **12,564 / 12,567 · 760** | **0 / 0 · 0** |
+| **Iguazu** — laid / dried · queue | **4,435 / 4,416 · 3,869** | **0 / 0 · 0** |
+| **Krimml** — laid / dried · queue | **7,434 / 7,433 · 250** | **0 / 0 · 0** |
+
+§4be built the flow its own layer on the strength of one sentence — *"a settled waterfall
+lays and takes up eleven thousand blocks every fifty seconds simply to stand still"* — and
+moved those writes out of the save. **It never stopped them.** Twelve thousand cells laid
+and taken up again every hundred ticks, at a fall nobody is looking at, for as long as the
+game runs. The comment beside case (e) says a settled puddle "is not woken again... which
+is the whole reason a settled fall costs nothing at all"; it was not true when it was
+written, and now it is.
+
+**It shows in a test that has nothing to do with water.** Test 35 samples herds for a head
+kept up, over live frames:
+
+    on the water as it was       68% of herd-samples watched
+    with the oscillating draft   37%   (the churn at its worst)
+    with the column at rest      94%
+
+### 6. Where the falls stand now
+
+| | before | after |
+|---|---|---|
+| Angel — front · shaft · standing | 175 columns · 83 · 678 | **49 columns · 2,410 · 2,509** |
+| Iguazu — front · shaft · standing | 299 · 448 · 2,576 | **18 · 58 · 635** |
+| Krimml — front · shaft · standing | 57 · 38 · 330 | **34 · 58 · 815** |
+
+Angel holds more water than it did and that is the point: it is a kilometre-high cliff with
+a column down it, where before it had eighty-three cells in the shaft and a curtain of a
+hundred and seventy-five threads. Every fall still drains to nothing when its heads are
+taken up.
+
+### 7. The guard, and both faults put to it
+
+Test 39 gains the question it was missing: **a fall comes down in a front no wider than the
+heads that feed it.** The bound is per head and comes from the rule — a source reaches seven
+blocks, so one head opens some seven or eight columns; twelve is that with room for a lip
+lying at an angle to the lattice. Each fault was then put back in turn, and the clause
+reported it:
+
+| the fault put back | what test 39 said |
+|---|---|
+| the pull returned to case (b) | *"Iguazu came down as a CURTAIN — 151 columns off 7 heads"* (and Krimml, 73 off 5) |
+| the ways weighed through air alone | *"Iguazu — 159 columns off 7 heads"* (and Krimml, 67 off 5) |
+
+Both were injected, measured and taken back out. **Angel alone would not have caught
+either** — it reads 77 columns against a bound of 84 — which is the argument for the test
+standing at three falls of three different forms and not at one.
+
+**The suite: 44 pass · 1 fail · 1 pending.** The fail is 12, the chunk-build cost, red on
+`origin/main` alone and recorded in §4bk; the pending is 43, the boles, waiting on purpose.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
