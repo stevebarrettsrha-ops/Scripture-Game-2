@@ -324,58 +324,116 @@ T[13]={name:'the mark falls on the block the eye is on, and on the right face of
           ' · beyond the reach: '+(far?'STRUCK':'nothing')};
   })};
 
-T[14]={name:'a blow of the hand breaks a block in the time its hardness says',
+T[14]={name:'the rock refuses a bare hand and says so, the earth gives to it, and a tool ends the argument',
+  /* WHAT THIS TEST USED TO ASK, AND WHY IT IS NOT ASKED ANY MORE. It held the
+     rule of Round 34: a block that names a tool is had by the bare hand at
+     HAND_SLOW times the labour. Commit b27c625 replaced that rule — "the tool
+     is a requirement, not a discount" — and the test was never brought up to
+     it, so for two rounds it reported a red that was the game working as
+     written. A test that holds a repealed law is worse than no test: it
+     shouts, and what it shouts is out of date.
+
+     AND THE RULE AS IT NOW STANDS HAS TWO TIERS, because one tier closed the
+     world on itself: flint wanted a pick, a pick is made of flint, and a
+     whole voyage could break nothing but hay, wool, glass and leaves. So:
+
+       THE ROCK refuses the bare hand outright, and SAYS which tool it wants.
+       THE EARTH and the timber give to the bare hand at HAND_SLOW.
+       THE RIGHT TOOL in the hand breaks anything at its own hardness.
+
+     All three are asked here, on the running world, with the blow driven
+     through the game's own mineTick. */
   run:async page=>page.evaluate(async()=>{
     const D=window.__VDBG, B=D.B;
     if(!D.mineProgress) return {pending:'no blow: hold-to-break is not built (Phase 4 step 2)'};
     const p=D.playerXZ(), t=D.blockUnder(p.x+7*B,p.z);
     if(!t) return {ok:false,got:'no ground under the traveller'};
-    /* a block of known hardness, set in open air where nothing else stands */
-    const id='brick', n=D.blockId(id), b=D.blockOf(n);
+    /* set in open air five courses over the ground, where nothing else stands */
     const ix=t.ix, iy=t.iy+5, iz=t.iz;
     const cx=(ix+0.5)*B, cy=(iy+0.5)*B, cz=(iz+0.5)*B;
-    D.setBlock(cx,cy,cz,n); await D.settle(2);
-    /* brick asks for a pick; the bare hand pays HAND_SLOW times over */
-    const want=b.hardness*D.handSlow();
-    D.mineAt(ix,iy,iz); D.mineHold(true);
+    const STEP=1/60;
     /* the clock is DRIVEN, not waited on: a software rasteriser's frames are
        half a second apiece and a test that slept would measure the machine */
-    const STEP=1/60; let spent=0, broke=-1, cracks=0, half=null;
-    for(let k=0;k<Math.ceil(want*90/1);k++){
-      D.mineStep(STEP); spent+=STEP;
-      const m=D.mineProgress();
-      if(m){ cracks=Math.max(cracks,m.cracks); if(half===null&&m.f>=0.5) half=spent; }
-      if(!D.blockSolidAt(ix,iy,iz)){ broke=spent; break; }
-    }
-    D.mineHold(false); D.mineAt(null);
-    /* it must not break early, and it must break */
-    const early=broke>=0&&broke<want-STEP*2;
-    const late =broke<0;
-    /* and a hand taken off it loses the work: the block heals */
-    D.setBlock(cx,cy,cz,n); await D.settle(1);
-    D.mineAt(ix,iy,iz); D.mineHold(true);
+    const strike=async(id,seconds)=>{
+      D.setBlock(cx,cy,cz,D.blockId(id)); await D.settle(2);
+      D.mineDrive(true); D.mineAt(ix,iy,iz,0,1,0); D.mineHold(true);
+      let spent=0, broke=-1, cracks=0;
+      for(let k=0;k<Math.ceil(seconds*70);k++){
+        D.mineStep(STEP); spent+=STEP;
+        const m=D.mineProgress(); if(m) cracks=Math.max(cracks,m.cracks);
+        if(!D.blockSolidAt(ix,iy,iz)){ broke=spent; break; } }
+      D.mineHold(false); D.mineAt(null); D.mineDrive(false);
+      D.setBlock(cx,cy,cz,0); await D.settle(1);
+      return {broke,cracks};
+    };
+    /* a hand holding nothing, and a hand holding the pick */
+    /* THE BARE HAND IS FOUND AFRESH EVERY TIME. Taking one empty slot at the
+       start and going back to it later is how this test first read "the speed
+       is read out of the hand: false": the pick it had just been given had
+       gone INTO that slot, so the hand it called bare was holding the pick. */
+    const bareHand=()=>{ const i=D.satchel().findIndex(s=>!s);
+      if(i>=0){ D.setHeld(i); return true; } return false; };
+    const pickHand=()=>{ D.satchelAdd('flint-pick',1);
+      const i=D.satchel().findIndex(s=>s&&s.id==='flint-pick');
+      if(i>=0) D.setHeld(i); return i>=0; };
+    const spoke=()=>{ const e=document.getElementById('verse-t'); return e?e.textContent:''; };
+    if(!bareHand()) return {pending:'every slot of the satchel is full — no bare hand to test with'};
+    const held0=D.held();
+
+    /* ---- 1. THE ROCK REFUSES, AND SAYS WHAT IT WANTS ---- */
+    const rockB=D.blockOf(D.blockId('stone'));
+    const rock=await strike('stone', rockB.hardness*D.handSlow()*1.5);
+    const word=spoke();
+    const refused=rock.broke<0;
+    const toldHim=/pick/i.test(word);
+
+    /* ---- 2. THE EARTH AND THE TIMBER GIVE, SLOWLY ---- */
+    bareHand();
+    const woodB=D.blockOf(D.blockId('log'));
+    const wantSlow=woodB.hardness*D.handSlow();
+    const wood=await strike('log', wantSlow*2);
+    const slowRight=wood.broke>=wantSlow-0.15&&wood.broke<=wantSlow+0.35;
+
+    /* ---- 3. AND THE TOOL ENDS THE ARGUMENT ---- */
+    const hasPick=pickHand();
+    const withPick=await strike('stone', rockB.hardness*2);
+    const fastRight=withPick.broke>=rockB.hardness-0.15&&withPick.broke<=rockB.hardness+0.35;
+
+    /* ---- 4. AND A HAND TAKEN OFF LOSES THE WORK: the block heals ---- */
+    D.setBlock(cx,cy,cz,D.blockId('stone')); await D.settle(1);
+    D.mineDrive(true); D.mineAt(ix,iy,iz,0,1,0); D.mineHold(true);
     for(let k=0;k<30;k++) D.mineStep(STEP);
     D.mineHold(false);
     const dropped=D.mineProgress()===null;
-    D.mineAt(null); D.setBlock(cx,cy,cz,0); await D.settle(2);
-    /* and the speed is read out of the HAND, not assumed. No thing in the
-       world SERVES as a pick yet — tools are works, and works are step 9 —
-       so every hand is bare and a block that asks for iron is had the slow
-       way whatever is being carried. What is asserted here is that the
-       question is asked at all, and that holding a substance does not turn
-       that substance into the tool that breaks it. */
-    D.satchelAdd('brick',1); D.setHeld(0);
-    /* brick asks for a pick; hay asks for nothing. (Grass asks for a SPADE,
-       which the first draft of this line did not know, and it read the right
-       answer as a failure.) */
-    const bare=D.toolSpeedOf('brick'), free=D.toolSpeedOf('hay');
-    const asksTheHand=(Math.abs(bare-1/D.handSlow())<1e-6)&&(free===1);
-    return {ok:!early&&!late&&cracks>0&&dropped&&asksTheHand,
-      got:b.name+' (hardness '+b.hardness+', by hand ×'+D.handSlow()+' = '+want.toFixed(2)+'s) '+
-          'broke at '+(broke<0?'NEVER':broke.toFixed(2)+'s')+
-          ' · '+cracks+' cracks cut · half-broken at '+(half===null?'—':half.toFixed(2)+'s')+
-          ' · the hand taken off loses the work: '+dropped+
-          ' · the speed is read out of the hand: '+asksTheHand};
+    D.mineAt(null); D.mineDrive(false); D.setBlock(cx,cy,cz,0); await D.settle(2);
+
+    /* ---- 5. AND THE SPEED IS READ OUT OF THE HAND, not assumed ---- */
+    const withTool=D.toolSpeedOf('stone');            /* the pick is still held */
+    /* and the pick is put down before the bare hand is asked anything */
+    D.satchelTake('flint-pick',1); D.setHeld(held0); bareHand();
+    const withNone=D.toolSpeedOf('stone'), free=D.toolSpeedOf('hay');
+    const asksTheHand=Math.abs(withTool-1)<1e-6&&
+                      Math.abs(withNone-1/D.handSlow())<1e-6&&free===1;
+
+    const faults=[];
+    if(!refused) faults.push('the rock gave to a bare hand in '+rock.broke.toFixed(2)+'s');
+    if(!toldHim) faults.push('it refused without naming the tool (it said: "'+word.slice(0,60)+'")');
+    if(!slowRight) faults.push('timber by hand took '+(wood.broke<0?'NEVER':wood.broke.toFixed(2)+'s')+
+      ', and it wants '+wantSlow.toFixed(2)+'s');
+    if(!wood.cracks) faults.push('no cracks were cut in the timber');
+    if(!hasPick) faults.push('a flint pick could not be put in the hand');
+    else if(!fastRight) faults.push('with a pick the rock took '+(withPick.broke<0?'NEVER':withPick.broke.toFixed(2)+'s')+
+      ', and it wants '+rockB.hardness.toFixed(2)+'s');
+    if(!dropped) faults.push('the hand came off and the work was kept');
+    if(!asksTheHand) faults.push('the speed is not read out of the hand ('+
+      withTool+' with a pick, '+withNone.toFixed(3)+' without, '+free+' for hay)');
+    return {ok:!faults.length,
+      got:'stone (hardness '+rockB.hardness+') by hand: '+(refused?'REFUSED — "'+word.slice(0,52)+'…"':'broke in '+rock.broke.toFixed(2)+'s')+
+        ' · log (hardness '+woodB.hardness+') by hand: '+(wood.broke<0?'NEVER':wood.broke.toFixed(2)+'s of '+wantSlow.toFixed(2)+' wanted')+
+        ', '+wood.cracks+' cracks · stone with a flint pick: '+(withPick.broke<0?'NEVER':withPick.broke.toFixed(2)+'s of '+rockB.hardness.toFixed(2)+' wanted')+
+        ' · the hand taken off loses the work: '+dropped+
+        ' · the speed is read out of the hand: '+asksTheHand+
+        (faults.length?' · '+faults.join(' · '):'')};
   })};
 
 T[15]={name:'what is broken becomes a thing on the ground, and comes into the satchel',
@@ -398,6 +456,14 @@ T[15]={name:'what is broken becomes a thing on the ground, and comes into the sa
     D.state.walk.x=t.x; D.state.walk.z=t.z; D.state.walk.feetY=undefined;
     await D.settle(2);
     const n=D.blockId('brick'), b=D.blockOf(n);
+    /* ---- AND THE HAND HOLDS THE PICK, because the rock now asks for one ----
+       Brick names a pick, and a rock that names a tool does not give to bare
+       fingers at all. This test is about what happens AFTER a block breaks —
+       the drop, the rest, the walking on, the satchel — so the tool is put in
+       the hand rather than the block changed for a softer one. Test 14 is
+       where the tool rule itself is put to the question. */
+    D.satchelAdd('flint-pick',1);
+    { const i=D.satchel().findIndex(s=>s&&s.id==='flint-pick'); if(i>=0) D.setHeld(i); }
     /* THREE PACES OFF, not underfoot. A block broken at a man's own feet is
        gathered as it falls and never comes to rest at all — so asking one
        striking for both "it rested" and "it was taken" asks for two things
@@ -1424,25 +1490,75 @@ T[38]={name:'in a VOYAGE, a blow breaks, what breaks drops, the drop is taken up
     /* THE VOYAGE HAND, said out loud — the runner sets it per test, and this
        one would be meaningless in the other */
     if(D.applyFreeroam){ D.state.freeroam=false; D.applyFreeroam(); }
+    /* ---- HE IS PUT ON GROUND FIRST, AND GIVEN A TOOL ----
+       Run in the suite, this test inherited wherever the test before it left
+       the traveller — which was once out over the water with nothing under
+       him at all, and the report read "the arm reaches no block at all from
+       where he stands". That is a fault in the test's footing, not in the
+       hand. He is set on known ground here, as test 15 sets him.
+       AND HE HOLDS A PICK: since b27c625 the rock does not give to bare
+       fingers, and what is being tested here is the CHAIN — break, drop, take
+       up, lay back — not the tool rule, which is test 14's. */
+    let st=D.blockUnder(D.playerXZ().x, D.playerXZ().z);
+    if(!st){
+      /* AND IF THERE IS NO GROUND WHERE HE WAS LEFT, HE GOES TO SOME. Test 37
+         lays rings at an eye of 24,000 half a world away, and the test after
+         it inherited a traveller standing over nothing at all: run alone this
+         test passed, run in the suite it reported "the arm reaches no block
+         at all". A town is stood in, and its chunks waited for, exactly as
+         the runner's own preamble does. */
+      const W=window.__WORLD, S=W&&W.sites?W.sites():null;
+      let site=null;
+      if(S){ for(let i=0;i<S.length;i++) if(S[i]&&D.COUNTRIES[i].n==='Yasharal'){ site=S[i]; break; }
+             if(!site) for(let i=0;i<S.length;i++) if(S[i]){ site=S[i]; break; } }
+      if(site){ D.setMode('walk'); D.state.walk.x=site.x; D.state.walk.z=site.z-40;
+        D.state.walk.feetY=undefined;
+        for(let k=0;k<40;k++){ D.updateChunks(site.x,site.z,400); await raf(); }
+        await D.settle(2);
+        st=D.blockUnder(D.playerXZ().x, D.playerXZ().z); }
+    }
+    if(st){ D.setMode('walk'); D.state.walk.x=st.x; D.state.walk.z=st.z;
+      D.state.walk.feetY=undefined; await D.settle(2); }
+    D.satchelAdd('flint-pick',1);
+    { const i=D.satchel().findIndex(s=>s&&s.id==='flint-pick'); if(i>=0) D.setHeld(i); }
     const p=D.state.walk;
     const fx=p.x, fz=p.z, fy=(p.feetY||0)+B*1.5;
+    /* ---- AND IT LOOKS ASIDE BEFORE IT LOOKS DOWN ----
+       Straight down finds the block the traveller is STANDING ON, and laying
+       one back there is laying it inside his own legs — which the world
+       rightly refuses (test 18 is that rule), so this test failed at the last
+       step with "the traveller is standing there" having done everything else
+       correctly. A block found aside of him breaks and lays back with nobody
+       in the way; underfoot is kept only as the last resort.
+
+       AND WITHIN A PACE OF HIM — a reach of four blocks and not thirty. What
+       he breaks has to FALL somewhere he can pick it up, and a block struck
+       at arm's length across a field drops its sapphire in the grass thirty
+       blocks off, where the test then reported an empty satchel. He walks
+       onto it below in any case, but it must be near enough to walk to. */
     let aim=null;
-    for(const d of [[0,-1,0],[0,-0.6,0.9],[0.9,-0.6,0],[-0.9,-0.6,0],[0,-0.6,-0.9]]){
-      aim=D.aimFrom(fx,fy,fz,d[0],d[1],d[2],30); if(aim) break; }
+    for(const d of [[0,-0.6,0.9],[0.9,-0.6,0],[-0.9,-0.6,0],[0,-0.6,-0.9],[0,-1,0]]){
+      aim=D.aimFrom(fx,fy,fz,d[0],d[1],d[2],4); if(aim) break; }   /* WITHIN A PACE: see below */
     if(!aim) return {ok:false,got:'the arm reaches no block at all from where he stands'};
+    /* AND THE BLOW IS TOLD WHICH BLOCK IT MEANS. The live AIM follows the
+       camera, which in a headless run points wherever it was left; mineTick
+       starts the fracture afresh every time the target changes, so a blow
+       driven against a wandering aim never finishes. */
+    D.mineAt(aim.ix,aim.iy,aim.iz,aim.nx,aim.ny,aim.nz);
     const solid=()=>D.solidAt((aim.ix+0.5)*B,(aim.iy+0.5)*B,(aim.iz+0.5)*B);
     if(!solid()) return {ok:false,got:'the block the arm found is already air'};
     const was=(D.BLOCKS()[aim.n-1]||{}).name||('#'+aim.n);
 
     /* ---- the blow ---- */
     const had=D.drops().length;
+    D.mineDrive(true);              /* the loop must not drive it too, or the reading is double */
     D.mineHold(true);
     let t=0, need=null, ran=0;
     for(let k=0;k<1500&&solid();k++){
       D.mineStep(1/60); t+=1/60;
       const g=D.mineProgress(); if(g){ ran++; need=g.need; }
       if(k%8===0) await raf(); }
-    D.mineHold(false);
+    D.mineHold(false); D.mineAt(null); D.mineDrive(false);
     const broke=!solid();
     if(!broke) return {ok:false,got:'the blow did not break '+was+' in '+t.toFixed(0)+'s'+
       (ran?' (it ran '+ran+' frames and wants '+need.toFixed(1)+'s)':' — and never ran at all')};
@@ -1450,19 +1566,57 @@ T[38]={name:'in a VOYAGE, a blow breaks, what breaks drops, the drop is taken up
     /* ---- the drop, and the taking up ---- */
     const made=D.drops().length-had;
     for(let k=0;k<300;k++){ D.dropStep(1/60); if(k%8===0) await raf(); }
+    /* AND HE WALKS ONTO IT, as test 15 does — a thing lying two paces off is
+       not taken up by standing still and hoping */
+    { const lay=D.drops()[0];
+      if(lay){ D.state.walk.x=lay.x; D.state.walk.z=lay.z; D.state.walk.feetY=undefined;
+        await D.settle(2);
+        for(let k=0;k<200&&D.drops().length;k++) D.dropStep(1/60); } }
     const hoard=D.hoard();
     const took=Object.keys(hoard).length;
 
     /* ---- and laying it back ---- */
+    /* ---- AND WHAT IS LAID BACK MUST BE A BLOCK, NOT A TOOL ----
+       The hand is holding the flint pick this test was given to break the
+       rock with, and a tool is `place:false` — it is not a thing that stands
+       in the world. So the hand takes up the first thing in the satchel that
+       IS placeable before laying. (It read "said it laid but nothing stands",
+       which was the pick refusing to be a wall.) */
     let laid='(nothing in hand to lay)';
-    const slot=D.satchel().find(Boolean);
-    if(slot){ const r=D.placeFrom(aim);
-      laid=(r&&r.no)?('REFUSED — '+r.no):(solid()?'laid, and it stands':'said it laid but nothing stands'); }
+    const sat=D.satchel();
+    const slotIdx=sat.findIndex(sl=>{ if(!sl) return false;
+      const b=D.blockOf(D.blockId(sl.id)); return b&&b.place!==false; });
+    const slot=slotIdx>=0?sat[slotIdx]:null;
+    if(slot){ D.setHeld(slotIdx);
+      /* ---- AND HE STEPS OUT OF THE WAY OF WHAT HE IS LAYING ----
+         A block goes in on the AIR SIDE of the struck face, and the face a man
+         strikes is the one FACING HIM — so the air side of a block at arm's
+         length is very often the cell he is standing in, and the world quite
+         rightly refuses to build a wall through his legs (test 18 is that
+         rule). Run alone this test happened to stand clear; run in the suite
+         it reported "REFUSED — the traveller is standing there" having done
+         every other thing correctly. He backs off four blocks along the
+         struck face's own normal, which is by construction away from the
+         block, and lays from there. */
+      D.state.walk.x+=(aim.nx||0)*B*4; D.state.walk.z+=(aim.nz||0)*B*4;
+      if(!aim.nx&&!aim.nz) D.state.walk.x+=B*4;      /* struck from above: any way will do */
+      D.state.walk.feetY=undefined; await D.settle(2);
+      const r=D.placeFrom(aim);
+      /* WHERE IT LAID IS WHAT IS ASKED. A block goes in on the AIR SIDE of
+         the struck face — `at` in the answer — and not into the cell that was
+         struck, so checking the struck cell reported "said it laid but
+         nothing stands" of a block standing perfectly well one cell over.
+         A tool refuses by answering nothing at all, which is also read. */
+      const stands=r&&r.at&&D.solidAt((r.at[0]+0.5)*B,(r.at[1]+0.5)*B,(r.at[2]+0.5)*B);
+      laid=!r?('REFUSED — a tool is held, and a tool is not laid')
+          :r.no?('REFUSED — '+r.no)
+          :stands?('laid at '+r.at.join(',')+', and it stands')
+          :('said it laid at '+(r.at||[]).join(',')+' but nothing stands'); }
 
     const faults=[];
     if(made<1) faults.push('nothing dropped from it');
     if(!took) faults.push('nothing reached the satchel');
-    if(slot&&!/laid, and it stands/.test(laid)) faults.push('it would not lay back: '+laid);
+    if(slot&&!/and it stands/.test(laid)) faults.push('it would not lay back: '+laid);
     if(!slot) faults.push('the satchel was empty, so nothing could be laid');
     return {ok:!faults.length,
       got:'broke '+was+' in '+t.toFixed(1)+'s (it wanted '+(need===null?'?':need.toFixed(1))+
@@ -1993,6 +2147,249 @@ T[40]={name:'a running fall writes nothing into the record, and a hand\'s own so
         ' (the world\'s own doings)'+
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
+
+T[44]={name:'a man who begins with nothing can come by a pick, and then the rock gives',
+  /* THE FAULT THIS EXISTS FOR, and it is the worst one this suite has ever
+     been unable to see. "The tool is a requirement, not a discount" was right
+     about the rock and was applied to every tool at once — and the world's own
+     data then closed on itself:
+
+       flint wants a PICK · a pick is made of flint 3 + planks 2
+       log   wants an AXE · an axe is made of flint 3 + planks 2
+       planks are riven from a log
+
+     Of forty-two blocks, eight gave to a bare hand: the five flint tools,
+     which could not be made, and glass, hay, leaves, water and wool. So in a
+     VOYAGE no tool could ever be come by, and no rock, ore, timber or earth
+     could ever be broken. Free roam was exempt, which is the only reason it
+     went unnoticed: every test in this suite but one runs with the free hand.
+
+     Four tests went red and every one of them was read as a broken hand. The
+     hand was not broken. THE WORLD WAS SHUT.
+
+     So this walks the whole bootstrap in the voyage hand and names the link
+     that fails, if one does: fingers → timber, fingers → flint, the works →
+     a pick, the pick → the rock. What it does NOT re-prove is the drop and
+     the taking-up, which is test 15's; the materials go into the satchel
+     directly, and that is said here rather than implied. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    if(!D.workMake||!D.mineProgress) return {pending:'no works and no blow to walk the chain with'};
+    if(D.applyFreeroam){ D.state.freeroam=false; D.applyFreeroam(); }   /* the VOYAGE hand */
+    /* HE IS PUT ON GROUND FIRST, and the ground is looked for in more than
+       one direction: nine blocks east of wherever the test before this one
+       left him can be off the edge of what is built, and "no ground under the
+       traveller" is a fault in the footing, not in the chain. */
+    let t=null;
+    { const q=D.blockUnder(D.playerXZ().x, D.playerXZ().z);
+      if(q){ D.setMode('walk'); D.state.walk.x=q.x; D.state.walk.z=q.z;
+        D.state.walk.feetY=undefined; await D.settle(2); } }
+    const p=D.playerXZ();
+    for(const d of [[9,0],[0,9],[-9,0],[0,-9],[5,5],[3,0],[0,0]]){
+      t=D.blockUnder(p.x+d[0]*B, p.z+d[1]*B); if(t) break; }
+    if(!t) return {ok:false,got:'no ground under the traveller, seven ways about him'};
+    const ix=t.ix, iy=t.iy+5, iz=t.iz;
+    const cx=(ix+0.5)*B, cy=(iy+0.5)*B, cz=(iz+0.5)*B;
+    const STEP=1/60;
+    /* ---- HE BEGINS WITH NOTHING, which is the whole point ---- */
+    for(const sl of D.satchel()) if(sl) D.satchelTake(sl.id,sl.n);
+    const emptied=D.satchel().every(sl=>!sl);
+    const hew=async(id,seconds)=>{
+      D.setBlock(cx,cy,cz,D.blockId(id)); await D.settle(2);
+      D.mineDrive(true); D.mineAt(ix,iy,iz,0,1,0); D.mineHold(true);
+      let spent=0, broke=-1;
+      for(let k=0;k<Math.ceil(seconds*70);k++){
+        D.mineStep(STEP); spent+=STEP;
+        if(!D.blockSolidAt(ix,iy,iz)){ broke=spent; break; } }
+      D.mineHold(false); D.mineAt(null); D.mineDrive(false);
+      D.setBlock(cx,cy,cz,0); await D.settle(1);
+      return broke;
+    };
+    const hardOf=id=>D.blockOf(D.blockId(id)).hardness;
+    /* 1 · fingers take timber, and a flint out of the chalk */
+    const gotLog=await hew('log',   hardOf('log')  *D.handSlow()*2);
+    const gotFlint=await hew('flint',hardOf('flint')*D.handSlow()*2);
+    /* 2 · and they do NOT take the rock — the requirement still stands */
+    const gotStone=await hew('stone', hardOf('stone')*D.handSlow()*1.5);
+    /* 3 · the works, out of what the hands took. (The drop and the taking-up
+       are test 15's; what is asked here is whether the CHAIN closes.) */
+    D.satchelAdd('log',1);
+    const planks=D.workMake('planks');
+    D.satchelAdd('flint',3);
+    const pick=D.workMake('flint-pick');
+    const inHand=(()=>{ const i=D.satchel().findIndex(sl=>sl&&sl.id==='flint-pick');
+      if(i<0) return false; D.setHeld(i); return true; })();
+    /* 4 · and now the rock gives */
+    const gotStone2=inHand?await hew('stone', hardOf('stone')*2):-1;
+
+    const faults=[];
+    if(!emptied) faults.push('the satchel could not be emptied — he did not begin with nothing');
+    if(gotLog<0) faults.push('bare fingers could not take TIMBER');
+    if(gotFlint<0) faults.push('bare fingers could not take FLINT — the chain starts nowhere');
+    if(gotStone>=0) faults.push('bare fingers took the ROCK in '+gotStone.toFixed(2)+'s — the requirement is gone');
+    if(!planks||!planks.ok) faults.push('the planks would not be riven: '+((planks&&planks.why)||'?'));
+    if(!pick||!pick.ok) faults.push('the pick would not be knapped: '+((pick&&pick.why)||'?'));
+    if(!inHand) faults.push('the pick was made but could not be got into the hand');
+    else if(gotStone2<0) faults.push('with the pick in hand the rock STILL would not give');
+    return {ok:!faults.length,
+      got:'began with nothing='+emptied+
+        ' · timber by hand '+(gotLog<0?'NEVER':gotLog.toFixed(2)+'s')+
+        ' · flint by hand '+(gotFlint<0?'NEVER':gotFlint.toFixed(2)+'s')+
+        ' · rock by hand '+(gotStone<0?'refused, rightly':'GAVE in '+gotStone.toFixed(2)+'s')+
+        ' · rive planks: '+((planks&&planks.ok)?planks.gave:'no')+
+        ' · knap a pick: '+((pick&&pick.ok)?pick.gave:'no')+
+        ' · rock with that pick '+(gotStone2<0?'NEVER':gotStone2.toFixed(2)+'s')+
+        (faults.length?' · '+faults.join(' · '):'')};
+  })};
+
+
+T[45]={name:'a voyage may not fly, may not turn the year, may not set the hour, and is not offered the stores',
+  /* this one asks for BOTH hands in turn and sets them itself, as test 23
+     does; it is marked so the runner's own declaration does not fight it */
+  freeHand:true,
+  /* ---- WHY THIS EXISTS: THE SUITE ONLY EVER TESTED WHAT A VOYAGE PERMITS ----
+     Every rule that a VOYAGE bears and the free hand is spared had a test —
+     the rock that refuses bare fingers, the blow that costs its hardness, the
+     drop that must be picked up, the block that costs a block to lay. Every
+     rule that a voyage FORBIDS had none. Flight, the year and the hour belong
+     to free roam; the stores belong to the free hand; and nothing anywhere
+     asked whether a voyage could reach them.
+
+     One of them could. `FREEROAM_ONLY` is called "one list, obeyed by the
+     rail, by the keyboard and by the menu, so the three can never disagree
+     about what a voyage may and may not do" — and the menu did not obey it.
+     The rail hides the Time of Day button on a voyage with a stylesheet rule;
+     the options modal mirrors the rail by CLICKING the button underneath; and
+     a hidden button fires its onclick exactly like a shown one. Options →
+     Time of day set the hour on a voyage, three clicks from anywhere.
+
+     SO IT DRIVES THE REAL PATHS AND NOT A PROBE WRITTEN FOR THE OCCASION: the
+     window's own keydown listener, the rail's own buttons, the modal's own
+     mirror, and getComputedStyle on what a player would see. And it asks BOTH
+     halves of every rule — a locked door proves nothing unless the key also
+     works, and a test that only sees the refusal cannot tell a rule from a
+     thing that is simply broken. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    if(!D.applyFreeroam) return {pending:'no free roam in this build'};
+    const raf=()=>new Promise(r=>requestAnimationFrame(r));
+    const key=async code=>{ window.dispatchEvent(new KeyboardEvent('keydown',{code}));
+      window.dispatchEvent(new KeyboardEvent('keyup',{code})); await raf(); };
+    const BTNS=['b-fly','b-time','b-speed','b-daypart','b-season'];
+    const shown=id=>{ const e=document.getElementById(id);
+      return !!e&&getComputedStyle(e).display!=='none'; };
+    const seasonNow=()=>window.SEASON?window.SEASON.overrideName():null;
+    const stores=()=>{ if(!D.pageOpen()) D.togglePage(); D.pageDraw();
+      const n=document.querySelectorAll('#page-stores .tok').length;
+      const h=document.getElementById('page-head');
+      const head=h&&h.children[1]?h.children[1].textContent:'';
+      if(D.pageOpen()) D.togglePage();
+      return {n,head}; };
+    /* he is set down on the ground, out of any scene, so the keys are heard:
+       the listener drops everything while a film runs or the map is up */
+    if(D.sceneActive&&D.sceneActive()) D.endScene();
+    if(D.state.firm) D.state.firm=false;
+    if(D.state.mode==='fly') D.setMode('walk');
+    const season0=seasonNow(), day0=D.state.dayIdx;
+
+    const ask=async()=>{
+      await raf();
+      const mode0=D.state.mode, s0=seasonNow(), d0=D.state.dayIdx;
+      await key('KeyG');
+      const flew=D.state.mode==='fly';
+      if(flew){ await key('KeyG'); await raf(); }          /* set him down again */
+      await key('KeyK');
+      const turned=seasonNow()!==s0;
+      if(turned&&window.SEASON) window.SEASON.setSeason(s0==='Natural'?null:s0);
+      /* THE HOUR IS ASKED THROUGH THE MENU'S OWN MIRROR, which is where the
+         hole was: the rail's button is hidden on a voyage and the modal
+         clicks it anyway. */
+      const mo=document.getElementById('mo-daypart'); if(mo) mo.click();
+      const hourSet=D.state.dayIdx!==d0;
+      if(hourSet){ D.state.dayIdx=d0; D.applyDayPart(); }
+      const st=stores();
+      return {mode0, flew, turned, hourSet, rail:BTNS.filter(shown),
+              stores:st.n, head:st.head};
+    };
+
+    /* ---- ON A VOYAGE: every one of them refused ---- */
+    D.state.freeroam=false; D.applyFreeroam(); await raf();
+    const v=await ask();
+    const said=(document.getElementById('verse-t')||{}).textContent||'';
+
+    /* ---- IN FREE ROAM: every one of them given ---- */
+    D.state.freeroam=true; D.applyFreeroam(); await raf();
+    const f=await ask();
+
+    /* and the world is left as it was found */
+    D.state.freeroam=false; D.applyFreeroam();
+    if(window.SEASON) window.SEASON.setSeason(season0==='Natural'?null:season0);
+    D.state.dayIdx=day0; D.applyDayPart();
+    if(D.state.mode==='fly') D.setMode('walk');
+
+    const faults=[];
+    if(v.flew) faults.push('a VOYAGE took flight');
+    if(v.turned) faults.push('a VOYAGE turned the year');
+    if(v.hourSet) faults.push('a VOYAGE set the hour through the options menu');
+    if(v.rail.length) faults.push('a VOYAGE is shown '+v.rail.join(', '));
+    if(v.stores) faults.push('a VOYAGE is offered '+v.stores+' blocks from the stores');
+    if(!/FREE ROAM/i.test(said)) faults.push('the refusal was not spoken (it said: "'+said.slice(0,48)+'")');
+    if(!f.flew) faults.push('FREE ROAM could not take flight');
+    if(!f.turned) faults.push('FREE ROAM could not turn the year');
+    if(!f.hourSet) faults.push('FREE ROAM could not set the hour');
+    if(f.rail.length!==BTNS.length) faults.push('FREE ROAM is shown only '+f.rail.length+' of '+BTNS.length+' of its own buttons');
+    if(!f.stores) faults.push('FREE ROAM is offered no stores');
+    return {ok:!faults.length,
+      got:'ON A VOYAGE — flight '+(v.flew?'TAKEN':'refused')+
+        ' · the year '+(v.turned?'TURNED':'held')+
+        ' · the hour '+(v.hourSet?'SET':'held')+
+        ' · '+v.rail.length+' of '+BTNS.length+' roam-only buttons shown'+
+        ' · '+v.stores+' in the stores ("'+v.head+'")'+
+        ' | IN FREE ROAM — flight '+(f.flew?'taken':'REFUSED')+
+        ' · the year '+(f.turned?'turned':'HELD')+
+        ' · the hour '+(f.hourSet?'set':'HELD')+
+        ' · '+f.rail.length+' of '+BTNS.length+' buttons shown'+
+        ' · '+f.stores+' in the stores ("'+f.head+'")'+
+        (faults.length?' · '+faults.join(' · '):'')};
+  })};
+
+
+T[46]={name:'the manner a voyage was begun in survives a reload',
+  /* A FLAG THAT COMES BACK WRONG GIVES AWAY EVERY RULE ABOVE AT ONCE: a
+     voyage that resumed as free roam would have flight, the year, the hour,
+     the stores and a hand that breaks rock at a touch, and nothing would say
+     so. `fr` is written into the save and read back out of it, and nothing
+     has ever checked the round trip.
+
+     AND IT ASKS FOR THE THING THE FLAG GOVERNS, not merely the flag: a
+     restore that sets state.freeroam without calling applyFreeroam would put
+     the body class out of step with it, and the rail would tell the traveller
+     the opposite of what the hand does. Both directions are held, because a
+     flag that always comes back false would pass half of this. */
+  run:async(page,ctx)=>{
+    const set=async roam=>page.evaluate(r=>{ const D=window.__VDBG;
+      D.state.freeroam=r; D.applyFreeroam(); D.saveNow(); return !!D.state.freeroam; },roam);
+    const read=async()=>page.evaluate(()=>{ const D=window.__VDBG;
+      const BTNS=['b-fly','b-time','b-speed','b-daypart','b-season'];
+      const shown=BTNS.filter(id=>{ const e=document.getElementById(id);
+        return !!e&&getComputedStyle(e).display!=='none'; });
+      return {flag:!!D.state.freeroam, shown:shown.length, of:BTNS.length}; });
+    await set(false); await ctx.reload();
+    const v=await read();
+    await set(true); await ctx.reload();
+    const f=await read();
+    await set(false);                     /* left as a voyage, as it was found */
+    const faults=[];
+    if(v.flag) faults.push('a VOYAGE came back as free roam');
+    if(v.shown) faults.push('a voyage came back showing '+v.shown+' roam-only buttons');
+    if(!f.flag) faults.push('FREE ROAM came back as a voyage');
+    if(f.shown!==f.of) faults.push('free roam came back showing only '+f.shown+' of '+f.of+' of its buttons');
+    return {ok:!faults.length,
+      got:'a voyage came back: freeroam='+v.flag+', '+v.shown+' of '+v.of+' roam-only buttons shown'+
+        ' · free roam came back: freeroam='+f.flag+', '+f.shown+' of '+f.of+' shown'+
+        (faults.length?' · '+faults.join(' · '):'')};
+  }};
+
 
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when

@@ -5041,6 +5041,246 @@ Tests 12, 17, 19, 34, 36 and 41 pass with the door in and the switch off — 41
 back to `meshes 4139 → 4494 (+8.6%) · triangles +0`, exactly where Round 59 left
 it.
 
+## 4bk. Round 62 — the water built twice, and which one was kept
+
+Two sessions worked the falls at the same time and neither knew of the other. Rounds 57
+through 61 above are one line of that work; a branch off `296defa` was the other, and it
+reached two of the same conclusions independently — **the air does nothing and comes out**,
+and **the head belongs at the brink and not at the fall's own point** (it measured Angel's
+column at 2 blocks of 109 before that, and 80 of 109 after). It then went no further,
+while the work above went on to give the flow a layer of its own, an outfall, and its
+buried faces struck off.
+
+**So that branch's water is dropped entire and this one is kept**, and the dropping is
+written down rather than quietly resolved: `js/water.js` and `js/waterfall.js` come from
+here untouched, and the tool that measured the other line — `tools/waterprobe.js` — goes
+with it. What survives from that branch is what this line never touched: the hand, and
+what a voyage may not do. They are §4bl and §4bm below.
+
+**AND TWO FINDINGS OF THAT BRANCH ARE STILL STANDING IN THIS FILE**, reported here rather
+than mended inside a merge, because reopening the water while resolving a conflict is how
+two parallel rounds became six conflicted files in the first place:
+
+1. **An air cell PULLS water into itself.** `visit` case (b) takes any empty cell, asks
+   `wants` whether anything beside it could feed it, and fills it if so — which is a SECOND
+   way for water to spread, and one that knows nothing of the shortest-way-down weights in
+   (e). On the other branch this was measured: with it in, a spring at Angel's brink came
+   over a front **82 columns wide**; with it out, **7**, and the total fell from 5,272
+   cells to 347.
+2. **A way down stops counting as one the moment water stands in it.** `wayDown` and the
+   weighing of the four ways both test `open`, which is AIR AND ONLY AIR, so a source whose
+   own way down holds the water it just gave turns and feeds the lip instead. Measured
+   there at 1,693 cells and 29 columns against 347 and 7.
+
+Both lines are still here as written. **Whether they still cost anything on THIS water is
+unmeasured** — the falling rule and the plunge pool were mended differently here, and the
+settled figures above (Angel 908, Niagara 2,298) are not the ones those measurements were
+taken against. It wants the measurement before it wants the fix.
+
+### And test 12 is red, and it is not the merge's
+
+The suite on the merged tree reads **44 pass · 1 fail · 1 pending**. The pending is 43, the
+boles, left waiting on purpose. The fail is **12 — the chunk-build cost** — and test 12's
+own comment says what to do about it: *"If it fails, re-measure the previous commit in a
+worktree before believing it."* So it was, on this same box, alone:
+
+    on origin/main   plain 2.517 → 3.312 on the reference box (baseline 1.97)
+    on the merge     plain 2.647 → 3.309
+
+**The same figure to three parts in a thousand, and the merge is the cheaper of the two.**
+It is red on main today and nothing in this merge touches chunk building. The plains figure
+has genuinely moved — 1.97 to 3.3 — over the rounds that added the bark and the boles, and
+the last of those rounds recorded test 12 as passing, which it does on that box and does
+not on this one. **The baseline wants re-measuring and re-recording; guessing at it here
+would be a fourth number nobody measured.**
+
+## 4bl. Round 63 — the hand that could not break anything, and the world that was shut
+
+The rounds above record tests **15, 23 and 38** failing, and say so plainly each time:
+*"the voyage's own hand, pre-existing, not this round's"*. They were right that it was not
+theirs. This is what it was — **three faults, and the middle one meant the game could not
+be played.**
+
+### 0. First, WHEN — because a regression with no date is an opinion
+
+A `git worktree` at **`eceeb03`** — before the water sessions — was raised and the same
+tests run in it:
+
+| test | at `eceeb03` | after |
+|---|---|---|
+| 14 · a blow breaks in the time its hardness says | **PASS** — brick broke at 6.52 s of 6.50 wanted, 15 cracks | FAIL — "broke at NEVER · 0 cracks cut" |
+| 15 · what breaks drops and comes into the satchel | **PASS** | FAIL |
+| 23 · the free hand breaks at a touch | **PASS** | FAIL |
+| 38 · in a VOYAGE, the whole chain | FAIL — "it ran 1497 frames and wants 8.5 s" | FAIL |
+
+Three were green and went red in the two commits after. **The fourth has never passed in
+its life**, for a different reason again.
+
+### 1. A probe that answered, and its answer was nothing
+
+`window.__VDBG` declared **`mineAt` twice in the same object literal** — the real
+face-aware one from Phase 4 step 2, and a stale one-argument version added later. **The
+later key wins.** So every test calling `mineAt(ix,iy,iz)` set `mineTestAt` to the NUMBER
+`ix`; `mineTick` read `tgt.ix` off a number, got `undefined`, found no block and abandoned
+the blow before it began. Three tests reported *"broke at NEVER · 0 cracks cut"* and the
+hand they were testing was never once touched.
+
+A missing probe fails loudly. **A shadowed probe answers, and its answer is nothing.** The
+whole debug surface was swept: twelve other keys appear twice and all twelve are the same
+binding written twice over, which is harmless. `mineAt` was the only collision of two
+different implementations.
+
+### 2. The world was shut, and the data says so in four lines
+
+*"The tool is a requirement, not a discount"* was right about the rock — a man should not
+claw an emerald out of a seam with his fingers — and it was applied to **every** tool at
+once. The world's own data then closed on itself:
+
+```
+flint   wants a PICK  ·  a pick is made of  flint 3 + planks 2
+log     wants an AXE  ·  an axe is made of  flint 3 + planks 2
+planks  are riven from a log
+```
+
+Of the world's blocks, **eight gave to a bare hand**: the five flint tools — which could
+not be made — and glass, hay, leaves, water and wool. **In a voyage no tool could ever be
+come by, and no rock, ore, timber or earth could ever be broken.** Free roam is exempt.
+
+**And the suite said so at the time.** Nearly every test in it runs the voyage hand — the
+runner declares it, and only one test asks for the free hand. So 14, 15 and 38 went red the
+moment the world shut. What they could not do was be HEARD: the shadowed probe had already
+reddened those same tests for an unrelated reason, so when the gate landed there was no
+green left to go red. **A suite is only as sharp as its greenest run.**
+
+**THE RULE NOW HAS TWO TIERS**, which is both the game everybody knows and the way it truly
+went. It is one field on the table that already held the five tools' words:
+
+| tool | may bare hands stand in? |
+|---|---|
+| **pick** | **no** — the rock refuses, and says which tool it wants |
+| axe · spade · knife · hoe | yes, at `HAND_SLOW` (×2.5) |
+
+and **flint asks for a spade, not a pick** — it lies in nodules, not in seams; a man picks
+one out of the chalk of a cave wall. The chain runs again:
+
+    fingers → timber → rive planks · fingers → flint → knap a pick → the rock gives
+
+The spoken refusal also stopped promising *"the gravel of every river"*, a block this world
+does not have, and now names the chalk, the limestone and the walls of the caves — which is
+where `world/minerals.js` actually puts it. No block file changed but `blocks/flint.js`.
+
+### 3. And the tests were holding a repealed law
+
+T[14] still asserted the rule of Round 34 — *a block that names a tool is had by the bare
+hand at 2.5× the labour*. **A test that holds a repealed law is worse than no test: it
+shouts, and what it shouts is out of date.** It now asks the rule as it stands, in three
+parts, and each part is a number:
+
+    the rock refuses a bare hand      REFUSED, and it said "you want a pick"
+    the timber gives to it, slowly    log broke in 5.02 s of 5.00 wanted, 16 cracks
+    the tool ends the argument        stone with a flint pick, 3.42 s of 3.40 wanted
+
+T[15] keeps its brick and puts a pick in the hand — it is about the drop and the satchel,
+not the tool rule.
+
+**T[38] had never passed**, and mending it turned up seven faults, every one in the test:
+it trusted the live camera aim (so the fracture restarted every frame — *"it ran 1497
+frames"*); it struck at a reach of thirty blocks and its drop landed too far to walk to; it
+laid the flint pick back, and a tool is `place:false`; it struck the block underfoot and
+tried to lay one back inside the traveller's own legs; it asked whether the block stood in
+the cell it had STRUCK, when a block goes in on the AIR SIDE of a struck face; **it
+inherited whatever ground the test before it left it standing on**; and **it laid from
+where it stood**, when the face a man strikes is the one facing him and the air side of it
+is his own legs. The last two pass alone and fail in company, which is the signature of a
+test that assumed where it was.
+
+### 4. T[44] — the test that would have caught the shut world
+
+**'a man who begins with nothing can come by a pick, and then the rock gives'.** The
+satchel is emptied, the voyage hand declared, and the whole bootstrap walked with every
+link named:
+
+    began with nothing=true · timber by hand 5.02 s · flint by hand 5.02 s
+    · rock by hand: refused, rightly · rive planks: planks x4
+    · knap a pick: flint-pick x1 · rock with that pick: 3.42 s
+
+It does not re-prove the drop and the taking-up — that is test 15's, and saying so is
+better than implying it. What it proves is the one thing no test had ever asked: **that the
+game can be played at all.**
+
+## 4bm. Round 64 — what a voyage may not do, which nothing had ever asked
+
+Every rule a voyage BEARS had a guard — the rock that refuses bare fingers, the blow that
+costs its hardness, the drop that must be picked up, the block that costs a block to lay.
+**Every rule a voyage FORBIDS had none:**
+
+| voyage-only rule | tested before this round? |
+|---|---|
+| **the stores are the free hand's alone** | ⚠️ the free-hand half only |
+| **flight belongs to free roam** | ❌ nothing |
+| **the year belongs to free roam** | ❌ nothing |
+| **the hour belongs to free roam** | ❌ nothing |
+| **the five roam-only buttons are hidden on a voyage** | ❌ nothing — *and it had regressed once already* |
+| **the manner is saved and read back** | ❌ nothing |
+
+That is not an accident of this suite — it is what happens when tests are written by
+walking forward through a feature: you check that the thing you built works, and never that
+the thing you forbade is still forbidden.
+
+### 1. And one of the locks was open — Options → Time of day
+
+`FREEROAM_ONLY` is described in its own comment as *"one list, obeyed by the rail, by the
+keyboard and by the menu, so the three can never disagree about what a voyage may and may
+not do."* **The menu did not obey it.**
+
+The rail hides the Time of Day button on a voyage with `display:none !important`. The
+options modal mirrors the rail by CLICKING the button underneath — `mo-daypart` →
+`b-daypart.click()` — and **a hidden button fires its onclick exactly like a shown one.**
+`b-season` and `b-fly` both carry `roamOnly()` on their own click; `b-daypart` never had
+it. So on a voyage, three clicks — Options, Time of day — set the hour, while the game's
+own refusal says in as many words that *"on a voyage the world keeps its own hours"*.
+
+The gate is on `b-daypart`'s own click now, which mends the rail, the key and the menu at
+once, because all three end there. **Everything else in the table was measured and is
+sound**: `setMode('fly')` is reachable only from `takeFlight`, and `takeFlight` only from
+its two gated call sites.
+
+### 2. T[45] and T[46], and both were made to fail before being believed
+
+**T[45] — 'a voyage may not fly, may not turn the year, may not set the hour, and is not
+offered the stores'.** It drives the real paths — the window's own keydown listener, the
+rail's own buttons, the modal's own mirror, `getComputedStyle` on what a player would see —
+and asks BOTH halves of every rule, because a locked door proves nothing unless the key
+also works:
+
+    ON A VOYAGE — flight refused · the year held · the hour held
+                  · 0 of 5 roam-only buttons shown · 0 in the stores ("he Satchel")
+    IN FREE ROAM — flight taken · the year turned · the hour set
+                  · 5 of 5 buttons shown · 37 in the stores ("he Free Hand")
+
+**T[46] — 'the manner a voyage was begun in survives a reload'.** A flag that comes back
+wrong gives away every rule above at once, silently. It asks for the flag AND for the thing
+the flag governs, in both directions.
+
+**AND EACH WAS PUT TO A FAULT BEFORE IT WAS TRUSTED**, because a guard that has never been
+seen to fail is not yet a guard:
+
+| the fault put to it | what the test said |
+|---|---|
+| the `roamOnly` gate taken back off `b-daypart` | *"the hour SET · a VOYAGE set the hour through the options menu"* |
+| the roam-only CSS rule deleted | *"5 of 5 roam-only buttons shown"* |
+| `fr` dropped from the save payload | *"FREE ROAM came back as a voyage"* |
+
+Each fault was injected, measured, and taken back out.
+
+### 3. The suite, whole
+
+**44 pass · 1 fail · 1 pending** on the merged tree. The pending is 43 (the boles, waiting
+on purpose); the fail is 12, which reads the same on `origin/main` alone and is recorded in
+§4bk. Every test of the hand — 14, 15, 23, 38 and 44 — is green for the first time since
+the water rounds began, and so are 39 through 42, the water and the bucket, under the
+two-tier tool rule.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

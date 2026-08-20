@@ -14183,7 +14183,21 @@ function applyDayPart(){
     setLocalHour(d.getHours()+d.getMinutes()/60+d.getSeconds()/3600, p.x, p.z); }
   else setLocalHour(D2.h, p.x, p.z);
 }
-$('b-daypart').onclick=()=>{ state.dayIdx=(state.dayIdx+1)%DAYPARTS.length;
+/* ---- AND THE HOUR BELONGS TO FREE ROAM TOO, WHICH THIS DID NOT SAY ----
+   THE HOLE, and it was open to any player in three clicks. FREEROAM_ONLY is
+   called "one list, obeyed by the rail, by the keyboard and by the menu, so
+   the three can never disagree about what a voyage may and may not do" — and
+   the menu did not obey it. The rail hides `b-daypart` on a voyage with a
+   stylesheet rule, but the options modal mirrors the rail by CLICKING the
+   button underneath (`mo-daypart` → `b-daypart.click()`), and a hidden button
+   fires its onclick exactly like a shown one. So Options → Time of day set
+   the hour on a voyage, while the game's own refusal says in as many words
+   that "on a voyage the world keeps its own hours".
+   The season and the flight had the gate; the hour did not. It has it now,
+   which mends the rail, the key and the menu at once, because all three end
+   up here. */
+$('b-daypart').onclick=()=>{ if(!roamOnly()) return;
+  state.dayIdx=(state.dayIdx+1)%DAYPARTS.length;
   updateDayBtn(); applyDayPart(); saveState();
   const D2=DAYPARTS[state.dayIdx];
   toast(D2.k==='live'
@@ -15116,11 +15130,27 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      does. Everything else — the law, the fracture, the breaking — is the one
      path the game itself runs. */
   mineHold:on=>{ mineHeld=!!on; if(!on) mineStop(); },
-  /* the FACE matters and must be given: the fracture is cut on the face that
+  /* WHICH BLOCK A DRIVEN BLOW IS STRUCK AT. The live AIM follows the camera,
+     and mineTick starts the fracture afresh every time the target changes —
+     so a headless test that drives the hand without saying what it means
+     mines whatever the eye happens to be crossing, resets on every frame it
+     wanders, and reports that a blow of one and three-quarter seconds could
+     not be landed in twenty. Passing null gives the hand back to the eye.
+
+     THE FACE MATTERS AND MUST BE GIVEN: the fracture is cut on the face that
      is struck, and a crack figure laid on the top of a wall block is drawn
      edge-on to a level eye and cannot be seen at all — which is exactly what
      the first photographs of it showed, and it took a pixel count to tell
-     that from the cracks not being drawn. */
+     that from the cracks not being drawn.
+
+     ---- AND THERE WAS A SECOND `mineAt` BELOW THIS ONE FOR TWO ROUNDS ----
+     A stale one-argument version — `a=>{ mineTestAt=a||null; }` — sat further
+     down this same object literal, and THE LATER KEY WINS. So every test that
+     called mineAt(ix,iy,iz) set mineTestAt to the NUMBER ix; mineTick read
+     `tgt.ix` off a number, got undefined, found no block and abandoned the
+     blow. Four tests reported "broke at NEVER · 0 cracks cut" and the hand
+     they were testing was never touched. A shadowed probe is worse than a
+     missing one: it answers, and its answer is nothing. */
   mineAt:(ix,iy,iz,nx,ny,nz)=>{ mineTestAt=(ix===null)?null:
     {ix,iy,iz,nx:nx||0,ny:(nx||nz)?0:(ny===undefined?1:ny),nz:nz||0,n:blockAt(ix,iy,iz)}; },
   /* while the probe drives the blow, the loop must not drive it too — one
@@ -15218,14 +15248,6 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   mineProgress:()=>MINE.on?{cell:[MINE.ix,MINE.iy,MINE.iz],t:MINE.t,need:MINE.need,
     f:Math.min(1,MINE.t/MINE.need),cracks:crackN}:null,
   mineStep:dt=>mineTick(dt),
-  /* WHICH BLOCK A DRIVEN BLOW IS STRUCK AT. The live AIM follows the camera,
-     and mineTick starts the fracture afresh every time the target changes —
-     so a headless test that drives the hand without saying what it means
-     mines whatever the eye happens to be crossing, resets on every frame it
-     wanders, and reports that a blow of one and three-quarter seconds could
-     not be landed in twenty. (It did exactly that, which is why this is
-     here.) Passing null gives the hand back to the eye. */
-  mineAt:a=>{ mineTestAt=a||null; },
   /* WHOSE GROUND IS THIS — by the real country outlines, which are real
      vector data. It is the one question that catches every way a place's
      coordinates go wrong: a swapped latitude and longitude, a dropped minus,
@@ -15657,14 +15679,47 @@ let mineHeld=false, mineTestAt=null, mineDriven=false;
 /* what the hand SERVES as — the one question the tool rule asks */
 function handServes(t){ const h=heldBlock(); return !!(h&&h.serves===t); }
 let _toolSaid=null;                     /* so a refusal is said once, not sixty times a second */
-/* and it is said in the world's own voice, and never as a error message */
+/* ---- THE FIVE TOOLS: WHAT IS SAID WHEN ONE IS WANTED, AND WHETHER THE BARE
+   HAND MAY STAND IN FOR IT AT ALL ----
+   `say` is the refusal, in the world's own voice and never as an error
+   message. `hand` is the half that was missing, and its absence made the game
+   unplayable for two rounds.
+
+   THE FAULT, and it is arithmetic and not opinion. "The tool is a requirement,
+   not a discount" was right about the ROCK — a man should not claw an emerald
+   out of a seam with his fingers — but it was applied to every tool at once,
+   and the world's own data then closed on itself:
+
+     flint       wants a pick        a pick is made of flint 3 + planks 2
+     log         wants an axe        an axe is made of flint 3 + planks 2
+     planks      are riven from a log
+
+   Of forty-odd blocks, EIGHT gave to a bare hand: the five flint tools, which
+   could not be made, and glass, hay, leaves, water and wool. So in a voyage no
+   tool could ever be come by and no rock, ore, timber or earth could ever be
+   broken. Free roam was exempt.
+
+   AND THE SUITE SAID SO AT THE TIME — nearly every test in it runs the voyage
+   hand, and three of them went red the moment this landed. They were ALREADY
+   RED, for an unrelated reason (a shadowed mineAt probe), so a fault that shut
+   the world arrived under cover of one that only broke a probe. Nothing here
+   is guarded by a test that is already failing.
+
+   THE RULE NOW, which is the one the game everybody knows keeps: the ROCK
+   refuses the bare hand outright, and everything else — timber, earth, sand,
+   sod, hide — gives to fingers at HAND_SLOW and to the right tool at once.
+   The first flint comes out of a cave wall by hand, and from it the tools. */
 const TOOL_WORD={
-  pick :'The rock will not give to bare hands. You want a pick — flint will do, and flint is in the gravel of every river.',
-  axe  :'Timber will not come away in the hand. You want an axe.',
-  spade:'The ground is packed too hard for fingers. You want a spade.',
-  knife:'It will not part without an edge. You want a knife.',
-  hoe  :'It wants a hoe, not a hand.'
+  pick :{ hand:false, say:'The rock will not give to bare hands. You want a pick — flint will do, and flint lies in nodules in the chalk and the limestone, and in the walls of the caves.' },
+  axe  :{ hand:true,  say:'Timber comes hard away in the hand. You want an axe.' },
+  spade:{ hand:true,  say:'The ground is heavy going for fingers. You want a spade.' },
+  knife:{ hand:true,  say:'It parts poorly without an edge. You want a knife.' },
+  hoe  :{ hand:true,  say:'It would rather have a hoe than a hand.' }
 };
+/* whether the bare hand may do this tool's work at all, slowly. A tool this
+   table does not name is one the hand may attempt: a new tool is a slower
+   hand, never a locked door, and a door is only ever locked on purpose. */
+function handMayStandIn(t){ const w=TOOL_WORD[t]; return !w||w.hand!==false; }
 function toolSpeed(b){
   /* ---- AND HERE THE BELT SPEAKS, AS STEP 2 PROMISED IT WOULD ----
      One place, as it was written. A block that asks for a tool is had at full
@@ -15771,7 +15826,14 @@ function mineTick(dt){
   if(!held||!tgt||gamePaused||cut){ mineStop(); return; }
   const b=blockOf(tgt.n||blockAt(tgt.ix,tgt.iy,tgt.iz));
   if(!b){ mineStop(); return; }
-  /* ---- AND THE TOOL IS A REQUIREMENT, NOT A DISCOUNT ----
+  /* ---- AND THE TOOL IS A REQUIREMENT FOR THE ROCK, AND A DISCOUNT FOR THE REST ----
+     The rule below was once applied to EVERY tool, and that closed the world
+     on itself: flint wants a pick, a pick is made of flint, timber wants an
+     axe, an axe is made of timber. No tool could be come by and nothing but
+     hay, wool, glass and leaves could be broken in a whole voyage. The table
+     at TOOL_WORD carries the count and the two tiers that mend it — the ROCK
+     refuses the bare hand, and everything else gives to it slowly.
+     ---- AND THE ORIGINAL NOTE, WHICH IS STILL RIGHT ABOUT THE ROCK ----
      A block that names a tool was had by a bare hand at two and a half times
      the labour — so a man could claw an emerald out of the rock with his
      fingers if he waited twelve seconds, and there was no reason on earth to
@@ -15784,9 +15846,10 @@ function mineTick(dt){
      the refusal is spoken once for each kind of block and not again, and it
      names the tool that is wanted. The free hand is not asked for anything:
      a man laying out a place is not fetching a pick first. */
-  if(!freeHand()&&b.tool&&!handServes(b.tool)){
+  if(!freeHand()&&b.tool&&!handServes(b.tool)&&!handMayStandIn(b.tool)){
     if(_toolSaid!==b.id){ _toolSaid=b.id;
-      toast(TOOL_WORD[b.tool]||('It will not give: you want a '+b.tool+'.')); }
+      const w=TOOL_WORD[b.tool];
+      toast((w&&w.say)||('It will not give: you want a '+b.tool+'.')); }
     mineStop(); return; }
   /* the hand moved to another block: the old fracture closes and a new one
      is struck. A block half broken and left is whole again when you return —

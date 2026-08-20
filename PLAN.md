@@ -1178,3 +1178,40 @@ with a known pattern and a real gain: an axe that works. **Then planting**, whic
 wants the season and the soil that already exist. **Building last of the five**,
 because it is the one that should be designed in writing before it is coded.
 
+
+## 18. Rounds 62–64 — the water built twice, the hand mended, and what a voyage may not do
+
+**The water was built twice.** Two sessions worked the falls at the same time and neither
+knew of the other. §16 and §17 above are one line of it; a branch off `296defa` was the
+other, and it reached two of the same conclusions independently — the air does nothing and
+comes out, and the head belongs at the brink (Angel's column: 2 blocks of 109 before, 80
+after). It went no further, while this line went on to the flow's own layer, the outfall
+and the buried faces. **So that branch's water is dropped entire, including the tool that
+measured it**, and the dropping is written down rather than quietly resolved. Two of its
+findings are still standing in `js/water.js` and are recorded in AUDIT §4bk — an air cell
+that PULLS water into itself past the shortest-way-down weights, and a way down that stops
+counting the moment water stands in it. Both want measuring on THIS water before they want
+fixing.
+
+**What survived that branch is what this line never touched.**
+
+**The hand could not break anything.** The rounds above record tests 15, 23 and 38 failing
+and say each time, rightly, that it was not theirs. It was three faults. A stale
+one-argument `mineAt` sat below the real one in the same object literal and THE LATER KEY
+WINS, so every test that named a block set the target to a number and the blow was
+abandoned before it began — a shadowed probe answers, and its answer is nothing. Then "the
+tool is a requirement, not a discount" was applied to every tool at once and the data
+closed on itself: flint wants a pick, a pick is made of flint; timber wants an axe, an axe
+is made of timber. **In a voyage no tool could ever be come by.** The rule has two tiers
+now — the ROCK refuses the bare hand, timber and earth give to it at ×2.5 — and flint asks
+for a spade, because it lies in nodules and not in seams. **Test 44** walks the whole
+bootstrap from an empty satchel, which is the one thing no test had ever asked: that the
+game can be played at all.
+
+**And every rule a voyage FORBIDS had no test whatever** — flight, the year, the hour, the
+stores, and the manner itself surviving a reload. One of those locks was open:
+`FREEROAM_ONLY` is called "one list, obeyed by the rail, by the keyboard and by the menu",
+and the menu did not obey it — the options modal mirrors the rail by CLICKING the button
+underneath, and a hidden button fires its onclick like any other, so Options → Time of day
+set the hour on a voyage. **Tests 45 and 46** hold all of it, both halves of every rule,
+and both were put to a real fault before they were trusted.
