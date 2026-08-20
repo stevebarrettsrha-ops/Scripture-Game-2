@@ -950,3 +950,58 @@ island, not a league of open sea, because none of them is a river. A vote of the
 corners was tried first and taken back out: it mended the rivers and ate the edges of
 genuine bays narrower than a cell. Acceptance test 37 lays whole rings at an eye of 24,000
 and counts the river cells with dry bank inside them that the ring nonetheless called sea.
+
+## 16. Round 57 — the falling waters, and the water let into them
+
+Not a phase either. The falls of the earth were built over the rounds after 55 —
+`world/waterfalls.js` with thirty-four of them at their true coordinates, `js/waterfall.js`
+to cut the rock, `js/water.js` to run the water — and then **switched off before they ever
+shipped**, because a spring at Niagara's lip put 13,989 cells of standing water into the
+world and one at Multnomah 23,025. Five mendings went in after that reading and **not one
+of them was ever measured**; the last commit of that run left the figure in its own table
+as a question mark.
+
+**So this round measured, and let the water in.** `tools/waterprobe.js` boots the world
+headless, stands at a named fall, lays the spring **through the engine's own `laySpring`**,
+and reads not only how many cells stand but where they stand — on the wall, in the pool,
+got away; at what level; in what ten-block band; in how many falling columns; and whether
+the wake queue has EMPTIED, which is the difference between water that is steady at this
+moment and water that has finished.
+
+It found two faults that no count on its own would have caught, and both of them were
+mine:
+
+**The spring was penned behind its own lip.** A source spreads seven blocks; a plunge sets
+its lip back seventeen. So Angel measured a tidy, bounded, entirely wrong 316 cells, and
+the tallest column anywhere on a thousand-metre cliff was TWO BLOCKS — a pond on a mountain
+top with a dry cliff in front of it. The head is laid at the CREST now, found by walking
+the ground downstream until it falls away, which needs to know nothing about forms or
+set-backs.
+
+**An air cell pulled water in.** `visit` case (b) filled any empty cell that anything
+beside it could feed — a second way for water to spread, knowing nothing of the
+shortest-way-down weights. So the whole of the rule that makes a stream a stream was being
+gone round the back of, and Angel poured over a front eighty-two columns wide. An empty
+cell now WAKES the water beside it and lets that water choose.
+
+**What the game ships, all of it measured** (the form's own head count, heads a source's
+reach apart, and no evaporation — the air changes the totals by five in a hundred and stops
+any fall from ever coming to rest):
+
+| fall | standing water | verdict | column |
+|---|---|---|---|
+| Angel, 109 blocks | 347 | AT REST at 16.5 s | 80 of 109 |
+| Niagara, 6 blocks | 2,446 | AT REST at 40.3 s | the full 200-block lip, 249 columns |
+| Multnomah, 21 blocks | 97 | AT REST at 3.5 s | 14 of 21 |
+| Mosi-oa-Tunya, 12 blocks | 5,990 | AT REST at 109.3 s | 704 columns over a 288-block lip |
+
+and at the foot of the worst of them, with all six thousand cells in view, the frame costs
+**1.09×** what it cost with the rock dry. `SPRINGS_ON=true`, and acceptance test 39 stands
+at the tallest fall in the world and holds the line: a column at least half the drop, under
+fifteen hundred cells, and no more at sixty seconds than at thirty.
+
+**Still to come, and named rather than implied:** source formation (renewable water), the
+current that carries a man at about 1.39 m/s, mining underwater at five times the time and
+twenty-five if he is not standing, and the gorge that ought to run to the sea rather than
+stopping at its plunge pool. Water and lava is not on that list for one reason: **this
+world has no lava**, so there is nothing for water to meet.

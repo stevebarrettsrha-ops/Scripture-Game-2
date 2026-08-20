@@ -4392,6 +4392,249 @@ floating around the sun and moon" was the two FACES overlapping inside them, and
 with one face there is nothing left to overlap. The round pair is left in the
 file, dark and never drawn, so the reason it was tried is not lost with it.
 
+## 4bd. Round 57 — the water let into the falls, and the three faults between
+
+The falls themselves were built over the rounds since 56 and never written down
+here; their record was in the commits alone. **This entry carries both** — what
+was built, and what this round found when it was finally measured.
+
+### 0. What stood at the start of this round, and why none of it ran
+
+`world/waterfalls.js` holds **34 falls of the real earth** — true latitude,
+longitude, drop, breadth and form, with the growth of each gorge — and nothing
+in `js/` knows one of them by name. `js/waterfall.js` cuts the rock: the shelf
+is RAISED rather than the gorge dug (Angel comes off a tepui the coarse terrain
+has not got), the wall is sheer, and the gorge runs out to a plunge pool.
+`js/water.js` is the water everyone already has in their hands — a source that
+is never consumed, flowing water thinning 1 to 7, a falling column full at any
+height, a wake queue, the sea as an infinite sink and the river as another.
+
+Two readings stand behind all of it. **32 of the 34 land in the right country**
+when the running world is asked `landNameAt`, and the two that do not are inside
+the coastline raster's own error and are written down rather than nudged. And
+falls keep **nine metres to the block** against the mountains' forty, because at
+forty Niagara and Iguazu are two blocks high, which is a step in the ground and
+not a waterfall.
+
+**And every one of them was dry.** `SPRINGS_ON=false`, set eleven commits
+earlier, because a spring laid at Niagara's lip put **13,989 cells** of standing
+water into the world, one at Multnomah **23,025 with 7,292 still queued**, and
+the photograph showed the camera at the foot of Niagara buried inside a solid
+mass of water. Five mendings went in after that reading — the sheer wall, the
+sea's sink, the river's sink, three faults in the level rule, the block of grace
+at the plunge pool — **and not one of them was ever measured.** The last commit
+of that run left the figure in its own table as `?`.
+
+### 1. The instrument, since nothing here had ever been measured
+
+`tools/waterprobe.js` boots the world headless, stands at a named fall, lays its
+spring **through the engine's own `laySpring`** — the same function `updateFalls`
+calls, so what is measured is the shipped path — and reads the water at 10, 30
+and 60 seconds of the water's own clock:
+
+| what it reports | why it is there |
+|---|---|
+| **total** | every cell of spilled water standing in the world |
+| **wall / pool / far** | on the fall's wall, in its pool, or got away from it |
+| **column** | the tallest stack of water anywhere on the wall |
+| **by level** | a mass of 8s is falling water, of 1s a sheet, of 7s a spread at its limit |
+| **by band** | ten-block bands above the gorge floor: a fall is a line through every band, a flood is a slab in the lowest |
+| **falling in N columns** | one column is a plunge; eighty is a curtain nobody asked for |
+| **AT REST** | the wake queue is EMPTY — not steady at this moment, but finished |
+
+The clock is DRIVEN and not waited on. The frame loop caps `dt` at a fiftieth of
+a second, so on a software rasteriser the game's clock runs at a tenth of real
+time and sixty seconds of water would want ten minutes of waiting a case.
+`WATER.step(TICK)` is the same tick that loop calls, under the same 1.2 ms
+budget, with a frame let through every twenty-five so the world still builds
+around the water.
+
+**It was believed because it reproduced the old reading first.** A line of heads
+at Angel with the air on came back at **549 cells** — the identical figure
+recorded by the round that turned the springs off.
+
+### 2. The first fault: the spring was penned behind its own lip
+
+**Angel: 316 cells standing, and the tallest column anywhere on a
+thousand-metre cliff was TWO BLOCKS.** A tidy, bounded, entirely wrong number —
+which is exactly why a count alone is not a test.
+
+A fall's own point is the middle of its LIP, and the builder gives that lip real
+ground: the shelf behind it is dished a block, and then the lip stands proud and
+flat for `under × drop` blocks — **seventeen of them at Angel** — before the wall
+begins. **A source spreads seven blocks and stops.** So the spring stood in the
+dish, filled it, spread its seven blocks over a shelf more than twice that wide,
+and came to rest as a pond on a mountain top with a dry cliff in front of it.
+
+`crestOf` walks downstream from the fall's point and lays the head at **the last
+block at the top before the ground falls away**. It needs to know nothing of
+forms, tiers or set-backs: a plunge sets its lip back seventeen blocks and a
+cataract not at all, and the walk finds both. `js/waterfall.js` still says WHERE
+ALONG THE LIP the heads go; the engine says how far forward.
+
+Angel then ran the whole hundred and nine blocks — **column 109 of 109** — and
+the total went to **8,347 and climbing**.
+
+### 3. The second fault: an air cell pulled water in, and went round the back of the level rule
+
+The anatomy said what the total could not: **5,301 of 5,448 cells were FALLING,
+spread evenly through every ten-block band from 20 to 110, in 82 separate
+columns** across a front twenty blocks wide. Not a flood over the country — the
+water had run 23 blocks from the fall and no further — but a CURTAIN down the
+cliff face where a plunge wants one ribbon.
+
+The shortest-way-down rule was being gone round the back of. `visit` case (b)
+took any empty cell, asked `wants` whether anything beside it could feed it, and
+filled it if so. **That is a second way for water to spread, and it knows nothing
+of the weights.** So the source at the crest never had to choose the way down at
+all: the cells along the lip pulled themselves full out of it, a level at a
+time, and every one of them poured over in its turn.
+
+An empty cell now WAKES the water beside it and lets that water decide by (e),
+where the ways out are weighed. Nothing is lost — the hollow a hand digs beside
+a stream is still filled the next tick, if the stream may go there.
+
+**Angel: 347 cells, AT REST, falling in 7 columns, the column 80 blocks of 109.**
+
+### 4. The third: a way down stopped counting once water stood in it
+
+Found while hunting the curtain, and it is a real fault of its own. `open` means
+AIR, and the weight of a way out was reckoned with it — so the moment the cell
+over the edge held the water the source had just given it, **the way down
+weighed infinity**, the ways along the lip won by default, and the source began
+feeding sideways.
+
+The rule this file already keeps for falling says the opposite: *water already
+standing below you is still the way down*. `flowable` — air, or water — is now
+what the ways are WEIGHED through, while what water may be POURED into is
+unchanged: air, or our own thinner water, and never the world's river.
+
+**Honestly: on its own it made the curtain WIDER — 7,287 cells and 122 columns,
+against 5,272 and 82 without it.** The pull in §3 was the cause, and while that
+stood, weighing through water only gave it more ways to go.
+
+**So it was measured again with the pull mended, and it is load-bearing.** The
+same fall, the same spring, the only difference being whether a way down still
+counts as one once water is standing in it:
+
+| at Angel | standing | falling columns | column |
+|---|---|---|---|
+| air alone counts as a way down | 1,693 | **29** | 104 of 109 |
+| water counts too | **347** | **7** | 80 of 109 |
+
+Five times the water and four times the front, from one word. A source whose
+own way down is occupied by the water it just gave turns and feeds the lip
+instead, and every cell it feeds pours over in its turn.
+
+### 5. The air, put to the question and answered
+
+Evaporation was added while the level rule was broken and the water was running
+at forty times its proper rate — that is, to hide a bug. With the bug mended it
+was measured, three falls, both ways, one head at each:
+
+| | the air on | the air off |
+|---|---|---|
+| Angel | 333 cells | **347, AT REST** |
+| Niagara | 81 | **90, AT REST** |
+| Multnomah | 78 | **83, AT REST** |
+
+**Five cells in a hundred, and it costs the one thing worth having.** With the
+air on no fall ever comes to rest: a standing cell wakes itself every tick to be
+counted toward its drying, so the queue never empties and a waterfall nobody is
+looking at goes on being worked for as long as the game runs — and **227 cells
+of a living fall were taken into the air in that minute**, which is a stream
+drying in mid-run. `EVAP_TICKS=0`. The code stays for the one case that may yet
+want it: a storm surge thrown a mile inland has no channel and no sea in reach.
+
+### 6. One head or a line — and the form table already held the answer
+
+| | one head | a line of heads |
+|---|---|---|
+| **Angel** (plunge, lip 26 wide) | 347, at rest, 7 columns | 2,697, at rest, 55 columns |
+| **Niagara** (cataract, lip 200 wide) | 90, at rest, **5 columns** | 653, at rest, 44 columns |
+| **Multnomah** (tiered, lip 2 wide) | 83 | 97 — the same fall either way |
+
+Both bounded, both at rest, so cost does not decide it: **the look does.** One
+head gives Niagara five columns of water on a lip two hundred blocks wide, which
+is a leak in a dam; a line gives Angel a curtain fifty-five columns wide, which
+is a dam spilling and not a thread off a tepui. The form table has said which is
+which since the falls were built — *cataract: "a wide wall of water over a long
+straight lip"*; *plunge: "one clean column"* — so `heads` is now a field of the
+FORM beside `steep` and `pool`, and the data decides.
+
+**And the heads of a line stand a source's reach apart.** Seven heads spread
+across Niagara's lip at thirty-three blocks apart came down as seven separate
+ribbons with dry rock between them; at seven blocks — the furthest a source
+reaches — they come down as one sheet.
+
+### 7. The reading, and the springs turned on
+
+Every fall below is measured with what the game now ships: the form's own head
+count, the heads a reach apart, no evaporation.
+
+| fall | form | heads | standing | verdict | column |
+|---|---|---|---|---|---|
+| **Angel** | plunge, 109 blocks | 1 | **347** | AT REST, 16.5 s | 80 of 109 |
+| **Niagara** | cataract, 6 blocks | 29 | **2,446** | AT REST, 40.3 s | 7 of 6, 249 columns over the full lip |
+| **Multnomah** | tiered, 21 blocks | 3 | **97** | AT REST, 3.5 s | 14 of 21 |
+| **Mosi-oa-Tunya** | cataract, 12 blocks | 38 | **5,990** | AT REST, 109.3 s | 13 of 12, 704 columns over a 288-block lip |
+
+Against **13,989 and climbing**, and against Minecraft's own figure of about a
+thousand cells for seven sources on flat ground. **AT REST is the word that
+matters and it is not a synonym for steady**: the wake queue is empty, the water
+has found its level, and it costs nothing at all until a hand or the ground
+disturbs it.
+
+**And what it costs to look at**, at the worst fall in the world, standing at its
+foot: the frame was **1,140 ms dry and 1,259 ms running** with all 5,990 cells in
+view — **1.09× on the best frame**. (Absolute figures are a software rasteriser's
+and mean nothing; the ratio is the reading.)
+
+`SPRINGS_ON=true`.
+
+### 8. And a test, so it cannot come back
+
+**T[39] — 'a fall runs down its own wall, and what it spills is bounded'.** It
+stands at the TALLEST fall in the world, named by nothing in the test (the drops
+are data), lays the spring through the engine's own path, and asks three things
+that catch both faults of this round at once: **a column** at least half the
+drop (the penned spring gave two of a hundred and nine), **under 1,500 cells**
+standing (the curtain gave 5,272 and 7,287; the flood gave 13,989), and **no more
+at sixty seconds than at thirty**. It reports PENDING, naming the flag, if the
+springs are ever switched off again.
+
+### 9. And four tests that were already red, which are NOT this round's
+
+The suite came back **35 pass · 4 fail · 0 pending**, and the four are 14, 15,
+23 and 38 — every one of them in the chain that breaks a block and picks it up:
+
+    14  a blow of the hand breaks a block in the time its hardness says
+        "Baked Brick (hardness 2.6, by hand ×2.5 = 6.50s) broke at NEVER"
+    15  what is broken becomes a thing on the ground
+    23  the free hand ... breaks at a touch          ("a blow of one frame took it: false")
+    38  in a VOYAGE, a blow breaks, what breaks drops, the drop is taken up
+
+**They fail identically on the tree without any of this round's work in it** —
+stashed, re-run, same four, same messages — so they are not the water's doing
+and they are not fixed by pretending otherwise. They are the next thing to look
+at, and they are a chain: if a blow never lands, nothing drops, nothing is taken
+up and nothing can be laid back, which is one fault wearing four coats.
+
+### 10. What is still not done, said plainly
+
+From the water rules as they were given, in the order they are worth having:
+
+1. **Source formation** — a flowing block beside two or more sources, on solid
+   ground or another source, becomes a source. That is renewable water.
+2. **Current** — about 1.39 m/s, the vector sum of the flows, so a river carries
+   a man and a fall pushes him.
+3. **Mining underwater** — five times the time, twenty-five if he is not standing.
+4. **Water and lava** — *not skipped for want of trying: this world has no lava
+   block anywhere*, so there is nothing for water to meet.
+5. **The gorge running to the sea** rather than stopping at its plunge pool. It
+   is a change to the terrain carving in every country a fall stands in, and it
+   wants its own round and its own geometric diff.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

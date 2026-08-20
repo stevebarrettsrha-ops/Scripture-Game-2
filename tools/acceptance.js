@@ -1470,6 +1470,101 @@ T[38]={name:'in a VOYAGE, a blow breaks, what breaks drops, the drop is taken up
         (faults.length?' · '+faults.join(' · '):'')};
   })};
 
+T[39]={name:'a fall runs down its own wall, and what it spills is bounded',
+  /* THE TWO FAULTS THIS GUARDS, and both of them were found by measuring
+     rather than by looking, because a waterfall nobody has stood at is a
+     thing this suite could not see at all until now.
+
+     THE FLOOD. A spring laid at Niagara's lip once put 13,989 cells of
+     standing water into the world and one at Multnomah 23,025 — the camera at
+     the foot was inside a solid mass of water — and the springs were switched
+     off for eleven commits while that was mended. The mending was five
+     separate things, and a test that only counts cells would have passed
+     three of them.
+
+     THE DRY CLIFF, which is the other half and the reason the count alone is
+     not enough. With the spring laid a block behind the crest, Angel measured
+     316 cells — a tidy, bounded, entirely wrong number, because the water was
+     a pond on top of the mountain and the tallest column standing anywhere on
+     its thousand-metre wall was TWO BLOCKS. So the column is asked for by
+     name: a fall must have water most of the way down its own wall.
+
+     It stands at the TALLEST fall in the world, named by nothing here — the
+     drops are data, and the tallest is whichever the data says. That is also
+     the worst case for both faults at once: the longest wall to be dry, and
+     the most water in the air if it spreads. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    if(!window.WATERFALL||!window.WATER) return {pending:'no falls and no water in this build'};
+    if(!D.springsOn()) return {pending:'the springs are off (SPRINGS_ON=false) — the rock is cut and dry'};
+    /* the tallest fall there is */
+    const L=window.WATERFALL.list();
+    if(!L||!L.length) return {pending:'no falls stand in this world'};
+    let f=L[0]; for(const g of L) if(g.drop>f.drop) f=g;
+    D.unspring();
+    D.state.walk.x=f.x; D.state.walk.z=f.z; D.state.walk.feetY=undefined;
+    D.setMode('walk');
+    let laid=0, frames=0;
+    while(frames<900&&laid<=0){
+      D.updateChunks(D.state.walk.x,D.state.walk.z,400);
+      await new Promise(r=>requestAnimationFrame(r));
+      const r=D.layFall(f.n); laid=r?r.laid:0; frames++;
+    }
+    if(laid<=0) return {ok:false,got:'the spring would not lay at '+f.n+' in '+frames+' frames'};
+    /* the lip behind the crest, and the lowest ground down the fall's own line */
+    const lipC=D.landAtWorld(f.x-f.sn*D.B*2, f.z-f.cs*D.B*2);
+    let foot=1e9;
+    for(let v=0;v<=f.run;v+=Math.max(1,Math.round(f.run/40))){
+      const c=D.landAtWorld(f.x+f.sn*D.B*v, f.z+f.cs*D.B*v);
+      if(c&&c.h<foot) foot=c.h; }
+    /* ---- THE WATER'S OWN CLOCK IS DRIVEN, NOT WAITED ON ----
+       The frame loop caps dt at a fiftieth of a second, so on a software
+       rasteriser the game's clock runs at a tenth of real time and sixty
+       seconds of water would want ten minutes of this suite's day.
+       WATER.step(TICK) is the same tick the loop calls, under the same
+       budget. */
+    const census=()=>{
+      let total=0,col=0;
+      const stack=new Map();
+      for(const s of window.WATER.serialise()){
+        const i=s.lastIndexOf(':'), p=s.slice(0,i).split(',');
+        const ix=+p[0], iy=+p[1], iz=+p[2];
+        total++;
+        if(iy>foot+1){ const k=ix+','+iz, n=(stack.get(k)||0)+1;
+          stack.set(k,n); if(n>col) col=n; }
+      }
+      return {total,col};
+    };
+    const run=async secs=>{
+      const want=secs*4; let guard=0;
+      while(window.WATER.stats().ticks<want&&guard++<want*4){
+        window.WATER.step(0.25);
+        if((guard&63)===0) await new Promise(r=>requestAnimationFrame(r));
+      }
+      return census();
+    };
+    const a=await run(30), b=await run(60);
+    /* THE CEILING, and where it comes from: tools/waterprobe.js reads this
+       same fall at 347 cells, at rest, with a column 80 blocks of 109. Four
+       times that is a guard against a real regression and not against the
+       weather — the curtain that this round mended measured 5,272 and 7,287,
+       and the flood that turned the springs off measured 13,989. */
+    const CEILING=1500;
+    const faults=[];
+    if(b.col<f.drop*0.5) faults.push('the wall is dry: the tallest column is '+
+      b.col+' of a drop of '+f.drop);
+    if(b.total>CEILING) faults.push('it floods: '+b.total+' cells standing, over the '+
+      CEILING+' this fall is allowed');
+    if(b.total>a.total*1.15+20) faults.push('it is still climbing: '+a.total+
+      ' at thirty seconds and '+b.total+' at sixty');
+    return {ok:!faults.length,
+      got:f.n+' — drop '+f.drop+', '+laid+' head'+(laid===1?'':'s')+' laid · '+
+        b.total+' cells standing ('+a.total+' at thirty seconds) · tallest column '+
+        b.col+' of '+f.drop+' · lip h='+(lipC?lipC.h:'?')+', foot h='+foot+
+        (window.WATER.evapTicks()?' · the air is on':' · no evaporation')+
+        (faults.length?' · '+faults.join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

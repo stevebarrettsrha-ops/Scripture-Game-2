@@ -14949,6 +14949,28 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      open sea is wrong outright. tools/acceptance.js asks it of the falling
      waters; nothing in the game reads it. */
   landNameAt,
+  /* ---- THE SPRINGS AT THE FALLS, FOR THE MEASURING AND FOR NOTHING ELSE ----
+     tools/waterprobe.js and tools/acceptance.js drive THE GAME'S OWN laying —
+     the same laySpring updateFalls calls — rather than a private copy of it
+     that would drift from the shipped path and measure the wrong thing.
+     Nothing in the game reads any of these. */
+  setSprings:on=>{ SPRINGS_ON=!!on; return SPRINGS_ON; },
+  springsOn:()=>SPRINGS_ON,
+  fallNamed:n=>{ if(!window.WATERFALL) return null;
+    const L=WATERFALL.list(); if(!n) return L[0]||null;
+    const q=String(n).toLowerCase();
+    return L.find(f=>f.n.toLowerCase().indexOf(q)>=0)||null; },
+  /* lay one fall's spring where the traveller happens not to be. -1 means the
+     ground there is not standing yet and it must be asked again. */
+  layFall:n=>{ const f=window.__VDBG.fallNamed(n); if(!f) return null;
+    const laid=laySpring(f);
+    if(laid>0) _sprung.add(f.n);
+    return {name:f.n, laid, x:f.x, z:f.z, drop:f.drop, half:f.half, form:f.form}; },
+  unspring:()=>{ _sprung.clear(); return true; },
+  /* what block stands at a cell, by index, and whether that block is water */
+  blockAtIdx:(ix,iy,iz)=>blockAt(ix,iy,iz),
+  isLiquidN:n=>isLiquid(n),
+  CH,EY_MIN,EY_MAX,
   handSlow:()=>HAND_SLOW,
   aimFrom:(ox,oy,oz,dx,dy,dz,reach)=>{ const L=Math.hypot(dx,dy,dz)||1;
     return aimAt(ox,oy,oz,dx/L,dy/L,dz/L,reach||REACH); },
@@ -16227,52 +16249,108 @@ function placeBlock(){
    not been laid writes into a record that the mesher has already passed, so
    the spring is held until the lip is truly standing. */
 const _sprung=new Set();
-/* ---- THE SPRINGS ARE OFF, AND HERE IS THE MEASUREMENT THAT TURNED THEM OFF ----
-   Standing at three falls with the spring laid and the world let run:
+/* ---- THE SPRINGS ARE ON, AND HERE IS THE MEASUREMENT THAT TURNED THEM ON ----
+   They were off for eleven commits, and rightly: a spring laid at Niagara's
+   lip put 13,989 cells of standing water into the world, one at Multnomah
+   23,025 with 7,292 still queued, and the photograph showed the camera at the
+   foot of Niagara buried inside a solid mass of water. Shipping that to keep
+   a schedule was never a trade worth making.
 
-     Angel     lip raised h=1 -> h=111 (the tepui works), water in the
-               column 0, and 549 cells of water standing somewhere else
-     Niagara   water in the column 3, and 13,989 cells standing
-     Multnomah water in the column 2, and 23,025 cells standing, with 7,292
-               still queued to spread
+   EIGHT FAULTS lie between that reading and this one. Five were mended before
+   this round and never measured: the wall that was a ramp, the sea that took
+   nothing, the river that fed like a spring, and three faults in the level
+   rule. Three more were found by this round's own probe, and every one of
+   them by measuring rather than by looking:
 
-   TWENTY-THREE THOUSAND CELLS IS NOT A WATERFALL, IT IS A FLOOD, and the
-   picture shows it: the camera at the foot of Niagara is buried inside a
-   solid mass of water. Two faults, and both are mine:
+     THE SPRING WAS PENNED BEHIND ITS OWN LIP. A source spreads seven blocks
+     and a plunge sets its lip back seventeen, so Angel stood as a pond on a
+     mountain top with a dry cliff in front of it — 316 cells, tidy, bounded
+     and entirely wrong, the tallest column on the whole wall being TWO.
+     AN AIR CELL PULLED WATER IN out of any neighbour that could feed it,
+     which is a second way to spread that knows nothing of the weights: the
+     shortest-way-down rule was gone round the back of, and the fall came over
+     a front 82 columns wide.
+     A WAY DOWN STOPPED COUNTING once water stood in it, so a source whose own
+     way down was occupied turned and fed the lip instead.
 
-   1. THE WALL IS A RAMP. FORM.steep was meant as "1 = sheer", but the code
-      reads `wallEnd = drop / steep` — so steep:1 gives a wall that takes as
-      many blocks of ground as it drops. That is a forty-five degree slope.
-      Angel's profile proves it: 110 110 110 111 111 111 111 ... flat for the
-      whole ten blocks sampled, because its "wall" is a hundred and nine
-      blocks long. Water does not fall down a ramp; it RUNS down it, and a
-      source that runs instead of falling floods whatever is below.
+   WHAT IT MEASURES NOW — tools/waterprobe.js, sixty seconds of the water's
+   own clock at each fall, the springs laid through this very function:
 
-   2. A LINE OF SOURCES ON A PLATEAU IS A LINE OF SPRINGS. Each spreads seven
-      blocks every way and then follows every slope it finds, for ever,
-      because a source is never consumed. Niagara's lip is two hundred blocks
-      wide and got seven of them.
+     Angel        109-block plunge      347 cells, AT REST, column 80 of 109
+     Niagara        6-block cataract  2,446 cells, AT REST, the full 200-block
+                                      lip pouring in 249 columns
+     Multnomah     21-block tiered       97 cells, AT REST, column 14 of 21
+     Mosi-oa-Tunya 12-block cataract  5,990 cells, AT REST — the widest fall on
+                                      earth, 704 columns over a 288-block lip,
+                                      and it costs 1.09× the frame it stood at
+                                      dry, measured at its own foot
 
-   The mending is to make a sheer wall sheer (wallEnd of a block or two,
-   whatever the drop) and to lay ONE source that is fed rather than a line of
-   them — but that is a change to be measured, not guessed, and shipping a
-   world that floods while I work it out is not a trade worth making. The
-   rock stands cut and dry until then, which is a waterfall without water
-   rather than a country under one. */
-const SPRINGS_ON=false;
+   AT REST is the word that matters and it is not a synonym for steady: the
+   wake queue is EMPTY. The water has come down, found its level and stopped,
+   and costs nothing at all until a hand or the ground disturbs it. Against
+   13,989 and climbing, and against Minecraft's own figure of about a thousand
+   cells for seven sources on flat ground, that is a waterfall.
+
+   Acceptance test 39 stands at the tallest fall in the world and holds this
+   line: a column most of the way down the wall, under 1,500 cells standing,
+   and no more at sixty seconds than at thirty. */
+let SPRINGS_ON=true;
+/* ---- THE LAYING OF ONE FALL'S SPRING, WHICH IS ALSO WHAT THE PROBE DRIVES ----
+   Taken out of updateFalls so that tools/waterprobe.js and tools/acceptance.js
+   measure THE SHIPPED CODE PATH and not a copy of it that has drifted from it.
+   Answers how many heads it laid, or -1 for "the ground is not standing yet,
+   ask again". */
+/* ---- AND IT IS LAID AT THE CREST, WHICH IS NOT WHERE THE FALL IS CENTRED ----
+   THE FAULT, and it is measured: the spring at Angel put 316 cells of water
+   into the world and the tallest column standing anywhere on its wall was
+   TWO BLOCKS of a hundred and nine. The water never went over the cliff at
+   all — because it could not reach it.
+
+   A fall's own point is the middle of its LIP, and js/waterfall.js gives that
+   lip real ground: the shelf behind it is dished a block, and then the lip
+   itself stands proud and flat for `under × drop` blocks before the wall
+   begins — seventeen blocks of it at Angel. A source spreads SEVEN blocks and
+   stops. So the spring stood in the dish, filled it, spread its seven blocks
+   over a shelf twice that wide, and came to rest a pond on top of a mountain
+   with a dry cliff in front of it.
+
+   THE CREST is where a spring belongs, and the ground itself says where that
+   is: walk downstream from the fall's point and the crest is the LAST BLOCK
+   AT THE TOP before the ground falls away. That rule needs to know nothing
+   about forms, tiers or set-backs — a plunge sets its lip back seventeen
+   blocks and a cataract not at all, and the walk finds both. js/waterfall.js
+   still says WHERE ALONG THE LIP the heads go; this says how far forward. */
+function crestOf(f,x,z){
+  let bestV=0, bestH=-1e9;
+  const far=Math.max(4,Math.round(f.drop*0.4))+4;
+  for(let v=0;v<=far;v++){
+    const c=landAtWorld(x+f.sn*B*v, z+f.cs*B*v);
+    if(!c) break;
+    if(c.h>=bestH){ bestH=c.h; bestV=v; }
+    else if(bestH-c.h>=2) break;      /* the ground has fallen away: the crest is behind us */
+  }
+  return bestV;
+}
+function laySpring(f){
+  if(!f||!window.WATER||!window.WATERFALL) return 0;
+  const pts=WATERFALL.springs(f);
+  let laid=0;
+  for(const [x0,z0] of pts){
+    const v=crestOf(f,x0,z0);
+    const x=x0+f.sn*B*v, z=z0+f.cs*B*v;
+    const c=landAtWorld(x,z); if(!c) continue;
+    const ix=Math.floor(x/B), iz=Math.floor(z/B);
+    if(!chunks.has(Math.floor(ix/CH)+','+Math.floor(iz/CH))) return -1;   /* not built yet — wait */
+    if(WATER.spill(ix,c.h,iz)) laid++;
+  }
+  return laid;
+}
 function updateFalls(px,pz){
   if(!SPRINGS_ON||!_fallsOn||!window.WATER||!window.WATERFALL) return;
   const near=WATERFALL.nearest(px,pz,700);
   if(!near||_sprung.has(near.n)) return;
-  const pts=WATERFALL.springs(near);
-  let laid=0;
-  for(const [x,z] of pts){
-    const c=landAtWorld(x,z); if(!c) continue;
-    const ix=Math.floor(x/B), iz=Math.floor(z/B);
-    if(!chunks.has(Math.floor(ix/CH)+','+Math.floor(iz/CH))) return;   /* not built yet — wait */
-    if(WATER.spill(ix,c.h,iz)) laid++;
-  }
-  if(laid){ _sprung.add(near.n);
+  const laid=laySpring(near);
+  if(laid>0){ _sprung.add(near.n);
     if(window.console) console.info('the voyage: the spring is laid at '+near.n+' ('+laid+' heads)'); }
 }
 

@@ -84,12 +84,12 @@ const FALL_M_PER_BLOCK=9;        /* and a fall's own */
    (`under`), how steep the wall falls (`steep`, 1 = sheer), and how the
    channel's width changes from lip to foot (`flare`). */
 const FORM={
-  plunge  :{under:0.16, steep:1.00, flare:0.9,  pool:1.5},
-  horsetail:{under:0.02, steep:0.92, flare:1.0, pool:1.1},
-  cataract:{under:0.05, steep:1.00, flare:1.2,  pool:1.8},
-  tiered  :{under:0.00, steep:0.70, flare:1.1,  pool:1.3},
-  fan     :{under:0.04, steep:0.88, flare:1.9,  pool:1.6},
-  chute   :{under:0.10, steep:1.00, flare:0.45, pool:1.4}
+  plunge  :{under:0.16, steep:1.00, flare:0.9,  pool:1.5, heads:1},
+  horsetail:{under:0.02, steep:0.92, flare:1.0, pool:1.1, heads:1},
+  cataract:{under:0.05, steep:1.00, flare:1.2,  pool:1.8, heads:0},
+  tiered  :{under:0.00, steep:0.70, flare:1.1,  pool:1.3, heads:0},
+  fan     :{under:0.04, steep:0.88, flare:1.9,  pool:1.6, heads:0},
+  chute   :{under:0.10, steep:1.00, flare:0.45, pool:1.4, heads:1}
 };
 
 function load(list,kit){
@@ -234,9 +234,45 @@ function channelAt(x,z){
    the wall, spreads it at the foot and keeps it running for as long as the
    source stands — which is what a spring IS. A wide cataract gets a source
    every few blocks along its lip instead, or Victoria would be a trickle. */
+/* ---- HOW MANY HEADS A LIP IS GIVEN, AND THE FORM DECIDES IT ----
+   MEASURED, at three falls, both ways, with tools/waterprobe.js:
+
+     Angel     one head    347 cells, at rest, 7 columns of a lip 26 wide
+               a line     2697 cells, at rest, 55 columns
+     Niagara   one head     90 cells, at rest, 5 columns of a lip 200 wide
+               a line       653 cells, at rest, 44 columns
+     Multnomah one head     83 · a line 97 — the lip is narrow, so it is the
+               same fall either way
+
+   Both are bounded and both come to REST, so cost does not decide it: the
+   LOOK does, and the form table above already holds the answer. A `cataract`
+   is "a wide wall of water over a long straight lip" — one head gives Niagara
+   five columns of water on a lip two hundred blocks wide, which is a leak in a
+   dam, not Niagara. A `plunge` is "one clean column... Angel, Yosemite Upper,
+   Gocta" — a line gives Angel a curtain fifty-five columns wide, which is a
+   dam spilling, not a thread off a tepui.
+
+   So `heads` is a field of the FORM, like `steep` and `pool`: 1 for the forms
+   that fall as one body, 0 for the forms that fall across their whole lip.
+
+   AND THE HEADS OF A LINE STAND A SOURCE'S REACH APART. A source spreads
+   SEVEN blocks and no further, so heads spaced further than that leave dry
+   rock between them: Niagara's seven heads at thirty-three blocks apart came
+   down as seven separate ribbons. Seven blocks apart is the widest spacing
+   that still comes down as one sheet.
+
+   tools/waterprobe.js overrides it — 1 one head, 0 the line — and -1 gives it
+   back to the form, which is what the game runs. */
+const HEAD_REACH=7;             /* how far a source spreads, and so how far apart heads stand */
+let HEADS=-1;                   /* -1 as the form says · 1 one head · 0 a line */
 function springs(f){
   const out=[];
-  const step=Math.max(1,Math.round(f.half/3));
+  const one=HEADS===1?true:HEADS===0?false:(f.F.heads===1);
+  if(one){
+    out.push([f.x,f.z]);
+    return out;
+  }
+  const step=Math.max(1,Math.min(HEAD_REACH,Math.round(f.half/3)));
   for(let u=-f.half;u<=f.half;u+=step){
     const x=f.x+( u*K.B)*f.cs+(0)*f.sn;
     const z=f.z+(-u*K.B)*f.sn+(0)*f.cs;
@@ -258,5 +294,7 @@ function nearest(x,z,within){
 }
 
 window.WATERFALL={ load, heightAt, channelAt, springs, woodAt, nearest,
+  /* for tools/waterprobe.js, and read by nothing in the game */
+  setHeads:n=>{ const v=n|0; HEADS=(v===1||v===0)?v:-1; return HEADS; }, heads:()=>HEADS,
   list:()=>FALLS, count:()=>FALLS.length, FORM };
 })();

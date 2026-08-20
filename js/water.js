@@ -87,15 +87,35 @@ const FALLING=8;       /* fed from above: drawn full, spreads at 1 when it lands
    And the two rules answer different halves of the same thing: the sea takes
    what reaches it AT ONCE, which is what a river mouth does, and the air
    takes what stops moving, which is what a puddle does. */
-/* ---- AND WHETHER THE AIR TAKES IT AT ALL ----
+/* ---- AND WHETHER THE AIR TAKES IT AT ALL: IT DOES NOT, AND HERE IS WHY ----
    Minecraft's water NEVER evaporates, and that is not an oversight: with the
    level rule kept properly, water does not need to be taken away, because it
-   never grows past seven blocks from its source in the first place. This was
-   added when the level rule was broken and the water was running away at
-   forty times its proper rate — that is, it was added to hide a bug.
-   Now the bug is mended, so it is put to the question: 0 turns the air off
-   and the water is bounded by its own levels alone, as in the game. */
-let EVAP_TICKS=14;              /* about three seconds of standing still; 0 = never */
+   never grows past seven blocks from its source in the first place. The air
+   was added here when the level rule was broken and the water was running
+   away at forty times its proper rate — that is, it was added to hide a bug.
+
+   THE BUG IS MENDED, AND THE AIR WAS PUT TO THE QUESTION. Three falls, both
+   ways, one head at each, sixty seconds of the water's own clock
+   (tools/waterprobe.js):
+
+                     the air on      the air off
+     Angel            333 cells       347, AT REST
+     Niagara           81             90, AT REST
+     Multnomah         78             83, AT REST
+
+   FIVE CELLS IN A HUNDRED, and it costs the one thing worth having: with the
+   air on, no fall in the world ever comes to rest. A standing cell wakes
+   itself every tick to be counted toward its drying, so the queue never
+   empties and a waterfall nobody is looking at goes on being worked for as
+   long as the game runs — and 227 cells of a LIVING fall were taken into the
+   air in that minute, which is a stream drying in mid-run. With it off, every
+   fall measured settled and STOPPED: nothing queued, nothing moving, no work
+   at all until a hand or the ground disturbs it.
+
+   So it is off, and it stays here because a storm surge over a shore is the
+   one case that may yet want it: water thrown a mile inland by a wave has no
+   channel to run down and no sea within reach. WATER.setEvap turns it on. */
+let EVAP_TICKS=0;               /* 0 = never; 14 is about three seconds of standing still */
 const REST=new Map();           /* how long each cell has stood unchanged */
 
 /* how often the water moves, and how much of a frame it may have */
@@ -127,6 +147,27 @@ function isWater(ix,iy,iz){ return K.isLiquid(K.blockAt(ix,iy,iz)); }
 /* a cell water may run into: empty air, and nothing else. It does not wash
    away what a hand has built, and it does not eat the world's own rock. */
 function open(ix,iy,iz){ return K.blockAt(ix,iy,iz)===0; }
+/* ---- AND A CELL WATER MAY RUN THROUGH, WHICH IS NOT THE SAME THING ----
+   THE FAULT: `open` means AIR, and the weight of a way out was reckoned with
+   it — so the moment the cell over the edge held the water the source had
+   just given it, the way down stopped counting as a way down at all. Its
+   weight went to infinity, the ways ALONG the lip won by default, and the
+   source turned and fed the lip instead, seven blocks each way, every one of
+   those cells pouring over the edge in its turn.
+
+   Water flowing down its own channel is not a wall. A cell already holding
+   water is a cell water RUNS THROUGH, and the rule this file keeps elsewhere
+   already says so: "water already standing below you is still the way down".
+   That is now kept when the ways are weighed as well as when the fall is
+   taken, and the two agree.
+
+   MEASURED, at Angel, everything else being equal:
+
+     air alone counts as a way down    1,693 cells, 29 falling columns
+     water counts too                    347 cells,  7 falling columns
+
+   Five times the water and four times the front, from one word. */
+function flowable(ix,iy,iz){ const n=K.blockAt(ix,iy,iz); return n===0||K.isLiquid(n); }
 
 function wake(ix,iy,iz){
   if(iy<K.EY_MIN||iy>=K.EY_MAX) return;
@@ -245,13 +286,13 @@ function reachedTheSea(iy){ return K.seaBlock!==undefined&&iy<K.seaBlock; }
    a cell that is actually about to spread. Nothing else in the world pays. */
 const FLOW_SEARCH=4;
 function wayDown(ix,iy,iz,depth,back){
-  if(open(ix,iy-1,iz)) return depth;          /* here it could fall */
+  if(flowable(ix,iy-1,iz)) return depth;      /* here it could fall — or is already falling */
   if(depth>=FLOW_SEARCH) return 1000;
   let best=1000;
   for(let d=0;d<4;d++){
     if(d===back) continue;                    /* never straight back the way it came */
     const q=DIR[d], tx=ix+q[0], tz=iz+q[1];
-    if(!open(tx,iy,tz)) continue;
+    if(!flowable(tx,iy,tz)) continue;
     const w=wayDown(tx,iy,tz,depth+1,(d+2)&3);
     if(w<best) best=w;
   }
@@ -288,13 +329,33 @@ function visit(ix,iy,iz){
      a hand has taken it up, or a block was laid in it. Forget it. */
   if(lev!==null&&!here){ LEV.delete(key(ix,iy,iz)); wakeAround(ix,iy,iz); return; }
 
-  /* (b) not our water at all, and nothing to do but tell the neighbours it
-     is there — a hollow beside a stream is a place the stream may go */
+  /* (b) not our water at all — an empty cell, or a hollow a hand has dug
+     beside a stream. It TELLS THE WATER BESIDE IT that it is here, and the
+     water decides for itself whether it may come.
+
+     ---- AND IT DOES NOT PULL THE WATER IN, WHICH IT USED TO ----
+     THE FAULT, and it is measured: a spring at Angel's crest painted a
+     CURTAIN a hundred and twenty-two columns wide down a thousand-metre
+     cliff, five and seven thousand cells of it, where a plunge fall wants ONE
+     column of a hundred and nine.
+
+     This asked `wants` of the empty cell and filled it if anything beside it
+     could feed it — which is a SECOND way for water to spread, and one that
+     knows nothing of the weights. So the whole of the shortest-way-down rule
+     in (e) — the rule that makes a stream a stream instead of a sheet — was
+     being gone round the back of by every air cell in the world: the source
+     stood at the crest, the cells along the lip pulled themselves full out of
+     it a level at a time, and the fall poured over a front seven blocks each
+     way instead of over its own notch.
+
+     The water beside it is WOKEN instead, and it spreads or does not spread
+     by (e), where the ways out are weighed. Nothing is lost by this: the
+     hollow is still filled the next tick if the stream may go there. */
   if(lev===null){
     if(!here&&K.blockAt(ix,iy,iz)===0){
-      /* an empty cell: does anything above or beside it feed it? */
-      const w=wants(ix,iy,iz);
-      if(w!==null&&w<=THINNEST) put(ix,iy,iz,w);
+      for(let d=0;d<4;d++){ const q=DIR[d];
+        if(isWater(ix+q[0],iy,iz+q[1])) wake(ix+q[0],iy,iz+q[1]); }
+      if(isWater(ix,iy+1,iz)) wake(ix,iy+1,iz);
     }
     return;
   }
@@ -340,7 +401,7 @@ function visit(ix,iy,iz){
     let best=1000;
     for(let d=0;d<4;d++){
       const q=DIR[d], tx=ix+q[0], tz=iz+q[1];
-      if(!open(tx,iy,tz)){ _w[d]=1e9; continue; }
+      if(!flowable(tx,iy,tz)){ _w[d]=1e9; continue; }
       _w[d]=wayDown(tx,iy,tz,1,(d+2)&3);
       if(_w[d]<best) best=_w[d];
     }
@@ -350,7 +411,14 @@ function visit(ix,iy,iz){
       if(_w[d]!==best) continue;
       const q=DIR[d], tx=ix+q[0], tz=iz+q[1];
       const cur=levelAt(tx,iy,tz);
-      if(cur===null||cur>out){ put(tx,iy,tz,out); gave=true; }
+      /* it is WEIGHED through water and it is POURED only into air or into
+         water of ours that is thinner than what is offered. The world's own
+         water — a river, a trough — is a way through and never a place to
+         put anything: that is the same promise kept at the waterline. */
+      /* and never into a cell that is FALLING: that one is fed from above,
+         it is full by right, and thinning it only for it to be made full
+         again next tick is a cell that never stops being worked */
+      if(open(tx,iy,tz)?true:(cur!==null&&cur!==FALLING&&cur>out)){ put(tx,iy,tz,out); gave=true; }
     }
   }
   /* ---- AND IF IT GAVE NOTHING AND WENT NOWHERE, IT IS AT REST ----
