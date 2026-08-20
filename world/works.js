@@ -133,6 +133,19 @@ EARTH.work({
           ref:'BERĔSHITH 11:3' }
 });
 
+/* --- A BUCKET — fired clay, and the one vessel this world needs by name ---
+   A man carries water in something. Every other way of moving it — a channel
+   cut, a spring at a lip, a storm over a wall — the world does for itself; this
+   is the only one that is HIS, and it is a jar of baked clay because that is
+   what a man of that country carried water in. The account is full of them at
+   wells. */
+EARTH.work({
+  id:'bucket', name:'A Bucket', at:'kiln',
+  of:{ 'clay-band':3 }, gives:{ 'bucket':1 },
+  verse:{ t:'And she hurried and emptied her jar into the trough, and ran back to the well to draw water, and she drew for all his camels.',
+          ref:'BERĔSHITH 24:20' }
+});
+
 /* --- ROOF TILE — the same clay, and the same fire --- */
 EARTH.work({
   id:'roof-tile', name:'Bake Roof Tile', at:'kiln',

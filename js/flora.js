@@ -125,6 +125,13 @@ let EVER=true;
    smooth. That way the whole earth is barked by adding one table, and a
    species that wants its own says so in its own line, where a reader sees it
    beside its leaf colour. Nothing here knows a species by name. */
+/* THE A/B SWITCH, as the leaf and the boughs each have one: off, every bole in
+   the world wears the one grey bark and tints it, which is exactly how it
+   stood before §2.4.3. Six patterns are six MATERIALS and six materials are
+   six draw calls a chunk, and a price is measured and not assumed — see AUDIT
+   Round 59, which is that measurement and is the only reason this switch
+   exists. */
+let BARK=true;
 const BARK_MAT={paper:'barkPaper', ring:'barkRing', plate:'barkPlate',
   twist:'barkTwist', cork:'barkCork', smooth:'barkSmooth', bark:'barkW'};
 const BARK_FORM={palm:'ring', fern:'ring', banana:'ring', bamboo:'ring',
@@ -267,12 +274,57 @@ function fruitOn(kit,K,x,z,y0,y1,r,S){
     emitBox(kit.G, fx-s,fy-s,fz-s, fx+s,fy+s,fz+s, M.solid,M.solid,M.solid, K._fruit);
   }
 }
-/* a bole, tapering or straight */
+/* ---- A BOLE, TAPERING OR STRAIGHT — AND IT IS BLOCKS ----
+   Every other thing this file draws is geometry merged into the chunk, which
+   is right: nobody asked to mine a leaf, and a canopy of blocks is a different
+   and much dearer world. But A TREE IS FELLED. `blocks/log.js` and
+   `blocks/flint-axe.js` have both stood since Phase 4 — Timber that drops to
+   an axe, and an axe written to fell it — with nothing in the world for the
+   axe to bite, because every bole was a merged box and the blow went through
+   it.
+
+   So the trunk asks for `kit.bole`, which stamps it into the structure layer
+   where the mesher draws it and the hand can break it. The engine's own
+   MAT_BLOCK has sent every bark to `log` since §2.4.3 against this very day.
+
+   TWELVE FORMS COME THROUGH HERE and are felled. The few that build their own
+   stem inline — the bamboo's culms, the mangrove's stilts, the banana's false
+   stem, which are not a bole in the sense an axe means — are left as geometry
+   and are named in AUDIT Round 61 rather than quietly missed.
+
+   ---- AND IT IS NOT SWITCHED ON, FOR A REASON THE TEST FOUND ----
+   The door is built and the tree is not yet sent through it. Two things came
+   out of trying it, and both are about WHEN a stamp lands rather than whether
+   it works:
+
+   1. THE FIRST BUILD OF EVERY CHUNK WOULD BE TRUNKLESS. `buildChunk` gathers
+      the chunk's edits ONCE at the top and then meshes; a bole stamped during
+      that mesh pass lands in the layer AFTER the gathering, so the build that
+      stamped it cannot draw it. The trunks appear on the remesh the stamp
+      marks — a frame or several later. Acceptance test 41 measured it as
+      63,466 triangles of difference between two builds of the same wood,
+      which is the trunks of a whole view arriving late.
+   2. AND THE BOLE WOULD LOSE ITS BARK. Blocks are drawn from the block table,
+      which has one texture for Timber; §2.4.3's six barks and the per-species
+      tint live on the material a mesh is drawn with. `MAT_BLOCK` sends every
+      bark to `log` on purpose — "to the pick they are all log" — and that is
+      right for BREAKING and is a real loss to the EYE.
+
+   Neither is a reason not to do it; both are reasons it is a round of its own
+   and not a line. The stamp wants to run BEFORE the chunk gathers its edits —
+   a pass over the columns that grow trees, which the builder already walks —
+   and the bark wants either a Timber block per bark pattern (six more blocks,
+   and a stack of timber that no longer stacks) or a tint the block table has
+   no room for. AUDIT Round 61 carries the whole of it. */
 function bole(kit,K,x,z,yT,h,w){
-  const BK=K._bark||kit.M.bark;   /* §2.4.3 — this kind's own bark */
+  const BK=(BARK&&K._bark)||kit.M.bark;   /* §2.4.3 — this kind's own bark */
   const {emitBox,M}=kit;
+  if(kit.bole&&BOLE_BLOCKS){ kit.bole(x-w,yT,z-w, x+w,yT+h,z+w, BK); return; }
   emitBox(kit.G, x-w,yT,z-w, x+w,yT+h,z+w, BK,BK,null, K._bole);
 }
+/* off until the two things above are answered — and it is a switch rather
+   than a deletion so that the next round begins where this one stopped */
+let BOLE_BLOCKS=false;
 
 /* ============================================================
    THE BOUGHS — §2.4.1, and the reason every wood looked the same
@@ -324,7 +376,7 @@ let BOUGHS=true;
    already had, so a branched tree occupies the same room an unbranched one
    did. What changes is its SHAPE, which was the point. */
 function boughsOn(kit,K,x,z,yB,tw,rad,ix,iz,out){
-  const BK=K._bark||kit.M.bark;   /* §2.4.3 — this kind's own bark */
+  const BK=(BARK&&K._bark)||kit.M.bark;   /* §2.4.3 — this kind's own bark */
   const {emitBox,hash,M}=kit;
   const n=3+(hash(ix*0.41+3.7,iz*0.53-2.9)>0.52?1:0);
   const a0=hash(ix*0.77-1.1,iz*0.29+4.3)*6.283;
@@ -356,7 +408,7 @@ function leafOnBoughs(kit,K,tips,rad,lm,LF){
 }
 
 function emitTree(kit,K,ix,iz,cc){
-  const BK=K._bark||kit.M.bark;   /* §2.4.3 — this kind's own bark */
+  const BK=(BARK&&K._bark)||kit.M.bark;   /* §2.4.3 — this kind's own bark */
   const {emitBox,hash,M}=kit;
   const x=(ix+0.5)*B, z=(iz+0.5)*B, yT=cc.h*B;
   /* a long tail toward the giants: most are middling, a few tower */
@@ -627,7 +679,7 @@ function emitTree(kit,K,ix,iz,cc){
    THE LOW GROWTH — bushes, herbs, canes, pads and rosettes
    ============================================================ */
 function emitPlant(kit,K,ix,iz,cc){
-  const BK=K._bark||kit.M.bark;   /* §2.4.3 — this kind's own bark */
+  const BK=(BARK&&K._bark)||kit.M.bark;   /* §2.4.3 — this kind's own bark */
   const {emitBox,cross,hash,M}=kit;
   const x=(ix+0.5)*B, z=(iz+0.5)*B, yT=cc.h*B;
   const s=hash(ix*1.31-4.4,iz*1.77+8.1);
@@ -704,7 +756,7 @@ function emitPlant(kit,K,ix,iz,cc){
    no stem at all (which is exactly how a palm begins), and everything else
    as a stem with a leafy head on it. */
 function emitSapling(kit,K,ix,iz,cc){
-  const BK=K._bark||kit.M.bark;   /* §2.4.3 — this kind's own bark */
+  const BK=(BARK&&K._bark)||kit.M.bark;   /* §2.4.3 — this kind's own bark */
   const {emitBox,hash,M}=kit;
   const x=(ix+0.5)*B, z=(iz+0.5)*B, yT=cc.h*B;
   const s=hash(ix*1.7+5.5,iz*2.3-9.9);
@@ -779,6 +831,15 @@ window.FLORA={
      replaced in ONE page — geometry has to be measured, not asserted */
   boughed:()=>BOUGHED,
   boughsOn:v=>{ if(v!==undefined) BOUGHS=!!v; return BOUGHS; },
+  /* the bark each kind wears, and the switch that sets six barks beside the
+     one they replaced in a single page — a material is a draw call, and a
+     draw call is measured and not assumed */
+  barkOf:n=>{ const K=D.kinds[n]; return K?K._bark:null; },
+  barkOn:v=>{ if(v!==undefined) BARK=!!v; return BARK; },
+  barkKinds:()=>BARK_MAT,
+  /* the boles as blocks: built, measured, and not yet switched on — see the
+     note beside `bole` and AUDIT Round 61 */
+  boleBlocks:v=>{ if(v!==undefined) BOLE_BLOCKS=!!v; return BOLE_BLOCKS; },
   /* the four grey things everything in the world is drawn with. The engine
      mints them; this file only ever names them. */
   MATERIALS:['leaf','bark','plant','solid'],

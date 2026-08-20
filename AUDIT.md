@@ -4392,6 +4392,655 @@ floating around the sun and moon" was the two FACES overlapping inside them, and
 with one face there is nothing left to overlap. The round pair is left in the
 file, dark and never drawn, so the reason it was tried is not lost with it.
 
+## 4bd. Round 57 — the falls measured at last: what the water costs, and the one thing still in the way
+
+The round before this left a `?` in its own table and a question written into
+the file: *"the next measurement runs the same spring at Niagara twice, once
+each way. If the two numbers are close the air is doing nothing and should go."*
+This is that measurement, and it turned up two faults nobody had reported.
+
+### How it was measured, because the method is half the finding
+
+Waiting on frames measures the RASTERISER. The flow moves at four ticks to the
+second and takes at most 1.2 ms of a frame; under SwiftShader a frame is the
+better part of a second, so a fall that needs six hundred ticks to settle needs
+**half an hour of wall clock** to be watched that way — and the first two
+attempts at this measurement were killed by their own timeouts having printed
+nothing at all. `WATER.step(0.25)` is exactly one tick with exactly the budget
+the game gives it: same queue, same order, same millisecond. The same six
+hundred ticks then cost **twenty-three seconds**.
+
+The second thing that made it cheap: **the water does not need the mesher.**
+`blockAt` answers procedurally whether a chunk has been built or not, and
+js/water.js reads nothing else — so the whole flow runs correctly at a fall on
+the other side of the world from the eye, and the three or four minutes a
+software rasteriser spends meshing a rainforest are not spent at all.
+
+**And the flow is not deterministic**, which is worth writing down: the queue is
+worked under a WALL-CLOCK budget, so a busier machine visits fewer cells per
+tick and settles somewhere slightly different. Multnomah read 3,815 on one run
+and 2,914 on another with identical rules. Every number below is a reading, not
+a constant, and the acceptance test is written to bound them rather than match
+them.
+
+### 1. The air was doing nothing, and was charging for it
+
+The same three falls, run twice, once each way:
+
+| fall | standing, air on | air off | queue on | queue off |
+|---|---|---|---|---|
+| Niagara | 7,121 | 7,197 | 3,792 | 278 |
+| Multnomah | 3,875 | 3,815 | 2,041 | 290 |
+| Angel | 533 | 549 | 562 | 0 |
+
+**The standing total is the same to within a hundredth or two.** It is the
+LEVELS that bound the water — seven blocks from a source and no further — and
+the air was contributing nothing whatever to the shape of it. What it *was*
+doing is the last two columns: it dried cells that were refilled the next tick,
+and every drying and every refilling wakes six neighbours, so the queue never
+emptied and the flow paid its whole millisecond of every frame **for ever**, at
+falls the traveller had long since walked away from. Angel is the plainest case
+— a still puddle on a tabletop with 562 cells awake in perpetuity, and **not one
+awake with the air off**.
+
+It was added, by my own note in the file, "to hide a bug". The bug is mended and
+the air is gone.
+
+### 2. THE TALLEST FALL ON EARTH WAS DRY, and the cell count said it was the best-behaved of them
+
+Angel: 549 cells standing, **shaft 0**, furthest cell nineteen blocks from the
+head. Not one drop went over the brink. A round that had only counted cells
+would have called that the tidiest fall in the world and shipped it.
+
+`heightAt` holds the lip proud for the whole of `under × drop` — which is what
+an OVERHANG is, and it is the making of a plunge fall. `springs()` laid the
+heads at v = 0. For Angel that is **seventeen blocks upstream of the brink**,
+and water reaches seven blocks from a source. It never came within ten blocks of
+the edge.
+
+Niagara (`under` 0.05 of a six-block drop) and Multnomah (tiered, `under` 0) were
+untouched by this — their brink already *was* v = 0, which is exactly why those
+two poured and Angel did not, and why the fault survived a round of measuring
+the other two. The head goes at the brink now. Angel: **549 cells and nothing
+over the edge → 24,674 cells and a curtain a hundred and nine blocks deep.**
+
+### 3. A PLUNGE POOL WAS A PERPETUAL-MOTION MACHINE — and the new test found it
+
+Acceptance test 39 was written to assert three things, and the third — *take the
+head away and the stream unwinds* — failed on its first run: **Krimml kept 2,787
+cells of 4,485 standing for ever with no source anywhere in the world.** Angel
+kept 1%, Iguazu 4.8%, Krimml sixty-two.
+
+`wants` read *"is there water above me? then I am FALLING"* — any water at all.
+So every cell of a body two or more blocks deep was FALLING; FALLING is a full
+block; and a FALLING cell with solid ground under it counts as a SOURCE to its
+four sides. **A filled basin was therefore a ring of little springs feeding each
+other in a circle, needing nothing and draining never** — and the plunge pool,
+the very shape the round before this one was built to make, is the commonest
+such basin in the world.
+
+**Falling comes DOWN FROM A SOURCE.** A cell is falling if what stands over it
+is a SOURCE or is itself FALLING — never merely because water lies on it. A real
+column is falling the whole way down and its pool with it, because the chain
+runs unbroken to the spring at the head; a pool with nothing coming into it is
+ordinary levelled water, which thins from the edge and goes. **Test 39 now
+drains all three of its falls to zero cells.**
+
+**And it cost the curtain, which is written down rather than hidden.** The old
+rule spread water along the brink of its own accord, so the whole breadth
+poured; without it, seven heads make seven threads. Angel fell from 24,556 cells
+to 908. **A head every other block was tried and taken back out**: it gives the
+volume back (Iguazu 12,738) and it will not unwind — with the hundred heads
+taken up the water went on *growing*, and the fall measured after it inherited a
+lake. That is not understood yet, and a fall that cannot be turned off is worse
+than a fall that is thin, so it stands at seven heads until it is.
+
+### 4. What the four falls now cost, and that they stay where they are put
+
+| fall | form | drop | standing | furthest | its own gorge |
+|---|---|---|---|---|---|
+| Niagara | cataract | 6 | 2,298 | 112 | 129 |
+| Mosi-oa-Tunya | cataract | 12 | 1,534 | 154 | 184 |
+| Angel | plunge | 109 | 908 | 28 | 269 |
+| Multnomah | tiered | 21 | 124 | 8 | 63 |
+
+**Not one of them leaves the gorge it cut.** The flood that turned the springs
+off was 13,989 cells at Niagara and 23,025 at Multnomah *and still climbing when
+the reading was taken*; Multnomah is a hundred and twenty-four cells now.
+
+### 5. Forty-odd per cent of the water was being drawn inside itself
+
+Water leaves the greedy mesher and emits its own box, and it emitted **all four
+side faces whatever stood against them** — including faces pressed against solid
+rock and faces buried inside a column of water.
+
+Rock now hides a face entirely and water hides as much of it as it stands up to,
+which also draws the step where a thinner block stands beside a fuller one:
+
+| fall | faces before | after | struck off |
+|---|---|---|---|
+| Niagara | 10,714 | 6,149 | 43% |
+| Mosi-oa-Tunya | 7,212 | 4,387 | 39% |
+| Angel | 4,198 | 2,253 | 46% |
+| Multnomah | 544 | 306 | 44% |
+
+Measured against the water as it *now* stands, which is thin. Against the water
+as it stood before the pool rule — a genuine curtain — the same change struck
+off **85% of Angel's hundred thousand faces** and about 64% of the other three,
+which is the number that matters for whenever the curtain comes back.
+
+### 6. And the springs are STILL off — for a reason nobody had measured
+
+A fall that has settled is not still. It is a FLOW, and a flow at equilibrium is
+water arriving, falling, landing and being taken by the sea at the same rate.
+Over two hundred ticks *after* the standing total stopped moving:
+
+| fall | standing | blocks laid | blocks taken up |
+|---|---|---|---|
+| Niagara | 3,284 | 9,620 | 10,261 |
+| Angel | 863 | 11,696 | 11,676 |
+
+**Eleven thousand writes to hold eight hundred cells still.** Every one goes
+through the engine's `setBlock`, and `setBlock` marks the chunk for the SAVE and
+re-arms the 900 ms writer. So the springs as they stand would have **every fall
+the traveller has ever walked past writing the world to the disc every 900 ms
+for the rest of the voyage**, and would file a waterfall in the record of *what
+hands have done*, which is not what it is. Note that thinning the water did not
+help this at all — Angel holds a thirtieth of the cells it held before the pool
+rule and does twice the writing, because what is being counted is the FLOW and
+not the pond.
+
+**The next step is one step, and the engine already has the pattern for it.**
+`SEDITS` is the structures' layer — "derived, dropped, never written down".
+The flow wants the same: a hand's own source is a deed and belongs in the save;
+the water that runs out of it is derived, is never written, and re-establishes
+from the source in the two or three minutes these traces show. Then
+`SPRINGS_ON` is `true` and the falls of the earth run.
+
+### 7. Acceptance test 39, and the two faults it found in itself first
+
+`a spring at a fall pours over the brink, stays at the fall, and drains when it
+is taken up` — three falls chosen **by form and not by name** (the tallest
+plunge, the widest cataract, the tallest tiered stair, taken out of the data so
+that adding a fall cannot make the test stale). It asserts that water stands in
+the shaft between lip and foot (the dry-fall fault), that nothing stands outside
+the fall's own claim (the flood), that the total settles, and that taking the
+heads up unwinds the stream — which is both the third assertion and the cleaning
+up of a fall's water, which no later test wants in its world.
+
+**It reported a fault that was its own.** The first run had Iguazu throwing water
+five thousand seven hundred blocks — which was ANGEL, a continent away, left over
+from the fall measured before it, because `WATER.serialise()` is the whole
+world's water and not this fall's. What stood before each spring is set aside
+now, and only what that spring put into the world is judged.
+
+**And it called a live flow "climbing".** The tip of a falling column flickers by
+a dozen cells from tick to tick; a tolerance of one per cent of nine hundred is
+nine cells, so Angel was reported as never settling through four thousand ticks
+of standing perfectly still. Twenty cells, or two per cent, whichever is wider.
+
+Final run: `Salto: 817 cells, 78 in the shaft, 28 blocks at furthest (of 269),
+drained to 0 · Iguazu: 2441 cells, 610 in the shaft, 233 (of 261), drained to 0 ·
+Krimml: 332 cells, 40 in the shaft, 10 (of 110), drained to 0`.
+
+### 8. And one red test that is not this round's, said out loud rather than left
+
+Tests 19, 22 and 39 pass. **Test 38 — the voyage's own hand: a blow breaks, the
+drop is taken up, it lays back — FAILS**, with *"the blow did not break Sapphire
+in 25s — and never ran at all"*. It was put to a worktree at the commit before
+any of this round's changes and **it fails there identically**, so it is not the
+water's doing and it is not fixed here. It is the hand a player actually plays
+with, the same chain Round 55 was called out to mend, and it wants a round of its
+own. It is written here so that the next reader finds it rather than the
+player.
+
+## 4be. Round 58 — the flow gets a layer of its own, and the falls of the earth run
+
+Round 57 ended with the springs still off and one thing in the way, named
+precisely: a settled waterfall lays and takes up eleven thousand blocks every
+fifty seconds simply to stand still, every one of them through `setBlock`, which
+marks its chunk for the SAVE and re-arms the 900 ms writer. **This is that one
+step, and `SPRINGS_ON` is now `true`.**
+
+### The layer, and why it is the third and not the second
+
+The engine already had two: the player's own EDITS ("not derivable from
+anything, the only record of him, authoritative") and the structures' SEDITS
+("derived, dropped, never written down"). Running water is plainly the second
+kind — a fall is worked out again from its spring exactly as a village is worked
+out again from its site — so `WEDITS` is that, for the flow.
+
+**The order is not simply "third", and getting it wrong would have been
+invisible until somebody dug a channel.** Water stands in AIR: it may never hide
+a hand's block or a village wall, but it MUST show in a channel a hand has dug —
+and a dug cell is a `0` written in the player's own layer. So the rule is: a
+NON-ZERO block of either layer above beats water, and water beats a `0`. And
+because water shows only through air, a block laid where water runs takes the
+cell from it outright — otherwise the stone would merely HIDE the stream, and
+breaking the stone later would let out a puddle nobody had poured.
+
+Three readers had to learn the third layer, not one: `editAt` (which is what
+`blockAt` answers with, so collision, the hand and the traveller's feet all
+follow from it), `editColumn` (the mesher's per-column edits) and the chunk
+builder's own `chunkEdits`. Missing the second or third would have given water
+that a man falls through, or water nobody can see.
+
+### What is still a deed, because a bucket is not a waterfall
+
+A source a HAND laid goes in the record as it always did — it is a thing the
+traveller DID and nothing can work it out again. The flow that runs out of it is
+derived and is not written. `js/water.js` therefore has two doors now
+(`setBlock` for the flow, `setDeed` for a hand's source) and a `DEED` set of the
+handful of cells that came in by hand.
+
+**And the load is the neat half of it**: since flowing water is never written,
+every water block in a save is BY CONSTRUCTION a source somebody poured, so the
+boot spills them again as sources and the stream finds its own shape in the
+first minute — the same minute the ground it runs over is being laid.
+
+### The measurement: the same falls, the same two hundred ticks
+
+Round 57, through the record: Angel laid 11,696 blocks and took up 11,676, and
+every one armed the writer. Now:
+
+| fall | standing | blocks laid | taken up | THE RECORD MOVED BY | writer's queue |
+|---|---|---|---|---|---|
+| Niagara | 3,423 | 10,893 | 10,730 | 1 cell | 13 → 13 |
+| Angel | 811 | 14,933 | 14,943 | 1 cell | 3 → 3 |
+| Multnomah | 132 | 7,168 | 7,168 | 12 cells | 1 → 1 |
+
+**The writer's queue does not move at all.** Thirty-three thousand blocks of
+water go past and the record moves by fourteen cells in total — and those are
+the world's own doings elsewhere (a bank of sand coming down, a village laying a
+wall), not the water, which is proved cell by cell rather than by the total:
+acceptance test 40 asks of every one of the 2,698 cells of a running Iguazu
+whether it is in the record, and **none of them is**.
+
+### Acceptance test 40, and what it asks that a total cannot
+
+`a running fall writes nothing into the record, and a hand's own source writes
+itself`. Two things must be true and they pull against each other:
+
+1. **A fall runs and the record does not move** — asked per cell, because a
+   TOTAL cannot answer it. The world does other things while a fall runs and
+   those are records rightly kept; the question is whether any cell OF THE FLOW
+   is in the record. Of 2,698, none.
+2. **The water is still there** — a layer nobody can see is not a fix, it is a
+   deletion. All 2,698 cells answer as water at `blockAt`, which is the one door
+   the mesher, the collision and the traveller's feet all read.
+
+And the other half: a hand's bucket puts **exactly one** cell in the record.
+
+### And test 39 had to learn what a live world means
+
+Turning the springs on broke the test written in the round before, in a way
+worth keeping a note of: the engine now lays a spring at whatever fall the
+traveller is near, all through the run, so a test that judged "did this fall
+throw water out of its gorge" by *everything standing in the world* reported
+Angel as having thrown water eighteen thousand blocks. **A cell now belongs to
+the fall it is NEAREST to** — no bookkeeping, nothing to go stale, and it is the
+plain meaning of the question. Both tests pass:
+
+    PASS 39  Salto: 849 cells, 83 in the shaft, 28 blocks at furthest (of 269), drained to 0
+             Iguazu: 2578, 704 in the shaft, 236 (of 261), drained to 0
+             Krimml: 333, 39 in the shaft, 10 (of 110), drained to 0
+    PASS 40  Iguazu: 2698 cells standing, 455,532 laid and 452,834 taken up,
+             NONE of them in the record
+
+### What this does NOT fix, and it is the same debt as before
+
+The curtain. Seven heads make seven threads, and a head every other block gives
+the volume back but will not unwind. Nothing in this round touched that, and the
+falls that now run are thin ones. It wants a round with a PICTURE in it, which
+this one has not been.
+
+## 4bf. Round 58b — the water had nowhere to go, reported from a picture
+
+The springs were turned on and a photograph came back from the foot of Niagara:
+**the traveller standing in a lake.** The words with it were exact — *"water
+falls should flow into rivers and not just poured out on the ground going
+nowhere"*, and then *"or make a cistern for water to go"*, and then *"look at the
+game's own base water, especially in the shallows, and make cisterns or lakes
+like that for waterfalls to run and stop in."*
+
+**It is not the flood, and the numbers say so** — Niagara settles at some three
+thousand cells and never leaves its gorge. It is a sheet of water lying on flat
+ground, which is a different fault and a fair one.
+
+### The gorge was flat, and that is the whole of it
+
+This file promised "a gorge running away downstream that the fall itself cut",
+and what it cut was `return foot` — the same height for every column past the
+pool. The profile below Niagara read `1 1 1 1 1 1 1 …` for as far as it was
+sampled. **Water on a flat plain has no shortest way down**, so it takes every
+way at once and spreads as a disc; that is the disc in the photograph. The
+flow's own rule was working perfectly and the ground was giving it nothing to
+work with.
+
+### And the first cut of the channel came out flat too, for a reason worth keeping
+
+A descending channel was cut from the pool downstream — and measured perfectly
+flat: `1 1 1 1 …`, every step clamped. **`foot` was `max(2, h-2)`, the natural
+land at Niagara is three blocks, so the foot of the fall stood at ONE — the floor
+of the world, with nothing underneath to cut into.** A fall that lands on the
+world's floor can have neither a basin nor a slope. It is `max(2+basin, h-2)`
+now: a fall is never set lower than the pool it needs, which lifts the low-lying
+falls two or three blocks and is eased back to the true land at the edge of the
+claim exactly as the shelf always was. Niagara's profile now reads `9 9 9 9 6 2
+2 2 …`: a lip two blocks higher, and a basin floor two blocks below its rim.
+
+### What is cut now
+
+- **A BASIN at the foot** — as deep as the fall can afford (2–5 blocks) and
+  wider than its own apron, with the gorge floor standing round it as a rim.
+  The water comes down the wall, gathers in it and stops there, which is what
+  the man asked for and is also what a plunge pool is.
+- **A CHANNEL running away from it** — a cut a few blocks wide, descending a
+  block every few, with the old gorge floor as its banks. Where the ground has
+  the room, the fall now runs off in a stream instead of lying in a sheet.
+- **The claim runs far enough to hold them.** It was `drop*2.2` — thirteen
+  blocks at Niagara, which is SHORTER THAN THE SEVEN-BLOCK REACH of the water
+  landing in it, so the fall's own cut ended inside its own apron and the water
+  simply walked out on to the flat. It is `max(40, drop*3)` now.
+
+### Where it stands, and what is still owed
+
+Niagara: 3,297 cells, still within its gorge, and the picture now shows a pool
+with a rim and dry bank in front of it rather than a sheet under the traveller's
+feet. Tests 22, 24, 39 and 40 all pass with the new ground — 24 matters here,
+because a fall that raises its own foot raises the land, and every named summit
+must still be walkable.
+
+**The outfall is not done.** A river in this world is open water and js/water.js
+already gives up whatever reaches one, so a channel that MEETS a river is a true
+outfall and the standing water would be only what is in transit. `riverBlock` in
+the engine answers "is this column a river" in two lookups and no search; the
+step is to find the nearest river to each fall at load and aim the channel at it.
+That is the next thing, and it is what "flow into rivers" finally means.
+
+## 4bg. Round 58c — the outfall: the channel aimed at the nearest river
+
+*"Do the outfall — aim the channel at the nearest river."* Done, and it took
+three measured attempts, each of which failed for a different reason worth
+keeping.
+
+### Finding the water
+
+`outfallWater(ix,iz)` in the engine, beside `riverBlock` and built the same way:
+the same warped coast, the same two rasters, no terrain, no cell, no cache — 1
+for a river inside a nation, 2 for the sea, 0 for dry land. Because it asks the
+rasters and nothing else it may be called while the terrain is being generated
+and cannot recurse into the very heights it is helping to decide.
+
+The search is a fan of nine rays out of the plunge pool, downstream and to
+either side, every other block, nearest hit wins — done ONCE per fall, the first
+time the terrain asks about it. What it finds:
+
+| fall | outfall | distance |
+|---|---|---|
+| Iguazu | the sea | 9 blocks |
+| Mosi-oa-Tunya | **a river** | 16 blocks |
+| Niagara | the sea | 25 blocks |
+| Angel, Gocta, Yosemite, Multnomah, Tugela | nothing within the claim | — |
+
+The great plunges have no outfall and keep their basin, which is the right
+answer for a fall off a tepui in the middle of a forest.
+
+### The first cut was flat, and so was the second
+
+**The pool was not a pool, it was a county.** `poolR` was `half × F.pool` in BOTH
+directions, so Niagara's hundred-block half-lip gave a "pool" a hundred and
+eighty-two blocks DEEP as well as wide — wider than the fall's whole claim, so
+every column near the fall was pool and the channel had nowhere to begin. A
+plunge basin is the shape of the curtain that fills it: as wide as the lip, a
+few blocks deep. Two numbers, not one.
+
+**Then the channel was cut and came out DEAD FLAT at height 1** — the waterline
+— for the whole twenty-five blocks, because the basin floor was already there
+and there was nothing underneath. Water reaches seven blocks from a source and
+no further on the flat, so it died a third of the way along and lay in a sheet
+exactly as before. **A stream is not a channel; it is a channel with a fall in
+it.** A fall with an outfall is now raised enough to reach it — a block of grade
+for every five blocks of distance, on top of the basin it must also hold.
+
+Niagara's gorge, before and after:
+
+    1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+    7 6 6 6 5 5 5 5 4 4 4 3 3 3 3 2 2 2 2 1
+
+That staircase is the stream. And because a raised fall that ended at its claim
+edge would be **a plateau with a cliff round it**, the gorge floor now eases from
+the foot back down to the world's own land across the run, as the shelf above it
+always did.
+
+### And a probe that lied, which is the lesson of the round
+
+The outfall and the grade were worked out in two places — the search in one, the
+raise in the other — and the read-only probe called only the first. **So the
+terrain the probe reported was cut to a different shape from the terrain the
+game builds**: a flat channel in the one and a staircase in the other, off the
+same fall in the same world, and I read the probe's answer for a quarter of an
+hour before noticing it disagreed with the profile beside it. A thing worked out
+once is worked out in ONE function (`prepare`), and everything that wants it
+calls that.
+
+### What it costs, said plainly
+
+**The standing water at Niagara went UP, from 3,807 cells to 5,216**, and that is
+not a regression: there is now twenty-five blocks of sloping apron with water
+running down it where before there was a sheet dying seven blocks out. Water in
+transit is the thing a river IS. The count stays bounded and inside the gorge
+(114 blocks of a claim of 129), test 39 still drains every fall to zero, and
+test 40 still finds not one cell of it in the record.
+
+Tests 22, 24, 39 and 40 pass. 24 is the one that matters for a round that raises
+ground: every named summit must still be walkable, and all thirteen are.
+
+## 4bh. Round 59 — the bark measurement: the number a shipped feature never had
+
+First of the five queued behind the water, and it is not a feature at all: **the
+bark per species has been in the world since Round 52 and was never measured.**
+Every other item of Phase 6 shipped with its cost set beside the thing it
+replaced — the coat at 1.13× the build and no per-frame cost, the boughs at 2.5×
+their own geometry for +11.7% triangles in a German wood, the second leaf at +249
+meshes and not one extra triangle — and this one shipped with nothing. PLAN.md
+went on calling it *"partial: one grey bark, tinted per species — not a texture
+each"* for three rounds after it had stopped being that.
+
+### What is actually there
+
+`BARK_MAT` in `js/flora.js`: six patterns — paper, ring, plate, twist, cork,
+smooth — and the deep fissure as the default. A kind names its own in
+`world/flora.js` or says nothing and its FORM answers for it (a palm rings, a
+conifer plates, a gum is smooth). `K._bark` is settled once per kind at load and
+never in the mesher, and the per-species TINT still sits on top of every one of
+them, so a birch and an aspen wear the same paper in two different greys.
+
+### The measurement, and it took three goes to be worth anything
+
+`FLORA.barkOn(false)` is the A/B switch — every bole in the world wearing the one
+grey bark, exactly as it stood before §2.4.3 — cut to the same pattern as
+`everOn` and `boughsOn` that the two rounds before it used. The same wood is
+built twice in one page, and `viewStats` reports MESHES (which are draw calls),
+triangles, and which material every mesh went to.
+
+**The first two readings were of the wrong thing, and the reason is worth more
+than the numbers.** They reported *a quarter of a million extra triangles* from a
+change that touches no geometry whatever — and, read properly, that was **545
+chunks against 709**. The frame lays its own ring every frame with its own view
+and reaps whatever falls outside it, so a measurement that lays a ring of its own
+across thirty frames is measuring a ring the game is pulling back underneath it.
+Topping the ring up and reading it in the same tick did not fix it either. What
+fixed it is `holdWorld` — **a paused world takes no orders and lays no ground** —
+and the A/B now stands on the disc it was given. Acceptance test 41 asserts the
+two chunk counts are EQUAL rather than assuming it, so this can never be read
+that way again.
+
+### The number
+
+| wood | chunks | meshes, one bark | six barks | triangles |
+|---|---|---|---|---|
+| India (39 kinds, 6 barks) | 545 | 4,139 | 4,494 (**+8.6%**) | 865,306 → 865,306 (**+0**) |
+| Bolivia (34 kinds, 6 barks) | 545 | 6,253 | 7,295 (**+16.7%**) | 1,267,306 → 1,267,306 (**+0**) |
+
+**Not one triangle**, in either wood, which is what a bark ought to cost: it is a
+texture on faces that were already there. The whole of the price is draw calls,
+and it is exactly the bark meshes and nothing else — India's 370 bark meshes
+become 725, and 725 − 370 is 355, which is the entire mesh difference. Build time
+moved +5% and +14% across the two woods, which is within the spread this
+machine's software rasteriser gives the same commit twice, and is reported rather
+than claimed.
+
+### Acceptance test 41
+
+`a wood wears more than one bark, and the six cost draw calls and not one
+triangle` — the wood chosen by its own growth (the country whose flora lists the
+most distinct barks) and not by name, so a country renamed cannot make it stale.
+It asserts that at least three barks reach the ground, that the switch off gives
+exactly one, that six barks cost MORE draw calls (or they are not being drawn at
+all), and that the geometry does not move by a single triangle.
+
+    PASS 41  India (39 kinds, 6 barks) over 545 chunks · meshes 4139 → 4494
+             (+355, +8.6%) · triangles 865306 → 865306 (+0) · the barks in view:
+             Smooth 282, Twist 199, Ring 109, W 108, Cork 27
+
+## 4bi. Round 60 — the bucket: the one way the hand carries water
+
+Second of the five. **The mechanism has been finished for four rounds and there
+was no way for a player to touch it**: `spill` lays a source and `take` lifts
+one, a hand's source is a deed that survives a reload while the stream out of it
+is derived and is not — and none of that was reachable, because a bucket is a
+thing in the hand and there was no thing.
+
+### Two blocks, because that is how a satchel counts
+
+`blocks/bucket.js` and `blocks/water-bucket.js`. Not one item with a flag on it:
+a man may carry three full and two empty, and a stack in this satchel is of one
+kind. A jar of baked clay, made at a kiln of three banded clay — which is what a
+man of that country carried water in, and the account is full of them at wells
+(BERĔSHITH 24:20, on the page beside the work).
+
+**The engine knows no bucket by name.** It reads `serves:'bucket'` — the same
+datum a pick and an axe carry — and two new ones: `fills` names what an empty
+vessel BECOMES when it is dipped, `empties` what a full one becomes when it is
+poured. Add a vessel to `blocks/` that says those things and it is a bucket, with
+not one line changed in `js/engine.js`, which is the rule `world/works.js`,
+`world/minerals.js` and `world/flora.js` all keep.
+
+### What it does, and what it refuses
+
+It is used through `placeBlock` — the one door a held thing goes through — and
+before the line that throws every `place:false` thing out, which is where a
+bucket would otherwise have died silently.
+
+- **Poured**, it lays a SOURCE and never a cube of water hanging in the air, and
+  because a hand laid it, it is a DEED: it is in the player's own record and is
+  there when he sails back, while the stream that runs out of it is worked out
+  again. Test 40 keeps that second half.
+- **Dipped**, it fills at any water the arm can reach. A source of OURS comes up
+  with it, so a man may pick his own spring back up. The world's own water — a
+  river, a trough, the sea — is drawn from and stays where it is, as a well is
+  drawn from and does not empty. **Running water is refused**: *"it is running
+  water, and will not be caught."*
+
+### Two faults, both mine, both found by the test
+
+**`satchelAdd` takes an ID and I handed it a number.** `satchelAdd(blockId(...))`
+looked right and is not: the satchel knows blocks by their stable id and never by
+the number that is an accident of the order `blocks/` is read in. So the bucket
+was taken out of the hand and nothing was given back — a man dipped his bucket
+and lost it. The test caught it on its first run.
+
+**And the test lied in its own report.** It asserted the poured source was in the
+record at the moment it was poured — correctly — and then PRINTED that fact at
+the end, by which time the source had been picked back up again, so a passing
+test printed *"in the record: false"* under an assertion that had just passed on
+its being true. A reading is taken at the moment it is true and reported from
+that reading.
+
+### Acceptance test 42
+
+`a bucket fills at water, pours a source that runs, and comes back empty` — the
+whole chain, because a bucket is only worth anything if every link holds: it
+fills, what it pours is a source and RUNS (more than the one cell he poured), what
+he poured is his own and in the record, the vessel comes back empty, and his own
+spring can be taken back up.
+
+    PASS 42  dipped → a full bucket · poured a source that ran to 388 cells ·
+             his own, in the record when he poured it: true · came back empty:
+             true · his own spring taken back up: true
+
+**It counts about the pouring and not over the world.** The springs at the falls
+are live now and their water is in the same map; a global count read fourteen
+hundred cells of somebody else's waterfall and called it a bucket.
+
+Test 36 passes at **44/44 blocks** — the two new files are in `world/manifest.js`
+and every block's id is still its place.
+
+## 4bj. Round 61 — the boles: the door built, the tree not yet sent through it
+
+Third of the five, and it is the first of these rounds to stop short. **The
+mechanism works and is not switched on**, for two reasons the test found, and
+both are about WHEN a stamp lands rather than whether it can be made to.
+
+### What is in
+
+**`kit.bole` — the door.** The flora asks for its trunk through it and the engine
+stamps that box into the STRUCTURE layer, where the mesher draws it, the hand
+breaks it, and it drops Timber. `MAT_BLOCK` has sent every bark to `log` since
+§2.4.3 against this very day, with a note saying that without it *"a birch would
+break into rubble"*.
+
+**And a stamp that changes nothing marks nothing.** `stampBlock` marked its chunk
+for a remesh whether or not the cell already held that block — harmless while
+stamping happened once when a village was raised, and a **loop** the moment boles
+stamp from inside the chunk build: the chunk marks itself dirty, remeshes, stamps
+the same trees, marks itself dirty. Writing the same block twice is not an event.
+That fix is in and stands on its own.
+
+**It was proved once, end to end.** With the switch on, test 43 read: *a acacia
+at 5539,7923 · solid: true · the block is Timber · in the player's record: false ·
+it drops log · broken: true*. The chain works — `blocks/log.js` and
+`blocks/flint-axe.js` have stood since Phase 4 with nothing for the axe to bite,
+and for one run there was something.
+
+### Why it is off
+
+**1. THE FIRST BUILD OF EVERY CHUNK WOULD BE TRUNKLESS.** `buildChunk` gathers
+the chunk's edits ONCE at the top and then meshes. A bole stamped during the mesh
+pass lands in the layer AFTER the gathering, so the build that stamped it cannot
+draw it: the trunks arrive on the remesh the stamp marks, a frame or several
+later, and a wood pops in as crowns floating over nothing. **Acceptance test 41
+measured it without being asked to** — 63,466 triangles of difference between two
+builds of the same wood, which is the trunks of a whole view arriving late. That
+test was written for the bark and caught this instead, which is the best argument
+for keeping an A/B test after the change it was written for has shipped.
+
+**2. AND THE BOLE LOSES ITS BARK.** Blocks are drawn from the block table, which
+has one texture for Timber; the six barks of §2.4.3 and the per-species tint live
+on the material a MESH is drawn with. `MAT_BLOCK` collapsing every bark to `log`
+is right for BREAKING — a stack of logs is a stack of logs whichever wood it came
+from — and is a real loss to the eye, one round after that eye was measured.
+
+### What the next round does, and it is not a guess
+
+The stamp wants to run **before** the chunk gathers its edits: a pass over the
+columns that grow trees, which the builder already walks. And the bark wants
+either a Timber block per bark pattern — six more blocks, and a stack of timber
+that no longer stacks — or a tint the block table has no room for. The first is
+a morning's work; the second is a question about what a block IS in this engine,
+and it should be asked before it is answered.
+
+`FLORA.boleBlocks` is the switch, off, so the next round begins where this one
+stopped rather than from the beginning. Test 43 states what it wants and waits:
+
+    PENDING 43  the boles are still geometry (FLORA.boleBlocks is off) —
+                a tamarisk at 12121,2040 is drawn and cannot be struck
+
+Tests 12, 17, 19, 34, 36 and 41 pass with the door in and the switch off — 41
+back to `meshes 4139 → 4494 (+8.6%) · triangles +0`, exactly where Round 59 left
+it.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

@@ -397,6 +397,27 @@ const _hd=(g)=>{ g.fillStyle=C(PB.toolStone.a); return g; };
 TEX.flintPick  = toolTex(g=>{ _hd(g); g.fillRect(2,2,12,2);
   g.fillStyle=C(PB.toolStone.b); g.fillRect(2,1,12,2);
   g.fillStyle=C(PB.toolStone.glint); g.fillRect(3,1,2,FG); g.fillRect(12,1,2,FG); });
+/* ---- THE BUCKET, AND THE SAME BUCKET CARRYING ----
+   A jar of baked clay: a body, a shoulder drawn in, and a handle over. The
+   full one is the same vessel with the water standing in the neck of it, so
+   the two read as one thing in two states at a glance on the belt, which is
+   the whole job of an icon. */
+function vesselTex(fill){
+  return mkTex(g=>{
+    g.clearRect(0,0,16,16);
+    const body=C(PB.brick.b), rim=C(PB.toolHaft.a);
+    g.fillStyle=rim; g.fillRect(5,2,6,1);          /* the handle over the mouth */
+    g.fillRect(4,3,1,1); g.fillRect(11,3,1,1);
+    g.fillStyle=body;
+    g.fillRect(4,4,8,2);                            /* the neck */
+    g.fillRect(3,6,10,8);                           /* the belly */
+    g.fillStyle=C(PB.brick.b.map(v=>Math.round(v*0.78)));
+    g.fillRect(3,6,2,8);                            /* and its shadowed side */
+    if(fill){ g.fillStyle=C(PB.water.b); g.fillRect(5,4,6,2); }
+  });
+}
+TEX.bucket     = vesselTex(false);
+TEX.bucketFull = vesselTex(true);
 TEX.flintAxe   = toolTex(g=>{ _hd(g); g.fillRect(3,2,7,5);
   g.fillStyle=C(PB.toolStone.b); g.fillRect(3,1,6,5);
   g.fillStyle=C(PB.toolStone.glint); g.fillRect(3,2,FG,3); });
@@ -471,6 +492,8 @@ blockMat('emerald',TEX.emerald); blockMat('ruby',TEX.ruby);
 blockMat('hewnStone',TEX.hewnStone); blockMat('altar',TEX.altar);
 blockMat('kilnSide',TEX.kilnSide); blockMat('kilnTop',TEX.kilnTop);
 blockMat('flintPick',TEX.flintPick,{transparent:true});
+blockMat('bucket',TEX.bucket,{transparent:true});
+blockMat('bucketFull',TEX.bucketFull,{transparent:true});
 blockMat('flintAxe',TEX.flintAxe,{transparent:true});
 blockMat('flintSpade',TEX.flintSpade,{transparent:true});
 blockMat('flintHoe',TEX.flintHoe,{transparent:true});
@@ -913,6 +936,13 @@ for(let i=0;i<BLOCK_DEFS.length;i++){
     /* what this thing SERVES AS in the hand — 'pick', 'axe' and the rest.
        No block is a tool; the works of Phase 4 step 9 declare these. */
     serves:d.serves||null,
+    /* ---- AND WHAT A VESSEL BECOMES WHEN IT IS USED ----
+       A bucket is two things — empty and full — and each names the other, so
+       the engine may pour one into the other without ever knowing either by
+       name. It is the same rule world/works.js keeps: the data says what the
+       thing is, and js/ says only how a thing of that shape behaves. */
+    fills:d.fills||null,        /* what it becomes when dipped in water */
+    empties:d.empties||null,    /* and what it becomes when poured out */
     /* whether it may be SET DOWN at all — a tool may not */
     place:d.place!==false };
   /* the three faces the mesher asks for, resolved once so it never has to */
@@ -1117,6 +1147,30 @@ function riverBlock(ix,iz){
   const wu=u+du2, wv=v+dv2;
   return (countryAtUV(wu,wv)&&riverAtUV(wu,wv))?1:0;
 }
+/* ---- AND WHERE A WATERFALL MAY EMPTY ITSELF ----
+   The same two lookups and the same warped coast, asked the other way about:
+   is this column OPEN WATER that a fall could run into? A river inside a
+   nation is 1, the sea itself is 2, dry land is 0.
+
+   js/waterfall.js aims each fall's channel at the nearest of these, and that
+   is what makes the water of a fall a river rather than a pond: the flow
+   gives up whatever reaches the world's own water ("when it reaches the sea
+   and river it goes nowhere but disappear out"), so a channel with an
+   OUTFALL leaves only what is in transit standing at the fall. Without one
+   the fall fills its basin and stops there, which is bounded but is a lake.
+
+   It reads the rasters and nothing else — no terrain, no cell, no cache — so
+   it may be asked before the world is generated and cannot recurse into the
+   very heights it is helping to decide. */
+function outfallWater(ix,iz){
+  const x=(ix+.5)*B, z=(iz+.5)*B, u=x/R_WORLD, v=z/R_WORLD;
+  if(Math.hypot(u,v)>=SHELF_UV) return 0;      /* the shelf and the ice: no outfall */
+  const du2=(fbm(u*760+13.7,v*760-4.2)-0.5)*(2.6/HALF);
+  const dv2=(fbm(u*760-8.1,v*760+9.3)-0.5)*(2.6/HALF);
+  const wu=u+du2, wv=v+dv2;
+  if(!countryAtUV(wu,wv)) return 2;            /* the sea */
+  return riverAtUV(wu,wv)?1:0;                 /* a river running through the land */
+}
 
 /* ================= THE NAMED PLACES OF THE EARTH =================
    world/landmarks.js names the true summits and the famous works of the
@@ -1187,7 +1241,14 @@ for(const L of LANDMARKS){ if(L.kind!=='mount') continue;
        here rather than pretended away — but it is improved by deferring the
        load to buildWorld, not by calling cellRaw from a place that cannot. */
     const n=WATERFALL.load(WF,{ B, R_WORLD, llToWorld, mPerBlock:MTN_M_PER_BLOCK,
-      faceAt:(x,z)=>fbm(x*0.00021+7.3, z*0.00021-2.9)*6.2832 });
+      faceAt:(x,z)=>fbm(x*0.00021+7.3, z*0.00021-2.9)*6.2832,
+      /* where a fall may empty itself, and the height of the water it empties
+         into. Both are read from the rasters alone and ask the terrain
+         nothing, so the dead zone that broke the boot twice cannot recur; the
+         waterline is a closure for the same reason — SEA_SURF is declared
+         further down this file, and a function is not read until it is
+         called. */
+      outWater:outfallWater, seaBlock:()=>Math.floor(SEA_SURF/B) });
     _fallsOn=n>0;
     if(window.console&&n) console.info('the voyage: '+n+' falling waters of the earth');
   } }
@@ -2203,10 +2264,28 @@ function emitPlaced(G,ix,iz,em,surfaceH){
       const lit2=(y<surfaceH-1)?(CAVE_DARK+(1-CAVE_DARK)*caveLightAt(ix,iz,y+0.5)):1;
       const yy=y*B, x0=ix*B, z0=iz*B;
       if(!capped) faceTop(G,b.mTop,x0,z0,x0+B,z0+B,yy+hh*B,1.0*lit2);
-      facePX(G,b.mSide,x0+B,z0,z0+B,yy,yy+hh*B,0.62*lit2);
-      faceNX(G,b.mSide,x0,  z0,z0+B,yy,yy+hh*B,0.62*lit2);
-      facePZ(G,b.mSide,z0+B,x0,x0+B,yy,yy+hh*B,0.8*lit2);
-      faceNZ(G,b.mSide,z0,  x0,x0+B,yy,yy+hh*B,0.8*lit2);
+      /* ---- AND ONLY THE FACES A MAN CAN SEE ----
+         All four sides were drawn whatever stood against them, which is
+         nothing at all while water is a stream or a puddle and is ruinous the
+         moment it is a WATERFALL: Angel is a curtain twenty-seven blocks wide
+         and a hundred and nine tall, and all but its skin is water pressed
+         against water. Every buried face was being built, buffered and drawn.
+         So: rock hides a face entirely, water hides as much of it as it
+         stands up to, and what is left is the strip that is genuinely open —
+         which is also how a thinner block beside a fuller one comes to show
+         the step between them. */
+      const upTo=(dx,dz)=>{ const n2=blockAt(ix+dx,y,iz+dz);
+        if(!n2) return 0;                         /* air: the whole face is seen */
+        if(!isLiquid(n2)) return hh;              /* rock: none of it is */
+        return waterHeight(window.WATER?WATER.levelAt(ix+dx,y,iz+dz):null); };
+      let f=upTo(1,0);
+      if(f<hh) facePX(G,b.mSide,x0+B,z0,z0+B,yy+f*B,yy+hh*B,0.62*lit2);
+      f=upTo(-1,0);
+      if(f<hh) faceNX(G,b.mSide,x0,  z0,z0+B,yy+f*B,yy+hh*B,0.62*lit2);
+      f=upTo(0,1);
+      if(f<hh) facePZ(G,b.mSide,z0+B,x0,x0+B,yy+f*B,yy+hh*B,0.8*lit2);
+      f=upTo(0,-1);
+      if(f<hh) faceNZ(G,b.mSide,z0,  x0,x0+B,yy+f*B,yy+hh*B,0.8*lit2);
       continue;
     }
     /* under the ground it takes the cave's darkness; above it, the day */
@@ -2377,7 +2456,34 @@ function emitColumn(G,ix,iz,cc){
    baobab — and world/flora.js knows what grows where. Neither of them knows
    anything about chunks, so the mesher lends them the few things they need
    and takes the geometry back. `G` is swapped in per chunk. */
-const FKIT={ G:null, emitBox, cross, shade, hash:hash2,
+/* ---- AND THE BOLE OF A TREE IS BLOCKS ----
+   Everything else the flora draws is geometry merged into the chunk, which is
+   right: a canopy of blocks is a different and much dearer world, and nobody
+   asked to mine a leaf. But a TREE IS FELLED, and `blocks/log.js` and
+   `blocks/flint-axe.js` have both stood since Phase 4 — Timber that drops to
+   an axe, and an axe written to fell it — with nothing in the world for the
+   axe to bite: every bole was a merged box and the blow passed through it.
+
+   This is the one door between them. The flora asks for its trunk through
+   `kit.bole` instead of `kit.emitBox`, and the engine stamps that box into the
+   STRUCTURE layer — derived, dropped, never written down, exactly as a village
+   wall is — where the mesher draws it, the hand breaks it and it drops timber.
+   `MAT_BLOCK` already sent every bark to `log` against this very day, with a
+   note saying that without it a birch would break into rubble.
+
+   WHAT IT COSTS, AND IT IS NOT HIDDEN: a bole drawn as blocks is drawn with
+   the LOG's own texture, so the six barks of §2.4.3 stand on the crown's own
+   geometry and no longer on the trunk. Six barks are six materials; six kinds
+   of timber block would be six more blocks in the world and a stack of timber
+   that no longer stacks. That is a trade to be argued, not assumed, and it is
+   argued in AUDIT Round 61. */
+function boleBox(x0,y0,z0,x1,y1,z1,mat){
+  const was=_stampOn;
+  if(!was) _stampOn={cells:[]};
+  try{ stampBox(x0,y0,z0,x1,y1,z1,mat); }
+  finally{ if(!was) _stampOn=null; }
+}
+const FKIT={ G:null, emitBox, bole:boleBox, cross, shade, hash:hash2,
   M:{leaf:'leafW', ever:'everW', bark:'barkW', plant:'plantW', solid:'solidW'} };
 let floraReady=false;
 function initFlora(){ if(floraReady) return; floraReady=true;
@@ -2392,7 +2498,15 @@ function initFlora(){ if(floraReady) return; floraReady=true;
 let waterReady=false;
 function initWater(){ if(waterReady||!window.WATER) return; waterReady=true;
   WATER.load({ B, EY_MIN, EY_MAX,
-    blockAt, setBlock, isLiquid,
+    blockAt, isLiquid,
+    /* ---- TWO DOORS, AND WHICH IS WHICH IS THE WHOLE OF IT ----
+       `setBlock` here is the WATER'S own layer: drawn, walked into, collided
+       with, and never written to the disc — that is what running water is.
+       `setDeed` is the world's record, and only a source a HAND laid goes
+       through it: that is a thing the traveller DID, and it must be there
+       when he sails back. The flow that runs out of it is worked out again
+       from the source, as a village is worked out again from its site. */
+    setBlock:setWater, setDeed:setBlock,
     waterN:blockId('water'),
     /* THE WATERLINE, IN BLOCKS — everything at or under it is the sea's, and
        spilled water that reaches it has run home and is given up. This one
@@ -2608,12 +2722,43 @@ function chunkKeyOf(ix,iz){ return Math.floor(ix/CH)+','+Math.floor(iz/CH); }
    though the village re-stamps itself from scratch every time he sails back.
    So: player first, structure second, the world underneath. */
 const SEDITS=new Map();         /* the structures: derived, dropped, never written down */
+/* ---- AND A THIRD, FOR RUNNING WATER ----
+   THE MEASUREMENT THAT ASKED FOR IT (Round 57): a waterfall that has SETTLED
+   is not still. It is a flow, and a flow at rest is water arriving, falling,
+   landing and being taken by the sea at the same rate — Angel laid 11,696
+   blocks and took up 11,676 over two hundred ticks to hold eight hundred and
+   sixty-three cells in place. Every one of those went through `setBlock`,
+   which marks its chunk for the SAVE and re-arms the writer, so every fall
+   the traveller had ever walked past would have been writing the world to
+   the disc every 900 ms for the rest of the voyage — and Angel's curtain
+   would have been filed in the record of what HANDS have done, which it is
+   not. It is the world running.
+
+   So the flow gets the same treatment the villages got, and for the same
+   reason: DERIVED, DROPPED, NEVER WRITTEN DOWN. The spring at the head of a
+   fall is laid again whenever the traveller comes near it, and the water
+   finds its own shape from there in a couple of minutes, exactly as it did
+   the first time.
+
+   WHAT IS STILL A DEED. A source a HAND laid — a bucket spilled — is not
+   derivable from anything and goes in the player's own layer, as it always
+   did. Since flowing water is never written now, every water block in a save
+   is by construction a source somebody laid, and the load re-spills them.
+
+   THE ORDER, and it is not simply "third". Water stands in AIR: it may never
+   hide a hand's block or a village wall, but it must show in a channel a hand
+   has DUG, and a dug cell is a `0` written in the player's own layer. So a
+   non-zero block of either layer above beats water, and water beats a 0. */
+const WEDITS=new Map();         /* the running water: derived, dropped, never written down */
 function editAt(ix,iy,iz){
-  if(!EDITS.size&&!SEDITS.size) return undefined;
+  if(!EDITS.size&&!SEDITS.size&&!WEDITS.size) return undefined;
   const key=chunkKeyOf(ix,iz), idx=eIndex(((ix%CH)+CH)%CH, iy, ((iz%CH)+CH)%CH);
-  if(EDITS.size){ const m=EDITS.get(key); if(m){ const v=m.get(idx); if(v!==undefined) return v; } }
-  if(SEDITS.size){ const m=SEDITS.get(key); if(m){ const v=m.get(idx); if(v!==undefined) return v; } }
-  return undefined;
+  let v;
+  if(EDITS.size){ const m=EDITS.get(key); if(m) v=m.get(idx); }
+  if(v===undefined&&SEDITS.size){ const m=SEDITS.get(key); if(m) v=m.get(idx); }
+  if(v) return v;                                     /* something stands here */
+  if(WEDITS.size){ const m=WEDITS.get(key); if(m){ const w=m.get(idx); if(w) return w; } }
+  return v;                                           /* 0, or nothing said */
 }
 /* what the world would be here with nobody's hand in it */
 function proceduralSolid(ix,iy,iz){
@@ -2661,6 +2806,12 @@ function setBlock(wx,wy,wz,n){
   { const sm=SEDITS.get(key); if(sm){ const v=sm.get(idx); if(v!==undefined) under=v; } }
   if(under===n){ if(m){ m.delete(idx); if(!m.size) EDITS.delete(key); } }
   else { if(!m){ m=new Map(); EDITS.set(key,m); } m.set(idx,n); }
+  /* AND A BLOCK LAID WHERE WATER RAN TAKES THE CELL FROM IT. The water layer
+     shows only through air, so a stone laid in a stream would merely HIDE the
+     water — until the stone was broken again, when a puddle nobody poured
+     would come back out of the ground. The cell is the hand's now. */
+  if(n&&WEDITS.size){ const wm=WEDITS.get(key);
+    if(wm&&wm.delete(idx)&&!wm.size) WEDITS.delete(key); }
   EDIT_TOUCHED=true; EDIT_DIRTY.add(key); EDIT_SAVE.add(key); editsTouch(); editColumnsChanged();
   /* ---- AND THE WORLD PUTS ITSELF RIGHT (§11 step 8) ----
      A cell that has just been EMPTIED is the only thing either rule cares
@@ -2680,6 +2831,54 @@ function setBlock(wx,wy,wz,n){
       if(b2&&b2.gravity&&!blockSolidAt(ix,iy-1,iz)) settleWake(ix,iy-1,iz); }
   }
   /* a block on a chunk's edge changes what its neighbour must draw */
+  if(lx===0) EDIT_DIRTY.add((Math.floor(ix/CH)-1)+','+Math.floor(iz/CH));
+  if(lx===CH-1) EDIT_DIRTY.add((Math.floor(ix/CH)+1)+','+Math.floor(iz/CH));
+  if(lz===0) EDIT_DIRTY.add(Math.floor(ix/CH)+','+(Math.floor(iz/CH)-1));
+  if(lz===CH-1) EDIT_DIRTY.add(Math.floor(ix/CH)+','+(Math.floor(iz/CH)+1));
+  return true;
+}
+/* ---- THE WATER'S OWN DOOR ----
+   Everything `setBlock` does except the two things that make a record of it:
+   it is not put in EDIT_SAVE and it does not re-arm the writer. The chunk is
+   still marked for a REMESH, because a stream nobody can see is not a stream,
+   and its neighbours still hear of it, because a bank of sand over a cell the
+   water has just filled must still come down.
+
+   It writes only the water's own layer, so it can neither overwrite nor erase
+   one block of anybody's world: the worst a bug in js/water.js can now do is
+   put water where there is air, and a reload takes it away again. */
+function setWater(wx,wy,wz,n){
+  const ix=Math.floor(wx/B), iy=Math.floor(wy/B), iz=Math.floor(wz/B);
+  if(iy<EY_MIN||iy>=EY_MAX) return false;
+  const key=chunkKeyOf(ix,iz);
+  const lx=((ix%CH)+CH)%CH, lz=((iz%CH)+CH)%CH;
+  const idx=eIndex(lx,iy,lz);
+  let m=WEDITS.get(key);
+  const had=m?m.get(idx):undefined;
+  if((had||0)===n) return false;
+  if(!n){ if(m){ m.delete(idx); if(!m.size) WEDITS.delete(key); } }
+  else { if(!m){ m=new Map(); WEDITS.set(key,m); } m.set(idx,n); }
+  EDIT_DIRTY.add(key); editColumnsChanged();
+  /* ---- AND IT WAKES THE SETTLER ONLY WHEN THERE IS SOMETHING TO WAKE IT FOR ----
+     A cell newly emptied normally goes on the settle queue, which is right for
+     a hand: what stood over it may not stand, and water beside it may now have
+     a way out. A RUNNING WATERFALL empties fifty cells a tick for ever, and
+     the queue is four thousand deep and bounded — so the first thing the live
+     springs did was fill it and hold it full, and the world stopped putting
+     itself right at all. Acceptance test 22 caught it within the hour: a
+     cistern with its wall broken out simply sat there, `0 of a budget of 1024
+     spent`, because the broken cell could not get on to a queue a waterfall
+     was standing on.
+
+     Everything the settler would do for a cell the WATER emptied is either
+     already the water's own business (the flow beside it — it has its own
+     wake queue) or needs a gravity block overhead. So it is asked for only
+     when a gravity block is actually there, which is rare, and the queue
+     belongs to the hand again. */
+  if(!_stampOn&&n===0){
+    const up=blockOf(blockAt(ix,iy+1,iz));
+    if(up&&up.gravity) settleWake(ix,iy,iz);
+  }
   if(lx===0) EDIT_DIRTY.add((Math.floor(ix/CH)-1)+','+Math.floor(iz/CH));
   if(lx===CH-1) EDIT_DIRTY.add((Math.floor(ix/CH)+1)+','+Math.floor(iz/CH));
   if(lz===0) EDIT_DIRTY.add(Math.floor(ix/CH)+','+(Math.floor(iz/CH)-1));
@@ -2736,6 +2935,14 @@ function stampBlock(ix,iy,iz,n){
   const key=chunkKeyOf(ix,iz);
   const idx=eIndex(((ix%CH)+CH)%CH, iy, ((iz%CH)+CH)%CH);
   let m=SEDITS.get(key); if(!m){ m=new Map(); SEDITS.set(key,m); }
+  /* ---- A STAMP THAT CHANGES NOTHING MARKS NOTHING ----
+     Every stamp marked its chunk for a remesh whether or not the cell already
+     held that very block, which was harmless while stamping happened once when
+     a village was raised. The BOLES stamp from inside the chunk build itself,
+     so a chunk that re-stamped the same trees on every build would mark itself
+     dirty on every build, remesh, and stamp again — for ever. Writing the same
+     block twice is not an event. */
+  if(m.get(idx)===n) return;
   if(!m.has(idx)&&_stampOn) _stampOn.cells.push(key,idx);
   m.set(idx,n);
   EDIT_DIRTY.add(key); editColumnsChanged();
@@ -2826,7 +3033,7 @@ let _colCache=new Map();
 function editColumnsChanged(){ if(_colCache.size) _colCache=new Map(); }
 const COL_CACHE_MAX=4096;      /* a town's worth of columns, and then some */
 function editColumn(ix,iz){
-  if(!EDITS.size&&!SEDITS.size) return null;
+  if(!EDITS.size&&!SEDITS.size&&!WEDITS.size) return null;
   const ck=ix+','+iz;
   const hit=_colCache.get(ck); if(hit!==undefined) return hit;
   const key=chunkKeyOf(ix,iz);
@@ -2840,6 +3047,13 @@ function editColumn(ix,iz){
     for(const [i,n] of m){ if(i<base||i>=base+EY_SPAN) continue;
       (out||(out=new Map())).set((i%EY_SPAN)+EY_MIN,n); }
   }
+  /* and the water THROUGH what the two of them left as air — the same order
+     `editAt` keeps, so what the mesher draws is what the world answers */
+  { const m=WEDITS.get(key);
+    if(m) for(const [i,n] of m){ if(i<base||i>=base+EY_SPAN) continue;
+      const y=(i%EY_SPAN)+EY_MIN;
+      if(out&&out.get(y)) continue;                   /* something stands there */
+      (out||(out=new Map())).set(y,n); } }
   if(_colCache.size>=COL_CACHE_MAX) _colCache=new Map();
   _colCache.set(ck,out);
   return out;
@@ -3010,7 +3224,13 @@ function buildChunk(cx,cz){
       for(const [i,n] of m){ const k=eLx(i)*CH+eLz(i);
         let c=chunkEdits.get(k); if(!c){ c=new Map(); chunkEdits.set(k,c); }
         c.set(eLy(i),n); }
-    } }
+    }
+    /* AND THE WATER'S LAYER, through whatever the other two left as air */
+    { const m=WEDITS.get(key);
+      if(m&&m.size){ if(!chunkEdits) chunkEdits=new Map();
+        for(const [i,n] of m){ const k=eLx(i)*CH+eLz(i);
+          let c=chunkEdits.get(k); if(!c){ c=new Map(); chunkEdits.set(k,c); }
+          if(!c.get(eLy(i))) c.set(eLy(i),n); } } } }
   for(let a=0;a<CH;a++) for(let b=0;b<CH;b++){
     const ix=cx*CH+a, iz=cz*CH+b, cc=cell(ix,iz);
     if(!cc){ /* the shelf: solid sandy terraces stepping down from the land,
@@ -14566,6 +14786,22 @@ async function buildWorld(){
      so no chunk is ever built once without the edits and again with them */
   try{ const n=await editsLoad(); if(n) console.info('the voyage: '+n+' blocks remembered'); }
   catch(e){}
+  /* ---- AND WHAT WATER IS IN THE RECORD IS A SOURCE SOMEBODY POURED ----
+     The flow itself is never written down (see the water's own door above),
+     so anything liquid in the player's layer got there by a hand — a bucket
+     emptied on a hillside — and it is spilled again as a SOURCE, which is
+     what it was. The stream that hung on it finds its own shape from there in
+     the first minute of the voyage, which is the same minute the ground it
+     runs over is being laid. */
+  try{ initWater();
+    const wN=blockId('water'); let springs=0;
+    for(const [k,m] of EDITS){
+      const p=k.split(','), cx=+p[0], cz=+p[1];
+      for(const [i,n] of m){ if(n!==wN) continue;
+        WATER.spill(cx*CH+eLx(i), eLy(i), cz*CH+eLz(i), true); springs++; }
+    }
+    if(springs) console.info('the voyage: '+springs+' spilled source(s) remembered');
+  }catch(e){}
   computeSites();
   cellCacheOn=true; CELL_CACHE.clear();   /* sites are fixed — the terrain is now immutable and memoisable */
   BOOT.stage('Raising Yahru and the home port…',0.30); await raf();
@@ -14754,6 +14990,21 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   /* ---- THE MUTABLE WORLD, FOR tools/acceptance.js ---- */
   setBlock, blockId, blockAt, blockOf, blockSolidAt, editsSave, editsLoad,
   remeshes:()=>REMESHES,
+  /* ---- WHAT IS IN THE RECORD, AND WHAT IS ONLY IN THE WORLD ----
+     Read-only, for tools/acceptance.js. `recorded` counts every cell in the
+     player's own layer and `queuedToSave` the chunks the writer has been
+     asked for; a waterfall must move neither of them by one, ever, however
+     many thousand blocks it lays and takes up. `flowing` is the water's own
+     layer, which is where all of that goes and which is never written. */
+  recorded:()=>{ let n=0; for(const m of EDITS.values()) n+=m.size; return n; },
+  flowing:()=>{ let n=0; for(const m of WEDITS.values()) n+=m.size; return n; },
+  queuedToSave:()=>EDIT_SAVE.size,
+  /* whether one named cell is in the player's own layer — the exact question
+     "is this block of the stream in the record?", which a total cannot answer
+     because the world does other things while a fall runs (a bank of sand
+     comes down, a village lays a wall) and those are records rightly kept */
+  recordedAt:(ix,iy,iz)=>{ const m=EDITS.get(chunkKeyOf(ix,iz));
+    return !!m&&m.get(eIndex(((ix%CH)+CH)%CH,iy,((iz%CH)+CH)%CH))!==undefined; },
   /* the remesh ALONE, in milliseconds — not the frame it happens to sit in */
   flushNow:()=>{ const t=performance.now(); const n=flushEdits(1e9);
     return {ms:performance.now()-t, chunks:n}; },
@@ -14901,6 +15152,33 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   dropChunks:()=>{ for(const[k,ch] of chunks){
       for(const m of ch.meshes){ chunkRoot.remove(m); m.geometry.dispose(); } }
     chunks.clear(); buildQueue.length=0; buildQueued.clear(); },
+  /* ---- WHAT IS STANDING IN THE VIEW, FOR MEASURING ONE BUILD AGAINST ANOTHER ----
+     A MESH IS A DRAW CALL. That is the whole reason this exists: every feature
+     of the flora that adds a MATERIAL — the second leaf that does not gild, the
+     six barks — is paid for in draw calls and not in triangles, and a claim
+     about the cost of one is worth nothing without the two numbers side by
+     side. The materials are tallied by their own names out of the engine's own
+     table, so a reading says WHICH material the meshes went to and not merely
+     how many there were. */
+  /* ---- AND THE WORLD HELD STILL WHILE IT IS MEASURED ----
+     The frame calls updateChunks with its OWN view every frame and reaps
+     whatever falls outside it. So a measurement that lays its own ring across
+     several frames is measuring a ring the game is pulling back at the same
+     time: the first cut of the bark measurement read 545 chunks for one build
+     and 709 for the other and reported a quarter of a million extra TRIANGLES
+     from a change that touches no geometry at all. It was a hundred and
+     sixty-four extra chunks and nothing else. A paused world takes no orders
+     and lays no ground, so an A/B build stands on the disc it was given. */
+  holdWorld:v=>{ setPaused(!!v); return gamePaused; },
+  viewStats:()=>{ const nameOf=new Map();
+    for(const k in MAT) nameOf.set(MAT[k],k);
+    const byMat=new Map(); let meshes=0, tris=0;
+    for(const [,ch] of chunks) for(const m of ch.meshes){ meshes++;
+      const idx=m.geometry.getIndex(); tris+=idx?idx.count/3:0;
+      const n=nameOf.get(m.material)||'?';
+      byMat.set(n,(byMat.get(n)||0)+1); }
+    return {chunks:chunks.size, meshes, tris,
+      byMat:[...byMat].sort((a,b)=>b[1]-a[1])}; },
   fallTick, looseSettleAll, looseCount:()=>LOOSE.length, flowLeft:()=>flowLeft,
   flowBudget:()=>FLOW_BUDGET, flowReach:()=>FLOW_REACH,
   settlePending:()=>SETTLE.length/3,
@@ -14920,6 +15198,13 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   /* the same placing, from a named reach — so a test need not steer a camera
      to ask which side of a face a block lands on */
   placeFrom:a=>{ const was=AIM; AIM=a; try{ return placeBlock(); } finally{ AIM=was; } },
+  /* how many of a thing he carries, and taking one of them INTO THE HAND by
+     its own name — a test that wants to use a bucket should not have to know
+     which of the belt's eight slots the satchel happened to put it in */
+  satchelCount,
+  holdId:id=>{ for(let i=0;i<BELT_N;i++){ const sl=SATCHEL[i];
+      if(sl&&sl.id===id){ heldSlot=i; beltDraw(); return true; } }
+    return false; },
   activeVillages:()=>activeVillages,
   toolSpeedOf:id=>toolSpeed(BLOCK_BY_ID[id]),
   /* the save, driven and read back, so a test need not guess at its timing */
@@ -16178,7 +16463,58 @@ function cellHitsAnyLiving(ix,iy,iz){
   return null;
 }
 /* set down what is in the hand, against the face the arm is on */
+/* ---- THE BUCKET: THE ONE WAY THE HAND CARRIES WATER ----
+   Everything else that moves water in this world the world does for itself —
+   a spring at a lip, a channel cut to a river, a storm over a wall. This is
+   the one that is HIS.
+
+   IT IS DONE THROUGH THE DOOR THAT WAS ALREADY THERE. js/water.js has had
+   both halves of a bucket since the flow was written: `spill` lays a source,
+   `take` lifts one, and since the flow got a layer of its own a hand's source
+   is a DEED that is in the world when he sails back while the stream that
+   runs out of it is not. Nothing here touches water; it asks for those two.
+
+   AND THE ENGINE KNOWS NO BUCKET BY NAME. A block that says `serves:'bucket'`
+   is one, `fills` names what an empty one becomes, `empties` what a full one
+   becomes. Add a vessel to blocks/ that says those things and it is a bucket;
+   this function is not touched.
+
+   WHAT IT MAY DIP INTO. Any water the arm can reach — a river, a village
+   trough, the sea's own edge, or a stream of ours. If it is OURS and it is a
+   source, it is TAKEN UP, so a man may pick his own spring back up; the
+   world's own water is not ours to remove and is merely drawn from, as a well
+   is drawn from and does not empty. */
+function useBucket(b,h){
+  const a=AIM; if(!a) return {no:'nothing is within reach'};
+  const free=freeHand();
+  if(b.empties){                               /* it is full: pour it out */
+    const ix=a.ix+a.nx, iy=a.iy+a.ny, iz=a.iz+a.nz;
+    if(iy<EY_MIN||iy>=EY_MAX) return {no:'there is nothing there to pour on'};
+    if(blockSolidAt(ix,iy,iz)) return {no:'something already stands there'};
+    if(!window.WATER||!WATER.spill(ix,iy,iz,true)) return {no:'the water will not stand there'};
+    if(!free){ satchelTake(h.id,1); satchelAdd(b.empties,1); }   /* by its ID: satchelAdd knows no numbers */
+    beltDraw(); satchelTouch();
+    return {poured:b.id, at:[ix,iy,iz], now:b.empties};
+  }
+  if(b.fills){                                 /* it is empty: dip it */
+    if(!isLiquid(blockAt(a.ix,a.iy,a.iz))) return {no:'there is no water there'};
+    /* a source of OURS comes up with it; the world's own water is drawn from
+       and stays where it is */
+    const lev=window.WATER?WATER.levelAt(a.ix,a.iy,a.iz):null;
+    if(lev===WATER.SOURCE) WATER.take(a.ix,a.iy,a.iz);
+    else if(lev!==null) return {no:'it is running water, and will not be caught'};
+    if(!free){ satchelTake(h.id,1); satchelAdd(b.fills,1); }      /* by its ID: satchelAdd knows no numbers */
+    beltDraw(); satchelTouch();
+    return {filled:b.id, at:[a.ix,a.iy,a.iz], now:b.fills};
+  }
+  return {no:'it is not a vessel'};
+}
 function placeBlock(){
+  /* the vessel is used before the rule below throws every held thing out —
+     a bucket is `place:false` like any held thing, and doing nothing with it
+     would be the whole of the bug */
+  { const h=heldBlock(), st=heldStack();
+    if(h&&h.serves==='bucket'&&st) return useBucket(h,st); }
   /* ---- A TOOL IS NOT A CUBIC METRE OF TOOL ----
      §11 step 9 gives the hand things that are HELD and not laid: a pick, an
      axe, a knife. `place:false` on the block is the whole of the rule, and it
@@ -16202,8 +16538,10 @@ function placeBlock(){
      A block of water set down as though it were a block of stone is a cube
      of water hanging in the air, which is not what water is. It goes in as a
      SOURCE and runs from there — down every fall it meets and seven blocks
-     out over every flat — which is js/water.js's whole business. */
-  if(b.liquid&&window.WATER){ WATER.spill(ix,iy,iz);
+     out over every flat — which is js/water.js's whole business.
+     AND IT IS HIS DEED, so the source goes in the record and is there when he
+     sails back. What runs out of it is not, and is worked out again. */
+  if(b.liquid&&window.WATER){ WATER.spill(ix,iy,iz,true);
     beltDraw(); satchelTouch(); return {laid:b.id, at:[ix,iy,iz], spilled:true}; }
   setBlock((ix+0.5)*B,(iy+0.5)*B,(iz+0.5)*B, b.n);
   beltDraw(); satchelTouch();
@@ -16227,39 +16565,51 @@ function placeBlock(){
    not been laid writes into a record that the mesher has already passed, so
    the spring is held until the lip is truly standing. */
 const _sprung=new Set();
-/* ---- THE SPRINGS ARE OFF, AND HERE IS THE MEASUREMENT THAT TURNED THEM OFF ----
-   Standing at three falls with the spring laid and the world let run:
+/* ---- THE SPRINGS ARE STILL OFF, AND FOR A DIFFERENT REASON THAN BEFORE ----
+   THE FLOOD IS ANSWERED. What turned them off was 13,989 cells of standing
+   water at Niagara and 23,025 at Multnomah, still climbing — a wall that was
+   a forty-five degree ramp, a column spraying sideways out of its own middle,
+   a sheet taking every direction at once, no sink at the sea, and the world's
+   own rivers feeding our water like infinite springs. All five are mended,
+   and a seventh besides — a plunge pool two blocks deep was a ring of little
+   springs feeding each other and needing no source at all. The falls now run,
+   settle, STAY AT THE FALL, and unwind to nothing when the head is taken up:
 
-     Angel     lip raised h=1 -> h=111 (the tepui works), water in the
-               column 0, and 549 cells of water standing somewhere else
-     Niagara   water in the column 3, and 13,989 cells standing
-     Multnomah water in the column 2, and 23,025 cells standing, with 7,292
-               still queued to spread
+     fall        standing   furthest from the fall   its own gorge
+     Niagara        2,298          112 blocks           129
+     Mosi-oa-Tunya  1,534          154                  184
+     Angel            908           28                  269
+     Multnomah        124            8                   63
 
-   TWENTY-THREE THOUSAND CELLS IS NOT A WATERFALL, IT IS A FLOOD, and the
-   picture shows it: the camera at the foot of Niagara is buried inside a
-   solid mass of water. Two faults, and both are mine:
+   Not one of the four leaves the gorge it cut, and acceptance test 39 drains
+   all three of its falls to ZERO cells.
 
-   1. THE WALL IS A RAMP. FORM.steep was meant as "1 = sheer", but the code
-      reads `wallEnd = drop / steep` — so steep:1 gives a wall that takes as
-      many blocks of ground as it drops. That is a forty-five degree slope.
-      Angel's profile proves it: 110 110 110 111 111 111 111 ... flat for the
-      whole ten blocks sampled, because its "wall" is a hundred and nine
-      blocks long. Water does not fall down a ramp; it RUNS down it, and a
-      source that runs instead of falling floods whatever is below.
+   WHAT IS NOT ANSWERED IS THE RECORD. A fall that has settled is not still —
+   it is a flow, and a flow at equilibrium is water arriving, falling, landing
+   and being taken by the sea at the same rate. Measured over two hundred
+   ticks AFTER the standing total stopped moving:
 
-   2. A LINE OF SOURCES ON A PLATEAU IS A LINE OF SPRINGS. Each spreads seven
-      blocks every way and then follows every slope it finds, for ever,
-      because a source is never consumed. Niagara's lip is two hundred blocks
-      wide and got seven of them.
+     Niagara    9,620 blocks laid, 10,261 taken up, standing 3,284
+     Angel     11,696 laid,        11,676 taken up, standing   863
 
-   The mending is to make a sheer wall sheer (wallEnd of a block or two,
-   whatever the drop) and to lay ONE source that is fed rather than a line of
-   them — but that is a change to be measured, not guessed, and shipping a
-   world that floods while I work it out is not a trade worth making. The
-   rock stands cut and dry until then, which is a waterfall without water
-   rather than a country under one. */
-const SPRINGS_ON=false;
+   ELEVEN THOUSAND WRITES TO HOLD EIGHT HUNDRED CELLS STILL. Every one went
+   through setBlock, and setBlock marks the chunk for the SAVE and re-arms the
+   writer, so the springs would have had every fall the traveller ever walked
+   past writing the world to the disc every 900 ms for the rest of the voyage
+   — and would have filed a waterfall in the record of WHAT HANDS HAVE DONE,
+   which it is not.
+
+   THAT IS ANSWERED TOO, and it is why this now reads `true`. The flow has a
+   layer of its own (WEDITS, beside the structures' SEDITS — "derived,
+   dropped, never written down"): drawn, walked into, collided with, and never
+   written down. A hand's own source still goes in the record, because a
+   bucket emptied is a deed; the stream that runs out of it is worked out
+   again from the source the next time the traveller comes near, exactly as a
+   village is worked out again from its site.
+
+   SO THE FALLS OF THE EARTH RUN. Thirty-four of them, and the spring is laid
+   as the traveller comes within seven hundred units of one. */
+const SPRINGS_ON=true;
 function updateFalls(px,pz){
   if(!SPRINGS_ON||!_fallsOn||!window.WATER||!window.WATERFALL) return;
   const near=WATERFALL.nearest(px,pz,700);
