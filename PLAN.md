@@ -808,16 +808,16 @@ went and looked, rather than planning work that exists:
 
 | §2.3 fauna | state |
 |---|---|
-| 1. Coats, countershading, markings | **nothing.** `lbox` gives every limb one flat Lambert colour |
+| 1. Coats, countershading, markings | ✅ *Round 51* — was **nothing** when this table was written; `makeBeast` now grades every finished model, 2534 meshes, 0 left flat |
 | 2. Real gaits | ✅ `js/gait.js`, six gaits, chosen by speed, one datum per species in `js/behavior.js` |
 | 3. True stature | ✅ `js/size.js` — the half-scale field beasts are gone, one measure and it is the man's |
 | 4. Finer voxel grain | partial: two-bone limbs with knees, but 12–15 parts on the large mammals |
-| 5. Herd and flock structure | partial: roles and flight in `js/behavior.js`, no matriarch, no vigilance |
+| 5. Herd and flock structure | **partial, and the last thing open in Phase 6.** Flight distance and the watch ✅ *Round 54*. The matriarch, the young at the centre and the birds' flocking are NOT built: *Round 70* built the measurement, made the change, could not show it working over four readings, and reverted it — see below |
 | 6. The daily round | ✅ *Round 69* — most of it was already there (Round 54: hours, dens, and the whole list of acts). The one clause with nothing behind it was the first: `a.river` was read once when the beast was set down, so **nothing on this earth ever went TO water**. The herds go down at dawn and dusk now, in four lands of four |
 
 | §2.4 flora | state |
 |---|---|
-| 1. Branching | **nothing.** A bole and a canopy; no branch orders anywhere in `js/flora.js` |
+| 1. Branching | ✅ *Round 52* — was **nothing** when this table was written; 85 species branch, 55 keep their own form |
 | 2. Canopy per species | ✅ `form:` in `world/flora.js`, a dozen forms built in `js/flora.js` |
 | 3. Bark per species | ✅ *Round 59, and it was built in Round 52 and left unmeasured* — six barks assigned by kind in `js/flora.js`, the tint still on top, +8.6–16.7% draw calls and **not one triangle** |
 | 4. Seasonal colour | ✅ *and it already was* — see the correction below |
@@ -941,7 +941,29 @@ water search put its probes four hundred and seventy units apart looking for a r
 and twenty wide. **Four lands of four saw the herds go down; at noon, nought; and no beast
 ever walked to water with a hunter inside its flight distance.** AUDIT Round 69.
 
-**8. Finer grain on the twenty most-seen species.** Last, and explicitly not all 151 —
+**8. The herd — MEASURED AND NOT BUILT.** *Round 70, and nothing shipped.* §2.3.5. Round 54
+tried this four times and left an instruction: build the measurement first. That is acceptance
+test 50, and the first thing it said was not about matriarchs — **"no herd of four formed in
+any land"**, across six of them. Ninety-six beasts stand at once over a ring of twelve hundred
+and fifty units, and the only thing drawing them together was a 45 % pull toward the mean of
+their own kind *within eighty units* — a force that cannot reach a beast not already in the
+herd. **The world was not making herds.** Before: mean herd 3.00, biggest 3, and the mothers
+sitting 1.22 herd-radii out against everybody else's 0.94 — the young were on the OUTSIDE.
+
+A wide gather, a matriarch by rank, and a station apiece were built and measured four times.
+The mothers' depth read 1.04, 0.80, 0.90 and 1.01 against 0.98, 1.06, 1.02 and 1.00 — with two
+to six mothers in a run, that is noise, and two readings of the identical build disagreed. **It
+is not in the tree.**
+
+**The diagnosis is the output.** All four attempts failed the same way: the wander-target picker
+is the wrong lever. It fires only when a beast is *roaming*, and a grazing beast hardly ever is
+— it is in `seek` walking to grass or in `feedhead` standing still. **A herd is given its shape
+by where each beast looks for grass**, so the next attempt belongs in `GRASS.findGraze`, biased
+toward a beast's station in its herd — a change to the grazing, not the wandering, which is why
+it wants its own round and a fresh before-reading. Test 50 is left running and reporting
+PENDING with its numbers. AUDIT Round 70.
+
+**9. Finer grain on the twenty most-seen species.** Last, and explicitly not all 151 —
 the brief says so, and it is the item most able to cost frames for the least reach.
 
 ### What I will not do

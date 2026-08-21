@@ -2949,6 +2949,202 @@ T[49]={name:'the beasts that drink go down to the water at dusk, and not at noon
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
+T[50]={name:'THE HERD, MEASURED — how many stand together, where the young stand, and how far it moves',
+  /* §2.3.5 — "matriarch-led herds with juveniles held at the centre".
+
+     AUDIT ROUND 54 TRIED THIS THREE TIMES, REVERTED ALL THREE, AND LEFT
+     INSTRUCTIONS, which this test exists to obey:
+
+       "A valid measurement of this needs many INDEPENDENT herds — different
+        lands, one reading apiece — and IT NEEDS TO BE BUILT BEFORE THE
+        FEATURE, NOT AFTER IT… the herd gathering rule fires only when a beast
+        picks a new wander target, so a herd here is a loose correlation and
+        not a structure."
+
+     It also recorded why the numbers taken there were worthless: they sampled
+     the same three animals every twelfth frame and called it three hundred
+     samples. So n here is HERDS, in several lands, censused once apiece.
+
+     ---- THE THREE THINGS ASKED, AND THE SECOND IS THE DECISIVE ONE ----
+
+     1. A HERD HAS ONE HEAD. Exactly one member of a neighbourhood leads it,
+        it is the same one when asked again, and no beast leads a
+        neighbourhood in which somebody outranks it.
+
+     2. A HERD TRAVELS. This is the whole difference between a correlation and
+        a structure, and it is arithmetic, not taste: if every beast walks
+        toward the MEAN POSITION of its own kind, it walks toward a point that
+        by definition sits in the middle of them all and barely moves — so the
+        herd can only shuffle in place, for ever. A herd that follows an
+        ANIMAL goes where that animal goes. Measured as how far the centroid
+        of one fixed set of beasts carries itself, against the size of the
+        herd, over a fixed spell.
+
+     3. THE YOUNG ARE IN THE MIDDLE. Each member's distance from its herd's
+        centroid over the herd's own radius, so a big herd and a small one can
+        be added together. Mothers with a calf at foot must sit measurably
+        nearer the middle than beasts with none.
+
+     THE BARS BELOW ARE SET FROM WHAT WAS MEASURED ON THE OLD BEHAVIOUR, not
+     from a wish — see AUDIT Round 70 for both columns. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, W=window.__WORLD;
+    if(!D.LANDLIFE||!D.HERD_R) return {pending:'no herds to measure'};
+    const R=D.HERD_R;
+    const faults=[], rows=[];
+    let mums=0, mumDepth=0, others=0, othDepth=0;
+    let herds=0, members=0, biggest=0, travel=0, travelU=0, travelN=0;
+    let twoLed=0, ledWrong=0, unstable=0;
+    const sizes={};
+
+    /* ---- EVERY DISTINCT HERD STANDING HERE, each beast counted once ----
+       The same greedy neighbourhood test the watch uses, and the threshold is
+       THREE, which is test 35's and the audit's own word for a herd.
+       AND THE SIZE IS ITSELF A HEADLINE. The first cut of this test asked for
+       four and reported "no herd of four formed in any land" across six of
+       them — which is not a bug in the test. Ninety-six beasts stand at once
+       (`LL_N`) over a ring of twelve hundred and fifty units, shared among
+       every species a country grows, and the gathering pull is 45% toward the
+       mean fired only when a beast picks a new wander target. THE WORLD WAS
+       NOT MAKING HERDS AT ALL, it was making a scatter with a slight
+       correlation in it — so §2.3.5 had almost nothing to give a structure to.
+       How many stand together is therefore reported first and barred on. */
+    const census=()=>{
+      const out=[], done=new Set();
+      for(const a of D.LANDLIFE){
+        if(!a.set||a.dead>0||done.has(a)) continue;
+        const mob=[];
+        for(const b of D.LANDLIFE){ if(!b.set||b.dead>0||b.kind!==a.kind) continue;
+          if(Math.hypot(b.x-a.x,b.z-a.z)<=R) mob.push(b); }
+        if(mob.length<3) continue;
+        for(const b of mob) done.add(b);
+        out.push(mob);
+      }
+      return out; };
+    const centre=mob=>{ let x=0,z=0; for(const b of mob){ x+=b.x; z+=b.z; }
+      return {x:x/mob.length, z:z/mob.length}; };
+    const spread=(mob,c)=>{ let d=0; for(const b of mob) d+=Math.hypot(b.x-c.x,b.z-c.z);
+      return Math.max(1,d/mob.length); };
+
+    const S=W.sites();
+    const siteOf=n=>{ for(let i=0;i<S.length;i++) if(S[i]&&D.COUNTRIES[i].n===n) return S[i];
+      return null; };
+    /* the plain first, where the herds of the earth actually are */
+    /* FOUR LANDS AND NOT SIX. The first cut asked six and took twenty-two
+       minutes of a headless box for one test, which is not a price a suite of
+       fifty can pay. Four plains is enough for n to mean something. */
+    for(const land of ['Kenya','Tanzania','Botswana','Mongolia']){
+      const s2=siteOf(land); if(!s2) continue;
+      D.state.walk.x=s2.x+700; D.state.walk.z=s2.z+700; D.state.walk.feetY=undefined;
+      D.setMode('walk');
+      const noon=D.DAYPARTS.findIndex(d=>d.k==='noon'); if(noon>=0) D.state.dayIdx=noon;
+      D.applyDayPart();
+      for(let f=0;f<50;f++){ D.updateChunks(D.state.walk.x,D.state.walk.z,600);
+        await new Promise(r=>requestAnimationFrame(r)); }
+      /* and let them settle into whatever shape they make before asking */
+      for(let f=0;f<90;f++) await new Promise(r=>requestAnimationFrame(r));
+
+      const mobs=census();
+      if(!mobs.length){ rows.push(land+': not three of a kind together'); continue; }
+      const before=mobs.map(m=>({mob:m, c:centre(m), r:spread(m,centre(m))}));
+
+      /* ---- 1 and 3, asked now ---- */
+      for(const h of before){
+        herds++; members+=h.mob.length;
+        sizes[h.mob.length>=6?'6+':h.mob.length]=(sizes[h.mob.length>=6?'6+':h.mob.length]||0)+1;
+        if(h.mob.length>biggest) biggest=h.mob.length;
+        for(const b of h.mob){
+          const depth=Math.hypot(b.x-h.c.x,b.z-h.c.z)/h.r;
+          if(b.kids){ mums++; mumDepth+=depth; } else { others++; othDepth+=depth; }
+        }
+        /* who leads it, if anything does */
+        if(D.herdOf){
+          const seen=new Set();
+          for(const b of h.mob){ const H=D.herdOf(b); if(H&&H.lead) seen.add(H.lead); }
+          if(seen.size>1) twoLed++;
+          for(const b of h.mob){ const H=D.herdOf(b); if(!H||!H.lead) continue;
+            /* nobody may lead a neighbourhood in which somebody outranks it */
+            for(const c of h.mob){ if(c===H.lead) continue;
+              if(Math.hypot(c.x-H.lead.x,c.z-H.lead.z)>R) continue;
+              if(D.herdRank(c)>D.herdRank(H.lead)){ ledWrong++; break; } }
+            break; }
+        }
+      }
+
+      /* ---- 2. does it TRAVEL? the same beasts, a spell later ---- */
+      for(let f=0;f<190;f++) await new Promise(r=>requestAnimationFrame(r));
+      let moved=0, movedU=0, n2=0;
+      for(const h of before){
+        const live=h.mob.filter(b=>b.set&&b.dead<=0);
+        if(live.length<3) continue;
+        const c2=centre(live), d=Math.hypot(c2.x-h.c.x,c2.z-h.c.z);
+        moved+=d/h.r; movedU+=d; n2++;
+      }
+      if(n2){ travel+=moved/n2; travelU+=movedU/n2; travelN++; }
+      /* and the leader must be the same one it was */
+      if(D.herdOf) for(const h of before){
+        const live=h.mob.filter(b=>b.set&&b.dead<=0); if(live.length<3) continue;
+        const H=D.herdOf(live[0]); if(H&&H.lead&&H.lead!==(h.lead0||H.lead)) unstable++; }
+      rows.push(land+': '+before.length+' herd(s), centroid moved '+
+        (n2?(movedU/n2).toFixed(0):'—')+' units');
+    }
+
+    if(!herds) return {pending:'not three of one kind stood together in any land'};
+    const mD=mums?mumDepth/mums:null, oD=others?othDepth/others:null;
+    const trav=travelN?travel/travelN:0, travU=travelN?travelU/travelN:0;
+
+    /* ---- AND IT REPORTS RATHER THAN JUDGES, ON PURPOSE ----
+       THIS TEST IS A MEASUREMENT AND NOT YET A GUARD, and saying so is the
+       whole point of it. AUDIT Round 54 tried §2.3.5 four times, reverted all
+       four, and wrote that it had "no evidence that juveniles-at-the-centre is
+       or is not satisfied" because it had never built a measurement. Round 70
+       built this one, made the change, and measured it FOUR TIMES:
+
+         mothers' depth   others'   what it was
+         1.22             0.94      before anything (the young OUTSIDE)
+         1.04             0.98      stations about a leader
+         0.80             1.06      stations and a marching matriarch
+         0.90             1.02      stations alone, first reading
+         1.01             1.00      stations alone, second reading
+
+       With two to six mothers standing in any one run that is noise, and the
+       change was taken back out. AND THEN THE BEFORE-READING DISAGREED WITH
+       ITSELF: run once more on the untouched tree it gave 0.59 against 1.07 —
+       the young deep INSIDE — on exactly the code that had read 1.22 against
+       0.94 an hour before. Same build, opposite answer. So none of the
+       comparisons above mean anything, and neither did Round 54's four.
+       The numbers are left here, running, so the next person to take the item
+       up begins with evidence instead of a feeling — and the first thing that
+       evidence says is THIS MEASUREMENT NEEDS MORE MOTHERS IN IT. Three is
+       not a sample. Widen it — more lands, or many readings of each, or both
+       — before believing anything it says about depth.
+
+       WHAT THE FOUR ATTEMPTS DID ESTABLISH, and it is worth more than the
+       feature would have been: the wander-target picker is THE WRONG LEVER.
+       It fires only when a beast has finished everything else and is roaming,
+       and a grazing beast hardly ever is — it is in `seek` walking to grass,
+       or in `feedhead` standing still with its speed set to nought. A herd is
+       given its shape by WHERE EACH BEAST LOOKS FOR GRASS, not by where it
+       wanders when it has nothing to do, and that is where the next attempt
+       should go. The travel figure says the same thing from the other side: 0
+       to 2 units in a spell whatever was done to the wandering.
+
+       It is PENDING and not FAIL because there is nothing broken here. The
+       world does what it always did; this is the shape of it, written down. */
+    const mean=herds?members/herds:0;
+    return {pending:
+      'MEASURED, NOT GUARDED (§2.3.5 is open — see AUDIT Round 70) · '+
+      herds+' herd(s) of three or more over '+rows.length+' lands, mean '+mean.toFixed(2)+
+      ' beasts, biggest '+biggest+' ('+Object.keys(sizes).sort()
+        .map(k=>k+'×'+sizes[k]).join(', ')+') · '+
+      'the young: '+mums+' mothers at '+(mD===null?'—':mD.toFixed(2))+
+      ' of a herd-radius from the middle against '+others+' others at '+
+      (oD===null?'—':oD.toFixed(2))+
+      ' · travel: '+travU.toFixed(0)+' units ('+trav.toFixed(2)+' herd-radii)'+
+      ' · leaders: '+(D.herdOf?(twoLed+' split, '+ledWrong+' outranked'):'no leader in this build')+
+      ' · '+rows.join(' | ')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

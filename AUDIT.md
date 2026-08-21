@@ -5908,6 +5908,125 @@ otherwise re-discover it as a bug.
   fourteen works and tests 20 and 44 walk them. What IS still missing is a bench, and the
   section now says so instead.
 
+## 4bs. Round 70 — §2.3.5, the herd: the measurement built, the change reverted
+
+*§2.3.5 — "matriarch-led herds with juveniles held at the centre."*
+
+**Nothing shipped. This round is a measurement and a diagnosis, and both are worth more than
+the feature would have been.**
+
+### Why it was taken this way
+
+AUDIT Round 54 tried this item four times, reverted all four, and left an instruction rather
+than a result:
+
+> *A valid measurement of this needs many INDEPENDENT herds — different lands, one reading
+> apiece — and **it needs to be built before the feature, not after it**. I have neither, so I
+> have no evidence that §2.3.5's juveniles-at-the-centre is or is not satisfied… The item stays
+> open and unclaimed.*
+
+Round 69 had just proved that method works (n = lands, one census apiece). So the measurement
+went first: **acceptance test 50**, which censuses every herd of three or more across four
+plains, once each, and reports how many stand together, how deep in the herd the mothers sit
+against everybody else, and how far the herd carries itself over a spell.
+
+### THE FIRST THING IT REPORTED WAS NOT ABOUT MATRIARCHS AT ALL
+
+Asked for herds of **four**, it answered **"no herd of four formed in any land"** — across six
+of them. That is not a fault in the test.
+
+- **96 beasts stand at once** (`LL_N`) over a ring of 1,250 units, shared among every species a
+  country grows.
+- The only thing drawing them together was a pull of 45 % toward the **mean position of their
+  own kind within eighty units** — that is, *a beast only felt its herd once it was already
+  standing in it.* Two zebra two hundred units apart felt no force whatever.
+
+**The world was not making herds. It was making a scatter with a slight correlation in it**, and
+§2.3.5 had almost nothing to give a structure to. Lowered to three, the before-reading was:
+
+| | before |
+|---|---|
+| herds of 3+ over 4 lands | 6, **mean 3.00, biggest 3** — not one group of four anywhere |
+| mothers' depth from the middle | **1.22** herd-radii |
+| everybody else | **0.94** — the young were further **OUT**, the exact opposite of §2.3.5 |
+
+### What was built, and what it did
+
+A herd that feels its own kind across **420 units** and walks to them; a **matriarch** — the
+highest rank in the neighbourhood, rank being one hash settled when the beast is put down; and
+a **station** for every other member, an angle off its own rank on a ring that widens with the
+herd, mothers on an inner ring. The stations are the mechanism Round 54 recorded from the bird
+flocking it built and reverted, reused on the ground.
+
+Measured four times:
+
+| | mothers | others | mean herd | biggest | travel |
+|---|---|---|---|---|---|
+| **before** | 1.22 | 0.94 | 3.00 | 3 | — |
+| stations about a leader | 1.04 | 0.98 | 3.50 | **6** | 2 u |
+| stations + a marching matriarch | **0.80** | 1.06 | 3.00 | 3 | 2 u |
+| stations alone, first reading | **0.90** | 1.02 | 3.00 | 3 | 0 u |
+| stations alone, second reading | 1.01 | 1.00 | 3.33 | 5 | 2 u |
+
+With **two to six mothers standing in any one run**, that is noise. Two readings of the very
+same build gave 0.90/1.02 and 1.01/1.00 — one a clear reversal, the other a dead heat. **I
+cannot show it working, so it is not in the tree.** The leader's own invariant held in every
+run (**0 outranked, 0 split**), but a leader that changes nothing measurable is machinery, not
+a feature.
+
+### AND THEN THE BEFORE-READING DISAGREED WITH ITSELF, WHICH SETTLES IT
+
+The change reverted, the test was run once more on the untouched tree to confirm it reports
+cleanly. It read **mothers 0.59 against everybody else 1.07** — the young deep inside the herd —
+on **exactly the code that had read 1.22 against 0.94 an hour earlier**, the young well outside.
+
+Same build, same four lands, opposite answer.
+
+**So no comparison against that baseline ever meant anything**, including the four above, and
+including — retroactively — the four attempts Round 54 made and could not judge. The item was
+never failing for want of a good idea. It was failing for want of a metric with more than three
+mothers in it, and this round has shown that in numbers rather than suspected it. The first
+thing the next attempt must do is widen the measurement — more lands, or many readings of each,
+or both — until the untouched world gives the same answer twice.
+
+### AND THE MARCH, WHICH WAS TRIED AND ALSO REVERTED
+
+Giving the herd a leader made the travel figure *worse* — 2 units against 5 for the scatter it
+replaced. The reason is that **every beast on this earth is tethered to the spot it was set
+down on**: `hx,hz` is fixed at spawn and a beast wanders inside a fourteen-block disc of it for
+life. A herd locked in formation about an animal who cannot leave her own field is a parade
+ground. So the matriarch's tether was made to creep along a bearing of her own, nine units a
+pick. **Measured: still 2 units, and the herd count fell with it.** Out.
+
+### THE DIAGNOSIS, WHICH IS THE ACTUAL OUTPUT OF THIS ROUND
+
+Four attempts, and they all failed the same way, for a reason that is now plain:
+
+**THE WANDER-TARGET PICKER IS THE WRONG LEVER.** It fires only when a beast has finished
+everything else and is *roaming* — and a grazing beast hardly ever is. It is in `seek`, walking
+to grass; or in `feedhead`, standing still with its speed set to nought; or in an act. Round 54
+saw half of this (*"the gathering rule fires only when a beast picks a new wander target"*) and
+drew the conclusion that the herd was a loose correlation. The rest of it is that **no amount of
+work on that lever can reach the behaviour**, because the behaviour is somewhere else.
+
+A herd is given its shape by **where each beast looks for grass**. `GRASS.findGraze` spirals out
+from where the beast stands and takes the best bite it finds; if it preferred a bite near the
+beast's own station in its herd, the herd would form, hold and travel *as a consequence of
+feeding*, which is what a herd actually is. That is the next attempt, and it is a change to the
+grazing rather than to the wandering — which is why it wants its own round and a fresh
+before-reading, since test 35 and the whole life of the plains stand on that code.
+
+The travel figure says the same thing from the other side: **0 to 2 units in a spell whatever
+was done to the wandering** — and it may not even be a fault. A herd that has found grass
+stands in it. Proving that either way wants a metric that separates a herd walking from a herd
+feeding, and that metric does not exist yet.
+
+### What is left behind
+
+`tools/acceptance.js` test 50, **running, and reporting PENDING with its numbers** rather than
+green or red — because nothing here is broken; this is the shape of the world, written down. It
+is what Round 54 said it wished it had had.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
