@@ -19,6 +19,15 @@
    Everything here is a PURE FUNCTION OF THE PLACE — the same ground always
    bears the same grass, on every machine, for ever, with nothing stored.
 
+   ---- AND IT IS THE SWARD ONLY ----
+   What STANDS UP out of the ground is this file's. What LIES ON it — leaf
+   litter, needle mat, moss, lichen, deadfall, fungi — is js/ground.js, and
+   the two do not fight over a cell: the floor is drawn under the sward and
+   takes none away from it, so a blade may stand in the litter, and does.
+   The rock and the snow are NOT named below and never have been, so not one
+   blade has ever stood on either; the floor knows both, which is why a scree
+   is no longer clean grey stone.
+
    ---- WHAT YOU MAY CHANGE ----
    SWARD      the biome table below: how thick the grass grows on each
               ground, how tall it stands, and what colour it is.

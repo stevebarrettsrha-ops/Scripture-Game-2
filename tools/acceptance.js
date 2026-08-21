@@ -2478,6 +2478,144 @@ T[46]={name:'the manner a voyage was begun in survives a reload',
   }};
 
 
+T[47]={name:'a wood has a floor: litter of the tree\'s own leaf, moss on the shaded side, lichen on the bare rock',
+  /* §2.4.5, and it is the one item of Phase 6 the game this is measured
+     against does not attempt at all. Between the boles of every wood on the
+     earth there was LAWN — the same short green turf under a German oakwood,
+     a Norwegian spruce forest and the floor of the Congo — because nothing in
+     the world had ever been told that a forest floor is not a field.
+
+     FOUR THINGS ARE ASKED, and they are asked in two different ways because
+     they are two different kinds of claim.
+
+     WHAT IS BUILT is measured in the page, twice, on the same disc: the wood
+     with a floor and the wood without one, `holdWorld` holding the ring still
+     so the two builds stand on the same chunks (the fault that made the first
+     bark measurement worthless — see test 41).
+       IT REACHES THE GROUND. Triangles must rise, or the floor is not there.
+       IT COSTS NO DRAW CALL. A mat is one face in `solidW` and a fallen bole
+       one box in `barkW`, and both of those materials were already in every
+       wood in the world — so the SET OF MATERIALS in view may not change by
+       so much as one name. This is the whole design of the thing and it is
+       the claim most able to be quietly wrong.
+       AND IT DOES NOT HALVE THE FRAME. §2.5: "beauty that halves the frame
+       rate is not beauty." A cap is asserted, not hoped for.
+
+     WHAT IS DECIDED is a pure function of the place and is asked directly,
+     with no page and no frame in it at all:
+       THE LITTER IS THE TREE'S OWN LEAF. A conifer floor and a broadleaf
+       floor must not come out the same colour — that is the whole reason the
+       engine hands the floor a KIND instead of the floor keeping a table of
+       species, and if the two tints match, the wood is not reaching the mat.
+       MOSS LIES ON THE SHADED SIDE. Asked over ten thousand cells with the
+       shade set and ten thousand without: it must be markedly commoner in the
+       shade, or "moss on the shaded side" is a comment and not a rule.
+       AND THE BARE ROCK BEARS SOMETHING. `js/grass.js` does not know the
+       rock, has never clothed one inch of it, and every scree and crag in the
+       world was clean grey stone. The floor must bear there where the sward
+       does not. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, W=window.__WORLD, F=window.FLORA, GR=window.GROUND;
+    if(!GR||!GR.on||!GR.at) return {pending:'no floor of the wood (Phase 6 §2.4.5)'};
+    if(!D.viewStats||!D.dropChunks||!D.holdWorld) return {pending:'no A/B build probes'};
+    const faults=[];
+
+    /* ---------- WHAT IS DECIDED: pure, and no frame in it ---------- */
+    /* the litter takes the tree's own leaf. A fake kit is handed to the floor
+       and simply writes down what it was asked to draw, so the colour that
+       reaches the mesher is the colour asserted — not one worked out again
+       here beside it, which would only ever test itself. */
+    const kinds=F?F.kinds():{};
+    const drawn=(g,K)=>{ const out=[];
+      const kit={G:{}, M:{solid:'solidW',bark:'barkW',leaf:'leafW',plant:'plantW'},
+        mat:(G,m,x0,z0,x1,z1,y,t)=>out.push({m,how:'mat',t:t.slice(),y}),
+        emitBox:(G,x0,y0,z0,x1,y1,z1,sm,tm,bm,t)=>out.push({m:sm,how:'box',t:t?t.slice():null,y:y0})};
+      GR.emit(kit,g,0,0,60,K); return out; };
+    /* a conifer and a broadleaf, taken out of the world's own flora if it has
+       them and stood up by hand if it does not */
+    const pick=form=>{ for(const n in kinds) if(kinds[n].form===form&&kinds[n].leaf) return kinds[n];
+      return null; };
+    const conif=pick('conifer')||{form:'conifer',leaf:0x2f5a34,bole:0x5a4530};
+    const broad=pick('broad')||{form:'broad',leaf:0x3e7a2c,bole:0x6b4a2a};
+    const cT=drawn({m:'litter',s:0.5},conif)[0], bT=drawn({m:'litter',s:0.5},broad)[0];
+    let litterSay='—';
+    if(!cT||!bT) faults.push('the litter drew nothing at all');
+    else{
+      const d=Math.abs(cT.t[0]-bT.t[0])+Math.abs(cT.t[1]-bT.t[1])+Math.abs(cT.t[2]-bT.t[2]);
+      const hex=t=>'#'+t.map(v=>Math.round(Math.max(0,Math.min(1,v))*255).toString(16).padStart(2,'0')).join('');
+      litterSay='needle mat '+hex(cT.t)+' against leaf litter '+hex(bT.t)+' (apart by '+d.toFixed(3)+')';
+      if(cT.m!=='solidW') faults.push('the litter was drawn in '+cT.m+', which is a new material');
+      if(d<0.05) faults.push('a conifer floor and a broadleaf floor came out the same colour — '+
+        'the litter is not taking the tree\'s own leaf');
+    }
+    /* moss on the shaded side, over ten thousand cells of each */
+    let shaded=0, sunlit=0, N=10000;
+    for(let i=0;i<N;i++){ const ix=(i%127)*13+7, iz=Math.floor(i/127)*17-5;
+      if((GR.at(ix,iz,'grass',1,0.8,false,true )||{}).m==='moss') shaded++;
+      if((GR.at(ix,iz,'grass',1,0.8,false,false)||{}).m==='moss') sunlit++; }
+    const mossSay=shaded+' shaded against '+sunlit+' sunlit in '+N;
+    if(!(shaded>sunlit*1.4)) faults.push('moss stood as thick in the sun as in the shade ('+mossSay+')');
+    /* and the bare rock, which the sward has never known */
+    const sward=window.GRASS&&GRASS.SWARD;
+    if(sward&&sward.rock) faults.push('the sward now knows the rock — this test is stale, rewrite it');
+    let onRock=0;
+    for(let i=0;i<4000;i++){ const ix=(i%89)*11+3, iz=Math.floor(i/89)*19+41;
+      if(GR.at(ix,iz,'rock',1,0.2,false,false)) onRock++; }
+    if(!onRock) faults.push('the bare rock still bears nothing whatever');
+
+    /* ---------- WHAT IS BUILT: measured in the page, twice ---------- */
+    /* the wood is chosen by its own growth and not by name — the country
+       whose flora lists the most trees, so data picks it and a country
+       renamed cannot make this stale */
+    const lands=F?F.lands():{}, score=[];
+    for(const n in lands){ const l=lands[n], list=(l&&l.tree)||l||[];
+      const names=Array.isArray(list)?list:Object.keys(list||{});
+      let trees=0; for(const k of names){ const K=kinds[k]; if(K&&K.layer==='tree') trees++; }
+      score.push({n,trees}); }
+    score.sort((a,b)=>b.trees-a.trees);
+    const S=W.sites(); let at=null;
+    for(const c of score){
+      for(let i=0;i<S.length;i++){ if(S[i]&&D.COUNTRIES[i].n===c.n){
+        at={n:c.n,x:S[i].x,z:S[i].z,trees:c.trees}; break; } }
+      if(at) break; }
+    if(!at) return {pending:'no wood stands on the chart'};
+
+    const build=async on=>{
+      GR.on(on);
+      D.holdWorld(true); D.dropChunks();
+      for(let k=0;k<25;k++){ D.updateChunks(at.x,at.z,900,13);
+        await new Promise(r=>requestAnimationFrame(r)); }
+      D.updateChunks(at.x,at.z,900,13);
+      const st=D.viewStats();
+      D.holdWorld(false);
+      return st;
+    };
+    D.state.fly.x=at.x; D.state.fly.z=at.z; D.setMode('fly');
+    const withF=await build(true), without=await build(false);
+    GR.on(true);
+
+    const names=st=>st.byMat.map(m=>m[0]).sort();
+    const a=names(withF).join(','), b=names(without).join(',');
+    if(withF.chunks!==without.chunks)
+      faults.push('the two builds stood on different discs ('+without.chunks+' against '+withF.chunks+
+        ') — nothing measured here means anything');
+    else{
+      if(!(withF.tris>without.tris)) faults.push('the floor laid no geometry at all — it is not reaching the ground');
+      if(a!==b) faults.push('the floor brought materials of its own: '+
+        a.split(',').filter(m=>b.split(',').indexOf(m)<0).join(' ')+' — that is a draw call per chunk');
+      if(withF.tris>without.tris*1.25)
+        faults.push('the floor cost '+((withF.tris/without.tris-1)*100).toFixed(1)+
+          '% of the wood\'s triangles, and §2.5 does not allow it');
+    }
+    return {ok:!faults.length,
+      got:at.n+' ('+at.trees+' kinds) over '+withF.chunks+' chunks · triangles '+without.tris+' → '+
+        withF.tris+' (+'+(withF.tris-without.tris)+', +'+
+        ((withF.tris/without.tris-1)*100).toFixed(1)+'%) · meshes '+without.meshes+' → '+withF.meshes+
+        ' · materials '+(a===b?'unchanged ('+without.byMat.length+')':'CHANGED')+
+        ' · litter: '+litterSay+' · moss: '+mossSay+' · lichen on the rock: '+onRock+' of 4000 cells'+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

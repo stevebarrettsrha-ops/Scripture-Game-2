@@ -5487,6 +5487,167 @@ the reference — ocean 0.871 / 0.896 / 0.923 against a ceiling of 1.08, plain 2
 fault on comparable ground, with the baselines tightened to 0.45 and 1.60, it FAILED rather
 than excusing itself. A guard that has never been seen to fail is not yet a guard.
 
+## 4bp. Round 67 — Phase 6 step 5: the floor of the wood ✅
+
+*§2.4.5 — "a real ground layer, which Minecraft simply does not have: leaf litter under the
+deciduous wood, needle mat under conifers, moss on the shaded side, deadfall logs, saplings,
+a herb layer with actual named herbs from `world/flora.js`, mushrooms in the damp, lichen on
+the rock."*
+
+### What was already there, and it is two of the eight
+
+**The saplings and the herb layer already stood**, and the rule of this document is to go and
+look before planning work that exists. `FLORA.saplingAt` has put the young of the country's
+own trees knee-high under the grown ones since Phase 5, and `FLORA.plantAt` draws the herb
+layer out of the named herbs of `world/flora.js` — the mint, the rosemary, the thyme, the
+sage, the lavender, the bilberry, the fern — which is the clause about "actual named herbs"
+word for word. **Nothing was rewritten for either.** The six that were missing are the litter,
+the needle mat, the moss, the deadfall, the fungi and the lichen.
+
+### The fault, stated plainly
+
+**Between the boles of every wood on the earth there was LAWN.** The sward clothed the open
+ground with blades and flowers and the flora stood herbs and saplings up out of it, and the
+floor under a German oakwood, a Norwegian spruce forest and the closed canopy of the Congo
+was the same short green turf. A wood is not a field with trees in it.
+
+And the **bare rock bore nothing at all** — `js/grass.js` does not know that ground, has never
+clothed one inch of it, so every scree, crag and mountain shoulder in the world was clean grey
+stone.
+
+### The shape of it: a third file, and it owns the floor
+
+`js/ground.js`, 300 lines, beside the two that were there:
+
+| | what it owns |
+|---|---|
+| `js/grass.js` | the SWARD — the blade a beast eats and a lion hides in. It stands UP and has a height. |
+| `js/flora.js` | everything WOODY and everything BEARING — herb, bush, sapling, tree. |
+| `js/ground.js` | THE FLOOR — what LIES ON the ground and has no height: litter, needle mat, moss, lichen, deadfall, fungus. |
+
+It is the BOTTOM layer and it takes no cell away from either of the other two: it is drawn
+first in `emitScrub` and does not return, so the sward stands in the litter, which is what a
+wood looks like.
+
+**It knows the name of no species.** The engine hands it the KIND the mesher would have grown
+on that cell and the litter is that tree's own leaf, turned toward the colour of a forest
+floor; the deadfall is that tree's own bole, silvered. So an oakwood floor is oak-brown, a
+spruce floor is needle-rust, and a species added to `world/flora.js` gets a floor of the right
+colour with **nothing written in `js/ground.js` at all**. The moss and the lichen are named
+plants of this world already, so their colours are read out of the flora's own table rather
+than kept a second time here.
+
+### One copy of the grove field, not two
+
+There is no leaf litter in a glade, because no leaf fell there. The engine gathers its woods
+into groves and thins the trees by one broad noise field (`dens` in `cellRaw`), and the litter
+has to thin out **exactly** where the trees do or a wood floor is dead leaf a foot deep in an
+open clearing. The obvious move was to copy the field into the floor file. Instead `cellRaw`
+now READS IT FROM THERE — `GROUND.closure(ix,iz)` — so there is one copy and it cannot drift
+the day either file is touched.
+
+### Moss on the shaded side, and what that phrase means on this earth
+
+The brief's own words, and on an azimuthal disc with **the north pole at the middle** they
+have an exact meaning: in the northern half the sun stands outward from the centre and in the
+southern half it stands inward, so the face a step never lights is always the one turned
+toward its own pole. `shadedCell` steps one cell that way and asks whether the ground there
+stands higher. **It costs nothing**: `emitColumn` asked all four of that column's neighbours a
+few lines earlier to draw its flanks, so the one asked here is a cache hit. Measured over
+ten thousand cells of each: **3,032 mossy in the shade against 1,356 in the sun**, 2.24×.
+
+### What it costs, measured and not asserted
+
+`GROUND.on(false)` builds the world without a floor beside the world with one, in the same
+page, on the same chunks, `holdWorld` holding the ring still so the two builds stand on the
+same ground — the fault that made the first bark measurement worthless in Round 59.
+
+**545 chunks over the largest wood on the chart:**
+
+| | without | with | |
+|---|---|---|---|
+| triangles | 1,031,862 | **1,119,164** | +87,302, **+8.5 %** |
+| materials in view | 14 | **14** | not one new name |
+| meshes | 3,508 | 3,525 | +17 in 545 chunks — see below |
+
+Not one new material anywhere in the world: a mat is ONE upward face in the mesher's existing
+`solidW`, a mushroom two small boxes in it, a fallen log one box in it. The +17 meshes are
+seventeen chunks in five hundred and forty-five that had **no `solid` geometry in them at all**
+before and now have one mesh of it.
+
+### THE MEASUREMENT CAUGHT A REAL COST, WHICH IS WHY IT EXISTS
+
+The deadfall was written in `kit.M.bark`, which is the honest material for a log. The A/B said
+at once: **materials 14 → 15, meshes 3,508 → 3,601.** `barkW` is the grey master that the six
+barks of §2.4.3 left UNUSED — it was not in that wood at all — so a log lying in the leaves
+brought a whole new material and **ninety-three new meshes, one per chunk**, for a thing you
+meet once in a hundred cells. It is drawn in `solid` now, which is the right colour for it
+anyway: a bole that has been down a season has lost its bark, and what is under the bark goes
+grey. **93 draw calls a frame, found by a switch and a number and by nothing else.**
+
+### And the first two cuts looked wrong, which only a photograph could say
+
+**The chessboard.** One mat exactly covering one cell, on a third of the cells, gives a forest
+floor — and a lichened crag — brown square, green square, brown square, all the way to the
+trees. The share was right and the SHAPE was wrong. Every patch is now shifted off the middle
+of its own cell and is a different size and squareness from its neighbour, and never leaves
+its own cell (a mat that overhung the next one would hang in the air wherever the ground steps
+down, and the ground steps down everywhere). The litter is drawn **two ways by how thick the
+fall is**: under a closed canopy nearly every cell bears one and they go down edge to edge —
+that is a carpet, and a carpet with a few bare places worn through it is what a beechwood floor
+looks like; toward the edge of the wood each is a patch of its own.
+
+**The painted lino.** One tint for a whole wood laid the floor down as a sheet. Dead leaf is a
+year's worth of it rotted at different rates; a tenth either way per cell, off the cell's own
+draw, is all it took.
+
+Neither of those is a thing a number would have reported. Both came out of standing in a
+German wood at summer noon with the switch thrown one way and then the other.
+
+### What the floor of each ground bears
+
+Counted over six thousand cells apiece, the canopy of the place taken into account:
+
+| ground | what lies on it |
+|---|---|
+| grass | litter 33 % · moss 10 % · fungus 1.2 % · deadfall 0.4 % |
+| tropic | litter 33 % · moss 21 % · fungus 2.2 % · deadfall 0.8 % |
+| alpine | litter 16 % · lichen 14 % · moss 13 % · fungus 0.5 % |
+| tundra | **lichen 34 %** · moss 16 % · litter 1.9 % |
+| rock | **lichen 38 %** · moss 4.4 % |
+| snow | lichen 9.3 % |
+| savanna | litter 6.6 % |
+| desert | litter 0.8 % |
+| sand | bare, and it must be |
+
+The tundra line is the truest thing in the table: that ground is the reindeer's pasture and it
+is nearly all lichen.
+
+### The test
+
+**Acceptance 47** asks four things, in the two ways the two kinds of claim deserve.
+
+WHAT IS BUILT is measured in the page, twice, on the same disc: triangles must rise, or the
+floor is not reaching the ground; the SET OF MATERIALS may not change by one name, which is
+the whole design of the thing and the claim most able to be quietly wrong; and the rise is
+capped, because §2.5 says beauty that halves the frame rate is not beauty.
+
+WHAT IS DECIDED is a pure function of the place and is asked directly, with no page in it: a
+conifer floor and a broadleaf floor must not come out the same colour — a **fake kit is handed
+to the floor and writes down what it was asked to draw**, so the colour asserted is the colour
+that reaches the mesher and not one worked out again beside it, which would only ever test
+itself; moss must be markedly commoner in the shade over ten thousand cells of each; and the
+bare rock must bear something where the sward bears nothing, with a guard that fails the test
+as stale if the sward is ever given the rock.
+
+### What is NOT claimed
+
+The floor is drawn on cells the mesher builds as ground. A column the hand has EDITED is meshed
+from what it has become and skips `emitScrub` entirely — so a dug or built column loses its
+litter, exactly as it has always lost its grass. And a cell a tree stands on is drawn by
+`emitTree` and has no floor under the bole. Both are the pre-existing shape of that branch and
+neither was touched.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

@@ -1705,8 +1705,12 @@ function cellRaw(ix,iz){
      closed overhead into a canopy the traveller walked blind through. They
      are thinner now, and GATHERED: thick where a wood stands, open in the
      glades between, so there is somewhere to walk and something to see. */
-  const grove=fbm(ix*.035-17,iz*.035+29);
-  const dens=Math.max(0,Math.min(1,(grove-0.36)/0.38));
+  /* AND IT IS THE SAME FIELD THE FLOOR OF THE WOOD IS LAID BY. There is one
+     copy of it and it lives in js/ground.js, because the litter must thin out
+     exactly where the trees do — a carpet of dead leaf in an open glade is
+     the one way a forest floor can look wrong. Two copies of this number
+     would drift the day either was touched, so there is one. */
+  const dens=GROUND.closure(ix,iz);
   const lon=Math.atan2(u,v)*180/Math.PI;              /* longitude upon the disc */
   /* badlands (barren mesas) only in the arid belt — the tan wastes of the map */
   const badlands = !snow&&!tundra&&lat>11&&lat<36&&n2>0.42&&region<0.43&&inland>0.4;
@@ -2483,11 +2487,23 @@ function boleBox(x0,y0,z0,x1,y1,z1,mat){
   try{ stampBox(x0,y0,z0,x1,y1,z1,mat); }
   finally{ if(!was) _stampOn=null; }
 }
-const FKIT={ G:null, emitBox, bole:boleBox, cross, shade, hash:hash2,
+/* ---- AND ONE UPWARD FACE ----
+   The flora stands things UP and wants boxes. The FLOOR of the wood lies
+   flat and wants ONE face: a mat of leaf has no sides and no underside, and
+   drawn as a box it would cost six faces to show one. `mat` is that face,
+   tinted, and it is the only thing js/ground.js ever asks for besides a box.
+   It takes the light of a top face — full daylight — because that is what it
+   is: the ground, with something lying on it. */
+function matFace(G,m,x0,z0,x1,z1,y,tint){ faceTop(G,m,x0,z0,x1,z1,y,shade(tint,1.0)); }
+const FKIT={ G:null, emitBox, bole:boleBox, cross, mat:matFace, shade, hash:hash2,
   M:{leaf:'leafW', ever:'everW', bark:'barkW', plant:'plantW', solid:'solidW'} };
 let floraReady=false;
 function initFlora(){ if(floraReady) return; floraReady=true;
-  if(window.FLORA) FLORA.load((window.EARTH.floraList||[])[0]||null); }
+  if(window.FLORA) FLORA.load((window.EARTH.floraList||[])[0]||null);
+  /* and the floor of the wood is handed the SAME table, so the colour of the
+     moss underfoot is the colour of the moss the flora stands up out of it,
+     and there is not a second one written down anywhere to drift from it */
+  if(window.GROUND&&window.FLORA) GROUND.load(FLORA.kinds()); }
 /* ---- AND THE WATER THAT IS SPILLED IS LENT THE SAME FEW THINGS ----
    js/water.js owns the water a hand spills and a surge throws ashore, and
    NOTHING ELSE. It is given a door to the edit overlay and no other door at
@@ -2602,16 +2618,58 @@ function nearSettled(x,z){
    is drawn and what is eaten are the same blade, because both came out of
    GRASS.at(). (Before this the mesher decided alone, nothing else in the
    world knew where a blade stood, and the herds grazed bare dirt.) */
+/* ---- WHICH SIDE OF A STEP THE SUN NEVER COMES TO ----
+   §2.4.5 asks for "moss on the shaded side", and on this earth that phrase
+   has a single, exact meaning. The world is an azimuthal disc with the NORTH
+   POLE AT THE MIDDLE, so in the northern half the sun stands outward from
+   the centre and in the southern half it stands inward — and the face a step
+   never lights is always the one turned toward its own pole. We step one cell
+   that way and ask whether the ground there stands higher: if it does, this
+   cell lies in its shadow the whole year, and that is where moss grows.
+   IT COSTS NOTHING. `emitColumn` asked all four of this column's neighbours a
+   few lines ago to draw its flanks, so the one asked here is a cache hit. */
+function shadedCell(ix,iz,h){
+  const x=(ix+0.5)*B, z=(iz+0.5)*B, d=Math.hypot(x,z);
+  if(d<1) return false;                       /* the pole itself has no side */
+  const sgn=(90-d/R_WORLD*180)>=0 ? -1 : 1;   /* inward is north; outward is south */
+  const ux=sgn*x/d, uz=sgn*z/d;
+  const nc=Math.abs(ux)>Math.abs(uz) ? cell(ix+(ux>0?1:-1),iz)
+                                     : cell(ix,iz+(uz>0?1:-1));
+  return !!nc && nc.h>h;
+}
 function emitScrub(G,ix,iz,cc,wild){
-  /* ---- THE HERB AND THE BUSH COME FIRST ----
+  initFlora();
+  const wet=!!(chunkRiver&&riverBankCell((ix+0.5)*B,(iz+0.5)*B));
+  /* ---- THE FLOOR OF THE WOOD LIES UNDER ALL OF IT ----
+     Before anything stands up out of this cell, what LIES on it: leaf litter,
+     needle mat, moss, lichen, a fallen bole, fungi in the damp. It is the
+     bottom layer and it takes no cell away from the two above it — the sward
+     may stand in the litter, and does, which is what a wood looks like.
+     WHAT LIES HERE IS NOT DECIDED HERE. It is asked of js/ground.js, which is
+     the one truth about the floor of the earth, exactly as js/grass.js is the
+     one truth about its grass. This file hands it the four things it cannot
+     know for itself — how far off a village lies, how closed the canopy is,
+     whether running water is within a bowshot, and which side the sun never
+     comes to — and takes the geometry back. */
+  if(window.GROUND){
+    const g=GROUND.at(ix,iz,cc.kind,wild,undefined,wet,shadedCell(ix,iz,cc.h));
+    if(g){
+      /* and the LITTER and the FALLEN BOLE take their colour from the tree
+         that shed them: the same kind the mesher would have grown here. The
+         flora is asked only for those two — a mushroom and a lichen have
+         colours of their own and the lookup would be work done for nothing. */
+      const K=(GROUND.needsWood(g.m)&&window.FLORA)
+        ? FLORA.treeAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wet) : null;
+      FKIT.G=G; GROUND.emit(FKIT,g,ix,iz,cc.h*B,K); FKIT.G=null;
+    }
+  }
+  /* ---- THE HERB AND THE BUSH COME NEXT ----
      Before the sward, what this COUNTRY grows low: the vine and the lavender
      of the south, the bilberry under the northern spruce, the coffee bush,
      the reed, the agave, the ear of corn. It is a sparser draw than the
      grass and takes its own number, so the two layers never fight over a
      cell — where a bush stands, no blade is drawn under it. */
-  initFlora();
   if(window.FLORA){
-    const wet=chunkRiver&&riverBankCell((ix+0.5)*B,(iz+0.5)*B);
     const P=FLORA.plantAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wild,wet);
     if(P){ FKIT.G=G; FLORA.emitPlant(FKIT,P,ix,iz,cc); FKIT.G=null; return; }
     /* ---- AND THE YOUNG GROWTH ----

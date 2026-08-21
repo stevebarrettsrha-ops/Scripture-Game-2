@@ -24,6 +24,11 @@
                    Grass is a thing the herds live on and is asked about sixty
                    times a second, so it keeps its own small fast file. This
                    one is about everything WOODY and everything BEARING.
+   js/ground.js    and THE FLOOR the three of them stand on — what LIES on the
+                   ground rather than standing up out of it: leaf litter,
+                   needle mat, moss, lichen, deadfall, fungi. It is handed the
+                   kind THIS file chose for the cell and takes its colours off
+                   it, so it knows the name of no species either.
 
    ---- A HUNDRED SPECIES, AND NO NEW MATERIALS ----
    Leaf, bark, blade and fruit are each drawn ONCE, in grey. Every species

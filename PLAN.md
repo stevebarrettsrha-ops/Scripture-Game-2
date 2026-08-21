@@ -821,7 +821,7 @@ went and looked, rather than planning work that exists:
 | 2. Canopy per species | ✅ `form:` in `world/flora.js`, a dozen forms built in `js/flora.js` |
 | 3. Bark per species | ✅ *Round 59, and it was built in Round 52 and left unmeasured* — six barks assigned by kind in `js/flora.js`, the tint still on top, +8.6–16.7% draw calls and **not one triangle** |
 | 4. Seasonal colour | ✅ *and it already was* — see the correction below |
-| 5. A real ground layer | partial: `js/grass.js` is the sward, no litter, deadfall, moss or fungi |
+| 5. A real ground layer | ✅ *Round 67* — `js/ground.js`, the third file of the ground: litter of the tree's own leaf, needle mat, moss on the shaded side, lichen on the bare rock, deadfall, fungi. **+8.5% triangles and not one new material** |
 | 6. Crops in stages | partial: farms and farmers exist, no agricultural year |
 
 ### The order
@@ -899,7 +899,22 @@ water never reaches the end of a meal. That is a question about the bird's day, 
 the geometry, and it wants its own round. AUDIT Round 54 carries the working mechanism for
 whoever takes it up.
 
-**5. Finer grain on the twenty most-seen species.** Last, and explicitly not all 151 —
+**5. The floor of the wood.** ✅ *Round 67.* §2.4.5, and it is the one item in that section
+the game this is measured against does not attempt at all. **Two of its eight clauses were
+already standing** and were left alone — the saplings (`FLORA.saplingAt`, Phase 5) and the
+herb layer out of the named herbs of `world/flora.js` (`FLORA.plantAt`). The six that were
+missing are litter, needle mat, moss, deadfall, fungi and lichen, and they are `js/ground.js`
+— a third file beside the sward and the flora, owning what LIES ON the ground as against what
+stands up out of it. It knows the name of no species: the engine hands it the kind the mesher
+would have grown there and the litter is that tree's own leaf, turned. **545 chunks: +87,302
+triangles (+8.5%), fourteen materials before and fourteen after.** The measurement earned its
+keep at once — the deadfall drawn in `bark` pulled in `barkW`, a grey master the six barks of
+§2.4.3 had left unused, for **93 new draw calls a frame** on a thing met once in a hundred
+cells. And two faults no number would have reported came out of a photograph: a wood floor of
+full-cell mats at a third coverage is a CHESSBOARD, and one tint for a whole wood is painted
+lino. AUDIT Round 67 carries all of it.
+
+**6. Finer grain on the twenty most-seen species.** Last, and explicitly not all 151 —
 the brief says so, and it is the item most able to cost frames for the least reach.
 
 ### What I will not do

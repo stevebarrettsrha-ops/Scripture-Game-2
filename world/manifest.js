@@ -446,6 +446,10 @@ const FILES=[
   /* AND EVERYTHING WOODY AND EVERYTHING BEARING: the forms every tree, bush, */
   /* cane and herb in the world is built out of. */
   'js/flora.js',
+  /* AND THE FLOOR THEY ALL STAND ON: leaf litter, needle mat, moss on the */
+  /* shaded side, lichen on the rock, deadfall and fungi. It reads the flora's */
+  /* own table for its colours, so it is loaded after it. */
+  'js/ground.js',
   'js/water.js',
   'js/waterfall.js',
   /* WHERE EVERY CREATURE MAKES ITS HOME — nest, eyrie, scrape, den, burrow, */
