@@ -8694,6 +8694,58 @@ function findLandSpot(px,pz,rMin,rMax){ rMin=rMin||LL_MIN; rMax=rMax||LL_R;
        bare of every living thing, as such a place ought to be. */
     if((c.kind==='floe'||(c.kind==='wall'&&c.h<=60))) return {x,z,y:c.h*B,c};
   } return null; }
+/* ================= AND A BEAST IS BORN INTO ITS HERD =================
+   §2.3.5 asks for *"matriarch-led herds with juveniles held at the centre"*,
+   and acceptance test 50 — built in Round 70 for that item — reported
+   something else first, and reported it in SEVEN READINGS RUNNING without a
+   digit of variation: **the mean herd on this earth is 3.00 beasts and the
+   biggest is 3.** There were no herds to lead.
+
+   IT IS NOT THE SPECIES DRAW. `landKindAt` already seeds its draw on a TILE of
+   ground so that "a whole field bears the same kind" — but the tile is
+   forty-eight units and a herd stands within eighty, so the field is smaller
+   than the herd.
+
+   IT IS THE DENSITY, and that is arithmetic nobody can rule their way out of.
+   Ninety-six beasts (`LL_N`) are set down at INDEPENDENT random points in a
+   ring some four hundred units deep and two and a half thousand across. That
+   is one beast to about twenty-seven thousand square units, so the nearest
+   other beast — of ANY kind — stands a hundred and sixty units off on average,
+   and a herd radius is eighty. **Groups of three are what that scattering
+   gives whatever the rules do**, and four rounds of work on the gathering
+   (Round 54's, and Round 70's) were spent trying to assemble a herd out of
+   animals too far apart to feel one another.
+
+   So a beast is no longer born at an independent point. When the slot it fills
+   calls for a kind that ALREADY STANDS NEARBY, it is set down BESIDE ITS OWN
+   — a herd accretes as its members arrive, which is how a herd comes to exist
+   anywhere. The kind is still the ground's own choice and nothing about which
+   beasts live where has moved; only where a new one is put. */
+const BORN_NEAR=700;             /* how far off it will look for its own kind */
+const BORN_AT=54;                /* and how close beside them it is set down */
+function bornBeside(kind,sp){
+  /* the nearest of its own already standing — the herd it is joining */
+  let host=null, bd=BORN_NEAR;
+  for(const b of LANDLIFE){ if(!b.set||b.dead>0||b.kind!==kind||b.upTree>0) continue;
+    const d=Math.hypot(b.x-sp.x,b.z-sp.z); if(d<bd){ bd=d; host=b; } }
+  if(!host||bd<=BORN_AT) return sp;
+  /* a place beside it that will truly bear a beast — the same tests
+     `findLandSpot` makes, asked of a point of our choosing */
+  for(let tr=0;tr<8;tr++){
+    const a2=Math.random()*6.283, r2=BORN_AT*(0.45+Math.random()*0.55);
+    const x=host.x+Math.cos(a2)*r2, z=host.z+Math.sin(a2)*r2;
+    const c=landAtWorld(x,z); if(!c||!c.ci||c.kind==='wall') continue;
+    if(c.tree&&treeBlocked(x,z)) continue;
+    if(landmarkSolidAt(x,z,c.h*B+1,c.h*B+8)) continue;
+    /* AND IT MUST STILL BE GROUND THIS BEAST WOULD HAVE BEEN PUT ON. Snapping
+       a reindeer to a herd-mate across a tree line would put it somewhere its
+       own habitat forbids, so the ground is asked for the kind it bears and
+       the move is refused unless it is the same one. */
+    if(landKindAt(x,z,c)!==kind) continue;
+    return {x,z,y:c.h*B,c};
+  }
+  return sp;
+}
 /* ---- WHAT THE GRASS FILE NEEDS TO KNOW ABOUT A POINT ----
    The ground it is, and how far it lies from a settled place — a village
    keeps its own ground grazed and cut, which is the same number the chunk
@@ -8973,10 +9025,13 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       a.retry=1.2+Math.random()*0.8;
       const sp=findLandSpot(px,pz,llMin,llMax);
       if(!sp){ if(a.m)a.m.visible=false; hideYoung(a); a.set=false; continue; }
-      const kind=landKindAt(sp.x,sp.z,sp.c);
+      let kind=landKindAt(sp.x,sp.z,sp.c);
       /* the ground named no beast — a bare glacier, a crest above the life
          line. It stays bare; the slot tries elsewhere next tick. */
       if(!kind){ if(a.m)a.m.visible=false; hideYoung(a); a.set=false; continue; }
+      /* AND IT IS SET DOWN BESIDE ITS OWN, if any of its own stand near —
+         see `bornBeside`. A herd accretes as its members arrive. */
+      { const sp2=bornBeside(kind,sp); sp.x=sp2.x; sp.z=sp2.z; sp.y=sp2.y; sp.c=sp2.c; }
       if(a.kind!==kind){ if(a.m){ scene.remove(a.m); freeTree(a.m); }   /* the old beast is given back */
         a.m=makeAnimal(kind); scene.add(a.m); a.kind=kind; }
       a.hx=sp.x; a.hz=sp.z; a.x=sp.x; a.z=sp.z; a.tx=sp.x; a.tz=sp.z; a.t=Math.random()*3; a.set=true;
@@ -15688,6 +15743,20 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   playerXZ,localHourAt,setLocalHour,clockFace,dayPartName,DAYPARTS,applyDayPart,
   /* the herd and its watch, for the suite */
   LANDLIFE,herdWatch,HERD_R,
+  /* ---- AND ONE PROBE THAT WRITES, WHICH IS SAID OUT LOUD ----
+     Everything else on this surface only asks. `setYoung` puts a calf at a
+     beast's foot or takes it away, and it is here for ONE reason: §2.3.5's
+     "juveniles held at the centre" cannot be measured while only two to six
+     mothers stand in a whole reading. About one beast in four is given young
+     when it is set down, so a herd of three has none or one, and AUDIT Round
+     70 showed what that does — the untouched world answered 1.22 against 0.94
+     on one run and 0.59 against 1.07 on the next, off identical code.
+     Acceptance test 50 uses it to make every second member of every herd a
+     mother, so the question is asked of MOTHERS AND NON-MOTHERS STANDING IN
+     THE SAME HERD rather than across herds, which removes the between-herd
+     spread that made the first measurement worthless. It is the same call the
+     spawner makes and it changes nothing the game itself reads. */
+  setYoung,
   /* the coat, for the suite and for setting it beside what it replaced */
   makeBeast,coatBeast,coatOn:v=>{ if(v!==undefined) COAT_ON=!!v; return COAT_ON; },
   BEAST_BY_NAME,

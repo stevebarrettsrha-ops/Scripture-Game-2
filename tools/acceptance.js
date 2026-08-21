@@ -3044,8 +3044,42 @@ T[50]={name:'THE HERD, MEASURED — how many stand together, where the young sta
       /* and let them settle into whatever shape they make before asking */
       for(let f=0;f<90;f++) await new Promise(r=>requestAnimationFrame(r));
 
-      const mobs=census();
+      let mobs=census();
       if(!mobs.length){ rows.push(land+': not three of a kind together'); continue; }
+      /* ---- AND EVERY SECOND MEMBER IS MADE A MOTHER ----
+       THE FAULT THIS MENDS is the whole reason Round 70 could conclude
+       nothing. About one beast in four is given young when it is set down, so
+       a herd of three carries none or one, and the depth of "the mothers" was
+       being read off two to six animals in a whole reading — scattered across
+       four lands and several herds, so between-herd spread swamped it. The
+       untouched world answered 1.22 against 0.94 on one run and 0.59 against
+       1.07 on the next.
+       Every second member of every herd is given a calf now, by INDEX and so
+       by nothing correlated with where it is standing. The question becomes
+       "of these beasts, standing in THIS herd, do the mothers sit nearer the
+       middle than their neighbours" — paired inside the herd, which is the
+       only form of it that can be answered with the numbers this world has. */
+      if(D.setYoung){
+        /* AND THE PARITY IS FLIPPED HERD BY HERD. A herd of three marked
+           "every second one" gives two mothers and one other, EVERY TIME —
+           and the centroid of three is pulled toward whichever pair shares a
+           class, so the majority class reads nearer the middle whatever the
+           rules do. The first run of this instrument proved it: on the
+           UNTOUCHED tree, where nothing holds a mother anywhere, it reported
+           8 mothers at 0.87 against 4 others at 1.26. That is the arithmetic
+           of small groups, not the behaviour of beasts.
+           Flipping the parity by herd makes it 2:1 in one herd and 1:2 in the
+           next, so the bias cancels across the reading instead of pointing one
+           way all through it. */
+        let hIdx=0;
+        for(const m of mobs){ hIdx++;
+          for(let i=0;i<m.length;i++)
+            if(window.BABY&&BABY.runs(m[i].kind)) D.setYoung(m[i], (i+hIdx)%2===0); }
+        /* and they are given time to act on it before anything is measured */
+        for(let f=0;f<70;f++) await new Promise(r=>requestAnimationFrame(r));
+        mobs=census();
+        if(!mobs.length){ rows.push(land+': the herd broke up'); continue; }
+      }
       const before=mobs.map(m=>({mob:m, c:centre(m), r:spread(m,centre(m))}));
 
       /* ---- 1 and 3, asked now ---- */
@@ -3054,7 +3088,16 @@ T[50]={name:'THE HERD, MEASURED — how many stand together, where the young sta
         sizes[h.mob.length>=6?'6+':h.mob.length]=(sizes[h.mob.length>=6?'6+':h.mob.length]||0)+1;
         if(h.mob.length>biggest) biggest=h.mob.length;
         for(const b of h.mob){
-          const depth=Math.hypot(b.x-h.c.x,b.z-h.c.z)/h.r;
+          /* ---- AND THE MIDDLE IS RECKONED WITHOUT THE BEAST ITSELF ----
+             A beast is part of the mean it is being measured against, so in a
+             herd of three it drags the centre a third of the way toward
+             itself and every animal reads closer to the middle than it truly
+             is. Leave-one-out removes that, and it matters most at exactly
+             the herd sizes this world makes. */
+          const rest=h.mob.filter(x=>x!==b);
+          if(rest.length<2) continue;
+          const rc=centre(rest), rr2=spread(rest,rc);
+          const depth=Math.hypot(b.x-rc.x,b.z-rc.z)/rr2;
           if(b.kids){ mums++; mumDepth+=depth; } else { others++; othDepth+=depth; }
         }
         /* who leads it, if anything does */

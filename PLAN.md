@@ -812,7 +812,7 @@ went and looked, rather than planning work that exists:
 | 2. Real gaits | ✅ `js/gait.js`, six gaits, chosen by speed, one datum per species in `js/behavior.js` |
 | 3. True stature | ✅ `js/size.js` — the half-scale field beasts are gone, one measure and it is the man's |
 | 4. Finer voxel grain | partial: two-bone limbs with knees, but 12–15 parts on the large mammals |
-| 5. Herd and flock structure | **partial, and the last thing open in Phase 6.** Flight distance and the watch ✅ *Round 54*. The matriarch, the young at the centre and the birds' flocking are NOT built: *Round 70* built the measurement, made the change, could not show it working over four readings, and reverted it — see below |
+| 5. Herd and flock structure | **partial.** Flight distance and the watch ✅ *Round 54*. **Herds now exist** ✅ *Round 71* — the mean herd went from 3.00 to 4.3 and the biggest from 3 to 12, because a beast is born beside its own kind instead of at an independent point. The matriarch, the young at the centre and the birds' flocking are still NOT built, and can now be judged for the first time |
 | 6. The daily round | ✅ *Round 69* — most of it was already there (Round 54: hours, dens, and the whole list of acts). The one clause with nothing behind it was the first: `a.river` was read once when the beast was set down, so **nothing on this earth ever went TO water**. The herds go down at dawn and dusk now, in four lands of four |
 
 | §2.4 flora | state |
@@ -963,7 +963,23 @@ toward a beast's station in its herd — a change to the grazing, not the wander
 it wants its own round and a fresh before-reading. Test 50 is left running and reporting
 PENDING with its numbers. AUDIT Round 70.
 
-**9. Finer grain on the twenty most-seen species.** Last, and explicitly not all 151 —
+**9. A beast is born into its herd.** ✅ *Round 71.* The prerequisite for §2.3.5, and the
+measurement built in Round 70 found it rather than the thing it was built to ask. In seven
+readings without a digit of variation: **the mean herd was 3.00 and the biggest was 3.** Eight
+attempts across two rounds had gone into the gathering RULE, on a world that had nothing to
+gather — ninety-six beasts set down at independent random points in a ring two and a half
+thousand units across sit a hundred and sixty units apart, and a herd radius is eighty. Groups
+of three are what that scattering gives whatever the rules do. A beast is now set down BESIDE
+ITS OWN when its kind already stands nearby, and only where the ground would have borne that
+kind anyway. **Measured twice against a baseline measured twice: 7 and 10 herds became 44 and
+45; mean 3.00 and 3.10 became 4.30 and 4.09; biggest 3 and 4 became 12 and 8; and seven herds
+of six or more stood in view where not one group of five had ever formed.** The depth
+statistic now has ninety mothers to sample instead of ten. Two arithmetic faults in the
+measuring instrument were found and mended on the way — the majority class always read "nearer
+the middle", and a beast was part of the mean it was measured against. No photograph was
+obtained; that is said plainly in the audit. AUDIT Round 71.
+
+**10. Finer grain on the twenty most-seen species.** Last, and explicitly not all 151 —
 the brief says so, and it is the item most able to cost frames for the least reach.
 
 ### What I will not do

@@ -6027,6 +6027,99 @@ feeding, and that metric does not exist yet.
 green or red — because nothing here is broken; this is the shape of the world, written down. It
 is what Round 54 said it wished it had had.
 
+## 4bt. Round 71 — a beast is born into its herd ✅
+
+*The prerequisite for §2.3.5, found by the measurement Round 70 built for it.*
+
+### What the measurement said, and it was not what it was built to ask
+
+Test 50 was written to ask whether the young are held at the centre of a herd. The first thing
+it answered instead — **in seven readings running, without a digit of variation** — was:
+
+> **the mean herd on this earth is 3.00 beasts and the biggest is 3**
+
+There were no herds to lead. Round 54 spent four attempts on §2.3.5 and Round 70 spent four
+more, all of them on the *gathering rule*, and all of them on a world that had nothing to
+gather.
+
+### It is not the species draw. It is the density, and that is arithmetic
+
+`landKindAt` already seeds its draw on a TILE of ground, and its own comment says why: *"so a
+whole field bears the same kind and a herd stands together in it."* But the tile is **48
+units** and a herd stands within **80** — the field is smaller than the herd.
+
+That is not the binding constraint either. **Ninety-six beasts** (`LL_N`) are set down at
+INDEPENDENT random points in a ring four hundred units deep and two and a half thousand
+across. One beast to about twenty-seven thousand square units means **the nearest other beast
+— of any kind — stands about a hundred and sixty units off**, and a herd radius is eighty.
+
+**Groups of three are what that scattering gives whatever the rules do.** No amount of work on
+the gathering can assemble a herd out of animals too far apart to feel one another, and eight
+attempts across two rounds went into trying.
+
+### The change, and it is small
+
+A beast is no longer born at an independent point. When the slot being filled calls for a kind
+that **already stands nearby** (within seven hundred units), the beast is set down **beside its
+own** — within about fifty. A herd accretes as its members arrive, which is how a herd comes to
+exist anywhere.
+
+Nothing about *which* beasts live *where* has moved. The kind is still the ground's own choice,
+and the snap is refused unless the ground it lands on would have borne that same kind anyway —
+so a reindeer cannot be pulled across a tree line to reach a herd-mate.
+
+### Measured, twice, against a baseline measured twice
+
+| | baseline | baseline | **born beside its own** | **and again** |
+|---|---|---|---|---|
+| herds of 3+ over 4 lands | 7 | 10 | **44** | **45** |
+| mean herd | 3.00 | 3.10 | **4.30** | **4.09** |
+| biggest | 3 | 4 | **12** | **8** |
+| the sizes | 3×7 | 3×9, 4×1 | 3×23, 4×9, 5×5, **6+×7** | 3×21, 4×13, 5×4, **6+×7** |
+| lands that had a herd at all | 2 of 4 | 4 of 4 | 4 of 4 | 4 of 4 |
+| mothers the depth statistic could sample | 10 | 13 | **90** | **91** |
+
+Seven of the herds in view are six beasts or more, in both readings. Before, in nine readings
+across two rounds, **not one group of five ever formed anywhere.**
+
+### AND THE INSTRUMENT HAD TO BE MENDED TWICE ON THE WAY, WHICH IS WORTH RECORDING
+
+Round 70 reverted its work because the depth statistic would not reproduce. Widening it
+exposed two arithmetic faults in the measurement itself, neither of which was about beasts:
+
+1. **The majority class always reads "nearer the middle."** Marking every second member of a
+   herd of three gives two mothers to one other, every time, and the centroid of three is
+   pulled toward whichever pair shares a class. On the **untouched** tree that instrument
+   reported 8 mothers at 0.87 against 4 others at 1.26 — a clean-looking result from a rule
+   that does not exist. The parity is flipped herd by herd now, so the imbalance cancels.
+2. **A beast is part of the mean it is measured against.** In a herd of three it drags the
+   centre a third of the way toward itself, so every animal reads closer in than it is. The
+   centroid is reckoned leave-one-out now.
+
+Even mended, the depth statistic on the old world gave 2.27/3.47 on one run and 3.67/1.72 on
+the next. **With ninety mothers instead of ten it now reads 2.73/2.67 and 1.98/1.61** — no rule
+holding the young in, which is correct, because there is none in the tree. The instrument
+reports the absence honestly, which is the first time it has been able to.
+
+### What is NOT claimed
+
+**No photograph.** Five camera positions were tried — plan view, oblique, standing off at eye
+level, twice from the air — and none produced a frame that shows a herd reading as a herd:
+beasts on dun ground seen from above do not group to the eye, and the orbit camera repeatedly
+put itself inside a bole or in the sea. The numbers here were taken from the running world by
+census, twice, with no page errors; **I did not get a picture of it, and say so rather than
+imply I did.**
+
+**And the world is emptier between.** Ninety-six beasts in twenty-odd herds leave more bare
+country than ninety-six scattered evenly. That is truer — animals are clumped, not uniform —
+but it is a visible change to the feel of a plain and it was not measured.
+
+### What this unblocks
+
+§2.3.5's matriarch and juveniles-at-the-centre can now be *judged*: there are herds of six to
+twelve to give a structure to, and ninety mothers to measure instead of ten. That is the next
+round, and for the first time it starts with an instrument that reproduces.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
