@@ -808,7 +808,7 @@ went and looked, rather than planning work that exists:
 
 | §2.3 fauna | state |
 |---|---|
-| 1. Coats, countershading, markings | ✅ *Round 51* — was **nothing** when this table was written; `makeBeast` now grades every finished model, 2534 meshes, 0 left flat |
+| 1. Coats, countershading, markings | ✅ *Round 51, and completed in Round 74* — Round 51 graded the creature files (2534 meshes) but `coatBeast` was reached only through `makeBeast`, so the **twenty kinds with no file** — goat, cow, sheep, deer, wolf, elephant among them, eleven of the twenty most-seen beasts on earth — came out FLAT, and test 32 walked the file list and could not see one of them. **2882 meshes, 0 left flat** now |
 | 2. Real gaits | ✅ `js/gait.js`, six gaits, chosen by speed, one datum per species in `js/behavior.js` |
 | 3. True stature | ✅ `js/size.js` — the half-scale field beasts are gone, one measure and it is the man's |
 | 4. Finer voxel grain | partial: two-bone limbs with knees, but 12–15 parts on the large mammals |

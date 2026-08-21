@@ -6081,7 +6081,24 @@ function makePerson(seed, role, child, female){
 function makeAnimal(kind){
   const spec=BEAST_BY_NAME[kind];
   if(spec&&spec.realm==='land') return makeBeast(kind);
-  return sizeToTrue(kind,buildOldAnimal(kind));
+  /* ---- AND THE HAND-BUILT BEASTS ARE COATED TOO, WHICH THEY WERE NOT ----
+     `coatBeast` was called from `makeBeast` and from nowhere else, and
+     `makeBeast` is only reached by a kind that HAS A CREATURE FILE. Twenty
+     kinds have none — sheep, cow, pig, chicken, hare, lizard, goat, camel,
+     horse, donkey, ox, wolf, dog, lion, deer, elephant, crocodile, bear and
+     blackbear among them — so every one of them came out of Round 51's coat
+     FLAT, and acceptance test 32 walked `BEAST_BY_NAME` and could not see a
+     single one of them to say so.
+     They are not obscure. Ranked by how many of the hundred and seventy-six
+     lands name each, ELEVEN OF THE TWENTY MOST-SEEN BEASTS ON EARTH were in
+     that list, the goat first of all at ninety-eight countries. Measured:
+     goat, cow, sheep, deer, wolf, elephant, camel and bear all read 0 of 17
+     meshes graded and a tint spread of NOUGHT, while the gazelle, the
+     leopard, the hippo and the fox read 0.48.
+     One call, and the coat reaches every beast the world can set down. */
+  const inner=buildOldAnimal(kind);
+  coatBeast(inner,null);
+  return sizeToTrue(kind,inner);
 }
 /* ---- THE HAND-BUILT BEASTS, BROUGHT TO THE SAME MEASURE ----
    The world's first cattle, sheep, horses, wolves and lions were built by
@@ -15759,6 +15776,11 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   setYoung,
   /* the coat, for the suite and for setting it beside what it replaced */
   makeBeast,coatBeast,coatOn:v=>{ if(v!==undefined) COAT_ON=!!v; return COAT_ON; },
+  /* AND THE OTHER DOOR A BEAST CAN COME THROUGH. `makeBeast` is the creature
+     files; `makeAnimal` is what the world actually calls, and for the beasts
+     with no file of their own it goes somewhere else entirely. Test 32 counts
+     creature files and so has never once looked at that other road. */
+  makeAnimal, FAUNA,
   BEAST_BY_NAME,
   domeCeilAt,canTouchDome,touchDome,playScene,endScene,SCENES,sceneActive,sceneRise,seenDeeps,BEACHES,SHOALS,ORCA,beachAt,nearestBeach,seabedMetres,orcaState:()=>orcaState,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,

@@ -6257,6 +6257,95 @@ fault found in the last four rounds has been in a measurement, not in the world*
 worth writing down, because it means the world is in better condition than the instruments
 reading it.
 
+## 4bw. Round 74 — the coat missed the twenty commonest beasts on earth ✅
+
+*A hole in §2.3.1, open since Round 51, that the test guarding it could not see by
+construction. Found while surveying for §2.3.4.*
+
+### How it was found
+
+§2.3.4 wants finer voxel grain on *"the twenty most-seen species"*. Ranking every beast by how
+many of the hundred and seventy-six lands name it in `world/fauna.js` turned up something else
+first: **eleven of the top twenty have no creature file at all.**
+
+| | | | |
+|---|---|---|---|
+| 1 goat 98 | 2 crocodile 75 | 3 fox 75 | 4 deer 66 |
+| 5 sheep 59 | 6 cow 56 | 7 boar 52 | 8 leopard 46 |
+| 9 gazelle 45 | 10 lizard 39 | 11 wolf 37 | 12 elephant 36 |
+
+Twenty kinds — sheep, cow, pig, chicken, hare, lizard, goat, camel, horse, donkey, ox, wolf,
+dog, lion, deer, elephant, crocodile, bear, blackbear — are built by a hand-written
+`buildOldAnimal` chain inside `js/engine.js`.
+
+### And that chain never met the coat
+
+`coatBeast` is called from `makeBeast` **and from nowhere else**, and `makeAnimal` only routes a
+kind to `makeBeast` **if it has a file**. Everything else falls through to `buildOldAnimal`,
+which does not coat.
+
+Measured live, by building each kind through the door the world uses:
+
+| | meshes | graded | tint spread |
+|---|---|---|---|
+| goat, cow, sheep, deer, wolf, elephant, camel, bear | 15–19 each | **0** | **0** |
+| gazelle, leopard, hippo, fox | 16–22 each | all | **0.48** |
+
+**Round 51's headline — "2534 meshes graded, 0 left flat" — was true of everything it looked at
+and false of the animals a traveller actually meets.** The single most-seen beast on this earth
+was flat.
+
+### The test could not have caught it
+
+Acceptance test 32 walks `BEAST_BY_NAME`, which is the creature files. There is no arrangement
+of a test over that list that can see a beast which has no entry in it. **The guard was the
+right guard pointed at the wrong door.**
+
+It asks `makeAnimal` now — the door the WORLD comes through — over every kind in
+`FAUNA.keeps` as well as every file. Two faults surfaced in widening it, both mine:
+
+1. `makeAnimal` is the LAND spawner. Handed the name of a fish it falls straight through to the
+   old chain, so the first cut reported the whole sea flat and named *"fish, puffer, jelly,
+   crab"*. The beasts of the water are asked for by their own call now.
+2. `FAUNA` is module-local to the engine, so `window.FAUNA` was undefined and the widened list
+   came back with **nought** extra kinds — the test reported "0 kinds with none" and looked
+   like it had worked. It is exposed on `__VDBG` and the count is asserted in the report line,
+   so a silent zero cannot happen again.
+
+Pointed properly, it went red on the truth: **2534 graded, 348 left flat, missed in cow, sheep,
+goat, pig.**
+
+### The fix is one call
+
+```js
+const inner=buildOldAnimal(kind);
+coatBeast(inner,null);          // ← this line
+return sizeToTrue(kind,inner);
+```
+
+**2882 meshes graded, 0 left flat** — the 348 that Round 51 never reached now carry it, and the
+2534 it did reach are untouched.
+
+### And it was photographed, at last
+
+Five hand-built beasts stood in a row at noon under **a pinned camera** — `__WORLD.renderer`'s
+own `render` wrapped so the eye sits exactly where it is put, every frame. Coat off, the
+elephant's flank is one flat grey and the pig one flat pink. Coat on, the back is darker than
+the belly and the legs shade down.
+
+*(Round 71 failed to photograph a herd across five attempts with the orbit camera, which kept
+putting itself inside a bole or in the sea. `__WORLD` exposes `camera` and `renderer` and has
+all along. That was the answer, and I did not look for it.)*
+
+### What this leaves for §2.3.4
+
+The finer grain itself. Those twenty kinds still stand at **15 to 19 parts** where the brief
+asks 30–60 — the elephant is body, head, trunk, two eyes, tail, two ears, two tusks and eight
+leg meshes, and that is the whole animal. Giving them creature files serves three things at
+once: the brief's part count, `creatures/`'s own "one to a file", and the removal of a
+two-hundred-line hand-built table from the engine. That is the next round; **the coat is not
+waiting on it.**
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

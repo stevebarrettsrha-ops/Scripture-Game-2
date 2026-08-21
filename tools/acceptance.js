@@ -1145,6 +1145,24 @@ T[32]={name:'every beast is countershaded — dark above, pale beneath — and n
     if(!D.coatBeast||!D.BEAST_BY_NAME) return {pending:'no coat (Phase 6 step 1)'};
     const names=Object.keys(D.BEAST_BY_NAME);
     if(!names.length) return {ok:false,got:'no creature files'};
+    /* ---- AND EVERY BEAST THE WORLD CAN ACTUALLY PUT DOWN ----
+       THE HOLE THIS MENDS, and it was open from the day this test was
+       written: it walks `BEAST_BY_NAME`, which is the CREATURE FILES — and
+       `makeAnimal` only sends a kind to `makeBeast` (where the coat is laid
+       on) IF IT HAS A FILE. Nineteen beasts have none: sheep, cow, pig,
+       chicken, hare, lizard, goat, camel, horse, donkey, ox, wolf, dog, lion,
+       deer, elephant, crocodile, bear and blackbear. They are built by a
+       hand-written chain inside js/engine.js that never calls `coatBeast`,
+       and this test could not see one of them.
+       They are not obscure. Ranked by how many of the hundred and seventy-six
+       lands name each, ELEVEN OF THE TWENTY MOST-SEEN BEASTS ON EARTH are in
+       that list — the goat alone is named by ninety-eight countries. So
+       "2534 meshes graded, 0 left flat" was true of everything the test
+       looked at and false of the animals a traveller actually meets.
+       It asks `makeAnimal` now, which is the door the WORLD comes through. */
+    const F=D.FAUNA||window.FAUNA;
+    const wild=(F&&F.keeps)?Object.keys(F.keeps):[];
+    const everyKind=[...new Set(names.concat(wild))];
     const n3=new T.Vector3(), bb=new T.Box3(), sz=new T.Vector3();
     /* the tint on the faces that look up and down, and the biggest mesh */
     function read(g){
@@ -1174,8 +1192,24 @@ T[32]={name:'every beast is countershaded — dark above, pale beneath — and n
     D.coatOn(true);
     const bad=[], thin=[], noSky=[];
     let graded=0, flatMesh=0, worst=9;
-    for(const nm of names){
-      let g=null; try{ g=D.makeBeast(nm); }catch(e){ continue; }
+    let noFile=0;
+    for(const nm of everyKind){
+      let g=null;
+      /* THE DOOR THE WORLD COMES THROUGH, not the door the files come
+         through: `makeAnimal` for a LAND kind with a file goes to `makeBeast`
+         and is coated; for a land kind without one it goes somewhere else
+         entirely, and this is the only way to catch that.
+         AND IT IS ASKED OF THE LAND ONLY. `makeAnimal` is the land spawner —
+         handed the name of a fish it falls straight through to the old chain,
+         so the first cut of this reported the whole sea "left flat" and named
+         the fish, the puffer, the jelly and the crab. The beasts of the water
+         are built by their own call and are asked for by it. */
+      const spec=D.BEAST_BY_NAME[nm];
+      try{ g=(spec&&spec.realm!=='land')?D.makeBeast(nm)
+             :(D.makeAnimal?D.makeAnimal(nm):D.makeBeast(nm)); }
+      catch(e){ continue; }
+      if(!g) continue;
+      if(!D.BEAST_BY_NAME[nm]) noFile++;
       const f=read(g);
       graded+=f.done; flatMesh+=f.flat;
       if(f.flat) noSky.push(nm);
@@ -1196,7 +1230,8 @@ T[32]={name:'every beast is countershaded — dark above, pale beneath — and n
     const none=read(D.makeBeast(one));
     D.coatOn(true);
     const ok=!bad.length&&!thin.length&&!flatMesh&&refused&&none.done===0;
-    return {ok, got:names.length+' creature files · '+graded+' meshes graded, '+
+    return {ok, got:names.length+' creature files and '+noFile+
+      ' kinds with none, all asked through `makeAnimal` · '+graded+' meshes graded, '+
       flatMesh+' left flat · the narrowest body runs '+worst.toFixed(2)+
       ' of tint from back to belly (0.35 is the least that reads) · '+
       'a species that refuses it stays flat: '+(refused?'yes':'NO')+
