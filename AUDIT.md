@@ -5402,6 +5402,91 @@ standing at three falls of three different forms and not at one.
 **The suite: 44 pass · 1 fail · 1 pending.** The fail is 12, the chunk-build cost, red on
 `origin/main` alone and recorded in §4bk; the pending is 43, the boles, waiting on purpose.
 
+## 4bo. Round 66 — test 12's baseline, and the three things wrong with it
+
+Test 12 has been red on one box and green on another for two rounds, and §4bk recorded the
+comparison honestly — `origin/main` alone read 3.312 against the merge's 3.309 — while
+saying the baseline wanted re-measuring rather than guessing at. Re-measuring it turned up
+three faults, and **the one everybody was arguing about was not a regression at all.**
+
+### 1. The plains chunk never got dearer
+
+Measured at four commits spanning the whole of the water work, the RAW cost of a plains
+chunk on one box:
+
+    296defa (before the water rounds)   2.868 ms
+    d21c757 (the bark)                  2.879
+    6b48a85 (main, now)                 2.453 – 2.655
+
+Flat, and cheaper at the end than the beginning. **Every part of the "regression" was the
+divisor.**
+
+### 2. The normaliser was a single unguarded sample, and it did not track the work
+
+`machineSpeed` times a sin-hash loop and the readings were DIVIDED by it, on the premise —
+written at the top of that function — that the loop *"tracks what the mesher actually
+spends"*. Two things were wrong with that.
+
+**It was measured once.** The chunk cost is taken as the least of three passes, on the
+stated ground that *"interference only ever runs ONE WAY — it can add time to a build, never
+take it away"*. That lesson was never carried across to the number that DIVIDES it. On one
+box in one afternoon the loop read **35.9, 36.3, 37.8, 39.3, 54.1 and 58.1 ms — a spread of
+1.62×**, and all of it went into the verdict. The same chunk was called 2.313 "on the
+reference box" in the morning and 3.038 in the evening, **with the raw cost lower the second
+time.** It is the least of five now, and reads 51.1 / 51.2 / 52.4 on three consecutive runs.
+
+**And it does not track the mesher.** With the probe steadied, the box's slow state showed
+the loop at 51 ms against 36 in its fast state — two fifths slower — while the plains chunk
+did not move. A pure arithmetic loop and a mesher that allocates, writes typed arrays and
+fills buffers do not scale together, and no constant will make them. **So the loop no longer
+divides anything.** It answers one question: is this box slower than the one that set the
+baseline? If so a red line is PENDING and asks for a worktree; if the box is FASTER and
+still over the bar, that is a regression and is reported as one.
+
+### 3. The ocean station was not in the ocean
+
+The three passes stepped blindly along a line from a point picked by eye, and the readings
+came back **2.92 / 2.28 / 1.18 — 3.91 / 2.38 / 0.92 — 4.42 / 2.49 / 1.08**, run after run.
+That is not noise: **the first two passes were standing on LAND and being priced as sea.**
+The least of three rescued the number, which is exactly why it went unnoticed for forty
+rounds — and it made the reading depend on how much of the third pass happened to be water,
+so "ocean" swung between 0.67 and 1.19 ms on one box.
+
+`landNameAt` answers which country a point lies in, and null for open sea, off the real
+vector outlines. Every station is now CHECKED — its own point and a ring of six about it,
+wider than the ground the timing builds — and the line is walked until enough stations of
+the right kind are found. The plains station is held to the same standard from the other
+side: every point inside one country, so a plain cannot quietly become a coast. The ocean
+passes now read **2.44 / 0.93 / 0.90** — the first is the warm-up, the other two agree.
+
+### 4. And the ocean guard had been dead for thirty rounds
+
+The baseline said 2.152 ms. An ocean chunk costs about **0.7** — the merged faces and the
+greedy mesher of Rounds 30 and 32 made it three times cheaper — so the ceiling stood at
+2.905 against a true cost of 0.7, and **an ocean chunk could have got four times dearer
+without this test saying a word.** A guard set three times too high is not a loose guard, it
+is an absent one.
+
+### 5. What is written down now
+
+| | was | is | why |
+|---|---|---|---|
+| ocean | 2.152 | **0.672** | measured; the old figure was three times the truth |
+| plain | 1.970 | **2.453** | measured; the world of Phases 3–7 is in that ground now |
+| loop | 47.0 (*derived*) | **36.0** | measured, least of five, and no longer a divisor |
+| slack | 1.35 for both | **1.60 ocean · 1.35 plain** | each set from its own measured drift |
+
+The two slacks are not a fudge: a plains chunk costs two and a half milliseconds and reads
+within 10 % of itself; an ocean chunk costs two thirds of one, and the same hiccup that is a
+rounding error on the first is a fifth of the second. Measured, plain drifted 1.10× between
+the box's fast and slow states and ocean 1.61×.
+
+**Verified both ways.** Three consecutive runs green with the box **1.4 to 1.6× slower** than
+the reference — ocean 0.871 / 0.896 / 0.923 against a ceiling of 1.08, plain 2.984 / 2.633 /
+2.844 against 3.31 — where the same test on the same box was red before. And put to a real
+fault on comparable ground, with the baselines tightened to 0.45 and 1.60, it FAILED rather
+than excusing itself. A guard that has never been seen to fail is not yet a guard.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
