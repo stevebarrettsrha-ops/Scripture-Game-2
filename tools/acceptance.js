@@ -2752,23 +2752,62 @@ T[48]={name:'a field bears its own country\'s corn, keeps the year, and not one 
         worst.toFixed(4)+' ('+worstAt+') — one of them has been edited alone');
     }
 
-    /* ---- and not one chunk built twice for the turn of the year ---- */
+    /* ---- AND NOT ONE CHUNK BUILT *FOR* THE TURN OF THE YEAR ----
+       THE FIRST CUT OF THIS COUNTED THE WRONG THING, and the full suite caught
+       it where running the test alone never could. It counted chunk builds
+       over fifty frames while cycling the seasons and failed above an ABSOLUTE
+       forty. Alone, the world is settled, the ring lays nothing, and it read
+       ZERO twice. In the suite it runs straight after test 41 and 47, which
+       call `dropChunks()` and fly the traveller to India and the United
+       States — so the ring is still refilling, and it read 116 and called the
+       year a re-mesher. The comment beside it even named the hazard ("the ring
+       lays ground of its own as the traveller drifts") and then guarded
+       against it with a fixed number, which is the wrong shape for a quantity
+       that depends on where the traveller has just been.
+       It is a DIFFERENCE now: the same span of frames with the year held
+       still, then the same span with the year turned through all four
+       seasons. What the ring does on its own appears in both and cancels.
+       That is what "no chunk is re-meshed FOR the year" actually means, and it
+       cannot be moved by anything a previous test did. */
     let built='not measured';
     if(D.BUILD_STATS&&window.SEASON){
-      for(let k=0;k<12;k++) await new Promise(r=>requestAnimationFrame(r));
-      const n0=D.BUILD_STATS.n;
-      for(const s of ['Spring','Summer','Autumn','Winter']){
-        SEASON.setSeason(s);
-        for(let k=0;k<10;k++) await new Promise(r=>requestAnimationFrame(r));
-      }
+      const SPAN=44;
+      /* ---- AND BOTH SPANS MUST START FROM A RING THAT HAS STOPPED ----
+         A difference is only a difference if the two halves are comparable,
+         and the first cut of THAT was wrong too: run after test 47 the ring
+         was still working off a backlog, so the quiet span read 124 and the
+         turning span 0, and the year "cost" MINUS a hundred and twenty-four.
+         It passed, and it passed by luck — reverse the order and the same
+         world would have failed. Wait until the ring has laid nothing for a
+         dozen frames together, and then measure. */
+      const settle=async()=>{
+        let last=-1, still=0;
+        for(let k=0;k<400&&still<12;k++){
+          await new Promise(r=>requestAnimationFrame(r));
+          if(D.BUILD_STATS.n===last) still++; else { still=0; last=D.BUILD_STATS.n; }
+        }
+      };
+      const runFor=async(turn)=>{
+        await settle();
+        const n0=D.BUILD_STATS.n;
+        for(let k=0;k<SPAN;k++){
+          if(turn&&k%11===0) SEASON.setSeason(['Spring','Summer','Autumn','Winter'][(k/11)|0]);
+          await new Promise(r=>requestAnimationFrame(r));
+        }
+        return D.BUILD_STATS.n-n0;
+      };
+      const quiet=await runFor(false);
+      const turning=await runFor(true);
       SEASON.clear();
-      for(let k=0;k<10;k++) await new Promise(r=>requestAnimationFrame(r));
-      built=(D.BUILD_STATS.n-n0)+' chunk(s) built while the whole year turned';
-      /* the ring lays ground of its own as the traveller drifts, so this is
-         not asked to be zero — it is asked to be nothing like the hundreds a
-         re-mesh of every village in view would cost */
-      if(D.BUILD_STATS.n-n0>40) faults.push('the turn of the year cost '+
-        (D.BUILD_STATS.n-n0)+' chunk builds — the year is not in the shader');
+      const cost=turning-quiet;
+      built='from a settled ring, '+quiet+' chunk(s) laid in '+SPAN+
+        ' still frames and '+turning+' in '+SPAN+' while the whole year turned'+
+        ' — the year itself cost '+cost;
+      /* a handful either way is the ring's own drift, not the crops: the bar
+         is set where a re-mesh of the villages in view would be, which is
+         hundreds, and nowhere near the noise */
+      if(cost>25) faults.push('the turn of the year cost '+cost+
+        ' chunk builds over and above the ring\'s own — the year is not in the shader');
     }
 
     return {ok:!faults.length,

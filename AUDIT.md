@@ -6187,6 +6187,76 @@ change cannot be shown to work, measure the mechanism, not the outcome.*
 *"A bird has nowhere in its day to BE in a flock"* — 95 % are in `hunt` at any moment. That is
 untouched and remains a question about a gull's day, not about geometry.
 
+## 4bv. Round 73 — the suite run at last, and test 48 was measuring the wrong thing
+
+The whole suite had not run since Round 69 — a container restart killed that attempt — so four
+rounds had landed on a result nobody had seen. It has now run on the committed tree:
+
+**47 pass · 1 fail · 2 pending**
+
+The two pendings are by design: 43, the boles, switched off since Round 61; 50, the herd
+measurement, reporting rather than judging since Round 70. Everything from Rounds 67–71 is
+green.
+
+### And test 35 got better without being touched
+
+> 528 herd-samples of three or more: 447 watched (**85 %**)
+
+It had read 37 %, 58 % and 50 % on ~150 samples, and its bar is 45 % — a metric sitting so
+close to its own noise that one suite run went red on it. **Round 71's herds gave it a real
+sample**, and at 528 samples it clears the bar with room. Nothing in test 35 or in the watch
+was changed; the world simply now has herds to sample.
+
+### The one failure was mine, in the instrument again
+
+> FAIL 48 — *"116 chunk(s) built while the whole year turned — the year is not in the shader"*
+
+Test 48 passed **alone, twice, reporting 0**. The claim it guards — that a crop's year is worked
+out in the vertex shader and no chunk is ever built for it — was measured and is not in doubt.
+
+**It counted an ABSOLUTE number of chunk builds over fifty frames and failed above forty.** Run
+alone the world is settled, the ring lays nothing, and it reads nought. In the suite it runs
+straight after tests 41 and 47, which call `dropChunks()` and fly the traveller to India and to
+the United States — so the ring is still refilling, and the 116 chunks it counted were the
+ring's own work.
+
+The comment beside the assertion **named the hazard** — *"the ring lays ground of its own as the
+traveller drifts"* — and then guarded against it with a fixed number, which is the wrong shape
+for a quantity that depends on where the traveller has just been.
+
+### Mended as a DIFFERENCE, and the first attempt at that was wrong too
+
+The same span of frames with the year held still, then the same span with the year turned
+through all four seasons; what the ring does on its own appears in both and cancels.
+
+**That alone was not enough.** Run in the suite position it read **quiet 124, turning 0** — the
+year "cost" **minus a hundred and twenty-four**. It passed, and it passed by luck: the ring was
+working off test 47's backlog during the first span and had finished by the second. Reverse the
+order and the identical world fails. A difference is only a difference if the two halves are
+comparable, so both spans now begin only once the ring has laid **nothing for twelve frames
+together**.
+
+### Proved both ways, which is the whole point
+
+| | quiet | turning | the year's own cost |
+|---|---|---|---|
+| in the suite position that reported 116 | **0** | **0** | **0** |
+| with the fault injected | 0 | 173 | **173** |
+
+The fault injected is the true one: `SEASON.setSeason` made to drop the chunks, which is exactly
+what carrying a crop's growth in the GEOMETRY rather than the shader would force. The bar is 25.
+**A guard that has never been seen to fail is not yet a guard** — this one now fails on the fault
+it exists for, and reads nought on the world that is shipped.
+
+### The lesson, and it is the third time this session
+
+Round 71 found two arithmetic faults in the herd instrument. Round 72 found that three
+mechanisms could not be told apart because the measurement watched the outcome instead of the
+mechanism. This one found a guard whose shape depended on which test ran before it. **Every
+fault found in the last four rounds has been in a measurement, not in the world** — which is
+worth writing down, because it means the world is in better condition than the instruments
+reading it.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
