@@ -2616,6 +2616,175 @@ T[47]={name:'a wood has a floor: litter of the tree\'s own leaf, moss on the sha
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
+T[48]={name:'a field bears its own country\'s corn, keeps the year, and not one chunk is built twice for it',
+  /* §2.4.6 — "crops that grow in stages and are harvested at the right season
+     ... give them a real agricultural year."
+
+     WHAT THERE WAS: the same twelve anonymous green crosses, in the same
+     twelve places, in every village from Norway to Java, unchanged from the
+     shortest day to harvest. One plant, one colour, one height, all the year,
+     in every country on the earth.
+
+     FOUR THINGS ARE ASKED, and the fourth is the one this design lives or
+     dies by.
+
+     1. THE CROP IS THE COUNTRY'S OWN, AND IS NOT WRITTEN DOWN TWICE.
+     world/flora.js has said, for a hundred and seventy-six countries, what
+     each of them grows. world/crops.js says only what a crop IS. So the test
+     that matters is not "Egypt grows wheat" — that is a fact about a data
+     file — but that NO LAND ON THE EARTH SOWS A CROP ITS OWN FLORA DOES NOT
+     NAME. That is the one-copy rule, made a guard. The single exception is a
+     land whose list names no field crop at all, which falls back to barley,
+     and the fallback is asserted to fire only there.
+
+     2. A FIELD BEARS THE SAME THING FOR EVER. It is a pure function of the
+     place, so a village built again after a reload is sown as it was.
+
+     3. THE YEAR IS THE RIGHT SHAPE. Bare before the sowing, full at the
+     ripening, gold at the reaping, stubble after; sown later and reaped later
+     the further from the line; the south half a year on; and NEVER BARE
+     within a few degrees of the equator, where there is no winter to stop for.
+
+     4. THE GLSL IS THE SAME CURVE AS THE JAVASCRIPT.
+     The year is worked out in the vertex shader, because a crop that grows is
+     geometry that changes and geometry that changes means the chunk is built
+     again — a village re-meshed every few days of a voyage for a field of
+     wheat. Doing it in the shader is the whole design. But a curve that
+     exists only as a string inside a shader CANNOT BE TESTED, and a test of a
+     JavaScript copy of it would only ever test the copy.
+     So this takes `CROP.glsl()` — the actual text handed to the compiler —
+     transliterates the half-dozen GLSL words it uses into JavaScript, and
+     evaluates it against `CROP.yearAt` at a hundred and twenty points. If
+     anybody edits one and not the other, this goes red.
+
+     AND THE CLAIM THAT NO CHUNK IS BUILT TWICE is measured, not asserted: the
+     count of chunks built is read, the year is turned right round, and it is
+     read again. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, C=window.CROP, F=window.FLORA;
+    if(!C||!C.yearAt||!C.glsl) return {pending:'no agricultural year (Phase 6 §2.4.6)'};
+    const faults=[], kinds=C.kinds(), names=Object.keys(kinds);
+    if(!names.length) return {pending:'no crops declared'};
+
+    /* ---- 1. no land sows what its own flora does not name ---- */
+    const lands=F?F.lands():{};
+    let sowing=0, fell=0, stray=0, strayEg='';
+    const seen=new Set();
+    for(const land in lands){
+      const own=lands[land]||[], mine=C.sownIn(land);
+      if(!mine.length){ faults.push(land+' sows nothing at all'); continue; }
+      sowing++;
+      const named=mine.filter(n=>own.indexOf(n)>=0);
+      if(named.length!==mine.length){
+        /* it is only allowed to reach past its own list when its own list has
+           no field crop in it whatever */
+        const anyOwn=own.some(n=>kinds[n]);
+        if(anyOwn){ stray++; if(!strayEg) strayEg=land+' sows '+
+          mine.filter(n=>own.indexOf(n)<0).join('/')+' and grows none of it'; }
+        else fell++;
+      }
+      for(const n of mine) seen.add(n);
+    }
+    if(stray) faults.push(stray+' land(s) sow a crop their own flora does not name — '+strayEg);
+    if(seen.size<8) faults.push('only '+seen.size+' distinct crops are sown on the whole earth');
+
+    /* ---- 2. the same field bears the same thing ---- */
+    const a1=C.forField('Egypt',1000,2000), a2=C.forField('Egypt',1000,2000);
+    if(a1!==a2) faults.push('the same field bore two different crops when asked twice');
+    let differ=0;
+    for(let k=0;k<40;k++) if(C.forField('India',k*140,k*97)!==C.forField('India',k*140+70,k*97+70)) differ++;
+    if(!differ) faults.push('every field in a country bears the identical crop');
+
+    /* ---- 3. the year is the right shape ---- */
+    const latN=lat=>1-((90-lat)/180)*2;
+    const at=(lat,ph)=>C.yearAt(ph,latN(lat));
+    const nor=at(60,0), egy=at(27,0);
+    if(!(nor.sow>egy.sow)) faults.push('the north sows no later than the tropics');
+    if(!(nor.ripe>egy.ripe)) faults.push('the north reaps no later than the tropics');
+    if(at(52,0.02).grow>0.01) faults.push('there is corn standing in a temperate field in midwinter');
+    { const y=at(52,at(52,0).ripe+0.01);
+      if(y.grow<0.99) faults.push('the corn is not at its full height when it comes ready');
+      if(y.gold<0.9) faults.push('the corn does not turn as it comes ready'); }
+    { const y=at(52,at(52,0).reap+0.05);
+      if(y.grow>0.3) faults.push('the field still stands full after the reaping');
+      if(y.grow<0.02) faults.push('the reaping left not even stubble'); }
+    /* the south is half a year on: what stands in a July English field must
+       stand in a January Argentine one */
+    { const n=at(45,0.52).grow, s=at(-45,0.02).grow;
+      if(Math.abs(n-s)>0.02) faults.push('the southern half does not keep its own half of the year ('+
+        n.toFixed(2)+' against '+s.toFixed(2)+')'); }
+    /* and the tropics are never bare */
+    let least=1; for(let k=0;k<48;k++) least=Math.min(least,at(3,k/48).grow);
+    if(least<0.4) faults.push('an equatorial field went to bare ground ('+least.toFixed(2)+')');
+
+    /* ---- 4. the shipped GLSL against the tested JavaScript ---- */
+    /* the transliteration is the six words the shader actually uses, and
+       nothing else — anything richer would be a second implementation */
+    const fract=x=>x-Math.floor(x), clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+    const mix=(a,b,t)=>a+(b-a)*t;
+    const smoothstep=(a,b,x)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+    const src=C.glsl('1.0');
+    let body=src.trim();
+    if(body[0]==='{') body=body.slice(1,body.lastIndexOf('}'));
+    body=body.replace(/\bfloat\b/g,'var').replace(/vCrop=vec2\(([\s\S]*)\);?\s*$/,'return [$1];');
+    let run;
+    try{ run=new Function('position','uSeasonY','fract','clamp','mix','smoothstep','length','sin','abs',body); }
+    catch(e){ faults.push('the shipped GLSL would not transliterate: '+e.message); }
+    let worst=0, worstAt='';
+    if(run){
+      for(let a=0;a<12;a++) for(let b=0;b<10;b++){
+        const lat=-60+a*12, ph=b/10, L=latN(lat);
+        /* the shader finds its latitude from the vertex: sr = |xz| / R, and
+           latN = 1-2sr. We hand it a position on the disc at that latitude. */
+        const sr=(1-L)/2;
+        const got=run({xz:[sr,0]}, ph, fract, clamp, mix, smoothstep,
+                      v=>Math.hypot(v[0],v[1]), Math.sin, Math.abs);
+        const want=C.yearAt(ph,L);
+        const d=Math.max(Math.abs(got[0]-want.grow), Math.abs(got[1]-want.gold));
+        if(d>worst){ worst=d; worstAt='lat '+lat+' at '+ph.toFixed(1); }
+      }
+      /* THE BAR IS NOT ZERO, and it cannot be: the GLSL writes its constants
+         to four decimal places, so the two agree to about six parts in a
+         million and never exactly. The bar is set just above that rounding
+         and orders of magnitude below any real divergence — moving one
+         constant by a thousandth would show here at once. */
+      if(worst>1e-3) faults.push('the shader and the tested curve part company by '+
+        worst.toFixed(4)+' ('+worstAt+') — one of them has been edited alone');
+    }
+
+    /* ---- and not one chunk built twice for the turn of the year ---- */
+    let built='not measured';
+    if(D.BUILD_STATS&&window.SEASON){
+      for(let k=0;k<12;k++) await new Promise(r=>requestAnimationFrame(r));
+      const n0=D.BUILD_STATS.n;
+      for(const s of ['Spring','Summer','Autumn','Winter']){
+        SEASON.setSeason(s);
+        for(let k=0;k<10;k++) await new Promise(r=>requestAnimationFrame(r));
+      }
+      SEASON.clear();
+      for(let k=0;k<10;k++) await new Promise(r=>requestAnimationFrame(r));
+      built=(D.BUILD_STATS.n-n0)+' chunk(s) built while the whole year turned';
+      /* the ring lays ground of its own as the traveller drifts, so this is
+         not asked to be zero — it is asked to be nothing like the hundreds a
+         re-mesh of every village in view would cost */
+      if(D.BUILD_STATS.n-n0>40) faults.push('the turn of the year cost '+
+        (D.BUILD_STATS.n-n0)+' chunk builds — the year is not in the shader');
+    }
+
+    return {ok:!faults.length,
+      got:names.length+' crops declared, '+seen.size+' of them sown, over '+sowing+' lands · '+
+        fell+' land(s) grow no field crop of their own and fall back · '+
+        'Egypt sows '+C.sownIn('Egypt').join('/')+' · Japan '+C.sownIn('Japan').join('/')+
+        ' · Mali '+C.sownIn('Mali').join('/')+
+        ' · the year at 60N: sown day '+Math.round(nor.sow*364)+', ripe '+Math.round(nor.ripe*364)+
+        ', reaped '+Math.round(nor.reap*364)+'; at 27N: '+Math.round(egy.sow*364)+'/'+
+        Math.round(egy.ripe*364)+'/'+Math.round(egy.reap*364)+
+        ' · the equator never falls below '+least.toFixed(2)+
+        ' · the shipped GLSL differs from the tested curve by '+worst.toExponential(1)+
+        ' · '+built+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

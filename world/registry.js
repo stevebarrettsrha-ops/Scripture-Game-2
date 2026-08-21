@@ -28,7 +28,7 @@
 window.EARTH={
   list:[], verseList:[], riverList:[], cityList:[], landmarkList:[],
   deepList:[], holeList:[], sceneList:[], scrollList:[], beastList:[],
-  faunaList:[], floraList:[], mineralList:[], workList:[], blockList:[],
+  faunaList:[], floraList:[], cropList:[], mineralList:[], workList:[], blockList:[],
   waterfallList:[],
 
   country:function(c){this.list.push(c);},
@@ -52,6 +52,10 @@ window.EARTH={
   /* and WHAT GROWS in each — every tree, orchard, bush, berry and herb on
      the earth, in world/flora.js */
   flora:function(f){this.floraList.push(f);},
+  /* and WHAT IS SOWN in the tilled ground of every village — the stature and
+     the manner of each field crop, in world/crops.js. WHICH lands grow which
+     is not there: world/flora.js has already said it, and one copy is enough. */
+  crops:function(c){this.cropList.push(c);},
   /* and WHAT LIES UNDER each — which ore in which land, and how deep, in
      world/minerals.js. This is what makes the caves of Phase 1 worth
      walking into. */

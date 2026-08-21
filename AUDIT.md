@@ -5648,6 +5648,141 @@ litter, exactly as it has always lost its grass. And a cell a tree stands on is 
 `emitTree` and has no floor under the bole. Both are the pre-existing shape of that branch and
 neither was touched.
 
+## 4bq. Round 68 — Phase 6 step 6: the agricultural year ✅
+
+*§2.4.6 — "Crops that grow in stages and are harvested at the right season — wheat, barley,
+flax, vine, olive, date. The farms and the farmer AI already exist; give them a real
+agricultural year."*
+
+### The fault, stated plainly
+
+**Every farm on the earth grew the same twelve anonymous green crosses**, in the same twelve
+places, in every village from Norway to Java — and grew them on the shortest day exactly as
+at harvest. One plant, one colour, one height, all the year, in every country. An Egyptian
+barley field in April and a Finnish one in February were the same twelve crosses.
+
+### WHICH LANDS SOW WHAT IS NOT WRITTEN DOWN AGAIN
+
+`world/flora.js` has already said, for a hundred and seventy-six countries, that Egypt grows
+wheat and barley and cotton, Java rice, Mali millet and sorghum, Ireland oats and the potato.
+A `world/crops.js` that repeated that would be a second copy to drift from the first. **It
+carries seventeen lines and none of them names a country**: a crop's stature, its colour, and
+whether it turns to straw or is green the day it is lifted. `js/crop.js` asks the land's own
+flora list, keeps what `world/crops.js` knows how to grow in a field, and draws one seeded on
+the field's own corner — so a plot bears the same thing for ever and the next plot along bears
+another.
+
+Measured over the whole chart: **seventeen crops declared, all seventeen sown, across a
+hundred and seventy-six lands, and not one land sows a crop its own flora does not name.**
+Three lands grow no field crop of their own at all and fall back to barley, which is named by
+ninety-three countries and grown from Iceland to Ethiopia; a village with a fenced, tilled,
+watered field in it is not growing nothing.
+
+> Egypt sows barley / melon / wheat / flax · Japan rice · Mali sorghum / millet / cotton ·
+> Ireland wheat / barley / oats / potato · Brazil sugarcane / cassava / taro / rice / maize
+
+### The year is in the shader, and that is the whole design
+
+A crop that GROWS is geometry that changes, and geometry that changes means the chunk is
+built again — **a village re-meshed every few days of a voyage for a field of wheat**, which
+is not a trade worth making for any amount of beauty.
+
+So it is done the way the leaves of this world have gilded since Round 53: in the vertex
+shader, off one uniform (the turn of the year) and the vertex's own distance from the middle
+of the disc, which IS its latitude on an azimuthal earth. The field is meshed once, at full
+stature, and **sunk into its own tilled soil** by how far off harvest it is — ploughed ground
+before the sowing, shoots after it, standing corn by midsummer, gold at the reaping, stubble
+after. The log border stands half a block proud of the soil, so what is sunk is not seen.
+
+**SUNK, NOT SHRUNK, and that is not a detail.** A shrink has to be worked off the crop's own
+height and a vertex knows only its own, so a short flax drawn beside a tall maize would fold
+through its own root. Sinking is one translation, exact for every stature, and a shoot coming
+up out of the ground is what a shoot looks like.
+
+**Measured: 0 chunks built while the whole year was turned round.**
+
+### The dates come from latitude, because latitude is what a vertex has
+
+A Norwegian harvest and an Egyptian one are four months apart; a Norwegian barley harvest and
+a Norwegian oat harvest are a fortnight apart. **Latitude is the thing that matters**, and
+latitude is the thing the shader can work out. Sowing runs later and ripening later the
+further from the line, the southern half is half a year on, and within a few degrees of the
+equator there is no dead season at all — two and three crops off the same ground in a year,
+which is why a rice paddy on the line does not go to stubble in January.
+
+| | sown | ripe | reaped |
+|---|---|---|---|
+| 60 °N | day 97 | day 199 | day 221 |
+| 27 °N | day 52 | day 146 | day 167 |
+| the equator | — | — | never falls below 0.56 of full |
+
+**What is NOT modelled, and is a real limit:** the winter-sown cereal. Real Egyptian wheat
+goes in in November and comes off in April; here it is sown in late February. Autumn sowing
+is a second curve and a second branch in the shader, and it is not there.
+
+### THE CURVE IS TESTED, WHICH A CURVE INSIDE A SHADER USUALLY IS NOT
+
+A string handed to a GLSL compiler cannot be unit-tested, and a JavaScript copy of it beside
+the string would only ever test the copy. So `js/crop.js` holds the curve **once as
+JavaScript and once as GLSL built from the same constants**, and acceptance test 48 takes
+`CROP.glsl()` — the actual text handed to the compiler — transliterates the eight GLSL words
+it uses, and evaluates it against `CROP.yearAt` at a hundred and twenty points of latitude and
+season. **They part company by 6.3 × 10⁻⁶**, which is the four decimal places the GLSL writes
+its constants to and nothing else. Edit one and not the other and the test goes red.
+
+### What it costs
+
+The crop of a field is 8 or 12 crosses — a row crop is set out in rows a man walks between,
+a cereal is drilled close — and a village's whole harvest is a hundred triangles. The second
+material is the thing worth measuring: **the corn of the earth turns to straw and is reaped;
+a potato haulm, a taro leaf, a hemp stalk and a cane are green on the day they are lifted**,
+and gilding those in September would be a lie about the plant. So there are two crop
+materials, and the second is a draw call.
+
+`CROP.on(false)` puts the old anonymous field back exactly, and the two were built from a
+fresh boot apiece:
+
+| | farms | crop meshes | crop triangles | meshes in the whole village group |
+|---|---|---|---|---|
+| Hungary — wheat, barley, maize | 2 | 1 → **1** | 48 → **48** | 943 → 943 |
+| Indonesia — cane, cassava, taro, rice | 3 | 1 → **2** | 72 → **80** | 466 → 467 |
+| Nigeria — cane, cassava, taro, rice, sorghum, cotton | 4 | 2 → **3** | 96 → **128** | 918 → 919 |
+
+**One extra mesh, in a village that grows both kinds, out of four hundred and sixty-seven to
+nine hundred and forty-three.** Hungary is unchanged, because everything Hungary sows turns —
+which is the design working: a country pays for the second material only if it grows something
+that needs it.
+
+### And a small thing that made the measurement possible at all
+
+`blockMat` now writes the material's name onto the material. The chunk mesher keeps its
+geometry in a table keyed by name and could always say what it drew with; a village, a ship
+and a beast hold the material OBJECT and could not — so **646 meshes in a village group with
+no way to ask which of them were the crop**. `name` is a field three.js has always had and
+never used. It costs nothing, and it is the difference between measuring a thing and guessing
+at it.
+
+### The shader was written wrong first, and the browser said so
+
+The year was injected at `#include <color_vertex>` together with the sinking of the plant.
+`<color_vertex>` runs **before** `<begin_vertex>`, and `transformed` does not exist until the
+second — so the whole crop material failed to compile: *"'transformed' : undeclared
+identifier"*, three times over, and every field in the world went unlit. The year is worked
+out at the first now (it reads `position` and nothing else) and the plant is moved at the
+second, where there is something to move. **A headless run reports page errors; that is what
+it is for.**
+
+### A note on test 35, which read red in the same suite run
+
+Test 35's watch metric read **37 % in the full suite and 58 % and 50 % on two runs of its own**,
+against 92 % on the commit before the floor of the wood. Its bar is 45 %. AUDIT Round 54 wrote
+when that number was first taken that this measurement *"has a genuine run-to-run spread"* and
+gave it as 62–69 % across runs; the true spread is plainly wider than that. The floor draws
+litter on 6.6 % of savanna cells and nothing else on that ground, which is where the herds are
+sampled, so there is no mechanism by which it could move the watch by half. **It is noise, and
+the test's bar is set too near the middle of it** — that is a thing to mend in the test and it
+is written down here rather than left as a mystery.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

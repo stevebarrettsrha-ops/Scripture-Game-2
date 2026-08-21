@@ -822,7 +822,7 @@ went and looked, rather than planning work that exists:
 | 3. Bark per species | ✅ *Round 59, and it was built in Round 52 and left unmeasured* — six barks assigned by kind in `js/flora.js`, the tint still on top, +8.6–16.7% draw calls and **not one triangle** |
 | 4. Seasonal colour | ✅ *and it already was* — see the correction below |
 | 5. A real ground layer | ✅ *Round 67* — `js/ground.js`, the third file of the ground: litter of the tree's own leaf, needle mat, moss on the shaded side, lichen on the bare rock, deadfall, fungi. **+8.5% triangles and not one new material** |
-| 6. Crops in stages | partial: farms and farmers exist, no agricultural year |
+| 6. Crops in stages | ✅ *Round 68* — `world/crops.js` + `js/crop.js`: a field bears its own country's corn out of the flora that was already there, and the year is in the vertex shader. **0 chunks built for the whole turn of the year** |
 
 ### The order
 
@@ -914,7 +914,21 @@ cells. And two faults no number would have reported came out of a photograph: a 
 full-cell mats at a third coverage is a CHESSBOARD, and one tint for a whole wood is painted
 lino. AUDIT Round 67 carries all of it.
 
-**6. Finer grain on the twenty most-seen species.** Last, and explicitly not all 151 —
+**6. The agricultural year.** ✅ *Round 68.* §2.4.6. Every farm on the earth grew the same
+twelve anonymous green crosses, on the shortest day exactly as at harvest. **Which lands sow
+what is not written down again**: `world/flora.js` already said it for a hundred and
+seventy-six countries, so `world/crops.js` carries seventeen lines and none of them names a
+country, and the guard that matters is that **no land sows a crop its own flora does not
+name** — measured over the whole chart. The YEAR is in the vertex shader, because a crop that
+grows is geometry that changes and geometry that changes means the chunk is built again: the
+field is meshed once at full stature and SUNK into its own soil by how far off harvest it is.
+**0 chunks built while the whole year was turned round.** The curve is held once as JavaScript
+and once as GLSL from the same constants, and test 48 transliterates the shipped shader text
+and puts it against the tested curve at a hundred and twenty points — they part by 6.3 × 10⁻⁶.
+Cost: one extra mesh in a village that grows both a crop that turns and one that does not, out
+of 467–943 in the group. Not modelled: the autumn-sown cereal. AUDIT Round 68.
+
+**7. Finer grain on the twenty most-seen species.** Last, and explicitly not all 151 —
 the brief says so, and it is the item most able to cost frames for the least reach.
 
 ### What I will not do

@@ -477,12 +477,20 @@ TEX.clouds     = mkTex(g=>{ g.clearRect(0,0,64,64);
 const MAT={}, LIT=[];
 function blockMat(name,tex,opts){ const m=new THREE.MeshBasicMaterial(Object.assign({
     map:tex, vertexColors:true, side:THREE.DoubleSide },opts||{}));
+  /* AND EVERY MATERIAL CARRIES ITS OWN NAME. The chunk mesher keeps its
+     geometry in a table keyed by name and can always say what it drew with;
+     a village, a ship and a beast hold the material OBJECT and could not, so
+     anything built outside a chunk was unaccountable — 646 meshes in a village
+     group and no way to ask which of them were the crop. `name` is a field
+     three.js has always had and never used; it costs nothing and it is the
+     difference between measuring a thing and guessing at it. */
+  m.name=name;
   MAT[name]=m; LIT.push(m); return m; }
 /* the ice is enrolled in its OWN pool, not in LIT — see setIceLight */
 const ICE_MATS=[];
 function iceMat(name,tex){ const m=new THREE.MeshBasicMaterial({
     map:tex, vertexColors:true, side:THREE.DoubleSide });
-  MAT[name]=m; ICE_MATS.push(m); return m; }
+  m.name=name; MAT[name]=m; ICE_MATS.push(m); return m; }
 blockMat('grassTop',TEX.grassTop); blockMat('grassTopTr',TEX.grassTopTr); blockMat('grassTopTu',TEX.grassTopTu);
 blockMat('grassTopSv',TEX.grassTopSv); blockMat('grassSideSv',TEX.grassSideSv);
 blockMat('grassSide',TEX.grassSide); blockMat('dirt',TEX.dirt); blockMat('path',TEX.path);
@@ -639,6 +647,16 @@ blockMat('barkCork',TEX.barkCork);     blockMat('barkSmooth',TEX.barkSmooth);
 blockMat('everW',TEX.leafW,{alphaTest:0.4});
 blockMat('plantW',TEX.plantW,{alphaTest:0.4}); blockMat('solidW',TEX.solidW);
 blockMat('flowerY',TEX.flowerY,{alphaTest:0.4}); blockMat('crop',TEX.crop,{alphaTest:0.4});
+/* ---- AND A SECOND CROP, WHICH IS THE ONE THAT DOES NOT TURN ----
+   The corn of the earth goes gold and is reaped. A potato haulm, a taro leaf,
+   a hemp stalk and a cane are GREEN ON THE DAY THEY ARE LIFTED — the field is
+   emptied, not reaped — and gilding them in September would be a lie about the
+   plant. Which of the two a crop takes is one word in world/crops.js.
+   IT IS A SECOND MATERIAL AND THEREFORE A SECOND DRAW CALL, in the chunks that
+   hold such a field and nowhere else. That is a cost and it is measured in
+   AUDIT Round 68 rather than waved through: the alternative is one field crop
+   for the whole earth, which is what there was. */
+blockMat('cropEver',TEX.crop,{alphaTest:0.4});
 blockMat('glass',TEX.glass,{transparent:true,depthWrite:false});
 blockMat('door',TEX.door,{alphaTest:0.1});
 blockMat('waterB',TEX.water);
@@ -756,7 +774,66 @@ windSway(MAT.savgrass,1.5,true,'snow'); windSway(MAT.acacia,0.5,false,'leaf');
 /* and every leaf and every herb on the earth moves with it */
 windSway(MAT.leafW,0.55,false,'leaf'); windSway(MAT.everW,0.55,false,null);
 windSway(MAT.plantW,0.85,true,'snow');
-windSway(MAT.crop,0.5,true);
+/* the two crops are NOT given windSway: `cropYear` below carries the same
+   sway inside it, because it must own the whole vertex shader to sink the
+   plant as well as bend it, and two patches on one material is one patch. */
+/* ---- THE AGRICULTURAL YEAR, AND NOT ONE CHUNK BUILT TWICE FOR IT ----
+   §2.4.6 asks for "crops that grow in stages and are harvested at the right
+   season". A crop that GROWS is geometry that changes, and geometry that
+   changes means the chunk is meshed again — a village rebuilt every few days
+   of the voyage for a field of wheat, which is not a trade worth making for
+   any amount of beauty.
+   So it is done the way the leaves have gilded since Round 53: in the vertex
+   shader, off ONE uniform (the turn of the year) and the vertex's own distance
+   from the middle of the disc, which IS its latitude on an azimuthal earth.
+   The field is meshed once, at full stature, and SUNK INTO ITS OWN TILLED SOIL
+   by how far off harvest it is: bare ploughed ground before the sowing, shoots
+   after it, standing corn by midsummer, gold at the reaping, stubble after.
+   The soil is one opaque face laid over the whole plot and the log border
+   stands half a block proud of it, so what is sunk is not seen.
+   The curve is js/crop.js's, in GLSL and in JavaScript both, built off one set
+   of constants — acceptance test 48 puts the two side by side. */
+function cropYear(mat,turns){
+  if(!window.CROP) return;
+  const src=CROP.glsl(INV_R_STR);
+  mat.onBeforeCompile=sh=>{
+    sh.uniforms.uWindT=WIND_T; sh.uniforms.uWindA=WIND_A; sh.uniforms.uSeasonY=SEASON_Y;
+    /* THE ORDER OF THE TWO INJECTIONS IS NOT FREE, and getting it wrong is how
+       this was first written: `<color_vertex>` runs BEFORE `<begin_vertex>`,
+       and `transformed` does not exist until the second. So the YEAR is worked
+       out at the first (it reads `position` and nothing else) and the plant is
+       moved at the second, where there is something to move. The browser said
+       so in as many words — "'transformed': undeclared identifier" — and the
+       whole crop material failed to compile, which is what a headless run is
+       for. */
+    let vs=sh.vertexShader.replace('#include <color_vertex>',
+      '#include <color_vertex>\n'+src);
+    vs=vs.replace('#include <begin_vertex>',
+      '#include <begin_vertex>\n'+
+      /* AND IT IS SUNK, NOT SHRUNK. A shrink would have to be worked off the
+         crop's own height, and a vertex knows only its own — so a short flax
+         drawn beside a tall maize would fold through its own root. Sinking is
+         one translation, it is exact for every stature, and a shoot coming up
+         out of the ground is what a shoot looks like. */
+      '  transformed.y-=(1.0-vCrop.x)*'+(6*2.4).toFixed(2)+';\n'+
+      '{ float wph=position.x*0.161+position.z*0.127;\n'+
+      '  float wgt=clamp(uv.y,0.0,1.0);\n'+
+      '  float ws1=sin(uWindT*1.7+wph)+0.5*sin(uWindT*2.9+wph*1.83);\n'+
+      '  float ws2=sin(uWindT*1.3+wph*1.31)+0.5*sin(uWindT*2.3+wph*0.77);\n'+
+      '  transformed.x+=ws1*0.500*uWindA*wgt;\n'+
+      '  transformed.z+=ws2*0.350*uWindA*wgt; }');
+    sh.vertexShader='uniform float uWindT; uniform float uWindA; uniform float uSeasonY;\n'+
+      'varying vec2 vCrop;\n'+vs;
+    sh.fragmentShader='varying vec2 vCrop;\n'+sh.fragmentShader.replace(
+      '#include <color_fragment>','#include <color_fragment>'+(turns?
+      /* the ear turns to straw as it comes ready, and what is left standing
+         after the sickle is straw and nothing else */
+      '\n  diffuseColor.rgb=mix(diffuseColor.rgb, vec3(0.84,0.70,0.30), vCrop.y*0.86);':''));
+  };
+  mat.customProgramCacheKey=()=>'crop|'+(turns?1:0);
+  mat.needsUpdate=true;
+}
+cropYear(MAT.crop,true); cropYear(MAT.cropEver,false);
 /* breaking surf — clumpy foam that washes the shoreline (scrolled + pulsed) */
 TEX.surf = mkTex(g=>{ g.clearRect(0,0,16,16);
   const F=PB.surf.b;
@@ -2503,7 +2580,15 @@ function initFlora(){ if(floraReady) return; floraReady=true;
   /* and the floor of the wood is handed the SAME table, so the colour of the
      moss underfoot is the colour of the moss the flora stands up out of it,
      and there is not a second one written down anywhere to drift from it */
-  if(window.GROUND&&window.FLORA) GROUND.load(FLORA.kinds()); }
+  if(window.GROUND&&window.FLORA) GROUND.load(FLORA.kinds());
+  initCrop(); }
+/* ---- AND WHAT IS SOWN IN THE TILLED GROUND ----
+   js/crop.js is handed world/crops.js (what each field crop IS) and the SAME
+   world/flora.js the trees came out of (which country grows which). There is
+   no second table of what Egypt sows. */
+let cropReady=false;
+function initCrop(){ if(cropReady||!window.CROP) return; cropReady=true;
+  CROP.load((window.EARTH.cropList||[])[0]||null,(window.EARTH.floraList||[])[0]||null); }
 /* ---- AND THE WATER THAT IS SPILLED IS LENT THE SAME FEW THINGS ----
    js/water.js owns the water a hand spills and a surge throws ashore, and
    NOTHING ELSE. It is given a door to the edit overlay and no other door at
@@ -9909,20 +9994,43 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
     door:{dir:doorDir, hx:hingeX, hz:hingeZ, base:baseAng, y:y+B*0.05,
       w:gw*2.0, h:B*2.05, swing, open:false, ang:baseAng, target:baseAng}});
 }
+/* ---- THE FIELD, AND WHAT IS SOWN IN IT ----
+   Every farm on the earth grew the same twelve anonymous green crosses, in the
+   same twelve places, in every village from Norway to Java, and grew them on
+   the shortest day exactly as at harvest. WHAT STANDS HERE IS NOT DECIDED
+   HERE: the crop is asked of js/crop.js, which keeps this country's own growth
+   out of world/flora.js — the same list the trees came from — and draws one
+   seeded on the field's own corner, so a plot bears the same thing for ever
+   and the next plot along bears another. Where it stands in its YEAR is not
+   decided here either, and is not decided at build time at all: the crop is
+   meshed at full stature and the shader sinks it into its own soil by how far
+   off harvest it is. See `cropYear`. */
 function emitFarm(G, fx,fz,y, seed){
   const w=B*5, d=B*3.4, x0=fx-w/2, x1=fx+w/2, z0=fz-d/2, z1=fz+d/2;
-  /* log border */
+  /* log border. It stands half a block proud of the soil, which is what hides
+     the crop while it is young and sunk. */
   emitBox(G, x0,y,z0, x1,y+B*0.5,z0+B*0.5, 'logSide','logTop',null);
   emitBox(G, x0,y,z1-B*0.5, x1,y+B*0.5,z1, 'logSide','logTop',null);
   emitBox(G, x0,y,z0, x0+B*0.5,y+B*0.5,z1, 'logSide','logTop',null);
   emitBox(G, x1-B*0.5,y,z0, x1,y+B*0.5,z1, 'logSide','logTop',null);
-  /* tilled soil + centre water channel + crops */
+  initCrop();
+  const K=window.CROP?CROP.forField(landNameAt(fx,fz),fx,fz):null;
+  /* tilled soil, and the water down the middle of it. A PADDY IS FLOODED —
+     the rice and the taro stand in water, and a paddy country that looked like
+     a barley country was the plainest thing missing from the east. */
   emitTop(G,'soil', x0+B*0.5,z0+B*0.5, x1-B*0.5,z1-B*0.5, y+B*0.34, 0.95);
-  emitTop(G,'waterB', fx-B*0.35,z0+B*0.5, fx+B*0.35,z1-B*0.5, y+B*0.38, 1.0);
-  for(let cx=0;cx<4;cx++) for(let cz=0;cz<3;cz++){
-    const px=x0+B*(1+cx), pz=z0+B*(1+cz*0.9);
-    if(Math.abs(px-fx)<B*0.6) continue;
-    cross(G,'crop',px,pz,y+B*0.36,B*0.8,B*0.7,0.95);
+  if(K&&K.paddy) emitTop(G,'waterB', x0+B*0.5,z0+B*0.5, x1-B*0.5,z1-B*0.5, y+B*0.42, 1.0);
+  else           emitTop(G,'waterB', fx-B*0.35,z0+B*0.5, fx+B*0.35,z1-B*0.5, y+B*0.38, 1.0);
+  const mat=(window.CROP&&!CROP.turns(K))?'cropEver':'crop';
+  const tint=K?[((K.green>>16)&255)/255,((K.green>>8)&255)/255,(K.green&255)/255]:0.95;
+  /* a row crop is set out in rows a man walks between — the maize, the cotton,
+     the cane; a cereal is drilled close, and the close drill is why a wheat
+     field reads as one surface and a maize field as a lot of separate plants */
+  const rows=(K&&K.row)?2:3, hh=B*((K&&K.h)||0.7), ww=B*((K&&K.w)||0.8);
+  for(let cx=0;cx<4;cx++) for(let cz=0;cz<rows;cz++){
+    const px=x0+B*(1+cx), pz=z0+B*(1+cz*(rows===2?1.4:0.9));
+    if(!(K&&K.paddy)&&Math.abs(px-fx)<B*0.6) continue;   /* not in the channel */
+    cross(G,mat,px,pz,y+B*0.36,ww,hh,tint);
   }
 }
 /* ---- THE FIRST BUILDER CONVERTED (Phase 3) ----
