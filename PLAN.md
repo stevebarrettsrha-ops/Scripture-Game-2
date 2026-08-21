@@ -1247,3 +1247,39 @@ test 35's herd watch went 68% → 94%.
 Test 39 now asks about the front, with a bound taken from the rule (a source reaches seven
 blocks, so a head opens seven or eight columns), and both faults were put back in turn to
 prove it reports them.
+
+## 20. Round 66 — test 12's baseline, and the three things wrong with it
+
+Test 12 had been red on one box and green on another for two rounds. Re-measuring the
+baseline turned up three faults, and **the one everybody was arguing about was not a
+regression at all.**
+
+**The plains chunk never got dearer.** Measured at four commits across the whole of the
+water work, the raw cost read 2.868, 2.879 and 2.453–2.655 ms — flat, and cheaper at the end
+than the beginning. Every part of the "regression" was the divisor.
+
+**The normaliser was one unguarded sample, and it did not track the work.** The chunk cost
+is taken as the least of three passes because interference only ever adds time — and that
+lesson was never carried across to the number that DIVIDED it. On one box in one afternoon
+the loop read 35.9 to 58.1 ms, a spread of 1.62×, and all of it landed in the verdict: the
+same chunk was called 2.313 in the morning and 3.038 in the evening with the raw cost lower
+the second time. It is the least of five now. And with it steadied, the loop turned out to
+run two fifths slower in the box's slow state while the chunk cost did not move at all — a
+pure arithmetic loop and a mesher that allocates and fills buffers do not scale together. So
+**it no longer divides anything**; it only answers whether this box is slower than the one
+that set the baseline, and a red line from a slower box is PENDING and asks for a worktree.
+
+**And the ocean station was not in the ocean.** Its three passes read 2.92 / 2.28 / 1.18 run
+after run: the first two were standing on land and being priced as sea, and the least of
+three rescued the number, which is why nobody noticed for forty rounds. Stations are checked
+against `landNameAt` now — the point and a ring about it — and the plains station is held to
+the same standard from the other side.
+
+**The ocean guard had been dead for thirty rounds besides**: the baseline said 2.152 where
+the true cost is about 0.7, so an ocean chunk could have got four times dearer in silence.
+
+What is written down now is ocean **0.672**, plain **2.453**, loop **36.0**, and a slack of
+**1.60 for ocean and 1.35 for plain** — each from its own measured drift, because a two-thirds
+of a millisecond reading and a two-and-a-half millisecond one do not carry the same noise.
+Verified three runs green with the box 1.4–1.6× slower than the reference, and put to a real
+fault on comparable ground to see it fail.

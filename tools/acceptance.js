@@ -39,8 +39,61 @@ const {open,sail}=require('./harness.js');
    spread between the passes is printed beside it, so a real slowdown (all
    three dear) is told apart from a busy box (one dear, two not). Each pass
    stands on fresh ground of the same kind, since a chunk already built is
-   not built again. */
-const BASELINE={ ocean:2.152, plain:1.970, slack:1.35, passes:3 };
+   not built again.
+
+   ---- AND THE NUMBERS WERE RE-TAKEN, BECAUSE BOTH HAD GONE WRONG ----
+   The figures above (ocean 2.152, plain 1.970) were written at the commit
+   before PHASE 0. Phases 3 to 7 have since put villages, landmarks, ores,
+   boughs, bark, rivers and falling water into the ground those chunks are cut
+   from, and nobody re-took them. By Round 65 the test was failing on one box
+   and passing on another, and neither answer meant anything. Both halves were
+   wrong, and in opposite directions:
+
+     THE PLAINS FIGURE WAS NEVER ACTUALLY EXCEEDED. Measured across four
+     commits spanning the whole of the water work, the RAW cost of a plains
+     chunk on one box read 2.868, 2.879, 2.655 and 2.453 ms — flat, and if
+     anything cheaper at the end. Every bit of the "regression" was the
+     divisor: see the note beside machineSpeed.
+
+     THE OCEAN FIGURE HAD GONE DEAD. An ocean chunk costs about 0.7 ms now
+     against the 2.152 written down — the merged faces and the greedy mesher
+     of Rounds 30 and 32 made it three times cheaper — so the ceiling stood at
+     2.905 against a true cost of 0.7, and an ocean chunk could have got FOUR
+     TIMES DEARER without this test saying a word. A guard set three times too
+     high is not a loose guard, it is an absent one.
+
+   AND THE OCEAN STATION WAS NOT IN THE OCEAN, which had to be mended before
+   any number was worth writing down — see the note in the test itself. Two of
+   its three passes were standing on land and being priced as sea.
+
+   SO THESE ARE MEASURED, AND HERE IS EXACTLY WHERE THEY COME FROM: the least
+   raw reading of each on the box that runs this repository's checks, taken at
+   commit 6b48a85 across eight runs, in the box's own fast state — ocean 0.672
+   and plain 2.453 ms a chunk — and confirmed after the stations were mended,
+   three runs with the box 1.4 to 1.6 times SLOWER than the figure below:
+   ocean 0.871 / 0.896 / 0.923 against a ceiling of 1.08, plain 2.984 / 2.633
+   / 2.844 against 3.31. Green three times running where the same test on the
+   same box was red before any of this. `loop` is that same box's best reading of the
+   machineSpeed loop, 36 ms, and it is what tells a later run whether it is
+   standing on comparable ground: slower, and a red line is PENDING and asks
+   for a worktree; faster, and a red line is a regression.
+
+   AND THE TWO HAVE THEIR OWN SLACK, because they have their own noise. A
+   plains chunk costs two and a half milliseconds and reads within 8 % of
+   itself run to run; an OCEAN chunk costs two thirds of one, and the same
+   scheduler hiccup that is a rounding error on the first is a fifth of the
+   second. Measured on this box, plain drifted 2.453 → 2.697 (1.10×) between
+   its fast and slow states while ocean drifted 0.672 → 1.082 (1.61×). One
+   slack cannot fit both: at 1.35 the ocean cries wolf whenever the box
+   breathes, and at 1.6 the plains guard is a third looser than it needs to
+   be. So each carries its own, and each is set from its own measured spread.
+
+   THEY ARE STILL COMPARATIVE AND NOT ABSOLUTE. SwiftShader is not a phone and
+   is not a GPU. If you move them, say so in AUDIT.md and say why — and take
+   them the same way: the least of several passes, on a quiet box, with the
+   loop reading beside them. */
+const BASELINE={ ocean:0.672, plain:2.453, loop:36.0, passes:3,
+                 slack:{ ocean:1.60, plain:1.35 } };
 
 const T={};   /* n -> {name, run(page) -> {ok, got, pending?}} */
 
@@ -2755,15 +2808,39 @@ T[25]={name:'a bore comes out the other side of a ridge',
    always did. */
 const CAL_REF=1.0;              /* the reference machine, by definition */
 async function machineSpeed(page){
-  return await page.evaluate(()=>{
+  return await page.evaluate(MACHINE_REF=>{
     const h2=(x,y)=>{ const n=Math.sin(x*127.1+y*311.7)*43758.5453; return n-Math.floor(n); };
     /* warm, then time — the same sin-hash every noise field in the world is
        built out of, so this tracks what the mesher actually spends */
     for(let k=0;k<2e5;k++) h2(k*0.017,k*0.029);
-    const t0=performance.now();
-    let acc=0;
-    for(let k=0;k<3e6;k++) acc+=h2(k*0.017,k*0.029);
-    const ms=performance.now()-t0;
+    /* ---- AND IT IS TAKEN FIVE TIMES AND THE LEAST IS KEPT ----
+       THE FAULT, and it is the same one this file learned about the chunk
+       timing forty rounds ago and did not carry across the road to the thing
+       that DIVIDES it. The cost of a chunk is measured three times and the
+       least taken, because "interference only ever runs ONE WAY — it can add
+       time to a build, never take it away". This loop was measured ONCE, and
+       its single unguarded reading was then divided into that carefully taken
+       minimum.
+
+       On one box, in one afternoon, it read 35.9, 36.3, 37.8, 39.3, 54.1 and
+       58.1 ms — a spread of 1.62× — and every part of that went straight into
+       the verdict. The plains chunk was read at 2.868 ms and called 2.313
+       "on the reference box" in the morning, and at 2.453 ms and called 3.038
+       in the evening: THE RAW COST WENT DOWN AND THE NORMALISED FIGURE WENT
+       UP BY A THIRD, on the same code, because the divisor had moved.
+
+       A fast loop cannot be made faster by luck, only slower by interference,
+       so the least of five is the honest reading of what this box can do. */
+    let ms=Infinity; const all=[];
+    for(let pass=0;pass<5;pass++){
+      const t0=performance.now();
+      let a=0;
+      for(let k=0;k<3e6;k++) a+=h2(k*0.017,k*0.029);
+      const t=performance.now()-t0;
+      all.push(+t.toFixed(1)); if(t<ms) ms=t;
+      if(a<0) throw new Error('unreachable');   /* the accumulator is not dead code */
+    }
+    let acc=1;
     /* ---- AND THE REFERENCE FIGURE IS INFERRED, NOT RECORDED ----
        Say so plainly. Nobody calibrated the box on which `plain: 1.970` was
        written down, because nobody knew it would be needed. 47.0 ms is
@@ -2774,8 +2851,9 @@ async function machineSpeed(page){
        deliberately a little above that so the gate errs toward FAILING rather
        than toward excusing. It is an estimate and it is only ever used to
        decide whether a red line can be believed, never to move a baseline. */
-    return {ms:+ms.toFixed(1), factor:+(ms/47.0).toFixed(2), acc:acc>0};
-  });
+    return {ms:+ms.toFixed(1), factor:+(ms/MACHINE_REF).toFixed(2),
+            spread:all.sort((a,b)=>a-b).join('/'), acc:acc>0};
+  },BASELINE.loop);
 }
 
 /* ---------- 12 · the regression that matters most.  PASSES TODAY ---------- */
@@ -2792,49 +2870,99 @@ T[12]={name:'ocean and plains chunks build no slower than they did',
       for(let k=0;k<25;k++){ D.updateChunks(x,z,400); await new Promise(r=>requestAnimationFrame(r)); }
       const n=S.n-n0; return n?(S.ms-m0)/n:NaN;
     };
+    /* ---- AND EACH STATION MUST STAND WHERE IT SAYS IT STANDS ----
+       THE FAULT, and it is why the ocean figure could never be trusted. The
+       three passes stepped blindly three thousand units along a line from a
+       point picked by eye, and the readings came back 2.92 / 2.28 / 1.18 —
+       3.91 / 2.38 / 0.92 — 4.42 / 2.49 / 1.08, run after run. That is not
+       scheduler noise: the first two passes were standing on LAND and being
+       reported as ocean, and only the third had got out past the coast. The
+       least of the three rescued the number, which is why this went unnoticed
+       — and it made the reading depend on how much of the third pass happened
+       to be water, so "ocean" swung between 0.67 and 1.19 ms on one box.
+
+       `landNameAt` answers which country a point lies in, and null for open
+       sea, off the real vector outlines. So a station is now CHECKED rather
+       than assumed — its own point and a ring of six about it, wider than the
+       four hundred units of ground the timing builds — and the line is walked
+       until three stations of the right kind have been found. The plains
+       station is held to the same standard from the other side: every point
+       of it inside one country, so a "plain" cannot quietly become a coast. */
+    const ring=[[0,0],[420,0],[-420,0],[0,420],[0,-420],[300,300],[-300,-300]];
+    const allSea=(x,z)=>ring.every(([a,b])=>D.landNameAt(x+a,z+b)===null);
+    const allLand=(x,z)=>{ const n=D.landNameAt(x,z);
+      return !!n&&ring.every(([a,b])=>D.landNameAt(x+a,z+b)===n); };
+    const stations=(x0,z0,dx,dz,fits)=>{ const out=[]; let x=x0,z=z0;
+      for(let k=0;k<300&&out.length<B.passes;k++){
+        if(fits(x,z)) out.push([x,z]);
+        x+=dx; z+=dz; }
+      return out; };
     /* the same kind of ground, several times over, and the least is kept —
        each pass a good way off the last so the chunks are new ground */
-    const least=async(x,z,dx,dz)=>{ const all=[];
-      for(let i=0;i<B.passes;i++){ const t=await timeAt(x+dx*i,z+dz*i);
+    const least=async pts=>{ const all=[];
+      for(const [x,z] of pts){ const t=await timeAt(x,z);
         if(isFinite(t)) all.push(t); }
       return all.length?{ms:Math.min.apply(null,all),all}:{ms:NaN,all:[]};
     };
     const say=r=>r.all.map(v=>v.toFixed(2)).join('/');
     /* open ocean: the middle of the great sea, far from any coast */
     const R=D.R_WORLD;
-    const ocean=await least(-0.42*R, 0.16*R, 3000, 1200);
+    const seaPts=stations(-0.42*R, 0.16*R, 3000, 1200, allSea);
+    const ocean=await least(seaPts);
     /* open plain: the steppe, inland and flat */
     let plainSite=null; const sites=window.__WORLD.sites();
     for(let i=0;i<sites.length;i++){ if(sites[i]&&D.COUNTRIES[i].n==='Kazakhstan'){ plainSite=sites[i]; break; } }
-    const plain=plainSite?await least(plainSite.x+9000,plainSite.z,900,0):{ms:NaN,all:[]};
-    return {ocean, plain, say:{ocean:say(ocean), plain:say(plain)}};
+    const landPts=plainSite?stations(plainSite.x+9000,plainSite.z,900,0,allLand):[];
+    const plain=await least(landPts);
+    return {ocean, plain, stations:{ocean:seaPts.length, plain:landPts.length},
+            say:{ocean:say(ocean), plain:say(plain)}};
   },BASELINE);
 
-  /* ---- THE FIGURE IS NORMALISED BY THE MACHINE, NOT GATED ON IT ----
-     It used to be compared raw against a baseline taken on another box, and
-     the machine was consulted only to excuse a failure that had already
-     happened — a cutoff at 1.25× against a slack of 1.35×. Those two numbers
-     do not agree: a container running 1.24× slow is *trusted*, and has
-     already spent nine tenths of the slack on being slow, so any real drift
-     at all tips it red. It failed by four parts in a thousand on exactly that
-     arithmetic (plain 2.670 against a ceiling of 2.660) on a day when nothing
-     in the mesher had changed and two in-page A/B runs said so.
+  /* ---- THE MACHINE GATES THE READING; IT NO LONGER DIVIDES IT ----
+     THE FAULT, and it took two rounds of arguing with this test to see it.
+     The readings used to be DIVIDED by the sin-hash loop, on the premise —
+     written at the top of machineSpeed — that the loop "tracks what the mesher
+     actually spends". IT DOES NOT, and one afternoon on one box proves it:
 
-     So the loop is timed EVERY run and the readings are divided by what it
-     says. What is compared is the work, with the machine taken out of it. */
+       in the morning   the loop ran 36 ms · the plains chunk cost 2.45–2.87
+       in the evening   the loop ran 51 ms · the plains chunk cost 2.65–2.89
+
+     The loop slowed by two fifths. The work did not move. So the divisor
+     carried forty per cent of noise that had nothing to do with the mesher
+     into a figure taken as the least of three passes precisely to keep noise
+     out of it — and the same chunk was reported at 2.313 "on the reference
+     box" in the morning and 3.038 in the evening, with the raw cost LOWER the
+     second time. A pure arithmetic loop and a mesher that allocates, writes
+     typed arrays and fills buffers do not scale together, and no constant
+     will make them.
+
+     WHAT IS COMPARED NOW IS RAW MILLISECONDS AGAINST A BASELINE MEASURED ON A
+     NAMED BOX AT A NAMED COMMIT — like against like, with nothing inferred.
+     The loop is still timed, and still useful, but only to answer ONE
+     question: is this box slower than the one that set the baseline? If it
+     is, a red line is not to be believed, and the test says PENDING and asks
+     for a worktree rather than crying regression at somebody's busy laptop.
+     A box that is FASTER than the reference and still over the bar is a
+     regression, and is reported as one. */
   const m=await machineSpeed(page);
-  const f=Math.max(0.5,m.factor);
-  const norm=v=>isFinite(v)?v/f:v;
-  const oc=norm(r.ocean.ms), pl=norm(r.plain.ms);
   const BL=BASELINE;
-  const ok=(!isFinite(oc)||oc<=BL.ocean*BL.slack)&&(!isFinite(pl)||pl<=BL.plain*BL.slack);
-  const got='ocean '+r.ocean.ms.toFixed(3)+' ms/chunk → '+oc.toFixed(3)+
-    ' on the reference box (was '+BL.ocean+', passes '+r.say.ocean+') · '+
-    'plain '+r.plain.ms.toFixed(3)+' → '+pl.toFixed(3)+
-    ' (was '+BL.plain+', passes '+r.say.plain+') · this machine reads '+
-    m.factor+'× the reference ('+m.ms+' ms against 47.0)';
-  /* and past a point the reading is not worth believing at all */
-  if(!ok&&m.factor>2.5) return {pending:'the machine is '+m.factor+'× slower — '+got};
+  const oc=r.ocean.ms, pl=r.plain.ms;
+  const ceilO=BL.ocean*BL.slack.ocean, ceilP=BL.plain*BL.slack.plain;
+  const ok=(!isFinite(oc)||oc<=ceilO)&&(!isFinite(pl)||pl<=ceilP);
+  /* a station that could not be found is not a pass, and must not read as one */
+  if(r.stations.ocean<BL.passes||r.stations.plain<BL.passes)
+    return {pending:'only '+r.stations.ocean+' open-sea and '+r.stations.plain+
+      ' inland stations of the '+BL.passes+' wanted could be found'};
+  const got='ocean '+oc.toFixed(3)+' ms/chunk (baseline '+BL.ocean+', ceiling '+
+    ceilO.toFixed(2)+', passes '+r.say.ocean+') · plain '+
+    pl.toFixed(3)+' (baseline '+BL.plain+', ceiling '+ceilP.toFixed(2)+
+    ', passes '+r.say.plain+') · this box runs the loop in '+m.ms+' ms against the '+
+    BL.loop+' of the box that set these ('+m.factor+'×, five passes '+m.spread+')';
+  /* a box slower than the one that set the baseline cannot be asked to meet
+     it, and a red line from one is not evidence of anything */
+  if(!ok&&m.factor>1.25) return {pending:'this box is '+m.factor+
+    '× slower than the one that set the baseline — re-measure the previous '+
+    'commit in a worktree before believing any of it · '+got};
   return {ok, got};
 }};
 
