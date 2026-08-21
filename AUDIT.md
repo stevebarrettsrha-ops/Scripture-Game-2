@@ -5783,6 +5783,131 @@ sampled, so there is no mechanism by which it could move the watch by half. **It
 the test's bar is set too near the middle of it** — that is a thing to mend in the test and it
 is written down here rather than left as a mystery.
 
+## 4br. Round 69 — Phase 6 step 4 (§2.3.6): the herds go down to the water ✅
+
+*§2.3.6's very first clause — "Drinking at water at dawn and dusk."*
+
+### What was already there, and it is most of the section
+
+AUDIT Round 54 established that **the daily round was largely already built**: `js/behavior.js`
+gives every beast its own hours, sends it to its own den at dusk, and draws from its own list
+of drink, wallow, dust, groom, alert, bask, dig, gape, curl, sharpen and play. Grooming,
+sunning, wallowing and bedding down were all standing. **Nothing was rewritten for any of
+them.** What had nothing behind it was the first clause, and it is the one that shows most.
+
+### The fault, and it is two faults
+
+`drink` was an act like any other, drawn by weight at any hour of the day or night. And it was
+refused unless `a.river` was true — **which was read ONCE, at the instant the beast was set
+down on the world, and never again as long as it lived.**
+
+So a beast that happened to be placed on a bank went on drinking in the middle of a dry plain
+for the rest of its days, and a beast that walked to a river could never drink at all.
+**Nothing on this earth ever went TO water.** The herds of the plain never came down to the
+river; a zebra either was born beside one or never drank. It is the single most recognisable
+thing a herd does, and it is the reason the crocodile is where he is.
+
+The same stale flag also gated the WALLOW, and the bear's fishing, and the crocodile's lying
+up in the shallows — all three were reading a fact about where the beast was born.
+
+### It is not new data
+
+**Which** beasts drink is already written down, once, in `js/behavior.js`: any beast with
+`drink` in its own `acts`. **Twenty-one beasts on the earth drink**, and not one creature file
+was touched to say so. **When** is the world's own light. Nothing was added anywhere.
+
+### One question, two callers
+
+The walk down to water needed the same fright test the grazing has — a zebra crossing open
+ground to the river must break from a lion exactly as one with its head down does — so
+`frightNear` was **lifted out of the grazers' own branch** rather than copied. The watering
+branch and the grazing branch now ask one function, and there is no second copy of the rule to
+drift.
+
+### THREE THINGS WERE WRONG AND THE MEASUREMENT FOUND ALL THREE
+
+**1. `worldNight` is the wrong number for asking whether the sun is going down.** It is
+`1 − dayF × 1.5` clamped at nought, so it stands at ZERO through the whole first two thirds of
+the dusk. Measured hour by hour at a Sudanese village:
+
+| hour | 15 | 16 | 17 | 18 | 19 |
+|---|---|---|---|---|---|
+| `worldNight` | 0.00 | 0.00 | 0.43 | 0.85 | 1.00 |
+
+By the time it says anything at all the diurnal beasts are already bedding (they bed at
+`worldNight > 0.6`). **There was no hour of the day at which a beast would have set off**, and
+the first run of test 49 reported precisely that: four lands, not one beast, and *"the world
+does not call the evening a twilight."* The light itself is kept now (`worldDay`), and the
+band is read off that.
+
+**2. None of the five dayparts is dusk.** 'evening' is 18:30, by which hour the light is gone.
+The test sweeps the hour until the world itself says twilight — it found **15:45** — so
+nobody retuning the sun can quietly break this.
+
+**3. The search was coarser than the thing it was looking for.** A watercourse is stamped one
+or two map pixels wide — about a hundred and twenty units — and the first cut walked three
+rings of twelve bearings, which at nine hundred units puts its probes **four hundred and
+seventy units apart**. A herd would have stood a bowshot from the Tigris and found nothing,
+most of the time, at random. The rings run at a hundred and fifty units now and the bearings on
+each are counted so no two probes are further apart than a river is wide: **221 lookups, once
+per beast per twilight — twice a day.**
+
+And a fourth, caught in the reading rather than the running: the leash on the walk was a flat
+forty seconds, so a beast gave up two hundred units into a nine-hundred-unit walk, every time.
+It would have measured as working — they set off — and looked like nothing, because none of
+them ever arrived. It is the distance at the beast's own pace, and half again.
+
+### What it costs
+
+`riverBankAt` is a probe and eighteen more about it (a river is one pixel wide and a single
+lookup would miss it). Asked of every beast four times a second that is thousands of raster
+reads for an answer most of them will never use — so `wets` is settled ONCE when the beast is
+put down: does its own line name drink or wallow, or is it a forager that fishes or an
+ambusher that lies in the shallows. **Nothing else pays anything at all.**
+
+### The measurement, and it is not the one Round 54 was told off for
+
+AUDIT Round 54 wrote that its herd numbers were worthless because they sampled the same three
+animals every twelfth frame and called it three hundred samples. This does not do that: **n is
+the number of LANDS**, each stood beside its own nearest river bank for a whole dusk and
+censused once.
+
+| land | bank from the site | beasts that drink | walking to it | at it |
+|---|---|---|---|---|
+| Iraq | 100 u | 33 | **17** | 0 |
+| Egypt | 2,050 u | 28 | **11** | 3 |
+| Bangladesh | 1,900 u | 16 | **4** | 5 |
+| Sudan | 4,600 u | 28 | **3** | 3 |
+
+**Four lands of four saw the herds go down.** At noon, nought. And no beast, in any land, was
+ever walking to water with a hunter inside its own flight distance.
+
+**What "at it" is NOT.** The census window is a few tens of seconds of world time and a walk of
+several hundred units at a beast's own pace takes longer than that, so Iraq's nought is the
+window and not the behaviour. *Walking* is the honest headline; *at it* is a lower bound.
+
+### And a note on where the test had to stand
+
+"Do the herds go down to the river" can only be asked in a place with a river in it, and a
+village site is put where a village goes, not where a watercourse runs. The first run stood at
+the site of Sudan and reported *"no bank within 2400 units"* — which was true, and measured
+nothing. The nearest bank to each land's site is found first and the traveller stood beside
+THAT. Measured: Iraq 100 units, Bangladesh 1,900, Egypt 2,050, Sudan 4,600, and **India, Kenya
+and Brazil have no river bank within nine kilometres of their village sites at all** — which
+is a fact about where villages are put, and is written down here because somebody will
+otherwise re-discover it as a bug.
+
+### Two stale documents corrected in the same round
+
+- **`creatures/README.md`** said the beasts of the field are drawn at half life-size and named
+  `LAND_U_PER_M` in `js/engine.js` as the constant that halves them. Phase 6 step 3 rebuilt
+  them (`js/size.js`, Round 51) and **that symbol no longer exists** — grep and you find
+  nothing. The paragraph now says what is true and says what it used to say.
+- **PLAN §17** said *"There is no making — no bench, no recipe, nothing that turns what was
+  gathered into what was not."* That has been untrue since Phase 4: `world/works.js` declares
+  fourteen works and tests 20 and 44 walk them. What IS still missing is a bench, and the
+  section now says so instead.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

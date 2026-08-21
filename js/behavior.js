@@ -500,6 +500,12 @@ window.BEHAVIOR={
     const run=(b&&b.run)||12;
     return Math.max(7,Math.min(38,6+run*1.1)); },
   burstOf:(name,fb)=>{ const b=D[name]; return (b&&b.burst)||fb; },
+  /* the whole of a beast's own small business, so the engine can ask whether
+     a particular habit is in it — which is how the WATERING knows who goes
+     down to the river at dusk. Nothing was added to a creature's line for
+     that: a beast drinks if its own `acts` say `drink`, and no other file
+     keeps a second list of who does. */
+  actsOf:name=>{ const b=D[name]; return (b&&b.acts)||null; },
   /* draw one piece of the day's small business, by weight */
   drawAct:(name,r)=>{ const b=D[name]; if(!b||!b.acts||!b.acts.length) return null;
     let w=0; for(const a of b.acts) w+=a[1];

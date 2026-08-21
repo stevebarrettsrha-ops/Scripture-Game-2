@@ -8751,6 +8751,122 @@ function herdWatch(a){
   }
   return {n, watcher};
 }
+/* ---- WHAT IS FRIGHTENING THIS BEAST, IF ANYTHING ----
+   Lifted out of the grazers' own branch, where it used to live, because THE
+   WALK DOWN TO WATER needs exactly the same question asked: a zebra crossing
+   open ground to the river must break from a lion just as one with its head
+   in the grass does, and a fright test that lives inside the grazing branch
+   alone would let a beast on its way to drink walk straight past him. One
+   question, two callers, and no second copy of the rule.
+     · a man on foot is a smaller fright than a hunter: half the distance
+     · a hunter lying up in the deep grass is NOT SEEN — he is caught at
+       arm's length or not at all, and that is the whole use of cover */
+function frightNear(a){
+  const flee=window.BEHAVIOR?BEHAVIOR.flightOf(a.kind):9;
+  if(state.mode==='walk'&&Math.hypot(state.walk.x-a.x,state.walk.z-a.z)<flee*0.5)
+    return {x:state.walk.x, z:state.walk.z};
+  for(const b of LANDLIFE){
+    if(!b.set||b.dead>0||(b.role!=='pack'&&b.role!=='stalk'&&b.role!=='ambush')) continue;
+    const see=b.hidden?Math.min(6,flee*0.35):flee;
+    if(Math.hypot(b.x-a.x,b.z-a.z)<see) return {x:b.x, z:b.z}; }
+  return null;
+}
+/* ================= AND AT THE TWO EDGES OF THE DAY, THE WATER =================
+   §2.3.6's very first clause — *"Drinking at water at dawn and dusk"* — and it
+   was the one line in that section with nothing whatever behind it. `drink`
+   was an act like any other, drawn by weight at any hour of the day, and
+   refused unless the beast happened already to be standing on a bank.
+   NOTHING ON THIS EARTH EVER WENT TO WATER. The herds of the plain never came
+   down to the river; a zebra either was born beside one or never drank.
+
+   It is the single most recognisable thing a herd does, and it is the reason
+   the crocodile is where he is.
+
+   ---- IT IS NOT NEW DATA ----
+   WHICH beasts drink is already written down, once, in js/behavior.js: any
+   beast with `drink` in its own `acts` list. WHEN is the world's own — the
+   twilight band, when the sky is neither lit nor dark, which is the same
+   number that sends the diurnal ones to bed. Nothing was added to a single
+   creature file for this.
+
+   ---- AND IT IS ONE SEARCH A DAY, NOT ONE A FRAME ----
+   A beast looks for water ONCE at each twilight, in three rings and a dozen
+   bearings — the same spiral js/grass.js walks to find a better bite. If
+   there is none within a day's walk (and over most of the desert there is
+   none) it simply does not go, which is also true. */
+const WATER_REACH=900;           /* how far a beast will walk for a drink, in units */
+const WATER_AT=9;                /* and how near it must be to have arrived */
+/* ---- IS THE WORLD AT ONE OF THE TWO EDGES OF THE DAY? ----
+   Read off the LIGHT (`worldDay`: 1 under the noon sun, 0 at the horizon) and
+   not off `worldNight`, and the difference is the whole difference between
+   this working and not. The first cut asked `worldNight>0.10`, which sounds
+   like the same question and is not: `worldNight` is nought through the first
+   two thirds of the dusk and by the time it rises the diurnal beasts have
+   already gone to bed. Measured hour by hour at a Sudanese village it reads
+   0.00 at four in the afternoon and 0.85 at six — there was no hour of the
+   day at which a beast would set off, and the first run of test 49 reported
+   exactly that: four lands, not one beast, and "the world does not call the
+   evening a twilight."
+   The band below runs from the sun beginning to fall to the moment it touches
+   the rim — about an hour and a quarter of usable dusk for a diurnal grazer
+   before its own bedtime takes it, and the same at dawn. Which of the two
+   edges it is does not matter to a thirsty animal. */
+function twilight(){ const d=(worldDay===undefined?1:worldDay); return d>0.02&&d<0.82; }
+/* ---- AND THE SEARCH MUST BE FINER THAN THE THING IT IS LOOKING FOR ----
+   A watercourse is stamped ONE OR TWO MAP PIXELS WIDE — about a hundred and
+   twenty units — and the first cut of this walked three rings of twelve
+   bearings, which at nine hundred units puts its probes four hundred and
+   seventy units apart. A herd would have stood a bowshot from the Tigris and
+   found nothing, most of the time, at random. The rings are close together
+   now and the bearings on each are counted so that NO TWO PROBES ARE FURTHER
+   APART THAN A RIVER IS WIDE. It is about two hundred lookups, once per beast
+   per twilight — twice a day — and it is the difference between the feature
+   working and the feature working sometimes. */
+const WATER_STEP=150;            /* how close the rings run, in units */
+const WATER_GRAIN=90;            /* and no two probes further apart than this */
+function findWater(a){
+  const turn=hash2(a.hx*0.013,a.hz*0.017)*6.283;
+  for(let d=WATER_STEP; d<=WATER_REACH; d+=WATER_STEP){
+    const n=Math.max(12,Math.round(6.283*d/WATER_GRAIN));
+    for(let k=0;k<n;k++){
+      const ang=turn+k/n*6.283;
+      const x=a.x+Math.cos(ang)*d, z=a.z+Math.sin(ang)*d;
+      const u=x/R_WORLD, v=z/R_WORLD;
+      if(riverAtUV(u,v)&&countryAtUV(u,v)) return {x,z};
+    }
+  }
+  return null;
+}
+/* does this beast drink at all? Its own line says so, and nothing else does. */
+function drinks(kind){ return !!(window.BEHAVIOR&&BEHAVIOR.actsOf&&
+  (BEHAVIOR.actsOf(kind)||[]).some(w=>w[0]==='drink')); }
+/* and does water mean anything to it whatever — to drink at, to wallow in, to
+   fish, or to lie in up to the eyes? Asked once, when the beast is set down. */
+function wetKind(kind,role){
+  if(role==='forage'||role==='ambush') return true;
+  const acts=(window.BEHAVIOR&&BEHAVIOR.actsOf&&BEHAVIOR.actsOf(kind))||[];
+  return acts.some(w=>w[0]==='drink'||w[0]==='wallow');
+}
+/* the day of the voyage, so a beast goes down ONCE at each edge of it and not
+   over and over while the twilight lasts */
+function wateringSpell(){ return Math.floor(state.simHours/12); }
+function goToWater(a){
+  if(!twilight()||!drinks(a.kind)) return false;
+  if(a.wSpell===wateringSpell()) return false;
+  if(a.river){ a.wSpell=wateringSpell();          /* already at it — simply drink */
+    a.job='act'; a.act='drink'; a.jt=4+Math.random()*4; a.tx=a.x; a.tz=a.z; return true; }
+  const w=findWater(a);
+  if(!w){ a.wSpell=wateringSpell(); return false; }   /* no water in a day's walk */
+  /* AND THE LEASH IS THE WALK ITSELF, not a flat number. Set at a flat forty
+     seconds the beast gave up two hundred units into a nine-hundred-unit
+     walk, every time, and no herd ever reached a river — the feature would
+     have measured as working (they set off) and looked like nothing (they
+     never arrived). It is the distance at its own pace, and half again. */
+  const sp=window.BEHAVIOR?BEHAVIOR.walkOf(a.kind,5):5;
+  a.job='water'; a.wx=w.x; a.wz=w.z;
+  a.jt=Math.hypot(w.x-a.x,w.z-a.z)/Math.max(1,sp)*1.6+20;
+  return true;
+}
 function tryAct(a){
   if(!window.BEHAVIOR||Math.random()>0.45) return false;
   let act=BEHAVIOR.drawAct(a.kind,Math.random());
@@ -8884,6 +9000,10 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
            diurnal) stands under anything the behavior file has no line for. */
         a.day=(window.BEHAVIOR&&BEHAVIOR.of(kind))?BEHAVIOR.dayOf(kind)
           :((K&&K.night)||a.role==='stalk'||a.role==='pack')?'night':'day'; }
+      /* does water mean anything to this beast at all? Its own line says so
+         — drink or wallow in `acts` — and so does its trade: the bear fishes
+         the shallows and the crocodile lies in them. Asked ONCE, here. */
+      a.wets=wetKind(a.kind,a.role);
       a.river=riverBankAt(sp.x,sp.z); a.sink=0; a.crouch=false; a.hidden=false;
       a.m.visible=true; a.m.position.set(sp.x,sp.y,sp.z);
       /* ---- AND SOME OF THEM HAVE YOUNG AT FOOT ----
@@ -8957,7 +9077,23 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       a.bare=!gp;                          /* ground that bears no grass at all */
       a.feed=gp?GRASS.feedAt(a.x,a.z,gp.kind,gp.wild):0;
       a.cover=gp?GRASS.coverAt(a.x,a.z,gp.kind,gp.wild):0;
-      a.hidden=(a.cover>=GRASS.HIDE_H); }
+      a.hidden=(a.cover>=GRASS.HIDE_H);
+      /* ---- AND WHETHER IT IS STANDING BY WATER, WHICH WAS ASKED ONCE ----
+         `a.river` was read at the moment the beast was SET DOWN and never
+         again as long as it lived. So one that happened to be put on a bank
+         went on drinking in the middle of a dry plain for the rest of its
+         days, and one that walked to a river could never drink at all. It is
+         read with the grass now — four times a second, not sixty, because a
+         river does not move either.
+         AND ONLY FOR THE BEASTS IT MEANS ANYTHING TO. `riverBankAt` is a
+         probe and eighteen more about it, because a watercourse is one map
+         pixel wide and a single lookup would miss it; asked of every beast on
+         the earth four times a second that is thousands of raster reads for an
+         answer most of them will never use. `wets` is set once when the beast
+         is put down — does its own line name drink or wallow, or is it a
+         forager that fishes or an ambusher that lies in the shallows — and
+         nothing else pays. */
+      if(a.wets) a.river=riverBankAt(a.x,a.z); }
 
     /* ---- DUSK SENDS EVERY CREATURE TO ITS OWN BED ----
        When its sleeping hour came, everything on the earth stopped dead in
@@ -8978,7 +9114,32 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
     else{
     if(a.job==='bed'||a.job==='home'){ a.job='roam'; a.jt=0.3+Math.random(); }
 
-    if(role==='pack'||role==='stalk'){
+    /* ---- AND BEFORE ANY OF ITS TRADE, THE WATER ----
+       At dawn and at dusk a beast that drinks leaves off what it is doing and
+       walks to the river. It is asked BEFORE the roles below because going
+       down to water outranks grazing, foraging and basking alike — but only
+       while nothing has frightened it and nothing is being hunted, so a lion
+       coming through a herd still empties the waterhole in an instant. */
+    if(a.job!=='water'&&a.job!=='feed'&&a.job!=='act'&&!a.prey&&!(a.fear>0)) goToWater(a);
+
+    if(a.job==='water'){
+      /* THE WALK DOWN. It is given a long leash (`jt`) and gives up if the
+         twilight passes on the way — a beast is not to spend the whole night
+         walking to a river it was never going to reach. */
+      const dw=Math.hypot(a.wx-a.x,a.wz-a.z);
+      /* AND THE DRINK IS GIVEN UP AT A FRIGHT. It hands the beast straight
+         back to its own trade, which is where fleeing is written; one frame
+         later it is running, and it will not try the water again this
+         twilight. Nothing goes down to a waterhole with a lion beside it. */
+      if(frightNear(a)){ a.wSpell=wateringSpell(); a.job='roam'; a.jt=0.1; }
+      else if(dw<WATER_AT||a.river||a.jt<=0||!twilight()){
+        a.wSpell=wateringSpell();
+        if(dw<WATER_AT||a.river){ a.job='act'; a.act='drink'; a.jt=4+Math.random()*4;
+          a.tx=a.x; a.tz=a.z; spd=0; }
+        else { a.job='roam'; a.jt=2+Math.random()*3; }
+      } else { a.tx=a.wx; a.tz=a.wz; spd=walkSpd*1.15; }
+    }
+    else if(role==='pack'||role==='stalk'){
       /* ---- THE HUNT ---- */
       if(a.job==='feed'){ spd=0; if(a.jt<=0){ a.job='roam'; a.jt=4+Math.random()*5; } }
       else if(a.cool<=0){
@@ -9104,15 +9265,7 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
          paces as a chicken. The beast is asked now (js/behavior.js), and
          what it answers is mostly struck off its own legs — only the heavy,
          the armed and the beasts of the village are written down. */
-      const flee=window.BEHAVIOR?BEHAVIOR.flightOf(a.kind):9;
-      /* a man on foot is a smaller fright than a hunter: half the distance */
-      if(state.mode==='walk'&&Math.hypot(state.walk.x-a.x,state.walk.z-a.z)<flee*0.5){
-        fx=state.walk.x; fz=state.walk.z; }
-      else for(const b of LANDLIFE){ if(!b.set||b.dead>0||(b.role!=='pack'&&b.role!=='stalk'&&b.role!=='ambush')) continue;
-        /* a hunter lying up in the deep grass is NOT SEEN. It is caught at
-           arm's length or not at all, and that is the whole use of cover. */
-        const see=b.hidden?Math.min(6,flee*0.35):flee;
-        if(Math.hypot(b.x-a.x,b.z-a.z)<see){ fx=b.x; fz=b.z; break; } }
+      { const fr=frightNear(a); if(fr){ fx=fr.x; fz=fr.z; } }
       if(fx!==null&&a.fear<=0) a.panicT=0;   /* caught flat — a beat to reach full stride */
       if(fx!==null){ const dd2=Math.hypot(a.x-fx,a.z-fz)||1;
         a.tx=a.x+(a.x-fx)/dd2*34; a.tz=a.z+(a.z-fz)/dd2*34; a.fear=Math.max(a.fear,0.7); a.job='flee'; a.jt=0.7; }
@@ -10247,6 +10400,17 @@ function villageBuildTick(){
   }while(villageBuilds.length&&performance.now()-T0<5);
 }
 let worldNight=0;   /* 0 by day .. 1 deep night — sends folk home */
+/* ---- AND THE LIGHT ITSELF, WHICH IS NOT THE SAME NUMBER ----
+   `worldNight` is `1-dayF*1.5` clamped at nought, so it stands at ZERO
+   through the whole first two thirds of the dusk and only then begins to
+   climb: measured hour by hour, it reads 0.00 at four in the afternoon, 0.43
+   at five, 0.85 at six and 1.00 at seven. It is the right number for what it
+   was made for — when to light the torches and send the folk home — and it is
+   the WRONG one for asking whether the sun is going down, because by the time
+   it says anything at all the beasts are already bedding.
+   `worldDay` is the light itself, 1 under the noon sun and 0 at the horizon,
+   and it is what the WATERING reads. */
+let worldDay=1;
 const standaloneHouses=[];   /* houses not in a village (the player's treehouse) */
 /* A GENERATOR: driven by villageBuildTick a few milliseconds a frame, so a
    town raises itself over many frames and the traveller never feels a hitch. */
@@ -10892,8 +11056,9 @@ function birdTick(bd,dt){
   const flap=Math.sin(performance.now()*0.02+bd.ph*3)*0.7;
   const u=bd.m.userData; if(u.wingL){ u.wingL.rotation.z=flap; u.wingR.rotation.z=-flap; }
 }
-function updateVillages(px,pz,dt,nightF){
+function updateVillages(px,pz,dt,nightF,dayF){
   worldNight=nightF;
+  if(dayF!==undefined) worldDay=dayF;
   villageBuildTick();                          /* advance any towns under construction */
   /* spawn well BEYOND the fog line so a town is standing whole before the
      traveller can see the shore — and under a FLYER'S opened air the line
@@ -15094,6 +15259,9 @@ if(!window.__HOST_BOOT){
 window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   /* the light in the corners, and the count of standing chunks — tools/acceptance.js */
   aoLevel,aoTop,chunkCount:()=>chunks.size,bodyLenOf,
+  /* the light of the world, and whether it stands at one of the two edges of
+     the day — what sends the herds down to the water (§2.3.6). Read-only. */
+  worldNight:()=>worldNight, worldDay:()=>worldDay, twilight, drinks, findWater, WATER_REACH:()=>WATER_REACH,
   /* ---- THE THIRD DIMENSION, FOR tools/acceptance.js ----
      Read-only probes. Nothing in the game reads any of these; they exist so
      the acceptance tests can ask the RUNNING WORLD rather than the source. */
@@ -17363,7 +17531,7 @@ function frame(){
   farLandMat.opacity+=(carpetWant-farLandMat.opacity)*Math.min(1,dt*2.5);
   farLand.visible=farLandMat.opacity>0.02;
   if(frame._carpetOn) updateFarLand(p.x,p.z,false,eyeY);
-  updateVillages(p.x,p.z,dt,light.nightF);
+  updateVillages(p.x,p.z,dt,light.nightF,light.dayF);
   updateLandmarks(p.x,p.z);
   updateFalls(p.x,p.z);          /* and the springs at the head of every fall */
   /* the living world — weather, hearths, fireflies, meetings, murmurs */

@@ -813,7 +813,7 @@ went and looked, rather than planning work that exists:
 | 3. True stature | ✅ `js/size.js` — the half-scale field beasts are gone, one measure and it is the man's |
 | 4. Finer voxel grain | partial: two-bone limbs with knees, but 12–15 parts on the large mammals |
 | 5. Herd and flock structure | partial: roles and flight in `js/behavior.js`, no matriarch, no vigilance |
-| 6. The daily round | partial: `day:` and `acts:` exist, no drinking, wallowing, bedding |
+| 6. The daily round | ✅ *Round 69* — most of it was already there (Round 54: hours, dens, and the whole list of acts). The one clause with nothing behind it was the first: `a.river` was read once when the beast was set down, so **nothing on this earth ever went TO water**. The herds go down at dawn and dusk now, in four lands of four |
 
 | §2.4 flora | state |
 |---|---|
@@ -928,7 +928,20 @@ and puts it against the tested curve at a hundred and twenty points — they par
 Cost: one extra mesh in a village that grows both a crop that turns and one that does not, out
 of 467–943 in the group. Not modelled: the autumn-sown cereal. AUDIT Round 68.
 
-**7. Finer grain on the twenty most-seen species.** Last, and explicitly not all 151 —
+**7. The watering.** ✅ *Round 69.* §2.3.6, and it closes that item. Most of the daily round
+was already standing and was left alone; the one clause with nothing behind it was *"Drinking
+at water at dawn and dusk"*, and it had two faults: `drink` was drawn by weight at any hour,
+and it was gated on `a.river`, **which was read once at the instant the beast was set down and
+never again**. So a beast born on a bank drank in the middle of a dry plain for ever and one
+that walked to a river never drank at all. It is not new data — twenty-one beasts name `drink`
+in their own `acts` and no creature file was touched. Three things were wrong and the
+measurement found all three: `worldNight` stands at nought through two thirds of the dusk
+(there was no hour at which a beast would set off); none of the five dayparts IS dusk; and the
+water search put its probes four hundred and seventy units apart looking for a river a hundred
+and twenty wide. **Four lands of four saw the herds go down; at noon, nought; and no beast
+ever walked to water with a hunter inside its flight distance.** AUDIT Round 69.
+
+**8. Finer grain on the twenty most-seen species.** Last, and explicitly not all 151 —
 the brief says so, and it is the item most able to cost frames for the least reach.
 
 ### What I will not do
@@ -1172,18 +1185,32 @@ the whole chain.
 
 ### 4. Planting
 
-`blocks/soil.js` exists. Farms and farmers exist in the villages. What does not
-exist is a hand that sows: a seed in the satchel, ground that will take it, and a
-crop that comes on with the season the world already keeps (`js/season.js` gilds
-the canopy per hemisphere and per zone, and the agricultural year would read off
-the same clock).
+`blocks/soil.js` exists. Farms and farmers exist in the villages, and since
+**Round 68 the agricultural year exists too** — a village field bears its own
+country's corn and keeps the year in the vertex shader, sown and ripened and
+reaped off the latitude, with no chunk built twice for it. What still does not
+exist is **a hand that sows**: a seed in the satchel, ground that will take it,
+and a crop that comes on where the traveller put it rather than where a village
+put it. The clock and the growth are now both standing and waiting for it —
+this line used to say *"the agricultural year would read off the same clock"*
+in the conditional, and it no longer needs to.
 
 ### 5. Building from gathered materials
 
 The satchel stacks, survives a reload, and pays for what it lays; the free hand
-lays without cost. **There is no making** — no bench, no recipe, nothing that turns
-what was gathered into what was not. This is the largest of the five and the one
-that most wants its shape argued before any of it is built.
+lays without cost. **This section used to say "There is no making — no bench, no
+recipe, nothing that turns what was gathered into what was not." That has been
+untrue since Phase 4.** `world/works.js` declares fourteen named works, each with
+what it takes, what it gives, whether it needs fire or a tool in the hand, what
+it REFUSES, and the verse it is drawn from; acceptance test 20 walks the refusal
+(an altar of unhewn stone will not take hewn stone) and test 44 walks a man from
+nothing to a flint pick and then into the rock. Measure first, and if the world
+already does the thing, correct the document.
+
+What is genuinely still missing here is **a bench**: every work is done at the
+bare hand or at a kiln, so there is no PLACE a man goes to make, and the list of
+works cannot grow past what one can do standing in a field. That is the piece
+worth arguing before it is built.
 
 ### And then Phases 8, 9 and 10
 

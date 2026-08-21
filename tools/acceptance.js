@@ -2785,6 +2785,170 @@ T[48]={name:'a field bears its own country\'s corn, keeps the year, and not one 
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
+T[49]={name:'the beasts that drink go down to the water at dusk, and not at noon, and not with a lion by',
+  /* §2.3.6's very first clause — "Drinking at water at dawn and dusk" — and
+     it was the one line in that section with nothing whatever behind it.
+
+     THE TWO FAULTS, and the second is the worse.
+     `drink` was an act like any other, drawn by weight at any hour of the day
+     and night. And it was refused unless `a.river` was true — which was read
+     ONCE, at the instant the beast was set down on the world, AND NEVER AGAIN
+     AS LONG AS IT LIVED. So a beast that happened to be placed on a bank went
+     on drinking in the middle of a dry plain for the rest of its days, and a
+     beast that walked to a river could never drink at all. Nothing on this
+     earth ever went TO water. It is the single most recognisable thing a herd
+     does, and it is the reason the crocodile is where he is.
+
+     FOUR THINGS ARE ASKED.
+
+     1. THE BANK IS READ AS THE BEAST WALKS. This is asked by INJECTING THE
+     FAULT: a beast is carried bodily out into dry country and must forget the
+     water within a second, and carried back and remember it. A test of the
+     mended code that cannot fail on the broken code is not a test.
+
+     2. WHO DRINKS IS THE BEAST'S OWN LINE AND NOTHING ELSE. No creature file
+     was touched for this and no second list of who drinks was written down —
+     a beast goes to water if `acts` says `drink`, which js/behavior.js has
+     said all along. Asserted across every beast declared.
+
+     3. AT NOON NOBODY GOES. The hours are the world's own — the twilight
+     band, the same number that sends the diurnal beasts to bed — so at midday
+     not one beast on the earth may be walking to a river.
+
+     4. AT DUSK THEY GO, over several lands, ONE READING APIECE. AUDIT Round
+     54 wrote that the herd measurements taken there were worthless because
+     they sampled the same three animals every twelfth frame and called it
+     three hundred samples. This does not do that: n is the number of LANDS,
+     each stood in for a whole dusk and censused, and what is reported is the
+     lands in which the herds went down — not a count of frames.
+
+     AND THE INVARIANT: no beast walks to water with a hunter inside its own
+     flight distance. Nothing goes down to a waterhole with a lion beside it,
+     and the walk down had to be given the same fright test the grazing has,
+     or a zebra crossing open ground to the river would have ignored him. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, W=window.__WORLD, B=window.BEHAVIOR;
+    if(!D.twilight||!D.drinks||!D.findWater) return {pending:'no watering (Phase 6 §2.3.6)'};
+    const faults=[];
+
+    /* ---- 2. who drinks is the beast's own line ---- */
+    let named=0, wrong=0;
+    for(const k in (B.D||{})){
+      const acts=(B.actsOf(k)||[]).some(w=>w[0]==='drink');
+      if(acts) named++;
+      if(D.drinks(k)!==acts) wrong++;
+    }
+    if(wrong) faults.push(wrong+' beasts disagree with their own acts list about drinking');
+    if(named<12) faults.push('only '+named+' beasts on the earth drink at all');
+
+    /* ---- AND STAND WHERE THERE IS WATER, WHICH IS NOT WHEREVER ONE LIKES ----
+       "Do the herds go down to the river" can only be asked in a place with a
+       river in it, and a village site is put where a village goes and not
+       where a watercourse runs. The first run of this test stood at the site
+       of Sudan and reported "no bank within 2400 units" — which was true, and
+       measured nothing. The nearest bank to each land's site is found first,
+       and the traveller is stood beside THAT, so the beasts that spawn about
+       him have water inside the distance one will walk for it. */
+    const S=W.sites();
+    const bankNear=(s2)=>{
+      const reach=D.WATER_REACH?D.WATER_REACH():900;
+      for(let r=100;r<=9000;r+=150) for(let k=0;k<24;k++){ const ang=k/24*6.283;
+        const x=s2.x+Math.cos(ang)*r, z=s2.z+Math.sin(ang)*r;
+        if(D.riverBankAt(x,z)) return {x,z,r,reach}; }
+      return null; };
+    const siteOf=n=>{ for(let i=0;i<S.length;i++) if(S[i]&&D.COUNTRIES[i].n===n) return S[i];
+      return null; };
+    let stand=null, land=null;
+    for(const n of ['Iraq','Egypt','Bangladesh','Sudan','India','Kenya']){
+      const s2=siteOf(n); if(!s2) continue;
+      const bk=bankNear(s2); if(!bk) continue;
+      stand=bk; land=n; break; }
+    if(!stand) return {pending:'no river bank found near any village site'};
+    const goStand=async(p)=>{ D.state.walk.x=p.x+140; D.state.walk.z=p.z+140;
+      D.state.walk.feetY=undefined; D.setMode('walk');
+      for(let f=0;f<45;f++){ D.updateChunks(D.state.walk.x,D.state.walk.z,600);
+        await new Promise(r=>requestAnimationFrame(r)); } };
+    /* ---- AND PIN AN HOUR THAT IS REALLY DUSK ----
+       None of the five dayparts lands in the band: 'evening' is 18:30, by
+       which hour the light is gone and the beasts are bedding. The hour is
+       swept until the world itself says twilight, so this test cannot be
+       broken by anybody retuning the sun. */
+    const setHour=async(h)=>{ D.setLocalHour(h, D.state.walk.x, D.state.walk.z);
+      for(let f=0;f<6;f++) await new Promise(r=>requestAnimationFrame(r)); };
+    await goStand(stand);
+    let dusk=null;
+    for(let h=14;h<=20;h+=0.25){ await setHour(h); if(D.twilight()){ dusk=h; break; } }
+    if(dusk===null) return {pending:'the world has no dusk between two and eight in the evening'};
+
+    /* ---- 1. the bank is read as it walks: inject the fault ---- */
+    let bankSay='no beast that drinks was set down';
+    await setHour(12);
+    { /* find a beast THAT DRINKS — the bank is read only for the beasts it
+         means anything to, so carrying a hedgehog about would prove nothing */
+      const a=D.LANDLIFE.find(b=>b.set&&b.dead<=0&&D.drinks(b.kind));
+      if(a){
+        const x0=a.x, z0=a.z;
+        a.x=stand.x; a.z=stand.z; a.gt=0;
+        for(let f=0;f<10;f++) await new Promise(r=>requestAnimationFrame(r));
+        const wet=!!a.river;
+        /* now carry it far off — eight kilometres, past any bank */
+        a.x=stand.x+8000; a.z=stand.z+8000; a.gt=0;
+        for(let f=0;f<10;f++) await new Promise(r=>requestAnimationFrame(r));
+        const dry=!!a.river;
+        a.x=x0; a.z=z0; a.gt=0;
+        bankSay=a.kind+' on the bank reads '+wet+', eight kilometres off reads '+dry;
+        if(!wet) faults.push('a beast standing on a river bank does not know it is there');
+        if(dry) faults.push('a beast carried eight kilometres from the water still thinks '+
+          'it stands on the bank — the bank is being read once and never again');
+      }
+    }
+
+    /* ---- 3. at noon nobody goes ---- */
+    if(D.twilight()) faults.push('the world calls high noon a twilight');
+    let noonGoing=0;
+    for(let f=0;f<100;f++){ await new Promise(r=>requestAnimationFrame(r));
+      if(f%10) continue;
+      for(const a of D.LANDLIFE) if(a.set&&a.dead<=0&&a.job==='water') noonGoing++; }
+    if(noonGoing) faults.push(noonGoing+' beasts walked to water at high noon');
+
+    /* ---- 4. at dusk they go, ONE READING PER LAND ---- */
+    const rows=[]; let wentIn=0, lands=0, unguarded=0;
+    for(const n of ['Iraq','Egypt','Bangladesh','Sudan']){
+      const s2=siteOf(n); if(!s2) continue;
+      const bk=bankNear(s2); if(!bk) continue;
+      await goStand(bk); await setHour(dusk);
+      if(!D.twilight()) continue;
+      lands++;
+      let drinkers=0, went=0, drank=0;
+      for(let f=0;f<160;f++){ await new Promise(r=>requestAnimationFrame(r));
+        if(f%20) continue;
+        let d1=0, w1=0, k1=0;
+        for(const a of D.LANDLIFE){ if(!a.set||a.dead>0||!D.drinks(a.kind)) continue;
+          d1++;
+          if(a.job==='water'){ w1++;
+            /* THE INVARIANT: nothing walks to water with a hunter by */
+            const fl=B.flightOf(a.kind);
+            for(const b of D.LANDLIFE){ if(!b.set||b.dead>0) continue;
+              if(b.role!=='pack'&&b.role!=='stalk'&&b.role!=='ambush') continue;
+              if(Math.hypot(b.x-a.x,b.z-a.z)<fl*0.8){ unguarded++; break; } } }
+          if(a.job==='act'&&a.act==='drink') k1++; }
+        drinkers=Math.max(drinkers,d1); went=Math.max(went,w1); drank=Math.max(drank,k1);
+      }
+      if(went||drank) wentIn++;
+      rows.push(n+' (bank '+bk.r+'u off) '+drinkers+' that drink, '+went+' walking, '+drank+' at it');
+    }
+    if(lands&&!wentIn) faults.push('not one land saw a single beast go down to the water at dusk');
+    if(unguarded) faults.push(unguarded+' times a beast walked to water with a hunter inside its flight distance');
+
+    return {ok:!faults.length,
+      got:named+' beasts on the earth drink · dusk is at '+dusk.toFixed(2)+
+        ' (the light reads '+D.worldDay().toFixed(2)+') · the bank: '+bankSay+
+        ' · at noon: '+noonGoing+' walking to water'+
+        ' · at dusk over '+lands+' lands, '+wentIn+' of them saw the herds go down — '+
+        rows.join(' | ')+' · hunters beside a watering beast: '+unguarded+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

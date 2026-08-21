@@ -41,13 +41,18 @@ made and scales it to `metres`. So:
 - want bigger whales? change `metres` in `whale.js`. That is all.
 - adding a new beast? build it at any size you like and just declare its metres.
 
-**The beasts of the sea are drawn at their true stature; the beasts of the
-field at half of it.** Always declare the honest length either way. The world's
-cattle, sheep and horses were built by hand long before any of this, at about
-half life-size, mob-fashion — so a zebra dropped in beside them at TRUE size
-would stand three times the cow in the next field, and would not fit the pens,
-byres and folds already standing in every village on the earth. One scale for
-the whole herd, and the engine applies it (`LAND_U_PER_M` in `js/engine.js`).
+**Every beast on this earth is drawn at its true stature, and this paragraph
+used to say otherwise.** It read: *"the beasts of the sea at their true stature;
+the beasts of the field at half of it"*, and named `LAND_U_PER_M` in
+`js/engine.js` as the constant that halved them. That was true when it was
+written — the world's cattle, sheep and horses were built by hand long before
+any of this, at about half life-size, mob-fashion, and a zebra dropped in
+beside them at true size would have stood three times the cow in the next
+field. **Phase 6 step 3 rebuilt them** (`js/size.js`, AUDIT Round 51's table):
+the half-scale field beasts are gone, the pens and byres were retuned to them,
+and there is now ONE measure for everything that walks and it is the man's.
+`LAND_U_PER_M` no longer exists in `js/engine.js` — grep for it and you will
+find nothing. Declare the honest length in metres and the engine does the rest.
 
 ## The toolkit (`T`)
 
