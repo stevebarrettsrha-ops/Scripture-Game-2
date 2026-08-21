@@ -812,7 +812,7 @@ went and looked, rather than planning work that exists:
 | 2. Real gaits | ✅ `js/gait.js`, six gaits, chosen by speed, one datum per species in `js/behavior.js` |
 | 3. True stature | ✅ `js/size.js` — the half-scale field beasts are gone, one measure and it is the man's |
 | 4. Finer voxel grain | partial: two-bone limbs with knees, but 12–15 parts on the large mammals |
-| 5. Herd and flock structure | **partial.** Flight distance and the watch ✅ *Round 54*. **Herds now exist** ✅ *Round 71* — the mean herd went from 3.00 to 4.3 and the biggest from 3 to 12, because a beast is born beside its own kind instead of at an independent point. The matriarch, the young at the centre and the birds' flocking are still NOT built, and can now be judged for the first time |
+| 5. Herd and flock structure | **partial.** Flight distance and the watch ✅ *Round 54*. **Herds now exist** ✅ *Round 71* — the mean herd went from 3.00 to 4.3 and the biggest from 3 to 12, because a beast is born beside its own kind instead of at an independent point. The matriarch, the young at the centre and the birds' flocking are still NOT built — *Round 72* judged three mechanisms against real herds with 80–90 mothers a reading and none moved the young's position further than the run-to-run spread. The next attempt must measure THE MECHANISM (does a beast reach its station?) and not the outcome |
 | 6. The daily round | ✅ *Round 69* — most of it was already there (Round 54: hours, dens, and the whole list of acts). The one clause with nothing behind it was the first: `a.river` was read once when the beast was set down, so **nothing on this earth ever went TO water**. The herds go down at dawn and dusk now, in four lands of four |
 
 | §2.4 flora | state |
@@ -979,7 +979,20 @@ measuring instrument were found and mended on the way — the majority class alw
 the middle", and a beast was part of the mean it was measured against. No photograph was
 obtained; that is said plainly in the audit. AUDIT Round 71.
 
-**10. Finer grain on the twenty most-seen species.** Last, and explicitly not all 151 —
+**10. The matriarch, judged and rejected.** *Round 72, and nothing shipped.* With Round 71's
+herds and a sound instrument, §2.3.5's second clause could finally be asked properly, and it
+was asked of three mechanisms, each measured twice: a station about a matriarch through the
+wander-picker (**1.96 against 1.94** — a dead heat with 86 mothers to 93); the same with a
+marching matriarch (**2 units** of travel, as before); and the station taken through THE
+GRAZING, which Round 70's diagnosis had named as the right lever (**1.87/1.95** then
+**1.89/1.67** — two readings of one build, opposite directions). Round 70 was right that the
+wander-picker is the wrong lever and wrong to assume the grazing was therefore the right one:
+shifting the search centre by tens of units while the search radius stays at 190 changes
+nothing. **The one diagnostic nobody has built is whether a beast ever REACHES its station** —
+that distinguishes "the rule never fires" from "the rule fires and does not matter", which are
+opposite repairs, and three rounds could not tell them apart. AUDIT Round 72.
+
+**11. Finer grain on the twenty most-seen species.** Last, and explicitly not all 151 —
 the brief says so, and it is the item most able to cost frames for the least reach.
 
 ### What I will not do

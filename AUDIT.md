@@ -6120,6 +6120,73 @@ but it is a visible change to the feel of a plain and it was not measured.
 twelve to give a structure to, and ninety mothers to measure instead of ten. That is the next
 round, and for the first time it starts with an instrument that reproduces.
 
+## 4bu. Round 72 — the matriarch, judged at last, and it does not work
+
+*§2.3.5's matriarch and juveniles-at-the-centre, measured against real herds for the first
+time. **Nothing shipped**, and this time that is a finding rather than a shrug.*
+
+### What was different this time
+
+Round 54 could not judge this item (no measurement). Round 70 could not judge it (the
+measurement had ten mothers in it and disagreed with itself). **Round 71 mended both**: there
+are herds of six to twelve now, and the instrument samples **eighty to ninety mothers a
+reading** with the two arithmetic faults taken out of it.
+
+So the question could finally be asked properly. It was asked of three mechanisms.
+
+### The three attempts, and every one of them measured twice
+
+**1. A station about a matriarch, taken through the wander-target picker.** Rank hashed at
+spawn, the highest in a neighbourhood leads, everybody else holds a bearing off her on a ring
+that widens with the herd, mothers on an inner ring at 0.40 and the rest at 1.35.
+
+> mothers **1.96** · others **1.94** — a dead heat, with 86 against 93.
+
+**2. The same, with the matriarch's own tether creeping** so the herd should graze across
+country (Round 70's attempt, re-measured against real herds).
+
+> the centroid moved **2 units** in a spell, the same as without it.
+
+**3. The station taken through THE GRAZING instead**, which is what Round 70's diagnosis said
+the lever had to be — *"a herd is given its shape by where each beast looks for grass"*. The
+search for a bite starts from the beast's station in its herd rather than from its own feet.
+
+> reading one: mothers **1.87** · others **1.95** — leaning the right way
+> reading two: mothers **1.89** · others **1.67** — leaning the *wrong* way
+
+**Two readings of one build, opposite directions.** That is the end of it.
+
+### What that actually establishes, which is not nothing
+
+The instrument is sound now — it was proved so in Round 71, where it reported a change of
+7→44 herds and reproduced it — so this is no longer "I could not tell." **With eighty-odd
+mothers in every reading, three different mechanisms move the young's position by less than the
+run-to-run spread.** Round 70's diagnosis (that the wander-picker is the wrong lever) was right
+about the wander-picker and *wrong to assume the grazing would therefore be the right one*:
+moving the search centre by a few tens of units while the search radius stays at 190 shifts
+nothing, because the bite it finds is anywhere in a disc far larger than the herd.
+
+### THE ONE DIAGNOSTIC THAT WOULD SETTLE IT, and none of the three could
+
+Every attempt so far has measured the OUTCOME (where the young end up) and inferred the cause.
+What has never been measured is whether **a beast ever reaches its station at all** — the mean
+distance from each animal to the place its herd assigns it.
+
+- If that distance is large, the rule is never landing, and the fix is about *when* it fires.
+- If it is small, the rule lands and the young's depth still does not move, which would mean
+  the station geometry is wrong, or that a herd of four to twelve is simply too small for
+  "inside" and "outside" to be distinguishable at all.
+
+Those two are opposite repairs and three rounds of work could not tell them apart. **That
+measurement is the first thing the next attempt should build**, exactly as Round 54 said of the
+last one — and this time the pattern has held twice, so it is worth stating as a rule: *when a
+change cannot be shown to work, measure the mechanism, not the outcome.*
+
+### And the birds are still where Round 54 left them
+
+*"A bird has nowhere in its day to BE in a flock"* — 95 % are in `hunt` at any moment. That is
+untouched and remains a question about a gull's day, not about geometry.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
