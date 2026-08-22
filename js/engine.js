@@ -6364,15 +6364,6 @@ function buildOldAnimal(kind){
     eyes(0.42,0.85,1.6,0.18,0xd9c93f);
     const tail=lbox(0.4,0.35,1.8,0x636c3c); tail.position.set(0,0.55,-1.9); g.add(tail); tailRef=tail;
     fourLegs(0.55,0.7,0.5,0x5c6438);
-  } else if(kind==='camel'){
-    const body=lbox(2.8,3,5.6,0xc8a06a); body.position.y=4.8; g.add(body);
-    const hump=lbox(1.9,1.4,2,0xb8905a); hump.position.set(0,6.9,0.4); g.add(hump);
-    const neck=lbox(1.2,2.8,1.2,0xc8a06a); neck.position.set(0,6.6,2.6); g.add(neck);
-    const head=lbox(1.4,1.2,2,0xb8905a); head.position.set(0,8.2,3.2); g.add(head);
-    eyes(0.55,8.5,4.0,0.26);
-    for(const s of [1,-1]){ const ear=lbox(0.35,0.4,0.25,0xb8905a); ear.position.set(s*0.6,8.85,2.7); g.add(ear); }
-    tailRef=lbox(0.35,1.8,0.35,0xa8834f); tailRef.geometry.translate(0,-0.9,0); tailRef.position.set(0,5.6,-2.9); g.add(tailRef);
-    fourLegs(1,2.1,3.3,0xb08a56);
   } else if(kind==='horse'){
     const col=0x6a4a2e; const body=lbox(2.2,2.6,5.4,col); body.position.y=4.2; g.add(body);
     const neck=lbox(1.3,2.6,1.3,col); neck.position.set(0,5.6,2.4); neck.rotation.x=-0.5; g.add(neck);
@@ -6384,15 +6375,6 @@ function buildOldAnimal(kind){
     const mane=lbox(0.4,2.4,1.3,0x2e2018); mane.position.set(0,6.0,2.0); mane.rotation.x=-0.5; g.add(mane);
     const tail=lbox(0.5,2.4,0.5,0x2e2018); tail.position.set(0,4.4,-2.9); tail.rotation.x=0.5; g.add(tail); tailRef=tail;
     fourLegs(0.9,2.0,3.2,0x4a3320);
-  } else if(kind==='donkey'){
-    const col=0x9a938a; const body=lbox(1.8,2.2,4.4,col); body.position.y=3.6; g.add(body);
-    const neck=lbox(1.1,2.2,1.1,col); neck.position.set(0,4.8,2.0); neck.rotation.x=-0.5; g.add(neck);
-    const head=lbox(1.0,1.3,2.0,col); head.position.set(0,5.6,3.0); g.add(head);
-    for(const s of[1,-1]){ const ear=lbox(0.35,1.4,0.35,col); ear.position.set(s*0.4,6.6,2.6); g.add(ear); }
-    eyes(0.42,5.9,4.02,0.26);
-    const muz2=lbox(0.7,0.5,0.3,0xc8c2ba); muz2.position.set(0,5.3,4.05); g.add(muz2);
-    const tail=lbox(0.4,1.8,0.4,0x5a534a); tail.position.set(0,3.8,-2.4); tail.rotation.x=0.4; g.add(tail); tailRef=tail;
-    fourLegs(0.75,1.6,2.6,0x7a736a);
   } else if(kind==='ox'){
     const body=lbox(3.4,3.0,6.0,0x5a4436); body.position.y=4.2; g.add(body);
     const head=lbox(2.0,2.0,1.8,0x4a3628); head.position.set(0,4.9,3.6); g.add(head);
@@ -6422,18 +6404,6 @@ function buildOldAnimal(kind){
     const tail=lbox(0.4,0.4,2.2,col); tail.position.set(0,3.0,-2.6); tail.rotation.x=0.3; g.add(tail); tailRef=tail;
     const tuft=lbox(0.6,0.6,0.6,0x8a5a2a); tuft.position.set(0,2.4,-3.6); g.add(tuft);
     fourLegs(0.75,1.5,2.4,0xb08a48);
-  } else if(kind==='elephant'){
-    const col=0x8f8f96; const body=lbox(4.4,4.2,7.2,col); body.position.y=6.0; g.add(body);
-    const head=lbox(3.0,3.0,2.6,col); head.position.set(0,6.6,4.2); g.add(head);
-    const trunk=lbox(1.0,3.4,1.0,col); trunk.position.set(0,4.6,5.4); trunk.rotation.x=0.4; g.add(trunk);
-    eyes(0.9,7.3,5.52,0.3);
-    const etail=lbox(0.35,2.4,0.35,0x76767e); etail.geometry.translate(0,-1.2,0); etail.position.set(0,7.2,-3.7); g.add(etail);
-    const ears=[];
-    for(const s of[1,-1]){ const ear=lbox(0.4,2.8,2.4,0x82828a); ear.position.set(s*2.0,6.8,3.6); g.add(ear); ears.push(ear);
-      const tusk=lbox(0.4,0.4,2.0,0xefe8d8); tusk.position.set(s*0.9,5.2,5.4); g.add(tusk); }
-    fourLegs(1.6,2.6,4.4,0x76767e);
-    g.userData={legs,ears,tail:etail};
-    return g;
   }
   else if(kind==='crocodile'){
     /* long and low, all jaw and tail, with a ridge of scutes down the back —
@@ -6455,22 +6425,6 @@ function buildOldAnimal(kind){
       L.position.set(sx*1.55,1.05,sz); L.userData.ph=(sx*sz>0)?0:Math.PI;
       L.userData.foot=(sx>0?0:1)+(sz>0?0:2); g.add(L); legs.push(L); }
     g.userData={legs,jaw:jawB,tail:t2};
-    return g;
-  } else if(kind==='bear'||kind==='blackbear'){
-    /* heavy in the shoulder, small round ears, a pale muzzle — it forages the
-       northern woods and fishes the rapids */
-    const black=kind==='blackbear';
-    const fur=black?0x241f1d:0x6d4526, muz=black?0xa08a5e:0xbfa273;
-    const body=lbox(3.4,3.2,5.6,fur); body.position.y=4.4; g.add(body);
-    const hump=lbox(3.0,1.0,2.2,fur); hump.position.set(0,6.2,1.2); g.add(hump);   /* the shoulder */
-    const head=lbox(2.3,2.1,2.2,fur); head.position.set(0,5.4,3.7); g.add(head);
-    const snout=lbox(1.3,1.0,1.2,muz); snout.position.set(0,5.0,4.9); g.add(snout);
-    const nose=lbox(0.6,0.45,0.3,0x18140f); nose.position.set(0,5.25,5.55); g.add(nose);
-    for(const s of [1,-1]){ const ear=lbox(0.8,0.8,0.4,fur); ear.position.set(s*0.85,6.6,3.5); g.add(ear);
-      const eye=lbox(0.28,0.28,0.25,0x120e0a); eye.position.set(s*0.72,5.75,4.8); g.add(eye); }
-    const rump=lbox(3.2,2.8,1.2,fur); rump.position.set(0,4.2,-2.9); g.add(rump);
-    fourLegs(1.35,1.9,2.9,black?0x1b1715:0x5a3820);
-    g.userData={legs,head};
     return g;
   }
   else if(kind==='penguin'){
