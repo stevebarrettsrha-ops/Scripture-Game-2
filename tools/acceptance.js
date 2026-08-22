@@ -3474,6 +3474,111 @@ T[52]={name:'the finer grain is free — what hangs off a moving part costs noth
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
+T[53]={name:'DOES A BEAST EVER REACH ITS STATION — the mechanism, measured, not the outcome',
+  /* §2.3.5 — *"matriarch-led herds with juveniles held at the centre"* — has
+     been built and taken back out FOUR TIMES. Round 54 made four attempts,
+     Round 70 four more, Round 72 three mechanisms measured twice apiece. Every
+     one of them measured WHERE THE YOUNG ENDED UP and inferred the cause, and
+     every one of them ended "could not show it worked", which is not a
+     finding. The audit's instruction after the last of them:
+
+       *What has never been measured is whether a beast ever reaches its
+       station at all. If that distance is large, the rule is never landing,
+       and the fix is about WHEN it fires. If it is small, the rule lands and
+       the young's depth still does not move, which would mean the geometry is
+       wrong. Those two are opposite repairs and three rounds could not tell
+       them apart. When a change cannot be shown to work, measure the
+       MECHANISM, not the outcome.*
+
+     This is that measurement, and it is deliberately a SEPARATE test from 50 so
+     that 50's numbers stay comparable with the four rounds that already quote
+     them.
+
+     WHAT IT ASKS, and none of it is about where the young end up:
+
+     1. HOW BIG IS A HERD, REALLY. Every station mechanism is trying to create
+        a difference of `r × (1.15 − 0.40)` units between a mother and her
+        neighbours. If `r` is small, that difference is small, and every other
+        number in this test has to be read against it.
+     2. HOW FAR IS A BEAST FROM ITS STATION, in herd-radii. This is the reading
+        three rounds went without.
+     3. HOW OFTEN IS EACH LEVER EVEN CONSULTED. A rule hung on the wander-target
+        picker fires only when a beast is roaming; a rule hung on the bite
+        search fires only when a beast is not already standing in grass. Counted
+        per herded beast per second of world time, so "it never fires" and "it
+        fires and does not matter" stop being indistinguishable.
+     4. WHAT THE HERD PASS COSTS, in milliseconds a frame — because reckoning
+        every herd on the earth once a frame is an O(n²) sweep over ninety-six
+        beasts and this project measures the frame cost of everything.
+
+     It is PENDING and not a guard: nothing here is broken, and until §2.3.5 is
+     built there is nothing to bar on. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, W=window.__WORLD;
+    if(!D.herdStat||!D.stationOf) return {pending:'no station (Phase 6 §2.3.5)'};
+    const R=D.HERD_R;
+    const census=()=>{
+      const out=[], done=new Set();
+      for(const a of D.LANDLIFE){
+        if(!a.set||a.dead>0||done.has(a)) continue;
+        const mob=[];
+        for(const b of D.LANDLIFE){ if(!b.set||b.dead>0||b.kind!==a.kind) continue;
+          if(Math.hypot(b.x-a.x,b.z-a.z)<=R) mob.push(b); }
+        if(mob.length<3) continue;
+        for(const b of mob) done.add(b);
+        out.push(mob); }
+      return out; };
+    const S=W.sites();
+    const siteOf=n=>{ for(let i=0;i<S.length;i++) if(S[i]&&D.COUNTRIES[i].n===n) return S[i];
+      return null; };
+    const rows=[]; let frames=0;
+    for(const land of ['Kenya','Tanzania','Botswana','Mongolia']){
+      const s2=siteOf(land); if(!s2) continue;
+      D.state.walk.x=s2.x+700; D.state.walk.z=s2.z+700; D.state.walk.feetY=undefined;
+      D.setMode('walk');
+      const noon=D.DAYPARTS.findIndex(d=>d.k==='noon'); if(noon>=0) D.state.dayIdx=noon;
+      D.applyDayPart();
+      for(let f=0;f<50;f++){ D.updateChunks(D.state.walk.x,D.state.walk.z,600);
+        await new Promise(r=>requestAnimationFrame(r)); }
+      for(let f=0;f<90;f++) await new Promise(r=>requestAnimationFrame(r));
+      /* ---- AND HALF OF EVERY HERD IS MADE A MOTHER ----
+         the same write-probe and the same parity flip test 50 uses, so the
+         mothers' reach is read off eighty-odd animals and not off three */
+      const mobs=census();
+      if(!mobs.length){ rows.push(land+': not three of a kind together'); continue; }
+      if(D.setYoung){ let hIdx=0;
+        for(const m of mobs){ hIdx++;
+          for(let i=0;i<m.length;i++)
+            if(window.BABY&&BABY.runs(m[i].kind)) D.setYoung(m[i],(i+hIdx)%2===0); } }
+      /* the counters are zeroed HERE, so nothing of the boot or the walk to
+         this land is counted into the reading */
+      D.herdStatReset();
+      for(let f=0;f<420;f++){ await new Promise(r=>requestAnimationFrame(r)); frames++; }
+      const H=D.herdStat();
+      if(!H.reachN){ rows.push(land+': no beast stood in a herd'); continue; }
+      const secs=Math.max(0.001,H.secs);
+      /* one herded BEAST-SECOND: `herded` counts a beast in a herd once a
+         frame, so herded × (secs / frames) is how many beast-seconds of
+         herding this reading watched, and a lever's count over that is how
+         often it fires for one beast in one second. */
+      const beastSecs=Math.max(0.001,H.herded*(secs/Math.max(1,H.frames)));
+      rows.push(land+
+        ': r='+(H.rSum/Math.max(1,H.rN)).toFixed(1)+'u'+
+        ' · REACH '+(H.reach/H.reachN).toFixed(2)+' herd-radii'+
+        ' (mothers '+(H.mReachN?(H.mReach/H.mReachN).toFixed(2):'—')+
+        ' over '+H.mReachN+' samples)'+
+        ' · in a herd '+(H.herded/Math.max(1,H.herded+H.loose)*100).toFixed(0)+'% of the time'+
+        ' · levers a beast-second: roam-pick '+(H.pickRoam/beastSecs).toFixed(3)+
+        ', graze-pick '+(H.pickGraze/beastSecs).toFixed(3)+
+        ', moving at all '+(H.steps/Math.max(1,H.herded)*100).toFixed(0)+'% of frames'+
+        ' · the graze found nothing '+H.grazeFail+'×'+
+        ' · mean feed '+(H.feed/Math.max(1,H.feedN)).toFixed(2)+
+        ' · the herd pass '+(H.passMs/Math.max(1,H.frames)).toFixed(3)+' ms/frame');
+    }
+    if(!rows.length) return {pending:'no land could be reached'};
+    return {pending:'THE MECHANISM, MEASURED (§2.3.5 is open) · '+rows.join(' | ')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

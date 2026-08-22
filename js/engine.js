@@ -8824,6 +8824,116 @@ function herdWatch(a){
   }
   return {n, watcher};
 }
+/* ================= THE HERD, RECKONED ONCE FOR THE WHOLE EARTH =================
+   §2.3.5 asks for *"matriarch-led herds with juveniles held at the centre"*,
+   and it has been built and taken back out FOUR TIMES — Round 54 four
+   attempts, Round 70 four more, Round 72 three mechanisms measured twice
+   apiece. Every one of them measured WHERE THE YOUNG ENDED UP and inferred
+   the cause from it, and the audit's instruction after the last of them is
+   the reason this exists:
+
+     *What has never been measured is whether a beast ever reaches its station
+     at all. If that distance is large, the rule is never landing, and the fix
+     is about WHEN it fires. If it is small, the rule lands and the young's
+     depth still does not move, which would mean the geometry is wrong. Those
+     two are opposite repairs and three rounds could not tell them apart.*
+
+   So the station is built here WITH ITS OWN INSTRUMENT, and the instrument is
+   read before anything is judged by the outcome.
+
+   THE HERD IS RECKONED ONCE A FRAME FOR EVERYBODY, by the same greedy rule
+   acceptance test 50 censuses with — each beast counted into exactly one herd,
+   three or more of a kind within HERD_R. That matters for more than speed: a
+   mechanism that acts on one notion of "herd" and an instrument that measures
+   another cannot be compared, and that is one of the ways three rounds went
+   wrong. */
+const STN_IN=0.40, STN_OUT=1.15;   /* the mother's ring, and everybody else's */
+function herdPass(){
+  for(const a of LANDLIFE) a.herd=null;
+  const done=new Set();
+  for(const a of LANDLIFE){
+    if(!a.set||a.dead>0||done.has(a)||!AMBIENT_PREY.has(a.kind)) continue;
+    const mob=[];
+    for(const b of LANDLIFE){ if(!b.set||b.dead>0||b.kind!==a.kind) continue;
+      if(Math.hypot(b.x-a.x,b.z-a.z)<=HERD_R) mob.push(b); }
+    if(mob.length<3) continue;
+    let cx=0,cz=0; for(const b of mob){ cx+=b.x; cz+=b.z; }
+    cx/=mob.length; cz/=mob.length;
+    let rr=0; for(const b of mob) rr+=Math.hypot(b.x-cx,b.z-cz);
+    const H={n:mob.length, x:cx, z:cz, r:Math.max(1,rr/mob.length)};
+    for(const b of mob){ done.add(b); b.herd=H; }
+  }
+}
+/* ---- WHERE THIS BEAST'S HERD WOULD HAVE IT STAND ----
+   A calf is not a beast: it is `a.kids[i]`, a satellite that follows its
+   MOTHER and nothing else (js/baby-animals.js). So "juveniles held at the
+   centre" is not a rule about calves at all — it is a rule about where a
+   beast that HAS young stands, and holding the young in the middle is holding
+   the mothers in the middle. The bearing is settled at birth off the beast's
+   own tether so it does not jitter frame to frame. */
+function stationOf(a){
+  const H=a.herd; if(!H) return null;
+  const br=hash2(a.hx*0.041,a.hz*0.037)*6.283;
+  const rr=H.r*(a.kids?STN_IN:STN_OUT);
+  return {x:H.x+Math.cos(br)*rr, z:H.z+Math.sin(br)*rr};
+}
+/* ---- AND THE INSTRUMENT THAT JUDGES IT ----
+   `reach` is the one number three rounds went without: how far a beast stands
+   from the place its herd assigns it, in herd-radii. `pickRoam`, `pickGraze`
+   and `steps` count how often each candidate LEVER is even consulted for a
+   herded beast, which is what tells "the rule never fires" from "the rule
+   fires and does not matter". `grazeFail` and `feed` are the regression guard
+   for narrowing the bite search. All of it is counted always; it is a handful
+   of adds on a loop that already runs. */
+const HSTAT={secs:0, frames:0, reach:0, reachN:0, mReach:0, mReachN:0, rSum:0, rN:0,
+             pickRoam:0, pickGraze:0, pickStn:0, grazeFail:0, steps:0, herded:0, loose:0,
+             feed:0, feedN:0, passMs:0};
+function herdStatReset(){ for(const k in HSTAT) HSTAT[k]=0; }
+/* ---- AND THE TWO HALVES OF THE MECHANISM, THROWN SEPARATELY ----
+   A station is a measurement first and a mechanism second. Both halves are
+   switches so the A/B runs in one browser and neither is believed until the
+   instrument above has been read.
+     stationOn  — the bite is scored by how near it falls to the station
+     stationNear— and it is looked for inside the herd's own ground
+   The second is the one the arithmetic points at: a herd's radius is some
+   twenty-odd units and the bite search reaches a hundred and ninety, so ring
+   one alone puts a grazing beast sixty-three units off — three herd-radii —
+   every meal. Where the search STARTS cannot matter at that reach, which is
+   why Round 72's move of the centre changed nothing. */
+let STN_ON=false, STN_NARROW=false, STN_DRIFT=false;
+const GRAZE_R=190, GRAZE_R_HERD=70, STN_W=0.55;
+/* ---- AND THE THIRD, WHICH IS THE ONE THE INSTRUMENT ASKED FOR ----
+   The diagnostic above was read before any of this was believed, and it did
+   not say the geometry was wrong. It said THE RULE NEVER RUNS. Over sixty
+   world-seconds of a settled herd in Kenya — fifty-five beasts, three
+   thousand three hundred beast-seconds — the readings were:
+
+     the wander-target picker  0.0000 a beast-second   (not once, ever)
+     the search for a bite     0.0012–0.0136           (one pick per beast
+                                                        per eight minutes)
+     a herded beast moving at all  1% of frames
+
+   The first of those is not slowness, it is unreachable code, and it is worth
+   writing down plainly: **the forty-five-percent pull toward its own kind —
+   the only cohesion this world has ever had, and the lever Rounds 54 and 70
+   both built their matriarch on — cannot execute for a beast standing in
+   grass.** The chain above puts such a beast back to `feedhead` on every
+   decision, so `a.job` is never 'roam' by the time the picker is reached.
+
+   So the station is hung where a grazing beast DOES decide: at the end of a
+   mouthful, three to seven seconds apart, which is a hundred times as often as
+   the bite search. A beast standing further from its station than its herd's
+   own radius walks in before it puts its head down again. That is also what
+   the animal does — a herd drifts between mouthfuls; it does not hold ranks. */
+const STN_FAR=1.0;    /* how far off station before it is worth walking in */
+function toStation(a){
+  if(!STN_DRIFT||!a.herd) return false;
+  const st=stationOf(a); if(!st) return false;
+  if(Math.hypot(a.x-st.x,a.z-st.z)<a.herd.r*STN_FAR) return false;
+  a.tx=st.x; a.tz=st.z; a.job='station'; a.jt=3+Math.random()*2;
+  HSTAT.pickStn++; return true;
+}
+
 /* ---- WHAT IS FRIGHTENING THIS BEAST, IF ANYTHING ----
    Lifted out of the grazers' own branch, where it used to live, because THE
    WALK DOWN TO WATER needs exactly the same question asked: a zebra crossing
@@ -9039,6 +9149,10 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
   const llMin=Math.min(2400,Math.max(LL_MIN,ff*0.75));
   const llMax=Math.min(2800,Math.max(LL_R,ff*1.02));
   const llReap=Math.min(3050,Math.max(LL_REAP,ff*1.12));
+  /* THE HERDS OF THE EARTH, ONCE, BEFORE ANYBODY MOVES — so that every beast
+     in this frame reads the same herd, and so does the instrument. */
+  { const t0=performance.now(); herdPass(); HSTAT.passMs+=performance.now()-t0;
+    HSTAT.secs+=dt; HSTAT.frames++; }
   for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>llReap){
       /* an empty slot cools off between tries — over open water every slot
          was running ten land probes EVERY frame, for nothing */
@@ -9115,6 +9229,14 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
        gazelle, and a cheetah's charge is nothing like a lion's */
     const walkSpd=window.BEHAVIOR?BEHAVIOR.walkOf(a.kind,5):5;
     const runSpd=window.BEHAVIOR?BEHAVIOR.runOf(a.kind,13):13;
+    /* ---- THE ONE READING THREE ROUNDS WENT WITHOUT ----
+       how far this beast stands from the place its herd assigns it */
+    if(a.herd){ HSTAT.herded++; HSTAT.rSum+=a.herd.r; HSTAT.rN++;
+      const st=stationOf(a);
+      if(st){ const d=Math.hypot(a.x-st.x,a.z-st.z)/a.herd.r;
+        HSTAT.reach+=d; HSTAT.reachN++;
+        if(a.kids){ HSTAT.mReach+=d; HSTAT.mReachN++; } } }
+    else if(AMBIENT_PREY.has(a.kind)) HSTAT.loose++;   /* only what CAN herd */
     let spd=walkSpd; a.jt=(a.jt||0)-dt; a.cool=(a.cool||0)-dt;
     const role=a.role||'graze';
     /* ---- WHETHER THIS BEAST IS AWAKE AT ALL ----
@@ -9414,23 +9536,37 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
            bare rock, the sand — there is nothing to walk to and nothing to
            look for. The reindeer paws the drift for the moss under it and the
            goat works the scree, as they did before, and as they must. */
+        /* it drifts in to its place in the herd before the next mouthful */
+        else if(toStation(a)){ /* walking in */ }
         else if(a.bare){ a.job='feedhead'; a.jt=3+Math.random()*4; }
         else if(a.feed>=GRASS.FEED_MIN){ a.job='feedhead'; a.jt=3+Math.random()*4; }
         else {
           /* nothing to eat here — go and find some */
-          const gz=GRASS.findGraze(a.x,a.z,190,grassProbe);
+          if(a.herd) HSTAT.pickGraze++;
+          let gRad=GRAZE_R, pull=null;
+          if(a.herd&&STN_NARROW) gRad=GRAZE_R_HERD;
+          if(a.herd&&STN_ON){ const st=stationOf(a);
+            if(st) pull={x:st.x, z:st.z, w:STN_W}; }
+          const gz=GRASS.findGraze(a.x,a.z,gRad,grassProbe,pull);
           if(gz){ a.tx=gz.x; a.tz=gz.z; a.job='seek'; a.jt=4+Math.random()*3; spd=walkSpd*1.4; }
-          else { a.job='roam'; a.jt=2.5+Math.random()*3; }
+          else { if(a.herd) HSTAT.grazeFail++; a.job='roam'; a.jt=2.5+Math.random()*3; }
         }
       }
-      /* and it puts its head down the moment it is standing in a bite */
+      /* and it puts its head down the moment it is standing in a bite —
+         but NOT while it is walking in to its station, or a beast would stop
+         at the first blade it passed and never arrive anywhere */
       if(a.job==='seek'&&a.feed>=GRASS.FEED_MIN){ a.job='feedhead'; a.jt=3+Math.random()*4; }
-      if(a.job==='feedhead'||a.job==='act') spd=0; else if(a.job==='seek') spd=walkSpd*1.4;
+      if(a.job==='station'&&Math.hypot(a.x-a.tx,a.z-a.tz)<3){
+        a.job='feedhead'; a.jt=3+Math.random()*4; }
+      if(a.job==='feedhead'||a.job==='act') spd=0;
+      else if(a.job==='seek') spd=walkSpd*1.4;
+      else if(a.job==='station') spd=walkSpd;
     }
     }   /* end of the waking day's work */
 
     /* a new place to make for, when the last is reached or the work is done */
     if(a.jt<=0&&(a.job==='roam'||a.job==='flee')){
+      if(a.herd) HSTAT.pickRoam++;
       a.jt=1.8+Math.random()*3; a.job='roam';
       const aa=Math.random()*6.28, rr=Math.random()*14*B;
       let nx=a.hx+Math.cos(aa)*rr, nz=a.hz+Math.sin(aa)*rr;
@@ -9442,6 +9578,7 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
     }
 
     const dx=a.tx-a.x, dz=a.tz-a.z, dd=Math.hypot(dx,dz)||1, moving=spd>0&&dd>1.5;
+    if(a.herd){ HSTAT.feed+=(a.feed||0); HSTAT.feedN++; if(moving) HSTAT.steps++; }
     if(moving){ const nx=a.x+dx/dd*spd*dt, nz=a.z+dz/dd*spd*dt, c=landAtWorld(nx,nz);
       /* the step a beast can take is now measured in blocks, not units — on a
          mountain flank the old flat limit stopped everything dead */
@@ -15764,6 +15901,14 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   playerXZ,localHourAt,setLocalHour,clockFace,dayPartName,DAYPARTS,applyDayPart,
   /* the herd and its watch, for the suite */
   LANDLIFE,herdWatch,HERD_R,
+  /* §2.3.5's station and the instrument that judges it — herdOf hands back
+     the herd this beast was counted into on the last frame, stationOf where
+     that herd would have it stand, and herdStat the running totals. */
+  herdOf:a=>a&&a.herd||null, stationOf, herdStat:()=>Object.assign({},HSTAT),
+  herdStatReset, STN_IN, STN_OUT,
+  stationOn:v=>{ if(v!==undefined) STN_ON=!!v; return STN_ON; },
+  stationNear:v=>{ if(v!==undefined) STN_NARROW=!!v; return STN_NARROW; },
+  stationDrift:v=>{ if(v!==undefined) STN_DRIFT=!!v; return STN_DRIFT; },
   /* ---- AND ONE PROBE THAT WRITES, WHICH IS SAID OUT LOUD ----
      Everything else on this surface only asks. `setYoung` puts a calf at a
      beast's foot or takes it away, and it is here for ONE reason: §2.3.5's
