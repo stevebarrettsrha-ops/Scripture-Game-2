@@ -6536,11 +6536,86 @@ loose self**, so that a part which has lost the reach of what hung on it is caug
 Test 51 still passes unchanged: 170 kinds, 1,002 named moving parts, every one still its own
 and still turning.
 
-### What is left of §2.3.4
+### The other fourteen, and §2.3.4 closed
 
-Fourteen kinds: elephant, camel, donkey, bear, lion, horse, crocodile, lizard, pig, chicken,
-hare, dog, ox, blackbear. The mechanism is proved and the cost is known; what remains is the
-building.
+| beast | parts before / meshes | parts now / meshes |
+|---|---|---|
+| elephant  | 18 / 12 | 82 / **13** |
+| camel     | 17 / 10 | 70 / **12** |
+| donkey    | 17 / 10 | 54 / **14** |
+| bear      | 18 / 10 | 86 / **14** |
+| blackbear | 18 / 10 | 79 / **14** |
+| lion      | 19 / 10 | 98 / **12** |
+| horse     | 20 / 10 | 76 / **14** |
+| ox        | 18 / 10 | 65 / **14** |
+| crocodile | 21 / 7  | 126 / **12** |
+| lizard    | 13 / 10 | 77 / **12** |
+| pig       | 18 / 10 | 67 / **14** |
+| chicken   | 18 / 10 | 76 / **8** |
+| hare      | 16 / 9  | 46 / **14** |
+| dog       | 17 / 10 | 56 / **14** |
+
+Nineteen beasts across the three batches: **328 parts and 190 meshes before, 1,289 parts and
+243 meshes after.** Four times the grain for a quarter more draw calls, and the quarter is the
+heads, jaws and ears that now move. Across the whole earth: **177 kinds, 3,976 parts, 1,322
+meshes.**
+
+`buildOldAnimal` is down from twenty branches to two — the penguin and the ostrich, which the
+size table measures but which `world/fauna.js` places by other machinery. Its `fourLegs` helper
+is gone with the last quadruped that used it.
+
+**What each of them got, and why that and not something else.** The rule followed throughout was
+to spend the grain on the SILHOUETTE and on what tells this beast from the one standing next to
+it — not on detail inside an outline, where a box reads as a decal painted on a crate:
+
+- **lion** — the mane grown as a ring of fourteen locks radiating from the head, over an inner
+  course of fourteen more so it is a mass and not a gear; the black lip line, whisker spots and
+  square muzzle; the shoulder blades; the belly fold; the black tail tuft.
+- **horse** — the mane that FALLS, ten locks over one side of the crest, and the tail that falls
+  in eight strands, which is the whole difference from the donkey's standing brush and tufted
+  dock; the arched neck in two lengths; the blaze, socks and fetlock tufts.
+- **ox** — the yoke boss over neck and withers that a working ox carries and a milk cow does not;
+  horns sweeping wide and FORWARD where the cow's go out and up; four folds of dewlap; the curled
+  poll between the horns; no udder.
+- **crocodile** — four rows of keeled scutes down the back closing into the double and then
+  single crest of the tail; the fourth tooth standing outside the closed mouth, which is what
+  makes it a crocodile and not an alligator; eyes and nostrils on their own turrets, so a
+  submerged animal is two bumps and a nose; sprawled legs and webbed feet.
+- **lizard** — the crest from neck to tail-tip; the open ear-hole behind the eye; the throat fan;
+  five spread toes on every splayed foot; a tail longer than the rest of it.
+- **pig** — the flat disc of the snout with two round nostrils in it; ears that fall FORWARD over
+  the eyes; the bristle ridge; the trotter cloven with two dew-claws behind; and the tail built
+  as a real spiral of five turning lengths, which is the thing everybody draws and nobody builds.
+- **chicken** — a comb of five points rather than a plate; two wattles hanging separately beside
+  an ear-lobe; the hackle cape over the shoulders; three arched SICKLES over a fan of short
+  feathers; scaled shank, three toes forward and one back, and a spur.
+- **hare** — ears a third of the animal's length, black-tipped, in two lengths so the tip leans
+  back; a hind leg twice the fore, built apart from `T.legs4` for that reason; the arched back
+  highest over the haunch; the white scut under a black top.
+- **dog** — the head carried ABOVE the back where a wolf's is level; the muzzle stopped short
+  under the brow; the tail up and curling over in four lengths, which no wolf's does; ears folded
+  at the tip; the white blaze, chest and paws of a village dog.
+
+**Two lessons, both learnt from photographs.**
+
+*A part that does not break the outline is a decal.* The goat's first shoulder blade, a dark
+rectangle laid on the middle of the flank, read as a patch of paint on a crate; twelve locks hung
+past the lower edge of the barrel read as hair. The cow's white patches, drawn as rectangles on
+the middle of a side, read as stickers; drawn WIDER THAN THE BEAST so each comes over the top of
+the back and down both flanks in one piece, they read as markings. This is the whole of what the
+finer grain is for.
+
+*A chained length leans FORWARD on a positive rotation about x and BACKWARD on a negative one,*
+and getting that backwards costs an afternoon. The goat's neck leaned back over its own shoulder
+and left the head floating in front of it with daylight between; the chicken's sickles lay out
+behind the bird like the head of a broom; the crocodile's tail grew forward through its own
+throat. The rule is written into `creatures/README.md` now, with `T.limb` and `T.on` beside it.
+
+## 4bz. §2.3.4 — done, and what it cost ✅
+
+Every one of the twenty most-seen beasts is a creature file at thirty to sixty parts and beyond,
+where the brief asked, and none of them costs what the naive reading would have cost. The two
+new tools that made it possible — `T.on` and `T.limb` — are eleven lines of engine between them.
 
 ## 5. Further recommendations (future work)
 

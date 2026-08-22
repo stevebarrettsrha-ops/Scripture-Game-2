@@ -6275,28 +6275,30 @@ function makePerson(seed, role, child, female){
   return g;
 }
 /* ---- EVERY BEAST OF THE FIELD, AND WHERE IT IS BUILT ----
-   The cattle, flocks and beasts of the old world are built here, in this one
-   long hand. Everything added since has its OWN FILE in creatures/ with
-   realm:'land' — a file is asked for first, so a new beast is a new file and
-   nothing in the engine need be touched to have it walk the earth. */
+   In a file, in creatures/, with realm:'land'. A file is asked for first, so
+   a new beast is a new file and nothing in the engine need be touched to have
+   it walk the earth.
+
+   `buildOldAnimal` below was once the whole menagerie of the settled world —
+   twenty kinds of cattle, flock, horse, hound and wild beast written out by
+   hand in one two-hundred-line chain, at fifteen to nineteen boxes apiece.
+   §2.3.4 asked for thirty to sixty parts on a large mammal, and every one of
+   the twenty has its own file now. What is left in the hand is the PENGUIN
+   and the OSTRICH, which the size table measures but `world/fauna.js` places
+   by other machinery; they will follow. */
 function makeAnimal(kind){
   const spec=BEAST_BY_NAME[kind];
   if(spec&&spec.realm==='land') return makeBeast(kind);
   /* ---- AND THE HAND-BUILT BEASTS ARE COATED TOO, WHICH THEY WERE NOT ----
      `coatBeast` was called from `makeBeast` and from nowhere else, and
      `makeBeast` is only reached by a kind that HAS A CREATURE FILE. Twenty
-     kinds have none — sheep, cow, pig, chicken, hare, lizard, goat, camel,
+     kinds had none — sheep, cow, pig, chicken, hare, lizard, goat, camel,
      horse, donkey, ox, wolf, dog, lion, deer, elephant, crocodile, bear and
      blackbear among them — so every one of them came out of Round 51's coat
      FLAT, and acceptance test 32 walked `BEAST_BY_NAME` and could not see a
-     single one of them to say so.
-     They are not obscure. Ranked by how many of the hundred and seventy-six
-     lands name each, ELEVEN OF THE TWENTY MOST-SEEN BEASTS ON EARTH were in
-     that list, the goat first of all at ninety-eight countries. Measured:
-     goat, cow, sheep, deer, wolf, elephant, camel and bear all read 0 of 17
-     meshes graded and a tint spread of NOUGHT, while the gazelle, the
-     leopard, the hippo and the fox read 0.48.
-     One call, and the coat reaches every beast the world can set down. */
+     single one of them to say so. All twenty have files now (§2.3.4), but the
+     call stays where it is: it is what makes the door SAFE, so that the next
+     beast written by hand here is coated the day it is written. */
   const inner=buildOldAnimal(kind);
   coatBeast(inner,null);
   mergeBeast(inner);            /* and the still parts are welded into one */
@@ -6318,116 +6320,13 @@ function sizeToTrue(kind,inner){
 }
 function buildOldAnimal(kind){
   const g=new THREE.Group(); const legs=[]; let tailRef=null;
-  function fourLegs(w,d,lh,col){ for(const sx of [1,-1]) for(const sz of [1,-1]){
-    const L=lbox(0.9,lh*0.55,0.9,col); L.geometry.translate(0,-lh*0.275,0);   // thigh, pivot at the hip
-    L.position.set(sx*w,lh,sz*d);
-    const S=lbox(0.8,lh*0.5,0.8,col); S.geometry.translate(0,-lh*0.25,0);     // shin, hung from the knee
-    S.position.set(0,-lh*0.53,0); L.add(S); L.userData.knee=S;
-    L.userData.ph=(sx*sz>0)?0:Math.PI; L.userData.foot=(sx>0?0:1)+(sz>0?0:2);
-    g.add(L); legs.push(L); } }
   /* ---- EVERY BEAST HAS A FACE ----
      Two dark eyes set on the front corners of the head — the one detail that
      turns a box into a creature looking at you. */
   function eyes(hx,hy,hz,sz2,col){ for(const sd of [1,-1]){
     const e=lbox(sz2||0.3,sz2||0.3,0.2,col||0x14100c);
     e.position.set(sd*hx,hy,hz); g.add(e); } }
-  if(kind==='pig'){
-    const body=lbox(3.2,2.4,4.6,0xefa2a2); body.position.y=2.9; g.add(body);
-    const head=lbox(2,2,1.4,0xefa2a2); head.position.set(0,3.3,2.9); g.add(head);
-    const snout=lbox(1.1,0.8,0.4,0xe58a8a); snout.position.set(0,3.1,3.7); g.add(snout);
-    eyes(0.62,3.8,3.62,0.28);
-    for(const s of [1,-1]){ const nos=lbox(0.2,0.3,0.14,0xc87878); nos.position.set(s*0.24,3.1,3.94); g.add(nos);
-      const ear=lbox(0.55,0.55,0.25,0xdf9494); ear.position.set(s*0.85,4.35,2.7); ear.rotation.z=s*0.3; g.add(ear); }
-    tailRef=lbox(0.3,0.3,0.7,0xe58a8a); tailRef.position.set(0,3.4,-2.5); tailRef.rotation.x=-0.7; g.add(tailRef);
-    fourLegs(1.05,1.6,1.6,0xdf9494);
-  } else if(kind==='chicken'){
-    const body=lbox(1.7,1.7,2.3,0xeeeeea); body.position.y=1.9; g.add(body);
-    const head=lbox(1,1.4,1,0xf2f2ee); head.position.set(0,3.3,1.1); g.add(head);
-    const beak=lbox(0.7,0.4,0.5,0xdf9c2a); beak.position.set(0,3.2,1.75); g.add(beak);
-    const wat=lbox(0.4,0.5,0.3,0xc23a2a); wat.position.set(0,2.7,1.6); g.add(wat);
-    const comb=lbox(0.3,0.55,0.8,0xc23a2a); comb.position.set(0,4.2,1.0); g.add(comb);
-    eyes(0.52,3.6,1.52,0.22);
-    tailRef=lbox(0.9,1.1,0.5,0xdcdcd6); tailRef.position.set(0,2.6,-1.3); tailRef.rotation.x=0.5; g.add(tailRef);
-    for(const s of [1,-1]){ const w2=lbox(0.3,1.2,1.9,0xdcdcd6); w2.position.set(s*1,2.1,0.1); g.add(w2); }
-    fourLegs(0.45,0.4,0.8,0xdf9c2a);
-  } else if(kind==='hare'){       /* a creeping thing of the field */
-    const body=lbox(1.1,1.1,1.8,0xb8a184); body.position.y=1.2; g.add(body);
-    const head=lbox(0.9,0.9,0.9,0xc8b494); head.position.set(0,1.7,1.1); g.add(head);
-    eyes(0.47,1.85,1.4,0.22);
-    const nose=lbox(0.24,0.2,0.14,0x8a7060); nose.position.set(0,1.6,1.6); g.add(nose);
-    for(const s of [1,-1]){ const ear=lbox(0.3,1.3,0.3,0xc8b494); ear.position.set(s*0.3,2.7,0.9); g.add(ear); }
-    const tail=lbox(0.5,0.5,0.4,0xefe8dc); tail.position.set(0,1.3,-1); g.add(tail);
-    fourLegs(0.4,0.6,0.7,0xa08868);
-  } else if(kind==='lizard'){     /* a creeping thing of the rocks */
-    const body=lbox(0.7,0.5,2.2,0x6f7a44); body.position.y=0.6; g.add(body);
-    const head=lbox(0.8,0.6,0.9,0x7a854c); head.position.set(0,0.7,1.4); g.add(head);
-    eyes(0.42,0.85,1.6,0.18,0xd9c93f);
-    const tail=lbox(0.4,0.35,1.8,0x636c3c); tail.position.set(0,0.55,-1.9); g.add(tail); tailRef=tail;
-    fourLegs(0.55,0.7,0.5,0x5c6438);
-  } else if(kind==='horse'){
-    const col=0x6a4a2e; const body=lbox(2.2,2.6,5.4,col); body.position.y=4.2; g.add(body);
-    const neck=lbox(1.3,2.6,1.3,col); neck.position.set(0,5.6,2.4); neck.rotation.x=-0.5; g.add(neck);
-    const head=lbox(1.2,1.5,2.4,col); head.position.set(0,6.6,3.4); g.add(head);
-    eyes(0.5,7.0,4.2,0.28);
-    for(const s of [1,-1]){ const ear=lbox(0.3,0.7,0.3,col); ear.position.set(s*0.4,7.6,2.9); g.add(ear);
-      const nos=lbox(0.22,0.22,0.16,0x3a2a1a); nos.position.set(s*0.3,6.4,4.62); g.add(nos); }
-    const blaze=lbox(0.42,0.9,0.16,0xe8e0d0); blaze.position.set(0,6.9,4.62); g.add(blaze);
-    const mane=lbox(0.4,2.4,1.3,0x2e2018); mane.position.set(0,6.0,2.0); mane.rotation.x=-0.5; g.add(mane);
-    const tail=lbox(0.5,2.4,0.5,0x2e2018); tail.position.set(0,4.4,-2.9); tail.rotation.x=0.5; g.add(tail); tailRef=tail;
-    fourLegs(0.9,2.0,3.2,0x4a3320);
-  } else if(kind==='ox'){
-    const body=lbox(3.4,3.0,6.0,0x5a4436); body.position.y=4.2; g.add(body);
-    const head=lbox(2.0,2.0,1.8,0x4a3628); head.position.set(0,4.9,3.6); g.add(head);
-    eyes(0.62,5.3,4.52,0.32);
-    const muz3=lbox(1.3,0.8,0.4,0xc8bcae); muz3.position.set(0,4.4,4.6); g.add(muz3);
-    for(const s of[1,-1]){ const horn=lbox(0.35,0.35,1.4,0xe8e0d0); horn.position.set(s*1.2,5.6,3.6); horn.rotation.z=s*0.5; g.add(horn);
-      const ear=lbox(0.55,0.4,0.3,0x4a3628); ear.position.set(s*1.15,5.15,3.4); g.add(ear); }
-    tailRef=lbox(0.4,2.2,0.4,0x3a2a1e); tailRef.geometry.translate(0,-1.1,0); tailRef.position.set(0,5.3,-3.1); g.add(tailRef);
-    fourLegs(1.3,2.1,2.7,0x4a3628);
-  } else if(kind==='dog'){
-    const col=0xb98a52; const body=lbox(1.2,1.2,2.8,col); body.position.y=1.9; g.add(body);
-    const head=lbox(1.1,1.1,1.2,col); head.position.set(0,2.3,1.7); g.add(head);
-    const snout=lbox(0.6,0.5,0.7,0x8a6238); snout.position.set(0,2.1,2.4); g.add(snout);
-    eyes(0.34,2.6,2.32,0.2);
-    const nose=lbox(0.26,0.2,0.14,0x14100c); nose.position.set(0,2.2,2.8); g.add(nose);
-    for(const s of[1,-1]){ const ear=lbox(0.4,0.6,0.3,0x8a6238); ear.position.set(s*0.5,3.0,1.6); g.add(ear); }
-    const tail=lbox(0.4,0.4,1.4,col); tail.position.set(0,2.4,-1.8); tail.rotation.x=0.5; g.add(tail); tailRef=tail;
-    fourLegs(0.45,0.9,1.6,0x9a723e);
-  } else if(kind==='lion'){
-    const col=0xcaa25a; const body=lbox(2.0,2.0,4.4,col); body.position.y=2.8; g.add(body);
-    const mane=lbox(2.4,2.4,1.2,0x8a5a2a); mane.position.set(0,3.4,2.2); g.add(mane);
-    const head=lbox(1.6,1.6,1.6,col); head.position.set(0,3.4,2.9); g.add(head);
-    const snout=lbox(0.9,0.7,0.7,0xd8b878); snout.position.set(0,3.1,3.7); g.add(snout);
-    eyes(0.46,3.75,3.72,0.24,0xd9b83f);
-    const nose2=lbox(0.34,0.24,0.16,0x2a1c12); nose2.position.set(0,3.25,4.08); g.add(nose2);
-    for(const s of[1,-1]){ const ear=lbox(0.4,0.4,0.3,0x8a5a2a); ear.position.set(s*0.75,4.25,2.5); g.add(ear); }
-    const tail=lbox(0.4,0.4,2.2,col); tail.position.set(0,3.0,-2.6); tail.rotation.x=0.3; g.add(tail); tailRef=tail;
-    const tuft=lbox(0.6,0.6,0.6,0x8a5a2a); tuft.position.set(0,2.4,-3.6); g.add(tuft);
-    fourLegs(0.75,1.5,2.4,0xb08a48);
-  }
-  else if(kind==='crocodile'){
-    /* long and low, all jaw and tail, with a ridge of scutes down the back —
-       it lies in the shallows of the great rivers looking like a log */
-    const dk=0x455631, lt=0x63754a, bl=0xa9ad7c;
-    const body=lbox(2.4,1.6,6.0,dk); body.position.y=1.5; g.add(body);
-    const und=lbox(2.0,0.5,5.4,bl); und.position.y=0.75; g.add(und);
-    for(let i=0;i<6;i++){ const s=lbox(0.5,0.5,0.55,lt);
-      s.position.set((i%2?0.55:-0.55),2.45,-2.4+i*1.0); g.add(s); }     /* the scutes */
-    const neck=lbox(1.9,1.3,1.3,dk); neck.position.set(0,1.55,3.6); g.add(neck);
-    const jawT=lbox(1.5,0.7,3.4,dk);  jawT.position.set(0,1.8,5.7); g.add(jawT);
-    const jawB=lbox(1.4,0.55,3.2,bl); jawB.position.set(0,1.15,5.6); g.add(jawB);
-    for(const s of [1,-1]){ const e=lbox(0.45,0.45,0.45,0xd9c93f); e.position.set(s*0.62,2.45,4.1); g.add(e);
-      const p=lbox(0.2,0.2,0.2,0x101010); p.position.set(s*0.62,2.62,4.1); g.add(p); }
-    const t1=lbox(1.8,1.2,2.6,dk); t1.position.set(0,1.5,-4.2); g.add(t1);
-    const t2=lbox(1.0,0.9,2.8,lt); t2.position.set(0,1.5,-6.7); g.add(t2);
-    for(const sx of [1,-1]) for(const sz of [2.0,-2.2]){
-      const L=lbox(0.8,1.0,0.8,lt); L.geometry.translate(0,-0.5,0);
-      L.position.set(sx*1.55,1.05,sz); L.userData.ph=(sx*sz>0)?0:Math.PI;
-      L.userData.foot=(sx>0?0:1)+(sz>0?0:2); g.add(L); legs.push(L); }
-    g.userData={legs,jaw:jawB,tail:t2};
-    return g;
-  }
-  else if(kind==='penguin'){
+  if(kind==='penguin'){
     /* the one beast of the ice — upright, white-breasted, flippered */
     const body=lbox(1.5,2.2,1.3,0x1b1f26); body.position.y=1.9; g.add(body);
     const belly=lbox(1.1,1.8,0.35,0xf1f1ec); belly.position.set(0,1.9,0.72); g.add(belly);
