@@ -6557,8 +6557,10 @@ and still turning.
 
 Nineteen beasts across the three batches: **328 parts and 190 meshes before, 1,289 parts and
 243 meshes after.** Four times the grain for a quarter more draw calls, and the quarter is the
-heads, jaws and ears that now move. Across the whole earth: **177 kinds, 3,976 parts, 1,322
-meshes.**
+heads, jaws and ears that now move. Across the whole earth, as acceptance test 51 counts it:
+**170 kinds, 3,983 parts, 1,307 meshes — three parts to a mesh, and 67% fewer meshes than the
+parts they are built from.** (A sweep over `js/size.js`'s own table reaches 177 kinds and reads
+3,976 → 1,322; the two lists differ by which names each holds, not by what either measured.)
 
 `buildOldAnimal` is down from twenty branches to two — the penguin and the ostrich, which the
 size table measures but which `world/fauna.js` places by other machinery. Its `fourLegs` helper
@@ -6616,6 +6618,31 @@ throat. The rule is written into `creatures/README.md` now, with `T.limb` and `T
 Every one of the twenty most-seen beasts is a creature file at thirty to sixty parts and beyond,
 where the brief asked, and none of them costs what the naive reading would have cost. The two
 new tools that made it possible — `T.on` and `T.limb` — are eleven lines of engine between them.
+
+### The suite, whole
+
+**49 pass · 0 fail · 3 pending.** The three pendings are all of them pre-existing and none is a
+regression:
+
+- **12** — the chunk-build ceiling. This box runs the loop in 62.7 ms against the 36 ms of the
+  box that set the baseline, 1.74× slower, and the test says so itself and refuses to judge.
+- **43** — `FLORA.boleBlocks` is off, so the boles are still geometry and cannot be struck. A
+  switch, not a fault.
+- **50** — THE HERD, MEASURED, which reports numbers and guards nothing by design while §2.3.5
+  is open.
+
+Test **32** now reads the coat of **169 creature files and one kind with none** — it was fifteen
+without a file when this round began and twenty when Round 74 found the hole. Test **36** counts
+**436 files and 169/169 beasts**, up from 155. Tests **51** and **52** are quoted above.
+
+### One thing worth writing down, and NOT claiming
+
+Test 50 read the young at **1.69 herd-radii from the middle against 93 others at 2.66** on this
+run. Rounds 70 and 72 could not move that number past the run-to-run spread across eight
+readings, and nothing in this round was aimed at it. One reading is not a result — the whole
+lesson of Rounds 70–73 is that this instrument disagrees with itself — but it is worth the next
+round's attention, because if the finer grain has changed where beasts stand it has done so by
+accident and ought to be understood.
 
 ## 5. Further recommendations (future work)
 
