@@ -5654,6 +5654,21 @@ const BEAST_KIT={
      from the shoulder and not from the hoof), and to be enrolled on
      userData.legs, which is what the engine walks. x/z are how far out from
      the middle they stand, h how long they are, t how thick. */
+  /* ---- A PART HUNG ON ANOTHER PART ----
+     Everything a beast wears on its head — muzzle, nostrils, eyes, ears,
+     horns — belongs to the HEAD and not to the beast, because the engine
+     turns the head when a beast grazes or grooms and a face left behind on
+     the body is a face that comes off. It costs nothing: a part that does not
+     move against the part it hangs from is welded into it. */
+  on:function(parent,m,x,y,z){ m.position.set(x||0,y||0,z||0); parent.add(m); return m; },
+  /* ---- A LENGTH THAT JOINS ON THE END OF THE LAST ----
+     A horn that steps in three straight boxes is a spike in three pieces; a
+     horn whose lengths are each hung on the tip of the one before, and each
+     leaned a little further over, is a horn. The origin is the BASE of the
+     length, so `y` is simply how long its parent was. */
+  limb:function(w,h,d,col,y,rx,rz){ const m=lbox(w,h,d,col);
+    m.geometry.translate(0,h/2,0); m.position.y=y||0;
+    if(rx) m.rotation.x=rx; if(rz) m.rotation.z=rz; m.userData.len=h; return m; },
   legs4:function(g,x,z,h,col,t){ t=t||0.9; const out=[];
     /* ---- AND EVERY LEG HAS A KNEE NOW ----
        A leg was one stiff box swung from the hip, so every beast on the
@@ -5906,38 +5921,77 @@ function beastMoving(inner){
   inner.traverse(o=>{ if(keep.has(o)) walk(o.userData); });
   return keep;
 }
-function mergeBeast(inner){
-  if(!MERGE_ON) return inner;
-  inner.updateWorldMatrix(false,true);
-  const keep=beastMoving(inner);
-  /* gather the still parts by what they are drawn with */
-  const lots=new Map();
-  inner.traverse(o=>{
-    if(!o.isMesh||!o.geometry||keep.has(o)) return;
-    const m=o.material;
-    if(!m||Array.isArray(m)) return;          /* a six-faced box keeps itself */
-    const g=o.geometry, a=g.attributes;
-    if(!a||!a.position||!a.normal) return;
-    if(!a.color) return;                      /* uncoated — leave it be */
+/* ---- AND THE PIVOTS THEMSELVES ----
+   `beastMoving` claims a moving part AND ITS WHOLE SUBTREE, which is right:
+   a hoof hung off a shin must not be welded to the ground the shin swings
+   over. But it is not the whole truth either. The hoof does not move against
+   the SHIN. Nothing in the engine ever reaches for it. It is as still, in the
+   shin's own space, as the barrel is in the beast's.
+
+   So the pivots are counted apart from their subtrees: the pivots are the
+   parts the engine has a hand on BY NAME, and everything else is welded into
+   the nearest pivot above it. That is the difference between a beast of forty
+   parts costing twelve draw calls and costing twenty-one, and it is the whole
+   reason §2.3.4's finer grain can be afforded — the grain is nearly all
+   detail hung off something that already moves. */
+function beastPivots(inner){
+  const piv=new Set(), seen=new Set();
+  const walk=ud=>{ if(!ud||seen.has(ud)) return; seen.add(ud);
+    for(const k in ud){ const v=ud[k];
+      if(!v) continue;
+      if(v.isObject3D){ piv.add(v); walk(v.userData); }
+      else if(Array.isArray(v)) for(const e of v) if(e&&e.isObject3D){ piv.add(e); walk(e.userData); } } };
+  walk(inner.userData);
+  /* a pivot reached only by being parented under another (a shin's hoof is
+     not a pivot; a shin is) — sweep until the set stops growing */
+  for(let pass=0,n=-1; piv.size!==n && pass<8; pass++){
+    n=piv.size; inner.traverse(o=>{ if(piv.has(o)) walk(o.userData); }); }
+  return piv;
+}
+const _mgM4=new THREE.Matrix4();
+/* weld the still parts of ONE scope into the fewest meshes their materials
+   allow, in that scope's own space. If the scope is itself a mesh it joins
+   its own gathering — the object survives, and only its geometry is
+   exchanged, so every `userData` handle on it still points at the same
+   thing and the engine never knows. */
+function weldScope(root,parts){
+  if(!parts.length) return 0;
+  root.updateWorldMatrix(true,false);
+  _mgM4.copy(root.matrixWorld).invert();
+  const usable=o=>{
+    const m=o.material; if(!m||Array.isArray(m)) return null;   /* a six-faced box keeps itself */
+    const g=o.geometry, a=g&&g.attributes;
+    if(!a||!a.position||!a.normal) return null;
+    if(!a.color) return null;                  /* uncoated — leave it be */
     const map=m.map||null;
-    if(map&&!a.uv) return;                    /* textured and no uv: cannot weld */
-    const key=(map?map.uuid:'flat')+'|'+(m.transparent?'t':'o')+'|'+(m.side||0);
-    let L=lots.get(key);
-    if(!L){ L={map, proto:m, mesh:[], n:0}; lots.set(key,L); }
-    L.mesh.push(o); L.n+=a.position.count;
-  });
+    if(map&&!a.uv) return null;                /* textured and no uv: cannot weld */
+    return {map, key:(map?map.uuid:'flat')+'|'+(m.transparent?'t':'o')+'|'+(m.side||0)};
+  };
+  const lots=new Map();
+  const enrol=(o,own)=>{
+    const u=usable(o); if(!u) return;
+    let L=lots.get(u.key);
+    if(!L){ L={map:u.map, proto:o.material, mesh:[], n:0, own:null}; lots.set(u.key,L); }
+    if(own) L.own=o; else L.mesh.push(o);
+    L.n+=o.geometry.attributes.position.count;
+  };
+  for(const o of parts) enrol(o,false);
+  if(root.isMesh&&root.geometry) enrol(root,true);
+  let saved=0;
   for(const L of lots.values()){
-    if(L.mesh.length<2) continue;             /* nothing gained welding one */
+    const all=L.own?L.mesh.concat([L.own]):L.mesh;
+    if(all.length<2) continue;                 /* nothing gained welding one */
     const pos=new Float32Array(L.n*3), nor=new Float32Array(L.n*3), col=new Float32Array(L.n*3);
     const uv=L.map?new Float32Array(L.n*2):null;
     const idx=[]; let at=0;
-    for(const o of L.mesh){
+    for(const o of all){
       const g=o.geometry, a=g.attributes, n=a.position.count;
-      _mgM3.getNormalMatrix(o.matrixWorld);
+      const M=_mgM4.clone().multiply(o.matrixWorld);
+      _mgM3.getNormalMatrix(M);
       const c=o.material.color;
       const cr=c?c.r:1, cg=c?c.g:1, cb=c?c.b:1;
       for(let i=0;i<n;i++){
-        _mgV.fromBufferAttribute(a.position,i).applyMatrix4(o.matrixWorld);
+        _mgV.fromBufferAttribute(a.position,i).applyMatrix4(M);
         pos[(at+i)*3]=_mgV.x; pos[(at+i)*3+1]=_mgV.y; pos[(at+i)*3+2]=_mgV.z;
         _mgN.fromBufferAttribute(a.normal,i).applyMatrix3(_mgM3).normalize();
         nor[(at+i)*3]=_mgN.x; nor[(at+i)*3+1]=_mgN.y; nor[(at+i)*3+2]=_mgN.z;
@@ -5969,8 +6023,32 @@ function mergeBeast(inner){
       if(o.geometry&&o.geometry.dispose) o.geometry.dispose();
       if(o.material&&o.material.dispose) o.material.dispose();
     }
-    inner.add(new THREE.Mesh(bg,mat));
+    saved+=L.mesh.length;
+    if(L.own){                                 /* the pivot keeps its identity */
+      if(L.own.geometry&&L.own.geometry.dispose) L.own.geometry.dispose();
+      if(L.own.material&&L.own.material.dispose) L.own.material.dispose();
+      L.own.geometry=bg; L.own.material=mat;
+    } else { root.add(new THREE.Mesh(bg,mat)); saved-=1; }
   }
+  return saved;
+}
+function mergeBeast(inner){
+  if(!MERGE_ON) return inner;
+  inner.updateWorldMatrix(false,true);
+  const piv=beastPivots(inner);
+  /* every mesh belongs to the nearest MOVING part above it, or to the beast
+     itself where there is none. A hoof goes to its shin; a horn to the head
+     it is grown on; a barrel to the beast. */
+  const scopeOf=o=>{ let p=o.parent; while(p){ if(piv.has(p)) return p; p=p.parent; } return inner; };
+  const scopes=new Map(); scopes.set(inner,[]);
+  inner.traverse(o=>{
+    if(!o.isMesh||!o.geometry||piv.has(o)) return;   /* a pivot draws itself */
+    const s=scopeOf(o);
+    let L=scopes.get(s); if(!L) scopes.set(s,L=[]);
+    L.push(o);
+  });
+  for(const p of piv) if(!scopes.has(p)) scopes.set(p,[]);
+  for(const [root,parts] of scopes) weldScope(root,parts);
   return inner;
 }
 /* the switch: a weld is geometry, and geometry is measured beside the thing
@@ -6253,29 +6331,7 @@ function buildOldAnimal(kind){
   function eyes(hx,hy,hz,sz2,col){ for(const sd of [1,-1]){
     const e=lbox(sz2||0.3,sz2||0.3,0.2,col||0x14100c);
     e.position.set(sd*hx,hy,hz); g.add(e); } }
-  if(kind==='sheep'){
-    const body=new THREE.Mesh(new THREE.BoxGeometry(3.4,2.6,4.6),
-      new THREE.MeshLambertMaterial({map:TEX.wool})); body.position.y=3.4; g.add(body);
-    const head=lbox(1.6,1.7,1.6,0xead9c8); head.position.set(0,4.3,2.9); g.add(head);
-    eyes(0.5,4.6,3.72,0.3);
-    for(const s of [1,-1]){ const ear=lbox(0.6,0.35,0.3,0xdcc9b4); ear.position.set(s*1.0,4.7,2.8); g.add(ear); }
-    tailRef=lbox(0.7,0.7,0.5,0xefe8dc); tailRef.position.set(0,3.6,-2.5); g.add(tailRef);
-    fourLegs(1.1,1.5,2.1,0xd9d0c0);
-  } else if(kind==='cow'){
-    const cowTex=mkTex(gg=>{ speckle(gg,[92,64,44],14);
-      gg.fillStyle='rgb(235,232,225)';
-      gg.fillRect(1,2,5,5); gg.fillRect(9,8,6,6); gg.fillRect(10,1,4,3); });
-    const body=new THREE.Mesh(new THREE.BoxGeometry(3.6,2.8,5.4),
-      new THREE.MeshLambertMaterial({map:cowTex})); body.position.y=3.8; g.add(body);
-    const head=lbox(1.9,1.9,1.6,0x6b4a34); head.position.set(0,4.7,3.3); g.add(head);
-    const muz=lbox(1.4,0.9,0.5,0xd9cfc2); muz.position.set(0,4.3,4.2); g.add(muz);
-    for(const s of [1,-1]){ const h2=lbox(0.4,0.4,0.7,0xe8e2d2); h2.position.set(s*1.05,5.5,3.2); g.add(h2);
-      const ear=lbox(0.55,0.4,0.3,0x5a4030); ear.position.set(s*1.1,5.1,3.1); g.add(ear); }
-    eyes(0.6,5.1,4.14,0.34);
-    for(const s of [1,-1]){ const nos=lbox(0.25,0.25,0.2,0x8a7a6a); nos.position.set(s*0.4,4.35,4.48); g.add(nos); }
-    tailRef=lbox(0.4,2.0,0.4,0x4a3626); tailRef.geometry.translate(0,-1.0,0); tailRef.position.set(0,4.8,-2.8); g.add(tailRef);
-    fourLegs(1.2,1.9,2.3,0x5a4030);
-  } else if(kind==='pig'){
+  if(kind==='pig'){
     const body=lbox(3.2,2.4,4.6,0xefa2a2); body.position.y=2.9; g.add(body);
     const head=lbox(2,2,1.4,0xefa2a2); head.position.set(0,3.3,2.9); g.add(head);
     const snout=lbox(1.1,0.8,0.4,0xe58a8a); snout.position.set(0,3.1,3.7); g.add(snout);
@@ -6308,16 +6364,6 @@ function buildOldAnimal(kind){
     eyes(0.42,0.85,1.6,0.18,0xd9c93f);
     const tail=lbox(0.4,0.35,1.8,0x636c3c); tail.position.set(0,0.55,-1.9); g.add(tail); tailRef=tail;
     fourLegs(0.55,0.7,0.5,0x5c6438);
-  } else if(kind==='goat'){
-    const body=lbox(2.4,2.2,3.6,0xcfc4b0); body.position.y=3.0; g.add(body);
-    const head=lbox(1.3,1.4,1.4,0xdad0be); head.position.set(0,3.9,2.3); g.add(head);
-    eyes(0.42,4.2,3.02,0.26,0xd9b83f);
-    const beard=lbox(0.35,0.7,0.3,0xb7ac98); beard.position.set(0,3.1,2.9); g.add(beard);
-    for(const s of [1,-1]){ const horn=lbox(0.3,0.9,0.3,0x6a5c44); horn.position.set(s*0.4,4.9,2.1);
-      horn.rotation.x=-0.5; g.add(horn);
-      const ear=lbox(0.5,0.3,0.25,0xcfc4b0); ear.position.set(s*0.85,4.3,2.2); ear.rotation.z=s*0.4; g.add(ear); }
-    tailRef=lbox(0.35,0.7,0.3,0xb7ac98); tailRef.position.set(0,3.9,-1.9); tailRef.rotation.x=0.6; g.add(tailRef);
-    fourLegs(0.9,1.3,2.0,0xb7ac98);
   } else if(kind==='camel'){
     const body=lbox(2.8,3,5.6,0xc8a06a); body.position.y=4.8; g.add(body);
     const hump=lbox(1.9,1.4,2,0xb8905a); hump.position.set(0,6.9,0.4); g.add(hump);
@@ -6356,15 +6402,6 @@ function buildOldAnimal(kind){
       const ear=lbox(0.55,0.4,0.3,0x4a3628); ear.position.set(s*1.15,5.15,3.4); g.add(ear); }
     tailRef=lbox(0.4,2.2,0.4,0x3a2a1e); tailRef.geometry.translate(0,-1.1,0); tailRef.position.set(0,5.3,-3.1); g.add(tailRef);
     fourLegs(1.3,2.1,2.7,0x4a3628);
-  } else if(kind==='wolf'){
-    const col=0x8a8f96; const body=lbox(1.6,1.6,3.6,col); body.position.y=2.2; g.add(body);
-    const head=lbox(1.3,1.3,1.4,col); head.position.set(0,2.6,2.2); g.add(head);
-    const snout=lbox(0.7,0.6,0.8,0x6a6f76); snout.position.set(0,2.4,3.0); g.add(snout);
-    eyes(0.4,2.95,2.92,0.22,0xd9c93f);
-    const nose=lbox(0.3,0.24,0.16,0x14100c); nose.position.set(0,2.5,3.44); g.add(nose);
-    for(const s of[1,-1]){ const ear=lbox(0.4,0.7,0.3,col); ear.position.set(s*0.5,3.4,2.1); g.add(ear); }
-    const tail=lbox(0.6,0.6,1.8,col); tail.position.set(0,2.6,-2.2); tail.rotation.x=0.4; g.add(tail); tailRef=tail;
-    fourLegs(0.6,1.2,2.0,0x70767c);
   } else if(kind==='dog'){
     const col=0xb98a52; const body=lbox(1.2,1.2,2.8,col); body.position.y=1.9; g.add(body);
     const head=lbox(1.1,1.1,1.2,col); head.position.set(0,2.3,1.7); g.add(head);
@@ -6385,16 +6422,6 @@ function buildOldAnimal(kind){
     const tail=lbox(0.4,0.4,2.2,col); tail.position.set(0,3.0,-2.6); tail.rotation.x=0.3; g.add(tail); tailRef=tail;
     const tuft=lbox(0.6,0.6,0.6,0x8a5a2a); tuft.position.set(0,2.4,-3.6); g.add(tuft);
     fourLegs(0.75,1.5,2.4,0xb08a48);
-  } else if(kind==='deer'){
-    const col=0x9a6a3a; const body=lbox(1.7,2.0,4.2,col); body.position.y=3.4; g.add(body);
-    const neck=lbox(1.0,2.2,1.0,col); neck.position.set(0,4.8,2.0); neck.rotation.x=-0.6; g.add(neck);
-    const head=lbox(1.0,1.1,1.8,col); head.position.set(0,5.8,2.9); g.add(head);
-    eyes(0.42,6.05,3.6,0.24);
-    const nose3=lbox(0.3,0.24,0.16,0x14100c); nose3.position.set(0,5.7,3.84); g.add(nose3);
-    for(const s of[1,-1]){ const ant=lbox(0.25,1.6,0.25,0x6a4a2a); ant.position.set(s*0.5,6.8,2.7); ant.rotation.z=s*0.4; g.add(ant);
-      const ear=lbox(0.45,0.3,0.25,col); ear.position.set(s*0.6,6.3,2.7); ear.rotation.z=s*0.5; g.add(ear); }
-    const tail=lbox(0.5,0.7,0.4,0xefe0d0); tail.position.set(0,3.6,-2.2); g.add(tail); tailRef=tail;
-    fourLegs(0.6,1.5,2.8,0x7a5230);
   } else if(kind==='elephant'){
     const col=0x8f8f96; const body=lbox(4.4,4.2,7.2,col); body.position.y=6.0; g.add(body);
     const head=lbox(3.0,3.0,2.6,col); head.position.set(0,6.6,4.2); g.add(head);
@@ -15908,7 +15935,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   /* the weld, and the switch that sets a beast drawn in a handful of calls
      beside the same beast drawn in forty — §2.3.4 had to be paid for */
   mergeOn:v=>{ if(v!==undefined) MERGE_ON=!!v; return MERGE_ON; },
-  beastMoving,
+  beastMoving, beastPivots,
   BEAST_BY_NAME,
   domeCeilAt,canTouchDome,touchDome,playScene,endScene,SCENES,sceneActive,sceneRise,seenDeeps,BEACHES,SHOALS,ORCA,beachAt,nearestBeach,seabedMetres,orcaState:()=>orcaState,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,

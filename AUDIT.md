@@ -6422,6 +6422,13 @@ many parts it is built from. The crocodile is built of 21 and welds to 7. **A be
 parts will weld to the same ten or twelve as one of seventeen**, which is the property the
 finer grain has to stand on.
 
+> **Corrected in Round 76 (§4by).** That last sentence was true only of parts hung on the
+> beast. `beastMoving` claims a moving part *and its whole subtree*, so a hoof on a shin or an
+> eye on a head was still a mesh of its own — and the finer grain is almost entirely made of
+> such parts. The first goat built to §2.3.4 came out at **twenty-one** meshes, not twelve.
+> §4by counts the pivots apart from their subtrees and welds into them; the claim holds now,
+> and is measured rather than asserted.
+
 The scene-graph and memory win is real too, and this codebase already complains about exactly
 it: *"four thousand geometries at the outset and sixty-one thousand after two dozen
 landfalls… a world that grows heavier the longer it is played in."* Halving the geometries and
@@ -6434,6 +6441,106 @@ separate, and that turning each one genuinely turns something. **Fault injected*
 things-to-keep emptied, so the moving parts weld too — it reads **56 of 56 swallowed** against
 **0 of 56** on the sound tree. And the beasts were photographed under a pinned camera welded
 and loose: indistinguishable.
+
+## 4by. Round 76 — §2.3.4, the finer grain, and what it really cost ✅
+
+*Nineteen beasts still stood at fifteen to nineteen boxes inside a hand-written chain in the
+engine. This is the first five of them, and the correction to Round 75 that had to come first.*
+
+### Round 75 promised something that was not true
+
+Its audit says, in bold: ***"A beast of forty parts will weld to the same ten or twelve as one
+of seventeen."*** The very first beast built to §2.3.4 disproved it. The new goat — fifty
+parts, with a cloven hoof on every shin and its whole face hung on its head — came out of the
+weld at **twenty-one meshes** against the seventeen-box goat's **ten**. Twice the cost, for the
+animal named by ninety-eight of the hundred and seventy-six lands.
+
+The reason is exact. `beastMoving` claims a moving part **and its whole subtree**, and it is
+right to: a hoof hung off a shin must not be welded to the ground the shin swings over. But a
+hoof does not move against the **shin** either. Nothing in the engine ever reaches for it. Under
+Round 75's weld every such part was its own mesh again — and the finer grain is *almost entirely*
+made of such parts. A muzzle, a nostril, an eye, a horn, a hoof: each of them hangs on something
+that already moves.
+
+### The pivots, counted apart from their subtrees
+
+`beastPivots` is the new half of it: the parts the engine names in `userData`, and **nothing
+else**. `mergeBeast` then welds every other mesh into the nearest pivot above it — into that
+pivot's own geometry where their materials agree, so the object survives and every handle on it
+still points at the same thing, and the engine never knows.
+
+### Measured, before and against
+
+| beast | parts before | meshes before | parts now | meshes now |
+|---|---|---|---|---|
+| goat  | 18 | 10 | 64  | **12** |
+| deer  | 19 | 10 | 73  | **14** |
+| sheep | 15 | 11 | 106 | **14** |
+| cow   | 20 | 11 | 68  | **14** |
+| wolf  | 17 | 10 | 69  | **14** |
+
+Four times the parts, and the number is exact rather than approximate: **a beast is one welded
+lump per material it wears, plus one mesh for everything that moves.** The goat's twelve is one
+lump, eight leg bones, a tail, a head and a jaw. Nothing else on it costs anything — not the
+three-length barrel, not the twelve locks of the flank, not the ribbed horns, not the eight
+cloven hooves.
+
+And the three or four meshes each of them gained over the old build are **not the grain**. They
+are the head that now turns, the jaw that now chews and the two ears that now flick — parts
+the old beasts did not have at all. The grain itself is free.
+
+Across the whole earth: **170 kinds, 3,173 parts, 1,264 meshes — 2.5 parts to a mesh.**
+
+### The five
+
+- **The goat** (98 lands): three-length barrel and a straight back over a swinging belly;
+  withers; twelve locks of shaggy flank hung *past* the outline, because a dark patch painted
+  inside the silhouette is a decal and a lock that breaks the outline is hair; ribbed horns in
+  three chained lengths sweeping **back over the neck** — which is not only truer but necessary,
+  since `js/size.js` measures this beast by its whole height and a horn that rises is a horn
+  that shrinks the goat under it; the beard; the tail carried **up** where a sheep's hangs; the
+  slotted bar pupil; cloven hooves on the shins, so they swing with the leg.
+- **The deer**: an antler that is a beam with a brow tine, a bez and a trey coming off it,
+  grown as a chain, instead of two sticks; the white rump patch and the flag over it; the
+  summer dapple; the pale mask and black muzzle; dark hocks on long light legs.
+- **The sheep**: the fleece is *grown*, not drawn — some seventy locks in four creams, in three
+  courses over the back, along the flank and under the brisket, standing past the carcass so the
+  outline is wool and not a crate. This is the clearest case in the round: **106 parts, 14
+  meshes.**
+- **The cow**: the dewlap and brisket; the hip bones standing over a hollow flank; the ridged
+  spine; the udder and its four teats; the tuft on a long swinging tail; and the patches drawn
+  **wider than the beast**, so each comes over the top of the back and down both flanks in one
+  piece rather than sitting as a rectangle on the middle of a side.
+- **The wolf**: the ruff, which is half the width of the animal from the front and was simply
+  absent; the head carried **level with the back**, which is what tells a wolf from a dog at any
+  distance; the dark saddle going pale down the flank and cream beneath; the brush carried
+  straight out; a pad with three toes under every foot.
+
+### Proved by the fault, twice — because there are two ways to be wrong
+
+Acceptance test **52** counts, for every pivot on every beast, the meshes in its subtree that
+are not themselves pivots; and it measures every moving part **in its own space against its own
+loose self**, so that a part which has lost the reach of what hung on it is caught.
+
+1. **The old weld** — anything the engine can reach left alone, subtree and all: the world goes
+   from 1,264 meshes to **1,460**, the baggage from 33 pieces to **301**, the sheep from 14
+   meshes to **forty**, and the deer carries **twenty-five** loose parts on its head, which is
+   its whole face and both antlers.
+2. **The greedy weld** — everything welded at the beast's own scope, so a hoof folds into the
+   *body*. This reads **better** by the first assertion: 1,234 meshes against 1,264, and three
+   pieces of baggage against 33. It is also a beast whose feet stay where they were when it
+   walks. Sixty-eight moving parts are caught by the second assertion — every shin that has lost
+   its hooves, every head that has lost its face, and the shark's tail, which loses 4.82 of its
+   own length.
+
+Test 51 still passes unchanged: 170 kinds, 1,002 named moving parts, every one still its own
+and still turning.
+
+### What is left of §2.3.4
+
+Fourteen kinds: elephant, camel, donkey, bear, lion, horse, crocodile, lizard, pig, chicken,
+hare, dog, ox, blackbear. The mechanism is proved and the cost is known; what remains is the
+building.
 
 ## 5. Further recommendations (future work)
 

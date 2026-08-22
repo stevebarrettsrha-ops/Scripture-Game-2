@@ -98,6 +98,30 @@ is simply still.
 Build every beast **nose toward +z**, upright, centred on the origin. The
 engine turns it to face where it swims.
 
+## How many parts a beast may be built of, and what they cost
+
+**As many as it takes.** A beast is drawn in one welded lump per material it
+wears, plus one mesh for each thing that MOVES on it — and nothing else. The
+sheep is a hundred and six parts and fourteen meshes; the goat is sixty-four
+and twelve. So the grain is free, and the rule that follows from it is:
+
+**Hang everything on the part it belongs to.** A muzzle, a nose, an eye, a
+horn, an ear and a jaw belong on the HEAD (`head.add(...)`, or `T.on(head,…)`),
+not on the beast — because the engine turns `userData.head` when a beast grazes
+or grooms, and a face left on the body is a face that comes off. A hoof belongs
+on the shin (`L.userData.knee`), not on the ground. Hung rightly they follow
+what they are part of AND cost nothing; hung on the beast they are wrong when
+it moves and they are still free, so there is no reason ever to do it.
+
+What costs a mesh is a name in `userData`: `head`, `jaw`, `tail`, `ears`,
+`legs`. Give those to a beast when they should move, and not otherwise.
+
+`T.limb(w,h,d,col,y,rx,rz)` builds a length whose origin is its BASE, so that
+lengths chain: a horn, an antler, a neck or a tail joined on the tip of the one
+before it, each leaned a little further over, curves instead of stepping. A
+positive `rx` leans a length FORWARD (toward the nose); a negative one leans it
+back.
+
 ## Which way a beast of the field faces, and where its feet are
 
 The same as everything else: **nose toward +z, upright** — and, for a land
@@ -110,7 +134,9 @@ its own origin, so a beast built around the origin sinks to the waist in it.
 1. write `creatures/<name>.js`, `realm:'land'`, feet at y=0, nose toward +z;
 2. add a line to `keeps` in `world/fauna.js` saying what ground it stands on;
 3. name it in whichever lands bear it, in `lands`;
-4. add a `<script>` tag for the file in `index.html`.
+4. add its path to `world/manifest.js`, which is what the page loads the
+   creature files from — `index.html` has not listed them one by one since the
+   manifest took the job over.
 
 That is the whole of it. It will be placed, it will graze or hunt, it will
 herd, flee, bed down at night and keep out of the countries it does not

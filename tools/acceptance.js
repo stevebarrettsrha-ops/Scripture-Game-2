@@ -1190,6 +1190,18 @@ T[32]={name:'every beast is countershaded — dark above, pale beneath — and n
       return {up,dn,flat,done};
     }
     D.coatOn(true);
+    /* ---- AND IT IS ASKED OF THE BEAST BEFORE THE WELD ----
+       THE HOLE THIS MENDS. `coatBeast` writes the coat as a GREYSCALE into
+       every vertex — the same number in all three channels — and the weld
+       (Round 75) then multiplies it by each part's own base colour and throws
+       the parts into one geometry. So on a welded beast this test was reading
+       `color.x` off a lump holding a brown flank, a black hoof and a yellow
+       eye, and calling the difference between them countershading. It read
+       the beast's PALETTE, not its coat, and every beast whose parts are not
+       all one colour failed: 145 of them at HEAD, the whole sea by name.
+       The coat is laid on before the weld and is measured before it. That the
+       coat SURVIVES the weld is a different claim and test 51 makes it. */
+    const weldWas=D.mergeOn?D.mergeOn():true; if(D.mergeOn) D.mergeOn(false);
     const bad=[], thin=[], noSky=[];
     let graded=0, flatMesh=0, worst=9;
     let noFile=0;
@@ -1229,9 +1241,10 @@ T[32]={name:'every beast is countershaded — dark above, pale beneath — and n
     D.coatOn(false);
     const none=read(D.makeBeast(one));
     D.coatOn(true);
+    if(D.mergeOn) D.mergeOn(weldWas);
     const ok=!bad.length&&!thin.length&&!flatMesh&&refused&&none.done===0;
     return {ok, got:names.length+' creature files and '+noFile+
-      ' kinds with none, all asked through `makeAnimal` · '+graded+' meshes graded, '+
+      ' kinds with none, all asked through `makeAnimal`, all read before the weld · '+graded+' meshes graded, '+
       flatMesh+' left flat · the narrowest body runs '+worst.toFixed(2)+
       ' of tint from back to belly (0.35 is the least that reads) · '+
       'a species that refuses it stays flat: '+(refused?'yes':'NO')+
@@ -3338,6 +3351,126 @@ T[51]={name:'a beast is welded into a handful of meshes, and everything that mov
         ' ('+Math.round((1-weld/loose)*100)+'% fewer) · '+names+
         ' moving parts named by the engine, all still their own and all still turning'+
         ' · the least helped: '+(worst?worst.k+' '+worst.la+' → '+worst.lb:'—')+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[52]={name:'the finer grain is free — what hangs off a moving part costs nothing',
+  /* §2.3.4 asks for thirty to sixty parts on a large mammal where there were
+     twelve to fifteen. Round 75's weld was supposed to make that affordable,
+     and its audit said so outright: *"a beast of forty parts will weld to the
+     same ten or twelve as one of seventeen"*.
+
+     THAT WAS NOT TRUE AS WRITTEN, and the first goat built to §2.3.4 proved
+     it. `beastMoving` claims a moving part AND ITS WHOLE SUBTREE — rightly,
+     since a hoof hung off a shin must not be welded to the ground the shin
+     swings over. But a hoof does not move against the SHIN either. Nothing in
+     the engine ever reaches for it. Under that weld every such part was its
+     own mesh again, and the fifty-part goat came out at twenty-one meshes
+     against the seventeen-box goat's ten. Twice the cost, for the animal
+     named by ninety-eight of the hundred and seventy-six lands.
+
+     THE RULE NOW: the pivots are the parts the engine names in `userData` and
+     NOTHING ELSE. Every other mesh is welded into the nearest pivot above it
+     — into that pivot's own geometry where their materials agree, so the
+     object survives and every handle on it still points at the same thing.
+
+     WHAT IS ASSERTED: that no moving part carries loose baggage. Count, for
+     every pivot on every beast in the world, the meshes in its subtree that
+     are not themselves pivots. A shin with two cloven hooves on it must carry
+     NONE of them separately; a head with a muzzle, a nose, two nostrils, a
+     jaw hinge, two eyes, two horns and two ears on it must carry none of them
+     either. Two are allowed, for a beast whose file dresses one part in two
+     different textures, and no more.
+
+     AND THAT THE GRAIN IS FREE: the beasts built to §2.3.4, at forty parts
+     and upward, must still come to sixteen meshes or fewer.
+
+     TWO FAULTS INJECTED, because there are two ways to get this wrong and
+     only one of them shows in a mesh count.
+
+     1. THE OLD WELD — anything the engine can reach is left alone, subtree and
+        all. The world's beasts go from 1,264 meshes to 1,460; the baggage
+        from 33 pieces to 301; the sheep from 14 meshes to FORTY, carrying
+        thirteen loose parts on its head and three on every shin; the deer
+        twenty-five on its head, which is its whole face and both antlers.
+     2. THE GREEDY WELD — everything is welded at the beast's own scope, so a
+        hoof is folded into the BODY. That reads BETTER by every count in the
+        first assertion: 1,234 meshes against 1,264, and three pieces of
+        baggage against 33. It is also a beast whose feet stay behind when it
+        walks. That is what the second assertion is for: every moving part is
+        measured in its own space against its own loose self, and sixty-eight
+        of them are caught — every shin that has lost the reach of its hooves,
+        every head that has lost its face, and the shark's tail, which loses
+        4.82 of its own length. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    if(!D.mergeOn||!D.beastPivots) return {pending:'no deep weld (Phase 6 §2.3.4)'};
+    const LOTS=2;                        /* textures one part may be dressed in */
+    const faults=[], count=g=>{ let n=0; g.traverse(o=>{ if(o.isMesh) n++; }); return n; };
+    const build=k=>{ const spec=D.BEAST_BY_NAME[k];
+      return (spec&&spec.realm!=='land')?D.makeBeast(k):D.makeAnimal(k); };
+    const F=D.FAUNA||window.FAUNA;
+    const kinds=[...new Set(Object.keys(D.BEAST_BY_NAME).concat(
+      (F&&F.keeps)?Object.keys(F.keeps):[]))];
+    let tried=0, parts=0, mesh=0, pivots=0, baggage=0, worst=null, grain=[];
+    for(const k of kinds){
+      let a=null,b=null;
+      D.mergeOn(false); try{ a=build(k); }catch(e){ continue; }
+      D.mergeOn(true);  try{ b=build(k); }catch(e){ continue; }
+      if(!a||!b) continue;
+      tried++; parts+=count(a); mesh+=count(b);
+      const piv=D.beastPivots(b), pivA=D.beastPivots(a);
+      /* the same moving part on the loose beast and on the welded one, by the
+         path the engine reaches it: userData key, then index down the legs */
+      const byName=x=>{ const m=new Map();
+        const walk=(ud,pre)=>{ if(!ud) return;
+          for(const key in ud){ const v=ud[key]; if(!v) continue;
+            const list=Array.isArray(v)?v:[v];
+            list.forEach((o,i)=>{ if(!o||!o.isObject3D) return;
+              const id=pre+key+(Array.isArray(v)?'#'+i:'');
+              if(m.has(id)) return; m.set(id,o); walk(o.userData,id+'.'); }); } };
+        walk(x.userData,''); return m; };
+      const MA=byName(a), MB=byName(b);
+      for(const [id,o] of MB){
+        if(!o.isObject3D) continue;
+        pivots++;
+        let n=0; o.traverse(x=>{ if(x!==o&&x.isMesh&&!piv.has(x)) n++; });
+        baggage+=n;
+        if(n>LOTS) faults.push(k+' carries '+n+' loose parts on '+id);
+        if(!worst||n>worst.n) worst={k,n};
+        /* AND WHAT WAS ON IT MUST STILL BE ON IT. A weld that folded a hoof
+           into the BODY instead of into the shin costs nothing and reads
+           clean — until the leg swings and the hoof stays where it was. So
+           the moving part is measured, in its own space, against itself. */
+        const p0=MA.get(id); if(!p0) continue;
+        const box=x=>{ x.updateWorldMatrix(true,true);
+          const inv=new window.THREE.Matrix4().copy(x.matrixWorld).invert();
+          const bb=new window.THREE.Box3(), v=new window.THREE.Vector3();
+          x.traverse(m2=>{ const gg=m2.geometry, at=gg&&gg.attributes&&gg.attributes.position;
+            if(!at) return; const M=inv.clone().multiply(m2.matrixWorld);
+            for(let i2=0;i2<at.count;i2++) bb.expandByPoint(v.fromBufferAttribute(at,i2).applyMatrix4(M)); });
+          return bb; };
+        const B0=box(p0), B1=box(o);
+        if(B0.isEmpty()||B1.isEmpty()) continue;
+        const s0=new window.THREE.Vector3(), s1=new window.THREE.Vector3();
+        B0.getSize(s0); B1.getSize(s1);
+        const lost=Math.max(s0.x-s1.x,s0.y-s1.y,s0.z-s1.z);
+        if(lost>0.02) faults.push(k+"'s "+id+' lost '+lost.toFixed(2)+
+          ' of its own reach in the weld — something that hung on it was welded elsewhere');
+      }
+      if(count(a)>=40) grain.push([k,count(a),count(b)]);
+    }
+    if(!tried) return {pending:'no beast could be built'};
+    if(!pivots) faults.push('not one moving part was found to check');
+    const heavy=grain.slice().sort((x,y)=>y[1]-x[1])[0];
+    if(heavy&&heavy[2]>16) faults.push(heavy[0]+' is built of '+heavy[1]+
+      ' parts and still costs '+heavy[2]+' meshes');
+    return {ok:!faults.length,
+      got:tried+' kinds · '+parts+' parts welded to '+mesh+' meshes ('+
+        (parts/mesh).toFixed(1)+' parts a mesh) · '+pivots+' moving parts carry '+
+        baggage+' loose pieces between them, the worst '+(worst?worst.k+' at '+worst.n:'—')+
+        ' · of the '+grain.length+' beasts at 40 parts or more, the heaviest is '+
+        (heavy?heavy[0]+' at '+heavy[1]+' parts and '+heavy[2]+' meshes':'—')+
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
