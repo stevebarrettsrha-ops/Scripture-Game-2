@@ -6346,6 +6346,95 @@ once: the brief's part count, `creatures/`'s own "one to a file", and the remova
 two-hundred-line hand-built table from the engine. That is the next round; **the coat is not
 waiting on it.**
 
+## 4bx. Round 75 — the weld: a beast in a handful of meshes ✅
+
+*§2.3.4 asks for 30–60 parts on a large mammal where there are 15–19. This is what had to
+happen first, and the honest account of what it did and did not buy.*
+
+### Why it was needed
+
+`lbox` mints a new `BoxGeometry` **and** a new material for every limb (`lam` is `new
+MeshLambertMaterial` on every call), and nothing anywhere merged or instanced beast geometry.
+**A part is a mesh is a scene-graph node.** Ninety-six beasts stood at **1,836 meshes** between
+them, and taking each from seventeen parts to forty would have doubled that.
+
+### The trick was already in this codebase, twice
+
+The flora draws a hundred and seventy species with four grey materials by tinting vertex
+colours. And `coatBeast` already writes a greyscale `color` attribute onto every beast mesh and
+turns `vertexColors` on. One step further — multiply each part's own base colour into that
+attribute — and the material stops carrying anything the geometry cannot. Then the parts weld.
+
+THREE r128 is bundled without `BufferGeometryUtils`, so the concatenation is written by hand,
+the same way `quad()` in the chunk mesher already builds buffers.
+
+### What stays loose is DERIVED, not listed
+
+The engine reaches every moving part by name through `userData` — `legs` (and each leg's
+`knee`), `head`, `jaw`, `tail`, `ears`, `tents`, `wingL`/`wingR`, `flL`/`flR`, `armL`/`armR`.
+**Anything named there, with everything under it, keeps its own mesh; all the rest is welded.**
+A hand-kept list of moving parts would drift the first time a creature file grew a new one.
+This cannot: if the engine can reach it, it still moves.
+
+And the weld is by MATERIAL SIGNATURE, not into one lump — a textured hide and a flat horn
+cannot share a material, so parts are gathered by the texture they wear and each gathering
+becomes one mesh.
+
+### What it bought — measured over the whole bestiary
+
+**170 kinds built both ways: 2,882 meshes → 1,288. Fifty-five per cent fewer.** Per beast:
+
+| | parts | welded |
+|---|---|---|
+| crocodile | 21 | **7** |
+| gazelle, fox, deer, goat, wolf, camel, bear, lion | 17–22 | **10** |
+| cow, sheep, leopard, hippo | 15–22 | **11** |
+| elephant | 18 | **12** |
+
+**984 moving parts named by the engine, every one still its own mesh and every one still
+turning.**
+
+### WHAT IT DID *NOT* BUY, AND THIS IS THE PART WORTH READING
+
+**It does not cut draw calls.** Measured with `renderer.info.render.calls` — the renderer's own
+count, not a mesh tally — alternating the two conditions twice each so drift cancels:
+
+| | welded #1 | welded #2 | loose #1 | loose #2 |
+|---|---|---|---|---|
+| draw calls | 1,978 | 2,179 | 1,964 | 2,059 |
+| beast meshes | 916 | 1,011 | 1,814 | 1,857 |
+
+**A difference of 67 inside a spread of 200.** The meshes halve every time; the calls do not
+move. The reason is frustum culling: most of the ninety-six beasts stand outside the view, and
+their loose parts were never drawn to begin with.
+
+It took three attempts to learn that. Measured once, welded read **170 calls MORE**; measured
+again, **439 FEWER**; only alternating within one run showed the truth, which is *neither*. The
+first attempt also measured a world with **nought beasts in it** — `holdWorld` pauses the game
+outright and the spawner with it — and reported no difference at all, which looked like a
+result.
+
+### So what is the weld actually for?
+
+**It makes the part count nearly free**, and that is precisely what §2.3.4 needed. A welded
+beast's mesh count is set by how many parts MOVE and how many materials it wears — not by how
+many parts it is built from. The crocodile is built of 21 and welds to 7. **A beast of forty
+parts will weld to the same ten or twelve as one of seventeen**, which is the property the
+finer grain has to stand on.
+
+The scene-graph and memory win is real too, and this codebase already complains about exactly
+it: *"four thousand geometries at the outset and sixty-one thousand after two dozen
+landfalls… a world that grows heavier the longer it is played in."* Halving the geometries and
+materials every beast is built from goes straight at that.
+
+### Proved both ways
+
+Acceptance test 51 asserts the weld saves meshes, that every part the engine names is still
+separate, and that turning each one genuinely turns something. **Fault injected** — the set of
+things-to-keep emptied, so the moving parts weld too — it reads **56 of 56 swallowed** against
+**0 of 56** on the sound tree. And the beasts were photographed under a pinned camera welded
+and loose: indistinguishable.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

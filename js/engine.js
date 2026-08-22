@@ -5855,6 +5855,128 @@ function coatBeast(inner,spec){
   });
 }
 
+/* ================= AND A BEAST IS DRAWN IN A HANDFUL OF CALLS =================
+   §2.3.4 asks for *"30–60 parts for large mammals rather than 12–15"*, and the
+   naive reading of that would have broken §2.5 outright.
+
+   EVERY PART OF EVERY BEAST IS ITS OWN DRAW CALL. `lbox` mints a new
+   `BoxGeometry` AND a new material for each limb (`lam` is `new
+   MeshLambertMaterial` every time it is called), and nothing anywhere merged
+   or instanced beast geometry. At fifteen to nineteen parts apiece and
+   ninety-six beasts standing, that is well over a thousand calls for the
+   animals alone; taking them to forty parts would have added a thousand more,
+   against a chunk mesher measured at three and a half thousand meshes in a
+   wooded view. "Beauty that halves the frame rate is not beauty."
+
+   ---- THE TRICK IS ALREADY IN THIS CODEBASE, TWICE ----
+   The flora draws a hundred and seventy species with four grey materials by
+   tinting its vertex colours. And `coatBeast` above already writes a
+   greyscale `color` attribute onto every mesh of every beast and turns
+   `vertexColors` on. So the parts are one short step from being mergeable:
+   multiply each part's own base colour into that attribute, and its material
+   stops carrying any information the geometry cannot.
+
+   ---- WHAT MERGES, AND WHAT MUST NOT ----
+   WHAT STAYS LOOSE IS DERIVED AND NOT LISTED BY HAND. The engine reaches
+   every moving part by NAME through `userData` — `legs` (and each leg's
+   `knee`), `head`, `jaw`, `tail`, `ears`, `tents`, `wingL`/`wingR`,
+   `flL`/`flR`, `armL`/`armR`. Anything named there, and everything hanging
+   under it, keeps its own mesh; all the rest is welded. A hand-kept list of
+   moving parts would drift the first time a creature file grew a new one.
+   This cannot: if the engine can reach it, it still moves.
+
+   And the weld is by MATERIAL SIGNATURE, not into one lump: a textured hide
+   and a flat horn cannot share a material, so parts are gathered by the
+   texture they wear (and whether they are see-through) and each gathering
+   becomes one mesh. A beast typically has one or two.
+   ============================================================ */
+const _mgV=new THREE.Vector3(), _mgN=new THREE.Vector3(), _mgM3=new THREE.Matrix3();
+/* every Object3D the engine can reach by name on this beast, and its subtree */
+function beastMoving(inner){
+  const keep=new Set();
+  const claim=o=>{ if(o&&o.isObject3D&&!keep.has(o)){ o.traverse(x=>keep.add(x)); } };
+  const walk=ud=>{ if(!ud) return;
+    for(const k in ud){ const v=ud[k];
+      if(!v) continue;
+      if(v.isObject3D){ claim(v); walk(v.userData); }
+      else if(Array.isArray(v)) for(const e of v) if(e&&e.isObject3D){ claim(e); walk(e.userData); } } };
+  walk(inner.userData);
+  /* a leg's own knee and shin hang off the leg's userData, and are claimed by
+     the subtree sweep above; this catches any that were parented elsewhere */
+  inner.traverse(o=>{ if(keep.has(o)) walk(o.userData); });
+  return keep;
+}
+function mergeBeast(inner){
+  if(!MERGE_ON) return inner;
+  inner.updateWorldMatrix(false,true);
+  const keep=beastMoving(inner);
+  /* gather the still parts by what they are drawn with */
+  const lots=new Map();
+  inner.traverse(o=>{
+    if(!o.isMesh||!o.geometry||keep.has(o)) return;
+    const m=o.material;
+    if(!m||Array.isArray(m)) return;          /* a six-faced box keeps itself */
+    const g=o.geometry, a=g.attributes;
+    if(!a||!a.position||!a.normal) return;
+    if(!a.color) return;                      /* uncoated — leave it be */
+    const map=m.map||null;
+    if(map&&!a.uv) return;                    /* textured and no uv: cannot weld */
+    const key=(map?map.uuid:'flat')+'|'+(m.transparent?'t':'o')+'|'+(m.side||0);
+    let L=lots.get(key);
+    if(!L){ L={map, proto:m, mesh:[], n:0}; lots.set(key,L); }
+    L.mesh.push(o); L.n+=a.position.count;
+  });
+  for(const L of lots.values()){
+    if(L.mesh.length<2) continue;             /* nothing gained welding one */
+    const pos=new Float32Array(L.n*3), nor=new Float32Array(L.n*3), col=new Float32Array(L.n*3);
+    const uv=L.map?new Float32Array(L.n*2):null;
+    const idx=[]; let at=0;
+    for(const o of L.mesh){
+      const g=o.geometry, a=g.attributes, n=a.position.count;
+      _mgM3.getNormalMatrix(o.matrixWorld);
+      const c=o.material.color;
+      const cr=c?c.r:1, cg=c?c.g:1, cb=c?c.b:1;
+      for(let i=0;i<n;i++){
+        _mgV.fromBufferAttribute(a.position,i).applyMatrix4(o.matrixWorld);
+        pos[(at+i)*3]=_mgV.x; pos[(at+i)*3+1]=_mgV.y; pos[(at+i)*3+2]=_mgV.z;
+        _mgN.fromBufferAttribute(a.normal,i).applyMatrix3(_mgM3).normalize();
+        nor[(at+i)*3]=_mgN.x; nor[(at+i)*3+1]=_mgN.y; nor[(at+i)*3+2]=_mgN.z;
+        /* THE PART'S OWN COLOUR GOES INTO THE GEOMETRY. That is the whole of
+           it: once the base colour is in the vertices, the material carries
+           nothing the mesh needs and one material serves them all. */
+        const f=a.color.getX(i);
+        col[(at+i)*3]=f*cr; col[(at+i)*3+1]=f*cg; col[(at+i)*3+2]=f*cb;
+        if(uv){ uv[(at+i)*2]=a.uv.getX(i); uv[(at+i)*2+1]=a.uv.getY(i); }
+      }
+      const gi=g.index;
+      if(gi) for(let i=0;i<gi.count;i++) idx.push(at+gi.getX(i));
+      else for(let i=0;i<n;i++) idx.push(at+i);
+      at+=n;
+    }
+    const bg=new THREE.BufferGeometry();
+    bg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    bg.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
+    bg.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+    if(uv) bg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+    bg.setIndex(idx);
+    const mat=new THREE.MeshLambertMaterial({
+      map:L.map||null, vertexColors:true, color:0xffffff,
+      transparent:!!L.proto.transparent, opacity:L.proto.opacity,
+      side:L.proto.side, alphaTest:L.proto.alphaTest||0 });
+    /* and the parts that went in are taken out and given back to the card */
+    for(const o of L.mesh){
+      if(o.parent) o.parent.remove(o);
+      if(o.geometry&&o.geometry.dispose) o.geometry.dispose();
+      if(o.material&&o.material.dispose) o.material.dispose();
+    }
+    inner.add(new THREE.Mesh(bg,mat));
+  }
+  return inner;
+}
+/* the switch: a weld is geometry, and geometry is measured beside the thing
+   it replaced rather than asserted. Acceptance test 51 throws it. */
+let MERGE_ON=true;
+
 /* build one beast, grown to its true stature. Extra arguments are passed
    through to the file's build (the fish takes its colour that way). */
 function makeBeast(name,arg){
@@ -5862,6 +5984,7 @@ function makeBeast(name,arg){
   if(!spec) throw new Error('no creature file for "'+name+'"');
   const inner=spec.build(BEAST_KIT,arg);
   coatBeast(inner,spec);
+  mergeBeast(inner);            /* and the still parts are welded into one */
   const span=beastSpan(inner,trueAxis(name,spec));
   /* THE BEAST IS WRAPPED, AND THE WRAPPER GROWS IT. The engine sets scale on
      what it is handed (a calf in the pod, a shark rearing) — so the true
@@ -6098,6 +6221,7 @@ function makeAnimal(kind){
      One call, and the coat reaches every beast the world can set down. */
   const inner=buildOldAnimal(kind);
   coatBeast(inner,null);
+  mergeBeast(inner);            /* and the still parts are welded into one */
   return sizeToTrue(kind,inner);
 }
 /* ---- THE HAND-BUILT BEASTS, BROUGHT TO THE SAME MEASURE ----
@@ -15781,6 +15905,10 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      with no file of their own it goes somewhere else entirely. Test 32 counts
      creature files and so has never once looked at that other road. */
   makeAnimal, FAUNA,
+  /* the weld, and the switch that sets a beast drawn in a handful of calls
+     beside the same beast drawn in forty — §2.3.4 had to be paid for */
+  mergeOn:v=>{ if(v!==undefined) MERGE_ON=!!v; return MERGE_ON; },
+  beastMoving,
   BEAST_BY_NAME,
   domeCeilAt,canTouchDome,touchDome,playScene,endScene,SCENES,sceneActive,sceneRise,seenDeeps,BEACHES,SHOALS,ORCA,beachAt,nearestBeach,seabedMetres,orcaState:()=>orcaState,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,

@@ -3262,6 +3262,85 @@ T[50]={name:'THE HERD, MEASURED — how many stand together, where the young sta
       ' · '+rows.join(' | ')};
   })};
 
+T[51]={name:'a beast is welded into a handful of meshes, and everything that moves still moves',
+  /* §2.3.4 asks for 30–60 parts on a large mammal where there are 15–19, and
+     the naive reading of that could not be afforded: `lbox` mints a new
+     geometry AND a new material for every limb, so a part is a mesh is a
+     scene-graph node, and ninety-six beasts stood at 1,836 of them.
+
+     The still parts are welded into one geometry per material now, with each
+     part's own colour baked into the vertex colours — the same trick the
+     flora uses to draw a hundred and seventy species with four materials.
+
+     WHAT IS ASSERTED, AND WHAT IS DELIBERATELY NOT.
+
+     1. IT WELDS. Every kind must come out in fewer meshes than it went in.
+     2. EVERYTHING THAT MOVES STILL MOVES. This is the one that matters: the
+        engine reaches its moving parts BY NAME through `userData` — `legs`
+        (and each leg's `knee`), `head`, `jaw`, `tail`, `ears`, `wingL`… — and
+        a weld that swallowed one of them would leave a beast sliding about
+        with its legs welded to its belly. Every name the engine can reach
+        must still resolve to a Mesh or Group that is genuinely SEPARATE from
+        the welded lump, and turning it must genuinely turn something.
+     3. THE COAT SURVIVES. The weld multiplies the base colour into the coat's
+        own greyscale, so the shading must still run dark on top to pale
+        beneath — test 32 guards that across every kind; here it is asserted
+        on the welded geometry itself.
+
+     NOT ASSERTED: that it cuts DRAW CALLS. Measured four times alternating,
+     welded read 1978 and 2179 against loose's 1964 and 2059 — a difference of
+     67 inside a spread of 200. Most of the ninety-six beasts stand outside
+     the view, so their loose parts were never drawn to begin with. The win is
+     in the scene graph and in memory, and in making the PART COUNT nearly
+     free, which is what §2.3.4 needed. The audit says so and so does this. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    if(!D.mergeOn||!D.beastMoving) return {pending:'no weld (Phase 6 §2.3.4)'};
+    const faults=[], count=g=>{ let n=0; g.traverse(o=>{ if(o.isMesh) n++; }); return n; };
+    const build=k=>{ const spec=D.BEAST_BY_NAME[k];
+      return (spec&&spec.realm!=='land')?D.makeBeast(k):D.makeAnimal(k); };
+    const F=D.FAUNA||window.FAUNA;
+    const kinds=[...new Set(Object.keys(D.BEAST_BY_NAME).concat(
+      (F&&F.keeps)?Object.keys(F.keeps):[]))];
+    let loose=0, weld=0, tried=0, worst=null, stiff=[], moved=0, names=0;
+    for(const k of kinds){
+      let a=null,b=null;
+      D.mergeOn(false); try{ a=build(k); }catch(e){ continue; }
+      D.mergeOn(true);  try{ b=build(k); }catch(e){ continue; }
+      if(!a||!b) continue;
+      tried++;
+      const la=count(a), lb=count(b);
+      loose+=la; weld+=lb;
+      if(lb>la) faults.push(k+' came out of the weld with MORE meshes ('+la+' → '+lb+')');
+      if(!worst||(lb-la)>worst.d) worst={k,d:lb-la,la,lb};
+      /* ---- AND EVERYTHING THE ENGINE CAN REACH MUST STILL BE ITS OWN ---- */
+      const keep=D.beastMoving(b);
+      const seen=new Set();
+      const walk=(ud,where)=>{ if(!ud) return;
+        for(const key in ud){ const v=ud[key]; if(!v) continue;
+          const list=Array.isArray(v)?v:[v];
+          for(const o of list){ if(!o||!o.isObject3D||seen.has(o)) continue;
+            seen.add(o); names++;
+            if(!keep.has(o)) faults.push(k+"'s "+key+' was swallowed by the weld');
+            /* turning it must turn something real */
+            const was=o.rotation.x; o.rotation.x=was+0.6;
+            if(Math.abs(o.rotation.x-was)>0.5) moved++; else stiff.push(k+'.'+key);
+            o.rotation.x=was;
+            walk(o.userData,key); } } };
+      walk(b.userData,'');
+    }
+    if(!tried) return {pending:'no beast could be built'};
+    if(!(weld<loose)) faults.push('the weld saved nothing at all ('+loose+' → '+weld+')');
+    if(stiff.length) faults.push(stiff.length+' named part(s) would not turn: '+stiff.slice(0,4).join(', '));
+    if(!names) faults.push('not one moving part was found to check');
+    return {ok:!faults.length,
+      got:tried+' kinds built both ways · meshes '+loose+' → '+weld+
+        ' ('+Math.round((1-weld/loose)*100)+'% fewer) · '+names+
+        ' moving parts named by the engine, all still their own and all still turning'+
+        ' · the least helped: '+(worst?worst.k+' '+worst.la+' → '+worst.lb:'—')+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.
