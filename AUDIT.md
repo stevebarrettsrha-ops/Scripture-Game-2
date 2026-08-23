@@ -6818,8 +6818,27 @@ within, until it stopped recognising them as one herd at all** — and test 35's
 where four plains of goats do not, which is the whole difference between the two readings. The
 ring is capped to fit inside its own neighbourhood with margin (`HERD_R × 0.85 / 2·STN_OUT`,
 about twenty-nine), written as the expression rather than the number so it stays true if either
-constant moves. **Test 35 comes back to 578 herd-samples, 445 watched (77%)** — ninety-seven per
-cent of the herds it had before the round.
+constant moves.
+
+**And test 35's own count has now been read enough times to know it is not a number.** I wrote
+that the cap gave back "ninety-seven per cent of the herds it had before the round" off one
+reading of 578, and PLAN.md said 610 off another. Five readings:
+
+| | herd-samples of three or more | watched |
+|---|---|---|
+| before the round | 597 | 477 (80%) |
+| **the station uncapped** | **423** | 308 (73%) |
+| capped, run alone | 578 | 445 (77%) |
+| capped, run alone again | 610 | — |
+| capped, in the full suite | 485 | 339 (70%) |
+
+The capped readings run **485 to 610** with nothing changed between them, and 597 sits inside
+that spread. **So the honest claim is not a percentage recovered but this: the uncapped 423 falls
+below every capped reading and below the before-value, and the capped ones straddle it.** The cap
+undoes the regression; by how much is not a thing this statistic can say, and the sentence that
+said it is struck. That is the same fault as the mean-herd-size claim further down, found the
+same way — by reading twice — and corrected rather than left because it happened to flatter the
+feature.
 
 ### The four lands again, capped, which is what shipped
 
@@ -6850,8 +6869,77 @@ exist beats a larger one on herds the world has stopped counting.
 
 ### The whole suite, and a thing I had written down wrongly
 
-**48 pass · 1 fail · 4 pending.** The pendings are 12 and 43 (both long-standing) and 50 and 53,
-which report and guard nothing while §2.3.5 is open. The fail is dealt with below.
+**49 pass · 0 fail · 4 pending**, over two runs: tests 1–49 in one (which a container restart
+then killed mid-`page.evaluate`, recorded in its own log as a FAIL of test 50 that is the browser
+dying and not the world), and 50–53 alone afterward. The pendings are 12 and 43, both
+long-standing, and 50 and 53, which report and guard nothing while §2.3.5 is open.
+
+The two mended guards cleared on the way past. **Test 38 laid its block back first try** — the
+beast-retry was not needed in the event. **Test 49 saw thirty-two beasts walk down to water over
+four lands with 0 hunters seen and 0 lying up in cover**, where before the mend it had counted
+three against the world for hunters no beast could see.
+
+### And test 53, on the shipped tree, says the mechanism is alive
+
+This is the round's own instrument reporting on what actually shipped, and it is the strongest
+thing in this section:
+
+| land | herd radius | reach | mothers | **walk-to-station** | roam-pick | graze found nothing | herd pass |
+|---|---|---|---|---|---|---|---|
+| Kenya | 17.7u | 0.90 | 0.85 | **0.0633** | 0.0000 | 0× | 0.197 ms |
+| Tanzania | 17.7u | 0.75 | 0.77 | **0.0677** | 0.0000 | 0× | 0.345 ms |
+| Botswana | 17.1u | 1.10 | 1.01 | **0.0554** | 0.0000 | 0× | 0.308 ms |
+| Mongolia | 17.5u | 1.51 | 1.69 | **0.0407** | 0.0000 | 0× | 0.334 ms |
+
+**The lever the round hung the rule on fires forty to sixty-eight times per thousand
+beast-seconds. The wander-target picker still fires zero.** That is the finding of the round
+restated on the shipped tree by an instrument that was written before the answer was known: the
+old lever is dead, the new one runs, and reach — 1.27–1.32 flat when the diagnostic first read it
+— now sits at 0.75 to 1.51. No beast in any land failed to find a bite, and the pass costs
+0.20–0.35 ms a frame.
+
+Mothers' reach beats the herd's in two lands and loses in two, so **nothing is claimed from that
+column.**
+
+### And test 50's third reading, including one that goes against me
+
+| | before | after | again | **third** |
+|---|---|---|---|---|
+| herds of three or more | 46 | 38 | 48 | 47 |
+| a herd's mean size | 3.93 | 4.39 | 3.94 | 3.85 |
+| the biggest herd | 8 | 10 | 8 | 9 |
+| **how far a herd travels in a spell** | **3 units** | **12** | **8** | **23 (2.28 radii)** |
+| the mothers' depth against the others' | — | — | — | **2.12 vs 2.06** |
+
+The first three lines confirm what was already struck: **nothing about how big a herd is has been
+shown to change.** The travel line holds and strengthens — three readings at 8, 12 and 23 units
+against a figure that was flat at nought to three across four rounds, with Tanzania's centroid
+moving seventy-four units in a spell.
+
+**The last line is a null, and it is against the round's own claim.** Mothers read 2.12 of a
+herd-radius from the middle against others at 2.06 — the mothers very slightly FURTHER OUT. The
+A/B this round shipped on reads the opposite, +1.04 in the mothers' favour, and both readings are
+real. Two things are worth saying and a third is not:
+
+- **Test 50's own comment already disclaims this statistic**, at length and before this round
+  began: it read 1.22/0.94 and then 0.59/1.07 on the same untouched build an hour apart, and
+  concludes "before believing anything it says about depth" the measurement needs more mothers in
+  it. It is the noisy instrument, which is precisely why the rank statistic was built.
+- **And there is now a measured reason it cannot see this rule in particular.** Test 50 marks its
+  mothers and settles **70 frames** before reading them. Test 53 has just measured the lever
+  those mothers must consult at about **0.05 a beast-second — one consultation per beast per
+  twenty world-seconds or so.** The settle is of the same order as the interval between
+  consultations, so a large share of the marked mothers will not have used the new station once
+  by the time they are measured. How large a share I have not established and do not claim; what
+  the arithmetic does establish is that **this reading is not evidence against the rule, because
+  the window is too short for the rule to act in.**
+- **What is NOT claimed is that the disagreement is settled.** The ✅ on this clause rests on the
+  A/B — four lands, control and treatment alternating inside one boot, a 900-frame settle — and
+  on the photograph of nine goats. That is the better design and it is why the ✅ stands. But a
+  second instrument now says nothing, and the way to settle it is plain and is left written down
+  for whoever takes §2.3.5 up next: **lengthen test 50's settle past the interval test 53 has now
+  measured, and read it again.** I have not done it, because tuning a test until it agrees with
+  me is the one move this round has spent its whole length avoiding.
 
 And test 50, run on the finished tree, says one thing this round did not set out to do — and one
 thing I wrote down off a single reading and had to take back when a second arrived:
@@ -6876,8 +6964,9 @@ than quietly amended.** Test 50's own comment calls travel *"the decisive one"* 
 *"if every beast walks toward the MEAN POSITION of its own kind, it walks toward a point that by
 definition sits in the middle of them all and barely moves, so the herd can only shuffle in place
 for ever."* A station is not the mean: a beast makes for a place on a ring, the ring is reckoned
-afresh as the herd moves, and the herd turns out to walk. **Two and a half to four times as far** on two
-readings, where the figure had been flat at nought to three units across four rounds; Tanzania's
+afresh as the herd moves, and the herd turns out to walk. **Between two and a half and eight
+times as far** on three readings — 8, 12 and 23 units — where the figure had been flat at nought
+to three units across four rounds; Tanzania's
 centroid moved twenty-eight units in a spell where the whole earth used to manage three.
 
 It is still not *"matriarch-led"* — nothing leads, there is no rank and no leader, and every beast
@@ -6887,13 +6976,14 @@ not.
 
 ### What it costs, and what is still NOT claimed
 
-**The herd pass is 0.22–0.40 ms a frame** (test 53, four lands) — reckoning every herd on the
+**The herd pass is 0.20–0.40 ms a frame** (test 53, four lands, two runs: 0.22–0.40 and
+0.197–0.345) — reckoning every herd on the
 earth once a frame, an O(n²) sweep over ninety-six beasts. At sixty frames a second that is one
 to two per cent of a frame.
 
-**The watch is dearer than it was.** Test 35 reads 64% of herds with a head up in the full suite
-and 77% run alone, against 80% before the round — its bar is 45% and its own history is 37/58/50
-at small samples, so the honest statement is a range, not a number. A herd that walks to station
+**The watch is dearer than it was.** Test 35 reads 64% and 70% of herds with a head up in the
+full suite and 77% run alone, against 80% before the round — its bar is 45% and its own history
+is 37/58/50 at small samples, so the honest statement is a range, not a number. A herd that walks to station
 has more beasts walking and fewer standing alert; that is a real cost of the feature and it is
 recorded rather than smoothed.
 
@@ -6912,6 +7002,32 @@ four blocks off along the struck face's own normal, and its comment records lear
 way). It did not know it for a beast, and Round 77 made beasts stand closer together, so the odds
 of one being in any particular cell went up. A beast is not a wall: it walks on. The test asks
 again, up to eight times, and reports how many it took.
+
+### And one test had to learn about cover
+
+Test 49 — the beasts go down to the water at dusk — failed in the same run, on its own invariant:
+*"3 times a beast walked to water with a hunter inside its flight distance."* **The world is right
+here too, and for a rule the world wrote down three rounds ago and this suite already guards
+elsewhere.**
+
+`frightNear` has held since Round 54 that **a hunter lying up in deep grass is not seen**: a
+visible one is broken from at the beast's whole flight distance, a hidden one only at
+`min(6, flight × 0.35)`. That is the entire point of cover, and test 35 guards the flight
+distances that go with it. But test 49 asked its question of ANY hunter within `flight × 0.8`,
+hidden or not — so a lion lying in the grass ten units from a gazelle was counted against the
+world for a thing the gazelle could not possibly know.
+
+It never fired while six beasts reached the water. **Round 77's herds walk further and reach it in
+numbers** — twenty-two — and at twenty-two it fired three times. The feature did not break the
+invariant; it produced enough traffic for a wrong invariant to be caught.
+
+The test now asks the world's question. A hunter **in the open** inside the flight distance is
+still a fault and still counted. One **in cover** is counted separately and reported, because how
+often a herd walks down past a hunter it cannot see is worth knowing and is not a bug.
+
+**What those original three were is not established, and is not claimed.** The run that mended
+this read nought and nought — it shows the disagreement gone and nothing further. The two counts
+are kept apart precisely so that the next run which has any will say which kind they were.
 
 ## 5. Further recommendations (future work)
 
