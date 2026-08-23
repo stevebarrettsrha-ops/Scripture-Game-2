@@ -19,6 +19,15 @@
    Everything here is a PURE FUNCTION OF THE PLACE — the same ground always
    bears the same grass, on every machine, for ever, with nothing stored.
 
+   ---- AND IT IS THE SWARD ONLY ----
+   What STANDS UP out of the ground is this file's. What LIES ON it — leaf
+   litter, needle mat, moss, lichen, deadfall, fungi — is js/ground.js, and
+   the two do not fight over a cell: the floor is drawn under the sward and
+   takes none away from it, so a blade may stand in the litter, and does.
+   The rock and the snow are NOT named below and never have been, so not one
+   blade has ever stood on either; the floor knows both, which is why a scree
+   is no longer clean grey stone.
+
    ---- WHAT YOU MAY CHANGE ----
    SWARD      the biome table below: how thick the grass grows on each
               ground, how tall it stands, and what colour it is.
@@ -157,9 +166,24 @@ function hides(x,z,kind,wild){ return coverAt(x,z,kind,wild)>=HIDE_H; }
    from where it stands and hand back the best bite within reach, so a herd
    that has eaten a patch bare gets up and MOVES to the next one.
    `want` is 'feed' for a grazer and 'cover' for a hunter. */
-function seek(x,z,rad,probe,want){
-  let bx=null,bz=null,bv=want==='cover'?HIDE_H*0.8:FEED_MIN;
-  /* three rings and a dozen bearings — cheap, and enough to find a sward */
+/* ---- AND A BEAST IN A HERD MAY BE GIVEN A PLACE TO PREFER ----
+   `pull` is optional: {x,z,w} — a point this beast's herd would have it stand
+   near, and how hard to weigh that against the grass itself.
+
+   THIS IS A CHANGE TO THE SCORE, NOT TO THE CENTRE, and the difference is the
+   whole of why it is worth trying. §2.3.5 has been attempted four times; Round
+   72's third mechanism moved the CENTRE this search starts from and reported
+   that it changed nothing. It could not have changed anything: a ring lays
+   twelve bearings at ONE distance, so moving the centre by twenty units moves
+   every candidate by twenty units together and the choice between them is
+   untouched. Scoring the candidates by how near each falls to the station is a
+   different lever — it chooses the BEARING — and narrowing `rad` is what stops
+   the beast walking out of its own herd to eat whichever bearing it picks.
+
+   The early break is dropped when a pull is given: taking the first bite over
+   0.7 is exactly the shortcut that makes the choice a lottery. */
+function seek(x,z,rad,probe,want,pull){
+  let bx=null,bz=null,bv=want==='cover'?HIDE_H*0.8:FEED_MIN, bs=-1e9;
   for(let r=1;r<=3;r++){
     const d=rad*r/3, turn=hash2(x*0.013,z*0.017)*6.283;
     for(let k=0;k<12;k++){
@@ -167,9 +191,13 @@ function seek(x,z,rad,probe,want){
       const px=x+Math.cos(a)*d, pz=z+Math.sin(a)*d;
       const p=probe(px,pz); if(!p) continue;
       const v=(want==='cover')?coverAt(px,pz,p.kind,p.wild):feedAt(px,pz,p.kind,p.wild);
-      if(v>bv){ bv=v; bx=px; bz=pz; }
+      if(v<=(want==='cover'?HIDE_H*0.8:FEED_MIN)) continue;   /* not worth the walk */
+      const sc=pull ? v-pull.w*Math.hypot(px-pull.x,pz-pull.z)/rad : v;
+      if(sc>bs){ bs=sc; bv=v; bx=px; bz=pz; }
     }
-    if(bx!==null&&bv>(want==='cover'?HIDE_H*1.1:0.7)) break;   /* good enough — go */
+    /* good enough — go. Never when a station is being weighed: the whole
+       point of the pull is to see all the bearings before choosing. */
+    if(!pull&&bx!==null&&bv>(want==='cover'?HIDE_H*1.1:0.7)) break;
   }
   return bx===null?null:{x:bx,z:bz,v:bv};
 }
@@ -177,7 +205,7 @@ function seek(x,z,rad,probe,want){
 window.GRASS={
   SWARD, FEED_MIN, HIDE_H,
   meadow, at, feedAt, coverAt, hides,
-  findGraze:(x,z,rad,probe)=>seek(x,z,rad,probe,'feed'),
+  findGraze:(x,z,rad,probe,pull)=>seek(x,z,rad,probe,'feed',pull),
   findCover:(x,z,rad,probe)=>seek(x,z,rad,probe,'cover'),
   /* does any grass at all grow on this ground? — asked when a beast is
      placed, so a grazer is never set down on bare rock or a sand flat */

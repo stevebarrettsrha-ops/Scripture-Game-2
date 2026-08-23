@@ -477,12 +477,20 @@ TEX.clouds     = mkTex(g=>{ g.clearRect(0,0,64,64);
 const MAT={}, LIT=[];
 function blockMat(name,tex,opts){ const m=new THREE.MeshBasicMaterial(Object.assign({
     map:tex, vertexColors:true, side:THREE.DoubleSide },opts||{}));
+  /* AND EVERY MATERIAL CARRIES ITS OWN NAME. The chunk mesher keeps its
+     geometry in a table keyed by name and can always say what it drew with;
+     a village, a ship and a beast hold the material OBJECT and could not, so
+     anything built outside a chunk was unaccountable — 646 meshes in a village
+     group and no way to ask which of them were the crop. `name` is a field
+     three.js has always had and never used; it costs nothing and it is the
+     difference between measuring a thing and guessing at it. */
+  m.name=name;
   MAT[name]=m; LIT.push(m); return m; }
 /* the ice is enrolled in its OWN pool, not in LIT — see setIceLight */
 const ICE_MATS=[];
 function iceMat(name,tex){ const m=new THREE.MeshBasicMaterial({
     map:tex, vertexColors:true, side:THREE.DoubleSide });
-  MAT[name]=m; ICE_MATS.push(m); return m; }
+  m.name=name; MAT[name]=m; ICE_MATS.push(m); return m; }
 blockMat('grassTop',TEX.grassTop); blockMat('grassTopTr',TEX.grassTopTr); blockMat('grassTopTu',TEX.grassTopTu);
 blockMat('grassTopSv',TEX.grassTopSv); blockMat('grassSideSv',TEX.grassSideSv);
 blockMat('grassSide',TEX.grassSide); blockMat('dirt',TEX.dirt); blockMat('path',TEX.path);
@@ -639,6 +647,16 @@ blockMat('barkCork',TEX.barkCork);     blockMat('barkSmooth',TEX.barkSmooth);
 blockMat('everW',TEX.leafW,{alphaTest:0.4});
 blockMat('plantW',TEX.plantW,{alphaTest:0.4}); blockMat('solidW',TEX.solidW);
 blockMat('flowerY',TEX.flowerY,{alphaTest:0.4}); blockMat('crop',TEX.crop,{alphaTest:0.4});
+/* ---- AND A SECOND CROP, WHICH IS THE ONE THAT DOES NOT TURN ----
+   The corn of the earth goes gold and is reaped. A potato haulm, a taro leaf,
+   a hemp stalk and a cane are GREEN ON THE DAY THEY ARE LIFTED — the field is
+   emptied, not reaped — and gilding them in September would be a lie about the
+   plant. Which of the two a crop takes is one word in world/crops.js.
+   IT IS A SECOND MATERIAL AND THEREFORE A SECOND DRAW CALL, in the chunks that
+   hold such a field and nowhere else. That is a cost and it is measured in
+   AUDIT Round 68 rather than waved through: the alternative is one field crop
+   for the whole earth, which is what there was. */
+blockMat('cropEver',TEX.crop,{alphaTest:0.4});
 blockMat('glass',TEX.glass,{transparent:true,depthWrite:false});
 blockMat('door',TEX.door,{alphaTest:0.1});
 blockMat('waterB',TEX.water);
@@ -756,7 +774,66 @@ windSway(MAT.savgrass,1.5,true,'snow'); windSway(MAT.acacia,0.5,false,'leaf');
 /* and every leaf and every herb on the earth moves with it */
 windSway(MAT.leafW,0.55,false,'leaf'); windSway(MAT.everW,0.55,false,null);
 windSway(MAT.plantW,0.85,true,'snow');
-windSway(MAT.crop,0.5,true);
+/* the two crops are NOT given windSway: `cropYear` below carries the same
+   sway inside it, because it must own the whole vertex shader to sink the
+   plant as well as bend it, and two patches on one material is one patch. */
+/* ---- THE AGRICULTURAL YEAR, AND NOT ONE CHUNK BUILT TWICE FOR IT ----
+   §2.4.6 asks for "crops that grow in stages and are harvested at the right
+   season". A crop that GROWS is geometry that changes, and geometry that
+   changes means the chunk is meshed again — a village rebuilt every few days
+   of the voyage for a field of wheat, which is not a trade worth making for
+   any amount of beauty.
+   So it is done the way the leaves have gilded since Round 53: in the vertex
+   shader, off ONE uniform (the turn of the year) and the vertex's own distance
+   from the middle of the disc, which IS its latitude on an azimuthal earth.
+   The field is meshed once, at full stature, and SUNK INTO ITS OWN TILLED SOIL
+   by how far off harvest it is: bare ploughed ground before the sowing, shoots
+   after it, standing corn by midsummer, gold at the reaping, stubble after.
+   The soil is one opaque face laid over the whole plot and the log border
+   stands half a block proud of it, so what is sunk is not seen.
+   The curve is js/crop.js's, in GLSL and in JavaScript both, built off one set
+   of constants — acceptance test 48 puts the two side by side. */
+function cropYear(mat,turns){
+  if(!window.CROP) return;
+  const src=CROP.glsl(INV_R_STR);
+  mat.onBeforeCompile=sh=>{
+    sh.uniforms.uWindT=WIND_T; sh.uniforms.uWindA=WIND_A; sh.uniforms.uSeasonY=SEASON_Y;
+    /* THE ORDER OF THE TWO INJECTIONS IS NOT FREE, and getting it wrong is how
+       this was first written: `<color_vertex>` runs BEFORE `<begin_vertex>`,
+       and `transformed` does not exist until the second. So the YEAR is worked
+       out at the first (it reads `position` and nothing else) and the plant is
+       moved at the second, where there is something to move. The browser said
+       so in as many words — "'transformed': undeclared identifier" — and the
+       whole crop material failed to compile, which is what a headless run is
+       for. */
+    let vs=sh.vertexShader.replace('#include <color_vertex>',
+      '#include <color_vertex>\n'+src);
+    vs=vs.replace('#include <begin_vertex>',
+      '#include <begin_vertex>\n'+
+      /* AND IT IS SUNK, NOT SHRUNK. A shrink would have to be worked off the
+         crop's own height, and a vertex knows only its own — so a short flax
+         drawn beside a tall maize would fold through its own root. Sinking is
+         one translation, it is exact for every stature, and a shoot coming up
+         out of the ground is what a shoot looks like. */
+      '  transformed.y-=(1.0-vCrop.x)*'+(6*2.4).toFixed(2)+';\n'+
+      '{ float wph=position.x*0.161+position.z*0.127;\n'+
+      '  float wgt=clamp(uv.y,0.0,1.0);\n'+
+      '  float ws1=sin(uWindT*1.7+wph)+0.5*sin(uWindT*2.9+wph*1.83);\n'+
+      '  float ws2=sin(uWindT*1.3+wph*1.31)+0.5*sin(uWindT*2.3+wph*0.77);\n'+
+      '  transformed.x+=ws1*0.500*uWindA*wgt;\n'+
+      '  transformed.z+=ws2*0.350*uWindA*wgt; }');
+    sh.vertexShader='uniform float uWindT; uniform float uWindA; uniform float uSeasonY;\n'+
+      'varying vec2 vCrop;\n'+vs;
+    sh.fragmentShader='varying vec2 vCrop;\n'+sh.fragmentShader.replace(
+      '#include <color_fragment>','#include <color_fragment>'+(turns?
+      /* the ear turns to straw as it comes ready, and what is left standing
+         after the sickle is straw and nothing else */
+      '\n  diffuseColor.rgb=mix(diffuseColor.rgb, vec3(0.84,0.70,0.30), vCrop.y*0.86);':''));
+  };
+  mat.customProgramCacheKey=()=>'crop|'+(turns?1:0);
+  mat.needsUpdate=true;
+}
+cropYear(MAT.crop,true); cropYear(MAT.cropEver,false);
 /* breaking surf — clumpy foam that washes the shoreline (scrolled + pulsed) */
 TEX.surf = mkTex(g=>{ g.clearRect(0,0,16,16);
   const F=PB.surf.b;
@@ -1705,8 +1782,12 @@ function cellRaw(ix,iz){
      closed overhead into a canopy the traveller walked blind through. They
      are thinner now, and GATHERED: thick where a wood stands, open in the
      glades between, so there is somewhere to walk and something to see. */
-  const grove=fbm(ix*.035-17,iz*.035+29);
-  const dens=Math.max(0,Math.min(1,(grove-0.36)/0.38));
+  /* AND IT IS THE SAME FIELD THE FLOOR OF THE WOOD IS LAID BY. There is one
+     copy of it and it lives in js/ground.js, because the litter must thin out
+     exactly where the trees do — a carpet of dead leaf in an open glade is
+     the one way a forest floor can look wrong. Two copies of this number
+     would drift the day either was touched, so there is one. */
+  const dens=GROUND.closure(ix,iz);
   const lon=Math.atan2(u,v)*180/Math.PI;              /* longitude upon the disc */
   /* badlands (barren mesas) only in the arid belt — the tan wastes of the map */
   const badlands = !snow&&!tundra&&lat>11&&lat<36&&n2>0.42&&region<0.43&&inland>0.4;
@@ -2483,11 +2564,31 @@ function boleBox(x0,y0,z0,x1,y1,z1,mat){
   try{ stampBox(x0,y0,z0,x1,y1,z1,mat); }
   finally{ if(!was) _stampOn=null; }
 }
-const FKIT={ G:null, emitBox, bole:boleBox, cross, shade, hash:hash2,
+/* ---- AND ONE UPWARD FACE ----
+   The flora stands things UP and wants boxes. The FLOOR of the wood lies
+   flat and wants ONE face: a mat of leaf has no sides and no underside, and
+   drawn as a box it would cost six faces to show one. `mat` is that face,
+   tinted, and it is the only thing js/ground.js ever asks for besides a box.
+   It takes the light of a top face — full daylight — because that is what it
+   is: the ground, with something lying on it. */
+function matFace(G,m,x0,z0,x1,z1,y,tint){ faceTop(G,m,x0,z0,x1,z1,y,shade(tint,1.0)); }
+const FKIT={ G:null, emitBox, bole:boleBox, cross, mat:matFace, shade, hash:hash2,
   M:{leaf:'leafW', ever:'everW', bark:'barkW', plant:'plantW', solid:'solidW'} };
 let floraReady=false;
 function initFlora(){ if(floraReady) return; floraReady=true;
-  if(window.FLORA) FLORA.load((window.EARTH.floraList||[])[0]||null); }
+  if(window.FLORA) FLORA.load((window.EARTH.floraList||[])[0]||null);
+  /* and the floor of the wood is handed the SAME table, so the colour of the
+     moss underfoot is the colour of the moss the flora stands up out of it,
+     and there is not a second one written down anywhere to drift from it */
+  if(window.GROUND&&window.FLORA) GROUND.load(FLORA.kinds());
+  initCrop(); }
+/* ---- AND WHAT IS SOWN IN THE TILLED GROUND ----
+   js/crop.js is handed world/crops.js (what each field crop IS) and the SAME
+   world/flora.js the trees came out of (which country grows which). There is
+   no second table of what Egypt sows. */
+let cropReady=false;
+function initCrop(){ if(cropReady||!window.CROP) return; cropReady=true;
+  CROP.load((window.EARTH.cropList||[])[0]||null,(window.EARTH.floraList||[])[0]||null); }
 /* ---- AND THE WATER THAT IS SPILLED IS LENT THE SAME FEW THINGS ----
    js/water.js owns the water a hand spills and a surge throws ashore, and
    NOTHING ELSE. It is given a door to the edit overlay and no other door at
@@ -2602,16 +2703,58 @@ function nearSettled(x,z){
    is drawn and what is eaten are the same blade, because both came out of
    GRASS.at(). (Before this the mesher decided alone, nothing else in the
    world knew where a blade stood, and the herds grazed bare dirt.) */
+/* ---- WHICH SIDE OF A STEP THE SUN NEVER COMES TO ----
+   §2.4.5 asks for "moss on the shaded side", and on this earth that phrase
+   has a single, exact meaning. The world is an azimuthal disc with the NORTH
+   POLE AT THE MIDDLE, so in the northern half the sun stands outward from
+   the centre and in the southern half it stands inward — and the face a step
+   never lights is always the one turned toward its own pole. We step one cell
+   that way and ask whether the ground there stands higher: if it does, this
+   cell lies in its shadow the whole year, and that is where moss grows.
+   IT COSTS NOTHING. `emitColumn` asked all four of this column's neighbours a
+   few lines ago to draw its flanks, so the one asked here is a cache hit. */
+function shadedCell(ix,iz,h){
+  const x=(ix+0.5)*B, z=(iz+0.5)*B, d=Math.hypot(x,z);
+  if(d<1) return false;                       /* the pole itself has no side */
+  const sgn=(90-d/R_WORLD*180)>=0 ? -1 : 1;   /* inward is north; outward is south */
+  const ux=sgn*x/d, uz=sgn*z/d;
+  const nc=Math.abs(ux)>Math.abs(uz) ? cell(ix+(ux>0?1:-1),iz)
+                                     : cell(ix,iz+(uz>0?1:-1));
+  return !!nc && nc.h>h;
+}
 function emitScrub(G,ix,iz,cc,wild){
-  /* ---- THE HERB AND THE BUSH COME FIRST ----
+  initFlora();
+  const wet=!!(chunkRiver&&riverBankCell((ix+0.5)*B,(iz+0.5)*B));
+  /* ---- THE FLOOR OF THE WOOD LIES UNDER ALL OF IT ----
+     Before anything stands up out of this cell, what LIES on it: leaf litter,
+     needle mat, moss, lichen, a fallen bole, fungi in the damp. It is the
+     bottom layer and it takes no cell away from the two above it — the sward
+     may stand in the litter, and does, which is what a wood looks like.
+     WHAT LIES HERE IS NOT DECIDED HERE. It is asked of js/ground.js, which is
+     the one truth about the floor of the earth, exactly as js/grass.js is the
+     one truth about its grass. This file hands it the four things it cannot
+     know for itself — how far off a village lies, how closed the canopy is,
+     whether running water is within a bowshot, and which side the sun never
+     comes to — and takes the geometry back. */
+  if(window.GROUND){
+    const g=GROUND.at(ix,iz,cc.kind,wild,undefined,wet,shadedCell(ix,iz,cc.h));
+    if(g){
+      /* and the LITTER and the FALLEN BOLE take their colour from the tree
+         that shed them: the same kind the mesher would have grown here. The
+         flora is asked only for those two — a mushroom and a lichen have
+         colours of their own and the lookup would be work done for nothing. */
+      const K=(GROUND.needsWood(g.m)&&window.FLORA)
+        ? FLORA.treeAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wet) : null;
+      FKIT.G=G; GROUND.emit(FKIT,g,ix,iz,cc.h*B,K); FKIT.G=null;
+    }
+  }
+  /* ---- THE HERB AND THE BUSH COME NEXT ----
      Before the sward, what this COUNTRY grows low: the vine and the lavender
      of the south, the bilberry under the northern spruce, the coffee bush,
      the reed, the agave, the ear of corn. It is a sparser draw than the
      grass and takes its own number, so the two layers never fight over a
      cell — where a bush stands, no blade is drawn under it. */
-  initFlora();
   if(window.FLORA){
-    const wet=chunkRiver&&riverBankCell((ix+0.5)*B,(iz+0.5)*B);
     const P=FLORA.plantAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wild,wet);
     if(P){ FKIT.G=G; FLORA.emitPlant(FKIT,P,ix,iz,cc); FKIT.G=null; return; }
     /* ---- AND THE YOUNG GROWTH ----
@@ -5511,6 +5654,21 @@ const BEAST_KIT={
      from the shoulder and not from the hoof), and to be enrolled on
      userData.legs, which is what the engine walks. x/z are how far out from
      the middle they stand, h how long they are, t how thick. */
+  /* ---- A PART HUNG ON ANOTHER PART ----
+     Everything a beast wears on its head — muzzle, nostrils, eyes, ears,
+     horns — belongs to the HEAD and not to the beast, because the engine
+     turns the head when a beast grazes or grooms and a face left behind on
+     the body is a face that comes off. It costs nothing: a part that does not
+     move against the part it hangs from is welded into it. */
+  on:function(parent,m,x,y,z){ m.position.set(x||0,y||0,z||0); parent.add(m); return m; },
+  /* ---- A LENGTH THAT JOINS ON THE END OF THE LAST ----
+     A horn that steps in three straight boxes is a spike in three pieces; a
+     horn whose lengths are each hung on the tip of the one before, and each
+     leaned a little further over, is a horn. The origin is the BASE of the
+     length, so `y` is simply how long its parent was. */
+  limb:function(w,h,d,col,y,rx,rz){ const m=lbox(w,h,d,col);
+    m.geometry.translate(0,h/2,0); m.position.y=y||0;
+    if(rx) m.rotation.x=rx; if(rz) m.rotation.z=rz; m.userData.len=h; return m; },
   legs4:function(g,x,z,h,col,t){ t=t||0.9; const out=[];
     /* ---- AND EVERY LEG HAS A KNEE NOW ----
        A leg was one stiff box swung from the hip, so every beast on the
@@ -5712,6 +5870,191 @@ function coatBeast(inner,spec){
   });
 }
 
+/* ================= AND A BEAST IS DRAWN IN A HANDFUL OF CALLS =================
+   §2.3.4 asks for *"30–60 parts for large mammals rather than 12–15"*, and the
+   naive reading of that would have broken §2.5 outright.
+
+   EVERY PART OF EVERY BEAST IS ITS OWN DRAW CALL. `lbox` mints a new
+   `BoxGeometry` AND a new material for each limb (`lam` is `new
+   MeshLambertMaterial` every time it is called), and nothing anywhere merged
+   or instanced beast geometry. At fifteen to nineteen parts apiece and
+   ninety-six beasts standing, that is well over a thousand calls for the
+   animals alone; taking them to forty parts would have added a thousand more,
+   against a chunk mesher measured at three and a half thousand meshes in a
+   wooded view. "Beauty that halves the frame rate is not beauty."
+
+   ---- THE TRICK IS ALREADY IN THIS CODEBASE, TWICE ----
+   The flora draws a hundred and seventy species with four grey materials by
+   tinting its vertex colours. And `coatBeast` above already writes a
+   greyscale `color` attribute onto every mesh of every beast and turns
+   `vertexColors` on. So the parts are one short step from being mergeable:
+   multiply each part's own base colour into that attribute, and its material
+   stops carrying any information the geometry cannot.
+
+   ---- WHAT MERGES, AND WHAT MUST NOT ----
+   WHAT STAYS LOOSE IS DERIVED AND NOT LISTED BY HAND. The engine reaches
+   every moving part by NAME through `userData` — `legs` (and each leg's
+   `knee`), `head`, `jaw`, `tail`, `ears`, `tents`, `wingL`/`wingR`,
+   `flL`/`flR`, `armL`/`armR`. Anything named there, and everything hanging
+   under it, keeps its own mesh; all the rest is welded. A hand-kept list of
+   moving parts would drift the first time a creature file grew a new one.
+   This cannot: if the engine can reach it, it still moves.
+
+   And the weld is by MATERIAL SIGNATURE, not into one lump: a textured hide
+   and a flat horn cannot share a material, so parts are gathered by the
+   texture they wear (and whether they are see-through) and each gathering
+   becomes one mesh. A beast typically has one or two.
+   ============================================================ */
+const _mgV=new THREE.Vector3(), _mgN=new THREE.Vector3(), _mgM3=new THREE.Matrix3();
+/* every Object3D the engine can reach by name on this beast, and its subtree */
+function beastMoving(inner){
+  const keep=new Set();
+  const claim=o=>{ if(o&&o.isObject3D&&!keep.has(o)){ o.traverse(x=>keep.add(x)); } };
+  const walk=ud=>{ if(!ud) return;
+    for(const k in ud){ const v=ud[k];
+      if(!v) continue;
+      if(v.isObject3D){ claim(v); walk(v.userData); }
+      else if(Array.isArray(v)) for(const e of v) if(e&&e.isObject3D){ claim(e); walk(e.userData); } } };
+  walk(inner.userData);
+  /* a leg's own knee and shin hang off the leg's userData, and are claimed by
+     the subtree sweep above; this catches any that were parented elsewhere */
+  inner.traverse(o=>{ if(keep.has(o)) walk(o.userData); });
+  return keep;
+}
+/* ---- AND THE PIVOTS THEMSELVES ----
+   `beastMoving` claims a moving part AND ITS WHOLE SUBTREE, which is right:
+   a hoof hung off a shin must not be welded to the ground the shin swings
+   over. But it is not the whole truth either. The hoof does not move against
+   the SHIN. Nothing in the engine ever reaches for it. It is as still, in the
+   shin's own space, as the barrel is in the beast's.
+
+   So the pivots are counted apart from their subtrees: the pivots are the
+   parts the engine has a hand on BY NAME, and everything else is welded into
+   the nearest pivot above it. That is the difference between a beast of forty
+   parts costing twelve draw calls and costing twenty-one, and it is the whole
+   reason §2.3.4's finer grain can be afforded — the grain is nearly all
+   detail hung off something that already moves. */
+function beastPivots(inner){
+  const piv=new Set(), seen=new Set();
+  const walk=ud=>{ if(!ud||seen.has(ud)) return; seen.add(ud);
+    for(const k in ud){ const v=ud[k];
+      if(!v) continue;
+      if(v.isObject3D){ piv.add(v); walk(v.userData); }
+      else if(Array.isArray(v)) for(const e of v) if(e&&e.isObject3D){ piv.add(e); walk(e.userData); } } };
+  walk(inner.userData);
+  /* a pivot reached only by being parented under another (a shin's hoof is
+     not a pivot; a shin is) — sweep until the set stops growing */
+  for(let pass=0,n=-1; piv.size!==n && pass<8; pass++){
+    n=piv.size; inner.traverse(o=>{ if(piv.has(o)) walk(o.userData); }); }
+  return piv;
+}
+const _mgM4=new THREE.Matrix4();
+/* weld the still parts of ONE scope into the fewest meshes their materials
+   allow, in that scope's own space. If the scope is itself a mesh it joins
+   its own gathering — the object survives, and only its geometry is
+   exchanged, so every `userData` handle on it still points at the same
+   thing and the engine never knows. */
+function weldScope(root,parts){
+  if(!parts.length) return 0;
+  root.updateWorldMatrix(true,false);
+  _mgM4.copy(root.matrixWorld).invert();
+  const usable=o=>{
+    const m=o.material; if(!m||Array.isArray(m)) return null;   /* a six-faced box keeps itself */
+    const g=o.geometry, a=g&&g.attributes;
+    if(!a||!a.position||!a.normal) return null;
+    if(!a.color) return null;                  /* uncoated — leave it be */
+    const map=m.map||null;
+    if(map&&!a.uv) return null;                /* textured and no uv: cannot weld */
+    return {map, key:(map?map.uuid:'flat')+'|'+(m.transparent?'t':'o')+'|'+(m.side||0)};
+  };
+  const lots=new Map();
+  const enrol=(o,own)=>{
+    const u=usable(o); if(!u) return;
+    let L=lots.get(u.key);
+    if(!L){ L={map:u.map, proto:o.material, mesh:[], n:0, own:null}; lots.set(u.key,L); }
+    if(own) L.own=o; else L.mesh.push(o);
+    L.n+=o.geometry.attributes.position.count;
+  };
+  for(const o of parts) enrol(o,false);
+  if(root.isMesh&&root.geometry) enrol(root,true);
+  let saved=0;
+  for(const L of lots.values()){
+    const all=L.own?L.mesh.concat([L.own]):L.mesh;
+    if(all.length<2) continue;                 /* nothing gained welding one */
+    const pos=new Float32Array(L.n*3), nor=new Float32Array(L.n*3), col=new Float32Array(L.n*3);
+    const uv=L.map?new Float32Array(L.n*2):null;
+    const idx=[]; let at=0;
+    for(const o of all){
+      const g=o.geometry, a=g.attributes, n=a.position.count;
+      const M=_mgM4.clone().multiply(o.matrixWorld);
+      _mgM3.getNormalMatrix(M);
+      const c=o.material.color;
+      const cr=c?c.r:1, cg=c?c.g:1, cb=c?c.b:1;
+      for(let i=0;i<n;i++){
+        _mgV.fromBufferAttribute(a.position,i).applyMatrix4(M);
+        pos[(at+i)*3]=_mgV.x; pos[(at+i)*3+1]=_mgV.y; pos[(at+i)*3+2]=_mgV.z;
+        _mgN.fromBufferAttribute(a.normal,i).applyMatrix3(_mgM3).normalize();
+        nor[(at+i)*3]=_mgN.x; nor[(at+i)*3+1]=_mgN.y; nor[(at+i)*3+2]=_mgN.z;
+        /* THE PART'S OWN COLOUR GOES INTO THE GEOMETRY. That is the whole of
+           it: once the base colour is in the vertices, the material carries
+           nothing the mesh needs and one material serves them all. */
+        const f=a.color.getX(i);
+        col[(at+i)*3]=f*cr; col[(at+i)*3+1]=f*cg; col[(at+i)*3+2]=f*cb;
+        if(uv){ uv[(at+i)*2]=a.uv.getX(i); uv[(at+i)*2+1]=a.uv.getY(i); }
+      }
+      const gi=g.index;
+      if(gi) for(let i=0;i<gi.count;i++) idx.push(at+gi.getX(i));
+      else for(let i=0;i<n;i++) idx.push(at+i);
+      at+=n;
+    }
+    const bg=new THREE.BufferGeometry();
+    bg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    bg.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
+    bg.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+    if(uv) bg.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+    bg.setIndex(idx);
+    const mat=new THREE.MeshLambertMaterial({
+      map:L.map||null, vertexColors:true, color:0xffffff,
+      transparent:!!L.proto.transparent, opacity:L.proto.opacity,
+      side:L.proto.side, alphaTest:L.proto.alphaTest||0 });
+    /* and the parts that went in are taken out and given back to the card */
+    for(const o of L.mesh){
+      if(o.parent) o.parent.remove(o);
+      if(o.geometry&&o.geometry.dispose) o.geometry.dispose();
+      if(o.material&&o.material.dispose) o.material.dispose();
+    }
+    saved+=L.mesh.length;
+    if(L.own){                                 /* the pivot keeps its identity */
+      if(L.own.geometry&&L.own.geometry.dispose) L.own.geometry.dispose();
+      if(L.own.material&&L.own.material.dispose) L.own.material.dispose();
+      L.own.geometry=bg; L.own.material=mat;
+    } else { root.add(new THREE.Mesh(bg,mat)); saved-=1; }
+  }
+  return saved;
+}
+function mergeBeast(inner){
+  if(!MERGE_ON) return inner;
+  inner.updateWorldMatrix(false,true);
+  const piv=beastPivots(inner);
+  /* every mesh belongs to the nearest MOVING part above it, or to the beast
+     itself where there is none. A hoof goes to its shin; a horn to the head
+     it is grown on; a barrel to the beast. */
+  const scopeOf=o=>{ let p=o.parent; while(p){ if(piv.has(p)) return p; p=p.parent; } return inner; };
+  const scopes=new Map(); scopes.set(inner,[]);
+  inner.traverse(o=>{
+    if(!o.isMesh||!o.geometry||piv.has(o)) return;   /* a pivot draws itself */
+    const s=scopeOf(o);
+    let L=scopes.get(s); if(!L) scopes.set(s,L=[]);
+    L.push(o);
+  });
+  for(const p of piv) if(!scopes.has(p)) scopes.set(p,[]);
+  for(const [root,parts] of scopes) weldScope(root,parts);
+  return inner;
+}
+/* the switch: a weld is geometry, and geometry is measured beside the thing
+   it replaced rather than asserted. Acceptance test 51 throws it. */
+let MERGE_ON=true;
+
 /* build one beast, grown to its true stature. Extra arguments are passed
    through to the file's build (the fish takes its colour that way). */
 function makeBeast(name,arg){
@@ -5719,6 +6062,7 @@ function makeBeast(name,arg){
   if(!spec) throw new Error('no creature file for "'+name+'"');
   const inner=spec.build(BEAST_KIT,arg);
   coatBeast(inner,spec);
+  mergeBeast(inner);            /* and the still parts are welded into one */
   const span=beastSpan(inner,trueAxis(name,spec));
   /* THE BEAST IS WRAPPED, AND THE WRAPPER GROWS IT. The engine sets scale on
      what it is handed (a calf in the pod, a shark rearing) — so the true
@@ -5931,14 +6275,34 @@ function makePerson(seed, role, child, female){
   return g;
 }
 /* ---- EVERY BEAST OF THE FIELD, AND WHERE IT IS BUILT ----
-   The cattle, flocks and beasts of the old world are built here, in this one
-   long hand. Everything added since has its OWN FILE in creatures/ with
-   realm:'land' — a file is asked for first, so a new beast is a new file and
-   nothing in the engine need be touched to have it walk the earth. */
+   In a file, in creatures/, with realm:'land'. A file is asked for first, so
+   a new beast is a new file and nothing in the engine need be touched to have
+   it walk the earth.
+
+   `buildOldAnimal` below was once the whole menagerie of the settled world —
+   twenty kinds of cattle, flock, horse, hound and wild beast written out by
+   hand in one two-hundred-line chain, at fifteen to nineteen boxes apiece.
+   §2.3.4 asked for thirty to sixty parts on a large mammal, and every one of
+   the twenty has its own file now. What is left in the hand is the PENGUIN
+   and the OSTRICH, which the size table measures but `world/fauna.js` places
+   by other machinery; they will follow. */
 function makeAnimal(kind){
   const spec=BEAST_BY_NAME[kind];
   if(spec&&spec.realm==='land') return makeBeast(kind);
-  return sizeToTrue(kind,buildOldAnimal(kind));
+  /* ---- AND THE HAND-BUILT BEASTS ARE COATED TOO, WHICH THEY WERE NOT ----
+     `coatBeast` was called from `makeBeast` and from nowhere else, and
+     `makeBeast` is only reached by a kind that HAS A CREATURE FILE. Twenty
+     kinds had none — sheep, cow, pig, chicken, hare, lizard, goat, camel,
+     horse, donkey, ox, wolf, dog, lion, deer, elephant, crocodile, bear and
+     blackbear among them — so every one of them came out of Round 51's coat
+     FLAT, and acceptance test 32 walked `BEAST_BY_NAME` and could not see a
+     single one of them to say so. All twenty have files now (§2.3.4), but the
+     call stays where it is: it is what makes the door SAFE, so that the next
+     beast written by hand here is coated the day it is written. */
+  const inner=buildOldAnimal(kind);
+  coatBeast(inner,null);
+  mergeBeast(inner);            /* and the still parts are welded into one */
+  return sizeToTrue(kind,inner);
 }
 /* ---- THE HAND-BUILT BEASTS, BROUGHT TO THE SAME MEASURE ----
    The world's first cattle, sheep, horses, wolves and lions were built by
@@ -5956,213 +6320,13 @@ function sizeToTrue(kind,inner){
 }
 function buildOldAnimal(kind){
   const g=new THREE.Group(); const legs=[]; let tailRef=null;
-  function fourLegs(w,d,lh,col){ for(const sx of [1,-1]) for(const sz of [1,-1]){
-    const L=lbox(0.9,lh*0.55,0.9,col); L.geometry.translate(0,-lh*0.275,0);   // thigh, pivot at the hip
-    L.position.set(sx*w,lh,sz*d);
-    const S=lbox(0.8,lh*0.5,0.8,col); S.geometry.translate(0,-lh*0.25,0);     // shin, hung from the knee
-    S.position.set(0,-lh*0.53,0); L.add(S); L.userData.knee=S;
-    L.userData.ph=(sx*sz>0)?0:Math.PI; L.userData.foot=(sx>0?0:1)+(sz>0?0:2);
-    g.add(L); legs.push(L); } }
   /* ---- EVERY BEAST HAS A FACE ----
      Two dark eyes set on the front corners of the head — the one detail that
      turns a box into a creature looking at you. */
   function eyes(hx,hy,hz,sz2,col){ for(const sd of [1,-1]){
     const e=lbox(sz2||0.3,sz2||0.3,0.2,col||0x14100c);
     e.position.set(sd*hx,hy,hz); g.add(e); } }
-  if(kind==='sheep'){
-    const body=new THREE.Mesh(new THREE.BoxGeometry(3.4,2.6,4.6),
-      new THREE.MeshLambertMaterial({map:TEX.wool})); body.position.y=3.4; g.add(body);
-    const head=lbox(1.6,1.7,1.6,0xead9c8); head.position.set(0,4.3,2.9); g.add(head);
-    eyes(0.5,4.6,3.72,0.3);
-    for(const s of [1,-1]){ const ear=lbox(0.6,0.35,0.3,0xdcc9b4); ear.position.set(s*1.0,4.7,2.8); g.add(ear); }
-    tailRef=lbox(0.7,0.7,0.5,0xefe8dc); tailRef.position.set(0,3.6,-2.5); g.add(tailRef);
-    fourLegs(1.1,1.5,2.1,0xd9d0c0);
-  } else if(kind==='cow'){
-    const cowTex=mkTex(gg=>{ speckle(gg,[92,64,44],14);
-      gg.fillStyle='rgb(235,232,225)';
-      gg.fillRect(1,2,5,5); gg.fillRect(9,8,6,6); gg.fillRect(10,1,4,3); });
-    const body=new THREE.Mesh(new THREE.BoxGeometry(3.6,2.8,5.4),
-      new THREE.MeshLambertMaterial({map:cowTex})); body.position.y=3.8; g.add(body);
-    const head=lbox(1.9,1.9,1.6,0x6b4a34); head.position.set(0,4.7,3.3); g.add(head);
-    const muz=lbox(1.4,0.9,0.5,0xd9cfc2); muz.position.set(0,4.3,4.2); g.add(muz);
-    for(const s of [1,-1]){ const h2=lbox(0.4,0.4,0.7,0xe8e2d2); h2.position.set(s*1.05,5.5,3.2); g.add(h2);
-      const ear=lbox(0.55,0.4,0.3,0x5a4030); ear.position.set(s*1.1,5.1,3.1); g.add(ear); }
-    eyes(0.6,5.1,4.14,0.34);
-    for(const s of [1,-1]){ const nos=lbox(0.25,0.25,0.2,0x8a7a6a); nos.position.set(s*0.4,4.35,4.48); g.add(nos); }
-    tailRef=lbox(0.4,2.0,0.4,0x4a3626); tailRef.geometry.translate(0,-1.0,0); tailRef.position.set(0,4.8,-2.8); g.add(tailRef);
-    fourLegs(1.2,1.9,2.3,0x5a4030);
-  } else if(kind==='pig'){
-    const body=lbox(3.2,2.4,4.6,0xefa2a2); body.position.y=2.9; g.add(body);
-    const head=lbox(2,2,1.4,0xefa2a2); head.position.set(0,3.3,2.9); g.add(head);
-    const snout=lbox(1.1,0.8,0.4,0xe58a8a); snout.position.set(0,3.1,3.7); g.add(snout);
-    eyes(0.62,3.8,3.62,0.28);
-    for(const s of [1,-1]){ const nos=lbox(0.2,0.3,0.14,0xc87878); nos.position.set(s*0.24,3.1,3.94); g.add(nos);
-      const ear=lbox(0.55,0.55,0.25,0xdf9494); ear.position.set(s*0.85,4.35,2.7); ear.rotation.z=s*0.3; g.add(ear); }
-    tailRef=lbox(0.3,0.3,0.7,0xe58a8a); tailRef.position.set(0,3.4,-2.5); tailRef.rotation.x=-0.7; g.add(tailRef);
-    fourLegs(1.05,1.6,1.6,0xdf9494);
-  } else if(kind==='chicken'){
-    const body=lbox(1.7,1.7,2.3,0xeeeeea); body.position.y=1.9; g.add(body);
-    const head=lbox(1,1.4,1,0xf2f2ee); head.position.set(0,3.3,1.1); g.add(head);
-    const beak=lbox(0.7,0.4,0.5,0xdf9c2a); beak.position.set(0,3.2,1.75); g.add(beak);
-    const wat=lbox(0.4,0.5,0.3,0xc23a2a); wat.position.set(0,2.7,1.6); g.add(wat);
-    const comb=lbox(0.3,0.55,0.8,0xc23a2a); comb.position.set(0,4.2,1.0); g.add(comb);
-    eyes(0.52,3.6,1.52,0.22);
-    tailRef=lbox(0.9,1.1,0.5,0xdcdcd6); tailRef.position.set(0,2.6,-1.3); tailRef.rotation.x=0.5; g.add(tailRef);
-    for(const s of [1,-1]){ const w2=lbox(0.3,1.2,1.9,0xdcdcd6); w2.position.set(s*1,2.1,0.1); g.add(w2); }
-    fourLegs(0.45,0.4,0.8,0xdf9c2a);
-  } else if(kind==='hare'){       /* a creeping thing of the field */
-    const body=lbox(1.1,1.1,1.8,0xb8a184); body.position.y=1.2; g.add(body);
-    const head=lbox(0.9,0.9,0.9,0xc8b494); head.position.set(0,1.7,1.1); g.add(head);
-    eyes(0.47,1.85,1.4,0.22);
-    const nose=lbox(0.24,0.2,0.14,0x8a7060); nose.position.set(0,1.6,1.6); g.add(nose);
-    for(const s of [1,-1]){ const ear=lbox(0.3,1.3,0.3,0xc8b494); ear.position.set(s*0.3,2.7,0.9); g.add(ear); }
-    const tail=lbox(0.5,0.5,0.4,0xefe8dc); tail.position.set(0,1.3,-1); g.add(tail);
-    fourLegs(0.4,0.6,0.7,0xa08868);
-  } else if(kind==='lizard'){     /* a creeping thing of the rocks */
-    const body=lbox(0.7,0.5,2.2,0x6f7a44); body.position.y=0.6; g.add(body);
-    const head=lbox(0.8,0.6,0.9,0x7a854c); head.position.set(0,0.7,1.4); g.add(head);
-    eyes(0.42,0.85,1.6,0.18,0xd9c93f);
-    const tail=lbox(0.4,0.35,1.8,0x636c3c); tail.position.set(0,0.55,-1.9); g.add(tail); tailRef=tail;
-    fourLegs(0.55,0.7,0.5,0x5c6438);
-  } else if(kind==='goat'){
-    const body=lbox(2.4,2.2,3.6,0xcfc4b0); body.position.y=3.0; g.add(body);
-    const head=lbox(1.3,1.4,1.4,0xdad0be); head.position.set(0,3.9,2.3); g.add(head);
-    eyes(0.42,4.2,3.02,0.26,0xd9b83f);
-    const beard=lbox(0.35,0.7,0.3,0xb7ac98); beard.position.set(0,3.1,2.9); g.add(beard);
-    for(const s of [1,-1]){ const horn=lbox(0.3,0.9,0.3,0x6a5c44); horn.position.set(s*0.4,4.9,2.1);
-      horn.rotation.x=-0.5; g.add(horn);
-      const ear=lbox(0.5,0.3,0.25,0xcfc4b0); ear.position.set(s*0.85,4.3,2.2); ear.rotation.z=s*0.4; g.add(ear); }
-    tailRef=lbox(0.35,0.7,0.3,0xb7ac98); tailRef.position.set(0,3.9,-1.9); tailRef.rotation.x=0.6; g.add(tailRef);
-    fourLegs(0.9,1.3,2.0,0xb7ac98);
-  } else if(kind==='camel'){
-    const body=lbox(2.8,3,5.6,0xc8a06a); body.position.y=4.8; g.add(body);
-    const hump=lbox(1.9,1.4,2,0xb8905a); hump.position.set(0,6.9,0.4); g.add(hump);
-    const neck=lbox(1.2,2.8,1.2,0xc8a06a); neck.position.set(0,6.6,2.6); g.add(neck);
-    const head=lbox(1.4,1.2,2,0xb8905a); head.position.set(0,8.2,3.2); g.add(head);
-    eyes(0.55,8.5,4.0,0.26);
-    for(const s of [1,-1]){ const ear=lbox(0.35,0.4,0.25,0xb8905a); ear.position.set(s*0.6,8.85,2.7); g.add(ear); }
-    tailRef=lbox(0.35,1.8,0.35,0xa8834f); tailRef.geometry.translate(0,-0.9,0); tailRef.position.set(0,5.6,-2.9); g.add(tailRef);
-    fourLegs(1,2.1,3.3,0xb08a56);
-  } else if(kind==='horse'){
-    const col=0x6a4a2e; const body=lbox(2.2,2.6,5.4,col); body.position.y=4.2; g.add(body);
-    const neck=lbox(1.3,2.6,1.3,col); neck.position.set(0,5.6,2.4); neck.rotation.x=-0.5; g.add(neck);
-    const head=lbox(1.2,1.5,2.4,col); head.position.set(0,6.6,3.4); g.add(head);
-    eyes(0.5,7.0,4.2,0.28);
-    for(const s of [1,-1]){ const ear=lbox(0.3,0.7,0.3,col); ear.position.set(s*0.4,7.6,2.9); g.add(ear);
-      const nos=lbox(0.22,0.22,0.16,0x3a2a1a); nos.position.set(s*0.3,6.4,4.62); g.add(nos); }
-    const blaze=lbox(0.42,0.9,0.16,0xe8e0d0); blaze.position.set(0,6.9,4.62); g.add(blaze);
-    const mane=lbox(0.4,2.4,1.3,0x2e2018); mane.position.set(0,6.0,2.0); mane.rotation.x=-0.5; g.add(mane);
-    const tail=lbox(0.5,2.4,0.5,0x2e2018); tail.position.set(0,4.4,-2.9); tail.rotation.x=0.5; g.add(tail); tailRef=tail;
-    fourLegs(0.9,2.0,3.2,0x4a3320);
-  } else if(kind==='donkey'){
-    const col=0x9a938a; const body=lbox(1.8,2.2,4.4,col); body.position.y=3.6; g.add(body);
-    const neck=lbox(1.1,2.2,1.1,col); neck.position.set(0,4.8,2.0); neck.rotation.x=-0.5; g.add(neck);
-    const head=lbox(1.0,1.3,2.0,col); head.position.set(0,5.6,3.0); g.add(head);
-    for(const s of[1,-1]){ const ear=lbox(0.35,1.4,0.35,col); ear.position.set(s*0.4,6.6,2.6); g.add(ear); }
-    eyes(0.42,5.9,4.02,0.26);
-    const muz2=lbox(0.7,0.5,0.3,0xc8c2ba); muz2.position.set(0,5.3,4.05); g.add(muz2);
-    const tail=lbox(0.4,1.8,0.4,0x5a534a); tail.position.set(0,3.8,-2.4); tail.rotation.x=0.4; g.add(tail); tailRef=tail;
-    fourLegs(0.75,1.6,2.6,0x7a736a);
-  } else if(kind==='ox'){
-    const body=lbox(3.4,3.0,6.0,0x5a4436); body.position.y=4.2; g.add(body);
-    const head=lbox(2.0,2.0,1.8,0x4a3628); head.position.set(0,4.9,3.6); g.add(head);
-    eyes(0.62,5.3,4.52,0.32);
-    const muz3=lbox(1.3,0.8,0.4,0xc8bcae); muz3.position.set(0,4.4,4.6); g.add(muz3);
-    for(const s of[1,-1]){ const horn=lbox(0.35,0.35,1.4,0xe8e0d0); horn.position.set(s*1.2,5.6,3.6); horn.rotation.z=s*0.5; g.add(horn);
-      const ear=lbox(0.55,0.4,0.3,0x4a3628); ear.position.set(s*1.15,5.15,3.4); g.add(ear); }
-    tailRef=lbox(0.4,2.2,0.4,0x3a2a1e); tailRef.geometry.translate(0,-1.1,0); tailRef.position.set(0,5.3,-3.1); g.add(tailRef);
-    fourLegs(1.3,2.1,2.7,0x4a3628);
-  } else if(kind==='wolf'){
-    const col=0x8a8f96; const body=lbox(1.6,1.6,3.6,col); body.position.y=2.2; g.add(body);
-    const head=lbox(1.3,1.3,1.4,col); head.position.set(0,2.6,2.2); g.add(head);
-    const snout=lbox(0.7,0.6,0.8,0x6a6f76); snout.position.set(0,2.4,3.0); g.add(snout);
-    eyes(0.4,2.95,2.92,0.22,0xd9c93f);
-    const nose=lbox(0.3,0.24,0.16,0x14100c); nose.position.set(0,2.5,3.44); g.add(nose);
-    for(const s of[1,-1]){ const ear=lbox(0.4,0.7,0.3,col); ear.position.set(s*0.5,3.4,2.1); g.add(ear); }
-    const tail=lbox(0.6,0.6,1.8,col); tail.position.set(0,2.6,-2.2); tail.rotation.x=0.4; g.add(tail); tailRef=tail;
-    fourLegs(0.6,1.2,2.0,0x70767c);
-  } else if(kind==='dog'){
-    const col=0xb98a52; const body=lbox(1.2,1.2,2.8,col); body.position.y=1.9; g.add(body);
-    const head=lbox(1.1,1.1,1.2,col); head.position.set(0,2.3,1.7); g.add(head);
-    const snout=lbox(0.6,0.5,0.7,0x8a6238); snout.position.set(0,2.1,2.4); g.add(snout);
-    eyes(0.34,2.6,2.32,0.2);
-    const nose=lbox(0.26,0.2,0.14,0x14100c); nose.position.set(0,2.2,2.8); g.add(nose);
-    for(const s of[1,-1]){ const ear=lbox(0.4,0.6,0.3,0x8a6238); ear.position.set(s*0.5,3.0,1.6); g.add(ear); }
-    const tail=lbox(0.4,0.4,1.4,col); tail.position.set(0,2.4,-1.8); tail.rotation.x=0.5; g.add(tail); tailRef=tail;
-    fourLegs(0.45,0.9,1.6,0x9a723e);
-  } else if(kind==='lion'){
-    const col=0xcaa25a; const body=lbox(2.0,2.0,4.4,col); body.position.y=2.8; g.add(body);
-    const mane=lbox(2.4,2.4,1.2,0x8a5a2a); mane.position.set(0,3.4,2.2); g.add(mane);
-    const head=lbox(1.6,1.6,1.6,col); head.position.set(0,3.4,2.9); g.add(head);
-    const snout=lbox(0.9,0.7,0.7,0xd8b878); snout.position.set(0,3.1,3.7); g.add(snout);
-    eyes(0.46,3.75,3.72,0.24,0xd9b83f);
-    const nose2=lbox(0.34,0.24,0.16,0x2a1c12); nose2.position.set(0,3.25,4.08); g.add(nose2);
-    for(const s of[1,-1]){ const ear=lbox(0.4,0.4,0.3,0x8a5a2a); ear.position.set(s*0.75,4.25,2.5); g.add(ear); }
-    const tail=lbox(0.4,0.4,2.2,col); tail.position.set(0,3.0,-2.6); tail.rotation.x=0.3; g.add(tail); tailRef=tail;
-    const tuft=lbox(0.6,0.6,0.6,0x8a5a2a); tuft.position.set(0,2.4,-3.6); g.add(tuft);
-    fourLegs(0.75,1.5,2.4,0xb08a48);
-  } else if(kind==='deer'){
-    const col=0x9a6a3a; const body=lbox(1.7,2.0,4.2,col); body.position.y=3.4; g.add(body);
-    const neck=lbox(1.0,2.2,1.0,col); neck.position.set(0,4.8,2.0); neck.rotation.x=-0.6; g.add(neck);
-    const head=lbox(1.0,1.1,1.8,col); head.position.set(0,5.8,2.9); g.add(head);
-    eyes(0.42,6.05,3.6,0.24);
-    const nose3=lbox(0.3,0.24,0.16,0x14100c); nose3.position.set(0,5.7,3.84); g.add(nose3);
-    for(const s of[1,-1]){ const ant=lbox(0.25,1.6,0.25,0x6a4a2a); ant.position.set(s*0.5,6.8,2.7); ant.rotation.z=s*0.4; g.add(ant);
-      const ear=lbox(0.45,0.3,0.25,col); ear.position.set(s*0.6,6.3,2.7); ear.rotation.z=s*0.5; g.add(ear); }
-    const tail=lbox(0.5,0.7,0.4,0xefe0d0); tail.position.set(0,3.6,-2.2); g.add(tail); tailRef=tail;
-    fourLegs(0.6,1.5,2.8,0x7a5230);
-  } else if(kind==='elephant'){
-    const col=0x8f8f96; const body=lbox(4.4,4.2,7.2,col); body.position.y=6.0; g.add(body);
-    const head=lbox(3.0,3.0,2.6,col); head.position.set(0,6.6,4.2); g.add(head);
-    const trunk=lbox(1.0,3.4,1.0,col); trunk.position.set(0,4.6,5.4); trunk.rotation.x=0.4; g.add(trunk);
-    eyes(0.9,7.3,5.52,0.3);
-    const etail=lbox(0.35,2.4,0.35,0x76767e); etail.geometry.translate(0,-1.2,0); etail.position.set(0,7.2,-3.7); g.add(etail);
-    const ears=[];
-    for(const s of[1,-1]){ const ear=lbox(0.4,2.8,2.4,0x82828a); ear.position.set(s*2.0,6.8,3.6); g.add(ear); ears.push(ear);
-      const tusk=lbox(0.4,0.4,2.0,0xefe8d8); tusk.position.set(s*0.9,5.2,5.4); g.add(tusk); }
-    fourLegs(1.6,2.6,4.4,0x76767e);
-    g.userData={legs,ears,tail:etail};
-    return g;
-  }
-  else if(kind==='crocodile'){
-    /* long and low, all jaw and tail, with a ridge of scutes down the back —
-       it lies in the shallows of the great rivers looking like a log */
-    const dk=0x455631, lt=0x63754a, bl=0xa9ad7c;
-    const body=lbox(2.4,1.6,6.0,dk); body.position.y=1.5; g.add(body);
-    const und=lbox(2.0,0.5,5.4,bl); und.position.y=0.75; g.add(und);
-    for(let i=0;i<6;i++){ const s=lbox(0.5,0.5,0.55,lt);
-      s.position.set((i%2?0.55:-0.55),2.45,-2.4+i*1.0); g.add(s); }     /* the scutes */
-    const neck=lbox(1.9,1.3,1.3,dk); neck.position.set(0,1.55,3.6); g.add(neck);
-    const jawT=lbox(1.5,0.7,3.4,dk);  jawT.position.set(0,1.8,5.7); g.add(jawT);
-    const jawB=lbox(1.4,0.55,3.2,bl); jawB.position.set(0,1.15,5.6); g.add(jawB);
-    for(const s of [1,-1]){ const e=lbox(0.45,0.45,0.45,0xd9c93f); e.position.set(s*0.62,2.45,4.1); g.add(e);
-      const p=lbox(0.2,0.2,0.2,0x101010); p.position.set(s*0.62,2.62,4.1); g.add(p); }
-    const t1=lbox(1.8,1.2,2.6,dk); t1.position.set(0,1.5,-4.2); g.add(t1);
-    const t2=lbox(1.0,0.9,2.8,lt); t2.position.set(0,1.5,-6.7); g.add(t2);
-    for(const sx of [1,-1]) for(const sz of [2.0,-2.2]){
-      const L=lbox(0.8,1.0,0.8,lt); L.geometry.translate(0,-0.5,0);
-      L.position.set(sx*1.55,1.05,sz); L.userData.ph=(sx*sz>0)?0:Math.PI;
-      L.userData.foot=(sx>0?0:1)+(sz>0?0:2); g.add(L); legs.push(L); }
-    g.userData={legs,jaw:jawB,tail:t2};
-    return g;
-  } else if(kind==='bear'||kind==='blackbear'){
-    /* heavy in the shoulder, small round ears, a pale muzzle — it forages the
-       northern woods and fishes the rapids */
-    const black=kind==='blackbear';
-    const fur=black?0x241f1d:0x6d4526, muz=black?0xa08a5e:0xbfa273;
-    const body=lbox(3.4,3.2,5.6,fur); body.position.y=4.4; g.add(body);
-    const hump=lbox(3.0,1.0,2.2,fur); hump.position.set(0,6.2,1.2); g.add(hump);   /* the shoulder */
-    const head=lbox(2.3,2.1,2.2,fur); head.position.set(0,5.4,3.7); g.add(head);
-    const snout=lbox(1.3,1.0,1.2,muz); snout.position.set(0,5.0,4.9); g.add(snout);
-    const nose=lbox(0.6,0.45,0.3,0x18140f); nose.position.set(0,5.25,5.55); g.add(nose);
-    for(const s of [1,-1]){ const ear=lbox(0.8,0.8,0.4,fur); ear.position.set(s*0.85,6.6,3.5); g.add(ear);
-      const eye=lbox(0.28,0.28,0.25,0x120e0a); eye.position.set(s*0.72,5.75,4.8); g.add(eye); }
-    const rump=lbox(3.2,2.8,1.2,fur); rump.position.set(0,4.2,-2.9); g.add(rump);
-    fourLegs(1.35,1.9,2.9,black?0x1b1715:0x5a3820);
-    g.userData={legs,head};
-    return g;
-  }
-  else if(kind==='penguin'){
+  if(kind==='penguin'){
     /* the one beast of the ice — upright, white-breasted, flippered */
     const body=lbox(1.5,2.2,1.3,0x1b1f26); body.position.y=1.9; g.add(body);
     const belly=lbox(1.1,1.8,0.35,0xf1f1ec); belly.position.set(0,1.9,0.72); g.add(belly);
@@ -8551,6 +8715,58 @@ function findLandSpot(px,pz,rMin,rMax){ rMin=rMin||LL_MIN; rMax=rMax||LL_R;
        bare of every living thing, as such a place ought to be. */
     if((c.kind==='floe'||(c.kind==='wall'&&c.h<=60))) return {x,z,y:c.h*B,c};
   } return null; }
+/* ================= AND A BEAST IS BORN INTO ITS HERD =================
+   §2.3.5 asks for *"matriarch-led herds with juveniles held at the centre"*,
+   and acceptance test 50 — built in Round 70 for that item — reported
+   something else first, and reported it in SEVEN READINGS RUNNING without a
+   digit of variation: **the mean herd on this earth is 3.00 beasts and the
+   biggest is 3.** There were no herds to lead.
+
+   IT IS NOT THE SPECIES DRAW. `landKindAt` already seeds its draw on a TILE of
+   ground so that "a whole field bears the same kind" — but the tile is
+   forty-eight units and a herd stands within eighty, so the field is smaller
+   than the herd.
+
+   IT IS THE DENSITY, and that is arithmetic nobody can rule their way out of.
+   Ninety-six beasts (`LL_N`) are set down at INDEPENDENT random points in a
+   ring some four hundred units deep and two and a half thousand across. That
+   is one beast to about twenty-seven thousand square units, so the nearest
+   other beast — of ANY kind — stands a hundred and sixty units off on average,
+   and a herd radius is eighty. **Groups of three are what that scattering
+   gives whatever the rules do**, and four rounds of work on the gathering
+   (Round 54's, and Round 70's) were spent trying to assemble a herd out of
+   animals too far apart to feel one another.
+
+   So a beast is no longer born at an independent point. When the slot it fills
+   calls for a kind that ALREADY STANDS NEARBY, it is set down BESIDE ITS OWN
+   — a herd accretes as its members arrive, which is how a herd comes to exist
+   anywhere. The kind is still the ground's own choice and nothing about which
+   beasts live where has moved; only where a new one is put. */
+const BORN_NEAR=700;             /* how far off it will look for its own kind */
+const BORN_AT=54;                /* and how close beside them it is set down */
+function bornBeside(kind,sp){
+  /* the nearest of its own already standing — the herd it is joining */
+  let host=null, bd=BORN_NEAR;
+  for(const b of LANDLIFE){ if(!b.set||b.dead>0||b.kind!==kind||b.upTree>0) continue;
+    const d=Math.hypot(b.x-sp.x,b.z-sp.z); if(d<bd){ bd=d; host=b; } }
+  if(!host||bd<=BORN_AT) return sp;
+  /* a place beside it that will truly bear a beast — the same tests
+     `findLandSpot` makes, asked of a point of our choosing */
+  for(let tr=0;tr<8;tr++){
+    const a2=Math.random()*6.283, r2=BORN_AT*(0.45+Math.random()*0.55);
+    const x=host.x+Math.cos(a2)*r2, z=host.z+Math.sin(a2)*r2;
+    const c=landAtWorld(x,z); if(!c||!c.ci||c.kind==='wall') continue;
+    if(c.tree&&treeBlocked(x,z)) continue;
+    if(landmarkSolidAt(x,z,c.h*B+1,c.h*B+8)) continue;
+    /* AND IT MUST STILL BE GROUND THIS BEAST WOULD HAVE BEEN PUT ON. Snapping
+       a reindeer to a herd-mate across a tree line would put it somewhere its
+       own habitat forbids, so the ground is asked for the kind it bears and
+       the move is refused unless it is the same one. */
+    if(landKindAt(x,z,c)!==kind) continue;
+    return {x,z,y:c.h*B,c};
+  }
+  return sp;
+}
 /* ---- WHAT THE GRASS FILE NEEDS TO KNOW ABOUT A POINT ----
    The ground it is, and how far it lies from a settled place — a village
    keeps its own ground grazed and cut, which is the same number the chunk
@@ -8607,6 +8823,298 @@ function herdWatch(a){
     if(b!==a&&b.job==='act'&&b.act==='alert') watcher=b;
   }
   return {n, watcher};
+}
+/* ================= THE HERD, RECKONED ONCE FOR THE WHOLE EARTH =================
+   §2.3.5 asks for *"matriarch-led herds with juveniles held at the centre"*,
+   and it has been built and taken back out FOUR TIMES — Round 54 four
+   attempts, Round 70 four more, Round 72 three mechanisms measured twice
+   apiece. Every one of them measured WHERE THE YOUNG ENDED UP and inferred
+   the cause from it, and the audit's instruction after the last of them is
+   the reason this exists:
+
+     *What has never been measured is whether a beast ever reaches its station
+     at all. If that distance is large, the rule is never landing, and the fix
+     is about WHEN it fires. If it is small, the rule lands and the young's
+     depth still does not move, which would mean the geometry is wrong. Those
+     two are opposite repairs and three rounds could not tell them apart.*
+
+   So the station is built here WITH ITS OWN INSTRUMENT, and the instrument is
+   read before anything is judged by the outcome.
+
+   THE HERD IS RECKONED ONCE A FRAME FOR EVERYBODY, by the same greedy rule
+   acceptance test 50 censuses with — each beast counted into exactly one herd,
+   three or more of a kind within HERD_R. That matters for more than speed: a
+   mechanism that acts on one notion of "herd" and an instrument that measures
+   another cannot be compared, and that is one of the ways three rounds went
+   wrong. */
+const STN_IN=0.40, STN_OUT=1.15;   /* the mother's ring, and everybody else's */
+const HERD_SPACE=3.0;              /* how many of its own lengths a beast keeps */
+function herdPass(){
+  for(const a of LANDLIFE) a.herd=null;
+  const done=new Set();
+  for(const a of LANDLIFE){
+    if(!a.set||a.dead>0||done.has(a)||!AMBIENT_PREY.has(a.kind)) continue;
+    const mob=[];
+    for(const b of LANDLIFE){ if(!b.set||b.dead>0||b.kind!==a.kind) continue;
+      if(Math.hypot(b.x-a.x,b.z-a.z)<=HERD_R) mob.push(b); }
+    if(mob.length<3) continue;
+    let cx=0,cz=0; for(const b of mob){ cx+=b.x; cz+=b.z; }
+    cx/=mob.length; cz/=mob.length;
+    let rr=0; for(const b of mob) rr+=Math.hypot(b.x-cx,b.z-cz);
+    /* ---- AND THE HERD HAS TWO RADII, WHICH IS NOT FUSSINESS ----
+       `r` is the one it HAS: the mean distance of its members from its middle,
+       which is what the instrument reads and what test 50 has always read.
+       `rt` is the one it OUGHT to have, and the stations are set off that.
+       Setting them off `r` instead is a feedback loop and it collapses: the
+       stations pull the herd in, `r` falls, the stations come in with it, and
+       the herd implodes. MEASURED, in Tanzania, before this was seen — the
+       herd's radius went from 18.5 units to NINE, which is six goats standing
+       inside a room, and the young's rank went backwards with it.
+       `rt` is exogenous: how much room a beast of this kind takes, times the
+       root of how many there are. A herd spaces itself by its own bodies. */
+    /* ---- AND THE RING MAY NOT BE WIDER THAN THE HERD ITSELF ----
+       THE FAULT THIS MENDS was found by the suite and by nothing else. Test
+       35 — the watch, which reads off these very herds — went from 597
+       herd-samples to 423, a fall of nearly a third, while the four plains
+       the A/B stood on showed only 40 to 37. The arithmetic says why: two
+       beasts on opposite bearings of the OUTER ring stand `2 × rt × STN_OUT`
+       apart, and the world only counts beasts into one herd within HERD_R.
+
+         goat, herd of twelve      28.1 across  64.5   inside 80
+         buffalo, herd of nine     37.8 across  86.9   OUTSIDE
+         buffalo, herd of twelve   43.6 across 100.4   OUTSIDE
+
+       So the rule was pulling a large herd of large beasts wider than the
+       radius the world gathers them within, until it stopped recognising
+       them as one herd at all — and test 35's lands hold buffalo where four
+       plains of goats and gazelles do not, which is the whole difference
+       between the two readings. The ring is capped to fit inside the
+       neighbourhood, with margin; written as the expression and not as the
+       number, so it stays true if HERD_R or STN_OUT ever move. */
+    const bl=bodyLenOf(a.kind);
+    const RT_MAX=HERD_R*0.85/(2*STN_OUT);
+    const H={n:mob.length, x:cx, z:cz, r:Math.max(1,rr/mob.length),
+             rt:Math.min(RT_MAX, Math.max(6, HERD_SPACE*bl*Math.sqrt(mob.length)*0.5))};
+    for(const b of mob){ done.add(b); b.herd=H; }
+  }
+}
+/* ---- WHERE THIS BEAST'S HERD WOULD HAVE IT STAND ----
+   A calf is not a beast: it is `a.kids[i]`, a satellite that follows its
+   MOTHER and nothing else (js/baby-animals.js). So "juveniles held at the
+   centre" is not a rule about calves at all — it is a rule about where a
+   beast that HAS young stands, and holding the young in the middle is holding
+   the mothers in the middle. The bearing is settled at birth off the beast's
+   own tether so it does not jitter frame to frame. */
+function stationOf(a){
+  const H=a.herd; if(!H) return null;
+  const br=hash2(a.hx*0.041,a.hz*0.037)*6.283;
+  const rr=H.rt*(a.kids?STN_IN:STN_OUT);
+  return {x:H.x+Math.cos(br)*rr, z:H.z+Math.sin(br)*rr};
+}
+/* ---- AND THE INSTRUMENT THAT JUDGES IT ----
+   `reach` is the one number three rounds went without: how far a beast stands
+   from the place its herd assigns it, in herd-radii. `pickRoam`, `pickGraze`
+   and `steps` count how often each candidate LEVER is even consulted for a
+   herded beast, which is what tells "the rule never fires" from "the rule
+   fires and does not matter". `grazeFail` and `feed` guard against a herd that
+   is held in shape at the price of its dinner. All of it is counted always;
+   it is a handful
+   of adds on a loop that already runs. */
+const HSTAT={secs:0, frames:0, reach:0, reachN:0, mReach:0, mReachN:0, rSum:0, rtSum:0, rN:0,
+             pickRoam:0, pickGraze:0, pickStn:0, grazeFail:0, steps:0, herded:0, loose:0,
+             feed:0, feedN:0, passMs:0};
+function herdStatReset(){ for(const k in HSTAT) HSTAT[k]=0; }
+/* ---- AND WHAT THE INSTRUMENT ASKED FOR, WHICH WAS NOT WHAT I EXPECTED ----
+   TWO MECHANISMS WERE BUILT FIRST AND THROWN AWAY UNBUILT, and the diagnostic
+   is what threw them: the arithmetic said a herd's radius is twenty-three
+   units while the search for a bite reaches a hundred and ninety, so ring one
+   alone puts a grazing beast three herd-radii off at every meal — and the
+   repair looked obvious. Narrow that search to the herd's own ground, and
+   score the bite by how near it falls to the beast's station rather than
+   taking the first one over 0.7. Both were built, both were switched, and
+   measured beside the drift below they added NOTHING: reach 0.83 and rank
+   0.11 with them, 0.82 and 0.11 without, over five samples apiece on one
+   land. (That comparison was taken before the herd's radius was made
+   exogenous, and it was not re-run afterward; what it establishes is that
+   the drift does the work and these do not, which was enough to leave them
+   out.) They are not in the tree. The diagnostic was built to stop a fifth
+   round of shipping a mechanism nobody could show working, and the first
+   thing it stopped was mine.
+
+   A station is a measurement first and a mechanism second. What follows is ON
+   — the switch is kept so the A/B can be run in one browser, and it was not
+   turned on until the instrument had been read four lands running.
+   ---------------------------------------------------------------------- */
+let STN_DRIFT=true;
+/* ---- WHERE THE RULE IS HUNG, AND WHY THERE ----
+   The diagnostic above was read before any of this was believed, and it did
+   not say the geometry was wrong. It said THE RULE NEVER RUNS. Over sixty
+   world-seconds of a settled herd in Kenya — fifty-five beasts, three
+   thousand three hundred beast-seconds — the readings were:
+
+     the wander-target picker  0.0000 a beast-second   (not once, ever)
+     the search for a bite     0.0012–0.0136           (one pick per beast
+                                                        per eight minutes)
+     a herded beast moving at all  1% of frames
+
+   The first of those is not slowness, it is unreachable code, and it is worth
+   writing down plainly: **the forty-five-percent pull toward its own kind —
+   the only cohesion this world has ever had, and the lever Rounds 54 and 70
+   both built their matriarch on — cannot execute for a beast standing in
+   grass.** The chain above puts such a beast back to `feedhead` on every
+   decision, so `a.job` is never 'roam' by the time the picker is reached.
+
+   So the station is hung where a grazing beast DOES decide: at the end of a
+   mouthful, three to seven seconds apart, which is a hundred times as often as
+   the bite search. A beast standing further off its station than the tolerance
+   below walks in before it puts its head down again. That is also what the
+   animal does — a herd drifts between mouthfuls; it does not hold ranks.
+   MEASURED over Kenya, Tanzania, Botswana and Mongolia, the rule off and on
+   alternately within one boot: the lever fires 0.06–0.08 a beast-second where
+   the wander picker fires 0.0000 and the bite search 0.001; the reach falls
+   from 1.72 herd-radii to 1.00; the mothers' rank, which reads +0.001 with
+   this off, reads +0.122 with it on; and the mothers-against-others gap the
+   older statistic reads goes from −0.03 to +1.04 — the noisy instrument and
+   the robust one pointing the same way, which they never did in four rounds.
+   Split by size the signal is where it must be: herds of five and more read
+   +0.058 off and +0.172 on, herds of three and four −0.005 and +0.096,
+   because a herd of three has no inside. */
+/* HOW FAR OFF STATION BEFORE IT IS WORTH WALKING IN, in herd-radii — and it
+   is a number that has to be smaller than the thing it is trying to create.
+   A herd's radius is some twenty-three units and the whole distance between a
+   mother's ring and everybody else's is 0.75 of that, seventeen units. A
+   tolerance of one radius is WIDER THAN THE EFFECT: every beast would sit
+   inside it and hold whatever place it already had. */
+let STN_FAR=0.35;
+function toStation(a){
+  if(!STN_DRIFT||!a.herd) return false;
+  const st=stationOf(a); if(!st) return false;
+  if(Math.hypot(a.x-st.x,a.z-st.z)<a.herd.rt*STN_FAR) return false;
+  a.tx=st.x; a.tz=st.z; a.job='station'; a.jt=3+Math.random()*2;
+  HSTAT.pickStn++; return true;
+}
+
+/* ---- WHAT IS FRIGHTENING THIS BEAST, IF ANYTHING ----
+   Lifted out of the grazers' own branch, where it used to live, because THE
+   WALK DOWN TO WATER needs exactly the same question asked: a zebra crossing
+   open ground to the river must break from a lion just as one with its head
+   in the grass does, and a fright test that lives inside the grazing branch
+   alone would let a beast on its way to drink walk straight past him. One
+   question, two callers, and no second copy of the rule.
+     · a man on foot is a smaller fright than a hunter: half the distance
+     · a hunter lying up in the deep grass is NOT SEEN — he is caught at
+       arm's length or not at all, and that is the whole use of cover */
+function frightNear(a){
+  const flee=window.BEHAVIOR?BEHAVIOR.flightOf(a.kind):9;
+  if(state.mode==='walk'&&Math.hypot(state.walk.x-a.x,state.walk.z-a.z)<flee*0.5)
+    return {x:state.walk.x, z:state.walk.z};
+  for(const b of LANDLIFE){
+    if(!b.set||b.dead>0||(b.role!=='pack'&&b.role!=='stalk'&&b.role!=='ambush')) continue;
+    const see=b.hidden?Math.min(6,flee*0.35):flee;
+    if(Math.hypot(b.x-a.x,b.z-a.z)<see) return {x:b.x, z:b.z}; }
+  return null;
+}
+/* ================= AND AT THE TWO EDGES OF THE DAY, THE WATER =================
+   §2.3.6's very first clause — *"Drinking at water at dawn and dusk"* — and it
+   was the one line in that section with nothing whatever behind it. `drink`
+   was an act like any other, drawn by weight at any hour of the day, and
+   refused unless the beast happened already to be standing on a bank.
+   NOTHING ON THIS EARTH EVER WENT TO WATER. The herds of the plain never came
+   down to the river; a zebra either was born beside one or never drank.
+
+   It is the single most recognisable thing a herd does, and it is the reason
+   the crocodile is where he is.
+
+   ---- IT IS NOT NEW DATA ----
+   WHICH beasts drink is already written down, once, in js/behavior.js: any
+   beast with `drink` in its own `acts` list. WHEN is the world's own — the
+   twilight band, when the sky is neither lit nor dark, which is the same
+   number that sends the diurnal ones to bed. Nothing was added to a single
+   creature file for this.
+
+   ---- AND IT IS ONE SEARCH A DAY, NOT ONE A FRAME ----
+   A beast looks for water ONCE at each twilight, in three rings and a dozen
+   bearings — the same spiral js/grass.js walks to find a better bite. If
+   there is none within a day's walk (and over most of the desert there is
+   none) it simply does not go, which is also true. */
+const WATER_REACH=900;           /* how far a beast will walk for a drink, in units */
+const WATER_AT=9;                /* and how near it must be to have arrived */
+/* ---- IS THE WORLD AT ONE OF THE TWO EDGES OF THE DAY? ----
+   Read off the LIGHT (`worldDay`: 1 under the noon sun, 0 at the horizon) and
+   not off `worldNight`, and the difference is the whole difference between
+   this working and not. The first cut asked `worldNight>0.10`, which sounds
+   like the same question and is not: `worldNight` is nought through the first
+   two thirds of the dusk and by the time it rises the diurnal beasts have
+   already gone to bed. Measured hour by hour at a Sudanese village it reads
+   0.00 at four in the afternoon and 0.85 at six — there was no hour of the
+   day at which a beast would set off, and the first run of test 49 reported
+   exactly that: four lands, not one beast, and "the world does not call the
+   evening a twilight."
+   The band below runs from the sun beginning to fall to the moment it touches
+   the rim — about an hour and a quarter of usable dusk for a diurnal grazer
+   before its own bedtime takes it, and the same at dawn. Which of the two
+   edges it is does not matter to a thirsty animal. */
+function twilight(){ const d=(worldDay===undefined?1:worldDay); return d>0.02&&d<0.82; }
+/* ---- AND THE SEARCH MUST BE FINER THAN THE THING IT IS LOOKING FOR ----
+   A watercourse is stamped ONE OR TWO MAP PIXELS WIDE — about a hundred and
+   twenty units — and the first cut of this walked three rings of twelve
+   bearings, which at nine hundred units puts its probes four hundred and
+   seventy units apart. A herd would have stood a bowshot from the Tigris and
+   found nothing, most of the time, at random. The rings are close together
+   now and the bearings on each are counted so that NO TWO PROBES ARE FURTHER
+   APART THAN A RIVER IS WIDE. It is about two hundred lookups, once per beast
+   per twilight — twice a day — and it is the difference between the feature
+   working and the feature working sometimes. */
+const WATER_STEP=150;            /* how close the rings run, in units */
+const WATER_GRAIN=90;            /* and no two probes further apart than this */
+function findWater(a){
+  const turn=hash2(a.hx*0.013,a.hz*0.017)*6.283;
+  for(let d=WATER_STEP; d<=WATER_REACH; d+=WATER_STEP){
+    const n=Math.max(12,Math.round(6.283*d/WATER_GRAIN));
+    for(let k=0;k<n;k++){
+      const ang=turn+k/n*6.283;
+      const x=a.x+Math.cos(ang)*d, z=a.z+Math.sin(ang)*d;
+      const u=x/R_WORLD, v=z/R_WORLD;
+      if(riverAtUV(u,v)&&countryAtUV(u,v)) return {x,z};
+    }
+  }
+  return null;
+}
+/* does this beast drink at all? Its own line says so, and nothing else does. */
+function drinks(kind){ return !!(window.BEHAVIOR&&BEHAVIOR.actsOf&&
+  (BEHAVIOR.actsOf(kind)||[]).some(w=>w[0]==='drink')); }
+/* and does water mean anything to it whatever — to drink at, to wallow in, to
+   fish, or to lie in up to the eyes? Asked once, when the beast is set down. */
+function wetKind(kind,role){
+  if(role==='forage'||role==='ambush') return true;
+  const acts=(window.BEHAVIOR&&BEHAVIOR.actsOf&&BEHAVIOR.actsOf(kind))||[];
+  return acts.some(w=>w[0]==='drink'||w[0]==='wallow');
+}
+/* the day of the voyage, so a beast goes down ONCE at each edge of it and not
+   over and over while the twilight lasts */
+/* how long a beast that keeps no hours lies up, once a day (§2.3.6).
+   NOT const: the acceptance suite turns it to nought to read the world with
+   the rule off and on inside ONE boot, which is the only way this project
+   has found to compare two behaviours without the land itself moving under
+   the reading (AUDIT Round 77). Nothing in the game writes it. */
+let LIE_H=3;
+function wateringSpell(){ return Math.floor(state.simHours/12); }
+function goToWater(a){
+  if(!twilight()||!drinks(a.kind)) return false;
+  if(a.wSpell===wateringSpell()) return false;
+  if(a.river){ a.wSpell=wateringSpell();          /* already at it — simply drink */
+    a.job='act'; a.act='drink'; a.jt=4+Math.random()*4; a.tx=a.x; a.tz=a.z; return true; }
+  const w=findWater(a);
+  if(!w){ a.wSpell=wateringSpell(); return false; }   /* no water in a day's walk */
+  /* AND THE LEASH IS THE WALK ITSELF, not a flat number. Set at a flat forty
+     seconds the beast gave up two hundred units into a nine-hundred-unit
+     walk, every time, and no herd ever reached a river — the feature would
+     have measured as working (they set off) and looked like nothing (they
+     never arrived). It is the distance at its own pace, and half again. */
+  const sp=window.BEHAVIOR?BEHAVIOR.walkOf(a.kind,5):5;
+  a.job='water'; a.wx=w.x; a.wz=w.z;
+  a.jt=Math.hypot(w.x-a.x,w.z-a.z)/Math.max(1,sp)*1.6+20;
+  return true;
 }
 function tryAct(a){
   if(!window.BEHAVIOR||Math.random()>0.45) return false;
@@ -8707,6 +9215,10 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
   const llMin=Math.min(2400,Math.max(LL_MIN,ff*0.75));
   const llMax=Math.min(2800,Math.max(LL_R,ff*1.02));
   const llReap=Math.min(3050,Math.max(LL_REAP,ff*1.12));
+  /* THE HERDS OF THE EARTH, ONCE, BEFORE ANYBODY MOVES — so that every beast
+     in this frame reads the same herd, and so does the instrument. */
+  { const t0=performance.now(); herdPass(); HSTAT.passMs+=performance.now()-t0;
+    HSTAT.secs+=dt; HSTAT.frames++; }
   for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>llReap){
       /* an empty slot cools off between tries — over open water every slot
          was running ten land probes EVERY frame, for nothing */
@@ -8714,10 +9226,13 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       a.retry=1.2+Math.random()*0.8;
       const sp=findLandSpot(px,pz,llMin,llMax);
       if(!sp){ if(a.m)a.m.visible=false; hideYoung(a); a.set=false; continue; }
-      const kind=landKindAt(sp.x,sp.z,sp.c);
+      let kind=landKindAt(sp.x,sp.z,sp.c);
       /* the ground named no beast — a bare glacier, a crest above the life
          line. It stays bare; the slot tries elsewhere next tick. */
       if(!kind){ if(a.m)a.m.visible=false; hideYoung(a); a.set=false; continue; }
+      /* AND IT IS SET DOWN BESIDE ITS OWN, if any of its own stand near —
+         see `bornBeside`. A herd accretes as its members arrive. */
+      { const sp2=bornBeside(kind,sp); sp.x=sp2.x; sp.z=sp2.z; sp.y=sp2.y; sp.c=sp2.c; }
       if(a.kind!==kind){ if(a.m){ scene.remove(a.m); freeTree(a.m); }   /* the old beast is given back */
         a.m=makeAnimal(kind); scene.add(a.m); a.kind=kind; }
       a.hx=sp.x; a.hz=sp.z; a.x=sp.x; a.z=sp.z; a.tx=sp.x; a.tz=sp.z; a.t=Math.random()*3; a.set=true;
@@ -8741,6 +9256,27 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
            diurnal) stands under anything the behavior file has no line for. */
         a.day=(window.BEHAVIOR&&BEHAVIOR.of(kind))?BEHAVIOR.dayOf(kind)
           :((K&&K.night)||a.role==='stalk'||a.role==='pack')?'night':'day'; }
+      /* does water mean anything to this beast at all? Its own line says so
+         — drink or wallow in `acts` — and so does its trade: the bear fishes
+         the shallows and the crocodile lies in them. Asked ONCE, here. */
+      a.wets=wetKind(a.kind,a.role);
+      /* ---- AND WHETHER IT OWNS A BED, AND THE HOUR IT TAKES TO IT ----
+         §2.3.6 promises that "a beast with a home WALKS TO IT at dusk". Sixty
+         kinds declare a real one — a den, a burrow, a tree, a rock — and
+         js/nest.js RAISES those dens on the ground: wolf earths, bear caves,
+         fox holes. But `asleep` was hard-false for the twenty-two of them
+         that keep no clock (`day:'all'` or `'dusk'`), so the world was
+         building homes that nothing ever slept in. Measured over four lands
+         and a swept day, those two classes were abed 0% of the time.
+         A beast that keeps no HOURS still keeps a HOME. It lies up once a
+         day, for LIE_H hours, at an hour of its own — hashed off its home
+         ground so that a wood does not drop asleep all together, and so the
+         same beast takes the same rest every day. It is not the long night of
+         a diurnal beast: it is the lion's twenty hours and the wolf lying up
+         in the heat, and at any instant it leaves seven in eight of them
+         about their business. */
+      a.hasHome=!!(window.BEHAVIOR&&BEHAVIOR.homeOf(a.kind)!=='open');
+      a.lieAt=hash2(sp.x*0.023,sp.z*0.031)*24;
       a.river=riverBankAt(sp.x,sp.z); a.sink=0; a.crouch=false; a.hidden=false;
       a.m.visible=true; a.m.position.set(sp.x,sp.y,sp.z);
       /* ---- AND SOME OF THEM HAVE YOUNG AT FOOT ----
@@ -8776,6 +9312,16 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
        gazelle, and a cheetah's charge is nothing like a lion's */
     const walkSpd=window.BEHAVIOR?BEHAVIOR.walkOf(a.kind,5):5;
     const runSpd=window.BEHAVIOR?BEHAVIOR.runOf(a.kind,13):13;
+    /* ---- THE ONE READING THREE ROUNDS WENT WITHOUT ----
+       how far this beast stands from the place its herd assigns it */
+    if(a.herd){ HSTAT.herded++; HSTAT.rSum+=a.herd.r; HSTAT.rtSum+=a.herd.rt; HSTAT.rN++;
+      const st=stationOf(a);
+      /* AND THE REACH IS READ AGAINST `rt`, NOT `r`. Dividing by the radius
+         the herd HAS would move the yardstick with the thing being measured. */
+      if(st){ const d=Math.hypot(a.x-st.x,a.z-st.z)/a.herd.rt;
+        HSTAT.reach+=d; HSTAT.reachN++;
+        if(a.kids){ HSTAT.mReach+=d; HSTAT.mReachN++; } } }
+    else if(AMBIENT_PREY.has(a.kind)) HSTAT.loose++;   /* only what CAN herd */
     let spd=walkSpd; a.jt=(a.jt||0)-dt; a.cool=(a.cool||0)-dt;
     const role=a.role||'graze';
     /* ---- WHETHER THIS BEAST IS AWAKE AT ALL ----
@@ -8785,6 +9331,11 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
        when they are up — which halves what you meet at any hour and doubles
        what it is worth meeting. */
     let asleep=(a.day==='all'||a.day==='dusk')?false:(a.day==='night'?!night:night);
+    /* and the beast that keeps no clock still goes to its own bed once a day
+       — see `a.lieAt` where it is set down */
+    if(!asleep&&a.hasHome&&(a.day==='all'||a.day==='dusk')){
+      const lh=localHourAt(a.x,a.z)-(a.lieAt||0);
+      if(((lh%24)+24)%24 < LIE_H) asleep=true; }
     /* ---- AND SOME SLEEP THE WHOLE WINTER THROUGH ----
        The bear, the hedgehog and the badger den up when the snow lies and are
        not seen again until the thaw (js/season.js names the hibernators). They
@@ -8814,7 +9365,23 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       a.bare=!gp;                          /* ground that bears no grass at all */
       a.feed=gp?GRASS.feedAt(a.x,a.z,gp.kind,gp.wild):0;
       a.cover=gp?GRASS.coverAt(a.x,a.z,gp.kind,gp.wild):0;
-      a.hidden=(a.cover>=GRASS.HIDE_H); }
+      a.hidden=(a.cover>=GRASS.HIDE_H);
+      /* ---- AND WHETHER IT IS STANDING BY WATER, WHICH WAS ASKED ONCE ----
+         `a.river` was read at the moment the beast was SET DOWN and never
+         again as long as it lived. So one that happened to be put on a bank
+         went on drinking in the middle of a dry plain for the rest of its
+         days, and one that walked to a river could never drink at all. It is
+         read with the grass now — four times a second, not sixty, because a
+         river does not move either.
+         AND ONLY FOR THE BEASTS IT MEANS ANYTHING TO. `riverBankAt` is a
+         probe and eighteen more about it, because a watercourse is one map
+         pixel wide and a single lookup would miss it; asked of every beast on
+         the earth four times a second that is thousands of raster reads for an
+         answer most of them will never use. `wets` is set once when the beast
+         is put down — does its own line name drink or wallow, or is it a
+         forager that fishes or an ambusher that lies in the shallows — and
+         nothing else pays. */
+      if(a.wets) a.river=riverBankAt(a.x,a.z); }
 
     /* ---- DUSK SENDS EVERY CREATURE TO ITS OWN BED ----
        When its sleeping hour came, everything on the earth stopped dead in
@@ -8835,7 +9402,32 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
     else{
     if(a.job==='bed'||a.job==='home'){ a.job='roam'; a.jt=0.3+Math.random(); }
 
-    if(role==='pack'||role==='stalk'){
+    /* ---- AND BEFORE ANY OF ITS TRADE, THE WATER ----
+       At dawn and at dusk a beast that drinks leaves off what it is doing and
+       walks to the river. It is asked BEFORE the roles below because going
+       down to water outranks grazing, foraging and basking alike — but only
+       while nothing has frightened it and nothing is being hunted, so a lion
+       coming through a herd still empties the waterhole in an instant. */
+    if(a.job!=='water'&&a.job!=='feed'&&a.job!=='act'&&!a.prey&&!(a.fear>0)) goToWater(a);
+
+    if(a.job==='water'){
+      /* THE WALK DOWN. It is given a long leash (`jt`) and gives up if the
+         twilight passes on the way — a beast is not to spend the whole night
+         walking to a river it was never going to reach. */
+      const dw=Math.hypot(a.wx-a.x,a.wz-a.z);
+      /* AND THE DRINK IS GIVEN UP AT A FRIGHT. It hands the beast straight
+         back to its own trade, which is where fleeing is written; one frame
+         later it is running, and it will not try the water again this
+         twilight. Nothing goes down to a waterhole with a lion beside it. */
+      if(frightNear(a)){ a.wSpell=wateringSpell(); a.job='roam'; a.jt=0.1; }
+      else if(dw<WATER_AT||a.river||a.jt<=0||!twilight()){
+        a.wSpell=wateringSpell();
+        if(dw<WATER_AT||a.river){ a.job='act'; a.act='drink'; a.jt=4+Math.random()*4;
+          a.tx=a.x; a.tz=a.z; spd=0; }
+        else { a.job='roam'; a.jt=2+Math.random()*3; }
+      } else { a.tx=a.wx; a.tz=a.wz; spd=walkSpd*1.15; }
+    }
+    else if(role==='pack'||role==='stalk'){
       /* ---- THE HUNT ---- */
       if(a.job==='feed'){ spd=0; if(a.jt<=0){ a.job='roam'; a.jt=4+Math.random()*5; } }
       else if(a.cool<=0){
@@ -8961,15 +9553,7 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
          paces as a chicken. The beast is asked now (js/behavior.js), and
          what it answers is mostly struck off its own legs — only the heavy,
          the armed and the beasts of the village are written down. */
-      const flee=window.BEHAVIOR?BEHAVIOR.flightOf(a.kind):9;
-      /* a man on foot is a smaller fright than a hunter: half the distance */
-      if(state.mode==='walk'&&Math.hypot(state.walk.x-a.x,state.walk.z-a.z)<flee*0.5){
-        fx=state.walk.x; fz=state.walk.z; }
-      else for(const b of LANDLIFE){ if(!b.set||b.dead>0||(b.role!=='pack'&&b.role!=='stalk'&&b.role!=='ambush')) continue;
-        /* a hunter lying up in the deep grass is NOT SEEN. It is caught at
-           arm's length or not at all, and that is the whole use of cover. */
-        const see=b.hidden?Math.min(6,flee*0.35):flee;
-        if(Math.hypot(b.x-a.x,b.z-a.z)<see){ fx=b.x; fz=b.z; break; } }
+      { const fr=frightNear(a); if(fr){ fx=fr.x; fz=fr.z; } }
       if(fx!==null&&a.fear<=0) a.panicT=0;   /* caught flat — a beat to reach full stride */
       if(fx!==null){ const dd2=Math.hypot(a.x-fx,a.z-fz)||1;
         a.tx=a.x+(a.x-fx)/dd2*34; a.tz=a.z+(a.z-fz)/dd2*34; a.fear=Math.max(a.fear,0.7); a.job='flee'; a.jt=0.7; }
@@ -9042,23 +9626,33 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
            bare rock, the sand — there is nothing to walk to and nothing to
            look for. The reindeer paws the drift for the moss under it and the
            goat works the scree, as they did before, and as they must. */
+        /* it drifts in to its place in the herd before the next mouthful */
+        else if(toStation(a)){ /* walking in */ }
         else if(a.bare){ a.job='feedhead'; a.jt=3+Math.random()*4; }
         else if(a.feed>=GRASS.FEED_MIN){ a.job='feedhead'; a.jt=3+Math.random()*4; }
         else {
           /* nothing to eat here — go and find some */
+          if(a.herd) HSTAT.pickGraze++;
           const gz=GRASS.findGraze(a.x,a.z,190,grassProbe);
           if(gz){ a.tx=gz.x; a.tz=gz.z; a.job='seek'; a.jt=4+Math.random()*3; spd=walkSpd*1.4; }
-          else { a.job='roam'; a.jt=2.5+Math.random()*3; }
+          else { if(a.herd) HSTAT.grazeFail++; a.job='roam'; a.jt=2.5+Math.random()*3; }
         }
       }
-      /* and it puts its head down the moment it is standing in a bite */
+      /* and it puts its head down the moment it is standing in a bite —
+         but NOT while it is walking in to its station, or a beast would stop
+         at the first blade it passed and never arrive anywhere */
       if(a.job==='seek'&&a.feed>=GRASS.FEED_MIN){ a.job='feedhead'; a.jt=3+Math.random()*4; }
-      if(a.job==='feedhead'||a.job==='act') spd=0; else if(a.job==='seek') spd=walkSpd*1.4;
+      if(a.job==='station'&&Math.hypot(a.x-a.tx,a.z-a.tz)<3){
+        a.job='feedhead'; a.jt=3+Math.random()*4; }
+      if(a.job==='feedhead'||a.job==='act') spd=0;
+      else if(a.job==='seek') spd=walkSpd*1.4;
+      else if(a.job==='station') spd=walkSpd;
     }
     }   /* end of the waking day's work */
 
     /* a new place to make for, when the last is reached or the work is done */
     if(a.jt<=0&&(a.job==='roam'||a.job==='flee')){
+      if(a.herd) HSTAT.pickRoam++;
       a.jt=1.8+Math.random()*3; a.job='roam';
       const aa=Math.random()*6.28, rr=Math.random()*14*B;
       let nx=a.hx+Math.cos(aa)*rr, nz=a.hz+Math.sin(aa)*rr;
@@ -9070,6 +9664,7 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
     }
 
     const dx=a.tx-a.x, dz=a.tz-a.z, dd=Math.hypot(dx,dz)||1, moving=spd>0&&dd>1.5;
+    if(a.herd){ HSTAT.feed+=(a.feed||0); HSTAT.feedN++; if(moving) HSTAT.steps++; }
     if(moving){ const nx=a.x+dx/dd*spd*dt, nz=a.z+dz/dd*spd*dt, c=landAtWorld(nx,nz);
       /* the step a beast can take is now measured in blocks, not units — on a
          mountain flank the old flat limit stopped everything dead */
@@ -9851,20 +10446,43 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
     door:{dir:doorDir, hx:hingeX, hz:hingeZ, base:baseAng, y:y+B*0.05,
       w:gw*2.0, h:B*2.05, swing, open:false, ang:baseAng, target:baseAng}});
 }
+/* ---- THE FIELD, AND WHAT IS SOWN IN IT ----
+   Every farm on the earth grew the same twelve anonymous green crosses, in the
+   same twelve places, in every village from Norway to Java, and grew them on
+   the shortest day exactly as at harvest. WHAT STANDS HERE IS NOT DECIDED
+   HERE: the crop is asked of js/crop.js, which keeps this country's own growth
+   out of world/flora.js — the same list the trees came from — and draws one
+   seeded on the field's own corner, so a plot bears the same thing for ever
+   and the next plot along bears another. Where it stands in its YEAR is not
+   decided here either, and is not decided at build time at all: the crop is
+   meshed at full stature and the shader sinks it into its own soil by how far
+   off harvest it is. See `cropYear`. */
 function emitFarm(G, fx,fz,y, seed){
   const w=B*5, d=B*3.4, x0=fx-w/2, x1=fx+w/2, z0=fz-d/2, z1=fz+d/2;
-  /* log border */
+  /* log border. It stands half a block proud of the soil, which is what hides
+     the crop while it is young and sunk. */
   emitBox(G, x0,y,z0, x1,y+B*0.5,z0+B*0.5, 'logSide','logTop',null);
   emitBox(G, x0,y,z1-B*0.5, x1,y+B*0.5,z1, 'logSide','logTop',null);
   emitBox(G, x0,y,z0, x0+B*0.5,y+B*0.5,z1, 'logSide','logTop',null);
   emitBox(G, x1-B*0.5,y,z0, x1,y+B*0.5,z1, 'logSide','logTop',null);
-  /* tilled soil + centre water channel + crops */
+  initCrop();
+  const K=window.CROP?CROP.forField(landNameAt(fx,fz),fx,fz):null;
+  /* tilled soil, and the water down the middle of it. A PADDY IS FLOODED —
+     the rice and the taro stand in water, and a paddy country that looked like
+     a barley country was the plainest thing missing from the east. */
   emitTop(G,'soil', x0+B*0.5,z0+B*0.5, x1-B*0.5,z1-B*0.5, y+B*0.34, 0.95);
-  emitTop(G,'waterB', fx-B*0.35,z0+B*0.5, fx+B*0.35,z1-B*0.5, y+B*0.38, 1.0);
-  for(let cx=0;cx<4;cx++) for(let cz=0;cz<3;cz++){
-    const px=x0+B*(1+cx), pz=z0+B*(1+cz*0.9);
-    if(Math.abs(px-fx)<B*0.6) continue;
-    cross(G,'crop',px,pz,y+B*0.36,B*0.8,B*0.7,0.95);
+  if(K&&K.paddy) emitTop(G,'waterB', x0+B*0.5,z0+B*0.5, x1-B*0.5,z1-B*0.5, y+B*0.42, 1.0);
+  else           emitTop(G,'waterB', fx-B*0.35,z0+B*0.5, fx+B*0.35,z1-B*0.5, y+B*0.38, 1.0);
+  const mat=(window.CROP&&!CROP.turns(K))?'cropEver':'crop';
+  const tint=K?[((K.green>>16)&255)/255,((K.green>>8)&255)/255,(K.green&255)/255]:0.95;
+  /* a row crop is set out in rows a man walks between — the maize, the cotton,
+     the cane; a cereal is drilled close, and the close drill is why a wheat
+     field reads as one surface and a maize field as a lot of separate plants */
+  const rows=(K&&K.row)?2:3, hh=B*((K&&K.h)||0.7), ww=B*((K&&K.w)||0.8);
+  for(let cx=0;cx<4;cx++) for(let cz=0;cz<rows;cz++){
+    const px=x0+B*(1+cx), pz=z0+B*(1+cz*(rows===2?1.4:0.9));
+    if(!(K&&K.paddy)&&Math.abs(px-fx)<B*0.6) continue;   /* not in the channel */
+    cross(G,mat,px,pz,y+B*0.36,ww,hh,tint);
   }
 }
 /* ---- THE FIRST BUILDER CONVERTED (Phase 3) ----
@@ -10081,6 +10699,17 @@ function villageBuildTick(){
   }while(villageBuilds.length&&performance.now()-T0<5);
 }
 let worldNight=0;   /* 0 by day .. 1 deep night — sends folk home */
+/* ---- AND THE LIGHT ITSELF, WHICH IS NOT THE SAME NUMBER ----
+   `worldNight` is `1-dayF*1.5` clamped at nought, so it stands at ZERO
+   through the whole first two thirds of the dusk and only then begins to
+   climb: measured hour by hour, it reads 0.00 at four in the afternoon, 0.43
+   at five, 0.85 at six and 1.00 at seven. It is the right number for what it
+   was made for — when to light the torches and send the folk home — and it is
+   the WRONG one for asking whether the sun is going down, because by the time
+   it says anything at all the beasts are already bedding.
+   `worldDay` is the light itself, 1 under the noon sun and 0 at the horizon,
+   and it is what the WATERING reads. */
+let worldDay=1;
 const standaloneHouses=[];   /* houses not in a village (the player's treehouse) */
 /* A GENERATOR: driven by villageBuildTick a few milliseconds a frame, so a
    town raises itself over many frames and the traveller never feels a hitch. */
@@ -10726,8 +11355,9 @@ function birdTick(bd,dt){
   const flap=Math.sin(performance.now()*0.02+bd.ph*3)*0.7;
   const u=bd.m.userData; if(u.wingL){ u.wingL.rotation.z=flap; u.wingR.rotation.z=-flap; }
 }
-function updateVillages(px,pz,dt,nightF){
+function updateVillages(px,pz,dt,nightF,dayF){
   worldNight=nightF;
+  if(dayF!==undefined) worldDay=dayF;
   villageBuildTick();                          /* advance any towns under construction */
   /* spawn well BEYOND the fog line so a town is standing whole before the
      traveller can see the shore — and under a FLYER'S opened air the line
@@ -14928,6 +15558,9 @@ if(!window.__HOST_BOOT){
 window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   /* the light in the corners, and the count of standing chunks — tools/acceptance.js */
   aoLevel,aoTop,chunkCount:()=>chunks.size,bodyLenOf,
+  /* the light of the world, and whether it stands at one of the two edges of
+     the day — what sends the herds down to the water (§2.3.6). Read-only. */
+  worldNight:()=>worldNight, worldDay:()=>worldDay, twilight, drinks, findWater, WATER_REACH:()=>WATER_REACH,
   /* ---- THE THIRD DIMENSION, FOR tools/acceptance.js ----
      Read-only probes. Nothing in the game reads any of these; they exist so
      the acceptance tests can ask the RUNNING WORLD rather than the source. */
@@ -15354,8 +15987,41 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   playerXZ,localHourAt,setLocalHour,clockFace,dayPartName,DAYPARTS,applyDayPart,
   /* the herd and its watch, for the suite */
   LANDLIFE,herdWatch,HERD_R,
+  /* §2.3.5's station and the instrument that judges it — herdOf hands back
+     the herd this beast was counted into on the last frame, stationOf where
+     that herd would have it stand, and herdStat the running totals. */
+  herdOf:a=>a&&a.herd||null, stationOf, herdStat:()=>Object.assign({},HSTAT),
+  herdStatReset, STN_IN, STN_OUT,
+  /* §2.3.6's lie-up: how many hours a beast that keeps no clock takes to its
+     own bed. Read it, or set it to nought to see the world without the rule. */
+  lieHours:v=>{ if(v!==undefined) LIE_H=v; return LIE_H; },
+  stationDrift:v=>{ if(v!==undefined) STN_DRIFT=!!v; return STN_DRIFT; },
+  stationFar:v=>{ if(v!==undefined) STN_FAR=+v; return STN_FAR; },
+  /* ---- AND ONE PROBE THAT WRITES, WHICH IS SAID OUT LOUD ----
+     Everything else on this surface only asks. `setYoung` puts a calf at a
+     beast's foot or takes it away, and it is here for ONE reason: §2.3.5's
+     "juveniles held at the centre" cannot be measured while only two to six
+     mothers stand in a whole reading. About one beast in four is given young
+     when it is set down, so a herd of three has none or one, and AUDIT Round
+     70 showed what that does — the untouched world answered 1.22 against 0.94
+     on one run and 0.59 against 1.07 on the next, off identical code.
+     Acceptance test 50 uses it to make every second member of every herd a
+     mother, so the question is asked of MOTHERS AND NON-MOTHERS STANDING IN
+     THE SAME HERD rather than across herds, which removes the between-herd
+     spread that made the first measurement worthless. It is the same call the
+     spawner makes and it changes nothing the game itself reads. */
+  setYoung,
   /* the coat, for the suite and for setting it beside what it replaced */
   makeBeast,coatBeast,coatOn:v=>{ if(v!==undefined) COAT_ON=!!v; return COAT_ON; },
+  /* AND THE OTHER DOOR A BEAST CAN COME THROUGH. `makeBeast` is the creature
+     files; `makeAnimal` is what the world actually calls, and for the beasts
+     with no file of their own it goes somewhere else entirely. Test 32 counts
+     creature files and so has never once looked at that other road. */
+  makeAnimal, FAUNA,
+  /* the weld, and the switch that sets a beast drawn in a handful of calls
+     beside the same beast drawn in forty — §2.3.4 had to be paid for */
+  mergeOn:v=>{ if(v!==undefined) MERGE_ON=!!v; return MERGE_ON; },
+  beastMoving, beastPivots,
   BEAST_BY_NAME,
   domeCeilAt,canTouchDome,touchDome,playScene,endScene,SCENES,sceneActive,sceneRise,seenDeeps,BEACHES,SHOALS,ORCA,beachAt,nearestBeach,seabedMetres,orcaState:()=>orcaState,chunkRoot,R_DOME,H_DOME,ICE_UV,walkerY:()=>walkerG.position.y,hash2,renderer,MAT,farOuter:()=>_flR1,aloftInfo:()=>aloftDisc?{vis:aloftDisc.visible,op:aloftDisc.material.opacity,y:aloftDisc.position.y}:null,setKey:(k,v)=>{keys[k]=v;},
   DIVEFISH,DOLPHINS,SHARKS,PEARLS,pearlTaken,toggleNet,nearestPearl,updatePearls,
@@ -17197,7 +17863,7 @@ function frame(){
   farLandMat.opacity+=(carpetWant-farLandMat.opacity)*Math.min(1,dt*2.5);
   farLand.visible=farLandMat.opacity>0.02;
   if(frame._carpetOn) updateFarLand(p.x,p.z,false,eyeY);
-  updateVillages(p.x,p.z,dt,light.nightF);
+  updateVillages(p.x,p.z,dt,light.nightF,light.dayF);
   updateLandmarks(p.x,p.z);
   updateFalls(p.x,p.z);          /* and the springs at the head of every fall */
   /* the living world — weather, hearths, fireflies, meetings, murmurs */

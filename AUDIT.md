@@ -5487,6 +5487,1548 @@ the reference — ocean 0.871 / 0.896 / 0.923 against a ceiling of 1.08, plain 2
 fault on comparable ground, with the baselines tightened to 0.45 and 1.60, it FAILED rather
 than excusing itself. A guard that has never been seen to fail is not yet a guard.
 
+## 4bp. Round 67 — Phase 6 step 5: the floor of the wood ✅
+
+*§2.4.5 — "a real ground layer, which Minecraft simply does not have: leaf litter under the
+deciduous wood, needle mat under conifers, moss on the shaded side, deadfall logs, saplings,
+a herb layer with actual named herbs from `world/flora.js`, mushrooms in the damp, lichen on
+the rock."*
+
+### What was already there, and it is two of the eight
+
+**The saplings and the herb layer already stood**, and the rule of this document is to go and
+look before planning work that exists. `FLORA.saplingAt` has put the young of the country's
+own trees knee-high under the grown ones since Phase 5, and `FLORA.plantAt` draws the herb
+layer out of the named herbs of `world/flora.js` — the mint, the rosemary, the thyme, the
+sage, the lavender, the bilberry, the fern — which is the clause about "actual named herbs"
+word for word. **Nothing was rewritten for either.** The six that were missing are the litter,
+the needle mat, the moss, the deadfall, the fungi and the lichen.
+
+### The fault, stated plainly
+
+**Between the boles of every wood on the earth there was LAWN.** The sward clothed the open
+ground with blades and flowers and the flora stood herbs and saplings up out of it, and the
+floor under a German oakwood, a Norwegian spruce forest and the closed canopy of the Congo
+was the same short green turf. A wood is not a field with trees in it.
+
+And the **bare rock bore nothing at all** — `js/grass.js` does not know that ground, has never
+clothed one inch of it, so every scree, crag and mountain shoulder in the world was clean grey
+stone.
+
+### The shape of it: a third file, and it owns the floor
+
+`js/ground.js`, 300 lines, beside the two that were there:
+
+| | what it owns |
+|---|---|
+| `js/grass.js` | the SWARD — the blade a beast eats and a lion hides in. It stands UP and has a height. |
+| `js/flora.js` | everything WOODY and everything BEARING — herb, bush, sapling, tree. |
+| `js/ground.js` | THE FLOOR — what LIES ON the ground and has no height: litter, needle mat, moss, lichen, deadfall, fungus. |
+
+It is the BOTTOM layer and it takes no cell away from either of the other two: it is drawn
+first in `emitScrub` and does not return, so the sward stands in the litter, which is what a
+wood looks like.
+
+**It knows the name of no species.** The engine hands it the KIND the mesher would have grown
+on that cell and the litter is that tree's own leaf, turned toward the colour of a forest
+floor; the deadfall is that tree's own bole, silvered. So an oakwood floor is oak-brown, a
+spruce floor is needle-rust, and a species added to `world/flora.js` gets a floor of the right
+colour with **nothing written in `js/ground.js` at all**. The moss and the lichen are named
+plants of this world already, so their colours are read out of the flora's own table rather
+than kept a second time here.
+
+### One copy of the grove field, not two
+
+There is no leaf litter in a glade, because no leaf fell there. The engine gathers its woods
+into groves and thins the trees by one broad noise field (`dens` in `cellRaw`), and the litter
+has to thin out **exactly** where the trees do or a wood floor is dead leaf a foot deep in an
+open clearing. The obvious move was to copy the field into the floor file. Instead `cellRaw`
+now READS IT FROM THERE — `GROUND.closure(ix,iz)` — so there is one copy and it cannot drift
+the day either file is touched.
+
+### Moss on the shaded side, and what that phrase means on this earth
+
+The brief's own words, and on an azimuthal disc with **the north pole at the middle** they
+have an exact meaning: in the northern half the sun stands outward from the centre and in the
+southern half it stands inward, so the face a step never lights is always the one turned
+toward its own pole. `shadedCell` steps one cell that way and asks whether the ground there
+stands higher. **It costs nothing**: `emitColumn` asked all four of that column's neighbours a
+few lines earlier to draw its flanks, so the one asked here is a cache hit. Measured over
+ten thousand cells of each: **3,032 mossy in the shade against 1,356 in the sun**, 2.24×.
+
+### What it costs, measured and not asserted
+
+`GROUND.on(false)` builds the world without a floor beside the world with one, in the same
+page, on the same chunks, `holdWorld` holding the ring still so the two builds stand on the
+same ground — the fault that made the first bark measurement worthless in Round 59.
+
+**545 chunks over the largest wood on the chart:**
+
+| | without | with | |
+|---|---|---|---|
+| triangles | 1,031,862 | **1,119,164** | +87,302, **+8.5 %** |
+| materials in view | 14 | **14** | not one new name |
+| meshes | 3,508 | 3,525 | +17 in 545 chunks — see below |
+
+Not one new material anywhere in the world: a mat is ONE upward face in the mesher's existing
+`solidW`, a mushroom two small boxes in it, a fallen log one box in it. The +17 meshes are
+seventeen chunks in five hundred and forty-five that had **no `solid` geometry in them at all**
+before and now have one mesh of it.
+
+### THE MEASUREMENT CAUGHT A REAL COST, WHICH IS WHY IT EXISTS
+
+The deadfall was written in `kit.M.bark`, which is the honest material for a log. The A/B said
+at once: **materials 14 → 15, meshes 3,508 → 3,601.** `barkW` is the grey master that the six
+barks of §2.4.3 left UNUSED — it was not in that wood at all — so a log lying in the leaves
+brought a whole new material and **ninety-three new meshes, one per chunk**, for a thing you
+meet once in a hundred cells. It is drawn in `solid` now, which is the right colour for it
+anyway: a bole that has been down a season has lost its bark, and what is under the bark goes
+grey. **93 draw calls a frame, found by a switch and a number and by nothing else.**
+
+### And the first two cuts looked wrong, which only a photograph could say
+
+**The chessboard.** One mat exactly covering one cell, on a third of the cells, gives a forest
+floor — and a lichened crag — brown square, green square, brown square, all the way to the
+trees. The share was right and the SHAPE was wrong. Every patch is now shifted off the middle
+of its own cell and is a different size and squareness from its neighbour, and never leaves
+its own cell (a mat that overhung the next one would hang in the air wherever the ground steps
+down, and the ground steps down everywhere). The litter is drawn **two ways by how thick the
+fall is**: under a closed canopy nearly every cell bears one and they go down edge to edge —
+that is a carpet, and a carpet with a few bare places worn through it is what a beechwood floor
+looks like; toward the edge of the wood each is a patch of its own.
+
+**The painted lino.** One tint for a whole wood laid the floor down as a sheet. Dead leaf is a
+year's worth of it rotted at different rates; a tenth either way per cell, off the cell's own
+draw, is all it took.
+
+Neither of those is a thing a number would have reported. Both came out of standing in a
+German wood at summer noon with the switch thrown one way and then the other.
+
+### What the floor of each ground bears
+
+Counted over six thousand cells apiece, the canopy of the place taken into account:
+
+| ground | what lies on it |
+|---|---|
+| grass | litter 33 % · moss 10 % · fungus 1.2 % · deadfall 0.4 % |
+| tropic | litter 33 % · moss 21 % · fungus 2.2 % · deadfall 0.8 % |
+| alpine | litter 16 % · lichen 14 % · moss 13 % · fungus 0.5 % |
+| tundra | **lichen 34 %** · moss 16 % · litter 1.9 % |
+| rock | **lichen 38 %** · moss 4.4 % |
+| snow | lichen 9.3 % |
+| savanna | litter 6.6 % |
+| desert | litter 0.8 % |
+| sand | bare, and it must be |
+
+The tundra line is the truest thing in the table: that ground is the reindeer's pasture and it
+is nearly all lichen.
+
+### The test
+
+**Acceptance 47** asks four things, in the two ways the two kinds of claim deserve.
+
+WHAT IS BUILT is measured in the page, twice, on the same disc: triangles must rise, or the
+floor is not reaching the ground; the SET OF MATERIALS may not change by one name, which is
+the whole design of the thing and the claim most able to be quietly wrong; and the rise is
+capped, because §2.5 says beauty that halves the frame rate is not beauty.
+
+WHAT IS DECIDED is a pure function of the place and is asked directly, with no page in it: a
+conifer floor and a broadleaf floor must not come out the same colour — a **fake kit is handed
+to the floor and writes down what it was asked to draw**, so the colour asserted is the colour
+that reaches the mesher and not one worked out again beside it, which would only ever test
+itself; moss must be markedly commoner in the shade over ten thousand cells of each; and the
+bare rock must bear something where the sward bears nothing, with a guard that fails the test
+as stale if the sward is ever given the rock.
+
+### What is NOT claimed
+
+The floor is drawn on cells the mesher builds as ground. A column the hand has EDITED is meshed
+from what it has become and skips `emitScrub` entirely — so a dug or built column loses its
+litter, exactly as it has always lost its grass. And a cell a tree stands on is drawn by
+`emitTree` and has no floor under the bole. Both are the pre-existing shape of that branch and
+neither was touched.
+
+## 4bq. Round 68 — Phase 6 step 6: the agricultural year ✅
+
+*§2.4.6 — "Crops that grow in stages and are harvested at the right season — wheat, barley,
+flax, vine, olive, date. The farms and the farmer AI already exist; give them a real
+agricultural year."*
+
+### The fault, stated plainly
+
+**Every farm on the earth grew the same twelve anonymous green crosses**, in the same twelve
+places, in every village from Norway to Java — and grew them on the shortest day exactly as
+at harvest. One plant, one colour, one height, all the year, in every country. An Egyptian
+barley field in April and a Finnish one in February were the same twelve crosses.
+
+### WHICH LANDS SOW WHAT IS NOT WRITTEN DOWN AGAIN
+
+`world/flora.js` has already said, for a hundred and seventy-six countries, that Egypt grows
+wheat and barley and cotton, Java rice, Mali millet and sorghum, Ireland oats and the potato.
+A `world/crops.js` that repeated that would be a second copy to drift from the first. **It
+carries seventeen lines and none of them names a country**: a crop's stature, its colour, and
+whether it turns to straw or is green the day it is lifted. `js/crop.js` asks the land's own
+flora list, keeps what `world/crops.js` knows how to grow in a field, and draws one seeded on
+the field's own corner — so a plot bears the same thing for ever and the next plot along bears
+another.
+
+Measured over the whole chart: **seventeen crops declared, all seventeen sown, across a
+hundred and seventy-six lands, and not one land sows a crop its own flora does not name.**
+Three lands grow no field crop of their own at all and fall back to barley, which is named by
+ninety-three countries and grown from Iceland to Ethiopia; a village with a fenced, tilled,
+watered field in it is not growing nothing.
+
+> Egypt sows barley / melon / wheat / flax · Japan rice · Mali sorghum / millet / cotton ·
+> Ireland wheat / barley / oats / potato · Brazil sugarcane / cassava / taro / rice / maize
+
+### The year is in the shader, and that is the whole design
+
+A crop that GROWS is geometry that changes, and geometry that changes means the chunk is
+built again — **a village re-meshed every few days of a voyage for a field of wheat**, which
+is not a trade worth making for any amount of beauty.
+
+So it is done the way the leaves of this world have gilded since Round 53: in the vertex
+shader, off one uniform (the turn of the year) and the vertex's own distance from the middle
+of the disc, which IS its latitude on an azimuthal earth. The field is meshed once, at full
+stature, and **sunk into its own tilled soil** by how far off harvest it is — ploughed ground
+before the sowing, shoots after it, standing corn by midsummer, gold at the reaping, stubble
+after. The log border stands half a block proud of the soil, so what is sunk is not seen.
+
+**SUNK, NOT SHRUNK, and that is not a detail.** A shrink has to be worked off the crop's own
+height and a vertex knows only its own, so a short flax drawn beside a tall maize would fold
+through its own root. Sinking is one translation, exact for every stature, and a shoot coming
+up out of the ground is what a shoot looks like.
+
+**Measured: 0 chunks built while the whole year was turned round.**
+
+### The dates come from latitude, because latitude is what a vertex has
+
+A Norwegian harvest and an Egyptian one are four months apart; a Norwegian barley harvest and
+a Norwegian oat harvest are a fortnight apart. **Latitude is the thing that matters**, and
+latitude is the thing the shader can work out. Sowing runs later and ripening later the
+further from the line, the southern half is half a year on, and within a few degrees of the
+equator there is no dead season at all — two and three crops off the same ground in a year,
+which is why a rice paddy on the line does not go to stubble in January.
+
+| | sown | ripe | reaped |
+|---|---|---|---|
+| 60 °N | day 97 | day 199 | day 221 |
+| 27 °N | day 52 | day 146 | day 167 |
+| the equator | — | — | never falls below 0.56 of full |
+
+**What is NOT modelled, and is a real limit:** the winter-sown cereal. Real Egyptian wheat
+goes in in November and comes off in April; here it is sown in late February. Autumn sowing
+is a second curve and a second branch in the shader, and it is not there.
+
+### THE CURVE IS TESTED, WHICH A CURVE INSIDE A SHADER USUALLY IS NOT
+
+A string handed to a GLSL compiler cannot be unit-tested, and a JavaScript copy of it beside
+the string would only ever test the copy. So `js/crop.js` holds the curve **once as
+JavaScript and once as GLSL built from the same constants**, and acceptance test 48 takes
+`CROP.glsl()` — the actual text handed to the compiler — transliterates the eight GLSL words
+it uses, and evaluates it against `CROP.yearAt` at a hundred and twenty points of latitude and
+season. **They part company by 6.3 × 10⁻⁶**, which is the four decimal places the GLSL writes
+its constants to and nothing else. Edit one and not the other and the test goes red.
+
+### What it costs
+
+The crop of a field is 8 or 12 crosses — a row crop is set out in rows a man walks between,
+a cereal is drilled close — and a village's whole harvest is a hundred triangles. The second
+material is the thing worth measuring: **the corn of the earth turns to straw and is reaped;
+a potato haulm, a taro leaf, a hemp stalk and a cane are green on the day they are lifted**,
+and gilding those in September would be a lie about the plant. So there are two crop
+materials, and the second is a draw call.
+
+`CROP.on(false)` puts the old anonymous field back exactly, and the two were built from a
+fresh boot apiece:
+
+| | farms | crop meshes | crop triangles | meshes in the whole village group |
+|---|---|---|---|---|
+| Hungary — wheat, barley, maize | 2 | 1 → **1** | 48 → **48** | 943 → 943 |
+| Indonesia — cane, cassava, taro, rice | 3 | 1 → **2** | 72 → **80** | 466 → 467 |
+| Nigeria — cane, cassava, taro, rice, sorghum, cotton | 4 | 2 → **3** | 96 → **128** | 918 → 919 |
+
+**One extra mesh, in a village that grows both kinds, out of four hundred and sixty-seven to
+nine hundred and forty-three.** Hungary is unchanged, because everything Hungary sows turns —
+which is the design working: a country pays for the second material only if it grows something
+that needs it.
+
+### And a small thing that made the measurement possible at all
+
+`blockMat` now writes the material's name onto the material. The chunk mesher keeps its
+geometry in a table keyed by name and could always say what it drew with; a village, a ship
+and a beast hold the material OBJECT and could not — so **646 meshes in a village group with
+no way to ask which of them were the crop**. `name` is a field three.js has always had and
+never used. It costs nothing, and it is the difference between measuring a thing and guessing
+at it.
+
+### The shader was written wrong first, and the browser said so
+
+The year was injected at `#include <color_vertex>` together with the sinking of the plant.
+`<color_vertex>` runs **before** `<begin_vertex>`, and `transformed` does not exist until the
+second — so the whole crop material failed to compile: *"'transformed' : undeclared
+identifier"*, three times over, and every field in the world went unlit. The year is worked
+out at the first now (it reads `position` and nothing else) and the plant is moved at the
+second, where there is something to move. **A headless run reports page errors; that is what
+it is for.**
+
+### A note on test 35, which read red in the same suite run
+
+Test 35's watch metric read **37 % in the full suite and 58 % and 50 % on two runs of its own**,
+against 92 % on the commit before the floor of the wood. Its bar is 45 %. AUDIT Round 54 wrote
+when that number was first taken that this measurement *"has a genuine run-to-run spread"* and
+gave it as 62–69 % across runs; the true spread is plainly wider than that. The floor draws
+litter on 6.6 % of savanna cells and nothing else on that ground, which is where the herds are
+sampled, so there is no mechanism by which it could move the watch by half. **It is noise, and
+the test's bar is set too near the middle of it** — that is a thing to mend in the test and it
+is written down here rather than left as a mystery.
+
+## 4br. Round 69 — Phase 6 step 4 (§2.3.6): the herds go down to the water ✅
+
+*§2.3.6's very first clause — "Drinking at water at dawn and dusk."*
+
+### What was already there, and it is most of the section
+
+AUDIT Round 54 established that **the daily round was largely already built**: `js/behavior.js`
+gives every beast its own hours, sends it to its own den at dusk, and draws from its own list
+of drink, wallow, dust, groom, alert, bask, dig, gape, curl, sharpen and play. Grooming,
+sunning, wallowing and bedding down were all standing. **Nothing was rewritten for any of
+them.** What had nothing behind it was the first clause, and it is the one that shows most.
+
+### The fault, and it is two faults
+
+`drink` was an act like any other, drawn by weight at any hour of the day or night. And it was
+refused unless `a.river` was true — **which was read ONCE, at the instant the beast was set
+down on the world, and never again as long as it lived.**
+
+So a beast that happened to be placed on a bank went on drinking in the middle of a dry plain
+for the rest of its days, and a beast that walked to a river could never drink at all.
+**Nothing on this earth ever went TO water.** The herds of the plain never came down to the
+river; a zebra either was born beside one or never drank. It is the single most recognisable
+thing a herd does, and it is the reason the crocodile is where he is.
+
+The same stale flag also gated the WALLOW, and the bear's fishing, and the crocodile's lying
+up in the shallows — all three were reading a fact about where the beast was born.
+
+### It is not new data
+
+**Which** beasts drink is already written down, once, in `js/behavior.js`: any beast with
+`drink` in its own `acts`. **Twenty-one beasts on the earth drink**, and not one creature file
+was touched to say so. **When** is the world's own light. Nothing was added anywhere.
+
+### One question, two callers
+
+The walk down to water needed the same fright test the grazing has — a zebra crossing open
+ground to the river must break from a lion exactly as one with its head down does — so
+`frightNear` was **lifted out of the grazers' own branch** rather than copied. The watering
+branch and the grazing branch now ask one function, and there is no second copy of the rule to
+drift.
+
+### THREE THINGS WERE WRONG AND THE MEASUREMENT FOUND ALL THREE
+
+**1. `worldNight` is the wrong number for asking whether the sun is going down.** It is
+`1 − dayF × 1.5` clamped at nought, so it stands at ZERO through the whole first two thirds of
+the dusk. Measured hour by hour at a Sudanese village:
+
+| hour | 15 | 16 | 17 | 18 | 19 |
+|---|---|---|---|---|---|
+| `worldNight` | 0.00 | 0.00 | 0.43 | 0.85 | 1.00 |
+
+By the time it says anything at all the diurnal beasts are already bedding (they bed at
+`worldNight > 0.6`). **There was no hour of the day at which a beast would have set off**, and
+the first run of test 49 reported precisely that: four lands, not one beast, and *"the world
+does not call the evening a twilight."* The light itself is kept now (`worldDay`), and the
+band is read off that.
+
+**2. None of the five dayparts is dusk.** 'evening' is 18:30, by which hour the light is gone.
+The test sweeps the hour until the world itself says twilight — it found **15:45** — so
+nobody retuning the sun can quietly break this.
+
+**3. The search was coarser than the thing it was looking for.** A watercourse is stamped one
+or two map pixels wide — about a hundred and twenty units — and the first cut walked three
+rings of twelve bearings, which at nine hundred units puts its probes **four hundred and
+seventy units apart**. A herd would have stood a bowshot from the Tigris and found nothing,
+most of the time, at random. The rings run at a hundred and fifty units now and the bearings on
+each are counted so no two probes are further apart than a river is wide: **221 lookups, once
+per beast per twilight — twice a day.**
+
+And a fourth, caught in the reading rather than the running: the leash on the walk was a flat
+forty seconds, so a beast gave up two hundred units into a nine-hundred-unit walk, every time.
+It would have measured as working — they set off — and looked like nothing, because none of
+them ever arrived. It is the distance at the beast's own pace, and half again.
+
+### What it costs
+
+`riverBankAt` is a probe and eighteen more about it (a river is one pixel wide and a single
+lookup would miss it). Asked of every beast four times a second that is thousands of raster
+reads for an answer most of them will never use — so `wets` is settled ONCE when the beast is
+put down: does its own line name drink or wallow, or is it a forager that fishes or an
+ambusher that lies in the shallows. **Nothing else pays anything at all.**
+
+### The measurement, and it is not the one Round 54 was told off for
+
+AUDIT Round 54 wrote that its herd numbers were worthless because they sampled the same three
+animals every twelfth frame and called it three hundred samples. This does not do that: **n is
+the number of LANDS**, each stood beside its own nearest river bank for a whole dusk and
+censused once.
+
+| land | bank from the site | beasts that drink | walking to it | at it |
+|---|---|---|---|---|
+| Iraq | 100 u | 33 | **17** | 0 |
+| Egypt | 2,050 u | 28 | **11** | 3 |
+| Bangladesh | 1,900 u | 16 | **4** | 5 |
+| Sudan | 4,600 u | 28 | **3** | 3 |
+
+**Four lands of four saw the herds go down.** At noon, nought. And no beast, in any land, was
+ever walking to water with a hunter inside its own flight distance.
+
+**What "at it" is NOT.** The census window is a few tens of seconds of world time and a walk of
+several hundred units at a beast's own pace takes longer than that, so Iraq's nought is the
+window and not the behaviour. *Walking* is the honest headline; *at it* is a lower bound.
+
+### And a note on where the test had to stand
+
+"Do the herds go down to the river" can only be asked in a place with a river in it, and a
+village site is put where a village goes, not where a watercourse runs. The first run stood at
+the site of Sudan and reported *"no bank within 2400 units"* — which was true, and measured
+nothing. The nearest bank to each land's site is found first and the traveller stood beside
+THAT. Measured: Iraq 100 units, Bangladesh 1,900, Egypt 2,050, Sudan 4,600, and **India, Kenya
+and Brazil have no river bank within nine kilometres of their village sites at all** — which
+is a fact about where villages are put, and is written down here because somebody will
+otherwise re-discover it as a bug.
+
+### Two stale documents corrected in the same round
+
+- **`creatures/README.md`** said the beasts of the field are drawn at half life-size and named
+  `LAND_U_PER_M` in `js/engine.js` as the constant that halves them. Phase 6 step 3 rebuilt
+  them (`js/size.js`, Round 51) and **that symbol no longer exists** — grep and you find
+  nothing. The paragraph now says what is true and says what it used to say.
+- **PLAN §17** said *"There is no making — no bench, no recipe, nothing that turns what was
+  gathered into what was not."* That has been untrue since Phase 4: `world/works.js` declares
+  fourteen works and tests 20 and 44 walk them. What IS still missing is a bench, and the
+  section now says so instead.
+
+## 4bs. Round 70 — §2.3.5, the herd: the measurement built, the change reverted
+
+*§2.3.5 — "matriarch-led herds with juveniles held at the centre."*
+
+**Nothing shipped. This round is a measurement and a diagnosis, and both are worth more than
+the feature would have been.**
+
+### Why it was taken this way
+
+AUDIT Round 54 tried this item four times, reverted all four, and left an instruction rather
+than a result:
+
+> *A valid measurement of this needs many INDEPENDENT herds — different lands, one reading
+> apiece — and **it needs to be built before the feature, not after it**. I have neither, so I
+> have no evidence that §2.3.5's juveniles-at-the-centre is or is not satisfied… The item stays
+> open and unclaimed.*
+
+Round 69 had just proved that method works (n = lands, one census apiece). So the measurement
+went first: **acceptance test 50**, which censuses every herd of three or more across four
+plains, once each, and reports how many stand together, how deep in the herd the mothers sit
+against everybody else, and how far the herd carries itself over a spell.
+
+### THE FIRST THING IT REPORTED WAS NOT ABOUT MATRIARCHS AT ALL
+
+Asked for herds of **four**, it answered **"no herd of four formed in any land"** — across six
+of them. That is not a fault in the test.
+
+- **96 beasts stand at once** (`LL_N`) over a ring of 1,250 units, shared among every species a
+  country grows.
+- The only thing drawing them together was a pull of 45 % toward the **mean position of their
+  own kind within eighty units** — that is, *a beast only felt its herd once it was already
+  standing in it.* Two zebra two hundred units apart felt no force whatever.
+
+**The world was not making herds. It was making a scatter with a slight correlation in it**, and
+§2.3.5 had almost nothing to give a structure to. Lowered to three, the before-reading was:
+
+| | before |
+|---|---|
+| herds of 3+ over 4 lands | 6, **mean 3.00, biggest 3** — not one group of four anywhere |
+| mothers' depth from the middle | **1.22** herd-radii |
+| everybody else | **0.94** — the young were further **OUT**, the exact opposite of §2.3.5 |
+
+### What was built, and what it did
+
+A herd that feels its own kind across **420 units** and walks to them; a **matriarch** — the
+highest rank in the neighbourhood, rank being one hash settled when the beast is put down; and
+a **station** for every other member, an angle off its own rank on a ring that widens with the
+herd, mothers on an inner ring. The stations are the mechanism Round 54 recorded from the bird
+flocking it built and reverted, reused on the ground.
+
+Measured four times:
+
+| | mothers | others | mean herd | biggest | travel |
+|---|---|---|---|---|---|
+| **before** | 1.22 | 0.94 | 3.00 | 3 | — |
+| stations about a leader | 1.04 | 0.98 | 3.50 | **6** | 2 u |
+| stations + a marching matriarch | **0.80** | 1.06 | 3.00 | 3 | 2 u |
+| stations alone, first reading | **0.90** | 1.02 | 3.00 | 3 | 0 u |
+| stations alone, second reading | 1.01 | 1.00 | 3.33 | 5 | 2 u |
+
+With **two to six mothers standing in any one run**, that is noise. Two readings of the very
+same build gave 0.90/1.02 and 1.01/1.00 — one a clear reversal, the other a dead heat. **I
+cannot show it working, so it is not in the tree.** The leader's own invariant held in every
+run (**0 outranked, 0 split**), but a leader that changes nothing measurable is machinery, not
+a feature.
+
+### AND THEN THE BEFORE-READING DISAGREED WITH ITSELF, WHICH SETTLES IT
+
+The change reverted, the test was run once more on the untouched tree to confirm it reports
+cleanly. It read **mothers 0.59 against everybody else 1.07** — the young deep inside the herd —
+on **exactly the code that had read 1.22 against 0.94 an hour earlier**, the young well outside.
+
+Same build, same four lands, opposite answer.
+
+**So no comparison against that baseline ever meant anything**, including the four above, and
+including — retroactively — the four attempts Round 54 made and could not judge. The item was
+never failing for want of a good idea. It was failing for want of a metric with more than three
+mothers in it, and this round has shown that in numbers rather than suspected it. The first
+thing the next attempt must do is widen the measurement — more lands, or many readings of each,
+or both — until the untouched world gives the same answer twice.
+
+### AND THE MARCH, WHICH WAS TRIED AND ALSO REVERTED
+
+Giving the herd a leader made the travel figure *worse* — 2 units against 5 for the scatter it
+replaced. The reason is that **every beast on this earth is tethered to the spot it was set
+down on**: `hx,hz` is fixed at spawn and a beast wanders inside a fourteen-block disc of it for
+life. A herd locked in formation about an animal who cannot leave her own field is a parade
+ground. So the matriarch's tether was made to creep along a bearing of her own, nine units a
+pick. **Measured: still 2 units, and the herd count fell with it.** Out.
+
+### THE DIAGNOSIS, WHICH IS THE ACTUAL OUTPUT OF THIS ROUND
+
+Four attempts, and they all failed the same way, for a reason that is now plain:
+
+**THE WANDER-TARGET PICKER IS THE WRONG LEVER.** It fires only when a beast has finished
+everything else and is *roaming* — and a grazing beast hardly ever is. It is in `seek`, walking
+to grass; or in `feedhead`, standing still with its speed set to nought; or in an act. Round 54
+saw half of this (*"the gathering rule fires only when a beast picks a new wander target"*) and
+drew the conclusion that the herd was a loose correlation. The rest of it is that **no amount of
+work on that lever can reach the behaviour**, because the behaviour is somewhere else.
+
+A herd is given its shape by **where each beast looks for grass**. `GRASS.findGraze` spirals out
+from where the beast stands and takes the best bite it finds; if it preferred a bite near the
+beast's own station in its herd, the herd would form, hold and travel *as a consequence of
+feeding*, which is what a herd actually is. That is the next attempt, and it is a change to the
+grazing rather than to the wandering — which is why it wants its own round and a fresh
+before-reading, since test 35 and the whole life of the plains stand on that code.
+
+The travel figure says the same thing from the other side: **0 to 2 units in a spell whatever
+was done to the wandering** — and it may not even be a fault. A herd that has found grass
+stands in it. Proving that either way wants a metric that separates a herd walking from a herd
+feeding, and that metric does not exist yet.
+
+### What is left behind
+
+`tools/acceptance.js` test 50, **running, and reporting PENDING with its numbers** rather than
+green or red — because nothing here is broken; this is the shape of the world, written down. It
+is what Round 54 said it wished it had had.
+
+## 4bt. Round 71 — a beast is born into its herd ✅
+
+*The prerequisite for §2.3.5, found by the measurement Round 70 built for it.*
+
+### What the measurement said, and it was not what it was built to ask
+
+Test 50 was written to ask whether the young are held at the centre of a herd. The first thing
+it answered instead — **in seven readings running, without a digit of variation** — was:
+
+> **the mean herd on this earth is 3.00 beasts and the biggest is 3**
+
+There were no herds to lead. Round 54 spent four attempts on §2.3.5 and Round 70 spent four
+more, all of them on the *gathering rule*, and all of them on a world that had nothing to
+gather.
+
+### It is not the species draw. It is the density, and that is arithmetic
+
+`landKindAt` already seeds its draw on a TILE of ground, and its own comment says why: *"so a
+whole field bears the same kind and a herd stands together in it."* But the tile is **48
+units** and a herd stands within **80** — the field is smaller than the herd.
+
+That is not the binding constraint either. **Ninety-six beasts** (`LL_N`) are set down at
+INDEPENDENT random points in a ring four hundred units deep and two and a half thousand
+across. One beast to about twenty-seven thousand square units means **the nearest other beast
+— of any kind — stands about a hundred and sixty units off**, and a herd radius is eighty.
+
+**Groups of three are what that scattering gives whatever the rules do.** No amount of work on
+the gathering can assemble a herd out of animals too far apart to feel one another, and eight
+attempts across two rounds went into trying.
+
+### The change, and it is small
+
+A beast is no longer born at an independent point. When the slot being filled calls for a kind
+that **already stands nearby** (within seven hundred units), the beast is set down **beside its
+own** — within about fifty. A herd accretes as its members arrive, which is how a herd comes to
+exist anywhere.
+
+Nothing about *which* beasts live *where* has moved. The kind is still the ground's own choice,
+and the snap is refused unless the ground it lands on would have borne that same kind anyway —
+so a reindeer cannot be pulled across a tree line to reach a herd-mate.
+
+### Measured, twice, against a baseline measured twice
+
+| | baseline | baseline | **born beside its own** | **and again** |
+|---|---|---|---|---|
+| herds of 3+ over 4 lands | 7 | 10 | **44** | **45** |
+| mean herd | 3.00 | 3.10 | **4.30** | **4.09** |
+| biggest | 3 | 4 | **12** | **8** |
+| the sizes | 3×7 | 3×9, 4×1 | 3×23, 4×9, 5×5, **6+×7** | 3×21, 4×13, 5×4, **6+×7** |
+| lands that had a herd at all | 2 of 4 | 4 of 4 | 4 of 4 | 4 of 4 |
+| mothers the depth statistic could sample | 10 | 13 | **90** | **91** |
+
+Seven of the herds in view are six beasts or more, in both readings. Before, in nine readings
+across two rounds, **not one group of five ever formed anywhere.**
+
+### AND THE INSTRUMENT HAD TO BE MENDED TWICE ON THE WAY, WHICH IS WORTH RECORDING
+
+Round 70 reverted its work because the depth statistic would not reproduce. Widening it
+exposed two arithmetic faults in the measurement itself, neither of which was about beasts:
+
+1. **The majority class always reads "nearer the middle."** Marking every second member of a
+   herd of three gives two mothers to one other, every time, and the centroid of three is
+   pulled toward whichever pair shares a class. On the **untouched** tree that instrument
+   reported 8 mothers at 0.87 against 4 others at 1.26 — a clean-looking result from a rule
+   that does not exist. The parity is flipped herd by herd now, so the imbalance cancels.
+2. **A beast is part of the mean it is measured against.** In a herd of three it drags the
+   centre a third of the way toward itself, so every animal reads closer in than it is. The
+   centroid is reckoned leave-one-out now.
+
+Even mended, the depth statistic on the old world gave 2.27/3.47 on one run and 3.67/1.72 on
+the next. **With ninety mothers instead of ten it now reads 2.73/2.67 and 1.98/1.61** — no rule
+holding the young in, which is correct, because there is none in the tree. The instrument
+reports the absence honestly, which is the first time it has been able to.
+
+### What is NOT claimed
+
+**No photograph.** Five camera positions were tried — plan view, oblique, standing off at eye
+level, twice from the air — and none produced a frame that shows a herd reading as a herd:
+beasts on dun ground seen from above do not group to the eye, and the orbit camera repeatedly
+put itself inside a bole or in the sea. The numbers here were taken from the running world by
+census, twice, with no page errors; **I did not get a picture of it, and say so rather than
+imply I did.**
+
+**And the world is emptier between.** Ninety-six beasts in twenty-odd herds leave more bare
+country than ninety-six scattered evenly. That is truer — animals are clumped, not uniform —
+but it is a visible change to the feel of a plain and it was not measured.
+
+### What this unblocks
+
+§2.3.5's matriarch and juveniles-at-the-centre can now be *judged*: there are herds of six to
+twelve to give a structure to, and ninety mothers to measure instead of ten. That is the next
+round, and for the first time it starts with an instrument that reproduces.
+
+## 4bu. Round 72 — the matriarch, judged at last, and it does not work
+
+*§2.3.5's matriarch and juveniles-at-the-centre, measured against real herds for the first
+time. **Nothing shipped**, and this time that is a finding rather than a shrug.*
+
+### What was different this time
+
+Round 54 could not judge this item (no measurement). Round 70 could not judge it (the
+measurement had ten mothers in it and disagreed with itself). **Round 71 mended both**: there
+are herds of six to twelve now, and the instrument samples **eighty to ninety mothers a
+reading** with the two arithmetic faults taken out of it.
+
+So the question could finally be asked properly. It was asked of three mechanisms.
+
+### The three attempts, and every one of them measured twice
+
+**1. A station about a matriarch, taken through the wander-target picker.** Rank hashed at
+spawn, the highest in a neighbourhood leads, everybody else holds a bearing off her on a ring
+that widens with the herd, mothers on an inner ring at 0.40 and the rest at 1.35.
+
+> mothers **1.96** · others **1.94** — a dead heat, with 86 against 93.
+
+**2. The same, with the matriarch's own tether creeping** so the herd should graze across
+country (Round 70's attempt, re-measured against real herds).
+
+> the centroid moved **2 units** in a spell, the same as without it.
+
+**3. The station taken through THE GRAZING instead**, which is what Round 70's diagnosis said
+the lever had to be — *"a herd is given its shape by where each beast looks for grass"*. The
+search for a bite starts from the beast's station in its herd rather than from its own feet.
+
+> reading one: mothers **1.87** · others **1.95** — leaning the right way
+> reading two: mothers **1.89** · others **1.67** — leaning the *wrong* way
+
+**Two readings of one build, opposite directions.** That is the end of it.
+
+### What that actually establishes, which is not nothing
+
+The instrument is sound now — it was proved so in Round 71, where it reported a change of
+7→44 herds and reproduced it — so this is no longer "I could not tell." **With eighty-odd
+mothers in every reading, three different mechanisms move the young's position by less than the
+run-to-run spread.** Round 70's diagnosis (that the wander-picker is the wrong lever) was right
+about the wander-picker and *wrong to assume the grazing would therefore be the right one*:
+moving the search centre by a few tens of units while the search radius stays at 190 shifts
+nothing, because the bite it finds is anywhere in a disc far larger than the herd.
+
+### THE ONE DIAGNOSTIC THAT WOULD SETTLE IT, and none of the three could
+
+Every attempt so far has measured the OUTCOME (where the young end up) and inferred the cause.
+What has never been measured is whether **a beast ever reaches its station at all** — the mean
+distance from each animal to the place its herd assigns it.
+
+- If that distance is large, the rule is never landing, and the fix is about *when* it fires.
+- If it is small, the rule lands and the young's depth still does not move, which would mean
+  the station geometry is wrong, or that a herd of four to twelve is simply too small for
+  "inside" and "outside" to be distinguishable at all.
+
+Those two are opposite repairs and three rounds of work could not tell them apart. **That
+measurement is the first thing the next attempt should build**, exactly as Round 54 said of the
+last one — and this time the pattern has held twice, so it is worth stating as a rule: *when a
+change cannot be shown to work, measure the mechanism, not the outcome.*
+
+### And the birds are still where Round 54 left them
+
+*"A bird has nowhere in its day to BE in a flock"* — 95 % are in `hunt` at any moment. That is
+untouched and remains a question about a gull's day, not about geometry.
+
+## 4bv. Round 73 — the suite run at last, and test 48 was measuring the wrong thing
+
+The whole suite had not run since Round 69 — a container restart killed that attempt — so four
+rounds had landed on a result nobody had seen. It has now run on the committed tree:
+
+**47 pass · 1 fail · 2 pending**
+
+The two pendings are by design: 43, the boles, switched off since Round 61; 50, the herd
+measurement, reporting rather than judging since Round 70. Everything from Rounds 67–71 is
+green.
+
+### And test 35 got better without being touched
+
+> 528 herd-samples of three or more: 447 watched (**85 %**)
+
+It had read 37 %, 58 % and 50 % on ~150 samples, and its bar is 45 % — a metric sitting so
+close to its own noise that one suite run went red on it. **Round 71's herds gave it a real
+sample**, and at 528 samples it clears the bar with room. Nothing in test 35 or in the watch
+was changed; the world simply now has herds to sample.
+
+### The one failure was mine, in the instrument again
+
+> FAIL 48 — *"116 chunk(s) built while the whole year turned — the year is not in the shader"*
+
+Test 48 passed **alone, twice, reporting 0**. The claim it guards — that a crop's year is worked
+out in the vertex shader and no chunk is ever built for it — was measured and is not in doubt.
+
+**It counted an ABSOLUTE number of chunk builds over fifty frames and failed above forty.** Run
+alone the world is settled, the ring lays nothing, and it reads nought. In the suite it runs
+straight after tests 41 and 47, which call `dropChunks()` and fly the traveller to India and to
+the United States — so the ring is still refilling, and the 116 chunks it counted were the
+ring's own work.
+
+The comment beside the assertion **named the hazard** — *"the ring lays ground of its own as the
+traveller drifts"* — and then guarded against it with a fixed number, which is the wrong shape
+for a quantity that depends on where the traveller has just been.
+
+### Mended as a DIFFERENCE, and the first attempt at that was wrong too
+
+The same span of frames with the year held still, then the same span with the year turned
+through all four seasons; what the ring does on its own appears in both and cancels.
+
+**That alone was not enough.** Run in the suite position it read **quiet 124, turning 0** — the
+year "cost" **minus a hundred and twenty-four**. It passed, and it passed by luck: the ring was
+working off test 47's backlog during the first span and had finished by the second. Reverse the
+order and the identical world fails. A difference is only a difference if the two halves are
+comparable, so both spans now begin only once the ring has laid **nothing for twelve frames
+together**.
+
+### Proved both ways, which is the whole point
+
+| | quiet | turning | the year's own cost |
+|---|---|---|---|
+| in the suite position that reported 116 | **0** | **0** | **0** |
+| with the fault injected | 0 | 173 | **173** |
+
+The fault injected is the true one: `SEASON.setSeason` made to drop the chunks, which is exactly
+what carrying a crop's growth in the GEOMETRY rather than the shader would force. The bar is 25.
+**A guard that has never been seen to fail is not yet a guard** — this one now fails on the fault
+it exists for, and reads nought on the world that is shipped.
+
+### The lesson, and it is the third time this session
+
+Round 71 found two arithmetic faults in the herd instrument. Round 72 found that three
+mechanisms could not be told apart because the measurement watched the outcome instead of the
+mechanism. This one found a guard whose shape depended on which test ran before it. **Every
+fault found in the last four rounds has been in a measurement, not in the world** — which is
+worth writing down, because it means the world is in better condition than the instruments
+reading it.
+
+## 4bw. Round 74 — the coat missed the twenty commonest beasts on earth ✅
+
+*A hole in §2.3.1, open since Round 51, that the test guarding it could not see by
+construction. Found while surveying for §2.3.4.*
+
+### How it was found
+
+§2.3.4 wants finer voxel grain on *"the twenty most-seen species"*. Ranking every beast by how
+many of the hundred and seventy-six lands name it in `world/fauna.js` turned up something else
+first: **eleven of the top twenty have no creature file at all.**
+
+| | | | |
+|---|---|---|---|
+| 1 goat 98 | 2 crocodile 75 | 3 fox 75 | 4 deer 66 |
+| 5 sheep 59 | 6 cow 56 | 7 boar 52 | 8 leopard 46 |
+| 9 gazelle 45 | 10 lizard 39 | 11 wolf 37 | 12 elephant 36 |
+
+Twenty kinds — sheep, cow, pig, chicken, hare, lizard, goat, camel, horse, donkey, ox, wolf,
+dog, lion, deer, elephant, crocodile, bear, blackbear — are built by a hand-written
+`buildOldAnimal` chain inside `js/engine.js`.
+
+### And that chain never met the coat
+
+`coatBeast` is called from `makeBeast` **and from nowhere else**, and `makeAnimal` only routes a
+kind to `makeBeast` **if it has a file**. Everything else falls through to `buildOldAnimal`,
+which does not coat.
+
+Measured live, by building each kind through the door the world uses:
+
+| | meshes | graded | tint spread |
+|---|---|---|---|
+| goat, cow, sheep, deer, wolf, elephant, camel, bear | 15–19 each | **0** | **0** |
+| gazelle, leopard, hippo, fox | 16–22 each | all | **0.48** |
+
+**Round 51's headline — "2534 meshes graded, 0 left flat" — was true of everything it looked at
+and false of the animals a traveller actually meets.** The single most-seen beast on this earth
+was flat.
+
+### The test could not have caught it
+
+Acceptance test 32 walks `BEAST_BY_NAME`, which is the creature files. There is no arrangement
+of a test over that list that can see a beast which has no entry in it. **The guard was the
+right guard pointed at the wrong door.**
+
+It asks `makeAnimal` now — the door the WORLD comes through — over every kind in
+`FAUNA.keeps` as well as every file. Two faults surfaced in widening it, both mine:
+
+1. `makeAnimal` is the LAND spawner. Handed the name of a fish it falls straight through to the
+   old chain, so the first cut reported the whole sea flat and named *"fish, puffer, jelly,
+   crab"*. The beasts of the water are asked for by their own call now.
+2. `FAUNA` is module-local to the engine, so `window.FAUNA` was undefined and the widened list
+   came back with **nought** extra kinds — the test reported "0 kinds with none" and looked
+   like it had worked. It is exposed on `__VDBG` and the count is asserted in the report line,
+   so a silent zero cannot happen again.
+
+Pointed properly, it went red on the truth: **2534 graded, 348 left flat, missed in cow, sheep,
+goat, pig.**
+
+### The fix is one call
+
+```js
+const inner=buildOldAnimal(kind);
+coatBeast(inner,null);          // ← this line
+return sizeToTrue(kind,inner);
+```
+
+**2882 meshes graded, 0 left flat** — the 348 that Round 51 never reached now carry it, and the
+2534 it did reach are untouched.
+
+### And it was photographed, at last
+
+Five hand-built beasts stood in a row at noon under **a pinned camera** — `__WORLD.renderer`'s
+own `render` wrapped so the eye sits exactly where it is put, every frame. Coat off, the
+elephant's flank is one flat grey and the pig one flat pink. Coat on, the back is darker than
+the belly and the legs shade down.
+
+*(Round 71 failed to photograph a herd across five attempts with the orbit camera, which kept
+putting itself inside a bole or in the sea. `__WORLD` exposes `camera` and `renderer` and has
+all along. That was the answer, and I did not look for it.)*
+
+### What this leaves for §2.3.4
+
+The finer grain itself. Those twenty kinds still stand at **15 to 19 parts** where the brief
+asks 30–60 — the elephant is body, head, trunk, two eyes, tail, two ears, two tusks and eight
+leg meshes, and that is the whole animal. Giving them creature files serves three things at
+once: the brief's part count, `creatures/`'s own "one to a file", and the removal of a
+two-hundred-line hand-built table from the engine. That is the next round; **the coat is not
+waiting on it.**
+
+## 4bx. Round 75 — the weld: a beast in a handful of meshes ✅
+
+*§2.3.4 asks for 30–60 parts on a large mammal where there are 15–19. This is what had to
+happen first, and the honest account of what it did and did not buy.*
+
+### Why it was needed
+
+`lbox` mints a new `BoxGeometry` **and** a new material for every limb (`lam` is `new
+MeshLambertMaterial` on every call), and nothing anywhere merged or instanced beast geometry.
+**A part is a mesh is a scene-graph node.** Ninety-six beasts stood at **1,836 meshes** between
+them, and taking each from seventeen parts to forty would have doubled that.
+
+### The trick was already in this codebase, twice
+
+The flora draws a hundred and seventy species with four grey materials by tinting vertex
+colours. And `coatBeast` already writes a greyscale `color` attribute onto every beast mesh and
+turns `vertexColors` on. One step further — multiply each part's own base colour into that
+attribute — and the material stops carrying anything the geometry cannot. Then the parts weld.
+
+THREE r128 is bundled without `BufferGeometryUtils`, so the concatenation is written by hand,
+the same way `quad()` in the chunk mesher already builds buffers.
+
+### What stays loose is DERIVED, not listed
+
+The engine reaches every moving part by name through `userData` — `legs` (and each leg's
+`knee`), `head`, `jaw`, `tail`, `ears`, `tents`, `wingL`/`wingR`, `flL`/`flR`, `armL`/`armR`.
+**Anything named there, with everything under it, keeps its own mesh; all the rest is welded.**
+A hand-kept list of moving parts would drift the first time a creature file grew a new one.
+This cannot: if the engine can reach it, it still moves.
+
+And the weld is by MATERIAL SIGNATURE, not into one lump — a textured hide and a flat horn
+cannot share a material, so parts are gathered by the texture they wear and each gathering
+becomes one mesh.
+
+### What it bought — measured over the whole bestiary
+
+**170 kinds built both ways: 2,882 meshes → 1,288. Fifty-five per cent fewer.** Per beast:
+
+| | parts | welded |
+|---|---|---|
+| crocodile | 21 | **7** |
+| gazelle, fox, deer, goat, wolf, camel, bear, lion | 17–22 | **10** |
+| cow, sheep, leopard, hippo | 15–22 | **11** |
+| elephant | 18 | **12** |
+
+**984 moving parts named by the engine, every one still its own mesh and every one still
+turning.**
+
+### WHAT IT DID *NOT* BUY, AND THIS IS THE PART WORTH READING
+
+**It does not cut draw calls.** Measured with `renderer.info.render.calls` — the renderer's own
+count, not a mesh tally — alternating the two conditions twice each so drift cancels:
+
+| | welded #1 | welded #2 | loose #1 | loose #2 |
+|---|---|---|---|---|
+| draw calls | 1,978 | 2,179 | 1,964 | 2,059 |
+| beast meshes | 916 | 1,011 | 1,814 | 1,857 |
+
+**A difference of 67 inside a spread of 200.** The meshes halve every time; the calls do not
+move. The reason is frustum culling: most of the ninety-six beasts stand outside the view, and
+their loose parts were never drawn to begin with.
+
+It took three attempts to learn that. Measured once, welded read **170 calls MORE**; measured
+again, **439 FEWER**; only alternating within one run showed the truth, which is *neither*. The
+first attempt also measured a world with **nought beasts in it** — `holdWorld` pauses the game
+outright and the spawner with it — and reported no difference at all, which looked like a
+result.
+
+### So what is the weld actually for?
+
+**It makes the part count nearly free**, and that is precisely what §2.3.4 needed. A welded
+beast's mesh count is set by how many parts MOVE and how many materials it wears — not by how
+many parts it is built from. The crocodile is built of 21 and welds to 7. **A beast of forty
+parts will weld to the same ten or twelve as one of seventeen**, which is the property the
+finer grain has to stand on.
+
+> **Corrected in Round 76 (§4by).** That last sentence was true only of parts hung on the
+> beast. `beastMoving` claims a moving part *and its whole subtree*, so a hoof on a shin or an
+> eye on a head was still a mesh of its own — and the finer grain is almost entirely made of
+> such parts. The first goat built to §2.3.4 came out at **twenty-one** meshes, not twelve.
+> §4by counts the pivots apart from their subtrees and welds into them; the claim holds now,
+> and is measured rather than asserted.
+
+The scene-graph and memory win is real too, and this codebase already complains about exactly
+it: *"four thousand geometries at the outset and sixty-one thousand after two dozen
+landfalls… a world that grows heavier the longer it is played in."* Halving the geometries and
+materials every beast is built from goes straight at that.
+
+### Proved both ways
+
+Acceptance test 51 asserts the weld saves meshes, that every part the engine names is still
+separate, and that turning each one genuinely turns something. **Fault injected** — the set of
+things-to-keep emptied, so the moving parts weld too — it reads **56 of 56 swallowed** against
+**0 of 56** on the sound tree. And the beasts were photographed under a pinned camera welded
+and loose: indistinguishable.
+
+## 4by. Round 76 — §2.3.4, the finer grain, and what it really cost ✅
+
+*Nineteen beasts still stood at fifteen to nineteen boxes inside a hand-written chain in the
+engine. This is the first five of them, and the correction to Round 75 that had to come first.*
+
+### Round 75 promised something that was not true
+
+Its audit says, in bold: ***"A beast of forty parts will weld to the same ten or twelve as one
+of seventeen."*** The very first beast built to §2.3.4 disproved it. The new goat — fifty
+parts, with a cloven hoof on every shin and its whole face hung on its head — came out of the
+weld at **twenty-one meshes** against the seventeen-box goat's **ten**. Twice the cost, for the
+animal named by ninety-eight of the hundred and seventy-six lands.
+
+The reason is exact. `beastMoving` claims a moving part **and its whole subtree**, and it is
+right to: a hoof hung off a shin must not be welded to the ground the shin swings over. But a
+hoof does not move against the **shin** either. Nothing in the engine ever reaches for it. Under
+Round 75's weld every such part was its own mesh again — and the finer grain is *almost entirely*
+made of such parts. A muzzle, a nostril, an eye, a horn, a hoof: each of them hangs on something
+that already moves.
+
+### The pivots, counted apart from their subtrees
+
+`beastPivots` is the new half of it: the parts the engine names in `userData`, and **nothing
+else**. `mergeBeast` then welds every other mesh into the nearest pivot above it — into that
+pivot's own geometry where their materials agree, so the object survives and every handle on it
+still points at the same thing, and the engine never knows.
+
+### Measured, before and against
+
+| beast | parts before | meshes before | parts now | meshes now |
+|---|---|---|---|---|
+| goat  | 18 | 10 | 64  | **12** |
+| deer  | 19 | 10 | 73  | **14** |
+| sheep | 15 | 11 | 106 | **14** |
+| cow   | 20 | 11 | 68  | **14** |
+| wolf  | 17 | 10 | 69  | **14** |
+
+Four times the parts, and the number is exact rather than approximate: **a beast is one welded
+lump per material it wears, plus one mesh for everything that moves.** The goat's twelve is one
+lump, eight leg bones, a tail, a head and a jaw. Nothing else on it costs anything — not the
+three-length barrel, not the twelve locks of the flank, not the ribbed horns, not the eight
+cloven hooves.
+
+And the three or four meshes each of them gained over the old build are **not the grain**. They
+are the head that now turns, the jaw that now chews and the two ears that now flick — parts
+the old beasts did not have at all. The grain itself is free.
+
+Across the whole earth: **170 kinds, 3,173 parts, 1,264 meshes — 2.5 parts to a mesh.**
+
+### The five
+
+- **The goat** (98 lands): three-length barrel and a straight back over a swinging belly;
+  withers; twelve locks of shaggy flank hung *past* the outline, because a dark patch painted
+  inside the silhouette is a decal and a lock that breaks the outline is hair; ribbed horns in
+  three chained lengths sweeping **back over the neck** — which is not only truer but necessary,
+  since `js/size.js` measures this beast by its whole height and a horn that rises is a horn
+  that shrinks the goat under it; the beard; the tail carried **up** where a sheep's hangs; the
+  slotted bar pupil; cloven hooves on the shins, so they swing with the leg.
+- **The deer**: an antler that is a beam with a brow tine, a bez and a trey coming off it,
+  grown as a chain, instead of two sticks; the white rump patch and the flag over it; the
+  summer dapple; the pale mask and black muzzle; dark hocks on long light legs.
+- **The sheep**: the fleece is *grown*, not drawn — some seventy locks in four creams, in three
+  courses over the back, along the flank and under the brisket, standing past the carcass so the
+  outline is wool and not a crate. This is the clearest case in the round: **106 parts, 14
+  meshes.**
+- **The cow**: the dewlap and brisket; the hip bones standing over a hollow flank; the ridged
+  spine; the udder and its four teats; the tuft on a long swinging tail; and the patches drawn
+  **wider than the beast**, so each comes over the top of the back and down both flanks in one
+  piece rather than sitting as a rectangle on the middle of a side.
+- **The wolf**: the ruff, which is half the width of the animal from the front and was simply
+  absent; the head carried **level with the back**, which is what tells a wolf from a dog at any
+  distance; the dark saddle going pale down the flank and cream beneath; the brush carried
+  straight out; a pad with three toes under every foot.
+
+### Proved by the fault, twice — because there are two ways to be wrong
+
+Acceptance test **52** counts, for every pivot on every beast, the meshes in its subtree that
+are not themselves pivots; and it measures every moving part **in its own space against its own
+loose self**, so that a part which has lost the reach of what hung on it is caught.
+
+1. **The old weld** — anything the engine can reach left alone, subtree and all: the world goes
+   from 1,264 meshes to **1,460**, the baggage from 33 pieces to **301**, the sheep from 14
+   meshes to **forty**, and the deer carries **twenty-five** loose parts on its head, which is
+   its whole face and both antlers.
+2. **The greedy weld** — everything welded at the beast's own scope, so a hoof folds into the
+   *body*. This reads **better** by the first assertion: 1,234 meshes against 1,264, and three
+   pieces of baggage against 33. It is also a beast whose feet stay where they were when it
+   walks. Sixty-eight moving parts are caught by the second assertion — every shin that has lost
+   its hooves, every head that has lost its face, and the shark's tail, which loses 4.82 of its
+   own length.
+
+Test 51 still passes unchanged: 170 kinds, 1,002 named moving parts, every one still its own
+and still turning.
+
+### The other fourteen, and §2.3.4 closed
+
+| beast | parts before / meshes | parts now / meshes |
+|---|---|---|
+| elephant  | 18 / 12 | 82 / **13** |
+| camel     | 17 / 10 | 70 / **12** |
+| donkey    | 17 / 10 | 54 / **14** |
+| bear      | 18 / 10 | 86 / **14** |
+| blackbear | 18 / 10 | 79 / **14** |
+| lion      | 19 / 10 | 98 / **12** |
+| horse     | 20 / 10 | 76 / **14** |
+| ox        | 18 / 10 | 65 / **14** |
+| crocodile | 21 / 7  | 126 / **12** |
+| lizard    | 13 / 10 | 77 / **12** |
+| pig       | 18 / 10 | 67 / **14** |
+| chicken   | 18 / 10 | 76 / **8** |
+| hare      | 16 / 9  | 46 / **14** |
+| dog       | 17 / 10 | 56 / **14** |
+
+Nineteen beasts across the three batches: **328 parts and 190 meshes before, 1,289 parts and
+243 meshes after.** Four times the grain for a quarter more draw calls, and the quarter is the
+heads, jaws and ears that now move. Across the whole earth, as acceptance test 51 counts it:
+**170 kinds, 3,983 parts, 1,307 meshes — three parts to a mesh, and 67% fewer meshes than the
+parts they are built from.** (A sweep over `js/size.js`'s own table reaches 177 kinds and reads
+3,976 → 1,322; the two lists differ by which names each holds, not by what either measured.)
+
+`buildOldAnimal` is down from twenty branches to two — the penguin and the ostrich, which the
+size table measures but which `world/fauna.js` places by other machinery. Its `fourLegs` helper
+is gone with the last quadruped that used it.
+
+**What each of them got, and why that and not something else.** The rule followed throughout was
+to spend the grain on the SILHOUETTE and on what tells this beast from the one standing next to
+it — not on detail inside an outline, where a box reads as a decal painted on a crate:
+
+- **lion** — the mane grown as a ring of fourteen locks radiating from the head, over an inner
+  course of fourteen more so it is a mass and not a gear; the black lip line, whisker spots and
+  square muzzle; the shoulder blades; the belly fold; the black tail tuft.
+- **horse** — the mane that FALLS, ten locks over one side of the crest, and the tail that falls
+  in eight strands, which is the whole difference from the donkey's standing brush and tufted
+  dock; the arched neck in two lengths; the blaze, socks and fetlock tufts.
+- **ox** — the yoke boss over neck and withers that a working ox carries and a milk cow does not;
+  horns sweeping wide and FORWARD where the cow's go out and up; four folds of dewlap; the curled
+  poll between the horns; no udder.
+- **crocodile** — four rows of keeled scutes down the back closing into the double and then
+  single crest of the tail; the fourth tooth standing outside the closed mouth, which is what
+  makes it a crocodile and not an alligator; eyes and nostrils on their own turrets, so a
+  submerged animal is two bumps and a nose; sprawled legs and webbed feet.
+- **lizard** — the crest from neck to tail-tip; the open ear-hole behind the eye; the throat fan;
+  five spread toes on every splayed foot; a tail longer than the rest of it.
+- **pig** — the flat disc of the snout with two round nostrils in it; ears that fall FORWARD over
+  the eyes; the bristle ridge; the trotter cloven with two dew-claws behind; and the tail built
+  as a real spiral of five turning lengths, which is the thing everybody draws and nobody builds.
+- **chicken** — a comb of five points rather than a plate; two wattles hanging separately beside
+  an ear-lobe; the hackle cape over the shoulders; three arched SICKLES over a fan of short
+  feathers; scaled shank, three toes forward and one back, and a spur.
+- **hare** — ears a third of the animal's length, black-tipped, in two lengths so the tip leans
+  back; a hind leg twice the fore, built apart from `T.legs4` for that reason; the arched back
+  highest over the haunch; the white scut under a black top.
+- **dog** — the head carried ABOVE the back where a wolf's is level; the muzzle stopped short
+  under the brow; the tail up and curling over in four lengths, which no wolf's does; ears folded
+  at the tip; the white blaze, chest and paws of a village dog.
+
+**Two lessons, both learnt from photographs.**
+
+*A part that does not break the outline is a decal.* The goat's first shoulder blade, a dark
+rectangle laid on the middle of the flank, read as a patch of paint on a crate; twelve locks hung
+past the lower edge of the barrel read as hair. The cow's white patches, drawn as rectangles on
+the middle of a side, read as stickers; drawn WIDER THAN THE BEAST so each comes over the top of
+the back and down both flanks in one piece, they read as markings. This is the whole of what the
+finer grain is for.
+
+*A chained length leans FORWARD on a positive rotation about x and BACKWARD on a negative one,*
+and getting that backwards costs an afternoon. The goat's neck leaned back over its own shoulder
+and left the head floating in front of it with daylight between; the chicken's sickles lay out
+behind the bird like the head of a broom; the crocodile's tail grew forward through its own
+throat. The rule is written into `creatures/README.md` now, with `T.limb` and `T.on` beside it.
+
+## 4bz. §2.3.4 — done, and what it cost ✅
+
+Every one of the twenty most-seen beasts is a creature file at thirty to sixty parts and beyond,
+where the brief asked, and none of them costs what the naive reading would have cost. The two
+new tools that made it possible — `T.on` and `T.limb` — are eleven lines of engine between them.
+
+### The suite, whole
+
+**49 pass · 0 fail · 3 pending.** The three pendings are all of them pre-existing and none is a
+regression:
+
+- **12** — the chunk-build ceiling. This box runs the loop in 62.7 ms against the 36 ms of the
+  box that set the baseline, 1.74× slower, and the test says so itself and refuses to judge.
+- **43** — `FLORA.boleBlocks` is off, so the boles are still geometry and cannot be struck. A
+  switch, not a fault.
+- **50** — THE HERD, MEASURED, which reports numbers and guards nothing by design while §2.3.5
+  is open.
+
+Test **32** now reads the coat of **169 creature files and one kind with none** — it was fifteen
+without a file when this round began and twenty when Round 74 found the hole. Test **36** counts
+**436 files and 169/169 beasts**, up from 155. Tests **51** and **52** are quoted above.
+
+### One thing worth writing down, and NOT claiming
+
+Test 50 read the young at **1.69 herd-radii from the middle against 93 others at 2.66** on this
+run. Rounds 70 and 72 could not move that number past the run-to-run spread across eight
+readings, and nothing in this round was aimed at it. One reading is not a result — the whole
+lesson of Rounds 70–73 is that this instrument disagrees with itself — but it is worth the next
+round's attention, because if the finer grain has changed where beasts stand it has done so by
+accident and ought to be understood.
+
+## 4ca. Round 77 — §2.3.5: the diagnostic, and the dead lever it found ✅
+
+*§2.3.5 — "matriarch-led herds with juveniles held at the centre" — had been built and taken back
+out FOUR TIMES: Round 54 four attempts, Round 70 four more, Round 72 three mechanisms measured
+twice apiece. Every one of them measured where the young ENDED UP. This round measured the
+mechanism instead, exactly as Round 72's own instruction said to, and the instruction was right.*
+
+### What the instrument was told to find
+
+> **What has never been measured is whether a beast ever reaches its station at all.** If that
+> distance is large, the rule is never landing, and the fix is about *when* it fires. If it is
+> small, the rule lands and the young's depth still does not move, which would mean the station
+> geometry is wrong… Those two are **opposite repairs** and three rounds could not tell them
+> apart. — AUDIT Round 72
+
+### And it found the first of the two, in a form nobody had guessed
+
+The herd is reckoned once a frame for the whole earth, by the same greedy rule acceptance test 50
+censuses with; every beast gets a station (mothers on an inner ring, `stationOf`); and the
+instrument counts the **reach** — how far a beast stands from its station, in herd-radii — and,
+for every candidate lever, **how often that lever is even consulted.** Kenya, a settled herd,
+fifty-five to sixty-eight beasts, several thousand beast-seconds:
+
+| | per herded beast-second |
+|---|---|
+| the wander-target picker | **0.0000** — not once, ever |
+| the search for a bite | 0.0000–0.0136, settling at ~0.002 (one pick per beast per eight minutes) |
+| a herded beast moving at all | 1% of frames, falling to 0% |
+| **reach** | **1.27–1.32 herd-radii, flat** |
+| a herd's radius | **23 units** |
+
+**The first of those is not slowness. It is unreachable code**, and it is the finding of the
+round: *the forty-five per cent pull toward its own kind — the only cohesion this world has ever
+had, and the lever Rounds 54 and 70 both built their matriarch on — cannot execute for a beast
+standing in grass.* The job chain puts such a beast back to `feedhead` on every decision, so
+`a.job` is never `'roam'` by the time the picker at the bottom of the loop is reached. Round 70
+called that picker "the wrong lever" from reading the code; the number is 0.0000.
+
+**It also convicts the instrument.** Test 50 marks its mothers and reads them seventy frames
+later — about ten world-seconds. At 0.002 picks a beast-second across fifty-five beasts that is
+**one decision in the entire world**. No station mechanism any of the four rounds built could
+have been observed by it, whatever the mechanism was.
+
+### And the depth statistic is noise, now shown inside a single boot
+
+Test 50's mothers-against-others has now read, on identical committed code: **1.69/2.66** (the
+suite, Round 76), **1.94/1.60** (a clean worktree at the same commit), and — the same land, the
+same browser, minutes apart — **1.88/1.34, then 1.43/1.92, then 1.86/1.37.** Opposite answers
+five and six times over four rounds. The reason is arithmetic: **a herd of three has no inside.**
+Twenty of the forty-four herds this world makes are threes and thirteen are fours, so most of the
+sample can carry no signal whatever, and the leave-one-out radius it divides by is reckoned off
+two animals.
+
+So a second statistic is measured beside it, and no radius enters it: **each herd ordered by
+distance from its own leave-one-out centre, the mothers' mean rank against the (n+1)/2 that
+chance would give, scaled by (n−1).** Bounded in ±0.5, positive means the mothers stand nearer
+the middle. Across every land and configuration with nothing switched on it reads **−0.03 to
++0.03**.
+
+### Two mechanisms built, measured, and thrown away
+
+The arithmetic above — a herd twenty-three units across, a bite search reaching a hundred and
+ninety, ring one alone sixty-three units out — pointed at an obvious repair: narrow the search to
+the herd's own ground, and score the bite by how near it falls to the station rather than taking
+the first one over 0.7. **Both were built, both were switched, and both added nothing**: reach
+0.83 and rank 0.11 with them, 0.82 and 0.11 without, over five samples apiece on one land. (That
+comparison was taken before the herd's radius was made exogenous and was not re-run afterward;
+what it establishes is that the drift does the work and these do not, which was enough to leave
+them out.) They are not in the tree. The diagnostic was built to stop a fifth round of shipping
+something nobody could show working, and the first thing it stopped was this round's own first
+idea.
+
+### What was shipped, and the number it moved
+
+The rule is hung where a grazing beast actually decides — **at the end of a mouthful, three to
+seven seconds apart.** A beast standing further off its station than 0.35 of its herd's radius
+walks in before it puts its head down again.
+
+| Kenya, settled | reach | mothers' reach | **rank** | lever, a beast-second |
+|---|---|---|---|---|
+| nothing on (5 readings) | 1.27–1.30 | 1.07–1.11 | −0.001 … +0.023 | 0.0000 |
+| the drift, tolerance 0.35 | **0.82** | **0.79–0.83** | **+0.10 … +0.13** | 0.051–0.079 |
+| the drift, tolerance 0.20 | 0.78–0.82 | 0.77–0.79 | +0.07 … +0.12 | 0.072–0.078 |
+
+**Two faults were found in it and both were found by measuring, not by reading.**
+
+**1. The tolerance was wider than the effect.** The first cut let a beast stay put if it was
+within ONE herd-radius of its station — but the whole distance between a mother's ring and
+everybody else's is 0.75 of a radius, seventeen units, so a tolerance of twenty-three units is
+*wider than the thing the rule is trying to create*. Every beast sat inside it and kept whatever
+place it already had: reach fell to 0.95 and the rank did not move at all. At 0.35 both move
+together.
+
+**2. THE STATIONS WERE SET OFF THE RADIUS THEY THEMSELVES SET, and it collapsed.** A herd was
+given a station ring proportional to `r`, the mean distance of its members from its middle. That
+is a feedback loop: the stations pull the herd in, `r` falls, the stations come in with it, and
+the herd implodes. Measured in Tanzania before it was seen — **the herd's radius went from 18.5
+units to NINE**, which is six beasts standing inside a room, and the young's rank went
+*backwards* with it, to −0.021. A herd has two radii now: `r`, the one it has, which is what the
+instrument reads; and `rt`, the one it ought to have, which is exogenous — how much room a beast
+of that kind takes (`bodyLenOf`) times the root of how many there are. The stations are set off
+`rt` and so is the reach, so the yardstick cannot move with the thing being measured. On the
+untouched world `rt` reads 16–23 units against a measured `r` of 22–24, which is the check that
+the spacing constant is not invented.
+
+### Four lands, the rule off and on, alternating within one boot
+
+| land | rank off | **rank on** | reach off | reach on | herds | mean feed |
+|---|---|---|---|---|---|---|
+| Kenya | +0.022 | **+0.225** | 1.35 | 0.84 | 15 → 12 | 0.58 → 0.67 |
+| Tanzania | −0.060 | **+0.271** | 1.42 | 0.81 | 9 → 8 | 0.73 → 0.68 |
+| Botswana | +0.052 | **+0.156** | 1.42 | 0.98 | 8 → 8 | 0.75 → 0.71 |
+| Mongolia | +0.095 | **+0.167** | 1.96 | 1.20 | 8 → 9 | 0.73 → 0.80 |
+| **mean** | **+0.027** | **+0.205** | **1.54** | **0.96** | 40 → 37 | 0.70 → 0.72 |
+
+Every land moves the same way on both numbers. The effect on the rank is **+0.18, larger than the
+entire spread of the off readings** (−0.060 to +0.095), which is the bar this round set itself in
+advance and the bar four earlier attempts could not clear. Feed is unharmed — the herd is not
+held in shape at the price of its dinner — and no beast anywhere failed to find a bite.
+
+### And it was photographed, which Round 71 could not manage
+
+Four attempts, and the first three failed in ways worth recording because they are all about what
+a herd IS rather than about cameras. **One:** the two shots caught different herds — a buffalo
+herd against a sounder of warthogs — because the world respawns between spells; the herd has to
+be chosen once and held. **Two:** the eye was pinned to where the herd stood when it was chosen,
+and eight hundred frames later it was pointing at an empty stretch of sand; the eye has to follow
+the herd's own middle, read afresh every frame. **Three:** `LANDLIFE` is a fixed pool, so a beast
+that wanders out of the ring has its slot filled again somewhere else entirely — still `set`,
+still the same object — and one gazelle seven hundred units away dragged the mean the camera was
+aiming at right off the herd. **Four:** the world clock runs while the first shot settles, and a
+herd bedded down for the night does not move an inch, which is how one pair came back identical
+to the digit.
+
+With those mended: **the same nine goats, five of them mothers, before and after**, their distance
+from the middle of their own herd in units, a star marking a beast with young —
+
+```
+off   7   8*  23*  31   32*  32   36*  40*  46      herd radius 28.3
+on    5*  7*  10*  11*  14*  23   23   25   25      herd radius 16.0
+```
+
+**The five innermost are every mother and the four outermost every beast without young**, where
+before the animal nearest the middle was not a mother at all and the mothers stood from eight to
+forty units out. That is §2.3.5's clause, on one herd, in raw coordinates; and the pair of
+photographs shows the same thing as a scatter drawing in and tightening.
+
+### And then the suite found what four plains had not
+
+The numbers above were taken on four plains of goats and gazelles. **Test 35 — the watch, which
+reads off these very herds — reads the whole earth**, and it caught a regression the A/B could
+not see:
+
+| | herd-samples of three or more | watched |
+|---|---|---|
+| before the round | 597 | 477 (80%) |
+| the station, as first built | **423** | 308 (73%) |
+
+Both pass — the bar is 45% — but a fall of nearly a third in the herds the world makes is not
+something to ship quietly, and the arithmetic says exactly why. Two beasts on opposite bearings
+of the OUTER ring stand `2 × rt × STN_OUT` apart, and the world only counts beasts into one herd
+within `HERD_R`, which is eighty:
+
+| | rt | across the outer ring |
+|---|---|---|
+| goat, herd of twelve | 28.1 | 64.5 — inside |
+| **buffalo, herd of nine** | 37.8 | **86.9 — outside** |
+| **buffalo, herd of twelve** | 43.6 | **100.4 — outside** |
+
+**The rule was pulling a large herd of large beasts wider than the radius the world gathers them
+within, until it stopped recognising them as one herd at all** — and test 35's lands hold buffalo
+where four plains of goats do not, which is the whole difference between the two readings. The
+ring is capped to fit inside its own neighbourhood with margin (`HERD_R × 0.85 / 2·STN_OUT`,
+about twenty-nine), written as the expression rather than the number so it stays true if either
+constant moves.
+
+**And test 35's own count has now been read enough times to know it is not a number.** I wrote
+that the cap gave back "ninety-seven per cent of the herds it had before the round" off one
+reading of 578, and PLAN.md said 610 off another. Five readings:
+
+| | herd-samples of three or more | watched |
+|---|---|---|
+| before the round | 597 | 477 (80%) |
+| **the station uncapped** | **423** | 308 (73%) |
+| capped, run alone | 578 | 445 (77%) |
+| capped, run alone again | 610 | — |
+| capped, in the full suite | 485 | 339 (70%) |
+
+The capped readings run **485 to 610** with nothing changed between them, and 597 sits inside
+that spread. **So the honest claim is not a percentage recovered but this: the uncapped 423 falls
+below every capped reading and below the before-value, and the capped ones straddle it.** The cap
+undoes the regression; by how much is not a thing this statistic can say, and the sentence that
+said it is struck. That is the same fault as the mean-herd-size claim further down, found the
+same way — by reading twice — and corrected rather than left because it happened to flatter the
+feature.
+
+### The four lands again, capped, which is what shipped
+
+| land | rank off | **rank on** | reach off | reach on | herds |
+|---|---|---|---|---|---|
+| Kenya | −0.027 | **+0.116** | 1.50 | 0.92 | 14 → 12 |
+| Tanzania | −0.073 | **+0.131** | 1.41 | 0.72 | 16 → 14 |
+| Botswana | −0.009 | **+0.148** | 1.48 | 0.98 | 9 → 9 |
+| Mongolia | +0.111 | +0.095 | 2.47 | 1.39 | 8 → 7 |
+| **mean** | **+0.001** | **+0.122** | **1.72** | **1.00** | 47 → 42 |
+
+And two readings that say more than the mean does:
+
+- **The depth statistic finally agrees.** Mothers 1.27 against others 2.31 — a gap of **+1.04**
+  where the off readings give −0.03. The noisy instrument and the robust one now point the same
+  way, which they never did in four rounds.
+- **Split by herd size, the signal is where it must be.** Herds of five and more: **+0.058 off,
+  +0.172 on.** Herds of three and four: −0.005 off, +0.096 on. The bigger the herd the bigger
+  the effect, which is what "a herd of three has no inside" predicts.
+
+Mean herd SIZE went up, 4.00 to 4.17, while the count fell 47 to 42: what survives is larger.
+Feed is 0.78 either way and no beast anywhere failed to find a bite.
+
+**The cap costs some of the effect** — uncapped the mean rank was +0.205, capped it is +0.122 —
+because a tighter ring leaves less room between the mothers' station and everybody else's. That
+is the right trade and it is stated rather than buried: a smaller true effect on herds that still
+exist beats a larger one on herds the world has stopped counting.
+
+### The whole suite, and a thing I had written down wrongly
+
+**49 pass · 0 fail · 4 pending**, over two runs: tests 1–49 in one (which a container restart
+then killed mid-`page.evaluate`, recorded in its own log as a FAIL of test 50 that is the browser
+dying and not the world), and 50–53 alone afterward. The pendings are 12 and 43, both
+long-standing, and 50 and 53, which report and guard nothing while §2.3.5 is open.
+
+The two mended guards cleared on the way past. **Test 38 laid its block back first try** — the
+beast-retry was not needed in the event. **Test 49 saw thirty-two beasts walk down to water over
+four lands with 0 hunters seen and 0 lying up in cover**, where before the mend it had counted
+three against the world for hunters no beast could see.
+
+### And test 53, on the shipped tree, says the mechanism is alive
+
+This is the round's own instrument reporting on what actually shipped, and it is the strongest
+thing in this section:
+
+| land | herd radius | reach | mothers | **walk-to-station** | roam-pick | graze found nothing | herd pass |
+|---|---|---|---|---|---|---|---|
+| Kenya | 17.7u | 0.90 | 0.85 | **0.0633** | 0.0000 | 0× | 0.197 ms |
+| Tanzania | 17.7u | 0.75 | 0.77 | **0.0677** | 0.0000 | 0× | 0.345 ms |
+| Botswana | 17.1u | 1.10 | 1.01 | **0.0554** | 0.0000 | 0× | 0.308 ms |
+| Mongolia | 17.5u | 1.51 | 1.69 | **0.0407** | 0.0000 | 0× | 0.334 ms |
+
+**The lever the round hung the rule on fires forty to sixty-eight times per thousand
+beast-seconds. The wander-target picker still fires zero.** That is the finding of the round
+restated on the shipped tree by an instrument that was written before the answer was known: the
+old lever is dead, the new one runs, and reach — 1.27–1.32 flat when the diagnostic first read it
+— now sits at 0.75 to 1.51. No beast in any land failed to find a bite, and the pass costs
+0.20–0.35 ms a frame.
+
+Mothers' reach beats the herd's in two lands and loses in two, so **nothing is claimed from that
+column.**
+
+### And test 50's third reading, including one that goes against me
+
+| | before | after | again | **third** |
+|---|---|---|---|---|
+| herds of three or more | 46 | 38 | 48 | 47 |
+| a herd's mean size | 3.93 | 4.39 | 3.94 | 3.85 |
+| the biggest herd | 8 | 10 | 8 | 9 |
+| **how far a herd travels in a spell** | **3 units** | **12** | **8** | **23 (2.28 radii)** |
+| the mothers' depth against the others' | — | — | — | **2.12 vs 2.06** |
+
+The first three lines confirm what was already struck: **nothing about how big a herd is has been
+shown to change.** The travel line holds and strengthens — three readings at 8, 12 and 23 units
+against a figure that was flat at nought to three across four rounds, with Tanzania's centroid
+moving seventy-four units in a spell.
+
+**The last line is a null, and it is against the round's own claim.** Mothers read 2.12 of a
+herd-radius from the middle against others at 2.06 — the mothers very slightly FURTHER OUT. The
+A/B this round shipped on reads the opposite, +1.04 in the mothers' favour, and both readings are
+real. Two things are worth saying and a third is not:
+
+- **Test 50's own comment already disclaims this statistic**, at length and before this round
+  began: it read 1.22/0.94 and then 0.59/1.07 on the same untouched build an hour apart, and
+  concludes "before believing anything it says about depth" the measurement needs more mothers in
+  it. It is the noisy instrument, which is precisely why the rank statistic was built.
+- **And there is now a measured reason it cannot see this rule in particular.** Test 50 marks its
+  mothers and settles **70 frames** before reading them. Test 53 has just measured the lever
+  those mothers must consult at about **0.05 a beast-second — one consultation per beast per
+  twenty world-seconds or so.** The settle is of the same order as the interval between
+  consultations, so a large share of the marked mothers will not have used the new station once
+  by the time they are measured. How large a share I have not established and do not claim; what
+  the arithmetic does establish is that **this reading is not evidence against the rule, because
+  the window is too short for the rule to act in.**
+- **What is NOT claimed is that the disagreement is settled.** The ✅ on this clause rests on the
+  A/B — four lands, control and treatment alternating inside one boot, a 900-frame settle — and
+  on the photograph of nine goats. That is the better design and it is why the ✅ stands. But a
+  second instrument now says nothing, and the way to settle it is plain and is left written down
+  for whoever takes §2.3.5 up next: **lengthen test 50's settle past the interval test 53 has now
+  measured, and read it again.** I have not done it, because tuning a test until it agrees with
+  me is the one move this round has spent its whole length avoiding.
+
+And test 50, run on the finished tree, says one thing this round did not set out to do — and one
+thing I wrote down off a single reading and had to take back when a second arrived:
+
+| | before | after | after again |
+|---|---|---|---|
+| herds of three or more | 46 | 38 | 48 |
+| a herd's mean size | 3.93 | 4.39 | 3.94 |
+| the biggest herd | 8 | 10 | 8 |
+| herds of six or more | 6 | 7 | 4 |
+| **how far a herd travels in a spell** | **3 units (0.13 herd-radii)** | **12 (0.58)** | **8 (0.44)** |
+
+**Only the last line survives two readings.** The herd count, the mean size and the biggest herd
+all straddle their before-values — I had written "mean size up from 3.93 to 4.39, the biggest
+from 8 to 10" off the first reading, and the second says 3.94 and 8. **Nothing about how big a
+herd is has been shown to change**, and the sentence claiming it is struck rather than softened.
+It goes the other way too: the herd count is not down either — 38 was the low reading and 48 the
+high one, against 46 before.
+
+**And I wrote that the travel figure was untouched. That was wrong, and it is corrected rather
+than quietly amended.** Test 50's own comment calls travel *"the decisive one"* —
+*"if every beast walks toward the MEAN POSITION of its own kind, it walks toward a point that by
+definition sits in the middle of them all and barely moves, so the herd can only shuffle in place
+for ever."* A station is not the mean: a beast makes for a place on a ring, the ring is reckoned
+afresh as the herd moves, and the herd turns out to walk. **Between two and a half and eight
+times as far** on three readings — 8, 12 and 23 units — where the figure had been flat at nought
+to three units across four rounds; Tanzania's
+centroid moved twenty-eight units in a spell where the whole earth used to manage three.
+
+It is still not *"matriarch-led"* — nothing leads, there is no rank and no leader, and every beast
+is still tethered to the spot it was set down on for life. But the flat travel figure had been
+read for four rounds as evidence that a tethered world cannot make a herd move at all, and it is
+not.
+
+### What it costs, and what is still NOT claimed
+
+**The herd pass is 0.20–0.40 ms a frame** (test 53, four lands, two runs: 0.22–0.40 and
+0.197–0.345) — reckoning every herd on the
+earth once a frame, an O(n²) sweep over ninety-six beasts. At sixty frames a second that is one
+to two per cent of a frame.
+
+**The watch is dearer than it was.** Test 35 reads 64% and 70% of herds with a head up in the
+full suite and 77% run alone, against 80% before the round — its bar is 45% and its own history
+is 37/58/50 at small samples, so the honest statement is a range, not a number. A herd that walks to station
+has more beasts walking and fewer standing alert; that is a real cost of the feature and it is
+recorded rather than smoothed.
+
+Mongolia's rank did not move at all (+0.111 to +0.095), so three lands of four and not four.
+
+**§2.3.5's "matriarch-LED" is still not built** — what is built is the second half of the clause,
+the young held at the centre. The leader wants the tether broken, which is its own round, as are
+the birds.
+
+### And one test had to learn about beasts
+
+Test 38 — break a block, pick it up, lay it back — failed for the first time in the round's final
+run: *"laying back: REFUSED — a beast is standing there."* The world is right to refuse to build a
+wall through a living thing, and the test already knew that rule for the TRAVELLER (it backs him
+four blocks off along the struck face's own normal, and its comment records learning that the hard
+way). It did not know it for a beast, and Round 77 made beasts stand closer together, so the odds
+of one being in any particular cell went up. A beast is not a wall: it walks on. The test asks
+again, up to eight times, and reports how many it took.
+
+### And one test had to learn about cover
+
+Test 49 — the beasts go down to the water at dusk — failed in the same run, on its own invariant:
+*"3 times a beast walked to water with a hunter inside its flight distance."* **The world is right
+here too, and for a rule the world wrote down three rounds ago and this suite already guards
+elsewhere.**
+
+`frightNear` has held since Round 54 that **a hunter lying up in deep grass is not seen**: a
+visible one is broken from at the beast's whole flight distance, a hidden one only at
+`min(6, flight × 0.35)`. That is the entire point of cover, and test 35 guards the flight
+distances that go with it. But test 49 asked its question of ANY hunter within `flight × 0.8`,
+hidden or not — so a lion lying in the grass ten units from a gazelle was counted against the
+world for a thing the gazelle could not possibly know.
+
+It never fired while six beasts reached the water. **Round 77's herds walk further and reach it in
+numbers** — twenty-two — and at twenty-two it fired three times. The feature did not break the
+invariant; it produced enough traffic for a wrong invariant to be caught.
+
+The test now asks the world's question. A hunter **in the open** inside the flight distance is
+still a fault and still counted. One **in cover** is counted separately and reported, because how
+often a herd walks down past a hunter it cannot see is worth knowing and is not a bug.
+
+**What those original three were is not established, and is not claimed.** The run that mended
+this read nought and nought — it shows the disagreement gone and nothing further. The two counts
+are kept apart precisely so that the next run which has any will say which kind they were.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

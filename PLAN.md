@@ -808,21 +808,21 @@ went and looked, rather than planning work that exists:
 
 | §2.3 fauna | state |
 |---|---|
-| 1. Coats, countershading, markings | **nothing.** `lbox` gives every limb one flat Lambert colour |
+| 1. Coats, countershading, markings | ✅ *Round 51, and completed in Round 74* — Round 51 graded the creature files (2534 meshes) but `coatBeast` was reached only through `makeBeast`, so the **twenty kinds with no file** — goat, cow, sheep, deer, wolf, elephant among them, eleven of the twenty most-seen beasts on earth — came out FLAT, and test 32 walked the file list and could not see one of them. **2882 meshes, 0 left flat** now |
 | 2. Real gaits | ✅ `js/gait.js`, six gaits, chosen by speed, one datum per species in `js/behavior.js` |
 | 3. True stature | ✅ `js/size.js` — the half-scale field beasts are gone, one measure and it is the man's |
-| 4. Finer voxel grain | partial: two-bone limbs with knees, but 12–15 parts on the large mammals |
-| 5. Herd and flock structure | partial: roles and flight in `js/behavior.js`, no matriarch, no vigilance |
-| 6. The daily round | partial: `day:` and `acts:` exist, no drinking, wallowing, bedding |
+| 4. Finer voxel grain | ✅ *Rounds 75–76.* The brief asks **30–60 parts** on a large mammal for the **twenty most-seen species**. All twenty were the 12–19-box chain inside the engine; all twenty are creature files now, at 46 to 126 parts. It cost almost nothing, because the weld was deepened first: the pivots are counted apart from their subtrees, so a hoof on a shin or a horn on a head is welded into the thing it hangs from. **328 parts and 190 meshes before; 1,289 parts and 243 meshes after** — and the 53 extra meshes are the heads, jaws and ears that now MOVE, not the grain. Across the earth, as test 51 counts it: **170 kinds, 3,983 parts, 1,307 meshes** — 67% fewer meshes than parts. Suite: 49 pass, 0 fail, 3 pending, none of them a regression |
+| 5. Herd and flock structure | **partial, and one clause more of it now stands.** Flight distance and the watch ✅ *Round 54*. Herds exist ✅ *Round 71*. **The young held at the centre** ✅ *Round 77* — and it took building the diagnostic Round 72 asked for, which found that the wander-target picker, the only cohesion this world ever had and the lever two earlier rounds built on, fires **0.0000 times a beast-second**: it is unreachable code for a beast standing in grass. Hung instead at the end of a mouthful, the mothers' rank goes from +0.00 to **+0.12** over four lands, the reach from 1.72 herd-radii to 1.00, and the mothers-against-others gap from −0.03 to **+1.04**. The station ring is capped to fit inside the radius the world gathers a herd within — uncapped it pulled a buffalo herd a hundred units across against a HERD_R of eighty, and test 35's herd-samples fell from 597 to 423 before the cap put them back. HOW FAR back is not a thing that statistic can say — capped it reads 485, 578 and 610 on three runs with nothing changed between them, against 597 before — so what is claimed is only that the uncapped 423 falls below every capped reading and below the before-value. **And the herds TRAVEL now**, which was not aimed at: test 50's centroid figure, flat at 3 units for four rounds and called by its own comment "the decisive one", reads **8, 12 and 23 units** on three readings against 3 before, with Tanzania’s centroid moving 74 units in a spell. Nothing about how BIG a herd is has been shown to change — mean size read 4.39, 3.94 and 3.85 against 3.93, so that claim was struck when the second reading came in. **And test 50’s depth line reads a NULL** — mothers 2.12 of a herd-radius out against others 2.06 — where the A/B reads +1.04 the other way; test 50 disclaims that statistic in its own comment, and test 53 has now measured the station lever at ~0.05 a beast-second against test 50’s 70-frame settle, so its window is too short for the rule to act in. The ✅ rests on the A/B (control and treatment alternating in one boot, 900-frame settle) and the photograph; lengthening test 50’s settle past that measured interval is what would settle the disagreement, and is left for whoever takes the item up. It is still not *matriarch-led* — nothing leads and the spawn tether is untouched — but the flat travel figure had been read as evidence that a tethered world cannot move a herd at all, and it is not. **Still NOT built: the matriarch LEADING** — a herd travels two or three units in a spell because every beast is tethered to its spawn point for life — **and the birds' flocking**, which wants a gull's day inventing before the geometry has anywhere to live |
+| 6. The daily round | ✅ *Round 69* — most of it was already there (Round 54: hours, dens, and the whole list of acts). The one clause with nothing behind it was the first: `a.river` was read once when the beast was set down, so **nothing on this earth ever went TO water**. The herds go down at dawn and dusk now, in four lands of four |
 
 | §2.4 flora | state |
 |---|---|
-| 1. Branching | **nothing.** A bole and a canopy; no branch orders anywhere in `js/flora.js` |
+| 1. Branching | ✅ *Round 52* — was **nothing** when this table was written; 85 species branch, 55 keep their own form |
 | 2. Canopy per species | ✅ `form:` in `world/flora.js`, a dozen forms built in `js/flora.js` |
 | 3. Bark per species | ✅ *Round 59, and it was built in Round 52 and left unmeasured* — six barks assigned by kind in `js/flora.js`, the tint still on top, +8.6–16.7% draw calls and **not one triangle** |
 | 4. Seasonal colour | ✅ *and it already was* — see the correction below |
-| 5. A real ground layer | partial: `js/grass.js` is the sward, no litter, deadfall, moss or fungi |
-| 6. Crops in stages | partial: farms and farmers exist, no agricultural year |
+| 5. A real ground layer | ✅ *Round 67* — `js/ground.js`, the third file of the ground: litter of the tree's own leaf, needle mat, moss on the shaded side, lichen on the bare rock, deadfall, fungi. **+8.5% triangles and not one new material** |
+| 6. Crops in stages | ✅ *Round 68* — `world/crops.js` + `js/crop.js`: a field bears its own country's corn out of the flora that was already there, and the year is in the vertex shader. **0 chunks built for the whole turn of the year** |
 
 ### The order
 
@@ -899,7 +899,100 @@ water never reaches the end of a meal. That is a question about the bird's day, 
 the geometry, and it wants its own round. AUDIT Round 54 carries the working mechanism for
 whoever takes it up.
 
-**5. Finer grain on the twenty most-seen species.** Last, and explicitly not all 151 —
+**5. The floor of the wood.** ✅ *Round 67.* §2.4.5, and it is the one item in that section
+the game this is measured against does not attempt at all. **Two of its eight clauses were
+already standing** and were left alone — the saplings (`FLORA.saplingAt`, Phase 5) and the
+herb layer out of the named herbs of `world/flora.js` (`FLORA.plantAt`). The six that were
+missing are litter, needle mat, moss, deadfall, fungi and lichen, and they are `js/ground.js`
+— a third file beside the sward and the flora, owning what LIES ON the ground as against what
+stands up out of it. It knows the name of no species: the engine hands it the kind the mesher
+would have grown there and the litter is that tree's own leaf, turned. **545 chunks: +87,302
+triangles (+8.5%), fourteen materials before and fourteen after.** The measurement earned its
+keep at once — the deadfall drawn in `bark` pulled in `barkW`, a grey master the six barks of
+§2.4.3 had left unused, for **93 new draw calls a frame** on a thing met once in a hundred
+cells. And two faults no number would have reported came out of a photograph: a wood floor of
+full-cell mats at a third coverage is a CHESSBOARD, and one tint for a whole wood is painted
+lino. AUDIT Round 67 carries all of it.
+
+**6. The agricultural year.** ✅ *Round 68.* §2.4.6. Every farm on the earth grew the same
+twelve anonymous green crosses, on the shortest day exactly as at harvest. **Which lands sow
+what is not written down again**: `world/flora.js` already said it for a hundred and
+seventy-six countries, so `world/crops.js` carries seventeen lines and none of them names a
+country, and the guard that matters is that **no land sows a crop its own flora does not
+name** — measured over the whole chart. The YEAR is in the vertex shader, because a crop that
+grows is geometry that changes and geometry that changes means the chunk is built again: the
+field is meshed once at full stature and SUNK into its own soil by how far off harvest it is.
+**0 chunks built while the whole year was turned round.** The curve is held once as JavaScript
+and once as GLSL from the same constants, and test 48 transliterates the shipped shader text
+and puts it against the tested curve at a hundred and twenty points — they part by 6.3 × 10⁻⁶.
+Cost: one extra mesh in a village that grows both a crop that turns and one that does not, out
+of 467–943 in the group. Not modelled: the autumn-sown cereal. AUDIT Round 68.
+
+**7. The watering.** ✅ *Round 69.* §2.3.6, and it closes that item. Most of the daily round
+was already standing and was left alone; the one clause with nothing behind it was *"Drinking
+at water at dawn and dusk"*, and it had two faults: `drink` was drawn by weight at any hour,
+and it was gated on `a.river`, **which was read once at the instant the beast was set down and
+never again**. So a beast born on a bank drank in the middle of a dry plain for ever and one
+that walked to a river never drank at all. It is not new data — twenty-one beasts name `drink`
+in their own `acts` and no creature file was touched. Three things were wrong and the
+measurement found all three: `worldNight` stands at nought through two thirds of the dusk
+(there was no hour at which a beast would set off); none of the five dayparts IS dusk; and the
+water search put its probes four hundred and seventy units apart looking for a river a hundred
+and twenty wide. **Four lands of four saw the herds go down; at noon, nought; and no beast
+ever walked to water with a hunter inside its flight distance.** AUDIT Round 69.
+
+**8. The herd — MEASURED AND NOT BUILT.** *Round 70, and nothing shipped.* §2.3.5. Round 54
+tried this four times and left an instruction: build the measurement first. That is acceptance
+test 50, and the first thing it said was not about matriarchs — **"no herd of four formed in
+any land"**, across six of them. Ninety-six beasts stand at once over a ring of twelve hundred
+and fifty units, and the only thing drawing them together was a 45 % pull toward the mean of
+their own kind *within eighty units* — a force that cannot reach a beast not already in the
+herd. **The world was not making herds.** Before: mean herd 3.00, biggest 3, and the mothers
+sitting 1.22 herd-radii out against everybody else's 0.94 — the young were on the OUTSIDE.
+
+A wide gather, a matriarch by rank, and a station apiece were built and measured four times.
+The mothers' depth read 1.04, 0.80, 0.90 and 1.01 against 0.98, 1.06, 1.02 and 1.00 — with two
+to six mothers in a run, that is noise, and two readings of the identical build disagreed. **It
+is not in the tree.**
+
+**The diagnosis is the output.** All four attempts failed the same way: the wander-target picker
+is the wrong lever. It fires only when a beast is *roaming*, and a grazing beast hardly ever is
+— it is in `seek` walking to grass or in `feedhead` standing still. **A herd is given its shape
+by where each beast looks for grass**, so the next attempt belongs in `GRASS.findGraze`, biased
+toward a beast's station in its herd — a change to the grazing, not the wandering, which is why
+it wants its own round and a fresh before-reading. Test 50 is left running and reporting
+PENDING with its numbers. AUDIT Round 70.
+
+**9. A beast is born into its herd.** ✅ *Round 71.* The prerequisite for §2.3.5, and the
+measurement built in Round 70 found it rather than the thing it was built to ask. In seven
+readings without a digit of variation: **the mean herd was 3.00 and the biggest was 3.** Eight
+attempts across two rounds had gone into the gathering RULE, on a world that had nothing to
+gather — ninety-six beasts set down at independent random points in a ring two and a half
+thousand units across sit a hundred and sixty units apart, and a herd radius is eighty. Groups
+of three are what that scattering gives whatever the rules do. A beast is now set down BESIDE
+ITS OWN when its kind already stands nearby, and only where the ground would have borne that
+kind anyway. **Measured twice against a baseline measured twice: 7 and 10 herds became 44 and
+45; mean 3.00 and 3.10 became 4.30 and 4.09; biggest 3 and 4 became 12 and 8; and seven herds
+of six or more stood in view where not one group of five had ever formed.** The depth
+statistic now has ninety mothers to sample instead of ten. Two arithmetic faults in the
+measuring instrument were found and mended on the way — the majority class always read "nearer
+the middle", and a beast was part of the mean it was measured against. No photograph was
+obtained; that is said plainly in the audit. AUDIT Round 71.
+
+**10. The matriarch, judged and rejected.** *Round 72, and nothing shipped.* With Round 71's
+herds and a sound instrument, §2.3.5's second clause could finally be asked properly, and it
+was asked of three mechanisms, each measured twice: a station about a matriarch through the
+wander-picker (**1.96 against 1.94** — a dead heat with 86 mothers to 93); the same with a
+marching matriarch (**2 units** of travel, as before); and the station taken through THE
+GRAZING, which Round 70's diagnosis had named as the right lever (**1.87/1.95** then
+**1.89/1.67** — two readings of one build, opposite directions). Round 70 was right that the
+wander-picker is the wrong lever and wrong to assume the grazing was therefore the right one:
+shifting the search centre by tens of units while the search radius stays at 190 changes
+nothing. **The one diagnostic nobody has built is whether a beast ever REACHES its station** —
+that distinguishes "the rule never fires" from "the rule fires and does not matter", which are
+opposite repairs, and three rounds could not tell them apart. AUDIT Round 72.
+
+**11. Finer grain on the twenty most-seen species.** Last, and explicitly not all 151 —
 the brief says so, and it is the item most able to cost frames for the least reach.
 
 ### What I will not do
@@ -1143,18 +1236,32 @@ the whole chain.
 
 ### 4. Planting
 
-`blocks/soil.js` exists. Farms and farmers exist in the villages. What does not
-exist is a hand that sows: a seed in the satchel, ground that will take it, and a
-crop that comes on with the season the world already keeps (`js/season.js` gilds
-the canopy per hemisphere and per zone, and the agricultural year would read off
-the same clock).
+`blocks/soil.js` exists. Farms and farmers exist in the villages, and since
+**Round 68 the agricultural year exists too** — a village field bears its own
+country's corn and keeps the year in the vertex shader, sown and ripened and
+reaped off the latitude, with no chunk built twice for it. What still does not
+exist is **a hand that sows**: a seed in the satchel, ground that will take it,
+and a crop that comes on where the traveller put it rather than where a village
+put it. The clock and the growth are now both standing and waiting for it —
+this line used to say *"the agricultural year would read off the same clock"*
+in the conditional, and it no longer needs to.
 
 ### 5. Building from gathered materials
 
 The satchel stacks, survives a reload, and pays for what it lays; the free hand
-lays without cost. **There is no making** — no bench, no recipe, nothing that turns
-what was gathered into what was not. This is the largest of the five and the one
-that most wants its shape argued before any of it is built.
+lays without cost. **This section used to say "There is no making — no bench, no
+recipe, nothing that turns what was gathered into what was not." That has been
+untrue since Phase 4.** `world/works.js` declares fourteen named works, each with
+what it takes, what it gives, whether it needs fire or a tool in the hand, what
+it REFUSES, and the verse it is drawn from; acceptance test 20 walks the refusal
+(an altar of unhewn stone will not take hewn stone) and test 44 walks a man from
+nothing to a flint pick and then into the rock. Measure first, and if the world
+already does the thing, correct the document.
+
+What is genuinely still missing here is **a bench**: every work is done at the
+bare hand or at a kiln, so there is no PLACE a man goes to make, and the list of
+works cannot grow past what one can do standing in a field. That is the piece
+worth arguing before it is built.
 
 ### And then Phases 8, 9 and 10
 

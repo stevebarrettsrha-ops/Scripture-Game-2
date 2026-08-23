@@ -301,6 +301,25 @@ const FILES=[
   'creatures/zebra.js',
   'creatures/wildebeest.js',
   'creatures/gazelle.js',
+  'creatures/goat.js',
+  'creatures/deer.js',
+  'creatures/sheep.js',
+  'creatures/cow.js',
+  'creatures/wolf.js',
+  'creatures/elephant.js',
+  'creatures/camel.js',
+  'creatures/donkey.js',
+  'creatures/bear.js',
+  'creatures/blackbear.js',
+  'creatures/lion.js',
+  'creatures/horse.js',
+  'creatures/ox.js',
+  'creatures/crocodile.js',
+  'creatures/lizard.js',
+  'creatures/pig.js',
+  'creatures/chicken.js',
+  'creatures/hare.js',
+  'creatures/dog.js',
   'creatures/oryx.js',
   'creatures/buffalo.js',
   'creatures/rhino.js',
@@ -446,6 +465,15 @@ const FILES=[
   /* AND EVERYTHING WOODY AND EVERYTHING BEARING: the forms every tree, bush, */
   /* cane and herb in the world is built out of. */
   'js/flora.js',
+  /* WHAT IS SOWN IN THE TILLED GROUND, and where it stands in its year — the */
+  /* agricultural year of §2.4.6. It reads the lands' own growth out of */
+  /* world/flora.js, so it is loaded after it. */
+  'world/crops.js',
+  'js/crop.js',
+  /* AND THE FLOOR THEY ALL STAND ON: leaf litter, needle mat, moss on the */
+  /* shaded side, lichen on the rock, deadfall and fungi. It reads the flora's */
+  /* own table for its colours, so it is loaded after it. */
+  'js/ground.js',
   'js/water.js',
   'js/waterfall.js',
   /* WHERE EVERY CREATURE MAKES ITS HOME — nest, eyrie, scrape, den, burrow, */

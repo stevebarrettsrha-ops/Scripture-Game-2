@@ -1145,6 +1145,24 @@ T[32]={name:'every beast is countershaded — dark above, pale beneath — and n
     if(!D.coatBeast||!D.BEAST_BY_NAME) return {pending:'no coat (Phase 6 step 1)'};
     const names=Object.keys(D.BEAST_BY_NAME);
     if(!names.length) return {ok:false,got:'no creature files'};
+    /* ---- AND EVERY BEAST THE WORLD CAN ACTUALLY PUT DOWN ----
+       THE HOLE THIS MENDS, and it was open from the day this test was
+       written: it walks `BEAST_BY_NAME`, which is the CREATURE FILES — and
+       `makeAnimal` only sends a kind to `makeBeast` (where the coat is laid
+       on) IF IT HAS A FILE. Nineteen beasts have none: sheep, cow, pig,
+       chicken, hare, lizard, goat, camel, horse, donkey, ox, wolf, dog, lion,
+       deer, elephant, crocodile, bear and blackbear. They are built by a
+       hand-written chain inside js/engine.js that never calls `coatBeast`,
+       and this test could not see one of them.
+       They are not obscure. Ranked by how many of the hundred and seventy-six
+       lands name each, ELEVEN OF THE TWENTY MOST-SEEN BEASTS ON EARTH are in
+       that list — the goat alone is named by ninety-eight countries. So
+       "2534 meshes graded, 0 left flat" was true of everything the test
+       looked at and false of the animals a traveller actually meets.
+       It asks `makeAnimal` now, which is the door the WORLD comes through. */
+    const F=D.FAUNA||window.FAUNA;
+    const wild=(F&&F.keeps)?Object.keys(F.keeps):[];
+    const everyKind=[...new Set(names.concat(wild))];
     const n3=new T.Vector3(), bb=new T.Box3(), sz=new T.Vector3();
     /* the tint on the faces that look up and down, and the biggest mesh */
     function read(g){
@@ -1172,10 +1190,38 @@ T[32]={name:'every beast is countershaded — dark above, pale beneath — and n
       return {up,dn,flat,done};
     }
     D.coatOn(true);
+    /* ---- AND IT IS ASKED OF THE BEAST BEFORE THE WELD ----
+       THE HOLE THIS MENDS. `coatBeast` writes the coat as a GREYSCALE into
+       every vertex — the same number in all three channels — and the weld
+       (Round 75) then multiplies it by each part's own base colour and throws
+       the parts into one geometry. So on a welded beast this test was reading
+       `color.x` off a lump holding a brown flank, a black hoof and a yellow
+       eye, and calling the difference between them countershading. It read
+       the beast's PALETTE, not its coat, and every beast whose parts are not
+       all one colour failed: 145 of them at HEAD, the whole sea by name.
+       The coat is laid on before the weld and is measured before it. That the
+       coat SURVIVES the weld is a different claim and test 51 makes it. */
+    const weldWas=D.mergeOn?D.mergeOn():true; if(D.mergeOn) D.mergeOn(false);
     const bad=[], thin=[], noSky=[];
     let graded=0, flatMesh=0, worst=9;
-    for(const nm of names){
-      let g=null; try{ g=D.makeBeast(nm); }catch(e){ continue; }
+    let noFile=0;
+    for(const nm of everyKind){
+      let g=null;
+      /* THE DOOR THE WORLD COMES THROUGH, not the door the files come
+         through: `makeAnimal` for a LAND kind with a file goes to `makeBeast`
+         and is coated; for a land kind without one it goes somewhere else
+         entirely, and this is the only way to catch that.
+         AND IT IS ASKED OF THE LAND ONLY. `makeAnimal` is the land spawner —
+         handed the name of a fish it falls straight through to the old chain,
+         so the first cut of this reported the whole sea "left flat" and named
+         the fish, the puffer, the jelly and the crab. The beasts of the water
+         are built by their own call and are asked for by it. */
+      const spec=D.BEAST_BY_NAME[nm];
+      try{ g=(spec&&spec.realm!=='land')?D.makeBeast(nm)
+             :(D.makeAnimal?D.makeAnimal(nm):D.makeBeast(nm)); }
+      catch(e){ continue; }
+      if(!g) continue;
+      if(!D.BEAST_BY_NAME[nm]) noFile++;
       const f=read(g);
       graded+=f.done; flatMesh+=f.flat;
       if(f.flat) noSky.push(nm);
@@ -1195,8 +1241,10 @@ T[32]={name:'every beast is countershaded — dark above, pale beneath — and n
     D.coatOn(false);
     const none=read(D.makeBeast(one));
     D.coatOn(true);
+    if(D.mergeOn) D.mergeOn(weldWas);
     const ok=!bad.length&&!thin.length&&!flatMesh&&refused&&none.done===0;
-    return {ok, got:names.length+' creature files · '+graded+' meshes graded, '+
+    return {ok, got:names.length+' creature files and '+noFile+
+      ' kinds with none, all asked through `makeAnimal`, all read before the weld · '+graded+' meshes graded, '+
       flatMesh+' left flat · the narrowest body runs '+worst.toFixed(2)+
       ' of tint from back to belly (0.35 is the least that reads) · '+
       'a species that refuses it stays flat: '+(refused?'yes':'NO')+
@@ -1654,16 +1702,33 @@ T[38]={name:'in a VOYAGE, a blow breaks, what breaks drops, the drop is taken up
       D.state.walk.x+=(aim.nx||0)*B*4; D.state.walk.z+=(aim.nz||0)*B*4;
       if(!aim.nx&&!aim.nz) D.state.walk.x+=B*4;      /* struck from above: any way will do */
       D.state.walk.feetY=undefined; await D.settle(2);
-      const r=D.placeFrom(aim);
+      /* ---- AND A BEAST MAY BE STANDING IN THE CELL TOO ----
+         Same rule, different creature. The world refuses to build a wall
+         through a living thing, and Round 77 gave the herds a station to
+         stand at, which draws them closer together — so the odds of one
+         being in any particular cell went up, and this test met it: "laying
+         back: REFUSED — a beast is standing there", in the suite, having
+         done every other thing correctly, on a run that passed alone.
+         A beast is not a wall: it walks on. It is asked again, and how many
+         times it took is reported rather than hidden.
+         PROVED BY INJECTING IT, both ways: three refusals forced into
+         `placeBlock` and the test lays on the fourth and says "and it stands
+         after waiting out a beast 3×"; a beast that never moves at all and it
+         still fails, "REFUSED — a beast is standing there (asked 8×)". The
+         retry cannot paper over a cell that is truly blocked. */
+      let r=D.placeFrom(aim), tries=1;
+      while(r&&r.no&&/beast|creature|animal/i.test(r.no)&&tries<8){
+        await D.settle(45); r=D.placeFrom(aim); tries++; }
       /* WHERE IT LAID IS WHAT IS ASKED. A block goes in on the AIR SIDE of
          the struck face — `at` in the answer — and not into the cell that was
          struck, so checking the struck cell reported "said it laid but
          nothing stands" of a block standing perfectly well one cell over.
          A tool refuses by answering nothing at all, which is also read. */
       const stands=r&&r.at&&D.solidAt((r.at[0]+0.5)*B,(r.at[1]+0.5)*B,(r.at[2]+0.5)*B);
+      const waited=tries>1?(' after waiting out a beast '+(tries-1)+'×'):'';
       laid=!r?('REFUSED — a tool is held, and a tool is not laid')
-          :r.no?('REFUSED — '+r.no)
-          :stands?('laid at '+r.at.join(',')+', and it stands')
+          :r.no?('REFUSED — '+r.no+' (asked '+tries+'×)')
+          :stands?('laid at '+r.at.join(',')+', and it stands'+waited)
           :('said it laid at '+(r.at||[]).join(',')+' but nothing stands'); }
 
     const faults=[];
@@ -2477,6 +2542,1292 @@ T[46]={name:'the manner a voyage was begun in survives a reload',
         (faults.length?' · '+faults.join(' · '):'')};
   }};
 
+
+T[47]={name:'a wood has a floor: litter of the tree\'s own leaf, moss on the shaded side, lichen on the bare rock',
+  /* §2.4.5, and it is the one item of Phase 6 the game this is measured
+     against does not attempt at all. Between the boles of every wood on the
+     earth there was LAWN — the same short green turf under a German oakwood,
+     a Norwegian spruce forest and the floor of the Congo — because nothing in
+     the world had ever been told that a forest floor is not a field.
+
+     FOUR THINGS ARE ASKED, and they are asked in two different ways because
+     they are two different kinds of claim.
+
+     WHAT IS BUILT is measured in the page, twice, on the same disc: the wood
+     with a floor and the wood without one, `holdWorld` holding the ring still
+     so the two builds stand on the same chunks (the fault that made the first
+     bark measurement worthless — see test 41).
+       IT REACHES THE GROUND. Triangles must rise, or the floor is not there.
+       IT COSTS NO DRAW CALL. A mat is one face in `solidW` and a fallen bole
+       one box in `barkW`, and both of those materials were already in every
+       wood in the world — so the SET OF MATERIALS in view may not change by
+       so much as one name. This is the whole design of the thing and it is
+       the claim most able to be quietly wrong.
+       AND IT DOES NOT HALVE THE FRAME. §2.5: "beauty that halves the frame
+       rate is not beauty." A cap is asserted, not hoped for.
+
+     WHAT IS DECIDED is a pure function of the place and is asked directly,
+     with no page and no frame in it at all:
+       THE LITTER IS THE TREE'S OWN LEAF. A conifer floor and a broadleaf
+       floor must not come out the same colour — that is the whole reason the
+       engine hands the floor a KIND instead of the floor keeping a table of
+       species, and if the two tints match, the wood is not reaching the mat.
+       MOSS LIES ON THE SHADED SIDE. Asked over ten thousand cells with the
+       shade set and ten thousand without: it must be markedly commoner in the
+       shade, or "moss on the shaded side" is a comment and not a rule.
+       AND THE BARE ROCK BEARS SOMETHING. `js/grass.js` does not know the
+       rock, has never clothed one inch of it, and every scree and crag in the
+       world was clean grey stone. The floor must bear there where the sward
+       does not. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, W=window.__WORLD, F=window.FLORA, GR=window.GROUND;
+    if(!GR||!GR.on||!GR.at) return {pending:'no floor of the wood (Phase 6 §2.4.5)'};
+    if(!D.viewStats||!D.dropChunks||!D.holdWorld) return {pending:'no A/B build probes'};
+    const faults=[];
+
+    /* ---------- WHAT IS DECIDED: pure, and no frame in it ---------- */
+    /* the litter takes the tree's own leaf. A fake kit is handed to the floor
+       and simply writes down what it was asked to draw, so the colour that
+       reaches the mesher is the colour asserted — not one worked out again
+       here beside it, which would only ever test itself. */
+    const kinds=F?F.kinds():{};
+    const drawn=(g,K)=>{ const out=[];
+      const kit={G:{}, M:{solid:'solidW',bark:'barkW',leaf:'leafW',plant:'plantW'},
+        mat:(G,m,x0,z0,x1,z1,y,t)=>out.push({m,how:'mat',t:t.slice(),y}),
+        emitBox:(G,x0,y0,z0,x1,y1,z1,sm,tm,bm,t)=>out.push({m:sm,how:'box',t:t?t.slice():null,y:y0})};
+      GR.emit(kit,g,0,0,60,K); return out; };
+    /* a conifer and a broadleaf, taken out of the world's own flora if it has
+       them and stood up by hand if it does not */
+    const pick=form=>{ for(const n in kinds) if(kinds[n].form===form&&kinds[n].leaf) return kinds[n];
+      return null; };
+    const conif=pick('conifer')||{form:'conifer',leaf:0x2f5a34,bole:0x5a4530};
+    const broad=pick('broad')||{form:'broad',leaf:0x3e7a2c,bole:0x6b4a2a};
+    const cT=drawn({m:'litter',s:0.5},conif)[0], bT=drawn({m:'litter',s:0.5},broad)[0];
+    let litterSay='—';
+    if(!cT||!bT) faults.push('the litter drew nothing at all');
+    else{
+      const d=Math.abs(cT.t[0]-bT.t[0])+Math.abs(cT.t[1]-bT.t[1])+Math.abs(cT.t[2]-bT.t[2]);
+      const hex=t=>'#'+t.map(v=>Math.round(Math.max(0,Math.min(1,v))*255).toString(16).padStart(2,'0')).join('');
+      litterSay='needle mat '+hex(cT.t)+' against leaf litter '+hex(bT.t)+' (apart by '+d.toFixed(3)+')';
+      if(cT.m!=='solidW') faults.push('the litter was drawn in '+cT.m+', which is a new material');
+      if(d<0.05) faults.push('a conifer floor and a broadleaf floor came out the same colour — '+
+        'the litter is not taking the tree\'s own leaf');
+    }
+    /* moss on the shaded side, over ten thousand cells of each */
+    let shaded=0, sunlit=0, N=10000;
+    for(let i=0;i<N;i++){ const ix=(i%127)*13+7, iz=Math.floor(i/127)*17-5;
+      if((GR.at(ix,iz,'grass',1,0.8,false,true )||{}).m==='moss') shaded++;
+      if((GR.at(ix,iz,'grass',1,0.8,false,false)||{}).m==='moss') sunlit++; }
+    const mossSay=shaded+' shaded against '+sunlit+' sunlit in '+N;
+    if(!(shaded>sunlit*1.4)) faults.push('moss stood as thick in the sun as in the shade ('+mossSay+')');
+    /* and the bare rock, which the sward has never known */
+    const sward=window.GRASS&&GRASS.SWARD;
+    if(sward&&sward.rock) faults.push('the sward now knows the rock — this test is stale, rewrite it');
+    let onRock=0;
+    for(let i=0;i<4000;i++){ const ix=(i%89)*11+3, iz=Math.floor(i/89)*19+41;
+      if(GR.at(ix,iz,'rock',1,0.2,false,false)) onRock++; }
+    if(!onRock) faults.push('the bare rock still bears nothing whatever');
+
+    /* ---------- WHAT IS BUILT: measured in the page, twice ---------- */
+    /* the wood is chosen by its own growth and not by name — the country
+       whose flora lists the most trees, so data picks it and a country
+       renamed cannot make this stale */
+    const lands=F?F.lands():{}, score=[];
+    for(const n in lands){ const l=lands[n], list=(l&&l.tree)||l||[];
+      const names=Array.isArray(list)?list:Object.keys(list||{});
+      let trees=0; for(const k of names){ const K=kinds[k]; if(K&&K.layer==='tree') trees++; }
+      score.push({n,trees}); }
+    score.sort((a,b)=>b.trees-a.trees);
+    const S=W.sites(); let at=null;
+    for(const c of score){
+      for(let i=0;i<S.length;i++){ if(S[i]&&D.COUNTRIES[i].n===c.n){
+        at={n:c.n,x:S[i].x,z:S[i].z,trees:c.trees}; break; } }
+      if(at) break; }
+    if(!at) return {pending:'no wood stands on the chart'};
+
+    const build=async on=>{
+      GR.on(on);
+      D.holdWorld(true); D.dropChunks();
+      for(let k=0;k<25;k++){ D.updateChunks(at.x,at.z,900,13);
+        await new Promise(r=>requestAnimationFrame(r)); }
+      D.updateChunks(at.x,at.z,900,13);
+      const st=D.viewStats();
+      D.holdWorld(false);
+      return st;
+    };
+    D.state.fly.x=at.x; D.state.fly.z=at.z; D.setMode('fly');
+    const withF=await build(true), without=await build(false);
+    GR.on(true);
+
+    const names=st=>st.byMat.map(m=>m[0]).sort();
+    const a=names(withF).join(','), b=names(without).join(',');
+    if(withF.chunks!==without.chunks)
+      faults.push('the two builds stood on different discs ('+without.chunks+' against '+withF.chunks+
+        ') — nothing measured here means anything');
+    else{
+      if(!(withF.tris>without.tris)) faults.push('the floor laid no geometry at all — it is not reaching the ground');
+      if(a!==b) faults.push('the floor brought materials of its own: '+
+        a.split(',').filter(m=>b.split(',').indexOf(m)<0).join(' ')+' — that is a draw call per chunk');
+      if(withF.tris>without.tris*1.25)
+        faults.push('the floor cost '+((withF.tris/without.tris-1)*100).toFixed(1)+
+          '% of the wood\'s triangles, and §2.5 does not allow it');
+    }
+    return {ok:!faults.length,
+      got:at.n+' ('+at.trees+' kinds) over '+withF.chunks+' chunks · triangles '+without.tris+' → '+
+        withF.tris+' (+'+(withF.tris-without.tris)+', +'+
+        ((withF.tris/without.tris-1)*100).toFixed(1)+'%) · meshes '+without.meshes+' → '+withF.meshes+
+        ' · materials '+(a===b?'unchanged ('+without.byMat.length+')':'CHANGED')+
+        ' · litter: '+litterSay+' · moss: '+mossSay+' · lichen on the rock: '+onRock+' of 4000 cells'+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[48]={name:'a field bears its own country\'s corn, keeps the year, and not one chunk is built twice for it',
+  /* §2.4.6 — "crops that grow in stages and are harvested at the right season
+     ... give them a real agricultural year."
+
+     WHAT THERE WAS: the same twelve anonymous green crosses, in the same
+     twelve places, in every village from Norway to Java, unchanged from the
+     shortest day to harvest. One plant, one colour, one height, all the year,
+     in every country on the earth.
+
+     FOUR THINGS ARE ASKED, and the fourth is the one this design lives or
+     dies by.
+
+     1. THE CROP IS THE COUNTRY'S OWN, AND IS NOT WRITTEN DOWN TWICE.
+     world/flora.js has said, for a hundred and seventy-six countries, what
+     each of them grows. world/crops.js says only what a crop IS. So the test
+     that matters is not "Egypt grows wheat" — that is a fact about a data
+     file — but that NO LAND ON THE EARTH SOWS A CROP ITS OWN FLORA DOES NOT
+     NAME. That is the one-copy rule, made a guard. The single exception is a
+     land whose list names no field crop at all, which falls back to barley,
+     and the fallback is asserted to fire only there.
+
+     2. A FIELD BEARS THE SAME THING FOR EVER. It is a pure function of the
+     place, so a village built again after a reload is sown as it was.
+
+     3. THE YEAR IS THE RIGHT SHAPE. Bare before the sowing, full at the
+     ripening, gold at the reaping, stubble after; sown later and reaped later
+     the further from the line; the south half a year on; and NEVER BARE
+     within a few degrees of the equator, where there is no winter to stop for.
+
+     4. THE GLSL IS THE SAME CURVE AS THE JAVASCRIPT.
+     The year is worked out in the vertex shader, because a crop that grows is
+     geometry that changes and geometry that changes means the chunk is built
+     again — a village re-meshed every few days of a voyage for a field of
+     wheat. Doing it in the shader is the whole design. But a curve that
+     exists only as a string inside a shader CANNOT BE TESTED, and a test of a
+     JavaScript copy of it would only ever test the copy.
+     So this takes `CROP.glsl()` — the actual text handed to the compiler —
+     transliterates the half-dozen GLSL words it uses into JavaScript, and
+     evaluates it against `CROP.yearAt` at a hundred and twenty points. If
+     anybody edits one and not the other, this goes red.
+
+     AND THE CLAIM THAT NO CHUNK IS BUILT TWICE is measured, not asserted: the
+     count of chunks built is read, the year is turned right round, and it is
+     read again. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, C=window.CROP, F=window.FLORA;
+    if(!C||!C.yearAt||!C.glsl) return {pending:'no agricultural year (Phase 6 §2.4.6)'};
+    const faults=[], kinds=C.kinds(), names=Object.keys(kinds);
+    if(!names.length) return {pending:'no crops declared'};
+
+    /* ---- 1. no land sows what its own flora does not name ---- */
+    const lands=F?F.lands():{};
+    let sowing=0, fell=0, stray=0, strayEg='';
+    const seen=new Set();
+    for(const land in lands){
+      const own=lands[land]||[], mine=C.sownIn(land);
+      if(!mine.length){ faults.push(land+' sows nothing at all'); continue; }
+      sowing++;
+      const named=mine.filter(n=>own.indexOf(n)>=0);
+      if(named.length!==mine.length){
+        /* it is only allowed to reach past its own list when its own list has
+           no field crop in it whatever */
+        const anyOwn=own.some(n=>kinds[n]);
+        if(anyOwn){ stray++; if(!strayEg) strayEg=land+' sows '+
+          mine.filter(n=>own.indexOf(n)<0).join('/')+' and grows none of it'; }
+        else fell++;
+      }
+      for(const n of mine) seen.add(n);
+    }
+    if(stray) faults.push(stray+' land(s) sow a crop their own flora does not name — '+strayEg);
+    if(seen.size<8) faults.push('only '+seen.size+' distinct crops are sown on the whole earth');
+
+    /* ---- 2. the same field bears the same thing ---- */
+    const a1=C.forField('Egypt',1000,2000), a2=C.forField('Egypt',1000,2000);
+    if(a1!==a2) faults.push('the same field bore two different crops when asked twice');
+    let differ=0;
+    for(let k=0;k<40;k++) if(C.forField('India',k*140,k*97)!==C.forField('India',k*140+70,k*97+70)) differ++;
+    if(!differ) faults.push('every field in a country bears the identical crop');
+
+    /* ---- 3. the year is the right shape ---- */
+    const latN=lat=>1-((90-lat)/180)*2;
+    const at=(lat,ph)=>C.yearAt(ph,latN(lat));
+    const nor=at(60,0), egy=at(27,0);
+    if(!(nor.sow>egy.sow)) faults.push('the north sows no later than the tropics');
+    if(!(nor.ripe>egy.ripe)) faults.push('the north reaps no later than the tropics');
+    if(at(52,0.02).grow>0.01) faults.push('there is corn standing in a temperate field in midwinter');
+    { const y=at(52,at(52,0).ripe+0.01);
+      if(y.grow<0.99) faults.push('the corn is not at its full height when it comes ready');
+      if(y.gold<0.9) faults.push('the corn does not turn as it comes ready'); }
+    { const y=at(52,at(52,0).reap+0.05);
+      if(y.grow>0.3) faults.push('the field still stands full after the reaping');
+      if(y.grow<0.02) faults.push('the reaping left not even stubble'); }
+    /* the south is half a year on: what stands in a July English field must
+       stand in a January Argentine one */
+    { const n=at(45,0.52).grow, s=at(-45,0.02).grow;
+      if(Math.abs(n-s)>0.02) faults.push('the southern half does not keep its own half of the year ('+
+        n.toFixed(2)+' against '+s.toFixed(2)+')'); }
+    /* and the tropics are never bare */
+    let least=1; for(let k=0;k<48;k++) least=Math.min(least,at(3,k/48).grow);
+    if(least<0.4) faults.push('an equatorial field went to bare ground ('+least.toFixed(2)+')');
+
+    /* ---- 4. the shipped GLSL against the tested JavaScript ---- */
+    /* the transliteration is the six words the shader actually uses, and
+       nothing else — anything richer would be a second implementation */
+    const fract=x=>x-Math.floor(x), clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+    const mix=(a,b,t)=>a+(b-a)*t;
+    const smoothstep=(a,b,x)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+    const src=C.glsl('1.0');
+    let body=src.trim();
+    if(body[0]==='{') body=body.slice(1,body.lastIndexOf('}'));
+    body=body.replace(/\bfloat\b/g,'var').replace(/vCrop=vec2\(([\s\S]*)\);?\s*$/,'return [$1];');
+    let run;
+    try{ run=new Function('position','uSeasonY','fract','clamp','mix','smoothstep','length','sin','abs',body); }
+    catch(e){ faults.push('the shipped GLSL would not transliterate: '+e.message); }
+    let worst=0, worstAt='';
+    if(run){
+      for(let a=0;a<12;a++) for(let b=0;b<10;b++){
+        const lat=-60+a*12, ph=b/10, L=latN(lat);
+        /* the shader finds its latitude from the vertex: sr = |xz| / R, and
+           latN = 1-2sr. We hand it a position on the disc at that latitude. */
+        const sr=(1-L)/2;
+        const got=run({xz:[sr,0]}, ph, fract, clamp, mix, smoothstep,
+                      v=>Math.hypot(v[0],v[1]), Math.sin, Math.abs);
+        const want=C.yearAt(ph,L);
+        const d=Math.max(Math.abs(got[0]-want.grow), Math.abs(got[1]-want.gold));
+        if(d>worst){ worst=d; worstAt='lat '+lat+' at '+ph.toFixed(1); }
+      }
+      /* THE BAR IS NOT ZERO, and it cannot be: the GLSL writes its constants
+         to four decimal places, so the two agree to about six parts in a
+         million and never exactly. The bar is set just above that rounding
+         and orders of magnitude below any real divergence — moving one
+         constant by a thousandth would show here at once. */
+      if(worst>1e-3) faults.push('the shader and the tested curve part company by '+
+        worst.toFixed(4)+' ('+worstAt+') — one of them has been edited alone');
+    }
+
+    /* ---- AND NOT ONE CHUNK BUILT *FOR* THE TURN OF THE YEAR ----
+       THE FIRST CUT OF THIS COUNTED THE WRONG THING, and the full suite caught
+       it where running the test alone never could. It counted chunk builds
+       over fifty frames while cycling the seasons and failed above an ABSOLUTE
+       forty. Alone, the world is settled, the ring lays nothing, and it read
+       ZERO twice. In the suite it runs straight after test 41 and 47, which
+       call `dropChunks()` and fly the traveller to India and the United
+       States — so the ring is still refilling, and it read 116 and called the
+       year a re-mesher. The comment beside it even named the hazard ("the ring
+       lays ground of its own as the traveller drifts") and then guarded
+       against it with a fixed number, which is the wrong shape for a quantity
+       that depends on where the traveller has just been.
+       It is a DIFFERENCE now: the same span of frames with the year held
+       still, then the same span with the year turned through all four
+       seasons. What the ring does on its own appears in both and cancels.
+       That is what "no chunk is re-meshed FOR the year" actually means, and it
+       cannot be moved by anything a previous test did. */
+    let built='not measured';
+    if(D.BUILD_STATS&&window.SEASON){
+      const SPAN=44;
+      /* ---- AND BOTH SPANS MUST START FROM A RING THAT HAS STOPPED ----
+         A difference is only a difference if the two halves are comparable,
+         and the first cut of THAT was wrong too: run after test 47 the ring
+         was still working off a backlog, so the quiet span read 124 and the
+         turning span 0, and the year "cost" MINUS a hundred and twenty-four.
+         It passed, and it passed by luck — reverse the order and the same
+         world would have failed. Wait until the ring has laid nothing for a
+         dozen frames together, and then measure. */
+      const settle=async()=>{
+        let last=-1, still=0;
+        for(let k=0;k<400&&still<12;k++){
+          await new Promise(r=>requestAnimationFrame(r));
+          if(D.BUILD_STATS.n===last) still++; else { still=0; last=D.BUILD_STATS.n; }
+        }
+      };
+      const runFor=async(turn)=>{
+        await settle();
+        const n0=D.BUILD_STATS.n;
+        for(let k=0;k<SPAN;k++){
+          if(turn&&k%11===0) SEASON.setSeason(['Spring','Summer','Autumn','Winter'][(k/11)|0]);
+          await new Promise(r=>requestAnimationFrame(r));
+        }
+        return D.BUILD_STATS.n-n0;
+      };
+      const quiet=await runFor(false);
+      const turning=await runFor(true);
+      SEASON.clear();
+      const cost=turning-quiet;
+      built='from a settled ring, '+quiet+' chunk(s) laid in '+SPAN+
+        ' still frames and '+turning+' in '+SPAN+' while the whole year turned'+
+        ' — the year itself cost '+cost;
+      /* a handful either way is the ring's own drift, not the crops: the bar
+         is set where a re-mesh of the villages in view would be, which is
+         hundreds, and nowhere near the noise */
+      if(cost>25) faults.push('the turn of the year cost '+cost+
+        ' chunk builds over and above the ring\'s own — the year is not in the shader');
+    }
+
+    return {ok:!faults.length,
+      got:names.length+' crops declared, '+seen.size+' of them sown, over '+sowing+' lands · '+
+        fell+' land(s) grow no field crop of their own and fall back · '+
+        'Egypt sows '+C.sownIn('Egypt').join('/')+' · Japan '+C.sownIn('Japan').join('/')+
+        ' · Mali '+C.sownIn('Mali').join('/')+
+        ' · the year at 60N: sown day '+Math.round(nor.sow*364)+', ripe '+Math.round(nor.ripe*364)+
+        ', reaped '+Math.round(nor.reap*364)+'; at 27N: '+Math.round(egy.sow*364)+'/'+
+        Math.round(egy.ripe*364)+'/'+Math.round(egy.reap*364)+
+        ' · the equator never falls below '+least.toFixed(2)+
+        ' · the shipped GLSL differs from the tested curve by '+worst.toExponential(1)+
+        ' · '+built+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[49]={name:'the beasts that drink go down to the water at dusk, and not at noon, and not with a lion by',
+  /* §2.3.6's very first clause — "Drinking at water at dawn and dusk" — and
+     it was the one line in that section with nothing whatever behind it.
+
+     THE TWO FAULTS, and the second is the worse.
+     `drink` was an act like any other, drawn by weight at any hour of the day
+     and night. And it was refused unless `a.river` was true — which was read
+     ONCE, at the instant the beast was set down on the world, AND NEVER AGAIN
+     AS LONG AS IT LIVED. So a beast that happened to be placed on a bank went
+     on drinking in the middle of a dry plain for the rest of its days, and a
+     beast that walked to a river could never drink at all. Nothing on this
+     earth ever went TO water. It is the single most recognisable thing a herd
+     does, and it is the reason the crocodile is where he is.
+
+     FOUR THINGS ARE ASKED.
+
+     1. THE BANK IS READ AS THE BEAST WALKS. This is asked by INJECTING THE
+     FAULT: a beast is carried bodily out into dry country and must forget the
+     water within a second, and carried back and remember it. A test of the
+     mended code that cannot fail on the broken code is not a test.
+
+     2. WHO DRINKS IS THE BEAST'S OWN LINE AND NOTHING ELSE. No creature file
+     was touched for this and no second list of who drinks was written down —
+     a beast goes to water if `acts` says `drink`, which js/behavior.js has
+     said all along. Asserted across every beast declared.
+
+     3. AT NOON NOBODY GOES. The hours are the world's own — the twilight
+     band, the same number that sends the diurnal beasts to bed — so at midday
+     not one beast on the earth may be walking to a river.
+
+     4. AT DUSK THEY GO, over several lands, ONE READING APIECE. AUDIT Round
+     54 wrote that the herd measurements taken there were worthless because
+     they sampled the same three animals every twelfth frame and called it
+     three hundred samples. This does not do that: n is the number of LANDS,
+     each stood in for a whole dusk and censused, and what is reported is the
+     lands in which the herds went down — not a count of frames.
+
+     AND THE INVARIANT: no beast walks to water with a hunter inside its own
+     flight distance. Nothing goes down to a waterhole with a lion beside it,
+     and the walk down had to be given the same fright test the grazing has,
+     or a zebra crossing open ground to the river would have ignored him. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, W=window.__WORLD, B=window.BEHAVIOR;
+    if(!D.twilight||!D.drinks||!D.findWater) return {pending:'no watering (Phase 6 §2.3.6)'};
+    const faults=[];
+
+    /* ---- 2. who drinks is the beast's own line ---- */
+    let named=0, wrong=0;
+    for(const k in (B.D||{})){
+      const acts=(B.actsOf(k)||[]).some(w=>w[0]==='drink');
+      if(acts) named++;
+      if(D.drinks(k)!==acts) wrong++;
+    }
+    if(wrong) faults.push(wrong+' beasts disagree with their own acts list about drinking');
+    if(named<12) faults.push('only '+named+' beasts on the earth drink at all');
+
+    /* ---- AND STAND WHERE THERE IS WATER, WHICH IS NOT WHEREVER ONE LIKES ----
+       "Do the herds go down to the river" can only be asked in a place with a
+       river in it, and a village site is put where a village goes and not
+       where a watercourse runs. The first run of this test stood at the site
+       of Sudan and reported "no bank within 2400 units" — which was true, and
+       measured nothing. The nearest bank to each land's site is found first,
+       and the traveller is stood beside THAT, so the beasts that spawn about
+       him have water inside the distance one will walk for it. */
+    const S=W.sites();
+    const bankNear=(s2)=>{
+      const reach=D.WATER_REACH?D.WATER_REACH():900;
+      for(let r=100;r<=9000;r+=150) for(let k=0;k<24;k++){ const ang=k/24*6.283;
+        const x=s2.x+Math.cos(ang)*r, z=s2.z+Math.sin(ang)*r;
+        if(D.riverBankAt(x,z)) return {x,z,r,reach}; }
+      return null; };
+    const siteOf=n=>{ for(let i=0;i<S.length;i++) if(S[i]&&D.COUNTRIES[i].n===n) return S[i];
+      return null; };
+    let stand=null, land=null;
+    for(const n of ['Iraq','Egypt','Bangladesh','Sudan','India','Kenya']){
+      const s2=siteOf(n); if(!s2) continue;
+      const bk=bankNear(s2); if(!bk) continue;
+      stand=bk; land=n; break; }
+    if(!stand) return {pending:'no river bank found near any village site'};
+    const goStand=async(p)=>{ D.state.walk.x=p.x+140; D.state.walk.z=p.z+140;
+      D.state.walk.feetY=undefined; D.setMode('walk');
+      for(let f=0;f<45;f++){ D.updateChunks(D.state.walk.x,D.state.walk.z,600);
+        await new Promise(r=>requestAnimationFrame(r)); } };
+    /* ---- AND PIN AN HOUR THAT IS REALLY DUSK ----
+       None of the five dayparts lands in the band: 'evening' is 18:30, by
+       which hour the light is gone and the beasts are bedding. The hour is
+       swept until the world itself says twilight, so this test cannot be
+       broken by anybody retuning the sun. */
+    const setHour=async(h)=>{ D.setLocalHour(h, D.state.walk.x, D.state.walk.z);
+      for(let f=0;f<6;f++) await new Promise(r=>requestAnimationFrame(r)); };
+    await goStand(stand);
+    let dusk=null;
+    for(let h=14;h<=20;h+=0.25){ await setHour(h); if(D.twilight()){ dusk=h; break; } }
+    if(dusk===null) return {pending:'the world has no dusk between two and eight in the evening'};
+
+    /* ---- 1. the bank is read as it walks: inject the fault ---- */
+    let bankSay='no beast that drinks was set down';
+    await setHour(12);
+    { /* find a beast THAT DRINKS — the bank is read only for the beasts it
+         means anything to, so carrying a hedgehog about would prove nothing */
+      const a=D.LANDLIFE.find(b=>b.set&&b.dead<=0&&D.drinks(b.kind));
+      if(a){
+        const x0=a.x, z0=a.z;
+        a.x=stand.x; a.z=stand.z; a.gt=0;
+        for(let f=0;f<10;f++) await new Promise(r=>requestAnimationFrame(r));
+        const wet=!!a.river;
+        /* now carry it far off — eight kilometres, past any bank */
+        a.x=stand.x+8000; a.z=stand.z+8000; a.gt=0;
+        for(let f=0;f<10;f++) await new Promise(r=>requestAnimationFrame(r));
+        const dry=!!a.river;
+        a.x=x0; a.z=z0; a.gt=0;
+        bankSay=a.kind+' on the bank reads '+wet+', eight kilometres off reads '+dry;
+        if(!wet) faults.push('a beast standing on a river bank does not know it is there');
+        if(dry) faults.push('a beast carried eight kilometres from the water still thinks '+
+          'it stands on the bank — the bank is being read once and never again');
+      }
+    }
+
+    /* ---- 3. at noon nobody goes ---- */
+    if(D.twilight()) faults.push('the world calls high noon a twilight');
+    let noonGoing=0;
+    for(let f=0;f<100;f++){ await new Promise(r=>requestAnimationFrame(r));
+      if(f%10) continue;
+      for(const a of D.LANDLIFE) if(a.set&&a.dead<=0&&a.job==='water') noonGoing++; }
+    if(noonGoing) faults.push(noonGoing+' beasts walked to water at high noon');
+
+    /* ---- 4. at dusk they go, ONE READING PER LAND ---- */
+    const rows=[]; let wentIn=0, lands=0, unguarded=0, unseen=0;
+    for(const n of ['Iraq','Egypt','Bangladesh','Sudan']){
+      const s2=siteOf(n); if(!s2) continue;
+      const bk=bankNear(s2); if(!bk) continue;
+      await goStand(bk); await setHour(dusk);
+      if(!D.twilight()) continue;
+      lands++;
+      let drinkers=0, went=0, drank=0;
+      for(let f=0;f<160;f++){ await new Promise(r=>requestAnimationFrame(r));
+        if(f%20) continue;
+        let d1=0, w1=0, k1=0;
+        for(const a of D.LANDLIFE){ if(!a.set||a.dead>0||!D.drinks(a.kind)) continue;
+          d1++;
+          if(a.job==='water'){ w1++;
+            /* ---- THE INVARIANT: nothing walks to water with a hunter IT CAN
+               SEE by ---- and the three words in capitals were missing, which
+               made this test disagree with the world about a rule the world
+               is right on.
+
+               `frightNear` (js/engine.js) has held since Round 54 that A
+               HUNTER LYING UP IN DEEP GRASS IS NOT SEEN: a visible one is
+               broken from at the beast's whole flight distance, a hidden one
+               only at `min(6, flight × 0.35)`. That is the point of cover and
+               test 35 guards the flight distances that go with it. This test
+               asked for `flight × 0.8` of ANY hunter, hidden or not — so a
+               lion lying in the grass ten units from a gazelle counted
+               against the world for a thing the gazelle could not possibly
+               know. It never fired while six beasts reached the water; at
+               twenty-two — Round 77's herds walk further and reach it in
+               numbers — it fired three times.
+
+               WHETHER THOSE THREE WERE HIDDEN IS NOT ESTABLISHED. The run
+               that mended this read 0 and 0, so it shows the disagreement
+               gone and nothing else; the two counts are kept apart precisely
+               so the next run that has any will say which kind they were.
+               What IS established is that the test and the world were asking
+               different questions, and the world's is the one Round 54 wrote
+               down and test 35 guards.
+
+               A hunter in the open inside the flight distance is still a
+               fault and still counted. One in cover is counted separately and
+               reported, because "how often does a herd walk down past a lion
+               it cannot see" is worth knowing and is not a bug. */
+            const fl=B.flightOf(a.kind);
+            for(const b of D.LANDLIFE){ if(!b.set||b.dead>0) continue;
+              if(b.role!=='pack'&&b.role!=='stalk'&&b.role!=='ambush') continue;
+              const d2=Math.hypot(b.x-a.x,b.z-a.z);
+              if(b.hidden){ if(d2<Math.min(6,fl*0.35)){ unguarded++; break; }
+                            if(d2<fl*0.8) unseen++; }
+              else if(d2<fl*0.8){ unguarded++; break; } } }
+          if(a.job==='act'&&a.act==='drink') k1++; }
+        drinkers=Math.max(drinkers,d1); went=Math.max(went,w1); drank=Math.max(drank,k1);
+      }
+      if(went||drank) wentIn++;
+      rows.push(n+' (bank '+bk.r+'u off) '+drinkers+' that drink, '+went+' walking, '+drank+' at it');
+    }
+    if(lands&&!wentIn) faults.push('not one land saw a single beast go down to the water at dusk');
+    if(unguarded) faults.push(unguarded+' times a beast walked to water with a hunter it could SEE inside its flight distance');
+
+    return {ok:!faults.length,
+      got:named+' beasts on the earth drink · dusk is at '+dusk.toFixed(2)+
+        ' (the light reads '+D.worldDay().toFixed(2)+') · the bank: '+bankSay+
+        ' · at noon: '+noonGoing+' walking to water'+
+        ' · at dusk over '+lands+' lands, '+wentIn+' of them saw the herds go down — '+
+        rows.join(' | ')+' · hunters beside a watering beast: '+unguarded+
+        ' seen, '+unseen+' lying up in cover (which is not a fault — a hidden hunter is not seen)'+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[50]={name:'THE HERD, MEASURED — how many stand together, where the young stand, and how far it moves',
+  /* §2.3.5 — "matriarch-led herds with juveniles held at the centre".
+
+     AUDIT ROUND 54 TRIED THIS THREE TIMES, REVERTED ALL THREE, AND LEFT
+     INSTRUCTIONS, which this test exists to obey:
+
+       "A valid measurement of this needs many INDEPENDENT herds — different
+        lands, one reading apiece — and IT NEEDS TO BE BUILT BEFORE THE
+        FEATURE, NOT AFTER IT… the herd gathering rule fires only when a beast
+        picks a new wander target, so a herd here is a loose correlation and
+        not a structure."
+
+     It also recorded why the numbers taken there were worthless: they sampled
+     the same three animals every twelfth frame and called it three hundred
+     samples. So n here is HERDS, in several lands, censused once apiece.
+
+     ---- THE THREE THINGS ASKED, AND THE SECOND IS THE DECISIVE ONE ----
+
+     1. A HERD HAS ONE HEAD. Exactly one member of a neighbourhood leads it,
+        it is the same one when asked again, and no beast leads a
+        neighbourhood in which somebody outranks it.
+
+     2. A HERD TRAVELS. This is the whole difference between a correlation and
+        a structure, and it is arithmetic, not taste: if every beast walks
+        toward the MEAN POSITION of its own kind, it walks toward a point that
+        by definition sits in the middle of them all and barely moves — so the
+        herd can only shuffle in place, for ever. A herd that follows an
+        ANIMAL goes where that animal goes. Measured as how far the centroid
+        of one fixed set of beasts carries itself, against the size of the
+        herd, over a fixed spell.
+
+     3. THE YOUNG ARE IN THE MIDDLE. Each member's distance from its herd's
+        centroid over the herd's own radius, so a big herd and a small one can
+        be added together. Mothers with a calf at foot must sit measurably
+        nearer the middle than beasts with none.
+
+     THE BARS BELOW ARE SET FROM WHAT WAS MEASURED ON THE OLD BEHAVIOUR, not
+     from a wish — see AUDIT Round 70 for both columns. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, W=window.__WORLD;
+    if(!D.LANDLIFE||!D.HERD_R) return {pending:'no herds to measure'};
+    const R=D.HERD_R;
+    const faults=[], rows=[];
+    let mums=0, mumDepth=0, others=0, othDepth=0;
+    let herds=0, members=0, biggest=0, travel=0, travelU=0, travelN=0;
+    let twoLed=0, ledWrong=0, unstable=0;
+    const sizes={};
+
+    /* ---- EVERY DISTINCT HERD STANDING HERE, each beast counted once ----
+       The same greedy neighbourhood test the watch uses, and the threshold is
+       THREE, which is test 35's and the audit's own word for a herd.
+       AND THE SIZE IS ITSELF A HEADLINE. The first cut of this test asked for
+       four and reported "no herd of four formed in any land" across six of
+       them — which is not a bug in the test. Ninety-six beasts stand at once
+       (`LL_N`) over a ring of twelve hundred and fifty units, shared among
+       every species a country grows, and the gathering pull is 45% toward the
+       mean fired only when a beast picks a new wander target. THE WORLD WAS
+       NOT MAKING HERDS AT ALL, it was making a scatter with a slight
+       correlation in it — so §2.3.5 had almost nothing to give a structure to.
+       How many stand together is therefore reported first and barred on. */
+    const census=()=>{
+      const out=[], done=new Set();
+      for(const a of D.LANDLIFE){
+        if(!a.set||a.dead>0||done.has(a)) continue;
+        const mob=[];
+        for(const b of D.LANDLIFE){ if(!b.set||b.dead>0||b.kind!==a.kind) continue;
+          if(Math.hypot(b.x-a.x,b.z-a.z)<=R) mob.push(b); }
+        if(mob.length<3) continue;
+        for(const b of mob) done.add(b);
+        out.push(mob);
+      }
+      return out; };
+    const centre=mob=>{ let x=0,z=0; for(const b of mob){ x+=b.x; z+=b.z; }
+      return {x:x/mob.length, z:z/mob.length}; };
+    const spread=(mob,c)=>{ let d=0; for(const b of mob) d+=Math.hypot(b.x-c.x,b.z-c.z);
+      return Math.max(1,d/mob.length); };
+
+    const S=W.sites();
+    const siteOf=n=>{ for(let i=0;i<S.length;i++) if(S[i]&&D.COUNTRIES[i].n===n) return S[i];
+      return null; };
+    /* the plain first, where the herds of the earth actually are */
+    /* FOUR LANDS AND NOT SIX. The first cut asked six and took twenty-two
+       minutes of a headless box for one test, which is not a price a suite of
+       fifty can pay. Four plains is enough for n to mean something. */
+    for(const land of ['Kenya','Tanzania','Botswana','Mongolia']){
+      const s2=siteOf(land); if(!s2) continue;
+      D.state.walk.x=s2.x+700; D.state.walk.z=s2.z+700; D.state.walk.feetY=undefined;
+      D.setMode('walk');
+      const noon=D.DAYPARTS.findIndex(d=>d.k==='noon'); if(noon>=0) D.state.dayIdx=noon;
+      D.applyDayPart();
+      for(let f=0;f<50;f++){ D.updateChunks(D.state.walk.x,D.state.walk.z,600);
+        await new Promise(r=>requestAnimationFrame(r)); }
+      /* and let them settle into whatever shape they make before asking */
+      for(let f=0;f<90;f++) await new Promise(r=>requestAnimationFrame(r));
+
+      let mobs=census();
+      if(!mobs.length){ rows.push(land+': not three of a kind together'); continue; }
+      /* ---- AND EVERY SECOND MEMBER IS MADE A MOTHER ----
+       THE FAULT THIS MENDS is the whole reason Round 70 could conclude
+       nothing. About one beast in four is given young when it is set down, so
+       a herd of three carries none or one, and the depth of "the mothers" was
+       being read off two to six animals in a whole reading — scattered across
+       four lands and several herds, so between-herd spread swamped it. The
+       untouched world answered 1.22 against 0.94 on one run and 0.59 against
+       1.07 on the next.
+       Every second member of every herd is given a calf now, by INDEX and so
+       by nothing correlated with where it is standing. The question becomes
+       "of these beasts, standing in THIS herd, do the mothers sit nearer the
+       middle than their neighbours" — paired inside the herd, which is the
+       only form of it that can be answered with the numbers this world has. */
+      if(D.setYoung){
+        /* AND THE PARITY IS FLIPPED HERD BY HERD. A herd of three marked
+           "every second one" gives two mothers and one other, EVERY TIME —
+           and the centroid of three is pulled toward whichever pair shares a
+           class, so the majority class reads nearer the middle whatever the
+           rules do. The first run of this instrument proved it: on the
+           UNTOUCHED tree, where nothing holds a mother anywhere, it reported
+           8 mothers at 0.87 against 4 others at 1.26. That is the arithmetic
+           of small groups, not the behaviour of beasts.
+           Flipping the parity by herd makes it 2:1 in one herd and 1:2 in the
+           next, so the bias cancels across the reading instead of pointing one
+           way all through it. */
+        let hIdx=0;
+        for(const m of mobs){ hIdx++;
+          for(let i=0;i<m.length;i++)
+            if(window.BABY&&BABY.runs(m[i].kind)) D.setYoung(m[i], (i+hIdx)%2===0); }
+        /* and they are given time to act on it before anything is measured */
+        for(let f=0;f<70;f++) await new Promise(r=>requestAnimationFrame(r));
+        mobs=census();
+        if(!mobs.length){ rows.push(land+': the herd broke up'); continue; }
+      }
+      const before=mobs.map(m=>({mob:m, c:centre(m), r:spread(m,centre(m))}));
+
+      /* ---- 1 and 3, asked now ---- */
+      for(const h of before){
+        herds++; members+=h.mob.length;
+        sizes[h.mob.length>=6?'6+':h.mob.length]=(sizes[h.mob.length>=6?'6+':h.mob.length]||0)+1;
+        if(h.mob.length>biggest) biggest=h.mob.length;
+        for(const b of h.mob){
+          /* ---- AND THE MIDDLE IS RECKONED WITHOUT THE BEAST ITSELF ----
+             A beast is part of the mean it is being measured against, so in a
+             herd of three it drags the centre a third of the way toward
+             itself and every animal reads closer to the middle than it truly
+             is. Leave-one-out removes that, and it matters most at exactly
+             the herd sizes this world makes. */
+          const rest=h.mob.filter(x=>x!==b);
+          if(rest.length<2) continue;
+          const rc=centre(rest), rr2=spread(rest,rc);
+          const depth=Math.hypot(b.x-rc.x,b.z-rc.z)/rr2;
+          if(b.kids){ mums++; mumDepth+=depth; } else { others++; othDepth+=depth; }
+        }
+        /* who leads it, if anything does */
+        if(D.herdOf){
+          const seen=new Set();
+          for(const b of h.mob){ const H=D.herdOf(b); if(H&&H.lead) seen.add(H.lead); }
+          if(seen.size>1) twoLed++;
+          for(const b of h.mob){ const H=D.herdOf(b); if(!H||!H.lead) continue;
+            /* nobody may lead a neighbourhood in which somebody outranks it */
+            for(const c of h.mob){ if(c===H.lead) continue;
+              if(Math.hypot(c.x-H.lead.x,c.z-H.lead.z)>R) continue;
+              if(D.herdRank(c)>D.herdRank(H.lead)){ ledWrong++; break; } }
+            break; }
+        }
+      }
+
+      /* ---- 2. does it TRAVEL? the same beasts, a spell later ---- */
+      for(let f=0;f<190;f++) await new Promise(r=>requestAnimationFrame(r));
+      let moved=0, movedU=0, n2=0;
+      for(const h of before){
+        const live=h.mob.filter(b=>b.set&&b.dead<=0);
+        if(live.length<3) continue;
+        const c2=centre(live), d=Math.hypot(c2.x-h.c.x,c2.z-h.c.z);
+        moved+=d/h.r; movedU+=d; n2++;
+      }
+      if(n2){ travel+=moved/n2; travelU+=movedU/n2; travelN++; }
+      /* and the leader must be the same one it was */
+      if(D.herdOf) for(const h of before){
+        const live=h.mob.filter(b=>b.set&&b.dead<=0); if(live.length<3) continue;
+        const H=D.herdOf(live[0]); if(H&&H.lead&&H.lead!==(h.lead0||H.lead)) unstable++; }
+      rows.push(land+': '+before.length+' herd(s), centroid moved '+
+        (n2?(movedU/n2).toFixed(0):'—')+' units');
+    }
+
+    if(!herds) return {pending:'not three of one kind stood together in any land'};
+    const mD=mums?mumDepth/mums:null, oD=others?othDepth/others:null;
+    const trav=travelN?travel/travelN:0, travU=travelN?travelU/travelN:0;
+
+    /* ---- AND IT REPORTS RATHER THAN JUDGES, ON PURPOSE ----
+       THIS TEST IS A MEASUREMENT AND NOT YET A GUARD, and saying so is the
+       whole point of it. AUDIT Round 54 tried §2.3.5 four times, reverted all
+       four, and wrote that it had "no evidence that juveniles-at-the-centre is
+       or is not satisfied" because it had never built a measurement. Round 70
+       built this one, made the change, and measured it FOUR TIMES:
+
+         mothers' depth   others'   what it was
+         1.22             0.94      before anything (the young OUTSIDE)
+         1.04             0.98      stations about a leader
+         0.80             1.06      stations and a marching matriarch
+         0.90             1.02      stations alone, first reading
+         1.01             1.00      stations alone, second reading
+
+       With two to six mothers standing in any one run that is noise, and the
+       change was taken back out. AND THEN THE BEFORE-READING DISAGREED WITH
+       ITSELF: run once more on the untouched tree it gave 0.59 against 1.07 —
+       the young deep INSIDE — on exactly the code that had read 1.22 against
+       0.94 an hour before. Same build, opposite answer. So none of the
+       comparisons above mean anything, and neither did Round 54's four.
+       The numbers are left here, running, so the next person to take the item
+       up begins with evidence instead of a feeling — and the first thing that
+       evidence says is THIS MEASUREMENT NEEDS MORE MOTHERS IN IT. Three is
+       not a sample. Widen it — more lands, or many readings of each, or both
+       — before believing anything it says about depth.
+
+       WHAT THE FOUR ATTEMPTS DID ESTABLISH, and it is worth more than the
+       feature would have been: the wander-target picker is THE WRONG LEVER.
+       It fires only when a beast has finished everything else and is roaming,
+       and a grazing beast hardly ever is — it is in `seek` walking to grass,
+       or in `feedhead` standing still with its speed set to nought. A herd is
+       given its shape by WHERE EACH BEAST LOOKS FOR GRASS, not by where it
+       wanders when it has nothing to do, and that is where the next attempt
+       should go. The travel figure says the same thing from the other side: 0
+       to 2 units in a spell whatever was done to the wandering.
+
+       It is PENDING and not FAIL because there is nothing broken here. The
+       world does what it always did; this is the shape of it, written down. */
+    const mean=herds?members/herds:0;
+    return {pending:
+      'MEASURED, NOT GUARDED (§2.3.5 is open — see AUDIT Round 70) · '+
+      herds+' herd(s) of three or more over '+rows.length+' lands, mean '+mean.toFixed(2)+
+      ' beasts, biggest '+biggest+' ('+Object.keys(sizes).sort()
+        .map(k=>k+'×'+sizes[k]).join(', ')+') · '+
+      'the young: '+mums+' mothers at '+(mD===null?'—':mD.toFixed(2))+
+      ' of a herd-radius from the middle against '+others+' others at '+
+      (oD===null?'—':oD.toFixed(2))+
+      ' · travel: '+travU.toFixed(0)+' units ('+trav.toFixed(2)+' herd-radii)'+
+      ' · leaders: '+(D.herdOf?(twoLed+' split, '+ledWrong+' outranked'):'no leader in this build')+
+      ' · '+rows.join(' | ')};
+  })};
+
+T[51]={name:'a beast is welded into a handful of meshes, and everything that moves still moves',
+  /* §2.3.4 asks for 30–60 parts on a large mammal where there are 15–19, and
+     the naive reading of that could not be afforded: `lbox` mints a new
+     geometry AND a new material for every limb, so a part is a mesh is a
+     scene-graph node, and ninety-six beasts stood at 1,836 of them.
+
+     The still parts are welded into one geometry per material now, with each
+     part's own colour baked into the vertex colours — the same trick the
+     flora uses to draw a hundred and seventy species with four materials.
+
+     WHAT IS ASSERTED, AND WHAT IS DELIBERATELY NOT.
+
+     1. IT WELDS. Every kind must come out in fewer meshes than it went in.
+     2. EVERYTHING THAT MOVES STILL MOVES. This is the one that matters: the
+        engine reaches its moving parts BY NAME through `userData` — `legs`
+        (and each leg's `knee`), `head`, `jaw`, `tail`, `ears`, `wingL`… — and
+        a weld that swallowed one of them would leave a beast sliding about
+        with its legs welded to its belly. Every name the engine can reach
+        must still resolve to a Mesh or Group that is genuinely SEPARATE from
+        the welded lump, and turning it must genuinely turn something.
+     3. THE COAT SURVIVES. The weld multiplies the base colour into the coat's
+        own greyscale, so the shading must still run dark on top to pale
+        beneath — test 32 guards that across every kind; here it is asserted
+        on the welded geometry itself.
+
+     NOT ASSERTED: that it cuts DRAW CALLS. Measured four times alternating,
+     welded read 1978 and 2179 against loose's 1964 and 2059 — a difference of
+     67 inside a spread of 200. Most of the ninety-six beasts stand outside
+     the view, so their loose parts were never drawn to begin with. The win is
+     in the scene graph and in memory, and in making the PART COUNT nearly
+     free, which is what §2.3.4 needed. The audit says so and so does this. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    if(!D.mergeOn||!D.beastMoving) return {pending:'no weld (Phase 6 §2.3.4)'};
+    const faults=[], count=g=>{ let n=0; g.traverse(o=>{ if(o.isMesh) n++; }); return n; };
+    const build=k=>{ const spec=D.BEAST_BY_NAME[k];
+      return (spec&&spec.realm!=='land')?D.makeBeast(k):D.makeAnimal(k); };
+    const F=D.FAUNA||window.FAUNA;
+    const kinds=[...new Set(Object.keys(D.BEAST_BY_NAME).concat(
+      (F&&F.keeps)?Object.keys(F.keeps):[]))];
+    let loose=0, weld=0, tried=0, worst=null, stiff=[], moved=0, names=0;
+    for(const k of kinds){
+      let a=null,b=null;
+      D.mergeOn(false); try{ a=build(k); }catch(e){ continue; }
+      D.mergeOn(true);  try{ b=build(k); }catch(e){ continue; }
+      if(!a||!b) continue;
+      tried++;
+      const la=count(a), lb=count(b);
+      loose+=la; weld+=lb;
+      if(lb>la) faults.push(k+' came out of the weld with MORE meshes ('+la+' → '+lb+')');
+      if(!worst||(lb-la)>worst.d) worst={k,d:lb-la,la,lb};
+      /* ---- AND EVERYTHING THE ENGINE CAN REACH MUST STILL BE ITS OWN ---- */
+      const keep=D.beastMoving(b);
+      const seen=new Set();
+      const walk=(ud,where)=>{ if(!ud) return;
+        for(const key in ud){ const v=ud[key]; if(!v) continue;
+          const list=Array.isArray(v)?v:[v];
+          for(const o of list){ if(!o||!o.isObject3D||seen.has(o)) continue;
+            seen.add(o); names++;
+            if(!keep.has(o)) faults.push(k+"'s "+key+' was swallowed by the weld');
+            /* turning it must turn something real */
+            const was=o.rotation.x; o.rotation.x=was+0.6;
+            if(Math.abs(o.rotation.x-was)>0.5) moved++; else stiff.push(k+'.'+key);
+            o.rotation.x=was;
+            walk(o.userData,key); } } };
+      walk(b.userData,'');
+    }
+    if(!tried) return {pending:'no beast could be built'};
+    if(!(weld<loose)) faults.push('the weld saved nothing at all ('+loose+' → '+weld+')');
+    if(stiff.length) faults.push(stiff.length+' named part(s) would not turn: '+stiff.slice(0,4).join(', '));
+    if(!names) faults.push('not one moving part was found to check');
+    return {ok:!faults.length,
+      got:tried+' kinds built both ways · meshes '+loose+' → '+weld+
+        ' ('+Math.round((1-weld/loose)*100)+'% fewer) · '+names+
+        ' moving parts named by the engine, all still their own and all still turning'+
+        ' · the least helped: '+(worst?worst.k+' '+worst.la+' → '+worst.lb:'—')+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[52]={name:'the finer grain is free — what hangs off a moving part costs nothing',
+  /* §2.3.4 asks for thirty to sixty parts on a large mammal where there were
+     twelve to fifteen. Round 75's weld was supposed to make that affordable,
+     and its audit said so outright: *"a beast of forty parts will weld to the
+     same ten or twelve as one of seventeen"*.
+
+     THAT WAS NOT TRUE AS WRITTEN, and the first goat built to §2.3.4 proved
+     it. `beastMoving` claims a moving part AND ITS WHOLE SUBTREE — rightly,
+     since a hoof hung off a shin must not be welded to the ground the shin
+     swings over. But a hoof does not move against the SHIN either. Nothing in
+     the engine ever reaches for it. Under that weld every such part was its
+     own mesh again, and the fifty-part goat came out at twenty-one meshes
+     against the seventeen-box goat's ten. Twice the cost, for the animal
+     named by ninety-eight of the hundred and seventy-six lands.
+
+     THE RULE NOW: the pivots are the parts the engine names in `userData` and
+     NOTHING ELSE. Every other mesh is welded into the nearest pivot above it
+     — into that pivot's own geometry where their materials agree, so the
+     object survives and every handle on it still points at the same thing.
+
+     WHAT IS ASSERTED: that no moving part carries loose baggage. Count, for
+     every pivot on every beast in the world, the meshes in its subtree that
+     are not themselves pivots. A shin with two cloven hooves on it must carry
+     NONE of them separately; a head with a muzzle, a nose, two nostrils, a
+     jaw hinge, two eyes, two horns and two ears on it must carry none of them
+     either. Two are allowed, for a beast whose file dresses one part in two
+     different textures, and no more.
+
+     AND THAT THE GRAIN IS FREE: the beasts built to §2.3.4, at forty parts
+     and upward, must still come to sixteen meshes or fewer.
+
+     TWO FAULTS INJECTED, because there are two ways to get this wrong and
+     only one of them shows in a mesh count.
+
+     1. THE OLD WELD — anything the engine can reach is left alone, subtree and
+        all. The world's beasts go from 1,264 meshes to 1,460; the baggage
+        from 33 pieces to 301; the sheep from 14 meshes to FORTY, carrying
+        thirteen loose parts on its head and three on every shin; the deer
+        twenty-five on its head, which is its whole face and both antlers.
+     2. THE GREEDY WELD — everything is welded at the beast's own scope, so a
+        hoof is folded into the BODY. That reads BETTER by every count in the
+        first assertion: 1,234 meshes against 1,264, and three pieces of
+        baggage against 33. It is also a beast whose feet stay behind when it
+        walks. That is what the second assertion is for: every moving part is
+        measured in its own space against its own loose self, and sixty-eight
+        of them are caught — every shin that has lost the reach of its hooves,
+        every head that has lost its face, and the shark's tail, which loses
+        4.82 of its own length. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    if(!D.mergeOn||!D.beastPivots) return {pending:'no deep weld (Phase 6 §2.3.4)'};
+    const LOTS=2;                        /* textures one part may be dressed in */
+    const faults=[], count=g=>{ let n=0; g.traverse(o=>{ if(o.isMesh) n++; }); return n; };
+    const build=k=>{ const spec=D.BEAST_BY_NAME[k];
+      return (spec&&spec.realm!=='land')?D.makeBeast(k):D.makeAnimal(k); };
+    const F=D.FAUNA||window.FAUNA;
+    const kinds=[...new Set(Object.keys(D.BEAST_BY_NAME).concat(
+      (F&&F.keeps)?Object.keys(F.keeps):[]))];
+    let tried=0, parts=0, mesh=0, pivots=0, baggage=0, worst=null, grain=[];
+    for(const k of kinds){
+      let a=null,b=null;
+      D.mergeOn(false); try{ a=build(k); }catch(e){ continue; }
+      D.mergeOn(true);  try{ b=build(k); }catch(e){ continue; }
+      if(!a||!b) continue;
+      tried++; parts+=count(a); mesh+=count(b);
+      const piv=D.beastPivots(b), pivA=D.beastPivots(a);
+      /* the same moving part on the loose beast and on the welded one, by the
+         path the engine reaches it: userData key, then index down the legs */
+      const byName=x=>{ const m=new Map();
+        const walk=(ud,pre)=>{ if(!ud) return;
+          for(const key in ud){ const v=ud[key]; if(!v) continue;
+            const list=Array.isArray(v)?v:[v];
+            list.forEach((o,i)=>{ if(!o||!o.isObject3D) return;
+              const id=pre+key+(Array.isArray(v)?'#'+i:'');
+              if(m.has(id)) return; m.set(id,o); walk(o.userData,id+'.'); }); } };
+        walk(x.userData,''); return m; };
+      const MA=byName(a), MB=byName(b);
+      for(const [id,o] of MB){
+        if(!o.isObject3D) continue;
+        pivots++;
+        let n=0; o.traverse(x=>{ if(x!==o&&x.isMesh&&!piv.has(x)) n++; });
+        baggage+=n;
+        if(n>LOTS) faults.push(k+' carries '+n+' loose parts on '+id);
+        if(!worst||n>worst.n) worst={k,n};
+        /* AND WHAT WAS ON IT MUST STILL BE ON IT. A weld that folded a hoof
+           into the BODY instead of into the shin costs nothing and reads
+           clean — until the leg swings and the hoof stays where it was. So
+           the moving part is measured, in its own space, against itself. */
+        const p0=MA.get(id); if(!p0) continue;
+        const box=x=>{ x.updateWorldMatrix(true,true);
+          const inv=new window.THREE.Matrix4().copy(x.matrixWorld).invert();
+          const bb=new window.THREE.Box3(), v=new window.THREE.Vector3();
+          x.traverse(m2=>{ const gg=m2.geometry, at=gg&&gg.attributes&&gg.attributes.position;
+            if(!at) return; const M=inv.clone().multiply(m2.matrixWorld);
+            for(let i2=0;i2<at.count;i2++) bb.expandByPoint(v.fromBufferAttribute(at,i2).applyMatrix4(M)); });
+          return bb; };
+        const B0=box(p0), B1=box(o);
+        if(B0.isEmpty()||B1.isEmpty()) continue;
+        const s0=new window.THREE.Vector3(), s1=new window.THREE.Vector3();
+        B0.getSize(s0); B1.getSize(s1);
+        const lost=Math.max(s0.x-s1.x,s0.y-s1.y,s0.z-s1.z);
+        if(lost>0.02) faults.push(k+"'s "+id+' lost '+lost.toFixed(2)+
+          ' of its own reach in the weld — something that hung on it was welded elsewhere');
+      }
+      if(count(a)>=40) grain.push([k,count(a),count(b)]);
+    }
+    if(!tried) return {pending:'no beast could be built'};
+    if(!pivots) faults.push('not one moving part was found to check');
+    const heavy=grain.slice().sort((x,y)=>y[1]-x[1])[0];
+    if(heavy&&heavy[2]>16) faults.push(heavy[0]+' is built of '+heavy[1]+
+      ' parts and still costs '+heavy[2]+' meshes');
+    return {ok:!faults.length,
+      got:tried+' kinds · '+parts+' parts welded to '+mesh+' meshes ('+
+        (parts/mesh).toFixed(1)+' parts a mesh) · '+pivots+' moving parts carry '+
+        baggage+' loose pieces between them, the worst '+(worst?worst.k+' at '+worst.n:'—')+
+        ' · of the '+grain.length+' beasts at 40 parts or more, the heaviest is '+
+        (heavy?heavy[0]+' at '+heavy[1]+' parts and '+heavy[2]+' meshes':'—')+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[53]={name:'DOES A BEAST EVER REACH ITS STATION — the mechanism, measured, not the outcome',
+  /* §2.3.5 — *"matriarch-led herds with juveniles held at the centre"* — has
+     been built and taken back out FOUR TIMES. Round 54 made four attempts,
+     Round 70 four more, Round 72 three mechanisms measured twice apiece. Every
+     one of them measured WHERE THE YOUNG ENDED UP and inferred the cause, and
+     every one of them ended "could not show it worked", which is not a
+     finding. The audit's instruction after the last of them:
+
+       *What has never been measured is whether a beast ever reaches its
+       station at all. If that distance is large, the rule is never landing,
+       and the fix is about WHEN it fires. If it is small, the rule lands and
+       the young's depth still does not move, which would mean the geometry is
+       wrong. Those two are opposite repairs and three rounds could not tell
+       them apart. When a change cannot be shown to work, measure the
+       MECHANISM, not the outcome.*
+
+     This is that measurement, and it is deliberately a SEPARATE test from 50 so
+     that 50's numbers stay comparable with the four rounds that already quote
+     them.
+
+     WHAT IT ASKS, and none of it is about where the young end up:
+
+     1. HOW BIG IS A HERD, REALLY. Every station mechanism is trying to create
+        a difference of `r × (1.15 − 0.40)` units between a mother and her
+        neighbours. If `r` is small, that difference is small, and every other
+        number in this test has to be read against it.
+     2. HOW FAR IS A BEAST FROM ITS STATION, in herd-radii. This is the reading
+        three rounds went without.
+     3. HOW OFTEN IS EACH LEVER EVEN CONSULTED. A rule hung on the wander-target
+        picker fires only when a beast is roaming; a rule hung on the bite
+        search fires only when a beast is not already standing in grass. Counted
+        per herded beast per second of world time, so "it never fires" and "it
+        fires and does not matter" stop being indistinguishable.
+     4. WHAT THE HERD PASS COSTS, in milliseconds a frame — because reckoning
+        every herd on the earth once a frame is an O(n²) sweep over ninety-six
+        beasts and this project measures the frame cost of everything.
+
+     WHAT IT FOUND, and it is written here because it is the whole reason the
+     round went the way it did: the wander-target picker — the only cohesion
+     this world has ever had, and the lever Rounds 54 and 70 both built their
+     matriarch on — fires **0.0000 times a beast-second**. Not rarely: never.
+     A beast standing in grass is put back to `feedhead` on every decision, so
+     `a.job` is never 'roam' by the time that picker is reached. The bite
+     search fires about 0.002, one pick per beast per eight minutes. Test 50
+     reads its mothers seventy frames — ten world-seconds — after marking
+     them, which at that rate is ONE decision in the whole world. No mechanism
+     any of the four rounds built could have been seen by it.
+
+     It is PENDING and not a guard: nothing here is broken, and until §2.3.5 is
+     built there is nothing to bar on. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, W=window.__WORLD;
+    if(!D.herdStat||!D.stationOf) return {pending:'no station (Phase 6 §2.3.5)'};
+    const R=D.HERD_R;
+    const census=()=>{
+      const out=[], done=new Set();
+      for(const a of D.LANDLIFE){
+        if(!a.set||a.dead>0||done.has(a)) continue;
+        const mob=[];
+        for(const b of D.LANDLIFE){ if(!b.set||b.dead>0||b.kind!==a.kind) continue;
+          if(Math.hypot(b.x-a.x,b.z-a.z)<=R) mob.push(b); }
+        if(mob.length<3) continue;
+        for(const b of mob) done.add(b);
+        out.push(mob); }
+      return out; };
+    const S=W.sites();
+    const siteOf=n=>{ for(let i=0;i<S.length;i++) if(S[i]&&D.COUNTRIES[i].n===n) return S[i];
+      return null; };
+    const rows=[]; let frames=0;
+    for(const land of ['Kenya','Tanzania','Botswana','Mongolia']){
+      const s2=siteOf(land); if(!s2) continue;
+      D.state.walk.x=s2.x+700; D.state.walk.z=s2.z+700; D.state.walk.feetY=undefined;
+      D.setMode('walk');
+      const noon=D.DAYPARTS.findIndex(d=>d.k==='noon'); if(noon>=0) D.state.dayIdx=noon;
+      D.applyDayPart();
+      for(let f=0;f<50;f++){ D.updateChunks(D.state.walk.x,D.state.walk.z,600);
+        await new Promise(r=>requestAnimationFrame(r)); }
+      for(let f=0;f<90;f++) await new Promise(r=>requestAnimationFrame(r));
+      /* ---- AND HALF OF EVERY HERD IS MADE A MOTHER ----
+         the same write-probe and the same parity flip test 50 uses, so the
+         mothers' reach is read off eighty-odd animals and not off three */
+      const mobs=census();
+      if(!mobs.length){ rows.push(land+': not three of a kind together'); continue; }
+      if(D.setYoung){ let hIdx=0;
+        for(const m of mobs){ hIdx++;
+          for(let i=0;i<m.length;i++)
+            if(window.BABY&&BABY.runs(m[i].kind)) D.setYoung(m[i],(i+hIdx)%2===0); } }
+      /* the counters are zeroed HERE, so nothing of the boot or the walk to
+         this land is counted into the reading */
+      D.herdStatReset();
+      for(let f=0;f<420;f++){ await new Promise(r=>requestAnimationFrame(r)); frames++; }
+      const H=D.herdStat();
+      if(!H.reachN){ rows.push(land+': no beast stood in a herd'); continue; }
+      const secs=Math.max(0.001,H.secs);
+      /* one herded BEAST-SECOND: `herded` counts a beast in a herd once a
+         frame, so herded × (secs / frames) is how many beast-seconds of
+         herding this reading watched, and a lever's count over that is how
+         often it fires for one beast in one second. */
+      const beastSecs=Math.max(0.001,H.herded*(secs/Math.max(1,H.frames)));
+      rows.push(land+
+        ': r='+(H.rSum/Math.max(1,H.rN)).toFixed(1)+'u'+
+        ' · REACH '+(H.reach/H.reachN).toFixed(2)+' herd-radii'+
+        ' (mothers '+(H.mReachN?(H.mReach/H.mReachN).toFixed(2):'—')+
+        ' over '+H.mReachN+' samples)'+
+        ' · in a herd '+(H.herded/Math.max(1,H.herded+H.loose)*100).toFixed(0)+'% of the time'+
+        ' · levers a beast-second: roam-pick '+(H.pickRoam/beastSecs).toFixed(4)+
+        ', graze-pick '+(H.pickGraze/beastSecs).toFixed(4)+
+        ', walk-to-station '+((H.pickStn||0)/beastSecs).toFixed(4)+
+        ', moving at all '+(H.steps/Math.max(1,H.herded)*100).toFixed(0)+'% of frames'+
+        ' · the graze found nothing '+H.grazeFail+'×'+
+        ' · mean feed '+(H.feed/Math.max(1,H.feedN)).toFixed(2)+
+        ' · the herd pass '+(H.passMs/Math.max(1,H.frames)).toFixed(3)+' ms/frame');
+    }
+    if(!rows.length) return {pending:'no land could be reached'};
+    return {pending:'THE MECHANISM, MEASURED (§2.3.5 is open) · '+rows.join(' | ')};
+  })};
+
+T[54]={name:'THE DAILY ROUND, MEASURED — its hours, its bed, and the small business of its day',
+  /* §2.3.6 — *"the daily round"* — is marked ✅ in PLAN.md, and ONE of its
+     clauses has ever been measured. Round 69 built the watering and test 49
+     guards it. Everything else — the hours, the beds, the acts — is ✅ on the
+     strength of AUDIT Round 54 READING js/behavior.js and reporting that "the
+     daily round was already there". That entry's own last words are
+     **"Measure first."** Nobody did.
+
+     This project has been bitten by exactly that three times. §2.3.1's coats
+     were ✅ for three rounds while twenty kinds came out flat, because
+     `coatBeast` was reached only through `makeBeast` and twenty kinds had no
+     file. §2.3.4's finer grain was claimed in Round 75 and the claim was
+     false. And §2.3.6's own first clause was ✅ until Round 69 measured it and
+     found `a.river` was read once at the instant the beast was set down and
+     never again — so a beast born on a bank drank in a dry plain for ever.
+     **A thing that is ✅ because somebody read the source is not ✅.**
+
+     WHAT IT ASKS, in three parts, and it reports rather than guards:
+
+     1. THE HOURS. Every beast has a `day:` — 'day', 'night', 'dusk' or 'all'.
+        Swept round the clock, what share of the time is each class abed?
+
+     2. THE BED. A beast whose `home:` is not 'open' should WALK TO IT and lie
+        in it. How many ever reach `job==='bed'`, and how many are left
+        walking at `job==='home'` and never arrive? That second number is the
+        fault Round 69 found in the watering — they set off, the leash ran out
+        two hundred units into a nine-hundred-unit walk, and the feature
+        measured as working while looking like nothing.
+
+     3. THE ACTS. Which does a live world ever actually perform?
+
+     ---- AND THE FIRST READING CONVICTED THIS TEST, NOT THE WORLD ----
+     Run as first written it reported seven acts "DECLARED BUT NEVER SEEN":
+     graze, drink, wallow, play, gape, curl, sharpen. That list was worthless,
+     because it ran the acts named ANYWHERE IN THE DATA against the acts seen
+     in FOUR LANDS, and three quite different things were being added together:
+
+       (a) `graze` is not an act at all. `tryAct` returns false for it by
+           name — it is a TRADE, performed as `job==='graze'`, and it can
+           never appear as `job==='act'`. Counting it was simply wrong.
+       (b) `curl` is the hedgehog and the armadillo, `sharpen` the solitary
+           cats, `gape` the hippo and the crocodile. If none of those stood in
+           Kenya, Tanzania, India or Mongolia while the clock was swept, "never
+           seen" says nothing whatever about the world.
+       (c) and only what is left can be a fault.
+
+     So the acts are now counted ONLY against the kinds that actually STOOD in
+     the world during the sweep, `graze` is named as the trade it is, and a
+     never-seen act is reported with the number of beasts present that declare
+     it — so "nothing that does this was here" and "beasts that do this were
+     here and never did it" can no longer be confused. THE FIRST FORM OF THIS
+     TEST WOULD HAVE SENT THE ROUND AFTER FOUR FAULTS THAT DO NOT EXIST.
+
+     ---- AND THEN IT CONVICTED ITSELF A SECOND TIME, OVER THE BED ----
+     Mended as above it reported "49 of 86 beasts set off home and never
+     arrived, still 24u off their den" — which reads as the exact fault Round
+     69 found in the watering, and is not. Only 6 of the 49 were shouldering a
+     barrier and NONE had been taken off the earth, so the walk was not being
+     stopped; it was being cut off. THE CLOCK WAS MINE. The sweep holds each
+     hour eighteen frames, and a beast walking twenty-four units at its own
+     pace wants about two hundred. Held at one bedding hour in Mongolia
+     instead, the same world puts **22 of 24 abed by 400 frames** — 3 by 50, 8
+     by 100, 19 by 200. The bed works.
+
+     So the bed is measured in a HELD hour and not a swept one, and the sweep
+     is left to the two questions it can actually answer — which class is
+     abed, and which acts are performed. This is the same fault this project
+     found in test 50 (seventy frames against a lever that fires every twenty
+     world-seconds) and it was found the same way: by asking what the
+     measurement could possibly see before believing what it said.
+
+     It reports PENDING because it is a MEASUREMENT and not yet a guard: what
+     it finds decides what §2.3.6 owes, and a bar set before the reading would
+     be a bar set to whatever the world happens to do. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, W=window.__WORLD, B2=window.BEHAVIOR;
+    if(!B2) return {pending:'js/behavior.js is not loaded'};
+    const S=W.sites();
+    const siteOf=n=>{ for(let i=0;i<S.length;i++) if(S[i]&&D.COUNTRIES[i].n===n) return S[i];
+      return null; };
+
+    /* what the DATA promises, before the world is asked anything */
+    const rows=B2.D||{};
+    let promHome=0, promNever=0;
+    for(const k in rows){ const r=rows[k]; if(!r) continue;
+      if(r.home&&r.home!=='open'){ promHome++;
+        if(r.day==='all'||r.day==='dusk') promNever++; } }
+
+    const abed={}, seen={};                  /* day-class -> frames */
+    const actSeen={};                        /* act -> frames observed */
+    const present=new Set();                 /* every kind that STOOD here */
+    const homing=new Set(), arrived=new Set(), stuck=new Map();
+    let beastFrames=0, lands=0;
+    const perLand=[];
+
+    for(const land of ['Kenya','Tanzania','India','Mongolia']){
+      const s2=siteOf(land); if(!s2) continue;
+      D.state.walk.x=s2.x+700; D.state.walk.z=s2.z+700; D.state.walk.feetY=undefined;
+      D.setMode('walk');
+      for(let f=0;f<30;f++){ D.updateChunks(D.state.walk.x,D.state.walk.z,600);
+        await new Promise(r=>requestAnimationFrame(r)); }
+      lands++;
+      let lBed=0, lHome=0; const lKinds=new Set();
+
+      /* THE CLOCK IS SWEPT, because the whole question is about hours. The bed
+         decision is taken the instant `asleep` turns, so it wants a held hour
+         and not the long settles the station wanted. */
+      for(let h=0;h<24;h+=3){
+        D.setLocalHour(h, D.state.walk.x, D.state.walk.z);
+        for(let f=0;f<18;f++){
+          await new Promise(r=>requestAnimationFrame(r));
+          for(const a of D.LANDLIFE){
+            if(!a.set||a.dead>0) continue;
+            beastFrames++; present.add(a.kind);
+            const cls=B2.dayOf(a.kind);
+            const isBed=(a.job==='bed'), isHome=(a.job==='home');
+            seen[cls]=(seen[cls]||0)+1;
+            if(isBed||isHome) abed[cls]=(abed[cls]||0)+1;
+            if(a.job==='act'&&a.act) actSeen[a.act]=(actSeen[a.act]||0)+1;
+            if(B2.homeOf(a.kind)!=='open'){ lKinds.add(a.kind);
+              if(isBed) lBed++; if(isHome) lHome++; } } }
+      }
+      perLand.push(land+': '+lKinds.size+' kind(s) with a real home, '+
+        lBed+' frames laid down, '+lHome+' walking home');
+    }
+    if(!lands) return {pending:'no land could be reached'};
+
+    /* ---- AND NOW THE BED, IN AN HOUR THAT IS HELD ---- */
+    let bedRow='the bed was not reached';
+    { const s2=siteOf('Mongolia')||siteOf('Kenya');
+      if(s2){
+        D.state.walk.x=s2.x+700; D.state.walk.z=s2.z+700; D.state.walk.feetY=undefined;
+        D.setMode('walk');
+        for(let f=0;f<30;f++){ D.updateChunks(D.state.walk.x,D.state.walk.z,600);
+          await new Promise(r=>requestAnimationFrame(r)); }
+        D.setLocalHour(1, D.state.walk.x, D.state.walk.z);
+        for(let f=0;f<340;f++){
+          await new Promise(r=>requestAnimationFrame(r));
+          for(const a of D.LANDLIFE){ if(!a.set||a.dead>0) continue;
+            if(B2.homeOf(a.kind)==='open') continue;
+            if(a.job==='home') homing.add(a);
+            if(a.job==='bed'){ arrived.add(a); stuck.delete(a); }
+            else if(homing.has(a)&&!arrived.has(a)&&a.den)
+              stuck.set(a,{d:Math.hypot(a.den.x-a.x,a.den.z-a.z),
+                           stuck:a.stuck||0, set:a.set!==false}); } }
+        bedRow=homing.size+' set off home, '+arrived.size+' laid down, '+stuck.size+' still out';
+      } }
+
+    /* ---- the acts, against the kinds that were ACTUALLY HERE ---- */
+    const hereDecl={};                       /* act -> beasts present declaring it */
+    for(const k of present)
+      for(const w of ((B2.actsOf&&B2.actsOf(k))||[])) hereDecl[w[0]]=(hereDecl[w[0]]||0)+1;
+    const did=Object.keys(actSeen).sort((a,b)=>actSeen[b]-actSeen[a]);
+    /* `graze` is a trade and not an act — tryAct refuses it by name */
+    const never=Object.keys(hereDecl).filter(w=>w!=='graze'&&!actSeen[w])
+      .sort((a,b)=>hereDecl[b]-hereDecl[a]);
+    /* AND FOR EACH ONE, WHOSE IT IS AND HOW OFTEN IT SHOULD COME UP. An act
+       drawn at a twentieth of a beast's weight is rare and proves nothing by
+       its absence; one drawn at a third and never seen in fifty thousand
+       beast-frames is a gate that never opens. Naming the kinds too, because
+       "the only beast that dusts stood in one land" is its own answer. */
+    const why={};
+    for(const w of never){ const who=[]; let share=0, n=0;
+      for(const k of present){ const acts=(B2.actsOf&&B2.actsOf(k))||[];
+        let tot=0, mine=0;
+        for(const q of acts){ tot+=q[1]; if(q[0]===w) mine=q[1]; }
+        if(mine&&tot){ who.push(k); share+=mine/tot; n++; } }
+      why[w]={who:who.slice(0,4), n, share:n?share/n:0}; }
+
+    let stillOff=0, blocked=0, gone=0;
+    for(const v of stuck.values()){ stillOff+=v.d;
+      if(v.stuck>=3) blocked++; if(!v.set) gone++; }
+    const pct=c=>{ const s=seen[c]||0; return s?((abed[c]||0)/s*100).toFixed(0)+'%':'—'; };
+    return {pending:'THE DAILY ROUND, MEASURED (§2.3.6 was ✅ on a reading, not a measurement) · '+
+      'over '+lands+' land(s), '+beastFrames+' beast-frames, '+present.size+' kinds present · '+
+      'ABED by its own hours: day '+pct('day')+', night '+pct('night')+
+        ', dusk '+pct('dusk')+', all '+pct('all')+' · '+
+      'THE BED (one hour HELD 340 frames, not swept): '+bedRow+
+        (stuck.size?' (still '+(stillOff/stuck.size).toFixed(0)+'u off their den; '+
+          blocked+' shouldering a barrier, '+gone+' taken off the earth)':'')+
+        ' · '+promHome+' kinds declare a real home and '+promNever+
+        ' of them keep hours that never turn ("all"/"dusk") · '+
+      'THE ACTS seen: '+(did.map(w=>w+' '+actSeen[w]).join(', ')||'none')+
+        ' · DECLARED BY A BEAST THAT STOOD HERE AND NEVER SEEN: '+
+        (never.map(w=>w+' ('+hereDecl[w]+' beasts, '+(why[w].share*100).toFixed(0)+
+          '% of their draw: '+why[w].who.join('/')+')').join(', ')||'none')+' · '+
+      perLand.join(' | ')};
+  })};
 
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
