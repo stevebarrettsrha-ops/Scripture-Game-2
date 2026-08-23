@@ -6853,22 +6853,31 @@ exist beats a larger one on herds the world has stopped counting.
 **48 pass · 1 fail · 4 pending.** The pendings are 12 and 43 (both long-standing) and 50 and 53,
 which report and guard nothing while §2.3.5 is open. The fail is dealt with below.
 
-And test 50, run for the first time on the finished tree, says two things this round did not set
-out to do and had no right to expect:
+And test 50, run on the finished tree, says one thing this round did not set out to do — and one
+thing I wrote down off a single reading and had to take back when a second arrived:
 
-| | before the round | now |
-|---|---|---|
-| a herd's mean size | 3.93 | **4.39** |
-| the biggest herd | 8 | **10** |
-| herds of six or more | 4 | **7** |
-| **how far a herd travels in a spell** | **3 units (0.13 herd-radii)** | **12 units (0.58)** |
+| | before | after | after again |
+|---|---|---|---|
+| herds of three or more | 46 | 38 | 48 |
+| a herd's mean size | 3.93 | 4.39 | 3.94 |
+| the biggest herd | 8 | 10 | 8 |
+| herds of six or more | 6 | 7 | 4 |
+| **how far a herd travels in a spell** | **3 units (0.13 herd-radii)** | **12 (0.58)** | **8 (0.44)** |
 
-**I wrote in this section that the travel figure was untouched. That was wrong, and it is
-corrected rather than quietly amended.** Test 50's own comment calls travel *"the decisive one"* —
+**Only the last line survives two readings.** The herd count, the mean size and the biggest herd
+all straddle their before-values — I had written "mean size up from 3.93 to 4.39, the biggest
+from 8 to 10" off the first reading, and the second says 3.94 and 8. **Nothing about how big a
+herd is has been shown to change**, and the sentence claiming it is struck rather than softened.
+It goes the other way too: the herd count is not down either — 38 was the low reading and 48 the
+high one, against 46 before.
+
+**And I wrote that the travel figure was untouched. That was wrong, and it is corrected rather
+than quietly amended.** Test 50's own comment calls travel *"the decisive one"* —
 *"if every beast walks toward the MEAN POSITION of its own kind, it walks toward a point that by
 definition sits in the middle of them all and barely moves, so the herd can only shuffle in place
 for ever."* A station is not the mean: a beast makes for a place on a ring, the ring is reckoned
-afresh as the herd moves, and the herd turns out to walk. **Four times as far**, and Tanzania's
+afresh as the herd moves, and the herd turns out to walk. **Two and a half to four times as far** on two
+readings, where the figure had been flat at nought to three units across four rounds; Tanzania's
 centroid moved twenty-eight units in a spell where the whole earth used to manage three.
 
 It is still not *"matriarch-led"* — nothing leads, there is no rank and no leader, and every beast
@@ -6888,8 +6897,7 @@ at small samples, so the honest statement is a range, not a number. A herd that 
 has more beasts walking and fewer standing alert; that is a real cost of the feature and it is
 recorded rather than smoothed.
 
-Mongolia's rank did not move at all (+0.111 to +0.095), so three lands of four and not four. The
-herd count over the four plains still falls about a tenth even though mean size is up.
+Mongolia's rank did not move at all (+0.111 to +0.095), so three lands of four and not four.
 
 **§2.3.5's "matriarch-LED" is still not built** — what is built is the second half of the clause,
 the young held at the centre. The leader wants the tether broken, which is its own round, as are

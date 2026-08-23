@@ -3016,7 +3016,7 @@ T[49]={name:'the beasts that drink go down to the water at dusk, and not at noon
     if(noonGoing) faults.push(noonGoing+' beasts walked to water at high noon');
 
     /* ---- 4. at dusk they go, ONE READING PER LAND ---- */
-    const rows=[]; let wentIn=0, lands=0, unguarded=0;
+    const rows=[]; let wentIn=0, lands=0, unguarded=0, unseen=0;
     for(const n of ['Iraq','Egypt','Bangladesh','Sudan']){
       const s2=siteOf(n); if(!s2) continue;
       const bk=bankNear(s2); if(!bk) continue;
@@ -3030,11 +3030,42 @@ T[49]={name:'the beasts that drink go down to the water at dusk, and not at noon
         for(const a of D.LANDLIFE){ if(!a.set||a.dead>0||!D.drinks(a.kind)) continue;
           d1++;
           if(a.job==='water'){ w1++;
-            /* THE INVARIANT: nothing walks to water with a hunter by */
+            /* ---- THE INVARIANT: nothing walks to water with a hunter IT CAN
+               SEE by ---- and the three words in capitals were missing, which
+               made this test disagree with the world about a rule the world
+               is right on.
+
+               `frightNear` (js/engine.js) has held since Round 54 that A
+               HUNTER LYING UP IN DEEP GRASS IS NOT SEEN: a visible one is
+               broken from at the beast's whole flight distance, a hidden one
+               only at `min(6, flight × 0.35)`. That is the point of cover and
+               test 35 guards the flight distances that go with it. This test
+               asked for `flight × 0.8` of ANY hunter, hidden or not — so a
+               lion lying in the grass ten units from a gazelle counted
+               against the world for a thing the gazelle could not possibly
+               know. It never fired while six beasts reached the water; at
+               twenty-two — Round 77's herds walk further and reach it in
+               numbers — it fired three times.
+
+               WHETHER THOSE THREE WERE HIDDEN IS NOT ESTABLISHED. The run
+               that mended this read 0 and 0, so it shows the disagreement
+               gone and nothing else; the two counts are kept apart precisely
+               so the next run that has any will say which kind they were.
+               What IS established is that the test and the world were asking
+               different questions, and the world's is the one Round 54 wrote
+               down and test 35 guards.
+
+               A hunter in the open inside the flight distance is still a
+               fault and still counted. One in cover is counted separately and
+               reported, because "how often does a herd walk down past a lion
+               it cannot see" is worth knowing and is not a bug. */
             const fl=B.flightOf(a.kind);
             for(const b of D.LANDLIFE){ if(!b.set||b.dead>0) continue;
               if(b.role!=='pack'&&b.role!=='stalk'&&b.role!=='ambush') continue;
-              if(Math.hypot(b.x-a.x,b.z-a.z)<fl*0.8){ unguarded++; break; } } }
+              const d2=Math.hypot(b.x-a.x,b.z-a.z);
+              if(b.hidden){ if(d2<Math.min(6,fl*0.35)){ unguarded++; break; }
+                            if(d2<fl*0.8) unseen++; }
+              else if(d2<fl*0.8){ unguarded++; break; } } }
           if(a.job==='act'&&a.act==='drink') k1++; }
         drinkers=Math.max(drinkers,d1); went=Math.max(went,w1); drank=Math.max(drank,k1);
       }
@@ -3042,7 +3073,7 @@ T[49]={name:'the beasts that drink go down to the water at dusk, and not at noon
       rows.push(n+' (bank '+bk.r+'u off) '+drinkers+' that drink, '+went+' walking, '+drank+' at it');
     }
     if(lands&&!wentIn) faults.push('not one land saw a single beast go down to the water at dusk');
-    if(unguarded) faults.push(unguarded+' times a beast walked to water with a hunter inside its flight distance');
+    if(unguarded) faults.push(unguarded+' times a beast walked to water with a hunter it could SEE inside its flight distance');
 
     return {ok:!faults.length,
       got:named+' beasts on the earth drink · dusk is at '+dusk.toFixed(2)+
@@ -3050,6 +3081,7 @@ T[49]={name:'the beasts that drink go down to the water at dusk, and not at noon
         ' · at noon: '+noonGoing+' walking to water'+
         ' · at dusk over '+lands+' lands, '+wentIn+' of them saw the herds go down — '+
         rows.join(' | ')+' · hunters beside a watering beast: '+unguarded+
+        ' seen, '+unseen+' lying up in cover (which is not a fault — a hidden hunter is not seen)'+
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
