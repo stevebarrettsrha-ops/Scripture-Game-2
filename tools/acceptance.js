@@ -3640,6 +3640,195 @@ T[53]={name:'DOES A BEAST EVER REACH ITS STATION — the mechanism, measured, no
     return {pending:'THE MECHANISM, MEASURED (§2.3.5 is open) · '+rows.join(' | ')};
   })};
 
+T[54]={name:'THE DAILY ROUND, MEASURED — its hours, its bed, and the small business of its day',
+  /* §2.3.6 — *"the daily round"* — is marked ✅ in PLAN.md, and ONE of its
+     clauses has ever been measured. Round 69 built the watering and test 49
+     guards it. Everything else — the hours, the beds, the acts — is ✅ on the
+     strength of AUDIT Round 54 READING js/behavior.js and reporting that "the
+     daily round was already there". That entry's own last words are
+     **"Measure first."** Nobody did.
+
+     This project has been bitten by exactly that three times. §2.3.1's coats
+     were ✅ for three rounds while twenty kinds came out flat, because
+     `coatBeast` was reached only through `makeBeast` and twenty kinds had no
+     file. §2.3.4's finer grain was claimed in Round 75 and the claim was
+     false. And §2.3.6's own first clause was ✅ until Round 69 measured it and
+     found `a.river` was read once at the instant the beast was set down and
+     never again — so a beast born on a bank drank in a dry plain for ever.
+     **A thing that is ✅ because somebody read the source is not ✅.**
+
+     WHAT IT ASKS, in three parts, and it reports rather than guards:
+
+     1. THE HOURS. Every beast has a `day:` — 'day', 'night', 'dusk' or 'all'.
+        Swept round the clock, what share of the time is each class abed?
+
+     2. THE BED. A beast whose `home:` is not 'open' should WALK TO IT and lie
+        in it. How many ever reach `job==='bed'`, and how many are left
+        walking at `job==='home'` and never arrive? That second number is the
+        fault Round 69 found in the watering — they set off, the leash ran out
+        two hundred units into a nine-hundred-unit walk, and the feature
+        measured as working while looking like nothing.
+
+     3. THE ACTS. Which does a live world ever actually perform?
+
+     ---- AND THE FIRST READING CONVICTED THIS TEST, NOT THE WORLD ----
+     Run as first written it reported seven acts "DECLARED BUT NEVER SEEN":
+     graze, drink, wallow, play, gape, curl, sharpen. That list was worthless,
+     because it ran the acts named ANYWHERE IN THE DATA against the acts seen
+     in FOUR LANDS, and three quite different things were being added together:
+
+       (a) `graze` is not an act at all. `tryAct` returns false for it by
+           name — it is a TRADE, performed as `job==='graze'`, and it can
+           never appear as `job==='act'`. Counting it was simply wrong.
+       (b) `curl` is the hedgehog and the armadillo, `sharpen` the solitary
+           cats, `gape` the hippo and the crocodile. If none of those stood in
+           Kenya, Tanzania, India or Mongolia while the clock was swept, "never
+           seen" says nothing whatever about the world.
+       (c) and only what is left can be a fault.
+
+     So the acts are now counted ONLY against the kinds that actually STOOD in
+     the world during the sweep, `graze` is named as the trade it is, and a
+     never-seen act is reported with the number of beasts present that declare
+     it — so "nothing that does this was here" and "beasts that do this were
+     here and never did it" can no longer be confused. THE FIRST FORM OF THIS
+     TEST WOULD HAVE SENT THE ROUND AFTER FOUR FAULTS THAT DO NOT EXIST.
+
+     ---- AND THEN IT CONVICTED ITSELF A SECOND TIME, OVER THE BED ----
+     Mended as above it reported "49 of 86 beasts set off home and never
+     arrived, still 24u off their den" — which reads as the exact fault Round
+     69 found in the watering, and is not. Only 6 of the 49 were shouldering a
+     barrier and NONE had been taken off the earth, so the walk was not being
+     stopped; it was being cut off. THE CLOCK WAS MINE. The sweep holds each
+     hour eighteen frames, and a beast walking twenty-four units at its own
+     pace wants about two hundred. Held at one bedding hour in Mongolia
+     instead, the same world puts **22 of 24 abed by 400 frames** — 3 by 50, 8
+     by 100, 19 by 200. The bed works.
+
+     So the bed is measured in a HELD hour and not a swept one, and the sweep
+     is left to the two questions it can actually answer — which class is
+     abed, and which acts are performed. This is the same fault this project
+     found in test 50 (seventy frames against a lever that fires every twenty
+     world-seconds) and it was found the same way: by asking what the
+     measurement could possibly see before believing what it said.
+
+     It reports PENDING because it is a MEASUREMENT and not yet a guard: what
+     it finds decides what §2.3.6 owes, and a bar set before the reading would
+     be a bar set to whatever the world happens to do. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, W=window.__WORLD, B2=window.BEHAVIOR;
+    if(!B2) return {pending:'js/behavior.js is not loaded'};
+    const S=W.sites();
+    const siteOf=n=>{ for(let i=0;i<S.length;i++) if(S[i]&&D.COUNTRIES[i].n===n) return S[i];
+      return null; };
+
+    /* what the DATA promises, before the world is asked anything */
+    const rows=B2.D||{};
+    let promHome=0, promNever=0;
+    for(const k in rows){ const r=rows[k]; if(!r) continue;
+      if(r.home&&r.home!=='open'){ promHome++;
+        if(r.day==='all'||r.day==='dusk') promNever++; } }
+
+    const abed={}, seen={};                  /* day-class -> frames */
+    const actSeen={};                        /* act -> frames observed */
+    const present=new Set();                 /* every kind that STOOD here */
+    const homing=new Set(), arrived=new Set(), stuck=new Map();
+    let beastFrames=0, lands=0;
+    const perLand=[];
+
+    for(const land of ['Kenya','Tanzania','India','Mongolia']){
+      const s2=siteOf(land); if(!s2) continue;
+      D.state.walk.x=s2.x+700; D.state.walk.z=s2.z+700; D.state.walk.feetY=undefined;
+      D.setMode('walk');
+      for(let f=0;f<30;f++){ D.updateChunks(D.state.walk.x,D.state.walk.z,600);
+        await new Promise(r=>requestAnimationFrame(r)); }
+      lands++;
+      let lBed=0, lHome=0; const lKinds=new Set();
+
+      /* THE CLOCK IS SWEPT, because the whole question is about hours. The bed
+         decision is taken the instant `asleep` turns, so it wants a held hour
+         and not the long settles the station wanted. */
+      for(let h=0;h<24;h+=3){
+        D.setLocalHour(h, D.state.walk.x, D.state.walk.z);
+        for(let f=0;f<18;f++){
+          await new Promise(r=>requestAnimationFrame(r));
+          for(const a of D.LANDLIFE){
+            if(!a.set||a.dead>0) continue;
+            beastFrames++; present.add(a.kind);
+            const cls=B2.dayOf(a.kind);
+            const isBed=(a.job==='bed'), isHome=(a.job==='home');
+            seen[cls]=(seen[cls]||0)+1;
+            if(isBed||isHome) abed[cls]=(abed[cls]||0)+1;
+            if(a.job==='act'&&a.act) actSeen[a.act]=(actSeen[a.act]||0)+1;
+            if(B2.homeOf(a.kind)!=='open'){ lKinds.add(a.kind);
+              if(isBed) lBed++; if(isHome) lHome++; } } }
+      }
+      perLand.push(land+': '+lKinds.size+' kind(s) with a real home, '+
+        lBed+' frames laid down, '+lHome+' walking home');
+    }
+    if(!lands) return {pending:'no land could be reached'};
+
+    /* ---- AND NOW THE BED, IN AN HOUR THAT IS HELD ---- */
+    let bedRow='the bed was not reached';
+    { const s2=siteOf('Mongolia')||siteOf('Kenya');
+      if(s2){
+        D.state.walk.x=s2.x+700; D.state.walk.z=s2.z+700; D.state.walk.feetY=undefined;
+        D.setMode('walk');
+        for(let f=0;f<30;f++){ D.updateChunks(D.state.walk.x,D.state.walk.z,600);
+          await new Promise(r=>requestAnimationFrame(r)); }
+        D.setLocalHour(1, D.state.walk.x, D.state.walk.z);
+        for(let f=0;f<340;f++){
+          await new Promise(r=>requestAnimationFrame(r));
+          for(const a of D.LANDLIFE){ if(!a.set||a.dead>0) continue;
+            if(B2.homeOf(a.kind)==='open') continue;
+            if(a.job==='home') homing.add(a);
+            if(a.job==='bed'){ arrived.add(a); stuck.delete(a); }
+            else if(homing.has(a)&&!arrived.has(a)&&a.den)
+              stuck.set(a,{d:Math.hypot(a.den.x-a.x,a.den.z-a.z),
+                           stuck:a.stuck||0, set:a.set!==false}); } }
+        bedRow=homing.size+' set off home, '+arrived.size+' laid down, '+stuck.size+' still out';
+      } }
+
+    /* ---- the acts, against the kinds that were ACTUALLY HERE ---- */
+    const hereDecl={};                       /* act -> beasts present declaring it */
+    for(const k of present)
+      for(const w of ((B2.actsOf&&B2.actsOf(k))||[])) hereDecl[w[0]]=(hereDecl[w[0]]||0)+1;
+    const did=Object.keys(actSeen).sort((a,b)=>actSeen[b]-actSeen[a]);
+    /* `graze` is a trade and not an act — tryAct refuses it by name */
+    const never=Object.keys(hereDecl).filter(w=>w!=='graze'&&!actSeen[w])
+      .sort((a,b)=>hereDecl[b]-hereDecl[a]);
+    /* AND FOR EACH ONE, WHOSE IT IS AND HOW OFTEN IT SHOULD COME UP. An act
+       drawn at a twentieth of a beast's weight is rare and proves nothing by
+       its absence; one drawn at a third and never seen in fifty thousand
+       beast-frames is a gate that never opens. Naming the kinds too, because
+       "the only beast that dusts stood in one land" is its own answer. */
+    const why={};
+    for(const w of never){ const who=[]; let share=0, n=0;
+      for(const k of present){ const acts=(B2.actsOf&&B2.actsOf(k))||[];
+        let tot=0, mine=0;
+        for(const q of acts){ tot+=q[1]; if(q[0]===w) mine=q[1]; }
+        if(mine&&tot){ who.push(k); share+=mine/tot; n++; } }
+      why[w]={who:who.slice(0,4), n, share:n?share/n:0}; }
+
+    let stillOff=0, blocked=0, gone=0;
+    for(const v of stuck.values()){ stillOff+=v.d;
+      if(v.stuck>=3) blocked++; if(!v.set) gone++; }
+    const pct=c=>{ const s=seen[c]||0; return s?((abed[c]||0)/s*100).toFixed(0)+'%':'—'; };
+    return {pending:'THE DAILY ROUND, MEASURED (§2.3.6 was ✅ on a reading, not a measurement) · '+
+      'over '+lands+' land(s), '+beastFrames+' beast-frames, '+present.size+' kinds present · '+
+      'ABED by its own hours: day '+pct('day')+', night '+pct('night')+
+        ', dusk '+pct('dusk')+', all '+pct('all')+' · '+
+      'THE BED (one hour HELD 340 frames, not swept): '+bedRow+
+        (stuck.size?' (still '+(stillOff/stuck.size).toFixed(0)+'u off their den; '+
+          blocked+' shouldering a barrier, '+gone+' taken off the earth)':'')+
+        ' · '+promHome+' kinds declare a real home and '+promNever+
+        ' of them keep hours that never turn ("all"/"dusk") · '+
+      'THE ACTS seen: '+(did.map(w=>w+' '+actSeen[w]).join(', ')||'none')+
+        ' · DECLARED BY A BEAST THAT STOOD HERE AND NEVER SEEN: '+
+        (never.map(w=>w+' ('+hereDecl[w]+' beasts, '+(why[w].share*100).toFixed(0)+
+          '% of their draw: '+why[w].who.join('/')+')').join(', ')||'none')+' · '+
+      perLand.join(' | ')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

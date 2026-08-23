@@ -9092,6 +9092,12 @@ function wetKind(kind,role){
 }
 /* the day of the voyage, so a beast goes down ONCE at each edge of it and not
    over and over while the twilight lasts */
+/* how long a beast that keeps no hours lies up, once a day (§2.3.6).
+   NOT const: the acceptance suite turns it to nought to read the world with
+   the rule off and on inside ONE boot, which is the only way this project
+   has found to compare two behaviours without the land itself moving under
+   the reading (AUDIT Round 77). Nothing in the game writes it. */
+let LIE_H=3;
 function wateringSpell(){ return Math.floor(state.simHours/12); }
 function goToWater(a){
   if(!twilight()||!drinks(a.kind)) return false;
@@ -9254,6 +9260,23 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
          — drink or wallow in `acts` — and so does its trade: the bear fishes
          the shallows and the crocodile lies in them. Asked ONCE, here. */
       a.wets=wetKind(a.kind,a.role);
+      /* ---- AND WHETHER IT OWNS A BED, AND THE HOUR IT TAKES TO IT ----
+         §2.3.6 promises that "a beast with a home WALKS TO IT at dusk". Sixty
+         kinds declare a real one — a den, a burrow, a tree, a rock — and
+         js/nest.js RAISES those dens on the ground: wolf earths, bear caves,
+         fox holes. But `asleep` was hard-false for the twenty-two of them
+         that keep no clock (`day:'all'` or `'dusk'`), so the world was
+         building homes that nothing ever slept in. Measured over four lands
+         and a swept day, those two classes were abed 0% of the time.
+         A beast that keeps no HOURS still keeps a HOME. It lies up once a
+         day, for LIE_H hours, at an hour of its own — hashed off its home
+         ground so that a wood does not drop asleep all together, and so the
+         same beast takes the same rest every day. It is not the long night of
+         a diurnal beast: it is the lion's twenty hours and the wolf lying up
+         in the heat, and at any instant it leaves seven in eight of them
+         about their business. */
+      a.hasHome=!!(window.BEHAVIOR&&BEHAVIOR.homeOf(a.kind)!=='open');
+      a.lieAt=hash2(sp.x*0.023,sp.z*0.031)*24;
       a.river=riverBankAt(sp.x,sp.z); a.sink=0; a.crouch=false; a.hidden=false;
       a.m.visible=true; a.m.position.set(sp.x,sp.y,sp.z);
       /* ---- AND SOME OF THEM HAVE YOUNG AT FOOT ----
@@ -9308,6 +9331,11 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
        when they are up — which halves what you meet at any hour and doubles
        what it is worth meeting. */
     let asleep=(a.day==='all'||a.day==='dusk')?false:(a.day==='night'?!night:night);
+    /* and the beast that keeps no clock still goes to its own bed once a day
+       — see `a.lieAt` where it is set down */
+    if(!asleep&&a.hasHome&&(a.day==='all'||a.day==='dusk')){
+      const lh=localHourAt(a.x,a.z)-(a.lieAt||0);
+      if(((lh%24)+24)%24 < LIE_H) asleep=true; }
     /* ---- AND SOME SLEEP THE WHOLE WINTER THROUGH ----
        The bear, the hedgehog and the badger den up when the snow lies and are
        not seen again until the thaw (js/season.js names the hibernators). They
@@ -15964,6 +15992,9 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      that herd would have it stand, and herdStat the running totals. */
   herdOf:a=>a&&a.herd||null, stationOf, herdStat:()=>Object.assign({},HSTAT),
   herdStatReset, STN_IN, STN_OUT,
+  /* §2.3.6's lie-up: how many hours a beast that keeps no clock takes to its
+     own bed. Read it, or set it to nought to see the world without the rule. */
+  lieHours:v=>{ if(v!==undefined) LIE_H=v; return LIE_H; },
   stationDrift:v=>{ if(v!==undefined) STN_DRIFT=!!v; return STN_DRIFT; },
   stationFar:v=>{ if(v!==undefined) STN_FAR=+v; return STN_FAR; },
   /* ---- AND ONE PROBE THAT WRITES, WHICH IS SAID OUT LOUD ----
