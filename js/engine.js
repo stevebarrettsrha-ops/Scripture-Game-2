@@ -8872,9 +8872,29 @@ function herdPass(){
        inside a room, and the young's rank went backwards with it.
        `rt` is exogenous: how much room a beast of this kind takes, times the
        root of how many there are. A herd spaces itself by its own bodies. */
+    /* ---- AND THE RING MAY NOT BE WIDER THAN THE HERD ITSELF ----
+       THE FAULT THIS MENDS was found by the suite and by nothing else. Test
+       35 — the watch, which reads off these very herds — went from 597
+       herd-samples to 423, a fall of nearly a third, while the four plains
+       the A/B stood on showed only 40 to 37. The arithmetic says why: two
+       beasts on opposite bearings of the OUTER ring stand `2 × rt × STN_OUT`
+       apart, and the world only counts beasts into one herd within HERD_R.
+
+         goat, herd of twelve      28.1 across  64.5   inside 80
+         buffalo, herd of nine     37.8 across  86.9   OUTSIDE
+         buffalo, herd of twelve   43.6 across 100.4   OUTSIDE
+
+       So the rule was pulling a large herd of large beasts wider than the
+       radius the world gathers them within, until it stopped recognising
+       them as one herd at all — and test 35's lands hold buffalo where four
+       plains of goats and gazelles do not, which is the whole difference
+       between the two readings. The ring is capped to fit inside the
+       neighbourhood, with margin; written as the expression and not as the
+       number, so it stays true if HERD_R or STN_OUT ever move. */
     const bl=bodyLenOf(a.kind);
+    const RT_MAX=HERD_R*0.85/(2*STN_OUT);
     const H={n:mob.length, x:cx, z:cz, r:Math.max(1,rr/mob.length),
-             rt:Math.max(6, HERD_SPACE*bl*Math.sqrt(mob.length)*0.5)};
+             rt:Math.min(RT_MAX, Math.max(6, HERD_SPACE*bl*Math.sqrt(mob.length)*0.5))};
     for(const b of mob){ done.add(b); b.herd=H; }
   }
 }
@@ -8952,10 +8972,13 @@ let STN_DRIFT=true;
    MEASURED over Kenya, Tanzania, Botswana and Mongolia, the rule off and on
    alternately within one boot: the lever fires 0.06–0.08 a beast-second where
    the wander picker fires 0.0000 and the bite search 0.001; the reach falls
-   from 1.54 herd-radii to 0.96; and the mothers' rank, which reads +0.027
-   with this off, reads +0.205 with it on — a difference larger than the whole
-   spread of the off readings, which is the bar four earlier attempts at this
-   could not clear. */
+   from 1.72 herd-radii to 1.00; the mothers' rank, which reads +0.001 with
+   this off, reads +0.122 with it on; and the mothers-against-others gap the
+   older statistic reads goes from −0.03 to +1.04 — the noisy instrument and
+   the robust one pointing the same way, which they never did in four rounds.
+   Split by size the signal is where it must be: herds of five and more read
+   +0.058 off and +0.172 on, herds of three and four −0.005 and +0.096,
+   because a herd of three has no inside. */
 /* HOW FAR OFF STATION BEFORE IT IS WORTH WALKING IN, in herd-radii — and it
    is a number that has to be smaller than the thing it is trying to create.
    A herd's radius is some twenty-three units and the whole distance between a

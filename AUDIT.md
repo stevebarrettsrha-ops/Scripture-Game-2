@@ -6791,13 +6791,71 @@ before the animal nearest the middle was not a mother at all and the mothers sto
 forty units out. That is §2.3.5's clause, on one herd, in raw coordinates; and the pair of
 photographs shows the same thing as a scatter drawing in and tightening.
 
-**What is NOT claimed:** the herd count fell from forty to thirty-seven over the four lands,
-about seven per cent, and one land went up. That is within what this world's spawn varies by
-between two spells, but it is not nothing and it is written down rather than smoothed over. The
-travel figure is untouched: a herd still shuffles two or three units in a spell, because every
-beast is still tethered to the spot it was set down on for life. **§2.3.5's "matriarch-LED" is
-therefore still not built** — what is built is the second half of the clause, the young held at
-the centre. The leader wants the tether broken, which is its own round.
+### And then the suite found what four plains had not
+
+The numbers above were taken on four plains of goats and gazelles. **Test 35 — the watch, which
+reads off these very herds — reads the whole earth**, and it caught a regression the A/B could
+not see:
+
+| | herd-samples of three or more | watched |
+|---|---|---|
+| before the round | 597 | 477 (80%) |
+| the station, as first built | **423** | 308 (73%) |
+
+Both pass — the bar is 45% — but a fall of nearly a third in the herds the world makes is not
+something to ship quietly, and the arithmetic says exactly why. Two beasts on opposite bearings
+of the OUTER ring stand `2 × rt × STN_OUT` apart, and the world only counts beasts into one herd
+within `HERD_R`, which is eighty:
+
+| | rt | across the outer ring |
+|---|---|---|
+| goat, herd of twelve | 28.1 | 64.5 — inside |
+| **buffalo, herd of nine** | 37.8 | **86.9 — outside** |
+| **buffalo, herd of twelve** | 43.6 | **100.4 — outside** |
+
+**The rule was pulling a large herd of large beasts wider than the radius the world gathers them
+within, until it stopped recognising them as one herd at all** — and test 35's lands hold buffalo
+where four plains of goats do not, which is the whole difference between the two readings. The
+ring is capped to fit inside its own neighbourhood with margin (`HERD_R × 0.85 / 2·STN_OUT`,
+about twenty-nine), written as the expression rather than the number so it stays true if either
+constant moves. **Test 35 comes back to 578 herd-samples, 445 watched (77%)** — ninety-seven per
+cent of the herds it had before the round.
+
+### The four lands again, capped, which is what shipped
+
+| land | rank off | **rank on** | reach off | reach on | herds |
+|---|---|---|---|---|---|
+| Kenya | −0.027 | **+0.116** | 1.50 | 0.92 | 14 → 12 |
+| Tanzania | −0.073 | **+0.131** | 1.41 | 0.72 | 16 → 14 |
+| Botswana | −0.009 | **+0.148** | 1.48 | 0.98 | 9 → 9 |
+| Mongolia | +0.111 | +0.095 | 2.47 | 1.39 | 8 → 7 |
+| **mean** | **+0.001** | **+0.122** | **1.72** | **1.00** | 47 → 42 |
+
+And two readings that say more than the mean does:
+
+- **The depth statistic finally agrees.** Mothers 1.27 against others 2.31 — a gap of **+1.04**
+  where the off readings give −0.03. The noisy instrument and the robust one now point the same
+  way, which they never did in four rounds.
+- **Split by herd size, the signal is where it must be.** Herds of five and more: **+0.058 off,
+  +0.172 on.** Herds of three and four: −0.005 off, +0.096 on. The bigger the herd the bigger
+  the effect, which is what "a herd of three has no inside" predicts.
+
+Mean herd SIZE went up, 4.00 to 4.17, while the count fell 47 to 42: what survives is larger.
+Feed is 0.78 either way and no beast anywhere failed to find a bite.
+
+**The cap costs some of the effect** — uncapped the mean rank was +0.205, capped it is +0.122 —
+because a tighter ring leaves less room between the mothers' station and everybody else's. That
+is the right trade and it is stated rather than buried: a smaller true effect on herds that still
+exist beats a larger one on herds the world has stopped counting.
+
+### What is NOT claimed
+
+The herd count still falls about a tenth over the four plains and Mongolia's rank did not move at
+all (+0.111 to +0.095) — three lands of four, not four. The travel figure is untouched: a herd
+still shuffles two or three units in a spell, because every beast is tethered to the spot it was
+set down on for life. **§2.3.5's "matriarch-LED" is therefore still not built** — what is built
+is the second half of the clause, the young held at the centre. The leader wants the tether
+broken, which is its own round, as are the birds.
 
 ## 5. Further recommendations (future work)
 
