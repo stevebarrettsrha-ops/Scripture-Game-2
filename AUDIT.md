@@ -6644,6 +6644,158 @@ lesson of Rounds 70–73 is that this instrument disagrees with itself — but i
 round's attention, because if the finer grain has changed where beasts stand it has done so by
 accident and ought to be understood.
 
+## 4ca. Round 77 — §2.3.5: the diagnostic, and the dead lever it found ✅
+
+*§2.3.5 — "matriarch-led herds with juveniles held at the centre" — had been built and taken back
+out FOUR TIMES: Round 54 four attempts, Round 70 four more, Round 72 three mechanisms measured
+twice apiece. Every one of them measured where the young ENDED UP. This round measured the
+mechanism instead, exactly as Round 72's own instruction said to, and the instruction was right.*
+
+### What the instrument was told to find
+
+> **What has never been measured is whether a beast ever reaches its station at all.** If that
+> distance is large, the rule is never landing, and the fix is about *when* it fires. If it is
+> small, the rule lands and the young's depth still does not move, which would mean the station
+> geometry is wrong… Those two are **opposite repairs** and three rounds could not tell them
+> apart. — AUDIT Round 72
+
+### And it found the first of the two, in a form nobody had guessed
+
+The herd is reckoned once a frame for the whole earth, by the same greedy rule acceptance test 50
+censuses with; every beast gets a station (mothers on an inner ring, `stationOf`); and the
+instrument counts the **reach** — how far a beast stands from its station, in herd-radii — and,
+for every candidate lever, **how often that lever is even consulted.** Kenya, a settled herd,
+fifty-five to sixty-eight beasts, several thousand beast-seconds:
+
+| | per herded beast-second |
+|---|---|
+| the wander-target picker | **0.0000** — not once, ever |
+| the search for a bite | 0.0000–0.0136, settling at ~0.002 (one pick per beast per eight minutes) |
+| a herded beast moving at all | 1% of frames, falling to 0% |
+| **reach** | **1.27–1.32 herd-radii, flat** |
+| a herd's radius | **23 units** |
+
+**The first of those is not slowness. It is unreachable code**, and it is the finding of the
+round: *the forty-five per cent pull toward its own kind — the only cohesion this world has ever
+had, and the lever Rounds 54 and 70 both built their matriarch on — cannot execute for a beast
+standing in grass.* The job chain puts such a beast back to `feedhead` on every decision, so
+`a.job` is never `'roam'` by the time the picker at the bottom of the loop is reached. Round 70
+called that picker "the wrong lever" from reading the code; the number is 0.0000.
+
+**It also convicts the instrument.** Test 50 marks its mothers and reads them seventy frames
+later — about ten world-seconds. At 0.002 picks a beast-second across fifty-five beasts that is
+**one decision in the entire world**. No station mechanism any of the four rounds built could
+have been observed by it, whatever the mechanism was.
+
+### And the depth statistic is noise, now shown inside a single boot
+
+Test 50's mothers-against-others has now read, on identical committed code: **1.69/2.66** (the
+suite, Round 76), **1.94/1.60** (a clean worktree at the same commit), and — the same land, the
+same browser, minutes apart — **1.88/1.34, then 1.43/1.92, then 1.86/1.37.** Opposite answers
+five and six times over four rounds. The reason is arithmetic: **a herd of three has no inside.**
+Twenty of the forty-four herds this world makes are threes and thirteen are fours, so most of the
+sample can carry no signal whatever, and the leave-one-out radius it divides by is reckoned off
+two animals.
+
+So a second statistic is measured beside it, and no radius enters it: **each herd ordered by
+distance from its own leave-one-out centre, the mothers' mean rank against the (n+1)/2 that
+chance would give, scaled by (n−1).** Bounded in ±0.5, positive means the mothers stand nearer
+the middle. Across every land and configuration with nothing switched on it reads **−0.03 to
++0.03**.
+
+### Two mechanisms built, measured, and thrown away
+
+The arithmetic above — a herd twenty-three units across, a bite search reaching a hundred and
+ninety, ring one alone sixty-three units out — pointed at an obvious repair: narrow the search to
+the herd's own ground, and score the bite by how near it falls to the station rather than taking
+the first one over 0.7. **Both were built, both were switched, and both added nothing**: reach
+0.83 and rank 0.11 with them, 0.82 and 0.11 without. They are not in the tree. The diagnostic was
+built to stop a fifth round of shipping something nobody could show working, and the first thing
+it stopped was this round's own first idea.
+
+### What was shipped, and the number it moved
+
+The rule is hung where a grazing beast actually decides — **at the end of a mouthful, three to
+seven seconds apart.** A beast standing further off its station than 0.35 of its herd's radius
+walks in before it puts its head down again.
+
+| Kenya, settled | reach | mothers' reach | **rank** | lever, a beast-second |
+|---|---|---|---|---|
+| nothing on (5 readings) | 1.27–1.30 | 1.07–1.11 | −0.001 … +0.023 | 0.0000 |
+| the drift, tolerance 0.35 | **0.82** | **0.79–0.83** | **+0.10 … +0.13** | 0.051–0.079 |
+| the drift, tolerance 0.20 | 0.78–0.82 | 0.77–0.79 | +0.07 … +0.12 | 0.072–0.078 |
+
+**Two faults were found in it and both were found by measuring, not by reading.**
+
+**1. The tolerance was wider than the effect.** The first cut let a beast stay put if it was
+within ONE herd-radius of its station — but the whole distance between a mother's ring and
+everybody else's is 0.75 of a radius, seventeen units, so a tolerance of twenty-three units is
+*wider than the thing the rule is trying to create*. Every beast sat inside it and kept whatever
+place it already had: reach fell to 0.95 and the rank did not move at all. At 0.35 both move
+together.
+
+**2. THE STATIONS WERE SET OFF THE RADIUS THEY THEMSELVES SET, and it collapsed.** A herd was
+given a station ring proportional to `r`, the mean distance of its members from its middle. That
+is a feedback loop: the stations pull the herd in, `r` falls, the stations come in with it, and
+the herd implodes. Measured in Tanzania before it was seen — **the herd's radius went from 18.5
+units to NINE**, which is six beasts standing inside a room, and the young's rank went
+*backwards* with it, to −0.021. A herd has two radii now: `r`, the one it has, which is what the
+instrument reads; and `rt`, the one it ought to have, which is exogenous — how much room a beast
+of that kind takes (`bodyLenOf`) times the root of how many there are. The stations are set off
+`rt` and so is the reach, so the yardstick cannot move with the thing being measured. On the
+untouched world `rt` reads 16–23 units against a measured `r` of 22–24, which is the check that
+the spacing constant is not invented.
+
+### Four lands, the rule off and on, alternating within one boot
+
+| land | rank off | **rank on** | reach off | reach on | herds | mean feed |
+|---|---|---|---|---|---|---|
+| Kenya | +0.022 | **+0.225** | 1.35 | 0.84 | 15 → 12 | 0.58 → 0.67 |
+| Tanzania | −0.060 | **+0.271** | 1.42 | 0.81 | 9 → 8 | 0.73 → 0.68 |
+| Botswana | +0.052 | **+0.156** | 1.42 | 0.98 | 8 → 8 | 0.75 → 0.71 |
+| Mongolia | +0.095 | **+0.167** | 1.96 | 1.20 | 8 → 9 | 0.73 → 0.80 |
+| **mean** | **+0.027** | **+0.205** | **1.54** | **0.96** | 40 → 37 | 0.70 → 0.72 |
+
+Every land moves the same way on both numbers. The effect on the rank is **+0.18, larger than the
+entire spread of the off readings** (−0.060 to +0.095), which is the bar this round set itself in
+advance and the bar four earlier attempts could not clear. Feed is unharmed — the herd is not
+held in shape at the price of its dinner — and no beast anywhere failed to find a bite.
+
+### And it was photographed, which Round 71 could not manage
+
+Four attempts, and the first three failed in ways worth recording because they are all about what
+a herd IS rather than about cameras. **One:** the two shots caught different herds — a buffalo
+herd against a sounder of warthogs — because the world respawns between spells; the herd has to
+be chosen once and held. **Two:** the eye was pinned to where the herd stood when it was chosen,
+and eight hundred frames later it was pointing at an empty stretch of sand; the eye has to follow
+the herd's own middle, read afresh every frame. **Three:** `LANDLIFE` is a fixed pool, so a beast
+that wanders out of the ring has its slot filled again somewhere else entirely — still `set`,
+still the same object — and one gazelle seven hundred units away dragged the mean the camera was
+aiming at right off the herd. **Four:** the world clock runs while the first shot settles, and a
+herd bedded down for the night does not move an inch, which is how one pair came back identical
+to the digit.
+
+With those mended: **the same nine goats, five of them mothers, before and after**, their distance
+from the middle of their own herd in units, a star marking a beast with young —
+
+```
+off   7   8*  23*  31   32*  32   36*  40*  46      herd radius 28.3
+on    5*  7*  10*  11*  14*  23   23   25   25      herd radius 16.0
+```
+
+**The five innermost are every mother and the four outermost every beast without young**, where
+before the animal nearest the middle was not a mother at all and the mothers stood from eight to
+forty units out. That is §2.3.5's clause, on one herd, in raw coordinates; and the pair of
+photographs shows the same thing as a scatter drawing in and tightening.
+
+**What is NOT claimed:** the herd count fell from forty to thirty-seven over the four lands,
+about seven per cent, and one land went up. That is within what this world's spawn varies by
+between two spells, but it is not nothing and it is written down rather than smoothed over. The
+travel figure is untouched: a herd still shuffles two or three units in a spell, because every
+beast is still tethered to the spot it was set down on for life. **§2.3.5's "matriarch-LED" is
+therefore still not built** — what is built is the second half of the clause, the young held at
+the centre. The leader wants the tether broken, which is its own round.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

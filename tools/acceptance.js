@@ -3511,6 +3511,17 @@ T[53]={name:'DOES A BEAST EVER REACH ITS STATION — the mechanism, measured, no
         every herd on the earth once a frame is an O(n²) sweep over ninety-six
         beasts and this project measures the frame cost of everything.
 
+     WHAT IT FOUND, and it is written here because it is the whole reason the
+     round went the way it did: the wander-target picker — the only cohesion
+     this world has ever had, and the lever Rounds 54 and 70 both built their
+     matriarch on — fires **0.0000 times a beast-second**. Not rarely: never.
+     A beast standing in grass is put back to `feedhead` on every decision, so
+     `a.job` is never 'roam' by the time that picker is reached. The bite
+     search fires about 0.002, one pick per beast per eight minutes. Test 50
+     reads its mothers seventy frames — ten world-seconds — after marking
+     them, which at that rate is ONE decision in the whole world. No mechanism
+     any of the four rounds built could have been seen by it.
+
      It is PENDING and not a guard: nothing here is broken, and until §2.3.5 is
      built there is nothing to bar on. */
   run:async page=>page.evaluate(async()=>{
@@ -3568,8 +3579,9 @@ T[53]={name:'DOES A BEAST EVER REACH ITS STATION — the mechanism, measured, no
         ' (mothers '+(H.mReachN?(H.mReach/H.mReachN).toFixed(2):'—')+
         ' over '+H.mReachN+' samples)'+
         ' · in a herd '+(H.herded/Math.max(1,H.herded+H.loose)*100).toFixed(0)+'% of the time'+
-        ' · levers a beast-second: roam-pick '+(H.pickRoam/beastSecs).toFixed(3)+
-        ', graze-pick '+(H.pickGraze/beastSecs).toFixed(3)+
+        ' · levers a beast-second: roam-pick '+(H.pickRoam/beastSecs).toFixed(4)+
+        ', graze-pick '+(H.pickGraze/beastSecs).toFixed(4)+
+        ', walk-to-station '+((H.pickStn||0)/beastSecs).toFixed(4)+
         ', moving at all '+(H.steps/Math.max(1,H.herded)*100).toFixed(0)+'% of frames'+
         ' · the graze found nothing '+H.grazeFail+'×'+
         ' · mean feed '+(H.feed/Math.max(1,H.feedN)).toFixed(2)+

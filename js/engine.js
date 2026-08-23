@@ -8848,6 +8848,7 @@ function herdWatch(a){
    another cannot be compared, and that is one of the ways three rounds went
    wrong. */
 const STN_IN=0.40, STN_OUT=1.15;   /* the mother's ring, and everybody else's */
+const HERD_SPACE=3.0;              /* how many of its own lengths a beast keeps */
 function herdPass(){
   for(const a of LANDLIFE) a.herd=null;
   const done=new Set();
@@ -8860,7 +8861,20 @@ function herdPass(){
     let cx=0,cz=0; for(const b of mob){ cx+=b.x; cz+=b.z; }
     cx/=mob.length; cz/=mob.length;
     let rr=0; for(const b of mob) rr+=Math.hypot(b.x-cx,b.z-cz);
-    const H={n:mob.length, x:cx, z:cz, r:Math.max(1,rr/mob.length)};
+    /* ---- AND THE HERD HAS TWO RADII, WHICH IS NOT FUSSINESS ----
+       `r` is the one it HAS: the mean distance of its members from its middle,
+       which is what the instrument reads and what test 50 has always read.
+       `rt` is the one it OUGHT to have, and the stations are set off that.
+       Setting them off `r` instead is a feedback loop and it collapses: the
+       stations pull the herd in, `r` falls, the stations come in with it, and
+       the herd implodes. MEASURED, in Tanzania, before this was seen — the
+       herd's radius went from 18.5 units to NINE, which is six goats standing
+       inside a room, and the young's rank went backwards with it.
+       `rt` is exogenous: how much room a beast of this kind takes, times the
+       root of how many there are. A herd spaces itself by its own bodies. */
+    const bl=bodyLenOf(a.kind);
+    const H={n:mob.length, x:cx, z:cz, r:Math.max(1,rr/mob.length),
+             rt:Math.max(6, HERD_SPACE*bl*Math.sqrt(mob.length)*0.5)};
     for(const b of mob){ done.add(b); b.herd=H; }
   }
 }
@@ -8874,7 +8888,7 @@ function herdPass(){
 function stationOf(a){
   const H=a.herd; if(!H) return null;
   const br=hash2(a.hx*0.041,a.hz*0.037)*6.283;
-  const rr=H.r*(a.kids?STN_IN:STN_OUT);
+  const rr=H.rt*(a.kids?STN_IN:STN_OUT);
   return {x:H.x+Math.cos(br)*rr, z:H.z+Math.sin(br)*rr};
 }
 /* ---- AND THE INSTRUMENT THAT JUDGES IT ----
@@ -8882,27 +8896,33 @@ function stationOf(a){
    from the place its herd assigns it, in herd-radii. `pickRoam`, `pickGraze`
    and `steps` count how often each candidate LEVER is even consulted for a
    herded beast, which is what tells "the rule never fires" from "the rule
-   fires and does not matter". `grazeFail` and `feed` are the regression guard
-   for narrowing the bite search. All of it is counted always; it is a handful
+   fires and does not matter". `grazeFail` and `feed` guard against a herd that
+   is held in shape at the price of its dinner. All of it is counted always;
+   it is a handful
    of adds on a loop that already runs. */
-const HSTAT={secs:0, frames:0, reach:0, reachN:0, mReach:0, mReachN:0, rSum:0, rN:0,
+const HSTAT={secs:0, frames:0, reach:0, reachN:0, mReach:0, mReachN:0, rSum:0, rtSum:0, rN:0,
              pickRoam:0, pickGraze:0, pickStn:0, grazeFail:0, steps:0, herded:0, loose:0,
              feed:0, feedN:0, passMs:0};
 function herdStatReset(){ for(const k in HSTAT) HSTAT[k]=0; }
-/* ---- AND THE TWO HALVES OF THE MECHANISM, THROWN SEPARATELY ----
-   A station is a measurement first and a mechanism second. Both halves are
-   switches so the A/B runs in one browser and neither is believed until the
-   instrument above has been read.
-     stationOn  — the bite is scored by how near it falls to the station
-     stationNear— and it is looked for inside the herd's own ground
-   The second is the one the arithmetic points at: a herd's radius is some
-   twenty-odd units and the bite search reaches a hundred and ninety, so ring
-   one alone puts a grazing beast sixty-three units off — three herd-radii —
-   every meal. Where the search STARTS cannot matter at that reach, which is
-   why Round 72's move of the centre changed nothing. */
-let STN_ON=false, STN_NARROW=false, STN_DRIFT=false;
-const GRAZE_R=190, GRAZE_R_HERD=70, STN_W=0.55;
-/* ---- AND THE THIRD, WHICH IS THE ONE THE INSTRUMENT ASKED FOR ----
+/* ---- AND WHAT THE INSTRUMENT ASKED FOR, WHICH WAS NOT WHAT I EXPECTED ----
+   TWO MECHANISMS WERE BUILT FIRST AND THROWN AWAY UNBUILT, and the diagnostic
+   is what threw them: the arithmetic said a herd's radius is twenty-three
+   units while the search for a bite reaches a hundred and ninety, so ring one
+   alone puts a grazing beast three herd-radii off at every meal — and the
+   repair looked obvious. Narrow that search to the herd's own ground, and
+   score the bite by how near it falls to the beast's station rather than
+   taking the first one over 0.7. Both were built, both were switched, and
+   measured against the drift below they added NOTHING: reach 0.83 and rank
+   0.11 with them, 0.82 and 0.11 without. They are not in the tree. The
+   diagnostic was built to stop a fifth round of shipping a mechanism nobody
+   could show working, and the first thing it stopped was mine.
+
+   A station is a measurement first and a mechanism second. What follows is ON
+   — the switch is kept so the A/B can be run in one browser, and it was not
+   turned on until the instrument had been read four lands running.
+   ---------------------------------------------------------------------- */
+let STN_DRIFT=true;
+/* ---- WHERE THE RULE IS HUNG, AND WHY THERE ----
    The diagnostic above was read before any of this was believed, and it did
    not say the geometry was wrong. It said THE RULE NEVER RUNS. Over sixty
    world-seconds of a settled herd in Kenya — fifty-five beasts, three
@@ -8922,14 +8942,24 @@ const GRAZE_R=190, GRAZE_R_HERD=70, STN_W=0.55;
 
    So the station is hung where a grazing beast DOES decide: at the end of a
    mouthful, three to seven seconds apart, which is a hundred times as often as
-   the bite search. A beast standing further from its station than its herd's
-   own radius walks in before it puts its head down again. That is also what
-   the animal does — a herd drifts between mouthfuls; it does not hold ranks. */
-const STN_FAR=1.0;    /* how far off station before it is worth walking in */
+   the bite search. A beast standing further off its station than the tolerance
+   below walks in before it puts its head down again. That is also what the
+   animal does — a herd drifts between mouthfuls; it does not hold ranks.
+   MEASURED: the lever fires 0.06–0.08 a beast-second where the wander picker
+   fires 0.0000 and the bite search 0.001; reach falls from 1.28 herd-radii to
+   0.82; and the mothers' rank, which reads +0.01 with this off, reads +0.11
+   with it on. */
+/* HOW FAR OFF STATION BEFORE IT IS WORTH WALKING IN, in herd-radii — and it
+   is a number that has to be smaller than the thing it is trying to create.
+   A herd's radius is some twenty-three units and the whole distance between a
+   mother's ring and everybody else's is 0.75 of that, seventeen units. A
+   tolerance of one radius is WIDER THAN THE EFFECT: every beast would sit
+   inside it and hold whatever place it already had. */
+let STN_FAR=0.35;
 function toStation(a){
   if(!STN_DRIFT||!a.herd) return false;
   const st=stationOf(a); if(!st) return false;
-  if(Math.hypot(a.x-st.x,a.z-st.z)<a.herd.r*STN_FAR) return false;
+  if(Math.hypot(a.x-st.x,a.z-st.z)<a.herd.rt*STN_FAR) return false;
   a.tx=st.x; a.tz=st.z; a.job='station'; a.jt=3+Math.random()*2;
   HSTAT.pickStn++; return true;
 }
@@ -9231,9 +9261,11 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
     const runSpd=window.BEHAVIOR?BEHAVIOR.runOf(a.kind,13):13;
     /* ---- THE ONE READING THREE ROUNDS WENT WITHOUT ----
        how far this beast stands from the place its herd assigns it */
-    if(a.herd){ HSTAT.herded++; HSTAT.rSum+=a.herd.r; HSTAT.rN++;
+    if(a.herd){ HSTAT.herded++; HSTAT.rSum+=a.herd.r; HSTAT.rtSum+=a.herd.rt; HSTAT.rN++;
       const st=stationOf(a);
-      if(st){ const d=Math.hypot(a.x-st.x,a.z-st.z)/a.herd.r;
+      /* AND THE REACH IS READ AGAINST `rt`, NOT `r`. Dividing by the radius
+         the herd HAS would move the yardstick with the thing being measured. */
+      if(st){ const d=Math.hypot(a.x-st.x,a.z-st.z)/a.herd.rt;
         HSTAT.reach+=d; HSTAT.reachN++;
         if(a.kids){ HSTAT.mReach+=d; HSTAT.mReachN++; } } }
     else if(AMBIENT_PREY.has(a.kind)) HSTAT.loose++;   /* only what CAN herd */
@@ -9543,11 +9575,7 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
         else {
           /* nothing to eat here — go and find some */
           if(a.herd) HSTAT.pickGraze++;
-          let gRad=GRAZE_R, pull=null;
-          if(a.herd&&STN_NARROW) gRad=GRAZE_R_HERD;
-          if(a.herd&&STN_ON){ const st=stationOf(a);
-            if(st) pull={x:st.x, z:st.z, w:STN_W}; }
-          const gz=GRASS.findGraze(a.x,a.z,gRad,grassProbe,pull);
+          const gz=GRASS.findGraze(a.x,a.z,190,grassProbe);
           if(gz){ a.tx=gz.x; a.tz=gz.z; a.job='seek'; a.jt=4+Math.random()*3; spd=walkSpd*1.4; }
           else { if(a.herd) HSTAT.grazeFail++; a.job='roam'; a.jt=2.5+Math.random()*3; }
         }
@@ -15906,9 +15934,8 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      that herd would have it stand, and herdStat the running totals. */
   herdOf:a=>a&&a.herd||null, stationOf, herdStat:()=>Object.assign({},HSTAT),
   herdStatReset, STN_IN, STN_OUT,
-  stationOn:v=>{ if(v!==undefined) STN_ON=!!v; return STN_ON; },
-  stationNear:v=>{ if(v!==undefined) STN_NARROW=!!v; return STN_NARROW; },
   stationDrift:v=>{ if(v!==undefined) STN_DRIFT=!!v; return STN_DRIFT; },
+  stationFar:v=>{ if(v!==undefined) STN_FAR=+v; return STN_FAR; },
   /* ---- AND ONE PROBE THAT WRITES, WHICH IS SAID OUT LOUD ----
      Everything else on this surface only asks. `setYoung` puts a calf at a
      beast's foot or takes it away, and it is here for ONE reason: §2.3.5's
