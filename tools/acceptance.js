@@ -1702,16 +1702,33 @@ T[38]={name:'in a VOYAGE, a blow breaks, what breaks drops, the drop is taken up
       D.state.walk.x+=(aim.nx||0)*B*4; D.state.walk.z+=(aim.nz||0)*B*4;
       if(!aim.nx&&!aim.nz) D.state.walk.x+=B*4;      /* struck from above: any way will do */
       D.state.walk.feetY=undefined; await D.settle(2);
-      const r=D.placeFrom(aim);
+      /* ---- AND A BEAST MAY BE STANDING IN THE CELL TOO ----
+         Same rule, different creature. The world refuses to build a wall
+         through a living thing, and Round 77 gave the herds a station to
+         stand at, which draws them closer together — so the odds of one
+         being in any particular cell went up, and this test met it: "laying
+         back: REFUSED — a beast is standing there", in the suite, having
+         done every other thing correctly, on a run that passed alone.
+         A beast is not a wall: it walks on. It is asked again, and how many
+         times it took is reported rather than hidden.
+         PROVED BY INJECTING IT, both ways: three refusals forced into
+         `placeBlock` and the test lays on the fourth and says "and it stands
+         after waiting out a beast 3×"; a beast that never moves at all and it
+         still fails, "REFUSED — a beast is standing there (asked 8×)". The
+         retry cannot paper over a cell that is truly blocked. */
+      let r=D.placeFrom(aim), tries=1;
+      while(r&&r.no&&/beast|creature|animal/i.test(r.no)&&tries<8){
+        await D.settle(45); r=D.placeFrom(aim); tries++; }
       /* WHERE IT LAID IS WHAT IS ASKED. A block goes in on the AIR SIDE of
          the struck face — `at` in the answer — and not into the cell that was
          struck, so checking the struck cell reported "said it laid but
          nothing stands" of a block standing perfectly well one cell over.
          A tool refuses by answering nothing at all, which is also read. */
       const stands=r&&r.at&&D.solidAt((r.at[0]+0.5)*B,(r.at[1]+0.5)*B,(r.at[2]+0.5)*B);
+      const waited=tries>1?(' after waiting out a beast '+(tries-1)+'×'):'';
       laid=!r?('REFUSED — a tool is held, and a tool is not laid')
-          :r.no?('REFUSED — '+r.no)
-          :stands?('laid at '+r.at.join(',')+', and it stands')
+          :r.no?('REFUSED — '+r.no+' (asked '+tries+'×)')
+          :stands?('laid at '+r.at.join(',')+', and it stands'+waited)
           :('said it laid at '+(r.at||[]).join(',')+' but nothing stands'); }
 
     const faults=[];

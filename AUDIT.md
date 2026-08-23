@@ -6848,14 +6848,62 @@ because a tighter ring leaves less room between the mothers' station and everybo
 is the right trade and it is stated rather than buried: a smaller true effect on herds that still
 exist beats a larger one on herds the world has stopped counting.
 
-### What is NOT claimed
+### The whole suite, and a thing I had written down wrongly
 
-The herd count still falls about a tenth over the four plains and Mongolia's rank did not move at
-all (+0.111 to +0.095) — three lands of four, not four. The travel figure is untouched: a herd
-still shuffles two or three units in a spell, because every beast is tethered to the spot it was
-set down on for life. **§2.3.5's "matriarch-LED" is therefore still not built** — what is built
-is the second half of the clause, the young held at the centre. The leader wants the tether
-broken, which is its own round, as are the birds.
+**48 pass · 1 fail · 4 pending.** The pendings are 12 and 43 (both long-standing) and 50 and 53,
+which report and guard nothing while §2.3.5 is open. The fail is dealt with below.
+
+And test 50, run for the first time on the finished tree, says two things this round did not set
+out to do and had no right to expect:
+
+| | before the round | now |
+|---|---|---|
+| a herd's mean size | 3.93 | **4.39** |
+| the biggest herd | 8 | **10** |
+| herds of six or more | 4 | **7** |
+| **how far a herd travels in a spell** | **3 units (0.13 herd-radii)** | **12 units (0.58)** |
+
+**I wrote in this section that the travel figure was untouched. That was wrong, and it is
+corrected rather than quietly amended.** Test 50's own comment calls travel *"the decisive one"* —
+*"if every beast walks toward the MEAN POSITION of its own kind, it walks toward a point that by
+definition sits in the middle of them all and barely moves, so the herd can only shuffle in place
+for ever."* A station is not the mean: a beast makes for a place on a ring, the ring is reckoned
+afresh as the herd moves, and the herd turns out to walk. **Four times as far**, and Tanzania's
+centroid moved twenty-eight units in a spell where the whole earth used to manage three.
+
+It is still not *"matriarch-led"* — nothing leads, there is no rank and no leader, and every beast
+is still tethered to the spot it was set down on for life. But the flat travel figure had been
+read for four rounds as evidence that a tethered world cannot make a herd move at all, and it is
+not.
+
+### What it costs, and what is still NOT claimed
+
+**The herd pass is 0.22–0.40 ms a frame** (test 53, four lands) — reckoning every herd on the
+earth once a frame, an O(n²) sweep over ninety-six beasts. At sixty frames a second that is one
+to two per cent of a frame.
+
+**The watch is dearer than it was.** Test 35 reads 64% of herds with a head up in the full suite
+and 77% run alone, against 80% before the round — its bar is 45% and its own history is 37/58/50
+at small samples, so the honest statement is a range, not a number. A herd that walks to station
+has more beasts walking and fewer standing alert; that is a real cost of the feature and it is
+recorded rather than smoothed.
+
+Mongolia's rank did not move at all (+0.111 to +0.095), so three lands of four and not four. The
+herd count over the four plains still falls about a tenth even though mean size is up.
+
+**§2.3.5's "matriarch-LED" is still not built** — what is built is the second half of the clause,
+the young held at the centre. The leader wants the tether broken, which is its own round, as are
+the birds.
+
+### And one test had to learn about beasts
+
+Test 38 — break a block, pick it up, lay it back — failed for the first time in the round's final
+run: *"laying back: REFUSED — a beast is standing there."* The world is right to refuse to build a
+wall through a living thing, and the test already knew that rule for the TRAVELLER (it backs him
+four blocks off along the struck face's own normal, and its comment records learning that the hard
+way). It did not know it for a beast, and Round 77 made beasts stand closer together, so the odds
+of one being in any particular cell went up. A beast is not a wall: it walks on. The test asks
+again, up to eight times, and reports how many it took.
 
 ## 5. Further recommendations (future work)
 
