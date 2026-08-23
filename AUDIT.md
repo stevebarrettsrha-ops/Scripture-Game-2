@@ -7104,9 +7104,18 @@ times), so no cost is measurable at this resolution and none is claimed. Through
 four lands the same change reads `dusk` 0 → 12% and `all` 0 → 3%.
 
 **How much of the world it touches depends entirely on which beasts stand there**, and that is
-stated rather than averaged away: Kenya held 4 eligible beasts of 1 kind, Mongolia 17 of 5. The
-effect has read +3, +12, +16 and +18 points on different lands and runs. What is claimed is that
-it fires and reverses cleanly, not a number.
+stated rather than averaged away: Kenya held 4 eligible beasts of 1 kind, Mongolia 17 of 5. Over
+five readings the `dusk` class comes out at 1, 10, 12, 13 and 18 points and `all` at 0, 1, 3 and
+16 — **so no number here is a number**, and what is claimed is only that the rule fires, reverses
+cleanly when switched off in the same boot, and leaves the classes that already slept alone.
+
+### The whole suite
+
+**49 pass · 0 fail · 5 pending.** The pendings are 12 and 43, both long-standing, and 50, 53 and
+54, which report and guard nothing — 50 and 53 while §2.3.5 is open, and 54 because a bar set
+before this round's reading would have been a bar set to whatever the world happened to do. In
+that run test 54 read `dusk` 13% and `all` 1%, and the bed in a held hour: **22 laid down, 0
+still out.**
 
 ### The rest of §2.3.6, now that it has been looked at
 
