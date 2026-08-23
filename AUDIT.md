@@ -6709,9 +6709,12 @@ The arithmetic above — a herd twenty-three units across, a bite search reachin
 ninety, ring one alone sixty-three units out — pointed at an obvious repair: narrow the search to
 the herd's own ground, and score the bite by how near it falls to the station rather than taking
 the first one over 0.7. **Both were built, both were switched, and both added nothing**: reach
-0.83 and rank 0.11 with them, 0.82 and 0.11 without. They are not in the tree. The diagnostic was
-built to stop a fifth round of shipping something nobody could show working, and the first thing
-it stopped was this round's own first idea.
+0.83 and rank 0.11 with them, 0.82 and 0.11 without, over five samples apiece on one land. (That
+comparison was taken before the herd's radius was made exogenous and was not re-run afterward;
+what it establishes is that the drift does the work and these do not, which was enough to leave
+them out.) They are not in the tree. The diagnostic was built to stop a fifth round of shipping
+something nobody could show working, and the first thing it stopped was this round's own first
+idea.
 
 ### What was shipped, and the number it moved
 

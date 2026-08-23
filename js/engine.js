@@ -8912,10 +8912,14 @@ function herdStatReset(){ for(const k in HSTAT) HSTAT[k]=0; }
    repair looked obvious. Narrow that search to the herd's own ground, and
    score the bite by how near it falls to the beast's station rather than
    taking the first one over 0.7. Both were built, both were switched, and
-   measured against the drift below they added NOTHING: reach 0.83 and rank
-   0.11 with them, 0.82 and 0.11 without. They are not in the tree. The
-   diagnostic was built to stop a fifth round of shipping a mechanism nobody
-   could show working, and the first thing it stopped was mine.
+   measured beside the drift below they added NOTHING: reach 0.83 and rank
+   0.11 with them, 0.82 and 0.11 without, over five samples apiece on one
+   land. (That comparison was taken before the herd's radius was made
+   exogenous, and it was not re-run afterward; what it establishes is that
+   the drift does the work and these do not, which was enough to leave them
+   out.) They are not in the tree. The diagnostic was built to stop a fifth
+   round of shipping a mechanism nobody could show working, and the first
+   thing it stopped was mine.
 
    A station is a measurement first and a mechanism second. What follows is ON
    — the switch is kept so the A/B can be run in one browser, and it was not
@@ -8945,10 +8949,13 @@ let STN_DRIFT=true;
    the bite search. A beast standing further off its station than the tolerance
    below walks in before it puts its head down again. That is also what the
    animal does — a herd drifts between mouthfuls; it does not hold ranks.
-   MEASURED: the lever fires 0.06–0.08 a beast-second where the wander picker
-   fires 0.0000 and the bite search 0.001; reach falls from 1.28 herd-radii to
-   0.82; and the mothers' rank, which reads +0.01 with this off, reads +0.11
-   with it on. */
+   MEASURED over Kenya, Tanzania, Botswana and Mongolia, the rule off and on
+   alternately within one boot: the lever fires 0.06–0.08 a beast-second where
+   the wander picker fires 0.0000 and the bite search 0.001; the reach falls
+   from 1.54 herd-radii to 0.96; and the mothers' rank, which reads +0.027
+   with this off, reads +0.205 with it on — a difference larger than the whole
+   spread of the off readings, which is the bar four earlier attempts at this
+   could not clear. */
 /* HOW FAR OFF STATION BEFORE IT IS WORTH WALKING IN, in herd-radii — and it
    is a number that has to be smaller than the thing it is trying to create.
    A herd's radius is some twenty-three units and the whole distance between a
