@@ -7364,6 +7364,127 @@ lion's rest is an open question with a real number against it — **18–26% sti
 Round 79 closed it on. And the clock rule is no longer only written down: it is enforced where
 every tool must pass.
 
+## 4ce. Round 81 — the birds flock, and PHASE 6 IS CLOSED ✅
+
+*§2.3.5's *"real flocking for the birds"* was the last unbuilt clause in the whole of Phase 6.
+It is built, and the phase is closed here with every item's true state written down.*
+
+### Why it had never worked, and it was two faults at once
+
+A flock rule had been standing in the tree for rounds: a pull toward the mean of the same kind
+within 120 units, gated on `BEHAVIOR.birdOf(type).flock`, which crow, dove, gull and puffin
+declare. It never showed. Measured, over three hundred frames in two lands:
+
+| | Kenya | India |
+|---|---|---|
+| flocking-bird-frames with **no mate of their kind within 120u** | 4,033 / 5,400 (75%) | 4,304 / 4,500 (**96%**) |
+| frames in `rest`, the **only** job the rule ran in | 102 / 7,200 (1.4%) | 45 / 7,200 (0.6%) |
+
+**Each of those is the exact shape of a fault this project has already found and mended
+elsewhere**, which is why they were recognisable at all:
+
+1. **There was nothing to flock with.** Twenty-four birds serve the whole earth across seven
+   kinds over a ring eleven hundred units wide, each set down at an INDEPENDENT RANDOM POINT.
+   That is Round 71's finding for the beasts word for word — *"the world was not making herds"* —
+   and the remedy is Round 71's: a bird of a flocking kind goes down **beside one of its own**.
+2. **The rule was nearly unreachable.** In `rest` alone it could touch about **0.3%** of
+   bird-frames once the first fault is folded in. That is Round 77's dead-wander-picker shape. It
+   is asked in the **hunt** now — by passing the flock's own middle to `forageSpot` as the centre
+   it searches, so that every check on the ground is the one that function always made.
+   **Biasing the RESULT instead would have been the bug**: a spot carries `water`, and sliding one
+   sideways puts a gull's dive on dry land.
+
+### A/B/A inside one boot
+
+| | Kenya off / **on** / off | India off / **on** / off |
+|---|---|---|
+| a bird with one of its own by it | 13% / **80%** / 36% | 0% / **54%** / 13% |
+| **biggest company** | 3 / **12** / 3 | 0 / **3** / 1 |
+| heading apart | 100° / 45° / 42° | — / 29° / 39° |
+| frame | 355.5 / 332.7 / 353.4 ms | 306.2 / 318.2 / 309.9 ms |
+
+**The company is the clean reading** and it reverses both ways in both lands. The frame cost sits
+inside the drift — the ON arm is the FASTEST of the three in Kenya — so none is claimed.
+
+**And one thing is deliberately NOT claimed.** The heading spread is reported and is evidence for
+nothing: the off-again arm reads as tight as the on arm in Kenya (42° against 45°), and the
+pairings behind the arms differ by more than tenfold, which is not a comparison. **That birds now
+FLOCK is established; that they fly in step is not**, and test 55 says so in its own words rather
+than quietly reporting the better number.
+
+### And the suite, on the finished tree
+
+**50 pass · 0 fail · 5 pending**, and the pendings are **43, 50, 53, 54 and 55**. Test 12 —
+*"ocean and plains chunks build no slower than they did"* — has been PENDING for many rounds and
+**came back a PASS on this run**, which is why the pass count is one higher than the phase's
+other recent runs. It was not touched by this round and no credit is taken for it; it is noted
+because an unexplained +1 in a pass count is exactly the sort of thing this project has learned
+to chase rather than enjoy. The other five report and guard nothing by design.
+
+Test 55 on four lands — two of which the A/B never stood on:
+
+| | Kenya | India | Norway | Japan |
+|---|---|---|---|---|
+| a bird with one of its own by it | 96% | 100% | 100% | 100% |
+| biggest company | 6 | 11 | 5 | 8 |
+
+**99% of 12,540 bird-frames, and a company of eleven.** The heading came back at **14° over
+54,614 pairings**, far tighter than anything this project has recorded — and it is STILL not
+claimed, because it is an on-only reading with no control beside it. The A/B is the only place a
+control existed and there the off-again arm was as tight as the on arm. A number that flatters
+the feature is exactly the number to be slowest about.
+
+---
+
+## PHASE 6 — THE LIVING THINGS — CLOSED
+
+*"§2.3 and §2.4 in full: coats, gaits, true stature, finer creature grain, herd structure;
+branching trees, canopy forms per species, bark, seasonal colour, the ground layer, crops that
+grow."* Twelve items. **Eleven built and measured; one part-built and measured; nothing left
+standing on an unmeasured ✅.**
+
+| §2.3 fauna | |
+|---|---|
+| 1. Coats, countershading, markings | ✅ *51, completed 74* — 2,882 meshes, 0 left flat |
+| 2. Real gaits | ✅ six gaits, one datum a species |
+| 3. True stature | ✅ one measure, and it is the man's |
+| 4. Finer voxel grain | ✅ *75–76* — 170 kinds, 3,983 parts, 1,307 meshes |
+| 5. Herd and flock structure | **part-built, and every part of it measured** — see below |
+| 6. The daily round | ✅ *69, and MEASURED at last in 78* |
+
+| §2.4 flora | |
+|---|---|
+| 1–6 | ✅ all six: branching, canopy, bark, seasonal colour, the ground layer, crops |
+
+**Item 5, honestly:** flight distance and the watch ✅ *54*; herds exist ✅ *71*; the young held at
+the centre ✅ *77*; **the birds flock ✅ *81***. **The matriarch does NOT lead** — five attempts
+across Rounds 54, 70, 72 and 80, five reverts, and the fifth is the only one that failed with the
+mechanism demonstrably FIRING: no gain in travel and consistently worse reach. **And birds
+flocking is not birds flying in step**, which is stated above.
+
+**Three things are measured-and-not-built, and are left written down rather than quietly
+dropped:**
+
+1. **The matriarch leading.** Round 80's numbers, and the finding that the stated reason for four
+   rounds — the spawn tether — was the wrong reason. There is no leash; nothing moves a herd.
+2. **The lion's rest**, at the corrected **18–26% still** — Round 79 closed this on a reading of
+   100% that was taken in a world frozen at the container's own clock, and Round 80 re-opened it.
+3. **Flock-mates flying in step**, above.
+
+**What the phase cost, all of it measured:** the herd pass 0.20–0.43 ms a frame; the lie-up and
+the flocking both inside the run-to-run frame drift; §2.3.4's grain 67% fewer meshes than parts;
+§2.4's ground layer +8.5% triangles and not one new material; the year through a crop costing 0
+chunks.
+
+**And the method is the thing worth carrying forward.** This phase's last four rounds found four
+faults in the world and **six in their own instruments** — a statistic that reported perfection
+because the feature was absent; three separate false zeroes from sampling a slow process through
+a fast window; a respawn artefact that reversed a finding; and a clock that was never running,
+which spoiled every scratchpad reading of three rounds until it was found and then **guarded in
+`tools/harness.js` and proved by injecting it.** Every one was caught by asking what the
+measurement could possibly SEE before believing what it said. **A thing that is ✅ because
+somebody read the source is not ✅** — and Phase 6 no longer has one.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
