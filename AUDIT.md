@@ -7145,12 +7145,93 @@ left to look tighter than it is.**
 
 ### What is NOT claimed, and NOT built
 
-**The lion never sleeps.** `lion` and `elephant` are `day:'all'` with `home:'open'`, so this rule
-does not touch them — and the behaviour file's own illustration of 'all' is *"the lion, who
-sleeps twenty hours and hunts whenever he pleases"*. He does not sleep at all. That is a real
-finding of this round and it is **reported rather than fixed**: bedding the beasts of the open
-changes the hunt, the watch and the encounter, and it wants its own round with its own
-before-reading.
+**The lion never sleeps** — `lion` and `elephant` are `day:'all'` with `home:'open'`, so this
+rule does not touch them, and the behaviour file's own illustration of 'all' is *"the lion, who
+sleeps twenty hours and hunts whenever he pleases"*. Reported rather than fixed: bedding the
+beasts of the open changes the hunt, the watch and the encounter, and it wants its own round.
+
+> **STRUCK IN ROUND 79 (§4cc), which measured it.** The claim is true of the FLAG and false of
+> the WORLD, and it should never have been written in that form. A stalking hunter with no
+> quarry lies up in the deep grass — `a.crouch` set, speed nought, hidden — and the lion was
+> measured **truly still 100% of the time**, over 399 frames in two lands. He does not lack a
+> rest; he lacks the `job==='bed'` flag, and the engine has had the better behaviour since it
+> was written. See §4cc.
+
+## 4cc. Round 79 — the lion's sleep: the premise did not survive being measured ✅
+
+*Round 78 ended by naming one thing it had not built: **"the lion never sleeps."** This round
+went to build it, measured the premise first as the rules of this project require, and **the
+premise is wrong.** Nothing shipped to the world, and that is the finding.*
+
+### What Round 78 claimed, and what it should have claimed
+
+> `lion` and `elephant` are `day:'all'` with `home:'open'`, so this rule does not touch them —
+> and the behaviour file's own illustration of 'all' is *"the lion, who sleeps twenty hours"*.
+> **He does not sleep at all.**
+
+That sentence is true of `job==='bed'` and **false of the world**, and the difference is the
+whole round. The engine has held since it was written that a stalking hunter with no quarry
+**lies up in the deep grass**:
+
+> *"A lion on open ground with no quarry walked about in plain sight all day. He goes to the deep
+> grass instead and lies down in it — which is where a lion actually is when you cannot see one,
+> and it puts him in the cover he will need when a herd does come by."*
+
+`a.crouch` is set, speed goes to nought, and the body drops to `lift=-0.8` against a bedded
+beast's `-1.6`. Measured over a held clock, three lands, the `day:'all'` beasts of the open split
+by kind:
+
+| | frames | **truly still** (bedded, walking home, or lying up crouched) |
+|---|---|---|
+| **lion** | 399 | **100%** |
+| **elephant** | 3,478 | **0%** |
+
+**The lion is never NOT at rest** in any frame this round observed of him without a quarry. He
+does not lack a rest — he lacks a flag, and the behaviour he has is the better one, because it
+leaves him in the cover the hunt needs. **Bedding him would have taken a working thing and made
+it worse.**
+
+### And the elephant, which is the other half of the same line
+
+The elephant reads truly still **0%** — feedhead, roam and small business round the clock, 3,118
+frames in Tanzania without one still among them. **And that is what the data asks for.** The
+behaviour file's own gloss on `day:'all'` names both animals and gives them opposite reasons:
+
+> *'all' — it keeps no hours at all (the lion, who sleeps twenty hours and hunts whenever he
+> pleases; **the elephant, who cannot afford to stop eating**)*
+
+**The world agrees with the file on both counts**, by two different mechanisms, and neither is a
+fault. A real elephant does sleep two to four hours; but the file made a deliberate, documented
+choice and **overriding a stated intent on my own initiative is not this round's to do.** It is
+left as a question for whoever wants to ask it, phrased as a design decision and not as a bug.
+
+### The instrument found a third fault in itself, and it was a false zero
+
+Test 54 reported **0 kills over 53,797 beast-frames** — which reads as an earth where predation
+never lands, and is nothing of the kind. The sweep holds each hour eighteen frames and carries
+the eye between four lands, so **no chase can run to its end inside one window.** Held in one
+land instead:
+
+| | kills in 500 frames | hunter held a quarry | at a kill | crouched |
+|---|---|---|---|---|
+| Kenya | **4** | 24% | 41% | 9% |
+| Tanzania | **4** | 13% | 16% | 18% |
+
+The hunt lands perfectly well. This is the same fault as the bed's and the acts', **the third
+this one instrument has found in itself in two rounds**, and the pattern is worth stating
+plainly: *a measurement that samples a slow process through a fast window reports zero, and zero
+reads like a broken world.* The kill is counted in the held hour now.
+
+### What this round changed
+
+**Nothing in the world.** `js/engine.js` is untouched. What changed is the record — Round 78's
+claim is struck where it stands rather than quietly amended — and the instrument, which no
+longer reports a false zero on the hunt and now splits the clockless classes by whether they
+own a bed at all.
+
+**A round that ships nothing because the fault was not there is the round working**, and it cost
+one afternoon against a behaviour change to sixty-five species that would have had to be
+measured, guarded and then lived with.
 
 ## 5. Further recommendations (future work)
 

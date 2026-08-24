@@ -3729,7 +3729,28 @@ T[54]={name:'THE DAILY ROUND, MEASURED — its hours, its bed, and the small bus
         if(r.day==='all'||r.day==='dusk') promNever++; } }
 
     const abed={}, seen={};                  /* day-class -> frames */
+    /* AND THE CLOCKLESS CLASSES SPLIT BY WHETHER THEY OWN A BED. Round 78's
+       lie-up reaches only the beasts that declare a real home, so lumping the
+       two together hides exactly the question Round 79 asks: the lion and the
+       elephant are `day:'all'` with `home:'open'` and no rule beds them. */
+    const oAbed={}, oSeen={};                /* the same, for home:'open' only */
     const actSeen={};                        /* act -> frames observed */
+    /* ---- AND THE HUNT, BECAUSE IT IS WHAT THIS ROUND RISKS ----
+       Bedding the beasts of the open beds the HUNTERS: lion, wolf and hyena
+       are of that company. If they sleep, the earth's predation falls. The
+       kill is counted where it lands (a quarry's `dead` goes from nought),
+       and so is the share of hunters holding a quarry at all. */
+    const wasDead=new WeakMap(); let kills=0, hunters=0, holding=0;
+    /* ---- AND WHETHER THEY ARE ALREADY AT REST, WHICH IS THE PRIOR QUESTION ----
+       "The lion never sleeps" is a claim about `job==='bed'`. It is NOT the
+       same claim as "the lion is never still": the engine already holds that
+       a stalking hunter with no quarry LIES UP IN THE DEEP GRASS — `a.crouch`
+       set, speed nought, hidden in the cover he will need when a herd comes
+       by. If the beasts of the open are already at rest most of the day, then
+       bedding them adds a flag and not a behaviour, and this round should say
+       so rather than ship a change that shows nothing. At rest = bedded,
+       walking home, at some small business, or lying up crouched. */
+    const oRest={};
     const present=new Set();                 /* every kind that STOOD here */
     const homing=new Set(), arrived=new Set(), stuck=new Map();
     let beastFrames=0, lands=0;
@@ -3758,6 +3779,9 @@ T[54]={name:'THE DAILY ROUND, MEASURED — its hours, its bed, and the small bus
             const isBed=(a.job==='bed'), isHome=(a.job==='home');
             seen[cls]=(seen[cls]||0)+1;
             if(isBed||isHome) abed[cls]=(abed[cls]||0)+1;
+            if(B2.homeOf(a.kind)==='open'){ oSeen[cls]=(oSeen[cls]||0)+1;
+              if(isBed||isHome) oAbed[cls]=(oAbed[cls]||0)+1;
+              if(isBed||isHome||a.job==='act'||a.crouch) oRest[cls]=(oRest[cls]||0)+1; }
             if(a.job==='act'&&a.act) actSeen[a.act]=(actSeen[a.act]||0)+1;
             if(B2.homeOf(a.kind)!=='open'){ lKinds.add(a.kind);
               if(isBed) lBed++; if(isHome) lHome++; } } }
@@ -3778,7 +3802,20 @@ T[54]={name:'THE DAILY ROUND, MEASURED — its hours, its bed, and the small bus
         D.setLocalHour(1, D.state.walk.x, D.state.walk.z);
         for(let f=0;f<340;f++){
           await new Promise(r=>requestAnimationFrame(r));
-          for(const a of D.LANDLIFE){ if(!a.set||a.dead>0) continue;
+          /* ---- AND THE HUNT IS COUNTED HERE AND NOT IN THE SWEEP ----
+             Counted in the sweep it read 0 KILLS over fifty-four thousand
+             beast-frames, which looked like a dead earth and was nothing of
+             the kind: the sweep holds each hour eighteen frames and carries
+             the eye between four lands, so no chase ever runs to its end
+             inside one window. Held in one land, the same world kills four
+             times in five hundred frames. It is the same fault as the bed's,
+             and it is the THIRD this instrument has found in itself. */
+          for(const a of D.LANDLIFE){
+            if(!a.set) continue;
+            if(a.dead>0){ if((wasDead.get(a)||0)<=0) kills++; wasDead.set(a,a.dead); continue; }
+            wasDead.set(a,0);
+            if(a.role==='pack'||a.role==='stalk'){ hunters++;
+              if(a.prey||a.job==='feed') holding++; }
             if(B2.homeOf(a.kind)==='open') continue;
             if(a.job==='home') homing.add(a);
             if(a.job==='bed'){ arrived.add(a); stuck.delete(a); }
@@ -3813,10 +3850,18 @@ T[54]={name:'THE DAILY ROUND, MEASURED — its hours, its bed, and the small bus
     for(const v of stuck.values()){ stillOff+=v.d;
       if(v.stuck>=3) blocked++; if(!v.set) gone++; }
     const pct=c=>{ const s=seen[c]||0; return s?((abed[c]||0)/s*100).toFixed(0)+'%':'—'; };
+    const opct=c=>{ const s=oSeen[c]||0; return s?((oAbed[c]||0)/s*100).toFixed(0)+'%':'—'; };
+    const rpct=c=>{ const s=oSeen[c]||0; return s?((oRest[c]||0)/s*100).toFixed(0)+'%':'—'; };
     return {pending:'THE DAILY ROUND, MEASURED (§2.3.6 was ✅ on a reading, not a measurement) · '+
       'over '+lands+' land(s), '+beastFrames+' beast-frames, '+present.size+' kinds present · '+
       'ABED by its own hours: day '+pct('day')+', night '+pct('night')+
-        ', dusk '+pct('dusk')+', all '+pct('all')+' · '+
+        ', dusk '+pct('dusk')+', all '+pct('all')+
+        ' · OF THOSE, THE BEASTS OF THE OPEN (no home to walk to, so no rule beds them): '+
+        'abed dusk '+opct('dusk')+', all '+opct('all')+
+        ' — but ALREADY AT REST (bedded, at business, or lying up in the grass) '+
+        'dusk '+rpct('dusk')+', all '+rpct('all')+
+        ' · THE HUNT (in the held hour, not the sweep): '+kills+' kill(s), a hunter held a quarry '+
+        (holding/Math.max(1,hunters)*100).toFixed(0)+'% of the time · '+
       'THE BED (one hour HELD 340 frames, not swept): '+bedRow+
         (stuck.size?' (still '+(stillOff/stuck.size).toFixed(0)+'u off their den; '+
           blocked+' shouldering a barrier, '+gone+' taken off the earth)':'')+
