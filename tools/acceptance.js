@@ -3130,7 +3130,22 @@ T[50]={name:'THE HERD, MEASURED — how many stand together, where the young sta
     const faults=[], rows=[];
     let mums=0, mumDepth=0, others=0, othDepth=0;
     let herds=0, members=0, biggest=0, travel=0, travelU=0, travelN=0;
-    let twoLed=0, ledWrong=0, unstable=0;
+    /* ---- AND WHETHER THERE IS A LEADER TO JUDGE AT ALL ----
+       THE FAULT THIS MENDS was put here by Round 77 and found by Round 80.
+       These three counters judge a matriarch: is a herd led by two beasts at
+       once, does anyone lead a neighbourhood that outranks it, does the lead
+       change hands. They were written in Round 70 when a leader WAS built,
+       and the leader was reverted — `herdPass` sets no `lead` on a herd and
+       `herdRank` does not exist in the engine at all. So the loops below
+       never execute and all three counters stay at nought.
+       That was harmless while the report line asked `D.herdOf?` and printed
+       "no leader in this build", which was the truth. **Round 77 added
+       `herdOf` for the station work** — and the line began printing
+       "0 split, 0 outranked" instead, which reads as a matriarch working
+       flawlessly when there is no matriarch. A statistic that reports
+       perfection because the feature is ABSENT is worse than no statistic.
+       It is keyed on the leader now and not on the accessor. */
+    let twoLed=0, ledWrong=0, unstable=0, ledSeen=0;
     const sizes={};
 
     /* ---- EVERY DISTINCT HERD STANDING HERE, each beast counted once ----
@@ -3239,7 +3254,7 @@ T[50]={name:'THE HERD, MEASURED — how many stand together, where the young sta
         /* who leads it, if anything does */
         if(D.herdOf){
           const seen=new Set();
-          for(const b of h.mob){ const H=D.herdOf(b); if(H&&H.lead) seen.add(H.lead); }
+          for(const b of h.mob){ const H=D.herdOf(b); if(H&&H.lead){ seen.add(H.lead); ledSeen++; } }
           if(seen.size>1) twoLed++;
           for(const b of h.mob){ const H=D.herdOf(b); if(!H||!H.lead) continue;
             /* nobody may lead a neighbourhood in which somebody outranks it */
@@ -3320,7 +3335,9 @@ T[50]={name:'THE HERD, MEASURED — how many stand together, where the young sta
       ' of a herd-radius from the middle against '+others+' others at '+
       (oD===null?'—':oD.toFixed(2))+
       ' · travel: '+travU.toFixed(0)+' units ('+trav.toFixed(2)+' herd-radii)'+
-      ' · leaders: '+(D.herdOf?(twoLed+' split, '+ledWrong+' outranked'):'no leader in this build')+
+      ' · leaders: '+(ledSeen?(twoLed+' split, '+ledWrong+' outranked'):
+        'NO LEADER IN THIS BUILD — §2.3.5\'s "matriarch-led" is not built, and these '+
+        'counters judge nothing')+
       ' · '+rows.join(' | ')};
   })};
 
