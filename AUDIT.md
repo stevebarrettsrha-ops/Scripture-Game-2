@@ -7334,12 +7334,35 @@ matriarch across five rounds and the fifth revert, and the first of them to fail
 mechanism demonstrably FIRING — which is worth more than the four that failed without knowing
 whether it ran at all.
 
+### And the clock fault is now guarded, not merely written down
+
+A note in an audit does not stop the next tool making the same silent mistake, and this one gives
+no error: the call returns, the number goes in, and a quarter of a second later the sky is put
+back. So **`tools/harness.js` takes the course of the day off 'live' the moment it sets forth** —
+for every tool that uses it, the suite included, where it is simply idempotent. Two helpers go
+with it: `holdClock(page, part)` and `holdHour(page, h, x, z)`, the latter doing the two steps in
+the only order that works.
+
+**Proved by injecting the fault it guards**, which is this project's rule for every new guard:
+
+| | asked 6 | asked 14 | asked 22 |
+|---|---|---|---|
+| the harness as it now stands | **6.0** | **14.0** | **22.0** |
+| `'live'` put back by hand — the fault | 10.1 | 10.1 | 10.1 |
+| `holdHour(14)` after the injection | — | **14.0** | — |
+
+The injected row pins to **10.1** where the same injection read **3.9** earlier in the day: the
+room's clock has moved through the session, which is the diagnosis confirming itself.
+
+Tests 45, 46, 49 and 54 were re-run against the changed harness — **3 pass · 0 fail · 1 pending**,
+test 45 being the one that guards who may set the hour at all, and the one genuinely at risk.
+
 ### What is left standing
 
 Test 50's leader counters now say **"NO LEADER IN THIS BUILD"** again, which is the truth. The
-lion's rest is an open question with a real number against it. And the clock rule is written
-here so the next person setting an hour in a probe reads it before they trust a reading:
-**take the course of the day off 'live' first, or you are measuring the room you are sitting in.**
+lion's rest is an open question with a real number against it — **18–26% still**, not the 100%
+Round 79 closed it on. And the clock rule is no longer only written down: it is enforced where
+every tool must pass.
 
 ## 5. Further recommendations (future work)
 
