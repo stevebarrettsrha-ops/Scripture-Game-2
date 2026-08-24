@@ -7181,15 +7181,20 @@ whole round. The engine has held since it was written that a stalking hunter wit
 beast's `-1.6`. Measured over a held clock, three lands, the `day:'all'` beasts of the open split
 by kind:
 
-| | frames | **truly still** (bedded, walking home, or lying up crouched) |
+| | frames | truly still (bedded, walking home, or lying up crouched) |
 |---|---|---|
-| **lion** | 399 | **100%** |
-| **elephant** | 3,478 | **0%** |
+| **lion** | 399 | ~~**100%**~~ **→ 18% and 26%, see below** |
+| **elephant** | 3,478 | **0%** (holds) |
 
-**The lion is never NOT at rest** in any frame this round observed of him without a quarry. He
-does not lack a rest — he lacks a flag, and the behaviour he has is the better one, because it
-leaves him in the cover the hunt needs. **Bedding him would have taken a working thing and made
-it worse.**
+> **CORRECTED IN ROUND 80 (§4cd), AND THE CONCLUSION WITH IT.** That 100% was measured in a world
+> frozen at the container's own 3.9 a.m. — every scratchpad probe of this session set the hour
+> with a bare `setLocalHour`, which the engine reads back over four times a second while the
+> clock stands on 'live'. Re-measured with the clock taken off 'live' first, the lion is truly
+> still **18% in Tanzania and 26% in India**, and spends most of his time in `roam`. **He is not
+> "never NOT at rest"; he is at rest about a fifth of the time.** So the reason this round gave
+> for not bedding him does not hold, and the question is re-opened rather than closed. What still
+> holds is the elephant at 0%, which is what `day:'all'` asks for in the file's own words. See
+> §4cd.
 
 ### And the elephant, which is the other half of the same line
 
@@ -7224,7 +7229,9 @@ reads like a broken world.* The kill is counted in the held hour now.
 
 ### What this round changed
 
-**Nothing in the world.** `js/engine.js` is untouched. What changed is the record — Round 78's
+**Nothing in the world.** `js/engine.js` is untouched. *(And its central reading was wrong — see
+§4cd. The decision not to bed the lion was right for the wrong reason, and the question is open
+again.)* What changed is the record — Round 78's
 claim is struck where it stands rather than quietly amended — and the instrument, which no
 longer reports a false zero on the hunt and now splits the clockless classes by whether they
 own a bed at all.
@@ -7232,6 +7239,107 @@ own a bed at all.
 **A round that ships nothing because the fault was not there is the round working**, and it cost
 one afternoon against a behaviour change to sixty-five species that would have had to be
 measured, guarded and then lived with.
+
+## 4cd. Round 80 — the matriarch built and reverted, and the clock that was never running ✅
+
+*§2.3.5's last clause. A matriarch was built, measured properly, and taken back out; and in the
+measuring, a fault was found that had quietly spoiled **every scratchpad reading of this whole
+session**. The second is much the more important of the two.*
+
+### THE CLOCK WAS NEVER RUNNING
+
+Every probe this session set the hour with a bare `setLocalHour(h, x, z)`. The engine says, in
+its own words, beside that very function, why that does nothing:
+
+> *"a scene must be able to take the clock off 'live' first, **or the real-world hour is read
+> back over it four times a second**."*
+
+The default course of the day is `'live'`, which re-reads the clock of the machine the game is
+running on. This container's clock stands at about **3.9 a.m.** So `setLocalHour` was overwritten
+four times a second, `worldNight` sat at 0.63–1.00, and **the world was in permanent night with
+almost every beast abed** — through readings I then wrote into the audit as facts. Measured
+plainly, in both modes:
+
+| | asked 6 → got | asked 14 → got | asked 22 → got |
+|---|---|---|---|
+| bare `setLocalHour` | 3.9 | 3.9 | 3.9 |
+| off `'live'` first | **6.0** | **14.0** | **22.0** |
+
+**THE ACCEPTANCE SUITE IS NOT AFFECTED, and that distinction is the whole of the damage
+control.** `tools/acceptance.js` takes the clock off `'live'` in its shared setup, before any
+test runs, on the one page they all share — so it holds whether the suite is run whole or a
+single test is named. Everything in the suite stands. What fell is the scratchpad, and with it:
+
+| reading | stands? |
+|---|---|
+| Round 78, the bed arriving when an hour is HELD | **stands** — the hour was held, if not the one I named |
+| Round 78's lie-up A/B (`dusk` 0 → 18 → 0) | **a single-hour sample, not a swept day.** The ON/OFF/ON difference is real; the "over a swept day" framing was not. Test 54, which IS clean, reads the same effect and is what the ✅ should have rested on |
+| Round 79, the lion "truly still 100%" | **FALLS — see below** |
+| Round 80's first tether reading | **falls, and was already corrected once for a different fault** |
+
+I have re-measured what mattered rather than leaving it struck, and the corrections are below.
+
+### The lion, re-measured, and Round 79 was right for the wrong reason
+
+| | truly still | what he is doing instead |
+|---|---|---|
+| lion, Tanzania (720f) | **18%** | roam 490, feed 199, act 31 |
+| lion, India (1800f) | **26%** | roam 1214, feed 339, act 247 |
+| elephant, Tanzania (2880f) | **0%** | feedhead 1233, roam 1018, act 629 |
+
+**He is at rest about a fifth of the time, not always.** Round 79 declined to bed him because he
+was "never NOT at rest", and that reason is gone. The decision may still be right — but it is now
+an OPEN QUESTION and it is written down as one, not as a closed null. The elephant holds at 0%,
+which is exactly what the behaviour file asks for in its own gloss.
+
+### The tether, re-measured in a world that is awake
+
+| | mean drift from the birth ground | furthest | beyond the 84u disc |
+|---|---|---|---|
+| Kenya, 900f | **28u** | 170u | 7 of 78 |
+| Tanzania, 900f | **21u** | 101u | 4 of 94 |
+
+Against the sleeping reading's 11–15u. **The conclusion survives with its numbers moved**: there
+is no leash — the only constraint from `a.hx,a.hz` is the wander picker Round 77 measured at
+0.0000 a beast-second — and a beast stays near its birth ground because little moves it, not
+because anything holds it. But it is looser than the night reading made it look, and a few beasts
+in every land do walk clean out of the disc.
+
+### The matriarch: built, measured, reverted
+
+She was built on the cheapest correct mechanism, and it is worth recording because it is a good
+one: `herdRank` makes a beast WITH YOUNG outrank one without, tie-broken on a hash of the birth
+ground so the lead cannot change hands frame to frame; `herdPass` names the highest-ranked member
+`H.lead`; **`stationOf` then sets the herd's ring about HER instead of about the mob's own
+middle** — one line, and the following comes free, because Round 77's drift-to-station lever
+(0.05 a beast-second, already measured) does the work. She takes a bearing, holds it for a spell,
+turns it a little each time so the herd walks a line rather than zigzagging, and rests between
+marches so the herd still eats.
+
+It fires — 10 and 12 marches in the two lands — and it does not help:
+
+| | travel (herd-radii) | reach | herd radius |
+|---|---|---|---|
+| Kenya OFF / **ON** / OFF | 1.54 / **0.78** / 1.08 | 1.07 / **1.23** / 0.92 | 50 / 25 / 35 |
+| Tanzania OFF / **ON** / OFF | 0.90 / **0.75** / 0.66 | 0.89 / **1.17** / 0.83 | 16 / 21 / 17 |
+
+**No land travels further with a matriarch. Both lands' reach gets worse**, consistently, in the
+one direction — the herd is forever trailing stations that walk out from under it. Feed is
+untouched. And the premise is gone too: travel already reads **0.66–1.54 radii with the lead
+OFF**, where four rounds recorded "3 units, 0.13 radii". Round 77's station work moved that, and
+nobody had noticed.
+
+**Reverted.** `js/engine.js` is back where it stood. That is the fifth attempt at §2.3.5's
+matriarch across five rounds and the fifth revert, and the first of them to fail with the
+mechanism demonstrably FIRING — which is worth more than the four that failed without knowing
+whether it ran at all.
+
+### What is left standing
+
+Test 50's leader counters now say **"NO LEADER IN THIS BUILD"** again, which is the truth. The
+lion's rest is an open question with a real number against it. And the clock rule is written
+here so the next person setting an hour in a probe reads it before they trust a reading:
+**take the course of the day off 'live' first, or you are measuring the room you are sitting in.**
 
 ## 5. Further recommendations (future work)
 
