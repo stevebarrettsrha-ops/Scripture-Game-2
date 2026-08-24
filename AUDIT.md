@@ -6976,8 +6976,8 @@ not.
 
 ### What it costs, and what is still NOT claimed
 
-**The herd pass is 0.20–0.40 ms a frame** (test 53, four lands, two runs: 0.22–0.40 and
-0.197–0.345) — reckoning every herd on the
+**The herd pass is 0.20–0.43 ms a frame** (test 53, four lands, three runs: 0.22–0.40,
+0.197–0.345 and 0.224–0.427) — reckoning every herd on the
 earth once a frame, an O(n²) sweep over ninety-six beasts. At sixty frames a second that is one
 to two per cent of a frame.
 
@@ -7028,6 +7028,129 @@ often a herd walks down past a hunter it cannot see is worth knowing and is not 
 **What those original three were is not established, and is not claimed.** The run that mended
 this read nought and nought — it shows the disagreement gone and nothing further. The two counts
 are kept apart precisely so that the next run which has any will say which kind they were.
+
+## 4cb. Round 78 — §2.3.6: the daily round, measured at last, and the home nothing slept in ✅
+
+*§2.3.6 has been ✅ in PLAN.md since Round 69. **One of its clauses had ever been measured.***
+
+Round 69 built the watering and test 49 guards it. The hours, the beds and the acts are ✅ on the
+strength of AUDIT Round 54 **reading `js/behavior.js`** and reporting that "the daily round was
+already there". That entry's own last words are **"Measure first."** Nobody did.
+
+This project has been bitten by exactly that three times. §2.3.1's coats were ✅ for three rounds
+while twenty kinds came out flat, because `coatBeast` was reached only through `makeBeast`.
+§2.3.4's finer grain was claimed in Round 75 and the claim was false. And §2.3.6's own first
+clause was ✅ until Round 69 measured it and found `a.river` was read once at the instant the
+beast was set down and never again. **A thing that is ✅ because somebody read the source is not
+✅**, and this round is the measurement.
+
+### The instrument convicted itself twice before it convicted the world
+
+**Over the acts.** As first written, test 54 reported seven acts "declared but never seen":
+graze, drink, wallow, play, gape, curl, sharpen. That list was worthless. It ran the acts named
+ANYWHERE IN THE DATA against the acts seen in FOUR LANDS, and added three different things
+together: `graze` is not an act at all — `tryAct` refuses it by name, it is a TRADE performed as
+`job==='graze'`; `curl` is the hedgehog and the armadillo and `sharpen` the solitary cats, so if
+none of them stood in Kenya, Tanzania, India or Mongolia then "never seen" says nothing whatever;
+and only what is left could be a fault. **That first form would have sent this round after four
+faults that do not exist.** The acts are counted only against kinds that actually stood in the
+world now, each with the share of its own draw and the kinds named.
+
+**Over the bed.** Mended as above it reported *"49 of 86 set off home and never arrived, still
+24u off their den"* — which reads as precisely the leash fault Round 69 found in the watering,
+where the beasts set off and gave up two hundred units into a nine-hundred-unit walk. It is not.
+Only **6 of the 49** were shouldering a barrier and **none** had been taken off the earth, so the
+walk was not being stopped; it was being cut off. **The clock was mine.** The sweep holds each
+hour eighteen frames and a beast walking twenty-four units at its own pace wants about two
+hundred. Held at one bedding hour in Mongolia instead:
+
+| frames held | set off | abed | still out |
+|---|---|---|---|
+| 50 | 24 | 3 | 21 |
+| 100 | 24 | 8 | 16 |
+| 200 | 24 | 19 | 5 |
+| 400 | 24 | **22** | 2 |
+
+**The bed works.** It is the same fault this project found in test 50 — seventy frames against a
+lever that fires every twenty world-seconds — and it was found the same way: by asking what the
+measurement could possibly SEE before believing what it said. The bed is now measured in a held
+hour and the sweep is left to the two questions it can answer.
+
+### What survived, and it is the one thing no settle can fix
+
+**Sixty kinds declare a real home — a den, a burrow, a tree, a rock — and twenty-two of them keep
+hours that never turn.** `asleep` was hard-false for `day:'all'` and `day:'dusk'`, so those
+twenty-two were abed **0% of a swept day**. And `js/nest.js` RAISES those homes on the ground:
+wolf earths, bear caves, fox holes. **The world was building homes that nothing ever slept in.**
+
+A beast that keeps no HOURS still keeps a HOME. It lies up once a day for `LIE_H` hours at an
+hour hashed off its own home ground — so a wood does not drop asleep all together, and the same
+beast takes the same rest every day. It is not the long night of a diurnal beast; at any instant
+it leaves seven in eight of them about their business.
+
+**A/B/A inside one boot**, which is the only way this project has found to compare two behaviours
+without the land moving under the reading:
+
+| | off | **on** | off again |
+|---|---|---|---|
+| Kenya, `dusk` abed | 0% | **18%** | 0% |
+| Mongolia, `all` abed | 0% | **3%** | 0% |
+| the classes that already slept — day | 92% | 92% | 92% |
+| — night | 8% | 8% | 8% |
+| frame, ms | 423.5 | 446.9 | 441.8 |
+
+**The frame delta sits inside the off-to-off drift** (441.8 against 423.5 with the rule OFF both
+times), so no cost is measurable at this resolution and none is claimed. Through test 54 over
+four lands the same change reads `dusk` 0 → 12% and `all` 0 → 3%.
+
+**How much of the world it touches depends entirely on which beasts stand there**, and that is
+stated rather than averaged away: Kenya held 4 eligible beasts of 1 kind, Mongolia 17 of 5. Over
+five readings the `dusk` class comes out at 1, 10, 12, 13 and 18 points and `all` at 0, 1, 3 and
+16 — **so no number here is a number**, and what is claimed is only that the rule fires, reverses
+cleanly when switched off in the same boot, and leaves the classes that already slept alone.
+
+### The whole suite
+
+**49 pass · 0 fail · 5 pending.** The pendings are 12 and 43, both long-standing, and 50, 53 and
+54, which report and guard nothing — 50 and 53 while §2.3.5 is open, and 54 because a bar set
+before this round's reading would have been a bar set to whatever the world happened to do. In
+that run test 54 read `dusk` 13% and `all` 1%, and the bed in a held hour: **22 laid down, 0
+still out.**
+
+### The rest of §2.3.6, now that it has been looked at
+
+| clause | reading |
+|---|---|
+| the hours | **sound.** day 57% abed, night 47% — correctly anti-phased, and untouched by this round |
+| the bed | **sound**, once measured in an hour long enough to walk in: 11 laid down, **0 still out** |
+| the acts | **sound.** Every act the engine animates is performed. The only ones never seen are `drink` and `wallow`, both held by the `a.river` gate, which is Round 69's design and not a fault |
+| the watering | ✅ *Round 69*, guarded by test 49 |
+
+### And what it disturbed, which is the question a behaviour change owes
+
+Sixty-five species changing when they are awake could move the watch, the watering and the herd
+alike. All three guards were re-read on the mended tree:
+
+| | before this round | after |
+|---|---|---|
+| test 35, the watch | 485–610 samples, 70–80% watched | **550 samples, 440 watched (80%)** |
+| test 49, the watering | 32 beasts walking, 0 hunters | **41 walking, 13 at the water, 0 hunters** |
+| test 53, walk-to-station | 0.041–0.068 a beast-second | **0.051–0.074**, roam-pick still 0.0000 |
+| test 53, the herd pass | 0.20–0.35 ms/frame | 0.22–0.43 ms/frame |
+
+**2 pass · 0 fail · 1 pending. Nothing regressed**, and test 35's watched share came back to 80%
+— the value it held before Round 77, at the middle of its own spread. The herd pass's top reading
+is 0.43 against the 0.40 written last round, so **that range is widened to 0.20–0.43 rather than
+left to look tighter than it is.**
+
+### What is NOT claimed, and NOT built
+
+**The lion never sleeps.** `lion` and `elephant` are `day:'all'` with `home:'open'`, so this rule
+does not touch them — and the behaviour file's own illustration of 'all' is *"the lion, who
+sleeps twenty hours and hunts whenever he pleases"*. He does not sleep at all. That is a real
+finding of this round and it is **reported rather than fixed**: bedding the beasts of the open
+changes the hunt, the watch and the encounter, and it wants its own round with its own
+before-reading.
 
 ## 5. Further recommendations (future work)
 
