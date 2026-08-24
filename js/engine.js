@@ -9868,6 +9868,12 @@ function updateRiverLife(px,pz,dt,t){ initRiverLife();
    one exception — a thing two units across is invisible past a couple
    hundred anyway, and it must live among the flowers at the traveller's feet. */
 const AIRLIFE=[], AL_N=24, AL_R=1150;
+/* §2.3.5's flocking. NOT const: the suite reads the world with the rule off
+   and on inside ONE boot, which is the only comparison this project trusts
+   (AUDIT Round 77). Nothing in the game writes it. FLOCK_BORN_R is kept well
+   inside the 120u the flock pull itself uses, or a bird would be set down
+   beside its kind and out of reach of them in the same stroke. */
+let FLOCK_BORN=true; const FLOCK_BORN_R=62, FLOCK_R=120, FLOCK_FORAGE_R=130;
 const NESTS=[], NEST_N=10, NEST_R=430;
 function initNests(){ if(NESTS.length) return;
   for(let k=0;k<NEST_N;k++) NESTS.push({m:null,kind:null,skey:null,species:null,chicks:[],x:0,y:0,z:0,set:false,cheep:0}); }
@@ -10078,12 +10084,21 @@ function initAirLife(){ if(AIRLIFE.length) return; for(let k=0;k<AL_N;k++)
   AIRLIFE.push({m:null,type:null,x:0,y:0,z:0,tx:0,ty:0,tz:0,ph:Math.random()*6.28,heading:0,set:false}); }
 /* a place to look for food: over the water for a fisher, on the ground for
    the rest — and near the ship for the gulls that have taken to her */
-function forageSpot(b,px,pz){
+/* ---- AND WHERE IT LOOKS, WHICH IS NOT ALWAYS ABOUT THE TRAVELLER ----
+   `rad` is the ring it searches, and it defaults to the whole of AL_R, which
+   is what this has always done. A FLOCKING BIRD passes its flock's own middle
+   and a short radius instead, so that it forages WITH ITS KIND rather than
+   somewhere else entirely — and because the search is this function's, every
+   check on the ground it lands on is kept exactly as it was. Biasing the
+   RESULT instead would have been the bug: a spot carries `water`, and sliding
+   one sideways puts a gull's dive on dry land. */
+function forageSpot(b,px,pz,rad){
+  const RR=rad||AL_R;
   for(let tr=0;tr<8;tr++){
     let x,z;
     if(b.follow&&(state.mode==='boat'||state.mode==='deck')){
       const a=Math.random()*6.28, r=20+Math.random()*70; x=state.boat.x+Math.cos(a)*r; z=state.boat.z+Math.sin(a)*r; }
-    else { const a=Math.random()*6.28, r=50+Math.random()*AL_R; x=px+Math.cos(a)*r; z=pz+Math.sin(a)*r; }
+    else { const a=Math.random()*6.28, r=50+Math.random()*RR; x=px+Math.cos(a)*r; z=pz+Math.sin(a)*r; }
     const c=landAtWorld(x,z);
     if(b.fisher){ if(!c) return {x,y:WATER_Y+3,z,water:true}; }
     else if(c&&c.kind!=='wall') return {x,y:c.h*B+1.4,z,water:false};
@@ -10095,6 +10110,18 @@ function forageSpot(b,px,pz){
     const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r, c=landAtWorld(x,z);
     if(c&&c.kind!=='wall') return {x,y:c.h*B+1.4,z,water:false}; } }
   return null;
+}
+/* ---- THE MIDDLE OF THIS BIRD'S OWN FLOCK, IF IT HAS ONE ----
+   The same question the `rest` branch has asked for rounds, lifted out so the
+   HUNT can ask it too. That is the second half of why flocking never worked:
+   the rule was real, and it lived in `rest` alone — 1.4% of frames in Kenya
+   and 0.6% in India. A bird spends its day hunting, and the day is where a
+   flock has to be made. */
+function flockMid(b){
+  let mx=0,mz=0,mn=0;
+  for(const o of AIRLIFE){ if(o===b||!o.set||o.type!==b.type) continue;
+    if(Math.hypot(o.x-b.x,o.z-b.z)<FLOCK_R){ mx+=o.x; mz+=o.z; mn++; } }
+  return mn?{x:mx/mn,z:mz/mn,n:mn}:null;
 }
 /* the strike: the surface is broken, and a fish is truly taken out of the
    shoal that swims there (it is re-placed elsewhere, so the sea is not
@@ -10121,6 +10148,36 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
       const a=Math.random()*6.28,
         r=type==='butterfly'?60+Math.random()*240:alMin+Math.random()*(alMax-alMin);
       b.x=px+Math.cos(a)*r; b.z=pz+Math.sin(a)*r;
+      /* ---- AND A BIRD THAT FLOCKS IS SET DOWN BESIDE ITS OWN KIND ----
+         §2.3.5 asks for "real flocking", and a flock rule has been standing in
+         the `rest` branch below for rounds: a pull toward the mean of the same
+         kind within 120 units. MEASURED, it can almost never fire, and the
+         first of the two reasons is that THERE IS NOTHING TO FLOCK WITH.
+         Twenty-four birds serve the whole earth across seven kinds over a ring
+         eleven hundred units wide, and every one of them was set down at an
+         INDEPENDENT RANDOM POINT. Over three hundred frames in two lands:
+
+           flocking-bird-frames with no mate of their kind within 120u
+             Kenya   4,033 of 5,400   (75%)
+             India   4,304 of 4,500   (96%)
+
+         This is the very fault Round 71 found for the beasts — "the world was
+         not making herds", because ninety-six of them set down at independent
+         points in a ring two and a half thousand across sit a hundred and
+         sixty apart and a herd radius is eighty. The remedy is Round 71's, and
+         it is the prerequisite and not the feature: a bird of a flocking kind
+         goes down NEAR one of its own that is already aloft, well inside the
+         radius the existing rule already uses. */
+      if(FLOCK_BORN&&type!=='butterfly'){
+        const bh1=window.BEHAVIOR&&BEHAVIOR.birdOf(type);
+        if(bh1&&bh1.flock){
+          let host=null, seen=0;
+          for(const o of AIRLIFE){ if(o===b||!o.set||o.type!==type) continue;
+            if(Math.hypot(o.x-px,o.z-pz)>alMax) continue;
+            /* one of them at random, so a flock does not stack on its eldest */
+            seen++; if(Math.random()<1/seen) host=o; }
+          if(host){ const a2=Math.random()*6.28, r2=18+Math.random()*FLOCK_BORN_R;
+            b.x=host.x+Math.cos(a2)*r2; b.z=host.z+Math.sin(a2)*r2; } } }
       /* ---- AND NOTHING FLIES BEYOND THE WALL OF ICE ----
          Out on the crown of the ice the ground stands two thousand feet up,
          but the wall is not 'land' to landAtWorld — so every bird set down
@@ -10173,7 +10230,13 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
       else if(!wantRoost&&b.job==='roost'){ b.job='hunt'; b.spot=null; }
       switch(b.job){
         case 'hunt': {
-          if(!b.spot){ b.spot=forageSpot(b,px,pz);
+          if(!b.spot){
+            /* it looks for its dinner where its own kind are looking, and
+               falls back to the whole range if that finds nothing */
+            b.spot=null;
+            if(FLOCK_BORN&&BH&&BH.flock){ const fm=flockMid(b);
+              if(fm) b.spot=forageSpot(b,fm.x,fm.z,FLOCK_FORAGE_R); }
+            if(!b.spot) b.spot=forageSpot(b,px,pz);
             if(!b.spot){ b.job='rest'; b.jt=3; break; }
             /* no stooping THROUGH the ship at a fish under her keel — the
                strike is moved out along her beam to open water */
@@ -10266,9 +10329,8 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
                         circles with its own kind, not alone */
           const n=b.nest;
           let cx=n?n.x:b.x, cz=n?n.z:b.z; const cy=(n?n.y:b.y)+34;
-          if(BH&&BH.flock){ let mx=0,mz=0,mn=0;
-            for(const o of AIRLIFE){ if(o!==b&&o.set&&o.type===b.type&&Math.hypot(o.x-b.x,o.z-b.z)<120){ mx+=o.x; mz+=o.z; mn++; } }
-            if(mn){ cx=cx*0.4+(mx/mn)*0.6; cz=cz*0.4+(mz/mn)*0.6; } }
+          if(BH&&BH.flock){ const fm=flockMid(b);
+            if(fm){ cx=cx*0.4+fm.x*0.6; cz=cz*0.4+fm.z*0.6; } }
           /* ---- AND IT FLIES ROUND ITS CIRCLE FORWARDS ----
              The mark went round at 26 × 0.7 = 18 units a second while the
              bird flies at 30, so it overhauled its own target on every lap,
@@ -15995,6 +16057,9 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   /* §2.3.6's lie-up: how many hours a beast that keeps no clock takes to its
      own bed. Read it, or set it to nought to see the world without the rule. */
   lieHours:v=>{ if(v!==undefined) LIE_H=v; return LIE_H; },
+  /* §2.3.5's flocking: set a bird down beside its own kind, and let it forage
+     with them. Off to read the world without it, inside one boot. */
+  flockOn:v=>{ if(v!==undefined) FLOCK_BORN=v; return FLOCK_BORN; }, FLOCK_R:()=>FLOCK_R,
   stationDrift:v=>{ if(v!==undefined) STN_DRIFT=!!v; return STN_DRIFT; },
   stationFar:v=>{ if(v!==undefined) STN_FAR=+v; return STN_FAR; },
   /* ---- AND ONE PROBE THAT WRITES, WHICH IS SAID OUT LOUD ----

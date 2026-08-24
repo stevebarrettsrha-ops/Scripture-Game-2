@@ -3891,6 +3891,93 @@ T[54]={name:'THE DAILY ROUND, MEASURED — its hours, its bed, and the small bus
       perLand.join(' | ')};
   })};
 
+T[55]={name:'THE FLOCK, MEASURED — whether a bird of a flocking kind ever has one of its own by it',
+  /* §2.3.5's last unbuilt clause, *"real flocking for the birds"*, and the
+     last thing standing in the whole of Phase 6.
+
+     A flock rule had been in the tree for rounds — a pull toward the mean of
+     the same kind within 120 units, gated on `BEHAVIOR.birdOf(type).flock`,
+     which crow, dove, gull and puffin declare. It never showed, and Round 81
+     measured why. TWO faults at once, each the exact shape of one this
+     project has already found and mended elsewhere:
+
+     1. THERE WAS NOTHING TO FLOCK WITH. Twenty-four birds serve the whole
+        earth across seven kinds over a ring eleven hundred units wide, and
+        each was set down at an INDEPENDENT RANDOM POINT. Measured over three
+        hundred frames: flocking-bird-frames with no mate of their own kind
+        within 120u were 4,033 of 5,400 in Kenya (75%) and 4,304 of 4,500 in
+        India (96%). This is Round 71's finding for the beasts, word for word
+        — "the world was not making herds" — and the remedy is Round 71's:
+        a bird of a flocking kind is set down BESIDE one of its own.
+     2. THE RULE WAS NEARLY UNREACHABLE. It lived in the `rest` job alone,
+        which is 1.4% of frames in Kenya and 0.6% in India. Combined with the
+        first fault it could touch about 0.3% of bird-frames. That is Round
+        77's dead-wander-picker shape. It is asked in the HUNT now, where a
+        bird spends its day — by passing the flock's own middle to
+        `forageSpot` as the centre it searches, so that every check on the
+        ground is the one that function always made. Biasing the RESULT
+        instead would have been the bug: a spot carries `water`, and sliding
+        one sideways puts a gull's dive on dry land.
+
+     WHAT IT REPORTS, and it reports rather than guards: how often a bird of a
+     flocking kind has one of its own within the flock radius, the biggest
+     company that stands together, and how far apart two flock-mates point.
+
+     AND ONE THING IT DELIBERATELY DOES NOT CLAIM. The heading spread is
+     reported and is NOT the evidence for anything. Measured off and on inside
+     one boot it read 100° → 45° → 42° in Kenya and — → 29° → 39° in India:
+     the off-again arm is as tight as the on arm in Kenya, and the pairings
+     behind the two arms differ by more than tenfold, which is not a
+     comparison. **That birds now FLOCK is established; that they fly in step
+     is not**, and the number is left here running so the next round begins
+     with the reading rather than a feeling. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, W=window.__WORLD, B2=window.BEHAVIOR;
+    if(!D.AIRLIFE||!B2||!B2.birdOf) return {pending:'no fowl in this build'};
+    const R=D.FLOCK_R?D.FLOCK_R():120;
+    const S=W.sites();
+    const siteOf=n=>{ for(let i=0;i<S.length;i++) if(S[i]&&D.COUNTRIES[i].n===n) return S[i];
+      return null; };
+    const rows=[]; let lands=0, aloneAll=0, mateAll=0, bestAll=0, hdS=0, hdN=0;
+    for(const land of ['Kenya','India','Norway','Japan']){
+      const s2=siteOf(land); if(!s2) continue;
+      D.state.walk.x=s2.x+700; D.state.walk.z=s2.z+700; D.state.walk.feetY=undefined;
+      D.setMode('walk');
+      for(let f=0;f<30;f++){ D.updateChunks(D.state.walk.x,D.state.walk.z,600);
+        await new Promise(r=>requestAnimationFrame(r)); }
+      lands++;
+      let alone=0, withMate=0, best=0; const kinds={};
+      for(let f=0;f<220;f++){
+        await new Promise(r=>requestAnimationFrame(r));
+        for(const b of D.AIRLIFE){ if(!b.set) continue;
+          const B3=B2.birdOf(b.type); if(!B3||!B3.flock) continue;
+          kinds[b.type]=(kinds[b.type]||0)+1;
+          let m=0;
+          for(const o of D.AIRLIFE){ if(o===b||!o.set||o.type!==b.type) continue;
+            const d=Math.hypot(o.x-b.x,o.z-b.z);
+            if(d<R){ m++;
+              let dh=Math.abs(b.heading-o.heading)%(2*Math.PI);
+              if(dh>Math.PI) dh=2*Math.PI-dh;
+              hdS+=dh*180/Math.PI; hdN++; } }
+          if(m>best) best=m;
+          if(m){ withMate++; } else alone++; } }
+      aloneAll+=alone; mateAll+=withMate; if(best>bestAll) bestAll=best;
+      const tot=alone+withMate;
+      rows.push(land+': '+(Object.keys(kinds).join('/')||'no flocking kind aloft')+
+        (tot?' — with one of its own by it '+(withMate/tot*100).toFixed(0)+'% of '+tot+
+             ' bird-frames, biggest company '+best:''));
+    }
+    if(!lands) return {pending:'no land could be reached'};
+    const tot=aloneAll+mateAll;
+    if(!tot) return {pending:'no bird of a flocking kind stood in any of these lands'};
+    return {pending:'THE FLOCK, MEASURED (§2.3.5) · over '+lands+' land(s) · '+
+      'a bird of a flocking kind had one of its own within '+R+'u '+
+      (mateAll/tot*100).toFixed(0)+'% of '+tot+' bird-frames · biggest company '+bestAll+
+      ' · flock-mates pointed '+(hdN?(hdS/hdN).toFixed(0)+'° apart over '+hdN+' pairings':'—')+
+      ' (REPORTED, NOT CLAIMED — see the comment: the off-again arm read as tight as the on arm)'+
+      ' · '+rows.join(' | ')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.
