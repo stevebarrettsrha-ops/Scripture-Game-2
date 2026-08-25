@@ -7575,6 +7575,100 @@ whoever takes it up; it is not attempted here.
 part-built with every part measured, and the matriarch named as measured-and-not-built — now with
 six characterised failures behind it instead of five.
 
+## 4cg. Round 83 — PHASE 8 BEGINS: the authored places, and the Cave of Treasures ✅
+
+*§8 asks for **"a schematic format, an in-game capture tool, and the Cave of Treasures"**. This
+round delivers the format, the capture, and the cave.*
+
+### Nothing new was invented to hold it, and that is the finding
+
+Every other file in `world/` declares a RULE the whole earth obeys — a country, a river, what
+grows where, which beast keeps which hours — and the engine knows no instance by name. **A place
+is the one thing that is not**: a particular arrangement of particular blocks in ONE spot.
+
+So it goes through the door `emitHouse` and `lmPyramid` already go through — `stampBlock` into
+`SEDITS` — and inherits all three of that door's properties without a line of new machinery:
+
+| | |
+|---|---|
+| **regenerable** | never written to the save; re-stamped when its ground loads, dropped when it is left |
+| **beaten by the hand** | the mesh order is procedural → stamps → player edits, so a man may quarry the Cave of Treasures and HIS quarrying is what persists |
+| **free to save** | a place of ten thousand blocks adds nothing to the record until somebody touches it |
+
+The second is the one worth having. **An authored place is scenery you are allowed to take
+apart.** A place also names the LANDMARK it stands in rather than a latitude, so if the chart ever
+moves the Zagros the cave moves with it instead of ending in the air.
+
+### The Cave of Treasures, where the scroll says it is
+
+`world/scrolls.js` has sent the traveller to *"the Cave of Treasures, under the garden"* since
+Phase 7, and the Zagros was raised in that phase for exactly this reason — *"neither Iraq nor
+Ethiopia had a single hollow anywhere in it, so 'the Cave of Treasures in the Zagros' had nowhere
+to be."* AUDIT Round 46 refused to invent a hoard for the sea caves because it *"would have to be
+picked up and moved the day Phase 8 arrives"*. It has arrived.
+
+Measured standing in the Zagros at 40917,39105:
+
+| | cells |
+|---|---|
+| carved air (the chamber) | 128 |
+| hewn-stone floor | 49 |
+| cobble bench along the back wall | 14 |
+| gold showing in the rock | 5 |
+| stone shell | 299 |
+| | **495 = 9 × 5 × 11 exactly** |
+
+It is deliberately small and deliberately plain. **A place large enough to be interesting would
+have hidden whether the format works.** The room is the proof; the hoard can grow in its own
+round, and growing it costs one capture and no code at all — which is the point of having a
+format.
+
+### Two faults, both found by reading the world and not the code
+
+**The palette was written with `'rock'` and `'timber'`, which are not block ids at all.** They
+resolved to nought — and nought IS air — so the cave came out as a hole quarried in the mountain.
+The real ids are `stone`, `hewn-stone`, `cobble`, `gold-ore`, out of `blocks/`.
+
+**And KEEP and AIR were given one meaning where they need two.** A cave wants *keep* for the rock
+it is buried in, which must stay exactly as the Zagros made it, and *air* for the room, which must
+be carved. Written with one meaning the room is never hollowed and the place stamps as a solid
+hill. Palette index 0 is the keep slot now; index 1 onward are real blocks, and `'air'` at index 1
+is honest air and cuts.
+
+### The capture, and the round trip that is the whole of the format's correctness
+
+`tools/capture.js` boots the world, walks to a spot, reads the box and prints a complete
+`EARTH.place({...})`. **The format is therefore never typed by anybody: it is what comes out.**
+The renderer `placeSource` is shared, so the tool and any future in-game binding cannot drift
+apart.
+
+Test 56 guards it, and it does not stop at memory:
+
+> **world → object → TEXT → object → world.** The capture is rendered as file text, parsed back
+> through a stub `EARTH` exactly as the real file would be, stamped eight hundred blocks off and
+> compared cell for cell. **495/495 through memory and 495/495 through the file text.**
+
+**It earned its keep before it was even finished.** The first capture used `blockId(n)` where it
+wanted `blockOf(n).id` — the two go OPPOSITE WAYS, one taking a string and one a number — so
+every solid cell captured as AIR. Nothing but the round trip would have caught it. Proved by
+injecting that very fault back: clean it reads 495/495; with the fault it catches **367 wrong
+cells** and fails.
+
+And the capture tool found a third trap by being used: a capture's own index 0 is genuinely air,
+so `--keep` could not simply flip a flag — it would turn every captured air cell into "leave the
+ground". It INSERTS the keep slot and moves the palette up one, which is the shape the
+hand-written places already have.
+
+### What Phase 8 still owes
+
+**The in-game binding for the capture.** The engine call exists, is exposed, and is tested; what
+does not exist is marking two corners with the free hand and pressing a key. The player-facing
+control list `FREEROAM_ONLY` holds exactly five buttons and test 45 counts them, so that is a
+change to make deliberately rather than in passing.
+
+**And more places.** The format now makes them cheap, which was the entire object of doing the
+format first.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

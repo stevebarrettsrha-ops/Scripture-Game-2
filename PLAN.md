@@ -1279,6 +1279,25 @@ the Cave of Treasures. AUDIT Round 46 already refused to invent a hoard for the 
 caves on the grounds that it *"would have to be picked up and moved the day Phase 8
 arrives"*, so there is at least one thing waiting on it by name.
 
+> ## **PHASE 8 IS BEGUN — Round 83.** The format ✅, the capture ✅, the Cave of Treasures ✅.
+> **Nothing new was invented to hold it.** A place is a STAMP, through the same door
+> `emitHouse` and `lmPyramid` use, so it is regenerable, dropped with its ground, and **beaten
+> by the hand** — a man may quarry the Cave of Treasures and his quarrying is what persists.
+> A place names the LANDMARK it stands in, not a latitude, so it travels if the chart moves.
+> `world/places.js` holds the format and the cave; `tools/capture.js` prints a complete
+> `EARTH.place({...})` off any box in the world, so **the format is never typed — it is what
+> comes out**. Measured in the Zagros at 40917,39105: 128 cells of carved air, 49 of hewn
+> floor, 14 of cobble bench, 5 of gold, 299 of stone shell — 495, which is 9×5×11 exactly.
+> Test 56 guards the whole loop the format actually travels — **world → object → TEXT →
+> object → world, 495/495 both ways** — and it caught a real fault before it was finished
+> (`blockId(n)` where it wanted `blockOf(n).id`; the two go opposite ways, so every solid cell
+> captured as air). Proved by injecting that fault: 367 wrong cells, and it fails.
+> **STILL OWED: the in-game binding for the capture** — mark two corners with the free hand
+> and press a key. The engine call exists and is tested; the control does not, and
+> `FREEROAM_ONLY` holds exactly five buttons that test 45 counts, so it wants doing
+> deliberately. **And more places**, which the format now makes cheap — the whole object of
+> doing the format first. AUDIT §4cg.
+
 **Phases 9 and 10 are named in the brief and are not restated in this repository**,
 and I will not guess at them here: whatever is written down about them should be
 what the brief says, in the brief's own words, and it belongs in this section as

@@ -12380,6 +12380,36 @@ function placeCapture(ix0,iy0,iz0,w,h,d){
   if(run) out.push(run,cur);
   return {w,h,d,pal,rle:out,keep:false};
 }
+/* ---- AND A CAPTURE RENDERED AS THE FILE IT BELONGS IN ----
+   The capture hands back an object; world/places.js holds TEXT. This is the
+   one renderer both the tool and any in-game binding use, so there is exactly
+   one idea of what a place file looks like and no chance of two drifting.
+   The text it writes is a complete `EARTH.place({...})` call: paste it into
+   world/places.js and the place stands. Test 56 does better than paste it —
+   it parses the emitted text back and compares block for block, so the format
+   is guarded through the ROUND TRIP THAT MATTERS, which is out of the world
+   and into a file and back again. */
+function placeSource(cap,meta){
+  meta=meta||{};
+  const q=v=>"'"+String(v).replace(/'/g,"\\'")+"'";
+  const L=[];
+  L.push('EARTH.place({');
+  L.push('  n:'+q(meta.n||'A place')+', at:'+q(meta.at||'')+',');
+  L.push('  dx:'+(meta.dx|0)+', dy:'+(meta.dy|0)+', dz:'+(meta.dz|0)+',');
+  L.push('  w:'+cap.w+', h:'+cap.h+', d:'+cap.d+', keep:'+(cap.keep?'true':'false')+',');
+  L.push('  pal:['+cap.pal.map(q).join(',')+'],');
+  /* the rle wrapped at a readable width — it is data, but a man has to be
+     able to open the file and see that it is data and not a hash */
+  const nums=cap.rle.join(','), lines=[];
+  for(let i=0;i<nums.length;){ let j=Math.min(nums.length,i+72);
+    if(j<nums.length){ const k=nums.lastIndexOf(',',j); if(k>i) j=k+1; }
+    lines.push('    '+nums.slice(i,j)); i=j; }
+  L.push('  rle:[');
+  L.push(lines.join('\n'));
+  L.push('  ]');
+  L.push('});');
+  return L.join('\n');
+}
 function spawnLandmark(i){
   const L=LANDMARKS[i], site=landmarkSite(i);
   if(!site){ activeLandmarks.set(i,{none:true}); return; }
@@ -16137,7 +16167,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      which is what makes the round trip testable: capture a corner of the
      world, stamp it somewhere else, and the blocks must be the same. */
   places:()=>((window.EARTH&&EARTH.placeList)||[]), placesAt,
-  capture:placeCapture, placeStamp, placeWalk, blockOf,
+  capture:placeCapture, placeStamp, placeWalk, blockOf, placeSource,
   /* §2.3.6's lie-up: how many hours a beast that keeps no clock takes to its
      own bed. Read it, or set it to nought to see the world without the rule. */
   lieHours:v=>{ if(v!==undefined) LIE_H=v; return LIE_H; },

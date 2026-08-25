@@ -4004,7 +4004,14 @@ T[56]={name:'an AUTHORED PLACE stands where the scroll says it does, and a captu
      3. IT ACTUALLY STANDS. Walk to it and count what is there by name.
      4. **AND A CAPTURE OF IT IS THE SAME BLOCKS.** Read the box the place
         occupies, stamp what comes back four hundred blocks away, and compare
-        cell for cell. This is the whole of the format's correctness in one
+        cell for cell.
+     5. **AND SO IS A CAPTURE RENDERED AS A FILE AND READ BACK.** A capture
+        that is right in memory and wrong on paper is no use: what a man
+        actually does is paste `placeSource`'s text into world/places.js. The
+        text is rendered, parsed back through a stub EARTH exactly as the real
+        file would be, stamped, and compared again — closing the loop the
+        format really travels, which is world → object → TEXT → object →
+        world. This is the whole of the format's correctness in one
         assertion, and it has already earned its place: the first capture used
         `blockId(n)` where it wanted `blockOf(n).id` — the two go opposite
         ways — so every solid cell captured as AIR, and this test is what
@@ -4064,10 +4071,40 @@ T[56]={name:'an AUTHORED PLACE stands where the scroll says it does, and a captu
         if(a===b) same++; else diff++; }
       if(diff) faults.push('the capture of "'+P.n+'" came back different in '+diff+' of '+want+' cells');
 
+      /* 5. AND THE ROUND TRIP THROUGH THE FILE, which is the one that counts.
+         A capture that is right in memory and wrong on paper is no use: what
+         a man actually does is paste `placeSource`'s text into
+         world/places.js. So the text is rendered, parsed back through a stub
+         EARTH exactly as the real file would be, stamped, and compared again.
+         This closes the loop the format actually travels: world → object →
+         TEXT → object → world. */
+      let tsame=0, tdiff=0, terr=null;
+      try{
+        const src=D.placeSource(cap,{n:P.n,at:P.at,dx:0,dy:0,dz:0});
+        let parsed=null;
+        const EARTH_REAL=window.EARTH;
+        window.EARTH={place:o=>{ parsed=o; }};
+        try{ (0,eval)(src); } finally{ window.EARTH=EARTH_REAL; }
+        if(!parsed) terr='the rendered source declared no place';
+        else{
+          let pc=0; D.placeWalk(parsed,()=>pc++);
+          if(pc!==want) terr='the rendered source walks '+pc+' of '+want+' cells';
+          else{
+            const tx=ix0+800, tz=iz0+800;
+            D.placeStamp(Object.assign({},parsed,{dx:0,dy:0,dz:0,keep:false}), tx*B, tz*B, iy0*B);
+            for(let x=0;x<P.w;x++) for(let z=0;z<P.d;z++) for(let y=0;y<P.h;y++){
+              const a1=D.blockAt(ix0+x,iy0+y,iz0+z)|0, b1=D.blockAt(tx+x,iy0+y,tz+z)|0;
+              if(a1===b1) tsame++; else tdiff++; }
+            if(tdiff) terr='came back different in '+tdiff+' of '+want+' cells';
+          }
+        }
+      }catch(e){ terr='threw: '+e.message; }
+      if(terr) faults.push('"'+P.n+'" through its own FILE TEXT: '+terr);
+
       rows.push('"'+P.n+'" in '+P.at+' ('+P.w+'×'+P.h+'×'+P.d+'='+want+' cells, '+
         (P.rle.length/2)+' runs, palette '+P.pal.join('/')+') — '+
         Object.keys(got).sort((a,b)=>got[b]-got[a]).map(k=>k+' '+got[k]).join(', ')+
-        ' · round trip '+same+'/'+want+' the same');
+        ' · round trip '+same+'/'+want+' · through its file text '+tsame+'/'+want);
     }
 
     return {ok:!faults.length&&stood>0,
