@@ -7485,6 +7485,96 @@ which spoiled every scratchpad reading of three rounds until it was found and th
 measurement could possibly SEE before believing what it said. **A thing that is ✅ because
 somebody read the source is not ✅** — and Phase 6 no longer has one.
 
+## 4cf. Round 82 — the matriarch, a sixth time, and the first failure with a SHAPE ✅
+
+*Asked for knowing the odds, and it failed — but not the way the other five did. This one names
+what a matriarch mechanism must NOT be, which none of the previous five could.*
+
+### The idea, and why it was a different idea
+
+Round 80's attempt is the one worth reading, because **it fired and still failed**: a leader, and
+every station ring set about HER, so that when she walked the stations walked and the herd came
+after. Reach got worse in both lands, 1.07 → 1.23 and 0.89 → 1.17. The arithmetic of that is
+plain once seen: **reach is distance from an assigned point, the lever that re-assigns a beast
+fires 0.05 times a beast-second, and the point was moving continuously.** A follower re-aimed once
+every twenty world-seconds at a mark that had already left. Following by chasing a moving target
+cannot work at that rate, and no tuning of the ring or the march would have made it.
+
+So Round 82 moved no target at all. **The matriarch owned a BEARING and every member of her herd
+had its STEP bent along it** — a shared velocity rather than a chased mark. The station ring
+stayed where Round 77 put it, on the mob's own middle, so nobody chased anything and reach was
+left alone; the middle would simply travel, because every beast in it leaned the same way. The
+bend was applied to the step and not the position, so it passed the same cliff, water and masonry
+checks every other stride does.
+
+### It fired 0 times, and finding out why is the method working
+
+The first reading was **`bends 0`** over 13,685 herded beast-frames. Taking the condition apart
+one clause at a time, on the live world, rather than guessing:
+
+| clause | frames it held |
+|---|---|
+| in a herd at all | 13,685 |
+| `herd.head` defined | 13,685 ✓ |
+| not the lead itself | 10,460 ✓ |
+| **not fleeing and not afraid** | **867** ✗ |
+
+**`a.fear` decays PAST ZERO.** `a.fear=(a.fear||0)-dt` runs every frame and is never clamped, so
+it is a negative number almost always — and a negative number is **truthy**. Written `!a.fear`
+the gate was false nearly always, and the few calm frames never coincided with moving ones. The
+engine's own idiom, two hundred lines up, is `!(a.fear>0)`. **That is the seventh instrument or
+gate fault of this session, and the fourth found by asking what a measurement could see before
+believing what it said.**
+
+### And then it fired, and the answer is no
+
+With the gate mended it fired 4,377 and 1,298 times, and A/B/A gave a null: ON sat inside the
+OFF-to-OFF spread on every reading in both lands. **Reach was NOT damaged** — the one real
+difference from Round 80 — but travel did not move either.
+
+So the deciding question was asked, and it is not "what value should ship" but **"has this
+mechanism the AUTHORITY to move a herd at all?"** Swept in one boot on one land:
+
+| bend | travel (herd-radii) | reach | bends fired |
+|---|---|---|---|
+| 0.00 (off) | 0.68 | 1.03 | 0 |
+| 0.30 | 0.57 | 0.75 | 5,128 |
+| 0.60 | 0.51 | 0.70 | 6,116 |
+| **0.90** | **0.48** | 0.72 | **8,165** |
+| 0.00 (off) | 1.28 | 0.74 | 0 |
+
+**Travel falls MONOTONICALLY as the bend rises, and both off-arms bracket every on-reading.**
+Tripling the authority of the rule does not move a herd further; it moves it slightly less. The
+bend pulls each beast off its own mark so it spends longer correcting, while the matriarch's slow
+turn cancels the shared direction over the window. **This is not an inconclusive result. It is a
+characterised negative**, and it is the first one §2.3.5 has produced in six attempts.
+
+### Reverted, and what the six attempts now amount to
+
+`js/engine.js` is back where it stood. **Six attempts, six reverts** — but the record is no longer
+six shrugs:
+
+| | what it tried | how it failed |
+|---|---|---|
+| 54 (×4) | a station about a leader, through the wander-picker | could not be shown to work; no instrument |
+| 70 (×4) | the same, with a marching matriarch | noise — two to six mothers a reading |
+| 72 (×3) | the station taken through the GRAZING | two readings of one build, opposite directions |
+| 77 | *(the young at centre — this one SHIPPED)* | — |
+| 80 | leader + station ring set about her | **fired**; no travel gain, reach worse — a chased mark cannot be tracked at 0.05 re-aims a beast-second |
+| **82** | leader + a shared VELOCITY, no target moved | **fired**; travel falls monotonically as the rule's authority rises |
+
+**What is now known, and it is worth more than another attempt:** moving the herd's assigned
+points does not work because the re-aim rate is too low; and leaning every beast the same way
+does not work because the lean costs more in correction than it gains in displacement. **A
+seventh attempt should move neither the marks nor the steps — it should change what a beast
+WANTS**, which means the grazing choice, which Round 72 already tried once and which is the only
+lever this project has ever measured actually firing at a useful rate. That is written down for
+whoever takes it up; it is not attempted here.
+
+**Phase 6 stays as Round 81 closed it**: eleven of twelve items built and measured, item 5
+part-built with every part measured, and the matriarch named as measured-and-not-built — now with
+six characterised failures behind it instead of five.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
