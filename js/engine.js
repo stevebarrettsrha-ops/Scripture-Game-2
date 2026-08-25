@@ -12312,6 +12312,74 @@ function landmarkSite(idx){ if(LM_SITE[idx]!==undefined) return LM_SITE[idx];
   }
   LM_SITE[idx]=best||null; return LM_SITE[idx];
 }
+/* ================= THE AUTHORED PLACES — Phase 8 =================
+   A place is a particular arrangement of particular blocks, made by hand,
+   standing in ONE spot on the earth. It is the only thing in world/ that is
+   not a rule the whole earth obeys, and world/places.js says why and gives
+   the format. Here is the machinery, and it is deliberately small: a place is
+   A STAMP, so it goes through the door every village and every temple goes
+   through and inherits all three of that door's properties — regenerable,
+   dropped when its ground is left, and BEATEN BY THE HAND, so a man may
+   quarry the Cave of Treasures and his quarrying is what persists.
+
+   The order — x, then z, then y — is the one thing `read` and `write` must
+   agree on, and it is written down in both places rather than remembered. */
+function placesAt(name){
+  const out=[];
+  for(const P of (window.EARTH&&EARTH.placeList)||[]) if(P.at===name) out.push(P);
+  return out;
+}
+/* the palette index at each cell of a place, walked in the one order */
+function placeWalk(P,fn){
+  const rle=P.rle||[];
+  let x=0,z=0,y=0;
+  for(let i=0;i<rle.length;i+=2){
+    let n=rle[i]; const v=rle[i+1];
+    while(n-->0){
+      fn(x,y,z,v);
+      if(++y>=P.h){ y=0; if(++z>=P.d){ z=0; x++; } }
+    }
+  }
+}
+/* stamp one place, its floor at the ground of the landmark it stands in */
+function placeStamp(P,x0,z0,y0){
+  const ix0=Math.floor(x0/B)+(P.dx||0), iz0=Math.floor(z0/B)+(P.dz||0);
+  const iy0=Math.floor(y0/B)+(P.dy||0);
+  const keep=(P.keep!==false);
+  const ids=(P.pal||[]).map(nm=>blockId(nm));
+  placeWalk(P,(x,y,z,v)=>{
+    /* palette 0 is "leave the ground as it is" where the place says `keep`,
+       which is what lets a chamber be cut INTO a hill rather than standing
+       in a cube of quarried sky */
+    if(v===0&&keep) return;
+    stampBlock(ix0+x, iy0+y, iz0+z, ids[v]||0);
+  });
+}
+/* ---- AND THE CAPTURE, WHICH IS THE OTHER HALF OF THE FORMAT ----
+   Phase 8 asks for "an in-game capture tool". This is it: read the box a man
+   marks and hand back the very object world/places.js holds, so that the
+   format is never typed by hand — it is what comes out. `pal` is built as it
+   goes, so a capture names only the blocks it actually found.
+   It reads `blockAt`, which is procedural ground THROUGH the stamps AND the
+   hand's own edits — so what you capture is what you see, which is the only
+   rule a capture tool may have. */
+function placeCapture(ix0,iy0,iz0,w,h,d){
+  const pal=['air'], seen=Object.create(null); seen['air']=0;
+  const out=[]; let run=0, cur=-1;
+  for(let x=0;x<w;x++) for(let z=0;z<d;z++) for(let y=0;y<h;y++){
+    const n=blockAt(ix0+x,iy0+y,iz0+z)|0;
+    /* `blockOf(n).id` and NOT `blockId(n)`: `blockId` goes the other way —
+       it takes the STRING id and hands back the number. Written backwards
+       here every solid cell captured as air, and the round-trip test below
+       is what caught it, which is the whole reason the round trip exists. */
+    const b0=n&&blockOf(n), nm=b0?b0.id:'air';
+    let v=seen[nm];
+    if(v===undefined){ v=pal.length; pal.push(nm); seen[nm]=v; }
+    if(v===cur) run++; else { if(run) out.push(run,cur); cur=v; run=1; }
+  }
+  if(run) out.push(run,cur);
+  return {w,h,d,pal,rle:out,keep:false};
+}
 function spawnLandmark(i){
   const L=LANDMARKS[i], site=landmarkSite(i);
   if(!site){ activeLandmarks.set(i,{none:true}); return; }
@@ -12364,7 +12432,15 @@ function spawnLandmark(i){
     label.scale.set(220,220/6,1);
     scene.add(label);
   }
-  activeLandmarks.set(i,{g,gStruct,stamp,label,x,z,
+  /* ---- AND ANY AUTHORED PLACE THAT STANDS IN THIS LANDMARK ----
+     Kept in its OWN stamp group rather than the landmark's, so that a place
+     is dropped with its ground and nothing else, and so that a landmark with
+     no builder of its own — a RANGE, which is what the Zagros is — can still
+     hold one. */
+  const pl=placesAt(L.n);
+  let placeStamps=null;
+  if(pl.length) placeStamps=stampedGroup(()=>{ for(const P of pl) placeStamp(P,x,z,y); });
+  activeLandmarks.set(i,{g,gStruct,stamp,placeStamps,label,x,z,
     solids:(typeof lmSolids!=='undefined'&&lmSolids&&lmSolids.length)?lmSolids:null});
 }
 /* ---- the works of the ancients bar the way ----
@@ -12425,6 +12501,7 @@ function updateLandmarks(px,pz){
     if(d<trig&&!has) spawnLandmark(i);
     else if(d>trig+500&&has){ const A=activeLandmarks.get(i);
       if(A.stamp) stampDrop(A.stamp);      /* the blocks go with the triangles */
+      if(A.placeStamps) stampDrop(A.placeStamps);   /* and an authored place with its ground */
       if(A.g){ scene.remove(A.g); A.g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); }
       if(A.label){ scene.remove(A.label);
         if(A.label.material.map) A.label.material.map.dispose(); A.label.material.dispose(); }
@@ -16054,6 +16131,13 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      that herd would have it stand, and herdStat the running totals. */
   herdOf:a=>a&&a.herd||null, stationOf, herdStat:()=>Object.assign({},HSTAT),
   herdStatReset, STN_IN, STN_OUT,
+  /* ---- PHASE 8: the authored places ----
+     `capture` is the in-game tool's own engine call — mark a box, get back
+     the very object world/places.js holds. `placeStamp` lays one anywhere,
+     which is what makes the round trip testable: capture a corner of the
+     world, stamp it somewhere else, and the blocks must be the same. */
+  places:()=>((window.EARTH&&EARTH.placeList)||[]), placesAt,
+  capture:placeCapture, placeStamp, placeWalk, blockOf,
   /* §2.3.6's lie-up: how many hours a beast that keeps no clock takes to its
      own bed. Read it, or set it to nought to see the world without the rule. */
   lieHours:v=>{ if(v!==undefined) LIE_H=v; return LIE_H; },

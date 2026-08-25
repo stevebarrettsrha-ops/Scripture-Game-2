@@ -3978,6 +3978,103 @@ T[55]={name:'THE FLOCK, MEASURED — whether a bird of a flocking kind ever has 
       ' · '+rows.join(' | ')};
   })};
 
+T[56]={name:'an AUTHORED PLACE stands where the scroll says it does, and a capture of it is the same blocks',
+  /* PHASE 8, step one: authored places. §8 asks for "a schematic format, an
+     in-game capture tool, and the Cave of Treasures", and this guards the
+     first and third and the engine half of the second.
+
+     WHAT A PLACE IS. Every other file in world/ declares a RULE the whole
+     earth obeys, and the engine knows no instance by name. A place is the one
+     thing that is not: a particular arrangement of particular blocks in ONE
+     spot. It is stamped through the same door `emitHouse` and `lmPyramid` go
+     through — `stampBlock` into SEDITS — which makes it regenerable, dropped
+     when its ground is left, and BEATEN BY THE HAND. That last is the point:
+     a man may quarry the Cave of Treasures and his quarrying is what
+     persists, because the mesh order is procedural → stamps → player edits.
+
+     WHAT THIS ASKS, and the round trip is the heart of it:
+
+     1. THE PLACE IS DECLARED AND WELL-FORMED — its run-length encoding walks
+        exactly w×h×d cells, no more and no fewer. An rle that walks the wrong
+        number is a file that will stamp itself diagonally across the world
+        and look, at a glance, like a strange cave.
+     2. THE LANDMARK IT NAMES EXISTS. A place carries no latitude of its own:
+        it says which landmark it stands in, so that if the chart ever moves
+        the Zagros the cave moves with it rather than ending in the air.
+     3. IT ACTUALLY STANDS. Walk to it and count what is there by name.
+     4. **AND A CAPTURE OF IT IS THE SAME BLOCKS.** Read the box the place
+        occupies, stamp what comes back four hundred blocks away, and compare
+        cell for cell. This is the whole of the format's correctness in one
+        assertion, and it has already earned its place: the first capture used
+        `blockId(n)` where it wanted `blockOf(n).id` — the two go opposite
+        ways — so every solid cell captured as AIR, and this test is what
+        caught it. Nothing else would have.
+
+     It is a GUARD and not a report: unlike 50, 53, 54 and 55, there is a
+     right answer here and it is exact. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    if(!D.places||!D.capture) return {pending:'no authored places in this build (Phase 8)'};
+    const PL=D.places();
+    if(!PL.length) return {pending:'world/places.js declares nothing'};
+    const faults=[], rows=[];
+    let stood=0;
+
+    for(const P of PL){
+      /* 1. well-formed */
+      let cells=0; D.placeWalk(P,()=>cells++);
+      const want=P.w*P.h*P.d;
+      if(cells!==want) faults.push('"'+P.n+'" walks '+cells+' cells for a box of '+want);
+
+      /* 2. the landmark it names */
+      let li=-1;
+      for(let i=0;i<D.LANDMARKS.length;i++) if(D.LANDMARKS[i].n===P.at){ li=i; break; }
+      if(li<0){ faults.push('"'+P.n+'" stands in "'+P.at+'", which is not a landmark'); continue; }
+
+      /* 3. does it stand */
+      const [wx,wz]=D.llToWorld(D.LANDMARKS[li].lat,D.LANDMARKS[li].lon);
+      D.state.walk.x=wx; D.state.walk.z=wz; D.state.walk.feetY=undefined; D.setMode('walk');
+      for(let f=0;f<90;f++){ D.updateChunks(wx,wz,900);
+        await new Promise(r=>requestAnimationFrame(r)); }
+      const A=D.activeLandmarks.get(li);
+      if(!A||A.none){ faults.push('"'+P.at+'" never spawned, so "'+P.n+'" could not be looked for'); continue; }
+      if(!A.placeStamps){ faults.push('"'+P.n+'" laid no blocks at all'); continue; }
+      stood++;
+
+      const gc=D.landAtWorld(A.x,A.z);
+      const ix0=Math.floor(A.x/B)+(P.dx||0), iz0=Math.floor(A.z/B)+(P.dz||0);
+      const iy0=(gc?gc.h:0)+(P.dy||0);
+      const got={};
+      for(let x=0;x<P.w;x++) for(let z=0;z<P.d;z++) for(let y=0;y<P.h;y++){
+        const n=D.blockAt(ix0+x,iy0+y,iz0+z)|0;
+        const b0=n&&D.blockOf(n); const nm=b0?b0.id:'air';
+        got[nm]=(got[nm]||0)+1; }
+      /* a place that is ALL air laid nothing that shows */
+      if((got.air||0)>=want) faults.push('"'+P.n+'" stands as nothing but air');
+
+      /* 4. THE ROUND TRIP */
+      const cap=D.capture(ix0,iy0,iz0,P.w,P.h,P.d);
+      let capCells=0; D.placeWalk(cap,()=>capCells++);
+      if(capCells!==want) faults.push('the capture of "'+P.n+'" walks '+capCells+' of '+want);
+      const ox=ix0+400, oz=iz0+400;
+      D.placeStamp(Object.assign({},cap,{dx:0,dy:0,dz:0,keep:false}), ox*B, oz*B, iy0*B);
+      let same=0, diff=0;
+      for(let x=0;x<P.w;x++) for(let z=0;z<P.d;z++) for(let y=0;y<P.h;y++){
+        const a=D.blockAt(ix0+x,iy0+y,iz0+z)|0, b=D.blockAt(ox+x,iy0+y,oz+z)|0;
+        if(a===b) same++; else diff++; }
+      if(diff) faults.push('the capture of "'+P.n+'" came back different in '+diff+' of '+want+' cells');
+
+      rows.push('"'+P.n+'" in '+P.at+' ('+P.w+'×'+P.h+'×'+P.d+'='+want+' cells, '+
+        (P.rle.length/2)+' runs, palette '+P.pal.join('/')+') — '+
+        Object.keys(got).sort((a,b)=>got[b]-got[a]).map(k=>k+' '+got[k]).join(', ')+
+        ' · round trip '+same+'/'+want+' the same');
+    }
+
+    return {ok:!faults.length&&stood>0,
+      got:PL.length+' authored place(s), '+stood+' of them stood and were captured back · '+
+        rows.join(' | ')+(faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

@@ -29,13 +29,24 @@ window.EARTH={
   list:[], verseList:[], riverList:[], cityList:[], landmarkList:[],
   deepList:[], holeList:[], sceneList:[], scrollList:[], beastList:[],
   faunaList:[], floraList:[], cropList:[], mineralList:[], workList:[], blockList:[],
-  waterfallList:[],
+  waterfallList:[], placeList:[],
 
   country:function(c){this.list.push(c);},
   verses:function(v){this.verseList=v;},
   river:function(r){this.riverList.push(r);},
   city:function(c){this.cityList.push(c);},
   landmark:function(l){this.landmarkList.push(l);},
+  /* ---- AN AUTHORED PLACE (Phase 8) ----
+     Everything else in this file is a RULE the world obeys — a country, a
+     river, what grows where. A place is the one thing that is not: it is a
+     particular arrangement of particular blocks, made by hand, that stands
+     in one spot on the earth and nowhere else.
+     It is still data, and it is still stamped through the same door every
+     village and every temple goes through, which means it is REGENERABLE and
+     it LOSES TO THE HAND: a man may dig the Cave of Treasures out and his
+     digging is what persists, exactly as it does in a house. See
+     world/places.js for the format and for what each field means. */
+  place:function(p){this.placeList.push(p);},
   /* the trenches of the sea, each at its true sounding — see world/deeps.js */
   deep:function(d){this.deepList.push(d);},
   /* the blue holes: sheer shafts sunk in the reefs — see world/deeps.js */
