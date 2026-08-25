@@ -7659,6 +7659,18 @@ so `--keep` could not simply flip a flag — it would turn every captured air ce
 ground". It INSERTS the keep slot and moves the palette up one, which is the shape the
 hand-written places already have.
 
+### The suite, on the finished tree
+
+**51 pass · 0 fail · 5 pending**, the pendings being 43, 50, 53, 54 and 55 — all report-only by
+design. The pass count is up one on Round 81's 50 because test 56 is new and is a GUARD and not
+a report: unlike the herd and flock instruments there is a right answer here and it is exact.
+
+**A new file of the world now loads on every boot**, which is why the whole tree was re-read
+rather than test 56 alone: `world/places.js` is read by the manifest before the world stands, and
+the manifest's own error says why that matters — *"every block and every country is known by its
+place in the list, so what was built would be a different world under the same log."* Nothing
+moved.
+
 ### What Phase 8 still owes
 
 **The in-game binding for the capture.** The engine call exists, is exposed, and is tested; what
