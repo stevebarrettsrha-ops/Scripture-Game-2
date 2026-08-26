@@ -143,3 +143,53 @@ EARTH.place({
     return out;
   })()
 });
+
+/* ---- THE CELL OF ḤANOḴ ----
+   The other debt the scrolls have carried since Phase 7. The scroll trail
+   names "Ḥanoḵ in the Ethiopian highlands, reached through the ranges", and
+   the Simien Mountains were raised in world/landmarks.js in the same breath
+   as the Zagros, for the same reason: the scroll had nowhere to be.
+
+   "And Ḥanoḵ walked with Aluahim, and he was no more, for Aluahim took him."
+   The seventh from Adawm kept no palace and hoarded no gold; what is here is
+   a hermit's cell cut into the high rock — a chamber, a stone floor, a bench
+   where the scrolls would lie, and ALABASTER showing in the back wall where
+   the Cave of Treasures carries gold: white stone for the man who walked
+   with Aluahim, riches for the cave where the fathers were laid. The mouth
+   opens the other way (+z) so the two places are not one room copied.
+
+   Same discipline as the Cave: small, plain, `keep:true`, secret where its
+   mountain is secret. This is also the SECOND place, which makes test 56's
+   per-place loop run twice for the first time. */
+EARTH.place({
+  n:'The Cell of Ḥanoḵ', at:'The Simien Mountains',
+  dx:0, dy:-3, dz:0,
+  w:7, h:5, d:9, keep:true,
+  pal:['air','air','stone','alabaster','cobble','hewn-stone'],
+  rle:(function(){
+    const W=7,H=5,D=9;
+    const KEEP=0, AIR=1, STONE=2, ALAB=3, COBBLE=4, HEWN=5;
+    const at=(x,y,z)=>{
+      const inRoom = x>0&&x<W-1 && z>0&&z<D-1 && y>0&&y<H-1;
+      /* the mouth: a doorway two high in the +z wall, in the middle */
+      if(z===D-1 && x>=Math.floor(W/2)-1 && x<=Math.floor(W/2) && y>0 && y<3) return AIR;
+      if(inRoom){
+        if(y===1) return (z<=2)?COBBLE:HEWN;     /* the bench, and the floor */
+        return AIR;                              /* and the chamber, carved */
+      }
+      /* alabaster in the back wall, where the Cave carries gold */
+      if(z===0 && y>=2 && y<=3 && x>=2 && x<=W-3 && (x+y)%2===0) return ALAB;
+      /* the shell, laid as stone */
+      if(x===0||x===W-1||z===0||z===D-1||y===0||y===H-1) return STONE;
+      return KEEP;
+    };
+    const out=[]; let run=0, cur=-1;
+    for(let x=0;x<W;x++) for(let z=0;z<D;z++) for(let y=0;y<H;y++){
+      const v=at(x,y,z);
+      if(v===cur) run++;
+      else { if(run) out.push(run,cur); cur=v; run=1; }
+    }
+    if(run) out.push(run,cur);
+    return out;
+  })()
+});

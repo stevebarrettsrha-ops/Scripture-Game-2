@@ -2427,7 +2427,8 @@ T[45]={name:'a voyage may not fly, may not turn the year, may not set the hour, 
     const raf=()=>new Promise(r=>requestAnimationFrame(r));
     const key=async code=>{ window.dispatchEvent(new KeyboardEvent('keydown',{code}));
       window.dispatchEvent(new KeyboardEvent('keyup',{code})); await raf(); };
-    const BTNS=['b-fly','b-time','b-speed','b-daypart','b-season'];
+    /* duplicated from the engine's FREEROAM_ONLY on purpose: a list that drifts is CAUGHT here, not mirrored */
+    const BTNS=['b-fly','b-time','b-speed','b-daypart','b-season','b-capture'];
     const shown=id=>{ const e=document.getElementById(id);
       return !!e&&getComputedStyle(e).display!=='none'; };
     const seasonNow=()=>window.SEASON?window.SEASON.overrideName():null;
@@ -2522,7 +2523,8 @@ T[46]={name:'the manner a voyage was begun in survives a reload',
     const set=async roam=>page.evaluate(r=>{ const D=window.__VDBG;
       D.state.freeroam=r; D.applyFreeroam(); D.saveNow(); return !!D.state.freeroam; },roam);
     const read=async()=>page.evaluate(()=>{ const D=window.__VDBG;
-      const BTNS=['b-fly','b-time','b-speed','b-daypart','b-season'];
+      /* duplicated from the engine's FREEROAM_ONLY on purpose: a list that drifts is CAUGHT here, not mirrored */
+    const BTNS=['b-fly','b-time','b-speed','b-daypart','b-season','b-capture'];
       const shown=BTNS.filter(id=>{ const e=document.getElementById(id);
         return !!e&&getComputedStyle(e).display!=='none'; });
       return {flag:!!D.state.freeroam, shown:shown.length, of:BTNS.length}; });
@@ -4005,7 +4007,13 @@ T[56]={name:'an AUTHORED PLACE stands where the scroll says it does, and a captu
      4. **AND A CAPTURE OF IT IS THE SAME BLOCKS.** Read the box the place
         occupies, stamp what comes back four hundred blocks away, and compare
         cell for cell.
-     5. **AND SO IS A CAPTURE RENDERED AS A FILE AND READ BACK.** A capture
+     5. **AND SO IS A CAPTURE RENDERED AS A FILE AND READ BACK**, and
+     6. **SO IS THE PLAYER'S OWN BINDING** — `captureMark`, two presses on the
+        box's opposite corners with AIM swapped the way `placeFrom` proves it
+        may be, the panel's text parsed and stamped and compared. The three
+        round trips ask three different questions: does the FORMAT hold, does
+        the FILE hold, does the HAND hold.
+        (5, in full:) **A capture rendered as a file and read back.** A capture
         that is right in memory and wrong on paper is no use: what a man
         actually does is paste `placeSource`'s text into world/places.js. The
         text is rendered, parsed back through a stub EARTH exactly as the real
@@ -4101,10 +4109,50 @@ T[56]={name:'an AUTHORED PLACE stands where the scroll says it does, and a captu
       }catch(e){ terr='threw: '+e.message; }
       if(terr) faults.push('"'+P.n+'" through its own FILE TEXT: '+terr);
 
+      /* 6. AND THE PLAYER'S OWN FLOW, DRIVEN AS THE PLAYER DRIVES IT.
+         `captureMark` is the in-game binding: two presses of one button, the
+         corners taken from AIM — the cell the reticle rests on. The suite
+         swaps AIM exactly as `placeFrom` has always proved it may, presses
+         twice on this place's opposite corners, reads the panel's text back,
+         parses it through the same stub EARTH, and stamps it at a THIRD
+         offset for the same cell-for-cell comparison. This is the loop the
+         player actually walks: reticle → corners → text. */
+      let merr=null, mOK=0;
+      if(D.captureMark&&D.aimSet){
+        try{
+          D.aimSet({ix:ix0,iy:iy0,iz:iz0});           D.captureMark();
+          D.aimSet({ix:ix0+P.w-1,iy:iy0+P.h-1,iz:iz0+P.d-1}); D.captureMark();
+          D.aimSet(null);
+          const ta=document.getElementById('capture-src');
+          if(!ta||!ta.value) merr='the panel held no text';
+          else{
+            let mp=null; const ER=window.EARTH;
+            window.EARTH={place:o=>{ mp=o; }};
+            try{ (0,eval)(ta.value); } finally{ window.EARTH=ER; }
+            if(!mp) merr='the panel text declared no place';
+            else if(mp.w!==P.w||mp.h!==P.h||mp.d!==P.d)
+              merr='the panel box is '+mp.w+'×'+mp.h+'×'+mp.d+' for corners '+P.w+'×'+P.h+'×'+P.d;
+            else{
+              const mx=ix0+1200, mz=iz0+1200;
+              D.placeStamp(Object.assign({},mp,{dx:0,dy:0,dz:0,keep:false}), mx*B, mz*B, iy0*B);
+              let md=0;
+              for(let x=0;x<P.w;x++) for(let z=0;z<P.d;z++) for(let y=0;y<P.h;y++)
+                if((D.blockAt(ix0+x,iy0+y,iz0+z)|0)!==(D.blockAt(mx+x,iy0+y,mz+z)|0)) md++;
+              if(md) merr='came back different in '+md+' of '+want+' cells';
+              else mOK=want;
+            }
+          }
+          const el=document.getElementById('capture-out');
+          if(el) el.style.display='none';
+        }catch(e){ merr='threw: '+e.message; }
+        if(merr) faults.push('"'+P.n+'" through the PLAYER\'S OWN BINDING: '+merr);
+      } else faults.push('the in-game binding is not exposed');
+
       rows.push('"'+P.n+'" in '+P.at+' ('+P.w+'×'+P.h+'×'+P.d+'='+want+' cells, '+
         (P.rle.length/2)+' runs, palette '+P.pal.join('/')+') — '+
         Object.keys(got).sort((a,b)=>got[b]-got[a]).map(k=>k+' '+got[k]).join(', ')+
-        ' · round trip '+same+'/'+want+' · through its file text '+tsame+'/'+want);
+        ' · round trip '+same+'/'+want+' · through its file text '+tsame+'/'+want+
+        ' · through the hand '+mOK+'/'+want);
     }
 
     return {ok:!faults.length&&stood>0,

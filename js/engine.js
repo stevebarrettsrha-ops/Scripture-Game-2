@@ -12410,6 +12410,61 @@ function placeSource(cap,meta){
   L.push('});');
   return L.join('\n');
 }
+/* ---- THE CAPTURE, BOUND TO THE HAND ----
+   Phase 8's "in-game capture tool", the half that faces the player. The
+   engine half — `placeCapture`, `placeSource` — already exists and is
+   guarded; this is only the marking of the box and the handing over of the
+   text, and it deliberately owns NO new machinery: the corners come from
+   `AIM`, the very cell the reticle rests on, which is the same cell the
+   hand would break.
+
+   The flow is two presses of one button. The first takes the corner the eye
+   is on; the second takes the far corner, and the finished
+   `EARTH.place({...})` is shown in a panel to be copied into
+   world/places.js. A press with NOTHING under the reticle while a corner is
+   marked lets the corner go — no extra key, and Esc stays what it is (the
+   pause). There is no clipboard call: this game runs off file://, where the
+   clipboard is not to be relied on, and a textarea a man can select is the
+   honest path. */
+let _capA=null;                 /* the first corner, marked and waiting */
+function captureMark(){
+  if(!AIM){
+    if(_capA){ _capA=null; toast('The corner is let go.'); return false; }
+    toast('Look at a block — the corner is marked where the eye rests.');
+    return false; }
+  if(!_capA){ _capA={ix:AIM.ix,iy:AIM.iy,iz:AIM.iz};
+    toast('First corner marked. Look at the far corner and press again; press with nothing under the eye to let it go.');
+    return true; }
+  const a=_capA; _capA=null;
+  const ix0=Math.min(a.ix,AIM.ix), iy0=Math.min(a.iy,AIM.iy), iz0=Math.min(a.iz,AIM.iz);
+  const w=Math.abs(AIM.ix-a.ix)+1, h=Math.abs(AIM.iy-a.iy)+1, d=Math.abs(AIM.iz-a.iz)+1;
+  const cap=placeCapture(ix0,iy0,iz0,w,h,d);
+  captureShow(placeSource(cap,{n:'A place',at:'',dx:0,dy:0,dz:0}),
+    w+'×'+h+'×'+d+' blocks at '+ix0+','+iy0+','+iz0);
+  return true;
+}
+/* the panel the text is handed over in — plain DOM, made once */
+function captureShow(src,caption){
+  let el=$('capture-out');
+  if(!el){
+    el=document.createElement('div'); el.id='capture-out';
+    el.style.cssText='position:fixed;inset:8% 12%;z-index:60;background:#14100b;'+
+      'border:1px solid #6b5a3e;border-radius:8px;padding:14px;display:flex;'+
+      'flex-direction:column;gap:8px;color:#d8cdb4;font:13px/1.4 system-ui';
+    el.innerHTML='<div id="capture-cap" style="font-weight:bold"></div>'+
+      '<div>Paste this into <b>world/places.js</b> — give it its name, and the landmark it stands in.</div>'+
+      '<textarea id="capture-src" readonly spellcheck="false" style="flex:1;background:#0c0a07;'+
+        'color:#cfe3b8;border:1px solid #443a28;border-radius:4px;padding:8px;'+
+        'font:12px/1.35 monospace;white-space:pre;resize:none"></textarea>'+
+      '<button class="btn" id="capture-done" style="align-self:flex-end">Done</button>';
+    document.body.appendChild(el);
+    $('capture-done').onclick=()=>{ el.style.display='none'; };
+    $('capture-src').onfocus=function(){ this.select(); };
+  }
+  $('capture-cap').textContent='Captured: '+caption;
+  $('capture-src').value=src;
+  el.style.display='flex';
+}
 function spawnLandmark(i){
   const L=LANDMARKS[i], site=landmarkSite(i);
   if(!site){ activeLandmarks.set(i,{none:true}); return; }
@@ -14876,7 +14931,7 @@ async function loadSaved(){
 /* ---- THE POWERS THAT BELONG TO FREE ROAM ALONE ----
    One list, obeyed by the rail, by the keyboard and by the menu, so the
    three can never disagree about what a voyage may and may not do. */
-const FREEROAM_ONLY=['b-fly','b-time','b-speed','b-daypart','b-season'];
+const FREEROAM_ONLY=['b-fly','b-time','b-speed','b-daypart','b-season','b-capture'];
 /* The gate is a BODY CLASS and a stylesheet rule, never an inline display:
    updateFlyBtn sets its own inline display on b-fly whenever the mode
    changes, and an inline style beats anything set here — so the Rise Up
@@ -15005,6 +15060,7 @@ $('b-daypart').onclick=()=>{ if(!roamOnly()) return;
 updateDayBtn();
 $('b-map').onclick=toggleMap;
 $('b-season').onclick=()=>{ if(roamOnly()) cycleSeason(); };
+$('b-capture').onclick=()=>{ if(roamOnly()) captureMark(); };
 updateSeasonBtn();
 $('b-ashore').onclick=toggleAshore;
 $('b-fly').onclick=()=>{ if(roamOnly()) takeFlight(); };
@@ -16168,6 +16224,10 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      world, stamp it somewhere else, and the blocks must be the same. */
   places:()=>((window.EARTH&&EARTH.placeList)||[]), placesAt,
   capture:placeCapture, placeStamp, placeWalk, blockOf, placeSource,
+  /* the binding itself, so the suite can drive the player's own flow:
+     swap AIM (the pattern placeFrom proves), press, press again, and read
+     the panel's text back */
+  captureMark, aimSet:a=>{ AIM=a; },
   /* §2.3.6's lie-up: how many hours a beast that keeps no clock takes to its
      own bed. Read it, or set it to nought to see the world without the rule. */
   lieHours:v=>{ if(v!==undefined) LIE_H=v; return LIE_H; },
