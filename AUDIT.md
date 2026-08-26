@@ -7681,6 +7681,97 @@ change to make deliberately rather than in passing.
 **And more places.** The format now makes them cheap, which was the entire object of doing the
 format first.
 
+## 4ch. Round 84 — the capture in the player's hand, and the Cell of Ḥanoḵ ✅
+
+*Round 83 closed with two named debts: the in-game binding for the capture, and more places.
+Both are paid, and the round added a third round trip to the guard while it was about it.*
+
+### The binding, and why it is one function
+
+`captureMark()` is the whole of the in-game tool: **two presses of one button, the corners taken
+from `AIM`** — the very cell the reticle rests on, which is the same cell the hand would break.
+First press marks the corner the eye is on; second takes the far corner, and the finished
+`EARTH.place({...})` is shown in a panel with a select-on-focus textarea, to be copied into
+`world/places.js`. A press with nothing under the reticle while a corner is marked lets the
+corner go — no new key, and Esc stays what it is (the pause). **No clipboard call**: this game
+runs off `file://`, where the clipboard is not to be relied on, and a textarea a man can select
+is the honest path.
+
+The button is `b-capture`, sixth on the roam-only list, hidden on a voyage **by the same
+stylesheet rule as the other five** — never by inline display, which is the trap the engine's own
+comment at `applyFreeroam` records (Rise Up came back on a voyage that way once). Tests 45 and 46
+now read **"0 of 6 on a voyage, 6 of 6 in free roam"**, both ways across a reload; their
+duplicated button lists carry a comment saying the duplication is deliberate, so a drifting
+engine list is CAUGHT there rather than mirrored.
+
+### The Cell of Ḥanoḵ, which pays the other scroll debt
+
+The trail names *"Ḥanoḵ in the Ethiopian highlands, reached through the ranges"*, and the Simien
+Mountains were raised in Phase 7 in the same breath as the Zagros, for the same reason: the
+scroll had nowhere to be. The seventh from Adawm kept no palace, so what stands is a hermit's
+cell cut into the high rock — and **alabaster in the back wall where the Cave of Treasures
+carries gold**: white stone for the man who walked with Aluahim, riches for the cave where the
+fathers were laid. The mouth opens the other way, so the two places are not one room copied.
+
+| | Cave of Treasures | Cell of Ḥanoḵ |
+|---|---|---|
+| box | 9×5×11 = 495 | 7×5×9 = 315 |
+| carved air | 128 | 74 |
+| floor / bench | 49 hewn / 14 cobble | 25 hewn / 10 cobble |
+| in the back wall | 5 gold-ore | 3 alabaster |
+| shell | 299 stone | 203 stone |
+
+It is also the **second** place, so test 56's per-place loop ran twice for the first time.
+
+### Test 56 now closes three round trips, and names the question each asks
+
+| | the loop | the question |
+|---|---|---|
+| 4 | world → object → world | does the **FORMAT** hold |
+| 5 | world → object → **TEXT** → object → world | does the **FILE** hold |
+| 6 | reticle → corners → panel text → object → world | does the **HAND** hold |
+
+The sixth drives `captureMark` exactly as the player does — `AIM` swapped the way `placeFrom` has
+always proved it may be, two presses on the box's opposite corners, the panel's text parsed
+through the stub EARTH, stamped at a third offset and compared cell for cell. **Each trip reports
+its positive count in the row** — "through the hand 495/495" — so a silently skipped check can
+never read as a passing one, which is the exact shape of the fault test 50 taught this project in
+Round 80.
+
+**Proved by injection**: an off-by-one in the box arithmetic (the far corner lost) fails both
+places with the exact diagnostic — *"the panel box is 8×4×10 for corners 9×5×11"* — and reads
+0/495 through the hand. Restored: 495/495 and 315/315.
+
+### The suite found the round's one real fault, and the targeted tests never could have
+
+The three tests that own every changed surface — 45, 46, 56 — were run first and passed. **The
+full suite then failed tests 30 and 31**, the only two that boot the SECOND game
+(`scripture-unfolds/index.html`), both on a 180-second boot timeout.
+
+The fault was this round's own. The second game keeps an **engine-sockets** block — a hidden stub
+for every button the shared engine reaches for, in its own words *"so the shared engine can be
+updated for the voyage without ever having to know this game exists."* This round taught the
+engine to reach for `b-capture` and did not provide the socket, so on that page
+`$('b-capture').onclick=` threw on null, the boot script died, and `__UNFOLD` never stood. **The
+targeted tests could not have seen it, because none of them boots that page.** That is the whole
+argument for running the suite even when the diff looks contained, and it is written here because
+this round is the proof.
+
+One line mends it — the socket, added to the block in the order the block keeps. Re-run on the
+mended tree, tests 30 and 31 pass. **The composite verdict is stated as the composite it is**:
+the full run read 49 pass · 2 fail · 5 pending on the tree as first committed; the two fails were
+this one fault; mended, the two tests pass alone, and no other test touches that page. No single
+run of the whole suite has read the mended tree, and that is said rather than rounded up.
+
+### What Phase 8 still owes
+
+**The sea caves' "something at the back"** — Round 46's IOU. That is 84 *procedural* caves found
+by census, and a place anchors to a landmark BY NAME, so it wants an anchoring design this format
+does not yet give (a place anchored to "the nearest sea cave" is a rule, not a place, and the
+line between the two is the whole architecture of `world/`). Named as the open question, not
+attempted. **And the Cave of Treasures' hoard can now grow** — one capture and no code, which
+both rounds built toward.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

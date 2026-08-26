@@ -1292,11 +1292,17 @@ arrives"*, so there is at least one thing waiting on it by name.
 > object → world, 495/495 both ways** — and it caught a real fault before it was finished
 > (`blockId(n)` where it wanted `blockOf(n).id`; the two go opposite ways, so every solid cell
 > captured as air). Proved by injecting that fault: 367 wrong cells, and it fails.
-> **STILL OWED: the in-game binding for the capture** — mark two corners with the free hand
-> and press a key. The engine call exists and is tested; the control does not, and
-> `FREEROAM_ONLY` holds exactly five buttons that test 45 counts, so it wants doing
-> deliberately. **And more places**, which the format now makes cheap — the whole object of
-> doing the format first. AUDIT §4cg.
+> ~~STILL OWED: the in-game binding for the capture~~ — **PAID, Round 84.** `captureMark()`:
+> two presses of one button, corners from `AIM`, the finished `EARTH.place({...})` in a panel
+> to copy. `b-capture` is sixth on the roam-only list; tests 45/46 count "0 of 6 / 6 of 6"
+> both ways across a reload. ~~And more places~~ — **the Cell of Ḥanoḵ stands in the Simien
+> Mountains** (315 cells: alabaster in the back wall where the Cave carries gold), paying the
+> other scroll debt and making test 56's per-place loop run twice. Test 56 now closes THREE
+> round trips per place — the format, the file, the hand — each reporting its positive count,
+> and the hand's was proved by injection (an off-by-one fails both places by name).
+> **What Phase 8 still owes: the sea caves' "something at the back"** (Round 46's IOU) — 84
+> PROCEDURAL caves found by census, where a place anchors to a landmark BY NAME; that wants an
+> anchoring design, named as the open question rather than attempted. AUDIT §4cg–§4ch.
 
 **Phases 9 and 10 are named in the brief and are not restated in this repository**,
 and I will not guess at them here: whatever is written down about them should be
