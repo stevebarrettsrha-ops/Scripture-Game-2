@@ -1716,8 +1716,18 @@ T[38]={name:'in a VOYAGE, a blow breaks, what breaks drops, the drop is taken up
          after waiting out a beast 3×"; a beast that never moves at all and it
          still fails, "REFUSED — a beast is standing there (asked 8×)". The
          retry cannot paper over a cell that is truly blocked. */
+      /* ---- AND ROUND 85 TAUGHT IT THE SAME RULE FOR A VILLAGER ----
+         The suite failed here again, having done every other thing right:
+         "REFUSED — Naarah is standing there (asked 2×)". Naarah is a
+         VILLAGER, and the beast-regex above could not know her name — nor
+         any of a hundred villagers' names. But the engine has exactly ONE
+         line that makes this refusal, `who+' is standing there'`, and it
+         makes it only for a LIVING thing — so the honest match is the
+         engine's own sentence, not a list of names. A villager walks on
+         exactly as a beast does, and no other refusal contains these words
+         ("something already stands there" does not). */
       let r=D.placeFrom(aim), tries=1;
-      while(r&&r.no&&/beast|creature|animal/i.test(r.no)&&tries<8){
+      while(r&&r.no&&/ is standing there/.test(r.no)&&tries<8){
         await D.settle(45); r=D.placeFrom(aim); tries++; }
       /* WHERE IT LAID IS WHAT IS ASKED. A block goes in on the AIR SIDE of
          the struck face — `at` in the answer — and not into the cell that was
@@ -1725,7 +1735,7 @@ T[38]={name:'in a VOYAGE, a blow breaks, what breaks drops, the drop is taken up
          nothing stands" of a block standing perfectly well one cell over.
          A tool refuses by answering nothing at all, which is also read. */
       const stands=r&&r.at&&D.solidAt((r.at[0]+0.5)*B,(r.at[1]+0.5)*B,(r.at[2]+0.5)*B);
-      const waited=tries>1?(' after waiting out a beast '+(tries-1)+'×'):'';
+      const waited=tries>1?(' after waiting out whoever stood there '+(tries-1)+'×'):'';
       laid=!r?('REFUSED — a tool is held, and a tool is not laid')
           :r.no?('REFUSED — '+r.no+' (asked '+tries+'×)')
           :stands?('laid at '+r.at.join(',')+', and it stands'+waited)

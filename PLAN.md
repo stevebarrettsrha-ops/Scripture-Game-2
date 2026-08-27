@@ -1300,9 +1300,17 @@ arrives"*, so there is at least one thing waiting on it by name.
 > other scroll debt and making test 56's per-place loop run twice. Test 56 now closes THREE
 > round trips per place — the format, the file, the hand — each reporting its positive count,
 > and the hand's was proved by injection (an off-by-one fails both places by name).
-> **What Phase 8 still owes: the sea caves' "something at the back"** (Round 46's IOU) — 84
-> PROCEDURAL caves found by census, where a place anchors to a landmark BY NAME; that wants an
-> anchoring design, named as the open question rather than attempted. AUDIT §4cg–§4ch.
+> ~~What Phase 8 still owes: the sea caves' "something at the back"~~ — **PAID, Round 85, and
+> with it EVERY NAMED ITEM OF §8 IS BUILT AND GUARDED.** The anchoring question was answered by
+> splitting the format's two halves: the SCHEMATIC stays authored data, the ANCHOR is declared
+> as the rule it truly is (`in:'seacave', share:3`), and the engine's placement pass does the
+> rule's work — test 27's own census made in-engine, mouth found by the open sea beside it, the
+> BACK found by walking the carve's own axis, a hash of the back cell deciding for ever. The
+> Castaway's Cache stands at the back of one sea cave in three: wrecked timber, salt, silver in
+> the wall. Read: 18 caves in radius, 4 with the cache, 4 of 4 at the true back, the same set
+> after leaving and returning; scan 8.9 ms mean with inland crossings near-free. Proved by
+> injection (stamped at the mouth, all four named). **What remains in Phase 8 is open-ended,
+> not owed: growing the hoards, one capture and no code apiece.** AUDIT §4cg–§4ci.
 
 **Phases 9 and 10 are named in the brief and are not restated in this repository**,
 and I will not guess at them here: whatever is written down about them should be

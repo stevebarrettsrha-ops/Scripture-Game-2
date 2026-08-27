@@ -7772,6 +7772,95 @@ line between the two is the whole architecture of `world/`). Named as the open q
 attempted. **And the Cave of Treasures' hoard can now grow** — one capture and no code, which
 both rounds built toward.
 
+## 4ci. Round 85 — the something at the back of the sea caves, and PHASE 8's LAST NAMED IOU PAID ✅
+
+*Round 46 carved 84 sea caves and shipped them empty on purpose: "the cave ships; what is in it
+waits for the phase whose whole job is putting things in places." Rounds 83–84 built that phase's
+machinery. This round fills the caves — and pays the design question the audit had left standing.*
+
+### The question, and the answer that keeps the line
+
+**The sea caves have no names.** They are procedural — 84 hollows found by census — while a place
+anchors to a landmark BY NAME, and *"a place anchored to 'the nearest sea cave' is a rule, not a
+place, and the line between the two is the whole architecture of `world/`."*
+
+The answer **splits the format's two halves instead of blurring them**:
+
+| half | what it is | where it lives |
+|---|---|---|
+| the SCHEMATIC | authored, particular — pal, rle, box, keep | `world/places.js`, exactly as the Cave of Treasures' |
+| the ANCHOR | **a rule** — `in:'seacave', share:3` | declared as data; the engine's placement pass does the rule's work |
+
+No `at`, no dx/dy/dz. *At the back of one sea cave in three, this stands.* Which caves, and which
+way the cache faces, is the engine reading the world — not the file naming a spot. One
+declaration, no code per instance, and the line holds.
+
+### The rule's work
+
+The pass makes **the census test 27 has always made**, in-engine: a hollow at the waterline with
+rock over it is a cave column; one with open sea beside it is a MOUTH; walking inland — straight
+away from the sea, which is the axis the carve itself worked along — the last hollow column is
+**THE BACK**. A one-deep notch holds nothing and a hollow under two blocks high has no room, so
+neither qualifies. A `hash2` of the back cell against 1-in-share decides — the same device as the
+lie-up hour and the herd stations — **so the same cave answers the same way on every visit and
+every boot.** The stamp goes through `stampedGroup` like every landmark's: regenerable, dropped
+when the coast is left behind, and beaten by the hand — a man may row in and take the cache
+apart.
+
+**What stands: the Castaway's Cache** — the timber of a wrecked skiff on the floor, salt crusted
+on it, and silver-ore in the wall one step beyond; the something the castaway never came back
+for. A ONE-WIDE schematic — a sea cave is a notch — so no rotation machinery was built: four
+cells, three placed, and the only orientation is a direction, which is the rule half's to give.
+
+### Read off the world
+
+| | |
+|---|---|
+| qualifying caves at the best coast (of 25 surveyed) | 80 |
+| in the engine's own radius | 18 caves, **4 hold the cache** (declared 1 in 3) |
+| at the true back, blocks as declared | **4 of 4** |
+| the coast left and returned to | **the same set** |
+| the scan | 12.3 ms full; **8.9 ms mean** once an inland crossing costs only the pre-check |
+
+**The pre-check is the reading acted on**: the scan fires on every chunk crossing and most
+crossings are inland. A cave needs open sea beside it, and open sea is where `cell()` answers
+nothing — so ~170 coarse, deterministic lookups say whether there is any sea in the ring at all.
+No sea, no walk.
+
+**Proved by injection**: stamped at the mouth instead of the back, test 57 fails all four caches
+by name — *"the hollow runs on inland"* — because the guard asks BOTH ends: no hollow further
+inland (it is the last), and a way out outward (a cache at the mouth has open sea there instead).
+Test 27 is untouched at 84 of 84. Test 56 skips the rule-anchored schematic **by its anchor
+kind** and says so in its own report — *"guarded by test 57, not here"* — so a skip can never
+pass for coverage, which is Round 80's lesson kept.
+
+### The suite, and one more guard taught about the living
+
+**51 pass · 1 fail · 5 pending** — and the 51 includes tests 30 and 31 passing on the mended
+socket, which closes Round 84's stated gap: the whole suite has now read that tree. The pendings
+are the report-only five (43, 50, 53, 54, 55). Test 57 passed inside the full run exactly as it
+passed alone — 4 of 4 at the true back, the same set on return. The scan's mean read 13.4 ms over
+27 scans in the suite against 8.9 ms in the targeted run, and the difference is honest: the suite
+LIVES on coasts, so few of its crossings are the cheap inland kind; both numbers are kept.
+
+**The one fail is test 38, and the world was right — for the second time.** *"REFUSED — Naarah is
+standing there."* Naarah is a VILLAGER. Round 77 taught this test that a beast is not a wall and
+walks on; its retry matched `/beast|creature|animal/i`, and no regex of kinds can know a hundred
+villagers' names. But the engine has exactly ONE line that makes this refusal —
+`who+' is standing there'` — and makes it only for a living thing, so the honest match is **the
+engine's own sentence**, not a longer list of names. No other refusal contains those words.
+Proved by injection: a villager forced to linger three asks is waited out and the block lays on
+the fourth, *"after waiting out whoever stood there 3×"*; restored, it lays first try. The verdict
+is stated as the composite it is: the full run read the un-mended test, the mend is proved alone,
+and nothing else in the run touches that path.
+
+### Where Phase 8 now stands
+
+**Every named item of §8 is built and guarded**: the schematic format, the capture (headless tool
+AND the player's own binding), the Cave of Treasures, the Cell of Ḥanoḵ, and the something at the
+back of the sea caves. What remains is open-ended, not owed: growing the hoards, which costs one
+capture and no code — the whole object of building the format first.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
