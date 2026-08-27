@@ -364,7 +364,22 @@ T[13]={name:'the mark falls on the block the eye is on, and on the right face of
     const p=D.playerXZ(), t=D.blockUnder(p.x+5*B,p.z);
     if(!t) return {ok:false,got:'no ground under the traveller'};
     const n=D.blockId('brick'); if(!n) return {ok:false,got:'the registry does not know brick'};
-    const ix=t.ix, iy=t.iy+5, iz=t.iz;            /* well clear of the ground */
+    /* ---- "THROUGH NOTHING BUT AIR" IS VERIFIED NOW, NOT ASSUMED ----
+       Round 86 made the boles blocks, and this test's -z ray promptly struck
+       a TREE standing between the stand-off point and the brick — rightly:
+       before, a trunk was geometry and a block-ray passed through it; now it
+       is the world, and the world was in the way. The premise this test
+       states in its own comment ("reached at from all six ways through
+       nothing but air") was assumed of a spot five blocks up; it is HUNTED
+       for now: the first pocket, climbing from +5, whose centre and six
+       three-block approach paths are all truly empty. */
+    let ix=t.ix, iy=t.iy+5, iz=t.iz;
+    { const clear=(jx,jy,jz)=>!D.blockSolidAt(jx,jy,jz);
+      const pocket=(jy)=>{ for(let k=-3;k<=3;k++)
+          if(!clear(ix+k,jy,iz)||!clear(ix,jy+k,iz)||!clear(ix,jy,iz+k)) return false;
+        return true; };
+      for(let up=0;up<24&&!pocket(iy);up++) iy++;
+    }
     const cx=(ix+0.5)*B, cy=(iy+0.5)*B, cz=(iz+0.5)*B;
     D.setBlock(cx,cy,cz,n);
     await D.settle(2);
