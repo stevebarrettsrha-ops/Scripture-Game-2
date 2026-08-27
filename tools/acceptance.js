@@ -1716,8 +1716,18 @@ T[38]={name:'in a VOYAGE, a blow breaks, what breaks drops, the drop is taken up
          after waiting out a beast 3×"; a beast that never moves at all and it
          still fails, "REFUSED — a beast is standing there (asked 8×)". The
          retry cannot paper over a cell that is truly blocked. */
+      /* ---- AND ROUND 85 TAUGHT IT THE SAME RULE FOR A VILLAGER ----
+         The suite failed here again, having done every other thing right:
+         "REFUSED — Naarah is standing there (asked 2×)". Naarah is a
+         VILLAGER, and the beast-regex above could not know her name — nor
+         any of a hundred villagers' names. But the engine has exactly ONE
+         line that makes this refusal, `who+' is standing there'`, and it
+         makes it only for a LIVING thing — so the honest match is the
+         engine's own sentence, not a list of names. A villager walks on
+         exactly as a beast does, and no other refusal contains these words
+         ("something already stands there" does not). */
       let r=D.placeFrom(aim), tries=1;
-      while(r&&r.no&&/beast|creature|animal/i.test(r.no)&&tries<8){
+      while(r&&r.no&&/ is standing there/.test(r.no)&&tries<8){
         await D.settle(45); r=D.placeFrom(aim); tries++; }
       /* WHERE IT LAID IS WHAT IS ASKED. A block goes in on the AIR SIDE of
          the struck face — `at` in the answer — and not into the cell that was
@@ -1725,7 +1735,7 @@ T[38]={name:'in a VOYAGE, a blow breaks, what breaks drops, the drop is taken up
          nothing stands" of a block standing perfectly well one cell over.
          A tool refuses by answering nothing at all, which is also read. */
       const stands=r&&r.at&&D.solidAt((r.at[0]+0.5)*B,(r.at[1]+0.5)*B,(r.at[2]+0.5)*B);
-      const waited=tries>1?(' after waiting out a beast '+(tries-1)+'×'):'';
+      const waited=tries>1?(' after waiting out whoever stood there '+(tries-1)+'×'):'';
       laid=!r?('REFUSED — a tool is held, and a tool is not laid')
           :r.no?('REFUSED — '+r.no+' (asked '+tries+'×)')
           :stands?('laid at '+r.at.join(',')+', and it stands'+waited)
@@ -2427,7 +2437,8 @@ T[45]={name:'a voyage may not fly, may not turn the year, may not set the hour, 
     const raf=()=>new Promise(r=>requestAnimationFrame(r));
     const key=async code=>{ window.dispatchEvent(new KeyboardEvent('keydown',{code}));
       window.dispatchEvent(new KeyboardEvent('keyup',{code})); await raf(); };
-    const BTNS=['b-fly','b-time','b-speed','b-daypart','b-season'];
+    /* duplicated from the engine's FREEROAM_ONLY on purpose: a list that drifts is CAUGHT here, not mirrored */
+    const BTNS=['b-fly','b-time','b-speed','b-daypart','b-season','b-capture'];
     const shown=id=>{ const e=document.getElementById(id);
       return !!e&&getComputedStyle(e).display!=='none'; };
     const seasonNow=()=>window.SEASON?window.SEASON.overrideName():null;
@@ -2522,7 +2533,8 @@ T[46]={name:'the manner a voyage was begun in survives a reload',
     const set=async roam=>page.evaluate(r=>{ const D=window.__VDBG;
       D.state.freeroam=r; D.applyFreeroam(); D.saveNow(); return !!D.state.freeroam; },roam);
     const read=async()=>page.evaluate(()=>{ const D=window.__VDBG;
-      const BTNS=['b-fly','b-time','b-speed','b-daypart','b-season'];
+      /* duplicated from the engine's FREEROAM_ONLY on purpose: a list that drifts is CAUGHT here, not mirrored */
+    const BTNS=['b-fly','b-time','b-speed','b-daypart','b-season','b-capture'];
       const shown=BTNS.filter(id=>{ const e=document.getElementById(id);
         return !!e&&getComputedStyle(e).display!=='none'; });
       return {flag:!!D.state.freeroam, shown:shown.length, of:BTNS.length}; });
@@ -3889,6 +3901,412 @@ T[54]={name:'THE DAILY ROUND, MEASURED — its hours, its bed, and the small bus
         (never.map(w=>w+' ('+hereDecl[w]+' beasts, '+(why[w].share*100).toFixed(0)+
           '% of their draw: '+why[w].who.join('/')+')').join(', ')||'none')+' · '+
       perLand.join(' | ')};
+  })};
+
+T[55]={name:'THE FLOCK, MEASURED — whether a bird of a flocking kind ever has one of its own by it',
+  /* §2.3.5's last unbuilt clause, *"real flocking for the birds"*, and the
+     last thing standing in the whole of Phase 6.
+
+     A flock rule had been in the tree for rounds — a pull toward the mean of
+     the same kind within 120 units, gated on `BEHAVIOR.birdOf(type).flock`,
+     which crow, dove, gull and puffin declare. It never showed, and Round 81
+     measured why. TWO faults at once, each the exact shape of one this
+     project has already found and mended elsewhere:
+
+     1. THERE WAS NOTHING TO FLOCK WITH. Twenty-four birds serve the whole
+        earth across seven kinds over a ring eleven hundred units wide, and
+        each was set down at an INDEPENDENT RANDOM POINT. Measured over three
+        hundred frames: flocking-bird-frames with no mate of their own kind
+        within 120u were 4,033 of 5,400 in Kenya (75%) and 4,304 of 4,500 in
+        India (96%). This is Round 71's finding for the beasts, word for word
+        — "the world was not making herds" — and the remedy is Round 71's:
+        a bird of a flocking kind is set down BESIDE one of its own.
+     2. THE RULE WAS NEARLY UNREACHABLE. It lived in the `rest` job alone,
+        which is 1.4% of frames in Kenya and 0.6% in India. Combined with the
+        first fault it could touch about 0.3% of bird-frames. That is Round
+        77's dead-wander-picker shape. It is asked in the HUNT now, where a
+        bird spends its day — by passing the flock's own middle to
+        `forageSpot` as the centre it searches, so that every check on the
+        ground is the one that function always made. Biasing the RESULT
+        instead would have been the bug: a spot carries `water`, and sliding
+        one sideways puts a gull's dive on dry land.
+
+     WHAT IT REPORTS, and it reports rather than guards: how often a bird of a
+     flocking kind has one of its own within the flock radius, the biggest
+     company that stands together, and how far apart two flock-mates point.
+
+     AND ONE THING IT DELIBERATELY DOES NOT CLAIM. The heading spread is
+     reported and is NOT the evidence for anything. Measured off and on inside
+     one boot it read 100° → 45° → 42° in Kenya and — → 29° → 39° in India:
+     the off-again arm is as tight as the on arm in Kenya, and the pairings
+     behind the two arms differ by more than tenfold, which is not a
+     comparison. **That birds now FLOCK is established; that they fly in step
+     is not**, and the number is left here running so the next round begins
+     with the reading rather than a feeling. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, W=window.__WORLD, B2=window.BEHAVIOR;
+    if(!D.AIRLIFE||!B2||!B2.birdOf) return {pending:'no fowl in this build'};
+    const R=D.FLOCK_R?D.FLOCK_R():120;
+    const S=W.sites();
+    const siteOf=n=>{ for(let i=0;i<S.length;i++) if(S[i]&&D.COUNTRIES[i].n===n) return S[i];
+      return null; };
+    const rows=[]; let lands=0, aloneAll=0, mateAll=0, bestAll=0, hdS=0, hdN=0;
+    for(const land of ['Kenya','India','Norway','Japan']){
+      const s2=siteOf(land); if(!s2) continue;
+      D.state.walk.x=s2.x+700; D.state.walk.z=s2.z+700; D.state.walk.feetY=undefined;
+      D.setMode('walk');
+      for(let f=0;f<30;f++){ D.updateChunks(D.state.walk.x,D.state.walk.z,600);
+        await new Promise(r=>requestAnimationFrame(r)); }
+      lands++;
+      let alone=0, withMate=0, best=0; const kinds={};
+      for(let f=0;f<220;f++){
+        await new Promise(r=>requestAnimationFrame(r));
+        for(const b of D.AIRLIFE){ if(!b.set) continue;
+          const B3=B2.birdOf(b.type); if(!B3||!B3.flock) continue;
+          kinds[b.type]=(kinds[b.type]||0)+1;
+          let m=0;
+          for(const o of D.AIRLIFE){ if(o===b||!o.set||o.type!==b.type) continue;
+            const d=Math.hypot(o.x-b.x,o.z-b.z);
+            if(d<R){ m++;
+              let dh=Math.abs(b.heading-o.heading)%(2*Math.PI);
+              if(dh>Math.PI) dh=2*Math.PI-dh;
+              hdS+=dh*180/Math.PI; hdN++; } }
+          if(m>best) best=m;
+          if(m){ withMate++; } else alone++; } }
+      aloneAll+=alone; mateAll+=withMate; if(best>bestAll) bestAll=best;
+      const tot=alone+withMate;
+      rows.push(land+': '+(Object.keys(kinds).join('/')||'no flocking kind aloft')+
+        (tot?' — with one of its own by it '+(withMate/tot*100).toFixed(0)+'% of '+tot+
+             ' bird-frames, biggest company '+best:''));
+    }
+    if(!lands) return {pending:'no land could be reached'};
+    const tot=aloneAll+mateAll;
+    if(!tot) return {pending:'no bird of a flocking kind stood in any of these lands'};
+    return {pending:'THE FLOCK, MEASURED (§2.3.5) · over '+lands+' land(s) · '+
+      'a bird of a flocking kind had one of its own within '+R+'u '+
+      (mateAll/tot*100).toFixed(0)+'% of '+tot+' bird-frames · biggest company '+bestAll+
+      ' · flock-mates pointed '+(hdN?(hdS/hdN).toFixed(0)+'° apart over '+hdN+' pairings':'—')+
+      ' (REPORTED, NOT CLAIMED — see the comment: the off-again arm read as tight as the on arm)'+
+      ' · '+rows.join(' | ')};
+  })};
+
+T[56]={name:'an AUTHORED PLACE stands where the scroll says it does, and a capture of it is the same blocks',
+  /* PHASE 8, step one: authored places. §8 asks for "a schematic format, an
+     in-game capture tool, and the Cave of Treasures", and this guards the
+     first and third and the engine half of the second.
+
+     WHAT A PLACE IS. Every other file in world/ declares a RULE the whole
+     earth obeys, and the engine knows no instance by name. A place is the one
+     thing that is not: a particular arrangement of particular blocks in ONE
+     spot. It is stamped through the same door `emitHouse` and `lmPyramid` go
+     through — `stampBlock` into SEDITS — which makes it regenerable, dropped
+     when its ground is left, and BEATEN BY THE HAND. That last is the point:
+     a man may quarry the Cave of Treasures and his quarrying is what
+     persists, because the mesh order is procedural → stamps → player edits.
+
+     WHAT THIS ASKS, and the round trip is the heart of it:
+
+     1. THE PLACE IS DECLARED AND WELL-FORMED — its run-length encoding walks
+        exactly w×h×d cells, no more and no fewer. An rle that walks the wrong
+        number is a file that will stamp itself diagonally across the world
+        and look, at a glance, like a strange cave.
+     2. THE LANDMARK IT NAMES EXISTS. A place carries no latitude of its own:
+        it says which landmark it stands in, so that if the chart ever moves
+        the Zagros the cave moves with it rather than ending in the air.
+     3. IT ACTUALLY STANDS. Walk to it and count what is there by name.
+     4. **AND A CAPTURE OF IT IS THE SAME BLOCKS.** Read the box the place
+        occupies, stamp what comes back four hundred blocks away, and compare
+        cell for cell.
+     5. **AND SO IS A CAPTURE RENDERED AS A FILE AND READ BACK**, and
+     6. **SO IS THE PLAYER'S OWN BINDING** — `captureMark`, two presses on the
+        box's opposite corners with AIM swapped the way `placeFrom` proves it
+        may be, the panel's text parsed and stamped and compared. The three
+        round trips ask three different questions: does the FORMAT hold, does
+        the FILE hold, does the HAND hold.
+        (5, in full:) **A capture rendered as a file and read back.** A capture
+        that is right in memory and wrong on paper is no use: what a man
+        actually does is paste `placeSource`'s text into world/places.js. The
+        text is rendered, parsed back through a stub EARTH exactly as the real
+        file would be, stamped, and compared again — closing the loop the
+        format really travels, which is world → object → TEXT → object →
+        world. This is the whole of the format's correctness in one
+        assertion, and it has already earned its place: the first capture used
+        `blockId(n)` where it wanted `blockOf(n).id` — the two go opposite
+        ways — so every solid cell captured as AIR, and this test is what
+        caught it. Nothing else would have.
+
+     It is a GUARD and not a report: unlike 50, 53, 54 and 55, there is a
+     right answer here and it is exact. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    if(!D.places||!D.capture) return {pending:'no authored places in this build (Phase 8)'};
+    const PL=D.places();
+    if(!PL.length) return {pending:'world/places.js declares nothing'};
+    const faults=[], rows=[];
+    let stood=0;
+
+    for(const P of PL){
+      /* a RULE-ANCHORED schematic (`in:'seacave'`) has no landmark to stand
+         in and no fixed spot to read back — test 57 owns it, where the rule
+         itself is driven. Skipped by its anchor kind, and said out loud in
+         the report so a skip can never pass for coverage. */
+      if(P.in){ rows.push('"'+P.n+'" is rule-anchored (in:'+P.in+') — guarded by test 57, not here'); continue; }
+      /* 1. well-formed */
+      let cells=0; D.placeWalk(P,()=>cells++);
+      const want=P.w*P.h*P.d;
+      if(cells!==want) faults.push('"'+P.n+'" walks '+cells+' cells for a box of '+want);
+
+      /* 2. the landmark it names */
+      let li=-1;
+      for(let i=0;i<D.LANDMARKS.length;i++) if(D.LANDMARKS[i].n===P.at){ li=i; break; }
+      if(li<0){ faults.push('"'+P.n+'" stands in "'+P.at+'", which is not a landmark'); continue; }
+
+      /* 3. does it stand */
+      const [wx,wz]=D.llToWorld(D.LANDMARKS[li].lat,D.LANDMARKS[li].lon);
+      D.state.walk.x=wx; D.state.walk.z=wz; D.state.walk.feetY=undefined; D.setMode('walk');
+      for(let f=0;f<90;f++){ D.updateChunks(wx,wz,900);
+        await new Promise(r=>requestAnimationFrame(r)); }
+      const A=D.activeLandmarks.get(li);
+      if(!A||A.none){ faults.push('"'+P.at+'" never spawned, so "'+P.n+'" could not be looked for'); continue; }
+      if(!A.placeStamps){ faults.push('"'+P.n+'" laid no blocks at all'); continue; }
+      stood++;
+
+      const gc=D.landAtWorld(A.x,A.z);
+      const ix0=Math.floor(A.x/B)+(P.dx||0), iz0=Math.floor(A.z/B)+(P.dz||0);
+      const iy0=(gc?gc.h:0)+(P.dy||0);
+      const got={};
+      for(let x=0;x<P.w;x++) for(let z=0;z<P.d;z++) for(let y=0;y<P.h;y++){
+        const n=D.blockAt(ix0+x,iy0+y,iz0+z)|0;
+        const b0=n&&D.blockOf(n); const nm=b0?b0.id:'air';
+        got[nm]=(got[nm]||0)+1; }
+      /* a place that is ALL air laid nothing that shows */
+      if((got.air||0)>=want) faults.push('"'+P.n+'" stands as nothing but air');
+
+      /* 4. THE ROUND TRIP */
+      const cap=D.capture(ix0,iy0,iz0,P.w,P.h,P.d);
+      let capCells=0; D.placeWalk(cap,()=>capCells++);
+      if(capCells!==want) faults.push('the capture of "'+P.n+'" walks '+capCells+' of '+want);
+      const ox=ix0+400, oz=iz0+400;
+      D.placeStamp(Object.assign({},cap,{dx:0,dy:0,dz:0,keep:false}), ox*B, oz*B, iy0*B);
+      let same=0, diff=0;
+      for(let x=0;x<P.w;x++) for(let z=0;z<P.d;z++) for(let y=0;y<P.h;y++){
+        const a=D.blockAt(ix0+x,iy0+y,iz0+z)|0, b=D.blockAt(ox+x,iy0+y,oz+z)|0;
+        if(a===b) same++; else diff++; }
+      if(diff) faults.push('the capture of "'+P.n+'" came back different in '+diff+' of '+want+' cells');
+
+      /* 5. AND THE ROUND TRIP THROUGH THE FILE, which is the one that counts.
+         A capture that is right in memory and wrong on paper is no use: what
+         a man actually does is paste `placeSource`'s text into
+         world/places.js. So the text is rendered, parsed back through a stub
+         EARTH exactly as the real file would be, stamped, and compared again.
+         This closes the loop the format actually travels: world → object →
+         TEXT → object → world. */
+      let tsame=0, tdiff=0, terr=null;
+      try{
+        const src=D.placeSource(cap,{n:P.n,at:P.at,dx:0,dy:0,dz:0});
+        let parsed=null;
+        const EARTH_REAL=window.EARTH;
+        window.EARTH={place:o=>{ parsed=o; }};
+        try{ (0,eval)(src); } finally{ window.EARTH=EARTH_REAL; }
+        if(!parsed) terr='the rendered source declared no place';
+        else{
+          let pc=0; D.placeWalk(parsed,()=>pc++);
+          if(pc!==want) terr='the rendered source walks '+pc+' of '+want+' cells';
+          else{
+            const tx=ix0+800, tz=iz0+800;
+            D.placeStamp(Object.assign({},parsed,{dx:0,dy:0,dz:0,keep:false}), tx*B, tz*B, iy0*B);
+            for(let x=0;x<P.w;x++) for(let z=0;z<P.d;z++) for(let y=0;y<P.h;y++){
+              const a1=D.blockAt(ix0+x,iy0+y,iz0+z)|0, b1=D.blockAt(tx+x,iy0+y,tz+z)|0;
+              if(a1===b1) tsame++; else tdiff++; }
+            if(tdiff) terr='came back different in '+tdiff+' of '+want+' cells';
+          }
+        }
+      }catch(e){ terr='threw: '+e.message; }
+      if(terr) faults.push('"'+P.n+'" through its own FILE TEXT: '+terr);
+
+      /* 6. AND THE PLAYER'S OWN FLOW, DRIVEN AS THE PLAYER DRIVES IT.
+         `captureMark` is the in-game binding: two presses of one button, the
+         corners taken from AIM — the cell the reticle rests on. The suite
+         swaps AIM exactly as `placeFrom` has always proved it may, presses
+         twice on this place's opposite corners, reads the panel's text back,
+         parses it through the same stub EARTH, and stamps it at a THIRD
+         offset for the same cell-for-cell comparison. This is the loop the
+         player actually walks: reticle → corners → text. */
+      let merr=null, mOK=0;
+      if(D.captureMark&&D.aimSet){
+        try{
+          D.aimSet({ix:ix0,iy:iy0,iz:iz0});           D.captureMark();
+          D.aimSet({ix:ix0+P.w-1,iy:iy0+P.h-1,iz:iz0+P.d-1}); D.captureMark();
+          D.aimSet(null);
+          const ta=document.getElementById('capture-src');
+          if(!ta||!ta.value) merr='the panel held no text';
+          else{
+            let mp=null; const ER=window.EARTH;
+            window.EARTH={place:o=>{ mp=o; }};
+            try{ (0,eval)(ta.value); } finally{ window.EARTH=ER; }
+            if(!mp) merr='the panel text declared no place';
+            else if(mp.w!==P.w||mp.h!==P.h||mp.d!==P.d)
+              merr='the panel box is '+mp.w+'×'+mp.h+'×'+mp.d+' for corners '+P.w+'×'+P.h+'×'+P.d;
+            else{
+              const mx=ix0+1200, mz=iz0+1200;
+              D.placeStamp(Object.assign({},mp,{dx:0,dy:0,dz:0,keep:false}), mx*B, mz*B, iy0*B);
+              let md=0;
+              for(let x=0;x<P.w;x++) for(let z=0;z<P.d;z++) for(let y=0;y<P.h;y++)
+                if((D.blockAt(ix0+x,iy0+y,iz0+z)|0)!==(D.blockAt(mx+x,iy0+y,mz+z)|0)) md++;
+              if(md) merr='came back different in '+md+' of '+want+' cells';
+              else mOK=want;
+            }
+          }
+          const el=document.getElementById('capture-out');
+          if(el) el.style.display='none';
+        }catch(e){ merr='threw: '+e.message; }
+        if(merr) faults.push('"'+P.n+'" through the PLAYER\'S OWN BINDING: '+merr);
+      } else faults.push('the in-game binding is not exposed');
+
+      rows.push('"'+P.n+'" in '+P.at+' ('+P.w+'×'+P.h+'×'+P.d+'='+want+' cells, '+
+        (P.rle.length/2)+' runs, palette '+P.pal.join('/')+') — '+
+        Object.keys(got).sort((a,b)=>got[b]-got[a]).map(k=>k+' '+got[k]).join(', ')+
+        ' · round trip '+same+'/'+want+' · through its file text '+tsame+'/'+want+
+        ' · through the hand '+mOK+'/'+want);
+    }
+
+    return {ok:!faults.length&&stood>0,
+      got:PL.length+' authored place(s), '+stood+' of them stood and were captured back · '+
+        rows.join(' | ')+(faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[57]={name:'the something at the back of the sea caves — there, at the BACK, and the same cave every time',
+  /* PHASE 8's last named IOU. Round 46 carved the sea caves and shipped them
+     empty on purpose: "the cave ships; what is in it waits for the phase
+     whose whole job is putting things in places." This is that something —
+     the Castaway's Cache — and the design question it answers is the one the
+     audit left standing: THE SEA CAVES HAVE NO NAMES. They are procedural,
+     found by census, while a place anchors to a landmark by name.
+
+     The answer splits the format's two halves instead of blurring them. The
+     SCHEMATIC stays authored data in world/places.js; the ANCHOR is declared
+     as the rule it truly is — `in:'seacave', share:N` — and the engine's
+     placement pass does the rule's work: find the caves by the same census
+     this suite has made since test 27, walk each from its MOUTH inland to
+     its BACK, and let a hash of the back cell decide, for ever, whether this
+     cave is one of the one-in-N.
+
+     WHAT THIS GUARDS, and each is a different failure:
+     1. THE CACHE EXISTS — at least one qualifying cave on a real coast holds
+        it — and NOT EVERY cave does, when there are enough caves that "all"
+        would mean the share is broken.
+     2. IT STANDS AT THE BACK. From the cache column, walking further INLAND
+        along the cave's own axis finds no more hollow (it is the last), and
+        walking OUTWARD finds one (the way out exists). Both ends asked, so a
+        cache stamped at the mouth — where outward is open sea — is named.
+     3. THE BLOCKS ARE THE SCHEMATIC'S: planks on the floor, salt on the
+        planks, silver-ore in the wall one step beyond.
+     4. THE SAME CAVE ANSWERS THE SAME WAY TWICE. Leave the coast far enough
+        that the stamps are reaped, come back, and the set of caches must be
+        the very same set — determinism is the whole point of hashing the
+        cave's own ground.
+     5. AND THE SCAN'S COST IS READ, not assumed.
+
+     `share` is small (one cave in three) so a coast with a handful of caves
+     still shows both a cache and a cave without one. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    if(!D.seacaves||!D.seacaveScan) return {pending:'no sea-cave cache in this build (Phase 8)'};
+    const CACHE=(D.places()||[]).find(P=>P.in==='seacave');
+    if(!CACHE) return {pending:'world/places.js declares no seacave schematic'};
+    const faults=[];
+
+    /* the census walk, mirrored from test 27 and the engine both: a hollow at
+       the waterline with rock over it and room enough */
+    const hollow=(ix,iz)=>{
+      const c=D.cellRaw(ix,iz); if(!c||c.kind==='floe') return null;
+      const sp=D.cellSpans(ix,iz); if(!sp) return null;
+      for(let i=0;i<sp.length;i+=2){
+        if(sp[i]>4) continue;
+        if(sp[i+1]>=c.h-1) return null;
+        return {lo:sp[i],hi:sp[i+1]};
+      }
+      return null; };
+    const caveBacks=(cx,cz,R)=>{
+      const backs=new Map();
+      for(let dx=-R;dx<=R;dx++) for(let dz=-R;dz<=R;dz++){
+        const ix=cx+dx, iz=cz+dz;
+        const hol=hollow(ix,iz); if(!hol) continue;
+        let sea=null;
+        for(const d of [[1,0],[-1,0],[0,1],[0,-1]])
+          if(!D.cellRaw(ix+d[0],iz+d[1])){ sea=d; break; }
+        if(!sea) continue;
+        const ux=-sea[0], uz=-sea[1];
+        let bx=ix, bz=iz, bh=hol, depth=1;
+        for(let k=1;k<=12;k++){
+          const h2=hollow(ix+ux*k,iz+uz*k); if(!h2) break;
+          bx=ix+ux*k; bz=iz+uz*k; bh=h2; depth=k+1; }
+        if(depth<2) continue;
+        if(bh.hi<bh.lo+1) continue;
+        backs.set(bx+','+bz,{bx,bz,ux,uz,lo:bh.lo}); }
+      return backs; };
+
+    /* ---- find the coast with the most qualifying caves ---- */
+    const S=window.__WORLD.sites();
+    const spots=[]; for(const g of D.RANGES) spots.push([g.x,g.z]);
+    for(let i=0;i<10;i++) if(S[i]) spots.push([S[i].x,S[i].z]);
+    let best=null, bestN=0;
+    for(const [sx,sz] of spots){
+      const n=caveBacks(Math.floor(sx/B),Math.floor(sz/B),110).size;
+      if(n>bestN){ bestN=n; best=[sx,sz]; } }
+    if(!best||!bestN) return {pending:'no sea cave qualifies on any surveyed coast'};
+
+    const go=async(x,z)=>{ D.state.walk.x=x; D.state.walk.z=z;
+      D.state.walk.feetY=undefined; D.setMode('walk');
+      for(let f=0;f<50;f++){ D.updateChunks(x,z,600);
+        await new Promise(r=>requestAnimationFrame(r)); } };
+    await go(best[0],best[1]);
+    const cx=Math.floor(best[0]/B), cz=Math.floor(best[1]/B);
+    const eligible=caveBacks(cx,cz,72);        /* the engine's own radius */
+    const caches=D.seacaves().filter(S2=>Math.hypot(S2.bx-cx,S2.bz-cz)<=72*1.2);
+
+    /* 1. it exists, and not everywhere */
+    if(!caches.length) faults.push('not one cache stands among '+eligible.size+' qualifying caves');
+    if(eligible.size>=6&&caches.length>=eligible.size)
+      faults.push('EVERY one of '+eligible.size+' caves holds the cache — the share of 1 in '+(CACHE.share||3)+' is broken');
+
+    /* 2 and 3. at the back, and the schematic's own blocks */
+    const nameAt=(ix,iy,iz)=>{ const n=D.blockAt(ix,iy,iz)|0;
+      const b0=n&&D.blockOf(n); return b0?b0.id:'air'; };
+    let backOK=0;
+    for(const C of caches){
+      const inland=hollow(C.bx+C.ux,C.bz+C.uz);
+      const outward=hollow(C.bx-C.ux,C.bz-C.uz);
+      if(inland) faults.push('a cache at '+C.key+' is not at the back — the hollow runs on inland');
+      else if(!outward) faults.push('a cache at '+C.key+' has no way out — it is stamped at the mouth or in the wall');
+      else backOK++;
+      const got=nameAt(C.bx,C.lo,C.bz)+'/'+nameAt(C.bx,C.lo+1,C.bz)+'/'+
+        nameAt(C.bx+C.ux,C.lo+1,C.bz+C.uz);
+      if(got!=='planks/salt/silver-ore')
+        faults.push('a cache at '+C.key+' stands as '+got+' where planks/salt/silver-ore was declared');
+    }
+
+    /* 4. the same cave answers the same way twice */
+    const before=caches.map(C=>C.key).sort().join(' ');
+    await go(best[0]+3000,best[1]+3000);
+    const gone=D.seacaves().filter(S2=>Math.hypot(S2.bx-cx,S2.bz-cz)<=72*1.2).length;
+    if(gone) faults.push(gone+' cache stamp(s) survived the coast being left behind');
+    await go(best[0],best[1]);
+    const after=D.seacaves().filter(S2=>Math.hypot(S2.bx-cx,S2.bz-cz)<=72*1.2)
+      .map(C=>C.key).sort().join(' ');
+    if(after!==before)
+      faults.push('the coast answered differently on return — before ['+before+'] after ['+after+']');
+
+    /* 5. the cost */
+    const ms=D.seacaveMs();
+    return {ok:!faults.length,
+      got:bestN+' qualifying cave(s) at the best coast (of '+spots.length+' surveyed) · '+
+        'in the engine\'s own radius: '+eligible.size+' caves, '+caches.length+
+        ' hold the cache (share declared 1 in '+(CACHE.share||3)+') · '+
+        backOK+' of '+caches.length+' at the true back, blocks as declared · '+
+        'left and returned: the same set · scan '+
+        (ms.scans?(ms.ms/ms.scans).toFixed(2):'—')+' ms over '+ms.scans+' scan(s)'+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
 T[37]={name:'no county is given to the sea by a river running through it',

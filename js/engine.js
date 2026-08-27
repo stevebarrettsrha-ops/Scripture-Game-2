@@ -9868,6 +9868,12 @@ function updateRiverLife(px,pz,dt,t){ initRiverLife();
    one exception — a thing two units across is invisible past a couple
    hundred anyway, and it must live among the flowers at the traveller's feet. */
 const AIRLIFE=[], AL_N=24, AL_R=1150;
+/* §2.3.5's flocking. NOT const: the suite reads the world with the rule off
+   and on inside ONE boot, which is the only comparison this project trusts
+   (AUDIT Round 77). Nothing in the game writes it. FLOCK_BORN_R is kept well
+   inside the 120u the flock pull itself uses, or a bird would be set down
+   beside its kind and out of reach of them in the same stroke. */
+let FLOCK_BORN=true; const FLOCK_BORN_R=62, FLOCK_R=120, FLOCK_FORAGE_R=130;
 const NESTS=[], NEST_N=10, NEST_R=430;
 function initNests(){ if(NESTS.length) return;
   for(let k=0;k<NEST_N;k++) NESTS.push({m:null,kind:null,skey:null,species:null,chicks:[],x:0,y:0,z:0,set:false,cheep:0}); }
@@ -10078,12 +10084,21 @@ function initAirLife(){ if(AIRLIFE.length) return; for(let k=0;k<AL_N;k++)
   AIRLIFE.push({m:null,type:null,x:0,y:0,z:0,tx:0,ty:0,tz:0,ph:Math.random()*6.28,heading:0,set:false}); }
 /* a place to look for food: over the water for a fisher, on the ground for
    the rest — and near the ship for the gulls that have taken to her */
-function forageSpot(b,px,pz){
+/* ---- AND WHERE IT LOOKS, WHICH IS NOT ALWAYS ABOUT THE TRAVELLER ----
+   `rad` is the ring it searches, and it defaults to the whole of AL_R, which
+   is what this has always done. A FLOCKING BIRD passes its flock's own middle
+   and a short radius instead, so that it forages WITH ITS KIND rather than
+   somewhere else entirely — and because the search is this function's, every
+   check on the ground it lands on is kept exactly as it was. Biasing the
+   RESULT instead would have been the bug: a spot carries `water`, and sliding
+   one sideways puts a gull's dive on dry land. */
+function forageSpot(b,px,pz,rad){
+  const RR=rad||AL_R;
   for(let tr=0;tr<8;tr++){
     let x,z;
     if(b.follow&&(state.mode==='boat'||state.mode==='deck')){
       const a=Math.random()*6.28, r=20+Math.random()*70; x=state.boat.x+Math.cos(a)*r; z=state.boat.z+Math.sin(a)*r; }
-    else { const a=Math.random()*6.28, r=50+Math.random()*AL_R; x=px+Math.cos(a)*r; z=pz+Math.sin(a)*r; }
+    else { const a=Math.random()*6.28, r=50+Math.random()*RR; x=px+Math.cos(a)*r; z=pz+Math.sin(a)*r; }
     const c=landAtWorld(x,z);
     if(b.fisher){ if(!c) return {x,y:WATER_Y+3,z,water:true}; }
     else if(c&&c.kind!=='wall') return {x,y:c.h*B+1.4,z,water:false};
@@ -10095,6 +10110,18 @@ function forageSpot(b,px,pz){
     const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r, c=landAtWorld(x,z);
     if(c&&c.kind!=='wall') return {x,y:c.h*B+1.4,z,water:false}; } }
   return null;
+}
+/* ---- THE MIDDLE OF THIS BIRD'S OWN FLOCK, IF IT HAS ONE ----
+   The same question the `rest` branch has asked for rounds, lifted out so the
+   HUNT can ask it too. That is the second half of why flocking never worked:
+   the rule was real, and it lived in `rest` alone — 1.4% of frames in Kenya
+   and 0.6% in India. A bird spends its day hunting, and the day is where a
+   flock has to be made. */
+function flockMid(b){
+  let mx=0,mz=0,mn=0;
+  for(const o of AIRLIFE){ if(o===b||!o.set||o.type!==b.type) continue;
+    if(Math.hypot(o.x-b.x,o.z-b.z)<FLOCK_R){ mx+=o.x; mz+=o.z; mn++; } }
+  return mn?{x:mx/mn,z:mz/mn,n:mn}:null;
 }
 /* the strike: the surface is broken, and a fish is truly taken out of the
    shoal that swims there (it is re-placed elsewhere, so the sea is not
@@ -10121,6 +10148,36 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
       const a=Math.random()*6.28,
         r=type==='butterfly'?60+Math.random()*240:alMin+Math.random()*(alMax-alMin);
       b.x=px+Math.cos(a)*r; b.z=pz+Math.sin(a)*r;
+      /* ---- AND A BIRD THAT FLOCKS IS SET DOWN BESIDE ITS OWN KIND ----
+         §2.3.5 asks for "real flocking", and a flock rule has been standing in
+         the `rest` branch below for rounds: a pull toward the mean of the same
+         kind within 120 units. MEASURED, it can almost never fire, and the
+         first of the two reasons is that THERE IS NOTHING TO FLOCK WITH.
+         Twenty-four birds serve the whole earth across seven kinds over a ring
+         eleven hundred units wide, and every one of them was set down at an
+         INDEPENDENT RANDOM POINT. Over three hundred frames in two lands:
+
+           flocking-bird-frames with no mate of their kind within 120u
+             Kenya   4,033 of 5,400   (75%)
+             India   4,304 of 4,500   (96%)
+
+         This is the very fault Round 71 found for the beasts — "the world was
+         not making herds", because ninety-six of them set down at independent
+         points in a ring two and a half thousand across sit a hundred and
+         sixty apart and a herd radius is eighty. The remedy is Round 71's, and
+         it is the prerequisite and not the feature: a bird of a flocking kind
+         goes down NEAR one of its own that is already aloft, well inside the
+         radius the existing rule already uses. */
+      if(FLOCK_BORN&&type!=='butterfly'){
+        const bh1=window.BEHAVIOR&&BEHAVIOR.birdOf(type);
+        if(bh1&&bh1.flock){
+          let host=null, seen=0;
+          for(const o of AIRLIFE){ if(o===b||!o.set||o.type!==type) continue;
+            if(Math.hypot(o.x-px,o.z-pz)>alMax) continue;
+            /* one of them at random, so a flock does not stack on its eldest */
+            seen++; if(Math.random()<1/seen) host=o; }
+          if(host){ const a2=Math.random()*6.28, r2=18+Math.random()*FLOCK_BORN_R;
+            b.x=host.x+Math.cos(a2)*r2; b.z=host.z+Math.sin(a2)*r2; } } }
       /* ---- AND NOTHING FLIES BEYOND THE WALL OF ICE ----
          Out on the crown of the ice the ground stands two thousand feet up,
          but the wall is not 'land' to landAtWorld — so every bird set down
@@ -10173,7 +10230,13 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
       else if(!wantRoost&&b.job==='roost'){ b.job='hunt'; b.spot=null; }
       switch(b.job){
         case 'hunt': {
-          if(!b.spot){ b.spot=forageSpot(b,px,pz);
+          if(!b.spot){
+            /* it looks for its dinner where its own kind are looking, and
+               falls back to the whole range if that finds nothing */
+            b.spot=null;
+            if(FLOCK_BORN&&BH&&BH.flock){ const fm=flockMid(b);
+              if(fm) b.spot=forageSpot(b,fm.x,fm.z,FLOCK_FORAGE_R); }
+            if(!b.spot) b.spot=forageSpot(b,px,pz);
             if(!b.spot){ b.job='rest'; b.jt=3; break; }
             /* no stooping THROUGH the ship at a fish under her keel — the
                strike is moved out along her beam to open water */
@@ -10266,9 +10329,8 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
                         circles with its own kind, not alone */
           const n=b.nest;
           let cx=n?n.x:b.x, cz=n?n.z:b.z; const cy=(n?n.y:b.y)+34;
-          if(BH&&BH.flock){ let mx=0,mz=0,mn=0;
-            for(const o of AIRLIFE){ if(o!==b&&o.set&&o.type===b.type&&Math.hypot(o.x-b.x,o.z-b.z)<120){ mx+=o.x; mz+=o.z; mn++; } }
-            if(mn){ cx=cx*0.4+(mx/mn)*0.6; cz=cz*0.4+(mz/mn)*0.6; } }
+          if(BH&&BH.flock){ const fm=flockMid(b);
+            if(fm){ cx=cx*0.4+fm.x*0.6; cz=cz*0.4+fm.z*0.6; } }
           /* ---- AND IT FLIES ROUND ITS CIRCLE FORWARDS ----
              The mark went round at 26 × 0.7 = 18 units a second while the
              bird flies at 30, so it overhauled its own target on every lap,
@@ -12250,6 +12312,259 @@ function landmarkSite(idx){ if(LM_SITE[idx]!==undefined) return LM_SITE[idx];
   }
   LM_SITE[idx]=best||null; return LM_SITE[idx];
 }
+/* ================= THE AUTHORED PLACES — Phase 8 =================
+   A place is a particular arrangement of particular blocks, made by hand,
+   standing in ONE spot on the earth. It is the only thing in world/ that is
+   not a rule the whole earth obeys, and world/places.js says why and gives
+   the format. Here is the machinery, and it is deliberately small: a place is
+   A STAMP, so it goes through the door every village and every temple goes
+   through and inherits all three of that door's properties — regenerable,
+   dropped when its ground is left, and BEATEN BY THE HAND, so a man may
+   quarry the Cave of Treasures and his quarrying is what persists.
+
+   The order — x, then z, then y — is the one thing `read` and `write` must
+   agree on, and it is written down in both places rather than remembered. */
+function placesAt(name){
+  const out=[];
+  for(const P of (window.EARTH&&EARTH.placeList)||[]) if(P.at===name) out.push(P);
+  return out;
+}
+/* the palette index at each cell of a place, walked in the one order */
+function placeWalk(P,fn){
+  const rle=P.rle||[];
+  let x=0,z=0,y=0;
+  for(let i=0;i<rle.length;i+=2){
+    let n=rle[i]; const v=rle[i+1];
+    while(n-->0){
+      fn(x,y,z,v);
+      if(++y>=P.h){ y=0; if(++z>=P.d){ z=0; x++; } }
+    }
+  }
+}
+/* stamp one place, its floor at the ground of the landmark it stands in */
+function placeStamp(P,x0,z0,y0){
+  const ix0=Math.floor(x0/B)+(P.dx||0), iz0=Math.floor(z0/B)+(P.dz||0);
+  const iy0=Math.floor(y0/B)+(P.dy||0);
+  const keep=(P.keep!==false);
+  const ids=(P.pal||[]).map(nm=>blockId(nm));
+  placeWalk(P,(x,y,z,v)=>{
+    /* palette 0 is "leave the ground as it is" where the place says `keep`,
+       which is what lets a chamber be cut INTO a hill rather than standing
+       in a cube of quarried sky */
+    if(v===0&&keep) return;
+    stampBlock(ix0+x, iy0+y, iz0+z, ids[v]||0);
+  });
+}
+/* ---- AND THE CAPTURE, WHICH IS THE OTHER HALF OF THE FORMAT ----
+   Phase 8 asks for "an in-game capture tool". This is it: read the box a man
+   marks and hand back the very object world/places.js holds, so that the
+   format is never typed by hand — it is what comes out. `pal` is built as it
+   goes, so a capture names only the blocks it actually found.
+   It reads `blockAt`, which is procedural ground THROUGH the stamps AND the
+   hand's own edits — so what you capture is what you see, which is the only
+   rule a capture tool may have. */
+function placeCapture(ix0,iy0,iz0,w,h,d){
+  const pal=['air'], seen=Object.create(null); seen['air']=0;
+  const out=[]; let run=0, cur=-1;
+  for(let x=0;x<w;x++) for(let z=0;z<d;z++) for(let y=0;y<h;y++){
+    const n=blockAt(ix0+x,iy0+y,iz0+z)|0;
+    /* `blockOf(n).id` and NOT `blockId(n)`: `blockId` goes the other way —
+       it takes the STRING id and hands back the number. Written backwards
+       here every solid cell captured as air, and the round-trip test below
+       is what caught it, which is the whole reason the round trip exists. */
+    const b0=n&&blockOf(n), nm=b0?b0.id:'air';
+    let v=seen[nm];
+    if(v===undefined){ v=pal.length; pal.push(nm); seen[nm]=v; }
+    if(v===cur) run++; else { if(run) out.push(run,cur); cur=v; run=1; }
+  }
+  if(run) out.push(run,cur);
+  return {w,h,d,pal,rle:out,keep:false};
+}
+/* ---- AND A CAPTURE RENDERED AS THE FILE IT BELONGS IN ----
+   The capture hands back an object; world/places.js holds TEXT. This is the
+   one renderer both the tool and any in-game binding use, so there is exactly
+   one idea of what a place file looks like and no chance of two drifting.
+   The text it writes is a complete `EARTH.place({...})` call: paste it into
+   world/places.js and the place stands. Test 56 does better than paste it —
+   it parses the emitted text back and compares block for block, so the format
+   is guarded through the ROUND TRIP THAT MATTERS, which is out of the world
+   and into a file and back again. */
+function placeSource(cap,meta){
+  meta=meta||{};
+  const q=v=>"'"+String(v).replace(/'/g,"\\'")+"'";
+  const L=[];
+  L.push('EARTH.place({');
+  L.push('  n:'+q(meta.n||'A place')+', at:'+q(meta.at||'')+',');
+  L.push('  dx:'+(meta.dx|0)+', dy:'+(meta.dy|0)+', dz:'+(meta.dz|0)+',');
+  L.push('  w:'+cap.w+', h:'+cap.h+', d:'+cap.d+', keep:'+(cap.keep?'true':'false')+',');
+  L.push('  pal:['+cap.pal.map(q).join(',')+'],');
+  /* the rle wrapped at a readable width — it is data, but a man has to be
+     able to open the file and see that it is data and not a hash */
+  const nums=cap.rle.join(','), lines=[];
+  for(let i=0;i<nums.length;){ let j=Math.min(nums.length,i+72);
+    if(j<nums.length){ const k=nums.lastIndexOf(',',j); if(k>i) j=k+1; }
+    lines.push('    '+nums.slice(i,j)); i=j; }
+  L.push('  rle:[');
+  L.push(lines.join('\n'));
+  L.push('  ]');
+  L.push('});');
+  return L.join('\n');
+}
+/* ---- THE CAPTURE, BOUND TO THE HAND ----
+   Phase 8's "in-game capture tool", the half that faces the player. The
+   engine half — `placeCapture`, `placeSource` — already exists and is
+   guarded; this is only the marking of the box and the handing over of the
+   text, and it deliberately owns NO new machinery: the corners come from
+   `AIM`, the very cell the reticle rests on, which is the same cell the
+   hand would break.
+
+   The flow is two presses of one button. The first takes the corner the eye
+   is on; the second takes the far corner, and the finished
+   `EARTH.place({...})` is shown in a panel to be copied into
+   world/places.js. A press with NOTHING under the reticle while a corner is
+   marked lets the corner go — no extra key, and Esc stays what it is (the
+   pause). There is no clipboard call: this game runs off file://, where the
+   clipboard is not to be relied on, and a textarea a man can select is the
+   honest path. */
+let _capA=null;                 /* the first corner, marked and waiting */
+function captureMark(){
+  if(!AIM){
+    if(_capA){ _capA=null; toast('The corner is let go.'); return false; }
+    toast('Look at a block — the corner is marked where the eye rests.');
+    return false; }
+  if(!_capA){ _capA={ix:AIM.ix,iy:AIM.iy,iz:AIM.iz};
+    toast('First corner marked. Look at the far corner and press again; press with nothing under the eye to let it go.');
+    return true; }
+  const a=_capA; _capA=null;
+  const ix0=Math.min(a.ix,AIM.ix), iy0=Math.min(a.iy,AIM.iy), iz0=Math.min(a.iz,AIM.iz);
+  const w=Math.abs(AIM.ix-a.ix)+1, h=Math.abs(AIM.iy-a.iy)+1, d=Math.abs(AIM.iz-a.iz)+1;
+  const cap=placeCapture(ix0,iy0,iz0,w,h,d);
+  captureShow(placeSource(cap,{n:'A place',at:'',dx:0,dy:0,dz:0}),
+    w+'×'+h+'×'+d+' blocks at '+ix0+','+iy0+','+iz0);
+  return true;
+}
+/* the panel the text is handed over in — plain DOM, made once */
+function captureShow(src,caption){
+  let el=$('capture-out');
+  if(!el){
+    el=document.createElement('div'); el.id='capture-out';
+    el.style.cssText='position:fixed;inset:8% 12%;z-index:60;background:#14100b;'+
+      'border:1px solid #6b5a3e;border-radius:8px;padding:14px;display:flex;'+
+      'flex-direction:column;gap:8px;color:#d8cdb4;font:13px/1.4 system-ui';
+    el.innerHTML='<div id="capture-cap" style="font-weight:bold"></div>'+
+      '<div>Paste this into <b>world/places.js</b> — give it its name, and the landmark it stands in.</div>'+
+      '<textarea id="capture-src" readonly spellcheck="false" style="flex:1;background:#0c0a07;'+
+        'color:#cfe3b8;border:1px solid #443a28;border-radius:4px;padding:8px;'+
+        'font:12px/1.35 monospace;white-space:pre;resize:none"></textarea>'+
+      '<button class="btn" id="capture-done" style="align-self:flex-end">Done</button>';
+    document.body.appendChild(el);
+    $('capture-done').onclick=()=>{ el.style.display='none'; };
+    $('capture-src').onfocus=function(){ this.select(); };
+  }
+  $('capture-cap').textContent='Captured: '+caption;
+  $('capture-src').value=src;
+  el.style.display='flex';
+}
+/* ---- THE SOMETHING AT THE BACK OF THE SEA CAVES ----
+   Round 46's IOU, and the last thing Phase 8 owed by name. The sea caves are
+   PROCEDURAL — 84 hollows found by census, with no names — so nothing here is
+   anchored the way the Cave of Treasures is. The SCHEMATIC is authored data
+   in world/places.js (`in:'seacave'`); everything below is the RULE half:
+   find the caves, find each one's BACK, decide by the cave's own ground
+   whether it holds the cache, and stamp it facing the right way.
+
+   THE WALK is the census test 27 has always made, taken in-engine: a coastal
+   column whose spans hold a hollow at the waterline (lo ≤ 4) with rock
+   standing over it (hi < h−1) is a cave column; one with open sea beside it
+   is a MOUTH; walking inland — straight away from the sea, which is the axis
+   the carve itself worked along — the last hollow column is THE BACK. A
+   one-deep notch holds nothing, and a hollow under two blocks high has no
+   room for the cache, so neither qualifies.
+
+   WHICH caves hold it: `hash2` of the back cell against 1/share — the same
+   device the lie-up hour and the herd stations use — so the same cave
+   answers the same way on every visit and every boot.
+
+   THE STAMP goes through `stampedGroup` like every landmark's, so it is
+   regenerable, dropped when its coast is left behind, and BEATEN BY THE
+   HAND: a man may row in and take the cache apart, and his taking persists
+   while the coast stands loaded. The scan runs only when the traveller
+   crosses into a new chunk, and its cost is COUNTED, not assumed. */
+const SEACAVES=new Map();       /* back "ix,iz" -> {stamp,bx,bz,ux,uz,lo} */
+let SC_MS=0, SC_SCANS=0, _scChunk=null;
+const SC_R=72;                  /* blocks scanned about the traveller */
+function seacaveHollow(c){
+  if(!c||!c.spans) return null;
+  for(let i=0;i<c.spans.length;i+=2){
+    if(c.spans[i]>4) continue;                 /* not down at the water */
+    if(c.spans[i+1]>=c.h-1) return null;       /* no rock over it: a notch */
+    return {lo:c.spans[i],hi:c.spans[i+1]};
+  }
+  return null;
+}
+function seacavePass(px,pz){
+  const pl=[]; for(const P of (window.EARTH&&EARTH.placeList)||[])
+    if(P.in==='seacave') pl.push(P);
+  if(!pl.length) return;
+  const cx=Math.floor(px/B), cz=Math.floor(pz/B);
+  /* the reap runs every call; the scan only on crossing into a new chunk */
+  for(const [key,S] of SEACAVES){
+    if(Math.hypot(S.bx-cx,S.bz-cz)>SC_R*1.6){ stampDrop(S.stamp); SEACAVES.delete(key); } }
+  const ck=Math.floor(cx/CH)+','+Math.floor(cz/CH);
+  if(ck===_scChunk) return;
+  _scChunk=ck;
+  const t0=performance.now();
+  /* ---- AND AN INLAND CROSSING COSTS NEXT TO NOTHING ----
+     The full walk read 12.3 ms a scan in the headless harness, and a scan
+     fires on every chunk crossing — most of which are nowhere near a coast.
+     A cave needs OPEN SEA beside it, and open sea is where `cell` answers
+     nothing, so a coarse sample of the ring says in ~170 lookups whether
+     there is any sea here at all. No sea, no caves, no walk. The sample
+     step is well under the narrowest sound the chart draws, and it is
+     deterministic by position, so it can never make the same coast answer
+     two different ways. */
+  let anySea=false;
+  for(let dx=-SC_R;dx<=SC_R&&!anySea;dx+=12) for(let dz=-SC_R;dz<=SC_R;dz+=12)
+    if(!cell(cx+dx,cz+dz)){ anySea=true; break; }
+  if(!anySea){ SC_MS+=performance.now()-t0; SC_SCANS++; return; }
+  for(let dx=-SC_R;dx<=SC_R;dx++) for(let dz=-SC_R;dz<=SC_R;dz++){
+    const ix=cx+dx, iz=cz+dz;
+    const c=cell(ix,iz); if(!c||c.kind==='floe') continue;
+    const hol=seacaveHollow(c); if(!hol) continue;
+    /* a mouth is a cave column with open sea beside it */
+    let sea=null;
+    for(const d of [[1,0],[-1,0],[0,1],[0,-1]])
+      if(!cell(ix+d[0],iz+d[1])){ sea=d; break; }
+    if(!sea) continue;
+    /* the walk inland, along the axis the carve worked */
+    const ux=-sea[0], uz=-sea[1];
+    let bx=ix, bz=iz, bh=hol, depth=1;
+    for(let k=1;k<=12;k++){
+      const h2=seacaveHollow(cell(ix+ux*k,iz+uz*k)); if(!h2) break;
+      bx=ix+ux*k; bz=iz+uz*k; bh=h2; depth=k+1;
+    }
+    if(depth<2) continue;                      /* a one-deep notch */
+    if(bh.hi<bh.lo+1) continue;                /* no room for the cache */
+    const key=bx+','+bz;
+    if(SEACAVES.has(key)) continue;            /* standing already */
+    for(const P of pl){
+      /* the cave's own ground decides, for ever */
+      if(hash2(bx*0.173,bz*0.191)>=1/(P.share||3)) continue;
+      const ids=(P.pal||[]).map(nm=>blockId(nm));
+      const keep=(P.keep!==false);
+      const g=stampedGroup(()=>{
+        placeWalk(P,(x,y,z,v)=>{
+          if(v===0&&keep) return;
+          /* z runs OUTWARD from the wall: z=0 is one step beyond the back */
+          const wx=bx+ux*(1-z), wz=bz+uz*(1-z);
+          stampBlock(wx, bh.lo+y, wz, ids[v]||0);
+        });
+      });
+      SEACAVES.set(key,{stamp:g,bx,bz,ux,uz,lo:bh.lo});
+    }
+  }
+  SC_MS+=performance.now()-t0; SC_SCANS++;
+}
 function spawnLandmark(i){
   const L=LANDMARKS[i], site=landmarkSite(i);
   if(!site){ activeLandmarks.set(i,{none:true}); return; }
@@ -12302,7 +12617,15 @@ function spawnLandmark(i){
     label.scale.set(220,220/6,1);
     scene.add(label);
   }
-  activeLandmarks.set(i,{g,gStruct,stamp,label,x,z,
+  /* ---- AND ANY AUTHORED PLACE THAT STANDS IN THIS LANDMARK ----
+     Kept in its OWN stamp group rather than the landmark's, so that a place
+     is dropped with its ground and nothing else, and so that a landmark with
+     no builder of its own — a RANGE, which is what the Zagros is — can still
+     hold one. */
+  const pl=placesAt(L.n);
+  let placeStamps=null;
+  if(pl.length) placeStamps=stampedGroup(()=>{ for(const P of pl) placeStamp(P,x,z,y); });
+  activeLandmarks.set(i,{g,gStruct,stamp,placeStamps,label,x,z,
     solids:(typeof lmSolids!=='undefined'&&lmSolids&&lmSolids.length)?lmSolids:null});
 }
 /* ---- the works of the ancients bar the way ----
@@ -12363,6 +12686,7 @@ function updateLandmarks(px,pz){
     if(d<trig&&!has) spawnLandmark(i);
     else if(d>trig+500&&has){ const A=activeLandmarks.get(i);
       if(A.stamp) stampDrop(A.stamp);      /* the blocks go with the triangles */
+      if(A.placeStamps) stampDrop(A.placeStamps);   /* and an authored place with its ground */
       if(A.g){ scene.remove(A.g); A.g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); }
       if(A.label){ scene.remove(A.label);
         if(A.label.material.map) A.label.material.map.dispose(); A.label.material.dispose(); }
@@ -14707,7 +15031,7 @@ async function loadSaved(){
 /* ---- THE POWERS THAT BELONG TO FREE ROAM ALONE ----
    One list, obeyed by the rail, by the keyboard and by the menu, so the
    three can never disagree about what a voyage may and may not do. */
-const FREEROAM_ONLY=['b-fly','b-time','b-speed','b-daypart','b-season'];
+const FREEROAM_ONLY=['b-fly','b-time','b-speed','b-daypart','b-season','b-capture'];
 /* The gate is a BODY CLASS and a stylesheet rule, never an inline display:
    updateFlyBtn sets its own inline display on b-fly whenever the mode
    changes, and an inline style beats anything set here — so the Rise Up
@@ -14836,6 +15160,7 @@ $('b-daypart').onclick=()=>{ if(!roamOnly()) return;
 updateDayBtn();
 $('b-map').onclick=toggleMap;
 $('b-season').onclick=()=>{ if(roamOnly()) cycleSeason(); };
+$('b-capture').onclick=()=>{ if(roamOnly()) captureMark(); };
 updateSeasonBtn();
 $('b-ashore').onclick=toggleAshore;
 $('b-fly').onclick=()=>{ if(roamOnly()) takeFlight(); };
@@ -15992,9 +16317,28 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      that herd would have it stand, and herdStat the running totals. */
   herdOf:a=>a&&a.herd||null, stationOf, herdStat:()=>Object.assign({},HSTAT),
   herdStatReset, STN_IN, STN_OUT,
+  /* ---- PHASE 8: the authored places ----
+     `capture` is the in-game tool's own engine call — mark a box, get back
+     the very object world/places.js holds. `placeStamp` lays one anywhere,
+     which is what makes the round trip testable: capture a corner of the
+     world, stamp it somewhere else, and the blocks must be the same. */
+  places:()=>((window.EARTH&&EARTH.placeList)||[]), placesAt,
+  capture:placeCapture, placeStamp, placeWalk, blockOf, placeSource,
+  /* the sea-cave cache: the registry, a forced scan, and what the scan costs */
+  seacaves:()=>{ const out=[]; for(const [k,S] of SEACAVES)
+      out.push({key:k,bx:S.bx,bz:S.bz,ux:S.ux,uz:S.uz,lo:S.lo}); return out; },
+  seacaveScan:(x,z)=>{ _scChunk=null; seacavePass(x,z); },
+  seacaveMs:()=>({ms:SC_MS,scans:SC_SCANS}),
+  /* the binding itself, so the suite can drive the player's own flow:
+     swap AIM (the pattern placeFrom proves), press, press again, and read
+     the panel's text back */
+  captureMark, aimSet:a=>{ AIM=a; },
   /* §2.3.6's lie-up: how many hours a beast that keeps no clock takes to its
      own bed. Read it, or set it to nought to see the world without the rule. */
   lieHours:v=>{ if(v!==undefined) LIE_H=v; return LIE_H; },
+  /* §2.3.5's flocking: set a bird down beside its own kind, and let it forage
+     with them. Off to read the world without it, inside one boot. */
+  flockOn:v=>{ if(v!==undefined) FLOCK_BORN=v; return FLOCK_BORN; }, FLOCK_R:()=>FLOCK_R,
   stationDrift:v=>{ if(v!==undefined) STN_DRIFT=!!v; return STN_DRIFT; },
   stationFar:v=>{ if(v!==undefined) STN_FAR=+v; return STN_FAR; },
   /* ---- AND ONE PROBE THAT WRITES, WHICH IS SAID OUT LOUD ----
@@ -17865,6 +18209,7 @@ function frame(){
   if(frame._carpetOn) updateFarLand(p.x,p.z,false,eyeY);
   updateVillages(p.x,p.z,dt,light.nightF,light.dayF);
   updateLandmarks(p.x,p.z);
+  seacavePass(p.x,p.z);
   updateFalls(p.x,p.z);          /* and the springs at the head of every fall */
   /* the living world — weather, hearths, fireflies, meetings, murmurs */
   if(!state.firm){ const _t=performance.now()*0.001;

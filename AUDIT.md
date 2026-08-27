@@ -7364,6 +7364,503 @@ lion's rest is an open question with a real number against it — **18–26% sti
 Round 79 closed it on. And the clock rule is no longer only written down: it is enforced where
 every tool must pass.
 
+## 4ce. Round 81 — the birds flock, and PHASE 6 IS CLOSED ✅
+
+*§2.3.5's *"real flocking for the birds"* was the last unbuilt clause in the whole of Phase 6.
+It is built, and the phase is closed here with every item's true state written down.*
+
+### Why it had never worked, and it was two faults at once
+
+A flock rule had been standing in the tree for rounds: a pull toward the mean of the same kind
+within 120 units, gated on `BEHAVIOR.birdOf(type).flock`, which crow, dove, gull and puffin
+declare. It never showed. Measured, over three hundred frames in two lands:
+
+| | Kenya | India |
+|---|---|---|
+| flocking-bird-frames with **no mate of their kind within 120u** | 4,033 / 5,400 (75%) | 4,304 / 4,500 (**96%**) |
+| frames in `rest`, the **only** job the rule ran in | 102 / 7,200 (1.4%) | 45 / 7,200 (0.6%) |
+
+**Each of those is the exact shape of a fault this project has already found and mended
+elsewhere**, which is why they were recognisable at all:
+
+1. **There was nothing to flock with.** Twenty-four birds serve the whole earth across seven
+   kinds over a ring eleven hundred units wide, each set down at an INDEPENDENT RANDOM POINT.
+   That is Round 71's finding for the beasts word for word — *"the world was not making herds"* —
+   and the remedy is Round 71's: a bird of a flocking kind goes down **beside one of its own**.
+2. **The rule was nearly unreachable.** In `rest` alone it could touch about **0.3%** of
+   bird-frames once the first fault is folded in. That is Round 77's dead-wander-picker shape. It
+   is asked in the **hunt** now — by passing the flock's own middle to `forageSpot` as the centre
+   it searches, so that every check on the ground is the one that function always made.
+   **Biasing the RESULT instead would have been the bug**: a spot carries `water`, and sliding one
+   sideways puts a gull's dive on dry land.
+
+### A/B/A inside one boot
+
+| | Kenya off / **on** / off | India off / **on** / off |
+|---|---|---|
+| a bird with one of its own by it | 13% / **80%** / 36% | 0% / **54%** / 13% |
+| **biggest company** | 3 / **12** / 3 | 0 / **3** / 1 |
+| heading apart | 100° / 45° / 42° | — / 29° / 39° |
+| frame | 355.5 / 332.7 / 353.4 ms | 306.2 / 318.2 / 309.9 ms |
+
+**The company is the clean reading** and it reverses both ways in both lands. The frame cost sits
+inside the drift — the ON arm is the FASTEST of the three in Kenya — so none is claimed.
+
+**And one thing is deliberately NOT claimed.** The heading spread is reported and is evidence for
+nothing: the off-again arm reads as tight as the on arm in Kenya (42° against 45°), and the
+pairings behind the arms differ by more than tenfold, which is not a comparison. **That birds now
+FLOCK is established; that they fly in step is not**, and test 55 says so in its own words rather
+than quietly reporting the better number.
+
+### And the suite, on the finished tree
+
+**50 pass · 0 fail · 5 pending**, and the pendings are **43, 50, 53, 54 and 55**. Test 12 —
+*"ocean and plains chunks build no slower than they did"* — has been PENDING for many rounds and
+**came back a PASS on this run**, which is why the pass count is one higher than the phase's
+other recent runs. It was not touched by this round and no credit is taken for it; it is noted
+because an unexplained +1 in a pass count is exactly the sort of thing this project has learned
+to chase rather than enjoy. The other five report and guard nothing by design.
+
+Test 55 on four lands — two of which the A/B never stood on:
+
+| | Kenya | India | Norway | Japan |
+|---|---|---|---|---|
+| a bird with one of its own by it | 96% | 100% | 100% | 100% |
+| biggest company | 6 | 11 | 5 | 8 |
+
+**99% of 12,540 bird-frames, and a company of eleven.** The heading came back at **14° over
+54,614 pairings**, far tighter than anything this project has recorded — and it is STILL not
+claimed, because it is an on-only reading with no control beside it. The A/B is the only place a
+control existed and there the off-again arm was as tight as the on arm. A number that flatters
+the feature is exactly the number to be slowest about.
+
+---
+
+## PHASE 6 — THE LIVING THINGS — CLOSED
+
+*"§2.3 and §2.4 in full: coats, gaits, true stature, finer creature grain, herd structure;
+branching trees, canopy forms per species, bark, seasonal colour, the ground layer, crops that
+grow."* Twelve items. **Eleven built and measured; one part-built and measured; nothing left
+standing on an unmeasured ✅.**
+
+| §2.3 fauna | |
+|---|---|
+| 1. Coats, countershading, markings | ✅ *51, completed 74* — 2,882 meshes, 0 left flat |
+| 2. Real gaits | ✅ six gaits, one datum a species |
+| 3. True stature | ✅ one measure, and it is the man's |
+| 4. Finer voxel grain | ✅ *75–76* — 170 kinds, 3,983 parts, 1,307 meshes |
+| 5. Herd and flock structure | **part-built, and every part of it measured** — see below |
+| 6. The daily round | ✅ *69, and MEASURED at last in 78* |
+
+| §2.4 flora | |
+|---|---|
+| 1–6 | ✅ all six: branching, canopy, bark, seasonal colour, the ground layer, crops |
+
+**Item 5, honestly:** flight distance and the watch ✅ *54*; herds exist ✅ *71*; the young held at
+the centre ✅ *77*; **the birds flock ✅ *81***. **The matriarch does NOT lead** — five attempts
+across Rounds 54, 70, 72 and 80, five reverts, and the fifth is the only one that failed with the
+mechanism demonstrably FIRING: no gain in travel and consistently worse reach. **And birds
+flocking is not birds flying in step**, which is stated above.
+
+**Three things are measured-and-not-built, and are left written down rather than quietly
+dropped:**
+
+1. **The matriarch leading.** Round 80's numbers, and the finding that the stated reason for four
+   rounds — the spawn tether — was the wrong reason. There is no leash; nothing moves a herd.
+2. **The lion's rest**, at the corrected **18–26% still** — Round 79 closed this on a reading of
+   100% that was taken in a world frozen at the container's own clock, and Round 80 re-opened it.
+3. **Flock-mates flying in step**, above.
+
+**What the phase cost, all of it measured:** the herd pass 0.20–0.43 ms a frame; the lie-up and
+the flocking both inside the run-to-run frame drift; §2.3.4's grain 67% fewer meshes than parts;
+§2.4's ground layer +8.5% triangles and not one new material; the year through a crop costing 0
+chunks.
+
+**And the method is the thing worth carrying forward.** This phase's last four rounds found four
+faults in the world and **six in their own instruments** — a statistic that reported perfection
+because the feature was absent; three separate false zeroes from sampling a slow process through
+a fast window; a respawn artefact that reversed a finding; and a clock that was never running,
+which spoiled every scratchpad reading of three rounds until it was found and then **guarded in
+`tools/harness.js` and proved by injecting it.** Every one was caught by asking what the
+measurement could possibly SEE before believing what it said. **A thing that is ✅ because
+somebody read the source is not ✅** — and Phase 6 no longer has one.
+
+## 4cf. Round 82 — the matriarch, a sixth time, and the first failure with a SHAPE ✅
+
+*Asked for knowing the odds, and it failed — but not the way the other five did. This one names
+what a matriarch mechanism must NOT be, which none of the previous five could.*
+
+### The idea, and why it was a different idea
+
+Round 80's attempt is the one worth reading, because **it fired and still failed**: a leader, and
+every station ring set about HER, so that when she walked the stations walked and the herd came
+after. Reach got worse in both lands, 1.07 → 1.23 and 0.89 → 1.17. The arithmetic of that is
+plain once seen: **reach is distance from an assigned point, the lever that re-assigns a beast
+fires 0.05 times a beast-second, and the point was moving continuously.** A follower re-aimed once
+every twenty world-seconds at a mark that had already left. Following by chasing a moving target
+cannot work at that rate, and no tuning of the ring or the march would have made it.
+
+So Round 82 moved no target at all. **The matriarch owned a BEARING and every member of her herd
+had its STEP bent along it** — a shared velocity rather than a chased mark. The station ring
+stayed where Round 77 put it, on the mob's own middle, so nobody chased anything and reach was
+left alone; the middle would simply travel, because every beast in it leaned the same way. The
+bend was applied to the step and not the position, so it passed the same cliff, water and masonry
+checks every other stride does.
+
+### It fired 0 times, and finding out why is the method working
+
+The first reading was **`bends 0`** over 13,685 herded beast-frames. Taking the condition apart
+one clause at a time, on the live world, rather than guessing:
+
+| clause | frames it held |
+|---|---|
+| in a herd at all | 13,685 |
+| `herd.head` defined | 13,685 ✓ |
+| not the lead itself | 10,460 ✓ |
+| **not fleeing and not afraid** | **867** ✗ |
+
+**`a.fear` decays PAST ZERO.** `a.fear=(a.fear||0)-dt` runs every frame and is never clamped, so
+it is a negative number almost always — and a negative number is **truthy**. Written `!a.fear`
+the gate was false nearly always, and the few calm frames never coincided with moving ones. The
+engine's own idiom, two hundred lines up, is `!(a.fear>0)`. **That is the seventh instrument or
+gate fault of this session, and the fourth found by asking what a measurement could see before
+believing what it said.**
+
+### And then it fired, and the answer is no
+
+With the gate mended it fired 4,377 and 1,298 times, and A/B/A gave a null: ON sat inside the
+OFF-to-OFF spread on every reading in both lands. **Reach was NOT damaged** — the one real
+difference from Round 80 — but travel did not move either.
+
+So the deciding question was asked, and it is not "what value should ship" but **"has this
+mechanism the AUTHORITY to move a herd at all?"** Swept in one boot on one land:
+
+| bend | travel (herd-radii) | reach | bends fired |
+|---|---|---|---|
+| 0.00 (off) | 0.68 | 1.03 | 0 |
+| 0.30 | 0.57 | 0.75 | 5,128 |
+| 0.60 | 0.51 | 0.70 | 6,116 |
+| **0.90** | **0.48** | 0.72 | **8,165** |
+| 0.00 (off) | 1.28 | 0.74 | 0 |
+
+**Travel falls MONOTONICALLY as the bend rises, and both off-arms bracket every on-reading.**
+Tripling the authority of the rule does not move a herd further; it moves it slightly less. The
+bend pulls each beast off its own mark so it spends longer correcting, while the matriarch's slow
+turn cancels the shared direction over the window. **This is not an inconclusive result. It is a
+characterised negative**, and it is the first one §2.3.5 has produced in six attempts.
+
+### Reverted, and what the six attempts now amount to
+
+`js/engine.js` is back where it stood. **Six attempts, six reverts** — but the record is no longer
+six shrugs:
+
+| | what it tried | how it failed |
+|---|---|---|
+| 54 (×4) | a station about a leader, through the wander-picker | could not be shown to work; no instrument |
+| 70 (×4) | the same, with a marching matriarch | noise — two to six mothers a reading |
+| 72 (×3) | the station taken through the GRAZING | two readings of one build, opposite directions |
+| 77 | *(the young at centre — this one SHIPPED)* | — |
+| 80 | leader + station ring set about her | **fired**; no travel gain, reach worse — a chased mark cannot be tracked at 0.05 re-aims a beast-second |
+| **82** | leader + a shared VELOCITY, no target moved | **fired**; travel falls monotonically as the rule's authority rises |
+
+**What is now known, and it is worth more than another attempt:** moving the herd's assigned
+points does not work because the re-aim rate is too low; and leaning every beast the same way
+does not work because the lean costs more in correction than it gains in displacement. **A
+seventh attempt should move neither the marks nor the steps — it should change what a beast
+WANTS**, which means the grazing choice, which Round 72 already tried once and which is the only
+lever this project has ever measured actually firing at a useful rate. That is written down for
+whoever takes it up; it is not attempted here.
+
+**Phase 6 stays as Round 81 closed it**: eleven of twelve items built and measured, item 5
+part-built with every part measured, and the matriarch named as measured-and-not-built — now with
+six characterised failures behind it instead of five.
+
+## 4cg. Round 83 — PHASE 8 BEGINS: the authored places, and the Cave of Treasures ✅
+
+*§8 asks for **"a schematic format, an in-game capture tool, and the Cave of Treasures"**. This
+round delivers the format, the capture, and the cave.*
+
+### Nothing new was invented to hold it, and that is the finding
+
+Every other file in `world/` declares a RULE the whole earth obeys — a country, a river, what
+grows where, which beast keeps which hours — and the engine knows no instance by name. **A place
+is the one thing that is not**: a particular arrangement of particular blocks in ONE spot.
+
+So it goes through the door `emitHouse` and `lmPyramid` already go through — `stampBlock` into
+`SEDITS` — and inherits all three of that door's properties without a line of new machinery:
+
+| | |
+|---|---|
+| **regenerable** | never written to the save; re-stamped when its ground loads, dropped when it is left |
+| **beaten by the hand** | the mesh order is procedural → stamps → player edits, so a man may quarry the Cave of Treasures and HIS quarrying is what persists |
+| **free to save** | a place of ten thousand blocks adds nothing to the record until somebody touches it |
+
+The second is the one worth having. **An authored place is scenery you are allowed to take
+apart.** A place also names the LANDMARK it stands in rather than a latitude, so if the chart ever
+moves the Zagros the cave moves with it instead of ending in the air.
+
+### The Cave of Treasures, where the scroll says it is
+
+`world/scrolls.js` has sent the traveller to *"the Cave of Treasures, under the garden"* since
+Phase 7, and the Zagros was raised in that phase for exactly this reason — *"neither Iraq nor
+Ethiopia had a single hollow anywhere in it, so 'the Cave of Treasures in the Zagros' had nowhere
+to be."* AUDIT Round 46 refused to invent a hoard for the sea caves because it *"would have to be
+picked up and moved the day Phase 8 arrives"*. It has arrived.
+
+Measured standing in the Zagros at 40917,39105:
+
+| | cells |
+|---|---|
+| carved air (the chamber) | 128 |
+| hewn-stone floor | 49 |
+| cobble bench along the back wall | 14 |
+| gold showing in the rock | 5 |
+| stone shell | 299 |
+| | **495 = 9 × 5 × 11 exactly** |
+
+It is deliberately small and deliberately plain. **A place large enough to be interesting would
+have hidden whether the format works.** The room is the proof; the hoard can grow in its own
+round, and growing it costs one capture and no code at all — which is the point of having a
+format.
+
+### Two faults, both found by reading the world and not the code
+
+**The palette was written with `'rock'` and `'timber'`, which are not block ids at all.** They
+resolved to nought — and nought IS air — so the cave came out as a hole quarried in the mountain.
+The real ids are `stone`, `hewn-stone`, `cobble`, `gold-ore`, out of `blocks/`.
+
+**And KEEP and AIR were given one meaning where they need two.** A cave wants *keep* for the rock
+it is buried in, which must stay exactly as the Zagros made it, and *air* for the room, which must
+be carved. Written with one meaning the room is never hollowed and the place stamps as a solid
+hill. Palette index 0 is the keep slot now; index 1 onward are real blocks, and `'air'` at index 1
+is honest air and cuts.
+
+### The capture, and the round trip that is the whole of the format's correctness
+
+`tools/capture.js` boots the world, walks to a spot, reads the box and prints a complete
+`EARTH.place({...})`. **The format is therefore never typed by anybody: it is what comes out.**
+The renderer `placeSource` is shared, so the tool and any future in-game binding cannot drift
+apart.
+
+Test 56 guards it, and it does not stop at memory:
+
+> **world → object → TEXT → object → world.** The capture is rendered as file text, parsed back
+> through a stub `EARTH` exactly as the real file would be, stamped eight hundred blocks off and
+> compared cell for cell. **495/495 through memory and 495/495 through the file text.**
+
+**It earned its keep before it was even finished.** The first capture used `blockId(n)` where it
+wanted `blockOf(n).id` — the two go OPPOSITE WAYS, one taking a string and one a number — so
+every solid cell captured as AIR. Nothing but the round trip would have caught it. Proved by
+injecting that very fault back: clean it reads 495/495; with the fault it catches **367 wrong
+cells** and fails.
+
+And the capture tool found a third trap by being used: a capture's own index 0 is genuinely air,
+so `--keep` could not simply flip a flag — it would turn every captured air cell into "leave the
+ground". It INSERTS the keep slot and moves the palette up one, which is the shape the
+hand-written places already have.
+
+### The suite, on the finished tree
+
+**51 pass · 0 fail · 5 pending**, the pendings being 43, 50, 53, 54 and 55 — all report-only by
+design. The pass count is up one on Round 81's 50 because test 56 is new and is a GUARD and not
+a report: unlike the herd and flock instruments there is a right answer here and it is exact.
+
+**A new file of the world now loads on every boot**, which is why the whole tree was re-read
+rather than test 56 alone: `world/places.js` is read by the manifest before the world stands, and
+the manifest's own error says why that matters — *"every block and every country is known by its
+place in the list, so what was built would be a different world under the same log."* Nothing
+moved.
+
+### What Phase 8 still owes
+
+**The in-game binding for the capture.** The engine call exists, is exposed, and is tested; what
+does not exist is marking two corners with the free hand and pressing a key. The player-facing
+control list `FREEROAM_ONLY` holds exactly five buttons and test 45 counts them, so that is a
+change to make deliberately rather than in passing.
+
+**And more places.** The format now makes them cheap, which was the entire object of doing the
+format first.
+
+## 4ch. Round 84 — the capture in the player's hand, and the Cell of Ḥanoḵ ✅
+
+*Round 83 closed with two named debts: the in-game binding for the capture, and more places.
+Both are paid, and the round added a third round trip to the guard while it was about it.*
+
+### The binding, and why it is one function
+
+`captureMark()` is the whole of the in-game tool: **two presses of one button, the corners taken
+from `AIM`** — the very cell the reticle rests on, which is the same cell the hand would break.
+First press marks the corner the eye is on; second takes the far corner, and the finished
+`EARTH.place({...})` is shown in a panel with a select-on-focus textarea, to be copied into
+`world/places.js`. A press with nothing under the reticle while a corner is marked lets the
+corner go — no new key, and Esc stays what it is (the pause). **No clipboard call**: this game
+runs off `file://`, where the clipboard is not to be relied on, and a textarea a man can select
+is the honest path.
+
+The button is `b-capture`, sixth on the roam-only list, hidden on a voyage **by the same
+stylesheet rule as the other five** — never by inline display, which is the trap the engine's own
+comment at `applyFreeroam` records (Rise Up came back on a voyage that way once). Tests 45 and 46
+now read **"0 of 6 on a voyage, 6 of 6 in free roam"**, both ways across a reload; their
+duplicated button lists carry a comment saying the duplication is deliberate, so a drifting
+engine list is CAUGHT there rather than mirrored.
+
+### The Cell of Ḥanoḵ, which pays the other scroll debt
+
+The trail names *"Ḥanoḵ in the Ethiopian highlands, reached through the ranges"*, and the Simien
+Mountains were raised in Phase 7 in the same breath as the Zagros, for the same reason: the
+scroll had nowhere to be. The seventh from Adawm kept no palace, so what stands is a hermit's
+cell cut into the high rock — and **alabaster in the back wall where the Cave of Treasures
+carries gold**: white stone for the man who walked with Aluahim, riches for the cave where the
+fathers were laid. The mouth opens the other way, so the two places are not one room copied.
+
+| | Cave of Treasures | Cell of Ḥanoḵ |
+|---|---|---|
+| box | 9×5×11 = 495 | 7×5×9 = 315 |
+| carved air | 128 | 74 |
+| floor / bench | 49 hewn / 14 cobble | 25 hewn / 10 cobble |
+| in the back wall | 5 gold-ore | 3 alabaster |
+| shell | 299 stone | 203 stone |
+
+It is also the **second** place, so test 56's per-place loop ran twice for the first time.
+
+### Test 56 now closes three round trips, and names the question each asks
+
+| | the loop | the question |
+|---|---|---|
+| 4 | world → object → world | does the **FORMAT** hold |
+| 5 | world → object → **TEXT** → object → world | does the **FILE** hold |
+| 6 | reticle → corners → panel text → object → world | does the **HAND** hold |
+
+The sixth drives `captureMark` exactly as the player does — `AIM` swapped the way `placeFrom` has
+always proved it may be, two presses on the box's opposite corners, the panel's text parsed
+through the stub EARTH, stamped at a third offset and compared cell for cell. **Each trip reports
+its positive count in the row** — "through the hand 495/495" — so a silently skipped check can
+never read as a passing one, which is the exact shape of the fault test 50 taught this project in
+Round 80.
+
+**Proved by injection**: an off-by-one in the box arithmetic (the far corner lost) fails both
+places with the exact diagnostic — *"the panel box is 8×4×10 for corners 9×5×11"* — and reads
+0/495 through the hand. Restored: 495/495 and 315/315.
+
+### The suite found the round's one real fault, and the targeted tests never could have
+
+The three tests that own every changed surface — 45, 46, 56 — were run first and passed. **The
+full suite then failed tests 30 and 31**, the only two that boot the SECOND game
+(`scripture-unfolds/index.html`), both on a 180-second boot timeout.
+
+The fault was this round's own. The second game keeps an **engine-sockets** block — a hidden stub
+for every button the shared engine reaches for, in its own words *"so the shared engine can be
+updated for the voyage without ever having to know this game exists."* This round taught the
+engine to reach for `b-capture` and did not provide the socket, so on that page
+`$('b-capture').onclick=` threw on null, the boot script died, and `__UNFOLD` never stood. **The
+targeted tests could not have seen it, because none of them boots that page.** That is the whole
+argument for running the suite even when the diff looks contained, and it is written here because
+this round is the proof.
+
+One line mends it — the socket, added to the block in the order the block keeps. Re-run on the
+mended tree, tests 30 and 31 pass. **The composite verdict is stated as the composite it is**:
+the full run read 49 pass · 2 fail · 5 pending on the tree as first committed; the two fails were
+this one fault; mended, the two tests pass alone, and no other test touches that page. No single
+run of the whole suite has read the mended tree, and that is said rather than rounded up.
+
+### What Phase 8 still owes
+
+**The sea caves' "something at the back"** — Round 46's IOU. That is 84 *procedural* caves found
+by census, and a place anchors to a landmark BY NAME, so it wants an anchoring design this format
+does not yet give (a place anchored to "the nearest sea cave" is a rule, not a place, and the
+line between the two is the whole architecture of `world/`). Named as the open question, not
+attempted. **And the Cave of Treasures' hoard can now grow** — one capture and no code, which
+both rounds built toward.
+
+## 4ci. Round 85 — the something at the back of the sea caves, and PHASE 8's LAST NAMED IOU PAID ✅
+
+*Round 46 carved 84 sea caves and shipped them empty on purpose: "the cave ships; what is in it
+waits for the phase whose whole job is putting things in places." Rounds 83–84 built that phase's
+machinery. This round fills the caves — and pays the design question the audit had left standing.*
+
+### The question, and the answer that keeps the line
+
+**The sea caves have no names.** They are procedural — 84 hollows found by census — while a place
+anchors to a landmark BY NAME, and *"a place anchored to 'the nearest sea cave' is a rule, not a
+place, and the line between the two is the whole architecture of `world/`."*
+
+The answer **splits the format's two halves instead of blurring them**:
+
+| half | what it is | where it lives |
+|---|---|---|
+| the SCHEMATIC | authored, particular — pal, rle, box, keep | `world/places.js`, exactly as the Cave of Treasures' |
+| the ANCHOR | **a rule** — `in:'seacave', share:3` | declared as data; the engine's placement pass does the rule's work |
+
+No `at`, no dx/dy/dz. *At the back of one sea cave in three, this stands.* Which caves, and which
+way the cache faces, is the engine reading the world — not the file naming a spot. One
+declaration, no code per instance, and the line holds.
+
+### The rule's work
+
+The pass makes **the census test 27 has always made**, in-engine: a hollow at the waterline with
+rock over it is a cave column; one with open sea beside it is a MOUTH; walking inland — straight
+away from the sea, which is the axis the carve itself worked along — the last hollow column is
+**THE BACK**. A one-deep notch holds nothing and a hollow under two blocks high has no room, so
+neither qualifies. A `hash2` of the back cell against 1-in-share decides — the same device as the
+lie-up hour and the herd stations — **so the same cave answers the same way on every visit and
+every boot.** The stamp goes through `stampedGroup` like every landmark's: regenerable, dropped
+when the coast is left behind, and beaten by the hand — a man may row in and take the cache
+apart.
+
+**What stands: the Castaway's Cache** — the timber of a wrecked skiff on the floor, salt crusted
+on it, and silver-ore in the wall one step beyond; the something the castaway never came back
+for. A ONE-WIDE schematic — a sea cave is a notch — so no rotation machinery was built: four
+cells, three placed, and the only orientation is a direction, which is the rule half's to give.
+
+### Read off the world
+
+| | |
+|---|---|
+| qualifying caves at the best coast (of 25 surveyed) | 80 |
+| in the engine's own radius | 18 caves, **4 hold the cache** (declared 1 in 3) |
+| at the true back, blocks as declared | **4 of 4** |
+| the coast left and returned to | **the same set** |
+| the scan | 12.3 ms full; **8.9 ms mean** once an inland crossing costs only the pre-check |
+
+**The pre-check is the reading acted on**: the scan fires on every chunk crossing and most
+crossings are inland. A cave needs open sea beside it, and open sea is where `cell()` answers
+nothing — so ~170 coarse, deterministic lookups say whether there is any sea in the ring at all.
+No sea, no walk.
+
+**Proved by injection**: stamped at the mouth instead of the back, test 57 fails all four caches
+by name — *"the hollow runs on inland"* — because the guard asks BOTH ends: no hollow further
+inland (it is the last), and a way out outward (a cache at the mouth has open sea there instead).
+Test 27 is untouched at 84 of 84. Test 56 skips the rule-anchored schematic **by its anchor
+kind** and says so in its own report — *"guarded by test 57, not here"* — so a skip can never
+pass for coverage, which is Round 80's lesson kept.
+
+### The suite, and one more guard taught about the living
+
+**51 pass · 1 fail · 5 pending** — and the 51 includes tests 30 and 31 passing on the mended
+socket, which closes Round 84's stated gap: the whole suite has now read that tree. The pendings
+are the report-only five (43, 50, 53, 54, 55). Test 57 passed inside the full run exactly as it
+passed alone — 4 of 4 at the true back, the same set on return. The scan's mean read 13.4 ms over
+27 scans in the suite against 8.9 ms in the targeted run, and the difference is honest: the suite
+LIVES on coasts, so few of its crossings are the cheap inland kind; both numbers are kept.
+
+**The one fail is test 38, and the world was right — for the second time.** *"REFUSED — Naarah is
+standing there."* Naarah is a VILLAGER. Round 77 taught this test that a beast is not a wall and
+walks on; its retry matched `/beast|creature|animal/i`, and no regex of kinds can know a hundred
+villagers' names. But the engine has exactly ONE line that makes this refusal —
+`who+' is standing there'` — and makes it only for a living thing, so the honest match is **the
+engine's own sentence**, not a longer list of names. No other refusal contains those words.
+Proved by injection: a villager forced to linger three asks is waited out and the block lays on
+the fourth, *"after waiting out whoever stood there 3×"*; restored, it lays first try. The verdict
+is stated as the composite it is: the full run read the un-mended test, the mend is proved alone,
+and nothing else in the run touches that path.
+
+### Where Phase 8 now stands
+
+**Every named item of §8 is built and guarded**: the schematic format, the capture (headless tool
+AND the player's own binding), the Cave of Treasures, the Cell of Ḥanoḵ, and the something at the
+back of the sea caves. What remains is open-ended, not owed: growing the hoards, which costs one
+capture and no code — the whole object of building the format first.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

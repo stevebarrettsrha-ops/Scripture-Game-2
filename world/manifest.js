@@ -253,6 +253,9 @@ const FILES=[
   'world/rivers.js',
   'world/verses.js',
   'world/landmarks.js',
+  /* the authored places (Phase 8) — AFTER landmarks, because a place names
+     the landmark it stands in and the list must already hold it */
+  'world/places.js',
   'world/waterfalls.js',
   'world/deeps.js',
   'world/scenes.js',
