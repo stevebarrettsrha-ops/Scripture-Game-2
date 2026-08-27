@@ -7861,6 +7861,80 @@ AND the player's own binding), the Cave of Treasures, the Cell of Ḥanoḵ, and
 back of the sea caves. What remains is open-ended, not owed: growing the hoards, which costs one
 capture and no code — the whole object of building the format first.
 
+## 4cj. Round 86 — the tree sent through the door, and test 43 alive after twenty-five rounds ✅
+
+*Round 61 built the whole bole mechanism — `kit.bole` stamps a trunk into the structure layer,
+the mesher draws it, the axe breaks it, it drops Timber — proved it once end to end, and switched
+it off for two reasons its own notes specify with the mend half-written. This round answers both,
+turns it on, fights a war it started, and re-founds two laws the change made untrue.*
+
+### The two reasons, answered
+
+**1. The first build is no longer trunkless.** Round 61: the stamp landed after `buildChunk`
+gathered its edits, so trunks arrived on the remesh — a whole view's worth of pop-in, measured by
+test 41 at 63,466 triangles. Its prescription — *"the stamp wants to run BEFORE the chunk gathers
+its edits, a pass over the columns that grow trees, which the builder already walks"* — is built:
+a pre-pass with **the same kit blindfolded** (real `hash`, `shade`, `M`, so the tree decided is
+the very tree the walk will draw; no-ops where triangles would come out; `wet` asked with
+`riverBankCell` exactly as the walk asks it, because a different `wet` picks a different tree).
+The pass takes back the one dirty mark it makes on its own chunk — that very build draws what it
+just stamped — and a bole leaning over the boundary rightly leaves the neighbour marked.
+**Proved by injection: pre-pass removed, test 41 reads 62,186 triangles of pop-in — the same
+fault Round 61 read at 63,466.**
+
+**2. The bole keeps its bark, and the trade was never forced.** Round 61 weighed *"six blocks and
+a stack of timber that no longer stacks"* against a tint and said the question should be ASKED.
+The answer was in the block table all along: **a block drops what its `drops` field names** —
+`give=BLOCK_BY_ID[b.drops]` — so six bark-faced Timbers all give the one `log`. The eye keeps the
+birch and the cork-oak on the felled bole; the satchel keeps one stack. The six new blocks claim
+the very bark materials the crowns have worn since §2.4.3 (no new art), and they **append at the
+END of the manifest**, out of alphabet, on purpose: a block's number is its place in the list and
+those numbers live in every save's edit records.
+
+### The war this round started, lost once, and then ended
+
+Two neighbouring trees could both claim a boundary cell — a trunk box leans. Before, every bark
+was the one `log` block and the fight was an **invisible no-op**; six blocks made it visible, and
+eternal:
+
+> **4,878 stamp flips in twenty frames at one shore** — log-twist ↔ log-smooth, each flip a dirty
+> mark, each remesh a flip back, the renderer pegged at 102% and test 43 hung past forty minutes.
+> The winner depended on stamp ORDER, and order differs between the pre-pass, the mesh walk, and
+> a neighbour's build.
+
+**A first mend refereed the contest** — lowest block number wins, order-free — **and was wrong
+twice**: it *ratcheted* (once plain `log` had ever won a cell, no bark could be stamped back, and
+test 41's off-arm read "4 barks, wanted 1"), and it still let a war exist to be refereed. **The
+real mend makes the contest impossible: a trunk's stamp is clipped to the column the tree is
+ROOTED in.** One column per tree, no cell with two claimants, every order the same outcome; the
+drawn crown still leans wherever it likes — only the fellable part is the tree's own footing,
+which is where an axe is swung anyway. Read at rest afterward: **0 changing stamps in twenty
+frames, dirty 0, remeshes still** — and two read-only probes (`editDirtySize`, `remeshes`) stay
+on `__VDBG` with the rule written beside them: *a dirty count that never drains is a stamp whose
+value flips between rebuilds.*
+
+### What it costs, what it pays, and two laws re-founded in the open
+
+**Every trunk's own bark-material mesh melts into the chunk's block mesh.** Measured: ~420 draw
+calls gone at the cave-country reading, and the OPEN frame fell from ~480 ms to **~75 ms** in the
+software harness — while conifer cave country, whose cost is its own canopy, barely moved
+(521 → 513). Two laws written for the old world had to move, each with the story in its comment
+and one in its very name:
+
+| law | was | is | why |
+|---|---|---|---|
+| test 41, "not one triangle" | exact, for geometry trunks | **±2.5%** | to a greedy mesher block identity IS shape: unlike trunks touching cannot hide their boundary faces — measured +18,748 of 1,092,098 (1.7%). The quarter-million-triangle leak the law was born catching is still caught cold |
+| test 11, cave ≤ open **×1.5** | held while open and cave cost alike (881 vs 928 ms) | **×8**, and the test's NAME says when and why it moved | the ratio blew out because the DENOMINATOR got six times cheaper. Nothing regressed in absolute terms, and the remesh hitch a hand actually feels stayed at ~25 ms |
+
+### The readings
+
+Tests 11, 41, 43, 44 together: **4 pass · 0 fail**. Test 43's first green reading in ~25 rounds:
+*a tamarisk at 12121,2040 · solid: true · the block is Timber · in the player's record: false ·
+it drops log · broken: true.* Test 44's whole chain — fingers to timber to planks to pick to rock
+— unmoved. Chunk build cost with the pre-pass: 3–9 ms a chunk across terrains (545 laid per arm),
+the doubling of the flora walk lost in terrain noise. Bamboo culms, mangrove stilts and the
+banana's false stem stay geometry, as Round 61 documented.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

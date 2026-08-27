@@ -1206,7 +1206,16 @@ the two builds stood on 545 chunks and 709. `holdWorld` stops the world laying g
 its own while a measurement is taken, and the test asserts the two chunk counts are equal
 rather than assuming it.
 
-### 2. Tree boles as mineable blocks — *begun, and stopped on purpose (Round 61)*
+### 2. Tree boles as mineable blocks — ✅ *Round 86* (begun and stopped on purpose in Round 61)
+
+> **DONE, and test 43 green after ~25 rounds pending.** Both of Round 61's reasons answered:
+> the stamp runs BEFORE the chunk gathers its edits (a blindfolded-kit pre-pass, proved by
+> injection at 62,186 triangles of pop-in against Round 61's 63,466), and the bark question
+> dissolved — a block DROPS what its `drops` names, so six bark-faced Timbers all give one log.
+> A war of overlapping trunk stamps (4,878 flips in twenty frames, the renderer pegged) was
+> ended by clipping a trunk's stamp to its rooted column. The change pays: ~420 draw calls gone,
+> the open frame 480→75 ms in the harness; tests 41 and 11 re-founded with the story written in.
+> AUDIT §4cj. The original Round 61 record follows, kept as history:
 
 The door is built and proved: `kit.bole` stamps a trunk into the structure layer, the
 mesher draws it, the axe breaks it, it drops Timber — read once, end to end, off a real
