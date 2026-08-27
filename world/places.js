@@ -193,3 +193,39 @@ EARTH.place({
     return out;
   })()
 });
+
+/* ---- THE CASTAWAY'S CACHE — a schematic anchored by a RULE ----
+   Round 46 carved 84 sea caves and shipped them empty on purpose: "the cave
+   ships; what is in it waits for the phase whose whole job is putting things
+   in places." This is that something, and it forced the one design question
+   Phase 8 had left: THE SEA CAVES HAVE NO NAMES. They are procedural, found
+   by census, and a place anchors to a landmark by name.
+
+   The answer keeps the line the whole of world/ is built on, by splitting
+   the format's two halves instead of blurring them. The SCHEMATIC — pal,
+   rle, box, keep — stays authored, particular, exactly as the Cave of
+   Treasures' is. The ANCHOR is what it truly is here: **a rule** — `in:
+   'seacave', share:N` — *at the back of one sea cave in N, this stands.*
+   No `at`, no dx/dy/dz: which caves, and which way the cache faces, is the
+   engine's placement pass reading the world, not this file naming a spot.
+
+   WHICH caves hold it is decided by a hash of the cave's own back cell —
+   the same device the beasts' lie-up hour and the herd stations use — so
+   the same cave answers the same way on every visit and every boot. Found
+   by rowing in, which is what secret means here.
+
+   THE SCHEMATIC'S OWN FRAME: w=1 — a sea cave is a notch, one column wide,
+   and a one-wide schematic needs no rotation machinery, only a direction.
+   z runs OUTWARD from the wall: z=0 is the rock one step beyond the back
+   (the wall the silver is in), z=1 is the back column itself. y=0 is the
+   hollow's floor. What stands: the timber of the wrecked skiff on the
+   floor, salt crusted on it, and silver in the wall — the something the
+   castaway never came back for. Four cells, three placed, one kept. */
+EARTH.place({
+  n:"The Castaway's Cache", in:'seacave', share:3,
+  w:1, h:2, d:2, keep:true,
+  pal:['keep','silver-ore','planks','salt'],
+  /* walk order x, then z, then y — so: (z0,y0) keep, (z0,y1) silver-ore,
+     (z1,y0) planks, (z1,y1) salt */
+  rle:[1,0, 1,1, 1,2, 1,3]
+});

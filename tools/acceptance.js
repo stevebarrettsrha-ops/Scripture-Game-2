@@ -4036,6 +4036,11 @@ T[56]={name:'an AUTHORED PLACE stands where the scroll says it does, and a captu
     let stood=0;
 
     for(const P of PL){
+      /* a RULE-ANCHORED schematic (`in:'seacave'`) has no landmark to stand
+         in and no fixed spot to read back — test 57 owns it, where the rule
+         itself is driven. Skipped by its anchor kind, and said out loud in
+         the report so a skip can never pass for coverage. */
+      if(P.in){ rows.push('"'+P.n+'" is rule-anchored (in:'+P.in+') — guarded by test 57, not here'); continue; }
       /* 1. well-formed */
       let cells=0; D.placeWalk(P,()=>cells++);
       const want=P.w*P.h*P.d;
@@ -4158,6 +4163,140 @@ T[56]={name:'an AUTHORED PLACE stands where the scroll says it does, and a captu
     return {ok:!faults.length&&stood>0,
       got:PL.length+' authored place(s), '+stood+' of them stood and were captured back · '+
         rows.join(' | ')+(faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[57]={name:'the something at the back of the sea caves — there, at the BACK, and the same cave every time',
+  /* PHASE 8's last named IOU. Round 46 carved the sea caves and shipped them
+     empty on purpose: "the cave ships; what is in it waits for the phase
+     whose whole job is putting things in places." This is that something —
+     the Castaway's Cache — and the design question it answers is the one the
+     audit left standing: THE SEA CAVES HAVE NO NAMES. They are procedural,
+     found by census, while a place anchors to a landmark by name.
+
+     The answer splits the format's two halves instead of blurring them. The
+     SCHEMATIC stays authored data in world/places.js; the ANCHOR is declared
+     as the rule it truly is — `in:'seacave', share:N` — and the engine's
+     placement pass does the rule's work: find the caves by the same census
+     this suite has made since test 27, walk each from its MOUTH inland to
+     its BACK, and let a hash of the back cell decide, for ever, whether this
+     cave is one of the one-in-N.
+
+     WHAT THIS GUARDS, and each is a different failure:
+     1. THE CACHE EXISTS — at least one qualifying cave on a real coast holds
+        it — and NOT EVERY cave does, when there are enough caves that "all"
+        would mean the share is broken.
+     2. IT STANDS AT THE BACK. From the cache column, walking further INLAND
+        along the cave's own axis finds no more hollow (it is the last), and
+        walking OUTWARD finds one (the way out exists). Both ends asked, so a
+        cache stamped at the mouth — where outward is open sea — is named.
+     3. THE BLOCKS ARE THE SCHEMATIC'S: planks on the floor, salt on the
+        planks, silver-ore in the wall one step beyond.
+     4. THE SAME CAVE ANSWERS THE SAME WAY TWICE. Leave the coast far enough
+        that the stamps are reaped, come back, and the set of caches must be
+        the very same set — determinism is the whole point of hashing the
+        cave's own ground.
+     5. AND THE SCAN'S COST IS READ, not assumed.
+
+     `share` is small (one cave in three) so a coast with a handful of caves
+     still shows both a cache and a cave without one. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    if(!D.seacaves||!D.seacaveScan) return {pending:'no sea-cave cache in this build (Phase 8)'};
+    const CACHE=(D.places()||[]).find(P=>P.in==='seacave');
+    if(!CACHE) return {pending:'world/places.js declares no seacave schematic'};
+    const faults=[];
+
+    /* the census walk, mirrored from test 27 and the engine both: a hollow at
+       the waterline with rock over it and room enough */
+    const hollow=(ix,iz)=>{
+      const c=D.cellRaw(ix,iz); if(!c||c.kind==='floe') return null;
+      const sp=D.cellSpans(ix,iz); if(!sp) return null;
+      for(let i=0;i<sp.length;i+=2){
+        if(sp[i]>4) continue;
+        if(sp[i+1]>=c.h-1) return null;
+        return {lo:sp[i],hi:sp[i+1]};
+      }
+      return null; };
+    const caveBacks=(cx,cz,R)=>{
+      const backs=new Map();
+      for(let dx=-R;dx<=R;dx++) for(let dz=-R;dz<=R;dz++){
+        const ix=cx+dx, iz=cz+dz;
+        const hol=hollow(ix,iz); if(!hol) continue;
+        let sea=null;
+        for(const d of [[1,0],[-1,0],[0,1],[0,-1]])
+          if(!D.cellRaw(ix+d[0],iz+d[1])){ sea=d; break; }
+        if(!sea) continue;
+        const ux=-sea[0], uz=-sea[1];
+        let bx=ix, bz=iz, bh=hol, depth=1;
+        for(let k=1;k<=12;k++){
+          const h2=hollow(ix+ux*k,iz+uz*k); if(!h2) break;
+          bx=ix+ux*k; bz=iz+uz*k; bh=h2; depth=k+1; }
+        if(depth<2) continue;
+        if(bh.hi<bh.lo+1) continue;
+        backs.set(bx+','+bz,{bx,bz,ux,uz,lo:bh.lo}); }
+      return backs; };
+
+    /* ---- find the coast with the most qualifying caves ---- */
+    const S=window.__WORLD.sites();
+    const spots=[]; for(const g of D.RANGES) spots.push([g.x,g.z]);
+    for(let i=0;i<10;i++) if(S[i]) spots.push([S[i].x,S[i].z]);
+    let best=null, bestN=0;
+    for(const [sx,sz] of spots){
+      const n=caveBacks(Math.floor(sx/B),Math.floor(sz/B),110).size;
+      if(n>bestN){ bestN=n; best=[sx,sz]; } }
+    if(!best||!bestN) return {pending:'no sea cave qualifies on any surveyed coast'};
+
+    const go=async(x,z)=>{ D.state.walk.x=x; D.state.walk.z=z;
+      D.state.walk.feetY=undefined; D.setMode('walk');
+      for(let f=0;f<50;f++){ D.updateChunks(x,z,600);
+        await new Promise(r=>requestAnimationFrame(r)); } };
+    await go(best[0],best[1]);
+    const cx=Math.floor(best[0]/B), cz=Math.floor(best[1]/B);
+    const eligible=caveBacks(cx,cz,72);        /* the engine's own radius */
+    const caches=D.seacaves().filter(S2=>Math.hypot(S2.bx-cx,S2.bz-cz)<=72*1.2);
+
+    /* 1. it exists, and not everywhere */
+    if(!caches.length) faults.push('not one cache stands among '+eligible.size+' qualifying caves');
+    if(eligible.size>=6&&caches.length>=eligible.size)
+      faults.push('EVERY one of '+eligible.size+' caves holds the cache — the share of 1 in '+(CACHE.share||3)+' is broken');
+
+    /* 2 and 3. at the back, and the schematic's own blocks */
+    const nameAt=(ix,iy,iz)=>{ const n=D.blockAt(ix,iy,iz)|0;
+      const b0=n&&D.blockOf(n); return b0?b0.id:'air'; };
+    let backOK=0;
+    for(const C of caches){
+      const inland=hollow(C.bx+C.ux,C.bz+C.uz);
+      const outward=hollow(C.bx-C.ux,C.bz-C.uz);
+      if(inland) faults.push('a cache at '+C.key+' is not at the back — the hollow runs on inland');
+      else if(!outward) faults.push('a cache at '+C.key+' has no way out — it is stamped at the mouth or in the wall');
+      else backOK++;
+      const got=nameAt(C.bx,C.lo,C.bz)+'/'+nameAt(C.bx,C.lo+1,C.bz)+'/'+
+        nameAt(C.bx+C.ux,C.lo+1,C.bz+C.uz);
+      if(got!=='planks/salt/silver-ore')
+        faults.push('a cache at '+C.key+' stands as '+got+' where planks/salt/silver-ore was declared');
+    }
+
+    /* 4. the same cave answers the same way twice */
+    const before=caches.map(C=>C.key).sort().join(' ');
+    await go(best[0]+3000,best[1]+3000);
+    const gone=D.seacaves().filter(S2=>Math.hypot(S2.bx-cx,S2.bz-cz)<=72*1.2).length;
+    if(gone) faults.push(gone+' cache stamp(s) survived the coast being left behind');
+    await go(best[0],best[1]);
+    const after=D.seacaves().filter(S2=>Math.hypot(S2.bx-cx,S2.bz-cz)<=72*1.2)
+      .map(C=>C.key).sort().join(' ');
+    if(after!==before)
+      faults.push('the coast answered differently on return — before ['+before+'] after ['+after+']');
+
+    /* 5. the cost */
+    const ms=D.seacaveMs();
+    return {ok:!faults.length,
+      got:bestN+' qualifying cave(s) at the best coast (of '+spots.length+' surveyed) · '+
+        'in the engine\'s own radius: '+eligible.size+' caves, '+caches.length+
+        ' hold the cache (share declared 1 in '+(CACHE.share||3)+') · '+
+        backOK+' of '+caches.length+' at the true back, blocks as declared · '+
+        'left and returned: the same set · scan '+
+        (ms.scans?(ms.ms/ms.scans).toFixed(2):'—')+' ms over '+ms.scans+' scan(s)'+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
 T[37]={name:'no county is given to the sea by a river running through it',

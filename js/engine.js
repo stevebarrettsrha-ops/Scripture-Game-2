@@ -12465,6 +12465,106 @@ function captureShow(src,caption){
   $('capture-src').value=src;
   el.style.display='flex';
 }
+/* ---- THE SOMETHING AT THE BACK OF THE SEA CAVES ----
+   Round 46's IOU, and the last thing Phase 8 owed by name. The sea caves are
+   PROCEDURAL — 84 hollows found by census, with no names — so nothing here is
+   anchored the way the Cave of Treasures is. The SCHEMATIC is authored data
+   in world/places.js (`in:'seacave'`); everything below is the RULE half:
+   find the caves, find each one's BACK, decide by the cave's own ground
+   whether it holds the cache, and stamp it facing the right way.
+
+   THE WALK is the census test 27 has always made, taken in-engine: a coastal
+   column whose spans hold a hollow at the waterline (lo ≤ 4) with rock
+   standing over it (hi < h−1) is a cave column; one with open sea beside it
+   is a MOUTH; walking inland — straight away from the sea, which is the axis
+   the carve itself worked along — the last hollow column is THE BACK. A
+   one-deep notch holds nothing, and a hollow under two blocks high has no
+   room for the cache, so neither qualifies.
+
+   WHICH caves hold it: `hash2` of the back cell against 1/share — the same
+   device the lie-up hour and the herd stations use — so the same cave
+   answers the same way on every visit and every boot.
+
+   THE STAMP goes through `stampedGroup` like every landmark's, so it is
+   regenerable, dropped when its coast is left behind, and BEATEN BY THE
+   HAND: a man may row in and take the cache apart, and his taking persists
+   while the coast stands loaded. The scan runs only when the traveller
+   crosses into a new chunk, and its cost is COUNTED, not assumed. */
+const SEACAVES=new Map();       /* back "ix,iz" -> {stamp,bx,bz,ux,uz,lo} */
+let SC_MS=0, SC_SCANS=0, _scChunk=null;
+const SC_R=72;                  /* blocks scanned about the traveller */
+function seacaveHollow(c){
+  if(!c||!c.spans) return null;
+  for(let i=0;i<c.spans.length;i+=2){
+    if(c.spans[i]>4) continue;                 /* not down at the water */
+    if(c.spans[i+1]>=c.h-1) return null;       /* no rock over it: a notch */
+    return {lo:c.spans[i],hi:c.spans[i+1]};
+  }
+  return null;
+}
+function seacavePass(px,pz){
+  const pl=[]; for(const P of (window.EARTH&&EARTH.placeList)||[])
+    if(P.in==='seacave') pl.push(P);
+  if(!pl.length) return;
+  const cx=Math.floor(px/B), cz=Math.floor(pz/B);
+  /* the reap runs every call; the scan only on crossing into a new chunk */
+  for(const [key,S] of SEACAVES){
+    if(Math.hypot(S.bx-cx,S.bz-cz)>SC_R*1.6){ stampDrop(S.stamp); SEACAVES.delete(key); } }
+  const ck=Math.floor(cx/CH)+','+Math.floor(cz/CH);
+  if(ck===_scChunk) return;
+  _scChunk=ck;
+  const t0=performance.now();
+  /* ---- AND AN INLAND CROSSING COSTS NEXT TO NOTHING ----
+     The full walk read 12.3 ms a scan in the headless harness, and a scan
+     fires on every chunk crossing — most of which are nowhere near a coast.
+     A cave needs OPEN SEA beside it, and open sea is where `cell` answers
+     nothing, so a coarse sample of the ring says in ~170 lookups whether
+     there is any sea here at all. No sea, no caves, no walk. The sample
+     step is well under the narrowest sound the chart draws, and it is
+     deterministic by position, so it can never make the same coast answer
+     two different ways. */
+  let anySea=false;
+  for(let dx=-SC_R;dx<=SC_R&&!anySea;dx+=12) for(let dz=-SC_R;dz<=SC_R;dz+=12)
+    if(!cell(cx+dx,cz+dz)){ anySea=true; break; }
+  if(!anySea){ SC_MS+=performance.now()-t0; SC_SCANS++; return; }
+  for(let dx=-SC_R;dx<=SC_R;dx++) for(let dz=-SC_R;dz<=SC_R;dz++){
+    const ix=cx+dx, iz=cz+dz;
+    const c=cell(ix,iz); if(!c||c.kind==='floe') continue;
+    const hol=seacaveHollow(c); if(!hol) continue;
+    /* a mouth is a cave column with open sea beside it */
+    let sea=null;
+    for(const d of [[1,0],[-1,0],[0,1],[0,-1]])
+      if(!cell(ix+d[0],iz+d[1])){ sea=d; break; }
+    if(!sea) continue;
+    /* the walk inland, along the axis the carve worked */
+    const ux=-sea[0], uz=-sea[1];
+    let bx=ix, bz=iz, bh=hol, depth=1;
+    for(let k=1;k<=12;k++){
+      const h2=seacaveHollow(cell(ix+ux*k,iz+uz*k)); if(!h2) break;
+      bx=ix+ux*k; bz=iz+uz*k; bh=h2; depth=k+1;
+    }
+    if(depth<2) continue;                      /* a one-deep notch */
+    if(bh.hi<bh.lo+1) continue;                /* no room for the cache */
+    const key=bx+','+bz;
+    if(SEACAVES.has(key)) continue;            /* standing already */
+    for(const P of pl){
+      /* the cave's own ground decides, for ever */
+      if(hash2(bx*0.173,bz*0.191)>=1/(P.share||3)) continue;
+      const ids=(P.pal||[]).map(nm=>blockId(nm));
+      const keep=(P.keep!==false);
+      const g=stampedGroup(()=>{
+        placeWalk(P,(x,y,z,v)=>{
+          if(v===0&&keep) return;
+          /* z runs OUTWARD from the wall: z=0 is one step beyond the back */
+          const wx=bx+ux*(1-z), wz=bz+uz*(1-z);
+          stampBlock(wx, bh.lo+y, wz, ids[v]||0);
+        });
+      });
+      SEACAVES.set(key,{stamp:g,bx,bz,ux,uz,lo:bh.lo});
+    }
+  }
+  SC_MS+=performance.now()-t0; SC_SCANS++;
+}
 function spawnLandmark(i){
   const L=LANDMARKS[i], site=landmarkSite(i);
   if(!site){ activeLandmarks.set(i,{none:true}); return; }
@@ -16224,6 +16324,11 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      world, stamp it somewhere else, and the blocks must be the same. */
   places:()=>((window.EARTH&&EARTH.placeList)||[]), placesAt,
   capture:placeCapture, placeStamp, placeWalk, blockOf, placeSource,
+  /* the sea-cave cache: the registry, a forced scan, and what the scan costs */
+  seacaves:()=>{ const out=[]; for(const [k,S] of SEACAVES)
+      out.push({key:k,bx:S.bx,bz:S.bz,ux:S.ux,uz:S.uz,lo:S.lo}); return out; },
+  seacaveScan:(x,z)=>{ _scChunk=null; seacavePass(x,z); },
+  seacaveMs:()=>({ms:SC_MS,scans:SC_SCANS}),
   /* the binding itself, so the suite can drive the player's own flow:
      swap AIM (the pattern placeFrom proves), press, press again, and read
      the panel's text back */
@@ -18104,6 +18209,7 @@ function frame(){
   if(frame._carpetOn) updateFarLand(p.x,p.z,false,eyeY);
   updateVillages(p.x,p.z,dt,light.nightF,light.dayF);
   updateLandmarks(p.x,p.z);
+  seacavePass(p.x,p.z);
   updateFalls(p.x,p.z);          /* and the springs at the head of every fall */
   /* the living world — weather, hearths, fireflies, meetings, murmurs */
   if(!state.firm){ const _t=performance.now()*0.001;
