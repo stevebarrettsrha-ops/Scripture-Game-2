@@ -550,6 +550,17 @@ const FILES=[
   'blocks/water-bucket.js',
   'blocks/water.js',
   'blocks/wool.js',
+  /* ---- THE SIX BARK-FACED TIMBERS GO AT THE END, OUT OF ALPHABET, ON
+     PURPOSE. A block's NUMBER is its place in this list, and those numbers
+     live in every save's edit records — insert one alphabetically and every
+     block after it renumbers, which is a different world under the same log.
+     New blocks append; the alphabet ends at wool. */
+  'blocks/log-paper.js',
+  'blocks/log-ring.js',
+  'blocks/log-plate.js',
+  'blocks/log-twist.js',
+  'blocks/log-cork.js',
+  'blocks/log-smooth.js',
   'js/engine.js',
 ];
 

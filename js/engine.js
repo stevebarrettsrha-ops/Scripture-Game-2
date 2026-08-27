@@ -2558,10 +2558,33 @@ function emitColumn(G,ix,iz,cc){
    of timber block would be six more blocks in the world and a stack of timber
    that no longer stacks. That is a trade to be argued, not assumed, and it is
    argued in AUDIT Round 61. */
+/* ---- AND A TRUNK'S STAMP IS ITS OWN COLUMN, WHICH ENDS A WAR ----
+   THE FAULT THIS MENDS ran the world's remesher for ever. A trunk BOX can
+   lean into the next column, so two neighbouring trees could both claim a
+   boundary cell — each stamping its OWN bark there. Before Round 86 every
+   bark was the one `log` block and the fight was an invisible no-op; six
+   bark blocks made it visible, and eternal: each rebuild flipped the cell
+   (log-twist ↔ log-smooth, 4,878 flips read in twenty frames at one shore),
+   each flip marked the chunk dirty, the remesh flipped it back, and the
+   renderer pegged at 100% doing it — because the winner depended on stamp
+   ORDER, and order differs between the pre-pass, the mesh walk and a
+   neighbour's build.
+   A first mend refereed the contest (lowest block number wins) and was
+   wrong TWICE: it ratcheted — once plain `log` had ever won a cell, no
+   bark could be stamped back over it, and test 41's bark A/B read "4 barks
+   with the switch off, wanted 1" — and it still let a war exist to be
+   refereed. So the contest is not settled; it is MADE IMPOSSIBLE: the
+   stamp is clipped to the column the tree is ROOTED in, one column per
+   tree, no cell with two claimants, every stamp order the same outcome.
+   The drawn crown still leans wherever it likes; only the FELLABLE part is
+   the tree's own footing, which is where an axe is swung anyway. */
 function boleBox(x0,y0,z0,x1,y1,z1,mat){
+  const cxm=(x0+x1)/2, czm=(z0+z1)/2;
+  const ix=Math.floor(cxm/B), iz=Math.floor(czm/B);
+  const e=STAMP_EPS*B;
   const was=_stampOn;
   if(!was) _stampOn={cells:[]};
-  try{ stampBox(x0,y0,z0,x1,y1,z1,mat); }
+  try{ stampBox(ix*B+e,y0,iz*B+e, (ix+1)*B-e,y1,(iz+1)*B-e, mat); }
   finally{ if(!was) _stampOn=null; }
 }
 /* ---- AND ONE UPWARD FACE ----
@@ -2574,6 +2597,17 @@ function boleBox(x0,y0,z0,x1,y1,z1,mat){
 function matFace(G,m,x0,z0,x1,z1,y,tint){ faceTop(G,m,x0,z0,x1,z1,y,shade(tint,1.0)); }
 const FKIT={ G:null, emitBox, bole:boleBox, cross, mat:matFace, shade, hash:hash2,
   M:{leaf:'leafW', ever:'everW', bark:'barkW', plant:'plantW', solid:'solidW'} };
+/* ---- THE SAME KIT WITH ITS EYES SHUT ----
+   The bole pre-pass (see buildChunk) runs each tree BEFORE the chunk gathers
+   its edits, wanting only the trunk stamp and none of the geometry. So: the
+   same M, the same hash, the same shade — everything that DECIDES what the
+   tree is must be identical, or the trunk stamped here and the crown drawn
+   later would be two different trees — and no-ops where triangles would come
+   out. `bole` is the one real emitter. */
+const BG_NULL={};
+const _noG=function(){};
+const BKIT={ G:null, emitBox:_noG, bole:boleBox, cross:_noG, mat:_noG, shade, hash:hash2,
+  M:FKIT.M };
 let floraReady=false;
 function initFlora(){ if(floraReady) return; floraReady=true;
   if(window.FLORA) FLORA.load((window.EARTH.floraList||[])[0]||null);
@@ -3059,11 +3093,17 @@ MAT_BLOCK.iceTop=MAT_BLOCK.iceTop||blockId('ice');
 MAT_BLOCK.iceSide=MAT_BLOCK.iceSide||blockId('ice');
 MAT_BLOCK.solidW=MAT_BLOCK.solidW||blockId('stone');
 MAT_BLOCK.barkW=MAT_BLOCK.barkW||blockId('log');
-/* §2.4.3 — every bark is the same BLOCK when a hand breaks it. The six
-   patterns are how a birch differs from a palm to the eye; to the pick they
-   are all log, and a stack of logs is a stack of logs whichever wood it came
-   from. (Without these the mesher's stamp would answer `stone` for a bole,
-   and a birch would break into rubble.) */
+/* §2.4.3, and Round 86 finished the thought. Each bark maps to ITS OWN
+   Timber block now — blocks/log-paper.js and its five fellows claim these
+   very material names in their `tex`, so the scan above has already sent
+   barkPaper to log-paper before this line runs. Every one of the six DROPS
+   plain 'log': the eye keeps the birch and the cork-oak on the felled bole,
+   and a stack of logs is still a stack of logs whichever wood it came from
+   — the trade Round 61 thought forced ("a stack that no longer stacks")
+   never was, because a block drops what its `drops` names.
+   This loop is the FALLBACK it always looked like: any bark no block claims
+   still breaks as Timber rather than answering `stone` and shattering a
+   birch into rubble. */
 for(const m of ['barkPaper','barkRing','barkPlate','barkTwist','barkCork','barkSmooth'])
   MAT_BLOCK[m]=MAT_BLOCK[m]||MAT_BLOCK.barkW;
 MAT_BLOCK.everW=MAT_BLOCK.everW||MAT_BLOCK.leafW||blockId('leaves');
@@ -3353,6 +3393,34 @@ function buildChunk(cx,cz){
      chunk is ninety-six metres across and no wood changes at a line.) */
   chunkLand=landNameAt((cx*CH+CH/2)*B,(cz*CH+CH/2)*B);
   chunkRiver=chunkHasRiver(cx,cz);
+  /* ---- THE BOLES ARE STAMPED BEFORE THE EDITS ARE GATHERED ----
+     Round 61's finding, mended where its own notes said to mend it: a bole
+     stamped during the mesh walk lands in the layer AFTER the gathering
+     below, so the build that stamped it could not draw it — the trunks of a
+     whole view arrived a remesh late, measured by test 41 at 63,466
+     triangles of pop-in. So the trees are walked FIRST, with a kit that
+     emits no geometry at all and stamps only the trunk; the gathering then
+     picks the boles up with everything else and the first build draws them.
+     Re-stamping the same trees on a rebuild writes the same blocks, and a
+     stamp that changes nothing marks nothing (Round 61's own fix), so there
+     is no dirty loop. The one mark this pass DOES make — its own chunk, for
+     the fresh cells it just stamped — is taken back below, because this very
+     build is about to draw them; a bole leaning over the boundary rightly
+     leaves the neighbour marked. */
+  if(window.FLORA&&FLORA.boleBlocks&&FLORA.boleBlocks()){
+    initFlora();
+    for(let a=0;a<CH;a++) for(let b=0;b<CH;b++){
+      const ix=cx*CH+a, iz=cz*CH+b, cc=cell(ix,iz);
+      if(!cc||cc.kind==='wall'||cc.kind==='floe') continue;
+      /* `riverBankCell`, EXACTLY as the mesh walk asks it at its own tree
+         call — a different `wet` here could pick a different tree, and the
+         trunk stamped now would stand under somebody else's crown */
+      const wet=chunkRiver&&riverBankCell((ix+0.5)*B,(iz+0.5)*B);
+      const K=FLORA.treeAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wet);
+      if(K){ BKIT.G=BG_NULL; FLORA.emitTree(BKIT,K,ix,iz,cc); BKIT.G=null; }
+    }
+    EDIT_DIRTY.delete(cx+','+cz);
+  }
   /* the whole chunk's edits, indexed by column, ONCE — asked per column it
      would be two hash lookups apiece for the answer `nothing`, two hundred
      and fifty-six times a chunk, over a world where nobody has dug */
@@ -15883,6 +15951,11 @@ if(!window.__HOST_BOOT){
 window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   /* the light in the corners, and the count of standing chunks — tools/acceptance.js */
   aoLevel,aoTop,chunkCount:()=>chunks.size,bodyLenOf,
+  /* the remesh queue's depth and the lifetime remesh count — read-only. At
+     rest BOTH must sit still: a dirty count that never drains is a stamp
+     whose value flips between rebuilds, which is the fault Round 86 caught
+     (two trees fighting for a boundary cell) and settled order-free. */
+  editDirtySize:()=>EDIT_DIRTY.size,remeshes:()=>REMESHES,
   /* the light of the world, and whether it stands at one of the two edges of
      the day — what sends the herds down to the water (§2.3.6). Read-only. */
   worldNight:()=>worldNight, worldDay:()=>worldDay, twilight, drinks, findWater, WATER_REACH:()=>WATER_REACH,

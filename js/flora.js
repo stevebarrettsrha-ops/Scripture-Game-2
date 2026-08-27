@@ -327,9 +327,12 @@ function bole(kit,K,x,z,yT,h,w){
   if(kit.bole&&BOLE_BLOCKS){ kit.bole(x-w,yT,z-w, x+w,yT+h,z+w, BK); return; }
   emitBox(kit.G, x-w,yT,z-w, x+w,yT+h,z+w, BK,BK,null, K._bole);
 }
-/* off until the two things above are answered — and it is a switch rather
-   than a deletion so that the next round begins where this one stopped */
-let BOLE_BLOCKS=false;
+/* ON since Round 86, which answered both: the trunk is stamped BEFORE the
+   chunk gathers its edits (the pre-pass in buildChunk), so the first build
+   draws it; and the six barks each have a Timber block of their own that
+   DROPS plain log, so the eye keeps the birch and the satchel keeps one
+   stack. The switch stays a switch so the A/B can still be run in one boot. */
+let BOLE_BLOCKS=true;
 
 /* ============================================================
    THE BOUGHS — §2.4.1, and the reason every wood looked the same
