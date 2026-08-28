@@ -3505,6 +3505,22 @@ function buildChunk(cx,cz){
       const ec=editedCell(ix,iz,cc,em);
       emitColumn(G,ix,iz,ec);
       emitPlaced(G,ix,iz,em,ec.h);
+      /* ---- AN EDITED COLUMN MUST NOT SILENCE ITS OWN TREE ----
+         This branch ends in `continue`, so an edited column never reached
+         the `cc.tree` draw below — which was invisible while edits in a
+         tree's column were a hand's rare doing, and became the look of the
+         world the round the trunk stamp made EVERY tree's column an edited
+         column: every tree stood as a naked pole, its crown never drawn,
+         and no test read the drawn wood off the mesh to say so (the flora
+         suites ask the flora directly). The crown is drawn here iff the
+         trunk's own base cell still answers TIMBER — the stamp standing,
+         the hand not having taken it — so a felled bole rightly takes its
+         crown down with it, and a buried or built-over column stays as
+         silent as it always was. The bole call inside re-stamps the same
+         trunk, which marks nothing (a stamp that changes nothing marks
+         nothing). */
+      if(cc.tree){ const bb=blockOf(em.get(cc.h)||0);
+        if(bb&&bb.drops==='log') emitTree(G,ix,iz,cc); }
       continue;
     }
     emitColumn(G,ix,iz,cc);
