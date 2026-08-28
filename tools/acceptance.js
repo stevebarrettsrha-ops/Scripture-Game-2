@@ -2112,7 +2112,21 @@ T[42]={name:'a bucket fills at water, pours a source that runs, and comes back e
         if(Math.abs(+q[0]-cx)<=r&&Math.abs(+q[2]-cz)<=r) n++; }
       return n; };
     D.holdId('water-bucket');
-    const px=Math.floor(p.x/B)-3, pz=Math.floor(p.z/B), py=(D.landAtWorld((px+0.5)*B,(pz+0.5)*B)||c).h;
+    /* ---- THE POUR SPOT IS HUNTED NOW, NOT ASSUMED (Round 86) ----
+       This poured three blocks west of wherever the traveller stood and
+       never looked. Round 86 made the boles blocks, and a trunk's base
+       answered out of that very cell: "something already stands there" —
+       rightly, since the tree IS the world now. The first column out from
+       him (the cistern's own excepted) whose first-air cell is truly empty
+       over solid ground takes the pour. */
+    let px=Math.floor(p.x/B)-3, pz=Math.floor(p.z/B), py=(D.landAtWorld((px+0.5)*B,(pz+0.5)*B)||c).h;
+    hunt: for(let r=2;r<14;r++) for(let a=-r;a<=r;a++) for(let b2=-r;b2<=r;b2++){
+      if(Math.max(Math.abs(a),Math.abs(b2))!==r) continue;
+      const qx=Math.floor(p.x/B)+a, qz=Math.floor(p.z/B)+b2;
+      if(qx===ix&&qz===iz) continue;               /* not into his own cistern */
+      const cc=D.landAtWorld((qx+0.5)*B,(qz+0.5)*B); if(!cc) continue;
+      if(!D.blockSolidAt(qx,cc.h,qz)&&!WATER.levelAt(qx,cc.h,qz)&&D.blockSolidAt(qx,cc.h-1,qz)){
+        px=qx; pz=qz; py=cc.h; break hunt; } }
     /* the arm on the ground beside him, struck on its top face */
     const pour=D.placeFrom({ix:px,iy:py-1,iz:pz,nx:0,ny:1,nz:0,n:D.blockAt(px,py-1,pz),dist:2});
     const before=near(px,pz,12);
@@ -2324,16 +2338,30 @@ T[40]={name:'a running fall writes nothing into the record, and a hand\'s own so
     }
 
     /* AND A HAND'S OWN SOURCE IS THE OTHER CASE. One bucket, on dry ground
-       well away from the fall, laid as a DEED. */
+       well away from the fall, laid as a DEED.
+       ---- "DRY GROUND" IS HUNTED NOW, NOT ASSUMED (Round 86) ----
+       This poured at the traveller's own column and never looked. Round 86
+       made the boles blocks, and at Iguazu the forest is the world: a trunk's
+       base stood in the very cell the bucket tipped into, the spill refused,
+       and the deed read 0 of 1. The same lesson as test 13's: a premise a
+       test states of the world must be READ off the world, not assumed of a
+       spot. The first column out from him whose spill cell is truly empty —
+       no block, no water — takes the bucket. */
     const p=D.playerXZ(), c=D.landAtWorld(p.x,p.z);
-    let deedRec=-1;
-    if(c){ const r=D.recorded();
-      WATER.spill(Math.floor(p.x/B), c.h+1, Math.floor(p.z/B), true);
+    let deedRec=-1, pix=Math.floor(p.x/B), piz=Math.floor(p.z/B), ph=c?c.h:0;
+    if(c){ hunt: for(let r=0;r<12;r++) for(let a=-r;a<=r;a++) for(let b2=-r;b2<=r;b2++){
+        if(Math.max(Math.abs(a),Math.abs(b2))!==r) continue;
+        const qx=Math.floor(p.x/B)+a, qz=Math.floor(p.z/B)+b2;
+        const cc=D.landAtWorld((qx+0.5)*B,(qz+0.5)*B); if(!cc) continue;
+        if(!D.blockSolidAt(qx,cc.h+1,qz)&&!WATER.levelAt(qx,cc.h+1,qz)){
+          pix=qx; piz=qz; ph=cc.h; break hunt; } }
+      const r=D.recorded();
+      WATER.spill(pix, ph+1, piz, true);
       deedRec=D.recorded()-r; }
 
     /* the world is left as it was found */
     for(const h of heads) WATER.take(h[0],h[1],h[2]);
-    if(c) WATER.take(Math.floor(p.x/B), c.h+1, Math.floor(p.z/B));
+    if(c) WATER.take(pix, ph+1, piz);
     for(let k=0;k<4000&&WATER.count();k++){ WATER.step(0.25);
       if(k%50===0) await new Promise(r=>setTimeout(r,0)); }
 
