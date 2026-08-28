@@ -3411,7 +3411,16 @@ function buildChunk(cx,cz){
     initFlora();
     for(let a=0;a<CH;a++) for(let b=0;b<CH;b++){
       const ix=cx*CH+a, iz=cz*CH+b, cc=cell(ix,iz);
-      if(!cc||cc.kind==='wall'||cc.kind==='floe') continue;
+      /* ---- `cc.tree` IS THE GATE, AND LEAVING IT OUT SHEATHED THE EARTH ----
+         The mesh walk grows a tree only where the cell says one stands
+         (`if(cc.tree) emitTree(...)` below) — `FLORA.treeAt` is NOT that
+         gate: it names which species WOULD stand here, for any cell asked,
+         and the density lives in `cc.tree` alone. The first cut of this
+         pass asked treeAt for every column and stamped whatever it named:
+         a phantom trunk in ~100% of columns, read by an eight-column probe
+         with every cell SOLID log — the "war" was phantoms fighting, and
+         the draw-call win was a slab of timber occluding the world. */
+      if(!cc||!cc.tree||cc.kind==='wall'||cc.kind==='floe') continue;
       /* `riverBankCell`, EXACTLY as the mesh walk asks it at its own tree
          call — a different `wet` here could pick a different tree, and the
          trunk stamped now would stand under somebody else's crown */
