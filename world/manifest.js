@@ -561,6 +561,7 @@ const FILES=[
   'blocks/log-twist.js',
   'blocks/log-cork.js',
   'blocks/log-smooth.js',
+  'blocks/seed.js',
   'js/engine.js',
 ];
 
