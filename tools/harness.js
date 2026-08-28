@@ -21,19 +21,30 @@ async function open(opts){
     executablePath:EXEC,
     args:['--use-gl=swiftshader','--enable-unsafe-swiftshader','--disable-gpu-sandbox',
           '--no-sandbox','--ignore-gpu-blocklist','--allow-file-access-from-files']});
-  const page=await browser.newPage({viewport:{width:opts.w||1280,height:opts.h||760}});
-  const errs=[];
-  page.on('pageerror',e=>errs.push(String((e&&e.stack)||(e&&e.message)||e)));
-  page.on('console',m=>{ if(m.type()==='error') errs.push('console: '+m.text()); });
-  /* the second game is opened by the same machinery — it is the same engine,
-     the same world and the same Besorah, and the acceptance suite has to be
-     able to ask it questions too (§5's handshake) */
-  await page.goto('file://'+path.join(ROOT,opts.page||'index.html'));
-  if(opts.page) return {browser,page,errs};
-  /* the world builds under the loading screen; the menu is the sign it stands */
-  await page.waitForFunction(()=>window.__VDBG&&document.getElementById('menu')&&
-    getComputedStyle(document.getElementById('menu')).display!=='none',null,{timeout:180000});
-  return {browser,page,errs};
+  /* ---- A BROWSER THAT FAILED TO OPEN ITS PAGE MUST STILL BE CLOSED ----
+     THE FAULT THIS MENDS was found burning 1.3 cores for three hours. A
+     caller writes `const {browser,page}=await open(...)` and closes the
+     browser in its own `finally` — but when the goto or the boot-wait below
+     throws, `open` throws BEFORE the assignment, the caller's finally never
+     holds a browser, and the launched process is orphaned for the life of
+     the run. Test 30 hit a 30-second goto timeout under a loaded machine and
+     its browser then starved every test after it. Whatever fails after the
+     launch, the launch is undone here. */
+  try{
+    const page=await browser.newPage({viewport:{width:opts.w||1280,height:opts.h||760}});
+    const errs=[];
+    page.on('pageerror',e=>errs.push(String((e&&e.stack)||(e&&e.message)||e)));
+    page.on('console',m=>{ if(m.type()==='error') errs.push('console: '+m.text()); });
+    /* the second game is opened by the same machinery — it is the same engine,
+       the same world and the same Besorah, and the acceptance suite has to be
+       able to ask it questions too (§5's handshake) */
+    await page.goto('file://'+path.join(ROOT,opts.page||'index.html'));
+    if(opts.page) return {browser,page,errs};
+    /* the world builds under the loading screen; the menu is the sign it stands */
+    await page.waitForFunction(()=>window.__VDBG&&document.getElementById('menu')&&
+      getComputedStyle(document.getElementById('menu')).display!=='none',null,{timeout:180000});
+    return {browser,page,errs};
+  }catch(e){ try{ await browser.close(); }catch(_){} throw e; }
 }
 /* ---- THE COURSE OF THE DAY IS TAKEN OFF 'live' THE MOMENT WE SET FORTH ----
    THE FAULT THIS MENDS cost Rounds 78, 79 and 80 most of their scratchpad
