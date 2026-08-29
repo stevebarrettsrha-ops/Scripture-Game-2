@@ -8362,6 +8362,68 @@ log-smooth** — a tree of Sinai's own grew by the mouth, and the capture reads 
 it stands, which is the only rule a capture tool may have. The world's timber in the doorway
 is world, not fault; the round trip is exact either way.
 
+## 4cp. Round 91 — the curtain, and the fear that outlived the water it was written about ✅
+
+*§16's last water debt: "Seven heads make seven threads… A head every other block was tried
+and taken back out — it gives the volume back and will not unwind — that is not understood
+yet, and a fall that cannot be turned off is worse than a fall that is thin." That sentence
+was written against the water of Rounds 57–58. Round 65 then rebuilt the falling rules end
+to end — falling holds by what stands OVER it, a settled fall's queue is EMPTY, the front
+came down from 175 columns to 9 — and nobody ever asked the new water the old question.
+This round asked it, with an instrument, instead of trying to understand a fear recorded
+about a machine that no longer exists.*
+
+### The instrument, and what it asked
+
+`tools/curtain.js` (committed, like waterfront before it): the same three falls test 39
+picks by form, heads laid at TODAY'S stride (half/3 — the seven threads) and at a head
+every other block, arm against arm in one boot, and for each arm the four numbers that
+decide — the front (the curtain is the point, so it must widen), the queue at rest and the
+writes per 100 ticks at rest (Round 65's stillness law, which a curtain must not break),
+and the drain when every head is taken up ("will not unwind" is the recorded fear, so it
+is the recorded measurement).
+
+### The readings, and the fear retired
+
+    fall     stride  heads  settled  front  queue@rest  laid/dried per 100  drained
+    Angel      4       7     2,509     39       0             0 / 0          140 ticks → 0
+    Angel      2      14     3,236     40       0             0 / 0          143 ticks → 0
+    Iguazu    75       7       635    116       0             0 / 0           43 ticks → 0
+    Iguazu     2     213     8,371    440       0             0 / 0          934 ticks → 0
+    Krimml     1       5       815     16       0             0 / 0          101 ticks → 0
+    Krimml     2       3       815     16       0             0 / 0          101 ticks → 0
+
+**Every arm, both strides: the queue at rest is 0, a hundred ticks at rest lay and dry
+nothing, and the curtain drains to zero cells.** "Will not unwind" is dead — it described
+the pull-era water, and Round 65's rules bear the curtain without a line of change to
+`js/water.js`. The whole ship is one constant in `springs()`: a head every other block.
+
+**And the prize is the one §16 wanted:** Iguazu — *the Great Water*, a lip four hundred
+and fifty blocks wide — poured in SEVEN THREADS for thirty rounds. It pours along its
+whole brink now, 116 columns to 440. A narrow fall (Krimml's lip is four blocks) comes out
+cell-for-cell as it was: the curtain is the breadth of the fall, so a thin fall stays thin.
+
+Cost, stated: the Great Water standing at 8,371 cells against 635, filling over ~630 ticks
+as the traveller approaches — and at rest it costs what every settled fall has cost since
+Round 65, which is nothing. Guards 39 (pours, stays, drains — Iguazu now "630 columns off
+213 heads, drained to 0"), 42 and 60 (the basins hold) run green with the curtain on.
+
+### And the curtain's first red convicted the instrument, not the water
+
+Test 40 read *"25 cells of the running flow are IN THE RECORD"* with the curtain on — a
+law-breaking headline. Made to NAME what the record held there, it answered **"24x #true"**:
+`recordedAt` returned a BOOLEAN, true alike for "a hand built here" and "the ground here
+was emptied", so it could not tell the two apart. The cells were flow running through
+**0-entries** — bank cells the curtain's wider wetting had collapsed (the world putting
+itself right through the one door, its emptied cells rightly 0 in the record so the
+collapse holds on a reload) — and water running through dug ground is Round 58's own order,
+in its own words: *"water beats a 0 — a channel a man has cut is exactly where he expects
+his water to run."* The water was lawful; the probe was blind. `recordedAt` returns the
+ENTRY now (the block number, 0 for emptied, undefined for nothing) — truthiness still
+answers "did a hand build here", which is what all four standing callers ask — and test
+40's fault line names the ids it finds, so the next red says what it is instead of leaving
+a probe to be rebuilt. With the probe mended: 39, 40, 42 green at curtain density.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

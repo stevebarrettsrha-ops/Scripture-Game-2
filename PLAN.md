@@ -1185,9 +1185,18 @@ and the nearest true water lies 69–312 blocks off for fourteen of them and now
 forbids. **The basins stand.** Test 60 guards the two biggest against the defect that
 would matter: water leaving its claim. AUDIT §4cn.
 
-**The curtain.** Seven heads make seven threads, and the falls that now run are thin ones. A
+**The curtain.** ~~Seven heads make seven threads, and the falls that now run are thin ones. A
 head every other block gives the volume back and will not unwind — that is not understood
-yet, and a fall that cannot be turned off is worse than a fall that is thin.
+yet, and a fall that cannot be turned off is worse than a fall that is thin.~~
+**PAID — ✅ Round 91, and the fear had outlived the water it was written about.** The
+"will not unwind" was recorded against the pull-era water of Rounds 57–58; Round 65 rebuilt
+the falling rules and nobody ever re-asked. `tools/curtain.js` asked, arm against arm: at a
+head every other block, on Angel, Iguazu and Krimml alike, **the queue at rest is 0, a
+hundred ticks at rest lay and dry nothing, and the heads taken up drain the whole curtain
+to zero.** So `springs()` lays a head every other block, and the Great Water — a lip 450
+blocks wide that poured in seven threads for thirty rounds — pours along its whole brink
+(front 116 → 440 columns). A narrow fall comes out cell-for-cell as it was. Not one line of
+js/water.js changed. AUDIT §4cp.
 
 ---
 
