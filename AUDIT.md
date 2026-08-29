@@ -8305,6 +8305,63 @@ costs nothing measurable; the travel metric must be cohort-fixed; and the arms m
 minutes, not seconds. Nothing about the idea was disproved. Nothing about it was proved.
 That is the whole of what the data says, and it is written down instead of shipped.
 
+## 4co. Round 90 — Phase 8's hoards grown: the Cave at Ḥorĕḇ, and Ararat's debt paid at last ✅
+
+*Phase 8 closed its named items in Round 85 and left one thing open on purpose: "growing the
+hoards, one capture and no code apiece." This round grows them by two — and both were
+measured before they were designed, with a probe reading each anchor's actual ground so a
+place is set into a level pocket the world already has, not wished onto a slope.*
+
+### The Cave at Ḥorĕḇ (Mount Sinai)
+
+*"And there he went into a cave and spent the night there. And see, the Word of (YAHUAH)
+HWHY came to him and said to him, 'What are you doing here, Aliyahu?'"* — 1 MALAḴIM 19:9.
+
+**The first place with NOTHING in it, and that is its design.** The Cave of Treasures
+carries gold, the Cell of Ḥanoḵ alabaster; the cave at Ḥorĕḇ held a man for one night and a
+question, and a hoard here would be a lie about the story. So it is an UNWORKED hollow — no
+hewn floor, no dressed wall, the room's floor the mountain's own rock — with one cobble
+slab at the back to lie on, because the night was spent. The probe read Sinai's landmark
+site as grass at 58 courses with a level pocket at its middle — thirty-six courses BELOW
+the summit where the Scroll of the Going Out stands, so the lodging is passed on the climb
+and crowds nothing: tests 24 (the summit on foot) and 28 (the scroll got at) were run
+beside it on purpose.
+
+### The Altar of Noaḥ (Mount Ararat)
+
+*"And Noaḥ built an mizbe'ach to (YAHUAH) HWHY and took of every clean beast and of every
+clean bird and offered burnt offerings on the mizbe'ach."* — BERĔSHITH 8:20.
+
+**Ararat's standing debt, paid with the thing the account actually builds there.**
+`world/scrolls.js` has refused Ararat a scroll since Phase 7 — none of the eight is the
+account of the flood, and inventing the assignment was not this project's to do — but the
+mountain was never owed a scroll. It was owed the first thing built on the washed earth: an
+altar block (the very block the works raise from twelve unhewn stones) on a platform of
+unhewn stone, four stones at its corners, open to the sky, standing in the high snow at 129
+courses where the probe found the site's level pocket. `keep:true` and nothing carved — not
+one block of Ararat is quarried for it. Nothing roofed, nothing hoarded.
+
+### The discipline both kept
+
+One entry apiece in `world/places.js`, in the format Round 83 shipped — no engine change,
+no new block, no new rule. Both are `at`-anchored, so **test 56 covers them automatically**:
+its per-place loop now runs four round trips (world → object → TEXT → object → world) where
+Round 84 ran two. Every cell count proved against its box before boot (140 = 5×4×7 and
+50 = 5×2×5 exactly); both verses extractor-exact in the file's own comments.
+
+### The readings
+
+    test 24: 13 of 13 named summits still walked to — neither place bars a path
+    test 28: the three placed scrolls untouched — Sinai's still 94 of 94 on the summit
+    test 56: 4 of 4 landmark places stood and captured back —
+      the Cave at Ḥorĕḇ  140/140, three ways (format, file text, the hand)
+      the Altar of Noaḥ   50/50, three ways — census stone 29 · air 20 · altar 1, as designed
+
+And one detail reported rather than tidied: the capture at Ḥorĕḇ carries **2 cells of
+log-smooth** — a tree of Sinai's own grew by the mouth, and the capture reads the world as
+it stands, which is the only rule a capture tool may have. The world's timber in the doorway
+is world, not fault; the round trip is exact either way.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

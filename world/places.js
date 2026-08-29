@@ -194,6 +194,103 @@ EARTH.place({
   })()
 });
 
+/* ---- THE CAVE AT ḤORĔḆ ----
+   "And there he went into a cave and spent the night there. And see, the
+    Word of (YAHUAH) HWHY came to him and said to him, 'What are you doing
+    here, Aliyahu?'"                                    — 1 MALAḴIM 19:9
+
+   The third place, and the first with NOTHING IN IT — which is the whole of
+   its design. The Cave of Treasures carries gold and the Cell of Ḥanoḵ
+   alabaster; the cave at Ḥorĕḇ held a man for one night and a question, and
+   a hoard put here would be a lie about the story. So: an unworked hollow —
+   no hewn floor, no dressed wall, the room's floor the mountain's own rock
+   — with one slab of cobble at the back to lie on, because the night was
+   spent. Whoever climbs Sinai for the Scroll of the Going Out (it stands on
+   the summit, thirty-six courses above this flank) passes the lodging on
+   the way up, as the story runs the other way about.
+
+   Measured before it was designed (the discipline of every place): the
+   landmark's site ground is grass at 58 courses with a level pocket at its
+   middle; the box sits in that pocket, the mouth downhill (-z). */
+EARTH.place({
+  n:'The Cave at Ḥorĕḇ', at:'Mount Sinai',
+  dx:-2, dy:-3, dz:-3,
+  w:5, h:4, d:7, keep:true,
+  pal:['air','air','stone','cobble'],
+  rle:(function(){
+    const W=5,H=4,D=7;
+    const KEEP=0, AIR=1, STONE=2, COBBLE=3;
+    const at=(x,y,z)=>{
+      const inRoom = x>0&&x<W-1 && z>0&&z<D-1 && y>0&&y<H-1;
+      /* the mouth: a doorway two high in the -z wall, in the middle */
+      if(z===0 && x>=1 && x<=2 && y>0 && y<3) return AIR;
+      if(inRoom){
+        /* the slab at the back, and otherwise a bare room over bare rock */
+        if(y===1 && z===D-2 && x===2) return COBBLE;
+        return AIR;
+      }
+      /* the shell, laid as stone where the chamber is cut */
+      if(x===0||x===W-1||z===0||z===D-1||y===0||y===H-1) return STONE;
+      return KEEP;
+    };
+    const out=[]; let run=0, cur=-1;
+    for(let x=0;x<W;x++) for(let z=0;z<D;z++) for(let y=0;y<H;y++){
+      const v=at(x,y,z);
+      if(v===cur) run++;
+      else { if(run) out.push(run,cur); cur=v; run=1; }
+    }
+    if(run) out.push(run,cur);
+    return out;
+  })()
+});
+
+/* ---- THE ALTAR OF NOAḤ ----
+   "And Noaḥ built an mizbe'ach to (YAHUAH) HWHY and took of every clean
+    beast and of every clean bird and offered burnt offerings on the
+    mizbe'ach."                                         — BERĔSHITH 8:20
+
+   Ararat's debt, paid with the thing the account actually builds there.
+   world/scrolls.js has refused a scroll for Ararat since Phase 7 — none of
+   the eight is the account of the flood, and inventing an assignment was
+   not this project's to do — but the mountain was never owed a scroll. It
+   was owed THIS: the first thing built on the washed earth, standing where
+   the ark came to rest. An altar block (the very block the works make of
+   twelve unhewn stones) on a platform of unhewn stone, four stones at its
+   corners, open to the sky — nothing roofed, nothing hoarded, nothing
+   carved. `keep:true` and no air in the palette's working indices below
+   y=2, so not one block of Ararat's snow is quarried for it: it stands ON
+   the mountain, as a built thing does.
+
+   Measured first: the landmark's site is high snow at 129 courses with a
+   level pocket at its middle, the summit rising to the west. */
+EARTH.place({
+  n:'The Altar of Noaḥ', at:'Mount Ararat',
+  dx:-2, dy:0, dz:-2,
+  w:5, h:2, d:5, keep:true,
+  pal:['air','stone','altar'],
+  rle:(function(){
+    const W=5,H=2,D=5;
+    const KEEP=0, STONE=1, ALTAR=2;
+    const at=(x,y,z)=>{
+      if(y===0) return STONE;                          /* the platform, settled into the snow */
+      /* the altar at the middle, a stone at each corner, sky over the rest */
+      if(y===1){
+        if(x===2&&z===2) return ALTAR;
+        if((x===0||x===W-1)&&(z===0||z===D-1)) return STONE;
+      }
+      return KEEP;
+    };
+    const out=[]; let run=0, cur=-1;
+    for(let x=0;x<W;x++) for(let z=0;z<D;z++) for(let y=0;y<H;y++){
+      const v=at(x,y,z);
+      if(v===cur) run++;
+      else { if(run) out.push(run,cur); cur=v; run=1; }
+    }
+    if(run) out.push(run,cur);
+    return out;
+  })()
+});
+
 /* ---- THE CASTAWAY'S CACHE — a schematic anchored by a RULE ----
    Round 46 carved 84 sea caves and shipped them empty on purpose: "the cave
    ships; what is in it waits for the phase whose whole job is putting things
