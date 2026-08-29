@@ -562,6 +562,9 @@ const FILES=[
   'blocks/log-cork.js',
   'blocks/log-smooth.js',
   'blocks/seed.js',
+  'blocks/furnace.js',
+  'blocks/iron.js',
+  'blocks/iron-pick.js',
   'js/engine.js',
 ];
 

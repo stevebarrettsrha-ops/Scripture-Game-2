@@ -8159,6 +8159,71 @@ the first suite had an explanation that fit, and all of them were true only of a
 had looked at. And an injection whose number comes back the same in two different worlds has
 measured neither: 62,186 was believed twice, and it was crowns both times.
 
+## 4cm. Round 88 — the furnace and the iron: PLAN §17.5's argued answer, built ✅
+
+*Round 87 wrote the argument into PLAN §17.5 before a line of this was coded: the bench
+already exists and WAITS (nothing needs one); nothing in the bootstrap may ever move behind a
+place; and what genuinely wants a place is the FIRE — `world/works.js`'s own head has said
+since Phase 4 that "the smelting of copper and iron waits… the ore is in the hills already,
+and the metal wants a fire hotter than a kiln and a work of its own." The ore has been truly
+in the hills since Round 39 (DEḆARIM 8:9), mineable, and nothing to do with what was mined.
+This round is that fire, that metal, and the tool that is the metal's reason to exist.*
+
+### What shipped, and the two rules it keeps
+
+**The furnace is BRICK — one work's product is the next work's material, twice over.** Clay
+becomes brick at the kiln; eight brick become a furnace AT the kiln (`at:'kiln'` on the
+furnace's own work); the furnace opens the smelting. That chain is what "building from
+gathered materials" *means*, and it is the first time the game has it. The block is the
+kiln's pattern one step up — the same fire-mouth idiom drawn in the brick's own courses, a
+mouth burning whiter (`light:11` against the kiln's 9), DEḆARIM 4:20 beside it, because the
+account knows this furnace by name: *the iron furnace, out of Mitsrayim*. `workPlaceAt` was
+already generic — the work says `at:'furnace'` and not one engine line was written for it.
+
+**Iron ships; copper's metal and bronze do not, and the restraint is §4's rule holding.**
+`smelt-iron` (1 ore → 1 iron, at the furnace, IYOḆ 28:2 — *"Iron is taken from the earth and
+copper is smelted from ore"*) and `iron-pick` (iron 3, planks 2 — the flint pick's own shape
+in the better metal, no verse, as the flint tools have none). Copper's ORE stays in the
+ground because the land holds it; its metal waits for a work that needs it, and bronze waits
+on a tin no land's list holds. *A substance ships when a work needs it* — the iron pick
+needs the iron, and nothing yet needs the copper.
+
+**The pick is faster by ONE number on the block, read in ONE place.** `speed:2.2` on
+`blocks/iron-pick.js`; `toolSpeed` reads `h.speed||1` — the same declared-here-believed-there
+pattern `hardness` set in Phase 4, and the very line whose Round 34 comment promised "the day
+a bronze pick exists it will be believed without another line here." (It was an iron pick,
+and the line was one term.) An ingot and a pick are both `place:false`: an ingot is not a
+cubic metre of iron.
+
+### The readings
+
+Test 59 walks it in the voyage hand, each link its own question:
+
+    the bare hand: smelting REFUSED (why: place)
+    beside a KILN: still refused — a kiln is not a furnace
+    brick 8 → a furnace at the kiln → set down, it stands → 3 ore smelted → a pick of iron
+    the rule pays 2.2× (the block declares 2.2)
+    and the blow's own clock agrees: 3.40s stone falls in 1.55s (2.19×)
+
+**Proved by injection, both ways.** The place rule taken off `smelt-iron`: *"FAULTS: the bare
+hand smelted · a KILN passed for a furnace"* — both arms, by name. The speed term taken back
+out of `toolSpeed`: *"the rule pays 1 where the block declares 2.2 · the clock pays 1.00×
+where the block declares 2.2×"* — the rule's answer and the clock's, independently. Both
+faults named by the line that catches them, then taken back out. The guard set about the
+changed machinery — 14 (the tool law), 20 (the refusal), 44 (the bootstrap), 58 (the sowing)
+— ran green beside it.
+
+### What is deliberately NOT here, named so it is not found missing
+
+- **No iron axe, spade, knife or hoe.** The pick is the one tool whose material REFUSES the
+  bare hand, so it is the one whose better metal is felt. The others follow the day their
+  speed would matter to anybody.
+- **No copper metal, no bronze, no gold or silver smelting.** Named above; the rule is the
+  reason.
+- **No smelting of the pick back to iron, no fuel.** The kiln has never asked for fuel and
+  the furnace keeps its sibling's rules; a fuel economy is its own argument, not a rider.
+- **The bench still waits**, exactly as §17.5's argument left it: nothing needs one yet.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

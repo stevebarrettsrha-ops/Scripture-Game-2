@@ -4615,6 +4615,127 @@ T[58]={name:'a hand that sows: the sheaf gives seed, the hoe turns a bed, the se
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
+T[59]={name:'the furnace and the iron: smelting is refused away from the fire, a kiln is not a furnace, and the iron pick is faster by its own number',
+  /* THE HOLE THIS FILLS — PLAN §17.5, argued in Round 87 and built here.
+     world/works.js has said since Phase 4 that "the smelting of copper and
+     iron waits… the ore is in the hills already, and the metal wants a fire
+     hotter than a kiln and a work of its own." The ore has been truly in
+     the hills since Round 39 (DEḆARIM 8:9), mineable, and nothing to do
+     with what was mined.
+
+     FOUR THINGS ARE ASKED, each its own link:
+       1. smelting is REFUSED at the bare hand — the work names its place
+       2. and refused BESIDE A KILN — a kiln is not a furnace, and a place
+          rule that matched any fire would make the furnace decoration
+       3. the chain holds: brick (the kiln's own output) becomes a furnace
+          AT the kiln, the furnace stands, and beside it the ore becomes
+          iron and the iron a pick — one work's product the next work's
+          material, twice over
+       4. the pick is faster BY ITS OWN DECLARED NUMBER: `speed` on the
+          block, read in toolSpeed, measured twice — the rule's answer and
+          the blow's actual clock — so the number on the block is the
+          number the hand pays. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    const raf=()=>new Promise(r=>requestAnimationFrame(r));
+    if(!D.blockId('furnace')||!D.blockId('iron')||!D.blockId('iron-pick'))
+      return {pending:'no furnace in blocks/'};
+    if(D.applyFreeroam){ D.state.freeroam=false; D.applyFreeroam(); }
+    const faults=[];
+    /* on ground, as test 38 stands: wherever the last test left him, or a
+       town if it left him over the sea */
+    let st0=D.blockUnder(D.playerXZ().x, D.playerXZ().z);
+    if(!st0){
+      const W=window.__WORLD, S=W&&W.sites?W.sites():null; let site=null;
+      if(S){ for(let i=0;i<S.length;i++) if(S[i]){ site=S[i]; break; } }
+      if(site){ D.setMode('walk'); D.state.walk.x=site.x; D.state.walk.z=site.z-40;
+        D.state.walk.feetY=undefined;
+        for(let k=0;k<40;k++){ D.updateChunks(site.x,site.z,400); await raf(); }
+        await D.settle(2); } }
+    /* two clear cells within the fire's own reach of where he stands —
+       WORK_R is 4, so the kiln and the furnace go two and three blocks out */
+    const p=D.playerXZ(), cix=Math.floor(p.x/B), ciz=Math.floor(p.z/B);
+    const spots=[];
+    for(let d=2;d<4&&spots.length<2;d++) for(let a=-d;a<=d&&spots.length<2;a++) for(let b2=-d;b2<=d&&spots.length<2;b2++){
+      if(Math.max(Math.abs(a),Math.abs(b2))!==d) continue;
+      const ix=cix+a, iz=ciz+b2, cc=D.landAtWorld((ix+0.5)*B,(iz+0.5)*B);
+      if(!cc) continue;
+      if(!D.blockAt(ix,cc.h,iz)&&!D.blockAt(ix,cc.h+1,iz)&&D.blockSolidAt(ix,cc.h-1,iz))
+        spots.push({ix,iz,h:cc.h});
+    }
+    if(spots.length<2) return {pending:'no two clear cells within the fire\'s reach of where he stands'};
+
+    /* ---- 1 · the smelting refused at the bare hand ---- */
+    D.satchelAdd('iron-ore',3);
+    let ws=D.workState('smelt-iron');
+    const bareRefused=!!(ws&&!ws.can&&ws.why==='place');
+    if(!bareRefused) faults.push('the bare hand smelted (workState: '+JSON.stringify(ws)+')');
+
+    /* ---- 2 · and refused beside a KILN ---- */
+    const put=async(id,s)=>{ D.satchelAdd(id,1);
+      let i=D.satchel().findIndex(q=>q&&q.id===id);
+      if(i>=(D.BELT_N?D.BELT_N():8)){ D.pageTouch(i); D.pageTouch(0); i=0; }
+      D.setHeld(i);
+      const r=D.placeFrom({ix:s.ix,iy:s.h-1,iz:s.iz,nx:0,ny:1,nz:0,n:D.blockAt(s.ix,s.h-1,s.iz),dist:2});
+      await D.settle(2);
+      return D.blockAt(s.ix,s.h,s.iz)===D.blockId(id)?null:('the '+id+' would not stand ('+JSON.stringify(r)+')'); };
+    let e=await put('kiln',spots[0]); if(e) faults.push(e);
+    ws=D.workState('smelt-iron');
+    const kilnRefused=!!(ws&&!ws.can&&ws.why==='place');
+    if(!kilnRefused) faults.push('a KILN passed for a furnace (workState: '+JSON.stringify(ws)+')');
+
+    /* ---- 3 · the chain: brick → furnace at the kiln → iron → the pick ---- */
+    D.satchelAdd('brick',8);
+    const wf=D.workMake('furnace');
+    if(!wf.ok) faults.push('the furnace would not be made at the kiln ('+(wf.why||'?')+')');
+    e=await put('furnace',spots[1]); if(e) faults.push(e);
+    ws=D.workState('smelt-iron');
+    if(!(ws&&ws.can)) faults.push('the furnace stands and the smelting is still refused ('+JSON.stringify(ws)+')');
+    let iron=0;
+    for(let k=0;k<3;k++){ const r=D.workMake('smelt-iron'); if(r.ok) iron++; }
+    if(iron<3) faults.push('only '+iron+' of 3 ores smelted');
+    D.satchelAdd('planks',2);
+    const wp=D.workMake('iron-pick');
+    if(!wp.ok) faults.push('the pick would not be made ('+(wp.why||'?')+')');
+
+    /* ---- 4 · faster by its own number, asked of the rule and of the clock ---- */
+    const declared=(D.blockOf(D.blockId('iron-pick'))||{}).speed||0;
+    const hold=id=>{ let i=D.satchel().findIndex(q=>q&&q.id===id);
+      if(i<0){ D.satchelAdd(id,1); i=D.satchel().findIndex(q=>q&&q.id===id); }
+      if(i>=(D.BELT_N?D.BELT_N():8)){ D.pageTouch(i); D.pageTouch(0); i=0; }
+      D.setHeld(i); return D.heldBlock()===id; };
+    hold('flint-pick'); const sFlint=D.toolSpeedOf('stone');
+    hold('iron-pick');  const sIron =D.toolSpeedOf('stone');
+    if(sFlint!==1) faults.push('the flint pick reads '+sFlint+' on stone, wanted 1');
+    if(Math.abs(sIron-declared)>1e-9) faults.push('the rule pays '+sIron+' where the block declares '+declared);
+    /* and the blow's own clock: a stone block laid, struck with each pick */
+    const sn=D.blockId('stone'), hard=(D.blockOf(sn)||{}).hardness||0;
+    D.setBlock((spots[0].ix+0.5)*B,(spots[0].h+1.5)*B,(spots[0].iz+0.5)*B,sn);
+    const needWith=async id=>{ hold(id);
+      D.mineAt(spots[0].ix,spots[0].h+1,spots[0].iz,0,1,0); D.mineDrive(true); D.mineHold(true);
+      D.mineStep(1/60); const g=D.mineProgress();
+      D.mineHold(false); D.mineAt(null); D.mineDrive(false);
+      return g?g.need:NaN; };
+    const nFlint=await needWith('flint-pick');
+    const nIron =await needWith('iron-pick');
+    if(!(nIron>0&&Math.abs(nFlint/nIron-declared)<0.05))
+      faults.push('the clock pays '+(nFlint/nIron).toFixed(2)+'× where the block declares '+declared+'×');
+    /* the ground left as it was found: the stone, the furnace and the kiln
+       taken back out (their cells were air, so the record closes over them) */
+    D.setBlock((spots[0].ix+0.5)*B,(spots[0].h+1.5)*B,(spots[0].iz+0.5)*B,0);
+    D.setBlock((spots[0].ix+0.5)*B,(spots[0].h+0.5)*B,(spots[0].iz+0.5)*B,0);
+    D.setBlock((spots[1].ix+0.5)*B,(spots[1].h+0.5)*B,(spots[1].iz+0.5)*B,0);
+    D.satchelTake('iron-pick',9); D.satchelTake('flint-pick',9);
+
+    return {ok:!faults.length,
+      got:'bare hand: refused ('+(bareRefused?'place':'?')+') · beside a kiln: still refused · '+
+        'brick 8 → a furnace at the kiln → stands → '+iron+' ore smelted → a pick of iron · '+
+        'the rule pays '+sIron+'× (declared '+declared+'×) and the blow wants '+
+        (isFinite(nIron)?nIron.toFixed(2):'?')+'s against flint\'s '+
+        (isFinite(nFlint)?nFlint.toFixed(2):'?')+'s on '+hard+'s stone'+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

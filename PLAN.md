@@ -1315,6 +1315,67 @@ bare hand or at a kiln, so there is no PLACE a man goes to make, and the list of
 works cannot grow past what one can do standing in a field. That is the piece
 worth arguing before it is built.
 
+**The argument, made from the code as it stands (written Round 87, before
+anything of it is built):**
+
+1. **The bench already exists, and is unread.** `blocks/bench.js` has declared
+   a Workbench since Phase 2, and its own comment promises exactly this
+   section: *"What is made in this world is made standing at one of these."*
+   No work names `at:'bench'`, no work gives one — but villages have STAMPED
+   real benches since Phase 3, so a man can break one out of a stall and carry
+   it home today. And the mechanism was never the question: `workPlaceAt` is
+   generic and the kiln proves it — a work that says `at:'bench'` costs zero
+   engine lines. The only question is what deserves to stand behind a place.
+
+2. **Nothing in the bootstrap may ever move behind one.** The tool data closed
+   on itself once — flint wants a pick, a pick is made of flint (§18) — and
+   test 44 exists to hold that door open. The chain from empty hands to the
+   first tools (flint tools, riven planks, the threshing) stays at the bare
+   hand for ever. A bench that gated an axe would be the same fault wearing
+   furniture.
+
+3. **What genuinely wants a place is not a bench — it is the FIRE.**
+   `world/works.js`'s own closing words: *"The smelting of copper and iron
+   waits on the same: the ore is in the hills already, and the metal wants a
+   fire hotter than a kiln and a work of its own."* Iron and copper have been
+   truly in the hills since Round 39, with DEVARIM 8:9 beside them — *"a land
+   whose stones are iron and out of whose hills you dig copper"* — mineable,
+   and nothing to do with what is mined. So the next thing built here should
+   be the **furnace**: the kiln's pattern one step up, and built OF BRICK —
+   the kiln's own output — which would be the first time one work's product
+   is another work's material, and that chain is what "building from gathered
+   materials" *means*.
+
+4. **The metal's reason to exist is the tool that is faster.** `toolSpeed` is
+   binary today: the right tool, or the hand at 1/2.5. A `speed` field on the
+   block (an iron pick above a flint one) is one generic line in `toolSpeed`
+   — the same pattern `hardness` set. And by the catalogue rule — *a
+   substance ships when a work needs it* — **iron ships and bronze does
+   not**: bronze wants tin, and no land's list holds tin. Copper's ORE is in
+   the ground because the land holds it; the smelted metal waits until a work
+   needs it, and inventing one to justify the smelting would be the
+   placeholder rule broken twice.
+
+5. **So the bench itself WAITS**, and that is the argued answer to this
+   section: do not make a bench work just to have made one. It stands here
+   named — with the block already in the world — until a work truly wants a
+   carpenter's bench under it. The furnace and the iron are the honest next
+   step, and they are a round of their own.
+
+> **AND THAT ROUND IS BUILT — ✅ Round 88.** The furnace of eight brick, made
+> AT the kiln (one work's product the next work's material, twice over, which
+> is what this section's title means), with DEḆARIM 4:20 beside it — the iron
+> furnace of Mitsrayim. `smelt-iron` at the furnace (IYOḆ 28:2), and a kiln
+> does NOT pass for one. The iron pick, `speed:2.2` on the block and one term
+> in `toolSpeed` — the line whose Round 34 comment promised a better pick
+> would be believed "without another line here", kept to the letter. Test 59
+> walks every link and was proved by injection both ways (the place rule off:
+> "a KILN passed for a furnace"; the speed term off: caught by the rule AND
+> by the blow's own clock, 3.40s → 1.55s on 3.4s stone). NOT shipped, by
+> §4's rule: copper's metal (no work needs it), bronze (no tin in any land),
+> iron tools beyond the pick (only the pick's material refuses the bare
+> hand), a fuel economy. The bench still waits. AUDIT §4cm.
+
 ### And then Phases 8, 9 and 10
 
 **Phase 8 is authored places** — a schematic format, an in-game capture tool, and

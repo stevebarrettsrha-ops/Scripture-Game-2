@@ -378,6 +378,34 @@ TEX.kilnTop    = mkTex(g=>{ speckle(g,PB.kiln.a,13,PB.kiln.b,0.30);
   /* the flue, open, with the fire showing far down it */
   g.fillStyle=C(PB.kiln.mouth); g.fillRect(6,6,4,4);
   g.fillStyle=C(PAL.lift(PB.kiln.mouth,0.4)); g.fillRect(7,7,2,2); },16,16,RIM);
+/* ---- THE FURNACE — the kiln's pattern one step up, and built of BRICK ----
+   Its body is the very brick the kiln bakes (one work's product is another
+   work's material, which is what building from gathered materials means),
+   drawn in the brick's own courses; its mouth burns whiter than the kiln's,
+   because a fire for the ore is hotter than a fire for the clay. */
+TEX.furnSide   = mkTex(g=>{ speckle(g,PB.brick.mortar,8);
+  for(let r=0;r<4;r++){ const y=r*4, off=(r%2)?-2:0;
+    for(let c=-1;c<3;c++){ const x=off+c*6;
+      const t=jit(PB.brick.b,22,r*7+c);
+      g.fillStyle=rgb(t[0],t[1],t[2]); g.fillRect(x+FG,y+FG,6-2*FG,4-2*FG);
+      const hi=jit(PB.brick.face,12,r*3+c);
+      g.fillStyle=rgb(hi[0],hi[1],hi[2]); g.fillRect(x+FG,y+FG,6-2*FG,FG); } }
+  g.fillStyle=C(PB.furnace.ash); for(let x=0;x<16;x+=FG)
+    if(hash2(x,7.3)>0.5) g.fillRect(x,16-FG*2,FG,FG*2);
+  /* the fire-mouth, an arch low in the face, whiter than the kiln's */
+  g.fillStyle=C(PAL.shade(PB.brick.b,0.6)); g.fillRect(5,8,6,7);
+  g.fillStyle=C(PB.furnace.mouth); g.fillRect(6,10,4,5);
+  g.fillStyle=C(PAL.lift(PB.furnace.mouth,0.5)); g.fillRect(7,12,2,3); },16,16,RIM);
+TEX.furnTop    = mkTex(g=>{ speckle(g,PB.brick.b,16,PB.brick.face,0.3);
+  /* the flue, open, with the smelt showing far down it */
+  g.fillStyle=C(PB.furnace.mouth); g.fillRect(6,6,4,4);
+  g.fillStyle=C(PAL.lift(PB.furnace.mouth,0.55)); g.fillRect(7,7,2,2); },16,16,RIM);
+/* iron, off the smelting: two ingots side by side, drawn as the THING */
+TEX.ironBar    = mkTex(g=>{ g.clearRect(0,0,16,16);
+  for(const [bx,by] of [[2,3],[6,8]]){
+    g.fillStyle=C(PB.ironBar.a); g.fillRect(bx,by+1,9,4);
+    g.fillStyle=C(PB.ironBar.b); g.fillRect(bx+1,by,9,4);
+    g.fillStyle=C(PB.ironBar.glint); g.fillRect(bx+2,by+1,3,FG); } });
 /* ---- AND THE TOOLS ----
    Drawn as the THING, not as a cube of stuff: a haft up the middle and the
    stone lashed across the head of it, so a token on the belt reads at a
@@ -397,6 +425,11 @@ const _hd=(g)=>{ g.fillStyle=C(PB.toolStone.a); return g; };
 TEX.flintPick  = toolTex(g=>{ _hd(g); g.fillRect(2,2,12,2);
   g.fillStyle=C(PB.toolStone.b); g.fillRect(2,1,12,2);
   g.fillStyle=C(PB.toolStone.glint); g.fillRect(3,1,2,FG); g.fillRect(12,1,2,FG); });
+/* the same pick with its head off the smelting — one tool in two metals,
+   the haft and the cord unchanged so the eye reads them as kin */
+TEX.ironPick   = toolTex(g=>{ g.fillStyle=C(PB.toolIron.a); g.fillRect(2,2,12,2);
+  g.fillStyle=C(PB.toolIron.b); g.fillRect(2,1,12,2);
+  g.fillStyle=C(PB.toolIron.glint); g.fillRect(3,1,2,FG); g.fillRect(12,1,2,FG); });
 /* ---- THE BUCKET, AND THE SAME BUCKET CARRYING ----
    A jar of baked clay: a body, a shoulder drawn in, and a handle over. The
    full one is the same vessel with the water standing in the neck of it, so
@@ -521,6 +554,9 @@ blockMat('flintSpade',TEX.flintSpade,{transparent:true});
 blockMat('flintHoe',TEX.flintHoe,{transparent:true});
 blockMat('flintKnife',TEX.flintKnife,{transparent:true});
 blockMat('seedT',TEX.seedT,{transparent:true});
+blockMat('furnSide',TEX.furnSide); blockMat('furnTop',TEX.furnTop);
+blockMat('ironBar',TEX.ironBar,{transparent:true});
+blockMat('ironPick',TEX.ironPick,{transparent:true});
 blockMat('goldOre',TEX.goldOre); blockMat('silverOre',TEX.silverOre);
 blockMat('copperOre',TEX.copperOre); blockMat('ironOre',TEX.ironOre);
 blockMat('alabaster',TEX.alabaster); blockMat('flint',TEX.flint);
@@ -1028,6 +1064,11 @@ for(let i=0;i<BLOCK_DEFS.length;i++){
     /* what this thing SERVES AS in the hand — 'pick', 'axe' and the rest.
        No block is a tool; the works of Phase 4 step 9 declare these. */
     serves:d.serves||null,
+    /* how much FASTER than the first tool of its kind it works — the iron
+       pick above the flint one. Read in exactly one place, toolSpeed, the
+       same pattern hardness set: declared here, believed there. 1 unless
+       the block says otherwise, so every flint tool reads as it always did. */
+    speed:d.speed||1,
     /* ---- AND WHAT A VESSEL BECOMES WHEN IT IS USED ----
        A bucket is two things — empty and full — and each names the other, so
        the engine may pour one into the other without ever knowing either by
@@ -16932,7 +16973,10 @@ function toolSpeed(b){
      So today every hand is still bare and this reads exactly as it did in
      Round 34 — but it now reads the HAND rather than assuming it. */
   const h=heldBlock();
-  return (h&&h.serves===b.tool)?1:1/HAND_SLOW;
+  /* AND THE DAY A BETTER TOOL EXISTS IT IS BELIEVED WITHOUT ANOTHER LINE
+     HERE, exactly as this comment promised in Round 34: the block's own
+     `speed` is how much faster it works than the first tool of its kind. */
+  return (h&&h.serves===b.tool)?(h.speed||1):1/HAND_SLOW;
 }
 /* the crack figure of one block: branches out of the middle of a face, in
    face-space, each segment appearing after the one before it */
