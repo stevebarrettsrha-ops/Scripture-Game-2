@@ -16414,6 +16414,11 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      open sea is wrong outright. tools/acceptance.js asks it of the falling
      waters; nothing in the game reads it. */
   landNameAt,
+  /* river, sea, or dry land, off the rasters alone — the same answer the
+     falls' own outfall search reads. Exposed read-only so tools/farfalls.js
+     can ask how far PAST a claim the nearest water truly lies, which is the
+     number §16's far-falls question turns on. */
+  outWater:outfallWater,
   handSlow:()=>HAND_SLOW,
   /* ---- THE SOWING, FOR tools/acceptance.js ----
      the stand that counts as full-grown, and the year as the reaping reads
