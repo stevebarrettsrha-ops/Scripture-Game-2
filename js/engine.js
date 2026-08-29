@@ -3472,7 +3472,16 @@ function buildChunk(cx,cz){
     initFlora();
     for(let a=0;a<CH;a++) for(let b=0;b<CH;b++){
       const ix=cx*CH+a, iz=cz*CH+b, cc=cell(ix,iz);
-      if(!cc||cc.kind==='wall'||cc.kind==='floe') continue;
+      /* ---- `cc.tree` IS THE GATE, AND LEAVING IT OUT SHEATHED THE EARTH ----
+         The mesh walk grows a tree only where the cell says one stands
+         (`if(cc.tree) emitTree(...)` below) — `FLORA.treeAt` is NOT that
+         gate: it names which species WOULD stand here, for any cell asked,
+         and the density lives in `cc.tree` alone. The first cut of this
+         pass asked treeAt for every column and stamped whatever it named:
+         a phantom trunk in ~100% of columns, read by an eight-column probe
+         with every cell SOLID log — the "war" was phantoms fighting, and
+         the draw-call win was a slab of timber occluding the world. */
+      if(!cc||!cc.tree||cc.kind==='wall'||cc.kind==='floe') continue;
       /* `riverBankCell`, EXACTLY as the mesh walk asks it at its own tree
          call — a different `wet` here could pick a different tree, and the
          trunk stamped now would stand under somebody else's crown */
@@ -3557,6 +3566,22 @@ function buildChunk(cx,cz){
       const ec=editedCell(ix,iz,cc,em);
       emitColumn(G,ix,iz,ec);
       emitPlaced(G,ix,iz,em,ec.h);
+      /* ---- AN EDITED COLUMN MUST NOT SILENCE ITS OWN TREE ----
+         This branch ends in `continue`, so an edited column never reached
+         the `cc.tree` draw below — which was invisible while edits in a
+         tree's column were a hand's rare doing, and became the look of the
+         world the round the trunk stamp made EVERY tree's column an edited
+         column: every tree stood as a naked pole, its crown never drawn,
+         and no test read the drawn wood off the mesh to say so (the flora
+         suites ask the flora directly). The crown is drawn here iff the
+         trunk's own base cell still answers TIMBER — the stamp standing,
+         the hand not having taken it — so a felled bole rightly takes its
+         crown down with it, and a buried or built-over column stays as
+         silent as it always was. The bole call inside re-stamps the same
+         trunk, which marks nothing (a stamp that changes nothing marks
+         nothing). */
+      if(cc.tree){ const bb=blockOf(em.get(cc.h)||0);
+        if(bb&&bb.drops==='log') emitTree(G,ix,iz,cc); }
       continue;
     }
     emitColumn(G,ix,iz,cc);

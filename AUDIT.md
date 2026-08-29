@@ -7868,6 +7868,12 @@ the mesher draws it, the axe breaks it, it drops Timber — proved it once end t
 it off for two reasons its own notes specify with the mend half-written. This round answers both,
 turns it on, fights a war it started, and re-founds two laws the change made untrue.*
 
+> **READ §4ck BEFORE BELIEVING THE NUMBERS BELOW.** The war, the draw-call win, the ×8
+> re-founding and the ±2.5% pricing in this section were all read against a world this
+> round had sheathed in phantom timber without knowing it — a trunk block in ~100% of the
+> earth's columns. The mechanism stands; most of the measurements below do not. §4ck tells
+> which, and what the true numbers are.
+
 ### The two reasons, answered
 
 **1. The first build is no longer trunkless.** Round 61: the stamp landed after `buildChunk`
@@ -8042,6 +8048,116 @@ Both faults named by the line that catches them, then taken back out.
 Cost: `blockSolidAt` gained one guarded array read on edited cells only; `aimAt` one
 early-out call per step. Test 12's chunk-cost guard and test 11's ratio stand watch over
 both, as they have since Rounds 66 and 86.
+
+## 4cl. Round 86, corrected — the earth was sheathed in phantom timber, and every tree stood as a naked pole ✅
+
+*The full suite ran three and three-quarter hours against Round 86 and returned 48 · 4 · 5,
+and every FAIL had a story that satisfied: tests 13, 40 and 42 had "assumed a spot clear that
+the truer world now occupied", test 30 was starved by a leaked browser. Three of the four mends
+were right anyway. The STORY was wrong, and one refusal was the tell.*
+
+### The tell, and the probe that followed it
+
+Test 42, mended to hunt a verified-clear column, still failed at two different places with the
+same refusal — and a failure that does not move with position is a system, not a circumstance.
+An eight-column probe at the coast read the answer: **every column wore a trunk block at its
+first-air cell.** Widened: **871 of 874 coastal columns, 93% inland.** The earth was sheathed
+in phantom timber, and none of the fifty-seven tests looks at the ground the way an eye does.
+
+(First, in passing: test 30's browser. The FAIL was a 30-second `page.goto` timeout, but the
+deeper fault was `tools/harness.js` — when the goto throws, `open()` throws before
+`{browser,page}` is ever assigned, the caller's `finally` never holds a browser, and the
+launched process is orphaned. Test 30's orphan burned ~1.3 cores for two and three-quarter
+hours and starved every test after it. `open()` now undoes its own launch on any failure past
+it; proved by injection — a page that cannot load leaves a running browser under the old
+harness, none under the mended one.)
+
+### The first fault: `treeAt` names, `cc.tree` decides — and the pre-pass never asked
+
+The mesh walk grows a tree only where the cell says one stands (`if(cc.tree) emitTree(...)`).
+`FLORA.treeAt` is NOT a density gate: it answers *which species would stand here* for any cell
+asked — its sibling `plantAt` rolls density itself, which is exactly the asymmetry that invites
+the mistake. The pre-pass asked `treeAt` for all 256 columns of every chunk and stamped
+whatever it named. One line mends it — the pre-pass asks `cc.tree` first, the same gate at the
+same question — and the probe re-read **1% of columns trunked, coast and inland both: the
+trees themselves.** (The phantoms lived in SEDITS, which regenerates and is never saved — no
+voyage's record carries one.)
+
+What the phantoms had corrupted, told plainly:
+
+- **The "war" was a phantom army.** 4,878 stamp flips at one shore were wall-to-wall phantom
+  trees fighting over cells. The column-clip in `boleBox` stands on its own right — one column
+  per tree makes the contest impossible for real neighbours too — but it was proven against
+  ghosts.
+- **The draw-call "win" was occlusion by a timber slab.** Open ground fell 480 → 75 ms because
+  a merged slab of log blocks hid the world, and test 11's law was moved ×1.5 → ×8 on that
+  false economy. On the bare earth open ground is the DEAR ground again — it is the ground
+  that grows the trees — and the law went back to ×1.5, with both lessons priced into its
+  comment: a spectacular win owes the same suspicion as a failure, and a law should not be
+  re-founded in the same round as the change it excuses.
+- **Test 41's +18,748 triangles were the ground touching itself.** On the bare earth the
+  six-bark and one-bark builds differ by **0 triangles exactly** — a tree of this world almost
+  never roots shoulder to shoulder. And the off-arm stamps the old `log` block, which wears
+  TWO materials (side and top) where a bark block wears one, so the TOTAL mesh count moved
+  −198 while the barks themselves cost their mesh groups honestly — the draw-call assertion is
+  scoped to the bark meshes now, the thing it guards; a trunk that stops being a block at all
+  is test 43's to catch.
+- **Tests 13, 40 and 42 struck phantoms, not trees** — but their mends stand: a premise
+  verified beats a premise assumed whatever the odds, and 42's hunt failing WAS the correct
+  reading of a world with no clear column anywhere.
+
+### The second fault under the first: every tree stood as a naked pole
+
+The laws re-ran green — and then the pop-in injection re-proof read BACKWARDS: without the
+pre-pass the first build had 62,186 triangles MORE, the very number the phantom-era injection
+had celebrated. A trunk cannot add by its absence. The walk answered: its edited-column branch
+ends in `continue`, so an edited column never reaches the `cc.tree` draw — invisible while
+edits in a tree's column were a hand's rare doing, and the look of the world the round the
+trunk stamp made EVERY tree's column an edited column. **The crowns were never drawn. Every
+tree since the boles went on stood as a bare trunk, and no test reads the drawn wood off the
+mesh** — the flora suites (33, 34) ask the flora directly. Round 61's "63,466 triangles of
+pop-in" was the same fault in a mirror: crowns popping OUT on the remesh, mismeasured as
+trunks popping in.
+
+The mend: an edited column whose tree still stands on its own trunk draws its crown — crown
+iff the base cell answers Timber — so a felled bole takes its crown down with it and a
+built-over column stays as silent as it always was.
+
+**Proved three ways, on the bare earth:**
+
+- *The whole first build.* Same-disc probe, hold kept, remeshes run to the floor: with the
+  pre-pass the first build IS the settled world — 876,360 = 876,360 triangles, 987
+  leaf-material mesh groups standing, pop-in 0, dirty 0.
+- *The injection.* Pre-pass held off: the first build lacks exactly **5,618 triangles** (the
+  trunk blocks arriving late, 304 dirty marks), settling to the identical world. The true
+  pop-in the pre-pass buys off is 5,618 triangles — not 63,466.
+- *The felling.* Counters in the gate over 1,148 tree columns: 1,146 crowns drawn, 2 skipped —
+  both the felled tree's own rebuilds. One base taken costs **154 triangles**, identically
+  through the flush and through a rebuild from nothing (876,360 → 876,206). And the probe's
+  first instrument was convicted on the way: `viewStats.byMat` counts MESHES per material, not
+  triangles — a fallen crown removes no mesh, and the felling was invisible to it while being
+  real in the triangle total.
+
+### The second full suite, on the corrected world
+
+**52 pass · 0 fail · 5 pending** — the first zero-fail suite this repository has recorded.
+The five pendings: 50, 53, 54 and 55 are the measured watchers by design (§2.3.5/§2.3.6's
+open items), and 12 is its own honesty — this box runs its calibration loop 1.69× slower than
+the box that set its baselines, and the test refuses to compare across that. The readings that
+matter: 11 at 1.15×/1.15× under its restored ×1.5; 41 with +0 triangles and every bark in
+view on the crowned world (876,360 both arms); 42's whole chain — dipped, poured, ran to 99
+cells, in the record, bucket back empty, spring taken back up; 30 clean under the mended
+harness; 43 still green — the axe bites the bole and it gives Timber; 56's captures reading
+the trunks inside both authored places and round-tripping whole.
+
+### The lesson, for the books
+
+A test failing identically at two unrelated places is not describing its surroundings. A
+round that measures a spectacular win owes that win the suspicion it would give a failure.
+An audit that finds a satisfying story should ask the story one more question — every FAIL of
+the first suite had an explanation that fit, and all of them were true only of a world nobody
+had looked at. And an injection whose number comes back the same in two different worlds has
+measured neither: 62,186 was believed twice, and it was crowns both times.
 
 ## 5. Further recommendations (future work)
 

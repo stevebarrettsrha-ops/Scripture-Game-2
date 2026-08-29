@@ -1216,6 +1216,18 @@ rather than assuming it.
 > ended by clipping a trunk's stamp to its rooted column. The change pays: ~420 draw calls gone,
 > the open frame 480→75 ms in the harness; tests 41 and 11 re-founded with the story written in.
 > AUDIT §4cj. The original Round 61 record follows, kept as history:
+>
+> **CORRECTED THE SAME ROUND — AUDIT §4cl.** The measurements struck through in spirit above
+> were read against a world the pre-pass had sheathed in phantom timber (a trunk block in
+> ~100% of columns: `treeAt` names a species for any cell asked; `cc.tree` is the density
+> gate, and the pre-pass wasn't asking it) — and under that, a second fault: the walk's
+> edited-column branch never drew the tree, so every crown in the world had silently stopped
+> being drawn. Both mended and proved on the bare earth: 1% of columns trunked (the trees
+> themselves); first build = settled world exactly (pop-in 0; the true pop-in the pre-pass
+> buys off is 5,618 triangles, not 63,466); a felled bole takes its crown down (154 triangles,
+> read through flush and rebuild alike); laws 11 and 41 re-founded on true readings (×1.5
+> restored; +0 triangles). Second full suite on the corrected world: **52 pass · 0 fail ·
+> 5 pending — the first zero-fail suite in this repository's record.**
 
 The door is built and proved: `kit.bole` stamps a trunk into the structure layer, the
 mesher draws it, the axe breaks it, it drops Timber — read once, end to end, off a real
