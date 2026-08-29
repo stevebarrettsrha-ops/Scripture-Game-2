@@ -1422,6 +1422,14 @@ arrives"*, so there is at least one thing waiting on it by name.
 > after leaving and returning; scan 8.9 ms mean with inland crossings near-free. Proved by
 > injection (stamped at the mouth, all four named). **What remains in Phase 8 is open-ended,
 > not owed: growing the hoards, one capture and no code apiece.** AUDIT §4cg–§4ci.
+>
+> **AND THE HOARDS HAVE BEGUN GROWING — Round 90, two places, no code, exactly as promised:**
+> the **Cave at Ḥorĕḇ** on Sinai's flank (1 MALAḴIM 19:9 — the first place with NOTHING in
+> it, because a hoard in that cave would be a lie about the story) and the **Altar of Noaḥ**
+> in Ararat's high snow (BERĔSHITH 8:20 — the debt world/scrolls.js has carried since
+> Phase 7, paid with the thing the account actually builds there rather than an invented
+> scroll). Both anchors probed for level ground before design; both covered by test 56's
+> per-place loop automatically. AUDIT §4co.
 
 **Phases 9 and 10 are named in the brief and are not restated in this repository**,
 and I will not guess at them here: whatever is written down about them should be
