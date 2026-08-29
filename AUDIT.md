@@ -8224,6 +8224,87 @@ changed machinery — 14 (the tool law), 20 (the refusal), 44 (the bootstrap), 5
   the furnace keeps its sibling's rules; a fuel economy is its own argument, not a rider.
 - **The bench still waits**, exactly as §17.5's argument left it: nothing needs one yet.
 
+## 4cn. Round 89 — the far falls answered by their own water, and the matriarch's seventh attempt, characterised and not shipped ✅
+
+*The two items left with real design meat on them (§16's far falls; §2.3.5's matriarch),
+taken with the one discipline that fits both: measure first, ship only what the measurement
+carries, and record the rest so the next hand starts where this one stopped. The standing
+game was to be affected by NOTHING unproven, and it was not: what shipped is a read-only
+census tool, one read-only debug exposure, a guard test, and this record.*
+
+### The far falls — §16's owed question, PAID
+
+`tools/farfalls.js` is the instrument the question wanted: every fall prepared, every
+basin-bound one sprung and beaten to stillness exactly as test 39 does, and — the number
+nobody had — the nearest TRUE water swept in a full circle out to 400 blocks (the same
+raster answer the outfall search reads, exposed read-only as `outWater`).
+
+**The census, and it is bigger than §16 knew:** not five but **27 of 34 falls** find no
+outfall inside their claim. And the two numbers that decide the question:
+
+    every basin HOLDS: 0 cells outside any claim, all 27 —
+      farthest standing cell 6-73 blocks, against claims of 46-376
+    the nearest true water: 69-312 blocks off for fourteen of them,
+      NOWHERE within 400 blocks for eleven
+
+So the channel §16 wondered about would be a county-crossing cut for every fall that lacks
+one — the falls' own file forbids exactly that ("a shoulder widened to reach a river would
+raise a county") — and the world's own law closes it: **no change to the shape of the earth
+without a defect to point at. The basins stand.** A tarn under a great plunge is what the
+real earth does with one. Two curiosities are recorded rather than chased: Jog (28 blocks to
+water) and Sutherland (44) have sea within their claim RADIUS but outside the downstream
+fan — the water lies behind or beside the fall, where no channel from a plunge pool
+honestly runs.
+
+**Test 60 makes the law permanent**: the two biggest basin falls, picked by the data, are
+sprung, settled, and held to a bounded basin — the defect that WOULD matter (water leaving
+its claim) now has a tripwire.
+
+### The matriarch — the seventh attempt, built, measured, and taken back out
+
+Round 82's prescription was followed to the letter: *"move neither the marks nor the steps
+but change what a beast WANTS."* The mechanism: each herd names a matriarch (rank by
+young-at-foot, tie on the tether — Round 82's rule); she owns one slowly-wheeling bearing;
+and at the meal-done decision a beast that would put its head straight back down sometimes
+wants its next mouthful a couple of body lengths her way instead — walking the station gait
+(the one walk that does not stop at the first blade) and feeding at the end of it. Stations
+untouched, steps untouched, station discipline asked first, dinner first always.
+
+**The instrument convicted itself twice before it read anything** — Round 78's lesson,
+re-learned at full price:
+
+1. **The lever was hung dead, again.** Placed after `toStation` in the roam-expiry chain it
+   read 0.000-0.002 a beast-second — the meal-done branch CONSUMES its decision (an act, or
+   a stroll), so the next-mouthful choice never saw one. Re-hung at the feedhead expiry
+   itself it fired at **0.13-0.23 a second (ask 0.67-0.77), off-arm exactly 0**.
+2. **The first travel metric measured the census, not the walking**: a per-kind centroid
+   over whoever happened to be herded read 125 units of "travel" in an arm where the
+   mechanism never fired once — membership churn, nothing else. Re-built on a fixed cohort
+   (the same beasts, both ends).
+
+**With both mended, the honest reading (Kenya, ON/off/ON, 30-second arms):**
+
+    travel:  12.9 · 17.6 · 57.7 units (0.74 · 0.95 · 2.72 radii) — the OFF arm
+             sits BETWEEN the ON arms: not established
+    reach:   1.14 · 1.10 · 1.09      — flat: no damage
+    mothers: 0.85 · 0.86 · 0.86      — inside, flat: the young-at-centre rule untouched
+    feed:    0.71 · 0.71 · 0.70      — flat: nobody went hungry for it
+    cost:    0.139 · 0.134 · 0.150 ms — flat
+
+**Why the arm cannot see it, in arithmetic:** at 0.23 marches a second over ~35 herded
+beasts, a 30-second arm buys ~7 marches of ~9 units — about **2 units of expected herd
+drift under 13-18 units of arrival noise**. The window is an order of magnitude too short
+for the effect it is asked to see, which is test 50's own long-standing complaint about
+itself. Establishing it wants ten-minute arms, and this box runs frames at a third speed.
+
+**So the mechanism is out of the tree, by the diagnostic's own charter** — *"to stop a
+round of shipping a mechanism nobody could show working"* — and this is what the eighth
+attempt (or a patient measurement of the seventh) inherits: the right hang point is the
+feedhead expiry, before the act and the stroll; the lever fires there at a useful rate and
+costs nothing measurable; the travel metric must be cohort-fixed; and the arms must be
+minutes, not seconds. Nothing about the idea was disproved. Nothing about it was proved.
+That is the whole of what the data says, and it is written down instead of shipped.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
