@@ -4736,6 +4736,68 @@ T[59]={name:'the furnace and the iron: smelting is refused away from the fire, a
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
+T[60]={name:'a fall with no way out keeps a BOUNDED basin — the far falls answered by their own water',
+  /* §16's owed question, answered by tools/farfalls.js in Round 89 and
+     GUARDED here. The census: 27 of 34 falls find no outfall inside their
+     claim, and for every one of them the nearest true water lies 69 to 400+
+     blocks off (or nowhere within 400 at all) — a channel would be the
+     county-crossing cut the falls' own file forbids ("a shoulder widened to
+     reach a river would raise a county"), and the world's own rule holds:
+     no change to the shape of the earth without a defect to point at. The
+     defect this test watches for instead is the one that WOULD matter: a
+     basin that does not hold. Sprung and beaten to stillness, a far fall's
+     water must stand entirely inside its own claim — a bounded tarn, not a
+     spreading sheet. The census read farthest cells of 6-73 blocks against
+     claims of 46-376, outside 0, all 27; the two biggest are held to it
+     here so the suite stays affordable. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    if(!window.WATER||!window.WATERFALL) return {pending:'no falling water'};
+    const list=WATERFALL.list();
+    const basins=list.filter(f=>!WATERFALL.outfall(f));
+    if(!basins.length) return {pending:'every fall found an outfall — nothing basin-bound to guard'};
+    /* the two biggest by drop, whatever their names — data picks them */
+    const chosen=basins.sort((a,b)=>b.drop-a.drop).slice(0,2);
+    const whose=(ix,iz)=>{ let best=null,bd=1e18;
+      for(const g of list){ const d=(ix*B-g.x)**2+(iz*B-g.z)**2; if(d<bd){ bd=d; best=g; } }
+      return best; };
+    const faults=[], said=[];
+    for(const f of chosen){
+      const heads=[];
+      for(const [x,z] of WATERFALL.springs(f)){
+        const c=D.landAtWorld(x,z); if(!c) continue;
+        const ix=Math.floor(x/B), iz=Math.floor(z/B);
+        if(WATER.spill(ix,c.h,iz)) heads.push([ix,c.h,iz]);
+      }
+      if(!heads.length){ faults.push(f.n+': no head could be laid'); continue; }
+      const mine=()=>WATER.serialise().filter(s=>{
+        const p=s.slice(0,s.lastIndexOf(':')).split(',');
+        return whose(+p[0],+p[2])===f; });
+      let prev=-1, still=0;
+      for(let t=0;t<4000&&still<40;t++){ WATER.step(0.25);
+        if(t%25===0){ const n=mine().length;
+          still=(n===prev)?still+25:0; prev=n;
+          await new Promise(r=>setTimeout(r,0)); } }
+      let outside=0, far=0;
+      const cells=mine();
+      for(const s of cells){ const p=s.slice(0,s.lastIndexOf(':')).split(',');
+        const dx=+p[0]*B-f.x, dz=+p[2]*B-f.z;
+        far=Math.max(far,Math.abs(dx),Math.abs(dz));
+        if(Math.abs(dx)>f.R||Math.abs(dz)>f.R) outside++; }
+      if(!cells.length) faults.push(f.n+': sprung, and no water stood at all');
+      if(outside) faults.push(f.n+': '+outside+' cell(s) of its water stand OUTSIDE its claim');
+      said.push(f.n.split(/[ —]/)[0]+': '+cells.length+' cells, farthest '+
+        Math.round(far/B)+' of a '+Math.round(f.R/B)+'-block claim'+(outside?', '+outside+' OUT':''));
+      /* the world left as it was found */
+      for(const h of heads) WATER.take(h[0],h[1],h[2]);
+      for(let t=0;t<4000&&mine().length;t++){ WATER.step(0.25);
+        if(t%50===0) await new Promise(r=>setTimeout(r,0)); }
+    }
+    return {ok:!faults.length,
+      got:basins.length+' of '+list.length+' falls are basin-bound · '+said.join(' | ')+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.
