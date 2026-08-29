@@ -2349,11 +2349,18 @@ T[40]={name:'a running fall writes nothing into the record, and a hand\'s own so
        while a fall runs (a bank of sand comes down, a village lays a wall) and
        those are records rightly kept. */
     let seen=0, blind=0, inRecord=0;
+    /* AND WHAT the record holds there is NAMED, not merely counted — a fault
+       line that says "25 cells" leaves the next hand to rebuild the probe
+       this line replaces. The block id of each offender is tallied. */
+    const inRecIds={};
     for(const s of WATER.serialise()){
       const p=s.slice(0,s.lastIndexOf(':')).split(',');
       const ix=+p[0], iy=+p[1], iz=+p[2];
       if(D.blockAt(ix,iy,iz)) seen++; else blind++;
-      if(D.recordedAt(ix,iy,iz)) inRecord++;
+      const r=D.recordedAt(ix,iy,iz);
+      if(r){ inRecord++;
+        const b2=D.blockOf(r); const nm=b2?b2.id:('#'+r);
+        inRecIds[nm]=(inRecIds[nm]||0)+1; }
     }
 
     /* AND A HAND'S OWN SOURCE IS THE OTHER CASE. One bucket, on dry ground
@@ -2385,7 +2392,8 @@ T[40]={name:'a running fall writes nothing into the record, and a hand\'s own so
       if(k%50===0) await new Promise(r=>setTimeout(r,0)); }
 
     const faults=[];
-    if(inRecord) faults.push(inRecord+' cells of the running flow are IN THE RECORD');
+    if(inRecord) faults.push(inRecord+' cells of the running flow are IN THE RECORD — the record there holds: '+
+      Object.entries(inRecIds).map(e=>e[1]+'x '+e[0]).join(', '));
     if(!(flow1>flow0)) faults.push('the water\'s own layer never filled');
     if(blind) faults.push(blind+' cells of water the world cannot see');
     if(deedRec!==1) faults.push('a hand\'s own source put '+deedRec+' cells in the record, wanted 1');
