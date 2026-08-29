@@ -1362,6 +1362,20 @@ anything of it is built):**
    carpenter's bench under it. The furnace and the iron are the honest next
    step, and they are a round of their own.
 
+> **AND THAT ROUND IS BUILT — ✅ Round 88.** The furnace of eight brick, made
+> AT the kiln (one work's product the next work's material, twice over, which
+> is what this section's title means), with DEḆARIM 4:20 beside it — the iron
+> furnace of Mitsrayim. `smelt-iron` at the furnace (IYOḆ 28:2), and a kiln
+> does NOT pass for one. The iron pick, `speed:2.2` on the block and one term
+> in `toolSpeed` — the line whose Round 34 comment promised a better pick
+> would be believed "without another line here", kept to the letter. Test 59
+> walks every link and was proved by injection both ways (the place rule off:
+> "a KILN passed for a furnace"; the speed term off: caught by the rule AND
+> by the blow's own clock, 3.40s → 1.55s on 3.4s stone). NOT shipped, by
+> §4's rule: copper's metal (no work needs it), bronze (no tin in any land),
+> iron tools beyond the pick (only the pick's material refuses the bare
+> hand), a fuel economy. The bench still waits. AUDIT §4cm.
+
 ### And then Phases 8, 9 and 10
 
 **Phase 8 is authored places** — a schematic format, an in-game capture tool, and

@@ -170,3 +170,37 @@ EARTH.work({
   id:'glass', name:'Melt Glass', at:'kiln',
   of:{ 'sand':4 }, gives:{ 'glass':4 }
 });
+
+/* --- THE FURNACE — built of the kiln's own brick, at the kiln's own fire ---
+   The first time one work's product is another work's material, which is
+   what "building from gathered materials" means: clay to brick at the kiln,
+   brick to furnace, and the furnace opens the smelting. The account knows
+   it by name — the iron furnace of Mitsrayim. */
+EARTH.work({
+  id:'furnace', name:'A Furnace', at:'kiln',
+  of:{ 'brick':8 }, gives:{ 'furnace':1 },
+  verse:{ t:'“But (YAHUAH) HWHY has taken you and brought you out of the iron furnace, out of Mitsrayim, to be His people, an inheritance, as it is today.',
+          ref:'DEḆARIM 4:20' }
+});
+
+/* ---------------- AND THE WORKS OF THE FURNACE ---------------- */
+
+/* --- SMELTING — the ore of DEḆARIM 8:9's hills becomes the metal ---
+   The head of this file has said since Phase 4 that "the metal wants a
+   fire hotter than a kiln and a work of its own." This is that work.
+   IRON ONLY, and the restraint is the point: copper's metal waits until a
+   work needs it, and bronze waits on a tin no land's list holds — a
+   substance ships when a work needs it, and the iron pick needs this. */
+EARTH.work({
+  id:'smelt-iron', name:'Smelt Iron', at:'furnace',
+  of:{ 'iron-ore':1 }, gives:{ 'iron':1 },
+  verse:{ t:'Iron is taken from the earth and copper is smelted from ore.',
+          ref:'IYOḆ 28:2' }
+});
+
+/* --- A PICK OF IRON — the reason the smelting exists ---
+   The same shape as the flint pick's work, in the better metal. No verse:
+   it is not named in the account, and an honest tool beats an invented
+   citation. */
+EARTH.work({ id:'iron-pick', name:'A Pick of Iron',
+  of:{ 'iron':3, 'planks':2 }, gives:{ 'iron-pick':1 } });
