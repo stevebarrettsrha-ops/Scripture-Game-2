@@ -1217,7 +1217,7 @@ rather than assuming it.
 > the open frame 480→75 ms in the harness; tests 41 and 11 re-founded with the story written in.
 > AUDIT §4cj. The original Round 61 record follows, kept as history:
 >
-> **CORRECTED THE SAME ROUND — AUDIT §4ck.** The measurements struck through in spirit above
+> **CORRECTED THE SAME ROUND — AUDIT §4cl.** The measurements struck through in spirit above
 > were read against a world the pre-pass had sheathed in phantom timber (a trunk block in
 > ~100% of columns: `treeAt` names a species for any cell asked; `cc.tree` is the density
 > gate, and the pre-pass wasn't asking it) — and under that, a second fault: the walk's
@@ -1264,7 +1264,29 @@ a man may pick his own spring back up) and merely draws from the world's own wat
 well is drawn from and does not empty. Running water is refused. Acceptance test 42 walks
 the whole chain.
 
-### 4. Planting
+### 4. Planting — ✅ *Round 87*
+
+> **DONE, and the year that was standing did the growing.** Seed Corn is ONE
+> block by the bucket's rule — the seed in the satchel and the sown cell are
+> one thing in two states — and WHICH corn comes up is the country's own,
+> asked of js/crop.js exactly as a village field asks, so a seed sown in Egypt
+> comes up wheat and the same seed in Java comes up rice. The sown cell is
+> drawn in the chunk's own mesh in the crop material the fields already wear,
+> so the shader of Round 68 grows it for nothing: no remesh, no per-frame
+> cost, no new material. The hoe finally does what its own file promised in
+> Phase 4 ("not breaking but turning"): held, it turns the sward to a tilled
+> bed through the bucket's own door, and the bed is a deed. The seed refuses
+> every ground but its bed, in words that name the hoe; reaped FULL-GROWN by
+> the same curve the shader draws, it pays its increase of 3; reaped young it
+> gives the seed back; dug out from under, it comes away as its seed. The
+> first seed is threshed from a sheaf (1 hay → 4 seed, RUTH 2:17) — sheaves
+> stand in every pen on earth, so a voyage that owns nothing walks in.
+> Test 58 walks the whole chain at a southern station (the half-year shift
+> exercised free) and was proved by injection both ways. And the extractor's
+> standing "1 paraphrased" turned out to be the bucket's verse, shipped from
+> memory in Round 60 — mended to the source: 64 exact · 0 paraphrased.
+> NOT here, on purpose: a flooded hand-sown paddy, a desert that tills, a
+> reapable village field, bread. AUDIT §4ck. The original entry follows:
 
 `blocks/soil.js` exists. Farms and farmers exist in the villages, and since
 **Round 68 the agricultural year exists too** — a village field bears its own
@@ -1281,7 +1303,7 @@ in the conditional, and it no longer needs to.
 The satchel stacks, survives a reload, and pays for what it lays; the free hand
 lays without cost. **This section used to say "There is no making — no bench, no
 recipe, nothing that turns what was gathered into what was not." That has been
-untrue since Phase 4.** `world/works.js` declares fourteen named works, each with
+untrue since Phase 4.** `world/works.js` declares fifteen named works, each with
 what it takes, what it gives, whether it needs fire or a tool in the hand, what
 it REFUSES, and the verse it is drawn from; acceptance test 20 walks the refusal
 (an altar of unhewn stone will not take hewn stone) and test 44 walks a man from

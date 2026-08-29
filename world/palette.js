@@ -267,6 +267,10 @@ const B = {
   crop:        { b: mix(P.sap, P.ochre, 0.34) },
 
   /* --- the harvest, the fleece, the glass --- */
+  /* seed corn: the grains a shade deeper than the sheaf they were beaten
+     out of, with the light caught on a few of them */
+  seed:        { b: mix(P.ochre, P.saffron, 0.20), a: shade(P.darkOchre,0.92),
+                 glint: lift(mix(P.ochre, P.saffron, 0.30), 0.22) },
   haySide:     { b: mix(P.ochre, P.saffron, 0.26), a: shade(P.darkOchre,0.98),
                  band: shade(P.darkOchre,0.72) },
   hayTop:      { b: mix(P.ochre, P.saffron, 0.30), twine: shade(P.darkOchre,0.74) },
