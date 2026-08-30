@@ -3451,8 +3451,11 @@ T[50]={name:'THE HERD, MEASURED — how many stand together, where the young sta
       (oD===null?'—':oD.toFixed(2))+
       ' · travel: '+travU.toFixed(0)+' units ('+trav.toFixed(2)+' herd-radii)'+
       ' · leaders: '+(ledSeen?(twoLed+' split, '+ledWrong+' outranked'):
-        'NO LEADER IN THIS BUILD — §2.3.5\'s "matriarch-led" is not built, and these '+
-        'counters judge nothing')+
+        (window.__VDBG&&window.__VDBG.leadOn
+          ?'the matriarch\'s lean is BUILT (Round 92) and judged by its own long-arm A/B, '+
+           'not by this test — its own comment says this window is too short for the rule to act in'
+          :'NO LEADER IN THIS BUILD — §2.3.5\'s "matriarch-led" is not built, and these '+
+           'counters judge nothing'))+
       ' · '+rows.join(' | ')};
   })};
 

@@ -8470,6 +8470,14 @@ to act in") is precisely what this round's arms answered.
 
 Guard tests 35 (the watch) and 53 (the levers, the cost) run green with the march on.
 
+**And the suite whole, on the tree that carries all of Rounds 87–92:** the full sixty ran
+after Round 92 merged and read **56 pass · 0 fail · 4 pending** — the four pendings being
+the measurement-reporters 50, 53, 54 and 55, which report by design and judge nothing.
+Test 12's cost gate passed on true readings (ocean 0.717 ms against the 0.672 baseline,
+plain 2.545 against 2.453 — six rounds of building for a few hundredths of a millisecond),
+no page errors, 68 verses exact. Test 50's stale "no leader in this build" line was made
+to see Round 92's shipped lean.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
