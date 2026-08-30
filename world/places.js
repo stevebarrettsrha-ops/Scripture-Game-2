@@ -291,6 +291,91 @@ EARTH.place({
   })()
 });
 
+/* ---- THE OATH-STONES ON ḤERMON ----
+   "Then sware they all together and bound themselves by mutual imprecations
+    upon it. And they were in all two hundred; who descended in the days of
+    Yared on the summit of Mount Hermon, and they called it Mount Hermon,
+    because they had sworn and bound themselves by mutual imprecations upon
+    it."                                                    — ḤANOḴ 3:5
+
+   The mountain that is NAMED for an oath gets the mark of it: a ring of
+   rough standing stones on the high flank, open to the sky, with a flat
+   slab at the middle. Like the cave at Ḥorĕḇ it holds NOTHING — but where
+   that emptiness is rest, this one is dread: nothing is hoarded at a place
+   like this because nothing good was ever left there. The ring is eight
+   stones, which is a ring and claims to be no more; the account counts two
+   hundred WATCHERS, not stones, and no number is invented for it.
+
+   Measured first: Ḥermon's site is alpine at 71 courses with a broad level
+   pocket at its middle. */
+EARTH.place({
+  n:'The Oath-Stones on Ḥermon', at:'Mount Hermon',
+  dx:-3, dy:0, dz:-3,
+  w:7, h:2, d:7, keep:true,
+  pal:['air','stone','hewn-stone'],
+  rle:(function(){
+    const W=7,H=2,D=7;
+    const KEEP=0, STONE=1, SLAB=2;
+    /* the eight, at the ring's compass points and quarters */
+    const ring=[[3,0],[5,1],[6,3],[5,5],[3,6],[1,5],[0,3],[1,1]];
+    const at=(x,y,z)=>{
+      for(const r of ring) if(r[0]===x&&r[1]===z) return STONE;   /* two high */
+      if(x===3&&z===3&&y===0) return SLAB;    /* the slab the swearing stood at */
+      return KEEP;
+    };
+    const out=[]; let run=0, cur=-1;
+    for(let x=0;x<W;x++) for(let z=0;z<D;z++) for(let y=0;y<H;y++){
+      const v=at(x,y,z);
+      if(v===cur) run++;
+      else { if(run) out.push(run,cur); cur=v; run=1; }
+    }
+    if(run) out.push(run,cur);
+    return out;
+  })()
+});
+
+/* ---- THE FALLEN WALL OF YERICHO ----
+   "And it came to be when the people heard the sound of the horn and the
+    people shouted with a great shout, that the wall fell down flat. And the
+    people went up into the city, every man straight before him and they
+    captured the city."                                  — YAHUSHA 6:20
+
+   The one landmark on the earth whose STORY is its ruin. The Walls of
+   Yericho stand as the city builder raises them — walls are what the
+   landmark is — and beside them now lies what the account actually says
+   happened to them: a field of tumbled stone, ONE COURSE HIGH, because
+   "fell down flat" is a height and this is it. Scattered by the hash the
+   herd stations and the sea caves scatter by, so the same stones lie the
+   same way on every voyage.
+
+   Measured first: the site is desert at 5 courses, shelving gently south;
+   the rubble lies on the near-flat ground off the city's own footing. */
+EARTH.place({
+  n:'The Fallen Wall of Yericho', at:'The Walls of Yericho',
+  dx:-4, dy:0, dz:6,
+  w:9, h:1, d:5, keep:true,
+  pal:['air','stone','cobble'],
+  rle:(function(){
+    const W=9,H=1,D=5;
+    const KEEP=0, STONE=1, COBBLE=2;
+    const h2=(a,b)=>{ const n=Math.sin(a*127.1+b*311.7)*43758.5453; return n-Math.floor(n); };
+    const at=(x,y,z)=>{
+      const r=h2(x*3.7+1.3,z*7.1-2.9);
+      if(r<0.28) return STONE;
+      if(r<0.52) return COBBLE;
+      return KEEP;                       /* the gaps a man steps through */
+    };
+    const out=[]; let run=0, cur=-1;
+    for(let x=0;x<W;x++) for(let z=0;z<D;z++) for(let y=0;y<H;y++){
+      const v=at(x,y,z);
+      if(v===cur) run++;
+      else { if(run) out.push(run,cur); cur=v; run=1; }
+    }
+    if(run) out.push(run,cur);
+    return out;
+  })()
+});
+
 /* ---- THE CASTAWAY'S CACHE — a schematic anchored by a RULE ----
    Round 46 carved 84 sea caves and shipped them empty on purpose: "the cave
    ships; what is in it waits for the phase whose whole job is putting things

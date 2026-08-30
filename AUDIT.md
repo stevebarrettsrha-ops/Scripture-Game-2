@@ -8478,6 +8478,33 @@ plain 2.545 against 2.453 — six rounds of building for a few hundredths of a m
 no page errors, 68 verses exact. Test 50's stale "no leader in this build" line was made
 to see Round 92's shipped lean.
 
+## 4cr. Round 93 — the hoards grow again: the Oath-Stones on Ḥermon, and the Fallen Wall of Yericho ✅
+
+*Two more places, one entry and no code apiece, each with a true textual claim on its
+anchor — and each ground probed level before a block was designed, as Round 90 set the
+custom.*
+
+**The Oath-Stones on Ḥermon** — ḤANOḴ 3:5: *"they were in all two hundred; who descended in
+the days of Yared on the summit of Mount Hermon, and they called it Mount Hermon, because
+they had sworn and bound themselves by mutual imprecations upon it."* The mountain that is
+NAMED for an oath gets the mark of it: eight rough stones in a ring on the alpine flank
+(probed level at 71 courses), a slab at the middle, nothing hoarded — like Ḥorĕḇ it is
+empty, but where that emptiness is rest, this one is dread. Eight is a ring and claims to
+be no more; the account counts two hundred WATCHERS, not stones, and no number is invented.
+
+**The Fallen Wall of Yericho** — YAHUSHA 6:20: *"the wall fell down flat."* The one
+landmark on the earth whose story is its ruin: beside the standing walls the city builder
+raises, a field of tumbled stone now lies ONE COURSE HIGH, because "flat" is a height and
+this is it — scattered by the same hash the sea caves scatter by, the same stones the same
+way on every voyage.
+
+**The readings:** test 56 runs six landmark round trips now (two in Round 84) — the
+Oath-Stones 98/98 and the Fallen Wall 45/45, each three ways (format, file text, the hand);
+test 24 still walks 13 of 13 summits, Ḥermon's ring barring nothing. And the Fallen Wall's
+capture honestly carries the city's own street beneath the rubble (8 cells of path, 3 of
+planks) — the wall fell into the edge of the town, and a capture reads the world as it
+stands, which is the only rule a capture tool may have.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

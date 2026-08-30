@@ -1438,7 +1438,10 @@ arrives"*, so there is at least one thing waiting on it by name.
 > in Ararat's high snow (BERĔSHITH 8:20 — the debt world/scrolls.js has carried since
 > Phase 7, paid with the thing the account actually builds there rather than an invented
 > scroll). Both anchors probed for level ground before design; both covered by test 56's
-> per-place loop automatically. AUDIT §4co.
+> per-place loop automatically. AUDIT §4co. **And again in Round 93**: the Oath-Stones on
+> Ḥermon (ḤANOḴ 3:5 — the mountain named for an oath gets the mark of it, and holds
+> nothing) and the Fallen Wall of Yericho (YAHUSHA 6:20 — one course high, because "flat"
+> is a height). Six landmark places round-trip in test 56 now. AUDIT §4cr.
 
 **Phases 9 and 10 are named in the brief and are not restated in this repository**,
 and I will not guess at them here: whatever is written down about them should be
