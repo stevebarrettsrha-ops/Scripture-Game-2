@@ -8470,6 +8470,31 @@ to act in") is precisely what this round's arms answered.
 
 Guard tests 35 (the watch) and 53 (the levers, the cost) run green with the march on.
 
+### The multi-land confirmation, run and reported as it fell
+
+Tanzania, same arms, same instrument:
+
+    arm   travel                march/s   reach   mothers   feed   pass ms
+    ON    70.8 u — 3.25 radii    0.53      0.78     0.86     0.74   0.180
+    off   71.0 u — 3.90 radii    0         0.77     0.93     0.79   0.154
+    ON    80.7 u — 4.29 radii    0.48      0.78     0.82     0.81   0.159
+
+**Tanzania does not confirm, and the reading says why rather than hiding it:** its herds
+travel ~71–81 units an arm with the lean on OR off — a baseline mobility near four
+herd-radii, five times Kenya's off-arm — and against that the lean's contribution cannot
+be told from the land's own motion. The off arm sits BETWEEN the ON arms, which is noise's
+signature, not damage's: nothing moved that must not (reach 0.77–0.78 dead flat, mothers
+inside in every arm, feed and cost flat), and the lever fired at its usual rate for its
+usual price.
+
+**So the claim stays exactly as Round 92 scoped it and gains its boundary:** the lean's
+travel is VISIBLE where a land's own travel is small (Kenya, 0.84 radii off → 1.16–1.84
+on) and INVISIBLE against a land that already walks (Tanzania) — and it is harmless in
+both. The mechanism stands; the reading is reported, not claimed, which is Round 81's
+treatment of the flock heading kept for its own kin. Whoever wants the Tanzania question
+settled needs arms long enough to beat a 3.9-radius baseline, which is the same lesson at
+the next scale up.
+
 **And the suite whole, on the tree that carries all of Rounds 87–92:** the full sixty ran
 after Round 92 merged and read **56 pass · 0 fail · 4 pending** — the four pendings being
 the measurement-reporters 50, 53, 54 and 55, which report by design and judge nothing.
