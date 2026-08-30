@@ -9090,6 +9090,18 @@ function herdPass(){
     const RT_MAX=HERD_R*0.85/(2*STN_OUT);
     const H={n:mob.length, x:cx, z:cz, r:Math.max(1,rr/mob.length),
              rt:Math.min(RT_MAX, Math.max(6, HERD_SPACE*bl*Math.sqrt(mob.length)*0.5))};
+    /* ---- AND THE HERD HAS A MATRIARCH, AND SHE OWNS A BEARING ----
+       Rank is young-at-foot, the tie broken on the beast's own tether so the
+       same herd names the same beast for as long as she lives — Round 82's
+       rank rule, kept. What she owns is ONE slowly-wheeling bearing; what is
+       done with it is done at the meal-done decision (toMarch) and NOWHERE
+       ELSE: no station is re-centred on her (the fifth attempt, and it
+       damaged the reach), no step is bent along it (the sixth, and the
+       correction cost more than it gained). */
+    let M=null, mr=-1;
+    for(const b of mob){ const r2=(b.kids?b.kids.length:0)*10+hash2(b.hx*0.07,b.hz*0.11);
+      if(r2>mr){ mr=r2; M=b; } }
+    H.br=hash2(M.hx*0.031,M.hz*0.047)*6.283+LL_T*LEAD_TURN;
     for(const b of mob){ done.add(b); b.herd=H; }
   }
 }
@@ -9116,8 +9128,9 @@ function stationOf(a){
    it is a handful
    of adds on a loop that already runs. */
 const HSTAT={secs:0, frames:0, reach:0, reachN:0, mReach:0, mReachN:0, rSum:0, rtSum:0, rN:0,
-             pickRoam:0, pickGraze:0, pickStn:0, grazeFail:0, steps:0, herded:0, loose:0,
+             pickRoam:0, pickGraze:0, pickStn:0, pickMarch:0, marchAsk:0, grazeFail:0, steps:0, herded:0, loose:0,
              feed:0, feedN:0, passMs:0};
+let LL_T=0;      /* the herds' own clock — see the matriarch's bearing in herdPass */
 function herdStatReset(){ for(const k in HSTAT) HSTAT[k]=0; }
 /* ---- AND WHAT THE INSTRUMENT ASKED FOR, WHICH WAS NOT WHAT I EXPECTED ----
    TWO MECHANISMS WERE BUILT FIRST AND THROWN AWAY UNBUILT, and the diagnostic
@@ -9187,6 +9200,37 @@ function toStation(a){
   if(Math.hypot(a.x-st.x,a.z-st.z)<a.herd.rt*STN_FAR) return false;
   a.tx=st.x; a.tz=st.z; a.job='station'; a.jt=3+Math.random()*2;
   HSTAT.pickStn++; return true;
+}
+/* ================= THE NEXT MOUTHFUL — the eighth attempt =================
+   §2.3.5's "matriarch-led". The SEVENTH attempt (Round 89) built exactly
+   this and took it back out with a characterisation instead of a claim: the
+   lever fires at the meal-done decision (0.13-0.23 a second, off-arm 0) and
+   costs nothing measurable — reach, mothers, feed, frame all flat — but a
+   30-second arm cannot see the ~2 units of drift it buys under 13-18 of
+   arrival noise. The eighth attempt is the same mechanism under the
+   measurement it actually needs: minutes-long arms, the cohort-fixed travel
+   metric, and the bearing's wheel slowed so a long arm's drift does not
+   curl into its own cancellation (0.008 rad/s turns half a circle inside a
+   seven-minute arm; 0.002 keeps the way roughly held across it).
+
+   THE MECHANISM, unchanged from the seventh: a beast standing in grass that
+   would put its head straight back down sometimes WANTS the next mouthful a
+   couple of body lengths along the matriarch's bearing — the station gait,
+   the head down at the end, dinner first always, station discipline asked
+   first. Its steps are its own and its marks are its own; only its want is
+   leaned. */
+let LEAD_ON=true;
+const LEAD_TURN=0.002;   /* how the bearing wheels: a full turn in ~52 minutes */
+const MARCH_P=0.30;      /* how many next-mouthfuls lean; the rest feed in place */
+function toMarch(a){
+  if(!LEAD_ON||!a.herd||a.herd.br===undefined) return false;
+  HSTAT.marchAsk++;                              /* reached at all — the dead-lever guard */
+  if((a.feed||0)<GRASS.FEED_MIN) return false;   /* hungry: dinner first, always */
+  if(Math.random()>=MARCH_P) return false;
+  const st=Math.max(6,Math.min(14,bodyLenOf(a.kind)*1.5));
+  a.tx=a.x+Math.sin(a.herd.br)*st; a.tz=a.z+Math.cos(a.herd.br)*st;
+  a.job='station'; a.jt=3+Math.random()*2;       /* the walk that does not stop at the first blade */
+  HSTAT.pickMarch++; return true;
 }
 
 /* ---- WHAT IS FRIGHTENING THIS BEAST, IF ANYTHING ----
@@ -9412,6 +9456,7 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
   const llReap=Math.min(3050,Math.max(LL_REAP,ff*1.12));
   /* THE HERDS OF THE EARTH, ONCE, BEFORE ANYBODY MOVES — so that every beast
      in this frame reads the same herd, and so does the instrument. */
+  LL_T+=dt;      /* the herds' own clock, for the matriarch's slow-turning bearing */
   { const t0=performance.now(); herdPass(); HSTAT.passMs+=performance.now()-t0;
     HSTAT.secs+=dt; HSTAT.frames++; }
   for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>llReap){
@@ -9814,9 +9859,13 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
         else if(takeWatch(a)){ /* the watch is his */ }
         else if(a.job==='act'){ a.job='roam'; a.act=null; a.jt=2.5+Math.random()*3; }
         else if(a.job==='feedhead'){
-          /* the meal done, a moment for the day's small business — the roll
-             in the dust, the walk down to the water */
-          if(!tryAct(a)){ a.job='roam'; a.jt=2.5+Math.random()*3; } }
+          /* the meal done — and FIRST the herd's way, then the day's small
+             business. Hung anywhere later in this chain the lever is dead
+             (0.000-0.002 a beast-second, measured in Round 89): this branch
+             CONSUMES the meal-done decision, so the next-mouthful choice
+             must be asked here or never. The act and the stroll take what
+             it leaves. */
+          if(!toMarch(a)&&!tryAct(a)){ a.job='roam'; a.jt=2.5+Math.random()*3; } }
         /* ON GROUND THAT BEARS NO GRASS AT ALL — the snow of the far north,
            bare rock, the sand — there is nothing to walk to and nothing to
            look for. The reindeer paws the drift for the moss under it and the
@@ -16175,8 +16224,18 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      "is this block of the stream in the record?", which a total cannot answer
      because the world does other things while a fall runs (a bank of sand
      comes down, a village lays a wall) and those are records rightly kept */
+  /* THE ENTRY ITSELF, not a boolean — a probe that answers `true` alike for
+     "a hand built here" and "the ground here was emptied" cannot tell the
+     two apart, and Round 91 caught it calling the water's own law a fault:
+     a curtain-wetted bank collapsed (the world putting itself right, its
+     emptied cells rightly 0 in the record), the flow ran through the dug
+     ground exactly as Round 58's order says it may ("water beats a 0"), and
+     the boolean read 24 cells of lawful water as a record leak. Returns the
+     block number (0 = emptied), or undefined where the record says nothing
+     — truthiness still answers "did a hand BUILD here", which is what every
+     standing caller asks. */
   recordedAt:(ix,iy,iz)=>{ const m=EDITS.get(chunkKeyOf(ix,iz));
-    return !!m&&m.get(eIndex(((ix%CH)+CH)%CH,iy,((iz%CH)+CH)%CH))!==undefined; },
+    return m?m.get(eIndex(((ix%CH)+CH)%CH,iy,((iz%CH)+CH)%CH)):undefined; },
   /* the remesh ALONE, in milliseconds — not the frame it happens to sit in */
   flushNow:()=>{ const t=performance.now(); const n=flushEdits(1e9);
     return {ms:performance.now()-t, chunks:n}; },
@@ -16551,6 +16610,8 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      with them. Off to read the world without it, inside one boot. */
   flockOn:v=>{ if(v!==undefined) FLOCK_BORN=v; return FLOCK_BORN; }, FLOCK_R:()=>FLOCK_R,
   stationDrift:v=>{ if(v!==undefined) STN_DRIFT=!!v; return STN_DRIFT; },
+  /* the eighth attempt's own switch, for the A/B in one boot */
+  leadOn:v=>{ if(v!==undefined) LEAD_ON=!!v; return LEAD_ON; },
   stationFar:v=>{ if(v!==undefined) STN_FAR=+v; return STN_FAR; },
   /* ---- AND ONE PROBE THAT WRITES, WHICH IS SAID OUT LOUD ----
      Everything else on this surface only asks. `setYoung` puts a calf at a

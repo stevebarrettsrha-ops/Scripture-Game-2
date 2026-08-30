@@ -8424,6 +8424,52 @@ answers "did a hand build here", which is what all four standing callers ask —
 40's fault line names the ids it finds, so the next red says what it is instead of leaving
 a probe to be rebuilt. With the probe mended: 39, 40, 42 green at curtain density.
 
+## 4cq. Round 92 — the matriarch leads: the eighth attempt SHIPS, on the measurement the seventh prescribed ✅
+
+*Seven attempts across five rounds ended reverted; the seventh (Round 89) ended with a
+characterisation instead of a claim — the lever fires at the meal-done decision and costs
+nothing, but a 30-second arm cannot see ~2 units of drift under 13–18 of noise. The eighth
+attempt is the SAME mechanism under the measurement the seventh said it needed: minutes-long
+arms, the cohort-fixed travel metric, and the bearing's wheel slowed from 0.008 to 0.002
+rad/s so a long arm's drift does not curl into its own cancellation.*
+
+### The mechanism, unchanged from the seventh
+
+Each herd names a matriarch — rank by young-at-foot, the tie broken on the tether, Round
+82's rule — and she owns one slowly-wheeling bearing. At the meal-done decision (the ONE
+hang point where the lever lives: asked before the act and the stroll, measured dead at
+0.000–0.002 a beast-second anywhere later in the chain), a beast that would put its head
+straight back down sometimes wants its next mouthful a couple of body lengths her way —
+walking the station gait, head down at the end. Stations untouched (the fifth attempt's
+fault), steps untouched (the sixth's), station discipline asked first, dinner first always.
+
+### The readings — 180-second arms, ON/off/ON in one boot, Kenya
+
+    arm   travel                march/s   reach   mothers   feed   pass ms
+    ON    44.9 u — 1.84 radii    0.49      1.09     0.83     0.66   0.172
+    off   19.1 u — 0.84 radii    0         1.05     0.71     0.68   0.170
+    ON    27.7 u — 1.16 radii    0.41      1.11     0.76     0.69   0.169
+
+**Both ON arms above the off arm — the bracketing standard every earlier attempt failed**
+(the sixth had both off-arms above every on-reading; the seventh's off sat between its
+ons). A fourth, independent ON arm from a separate boot (cut off by its timeout after one
+arm) read 2.50 radii, the same way. And the guards are flat across arms: reach 1.05–1.11,
+the mothers 0.71–0.83 — inside, the young-at-centre rule untouched — feed 0.66–0.69, the
+herd pass 0.169–0.172 ms, graze failures 0 everywhere.
+
+### What is claimed, and what is not
+
+**Claimed: with the matriarch's lean on, the herds of one land travelled 1.4–2.2× the
+distance they travelled with it off, in one boot, with nothing else measurably moved** —
+and a third reading from another boot agrees. NOT claimed: the margin (1.16 against 1.84
+between the two ON arms says it varies), any effect on herd SIZE, or anything about a land
+not measured. Tanzania and the other herd lands are the natural confirmation, and tests
+50 and 53 stand permanent watch — test 53 now shows the march lever beside the levers it
+was built to expose, and its long-standing lament ("the window is too short for the rule
+to act in") is precisely what this round's arms answered.
+
+Guard tests 35 (the watch) and 53 (the levers, the cost) run green with the march on.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
