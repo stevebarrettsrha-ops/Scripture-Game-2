@@ -5003,6 +5003,64 @@ T[63]={name:'the land sees the spear: a penned beast costs your name, the wolf p
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
+T[64]={name:'the ask of the villages: one soul wants a far ware, the errand outpays the stall, and it is answered once',
+  /* §5.4 (Round 97). Every village's asker (its vendor, else its first
+     grown soul — stable, because a village rebuilds the same people in
+     the same order) asks for the ware whose home lies FARTHEST from this
+     land, and pays above the market's own far-price curve, so the errand
+     always beats selling the same ware at the same stall. This drives the
+     REAL speakTo: the ask comes first with its verse on the line, a
+     carried answer changes hands in the speaking with its own verse, and
+     an answered errand stays answered. And because 83 of the 177 lands
+     have no ware home even 0.35 away, every landed country is asked for
+     SOMETHING — the farthest, not a threshold. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    if(!D.questOf||!D.speakTo) return {pending:'no errands in this build'};
+    const v=await D.standInVillage();
+    if(!v) return {pending:'no village could be stood in'};
+    let vi=-1,vv=null;
+    for(const [i,V] of D.activeVillages()){ if(!V.none&&V.people&&V.people.length){ vi=i; vv=V; break; } }
+    if(vi<0) return {pending:'no village people about'};
+    const faults=[];
+    const repB=JSON.stringify(D.state.rep||{}), coinsB=D.state.coins, cargoB=JSON.stringify(D.state.cargo||{});
+    /* every landed country is asked for something */
+    let asked=0,sited=0;
+    for(let i=0;i<D.COUNTRIES.length;i++){ if(!D.SITES[i]) continue; sited++;
+      if(D.questOf(i)) asked++; }
+    if(asked!==sited) faults.push('only '+asked+' of '+sited+' landed countries have an errand');
+    const q=D.questOf(vi);
+    if(!q){ faults.push('this village asks for nothing'); }
+    else{
+      if(q.reward<=D.wareSellPrice(q.wi,vi)) faults.push('the errand pays '+q.reward+' against the stall’s '+D.wareSellPrice(q.wi,vi)+' — no reason to answer it');
+      const asker=D.askerOf(vv);
+      if(!asker) faults.push('no soul to ask');
+      else{
+        D.state.rep={}; D.state.cargo={}; D.state.coins=100; D.QUEST_DONE.delete(vi);
+        asker.talk=null;
+        D.speakTo(asker);
+        const vr=document.getElementById('verse-r');
+        if(!vr||vr.textContent!=='MISHLĔ 25:25') faults.push('the ask came without its verse — the line reads "'+(vr?vr.textContent:'')+'"');
+        /* the answer, carried and handed over in the speaking */
+        D.state.cargo[q.w.k]=1; const c0=D.state.coins;
+        D.speakTo(asker);
+        if(D.state.coins!==c0+q.reward) faults.push('the errand paid '+(D.state.coins-c0)+' — promised '+q.reward);
+        if((D.state.cargo[q.w.k]||0)!==0) faults.push('the ware never left the hold');
+        if((D.state.rep[vi]||0)!==5) faults.push('the name moved to '+(D.state.rep[vi]||0)+' — wanted +5');
+        if(!D.QUEST_DONE.has(vi)) faults.push('the errand is not written down as answered');
+        if(vr.textContent!=='MISHLĔ 18:16') faults.push('the answering came without its verse — "'+vr.textContent+'"');
+        /* answered once: a second armful is not bought twice */
+        D.state.cargo[q.w.k]=1; const c1=D.state.coins;
+        if(D.questDeliver(D.questOf(vi))!==false||D.state.coins!==c1) faults.push('an answered errand paid again');
+      } }
+    D.state.rep=JSON.parse(repB); D.state.coins=coinsB; D.state.cargo=JSON.parse(cargoB);
+    D.QUEST_DONE.delete(vi); D.refreshHoldCargo();
+    return {ok:!faults.length,
+      got:(q?('asks for '+q.w.n+' from '+q.from+' · pays '+q.reward+' against the stall’s '+D.wareSellPrice(q.wi,vi)):'no ask')+
+        ' · '+asked+' of '+sited+' landed countries ask · answered once, +5 on the name, both verses on the line'+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

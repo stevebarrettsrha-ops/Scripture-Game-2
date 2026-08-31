@@ -11896,6 +11896,57 @@ function wareSellPrice(wi,profile){
 /* what a ware costs at its home market — the flat base, marked up only
    against a soured name (§5.3) */
 function wareBuyPrice(wi,profile){ return Math.round(WARES[wi].base*repPenalty(profile)); }
+/* ---- THE ASK OF THE VILLAGES (§5.4, Round 97) ----
+   "Like cold water to a parched throat, Is the besorah from a distant
+   land" — MISHLĔ 25:25. In every village ONE soul (the vendor where the
+   village keeps one, else its first grown villager — a stable choice,
+   because a village rebuilds the same people in the same order) asks for
+   the ware whose home lies FARTHEST from this land. Not "farther than a
+   threshold": measured first, 83 of the 177 lands have no ware home even
+   0.35 away — the wares cluster in the Old World — so a threshold would
+   leave half the earth with nothing to ask. The farthest ware always
+   exists, and the reward rides the same distance curve the market's
+   prices do, set ABOVE it (1.5 against the market's 0.7 floor), so an
+   answered errand always beats selling the same ware at the same stall.
+   One errand a village, answered once a voyage, +5 on the name — and the
+   asking and the answering each carry their true verse. */
+const QUEST_DONE=new Set();          /* village indices answered — saved in the log */
+function questOf(vi){
+  if(!WARES.length||!COUNTRIES[vi]) return null;
+  let wi=-1,best=-1;
+  for(let i=0;i<WARES.length;i++){ const d=wareDistFrom(i,vi);
+    if(d>best){ best=d; wi=i; } }
+  if(wi<0||best<=0) return null;
+  const w=WARES[wi], c=COUNTRIES[vi].c;
+  let from='a far land', hd=1e9;
+  for(const hi of wareHomes(wi)){ const h=COUNTRIES[hi].c,
+      d2=Math.hypot(c[0]-h[0],c[1]-h[1]);
+    if(d2<hd){ hd=d2; from=COUNTRIES[hi].n; } }
+  return {vi,w,wi,from,reward:Math.round(w.base*(1.5+2.6*Math.min(1,best/0.8)))};
+}
+function askerOf(vv){
+  if(!vv.people) return null;
+  for(const e of vv.people) if(e.role==='vendor') return e;
+  for(const e of vv.people) if(!e.child) return e;
+  return null;
+}
+/* the errand this person carries, if they are their village's asker and it
+   stands unanswered — else null */
+function questAt(p){
+  for(const[vi,vv] of activeVillages){ if(vv.none||!vv.people) continue;
+    if(vv.people.indexOf(p)<0) continue;
+    if(QUEST_DONE.has(vi)||askerOf(vv)!==p) return null;
+    return questOf(vi); }
+  return null;
+}
+function questDeliver(q){
+  if(!q||QUEST_DONE.has(q.vi)||(state.cargo[q.w.k]||0)<1) return false;
+  state.cargo[q.w.k]--; if(!state.cargo[q.w.k]) delete state.cargo[q.w.k];
+  state.coins+=q.reward; QUEST_DONE.add(q.vi); deedRep(q.vi,5);
+  refreshHoldCargo(); saveState();
+  toast('You lay the '+q.w.n+' in waiting hands — '+q.reward+' shekels, and your name rises in this land. “A man’s gift makes room for him, And brings him before great men.”','MISHLĔ 18:16');
+  return true;
+}
 /* ---- THE HARBOUR-MASTER'S DUE (the port fee, §5.2) ----
    A land market takes a small due, ONCE a trading session, on the first
    goods-or-wares transaction — not on a fisher selling his own catch, which
@@ -12169,6 +12220,18 @@ function speakTo(p){ if(!p) return;
   const now=performance.now()*0.001;
   if(!p.talk||now-p.talk.t>25) p.talk={idx:0,t:now};
   p.talk.t=now;
+  /* the ask of the village (§5.4): its asker puts the errand before all
+     other talk, and a traveller carrying the answer is answered on the
+     spot — the goods change hands in the speaking */
+  const q=questAt(p);
+  if(q){
+    p.m.rotation.y=Math.atan2(state.walk.x-p.m.position.x,state.walk.z-p.m.position.z);
+    p.pt=Math.max(p.pt||0,3.5); p.tx=p.m.position.x; p.tz=p.m.position.z;
+    if((state.cargo[q.w.k]||0)>0){ questDeliver(q); return; }
+    if(p.talk.idx===0){ p.talk.idx++;
+      toast((p.name?p.name+' the '+callingOf(p)+' — ':'')+'“Bring me '+q.w.n+' from '+q.from+
+        ', and '+q.reward+' shekels are yours on your return.” · Like cold water to a parched throat, Is the besorah from a distant land.','MISHLĔ 25:25');
+      return; } }
   let line;
   if(p.talk.idx<lines.length) line=lines[p.talk.idx];
   else if(p.talk.idx===lines.length&&!p.child) line=rumourLine();
@@ -15468,7 +15531,7 @@ async function saveState(){
        given. The satchel is written slot by slot — the ORDER is his, he
        arranged it, and a save that re-sorted his belt would be a save that
        rearranged his hands. */
-    sa:SATCHEL.map(sl=>sl?[sl.id,sl.n]:0), sp:[...SPOKEN]});
+    sa:SATCHEL.map(sl=>sl?[sl.id,sl.n]:0), sp:[...SPOKEN], qd:[...QUEST_DONE]});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
 }
@@ -16102,7 +16165,7 @@ async function begin(fresh,roam){
   Object.assign(state.boat,{heading:Math.PI*0.9,speed:0});
   state.camYaw=0; state.camPitch=0.42; state.camYawVel=0; state.camPitchVel=0;
   camClear=1; camFloor=-1e9;
-  scrollTaken.clear(); pearlTaken.clear(); wreckLooted.clear();
+  scrollTaken.clear(); pearlTaken.clear(); wreckLooted.clear(); QUEST_DONE.clear();
   GUIDE.mode='scroll';
   if(window.SEASON&&SEASON.clear) SEASON.clear();
 
@@ -16133,7 +16196,9 @@ async function begin(fresh,roam){
        the block table is read by ID for exactly this reason. */
     if(saved.sa) for(let i=0;i<SATCHEL_N&&i<saved.sa.length;i++){ const e=saved.sa[i];
       SATCHEL[i]=(e&&BLOCK_BY_ID[e[0]]&&e[1]>0)?{id:e[0],n:Math.min(STACK,e[1])}:null; }
-    if(saved.sp) for(const k of saved.sp) SPOKEN.add(k); }
+    if(saved.sp) for(const k of saved.sp) SPOKEN.add(k);
+    /* the errands already answered, by village index (§5.4) */
+    if(saved.qd) for(const k of saved.qd) QUEST_DONE.add(+k); }
   else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5; }
   /* the hold shows what the log says it carries — including the NOTHING a
      fresh voyage carries, washing out any lading of a voyage played before */
@@ -16356,6 +16421,8 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      and asks the REAL spearHit, deeds and all */
   spearAt:(x,y,z)=>{ spear.x=x; spear.y=y; spear.z=z; return spearHit(); },
   repPenalty, goodBuyPrice, goodSellPrice, wareBuyPrice,
+  /* the ask of the villages (§5.4) — the same doors the spoken word uses */
+  questOf, questAt, questDeliver, askerOf, speakTo, QUEST_DONE,
   holdLading:()=>{ if(!holdCargoG) return null;
     return {units:(holdCargoG.userData.lading||[]).slice(), meshes:holdCargoG.children.length}; },
   /* the light in the corners, and the count of standing chunks — tools/acceptance.js */

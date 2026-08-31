@@ -8674,6 +8674,46 @@ on a later visit, and a test that kills a beast and hides the death would be
 testing nothing. The suite after the round: 59 pass, 0 fail, 4
 reporter-pendings, no page errors.
 
+## 4cv. Round 97 — the ask of the villages: an errand to a named far land ✅ (§5.4)
+
+*The fourth of §5's recommendations: "a villager asks for a good from a named
+far land; deliver for a reward and a verse." The wares of Round 95 made the
+good and the far land real things; this round makes somebody WANT one.*
+
+**The ask.** In every village ONE soul asks — its vendor where the village
+keeps one, else its first grown villager, a stable choice because a village
+rebuilds the same people in the same order. What they ask for is the ware
+whose home lies FARTHEST from their own land, and the naming is true: the ask
+names the ware's nearest home country ("Bring me Silver of Tarshish from
+Spain..."). NOT "a ware farther than a threshold": that was measured first,
+and 83 of the 177 lands have no ware home even 0.35 away — the wares cluster
+in the Old World, and a threshold would leave half the earth with nothing to
+ask. The farthest ware always exists; test 64 counts 176 of 176 landed
+countries asking.
+
+**The errand pays like an errand.** The reward rides the same distance curve
+the market's own far-prices do, set above it — 1.5 against the market's 0.7
+floor — so answering always beats selling the same ware at the same stall
+(Yasharal: 87 against the stall's 55). Answering also pays +5 on the name in
+that land (the §5.3 ledger), and each errand is answered ONCE a voyage,
+written in the log (`qd`) beside the scrolls and the wrecks, washed by a new
+beginning like everything else.
+
+**In the speaking, with its verses.** The ask comes before all the asker's
+other talk, and carries its verse on the line: MISHLĔ 25:25 — "Like cold
+water to a parched throat, Is the besorah from a distant land." A traveller
+carrying the answer is answered on the spot — the goods change hands in the
+speaking, no second button — under MISHLĔ 18:16: "A man's gift makes room for
+him, And brings him before great men." Both texts emitted by the extractor,
+to the letter.
+
+**The readings.** Test 64 drives the real speakTo: the ask came with its verse
+on the line, the carried ware changed hands for exactly the promised 87, the
+name rose +5, the errand stood written as answered and a second armful was
+refused. Proved by injection twice: the reward curve dropped under the stall
+(named with both prices) and the answered-errand record removed (paid again,
+and named twice for it).
+
 ## 5. Further recommendations (future work)
 
 1. ~~**Cargo physically visible in the hold** — stack crates as the manifest fills.~~
@@ -8687,7 +8727,10 @@ reporter-pendings, no page errors.
    prices turn against you; drive off a wolf and they improve.~~
    **PAID, Round 96 (§4cu):** deeds move the one ledger (-50..50) through the real
    spearHit; below zero the vendor buys dearer and sells meaner to 1.4×; test 63.
-4. **Deeper quests** — a villager asks for a good from a named far land; deliver for a
-   reward and a verse.
+4. ~~**Deeper quests** — a villager asks for a good from a named far land; deliver for a
+   reward and a verse.~~
+   **PAID, Round 97 (§4cv):** every landed country's asker wants its farthest-homed
+   ware by its home's name; the errand outpays the stall by design, +5 on the name,
+   answered once a voyage, both verses on the line; test 64.
 5. **Small-island real data** (50 m coastlines) if charted, nameable islands are wanted
    to complement the uncharted ones.
