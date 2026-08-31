@@ -8530,9 +8530,61 @@ capture honestly carries the city's own street beneath the rubble (8 cells of pa
 planks) — the wall fell into the edge of the town, and a capture reads the world as it
 stands, which is the only rule a capture tool may have.
 
+## 4cs. Round 94 — the hold tells the manifest's truth: cargo you can walk among ✅ (§5.1)
+
+*The first of §5's recommendations, taken in order. The hold had sailed full of
+painted cargo since Round 4 — rows of barrels, crates and sacks emitted once at
+the launch, standing there whatever the traveller had bought or sold. That is
+the same lie this audit kept killing on land: a world that says one thing while
+the state keeps another.*
+
+**What stands now.** Each of the manifest's 24 units is a thing in a berth: the
+hold's ten middle rows (two berths a row, at |x|=4.6 in the hull's own frame,
+against a walking aisle of 2.9) take twenty units on the ground tier, and units
+twenty-one to twenty-four stack a SECOND TIER on the aftmost four — a hold near
+full is stacked high, the way a hold near full is. Each good keeps its shape:
+grain in hay sacks, salt in WHITE sacks, oil and wine in barrels (the wine's
+staves dark-stained), cedar in squared baulks, cloth, spices and purple dye in
+crates, the dye's crates purple-tinted for what leaked into the wood. Berth
+order is fixed — GOODS order, aft to fore, starboard then port — so the same
+manifest always stows the same way. The two END rows keep the boxes they always
+had: a ship carries her own water and provisions whoever is trading.
+
+**Where it hangs, and why there.** The lading is its own group on `boatG`, NOT
+on `hullG` — the merchantmen clone `hullG` for their hulls, and the traveller's
+purchases must not appear in another ship's hold. The merchantmen instead get
+their own full lading through the same builder (`ladeHold`), hashed by ship's
+number — a trader sails laden, the same lading every voyage, so the horizon
+lost nothing when the scenery came out. `refreshHoldCargo()` is the one door:
+the market's buy and sell go through it, the flotsam salvage goes through it,
+and the voyage's beginning goes through it (AFTER the log is read back, so a
+continued voyage shows its cargo and a fresh one shows its nothing).
+
+**The readings.** Test 61 asks the LIVE group, not the manifest: empty shows 0
+vertices of cargo; a 15-unit part-load shows exactly its kinds (6 grain, 4
+wine, 3 cedar, 2 dye) and tops out at 2.9 — no second tier below twenty-one
+units; a full 24 stacks to 4.1 and the nearest box stands at |x| 3.45 against
+the aisle's 2.90 — nothing in the walkway, nothing beyond the hold's ends.
+Proved by injection twice: a refresh made to drop one unit per good was named
+good-by-good (part 11/15, full 18/24, and the missing tier), and a berth bent
+into the aisle at x=2.0 was caught by the vertex scan (|x| 1.05 against 2.90).
+Screenshots at the same vantage — empty, part, full, and the BASE TREE beside
+them — show the berths bare, filling in kind, and a full hold carrying the same
+bulk the old scenery had.
+
+**An honest finding left standing:** from inside the hold, a thin far-off blue
+can flash at the frame's edge on some swells — the whole-earth carpet's sea
+seen through the bow framing. It shows ON THE BASE TREE at the same vantage
+(base-hold-3), so it is not this round's doing; it is written down here rather
+than fixed because the hold's own sea-hiding (`sea.visible=!inHold`, Round 4h)
+covers the near sea and the far carpet is another organ. A round that touches
+the carpet may take it.
+
 ## 5. Further recommendations (future work)
 
-1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
+1. ~~**Cargo physically visible in the hold** — stack crates as the manifest fills.~~
+   **PAID, Round 94 (§4cs):** every manifest unit a thing in a berth, in kind, second
+   tier past twenty units; merchantmen sail laden through the same builder; test 61.
 2. **Port fees and rare goods** — one land-exclusive good per region for long routes.
 3. **Reputation with villages** — spear a village's penned beast and the vendor's
    prices turn against you; drive off a wolf and they improve.

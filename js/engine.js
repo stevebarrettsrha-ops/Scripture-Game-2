@@ -5376,13 +5376,19 @@ const hullG=new THREE.Group(); hullG.scale.set(SHIP_SX,SHIP_S,SHIP_S); boatG.add
     emitBox(G, s*5.9-0.55,DECK_Y, 6.5, s*5.9+0.55,DECK_Y+0.9,15,'benchSide','benchTop',null);
   }
   /* ---- THE CARGO HOLD, below the waist deck: plank floor, ribs, a ladder
-          at the hatch, and rows of barrels, crates and grain-sacks ---- */
+          at the hatch — and the SHIP'S OWN STORES at her two ends. The ten
+          middle rows are TRADE BERTHS now (§5.1, Round 94): they stood full
+          of scenery whatever the manifest said, and the manifest is the
+          truth, so refreshHoldCargo() below fills them from state.cargo and
+          from nothing else. The end rows keep the boxes they always had —
+          a ship carries her own water and provisions whoever is trading. */
   faceTop(G,'planks', -6.4,-20.5, 6.4,23.6, 0.5, 0.85);          // the hold floor
   for(const rz of [-16,-8,0,8,16]){                              // hull ribs
     emitBox(G,-6.9,0.5,rz-0.4, -6.3,6.2,rz+0.4,'logSide','logSide',null);
     emitBox(G, 6.3,0.5,rz-0.4,  6.9,6.2,rz+0.4,'logSide','logSide',null); }
   { let n=0;
     for(let z=-17; z<=21; z+=3.4){ n++;
+      if(n>1&&n<12) continue;                       /* the middle rows are the berths */
       for(const s of [1,-1]){ const x=s*4.6, kind=(n+(s>0?0:1))%3;
         if(kind===0){ emitBox(G,x-0.95,0.5,z-0.95, x+0.95,2.9,z+0.95,'logSide','logTop',null);       /* barrel */
           if(n%2) emitBox(G,x-0.8,2.9,z-0.8, x+0.8,4.9,z+0.8,'logSide','logTop',null); }
@@ -5472,6 +5478,65 @@ function besideShip(x,z,out){
 function holdAllowed(lx,lz){
   return Math.abs(lx)<HOLD.halfX && lz>HOLD.z0 && lz<HOLD.z1;
 }
+/* ---- THE HOLD TELLS THE MANIFEST'S TRUTH (§5.1, Round 94) ----
+   The hold used to sail full of painted cargo whatever the traveller had
+   bought: rows of barrels stood there from the launch, empty-handed or
+   laden alike, which is the same lie the audit kept killing on land — a
+   world that says one thing while the state keeps another. Now each of the
+   manifest's 24 units is A THING IN A BERTH: ten rows of two along the
+   wings (outside the walking aisle — every berth lies at |x|=4.6 against
+   the aisle's 2.9), and the last four units stack a SECOND TIER on the
+   aftmost four, so a hold near full is stacked high the way a hold near
+   full is. Each good keeps its own shape: grain in sacks, salt in white
+   sacks, oil and wine in barrels (wine dark-stained), cedar in squared
+   baulks, cloth, spices and purple dye in crates — the dye's crates
+   purple-tinted, for what leaked into the wood. Berth order is fixed
+   (GOODS order, aft to fore, starboard then port), so the same manifest
+   always stows the same way. */
+const HOLD_BERTHS=[];
+for(let r=1;r<=10;r++){ const z=-17+r*3.4;
+  for(const s of [1,-1]) HOLD_BERTHS.push({x:s*4.6,z}); }
+const LADE={
+  grain:{w:2.0,h:1.4,d:2.0,side:'haySide',top:'hayTop'},
+  salt: {w:2.0,h:1.4,d:2.0,side:'snow',   top:'snow'},
+  oil:  {w:1.9,h:2.4,d:1.9,side:'logSide',top:'logTop'},
+  wine: {w:1.9,h:2.4,d:1.9,side:'logSide',top:'logTop',tint:[0.72,0.5,0.55]},
+  cedar:{w:1.6,h:1.6,d:3.0,side:'logSide',top:'logTop',tint:[1.0,0.82,0.7]},
+  cloth:{w:2.3,h:2.2,d:2.3,side:'planks', top:'benchTop'},
+  spice:{w:2.3,h:2.2,d:2.3,side:'planks', top:'benchTop',tint:[1.0,0.82,0.55]},
+  dye:  {w:2.3,h:2.2,d:2.3,side:'planks', top:'benchTop',tint:[0.72,0.55,0.95]}};
+function ladeHold(group,units){
+  const G={}, tops=[];
+  for(let i=0;i<units.length&&i<HOLD_BERTHS.length+4;i++){
+    const L=LADE[units[i]]||LADE.cloth; let bx,bz,y0;
+    if(i<HOLD_BERTHS.length){ const b=HOLD_BERTHS[i]; bx=b.x; bz=b.z; y0=0.5; tops[i]=y0+L.h; }
+    else { const b=HOLD_BERTHS[i-HOLD_BERTHS.length]; bx=b.x; bz=b.z;
+      y0=tops[i-HOLD_BERTHS.length]||0.5; }             /* the second tier rides the first */
+    emitBox(G,bx-L.w/2,y0,bz-L.d/2, bx+L.w/2,y0+L.h,bz+L.d/2, L.side,L.top,null,L.tint||null);
+  }
+  for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
+    bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
+    bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
+    bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
+    bg.setIndex(gg.i); group.add(new THREE.Mesh(bg,MAT[mat])); }
+  group.userData.lading=units.slice(0,HOLD_BERTHS.length+4);
+}
+/* the traveller's own lading — rebuilt whenever the manifest changes. It
+   hangs on boatG, NOT on hullG: the merchantmen clone hullG for their own
+   hulls, and the traveller's purchases must not appear in another ship's
+   hold. Geometry is disposed on each rebuild; the MATerials are shared and
+   are nobody's to dispose. */
+let holdCargoG=null;
+function refreshHoldCargo(){
+  if(holdCargoG){ boatG.remove(holdCargoG);
+    holdCargoG.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); }
+  holdCargoG=new THREE.Group(); holdCargoG.scale.set(SHIP_SX,SHIP_S,SHIP_S);
+  const units=[];
+  for(const g of GOODS){ let n=state.cargo[g.k]||0;
+    while(n-->0&&units.length<CARGO_MAX) units.push(g.k); }
+  ladeHold(holdCargoG,units);
+  boatG.add(holdCargoG);
+}
 /* ================= THE CREW =================
    Six sailors keep the deck alive: a lookout at the bow shading his eyes,
    a mate by the helm, and hands who walk the waist and haul on the lines. */
@@ -5520,6 +5585,13 @@ const TRADERS=[];
 function initTraders(){ if(TRADERS.length) return;
   for(let k=0;k<2;k++){ const g=new THREE.Group();
     const sc=0.62, h=hullG.clone(); h.scale.set(SHIP_SX*sc,SHIP_S*sc,SHIP_S*sc); g.add(h);
+    /* a merchantman sails LADEN — her berths filled with her own wares, not
+       the traveller's (his lading hangs on boatG and is not cloned). The
+       mix is hashed by her number, the same lading every voyage. */
+    { const lade=new THREE.Group(); lade.scale.set(SHIP_SX*sc,SHIP_S*sc,SHIP_S*sc);
+      const tu=[]; for(let i=0;i<CARGO_MAX;i++)
+        tu.push(GOODS[Math.floor(hash2(k*7.1+i*3.3,i*1.7-k*2.9)*GOODS.length)%GOODS.length].k);
+      ladeHold(lade,tu); g.add(lade); }
     /* ---- NO GHOST SHIPS, AND NO SHIP SAILING HERSELF ----
        A living crew works her deck: a watch at the bow, hands in the waist —
        and A MAN AT THE WHEEL. The master used to stand off to one side of the
@@ -11803,7 +11875,8 @@ $('trade-rows').addEventListener('click',e=>{
     if(a==='b'){ const buy=tradeSea?Math.round(p*1.15):p;
       if(state.coins>=buy&&cargoCount()<CARGO_MAX){ state.coins-=buy; state.cargo[g.k]=(state.cargo[g.k]||0)+1; } }
     else { const sell=Math.max(1,tradeSea?Math.round(p*0.75):Math.round(p*0.85));
-      if((state.cargo[g.k]||0)>0){ state.cargo[g.k]--; if(!state.cargo[g.k]) delete state.cargo[g.k]; state.coins+=sell; } } }
+      if((state.cargo[g.k]||0)>0){ state.cargo[g.k]--; if(!state.cargo[g.k]) delete state.cargo[g.k]; state.coins+=sell; } }
+    refreshHoldCargo(); }               /* the hold restows as the manifest moves */
   renderTrade();
 });
 $('trade-close').addEventListener('click',closeTrade);
@@ -15705,6 +15778,7 @@ function encounterAct(){
     const take=Math.min(1+Math.floor(Math.random()*3),CARGO_MAX-cargoCount());
     if(take<=0){ toast('The hold is full to the beams — no room for salvage.'); return; }
     state.cargo[good.k]=(state.cargo[good.k]||0)+take;
+    refreshHoldCargo();                 /* salvage goes below like anything bought */
     toast('You haul the flotsam aboard — '+take+' '+good.n.toLowerCase()+' saved from the sea. Cargo: '+cargoCount()+' / '+CARGO_MAX+'.');
   } else if(e.kind==='bottle'){
     const wd=BOTTLE_WORDS[Math.floor(Math.random()*BOTTLE_WORDS.length)];
@@ -15919,6 +15993,9 @@ async function begin(fresh,roam){
       SATCHEL[i]=(e&&BLOCK_BY_ID[e[0]]&&e[1]>0)?{id:e[0],n:Math.min(STACK,e[1])}:null; }
     if(saved.sp) for(const k of saved.sp) SPOKEN.add(k); }
   else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5; }
+  /* the hold shows what the log says it carries — including the NOTHING a
+     fresh voyage carries, washing out any lading of a voyage played before */
+  refreshHoldCargo();
   /* a NEW beginning takes the manner it was chosen with; a continued one
      keeps whatever manner it was begun in, out of the log */
   if(fresh) state.freeroam=!!roam;
@@ -16125,6 +16202,12 @@ if(!window.__HOST_BOOT){
 
 /* a small debug handle — used by the automated smoke tests; harmless in play */
 window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
+  /* the hold's lading — what actually STANDS in the berths (read off the
+     live group, not off the manifest, so a test catches the two disagreeing).
+     refreshHoldCargo is the same door the trade and the salvage use. */
+  refreshHoldCargo, HOLD, HOLD_BERTHS, CARGO_MAX, SHIP_SX, _holdCargoG:()=>holdCargoG,
+  holdLading:()=>{ if(!holdCargoG) return null;
+    return {units:(holdCargoG.userData.lading||[]).slice(), meshes:holdCargoG.children.length}; },
   /* the light in the corners, and the count of standing chunks — tools/acceptance.js */
   aoLevel,aoTop,chunkCount:()=>chunks.size,bodyLenOf,
   /* the remesh queue's depth and the lifetime remesh count — read-only. At

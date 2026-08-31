@@ -4809,6 +4809,61 @@ T[60]={name:'a fall with no way out keeps a BOUNDED basin — the far falls answ
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
+T[61]={name:'the hold shows the manifest: berths fill and empty with the cargo, stack past twenty, and stand clear of the aisle',
+  /* §5.1 (Round 94). The hold used to sail full of painted cargo whatever
+     the traveller carried. Now each manifest unit is a thing in a berth,
+     and this test asks the LIVE GROUP, not the manifest, whether the two
+     agree — an empty hold shows nothing, a part-load shows exactly its
+     kinds, a full load stacks a second tier, and no box ever stands in
+     the walking aisle (min vertex |x| against HOLD.halfX, in the hull's
+     own frame). The manifest is put back as it was found. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    if(!D.refreshHoldCargo||!D.holdLading) return {pending:'no lading probe in this build'};
+    const before=JSON.stringify(D.state.cargo||{});
+    const faults=[];
+    const count=m=>{ let n=0; for(const k in m) n+=m[k]; return n; };
+    const geomScan=()=>{ /* the lading's vertices, straight off the meshes */
+      let top=-1e9,minAX=1e9,z0=1e9,z1=-1e9,verts=0;
+      const g=D._holdCargoG&&D._holdCargoG();
+      if(!g) return null;
+      for(const m of g.children){ const P=m.geometry.getAttribute('position');
+        for(let i=0;i<P.count;i++){ const x=P.getX(i),y=P.getY(i),z=P.getZ(i);
+          top=Math.max(top,y); minAX=Math.min(minAX,Math.abs(x));
+          z0=Math.min(z0,z); z1=Math.max(z1,z); verts+=1; } }
+      return verts?{top,minAX,z0,z1,verts}:{top:0,minAX:1e9,z0:0,z1:0,verts:0}; };
+    const kindsOf=u=>{ const m={}; for(const k of u) m[k]=(m[k]||0)+1; return m; };
+    const tryLoad=(cargo,label)=>{
+      D.state.cargo=cargo; D.refreshHoldCargo();
+      const L=D.holdLading(), want=count(cargo), scan=geomScan();
+      if(!L) { faults.push(label+': no lading group at all'); return {L:null,scan:null}; }
+      if(L.units.length!==want) faults.push(label+': manifest holds '+want+' but '+L.units.length+' stand in the berths');
+      const km=kindsOf(L.units);
+      for(const k in cargo) if((km[k]||0)!==cargo[k]) faults.push(label+': '+k+' — '+cargo[k]+' in the manifest, '+(km[k]||0)+' in the hold');
+      return {L,scan}; };
+    /* 1 · nothing carried, nothing shown */
+    const e=tryLoad({},'empty');
+    if(e.scan&&e.scan.verts) faults.push('empty: '+e.scan.verts+' vertices of cargo stand in an empty hold');
+    /* 2 · a part-load shows its kinds and stays on the ground tier */
+    const p=tryLoad({grain:6,wine:4,cedar:3,dye:2},'part');
+    if(p.scan&&p.scan.top>3.2) faults.push('part (15 units): lading tops '+p.scan.top.toFixed(1)+' — a second tier below twenty-one units');
+    /* 3 · a full hold stacks the second tier, and no box enters the aisle */
+    const f=tryLoad({grain:4,oil:4,wine:4,salt:4,cedar:4,dye:4},'full');
+    if(f.scan){
+      if(f.scan.top<3.5) faults.push('full (24 units): lading tops '+f.scan.top.toFixed(1)+' — no second tier stacked');
+      const aisle=D.HOLD.halfX/D.SHIP_SX;      /* hull-local half-width of the walkway */
+      if(f.scan.minAX<aisle+0.05) faults.push('full: a box stands within the aisle — |x| '+f.scan.minAX.toFixed(2)+' against '+aisle.toFixed(2));
+      if(f.scan.z0<D.HOLD.z0/D.SHIP_S||f.scan.z1>D.HOLD.z1/D.SHIP_S) faults.push('full: lading beyond the hold, z '+f.scan.z0.toFixed(1)+'..'+f.scan.z1.toFixed(1));
+    }
+    /* the manifest put back as it was found */
+    D.state.cargo=JSON.parse(before); D.refreshHoldCargo();
+    return {ok:!faults.length,
+      got:'empty 0 · part 15 (top '+(p.scan?p.scan.top.toFixed(1):'?')+') · full 24 (top '+
+        (f.scan?f.scan.top.toFixed(1):'?')+', nearest box |x| '+(f.scan?f.scan.minAX.toFixed(2):'?')+
+        ' vs aisle '+(D.HOLD.halfX/D.SHIP_SX).toFixed(2)+')'+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.
