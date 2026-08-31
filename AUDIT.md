@@ -8585,12 +8585,63 @@ than fixed because the hold's own sea-hiding (`sea.visible=!inHold`, Round 4h)
 covers the near sea and the far carpet is another organ. A round that touches
 the carpet may take it.
 
+## 4ct. Round 95 — the rare wares of the lands, and the harbour-master's due ✅ (§5.2)
+
+*The second of §5's recommendations. The common goods differ only in price;
+nothing anywhere was worth a LONG road. Yaḥazq'al 27 — Tyre's ledger, land by
+land — is the chapter of exactly this trade, and it priced the round.*
+
+**The wares.** `world/wares.js`, all data, seven goods of one region each, every
+one with its true verse (the extractor's --check reads 75 exact now, up from 68):
+Gold of Ophir (IYOḆ 28:16 — India, Sri Lanka, Oman, Yemen), Spices of Sheḇa
+(YAHAZQ'AL 27:22), Silver of Tarshish (27:12 — Spain, Portugal, Morocco), Wine
+of Ḥelbon (27:18 — Syria, Lebanon, Turkey), Fine linen of Mitsrayim (YASHAR
+55:8, quoted in contiguous part as the checker's own rule allows), Wheat of
+Minnith (YAHAZQ'AL 27:17 — Yahuḏah, Yasharal, Jordan), Ivory of the south
+(1 MALAḴIM 10:22 — the east African coast). The registrar is one line; the
+engine knows no ware and no country by name, the rule minerals/fauna/flora keep.
+
+**The pricing, measured before it was set.** A ware is bought only at its home
+markets, at its flat base — the land's ware at the land's worth, no haggling
+hash — and sold at any land market by HOW FAR that market stands from the
+ware's nearest home: `base × (0.7 + 2.6 × min(1, d/0.8))` in the map's own
+unit-circle space, where the measured homes put a neighbouring sea at ~0.1 and
+a true crossing at 0.4–0.85 (India→Brazil 0.755, Spain→Australia 0.842, max
+country-to-country 1.408). So selling at home LOSES three parts in ten, a
+short hop barely pays, and the far side of the earth pays 3.3× — against the
+common goods' best arbitrage of ~0.76×base, the long road is finally crowned.
+The merchantman at sea deals in none of them: a ware is of the LANDS. In the
+hold each ware declares its own berth-shape (Round 94's fields, read from the
+ware's file): gilded chests for Ophir, wool bales for the linen, pale baulks
+for the ivory, wine-dark barrels for Ḥelbon.
+
+**The harbour-master's due.** A land market takes 4 shekels ONCE a session, on
+the first goods-or-wares trade — never on the fisher selling his catch, which
+fed the early game before any of this existed and must not be taxed now; and a
+name HONOURED at the market (rep ≥ 40) is welcomed in free, which ties the
+reputation the fish built to the trade the fish paid for. The merchantman
+charges none: she is no port. The market's sub-line says the due before it is
+taken; every transaction now goes through one door (`doTrade`) and the buttons
+only press it.
+
+**The readings.** Test 62 drives the real doors (openTrade/doTrade): home sells
+at 34 of base 48 and the farthest market at 158 (3.3×), rising monotonically
+home→mid→far; a buy away from home and any ware at sea are refused; the due
+rode the first buy (base+4), not the second (base), never the fisher; the
+honoured name entered free; and the bought ware stood in the hold's berths.
+Proved by injection three times: a due that never cleared (second buy moved
+52), the home-only guard removed (a far market sold Ophir gold), and the road
+flattened to 1.1× (both price faults named).
+
 ## 5. Further recommendations (future work)
 
 1. ~~**Cargo physically visible in the hold** — stack crates as the manifest fills.~~
    **PAID, Round 94 (§4cs):** every manifest unit a thing in a berth, in kind, second
    tier past twenty units; merchantmen sail laden through the same builder; test 61.
-2. **Port fees and rare goods** — one land-exclusive good per region for long routes.
+2. ~~**Port fees and rare goods** — one land-exclusive good per region for long routes.~~
+   **PAID, Round 95 (§4ct):** seven wares of one region each in world/wares.js, every
+   verse extractor-exact; sold by the length of the road (3.3× at a true crossing);
+   the harbour-master's due once a session, the fisher never taxed; test 62.
 3. **Reputation with villages** — spear a village's penned beast and the vendor's
    prices turn against you; drive off a wolf and they improve.
 4. **Deeper quests** — a villager asks for a good from a named far land; deliver for a

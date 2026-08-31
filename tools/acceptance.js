@@ -4864,6 +4864,83 @@ T[61]={name:'the hold shows the manifest: berths fill and empty with the cargo, 
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
+T[62]={name:'the rare wares are of their lands, priced by the road, and the harbour-master takes his due once',
+  /* §5.2 (Round 95). world/wares.js declares goods of ONE region each; the
+     engine knows none by name. This drives the REAL doors — openTrade and
+     doTrade, the same the market's buttons press — and asks: a ware is
+     bought at home and refused away and at sea; selling at home loses and
+     the far side of the earth pays over two and a half times the base (the
+     long road is the worth); the port fee rides the FIRST goods-or-wares
+     trade of a land session and no other, never the fisher's catch, and an
+     honoured name is welcomed in free; and the bought ware stands in the
+     hold's berths like anything else. All state is put back. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    if(!D.WARES||!D.WARES.length||!D.doTrade) return {pending:'no wares in this build'};
+    const faults=[];
+    const before={coins:D.state.coins,cargo:JSON.stringify(D.state.cargo||{}),
+      fish:D.state.fish||0,rep:JSON.stringify(D.state.rep||{}),mode:D.state.mode};
+    const wi=0, w=D.WARES[wi];
+    /* the markets, from the world's own table: a home, and the farthest */
+    let home=-1, far=-1, mid=-1, sMax=-1, sMin=1e9;
+    for(let i=0;i<D.COUNTRIES.length;i++){
+      if(home<0&&D.wareIsHome(wi,i)) home=i;
+      const s=D.wareSellPrice(wi,i);
+      if(s>sMax){ sMax=s; far=i; } if(s<sMin) sMin=s; }
+    for(let i=0;i<D.COUNTRIES.length;i++){ const s=D.wareSellPrice(wi,i);
+      if(s>sMin+(sMax-sMin)*0.35&&s<sMin+(sMax-sMin)*0.65){ mid=i; break; } }
+    if(home<0){ faults.push(w.n+': no home market found in the whole world'); }
+    else{
+      const sHome=D.wareSellPrice(wi,home), sMid=mid>=0?D.wareSellPrice(wi,mid):null;
+      if(sHome>=w.base) faults.push('selling at home pays '+sHome+' against a base of '+w.base+' — no loss for no road');
+      if(sMax<w.base*2.5) faults.push('the farthest market pays only '+sMax+' against a base of '+w.base+' — the long road unpaid');
+      if(sMid!==null&&!(sHome<sMid&&sMid<sMax)) faults.push('the road does not rise: home '+sHome+' mid '+sMid+' far '+sMax);
+      /* a session at the home market: fee on the first trade, once */
+      D.state.coins=500; D.state.cargo={}; D.state.rep={}; D.state.fish=2; D.state.boat.speed=0;
+      D.openTrade(home,'T62 home',false);
+      if(!D.portFeeDue()) faults.push('a land session opened with no due owing');
+      let c0=D.state.coins;
+      if(!D.doTrade('f',0)) faults.push('the fisher was refused his own sale');
+      if(D.state.coins<=c0) faults.push('the catch sold for nothing');
+      if(!D.portFeeDue()) faults.push('the fisher paid the harbour-master — the catch must never be taxed');
+      c0=D.state.coins;
+      if(!D.doTrade('wb',wi)) faults.push('the ware was refused at its own home market');
+      if(D.state.coins!==c0-w.base-D.PORT_FEE) faults.push('first buy moved '+(c0-D.state.coins)+' — wanted base '+w.base+' + due '+D.PORT_FEE);
+      c0=D.state.coins;
+      D.doTrade('wb',wi);
+      if(D.state.coins!==c0-w.base) faults.push('second buy moved '+(c0-D.state.coins)+' — the due must ride ONCE');
+      if((D.state.cargo[w.k]||0)!==2) faults.push('two bought, '+(D.state.cargo[w.k]||0)+' in the manifest');
+      const lad=D.holdLading&&D.holdLading();
+      if(!lad||lad.units.indexOf(w.k)<0) faults.push('the bought ware stands nowhere in the hold');
+      D.closeTrade();
+      /* away from home: no buying; selling pays the road's price less the new session's due */
+      D.openTrade(far,'T62 far',false);
+      if(D.doTrade('wb',wi)) faults.push('a ware was SOLD to the traveller far from its home');
+      c0=D.state.coins;
+      if(!D.doTrade('ws',wi)) faults.push('the far market refused the carried ware');
+      if(D.state.coins!==c0+sMax-D.PORT_FEE) faults.push('far sale moved '+(D.state.coins-c0)+' — wanted '+sMax+' less the due '+D.PORT_FEE);
+      D.closeTrade();
+      /* at sea the merchantman deals in none of them */
+      D.openTrade(700,'T62 sea',true);
+      if(D.portFeeDue()) faults.push('the merchantman charged a port fee — she is no port');
+      if(D.doTrade('wb',wi)||D.doTrade('ws',wi)) faults.push('a ware changed hands at sea');
+      D.closeTrade();
+      /* an honoured name is welcomed in free */
+      D.state.rep={}; D.state.rep[home]=40;
+      D.openTrade(home,'T62 honoured',false);
+      if(D.portFeeDue()) faults.push('an honoured name was still charged the due');
+      D.closeTrade();
+    }
+    /* everything back as it was found */
+    D.state.coins=before.coins; D.state.cargo=JSON.parse(before.cargo);
+    D.state.fish=before.fish; D.state.rep=JSON.parse(before.rep);
+    D.refreshHoldCargo();
+    return {ok:!faults.length,
+      got:w.n+': home sells '+(home>=0?D.wareSellPrice(wi,home):'?')+' of base '+w.base+
+        ' · farthest '+sMax+' ('+(sMax/w.base).toFixed(1)+'×) · due '+D.PORT_FEE+' once a session, fisher free'+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

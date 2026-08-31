@@ -270,6 +270,9 @@ const FILES=[
   /* AND WHAT A MAN CAN MAKE OF THEM — the named works, each with its verse, */
   /* and one of them that refuses a material outright. Not a tech tree. */
   'world/works.js',
+  /* AND THE RARE WARES OF THE LANDS (§5.2) — a good of ONE region, bought */
+  /* at its own markets and worth the most at the far end of a long road. */
+  'world/wares.js',
   /* AND WHAT GROWS IN IT. The same shape: one line to a nation, naming the */
   /* trees, orchards, bushes, berries and herbs that land bears. */
   'world/flora.js',

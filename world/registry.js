@@ -29,7 +29,7 @@ window.EARTH={
   list:[], verseList:[], riverList:[], cityList:[], landmarkList:[],
   deepList:[], holeList:[], sceneList:[], scrollList:[], beastList:[],
   faunaList:[], floraList:[], cropList:[], mineralList:[], workList:[], blockList:[],
-  waterfallList:[], placeList:[],
+  waterfallList:[], placeList:[], wareList:[],
 
   country:function(c){this.list.push(c);},
   verses:function(v){this.verseList=v;},
@@ -85,5 +85,10 @@ window.EARTH={
      true height and breadth and the FORM it takes, in world/waterfalls.js.
      js/waterfall.js cuts the rock to those numbers and js/water.js runs the
      water down it; neither knows one fall from another by name. */
-  waterfall:function(w){this.waterfallList.push(w);}
+  waterfall:function(w){this.waterfallList.push(w);},
+  /* THE RARE WARES OF THE LANDS (§5.2) — a good sold in its OWN region's
+     markets and nowhere else, carried far for its worth: which lands sell
+     it, what it costs at home, and the shape it takes in the hold. One line
+     to a ware in world/wares.js; the engine knows none of them by name. */
+  ware:function(w){this.wareList.push(w);}
 };

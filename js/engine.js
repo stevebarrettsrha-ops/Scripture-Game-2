@@ -5505,10 +5505,20 @@ const LADE={
   cloth:{w:2.3,h:2.2,d:2.3,side:'planks', top:'benchTop'},
   spice:{w:2.3,h:2.2,d:2.3,side:'planks', top:'benchTop',tint:[1.0,0.82,0.55]},
   dye:  {w:2.3,h:2.2,d:2.3,side:'planks', top:'benchTop',tint:[0.72,0.55,0.95]}};
+/* the shape a manifest key takes in a berth: the common goods from the LADE
+   table above, a rare ware from its own declaration (world/wares.js), and
+   anything unknown — a key from a save this build no longer sells — as a
+   plain crate rather than a hole in the rows */
+function ladeOf(k){
+  if(LADE[k]) return LADE[k];
+  const W=(window.EARTH&&EARTH.wareList)||[];
+  for(const w of W) if(w.k===k&&w.lade) return w.lade;
+  return LADE.cloth;
+}
 function ladeHold(group,units){
   const G={}, tops=[];
   for(let i=0;i<units.length&&i<HOLD_BERTHS.length+4;i++){
-    const L=LADE[units[i]]||LADE.cloth; let bx,bz,y0;
+    const L=ladeOf(units[i]); let bx,bz,y0;
     if(i<HOLD_BERTHS.length){ const b=HOLD_BERTHS[i]; bx=b.x; bz=b.z; y0=0.5; tops[i]=y0+L.h; }
     else { const b=HOLD_BERTHS[i-HOLD_BERTHS.length]; bx=b.x; bz=b.z;
       y0=tops[i-HOLD_BERTHS.length]||0.5; }             /* the second tier rides the first */
@@ -5534,6 +5544,8 @@ function refreshHoldCargo(){
   const units=[];
   for(const g of GOODS){ let n=state.cargo[g.k]||0;
     while(n-->0&&units.length<CARGO_MAX) units.push(g.k); }
+  for(const w of ((window.EARTH&&EARTH.wareList)||[])){ let n=state.cargo[w.k]||0;
+    while(n-->0&&units.length<CARGO_MAX) units.push(w.k); }
   ladeHold(holdCargoG,units);
   boatG.add(holdCargoG);
 }
@@ -11824,9 +11836,59 @@ function addRep(profile,n){ if(tradeSea) return; state.rep=state.rep||{};
   for(const[t2,msg] of tiers){ if(before<t2&&after>=t2){ toast(msg); break; } } }
 function fishSellPrice(){ return Math.max(2,Math.round(fishPriceAt(tradeProfile)*(tradeSea?1:repMult(tradeProfile)))); }
 function pearlSellPrice(){ return Math.max(15,Math.round(pearlPriceAt(tradeProfile)*(tradeSea?0.75:repMult(tradeProfile)))); }
+/* ---- THE RARE WARES OF THE LANDS (§5.2, Round 95) ----
+   world/wares.js declares them; nothing here knows one by name. A ware is
+   BOUGHT only at the markets of its own lands, at its own flat worth — no
+   haggling hash, the land's ware at the land's price — and SOLD at any land
+   market, priced by HOW FAR that market stands from the ware's nearest home:
+
+       sell = base × (0.7 + 2.6 × min(1, d/0.8))
+
+   d is the distance between country centres in the map's own unit-circle
+   space, where a neighbouring sea is ~0.1 and a true ocean crossing 0.4–0.85
+   (measured across the planned homes before this curve was set). So selling
+   at home LOSES three parts in ten, a short hop barely pays, and the far
+   side of the earth pays better than three to one — the long road is the
+   whole worth of the thing, which is what §5.2 asks. The merchantman at sea
+   deals in none of them: a ware is of the LANDS. */
+const WARES=(window.EARTH&&EARTH.wareList)||[];
+let _wareHomes=null;   /* per ware, the country indices of its home lands */
+function wareHomes(wi){
+  if(!_wareHomes){ const by={};
+    for(let i=0;i<COUNTRIES.length;i++) by[COUNTRIES[i].n]=i;
+    _wareHomes=WARES.map(w=>w.lands.map(n=>by[n]).filter(i=>i!==undefined)); }
+  return _wareHomes[wi];
+}
+function wareIsHome(wi,profile){ return COUNTRIES[profile]?wareHomes(wi).indexOf(profile)>=0:false; }
+function wareDistFrom(wi,profile){
+  const c=COUNTRIES[profile]&&COUNTRIES[profile].c; if(!c) return 0;
+  let d=1e9;
+  for(const hi of wareHomes(wi)){ const h=COUNTRIES[hi].c;
+    d=Math.min(d,Math.hypot(c[0]-h[0],c[1]-h[1])); }
+  return d>1e8?0:d;
+}
+function wareSellPrice(wi,profile){
+  const w=WARES[wi], d=wareDistFrom(wi,profile);
+  return Math.max(1,Math.round(w.base*(0.7+2.6*Math.min(1,d/0.8))));
+}
+/* ---- THE HARBOUR-MASTER'S DUE (the port fee, §5.2) ----
+   A land market takes a small due, ONCE a trading session, on the first
+   goods-or-wares transaction — not on a fisher selling his own catch, which
+   fed the early game before any of this existed and must not be taxed now.
+   A name HONOURED at the market (rep ≥ 40) is welcomed in free. The
+   merchantman charges none: she is no port. */
+const PORT_FEE=4;
+let portFeeDue=false;
+function takePortFee(){
+  if(!portFeeDue) return;
+  portFeeDue=false;
+  state.coins=Math.max(0,state.coins-PORT_FEE);
+  toast('The harbour-master takes his due — '+PORT_FEE+' shekels.');
+}
 let tradeOpen=false, tradeProfile=0, tradeTitle='', tradeSea=false, tradeAnchor=null, tradeShip=null;
 function openTrade(profile,title,sea){
   tradeOpen=true; tradeProfile=profile; tradeTitle=title; tradeSea=!!sea;
+  portFeeDue=!sea&&repTier(profile)!=='honoured';
   const p=state.mode==='walk'?state.walk:state.boat;
   tradeAnchor={x:p.x,z:p.z,mode:state.mode};        /* the stall does not follow you */
   $('trade').style.display='flex'; renderTrade();
@@ -11845,7 +11907,9 @@ function closeTrade(){ if(!tradeOpen) return; tradeOpen=false; $('trade').style.
 function renderTrade(){
   const tier=tradeSea?null:repTier(tradeProfile);
   $('trade-sub').textContent=tradeTitle+' — your purse: '+state.coins+' shekels · cargo '+cargoCount()+' / '+CARGO_MAX
-    +(tier?' · your name is '+tier+' here':'');
+    +(tier?' · your name is '+tier+' here':'')
+    +(portFeeDue?' · the harbour-master’s due, '+PORT_FEE+' shekels, rides on your first trade':
+      (!tradeSea&&tier==='honoured'?' · the harbour opens to you free':''));
   const T=$('trade-rows'); T.innerHTML='';
   for(let gi=0;gi<GOODS.length;gi++){
     const g=GOODS[gi], p=priceAt(tradeProfile,gi);
@@ -11853,10 +11917,26 @@ function renderTrade(){
     const have=state.cargo[g.k]||0;
     const tr=document.createElement('tr');
     tr.innerHTML='<td class="g">'+g.n+'</td><td class="r">held '+have+'</td>'+
-      '<td class="r"><button class="tbtn" data-a="b" data-g="'+gi+'" '+((state.coins<buy||cargoCount()>=CARGO_MAX)?'disabled':'')+'>buy '+buy+'</button></td>'+
+      '<td class="r"><button class="tbtn" data-a="b" data-g="'+gi+'" '+((state.coins<buy+(portFeeDue?PORT_FEE:0)||cargoCount()>=CARGO_MAX)?'disabled':'')+'>buy '+buy+'</button></td>'+
       '<td class="r"><button class="tbtn" data-a="s" data-g="'+gi+'" '+(have<1?'disabled':'')+'>sell '+sell+'</button></td>';
     T.appendChild(tr);
   }
+  /* the rare wares (§5.2): at a HOME market every ware of the land shows,
+     buy and sell; away from home a ware shows only if the hold carries it —
+     the market bids for what you bring, it does not shelve what it has not.
+     The merchantman shows none: a ware is of the lands. */
+  if(!tradeSea){
+    for(let wi=0;wi<WARES.length;wi++){ const w=WARES[wi];
+      const home=wareIsHome(wi,tradeProfile), have=state.cargo[w.k]||0;
+      if(!home&&have<1) continue;
+      const sell=wareSellPrice(wi,tradeProfile);
+      const trw=document.createElement('tr');
+      trw.innerHTML='<td class="g">'+w.n+(home?'':' (far from home)')+'</td><td class="r">held '+have+'</td>'+
+        '<td class="r">'+(home?'<button class="tbtn" data-a="wb" data-g="'+wi+'" '+
+          ((state.coins<w.base+(portFeeDue?PORT_FEE:0)||cargoCount()>=CARGO_MAX)?'disabled':'')+'>buy '+w.base+'</button>':'')+'</td>'+
+        '<td class="r"><button class="tbtn" data-a="ws" data-g="'+wi+'" '+(have<1?'disabled':'')+'>sell '+sell+'</button></td>';
+      T.appendChild(trw);
+    } }
   const fp=fishSellPrice(), tr2=document.createElement('tr');
   tr2.innerHTML='<td class="g">Fish (your catch)</td><td class="r">held '+(state.fish||0)+'</td><td class="r"></td>'+
     '<td class="r"><button class="tbtn" data-a="f" '+((state.fish||0)<1?'disabled':'')+'>sell '+fp+'</button></td>';
@@ -11866,17 +11946,38 @@ function renderTrade(){
     '<td class="r"><button class="tbtn" data-a="e" '+((state.pearls||0)<1?'disabled':'')+'>sell '+pp+'</button></td>';
   T.appendChild(tr3);
 }
+/* the one door every transaction goes through — the click handler below is
+   only a reader of buttons. Returns true if anything changed hands, so a
+   test can drive the REAL path and hear a refusal as a refusal. */
+function doTrade(a,gi){
+  let did=false;
+  if(a==='f'){ if((state.fish||0)>0){ state.fish--; state.coins+=fishSellPrice(); addRep(tradeProfile,1); did=true; } }
+  else if(a==='e'){ if((state.pearls||0)>0){ state.pearls--; state.coins+=pearlSellPrice(); addRep(tradeProfile,3); did=true; } }
+  else if(a==='wb'||a==='ws'){
+    const w=WARES[gi]; if(!w||tradeSea) return false;      /* a ware is of the LANDS */
+    if(a==='wb'){
+      if(!wareIsHome(gi,tradeProfile)) return false;       /* bought at home, nowhere else */
+      const need=w.base+(portFeeDue?PORT_FEE:0);
+      if(state.coins>=need&&cargoCount()<CARGO_MAX){
+        state.coins-=w.base; state.cargo[w.k]=(state.cargo[w.k]||0)+1; did=true;
+        if(w.verse&&!WARE_TOLD.has(w.k)){ WARE_TOLD.add(w.k); toast(w.n+' — '+w.verse.t,w.verse.ref); } } }
+    else { const sell=wareSellPrice(gi,tradeProfile);
+      if((state.cargo[w.k]||0)>0){ state.cargo[w.k]--; if(!state.cargo[w.k]) delete state.cargo[w.k];
+        state.coins+=sell; did=true; } }
+    if(did){ takePortFee(); refreshHoldCargo(); } }
+  else { const g=GOODS[gi], p=priceAt(tradeProfile,gi);
+    if(a==='b'){ const buy=tradeSea?Math.round(p*1.15):p;
+      if(state.coins>=buy+(portFeeDue?PORT_FEE:0)&&cargoCount()<CARGO_MAX){
+        state.coins-=buy; state.cargo[g.k]=(state.cargo[g.k]||0)+1; did=true; } }
+    else { const sell=Math.max(1,tradeSea?Math.round(p*0.75):Math.round(p*0.85));
+      if((state.cargo[g.k]||0)>0){ state.cargo[g.k]--; if(!state.cargo[g.k]) delete state.cargo[g.k]; state.coins+=sell; did=true; } }
+    if(did){ takePortFee(); refreshHoldCargo(); } }       /* the hold restows as the manifest moves */
+  return did;
+}
+const WARE_TOLD=new Set();     /* each ware's verse, told once a voyage */
 $('trade-rows').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b||b.disabled) return;
-  const a=b.dataset.a;
-  if(a==='f'){ if((state.fish||0)>0){ state.fish--; state.coins+=fishSellPrice(); addRep(tradeProfile,1); } }
-  else if(a==='e'){ if((state.pearls||0)>0){ state.pearls--; state.coins+=pearlSellPrice(); addRep(tradeProfile,3); } }
-  else { const gi=+b.dataset.g, g=GOODS[gi], p=priceAt(tradeProfile,gi);
-    if(a==='b'){ const buy=tradeSea?Math.round(p*1.15):p;
-      if(state.coins>=buy&&cargoCount()<CARGO_MAX){ state.coins-=buy; state.cargo[g.k]=(state.cargo[g.k]||0)+1; } }
-    else { const sell=Math.max(1,tradeSea?Math.round(p*0.75):Math.round(p*0.85));
-      if((state.cargo[g.k]||0)>0){ state.cargo[g.k]--; if(!state.cargo[g.k]) delete state.cargo[g.k]; state.coins+=sell; } }
-    refreshHoldCargo(); }               /* the hold restows as the manifest moves */
+  doTrade(b.dataset.a,+b.dataset.g);
   renderTrade();
 });
 $('trade-close').addEventListener('click',closeTrade);
@@ -16206,6 +16307,10 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      live group, not off the manifest, so a test catches the two disagreeing).
      refreshHoldCargo is the same door the trade and the salvage use. */
   refreshHoldCargo, HOLD, HOLD_BERTHS, CARGO_MAX, SHIP_SX, _holdCargoG:()=>holdCargoG,
+  /* the rare wares and the harbour-master (§5.2) — the same doors the
+     market's buttons press, so a test trades as a hand does */
+  WARES, wareIsHome, wareSellPrice, doTrade, openTrade, closeTrade,
+  PORT_FEE, portFeeDue:()=>portFeeDue, COUNTRIES,
   holdLading:()=>{ if(!holdCargoG) return null;
     return {units:(holdCargoG.userData.lading||[]).slice(), meshes:holdCargoG.children.length}; },
   /* the light in the corners, and the count of standing chunks — tools/acceptance.js */
