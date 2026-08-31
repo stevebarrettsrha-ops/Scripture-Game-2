@@ -8712,7 +8712,8 @@ on the line, the carried ware changed hands for exactly the promised 87, the
 name rose +5, the errand stood written as answered and a second armful was
 refused. Proved by injection twice: the reward curve dropped under the stall
 (named with both prices) and the answered-errand record removed (paid again,
-and named twice for it).
+and named twice for it). The suite after the round: 60 pass, 0 fail, 4
+reporter-pendings, no page errors.
 
 ## 5. Further recommendations (future work)
 
@@ -8734,3 +8735,10 @@ and named twice for it).
    answered once a voyage, both verses on the line; test 64.
 5. **Small-island real data** (50 m coastlines) if charted, nameable islands are wanted
    to complement the uncharted ones.
+   *Not taken, and honestly why (Round 97's close): this one is DATA, not code — a 50 m
+   coastline set is an external file, and this repository builds from nothing it cannot
+   carry. When the data is put to hand (a coastlines file in the world's own [u,v]
+   format, like every countries/ file), the round is the same shape as any country:
+   one file per island, one manifest line, test 24/56 machinery already waiting. Until
+   then there is nothing here to build without inventing coastlines, which is the one
+   thing the world's files never do.*
