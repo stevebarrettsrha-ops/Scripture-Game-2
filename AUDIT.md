@@ -8631,7 +8631,8 @@ rode the first buy (base+4), not the second (base), never the fisher; the
 honoured name entered free; and the bought ware stood in the hold's berths.
 Proved by injection three times: a due that never cleared (second buy moved
 52), the home-only guard removed (a far market sold Ophir gold), and the road
-flattened to 1.1× (both price faults named).
+flattened to 1.1× (both price faults named). The suite after the round: 58
+pass, 0 fail, 4 reporter-pendings, no page errors.
 
 ## 5. Further recommendations (future work)
 
