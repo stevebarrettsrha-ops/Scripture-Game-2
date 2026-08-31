@@ -8572,6 +8572,11 @@ Screenshots at the same vantage — empty, part, full, and the BASE TREE beside
 them — show the berths bare, filling in kind, and a full hold carrying the same
 bulk the old scenery had.
 
+**The suite after the round:** 57 pass, 0 fail, 4 pending — the pendings the
+measurement-reporters 50, 53, 54 and 55, which report by design and judge
+nothing. Test 12's cost gate passed on true readings (ocean 0.634 ms against
+the 0.672 baseline, plain 2.187 against 2.453) and no page errors anywhere.
+
 **An honest finding left standing:** from inside the hold, a thin far-off blue
 can flash at the frame's edge on some swells — the whole-earth carpet's sea
 seen through the bow framing. It shows ON THE BASE TREE at the same vantage
