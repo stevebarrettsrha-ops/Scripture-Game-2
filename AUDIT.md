@@ -8671,7 +8671,8 @@ the harbour due. Proved by injection twice: an owned deed made to pay nothing
 (named "moved to 0 — wanted -6") and the penalty flattened to 1 (all three
 price faults named). The speared sheep is not put back — the village rebuilds
 on a later visit, and a test that kills a beast and hides the death would be
-testing nothing.
+testing nothing. The suite after the round: 59 pass, 0 fail, 4
+reporter-pendings, no page errors.
 
 ## 5. Further recommendations (future work)
 
