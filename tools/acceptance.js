@@ -4941,6 +4941,68 @@ T[62]={name:'the rare wares are of their lands, priced by the road, and the harb
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
+T[63]={name:'the land sees the spear: a penned beast costs your name, the wolf pays it, and a soured name turns the vendor',
+  /* §5.3 (Round 96). Reputation only ever rose, because only selling moved
+     it. Deeds move it now, through the REAL spearHit — spearAt sets the
+     spear's point and asks it, deeds and all. A village's own beast: -6 and
+     the vendor turns (buys dearer, sells meaner, to the shekel doTrade
+     takes). The wolf — the village's own come down from the hills, or a
+     wild one at the gates — pays +3. The speared sheep is not put back:
+     the village rebuilds itself on a later visit, and a test that kills a
+     beast and hides the death would be testing nothing. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    if(!D.spearAt||!D.repPenalty) return {pending:'no deeds in this build'};
+    const v=await D.standInVillage();
+    if(!v) return {pending:'no village could be stood in'};
+    let vi=-1,vv=null;
+    for(const [i,V] of D.activeVillages()){ if(!V.none&&V.beasts&&V.beasts.length){ vi=i; vv=V; break; } }
+    if(vi<0) return {pending:'no village beasts about'};
+    const repB=JSON.stringify(D.state.rep||{}), coinsB=D.state.coins, cargoB=JSON.stringify(D.state.cargo||{});
+    const faults=[]; D.state.rep={};
+    /* 1 · the village's own beast */
+    const tame=vv.beasts.find(b=>b.kind!=='wolf');
+    if(!tame) faults.push('no tame beast in the pen');
+    else { const P=tame.m.position, r=D.spearAt(P.x,P.y+3,P.z);
+      if(!r||r.deed!=='owned') faults.push('the owned kill went unremarked: '+JSON.stringify(r));
+      if((D.state.rep[vi]||0)!==-6) faults.push('the name moved to '+(D.state.rep[vi]||0)+' — wanted -6'); }
+    /* 2 · the vendor turns, shown and taken alike */
+    D.state.rep[vi]=-50; D.openTrade(vi,'T63',false);
+    const pen=D.repPenalty(vi);
+    if(!(pen>1.35&&pen<1.45)) faults.push('the floor penalty reads '+pen);
+    const b0=D.goodBuyPrice(0), s0=D.goodSellPrice(0);
+    D.state.rep[vi]=0;
+    if(!(b0>D.goodBuyPrice(0))) faults.push('a soured name buys no dearer: '+b0+' against '+D.goodBuyPrice(0));
+    if(!(s0<D.goodSellPrice(0))) faults.push('a soured name sells no meaner: '+s0+' against '+D.goodSellPrice(0));
+    D.state.rep[vi]=-50; D.state.coins=500; D.state.cargo={};
+    const c0=D.state.coins, shown=D.goodBuyPrice(0);
+    if(!D.doTrade('b',0)) faults.push('the turned buy was refused outright');
+    else if(D.state.coins!==c0-shown-D.PORT_FEE) faults.push('doTrade took '+(c0-D.state.coins)+' — the shown '+shown+' plus due '+D.PORT_FEE+' is not what was taken');
+    D.closeTrade();
+    /* 3 · the wolf is thanked, whichever wolf it is */
+    D.state.rep[vi]=0;
+    let how='the village’s own wolf';
+    const wolf=vv.beasts.find(b=>b.kind==='wolf');
+    if(wolf){ const P=wolf.m.position, r=D.spearAt(P.x,P.y+3,P.z);
+      if(!r||r.deed!=='guard') faults.push('the wolf kill went unthanked: '+JSON.stringify(r)); }
+    else {
+      how='a wild wolf at the gates';
+      const a=D.LANDLIFE.find(a=>a.set&&a.m);
+      if(!a) faults.push('no wild beast to stand in as the wolf');
+      else { const was=a.kind; a.kind='wolf'; a.x=vv.site.x+40; a.z=vv.site.z+40;
+        const r=D.spearAt(a.x,a.m.position.y+3,a.z);
+        if(!r||r.deed!=='guard') faults.push('the wild wolf at the gates went unthanked: '+JSON.stringify(r));
+        a.kind=was; } }
+    if(!faults.some(f=>f.indexOf('unthanked')>=0||f.indexOf('stand in')>=0)&&(D.state.rep[vi]||0)!==3)
+      faults.push('the guard deed moved the name to '+(D.state.rep[vi]||0)+' — wanted +3');
+    /* everything back but the dead */
+    D.state.rep=JSON.parse(repB); D.state.coins=coinsB; D.state.cargo=JSON.parse(cargoB); D.refreshHoldCargo();
+    return {ok:!faults.length,
+      got:'owned kill -6 · guard (+3, '+how+') · floor penalty '+pen.toFixed(2)+
+        '× buys dearer and sells meaner, taken to the shekel'+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

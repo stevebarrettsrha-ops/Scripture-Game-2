@@ -8634,6 +8634,45 @@ Proved by injection three times: a due that never cleared (second buy moved
 flattened to 1.1× (both price faults named). The suite after the round: 58
 pass, 0 fail, 4 reporter-pendings, no page errors.
 
+## 4cu. Round 96 — the land sees the spear: deeds move a name, and a soured name turns the vendor ✅ (§5.3)
+
+*The third of §5's recommendations. Reputation ran 0..50 and only ever UP,
+because only selling ever moved it — a man could spear a village's whole pen
+and walk to the stall with his name as clean as his spear wasn't.*
+
+**Deeds move the ledger now, and it runs -50..50.** The village's beasts are
+its own: spear one (the same `spearHit` the thrown spear always used — no
+second path) and the deed is written against your name in that land, -6, with
+the toast saying plainly what the people saw. The wolf in that same list is
+the one "come down from the hills" against the flock (the village builder has
+rolled one in 55 of 100 villages since Phase 3): put it down and the land
+remembers FOR you, +3 — and a WILD wolf or lion speared within 300 of a
+village guards its flock the same. The same kill in the empty country is
+nobody's business but the hunter's, exactly as before. `deedRep` is the deeds'
+own door; the market's `addRep` keeps its tradeSea gate and its tier toasts.
+
+**And the vendor turns.** Below zero the penalty runs to 1.4× at the floor:
+he charges more (buy × penalty) and pays less (sell ÷ penalty), on the common
+goods and the rare wares alike, shown on the buttons to the shekel doTrade
+takes — the two now read one pair of price doors (`goodBuyPrice` /
+`goodSellPrice`), where before the handler and the buttons each did their own
+arithmetic. At zero and above nothing changes: the good side already pays
+through repMult, the tiers and the harbour's welcome, and a discount here
+would re-balance the round before this one. The fish and pearl prices already
+carried repMult, so a soured name is paid less for the catch too — one ledger,
+every door. The stall names it: "your name is ill-spoken of here."
+
+**The readings.** Test 63 stands in a real village and drives the real
+spearHit: the owned kill moved the name to exactly -6; the guard deed paid +3
+(this village had rolled no wolf, so the wild-wolf-at-the-gates path was the
+one exercised); at the floor the penalty read 1.40×, bought dearer and sold
+meaner than a clean name, and doTrade took the shown price to the shekel plus
+the harbour due. Proved by injection twice: an owned deed made to pay nothing
+(named "moved to 0 — wanted -6") and the penalty flattened to 1 (all three
+price faults named). The speared sheep is not put back — the village rebuilds
+on a later visit, and a test that kills a beast and hides the death would be
+testing nothing.
+
 ## 5. Further recommendations (future work)
 
 1. ~~**Cargo physically visible in the hold** — stack crates as the manifest fills.~~
@@ -8643,8 +8682,10 @@ pass, 0 fail, 4 reporter-pendings, no page errors.
    **PAID, Round 95 (§4ct):** seven wares of one region each in world/wares.js, every
    verse extractor-exact; sold by the length of the road (3.3× at a true crossing);
    the harbour-master's due once a session, the fisher never taxed; test 62.
-3. **Reputation with villages** — spear a village's penned beast and the vendor's
-   prices turn against you; drive off a wolf and they improve.
+3. ~~**Reputation with villages** — spear a village's penned beast and the vendor's
+   prices turn against you; drive off a wolf and they improve.~~
+   **PAID, Round 96 (§4cu):** deeds move the one ledger (-50..50) through the real
+   spearHit; below zero the vendor buys dearer and sells meaner to 1.4×; test 63.
 4. **Deeper quests** — a villager asks for a good from a named far land; deliver for a
    reward and a verse.
 5. **Small-island real data** (50 m coastlines) if charted, nameable islands are wanted

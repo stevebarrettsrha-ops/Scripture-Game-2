@@ -11827,7 +11827,22 @@ function pearlPriceAt(profile){ return Math.max(25,Math.round(45*(0.7+hash2(prof
 function repOf(profile){ return (state.rep&&state.rep[profile])||0; }
 function repMult(profile){ return 1+Math.min(50,repOf(profile))*0.006; }
 function repTier(profile){ const r=repOf(profile);
-  return r>=40?'honoured':r>=25?'trusted':r>=10?'known':null; }
+  return r>=40?'honoured':r>=25?'trusted':r>=10?'known':r<=-10?'ill-spoken of':null; }
+/* ---- AND A NAME CAN FALL AS WELL AS RISE (§5.3, Round 96) ----
+   Reputation ran 0..50 and only ever up, because only selling ever moved it.
+   DEEDS move it now — spear a village's own penned beast and its land
+   remembers against you; put down the wolf that menaces a flock and it
+   remembers for you — so the ledger runs -50..50. deedRep is the deeds'
+   own door: addRep below stays the market's (it is gated on tradeSea and
+   speaks the tier toasts, neither of which a deed in a field wants). */
+function deedRep(profile,n){ state.rep=state.rep||{};
+  state.rep[profile]=Math.max(-50,Math.min(50,(state.rep[profile]||0)+n)); }
+/* what a soured name does to the VENDOR'S prices: nothing while the name
+   stands at zero or better (the good side already pays through repMult and
+   the harbour's welcome), but below zero he charges more and pays less —
+   1.4× and ÷1.4 at the floor. Negative-only on purpose: the round before
+   this one priced the trade, and a discount here would re-balance it. */
+function repPenalty(profile){ return 1-Math.min(0,repOf(profile))*0.008; }
 function addRep(profile,n){ if(tradeSea) return; state.rep=state.rep||{};
   const before=repOf(profile), after=Math.min(50,before+n); state.rep[profile]=after;
   const tiers=[[40,'Your name is honoured at this market \u2014 top silver for your catch.'],
@@ -11836,6 +11851,13 @@ function addRep(profile,n){ if(tradeSea) return; state.rep=state.rep||{};
   for(const[t2,msg] of tiers){ if(before<t2&&after>=t2){ toast(msg); break; } } }
 function fishSellPrice(){ return Math.max(2,Math.round(fishPriceAt(tradeProfile)*(tradeSea?1:repMult(tradeProfile)))); }
 function pearlSellPrice(){ return Math.max(15,Math.round(pearlPriceAt(tradeProfile)*(tradeSea?0.75:repMult(tradeProfile)))); }
+/* the common goods' two prices, through one pair of doors — the buttons
+   show what doTrade takes, to the shekel. A soured name (rep < 0) raises
+   the buy and lowers the sell; the sea trader keeps her own flat terms. */
+function goodBuyPrice(gi){ const p=priceAt(tradeProfile,gi);
+  return Math.round((tradeSea?p*1.15:p*repPenalty(tradeProfile))); }
+function goodSellPrice(gi){ const p=priceAt(tradeProfile,gi);
+  return Math.max(1,Math.round(tradeSea?p*0.75:p*0.85/repPenalty(tradeProfile))); }
 /* ---- THE RARE WARES OF THE LANDS (§5.2, Round 95) ----
    world/wares.js declares them; nothing here knows one by name. A ware is
    BOUGHT only at the markets of its own lands, at its own flat worth — no
@@ -11869,8 +11891,11 @@ function wareDistFrom(wi,profile){
 }
 function wareSellPrice(wi,profile){
   const w=WARES[wi], d=wareDistFrom(wi,profile);
-  return Math.max(1,Math.round(w.base*(0.7+2.6*Math.min(1,d/0.8))));
+  return Math.max(1,Math.round(w.base*(0.7+2.6*Math.min(1,d/0.8))/repPenalty(profile)));
 }
+/* what a ware costs at its home market — the flat base, marked up only
+   against a soured name (§5.3) */
+function wareBuyPrice(wi,profile){ return Math.round(WARES[wi].base*repPenalty(profile)); }
 /* ---- THE HARBOUR-MASTER'S DUE (the port fee, §5.2) ----
    A land market takes a small due, ONCE a trading session, on the first
    goods-or-wares transaction — not on a fisher selling his own catch, which
@@ -11912,8 +11937,8 @@ function renderTrade(){
       (!tradeSea&&tier==='honoured'?' · the harbour opens to you free':''));
   const T=$('trade-rows'); T.innerHTML='';
   for(let gi=0;gi<GOODS.length;gi++){
-    const g=GOODS[gi], p=priceAt(tradeProfile,gi);
-    const buy=tradeSea?Math.round(p*1.15):p, sell=Math.max(1,tradeSea?Math.round(p*0.75):Math.round(p*0.85));
+    const g=GOODS[gi];
+    const buy=goodBuyPrice(gi), sell=goodSellPrice(gi);
     const have=state.cargo[g.k]||0;
     const tr=document.createElement('tr');
     tr.innerHTML='<td class="g">'+g.n+'</td><td class="r">held '+have+'</td>'+
@@ -11929,11 +11954,11 @@ function renderTrade(){
     for(let wi=0;wi<WARES.length;wi++){ const w=WARES[wi];
       const home=wareIsHome(wi,tradeProfile), have=state.cargo[w.k]||0;
       if(!home&&have<1) continue;
-      const sell=wareSellPrice(wi,tradeProfile);
+      const sell=wareSellPrice(wi,tradeProfile), wbuy=wareBuyPrice(wi,tradeProfile);
       const trw=document.createElement('tr');
       trw.innerHTML='<td class="g">'+w.n+(home?'':' (far from home)')+'</td><td class="r">held '+have+'</td>'+
         '<td class="r">'+(home?'<button class="tbtn" data-a="wb" data-g="'+wi+'" '+
-          ((state.coins<w.base+(portFeeDue?PORT_FEE:0)||cargoCount()>=CARGO_MAX)?'disabled':'')+'>buy '+w.base+'</button>':'')+'</td>'+
+          ((state.coins<wbuy+(portFeeDue?PORT_FEE:0)||cargoCount()>=CARGO_MAX)?'disabled':'')+'>buy '+wbuy+'</button>':'')+'</td>'+
         '<td class="r"><button class="tbtn" data-a="ws" data-g="'+wi+'" '+(have<1?'disabled':'')+'>sell '+sell+'</button></td>';
       T.appendChild(trw);
     } }
@@ -11957,19 +11982,19 @@ function doTrade(a,gi){
     const w=WARES[gi]; if(!w||tradeSea) return false;      /* a ware is of the LANDS */
     if(a==='wb'){
       if(!wareIsHome(gi,tradeProfile)) return false;       /* bought at home, nowhere else */
-      const need=w.base+(portFeeDue?PORT_FEE:0);
+      const buy=wareBuyPrice(gi,tradeProfile), need=buy+(portFeeDue?PORT_FEE:0);
       if(state.coins>=need&&cargoCount()<CARGO_MAX){
-        state.coins-=w.base; state.cargo[w.k]=(state.cargo[w.k]||0)+1; did=true;
+        state.coins-=buy; state.cargo[w.k]=(state.cargo[w.k]||0)+1; did=true;
         if(w.verse&&!WARE_TOLD.has(w.k)){ WARE_TOLD.add(w.k); toast(w.n+' — '+w.verse.t,w.verse.ref); } } }
     else { const sell=wareSellPrice(gi,tradeProfile);
       if((state.cargo[w.k]||0)>0){ state.cargo[w.k]--; if(!state.cargo[w.k]) delete state.cargo[w.k];
         state.coins+=sell; did=true; } }
     if(did){ takePortFee(); refreshHoldCargo(); } }
-  else { const g=GOODS[gi], p=priceAt(tradeProfile,gi);
-    if(a==='b'){ const buy=tradeSea?Math.round(p*1.15):p;
+  else { const g=GOODS[gi];
+    if(a==='b'){ const buy=goodBuyPrice(gi);
       if(state.coins>=buy+(portFeeDue?PORT_FEE:0)&&cargoCount()<CARGO_MAX){
         state.coins-=buy; state.cargo[g.k]=(state.cargo[g.k]||0)+1; did=true; } }
-    else { const sell=Math.max(1,tradeSea?Math.round(p*0.75):Math.round(p*0.85));
+    else { const sell=goodSellPrice(gi);
       if((state.cargo[g.k]||0)>0){ state.cargo[g.k]--; if(!state.cargo[g.k]) delete state.cargo[g.k]; state.coins+=sell; did=true; } }
     if(did){ takePortFee(); refreshHoldCargo(); } }       /* the hold restows as the manifest moves */
   return did;
@@ -12308,16 +12333,30 @@ function spearHitDeep(){
     if(near(o.x,o.y,o.z,3.2)){ o.set=false; o.m.visible=false; return {n:'a puffer of the reef',fishy:true}; } }
   return null;
 }
+/* ---- AND THE LAND SEES WHAT THE SPEAR DOES (§5.3, Round 96) ----
+   A village's beasts are ITS OWN: spear one and the deed is remembered
+   against your name in that land (deedRep -6), and the vendor's prices
+   turn — dearer to buy, meaner to sell — until better deeds mend it. The
+   wolf in that same list is the one come down from the hills against the
+   flock: put it down and the land remembers FOR you (+3). A wild wolf or
+   lion speared NEAR a village guards its flock the same; the same kill in
+   the empty country is nobody's business but the hunter's. */
 function spearHit(){
   const near=(x,z)=>Math.hypot(x-spear.x,z-spear.z)<3.4;
-  for(const[,vv] of activeVillages){ if(vv.none||!vv.beasts) continue;
+  for(const[vi,vv] of activeVillages){ if(vv.none||!vv.beasts) continue;
     for(let k=0;k<vv.beasts.length;k++){ const b=vv.beasts[k];
       if(!BEAST_PREY.has(b.kind)&&b.kind!=='deer'&&b.kind!=='wolf') continue;
       if(near(b.m.position.x,b.m.position.z)&&Math.abs(b.m.position.y+3-spear.y)<8){
         b.m.visible=false; vv.g.remove(b.m); vv.beasts.splice(k,1);
-        return b.kind; } } }
+        if(b.kind==='wolf'){ deedRep(vi,3); return {kind:b.kind,deed:'guard'}; }
+        deedRep(vi,-6); return {kind:b.kind,deed:'owned'}; } } }
   for(const a of LANDLIFE){ if(!a.set||(!AMBIENT_PREY.has(a.kind)&&a.kind!=='wolf'&&a.kind!=='lion')) continue;
-    if(near(a.x,a.z)&&Math.abs(a.m.position.y+3-spear.y)<9){ a.set=false; a.m.visible=false; return a.kind; } }
+    if(near(a.x,a.z)&&Math.abs(a.m.position.y+3-spear.y)<9){ a.set=false; a.m.visible=false;
+      if(a.kind==='wolf'||a.kind==='lion'){
+        for(const[vi,vv] of activeVillages){ if(vv.none||!vv.site) continue;
+          if(Math.hypot(a.x-vv.site.x,a.z-vv.site.z)<300){ deedRep(vi,3);
+            return {kind:a.kind,deed:'guard'}; } } }
+      return {kind:a.kind}; } }
   return null;
 }
 function spearTick(dt){
@@ -12352,8 +12391,10 @@ function spearTick(dt){
     } else {
       const kill=spearHit();
       if(kill){ state.game=(state.game||0)+1; spear.active=false; spear.stick=1.4;
-        toast(kill==='wolf'?'Your spear finds the wolf — the flock is safe, and the pelt is yours. Game taken: '+state.game+'.'
-          :'Your spear finds the '+kill+' — game taken for the voyage: '+state.game+'.');
+        toast(kill.deed==='owned'?'Your spear takes the village’s '+kill.kind+' — the people see it done, and the vendor’s prices turn against you.'
+          :kill.deed==='guard'?'Your spear finds the '+kill.kind+' — the flock is safe, and this land will remember it well.'
+          :kill.kind==='wolf'?'Your spear finds the wolf — the pelt is yours. Game taken: '+state.game+'.'
+          :'Your spear finds the '+kill.kind+' — game taken for the voyage: '+state.game+'.');
         saveState(); break; }
       const gy=groundInfo(spear.x,spear.z);
       if(spear.y<=(gy.land?gy.y:WATER_Y)+0.4){
@@ -16311,6 +16352,10 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      market's buttons press, so a test trades as a hand does */
   WARES, wareIsHome, wareSellPrice, doTrade, openTrade, closeTrade,
   PORT_FEE, portFeeDue:()=>portFeeDue, COUNTRIES,
+  /* the deeds and the soured name (§5.3) — spearAt sets the spear's point
+     and asks the REAL spearHit, deeds and all */
+  spearAt:(x,y,z)=>{ spear.x=x; spear.y=y; spear.z=z; return spearHit(); },
+  repPenalty, goodBuyPrice, goodSellPrice, wareBuyPrice,
   holdLading:()=>{ if(!holdCargoG) return null;
     return {units:(holdCargoG.userData.lading||[]).slice(), meshes:holdCargoG.children.length}; },
   /* the light in the corners, and the count of standing chunks — tools/acceptance.js */
