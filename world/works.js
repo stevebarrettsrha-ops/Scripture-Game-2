@@ -113,6 +113,26 @@ EARTH.work({ id:'flint-spade', name:'A Spade of Flint',
 EARTH.work({ id:'flint-hoe',   name:'A Hoe of Flint',
   of:{ 'flint':2, 'planks':2 }, gives:{ 'flint-hoe':1 } });
 
+/* --- THE THRESHING — the seed beaten out of the sheaf (§17.4) ---
+   The other half of every harvest: what is not eaten is sown. A sheaf of
+   the world's hay gives seed corn for the hand that sows — held over
+   tilled ground, the seed goes IN (the engine's sowing door), and the
+   standing crop keeps the land's own calendar out of world/crops.js.
+   One sheaf gives two of seed, which is the whole economy of sowing: the
+   ground gives back more than it was given, or nobody would ever sow. */
+EARTH.work({
+  id:'thresh-wheat', name:'Thresh Wheat',
+  of:{ 'hay':1 }, gives:{ 'seed-wheat':2 },
+  verse:{ t:'And the Mal\'ak of (YAHUAH) HWHY came and sat under the terebinth tree which was in Ophrah, which belonged to Yo’ash the Aḇi‛ezerite, while his son Giḏ‛on threshed wheat in the winepress, to hide it from the eyes of the Miḏyanites.',
+          ref:'SHOPHETIM 6:11' }
+});
+EARTH.work({
+  id:'thresh-barley', name:'Winnow Barley',
+  of:{ 'hay':1 }, gives:{ 'seed-barley':2 },
+  verse:{ t:'“And now, is not Bo‛az, with whose young women you have been, our relative? See, he is winnowing barley tonight at the threshing-floor.',
+          ref:'RUTH 3:2' }
+});
+
 /* --- THE KILN — the only work that makes a PLACE rather than a thing ---
    Everything below it must be done standing at one, because "bake them
    thoroughly" is not something a man does in his hands. */

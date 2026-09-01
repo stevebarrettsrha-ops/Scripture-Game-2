@@ -561,6 +561,11 @@ const FILES=[
   'blocks/log-twist.js',
   'blocks/log-cork.js',
   'blocks/log-smooth.js',
+  /* the sowing (§17.4) — appended, same append-only rule as the barks */
+  'blocks/seed-wheat.js',
+  'blocks/seed-barley.js',
+  'blocks/soil-wheat.js',
+  'blocks/soil-barley.js',
   'js/engine.js',
 ];
 
