@@ -562,6 +562,9 @@ const FILES=[
   'blocks/log-cork.js',
   'blocks/log-smooth.js',
   'blocks/seed.js',
+  /* the bench's own work (§17.5) — appended, same append-only rule */
+  'blocks/panel.js',
+  'blocks/carved-panel.js',
   'js/engine.js',
 ];
 

@@ -236,6 +236,16 @@ const B = {
   planks:      { b: mix(P.rawSienna, P.ochre, 0.34),           // was 168,134,80
                  a: shade(mix(P.rawSienna,P.rawUmber,0.3),0.94),
                  seam: shade(P.burntUmber,0.86) },
+  /* a DRESSED board is a riven plank gone over: paler where the surface was
+     taken down, and its joint a bead rather than a ragged seam */
+  panel:       { b: mix(P.rawSienna, P.ochre, 0.46),
+                 a: shade(mix(P.rawSienna,P.rawUmber,0.22),0.97),
+                 bead: shade(P.burntUmber,0.9),
+                 lit: mix(P.ochre, P.saffron, 0.30) },
+  carved:      { b: mix(P.rawSienna, P.ochre, 0.46),
+                 a: shade(mix(P.rawSienna,P.rawUmber,0.22),0.97),
+                 cut: shade(P.burntUmber,0.70),
+                 lit: mix(P.ochre, P.saffron, 0.42) },
   roof:        { b: mix(P.burntSienna, P.rawUmber, 0.36),      // was 122,88,54 — fired clay tile
                  a: shade(mix(P.burntSienna,P.burntUmber,0.4),0.92),
                  seam: shade(P.burntUmber,0.66) },

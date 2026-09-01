@@ -860,20 +860,35 @@ T[20]={name:'an altar of unhewn stone refuses hewn stone',
     const madeRight=D.workMake(altar.id);
     const gave=D.hoard()[altar.gives[0].split(' x')[0]]||0;
     clear();
-    /* 4 — and a work of the fire must want its fire, standing here in the
-       open where there is no kiln */
-    const fire=W.find(w=>w.at);
-    const fireSt=fire?D.workState(fire.id):null;
+    /* 4 — and a work that wants a PLACE must want it, standing here in the
+       open where there is no kiln and no bench.
+       ---- EVERY PLACE, NOT THE FIRST (Round 88) ----
+       This took `W.find(w=>w.at)` — the first work in world/works.js
+       carrying an `at` — while the kiln was the only place in the world, so
+       "the first" and "the kiln" were the same thing and nobody had to
+       choose. §17.5 gave the carpenter a bench, and a second place makes
+       that probe a positional accident: works declared above the fire's
+       would have quietly taken it over, and this test would have gone on
+       passing green while no longer exercising the kiln at all. So it walks
+       every place there is. The places are also declared last in
+       world/works.js, which is belt as this is braces. */
+    const placed=W.filter(w=>w.at);
+    const away=placed.map(w=>({id:w.id, at:w.at, why:(D.workState(w.id)||{}).why}));
+    const allAway=away.every(a=>a.why==='place');
+    const places=[...new Set(placed.map(w=>w.at))];
     return {ok:declared>=10&&refused.why==='refused'&&!madeWrong.ok&&stillHas===12&&
-              allowed.can===true&&madeRight.ok&&gave>=1&&
-              (!fire||fireSt.why==='place'),
+              allowed.can===true&&madeRight.ok&&gave>=1&&allAway,
       got:declared+' works declared · with 12 '+altar.refuses+
           ': refused='+(refused.why==='refused')+
           ' (and not merely "short"), made='+madeWrong.ok+
           ', and the stone is still his: '+stillHas+
           ' · with '+n+' '+want+': allowed='+allowed.can+', made='+madeRight.ok+
           ', it gave '+gave+
-          (fire?' · '+fire.id+' away from a '+fire.at+': '+fireSt.why:'')};
+          ' · '+places.length+' place(s) in the world ('+places.join(', ')+'), '+
+          away.filter(a=>a.why==='place').length+' of '+away.length+
+          ' place-works refused away from theirs'+
+          (allAway?'':' · NOT ALL: '+away.filter(a=>a.why!=='place')
+            .map(a=>a.id+'='+a.why).join(', '))};
   })};
 
 T[21]={name:'every land holds what its data says, and the ore is truly in the rock',
@@ -4612,6 +4627,178 @@ T[58]={name:'a hand that sows: the sheaf gives seed, the hoe turns a bed, the se
         'reaped full (grow '+yrOf(SE.CENTRE[full]).toFixed(2)+'): +'+rFull.gain+
         ' · reaped young (grow '+yrOf(SE.CENTRE[lean]).toFixed(2)+'): +'+rLean.gain+
         ' · bed dug away: came away '+cameAway+' as '+asSeed+' seed'+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[59]={name:'a place a man goes to make: the bench is made by hand, the work is refused away from it, done at it, and closes when it is broken',
+  /* §17.5, THE LAST ITEM OF PLAN'S §17 QUEUE, in its own words: "every work
+     is done at the bare hand or at a kiln, so there is no PLACE a man goes
+     to make, and the list of works cannot grow past what one can do standing
+     in a field."
+
+     WHAT THIS ASKS THAT NOTHING ELSE DID. Test 20 has always checked that a
+     work of the fire is REFUSED away from its fire — the negative half — and
+     in forty rounds nothing ever checked the positive: that standing at the
+     place lets the work through. A place that refused everywhere would have
+     passed this suite. So the whole of it is walked here, on a bench the
+     test makes and then breaks:
+
+       the bench is MADE at the bare hand, out of hand-gathered materials —
+         a man nowhere near a village must be able to start, which is test
+         44's rule about the pick applied to the place;
+       AWAY from it the work reads 'place', and reads it IN THE WORDS THE
+         PLAYER SEES ("at a Workbench"), composed out of the block's own
+         name — not a string this test knows;
+       AT it the same work goes through and gives;
+       and BROKEN, the place closes again — `workPlaceAt` keeps no register
+         of benches by construction, it looks at the blocks each time, and
+         this reads that property rather than trusting the comment;
+       the REACH is read off the engine (`workReach`), not assumed: a bench
+         at the edge of it serves, one a stride beyond it does not;
+       and the knife is wanted for the carving — the first work in this
+         world to want one, the flint knives having been commanded by name
+         and asked for by nothing since Phase 4.
+
+     It runs in the VOYAGE hand (the runner's default), so every material is
+     paid for and every refusal is real. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    if(!D.workMake||!D.workState||!D.workSays||!D.workReach)
+      return {pending:'no works probes (Phase 4 step 9 / §17.5)'};
+    if(!D.workState('bench')) return {pending:'no bench work (§17.5)'};
+    const faults=[];
+    const clear=()=>{ for(const sl of D.satchel()) if(sl) D.satchelTake(sl.id,sl.n); };
+
+    /* ---- HE IS PUT ON GROUND, and the ground is looked for rather than
+       assumed — the same footing test 44 wants ---- */
+    let t=null;
+    { const q=D.blockUnder(D.playerXZ().x, D.playerXZ().z);
+      if(q){ D.setMode('walk'); D.state.walk.x=q.x; D.state.walk.z=q.z;
+        D.state.walk.feetY=undefined; await D.settle(2); } }
+    const p=D.playerXZ();
+    for(const d of [[9,0],[0,9],[-9,0],[0,-9],[5,5],[3,0],[0,0]]){
+      t=D.blockUnder(p.x+d[0]*B, p.z+d[1]*B); if(t) break; }
+    if(!t) return {ok:false,got:'no ground under the traveller, seven ways about him'};
+    /* ---- AND HE STANDS ON THAT GROUND, WHICH IS THE WHOLE POINT ----
+       A place is measured from the MAN's feet (`workPlaceAt` walks a box
+       about `playerXZ`), and the seven-way search above can settle on ground
+       nine blocks from where he happens to be — test 44 borrows the same
+       search and does not care, because a blow does not care where a man
+       stands. This does. Every bench below is laid about HIM. */
+    D.setMode('walk');
+    D.state.walk.x=(t.ix+0.5)*B; D.state.walk.z=(t.iz+0.5)*B;
+    D.state.walk.feetY=undefined;
+    await D.settle(2);
+
+    /* every bench this test lays is taken up again at the end, so the world
+       is left as it was found; they are remembered here */
+    const laid=[];
+    /* ---- LAID FROM THE ORIGIN THE ENGINE ITSELF MEASURES FROM ----
+       `workPlaceAt` walks its box about the man's feet CELL, read fresh each
+       time it is asked. A bench laid at a remembered spot is a bench at an
+       unknown distance: he settles onto the ground, and a slope moves him a
+       cell. The first cut of this test laid from the ground it found and
+       read "a bench at the reach itself did not serve" — which was true, and
+       was about the traveller having stepped, not about the reach. */
+    const putBench=(dx,dz)=>{ const q=D.playerXZ();
+      const fy=(D.state.mode==='walk'&&D.state.walk.feetY!==undefined)?D.state.walk.feetY:null;
+      const ix=Math.floor(q.x/B)+dx, iz=Math.floor(q.z/B)+dz,
+            iy=(fy===null?t.iy+1:Math.floor(fy/B));
+      D.setBlock((ix+0.5)*B,(iy+0.5)*B,(iz+0.5)*B, D.blockId('bench'));
+      laid.push([ix,iy,iz]); return [ix,iy,iz]; };
+    const takeBench=c=>D.setBlock((c[0]+0.5)*B,(c[1]+0.5)*B,(c[2]+0.5)*B, 0);
+
+    /* ---- 1 · THE BENCH IS MADE AT THE BARE HAND ---- */
+    clear();
+    D.satchelAdd('log',3);
+    const planks=D.workMake('planks');            /* timber → planks, as ever */
+    D.satchelAdd('log',2);
+    const madeBench=D.workMake('bench');
+    const benchInHand=D.satchelCount('bench');
+    if(!planks||!planks.ok) faults.push('the planks would not be riven: '+((planks&&planks.why)||'?'));
+    if(!madeBench||!madeBench.ok) faults.push('the bench would not be made at the hand: '+((madeBench&&madeBench.why)||'?'));
+    if(benchInHand<1) faults.push('the bench was made but is not in the satchel');
+
+    /* ---- 2 · AWAY FROM IT, THE WORK IS REFUSED — in the player's words ---- */
+    clear(); D.satchelAdd('planks',4);
+    const awaySt=D.workState('panelling');
+    const awaySays=D.workSays('panelling');
+    const benchName=D.blockOf(D.blockId('bench')).name;
+    if(!awaySt||awaySt.why!=='place')
+      faults.push('away from any bench the work reads '+((awaySt&&awaySt.why)||'?')+', wanted place');
+    if(!(awaySays&&awaySays.indexOf(benchName)>=0))
+      faults.push('the row does not name the place a man must go: "'+awaySays+'" does not say '+benchName);
+    const awayMade=D.workMake('panelling');
+    if(awayMade&&awayMade.ok) faults.push('the work was DONE with no bench anywhere');
+
+    /* ---- 3 · AT IT, THE SAME WORK GOES THROUGH ----
+       the half nothing in this suite has ever asserted */
+    const near=putBench(1,0);
+    await D.settle(1);
+    const atSt=D.workState('panelling');
+    const atMade=D.workMake('panelling');
+    const panels=D.satchelCount('panel');
+    if(!atSt||atSt.can!==true)
+      faults.push('standing at the bench the work still reads '+((atSt&&atSt.why)||'?'));
+    if(!atMade||!atMade.ok) faults.push('at the bench the work would not go: '+((atMade&&atMade.why)||'?'));
+    if(panels<1) faults.push('the boards were dressed but none came into the satchel');
+
+    /* ---- 4 · THE REACH IS READ, NOT ASSUMED ---- */
+    const R=D.workReach();
+    takeBench(near); await D.settle(1);
+    /* WITH THE MATERIALS IN HAND, or the answer is not about distance:
+       `workState` asks place, then tool, then materials, and step 3 above
+       spent every plank he had. The first cut of this read "short" at the
+       reach and called it a failure of the reach. */
+    clear(); D.satchelAdd('planks',4);
+    const far=putBench(R+2,0); await D.settle(1);   /* a stride past the reach */
+    const tooFar=D.workState('panelling');
+    takeBench(far); await D.settle(1);
+    const edge=putBench(R,0); await D.settle(1);    /* and at the very edge */
+    const atEdge=D.workState('panelling');
+    if(!tooFar||tooFar.why!=='place')
+      faults.push('a bench '+(R+2)+' blocks off still served (the reach is '+R+')');
+    if(!atEdge||atEdge.can!==true)
+      faults.push('a bench at the reach itself ('+R+') did not serve');
+
+    /* ---- 5 · THE CARVING WANTS A KNIFE — the first work that ever did ---- */
+    clear(); D.satchelAdd('panel',2);
+    const noKnife=D.workState('carved-panel');
+    const noKnifeSays=D.workSays('carved-panel');
+    if(!noKnife||noKnife.why!=='tool')
+      faults.push('with no knife the carving reads '+((noKnife&&noKnife.why)||'?')+', wanted tool');
+    D.satchelAdd('flint-knife',1);
+    const held=(()=>{ const i=D.satchel().findIndex(sl=>sl&&sl.id==='flint-knife');
+      if(i<0) return false; D.setHeld(i); return true; })();
+    const withKnife=D.workState('carved-panel');
+    const carved=D.workMake('carved-panel');
+    const carvedN=D.satchelCount('carved-panel');
+    if(!held) faults.push('the knife could not be got into the hand');
+    else if(!withKnife||withKnife.can!==true)
+      faults.push('knife in hand, the carving still reads '+((withKnife&&withKnife.why)||'?'));
+    if(!carved||!carved.ok) faults.push('the carving would not go: '+((carved&&carved.why)||'?'));
+    if(carvedN<1) faults.push('the board was carved but none came into the satchel');
+
+    /* ---- 6 · AND BROKEN, THE PLACE CLOSES AGAIN ----
+       no register goes stale because there is no register */
+    takeBench(edge); await D.settle(1);
+    clear(); D.satchelAdd('planks',4);
+    const gone=D.workState('panelling');
+    if(!gone||gone.why!=='place')
+      faults.push('with the bench broken the work still reads '+((gone&&gone.can?'can':(gone&&gone.why))||'?'));
+
+    /* the world is left as it was found */
+    for(const c of laid) takeBench(c);
+    clear(); await D.settle(1);
+    return {ok:!faults.length,
+      got:'made at the hand: planks then a bench ('+benchInHand+' in the satchel) · '+
+        'away from one: '+((awaySt&&awaySt.why)||'?')+', and the row says "'+awaySays+'" · '+
+        'at one: can='+((atSt&&atSt.can)||false)+', it gave '+panels+' board(s) · '+
+        'the reach is '+R+': at '+R+' it reads '+((atEdge&&atEdge.can)?'can':((atEdge&&atEdge.why)||'?'))+
+        ', at '+(R+2)+' it reads '+((tooFar&&tooFar.can)?'can':((tooFar&&tooFar.why)||'?'))+' · '+
+        'the carving with no knife: '+((noKnife&&noKnife.why)||'?')+' ("'+noKnifeSays+'"), with one: '+
+        ((withKnife&&withKnife.can)||false)+', it gave '+carvedN+' · '+
+        'the bench broken, it reads '+((gone&&gone.why)||'?')+' again'+
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 

@@ -184,6 +184,40 @@ TEX.planks     = mkTex(g=>{ speckle(g,PB.planks.b,14,PB.planks.a,0.3);
   g.fillStyle='rgba(0,0,0,0.13)';
   for(let y=0;y<16;y+=4) for(let k=0;k<3;k++){ const yy=y+1+k*0.9;
     for(let x=0;x<16;x+=FG) if(hash2(x*1.7+y,k*3.1)>0.42) g.fillRect(x,yy,FG,FG); } },16,16,RIM);
+/* ---- THE DRESSED BOARD, AND THE CARVED ONE (§17.5) ----
+   A riven plank lies in courses across; a PANELLED wall stands in boards up
+   and down, which is the readiest way an eye tells the two apart at arm's
+   length. The joint is a bead — a plank's seam is where it was split, a
+   panel's is where it was fitted.
+
+   AND WHAT IS CARVED INTO IT. "carved figures of keruḇim and palm trees and
+   open flowers" — MELAKIM ALEPH 6:29 names three things and this draws two.
+   A keruḇ is not drawable in sixteen pixels; what would come out is a smudge
+   the account would not recognise, and putting one there would be a claim
+   about a thing this game has no business claiming. So the palm and the open
+   flower are cut, and the third is left to the verse. */
+TEX.panel      = mkTex(g=>{ speckle(g,PB.panel.b,13,PB.panel.a,0.26);
+  g.fillStyle=C(PB.panel.bead);
+  for(let x=3;x<16;x+=4) g.fillRect(x,0,FG,16);            /* boards on end */
+  g.fillStyle=C(PB.panel.lit);
+  for(let x=3;x<16;x+=4) g.fillRect(x+FG,0,FG,16);         /* the bead's lit side */
+  /* the grain runs the length of a standing board, which is up */
+  g.fillStyle='rgba(0,0,0,0.11)';
+  for(let x=0;x<16;x+=4) for(let k=0;k<3;k++){ const xx=x+1+k*0.9;
+    for(let y=0;y<16;y+=FG) if(hash2(y*1.7+x,k*3.1)>0.42) g.fillRect(xx,y,FG,FG); } },16,16,RIM);
+TEX.carved     = mkTex(g=>{ speckle(g,PB.carved.b,13,PB.carved.a,0.26);
+  const cut=C(PB.carved.cut), lit=C(PB.carved.lit);
+  /* THE PALM — a trunk of five courses and four fronds thrown off the head */
+  g.fillStyle=cut;
+  g.fillRect(4,7,FG,7);                                    /* the bole */
+  for(const d of [-3,-2,2,3]){ const s=d<0?-1:1;
+    for(let k=0;k<3;k++) g.fillRect(4+d+s*k*0.6, 6-k*0.9, FG, FG); }   /* the fronds */
+  g.fillStyle=lit; g.fillRect(4+FG,7,FG,7);                /* the light down one side */
+  /* THE OPEN FLOWER — a heart and six petals about it */
+  g.fillStyle=cut;
+  g.fillRect(11,9,2,2);
+  for(const p of [[11,7],[13,8],[13,10],[11,12],[9,10],[9,8]]) g.fillRect(p[0],p[1],FG*1.5,FG*1.5);
+  g.fillStyle=lit; g.fillRect(11,9,FG,FG); },16,16,RIM);
 TEX.roof       = mkTex(g=>{ speckle(g,PB.roof.b,14,PB.roof.a,0.3);
   g.fillStyle=C(PB.roof.seam);
   for(let y=3;y<16;y+=4) g.fillRect(0,y,16,FG);
@@ -528,6 +562,7 @@ blockMat('sand',TEX.sand); blockMat('stone',TEX.stone); blockMat('cobble',TEX.co
 blockMat('snow',TEX.snow); blockMat('ice',TEX.ice);
 iceMat('iceTop',TEX.snow); iceMat('iceSide',TEX.ice);   /* the wall of ice and the floes */
 blockMat('planks',TEX.planks); blockMat('roof',TEX.roof);
+blockMat('panel',TEX.panel); blockMat('carved',TEX.carved);
 blockMat('logSide',TEX.logSide); blockMat('logTop',TEX.logTop);
 blockMat('haySide',TEX.haySide); blockMat('hayTop',TEX.hayTop); blockMat('wool',TEX.wool);
 blockMat('soil',TEX.soil); blockMat('benchTop',TEX.benchTop); blockMat('benchSide',TEX.benchSide);
@@ -16292,6 +16327,13 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
     of:w.of.map(q=>q.id+' x'+q.c), gives:w.gives.map(q=>q.id+' x'+q.c),
     refuses:w.refuses?w.refuses.id:null, verse:!!w.verse})),
   workState:id=>{ const w=WORK_BY_ID[id]; return w?workState(w):null; },
+  /* WHAT THE MAN ACTUALLY READS on the row, and HOW FAR a place reaches —
+     both so a test can assert the thing seen rather than the thing meant.
+     "at a Workbench" is composed out of the block's own name, and a test
+     that hard-coded either the words or the four blocks would go on passing
+     the day the words or the reach changed. */
+  workSays:id=>{ const w=WORK_BY_ID[id]; return w?workLine(w,workState(w)):null; },
+  workReach:()=>WORK_R,
   workMake, workPlaceAt, satchelAdd, satchelTake,
   /* ---- WHAT WILL NOT STAND, FOR tools/acceptance.js ---- */
   /* every standing chunk thrown away, so the next build is a TRUE build and
@@ -17249,6 +17291,18 @@ for(const w of WORK_DEFS){
   let good=true;
   for(const k in (w.of||{})){ const n=blockId(k); if(!n){ good=false; break; } of.push({n,id:k,c:w.of[k]}); }
   for(const k in (w.gives||{})){ const n=blockId(k); if(!n){ good=false; break; } gives.push({n,id:k,c:w.gives[k]}); }
+  /* ---- AND THE PLACE IS A MATERIAL TOO ----
+     THE FAULT THIS MENDS, found while giving the carpenter his bench: the
+     two lines above drop a work whose materials or product this build has
+     not got, and nothing asked the same of `at`. A work naming a place no
+     block answers to — a typo, a block file that failed to load, a place
+     built before the block that is it — SHIPPED: offered in the list,
+     greyed for ever, refusable but never doable, with no error anywhere.
+     `workPlaceAt` returns false for an unknown id and says nothing, which is
+     right of it and silent. So the place is asked for here, where the
+     materials are asked for, and a work with nowhere to be done is dropped
+     at the same door for the same reason. */
+  if(w.at&&!blockId(w.at)) good=false;
   if(!good||!of.length||!gives.length) continue;
   const rf=w.refuses&&blockId(w.refuses.id)?{...w.refuses,n:blockId(w.refuses.id)}:null;
   const rec={id:w.id, name:w.name||w.id, of, gives, at:w.at||null,
