@@ -8256,6 +8256,79 @@ their counts off the world rather than a constant: **18 works declared** (20), *
 offer 46 of 46** (23 and 45), **446 files · 53/53 blocks** (36), test 44's man-from-nothing
 chain unmoved, test 58's sowing unmoved.
 
+## 4cn. Round 89 — the woods: every trunk on the earth had gone grey, and nine woods of scripture were read by nobody ✅
+
+*A survey for things DECLARED AND INERT — the pattern four of §17's five items turned out to
+share — found the palette's nine woods unread. Following that thread found something larger
+underneath it: Round 86 had greyed the world's timber, and no test could see it.*
+
+### The two things, which were one thing
+
+`world/palette.js` has declared nine woods since Phase 4 — cedar, acacia, olive, fir, gopher,
+almug, oak, sycamore, palm, each with its own plank and its own bark — and **nothing read
+them**. Its own comment claimed *"Phase 4 draws its planks from here; the flora may tint its
+bark from here today"*, and neither half was true. Meanwhile js/flora.js carried a second,
+parallel, per-species table of raw hexes — the very literals `world/palette.js` opens by
+declaring do not exist anywhere in this project.
+
+The reason that mattered was underneath. **The bark textures are painted in greyscale ON
+PURPOSE**: a standing tree tints them per species out of the flora's table, which is how one
+plate-bark texture serves both a fir and a cedar. Round 86 made the bole a BLOCK — and a block
+face is drawn with a scalar shade and no tint at all. `bole()` stamps and returns before the
+`emitBox` that carried `K._bole`. **Every trunk on the earth went flat grey the day it became
+mineable**, which is the exact opposite of that round's own promise, *"the eye keeps the birch
+and the cork-oak on the felled bole"*. Its crowns and boughs kept their colour, which is why
+nothing looked obviously wrong, and no test reads a vertex colour.
+
+### Measured, and the first measurement was thrown away
+
+**A fresh boot for each arm**, because the trunk stamps live in SEDITS and survive
+`dropChunks`: an A/B inside one page draws the blocks arm's stamps under the geometry arm's
+trees. The first reading was taken that way, showed 91% coloured in both arms, and was
+discarded as confounded — **the same confound Round 86 itself hit**, met a second time in the
+round that came to mend it.
+
+| arm | trunk blocks | grey bark vertices |
+|---|---|---|
+| boles as blocks (as shipped) | 12 in the sample ring | **10,996** — 9–22% of every bark material |
+| boles as geometry (Round 61's way) | 0 | **0**, across all five |
+
+### The mend
+
+**A block may name its own colour**, given as a palette triple — world/palette.js loads at
+manifest line 252 and the first block at 548, so the colour comes from the one place colour
+lives and never from a literal in a block file. The mesher carries it: `placedFace` takes a
+tint, **the merge key includes it** (two woods laid side by side must not merge into one
+colour — the same rule Round 86 met when unlike trunks touching could no longer hide the faces
+between them), and `placedFlush` passes `shade(tint,sh)`, which every face emitter already
+accepts. A coloured block costs no new path.
+
+**Which wood each timber is was decided by the world's own form-to-bark table, not by taste:**
+plate is worn by cedar and fir, twist by acacia, smooth by olive, ring by the palms, plain bark
+by oak and sycamore. Two barks name no wood and say why in their own files — **cork** is worn
+by mahogany, ceiba, banyan, baobab and mangrove, not one of them a wood the account names; and
+**paper** is the birch's, which the account does not name and whose bole is genuinely
+near-white, so grey is the truth of it and a tint would be a lie. Four woods stay unclaimed for
+stated reasons: fir shares plate with cedar, sycamore shares bark with oak, and gopher and
+almug name no tree that grows in this world.
+
+### The readings
+
+**10,996 grey bark vertices become 440 — and all 440 are barkCork, the grey that is meant.**
+Test 41 still reads **+0 triangles** with the tint carried through the merge; 11, 33, 43, 47
+green. Full suite over Rounds 88 and 89: **54 pass · 0 fail · 5 pending** — the four measured
+watchers and test 12's own honesty about a slower box.
+
+### And one test convicted honestly
+
+Test 17 failed in the targeted battery, and the comfortable story was ready: it is the same
+premise-assumed fault test 13 had, exposed by running after tests that fly the traveller into
+a wood. **That story was not accepted on its merits.** The change was reverted to HEAD and the
+identical batch re-run: **test 17 fails there too**, so it is pre-existing and not this round's
+— it passes alone, and passes in full-suite order in this round's suite and both before it. It
+is a real order-dependent fragility and it belongs to a future round, named here so it is a
+record and not a memory.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

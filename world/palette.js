@@ -309,8 +309,26 @@ const B = {
 /* ---------------- THE WOODS OF SCRIPTURE ----------------
    Cedar of Lebanon, acacia (shittim), olive, fir, gopher, almug, oak,
    sycamore, palm. Each has its own plank and its own bark, so a cedar hall
-   and an olive-wood press are not the same building in two sizes. Phase 4
-   draws its planks from here; the flora may tint its bark from here today. */
+   and an olive-wood press are not the same building in two sizes.
+
+   WHAT ACTUALLY READS THIS, said plainly, because the line that stood here
+   for rounds ("Phase 4 draws its planks from here; the flora may tint its
+   bark from here today") was true of neither.
+     THE BARK is read by the TIMBER BLOCKS — blocks/log.js and its fellows
+       name a wood here for their `tint`, which is what colours a felled
+       bole. The bark textures are greyscale on purpose and this is the
+       colour they take (Round 89; before it every trunk on the earth was
+       grey). The mapping is the world's own: plate is worn by cedar and
+       fir, twist by acacia, smooth by olive, ring by the palms, plain bark
+       by oak and sycamore.
+     THE PLANK is read by NOTHING YET. There is one `planks` block for the
+       whole earth and it has one face; nine plank colours want nine blocks,
+       and that is a round of its own and not a line here.
+     FOUR WOODS ARE UNCLAIMED and it is not an oversight: fir shares its
+       bark with cedar and sycamore shares its with oak, so the elder of
+       each pair holds it; and gopher and almug name no tree that grows
+       anywhere in world/flora.js — the ark's wood and Ophir's are here
+       against the day something bears them. */
 const WOOD = {
   cedar:    { plank: mix(P.burntSienna,P.rawSienna,0.42), bark: mix(P.burntUmber,P.redOchre,0.22) },
   acacia:   { plank: mix(P.ochre,P.rawSienna,0.30),       bark: mix(P.rawUmber,P.ash,0.20) },
