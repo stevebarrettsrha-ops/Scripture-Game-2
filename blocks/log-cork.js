@@ -15,5 +15,9 @@ EARTH.block({
   tex:{all:'barkCork'},
   hardness:2.0,
   tool:'axe', drops:'log',
+  /* NO WOOD NAMED HERE, AND THAT IS THE READING. The cork bark is worn by
+     the mahogany, the ceiba, the banyan, the baobab and the mangrove — not
+     one of them a wood the account names, so there is no scriptural colour
+     to give it and none is invented. It stays as the texture draws it. */
   opaque:true, gravity:false
 });

@@ -15,5 +15,9 @@ EARTH.block({
   tex:{all:'barkPaper'},
   hardness:2.0,
   tool:'axe', drops:'log',
+  /* NO WOOD NAMED HERE EITHER, and here it is not a want but a fact: the
+     paper bark is the birch's, which the account does not name, and a
+     birch bole is genuinely near-white. The texture is drawn pale and grey
+     already, so grey is the truth of it and a tint would be a lie. */
   opaque:true, gravity:false
 });

@@ -1070,6 +1070,21 @@ for(let i=0;i<BLOCK_DEFS.length;i++){
        thing is, and js/ says only how a thing of that shape behaves. */
     fills:d.fills||null,        /* what it becomes when dipped in water */
     empties:d.empties||null,    /* and what it becomes when poured out */
+    /* ---- AND WHAT COLOUR ITS FACES ARE DRAWN IN ----
+       THE FAULT THIS MENDS. The bark textures are painted in GREY on
+       purpose — a standing tree tints them per species out of the flora's
+       own table, which is how one plate-bark texture serves both a fir and
+       a cedar. Round 86 made the bole a BLOCK, and a block face is drawn
+       with a scalar shade and no tint at all, so every trunk on the earth
+       went flat grey the day it became mineable — the exact opposite of
+       that round's own promise, *"the eye keeps the birch and the cork-oak
+       on the felled bole"*. Measured, a fresh boot for each arm: 10,996
+       grey bark vertices with the boles as blocks, 0 with them as geometry.
+       So a block may name its own colour, and the timber does. It is given
+       as a 0-255 triple OUT OF world/palette.js, which is loaded long
+       before any block file — the colour comes from the one place colour
+       lives in this project and never from a literal in a block. */
+    tint:(d.tint&&d.tint.length===3)?[d.tint[0]/255,d.tint[1]/255,d.tint[2]/255]:null,
     /* ---- AND WHAT IS SOWN, WHICH IS THE SAME KIND OF RULE ----
        The engine knows no seed by name. A block that says `sown` stands in
        its cell as a growing PLANT: drawn as the land's own crop reading the
@@ -2337,11 +2352,17 @@ function editedCell(ix,iz,cc,em){
    tell apart should not be kept apart by the last bits of a float. */
 let _pf=null;                 /* the collector, open only while a chunk builds */
 function placedBegin(){ _pf=new Map(); }
-function placedFace(dir,plane,mat,sh,u,v){
+function placedFace(dir,plane,mat,sh,u,v,tint){
   if(!mat) return;
-  const k=dir+'|'+plane+'|'+mat+'|'+Math.round(sh*512);
+  /* THE COLOUR IS PART OF WHAT MAY MERGE. Two faces of the same material at
+     the same shade merge into one rectangle; two of different WOODS must
+     not, or a cedar and an olive laid side by side would come out one
+     colour — the same rule Round 86 met when unlike trunks touching could
+     no longer hide the faces between them. */
+  const k=dir+'|'+plane+'|'+mat+'|'+Math.round(sh*512)+
+    (tint?'|'+Math.round(tint[0]*255)+','+Math.round(tint[1]*255)+','+Math.round(tint[2]*255):'');
   let g=_pf.get(k);
-  if(!g){ g={dir,plane,mat,sh,cells:new Set(),u0:1e9,u1:-1e9,v0:1e9,v1:-1e9}; _pf.set(k,g); }
+  if(!g){ g={dir,plane,mat,sh,tint:tint||null,cells:new Set(),u0:1e9,u1:-1e9,v0:1e9,v1:-1e9}; _pf.set(k,g); }
   g.cells.add(u+','+v);
   if(u<g.u0)g.u0=u; if(u>g.u1)g.u1=u; if(v<g.v0)g.v0=v; if(v>g.v1)g.v1=v;
 }
@@ -2364,7 +2385,10 @@ function placedFlush(G){
           if(!has(u+a,vv)||used[i2]){ ok=false; break; } }
         if(!ok) break; h++; }
       for(let b2=0;b2<h;b2++) for(let a=0;a<w;a++) used[(v+b2-g.v0)*W+(u+a-g.u0)]=1;
-      const m=g.mat, sh=g.sh, P=g.plane;
+      /* `shade` gives back the scalar when there is no tint and a tinted
+         triple when there is, which is exactly what every face emitter
+         already takes — so a coloured block costs no new path */
+      const m=g.mat, sh=shade(g.tint,g.sh), P=g.plane;
       if(g.dir==='T')       faceTop   (G,m, u*B,v*B,(u+w)*B,(v+h)*B, P, sh);
       else if(g.dir==='B')  faceBottom(G,m, u*B,v*B,(u+w)*B,(v+h)*B, P, sh);
       else if(g.dir==='PX') facePX    (G,m, P, u*B,(u+w)*B, v*B,(v+h)*B, sh);
@@ -2455,12 +2479,12 @@ function emitPlaced(G,ix,iz,em,surfaceH){
     }
     /* under the ground it takes the cave's darkness; above it, the day */
     const lit=(y<surfaceH-1)?(CAVE_DARK+(1-CAVE_DARK)*caveLightAt(ix,iz,y+0.5)):1;
-    if(!blockSolidAt(ix,y+1,iz)) placedFace('T', (y+1)*B, b.mTop,    1.0*lit,  ix,iz);
-    if(!blockSolidAt(ix,y-1,iz)) placedFace('B', y*B,     b.mBottom, 0.5*lit,  ix,iz);
-    if(!blockSolidAt(ix+1,y,iz)) placedFace('PX',(ix+1)*B,b.mSide,   0.62*lit, iz,y);
-    if(!blockSolidAt(ix-1,y,iz)) placedFace('NX',ix*B,    b.mSide,   0.62*lit, iz,y);
-    if(!blockSolidAt(ix,y,iz+1)) placedFace('PZ',(iz+1)*B,b.mSide,   0.8*lit,  ix,y);
-    if(!blockSolidAt(ix,y,iz-1)) placedFace('NZ',iz*B,    b.mSide,   0.8*lit,  ix,y);
+    if(!blockSolidAt(ix,y+1,iz)) placedFace('T', (y+1)*B, b.mTop,    1.0*lit,  ix,iz, b.tint);
+    if(!blockSolidAt(ix,y-1,iz)) placedFace('B', y*B,     b.mBottom, 0.5*lit,  ix,iz, b.tint);
+    if(!blockSolidAt(ix+1,y,iz)) placedFace('PX',(ix+1)*B,b.mSide,   0.62*lit, iz,y, b.tint);
+    if(!blockSolidAt(ix-1,y,iz)) placedFace('NX',ix*B,    b.mSide,   0.62*lit, iz,y, b.tint);
+    if(!blockSolidAt(ix,y,iz+1)) placedFace('PZ',(iz+1)*B,b.mSide,   0.8*lit,  ix,y, b.tint);
+    if(!blockSolidAt(ix,y,iz-1)) placedFace('NZ',iz*B,    b.mSide,   0.8*lit,  ix,y, b.tint);
   }
 }
 function emitColumn(G,ix,iz,cc){
