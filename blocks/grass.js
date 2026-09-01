@@ -10,6 +10,5 @@ EARTH.block({
   tex:{top:'grassTop',side:'grassSide',bottom:'dirt'},
   hardness:0.9,         /* seconds to break it by hand */
   tool:'spade', drops:'dirt',
-  hoed:'soil',          /* what the hoe makes of it (§17.4) */
   opaque:true, gravity:false
 });

@@ -277,17 +277,6 @@ TEX.crop       = mkTex(g=>{ g.clearRect(0,0,16,16);
     for(let y=0;y<10;y+=FG){ g.fillRect(x,16-FG-y,FG,FG); if(y>4&&hash2(x,y)>0.5) g.fillRect(x-FG,16-FG-y,FG,FG); } } });
 TEX.soil       = mkTex(g=>{ speckle(g,PB.soil.b,18,PB.soil.a,0.3);
   g.fillStyle=C(PB.soil.furrow); for(const y of [3,8,13]) g.fillRect(0,y,16,2); });
-/* seed corn — a scatter of grains, gold as the ripe crop, on nothing:
-   it is a token in the satchel and never a face in the world (§17.4) */
-TEX.seedGrain  = mkTex(g=>{ g.clearRect(0,0,16,16);
-  g.fillStyle=C(PB.hayTop.b);
-  for(let i=0;i<14;i++){ const x=2+Math.floor(hash2(i*1.7,3.1)*12),
-      y=3+Math.floor(hash2(i*2.3,7.9)*10);
-    g.fillRect(x,y,FG,FG*2); }
-  g.fillStyle=C(PB.hayTop.twine);
-  for(let i=0;i<5;i++){ const x=3+Math.floor(hash2(i*3.1,1.3)*10),
-      y=4+Math.floor(hash2(i*1.3,9.7)*9);
-    g.fillRect(x,y,FG,FG); } });
 TEX.sun        = mkTex(g=>{ g.fillStyle=C(PB.sun.rim); g.fillRect(0,0,16,16);
   g.fillStyle=C(PB.sun.mid); g.fillRect(2,2,12,12);
   g.fillStyle=C(PB.sun.core); g.fillRect(4,4,8,8); });
@@ -516,7 +505,6 @@ blockMat('bucketFull',TEX.bucketFull,{transparent:true});
 blockMat('flintAxe',TEX.flintAxe,{transparent:true});
 blockMat('flintSpade',TEX.flintSpade,{transparent:true});
 blockMat('flintHoe',TEX.flintHoe,{transparent:true});
-blockMat('seedGrain',TEX.seedGrain,{transparent:true});
 blockMat('flintKnife',TEX.flintKnife,{transparent:true});
 blockMat('goldOre',TEX.goldOre); blockMat('silverOre',TEX.silverOre);
 blockMat('copperOre',TEX.copperOre); blockMat('ironOre',TEX.ironOre);
@@ -1032,15 +1020,6 @@ for(let i=0;i<BLOCK_DEFS.length;i++){
        thing is, and js/ says only how a thing of that shape behaves. */
     fills:d.fills||null,        /* what it becomes when dipped in water */
     empties:d.empties||null,    /* and what it becomes when poured out */
-    /* ---- THE SOWING, DECLARED THE SAME WAY (§17.4) ----
-       A seed names the crop KIND it sows (`sows:'wheat'`) and a sown-ground
-       block names the kind that stands in it (`crop:'wheat'`) — both are
-       keys into world/crops.js, the same registry the village fields read,
-       so the engine never knows a crop by name. `hoed` on a ground block
-       names what the hoe turns it into. */
-    sows:d.sows||null,          /* on a seed: the crop kind it puts in the ground */
-    crop:d.crop||null,          /* on sown ground: the kind standing in it */
-    hoed:d.hoed||null,          /* on bare ground: what the hoe makes of it */
     /* whether it may be SET DOWN at all — a tool may not */
     place:d.place!==false };
   /* the three faces the mesher asks for, resolved once so it never has to */
@@ -2389,24 +2368,6 @@ function emitPlaced(G,ix,iz,em,surfaceH){
       f=upTo(0,-1);
       if(f<hh) faceNZ(G,b.mSide,z0,  x0,x0+B,yy+f*B,yy+hh*B,0.8*lit2);
       continue;
-    }
-    /* ---- SOWN GROUND CARRIES ITS STANDING CORN (§17.4) ----
-       A block whose `crop` names a kind draws its cube as the tilled ground
-       it is, and then ONE cross of that kind over it — the same cross, the
-       same `crop`/`cropEver` material and the same vertex-shader year as
-       every village field (emitFarm is the model), so a hand-sown crop is
-       sunk out of season, rises at the latitude's own seedtime, gilds when
-       it ripens, and costs no rebuild as the year turns. Drawn only under
-       open air: a sown cell built over grows nothing, the same lesson the
-       crowns taught in Round 86 — what stands on a cell obeys the cell. */
-    if(b.crop&&window.CROP&&!blockSolidAt(ix,y+1,iz)){
-      initCrop();
-      const K=CROP.kinds()[b.crop];
-      if(K){
-        const mat=CROP.turns(K)?'crop':'cropEver';
-        const tint=[((K.green>>16)&255)/255,((K.green>>8)&255)/255,(K.green&255)/255];
-        cross(G,mat,(ix+0.5)*B,(iz+0.5)*B,(y+1)*B+0.05,B*(K.w||0.8),B*(K.h||0.7),tint);
-      }
     }
     /* under the ground it takes the cave's darkness; above it, the day */
     const lit=(y<surfaceH-1)?(CAVE_DARK+(1-CAVE_DARK)*caveLightAt(ix,iz,y+0.5)):1;
@@ -17719,50 +17680,12 @@ function useBucket(b,h){
   }
   return {no:'it is not a vessel'};
 }
-/* ---- THE HOE, AND THE SEED — the sowing's two verbs (§17.4) ----
-   Both go through the same door the bucket goes through, and both are all
-   data: a ground block says what the hoe makes of it (`hoed:'soil'` on
-   sward and earth), a seed says what crop kind it sows (`sows:'wheat'`),
-   and tilled ground (`blocks/soil.js`) is the only ground that takes seed.
-   The engine knows no crop and no ground by name.
-
-   THE SOWN CELL IS THE GROUND CELL, NOT THE AIR OVER IT. Sowing turns the
-   struck soil block into the sown-ground block whose `crop` names the kind;
-   the standing corn is cross geometry the mesher draws over that cell with
-   the village fields' own `crop` material — so the vertex-shader year rules
-   a hand-sown crop exactly as it rules a village field: sown any day of the
-   year, it stands sunk until the latitude's own seedtime, and the earth
-   decides. That is the season rule, and it costs no code because the shader
-   IS the rule. */
-function useHoe(){
-  const a=AIM; if(!a) return {no:'nothing is within reach'};
-  const b=blockOf(a.n||0);
-  if(!b||!b.hoed) return {no:'this ground will not till'};
-  const to=blockId(b.hoed); if(!to) return {no:'this ground will not till'};
-  setBlock((a.ix+0.5)*B,(a.iy+0.5)*B,(a.iz+0.5)*B,to);
-  return {tilled:b.id, at:[a.ix,a.iy,a.iz], now:b.hoed};
-}
-function useSeed(h,st){
-  const a=AIM; if(!a) return {no:'nothing is within reach'};
-  const g=blockOf(a.n||0), free=freeHand();
-  /* tilled ground, and nothing else, takes seed: the sown block for this
-     kind is <ground id>-<kind>, which is how blocks/soil-wheat.js names
-     itself, and a ground with no sown block for the kind refuses */
-  const to=g?blockId(g.id+'-'+h.sows):0;
-  if(!to) return {no:'the ground will not take it — it wants tilled ground'};
-  if(!free&&!satchelTake(h.id,1)) return {no:'his hand is empty'};
-  setBlock((a.ix+0.5)*B,(a.iy+0.5)*B,(a.iz+0.5)*B,to);
-  beltDraw(); satchelTouch();
-  return {sown:h.sows, at:[a.ix,a.iy,a.iz]};
-}
 function placeBlock(){
   /* the vessel is used before the rule below throws every held thing out —
      a bucket is `place:false` like any held thing, and doing nothing with it
      would be the whole of the bug */
   { const h=heldBlock(), st=heldStack();
-    if(h&&h.serves==='bucket'&&st) return useBucket(h,st);
-    if(h&&h.serves==='hoe'&&st) return useHoe();
-    if(h&&h.sows&&st) return useSeed(h,st); }
+    if(h&&h.serves==='bucket'&&st) return useBucket(h,st); }
   /* ---- A TOOL IS NOT A CUBIC METRE OF TOOL ----
      §11 step 9 gives the hand things that are HELD and not laid: a pick, an
      axe, a knife. `place:false` on the block is the whole of the rule, and it
