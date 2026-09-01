@@ -113,6 +113,19 @@ EARTH.work({ id:'flint-spade', name:'A Spade of Flint',
 EARTH.work({ id:'flint-hoe',   name:'A Hoe of Flint',
   of:{ 'flint':2, 'planks':2 }, gives:{ 'flint-hoe':1 } });
 
+/* --- THRESHING — seed corn beaten out of the sheaf ---
+   The sheaves stand in every byre and pen on the earth, and the seed is IN
+   them: beaten out at the bare hand, as Ruth beat out her gleaning and
+   Giḏ‛on threshed his wheat in the winepress. It is the one door into the
+   sowing a voyage that owns nothing can walk through — a sheaf gives to
+   bare fingers, and from it the seed, and from the seed the field. */
+EARTH.work({
+  id:'thresh', name:'Thresh Seed Corn',
+  of:{ 'hay':1 }, gives:{ 'seed':4 },
+  verse:{ t:'And she gleaned in the field until evening and beat out that which she had gleaned and it was about an ĕphah of barley.',
+          ref:'RUTH 2:17' }
+});
+
 /* --- THE KILN — the only work that makes a PLACE rather than a thing ---
    Everything below it must be done standing at one, because "bake them
    thoroughly" is not something a man does in his hands. */
@@ -142,7 +155,7 @@ EARTH.work({
 EARTH.work({
   id:'bucket', name:'A Bucket', at:'kiln',
   of:{ 'clay-band':3 }, gives:{ 'bucket':1 },
-  verse:{ t:'And she hurried and emptied her jar into the trough, and ran back to the well to draw water, and she drew for all his camels.',
+  verse:{ t:'And she hurried and emptied her jar into the trough, ran back to the fountain to draw water and drew for all his camels.',
           ref:'BERĔSHITH 24:20' }
 });
 

@@ -437,6 +437,20 @@ TEX.flintKnife = mkTex(g=>{ g.clearRect(0,0,16,16);
   for(let k=0;k<8;k++) g.fillRect(3+k,8-k,2,2);
   g.fillStyle=C(PB.toolStone.glint); g.fillRect(4,7,FG,FG); g.fillRect(8,3,FG,FG);
   g.fillStyle=C(PB.toolStone.cord); g.fillRect(8,8,3,FG*2); },16,16,RIM);
+/* ---- SEED CORN ----
+   Drawn as the THING, like the tools: a poured handful of grains, heaped
+   toward the middle, so the token on the belt reads as seed and not as a
+   cube of straw. The block itself is never drawn as a cube at all — sown,
+   it stands in its cell as the land's own crop (see emitPlaced). */
+TEX.seedT = mkTex(g=>{ g.clearRect(0,0,16,16);
+  for(let k=0;k<26;k++){
+    const a=hash2(k*3.7,k*1.9)*6.2832, r=1.5+hash2(k*1.3,k*7.1)*5.5*(k<14?0.55:1);
+    const x=Math.round(8+Math.cos(a)*r), y=Math.round(8+Math.sin(a)*r*0.8);
+    if(x<1||x>13||y<1||y>13) continue;
+    const c=jit(hash2(k,2.2)<0.7?PB.seed.b:PB.seed.a,20,k);
+    g.fillStyle=rgb(c[0],c[1],c[2]);
+    if(hash2(k,5.5)<0.5) g.fillRect(x,y,2,1); else g.fillRect(x,y,1,2);
+    if(hash2(k,8.8)<0.2){ g.fillStyle=C(PB.seed.glint); g.fillRect(x,y,FG,FG); } } });
 /* ---- THE STONES OF THE BREASTPLATE ----
    A gem is the country's own rock with the crystal growing OUT of it — never
    a coloured cube. Faceted, so the light breaks on it: a dark shoulder, the
@@ -506,6 +520,7 @@ blockMat('flintAxe',TEX.flintAxe,{transparent:true});
 blockMat('flintSpade',TEX.flintSpade,{transparent:true});
 blockMat('flintHoe',TEX.flintHoe,{transparent:true});
 blockMat('flintKnife',TEX.flintKnife,{transparent:true});
+blockMat('seedT',TEX.seedT,{transparent:true});
 blockMat('goldOre',TEX.goldOre); blockMat('silverOre',TEX.silverOre);
 blockMat('copperOre',TEX.copperOre); blockMat('ironOre',TEX.ironOre);
 blockMat('alabaster',TEX.alabaster); blockMat('flint',TEX.flint);
@@ -1020,6 +1035,19 @@ for(let i=0;i<BLOCK_DEFS.length;i++){
        thing is, and js/ says only how a thing of that shape behaves. */
     fills:d.fills||null,        /* what it becomes when dipped in water */
     empties:d.empties||null,    /* and what it becomes when poured out */
+    /* ---- AND WHAT IS SOWN, WHICH IS THE SAME KIND OF RULE ----
+       The engine knows no seed by name. A block that says `sown` stands in
+       its cell as a growing PLANT: drawn as the land's own crop reading the
+       year (emitPlaced), walked through rather than stood on (blockSolidAt),
+       and come away at a touch. `bed` names the one ground it will take —
+       placeBlock refuses any other — and `increase` is what a FULL-GROWN
+       plant gives over the seed that went in when it is reaped; a young
+       shoot gives only the seed back. `tills` is the rule's other half, on
+       the GROUND: what the hoe turns this block into. */
+    sown:!!d.sown,
+    bed:d.bed||null,
+    increase:d.increase||0,
+    tills:d.tills||null,
     /* whether it may be SET DOWN at all — a tool may not */
     place:d.place!==false };
   /* the three faces the mesher asks for, resolved once so it never has to */
@@ -2332,6 +2360,27 @@ function emitPlaced(G,ix,iz,em,surfaceH){
   for(const [y,n] of em){
     if(!n) continue;
     const b=blockOf(n); if(!b) continue;
+    /* ---- A SOWN CELL IS A PLANT, NOT A CUBE ----
+       It is drawn as the land's own crop — the very kind, colour and
+       stature a village field of this country bears, asked of js/crop.js
+       the same way emitFarm asks — in the crop material, whose vertex
+       shader sinks it into its own bed by how far off harvest the year
+       stands and gilds it as it comes ready. So a hand-sown cell reads
+       the same year every field on the earth reads, for nothing: no new
+       material, no per-frame cost, no remesh as it grows. The stature it
+       is meshed at is FULL; what is sunk hides inside the tilled block
+       and the ground under it, exactly as a field's young corn hides
+       under its own soil face. */
+    if(b.sown){
+      const wx=(ix+0.5)*B, wz=(iz+0.5)*B;
+      initCrop();
+      const K=window.CROP?CROP.forField(landNameAt(wx,wz),wx,wz):null;
+      const mat=(window.CROP&&!CROP.turns(K))?'cropEver':'crop';
+      const tint=K?[((K.green>>16)&255)/255,((K.green>>8)&255)/255,(K.green&255)/255]:0.95;
+      const hh=B*((K&&K.h)||0.7), ww=B*((K&&K.w)||0.8);
+      cross(G,mat,wx,wz,y*B+0.05,ww,hh,tint);
+      continue;
+    }
     /* ---- WATER LEAVES THE GREEDY PATH AND STANDS AT ITS OWN HEIGHT ----
        The mesher merges faces plane by plane, which wants every block to be
        the same cube; water is not, so it draws its own box. There are never
@@ -2960,7 +3009,19 @@ function blockAt(ix,iy,iz){
 }
 function blockSolidAt(ix,iy,iz){
   const e=editAt(ix,iy,iz);
-  return e!==undefined ? e!==0 : proceduralSolid(ix,iy,iz);
+  /* a SOWN cell is a plant, not a wall: a man walks through his own corn,
+     and the faces beside it are drawn as though it were air. It is still a
+     block — blockAt answers it, the arm can be laid on it (aimAt asks for
+     it by name), and breaking it is how the field is reaped. */
+  if(e!==undefined) return e!==0 && !(BLOCKS[e]&&BLOCKS[e].sown);
+  return proceduralSolid(ix,iy,iz);
+}
+/* is a growing plant standing in this cell? asked by the arm, which must be
+   able to land on what the foot passes through */
+function blockSownAt(ix,iy,iz){
+  if(!EDITS.size&&!SEDITS.size) return false;
+  const e=editAt(ix,iy,iz);
+  return !!(e&&BLOCKS[e]&&BLOCKS[e].sown);
 }
 /* ---- THE ONE DOOR ----
    World coordinates in, because everything that will ever call it — the
@@ -16313,6 +16374,12 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      waters; nothing in the game reads it. */
   landNameAt,
   handSlow:()=>HAND_SLOW,
+  /* ---- THE SOWING, FOR tools/acceptance.js ----
+     the stand that counts as full-grown, and the year as the reaping reads
+     it — the same CROP.yearAt the shader is built from, at a place's own
+     latitude, so a test can ask exactly what the increase rule will be paid */
+  sownFull:()=>SOWN_FULL,
+  sownGrowAt,
   aimFrom:(ox,oy,oz,dx,dy,dz,reach)=>{ const L=Math.hypot(dx,dy,dz)||1;
     return aimAt(ox,oy,oz,dx/L,dy/L,dz/L,reach||REACH); },
   markVisible:()=>!!(markG&&markG.visible),
@@ -16707,7 +16774,10 @@ function aimAt(ox,oy,oz, dx,dy,dz, reach){
     else {              iz+=sz; t=tz; tz+=tdz; nx=0; ny=0; nz=-sz; }
     if(t>far) return null;
     if(iy<EY_MIN||iy>=EY_MAX) return null;
-    if(blockSolidAt(ix,iy,iz))
+    /* the arm lands on rock AND on a growing plant — the plant is no wall
+       to the foot (blockSolidAt says air), but reaping is the hand's work
+       and a crop the arm passed through could never be taken */
+    if(blockSolidAt(ix,iy,iz)||blockSownAt(ix,iy,iz))
       return {ix,iy,iz,nx,ny,nz,n:blockAt(ix,iy,iz),dist:t};
   }
   return null;
@@ -16782,6 +16852,21 @@ function aimTick(){
    IT IS THE BLOCK WORLD ONLY. The ship, the beasts, the villagers and the
    traveller are not blocks and are not struck. */
 const HAND_SLOW=2.5;              /* the price of the wrong tool, or none */
+/* ---- HOW FAR ON A SOWN PLANT STANDS ----
+   The crop shader's own year, asked in JavaScript: the same CROP.yearAt the
+   GLSL is built from (test 48 holds the two together), at this place's own
+   latitude, worked out exactly as the shader works it — latN is one minus
+   twice the distance from the middle of the disc. `SOWN_FULL` is the stand
+   that counts as full-grown: grow runs 0 (bare bed) to 1 (standing corn),
+   stubble is 0.16, and the tropics, which have no dead season, swing 0.56
+   to 1 — so at 0.8 a temperate crop is full from late green through the
+   reaping and a tropical one is harvestable much of its endless year. */
+const SOWN_FULL=0.8;
+function sownGrowAt(wx,wz){
+  if(!window.CROP) return 0;
+  const latN=1-2*Math.hypot(wx,wz)/R_WORLD;
+  return CROP.yearAt(SEASON_Y.value,latN).grow;
+}
 const MINE={ix:0,iy:0,iz:0,t:0,need:0,on:false,n:0};
 let mineHeld=false, mineTestAt=null, mineDriven=false;
 /* what the hand SERVES as — the one question the tool rule asks */
@@ -16984,7 +17069,18 @@ function mineTick(dt){
     /* and it leaves something behind — but NOT in the free hand, where the
        satchel already holds everything and a stream of pickups behind a man
        clearing a hillside is nothing but litter he cannot refuse */
-    if(!freeHand()) spawnDrop(cx,cy,cz,was);
+    if(!freeHand()){ spawnDrop(cx,cy,cz,was);
+      /* ---- AND THE HARVEST IS THE INCREASE ----
+         A sown plant reaped FULL-GROWN gives its `increase` over the seed
+         that went in; a young shoot gives only the seed back. How far on
+         it stands is the very curve the crop shader draws it by, asked in
+         JavaScript at the moment of the reaping — so what the eye sees
+         standing tall is what the hand is paid for, and there is no second
+         table of the year to drift from the first. */
+      const bw=blockOf(was);
+      if(bw&&bw.sown&&bw.increase&&sownGrowAt(cx,cz)>=SOWN_FULL)
+        for(let k2=0;k2<bw.increase;k2++) spawnDrop(cx,cy,cz,was);
+    }
     mineStop();
   }
 }
@@ -17288,7 +17384,18 @@ function fallCheck(ix,iy,iz){
      breath, and every block of it comes down. */
   if(LOOSE.length>=LOOSE_MAX){ SETTLE.push(ix,iy,iz); return; }
   const n=blockAt(ix,iy+1,iz); if(!n) return;
-  const b=blockOf(n); if(!b||!b.gravity) return;
+  const b=blockOf(n);
+  /* ---- A PLANT WITH ITS BED GONE COMES AWAY ----
+     Not as a falling cube — a shoot is not a bank of sand — but as the seed
+     it was: the cell is emptied and the seed lies where the plant stood, so
+     a man who digs out his own furrow is handed his seed back and not a
+     floating stalk. (Nothing in the free hand, by the litter rule.) */
+  if(b&&b.sown){
+    const px=(ix+0.5)*B, py=(iy+1.5)*B, pz=(iz+0.5)*B;
+    setBlock(px,py,pz,0);
+    if(!freeHand()) spawnDrop(px,py,pz,n);
+    return; }
+  if(!b||!b.gravity) return;
   const mat=MAT[b.mSide]||MAT[b.mTop]; if(!mat) return;
   /* out of the world, into the air — and the emptying of ITS cell wakes
      whatever stood above it, so a whole bank comes down and not one course */
@@ -17680,12 +17787,32 @@ function useBucket(b,h){
   }
   return {no:'it is not a vessel'};
 }
+/* ---- THE HOE: THE ONE TOOL WHOSE WORK IS TURNING, NOT BREAKING ----
+   blocks/flint-hoe.js has said so since Phase 4 — "the one tool in this
+   list whose work is not breaking but turning" — and until now nothing read
+   it: the hoe served only as the soil's breaking tool, a digging stick with
+   a grand name. This is the turning. The engine knows no ground by name:
+   a block that says `tills` names what the hoe turns it into (the sward
+   and the earth both say 'soil'), and any block that says nothing will not
+   be tilled. It is done from above, under open sky, because a bed is
+   turned from over it and a furrow wants the rain. */
+function useHoe(){
+  const a=AIM; if(!a) return {no:'nothing is within reach'};
+  const b=blockOf(a.n);
+  if(!b||!b.tills) return {no:'this ground will not be tilled'};
+  if(a.ny!==1) return {no:'a bed is turned from above'};
+  if(blockAt(a.ix,a.iy+1,a.iz)!==0) return {no:'something stands over it'};
+  setBlock((a.ix+0.5)*B,(a.iy+0.5)*B,(a.iz+0.5)*B, blockId(b.tills));
+  return {tilled:b.id, at:[a.ix,a.iy,a.iz], now:b.tills};
+}
 function placeBlock(){
   /* the vessel is used before the rule below throws every held thing out —
      a bucket is `place:false` like any held thing, and doing nothing with it
      would be the whole of the bug */
   { const h=heldBlock(), st=heldStack();
-    if(h&&h.serves==='bucket'&&st) return useBucket(h,st); }
+    if(h&&h.serves==='bucket'&&st) return useBucket(h,st);
+    /* and the hoe the same — held, it turns the ground the arm is on */
+    if(h&&h.serves==='hoe') return useHoe(); }
   /* ---- A TOOL IS NOT A CUBIC METRE OF TOOL ----
      §11 step 9 gives the hand things that are HELD and not laid: a pick, an
      axe, a knife. `place:false` on the block is the whole of the rule, and it
@@ -17702,6 +17829,13 @@ function placeBlock(){
   if(blockSolidAt(ix,iy,iz)) return {no:'something already stands there'};
   const who=cellHitsAnyLiving(ix,iy,iz);
   if(who) return {no:who+' is standing there'};
+  /* ---- AND A SEED TAKES ONLY ITS OWN BED ----
+     A block that names a `bed` will stand on that ground and no other: the
+     seed on the tilled bed the hoe turns, and nothing else anywhere. The
+     refusal names the want, because a hand that silently does nothing is
+     indistinguishable from a hand that is broken. */
+  if(b.bed&&blockAt(ix,iy-1,iz)!==blockId(b.bed))
+    return {no:b.name+' will take no ground but '+blockName(blockId(b.bed))+' — the hoe turns it'};
   /* IT COSTS NOTHING IN THE FREE HAND. The stack is not touched at all, so
      what he holds never runs out and never has to be fetched again. */
   if(!freeHand()&&!satchelTake(h.id,1)) return {no:'his hand is empty'};

@@ -7941,7 +7941,115 @@ it drops log · broken: true.* Test 44's whole chain — fingers to timber to pl
 the doubling of the flora walk lost in terrain noise. Bamboo culms, mangrove stilts and the
 banana's false stem stay geometry, as Round 61 documented.
 
-## 4ck. Round 86, corrected — the earth was sheathed in phantom timber, and every tree stood as a naked pole ✅
+## 4ck. Round 87 — a hand that sows: PLAN §17.4 paid, and the year already standing does the growing ✅
+
+*PLAN §17.4 has said the same thing since Round 68: "What still does not exist is a hand that
+sows: a seed in the satchel, ground that will take it, and a crop that comes on where the
+traveller put it rather than where a village put it. The clock and the growth are now both
+standing and waiting for it." This round is the hand. Nothing new grows anything: the sown
+cell reads the very machinery the village fields have read since Round 68, which is why the
+whole feature is one block file, one work, four declared fields and ~90 lines of engine.*
+
+### The design, and why it is one substance
+
+**Seed Corn is ONE block, by the bucket's own rule** (a vessel and its water are one thing in
+two states): in the satchel it is the seed, and set down on tilled ground it IS the sown cell.
+There is no second "growing crop" block, no wheat-seed and rice-seed and flax-seed — §4's rule
+against placeholder catalogues holds, because **which corn comes up is not the seed's to say**:
+the sown cell bears what its own country sows, asked of `js/crop.js` exactly as a village
+field asks (`CROP.forField`, seeded on the cell's own place), so a seed sown in Egypt comes up
+wheat and the same seed sown in Java comes up rice.
+
+**And the growth costs nothing, because it was already paid for.** The sown cell is drawn in
+the chunk's own mesh as a cross in the `crop`/`cropEver` material — the very material every
+village field wears — whose vertex shader has sunk the plant into its bed by how far off
+harvest the year stands since Round 68. Meshed once at full stature; no remesh as it grows, no
+per-frame cost, no new material, no new draw-call kind. The sunk part hides inside the tilled
+block and the ground under it, exactly as a field's young corn hides under its own soil face.
+
+**The engine knows no seed by name.** Four fields on the block registry carry the whole rule,
+in the pattern `serves`/`fills`/`empties` set:
+
+| field | on | what it means |
+|---|---|---|
+| `sown` | seed | drawn as a growing plant, walked through (`blockSolidAt` answers air), the arm still lands on it (`aimAt` asks `blockSownAt`), comes away at a touch |
+| `bed` | seed | the one ground it will take — `placeBlock` refuses any other, in words that name the hoe |
+| `increase` | seed | what a FULL-GROWN plant gives over the seed that went in |
+| `tills` | grass, dirt | what the hoe turns this ground into |
+
+**The hoe finally does what its own file said.** `blocks/flint-hoe.js` has read "the one tool
+in this list whose work is not breaking but turning" since Phase 4, and nothing ever read it —
+the hoe served only as the soil's *breaking* tool. Held now, it goes through the same door the
+bucket goes through (`placeBlock` → `useHoe`): aimed at a block that names `tills`, from
+above, under open air, it turns it — and the tilled bed is a DEED, in the player's record,
+because `setBlock` is the one door and the hand wrote it.
+
+**The reaping pays by the year, and by nothing else.** Broken full-grown (`grow >= 0.8` on
+`CROP.yearAt` at the cell's own latitude — the SAME curve the shader is built from, which
+test 48 already holds to the GLSL within 6.3e-6), the plant drops its seed and its `increase`
+of 3 over it; broken young, only the seed back; and a plant whose bed is dug out from under
+it comes away as its seed rather than standing on nothing (`fallCheck`, beside the sand rule).
+
+**And the first seed is come by honestly.** A fifteenth work, `thresh` — 1 Sheaf gives 4 Seed
+Corn, at the bare hand, with RUTH 2:17 beside it ("And she gleaned in the field until evening
+and beat out that which she had gleaned…"). The sheaves stand in every pen and byre on the
+earth and have been breakable blocks since Phase 3, so a voyage that owns nothing walks:
+sheaf → seed → hoe (flint 2, planks 2, already in the works) → bed → field.
+
+### What the building taught
+
+**1. The truth about a cell arrives when its chunk is BUILT — and this time it bit the test,
+not the game.** Test 58's first cut probed for a plot with the pure functions and then walked
+there — and the bole pre-pass of Round 86 stamped a trunk into the very column the probe had
+liked, so the hoe met "something stands over it" and the seed met Timber that had not existed
+at probe time. The station is two-pass now: the pure functions shortlist grassy sites, the
+ground is stood on and its chunks waited for, and the plot is chosen from what is actually
+standing (with head-room, because a trunk one course up is a crop that cannot stand).
+
+**2. The bucket's verse was a paraphrase, and `--check` had been saying so.** The extractor
+read *62 exact · 1 paraphrased* before this round touched anything: BERĔSHITH 24:20 shipped in
+Round 60 as "and ran back to the well to draw water, and she drew" where the source reads "ran
+back to the fountain to draw water and drew". Mended to the source text, word for word. The
+two verses this round adds (RUTH 2:17 on the work, QOHELETH 11:6 on the seed) were emitted by
+the extractor, never typed. **64 exact · 0 paraphrased · 0 unsourceable now.**
+
+### The readings
+
+Test 58 walks the whole chain in the voyage hand, in the order a player would, each link
+asked separately — and the station it found is in the SOUTH (Falkland Is., latN −0.58), so
+the hemisphere shift of the agricultural year is exercised for free:
+
+    threshing gave 4 seed
+    untilled grass refused: "Seed Corn will take no ground but Tilled Ground — the hoe turns it"
+    tilled: true, and the bed is in the player's record
+    sown: a walk-through block the arm lands on · 1 crop mesh in the chunk meshes (0 before)
+    reaped full-grown (grow 0.91): +4 — the seed and its increase
+    reaped young     (grow 0.16): +1 — the seed back and nothing else
+    the bed dug away: the plant came away as 1 seed
+
+**Proved by injection, both ways.** The bed rule disabled: *"FAULTS: the seed took untilled
+grass — the bed rule is not read"*. The year unhooked from the reaping (`true||` on the grow
+gate): *"FAULTS: a YOUNG shoot paid the increase (4) — the year is not read at the reaping"*.
+Both faults named by the line that catches them, then taken back out.
+
+### What is deliberately NOT here, named so it is not found missing
+
+- **A hand-sown paddy is not flooded.** A village rice field floods its plot; a sown cell
+  draws the crop and no water. The flooding is the field builder's, not the block's.
+- **Sand will not till.** `tills` is declared on the sward and the earth and nothing else —
+  the desert grows a field only where a man carries soil to it, which is a thing he can do.
+- **The village fields stay decoration.** They are triangles in the village's own meshes, as
+  they have been since Round 68; a hand cannot reap them. The traveller's fields are blocks.
+- **Seed corn is not yet bread.** There is no food system; the increase is seed, and the work
+  it feeds is more sowing. Bread is a work for the day the world needs one.
+- **The free hand leaves no drops** at the reaping, by the litter rule of Round 42 — and the
+  Stores offer the seed, so a place may be laid out with standing corn.
+
+Cost: `blockSolidAt` gained one guarded array read on edited cells only; `aimAt` one
+early-out call per step. Test 12's chunk-cost guard and test 11's ratio stand watch over
+both, as they have since Rounds 66 and 86.
+
+## 4cl. Round 86, corrected — the earth was sheathed in phantom timber, and every tree stood as a naked pole ✅
 
 *The full suite ran three and three-quarter hours against Round 86 and returned 48 · 4 · 5,
 and every FAIL had a story that satisfied: tests 13, 40 and 42 had "assumed a spot clear that

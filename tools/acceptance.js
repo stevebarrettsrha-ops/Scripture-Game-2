@@ -4404,6 +4404,217 @@ T[57]={name:'the something at the back of the sea caves — there, at the BACK, 
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
+T[58]={name:'a hand that sows: the sheaf gives seed, the hoe turns a bed, the seed takes it and no other, and the reaping pays by the year',
+  /* THE HOLE THIS FILLS — PLAN §17.4, and it has said the same thing since
+     Round 68: "What still does not exist is A HAND THAT SOWS: a seed in the
+     satchel, ground that will take it, and a crop that comes on where the
+     traveller put it rather than where a village put it." The clock and the
+     growth have stood waiting since the agricultural year shipped; the hoe
+     has been in the works list since Phase 4 with its own file calling its
+     work "not breaking but turning", and nothing ever read that.
+
+     THE WHOLE CHAIN IS WALKED IN THE VOYAGE HAND, in the order a player
+     would walk it, and each link is asked separately so the report says
+     where it broke:
+       1. the sheaf gives seed — the threshing work, at the bare hand
+       2. untilled ground REFUSES the seed, and says why
+       3. the hoe turns the sward to a tilled bed, and the turning is a DEED
+       4. the seed takes the bed: the sown cell is a block the arm can land
+          on and the foot walks through, drawn in the chunk's own mesh as
+          the crop material the fields of the earth already wear
+       5. reaped FULL-GROWN it pays the increase; reaped young it gives only
+          the seed back — the same curve the shader draws it by, A/B'd by
+          setting the season and counting what actually lands
+       6. and a plant whose bed is dug out from under it comes away as its
+          seed, not as a floating stalk
+
+     THE STATION IS CHOSEN BY LATITUDE, not by name: the year's phase can
+     only be driven through the four season overrides, and near the equator
+     none of the four stands a temperate crop full — the test wants a land
+     far enough toward a pole that Summer means standing corn and Winter
+     means a bare bed, which is |latN| >= 0.5. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, W=window.__WORLD, C=window.CROP, SE=window.SEASON;
+    const B=D.B||6, R=D.R_WORLD||180000;
+    const raf=()=>new Promise(r=>requestAnimationFrame(r));
+    if(!C||!SE) return {pending:'no crop or season system'};
+    if(!D.blockId('seed')) return {pending:'no seed block'};
+    if(D.applyFreeroam){ D.state.freeroam=false; D.applyFreeroam(); }
+
+    /* ---- a temperate-north (or -south) station, found by latitude ----
+       Two passes, and the second is the one that counts. The pure functions
+       shortlist sites past half latitude whose station square holds grass at
+       all — but the TRUTH about a cell arrives only when its chunk is BUILT,
+       because the bole pre-pass stamps trunks into the very columns the
+       probe liked (that is how this test first failed: it tilled under a
+       tree that did not exist yet and the seed met Timber). So the ground
+       is stood on, the chunks waited for, and the plot chosen from what is
+       actually standing. */
+    const S=W.sites(); let g=null, latN=0, land='?';
+    const seen={}; const shortlist=[];
+    for(let i=0;i<S.length&&shortlist.length<3;i++){ if(!S[i]) continue;
+      const l=1-2*Math.hypot(S[i].x,S[i].z)/R;
+      if(Math.abs(l)<0.5||Math.abs(l)>0.72) continue;
+      const cix=Math.floor(S[i].x/B), ciz=Math.floor((S[i].z-300)/B);
+      let any=false;
+      for(let d=3;d<30&&!any;d++) for(let a=-d;a<=d&&!any;a++) for(let b=-d;b<=d&&!any;b++){
+        if(Math.max(Math.abs(a),Math.abs(b))!==d) continue;
+        const ix=cix+a, iz=ciz+b, c=D.landAtWorld((ix+0.5)*B,(iz+0.5)*B);
+        if(!c){ seen.sea=(seen.sea||0)+1; continue; }
+        const bs=D.blockOf(D.blockAt(ix,c.h-1,iz));
+        const id=bs?bs.id:'?'; seen[id]=(seen[id]||0)+1;
+        if(bs&&bs.tills) any=true;
+      }
+      if(any) shortlist.push({x:S[i].x,z:S[i].z-300,l});
+    }
+    if(!shortlist.length) return {pending:'no grassy site past half latitude — surfaces seen: '+
+      JSON.stringify(seen)};
+    for(const cand of shortlist){
+      D.setMode('walk'); D.state.walk.x=cand.x; D.state.walk.z=cand.z;
+      D.state.walk.feetY=undefined;
+      for(let k=0;k<40;k++){ D.updateChunks(cand.x,cand.z,400); await raf(); }
+      await D.settle(4);
+      const cix=Math.floor(cand.x/B), ciz=Math.floor(cand.z/B);
+      for(let d=3;d<30&&!g;d++) for(let a=-d;a<=d&&!g;a++) for(let b=-d;b<=d&&!g;b++){
+        if(Math.max(Math.abs(a),Math.abs(b))!==d) continue;
+        const ix=cix+a, iz=ciz+b, c=D.landAtWorld((ix+0.5)*B,(iz+0.5)*B);
+        if(!c) continue;
+        const bs=D.blockOf(D.blockAt(ix,c.h-1,iz));
+        /* the plot wants its own cell AND head-room clear of stamps — a
+           trunk one course up is a crop that cannot stand */
+        if(bs&&bs.tills&&!D.blockAt(ix,c.h,iz)&&!D.blockAt(ix,c.h+1,iz)){
+          g={ix,iz,iy:c.h-1,was:bs.id}; latN=cand.l;
+          land=D.landNameAt?D.landNameAt((ix+0.5)*B,(iz+0.5)*B):'?'; }
+      }
+      if(g) break;
+    }
+    if(!g) return {pending:'grassy sites stood on, but no clear tillable cell once the stamps were resident'};
+    /* he stands four blocks off the plot: near enough to work it through
+       placeFrom, far enough that nothing is laid inside his own legs and no
+       drop of the reaping is swallowed before it is counted */
+    D.state.walk.x=(g.ix+4.5)*B; D.state.walk.z=(g.iz+0.5)*B;
+    D.state.walk.feetY=undefined;
+    await D.settle(4);
+    const soilN=D.blockId('soil'), seedN=D.blockId('seed');
+    const aimG={ix:g.ix,iy:g.iy,iz:g.iz,nx:0,ny:1,nz:0,n:D.blockAt(g.ix,g.iy,g.iz)};
+    const faults=[];
+
+    /* take a thing into the hand wherever the satchel put it — the belt is
+       only the first eight slots, and by this point in the suite they may
+       all be spoken for */
+    const hold=id=>{ let i=D.satchel().findIndex(s=>s&&s.id===id);
+      if(i<0) return false;
+      if(i>=(D.BELT_N?D.BELT_N():8)){ D.pageTouch(i); D.pageTouch(0); i=0; }
+      D.setHeld(i); return D.heldBlock()===id; };
+    const seedHeld=()=>D.satchelCount('seed');
+
+    /* ---- 1. the sheaf gives seed ---- */
+    D.satchelAdd('hay',1);
+    const s0=seedHeld();
+    const wr=D.workMake('thresh');
+    const threshed=seedHeld()-s0;
+    if(!wr.ok) faults.push('the threshing refused: '+(wr.why||'?'));
+    else if(threshed<1) faults.push('the threshing gave no seed');
+
+    /* ---- 2. untilled ground refuses the seed ---- */
+    if(!hold('seed')) faults.push('the seed would not come into the hand');
+    const r0=D.placeFrom(aimG);
+    const refused=!!(r0&&r0.no);
+    if(!refused) faults.push('the seed took untilled '+g.was+' — the bed rule is not read');
+
+    /* ---- 3. the hoe turns the bed, and it is a deed ---- */
+    D.satchelAdd('flint-hoe',1);
+    if(!hold('flint-hoe')) faults.push('the hoe would not come into the hand');
+    const r1=D.placeFrom(aimG);
+    const tilled=D.blockAt(g.ix,g.iy,g.iz)===soilN;
+    if(!tilled) faults.push('the hoe did not turn the ground ('+JSON.stringify(r1)+')');
+    const deed=D.recordedAt?D.recordedAt(g.ix,g.iy,g.iz):null;
+    if(tilled&&!deed) faults.push('the tilled bed is not in the player\'s record');
+
+    /* ---- 4. the seed takes the bed ---- */
+    hold('seed');
+    let r2=D.placeFrom(aimG), tries=1;
+    while(r2&&r2.no&&/ is standing there/.test(r2.no)&&tries<8){
+      await D.settle(45); r2=D.placeFrom(aimG); tries++; }
+    const cy=g.iy+1;
+    const sown=D.blockAt(g.ix,cy,g.iz)===seedN;
+    if(!sown) faults.push('the seed would not go into the bed ('+JSON.stringify(r2)+')');
+    const walkable=!D.blockSolidAt(g.ix,cy,g.iz);
+    if(sown&&!walkable) faults.push('the sown cell is a WALL — a man cannot walk through his own corn');
+    const armOn=D.aimFrom((g.ix+0.5)*B,(cy+2.5)*B,(g.iz+0.5)*B,0,-1,0,4);
+    if(sown&&!(armOn&&armOn.iy===cy)) faults.push('the arm cannot be laid on the plant');
+    /* and it is DRAWN, in the chunk's own mesh, in the crop material the
+       fields already wear — the remesh is awaited, then the view counted */
+    await D.settle(6);
+    const vs=D.viewStats(), cropMeshes=(vs.byMat.find(m=>m[0]==='crop'||m[0]==='cropEver')||[0,0])[1];
+    if(sown&&!cropMeshes) faults.push('nothing in the chunk meshes wears the crop material — the plant is not drawn');
+
+    /* ---- 5. the reaping pays by the year, A/B across the seasons ---- */
+    const yrOf=ph=>C.yearAt(ph,latN).grow;
+    const FULL=D.sownFull?D.sownFull():0.8;
+    let full=null, lean=null;
+    for(let i=0;i<4;i++){ const gr=yrOf(SE.CENTRE[i]);
+      if(full===null&&gr>=FULL) full=i;
+      if(lean===null&&gr<0.5) lean=i; }
+    if(full===null||lean===null)
+      return {pending:'no season pair at latN '+latN.toFixed(2)+' — grows '+
+        SE.CENTRE.map(ph=>yrOf(ph).toFixed(2)).join('/')};
+    /* a taken drop lingers a frame while it shrinks, already counted into
+       the satchel — counting it twice would invent an increase */
+    const seedDown=()=>D.drops().filter(d=>d.id==='seed'&&!d.taken).length;
+    const reap=async si=>{
+      SE.setSeason(['Spring','Summer','Autumn','Winter'][si]);
+      for(let k=0;k<4;k++) await raf();          /* the frame feeds the uniform */
+      const before=seedHeld()+seedDown();
+      D.mineAt(g.ix,cy,g.iz,0,1,0); D.mineDrive(true); D.mineHold(true);
+      for(let k=0;k<400&&D.blockAt(g.ix,cy,g.iz)===seedN;k++){
+        D.mineStep(1/60); if(k%8===0) await raf(); }
+      D.mineHold(false); D.mineAt(null); D.mineDrive(false);
+      const broke=D.blockAt(g.ix,cy,g.iz)!==seedN;
+      for(let k=0;k<30;k++){ D.dropStep(1/60); if(k%10===0) await raf(); }
+      return {broke, gain:seedHeld()+seedDown()-before};
+    };
+    const sow=async()=>{ hold('seed');
+      let r=D.placeFrom(aimG), t2=1;
+      while(r&&r.no&&/ is standing there/.test(r.no)&&t2<8){
+        await D.settle(45); r=D.placeFrom(aimG); t2++; }
+      return D.blockAt(g.ix,cy,g.iz)===seedN; };
+    let rFull={broke:false,gain:0}, rLean={broke:false,gain:0};
+    if(sown){
+      rFull=await reap(full);
+      if(!rFull.broke) faults.push('the full crop would not break');
+      else if(rFull.gain<2) faults.push('a FULL-GROWN crop paid no increase ('+rFull.gain+' over the blow, wanted the seed and its increase)');
+      if(!await sow()) faults.push('the bed would not take a second sowing');
+      else{
+        rLean=await reap(lean);
+        if(!rLean.broke) faults.push('the young crop would not break');
+        else if(rLean.gain>1) faults.push('a YOUNG shoot paid the increase ('+rLean.gain+') — the year is not read at the reaping');
+        else if(rLean.gain<1) faults.push('a young shoot did not even give the seed back ('+rLean.gain+')');
+      }
+    }
+
+    /* ---- 6. a plant whose bed is dug away comes away as its seed ---- */
+    let cameAway=false, asSeed=0;
+    if(await sow()){
+      const before=seedDown();
+      D.setBlock((g.ix+0.5)*B,(g.iy+0.5)*B,(g.iz+0.5)*B,0);
+      await D.settleDrive(180);
+      cameAway=D.blockAt(g.ix,cy,g.iz)===0;
+      asSeed=seedDown()-before;
+      if(!cameAway) faults.push('the bed was dug away and the plant stands on nothing');
+      else if(asSeed<1) faults.push('the plant came away but left no seed');
+    }
+    SE.setSeason(null);
+    return {ok:!faults.length,
+      got:'in '+land+' at latN '+latN.toFixed(2)+': threshing gave '+threshed+' seed · untilled '+g.was+
+        ' refused ("'+((r0&&r0.no)||'—')+'") · tilled: '+tilled+' (deed: '+!!deed+') · sown: '+sown+', a '+
+        'walk-through block the arm lands on, '+cropMeshes+' crop mesh(es) in the chunks · '+
+        'reaped full (grow '+yrOf(SE.CENTRE[full]).toFixed(2)+'): +'+rFull.gain+
+        ' · reaped young (grow '+yrOf(SE.CENTRE[lean]).toFixed(2)+'): +'+rLean.gain+
+        ' · bed dug away: came away '+cameAway+' as '+asSeed+' seed'+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.
