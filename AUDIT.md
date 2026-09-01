@@ -8159,6 +8159,103 @@ the first suite had an explanation that fit, and all of them were true only of a
 had looked at. And an injection whose number comes back the same in two different worlds has
 measured neither: 62,186 was believed twice, and it was crowns both times.
 
+## 4cm. Round 88 — the bench: a place a man goes to make, and the work with nowhere to be done ✅
+
+*§17.5 was the last unticked item of PLAN's §17 queue, and it stated its own complaint exactly:
+*"every work is done at the bare hand or at a kiln, so there is no PLACE a man goes to make, and
+the list of works cannot grow past what one can do standing in a field."* The round is almost
+entirely wiring seams the world had already left open — and it found a work that could never be
+done, standing in the list, telling the player to go to a place that does not exist.*
+
+### What was already there, and what was actually missing
+
+`blocks/bench.js` has existed for rounds: a Workbench, breakable, carryable, placeable, and
+**already stamped one per village** by `emitBench` as a genuine block in the edit layer. And
+`at:` was already general — `workPlaceAt` resolves ANY block id in a 9×5×9 box about the feet;
+nothing about the kiln was ever special, and `workLine` composes the row out of the block's own
+name. So the engine learned nothing this round: a bench work reads **"at a Workbench"** with no
+new string anywhere.
+
+What was missing was only this: **no work made a bench**, so a man far from a village could
+never have one, and **no work stood at one**. Three lines of data:
+
+| work | of | gives | where | wants |
+|---|---|---|---|---|
+| A Carpenter's Bench | planks 4, log 2 | bench 1 | the bare hand | — |
+| Dress Boards | planks 4 | panel 4 | **at a bench** | — |
+| Carve Boards | panel 1 | carved-panel 1 | **at a bench** | **a knife** |
+
+The bench is made at the bare hand on purpose: a man nowhere near a village must be able to
+start, which is test 44's rule about the pick applied to the place. **Panelled Board is the
+first thing in this world standing between a plank and a building** — there was no panel, board,
+door, chest or beam in fifty blocks, which is precisely the headroom §17.5 named. And the
+carving is **the first work in this world ever to want a knife**: of fifteen works exactly one
+named a tool and it wanted a pick, while the knives of flint — commanded by name in YEHOSHUA
+5:2 — had been made, carried, and asked for by nothing since Phase 4.
+
+The three verses are one passage, the building of the House: the timber prepared (MELAKIM
+ALEPH 5:18), the boards panelled (6:15), the boards carved (6:29). **Deliberately not
+Yashayahu 44:13** — the vivid carpentry verse in the whole account, the rule and the chalk and
+the plane and the compass — because it is the idol-maker's passage, and this project does not
+set a verse to work against its own subject. The reason is written in the file, as is the other
+one: the carved face draws the palm and the open flower and leaves the keruḇim to the words,
+because a keruḇ in sixteen pixels would be a smudge making a claim this game has no business
+making.
+
+### The work with nowhere to be done
+
+The registration loop drops a work whose materials or product this build has not got, and
+**never asked the same of its place**. A work naming a place no block answers to shipped:
+offered in the list, greyed for ever, refusable but never doable, with no error anywhere —
+`workPlaceAt` returns false for an unknown id and says nothing, which is right of it and silent.
+
+**Proved by injection**, a work declared with `at:'benchh'`:
+
+> **unmended** — it ships. 19 works instead of 18, `workState` reads `place` for ever,
+> `workMake` gives nothing, and the row tells the player to go and stand **"at a Air"**
+> (`blockId` of a name no block has is 0, and `blockName(0)` is Air).
+> **mended** — 18 works: it is dropped at the same door, for the same reason, as a work whose
+> timber this build has not got.
+
+### The half this suite never asked
+
+**Test 20 has always checked that a work of the fire is REFUSED away from its fire, and in
+forty rounds nothing ever checked that standing at the place lets the work through.** A place
+that refused everywhere would have passed this suite. Test 59 walks the whole of it on a bench
+it makes and then breaks: made at the hand; away from one it reads `place` **in the words the
+player sees**; at one it goes through and gives; the reach read off the engine rather than
+assumed (at 4 it serves, at 6 it does not); the carving refused without a knife and made with
+one; and **the bench broken, the place closes again** — `workPlaceAt` keeps no register by
+construction, and this reads that property rather than trusting the comment.
+
+Two of the test's own errors were caught by its readings and are written into it: it laid a
+bench from a remembered spot rather than the traveller's live feet cell (he settles onto ground
+and a slope moves him a cell, so "a bench at the reach itself did not serve" was true and was
+about his having stepped), and it read the reach with an empty satchel, where `short`
+masqueraded as an answer about distance.
+
+**Test 20 now walks EVERY place rather than the first.** It took `W.find(w=>w.at)` while the
+kiln was the only place in the world, so "the first" and "the kiln" were the same thing; a
+second place makes that a positional accident, and works declared above the fire's would have
+taken the probe over while the test went on passing green. It reads **2 place(s) in the world
+(kiln, bench), 6 of 6 place-works refused away from theirs.**
+
+### What it costs
+
+`workPlaceAt` is 405 `blockAt` probes per place-work, and this round took the place-works from
+four to six. Measured: **0.398 ms to redraw the whole works panel** (all eighteen works), of
+which **0.29 ms is the six place-works**. It is not a per-frame cost — `pageDraw` is reached
+from the frame only when the panel is OPEN and the satchel signature has changed
+(js/engine.js:18424) — and against this harness's 334.7 ms software frame it would be a tenth
+of one per cent even if it were.
+
+### The readings
+
+Test 59 green. The neighbours the two blocks and three works move, all green and all reading
+their counts off the world rather than a constant: **18 works declared** (20), **the stores
+offer 46 of 46** (23 and 45), **446 files · 53/53 blocks** (36), test 44's man-from-nothing
+chain unmoved, test 58's sowing unmoved.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

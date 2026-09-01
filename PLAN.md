@@ -1190,6 +1190,14 @@ Named so it is a record and not a memory. Each was checked against the code toda
 rather than recalled, because two of them turned out to be further along than this
 document said and one turned out to be a missing NUMBER rather than a missing feature.
 
+> **THIS QUEUE IS EMPTY — Round 88 closed the last of it.** The bark measured (59), the boles
+> made blocks (86, corrected the same round), the bucket (·), the hand that sows (87), and the
+> bench (88). The pattern every one of them turned out to share is worth keeping: **four of the
+> five were mostly already built and inert** — the bark shipped without its number, the bole
+> mechanism was written and switched off, the hoe served nothing and the soil block was made by
+> nothing, and the bench stood in every village with no work to do at it. What the rounds
+> actually did was ask the world what was already there before writing anything.
+
 ### 1. The bark measurement — ✅ *Round 59*
 
 **§2.4.3 was built in Round 52 and never measured**, and PLAN §14's table went on
@@ -1298,7 +1306,7 @@ put it. The clock and the growth are now both standing and waiting for it —
 this line used to say *"the agricultural year would read off the same clock"*
 in the conditional, and it no longer needs to.
 
-### 5. Building from gathered materials
+### 5. Building from gathered materials — ✅ *Round 88* (the bench)
 
 The satchel stacks, survives a reload, and pays for what it lays; the free hand
 lays without cost. **This section used to say "There is no making — no bench, no
@@ -1310,10 +1318,27 @@ it REFUSES, and the verse it is drawn from; acceptance test 20 walks the refusal
 nothing to a flint pick and then into the rock. Measure first, and if the world
 already does the thing, correct the document.
 
-What is genuinely still missing here is **a bench**: every work is done at the
+~~What is genuinely still missing here is **a bench**: every work is done at the
 bare hand or at a kiln, so there is no PLACE a man goes to make, and the list of
-works cannot grow past what one can do standing in a field. That is the piece
-worth arguing before it is built.
+works cannot grow past what one can do standing in a field.~~
+
+> **PAID, Round 88 — and with it §17's queue is empty.** The bench block already existed and
+> already stood one per village; `at:` was already general, so the engine learned NOTHING and
+> the row composes itself out of the block's own name — **"at a Workbench"**. What was missing
+> was a work that MAKES one (at the bare hand, so a man far from a village can start — test
+> 44's rule about the pick, applied to the place) and works that STAND at one: **Dress Boards**
+> (planks → Panelled Board, the first thing in this world between a plank and a building) and
+> **Carve Boards** (the second remove, and the first work ever to want a **knife** — the knives
+> of flint were commanded by name in YEHOSHUA 5:2 and asked for by nothing since Phase 4). The
+> three verses are one passage: the timber prepared, the boards panelled, the boards carved.
+> **A latent fault came out with it:** a work naming a place no block answers to used to SHIP —
+> greyed for ever, never doable, telling the player to stand *"at a Air"* — because the
+> registration loop validated a work's materials and never its place. Proved by injection and
+> dropped at the same door now. **Test 59 asserts the half this suite never had**: that
+> standing AT a place lets the work through; test 20 only ever checked the refusal, so a place
+> that refused everywhere would have passed for forty rounds. Test 20 now walks every place
+> rather than the first. Cost: 0.40 ms to redraw the whole works panel, 0.29 ms of it the six
+> place-works, and not a per-frame cost at all. AUDIT §4cm.
 
 ### And then Phases 8, 9 and 10
 
