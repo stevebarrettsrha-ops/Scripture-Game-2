@@ -4873,15 +4873,20 @@ T[60]={name:'THE LABOURS OF THE PEOPLE — each trade keeps its own hours, rests
     /* ---- 3 · THE BED: nobody walled in, and how many lie ---- */
     var bedRead;
     { const P0=await hold(1.0,30);
-      const d0=new Map(); for(const e of P0.people) d0.set(e.name,e.home);
+      /* keyed by INDEX, not name: villagers share names (the trace that found
+         it read two to four souls under one), and the first cut of this keyed
+         by name, so a soul that began 228 paces from a city home across town
+         and walked steadily in to 82 was judged against its namesake's 26 and
+         called walled in — the "intermittent night wanderer" of three runs */
+      const d0=new Map(); for(const e of P0.people) d0.set(e.i,e.home);
       const upAt1=P0.people.filter(e=>traded(e)&&e.awake).map(e=>e.role);
       if(upAt1.length) faults.push('up at one in the morning: '+upAt1.join(', '));
       await frames(480);
       const P=D.villageFolk(); let lying=0, nearer=0, walled=[];
       for(const e of P.people){ if(e.awake) continue;
         if(e.lying){ lying++; continue; }
-        const a=d0.get(e.name); if(a==null||e.home==null) continue;
-        if(e.home<a-2) nearer++; else walled.push(e.role+' '+a.toFixed(0)+'→'+e.home.toFixed(0)+(e.blk?' ('+e.blk+')':'')); }
+        const a=d0.get(e.i); if(a==null||e.home==null) continue;
+        if(e.home<a-2) nearer++; else walled.push(e.role+'#'+e.i+' '+a.toFixed(0)+'→'+e.home.toFixed(0)+(e.blk?' ('+e.blk+')':'')); }
       /* ---- THE BED IS JUDGED AS A PROPORTION, and the reason is this ----
          The first cut of this asserted that nobody was walled in, and it
          was right to: the reading that founded this round was 0 of 33

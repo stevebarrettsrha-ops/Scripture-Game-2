@@ -16620,7 +16620,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
       const d=(vv.site.x-p.x)**2+(vv.site.z-p.z)**2; if(d<bd){ bd=d; best=vv; } }
     if(!best) return null;
     return {hour:best.hour, site:{x:best.site.x,z:best.site.z}, storm:best.stormF||0,
-      people:best.people.map(e=>({name:e.name,role:e.role,anim:e.anim||null,act:e.act||null,
+      people:best.people.map((e,i)=>({i,name:e.name,role:e.role,anim:e.anim||null,act:e.act||null,
         tx:e.tx,tz:e.tz,t:e.t,blk:e._blk||'',acting:!!e.acting,shelter:!!e._shelter,
         awake:!e._abed,lying:!!e._lying,sat:!!e._sat,child:!!e.child,
         x:e.m.position.x,z:e.m.position.z,
