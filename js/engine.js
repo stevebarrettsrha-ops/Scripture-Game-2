@@ -10654,6 +10654,24 @@ function emitFurniture(G, ex, x0,x1,z0,z1, fy, T, hx,hz, doorDir){
   ex.torchIn.push({x:ix0+B*0.5,y:fy+B*2.2,z:iz0+B*0.5});
   ex.torchIn.push({x:ix1-B*0.5,y:fy+B*2.2,z:iz1-B*0.5});
 }
+/* ---- THE DOOR FACES THE LOWEST GROUND (Round 91) ----
+   THE FAULT THIS MENDS. A house takes its base from the ground at its own
+   middle and turned its door toward the well, and on terraced ground the
+   well is as often uphill as down — so the doorway opened into a bank,
+   its lintel (three courses over the base) one course above the yard
+   outside, and Round 90's bed reading found two shoppers and a farmer
+   held at their own doorsteps by the headroom rule, reading a roof edge
+   they never reached. The door now faces whichever side's ground stands
+   lowest, the well deciding a tie; the base is unchanged. */
+function doorSide(hx,hz,y,w,d,ddx,ddz){
+  const toWell=Math.abs(ddz)>=Math.abs(ddx)?(ddz>0?0:1):(ddx>0?2:3);
+  const out=[[0,0,d*B/2+B*1.5],[1,0,-d*B/2-B*1.5],[2,w*B/2+B*1.5,0],[3,-w*B/2-B*1.5,0]];
+  let best=toWell, bh=1e9;
+  for(const[dir,ox,oz] of out){ const c=landAtWorld(hx+ox,hz+oz); if(!c||c.kind==='wall') continue;
+    const h=c.h*B-y; const score=h*10+(dir===toWell?0:1);      /* lowest first; the well breaks a tie */
+    if(score<bh){ bh=score; best=dir; } }
+  return best;
+}
 function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   /* w,d in blocks (odd best); walls 3 blocks; local axis-aligned.
      Houses are HOLLOW: cobble footing, plank floor, four walls with a real
@@ -10877,7 +10895,7 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
     const w=8+Math.floor(rnd(placed+20)*3), d=8+Math.floor(rnd(placed+25)*3);
     if(!rectFree(hx-w*B/2-B,hx+w*B/2+B,hz-d*B/2-B,hz+d*B/2+B,B)) continue;
     const ddx=cx-hx, ddz=cz-hz;
-    const doorDir=Math.abs(ddz)>=Math.abs(ddx)?(ddz>0?0:1):(ddx>0?2:3);
+    const doorDir=doorSide(hx,hz,hc.h*B,w,d,ddx,ddz);
     stamped(ex,()=>emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+placed));
     addRect(hx-w*B/2-B,hx+w*B/2+B,hz-d*B/2-B,hz+d*B/2+B);
     const H=ex.houses[ex.houses.length-1];
@@ -11063,7 +11081,7 @@ function* spawnVillage(i,exShell){
       }
       if(!found) continue;
       const dx=site.x-hx, dz=site.z-hz;
-      const doorDir=Math.abs(dz)>=Math.abs(dx) ? (dz>0?0:1) : (dx>0?2:3);
+      const doorDir=doorSide(hx,hz,hc.h*B,w,d,dx,dz);
       stamped(ex,()=>emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+h));
       addRect(hx-w*B/2-B,hx+w*B/2+B,hz-d*B/2-B,hz+d*B/2+B);
       if(h%2===1) yield;
@@ -11191,9 +11209,14 @@ function* spawnVillage(i,exShell){
     const calling=e=>e.farm||e.well||e.pen||e.stall||e.spot||e.post||e.teach||{x:e.hx,z:e.hz};
     const order=people.filter(e=>!e.home).sort((a,b)=>(a.child?1:0)-(b.child?1:0));
     for(const e of order){ const c=calling(e); let best=null,bd=1e18;
-      for(const H of ex.houses){ const n=count.get(H)||0; if(n>=CAP) continue;
-        if(e.child&&n===0) continue;                      /* not a child alone */
-        const d=Math.hypot((H.x0+H.x1)/2-c.x,(H.z0+H.z1)/2-c.z)+n*B*2;
+      for(const H of ex.houses){ const n=count.get(H)||0;
+        /* a child joins a household: a house with a grown soul in it may
+           take two children over its count, and an empty house is a
+           child's last resort, not its first — the first cut skipped every
+           empty house outright and, with the near houses full of adults,
+           sent the children 220 paces to whichever house came first */
+        if(e.child?(n>=CAP+2):(n>=CAP)) continue;
+        const d=Math.hypot((H.x0+H.x1)/2-c.x,(H.z0+H.z1)/2-c.z)+n*B*2+(e.child&&n===0?B*40:0);
         if(d<bd){ bd=d; best=H; } }
       if(!best){ let bn=1e9; for(const H of ex.houses){ const n=count.get(H)||0; if(n<bn){ bn=n; best=H; } } }
       e.home=homeOf(best); count.set(best,(count.get(best)||0)+1);
