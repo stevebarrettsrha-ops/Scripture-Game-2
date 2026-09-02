@@ -4982,18 +4982,28 @@ T[61]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
 
     /* ---- 1 · A SHUT DOOR IS A WALL TO THE FOLK, and they open it ---- */
     D.setLocalHour(1.0,site.x,site.z);
-    let inShut=0, byFolk=0, byHand=0; const openedIdx=new Set();
+    let inShut=0, byFolk=0, byHand=0; const openedIdx=new Set(), heldAt={};
     let prev=D.villageDoors().map(d=>d.open);
     for(let f=0;f<300;f++){ await frames(1);
       const doors=D.villageDoors(), P=D.villageFolk().people;
       doors.forEach((d,i)=>{ if(d.open&&!prev[i]){ openedIdx.add(i); if(d.by==='hand') byHand++; else byFolk++; } });
       prev=doors.map(d=>d.open);
-      for(const d of doors){ if(d.open||d.dx===undefined) continue; for(const e of P) if(inGap(e,d,1.0)) inShut++; } }
+      for(const d of doors){ if(d.dx===undefined) continue;
+        for(const e of P){ if(d.open||!inGap(e,d,1.0)){} else inShut++;
+          /* ---- 6 · HELD AT A DOORWAY: the ground's refusal, not the leaf's ----
+             the buried lintel and the hanging footing Round 91 measured read
+             as noroom / climb / steep at the threshold; the leaf's own wait
+             reads 'door' and is not a hold */
+          if(!e.awake&&!e.lying&&inGap(e,d,3.0)&&(e.blk==='noroom'||e.blk==='climb'||e.blk==='steep')) heldAt[e.i]=(heldAt[e.i]||0)+1; } } }
+    { const P=D.villageFolk().people;
+      const held=Object.entries(heldAt).filter(([,n])=>n>=60).map(([i,n])=>P[i].role+'#'+i+' '+n+' frames ('+P[i].blk+')');
+      if(held.length) faults.push('held at a doorway by the ground: '+held.join(', '));
+      var heldRead=held.length+' held at a doorway'; }
     if(inShut) faults.push('a soul stood in a shut door\'s gap '+inShut+' soul-frames');
     if(byHand) faults.push(byHand+' door(s) opened by the hand with the traveller standing still');
     const abedN=D.villageFolk().people.filter(e=>!e.awake&&e.door!==null).length;
     if(abedN>3&&!byFolk) faults.push('nobody opened a door on the way to bed');
-    const doorRead='DOORS (01:00, 300 frames): '+openedIdx.size+' of '+doors0.length+' opened by the folk, none by the hand, '+inShut+' soul-frames inside a shut gap';
+    const doorRead='DOORS (01:00, 300 frames): '+openedIdx.size+' of '+doors0.length+' opened by the folk, none by the hand, '+inShut+' soul-frames inside a shut gap, '+heldRead;
 
     /* ---- 2 · AND SHUT AFTER; 5 · THE BED with the new homes ---- */
     await frames(210);
