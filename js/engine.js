@@ -11562,8 +11562,13 @@ function nextTask(ent,vv){
   /* ---- THE REST IN THE HEAT OF THE DAY ----
      the trades that take one lie off for an hour or so after noon, at
      home or where they stand; the fisher, the hunter and the vendor do not */
+  ent._heat=false;
   if(F&&BEHAVIOR.folkResting(ent.role,hour)){
     const hm=ent.home||site;
+    /* marked apart from the ACT called rest — a hunter's sit-down between
+       watches is in his row and is not the rest in the heat his row denies
+       him; the full suite convicted him of it once for want of this mark */
+    ent._heat=true;
     ent.act='rest'; ent.anim='rest'; ent.actT=6+R()*6;
     ent.tx=hm.x+(R()-0.5)*2; ent.tz=hm.z+(R()-0.5)*2; ent.faceX=undefined; return; }
   /* ---- AND THE SMALL BUSINESS OF ITS OWN DAY ----
@@ -16635,7 +16640,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
     return {hour:best.hour, site:{x:best.site.x,z:best.site.z}, storm:best.stormF||0,
       people:best.people.map((e,i)=>({i,name:e.name,role:e.role,anim:e.anim||null,act:e.act||null,
         tx:e.tx,tz:e.tz,t:e.t,blk:e._blk||'',acting:!!e.acting,shelter:!!e._shelter,
-        awake:!e._abed,lying:!!e._lying,sat:!!e._sat,child:!!e.child,
+        awake:!e._abed,lying:!!e._lying,sat:!!e._sat,child:!!e.child,heat:!!(e._heat&&e.act==='rest'),
         x:e.m.position.x,z:e.m.position.z,
         home:e.home?Math.hypot(e.m.position.x-(e.home.x!==undefined?e.home.x:e.home.doorx),
                               e.m.position.z-(e.home.z!==undefined?e.home.z:e.home.doorz)):null}))}; },

@@ -4863,7 +4863,10 @@ T[60]={name:'THE LABOURS OF THE PEOPLE — each trade keeps its own hours, rests
       const resters=new Set(), workers=new Set();
       for(const e of P.people){ if(!traded(e)) continue;
         (BH.folkResting(e.role,h)?resters:workers).add(e.role); }
-      const atRest=P.people.filter(e=>e.act==='rest').map(e=>e.role);
+      /* the rest IN THE HEAT, not the act called rest: a hunter's sit-down
+         between watches is in his row, and the first full suite read it as
+         the midday rest his row denies him */
+      const atRest=P.people.filter(e=>e.heat).map(e=>e.role);
       const restingRoles=[...resters], workingRoles=[...workers];
       const seenRest=restingRoles.filter(r=>atRest.includes(r));
       if(restingRoles.length&&!seenRest.length) faults.push('at '+h+' none of '+restingRoles.join('/')+' is at rest');
