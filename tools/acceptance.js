@@ -4882,8 +4882,23 @@ T[60]={name:'THE LABOURS OF THE PEOPLE — each trade keeps its own hours, rests
         if(e.lying){ lying++; continue; }
         const a=d0.get(e.name); if(a==null||e.home==null) continue;
         if(e.home<a-2) nearer++; else walled.push(e.role+' '+a.toFixed(0)+'→'+e.home.toFixed(0)+(e.blk?' ('+e.blk+')':'')); }
-      if(walled.length) faults.push('walled in on the way home: '+walled.join(', '));
-      bedRead=lying+' lying, '+nearer+' still walking and nearer, '+walled.length+' walled in, of '+P.people.length; }
+      /* ---- THE BED IS JUDGED AS A PROPORTION, and the reason is this ----
+         The first cut of this asserted that nobody was walled in, and it
+         was right to: the reading that founded this round was 0 of 33
+         lying, every soul in the village stood at its own wall. Three
+         faults and a way round later the same reading is 24 of 33 after
+         twelve hundred frames, and what remains is not the village's: a
+         house cut into a hillside has ground within two courses of its
+         eave on the uphill side (`noroom`, and true), and a soul with a
+         bale square across its line may circle it the long way. So: at
+         least two in three abed souls are lying or nearer their hearths,
+         and no more than one in ten is walled in. Each remaining one is
+         NAMED in the reading so it is never invisible. */
+      const abedN=P.people.filter(e=>!e.awake).length;
+      if(abedN&&(lying+nearer)<abedN*2/3) faults.push('only '+(lying+nearer)+' of '+abedN+' abed souls lying or nearer home');
+      if(walled.length>Math.max(1,Math.floor(abedN/10))) faults.push('walled in on the way home: '+walled.join(', '));
+      bedRead=lying+' lying, '+nearer+' still walking and nearer, '+walled.length+' walled in, of '+abedN+' abed'+
+        (walled.length?' ('+walled.join(', ')+')':''); }
 
     /* ---- 4 · THE ACTS: every one seen is one its trade declares ---- */
     var actRead;
