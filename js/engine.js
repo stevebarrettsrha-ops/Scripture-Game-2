@@ -10681,7 +10681,7 @@ function doorSide(hx,hz,y,w,d,ddx,ddz){
 }
 /* is this spot in some house's doorway (the gap, leaf open or shut)? */
 function inDoorway(nx,nz){
-  const at=arr=>{ for(const H of arr){ if(H.door&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8) return true; } return false; };
+  const at=arr=>{ for(const H of arr){ if(H.door&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8+(H.apron||0)*B) return true; } return false; };
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
     if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue; if(at(vv.houses)) return true; }
   return at(standaloneHouses);
@@ -10763,11 +10763,26 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
                  z:(doorDir>=2?gz:hz)+(doorDir===0?d*B/2+B:doorDir===1?-d*B/2-B:0)});
   const gapCX = doorDir===2?x1-T/2:doorDir===3?x0+T/2:gx;
   const gapCZ = doorDir===0?z1-T/2:doorDir===1?z0+T/2:gz;
+  /* ---- AND A DOORSTEP WHERE THE YARD LIES BELOW (Round 91) ----
+     A house on terraced land has no level side sometimes; its door then
+     faces a yard a course or two down, and the footing hangs over it — a
+     man reads its underside as a ceiling and its floor as a climb. So the
+     yard is stepped up to the door: a cobble course in each cell outward,
+     each a course lower than the last, until the ground is met. The
+     walker's rules read the apron as the doorway's own (inDoorway). */
+  let apron=0;
+  { const ux=doorDir===2?1:doorDir===3?-1:0, uz=doorDir===0?1:doorDir===1?-1:0;
+    const fx=doorDir===2?x1:doorDir===3?x0:gapCX, fz=doorDir===0?z1:doorDir===1?z0:gapCZ;
+    for(let j=1;j<=4;j++){ const acx=fx+ux*(j-0.5)*B, acz=fz+uz*(j-0.5)*B;
+      const c=landAtWorld(acx,acz); if(!c||c.kind==='wall') break;
+      const top=y-(j-1)*B, hN=c.h*B; if(top<=hN+0.01) break;
+      const ix=Math.floor(acx/B)*B, iz=Math.floor(acz/B)*B;
+      emitBox(G, ix,hN,iz, ix+B,top,iz+B, 'cobble','cobble',null); apron=j; } }
   const hingeX = (doorDir<=1)?gx-gw:gapCX;
   const hingeZ = (doorDir>=2)?gz-gw:gapCZ;
   const baseAng = (doorDir>=2)?-Math.PI/2:0;
   const swing = (doorDir===0||doorDir===3)?1.7:-1.7;   /* open outward */
-  ex.houses.push({x0,x1,z0,z1, dx:gapCX, dz:gapCZ, gw,
+  ex.houses.push({x0,x1,z0,z1, dx:gapCX, dz:gapCZ, gw, apron,
     yb:y, top:y+wallH+steps*B*0.55+B*0.6,   /* footing and ridge — the eye rides over these */
     door:{dir:doorDir, hx:hingeX, hz:hingeZ, base:baseAng, y:y+B*0.05,
       w:gw*2.0, h:B*2.05, swing, open:false, ang:baseAng, target:baseAng}});
