@@ -10668,7 +10668,15 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   emitBox(G, x0,y,z0, x1,y+B*0.55,z1, 'cobble','cobble',null);
   emitTop(G,'planks', x0+T,z0+T, x1-T,z1-T, y+B*0.58, 0.95);
   /* four hollow walls; the doorway is left open on doorDir (0=+z 1=-z 2=+x 3=-x) */
-  const wy0=y+B*0.55, wy1=y+wallH, ly=y+B*2.75;   /* ly = lintel underside */
+  /* ---- THE LINTEL SITS ON A COURSE (Round 90) ----
+     It was hung at 2.75 courses, and a stamp claims every cell a box
+     touches, so the stamped lintel came down to TWO courses and the
+     doorway under it was one course tall — while the leaf drawn in it is
+     two, poking up through the lintel block. A man is two courses; the
+     rule that a floor wants two courses of clear air over it (noRoom, in
+     moveEnt) refused every soul in the world its own doorway, and nobody
+     had ever gone indoors. Three courses even: the doorway is two clear. */
+  const wy0=y+B*0.55, wy1=y+wallH, ly=y+B*3;      /* ly = lintel underside */
   const wall=(ax0,az0,ax1,az1)=>emitBox(G,ax0,wy0,az0,ax1,wy1,az1,'planks','planks',null);
   if(doorDir===0){ wall(x0,z1-T,hx-gw,z1); wall(hx+gw,z1-T,x1,z1);
     emitBox(G,hx-gw,ly,z1-T,hx+gw,wy1,z1,'planks','planks','planks'); }
