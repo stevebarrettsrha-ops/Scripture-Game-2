@@ -8159,6 +8159,317 @@ the first suite had an explanation that fit, and all of them were true only of a
 had looked at. And an injection whose number comes back the same in two different worlds has
 measured neither: 62,186 was believed twice, and it was crowns both times.
 
+## 4cm. Round 88 — the furnace and the iron: PLAN §17.5's argued answer, built ✅
+
+*Round 87 wrote the argument into PLAN §17.5 before a line of this was coded: the bench
+already exists and WAITS (nothing needs one); nothing in the bootstrap may ever move behind a
+place; and what genuinely wants a place is the FIRE — `world/works.js`'s own head has said
+since Phase 4 that "the smelting of copper and iron waits… the ore is in the hills already,
+and the metal wants a fire hotter than a kiln and a work of its own." The ore has been truly
+in the hills since Round 39 (DEḆARIM 8:9), mineable, and nothing to do with what was mined.
+This round is that fire, that metal, and the tool that is the metal's reason to exist.*
+
+### What shipped, and the two rules it keeps
+
+**The furnace is BRICK — one work's product is the next work's material, twice over.** Clay
+becomes brick at the kiln; eight brick become a furnace AT the kiln (`at:'kiln'` on the
+furnace's own work); the furnace opens the smelting. That chain is what "building from
+gathered materials" *means*, and it is the first time the game has it. The block is the
+kiln's pattern one step up — the same fire-mouth idiom drawn in the brick's own courses, a
+mouth burning whiter (`light:11` against the kiln's 9), DEḆARIM 4:20 beside it, because the
+account knows this furnace by name: *the iron furnace, out of Mitsrayim*. `workPlaceAt` was
+already generic — the work says `at:'furnace'` and not one engine line was written for it.
+
+**Iron ships; copper's metal and bronze do not, and the restraint is §4's rule holding.**
+`smelt-iron` (1 ore → 1 iron, at the furnace, IYOḆ 28:2 — *"Iron is taken from the earth and
+copper is smelted from ore"*) and `iron-pick` (iron 3, planks 2 — the flint pick's own shape
+in the better metal, no verse, as the flint tools have none). Copper's ORE stays in the
+ground because the land holds it; its metal waits for a work that needs it, and bronze waits
+on a tin no land's list holds. *A substance ships when a work needs it* — the iron pick
+needs the iron, and nothing yet needs the copper.
+
+**The pick is faster by ONE number on the block, read in ONE place.** `speed:2.2` on
+`blocks/iron-pick.js`; `toolSpeed` reads `h.speed||1` — the same declared-here-believed-there
+pattern `hardness` set in Phase 4, and the very line whose Round 34 comment promised "the day
+a bronze pick exists it will be believed without another line here." (It was an iron pick,
+and the line was one term.) An ingot and a pick are both `place:false`: an ingot is not a
+cubic metre of iron.
+
+### The readings
+
+Test 59 walks it in the voyage hand, each link its own question:
+
+    the bare hand: smelting REFUSED (why: place)
+    beside a KILN: still refused — a kiln is not a furnace
+    brick 8 → a furnace at the kiln → set down, it stands → 3 ore smelted → a pick of iron
+    the rule pays 2.2× (the block declares 2.2)
+    and the blow's own clock agrees: 3.40s stone falls in 1.55s (2.19×)
+
+**Proved by injection, both ways.** The place rule taken off `smelt-iron`: *"FAULTS: the bare
+hand smelted · a KILN passed for a furnace"* — both arms, by name. The speed term taken back
+out of `toolSpeed`: *"the rule pays 1 where the block declares 2.2 · the clock pays 1.00×
+where the block declares 2.2×"* — the rule's answer and the clock's, independently. Both
+faults named by the line that catches them, then taken back out. The guard set about the
+changed machinery — 14 (the tool law), 20 (the refusal), 44 (the bootstrap), 58 (the sowing)
+— ran green beside it.
+
+### What is deliberately NOT here, named so it is not found missing
+
+- **No iron axe, spade, knife or hoe.** The pick is the one tool whose material REFUSES the
+  bare hand, so it is the one whose better metal is felt. The others follow the day their
+  speed would matter to anybody.
+- **No copper metal, no bronze, no gold or silver smelting.** Named above; the rule is the
+  reason.
+- **No smelting of the pick back to iron, no fuel.** The kiln has never asked for fuel and
+  the furnace keeps its sibling's rules; a fuel economy is its own argument, not a rider.
+- **The bench still waits**, exactly as §17.5's argument left it: nothing needs one yet.
+
+## 4cn. Round 89 — the far falls answered by their own water, and the matriarch's seventh attempt, characterised and not shipped ✅
+
+*The two items left with real design meat on them (§16's far falls; §2.3.5's matriarch),
+taken with the one discipline that fits both: measure first, ship only what the measurement
+carries, and record the rest so the next hand starts where this one stopped. The standing
+game was to be affected by NOTHING unproven, and it was not: what shipped is a read-only
+census tool, one read-only debug exposure, a guard test, and this record.*
+
+### The far falls — §16's owed question, PAID
+
+`tools/farfalls.js` is the instrument the question wanted: every fall prepared, every
+basin-bound one sprung and beaten to stillness exactly as test 39 does, and — the number
+nobody had — the nearest TRUE water swept in a full circle out to 400 blocks (the same
+raster answer the outfall search reads, exposed read-only as `outWater`).
+
+**The census, and it is bigger than §16 knew:** not five but **27 of 34 falls** find no
+outfall inside their claim. And the two numbers that decide the question:
+
+    every basin HOLDS: 0 cells outside any claim, all 27 —
+      farthest standing cell 6-73 blocks, against claims of 46-376
+    the nearest true water: 69-312 blocks off for fourteen of them,
+      NOWHERE within 400 blocks for eleven
+
+So the channel §16 wondered about would be a county-crossing cut for every fall that lacks
+one — the falls' own file forbids exactly that ("a shoulder widened to reach a river would
+raise a county") — and the world's own law closes it: **no change to the shape of the earth
+without a defect to point at. The basins stand.** A tarn under a great plunge is what the
+real earth does with one. Two curiosities are recorded rather than chased: Jog (28 blocks to
+water) and Sutherland (44) have sea within their claim RADIUS but outside the downstream
+fan — the water lies behind or beside the fall, where no channel from a plunge pool
+honestly runs.
+
+**Test 60 makes the law permanent**: the two biggest basin falls, picked by the data, are
+sprung, settled, and held to a bounded basin — the defect that WOULD matter (water leaving
+its claim) now has a tripwire.
+
+### The matriarch — the seventh attempt, built, measured, and taken back out
+
+Round 82's prescription was followed to the letter: *"move neither the marks nor the steps
+but change what a beast WANTS."* The mechanism: each herd names a matriarch (rank by
+young-at-foot, tie on the tether — Round 82's rule); she owns one slowly-wheeling bearing;
+and at the meal-done decision a beast that would put its head straight back down sometimes
+wants its next mouthful a couple of body lengths her way instead — walking the station gait
+(the one walk that does not stop at the first blade) and feeding at the end of it. Stations
+untouched, steps untouched, station discipline asked first, dinner first always.
+
+**The instrument convicted itself twice before it read anything** — Round 78's lesson,
+re-learned at full price:
+
+1. **The lever was hung dead, again.** Placed after `toStation` in the roam-expiry chain it
+   read 0.000-0.002 a beast-second — the meal-done branch CONSUMES its decision (an act, or
+   a stroll), so the next-mouthful choice never saw one. Re-hung at the feedhead expiry
+   itself it fired at **0.13-0.23 a second (ask 0.67-0.77), off-arm exactly 0**.
+2. **The first travel metric measured the census, not the walking**: a per-kind centroid
+   over whoever happened to be herded read 125 units of "travel" in an arm where the
+   mechanism never fired once — membership churn, nothing else. Re-built on a fixed cohort
+   (the same beasts, both ends).
+
+**With both mended, the honest reading (Kenya, ON/off/ON, 30-second arms):**
+
+    travel:  12.9 · 17.6 · 57.7 units (0.74 · 0.95 · 2.72 radii) — the OFF arm
+             sits BETWEEN the ON arms: not established
+    reach:   1.14 · 1.10 · 1.09      — flat: no damage
+    mothers: 0.85 · 0.86 · 0.86      — inside, flat: the young-at-centre rule untouched
+    feed:    0.71 · 0.71 · 0.70      — flat: nobody went hungry for it
+    cost:    0.139 · 0.134 · 0.150 ms — flat
+
+**Why the arm cannot see it, in arithmetic:** at 0.23 marches a second over ~35 herded
+beasts, a 30-second arm buys ~7 marches of ~9 units — about **2 units of expected herd
+drift under 13-18 units of arrival noise**. The window is an order of magnitude too short
+for the effect it is asked to see, which is test 50's own long-standing complaint about
+itself. Establishing it wants ten-minute arms, and this box runs frames at a third speed.
+
+**So the mechanism is out of the tree, by the diagnostic's own charter** — *"to stop a
+round of shipping a mechanism nobody could show working"* — and this is what the eighth
+attempt (or a patient measurement of the seventh) inherits: the right hang point is the
+feedhead expiry, before the act and the stroll; the lever fires there at a useful rate and
+costs nothing measurable; the travel metric must be cohort-fixed; and the arms must be
+minutes, not seconds. Nothing about the idea was disproved. Nothing about it was proved.
+That is the whole of what the data says, and it is written down instead of shipped.
+
+## 4co. Round 90 — Phase 8's hoards grown: the Cave at Ḥorĕḇ, and Ararat's debt paid at last ✅
+
+*Phase 8 closed its named items in Round 85 and left one thing open on purpose: "growing the
+hoards, one capture and no code apiece." This round grows them by two — and both were
+measured before they were designed, with a probe reading each anchor's actual ground so a
+place is set into a level pocket the world already has, not wished onto a slope.*
+
+### The Cave at Ḥorĕḇ (Mount Sinai)
+
+*"And there he went into a cave and spent the night there. And see, the Word of (YAHUAH)
+HWHY came to him and said to him, 'What are you doing here, Aliyahu?'"* — 1 MALAḴIM 19:9.
+
+**The first place with NOTHING in it, and that is its design.** The Cave of Treasures
+carries gold, the Cell of Ḥanoḵ alabaster; the cave at Ḥorĕḇ held a man for one night and a
+question, and a hoard here would be a lie about the story. So it is an UNWORKED hollow — no
+hewn floor, no dressed wall, the room's floor the mountain's own rock — with one cobble
+slab at the back to lie on, because the night was spent. The probe read Sinai's landmark
+site as grass at 58 courses with a level pocket at its middle — thirty-six courses BELOW
+the summit where the Scroll of the Going Out stands, so the lodging is passed on the climb
+and crowds nothing: tests 24 (the summit on foot) and 28 (the scroll got at) were run
+beside it on purpose.
+
+### The Altar of Noaḥ (Mount Ararat)
+
+*"And Noaḥ built an mizbe'ach to (YAHUAH) HWHY and took of every clean beast and of every
+clean bird and offered burnt offerings on the mizbe'ach."* — BERĔSHITH 8:20.
+
+**Ararat's standing debt, paid with the thing the account actually builds there.**
+`world/scrolls.js` has refused Ararat a scroll since Phase 7 — none of the eight is the
+account of the flood, and inventing the assignment was not this project's to do — but the
+mountain was never owed a scroll. It was owed the first thing built on the washed earth: an
+altar block (the very block the works raise from twelve unhewn stones) on a platform of
+unhewn stone, four stones at its corners, open to the sky, standing in the high snow at 129
+courses where the probe found the site's level pocket. `keep:true` and nothing carved — not
+one block of Ararat is quarried for it. Nothing roofed, nothing hoarded.
+
+### The discipline both kept
+
+One entry apiece in `world/places.js`, in the format Round 83 shipped — no engine change,
+no new block, no new rule. Both are `at`-anchored, so **test 56 covers them automatically**:
+its per-place loop now runs four round trips (world → object → TEXT → object → world) where
+Round 84 ran two. Every cell count proved against its box before boot (140 = 5×4×7 and
+50 = 5×2×5 exactly); both verses extractor-exact in the file's own comments.
+
+### The readings
+
+    test 24: 13 of 13 named summits still walked to — neither place bars a path
+    test 28: the three placed scrolls untouched — Sinai's still 94 of 94 on the summit
+    test 56: 4 of 4 landmark places stood and captured back —
+      the Cave at Ḥorĕḇ  140/140, three ways (format, file text, the hand)
+      the Altar of Noaḥ   50/50, three ways — census stone 29 · air 20 · altar 1, as designed
+
+And one detail reported rather than tidied: the capture at Ḥorĕḇ carries **2 cells of
+log-smooth** — a tree of Sinai's own grew by the mouth, and the capture reads the world as
+it stands, which is the only rule a capture tool may have. The world's timber in the doorway
+is world, not fault; the round trip is exact either way.
+
+## 4cp. Round 91 — the curtain, and the fear that outlived the water it was written about ✅
+
+*§16's last water debt: "Seven heads make seven threads… A head every other block was tried
+and taken back out — it gives the volume back and will not unwind — that is not understood
+yet, and a fall that cannot be turned off is worse than a fall that is thin." That sentence
+was written against the water of Rounds 57–58. Round 65 then rebuilt the falling rules end
+to end — falling holds by what stands OVER it, a settled fall's queue is EMPTY, the front
+came down from 175 columns to 9 — and nobody ever asked the new water the old question.
+This round asked it, with an instrument, instead of trying to understand a fear recorded
+about a machine that no longer exists.*
+
+### The instrument, and what it asked
+
+`tools/curtain.js` (committed, like waterfront before it): the same three falls test 39
+picks by form, heads laid at TODAY'S stride (half/3 — the seven threads) and at a head
+every other block, arm against arm in one boot, and for each arm the four numbers that
+decide — the front (the curtain is the point, so it must widen), the queue at rest and the
+writes per 100 ticks at rest (Round 65's stillness law, which a curtain must not break),
+and the drain when every head is taken up ("will not unwind" is the recorded fear, so it
+is the recorded measurement).
+
+### The readings, and the fear retired
+
+    fall     stride  heads  settled  front  queue@rest  laid/dried per 100  drained
+    Angel      4       7     2,509     39       0             0 / 0          140 ticks → 0
+    Angel      2      14     3,236     40       0             0 / 0          143 ticks → 0
+    Iguazu    75       7       635    116       0             0 / 0           43 ticks → 0
+    Iguazu     2     213     8,371    440       0             0 / 0          934 ticks → 0
+    Krimml     1       5       815     16       0             0 / 0          101 ticks → 0
+    Krimml     2       3       815     16       0             0 / 0          101 ticks → 0
+
+**Every arm, both strides: the queue at rest is 0, a hundred ticks at rest lay and dry
+nothing, and the curtain drains to zero cells.** "Will not unwind" is dead — it described
+the pull-era water, and Round 65's rules bear the curtain without a line of change to
+`js/water.js`. The whole ship is one constant in `springs()`: a head every other block.
+
+**And the prize is the one §16 wanted:** Iguazu — *the Great Water*, a lip four hundred
+and fifty blocks wide — poured in SEVEN THREADS for thirty rounds. It pours along its
+whole brink now, 116 columns to 440. A narrow fall (Krimml's lip is four blocks) comes out
+cell-for-cell as it was: the curtain is the breadth of the fall, so a thin fall stays thin.
+
+Cost, stated: the Great Water standing at 8,371 cells against 635, filling over ~630 ticks
+as the traveller approaches — and at rest it costs what every settled fall has cost since
+Round 65, which is nothing. Guards 39 (pours, stays, drains — Iguazu now "630 columns off
+213 heads, drained to 0"), 42 and 60 (the basins hold) run green with the curtain on.
+
+### And the curtain's first red convicted the instrument, not the water
+
+Test 40 read *"25 cells of the running flow are IN THE RECORD"* with the curtain on — a
+law-breaking headline. Made to NAME what the record held there, it answered **"24x #true"**:
+`recordedAt` returned a BOOLEAN, true alike for "a hand built here" and "the ground here
+was emptied", so it could not tell the two apart. The cells were flow running through
+**0-entries** — bank cells the curtain's wider wetting had collapsed (the world putting
+itself right through the one door, its emptied cells rightly 0 in the record so the
+collapse holds on a reload) — and water running through dug ground is Round 58's own order,
+in its own words: *"water beats a 0 — a channel a man has cut is exactly where he expects
+his water to run."* The water was lawful; the probe was blind. `recordedAt` returns the
+ENTRY now (the block number, 0 for emptied, undefined for nothing) — truthiness still
+answers "did a hand build here", which is what all four standing callers ask — and test
+40's fault line names the ids it finds, so the next red says what it is instead of leaving
+a probe to be rebuilt. With the probe mended: 39, 40, 42 green at curtain density.
+
+## 4cq. Round 92 — the matriarch leads: the eighth attempt SHIPS, on the measurement the seventh prescribed ✅
+
+*Seven attempts across five rounds ended reverted; the seventh (Round 89) ended with a
+characterisation instead of a claim — the lever fires at the meal-done decision and costs
+nothing, but a 30-second arm cannot see ~2 units of drift under 13–18 of noise. The eighth
+attempt is the SAME mechanism under the measurement the seventh said it needed: minutes-long
+arms, the cohort-fixed travel metric, and the bearing's wheel slowed from 0.008 to 0.002
+rad/s so a long arm's drift does not curl into its own cancellation.*
+
+### The mechanism, unchanged from the seventh
+
+Each herd names a matriarch — rank by young-at-foot, the tie broken on the tether, Round
+82's rule — and she owns one slowly-wheeling bearing. At the meal-done decision (the ONE
+hang point where the lever lives: asked before the act and the stroll, measured dead at
+0.000–0.002 a beast-second anywhere later in the chain), a beast that would put its head
+straight back down sometimes wants its next mouthful a couple of body lengths her way —
+walking the station gait, head down at the end. Stations untouched (the fifth attempt's
+fault), steps untouched (the sixth's), station discipline asked first, dinner first always.
+
+### The readings — 180-second arms, ON/off/ON in one boot, Kenya
+
+    arm   travel                march/s   reach   mothers   feed   pass ms
+    ON    44.9 u — 1.84 radii    0.49      1.09     0.83     0.66   0.172
+    off   19.1 u — 0.84 radii    0         1.05     0.71     0.68   0.170
+    ON    27.7 u — 1.16 radii    0.41      1.11     0.76     0.69   0.169
+
+**Both ON arms above the off arm — the bracketing standard every earlier attempt failed**
+(the sixth had both off-arms above every on-reading; the seventh's off sat between its
+ons). A fourth, independent ON arm from a separate boot (cut off by its timeout after one
+arm) read 2.50 radii, the same way. And the guards are flat across arms: reach 1.05–1.11,
+the mothers 0.71–0.83 — inside, the young-at-centre rule untouched — feed 0.66–0.69, the
+herd pass 0.169–0.172 ms, graze failures 0 everywhere.
+
+### What is claimed, and what is not
+
+**Claimed: with the matriarch's lean on, the herds of one land travelled 1.4–2.2× the
+distance they travelled with it off, in one boot, with nothing else measurably moved** —
+and a third reading from another boot agrees. NOT claimed: the margin (1.16 against 1.84
+between the two ON arms says it varies), any effect on herd SIZE, or anything about a land
+not measured. Tanzania and the other herd lands are the natural confirmation, and tests
+50 and 53 stand permanent watch — test 53 now shows the march lever beside the levers it
+was built to expose, and its long-standing lament ("the window is too short for the rule
+to act in") is precisely what this round's arms answered.
+
+Guard tests 35 (the watch) and 53 (the levers, the cost) run green with the march on.
+
 ## 4cr. Round 93 — the bench: a place a man goes to make, and the work with nowhere to be done ✅
 
 *§17.5 was the last unticked item of PLAN's §17 queue, and it stated its own complaint exactly:

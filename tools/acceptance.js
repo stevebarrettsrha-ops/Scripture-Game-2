@@ -2364,11 +2364,18 @@ T[40]={name:'a running fall writes nothing into the record, and a hand\'s own so
        while a fall runs (a bank of sand comes down, a village lays a wall) and
        those are records rightly kept. */
     let seen=0, blind=0, inRecord=0;
+    /* AND WHAT the record holds there is NAMED, not merely counted — a fault
+       line that says "25 cells" leaves the next hand to rebuild the probe
+       this line replaces. The block id of each offender is tallied. */
+    const inRecIds={};
     for(const s of WATER.serialise()){
       const p=s.slice(0,s.lastIndexOf(':')).split(',');
       const ix=+p[0], iy=+p[1], iz=+p[2];
       if(D.blockAt(ix,iy,iz)) seen++; else blind++;
-      if(D.recordedAt(ix,iy,iz)) inRecord++;
+      const r=D.recordedAt(ix,iy,iz);
+      if(r){ inRecord++;
+        const b2=D.blockOf(r); const nm=b2?b2.id:('#'+r);
+        inRecIds[nm]=(inRecIds[nm]||0)+1; }
     }
 
     /* AND A HAND'S OWN SOURCE IS THE OTHER CASE. One bucket, on dry ground
@@ -2400,7 +2407,8 @@ T[40]={name:'a running fall writes nothing into the record, and a hand\'s own so
       if(k%50===0) await new Promise(r=>setTimeout(r,0)); }
 
     const faults=[];
-    if(inRecord) faults.push(inRecord+' cells of the running flow are IN THE RECORD');
+    if(inRecord) faults.push(inRecord+' cells of the running flow are IN THE RECORD — the record there holds: '+
+      Object.entries(inRecIds).map(e=>e[1]+'x '+e[0]).join(', '));
     if(!(flow1>flow0)) faults.push('the water\'s own layer never filled');
     if(blind) faults.push(blind+' cells of water the world cannot see');
     if(deedRec!==1) faults.push('a hand\'s own source put '+deedRec+' cells in the record, wanted 1');
@@ -4627,6 +4635,189 @@ T[58]={name:'a hand that sows: the sheaf gives seed, the hoe turns a bed, the se
         'reaped full (grow '+yrOf(SE.CENTRE[full]).toFixed(2)+'): +'+rFull.gain+
         ' · reaped young (grow '+yrOf(SE.CENTRE[lean]).toFixed(2)+'): +'+rLean.gain+
         ' · bed dug away: came away '+cameAway+' as '+asSeed+' seed'+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[59]={name:'the furnace and the iron: smelting is refused away from the fire, a kiln is not a furnace, and the iron pick is faster by its own number',
+  /* THE HOLE THIS FILLS — PLAN §17.5, argued in Round 87 and built here.
+     world/works.js has said since Phase 4 that "the smelting of copper and
+     iron waits… the ore is in the hills already, and the metal wants a fire
+     hotter than a kiln and a work of its own." The ore has been truly in
+     the hills since Round 39 (DEḆARIM 8:9), mineable, and nothing to do
+     with what was mined.
+
+     FOUR THINGS ARE ASKED, each its own link:
+       1. smelting is REFUSED at the bare hand — the work names its place
+       2. and refused BESIDE A KILN — a kiln is not a furnace, and a place
+          rule that matched any fire would make the furnace decoration
+       3. the chain holds: brick (the kiln's own output) becomes a furnace
+          AT the kiln, the furnace stands, and beside it the ore becomes
+          iron and the iron a pick — one work's product the next work's
+          material, twice over
+       4. the pick is faster BY ITS OWN DECLARED NUMBER: `speed` on the
+          block, read in toolSpeed, measured twice — the rule's answer and
+          the blow's actual clock — so the number on the block is the
+          number the hand pays. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    const raf=()=>new Promise(r=>requestAnimationFrame(r));
+    if(!D.blockId('furnace')||!D.blockId('iron')||!D.blockId('iron-pick'))
+      return {pending:'no furnace in blocks/'};
+    if(D.applyFreeroam){ D.state.freeroam=false; D.applyFreeroam(); }
+    const faults=[];
+    /* on ground, as test 38 stands: wherever the last test left him, or a
+       town if it left him over the sea */
+    let st0=D.blockUnder(D.playerXZ().x, D.playerXZ().z);
+    if(!st0){
+      const W=window.__WORLD, S=W&&W.sites?W.sites():null; let site=null;
+      if(S){ for(let i=0;i<S.length;i++) if(S[i]){ site=S[i]; break; } }
+      if(site){ D.setMode('walk'); D.state.walk.x=site.x; D.state.walk.z=site.z-40;
+        D.state.walk.feetY=undefined;
+        for(let k=0;k<40;k++){ D.updateChunks(site.x,site.z,400); await raf(); }
+        await D.settle(2); } }
+    /* two clear cells within the fire's own reach of where he stands —
+       WORK_R is 4, so the kiln and the furnace go two and three blocks out */
+    const p=D.playerXZ(), cix=Math.floor(p.x/B), ciz=Math.floor(p.z/B);
+    const spots=[];
+    for(let d=2;d<4&&spots.length<2;d++) for(let a=-d;a<=d&&spots.length<2;a++) for(let b2=-d;b2<=d&&spots.length<2;b2++){
+      if(Math.max(Math.abs(a),Math.abs(b2))!==d) continue;
+      const ix=cix+a, iz=ciz+b2, cc=D.landAtWorld((ix+0.5)*B,(iz+0.5)*B);
+      if(!cc) continue;
+      if(!D.blockAt(ix,cc.h,iz)&&!D.blockAt(ix,cc.h+1,iz)&&D.blockSolidAt(ix,cc.h-1,iz))
+        spots.push({ix,iz,h:cc.h});
+    }
+    if(spots.length<2) return {pending:'no two clear cells within the fire\'s reach of where he stands'};
+
+    /* ---- 1 · the smelting refused at the bare hand ---- */
+    D.satchelAdd('iron-ore',3);
+    let ws=D.workState('smelt-iron');
+    const bareRefused=!!(ws&&!ws.can&&ws.why==='place');
+    if(!bareRefused) faults.push('the bare hand smelted (workState: '+JSON.stringify(ws)+')');
+
+    /* ---- 2 · and refused beside a KILN ---- */
+    const put=async(id,s)=>{ D.satchelAdd(id,1);
+      let i=D.satchel().findIndex(q=>q&&q.id===id);
+      if(i>=(D.BELT_N?D.BELT_N():8)){ D.pageTouch(i); D.pageTouch(0); i=0; }
+      D.setHeld(i);
+      const r=D.placeFrom({ix:s.ix,iy:s.h-1,iz:s.iz,nx:0,ny:1,nz:0,n:D.blockAt(s.ix,s.h-1,s.iz),dist:2});
+      await D.settle(2);
+      return D.blockAt(s.ix,s.h,s.iz)===D.blockId(id)?null:('the '+id+' would not stand ('+JSON.stringify(r)+')'); };
+    let e=await put('kiln',spots[0]); if(e) faults.push(e);
+    ws=D.workState('smelt-iron');
+    const kilnRefused=!!(ws&&!ws.can&&ws.why==='place');
+    if(!kilnRefused) faults.push('a KILN passed for a furnace (workState: '+JSON.stringify(ws)+')');
+
+    /* ---- 3 · the chain: brick → furnace at the kiln → iron → the pick ---- */
+    D.satchelAdd('brick',8);
+    const wf=D.workMake('furnace');
+    if(!wf.ok) faults.push('the furnace would not be made at the kiln ('+(wf.why||'?')+')');
+    e=await put('furnace',spots[1]); if(e) faults.push(e);
+    ws=D.workState('smelt-iron');
+    if(!(ws&&ws.can)) faults.push('the furnace stands and the smelting is still refused ('+JSON.stringify(ws)+')');
+    let iron=0;
+    for(let k=0;k<3;k++){ const r=D.workMake('smelt-iron'); if(r.ok) iron++; }
+    if(iron<3) faults.push('only '+iron+' of 3 ores smelted');
+    D.satchelAdd('planks',2);
+    const wp=D.workMake('iron-pick');
+    if(!wp.ok) faults.push('the pick would not be made ('+(wp.why||'?')+')');
+
+    /* ---- 4 · faster by its own number, asked of the rule and of the clock ---- */
+    const declared=(D.blockOf(D.blockId('iron-pick'))||{}).speed||0;
+    const hold=id=>{ let i=D.satchel().findIndex(q=>q&&q.id===id);
+      if(i<0){ D.satchelAdd(id,1); i=D.satchel().findIndex(q=>q&&q.id===id); }
+      if(i>=(D.BELT_N?D.BELT_N():8)){ D.pageTouch(i); D.pageTouch(0); i=0; }
+      D.setHeld(i); return D.heldBlock()===id; };
+    hold('flint-pick'); const sFlint=D.toolSpeedOf('stone');
+    hold('iron-pick');  const sIron =D.toolSpeedOf('stone');
+    if(sFlint!==1) faults.push('the flint pick reads '+sFlint+' on stone, wanted 1');
+    if(Math.abs(sIron-declared)>1e-9) faults.push('the rule pays '+sIron+' where the block declares '+declared);
+    /* and the blow's own clock: a stone block laid, struck with each pick */
+    const sn=D.blockId('stone'), hard=(D.blockOf(sn)||{}).hardness||0;
+    D.setBlock((spots[0].ix+0.5)*B,(spots[0].h+1.5)*B,(spots[0].iz+0.5)*B,sn);
+    const needWith=async id=>{ hold(id);
+      D.mineAt(spots[0].ix,spots[0].h+1,spots[0].iz,0,1,0); D.mineDrive(true); D.mineHold(true);
+      D.mineStep(1/60); const g=D.mineProgress();
+      D.mineHold(false); D.mineAt(null); D.mineDrive(false);
+      return g?g.need:NaN; };
+    const nFlint=await needWith('flint-pick');
+    const nIron =await needWith('iron-pick');
+    if(!(nIron>0&&Math.abs(nFlint/nIron-declared)<0.05))
+      faults.push('the clock pays '+(nFlint/nIron).toFixed(2)+'× where the block declares '+declared+'×');
+    /* the ground left as it was found: the stone, the furnace and the kiln
+       taken back out (their cells were air, so the record closes over them) */
+    D.setBlock((spots[0].ix+0.5)*B,(spots[0].h+1.5)*B,(spots[0].iz+0.5)*B,0);
+    D.setBlock((spots[0].ix+0.5)*B,(spots[0].h+0.5)*B,(spots[0].iz+0.5)*B,0);
+    D.setBlock((spots[1].ix+0.5)*B,(spots[1].h+0.5)*B,(spots[1].iz+0.5)*B,0);
+    D.satchelTake('iron-pick',9); D.satchelTake('flint-pick',9);
+
+    return {ok:!faults.length,
+      got:'bare hand: refused ('+(bareRefused?'place':'?')+') · beside a kiln: still refused · '+
+        'brick 8 → a furnace at the kiln → stands → '+iron+' ore smelted → a pick of iron · '+
+        'the rule pays '+sIron+'× (declared '+declared+'×) and the blow wants '+
+        (isFinite(nIron)?nIron.toFixed(2):'?')+'s against flint\'s '+
+        (isFinite(nFlint)?nFlint.toFixed(2):'?')+'s on '+hard+'s stone'+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[60]={name:'a fall with no way out keeps a BOUNDED basin — the far falls answered by their own water',
+  /* §16's owed question, answered by tools/farfalls.js in Round 89 and
+     GUARDED here. The census: 27 of 34 falls find no outfall inside their
+     claim, and for every one of them the nearest true water lies 69 to 400+
+     blocks off (or nowhere within 400 at all) — a channel would be the
+     county-crossing cut the falls' own file forbids ("a shoulder widened to
+     reach a river would raise a county"), and the world's own rule holds:
+     no change to the shape of the earth without a defect to point at. The
+     defect this test watches for instead is the one that WOULD matter: a
+     basin that does not hold. Sprung and beaten to stillness, a far fall's
+     water must stand entirely inside its own claim — a bounded tarn, not a
+     spreading sheet. The census read farthest cells of 6-73 blocks against
+     claims of 46-376, outside 0, all 27; the two biggest are held to it
+     here so the suite stays affordable. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=D.B;
+    if(!window.WATER||!window.WATERFALL) return {pending:'no falling water'};
+    const list=WATERFALL.list();
+    const basins=list.filter(f=>!WATERFALL.outfall(f));
+    if(!basins.length) return {pending:'every fall found an outfall — nothing basin-bound to guard'};
+    /* the two biggest by drop, whatever their names — data picks them */
+    const chosen=basins.sort((a,b)=>b.drop-a.drop).slice(0,2);
+    const whose=(ix,iz)=>{ let best=null,bd=1e18;
+      for(const g of list){ const d=(ix*B-g.x)**2+(iz*B-g.z)**2; if(d<bd){ bd=d; best=g; } }
+      return best; };
+    const faults=[], said=[];
+    for(const f of chosen){
+      const heads=[];
+      for(const [x,z] of WATERFALL.springs(f)){
+        const c=D.landAtWorld(x,z); if(!c) continue;
+        const ix=Math.floor(x/B), iz=Math.floor(z/B);
+        if(WATER.spill(ix,c.h,iz)) heads.push([ix,c.h,iz]);
+      }
+      if(!heads.length){ faults.push(f.n+': no head could be laid'); continue; }
+      const mine=()=>WATER.serialise().filter(s=>{
+        const p=s.slice(0,s.lastIndexOf(':')).split(',');
+        return whose(+p[0],+p[2])===f; });
+      let prev=-1, still=0;
+      for(let t=0;t<4000&&still<40;t++){ WATER.step(0.25);
+        if(t%25===0){ const n=mine().length;
+          still=(n===prev)?still+25:0; prev=n;
+          await new Promise(r=>setTimeout(r,0)); } }
+      let outside=0, far=0;
+      const cells=mine();
+      for(const s of cells){ const p=s.slice(0,s.lastIndexOf(':')).split(',');
+        const dx=+p[0]*B-f.x, dz=+p[2]*B-f.z;
+        far=Math.max(far,Math.abs(dx),Math.abs(dz));
+        if(Math.abs(dx)>f.R||Math.abs(dz)>f.R) outside++; }
+      if(!cells.length) faults.push(f.n+': sprung, and no water stood at all');
+      if(outside) faults.push(f.n+': '+outside+' cell(s) of its water stand OUTSIDE its claim');
+      said.push(f.n.split(/[ —]/)[0]+': '+cells.length+' cells, farthest '+
+        Math.round(far/B)+' of a '+Math.round(f.R/B)+'-block claim'+(outside?', '+outside+' OUT':''));
+      /* the world left as it was found */
+      for(const h of heads) WATER.take(h[0],h[1],h[2]);
+      for(let t=0;t<4000&&mine().length;t++){ WATER.step(0.25);
+        if(t%50===0) await new Promise(r=>setTimeout(r,0)); }
+    }
+    return {ok:!faults.length,
+      got:basins.length+' of '+list.length+' falls are basin-bound · '+said.join(' | ')+
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 

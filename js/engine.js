@@ -412,6 +412,34 @@ TEX.kilnTop    = mkTex(g=>{ speckle(g,PB.kiln.a,13,PB.kiln.b,0.30);
   /* the flue, open, with the fire showing far down it */
   g.fillStyle=C(PB.kiln.mouth); g.fillRect(6,6,4,4);
   g.fillStyle=C(PAL.lift(PB.kiln.mouth,0.4)); g.fillRect(7,7,2,2); },16,16,RIM);
+/* ---- THE FURNACE — the kiln's pattern one step up, and built of BRICK ----
+   Its body is the very brick the kiln bakes (one work's product is another
+   work's material, which is what building from gathered materials means),
+   drawn in the brick's own courses; its mouth burns whiter than the kiln's,
+   because a fire for the ore is hotter than a fire for the clay. */
+TEX.furnSide   = mkTex(g=>{ speckle(g,PB.brick.mortar,8);
+  for(let r=0;r<4;r++){ const y=r*4, off=(r%2)?-2:0;
+    for(let c=-1;c<3;c++){ const x=off+c*6;
+      const t=jit(PB.brick.b,22,r*7+c);
+      g.fillStyle=rgb(t[0],t[1],t[2]); g.fillRect(x+FG,y+FG,6-2*FG,4-2*FG);
+      const hi=jit(PB.brick.face,12,r*3+c);
+      g.fillStyle=rgb(hi[0],hi[1],hi[2]); g.fillRect(x+FG,y+FG,6-2*FG,FG); } }
+  g.fillStyle=C(PB.furnace.ash); for(let x=0;x<16;x+=FG)
+    if(hash2(x,7.3)>0.5) g.fillRect(x,16-FG*2,FG,FG*2);
+  /* the fire-mouth, an arch low in the face, whiter than the kiln's */
+  g.fillStyle=C(PAL.shade(PB.brick.b,0.6)); g.fillRect(5,8,6,7);
+  g.fillStyle=C(PB.furnace.mouth); g.fillRect(6,10,4,5);
+  g.fillStyle=C(PAL.lift(PB.furnace.mouth,0.5)); g.fillRect(7,12,2,3); },16,16,RIM);
+TEX.furnTop    = mkTex(g=>{ speckle(g,PB.brick.b,16,PB.brick.face,0.3);
+  /* the flue, open, with the smelt showing far down it */
+  g.fillStyle=C(PB.furnace.mouth); g.fillRect(6,6,4,4);
+  g.fillStyle=C(PAL.lift(PB.furnace.mouth,0.55)); g.fillRect(7,7,2,2); },16,16,RIM);
+/* iron, off the smelting: two ingots side by side, drawn as the THING */
+TEX.ironBar    = mkTex(g=>{ g.clearRect(0,0,16,16);
+  for(const [bx,by] of [[2,3],[6,8]]){
+    g.fillStyle=C(PB.ironBar.a); g.fillRect(bx,by+1,9,4);
+    g.fillStyle=C(PB.ironBar.b); g.fillRect(bx+1,by,9,4);
+    g.fillStyle=C(PB.ironBar.glint); g.fillRect(bx+2,by+1,3,FG); } });
 /* ---- AND THE TOOLS ----
    Drawn as the THING, not as a cube of stuff: a haft up the middle and the
    stone lashed across the head of it, so a token on the belt reads at a
@@ -431,6 +459,11 @@ const _hd=(g)=>{ g.fillStyle=C(PB.toolStone.a); return g; };
 TEX.flintPick  = toolTex(g=>{ _hd(g); g.fillRect(2,2,12,2);
   g.fillStyle=C(PB.toolStone.b); g.fillRect(2,1,12,2);
   g.fillStyle=C(PB.toolStone.glint); g.fillRect(3,1,2,FG); g.fillRect(12,1,2,FG); });
+/* the same pick with its head off the smelting — one tool in two metals,
+   the haft and the cord unchanged so the eye reads them as kin */
+TEX.ironPick   = toolTex(g=>{ g.fillStyle=C(PB.toolIron.a); g.fillRect(2,2,12,2);
+  g.fillStyle=C(PB.toolIron.b); g.fillRect(2,1,12,2);
+  g.fillStyle=C(PB.toolIron.glint); g.fillRect(3,1,2,FG); g.fillRect(12,1,2,FG); });
 /* ---- THE BUCKET, AND THE SAME BUCKET CARRYING ----
    A jar of baked clay: a body, a shoulder drawn in, and a handle over. The
    full one is the same vessel with the water standing in the neck of it, so
@@ -555,6 +588,9 @@ blockMat('flintSpade',TEX.flintSpade,{transparent:true});
 blockMat('flintHoe',TEX.flintHoe,{transparent:true});
 blockMat('flintKnife',TEX.flintKnife,{transparent:true});
 blockMat('seedT',TEX.seedT,{transparent:true});
+blockMat('furnSide',TEX.furnSide); blockMat('furnTop',TEX.furnTop);
+blockMat('ironBar',TEX.ironBar,{transparent:true});
+blockMat('ironPick',TEX.ironPick,{transparent:true});
 blockMat('goldOre',TEX.goldOre); blockMat('silverOre',TEX.silverOre);
 blockMat('copperOre',TEX.copperOre); blockMat('ironOre',TEX.ironOre);
 blockMat('alabaster',TEX.alabaster); blockMat('flint',TEX.flint);
@@ -1063,6 +1099,11 @@ for(let i=0;i<BLOCK_DEFS.length;i++){
     /* what this thing SERVES AS in the hand — 'pick', 'axe' and the rest.
        No block is a tool; the works of Phase 4 step 9 declare these. */
     serves:d.serves||null,
+    /* how much FASTER than the first tool of its kind it works — the iron
+       pick above the flint one. Read in exactly one place, toolSpeed, the
+       same pattern hardness set: declared here, believed there. 1 unless
+       the block says otherwise, so every flint tool reads as it always did. */
+    speed:d.speed||1,
     /* ---- AND WHAT A VESSEL BECOMES WHEN IT IS USED ----
        A bucket is two things — empty and full — and each names the other, so
        the engine may pour one into the other without ever knowing either by
@@ -9108,6 +9149,18 @@ function herdPass(){
     const RT_MAX=HERD_R*0.85/(2*STN_OUT);
     const H={n:mob.length, x:cx, z:cz, r:Math.max(1,rr/mob.length),
              rt:Math.min(RT_MAX, Math.max(6, HERD_SPACE*bl*Math.sqrt(mob.length)*0.5))};
+    /* ---- AND THE HERD HAS A MATRIARCH, AND SHE OWNS A BEARING ----
+       Rank is young-at-foot, the tie broken on the beast's own tether so the
+       same herd names the same beast for as long as she lives — Round 82's
+       rank rule, kept. What she owns is ONE slowly-wheeling bearing; what is
+       done with it is done at the meal-done decision (toMarch) and NOWHERE
+       ELSE: no station is re-centred on her (the fifth attempt, and it
+       damaged the reach), no step is bent along it (the sixth, and the
+       correction cost more than it gained). */
+    let M=null, mr=-1;
+    for(const b of mob){ const r2=(b.kids?b.kids.length:0)*10+hash2(b.hx*0.07,b.hz*0.11);
+      if(r2>mr){ mr=r2; M=b; } }
+    H.br=hash2(M.hx*0.031,M.hz*0.047)*6.283+LL_T*LEAD_TURN;
     for(const b of mob){ done.add(b); b.herd=H; }
   }
 }
@@ -9134,8 +9187,9 @@ function stationOf(a){
    it is a handful
    of adds on a loop that already runs. */
 const HSTAT={secs:0, frames:0, reach:0, reachN:0, mReach:0, mReachN:0, rSum:0, rtSum:0, rN:0,
-             pickRoam:0, pickGraze:0, pickStn:0, grazeFail:0, steps:0, herded:0, loose:0,
+             pickRoam:0, pickGraze:0, pickStn:0, pickMarch:0, marchAsk:0, grazeFail:0, steps:0, herded:0, loose:0,
              feed:0, feedN:0, passMs:0};
+let LL_T=0;      /* the herds' own clock — see the matriarch's bearing in herdPass */
 function herdStatReset(){ for(const k in HSTAT) HSTAT[k]=0; }
 /* ---- AND WHAT THE INSTRUMENT ASKED FOR, WHICH WAS NOT WHAT I EXPECTED ----
    TWO MECHANISMS WERE BUILT FIRST AND THROWN AWAY UNBUILT, and the diagnostic
@@ -9205,6 +9259,37 @@ function toStation(a){
   if(Math.hypot(a.x-st.x,a.z-st.z)<a.herd.rt*STN_FAR) return false;
   a.tx=st.x; a.tz=st.z; a.job='station'; a.jt=3+Math.random()*2;
   HSTAT.pickStn++; return true;
+}
+/* ================= THE NEXT MOUTHFUL — the eighth attempt =================
+   §2.3.5's "matriarch-led". The SEVENTH attempt (Round 89) built exactly
+   this and took it back out with a characterisation instead of a claim: the
+   lever fires at the meal-done decision (0.13-0.23 a second, off-arm 0) and
+   costs nothing measurable — reach, mothers, feed, frame all flat — but a
+   30-second arm cannot see the ~2 units of drift it buys under 13-18 of
+   arrival noise. The eighth attempt is the same mechanism under the
+   measurement it actually needs: minutes-long arms, the cohort-fixed travel
+   metric, and the bearing's wheel slowed so a long arm's drift does not
+   curl into its own cancellation (0.008 rad/s turns half a circle inside a
+   seven-minute arm; 0.002 keeps the way roughly held across it).
+
+   THE MECHANISM, unchanged from the seventh: a beast standing in grass that
+   would put its head straight back down sometimes WANTS the next mouthful a
+   couple of body lengths along the matriarch's bearing — the station gait,
+   the head down at the end, dinner first always, station discipline asked
+   first. Its steps are its own and its marks are its own; only its want is
+   leaned. */
+let LEAD_ON=true;
+const LEAD_TURN=0.002;   /* how the bearing wheels: a full turn in ~52 minutes */
+const MARCH_P=0.30;      /* how many next-mouthfuls lean; the rest feed in place */
+function toMarch(a){
+  if(!LEAD_ON||!a.herd||a.herd.br===undefined) return false;
+  HSTAT.marchAsk++;                              /* reached at all — the dead-lever guard */
+  if((a.feed||0)<GRASS.FEED_MIN) return false;   /* hungry: dinner first, always */
+  if(Math.random()>=MARCH_P) return false;
+  const st=Math.max(6,Math.min(14,bodyLenOf(a.kind)*1.5));
+  a.tx=a.x+Math.sin(a.herd.br)*st; a.tz=a.z+Math.cos(a.herd.br)*st;
+  a.job='station'; a.jt=3+Math.random()*2;       /* the walk that does not stop at the first blade */
+  HSTAT.pickMarch++; return true;
 }
 
 /* ---- WHAT IS FRIGHTENING THIS BEAST, IF ANYTHING ----
@@ -9430,6 +9515,7 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
   const llReap=Math.min(3050,Math.max(LL_REAP,ff*1.12));
   /* THE HERDS OF THE EARTH, ONCE, BEFORE ANYBODY MOVES — so that every beast
      in this frame reads the same herd, and so does the instrument. */
+  LL_T+=dt;      /* the herds' own clock, for the matriarch's slow-turning bearing */
   { const t0=performance.now(); herdPass(); HSTAT.passMs+=performance.now()-t0;
     HSTAT.secs+=dt; HSTAT.frames++; }
   for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>llReap){
@@ -9832,9 +9918,13 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
         else if(takeWatch(a)){ /* the watch is his */ }
         else if(a.job==='act'){ a.job='roam'; a.act=null; a.jt=2.5+Math.random()*3; }
         else if(a.job==='feedhead'){
-          /* the meal done, a moment for the day's small business — the roll
-             in the dust, the walk down to the water */
-          if(!tryAct(a)){ a.job='roam'; a.jt=2.5+Math.random()*3; } }
+          /* the meal done — and FIRST the herd's way, then the day's small
+             business. Hung anywhere later in this chain the lever is dead
+             (0.000-0.002 a beast-second, measured in Round 89): this branch
+             CONSUMES the meal-done decision, so the next-mouthful choice
+             must be asked here or never. The act and the stroll take what
+             it leaves. */
+          if(!toMarch(a)&&!tryAct(a)){ a.job='roam'; a.jt=2.5+Math.random()*3; } }
         /* ON GROUND THAT BEARS NO GRASS AT ALL — the snow of the far north,
            bare rock, the sand — there is nothing to walk to and nothing to
            look for. The reindeer paws the drift for the moss under it and the
@@ -16520,8 +16610,18 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      "is this block of the stream in the record?", which a total cannot answer
      because the world does other things while a fall runs (a bank of sand
      comes down, a village lays a wall) and those are records rightly kept */
+  /* THE ENTRY ITSELF, not a boolean — a probe that answers `true` alike for
+     "a hand built here" and "the ground here was emptied" cannot tell the
+     two apart, and Round 91 caught it calling the water's own law a fault:
+     a curtain-wetted bank collapsed (the world putting itself right, its
+     emptied cells rightly 0 in the record), the flow ran through the dug
+     ground exactly as Round 58's order says it may ("water beats a 0"), and
+     the boolean read 24 cells of lawful water as a record leak. Returns the
+     block number (0 = emptied), or undefined where the record says nothing
+     — truthiness still answers "did a hand BUILD here", which is what every
+     standing caller asks. */
   recordedAt:(ix,iy,iz)=>{ const m=EDITS.get(chunkKeyOf(ix,iz));
-    return !!m&&m.get(eIndex(((ix%CH)+CH)%CH,iy,((iz%CH)+CH)%CH))!==undefined; },
+    return m?m.get(eIndex(((ix%CH)+CH)%CH,iy,((iz%CH)+CH)%CH)):undefined; },
   /* the remesh ALONE, in milliseconds — not the frame it happens to sit in */
   flushNow:()=>{ const t=performance.now(); const n=flushEdits(1e9);
     return {ms:performance.now()-t, chunks:n}; },
@@ -16802,6 +16902,11 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      open sea is wrong outright. tools/acceptance.js asks it of the falling
      waters; nothing in the game reads it. */
   landNameAt,
+  /* river, sea, or dry land, off the rasters alone — the same answer the
+     falls' own outfall search reads. Exposed read-only so tools/farfalls.js
+     can ask how far PAST a claim the nearest water truly lies, which is the
+     number §16's far-falls question turns on. */
+  outWater:outfallWater,
   handSlow:()=>HAND_SLOW,
   /* ---- THE SOWING, FOR tools/acceptance.js ----
      the stand that counts as full-grown, and the year as the reaping reads
@@ -16934,6 +17039,8 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      with them. Off to read the world without it, inside one boot. */
   flockOn:v=>{ if(v!==undefined) FLOCK_BORN=v; return FLOCK_BORN; }, FLOCK_R:()=>FLOCK_R,
   stationDrift:v=>{ if(v!==undefined) STN_DRIFT=!!v; return STN_DRIFT; },
+  /* the eighth attempt's own switch, for the A/B in one boot */
+  leadOn:v=>{ if(v!==undefined) LEAD_ON=!!v; return LEAD_ON; },
   stationFar:v=>{ if(v!==undefined) STN_FAR=+v; return STN_FAR; },
   /* ---- AND ONE PROBE THAT WRITES, WHICH IS SAID OUT LOUD ----
      Everything else on this surface only asks. `setYoung` puts a calf at a
@@ -17361,7 +17468,10 @@ function toolSpeed(b){
      So today every hand is still bare and this reads exactly as it did in
      Round 34 — but it now reads the HAND rather than assuming it. */
   const h=heldBlock();
-  return (h&&h.serves===b.tool)?1:1/HAND_SLOW;
+  /* AND THE DAY A BETTER TOOL EXISTS IT IS BELIEVED WITHOUT ANOTHER LINE
+     HERE, exactly as this comment promised in Round 34: the block's own
+     `speed` is how much faster it works than the first tool of its kind. */
+  return (h&&h.serves===b.tool)?(h.speed||1):1/HAND_SLOW;
 }
 /* the crack figure of one block: branches out of the middle of a face, in
    face-space, each segment appearing after the one before it */

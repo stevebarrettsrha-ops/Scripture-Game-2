@@ -202,10 +202,19 @@ const B = {
   kiln:        { b: shade(mix(P.limestone,P.lampblack,0.30),0.94),
                  a: shade(mix(P.limestone,P.lampblack,0.44),0.90),
                  mouth: mix(P.cinnabar,P.saffron,0.35), ash: lift(P.ash,0.10) },
+  /* the furnace is BRICK — the kiln's own output is its body, so it draws
+     from PB.brick and names only what is its own: a mouth burning whiter
+     than the kiln's, because a fire for the ore is hotter than a fire for
+     the clay */
+  furnace:     { mouth: mix(P.cinnabar,P.saffron,0.18), ash: lift(P.ash,0.10) },
   /* the tools: a haft of riven plank, and the stone lashed to it */
   toolHaft:    { b: mix(P.rawSienna,P.darkOchre,0.34), a: shade(mix(P.rawSienna,P.rawUmber,0.30),0.86) },
   toolStone:   { b: P.flint, a: shade(P.flint,0.84), glint: lift(P.flint,0.38),
                  cord: mix(P.ochre,P.rawUmber,0.35) },
+  /* and the same tool in IRON: the head off the smelting, the haft and the
+     cord unchanged, so the two picks read as one tool in two metals */
+  toolIron:    { b: P.iron, a: shade(P.iron,0.78), glint: lift(P.iron,0.44) },
+  ironBar:     { b: P.iron, a: shade(P.iron,0.82), glint: lift(P.iron,0.36) },
 
   /* --- THE STONES OF THE BREASTPLATE (§4) ---
      SHEMOTH 28:17-20 names twelve; these are the six the paint box already

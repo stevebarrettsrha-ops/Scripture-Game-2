@@ -460,9 +460,27 @@ function channelAt(x,z){
    a fall that cannot be turned off is worse than a fall that is thin — so
    this stands at seven until the drain is understood at a hundred.
    Acceptance test 39 is what found it, in the run it was written for. */
+/* ---- THE CURTAIN, AT LAST ----
+   Seven heads made seven threads, and §16 carried the debt for thirty
+   rounds: "a head every other block gives the volume back and will not
+   unwind — that is not understood yet." That sentence was written against
+   the water of Rounds 57-58, and Round 65 rebuilt that water end to end —
+   falling holds by what stands OVER it, a settled fall's queue is empty,
+   the front came down from 175 columns to 9. Nobody ever asked the new
+   water the old question.
+
+   tools/curtain.js asked it (Round 91), arm against arm in one boot, and
+   the fear is retired by measurement: at a head every other block, on
+   Angel, Iguazu and Krimml alike, the queue at rest is 0, a hundred ticks
+   at rest lay and dry NOTHING, and the heads taken up drain the whole
+   curtain to zero cells. And the prize is the Great Water actually pouring
+   as one: Iguazu's lip is four hundred and fifty blocks wide, and seven
+   threads across it was the plainest thing wrong with the falls — a head
+   every other block takes its front from 116 columns to 440. A narrow fall
+   (Krimml's lip is four blocks) comes out cell-for-cell as it was. */
 function springs(f){
   const out=[];
-  const step=Math.max(1,Math.round(f.half/3));
+  const step=2;                                        /* a head every other block */
   const v=Math.max(0,Math.floor(f.F.under*f.drop));    /* the brink */
   for(let u=-f.half;u<=f.half;u+=step){
     const x=f.x+( u*f.cs+v*f.sn)*K.B;
