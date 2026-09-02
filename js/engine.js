@@ -11510,7 +11510,20 @@ function pushOutOfSolids(ent,dt){
 function sp0OfEnt(ent){ return ent.panic?12:6; }
 function moveEnt(ent,dt,sp){
   if(pushOutOfSolids(ent,dt)){ ent._blk='push'; return true; }   /* getting clear IS this frame's business */
-  const dx=ent.tx-ent.m.position.x, dz=ent.tz-ent.m.position.z;
+  /* ---- A DETOUR (Round 96) ----
+     THE FAULT THIS MENDS. The way round (below) is one step's worth of
+     looking, and it remembered the swing that served last — including the
+     backward ones. Before anything wider than a step (a row of stalls, a
+     bank under an eave, a house's whole side) a walker stepped back, then
+     forward into the same refusal, then back, for ever: a vendor was read
+     393 frames in front of his own counter with his bed a hundred paces
+     off. A walker refused straight forty frames running now sets itself a
+     waypoint off to one side, walks to it, and takes up its errand again
+     from there — the way a man gets round a thing he cannot see past. */
+  if(ent._detour){ const dd=Math.hypot(ent._detour.x-ent.m.position.x,ent._detour.z-ent.m.position.z);
+    if(dd<1.5||--ent._detour.t<=0) ent._detour=null; }
+  const TX=ent._detour?ent._detour.x:ent.tx, TZ=ent._detour?ent._detour.z:ent.tz;
+  const dx=TX-ent.m.position.x, dz=TZ-ent.m.position.z;
   const d=Math.hypot(dx,dz); let moving=d>0.6;
   if(moving){ const nx=ent.m.position.x+dx/d*sp*dt, nz=ent.m.position.z+dz/d*sp*dt;
     const hitPlayer=state.mode==='walk'&&Math.hypot(nx-state.walk.x,nz-state.walk.z)<2.6;
@@ -11601,8 +11614,13 @@ function moveEnt(ent,dt,sp){
         if(isFinite(g2.ceil)&&(g2.ceil-g2.y)<B*1.9&&!((g2.ceil-g2.y)>=B*1.0&&underEave(ax2,az2))) continue;
         if(blockedByStructureNPC(ax2,az2)||blockedBySolid(ax2,az2)||blockedByEntity(ax2,az2,ent.m)) continue;
         if(landmarkSolidAt(ax2,az2,ent.m.position.y+2,ent.m.position.y+8)) continue;
-        took=true; ent._sw=sw; ent.m.position.x=ax2; ent.m.position.z=az2; ent.m.rotation.y=ang+sw; break; }
+        took=true; ent._sw=Math.abs(sw)<2?sw:0; ent.m.position.x=ax2; ent.m.position.z=az2; ent.m.rotation.y=ang+sw; break; }
     }
+    if(ent._blk===''||ent._blk==='door'){ ent._held=0; }
+    else { ent._held=(ent._held||0)+1;
+      if(ent._held>40&&!ent._detour){ ent._held=0;
+        const ang=Math.atan2(dx,dz)+(Math.random()<0.5?1:-1)*(Math.PI/2+(Math.random()-0.5)*0.6), r=12+Math.random()*10;
+        ent._detour={x:ent.m.position.x+Math.sin(ang)*r, z:ent.m.position.z+Math.cos(ang)*r, t:90}; ent._sw=0; } }
     if(took){ ent.stuck=0; if(ent._blk==='') ent._sw=0; }
     else { moving=false; ent.t=0; ent.stuck=(ent.stuck||0)+1;
       if(ent.stuck>2){ ent.stuck=0; ent.acting=false; ent.pt=0; ent.tx=ent.m.position.x; ent.tz=ent.m.position.z; } } }
@@ -16895,7 +16913,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      reference height, and which courses are solid */
   columnAt:(x,z,refY)=>{ const ix=Math.floor(x/B), iz=Math.floor(z/B), c=landAtWorld(x,z);
     const g=groundInfo(x,z,refY); const solid=[]; const h0=c?c.h:0;
-    for(let iy=h0-2;iy<=h0+7;iy++) if(blockSolidAt(ix,iy,iz)){ const b=blockAt(ix,iy,iz); solid.push(iy+':'+(b&&BLOCK_BY_ID[b]?BLOCK_BY_ID[b].id||b:b)); }
+    for(let iy=h0-2;iy<=h0+7;iy++) if(blockSolidAt(ix,iy,iz)){ const b=blockAt(ix,iy,iz); solid.push(iy+':'+(typeof blockName==='function'?blockName(b):b)); }
     return {h:h0,kind:c&&c.kind,y:g.y,ceil:g.ceil,land:g.land,edited:!!g.edited,solidCourses:solid}; },
   toolSpeedOf:id=>toolSpeed(BLOCK_BY_ID[id]),
   /* the save, driven and read back, so a test need not guess at its timing */
