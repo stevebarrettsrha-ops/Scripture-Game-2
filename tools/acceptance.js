@@ -4942,6 +4942,90 @@ T[60]={name:'THE LABOURS OF THE PEOPLE — each trade keeps its own hours, rests
     function P0hint(){ return F.people.length+' souls in '+(v&&v.houses||'?')+' houses · '; }
   })};
 
+T[61]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it after, sleeps near its work, and is not held under an eave',
+  /* THE FAULT THIS GUARDS. Round 90 was the first thing in this world to
+     watch a soul go indoors, and it saw three things it left named:
+     every villager walked THROUGH a shut door (the folk's rule let a body
+     through the doorway whether the leaf was open or shut, while the
+     traveller's rule never has — so the leaf that swings for the traveller
+     had never once swung for the people who live behind it); homes were
+     dealt round-robin as souls were made, so a farmer at his field slept
+     across town and set out for bed from 228 paces; and two shoppers
+     stood held under a neighbour's eave, the headroom rule reading a roof
+     edge over the yard as a ceiling.
+
+     WHAT IS READ IS THE LEAF, not the walker's word for it: the doors probe
+     reports each door open or shut and whose hand did it, and the guard is
+     that no soul is ever inside a shut door's gap. The homes are judged
+     against the village's own spread — the farthest house from the well,
+     read off the doors — not a number this test knows. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=6;
+    if(!D.villageDoors||!D.villageFolk||!D.standInVillage) return {pending:'no villageDoors probe (Round 91)'};
+    const v=await D.standInVillage(); if(!v) return {ok:false,got:'no town would stand'};
+    let F=D.villageFolk(); if(!F||!F.people.length) return {ok:false,got:'a town with nobody in it'};
+    const site=F.site, faults=[];
+    const frames=async n=>{ for(let f=0;f<n;f++) await new Promise(r=>requestAnimationFrame(r)); };
+    const doors0=D.villageDoors(); if(!doors0||!doors0.some(d=>d.dx!==undefined)) return {ok:false,got:'a town with no doors'};
+    const inGap=(e,d,m)=>Math.hypot(e.x-d.dx,e.z-d.dz)<d.gw+m;
+
+    /* ---- 4 · THE HEARTH: a home near the work, read against the village's own spread ---- */
+    var hearthRead;
+    { const P=F.people.filter(e=>e.homeD!=null);
+      const spread=Math.max(...doors0.filter(d=>d.dx!==undefined).map(d=>Math.hypot(d.dx-site.x,d.dz-site.z)));
+      const far=P.filter(e=>e.homeD>spread*1.5+B*2).map(e=>e.role+'#'+e.i+' '+e.homeD.toFixed(0));
+      if(far.length) faults.push('housed farther than the village spreads ('+spread.toFixed(0)+'): '+far.join(', '));
+      const alone=F.people.filter(e=>e.child&&e.homeI!=null&&!F.people.some(o=>!o.child&&o.homeI===e.homeI)).length;
+      if(alone) faults.push(alone+' child(ren) housed with no grown soul');
+      const mean=P.length?P.reduce((a,e)=>a+e.homeD,0)/P.length:0;
+      hearthRead='HOMES: '+P.length+' souls housed, farthest '+(P.length?Math.max(...P.map(e=>e.homeD)).toFixed(0):'-')+' paces from its calling, mean '+mean.toFixed(0)+', village spread '+spread.toFixed(0); }
+
+    /* ---- 1 · A SHUT DOOR IS A WALL TO THE FOLK, and they open it ---- */
+    D.setLocalHour(1.0,site.x,site.z);
+    let inShut=0, byFolk=0, byHand=0; const openedIdx=new Set();
+    let prev=D.villageDoors().map(d=>d.open);
+    for(let f=0;f<300;f++){ await frames(1);
+      const doors=D.villageDoors(), P=D.villageFolk().people;
+      doors.forEach((d,i)=>{ if(d.open&&!prev[i]){ openedIdx.add(i); if(d.by==='hand') byHand++; else byFolk++; } });
+      prev=doors.map(d=>d.open);
+      for(const d of doors){ if(d.open||d.dx===undefined) continue; for(const e of P) if(inGap(e,d,1.0)) inShut++; } }
+    if(inShut) faults.push('a soul stood in a shut door\'s gap '+inShut+' soul-frames');
+    if(byHand) faults.push(byHand+' door(s) opened by the hand with the traveller standing still');
+    const abedN=D.villageFolk().people.filter(e=>!e.awake&&e.door!==null).length;
+    if(abedN>3&&!byFolk) faults.push('nobody opened a door on the way to bed');
+    const doorRead='DOORS (01:00, 300 frames): '+openedIdx.size+' of '+doors0.length+' opened by the folk, none by the hand, '+inShut+' soul-frames inside a shut gap';
+
+    /* ---- 2 · AND SHUT AFTER; 5 · THE BED with the new homes ---- */
+    await frames(210);
+    var shutRead, bedRead;
+    { const doors=D.villageDoors(), P=D.villageFolk().people;
+      const openEmpty=doors.filter(d=>d.open&&!P.some(e=>inGap(e,d,1.8)));
+      if(openEmpty.length>1) faults.push(openEmpty.length+' doors left standing open with nobody in them');
+      const lyingOpen=P.filter(e=>e.lying&&e.door==='open'&&!P.some(o=>o!==e&&o.homeI===e.homeI&&!o.lying&&inGap(o,doors[e.homeI],2.5))).length;
+      if(lyingOpen>1) faults.push(lyingOpen+' souls lie abed behind an open door');
+      shutRead='SHUT AFTER (510 frames): '+doors.filter(d=>d.open).length+' open, '+openEmpty.length+' with nobody in them, '+lyingOpen+' abed behind an open door';
+      const abed=P.filter(e=>!e.awake), lying=abed.filter(e=>e.lying).length;
+      const held=abed.filter(e=>!e.lying&&e.blk&&e.blk!=='door'&&e.blk!=='entity').map(e=>e.role+'#'+e.i+' ('+e.blk+')');
+      if(abed.length&&lying<abed.length*0.8) faults.push('only '+lying+' of '+abed.length+' abed souls lying at 510 frames');
+      bedRead='THE BED: '+lying+' of '+abed.length+' abed lying'+(held.length?', held: '+held.join(', '):''); }
+
+    /* ---- 3 · THE HAND'S DOOR IS THE HAND'S ---- */
+    var handRead;
+    { D.setLocalHour(12,site.x,site.z); await frames(30);
+      const doors=D.villageDoors(); let i=-1,bd=1e18; const p=F.site;
+      doors.forEach((d,k)=>{ if(d.dx===undefined) return; const dd=Math.hypot(d.dx-p.x,d.dz-p.z); if(dd<bd){bd=dd;i=k;} });
+      D.setDoorAt(i,true); await frames(300);
+      const d=D.villageDoors()[i];
+      if(!d.open||d.by!=='hand') faults.push('the traveller\'s door was shut by the folk');
+      D.setDoorAt(i,false);
+      handRead='THE HAND\'S DOOR (house '+i+', 300 frames at noon): '+(d.open?'still open, by '+d.by:'SHUT'); }
+
+    D.setLocalHour(12,site.x,site.z);
+    return {ok:!faults.length,
+      got:F.people.length+' souls, '+doors0.length+' houses · '+hearthRead+' · '+doorRead+' · '+shutRead+' · '+bedRead+' · '+handRead+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

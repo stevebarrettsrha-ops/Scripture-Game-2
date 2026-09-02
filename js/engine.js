@@ -11167,17 +11167,37 @@ function* spawnVillage(i,exShell){
      feeding the fowl, herding, hunting, selling, buying, fishing, playing —
      walks its rounds by day, and goes home to its own hearth at dusk. */
   const people=[]; const cx=site.x, cz=site.z;
-  let homeIdx=0;
-  const nextHome=()=>{ if(!ex.houses.length) return null;
-    const H=ex.houses[homeIdx++%ex.houses.length];
+  const homeOf=H=>{
     const cx=(H.x0+H.x1)/2, cz=(H.z0+H.z1)/2;
     /* the home is the room, AND the door to it: a soul walking in aims for
        the step outside its own door first and the hearth after, because a
        straight line at the middle of a house meets a wall (Round 90) */
-    const home={x:cx,z:cz,x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1};
+    const home={x:cx,z:cz,x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1,H};
     if(H.dx!==undefined){ const ux=H.dx-cx, uz=H.dz-cz, d=Math.hypot(ux,uz)||1;
       home.dx=H.dx; home.dz=H.dz; home.ox=H.dx+ux/d*B*1.2; home.oz=H.dz+uz/d*B*1.2; }
     return home; };
+  /* ---- THE HEARTH: A HOME NEAR THE WORK (Round 91) ----
+     THE FAULT THIS MENDS. Homes were dealt round-robin as souls were made:
+     a farmer set down at his field got whichever house was next in the
+     list, and Round 90's trace read souls setting out for bed from 228
+     paces off — farther than a night's walk in the test's hold. Now every
+     soul is housed AFTER all are set down: each takes the nearest house
+     to its calling with room in it (three to a house, a fuller house
+     counting as farther), adults first, and a child is put in a house
+     that already has a grown soul in it. A city's residents keep the
+     doorstep homes they were set down at. */
+  const assignHomes=()=>{ if(!ex.houses.length) return;
+    const count=new Map(), CAP=3;
+    const calling=e=>e.farm||e.well||e.pen||e.stall||e.spot||e.post||e.teach||{x:e.hx,z:e.hz};
+    const order=people.filter(e=>!e.home).sort((a,b)=>(a.child?1:0)-(b.child?1:0));
+    for(const e of order){ const c=calling(e); let best=null,bd=1e18;
+      for(const H of ex.houses){ const n=count.get(H)||0; if(n>=CAP) continue;
+        if(e.child&&n===0) continue;                      /* not a child alone */
+        const d=Math.hypot((H.x0+H.x1)/2-c.x,(H.z0+H.z1)/2-c.z)+n*B*2;
+        if(d<bd){ bd=d; best=H; } }
+      if(!best){ let bn=1e9; for(const H of ex.houses){ const n=count.get(H)||0; if(n<bn){ bn=n; best=H; } } }
+      e.home=homeOf(best); count.set(best,(count.get(best)||0)+1);
+      e.homeD=Math.hypot(e.hx-e.home.x,e.hz-e.home.z); } };
   /* ---- NOBODY IS SET DOWN INSIDE ANYTHING ----
      A soul or a beast used to be placed by its calling's radius alone, so it
      could stand embedded in the well, a stall, a hay-bale, a tree, a house
@@ -11224,7 +11244,7 @@ function* spawnVillage(i,exShell){
     per.position.set(hx,topY(Math.floor(hx/B),Math.floor(hz/B)),hz); g.add(per);
     placedAt.push({x:hx,z:hz});
     const ent=Object.assign({m:per,role,hx,hz,roamR:roamR||3,tx:hx,tz:hz,t:hash2(seed,7)*4,
-      pt:0,acting:false,seed,child:!!child,female:!!female,home:nextHome(),
+      pt:0,acting:false,seed,child:!!child,female:!!female,home:null,
       name:personName(seed,female)},data||{});
     people.push(ent); return ent; };
   /* the teacher, and the children who gather for the lesson and play at tag */
@@ -11261,6 +11281,7 @@ function* spawnVillage(i,exShell){
         2.4, false, h%2===0, {home:hm});
       if(h%4===3) yield; }
   }
+  assignHomes();
   yield;
   /* the beasts of the field, the creeping things — and now and then a wolf
      out of the wilds, come down to hunt the pigs and the fowl */
@@ -11385,6 +11406,14 @@ function moveEnt(ent,dt,sp){
     if(!(!gN.land||tooSteep||climbBuilt||noRoom||blockedByStructureNPC(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,ent.m)||hitPlayer
       ||!!landmarkSolidAt(nx,nz,ent.m.position.y+2,ent.m.position.y+8))){   /* the ancients' walls bar the folk as they bar the traveller */
       took=true; ent.m.position.x=nx; ent.m.position.z=nz; ent.m.rotation.y=Math.atan2(dx,dz); }
+    else if(ent._blk==='structure'&&(ent._door=doorRefusedAt(nx,nz))){
+      /* ---- A SOUL OPENS ITS OWN DOOR (Round 91) ----
+         Refused at a doorway, he opens it and waits for the leaf to swing
+         — no hunting round the jamb, which would walk him away from the
+         door he is opening. The step takes on its own the frame the gap
+         reads open. */
+      if(!ent._door.door.open) setDoor(ent._door,true,ent);
+      ent._blk='door'; took=true; ent.stuck=0; }
     else {
       /* ---- AND A WAY ROUND (Round 90) ----
          THE FAULT THIS MENDS. A refused step abandoned the target, and the
@@ -11455,10 +11484,28 @@ function houseBlocksNPC(nx,nz,H){
   if(nx>H.x0-m2&&nx<H.x1+m2&&nz>H.z0-m2&&nz<H.z1+m2){
     const T2=B*0.5+1.0;
     if(nx>H.x0+T2&&nx<H.x1-T2&&nz>H.z0+T2&&nz<H.z1-T2) return false;
-    if(H.door&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8) return false;
+    /* ---- A SHUT DOOR IS A WALL TO THE FOLK (Round 91) ----
+       THE FAULT THIS MENDS. The traveller's rule (houseBlocks) has always let
+       a body through the doorway only while the leaf stands open; this one
+       let the folk through the gap whether the leaf was open or shut, so
+       every soul going to bed passed bodily through the planks of its own
+       door in plain view, and the leaf that swings for the traveller had
+       never once swung for the people who live behind it. Now the gap is a
+       gap while the door is open, and a soul refused at its own doorway
+       opens it (moveEnt) and shuts it after (doorTick). */
+    if(H.door&&H.door.open&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8) return false;
     return true;
   }
   return false;
+}
+/* the house whose doorway this refused step falls in, if any */
+function doorRefusedAt(nx,nz){
+  const at=arr=>{ for(const H of arr){ if(!H.door) continue;
+    if(Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8&&houseBlocksNPC(nx,nz,H)) return H; } return null; };
+  for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue;
+    const H=at(vv.houses); if(H) return H; }
+  return at(standaloneHouses);
 }
 function blockedByStructureNPC(nx,nz){
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
@@ -13530,8 +13577,20 @@ function nearestDoor(px,pz){
 function doorTick(dt){
   const anim=arr=>{ for(const H of arr){ const D2=H.door; if(!D2||!D2.mesh) continue;
     if(Math.abs(D2.ang-D2.target)>0.001){ D2.ang+=(D2.target-D2.ang)*Math.min(1,dt*8); D2.mesh.rotation.y=D2.ang; } } };
-  for(const[,vv] of activeVillages){ if(vv.houses) anim(vv.houses); }
-  anim(standaloneHouses);
+  /* ---- AND SHUT AFTER (Round 91) ----
+     A door a soul opened is shut once that soul is a body's length past
+     the gap on either side and nobody else — soul or traveller — stands in
+     it. A door the traveller opened is the traveller's and is left as he
+     left it. */
+  const shutBehind=(arr,people)=>{ for(const H of arr){ const D2=H.door; if(!D2||!D2.open||!D2._by||D2._by==='hand') continue;
+    const by=D2._by; if(!by.m){ D2._by=null; continue; }
+    if(Math.hypot(by.m.position.x-H.dx,by.m.position.z-H.dz)<H.gw+2.5) continue;
+    let held=false;
+    if(state.mode==='walk'&&Math.hypot(state.walk.x-H.dx,state.walk.z-H.dz)<H.gw+2.0) held=true;
+    if(!held&&people) for(const o of people){ if(Math.hypot(o.m.position.x-H.dx,o.m.position.z-H.dz)<H.gw+1.8){ held=true; break; } }
+    if(!held) setDoor(H,false,null); } };
+  for(const[,vv] of activeVillages){ if(vv.houses){ anim(vv.houses); shutBehind(vv.houses,vv.people); } }
+  anim(standaloneHouses); shutBehind(standaloneHouses,null);
 }
 let promptDoor=null;
 /* ================= THE SADDLE =================
@@ -13641,9 +13700,13 @@ function interact(){
     default: if(canSleep()) sleep(); else toggleDoor();
   }
 }
+/* ONE hand on every door: the traveller's (by='hand') and the folk's (by=the
+   soul). A door remembers who opened it, so the folk shut their own behind
+   them and never shut the traveller's on him. */
+function setDoor(H,open,by){ const D2=H&&H.door; if(!D2) return;
+  D2.open=open; D2.target=open?D2.base+D2.swing:D2.base; D2._by=open?(by||null):null; }
 function toggleDoor(){ if(!promptDoor||!promptDoor.door) return;
-  const D2=promptDoor.door; D2.open=!D2.open;
-  D2.target=D2.open?D2.base+D2.swing:D2.base; }
+  setDoor(promptDoor,!promptDoor.door.open,'hand'); }
 function treeBlocked(nx,nz){
   const c=landAtWorld(nx,nz); if(!c||!c.tree) return false;
   const ix=Math.floor(nx/B), iz=Math.floor(nz/B);
@@ -16641,9 +16704,28 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
       people:best.people.map((e,i)=>({i,name:e.name,role:e.role,anim:e.anim||null,act:e.act||null,
         tx:e.tx,tz:e.tz,t:e.t,blk:e._blk||'',acting:!!e.acting,shelter:!!e._shelter,
         awake:!e._abed,lying:!!e._lying,sat:!!e._sat,child:!!e.child,heat:!!(e._heat&&e.act==='rest'),
-        x:e.m.position.x,z:e.m.position.z,
+        homeD:e.homeD,homeI:(e.home&&e.home.H)?best.houses.indexOf(e.home.H):null,door:(e.home&&e.home.H&&e.home.H.door)?(e.home.H.door.open?'open':'shut'):null,
+        x:e.m.position.x,y:e.m.position.y,z:e.m.position.z,
         home:e.home?Math.hypot(e.m.position.x-(e.home.x!==undefined?e.home.x:e.home.doorx),
                               e.m.position.z-(e.home.z!==undefined?e.home.z:e.home.doorz)):null}))}; },
+  /* every door of the nearest village: open or shut, and whose hand did it */
+  villageDoors:()=>{ let best=null,bd=1e18; const p=playerXZ();
+    for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
+      const d=(vv.site.x-p.x)**2+(vv.site.z-p.z)**2; if(d<bd){ bd=d; best=vv; } }
+    if(!best) return null;
+    return best.houses.map((H,i)=>({i,dx:H.dx,dz:H.dz,gw:H.gw,open:!!(H.door&&H.door.open),
+      by:H.door?(H.door._by==='hand'?'hand':H.door._by?'folk':null):null,
+      ang:H.door?+H.door.ang.toFixed(2):null,target:H.door?+H.door.target.toFixed(2):null})); },
+  setDoorAt:(i,open)=>{ let best=null,bd=1e18; const p=playerXZ();
+    for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
+      const d=(vv.site.x-p.x)**2+(vv.site.z-p.z)**2; if(d<bd){ bd=d; best=vv; } }
+    if(best&&best.houses[i]) setDoor(best.houses[i],open,open?'hand':null); },
+  /* a column read the way a walker reads it: the ground and ceiling at a
+     reference height, and which courses are solid */
+  columnAt:(x,z,refY)=>{ const ix=Math.floor(x/B), iz=Math.floor(z/B), c=landAtWorld(x,z);
+    const g=groundInfo(x,z,refY); const solid=[]; const h0=c?c.h:0;
+    for(let iy=h0-2;iy<=h0+7;iy++) if(blockSolidAt(ix,iy,iz)) solid.push(iy);
+    return {h:h0,kind:c&&c.kind,y:g.y,ceil:g.ceil,land:g.land,edited:!!g.edited,solidCourses:solid}; },
   toolSpeedOf:id=>toolSpeed(BLOCK_BY_ID[id]),
   /* the save, driven and read back, so a test need not guess at its timing */
   saveNow:()=>saveState(),
