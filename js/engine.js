@@ -10654,23 +10654,37 @@ function emitFurniture(G, ex, x0,x1,z0,z1, fy, T, hx,hz, doorDir){
   ex.torchIn.push({x:ix0+B*0.5,y:fy+B*2.2,z:iz0+B*0.5});
   ex.torchIn.push({x:ix1-B*0.5,y:fy+B*2.2,z:iz1-B*0.5});
 }
-/* ---- THE DOOR FACES THE LOWEST GROUND (Round 91) ----
+/* ---- THE DOOR FACES LEVEL GROUND (Round 91) ----
    THE FAULT THIS MENDS. A house takes its base from the ground at its own
    middle and turned its door toward the well, and on terraced ground the
    well is as often uphill as down — so the doorway opened into a bank,
    its lintel (three courses over the base) one course above the yard
    outside, and Round 90's bed reading found two shoppers and a farmer
    held at their own doorsteps by the headroom rule, reading a roof edge
-   they never reached. The door now faces whichever side's ground stands
-   lowest, the well deciding a tie; the base is unchanged. */
+   they never reached. The door now faces the side whose ground is LEVEL
+   with the base (the floor a third of a course up: a step); failing that
+   the side one course up (a step down into the room, the lintel still
+   two courses clear); failing that one course down (a course and a half
+   up to the floor — a climb, and the doorway rule below lets it); the
+   well decides a tie. The first cut of this chose the LOWEST side, which
+   is the one side a man cannot get in by. */
 function doorSide(hx,hz,y,w,d,ddx,ddz){
   const toWell=Math.abs(ddz)>=Math.abs(ddx)?(ddz>0?0:1):(ddx>0?2:3);
   const out=[[0,0,d*B/2+B*1.5],[1,0,-d*B/2-B*1.5],[2,w*B/2+B*1.5,0],[3,-w*B/2-B*1.5,0]];
   let best=toWell, bh=1e9;
   for(const[dir,ox,oz] of out){ const c=landAtWorld(hx+ox,hz+oz); if(!c||c.kind==='wall') continue;
-    const h=c.h*B-y; const score=h*10+(dir===toWell?0:1);      /* lowest first; the well breaks a tie */
+    const k=Math.round((c.h*B-y)/B);
+    const rank=k===0?0:k===1?1:k===-1?2:3+Math.abs(k);
+    const score=rank*10+(dir===toWell?0:1);
     if(score<bh){ bh=score; best=dir; } }
   return best;
+}
+/* is this spot in some house's doorway (the gap, leaf open or shut)? */
+function inDoorway(nx,nz){
+  const at=arr=>{ for(const H of arr){ if(H.door&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8) return true; } return false; };
+  for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue; if(at(vv.houses)) return true; }
+  return at(standaloneHouses);
 }
 function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   /* w,d in blocks (odd best); walls 3 blocks; local axis-aligned.
@@ -11407,7 +11421,11 @@ function moveEnt(ent,dt,sp){
        ought to walk on is taken from him. Pier decks answer from `deckMap`
        and never carry the `edited` mark, so the fishers keep their planks. */
     const cN=landAtWorld(nx,nz);
-    const climbBuilt=gN.edited&&cN&&gN.y>cN.h*B+B*1.2;
+    /* — but a DOORWAY'S floor is a floor, however far the yard outside it
+       lies below the true ground of its column (a house on terraced land
+       has its floor a course and a half over the downhill yard); a step of
+       a course and a third is still what a man may take (Round 91) */
+    const climbBuilt=gN.edited&&cN&&gN.y>cN.h*B+B*1.2&&!(Math.abs(gN.y-ent.m.position.y)<=B*1.35&&inDoorway(nx,nz));
     /* ---- AND HE MUST HAVE ROOM TO STAND UP IN IT ----
        Forbidding the climb was not enough on its own. A footing runs UNDER
        the walls it carries, and a stall's counter has its canopy posts on it.
@@ -11459,7 +11477,7 @@ function moveEnt(ent,dt,sp){
         if(state.mode==='walk'&&Math.hypot(ax2-state.walk.x,az2-state.walk.z)<2.6) continue;
         const g2=groundInfo(ax2,az2,ent.m.position.y+0.1); if(!g2.land) continue;
         if(Math.abs(g2.y-ent.m.position.y)>B*1.35) continue;
-        const c2=landAtWorld(ax2,az2); if(g2.edited&&c2&&g2.y>c2.h*B+B*1.2) continue;
+        const c2=landAtWorld(ax2,az2); if(g2.edited&&c2&&g2.y>c2.h*B+B*1.2&&!inDoorway(ax2,az2)) continue;
         if(isFinite(g2.ceil)&&(g2.ceil-g2.y)<B*1.9) continue;
         if(blockedByStructureNPC(ax2,az2)||blockedBySolid(ax2,az2)||blockedByEntity(ax2,az2,ent.m)) continue;
         if(landmarkSolidAt(ax2,az2,ent.m.position.y+2,ent.m.position.y+8)) continue;
@@ -11480,7 +11498,7 @@ function moveEnt(ent,dt,sp){
      place was reached by walking, so it is outside every wall by
      construction, and it is where a stranded one is put back. */
   const cH=(gHere.edited)?landAtWorld(ent.m.position.x,ent.m.position.z):null;
-  const hereBad=(cH&&gHere.y>cH.h*B+B*1.2)
+  const hereBad=(cH&&gHere.y>cH.h*B+B*1.2&&!inDoorway(ent.m.position.x,ent.m.position.z))
     ||(gHere.land&&isFinite(gHere.ceil)&&(gHere.ceil-gHere.y)<B*1.9);
   if(hereBad){
     if(ent.gx!==undefined){ ent.m.position.x=ent.gx; ent.m.position.z=ent.gz; ent.m.position.y=ent.gy; }
