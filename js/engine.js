@@ -11619,8 +11619,13 @@ function moveEnt(ent,dt,sp){
     if(ent._blk===''||ent._blk==='door'){ ent._held=0; }
     else { ent._held=(ent._held||0)+1;
       if(ent._held>40&&!ent._detour){ ent._held=0;
-        const ang=Math.atan2(dx,dz)+(Math.random()<0.5?1:-1)*(Math.PI/2+(Math.random()-0.5)*0.6), r=12+Math.random()*10;
-        ent._detour={x:ent.m.position.x+Math.sin(ang)*r, z:ent.m.position.z+Math.cos(ang)*r, t:90}; ent._sw=0; } }
+        /* the side alternates detour by detour, so a walker whose first
+           detour led along the very bank that held him tries the other
+           way next — a farmer was read 236 frames on the buried side of
+           his own house, detouring along it */
+        ent._dside=-(ent._dside||1);
+        const ang=Math.atan2(dx,dz)+ent._dside*(Math.PI/2+(Math.random()-0.5)*0.6), r=14+Math.random()*12;
+        ent._detour={x:ent.m.position.x+Math.sin(ang)*r, z:ent.m.position.z+Math.cos(ang)*r, t:110}; ent._sw=0; } }
     if(took){ ent.stuck=0; if(ent._blk==='') ent._sw=0; }
     else { moving=false; ent.t=0; ent.stuck=(ent.stuck||0)+1;
       if(ent.stuck>2){ ent.stuck=0; ent.acting=false; ent.pt=0; ent.tx=ent.m.position.x; ent.tz=ent.m.position.z; } } }
