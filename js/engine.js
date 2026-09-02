@@ -11553,7 +11553,11 @@ function nextTask(ent,vv){
      `work` is how much of the waking day is the trade; the rest is drawn
      by weight from the trade's own list — bread, a neighbour, the tools,
      a look out to sea. Every act name here is one js/behavior.js declares. */
-  if(F&&R()>F.work){ const act=BEHAVIOR.drawFolkAct(ent.role,R());
+  /* — except a child in lesson hours, who is at the lesson: the draw is for
+     the waking day as a whole, and the first cut of test 60 read no child
+     at school at ten because four in five picks went to play */
+  const atLesson=ent.role==='child'&&hour>=8&&hour<13&&ent.teach;
+  if(F&&!atLesson&&R()>F.work){ const act=BEHAVIOR.drawFolkAct(ent.role,R());
     if(act){ ent.act=act; ent.anim=act; ent.actT=3+R()*4; folkActPlace(ent,vv,act); return; } }
   ent.act=null;
   switch(ent.role){
@@ -11638,8 +11642,11 @@ function personTick(ent,vv,dt){
     if(ent._lying&&!ent._abed) standUp(ent);       /* the storm keeps him in; it does not put him to bed */
     if(ent._sat) standUp(ent);                      /* a soul sat at bread stands before it walks */
     if(!ent._lying){ ent.anim='home'; ent.act=null; }
+    ent._wasAbed=ent._abed;
     wanderTick(ent,site,dt,ent._shelter?pace*1.2:pace); return; }
   if(ent._lying) standUp(ent);                      /* up with the hour */
+  if(ent._wasAbed&&!ent._abed){ ent.actT=undefined; ent.acting=false; ent.act=null; }   /* and takes stock */
+  ent._wasAbed=ent._abed;
   if(ent.role==='folk'||!ent.role){ if(ent.anim==='home') ent.anim='idle'; wanderTick(ent,site,dt,pace); return; }
   if(ent.actT===undefined) nextTask(ent,vv);
   const px=ent.m.position.x, pz=ent.m.position.z;
