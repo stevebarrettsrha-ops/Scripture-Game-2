@@ -317,7 +317,7 @@ const B = {
      THE BARK is read by the TIMBER BLOCKS — blocks/log.js and its fellows
        name a wood here for their `tint`, which is what colours a felled
        bole. The bark textures are greyscale on purpose and this is the
-       colour they take (Round 89; before it every trunk on the earth was
+       colour they take (Round 94; before it every trunk on the earth was
        grey). The mapping is the world's own: plate is worn by cedar and
        fir, twist by acacia, smooth by olive, ring by the palms, plain bark
        by oak and sycamore.

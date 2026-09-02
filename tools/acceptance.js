@@ -862,7 +862,7 @@ T[20]={name:'an altar of unhewn stone refuses hewn stone',
     clear();
     /* 4 — and a work that wants a PLACE must want it, standing here in the
        open where there is no kiln and no bench.
-       ---- EVERY PLACE, NOT THE FIRST (Round 88) ----
+       ---- EVERY PLACE, NOT THE FIRST (Round 93) ----
        This took `W.find(w=>w.at)` — the first work in world/works.js
        carrying an `at` — while the kiln was the only place in the world, so
        "the first" and "the kiln" were the same thing and nobody had to
@@ -4630,7 +4630,7 @@ T[58]={name:'a hand that sows: the sheaf gives seed, the hoe turns a bed, the se
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
-T[59]={name:'a place a man goes to make: the bench is made by hand, the work is refused away from it, done at it, and closes when it is broken',
+T[61]={name:'a place a man goes to make: the bench is made by hand, the work is refused away from it, done at it, and closes when it is broken',
   /* §17.5, THE LAST ITEM OF PLAN'S §17 QUEUE, in its own words: "every work
      is done at the bare hand or at a kiln, so there is no PLACE a man goes
      to make, and the list of works cannot grow past what one can do standing
@@ -4802,7 +4802,7 @@ T[59]={name:'a place a man goes to make: the bench is made by hand, the work is 
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
-T[60]={name:'THE LABOURS OF THE PEOPLE — each trade keeps its own hours, rests in the heat, lies down at night, and does the small business of its day',
+T[62]={name:'THE LABOURS OF THE PEOPLE — each trade keeps its own hours, rests in the heat, lies down at night, and does the small business of its day',
   /* THE FAULT THIS GUARDS. js/behavior.js has carried a FOLK table for
      rounds — ten trades, each with its own rise, bed, rest hour and a
      weighted list of the small business of its day — under a header that
@@ -4832,7 +4832,7 @@ T[60]={name:'THE LABOURS OF THE PEOPLE — each trade keeps its own hours, rests
      round. How many lie is reported. */
   run:async page=>page.evaluate(async()=>{
     const D=window.__VDBG, BH=window.BEHAVIOR;
-    if(!D.villageFolk||!D.standInVillage) return {pending:'no villageFolk probe (Round 90)'};
+    if(!D.villageFolk||!D.standInVillage) return {pending:'no villageFolk probe (Round 95)'};
     if(!BH||!BH.folkAwake||!BH.folkResting||!BH.folkOf) return {pending:'no FOLK table (js/behavior.js)'};
     const v=await D.standInVillage(); if(!v) return {ok:false,got:'no town would stand'};
     let F=D.villageFolk(); if(!F||!F.people.length) return {ok:false,got:'a town with nobody in it'};
@@ -4942,8 +4942,8 @@ T[60]={name:'THE LABOURS OF THE PEOPLE — each trade keeps its own hours, rests
     function P0hint(){ return F.people.length+' souls in '+(v&&v.houses||'?')+' houses · '; }
   })};
 
-T[61]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it after, sleeps near its work, and is not held under an eave',
-  /* THE FAULT THIS GUARDS. Round 90 was the first thing in this world to
+T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it after, sleeps near its work, and is not held under an eave',
+  /* THE FAULT THIS GUARDS. Round 95 was the first thing in this world to
      watch a soul go indoors, and it saw three things it left named:
      every villager walked THROUGH a shut door (the folk's rule let a body
      through the doorway whether the leaf was open or shut, while the
@@ -4961,7 +4961,7 @@ T[61]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
      read off the doors — not a number this test knows. */
   run:async page=>page.evaluate(async()=>{
     const D=window.__VDBG, B=6;
-    if(!D.villageDoors||!D.villageFolk||!D.standInVillage) return {pending:'no villageDoors probe (Round 91)'};
+    if(!D.villageDoors||!D.villageFolk||!D.standInVillage) return {pending:'no villageDoors probe (Round 96)'};
     const v=await D.standInVillage(); if(!v) return {ok:false,got:'no town would stand'};
     let F=D.villageFolk(); if(!F||!F.people.length) return {ok:false,got:'a town with nobody in it'};
     const site=F.site, faults=[];
@@ -4991,7 +4991,7 @@ T[61]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
       for(const d of doors){ if(d.dx===undefined) continue;
         for(const e of P){ if(d.open||!inGap(e,d,1.0)){} else inShut++;
           /* ---- 6 · HELD AT A DOORWAY: the ground's refusal, not the leaf's ----
-             the buried lintel and the hanging footing Round 91 measured read
+             the buried lintel and the hanging footing Round 96 measured read
              as noroom / climb / steep at the threshold; the leaf's own wait
              reads 'door' and is not a hold */
           if(!e.awake&&!e.lying&&inGap(e,d,3.0)&&(e.blk==='noroom'||e.blk==='climb'||e.blk==='steep')) heldAt[e.i]=(heldAt[e.i]||0)+1; } } }

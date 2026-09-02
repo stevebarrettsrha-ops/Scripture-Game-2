@@ -8159,7 +8159,7 @@ the first suite had an explanation that fit, and all of them were true only of a
 had looked at. And an injection whose number comes back the same in two different worlds has
 measured neither: 62,186 was believed twice, and it was crowns both times.
 
-## 4cm. Round 88 — the bench: a place a man goes to make, and the work with nowhere to be done ✅
+## 4cr. Round 93 — the bench: a place a man goes to make, and the work with nowhere to be done ✅
 
 *§17.5 was the last unticked item of PLAN's §17 queue, and it stated its own complaint exactly:
 *"every work is done at the bare hand or at a kiln, so there is no PLACE a man goes to make, and
@@ -8221,7 +8221,7 @@ offered in the list, greyed for ever, refusable but never doable, with no error 
 
 **Test 20 has always checked that a work of the fire is REFUSED away from its fire, and in
 forty rounds nothing ever checked that standing at the place lets the work through.** A place
-that refused everywhere would have passed this suite. Test 59 walks the whole of it on a bench
+that refused everywhere would have passed this suite. Test 61 walks the whole of it on a bench
 it makes and then breaks: made at the hand; away from one it reads `place` **in the words the
 player sees**; at one it goes through and gives; the reach read off the engine rather than
 assumed (at 4 it serves, at 6 it does not); the carving refused without a knife and made with
@@ -8251,12 +8251,12 @@ of one per cent even if it were.
 
 ### The readings
 
-Test 59 green. The neighbours the two blocks and three works move, all green and all reading
+Test 61 green. The neighbours the two blocks and three works move, all green and all reading
 their counts off the world rather than a constant: **18 works declared** (20), **the stores
 offer 46 of 46** (23 and 45), **446 files · 53/53 blocks** (36), test 44's man-from-nothing
 chain unmoved, test 58's sowing unmoved.
 
-## 4cn. Round 89 — the woods: every trunk on the earth had gone grey, and nine woods of scripture were read by nobody ✅
+## 4cs. Round 94 — the woods: every trunk on the earth had gone grey, and nine woods of scripture were read by nobody ✅
 
 *A survey for things DECLARED AND INERT — the pattern four of §17's five items turned out to
 share — found the palette's nine woods unread. Following that thread found something larger
@@ -8329,7 +8329,7 @@ identical batch re-run: **test 17 fails there too**, so it is pre-existing and n
 is a real order-dependent fragility and it belongs to a future round, named here so it is a
 record and not a memory.
 
-## 4co. Round 90 — the labours of the people: each trade keeps its own hours ✅
+## 4ct. Round 95 — the labours of the people: each trade keeps its own hours ✅
 
 *The seam PLAN.md:33 names and never specifies. js/behavior.js had carried a FOLK table for
 rounds — ten trades, each with its own rise, bed, rest hour, pace and a weighted list of the
@@ -8405,7 +8405,7 @@ The village read one number from it: pace.*
 
 ### The guard, and what it caught in itself
 
-**Test 60** is test 54's mirror for people and, because the thing it reads is built, a GUARD:
+**Test 62** is test 54's mirror for people and, because the thing it reads is built, a GUARD:
 the hours discriminate at two hours the table makes sharp (05:00 — herder and hunter up,
 eighteen abed; 20:24 — ten up, ten abed), read against `folkAwake` off the table and not off
 numbers the test knows; the rest in the heat (**4 of 4 resting trades seen at rest**, the
@@ -8460,7 +8460,7 @@ heat-rest branch and the act both set the one name, and the test read the name. 
 the heat now carries its own mark, the probe reports it, and the test reads that mark alone.
 That suite read **55 pass · 1 fail · 4 pending** on `6f7f16a`, the one failure being this
 reading; test 56 (an authored place stands where the scroll says) passed in it, which it had
-not in Round 89's run.
+not in Round 94's run.
 
 ### The readings
 
@@ -8473,7 +8473,7 @@ at the lesson at local 10:00, 0 at 15:00.
 
 **The suite, on `63e2b20`: 56 pass · 0 fail · 4 pending** (50, 53, 54, 55 — the beast measures
 that pend by design). State to beat was 54 · 0 · 5 on 59 tests; test 56 passes now and test
-60 is the sixtieth. Test 60's reading in that run: 17 lying, 16 walking home and nearer,
+60 is the sixtieth. Test 62's reading in that run: 17 lying, 16 walking home and nearer,
 0 walled in, of 33; 5 kinds of act (talk 130, carry 93, eat 56, rest 29, watch 5); 4 of 4
 children at the lesson at local ten, 0 at three.
 

@@ -10654,12 +10654,12 @@ function emitFurniture(G, ex, x0,x1,z0,z1, fy, T, hx,hz, doorDir){
   ex.torchIn.push({x:ix0+B*0.5,y:fy+B*2.2,z:iz0+B*0.5});
   ex.torchIn.push({x:ix1-B*0.5,y:fy+B*2.2,z:iz1-B*0.5});
 }
-/* ---- THE DOOR FACES LEVEL GROUND (Round 91) ----
+/* ---- THE DOOR FACES LEVEL GROUND (Round 96) ----
    THE FAULT THIS MENDS. A house takes its base from the ground at its own
    middle and turned its door toward the well, and on terraced ground the
    well is as often uphill as down — so the doorway opened into a bank,
    its lintel (three courses over the base) one course above the yard
-   outside, and Round 90's bed reading found two shoppers and a farmer
+   outside, and Round 95's bed reading found two shoppers and a farmer
    held at their own doorsteps by the headroom rule, reading a roof edge
    they never reached. The door now faces the side whose ground is LEVEL
    with the base (the floor a third of a course up: a step); failing that
@@ -10700,7 +10700,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   emitBox(G, x0,y,z0, x1,y+B*0.55,z1, 'cobble','cobble',null);
   emitTop(G,'planks', x0+T,z0+T, x1-T,z1-T, y+B*0.58, 0.95);
   /* four hollow walls; the doorway is left open on doorDir (0=+z 1=-z 2=+x 3=-x) */
-  /* ---- THE LINTEL SITS ON A COURSE (Round 90) ----
+  /* ---- THE LINTEL SITS ON A COURSE (Round 95) ----
      It was hung at 2.75 courses, and a stamp claims every cell a box
      touches, so the stamped lintel came down to TWO courses and the
      doorway under it was one course tall — while the leaf drawn in it is
@@ -10709,7 +10709,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
      moveEnt) refused every soul in the world its own doorway, and nobody
      had ever gone indoors. Three courses even: the doorway is two clear. */
   const wy0=y+B*0.55, wy1=y+wallH, ly=y+B*3;      /* ly = lintel underside */
-  /* ---- THE DOORWAY SITS ON A CELL (Round 90) ----
+  /* ---- THE DOORWAY SITS ON A CELL (Round 95) ----
      The gap was cut about the house's own middle, wherever on the block
      grid that fell. A stamp claims every cell a box touches, so when the
      middle sat near a cell's edge the two wall segments claimed the cell on
@@ -10763,7 +10763,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
                  z:(doorDir>=2?gz:hz)+(doorDir===0?d*B/2+B:doorDir===1?-d*B/2-B:0)});
   const gapCX = doorDir===2?x1-T/2:doorDir===3?x0+T/2:gx;
   const gapCZ = doorDir===0?z1-T/2:doorDir===1?z0+T/2:gz;
-  /* ---- AND A DOORSTEP WHERE THE YARD LIES BELOW (Round 91) ----
+  /* ---- AND A DOORSTEP WHERE THE YARD LIES BELOW (Round 96) ----
      A house on terraced land has no level side sometimes; its door then
      faces a yard a course or two down, and the footing hangs over it — a
      man reads its underside as a ceiling and its floor as a climb. So the
@@ -11218,15 +11218,15 @@ function* spawnVillage(i,exShell){
     const cx=(H.x0+H.x1)/2, cz=(H.z0+H.z1)/2;
     /* the home is the room, AND the door to it: a soul walking in aims for
        the step outside its own door first and the hearth after, because a
-       straight line at the middle of a house meets a wall (Round 90) */
+       straight line at the middle of a house meets a wall (Round 95) */
     const home={x:cx,z:cz,x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1,H};
     if(H.dx!==undefined){ const ux=H.dx-cx, uz=H.dz-cz, d=Math.hypot(ux,uz)||1;
       home.dx=H.dx; home.dz=H.dz; home.ox=H.dx+ux/d*B*1.2; home.oz=H.dz+uz/d*B*1.2; }
     return home; };
-  /* ---- THE HEARTH: A HOME NEAR THE WORK (Round 91) ----
+  /* ---- THE HEARTH: A HOME NEAR THE WORK (Round 96) ----
      THE FAULT THIS MENDS. Homes were dealt round-robin as souls were made:
      a farmer set down at his field got whichever house was next in the
-     list, and Round 90's trace read souls setting out for bed from 228
+     list, and Round 95's trace read souls setting out for bed from 228
      paces off — farther than a night's walk in the test's hold. Now every
      soul is housed AFTER all are set down: each takes the nearest house
      to its calling with room in it (three to a house, a fuller house
@@ -11439,7 +11439,7 @@ function moveEnt(ent,dt,sp){
     /* — but a DOORWAY'S floor is a floor, however far the yard outside it
        lies below the true ground of its column (a house on terraced land
        has its floor a course and a half over the downhill yard); a step of
-       a course and a third is still what a man may take (Round 91) */
+       a course and a third is still what a man may take (Round 96) */
     const climbBuilt=gN.edited&&cN&&gN.y>cN.h*B+B*1.2&&!(Math.abs(gN.y-ent.m.position.y)<=B*1.35&&inDoorway(nx,nz));
     /* ---- AND HE MUST HAVE ROOM TO STAND UP IN IT ----
        Forbidding the climb was not enough on its own. A footing runs UNDER
@@ -11463,7 +11463,7 @@ function moveEnt(ent,dt,sp){
       ||!!landmarkSolidAt(nx,nz,ent.m.position.y+2,ent.m.position.y+8))){   /* the ancients' walls bar the folk as they bar the traveller */
       took=true; ent.m.position.x=nx; ent.m.position.z=nz; ent.m.rotation.y=Math.atan2(dx,dz); }
     else if(ent._blk==='structure'&&(ent._door=doorRefusedAt(nx,nz))){
-      /* ---- A SOUL OPENS ITS OWN DOOR (Round 91) ----
+      /* ---- A SOUL OPENS ITS OWN DOOR (Round 96) ----
          Refused at a doorway, he opens it and waits for the leaf to swing
          — no hunting round the jamb, which would walk him away from the
          door he is opening. The step takes on its own the frame the gap
@@ -11471,7 +11471,7 @@ function moveEnt(ent,dt,sp){
       if(!ent._door.door.open) setDoor(ent._door,true,ent);
       ent._blk='door'; took=true; ent.stuck=0; }
     else {
-      /* ---- AND A WAY ROUND (Round 90) ----
+      /* ---- AND A WAY ROUND (Round 95) ----
          THE FAULT THIS MENDS. A refused step abandoned the target, and the
          next pick was the same target from the same spot, so a hay bale on
          the straight line between a farmer and his hearth held him at his
@@ -11540,7 +11540,7 @@ function houseBlocksNPC(nx,nz,H){
   if(nx>H.x0-m2&&nx<H.x1+m2&&nz>H.z0-m2&&nz<H.z1+m2){
     const T2=B*0.5+1.0;
     if(nx>H.x0+T2&&nx<H.x1-T2&&nz>H.z0+T2&&nz<H.z1-T2) return false;
-    /* ---- A SHUT DOOR IS A WALL TO THE FOLK (Round 91) ----
+    /* ---- A SHUT DOOR IS A WALL TO THE FOLK (Round 96) ----
        THE FAULT THIS MENDS. The traveller's rule (houseBlocks) has always let
        a body through the doorway only while the leaf stands open; this one
        let the folk through the gap whether the leaf was open or shut, so
@@ -11679,7 +11679,7 @@ function nextTask(ent,vv){
      by weight from the trade's own list — bread, a neighbour, the tools,
      a look out to sea. Every act name here is one js/behavior.js declares. */
   /* — except a child in lesson hours, who is at the lesson: the draw is for
-     the waking day as a whole, and the first cut of test 60 read no child
+     the waking day as a whole, and the first cut of test 62 read no child
      at school at ten because four in five picks went to play */
   const atLesson=ent.role==='child'&&hour>=8&&hour<13&&ent.teach;
   if(F&&!atLesson&&R()>F.work){ const act=BEHAVIOR.drawFolkAct(ent.role,R());
@@ -11750,7 +11750,7 @@ function nextTask(ent,vv){
 function personTick(ent,vv,dt){
   const site=vv.site, u=ent.m.userData, tnow=performance.now()*0.001;
   ent._shelter=(vv.stormF||0)>0.35;                 /* in foul weather, folk keep indoors */
-  /* ---- EACH TRADE KEEPS ITS OWN HOURS (Round 90) ----
+  /* ---- EACH TRADE KEEPS ITS OWN HOURS (Round 95) ----
      THE FAULT THIS MENDS. One gate sent every soul in the village home
      together: `worldNight>0.55`, a darkness scalar read off the TRAVELLER'S
      sky, which stands at nought until five in the afternoon and so could
@@ -11775,7 +11775,7 @@ function personTick(ent,vv,dt){
   if(ent.role==='folk'||!ent.role){ if(ent.anim==='home') ent.anim='idle'; wanderTick(ent,site,dt,pace); return; }
   const px=ent.m.position.x, pz=ent.m.position.z;
   if(ent.actT===undefined){ nextTask(ent,vv);
-    /* ---- AND A WALK HAS A BUDGET (Round 90) ----
+    /* ---- AND A WALK HAS A BUDGET (Round 95) ----
        THE FAULT THIS MENDS. A soul walking to its task never counted the
        time: it counted itself stuck only when no step at all would take,
        and the way round (above) always finds one. So a child aiming at a
@@ -11850,7 +11850,7 @@ function personTick(ent,vv,dt){
       if(u.rodFish&&held) u.rodFish.rotation.z=Math.sin(tnow*11)*0.5;   /* it kicks on the line */
       if(u.rodLine) u.rodLine.scale.y=held?0.34:1;                      /* reeled short as it comes up */
     }
-    /* ---- THE SMALL BUSINESS OF THE DAY, in the body (Round 90) ----
+    /* ---- THE SMALL BUSINESS OF THE DAY, in the body (Round 95) ----
        eight acts out of js/behavior.js, each built from hooks the body
        already had: sat is the pelvis dropped and the legs out; prayer and
        carrying are the arms; play is the children's own hop */
@@ -11994,7 +11994,7 @@ function updateVillages(px,pz,dt,nightF,dayF){
     vv.stormF=stormAt(vv.site.x,vv.site.z);      /* foul weather empties the lanes */
     /* THE VILLAGE'S OWN HOUR, read once a frame for everyone in it: the
        solar hour at the well, not the darkness of the traveller's sky
-       (Round 90 — each trade keeps its own hours out of js/behavior.js) */
+       (Round 95 — each trade keeps its own hours out of js/behavior.js) */
     vv.hour=localHourAt(vv.site.x,vv.site.z);
     for(const p of vv.people) personTick(p,vv,dt);
     for(const b2 of vv.beasts) beastTick(b2,vv,dt);
@@ -13633,7 +13633,7 @@ function nearestDoor(px,pz){
 function doorTick(dt){
   const anim=arr=>{ for(const H of arr){ const D2=H.door; if(!D2||!D2.mesh) continue;
     if(Math.abs(D2.ang-D2.target)>0.001){ D2.ang+=(D2.target-D2.ang)*Math.min(1,dt*8); D2.mesh.rotation.y=D2.ang; } } };
-  /* ---- AND SHUT AFTER (Round 91) ----
+  /* ---- AND SHUT AFTER (Round 96) ----
      A door a soul opened is shut once that soul is a body's length past
      the gap on either side and nobody else — soul or traveller — stands in
      it. A door the traveller opened is the traveller's and is left as he
