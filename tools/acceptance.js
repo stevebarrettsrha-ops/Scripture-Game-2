@@ -4923,7 +4923,9 @@ T[60]={name:'THE LABOURS OF THE PEOPLE — each trade keeps its own hours, rests
     var lessonRead;
     { const kids=P=>P.people.filter(e=>e.child);
       let P=await hold(10.0,170); const inLesson=kids(P).filter(e=>e.anim==='sit').length;
-      P=await hold(15.0,170); const outOf=kids(P).filter(e=>e.anim==='sit').length;
+      /* held long enough for a child's walk budget to run out: one was read
+         still sat at three, skirting the crowd at the lesson for ever */
+      P=await hold(15.0,300); const outOf=kids(P).filter(e=>e.anim==='sit').length;
       const n=kids(P).length;
       if(n&&!inLesson) faults.push('no child at the lesson at local ten');
       if(outOf) faults.push(outOf+' child(ren) still at the lesson at local three');

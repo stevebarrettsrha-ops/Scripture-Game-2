@@ -11665,8 +11665,18 @@ function personTick(ent,vv,dt){
   if(ent._wasAbed&&!ent._abed){ ent.actT=undefined; ent.acting=false; ent.act=null; }   /* and takes stock */
   ent._wasAbed=ent._abed;
   if(ent.role==='folk'||!ent.role){ if(ent.anim==='home') ent.anim='idle'; wanderTick(ent,site,dt,pace); return; }
-  if(ent.actT===undefined) nextTask(ent,vv);
   const px=ent.m.position.x, pz=ent.m.position.z;
+  if(ent.actT===undefined){ nextTask(ent,vv);
+    /* ---- AND A WALK HAS A BUDGET (Round 90) ----
+       THE FAULT THIS MENDS. A soul walking to its task never counted the
+       time: it counted itself stuck only when no step at all would take,
+       and the way round (above) always finds one. So a child aiming at a
+       lesson spot behind three other children skirted them for ever, and
+       was read still sat at the lesson at three in the afternoon. Every
+       task is given the straight-line time to its spot, half again, and
+       three seconds; a soul that has spent it draws a fresh task from
+       where it stands. The chasers re-aim live and are not budgeted. */
+    ent._wk=3+Math.hypot(ent.tx-px,ent.tz-pz)/(window.BEHAVIOR?BEHAVIOR.folkPaceOf(ent.role,7):7)*1.5; }
   /* live re-aiming for the chasers */
   if(ent.role==='herder'&&ent.drive){ const s=ent.drive;
     ent.tx=s.m.position.x; ent.tz=s.m.position.z;
@@ -11688,6 +11698,9 @@ function personTick(ent,vv,dt){
   if(d>2.2){
     ent.acting=false;
     if(ent._sat||ent._lying) standUp(ent);
+    if(!ent.drive&&!ent.stalk&&!(ent.role==='child'&&ent.anim==='play')){
+      ent._wk=(ent._wk===undefined?6:ent._wk)-dt;
+      if(ent._wk<0){ ent.actT=undefined; ent.act=null; ent.tx=px; ent.tz=pz; ent.stuck=0; return; } }
     /* every trade goes at its own pace, out of js/behavior.js — the hunter
        strides, the water-bearer walks under her jar, the child runs */
     let sp=window.BEHAVIOR?BEHAVIOR.folkPaceOf(ent.role,7):7;
