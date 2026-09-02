@@ -10903,7 +10903,7 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
       emitPathLine(G, cx+gx*spacing, cz, cx+gx*spacing, cz+gy*spacing); });
     /* the whole home on the record — its room AND its door — so a city
        resident walks in by the door like a villager, not at the wall */
-    { const home={x:hx,z:hz,x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1,doorx:H.dx,doorz:H.dz};
+    { const home={x:hx,z:hz,x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1,doorx:H.dx,doorz:H.dz,H};
       if(H.dx!==undefined){ const ux=H.dx-hx, uz=H.dz-hz, dd=Math.hypot(ux,uz)||1;
         home.dx=H.dx; home.dz=H.dz; home.ox=H.dx+ux/dd*B*1.2; home.oz=H.dz+uz/dd*B*1.2; }
       homes.push(home); } placed++;
@@ -16727,7 +16727,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
       people:best.people.map((e,i)=>({i,name:e.name,role:e.role,anim:e.anim||null,act:e.act||null,
         tx:e.tx,tz:e.tz,t:e.t,blk:e._blk||'',acting:!!e.acting,shelter:!!e._shelter,
         awake:!e._abed,lying:!!e._lying,sat:!!e._sat,child:!!e.child,heat:!!(e._heat&&e.act==='rest'),
-        homeD:e.homeD,homeI:(e.home&&e.home.H)?best.houses.indexOf(e.home.H):null,door:(e.home&&e.home.H&&e.home.H.door)?(e.home.H.door.open?'open':'shut'):null,
+        homeD:e.homeD,homeI:(e.home&&e.home.H)?best.houses.indexOf(e.home.H):null,stuck:e.stuck||0,hm:e.home?{x:e.home.x,z:e.home.z,x0:e.home.x0,x1:e.home.x1,z0:e.home.z0,z1:e.home.z1,dx:e.home.dx,dz:e.home.dz,ox:e.home.ox,oz:e.home.oz,doorx:e.home.doorx,doorz:e.home.doorz}:null,door:(e.home&&e.home.H&&e.home.H.door)?(e.home.H.door.open?'open':'shut'):null,
         x:e.m.position.x,y:e.m.position.y,z:e.m.position.z,
         home:e.home?Math.hypot(e.m.position.x-(e.home.x!==undefined?e.home.x:e.home.doorx),
                               e.m.position.z-(e.home.z!==undefined?e.home.z:e.home.doorz)):null}))}; },
