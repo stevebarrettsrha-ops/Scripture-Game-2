@@ -10677,18 +10677,29 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
      moveEnt) refused every soul in the world its own doorway, and nobody
      had ever gone indoors. Three courses even: the doorway is two clear. */
   const wy0=y+B*0.55, wy1=y+wallH, ly=y+B*3;      /* ly = lintel underside */
+  /* ---- THE DOORWAY SITS ON A CELL (Round 90) ----
+     The gap was cut about the house's own middle, wherever on the block
+     grid that fell. A stamp claims every cell a box touches, so when the
+     middle sat near a cell's edge the two wall segments claimed the cell on
+     either side between them and left NO cell free: the doorway was stamped
+     shut, the leaf swinging in a wall. Read at one in the morning: a third
+     of the village stood at their own doors with the gap's column answering
+     solid two courses up. The gap is cut about the CENTRE of the cell the
+     middle falls in, so exactly one cell — a doorway a man can pass — is
+     ever left free between the segments. */
+  const gx=(Math.floor(hx/B)+0.5)*B, gz=(Math.floor(hz/B)+0.5)*B;
   const wall=(ax0,az0,ax1,az1)=>emitBox(G,ax0,wy0,az0,ax1,wy1,az1,'planks','planks',null);
-  if(doorDir===0){ wall(x0,z1-T,hx-gw,z1); wall(hx+gw,z1-T,x1,z1);
-    emitBox(G,hx-gw,ly,z1-T,hx+gw,wy1,z1,'planks','planks','planks'); }
+  if(doorDir===0){ wall(x0,z1-T,gx-gw,z1); wall(gx+gw,z1-T,x1,z1);
+    emitBox(G,gx-gw,ly,z1-T,gx+gw,wy1,z1,'planks','planks','planks'); }
   else wall(x0,z1-T,x1,z1);
-  if(doorDir===1){ wall(x0,z0,hx-gw,z0+T); wall(hx+gw,z0,x1,z0+T);
-    emitBox(G,hx-gw,ly,z0,hx+gw,wy1,z0+T,'planks','planks','planks'); }
+  if(doorDir===1){ wall(x0,z0,gx-gw,z0+T); wall(gx+gw,z0,x1,z0+T);
+    emitBox(G,gx-gw,ly,z0,gx+gw,wy1,z0+T,'planks','planks','planks'); }
   else wall(x0,z0,x1,z0+T);
-  if(doorDir===2){ wall(x1-T,z0,x1,hz-gw); wall(x1-T,hz+gw,x1,z1);
-    emitBox(G,x1-T,ly,hz-gw,x1,wy1,hz+gw,'planks','planks','planks'); }
+  if(doorDir===2){ wall(x1-T,z0,x1,gz-gw); wall(x1-T,gz+gw,x1,z1);
+    emitBox(G,x1-T,ly,gz-gw,x1,wy1,gz+gw,'planks','planks','planks'); }
   else wall(x1-T,z0,x1,z1);
-  if(doorDir===3){ wall(x0,z0,x0+T,hz-gw); wall(x0,hz+gw,x0+T,z1);
-    emitBox(G,x0,ly,hz-gw,x0+T,wy1,hz+gw,'planks','planks','planks'); }
+  if(doorDir===3){ wall(x0,z0,x0+T,gz-gw); wall(x0,gz+gw,x0+T,z1);
+    emitBox(G,x0,ly,gz-gw,x0+T,wy1,gz+gw,'planks','planks','planks'); }
   else wall(x0,z0,x0+T,z1);
   /* log corner posts */
   for(const cx of [x0-0.12,x1-B*0.5+0.12]) for(const cz of [z0-0.12,z1-B*0.5+0.12])
@@ -10716,12 +10727,12 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   }
   emitFurniture(G, ex, x0,x1,z0,z1, y+B*0.58, T, hx,hz, doorDir);
   ex.torchIn.push({x:hx,y:y+B*0.58+B*2.05,z:hz});
-  ex.doors.push({x:hx+(doorDir===2?w*B/2+B:doorDir===3?-w*B/2-B:0),
-                 z:hz+(doorDir===0?d*B/2+B:doorDir===1?-d*B/2-B:0)});
-  const gapCX = doorDir===2?x1-T/2:doorDir===3?x0+T/2:hx;
-  const gapCZ = doorDir===0?z1-T/2:doorDir===1?z0+T/2:hz;
-  const hingeX = (doorDir<=1)?hx-gw:gapCX;
-  const hingeZ = (doorDir>=2)?hz-gw:gapCZ;
+  ex.doors.push({x:(doorDir<=1?gx:hx)+(doorDir===2?w*B/2+B:doorDir===3?-w*B/2-B:0),
+                 z:(doorDir>=2?gz:hz)+(doorDir===0?d*B/2+B:doorDir===1?-d*B/2-B:0)});
+  const gapCX = doorDir===2?x1-T/2:doorDir===3?x0+T/2:gx;
+  const gapCZ = doorDir===0?z1-T/2:doorDir===1?z0+T/2:gz;
+  const hingeX = (doorDir<=1)?gx-gw:gapCX;
+  const hingeZ = (doorDir>=2)?gz-gw:gapCZ;
   const baseAng = (doorDir>=2)?-Math.PI/2:0;
   const swing = (doorDir===0||doorDir===3)?1.7:-1.7;   /* open outward */
   ex.houses.push({x0,x1,z0,z1, dx:gapCX, dz:gapCZ, gw,
@@ -10872,7 +10883,12 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
     const H=ex.houses[ex.houses.length-1];
     stamped(ex,()=>{ emitPathLine(G, H.dx,H.dz, cx+gx*spacing, cz);   // a lane to the street
       emitPathLine(G, cx+gx*spacing, cz, cx+gx*spacing, cz+gy*spacing); });
-    homes.push({x:hx,z:hz,doorx:H.dx,doorz:H.dz}); placed++;
+    /* the whole home on the record — its room AND its door — so a city
+       resident walks in by the door like a villager, not at the wall */
+    { const home={x:hx,z:hz,x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1,doorx:H.dx,doorz:H.dz};
+      if(H.dx!==undefined){ const ux=H.dx-hx, uz=H.dz-hz, dd=Math.hypot(ux,uz)||1;
+        home.dx=H.dx; home.dz=H.dz; home.ox=H.dx+ux/dd*B*1.2; home.oz=H.dz+uz/dd*B*1.2; }
+      homes.push(home); } placed++;
     if(placed%3===0) yield;                              /* breathe between the houses */
   }
   /* the market — a row of stalls along the eastern street */
@@ -11242,7 +11258,7 @@ function* spawnVillage(i,exShell){
     for(let h=0;h<cityHomes.length;h++){ const hm=cityHomes[h];
       addPerson(h%3===0?'shopper':'folk',
         hm.doorx!==undefined?hm.doorx:hm.x, hm.doorz!==undefined?hm.doorz:hm.z,
-        2.4, false, h%2===0, {home:{x:hm.x,z:hm.z}});
+        2.4, false, h%2===0, {home:hm});
       if(h%4===3) yield; }
   }
   yield;
@@ -11498,7 +11514,8 @@ function wanderTick(ent,site,dt,speed){
     let nx,nz;
     if((ent._abed||ent._shelter)&&ent.home){    /* past its own bed-hour or in storm, go home */
       const H=ent.home, px=ent.m.position.x, pz=ent.m.position.z;
-      const inside=H.x0!==undefined&&px>H.x0&&px<H.x1&&pz>H.z0&&pz<H.z1;
+      const inside=H.x0!==undefined?(px>H.x0&&px<H.x1&&pz>H.z0&&pz<H.z1)
+        :(H.x!==undefined&&Math.hypot(px-H.x,pz-H.z)<B*1.4);   /* a home with no rect on record: near its middle is in */
       if(!inside&&H.ox!==undefined&&Math.hypot(px-H.ox,pz-H.oz)>2.5){ nx=H.ox; nz=H.oz; }   /* to his own door first */
       else { nx=(H.x!==undefined?H.x:H.doorx)+(Math.random()-0.5)*2;      /* and then to the room, not the doorway */
         nz=(H.z!==undefined?H.z:H.doorz)+(Math.random()-0.5)*2; }
