@@ -10769,6 +10769,21 @@ function doorSide(hx,hz,y,w,d,ddx,ddz){
     if(score<bh){ bh=score; best=dir; } }
   return best;
 }
+/* ---- UNDER AN EAVE (Round 96) ----
+   The roof overhangs the walls by a block. On terraced ground the yard on
+   the uphill side can stand two or three courses over the house's base, and
+   the eave then hangs a course over a man's head there — measured: a farmer
+   held 153 frames on his way round his own house, the ceiling read six
+   units over the step he was taking. A roof edge over open ground is not a
+   ceiling a man is shut under; he ducks. Under an eave a course of clear
+   air is enough; everywhere else a floor still wants two. */
+function underEave(nx,nz){
+  const at=arr=>{ for(const H of arr){
+    if(nx>H.x0-B-0.6&&nx<H.x1+B+0.6&&nz>H.z0-B-0.6&&nz<H.z1+B+0.6&&!(nx>H.x0&&nx<H.x1&&nz>H.z0&&nz<H.z1)) return true; } return false; };
+  for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue; if(at(vv.houses)) return true; }
+  return at(standaloneHouses);
+}
 /* is this spot in some house's doorway (the gap, leaf open or shut)? */
 function inDoorway(nx,nz){
   const at=arr=>{ for(const H of arr){ if(H.door&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8+(H.apron||0)*B) return true; } return false; };
@@ -11543,7 +11558,7 @@ function moveEnt(ent,dt,sp){
        the whole of it, and it is the rule that lets a doorway through and
        keeps a wall shut. `groundInfo` has always reported the ceiling over a
        hollow column; it was simply never asked. */
-    const noRoom=gN.land&&isFinite(gN.ceil)&&(gN.ceil-gN.y)<B*1.9;
+    const noRoom=gN.land&&isFinite(gN.ceil)&&(gN.ceil-gN.y)<B*1.9&&!((gN.ceil-gN.y)>=B*1.0&&underEave(nx,nz));
     /* WHY the straight step was refused, kept on the soul for a probe to
        read — a walker that reads 'solid' for three hundred frames is a
        walker with no way round, and that is a thing worth being able to see */
@@ -11583,7 +11598,7 @@ function moveEnt(ent,dt,sp){
         const g2=groundInfo(ax2,az2,ent.m.position.y+0.1); if(!g2.land) continue;
         if(Math.abs(g2.y-ent.m.position.y)>B*1.35) continue;
         const c2=landAtWorld(ax2,az2); if(g2.edited&&c2&&g2.y>c2.h*B+B*1.2&&!inDoorway(ax2,az2)) continue;
-        if(isFinite(g2.ceil)&&(g2.ceil-g2.y)<B*1.9) continue;
+        if(isFinite(g2.ceil)&&(g2.ceil-g2.y)<B*1.9&&!((g2.ceil-g2.y)>=B*1.0&&underEave(ax2,az2))) continue;
         if(blockedByStructureNPC(ax2,az2)||blockedBySolid(ax2,az2)||blockedByEntity(ax2,az2,ent.m)) continue;
         if(landmarkSolidAt(ax2,az2,ent.m.position.y+2,ent.m.position.y+8)) continue;
         took=true; ent._sw=sw; ent.m.position.x=ax2; ent.m.position.z=az2; ent.m.rotation.y=ang+sw; break; }
@@ -11604,7 +11619,7 @@ function moveEnt(ent,dt,sp){
      construction, and it is where a stranded one is put back. */
   const cH=(gHere.edited)?landAtWorld(ent.m.position.x,ent.m.position.z):null;
   const hereBad=(cH&&gHere.y>cH.h*B+B*1.2&&!inDoorway(ent.m.position.x,ent.m.position.z))
-    ||(gHere.land&&isFinite(gHere.ceil)&&(gHere.ceil-gHere.y)<B*1.9);
+    ||(gHere.land&&isFinite(gHere.ceil)&&(gHere.ceil-gHere.y)<B*1.9&&!((gHere.ceil-gHere.y)>=B*1.0&&underEave(ent.m.position.x,ent.m.position.z)));
   if(hereBad){
     if(ent.gx!==undefined){ ent.m.position.x=ent.gx; ent.m.position.z=ent.gz; ent.m.position.y=ent.gy; }
     else ent.m.position.y=cH.h*B;
@@ -16880,7 +16895,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      reference height, and which courses are solid */
   columnAt:(x,z,refY)=>{ const ix=Math.floor(x/B), iz=Math.floor(z/B), c=landAtWorld(x,z);
     const g=groundInfo(x,z,refY); const solid=[]; const h0=c?c.h:0;
-    for(let iy=h0-2;iy<=h0+7;iy++) if(blockSolidAt(ix,iy,iz)) solid.push(iy);
+    for(let iy=h0-2;iy<=h0+7;iy++) if(blockSolidAt(ix,iy,iz)){ const b=blockAt(ix,iy,iz); solid.push(iy+':'+(b&&BLOCK_BY_ID[b]?BLOCK_BY_ID[b].id||b:b)); }
     return {h:h0,kind:c&&c.kind,y:g.y,ceil:g.ceil,land:g.land,edited:!!g.edited,solidCourses:solid}; },
   toolSpeedOf:id=>toolSpeed(BLOCK_BY_ID[id]),
   /* the save, driven and read back, so a test need not guess at its timing */

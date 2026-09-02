@@ -5159,6 +5159,11 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
     const frames=async n=>{ for(let f=0;f<n;f++) await new Promise(r=>requestAnimationFrame(r)); };
     const doors0=D.villageDoors(); if(!doors0||!doors0.some(d=>d.dx!==undefined)) return {ok:false,got:'a town with no doors'};
     const inGap=(e,d,m)=>Math.hypot(e.x-d.dx,e.z-d.dz)<d.gw+m;
+    /* IN the doorway — in the wall's own plane, not on the step outside it:
+       the gap centre sits on the wall's centre line, and a soul waiting on
+       the doorstep for the leaf stands three units out from it */
+    const inLeaf=(e,d)=>{ const thru=(d.dir===0||d.dir===1)?Math.abs(e.z-d.dz):Math.abs(e.x-d.dx);
+      const side=(d.dir===0||d.dir===1)?Math.abs(e.x-d.dx):Math.abs(e.z-d.dz); return thru<2.0&&side<d.gw; };
 
     /* ---- 4 · THE HEARTH: a home near the work, read against the village's own spread ---- */
     var hearthRead;
@@ -5180,7 +5185,7 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
       doors.forEach((d,i)=>{ if(d.open&&!prev[i]){ openedIdx.add(i); if(d.by==='hand') byHand++; else byFolk++; } });
       prev=doors.map(d=>d.open);
       for(const d of doors){ if(d.dx===undefined) continue;
-        for(const e of P){ if(d.open||!inGap(e,d,1.0)){} else inShut++;
+        for(const e of P){ if(!d.open&&inLeaf(e,d)) inShut++;
           /* ---- 6 · HELD AT A DOORWAY: the ground's refusal, not the leaf's ----
              the buried lintel and the hanging footing Round 96 measured read
              as noroom / climb / steep at the threshold; the leaf's own wait
@@ -5190,11 +5195,11 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
       const held=Object.entries(heldAt).filter(([,n])=>n>=60).map(([i,n])=>P[i].role+'#'+i+' '+n+' frames ('+P[i].blk+')');
       if(held.length) faults.push('held at a doorway by the ground: '+held.join(', '));
       var heldRead=held.length+' held at a doorway'; }
-    if(inShut) faults.push('a soul stood in a shut door\'s gap '+inShut+' soul-frames');
+    if(inShut) faults.push('a soul stood in a shut door\'s leaf '+inShut+' soul-frames');
     if(byHand) faults.push(byHand+' door(s) opened by the hand with the traveller standing still');
     const abedN=D.villageFolk().people.filter(e=>!e.awake&&e.door!==null).length;
     if(abedN>3&&!byFolk) faults.push('nobody opened a door on the way to bed');
-    const doorRead='DOORS (01:00, 300 frames): '+openedIdx.size+' of '+doors0.length+' opened by the folk, none by the hand, '+inShut+' soul-frames inside a shut gap, '+heldRead;
+    const doorRead='DOORS (01:00, 300 frames): '+openedIdx.size+' of '+doors0.length+' opened by the folk, none by the hand, '+inShut+' soul-frames inside a shut leaf, '+heldRead;
 
     /* ---- 2 · AND SHUT AFTER; 5 · THE BED with the new homes ---- */
     await frames(210);
