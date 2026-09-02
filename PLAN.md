@@ -1500,3 +1500,43 @@ What is written down now is ocean **0.672**, plain **2.453**, loop **36.0**, and
 of a millisecond reading and a two-and-a-half millisecond one do not carry the same noise.
 Verified three runs green with the box 1.4–1.6× slower than the reference, and put to a real
 fault on comparable ground to see it fail.
+
+## 21. The labours of the people — ✅ *Round 90*
+
+The engine's own seam list at the head of this document names *"the labours of the people"*
+between the villages and the trade, and nothing below ever specified it: §2.3.6's daily round
+is the beasts', and the villagers appear in this plan only as decoration and as things a
+block may not be laid inside. The specification exists — it is the header of the FOLK table
+in js/behavior.js, written when the beasts got their hours and never wired:
+
+> *Each trade now keeps its own hours and its own habits, and the village reads them from
+> here. rise — the hour it is up and about (local); bed — the hour it goes in for the night;
+> work — how much of its waking day is spent at its trade; rest — the hour it takes its rest
+> in the heat of the day, if it takes one; acts — the small business of its own day, drawn by
+> weight when it is not at its trade.*
+
+The village read one number from it: pace. This round makes the rest true, and it is
+recorded in AUDIT §4co with every reading. What was found underneath, told plainly there:
+one gate off the traveller's sky sent every trade home together at twenty past five; the
+children's lesson kept the world clock, not the village's; a refused step re-picked the same
+target, so a hay bale on the straight line held a farmer at his field for ever; and a soul
+aiming at the middle of its house met the wall — **nobody in this world had ever gone
+indoors, and nothing had ever looked.**
+
+Read off the world, every one (AUDIT §4co has the full record):
+
+- **The hours.** Local 05:00 — 2 up, 18 abed, each by its trade's own row; local 20:24 —
+  10 up, 10 abed, likewise. Gate reverted to the traveller's sky by injection: 0 up, 20 abed.
+- **The rest.** 4 of 4 resting trades at rest at 13:20 (teacher, farmer, water, feeder); the
+  child, herder, hunter, vendor and shopper at their trades.
+- **The bed.** 01:00 held 510 frames: 18 lying, 15 walking home and nearer, none held, of 33 —
+  after four world faults found underneath (no way round a bale; a doorway one course high;
+  a doorway stamped shut off the cell; city homes with no door on record) and one fault in
+  the test itself (souls share names; the map is keyed by index now).
+- **The acts.** Four to six kinds seen in 300 frames, every one declared by its trade's row.
+- **The lesson.** 4 of 4 children at the lesson at local 10:00, 0 at local 15:00 — after a
+  walk budget, because a child skirting the crowd for ever wore the lesson's pose till three.
+- **Cost.** personTick for 33 souls: 0.99 ms a frame by day, 1.29 ms by night, against a
+  software frame of some 460 ms.
+- **Test 60.** PASS — 18 lying, 15 walking home and nearer, 0 held, of 33 abed; every section green.
+- **The suite.** 56 pass · 0 fail · 4 pending on `63e2b20` (state to beat 54 · 0 · 5; test 56 passes now, and 60 is the sixtieth).
