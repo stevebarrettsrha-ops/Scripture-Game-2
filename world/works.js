@@ -21,7 +21,12 @@
      name    what a man reads on the page
      of      what it takes: block ids and how many of each
      gives   what it gives: block ids and how many
-     at      OPTIONAL — 'kiln' if it needs fire. Absent means the bare hand.
+     at      OPTIONAL — the BLOCK a man must stand by to do it: 'kiln' for a
+             work of the fire, 'bench' for a work of the carpenter. Absent
+             means the bare hand, which is everywhere. Any block id will do;
+             the engine looks for that block about his feet and knows none of
+             them by name. A place this build has no block for drops the work
+             at the door, as an unknown material does.
      needs   OPTIONAL — a tool that must be HELD, by what it serves as
      refuses OPTIONAL — the heart of the matter, and the reason this file
              exists at all. See below.
@@ -126,9 +131,11 @@ EARTH.work({
           ref:'RUTH 2:17' }
 });
 
-/* --- THE KILN — the only work that makes a PLACE rather than a thing ---
-   Everything below it must be done standing at one, because "bake them
-   thoroughly" is not something a man does in his hands. */
+/* --- THE KILN — the first work that makes a PLACE rather than a thing ---
+   The works of the fire below it must be done standing at one, because "bake
+   them thoroughly" is not something a man does in his hands. (It was the
+   ONLY such work until §17.5 gave the carpenter his bench; the works of the
+   bench are at the foot of this file.) */
 EARTH.work({
   id:'kiln', name:'A Kiln',
   of:{ 'stone':8, 'clay-band':4 }, gives:{ 'kiln':1 }
@@ -171,6 +178,62 @@ EARTH.work({
   of:{ 'sand':4 }, gives:{ 'glass':4 }
 });
 
+/* ================= AND THE WORKS OF THE BENCH (§17.5) =================
+   THE SECOND PLACE THIS WORLD HAS. Until now every work was done at the bare
+   hand or at a fire, so there was nowhere a man WENT to make, and the list
+   above could not grow past what one can do standing in a field. A bench is
+   that place: it is a block like the kiln, and `at:'bench'` is read by the
+   same engine line the kiln is read by — nothing in js/ knows what a bench
+   is, and nothing needed to be taught.
+
+   THESE GO LAST, AND THE ORDER IS LOAD-BEARING. Acceptance test 20 takes its
+   place-probe as the FIRST work in this file carrying an `at`. Declared
+   above the works of the fire, these would quietly take that probe over, and
+   test 20 would stop exercising the kiln while still passing green — a guard
+   that has silently changed what it guards. So: new places are declared
+   after the old ones. (Test 20 was also taught to walk EVERY place rather
+   than the first, so this rule is belt and braces rather than the only
+   thing standing between us and that.)
+
+   THE THREE VERSES ARE ONE PASSAGE — the building of the House: the timber
+   prepared, the boards panelled, the boards carved. Every one extracted with
+   tools/extract-besorah.js, none typed from memory. */
+
+/* --- THE BENCH ITSELF — a work of the bare hand, or nobody could ever start ---
+   A bench stands in every village on the earth and may be broken out of one
+   and carried; this is for the man who is nowhere near a village, and it
+   keeps the bootstrap honest — timber to planks to a bench, all of it at the
+   fingers, exactly as test 44 walks a man from nothing to a pick. */
+EARTH.work({
+  id:'bench', name:'A Carpenter\'s Bench',
+  of:{ 'planks':4, 'log':2 }, gives:{ 'bench':1 },
+  verse:{ t:'And Shelomoh’s builders and Ḥiram’s builders and the men of Geḇal did hew and prepared timber and stones to build the House.',
+          ref:'MELAKIM ALEPH 5:18' }
+});
+
+/* --- PANELLING — the plank dressed and fitted, which wants a bench ---
+   NOT Yashayahu 44:13, which is the vivid carpentry verse in the whole
+   account — the rule, the chalk, the plane, the compass — and is the
+   idol-maker's passage. This project does not set a verse to work against
+   its own subject, and that is a decision, not an oversight. */
+EARTH.work({
+  id:'panelling', name:'Dress Boards', at:'bench',
+  of:{ 'planks':4 }, gives:{ 'panel':4 },
+  verse:{ t:'And he built the walls of the House inside with cedar boards, from the floor of the House to the ceiling he panelled them on the inside with wood and covered the floor of the House with planks of cypress.',
+          ref:'MELAKIM ALEPH 6:15' }
+});
+
+/* --- CARVED WORK — the second remove, and the first work in this world
+   that wants a KNIFE. Of fifteen works before this round exactly one named
+   a tool, and it wanted a pick; the knives of flint were commanded by name
+   in YEHOSHUA 5:2, made, carried, and asked for by nothing. Now they cut. */
+EARTH.work({
+  id:'carved-panel', name:'Carve Boards', at:'bench',
+  of:{ 'panel':1 }, gives:{ 'carved-panel':1 },
+  needs:'knife',
+  verse:{ t:'And he carved all the walls of the House all around, both inside and outside, with carved figures of keruḇim and palm trees and open flowers.',
+          ref:'MELAKIM ALEPH 6:29' }
+});
 /* --- THE FURNACE — built of the kiln's own brick, at the kiln's own fire ---
    The first time one work's product is another work's material, which is
    what "building from gathered materials" means: clay to brick at the kiln,

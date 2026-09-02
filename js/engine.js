@@ -184,6 +184,40 @@ TEX.planks     = mkTex(g=>{ speckle(g,PB.planks.b,14,PB.planks.a,0.3);
   g.fillStyle='rgba(0,0,0,0.13)';
   for(let y=0;y<16;y+=4) for(let k=0;k<3;k++){ const yy=y+1+k*0.9;
     for(let x=0;x<16;x+=FG) if(hash2(x*1.7+y,k*3.1)>0.42) g.fillRect(x,yy,FG,FG); } },16,16,RIM);
+/* ---- THE DRESSED BOARD, AND THE CARVED ONE (§17.5) ----
+   A riven plank lies in courses across; a PANELLED wall stands in boards up
+   and down, which is the readiest way an eye tells the two apart at arm's
+   length. The joint is a bead — a plank's seam is where it was split, a
+   panel's is where it was fitted.
+
+   AND WHAT IS CARVED INTO IT. "carved figures of keruḇim and palm trees and
+   open flowers" — MELAKIM ALEPH 6:29 names three things and this draws two.
+   A keruḇ is not drawable in sixteen pixels; what would come out is a smudge
+   the account would not recognise, and putting one there would be a claim
+   about a thing this game has no business claiming. So the palm and the open
+   flower are cut, and the third is left to the verse. */
+TEX.panel      = mkTex(g=>{ speckle(g,PB.panel.b,13,PB.panel.a,0.26);
+  g.fillStyle=C(PB.panel.bead);
+  for(let x=3;x<16;x+=4) g.fillRect(x,0,FG,16);            /* boards on end */
+  g.fillStyle=C(PB.panel.lit);
+  for(let x=3;x<16;x+=4) g.fillRect(x+FG,0,FG,16);         /* the bead's lit side */
+  /* the grain runs the length of a standing board, which is up */
+  g.fillStyle='rgba(0,0,0,0.11)';
+  for(let x=0;x<16;x+=4) for(let k=0;k<3;k++){ const xx=x+1+k*0.9;
+    for(let y=0;y<16;y+=FG) if(hash2(y*1.7+x,k*3.1)>0.42) g.fillRect(xx,y,FG,FG); } },16,16,RIM);
+TEX.carved     = mkTex(g=>{ speckle(g,PB.carved.b,13,PB.carved.a,0.26);
+  const cut=C(PB.carved.cut), lit=C(PB.carved.lit);
+  /* THE PALM — a trunk of five courses and four fronds thrown off the head */
+  g.fillStyle=cut;
+  g.fillRect(4,7,FG,7);                                    /* the bole */
+  for(const d of [-3,-2,2,3]){ const s=d<0?-1:1;
+    for(let k=0;k<3;k++) g.fillRect(4+d+s*k*0.6, 6-k*0.9, FG, FG); }   /* the fronds */
+  g.fillStyle=lit; g.fillRect(4+FG,7,FG,7);                /* the light down one side */
+  /* THE OPEN FLOWER — a heart and six petals about it */
+  g.fillStyle=cut;
+  g.fillRect(11,9,2,2);
+  for(const p of [[11,7],[13,8],[13,10],[11,12],[9,10],[9,8]]) g.fillRect(p[0],p[1],FG*1.5,FG*1.5);
+  g.fillStyle=lit; g.fillRect(11,9,FG,FG); },16,16,RIM);
 TEX.roof       = mkTex(g=>{ speckle(g,PB.roof.b,14,PB.roof.a,0.3);
   g.fillStyle=C(PB.roof.seam);
   for(let y=3;y<16;y+=4) g.fillRect(0,y,16,FG);
@@ -564,6 +598,7 @@ blockMat('sand',TEX.sand); blockMat('stone',TEX.stone); blockMat('cobble',TEX.co
 blockMat('snow',TEX.snow); blockMat('ice',TEX.ice);
 iceMat('iceTop',TEX.snow); iceMat('iceSide',TEX.ice);   /* the wall of ice and the floes */
 blockMat('planks',TEX.planks); blockMat('roof',TEX.roof);
+blockMat('panel',TEX.panel); blockMat('carved',TEX.carved);
 blockMat('logSide',TEX.logSide); blockMat('logTop',TEX.logTop);
 blockMat('haySide',TEX.haySide); blockMat('hayTop',TEX.hayTop); blockMat('wool',TEX.wool);
 blockMat('soil',TEX.soil); blockMat('benchTop',TEX.benchTop); blockMat('benchSide',TEX.benchSide);
@@ -1076,6 +1111,21 @@ for(let i=0;i<BLOCK_DEFS.length;i++){
        thing is, and js/ says only how a thing of that shape behaves. */
     fills:d.fills||null,        /* what it becomes when dipped in water */
     empties:d.empties||null,    /* and what it becomes when poured out */
+    /* ---- AND WHAT COLOUR ITS FACES ARE DRAWN IN ----
+       THE FAULT THIS MENDS. The bark textures are painted in GREY on
+       purpose — a standing tree tints them per species out of the flora's
+       own table, which is how one plate-bark texture serves both a fir and
+       a cedar. Round 86 made the bole a BLOCK, and a block face is drawn
+       with a scalar shade and no tint at all, so every trunk on the earth
+       went flat grey the day it became mineable — the exact opposite of
+       that round's own promise, *"the eye keeps the birch and the cork-oak
+       on the felled bole"*. Measured, a fresh boot for each arm: 10,996
+       grey bark vertices with the boles as blocks, 0 with them as geometry.
+       So a block may name its own colour, and the timber does. It is given
+       as a 0-255 triple OUT OF world/palette.js, which is loaded long
+       before any block file — the colour comes from the one place colour
+       lives in this project and never from a literal in a block. */
+    tint:(d.tint&&d.tint.length===3)?[d.tint[0]/255,d.tint[1]/255,d.tint[2]/255]:null,
     /* ---- AND WHAT IS SOWN, WHICH IS THE SAME KIND OF RULE ----
        The engine knows no seed by name. A block that says `sown` stands in
        its cell as a growing PLANT: drawn as the land's own crop reading the
@@ -2343,11 +2393,17 @@ function editedCell(ix,iz,cc,em){
    tell apart should not be kept apart by the last bits of a float. */
 let _pf=null;                 /* the collector, open only while a chunk builds */
 function placedBegin(){ _pf=new Map(); }
-function placedFace(dir,plane,mat,sh,u,v){
+function placedFace(dir,plane,mat,sh,u,v,tint){
   if(!mat) return;
-  const k=dir+'|'+plane+'|'+mat+'|'+Math.round(sh*512);
+  /* THE COLOUR IS PART OF WHAT MAY MERGE. Two faces of the same material at
+     the same shade merge into one rectangle; two of different WOODS must
+     not, or a cedar and an olive laid side by side would come out one
+     colour — the same rule Round 86 met when unlike trunks touching could
+     no longer hide the faces between them. */
+  const k=dir+'|'+plane+'|'+mat+'|'+Math.round(sh*512)+
+    (tint?'|'+Math.round(tint[0]*255)+','+Math.round(tint[1]*255)+','+Math.round(tint[2]*255):'');
   let g=_pf.get(k);
-  if(!g){ g={dir,plane,mat,sh,cells:new Set(),u0:1e9,u1:-1e9,v0:1e9,v1:-1e9}; _pf.set(k,g); }
+  if(!g){ g={dir,plane,mat,sh,tint:tint||null,cells:new Set(),u0:1e9,u1:-1e9,v0:1e9,v1:-1e9}; _pf.set(k,g); }
   g.cells.add(u+','+v);
   if(u<g.u0)g.u0=u; if(u>g.u1)g.u1=u; if(v<g.v0)g.v0=v; if(v>g.v1)g.v1=v;
 }
@@ -2370,7 +2426,10 @@ function placedFlush(G){
           if(!has(u+a,vv)||used[i2]){ ok=false; break; } }
         if(!ok) break; h++; }
       for(let b2=0;b2<h;b2++) for(let a=0;a<w;a++) used[(v+b2-g.v0)*W+(u+a-g.u0)]=1;
-      const m=g.mat, sh=g.sh, P=g.plane;
+      /* `shade` gives back the scalar when there is no tint and a tinted
+         triple when there is, which is exactly what every face emitter
+         already takes — so a coloured block costs no new path */
+      const m=g.mat, sh=shade(g.tint,g.sh), P=g.plane;
       if(g.dir==='T')       faceTop   (G,m, u*B,v*B,(u+w)*B,(v+h)*B, P, sh);
       else if(g.dir==='B')  faceBottom(G,m, u*B,v*B,(u+w)*B,(v+h)*B, P, sh);
       else if(g.dir==='PX') facePX    (G,m, P, u*B,(u+w)*B, v*B,(v+h)*B, sh);
@@ -2461,12 +2520,12 @@ function emitPlaced(G,ix,iz,em,surfaceH){
     }
     /* under the ground it takes the cave's darkness; above it, the day */
     const lit=(y<surfaceH-1)?(CAVE_DARK+(1-CAVE_DARK)*caveLightAt(ix,iz,y+0.5)):1;
-    if(!blockSolidAt(ix,y+1,iz)) placedFace('T', (y+1)*B, b.mTop,    1.0*lit,  ix,iz);
-    if(!blockSolidAt(ix,y-1,iz)) placedFace('B', y*B,     b.mBottom, 0.5*lit,  ix,iz);
-    if(!blockSolidAt(ix+1,y,iz)) placedFace('PX',(ix+1)*B,b.mSide,   0.62*lit, iz,y);
-    if(!blockSolidAt(ix-1,y,iz)) placedFace('NX',ix*B,    b.mSide,   0.62*lit, iz,y);
-    if(!blockSolidAt(ix,y,iz+1)) placedFace('PZ',(iz+1)*B,b.mSide,   0.8*lit,  ix,y);
-    if(!blockSolidAt(ix,y,iz-1)) placedFace('NZ',iz*B,    b.mSide,   0.8*lit,  ix,y);
+    if(!blockSolidAt(ix,y+1,iz)) placedFace('T', (y+1)*B, b.mTop,    1.0*lit,  ix,iz, b.tint);
+    if(!blockSolidAt(ix,y-1,iz)) placedFace('B', y*B,     b.mBottom, 0.5*lit,  ix,iz, b.tint);
+    if(!blockSolidAt(ix+1,y,iz)) placedFace('PX',(ix+1)*B,b.mSide,   0.62*lit, iz,y, b.tint);
+    if(!blockSolidAt(ix-1,y,iz)) placedFace('NX',ix*B,    b.mSide,   0.62*lit, iz,y, b.tint);
+    if(!blockSolidAt(ix,y,iz+1)) placedFace('PZ',(iz+1)*B,b.mSide,   0.8*lit,  ix,y, b.tint);
+    if(!blockSolidAt(ix,y,iz-1)) placedFace('NZ',iz*B,    b.mSide,   0.8*lit,  ix,y, b.tint);
   }
 }
 function emitColumn(G,ix,iz,cc){
@@ -10685,6 +10744,53 @@ function emitFurniture(G, ex, x0,x1,z0,z1, fy, T, hx,hz, doorDir){
   ex.torchIn.push({x:ix0+B*0.5,y:fy+B*2.2,z:iz0+B*0.5});
   ex.torchIn.push({x:ix1-B*0.5,y:fy+B*2.2,z:iz1-B*0.5});
 }
+/* ---- THE DOOR FACES LEVEL GROUND (Round 96) ----
+   THE FAULT THIS MENDS. A house takes its base from the ground at its own
+   middle and turned its door toward the well, and on terraced ground the
+   well is as often uphill as down — so the doorway opened into a bank,
+   its lintel (three courses over the base) one course above the yard
+   outside, and Round 95's bed reading found two shoppers and a farmer
+   held at their own doorsteps by the headroom rule, reading a roof edge
+   they never reached. The door now faces the side whose ground is LEVEL
+   with the base (the floor a third of a course up: a step); failing that
+   the side one course up (a step down into the room, the lintel still
+   two courses clear); failing that one course down (a course and a half
+   up to the floor — a climb, and the doorway rule below lets it); the
+   well decides a tie. The first cut of this chose the LOWEST side, which
+   is the one side a man cannot get in by. */
+function doorSide(hx,hz,y,w,d,ddx,ddz){
+  const toWell=Math.abs(ddz)>=Math.abs(ddx)?(ddz>0?0:1):(ddx>0?2:3);
+  const out=[[0,0,d*B/2+B*1.5],[1,0,-d*B/2-B*1.5],[2,w*B/2+B*1.5,0],[3,-w*B/2-B*1.5,0]];
+  let best=toWell, bh=1e9;
+  for(const[dir,ox,oz] of out){ const c=landAtWorld(hx+ox,hz+oz); if(!c||c.kind==='wall') continue;
+    const k=Math.round((c.h*B-y)/B);
+    const rank=k===0?0:k===1?1:k===-1?2:3+Math.abs(k);
+    const score=rank*10+(dir===toWell?0:1);
+    if(score<bh){ bh=score; best=dir; } }
+  return best;
+}
+/* ---- UNDER AN EAVE (Round 96) ----
+   The roof overhangs the walls by a block. On terraced ground the yard on
+   the uphill side can stand two or three courses over the house's base, and
+   the eave then hangs a course over a man's head there — measured: a farmer
+   held 153 frames on his way round his own house, the ceiling read six
+   units over the step he was taking. A roof edge over open ground is not a
+   ceiling a man is shut under; he ducks. Under an eave a course of clear
+   air is enough; everywhere else a floor still wants two. */
+function underEave(nx,nz){
+  const at=arr=>{ for(const H of arr){
+    if(nx>H.x0-B-0.6&&nx<H.x1+B+0.6&&nz>H.z0-B-0.6&&nz<H.z1+B+0.6&&!(nx>H.x0&&nx<H.x1&&nz>H.z0&&nz<H.z1)) return true; } return false; };
+  for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue; if(at(vv.houses)) return true; }
+  return at(standaloneHouses);
+}
+/* is this spot in some house's doorway (the gap, leaf open or shut)? */
+function inDoorway(nx,nz){
+  const at=arr=>{ for(const H of arr){ if(H.door&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8+(H.apron||0)*B) return true; } return false; };
+  for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue; if(at(vv.houses)) return true; }
+  return at(standaloneHouses);
+}
 function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   /* w,d in blocks (odd best); walls 3 blocks; local axis-aligned.
      Houses are HOLLOW: cobble footing, plank floor, four walls with a real
@@ -10699,19 +10805,38 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   emitBox(G, x0,y,z0, x1,y+B*0.55,z1, 'cobble','cobble',null);
   emitTop(G,'planks', x0+T,z0+T, x1-T,z1-T, y+B*0.58, 0.95);
   /* four hollow walls; the doorway is left open on doorDir (0=+z 1=-z 2=+x 3=-x) */
-  const wy0=y+B*0.55, wy1=y+wallH, ly=y+B*2.75;   /* ly = lintel underside */
+  /* ---- THE LINTEL SITS ON A COURSE (Round 95) ----
+     It was hung at 2.75 courses, and a stamp claims every cell a box
+     touches, so the stamped lintel came down to TWO courses and the
+     doorway under it was one course tall — while the leaf drawn in it is
+     two, poking up through the lintel block. A man is two courses; the
+     rule that a floor wants two courses of clear air over it (noRoom, in
+     moveEnt) refused every soul in the world its own doorway, and nobody
+     had ever gone indoors. Three courses even: the doorway is two clear. */
+  const wy0=y+B*0.55, wy1=y+wallH, ly=y+B*3;      /* ly = lintel underside */
+  /* ---- THE DOORWAY SITS ON A CELL (Round 95) ----
+     The gap was cut about the house's own middle, wherever on the block
+     grid that fell. A stamp claims every cell a box touches, so when the
+     middle sat near a cell's edge the two wall segments claimed the cell on
+     either side between them and left NO cell free: the doorway was stamped
+     shut, the leaf swinging in a wall. Read at one in the morning: a third
+     of the village stood at their own doors with the gap's column answering
+     solid two courses up. The gap is cut about the CENTRE of the cell the
+     middle falls in, so exactly one cell — a doorway a man can pass — is
+     ever left free between the segments. */
+  const gx=(Math.floor(hx/B)+0.5)*B, gz=(Math.floor(hz/B)+0.5)*B;
   const wall=(ax0,az0,ax1,az1)=>emitBox(G,ax0,wy0,az0,ax1,wy1,az1,'planks','planks',null);
-  if(doorDir===0){ wall(x0,z1-T,hx-gw,z1); wall(hx+gw,z1-T,x1,z1);
-    emitBox(G,hx-gw,ly,z1-T,hx+gw,wy1,z1,'planks','planks','planks'); }
+  if(doorDir===0){ wall(x0,z1-T,gx-gw,z1); wall(gx+gw,z1-T,x1,z1);
+    emitBox(G,gx-gw,ly,z1-T,gx+gw,wy1,z1,'planks','planks','planks'); }
   else wall(x0,z1-T,x1,z1);
-  if(doorDir===1){ wall(x0,z0,hx-gw,z0+T); wall(hx+gw,z0,x1,z0+T);
-    emitBox(G,hx-gw,ly,z0,hx+gw,wy1,z0+T,'planks','planks','planks'); }
+  if(doorDir===1){ wall(x0,z0,gx-gw,z0+T); wall(gx+gw,z0,x1,z0+T);
+    emitBox(G,gx-gw,ly,z0,gx+gw,wy1,z0+T,'planks','planks','planks'); }
   else wall(x0,z0,x1,z0+T);
-  if(doorDir===2){ wall(x1-T,z0,x1,hz-gw); wall(x1-T,hz+gw,x1,z1);
-    emitBox(G,x1-T,ly,hz-gw,x1,wy1,hz+gw,'planks','planks','planks'); }
+  if(doorDir===2){ wall(x1-T,z0,x1,gz-gw); wall(x1-T,gz+gw,x1,z1);
+    emitBox(G,x1-T,ly,gz-gw,x1,wy1,gz+gw,'planks','planks','planks'); }
   else wall(x1-T,z0,x1,z1);
-  if(doorDir===3){ wall(x0,z0,x0+T,hz-gw); wall(x0,hz+gw,x0+T,z1);
-    emitBox(G,x0,ly,hz-gw,x0+T,wy1,hz+gw,'planks','planks','planks'); }
+  if(doorDir===3){ wall(x0,z0,x0+T,gz-gw); wall(x0,gz+gw,x0+T,z1);
+    emitBox(G,x0,ly,gz-gw,x0+T,wy1,gz+gw,'planks','planks','planks'); }
   else wall(x0,z0,x0+T,z1);
   /* log corner posts */
   for(const cx of [x0-0.12,x1-B*0.5+0.12]) for(const cz of [z0-0.12,z1-B*0.5+0.12])
@@ -10739,15 +10864,30 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   }
   emitFurniture(G, ex, x0,x1,z0,z1, y+B*0.58, T, hx,hz, doorDir);
   ex.torchIn.push({x:hx,y:y+B*0.58+B*2.05,z:hz});
-  ex.doors.push({x:hx+(doorDir===2?w*B/2+B:doorDir===3?-w*B/2-B:0),
-                 z:hz+(doorDir===0?d*B/2+B:doorDir===1?-d*B/2-B:0)});
-  const gapCX = doorDir===2?x1-T/2:doorDir===3?x0+T/2:hx;
-  const gapCZ = doorDir===0?z1-T/2:doorDir===1?z0+T/2:hz;
-  const hingeX = (doorDir<=1)?hx-gw:gapCX;
-  const hingeZ = (doorDir>=2)?hz-gw:gapCZ;
+  ex.doors.push({x:(doorDir<=1?gx:hx)+(doorDir===2?w*B/2+B:doorDir===3?-w*B/2-B:0),
+                 z:(doorDir>=2?gz:hz)+(doorDir===0?d*B/2+B:doorDir===1?-d*B/2-B:0)});
+  const gapCX = doorDir===2?x1-T/2:doorDir===3?x0+T/2:gx;
+  const gapCZ = doorDir===0?z1-T/2:doorDir===1?z0+T/2:gz;
+  /* ---- AND A DOORSTEP WHERE THE YARD LIES BELOW (Round 96) ----
+     A house on terraced land has no level side sometimes; its door then
+     faces a yard a course or two down, and the footing hangs over it — a
+     man reads its underside as a ceiling and its floor as a climb. So the
+     yard is stepped up to the door: a cobble course in each cell outward,
+     each a course lower than the last, until the ground is met. The
+     walker's rules read the apron as the doorway's own (inDoorway). */
+  let apron=0;
+  { const ux=doorDir===2?1:doorDir===3?-1:0, uz=doorDir===0?1:doorDir===1?-1:0;
+    const fx=doorDir===2?x1:doorDir===3?x0:gapCX, fz=doorDir===0?z1:doorDir===1?z0:gapCZ;
+    for(let j=1;j<=4;j++){ const acx=fx+ux*(j-0.5)*B, acz=fz+uz*(j-0.5)*B;
+      const c=landAtWorld(acx,acz); if(!c||c.kind==='wall') break;
+      const top=y-(j-1)*B, hN=c.h*B; if(top<=hN+0.01) break;
+      const ix=Math.floor(acx/B)*B, iz=Math.floor(acz/B)*B;
+      emitBox(G, ix,hN,iz, ix+B,top,iz+B, 'cobble','cobble',null); apron=j; } }
+  const hingeX = (doorDir<=1)?gx-gw:gapCX;
+  const hingeZ = (doorDir>=2)?gz-gw:gapCZ;
   const baseAng = (doorDir>=2)?-Math.PI/2:0;
   const swing = (doorDir===0||doorDir===3)?1.7:-1.7;   /* open outward */
-  ex.houses.push({x0,x1,z0,z1, dx:gapCX, dz:gapCZ, gw,
+  ex.houses.push({x0,x1,z0,z1, dx:gapCX, dz:gapCZ, gw, apron,
     yb:y, top:y+wallH+steps*B*0.55+B*0.6,   /* footing and ridge — the eye rides over these */
     door:{dir:doorDir, hx:hingeX, hz:hingeZ, base:baseAng, y:y+B*0.05,
       w:gw*2.0, h:B*2.05, swing, open:false, ang:baseAng, target:baseAng}});
@@ -10889,13 +11029,18 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
     const w=8+Math.floor(rnd(placed+20)*3), d=8+Math.floor(rnd(placed+25)*3);
     if(!rectFree(hx-w*B/2-B,hx+w*B/2+B,hz-d*B/2-B,hz+d*B/2+B,B)) continue;
     const ddx=cx-hx, ddz=cz-hz;
-    const doorDir=Math.abs(ddz)>=Math.abs(ddx)?(ddz>0?0:1):(ddx>0?2:3);
+    const doorDir=doorSide(hx,hz,hc.h*B,w,d,ddx,ddz);
     stamped(ex,()=>emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+placed));
     addRect(hx-w*B/2-B,hx+w*B/2+B,hz-d*B/2-B,hz+d*B/2+B);
     const H=ex.houses[ex.houses.length-1];
     stamped(ex,()=>{ emitPathLine(G, H.dx,H.dz, cx+gx*spacing, cz);   // a lane to the street
       emitPathLine(G, cx+gx*spacing, cz, cx+gx*spacing, cz+gy*spacing); });
-    homes.push({x:hx,z:hz,doorx:H.dx,doorz:H.dz}); placed++;
+    /* the whole home on the record — its room AND its door — so a city
+       resident walks in by the door like a villager, not at the wall */
+    { const home={x:hx,z:hz,x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1,doorx:H.dx,doorz:H.dz,H};
+      if(H.dx!==undefined){ const ux=H.dx-hx, uz=H.dz-hz, dd=Math.hypot(ux,uz)||1;
+        home.dx=H.dx; home.dz=H.dz; home.ox=H.dx+ux/dd*B*1.2; home.oz=H.dz+uz/dd*B*1.2; }
+      homes.push(home); } placed++;
     if(placed%3===0) yield;                              /* breathe between the houses */
   }
   /* the market — a row of stalls along the eastern street */
@@ -11070,7 +11215,7 @@ function* spawnVillage(i,exShell){
       }
       if(!found) continue;
       const dx=site.x-hx, dz=site.z-hz;
-      const doorDir=Math.abs(dz)>=Math.abs(dx) ? (dz>0?0:1) : (dx>0?2:3);
+      const doorDir=doorSide(hx,hz,hc.h*B,w,d,dx,dz);
       stamped(ex,()=>emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+h));
       addRect(hx-w*B/2-B,hx+w*B/2+B,hz-d*B/2-B,hz+d*B/2+B);
       if(h%2===1) yield;
@@ -11174,10 +11319,42 @@ function* spawnVillage(i,exShell){
      feeding the fowl, herding, hunting, selling, buying, fishing, playing —
      walks its rounds by day, and goes home to its own hearth at dusk. */
   const people=[]; const cx=site.x, cz=site.z;
-  let homeIdx=0;
-  const nextHome=()=>{ if(!ex.houses.length) return null;
-    const H=ex.houses[homeIdx++%ex.houses.length];
-    return {x:(H.x0+H.x1)/2,z:(H.z0+H.z1)/2}; };
+  const homeOf=H=>{
+    const cx=(H.x0+H.x1)/2, cz=(H.z0+H.z1)/2;
+    /* the home is the room, AND the door to it: a soul walking in aims for
+       the step outside its own door first and the hearth after, because a
+       straight line at the middle of a house meets a wall (Round 95) */
+    const home={x:cx,z:cz,x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1,H};
+    if(H.dx!==undefined){ const ux=H.dx-cx, uz=H.dz-cz, d=Math.hypot(ux,uz)||1;
+      home.dx=H.dx; home.dz=H.dz; home.ox=H.dx+ux/d*B*1.2; home.oz=H.dz+uz/d*B*1.2; }
+    return home; };
+  /* ---- THE HEARTH: A HOME NEAR THE WORK (Round 96) ----
+     THE FAULT THIS MENDS. Homes were dealt round-robin as souls were made:
+     a farmer set down at his field got whichever house was next in the
+     list, and Round 95's trace read souls setting out for bed from 228
+     paces off — farther than a night's walk in the test's hold. Now every
+     soul is housed AFTER all are set down: each takes the nearest house
+     to its calling with room in it (three to a house, a fuller house
+     counting as farther), adults first, and a child is put in a house
+     that already has a grown soul in it. A city's residents keep the
+     doorstep homes they were set down at. */
+  const assignHomes=()=>{ if(!ex.houses.length) return;
+    const count=new Map(), CAP=3;
+    const calling=e=>e.farm||e.well||e.pen||e.stall||e.spot||e.post||e.teach||{x:e.hx,z:e.hz};
+    const order=people.filter(e=>!e.home).sort((a,b)=>(a.child?1:0)-(b.child?1:0));
+    for(const e of order){ const c=calling(e); let best=null,bd=1e18;
+      for(const H of ex.houses){ const n=count.get(H)||0;
+        /* a child joins a household: a house with a grown soul in it may
+           take two children over its count, and an empty house is a
+           child's last resort, not its first — the first cut skipped every
+           empty house outright and, with the near houses full of adults,
+           sent the children 220 paces to whichever house came first */
+        if(e.child?(n>=CAP+2):(n>=CAP)) continue;
+        const d=Math.hypot((H.x0+H.x1)/2-c.x,(H.z0+H.z1)/2-c.z)+n*B*2+(e.child&&n===0?B*40:0);
+        if(d<bd){ bd=d; best=H; } }
+      if(!best){ let bn=1e9; for(const H of ex.houses){ const n=count.get(H)||0; if(n<bn){ bn=n; best=H; } } }
+      e.home=homeOf(best); count.set(best,(count.get(best)||0)+1);
+      e.homeD=Math.hypot(e.hx-e.home.x,e.hz-e.home.z); } };
   /* ---- NOBODY IS SET DOWN INSIDE ANYTHING ----
      A soul or a beast used to be placed by its calling's radius alone, so it
      could stand embedded in the well, a stall, a hay-bale, a tree, a house
@@ -11224,7 +11401,7 @@ function* spawnVillage(i,exShell){
     per.position.set(hx,topY(Math.floor(hx/B),Math.floor(hz/B)),hz); g.add(per);
     placedAt.push({x:hx,z:hz});
     const ent=Object.assign({m:per,role,hx,hz,roamR:roamR||3,tx:hx,tz:hz,t:hash2(seed,7)*4,
-      pt:0,acting:false,seed,child:!!child,female:!!female,home:nextHome(),
+      pt:0,acting:false,seed,child:!!child,female:!!female,home:null,
       name:personName(seed,female)},data||{});
     people.push(ent); return ent; };
   /* the teacher, and the children who gather for the lesson and play at tag */
@@ -11258,9 +11435,10 @@ function* spawnVillage(i,exShell){
     for(let h=0;h<cityHomes.length;h++){ const hm=cityHomes[h];
       addPerson(h%3===0?'shopper':'folk',
         hm.doorx!==undefined?hm.doorx:hm.x, hm.doorz!==undefined?hm.doorz:hm.z,
-        2.4, false, h%2===0, {home:{x:hm.x,z:hm.z}});
+        2.4, false, h%2===0, {home:hm});
       if(h%4===3) yield; }
   }
+  assignHomes();
   yield;
   /* the beasts of the field, the creeping things — and now and then a wolf
      out of the wilds, come down to hunt the pigs and the fowl */
@@ -11331,8 +11509,21 @@ function pushOutOfSolids(ent,dt){
 }
 function sp0OfEnt(ent){ return ent.panic?12:6; }
 function moveEnt(ent,dt,sp){
-  if(pushOutOfSolids(ent,dt)) return true;   /* getting clear IS this frame's business */
-  const dx=ent.tx-ent.m.position.x, dz=ent.tz-ent.m.position.z;
+  if(pushOutOfSolids(ent,dt)){ ent._blk='push'; return true; }   /* getting clear IS this frame's business */
+  /* ---- A DETOUR (Round 96) ----
+     THE FAULT THIS MENDS. The way round (below) is one step's worth of
+     looking, and it remembered the swing that served last — including the
+     backward ones. Before anything wider than a step (a row of stalls, a
+     bank under an eave, a house's whole side) a walker stepped back, then
+     forward into the same refusal, then back, for ever: a vendor was read
+     393 frames in front of his own counter with his bed a hundred paces
+     off. A walker refused straight forty frames running now sets itself a
+     waypoint off to one side, walks to it, and takes up its errand again
+     from there — the way a man gets round a thing he cannot see past. */
+  if(ent._detour){ const dd=Math.hypot(ent._detour.x-ent.m.position.x,ent._detour.z-ent.m.position.z);
+    if(dd<1.5||--ent._detour.t<=0) ent._detour=null; }
+  const TX=ent._detour?ent._detour.x:ent.tx, TZ=ent._detour?ent._detour.z:ent.tz;
+  const dx=TX-ent.m.position.x, dz=TZ-ent.m.position.z;
   const d=Math.hypot(dx,dz); let moving=d>0.6;
   if(moving){ const nx=ent.m.position.x+dx/d*sp*dt, nz=ent.m.position.z+dz/d*sp*dt;
     const hitPlayer=state.mode==='walk'&&Math.hypot(nx-state.walk.x,nz-state.walk.z)<2.6;
@@ -11363,7 +11554,11 @@ function moveEnt(ent,dt,sp){
        ought to walk on is taken from him. Pier decks answer from `deckMap`
        and never carry the `edited` mark, so the fishers keep their planks. */
     const cN=landAtWorld(nx,nz);
-    const climbBuilt=gN.edited&&cN&&gN.y>cN.h*B+B*1.2;
+    /* — but a DOORWAY'S floor is a floor, however far the yard outside it
+       lies below the true ground of its column (a house on terraced land
+       has its floor a course and a half over the downhill yard); a step of
+       a course and a third is still what a man may take (Round 96) */
+    const climbBuilt=gN.edited&&cN&&gN.y>cN.h*B+B*1.2&&!(Math.abs(gN.y-ent.m.position.y)<=B*1.35&&inDoorway(nx,nz));
     /* ---- AND HE MUST HAVE ROOM TO STAND UP IN IT ----
        Forbidding the climb was not enough on its own. A footing runs UNDER
        the walls it carries, and a stall's counter has its canopy posts on it.
@@ -11376,12 +11571,59 @@ function moveEnt(ent,dt,sp){
        the whole of it, and it is the rule that lets a doorway through and
        keeps a wall shut. `groundInfo` has always reported the ceiling over a
        hollow column; it was simply never asked. */
-    const noRoom=gN.land&&isFinite(gN.ceil)&&(gN.ceil-gN.y)<B*1.9;
-    if(!gN.land||tooSteep||climbBuilt||noRoom||blockedByStructureNPC(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,ent.m)||hitPlayer
-      ||!!landmarkSolidAt(nx,nz,ent.m.position.y+2,ent.m.position.y+8)){   /* the ancients' walls bar the folk as they bar the traveller */
-      moving=false; ent.t=0; ent.stuck=(ent.stuck||0)+1;
-      if(ent.stuck>2){ ent.stuck=0; ent.acting=false; ent.pt=0; ent.tx=ent.m.position.x; ent.tz=ent.m.position.z; } }
-    else { ent.stuck=0; ent.m.position.x=nx; ent.m.position.z=nz; ent.m.rotation.y=Math.atan2(dx,dz); } }
+    const noRoom=gN.land&&isFinite(gN.ceil)&&(gN.ceil-gN.y)<B*1.9&&!((gN.ceil-gN.y)>=B*1.0&&underEave(nx,nz));
+    /* WHY the straight step was refused, kept on the soul for a probe to
+       read — a walker that reads 'solid' for three hundred frames is a
+       walker with no way round, and that is a thing worth being able to see */
+    ent._blk=!gN.land?'noland':tooSteep?'steep':climbBuilt?'climb':noRoom?'noroom':blockedByStructureNPC(nx,nz)?'structure':blockedBySolid(nx,nz)?'solid':blockedByEntity(nx,nz,ent.m)?'entity':hitPlayer?'player':landmarkSolidAt(nx,nz,ent.m.position.y+2,ent.m.position.y+8)?'landmark':'';
+    let took=false;
+    if(!(!gN.land||tooSteep||climbBuilt||noRoom||blockedByStructureNPC(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,ent.m)||hitPlayer
+      ||!!landmarkSolidAt(nx,nz,ent.m.position.y+2,ent.m.position.y+8))){   /* the ancients' walls bar the folk as they bar the traveller */
+      took=true; ent.m.position.x=nx; ent.m.position.z=nz; ent.m.rotation.y=Math.atan2(dx,dz); }
+    else if(ent._blk==='structure'&&(ent._door=doorRefusedAt(nx,nz))){
+      /* ---- A SOUL OPENS ITS OWN DOOR (Round 96) ----
+         Refused at a doorway, he opens it and waits for the leaf to swing
+         — no hunting round the jamb, which would walk him away from the
+         door he is opening. The step takes on its own the frame the gap
+         reads open. */
+      if(!ent._door.door.open) setDoor(ent._door,true,ent);
+      ent._blk='door'; took=true; ent.stuck=0; }
+    else {
+      /* ---- AND A WAY ROUND (Round 95) ----
+         THE FAULT THIS MENDS. A refused step abandoned the target, and the
+         next pick was the same target from the same spot, so a hay bale on
+         the straight line between a farmer and his hearth held him at his
+         field for ever — read as 'solid' three hundred frames running at
+         one in the morning, his bed a hundred paces off. Every walker in
+         the village went straight or not at all. So a refused step is tried
+         again swung to either side, nearer first, under exactly the same
+         rules; only when no way round passes does he count himself stuck. */
+      const ang=Math.atan2(dx,dz), stp=sp*dt;
+      /* the side that served last frame is tried first, so a walker skirts
+         a bale the same way round instead of dithering in front of it; the
+         widest swings walk partly BACK, which is how a man gets round a thing
+         that sits square across his line */
+      const swings=[0.75,-0.75,1.45,-1.45,2.2,-2.2];
+      if(ent._sw){ swings.unshift(ent._sw); }
+      for(const sw of swings){
+        const ax2=ent.m.position.x+Math.sin(ang+sw)*stp, az2=ent.m.position.z+Math.cos(ang+sw)*stp;
+        if(state.mode==='walk'&&Math.hypot(ax2-state.walk.x,az2-state.walk.z)<2.6) continue;
+        const g2=groundInfo(ax2,az2,ent.m.position.y+0.1); if(!g2.land) continue;
+        if(Math.abs(g2.y-ent.m.position.y)>B*1.35) continue;
+        const c2=landAtWorld(ax2,az2); if(g2.edited&&c2&&g2.y>c2.h*B+B*1.2&&!inDoorway(ax2,az2)) continue;
+        if(isFinite(g2.ceil)&&(g2.ceil-g2.y)<B*1.9&&!((g2.ceil-g2.y)>=B*1.0&&underEave(ax2,az2))) continue;
+        if(blockedByStructureNPC(ax2,az2)||blockedBySolid(ax2,az2)||blockedByEntity(ax2,az2,ent.m)) continue;
+        if(landmarkSolidAt(ax2,az2,ent.m.position.y+2,ent.m.position.y+8)) continue;
+        took=true; ent._sw=Math.abs(sw)<2?sw:0; ent.m.position.x=ax2; ent.m.position.z=az2; ent.m.rotation.y=ang+sw; break; }
+    }
+    if(ent._blk===''||ent._blk==='door'){ ent._held=0; }
+    else { ent._held=(ent._held||0)+1;
+      if(ent._held>40&&!ent._detour){ ent._held=0;
+        const ang=Math.atan2(dx,dz)+(Math.random()<0.5?1:-1)*(Math.PI/2+(Math.random()-0.5)*0.6), r=12+Math.random()*10;
+        ent._detour={x:ent.m.position.x+Math.sin(ang)*r, z:ent.m.position.z+Math.cos(ang)*r, t:90}; ent._sw=0; } }
+    if(took){ ent.stuck=0; if(ent._blk==='') ent._sw=0; }
+    else { moving=false; ent.t=0; ent.stuck=(ent.stuck||0)+1;
+      if(ent.stuck>2){ ent.stuck=0; ent.acting=false; ent.pt=0; ent.tx=ent.m.position.x; ent.tz=ent.m.position.z; } } }
   const gHere=groundInfo(ent.m.position.x,ent.m.position.z,ent.m.position.y+0.1);
   /* ---- AND ONE ALREADY UP THERE IS BROUGHT DOWN ----
      A rule that only forbids the climb leaves whoever climbed before it
@@ -11394,8 +11636,8 @@ function moveEnt(ent,dt,sp){
      place was reached by walking, so it is outside every wall by
      construction, and it is where a stranded one is put back. */
   const cH=(gHere.edited)?landAtWorld(ent.m.position.x,ent.m.position.z):null;
-  const hereBad=(cH&&gHere.y>cH.h*B+B*1.2)
-    ||(gHere.land&&isFinite(gHere.ceil)&&(gHere.ceil-gHere.y)<B*1.9);
+  const hereBad=(cH&&gHere.y>cH.h*B+B*1.2&&!inDoorway(ent.m.position.x,ent.m.position.z))
+    ||(gHere.land&&isFinite(gHere.ceil)&&(gHere.ceil-gHere.y)<B*1.9&&!((gHere.ceil-gHere.y)>=B*1.0&&underEave(ent.m.position.x,ent.m.position.z)));
   if(hereBad){
     if(ent.gx!==undefined){ ent.m.position.x=ent.gx; ent.m.position.z=ent.gz; ent.m.position.y=ent.gy; }
     else ent.m.position.y=cH.h*B;
@@ -11421,10 +11663,28 @@ function houseBlocksNPC(nx,nz,H){
   if(nx>H.x0-m2&&nx<H.x1+m2&&nz>H.z0-m2&&nz<H.z1+m2){
     const T2=B*0.5+1.0;
     if(nx>H.x0+T2&&nx<H.x1-T2&&nz>H.z0+T2&&nz<H.z1-T2) return false;
-    if(H.door&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8) return false;
+    /* ---- A SHUT DOOR IS A WALL TO THE FOLK (Round 96) ----
+       THE FAULT THIS MENDS. The traveller's rule (houseBlocks) has always let
+       a body through the doorway only while the leaf stands open; this one
+       let the folk through the gap whether the leaf was open or shut, so
+       every soul going to bed passed bodily through the planks of its own
+       door in plain view, and the leaf that swings for the traveller had
+       never once swung for the people who live behind it. Now the gap is a
+       gap while the door is open, and a soul refused at its own doorway
+       opens it (moveEnt) and shuts it after (doorTick). */
+    if(H.door&&H.door.open&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8) return false;
     return true;
   }
   return false;
+}
+/* the house whose doorway this refused step falls in, if any */
+function doorRefusedAt(nx,nz){
+  const at=arr=>{ for(const H of arr){ if(!H.door) continue;
+    if(Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8&&houseBlocksNPC(nx,nz,H)) return H; } return null; };
+  for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue;
+    const H=at(vv.houses); if(H) return H; }
+  return at(standaloneHouses);
 }
 function blockedByStructureNPC(nx,nz){
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
@@ -11433,17 +11693,58 @@ function blockedByStructureNPC(nx,nz){
   for(const H of standaloneHouses) if(houseBlocksNPC(nx,nz,H)) return true;
   return false;
 }
+/* ---- ABED, AND UP AGAIN ----
+   A body is one group with its origin at the feet, so laid on its back it
+   lies along the ground with nothing modelled anew; lifted a hand's breadth
+   so the robe does not sink. Sat, the pelvis drops and the legs go out. Both
+   are undone by the one hand, and moveEnt puts the feet back on the ground
+   the next step taken. */
+function lieDown(ent){
+  if(ent._lying) return;
+  const u=ent.m.userData, sc=ent.m.scale.y||1;
+  ent._lying=true; ent._sat=false; ent.anim='sleep'; ent.act=null; ent.acting=false;
+  ent.m.rotation.x=-Math.PI/2;
+  ent.m.position.y=(ent.gy!==undefined?ent.gy:ent.m.position.y)+1.0*sc;
+  u.armL.rotation.x=0; u.armR.rotation.x=0;
+  for(const L of u.legs){ L.rotation.x=0; const j=L.userData.knee||L.userData.elbow; if(j) j.rotation.x=0; }
+}
+function sitDown(ent){
+  if(ent._sat) return;
+  const u=ent.m.userData, sc=ent.m.scale.y||1;
+  ent._sat=true;
+  ent.m.position.y=(ent.gy!==undefined?ent.gy:ent.m.position.y)-2.4*sc;
+  for(let i=0;i<2;i++){ u.legs[i].rotation.x=1.35; const k=u.legs[i].userData.knee; if(k) k.rotation.x=-0.7; }
+}
+function standUp(ent){
+  if(!ent._lying&&!ent._sat) return;
+  const u=ent.m.userData;
+  ent.m.rotation.x=0;
+  if(ent.gy!==undefined) ent.m.position.y=ent.gy;
+  for(let i=0;i<2;i++){ u.legs[i].rotation.x=0; const k=u.legs[i].userData.knee; if(k) k.rotation.x=0; }
+  ent._lying=false; ent._sat=false; ent.actT=undefined; ent.acting=false;
+  if(ent.anim==='sleep') ent.anim='idle';
+}
 function wanderTick(ent,site,dt,speed){
   const ax=ent.hx!==undefined?ent.hx:site.x, az=ent.hz!==undefined?ent.hz:site.z;
   const roamR=ent.roamR||4.6;
+  /* home for the night and at the hearth: lie down, and stay down */
+  if(ent._abed&&ent.home){
+    const hx=ent.home.x!==undefined?ent.home.x:ent.home.doorx, hz=ent.home.z!==undefined?ent.home.z:ent.home.doorz;
+    if(ent._lying) return false;
+    if(Math.hypot(ent.m.position.x-hx,ent.m.position.z-hz)<2.2){ lieDown(ent); return false; }
+  }
   ent.t-=dt;
   if(ent.t<=0){
     ent.t=(ent.role==='teacher'||ent.role==='child'?3.5:2)
       +hash2(ent.seed,(performance.now()%9973)*0.13)*(ent.role==='hunter'?7:5);
     let nx,nz;
-    if((worldNight>0.55||ent._shelter)&&ent.home){    /* at dusk or in storm, go home — to the room, not the doorway */
-      nx=(ent.home.x!==undefined?ent.home.x:ent.home.doorx)+(Math.random()-0.5)*2;
-      nz=(ent.home.z!==undefined?ent.home.z:ent.home.doorz)+(Math.random()-0.5)*2;
+    if((ent._abed||ent._shelter)&&ent.home){    /* past its own bed-hour or in storm, go home */
+      const H=ent.home, px=ent.m.position.x, pz=ent.m.position.z;
+      const inside=H.x0!==undefined?(px>H.x0&&px<H.x1&&pz>H.z0&&pz<H.z1)
+        :(H.x!==undefined&&Math.hypot(px-H.x,pz-H.z)<B*1.4);   /* a home with no rect on record: near its middle is in */
+      if(!inside&&H.ox!==undefined&&Math.hypot(px-H.ox,pz-H.oz)>2.5){ nx=H.ox; nz=H.oz; }   /* to his own door first */
+      else { nx=(H.x!==undefined?H.x:H.doorx)+(Math.random()-0.5)*2;      /* and then to the room, not the doorway */
+        nz=(H.z!==undefined?H.z:H.doorz)+(Math.random()-0.5)*2; }
     } else { const a=Math.random()*Math.PI*2, r=Math.random()*roamR*B;
       nx=ax+Math.cos(a)*r; nz=az+Math.sin(a)*r; }
     const cc=landAtWorld(nx,nz); if(cc&&cc.kind!=='wall'){ ent.tx=nx; ent.tz=nz; } }
@@ -11456,8 +11757,57 @@ function wanderTick(ent,site,dt,speed){
   }
   return moving;
 }
+/* where a soul goes to do a piece of its own small business, and what it
+   faces while it does — the watch looks OUT (the fisher down his pier, the
+   herder to the pen, the rest away from the well), talk turns to the nearest
+   neighbour, a carry is a step toward home, tend faces the trade */
+function folkActPlace(ent,vv,act){
+  const site=vv.site, R=Math.random, px=ent.m.position.x, pz=ent.m.position.z;
+  ent.tx=px; ent.tz=pz; ent.faceX=undefined; ent.faceZ=undefined;
+  if(act==='carry'){ const hm=ent.home||site; ent.tx=px+(hm.x-px)*0.5; ent.tz=pz+(hm.z-pz)*0.5; return; }
+  if(act==='watch'){
+    let fx,fz;
+    if(ent.role==='fisher'&&vv.pier&&vv.pier.dx!==undefined){ fx=px+vv.pier.dx*20; fz=pz+vv.pier.dz*20; }
+    else if(ent.pen){ fx=ent.pen.x; fz=ent.pen.z; }
+    else { const d=Math.hypot(px-site.x,pz-site.z)||1; fx=px+(px-site.x)/d*20; fz=pz+(pz-site.z)/d*20; }
+    ent.faceX=fx; ent.faceZ=fz; return; }
+  if(act==='talk'){ let best=null,bd=144;
+    for(const o of vv.people){ if(o===ent||o._lying) continue;
+      const d2=(o.m.position.x-px)**2+(o.m.position.z-pz)**2; if(d2<bd){ bd=d2; best=o; } }
+    if(best){ ent.tx=px+(best.m.position.x-px)*0.6; ent.tz=pz+(best.m.position.z-pz)*0.6;
+      ent.faceX=best.m.position.x; ent.faceZ=best.m.position.z; }
+    return; }
+  if(act==='tend'){ const w=ent.farm||ent.pen||ent.spot||ent.stall||ent.well||null;
+    if(w){ ent.faceX=w.x; ent.faceZ=w.z; } }
+  ent.tx=px+(R()-0.5)*3; ent.tz=pz+(R()-0.5)*3;
+}
 function nextTask(ent,vv){
   const site=vv.site, R=Math.random;
+  const F=window.BEHAVIOR?BEHAVIOR.folkOf(ent.role):null;
+  const hour=vv.hour!==undefined?vv.hour:localHourAt(site.x,site.z);
+  /* ---- THE REST IN THE HEAT OF THE DAY ----
+     the trades that take one lie off for an hour or so after noon, at
+     home or where they stand; the fisher, the hunter and the vendor do not */
+  ent._heat=false;
+  if(F&&BEHAVIOR.folkResting(ent.role,hour)){
+    const hm=ent.home||site;
+    /* marked apart from the ACT called rest — a hunter's sit-down between
+       watches is in his row and is not the rest in the heat his row denies
+       him; the full suite convicted him of it once for want of this mark */
+    ent._heat=true;
+    ent.act='rest'; ent.anim='rest'; ent.actT=6+R()*6;
+    ent.tx=hm.x+(R()-0.5)*2; ent.tz=hm.z+(R()-0.5)*2; ent.faceX=undefined; return; }
+  /* ---- AND THE SMALL BUSINESS OF ITS OWN DAY ----
+     `work` is how much of the waking day is the trade; the rest is drawn
+     by weight from the trade's own list — bread, a neighbour, the tools,
+     a look out to sea. Every act name here is one js/behavior.js declares. */
+  /* — except a child in lesson hours, who is at the lesson: the draw is for
+     the waking day as a whole, and the first cut of test 62 read no child
+     at school at ten because four in five picks went to play */
+  const atLesson=ent.role==='child'&&hour>=8&&hour<13&&ent.teach;
+  if(F&&!atLesson&&R()>F.work){ const act=BEHAVIOR.drawFolkAct(ent.role,R());
+    if(act){ ent.act=act; ent.anim=act; ent.actT=3+R()*4; folkActPlace(ent,vv,act); return; } }
+  ent.act=null;
   switch(ent.role){
     case 'farmer': { const f=ent.farm||site;
       ent.tx=f.x+(R()-0.5)*B*3.4; ent.tz=f.z+(R()-0.5)*B*2.2; ent.actT=2.5+R()*3.5; ent.anim='work'; break; }
@@ -11507,7 +11857,8 @@ function nextTask(ent,vv){
         ent.tx=site.x+Math.cos(a)*r2; ent.tz=site.z+Math.sin(a)*r2; ent.actT=2+R()*4; ent.anim='idle'; }
       break; }
     case 'child': {
-      const hour=state.simHours%24;
+      /* the LOCAL hour — this read state.simHours, the world clock, so the
+         lesson was at the right hour at one longitude only */
       if(hour>=8&&hour<13&&ent.teach){                /* the morning lesson */
         ent.tx=ent.teach.x+(R()-0.5)*B*2.4; ent.tz=ent.teach.z+B*0.7+(R()-0.5)*B*1.8;
         ent.actT=4+R()*3; ent.anim='sit'; ent.faceX=ent.teach.x; ent.faceZ=ent.teach.z; }
@@ -11522,10 +11873,41 @@ function nextTask(ent,vv){
 function personTick(ent,vv,dt){
   const site=vv.site, u=ent.m.userData, tnow=performance.now()*0.001;
   ent._shelter=(vv.stormF||0)>0.35;                 /* in foul weather, folk keep indoors */
-  if((worldNight>0.55||ent._shelter)&&ent.home){ wanderTick(ent,site,dt,ent._shelter?8.5:7); return; }
-  if(ent.role==='folk'||!ent.role){ wanderTick(ent,site,dt,7); return; }
-  if(ent.actT===undefined) nextTask(ent,vv);
+  /* ---- EACH TRADE KEEPS ITS OWN HOURS (Round 95) ----
+     THE FAULT THIS MENDS. One gate sent every soul in the village home
+     together: `worldNight>0.55`, a darkness scalar read off the TRAVELLER'S
+     sky, which stands at nought until five in the afternoon and so could
+     never make a fisher rise at half past four — while js/behavior.js had
+     carried each trade's own rise and bed for rounds, under a header that
+     said the village reads them, and the village read one number: pace.
+     The hour is the VILLAGE'S own (vv.hour, the solar hour at its well),
+     and whether this soul is up is its trade's answer. A storm still sends
+     everyone in: weather is not hours. */
+  const hour=vv.hour!==undefined?vv.hour:localHourAt(site.x,site.z);
+  ent._abed=window.BEHAVIOR?!BEHAVIOR.folkAwake(ent.role,hour):(worldNight>0.55);
+  const pace=window.BEHAVIOR?BEHAVIOR.folkPaceOf(ent.role,7):7;
+  if((ent._abed||ent._shelter)&&ent.home){
+    if(ent._lying&&!ent._abed) standUp(ent);       /* the storm keeps him in; it does not put him to bed */
+    if(ent._sat) standUp(ent);                      /* a soul sat at bread stands before it walks */
+    if(!ent._lying){ ent.anim='home'; ent.act=null; }
+    ent._wasAbed=ent._abed;
+    wanderTick(ent,site,dt,ent._shelter?pace*1.2:pace); return; }
+  if(ent._lying) standUp(ent);                      /* up with the hour */
+  if(ent._wasAbed&&!ent._abed){ ent.actT=undefined; ent.acting=false; ent.act=null; }   /* and takes stock */
+  ent._wasAbed=ent._abed;
+  if(ent.role==='folk'||!ent.role){ if(ent.anim==='home') ent.anim='idle'; wanderTick(ent,site,dt,pace); return; }
   const px=ent.m.position.x, pz=ent.m.position.z;
+  if(ent.actT===undefined){ nextTask(ent,vv);
+    /* ---- AND A WALK HAS A BUDGET (Round 95) ----
+       THE FAULT THIS MENDS. A soul walking to its task never counted the
+       time: it counted itself stuck only when no step at all would take,
+       and the way round (above) always finds one. So a child aiming at a
+       lesson spot behind three other children skirted them for ever, and
+       was read still sat at the lesson at three in the afternoon. Every
+       task is given the straight-line time to its spot, half again, and
+       three seconds; a soul that has spent it draws a fresh task from
+       where it stands. The chasers re-aim live and are not budgeted. */
+    ent._wk=3+Math.hypot(ent.tx-px,ent.tz-pz)/(window.BEHAVIOR?BEHAVIOR.folkPaceOf(ent.role,7):7)*1.5; }
   /* live re-aiming for the chasers */
   if(ent.role==='herder'&&ent.drive){ const s=ent.drive;
     ent.tx=s.m.position.x; ent.tz=s.m.position.z;
@@ -11546,6 +11928,10 @@ function personTick(ent,vv,dt){
   const d=Math.hypot(ent.tx-px,ent.tz-pz);
   if(d>2.2){
     ent.acting=false;
+    if(ent._sat||ent._lying) standUp(ent);
+    if(!ent.drive&&!ent.stalk&&!(ent.role==='child'&&ent.anim==='play')){
+      ent._wk=(ent._wk===undefined?6:ent._wk)-dt;
+      if(ent._wk<0){ ent.actT=undefined; ent.act=null; ent.tx=px; ent.tz=pz; ent.stuck=0; return; } }
     /* every trade goes at its own pace, out of js/behavior.js — the hunter
        strides, the water-bearer walks under her jar, the child runs */
     let sp=window.BEHAVIOR?BEHAVIOR.folkPaceOf(ent.role,7):7;
@@ -11587,8 +11973,21 @@ function personTick(ent,vv,dt){
       if(u.rodFish&&held) u.rodFish.rotation.z=Math.sin(tnow*11)*0.5;   /* it kicks on the line */
       if(u.rodLine) u.rodLine.scale.y=held?0.34:1;                      /* reeled short as it comes up */
     }
+    /* ---- THE SMALL BUSINESS OF THE DAY, in the body (Round 95) ----
+       eight acts out of js/behavior.js, each built from hooks the body
+       already had: sat is the pelvis dropped and the legs out; prayer and
+       carrying are the arms; play is the children's own hop */
+    else if(A==='rest'||A==='eat'){ sitDown(ent);
+      if(A==='eat'){ u.armR.rotation.x=-1.3+Math.sin(tnow*2.2)*0.35; u.armL.rotation.x=-0.6; }
+      else { u.armR.rotation.x=0; u.armL.rotation.x=0; } }
+    else if(A==='pray'){ u.armL.rotation.x=-2.4; u.armR.rotation.x=-2.4; }
+    else if(A==='carry'){ u.armL.rotation.x=-2.9; u.armR.rotation.x=-0.2; }
+    else if(A==='tend'){ u.armR.rotation.x=-0.7+Math.sin(tnow*3.2)*0.5; u.armL.rotation.x=-0.4+Math.sin(tnow*3.2+0.5)*0.3; }
+    else if(A==='talk'){ u.armR.rotation.x=-0.5+Math.sin(tnow*2.1)*0.45; u.armL.rotation.x=0; }
+    else if(A==='play'&&!ent.child){ u.armR.rotation.x=0; u.armL.rotation.x=0;
+      if(!(ent.hop>0)&&Math.random()<dt*0.8) ent.hop=0.5; }
     else { u.armR.rotation.x=0; u.armL.rotation.x=0; }
-    if(ent.pt<=0){ ent.acting=false; nextTask(ent,vv); }
+    if(ent.pt<=0){ ent.acting=false; if(ent._sat) standUp(ent); nextTask(ent,vv); }
   }
   if(ent.hop!==undefined&&ent.hop>0){ ent.hop-=dt; ent.m.position.y+=Math.sin(Math.max(0,ent.hop)*6.28)*1.6; }
 }
@@ -11716,6 +12115,10 @@ function updateVillages(px,pz,dt,nightF,dayF){
   }
   for(const[,vv] of activeVillages){ if(vv.none||!vv.g) continue;
     vv.stormF=stormAt(vv.site.x,vv.site.z);      /* foul weather empties the lanes */
+    /* THE VILLAGE'S OWN HOUR, read once a frame for everyone in it: the
+       solar hour at the well, not the darkness of the traveller's sky
+       (Round 95 — each trade keeps its own hours out of js/behavior.js) */
+    vv.hour=localHourAt(vv.site.x,vv.site.z);
     for(const p of vv.people) personTick(p,vv,dt);
     for(const b2 of vv.beasts) beastTick(b2,vv,dt);
     if(vv.birds) for(const bd of vv.birds) birdTick(bd,dt);
@@ -13353,8 +13756,20 @@ function nearestDoor(px,pz){
 function doorTick(dt){
   const anim=arr=>{ for(const H of arr){ const D2=H.door; if(!D2||!D2.mesh) continue;
     if(Math.abs(D2.ang-D2.target)>0.001){ D2.ang+=(D2.target-D2.ang)*Math.min(1,dt*8); D2.mesh.rotation.y=D2.ang; } } };
-  for(const[,vv] of activeVillages){ if(vv.houses) anim(vv.houses); }
-  anim(standaloneHouses);
+  /* ---- AND SHUT AFTER (Round 96) ----
+     A door a soul opened is shut once that soul is a body's length past
+     the gap on either side and nobody else — soul or traveller — stands in
+     it. A door the traveller opened is the traveller's and is left as he
+     left it. */
+  const shutBehind=(arr,people)=>{ for(const H of arr){ const D2=H.door; if(!D2||!D2.open||!D2._by||D2._by==='hand') continue;
+    const by=D2._by; if(!by.m){ D2._by=null; continue; }
+    if(Math.hypot(by.m.position.x-H.dx,by.m.position.z-H.dz)<H.gw+2.5) continue;
+    let held=false;
+    if(state.mode==='walk'&&Math.hypot(state.walk.x-H.dx,state.walk.z-H.dz)<H.gw+2.0) held=true;
+    if(!held&&people) for(const o of people){ if(Math.hypot(o.m.position.x-H.dx,o.m.position.z-H.dz)<H.gw+1.8){ held=true; break; } }
+    if(!held) setDoor(H,false,null); } };
+  for(const[,vv] of activeVillages){ if(vv.houses){ anim(vv.houses); shutBehind(vv.houses,vv.people); } }
+  anim(standaloneHouses); shutBehind(standaloneHouses,null);
 }
 let promptDoor=null;
 /* ================= THE SADDLE =================
@@ -13464,9 +13879,13 @@ function interact(){
     default: if(canSleep()) sleep(); else toggleDoor();
   }
 }
+/* ONE hand on every door: the traveller's (by='hand') and the folk's (by=the
+   soul). A door remembers who opened it, so the folk shut their own behind
+   them and never shut the traveller's on him. */
+function setDoor(H,open,by){ const D2=H&&H.door; if(!D2) return;
+  D2.open=open; D2.target=open?D2.base+D2.swing:D2.base; D2._by=open?(by||null):null; }
 function toggleDoor(){ if(!promptDoor||!promptDoor.door) return;
-  const D2=promptDoor.door; D2.open=!D2.open;
-  D2.target=D2.open?D2.base+D2.swing:D2.base; }
+  setDoor(promptDoor,!promptDoor.door.open,'hand'); }
 function treeBlocked(nx,nz){
   const c=landAtWorld(nx,nz); if(!c||!c.tree) return false;
   const ix=Math.floor(nx/B), iz=Math.floor(nz/B);
@@ -16392,6 +16811,13 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
     of:w.of.map(q=>q.id+' x'+q.c), gives:w.gives.map(q=>q.id+' x'+q.c),
     refuses:w.refuses?w.refuses.id:null, verse:!!w.verse})),
   workState:id=>{ const w=WORK_BY_ID[id]; return w?workState(w):null; },
+  /* WHAT THE MAN ACTUALLY READS on the row, and HOW FAR a place reaches —
+     both so a test can assert the thing seen rather than the thing meant.
+     "at a Workbench" is composed out of the block's own name, and a test
+     that hard-coded either the words or the four blocks would go on passing
+     the day the words or the reach changed. */
+  workSays:id=>{ const w=WORK_BY_ID[id]; return w?workLine(w,workState(w)):null; },
+  workReach:()=>WORK_R,
   workMake, workPlaceAt, satchelAdd, satchelTake,
   /* ---- WHAT WILL NOT STAND, FOR tools/acceptance.js ---- */
   /* every standing chunk thrown away, so the next build is a TRUE build and
@@ -16453,6 +16879,42 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
       if(sl&&sl.id===id){ heldSlot=i; beltDraw(); return true; } }
     return false; },
   activeVillages:()=>activeVillages,
+  /* WHAT EACH SOUL OF THE NEAREST VILLAGE IS DOING — role, the trade's own
+     hour, whether it is up, lying, sat, and the act or task in hand — so a
+     test reads the day a village keeps rather than where its people stand */
+  /* one soul's tick, callable by a cost probe — the whole loop is timed by
+     calling it for every soul in the village a hundred times over */
+  personTickProbe:(e,vv,dt)=>personTick(e,vv,dt),
+  villageFolk:()=>{ let best=null,bd=1e18; const p=playerXZ();
+    for(const[,vv] of activeVillages){ if(!vv.people||!vv.site) continue;
+      const d=(vv.site.x-p.x)**2+(vv.site.z-p.z)**2; if(d<bd){ bd=d; best=vv; } }
+    if(!best) return null;
+    return {hour:best.hour, site:{x:best.site.x,z:best.site.z}, storm:best.stormF||0,
+      people:best.people.map((e,i)=>({i,name:e.name,role:e.role,anim:e.anim||null,act:e.act||null,
+        tx:e.tx,tz:e.tz,t:e.t,blk:e._blk||'',acting:!!e.acting,shelter:!!e._shelter,
+        awake:!e._abed,lying:!!e._lying,sat:!!e._sat,child:!!e.child,heat:!!(e._heat&&e.act==='rest'),
+        homeD:e.homeD,homeI:(e.home&&e.home.H)?best.houses.indexOf(e.home.H):null,stuck:e.stuck||0,hm:e.home?{x:e.home.x,z:e.home.z,x0:e.home.x0,x1:e.home.x1,z0:e.home.z0,z1:e.home.z1,dx:e.home.dx,dz:e.home.dz,ox:e.home.ox,oz:e.home.oz,doorx:e.home.doorx,doorz:e.home.doorz}:null,door:(e.home&&e.home.H&&e.home.H.door)?(e.home.H.door.open?'open':'shut'):null,
+        x:e.m.position.x,y:e.m.position.y,z:e.m.position.z,
+        home:e.home?Math.hypot(e.m.position.x-(e.home.x!==undefined?e.home.x:e.home.doorx),
+                              e.m.position.z-(e.home.z!==undefined?e.home.z:e.home.doorz)):null}))}; },
+  /* every door of the nearest village: open or shut, and whose hand did it */
+  villageDoors:()=>{ let best=null,bd=1e18; const p=playerXZ();
+    for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
+      const d=(vv.site.x-p.x)**2+(vv.site.z-p.z)**2; if(d<bd){ bd=d; best=vv; } }
+    if(!best) return null;
+    return best.houses.map((H,i)=>({i,dx:H.dx,dz:H.dz,gw:H.gw,yb:H.yb,dir:H.door?H.door.dir:null,open:!!(H.door&&H.door.open),
+      by:H.door?(H.door._by==='hand'?'hand':H.door._by?'folk':null):null,
+      ang:H.door?+H.door.ang.toFixed(2):null,target:H.door?+H.door.target.toFixed(2):null})); },
+  setDoorAt:(i,open)=>{ let best=null,bd=1e18; const p=playerXZ();
+    for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
+      const d=(vv.site.x-p.x)**2+(vv.site.z-p.z)**2; if(d<bd){ bd=d; best=vv; } }
+    if(best&&best.houses[i]) setDoor(best.houses[i],open,open?'hand':null); },
+  /* a column read the way a walker reads it: the ground and ceiling at a
+     reference height, and which courses are solid */
+  columnAt:(x,z,refY)=>{ const ix=Math.floor(x/B), iz=Math.floor(z/B), c=landAtWorld(x,z);
+    const g=groundInfo(x,z,refY); const solid=[]; const h0=c?c.h:0;
+    for(let iy=h0-2;iy<=h0+7;iy++) if(blockSolidAt(ix,iy,iz)){ const b=blockAt(ix,iy,iz); solid.push(iy+':'+(typeof blockName==='function'?blockName(b):b)); }
+    return {h:h0,kind:c&&c.kind,y:g.y,ceil:g.ceil,land:g.land,edited:!!g.edited,solidCourses:solid}; },
   toolSpeedOf:id=>toolSpeed(BLOCK_BY_ID[id]),
   /* the save, driven and read back, so a test need not guess at its timing */
   saveNow:()=>saveState(),
@@ -17359,6 +17821,18 @@ for(const w of WORK_DEFS){
   let good=true;
   for(const k in (w.of||{})){ const n=blockId(k); if(!n){ good=false; break; } of.push({n,id:k,c:w.of[k]}); }
   for(const k in (w.gives||{})){ const n=blockId(k); if(!n){ good=false; break; } gives.push({n,id:k,c:w.gives[k]}); }
+  /* ---- AND THE PLACE IS A MATERIAL TOO ----
+     THE FAULT THIS MENDS, found while giving the carpenter his bench: the
+     two lines above drop a work whose materials or product this build has
+     not got, and nothing asked the same of `at`. A work naming a place no
+     block answers to — a typo, a block file that failed to load, a place
+     built before the block that is it — SHIPPED: offered in the list,
+     greyed for ever, refusable but never doable, with no error anywhere.
+     `workPlaceAt` returns false for an unknown id and says nothing, which is
+     right of it and silent. So the place is asked for here, where the
+     materials are asked for, and a work with nowhere to be done is dropped
+     at the same door for the same reason. */
+  if(w.at&&!blockId(w.at)) good=false;
   if(!good||!of.length||!gives.length) continue;
   const rf=w.refuses&&blockId(w.refuses.id)?{...w.refuses,n:blockId(w.refuses.id)}:null;
   const rec={id:w.id, name:w.name||w.id, of, gives, at:w.at||null,

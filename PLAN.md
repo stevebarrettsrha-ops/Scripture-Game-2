@@ -1206,6 +1206,14 @@ Named so it is a record and not a memory. Each was checked against the code toda
 rather than recalled, because two of them turned out to be further along than this
 document said and one turned out to be a missing NUMBER rather than a missing feature.
 
+> **THIS QUEUE IS EMPTY — Round 93 closed the last of it.** The bark measured (59), the boles
+> made blocks (86, corrected the same round), the bucket (·), the hand that sows (87), and the
+> bench (88). The pattern every one of them turned out to share is worth keeping: **four of the
+> five were mostly already built and inert** — the bark shipped without its number, the bole
+> mechanism was written and switched off, the hoe served nothing and the soil block was made by
+> nothing, and the bench stood in every village with no work to do at it. What the rounds
+> actually did was ask the world what was already there before writing anything.
+
 ### 1. The bark measurement — ✅ *Round 59*
 
 **§2.4.3 was built in Round 52 and never measured**, and PLAN §14's table went on
@@ -1314,7 +1322,7 @@ put it. The clock and the growth are now both standing and waiting for it —
 this line used to say *"the agricultural year would read off the same clock"*
 in the conditional, and it no longer needs to.
 
-### 5. Building from gathered materials
+### 5. Building from gathered materials — ✅ *Round 93* (the bench)
 
 The satchel stacks, survives a reload, and pays for what it lays; the free hand
 lays without cost. **This section used to say "There is no making — no bench, no
@@ -1326,10 +1334,27 @@ it REFUSES, and the verse it is drawn from; acceptance test 20 walks the refusal
 nothing to a flint pick and then into the rock. Measure first, and if the world
 already does the thing, correct the document.
 
-What is genuinely still missing here is **a bench**: every work is done at the
+~~What is genuinely still missing here is **a bench**: every work is done at the
 bare hand or at a kiln, so there is no PLACE a man goes to make, and the list of
-works cannot grow past what one can do standing in a field. That is the piece
-worth arguing before it is built.
+works cannot grow past what one can do standing in a field.~~
+
+> **PAID, Round 93 — and with it §17's queue is empty.** The bench block already existed and
+> already stood one per village; `at:` was already general, so the engine learned NOTHING and
+> the row composes itself out of the block's own name — **"at a Workbench"**. What was missing
+> was a work that MAKES one (at the bare hand, so a man far from a village can start — test
+> 44's rule about the pick, applied to the place) and works that STAND at one: **Dress Boards**
+> (planks → Panelled Board, the first thing in this world between a plank and a building) and
+> **Carve Boards** (the second remove, and the first work ever to want a **knife** — the knives
+> of flint were commanded by name in YEHOSHUA 5:2 and asked for by nothing since Phase 4). The
+> three verses are one passage: the timber prepared, the boards panelled, the boards carved.
+> **A latent fault came out with it:** a work naming a place no block answers to used to SHIP —
+> greyed for ever, never doable, telling the player to stand *"at a Air"* — because the
+> registration loop validated a work's materials and never its place. Proved by injection and
+> dropped at the same door now. **Test 61 asserts the half this suite never had**: that
+> standing AT a place lets the work through; test 20 only ever checked the refusal, so a place
+> that refused everywhere would have passed for forty rounds. Test 20 now walks every place
+> rather than the first. Cost: 0.40 ms to redraw the whole works panel, 0.29 ms of it the six
+> place-works, and not a per-frame cost at all. AUDIT §4cr.
 
 **The argument, made from the code as it stands (written Round 87, before
 anything of it is built):**
@@ -1560,3 +1585,43 @@ What is written down now is ocean **0.672**, plain **2.453**, loop **36.0**, and
 of a millisecond reading and a two-and-a-half millisecond one do not carry the same noise.
 Verified three runs green with the box 1.4–1.6× slower than the reference, and put to a real
 fault on comparable ground to see it fail.
+
+## 21. The labours of the people — ✅ *Round 95*
+
+The engine's own seam list at the head of this document names *"the labours of the people"*
+between the villages and the trade, and nothing below ever specified it: §2.3.6's daily round
+is the beasts', and the villagers appear in this plan only as decoration and as things a
+block may not be laid inside. The specification exists — it is the header of the FOLK table
+in js/behavior.js, written when the beasts got their hours and never wired:
+
+> *Each trade now keeps its own hours and its own habits, and the village reads them from
+> here. rise — the hour it is up and about (local); bed — the hour it goes in for the night;
+> work — how much of its waking day is spent at its trade; rest — the hour it takes its rest
+> in the heat of the day, if it takes one; acts — the small business of its own day, drawn by
+> weight when it is not at its trade.*
+
+The village read one number from it: pace. This round makes the rest true, and it is
+recorded in AUDIT §4ct with every reading. What was found underneath, told plainly there:
+one gate off the traveller's sky sent every trade home together at twenty past five; the
+children's lesson kept the world clock, not the village's; a refused step re-picked the same
+target, so a hay bale on the straight line held a farmer at his field for ever; and a soul
+aiming at the middle of its house met the wall — **nobody in this world had ever gone
+indoors, and nothing had ever looked.**
+
+Read off the world, every one (AUDIT §4ct has the full record):
+
+- **The hours.** Local 05:00 — 2 up, 18 abed, each by its trade's own row; local 20:24 —
+  10 up, 10 abed, likewise. Gate reverted to the traveller's sky by injection: 0 up, 20 abed.
+- **The rest.** 4 of 4 resting trades at rest at 13:20 (teacher, farmer, water, feeder); the
+  child, herder, hunter, vendor and shopper at their trades.
+- **The bed.** 01:00 held 510 frames: 18 lying, 15 walking home and nearer, none held, of 33 —
+  after four world faults found underneath (no way round a bale; a doorway one course high;
+  a doorway stamped shut off the cell; city homes with no door on record) and one fault in
+  the test itself (souls share names; the map is keyed by index now).
+- **The acts.** Four to six kinds seen in 300 frames, every one declared by its trade's row.
+- **The lesson.** 4 of 4 children at the lesson at local 10:00, 0 at local 15:00 — after a
+  walk budget, because a child skirting the crowd for ever wore the lesson's pose till three.
+- **Cost.** personTick for 33 souls: 0.99 ms a frame by day, 1.29 ms by night, against a
+  software frame of some 460 ms.
+- **Test 62.** PASS — 18 lying, 15 walking home and nearer, 0 held, of 33 abed; every section green.
+- **The suite.** 56 pass · 0 fail · 4 pending on `63e2b20` (state to beat 54 · 0 · 5; test 56 passes now, and 60 is the sixtieth).

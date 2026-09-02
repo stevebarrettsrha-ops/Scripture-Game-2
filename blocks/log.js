@@ -10,5 +10,8 @@ EARTH.block({
   tex:{top:'logTop',side:'logSide'},
   hardness:2.0,         /* seconds to break it by hand */
   tool:'axe', drops:'log',
+  /* the wood it is, out of world/palette.js — the bark texture is grey
+     on purpose and this is what colours it (see the tint field, js/engine.js) */
+  tint:PALETTE.wood.oak.bark,
   opaque:true, gravity:false
 });

@@ -15,5 +15,8 @@ EARTH.block({
   tex:{all:'barkTwist'},
   hardness:2.0,
   tool:'axe', drops:'log',
+  /* the wood it is, out of world/palette.js — the bark texture is grey
+     on purpose and this is what colours it (see the tint field, js/engine.js) */
+  tint:PALETTE.wood.acacia.bark,
   opaque:true, gravity:false
 });

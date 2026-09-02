@@ -565,6 +565,9 @@ const FILES=[
   'blocks/furnace.js',
   'blocks/iron.js',
   'blocks/iron-pick.js',
+  /* the bench's own work (§17.5) — appended, same append-only rule */
+  'blocks/panel.js',
+  'blocks/carved-panel.js',
   'js/engine.js',
 ];
 

@@ -8470,6 +8470,324 @@ to act in") is precisely what this round's arms answered.
 
 Guard tests 35 (the watch) and 53 (the levers, the cost) run green with the march on.
 
+## 4cr. Round 93 — the bench: a place a man goes to make, and the work with nowhere to be done ✅
+
+*§17.5 was the last unticked item of PLAN's §17 queue, and it stated its own complaint exactly:
+*"every work is done at the bare hand or at a kiln, so there is no PLACE a man goes to make, and
+the list of works cannot grow past what one can do standing in a field."* The round is almost
+entirely wiring seams the world had already left open — and it found a work that could never be
+done, standing in the list, telling the player to go to a place that does not exist.*
+
+### What was already there, and what was actually missing
+
+`blocks/bench.js` has existed for rounds: a Workbench, breakable, carryable, placeable, and
+**already stamped one per village** by `emitBench` as a genuine block in the edit layer. And
+`at:` was already general — `workPlaceAt` resolves ANY block id in a 9×5×9 box about the feet;
+nothing about the kiln was ever special, and `workLine` composes the row out of the block's own
+name. So the engine learned nothing this round: a bench work reads **"at a Workbench"** with no
+new string anywhere.
+
+What was missing was only this: **no work made a bench**, so a man far from a village could
+never have one, and **no work stood at one**. Three lines of data:
+
+| work | of | gives | where | wants |
+|---|---|---|---|---|
+| A Carpenter's Bench | planks 4, log 2 | bench 1 | the bare hand | — |
+| Dress Boards | planks 4 | panel 4 | **at a bench** | — |
+| Carve Boards | panel 1 | carved-panel 1 | **at a bench** | **a knife** |
+
+The bench is made at the bare hand on purpose: a man nowhere near a village must be able to
+start, which is test 44's rule about the pick applied to the place. **Panelled Board is the
+first thing in this world standing between a plank and a building** — there was no panel, board,
+door, chest or beam in fifty blocks, which is precisely the headroom §17.5 named. And the
+carving is **the first work in this world ever to want a knife**: of fifteen works exactly one
+named a tool and it wanted a pick, while the knives of flint — commanded by name in YEHOSHUA
+5:2 — had been made, carried, and asked for by nothing since Phase 4.
+
+The three verses are one passage, the building of the House: the timber prepared (MELAKIM
+ALEPH 5:18), the boards panelled (6:15), the boards carved (6:29). **Deliberately not
+Yashayahu 44:13** — the vivid carpentry verse in the whole account, the rule and the chalk and
+the plane and the compass — because it is the idol-maker's passage, and this project does not
+set a verse to work against its own subject. The reason is written in the file, as is the other
+one: the carved face draws the palm and the open flower and leaves the keruḇim to the words,
+because a keruḇ in sixteen pixels would be a smudge making a claim this game has no business
+making.
+
+### The work with nowhere to be done
+
+The registration loop drops a work whose materials or product this build has not got, and
+**never asked the same of its place**. A work naming a place no block answers to shipped:
+offered in the list, greyed for ever, refusable but never doable, with no error anywhere —
+`workPlaceAt` returns false for an unknown id and says nothing, which is right of it and silent.
+
+**Proved by injection**, a work declared with `at:'benchh'`:
+
+> **unmended** — it ships. 19 works instead of 18, `workState` reads `place` for ever,
+> `workMake` gives nothing, and the row tells the player to go and stand **"at a Air"**
+> (`blockId` of a name no block has is 0, and `blockName(0)` is Air).
+> **mended** — 18 works: it is dropped at the same door, for the same reason, as a work whose
+> timber this build has not got.
+
+### The half this suite never asked
+
+**Test 20 has always checked that a work of the fire is REFUSED away from its fire, and in
+forty rounds nothing ever checked that standing at the place lets the work through.** A place
+that refused everywhere would have passed this suite. Test 61 walks the whole of it on a bench
+it makes and then breaks: made at the hand; away from one it reads `place` **in the words the
+player sees**; at one it goes through and gives; the reach read off the engine rather than
+assumed (at 4 it serves, at 6 it does not); the carving refused without a knife and made with
+one; and **the bench broken, the place closes again** — `workPlaceAt` keeps no register by
+construction, and this reads that property rather than trusting the comment.
+
+Two of the test's own errors were caught by its readings and are written into it: it laid a
+bench from a remembered spot rather than the traveller's live feet cell (he settles onto ground
+and a slope moves him a cell, so "a bench at the reach itself did not serve" was true and was
+about his having stepped), and it read the reach with an empty satchel, where `short`
+masqueraded as an answer about distance.
+
+**Test 20 now walks EVERY place rather than the first.** It took `W.find(w=>w.at)` while the
+kiln was the only place in the world, so "the first" and "the kiln" were the same thing; a
+second place makes that a positional accident, and works declared above the fire's would have
+taken the probe over while the test went on passing green. It reads **2 place(s) in the world
+(kiln, bench), 6 of 6 place-works refused away from theirs.**
+
+### What it costs
+
+`workPlaceAt` is 405 `blockAt` probes per place-work, and this round took the place-works from
+four to six. Measured: **0.398 ms to redraw the whole works panel** (all eighteen works), of
+which **0.29 ms is the six place-works**. It is not a per-frame cost — `pageDraw` is reached
+from the frame only when the panel is OPEN and the satchel signature has changed
+(js/engine.js:18424) — and against this harness's 334.7 ms software frame it would be a tenth
+of one per cent even if it were.
+
+### The readings
+
+Test 61 green. The neighbours the two blocks and three works move, all green and all reading
+their counts off the world rather than a constant: **18 works declared** (20), **the stores
+offer 46 of 46** (23 and 45), **446 files · 53/53 blocks** (36), test 44's man-from-nothing
+chain unmoved, test 58's sowing unmoved.
+
+## 4cs. Round 94 — the woods: every trunk on the earth had gone grey, and nine woods of scripture were read by nobody ✅
+
+*A survey for things DECLARED AND INERT — the pattern four of §17's five items turned out to
+share — found the palette's nine woods unread. Following that thread found something larger
+underneath it: Round 86 had greyed the world's timber, and no test could see it.*
+
+### The two things, which were one thing
+
+`world/palette.js` has declared nine woods since Phase 4 — cedar, acacia, olive, fir, gopher,
+almug, oak, sycamore, palm, each with its own plank and its own bark — and **nothing read
+them**. Its own comment claimed *"Phase 4 draws its planks from here; the flora may tint its
+bark from here today"*, and neither half was true. Meanwhile js/flora.js carried a second,
+parallel, per-species table of raw hexes — the very literals `world/palette.js` opens by
+declaring do not exist anywhere in this project.
+
+The reason that mattered was underneath. **The bark textures are painted in greyscale ON
+PURPOSE**: a standing tree tints them per species out of the flora's table, which is how one
+plate-bark texture serves both a fir and a cedar. Round 86 made the bole a BLOCK — and a block
+face is drawn with a scalar shade and no tint at all. `bole()` stamps and returns before the
+`emitBox` that carried `K._bole`. **Every trunk on the earth went flat grey the day it became
+mineable**, which is the exact opposite of that round's own promise, *"the eye keeps the birch
+and the cork-oak on the felled bole"*. Its crowns and boughs kept their colour, which is why
+nothing looked obviously wrong, and no test reads a vertex colour.
+
+### Measured, and the first measurement was thrown away
+
+**A fresh boot for each arm**, because the trunk stamps live in SEDITS and survive
+`dropChunks`: an A/B inside one page draws the blocks arm's stamps under the geometry arm's
+trees. The first reading was taken that way, showed 91% coloured in both arms, and was
+discarded as confounded — **the same confound Round 86 itself hit**, met a second time in the
+round that came to mend it.
+
+| arm | trunk blocks | grey bark vertices |
+|---|---|---|
+| boles as blocks (as shipped) | 12 in the sample ring | **10,996** — 9–22% of every bark material |
+| boles as geometry (Round 61's way) | 0 | **0**, across all five |
+
+### The mend
+
+**A block may name its own colour**, given as a palette triple — world/palette.js loads at
+manifest line 252 and the first block at 548, so the colour comes from the one place colour
+lives and never from a literal in a block file. The mesher carries it: `placedFace` takes a
+tint, **the merge key includes it** (two woods laid side by side must not merge into one
+colour — the same rule Round 86 met when unlike trunks touching could no longer hide the faces
+between them), and `placedFlush` passes `shade(tint,sh)`, which every face emitter already
+accepts. A coloured block costs no new path.
+
+**Which wood each timber is was decided by the world's own form-to-bark table, not by taste:**
+plate is worn by cedar and fir, twist by acacia, smooth by olive, ring by the palms, plain bark
+by oak and sycamore. Two barks name no wood and say why in their own files — **cork** is worn
+by mahogany, ceiba, banyan, baobab and mangrove, not one of them a wood the account names; and
+**paper** is the birch's, which the account does not name and whose bole is genuinely
+near-white, so grey is the truth of it and a tint would be a lie. Four woods stay unclaimed for
+stated reasons: fir shares plate with cedar, sycamore shares bark with oak, and gopher and
+almug name no tree that grows in this world.
+
+### The readings
+
+**10,996 grey bark vertices become 440 — and all 440 are barkCork, the grey that is meant.**
+Test 41 still reads **+0 triangles** with the tint carried through the merge; 11, 33, 43, 47
+green. Full suite over Rounds 88 and 89: **54 pass · 0 fail · 5 pending** — the four measured
+watchers and test 12's own honesty about a slower box.
+
+### And one test convicted honestly
+
+Test 17 failed in the targeted battery, and the comfortable story was ready: it is the same
+premise-assumed fault test 13 had, exposed by running after tests that fly the traveller into
+a wood. **That story was not accepted on its merits.** The change was reverted to HEAD and the
+identical batch re-run: **test 17 fails there too**, so it is pre-existing and not this round's
+— it passes alone, and passes in full-suite order in this round's suite and both before it. It
+is a real order-dependent fragility and it belongs to a future round, named here so it is a
+record and not a memory.
+
+## 4ct. Round 95 — the labours of the people: each trade keeps its own hours ✅
+
+*The seam PLAN.md:33 names and never specifies. js/behavior.js had carried a FOLK table for
+rounds — ten trades, each with its own rise, bed, rest hour, pace and a weighted list of the
+small business of its day — under a header that said "the village reads them from here."
+The village read one number from it: pace.*
+
+### What the village actually did, measured before anything was touched
+
+- **One gate for every soul.** `personTick` returned to a home-wander the moment
+  `worldNight>0.55` — a darkness scalar read off the TRAVELLER'S sky (AUDIT's own table: 0.00
+  at four, 0.43 at five, 0.85 at six), so it fired about twenty past five for everyone, hours
+  before any trade's bed, and could never make the fisher rise at half past four — though his
+  own line is *"The fish bite best at first light"*, and Round 2 records him casting all day.
+- **Nobody ever lay down.** A soul home for the night retargeted to a point inside its house
+  rectangle and paced that room until morning.
+- **The one hour-keyed rule kept the wrong clock.** The children's lesson read
+  `state.simHours%24` — the world hour — while `localHourAt(x,z)` existed, was exported, and
+  was what the land fauna already used. The lesson was at the right hour at one longitude.
+- **And the farmer could never go home at all.** Read at one in the morning, held: his
+  distance to his hearth unchanged over three hundred frames, every step refused `solid` — a
+  hay bale on the straight line between his field and his door. A refused step abandoned the
+  target; the next pick was the same target from the same spot; every walker in the village
+  went straight or not at all. Round 2's *"everyone goes home at dusk"* had never been read.
+- **And with a way round given, they walked — to the wall, and no further.** Held 1,200
+  frames at one in the morning, every soul closed on its hearth (the hunter 255 → 29, the
+  farmer 246 → 32, the vendor 317 → 34) and **0 of 33 lay down**: all thirty-three stood
+  outside their own houses, refused `structure` (the wall), `noroom` (under the eaves),
+  `climb` and `steep`. The target was the middle of the room, and a straight line at the
+  middle of a house meets a wall. The dozen who began the night 24 to 37 paces from home had
+  been standing outside their doors every night since Round 2 — **nobody in this world had
+  ever gone indoors**, and nothing had ever looked.
+- **And aimed at their own doors, they still could not pass them.** With a soul walking to
+  its doorstep first and its hearth after, the reading was the same: 0 of 33 lying, every one
+  refused `noroom` at the threshold. The stamp maths says why. The lintel was hung at 2.75
+  courses, and `stampBox` claims every cell a box touches, so the stamped lintel came down to
+  two courses and **the doorway under it was one course tall** — while the leaf drawn in it
+  is two, poking up through the lintel block. A man is two courses, and the rule that a floor
+  wants two courses of clear air over it — written, in its own words, as *"the rule that lets
+  a doorway through and keeps a wall shut"* — refused every soul in the world its own
+  doorway. Read at the threshold, held 700 frames: the teacher 0.5 of a pace from his own doorstep, the
+  hunter 1.0, a child 0.6 — standing on the ground at the wall's foot with the roof four
+  courses over them (`here y 6, ceil 30`) and refused `noroom` the moment they stepped up
+  into the gap. The lintel sits on a course now, and the doorway stamps two clear.
+- **And with the lintel on a course, a third of them still could not pass.** 12 of 33 lay
+  down; the rest stood at their own doors with the gap's column answering *solid two
+  courses up* (`gap 12/12`, `18/18`, `36/36`). The gap was cut about the house's middle
+  wherever on the block grid that fell, and when the middle sat near a cell's edge the two
+  wall segments claimed the cell on either side between them and left no cell free — **the
+  doorway was stamped shut, the leaf swinging in a wall.** It is cut about the centre of the
+  cell now, so exactly one cell is ever left free. And nine of the thirty-three had *no door
+  on record at all*: a city resident's home was a centre and nothing else.
+- **Not one of fifty-nine tests had ever measured a villager's day.** Test 18 reads their
+  positions; 8, 9 and 38 use them as obstacles.
+
+### The mend, and what it read
+
+- **The village's own hour** (`vv.hour`, once a frame at the well), and whether a soul is up is
+  its trade's answer. Read at the well with the hour pinned there: at 05:00 the herder and the
+  hunter up and every other trade abed; at 20:24, 10 up and 10 abed by their trades. **Proved by
+  injection**: `folkAwake` replaced in the page with the one gate every trade used to share —
+  at 05:00 the reading went from *2 up, 18 abed* to *0 up, 20 abed*, and back when restored.
+- **The way round, the door, and the lintel** — and so, at last, the bed: at one in the morning
+  held 1,200 frames, read three times as the faults came out: **0 of 33 → 12 of 33 (the
+  lintel) → 24 of 33 (the doorway on a cell, the city doors)**, rising 10 → 15 → 17 → 21 →
+  24 through the hold as the farther souls came in; the hunter from 248 paces to his hearth,
+  the farmer from 246. What remains is a house cut into a hillside, whose uphill ground
+  stands within two courses of its own eave — `noroom`, and true.
+- **The acts**, eight of them in the body from hooks it already had; a held working hour saw
+  six kinds and not one a trade does not declare.
+- **The cost**: the whole village loop for 33 souls — every trade's hour, rest, act and way
+  round — **0.99 ms a frame by day, 1.29 by night**, against this harness's 435–512 ms
+  software frame.
+
+### The guard, and what it caught in itself
+
+**Test 62** is test 54's mirror for people and, because the thing it reads is built, a GUARD:
+the hours discriminate at two hours the table makes sharp (05:00 — herder and hunter up,
+eighteen abed; 20:24 — ten up, ten abed), read against `folkAwake` off the table and not off
+numbers the test knows; the rest in the heat (**4 of 4 resting trades seen at rest**, the
+fisher, hunter and vendor at theirs); the bed as a proportion, every soul left out named;
+the acts, every one seen declared by its trade; the lesson at local ten and not at three.
+
+It convicted the round twice on the way. Its first run read **no child at the lesson at local
+ten**: the act draw is for the waking day as a whole, and a child's `work` is a fifth of it, so
+four picks in five went to play whatever the hour — a child in lesson hours is at the lesson
+now, and the draw is for the rest of its day. And it read **1 of 4 resting trades at rest**
+where four were due: a soul crossing from abed to awake still had its night's walk in hand
+as its task, so the farmer woke at half past one and finished walking home before he thought
+of rest — on waking the task is cleared and the trade asked afresh. Second run: **4 of 4
+children at the lesson at local 10:00, 0 at 15:00; 4 of 4 resting trades at rest.**
+
+It convicted the round a third time, and this time the fault was its own. Three nights
+running, one soul of thirty-three read as walking *away* from home at one in the morning
+(30 paces to 124, 31 to 119, then three at once: 26 to 135, 35 to 168), a probe set to catch it
+found nobody, and the reading was named "intermittent" and let through by the proportional
+rule — until a fourth night put four over the line. A trace of every abed soul's position,
+target and refusal each forty frames showed **two to four souls interleaved under one name**:
+villagers share names, and the bed reading keyed its start-distance map by name, so a soul
+that began 228 paces from a city home across town (the round-robin housing §17's survey
+already named) and walked steadily in to 82 was judged against its namesake's 26. Nobody
+walked away. Every real walker closed on home at full pace; the two honest stalls (two
+shoppers oscillating on `noroom` under a neighbour's eave, 2 of 33) are inside the rule and
+named in the reading. The probe now carries each soul's index, the test keys by it, and the
+injection is the same night judged both ways:
+
+| one night at 01:00, 480 frames, 33 souls (22 names; Serach ×4, Boaz ×3, Avigail ×3, four more ×2) | lying | nearer | walled in |
+|---|---|---|---|
+| keyed by name (the fault) | 16 | 12 | **5** — farmer 26→102, water 41→61, folk 30→131, shopper 35→136, shopper 29→29 |
+| keyed by index (the mend) | 16 | 16 | **1** — shopper 29→29 |
+
+The four "wanderers" of the name-keyed row are four pairs of namesakes; the one soul left is
+the shopper under the eave, who moved nowhere.
+
+And with the bed read true, the test convicted the round a fourth time, on the lesson: **one
+child still sat at the lesson at local three.** A soul walking to its task never counted the
+time. It counted itself stuck only when no step at all would take, and the way round built
+above always finds one — so a child aiming at a lesson spot behind three other children
+skirted them for ever, wearing the lesson's pose into the afternoon. Every task is now given
+the straight-line time to its spot, half again, and three seconds; a soul that has spent it
+draws a fresh task from where it stands. The chasers (the herder after a stray, the hunter
+after game, a child at tag) re-aim live and are not budgeted. The test holds local three for
+three hundred frames, long enough for any budget drawn at ten to run out.
+
+The first full suite convicted it a fifth time, and again the fault was the test's: **the
+hunter rests at 13.3 and its trade takes no rest.** His row is plain — `rest:null` — and just
+as plain, his acts carry `['rest',1]`: a sit-down between watches, one draw in eleven. The
+heat-rest branch and the act both set the one name, and the test read the name. The rest in
+the heat now carries its own mark, the probe reports it, and the test reads that mark alone.
+That suite read **55 pass · 1 fail · 4 pending** on `6f7f16a`, the one failure being this
+reading; test 56 (an authored place stands where the scroll says) passed in it, which it had
+not in Round 94's run.
+
+### The readings
+
+**PASS 60 · THE LABOURS OF THE PEOPLE** — 33 souls in 17 houses · 5.0: 2 up, 18 abed by
+their trades · 20.4: 10 up, 10 abed by their trades · 4 of 4 resting trades seen at rest at
+13.3 (teacher, farmer, water, feeder); child/herder/hunter/vendor/shopper at their trades ·
+THE BED (01:00 held 510 frames): 18 lying, 15 still walking and nearer, 0 walled in, of 33
+abed · 5 kinds of act seen (talk 147, eat 62, tend 61, carry 43, rest 43) · 4 of 4 children
+at the lesson at local 10:00, 0 at 15:00.
+
+**The suite, on `63e2b20`: 56 pass · 0 fail · 4 pending** (50, 53, 54, 55 — the beast measures
+that pend by design). State to beat was 54 · 0 · 5 on 59 tests; test 56 passes now and test
+60 is the sixtieth. Test 62's reading in that run: 17 lying, 16 walking home and nearer,
+0 walled in, of 33; 5 kinds of act (talk 130, carry 93, eat 56, rest 29, watch 5); 4 of 4
+children at the lesson at local ten, 0 at three.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
