@@ -16588,6 +16588,9 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   /* WHAT EACH SOUL OF THE NEAREST VILLAGE IS DOING — role, the trade's own
      hour, whether it is up, lying, sat, and the act or task in hand — so a
      test reads the day a village keeps rather than where its people stand */
+  /* one soul's tick, callable by a cost probe — the whole loop is timed by
+     calling it for every soul in the village a hundred times over */
+  personTickProbe:(e,vv,dt)=>personTick(e,vv,dt),
   villageFolk:()=>{ let best=null,bd=1e18; const p=playerXZ();
     for(const[,vv] of activeVillages){ if(!vv.people||!vv.site) continue;
       const d=(vv.site.x-p.x)**2+(vv.site.z-p.z)**2; if(d<bd){ bd=d; best=vv; } }
