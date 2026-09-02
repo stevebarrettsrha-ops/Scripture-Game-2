@@ -4802,6 +4802,121 @@ T[59]={name:'a place a man goes to make: the bench is made by hand, the work is 
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
+T[60]={name:'THE LABOURS OF THE PEOPLE — each trade keeps its own hours, rests in the heat, lies down at night, and does the small business of its day',
+  /* THE FAULT THIS GUARDS. js/behavior.js has carried a FOLK table for
+     rounds — ten trades, each with its own rise, bed, rest hour and a
+     weighted list of the small business of its day — under a header that
+     said "the village reads them from here". The village read one number
+     from it: pace. Every soul went home on one gate, `worldNight>0.55`, a
+     darkness read off the TRAVELLER'S sky that stands at nought until five in
+     the afternoon; nobody ever lay down (they paced a two-by-two room till
+     morning); the one hour-keyed rule in the village, the children's lesson,
+     read the WORLD clock and so kept the right hour at one longitude only;
+     and not one of the fifty-nine tests before this had ever measured a
+     villager's day. Test 54 measures the beasts' — this is its mirror for
+     people, and it is a GUARD, because the thing it reads is built.
+
+     EVERYTHING IT EXPECTS IS READ OFF THE TABLE, not off numbers this test
+     knows: change a trade's bed-hour in js/behavior.js and this test changes
+     its mind with it. The hour is pinned at the VILLAGE'S OWN x,z — the
+     clock is longitude-aware, and four in the morning set at the traveller's
+     spot is not four in the morning at the well.
+
+     THE BED IS READ THE WAY TEST 54 LEARNED TO READ IT: a walk home in this
+     harness is slow (dt is clamped to a twentieth of a second and a
+     software frame is half a second), so a soul two hundred paces from its
+     hearth wants six or seven hundred frames. What is asserted is that
+     nobody abed is WALLED IN — every one is lying, or nearer home than it
+     was — which is the fault this round found (a hay bale on the straight
+     line home held a farmer at his field for ever) and mended with a way
+     round. How many lie is reported. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, BH=window.BEHAVIOR;
+    if(!D.villageFolk||!D.standInVillage) return {pending:'no villageFolk probe (Round 90)'};
+    if(!BH||!BH.folkAwake||!BH.folkResting||!BH.folkOf) return {pending:'no FOLK table (js/behavior.js)'};
+    const v=await D.standInVillage(); if(!v) return {ok:false,got:'no town would stand'};
+    let F=D.villageFolk(); if(!F||!F.people.length) return {ok:false,got:'a town with nobody in it'};
+    const site=F.site, faults=[];
+    const frames=async n=>{ for(let f=0;f<n;f++) await new Promise(r=>requestAnimationFrame(r)); };
+    const hold=async(h,n)=>{ D.setLocalHour(h,site.x,site.z); await frames(n); return D.villageFolk(); };
+    const traded=e=>!!BH.folkOf(e.role);           /* a soul with a row of its own */
+
+    /* ---- 1 · THE HOURS DISCRIMINATE, at two hours the table makes sharp ---- */
+    const hoursRead=[];
+    for(const h of [5.0,20.4]){
+      const P=await hold(h,90);
+      let up=0,down=0,wrong=[];
+      for(const e of P.people){ if(!traded(e)) continue;
+        const should=BH.folkAwake(e.role,h);
+        if(should) up++; else down++;
+        if(e.awake!==should) wrong.push(e.role+' '+(e.awake?'up':'abed')+' at '+h);
+        /* and the BODY agrees with the flag: abed is walking home or lying */
+        if(!should&&!(e.anim==='home'||e.anim==='sleep')) wrong.push(e.role+' abed but '+e.anim);
+        if(should&&e.anim==='sleep') wrong.push(e.role+' up but asleep'); }
+      hoursRead.push(h.toFixed(1)+': '+up+' up, '+down+' abed by their trades');
+      if(!up||!down) faults.push('at '+h+' the hours do not discriminate ('+up+' up, '+down+' abed)');
+      for(const w of wrong) faults.push(w);
+    }
+
+    /* ---- 2 · THE REST IN THE HEAT ---- */
+    { const h=13.3, P=await hold(h,170);
+      const resters=new Set(), workers=new Set();
+      for(const e of P.people){ if(!traded(e)) continue;
+        (BH.folkResting(e.role,h)?resters:workers).add(e.role); }
+      const atRest=P.people.filter(e=>e.act==='rest').map(e=>e.role);
+      const restingRoles=[...resters], workingRoles=[...workers];
+      const seenRest=restingRoles.filter(r=>atRest.includes(r));
+      if(restingRoles.length&&!seenRest.length) faults.push('at '+h+' none of '+restingRoles.join('/')+' is at rest');
+      for(const r of atRest) if(workers.has(r)&&!resters.has(r)) faults.push(r+' rests at '+h+' and its trade takes no rest');
+      var restRead=seenRest.length+' of '+restingRoles.length+' resting trades seen at rest at '+h+' ('+seenRest.join(', ')+'); '+workingRoles.join('/')+' at their trades'; }
+
+    /* ---- 3 · THE BED: nobody walled in, and how many lie ---- */
+    var bedRead;
+    { const P0=await hold(1.0,30);
+      const d0=new Map(); for(const e of P0.people) d0.set(e.name,e.home);
+      const upAt1=P0.people.filter(e=>traded(e)&&e.awake).map(e=>e.role);
+      if(upAt1.length) faults.push('up at one in the morning: '+upAt1.join(', '));
+      await frames(480);
+      const P=D.villageFolk(); let lying=0, nearer=0, walled=[];
+      for(const e of P.people){ if(e.awake) continue;
+        if(e.lying){ lying++; continue; }
+        const a=d0.get(e.name); if(a==null||e.home==null) continue;
+        if(e.home<a-2) nearer++; else walled.push(e.role+' '+a.toFixed(0)+'→'+e.home.toFixed(0)+(e.blk?' ('+e.blk+')':'')); }
+      if(walled.length) faults.push('walled in on the way home: '+walled.join(', '));
+      bedRead=lying+' lying, '+nearer+' still walking and nearer, '+walled.length+' walled in, of '+P.people.length; }
+
+    /* ---- 4 · THE ACTS: every one seen is one its trade declares ---- */
+    var actRead;
+    { D.setLocalHour(10,site.x,site.z); const tally={}, byRole={};
+      for(let f=0;f<300;f++){ await new Promise(r=>requestAnimationFrame(r)); if(f%5) continue;
+        for(const e of D.villageFolk().people){ if(!e.act) continue;
+          tally[e.act]=(tally[e.act]||0)+1; (byRole[e.role]=byRole[e.role]||new Set()).add(e.act); } }
+      const undeclared=[];
+      for(const r in byRole){ const f=BH.folkOf(r); for(const a of byRole[r])
+          if(!f||!f.acts.some(x=>x[0]===a)) undeclared.push(r+':'+a); }
+      if(undeclared.length) faults.push('acts no trade declares: '+undeclared.join(', '));
+      const names=Object.keys(tally);
+      if(names.length<4) faults.push('only '+names.length+' kind(s) of act seen in a held hour');
+      actRead=names.length+' kinds of act seen ('+names.sort((a,b)=>tally[b]-tally[a]).map(n=>n+' '+tally[n]).join(', ')+')'; }
+
+    /* ---- 5 · THE LESSON KEEPS LOCAL TIME ---- */
+    var lessonRead;
+    { const kids=P=>P.people.filter(e=>e.child);
+      let P=await hold(10.0,170); const inLesson=kids(P).filter(e=>e.anim==='sit').length;
+      P=await hold(15.0,170); const outOf=kids(P).filter(e=>e.anim==='sit').length;
+      const n=kids(P).length;
+      if(n&&!inLesson) faults.push('no child at the lesson at local ten');
+      if(outOf) faults.push(outOf+' child(ren) still at the lesson at local three');
+      lessonRead=inLesson+' of '+n+' children at the lesson at local 10:00, '+outOf+' at 15:00'; }
+
+    D.setLocalHour(12,site.x,site.z);
+    return {ok:!faults.length,
+      got:P0hint()+hoursRead.join(' · ')+' · '+restRead+' · THE BED (01:00 held 510 frames): '+bedRead+
+        ' · '+actRead+' · '+lessonRead+
+        (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+    function P0hint(){ return F.people.length+' souls in '+(v&&v.houses||'?')+' houses · '; }
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.
