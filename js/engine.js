@@ -10890,7 +10890,13 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
     const fx=doorDir===2?x1:doorDir===3?x0:gapCX, fz=doorDir===0?z1:doorDir===1?z0:gapCZ;
     for(let j=1;j<=4;j++){ const acx=fx+ux*(j-0.5)*B, acz=fz+uz*(j-0.5)*B;
       const c=landAtWorld(acx,acz); if(!c||c.kind==='wall') break;
-      const top=y-(j-1)*B, hN=c.h*B; if(top<=hN+0.01) break;
+      const top=y-(j-1)*B, hN=c.h*B;
+      /* a cell already at its course needs no step — but the drop may be a
+         cell further out (the first cut stopped at the level cell by the
+         wall and left a two-course drop beyond it, and the doors probe read
+         no apron on any house); only a cell at or above its course PAST
+         the first ends the stair */
+      if(top<=hN+0.01){ if(j>1) break; else continue; }
       const ix=Math.floor(acx/B)*B, iz=Math.floor(acz/B)*B;
       emitBox(G, ix,hN,iz, ix+B,top,iz+B, 'cobble','cobble',null); apron=j; } }
   const hingeX = (doorDir<=1)?gx-gw:gapCX;
