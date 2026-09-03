@@ -11665,8 +11665,22 @@ function moveEnt(ent,dt,sp){
              of his house read the SECOND-best corner taken first — across
              the house from him — and the best one never tried */
           const c=cs[(ent._dn-1)%2]; ent._detour={x:c[0],z:c[1],t:160}; ent._sw=0; }
-        else { const ang=Math.atan2(dx,dz)+ent._dside*(Math.PI/2+(Math.random()-0.5)*0.6), r=Math.min(70,14+Math.random()*12+12*(ent._dn-1));
-          ent._detour={x:ent.m.position.x+Math.sin(ang)*r, z:ent.m.position.z+Math.cos(ang)*r, t:110+30*Math.min(4,ent._dn)}; ent._sw=0; } } }
+        else { const r0=Math.min(70,14+Math.random()*12+12*(ent._dn-1));
+          /* a waypoint is looked at before it is taken: on land, on ground
+             within a step of the walker's own feet, not in a wall or under
+             a ceiling — a resident was read 376 frames walking at a
+             waypoint the lottery had put in a bank; either side and a
+             shorter reach are tried before the detour is given up */
+          let best=null;
+          for(const[side,r] of [[ent._dside,r0],[-ent._dside,r0],[ent._dside,r0*0.5],[-ent._dside,r0*0.5]]){
+            const ang=Math.atan2(dx,dz)+side*(Math.PI/2+(Math.random()-0.5)*0.6);
+            const wx=ent.m.position.x+Math.sin(ang)*r, wz=ent.m.position.z+Math.cos(ang)*r;
+            const g=groundInfo(wx,wz,ent.m.position.y+0.1); if(!g.land) continue;
+            if(Math.abs(g.y-ent.m.position.y)>B*1.35) continue;
+            if(isFinite(g.ceil)&&(g.ceil-g.y)<B*1.9) continue;
+            if(blockedByStructureNPC(wx,wz)||blockedBySolid(wx,wz)) continue;
+            best={x:wx,z:wz}; break; }
+          if(best){ ent._detour={x:best.x,z:best.z,t:110+30*Math.min(4,ent._dn)}; ent._sw=0; } } } }
     if(took){ ent.stuck=0; if(ent._blk==='') ent._sw=0; }
     else { moving=false; ent.t=0; ent.stuck=(ent.stuck||0)+1;
       if(ent.stuck>2){ ent.stuck=0; ent.acting=false; ent.pt=0; ent.tx=ent.m.position.x; ent.tz=ent.m.position.z; } } }
