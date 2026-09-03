@@ -10784,6 +10784,15 @@ function underEave(nx,nz){
     if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue; if(at(vv.houses)) return true; }
   return at(standaloneHouses);
 }
+/* the house whose ground (walls, band, eave, or the bank it is dug into)
+   this spot lies in, if any — a block and a half about the walls */
+function houseAround(nx,nz){
+  const m=B*1.6;
+  const at=arr=>{ for(const H of arr){ if(nx>H.x0-m&&nx<H.x1+m&&nz>H.z0-m&&nz<H.z1+m) return H; } return null; };
+  for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue; const H=at(vv.houses); if(H) return H; }
+  return at(standaloneHouses);
+}
 /* is this spot in some house's doorway (the gap, leaf open or shut)? */
 function inDoorway(nx,nz){
   const at=arr=>{ for(const H of arr){ if(H.door&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8+(H.apron||0)*B) return true; } return false; };
@@ -11624,8 +11633,16 @@ function moveEnt(ent,dt,sp){
            way next — a farmer was read 236 frames on the buried side of
            his own house, detouring along it */
         ent._dside=-(ent._dside||1);
-        const ang=Math.atan2(dx,dz)+ent._dside*(Math.PI/2+(Math.random()-0.5)*0.6), r=14+Math.random()*12;
-        ent._detour={x:ent.m.position.x+Math.sin(ang)*r, z:ent.m.position.z+Math.cos(ang)*r, t:110}; ent._sw=0; } }
+        /* — and when the thing in the way is a HOUSE (its walls, its band,
+           its eave, the bank it is dug into), the way round is by one of
+           its corners: the corner that makes the shortest walk pos→corner→
+           target, the other side's corner the next time */
+        const Hb=houseAround(nx,nz);
+        if(Hb){ const m=B*1.9, cs=[[Hb.x0-m,Hb.z0-m],[Hb.x1+m,Hb.z0-m],[Hb.x0-m,Hb.z1+m],[Hb.x1+m,Hb.z1+m]];
+          cs.sort((a,b)=>(Math.hypot(a[0]-ent.m.position.x,a[1]-ent.m.position.z)+Math.hypot(a[0]-TX,a[1]-TZ))-(Math.hypot(b[0]-ent.m.position.x,b[1]-ent.m.position.z)+Math.hypot(b[0]-TX,b[1]-TZ)));
+          const c=cs[ent._dside>0?0:1]; ent._detour={x:c[0],z:c[1],t:160}; ent._sw=0; }
+        else { const ang=Math.atan2(dx,dz)+ent._dside*(Math.PI/2+(Math.random()-0.5)*0.6), r=14+Math.random()*12;
+          ent._detour={x:ent.m.position.x+Math.sin(ang)*r, z:ent.m.position.z+Math.cos(ang)*r, t:110}; ent._sw=0; } } }
     if(took){ ent.stuck=0; if(ent._blk==='') ent._sw=0; }
     else { moving=false; ent.t=0; ent.stuck=(ent.stuck||0)+1;
       if(ent.stuck>2){ ent.stuck=0; ent.acting=false; ent.pt=0; ent.tx=ent.m.position.x; ent.tz=ent.m.position.z; } } }
