@@ -5198,13 +5198,7 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
              as noroom / climb / steep at the threshold; the leaf's own wait
              reads 'door' and is not a hold */
           if(!e.awake&&!e.lying&&inGap(e,d,B*2.5)&&(e.blk==='noroom'||e.blk==='climb'||e.blk==='steep')) heldAt[e.i]=(heldAt[e.i]||0)+1; } } }
-    { const P=D.villageFolk().people;
-      /* a real hold reads in the hundreds (153, 236, 393 in the trace that
-         found them); a soul that took a hundred frames to find the way
-         round its own doorstep and then went in is not held */
-      const held=Object.entries(heldAt).filter(([,n])=>n>=120).map(([i,n])=>P[i].role+'#'+i+' '+n+' frames ('+P[i].blk+')');
-      if(held.length) faults.push('held at a doorway by the ground: '+held.join(', '));
-      var heldRead=held.length+' held at a doorway'; }
+    var heldRead=Object.values(heldAt).filter(n=>n>=100).length+' held at a doorway so far';
     if(inShut) faults.push('a soul stood in a shut door\'s leaf '+inShut+' soul-frames');
     if(byHand) faults.push(byHand+' door(s) opened by the hand with the traveller standing still');
     const abedN=D.villageFolk().people.filter(e=>!e.awake&&e.door!==null).length;
@@ -5216,8 +5210,18 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
        a city's houses ring the well at a hundred to two hundred and sixty
        paces, and a walk of two hundred at this harness's pace is six
        hundred frames before the door is reached; the world read 22 of 33
-       lying at 800 and 25 at 1000 */
-    await frames(500);
+       lying at 800 and 25 at 1000. The doorway tally runs on through these
+       frames: with the doorway rules put back by injection, a soul at a
+       stepped door read some hundred and forty ground refusals over the
+       night, spread thin among its detours, and a three-hundred-frame
+       window missed them. A real hold reads in the hundreds (153, 236, 393
+       in the trace that found them). */
+    for(let f=0;f<500;f++){ await frames(1); const doors=D.villageDoors(), P=D.villageFolk().people;
+      for(const d of doors){ if(d.dx===undefined) continue;
+        for(const e of P) if(!e.awake&&!e.lying&&inGap(e,d,B*2.5)&&(e.blk==='noroom'||e.blk==='climb'||e.blk==='steep')) heldAt[e.i]=(heldAt[e.i]||0)+1; } }
+    { const P=D.villageFolk().people;
+      const held=Object.entries(heldAt).filter(([,n])=>n>=100).map(([i,n])=>P[i].role+'#'+i+' '+n+' frames');
+      if(held.length) faults.push('held at a doorway by the ground over the night: '+held.join(', ')); }
     var shutRead, bedRead;
     { const doors=D.villageDoors(), P=D.villageFolk().people;
       const openEmpty=doors.filter(d=>d.open&&!P.some(e=>inGap(e,d,1.8)));
