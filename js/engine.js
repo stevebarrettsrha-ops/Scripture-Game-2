@@ -16933,7 +16933,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
     for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
       const d=(vv.site.x-p.x)**2+(vv.site.z-p.z)**2; if(d<bd){ bd=d; best=vv; } }
     if(!best) return null;
-    return best.houses.map((H,i)=>({i,dx:H.dx,dz:H.dz,gw:H.gw,yb:H.yb,dir:H.door?H.door.dir:null,open:!!(H.door&&H.door.open),
+    return best.houses.map((H,i)=>({i,dx:H.dx,dz:H.dz,gw:H.gw,yb:H.yb,apron:H.apron||0,dir:H.door?H.door.dir:null,open:!!(H.door&&H.door.open),
       by:H.door?(H.door._by==='hand'?'hand':H.door._by?'folk':null):null,
       ang:H.door?+H.door.ang.toFixed(2):null,target:H.door?+H.door.target.toFixed(2):null})); },
   setDoorAt:(i,open)=>{ let best=null,bd=1e18; const p=playerXZ();
