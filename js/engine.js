@@ -10795,6 +10795,7 @@ function houseAround(nx,nz){
 }
 /* is this spot in some house's doorway (the gap, leaf open or shut)? */
 function inDoorway(nx,nz){
+  if(window.__INJECT&&__INJECT.noDoorway) return false;
   const at=arr=>{ for(const H of arr){ if(H.door&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8+(H.apron||0)*B) return true; } return false; };
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
     if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue; if(at(vv.houses)) return true; }
@@ -11351,6 +11352,8 @@ function* spawnVillage(i,exShell){
     const count=new Map(), CAP=3;
     const calling=e=>e.farm||e.well||e.pen||e.stall||e.spot||e.post||e.teach||{x:e.hx,z:e.hz};
     const order=people.filter(e=>!e.home).sort((a,b)=>(a.child?1:0)-(b.child?1:0));
+    if(window.__INJECT&&__INJECT.roundRobin){ let k=0;        /* the fault put back, for the suite */
+      for(const e of order){ e.home=homeOf(ex.houses[k++%ex.houses.length]); e.homeD=Math.hypot(e.hx-e.home.x,e.hz-e.home.z); } return; }
     for(const e of order){ const c=calling(e); let best=null,bd=1e18;
       for(const H of ex.houses){ const n=count.get(H)||0;
         /* a child joins a household: a house with a grown soul in it may
@@ -11698,7 +11701,7 @@ function houseBlocksNPC(nx,nz,H){
        never once swung for the people who live behind it. Now the gap is a
        gap while the door is open, and a soul refused at its own doorway
        opens it (moveEnt) and shuts it after (doorTick). */
-    if(H.door&&H.door.open&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8) return false;
+    if(H.door&&(H.door.open||(window.__INJECT&&__INJECT.leafIgnored))&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8) return false;
     return true;
   }
   return false;
@@ -13787,7 +13790,9 @@ function doorTick(dt){
      the gap on either side and nobody else — soul or traveller — stands in
      it. A door the traveller opened is the traveller's and is left as he
      left it. */
-  const shutBehind=(arr,people)=>{ for(const H of arr){ const D2=H.door; if(!D2||!D2.open||!D2._by||D2._by==='hand') continue;
+  const INJ=window.__INJECT||{};
+  const shutBehind=(arr,people)=>{ if(INJ.noShut) return; for(const H of arr){ const D2=H.door; if(!D2||!D2.open||!D2._by||(D2._by==='hand'&&!INJ.handForgot)) continue;
+    if(D2._by==='hand'){ if(state.mode!=='walk'||Math.hypot(state.walk.x-H.dx,state.walk.z-H.dz)>H.gw+2.5){ setDoor(H,false,null); } continue; }
     const by=D2._by; if(!by.m){ D2._by=null; continue; }
     if(Math.hypot(by.m.position.x-H.dx,by.m.position.z-H.dz)<H.gw+2.5) continue;
     let held=false;
