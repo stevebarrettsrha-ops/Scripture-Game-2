@@ -16930,7 +16930,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
       people:best.people.map((e,i)=>({i,name:e.name,role:e.role,anim:e.anim||null,act:e.act||null,
         tx:e.tx,tz:e.tz,t:e.t,blk:e._blk||'',acting:!!e.acting,shelter:!!e._shelter,
         awake:!e._abed,lying:!!e._lying,sat:!!e._sat,child:!!e.child,heat:!!(e._heat&&e.act==='rest'),
-        homeD:e.homeD,homeI:(e.home&&e.home.H)?best.houses.indexOf(e.home.H):null,stuck:e.stuck||0,hm:e.home?{x:e.home.x,z:e.home.z,x0:e.home.x0,x1:e.home.x1,z0:e.home.z0,z1:e.home.z1,dx:e.home.dx,dz:e.home.dz,ox:e.home.ox,oz:e.home.oz,doorx:e.home.doorx,doorz:e.home.doorz}:null,door:(e.home&&e.home.H&&e.home.H.door)?(e.home.H.door.open?'open':'shut'):null,
+        homeD:e.homeD,homeI:(e.home&&e.home.H)?best.houses.indexOf(e.home.H):null,stuck:e.stuck||0,det:e._detour?[+e._detour.x.toFixed(0),+e._detour.z.toFixed(0),e._detour.t]:null,held:e._held||0,dn:e._dn||0,hm:e.home?{x:e.home.x,z:e.home.z,x0:e.home.x0,x1:e.home.x1,z0:e.home.z0,z1:e.home.z1,dx:e.home.dx,dz:e.home.dz,ox:e.home.ox,oz:e.home.oz,doorx:e.home.doorx,doorz:e.home.doorz}:null,door:(e.home&&e.home.H&&e.home.H.door)?(e.home.H.door.open?'open':'shut'):null,
         x:e.m.position.x,y:e.m.position.y,z:e.m.position.z,
         home:e.home?Math.hypot(e.m.position.x-(e.home.x!==undefined?e.home.x:e.home.doorx),
                               e.m.position.z-(e.home.z!==undefined?e.home.z:e.home.doorz)):null}))}; },
