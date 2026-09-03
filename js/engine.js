@@ -11653,7 +11653,10 @@ function moveEnt(ent,dt,sp){
         const Hb=houseAround(nx,nz);
         if(Hb){ const m=B*1.9, cs=[[Hb.x0-m,Hb.z0-m],[Hb.x1+m,Hb.z0-m],[Hb.x0-m,Hb.z1+m],[Hb.x1+m,Hb.z1+m]];
           cs.sort((a,b)=>(Math.hypot(a[0]-ent.m.position.x,a[1]-ent.m.position.z)+Math.hypot(a[0]-TX,a[1]-TZ))-(Math.hypot(b[0]-ent.m.position.x,b[1]-ent.m.position.z)+Math.hypot(b[0]-TX,b[1]-TZ)));
-          const c=cs[ent._dside>0?0:1]; ent._detour={x:c[0],z:c[1],t:160}; ent._sw=0; }
+          /* the best corner first; the trace of a farmer on the buried side
+             of his house read the SECOND-best corner taken first — across
+             the house from him — and the best one never tried */
+          const c=cs[(ent._dn-1)%2]; ent._detour={x:c[0],z:c[1],t:160}; ent._sw=0; }
         else { const ang=Math.atan2(dx,dz)+ent._dside*(Math.PI/2+(Math.random()-0.5)*0.6), r=Math.min(70,14+Math.random()*12+12*(ent._dn-1));
           ent._detour={x:ent.m.position.x+Math.sin(ang)*r, z:ent.m.position.z+Math.cos(ang)*r, t:110+30*Math.min(4,ent._dn)}; ent._sw=0; } } }
     if(took){ ent.stuck=0; if(ent._blk==='') ent._sw=0; }
