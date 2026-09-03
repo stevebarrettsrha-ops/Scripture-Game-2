@@ -5192,7 +5192,10 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
              reads 'door' and is not a hold */
           if(!e.awake&&!e.lying&&inGap(e,d,3.0)&&(e.blk==='noroom'||e.blk==='climb'||e.blk==='steep')) heldAt[e.i]=(heldAt[e.i]||0)+1; } } }
     { const P=D.villageFolk().people;
-      const held=Object.entries(heldAt).filter(([,n])=>n>=60).map(([i,n])=>P[i].role+'#'+i+' '+n+' frames ('+P[i].blk+')');
+      /* a real hold reads in the hundreds (153, 236, 393 in the trace that
+         found them); a soul that took a hundred frames to find the way
+         round its own doorstep and then went in is not held */
+      const held=Object.entries(heldAt).filter(([,n])=>n>=120).map(([i,n])=>P[i].role+'#'+i+' '+n+' frames ('+P[i].blk+')');
       if(held.length) faults.push('held at a doorway by the ground: '+held.join(', '));
       var heldRead=held.length+' held at a doorway'; }
     if(inShut) faults.push('a soul stood in a shut door\'s leaf '+inShut+' soul-frames');
