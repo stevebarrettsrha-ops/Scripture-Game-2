@@ -11625,14 +11625,18 @@ function moveEnt(ent,dt,sp){
         if(landmarkSolidAt(ax2,az2,ent.m.position.y+2,ent.m.position.y+8)) continue;
         took=true; ent._sw=Math.abs(sw)<2?sw:0; ent.m.position.x=ax2; ent.m.position.z=az2; ent.m.rotation.y=ang+sw; break; }
     }
-    if(ent._blk===''||ent._blk==='door'){ ent._held=0; }
-    else { ent._held=(ent._held||0)+1;
+    if(ent._blk===''||ent._blk==='door'){ ent._held=0; if(++ent._free>60) ent._dn=0; }
+    else { ent._held=(ent._held||0)+1; ent._free=0;
       if(ent._held>40&&!ent._detour){ ent._held=0;
+        /* each detour that does not free him reaches farther than the last
+           (a row of market stalls is longer than one stall), and the side
+           turns every second time; sixty free frames forget the run */
+        ent._dn=(ent._dn||0)+1;
         /* the side alternates detour by detour, so a walker whose first
            detour led along the very bank that held him tries the other
            way next — a farmer was read 236 frames on the buried side of
            his own house, detouring along it */
-        ent._dside=-(ent._dside||1);
+        if(ent._dn%2===1) ent._dside=-(ent._dside||1);
         /* — and when the thing in the way is a HOUSE (its walls, its band,
            its eave, the bank it is dug into), the way round is by one of
            its corners: the corner that makes the shortest walk pos→corner→
@@ -11641,8 +11645,8 @@ function moveEnt(ent,dt,sp){
         if(Hb){ const m=B*1.9, cs=[[Hb.x0-m,Hb.z0-m],[Hb.x1+m,Hb.z0-m],[Hb.x0-m,Hb.z1+m],[Hb.x1+m,Hb.z1+m]];
           cs.sort((a,b)=>(Math.hypot(a[0]-ent.m.position.x,a[1]-ent.m.position.z)+Math.hypot(a[0]-TX,a[1]-TZ))-(Math.hypot(b[0]-ent.m.position.x,b[1]-ent.m.position.z)+Math.hypot(b[0]-TX,b[1]-TZ)));
           const c=cs[ent._dside>0?0:1]; ent._detour={x:c[0],z:c[1],t:160}; ent._sw=0; }
-        else { const ang=Math.atan2(dx,dz)+ent._dside*(Math.PI/2+(Math.random()-0.5)*0.6), r=14+Math.random()*12;
-          ent._detour={x:ent.m.position.x+Math.sin(ang)*r, z:ent.m.position.z+Math.cos(ang)*r, t:110}; ent._sw=0; } } }
+        else { const ang=Math.atan2(dx,dz)+ent._dside*(Math.PI/2+(Math.random()-0.5)*0.6), r=Math.min(70,14+Math.random()*12+12*(ent._dn-1));
+          ent._detour={x:ent.m.position.x+Math.sin(ang)*r, z:ent.m.position.z+Math.cos(ang)*r, t:110+30*Math.min(4,ent._dn)}; ent._sw=0; } } }
     if(took){ ent.stuck=0; if(ent._blk==='') ent._sw=0; }
     else { moving=false; ent.t=0; ent.stuck=(ent.stuck||0)+1;
       if(ent.stuck>2){ ent.stuck=0; ent.acting=false; ent.pt=0; ent.tx=ent.m.position.x; ent.tz=ent.m.position.z; } } }

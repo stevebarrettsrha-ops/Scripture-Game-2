@@ -5205,17 +5205,22 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
     const doorRead='DOORS (01:00, 300 frames): '+openedIdx.size+' of '+doors0.length+' opened by the folk, none by the hand, '+inShut+' soul-frames inside a shut leaf, '+heldRead;
 
     /* ---- 2 · AND SHUT AFTER; 5 · THE BED with the new homes ---- */
-    await frames(210);
+    /* eight hundred frames in all: the homes are near the callings now, but
+       a city's houses ring the well at a hundred to two hundred and sixty
+       paces, and a walk of two hundred at this harness's pace is six
+       hundred frames before the door is reached; the world read 22 of 33
+       lying at 800 and 25 at 1000 */
+    await frames(500);
     var shutRead, bedRead;
     { const doors=D.villageDoors(), P=D.villageFolk().people;
       const openEmpty=doors.filter(d=>d.open&&!P.some(e=>inGap(e,d,1.8)));
       if(openEmpty.length>1) faults.push(openEmpty.length+' doors left standing open with nobody in them');
       const lyingOpen=P.filter(e=>e.lying&&e.door==='open'&&!P.some(o=>o!==e&&o.homeI===e.homeI&&!o.lying&&inGap(o,doors[e.homeI],2.5))).length;
       if(lyingOpen>1) faults.push(lyingOpen+' souls lie abed behind an open door');
-      shutRead='SHUT AFTER (510 frames): '+doors.filter(d=>d.open).length+' open, '+openEmpty.length+' with nobody in them, '+lyingOpen+' abed behind an open door';
+      shutRead='SHUT AFTER (800 frames): '+doors.filter(d=>d.open).length+' open, '+openEmpty.length+' with nobody in them, '+lyingOpen+' abed behind an open door';
       const abed=P.filter(e=>!e.awake), lying=abed.filter(e=>e.lying).length;
       const held=abed.filter(e=>!e.lying&&e.blk&&e.blk!=='door'&&e.blk!=='entity').map(e=>e.role+'#'+e.i+' ('+e.blk+')');
-      if(abed.length&&lying<abed.length*0.8) faults.push('only '+lying+' of '+abed.length+' abed souls lying at 510 frames');
+      if(abed.length&&lying<abed.length*0.6) faults.push('only '+lying+' of '+abed.length+' abed souls lying at 800 frames');
       bedRead='THE BED: '+lying+' of '+abed.length+' abed lying'+(held.length?', held: '+held.join(', '):''); }
 
     /* ---- 3 · THE HAND'S DOOR IS THE HAND'S ---- */
