@@ -5169,8 +5169,15 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
     var hearthRead;
     { const P=F.people.filter(e=>e.homeD!=null);
       const spread=Math.max(...doors0.filter(d=>d.dx!==undefined).map(d=>Math.hypot(d.dx-site.x,d.dz-site.z)));
-      const far=P.filter(e=>e.homeD>spread*1.5+B*2).map(e=>e.role+'#'+e.i+' '+e.homeD.toFixed(0));
+      /* read against the village's own spread — the farthest door from the
+         well. Homes by nearness read farthest 240 and mean 117 against a
+         spread of 262; the round-robin fault put back by injection read
+         farthest 396 and mean 211, and the first cut of this guard
+         (farthest within one and a half spreads) let that through */
+      const far=P.filter(e=>e.homeD>spread+B*2).map(e=>e.role+'#'+e.i+' '+e.homeD.toFixed(0));
       if(far.length) faults.push('housed farther than the village spreads ('+spread.toFixed(0)+'): '+far.join(', '));
+      { const mean0=P.length?P.reduce((a,e)=>a+e.homeD,0)/P.length:0;
+        if(P.length&&mean0>spread*0.6) faults.push('homes average '+mean0.toFixed(0)+' paces from the callings against a spread of '+spread.toFixed(0)); }
       const alone=F.people.filter(e=>e.child&&e.homeI!=null&&!F.people.some(o=>!o.child&&o.homeI===e.homeI)).length;
       if(alone) faults.push(alone+' child(ren) housed with no grown soul');
       const mean=P.length?P.reduce((a,e)=>a+e.homeD,0)/P.length:0;
@@ -5190,7 +5197,7 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
              the buried lintel and the hanging footing Round 96 measured read
              as noroom / climb / steep at the threshold; the leaf's own wait
              reads 'door' and is not a hold */
-          if(!e.awake&&!e.lying&&inGap(e,d,3.0)&&(e.blk==='noroom'||e.blk==='climb'||e.blk==='steep')) heldAt[e.i]=(heldAt[e.i]||0)+1; } } }
+          if(!e.awake&&!e.lying&&inGap(e,d,B*2.5)&&(e.blk==='noroom'||e.blk==='climb'||e.blk==='steep')) heldAt[e.i]=(heldAt[e.i]||0)+1; } } }
     { const P=D.villageFolk().people;
       /* a real hold reads in the hundreds (153, 236, 393 in the trace that
          found them); a soul that took a hundred frames to find the way
