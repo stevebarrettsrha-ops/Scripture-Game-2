@@ -10888,17 +10888,25 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   let apron=0;
   { const ux=doorDir===2?1:doorDir===3?-1:0, uz=doorDir===0?1:doorDir===1?-1:0;
     const fx=doorDir===2?x1:doorDir===3?x0:gapCX, fz=doorDir===0?z1:doorDir===1?z0:gapCZ;
-    for(let j=1;j<=4;j++){ const acx=fx+ux*(j-0.5)*B, acz=fz+uz*(j-0.5)*B;
-      const c=landAtWorld(acx,acz); if(!c||c.kind==='wall') break;
-      const top=y-(j-1)*B, hN=c.h*B;
-      /* a cell already at its course needs no step — but the drop may be a
-         cell further out (the first cut stopped at the level cell by the
-         wall and left a two-course drop beyond it, and the doors probe read
-         no apron on any house); only a cell at or above its course PAST
-         the first ends the stair */
-      if(top<=hN+0.01){ if(j>1) break; else continue; }
-      const ix=Math.floor(acx/B)*B, iz=Math.floor(acz/B)*B;
-      emitBox(G, ix,hN,iz, ix+B,top,iz+B, 'cobble','cobble',null); apron=j; } }
+    /* three cells wide — the gap's cell and one to either side — because a
+       soul comes at its door from anywhere in the yard, and a stair one
+       cell wide met from the side is a two-course bank (a hunter and a
+       resident were read a hundred and two hundred frames held beside
+       their own doorstep) */
+    for(let j=1;j<=4;j++){ let laid=false, level=false;
+      for(const side of [-1,0,1]){
+        const acx=fx+ux*(j-0.5)*B+(uz?side*B:0), acz=fz+uz*(j-0.5)*B+(ux?side*B:0);
+        const c=landAtWorld(acx,acz); if(!c||c.kind==='wall') continue;
+        const top=y-(j-1)*B, hN=c.h*B;
+        /* a cell already at its course needs no step — but the drop may be a
+           cell further out (the first cut stopped at the level cell by the
+           wall and left a two-course drop beyond it, and the doors probe read
+           no apron on any house); only a rank at or above its course PAST
+           the first ends the stair */
+        if(top<=hN+0.01){ if(side===0) level=true; continue; }
+        const ix=Math.floor(acx/B)*B, iz=Math.floor(acz/B)*B;
+        emitBox(G, ix,hN,iz, ix+B,top,iz+B, 'cobble','cobble',null); laid=true; }
+      if(laid) apron=j; else if(level&&j>1) break; } }
   const hingeX = (doorDir<=1)?gx-gw:gapCX;
   const hingeZ = (doorDir>=2)?gz-gw:gapCZ;
   const baseAng = (doorDir>=2)?-Math.PI/2:0;
@@ -11054,8 +11062,8 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
     /* the whole home on the record — its room AND its door — so a city
        resident walks in by the door like a villager, not at the wall */
     { const home={x:hx,z:hz,x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1,doorx:H.dx,doorz:H.dz,H};
-      if(H.dx!==undefined){ const ux=H.dx-hx, uz=H.dz-hz, dd=Math.hypot(ux,uz)||1;
-        home.dx=H.dx; home.dz=H.dz; home.ox=H.dx+ux/dd*B*1.2; home.oz=H.dz+uz/dd*B*1.2; }
+      if(H.dx!==undefined){ const ux=H.dx-hx, uz=H.dz-hz, dd=Math.hypot(ux,uz)||1, out=B*(1.2+(H.apron||0));
+        home.dx=H.dx; home.dz=H.dz; home.ox=H.dx+ux/dd*out; home.oz=H.dz+uz/dd*out; }
       homes.push(home); } placed++;
     if(placed%3===0) yield;                              /* breathe between the houses */
   }
@@ -11341,8 +11349,8 @@ function* spawnVillage(i,exShell){
        the step outside its own door first and the hearth after, because a
        straight line at the middle of a house meets a wall (Round 95) */
     const home={x:cx,z:cz,x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1,H};
-    if(H.dx!==undefined){ const ux=H.dx-cx, uz=H.dz-cz, d=Math.hypot(ux,uz)||1;
-      home.dx=H.dx; home.dz=H.dz; home.ox=H.dx+ux/d*B*1.2; home.oz=H.dz+uz/d*B*1.2; }
+    if(H.dx!==undefined){ const ux=H.dx-cx, uz=H.dz-cz, d=Math.hypot(ux,uz)||1, out=B*(1.2+(H.apron||0));
+      home.dx=H.dx; home.dz=H.dz; home.ox=H.dx+ux/d*out; home.oz=H.dz+uz/d*out; }   /* beyond the stair, if there is one */
     return home; };
   /* ---- THE HEARTH: A HOME NEAR THE WORK (Round 96) ----
      THE FAULT THIS MENDS. Homes were dealt round-robin as souls were made:
