@@ -10784,8 +10784,18 @@ function underEave(nx,nz){
     if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue; if(at(vv.houses)) return true; }
   return at(standaloneHouses);
 }
+/* the house whose ground (walls, band, eave, or the bank it is dug into)
+   this spot lies in, if any — a block and a half about the walls */
+function houseAround(nx,nz){
+  const m=B*1.6;
+  const at=arr=>{ for(const H of arr){ if(nx>H.x0-m&&nx<H.x1+m&&nz>H.z0-m&&nz<H.z1+m) return H; } return null; };
+  for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue; const H=at(vv.houses); if(H) return H; }
+  return at(standaloneHouses);
+}
 /* is this spot in some house's doorway (the gap, leaf open or shut)? */
 function inDoorway(nx,nz){
+  if(window.__INJECT&&__INJECT.noDoorway) return false;
   const at=arr=>{ for(const H of arr){ if(H.door&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8+(H.apron||0)*B) return true; } return false; };
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
     if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue; if(at(vv.houses)) return true; }
@@ -10878,11 +10888,25 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   let apron=0;
   { const ux=doorDir===2?1:doorDir===3?-1:0, uz=doorDir===0?1:doorDir===1?-1:0;
     const fx=doorDir===2?x1:doorDir===3?x0:gapCX, fz=doorDir===0?z1:doorDir===1?z0:gapCZ;
-    for(let j=1;j<=4;j++){ const acx=fx+ux*(j-0.5)*B, acz=fz+uz*(j-0.5)*B;
-      const c=landAtWorld(acx,acz); if(!c||c.kind==='wall') break;
-      const top=y-(j-1)*B, hN=c.h*B; if(top<=hN+0.01) break;
-      const ix=Math.floor(acx/B)*B, iz=Math.floor(acz/B)*B;
-      emitBox(G, ix,hN,iz, ix+B,top,iz+B, 'cobble','cobble',null); apron=j; } }
+    /* three cells wide — the gap's cell and one to either side — because a
+       soul comes at its door from anywhere in the yard, and a stair one
+       cell wide met from the side is a two-course bank (a hunter and a
+       resident were read a hundred and two hundred frames held beside
+       their own doorstep) */
+    for(let j=1;j<=4;j++){ let laid=false, level=false;
+      for(const side of [-1,0,1]){
+        const acx=fx+ux*(j-0.5)*B+(uz?side*B:0), acz=fz+uz*(j-0.5)*B+(ux?side*B:0);
+        const c=landAtWorld(acx,acz); if(!c||c.kind==='wall') continue;
+        const top=y-(j-1)*B, hN=c.h*B;
+        /* a cell already at its course needs no step — but the drop may be a
+           cell further out (the first cut stopped at the level cell by the
+           wall and left a two-course drop beyond it, and the doors probe read
+           no apron on any house); only a rank at or above its course PAST
+           the first ends the stair */
+        if(top<=hN+0.01){ if(side===0) level=true; continue; }
+        const ix=Math.floor(acx/B)*B, iz=Math.floor(acz/B)*B;
+        emitBox(G, ix,hN,iz, ix+B,top,iz+B, 'cobble','cobble',null); laid=true; }
+      if(laid) apron=j; else if(level&&j>1) break; } }
   const hingeX = (doorDir<=1)?gx-gw:gapCX;
   const hingeZ = (doorDir>=2)?gz-gw:gapCZ;
   const baseAng = (doorDir>=2)?-Math.PI/2:0;
@@ -11038,8 +11062,8 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
     /* the whole home on the record — its room AND its door — so a city
        resident walks in by the door like a villager, not at the wall */
     { const home={x:hx,z:hz,x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1,doorx:H.dx,doorz:H.dz,H};
-      if(H.dx!==undefined){ const ux=H.dx-hx, uz=H.dz-hz, dd=Math.hypot(ux,uz)||1;
-        home.dx=H.dx; home.dz=H.dz; home.ox=H.dx+ux/dd*B*1.2; home.oz=H.dz+uz/dd*B*1.2; }
+      if(H.dx!==undefined){ const ux=H.dx-hx, uz=H.dz-hz, dd=Math.hypot(ux,uz)||1, out=B*(1.2+(H.apron||0));
+        home.dx=H.dx; home.dz=H.dz; home.ox=H.dx+ux/dd*out; home.oz=H.dz+uz/dd*out; }
       homes.push(home); } placed++;
     if(placed%3===0) yield;                              /* breathe between the houses */
   }
@@ -11325,8 +11349,8 @@ function* spawnVillage(i,exShell){
        the step outside its own door first and the hearth after, because a
        straight line at the middle of a house meets a wall (Round 95) */
     const home={x:cx,z:cz,x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1,H};
-    if(H.dx!==undefined){ const ux=H.dx-cx, uz=H.dz-cz, d=Math.hypot(ux,uz)||1;
-      home.dx=H.dx; home.dz=H.dz; home.ox=H.dx+ux/d*B*1.2; home.oz=H.dz+uz/d*B*1.2; }
+    if(H.dx!==undefined){ const ux=H.dx-cx, uz=H.dz-cz, d=Math.hypot(ux,uz)||1, out=B*(1.2+(H.apron||0));
+      home.dx=H.dx; home.dz=H.dz; home.ox=H.dx+ux/d*out; home.oz=H.dz+uz/d*out; }   /* beyond the stair, if there is one */
     return home; };
   /* ---- THE HEARTH: A HOME NEAR THE WORK (Round 96) ----
      THE FAULT THIS MENDS. Homes were dealt round-robin as souls were made:
@@ -11342,6 +11366,8 @@ function* spawnVillage(i,exShell){
     const count=new Map(), CAP=3;
     const calling=e=>e.farm||e.well||e.pen||e.stall||e.spot||e.post||e.teach||{x:e.hx,z:e.hz};
     const order=people.filter(e=>!e.home).sort((a,b)=>(a.child?1:0)-(b.child?1:0));
+    if(window.__INJECT&&__INJECT.roundRobin){ let k=0;        /* the fault put back, for the suite */
+      for(const e of order){ e.home=homeOf(ex.houses[k++%ex.houses.length]); e.homeD=Math.hypot(e.hx-e.home.x,e.hz-e.home.z); } return; }
     for(const e of order){ const c=calling(e); let best=null,bd=1e18;
       for(const H of ex.houses){ const n=count.get(H)||0;
         /* a child joins a household: a house with a grown soul in it may
@@ -11616,11 +11642,31 @@ function moveEnt(ent,dt,sp){
         if(landmarkSolidAt(ax2,az2,ent.m.position.y+2,ent.m.position.y+8)) continue;
         took=true; ent._sw=Math.abs(sw)<2?sw:0; ent.m.position.x=ax2; ent.m.position.z=az2; ent.m.rotation.y=ang+sw; break; }
     }
-    if(ent._blk===''||ent._blk==='door'){ ent._held=0; }
-    else { ent._held=(ent._held||0)+1;
+    if(ent._blk===''||ent._blk==='door'){ ent._held=0; if(++ent._free>60) ent._dn=0; }
+    else { ent._held=(ent._held||0)+1; ent._free=0;
       if(ent._held>40&&!ent._detour){ ent._held=0;
-        const ang=Math.atan2(dx,dz)+(Math.random()<0.5?1:-1)*(Math.PI/2+(Math.random()-0.5)*0.6), r=12+Math.random()*10;
-        ent._detour={x:ent.m.position.x+Math.sin(ang)*r, z:ent.m.position.z+Math.cos(ang)*r, t:90}; ent._sw=0; } }
+        /* each detour that does not free him reaches farther than the last
+           (a row of market stalls is longer than one stall), and the side
+           turns every second time; sixty free frames forget the run */
+        ent._dn=(ent._dn||0)+1;
+        /* the side alternates detour by detour, so a walker whose first
+           detour led along the very bank that held him tries the other
+           way next — a farmer was read 236 frames on the buried side of
+           his own house, detouring along it */
+        if(ent._dn%2===1) ent._dside=-(ent._dside||1);
+        /* — and when the thing in the way is a HOUSE (its walls, its band,
+           its eave, the bank it is dug into), the way round is by one of
+           its corners: the corner that makes the shortest walk pos→corner→
+           target, the other side's corner the next time */
+        const Hb=houseAround(nx,nz);
+        if(Hb){ const m=B*1.9, cs=[[Hb.x0-m,Hb.z0-m],[Hb.x1+m,Hb.z0-m],[Hb.x0-m,Hb.z1+m],[Hb.x1+m,Hb.z1+m]];
+          cs.sort((a,b)=>(Math.hypot(a[0]-ent.m.position.x,a[1]-ent.m.position.z)+Math.hypot(a[0]-TX,a[1]-TZ))-(Math.hypot(b[0]-ent.m.position.x,b[1]-ent.m.position.z)+Math.hypot(b[0]-TX,b[1]-TZ)));
+          /* the best corner first; the trace of a farmer on the buried side
+             of his house read the SECOND-best corner taken first — across
+             the house from him — and the best one never tried */
+          const c=cs[(ent._dn-1)%2]; ent._detour={x:c[0],z:c[1],t:160}; ent._sw=0; }
+        else { const ang=Math.atan2(dx,dz)+ent._dside*(Math.PI/2+(Math.random()-0.5)*0.6), r=Math.min(70,14+Math.random()*12+12*(ent._dn-1));
+          ent._detour={x:ent.m.position.x+Math.sin(ang)*r, z:ent.m.position.z+Math.cos(ang)*r, t:110+30*Math.min(4,ent._dn)}; ent._sw=0; } } }
     if(took){ ent.stuck=0; if(ent._blk==='') ent._sw=0; }
     else { moving=false; ent.t=0; ent.stuck=(ent.stuck||0)+1;
       if(ent.stuck>2){ ent.stuck=0; ent.acting=false; ent.pt=0; ent.tx=ent.m.position.x; ent.tz=ent.m.position.z; } } }
@@ -11672,7 +11718,7 @@ function houseBlocksNPC(nx,nz,H){
        never once swung for the people who live behind it. Now the gap is a
        gap while the door is open, and a soul refused at its own doorway
        opens it (moveEnt) and shuts it after (doorTick). */
-    if(H.door&&H.door.open&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8) return false;
+    if(H.door&&(H.door.open||(window.__INJECT&&__INJECT.leafIgnored))&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8) return false;
     return true;
   }
   return false;
@@ -13761,7 +13807,9 @@ function doorTick(dt){
      the gap on either side and nobody else — soul or traveller — stands in
      it. A door the traveller opened is the traveller's and is left as he
      left it. */
-  const shutBehind=(arr,people)=>{ for(const H of arr){ const D2=H.door; if(!D2||!D2.open||!D2._by||D2._by==='hand') continue;
+  const INJ=window.__INJECT||{};
+  const shutBehind=(arr,people)=>{ if(INJ.noShut) return; for(const H of arr){ const D2=H.door; if(!D2||!D2.open||!D2._by||(D2._by==='hand'&&!INJ.handForgot)) continue;
+    if(D2._by==='hand'){ if(state.mode!=='walk'||Math.hypot(state.walk.x-H.dx,state.walk.z-H.dz)>H.gw+2.5){ setDoor(H,false,null); } continue; }
     const by=D2._by; if(!by.m){ D2._by=null; continue; }
     if(Math.hypot(by.m.position.x-H.dx,by.m.position.z-H.dz)<H.gw+2.5) continue;
     let held=false;
@@ -16893,7 +16941,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
       people:best.people.map((e,i)=>({i,name:e.name,role:e.role,anim:e.anim||null,act:e.act||null,
         tx:e.tx,tz:e.tz,t:e.t,blk:e._blk||'',acting:!!e.acting,shelter:!!e._shelter,
         awake:!e._abed,lying:!!e._lying,sat:!!e._sat,child:!!e.child,heat:!!(e._heat&&e.act==='rest'),
-        homeD:e.homeD,homeI:(e.home&&e.home.H)?best.houses.indexOf(e.home.H):null,stuck:e.stuck||0,hm:e.home?{x:e.home.x,z:e.home.z,x0:e.home.x0,x1:e.home.x1,z0:e.home.z0,z1:e.home.z1,dx:e.home.dx,dz:e.home.dz,ox:e.home.ox,oz:e.home.oz,doorx:e.home.doorx,doorz:e.home.doorz}:null,door:(e.home&&e.home.H&&e.home.H.door)?(e.home.H.door.open?'open':'shut'):null,
+        homeD:e.homeD,homeI:(e.home&&e.home.H)?best.houses.indexOf(e.home.H):null,stuck:e.stuck||0,det:e._detour?[+e._detour.x.toFixed(0),+e._detour.z.toFixed(0),e._detour.t]:null,held:e._held||0,dn:e._dn||0,hm:e.home?{x:e.home.x,z:e.home.z,x0:e.home.x0,x1:e.home.x1,z0:e.home.z0,z1:e.home.z1,dx:e.home.dx,dz:e.home.dz,ox:e.home.ox,oz:e.home.oz,doorx:e.home.doorx,doorz:e.home.doorz}:null,door:(e.home&&e.home.H&&e.home.H.door)?(e.home.H.door.open?'open':'shut'):null,
         x:e.m.position.x,y:e.m.position.y,z:e.m.position.z,
         home:e.home?Math.hypot(e.m.position.x-(e.home.x!==undefined?e.home.x:e.home.doorx),
                               e.m.position.z-(e.home.z!==undefined?e.home.z:e.home.doorz)):null}))}; },
@@ -16902,7 +16950,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
     for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
       const d=(vv.site.x-p.x)**2+(vv.site.z-p.z)**2; if(d<bd){ bd=d; best=vv; } }
     if(!best) return null;
-    return best.houses.map((H,i)=>({i,dx:H.dx,dz:H.dz,gw:H.gw,yb:H.yb,dir:H.door?H.door.dir:null,open:!!(H.door&&H.door.open),
+    return best.houses.map((H,i)=>({i,dx:H.dx,dz:H.dz,gw:H.gw,yb:H.yb,apron:H.apron||0,dir:H.door?H.door.dir:null,open:!!(H.door&&H.door.open),
       by:H.door?(H.door._by==='hand'?'hand':H.door._by?'folk':null):null,
       ang:H.door?+H.door.ang.toFixed(2):null,target:H.door?+H.door.target.toFixed(2):null})); },
   setDoorAt:(i,open)=>{ let best=null,bd=1e18; const p=playerXZ();
