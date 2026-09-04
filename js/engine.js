@@ -10793,6 +10793,22 @@ function houseAround(nx,nz){
     if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue; const H=at(vv.houses); if(H) return H; }
   return at(standaloneHouses);
 }
+/* ---- A MAN DUCKS THROUGH HIS OWN DOOR (Round 96) ----
+   THE FAULT THIS MENDS. The lintel's underside is three courses over the
+   house's BASE, and a doorway whose yard stands a course up therefore has
+   exactly two courses of air over the ground a man walks on — B*2.0 against
+   the walker's B*1.9, a tenth of a block of margin. Measured at house 10:
+   floor 72, lintel underside 84. Any rounding in the stamp, or a bank that
+   rises a course and a half, puts the threshold under the bar and a man
+   reads `noroom` at his own front door — which is why the doorway holds
+   came and went run to run, following whichever yards the detours crossed.
+   A doorway is a hole a man passes through, and its two courses are its
+   design: under one, a course of clear air is enough, exactly as under an
+   eave. Everywhere else a floor still wants two. */
+function doorHead(nx,nz){
+  if(window.__INJECT&&__INJECT.noDoorHead) return false;
+  return inDoorway(nx,nz);
+}
 /* is this spot in some house's doorway (the gap, leaf open or shut)? */
 function inDoorway(nx,nz){
   if(window.__INJECT&&__INJECT.noDoorway) return false;
@@ -10888,25 +10904,31 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   let apron=0;
   { const ux=doorDir===2?1:doorDir===3?-1:0, uz=doorDir===0?1:doorDir===1?-1:0;
     const fx=doorDir===2?x1:doorDir===3?x0:gapCX, fz=doorDir===0?z1:doorDir===1?z0:gapCZ;
+    /* the stair descends from the DOORWAY FLOOR, not from the base a course
+       below it — the first cut started a course too low, so its first step
+       lay under the ground beside it, the loop read that as "the ground is
+       met" and broke, and house 10 kept a two-course rise three cells out
+       (the yard read 72, 66, 54, 48 with an apron of four claimed and no
+       stone laid). It goes on while any cell of the rank still stands
+       above its ground, and gives up only after two ranks with nothing to
+       lay — a terrace can be level for a cell and fall again past it. */
+    const floorY=y+B;
+    let dry=0;
     /* three cells wide — the gap's cell and one to either side — because a
        soul comes at its door from anywhere in the yard, and a stair one
        cell wide met from the side is a two-course bank (a hunter and a
        resident were read a hundred and two hundred frames held beside
        their own doorstep) */
-    for(let j=1;j<=4;j++){ let laid=false, level=false;
+    for(let j=1;j<=7;j++){ let laid=false;
+      const top=floorY-j*B;
       for(const side of [-1,0,1]){
         const acx=fx+ux*(j-0.5)*B+(uz?side*B:0), acz=fz+uz*(j-0.5)*B+(ux?side*B:0);
         const c=landAtWorld(acx,acz); if(!c||c.kind==='wall') continue;
-        const top=y-(j-1)*B, hN=c.h*B;
-        /* a cell already at its course needs no step — but the drop may be a
-           cell further out (the first cut stopped at the level cell by the
-           wall and left a two-course drop beyond it, and the doors probe read
-           no apron on any house); only a rank at or above its course PAST
-           the first ends the stair */
-        if(top<=hN+0.01){ if(side===0) level=true; continue; }
+        const hN=c.h*B;
+        if(top<=hN+0.01) continue;                    /* this cell already stands high enough */
         const ix=Math.floor(acx/B)*B, iz=Math.floor(acz/B)*B;
         emitBox(G, ix,hN,iz, ix+B,top,iz+B, 'cobble','cobble',null); laid=true; }
-      if(laid) apron=j; else if(level&&j>1) break; } }
+      if(laid){ apron=j; dry=0; } else if(++dry>=2) break; } }
   const hingeX = (doorDir<=1)?gx-gw:gapCX;
   const hingeZ = (doorDir>=2)?gz-gw:gapCZ;
   const baseAng = (doorDir>=2)?-Math.PI/2:0;
@@ -11597,7 +11619,7 @@ function moveEnt(ent,dt,sp){
        the whole of it, and it is the rule that lets a doorway through and
        keeps a wall shut. `groundInfo` has always reported the ceiling over a
        hollow column; it was simply never asked. */
-    const noRoom=gN.land&&isFinite(gN.ceil)&&(gN.ceil-gN.y)<B*1.9&&!((gN.ceil-gN.y)>=B*1.0&&underEave(nx,nz));
+    const noRoom=gN.land&&isFinite(gN.ceil)&&(gN.ceil-gN.y)<B*1.9&&!((gN.ceil-gN.y)>=B*1.0&&(underEave(nx,nz)||doorHead(nx,nz)));
     /* WHY the straight step was refused, kept on the soul for a probe to
        read — a walker that reads 'solid' for three hundred frames is a
        walker with no way round, and that is a thing worth being able to see */
@@ -11637,7 +11659,7 @@ function moveEnt(ent,dt,sp){
         const g2=groundInfo(ax2,az2,ent.m.position.y+0.1); if(!g2.land) continue;
         if(Math.abs(g2.y-ent.m.position.y)>B*1.35) continue;
         const c2=landAtWorld(ax2,az2); if(g2.edited&&c2&&g2.y>c2.h*B+B*1.2&&!inDoorway(ax2,az2)) continue;
-        if(isFinite(g2.ceil)&&(g2.ceil-g2.y)<B*1.9&&!((g2.ceil-g2.y)>=B*1.0&&underEave(ax2,az2))) continue;
+        if(isFinite(g2.ceil)&&(g2.ceil-g2.y)<B*1.9&&!((g2.ceil-g2.y)>=B*1.0&&(underEave(ax2,az2)||doorHead(ax2,az2)))) continue;
         if(blockedByStructureNPC(ax2,az2)||blockedBySolid(ax2,az2)||blockedByEntity(ax2,az2,ent.m)) continue;
         if(landmarkSolidAt(ax2,az2,ent.m.position.y+2,ent.m.position.y+8)) continue;
         took=true; ent._sw=Math.abs(sw)<2?sw:0; ent.m.position.x=ax2; ent.m.position.z=az2; ent.m.rotation.y=ang+sw; break; }
@@ -11697,7 +11719,7 @@ function moveEnt(ent,dt,sp){
      construction, and it is where a stranded one is put back. */
   const cH=(gHere.edited)?landAtWorld(ent.m.position.x,ent.m.position.z):null;
   const hereBad=(cH&&gHere.y>cH.h*B+B*1.2&&!inDoorway(ent.m.position.x,ent.m.position.z))
-    ||(gHere.land&&isFinite(gHere.ceil)&&(gHere.ceil-gHere.y)<B*1.9&&!((gHere.ceil-gHere.y)>=B*1.0&&underEave(ent.m.position.x,ent.m.position.z)));
+    ||(gHere.land&&isFinite(gHere.ceil)&&(gHere.ceil-gHere.y)<B*1.9&&!((gHere.ceil-gHere.y)>=B*1.0&&(underEave(ent.m.position.x,ent.m.position.z)||doorHead(ent.m.position.x,ent.m.position.z))));
   if(hereBad){
     if(ent.gx!==undefined){ ent.m.position.x=ent.gx; ent.m.position.z=ent.gz; ent.m.position.y=ent.gy; }
     else ent.m.position.y=cH.h*B;
