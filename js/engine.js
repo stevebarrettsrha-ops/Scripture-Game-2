@@ -10904,30 +10904,32 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   let apron=0;
   { const ux=doorDir===2?1:doorDir===3?-1:0, uz=doorDir===0?1:doorDir===1?-1:0;
     const fx=doorDir===2?x1:doorDir===3?x0:gapCX, fz=doorDir===0?z1:doorDir===1?z0:gapCZ;
-    /* the stair descends from the DOORWAY FLOOR, not from the base a course
-       below it — the first cut started a course too low, so its first step
-       lay under the ground beside it, the loop read that as "the ground is
-       met" and broke, and house 10 kept a two-course rise three cells out
-       (the yard read 72, 66, 54, 48 with an apron of four claimed and no
-       stone laid). It goes on while any cell of the rank still stands
-       above its ground, and gives up only after two ranks with nothing to
-       lay — a terrace can be level for a cell and fall again past it. */
-    const floorY=y+B;
-    let dry=0;
+    /* the stair follows the STEP BEFORE IT down, from the doorway floor
+       outward: each rank stands either on its own ground or a course below
+       the rank before, whichever is higher, so no step out of a door is
+       ever more than the course a man can take. The first cut laid only
+       what fell below the floor's own descent and so laid nothing at all
+       at house 10 — where the fault was never a hanging footing but the
+       GROUND, falling two courses at once three cells out (72, 66, 54, 48,
+       and a man cannot climb the 54 to the 66 coming home). It gives up
+       after two ranks with nothing to lay: a terrace can run level for a
+       cell and fall again past it. */
+    let prevTop=y+B, dry=0;
     /* three cells wide — the gap's cell and one to either side — because a
        soul comes at its door from anywhere in the yard, and a stair one
        cell wide met from the side is a two-course bank (a hunter and a
        resident were read a hundred and two hundred frames held beside
        their own doorstep) */
-    for(let j=1;j<=7;j++){ let laid=false;
-      const top=floorY-j*B;
+    for(let j=1;j<=7;j++){ let laid=false, midTop=null;
       for(const side of [-1,0,1]){
         const acx=fx+ux*(j-0.5)*B+(uz?side*B:0), acz=fz+uz*(j-0.5)*B+(ux?side*B:0);
         const c=landAtWorld(acx,acz); if(!c||c.kind==='wall') continue;
-        const hN=c.h*B;
+        const hN=c.h*B, top=Math.max(hN,prevTop-B);
+        if(side===0) midTop=top;
         if(top<=hN+0.01) continue;                    /* this cell already stands high enough */
         const ix=Math.floor(acx/B)*B, iz=Math.floor(acz/B)*B;
         emitBox(G, ix,hN,iz, ix+B,top,iz+B, 'cobble','cobble',null); laid=true; }
+      if(midTop!==null) prevTop=midTop;
       if(laid){ apron=j; dry=0; } else if(++dry>=2) break; } }
   const hingeX = (doorDir<=1)?gx-gw:gapCX;
   const hingeZ = (doorDir>=2)?gz-gw:gapCZ;
