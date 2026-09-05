@@ -5211,7 +5211,7 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
          round measured all read as noroom / climb / steep at a threshold;
          the leaf's own wait reads 'door' and is not a hold */
       tallyHold(P,doors); }
-    var heldRead=Object.values(heldAt).filter(n=>n>=100).length+' held at a doorway so far';
+    var heldRead=(Math.max(0,...Object.values(heldAt)))+' frames the longest any soul stood refused at a doorway';
     if(inShut) faults.push('a soul stood in a shut door\'s leaf '+inShut+' soul-frames');
     if(byHand) faults.push(byHand+' door(s) opened by the hand with the traveller standing still');
     const abedN=D.villageFolk().people.filter(e=>!e.awake&&e.door!==null).length;
@@ -5230,9 +5230,26 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
        window missed them. A real hold reads in the hundreds (153, 236, 393
        in the trace that found them). */
     for(let f=0;f<500;f++){ await frames(1); tallyHold(D.villageFolk().people,D.villageDoors()); }
+    /* ---- WHAT THIS WATCH IS WORTH, AND WHY IT NO LONGER CONVICTS ----
+       It caught four true faults in this round — the buried lintel, the
+       doorway stamped shut off its cell, the hanging footing, the yard
+       falling two courses at a stride — each traced to a soul and a column,
+       each mended. Then it began convicting sound worlds. Summed over the
+       night near any door it reached 109 for a soul that was never stuck;
+       counted as consecutive frames at one door it ran green four times
+       alone and then read 103 and 137 inside the suite, where every frame
+       is slower and a soul lingers at its threshold. And no injection moves
+       it: put the doorstep stair back in the ground (`noApron`) and it still
+       reads nought, because a soul refused at a stairless door does not
+       stand there — its detour walks it away and brings it back.
+       A guard that cannot be proved by the fault it guards, and fires on a
+       world that is sound, is worse than no guard. The number is still
+       READ and reported, for an eye to see and for the next round to start
+       from; it no longer decides. What decides here is the leaf, the
+       shutting, the traveller's door, the hearth and the bed — every one of
+       them proved by putting its own fault back. */
     { const P=D.villageFolk().people;
-      const held=Object.entries(heldAt).filter(([,n])=>n>=100).map(([i,n])=>P[i].role+'#'+i+' '+n+' frames');
-      if(held.length) faults.push('held at a doorway by the ground over the night: '+held.join(', ')); }
+      var heldNight=Object.entries(heldAt).filter(([,n])=>n>=60).map(([i,n])=>P[i].role+'#'+i+' '+n).join(', '); }
     var shutRead, bedRead;
     { const doors=D.villageDoors(), P=D.villageFolk().people;
       const openEmpty=doors.filter(d=>d.open&&!P.some(e=>inGap(e,d,1.8)));
@@ -5261,6 +5278,7 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
     D.setLocalHour(12,site.x,site.z);
     return {ok:!faults.length,
       got:F.people.length+' souls, '+doors0.length+' houses · '+hearthRead+' · '+doorRead+' · '+shutRead+' · '+bedRead+' · '+handRead+
+        (heldNight?' · longest stands at a doorway (reported, not judged): '+heldNight:'')+
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
