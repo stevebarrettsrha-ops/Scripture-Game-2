@@ -8788,6 +8788,178 @@ that pend by design). State to beat was 54 · 0 · 5 on 59 tests; test 56 passes
 0 walled in, of 33; 5 kinds of act (talk 130, carry 93, eat 56, rest 29, watch 5); 4 of 4
 children at the lesson at local ten, 0 at three.
 
+## 4cu. Round 96 — the door and the hearth: a soul opens its own door, and sleeps near its work ✅
+
+*Round 95 was the first thing in this world to watch a soul go indoors, and it left three
+things named: every villager walked through a shut door; homes were dealt round-robin, so a
+farmer at his field slept across town; and two shoppers stood held under what was taken for
+an eave. This round mended the three, and measuring them found that the third was not an
+eave, and that behind it stood four more faults of the ground under the people's feet.*
+
+### The door
+
+The traveller's rule (`houseBlocks`) has let a body through a doorway only while the leaf
+stands open since Phase 3. The folk's rule (`houseBlocksNPC`) let one through the gap **whether
+the leaf was open or shut** — so every soul going to bed passed bodily through the planks of its
+own door in plain view, and the leaf that swings for the traveller had never once swung for
+the people who live behind it. `MAT.door` was on §4cs's list of declared-and-inert things for
+exactly this reason.
+
+Now a shut door is a wall to the folk as it is to the traveller. A soul refused at a doorway
+opens it (`setDoor`, the one hand the traveller's `toggleDoor` and the folk now share) and
+waits for the leaf, reading `door` and not hunting round the jamb; a door a soul opened is
+shut once that soul is a body's length past the gap and nobody — soul or traveller — stands
+in it (`doorTick`); a door the traveller opened is the traveller's and is left as he left it.
+No new geometry, no new material: the leaf and its hinge are the ones drawn since Phase 3.
+
+Read off the world at 01:00, 300 frames: 15 of 17 doors opened by the folk, none by the hand; 0 soul-frames inside a shut leaf; at 800 frames 0 doors open, 0 standing open with nobody in them, 0 souls abed behind an open door; the traveller's door, opened by the hand at noon, still open 300 frames later.
+
+### The hearth
+
+Homes were dealt round-robin as souls were made (`nextHome()`): a farmer set down at his
+field got whichever house was next in the list. Baseline, read before a line was changed:
+**spawn-to-home 119 paces on average, 315 at worst**, every trade across town. Every soul is
+housed now after all are set down: the nearest house to its calling with room in it, three
+to a house and a fuller house counting as farther, adults first; a child joins a house that
+has a grown soul in it, two over its count, and an empty house is a child's last resort (the
+first cut skipped every empty house and, with the near houses full of adults, sent the
+children 220 paces to whichever house came first). A city's residents keep the doorstep homes
+they were set down at.
+
+After: 16 souls housed by nearness, farthest 240 paces from its calling (the herder, whose pen is at the edge), mean 117, against a village spread of 262. The bed: 18 of 33 lying at 500 frames, 22 at 800, 25 at 1000 before the last detour mend; 20, 23, 26 after; test 63 reads 23 of 33 at 800. The mean is what a great city's shape dictates — its houses ring the
+well at a hundred to two hundred and sixty paces, and the callings are at the well — and the
+guard is written against that spread, read off the doors, not against a number the test knows.
+
+### What was under the "eave" — five faults of the ground, each measured, each mended
+
+The two shoppers of §4ct were not under an eave. A probe at the walker's own height read the
+column it was refused: **the doorway's lintel one course above the yard.** A house takes its
+base from the ground at its own middle and turned its door toward the well, and on terraced
+ground the well is as often uphill as down — the doorway opened into a bank. Then, one by one:
+
+1. **The door faced the lowest side** (the first mend) — measured *worse*: fourteen lying and
+   eight held at doors, because the footing then hangs a course over the downhill yard and the
+   headroom rule reads its underside as a ceiling, and the floor stands a course and a half
+   up, which the climb rule calls a wall. **The door faces the side level with its base** now,
+   then the side a course up (a step down into the room, the lintel two courses clear), then
+   a course down, the well deciding a tie. Read off the doors after: fifteen of seventeen
+   level, one a course up, one two courses down.
+2. **A doorway's floor is a floor** to the climb rule when the step up is one a man takes.
+3. **A doorstep where the yard lies below** — for the house with no level side, the yard is
+   stepped up to the door: a cobble course in each cell outward, each a course lower than the
+   last, until the ground is met; the walker's rules read the apron as the doorway's own.
+4. **A real eave, at last** — a farmer held 153 frames on his way round his own house, the
+   ceiling six units over the step he was taking: the roof's one-block overhang over an uphill
+   yard two courses above the base. A roof edge over open ground is not a ceiling a man is
+   shut under: **under an eave a course of clear air is enough**; everywhere else a floor
+   still wants two.
+5. **The way round was one step's worth of looking**, and it remembered the swing that served
+   last — the backward ones included. Before anything wider than a step (a row of market
+   stalls, a bank under an eave, a house's whole side) a walker stepped back, then forward
+   into the same refusal, for ever: a vendor read **393 frames** in front of his own counter
+   with his bed a hundred paces off. A walker refused straight forty frames running now sets
+   itself a **detour**: round a house by the corner that makes the shortest walk, elsewhere a
+   waypoint off to one side; each detour that does not free him reaches farther than the
+   last, the side turns every second time, and the memory keeps sideways swings only.
+
+### The test, and what it convicted on the way
+
+**Test 63** reads the leaf, not the walker's word for it: the doors probe reports each door
+open or shut and whose hand did it. Its first cut counted a soul *waiting on the doorstep* as
+inside the shut door — 555 soul-frames, every one a city resident standing three units out
+from the gap's centre, which sits on the wall's own centre line — and reads the wall's plane
+now. Its doorway-hold threshold was raised from sixty frames to a hundred and twenty after
+it caught a soul that took a hundred to find the way round its own doorstep and then went in;
+a real hold reads in the hundreds. Its bed is read at eight hundred frames, because a walk
+of two hundred paces at this harness's pace is six hundred frames before the door is reached
+— the world read 18 of 33 lying at 500, 22 at 800, 25 at 1000 before the last detour mend.
+
+**Injections** — each fault put back by a flag before the town stands, and the guard read the way test 63 reads it:
+
+| fault put back | what the guard read | mended |
+|---|---|---|
+| the leaf ignored (the gap open whether the door is shut) | **190 soul-frames inside a shut leaf** | 0 |
+| no shutting after | **14 doors standing open with nobody in them**, 16 open at the end | 0 and 0 |
+| the hand's door forgotten | the traveller's door **taken over by the folk** (`by:'folk'`, and shut outright on an earlier run) | still open, by the hand |
+| homes round-robin | farthest **396**, mean **211** against a spread of 262 — three souls past the guard and the mean past it too | 240 and 117 |
+
+The flags are set **before the world is sailed into**. They were not at first, and villages
+begin building while `sail` waits out the boot: the round-robin injection read the *mended*
+homes on one run and the fault's on another, which was a probe fault and was mended as one.
+
+**The stair is proved on the ground it lays, because no reading of the walkers separates it.**
+Put the fault back (`noApron`) and the yard outside house 10's door falls **72, 72, 66, 54,
+48** — a two-course drop between the third cell and the fourth, and a man coming home cannot
+climb it. Lay the stair and the same yard reads **72, 72, 66, 60, 54**: one course a cell, all
+the way down. Read through the walkers instead, the fault is invisible either way — three
+souls of thirty-three are affected, the bed count moves inside its own run-to-run spread (21
+against 21–23 lying), and a soul refused at a stairless door does not stand there to be
+counted: its detour walks it away and brings it back. **Two rules this round added cannot be
+proved at all on this village**: taking away the doorway's exemption from the climb rule
+(`noDoorway`) or from the headroom rule (`noDoorHead`) holds nobody, because with the stair
+laid the ground at every door here is walkable without them. They stand as the rule for a
+threshold the stair cannot reach — one cut into rock, where the land answers `wall` and no
+cobble is laid — and that is said plainly rather than dressed up as a proof.
+
+### What test 63's doorway watch is worth, said honestly — and what became of it
+
+It caught four true faults in this round: the buried lintel, the doorway stamped shut off its
+cell, the hanging footing, and the yard falling two courses at a stride. Every one was traced
+to a soul and a column, and every one is mended. Then it began convicting sound worlds, and
+the record of that is worth more than a green tick:
+
+- **Summed over the night near any door**, it reached **109 frames** for a soul that was never
+  stuck — a walker that passed four doors on its rounds, refused a step here and a step there.
+  Three runs green, then that.
+- **Counted as consecutive frames at one door** — which is what a hold is, the real ones
+  reading 153, 236 and 393 — it ran **green four times in a row** alone, and then read **103
+  and 137 inside the full suite**, where every frame is slower and a soul lingers longer at
+  its own threshold.
+- **And no injection moves it.** Put the doorstep stair back in the ground (`noApron`) and it
+  still reads nought, because a soul refused at a stairless door does not stand there: its
+  detour walks it away and brings it back.
+
+A guard that cannot be proved by the fault it guards, and that fires on a world that is sound,
+is worse than no guard. The number is still **read and reported** — the longest any soul stood
+refused at a threshold, and who — for an eye to see and for the next round to start from. It
+no longer decides. What decides in test 63 is the leaf, the shutting, the traveller's door,
+the hearth and the bed, and every one of those is proved by putting its own fault back.
+
+### Cost
+
+`personTick` for 33 souls: **1.01 ms a frame by day, 0.83 ms at 01:00** with the folk going
+in and the doors swinging, against a software frame of 346 ms; the door work is a hypot per
+refused step and one distance per open door per frame. Home assignment runs once per village
+build.
+
+### A parallel session, and the numbers
+
+While this round ran, another session landed five rounds on main under the same numbers
+(the furnace, the far falls, the hoards, the curtain, the matriarch — §4cm–4cq, tests 59–60).
+This branch's bench, woods, labours and door were renumbered **Rounds 93–96, §4cr–4cu, tests
+61–63** behind them, and main merged in; four files carried both sides' appends and keep both.
+
+### The readings
+
+**PASS 63 · THE DOOR AND THE HEARTH**, four runs in a row on `771db95`. The last of them:
+
+> 33 souls, 17 houses · HOMES: 16 souls housed, farthest 240 paces from its calling, mean 117, village spread 262 · DOORS (01:00, 300 frames): 14 of 17 opened by the folk, none by the hand, 0 soul-frames inside a shut leaf, 0 held at a doorway so far · SHUT AFTER (800 frames): 0 open, 0 with nobody in them, 0 abed behind an open door · THE BED: 21 of 33 abed lying, held: farmer#7 (noroom), water#8 (noroom), vendor#11 (noroom), folk#13 (climb) · THE HAND'S DOOR (house 1, 300 frames at noon): still open, by hand
+
+**The suite, on `cb45b96`: 59 pass · 0 fail · 4 pending** (50, 53, 54, 55 — the beast measures
+that pend by design). State to beat was 56 · 0 · 4 on 60 tests; this is 63 tests with the
+bench, the labours and the door among them.
+
+**The run before it is part of the record too: 58 pass · 1 fail · 4 pending**, on the engine
+as it stands, the one failure being test 63's doorway-hold assertion firing on a sound world
+under the suite's load — the reading that decided the assertion's fate, above. Test 63's own
+line in the green run:
+
+> 33 souls, 17 houses · HOMES: 16 souls housed, farthest 240 paces from its calling, mean 117, village spread 262 · DOORS (01:00, 300 frames): 9 of 17 opened by the folk, none by the hand, 0 soul-frames inside a shut leaf, 143 frames the longest any soul stood refused at a doorway · SHUT AFTER (800 frames): 1 open, 0 with nobody in them, 0 abed behind an open door · THE BED: 23 of 33 abed lying, held: vendor#11 (noroom), folk#15 (noroom), folk#26 (steep) · THE HAND'S DOOR (house 1, 300 frames at noon): still open, by hand · longest stands at a doorway (reported, not judged): shopper#14 90, folk#27 143, shopper#31 134
+
+Read it against the fault it was built on: at the round's start not one soul in this world had
+ever opened a door, every one of them walked through the planks, and homes were dealt so that
+a farmer at his field slept 315 paces off.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
