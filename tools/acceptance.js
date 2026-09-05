@@ -5185,19 +5185,32 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
 
     /* ---- 1 · A SHUT DOOR IS A WALL TO THE FOLK, and they open it ---- */
     D.setLocalHour(1.0,site.x,site.z);
-    let inShut=0, byFolk=0, byHand=0; const openedIdx=new Set(), heldAt={};
+    let inShut=0, byFolk=0, byHand=0; const openedIdx=new Set(), heldAt={}, runAt={};
+    /* A HOLD IS CONSECUTIVE FRAMES AT ONE DOOR, not a night's tally near any.
+       The first cut summed every refused frame within two blocks and a half
+       of ANY door over eight hundred frames, so a soul that passed four
+       doors on its rounds, refused a step here and a step there, added up
+       to a hundred and nine without once being stuck — and test 63 called
+       it held. The real holds this round found read 153, 236 and 393 frames
+       CONSECUTIVELY at the one threshold. What is counted is the longest
+       such run, and a frame that takes leaves the run at nought. */
+    const tallyHold=(P,doors)=>{ for(const e of P){ let at=null;
+      if(!e.awake&&!e.lying&&(e.blk==='noroom'||e.blk==='climb'||e.blk==='steep'))
+        for(const d of doors){ if(d.dx!==undefined&&inGap(e,d,B*2.5)){ at=d.i; break; } }
+      if(at!==null){ const k=e.i+':'+at; runAt[k]=(runAt[k]||0)+1; heldAt[e.i]=Math.max(heldAt[e.i]||0,runAt[k]); }
+      else { for(const key of Object.keys(runAt)) if(key.startsWith(e.i+':')) runAt[key]=0; } } };
     let prev=D.villageDoors().map(d=>d.open);
     for(let f=0;f<300;f++){ await frames(1);
       const doors=D.villageDoors(), P=D.villageFolk().people;
       doors.forEach((d,i)=>{ if(d.open&&!prev[i]){ openedIdx.add(i); if(d.by==='hand') byHand++; else byFolk++; } });
       prev=doors.map(d=>d.open);
       for(const d of doors){ if(d.dx===undefined) continue;
-        for(const e of P){ if(!d.open&&inLeaf(e,d)) inShut++;
-          /* ---- 6 · HELD AT A DOORWAY: the ground's refusal, not the leaf's ----
-             the buried lintel and the hanging footing Round 96 measured read
-             as noroom / climb / steep at the threshold; the leaf's own wait
-             reads 'door' and is not a hold */
-          if(!e.awake&&!e.lying&&inGap(e,d,B*2.5)&&(e.blk==='noroom'||e.blk==='climb'||e.blk==='steep')) heldAt[e.i]=(heldAt[e.i]||0)+1; } } }
+        for(const e of P) if(!d.open&&inLeaf(e,d)) inShut++; }
+      /* ---- 6 · HELD AT A DOORWAY: the ground's refusal, not the leaf's ----
+         the buried lintel, the hanging footing and the two-course yard this
+         round measured all read as noroom / climb / steep at a threshold;
+         the leaf's own wait reads 'door' and is not a hold */
+      tallyHold(P,doors); }
     var heldRead=Object.values(heldAt).filter(n=>n>=100).length+' held at a doorway so far';
     if(inShut) faults.push('a soul stood in a shut door\'s leaf '+inShut+' soul-frames');
     if(byHand) faults.push(byHand+' door(s) opened by the hand with the traveller standing still');
@@ -5216,9 +5229,7 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
        night, spread thin among its detours, and a three-hundred-frame
        window missed them. A real hold reads in the hundreds (153, 236, 393
        in the trace that found them). */
-    for(let f=0;f<500;f++){ await frames(1); const doors=D.villageDoors(), P=D.villageFolk().people;
-      for(const d of doors){ if(d.dx===undefined) continue;
-        for(const e of P) if(!e.awake&&!e.lying&&inGap(e,d,B*2.5)&&(e.blk==='noroom'||e.blk==='climb'||e.blk==='steep')) heldAt[e.i]=(heldAt[e.i]||0)+1; } }
+    for(let f=0;f<500;f++){ await frames(1); tallyHold(D.villageFolk().people,D.villageDoors()); }
     { const P=D.villageFolk().people;
       const held=Object.entries(heldAt).filter(([,n])=>n>=100).map(([i,n])=>P[i].role+'#'+i+' '+n+' frames');
       if(held.length) faults.push('held at a doorway by the ground over the night: '+held.join(', ')); }
