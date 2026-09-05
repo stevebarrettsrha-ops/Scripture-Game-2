@@ -10902,6 +10902,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
      each a course lower than the last, until the ground is met. The
      walker's rules read the apron as the doorway's own (inDoorway). */
   let apron=0;
+  if(!(window.__INJECT&&__INJECT.noApron))
   { const ux=doorDir===2?1:doorDir===3?-1:0, uz=doorDir===0?1:doorDir===1?-1:0;
     const fx=doorDir===2?x1:doorDir===3?x0:gapCX, fz=doorDir===0?z1:doorDir===1?z0:gapCZ;
     /* the stair follows the STEP BEFORE IT down, from the doorway floor
