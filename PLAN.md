@@ -1649,3 +1649,17 @@ Named for later, not mended: `GREETS_ROLE` for the six roles without a line, and
 of sleeping folk; trade, measured (the next seam in the engine's banner); a home assigned by
 trade rather than by nearness alone; the terraces a house is set into, which are the world's
 and not the house's to cut.
+
+## 23. The greetings and the trade — ✅ *Rounds 97 & 98*
+
+Two rounds from §22's out-of-scope list, taken together: the courtesy round, and the banner's
+next seam measured. AUDIT §4cv and §4cw carry the full record.
+
+- **Round 97.** Every trade's greeting lives on its FOLK row in js/behavior.js (four lines
+  for eleven roles had lived in the engine); a soul lying abed is passed over in silence; a
+  child at the lesson hushes. Test 64 reads the barks off a probe and the words off the table.
+- **Round 98.** The eight wares are world/goods.js, declared through the registry, the engine
+  only reading; one function makes every deal, for the button and the suite alike. Test 65
+  proves the market's own promises: no mint, the far land pays for every good, prices inside
+  the declared band, the ladder as declared, the sea dearer than every shore.
+- **The suite.** 61 pass · 0 fail · 4 pending on `a9cb805` (state to beat 59 · 0 · 4 on 63 tests; this is 65).

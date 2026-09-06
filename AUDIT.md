@@ -8960,6 +8960,97 @@ Read it against the fault it was built on: at the round's start not one soul in 
 ever opened a door, every one of them walked through the planks, and homes were dealt so that
 a farmer at his field slept 315 paces off.
 
+## 4cv. Round 97 — the greetings: each trade in its own words, and silence for the sleeping ✅
+
+*The small courtesy round §4cu's out-of-scope list promised. `GREETS_ROLE` carried four lines
+for eleven roles and lived in the engine — against the rule that the village reads each
+trade's habits from js/behavior.js — and `greetTick` hailed ANY visible soul in reach: one
+lying abed barked its market cry in its sleep, and a child sat at the lesson called the
+traveller to tag across the class. Both stood in plain view from the day Round 96 put the
+village to bed.*
+
+The lines live on the FOLK rows now — every role has one, six written new in the game's
+register (no verses: greetings are not scripture, and none was invented) — and `greetTick`
+asks `BEHAVIOR.folkGreet`. A soul with `_lying` is passed over in silence; a child whose
+`anim` reads `sit` gives its hushed line, *"Shh — the teacher is looking!"*. One branch each,
+on state the ent already carried.
+
+**Test 64** reads the barks off a probe (`__VDBG.barks()`) and the expected words off the
+table, not strings it knows: a sleeping soul beside the traveller for 150 frames barks
+nothing; the lesson hushes; each trade tried hails in its own row's words. Its first cut
+convicted itself — it looked for a sleeper ten frames past one in the morning, when nobody
+had walked home yet, and read "no soul lay down" against a village still on its way; it waits
+for the bed now, as test 63 taught.
+
+### The readings
+
+**PASS 64 · THE GREETINGS** — a sleeping shopper held its peace 150 frames · the lesson: "Shh — the teacher is looking!" · 4 of 4 trades hailed in their own words off the table
+
+Injections, each read off a run:
+
+| fault put back | what the guard read |
+|---|---|
+| the sleeper-skip reverted | a sleeping shopper barked *"Have you seen the prices at the stalls today?"* in its sleep |
+| the table unread (`folkGreet` returning nothing) | the farmer, the herder and the teacher hailed with strangers' words — *"A good day under the sun"*, *"You are welcome in this place"* — where their rows promise their own |
+
+Regressions 18, 38, 62 and 63 green beside it.
+
+## 4cw. Round 98 — the trade, measured: the market's promise proved, and its wares made data ✅
+
+*The next seam in the engine's own banner (`…the labours of the people → trade → fishing…`),
+standing since the coins were minted, and not one of the sixty-four tests before this ever
+read a price. The header's own promise — "buy where a thing is cheap, bear it over the deep,
+and sell where it is dear" — had never been checked, and the buy/sell arithmetic lived inline
+in a DOM click handler where nothing but a click could reach it.*
+
+Two mends before the measuring, neither changing a number:
+
+- **The eight wares are data.** They were a literal table inside js/engine.js; they are
+  `world/goods.js` now, declared through `EARTH.good()` (a list and a push, per the
+  registry's own rule) and appended to the manifest. The engine reads `EARTH.goodList`. Add a
+  ware, add a line — and test 65's expectations follow the table with it.
+- **One hand makes every deal.** `tradeAct(action, good)` is one function, called by the
+  stall's button and by the acceptance suite alike — the `setDoor` pattern of Round 96 —
+  so the cycle guard can *drive* a real buy and a real sell and read the purse, instead of
+  trusting arithmetic it cannot reach.
+
+**Test 65**, the market's own promises: sell < buy for every good at 24 sampled markets and a
+driven buy-and-sell-back strictly shrinks the purse (no market mints coins); for every good
+the best selling market beats the cheapest buying one (the far land pays — the header's
+promise, at last read off the world); every price inside its base's declared 0.6–1.6 band;
+the reputation ladder exactly as declared (×1 unknown, +0.6% a point, capped ×1.30 at 50, a
+fish sold earning its point, sea trade earning none); and the hailed merchantman buying
+dearer and paying worse than every shore.
+
+### The readings
+
+**PASS 65 · THE TRADE, MEASURED** —
+
+> 8 goods · no mint: 24 markets x 8 goods, sell < buy at every one; a driven cycle cost 1 shekels · the far land pays for 8 of 8 goods (grain +3, oil +6, wine +9, salt +4, cedar +10, cloth +12, spice +18, dye +22) · every price inside its base's declared band · the ladder: x1 unknown, x1.12 at 20, capped x1.30 at 50 and beyond; a fish sold earns its point · the hailed merchantman buys dearer and pays worse than every shore
+
+Injections, each read off a run:
+
+| fault put back | what the guard read | mended |
+|---|---|---|
+| the spread flipped (sell at buy ×1.15) | a driven buy-and-sell-back **grew the purse by 1** | shrank it |
+| the prices flattened (every land the same) | **0 of 8 goods with a paying route** | 8 of 8 |
+
+Regressions 20 and 44 green beside it. And the measuring convicted the market twice on the
+way, both real: **grain bought at two shekels sold back at two** — the sell was a rounding of
+buy ×0.85, and at a cheap market the fifteen-percent margin rounded away, a free round-trip at
+six of the twenty-four markets sampled (one `spreadOf` function prices both sides of every
+deal now, the sell clamped a shekel under the buy); and **the merchantman traded no worse than
+the shore at a two-shekel good**, his surcharge rounding to nothing (he charges at least a
+shekel over now). One conviction was the test's own: its ladder section sold a fish while
+reputation stood at its cap probe's 99, and read "-49 points" for a sale the engine had
+rightly clamped to 50 — it sells from an ordinary name now.
+
+### The suite
+
+**61 pass · 0 fail · 4 pending on `a9cb805`** (50, 53, 54, 55 — the beast measures that pend
+by design). State to beat was 59 · 0 · 4 on 63 tests; this is 65, with the greetings and the
+market among them, and tests 63 and 64 green inside the same run.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
