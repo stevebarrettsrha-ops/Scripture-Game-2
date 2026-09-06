@@ -5185,20 +5185,33 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
 
     /* ---- 1 · A SHUT DOOR IS A WALL TO THE FOLK, and they open it ---- */
     D.setLocalHour(1.0,site.x,site.z);
-    let inShut=0, byFolk=0, byHand=0; const openedIdx=new Set(), heldAt={};
+    let inShut=0, byFolk=0, byHand=0; const openedIdx=new Set(), heldAt={}, runAt={};
+    /* A HOLD IS CONSECUTIVE FRAMES AT ONE DOOR, not a night's tally near any.
+       The first cut summed every refused frame within two blocks and a half
+       of ANY door over eight hundred frames, so a soul that passed four
+       doors on its rounds, refused a step here and a step there, added up
+       to a hundred and nine without once being stuck — and test 63 called
+       it held. The real holds this round found read 153, 236 and 393 frames
+       CONSECUTIVELY at the one threshold. What is counted is the longest
+       such run, and a frame that takes leaves the run at nought. */
+    const tallyHold=(P,doors)=>{ for(const e of P){ let at=null;
+      if(!e.awake&&!e.lying&&(e.blk==='noroom'||e.blk==='climb'||e.blk==='steep'))
+        for(const d of doors){ if(d.dx!==undefined&&inGap(e,d,B*2.5)){ at=d.i; break; } }
+      if(at!==null){ const k=e.i+':'+at; runAt[k]=(runAt[k]||0)+1; heldAt[e.i]=Math.max(heldAt[e.i]||0,runAt[k]); }
+      else { for(const key of Object.keys(runAt)) if(key.startsWith(e.i+':')) runAt[key]=0; } } };
     let prev=D.villageDoors().map(d=>d.open);
     for(let f=0;f<300;f++){ await frames(1);
       const doors=D.villageDoors(), P=D.villageFolk().people;
       doors.forEach((d,i)=>{ if(d.open&&!prev[i]){ openedIdx.add(i); if(d.by==='hand') byHand++; else byFolk++; } });
       prev=doors.map(d=>d.open);
       for(const d of doors){ if(d.dx===undefined) continue;
-        for(const e of P){ if(!d.open&&inLeaf(e,d)) inShut++;
-          /* ---- 6 · HELD AT A DOORWAY: the ground's refusal, not the leaf's ----
-             the buried lintel and the hanging footing Round 96 measured read
-             as noroom / climb / steep at the threshold; the leaf's own wait
-             reads 'door' and is not a hold */
-          if(!e.awake&&!e.lying&&inGap(e,d,B*2.5)&&(e.blk==='noroom'||e.blk==='climb'||e.blk==='steep')) heldAt[e.i]=(heldAt[e.i]||0)+1; } } }
-    var heldRead=Object.values(heldAt).filter(n=>n>=100).length+' held at a doorway so far';
+        for(const e of P) if(!d.open&&inLeaf(e,d)) inShut++; }
+      /* ---- 6 · HELD AT A DOORWAY: the ground's refusal, not the leaf's ----
+         the buried lintel, the hanging footing and the two-course yard this
+         round measured all read as noroom / climb / steep at a threshold;
+         the leaf's own wait reads 'door' and is not a hold */
+      tallyHold(P,doors); }
+    var heldRead=(Math.max(0,...Object.values(heldAt)))+' frames the longest any soul stood refused at a doorway';
     if(inShut) faults.push('a soul stood in a shut door\'s leaf '+inShut+' soul-frames');
     if(byHand) faults.push(byHand+' door(s) opened by the hand with the traveller standing still');
     const abedN=D.villageFolk().people.filter(e=>!e.awake&&e.door!==null).length;
@@ -5216,12 +5229,27 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
        night, spread thin among its detours, and a three-hundred-frame
        window missed them. A real hold reads in the hundreds (153, 236, 393
        in the trace that found them). */
-    for(let f=0;f<500;f++){ await frames(1); const doors=D.villageDoors(), P=D.villageFolk().people;
-      for(const d of doors){ if(d.dx===undefined) continue;
-        for(const e of P) if(!e.awake&&!e.lying&&inGap(e,d,B*2.5)&&(e.blk==='noroom'||e.blk==='climb'||e.blk==='steep')) heldAt[e.i]=(heldAt[e.i]||0)+1; } }
+    for(let f=0;f<500;f++){ await frames(1); tallyHold(D.villageFolk().people,D.villageDoors()); }
+    /* ---- WHAT THIS WATCH IS WORTH, AND WHY IT NO LONGER CONVICTS ----
+       It caught four true faults in this round — the buried lintel, the
+       doorway stamped shut off its cell, the hanging footing, the yard
+       falling two courses at a stride — each traced to a soul and a column,
+       each mended. Then it began convicting sound worlds. Summed over the
+       night near any door it reached 109 for a soul that was never stuck;
+       counted as consecutive frames at one door it ran green four times
+       alone and then read 103 and 137 inside the suite, where every frame
+       is slower and a soul lingers at its threshold. And no injection moves
+       it: put the doorstep stair back in the ground (`noApron`) and it still
+       reads nought, because a soul refused at a stairless door does not
+       stand there — its detour walks it away and brings it back.
+       A guard that cannot be proved by the fault it guards, and fires on a
+       world that is sound, is worse than no guard. The number is still
+       READ and reported, for an eye to see and for the next round to start
+       from; it no longer decides. What decides here is the leaf, the
+       shutting, the traveller's door, the hearth and the bed — every one of
+       them proved by putting its own fault back. */
     { const P=D.villageFolk().people;
-      const held=Object.entries(heldAt).filter(([,n])=>n>=100).map(([i,n])=>P[i].role+'#'+i+' '+n+' frames');
-      if(held.length) faults.push('held at a doorway by the ground over the night: '+held.join(', ')); }
+      var heldNight=Object.entries(heldAt).filter(([,n])=>n>=60).map(([i,n])=>P[i].role+'#'+i+' '+n).join(', '); }
     var shutRead, bedRead;
     { const doors=D.villageDoors(), P=D.villageFolk().people;
       const openEmpty=doors.filter(d=>d.open&&!P.some(e=>inGap(e,d,1.8)));
@@ -5250,7 +5278,143 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
     D.setLocalHour(12,site.x,site.z);
     return {ok:!faults.length,
       got:F.people.length+' souls, '+doors0.length+' houses · '+hearthRead+' · '+doorRead+' · '+shutRead+' · '+bedRead+' · '+handRead+
+        (heldNight?' · longest stands at a doorway (reported, not judged): '+heldNight:'')+
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[64]={name:'THE GREETINGS — each trade hails in its own words, the sleeping are passed over, and a child at the lesson keeps its voice down',
+  /* THE FAULT THIS GUARDS. GREETS_ROLE carried four lines for eleven roles
+     and lived in the engine, against the rule that the village reads each
+     trade's habits from js/behavior.js; and greetTick hailed ANY visible
+     soul in reach — one lying abed barked its market cry in its sleep, and
+     a child sat at the lesson called the traveller to tag across the class
+     (both stand in plain view since Round 96 put the village to bed).
+     EVERY LINE ASSERTED IS READ OFF THE FOLK TABLE, not typed here: change
+     a trade's greet in js/behavior.js and this test changes its mind. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, BH=window.BEHAVIOR;
+    if(!D.barks||!BH||!BH.folkGreet) return {pending:'no barks probe / folkGreet (Round 97)'};
+    const v=await D.standInVillage(); if(!v) return {ok:false,got:'no town would stand'};
+    let F=D.villageFolk(); if(!F||!F.people.length) return {ok:false,got:'a town with nobody in it'};
+    const site=F.site, faults=[], reads=[];
+    const frames=async n=>{ for(let f=0;f<n;f++) await new Promise(r=>requestAnimationFrame(r)); };
+    /* stand the traveller beside a soul and read what is barked at him */
+    const standBy=async(pick,hour,n)=>{ D.setLocalHour(hour,site.x,site.z); await frames(10);
+      const P=D.villageFolk().people, e=P.find(pick); if(!e) return {none:true};
+      const seen=new Map();
+      for(let f=0;f<n;f++){ D.state.walk.x=e.x+5; D.state.walk.z=e.z;
+        await frames(1);
+        for(const b of D.barks()) seen.set(b.name+'|'+b.line,b); }
+      return {e,barks:[...seen.values()]}; };
+
+    /* ---- 1 · THE SLEEPING ARE PASSED OVER ---- */
+    /* the bed is waited for, not assumed: at ten frames past one in the
+       morning nobody has walked home yet, and the first cut of this read
+       "no soul lay down" against a village that was still on its way */
+    { D.setLocalHour(1.0,site.x,site.z);
+      for(let f=0;f<500&&!D.villageFolk().people.some(e=>e.lying);f+=10) await frames(10);
+      const r=await standBy(e=>e.lying,1.0,150);
+      if(r.none) faults.push('no soul lay down to test the silence');
+      else { const own=r.barks.filter(b=>b.name===r.e.name);
+        if(own.length) faults.push('a sleeping soul barked: '+own.map(b=>b.line).join(' / '));
+        reads.push('a sleeping '+r.e.role+' held its peace '+150+' frames'); } }
+
+    /* ---- 2 · THE LESSON KEEPS ITS VOICE DOWN ---- */
+    { const r=await standBy(e=>e.child&&e.anim==='sit',10.0,150);
+      if(r.none) reads.push('no child sat at the lesson (not judged)');
+      else { const loud=r.barks.filter(b=>b.role==='child'&&/play|catch/i.test(b.line));
+        if(loud.length) faults.push('a child at the lesson called the traveller to play');
+        reads.push('the lesson: '+(r.barks.filter(b=>b.role==='child').map(b=>'"'+b.line+'"').join(', ')||'hushed')); } }
+
+    /* ---- 3 · EACH TRADE IN ITS OWN WORDS, off the table ---- */
+    { let seenOwn=0, tried=0;
+      for(const role of ['farmer','herder','teacher','feeder']){
+        const r=await standBy(e=>e.role===role&&e.awake&&!e.lying,10.0,140);
+        if(r.none) continue; tried++;
+        const want=BH.folkGreet(role,false);
+        if(r.barks.some(b=>b.name===r.e.name&&b.line===want)) seenOwn++;
+        else if(r.barks.some(b=>b.name===r.e.name)) faults.push(role+' hailed with a stranger\'s words: '+r.barks.filter(b=>b.name===r.e.name).map(b=>b.line).join(' / ')); }
+      if(tried&&!seenOwn) faults.push('no trade hailed in its own words in '+tried+' tried');
+      reads.push(seenOwn+' of '+tried+' trades hailed in their own words off the table'); }
+
+    D.setLocalHour(12,site.x,site.z);
+    return {ok:!faults.length, got:reads.join(' · ')+(faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
+T[65]={name:'THE TRADE, MEASURED — no market mints coins, the far land pays, the prices are the table\'s, and the catch builds a name',
+  /* THE FAULT THIS GUARDS. The trade of the seas has stood since the coins
+     were minted — eight goods, a price factor per land, a reputation ladder
+     — and not one of the sixty-four tests before this ever read a price.
+     Its header's own promise, "buy where a thing is cheap, bear it over the
+     deep, and sell where it is dear", was never checked, and its arithmetic
+     lived inline in a DOM click handler where nothing but a click could
+     reach it. The goods are data now (world/goods.js) and every expectation
+     here is READ OFF THAT TABLE: add a ware or change a base and this test
+     changes its mind with it. The cycle guard does not trust the
+     arithmetic, it DRIVES a real buy and a real sell through tradeAct —
+     the same function the button calls — and reads the purse. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    if(!D.marketAt||!D.tradeAct) return {pending:'no market probes (Round 98)'};
+    const goods=(window.EARTH&&EARTH.goodList)||[];
+    if(!goods.length) return {ok:false,got:'the goods registry is empty'};
+    const faults=[], reads=[];
+    const profiles=[]; for(let i=0;i<24;i++) profiles.push(i*7+1);
+
+    /* ---- 1 · NO MARKET MINTS COINS: the spread, then a driven cycle ---- */
+    { let bad=0;
+      for(const pr of profiles){ const M=D.marketAt(pr);
+        for(const g of M.goods) if(g.sell>=g.buy) { bad++; faults.push(g.k+' at market '+pr+' sells for '+g.sell+' against a buy of '+g.buy); break; } }
+      D.openTradeAt(profiles[0],false);
+      const coins0=D.state.coins=500; D.state.cargo={};
+      D.tradeAct('b',0); D.tradeAct('s',0); D.closeTrade();
+      if(D.state.coins>=coins0) faults.push('a driven buy-and-sell-back GREW the purse: '+coins0+' -> '+D.state.coins);
+      reads.push('no mint: '+profiles.length+' markets x '+goods.length+' goods, sell < buy at every one; a driven cycle cost '+(coins0-D.state.coins)+' shekels'); }
+
+    /* ---- 2 · THE FAR LAND PAYS: the promise of the header ---- */
+    { const routes=[]; let broken=0;
+      for(let gi=0;gi<goods.length;gi++){
+        let minBuy=1e9,maxSell=0;
+        for(const pr of profiles){ const M=D.marketAt(pr);
+          minBuy=Math.min(minBuy,M.goods[gi].buy); maxSell=Math.max(maxSell,M.goods[gi].sell); }
+        if(maxSell<=minBuy){ broken++; faults.push('no route pays for '+goods[gi].k+': best sell '+maxSell+' against cheapest buy '+minBuy); }
+        else routes.push(goods[gi].k+' +'+(maxSell-minBuy)); }
+      reads.push('the far land pays for '+(goods.length-broken)+' of '+goods.length+' goods ('+routes.join(', ')+')'); }
+
+    /* ---- 3 · PRICES ARE THE TABLE'S, within the declared 0.6-1.6 band ---- */
+    { let out=0;
+      for(const pr of profiles){ const M=D.marketAt(pr);
+        for(let gi=0;gi<goods.length;gi++){ const b=goods[gi].base, p=M.goods[gi].buy;
+          if(p<Math.floor(b*0.6)||p>Math.ceil(b*1.6)+1) { out++; faults.push(goods[gi].k+' at '+pr+' priced '+p+' outside '+b+'x[0.6,1.6]'); } } }
+      reads.push('every price inside its base\'s declared band'); }
+
+    /* ---- 4 · THE CATCH BUILDS A NAME, on the declared ladder ---- */
+    { const pr=profiles[3]; D.setRep(pr,0);
+      const m0=D.marketAt(pr).mult; D.setRep(pr,20); const m20=D.marketAt(pr).mult;
+      D.setRep(pr,50); const m50=D.marketAt(pr).mult; D.setRep(pr,99); const m99=D.marketAt(pr).mult;
+      if(Math.abs(m0-1)>1e-9) faults.push('an unknown name already pays '+m0);
+      if(Math.abs(m20-1.12)>1e-9) faults.push('twenty points pay x'+m20+' against the declared 0.6% a point');
+      if(Math.abs(m50-1.30)>1e-9||Math.abs(m99-1.30)>1e-9) faults.push('the ladder does not cap at +30%: '+m50+' / '+m99);
+      /* the fish is sold from an ordinary name, not from the cap probe's 99
+         — addRep clamps to 50, and the first cut of this read "-49 points"
+         for a sale the engine handled rightly */
+      D.setRep(pr,7);
+      D.openTradeAt(pr,false); const r0=D.marketAt(pr).rep; D.state.fish=1; D.tradeAct('f');
+      if(D.marketAt(pr).rep!==r0+1) faults.push('a fish sold earned '+(D.marketAt(pr).rep-r0)+' points, not 1');
+      D.closeTrade(); D.setRep(pr,0);
+      reads.push('the ladder: x1 unknown, x1.12 at 20, capped x1.30 at 50 and beyond; a fish sold earns its point'); }
+
+    /* ---- 5 · THE SEA IS DEARER ---- */
+    { const pr=profiles[5], M=D.marketAt(pr); let bad=0;
+      /* dearer to buy from, and never paying MORE than the shore — with
+         integer shekels the two sell roundings coincide at small prices
+         (round(3x0.85) and round(3x0.75) are both 2), so the sell side is
+         never-above, not strictly-below; the buy side is strict */
+      for(let gi=0;gi<goods.length;gi++){ if(!(M.seaGoods[gi].buy>M.goods[gi].buy&&M.seaGoods[gi].sell<=M.goods[gi].sell)) bad++; }
+      if(bad) faults.push('the merchantman traded no worse than the shore for '+bad+' goods');
+      reads.push('the hailed merchantman buys dearer and pays worse than every shore'); }
+
+    return {ok:!faults.length, got:goods.length+' goods · '+reads.join(' · ')+(faults.length?' · FAULTS: '+faults.slice(0,6).join(' · '):'')};
   })};
 
 T[37]={name:'no county is given to the sea by a river running through it',

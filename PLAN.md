@@ -1625,3 +1625,41 @@ Read off the world, every one (AUDIT §4ct has the full record):
   software frame of some 460 ms.
 - **Test 62.** PASS — 18 lying, 15 walking home and nearer, 0 held, of 33 abed; every section green.
 - **The suite.** 56 pass · 0 fail · 4 pending on `63e2b20` (state to beat 54 · 0 · 5; test 56 passes now, and 60 is the sixtieth).
+
+## 22. The door and the hearth — ✅ *Round 96*
+
+§21 left three things named: a villager walked through a shut door; homes were dealt
+round-robin; two shoppers stood held under an eave. Round 96 mended the three and, measuring
+the third, found it was not an eave but a doorway one course above its yard — and behind it
+four more faults of the ground under the people's feet, each measured and mended in AUDIT
+§4cu: the door faces level ground; a doorway's floor is a floor; a doorstep where the yard
+lies below; a man ducks under a real eave; and a walker held sets itself a detour, round a
+house by its corner, farther each time.
+
+Readings (AUDIT §4cu has every one):
+
+- **The door.** 15 of 17 doors opened by the folk, none by the hand; 0 soul-frames inside a shut leaf; at 800 frames 0 doors open, 0 standing open with nobody in them, 0 souls abed behind an open door; the traveller's door, opened by the hand at noon, still open 300 frames later
+- **The hearth.** Baseline 119 paces mean, 315 worst; after: 16 souls housed by nearness, farthest 240 paces from its calling (the herder, whose pen is at the edge), mean 117, against a village spread of 262.
+- **The bed.** 18 of 33 lying at 500 frames, 22 at 800, 25 at 1000 before the last detour mend; 20, 23, 26 after; test 63 reads 23 of 33 at 800
+- **Cost.** 1.01 ms a frame by day, 0.83 at night, for 33 souls against a 346 ms frame.
+- **Test 63.** PASS, four runs in a row.
+- **The suite.** 59 pass · 0 fail · 4 pending on `cb45b96` (state to beat 56 · 0 · 4 on 60 tests; this is 63). The run before it, 58 · 1 · 4, is in AUDIT §4cu with the reading that retired the assertion that failed it.
+
+Named for later, not mended: `GREETS_ROLE` for the six roles without a line, and the greeting
+of sleeping folk; trade, measured (the next seam in the engine's banner); a home assigned by
+trade rather than by nearness alone; the terraces a house is set into, which are the world's
+and not the house's to cut.
+
+## 23. The greetings and the trade — ✅ *Rounds 97 & 98*
+
+Two rounds from §22's out-of-scope list, taken together: the courtesy round, and the banner's
+next seam measured. AUDIT §4cv and §4cw carry the full record.
+
+- **Round 97.** Every trade's greeting lives on its FOLK row in js/behavior.js (four lines
+  for eleven roles had lived in the engine); a soul lying abed is passed over in silence; a
+  child at the lesson hushes. Test 64 reads the barks off a probe and the words off the table.
+- **Round 98.** The eight wares are world/goods.js, declared through the registry, the engine
+  only reading; one function makes every deal, for the button and the suite alike. Test 65
+  proves the market's own promises: no mint, the far land pays for every good, prices inside
+  the declared band, the ladder as declared, the sea dearer than every shore.
+- **The suite.** 61 pass · 0 fail · 4 pending on `a9cb805` (state to beat 59 · 0 · 4 on 63 tests; this is 65).

@@ -10793,6 +10793,22 @@ function houseAround(nx,nz){
     if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue; const H=at(vv.houses); if(H) return H; }
   return at(standaloneHouses);
 }
+/* ---- A MAN DUCKS THROUGH HIS OWN DOOR (Round 96) ----
+   THE FAULT THIS MENDS. The lintel's underside is three courses over the
+   house's BASE, and a doorway whose yard stands a course up therefore has
+   exactly two courses of air over the ground a man walks on — B*2.0 against
+   the walker's B*1.9, a tenth of a block of margin. Measured at house 10:
+   floor 72, lintel underside 84. Any rounding in the stamp, or a bank that
+   rises a course and a half, puts the threshold under the bar and a man
+   reads `noroom` at his own front door — which is why the doorway holds
+   came and went run to run, following whichever yards the detours crossed.
+   A doorway is a hole a man passes through, and its two courses are its
+   design: under one, a course of clear air is enough, exactly as under an
+   eave. Everywhere else a floor still wants two. */
+function doorHead(nx,nz){
+  if(window.__INJECT&&__INJECT.noDoorHead) return false;
+  return inDoorway(nx,nz);
+}
 /* is this spot in some house's doorway (the gap, leaf open or shut)? */
 function inDoorway(nx,nz){
   if(window.__INJECT&&__INJECT.noDoorway) return false;
@@ -10886,27 +10902,36 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
      each a course lower than the last, until the ground is met. The
      walker's rules read the apron as the doorway's own (inDoorway). */
   let apron=0;
+  if(!(window.__INJECT&&__INJECT.noApron))
   { const ux=doorDir===2?1:doorDir===3?-1:0, uz=doorDir===0?1:doorDir===1?-1:0;
     const fx=doorDir===2?x1:doorDir===3?x0:gapCX, fz=doorDir===0?z1:doorDir===1?z0:gapCZ;
+    /* the stair follows the STEP BEFORE IT down, from the doorway floor
+       outward: each rank stands either on its own ground or a course below
+       the rank before, whichever is higher, so no step out of a door is
+       ever more than the course a man can take. The first cut laid only
+       what fell below the floor's own descent and so laid nothing at all
+       at house 10 — where the fault was never a hanging footing but the
+       GROUND, falling two courses at once three cells out (72, 66, 54, 48,
+       and a man cannot climb the 54 to the 66 coming home). It gives up
+       after two ranks with nothing to lay: a terrace can run level for a
+       cell and fall again past it. */
+    let prevTop=y+B, dry=0;
     /* three cells wide — the gap's cell and one to either side — because a
        soul comes at its door from anywhere in the yard, and a stair one
        cell wide met from the side is a two-course bank (a hunter and a
        resident were read a hundred and two hundred frames held beside
        their own doorstep) */
-    for(let j=1;j<=4;j++){ let laid=false, level=false;
+    for(let j=1;j<=7;j++){ let laid=false, midTop=null;
       for(const side of [-1,0,1]){
         const acx=fx+ux*(j-0.5)*B+(uz?side*B:0), acz=fz+uz*(j-0.5)*B+(ux?side*B:0);
         const c=landAtWorld(acx,acz); if(!c||c.kind==='wall') continue;
-        const top=y-(j-1)*B, hN=c.h*B;
-        /* a cell already at its course needs no step — but the drop may be a
-           cell further out (the first cut stopped at the level cell by the
-           wall and left a two-course drop beyond it, and the doors probe read
-           no apron on any house); only a rank at or above its course PAST
-           the first ends the stair */
-        if(top<=hN+0.01){ if(side===0) level=true; continue; }
+        const hN=c.h*B, top=Math.max(hN,prevTop-B);
+        if(side===0) midTop=top;
+        if(top<=hN+0.01) continue;                    /* this cell already stands high enough */
         const ix=Math.floor(acx/B)*B, iz=Math.floor(acz/B)*B;
         emitBox(G, ix,hN,iz, ix+B,top,iz+B, 'cobble','cobble',null); laid=true; }
-      if(laid) apron=j; else if(level&&j>1) break; } }
+      if(midTop!==null) prevTop=midTop;
+      if(laid){ apron=j; dry=0; } else if(++dry>=2) break; } }
   const hingeX = (doorDir<=1)?gx-gw:gapCX;
   const hingeZ = (doorDir>=2)?gz-gw:gapCZ;
   const baseAng = (doorDir>=2)?-Math.PI/2:0;
@@ -11597,7 +11622,7 @@ function moveEnt(ent,dt,sp){
        the whole of it, and it is the rule that lets a doorway through and
        keeps a wall shut. `groundInfo` has always reported the ceiling over a
        hollow column; it was simply never asked. */
-    const noRoom=gN.land&&isFinite(gN.ceil)&&(gN.ceil-gN.y)<B*1.9&&!((gN.ceil-gN.y)>=B*1.0&&underEave(nx,nz));
+    const noRoom=gN.land&&isFinite(gN.ceil)&&(gN.ceil-gN.y)<B*1.9&&!((gN.ceil-gN.y)>=B*1.0&&(underEave(nx,nz)||doorHead(nx,nz)));
     /* WHY the straight step was refused, kept on the soul for a probe to
        read — a walker that reads 'solid' for three hundred frames is a
        walker with no way round, and that is a thing worth being able to see */
@@ -11637,7 +11662,7 @@ function moveEnt(ent,dt,sp){
         const g2=groundInfo(ax2,az2,ent.m.position.y+0.1); if(!g2.land) continue;
         if(Math.abs(g2.y-ent.m.position.y)>B*1.35) continue;
         const c2=landAtWorld(ax2,az2); if(g2.edited&&c2&&g2.y>c2.h*B+B*1.2&&!inDoorway(ax2,az2)) continue;
-        if(isFinite(g2.ceil)&&(g2.ceil-g2.y)<B*1.9&&!((g2.ceil-g2.y)>=B*1.0&&underEave(ax2,az2))) continue;
+        if(isFinite(g2.ceil)&&(g2.ceil-g2.y)<B*1.9&&!((g2.ceil-g2.y)>=B*1.0&&(underEave(ax2,az2)||doorHead(ax2,az2)))) continue;
         if(blockedByStructureNPC(ax2,az2)||blockedBySolid(ax2,az2)||blockedByEntity(ax2,az2,ent.m)) continue;
         if(landmarkSolidAt(ax2,az2,ent.m.position.y+2,ent.m.position.y+8)) continue;
         took=true; ent._sw=Math.abs(sw)<2?sw:0; ent.m.position.x=ax2; ent.m.position.z=az2; ent.m.rotation.y=ang+sw; break; }
@@ -11665,8 +11690,22 @@ function moveEnt(ent,dt,sp){
              of his house read the SECOND-best corner taken first — across
              the house from him — and the best one never tried */
           const c=cs[(ent._dn-1)%2]; ent._detour={x:c[0],z:c[1],t:160}; ent._sw=0; }
-        else { const ang=Math.atan2(dx,dz)+ent._dside*(Math.PI/2+(Math.random()-0.5)*0.6), r=Math.min(70,14+Math.random()*12+12*(ent._dn-1));
-          ent._detour={x:ent.m.position.x+Math.sin(ang)*r, z:ent.m.position.z+Math.cos(ang)*r, t:110+30*Math.min(4,ent._dn)}; ent._sw=0; } } }
+        else { const r0=Math.min(70,14+Math.random()*12+12*(ent._dn-1));
+          /* a waypoint is looked at before it is taken: on land, on ground
+             within a step of the walker's own feet, not in a wall or under
+             a ceiling — a resident was read 376 frames walking at a
+             waypoint the lottery had put in a bank; either side and a
+             shorter reach are tried before the detour is given up */
+          let best=null;
+          for(const[side,r] of [[ent._dside,r0],[-ent._dside,r0],[ent._dside,r0*0.5],[-ent._dside,r0*0.5]]){
+            const ang=Math.atan2(dx,dz)+side*(Math.PI/2+(Math.random()-0.5)*0.6);
+            const wx=ent.m.position.x+Math.sin(ang)*r, wz=ent.m.position.z+Math.cos(ang)*r;
+            const g=groundInfo(wx,wz,ent.m.position.y+0.1); if(!g.land) continue;
+            if(Math.abs(g.y-ent.m.position.y)>B*1.35) continue;
+            if(isFinite(g.ceil)&&(g.ceil-g.y)<B*1.9) continue;
+            if(blockedByStructureNPC(wx,wz)||blockedBySolid(wx,wz)) continue;
+            best={x:wx,z:wz}; break; }
+          if(best){ ent._detour={x:best.x,z:best.z,t:110+30*Math.min(4,ent._dn)}; ent._sw=0; } } } }
     if(took){ ent.stuck=0; if(ent._blk==='') ent._sw=0; }
     else { moving=false; ent.t=0; ent.stuck=(ent.stuck||0)+1;
       if(ent.stuck>2){ ent.stuck=0; ent.acting=false; ent.pt=0; ent.tx=ent.m.position.x; ent.tz=ent.m.position.z; } } }
@@ -11683,7 +11722,7 @@ function moveEnt(ent,dt,sp){
      construction, and it is where a stranded one is put back. */
   const cH=(gHere.edited)?landAtWorld(ent.m.position.x,ent.m.position.z):null;
   const hereBad=(cH&&gHere.y>cH.h*B+B*1.2&&!inDoorway(ent.m.position.x,ent.m.position.z))
-    ||(gHere.land&&isFinite(gHere.ceil)&&(gHere.ceil-gHere.y)<B*1.9&&!((gHere.ceil-gHere.y)>=B*1.0&&underEave(ent.m.position.x,ent.m.position.z)));
+    ||(gHere.land&&isFinite(gHere.ceil)&&(gHere.ceil-gHere.y)<B*1.9&&!((gHere.ceil-gHere.y)>=B*1.0&&(underEave(ent.m.position.x,ent.m.position.z)||doorHead(ent.m.position.x,ent.m.position.z))));
   if(hereBad){
     if(ent.gx!==undefined){ ent.m.position.x=ent.gx; ent.m.position.z=ent.gz; ent.m.position.y=ent.gy; }
     else ent.m.position.y=cH.h*B;
@@ -12177,14 +12216,31 @@ function updateVillages(px,pz,dt,nightF,dayF){
    Every market prices its wares by its own land (a fixed factor per land and
    good): buy where a thing is cheap, bear it over the deep in the hold, and
    sell where it is dear. Fish of your own catching sell at every market. */
-const GOODS=[
-  {k:'grain',n:'Grain',base:4},{k:'oil',n:'Olive oil',base:9},{k:'wine',n:'Wine',base:12},
-  {k:'salt',n:'Salt',base:6},{k:'cedar',n:'Cedar wood',base:14},{k:'cloth',n:'Fine cloth',base:18},
-  {k:'spice',n:'Spices',base:26},{k:'dye',n:'Purple dye',base:34}];
+/* the wares are DATA — world/goods.js declares them, this only reads them
+   (Round 98; they were a literal here from the day the trade was built) */
+const GOODS=(window.EARTH&&EARTH.goodList&&EARTH.goodList.length)?EARTH.goodList
+  :[{k:'grain',n:'Grain',base:4}];   /* a world with no goods file still boots to sell fish */
 const CARGO_MAX=24;
 function cargoCount(){ let n=0; for(const k in state.cargo) n+=state.cargo[k]; return n; }
-function priceAt(profile,gi){ const f=0.6+hash2(profile*3.7+gi*13.1, profile*7.3-gi*2.9);   /* 0.6 .. 1.6 */
+function priceAt(profile,gi){
+  if(window.__INJECT&&__INJECT.flatPrices) return GOODS[gi].base;   /* the fault put back: every land the same */
+  const f=0.6+hash2(profile*3.7+gi*13.1, profile*7.3-gi*2.9);   /* 0.6 .. 1.6 */
   return Math.max(1,Math.round(GOODS[gi].base*f)); }
+/* ---- THE EXCHANGE ALWAYS TAKES ITS CUT (Round 98) ----
+   THE FAULT THIS MENDS, found by test 65's first run: sell was a rounding
+   of buy x0.85, and at a cheap market the margin rounded away — grain
+   bought at 2 shekels sold back at 2, a free round-trip at six of the
+   twenty-four markets sampled. One function now prices both sides of a
+   deal (the stall, the probe and the driven test all ask it), and the
+   sell is clamped a shekel under the buy. */
+function spreadOf(p,sea){
+  /* — and the merchantman always charges over the shore: at a two-shekel
+     good his fifteen percent rounded to nothing, and test 65 read him
+     trading no worse than the land */
+  const buy=sea?Math.max(p+1,Math.round(p*1.15)):p;
+  const sell=Math.max(1,Math.min(buy-1,Math.round(p*(sea?0.75:0.85))));
+  return {buy,sell};
+}
 function fishPriceAt(profile){ return Math.max(2,Math.round(5*(0.7+hash2(profile*5.1,profile*2.3)*0.8))); }
 function pearlPriceAt(profile){ return Math.max(25,Math.round(45*(0.7+hash2(profile*7.7,profile*3.1)*0.9))); }
 /* REPUTATION — markets that buy your catch learn your name, and pay better:
@@ -12225,8 +12281,7 @@ function renderTrade(){
     +(tier?' · your name is '+tier+' here':'');
   const T=$('trade-rows'); T.innerHTML='';
   for(let gi=0;gi<GOODS.length;gi++){
-    const g=GOODS[gi], p=priceAt(tradeProfile,gi);
-    const buy=tradeSea?Math.round(p*1.15):p, sell=Math.max(1,tradeSea?Math.round(p*0.75):Math.round(p*0.85));
+    const g=GOODS[gi], {buy,sell}=spreadOf(priceAt(tradeProfile,gi),tradeSea);
     const have=state.cargo[g.k]||0;
     const tr=document.createElement('tr');
     tr.innerHTML='<td class="g">'+g.n+'</td><td class="r">held '+have+'</td>'+
@@ -12243,16 +12298,20 @@ function renderTrade(){
     '<td class="r"><button class="tbtn" data-a="e" '+((state.pearls||0)<1?'disabled':'')+'>sell '+pp+'</button></td>';
   T.appendChild(tr3);
 }
-$('trade-rows').addEventListener('click',e=>{
-  const b=e.target.closest('button'); if(!b||b.disabled) return;
-  const a=b.dataset.a;
+/* ONE hand on every deal — the button and the acceptance suite call the
+   same function (the setDoor pattern), so a test can drive a real trade
+   instead of trusting the arithmetic it cannot reach in a click handler */
+function tradeAct(a,gi){
   if(a==='f'){ if((state.fish||0)>0){ state.fish--; state.coins+=fishSellPrice(); addRep(tradeProfile,1); } }
   else if(a==='e'){ if((state.pearls||0)>0){ state.pearls--; state.coins+=pearlSellPrice(); addRep(tradeProfile,3); } }
-  else { const gi=+b.dataset.g, g=GOODS[gi], p=priceAt(tradeProfile,gi);
-    if(a==='b'){ const buy=tradeSea?Math.round(p*1.15):p;
-      if(state.coins>=buy&&cargoCount()<CARGO_MAX){ state.coins-=buy; state.cargo[g.k]=(state.cargo[g.k]||0)+1; } }
-    else { const sell=Math.max(1,tradeSea?Math.round(p*0.75):Math.round(p*0.85));
+  else { const g=GOODS[gi], p=priceAt(tradeProfile,gi), sp=spreadOf(p,tradeSea);
+    if(a==='b'){ if(state.coins>=sp.buy&&cargoCount()<CARGO_MAX){ state.coins-=sp.buy; state.cargo[g.k]=(state.cargo[g.k]||0)+1; } }
+    else { const sell=(window.__INJECT&&__INJECT.mintSpread)?Math.round(p*1.15):sp.sell;   /* the fault put back: sell over buy */
       if((state.cargo[g.k]||0)>0){ state.cargo[g.k]--; if(!state.cargo[g.k]) delete state.cargo[g.k]; state.coins+=sell; } } }
+}
+$('trade-rows').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b||b.disabled) return;
+  tradeAct(b.dataset.a,+b.dataset.g);
   renderTrade();
 });
 $('trade-close').addEventListener('click',closeTrade);
@@ -16210,13 +16269,13 @@ function barkAt(ent,text){
   g.fillStyle='#f0e8d2'; g.textAlign='center'; g.textBaseline='middle';
   g.fillText(text,256,47);
   b.tex.needsUpdate=true;
-  b.ent=ent; b.t=0; b.dur=3.4;
+  b.ent=ent; b.t=0; b.dur=3.4; b.line=text;
   b.sp.scale.set(26*(wpx/512)+8,6,1);
   b.sp.visible=true;
 }
 const GREETS_DAY=['Shalom, traveller.','Peace be upon you.','Fair winds brought you in?','A good day under the sun.','You are welcome in this place.'];
 const GREETS_NIGHT=['A quiet night, friend.','Peace to you, night-walker.','The lamps are lit — rest well.'];
-const GREETS_ROLE={vendor:'Fresh wares, friend — come and see!',child:'Come and play! You cannot catch me!',fisher:'The fish bite well today.',water:'Sweet water, drawn this hour.'};
+
 let greetScanT=0;
 function greetTick(dt,nightF){
   greetScanT-=dt;
@@ -16230,11 +16289,19 @@ function greetTick(dt,nightF){
   const now=performance.now()*0.001, w=state.walk;
   for(const [,vv] of activeVillages){ if(vv.none||!vv.people) continue;
     for(const p of vv.people){ if(!p.m||!p.m.visible) continue;
+      /* ---- SILENCE FOR THE SLEEPING (Round 97) ----
+         a soul lying abed used to bark its market cry at a passer-by; the
+         sleeping are passed over, and a child sat at the lesson keeps its
+         voice down instead of calling the traveller to tag */
+      if(!(window.__INJECT&&__INJECT.barkAtSleepers)&&(p._lying||p.anim==='sleep')) continue;
       const d=Math.hypot(p.m.position.x-w.x,p.m.position.z-w.z);
       if(d>3&&d<9&&(!p.greetT||now-p.greetT>40)){
         p.greetT=now;
-        const line=GREETS_ROLE[p.role]||(nightF>0.5?GREETS_NIGHT[Math.floor(Math.random()*GREETS_NIGHT.length)]
-                                                    :GREETS_DAY[Math.floor(Math.random()*GREETS_DAY.length)]);
+        /* each trade's own word lives in js/behavior.js, on its FOLK row */
+        const own=(window.__INJECT&&__INJECT.dumbTrades)?null
+          :window.BEHAVIOR&&BEHAVIOR.folkGreet?BEHAVIOR.folkGreet(p.role,p.role==='child'&&p.anim==='sit'):null;
+        const line=own||(nightF>0.5?GREETS_NIGHT[Math.floor(Math.random()*GREETS_NIGHT.length)]
+                                    :GREETS_DAY[Math.floor(Math.random()*GREETS_DAY.length)]);
         barkAt(p,line);
         return; } } }
 }
@@ -16963,6 +17030,19 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
     const g=groundInfo(x,z,refY); const solid=[]; const h0=c?c.h:0;
     for(let iy=h0-2;iy<=h0+7;iy++) if(blockSolidAt(ix,iy,iz)){ const b=blockAt(ix,iy,iz); solid.push(iy+':'+(typeof blockName==='function'?blockName(b):b)); }
     return {h:h0,kind:c&&c.kind,y:g.y,ceil:g.ceil,land:g.land,edited:!!g.edited,solidCourses:solid}; },
+  barks:()=>BARKS.filter(b=>b.ent).map(b=>({role:b.ent.role,name:b.ent.name,line:b.line||''})),
+  /* the market, read as the stall shows it — buy and sell per good at a
+     land profile, with the fish, the pearl and the reputation ladder */
+  marketAt:profile=>({goods:GOODS.map((g,gi)=>{ const sp=spreadOf(priceAt(profile,gi),false);
+      return {k:g.k,n:g.n,base:g.base,buy:sp.buy,sell:sp.sell}; }),
+    seaGoods:GOODS.map((g,gi)=>{ const sp=spreadOf(priceAt(profile,gi),true);
+      return {k:g.k,buy:sp.buy,sell:sp.sell}; }),
+    fish:fishPriceAt(profile),pearl:pearlPriceAt(profile),rep:repOf(profile),mult:repMult(profile)}),
+  openTradeAt:(profile,sea)=>openTrade(profile,'a probe\'s market',!!sea),
+  tradeAct:(a,gi)=>tradeAct(a,gi),
+  closeTrade:()=>closeTrade(),
+  setRep:(profile,n)=>{ state.rep=state.rep||{}; state.rep[profile]=n; },
+  goodsCount:()=>GOODS.length,
   toolSpeedOf:id=>toolSpeed(BLOCK_BY_ID[id]),
   /* the save, driven and read back, so a test need not guess at its timing */
   saveNow:()=>saveState(),

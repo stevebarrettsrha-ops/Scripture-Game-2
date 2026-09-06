@@ -29,7 +29,7 @@ window.EARTH={
   list:[], verseList:[], riverList:[], cityList:[], landmarkList:[],
   deepList:[], holeList:[], sceneList:[], scrollList:[], beastList:[],
   faunaList:[], floraList:[], cropList:[], mineralList:[], workList:[], blockList:[],
-  waterfallList:[], placeList:[],
+  waterfallList:[], placeList:[], goodList:[],
 
   country:function(c){this.list.push(c);},
   verses:function(v){this.verseList=v;},
@@ -47,6 +47,8 @@ window.EARTH={
      digging is what persists, exactly as it does in a house. See
      world/places.js for the format and for what each field means. */
   place:function(p){this.placeList.push(p);},
+  /* the goods of the trade of the seas — see world/goods.js */
+  good:function(g){this.goodList.push(g);},
   /* the trenches of the sea, each at its true sounding — see world/deeps.js */
   deep:function(d){this.deepList.push(d);},
   /* the blue holes: sheer shafts sunk in the reefs — see world/deeps.js */
