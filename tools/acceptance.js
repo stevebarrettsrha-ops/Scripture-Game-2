@@ -5308,7 +5308,12 @@ T[64]={name:'THE GREETINGS — each trade hails in its own words, the sleeping a
       return {e,barks:[...seen.values()]}; };
 
     /* ---- 1 · THE SLEEPING ARE PASSED OVER ---- */
-    { const r=await standBy(e=>e.lying,1.0,150);
+    /* the bed is waited for, not assumed: at ten frames past one in the
+       morning nobody has walked home yet, and the first cut of this read
+       "no soul lay down" against a village that was still on its way */
+    { D.setLocalHour(1.0,site.x,site.z);
+      for(let f=0;f<500&&!D.villageFolk().people.some(e=>e.lying);f+=10) await frames(10);
+      const r=await standBy(e=>e.lying,1.0,150);
       if(r.none) faults.push('no soul lay down to test the silence');
       else { const own=r.barks.filter(b=>b.name===r.e.name);
         if(own.length) faults.push('a sleeping soul barked: '+own.map(b=>b.line).join(' / '));
