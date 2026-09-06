@@ -12226,6 +12226,18 @@ function priceAt(profile,gi){
   if(window.__INJECT&&__INJECT.flatPrices) return GOODS[gi].base;   /* the fault put back: every land the same */
   const f=0.6+hash2(profile*3.7+gi*13.1, profile*7.3-gi*2.9);   /* 0.6 .. 1.6 */
   return Math.max(1,Math.round(GOODS[gi].base*f)); }
+/* ---- THE EXCHANGE ALWAYS TAKES ITS CUT (Round 98) ----
+   THE FAULT THIS MENDS, found by test 65's first run: sell was a rounding
+   of buy x0.85, and at a cheap market the margin rounded away — grain
+   bought at 2 shekels sold back at 2, a free round-trip at six of the
+   twenty-four markets sampled. One function now prices both sides of a
+   deal (the stall, the probe and the driven test all ask it), and the
+   sell is clamped a shekel under the buy. */
+function spreadOf(p,sea){
+  const buy=sea?Math.round(p*1.15):p;
+  const sell=Math.max(1,Math.min(buy-1,Math.round(p*(sea?0.75:0.85))));
+  return {buy,sell};
+}
 function fishPriceAt(profile){ return Math.max(2,Math.round(5*(0.7+hash2(profile*5.1,profile*2.3)*0.8))); }
 function pearlPriceAt(profile){ return Math.max(25,Math.round(45*(0.7+hash2(profile*7.7,profile*3.1)*0.9))); }
 /* REPUTATION — markets that buy your catch learn your name, and pay better:
@@ -12266,8 +12278,7 @@ function renderTrade(){
     +(tier?' · your name is '+tier+' here':'');
   const T=$('trade-rows'); T.innerHTML='';
   for(let gi=0;gi<GOODS.length;gi++){
-    const g=GOODS[gi], p=priceAt(tradeProfile,gi);
-    const buy=tradeSea?Math.round(p*1.15):p, sell=Math.max(1,tradeSea?Math.round(p*0.75):Math.round(p*0.85));
+    const g=GOODS[gi], {buy,sell}=spreadOf(priceAt(tradeProfile,gi),tradeSea);
     const have=state.cargo[g.k]||0;
     const tr=document.createElement('tr');
     tr.innerHTML='<td class="g">'+g.n+'</td><td class="r">held '+have+'</td>'+
@@ -12290,11 +12301,9 @@ function renderTrade(){
 function tradeAct(a,gi){
   if(a==='f'){ if((state.fish||0)>0){ state.fish--; state.coins+=fishSellPrice(); addRep(tradeProfile,1); } }
   else if(a==='e'){ if((state.pearls||0)>0){ state.pearls--; state.coins+=pearlSellPrice(); addRep(tradeProfile,3); } }
-  else { const g=GOODS[gi], p=priceAt(tradeProfile,gi);
-    if(a==='b'){ const buy=tradeSea?Math.round(p*1.15):p;
-      if(state.coins>=buy&&cargoCount()<CARGO_MAX){ state.coins-=buy; state.cargo[g.k]=(state.cargo[g.k]||0)+1; } }
-    else { const m=(window.__INJECT&&__INJECT.mintSpread)?1.15:(tradeSea?0.75:0.85);   /* the fault put back: sell over buy */
-      const sell=Math.max(1,Math.round(p*m));
+  else { const g=GOODS[gi], p=priceAt(tradeProfile,gi), sp=spreadOf(p,tradeSea);
+    if(a==='b'){ if(state.coins>=sp.buy&&cargoCount()<CARGO_MAX){ state.coins-=sp.buy; state.cargo[g.k]=(state.cargo[g.k]||0)+1; } }
+    else { const sell=(window.__INJECT&&__INJECT.mintSpread)?Math.round(p*1.15):sp.sell;   /* the fault put back: sell over buy */
       if((state.cargo[g.k]||0)>0){ state.cargo[g.k]--; if(!state.cargo[g.k]) delete state.cargo[g.k]; state.coins+=sell; } } }
 }
 $('trade-rows').addEventListener('click',e=>{
@@ -17021,10 +17030,10 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   barks:()=>BARKS.filter(b=>b.ent).map(b=>({role:b.ent.role,name:b.ent.name,line:b.line||''})),
   /* the market, read as the stall shows it — buy and sell per good at a
      land profile, with the fish, the pearl and the reputation ladder */
-  marketAt:profile=>({goods:GOODS.map((g,gi)=>{ const p=priceAt(profile,gi);
-      return {k:g.k,n:g.n,base:g.base,buy:p,sell:Math.max(1,Math.round(p*0.85))}; }),
-    seaGoods:GOODS.map((g,gi)=>{ const p=priceAt(profile,gi);
-      return {k:g.k,buy:Math.round(p*1.15),sell:Math.max(1,Math.round(p*0.75))}; }),
+  marketAt:profile=>({goods:GOODS.map((g,gi)=>{ const sp=spreadOf(priceAt(profile,gi),false);
+      return {k:g.k,n:g.n,base:g.base,buy:sp.buy,sell:sp.sell}; }),
+    seaGoods:GOODS.map((g,gi)=>{ const sp=spreadOf(priceAt(profile,gi),true);
+      return {k:g.k,buy:sp.buy,sell:sp.sell}; }),
     fish:fishPriceAt(profile),pearl:pearlPriceAt(profile),rep:repOf(profile),mult:repMult(profile)}),
   openTradeAt:(profile,sea)=>openTrade(profile,'a probe\'s market',!!sea),
   tradeAct:(a,gi)=>tradeAct(a,gi),
