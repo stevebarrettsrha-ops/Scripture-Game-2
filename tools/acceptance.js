@@ -5466,14 +5466,19 @@ T[66]={name:'THE CATCH IS THE SEA\'S OWN — what comes up on the line swims in 
     /* ---- 4 · A REAL CAST LANDS A LAWFUL FISH, and the monger's count still grows ---- */
     { const v=await D.standInVillage();
       const w=D.state.walk, fish0=D.state.fish||0;
-      /* stand at the water's edge: walk outward from the village until the
-         cast is allowed, trying headings toward the sea */
+      /* march to the sea, not hope for it: the first cut looked 400 units
+         about the village and Yasharal keeps no shore that near, so the
+         driven cast never fired. Eight rays out to the horizon find the
+         water's edge; the traveller stands on the last land before it,
+         facing out */
       let cast=false;
-      outer:
-      for(let r2=0;r2<400;r2+=12) for(let a=0;a<12;a++){
-        const th=a/12*6.283;
-        w.x=v.x+Math.cos(th)*r2; w.z=v.z+Math.sin(th)*r2; w.heading=th; w.feetY=undefined;
-        if(D.canFishHere&&D.canFishHere()){ cast=true; break outer; } }
+      for(let a=0;a<8&&!cast;a++){ const th=a/8*6.283, dx=Math.sin(th), dz=Math.cos(th);
+        for(let r2=24;r2<6000;r2+=24){ const x=v.x+dx*r2, z=v.z+dz*r2;
+          if(!D.landAtWorld(x,z)){
+            for(let back=r2;back>r2-30;back-=3){ const bx=v.x+dx*(back-14), bz=v.z+dz*(back-14);
+              if(D.landAtWorld(bx,bz)){ w.x=bx; w.z=bz; w.heading=th; w.feetY=undefined;
+                if(D.canFishHere&&D.canFishHere()){ cast=true; } break; } }
+            break; } } }
       if(!cast) reads.push('no shore in reach of the village (the cast not driven; the draws above cover the law)');
       else { D.startFishing(); D.state.fishing.phase='bite';
         D.reelIn();
