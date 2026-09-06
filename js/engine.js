@@ -7335,19 +7335,10 @@ const TROPICAL=[0xff8c2a,0xffd23a,0xff5a7a,0x3ad0ff,0x8a5cff,0xf4f4f4,0x2fd08a,0
    swell beside the ship, which is what the shallows cost. Every nation of
    them now wants real water under it — the shallowest asks forty metres, so
    there is no shoal at all over the wading shelf where a village paddles. */
-const SHOAL_KINDS=[
-  {name:'sardine', n:26, lat:[-58,62],  m:[40,600],  tight:0.90, spd:17, R:220},
-  {name:'mackerel',n:16, lat:[-52,66],  m:[45,700],  tight:0.62, spd:21, R:250},
-  {name:'salmon',  n:9,  lat:[38,72],   m:[40,400],  tight:0.45, spd:19, R:240},
-  {name:'salmon',  n:7,  lat:[-72,-38], m:[40,400],  tight:0.45, spd:19, R:240},
-  {name:'cod',     n:6,  lat:[42,76],   m:[60,900],  tight:0.25, spd:9,  R:230, bed:true},
-  {name:'tuna',    n:4,  lat:[-42,42],  m:[80,2000], tight:0.35, spd:30, R:300},
-  /* the silver the whole sea lives on: the herring of the cold shelves and
-     the anchovy of the warm coasts, in the tightest bait-balls of all */
-  {name:'herring', n:22, lat:[36,74],   m:[40,500],  tight:0.88, spd:16, R:220},
-  {name:'herring', n:14, lat:[-64,-36], m:[40,500],  tight:0.88, spd:16, R:220},
-  {name:'anchovy', n:26, lat:[-46,48],  m:[40,300],  tight:0.94, spd:14, R:200},
-];
+/* the nations of fish are DATA — world/waters.js declares them, this only
+   reads the swimming ones (Round 99; they were a literal here from the day
+   the shoals were built). The inshore, catch-only kinds carry no school. */
+const SHOAL_KINDS=(window.EARTH&&EARTH.shoalList)?EARTH.shoalList.filter(k=>!k.inshore):[];
 /* how far under the skin of the sea the highest fish of a school may come.
    Nothing of a shoal is ever seen breaking the surface. */
 const SHOAL_TOP=26;
@@ -12488,7 +12479,26 @@ function speakTo(p){ if(!p) return;
   toast((p.name?p.name+' the '+callingOf(p)+' — ':'')+line);
 }
 /* ================= FISHING — CAST A LINE UPON THE WATERS ================= */
-const FISH_NAMES=['a bream','a mullet','a carp','a musht','a barbel','a grey eel','a silver sardine','a great catfish'];
+/* ---- THE CATCH IS THE SEA'S OWN (Round 99) ----
+   THE FAULT THIS MENDS. The catch was drawn from a literal of eight names —
+   Galilee and river fish — at random, at every water on earth: cast off
+   Greenland and draw up a musht. The sea knew exactly what swims where all
+   along (the shoal bands, the creature files, the SEA table of habits) and
+   the rod read none of it. Now what comes up on the line is a nation whose
+   band covers this spot, read off world/waters.js — shoaling or inshore
+   alike — and nothing else. */
+function catchKindsAt(x,z){
+  const all=(window.EARTH&&EARTH.shoalList)||[];
+  if(window.__INJECT&&__INJECT.flatCatch) return [...new Set(all.filter(k=>k.inshore).map(k=>k.name))];
+  const lat=90-(Math.hypot(x,z)/R_WORLD)*180;
+  return [...new Set(all.filter(k=>lat>=k.lat[0]&&lat<=k.lat[1]).map(k=>k.name))];
+}
+function catchAt(x,z){
+  const kinds=catchKindsAt(x,z);
+  if(!kinds.length) return 'a strange fish of the deep';
+  const name=kinds[Math.floor(Math.random()*kinds.length)];
+  return (/^[aeiou]/i.test(name)?'an ':'a ')+name;
+}
 let rodG=null, rodLine=null, rodBob=null, rodFish=null, landed=null;
 const _fishTip=new THREE.Vector3(), _fishDir=new THREE.Vector3(), _fishUp=new THREE.Vector3(0,1,0);
 function ensureRod(){ if(rodG) return;
@@ -12543,8 +12553,9 @@ function reelIn(){
   const F=state.fishing; if(!F) return;
   if(F.phase==='bite'){
     state.fish=(state.fish||0)+1;
-    const name=FISH_NAMES[Math.floor(Math.random()*FISH_NAMES.length)];
     const w=state.walk;
+    const name=catchAt(w.x+Math.sin(w.heading)*11, w.z+Math.cos(w.heading)*11);
+    state.lastCatch=name;
     splash(w.x+Math.sin(w.heading)*11,WATER_Y+0.8,w.z+Math.cos(w.heading)*11,true);
     /* THE FISH IS SEEN. It comes up on the line where the float was, kicks
        there a moment in the air, and is drawn in to the hand. */
@@ -17043,6 +17054,14 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   closeTrade:()=>closeTrade(),
   setRep:(profile,n)=>{ state.rep=state.rep||{}; state.rep[profile]=n; },
   goodsCount:()=>GOODS.length,
+  catchKindsAt:(x,z)=>catchKindsAt(x,z),
+  castProbe:(x,z)=>catchAt(x,z),
+  rWorld:R_WORLD,
+  cellRaw:(ix,iz)=>cellRaw(ix,iz),
+  canFishHere:()=>canFishHere(),
+  startFishing:()=>startFishing(),
+  reelIn:()=>reelIn(),
+  endFishing:q=>endFishing(q),
   toolSpeedOf:id=>toolSpeed(BLOCK_BY_ID[id]),
   /* the save, driven and read back, so a test need not guess at its timing */
   saveNow:()=>saveState(),
