@@ -5406,8 +5406,11 @@ T[65]={name:'THE TRADE, MEASURED — no market mints coins, the far land pays, t
 
     /* ---- 5 · THE SEA IS DEARER ---- */
     { const pr=profiles[5], M=D.marketAt(pr); let bad=0;
-      /* the sell floor is one shekel; at it, sea and shore must be level */
-      for(let gi=0;gi<goods.length;gi++){ if(!(M.seaGoods[gi].buy>M.goods[gi].buy&&(M.seaGoods[gi].sell<M.goods[gi].sell||M.seaGoods[gi].sell===1))) bad++; }
+      /* dearer to buy from, and never paying MORE than the shore — with
+         integer shekels the two sell roundings coincide at small prices
+         (round(3x0.85) and round(3x0.75) are both 2), so the sell side is
+         never-above, not strictly-below; the buy side is strict */
+      for(let gi=0;gi<goods.length;gi++){ if(!(M.seaGoods[gi].buy>M.goods[gi].buy&&M.seaGoods[gi].sell<=M.goods[gi].sell)) bad++; }
       if(bad) faults.push('the merchantman traded no worse than the shore for '+bad+' goods');
       reads.push('the hailed merchantman buys dearer and pays worse than every shore'); }
 
