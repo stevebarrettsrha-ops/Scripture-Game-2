@@ -12234,7 +12234,10 @@ function priceAt(profile,gi){
    deal (the stall, the probe and the driven test all ask it), and the
    sell is clamped a shekel under the buy. */
 function spreadOf(p,sea){
-  const buy=sea?Math.round(p*1.15):p;
+  /* — and the merchantman always charges over the shore: at a two-shekel
+     good his fifteen percent rounded to nothing, and test 65 read him
+     trading no worse than the land */
+  const buy=sea?Math.max(p+1,Math.round(p*1.15)):p;
   const sell=Math.max(1,Math.min(buy-1,Math.round(p*(sea?0.75:0.85))));
   return {buy,sell};
 }

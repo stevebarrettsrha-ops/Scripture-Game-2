@@ -5395,6 +5395,10 @@ T[65]={name:'THE TRADE, MEASURED — no market mints coins, the far land pays, t
       if(Math.abs(m0-1)>1e-9) faults.push('an unknown name already pays '+m0);
       if(Math.abs(m20-1.12)>1e-9) faults.push('twenty points pay x'+m20+' against the declared 0.6% a point');
       if(Math.abs(m50-1.30)>1e-9||Math.abs(m99-1.30)>1e-9) faults.push('the ladder does not cap at +30%: '+m50+' / '+m99);
+      /* the fish is sold from an ordinary name, not from the cap probe's 99
+         — addRep clamps to 50, and the first cut of this read "-49 points"
+         for a sale the engine handled rightly */
+      D.setRep(pr,7);
       D.openTradeAt(pr,false); const r0=D.marketAt(pr).rep; D.state.fish=1; D.tradeAct('f');
       if(D.marketAt(pr).rep!==r0+1) faults.push('a fish sold earned '+(D.marketAt(pr).rep-r0)+' points, not 1');
       D.closeTrade(); D.setRep(pr,0);
@@ -5402,7 +5406,8 @@ T[65]={name:'THE TRADE, MEASURED — no market mints coins, the far land pays, t
 
     /* ---- 5 · THE SEA IS DEARER ---- */
     { const pr=profiles[5], M=D.marketAt(pr); let bad=0;
-      for(let gi=0;gi<goods.length;gi++){ if(!(M.seaGoods[gi].buy>M.goods[gi].buy&&M.seaGoods[gi].sell<M.goods[gi].sell)) bad++; }
+      /* the sell floor is one shekel; at it, sea and shore must be level */
+      for(let gi=0;gi<goods.length;gi++){ if(!(M.seaGoods[gi].buy>M.goods[gi].buy&&(M.seaGoods[gi].sell<M.goods[gi].sell||M.seaGoods[gi].sell===1))) bad++; }
       if(bad) faults.push('the merchantman traded no worse than the shore for '+bad+' goods');
       reads.push('the hailed merchantman buys dearer and pays worse than every shore'); }
 
