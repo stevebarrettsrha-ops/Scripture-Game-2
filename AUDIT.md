@@ -9051,6 +9051,58 @@ rightly clamped to 50 — it sells from an ordinary name now.
 by design). State to beat was 59 · 0 · 4 on 63 tests; this is 65, with the greetings and the
 market among them, and tests 63 and 64 green inside the same run.
 
+## 4cx. Round 99 — the catch is the sea's own: the rod draws what swims this water ✅
+
+*The banner's next seam after the market: `…trade → fishing → the spear…`. What the rod
+actually did, read before a line changed: the catch was drawn from a literal of eight names —
+`FISH_NAMES`, at js/engine.js:12491, and they are Galilee and river fish: a bream, a mullet, a
+carp, a musht, a barbel — at random, at every water on earth. Cast off Greenland and draw up a
+musht. Meanwhile the sea knew exactly what swims where, in three registers, and the rod read
+none of them: the shoal bands (themselves an engine literal, the same shape `GOODS` had been),
+the `realm:'sea'` creature files placed by world/fauna.js, and the SEA table of habits in
+js/behavior.js.*
+
+Two moves, the round-shape Round 98 set:
+
+- **The nations of fish are data — `world/waters.js`.** The seven shoaling kinds moved out of
+  the engine with no number changed, each with the latitude band, soundings, tightness and
+  pace it always had; and the rod's old eight are honestly re-homed as **the inshore catch of
+  the coasts** — names with waters, not schools, no creature file asked for — each given its
+  own band at last (the musht keeps warm water). One registrar, `EARTH.shoal`, a list and a
+  push; the manifest appended.
+- **`catchAt(x,z)`** — one function says what a cast at a spot may draw: any nation, shoaling
+  or inshore, whose band covers that latitude, and nothing else. `reelIn` asks it, the toast
+  names the species, `state.lastCatch` remembers it, and the `FISH_NAMES` literal is deleted.
+  The monger's trade is untouched: a fish is a fish at the stall, and the creel is still a
+  count.
+
+**Test 66** reads every expectation off the table's own bands, not names it knows: 480 draws
+over eight latitudes, every one a nation of that water; the far north and the equator offer
+different catches (salmon, cod and herring there; sardine, tuna and anchovy here — read from
+the data, reported by name); **a band widened in the table widens the catch and narrows back
+when restored** — the table rules, not constants; and one real cast is driven through the rod
+to a real creel. Its first run left the driven cast unfired — it looked 400 units about the
+village and Yasharal keeps no shore that near — and marches to the sea now, eight rays to the
+horizon, standing on the last land before the water.
+
+### The readings
+
+**PASS 66 · THE CATCH IS THE SEA'S OWN** —
+
+> 17 nations in the table · 480 draws over 8 latitudes, every one a nation of that water · the seas differ: 3 nations of the north the equator lacks (salmon, cod, herring), 11 the other way (sardine, tuna, anchovy) · a band widened in the table widened the catch at 72° from 3 to 4 and back · a real cast drew a carp from its own water, and the creel holds it
+
+**The injection**: the literal put back (`flatCatch` — the catch ignoring latitude) read
+**78 unlawful draws of 160, the first a mullet at 72°** — the warm-water mullet off Greenland
+that was every cast's lot before this round. Regressions 44 and 65 green beside it (55 pends
+by design).
+
+### The suite
+
+**62 pass · 0 fail · 4 pending on `8695705`** (50, 53, 54, 55 — the beast measures that pend
+by design). State to beat was 61 · 0 · 4 on 65 tests; this is 66. The suite's own test 66 ran
+the earlier cut whose driven cast could not find the shore; the reading above, with the cast
+driven to the creel, is the same engine run standalone straight after.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
