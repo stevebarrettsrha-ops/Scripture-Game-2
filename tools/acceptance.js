@@ -5336,6 +5336,74 @@ T[64]={name:'THE GREETINGS — each trade hails in its own words, the sleeping a
     return {ok:!faults.length, got:reads.join(' · ')+(faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
+T[65]={name:'THE TRADE, MEASURED — no market mints coins, the far land pays, the prices are the table\'s, and the catch builds a name',
+  /* THE FAULT THIS GUARDS. The trade of the seas has stood since the coins
+     were minted — eight goods, a price factor per land, a reputation ladder
+     — and not one of the sixty-four tests before this ever read a price.
+     Its header's own promise, "buy where a thing is cheap, bear it over the
+     deep, and sell where it is dear", was never checked, and its arithmetic
+     lived inline in a DOM click handler where nothing but a click could
+     reach it. The goods are data now (world/goods.js) and every expectation
+     here is READ OFF THAT TABLE: add a ware or change a base and this test
+     changes its mind with it. The cycle guard does not trust the
+     arithmetic, it DRIVES a real buy and a real sell through tradeAct —
+     the same function the button calls — and reads the purse. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    if(!D.marketAt||!D.tradeAct) return {pending:'no market probes (Round 98)'};
+    const goods=(window.EARTH&&EARTH.goodList)||[];
+    if(!goods.length) return {ok:false,got:'the goods registry is empty'};
+    const faults=[], reads=[];
+    const profiles=[]; for(let i=0;i<24;i++) profiles.push(i*7+1);
+
+    /* ---- 1 · NO MARKET MINTS COINS: the spread, then a driven cycle ---- */
+    { let bad=0;
+      for(const pr of profiles){ const M=D.marketAt(pr);
+        for(const g of M.goods) if(g.sell>=g.buy) { bad++; faults.push(g.k+' at market '+pr+' sells for '+g.sell+' against a buy of '+g.buy); break; } }
+      D.openTradeAt(profiles[0],false);
+      const coins0=D.state.coins=500; D.state.cargo={};
+      D.tradeAct('b',0); D.tradeAct('s',0); D.closeTrade();
+      if(D.state.coins>=coins0) faults.push('a driven buy-and-sell-back GREW the purse: '+coins0+' -> '+D.state.coins);
+      reads.push('no mint: '+profiles.length+' markets x '+goods.length+' goods, sell < buy at every one; a driven cycle cost '+(coins0-D.state.coins)+' shekels'); }
+
+    /* ---- 2 · THE FAR LAND PAYS: the promise of the header ---- */
+    { const routes=[]; let broken=0;
+      for(let gi=0;gi<goods.length;gi++){
+        let minBuy=1e9,maxSell=0;
+        for(const pr of profiles){ const M=D.marketAt(pr);
+          minBuy=Math.min(minBuy,M.goods[gi].buy); maxSell=Math.max(maxSell,M.goods[gi].sell); }
+        if(maxSell<=minBuy){ broken++; faults.push('no route pays for '+goods[gi].k+': best sell '+maxSell+' against cheapest buy '+minBuy); }
+        else routes.push(goods[gi].k+' +'+(maxSell-minBuy)); }
+      reads.push('the far land pays for '+(goods.length-broken)+' of '+goods.length+' goods ('+routes.join(', ')+')'); }
+
+    /* ---- 3 · PRICES ARE THE TABLE'S, within the declared 0.6-1.6 band ---- */
+    { let out=0;
+      for(const pr of profiles){ const M=D.marketAt(pr);
+        for(let gi=0;gi<goods.length;gi++){ const b=goods[gi].base, p=M.goods[gi].buy;
+          if(p<Math.floor(b*0.6)||p>Math.ceil(b*1.6)+1) { out++; faults.push(goods[gi].k+' at '+pr+' priced '+p+' outside '+b+'x[0.6,1.6]'); } } }
+      reads.push('every price inside its base\'s declared band'); }
+
+    /* ---- 4 · THE CATCH BUILDS A NAME, on the declared ladder ---- */
+    { const pr=profiles[3]; D.setRep(pr,0);
+      const m0=D.marketAt(pr).mult; D.setRep(pr,20); const m20=D.marketAt(pr).mult;
+      D.setRep(pr,50); const m50=D.marketAt(pr).mult; D.setRep(pr,99); const m99=D.marketAt(pr).mult;
+      if(Math.abs(m0-1)>1e-9) faults.push('an unknown name already pays '+m0);
+      if(Math.abs(m20-1.12)>1e-9) faults.push('twenty points pay x'+m20+' against the declared 0.6% a point');
+      if(Math.abs(m50-1.30)>1e-9||Math.abs(m99-1.30)>1e-9) faults.push('the ladder does not cap at +30%: '+m50+' / '+m99);
+      D.openTradeAt(pr,false); const r0=D.marketAt(pr).rep; D.state.fish=1; D.tradeAct('f');
+      if(D.marketAt(pr).rep!==r0+1) faults.push('a fish sold earned '+(D.marketAt(pr).rep-r0)+' points, not 1');
+      D.closeTrade(); D.setRep(pr,0);
+      reads.push('the ladder: x1 unknown, x1.12 at 20, capped x1.30 at 50 and beyond; a fish sold earns its point'); }
+
+    /* ---- 5 · THE SEA IS DEARER ---- */
+    { const pr=profiles[5], M=D.marketAt(pr); let bad=0;
+      for(let gi=0;gi<goods.length;gi++){ if(!(M.seaGoods[gi].buy>M.goods[gi].buy&&M.seaGoods[gi].sell<M.goods[gi].sell)) bad++; }
+      if(bad) faults.push('the merchantman traded no worse than the shore for '+bad+' goods');
+      reads.push('the hailed merchantman buys dearer and pays worse than every shore'); }
+
+    return {ok:!faults.length, got:goods.length+' goods · '+reads.join(' · ')+(faults.length?' · FAULTS: '+faults.slice(0,6).join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

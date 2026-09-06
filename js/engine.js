@@ -12222,7 +12222,9 @@ const GOODS=(window.EARTH&&EARTH.goodList&&EARTH.goodList.length)?EARTH.goodList
   :[{k:'grain',n:'Grain',base:4}];   /* a world with no goods file still boots to sell fish */
 const CARGO_MAX=24;
 function cargoCount(){ let n=0; for(const k in state.cargo) n+=state.cargo[k]; return n; }
-function priceAt(profile,gi){ const f=0.6+hash2(profile*3.7+gi*13.1, profile*7.3-gi*2.9);   /* 0.6 .. 1.6 */
+function priceAt(profile,gi){
+  if(window.__INJECT&&__INJECT.flatPrices) return GOODS[gi].base;   /* the fault put back: every land the same */
+  const f=0.6+hash2(profile*3.7+gi*13.1, profile*7.3-gi*2.9);   /* 0.6 .. 1.6 */
   return Math.max(1,Math.round(GOODS[gi].base*f)); }
 function fishPriceAt(profile){ return Math.max(2,Math.round(5*(0.7+hash2(profile*5.1,profile*2.3)*0.8))); }
 function pearlPriceAt(profile){ return Math.max(25,Math.round(45*(0.7+hash2(profile*7.7,profile*3.1)*0.9))); }
@@ -12291,7 +12293,8 @@ function tradeAct(a,gi){
   else { const g=GOODS[gi], p=priceAt(tradeProfile,gi);
     if(a==='b'){ const buy=tradeSea?Math.round(p*1.15):p;
       if(state.coins>=buy&&cargoCount()<CARGO_MAX){ state.coins-=buy; state.cargo[g.k]=(state.cargo[g.k]||0)+1; } }
-    else { const sell=Math.max(1,tradeSea?Math.round(p*0.75):Math.round(p*0.85));
+    else { const m=(window.__INJECT&&__INJECT.mintSpread)?1.15:(tradeSea?0.75:0.85);   /* the fault put back: sell over buy */
+      const sell=Math.max(1,Math.round(p*m));
       if((state.cargo[g.k]||0)>0){ state.cargo[g.k]--; if(!state.cargo[g.k]) delete state.cargo[g.k]; state.coins+=sell; } } }
 }
 $('trade-rows').addEventListener('click',e=>{
