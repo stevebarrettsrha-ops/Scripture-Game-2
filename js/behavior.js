@@ -278,16 +278,27 @@ butterfly:{perch:'flower',night:'sit',  fish:false, flock:false},
              watch  stood looking out — at the sea, the road, the flock
              play   the children, and any grown soul at leisure */
 const FOLK={
-farmer:  {rise:5.5, bed:20.0, work:0.72, pace:7,   rest:13.0, acts:[['tend',4],['eat',3],['rest',2],['talk',2],['pray',1]]},
-herder:  {rise:5.0, bed:20.5, work:0.70, pace:7.5, rest:13.5, acts:[['watch',5],['tend',3],['eat',2],['rest',2],['talk',1]]},
-fisher:  {rise:4.5, bed:19.5, work:0.75, pace:6.5, rest:null, acts:[['tend',5],['watch',3],['eat',2],['talk',1]]},
-hunter:  {rise:4.5, bed:21.0, work:0.68, pace:8,   rest:null, acts:[['watch',5],['tend',3],['eat',2],['rest',1]]},
-water:   {rise:5.5, bed:19.5, work:0.66, pace:6,   rest:13.0, acts:[['carry',5],['talk',3],['rest',2],['eat',2]]},
-feeder:  {rise:5.5, bed:19.5, work:0.64, pace:6.5, rest:13.0, acts:[['tend',5],['eat',2],['talk',2],['rest',1]]},
-vendor:  {rise:6.5, bed:20.0, work:0.78, pace:6,   rest:null, acts:[['talk',5],['eat',2],['rest',2],['watch',1]]},
-shopper: {rise:7.0, bed:20.5, work:0.40, pace:6.5, rest:null, acts:[['talk',5],['carry',3],['watch',2],['eat',2],['rest',1]]},
-teacher: {rise:6.0, bed:21.0, work:0.60, pace:5.5, rest:13.0, acts:[['talk',4],['pray',3],['rest',2],['eat',2]]},
-child:   {rise:6.5, bed:19.0, work:0.20, pace:8.5, rest:13.5, acts:[['play',8],['eat',2],['watch',1],['talk',1]]},
+farmer:  {rise:5.5, bed:20.0, work:0.72, pace:7,   rest:13.0, acts:[['tend',4],['eat',3],['rest',2],['talk',2],['pray',1]],
+          greet:'The earth gives in her season, friend.'},
+herder:  {rise:5.0, bed:20.5, work:0.70, pace:7.5, rest:13.5, acts:[['watch',5],['tend',3],['eat',2],['rest',2],['talk',1]],
+          greet:'Mind the flock — they scatter for strangers.'},
+fisher:  {rise:4.5, bed:19.5, work:0.75, pace:6.5, rest:null, acts:[['tend',5],['watch',3],['eat',2],['talk',1]],
+          greet:'The fish bite well today.'},
+hunter:  {rise:4.5, bed:21.0, work:0.68, pace:8,   rest:null, acts:[['watch',5],['tend',3],['eat',2],['rest',1]],
+          greet:'Softly, friend — there is game about.'},
+water:   {rise:5.5, bed:19.5, work:0.66, pace:6,   rest:13.0, acts:[['carry',5],['talk',3],['rest',2],['eat',2]],
+          greet:'Sweet water, drawn this hour.'},
+feeder:  {rise:5.5, bed:19.5, work:0.64, pace:6.5, rest:13.0, acts:[['tend',5],['eat',2],['talk',2],['rest',1]],
+          greet:'Mind your step — the hens are underfoot.'},
+vendor:  {rise:6.5, bed:20.0, work:0.78, pace:6,   rest:null, acts:[['talk',5],['eat',2],['rest',2],['watch',1]],
+          greet:'Fresh wares, friend — come and see!'},
+shopper: {rise:7.0, bed:20.5, work:0.40, pace:6.5, rest:null, acts:[['talk',5],['carry',3],['watch',2],['eat',2],['rest',1]],
+          greet:'Have you seen the prices at the stalls today?'},
+teacher: {rise:6.0, bed:21.0, work:0.60, pace:5.5, rest:13.0, acts:[['talk',4],['pray',3],['rest',2],['eat',2]],
+          greet:'Peace, traveller. The children are at their letters.'},
+child:   {rise:6.5, bed:19.0, work:0.20, pace:8.5, rest:13.5, acts:[['play',8],['eat',2],['watch',1],['talk',1]],
+          greet:'Come and play! You cannot catch me!',
+          greetLesson:'Shh — the teacher is looking!'},
 };
 
 /* ================= THE FISH OF THE SEA, AND THEIR WORK =================
@@ -534,6 +545,10 @@ window.BEHAVIOR={
   folkResting:(role,h)=>{ const f=FOLK[role]; if(!f||f.rest==null) return false;
     return h>=f.rest&&h<f.rest+1.1; },
   folkPaceOf:(role,fb)=>{ const f=FOLK[role]; return (f&&f.pace)||fb; },
+  /* the trade's own word to a passing traveller — null for a role with no
+     row, and the child at the lesson has a hushed one of its own */
+  folkGreet:(role,atLesson)=>{ const f=FOLK[role]; if(!f) return null;
+    return (atLesson&&f.greetLesson)||f.greet||null; },
   /* draw one piece of a soul's own small business, by weight */
   drawFolkAct:(role,r)=>{ const f=FOLK[role]; if(!f||!f.acts||!f.acts.length) return null;
     let w=0; for(const a of f.acts) w+=a[1];

@@ -5282,6 +5282,60 @@ T[63]={name:'THE DOOR AND THE HEARTH — a soul opens its own door and shuts it 
         (faults.length?' · FAULTS: '+faults.join(' · '):'')};
   })};
 
+T[64]={name:'THE GREETINGS — each trade hails in its own words, the sleeping are passed over, and a child at the lesson keeps its voice down',
+  /* THE FAULT THIS GUARDS. GREETS_ROLE carried four lines for eleven roles
+     and lived in the engine, against the rule that the village reads each
+     trade's habits from js/behavior.js; and greetTick hailed ANY visible
+     soul in reach — one lying abed barked its market cry in its sleep, and
+     a child sat at the lesson called the traveller to tag across the class
+     (both stand in plain view since Round 96 put the village to bed).
+     EVERY LINE ASSERTED IS READ OFF THE FOLK TABLE, not typed here: change
+     a trade's greet in js/behavior.js and this test changes its mind. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, BH=window.BEHAVIOR;
+    if(!D.barks||!BH||!BH.folkGreet) return {pending:'no barks probe / folkGreet (Round 97)'};
+    const v=await D.standInVillage(); if(!v) return {ok:false,got:'no town would stand'};
+    let F=D.villageFolk(); if(!F||!F.people.length) return {ok:false,got:'a town with nobody in it'};
+    const site=F.site, faults=[], reads=[];
+    const frames=async n=>{ for(let f=0;f<n;f++) await new Promise(r=>requestAnimationFrame(r)); };
+    /* stand the traveller beside a soul and read what is barked at him */
+    const standBy=async(pick,hour,n)=>{ D.setLocalHour(hour,site.x,site.z); await frames(10);
+      const P=D.villageFolk().people, e=P.find(pick); if(!e) return {none:true};
+      const seen=new Map();
+      for(let f=0;f<n;f++){ D.state.walk.x=e.x+5; D.state.walk.z=e.z;
+        await frames(1);
+        for(const b of D.barks()) seen.set(b.name+'|'+b.line,b); }
+      return {e,barks:[...seen.values()]}; };
+
+    /* ---- 1 · THE SLEEPING ARE PASSED OVER ---- */
+    { const r=await standBy(e=>e.lying,1.0,150);
+      if(r.none) faults.push('no soul lay down to test the silence');
+      else { const own=r.barks.filter(b=>b.name===r.e.name);
+        if(own.length) faults.push('a sleeping soul barked: '+own.map(b=>b.line).join(' / '));
+        reads.push('a sleeping '+r.e.role+' held its peace '+150+' frames'); } }
+
+    /* ---- 2 · THE LESSON KEEPS ITS VOICE DOWN ---- */
+    { const r=await standBy(e=>e.child&&e.anim==='sit',10.0,150);
+      if(r.none) reads.push('no child sat at the lesson (not judged)');
+      else { const loud=r.barks.filter(b=>b.role==='child'&&/play|catch/i.test(b.line));
+        if(loud.length) faults.push('a child at the lesson called the traveller to play');
+        reads.push('the lesson: '+(r.barks.filter(b=>b.role==='child').map(b=>'"'+b.line+'"').join(', ')||'hushed')); } }
+
+    /* ---- 3 · EACH TRADE IN ITS OWN WORDS, off the table ---- */
+    { let seenOwn=0, tried=0;
+      for(const role of ['farmer','herder','teacher','feeder']){
+        const r=await standBy(e=>e.role===role&&e.awake&&!e.lying,10.0,140);
+        if(r.none) continue; tried++;
+        const want=BH.folkGreet(role,false);
+        if(r.barks.some(b=>b.name===r.e.name&&b.line===want)) seenOwn++;
+        else if(r.barks.some(b=>b.name===r.e.name)) faults.push(role+' hailed with a stranger\'s words: '+r.barks.filter(b=>b.name===r.e.name).map(b=>b.line).join(' / ')); }
+      if(tried&&!seenOwn) faults.push('no trade hailed in its own words in '+tried+' tried');
+      reads.push(seenOwn+' of '+tried+' trades hailed in their own words off the table'); }
+
+    D.setLocalHour(12,site.x,site.z);
+    return {ok:!faults.length, got:reads.join(' · ')+(faults.length?' · FAULTS: '+faults.join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

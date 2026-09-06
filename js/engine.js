@@ -16249,13 +16249,13 @@ function barkAt(ent,text){
   g.fillStyle='#f0e8d2'; g.textAlign='center'; g.textBaseline='middle';
   g.fillText(text,256,47);
   b.tex.needsUpdate=true;
-  b.ent=ent; b.t=0; b.dur=3.4;
+  b.ent=ent; b.t=0; b.dur=3.4; b.line=text;
   b.sp.scale.set(26*(wpx/512)+8,6,1);
   b.sp.visible=true;
 }
 const GREETS_DAY=['Shalom, traveller.','Peace be upon you.','Fair winds brought you in?','A good day under the sun.','You are welcome in this place.'];
 const GREETS_NIGHT=['A quiet night, friend.','Peace to you, night-walker.','The lamps are lit — rest well.'];
-const GREETS_ROLE={vendor:'Fresh wares, friend — come and see!',child:'Come and play! You cannot catch me!',fisher:'The fish bite well today.',water:'Sweet water, drawn this hour.'};
+
 let greetScanT=0;
 function greetTick(dt,nightF){
   greetScanT-=dt;
@@ -16269,11 +16269,19 @@ function greetTick(dt,nightF){
   const now=performance.now()*0.001, w=state.walk;
   for(const [,vv] of activeVillages){ if(vv.none||!vv.people) continue;
     for(const p of vv.people){ if(!p.m||!p.m.visible) continue;
+      /* ---- SILENCE FOR THE SLEEPING (Round 97) ----
+         a soul lying abed used to bark its market cry at a passer-by; the
+         sleeping are passed over, and a child sat at the lesson keeps its
+         voice down instead of calling the traveller to tag */
+      if(!(window.__INJECT&&__INJECT.barkAtSleepers)&&(p._lying||p.anim==='sleep')) continue;
       const d=Math.hypot(p.m.position.x-w.x,p.m.position.z-w.z);
       if(d>3&&d<9&&(!p.greetT||now-p.greetT>40)){
         p.greetT=now;
-        const line=GREETS_ROLE[p.role]||(nightF>0.5?GREETS_NIGHT[Math.floor(Math.random()*GREETS_NIGHT.length)]
-                                                    :GREETS_DAY[Math.floor(Math.random()*GREETS_DAY.length)]);
+        /* each trade's own word lives in js/behavior.js, on its FOLK row */
+        const own=(window.__INJECT&&__INJECT.dumbTrades)?null
+          :window.BEHAVIOR&&BEHAVIOR.folkGreet?BEHAVIOR.folkGreet(p.role,p.role==='child'&&p.anim==='sit'):null;
+        const line=own||(nightF>0.5?GREETS_NIGHT[Math.floor(Math.random()*GREETS_NIGHT.length)]
+                                    :GREETS_DAY[Math.floor(Math.random()*GREETS_DAY.length)]);
         barkAt(p,line);
         return; } } }
 }
@@ -17002,6 +17010,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
     const g=groundInfo(x,z,refY); const solid=[]; const h0=c?c.h:0;
     for(let iy=h0-2;iy<=h0+7;iy++) if(blockSolidAt(ix,iy,iz)){ const b=blockAt(ix,iy,iz); solid.push(iy+':'+(typeof blockName==='function'?blockName(b):b)); }
     return {h:h0,kind:c&&c.kind,y:g.y,ceil:g.ceil,land:g.land,edited:!!g.edited,solidCourses:solid}; },
+  barks:()=>BARKS.filter(b=>b.ent).map(b=>({role:b.ent.role,name:b.ent.name,line:b.line||''})),
   toolSpeedOf:id=>toolSpeed(BLOCK_BY_ID[id]),
   /* the save, driven and read back, so a test need not guess at its timing */
   saveNow:()=>saveState(),
