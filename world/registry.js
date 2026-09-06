@@ -29,7 +29,7 @@ window.EARTH={
   list:[], verseList:[], riverList:[], cityList:[], landmarkList:[],
   deepList:[], holeList:[], sceneList:[], scrollList:[], beastList:[],
   faunaList:[], floraList:[], cropList:[], mineralList:[], workList:[], blockList:[],
-  waterfallList:[], placeList:[], goodList:[],
+  waterfallList:[], placeList:[], goodList:[], shoalList:[],
 
   country:function(c){this.list.push(c);},
   verses:function(v){this.verseList=v;},
@@ -49,6 +49,8 @@ window.EARTH={
   place:function(p){this.placeList.push(p);},
   /* the goods of the trade of the seas — see world/goods.js */
   good:function(g){this.goodList.push(g);},
+  /* the nations of fish, shoaling and inshore — see world/waters.js */
+  shoal:function(s){this.shoalList.push(s);},
   /* the trenches of the sea, each at its true sounding — see world/deeps.js */
   deep:function(d){this.deepList.push(d);},
   /* the blue holes: sheer shafts sunk in the reefs — see world/deeps.js */

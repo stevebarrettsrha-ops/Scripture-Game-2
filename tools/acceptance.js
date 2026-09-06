@@ -5417,6 +5417,77 @@ T[65]={name:'THE TRADE, MEASURED — no market mints coins, the far land pays, t
     return {ok:!faults.length, got:goods.length+' goods · '+reads.join(' · ')+(faults.length?' · FAULTS: '+faults.slice(0,6).join(' · '):'')};
   })};
 
+T[66]={name:'THE CATCH IS THE SEA\'S OWN — what comes up on the line swims in this water, read off the world\'s roster',
+  /* THE FAULT THIS GUARDS. The rod's catch was a literal of eight names —
+     Galilee and river fish — drawn at random at every water on earth: cast
+     off Greenland and draw up a musht. The sea knew what swims where all
+     along (the shoal bands of world/waters.js, once a literal themselves)
+     and the rod read none of it. EVERY EXPECTATION HERE IS READ OFF THE
+     TABLE: the lawful set at a spot is recomputed from EARTH.shoalList's own
+     bands, so widen a band in world/waters.js and this test follows it. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    if(!D.catchKindsAt||!D.castProbe) return {pending:'no catch probes (Round 99)'};
+    const all=(window.EARTH&&EARTH.shoalList)||[];
+    if(!all.length) return {ok:false,got:'the waters registry is empty'};
+    const faults=[], reads=[];
+    if(!D.rWorld) return {pending:'no rWorld probe'};
+    /* the spot that lies at latitude L, on the x axis — the catch tables are
+       pure functions of place, sea or not: lat = 90 - (r/R_WORLD)*180 */
+    const spotAt=lat=>({x:(90-lat)/180*D.rWorld, z:0});
+
+    /* ---- 1 · THE DRAW OBEYS THE BAND, at eight latitudes ---- */
+    { let draws=0, unlawful=0;
+      for(const lat of [72,60,45,30,10,0,-20,-45]){
+        const {x,z}=spotAt(lat);
+        const lawful=new Set(D.catchKindsAt(x,z));
+        /* the lawful set itself, checked against the data's own bands */
+        const fromData=new Set(all.filter(k=>lat>=k.lat[0]&&lat<=k.lat[1]).map(k=>k.name));
+        if(lawful.size!==fromData.size||[...lawful].some(n=>!fromData.has(n)))
+          faults.push('the lawful set at '+lat+'° does not match the table\'s bands');
+        for(let d=0;d<60;d++){ draws++;
+          const name=D.castProbe(x,z).replace(/^an? /,'');
+          if(!lawful.has(name)){ unlawful++; if(unlawful<3) faults.push('"'+name+'" drawn at '+lat+'°, where the table gives it no water'); } } }
+      reads.push(draws+' draws over 8 latitudes, every one a nation of that water'); }
+
+    /* ---- 2 · THE SEAS DIFFER ---- */
+    { const north=new Set(D.catchKindsAt(spotAt(66).x,0)), eq=new Set(D.catchKindsAt(spotAt(0).x,0));
+      const onlyN=[...north].filter(n=>!eq.has(n)), onlyE=[...eq].filter(n=>!north.has(n));
+      if(!onlyN.length||!onlyE.length) faults.push('the far north and the equator offer the same catch');
+      reads.push('the seas differ: '+onlyN.length+' nations of the north the equator lacks ('+onlyN.slice(0,3).join(', ')+'), '+onlyE.length+' the other way ('+onlyE.slice(0,3).join(', ')+')'); }
+
+    /* ---- 3 · THE TABLE RULES: widen a band in the data, the set follows ---- */
+    { const {x,z}=spotAt(72); const before=D.catchKindsAt(x,z).length;
+      const tuna=all.find(k=>k.name==='tuna'); const keep=tuna.lat; tuna.lat=[-90,90];
+      const after=D.catchKindsAt(x,z).length; tuna.lat=keep;
+      if(after!==before+1) faults.push('a band widened in the table did not widen the catch ('+before+' -> '+after+')');
+      reads.push('a band widened in the table widened the catch at 72° from '+before+' to '+after+' and back'); }
+
+    /* ---- 4 · A REAL CAST LANDS A LAWFUL FISH, and the monger's count still grows ---- */
+    { const v=await D.standInVillage();
+      const w=D.state.walk, fish0=D.state.fish||0;
+      /* stand at the water's edge: walk outward from the village until the
+         cast is allowed, trying headings toward the sea */
+      let cast=false;
+      outer:
+      for(let r2=0;r2<400;r2+=12) for(let a=0;a<12;a++){
+        const th=a/12*6.283;
+        w.x=v.x+Math.cos(th)*r2; w.z=v.z+Math.sin(th)*r2; w.heading=th; w.feetY=undefined;
+        if(D.canFishHere&&D.canFishHere()){ cast=true; break outer; } }
+      if(!cast) reads.push('no shore in reach of the village (the cast not driven; the draws above cover the law)');
+      else { D.startFishing(); D.state.fishing.phase='bite';
+        D.reelIn();
+        const name=(D.state.lastCatch||'').replace(/^an? /,'');
+        const lawful=new Set(D.catchKindsAt(w.x,w.z));
+        if(!name) faults.push('a driven cast landed nothing');
+        else if(!lawful.has(name)) faults.push('a driven cast landed "'+name+'", no nation of this water');
+        if((D.state.fish||0)!==fish0+1) faults.push('the catch did not reach the creel: '+fish0+' -> '+(D.state.fish||0));
+        D.endFishing(true);
+        reads.push('a real cast drew '+(D.state.lastCatch||'?')+' from its own water, and the creel holds it'); } }
+
+    return {ok:!faults.length, got:all.length+' nations in the table · '+reads.join(' · ')+(faults.length?' · FAULTS: '+faults.slice(0,6).join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.
