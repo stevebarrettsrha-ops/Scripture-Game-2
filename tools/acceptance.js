@@ -5528,8 +5528,15 @@ T[67]={name:'THE SPEAR HAS CONSEQUENCE — a cast is true, the village remembers
        a position sampled before the walk over, and a sheep at its own pace
        steps out of a 3.4-unit arc in the meantime — the cast read clean
        misses and the test blamed the spear */
-    const castAt=async(bx,bz)=>{
-      w.x=bx-14; w.z=bz; w.feetY=undefined; await frames(5);
+    /* — and stood LEVEL with the quarry. The village is terraced; a stance
+       fourteen units west of a hare grounded the traveller three courses up,
+       and the spear flew twenty-seven units over its head (the flight is
+       honest — a man on a bank cannot hit what stands far below with a flat
+       cast). Eight stances round the beast are tried for one on its floor. */
+    const castAt=async(bx,bz,by)=>{
+      for(let a=0;a<8;a++){ const th=a/8*6.283;
+        w.x=bx+Math.sin(th)*13; w.z=bz+Math.cos(th)*13; w.feetY=undefined; await frames(5);
+        if(by===undefined||Math.abs((w.feetY||0)-by)<=4) break; }
       w.heading=Math.atan2(bx-w.x,bz-w.z);
       D.throwSpear();
       for(let f=0;f<80&&D.spearState().active;f++) await frames(1);
@@ -5537,7 +5544,7 @@ T[67]={name:'THE SPEAR HAS CONSEQUENCE — a cast is true, the village remembers
     /* a moving beast is cast at afresh each try, up to four tries */
     const hunt=async pick=>{ for(let t=0;t<4;t++){
         const VB=D.villageBeasts(); const b=VB&&VB.beasts.find(pick); if(!b) return false;
-        const g0=D.state.game||0; await castAt(b.x,b.z);
+        const g0=D.state.game||0; await castAt(b.x,b.z,b.y);
         if((D.state.game||0)===g0+1) return true; await frames(6); }
       return false; };
 
