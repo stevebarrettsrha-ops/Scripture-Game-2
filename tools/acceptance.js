@@ -5431,6 +5431,7 @@ T[66]={name:'THE CATCH IS THE SEA\'S OWN — what comes up on the line swims in 
     const all=(window.EARTH&&EARTH.shoalList)||[];
     if(!all.length) return {ok:false,got:'the waters registry is empty'};
     const faults=[], reads=[];
+    const frames=async n=>{ for(let f=0;f<n;f++) await new Promise(r=>requestAnimationFrame(r)); };
     if(!D.rWorld) return {pending:'no rWorld probe'};
     /* the spot that lies at latitude L, on the x axis — the catch tables are
        pure functions of place, sea or not: lat = 90 - (r/R_WORLD)*180 */
@@ -5471,13 +5472,24 @@ T[66]={name:'THE CATCH IS THE SEA\'S OWN — what comes up on the line swims in 
          driven cast never fired. Eight rays out to the horizon find the
          water's edge; the traveller stands on the last land before it,
          facing out */
+      /* the shore is found PROCEDURALLY (cellRaw — no chunks asked), because
+         landAtWorld answers null for unloaded land exactly as for sea, and
+         the first march stopped at the edge of the loaded ring on every ray
+         and called it water. The traveller is then walked there, the chunks
+         brought up, and only then is the cast asked for. */
+      const B2=6, seaAt=(x,z)=>{ const c=D.cellRaw(Math.floor(x/B2),Math.floor(z/B2)); return !c||c.kind==='sea'; };
       let cast=false;
       for(let a=0;a<8&&!cast;a++){ const th=a/8*6.283, dx=Math.sin(th), dz=Math.cos(th);
-        for(let r2=24;r2<6000;r2+=24){ const x=v.x+dx*r2, z=v.z+dz*r2;
-          if(!D.landAtWorld(x,z)){
-            for(let back=r2;back>r2-30;back-=3){ const bx=v.x+dx*(back-14), bz=v.z+dz*(back-14);
-              if(D.landAtWorld(bx,bz)){ w.x=bx; w.z=bz; w.heading=th; w.feetY=undefined;
-                if(D.canFishHere&&D.canFishHere()){ cast=true; } break; } }
+        for(let r2=24;r2<20000;r2+=24){ const x=v.x+dx*r2, z=v.z+dz*r2;
+          if(seaAt(x,z)){
+            let bx=x-dx*18, bz=z-dz*18;
+            if(!seaAt(bx,bz)){
+              w.x=bx; w.z=bz; w.heading=th; w.feetY=undefined;
+              D.updateChunks(w.x,w.z,220);
+              for(let f=0;f<40;f++) await frames(1);
+              for(let nudge=0;nudge<8&&!cast;nudge++){
+                if(D.canFishHere&&D.canFishHere()) cast=true;
+                else { w.x+=dx*2; w.z+=dz*2; w.feetY=undefined; await frames(2); } } }
             break; } } }
       if(!cast) reads.push('no shore in reach of the village (the cast not driven; the draws above cover the law)');
       else { D.startFishing(); D.state.fishing.phase='bite';

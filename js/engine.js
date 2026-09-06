@@ -17057,6 +17057,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   catchKindsAt:(x,z)=>catchKindsAt(x,z),
   castProbe:(x,z)=>catchAt(x,z),
   rWorld:R_WORLD,
+  cellRaw:(ix,iz)=>cellRaw(ix,iz),
   canFishHere:()=>canFishHere(),
   startFishing:()=>startFishing(),
   reelIn:()=>reelIn(),
