@@ -5505,6 +5505,78 @@ T[66]={name:'THE CATCH IS THE SEA\'S OWN — what comes up on the line swims in 
     return {ok:!faults.length, got:all.length+' nations in the table · '+reads.join(' · ')+(faults.length?' · FAULTS: '+faults.slice(0,6).join(' · '):'')};
   })};
 
+T[67]={name:'THE SPEAR HAS CONSEQUENCE — a cast is true, the village remembers its own, the wolf\'s death buys goodwill, and the pelt sells',
+  /* THE FAULT THIS GUARDS. Not one of the sixty-six tests before this ever
+     threw the spear. A village's own penned sheep fell to it exactly as a
+     wild hare did — the beast vanished, the tally grew, and nobody in the
+     village minded — while AUDIT §5.3 had designed the consequence the day
+     the audit was written: "spear a village's penned beast and the vendor's
+     prices turn against you; drive off a wolf and they improve." And the
+     wolf toast's "the pelt is yours" bought nothing: state.game was read by
+     the save and one HUD line and nothing else, ever.
+     THE COSTS ARE READ OFF THE ENGINE'S OWN DECLARATION (spearCosts), not
+     numbers this test knows; the sale is proved by driving the purse. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    if(!D.throwSpear||!D.spearCosts||!D.villageBeasts) return {pending:'no spear probes (Round 100)'};
+    const v=await D.standInVillage(); if(!v) return {ok:false,got:'no town would stand'};
+    const faults=[], reads=[], costs=D.spearCosts();
+    const frames=async n=>{ for(let f=0;f<n;f++) await new Promise(r=>requestAnimationFrame(r)); };
+    const w=D.state.walk;
+    /* stand before a beast and cast along the gaze until the spear rests */
+    const castAt=async(bx,bz)=>{ const dx=bx-20, dz=bz;
+      w.x=dx; w.z=dz; w.heading=Math.atan2(bx-dx,bz-dz); w.feetY=undefined; await frames(4);
+      D.throwSpear();
+      for(let f=0;f<80&&D.spearState().active;f++) await frames(1);
+      return D.spearState(); };
+
+    /* ---- 1+2 · THE VILLAGE'S OWN, AND THE VILLAGE MINDS ---- */
+    { const VB=D.villageBeasts(); if(!VB||!VB.beasts.length) return {ok:false,got:'a village with no beasts'};
+      const flock=VB.beasts.find(b=>b.kind!=='wolf'); if(!flock) return {ok:false,got:'no flock beast to judge'};
+      const game0=D.state.game||0, rep0=(D.state.rep&&D.state.rep[VB.vi])||0;
+      D.setRep(VB.vi,20);
+      const n0=VB.beasts.length;
+      await castAt(flock.x,flock.z);
+      const VB2=D.villageBeasts(), rep2=(D.state.rep&&D.state.rep[VB.vi])||0;
+      if((D.state.game||0)!==game0+1) faults.push('the cast took no beast (game '+game0+' -> '+(D.state.game||0)+')');
+      if(VB2.beasts.length!==n0-1) faults.push('the herd did not shrink: '+n0+' -> '+VB2.beasts.length);
+      if(rep2!==20-costs.flock) faults.push('the village\'s grudge read '+(20-rep2)+' points against the declared '+costs.flock);
+      reads.push('a driven cast took a '+flock.kind+' of the village\'s own; the tally grew, the herd shrank, and the market\'s ledger fell by the declared '+costs.flock); }
+
+    /* ---- 3 · THE WOLF BUYS GOODWILL ---- */
+    { const VB=D.villageBeasts(); const wolf=VB&&VB.beasts.find(b=>b.kind==='wolf');
+      if(!wolf) reads.push('no wolf stood in this village (not judged)');
+      else { D.setRep(VB.vi,20); await castAt(wolf.x,wolf.z);
+        const rep2=(D.state.rep&&D.state.rep[VB.vi])||0;
+        if(rep2!==20+costs.wolf) faults.push('the wolf\'s death moved the ledger by '+(rep2-20)+' against the declared +'+costs.wolf);
+        else reads.push('the wolf slain among the flocks earned the declared +'+costs.wolf); } }
+
+    /* ---- 4 · A CAST AT EMPTY GROUND PLANTS THE SPEAR ---- */
+    { const game0=D.state.game||0;
+      const VB=D.villageBeasts(); let ex=10,ez=10;
+      for(let a=0;a<16;a++){ const th=a/16*6.283, x=w.x+Math.sin(th)*60, z=w.z+Math.cos(th)*60;
+        if(!VB.beasts.some(b=>Math.hypot(b.x-x,b.z-z)<25)){ ex=x; ez=z; break; } }
+      await castAt(ex,ez);
+      const st=D.spearState();
+      if((D.state.game||0)!==game0) faults.push('a cast at empty ground took game');
+      if(st.active||st.stick<=0) faults.push('the spear neither rests nor stands planted (active '+st.active+', stick '+st.stick.toFixed(1)+')');
+      reads.push('a cast at empty ground planted the spear ('+st.stick.toFixed(1)+'s in the earth) and took nothing'); }
+
+    /* ---- 5 · THE PELT SELLS, and the empty bag refuses ---- */
+    { const VB=D.villageBeasts(); D.setRep(VB.vi,0);
+      D.state.game=3; const coins0=D.state.coins, M=D.marketAt(VB.vi);
+      D.openTradeAt(VB.vi,false); D.tradeAct('g');
+      if(D.state.game!==2) faults.push('the sale did not take from the bag: 3 -> '+D.state.game);
+      if(D.state.coins!==coins0+M.game) faults.push('the pelt paid '+(D.state.coins-coins0)+' against the market\'s '+M.game);
+      if(((D.state.rep&&D.state.rep[VB.vi])||0)!==1) faults.push('the sale earned no point of the name');
+      D.state.game=0; const c2=D.state.coins; D.tradeAct('g');
+      if(D.state.coins!==c2) faults.push('an empty bag still paid');
+      D.closeTrade();
+      reads.push('the pelt sold for the market\'s own '+M.game+', earned its point, and an empty bag refused'); }
+
+    return {ok:!faults.length, got:reads.join(' · ')+(faults.length?' · FAULTS: '+faults.slice(0,6).join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

@@ -12240,12 +12240,23 @@ function repOf(profile){ return (state.rep&&state.rep[profile])||0; }
 function repMult(profile){ return 1+Math.min(50,repOf(profile))*0.006; }
 function repTier(profile){ const r=repOf(profile);
   return r>=40?'honoured':r>=25?'trusted':r>=10?'known':null; }
+/* ---- THE SPEAR HAS CONSEQUENCE (Round 100) ----
+   AUDIT §5.3 designed it the day the audit was written and no wire was ever
+   run: a village's own penned beast fell to the spear and nobody minded,
+   and the wolf toast's "the flock is safe" bought nothing. The village's
+   market is its country's, and its reputation is the one ledger the
+   traveller already carries there — so the spear writes it: */
+const REP_SPEAR_FLOCK=6;   /* what spearing a village's own beast costs at its market */
+const REP_SPEAR_WOLF=3;    /* what a wolf slain among the flocks earns there */
 function addRep(profile,n){ if(tradeSea) return; state.rep=state.rep||{};
-  const before=repOf(profile), after=Math.min(50,before+n); state.rep[profile]=after;
+  const before=repOf(profile), after=Math.max(0,Math.min(50,before+n)); state.rep[profile]=after;
   const tiers=[[40,'Your name is honoured at this market \u2014 top silver for your catch.'],
     [25,'You are a trusted fisher at this market \u2014 better prices for fish and pearls.'],
     [10,'Your catch is getting known here \u2014 the mongers pay a little better.']];
-  for(const[t2,msg] of tiers){ if(before<t2&&after>=t2){ toast(msg); break; } } }
+  if(n>=0){ for(const[t2,msg] of tiers){ if(before<t2&&after>=t2){ toast(msg); break; } } }
+  else { for(const[t2] of tiers){ if(before>=t2&&after<t2){ toast('Your name has fallen at this market \u2014 the mongers pay you less.'); break; } } } }
+function gamePriceAt(profile){ return Math.max(4,Math.round(8*(0.7+hash2(profile*4.3,profile*6.1)*0.8))); }
+function gameSellPrice(){ return Math.max(3,Math.round(gamePriceAt(tradeProfile)*(tradeSea?1:repMult(tradeProfile)))); }
 function fishSellPrice(){ return Math.max(2,Math.round(fishPriceAt(tradeProfile)*(tradeSea?1:repMult(tradeProfile)))); }
 function pearlSellPrice(){ return Math.max(15,Math.round(pearlPriceAt(tradeProfile)*(tradeSea?0.75:repMult(tradeProfile)))); }
 let tradeOpen=false, tradeProfile=0, tradeTitle='', tradeSea=false, tradeAnchor=null, tradeShip=null;
@@ -12284,6 +12295,10 @@ function renderTrade(){
   tr2.innerHTML='<td class="g">Fish (your catch)</td><td class="r">held '+(state.fish||0)+'</td><td class="r"></td>'+
     '<td class="r"><button class="tbtn" data-a="f" '+((state.fish||0)<1?'disabled':'')+'>sell '+fp+'</button></td>';
   T.appendChild(tr2);
+  const gp=gameSellPrice(), trg=document.createElement('tr');
+  trg.innerHTML='<td class="g">Game of the spear</td><td class="r">held '+(state.game||0)+'</td><td class="r"></td>'+
+    '<td class="r"><button class="tbtn" data-a="g" '+((state.game||0)<1?'disabled':'')+'>sell '+gp+'</button></td>';
+  T.appendChild(trg);
   const pp=pearlSellPrice(), tr3=document.createElement('tr');
   tr3.innerHTML='<td class="g">Pearls of the deep</td><td class="r">held '+(state.pearls||0)+'</td><td class="r"></td>'+
     '<td class="r"><button class="tbtn" data-a="e" '+((state.pearls||0)<1?'disabled':'')+'>sell '+pp+'</button></td>';
@@ -12294,6 +12309,7 @@ function renderTrade(){
    instead of trusting the arithmetic it cannot reach in a click handler */
 function tradeAct(a,gi){
   if(a==='f'){ if((state.fish||0)>0){ state.fish--; state.coins+=fishSellPrice(); addRep(tradeProfile,1); } }
+  else if(a==='g'){ if((state.game||0)>0){ state.game--; state.coins+=gameSellPrice(); addRep(tradeProfile,1); } }
   else if(a==='e'){ if((state.pearls||0)>0){ state.pearls--; state.coins+=pearlSellPrice(); addRep(tradeProfile,3); } }
   else { const g=GOODS[gi], p=priceAt(tradeProfile,gi), sp=spreadOf(p,tradeSea);
     if(a==='b'){ if(state.coins>=sp.buy&&cargoCount()<CARGO_MAX){ state.coins-=sp.buy; state.cargo[g.k]=(state.cargo[g.k]||0)+1; } }
@@ -12655,14 +12671,14 @@ function spearHitDeep(){
 }
 function spearHit(){
   const near=(x,z)=>Math.hypot(x-spear.x,z-spear.z)<3.4;
-  for(const[,vv] of activeVillages){ if(vv.none||!vv.beasts) continue;
+  for(const[vi,vv] of activeVillages){ if(vv.none||!vv.beasts) continue;
     for(let k=0;k<vv.beasts.length;k++){ const b=vv.beasts[k];
       if(!BEAST_PREY.has(b.kind)&&b.kind!=='deer'&&b.kind!=='wolf') continue;
       if(near(b.m.position.x,b.m.position.z)&&Math.abs(b.m.position.y+3-spear.y)<8){
         b.m.visible=false; vv.g.remove(b.m); vv.beasts.splice(k,1);
-        return b.kind; } } }
+        return {kind:b.kind,village:vi}; } } }               /* whose beast fell matters now */
   for(const a of LANDLIFE){ if(!a.set||(!AMBIENT_PREY.has(a.kind)&&a.kind!=='wolf'&&a.kind!=='lion')) continue;
-    if(near(a.x,a.z)&&Math.abs(a.m.position.y+3-spear.y)<9){ a.set=false; a.m.visible=false; return a.kind; } }
+    if(near(a.x,a.z)&&Math.abs(a.m.position.y+3-spear.y)<9){ a.set=false; a.m.visible=false; return {kind:a.kind,village:null}; } }
   return null;
 }
 function spearTick(dt){
@@ -12697,8 +12713,13 @@ function spearTick(dt){
     } else {
       const kill=spearHit();
       if(kill){ state.game=(state.game||0)+1; spear.active=false; spear.stick=1.4;
-        toast(kill==='wolf'?'Your spear finds the wolf — the flock is safe, and the pelt is yours. Game taken: '+state.game+'.'
-          :'Your spear finds the '+kill+' — game taken for the voyage: '+state.game+'.');
+        if(kill.kind==='wolf'){
+          toast('Your spear finds the wolf — the flock is safe, and the pelt is yours. Game taken: '+state.game+'.');
+          if(kill.village!==null&&!(window.__INJECT&&__INJECT.noGrudge)) addRep(kill.village,REP_SPEAR_WOLF); }
+        else if(kill.village!==null&&!(window.__INJECT&&__INJECT.noGrudge)){
+          toast('Your spear finds the '+kill.kind+' — but it was the village\'s own, and the village saw. Your name is worth less at this market.');
+          addRep(kill.village,-REP_SPEAR_FLOCK); }
+        else toast('Your spear finds the '+kill.kind+' — game taken for the voyage: '+state.game+'.');
         saveState(); break; }
       const gy=groundInfo(spear.x,spear.z);
       if(spear.y<=(gy.land?gy.y:WATER_Y)+0.4){
@@ -17048,7 +17069,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
       return {k:g.k,n:g.n,base:g.base,buy:sp.buy,sell:sp.sell}; }),
     seaGoods:GOODS.map((g,gi)=>{ const sp=spreadOf(priceAt(profile,gi),true);
       return {k:g.k,buy:sp.buy,sell:sp.sell}; }),
-    fish:fishPriceAt(profile),pearl:pearlPriceAt(profile),rep:repOf(profile),mult:repMult(profile)}),
+    fish:fishPriceAt(profile),game:gamePriceAt(profile),pearl:pearlPriceAt(profile),rep:repOf(profile),mult:repMult(profile)}),
   openTradeAt:(profile,sea)=>openTrade(profile,'a probe\'s market',!!sea),
   tradeAct:(a,gi)=>tradeAct(a,gi),
   closeTrade:()=>closeTrade(),
@@ -17059,6 +17080,14 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   rWorld:R_WORLD,
   cellRaw:(ix,iz)=>cellRaw(ix,iz),
   canFishHere:()=>canFishHere(),
+  throwSpear:()=>throwSpear(),
+  spearState:()=>({active:spear.active,x:spear.x,y:spear.y,z:spear.z,stick:spear.stick}),
+  spearCosts:()=>({flock:REP_SPEAR_FLOCK,wolf:REP_SPEAR_WOLF}),
+  villageBeasts:()=>{ let best=null,bd=1e18; const p=playerXZ();
+    for(const[vi,vv] of activeVillages){ if(vv.none||!vv.beasts||!vv.site) continue;
+      const d=(vv.site.x-p.x)**2+(vv.site.z-p.z)**2; if(d<bd){ bd=d; best={vi,vv}; } }
+    if(!best) return null;
+    return {vi:best.vi,beasts:best.vv.beasts.map(b=>({kind:b.kind,x:b.m.position.x,y:b.m.position.y,z:b.m.position.z}))}; },
   startFishing:()=>startFishing(),
   reelIn:()=>reelIn(),
   endFishing:q=>endFishing(q),
