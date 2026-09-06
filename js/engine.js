@@ -12216,10 +12216,10 @@ function updateVillages(px,pz,dt,nightF,dayF){
    Every market prices its wares by its own land (a fixed factor per land and
    good): buy where a thing is cheap, bear it over the deep in the hold, and
    sell where it is dear. Fish of your own catching sell at every market. */
-const GOODS=[
-  {k:'grain',n:'Grain',base:4},{k:'oil',n:'Olive oil',base:9},{k:'wine',n:'Wine',base:12},
-  {k:'salt',n:'Salt',base:6},{k:'cedar',n:'Cedar wood',base:14},{k:'cloth',n:'Fine cloth',base:18},
-  {k:'spice',n:'Spices',base:26},{k:'dye',n:'Purple dye',base:34}];
+/* the wares are DATA — world/goods.js declares them, this only reads them
+   (Round 98; they were a literal here from the day the trade was built) */
+const GOODS=(window.EARTH&&EARTH.goodList&&EARTH.goodList.length)?EARTH.goodList
+  :[{k:'grain',n:'Grain',base:4}];   /* a world with no goods file still boots to sell fish */
 const CARGO_MAX=24;
 function cargoCount(){ let n=0; for(const k in state.cargo) n+=state.cargo[k]; return n; }
 function priceAt(profile,gi){ const f=0.6+hash2(profile*3.7+gi*13.1, profile*7.3-gi*2.9);   /* 0.6 .. 1.6 */
@@ -12282,16 +12282,21 @@ function renderTrade(){
     '<td class="r"><button class="tbtn" data-a="e" '+((state.pearls||0)<1?'disabled':'')+'>sell '+pp+'</button></td>';
   T.appendChild(tr3);
 }
-$('trade-rows').addEventListener('click',e=>{
-  const b=e.target.closest('button'); if(!b||b.disabled) return;
-  const a=b.dataset.a;
+/* ONE hand on every deal — the button and the acceptance suite call the
+   same function (the setDoor pattern), so a test can drive a real trade
+   instead of trusting the arithmetic it cannot reach in a click handler */
+function tradeAct(a,gi){
   if(a==='f'){ if((state.fish||0)>0){ state.fish--; state.coins+=fishSellPrice(); addRep(tradeProfile,1); } }
   else if(a==='e'){ if((state.pearls||0)>0){ state.pearls--; state.coins+=pearlSellPrice(); addRep(tradeProfile,3); } }
-  else { const gi=+b.dataset.g, g=GOODS[gi], p=priceAt(tradeProfile,gi);
+  else { const g=GOODS[gi], p=priceAt(tradeProfile,gi);
     if(a==='b'){ const buy=tradeSea?Math.round(p*1.15):p;
       if(state.coins>=buy&&cargoCount()<CARGO_MAX){ state.coins-=buy; state.cargo[g.k]=(state.cargo[g.k]||0)+1; } }
     else { const sell=Math.max(1,tradeSea?Math.round(p*0.75):Math.round(p*0.85));
       if((state.cargo[g.k]||0)>0){ state.cargo[g.k]--; if(!state.cargo[g.k]) delete state.cargo[g.k]; state.coins+=sell; } } }
+}
+$('trade-rows').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b||b.disabled) return;
+  tradeAct(b.dataset.a,+b.dataset.g);
   renderTrade();
 });
 $('trade-close').addEventListener('click',closeTrade);
@@ -17011,6 +17016,18 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
     for(let iy=h0-2;iy<=h0+7;iy++) if(blockSolidAt(ix,iy,iz)){ const b=blockAt(ix,iy,iz); solid.push(iy+':'+(typeof blockName==='function'?blockName(b):b)); }
     return {h:h0,kind:c&&c.kind,y:g.y,ceil:g.ceil,land:g.land,edited:!!g.edited,solidCourses:solid}; },
   barks:()=>BARKS.filter(b=>b.ent).map(b=>({role:b.ent.role,name:b.ent.name,line:b.line||''})),
+  /* the market, read as the stall shows it — buy and sell per good at a
+     land profile, with the fish, the pearl and the reputation ladder */
+  marketAt:profile=>({goods:GOODS.map((g,gi)=>{ const p=priceAt(profile,gi);
+      return {k:g.k,n:g.n,base:g.base,buy:p,sell:Math.max(1,Math.round(p*0.85))}; }),
+    seaGoods:GOODS.map((g,gi)=>{ const p=priceAt(profile,gi);
+      return {k:g.k,buy:Math.round(p*1.15),sell:Math.max(1,Math.round(p*0.75))}; }),
+    fish:fishPriceAt(profile),pearl:pearlPriceAt(profile),rep:repOf(profile),mult:repMult(profile)}),
+  openTradeAt:(profile,sea)=>openTrade(profile,'a probe\'s market',!!sea),
+  tradeAct:(a,gi)=>tradeAct(a,gi),
+  closeTrade:()=>closeTrade(),
+  setRep:(profile,n)=>{ state.rep=state.rep||{}; state.rep[profile]=n; },
+  goodsCount:()=>GOODS.length,
   toolSpeedOf:id=>toolSpeed(BLOCK_BY_ID[id]),
   /* the save, driven and read back, so a test need not guess at its timing */
   saveNow:()=>saveState(),

@@ -566,6 +566,7 @@ const FILES=[
   'blocks/iron.js',
   'blocks/iron-pick.js',
   /* the bench's own work (§17.5) — appended, same append-only rule */
+  'world/goods.js',   /* the wares of the trade (Round 98) — appended, same append-only rule */
   'blocks/panel.js',
   'blocks/carved-panel.js',
   'js/engine.js',
