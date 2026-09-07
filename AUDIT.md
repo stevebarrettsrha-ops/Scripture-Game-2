@@ -9103,12 +9103,71 @@ by design). State to beat was 61 · 0 · 4 on 65 tests; this is 66. The suite's 
 the earlier cut whose driven cast could not find the shore; the reading above, with the cast
 driven to the creel, is the same engine run standalone straight after.
 
+## 4cy. Round 100 — the spear has consequence: the village remembers, and the pelt is worth silver ✅
+
+*The banner's seam after fishing. Not one of the sixty-six tests before this round ever threw
+the spear. A village's own penned sheep fell to it exactly as a wild hare did — the beast
+vanished, `state.game` grew, and nobody in the village minded — while AUDIT §5.3 had designed
+the consequence the day the audit was written: "spear a village's penned beast and the
+vendor's prices turn against you; drive off a wolf and they improve." And the wolf toast's
+"the pelt is yours" bought nothing: the game tally was read by the save and one HUD line and
+nothing else, ever.*
+
+The machinery was all standing — reputation per market since the fish rounds, measured in
+§4cw; a stall's profile is its country's index; a village is keyed by the same index — and
+the wire was never run. Now:
+
+- **`spearHit` says whose beast fell.** A kill spliced from a village's own herd costs the
+  traveller **six points of his name at that village's market** (`REP_SPEAR_FLOCK`, declared
+  beside the ladder it bends), with its own toast; a **wolf slain among the flocks earns
+  three** (`REP_SPEAR_WOLF`) — "the flock is safe" means something at last; a wild beast far
+  from any village stays free game. `addRep` takes a fall now — floored at nought, with a
+  falling-tier warning to mirror the rising ones.
+- **The pelt is worth silver.** A *Game of the spear* row stands at every market beside the
+  fish — `gamePriceAt`, the fish-price shape at a base of eight — sells one, pays, earns its
+  point of the name; the empty bag refuses.
+
+**Test 67** drives everything it asserts: a real cast along the gaze takes a beast of the
+village's own (the tally grows, the herd shrinks, the ledger falls by the *declared* cost,
+read off `spearCosts()` and never a number the test knows); the wolf's death earns its
+declared goodwill; a cast at empty ground plants the spear and takes nothing; the pelt sells
+for the market's own price by a driven purse, and an empty bag refuses.
+
+### The readings
+
+**PASS 67 · THE SPEAR HAS CONSEQUENCE**, standalone twice and inside the suite:
+
+> a driven cast took a beast of the village's own; the tally grew, the herd shrank, and the market's ledger fell by the declared 6 · no wolf stood in this village (not judged) · a cast at empty ground planted the spear (5.0s in the earth) and took nothing · the pelt sold for the market's own 6, earned its point, and an empty bag refused
+
+**The injection** (`noGrudge` — the consequence skipped): the driven kill landed and the
+ledger **did not move** — reputation 20 before and after against a declared cost of 6, where
+the mended engine reads 14. The injection probe itself was convicted twice on the way, of the
+same two faults as the test: its first cast aimed at a position sampled before the walk over
+(a sheep steps out of a 3.4-unit arc in the meantime), and its second stood on a terrace
+three courses above the hare, the spear passing twenty-seven units over its head — the flight
+honest both times, the stance bad. The hunter aims at the throw and stands level with his
+quarry now, in test and probe alike. Regressions 18, 38 and 65 green beside it.
+
+**And the first full suite convicted a child, rightly**: one still at the lesson at quarter
+past three — a child that drew its lesson task at ten-to-one could walk there on a long
+budget and sit through the act past any hold. School is out at one now: a child in the lesson
+pose outside lesson hours takes stock and draws afresh, the same rule Round 95 gave the
+waking soul. That suite read **62 pass · 1 fail · 4 pending** on `8ffd460` and stands in the
+record.
+
+### The suite
+
+**63 pass · 0 fail · 4 pending on `efc1975`** (50, 53, 54, 55 — the beast measures that pend
+by design). State to beat was 62 · 0 · 4 on 66 tests; this is 67, and the suite before it —
+62 · 1 · 4, the one failure the child the bell mend answered — stands above.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
 2. **Port fees and rare goods** — one land-exclusive good per region for long routes.
-3. **Reputation with villages** — spear a village's penned beast and the vendor's
-   prices turn against you; drive off a wolf and they improve.
+3. **Reputation with villages** — ✅ *paid in its spear half, Round 100 (§4cy)*: the
+   penned beast slain costs the name, the wolf slain among the flocks earns it. The
+   gentler half — a wolf *driven off* unspeared — stays future.
 4. **Deeper quests** — a villager asks for a good from a named far land; deliver for a
    reward and a verse.
 5. **Small-island real data** (50 m coastlines) if charted, nameable islands are wanted

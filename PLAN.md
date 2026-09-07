@@ -1675,3 +1675,15 @@ the data and the catch following, one real cast driven to the creel, and the lit
 back reading a mullet at 72°.
 
 - **The suite.** 62 pass · 0 fail · 4 pending on `8695705` (state to beat 61 · 0 · 4 on 65 tests; this is 66).
+
+## 25. The spear has consequence — ✅ *Round 100*
+
+The banner's spear seam, and §5.3 of AUDIT's own recommendations paid in its spear half: a
+village's penned beast slain costs the declared six points of the traveller's name at that
+village's market, a wolf slain among the flocks earns three, game sells at every market
+beside the fish, and the falling name warns as the rising one always did. Test 67 drives
+the cast, the grudge, the goodwill, the planted miss and the sale; the costs are read off
+the engine's declaration. AUDIT §4cy has the full record. Quests and the wolf *driven off*
+unspeared (§5.3's gentler half) stay future.
+
+- **The suite.** 63 pass · 0 fail · 4 pending on `efc1975` (state to beat 62 · 0 · 4 on 66 tests; this is 67).
