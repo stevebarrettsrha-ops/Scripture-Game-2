@@ -5596,6 +5596,73 @@ T[67]={name:'THE SPEAR HAS CONSEQUENCE — a cast is true, the village remembers
     return {ok:!faults.length, got:reads.join(' · ')+(faults.length?' · FAULTS: '+faults.slice(0,6).join(' · '):'')};
   })};
 
+T[68]={name:'THE WONDERS STAND WHERE THE SCROLL SAYS — one of every kind of the ancients\' works rises at its true place, and the city of the great king keeps her hill',
+  /* THE FAULT THIS GUARDS. world/landmarks.js declares fifty-nine landmarks
+     at their true latitudes — twenty-six of them built structures across
+     nine builder kinds, raised twice on approach (triangles for the far
+     silhouette, blocks in the streamed ring) — and ZERO of the sixty-seven
+     tests before this read a block of any of them. A builder could silently
+     stop building and the suite stayed green: the exact fault test 56
+     caught for the authored places, never guarded for the wonders. And
+     Yahrushalayim, set down once at 31.78°N, had no test in her streets.
+     EVERYTHING EXPECTED IS READ OFF EARTH.landmarkList and the engine's own
+     site and state — no coordinate or count is typed here. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=6;
+    if(!D.landmarks||!D.landmarkState||!D.standAt||!D.yahru) return {pending:'no wonder probes (Round 101)'};
+    const LM=(window.EARTH&&EARTH.landmarkList)||[];
+    if(!LM.length) return {ok:false,got:'the scroll of landmarks is empty'};
+    const faults=[], reads=[];
+    const frames=async n=>{ for(let f=0;f<n;f++) await new Promise(r=>requestAnimationFrame(r)); };
+    const BUILT=['pyramid','ziggurat','temple','stonecircle','wall','lighthouse','gate','city','statue'];
+
+    /* the tallest built rise near a spot: the highest edited-solid course
+       above the natural ground, read off the columns about it */
+    const riseAt=(x,z,R)=>{ let best=0;
+      for(let dx=-R;dx<=R;dx+=2) for(let dz=-R;dz<=R;dz+=2){
+        const c=D.columnAt(x+dx*B,z+dz*B,0); if(!c||!c.solidCourses.length) continue;
+        const tops=c.solidCourses.map(sc=>parseInt(sc)).filter(n=>!isNaN(n));
+        if(tops.length) best=Math.max(best,Math.max(...tops)-c.h); }
+      return best; };
+
+    /* ---- 1 · ONE OF EVERY KIND rises at its place ---- */
+    { const list=D.landmarks(); const heights=[];
+      for(const kind of BUILT){
+        const e=list.find(l=>l.kind===kind); if(!e){ reads.push('no '+kind+' in the scroll (not judged)'); continue; }
+        const site=D.landmarkSiteOf(e.i);
+        if(!site){ faults.push(e.n+' resolves to no ground'); continue; }
+        await D.standAt(site.x+B*3,site.z+B*3);
+        let st=null; for(let f=0;f<120;f++){ await frames(1); st=D.landmarkState(e.i); if(st.spawned&&(st.hasBlocks||st.none)) break; }
+        if(!st||!st.spawned||st.none){ faults.push('nothing stands at '+e.n); continue; }
+        if(!st.hasBlocks||st.solids<1){ faults.push(e.n+' spawned with no blocks and no stones of its own'); continue; }
+        const rise=riseAt(site.x,site.z,10);
+        if(rise<2) faults.push(e.n+' rises only '+rise+' courses over its ground');
+        if(!st.hasFar&&!st.hasBlocks) faults.push(e.n+' has neither far silhouette nor blocks');
+        heights.push(kind+' '+rise); }
+      reads.push('the works of the ancients, each risen at its true place (courses over the ground): '+heights.join(', ')); }
+
+    /* ---- 2 · THE SCROLL WRITES THE WORLD: an entry removed is a wonder unlisted ---- */
+    { const n0=D.landmarks().length; const cut=EARTH.landmarkList.pop();
+      const n1=D.landmarks().length; EARTH.landmarkList.push(cut);
+      if(n1!==n0-1) faults.push('an entry cut from the scroll still stands in the listing');
+      else reads.push('an entry cut from the scroll ('+cut.n+') left the listing, and returned'); }
+
+    /* ---- 3 · YAHRUSHALAYIM KEEPS HER HILL ---- */
+    { const Y=D.yahru();
+      if(!Y) faults.push('the city of the great king has no place');
+      else { /* her spot agrees with the declared lat/lon by the engine's own formula */
+        const lat=31.78, lon=35.23, r=(90-lat)/180;
+        const wx=r*Math.sin(lon*Math.PI/180)*D.rWorld, wz=r*Math.cos(lon*Math.PI/180)*D.rWorld;
+        const off=Math.hypot(Y.x-wx,Y.z-wz);
+        if(off>40*B) faults.push('the city stands '+(off/B).toFixed(0)+' blocks from her declared place');
+        await D.standAt(Y.x+B*4,Y.z+B*4); await frames(20);
+        const rise=riseAt(Y.x,Y.z,12);
+        if(rise<3) faults.push('the city rises only '+rise+' courses');
+        else reads.push('Yahrushalayim keeps her hill, '+(off/B).toFixed(1)+' blocks from her declared spot, her walls '+rise+' courses over the ground'); } }
+
+    return {ok:!faults.length, got:LM.length+' entries in the scroll · '+reads.join(' · ')+(faults.length?' · FAULTS: '+faults.slice(0,6).join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.
