@@ -11972,6 +11972,11 @@ function personTick(ent,vv,dt){
   if(ent._wasAbed&&!ent._abed){ ent.actT=undefined; ent.acting=false; ent.act=null; }   /* and takes stock */
   ent._wasAbed=ent._abed;
   if(ent.role==='folk'||!ent.role){ if(ent.anim==='home') ent.anim='idle'; wanderTick(ent,site,dt,pace); return; }
+  /* school is OUT at one: a child that drew its lesson task at ten-to-one
+     could still be walking there and sitting through it at three (a long
+     walk's budget plus the act ran past any hold), and test 62 caught one
+     at the lesson at quarter past. The bell rings: task re-drawn. */
+  if(ent.role==='child'&&ent.anim==='sit'&&!(hour>=8&&hour<13)){ ent.actT=undefined; ent.acting=false; ent.act=null; }
   const px=ent.m.position.x, pz=ent.m.position.z;
   if(ent.actT===undefined){ nextTask(ent,vv);
     /* ---- AND A WALK HAS A BUDGET (Round 95) ----
