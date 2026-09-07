@@ -13356,6 +13356,8 @@ function seacavePass(px,pz){
 }
 function spawnLandmark(i){
   const L=LANDMARKS[i], site=landmarkSite(i);
+  /* the fault put back for test 68: a builder that silently stops building */
+  if(window.__INJECT&&__INJECT.noWonders&&L.kind!=='mount'&&L.kind!=='range'&&L.kind!=='falls'){ activeLandmarks.set(i,{none:true}); return; }
   if(!site){ activeLandmarks.set(i,{none:true}); return; }
   const y=topY(site.ix,site.iz), x=site.x, z=site.z;
   let g=null, gStruct=null, stamp=null;
@@ -17085,6 +17087,20 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   rWorld:R_WORLD,
   cellRaw:(ix,iz)=>cellRaw(ix,iz),
   canFishHere:()=>canFishHere(),
+  /* the wonders, for test 68: the scroll's entries, each spawned one's state,
+     the city of the great king, and a general stand-anywhere */
+  landmarks:()=>LANDMARKS.map((L,i)=>({i,n:L.n,kind:L.kind,lat:L.lat,lon:L.lon})),
+  landmarkSiteOf:i=>landmarkSite(i),
+  landmarkState:i=>{ const A=activeLandmarks.get(i);
+    if(!A) return {spawned:false};
+    return {spawned:true,none:!!A.none,hasFar:!!A.g,hasBlocks:!!A.stamp,
+      solids:A.solids?A.solids.length:0,x:A.x,z:A.z}; },
+  yahru:()=>yahruPos?{x:yahruPos.x,z:yahruPos.z}:null,
+  standAt:async(x,z)=>{ state.walk.x=x; state.walk.z=z; state.walk.feetY=undefined; setMode('walk');
+    for(let k=0;k<400;k++){ updateChunks(state.walk.x,state.walk.z,400);
+      await new Promise(r=>requestAnimationFrame(r));
+      if(k>10&&!buildQueue.length){ flushEdits(1e9); await new Promise(r=>requestAnimationFrame(r)); return k; } }
+    return -1; },
   throwSpear:()=>throwSpear(),
   spearState:()=>({active:spear.active,x:spear.x,y:spear.y,z:spear.z,stick:spear.stick}),
   spearCosts:()=>({flock:REP_SPEAR_FLOCK,wolf:REP_SPEAR_WOLF}),
