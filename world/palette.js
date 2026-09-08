@@ -120,7 +120,10 @@ function shade(c,f){ return [clamp(c[0]*f),clamp(c[1]*f),clamp(c[2]*f)]; }
 function lift(c,t){ return mix(c,[255,255,255],t); }
 /* and one more, which matters more here than any of them: pull a colour
    toward the warm or the cold WITHOUT changing how bright it is. The whole
-   difference between a limestone country and a granite one is this. */
+   difference between a limestone country and a granite one is this.
+   AND SAID PLAINLY (Round 102's sweep): nothing calls it yet — the
+   limestone-against-granite grading it was written for has not been done.
+   It stays for the round that does it. */
 function warm(c,t){ return [clamp(c[0]+t*26),clamp(c[1]+t*6),clamp(c[2]-t*22)]; }
 
 /* ---------------- THE BLOCKS OF THE EARTH ----------------

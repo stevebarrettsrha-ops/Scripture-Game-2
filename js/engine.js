@@ -3123,6 +3123,25 @@ function blockSownAt(ix,iy,iz){
   const e=editAt(ix,iy,iz);
   return !!(e&&BLOCKS[e]&&BLOCKS[e].sown);
 }
+/* ---- A BLOCK THAT DECLARES LIGHT CASTS IT (Round 102) ----
+   THE FAULT THIS MENDS, found by the inert sweep: the registry parsed a
+   block's `light` and nothing anywhere read it back — the kiln's own file
+   says `light:9, it is burning` and a built kiln stood dark from the day
+   the fire was lit. A lit block laid by the hand registers a glow now, the
+   village torches' own sprite burning by night, and loses it when broken.
+   The one door below is the one place laying and breaking both pass. */
+const LITGLOWS=new Map();
+function litKey(ix,iy,iz){ return ix+','+iy+','+iz; }
+function litSet(ix,iy,iz,def){
+  if(window.__INJECT&&__INJECT.dimBlocks) return;
+  const k=litKey(ix,iy,iz); if(LITGLOWS.has(k)) return;
+  const gm=new THREE.SpriteMaterial({map:glowTexCv,transparent:true,opacity:0,depthWrite:false});
+  const gs=new THREE.Sprite(gm); gs.scale.set(3+def.light*2.6,3+def.light*2.6,1);
+  gs.position.set((ix+0.5)*B,(iy+1.1)*B,(iz+0.5)*B); scene.add(gs);
+  LITGLOWS.set(k,{mat:gm,sp:gs,light:def.light,x:(ix+0.5)*B,y:(iy+0.5)*B,z:(iz+0.5)*B});
+}
+function litClear(ix,iy,iz){ const k=litKey(ix,iy,iz); const L=LITGLOWS.get(k); if(!L) return;
+  scene.remove(L.sp); L.mat.map=null; L.mat.dispose(); LITGLOWS.delete(k); }
 /* ---- THE ONE DOOR ----
    World coordinates in, because everything that will ever call it — the
    hand, a falling block, a stamped house — thinks in the world and not in
@@ -3150,6 +3169,8 @@ function setBlock(wx,wy,wz,n){
      would come back out of the ground. The cell is the hand's now. */
   if(n&&WEDITS.size){ const wm=WEDITS.get(key);
     if(wm&&wm.delete(idx)&&!wm.size) WEDITS.delete(key); }
+  { const def=n&&BLOCKS[n];   /* the light of the thing laid, or of the thing gone */
+    if(def&&def.light>0) litSet(ix,iy,iz,def); else litClear(ix,iy,iz); }
   EDIT_TOUCHED=true; EDIT_DIRTY.add(key); EDIT_SAVE.add(key); editsTouch(); editColumnsChanged();
   /* ---- AND THE WORLD PUTS ITSELF RIGHT (§11 step 8) ----
      A cell that has just been EMPTIED is the only thing either rule cares
@@ -12205,6 +12226,7 @@ function updateVillages(px,pz,dt,nightF,dayF){
     if(vv.birds) for(const bd of vv.birds) birdTick(bd,dt);
     for(const tm of vv.torchMats) tm.opacity=nightF*0.85;
   }
+  for(const L of LITGLOWS.values()) L.mat.opacity=nightF*0.85;   /* the kilns burn by night too */
   doorTick(dt);
   promptTick();
 }
@@ -16708,6 +16730,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      Round 102's sweep, after a label here credited the suite with a read
      it never makes); they stay for the probing hand */
   editDirtySize:()=>EDIT_DIRTY.size,remeshes:()=>REMESHES,
+  litGlows:()=>[...LITGLOWS.values()].map(L=>({x:L.x,y:L.y,z:L.z,light:L.light})),
   /* the light of the world, and whether it stands at one of the two edges of
      the day — what sends the herds down to the water (§2.3.6). Read-only. */
   worldNight:()=>worldNight, worldDay:()=>worldDay, twilight, drinks, findWater, WATER_REACH:()=>WATER_REACH,
