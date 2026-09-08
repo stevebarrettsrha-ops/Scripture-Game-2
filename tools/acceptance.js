@@ -5699,6 +5699,9 @@ T[69]={name:'A BLOCK THAT DECLARES LIGHT CASTS IT — the kiln burns from the ho
        test 38 breaks everything by */
     { const L=D.litGlows().find(l=>Math.hypot(l.x-(cx+0.5)*B,l.z-(cz+0.5)*B)<B);
       if(L){ const bx=Math.floor(L.x/B), by=Math.floor(L.y/B), bz=Math.floor(L.z/B);
+        /* the kiln names the pick, and without it the rock does not give at
+           all — the first cut swung a kiln at it and blamed the fire */
+        D.satchelAdd('flint-pick',1); D.holdId('flint-pick');
         D.mineDrive(true); D.mineAt(bx,by,bz,0,1,0); D.mineHold(true);
         for(let t=0;t<600;t++){ D.mineStep(0.1); if(!D.litGlows().some(l2=>Math.hypot(l2.x-(cx+0.5)*B,l2.z-(cz+0.5)*B)<B)) break; }
         D.mineHold(false); D.mineDrive(false);
