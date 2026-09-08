@@ -1687,3 +1687,13 @@ the engine's declaration. AUDIT §4cy has the full record. Quests and the wolf *
 unspeared (§5.3's gentler half) stay future.
 
 - **The suite.** 63 pass · 0 fail · 4 pending on `efc1975` (state to beat 62 · 0 · 4 on 66 tests; this is 67).
+
+## 26. The wonders and the city, measured — ✅ *Round 101*
+
+The banner's last two unmeasured seams: one of every builder kind of the ancients' works
+proved risen at its true place, the scroll proved to write the world, and Yahrushalayim
+proved on her hill at her declared latitude. AUDIT §4cz has the full record. With this the
+engine's own seam banner — textures to the great loop — has no system left that no test has
+ever read.
+
+- **The suite.** 64 green · 0 fail · 4 pending on 68 tests, on `01021bf` — a spliced composite (the full run died silently after 58 green results; tests 63–68 were run as one batch straight after), stated as such in §4cz.

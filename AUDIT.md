@@ -9161,6 +9161,52 @@ record.
 by design). State to beat was 62 · 0 · 4 on 66 tests; this is 67, and the suite before it —
 62 · 1 · 4, the one failure the child the bell mend answered — stands above.
 
+## 4cz. Round 101 — the wonders stand where the scroll says, and the city of the great king keeps her hill ✅
+
+*The banner's last two unmeasured seams. world/landmarks.js declares fifty-nine landmarks at
+their true latitudes — twenty-six of them built structures across nine builder kinds, raised
+twice on approach: triangles for the far silhouette, blocks in the streamed ring — and zero
+of the sixty-seven tests before this round read a block of any of them. A builder could
+silently stop building and the suite stayed green: the exact fault test 56 caught for the
+authored places, never guarded for the wonders. And Yahrushalayim, set down once at 31.78°N,
+35.23°E, had never had a test in her streets.*
+
+This round measures; it changes no world behaviour. Four probes (`landmarks`,
+`landmarkState`, `yahru`, `standAt` — the last the `standInVillage` settle generalized to any
+ground) and one injection flag (`noWonders` — a builder that silently stops building).
+
+**Test 68** makes a pilgrimage to one of every builder kind — the first of each in the scroll
+— and at each: the wonder is spawned with blocks and its own standing stones (the builder's
+collision record), and it **rises** — built solid courses above the natural ground, read off
+the columns, reported per kind. (The report caps at seven courses: the column probe reads a
+ten-course window about the ground, built for doorways in Round 96 — so the lighthouse reads
+level with the pyramid here. The guard, two courses or more, sits well inside the window; the
+cap is named rather than widened, because nothing asserts on the capped part.) The scroll
+writes the world: an entry cut from
+`EARTH.landmarkList` in-page leaves the listing and returns. And Yahrushalayim: her spot
+agrees with the declared latitude by the engine's own formula, and her walls stand courses
+over her hill.
+
+### The readings
+
+**PASS 68 · THE WONDERS STAND WHERE THE SCROLL SAYS**, twice standalone and once in the suite's tail:
+
+> 59 entries in the scroll · the works of the ancients, each risen at its true place (courses over the ground): pyramid 7, ziggurat 7, temple 6, stonecircle 3, wall 7, lighthouse 7, gate 5, city 7, statue 3 · an entry cut from the scroll (Kaieteur Falls) left the listing, and returned · Yahrushalayim keeps her hill, 0.4 blocks from her declared spot, her walls 7 courses over the ground
+
+**The injection** (`noWonders` — a builder that silently stops building): at the Pyramids of
+Giza the landmark spawned **`none`, no blocks, no stones of its own** — exactly what guard 1
+convicts with *"nothing stands at…"*. Regressions 56, 18 and 38 green beside it (the walkers'
+refusal reads the same collision record the guard counts).
+
+### The suite
+
+**A spliced composite, and said so.** The full run on `01021bf` stood green through
+**58 results, test 62 the last**, and the runner then died silently — no process left, no
+failure written, no verdict line. The remaining six (63–68) were run as one batch straight
+after on the same engine: **6 pass · 0 fail**. Together: **64 green · 0 fail · 4 pending on
+68 tests** (50, 53, 54, 55 pending by design) — beating the 63 · 0 · 4 on 67 that stood
+before the round, and stated as the splice it is rather than as one unbroken run.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
