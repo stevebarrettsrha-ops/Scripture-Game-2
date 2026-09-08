@@ -310,9 +310,13 @@ child:   {rise:6.5, bed:19.0, work:0.20, pace:8.5, rest:13.5, acts:[['play',8],[
    flat wander at one speed, at one depth, by day and by night alike. A whale
    never came up to blow, a seal never lay logging at the top, an octopus
    never went to ground in its hole, and the deep-water shoals never rose in
-   the dark to feed and sank again at dawn. Now each keeps its own hours, its
-   own water, its own pace, and its own habits — written here, and the sea-life
-   engine obeys.
+   the dark to feed and sank again at dawn. Each nation's hours, water, pace
+   and habits are written here.
+
+   AND SAID PLAINLY (Round 102's sweep): the sea-life engine does not read
+   this table yet — not one accessor over it is called. It is the catalogue
+   a future round wires, exactly as the FOLK table above stood written and
+   unread for rounds until Round 95 made the village read it.
 
    day    — when it is abroad and quick: 'day', 'night', 'dusk', or 'all'.
             Off its hours it does not stop (nothing stops in the sea) but goes
@@ -439,6 +443,9 @@ piranha:      {day:'day',  swim:5, fast:16, deep:'river',   school:true,  air:fa
    grow  — its habit of growth: phototropic (turns to the sun), succulent
            (stores water against the drought), stilt (walks into the sea on
            its roots), fire (needs the burn), and so on. */
+/* AND SAID PLAINLY (Round 102's sweep): nothing reads this table — the
+   trees' sway is one shader amplitude per material, not per form, and no
+   accessor over FLORA is called. The catalogue a future flora round wires. */
 const FLORA={
 broad:   {sway:0.5, fold:false, bear:'fruit',   grow:'phototropic', acts:[['sway',4],['fruit',2],['leaf-fall',1]]},
 round:   {sway:0.5, fold:false, bear:'fruit',   grow:'phototropic', acts:[['sway',4],['fruit',2]]},
@@ -467,8 +474,11 @@ rosette: {sway:0.2, fold:false, bear:'flower',  grow:'succulent',   acts:[['stor
 /* ================= THE THINGS THAT ARE NOT ALIVE, AND YET MOVE =================
    The sea's weed, the tide, the current, the light in the deep. Not beasts and
    not plants, but the game's living furniture — and each has a way of moving.
-   The engine drives the two that stand in the water (kelp, seagrass) live from
-   here; the rest is the catalogue, in the same spirit as the behaviour kit.
+   A catalogue, in the same spirit as the behaviour kit — and SAID PLAINLY
+   (Round 102's sweep): the engine reads none of it, the kelp and the
+   seagrass included; their sway lives in the wind shader. The claim that
+   stood here, that the two in the water were driven live from this table,
+   was never true.
 
    move — how it goes: current (leans and streams with the flow), rise-fall
           (the tide), drift, sink, flash, slant, rise, spread, gust.

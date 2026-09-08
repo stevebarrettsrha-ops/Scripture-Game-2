@@ -16704,6 +16704,9 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      rest BOTH must sit still: a dirty count that never drains is a stamp
      whose value flips between rebuilds, which is the fault Round 86 caught
      (two trees fighting for a boundary cell) and settled order-free. */
+  /* diagnostics — no acceptance test reads these two (said plainly,
+     Round 102's sweep, after a label here credited the suite with a read
+     it never makes); they stay for the probing hand */
   editDirtySize:()=>EDIT_DIRTY.size,remeshes:()=>REMESHES,
   /* the light of the world, and whether it stands at one of the two edges of
      the day — what sends the herds down to the water (§2.3.6). Read-only. */
