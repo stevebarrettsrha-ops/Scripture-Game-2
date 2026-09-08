@@ -5681,26 +5681,29 @@ T[69]={name:'A BLOCK THAT DECLARES LIGHT CASTS IT — the kiln burns from the ho
     const w=D.state.walk;
     /* clear ground a few steps off, and lay the kiln by the hand's own path */
     D.satchelAdd('kiln',1); D.holdId('kiln');
+    /* the arm answers with a CELL and a FACE, not a point — the first cut
+       aimed with world coordinates and the kiln was laid at NaN */
     const ax=w.x+Math.sin(w.heading)*8, az=w.z+Math.cos(w.heading)*8;
-    const g=D.columnAt(ax,az,0), ly=(g.h+1)*B-B*0.5;
+    const cx=Math.floor(ax/B), cz=Math.floor(az/B);
+    const g=D.columnAt((cx+0.5)*B,(cz+0.5)*B,0);
     const n0=D.litGlows().length;
-    const ok=D.placeFrom({x:ax,y:g.h*B+B*0.5,z:az,face:'top'});
+    const ok=D.placeFrom({ix:cx,iy:g.h,iz:cz,nx:0,ny:1,nz:0});
     await frames(3);
     const G1=D.litGlows();
     if(G1.length!==n0+1) faults.push('the laid kiln registered no glow ('+n0+' -> '+G1.length+')');
-    else { const L=G1.find(l=>Math.hypot(l.x-ax,l.z-az)<B);
+    else { const L=G1.find(l=>Math.hypot(l.x-(cx+0.5)*B,l.z-(cz+0.5)*B)<B);
       if(!L) faults.push('a glow registered, but not at the kiln');
       else if(L.light!==decl) faults.push('the glow carries light '+L.light+' against the block\'s declared '+decl);
       else reads.push('the kiln laid by the hand burns with its own declared '+decl); }
     /* and goes out when broken — by the hand's own blows, the same path
        test 38 breaks everything by */
-    { const L=D.litGlows().find(l=>Math.hypot(l.x-ax,l.z-az)<B);
+    { const L=D.litGlows().find(l=>Math.hypot(l.x-(cx+0.5)*B,l.z-(cz+0.5)*B)<B);
       if(L){ const bx=Math.floor(L.x/B), by=Math.floor(L.y/B), bz=Math.floor(L.z/B);
         D.mineDrive(true); D.mineAt(bx,by,bz,0,1,0); D.mineHold(true);
-        for(let t=0;t<600;t++){ D.mineStep(0.1); if(!D.litGlows().some(l2=>Math.hypot(l2.x-ax,l2.z-az)<B)) break; }
+        for(let t=0;t<600;t++){ D.mineStep(0.1); if(!D.litGlows().some(l2=>Math.hypot(l2.x-(cx+0.5)*B,l2.z-(cz+0.5)*B)<B)) break; }
         D.mineHold(false); D.mineDrive(false);
         await frames(2);
-        if(D.litGlows().some(l2=>Math.hypot(l2.x-ax,l2.z-az)<B)) faults.push('the kiln broken and its glow still burning');
+        if(D.litGlows().some(l2=>Math.hypot(l2.x-(cx+0.5)*B,l2.z-(cz+0.5)*B)<B)) faults.push('the kiln broken and its glow still burning');
         else reads.push('broken by the hand, the fire goes out'); } }
     return {ok:!faults.length&&reads.length>0, got:reads.join(' · ')+(faults.length?' · FAULTS: '+faults.slice(0,5).join(' · '):'')};
   })};
