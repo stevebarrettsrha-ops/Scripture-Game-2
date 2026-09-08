@@ -5663,6 +5663,48 @@ T[68]={name:'THE WONDERS STAND WHERE THE SCROLL SAYS — one of every kind of th
     return {ok:!faults.length, got:LM.length+' entries in the scroll · '+reads.join(' · ')+(faults.length?' · FAULTS: '+faults.slice(0,6).join(' · '):'')};
   })};
 
+T[69]={name:'A BLOCK THAT DECLARES LIGHT CASTS IT — the kiln burns from the hour it is laid, and goes out when it is broken',
+  /* THE FAULT THIS GUARDS, found by Round 102's inert sweep. The registry
+     parsed a block's `light` and nothing anywhere read it back — the kiln's
+     own file says "light:9, it is burning" and a built kiln stood dark from
+     the day the fire was lit. THE EXPECTED LIGHT IS READ OFF THE BLOCK'S
+     OWN DECLARATION, not a number this test knows: change the kiln's light
+     in blocks/kiln.js and this test changes its mind with it. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=6;
+    if(!D.litGlows) return {pending:'no litGlows probe (Round 102)'};
+    const v=await D.standInVillage(); if(!v) return {ok:false,got:'no town would stand'};
+    const faults=[], reads=[];
+    const frames=async n=>{ for(let f=0;f<n;f++) await new Promise(r=>requestAnimationFrame(r)); };
+    const decl=(EARTH.blockList.find(b=>b.id==='kiln')||{}).light||0;
+    if(!decl) return {ok:false,got:'the kiln declares no light — the premise is gone'};
+    const w=D.state.walk;
+    /* clear ground a few steps off, and lay the kiln by the hand's own path */
+    D.satchelAdd('kiln',1); D.holdId('kiln');
+    const ax=w.x+Math.sin(w.heading)*8, az=w.z+Math.cos(w.heading)*8;
+    const g=D.columnAt(ax,az,0), ly=(g.h+1)*B-B*0.5;
+    const n0=D.litGlows().length;
+    const ok=D.placeFrom({x:ax,y:g.h*B+B*0.5,z:az,face:'top'});
+    await frames(3);
+    const G1=D.litGlows();
+    if(G1.length!==n0+1) faults.push('the laid kiln registered no glow ('+n0+' -> '+G1.length+')');
+    else { const L=G1.find(l=>Math.hypot(l.x-ax,l.z-az)<B);
+      if(!L) faults.push('a glow registered, but not at the kiln');
+      else if(L.light!==decl) faults.push('the glow carries light '+L.light+' against the block\'s declared '+decl);
+      else reads.push('the kiln laid by the hand burns with its own declared '+decl); }
+    /* and goes out when broken — by the hand's own blows, the same path
+       test 38 breaks everything by */
+    { const L=D.litGlows().find(l=>Math.hypot(l.x-ax,l.z-az)<B);
+      if(L){ const bx=Math.floor(L.x/B), by=Math.floor(L.y/B), bz=Math.floor(L.z/B);
+        D.mineDrive(true); D.mineAt(bx,by,bz,0,1,0); D.mineHold(true);
+        for(let t=0;t<600;t++){ D.mineStep(0.1); if(!D.litGlows().some(l2=>Math.hypot(l2.x-ax,l2.z-az)<B)) break; }
+        D.mineHold(false); D.mineDrive(false);
+        await frames(2);
+        if(D.litGlows().some(l2=>Math.hypot(l2.x-ax,l2.z-az)<B)) faults.push('the kiln broken and its glow still burning');
+        else reads.push('broken by the hand, the fire goes out'); } }
+    return {ok:!faults.length&&reads.length>0, got:reads.join(' · ')+(faults.length?' · FAULTS: '+faults.slice(0,5).join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.
