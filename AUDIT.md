@@ -9207,6 +9207,43 @@ after on the same engine: **6 pass · 0 fail**. Together: **64 green · 0 fail �
 68 tests** (50, 53, 54, 55 pending by design) — beating the 63 · 0 · 4 on 67 that stood
 before the round, and stated as the splice it is rather than as one unbroken run.
 
+## 4da. Round 102 — the inert sweep's second pass: seven seams read, one wire run, and every header telling the truth ✅
+
+*Queued since §4cs's survey found the pattern — things declared with conviction and read by
+nothing. Each seam below was read before it was judged, and each got the smallest honest act:
+a wire where the promise was good and the wire small, a plain note where the wire is a
+round of its own, and the record here either way.*
+
+| seam | what was found | the act |
+|---|---|---|
+| the kiln's `light:9` (*"it is burning"*) | the registry parsed every block's `light` and **nothing anywhere read it back** — a built kiln stood dark from the day the fire was lit | **WIRED.** A lit block laid by the hand registers a glow through `setBlock` — the one door laying and breaking both pass — burns by night like the village torches, and goes out when broken. Test 69 guards it; the `dimBlocks` flag puts the darkness back. |
+| the SEA table (~40 nations, *"the sea-life engine obeys"*) | not one accessor over it is called | header now says plainly it is the catalogue a future round wires — the exact state the FOLK table stood in until Round 95 |
+| the THINGS table (*"the engine drives the kelp and seagrass live from here"*) | nothing reads it; their sway lives in the wind shader; the claim was never true | the false half struck from the header |
+| the FLORA table (sway per form, bear, grow) | read by nothing; the trees' sway is one shader amplitude per material, not per form | header says so; the wire named for a flora round |
+| `PALETTE.warm()` (*"matters more here than any of them"*) | defined, never called — the limestone-against-granite grading never happened | a plain note; it stays for the round that does the grading |
+| `sunRound`/`moonRound` | dark and never shown — **but deliberately**: the file itself says the pair is kept so the reason it was tried is not lost | passes the sweep as it stands: declared-dead with its reason beside it is the honesty the sweep asks for |
+| the probe label crediting tools/acceptance.js with reading `editDirtySize` | no test reads it | the label now says diagnostics, for the probing hand |
+
+### The readings
+
+**PASS 69 · A BLOCK THAT DECLARES LIGHT CASTS IT** —
+
+> the kiln laid by the hand burns with its own declared 9 · broken by the hand, the fire goes out
+
+**The injection** (`dimBlocks` — the darkness put back): the kiln laid at a real cell
+registered **no glow at all** where the mended engine registers one carrying the block's own
+nine. Regressions 8, 20 and 38 green beside it, twice over. The test's own hunter was
+convicted twice on the way, both times of blaming the world for its own hand: it first aimed
+`placeFrom` with world coordinates where the arm answers with a cell and a face, and laid the
+kiln at NaN; then it swung a *kiln* at the kiln and called the unbroken fire a fault — the
+block names a pick, and without it the rock does not give at all.
+
+The full suite ran unbroken on `5c419ec`: **65 passed, 0 failed, 4 pending of 69** —
+one run, no splice, the first whole passage since the runner's deaths of Rounds 101 and
+before. Test 69 in that run reads as it read alone: *the kiln laid by the hand burns with
+its own declared 9 · broken by the hand, the fire goes out*. The four pendings are the four
+that pend by design (50, 53, 54, 55 — measures with their sections still open, not faults).
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
