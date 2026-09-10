@@ -1663,3 +1663,48 @@ next seam measured. AUDIT §4cv and §4cw carry the full record.
   proves the market's own promises: no mint, the far land pays for every good, prices inside
   the declared band, the ladder as declared, the sea dearer than every shore.
 - **The suite.** 61 pass · 0 fail · 4 pending on `a9cb805` (state to beat 59 · 0 · 4 on 63 tests; this is 65).
+
+## 24. The catch is the sea's own — ✅ *Round 99*
+
+The banner's fishing seam. The rod's catch was a literal of eight Galilee names drawn at
+every water on earth; the nations of fish live in world/waters.js now — the seven shoaling
+kinds moved unchanged, the old eight re-homed as the inshore catch with bands of their own —
+and what comes up on the line is a nation whose band covers the spot. AUDIT §4cx has the
+full record: 480 lawful draws over eight latitudes, the differing seas, the band widened in
+the data and the catch following, one real cast driven to the creel, and the literal put
+back reading a mullet at 72°.
+
+- **The suite.** 62 pass · 0 fail · 4 pending on `8695705` (state to beat 61 · 0 · 4 on 65 tests; this is 66).
+
+## 25. The spear has consequence — ✅ *Round 100*
+
+The banner's spear seam, and §5.3 of AUDIT's own recommendations paid in its spear half: a
+village's penned beast slain costs the declared six points of the traveller's name at that
+village's market, a wolf slain among the flocks earns three, game sells at every market
+beside the fish, and the falling name warns as the rising one always did. Test 67 drives
+the cast, the grudge, the goodwill, the planted miss and the sale; the costs are read off
+the engine's declaration. AUDIT §4cy has the full record. Quests and the wolf *driven off*
+unspeared (§5.3's gentler half) stay future.
+
+- **The suite.** 63 pass · 0 fail · 4 pending on `efc1975` (state to beat 62 · 0 · 4 on 66 tests; this is 67).
+
+## 26. The wonders and the city, measured — ✅ *Round 101*
+
+The banner's last two unmeasured seams: one of every builder kind of the ancients' works
+proved risen at its true place, the scroll proved to write the world, and Yahrushalayim
+proved on her hill at her declared latitude. AUDIT §4cz has the full record. With this the
+engine's own seam banner — textures to the great loop — has no system left that no test has
+ever read.
+
+- **The suite.** 64 green · 0 fail · 4 pending on 68 tests, on `01021bf` — a spliced composite (the full run died silently after 58 green results; tests 63–68 were run as one batch straight after), stated as such in §4cz.
+
+## 27. The inert sweep, second pass — ✅ *Round 102*
+
+Seven declared-and-inert seams queued since §4cs, each read and judged: the kiln's light
+wired (a lit block burns from the hour it is laid — test 69), and six headers and notes made
+true — the SEA, THINGS and FLORA tables named as catalogues awaiting their wires, warm()
+awaiting its grading, the round sun and moon honest already, and a probe label corrected.
+AUDIT §4da has the table.
+
+- **The suite.** The full suite ran unbroken on `5c419ec`: **65 · 0 · 4 on 69 tests** — one run,
+  no splice; test 69 green inside it; the four pendings the four that pend by design.

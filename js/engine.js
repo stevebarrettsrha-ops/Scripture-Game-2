@@ -3123,6 +3123,25 @@ function blockSownAt(ix,iy,iz){
   const e=editAt(ix,iy,iz);
   return !!(e&&BLOCKS[e]&&BLOCKS[e].sown);
 }
+/* ---- A BLOCK THAT DECLARES LIGHT CASTS IT (Round 102) ----
+   THE FAULT THIS MENDS, found by the inert sweep: the registry parsed a
+   block's `light` and nothing anywhere read it back — the kiln's own file
+   says `light:9, it is burning` and a built kiln stood dark from the day
+   the fire was lit. A lit block laid by the hand registers a glow now, the
+   village torches' own sprite burning by night, and loses it when broken.
+   The one door below is the one place laying and breaking both pass. */
+const LITGLOWS=new Map();
+function litKey(ix,iy,iz){ return ix+','+iy+','+iz; }
+function litSet(ix,iy,iz,def){
+  if(window.__INJECT&&__INJECT.dimBlocks) return;
+  const k=litKey(ix,iy,iz); if(LITGLOWS.has(k)) return;
+  const gm=new THREE.SpriteMaterial({map:glowTexCv,transparent:true,opacity:0,depthWrite:false});
+  const gs=new THREE.Sprite(gm); gs.scale.set(3+def.light*2.6,3+def.light*2.6,1);
+  gs.position.set((ix+0.5)*B,(iy+1.1)*B,(iz+0.5)*B); scene.add(gs);
+  LITGLOWS.set(k,{mat:gm,sp:gs,light:def.light,x:(ix+0.5)*B,y:(iy+0.5)*B,z:(iz+0.5)*B});
+}
+function litClear(ix,iy,iz){ const k=litKey(ix,iy,iz); const L=LITGLOWS.get(k); if(!L) return;
+  scene.remove(L.sp); L.mat.map=null; L.mat.dispose(); LITGLOWS.delete(k); }
 /* ---- THE ONE DOOR ----
    World coordinates in, because everything that will ever call it — the
    hand, a falling block, a stamped house — thinks in the world and not in
@@ -3150,6 +3169,8 @@ function setBlock(wx,wy,wz,n){
      would come back out of the ground. The cell is the hand's now. */
   if(n&&WEDITS.size){ const wm=WEDITS.get(key);
     if(wm&&wm.delete(idx)&&!wm.size) WEDITS.delete(key); }
+  { const def=n&&BLOCKS[n];   /* the light of the thing laid, or of the thing gone */
+    if(def&&def.light>0) litSet(ix,iy,iz,def); else litClear(ix,iy,iz); }
   EDIT_TOUCHED=true; EDIT_DIRTY.add(key); EDIT_SAVE.add(key); editsTouch(); editColumnsChanged();
   /* ---- AND THE WORLD PUTS ITSELF RIGHT (§11 step 8) ----
      A cell that has just been EMPTIED is the only thing either rule cares
@@ -11972,6 +11993,11 @@ function personTick(ent,vv,dt){
   if(ent._wasAbed&&!ent._abed){ ent.actT=undefined; ent.acting=false; ent.act=null; }   /* and takes stock */
   ent._wasAbed=ent._abed;
   if(ent.role==='folk'||!ent.role){ if(ent.anim==='home') ent.anim='idle'; wanderTick(ent,site,dt,pace); return; }
+  /* school is OUT at one: a child that drew its lesson task at ten-to-one
+     could still be walking there and sitting through it at three (a long
+     walk's budget plus the act ran past any hold), and test 62 caught one
+     at the lesson at quarter past. The bell rings: task re-drawn. */
+  if(ent.role==='child'&&ent.anim==='sit'&&!(hour>=8&&hour<13)){ ent.actT=undefined; ent.acting=false; ent.act=null; }
   const px=ent.m.position.x, pz=ent.m.position.z;
   if(ent.actT===undefined){ nextTask(ent,vv);
     /* ---- AND A WALK HAS A BUDGET (Round 95) ----
@@ -12200,6 +12226,7 @@ function updateVillages(px,pz,dt,nightF,dayF){
     if(vv.birds) for(const bd of vv.birds) birdTick(bd,dt);
     for(const tm of vv.torchMats) tm.opacity=nightF*0.85;
   }
+  for(const L of LITGLOWS.values()) L.mat.opacity=nightF*0.85;   /* the kilns burn by night too */
   doorTick(dt);
   promptTick();
 }
@@ -12240,12 +12267,23 @@ function repOf(profile){ return (state.rep&&state.rep[profile])||0; }
 function repMult(profile){ return 1+Math.min(50,repOf(profile))*0.006; }
 function repTier(profile){ const r=repOf(profile);
   return r>=40?'honoured':r>=25?'trusted':r>=10?'known':null; }
+/* ---- THE SPEAR HAS CONSEQUENCE (Round 100) ----
+   AUDIT §5.3 designed it the day the audit was written and no wire was ever
+   run: a village's own penned beast fell to the spear and nobody minded,
+   and the wolf toast's "the flock is safe" bought nothing. The village's
+   market is its country's, and its reputation is the one ledger the
+   traveller already carries there — so the spear writes it: */
+const REP_SPEAR_FLOCK=6;   /* what spearing a village's own beast costs at its market */
+const REP_SPEAR_WOLF=3;    /* what a wolf slain among the flocks earns there */
 function addRep(profile,n){ if(tradeSea) return; state.rep=state.rep||{};
-  const before=repOf(profile), after=Math.min(50,before+n); state.rep[profile]=after;
+  const before=repOf(profile), after=Math.max(0,Math.min(50,before+n)); state.rep[profile]=after;
   const tiers=[[40,'Your name is honoured at this market \u2014 top silver for your catch.'],
     [25,'You are a trusted fisher at this market \u2014 better prices for fish and pearls.'],
     [10,'Your catch is getting known here \u2014 the mongers pay a little better.']];
-  for(const[t2,msg] of tiers){ if(before<t2&&after>=t2){ toast(msg); break; } } }
+  if(n>=0){ for(const[t2,msg] of tiers){ if(before<t2&&after>=t2){ toast(msg); break; } } }
+  else { for(const[t2] of tiers){ if(before>=t2&&after<t2){ toast('Your name has fallen at this market \u2014 the mongers pay you less.'); break; } } } }
+function gamePriceAt(profile){ return Math.max(4,Math.round(8*(0.7+hash2(profile*4.3,profile*6.1)*0.8))); }
+function gameSellPrice(){ return Math.max(3,Math.round(gamePriceAt(tradeProfile)*(tradeSea?1:repMult(tradeProfile)))); }
 function fishSellPrice(){ return Math.max(2,Math.round(fishPriceAt(tradeProfile)*(tradeSea?1:repMult(tradeProfile)))); }
 function pearlSellPrice(){ return Math.max(15,Math.round(pearlPriceAt(tradeProfile)*(tradeSea?0.75:repMult(tradeProfile)))); }
 let tradeOpen=false, tradeProfile=0, tradeTitle='', tradeSea=false, tradeAnchor=null, tradeShip=null;
@@ -12284,6 +12322,10 @@ function renderTrade(){
   tr2.innerHTML='<td class="g">Fish (your catch)</td><td class="r">held '+(state.fish||0)+'</td><td class="r"></td>'+
     '<td class="r"><button class="tbtn" data-a="f" '+((state.fish||0)<1?'disabled':'')+'>sell '+fp+'</button></td>';
   T.appendChild(tr2);
+  const gp=gameSellPrice(), trg=document.createElement('tr');
+  trg.innerHTML='<td class="g">Game of the spear</td><td class="r">held '+(state.game||0)+'</td><td class="r"></td>'+
+    '<td class="r"><button class="tbtn" data-a="g" '+((state.game||0)<1?'disabled':'')+'>sell '+gp+'</button></td>';
+  T.appendChild(trg);
   const pp=pearlSellPrice(), tr3=document.createElement('tr');
   tr3.innerHTML='<td class="g">Pearls of the deep</td><td class="r">held '+(state.pearls||0)+'</td><td class="r"></td>'+
     '<td class="r"><button class="tbtn" data-a="e" '+((state.pearls||0)<1?'disabled':'')+'>sell '+pp+'</button></td>';
@@ -12294,6 +12336,7 @@ function renderTrade(){
    instead of trusting the arithmetic it cannot reach in a click handler */
 function tradeAct(a,gi){
   if(a==='f'){ if((state.fish||0)>0){ state.fish--; state.coins+=fishSellPrice(); addRep(tradeProfile,1); } }
+  else if(a==='g'){ if((state.game||0)>0){ state.game--; state.coins+=gameSellPrice(); addRep(tradeProfile,1); } }
   else if(a==='e'){ if((state.pearls||0)>0){ state.pearls--; state.coins+=pearlSellPrice(); addRep(tradeProfile,3); } }
   else { const g=GOODS[gi], p=priceAt(tradeProfile,gi), sp=spreadOf(p,tradeSea);
     if(a==='b'){ if(state.coins>=sp.buy&&cargoCount()<CARGO_MAX){ state.coins-=sp.buy; state.cargo[g.k]=(state.cargo[g.k]||0)+1; } }
@@ -12655,14 +12698,14 @@ function spearHitDeep(){
 }
 function spearHit(){
   const near=(x,z)=>Math.hypot(x-spear.x,z-spear.z)<3.4;
-  for(const[,vv] of activeVillages){ if(vv.none||!vv.beasts) continue;
+  for(const[vi,vv] of activeVillages){ if(vv.none||!vv.beasts) continue;
     for(let k=0;k<vv.beasts.length;k++){ const b=vv.beasts[k];
       if(!BEAST_PREY.has(b.kind)&&b.kind!=='deer'&&b.kind!=='wolf') continue;
       if(near(b.m.position.x,b.m.position.z)&&Math.abs(b.m.position.y+3-spear.y)<8){
         b.m.visible=false; vv.g.remove(b.m); vv.beasts.splice(k,1);
-        return b.kind; } } }
+        return {kind:b.kind,village:vi}; } } }               /* whose beast fell matters now */
   for(const a of LANDLIFE){ if(!a.set||(!AMBIENT_PREY.has(a.kind)&&a.kind!=='wolf'&&a.kind!=='lion')) continue;
-    if(near(a.x,a.z)&&Math.abs(a.m.position.y+3-spear.y)<9){ a.set=false; a.m.visible=false; return a.kind; } }
+    if(near(a.x,a.z)&&Math.abs(a.m.position.y+3-spear.y)<9){ a.set=false; a.m.visible=false; return {kind:a.kind,village:null}; } }
   return null;
 }
 function spearTick(dt){
@@ -12697,8 +12740,13 @@ function spearTick(dt){
     } else {
       const kill=spearHit();
       if(kill){ state.game=(state.game||0)+1; spear.active=false; spear.stick=1.4;
-        toast(kill==='wolf'?'Your spear finds the wolf — the flock is safe, and the pelt is yours. Game taken: '+state.game+'.'
-          :'Your spear finds the '+kill+' — game taken for the voyage: '+state.game+'.');
+        if(kill.kind==='wolf'){
+          toast('Your spear finds the wolf — the flock is safe, and the pelt is yours. Game taken: '+state.game+'.');
+          if(kill.village!==null&&!(window.__INJECT&&__INJECT.noGrudge)) addRep(kill.village,REP_SPEAR_WOLF); }
+        else if(kill.village!==null&&!(window.__INJECT&&__INJECT.noGrudge)){
+          toast('Your spear finds the '+kill.kind+' — but it was the village\'s own, and the village saw. Your name is worth less at this market.');
+          addRep(kill.village,-REP_SPEAR_FLOCK); }
+        else toast('Your spear finds the '+kill.kind+' — game taken for the voyage: '+state.game+'.');
         saveState(); break; }
       const gy=groundInfo(spear.x,spear.z);
       if(spear.y<=(gy.land?gy.y:WATER_Y)+0.4){
@@ -13330,6 +13378,8 @@ function seacavePass(px,pz){
 }
 function spawnLandmark(i){
   const L=LANDMARKS[i], site=landmarkSite(i);
+  /* the fault put back for test 68: a builder that silently stops building */
+  if(window.__INJECT&&__INJECT.noWonders&&L.kind!=='mount'&&L.kind!=='range'&&L.kind!=='falls'){ activeLandmarks.set(i,{none:true}); return; }
   if(!site){ activeLandmarks.set(i,{none:true}); return; }
   const y=topY(site.ix,site.iz), x=site.x, z=site.z;
   let g=null, gStruct=null, stamp=null;
@@ -16676,7 +16726,11 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
      rest BOTH must sit still: a dirty count that never drains is a stamp
      whose value flips between rebuilds, which is the fault Round 86 caught
      (two trees fighting for a boundary cell) and settled order-free. */
+  /* diagnostics — no acceptance test reads these two (said plainly,
+     Round 102's sweep, after a label here credited the suite with a read
+     it never makes); they stay for the probing hand */
   editDirtySize:()=>EDIT_DIRTY.size,remeshes:()=>REMESHES,
+  litGlows:()=>[...LITGLOWS.values()].map(L=>({x:L.x,y:L.y,z:L.z,light:L.light})),
   /* the light of the world, and whether it stands at one of the two edges of
      the day — what sends the herds down to the water (§2.3.6). Read-only. */
   worldNight:()=>worldNight, worldDay:()=>worldDay, twilight, drinks, findWater, WATER_REACH:()=>WATER_REACH,
@@ -17048,7 +17102,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
       return {k:g.k,n:g.n,base:g.base,buy:sp.buy,sell:sp.sell}; }),
     seaGoods:GOODS.map((g,gi)=>{ const sp=spreadOf(priceAt(profile,gi),true);
       return {k:g.k,buy:sp.buy,sell:sp.sell}; }),
-    fish:fishPriceAt(profile),pearl:pearlPriceAt(profile),rep:repOf(profile),mult:repMult(profile)}),
+    fish:fishPriceAt(profile),game:gamePriceAt(profile),pearl:pearlPriceAt(profile),rep:repOf(profile),mult:repMult(profile)}),
   openTradeAt:(profile,sea)=>openTrade(profile,'a probe\'s market',!!sea),
   tradeAct:(a,gi)=>tradeAct(a,gi),
   closeTrade:()=>closeTrade(),
@@ -17059,6 +17113,28 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   rWorld:R_WORLD,
   cellRaw:(ix,iz)=>cellRaw(ix,iz),
   canFishHere:()=>canFishHere(),
+  /* the wonders, for test 68: the scroll's entries, each spawned one's state,
+     the city of the great king, and a general stand-anywhere */
+  landmarks:()=>LANDMARKS.map((L,i)=>({i,n:L.n,kind:L.kind,lat:L.lat,lon:L.lon})),
+  landmarkSiteOf:i=>landmarkSite(i),
+  landmarkState:i=>{ const A=activeLandmarks.get(i);
+    if(!A) return {spawned:false};
+    return {spawned:true,none:!!A.none,hasFar:!!A.g,hasBlocks:!!A.stamp,
+      solids:A.solids?A.solids.length:0,x:A.x,z:A.z}; },
+  yahru:()=>yahruPos?{x:yahruPos.x,z:yahruPos.z}:null,
+  standAt:async(x,z)=>{ state.walk.x=x; state.walk.z=z; state.walk.feetY=undefined; setMode('walk');
+    for(let k=0;k<400;k++){ updateChunks(state.walk.x,state.walk.z,400);
+      await new Promise(r=>requestAnimationFrame(r));
+      if(k>10&&!buildQueue.length){ flushEdits(1e9); await new Promise(r=>requestAnimationFrame(r)); return k; } }
+    return -1; },
+  throwSpear:()=>throwSpear(),
+  spearState:()=>({active:spear.active,x:spear.x,y:spear.y,z:spear.z,stick:spear.stick}),
+  spearCosts:()=>({flock:REP_SPEAR_FLOCK,wolf:REP_SPEAR_WOLF}),
+  villageBeasts:()=>{ let best=null,bd=1e18; const p=playerXZ();
+    for(const[vi,vv] of activeVillages){ if(vv.none||!vv.beasts||!vv.site) continue;
+      const d=(vv.site.x-p.x)**2+(vv.site.z-p.z)**2; if(d<bd){ bd=d; best={vi,vv}; } }
+    if(!best) return null;
+    return {vi:best.vi,beasts:best.vv.beasts.map(b=>({kind:b.kind,x:b.m.position.x,y:b.m.position.y,z:b.m.position.z}))}; },
   startFishing:()=>startFishing(),
   reelIn:()=>reelIn(),
   endFishing:q=>endFishing(q),
