@@ -5711,6 +5711,60 @@ T[69]={name:'A BLOCK THAT DECLARES LIGHT CASTS IT — the kiln burns from the ho
     return {ok:!faults.length&&reads.length>0, got:reads.join(' · ')+(faults.length?' · FAULTS: '+faults.slice(0,5).join(' · '):'')};
   })};
 
+T[70]={name:'THE NATIONS OF THE SEA ARE WRITTEN IN THE SCROLL — the engine builds one wandering nation per row of world/sea.js, holds none the scroll does not name, and the shark strikes at the speed of its own line',
+  /* THE FAULT THIS GUARDS, found planning Round 103. The twenty wandering
+     nations of the sea — the whale, the turtle, the seal, the swordfish —
+     lived as literal tuples typed into initSeaMobs: their counts, waters,
+     depths and latitude bands the ENGINE'S to say, against the standing
+     law that the scroll writes the world. And the sharks' strike was a
+     literal 27 where their own lines in the SEA table declare 20, 18, 19.
+     EVERYTHING EXPECTED IS READ OFF EARTH.seaList AND BEHAVIOR.SEA — no
+     count, radius, depth, band or speed is typed here: amend world/sea.js
+     or a beast's line in js/behavior.js and this test changes its mind. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG;
+    if(!D.seaMobs||!D.seaFast||!D.initSeaMobs) return {pending:'no sea-scroll probes (Round 103)'};
+    const ROWS=(window.EARTH&&EARTH.seaList)||[];
+    if(!ROWS.length) return {ok:false,got:'the scroll of the sea is empty'};
+    const faults=[], reads=[];
+
+    /* ---- 1 · one nation built per row, every field as written ---- */
+    D.initSeaMobs();
+    const built=D.seaMobs()||[];
+    const byKind={}; for(const b of built) byKind[b.kind]=b;
+    for(const r of ROWS){ const b=byKind[r.name];
+      if(!b){ faults.push('the scroll names '+r.name+' and the sea does not hold it'); continue; }
+      const wantLat=JSON.stringify(r.lat||null), gotLat=JSON.stringify(b.lat||null);
+      if(b.n!==r.n||b.R!==r.R||b.rs!==r.rs||b.near!==!!r.near||b.deepM!==r.deepM||gotLat!==wantLat)
+        faults.push(r.name+' built other than written: '+JSON.stringify(b)+' vs the scroll\'s '+JSON.stringify(r)); }
+    for(const b of built) if(!ROWS.some(r=>r.name===b.kind))
+      faults.push('the sea holds '+b.kind+', which the scroll does not name');
+    if(!faults.length){
+      const banded=built.filter(b=>b.lat).length;
+      reads.push(built.length+' nations built of '+ROWS.length+' written, every count, radius, depth and band read back equal');
+      reads.push(banded+' keep a named band of latitude, '+(built.length-banded)+' swim all seas'); }
+
+    /* ---- 2 · the shark strikes at the speed of its own line ---- */
+    const SEA=window.BEHAVIOR&&BEHAVIOR.SEA;
+    if(!SEA) faults.push('BEHAVIOR.SEA is not abroad');
+    else{
+      for(const k of ['shark','hammerhead','tigershark']){
+        const got=D.seaFast(k), want=SEA[k]&&SEA[k].fast;
+        if(got!==want) faults.push(k+'\'s strike reads '+got+' where its line says '+want); }
+      const before=D.seaFast('shark'), old=SEA.shark.fast;
+      SEA.shark.fast=33; const after=D.seaFast('shark'); SEA.shark.fast=old;
+      if(after!==33) faults.push('the shark\'s line changed to 33 and the strike still read '+after+' — a literal, not the line');
+      else reads.push('the shark strikes at '+before+', its own line\'s word, and follows the line when it changes (33 read back 33)');
+
+      /* ---- 3 · the habits stay the table\'s (the July wire unbroken) ---- */
+      const airW=!!(SEA.whale&&SEA.whale.air), dayS=SEA.sardine&&SEA.sardine.day;
+      if(BEHAVIOR.seaAirOf('whale')!==airW) faults.push('seaAirOf(whale) contradicts the table');
+      if(BEHAVIOR.seaDayOf('sardine')!==dayS) faults.push('seaDayOf(sardine) contradicts the table');
+      if(!faults.some(f=>/contradicts/.test(f))) reads.push('and the habits stay the table\'s: the whale must rise to breathe, the sardine keeps the night'); }
+
+    if(faults.length) return {ok:false,got:faults.join(' | ')};
+    return {ok:true,got:reads.join(' \u00b7 ')};
+  })};
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.

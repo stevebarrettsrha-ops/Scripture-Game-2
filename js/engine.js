@@ -7508,8 +7508,13 @@ function updateDolphins(px,py,pz,dt,t){ initDolphins();
 const SHK_KINDS=['shark','hammerhead','tigershark'];
 const SHARKS=[], SHK_N=3, SHK_R=560;
 let sharkWarnT=-99, sharkFeedToastT=-99;
-function initSharks(){ if(SHARKS.length) return; for(let k=0;k<SHK_N;k++){ const m=makeBeast(SHK_KINDS[k%SHK_KINDS.length]); m.visible=false; scene.add(m);
-  SHARKS.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false,cool:0}); } }
+function initSharks(){ if(SHARKS.length) return; for(let k=0;k<SHK_N;k++){ const kind=SHK_KINDS[k%SHK_KINDS.length]; const m=makeBeast(kind); m.visible=false; scene.add(m);
+  SHARKS.push({m,kind,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false,cool:0}); } }
+/* the strike is the table's (js/behavior.js `fast`), not a number typed
+   here; the old literal stays only as the fallback, and __INJECT.forgetFast
+   is the accessor unplugged, so a test may prove the wire */
+function sharkBurstOf(kind,fb){ if(window.__INJECT&&__INJECT.forgetFast) return fb;
+  return (window.BEHAVIOR&&BEHAVIOR.seaFastOf)?BEHAVIOR.seaFastOf(kind,fb):fb; }
 function updateSharks(px,py,pz,dt,t){ initSharks();
   for(const s of SHARKS){ if(!s.set||Math.hypot(s.x-px,s.z-pz)>SHK_R+180){
       const a=Math.random()*6.28, r=180+Math.random()*320; s.x=px+Math.cos(a)*r; s.z=pz+Math.sin(a)*r;
@@ -7525,7 +7530,7 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
     /* prey is a diver below OR a swimmer at the surface — bobbing up is no refuge */
     const preyDive=state.mode==='dive', preySwim=state.mode==='walk'&&state.walk.inWater;
     if((preyDive||preySwim)&&!state.repel&&s.cool<=0&&dd<120){
-      hunting=true; sp=27;
+      hunting=true; sp=sharkBurstOf(s.kind,27);
       s.dir=Math.atan2(dvz,dvx);
       s.y+=(py-s.y)*Math.min(1,dt*1.4);
       if(t-sharkWarnT>14&&dd<85){ sharkWarnT=t;
@@ -7568,7 +7573,7 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
     if(!hunting){
       s.feedT=(s.feedT===undefined?10+Math.random()*25:s.feedT-dt);
       if(s.feed>0&&s.prey&&s.prey.set){
-        s.feed-=dt; hunting=true; sp=30;
+        s.feed-=dt; hunting=true; sp=sharkBurstOf(s.kind,30);
         const pdx=s.prey.x-s.x, pdz=s.prey.z-s.z, pdd=Math.hypot(pdx,pdz);
         s.dir=Math.atan2(pdz,pdx);
         s.y+=((s.prey.y||s.y)-s.y)*Math.min(1,dt*1.8);
@@ -7716,58 +7721,24 @@ function updateSeaMob(arr,px,py,pz,dt,t){
     const beat=(spF<0.4)?1:2;                        /* fins ease when the beast lies up */
     if(o.m.userData.flL){ o.m.userData.flL.rotation.z=0.2+Math.sin(t*beat+o.ph)*0.3; o.m.userData.flR.rotation.z=-0.2-Math.sin(t*beat+o.ph)*0.3; }
     if(o.m.userData.wingL){ o.m.userData.wingL.rotation.z=Math.sin(t*1.6+o.ph)*0.4; o.m.userData.wingR.rotation.z=-Math.sin(t*1.6+o.ph)*0.4; } } }
-let TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS,NARWHALS;
-let PARROTS,ANGELS,LIONFS,MARLINS,SUNFS,WSHARKS,SPERMS;
-function initSeaMobs(){ if(TURTLES) return;
-  /* the last number is how deep each keeps, in metres: a turtle on the reef,
-     a whale sounding to three hundred, a pufferfish never off the shallows */
-  TURTLES=mkSeaMob('turtle',7,360,340,true,120);
-  RAYS_M=mkSeaMob('ray',4,460,440,true,200);
-  WHALES=mkSeaMob('whale',2,700,650,false,H_WHALE);
-  PUFFERS=mkSeaMob('puffer',8,240,220,true,60);
-  /* ---- THE SEA FILLED OUT TO ITS TRUE COMPANY ----
-     The reef gets its grazers and its hovering hunter; the open warm water
-     its spear and its swimming head; and the deep its greatest diver — the
-     sperm whale, who breathes at the top and sounds two kilometres after
-     the giant squid, which is a hunt this engine now actually stages. */
-  PARROTS=mkSeaMob('parrotfish',5,300,280,true,55,[-38,38]);
-  ANGELS=mkSeaMob('angelfish',6,260,240,true,45,[-38,38]);
-  LIONFS=mkSeaMob('lionfish',3,240,220,true,45,[-36,36]);
-  MARLINS=mkSeaMob('marlin',2,560,520,false,350,[-48,48]);
-  SUNFS=mkSeaMob('sunfish',1,600,560,false,480,[-54,54]);
-  WSHARKS=mkSeaMob('whaleshark',1,700,650,false,300,[-36,36]);
-  SPERMS=mkSeaMob('spermwhale',2,820,760,false,2200,[-64,64]);
-  /* ---- AND THE REST OF THE NATIONS OF THE SEA ----
-     Each to its own water and its own depth: the seal and the walrus in the
-     cold seas at both ends of the earth, the manatee grazing the weed in the
-     warm shallows and the river mouths, the octopus over the reef bed, and
-     the swordfish and the barracuda out where the bottom drops away. */
-  SEALS=mkSeaMob('seal',5,340,320,true,90,[42,90]);
-  /* the white whale of the ice, and the shark that lies under it — four
-     hundred years old, blind, and slower than a man walks */
-  BELUGAS=mkSeaMob('beluga',3,420,400,true,120,[55,90]);
-  /* the unicorn of the sea, in the same cold water as the white whale, its
-     long tusk carried before it */
-  NARWHALS=mkSeaMob('narwhal',2,440,410,true,150,[58,90]);
-  SLEEPERS=mkSeaMob('greenlandshark',1,560,520,false,600,[52,90]);
-  WALRUS=mkSeaMob('walrus',2,320,300,true,70,[58,90]);
-  MANATEES=mkSeaMob('manatee',2,300,280,true,40,[-30,30]);
-  OCTOPI=mkSeaMob('octopus',3,260,240,true,70);
-  SWORDS=mkSeaMob('swordfish',2,520,480,false,400,[-46,46]);
-  CUDAS=mkSeaMob('barracuda',5,300,280,true,110,[-34,34]);
+let SEAMOBS=null,JELLIES,CRABS;
+/* the fault kept for the guard: the sea learned BY HEART — a copy of the
+   scroll taken once at parse, before any hand could amend it, used only
+   under __INJECT.seaByRote so a test may prove the LIVE scroll rules */
+const SEA_ROTE=((window.EARTH&&EARTH.seaList)||[]).map(r=>Object.assign({},r));
+function initSeaMobs(){ if(SEAMOBS) return; SEAMOBS={};
+  /* ---- THE NATIONS OF THE SEA ARE WRITTEN IN THE SCROLL (Round 103) ----
+     Which beasts wander which waters — how many, how far off, how deep in
+     metres, and between which latitudes — is world/sea.js's to say, read
+     here one row at a time; the engine knows no nation of them by name.
+     Their hours, pace, breath and acts stay the SEA table's
+     (js/behavior.js), read in updateSeaMob below. */
+  const ROWS=(window.__INJECT&&__INJECT.seaByRote)?SEA_ROTE:((window.EARTH&&EARTH.seaList)||[]);
+  for(const r of ROWS) SEAMOBS[r.name]=mkSeaMob(r.name,r.n,r.R,r.rs,r.near,r.deepM,r.lat||null);
   JELLIES=[]; for(let k=0;k<16;k++){ const m=makeBeast('jelly'); m.visible=false; scene.add(m); JELLIES.push({m,x:0,z:0,y:0,ph:Math.random()*6.28,set:false}); }
   CRABS=[]; for(let k=0;k<18;k++){ const m=makeBeast('crab'); m.visible=false; scene.add(m); CRABS.push({m,x:0,z:0,ph:Math.random()*6.28,set:false}); } }
 function updateSeaMobs(px,py,pz,dt,t){ initSeaMobs();
-  updateSeaMob(TURTLES,px,py,pz,dt,t); updateSeaMob(RAYS_M,px,py,pz,dt,t); updateSeaMob(WHALES,px,py,pz,dt,t); updateSeaMob(PUFFERS,px,py,pz,dt,t);
-  updateSeaMob(SEALS,px,py,pz,dt,t); updateSeaMob(WALRUS,px,py,pz,dt,t);
-  updateSeaMob(MANATEES,px,py,pz,dt,t); updateSeaMob(OCTOPI,px,py,pz,dt,t);
-  updateSeaMob(SWORDS,px,py,pz,dt,t); updateSeaMob(CUDAS,px,py,pz,dt,t);
-  updateSeaMob(BELUGAS,px,py,pz,dt,t); updateSeaMob(SLEEPERS,px,py,pz,dt,t);
-  updateSeaMob(NARWHALS,px,py,pz,dt,t);
-  updateSeaMob(PARROTS,px,py,pz,dt,t); updateSeaMob(ANGELS,px,py,pz,dt,t);
-  updateSeaMob(LIONFS,px,py,pz,dt,t); updateSeaMob(MARLINS,px,py,pz,dt,t);
-  updateSeaMob(SUNFS,px,py,pz,dt,t); updateSeaMob(WSHARKS,px,py,pz,dt,t);
-  updateSeaMob(SPERMS,px,py,pz,dt,t);
+  for(const k in SEAMOBS) updateSeaMob(SEAMOBS[k],px,py,pz,dt,t);
   for(const j of JELLIES){ if(!j.set||Math.hypot(j.x-px,j.z-pz)>360){ const a=Math.random()*6.28,r=130+Math.random()*230; j.x=px+Math.cos(a)*r; j.z=pz+Math.sin(a)*r; const fy=haunt(j.x,j.z,H_JELLY); j.y=fy+30+Math.random()*80; j.set=true; j.m.visible=true; }
     const pulse=0.5+0.5*Math.sin(t*1.4+j.ph); j.y+=(pulse-0.45)*10*dt; const fy=haunt(j.x,j.z,H_JELLY), col=SEA_SURF-fy;
     j.y=Math.min(SEA_SURF-6,Math.max(fy+Math.min(10,col-7),j.y));
@@ -7996,7 +7967,7 @@ function updateDeepLife(px,py,pz,dt,t){ initDeepLife();
          The one predation the abyss is famous for: a sperm whale that has
          sounded deep enough turns after the great squid, and the squid
          JETS — full flight into the dark. Stand near it and you are told. */
-      if(K.kind==='giantsquid'&&SPERMS){ for(const w of SPERMS){ if(!w.set) continue;
+      if(K.kind==='giantsquid'&&SEAMOBS&&SEAMOBS.spermwhale){ for(const w of SEAMOBS.spermwhale){ if(!w.set) continue;
         const dd=Math.hypot(w.x-o.x,w.z-o.z);
         if(dd<280&&Math.abs(w.y-o.y)<200){
           o.dir=Math.atan2(o.z-w.z,o.x-w.x); sp=16;
@@ -8028,9 +7999,8 @@ function updateDeepLife(px,py,pz,dt,t){ initDeepLife();
     if(o.gsp){ o.gsp.position.set(o.x,o.y+1,o.z);
       o.gsp.material.opacity=0.22+0.3*(0.5+0.5*Math.sin(t*1.5+o.ph)); } } }
 function hideDeepLife(){ for(const o of DEEPLIFE){ o.set=false; o.m.visible=false; if(o.gsp)o.gsp.visible=false; } }
-function hideSeaMobs(){ if(!TURTLES) return;
-  for(const arr of [TURTLES,RAYS_M,WHALES,PUFFERS,SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS,NARWHALS,
-    PARROTS,ANGELS,LIONFS,MARLINS,SUNFS,WSHARKS,SPERMS]) for(const o of arr) o.m.visible=false;
+function hideSeaMobs(){ if(!SEAMOBS) return;
+  for(const k in SEAMOBS) for(const o of SEAMOBS[k]) o.m.visible=false;
   for(const j of JELLIES)j.m.visible=false; for(const c of CRABS)c.m.visible=false; }
 const BUB=[], BUB_N=26;
 function initBub(){ if(BUB.length) return; for(let k=0;k<BUB_N;k++){ const s=new THREE.Sprite(new THREE.SpriteMaterial({color:0xcdeeff,transparent:true,opacity:0,depthWrite:false,fog:false}));
@@ -8601,12 +8571,12 @@ function updateShallowLife(px,pz,dt,t){
   initDiveFish(); initDolphins(); initSeaMobs();
   updateDiveFish(px,0,pz,dt,t);
   updateDolphins(px,0,pz,dt,t);
-  updateSeaMob(TURTLES,px,0,pz,dt,t);
+  if(SEAMOBS.turtle) updateSeaMob(SEAMOBS.turtle,px,0,pz,dt,t);
   /* the seal and the manatee are shallow-water beasts, and both are seen
      from a deck as readily as from under it — the one off the ice at either
      end of the earth, the other grazing the weed in every warm bay */
-  updateSeaMob(SEALS,px,0,pz,dt,t); updateSeaMob(MANATEES,px,0,pz,dt,t); updateSeaMob(BELUGAS,px,0,pz,dt,t);
-  for(const arr of [SEALS,MANATEES,BELUGAS]) for(const o of arr) if(o.set) o.m.visible=true;
+  for(const nm of ['seal','manatee','beluga']){ const arr=SEAMOBS[nm]; if(!arr) continue;
+    updateSeaMob(arr,px,0,pz,dt,t); for(const o of arr) if(o.set) o.m.visible=true; }
   /* a swimmer in open water is prey — the sharks keep their hunt at the surface */
   if(state.mode==='walk'&&state.walk.inWater&&!landAtWorld(px,pz)){
     updateSharks(px,state.walk.feetY!==undefined?state.walk.feetY:-1,pz,dt,t);
@@ -8619,7 +8589,7 @@ function updateShallowLife(px,pz,dt,t){
      a deck, and the nations of the sea are met by going down to them. */
   hideShoals();
   for(const d2 of DOLPHINS) if(d2.set) d2.m.visible=true;
-  if(TURTLES) for(const o of TURTLES) if(o.set) o.m.visible=true;
+  if(SEAMOBS&&SEAMOBS.turtle) for(const o of SEAMOBS.turtle) if(o.set) o.m.visible=true;
 }
 function diveTick(dt){ const dv=state.dive;
   /* ---- the leap from the rail: an arc over the side, head-first in ---- */
@@ -12692,7 +12662,7 @@ function spearHitDeep(){
     if(near(f.x,f.y,f.z,3.2)){ f.set=false; f.m.visible=false; return {n:'a fish of the deep',fishy:true}; } }
   for(const q of SQUIDS){ if(!q.set) continue;
     if(near(q.x,q.y,q.z,3.6)){ q.set=false; q.m.visible=false; return {n:'a squid',fishy:true}; } }
-  if(PUFFERS) for(const o of PUFFERS){ if(!o.set) continue;
+  if(SEAMOBS&&SEAMOBS.puffer) for(const o of SEAMOBS.puffer){ if(!o.set) continue;
     if(near(o.x,o.y,o.z,3.2)){ o.set=false; o.m.visible=false; return {n:'a puffer of the reef',fishy:true}; } }
   return null;
 }
@@ -17343,9 +17313,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   WRECKS,wreckLooted,updateWreck,nearestGround,groundFactor,podInfo:()=>podState,LANDLIFE,
   domeInfo:()=>({dome:flyDome?flyDome.material.opacity:0, deep:outerDeep?outerDeep.material.uniforms.uOp.value:0, stars:starGroup.userData.mat.opacity}),
   ENC,nearestEncounter,encounterAct,BARKS,FIREFLIES,SMOKES,rain,rainMat,nextLandfall,checkFulfilled,AIRLIFE,stormAt,COUNTRIES,STORMS,R_WORLD,
-  seaPools:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,POD,
-    SEALS,WALRUS,MANATEES,OCTOPI,SWORDS,CUDAS,BELUGAS,SLEEPERS,NARWHALS,
-    PARROTS,ANGELS,LIONFS,MARLINS,SUNFS,WSHARKS,SPERMS}),
+  seaPools:()=>Object.assign({JELLIES,POD},SEAMOBS||{}),
   /* the reef household and the tenants of the deep, for the smoke tests */
   DEEPLIFE,DEEP_KINDS,ANEMS,SEAHORSES,MORAYS,BEDLIFE,SHOALS,
   /* the reef's lanterns and the spring flush — for the smoke tests */
@@ -17363,7 +17331,10 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
     moonPd:Math.round(Math.hypot(moon.position.x-playerXZ().x,moon.position.z-playerXZ().z)),
     sunScale:Math.round(sun.scale.x) }),
   makeBeast,makeAnimal,makeBird,beastUnits,BEASTS,U_PER_M,POD,initPod,SHARKS,initSharks,initSeaMobs,
-  seaMobs:()=>({TURTLES,RAYS_M,WHALES,PUFFERS,JELLIES,CRABS}),
+  /* what the engine actually BUILT, one row a nation, for test 70 */
+  seaMobs:()=>SEAMOBS?Object.keys(SEAMOBS).map(k=>{ const a=SEAMOBS[k];
+    return {kind:a._kind,n:a.length,R:a._R,rs:a._rs,near:!!a._near,deepM:a._deep,lat:a._lat}; }):null,
+  seaFast:k=>sharkBurstOf(k,-1),
   /* ---- THE CARPET OF THE FAR COUNTRY ----
      What a whole ring costs to lay, and what it decided. `farRing` forces a
      rebuild at the given centre and eye and answers the milliseconds — the
