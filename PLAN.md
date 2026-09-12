@@ -1708,3 +1708,17 @@ AUDIT §4da has the table.
 
 - **The suite.** The full suite ran unbroken on `5c419ec`: **65 · 0 · 4 on 69 tests** — one run,
   no splice; test 69 green inside it; the four pendings the four that pend by design.
+
+## 28. The sea set right — ✅ *Round 103*
+
+The round opened with an erratum: Round 102's sweep had written, in the SEA table's header
+and in AUDIT §4da alike, that not one accessor over the table was called — false, four were
+(the July sea-mob wire reads hours, breath, pace and acts). The record was corrected in the
+open, and the truly unread seam paid: the twenty wandering nations of the sea moved from
+literal tuples in initSeaMobs to a scroll of their own (world/sea.js, under a new EARTH.sea
+registrar), the engine reduced to one loop that knows no nation by name; and the sharks'
+strike now reads each line's own `fast` where a literal 27 stood. Test 70 guards it all;
+AUDIT §4db has the erratum in full.
+
+- **The suite.** The full suite ran unbroken on `b69cc7f`: **66 · 0 · 4 on 70 tests** — one run,
+  no splice; test 70 green inside it; the four pendings the four that pend by design.

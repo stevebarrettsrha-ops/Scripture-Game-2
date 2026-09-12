@@ -9244,6 +9244,68 @@ before. Test 69 in that run reads as it read alone: *the kiln laid by the hand b
 its own declared 9 · broken by the hand, the fire goes out*. The four pendings are the four
 that pend by design (50, 53, 54, 55 — measures with their sections still open, not faults).
 
+## 4db. Round 103 — the sea set right: the erratum owned, and the nations of the sea written in the scroll ✅
+
+*Planning this round found a fault in our own books, and the round opens by owning it.*
+
+### The erratum
+
+§4da's SEA row, and the header Round 102's sweep wrote into js/behavior.js, both said *"not
+one accessor over this table is called."* **That was false.** Four of its eight accessors
+had been live since the sea-mob wire of `0a4cedf` (July): `seaDayOf` gives every mob and
+every shoal its hours, `seaAirOf` its breath, `swimOf` its pace, `drawSeaAct` the small
+business of its life. The sweep replaced a TRUE header ("and the sea-life engine obeys")
+with a false one, without reading engine.js — the very sin the sweep was called to judge,
+and §4da's own framing ("each seam was read before it was judged") was not honoured for
+that row. Nor was the count: the table holds **65** nations, not ~40. The row now carries
+the correction in the open, this section is the erratum in full, and the walrus's stray
+`flight:10` — a field only the land table reads — went with it.
+
+### What was truly unread: placement
+
+The mis-audit hid the real seam. Habits were wired; **where the nations swim was not** —
+the twenty wandering beasts of `initSeaMobs` (the whale and the turtle, the seal and the
+walrus, the swordfish and the octopus) each carried its count, its radii, its depth in
+metres and its band of latitude as a literal tuple typed into the engine, against the
+standing law that the scroll writes the world and the engine knows nothing by name.
+
+**The wire (Round 103):** a new registrar `EARTH.sea` (a list and a push, nothing else),
+a new scroll `world/sea.js` — the twenty nations moved with no number changed — and
+`initSeaMobs` reduced to one loop over `EARTH.seaList`, building a keyed map where twenty
+named variables stood. The idle `seaFastOf` was wired the same round: the sharks' strike
+was a literal 27 (and the feed-burst a 30) where their own lines declare 20, 18 and 19 —
+the strike now reads the line, the old literals kept only as fallbacks. Still engine-side,
+named in world/sea.js's own header for later verses of this wire: the sharks' kind-list,
+the dolphin pod, the squid, the jellies and crabs, the reef household, the tenants of the
+deep, and the river fish. (`seaOf`, `seaSchoolOf`, `seaHomeOf` stay idle too, for the
+rounds that want school formation and den sites read from the table.)
+
+### The readings
+
+**PASS 70 · THE NATIONS OF THE SEA ARE WRITTEN IN THE SCROLL** — twice standalone
+(alone, and again beside regressions 8 and 66, all green):
+
+> 20 nations built of 20 written, every count, radius, depth and band read back equal · 15
+> keep a named band of latitude, 5 swim all seas · the shark strikes at 20, its own line's
+> word, and follows the line when it changes (33 read back 33) · and the habits stay the
+> table's: the whale must rise to breathe, the sardine keeps the night
+
+**The injections** (`window.__INJECT`, set between page-open and sail):
+
+- **The scroll rules** (no flag, barracuda spliced from `EARTH.seaList` before sail):
+  the engine built 19 of 19 and the spliced nation never swam — the scroll writes the sea.
+- **`seaByRote`** (the engine by heart — the parse-time copy used, the live scroll
+  ignored) with the same splice: *"sea holds barracuda, scroll does not name it"* — the
+  ghost nation caught by name.
+- **`forgetFast`** (the accessor unplugged): *"shark strike reads -1 where the line says
+  20"* — the literal convicted.
+
+All three read off runs, the read lines conditional on what actually stood.
+
+The full suite ran unbroken on `b69cc7f`: **66 passed, 0 failed, 4 pending of 70** — one
+run, no splice, test 70 inside it reading word for word as it read alone. The four pendings
+are the four that pend by design (50, 53, 54, 55).
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
