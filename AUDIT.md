@@ -9217,7 +9217,7 @@ round of its own, and the record here either way.*
 | seam | what was found | the act |
 |---|---|---|
 | the kiln's `light:9` (*"it is burning"*) | the registry parsed every block's `light` and **nothing anywhere read it back** — a built kiln stood dark from the day the fire was lit | **WIRED.** A lit block laid by the hand registers a glow through `setBlock` — the one door laying and breaking both pass — burns by night like the village torches, and goes out when broken. Test 69 guards it; the `dimBlocks` flag puts the darkness back. |
-| the SEA table (~40 nations, *"the sea-life engine obeys"*) | not one accessor over it is called | header now says plainly it is the catalogue a future round wires — the exact state the FOLK table stood in until Round 95 |
+| the SEA table (~40 nations, *"the sea-life engine obeys"*) | not one accessor over it is called | header now says plainly it is the catalogue a future round wires — the exact state the FOLK table stood in until Round 95 **[WRONG — see the erratum, §4db: four accessors were already called, and the table has 65 rows, not ~40; this row was written unread]** |
 | the THINGS table (*"the engine drives the kelp and seagrass live from here"*) | nothing reads it; their sway lives in the wind shader; the claim was never true | the false half struck from the header |
 | the FLORA table (sway per form, bear, grow) | read by nothing; the trees' sway is one shader amplitude per material, not per form | header says so; the wire named for a flora round |
 | `PALETTE.warm()` (*"matters more here than any of them"*) | defined, never called — the limestone-against-granite grading never happened | a plain note; it stays for the round that does the grading |

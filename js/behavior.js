@@ -313,10 +313,16 @@ child:   {rise:6.5, bed:19.0, work:0.20, pace:8.5, rest:13.5, acts:[['play',8],[
    the dark to feed and sank again at dawn. Each nation's hours, water, pace
    and habits are written here.
 
-   AND SAID PLAINLY (Round 102's sweep): the sea-life engine does not read
-   this table yet — not one accessor over it is called. It is the catalogue
-   a future round wires, exactly as the FOLK table above stood written and
-   unread for rounds until Round 95 made the village read it.
+   AND SET RIGHT (Round 103's erratum, correcting Round 102's sweep): the
+   sweep wrote here that not one accessor over this table was called, and
+   that was FALSE — the engine has read four of them since the sea-mob wire
+   (seaDayOf, seaAirOf, swimOf, drawSeaAct: every mob's hours, breath, pace
+   and acts come from this table). What the engine did NOT read, and Round
+   103 moves to the scroll, was PLACEMENT — which nations swim, how many,
+   how deep, between which latitudes — literals in initSeaMobs until
+   world/sea.js. seaFastOf joins the wire the same round (the sharks'
+   burst); seaOf, seaSchoolOf and seaHomeOf still wait, for the rounds that
+   want school formation and den sites read from here.
 
    day    — when it is abroad and quick: 'day', 'night', 'dusk', or 'all'.
             Off its hours it does not stop (nothing stops in the sea) but goes
@@ -338,7 +344,8 @@ child:   {rise:6.5, bed:19.0, work:0.20, pace:8.5, rest:13.5, acts:[['play',8],[
             (bottom/den) — and keeps the rest as a stable key for sound and
             animation, exactly as the land's acts are.
 
-   To put a new fish in the sea: add its creature file, add a line here. */
+   To put a new fish in the sea: add its creature file, add its habits
+   here, and its waters in world/sea.js. */
 const SEA={
 /* ---- the great breathing beasts: whale, dolphin, and their kin ---- */
 whale:        {day:'all',  swim:5, fast:11, deep:'open',    school:true,  air:true,  home:'open', acts:[['sound',4],['surface',3],['breach',1],['spyhop',1]]},
@@ -348,7 +355,7 @@ riverdolphin: {day:'day',  swim:5, fast:11, deep:'river',   school:false, air:tr
 narwhal:      {day:'all',  swim:5, fast:12, deep:'ice',     school:true,  air:true,  home:'ice',  acts:[['sound',3],['surface',3],['tusk',1]]},
 beluga:       {day:'all',  swim:5, fast:12, deep:'ice',     school:true,  air:true,  home:'ice',  acts:[['surface',3],['sound',2],['song',2]]},
 seal:         {day:'day',  swim:7, fast:16, deep:'shelf',   school:false, air:true,  home:'ice',  acts:[['surface',3],['logging',3],['hunt',2],['bask',1]]},
-walrus:       {flight:10, day:'day',  swim:4, fast:9,  deep:'shelf',   school:true,  air:true,  home:'ice',  acts:[['surface',3],['bottom',3],['logging',2]]},
+walrus:       {day:'day',  swim:4, fast:9,  deep:'shelf',   school:true,  air:true,  home:'ice',  acts:[['surface',3],['bottom',3],['logging',2]]},
 manatee:      {day:'day',  swim:3, fast:7,  deep:'shelf',   school:false, air:true,  home:'weed', acts:[['graze',5],['surface',3],['logging',2]]},
 turtle:       {day:'day',  swim:4, fast:10, deep:'reef',    school:false, air:true,  home:'reef', acts:[['graze',3],['surface',3],['clean',1],['logging',1]]},
 /* ---- the hunters and the great fish of the open water ---- */
