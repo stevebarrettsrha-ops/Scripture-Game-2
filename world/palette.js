@@ -167,6 +167,12 @@ const B = {
   stone:       { b: P.limestone,                               // was flat 125,125,125
                  a: shade(mix(P.limestone,P.rawUmber,0.18),0.88),
                  vein: lift(P.limestone,0.16) },
+  /* --- the rock under the sea's level: basalt, dark and close-grained --- */
+  deepStone:   { b: mix(P.basalt, P.slate, 0.35),
+                 a: shade(P.basalt, 0.80),
+                 vein: mix(P.basalt, P.limestone, 0.30) },
+  /* --- and the floor of the world, which no hand breaks --- */
+  bedrock:     { b: P.charcoal, a: P.lampblack, c: P.slate },
   cobble:      { b: mix(P.limestone, P.ash, 0.18),             // was 92,92,92 — hewn, not crushed
                  a: lift(P.limestone,0.10),
                  mortar: shade(mix(P.limestone,P.rawUmber,0.4),0.62) },
@@ -228,6 +234,9 @@ const B = {
      a face catches the light. */
   gemBody:     { b: shade(P.limestone,0.86), a: shade(P.limestone,0.74) },
   sapphire:    { m: P.sapphire, s: shade(P.sapphire,0.66), g: lift(P.sapphire,0.42) },
+  /* the diamond of the breastplate's second row: ice-clear with a cold
+     blue-green fire in it, the hardest thing in the ground */
+  diamond:     { m: mix(P.glacier,P.teal,0.38), s: shade(mix(P.glacier,P.teal,0.5),0.60), g: lift(P.glacier,0.55) },
   jasper:      { m: P.jasper,   s: shade(P.jasper,0.68),   g: lift(P.jasper,0.34) },
   topaz:       { m: P.topaz,    s: shade(P.topaz,0.70),    g: lift(P.topaz,0.38) },
   shoham:      { m: P.onyx,     s: shade(P.onyx,0.62),     g: lift(P.onyx,0.46) },

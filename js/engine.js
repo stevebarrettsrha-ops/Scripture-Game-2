@@ -161,6 +161,16 @@ TEX.stone      = mkTex(g=>{ speckle(g,PB.stone.b,14,PB.stone.a,0.28);
   for(let k=0;k<3;k++){ const y0=1+hash2(k,4.7)*13;
     for(let x=0;x<16;x+=FG){ const y=y0+Math.sin(x*0.7+k)*0.6;
       if(hash2(x*2.3+k,y)>0.42){ const c=jit(PB.stone.vein,10,x+k); Pf(g,x,Math.round(y/FG)*FG,rgb(c[0],c[1],c[2])); } } } },16,16,RIM);
+/* the deep rock: the same bedding as the limestone above it, darker and
+   finer — so a shaft reads as going DOWN into something older */
+TEX.deepStone  = mkTex(g=>{ speckle(g,PB.deepStone.b,12,PB.deepStone.a,0.34);
+  for(let k=0;k<4;k++){ const y0=1+hash2(k,8.3)*13;
+    for(let x=0;x<16;x+=FG){ const y=y0+Math.sin(x*0.9+k*2)*0.5;
+      if(hash2(x*1.9+k,y)>0.5){ const c=jit(PB.deepStone.vein,8,x+k); Pf(g,x,Math.round(y/FG)*FG,rgb(c[0],c[1],c[2])); } } } },16,16,RIM);
+/* the floor of the world: black, broken, and flecked */
+TEX.bedrock    = mkTex(g=>{ speckle(g,PB.bedrock.b,18,PB.bedrock.a,0.5);
+  for(let k=0;k<30;k++){ const x=Math.floor(hash2(k,3.3)*16/FG)*FG, y=Math.floor(hash2(k,9.9)*16/FG)*FG;
+    Pf(g,x,y,C(PB.bedrock.c)); } },16,16,RIM);
 TEX.snow       = mkTex(g=>speckle(g,PB.snow.b,8,PB.snow.a,0.25));
 TEX.ice        = mkTex(g=>{ speckle(g,PB.ice.b,12,PB.ice.a,0.3);
   for(let k=0;k<9;k++){ const x=Math.floor(hash2(k,1)*32)*FG, y=Math.floor(hash2(k,2)*32)*FG;
@@ -543,6 +553,7 @@ TEX.topaz    = gemTex(PB.topaz);
 TEX.shoham   = gemTex(PB.shoham);
 TEX.emerald  = gemTex(PB.emerald);
 TEX.ruby     = gemTex(PB.ruby);
+TEX.diamond  = gemTex(PB.diamond);
 TEX.salt       = mkTex(g=>{ speckle(g,PB.salt.b,14,PB.salt.a,0.3);
   /* crystal: hard little facets that catch the light square-on */
   for(let k=0;k<26;k++){ const x=Math.floor(hash2(k,2.7)*32)*FG, y=Math.floor(hash2(k,5.3)*32)*FG;
@@ -566,6 +577,9 @@ function blockMat(name,tex,opts){ const m=new THREE.MeshBasicMaterial(Object.ass
      three.js has always had and never used; it costs nothing and it is the
      difference between measuring a thing and guessing at it. */
   m.name=name;
+  /* a material with no options of its own is a PLAIN block face — opaque,
+     unswayed — and may be drawn from the one texture array (see blockArray) */
+  if(!opts) m.userData.plain=true;
   MAT[name]=m; LIT.push(m); return m; }
 /* the ice is enrolled in its OWN pool, not in LIT — see setIceLight */
 const ICE_MATS=[];
@@ -578,6 +592,7 @@ blockMat('grassSide',TEX.grassSide); blockMat('dirt',TEX.dirt); blockMat('path',
 blockMat('sapphire',TEX.sapphire); blockMat('jasper',TEX.jasper);
 blockMat('topaz',TEX.topaz); blockMat('shoham',TEX.shoham);
 blockMat('emerald',TEX.emerald); blockMat('ruby',TEX.ruby);
+blockMat('diamond',TEX.diamond);
 blockMat('hewnStone',TEX.hewnStone); blockMat('altar',TEX.altar);
 blockMat('kilnSide',TEX.kilnSide); blockMat('kilnTop',TEX.kilnTop);
 blockMat('flintPick',TEX.flintPick,{transparent:true});
@@ -595,6 +610,7 @@ blockMat('goldOre',TEX.goldOre); blockMat('silverOre',TEX.silverOre);
 blockMat('copperOre',TEX.copperOre); blockMat('ironOre',TEX.ironOre);
 blockMat('alabaster',TEX.alabaster); blockMat('flint',TEX.flint);
 blockMat('sand',TEX.sand); blockMat('stone',TEX.stone); blockMat('cobble',TEX.cobble);
+blockMat('deepStone',TEX.deepStone); blockMat('bedrock',TEX.bedrock);
 blockMat('snow',TEX.snow); blockMat('ice',TEX.ice);
 iceMat('iceTop',TEX.snow); iceMat('iceSide',TEX.ice);   /* the wall of ice and the floes */
 blockMat('planks',TEX.planks); blockMat('roof',TEX.roof);
@@ -796,6 +812,9 @@ const SNOW_VS=                                      /* -> vSeas.y = how deep the
 const SNOW_FS=
   '  diffuseColor.rgb=mix(diffuseColor.rgb, vec3(0.93,0.95,1.00), vSeas.y*0.92);';
 function windSway(mat,amp,rooted,tint){
+  mat.userData.plain=false;
+  /* what the plant array (plantArray) needs to sway this material the same way */
+  mat.userData.sway={amp,rooted:!!rooted,tint:tint==='leaf'?1:tint==='snow'?2:0};
   mat.onBeforeCompile=sh=>{
     sh.uniforms.uWindT=WIND_T; sh.uniforms.uWindA=WIND_A;
     let vs=sh.vertexShader.replace(
@@ -838,6 +857,7 @@ function windSway(mat,amp,rooted,tint){
    the same reckoning the leaves use). No chunk is re-meshed; it is in the
    shader, and the traveller's chosen season drives it. */
 function groundSnow(mat){
+  mat.userData.snow=true;
   mat.onBeforeCompile=sh=>{ sh.uniforms.uSeasonY=SEASON_Y;
     sh.vertexShader='uniform float uSeasonY;\nvarying vec2 vSeas;\n'+sh.vertexShader.replace(
       '#include <color_vertex>','#include <color_vertex>\n'+SNOW_VS);
@@ -880,6 +900,7 @@ windSway(MAT.plantW,0.85,true,'snow');
    The curve is js/crop.js's, in GLSL and in JavaScript both, built off one set
    of constants — acceptance test 48 puts the two side by side. */
 function cropYear(mat,turns){
+  mat.userData.plain=false;
   if(!window.CROP) return;
   const src=CROP.glsl(INV_R_STR);
   mat.onBeforeCompile=sh=>{
@@ -975,9 +996,21 @@ function torchLight(mat){
     sh.fragmentShader='uniform vec3 uTorchP;\nuniform float uTorchR;\nuniform float uTorchS;\nvarying vec3 vTPos;\n'+
       sh.fragmentShader.replace('#include <color_fragment>',
         '#include <color_fragment>\n'+
+        /* ---- THE FLAME LIFTS THE DARK UP TO ITS OWN LIGHT, AND NO FURTHER ----
+           It MULTIPLIED whatever it fell on by up to eight, which is right in
+           the black of a cave and ruinous at noon: a torch struck in the
+           street at midday burned the whole screen out to white. The light a
+           face already has (the day's colour times its own baked shade) is
+           read, and the flame only ever raises it TOWARD what a torch gives
+           — so it blazes in a cave, glows at dusk, and at noon does nothing
+           a player would notice, which is also what a torch does at noon. */
         '  if(uTorchS>0.001){ float d=distance(vTPos,uTorchP);\n'+
         '    float t=max(0.0,1.0-d/uTorchR);\n'+
-        '    diffuseColor.rgb*=1.0+uTorchS*t*t*7.0; }');
+        '    vec3 lit0=diffuse;\n'+
+        '    #ifdef USE_COLOR\n    lit0*=vColor;\n    #endif\n'+
+        '    float lum=max(0.04,dot(lit0,vec3(0.3,0.59,0.11)));\n'+
+        '    float want=uTorchS*t*t*1.15;\n'+
+        '    diffuseColor.rgb*=clamp(want/lum,1.0,8.0); }');
   },'torch');
 }
 /* every block material that exists at this point takes the torch, and so
@@ -993,6 +1026,17 @@ function torchAll(){
 }
 torchAll();
 const torchMat=new THREE.MeshBasicMaterial({color:0xffd75e});           // full-bright, never dimmed
+/* ---- A THING HELD IS NOT A CHUNK ----
+   The block materials draw with VERTEX COLOURS — the mesher bakes each face's
+   shade into them — and a plain box made for a prop carries none, so a torch
+   haft or a pick made from MAT.logSide drew jet black. A prop takes the same
+   texture in a material of its own, lit by the day like every other. */
+const _propMats={};
+function propMat(name){
+  if(_propMats[name]) return _propMats[name];
+  const src=MAT[name]; if(!src) return null;
+  const m=new THREE.MeshBasicMaterial({map:src.map,alphaTest:src.alphaTest||0,side:THREE.DoubleSide});
+  m.name=name+'Prop'; LIT.push(m); _propMats[name]=m; return m; }
 function setBlockLight(r,g2,b2){ for(const m of LIT) m.color.setRGB(r,g2,b2); }
 /* ---- THE FLAME ITSELF ----
    Where it stands, how far it reaches, and how hard it burns — with a
@@ -1012,24 +1056,33 @@ function torchTick(dt){
         :(state.mode==='fly')?state.fly.y:(state.mode==='dive')?state.dive.y:WATER_Y+8;
   TORCH_P.value.set(p.x,y,p.z);
 }
-/* ---- AND IT IS IN HIS HAND ----
+/* ---- AND IT IS IN HIS HAND, AND IT IS HELD UP ----
    A light with no lamp under it is a trick. A short haft of wood with a
-   knot of flame on its head, hung off the traveller's right arm so it
-   swings with his stride and is seen over his shoulder by his own camera. */
+   knot of flame on its head, held in the LEFT hand — the off hand, so the
+   right is free for the pick — with the forearm raised and the flame
+   standing UP off the top of the haft, whatever the arm is doing.
+
+   IT HUNG UPSIDE DOWN. The haft was hung off the UPPER arm, below the elbow,
+   with the flame on its lower end — so what a player saw was a stick held
+   point-down with fire dripping off the bottom of it. It is carried on the
+   forearm now, at the hand, and turned each frame against the arm's own
+   swing so the haft stays upright as he walks. */
 let torchProp=null;
 function ensureTorchProp(){
-  if(torchProp||!walkerG.userData||!walkerG.userData.armR) return torchProp;
+  const armL=walkerG.userData&&walkerG.userData.armL;
+  if(torchProp||!armL) return torchProp;
+  const hold=(armL.userData&&armL.userData.elbow)||armL;
   const g=new THREE.Group();
-  const haft=new THREE.Mesh(new THREE.BoxGeometry(0.55,3.4,0.55),MAT.logSide||MAT.barkW);
-  haft.position.y=-1.7; g.add(haft);
+  const haft=new THREE.Mesh(new THREE.BoxGeometry(0.55,3.4,0.55),propMat('logSide')||propMat('barkW'));
+  haft.position.y=1.1; g.add(haft);
   const fl=new THREE.Mesh(new THREE.BoxGeometry(1.05,1.25,1.05),torchMat);
-  fl.position.y=-3.5; g.add(fl);
+  fl.position.y=3.35; g.add(fl);
   const em=new THREE.Mesh(new THREE.BoxGeometry(1.7,1.9,1.7),
     new THREE.MeshBasicMaterial({color:0xffb347,transparent:true,opacity:0.42,depthWrite:false}));
-  em.position.y=-3.5; g.add(em);
-  g.position.set(0,-4.0,0.9);
-  g.userData.flame=fl; g.userData.halo=em;
-  walkerG.userData.armR.add(g);
+  em.position.y=3.35; g.add(em);
+  g.position.set(0,hold===armL?-4.2:-2.15,0.2);
+  g.userData.flame=fl; g.userData.halo=em; g.userData.hold=hold;
+  hold.add(g);
   torchProp=g; g.visible=false;
   return g;
 }
@@ -1038,6 +1091,17 @@ function torchPropTick(){
   const show=TORCH.s>0.01&&(state.mode==='walk'||state.mode==='deck'||state.mode==='fly');
   g.visible=show;
   if(!show) return;
+  /* the torch arm is raised — the upper arm a little forward of the walk,
+     the forearm lifted — unless the body is swimming, climbing or sprawled,
+     which have poses of their own */
+  const u=walkerG.userData, armL=u.armL, el=armL.userData&&armL.userData.elbow;
+  const w=state.walk, free=state.mode!=='walk'||(!w.inWater&&!w.climb&&!(w.spill>0));
+  if(free&&!cut){
+    armL.rotation.x=-0.35+armL.rotation.x*0.25;
+    armL.rotation.z=0.08;
+    if(el) el.rotation.x=-1.25; }
+  /* and the haft stands UP whatever the arm has been set to */
+  g.rotation.x=-(armL.rotation.x+(el&&g.userData.hold===el?el.rotation.x:0));
   const f=0.8+0.35*Math.sin(TORCH.t*13.1)+0.1*Math.sin(TORCH.t*31.3);
   g.userData.flame.scale.set(1,f,1);
   g.userData.halo.scale.setScalar(0.9+0.25*f);
@@ -1140,7 +1204,12 @@ for(let i=0;i<BLOCK_DEFS.length;i++){
     increase:d.increase||0,
     tills:d.tills||null,
     /* whether it may be SET DOWN at all — a tool may not */
-    place:d.place!==false };
+    place:d.place!==false,
+    /* the floor of the world: no hand, no tool, no free hand breaks it */
+    unbreakable:!!d.unbreakable,
+    /* how good a pick it asks: 0 any, 2 iron. `tier` on a TOOL is how good
+       it is (the flint is 1 unless it says otherwise) */
+    tier:d.tier||0 };
   /* the three faces the mesher asks for, resolved once so it never has to */
   b.mTop=b.tex.top||b.tex.all||'stone';
   b.mSide=b.tex.side||b.tex.all||b.mTop;
@@ -1157,6 +1226,107 @@ const KIND_BLOCK={ grass:'grass', tropic:'grass', tundra:'grass', savanna:'grass
   sand:'sand', desert:'sand', snow:'snow', wall:'ice', floe:'ice',
   rock:'stone', alpine:'dirt', badlands:'clay-band' };
 function surfaceBlockOf(kind){ return blockId(KIND_BLOCK[kind]||'stone'); }
+/* ================= THE EARTH UNDER THE EARTH =================
+   THE GROUND WAS ONLY AS THICK AS THE LAND STOOD HIGH. Course 0 was the floor
+   of the world, just above the sea, so a plain was one or two blocks of
+   grass and stone laid on NOTHING: a man could not dig down at all, and the
+   ores of every land lay only under its hills. The block game everybody
+   knows is block on block to a floor far below — dirt under the sward, stone
+   under the dirt, the dark rock under that, and the ores banded by depth
+   through all of it — and so is this one now.
+
+     the surface course      what the land is (grass, sand, snow…)
+     the next few            its soil: earth under the sward, sand under sand
+     down to the sea's level the country's own rock, and its own ores
+     under the sea's level   stone, then DEEP STONE from DEEPSTONE_Y down
+     course −DEEP            the foundations of the earth — no hand breaks it
+
+   None of it is drawn until a hand opens it: the mesher only ever lays the
+   faces between a solid cell and an open one, and underground there are none
+   until somebody digs. It costs the world nothing it does not show. */
+const DEEP=48, DEEPSTONE_Y=-18;
+const SOIL_DEPTH={ grass:4, tropic:4, tundra:4, savanna:4, sand:5, desert:5 };
+function strataId(kind,h,iy){
+  if(iy<=-DEEP) return 'bedrock';
+  if(kind==='wall'||kind==='floe') return 'ice';
+  if(iy<DEEPSTONE_Y) return 'deep-stone';
+  const soil=SOIL_DEPTH[kind];
+  if(soil&&iy>=h-soil) return (kind==='sand'||kind==='desert')?'sand':'dirt';
+  if(kind==='badlands'&&iy>=0) return 'clay-band';
+  return 'stone';
+}
+/* and the texture a face of that course wears */
+const STRATA_TEX={ bedrock:'bedrock', ice:'iceSide', 'deep-stone':'deepStone', sand:'sand',
+  dirt:'dirt', 'clay-band':'badSide', stone:'stone' };
+function strataMat(kind,h,iy){ return STRATA_TEX[strataId(kind,h,iy)]||'stone'; }
+/* ---- THE ORES OF THE WHOLE EARTH, BY HEIGHT ----
+   world/minerals.js lays each land's OWN substances — the gold of Ḥawilah,
+   the copper of the Arabah — in bands under its surface, and that stays the
+   heart of it. Over it now lies the order every miner of the other game
+   carries in his head, laid through the rock of EVERY land by the height of
+   the course itself (course 0 is the level of the sea, −48 the foundations):
+
+     emerald        high in the MOUNTAINS only
+     alabaster      the white stone, through the hills (the other game's quartz)
+     bitumen        the black pitch — its coal — from the hills down to the sea
+     copper         around the level of the land
+     iron           about the sea's level, and a little under
+     sapphire       below the sea (its lapis)
+     silver, gold   deeper
+     ruby, topaz    near the bottom (its redstone)
+     diamond        the last courses above the foundations, and seldom
+
+   They lie in the ROCK only — never in the soil or the sand — and in VEINS,
+   a knot of a few cells together, not as lone specks.
+   [id, highest course, lowest course, how often, the column must stand at least this high] */
+const COMMON_ORES=[
+  ['emerald',    140,  30, 0.004, 40],
+  ['alabaster',   80,  12, 0.010, 14],
+  ['bitumen',     70,  -8, 0.018, 0],
+  ['copper-ore',  26, -14, 0.014, 0],
+  ['iron-ore',    10, -40, 0.013, 0],
+  ['sapphire',    -8, -38, 0.0035,0],
+  ['silver-ore', -12, -40, 0.007, 0],
+  ['gold-ore',   -16, -44, 0.006, 0],
+  ['ruby',       -34, -47, 0.005, 0],
+  ['topaz',      -30, -46, 0.0025,0],
+  ['diamond',    -41, -47, 0.0014,0]
+];
+const COMMON_TOP=140, COMMON_LO=-47;
+let _commonOres=null;
+function commonOres(){
+  if(!_commonOres) _commonOres=COMMON_ORES.map((o,k)=>({n:blockId(o[0]),top:o[1],lo:o[2],p:o[3],minH:o[4],sd:17.3+k*5.9})).filter(o=>o.n);
+  return _commonOres; }
+/* a vein on a grid of two, and which cells of it carry the ore */
+function _veinHit(o,ix,iy,iz){
+  return hash2(Math.floor(ix/2)*3.17+Math.floor(iy/2)*7.91+o.sd, Math.floor(iz/2)*5.03-Math.floor(iy/2)*2.29+o.sd*1.7)<o.p*3.2
+    && hash2(ix*1.91+iy*3.37+o.sd, iz*2.71-iy*1.13-o.sd)<0.55; }
+function inRock(c,iy){ const k=strataId(c.kind,c.h,iy); return k==='stone'||k==='deep-stone'; }
+function commonOreAt(c,ix,iy,iz){
+  if(iy>COMMON_TOP||iy<COMMON_LO||iy>=c.h-1||!inRock(c,iy)) return 0;
+  for(const o of commonOres()){
+    if(iy>o.top||iy<o.lo||c.h<o.minH) continue;
+    if(_veinHit(o,ix,iy,iz)) return o.n; }
+  return 0;
+}
+/* every common ore of one column at once, for the mesher — the same answer
+   commonOreAt gives cell by cell (first in the list wins), paid once a column */
+function columnOres(c,ix,iz){
+  let out=null;
+  const L=commonOres();
+  for(let k=0;k<L.length;k++){ const o=L[k];
+    if(c.h<o.minH) continue;
+    const hi=Math.min(o.top,c.h-2), lo=Math.max(o.lo,COMMON_LO);
+    for(let iy=hi;iy>=lo;iy--){
+      if(out&&out.has(iy)) continue;
+      if(!_veinHit(o,ix,iy,iz)||!inRock(c,iy)) continue;
+      let taken=false;                 /* one earlier in the list claims it first */
+      for(let j=0;j<k;j++){ const q=L[j];
+        if(iy<=q.top&&iy>=q.lo&&c.h>=q.minH&&_veinHit(q,ix,iy,iz)){ taken=true; break; } }
+      if(taken) continue;
+      (out||(out=new Map())).set(iy,o.n); } }
+  return out;
+}
 function depthBlockOf(kind){
   if(kind==='sand'||kind==='desert') return blockId('sand');
   if(kind==='badlands') return blockId('clay-band');
@@ -2333,7 +2503,8 @@ const _myR=[], _nbR=[];
    mesher already understands, so nothing below has to know that anybody has
    been digging. Only ever called for a column somebody has touched. */
 const _ecc={h:0,kind:'',tree:0,ci:0,spans:null};
-function editedCell(ix,iz,cc,em){
+function editedCell(ix,iz,cc,em,out){
+  out=out||_ecc;
   let hi=cc.h-1, lo=0;
   for(const y of em.keys()){ if(y>hi) hi=y; if(y<lo) lo=y; }
   /* ---- WHAT IS TERRAIN HERE, AND WHAT IS NOT ----
@@ -2354,16 +2525,35 @@ function editedCell(ix,iz,cc,em){
      pile blocks over his head, and the top of the column follows him */
   let top=cc.h;
   for(let y=hi;y>=cc.h;y--) if(tS(y)){ top=y+1; break; }
-  while(top>0&&!tS(top-1)) top--;
+  while(top>-DEEP&&!tS(top-1)) top--;       /* down through the dug earth to what is left */
   const air=[]; let run=-1;
   for(let y=Math.min(lo,0);y<top;y++){
     if(!tS(y)){ if(run<0) run=y; }
     else if(run>=0){ air.push(run,y); run=-1; }
   }
   if(run>=0&&run<top) air.push(run,top);
-  _ecc.h=Math.max(1,top); _ecc.kind=cc.kind; _ecc.tree=0; _ecc.ci=cc.ci;
-  _ecc.spans=air.length?Int16Array.from(air):null;
-  return _ecc;
+  out.h=Math.max(-DEEP+1,top); out.kind=cc.kind; out.tree=0; out.ci=cc.ci;
+  out.spans=air.length?Int16Array.from(air):null;
+  return out;
+}
+/* ---- WHAT THE COLUMN BESIDE THIS ONE HAS BECOME ----
+   The walls of a column are drawn against its neighbours' heights, and those
+   were always the PROCEDURAL heights — so a pit dug beside an untouched
+   column had no walls at all: the untouched one still thought its neighbour
+   stood full height and drew nothing, and the pit, being lower, drew nothing
+   either. A hole in the ground looked into the void. The neighbour is now
+   read as the hand has left it, from this chunk's own index of its edits or,
+   across the join, from the next chunk's. */
+const _eccN=[0,1,2,3].map(()=>({h:0,kind:'',tree:0,ci:0,spans:null}));
+let _bcx=0,_bcz=0;
+function cellView(ix,iz,slot){
+  const c=cell(ix,iz); if(!c) return c;
+  let em;
+  if(chunkEdits&&Math.floor(ix/CH)===_bcx&&Math.floor(iz/CH)===_bcz)
+    em=chunkEdits.get((ix-_bcx*CH)*CH+(iz-_bcz*CH));
+  else em=editColumn(ix,iz);
+  if(!em||!em.size) return c;
+  return editedCell(ix,iz,c,em,_eccN[slot]);
 }
 /* and the blocks he SET DOWN are drawn one at a time, each in its own
    material — six faces, every one of them culled against what stands beside
@@ -2537,7 +2727,11 @@ function emitColumn(G,ix,iz,cc){
      answer is no and nothing below costs a thing. */
   const ores=MIN_BY_CI[cc.ci]||null;
   /* the stone of a seam, at a course of this column, or 0 */
-  const seamAt=iy=>(ores&&iy>=0&&iy<cc.h-1)?oreAt(cc,ix,iy,iz):0;
+  let colOre;                  /* the common ores of this column, found once when first asked */
+  const seamAt=iy=>{ if(iy>=cc.h-1) return 0;
+    const n=(ores&&iy>=0)?oreAt(cc,ix,iy,iz):0; if(n) return n;
+    if(colOre===undefined) colOre=columnOres(cc,ix,iz)||null;
+    return colOre?(colOre.get(iy)||0):0; };
   const nb=[[1,0],[-1,0],[0,1],[0,-1]];
   /* ---- THE HOLLOW OF THIS COLUMN, IF IT HAS ONE ----
      The floors and the ceilings first — the underside of every roof and the
@@ -2552,12 +2746,12 @@ function emitColumn(G,ix,iz,cc){
          of the one above, so where either of those is a seam it is the seam a
          man sees when he walks in with a light. */
       const nF=seamAt(lo-1), nR=seamAt(hi);
-      faceTop(G,nF?blockOf(nF).mTop:sLow,x0,z0,x1,z1,lo*B,1.0*f);      /* the floor of the passage */
-      faceBottom(G,nR?blockOf(nR).mBottom:sLow,x0,z0,x1,z1,hi*B,0.5*f); /* and the roof over it */
+      faceTop(G,nF?blockOf(nF).mTop:strataMat(cc.kind,cc.h,lo-1),x0,z0,x1,z1,lo*B,1.0*f);      /* the floor of the passage */
+      faceBottom(G,nR?blockOf(nR).mBottom:strataMat(cc.kind,cc.h,hi),x0,z0,x1,z1,hi*B,0.5*f); /* and the roof over it */
     }
   }
   for(let d=0;d<4;d++){
-    const nc=cell(ix+nb[d][0],iz+nb[d][1]);
+    const nc=cellView(ix+nb[d][0],iz+nb[d][1],d);
     const nh=nc?nc.h:0, base=Math.min(nh,cc.h)*B;
     const hollow=!!(cc.spans||(nc&&nc.spans));
     if(cc.h<=nh&&!hollow) continue;
@@ -2603,13 +2797,19 @@ function emitColumn(G,ix,iz,cc){
        It walks only the courses that lie within the depths that country's own
        substances lie at, which is at most some sixty and is usually none. */
     const putB=(mat,ya,yb,sh)=>{
-      if(!ores||yb<=ya){ put(mat,ya,yb,sh); return; }
-      const c0=Math.max(Math.floor(ya/B), cc.h-ores.dHi);
-      const c1=Math.min(Math.ceil(yb/B),  cc.h-ores.dLo+1, cc.h-1);
+      if(yb<=ya) return;
+      /* the courses any ore could lie in: the land's own band, and under the
+         sea's level the common ores of the whole earth */
+      const lo=Math.floor(ya/B), hi=Math.ceil(yb/B);
+      let c0=1e9, c1=-1e9;
+      if(ores){ const a=Math.max(lo,cc.h-ores.dHi,0), b=Math.min(hi,cc.h-ores.dLo+1,cc.h-1);
+        if(b>a){ c0=a; c1=b; } }
+      if(lo<=COMMON_TOP){ const a=Math.max(lo,COMMON_LO), b=Math.min(hi,COMMON_TOP+1,cc.h-1);
+        if(b>a){ c0=Math.min(c0,a); c1=Math.max(c1,b); } }
       if(c1<=c0){ put(mat,ya,yb,sh); return; }
       let y=ya;
       for(let iy=c0;iy<c1;iy++){
-        const n=oreAt(cc,ix,iy,iz); if(!n) continue;
+        const n=seamAt(iy); if(!n) continue;
         const a2=Math.max(ya,iy*B), b2=Math.min(yb,(iy+1)*B); if(b2<=a2) continue;
         if(a2>y) put(mat,y,a2,sh);
         put(blockOf(n).mSide,a2,b2,sh);
@@ -2617,6 +2817,16 @@ function emitColumn(G,ix,iz,cc){
       }
       if(yb>y) put(mat,y,yb,sh);
     };
+    /* ---- AND THE BANDS OF THE EARTH DOWN THE FACE ----
+       Soil under the sward, the land's rock under the soil, the deep stone
+       under the sea's level: a face is cut where the strata change, and each
+       band is laid in its own stone with its own seams. */
+    const putS=(ya,yb,sh)=>{ if(yb<=ya) return;
+      let y=ya;
+      while(y<yb-1e-6){ const iy=Math.floor(y/B+1e-6), m=strataMat(cc.kind,cc.h,iy);
+        let jy=iy+1, e=Math.min(yb,jy*B);
+        while(e<yb-1e-6&&strataMat(cc.kind,cc.h,jy)===m){ jy++; e=Math.min(yb,jy*B); }
+        putB(m,y,e,sh); y=e; } };
     const sh=(d<2)?0.62:0.8;
     /* the sea beside: the flank keeps going below the waterline, all the
        way down to the bed — a stone standing in the glass, not upon it */
@@ -2628,7 +2838,8 @@ function emitColumn(G,ix,iz,cc){
        is one unbroken band from the neighbour's ground to our own, exactly as
        it has always been drawn, and nothing below costs it a thing. */
     if(!hollow){
-      if(split){ putB(sLow,base,yMid,sh); put(sTop,yMid,yT,sh); }
+      if(split){ putS(base,yMid,sh); put(sTop,yMid,yT,sh); }
+      else if(sTop===sLow) putS(base,yT,sh);
       else putB(sTop,base,yT,sh);
       continue;
     }
@@ -2666,7 +2877,9 @@ function emitColumn(G,ix,iz,cc){
             :(myLit?litAt(cc.spans,myLit,(y+cut)*0.5)
                    :(nc.spans?litAt(nc.spans,litRuns(ix+nb[d][0],iz+nb[d][1],nc.spans,_lit),(y+cut)*0.5)
                              :CAVE_DARK));
-          putB(my1>=cc.h&&cut>=cc.h-1?sTop:sLow, y*B, cut*B, sh*lit);
+          if(my1>=cc.h&&cut>=cc.h-1&&sTop!==sLow){ const t0=Math.max(y,cc.h-1);
+            putS(y*B,t0*B,sh*lit); putB(sTop,t0*B,cut*B,sh*lit); }
+          else putS(y*B,cut*B,sh*lit);
         }
         if(nbv>y) y=nbv;
         if(y>=my1) break;
@@ -3089,7 +3302,7 @@ function editAt(ix,iy,iz){
 /* what the world would be here with nobody's hand in it */
 function proceduralSolid(ix,iy,iz){
   const c=cell(ix,iz); if(!c) return false;
-  if(iy>=c.h||iy<0) return false;
+  if(iy>=c.h||iy<-DEEP) return false;
   const sp=c.spans; if(!sp) return true;
   for(let i=0;i<sp.length;i+=2) if(iy>=sp[i]&&iy<sp[i+1]) return false;
   return true;
@@ -3097,10 +3310,11 @@ function proceduralSolid(ix,iy,iz){
 function proceduralBlock(ix,iy,iz){
   if(!proceduralSolid(ix,iy,iz)) return 0;
   const c=cell(ix,iz);
+  if(iy<=-DEEP) return blockId('bedrock');
   if(iy>=c.h-1) return surfaceBlockOf(c.kind);
   /* under the surface course, the land may hold something better than stone */
-  const ore=oreAt(c,ix,iy,iz);
-  return ore||depthBlockOf(c.kind);
+  const ore=(iy>=0?oreAt(c,ix,iy,iz):0)||commonOreAt(c,ix,iy,iz);
+  return ore||blockId(strataId(c.kind,c.h,iy));
 }
 /* and what it IS, hand and all — the one truth every test in the game reads */
 function blockAt(ix,iy,iz){
@@ -3395,7 +3609,7 @@ function stampDrop(g){
    and costs nothing, because a hand that lays a block has already bought a
    remesh in the same breath. */
 let _colCache=new Map();
-function editColumnsChanged(){ if(_colCache.size) _colCache=new Map(); }
+function editColumnsChanged(){ if(_colCache.size) _colCache=new Map(); _holeDirty=true; }
 const COL_CACHE_MAX=4096;      /* a town's worth of columns, and then some */
 function editColumn(ix,iz){
   if(!EDITS.size&&!SEDITS.size&&!WEDITS.size) return null;
@@ -3563,8 +3777,146 @@ const chunkRoot=new THREE.Group(); scene.add(chunkRoot);
 const BUILD_STATS={n:0,ms:0};
 function buildChunkTimed(cx,cz){ const t0=performance.now();
   buildChunk(cx,cz); BUILD_STATS.ms+=performance.now()-t0; BUILD_STATS.n++; }
+/* ================= ONE DRAW FOR THE WHOLE OF A CHUNK'S STONE =================
+   THE FRAME RATE WAS THE MATERIAL COUNT. The mesher files every face under
+   its texture's material, and three.js draws each material of each chunk as
+   a draw call of its own — so a village's ring of five hundred chunks, each
+   carrying nine or ten of grass top, grass side, dirt, sand, stone, bark,
+   plank, cobble and the rest, went out as five thousand meshes and some
+   two and a half thousand draws a frame (measured, AUDIT §4db). The game's
+   own logic was four to ten milliseconds; the draws were the rest of it.
+
+   So every PLAIN block face — opaque, unswayed, a 32-texel texture — is
+   drawn from ONE material over a texture ARRAY, each face carrying which
+   layer of the array it wears. A chunk's stone, earth, timber and ore is one
+   draw however many kinds of it there are. Greedy-merged faces still tile:
+   an array layer repeats exactly as a lone texture does. The snow that lies
+   on the grass tops, the paths and the cobbles rides in on the layer number
+   (layer + 256), so those still whiten in winter and nothing else does.
+
+   The swaying leaves and blades, the crops, the glass and the ice keep their
+   own materials: they are few per chunk, and each carries a shader of its
+   own. Without WebGL2 there is no array, and the chunk is drawn as before. */
+let BARR=null;
+function blockArray(){
+  if(BARR!==null) return BARR;
+  let gl2=false;
+  try{ gl2=renderer.capabilities.isWebGL2; }catch(e){ return false; }   /* not yet made: ask again later */
+  BARR=false;
+  if(!gl2||!THREE.DataTexture2DArray||(window.__INJECT||{}).noBlockArray) return BARR;
+  const S=TEXEL;
+  const names=Object.keys(MAT).filter(k=>{ const m=MAT[k], im=m.map&&m.map.image;
+    return m.userData&&m.userData.plain&&im&&im.width===S&&im.height===S&&im.getContext; });
+  if(!names.length) return BARR;
+  const N=names.length, data=new Uint8Array(S*S*4*N);
+  names.forEach((k,li)=>{
+    const px=MAT[k].map.image.getContext('2d').getImageData(0,0,S,S).data;
+    /* a canvas texture is flipped on upload and an array is not: row by row */
+    for(let r=0;r<S;r++) data.set(px.subarray((S-1-r)*S*4,(S-r)*S*4),(li*S*S+r*S)*4); });
+  const tex=new THREE.DataTexture2DArray(data,S,S,N);
+  tex.magFilter=tex.minFilter=THREE.NearestFilter; tex.generateMipmaps=false;
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.needsUpdate=true;
+  const layer=Object.create(null);
+  names.forEach((k,i)=>{ layer[k]=i+(MAT[k].userData.snow?256:0); });
+  const mat=new THREE.MeshBasicMaterial({map:MAT[names[0]].map,vertexColors:true,side:THREE.DoubleSide});
+  mat.name='blockArr';
+  mat.onBeforeCompile=sh=>{ sh.uniforms.uArr={value:tex}; sh.uniforms.uSeasonY=SEASON_Y;
+    sh.vertexShader='attribute float aLayer;\nvarying float vLayer;\nuniform float uSeasonY;\nvarying vec2 vSeas;\n'+
+      sh.vertexShader.replace('#include <color_vertex>','#include <color_vertex>\n'+SNOW_VS+
+        '\n  vSeas.y*=step(255.5,aLayer);\n  vLayer=aLayer;');
+    sh.fragmentShader='uniform highp sampler2DArray uArr;\nvarying float vLayer;\nvarying vec2 vSeas;\n'+
+      sh.fragmentShader.replace('#include <map_fragment>',
+        'vec4 texelColor=texture(uArr,vec3(vUv,mod(vLayer,256.0)));\n'+
+        'texelColor=mapTexelToLinear(texelColor);\ndiffuseColor*=texelColor;')
+      .replace('#include <color_fragment>','#include <color_fragment>\n'+SNOW_FS); };
+  mat.customProgramCacheKey=()=>'blockArr';
+  LIT.push(mat); torchAll();
+  BARR={mat,layer,names,tex};
+  return BARR;
+}
+/* ---- AND EVERY SWAYING LEAF AND BLADE AS ONE MORE ----
+   The canopies, the grass, the herbs and the flowers were eight materials a
+   chunk on their own. They differ only in texture and in HOW they sway — how
+   far, whether pinned at the root, and whether the year gilds them or the
+   snow lies on them — so those three go into the array as numbers per layer,
+   and the one shader asks its layer which way to move. */
+let PARR=null;
+function plantArray(){
+  if(PARR!==null) return PARR;
+  if(!blockArray()){ if(BARR===false) PARR=false; return false; }   /* no arrays, or not yet */
+  PARR=false;
+  const S=TEXEL;
+  const names=Object.keys(MAT).filter(k=>{ const m=MAT[k], im=m.map&&m.map.image;
+    return m.userData&&m.userData.sway&&m.alphaTest===0.4&&!m.transparent&&im&&im.width===S&&im.height===S&&im.getContext; });
+  if(!names.length) return PARR;
+  const N=names.length, data=new Uint8Array(S*S*4*N);
+  names.forEach((k,li)=>{
+    const px=MAT[k].map.image.getContext('2d').getImageData(0,0,S,S).data;
+    for(let r=0;r<S;r++) data.set(px.subarray((S-1-r)*S*4,(S-r)*S*4),(li*S*S+r*S)*4); });
+  const tex=new THREE.DataTexture2DArray(data,S,S,N);
+  tex.magFilter=tex.minFilter=THREE.NearestFilter; tex.generateMipmaps=false;
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.needsUpdate=true;
+  const layer=Object.create(null), amp=[], root=[], tint=[];
+  names.forEach((k,i)=>{ layer[k]=i; const w=MAT[k].userData.sway;
+    amp.push(w.amp); root.push(w.rooted?1:0); tint.push(w.tint); });
+  const mat=new THREE.MeshBasicMaterial({map:MAT[names[0]].map,vertexColors:true,
+    side:THREE.DoubleSide,alphaTest:0.4});
+  mat.name='plantArr';
+  const fl=a=>a.map(v=>(+v).toFixed(3)).join(',');
+  mat.onBeforeCompile=sh=>{ sh.uniforms.uArr={value:tex}; sh.uniforms.uSeasonY=SEASON_Y;
+    sh.uniforms.uWindT=WIND_T; sh.uniforms.uWindA=WIND_A;
+    sh.vertexShader='attribute float aLayer;\nvarying float vLayer;\nvarying float vTint;\n'+
+      'uniform float uSeasonY; uniform float uWindT; uniform float uWindA;\nvarying vec2 vSeas;\n'+
+      'const float P_AMP['+N+']=float['+N+']('+fl(amp)+');\n'+
+      'const float P_ROOT['+N+']=float['+N+']('+fl(root)+');\n'+
+      'const float P_TINT['+N+']=float['+N+']('+fl(tint)+');\n'+
+      sh.vertexShader
+      .replace('#include <color_vertex>','#include <color_vertex>\n'+
+        '  int pL=int(aLayer+0.5); vLayer=aLayer; vTint=P_TINT[pL];\n'+
+        SEASON_VS+'\n  vec2 pSL=vSeas;\n'+SNOW_VS+'\n  vec2 pSS=vSeas;\n'+
+        '  vSeas=vTint<0.5?vec2(0.0):(vTint<1.5?pSL:pSS);')
+      .replace('#include <begin_vertex>','#include <begin_vertex>\n'+
+        '{ float wph=position.x*0.161+position.z*0.127;\n'+
+        '  float wgt=P_ROOT[pL]>0.5?clamp(uv.y,0.0,1.0):0.55+0.45*sin(position.y*0.21+wph);\n'+
+        '  float ws1=sin(uWindT*1.7+wph)+0.5*sin(uWindT*2.9+wph*1.83);\n'+
+        '  float ws2=sin(uWindT*1.3+wph*1.31)+0.5*sin(uWindT*2.3+wph*0.77);\n'+
+        '  transformed.x+=ws1*P_AMP[pL]*uWindA*wgt;\n'+
+        '  transformed.z+=ws2*P_AMP[pL]*0.7*uWindA*wgt; }');
+    sh.fragmentShader='uniform highp sampler2DArray uArr;\nvarying float vLayer;\nvarying float vTint;\nvarying vec2 vSeas;\n'+
+      sh.fragmentShader.replace('#include <map_fragment>',
+        'vec4 texelColor=texture(uArr,vec3(vUv,vLayer));\n'+
+        'texelColor=mapTexelToLinear(texelColor);\ndiffuseColor*=texelColor;')
+      .replace('#include <color_fragment>','#include <color_fragment>\n'+
+        '  if(vTint>0.5&&vTint<1.5){ '+SEASON_FS+' }\n  else if(vTint>1.5){ '+SNOW_FS+' }'); };
+  mat.customProgramCacheKey=()=>'plantArr';
+  LIT.push(mat); torchAll();
+  PARR={mat,layer,names,tex};
+  return PARR;
+}
+/* the plain faces of a chunk's buckets, gathered into one with their layers */
+function mergeBlockArray(G){
+  mergeInto(G,blockArray(),'__arr');
+  mergeInto(G,plantArray(),'__plant');
+}
+function mergeInto(G,BA,key){
+  if(!BA) return;
+  /* sized once and filled in place — a chunk's worth of pushes onto growing
+     arrays was a measurable share of the whole build */
+  const keys=[]; let nv=0, ni=0;
+  for(const mat of Object.keys(G)){ if(BA.layer[mat]===undefined) continue;
+    keys.push(mat); nv+=G[mat].p.length/3; ni+=G[mat].i.length; }
+  if(!keys.length) return;
+  const A={p:new Float32Array(nv*3),uv:new Float32Array(nv*2),c:new Float32Array(nv*3),
+    i:(nv>65535?new Uint32Array(ni):new Uint16Array(ni)),l:new Float32Array(nv)};
+  let v=0, ii=0;
+  for(const mat of keys){ const g=G[mat], lay=BA.layer[mat], n=g.p.length/3;
+    A.p.set(g.p,v*3); A.uv.set(g.uv,v*2); A.c.set(g.c,v*3); A.l.fill(lay,v,v+n);
+    for(let k=0;k<g.i.length;k++) A.i[ii++]=g.i[k]+v;
+    v+=n; delete G[mat]; }
+  G[key]=A;
+}
 function buildChunk(cx,cz){
-  const G=newG();
+  const G=newG(); _bcx=cx; _bcz=cz;
   placedBegin();      /* the built faces are gathered for the whole chunk, then merged */
   /* ---- WHOSE COUNTRY THIS CHUNK IS IN ----
      Every tree and every bush asks what land it grows in, and the answer is
@@ -3718,14 +4070,16 @@ function buildChunk(cx,cz){
       emitBox(G, x-B*0.5,yT,z-B*0.5, x+B*0.5,yT+B,z+B*0.5,'stone','stone',null);
   }
   placedFlush(G);     /* and go out as the fewest rectangles that cover them */
+  mergeBlockArray(G); /* and every plain face of them as ONE draw */
   const meshes=[];
   for(const mat in G){ const g=G[mat];
     const bg=new THREE.BufferGeometry();
     bg.setAttribute('position',new THREE.Float32BufferAttribute(g.p,3));
     bg.setAttribute('uv',new THREE.Float32BufferAttribute(g.uv,2));
     bg.setAttribute('color',new THREE.Float32BufferAttribute(g.c,3));
-    bg.setIndex(g.i);
-    const m=new THREE.Mesh(bg,MAT[mat]); m.frustumCulled=true;
+    if(g.l) bg.setAttribute('aLayer',new THREE.Float32BufferAttribute(g.l,1));
+    bg.setIndex(ArrayBuffer.isView(g.i)?new THREE.BufferAttribute(g.i,1):g.i);
+    const m=new THREE.Mesh(bg,mat==='__arr'?BARR.mat:mat==='__plant'?PARR.mat:MAT[mat]); m.frustumCulled=true;
     chunkRoot.add(m); meshes.push(m); }
   chunks.set(cx+','+cz,{meshes,cx,cz});
 }
@@ -4752,6 +5106,54 @@ const waveMat=new THREE.ShaderMaterial({
 });
 const waveGrid=new THREE.Mesh(waveGeo,waveMat);
 waveGrid.frustumCulled=false; scene.add(waveGrid);
+/* ================= THE SEA DOES NOT STAND IN A MAN'S PIT =================
+   The ocean is two great sheets laid under the whole disc — the moving skin
+   at the level of the sea and a dark floor ten blocks under it — and the
+   land hides them by standing over them. So long as the ground ended at the
+   sea's level that was the whole of it. It does not any more: a shaft dug
+   down through a field went straight through both, and a man at the bottom
+   looked up through a blue lid of sea hung across his own hole.
+   The columns a hand has dug below the level of the sea, near the eye, are
+   written into a small mask, and both sheets leave those cells undrawn. */
+const HOLE_N=128, HOLE_SPAN=HOLE_N*B;
+const holeData=new Uint8Array(HOLE_N*HOLE_N*4);
+const holeTex=new THREE.DataTexture(holeData,HOLE_N,HOLE_N,THREE.RGBAFormat);
+holeTex.magFilter=holeTex.minFilter=THREE.NearestFilter; holeTex.generateMipmaps=false; holeTex.needsUpdate=true;
+const HOLE_O={value:new THREE.Vector2(-1e9,-1e9)}, HOLE_ON={value:0}, HOLE_T={value:holeTex};
+const HOLE_GLSL='uniform sampler2D uHole; uniform vec2 uHoleO; uniform float uHoleOn;\n'+
+  'bool inHole(vec2 w){ if(uHoleOn<0.5) return false; vec2 hc=(w-uHoleO)/'+HOLE_SPAN.toFixed(1)+';\n'+
+  '  if(hc.x<0.0||hc.y<0.0||hc.x>=1.0||hc.y>=1.0) return false; return texture2D(uHole,hc).r>0.5; }\n';
+waveMat.uniforms.uHole=HOLE_T; waveMat.uniforms.uHoleO=HOLE_O; waveMat.uniforms.uHoleOn=HOLE_ON;
+waveMat.fragmentShader=waveMat.fragmentShader.replace('    void main(){',
+  HOLE_GLSL+'    void main(){\n      if(inHole(vWorld.xz)) discard;');
+waveMat.needsUpdate=true;
+farSeaMat.onBeforeCompile=sh=>{ sh.uniforms.uHole=HOLE_T; sh.uniforms.uHoleO=HOLE_O; sh.uniforms.uHoleOn=HOLE_ON;
+  sh.vertexShader='varying vec2 vHW;\n'+sh.vertexShader.replace('#include <begin_vertex>',
+    '#include <begin_vertex>\n  vHW=(modelMatrix*vec4(transformed,1.0)).xz;');
+  sh.fragmentShader='varying vec2 vHW;\n'+HOLE_GLSL+sh.fragmentShader.replace('void main() {',
+    'void main() {\n  if(inHole(vHW)) discard;'); };
+farSeaMat.customProgramCacheKey=()=>'seaHole';
+let _holeAt=[1e9,1e9], _holeT=0;
+var _holeDirty=true;     /* var: editColumnsChanged may ask before this line has run */
+function holeTick(dt,px,pz){
+  _holeT-=dt; if(_holeT>0) return; _holeT=0.4;
+  const cx=Math.floor(px/B), cz=Math.floor(pz/B);
+  if(!_holeDirty&&Math.abs(cx-_holeAt[0])<HOLE_N/4&&Math.abs(cz-_holeAt[1])<HOLE_N/4) return;
+  _holeDirty=false; _holeAt=[cx,cz];
+  const ox=cx-HOLE_N/2, oz=cz-HOLE_N/2;
+  holeData.fill(0); let any=0;
+  const c0x=Math.floor(ox/CH), c1x=Math.floor((ox+HOLE_N-1)/CH), c0z=Math.floor(oz/CH), c1z=Math.floor((oz+HOLE_N-1)/CH);
+  for(let ccx=c0x;ccx<=c1x;ccx++) for(let ccz=c0z;ccz<=c1z;ccz++){
+    const m=EDITS.get(ccx+','+ccz); if(!m||!m.size) continue;
+    for(const [i,n] of m){ if(n) continue;
+      const y=(i%EY_SPAN)+EY_MIN; if(y>0) continue;
+      const col=Math.floor(i/EY_SPAN), lx=Math.floor(col/CH), lz=col%CH;
+      const ix=ccx*CH+lx-ox, iz=ccz*CH+lz-oz;
+      if(ix<0||iz<0||ix>=HOLE_N||iz>=HOLE_N) continue;
+      if(!cell(ccx*CH+lx,ccz*CH+lz)) continue;       /* the open sea is sea, dug or not */
+      holeData[(iz*HOLE_N+ix)*4]=255; any++; } }
+  HOLE_O.value.set(ox*B,oz*B); HOLE_ON.value=any?1:0; holeTex.needsUpdate=true;
+}
 const _sunW=new THREE.Vector3(), _moonW=new THREE.Vector3();
 function waterTick(px,pz,dayF,storm){
   seaTime=performance.now()*0.001; seaAmp=1+storm*1.7;
@@ -12203,6 +12605,17 @@ function birdTick(bd,dt){
   const flap=Math.sin(performance.now()*0.02+bd.ph*3)*0.7;
   const u=bd.m.userData; if(u.wingL){ u.wingL.rotation.z=flap; u.wingR.rotation.z=-flap; }
 }
+/* ---- A FIGURE FAR OFF IS NOT DRAWN ----
+   Every villager and every penned beast is a dozen boxes — head, body, two
+   arms and two legs each jointed, a hem, a tool — and every box is a draw.
+   Two villages in view were a thousand of them, most of them people too far
+   off to make out. Past FIGURE_LOD from the eye a figure is simply not drawn;
+   it still walks its day, and it is there again the moment it is near. */
+const FIGURE_LOD=380;
+function figureLod(e){ const m=e&&e.m; if(!m) return;
+  const cp=camera.position, far=(m.position.x-cp.x)**2+(m.position.z-cp.z)**2>FIGURE_LOD*FIGURE_LOD;
+  if(far){ if(m.visible){ m.visible=false; e._lodHid=true; } }
+  else if(e._lodHid){ m.visible=true; e._lodHid=false; } }
 function updateVillages(px,pz,dt,nightF,dayF){
   worldNight=nightF;
   if(dayF!==undefined) worldDay=dayF;
@@ -12262,8 +12675,8 @@ function updateVillages(px,pz,dt,nightF,dayF){
        solar hour at the well, not the darkness of the traveller's sky
        (Round 95 — each trade keeps its own hours out of js/behavior.js) */
     vv.hour=localHourAt(vv.site.x,vv.site.z);
-    for(const p of vv.people) personTick(p,vv,dt);
-    for(const b2 of vv.beasts) beastTick(b2,vv,dt);
+    for(const p of vv.people){ personTick(p,vv,dt); figureLod(p); }
+    for(const b2 of vv.beasts){ beastTick(b2,vv,dt); figureLod(b2); }
     if(vv.birds) for(const bd of vv.birds) birdTick(bd,dt);
     for(const tm of vv.torchMats) tm.opacity=nightF*0.85;
   }
@@ -15131,7 +15544,7 @@ function setAshore(x,z,h){
   state.walk.feetY=undefined; state.walk.vy=0; state.walk.grounded=true; state.walk.inWater=false;
   setMode('walk'); markDiscovery(x,z);
   coach('ashore','Ashore. <b>W A S D</b> walk, <b>SPACE</b> jumps and climbs. <b>F</b> speaks with the people, trades at a stall, casts a line from the strand and takes up a scroll. <b>E</b> by the water boards the ship again.',1500);
-  coach('hand','<b>Hold the left mouse still</b> on a block (or hold <b>R</b>) to break it; walk over what drops to gather it. <b>Right-click</b> (or <b>V</b>) lays a block. <b>I</b> opens the satchel and the works &mdash; timber rives to planks, and flint and planks make tools.');
+  coach('hand','Your <b>pick</b> is in your hand (belt <b>1</b>), your <b>axe</b> on <b>2</b>. <b>Hold the left mouse still</b> on a block (or hold <b>R</b>) to break it; what drops comes to you. <b>Right-click</b> (or <b>V</b>) lays a block. <b>I</b> opens the satchel and the works. <b>T</b> lights a torch for the caves.');
 }
 /* where the traveller would step ashore from the ship as she lies now, or
    null — the search goAshoreFromShip has always made, asked on its own so the
@@ -16668,7 +17081,17 @@ async function begin(fresh,roam){
     if(saved.sa) for(let i=0;i<SATCHEL_N&&i<saved.sa.length;i++){ const e=saved.sa[i];
       SATCHEL[i]=(e&&BLOCK_BY_ID[e[0]]&&e[1]>0)?{id:e[0],n:Math.min(STACK,e[1])}:null; }
     if(saved.sp) for(const k of saved.sp) SPOKEN.add(k); }
-  else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5; }
+  else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5;
+    /* ---- A NEW VOYAGE SETS OUT WITH A PICK AND AN AXE ----
+       He used to set out with nothing, and the rock refuses bare hands — so
+       the first hour of the game was an empty fist against a cliff, with the
+       one way out (dig flint out of the chalk, rive planks, knap a pick)
+       written nowhere a player would look. A traveller of that age went out
+       with his tools; the flint pick and the flint axe are in his belt from
+       the first day, and the chain of the works is there for everything
+       after them. The free hand needs none. */
+    if(!roam){ for(let i=0;i<SATCHEL.length;i++) SATCHEL[i]=null;
+      satchelAdd('flint-pick',1); satchelAdd('flint-axe',1); heldSlot=0; beltDraw(); } }
   /* a NEW beginning takes the manner it was chosen with; a continued one
      keeps whatever manner it was begun in, out of the log */
   if(fresh) state.freeroam=!!roam;
@@ -16715,6 +17138,7 @@ window.__WORLD={
   scene,camera,renderer,THREE,
   sun,moon,sunMat2,moonMat2,sunHalo,moonHalo,starGroup,
   chunkRoot,sea,seaDeep,waveGrid,voidWall,cloudMat,surfMat,
+  blockArr:()=>BARR, plantArr:()=>PARR,
   waveMat,farSeaMat,farLand,farLandMat,
   hemi,dirL,walkerG,boatG,
   ensureFlyDome,flyDome:()=>flyDome,
@@ -17187,6 +17611,13 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
     const byMat=new Map(); let meshes=0, tris=0;
     for(const [,ch] of chunks) for(const m of ch.meshes){ meshes++;
       const idx=m.geometry.getIndex(); tris+=idx?idx.count/3:0;
+      /* a merged mesh is reported as each plain material it carries, once
+         apiece — what the chunk WOULD have drawn — and counted as one draw */
+      const AR=(BARR&&m.material===BARR.mat)?BARR:(PARR&&m.material===PARR.mat)?PARR:null;
+      if(AR){ const L=m.geometry.getAttribute('aLayer'), seen=new Set();
+        for(let i=0;i<L.count;i++) seen.add(L.getX(i)%256);
+        for(const li of seen){ const n=AR.names[li]; byMat.set(n,(byMat.get(n)||0)+1); }
+        continue; }
       const n=nameOf.get(m.material)||'?';
       byMat.set(n,(byMat.get(n)||0)+1); }
     return {chunks:chunks.size, meshes, tris,
@@ -17993,6 +18424,17 @@ function mineTick(dt){
      the refusal is spoken once for each kind of block and not again, and it
      names the tool that is wanted. The free hand is not asked for anything:
      a man laying out a place is not fetching a pick first. */
+  /* ---- THE FOUNDATIONS DO NOT GIVE, AND THE DIAMOND WANTS IRON ---- */
+  if(b.unbreakable){
+    if(_toolSaid!==b.id){ _toolSaid=b.id;
+      toast('The foundations of the earth do not give. Nothing lies beneath them.'); }
+    mineStop(); return; }
+  if(!freeHand()&&b.tier){ const h=heldBlock();
+    const tier=(h&&h.serves===b.tool)?(h.tier||1):0;
+    if(tier<b.tier){
+      if(_toolSaid!==b.id+'|tier'){ _toolSaid=b.id+'|tier';
+        toast(b.name+' will not give to '+(tier?'flint':'a bare hand')+'. It wants a pick of IRON — smelt iron ore at a furnace, and make one.'); }
+      mineStop(); return; } }
   if(!freeHand()&&b.tool&&!handServes(b.tool)&&!handMayStandIn(b.tool)){
     if(_toolSaid!==b.id){ _toolSaid=b.id;
       const w=TOOL_WORD[b.tool];
@@ -18003,27 +18445,34 @@ function mineTick(dt){
      which is the honest behaviour and the one every player expects. */
   if(!MINE.on||MINE.ix!==tgt.ix||MINE.iy!==tgt.iy||MINE.iz!==tgt.iz){
     MINE.on=true; MINE.ix=tgt.ix; MINE.iy=tgt.iy; MINE.iz=tgt.iz;
-    MINE.t=0; MINE.n=b.n;
-    /* THE FREE HAND BREAKS AT A TOUCH. Not "very fast" — at a touch, on the
-       first frame the hand is on it, because a man laying out a place should
-       never be waiting on a hardness table. */
-    MINE.need=freeHand()?0:Math.max(0.05, b.hardness/Math.max(0.01,toolSpeed(b)));
+    MINE.t=0; MINE.n=b.n; MINE.chip=0;
+    /* ---- THE FREE HAND BREAKS AS THE BEST IRON BREAKS ----
+       It used to break at a TOUCH, on the first frame, with nothing left
+       behind — and that is what a player reported as "the mining just
+       destroys the blocks": no cracking, no blow, nothing to pick up. It is
+       the game's whole second verb and it read as a delete key. The free
+       hand is spared the tool and the refusal, not the work: every block
+       goes the way the iron pick takes it, crack by crack, and drops. */
+    MINE.need=freeHand()?Math.max(0.15,b.hardness/FREE_HAND_SPEED)
+      :Math.max(0.05, b.hardness/Math.max(0.01,toolSpeed(b)));
+    /* the old figure of lines is still cut — `cracks` is read by the suite —
+       but what the eye sees now is the stage overlay, below */
     cutCrack(tgt.ix,tgt.iy,tgt.iz, tgt.nx||0, tgt.ny!==undefined?tgt.ny:1, tgt.nz||0);
-    ensureCrack().visible=true;
   }
   MINE.t+=dt;
   const f=Math.min(1,MINE.t/MINE.need);
-  const g=ensureCrack();
-  g.visible=true;
-  g.geometry.setDrawRange(0, Math.max(2, Math.round(f*crackN)*2));
+  crackStage(MINE.ix,MINE.iy,MINE.iz,f);
+  /* a chip flies off the face with every blow */
+  MINE.chip-=dt;
+  if(MINE.chip<=0){ MINE.chip=0.26; blockBits(MINE.ix,MINE.iy,MINE.iz,MINE.n,3,tgt,0.55); }
   if(MINE.t>=MINE.need){
     const cx=(MINE.ix+0.5)*B, cy=(MINE.iy+0.5)*B, cz=(MINE.iz+0.5)*B;
     const was=MINE.n;
     setBlock(cx,cy,cz,0);
-    /* and it leaves something behind — but NOT in the free hand, where the
-       satchel already holds everything and a stream of pickups behind a man
-       clearing a hillside is nothing but litter he cannot refuse */
-    if(!freeHand()){ spawnDrop(cx,cy,cz,was);
+    blockBits(MINE.ix,MINE.iy,MINE.iz,was,14,null,1);     /* and it bursts */
+    /* and it leaves something behind, in either hand: a block broken is a
+       block to pick up, which is the whole loop of the game */
+    { spawnDrop(cx,cy,cz,was);
       /* ---- AND THE HARVEST IS THE INCREASE ----
          A sown plant reaped FULL-GROWN gives its `increase` over the seed
          that went in; a young shoot gives only the seed back. How far on
@@ -18041,6 +18490,79 @@ function mineTick(dt){
 function mineStop(){
   if(MINE.on){ MINE.on=false; MINE.t=0; }
   if(crackG) crackG.visible=false;
+  if(stageM) stageM.visible=false;
+}
+/* how fast the free hand works: the iron pick's own pace */
+const FREE_HAND_SPEED=2.2;
+/* ---- THE TEN STAGES OF THE BREAKING ----
+   The block the hand is on darkens with cracks in ten steps, drawn ON its
+   faces — the way every player of the other game reads how near a block is
+   to going. One seeded net of fissures is cut once and revealed a tenth at
+   a time, so the cracks GROW rather than flicker between ten patterns. */
+const CRACK_STAGES=[];
+let stageM=null;
+function crackStageTex(){
+  if(CRACK_STAGES.length) return CRACK_STAGES;
+  const S=TEXEL, segs=[];
+  for(let br=0;br<9;br++){
+    let x=S/2+(hash2(br,1.3)-0.5)*S*0.5, y=S/2+(hash2(br,2.9)-0.5)*S*0.5;
+    let a=hash2(br,4.1)*6.2832;
+    for(let k=0;k<7;k++){ a+=(hash2(br*7+k,5.3)-0.5)*1.4;
+      const l=2+hash2(br*5+k,6.7)*4, x2=x+Math.cos(a)*l, y2=y+Math.sin(a)*l;
+      segs.push([x,y,x2,y2]); x=x2; y=y2; } }
+  /* the order they appear in: nearest the middle first */
+  segs.sort((p,q)=>Math.hypot(p[0]-S/2,p[1]-S/2)-Math.hypot(q[0]-S/2,q[1]-S/2));
+  for(let st=0;st<10;st++){
+    const c=texCanvas(S,S), g=c.getContext('2d');
+    const n=Math.ceil(segs.length*(st+1)/10);
+    g.fillStyle='rgba(20,14,8,0.82)';
+    for(let i=0;i<n;i++){ const q=segs[i], steps=Math.ceil(Math.hypot(q[2]-q[0],q[3]-q[1])*1.5);
+      for(let k=0;k<=steps;k++){ const t=k/Math.max(1,steps);
+        const px=Math.floor(q[0]+(q[2]-q[0])*t), py=Math.floor(q[1]+(q[3]-q[1])*t);
+        if(px>=0&&py>=0&&px<S&&py<S){ g.fillRect(px,py,1,1); if(st>5&&hash2(px,py)>0.6) g.fillRect(px+1,py,1,1); } } }
+    const t=new THREE.CanvasTexture(c); t.magFilter=t.minFilter=THREE.NearestFilter; t.generateMipmaps=false;
+    CRACK_STAGES.push(t); }
+  return CRACK_STAGES;
+}
+function crackStage(ix,iy,iz,f){
+  if(!stageM){
+    stageM=new THREE.Mesh(new THREE.BoxGeometry(B*1.012,B*1.012,B*1.012),
+      new THREE.MeshBasicMaterial({map:crackStageTex()[0],transparent:true,depthWrite:false,
+        polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
+    stageM.renderOrder=4; scene.add(stageM); }
+  const st=Math.min(9,Math.floor(f*10));
+  if(stageM.material.map!==CRACK_STAGES[st]){ stageM.material.map=CRACK_STAGES[st]; stageM.material.needsUpdate=true; }
+  stageM.position.set((ix+0.5)*B,(iy+0.5)*B,(iz+0.5)*B);
+  stageM.visible=true;
+}
+/* ---- THE BITS OF IT ----
+   Little cubes of the block's own face: a few chips with every blow, off the
+   face that is being struck, and a burst of them when it goes. They fall,
+   bounce once on nothing in particular, and are gone inside a second. */
+const BITS=[]; let bitGeo=null;
+function blockBits(ix,iy,iz,n,count,face,life){
+  const b=blockOf(n); if(!b) return;
+  const mat=propMat(b.mSide)||propMat(b.mTop); if(!mat) return;
+  if(!bitGeo) bitGeo=new THREE.BoxGeometry(B*0.13,B*0.13,B*0.13);
+  for(let k=0;k<count;k++){
+    if(BITS.length>90){ const o=BITS.shift(); scene.remove(o.m); }
+    const m=new THREE.Mesh(bitGeo,mat);
+    const r=()=>Math.random()-0.5;
+    let x=(ix+0.5+r()*0.8)*B, y=(iy+0.5+r()*0.8)*B, z=(iz+0.5+r()*0.8)*B;
+    let vx=r()*18, vy=6+Math.random()*12, vz=r()*18;
+    if(face){ x=(ix+0.5+(face.nx||0)*0.55)*B; y=(iy+0.5+(face.ny||0)*0.55)*B; z=(iz+0.5+(face.nz||0)*0.55)*B;
+      vx=(face.nx||0)*10+r()*10; vz=(face.nz||0)*10+r()*10; vy=5+Math.random()*8; }
+    m.position.set(x,y,z); m.rotation.set(Math.random()*3,Math.random()*3,0);
+    m.scale.setScalar(0.6+Math.random()*0.8);
+    scene.add(m); BITS.push({m,vx,vy,vz,t:0,life:(0.45+Math.random()*0.35)*life});
+  }
+}
+function bitsTick(dt){
+  for(let i=BITS.length-1;i>=0;i--){ const q=BITS[i]; q.t+=dt;
+    q.vy-=60*dt; q.m.position.x+=q.vx*dt; q.m.position.y+=q.vy*dt; q.m.position.z+=q.vz*dt;
+    q.m.rotation.x+=dt*6;
+    const k=1-q.t/q.life; if(k<=0){ scene.remove(q.m); BITS.splice(i,1); continue; }
+    q.m.scale.setScalar(Math.min(q.m.scale.x,0.4+k)); }
 }
 
 /* ================= THE DROP, AND THE GATHERING =================
@@ -18111,14 +18633,14 @@ function satchelRoom(id){
   return false;
 }
 let dropGeo=null;
-function ensureDropGeo(){ if(!dropGeo) dropGeo=new THREE.BoxGeometry(B*0.34,B*0.34,B*0.34);
+function ensureDropGeo(){ if(!dropGeo) dropGeo=new THREE.BoxGeometry(B*0.4,B*0.4,B*0.4);
   return dropGeo; }
 /* what a broken block leaves behind */
 function spawnDrop(x,y,z,n){
   const b=blockOf(n); if(!b) return null;
   const give=BLOCK_BY_ID[b.drops]; if(!give) return null;   /* a block may give nothing */
   if(DROPS.length>=DROP_MAX){ const old=DROPS.shift(); if(old.m){ scene.remove(old.m); } }
-  const mat=MAT[give.mSide]||MAT[give.mTop];
+  const mat=propMat(give.mSide)||propMat(give.mTop);   /* not the chunk's material: see propMat */
   if(!mat) return null;
   const m=new THREE.Mesh(ensureDropGeo(),mat);
   m.position.set(x,y,z); scene.add(m);
@@ -18156,6 +18678,15 @@ function dropTick(dt){
       d.m.position.y=d.y+Math.sin(d.t*2.1)*0.5;
     }
     d.m.rotation.y+=dt*1.1;
+    /* ---- AND IT COMES TO HIM ----
+       Within a few blocks a thing lying on the ground drifts toward the man
+       who broke it, faster as it nears — the pull every player of a block
+       game expects, so he is not left hunting the grass for his own stone. */
+    if(walking&&d.t>0.5){ const dx=px-d.x, dz=pz-d.z, dd=Math.hypot(dx,dz);
+      if(dd<B*3.6&&dd>0.01&&Math.abs(py-d.y)<B*3){ const sp=Math.min(dd,(B*3.6-dd+2)*dt*3.2);
+        d.x+=dx/dd*sp; d.z+=dz/dd*sp; if(d.rest){ const g2=groundInfo(d.x,d.z,d.y+B);
+          d.y=Math.max(d.y,(g2.land?g2.y:WATER_Y)+B*0.18); }
+        d.m.position.x=d.x; d.m.position.z=d.z; } }
     /* and it is taken up by whoever comes near — but not the instant it is
        struck, or a man would swallow his own pick-swing before it landed */
     if(walking&&d.t>0.35&&Math.hypot(px-d.x,pz-d.z)<B*1.6&&Math.abs(py-d.y)<B*3)
@@ -18531,6 +19062,64 @@ let heldSlot=0;                    /* which of the belt's eight is in the hand *
 let pageOpen=false, pagePick=-1;   /* the page, and the token lifted off it */
 function heldStack(){ return SATCHEL[heldSlot]||null; }
 function heldBlock(){ const h=heldStack(); return h?BLOCK_BY_ID[h.id]:null; }
+/* ================= THE THING IN HIS HAND =================
+   The belt said what he held; his hand never did. A pick was a picture on a
+   clay token and nothing at all in the world, so a man hacking at a cliff
+   hacked at it with an empty fist. What he holds is now IN his right hand —
+   the pick with its head lashed across the haft, the axe, the spade, the
+   hoe, the knife, or a small block of whatever he means to lay — and the
+   arm SWINGS it while the hand is on a block, and gives one swing when a
+   block is laid. The free hand, holding nothing, holds the iron pick it
+   works at the pace of. */
+let heldG=null, heldKey=null, swingT=0;
+const _ironMat=new THREE.MeshBasicMaterial({color:0xc9cdd4}); LIT.push(_ironMat);
+function heldModel(b){
+  const g=new THREE.Group(), box=(w,h,d,mat,x,y,z)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+    m.position.set(x,y,z); g.add(m); return m; };
+  const haft=propMat('logSide')||propMat('barkW'), iron=/^iron/.test(b.id), head=iron?_ironMat:(propMat('flint')||propMat('stone'));
+  const t=b.serves;
+  if(t==='pick'){ box(0.45,4.8,0.45,haft,0,1.6,0);
+    box(3.4,0.6,0.62,head,0,3.8,0); box(0.55,0.55,0.55,head,1.75,3.45,0); box(0.55,0.55,0.55,head,-1.75,3.45,0); }
+  else if(t==='axe'){ box(0.45,4.6,0.45,haft,0,1.5,0); box(0.36,1.6,1.5,head,0,3.2,0.75); }
+  else if(t==='spade'){ box(0.45,4.2,0.45,haft,0,1.4,0); box(1.4,1.8,0.26,head,0,4.2,0); }
+  else if(t==='hoe'){ box(0.45,4.6,0.45,haft,0,1.5,0); box(0.36,0.42,1.5,head,0,3.7,0.7); }
+  else if(t==='knife'){ box(0.5,1.2,0.5,haft,0,0.3,0); box(0.24,2.2,0.62,head,0,2.0,0); }
+  else { const mat=propMat(b.mSide)||propMat(b.mTop)||propMat('stone'); const c=box(1.9,1.9,1.9,mat,0,0.95,0); c.rotation.y=0.6; }
+  /* along the forearm's own forward line, so a hanging arm carries the tool
+     out in front of him and a raised one carries it over his head */
+  g.rotation.x=Math.PI/2; g.position.set(0,-2.15,0.25);
+  return g;
+}
+function swingOnce(){ swingT=0.3; }
+function heldTick(dt){
+  const u=walkerG.userData; if(!u||!u.armR) return;
+  const el=(u.armR.userData&&u.armR.userData.elbow)||u.armR;
+  const w=state.walk;
+  const show=(state.mode==='walk'||state.mode==='deck')&&!cut&&!state.fishing&&!state.mount
+    &&!(state.mode==='walk'&&(w.inWater||w.climb||w.spill>0));
+  let b=heldBlock(); if(!b&&freeHand()) b=BLOCK_BY_ID['iron-pick']||null;
+  const key=show&&b?b.id:null;
+  if(key!==heldKey){
+    if(heldG){ el.remove(heldG); heldG.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); heldG=null; }
+    if(key) { heldG=heldModel(b); el.add(heldG); }
+    heldKey=key; }
+  if(!show) return;
+  /* the blow: while the hand is on a block the arm rises and falls three
+     times a second; a block laid is one quick stroke */
+  swingT=Math.max(0,swingT-dt);
+  if(MINE.on||swingT>0){
+    const ph=MINE.on?performance.now()*0.001*3.1*Math.PI*2:(1-swingT/0.3)*Math.PI*2;
+    const s1=Math.sin(ph);
+    u.armR.rotation.x=-1.45+0.85*s1; u.armR.rotation.z=0;
+    el.rotation.x=-0.25-0.35*Math.max(0,s1);
+    /* and he turns to face what he is striking */
+    if(MINE.on&&state.mode==='walk'){ const tx=(MINE.ix+0.5)*B, tz=(MINE.iz+0.5)*B;
+      const dx=tx-w.x, dz=tz-w.z; if(dx*dx+dz*dz>1) walkerG.rotation.y=Math.atan2(dx,dz); }
+  } else if(heldG){
+    /* at rest the tool is carried a little forward, not dangled */
+    u.armR.rotation.x=Math.min(u.armR.rotation.x,-0.25+u.armR.rotation.x*0.4);
+  }
+}
 /* one clay token, with the face of its substance fired into it */
 function tokenEl(slot,idx,inPage){
   const d=D.createElement('div');
@@ -18772,6 +19361,7 @@ function useHoe(){
   return {tilled:b.id, at:[a.ix,a.iy,a.iz], now:b.tills};
 }
 function placeBlock(){
+  if(AIM&&state.mode==='walk') swingOnce();     /* the arm goes out to it, whatever comes of it */
   /* the vessel is used before the rule below throws every held thing out —
      a bucket is `place:false` like any held thing, and doing nothing with it
      would be the whole of the bug */
@@ -19305,6 +19895,9 @@ function frame(){
   if(!state.firm&&state.mode!=='dive') traderTick(p.x,p.z,dt); else hideTraders();
   audioTick(light.storm||0);
   torchTick(dt);                     /* the flame the traveller carries */
+  heldTick(dt);                      /* and the tool in his other hand */
+  { const hp=playerXZ(); holeTick(dt,hp.x,hp.z); }   /* and the sea kept out of his pits */
+  bitsTick(dt);                      /* the chips of what he is breaking */
   flushEdits(7);                     /* and any chunk a hand has changed is laid again */
   /* stream faster when the traveller outruns the mesher — judged by how fast
      he is TRULY moving, whatever is carrying him (ship, wings, or a fair

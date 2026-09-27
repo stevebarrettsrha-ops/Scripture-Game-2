@@ -284,11 +284,23 @@ T[10]={name:'ambient occlusion is present and measurable',
        shade of exactly 1.0 before this change. If any of its vertex colours
        is below 1, the occlusion is truly baked into the world. */
     let lo=1, n=0, tops=0;
+    /* the plain faces of a chunk are drawn from ONE texture-array material
+       now (engine: blockArray), each vertex carrying its layer — so a grass
+       top is known by its layer there, and by its material everywhere else */
+    const BA=window.__WORLD&&window.__WORLD.blockArr&&window.__WORLD.blockArr();
+    const grassL=new Set(BA?['grassTop','grassTopTr','grassTopSv','grassTopTu']
+      .filter(k=>BA.layer[k]!==undefined).map(k=>BA.layer[k]):[]);
     D.chunkRoot.traverse(o=>{ if(!o.geometry||!o.material) return;
+      const c=o.geometry.getAttribute('color'); if(!c) return;
+      if(BA&&o.material===BA.mat){
+        const L=o.geometry.getAttribute('aLayer'); let any=false;
+        for(let i=0;i<c.count;i++){ if(!grassL.has(L.getX(i))) continue;
+          any=true; const v=c.getX(i); n++; if(v<lo) lo=v; }
+        if(any) tops++;
+        return; }
       if(o.material!==D.MAT.grassTop&&o.material!==D.MAT.grassTopTr&&
          o.material!==D.MAT.grassTopSv&&o.material!==D.MAT.grassTopTu) return;
       tops++;
-      const c=o.geometry.getAttribute('color'); if(!c) return;
       for(let i=0;i<c.count;i++){ const v=c.getX(i); n++; if(v<lo) lo=v; } });
     return {ok:unitOK&&tops>0&&lo<0.95,
       got:'open='+flat+' one='+one.toFixed(2)+' corner='+corner.toFixed(2)+' · '+tops+' top meshes, '+
@@ -978,7 +990,7 @@ T[21]={name:'every land holds what its data says, and the ore is truly in the ro
           ' · '+outOfBand+' of '+checked+' cells outside their own band'};
   })};
 
-T[23]={name:'the free hand lays without cost, breaks at a touch, and builds the same world',
+T[23]={name:'the free hand lays without cost, breaks as the iron pick breaks and drops what it breaks, and builds the same world',
   /* this one asks for BOTH hands in turn and sets them itself; it is marked
      so the runner's own declaration does not fight it */
   freeHand:true,
@@ -1016,7 +1028,12 @@ T[23]={name:'the free hand lays without cost, breaks at a touch, and builds the 
     for(let k=0;k<3;k++) lay();
     const f1=D.hoard()['brick']||0;
     const handCost=f0-f1;
-    /* ---- AND IT BREAKS AT A TOUCH ---- */
+    /* ---- AND IT BREAKS AS THE IRON PICK BREAKS, AND DROPS ----
+       Round 104: it used to break at a TOUCH and leave nothing, and a player
+       read that as "the mining just destroys the blocks". The free hand is
+       spared the tool, not the work: stone goes in its hardness over the
+       iron pick's pace (a second and a half, not a frame), cracking as it
+       goes, and what breaks is left to be picked up. */
     D.setBlock((ix+0.5)*B,(iy+0.5)*B,(iz+0.5)*B,D.blockId('stone'));
     /* the DELTA, not the tally: the suite runs in one page and test 15 leaves
        its own drop lying about, so an absolute count here read that as litter
@@ -1024,7 +1041,11 @@ T[23]={name:'the free hand lays without cost, breaks at a touch, and builds the 
     const dropsBefore=D.drops().length;
     D.mineAt(ix,iy,iz,0,1,0); D.mineDrive(true); D.mineHold(true);
     D.mineStep(1/60);
-    const goneAtOnce=D.blockAt(ix,iy,iz)===0;
+    const notAtOnce=D.blockAt(ix,iy,iz)!==0;
+    let tookS=-1;
+    for(let k=1;k<400;k++){ D.mineStep(1/60); if(D.blockAt(ix,iy,iz)===0){ tookS=(k+1)/60; break; } }
+    const hardS=(D.BLOCKS().find(b=>b&&b.id==='stone')||{hardness:3.4}).hardness/2.2;
+    const goneInTime=tookS>0&&Math.abs(tookS-hardS)<0.1;
     const dropsAfter=D.drops().length-dropsBefore;
     D.mineHold(false); D.mineDrive(false); D.mineAt(null);
     /* ---- AND THE STORES OFFER THE WHOLE EARTH, AND NO TOOL ---- */
@@ -1039,12 +1060,13 @@ T[23]={name:'the free hand lays without cost, breaks at a touch, and builds the 
     const stands=D.blockAt(ix,iy-1,iz)!==0;
     D.state.freeroam=was; D.applyFreeroam();
     for(let y=iy-2;y<=iy+2;y++) D.setBlock((ix+0.5)*B,(y+0.5)*B,(iz+0.5)*B,0);
-    return {ok:voyageCost===1&&handCost===0&&goneAtOnce&&dropsAfter===0&&
+    return {ok:voyageCost===1&&handCost===0&&notAtOnce&&goneInTime&&dropsAfter===1&&
               store===placeable&&tools>0&&stands,
       got:'on a voyage a laid block costs '+voyageCost+
           ' · in the free hand three cost '+handCost+
-          ' · a blow of one frame took it: '+goneAtOnce+
-          ' (and left nothing lying: '+(dropsAfter===0)+')'+
+          ' · stone stood the first frame: '+notAtOnce+
+          ' and went in '+(tookS<0?'NEVER':tookS.toFixed(2)+'s')+' of '+hardS.toFixed(2)+' wanted'+
+          ' (and left '+dropsAfter+' lying)'+
           ' · the stores offer '+store+' of '+placeable+' blocks, and none of the '+
           tools+' tools · what was laid stands in the one overlay: '+stands};
   })};

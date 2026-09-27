@@ -15,7 +15,7 @@ EARTH.block({
   tex:{all:'ironPick'},
   hardness:1.0,
   tool:null, drops:'iron-pick',
-  serves:'pick', speed:2.2,
+  serves:'pick', speed:2.2, tier:2,   /* and it takes what flint cannot: the diamond */
   place:false,
   opaque:true, gravity:false
 });
