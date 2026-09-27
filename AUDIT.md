@@ -9301,6 +9301,96 @@ village ~2,400 over ~460k. The game's own logic is 4–10 ms a frame and is not 
 the submission of that many draws is, and on a laptop or a phone it will read as stutter.
 Merging the village's and the flora's meshes per chunk is the next performance round.
 
+## 4dc. Round 104 — the frame rate, the blow, the tool in the hand, the torch held up, and the earth under the earth ✅
+
+The player came back from playing it with four things, and two charts from the other game
+(the depth of each ore, and diamonds compared with the real earth): *fix the frame rate;
+the mining just destroys the blocks, with no sequenced breaking and no drop; the torch is
+held pointing down; there was no pick; the world is supposed to be block on block.*
+
+### 1. The frame rate — the draws were the material count
+
+Measured by walking the scene: a village's ring of ~530 chunks was **5,017 chunk meshes**,
+because the mesher files every face under its texture's material and three.js draws each
+material of each chunk separately. Every PLAIN block face (57 textures) is now drawn from
+one material over a **texture array** (`blockArray`), each face carrying its layer — snow
+on grass tops, paths and cobbles rides in on layer+256 — and every swaying leaf and blade
+(eight materials) from a second (`plantArray`), with each layer's sway, rooting and
+season carried as constants in the shader. Villagers and penned beasts past 380 units
+from the eye are not drawn (`figureLod`) — they still live their day.
+
+| in view | before | after |
+|---|---|---|
+| chunk meshes, village | 5,017 | 1,090 (for *more* chunks loaded) |
+| draw calls, village | 3,835 | 1,368 |
+| draw calls, chunks only | 2,496 | 387 |
+
+`viewStats` reports a merged mesh as the materials it carries, so the flora suites keep
+their meaning; test 10 reads grass tops by layer.
+
+### 2. The blow
+
+The free hand broke a block **at a touch, on the first frame, leaving nothing** — which is
+what the player met. It now breaks at the iron pick's pace (`FREE_HAND_SPEED`), and leaves
+its drop, like the voyage hand. Both hands now see the Minecraft-style breaking: **ten
+crack stages drawn on the block's faces** (one seeded net of fissures revealed a tenth at
+a time), **chips off the struck face** with every blow and a **burst** when it goes, the
+**arm swinging** the tool three times a second with the body turned to the block, and
+drops that **drift to the traveller** from three and a half blocks off. Test 23 is
+rewritten to the new law (stone stands the first frame, goes in hardness ÷ 2.2, leaves
+one drop).
+
+### 3. The tool in the hand, and the torch held up
+
+What is held on the belt is now IN the right hand as a model — pick, axe, spade, hoe,
+knife, or a small block — and a new voyage sets out with a **flint pick and a flint axe**.
+The torch hung off the UPPER arm with the flame on its lower end; it is carried in the
+**left** hand on the forearm, raised, turned each frame so the haft stands upright. And
+the torch's light no longer multiplies what it falls on by eight: lit at noon it burned the
+screen white. It now lifts a face TOWARD a torch's light and never past it.
+
+### 4. Block on block
+
+The ground was only as thick as the land stood high: course 0 was the floor of the world,
+so a plain was one or two blocks laid on nothing and could not be dug. Now every land
+column goes down to **course −48**, the foundations (`bedrock`, unbreakable — IYOB 38:4):
+**earth** under the sward (four courses), **stone**, and **deep stone** from −18. Dug
+holes now draw their walls — the mesher read its neighbours' *procedural* heights, so a
+pit's walls were never drawn (`cellView`). The two sea sheets under the whole disc are
+kept out of any column dug below the sea's level by a small mask (`holeTick`), so a shaft
+is not roofed with ocean.
+
+The ores follow the player's chart through the rock of every land, in veins
+(`COMMON_ORES`), over each land's own substances from world/minerals.js: emerald high in
+the mountains only; alabaster and bitumen (its coal) through the hills; copper at the
+land's level; iron about the sea's; sapphire (lapis), silver and gold below; ruby, topaz
+and — new, the third stone of the breastplate's second row, SHAMOTH 28:18 — **diamond**
+in the last courses above the foundations, rarest of all, and refused to anything but a
+pick of **iron** (`tier`). Read under Sinai, by twenty-course band: emerald 0.3–0.7% from
+course 20 up; copper 2.2% and iron 1.2% at 0–19; iron 2.4% and sapphire 0.3–0.5% below;
+ruby 0.9% and diamond 0.14% at the bottom. Mountain chunks cost ~5.9 ms to build against
+~3.4 ms on the plain.
+
+### And one old fault found on the way
+
+Every PROP drawn from a block material — the torch's haft, the new tools, the drops on the
+ground, the chips — rendered **jet black**: the block materials draw with vertex colours
+(the mesher's baked shade) and a plain box carries none. They now take the same texture in
+a material of their own (`propMat`). The drops had been black since they were made.
+
+### The suite
+
+Full run on this round: **64 pass · 0 fail · 5 pending** — the four that pend by design
+(50, 53, 54, 55) and test 12, which pended on a box 1.28× slow. Re-run on a quiet box with
+the final code: 5, 10, 12, 14, 15 and 23 all pass (12: plain 2.85 ms against a 3.31
+ceiling).
+
+### What is not done
+
+Caves still exist only under the hills (`js/caves.js`); the new deep ground under the
+plains has none of its own, because carving it would draw sealed rooms under the whole
+earth. Villagers are still a dozen draws apiece when near.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

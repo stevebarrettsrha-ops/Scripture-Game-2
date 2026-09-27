@@ -570,6 +570,10 @@ const FILES=[
   'world/waters.js',  /* the nations of fish (Round 99) — appended, same append-only rule */   /* the wares of the trade (Round 98) — appended, same append-only rule */
   'blocks/panel.js',
   'blocks/carved-panel.js',
+  /* the rock below the sea's level and the floor under it (Round 104) — appended */
+  'blocks/deep-stone.js',
+  'blocks/bedrock.js',
+  'blocks/diamond.js',
   'js/engine.js',
 ];
 
