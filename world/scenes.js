@@ -102,7 +102,9 @@ EARTH.scene({
   dur:19.0,
   cap:[3.0,15.5],
   lines:[],                       /* the scroll hands in its own — see above */
-  set:{ letterbox:true, hideHud:true, noSnow:true, fadeIn:1.4, fadeOut:1.8 },
+  /* clearSight: the eye cranes up over, or comes in short of, whatever bank,
+     wall or cave roof stands between it and him — see sceneClearSight */
+  set:{ letterbox:true, hideHud:true, noSnow:true, fadeIn:1.4, fadeOut:1.8, clearSight:true },
   actor:{ stand:true, reach:[0.4,1.9,16.6,18.4] },
   shots:[
     /*  t     dist  lift  swing   out    up      what is seen                */

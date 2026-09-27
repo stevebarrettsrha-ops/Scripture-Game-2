@@ -8384,6 +8384,20 @@ function scrollInCave(cx,cz,R){
     } }
   return best;
 }
+/* clear, level ground just past a named landmark's court, on a bearing */
+function scrollAtLandmark(name,bearing){
+  for(const L of LANDMARKS){
+    if(L.n!==name) continue;
+    const [lx,lz]=llToWorld(L.lat,L.lon);
+    const keep=L.kind==='range'?1000:L.kind==='wall'?340:L.kind==='city'?220:170;
+    for(let r=keep+30;r<=keep+520;r+=16)
+      for(let k=0;k<9;k++){
+        const th=bearing+(k%2?1:-1)*Math.ceil(k/2)*0.55;
+        const tx=lx+Math.sin(th)*r, tz=lz+Math.cos(th)*r;
+        if(scrollSpotClear(tx,tz)) return {x:tx,z:tz}; }
+  }
+  return null;
+}
 /* set every scroll down once the country sites are known */
 function placeScrolls(){
   if(_scrollPlaced||!SITES.length) return; _scrollPlaced=true;
@@ -8392,6 +8406,15 @@ function placeScrolls(){
     if(sc.at&&sc.at.mount){
       const p=scrollAtMount(sc.at.mount);
       if(p){ sc.x=p.x; sc.z=p.z; sc.m=null; sc.placed='mount'; continue; }
+    }
+    /* ---- OR AT THE WORKS OF THE ANCIENTS THEMSELVES ----
+       at:{ landmark:'The Ziggurat of Ur' } — the account happened THERE, at
+       the tower or the walls or the gates the world already raises, so the
+       scroll lies just outside their court on its own bearing, where the
+       masonry will never stand over it. */
+    if(sc.at&&sc.at.landmark){
+      const p=scrollAtLandmark(sc.at.landmark,sc.bearing||0);
+      if(p){ sc.x=p.x; sc.z=p.z; sc.m=null; continue; }
     }
     let ci=-1;
     for(let i=0;i<COUNTRIES.length;i++) if(COUNTRIES[i].n===sc.country){ ci=i; break; }
@@ -8478,15 +8501,33 @@ function takeScroll(sc){
      fighting it. If a scene is already running the taking is not lost — only
      its film is, which is the right way round. */
   if(sc.verse&&sc.verse.t&&SCENES['scroll-taken']){
-    const p=playerXZ();
-    playScene('scroll-taken',{ x:p.x, y:(state.walk.feetY!==undefined?state.walk.feetY:WATER_Y),
-      z:p.z, out:state.walk.heading, line:[sc.verse.t, sc.verse.ref] });
+    const p=playerXZ(), fy=(state.walk.feetY!==undefined?state.walk.feetY:WATER_Y);
+    playScene('scroll-taken',{ x:p.x, y:fy,
+      z:p.z, out:openBearing(p.x,fy,p.z,state.walk.heading), line:[sc.verse.t, sc.verse.ref] });
   }
   const left=SCROLLS.filter(x=>!x.gone&&!scrollTaken.has(x.id)).length;
   toast(sc.name+' \u2014 '+sc.words+(left
     ? '  ('+scrollTaken.size+' of '+SCROLLS.filter(x=>!x.gone).length+' scrolls gathered \u2014 the golden needle lies on the next.)'
     : '  EVERY SCROLL IS GATHERED. The whole of it is open to you.'), sc.book);
   saveState();
+}
+/* ---- THE WAY THE PLACE OPENS OUT ----
+   The scene looks out along a bearing, and it used to be whichever way the
+   traveller happened to be facing when he bent for the scroll — which, as
+   often as not, was the bank in front of his nose. The scene is meant to show
+   the PLACE. Sixteen bearings are tried and the one where the land falls
+   away furthest is taken; his own facing wins a near tie. */
+function openBearing(x,y,z,h){
+  let best=h, bs=-1e9;
+  for(let k=0;k<16;k++){ const a=h+k/16*Math.PI*2;
+    const fx=Math.sin(a), fz=Math.cos(a); let sc2=0;
+    for(const d of [24,48,90,150,230]){
+      const c=landAtWorld(x+fx*d,z+fz*d);
+      const top=c?c.h*B:WATER_Y;
+      sc2+=Math.max(-40,Math.min(40,(y+24)-top)); }
+    sc2-=Math.min(k,16-k)*2;              /* his own facing, a little preferred */
+    if(sc2>bs){ bs=sc2; best=a; } }
+  return best;
 }
 /* the one the golden needle is for: the nearest that is still hidden */
 function nextScroll(){
@@ -12421,6 +12462,10 @@ function promptTick(){
     if(e){ label=e.kind==='flotsam'?'F — haul the flotsam aboard':e.kind==='bottle'?'F — take up the bottle':'F — take the castaway aboard'; promptAction='enc'; }
     else { promptTrader=nearestTrader();
       if(promptTrader){ label='F — hail the merchantman'; promptAction='hail'; } }
+    /* and with the land in reach, the one thing he most wants to know: how
+       to step onto it. Said only when the ship has way enough off her to do
+       it — at full sail E still steps back from the wheel. */
+    if(!label&&Math.abs(state.boat.speed)<30&&shoreNearShip()){ label='E — go ashore'; promptAction='ashore'; }
   } else if(state.mode==='walk'){
     if(state.walk.inWater){ const e=nearestEncounter();
       if(e){ label='F — take up the bottle'; promptAction='enc'; } }
@@ -14016,6 +14061,7 @@ function interact(){
   if(tradeOpen){ closeTrade(); return; }        /* F also leaves the trading */
   switch(promptAction){
     case 'scroll': takeScroll(promptScroll); updateGuideBtn(); break;
+    case 'ashore': toggleAshore(); break;
     case 'dome': touchDome(); break;
     case 'sleep': sleep(); break;
     case 'door': toggleDoor(); break;
@@ -14843,6 +14889,7 @@ function sceneTick(dt){
   const ax=C.x+fx*F.fwd+sx*F.side, ay=C.y+F.up, az0=C.z+fz*F.fwd+sz*F.side;
   const az=C.out+Math.PI*(1-F.s);
   _cutA.set(ax+Math.sin(az)*F.d, ay+F.y, az0+Math.cos(az)*F.d);
+  if(set.clearSight) sceneClearSight(C);
   /* A HARD CUT puts the eye there; anything else LEADS it, firmly enough
      that it arrives before the beat is out. */
   const shot=spec.shots[F.idx+1];
@@ -14861,6 +14908,36 @@ function sceneTick(dt){
      for and nothing else. */
   if(F.roll) camera.rotateZ(F.roll);
   if(C.t>=C.dur) endScene();
+}
+/* ---- THE EYE OF A SCENE KEEPS THE TRAVELLER IN SIGHT ----
+   A scene's marks are measured off the traveller and know nothing of the
+   ground, so a scroll taken at the foot of a bank filmed the bank: the whole
+   frame was a wall of sand, for the one moment the game exists to reward.
+   The seat is tested along the line from his head. Blocked, the eye first
+   CRANES UP (a scene wants the place seen from above, not a man's back from
+   an inch away); if no lift clears it — a cave, a narrow cleft — it comes in
+   along the line to just short of the first solid thing. */
+function sceneSightFrac(ox,oy,oz,px,py,pz){
+  const N=20;
+  for(let k=1;k<=N;k++){ const f=k/N;
+    const x=ox+(px-ox)*f, y=oy+(py-oy)*f, z=oz+(pz-oz)*f;
+    if(blockSolidAt(Math.floor(x/B),Math.floor(y/B),Math.floor(z/B))
+       ||landmarkSolidAt(x,z,y-1.2,y+1.2)) return (k-1)/N;
+    /* the trees are drawn, not stacked: their crowns are asked of the tree */
+    const lc=landAtWorld(x,z);
+    if(lc&&lc.tree&&y<treeTopAt(x,z,lc)+0.8&&y>lc.h*B) return (k-1)/N; }
+  return 1;
+}
+function sceneClearSight(C){
+  const ox=C.x, oy=C.y+9, oz=C.z;
+  if(blockSolidAt(Math.floor(ox/B),Math.floor(oy/B),Math.floor(oz/B))) return;
+  const px=_cutA.x, py=_cutA.y, pz=_cutA.z;
+  for(const lift of [0,12,24,40,60,90]){
+    if(sceneSightFrac(ox,oy,oz,px,py+lift,pz)>=1){ _cutA.y=py+lift; return; } }
+  const f=sceneSightFrac(ox,oy,oz,px,py,pz);
+  const len=Math.max(1,Math.hypot(px-ox,py-oy,pz-oz));
+  const k=Math.max(Math.min(1,4/len),f-2.5/len);
+  _cutA.set(ox+(px-ox)*k, oy+(py-oy)*k, oz+(pz-oz)*k);
 }
 /* ---- and the one that is played by walking out to the end of the world ---- */
 function touchDome(){
@@ -15053,8 +15130,13 @@ function setAshore(x,z,h){
   state.walk.x=x; state.walk.z=z; state.walk.heading=h;
   state.walk.feetY=undefined; state.walk.vy=0; state.walk.grounded=true; state.walk.inWater=false;
   setMode('walk'); markDiscovery(x,z);
+  coach('ashore','Ashore. <b>W A S D</b> walk, <b>SPACE</b> jumps and climbs. <b>F</b> speaks with the people, trades at a stall, casts a line from the strand and takes up a scroll. <b>E</b> by the water boards the ship again.',1500);
+  coach('hand','<b>Hold the left mouse still</b> on a block (or hold <b>R</b>) to break it; walk over what drops to gather it. <b>Right-click</b> (or <b>V</b>) lays a block. <b>I</b> opens the satchel and the works &mdash; timber rives to planks, and flint and planks make tools.');
 }
-function goAshoreFromShip(){
+/* where the traveller would step ashore from the ship as she lies now, or
+   null — the search goAshoreFromShip has always made, asked on its own so the
+   helm can know whether E means "go ashore" before it is pressed */
+function shoreFromShip(){
   const bt=state.boat;
   /* pass 1 — a beach or low ground; pass 2 — a pier; pass 3 — any land */
   let anyLand=null;
@@ -15063,7 +15145,7 @@ function goAshoreFromShip(){
     const x=bt.x+Math.cos(th)*rad*B, z=bt.z+Math.sin(th)*rad*B;
     const cc=landAtWorld(x,z);
     if(cc){
-      if(cc.kind!=='wall'&&cc.h<=2){ setAshore(x,z,bt.heading); return true; }
+      if(cc.kind!=='wall'&&cc.h<=2) return {x,z};
       if(!anyLand) anyLand={x,z};   /* the ice wall counts — you may go ashore and mount it */
     }
   }
@@ -15071,8 +15153,26 @@ function goAshoreFromShip(){
   for(const [k] of deckMap){ const parts=k.split(','),ix=+parts[0],iz=+parts[1];
     const x=(ix+.5)*B, z=(iz+.5)*B, dd=Math.hypot(x-bt.x,z-bt.z);
     if(dd<22*B&&(!bestD||dd<bestD.dd)) bestD={x,z,dd}; }
-  if(bestD){ setAshore(bestD.x,bestD.z,bt.heading); return true; }
-  if(anyLand){ setAshore(anyLand.x,anyLand.z,bt.heading); return true; }
+  if(bestD) return {x:bestD.x,z:bestD.z};
+  return anyLand;
+}
+/* the same answer, asked a few times a second at most — the prompt wants it
+   every frame and the search is some two thousand columns */
+let _shoreAsk={t:-1e9,x:NaN,z:NaN,at:null};
+function shoreNearShip(){
+  const bt=state.boat, now=performance.now();
+  if(now-_shoreAsk.t<250&&Math.hypot(bt.x-_shoreAsk.x,bt.z-_shoreAsk.z)<B) return _shoreAsk.at;
+  _shoreAsk={t:now,x:bt.x,z:bt.z,at:shoreFromShip()};
+  return _shoreAsk.at;
+}
+function goAshoreQuiet(){
+  const p=shoreFromShip();
+  if(!p) return false;
+  setAshore(p.x,p.z,state.boat.heading); return true;
+}
+function goAshoreFromShip(){
+  const p=shoreFromShip();
+  if(p){ setAshore(p.x,p.z,state.boat.heading); return true; }
   toast('No shore within reach — draw nearer to the land.');
   return false;
 }
@@ -15080,14 +15180,24 @@ function toggleAshore(){
   if(state.firm) return;                     /* not from behind the map view */
   if(state.mode==='fly'){ alight(); return; }    /* come down out of the air */
   if(state.mode==='dive'){ surface(); return; }  /* come up out of the deep */
-  if(state.mode==='boat'){                       /* step back from the wheel */
+  if(state.mode==='boat'){
+    /* ---- WITH LAND IN REACH, E FROM THE WHEEL GOES ASHORE ----
+       It used to step back onto the deck beside the wheel, where the next E
+       took the helm again — so a traveller who had sailed to a shore and
+       pressed E twice was back at the wheel, and could go round that loop for
+       ever without learning that he had to walk forward off the quarterdeck
+       first. Out at sea there is no shore to go to, and E still steps back
+       to walk the deck. */
+    if(Math.abs(state.boat.speed)<30&&goAshoreQuiet()) return;
     state.deck={lx:2.4*SHIP_SX,lz:SD.helmZ+1.2*SHIP_S,h:0,level:'deck'};
     setMode('deck'); return;
   }
   if(state.mode==='deck'){
     if(state.deck.level==='hold'){               /* first come up out of the hold */
       state.deck.level='deck'; state.deck.lx=2.4*SHIP_SX; state.deck.lz=HATCH.z+3*SHIP_S; return; }
-    if(nearWheel()){ setMode('boat'); return; }  /* take the helm */
+    /* take the helm — unless land lies in reach, when E means the shore
+       from wherever he stands (the helm is the wheel's own F/E once afloat) */
+    if(nearWheel()&&!shoreNearShip()){ setMode('boat'); return; }
     goAshoreFromShip(); return;
   }
   /* ashore: board the ship if she lies near */
@@ -15099,8 +15209,8 @@ function toggleAshore(){
 function updateAshoreBtn(){ const b=$('b-ashore');
   if(state.mode==='dive') b.textContent='🌊 Surface';
   else if(state.mode==='fly') b.textContent='🕊 Alight';
-  else if(state.mode==='boat') b.textContent='⚓ Leave the helm';
-  else if(state.mode==='deck') b.textContent=nearWheel()?'⎈ Take the helm':'⚓ Go ashore';
+  else if(state.mode==='boat') b.textContent=shoreNearShip()?'⚓ Go ashore':'⚓ Leave the helm';
+  else if(state.mode==='deck') b.textContent=(nearWheel()&&!shoreNearShip())?'⎈ Take the helm':'⚓ Go ashore';
   else b.textContent='⛵ Board the ship';
 }
 function deckTick(dt){
@@ -15268,6 +15378,9 @@ function camInsideShip(wx,wy,wz){
   return Math.abs(lx)<10*SHIP_SX && lz>-35*SHIP_S && lz<50*SHIP_S;
 }
 const _camHold=new THREE.Vector3();
+/* the helm's boom: k × the zoom, never under `min` at the usual zoom, looking
+   `fwd` ahead of the ship and `up` over her deck */
+const BOAT_LOOK=Object.assign({k:1.7,min:190,fwd:70,up:26},window.__CAMTUNE||{});
 function cameraTick(dt){
   if(cut){ sceneTick(dt); return; }
   /* ---- THE SLIDE ----
@@ -15337,7 +15450,19 @@ function cameraTick(dt){
     px=_wv.x; pz=_wv.z; baseY=_wv.y; phead=state.boat.heading+state.deck.h;
     dist=Math.max(10,state.camDist); }
   else if(state.mode==='boat'){ const bt=state.boat;
-    px=bt.x; pz=bt.z; baseY=boatG.position.y+SD.qdeckY; phead=bt.heading; dist=Math.max(56,state.camDist); }
+    /* ---- THE HELM'S EYE STANDS WELL ASTERN, AND LOOKS PAST THE MAST ----
+       The boom was a walker's boom hung on the ship's middle: ninety-six
+       units off a hull a hundred and seventy long put the eye just over the
+       taffrail, looking straight at the mainmast — and the first sight of
+       the whole game was a column of timber and the underside of a yard.
+       At the wheel it is drawn back to take in the whole ship, and it looks
+       out ahead of her (see BOAT_LOOK below) rather than at her mast. */
+    px=bt.x; pz=bt.z; baseY=boatG.position.y+SD.qdeckY; phead=bt.heading;
+    /* (only close in: drawn back toward the whole earth the boom is the
+       zoom's own again, so the chart's fade still meets the eye it expects) */
+    const near=Math.max(56,state.camDist*BOAT_LOOK.k,BOAT_LOOK.min*Math.min(1,state.camDist/60));
+    const far=Math.max(0,Math.min(1,(state.camDist-300)/700));
+    dist=near+(Math.max(56,state.camDist)-near)*far; }
   else if(state.mode==='fly'){ const fl=state.fly;
     px=fl.x; pz=fl.z; baseY=fl.y; phead=fl.heading; dist=Math.max(24,state.camDist); }
   else if(state.mode==='dive'){ const dv=state.dive;
@@ -15578,7 +15703,9 @@ function cameraTick(dt){
   if(zf<0.02){ const cp=camera.position;
     const q=(cp.x*cp.x+cp.z*cp.z)/(R_DOME*R_DOME)+(cp.y>0?(cp.y*cp.y)/(H_DOME*H_DOME):0);
     if(q>0.995){ const k=Math.sqrt(0.995/q); cp.x*=k; cp.z*=k; if(cp.y>0) cp.y*=k; } }
-  camTgt.set(px,baseY+(swimCam?4:10),pz);
+  if(state.mode==='boat'&&zf<0.98){ const k3=1-zf;
+    camTgt.set(px+Math.sin(phead)*BOAT_LOOK.fwd*k3, baseY+10+BOAT_LOOK.up*k3, pz+Math.cos(phead)*BOAT_LOOK.fwd*k3); }
+  else camTgt.set(px,baseY+(swimCam?4:10),pz);
   camera.lookAt(camTgt);
 }
 
@@ -15588,6 +15715,34 @@ function toast(txt,ref){ const vt=$('verse-t'), vr=$('verse-r'), v=$('verse');
   vt.textContent=txt; if(vr) vr.textContent=ref||'';
   v.style.opacity=1;
   clearTimeout(toast._t); toast._t=setTimeout(()=>{v.style.opacity=0;}, ref?11000:5200); }
+/* ================= FIRST STEPS =================
+   The voyage never said what it was for or how a hand is laid on anything:
+   the goal lived on one button's label, going ashore was a two-step dance
+   nobody was told about, and breaking a block was in no book at all. A
+   player dropped at the wheel with none of that reads the silence as a
+   broken game. So each thing is said ONCE, the first time it matters, on a
+   line of its own — and remembered in the browser, so it is never said
+   twice. A voyage only: the free hand needs no lessons. */
+const COACH_KEY='voyage:coach';
+let _coachSeen=null, _coachNext=0, _coachT=null;
+function coachSeen(){
+  if(_coachSeen) return _coachSeen;
+  _coachSeen=new Set();
+  try{ const r=localStorage.getItem(COACH_KEY); if(r) for(const k of JSON.parse(r)) _coachSeen.add(k); }catch(e){}
+  return _coachSeen; }
+function coach(id,html,delay){
+  if(state.freeroam) return;
+  const S=coachSeen(); if(S.has(id)) return;
+  S.add(id); try{ localStorage.setItem(COACH_KEY,JSON.stringify([...S])); }catch(e){}
+  const now=performance.now(), at=Math.max(now+(delay||0),_coachNext);
+  _coachNext=at+9500;
+  const show=()=>{
+    if(!running||cut||gamePaused||state.firm){ setTimeout(show,1500); return; }
+    const el=$('coach'), b=$('coach-b'); if(!el||!b) return;
+    b.innerHTML=html; el.classList.add('on');
+    clearTimeout(_coachT); _coachT=setTimeout(()=>el.classList.remove('on'),9000); };
+  setTimeout(show,Math.max(0,at-now));
+}
 const seen={wall:false,yahru:false};
 function placeTick(){
   updateAshoreBtn();
@@ -16538,6 +16693,10 @@ async function begin(fresh,roam){
   initAudio();
   if(state.freeroam) toast('FREE ROAM \u2014 the air, the sun, the hour and the season are yours. Rise up (G), hold the sun, turn the year, and go where you will.');
   else toast('And Aluahim said, \u201cLet the waters under the shamayim be gathered together into one place, and let the dry land appear.\u201d And it came to be so.','BER\u0114SHITH 1:9');
+  if(!state.freeroam){
+    coach('goal','Scrolls of the account lie hidden across the earth, each where its story happened. The <b>golden needle</b> of the compass (lower left) points to the nearest one you have not found.',4000);
+    coach('sail','<b>W</b> makes sail, <b>A / D</b> steer, <b>drag</b> to look about, <b>scroll</b> to draw the eye back. Run before the wind and she flies. <b>M</b> shows the whole earth.');
+  }
   }catch(e){ _begun=false; throw e; }   /* a failed launch frees the buttons for another try */
 }
 /* ================= THE WORLD, LENT OUT =================
