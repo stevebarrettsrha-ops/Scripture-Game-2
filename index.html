@@ -253,6 +253,19 @@
     text-transform:uppercase; }
   #tip-body{ margin-top:.8vh; font-style:italic; color:#cfc5aa;
     font-size:clamp(11px,1.8vmin,15px); line-height:1.65; }
+  /* ---- FIRST STEPS ----
+     A short word the first time each thing matters — the goal, the helm,
+     the shore, the hand. Its own line under the heading, so it never takes
+     the verse's place, and never a pointer target. */
+  #coach{ position:fixed; z-index:7; left:50%; top:10.5vh; transform:translateX(-50%);
+    width:min(78vw,620px); pointer-events:none; opacity:0; transition:opacity .6s ease;
+    background:rgba(10,14,26,.86); border:1px solid rgba(232,198,106,.55); border-radius:6px;
+    padding:1.1vh 1.8vh; text-align:center; box-shadow:0 0 24px rgba(0,0,0,.6); }
+  #coach.on{ opacity:1; }
+  #coach .ch{ font-size:clamp(9px,1.35vmin,11px); letter-spacing:.3em; color:var(--gold); }
+  #coach .cb{ margin-top:.5vh; font-size:clamp(11px,1.75vmin,15px); line-height:1.55; color:#efe6cf; }
+  #coach .cb b{ color:var(--gold); font-weight:normal; }
+  body.cine #coach, body.pregame #coach{ opacity:0 !important; }
   /* ---- THE MENU, OVER THE LIVING WORLD ----
      A column on the left hand, the built world sailing slowly behind it. */
   #menu{ position:fixed; inset:0; z-index:28; display:none; }
@@ -504,6 +517,7 @@
 </head>
 <body class="pregame">
 <canvas id="cv"></canvas>
+<div id="coach"><div class="ch">FIRST STEPS</div><div class="cb" id="coach-b"></div></div>
 
 <!-- ============ THE LOADING OF THE WORLD ============
      Shown from the first paint. The engine drives the bar through the true
@@ -593,7 +607,7 @@
   <div class="ctl-sec"><h3>THE SHIP</h3><div class="row">
     <span class="k">W A S D</span><span class="v">helm and sail &mdash; or the left thumb on a touch screen</span>
     <span class="k">drag</span><span class="v">look about</span>
-    <span class="k">E</span><span class="v">take or leave the wheel, walk the deck &mdash; and go ashore from a strand, or board again</span>
+    <span class="k">E</span><span class="v">with land in reach, go straight ashore &mdash; out at sea, leave the wheel and walk the deck; ashore, board the ship again</span>
     <span class="k">F</span><span class="v">the hold below the hatch amidships &mdash; and hail a passing trader</span>
     <span class="k">N</span><span class="v">cast the trawl net &mdash; trawl slow over shoaling water for a hold-filling catch</span>
     <span class="k">scroll</span><span class="v">draw the eye back, out to the whole earth</span>
@@ -603,6 +617,18 @@
     <span class="k">SPACE</span><span class="v">jump and climb</span>
     <span class="k">F</span><span class="v">open doors &middot; speak with the people &middot; trade in the market &middot; cast a line from strand or pier</span>
     <span class="k">Q</span><span class="v">throw the spear &mdash; the hunt, ashore and beneath the waves</span>
+  </div></div>
+  <div class="ctl-sec"><h3>THE HAND &mdash; BREAKING, GATHERING AND BUILDING</h3><div class="row">
+    <span class="k">hold the mouse</span><span class="v">hold the left button STILL on a block (the gold outline) to break it &mdash; or hold R. What breaks drops, and walking over it gathers it</span>
+    <span class="k">right-click / V</span><span class="v">lay the block in your hand against the face you are looking at</span>
+    <span class="k">1 &ndash; 8</span><span class="v">take up a token from the belt at the foot of the screen</span>
+    <span class="k">I</span><span class="v">the satchel &mdash; and THE WORKS: planks from timber, tools of flint, a kiln, brick, glass and more</span>
+    <span class="k">T</span><span class="v">strike a torch, and put it out &mdash; the caves are dark</span>
+    <span class="k">&mdash;</span><span class="v"><i>Rock will not give to bare hands. Dig flint out of earth and chalk, rive planks from timber, and make a pick of flint first.</i></span>
+  </div></div>
+  <div class="ctl-sec"><h3>THE SCROLLS</h3><div class="row">
+    <span class="k">the golden needle</span><span class="v">the compass in the corner points to the nearest scroll not yet found &mdash; each lies at a place where the account happened</span>
+    <span class="k">F</span><span class="v">take up a scroll when you stand beside it; its passage is written into the log for good</span>
   </div></div>
   <div class="ctl-sec"><h3>FREE ROAM ONLY</h3><div class="row">
     <span class="k">&#128330; rise up (G)</span><span class="v">leave the ground bodily and go up past the clouds to the firmament</span>

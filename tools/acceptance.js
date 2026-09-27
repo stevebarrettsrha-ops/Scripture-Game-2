@@ -5892,6 +5892,19 @@ T[28]={name:'a great scroll lies where it costs something, and can still be got 
         rows.push(sc.id+' on '+sc.at.mount+': '+(c?c.h:'?')+' of '+top+(ok?' ✓':' ✗'));
         continue;
       }
+      /* AT A WORK OF THE ANCIENTS: it must lie near that landmark — outside
+         its court, where the masonry cannot stand over it, and not so far
+         off that it has wandered away from the place it names — on dry land */
+      if(sc.at.landmark){
+        const L=(D.LANDMARKS||[]).find(l=>l.n===sc.at.landmark);
+        const w=L?D.llToWorld(L.lat,L.lon):null;
+        const d=w?Math.hypot(sc.x-w[0],sc.z-w[1]):Infinity;
+        const c=D.landAtWorld(sc.x,sc.z);
+        const ok=!!L&&d>=150&&d<=1000&&!!c&&c.kind!=='wall';
+        if(!ok) bad++;
+        rows.push(sc.id+' by '+sc.at.landmark+': '+(isFinite(d)?Math.round(d):'no such landmark')+' out'+(ok?' ✓':' ✗'));
+        continue;
+      }
       /* IN A CAVE: it must be DARK, and it must be REACHABLE — a scroll in a
          sealed pocket is not a reward, it is a bug nobody can ever see. The
          reach is walked through the air runs themselves, out to daylight. */

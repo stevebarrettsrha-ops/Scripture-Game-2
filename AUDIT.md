@@ -9244,6 +9244,63 @@ before. Test 69 in that run reads as it read alone: *the kiln laid by the hand b
 its own declared 9 · broken by the hand, the fire goes out*. The four pendings are the four
 that pend by design (50, 53, 54, 55 — measures with their sections still open, not faults).
 
+## 4db. Round 103 — a player's run-through: the game played by its own keys, and what felt broken ✅
+
+The brief this round came from the player, not from the plan: *"a Minecraft-like game of
+exploration, of seeing the sites of the Bible and remembering the Old Testament through
+finding scrolls, mining, fishing, plundering and buying — and as it is now it feels
+broken."* So the voyage was PLAYED — menu, helm, landfall, the walk inland, the hand on the
+rock, the satchel and the works, the stall, the line from the strand, and a scroll taken up —
+with real keys and a real mouse in the headless browser, and every mechanic was read by what
+the player would see rather than by what a probe could reach.
+
+**What already works, confirmed by play:** the sail to the first scroll (~40 s at full sail),
+the hand (a sand block breaks in 2.25 s with the crack figure, the satchel page and the
+works list stand open under I), the line cast from the strand, the prompts for a stall and a
+soul, and the scroll's own verse on the screen.
+
+**What felt broken, and is mended:**
+
+1. **The first sight of the game was the mainmast.** At the helm the boom was a walker's boom
+   hung on the ship's middle — 96 units off a 170-unit hull, looking straight at the mast.
+   It is drawn back to take in the whole ship and looks out ahead of her (`BOAT_LOOK`),
+   fading back to the zoom's own boom as the eye draws off toward the whole earth.
+2. **Nobody could get ashore.** E at the wheel stepped onto the deck beside the wheel, and
+   the next E took the wheel again — a loop with no way out that anyone was told of. With a
+   shore in reach, E from the wheel (or the deck) now goes straight ashore; the rail reads
+   ⚓ GO ASHORE and the prompt says *E — go ashore*. Out at sea E still walks the deck.
+3. **The reward scene filmed a wall of sand.** The taking of a scroll set its marks off the
+   traveller and knew nothing of the ground; at Yapho the frame was a sandbank from the
+   fourth second to the nineteenth. The scene now looks out along the bearing where the land
+   opens (`openBearing`), and the eye cranes up over — or comes in short of — whatever bank,
+   wall, tree or cave roof would stand between it and him (`sceneClearSight`, opt-in by
+   `set.clearSight` so the firmament's own film is untouched).
+4. **The game never said what it was for, or how a hand is laid on anything.** The goal lived
+   on one button's label; mining, laying a block, the satchel and the works were in no book.
+   A FIRST STEPS line (its own element, never the verse's) now says each thing once, the
+   first time it matters — the scrolls and the needle, the helm, the shore, the hand — and
+   remembers it in the browser. The Controls book gains THE HAND and THE SCROLLS.
+5. **Eight scrolls do not tell the Old Testament.** Sixteen scrolls of the EVENTS are laid
+   where they happened — the flood on Ararat, Baḇel, Ur, Seḏom, Moriyah, Bĕyth ʼĔl, Yosĕph by
+   Giza, the sea divided, Neḇo, Yahriḥo, Ĕlah, the House, Karmel, Ninewĕh, the lions' den,
+   Estĕr — each verse taken by `tools/extract-besorah.js` and held by `--check`
+   (**89 exact · 0 paraphrased · 0 unsourceable**). A new placement, `at:{landmark:'…'}`, lays
+   a scroll just outside the court of a named work of the ancients. Ararat's debt, carried
+   in `world/scrolls.js` since Phase 7, is paid with the account of the flood itself.
+
+### The readings
+
+- All 24 scrolls placed on dry land; the six landmark scrolls 200–250 out from their works.
+- Acceptance **5, 13, 28, 29 pass**; test 28 now reads landmark scrolls by their own rule
+  (near the work, outside its court, on dry land) instead of taking them for caves.
+
+### What is measured and NOT mended — said so it is not forgotten
+
+**The draw calls.** At the helm the frame issues ~1,100 draw calls over ~290k triangles; in a
+village ~2,400 over ~460k. The game's own logic is 4–10 ms a frame and is not the problem —
+the submission of that many draws is, and on a laptop or a phone it will read as stutter.
+Merging the village's and the flora's meshes per chunk is the next performance round.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
