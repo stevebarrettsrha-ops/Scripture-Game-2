@@ -310,8 +310,15 @@ const DR_H    = 3.0, DR_V = 3.4;     /* a passage a man walks upright in */
 const DEEP_COUNTRY_TH = 0.56;        /* how much of the earth has them at all — about a third of it */
 const DWORMS=[ {ox:-17.9, oz: 44.3, dy: 0.0},
                {ox: 63.1, oz:-29.7, dy:-7.0} ];
+/* which country has the deep at all is a field some three thousand units
+   across; it is read once for each square of ninety-six (a chunk's width)
+   and not once for each of the 256 columns in it */
+let _dgK=NaN, _dgOn=false;
 function deepRuns(x,z,h,out){
-  if(fbm(x*0.00033-71.3, z*0.00033+23.9)<DEEP_COUNTRY_TH) return;
+  const gk=Math.floor(x/96)*1048576+Math.floor(z/96);
+  if(gk!==_dgK){ _dgK=gk; const cx=(Math.floor(x/96)+0.5)*96, cz=(Math.floor(z/96)+0.5)*96;
+    _dgOn=fbm(cx*0.00033-71.3, cz*0.00033+23.9)>=DEEP_COUNTRY_TH; }
+  if(!_dgOn) return;
   let cy=null;
   for(let k=0;k<DWORMS.length;k++){ const W=DWORMS[k];
     const dN=veinDist(x*DW_FREQ+W.ox, z*DW_FREQ+W.oz);

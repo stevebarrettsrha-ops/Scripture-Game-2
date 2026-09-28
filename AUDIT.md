@@ -9621,6 +9621,28 @@ could not be seen. The river raster now also records which river each pixel is
 (`RIVIDX`). On a river, or on its bank away from the town, the banner names it:
 *THE GIḤON (NILE) — EGYPT*. In the town the town keeps it: *NO-AMON — EGYPT*.
 
+**And the build, held under its ceiling.** With the corrections in, test 12 read
+plains chunks at 3.42 ms against its 3.31 ceiling. Measured back to back on one
+machine: Round 104 3.06 ms, Round 107 3.23 ms, Round 108 3.42 ms. Three savings
+brought it back:
+
+- *A far chunk no longer walks its deep at all.* It used to run every column over a
+  deep worm through the hollow-wall branch and the light, only to throw each face
+  away. It now meshes a view of the column with the runs wholly under the sea's level
+  left off (`shallowView`), says so (`_deepSkipped`), and is built again with them
+  when the eye comes near.
+- *The deep's country gate* is a field some three thousand units across. It is read
+  once for each square of 96 units, not for every column.
+- *Each tile of the ravine grid* keeps the ravines whose box actually reaches it
+  (`ravinesInTile`), so `ravineCut` tests none or one, not every ravine within three
+  tiles.
+- *An edited column* copies its own runs below its lowest edit instead of walking them
+  course by course.
+
+Test 12 now reads 3.31 and 2.93 ms (ceiling 3.31). The ravine walk, the deep meshes near
+the eye (20 in the 25 chunks about him) and the edited columns over the deep (9 of 9)
+were read again after.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

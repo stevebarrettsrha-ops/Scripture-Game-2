@@ -2349,6 +2349,21 @@ function ravinesNear(x,z){
 /* the index of a column's first air run that reaches above the sea's level —
    a hill's cave — or -1; the deep worms under it all end at or below nought */
 function hillRun(sp){ for(let i=0;i<sp.length;i+=2) if(sp[i+1]>0) return i; return -1; }
+/* the ravines whose ground (the whole box, galleries and all) reaches into
+   this tile of the ravine grid — nearly always none, sometimes one — so the
+   column test in ravineCut runs over those alone */
+const _ravTile=new Map(); let _rtI=1e9,_rtJ=1e9,_rtA=null;
+function ravinesInTile(x,z){
+  if(!SITES.length) return [];                /* not known, and not kept, until the villages are */
+  const gi=Math.floor(x/RAV_CELL), gj=Math.floor(z/RAV_CELL);
+  if(gi===_rtI&&gj===_rtJ&&_rtA) return _rtA;
+  const k=gi*1048576+gj; let a=_ravTile.get(k);
+  if(!a){ const tx0=gi*RAV_CELL, tz0=gj*RAV_CELL, tx1=tx0+RAV_CELL, tz1=tz0+RAV_CELL;
+    a=ravinesNear(x,z).filter(R=>R.ax1>=tx0&&R.ax0<=tx1&&R.az1>=tz0&&R.az0<=tz1);
+    if(_ravTile.size>20000) _ravTile.clear();
+    _ravTile.set(k,a); }
+  _rtI=gi; _rtJ=gj; _rtA=a; return a;
+}
 /* whether the floor of an open ravine cut lies LOWER than height y (in
    blocks) anywhere within the reach of the cave light — `caveLightAt` looks
    eighteen blocks out on the diagonals, so twenty-six in a straight line.
@@ -2370,7 +2385,7 @@ function ravineOpenNear(ix,iz,y){
 const _galR=[];
 function ravineCut(c,x,z){
   if(!c.dk) return;
-  const list=ravinesNear(x,z); if(!list.length) return;
+  const list=ravinesInTile(x,z); if(!list.length) return;
   let floor=Infinity; _galR.length=0;
   for(const R of list){
     if(x<R.ax0||x>R.ax1||z<R.az0||z>R.az1) continue;
@@ -2747,8 +2762,14 @@ function editedCell(ix,iz,cc,em,out){
   /* from the foot of the deepest hollow the column has, not from nought: the
      deep worms lie below it, and a column a hand has touched (every tree's,
      every village's) lost them and drew solid rock where a man walks */
+  /* Below the lowest edit nothing has been touched, so the runs there are
+     the column's own and are copied, not walked course by course; a run
+     that reaches up past that line is walked from its foot. */
   let from=Math.min(lo,0);
-  if(cc.spans&&cc.spans.length&&cc.spans[0]<from) from=cc.spans[0];
+  const sp0=cc.spans;
+  if(sp0) for(let i=0;i<sp0.length;i+=2){
+    if(sp0[i+1]<=from) air.push(sp0[i],sp0[i+1]);
+    else { if(sp0[i]<from) from=sp0[i]; break; } }
   for(let y=from;y<top;y++){
     if(!tS(y)){ if(run===null) run=y; }
     else if(run!==null){ air.push(run,y); run=null; }
@@ -2943,7 +2964,23 @@ function emitPlaced(G,ix,iz,em,surfaceH){
     if(!blockSolidAt(ix,y,iz-1)) placedFace('NZ',iz*B,    b.mSide,   0.8*L(),  ix,y, b.tint);
   }
 }
+/* ---- A COLUMN SEEN WITHOUT ITS DEEP ----
+   A chunk too far off to show the deep (`_deepOn` false) still walked every
+   wall of every column over a deep worm the long way — the hollow branch,
+   the solid runs, the light — only to throw each face away at the end. The
+   runs wholly under the sea's level (they are sorted, so they come first)
+   are simply left off the column it meshes; `_deepSkipped` says so, and
+   the chunk is built again with them when the eye comes near. */
+const _shv=[0,1,2,3,4].map(()=>({h:0,kind:'',tree:0,ci:0,spans:null}));
+function shallowView(c,slot){
+  if(_deepOn||!c||!c.spans||c.spans[1]>0) return c;
+  const sp=c.spans; let i=0; while(i<sp.length&&sp[i+1]<=0) i+=2;
+  _deepSkipped=true;
+  const o=_shv[slot]; o.h=c.h; o.kind=c.kind; o.tree=c.tree; o.ci=c.ci; o.ravine=c.ravine;
+  o.spans=i<sp.length?sp.subarray(i):null; return o;
+}
 function emitColumn(G,ix,iz,cc){
+  cc=shallowView(cc,4);
   const x0=ix*B, x1=x0+B, z0=iz*B, z1=z0+B, yT=cc.h*B;
   /* the faces of a hollow wholly under the sea's level go to the chunk's DEEP
      bucket, which is drawn only near the eye (deepTick); everything open to
@@ -2982,7 +3019,7 @@ function emitColumn(G,ix,iz,cc){
     }
   }
   for(let d=0;d<4;d++){
-    const nc=cellView(ix+nb[d][0],iz+nb[d][1],d);
+    const nc=shallowView(cellView(ix+nb[d][0],iz+nb[d][1],d),d);
     const nh=nc?nc.h:0, base=Math.min(nh,cc.h)*B;
     const hollow=!!(cc.spans||(nc&&nc.spans));
     if(cc.h<=nh&&!hollow) continue;
