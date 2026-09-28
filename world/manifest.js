@@ -574,6 +574,10 @@ const FILES=[
   'blocks/deep-stone.js',
   'blocks/bedrock.js',
   'blocks/diamond.js',
+  /* the walls and roofs of the ancient villages (Round 106) — appended */
+  'blocks/mudbrick.js',
+  'blocks/plaster.js',
+  'blocks/thatch.js',
   'js/engine.js',
 ];
 

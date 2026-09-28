@@ -9385,11 +9385,121 @@ Full run on this round: **64 pass · 0 fail · 5 pending** — the four that pen
 the final code: 5, 10, 12, 14, 15 and 23 all pass (12: plain 2.85 ms against a 3.31
 ceiling).
 
-### What is not done
+### What was left, and is done in Round 105 (below)
 
-Caves still exist only under the hills (`js/caves.js`); the new deep ground under the
-plains has none of its own, because carving it would draw sealed rooms under the whole
-earth. Villagers are still a dozen draws apiece when near.
+Caves under the plains, and villagers costing a dozen draws apiece — both paid in §4dd.
+
+## 4dd. Round 105 — the caves under the plains, the ravines that lead down, and the villager drawn as finely as he can be seen ✅
+
+**The deep worms** (`js/caves.js` `deepRuns`): under every land, below the level of the
+sea (never above course −3, never below −46), two worm systems wander at their own depth
+(−40 to −10) through about a third of the earth, crossing into chambers. Censused over
+15,613 land columns: **7.8 % are hollowed** — the density of the other game, not a sponge.
+Their walls carry the ore of §4dc: in one 64×64 block patch, iron 173 cells of wall,
+gold 64, silver 64, sapphire 61, copper 46, bitumen 30, topaz 16, ruby 5.
+
+**The ravines** (`ravineOf`/`ravineCut`, engine): the way down. In any tile of a grid
+56 blocks across, by the tile's own hash, where the ground is low, dry and open at both
+ends and the middle and no village lies within 520 units: a cut three blocks wide
+descending a block a stride, 18–31 courses under the sea, through soil, stone and deep
+stone with the ore showing in its walls, to a round chamber from which two GALLERIES run
+off 25–90 blocks into the rock and into whatever deep worms they cross. Cut after the
+village flattening, in `cellCompute`, so every reader of a column sees it. Walked in the
+harness: feet at 6, 0, −6, −12 … a course a stride down the ramp.
+
+**What it costs, and how that is kept off the frame.** A sealed cave is every face of it
+whether anyone can see in or not, so the faces of any hollow wholly under the sea's level
+go into each chunk's DEEP meshes (`_chunkGD`), drawn only within two chunks of the eye,
+or five when the eye is itself down in the rock (`deepTick`). Everything open to the sky
+— a ravine, a pit, a cliff — stays in the ordinary meshes. The two dark sea sheets moved
+under the foundations (−296, −700) so they never cross a passage, and the ravines join
+the dug pits in the sea's mask.
+
+**The villager, drawn as finely as he can be seen** (`figureLod`). Within 140 units the
+whole rig; out to 380 ONE welded mesh — the same boxes in their made pose, each box's
+colour in its vertices (a textured robe by its texture's mean), carried by the same group
+so it walks and turns where the rig would; beyond, nothing. The beasts of the pen take the
+same. In a village, 62 figures: 3 as rigs, 36 as single meshes, 23 not drawn; the frame
+went **1,368 → 870 draw calls**.
+
+## 4de. Round 106 — villages built the way their lands built, and the flicker in the street ✅
+
+**The houses of each land** (`houseStyleFor`, `emitHouse`). Every village house was the
+same timber cottage under a pitched tile roof, from Yapho to Kenya. A house now takes the
+building of the country it stands in, read off the country's centre:
+
+- **levant** — the Levant, Egypt, Mesopotamia, Arabia: the pillared house of Iron-Age
+  Yasharal and the workmen's houses of Deir el-Medina. Walls of mudbrick (`blocks/mudbrick.js`)
+  or whitewashed plaster (`blocks/plaster.js`; four in five in Egypt, one in three elsewhere),
+  on a course of fieldstone. Earth floor. A FLAT roof of beaten earth on log beams whose ends
+  show through the wall, a parapet round it (Dabarim 22:8), an outside stair up to it, and a
+  clay oven in the yard. Openings are small and unglazed.
+- **med** — Greece, Italy, Anatolia, the Maghreb: plastered walls on a stone footing,
+  roofed in fired tile.
+- **north** — northern Europe: plastered wattle on corner posts, under steep thatch
+  (`blocks/thatch.js`).
+- **round** — Africa south of the Sahara: round-cornered mud walls under a peaked
+  thatch cone.
+- **east** — the far East: timber frame, tile roof, and the only glazed windows.
+
+Research drawn on: the four-room house and the architecture of ancient Israel
+(en.wikipedia.org/wiki/Four-room_house, …/Architecture_of_ancient_Israel), Deir el-Medina
+(…/Deir_el-Medina), the Greek house (ecampusontario.pressbooks.pub/housesandhouseholdsancientgreece),
+the roundhouse and the African round hut (…/Roundhouse_(dwelling), …/African_round_hut).
+Verified by eye in Yapho, Egypt, Greece, Kenya and Britain. The three new blocks are
+appended to the manifest after `diamond.js`, so no block's number moves.
+
+**The flicker in the street.** A player's screenshot from Yapho showed a patch of ground
+banded pale and tan, shifting as the eye moved. A scan of every coplanar face near the
+player (triangles rasterised onto their planes, overlaps listed by mesh and material)
+found it on `main`: **grass tops and path/sand tops laid at exactly y = 6.00 over 288
+samples** in the untouched village. The cause was `editedCell`'s
+`h = Math.max(1, top)`. Where a stamped or placed block filled the LOWEST ground course,
+the column was held at one course high anyway, so its grass top was drawn in the same
+plane as the block's own top, and the two z-fought. Round 104 had already changed that
+line (`top > -DEEP`) for the pits. The same scan on this branch finds no
+ground-level overlap. The only coplanar faces left are one wall face at each of two
+terrain steps, where a stone boulder stands flush against the step; they are sealed
+between the two and cannot be seen.
+
+**A scroll taken down into the deep, and put back.** Test 28 failed on Round 105:
+`scrollInCave` picks the darkest hollow near a cave scroll's country. Once the deep
+worms existed, that meant a tunnel at course −37 for Adam and Eve's scroll, 122 blocks
+of passage from a ravine. It could be reached, but the search budget ran out first, and
+it was no longer the hill's cave the scroll names. The deep runs (wholly under the
+sea's level) are now the miner's and not the scroll's. The scroll lies in a hill cave
+again, eight steps from its mouth.
+
+**A ravine under a waterfall.** Test 39 then failed on Krimml: 50 columns of falling
+water off three heads, where a fall opens seven or eight a head. A ravine had been cut
+across the plunge pool, and the water ran into it and poured down its length. Ravines
+now keep clear of every fall (its half-width and run, plus forty blocks) and every
+landmark (420 units, 1,100 for a range) as they already kept clear of towns
+(`ravineKeepOff`). Krimml is back to its old figures: 815 cells, 35 columns.
+
+**What the caves under the plains cost a build, and how much of it is paid back.**
+Test 12 held the plains build over its ceiling (4.9 ms a chunk against 3.3, after
+allowing for the box). A CPU profile of the build showed where it went:
+
+- **The light of the deep.** Every deep run asked its 24 neighbour heights for daylight.
+  Below the sea's level only a ravine floor can be lower than the run: land never
+  stands under one course, and the sea reads as nought. So `caveLightAt` now answers
+  black at once unless the deeper stretch of a ravine cut lies within the light's reach
+  (`ravineOpenNear`). The answers are also kept for the length of a build (`_litMemo`),
+  and a wall now asks its neighbour's light once per face, not once per band.
+- **Built only where it can be shown.** Deep faces were hidden beyond two chunks, but
+  still walked, lit and meshed in all ~540 chunks of the view. A chunk now builds its
+  deep only within one chunk of the show-radius (`_deepOn`, `deepWanted`) and records
+  it. `deepTick` re-queues any chunk that comes into reach without it. Checked by walking
+  into a ravine: 22 deep meshes stand in the 25 chunks about the player, all shown.
+- **The ravines.** Each ravine carries its bounding box, so the column test is four
+  comparisons, and the last tile asked is remembered.
+- **Buried placed blocks** (a bole's root, a footing course) no longer ask their cave
+  light unless one of their faces is actually drawn.
+
+Profiled over the same 1,630 plains chunks: `emitColumn` 3.8 s → 2.9 s, cave light
+1.42 s → 0.65 s (what is left is the hills' own caves, which predate Round 105),
+`ravineCut` 0.53 s → 0.14 s.
 
 ## 5. Further recommendations (future work)
 

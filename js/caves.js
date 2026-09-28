@@ -290,7 +290,57 @@ function boresNear(x,z){
 }
 
 const _iv=[];                 /* scratch: the intervals of this column, reused */
+/* ================= THE DEEP WORMS — the caves under the plains =================
+   Everything above lives in the HILLS: a passage needs rock over its head,
+   and the ground used to end at the level of the sea, so a plain had nothing
+   under it to hollow. It has now — forty-eight courses of it — and the deep
+   worms run through all of it, under every land, well below the level of the
+   sea: long winding passages at their own slowly wandering depth, and where
+   the two systems cross, a chamber. They never come nearer the surface than
+   DEEP_TOP, so the ground above them, and the sea's level, are untouched;
+   the way down to them is the engine's to cut (the ravines). They are sealed
+   rooms to anyone who has not gone down, and the engine does not draw them
+   for anyone who is not near (see its `deep` meshes). */
+let DEEP_FLOOR=-46, DEEP_TOP=-3;
+const DW_FREQ = 0.00190;      /* the run of the deep worms: denser than the hills' */
+const DW_SCALE= 1/DW_FREQ;
+const DCY_LO  = -40, DCY_HI = -10;   /* the band they wander in */
+const DCY_FREQ= 0.00061;
+const DR_H    = 3.0, DR_V = 3.4;     /* a passage a man walks upright in */
+const DEEP_COUNTRY_TH = 0.56;        /* how much of the earth has them at all — about a third of it */
+const DWORMS=[ {ox:-17.9, oz: 44.3, dy: 0.0},
+               {ox: 63.1, oz:-29.7, dy:-7.0} ];
+function deepRuns(x,z,h,out){
+  if(fbm(x*0.00033-71.3, z*0.00033+23.9)<DEEP_COUNTRY_TH) return;
+  let cy=null;
+  for(let k=0;k<DWORMS.length;k++){ const W=DWORMS[k];
+    const dN=veinDist(x*DW_FREQ+W.ox, z*DW_FREQ+W.oz);
+    if(dN>1e8) continue;
+    const dB=dN*DW_SCALE/U_PER_B; if(dB>=DR_H) continue;
+    const vr=DR_V*Math.sqrt(1-(dB/DR_H)*(dB/DR_H)); if(vr<1.2) continue;
+    if(cy===null) cy=DCY_LO+(DCY_HI-DCY_LO)*fbm(x*DCY_FREQ-5.3, z*DCY_FREQ+31.7);
+    const c=cy+W.dy;
+    let lo=Math.max(DEEP_FLOOR,Math.floor(c-vr)), hi=Math.min(DEEP_TOP,h-ROOF,Math.ceil(c+vr));
+    if(hi-lo>=2) out.push(lo,hi); }
+}
+/* the merge of two sorted run lists (the hills' and the deep's) */
+function mergeRuns(a){
+  if(a.length<=2) return a.length?Int16Array.from(a):null;
+  const p=[]; for(let i=0;i<a.length;i+=2) p.push([a[i],a[i+1]]);
+  p.sort((u,v)=>u[0]-v[0]);
+  const out=[]; let lo=p[0][0], hi=p[0][1];
+  for(let i=1;i<p.length;i++){ if(p[i][0]<=hi+1){ if(p[i][1]>hi) hi=p[i][1]; } else { out.push(lo,hi); lo=p[i][0]; hi=p[i][1]; } }
+  out.push(lo,hi); return Int16Array.from(out);
+}
+const _dv=[];
 function spansAt(x,z,h){
+  const hills=spansHills(x,z,h);
+  _dv.length=0; deepRuns(x,z,h,_dv);
+  if(!_dv.length) return hills;
+  if(hills) for(let i=0;i<hills.length;i++) _dv.push(hills[i]);
+  return mergeRuns(_dv);
+}
+function spansHills(x,z,h){
   /* a SEA CAVE is low by nature and must be let past the gate that keeps
      tunnels out of low country — but only in the narrow band of heights a
      sea cliff actually stands at */
@@ -405,7 +455,10 @@ window.CAVES={
         const k=i+','+j; let a=BUCKETS.get(k); if(!a){ a=[]; BUCKETS.set(k,a); } a.push(s); }
     } },
   seeds:()=>SEEDS,
-  regionAt, spansAt,
+  regionAt, spansAt, mergeRuns,
+  /* the engine says where its floor and its sea level are, so the deep worms
+     keep off both */
+  deep(o){ if(o.floor!==undefined) DEEP_FLOOR=o.floor; if(o.top!==undefined) DEEP_TOP=o.top; },
   beds(on){ BEDS=!!on; },
   /* the engine hands in the bores once, at boot, after the heights are ready */
   arches(list){

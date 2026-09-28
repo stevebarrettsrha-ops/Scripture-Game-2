@@ -161,6 +161,32 @@ TEX.stone      = mkTex(g=>{ speckle(g,PB.stone.b,14,PB.stone.a,0.28);
   for(let k=0;k<3;k++){ const y0=1+hash2(k,4.7)*13;
     for(let x=0;x<16;x+=FG){ const y=y0+Math.sin(x*0.7+k)*0.6;
       if(hash2(x*2.3+k,y)>0.42){ const c=jit(PB.stone.vein,10,x+k); Pf(g,x,Math.round(y/FG)*FG,rgb(c[0],c[1],c[2])); } } } },16,16,RIM);
+/* ---- THE WALLS AND ROOFS OF THE ANCIENT WORLD ----
+   Sun-dried brick laid in courses, each brick a little different, the mortar
+   dark between them and the chopped straw showing in the face; the lime wash
+   that went over it in Egypt and on the better houses everywhere; and thatch,
+   laid in overlapping courses of straw. */
+TEX.mudbrick = mkTex(g=>{
+  for(let row=0;row<4;row++){ const off=(row%2)*4;
+    for(let k=-1;k<3;k++){ const c=jit(PB.mudbrick.b,22,row*7+k*3+11);
+      g.fillStyle=rgb(c[0],c[1],c[2]); g.fillRect(k*8+off,row*4,8,4); } }
+  for(let k=0;k<70;k++){ g.fillStyle=C(PB.mudbrick.a);
+    g.fillRect(Math.floor(hash2(k,1.3)*16/FG)*FG,Math.floor(hash2(k,5.1)*16/FG)*FG,FG,FG); }
+  for(let k=0;k<16;k++){ g.fillStyle=C(PB.mudbrick.straw);
+    g.fillRect(Math.floor(hash2(k,8.3)*14/FG)*FG,Math.floor(hash2(k,2.9)*16/FG)*FG,FG*(2+Math.floor(hash2(k,4.4)*3)),FG); }
+  g.fillStyle=C(PB.mudbrick.mortar);
+  for(let row=0;row<4;row++){ g.fillRect(0,row*4,16,FG); const off=(row%2)*4;
+    for(let k=0;k<3;k++) g.fillRect((k*8+off)%16,row*4,FG,4); } },16,16,RIM);
+TEX.plaster = mkTex(g=>{ speckle(g,PB.plaster.b,10,PB.plaster.a,0.22);
+  g.fillStyle=C(PB.plaster.crack);
+  for(let k=0;k<3;k++){ let x=hash2(k,6.1)*16, y=hash2(k,2.2)*16;
+    for(let s=0;s<6;s++){ g.fillRect(Math.floor(x/FG)*FG,Math.floor(y/FG)*FG,FG,FG);
+      x+=(hash2(k*9+s,1.7)-0.5)*2.4; y+=FG*1.6; } } });
+TEX.thatch = mkTex(g=>{
+  for(let band=0;band<4;band++){
+    for(let x=0;x<16;x+=FG){ const c=jit(hash2(x*1.7,band)>0.55?PB.thatch.c:PB.thatch.b,26,x*5+band*31);
+      g.fillStyle=rgb(c[0],c[1],c[2]); g.fillRect(x,band*4,FG,4); }
+    g.fillStyle=C(PB.thatch.a); g.fillRect(0,band*4+4-FG,16,FG); } });
 /* the deep rock: the same bedding as the limestone above it, darker and
    finer — so a shaft reads as going DOWN into something older */
 TEX.deepStone  = mkTex(g=>{ speckle(g,PB.deepStone.b,12,PB.deepStone.a,0.34);
@@ -611,6 +637,7 @@ blockMat('copperOre',TEX.copperOre); blockMat('ironOre',TEX.ironOre);
 blockMat('alabaster',TEX.alabaster); blockMat('flint',TEX.flint);
 blockMat('sand',TEX.sand); blockMat('stone',TEX.stone); blockMat('cobble',TEX.cobble);
 blockMat('deepStone',TEX.deepStone); blockMat('bedrock',TEX.bedrock);
+blockMat('mudbrick',TEX.mudbrick); blockMat('plaster',TEX.plaster); blockMat('thatch',TEX.thatch);
 blockMat('snow',TEX.snow); blockMat('ice',TEX.ice);
 iceMat('iceTop',TEX.snow); iceMat('iceSide',TEX.ice);   /* the wall of ice and the floes */
 blockMat('planks',TEX.planks); blockMat('roof',TEX.roof);
@@ -1649,6 +1676,7 @@ if(window.CAVES){
   for(const g of RANGES) seeds.push({x:g.x,z:g.z,r:Math.max(3200,g.R*3.6)});
   for(const m of MOUNTS) seeds.push({x:m.x,z:m.z,r:Math.max(2200,(m.R||900)*2.4)});
   CAVES.seed(seeds);
+  if(CAVES.deep) CAVES.deep({floor:-DEEP+2, top:-3});
 }
 const FALLS=[];
 for(const L of LANDMARKS){ if(L.kind!=='falls') continue;
@@ -2199,6 +2227,133 @@ function clipSpans(sp,h){
   }
   return out.length?Int16Array.from(out):null;
 }
+/* ================= THE WAYS DOWN — THE RAVINES =================
+   The deep worms (js/caves.js) run under every land, sealed in the rock under
+   the level of the sea. A man finds them the way he does in the other game:
+   a RAVINE — a narrow cut in the plain, three blocks across, going down as a
+   ramp a block a stride through the earth, the soil, the stone and the dark
+   stone, past the ore in its walls, to a round chamber at its foot some
+   twenty to thirty courses under the sea. From the chamber two GALLERIES run
+   off into the rock at that depth, and wherever they cross a deep worm the
+   one opens into the other.
+
+   One may lie in any tile of the earth's grid (RAV_CELL), placed by the tile's
+   own hash, and only where the ground is low, open and dry at both ends and
+   the middle, and far from any village. The land is asked once for each
+   ravine and the answer kept. It is cut in `cellCompute`, AFTER the village
+   flattening, so the cell cache and every reader of a column see it. */
+const RAV_CELL=56*B;
+const _ravCache=new Map(), _ravNear=new Map();
+function ravineOf(gi,gj){
+  const k=gi+','+gj; if(_ravCache.has(k)) return _ravCache.get(k);
+  if(!SITES.length) return null;            /* not known, and not kept, until the villages are */
+  let R=null;
+  if(hash2(gi*1.31+7.7,gj*2.17-3.1)<0.42){
+    const x0=(gi+0.15+0.7*hash2(gi*3.1+1.1,gj*1.7))*RAV_CELL, z0=(gj+0.15+0.7*hash2(gi*0.7,gj*2.9+4.4))*RAV_CELL;
+    const th=hash2(gi*5.3,gj*0.3+9.1)*Math.PI*2, dx=Math.sin(th), dz=Math.cos(th);
+    const D=18+Math.floor(hash2(gi*2.2+3.3,gj*4.1)*14), L=D+5;
+    const ok=(x,z)=>{ const c=cellRaw(Math.floor(x/B),Math.floor(z/B));
+      return (c&&c.h>=1&&c.h<=14&&c.kind!=='wall'&&c.kind!=='floe'&&c.kind!=='rock')?c:null; };
+    const c0=ok(x0,z0), cm=ok(x0+dx*L*B*0.5,z0+dz*L*B*0.5), c1=ok(x0+dx*L*B,z0+dz*L*B);
+    let far=true;
+    if(c0&&cm&&c1) for(const st of SITES){ if(st&&Math.hypot(st.x-x0,st.z-z0)<520){ far=false; break; } }
+    /* ---- AND NOT UNDER A FALL, NOR THROUGH A WORK OF THE ANCIENTS ----
+       Test 39 found one cut straight across the plunge pool of Krimml: the
+       fall's water ran into it and came down its whole length as a curtain.
+       A ravine keeps off the falls and the landmarks as it keeps off towns. */
+    if(c0&&cm&&c1&&far) for(const p of ravineKeepOff()){
+      const ax=p[0]-x0, az=p[1]-z0, t=Math.max(0,Math.min(L*B,ax*dx+az*dz));
+      if(Math.hypot(ax-dx*t,az-dz*t)<p[2]){ far=false; break; } }
+    if(c0&&cm&&c1&&far){
+      const x1=x0+dx*L*B, z1=z0+dz*L*B, gal=[];
+      gal.push({x:x1,z:z1,dx,dz,len:40+Math.floor(hash2(gi*7.7,gj*3.3)*50)});
+      const sg=hash2(gi*1.9,gj*8.1)<0.5?1:-1, th2=th+sg*(0.9+hash2(gi*4.4,gj*6.6)*0.8);
+      gal.push({x:x1,z:z1,dx:Math.sin(th2),dz:Math.cos(th2),len:25+Math.floor(hash2(gi*9.2,gj*1.4)*40)});
+      R={x0,z0,dx,dz,L,D,hs:c0.h,x1,z1,gal};
+      /* ---- AND THE GROUND IT TAKES, AS A BOX ----
+         Every column of the earth asks every ravine near it whether it is
+         cut; nearly all of them are nowhere near one. The box of the open
+         cut and its chamber (b…) and of everything including the galleries
+         (a…) answers that in four comparisons. */
+      const pc=B*3.6;
+      R.bx0=Math.min(x0,x1)-pc; R.bx1=Math.max(x0,x1)+pc; R.bz0=Math.min(z0,z1)-pc; R.bz1=Math.max(z0,z1)+pc;
+      R.ax0=R.bx0; R.ax1=R.bx1; R.az0=R.bz0; R.az1=R.bz1;
+      for(const Gl of gal){ const ex=Gl.x+Gl.dx*Gl.len*B, ez=Gl.z+Gl.dz*Gl.len*B, pg=B*2.4;
+        R.ax0=Math.min(R.ax0,Gl.x-pg,ex-pg); R.ax1=Math.max(R.ax1,Gl.x+pg,ex+pg);
+        R.az0=Math.min(R.az0,Gl.z-pg,ez-pg); R.az1=Math.max(R.az1,Gl.z+pg,ez+pg); }
+    }
+  }
+  _ravCache.set(k,R); return R;
+}
+/* the places a ravine must stand clear of: [x, z, how far] */
+let _ravKeep=null;
+function ravineKeepOff(){
+  if(_ravKeep) return _ravKeep;
+  const a=[];
+  if(window.WATERFALL&&WATERFALL.list) for(const f of WATERFALL.list()||[])
+    a.push([f.x,f.z,((f.half||0)+(f.run||0)+40)*B]);
+  for(const L of LANDMARKS){ const w=llToWorld(L.lat,L.lon); a.push([w[0],w[1],L.kind==='range'?1100:420]); }
+  if(window.WATERFALL) _ravKeep=a;     /* not kept until the falls are known */
+  return a;
+}
+let _rnI=1e9,_rnJ=1e9,_rnA=null;     /* the last tile asked: a chunk asks the same one 256 times */
+function ravinesNear(x,z){
+  if(!SITES.length) return [];
+  const gi=Math.floor(x/RAV_CELL), gj=Math.floor(z/RAV_CELL);
+  if(gi===_rnI&&gj===_rnJ&&_rnA) return _rnA;
+  const k=gi+','+gj;
+  let a=_ravNear.get(k); if(a){ _rnI=gi; _rnJ=gj; _rnA=a; return a; }
+  a=[]; for(let i=-3;i<=3;i++) for(let j=-3;j<=3;j++){ const r=ravineOf(gi+i,gj+j); if(r) a.push(r); }
+  if(_ravNear.size>20000) _ravNear.clear();
+  _ravNear.set(k,a); _rnI=gi; _rnJ=gj; _rnA=a; return a;
+}
+/* whether the floor of an open ravine cut lies LOWER than height y (in
+   blocks) anywhere within the reach of the cave light — `caveLightAt` looks
+   eighteen blocks out on the diagonals, so twenty-six in a straight line.
+   The cut falls from its lip to its foot, so only the stretch of it already
+   deeper than y is asked about, and the chamber at its foot. */
+function ravineOpenNear(ix,iz,y){
+  const x=(ix+.5)*B, z=(iz+.5)*B, m=B*20, reach=B*27;
+  for(const R of ravinesNear(x,z)){
+    if(x<R.bx0-m||x>R.bx1+m||z<R.bz0-m||z>R.bz1+m) continue;
+    if(Math.hypot(x-R.x1,z-R.z1)<reach+B*3.6) return true;          /* the chamber */
+    const t0=Math.max(0,Math.min(1,(R.hs-y)/(R.hs+R.D)));
+    const rx=x-R.x0, rz=z-R.z0, al=(rx*R.dx+rz*R.dz)/(R.L*B);
+    const t=Math.max(t0,Math.min(1,al)), px=R.x0+R.dx*R.L*B*t, pz=R.z0+R.dz*R.L*B*t;
+    if(Math.hypot(x-px,z-pz)<reach+B*1.6) return true; }
+  return false;
+}
+/* the floor a ravine cuts this column down to (Infinity where none does),
+   and the gallery runs it drives through it */
+const _galR=[];
+function ravineCut(c,x,z){
+  const list=ravinesNear(x,z); if(!list.length) return;
+  let floor=Infinity; _galR.length=0;
+  for(const R of list){
+    if(x<R.ax0||x>R.ax1||z<R.az0||z>R.az1) continue;
+    const rx=x-R.x0, rz=z-R.z0, al=rx*R.dx+rz*R.dz, pe=-rx*R.dz+rz*R.dx;
+    if(al>=-B*0.5&&al<=R.L*B+B*0.5&&Math.abs(pe)<=B*1.6){
+      const t=Math.max(0,Math.min(1,al/(R.L*B)));
+      floor=Math.min(floor,Math.round(R.hs+(-R.D-R.hs)*t)); }
+    else if(Math.hypot(x-R.x1,z-R.z1)<B*3.6) floor=Math.min(floor,-R.D);   /* the chamber at its foot */
+    for(const Gl of R.gal){
+      const gx=x-Gl.x, gz=z-Gl.z, ga=gx*Gl.dx+gz*Gl.dz; if(ga<0||ga>Gl.len*B) continue;
+      const pb=(-gx*Gl.dz+gz*Gl.dx)/B, RG=2.3; if(Math.abs(pb)>=RG) continue;
+      const vr=4.2*Math.sqrt(1-(pb/RG)*(pb/RG)); if(vr<1.6) continue;
+      _galR.push(-R.D,-R.D+Math.ceil(vr)); }
+  }
+  if(floor<c.h){
+    c.h=Math.max(-DEEP+2,floor); c.kind='rock'; c.tree=0;
+    if(c.spans) c.spans=clipSpans(c.spans,c.h);
+    c.ravine=true;
+  } else if(_galR.length&&window.CAVES&&CAVES.mergeRuns){
+    const all=[], top=c.h-3;
+    for(let i=0;i<_galR.length;i+=2){ const lo=Math.max(-DEEP+2,_galR[i]), hi=Math.min(top,_galR[i+1]);
+      if(hi-lo>=2) all.push(lo,hi); }
+    if(all.length){ if(c.spans) for(let i=0;i<c.spans.length;i++) all.push(c.spans[i]);
+      c.spans=CAVES.mergeRuns(all); }
+  }
+}
 function cellCompute(ix,iz){
   const c=cellRaw(ix,iz); if(!c) return null;
   if(SITES.length&&c.kind!=='wall'&&c.kind!=='floe'){
@@ -2231,6 +2386,7 @@ function cellCompute(ix,iz){
         break; }
     }
   }
+  if(c.kind!=='wall'&&c.kind!=='floe') ravineCut(c,(ix+.5)*B,(iz+.5)*B);
   return c;
 }
 function topY(ix,iz){ const c=cell(ix,iz); return c? c.h*B : WATER_Y; }
@@ -2455,6 +2611,14 @@ const _L8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
    compass at arm's length, is bright; a passage with one distant chink is
    very nearly black, which is the truth of it. */
 function caveLightAt(ix,iz,y){
+  /* ---- UNDER THE SEA'S LEVEL, ONLY A RAVINE LETS THE DAY IN ----
+     A face is lit by any column near it whose ground is LOWER than the face.
+     Every land column stands at one course or more and the sea reads as
+     nought, so below nought the only ground lower still is the floor of a
+     ravine — and the deep worms lie there, under a third of the earth, each
+     run of them paying twenty-four reads to learn it is black. Where no
+     ravine lies within the light's reach the answer is known without them. */
+  if(y<0&&!ravineOpenNear(ix,iz,y)) return 0;
   let f=0;
   for(let k=0;k<3;k++){ const r=_LR[k]; let open=0;
     for(let q=0;q<8;q++) if(nH(ix+_L8[q][0]*r, iz+_L8[q][1]*r) <= y) open++;
@@ -2467,11 +2631,19 @@ function caveLightAt(ix,iz,y){
    reads for every hollowed column in the chunk; asked once per run it is
    one, and the answer is the same. */
 const _lit=[];
+/* ---- AND ONCE FOR THE WHOLE CHUNK ----
+   A run is asked for by its own column and again by each of its four
+   neighbours as they draw the walls they share with it: five times the same
+   twenty-four reads. The answers are kept for the length of one build. */
+const _litMemo=new Map();
 function litRuns(ix,iz,sp,out){
   out.length=0;
   for(let i=0;i<sp.length;i+=2){
-    const f=caveLightAt(ix,iz,(sp[i]+sp[i+1])*0.5);
-    out.push(CAVE_DARK+(1-CAVE_DARK)*f);
+    if(sp[i+1]<=0&&!_deepOn){ out.push(CAVE_DARK); continue; }   /* its faces are not being built */
+    const ym=(sp[i]+sp[i+1])*0.5, k=((ix+32768)*65536+(iz+32768))*512+(ym*2+256);
+    let v=_litMemo.get(k);
+    if(v===undefined){ v=CAVE_DARK+(1-CAVE_DARK)*caveLightAt(ix,iz,ym); _litMemo.set(k,v); }
+    out.push(v);
   }
   return out;
 }
@@ -2709,17 +2881,24 @@ function emitPlaced(G,ix,iz,em,surfaceH){
       continue;
     }
     /* under the ground it takes the cave's darkness; above it, the day */
-    const lit=(y<surfaceH-1)?(CAVE_DARK+(1-CAVE_DARK)*caveLightAt(ix,iz,y+0.5)):1;
-    if(!blockSolidAt(ix,y+1,iz)) placedFace('T', (y+1)*B, b.mTop,    1.0*lit,  ix,iz, b.tint);
-    if(!blockSolidAt(ix,y-1,iz)) placedFace('B', y*B,     b.mBottom, 0.5*lit,  ix,iz, b.tint);
-    if(!blockSolidAt(ix+1,y,iz)) placedFace('PX',(ix+1)*B,b.mSide,   0.62*lit, iz,y, b.tint);
-    if(!blockSolidAt(ix-1,y,iz)) placedFace('NX',ix*B,    b.mSide,   0.62*lit, iz,y, b.tint);
-    if(!blockSolidAt(ix,y,iz+1)) placedFace('PZ',(iz+1)*B,b.mSide,   0.8*lit,  ix,y, b.tint);
-    if(!blockSolidAt(ix,y,iz-1)) placedFace('NZ',iz*B,    b.mSide,   0.8*lit,  ix,y, b.tint);
+    /* asked only if a face is drawn at all: a bole's root and a footing
+       course sit buried on every side, and there are thousands of them */
+    let lit=-1;
+    const L=()=>lit>=0?lit:(lit=(y<surfaceH-1)?(CAVE_DARK+(1-CAVE_DARK)*caveLightAt(ix,iz,y+0.5)):1);
+    if(!blockSolidAt(ix,y+1,iz)) placedFace('T', (y+1)*B, b.mTop,    1.0*L(),  ix,iz, b.tint);
+    if(!blockSolidAt(ix,y-1,iz)) placedFace('B', y*B,     b.mBottom, 0.5*L(),  ix,iz, b.tint);
+    if(!blockSolidAt(ix+1,y,iz)) placedFace('PX',(ix+1)*B,b.mSide,   0.62*L(), iz,y, b.tint);
+    if(!blockSolidAt(ix-1,y,iz)) placedFace('NX',ix*B,    b.mSide,   0.62*L(), iz,y, b.tint);
+    if(!blockSolidAt(ix,y,iz+1)) placedFace('PZ',(iz+1)*B,b.mSide,   0.8*L(),  ix,y, b.tint);
+    if(!blockSolidAt(ix,y,iz-1)) placedFace('NZ',iz*B,    b.mSide,   0.8*L(),  ix,y, b.tint);
   }
 }
 function emitColumn(G,ix,iz,cc){
   const x0=ix*B, x1=x0+B, z0=iz*B, z1=z0+B, yT=cc.h*B;
+  /* the faces of a hollow wholly under the sea's level go to the chunk's DEEP
+     bucket, which is drawn only near the eye (deepTick); everything open to
+     the sky — a cliff, a ravine, a pit — stays in the ordinary one */
+  const GD=_chunkGD||G; let PG=G;
   faceTop(G,topMatFor(cc.kind),x0,z0,x1,z1,yT,1.0,1,aoTop(ix,iz,cc.h));
   const [sTop,sLow]=sideMatsFor(cc.kind);
   /* ---- WHETHER ANYTHING LIES UNDER THIS COUNTRY AT ALL ----
@@ -2745,9 +2924,11 @@ function emitColumn(G,ix,iz,cc){
       /* THE FLOOR IS THE TOP OF THE BLOCK BENEATH IT and the roof the underside
          of the one above, so where either of those is a seam it is the seam a
          man sees when he walks in with a light. */
+      if(hi<=0&&!_deepOn) continue;
       const nF=seamAt(lo-1), nR=seamAt(hi);
-      faceTop(G,nF?blockOf(nF).mTop:strataMat(cc.kind,cc.h,lo-1),x0,z0,x1,z1,lo*B,1.0*f);      /* the floor of the passage */
-      faceBottom(G,nR?blockOf(nR).mBottom:strataMat(cc.kind,cc.h,hi),x0,z0,x1,z1,hi*B,0.5*f); /* and the roof over it */
+      const GF=hi<=0?GD:G;
+      faceTop(GF,nF?blockOf(nF).mTop:strataMat(cc.kind,cc.h,lo-1),x0,z0,x1,z1,lo*B,1.0*f);      /* the floor of the passage */
+      faceBottom(GF,nR?blockOf(nR).mBottom:strataMat(cc.kind,cc.h,hi),x0,z0,x1,z1,hi*B,0.5*f); /* and the roof over it */
     }
   }
   for(let d=0;d<4;d++){
@@ -2780,13 +2961,13 @@ function emitColumn(G,ix,iz,cc){
       const fa=fall(ya), fb=fall(yb);
       /* bottom-left, bottom-right, top-right, top-left, as each face winds */
       if(d===0){ _aoS[0]=aFar*fa; _aoS[1]=aNear*fa; _aoS[2]=aNear*fb; _aoS[3]=aFar*fb;
-        facePX(G,mat,x1,z0,z1,ya,yb,sh,_aoS); }
+        facePX(PG,mat,x1,z0,z1,ya,yb,sh,_aoS); }
       else if(d===1){ _aoS[0]=aNear*fa; _aoS[1]=aFar*fa; _aoS[2]=aFar*fb; _aoS[3]=aNear*fb;
-        faceNX(G,mat,x0,z0,z1,ya,yb,sh,_aoS); }
+        faceNX(PG,mat,x0,z0,z1,ya,yb,sh,_aoS); }
       else if(d===2){ _aoS[0]=aNear*fa; _aoS[1]=aFar*fa; _aoS[2]=aFar*fb; _aoS[3]=aNear*fb;
-        facePZ(G,mat,z1,x0,x1,ya,yb,sh,_aoS); }
+        facePZ(PG,mat,z1,x0,x1,ya,yb,sh,_aoS); }
       else { _aoS[0]=aFar*fa; _aoS[1]=aNear*fa; _aoS[2]=aNear*fb; _aoS[3]=aFar*fb;
-        faceNZ(G,mat,z0,x0,x1,ya,yb,sh,_aoS); } };
+        faceNZ(PG,mat,z0,x0,x1,ya,yb,sh,_aoS); } };
     /* ---- AND WHERE A SEAM CROSSES THE FACE ----
        A flank is one unbroken band of the country's own rock unless an ore
        lies in it. Where one does, the band is CUT at that course and the ore's
@@ -2861,6 +3042,7 @@ function emitColumn(G,ix,iz,cc){
     if(nc&&nc.spans&&nc.spans[0]<hfoot) hfoot=nc.spans[0];
     solidRuns(cc, hfoot, _myR);
     solidRuns(nc, hfoot, _nbR);
+    let nbLit=null;           /* the neighbour's passages' light, asked once for the face and not once a band */
     for(let m=0;m<_myR.length;m+=2){
       let y=_myR[m];
       const my1=_myR[m+1];
@@ -2873,13 +3055,18 @@ function emitColumn(G,ix,iz,cc){
              the earth and takes the cave's darkness; one with open sky over
              it is a cliff, and keeps the day */
           const enclosed=!!nc&&cut<=nc.h-0.001;
+          /* a sealed face of the deep, in a chunk too far off to show it: not
+             built at all (see `_deepOn`), and not lit either */
+          if(enclosed&&cut<=0&&!_deepOn){ if(nbv>y) y=nbv; if(y>=my1) break; continue; }
           const lit=!enclosed?1
             :(myLit?litAt(cc.spans,myLit,(y+cut)*0.5)
-                   :(nc.spans?litAt(nc.spans,litRuns(ix+nb[d][0],iz+nb[d][1],nc.spans,_lit),(y+cut)*0.5)
+                   :(nc.spans?litAt(nc.spans,nbLit||(nbLit=litRuns(ix+nb[d][0],iz+nb[d][1],nc.spans,[])),(y+cut)*0.5)
                              :CAVE_DARK));
+          PG=(enclosed&&cut<=0)?GD:G;
           if(my1>=cc.h&&cut>=cc.h-1&&sTop!==sLow){ const t0=Math.max(y,cc.h-1);
             putS(y*B,t0*B,sh*lit); putB(sTop,t0*B,cut*B,sh*lit); }
           else putS(y*B,cut*B,sh*lit);
+          PG=G;
         }
         if(nbv>y) y=nbv;
         if(y>=my1) break;
@@ -3015,7 +3202,8 @@ function initWater(){ if(waterReady||!window.WATER) return; waterReady=true;
 function landNameAt(x,z){ const ci=countryAtUV(x/R_WORLD,z/R_WORLD);
   return (ci&&COUNTRIES[ci-1])?COUNTRIES[ci-1].n:null; }
 let chunkLand=null;          /* whose country the chunk being built is in */
-let chunkEdits=null;         /* and what hands have done in it, by column */
+let chunkEdits=null;
+let _chunkGD=null;           /* the building chunk's DEEP bucket — see emitColumn */         /* and what hands have done in it, by column */
 let chunkRiver=false;        /* and whether running water crosses it at all */
 /* ---- IS THIS GROUND A RIVER BANK? ----
    A watercourse is stamped one or two map pixels wide — a hundred and
@@ -3916,7 +4104,8 @@ function mergeInto(G,BA,key){
   G[key]=A;
 }
 function buildChunk(cx,cz){
-  const G=newG(); _bcx=cx; _bcz=cz;
+  const G=newG(); _bcx=cx; _bcz=cz; _chunkGD=newG(); _litMemo.clear();
+  _deepOn=deepWanted(cx,cz);
   placedBegin();      /* the built faces are gathered for the whole chunk, then merged */
   /* ---- WHOSE COUNTRY THIS CHUNK IS IN ----
      Every tree and every bush asks what land it grows in, and the answer is
@@ -4072,6 +4261,15 @@ function buildChunk(cx,cz){
   placedFlush(G);     /* and go out as the fewest rectangles that cover them */
   mergeBlockArray(G); /* and every plain face of them as ONE draw */
   const meshes=[];
+  chunkMeshes(G,meshes,false);
+  /* and the inside of the deep caves, as meshes of their own (deepTick) */
+  const GD=_chunkGD; _chunkGD=null;
+  if(GD&&Object.keys(GD).length){ mergeBlockArray(GD); chunkMeshes(GD,meshes,true); }
+  chunks.set(cx+','+cz,{meshes,cx,cz,deep:_deepOn});
+  _deepOn=true;
+}
+/* the buckets of one chunk made into meshes under the chunk root */
+function chunkMeshes(G,meshes,deep){
   for(const mat in G){ const g=G[mat];
     const bg=new THREE.BufferGeometry();
     bg.setAttribute('position',new THREE.Float32BufferAttribute(g.p,3));
@@ -4080,8 +4278,8 @@ function buildChunk(cx,cz){
     if(g.l) bg.setAttribute('aLayer',new THREE.Float32BufferAttribute(g.l,1));
     bg.setIndex(ArrayBuffer.isView(g.i)?new THREE.BufferAttribute(g.i,1):g.i);
     const m=new THREE.Mesh(bg,mat==='__arr'?BARR.mat:mat==='__plant'?PARR.mat:MAT[mat]); m.frustumCulled=true;
+    if(deep){ m.userData.deep=true; m.visible=caveFacesShown(); }
     chunkRoot.add(m); meshes.push(m); }
-  chunks.set(cx+','+cz,{meshes,cx,cz});
 }
 /* ---- ONE BLOW, ONE CHUNK, ONE FRAME ----
    A block broken marks its chunk — and its neighbour, if it sat on the join
@@ -4811,9 +5009,13 @@ const dirL=new THREE.DirectionalLight(0xffffff,0.5); dirL.position.set(0.4,1,0.2
    for every pixel — the famous glitch in the sea seen from every summit.
    They are spread by hundreds of units now (the eye cannot tell a flat
    backdrop's depth anyway), and the fighting has nothing left to fight. */
+const SEA_DISC=296, SEA_DISC_DEEP=700;
 const seaDeep=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),
   new THREE.MeshBasicMaterial({color:0x0c2c48}));
-seaDeep.rotation.x=-Math.PI/2; seaDeep.position.y=WATER_Y-300; scene.add(seaDeep);
+/* (both now lie UNDER the foundations of the earth, course −48: at −60 the
+   dark sheet ran straight through the caves under the plains, a flat blue
+   floor across every passage ten courses down) */
+seaDeep.rotation.x=-Math.PI/2; seaDeep.position.y=WATER_Y-SEA_DISC_DEEP; scene.add(seaDeep);
 /* beyond the wall of ice — the OUTER DARKNESS, that no man may look past:
    a tall wall of night just outside the rim, so nothing of "the other side"
    is ever seen — only blackness set with stars, by day as by night. */
@@ -4876,7 +5078,7 @@ const farSeaMat=new THREE.MeshBasicMaterial({color:0x123353});
 const sea=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),farSeaMat);
 /* the dark bed of the sea sits WELL below the surface now, so the sandy
    shelf along every coast truly shows through the clear shallows above it */
-sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y-60; scene.add(sea);
+sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y-SEA_DISC; scene.add(sea);
 
 /* ================= THE WAVES OF THE DEEP =================
    A true trochoidal (Gerstner) sea: several travelling swells summed, so
@@ -5135,6 +5337,37 @@ farSeaMat.onBeforeCompile=sh=>{ sh.uniforms.uHole=HOLE_T; sh.uniforms.uHoleO=HOL
 farSeaMat.customProgramCacheKey=()=>'seaHole';
 let _holeAt=[1e9,1e9], _holeT=0;
 var _holeDirty=true;     /* var: editColumnsChanged may ask before this line has run */
+/* ---- THE INSIDE OF THE EARTH IS DRAWN ONLY FOR WHOEVER IS NEAR IT ----
+   The deep caves lie under every land, sealed in rock, and a sealed room
+   costs the card every face of it whether or not anyone can see in. So the
+   chunks keep those faces in meshes of their own, drawn only within two
+   chunks of the eye — enough for the mouth of a ravine and a pit — or within
+   five when the eye itself is down under the sea's level in the rock. */
+let _deepAt=[1e9,1e9,2], _deepT=0;
+function caveFacesShown(){ return Math.max(Math.abs(_bcx-_deepAt[0]),Math.abs(_bcz-_deepAt[1]))<=_deepAt[2]; }
+/* ---- AND THEY ARE BUILT ONLY FOR WHOEVER IS NEAR THEM, TOO ----
+   Hidden was not enough: every chunk in the view still walked, lit and
+   meshed its whole deep, some five hundred chunks of it for the two dozen
+   that can show it — the largest part of what the plains caves added to a
+   build. A chunk now builds its deep only within one chunk more than it may
+   be shown at (`_deepOn`), says so, and `deepTick` sends any chunk that
+   comes into reach without it back to be built again. */
+let _deepOn=true;
+function deepRange(){
+  const cp=camera.position;
+  return [Math.floor(cp.x/CHW),Math.floor(cp.z/CHW),(cp.y<-2&&landAtWorld(cp.x,cp.z))?5:2]; }
+function deepWanted(cx,cz){
+  let a; try{ a=deepRange(); }catch(e){ return true; }
+  return Math.max(Math.abs(cx-a[0]),Math.abs(cz-a[1]))<=a[2]+1; }
+function deepTick(dt){
+  _deepT-=dt; if(_deepT>0) return; _deepT=0.2;
+  const [ccx,ccz,R]=deepRange();
+  if(ccx===_deepAt[0]&&ccz===_deepAt[1]&&R===_deepAt[2]) return;
+  _deepAt=[ccx,ccz,R];
+  for(const [key,ch] of chunks){ const on=Math.max(Math.abs(ch.cx-ccx),Math.abs(ch.cz-ccz))<=R;
+    if(on&&!ch.deep) EDIT_DIRTY.add(key);
+    for(const m of ch.meshes) if(m.userData.deep) m.visible=on; }
+}
 function holeTick(dt,px,pz){
   _holeT-=dt; if(_holeT>0) return; _holeT=0.4;
   const cx=Math.floor(px/B), cz=Math.floor(pz/B);
@@ -5152,6 +5385,14 @@ function holeTick(dt,px,pz){
       if(ix<0||iz<0||ix>=HOLE_N||iz>=HOLE_N) continue;
       if(!cell(ccx*CH+lx,ccz*CH+lz)) continue;       /* the open sea is sea, dug or not */
       holeData[(iz*HOLE_N+ix)*4]=255; any++; } }
+  /* and the ravines, which cut the ground below the sea's level by nature */
+  for(const R of ravinesNear((cx+0.5)*B,(cz+0.5)*B)){
+    const pts=Math.ceil(R.L)+8;
+    for(let k=0;k<=pts;k++){ const t=Math.min(1,k/(R.L||1)), px2=R.x0+R.dx*R.L*B*t, pz2=R.z0+R.dz*R.L*B*t;
+      for(let a=-4;a<=4;a++) for(let b=-4;b<=4;b++){
+        const ix=Math.floor(px2/B)+a, iz=Math.floor(pz2/B)+b, mx=ix-ox, mz=iz-oz;
+        if(mx<0||mz<0||mx>=HOLE_N||mz>=HOLE_N) continue;
+        const c=cell(ix,iz); if(c&&c.ravine&&c.h<=0){ holeData[(mz*HOLE_N+mx)*4]=255; any++; } } } }
   HOLE_O.value.set(ox*B,oz*B); HOLE_ON.value=any?1:0; holeTex.needsUpdate=true;
 }
 const _sunW=new THREE.Vector3(), _moonW=new THREE.Vector3();
@@ -8780,6 +9021,10 @@ function scrollInCave(cx,cz,R){
       const lo=c.spans[i], hi=c.spans[i+1];
       if(hi-lo<2) continue;                       /* he must stand up in it */
       if(c.h-hi<4) continue;                      /* real rock over him, not a lip */
+      /* the deep worms under the sea's level (Round 105) are the miner's, got
+         at down a ravine a long way off — a scroll belongs in a hill's cave,
+         where a man walking the country can find the mouth */
+      if(hi<=0) continue;
       const lit=caveLightAt(ix,iz,lo+0.6);        /* what the wall itself will be */
       if(!best||lit<best.lit)
         best={lit, over:c.h-hi, x:(ix+0.5)*B, z:(iz+0.5)*B, refY:(lo+0.6)*B};
@@ -11272,7 +11517,52 @@ function inDoorway(nx,nz){
     if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue; if(at(vv.houses)) return true; }
   return at(standaloneHouses);
 }
+/* ================= HOW EACH LAND BUILT ITS HOUSES =================
+   Every village on the earth was the same timber cabin — plank walls, glass
+   panes, log corner posts, a stepped roof — which is a house of the northern
+   woods of the modern age, stood in the streets of Yapho. The ancient world
+   built from what it stood on, and it built differently in every climate:
+
+     levant   the East, Egypt, the Two Rivers, Persia, Arabia, the dry west of
+              the Americas: sun-dried MUD BRICK on a footing of stone, often
+              lime-washed; a FLAT ROOF of beams (their ends standing out of
+              the wall) under packed earth, for drying grain and sleeping in
+              the heat; a PARAPET round it, as the Torah commands (DAḆARIM
+              22:8); a stair up the outside; small high openings, no glass;
+              a clay oven by the door. The four-room house of Yasharal and
+              Yahudah, and the houses of Deir el-Medina, are this.
+     med      Greece, Italy, Iberia: a stone footing, lime-washed walls and a
+              low-pitched roof of fired clay tiles.
+     north    the cold lands: timber posts, wattle and daub washed pale, and a
+              STEEP roof of thatch to shed the rain.
+     round    Africa south of the desert and the wet tropics: the mud-walled
+              hut, its corners rounded off, under a peaked thatch.
+     east     the lands of the east: timber, with the tiled roof.
+   Which it is, is read off the country's own place on the earth. */
+function houseStyleFor(i){
+  const co=COUNTRIES[i]; if(!co||!co.c) return 'levant';
+  const u=co.c[0], v=co.c[1], lat=90-180*Math.hypot(u,v), lon=Math.atan2(u,v)*180/Math.PI;
+  if(lat>=58||lat<=-40) return 'north';
+  if(lon>=-20&&lon<=65){
+    if(lat>=46) return 'north';
+    if(lat>=35.5&&lon<30) return 'med';
+    if(lat>=11) return 'levant';
+    return 'round'; }
+  if(lon>65&&lon<=97){ if(lat>=40) return 'north'; if(lat>=8) return 'levant'; return 'round'; }
+  if(lon>97&&lon<=150){ if(lat>=22) return 'east'; return 'round'; }
+  if(lon<-30&&lon>=-130){ if(lat>=42) return 'north'; if(lat>=16||(lat<=-12&&lat>-40)) return 'levant'; return 'round'; }
+  return 'round';
+}
+/* and whether the brick is washed white — Egypt nearly always, elsewhere
+   the better houses */
+function houseWashed(i,seed){
+  const co=COUNTRIES[i]; if(!co||!co.c) return false;
+  const u=co.c[0], v=co.c[1], lat=90-180*Math.hypot(u,v), lon=Math.atan2(u,v)*180/Math.PI;
+  const egypt=lat<32&&lat>18&&lon>24&&lon<36;
+  return hash2(seed*1.37,seed*0.71)<(egypt?0.8:0.3);
+}
 function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
+  const style=(ex&&ex.style)||'levant';
   /* w,d in blocks (odd best); walls 3 blocks; local axis-aligned.
      Houses are HOLLOW: cobble footing, plank floor, four walls with a real
      doorway you can walk through, furniture within (bed, table, chair),
@@ -11282,9 +11572,16 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   /* four blocks to the eaves now, not three — a house a man does not have
      to stoop into reads as a HOUSE, not a hut */
   const wallH=4*B, T=B*0.5, gw=B*0.75;
-  /* cobble footing and the plank floor laid upon it */
+  /* the stone footing, and the floor laid upon it — beaten earth in the
+     brick lands and the huts, boards in the timber ones */
+  const earthFloor=(style==='levant'||style==='round');
+  const wallMat=style==='east'?'planks'
+    :style==='north'?'plaster'
+    :style==='med'?'plaster'
+    :(ex&&ex.washed!==undefined?ex.washed:houseWashed(ex&&ex.ci!==undefined?ex.ci:0,seed))?'plaster':'mudbrick';
+  const lintelMat=style==='east'?'planks':'logSide';
   emitBox(G, x0,y,z0, x1,y+B*0.55,z1, 'cobble','cobble',null);
-  emitTop(G,'planks', x0+T,z0+T, x1-T,z1-T, y+B*0.58, 0.95);
+  emitTop(G,earthFloor?'path':'planks', x0+T,z0+T, x1-T,z1-T, y+B*0.58, 0.95);
   /* four hollow walls; the doorway is left open on doorDir (0=+z 1=-z 2=+x 3=-x) */
   /* ---- THE LINTEL SITS ON A COURSE (Round 95) ----
      It was hung at 2.75 courses, and a stamp claims every cell a box
@@ -11306,41 +11603,121 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
      middle falls in, so exactly one cell — a doorway a man can pass — is
      ever left free between the segments. */
   const gx=(Math.floor(hx/B)+0.5)*B, gz=(Math.floor(hz/B)+0.5)*B;
-  const wall=(ax0,az0,ax1,az1)=>emitBox(G,ax0,wy0,az0,ax1,wy1,az1,'planks','planks',null);
+  const wall=(ax0,az0,ax1,az1)=>emitBox(G,ax0,wy0,az0,ax1,wy1,az1,wallMat,wallMat,null);
   if(doorDir===0){ wall(x0,z1-T,gx-gw,z1); wall(gx+gw,z1-T,x1,z1);
-    emitBox(G,gx-gw,ly,z1-T,gx+gw,wy1,z1,'planks','planks','planks'); }
+    emitBox(G,gx-gw,ly,z1-T,gx+gw,wy1,z1,lintelMat,lintelMat,lintelMat); }
   else wall(x0,z1-T,x1,z1);
   if(doorDir===1){ wall(x0,z0,gx-gw,z0+T); wall(gx+gw,z0,x1,z0+T);
-    emitBox(G,gx-gw,ly,z0,gx+gw,wy1,z0+T,'planks','planks','planks'); }
+    emitBox(G,gx-gw,ly,z0,gx+gw,wy1,z0+T,lintelMat,lintelMat,lintelMat); }
   else wall(x0,z0,x1,z0+T);
   if(doorDir===2){ wall(x1-T,z0,x1,gz-gw); wall(x1-T,gz+gw,x1,z1);
-    emitBox(G,x1-T,ly,gz-gw,x1,wy1,gz+gw,'planks','planks','planks'); }
+    emitBox(G,x1-T,ly,gz-gw,x1,wy1,gz+gw,lintelMat,lintelMat,lintelMat); }
   else wall(x1-T,z0,x1,z1);
   if(doorDir===3){ wall(x0,z0,x0+T,gz-gw); wall(x0,gz+gw,x0+T,z1);
-    emitBox(G,x0,ly,gz-gw,x0+T,wy1,gz+gw,'planks','planks','planks'); }
+    emitBox(G,x0,ly,gz-gw,x0+T,wy1,gz+gw,lintelMat,lintelMat,lintelMat); }
   else wall(x0,z0,x0+T,z1);
-  /* log corner posts */
-  for(const cx of [x0-0.12,x1-B*0.5+0.12]) for(const cz of [z0-0.12,z1-B*0.5+0.12])
-    emitBox(G, cx, y, cz, cx+B*0.5, y+wallH+0.15, cz+B*0.5, 'logSide','logTop',null);
-  /* windows: glass panes set into two walls (never the door wall) */
+  /* the lowest course of a washed or brick wall is the stone footing carried
+     up — ground-damp dissolves brick, so no one laid it on the earth */
+  if(style==='med'||style==='levant'){
+    const cm='cobble';
+    emitBox(G,x0,wy0,z0,x1,wy0+B*0.5,z0+T,cm,cm,null);
+    emitBox(G,x0,wy0,z1-T,x1,wy0+B*0.5,z1,cm,cm,null);
+    emitBox(G,x0,wy0,z0,x0+T,wy0+B*0.5,z1,cm,cm,null);
+    emitBox(G,x1-T,wy0,z0,x1,wy0+B*0.5,z1,cm,cm,null);
+    /* and the doorway is never walled across by it */
+    if(_stampOn){ const dcx=Math.floor((doorDir===2?x1-T/2:doorDir===3?x0+T/2:gx)/B),
+        dcz=Math.floor((doorDir===0?z1-T/2:doorDir===1?z0+T/2:gz)/B), dcy=Math.floor((wy0+B*0.1)/B);
+      stampBlock(dcx,dcy,dcz,0); } }
+  /* timber posts at the corners — the frame of a timber house only */
+  if(style==='north'||style==='east')
+    for(const cx of [x0-0.12,x1-B*0.5+0.12]) for(const cz of [z0-0.12,z1-B*0.5+0.12])
+      emitBox(G, cx, y, cz, cx+B*0.5, y+wallH+0.15, cz+B*0.5, 'logSide','logTop',null);
+  /* ---- THE OPENINGS ----
+     Glass is for the east's timber house alone. Everywhere else a window is
+     a small opening high in the wall, a single cell left open — light and
+     air in, the heat and the thief kept out. */
   const gy0=y+B*1.4, gy1=y+B*2.4;
-  if(rnd(1)>0.3&&doorDir!==1){ const gx=hx-B*0.55;
-    quad(G,'glass', gx,gy0,z0-0.12, gx+B*1.1,gy0,z0-0.12, gx+B*1.1,gy1,z0-0.12, gx,gy1,z0-0.12, 0,0,1,1, 0.95); }
-  if(rnd(2)>0.3&&doorDir!==2){ const gz=hz-B*0.55;
-    quad(G,'glass', x1+0.12,gy0,gz, x1+0.12,gy0,gz+B*1.1, x1+0.12,gy1,gz+B*1.1, x1+0.12,gy1,gz, 0,0,1,1, 0.95); }
+  if(style==='east'){
+    if(rnd(1)>0.3&&doorDir!==1){ const gx=hx-B*0.55;
+      quad(G,'glass', gx,gy0,z0-0.12, gx+B*1.1,gy0,z0-0.12, gx+B*1.1,gy1,z0-0.12, gx,gy1,z0-0.12, 0,0,1,1, 0.95); }
+    if(rnd(2)>0.3&&doorDir!==2){ const gz=hz-B*0.55;
+      quad(G,'glass', x1+0.12,gy0,gz, x1+0.12,gy0,gz+B*1.1, x1+0.12,gy1,gz+B*1.1, x1+0.12,gy1,gz, 0,0,1,1, 0.95); }
+  } else if(_stampOn){
+    const oy=Math.floor((y+B*2.6)/B);
+    if(doorDir!==1&&rnd(1)>0.25) stampBlock(Math.floor(hx/B),oy,Math.floor((z0+T/2)/B),0);
+    if(doorDir!==2&&rnd(2)>0.25) stampBlock(Math.floor((x1-T/2)/B),oy,Math.floor(hz/B),0);
+    if(doorDir!==3&&rnd(3)>0.5)  stampBlock(Math.floor((x0+T/2)/B),oy,Math.floor(hz/B),0);
+  }
+  /* ---- AND THE ROUND HOUSE HAS NO CORNERS ----
+     The hut of the south is a round wall; on a grid of blocks that is a
+     square with its four corners taken off, which reads as round at once. */
+  if(style==='round'&&_stampOn){
+    for(const [cx,cz] of [[x0+T/2,z0+T/2],[x1-T/2,z0+T/2],[x0+T/2,z1-T/2],[x1-T/2,z1-T/2]]){
+      const ix=Math.floor(cx/B), iz=Math.floor(cz/B);
+      for(let iy=Math.floor(wy0/B);iy<Math.ceil(wy1/B);iy++) stampBlock(ix,iy,iz,0);
+      /* and the wall turns the corner one cell in */
+      const jx=ix+(cx<hx?1:-1), jz=iz+(cz<hz?1:-1);
+      for(let iy=Math.floor(wy0/B);iy<Math.ceil(wy1/B);iy++) stampBlock(jx,iy,jz,blockForMat(wallMat)); } }
   /* the door is a separate swinging leaf, built in spawnVillage (closed by
      default) — see ex.houses[].door below */
-  /* stepped roof with a one-block overhang, ridge along the longer axis */
+  /* ---- THE ROOF ---- */
   const alongX = w>=d;
-  const steps = Math.ceil(((alongX?d:w)+2)/2);
-  for(let i2=0;i2<steps;i2++){
-    const ry0=y+wallH+i2*B*0.55, ry1=ry0+B*0.6;
-    if(alongX){
-      const rz0=z0-B+i2*B, rz1=z1+B-i2*B; if(rz1<=rz0) break;
-      emitBox(G, x0-B,ry0,rz0, x1+B,ry1,rz1, 'roof','roof','roof');
-    } else {
-      const rx0=x0-B+i2*B, rx1=x1+B-i2*B; if(rx1<=rx0) break;
-      emitBox(G, rx0,ry0,z0-B, rx1,ry1,z1+B, 'roof','roof','roof');
+  let steps=0, roofTop=y+wallH+B;
+  if(style==='levant'){
+    /* FLAT: beams across the walls, their ends standing out of them, and a
+       course of beaten earth over, with a parapet about it and a stair up
+       the outside to it */
+    const ry=y+wallH;
+    emitBox(G, x0,ry,z0, x1,ry+B*0.6,z1, 'path','path',lintelMat);
+    for(let k=1;k<(alongX?w:d)-1;k+=2){
+      if(alongX){ const bx=x0+(k+0.25)*B;
+        emitBox(G,bx,ry,z0-B*0.55,bx+B*0.5,ry+B*0.45,z0,'logSide','logTop',null);
+        emitBox(G,bx,ry,z1,bx+B*0.5,ry+B*0.45,z1+B*0.55,'logSide','logTop',null); }
+      else { const bz=z0+(k+0.25)*B;
+        emitBox(G,x0-B*0.55,ry,bz,x0,ry+B*0.45,bz+B*0.5,'logSide','logTop',null);
+        emitBox(G,x1,ry,bz,x1+B*0.55,ry+B*0.45,bz+B*0.5,'logSide','logTop',null); } }
+    const py0=ry+B*0.6, py1=py0+B*0.9;
+    /* the stair: along the side wall that is not the door's, rising a course
+       a step to the roof, and the parapet left open where it arrives */
+    const sd=(doorDir===0||doorDir===1)?(rnd(4)<0.5?2:3):(rnd(4)<0.5?0:1);
+    const nSt=Math.round(wallH/B);
+    for(let k=0;k<nSt;k++){ const t=y+B*(k+1);
+      if(sd===2){ const sz=z0+B*(k+1); emitBox(G,x1,y,sz,x1+B,t,sz+B,wallMat,wallMat,null); }
+      else if(sd===3){ const sz=z0+B*(k+1); emitBox(G,x0-B,y,sz,x0,t,sz+B,wallMat,wallMat,null); }
+      else if(sd===0){ const sx=x0+B*(k+1); emitBox(G,sx,y,z1,sx+B,t,z1+B,wallMat,wallMat,null); }
+      else { const sx=x0+B*(k+1); emitBox(G,sx,y,z0-B,sx+B,t,z0,wallMat,wallMat,null); } }
+    const gap=(a0,a1,b0,b1)=>emitBox(G,a0,py0,b0,a1,py1,b1,wallMat,wallMat,null);
+    const sa=B*(nSt), sb=B*(nSt+1);      /* where the stair arrives, along its wall */
+    if(sd===0){ gap(x0,x0+sa,z1-T,z1); gap(x0+sb,x1,z1-T,z1); } else gap(x0,x1,z1-T,z1);
+    if(sd===1){ gap(x0,x0+sa,z0,z0+T); gap(x0+sb,x1,z0,z0+T); } else gap(x0,x1,z0,z0+T);
+    if(sd===2){ gap(x1-T,x1,z0,z0+sa); gap(x1-T,x1,z0+sb,z1); } else gap(x1-T,x1,z0,z1);
+    if(sd===3){ gap(x0,x0+T,z0,z0+sa); gap(x0,x0+T,z0+sb,z1); } else gap(x0,x0+T,z0,z1);
+    roofTop=py1;
+    /* the clay oven by the house — the tabun, where the bread was baked */
+    const ox=(doorDir===2?x1+B*1.2:doorDir===3?x0-B*2.2:x1+B*0.3), oz=(doorDir===0?z1+B*0.3:doorDir===1?z0-B*1.3:z1+B*0.3);
+    emitBox(G,ox,y,oz,ox+B*0.9,y+B*0.9,oz+B*0.9,'badSide','badTop',null);
+  } else if(style==='round'){
+    /* a peaked thatch over all four sides, drawn in to a point */
+    for(let i2=0;;i2++){
+      const rx0=x0-B+i2*B, rx1=x1+B-i2*B, rz0=z0-B+i2*B, rz1=z1+B-i2*B;
+      if(rx1<=rx0||rz1<=rz0) break;
+      const ry0=y+wallH+i2*B*0.55; emitBox(G, rx0,ry0,rz0, rx1,ry0+B*0.6,rz1, 'thatch','thatch','thatch');
+      steps=i2+1; roofTop=ry0+B*0.6; }
+  } else {
+    /* a pitched roof with a block's overhang, ridge along the longer axis:
+       fired tile in the south and the east, and a steep thatch in the north */
+    const rm=style==='north'?'thatch':'roof';
+    steps = Math.ceil(((alongX?d:w)+2)/2);
+    for(let i2=0;i2<steps;i2++){
+      const ry0=y+wallH+i2*B*0.55, ry1=ry0+B*0.6;
+      if(alongX){
+        const rz0=z0-B+i2*B, rz1=z1+B-i2*B; if(rz1<=rz0) break;
+        emitBox(G, x0-B,ry0,rz0, x1+B,ry1,rz1, rm,rm,rm);
+      } else {
+        const rx0=x0-B+i2*B, rx1=x1+B-i2*B; if(rx1<=rx0) break;
+        emitBox(G, rx0,ry0,z0-B, rx1,ry1,z1+B, rm,rm,rm);
+      }
+      roofTop=ry1;
     }
   }
   emitFurniture(G, ex, x0,x1,z0,z1, y+B*0.58, T, hx,hz, doorDir);
@@ -11392,7 +11769,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   const baseAng = (doorDir>=2)?-Math.PI/2:0;
   const swing = (doorDir===0||doorDir===3)?1.7:-1.7;   /* open outward */
   ex.houses.push({x0,x1,z0,z1, dx:gapCX, dz:gapCZ, gw, apron,
-    yb:y, top:y+wallH+steps*B*0.55+B*0.6,   /* footing and ridge — the eye rides over these */
+    yb:y, top:roofTop,   /* footing and ridge (or parapet) — the eye rides over these */
     door:{dir:doorDir, hx:hingeX, hz:hingeZ, base:baseAng, y:y+B*0.05,
       w:gw*2.0, h:B*2.05, swing, open:false, ang:baseAng, target:baseAng}});
 }
@@ -11672,7 +12049,8 @@ function* spawnVillage(i,exShell){
   const site=SITES[i]; if(!site){ activeVillages.set(i,{none:true}); return; }
   const rnd=k=>hash2(i*31.7+k*7.7, i*11.3+k*3.9);
   const G=newG(); const ex=exShell||{};
-  Object.assign(ex,{doors:[],houses:[],torchIn:[],farms:[],stalls:[],pen:null,stamps:[]});
+  Object.assign(ex,{doors:[],houses:[],torchIn:[],farms:[],stalls:[],pen:null,stamps:[],
+    style:houseStyleFor(i), ci:i});
   const wy=topY(site.ix,site.iz);
   const cfg=cityFor(i);                 /* a great city here, or a small village? */
   const torches=[]; const solids=[];
@@ -12605,17 +12983,85 @@ function birdTick(bd,dt){
   const flap=Math.sin(performance.now()*0.02+bd.ph*3)*0.7;
   const u=bd.m.userData; if(u.wingL){ u.wingL.rotation.z=flap; u.wingR.rotation.z=-flap; }
 }
-/* ---- A FIGURE FAR OFF IS NOT DRAWN ----
-   Every villager and every penned beast is a dozen boxes — head, body, two
-   arms and two legs each jointed, a hem, a tool — and every box is a draw.
-   Two villages in view were a thousand of them, most of them people too far
-   off to make out. Past FIGURE_LOD from the eye a figure is simply not drawn;
-   it still walks its day, and it is there again the moment it is near. */
-const FIGURE_LOD=380;
+/* ---- A FIGURE IS DRAWN AS FINELY AS IT CAN BE SEEN ----
+   Every villager is a dozen boxes and more — a head of six faces (six
+   draws on its own), a body, a hem, hair, a tool, and two arms and two legs
+   each jointed at elbow and knee — and every box is a draw. Two villages in
+   view were a thousand of them, and the man across the square is a few
+   pixels tall.
+
+   So a figure has three distances. Near (FIGURE_NEAR) it is the whole rig,
+   every joint moving. Past that it is ONE MESH — the same boxes, in the pose
+   it was made in, welded into a single geometry with each box's colour
+   written into its vertices, one draw where there were fifteen or twenty —
+   carried by the very same group, so it walks, turns and lies down exactly
+   where the rig would. Past FIGURE_LOD it is not drawn at all. It lives its
+   day at every distance; only what the eye is shown changes. The far mesh
+   is made the first time it is wanted, and never for a figure no one sees
+   from across a field. */
+const FIGURE_NEAR=140, FIGURE_LOD=380;
+const _lodMat=new THREE.MeshLambertMaterial({vertexColors:true}); LIT.push(_lodMat);
+const _flatCol=new WeakMap();
+function flatColorOf(mat){
+  if(!mat) return [1,1,1];
+  let c=_flatCol.get(mat); if(c) return c;
+  const base=mat.color?[mat.color.r,mat.color.g,mat.color.b]:[1,1,1];
+  c=base;
+  const im=mat.map&&mat.map.image;
+  if(im&&im.getContext){ try{ const d=im.getContext('2d').getImageData(0,0,im.width,im.height).data;
+      let r=0,g2=0,b2=0,n=0; for(let i=0;i<d.length;i+=16){ if(d[i+3]<128) continue; r+=d[i]; g2+=d[i+1]; b2+=d[i+2]; n++; }
+      if(n) c=[base[0]*r/n/255, base[1]*g2/n/255, base[2]*b2/n/255]; }catch(e){} }
+  _flatCol.set(mat,c); return c;
+}
+const _lodM=new THREE.Matrix4(), _lodV=new THREE.Vector3(), _lodN=new THREE.Vector3(), _lodM3=new THREE.Matrix3();
+function makeFigureLod(root){
+  root.updateMatrixWorld(true);
+  const inv=new THREE.Matrix4().copy(root.matrixWorld).invert();
+  const P=[], N=[], Cc=[], I=[];
+  root.traverse(o=>{
+    if(!o.isMesh||!o.geometry||!o.geometry.attributes.position) return;
+    for(let q=o;q&&q!==root;q=q.parent) if(!q.visible) return;
+    const g=o.geometry, pos=g.attributes.position, nor=g.attributes.normal, vc=g.attributes.color;
+    _lodM.copy(inv).multiply(o.matrixWorld); _lodM3.getNormalMatrix(_lodM);
+    const mats=Array.isArray(o.material)?o.material:[o.material];
+    /* a many-faced box (the head) wears its first face's colour all round —
+       at this distance a face is a few pixels, and the skin is what shows */
+    const col=flatColorOf(mats[0]);
+    const base=P.length/3;
+    for(let i=0;i<pos.count;i++){
+      _lodV.fromBufferAttribute(pos,i).applyMatrix4(_lodM); P.push(_lodV.x,_lodV.y,_lodV.z);
+      if(nor){ _lodN.fromBufferAttribute(nor,i).applyMatrix3(_lodM3).normalize(); N.push(_lodN.x,_lodN.y,_lodN.z); }
+      else N.push(0,1,0);
+      const f=vc?vc.getX(i):1; Cc.push(col[0]*f,col[1]*f,col[2]*f); }
+    if(g.index) for(let i=0;i<g.index.count;i++) I.push(base+g.index.getX(i));
+    else for(let i=0;i<pos.count;i++) I.push(base+i);
+  });
+  if(!P.length) return null;
+  const bg=new THREE.BufferGeometry();
+  bg.setAttribute('position',new THREE.Float32BufferAttribute(P,3));
+  bg.setAttribute('normal',new THREE.Float32BufferAttribute(N,3));
+  bg.setAttribute('color',new THREE.Float32BufferAttribute(Cc,3));
+  bg.setIndex(I);
+  const m=new THREE.Mesh(bg,_lodMat); m.name='figureLod';
+  return m;
+}
 function figureLod(e){ const m=e&&e.m; if(!m) return;
-  const cp=camera.position, far=(m.position.x-cp.x)**2+(m.position.z-cp.z)**2>FIGURE_LOD*FIGURE_LOD;
-  if(far){ if(m.visible){ m.visible=false; e._lodHid=true; } }
-  else if(e._lodHid){ m.visible=true; e._lodHid=false; } }
+  const cp=camera.position, d2=(m.position.x-cp.x)**2+(m.position.z-cp.z)**2;
+  const want=d2>FIGURE_LOD*FIGURE_LOD?0:d2>FIGURE_NEAR*FIGURE_NEAR?1:2;
+  if(want===e._lodState) return;
+  if(want===0){ if(m.visible){ m.visible=false; e._lodHid=true; } }
+  else if(e._lodHid){ m.visible=true; e._lodHid=false; }
+  if(want===1&&!e._lod&&!e._lodNone){
+    const L=makeFigureLod(m);
+    if(L){ e._rig=m.children.slice(); m.add(L); e._lod=L; } else e._lodNone=true; }
+  if(e._lod){
+    const far=want===1;
+    e._lod.visible=far;
+    for(const c of e._rig){
+      if(far){ c.userData._lodWas=c.visible; c.visible=false; }
+      else if(c.userData._lodWas!==undefined){ c.visible=c.userData._lodWas; delete c.userData._lodWas; } } }
+  e._lodState=want;
+}
 function updateVillages(px,pz,dt,nightF,dayF){
   worldNight=nightF;
   if(dayF!==undefined) worldDay=dayF;
@@ -13344,7 +13790,8 @@ function buildHomeIn(){
     emitBox(G, rx-0.28,plat,rz-0.28, rx+0.28,plat+B*1.1,rz+0.28, 'logSide','logTop',null); }
   emitBox(G, cx-pr,plat+B*1.1,cz-pr, cx+pr,plat+B*1.25,cz-pr+0.6, 'logSide','logSide',null);  /* top rail (partial) */
   /* the fancy house upon the platform (a big furnished room) */
-  emitHouse(G,ex, cx,cz,plat, 7,7, 0, 7777);
+  { const was=ex.style; ex.style='north';          /* a timber house on a timber platform */
+    emitHouse(G,ex, cx,cz,plat, 7,7, 0, 7777); ex.style=was; }
   /* the leafy canopy above */
   const cany=plat+B*8;
   emitBox(G, cx-B*7,cany,cz-B*7, cx+B*7,cany+B*1.4,cz+B*7, 'leaves','leaves','leaves');
@@ -17305,6 +17752,8 @@ if(!window.__HOST_BOOT){
 window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   /* the light in the corners, and the count of standing chunks — tools/acceptance.js */
   aoLevel,aoTop,chunkCount:()=>chunks.size,bodyLenOf,
+  sceneRef:()=>scene, blockLayers:()=>{ const A=blockArray(); return A?A.names:null; },
+  chunkMeshesAt:(cx,cz)=>{ const c=chunks.get(cx+','+cz); return c?c.meshes:null; },
   /* the remesh queue's depth and the lifetime remesh count — read-only. At
      rest BOTH must sit still: a dirty count that never drains is a stamp
      whose value flips between rebuilds, which is the fault Round 86 caught
@@ -17717,6 +18166,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
       await new Promise(r=>requestAnimationFrame(r));
       if(k>10&&!buildQueue.length){ flushEdits(1e9); await new Promise(r=>requestAnimationFrame(r)); return k; } }
     return -1; },
+  ravinesNear:(x,z)=>ravinesNear(x,z),
   throwSpear:()=>throwSpear(),
   spearState:()=>({active:spear.active,x:spear.x,y:spear.y,z:spear.z,stick:spear.stick}),
   spearCosts:()=>({flock:REP_SPEAR_FLOCK,wolf:REP_SPEAR_WOLF}),
@@ -19884,8 +20334,8 @@ function frame(){
     /* the discs EASE between their two stations — dropped 460 units in one
        frame, what showed through the water everywhere changed in one frame
        with them, a whole-ocean flicker at every crossing of the shelf line */
-    sea.position.y    +=((shallowView?WATER_Y-520:WATER_Y-60 )-sea.position.y    )*Math.min(1,dt*2.5);
-    seaDeep.position.y+=((shallowView?WATER_Y-820:WATER_Y-300)-seaDeep.position.y)*Math.min(1,dt*2.5); }
+    sea.position.y    +=((shallowView?WATER_Y-520:WATER_Y-SEA_DISC )-sea.position.y    )*Math.min(1,dt*2.5);
+    seaDeep.position.y+=((shallowView?WATER_Y-820:WATER_Y-SEA_DISC_DEEP)-seaDeep.position.y)*Math.min(1,dt*2.5); }
   seaLifeTick(p.x,p.z,dt);
   splashTick(dt);
   fishTick(dt);
@@ -19897,6 +20347,7 @@ function frame(){
   torchTick(dt);                     /* the flame the traveller carries */
   heldTick(dt);                      /* and the tool in his other hand */
   { const hp=playerXZ(); holeTick(dt,hp.x,hp.z); }   /* and the sea kept out of his pits */
+  deepTick(dt);                      /* and the caves drawn where he can see into them */
   bitsTick(dt);                      /* the chips of what he is breaking */
   flushEdits(7);                     /* and any chunk a hand has changed is laid again */
   /* stream faster when the traveller outruns the mesher — judged by how fast
