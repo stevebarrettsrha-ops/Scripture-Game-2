@@ -57,7 +57,9 @@ EARTH.scroll({ id:'adam-eve-1', book:'ADAM AND HAWWAH 1', name:'THE FIRST SCROLL
   words:'The garden lay eastward, on the border of the world — and this scroll tells where it stood, and of the Cave of Treasures below it.' });
 
 EARTH.scroll({ id:'adam-eve-2', book:'ADAM AND HAWWAH 2', name:'THE SECOND SCROLL OF ADAWM AND ḤAWWAH',
-  country:'Iran', bearing:4.0,
+  country:'South Africa', bearing:4.0, at:{ cave:true, near:'The Drakensberg' },
+  /* the days after the garden, which Adawm and Ḥawwah lived out in the caves
+     under it — its own cave in the same range as the first (Round 107) */
   verse:{ t:"When Luluwa heard Qayin's words, she wept and went to call her father and mother, and told them how that Qayin had killed his brother Heḇal.",
           ref:'ADAM AND HAWWAH 2 1:1' },
   words:'The days of Adawm after the garden, and of his sons, and of the offering that was and was not received.' });

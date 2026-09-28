@@ -9011,7 +9011,7 @@ function scrollAtMount(name){
    paces from a mouth. §5 asks for a cave that is DARK and wants a torch, so
    the light is what is scored — `caveLightAt` is the very same field the
    mesher bakes into the walls, so the search and the eye agree. */
-function scrollInCave(cx,cz,R){
+function scrollInCave(cx,cz,R,avoid){
   const ix0=Math.floor(cx/B), iz0=Math.floor(cz/B), rr=Math.floor(R/B);
   let best=null;
   for(let dx=-rr;dx<=rr;dx+=2) for(let dz=-rr;dz<=rr;dz+=2){
@@ -9025,6 +9025,9 @@ function scrollInCave(cx,cz,R){
          at down a ravine a long way off — a scroll belongs in a hill's cave,
          where a man walking the country can find the mouth */
       if(hi<=0) continue;
+      /* and not in a hollow another scroll has already taken: two scrolls
+         sent to the same range must lie in two caves, not one on the other */
+      if(avoid&&avoid.some(a=>Math.hypot(a[0]-(ix+0.5)*B,a[1]-(iz+0.5)*B)<SCROLL_CAVE_APART)) continue;
       const lit=caveLightAt(ix,iz,lo+0.6);        /* what the wall itself will be */
       if(!best||lit<best.lit)
         best={lit, over:c.h-hi, x:(ix+0.5)*B, z:(iz+0.5)*B, refY:(lo+0.6)*B};
@@ -9045,6 +9048,7 @@ function scrollAtLandmark(name,bearing){
   }
   return null;
 }
+const SCROLL_CAVE_APART=240;   /* units between two cave scrolls — some forty blocks */
 /* set every scroll down once the country sites are known */
 function placeScrolls(){
   if(_scrollPlaced||!SITES.length) return; _scrollPlaced=true;
@@ -9098,9 +9102,10 @@ function placeScrolls(){
          wherever the country's town happens to find a hollow */
       const L=sc.at.near?LANDMARKS.find(l=>l.n===sc.at.near):null;
       const lw=L?llToWorld(L.lat,L.lon):null;
-      const p=(lw&&scrollInCave(lw[0],lw[1],1200))
-           || scrollInCave(isNaN(x)?st.x:x, isNaN(z)?st.z:z, 900)
-           || scrollInCave(st.x,st.z,2600);
+      const taken=SCROLLS.filter(o=>o!==sc&&o.placed==='cave').map(o=>[o.x,o.z]);
+      const p=(lw&&scrollInCave(lw[0],lw[1],1200,taken))
+           || scrollInCave(isNaN(x)?st.x:x, isNaN(z)?st.z:z, 900, taken)
+           || scrollInCave(st.x,st.z,2600, taken);
       if(p){ sc.x=p.x; sc.z=p.z; sc.refY=p.refY; sc.m=null; sc.placed='cave'; continue; }
       /* no hollow anywhere near it — it lies on the open ground it would have
          had anyway, rather than not existing. Said out loud in the probe. */

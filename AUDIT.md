@@ -9536,8 +9536,13 @@ At the player's request, following the reading that sets Ĕḏen in the south of
   a new `near:` the placer honours). It lies 1,345 units from the range's heart, dark,
   67 steps from the day (test 28).
 
-The Zagros stands where it was, a range in its own right. The second scroll of
-Adawm and Ḥawwah (Iran) is unchanged. Tests 1, 28, 37 and 56 pass.
+- **The second scroll of Adawm and Ḥawwah** (the days after the garden, which they
+  lived out in the caves under it) moved from Iran to South Africa, and into a cave of
+  the Drakensberg of its own: 348 units from the first, dark, its way out 27 blocks.
+  `scrollInCave` now passes over any hollow within 240 units of a cave another scroll
+  already holds (`SCROLL_CAVE_APART`), so two scrolls sent to one range lie in two caves.
+
+The Zagros stands where it was, a range in its own right. Tests 1, 28, 37 and 56 pass.
 
 ## 5. Further recommendations (future work)
 
