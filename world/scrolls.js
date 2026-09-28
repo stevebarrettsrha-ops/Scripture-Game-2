@@ -51,7 +51,7 @@ EARTH.scroll({ id:'bereshith', book:'BERĔSHITH', name:'THE SCROLL OF THE BEGINN
   words:'“In the beginning Aluahim created the shamayim and the earth.” The scroll of the making of the world is yours.' });
 
 EARTH.scroll({ id:'adam-eve-1', book:'ADAM AND HAWWAH 1', name:'THE FIRST SCROLL OF ADAWM AND ḤAWWAH',
-  country:'Iraq', bearing:2.1, at:{ cave:true },
+  country:'South Africa', bearing:2.1, at:{ cave:true, near:'The Drakensberg' },
   verse:{ t:'On the third day, Aluahim planted the garden in the east of the earth, on the border of the world eastward, beyond which, towards the sun-rising, one finds nothing but water, that encompasses the whole world, and reaches to the borders of shamayim.',
           ref:'ADAM AND HAWWAH 1 1:1' },
   words:'The garden lay eastward, on the border of the world — and this scroll tells where it stood, and of the Cave of Treasures below it.' });

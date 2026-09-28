@@ -9515,6 +9515,30 @@ to its old figures: 80 caves on the best coast, 18 in range, 4 caches, all at th
 The suite on the final code: 64 pass, 0 fail. Five are pending, as before: 12 (a timing,
 on a slower box) and the four measurement-only tests 50, 53, 54, 55.
 
+## 4df. Round 107 — the four rivers of Ĕḏen, and the garden in the south of Africa ✅
+
+At the player's request, following the reading that sets Ĕḏen in the south of Africa:
+
+- **The four riverheads** (Bereshith 2:10-14, spelled as the Besorah spells them) now
+  carry their names in `world/rivers.js`: the Zambezi is **the Pishon**, the Nile
+  **the Giḥon**, the Congo **the Ḥiddeqal**, and the Niger **the Euphrates**. Each keeps
+  its modern name in brackets. The river of Mesopotamia goes by its own name there,
+  **the Furat**, so the earth does not carry two Euphrates. Nothing in the engine or the
+  tests looked a river up by name.
+- **The garden's range.** A new `kind:'range'` landmark, **the Drakensberg**
+  (−28.95, 29.55; 3,450 m; cliff style), stands in KwaZulu-Natal. It was added the way
+  the Zagros was, to give the Cave of Treasures rock to be cut into.
+- **The Cave of Treasures** (`world/places.js`) is anchored in the Drakensberg.
+  Test 56 reads it back cell for cell: 495 cells, 128 of carved air, 5 of gold in the
+  back wall, exactly as it stood in the Zagros.
+- **The first scroll of Adawm and Ḥawwah** belongs to South Africa, and its cave is
+  sought in the Drakensberg's own rock first (`at:{cave:true, near:'The Drakensberg'}`,
+  a new `near:` the placer honours). It lies 1,345 units from the range's heart, dark,
+  67 steps from the day (test 28).
+
+The Zagros stands where it was, a range in its own right. The second scroll of
+Adawm and Ḥawwah (Iran) is unchanged. Tests 1, 28, 37 and 56 pass.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

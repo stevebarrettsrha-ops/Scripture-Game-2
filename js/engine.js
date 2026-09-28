@@ -9093,7 +9093,13 @@ function placeScrolls(){
     }
     /* ---- AND A CAVE SCROLL GOES IN, from the ground its country gave it ---- */
     if(sc.at&&sc.at.cave){
-      const p=scrollInCave(isNaN(x)?st.x:x, isNaN(z)?st.z:z, 900)
+      /* `near:` names the landmark whose rock the cave is in — the garden's
+         scroll lies by the Cave of Treasures, in the range cut for it, and not
+         wherever the country's town happens to find a hollow */
+      const L=sc.at.near?LANDMARKS.find(l=>l.n===sc.at.near):null;
+      const lw=L?llToWorld(L.lat,L.lon):null;
+      const p=(lw&&scrollInCave(lw[0],lw[1],1200))
+           || scrollInCave(isNaN(x)?st.x:x, isNaN(z)?st.z:z, 900)
            || scrollInCave(st.x,st.z,2600);
       if(p){ sc.x=p.x; sc.z=p.z; sc.refY=p.refY; sc.m=null; sc.placed='cave'; continue; }
       /* no hollow anywhere near it — it lies on the open ground it would have
