@@ -9544,6 +9544,83 @@ At the player's request, following the reading that sets Ĕḏen in the south of
 
 The Zagros stands where it was, a range in its own right. Tests 1, 28, 37 and 56 pass.
 
+## 4dg. Round 108 — a second reading of Rounds 104–107, and what it found ✅
+
+Asked to make sure everything is right, every change since Round 104 was read again
+by a separate reviewer, line by line, and each finding was checked against the running
+game before anything was changed.
+
+**Edited columns lost their deep caves — and pits under the sea's level were wrong
+before that.** `editedCell` (the column as the hand has left it: every dug column, and
+every tree's and every village's, since trunks and houses are stamped) marked "no air
+run open" with `run=-1` and tested `run<0`. A course can be negative, so a run opening
+at −30 read as closed on every step and was never written. Every deep worm under a tree
+or a town was meshed as solid rock that the walker still passed through, and a pit dug
+below course 0 had the same fault before Round 105. `run` is now `null` when closed.
+Read at a Tanzanian wood: 9 edited columns over the deep, 0 kept their passage before,
+9 of 9 now.
+
+**The deep ran up to open water.** A sea or river column is empty at every depth, so a
+deep worm or ravine gallery running under the shore had no wall there, and a man could
+walk out of the rock into nothing about 150 units down. `cellRaw` now works out `dk`: the
+column is land a pixel and a half every way on the same warped chart that makes the
+water, with no river pixel beside it. Deep worms (`spansAt(…, noDeep)`), ravine cuts,
+ravine chambers and galleries keep to `dk` ground. Around 14 towns: 10,446 columns with
+a deep run, none within two blocks of water.
+
+**Chunks rebuilt for nothing.** Every chunk that came within the deep's reach was sent
+back to be rebuilt, whether it had any deep or not. A chunk now records whether it
+actually left deep faces out (`_deepSkipped`). The underground reach also has a margin,
+five chunks from y < −2 until the eye is back above +8, so stepping up and down a ravine
+ramp no longer throws a ring of chunks back into the queue each time.
+
+**The houses.**
+
+- *The stair ran up into the parapet.* The house is not on the block grid, so the parapet
+  on either side of the gap claimed the cell between them. The gap is now opened on the
+  grid where the stair arrives, and no beam end stands out over the stair. In Yapho all
+  17 stairs arrive through an open gap, and the walker climbs one onto the roof (feet
+  48 → 54).
+- *Round huts had a pillar in the room.* The corner cell is still taken off. The cell
+  set one step in to "turn the corner" stood where the bed, chest and lamps go. It is
+  gone, and the two walls meet edge to edge across the empty corner, so the room is
+  still shut.
+- *The footing course sat inside the base,* and the doorway clearing under it cut a
+  notch in the threshold. It is now the course over the base, and the doorway is
+  cleared on that course.
+- *The roof height* handed to the camera is where the stamped parapet ends
+  (`ry + 2B`).
+
+**A tree through one house in three (older than these rounds).** A village levels only
+its core and never asked the trees. A trunk stood up through the room and out of the
+roof in 4 of 6 houses in Kenya, 6 of 17 in Yasharal, 10 of 15 in Britain, 4 of 18 in
+Egypt, 3 of 17 in Greece and 4 of 17 in India. The trunk is a stamp in the same layer as
+the house, re-stamped on every rebuild, so clearing it once was never enough. A house now
+writes its lot down as treeless (`NOTREE`, the footprint and a block and a half about it)
+and takes out any trunk already standing there. The bole pass, the crown and
+`treeBlocked` all ask `noTreeAt`. Recounted: 0 in every one of the six.
+
+**Smaller things.**
+
+- Ravines keep clear of every town measured along the whole cut (560, or 760 for a
+  city), of Yahrushalayim (1,000) and of the home port (600). Measured: 1,164 and 1,198
+  from those two, and 561 from the nearest town.
+- `ravineOpenNear` looks as far as the light does.
+- `_litMemo` keys have room for any height.
+- The distant villager (`figureLod`):
+  - it is hidden again if other code shows it while it is far off;
+  - a part added since it was welded (a tool) is hidden with the rest;
+  - it is welded again each time the villager leaves the near ring, so it keeps the pose
+    he last had.
+- The cave probes (`nearestCaveMouth`, `caveWalkIn`) and test 4 look for the hill's
+  cave (`hillRun`), not the deep worm under it.
+
+**The river names are now shown.** The rivers were lines on the chart and water under
+the keel, and nothing in the game ever showed their names, so the renames of Round 107
+could not be seen. The river raster now also records which river each pixel is
+(`RIVIDX`). On a river, or on its bank away from the town, the banner names it:
+*THE GIḤON (NILE) — EGYPT*. In the town the town keeps it: *NO-AMON — EGYPT*.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

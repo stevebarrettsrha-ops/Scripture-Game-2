@@ -333,8 +333,9 @@ function mergeRuns(a){
   out.push(lo,hi); return Int16Array.from(out);
 }
 const _dv=[];
-function spansAt(x,z,h){
+function spansAt(x,z,h,noDeep){
   const hills=spansHills(x,z,h);
+  if(noDeep) return hills;          /* near open water: see the engine's `dk` */
   _dv.length=0; deepRuns(x,z,h,_dv);
   if(!_dv.length) return hills;
   if(hills) for(let i=0;i<hills.length;i++) _dv.push(hills[i]);

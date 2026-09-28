@@ -1496,16 +1496,20 @@ function countryAtUV(u,v){
 /* Rivers, rasterised the same exact way (1 = navigable river water).
    Each river is stamped from its mouth upstream: two pixels wide over the
    lower half of its course, one pixel wide toward the source. */
+/* and WHICH river each pixel is, so a man on it can be told its name (1 + the
+   river's index; the first river laid keeps a pixel two of them share) */
+const RIVIDX=new Uint8Array(MAPR*MAPR);
 const RIVMAP=(()=>{
   const m=new Uint8Array(MAPR*MAPR);
   if(!RIVERS||!RIVERS.length) return m;
   const toPx=(lat,lon)=>{ const r=(90-lat)/180, a=lon*Math.PI/180;
     return [(r*Math.sin(a)+1)*HALF, (r*Math.cos(a)+1)*HALF]; };
+  let ri=0;
   const stamp=(x,y,wide)=>{ const X=Math.round(x), Y=Math.round(y), e=wide?1:0;
     for(let dy=0;dy<=e;dy++) for(let dx=0;dx<=e;dx++){
       const qx=X+dx, qy=Y+dy;
-      if(qx>=0&&qy>=0&&qx<MAPR&&qy<MAPR) m[qy*MAPR+qx]=1; } };
-  for(const rv of RIVERS){
+      if(qx>=0&&qy>=0&&qx<MAPR&&qy<MAPR){ m[qy*MAPR+qx]=1; if(!RIVIDX[qy*MAPR+qx]) RIVIDX[qy*MAPR+qx]=ri; } } };
+  for(const rv of RIVERS){ ri++;
     const pts=rv.pts.map(p=>toPx(p[0],p[1]));
     let len=0; for(let k=0;k+1<pts.length;k++) len+=Math.hypot(pts[k+1][0]-pts[k][0],pts[k+1][1]-pts[k][1]);
     let run=0;
@@ -1539,6 +1543,24 @@ function riverBlock(ix,iz){
   const dv2=(fbm(u*760-8.1,v*760+9.3)-0.5)*(2.6/HALF);
   const wu=u+du2, wv=v+dv2;
   return (countryAtUV(wu,wv)&&riverAtUV(wu,wv))?1:0;
+}
+/* ---- AND THE NAME OF THE RIVER HERE ----
+   The rivers were only ever lines on the chart and water under the keel:
+   nothing in the world said which one a man was on, so the names in
+   world/rivers.js — the Giḥon, the Pishon, the Ḥiddeqal — were never seen.
+   Read off the same warped raster riverBlock reads, the pixel under the
+   traveller and the eight about it (a pixel is some thirty blocks, so that
+   is a river and its banks). */
+function riverNameAt(x,z){
+  const u=x/R_WORLD, v=z/R_WORLD;
+  if(Math.hypot(u,v)>=SHELF_UV) return null;
+  const du2=(fbm(u*760+13.7,v*760-4.2)-0.5)*(2.6/HALF);
+  const dv2=(fbm(u*760-8.1,v*760+9.3)-0.5)*(2.6/HALF);
+  const px=Math.round((u+du2+1)*HALF), py=Math.round((v+dv2+1)*HALF);
+  for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+    const qx=px+dx, qy=py+dy; if(qx<0||qy<0||qx>=MAPR||qy>=MAPR) continue;
+    const k=RIVIDX[qy*MAPR+qx]; if(k&&RIVERS[k-1]) return RIVERS[k-1].n; }
+  return null;
 }
 /* ---- AND WHERE A WATERFALL MAY EMPTY ITSELF ----
    The same two lookups and the same warped coast, asked the other way about:
@@ -2020,6 +2042,17 @@ function cellRaw(ix,iz){
   if(countryAtUV(wu+s,wv))cnt++; if(countryAtUV(wu-s,wv))cnt++;
   if(countryAtUV(wu,wv+s))cnt++; if(countryAtUV(wu,wv-s))cnt++;
   const inland=cnt/4;
+  /* ---- WHETHER THE DEEP MAY RUN UNDER THIS COLUMN ----
+     The sea and the rivers are EMPTY columns, at every depth: nothing is
+     under the water but the drawn floor. A deep worm or a ravine's gallery
+     that ran up to one had no wall on that side — a man walked out of the
+     rock into nothing a hundred units under the shore. So the deep keeps to
+     ground that is land for a pixel and a half every way (some fifty blocks,
+     read off the same warped chart that makes the water) and has no river
+     pixel beside it. */
+  let dk=inland===1;
+  if(dk){ const s1=1/HALF;
+    for(let a=-1;a<=1&&dk;a++) for(let b=-1;b<=1;b++) if(riverAtUV(wu+a*s1,wv+b*s1)){ dk=false; break; } }
   /* ---- THE RANGES ----
      The plains stay flat and walkable (h=1..2, solid footing, few steps).
      Where the broad mask says mountains STAND, a ridged multifractal says
@@ -2193,8 +2226,8 @@ function cellRaw(ix,iz){
      a handful in the world. */
   if(_fallsOn){ const fh=WATERFALL.heightAt(x,z,h);
     if(fh!==h){ h=Math.max(1,fh); } }
-  const spans=window.CAVES?CAVES.spansAt(x,z,h):null;
-  return spans?{h, kind, tree, ci, spans}:{h, kind, tree, ci};
+  const spans=window.CAVES?CAVES.spansAt(x,z,h,!dk):null;
+  return spans?{h, kind, tree, ci, dk, spans}:{h, kind, tree, ci, dk};
 }
 
 /* villages flatten the ground around them (computed at boot) */
@@ -2253,18 +2286,20 @@ function ravineOf(gi,gj){
     const th=hash2(gi*5.3,gj*0.3+9.1)*Math.PI*2, dx=Math.sin(th), dz=Math.cos(th);
     const D=18+Math.floor(hash2(gi*2.2+3.3,gj*4.1)*14), L=D+5;
     const ok=(x,z)=>{ const c=cellRaw(Math.floor(x/B),Math.floor(z/B));
-      return (c&&c.h>=1&&c.h<=14&&c.kind!=='wall'&&c.kind!=='floe'&&c.kind!=='rock')?c:null; };
+      return (c&&c.dk&&c.h>=1&&c.h<=14&&c.kind!=='wall'&&c.kind!=='floe'&&c.kind!=='rock')?c:null; };
     const c0=ok(x0,z0), cm=ok(x0+dx*L*B*0.5,z0+dz*L*B*0.5), c1=ok(x0+dx*L*B,z0+dz*L*B);
-    let far=true;
-    if(c0&&cm&&c1) for(const st of SITES){ if(st&&Math.hypot(st.x-x0,st.z-z0)<520){ far=false; break; } }
+    /* and no stretch of it, nor its chamber, on ground too near open water */
+    let dry=!!(c0&&cm&&c1);
+    for(let k=0;dry&&k<=L+4;k+=4){ const c=cellRaw(Math.floor((x0+dx*k*B)/B),Math.floor((z0+dz*k*B)/B)); if(!c||!c.dk) dry=false; }
+    let far=dry;
     /* ---- AND NOT UNDER A FALL, NOR THROUGH A WORK OF THE ANCIENTS ----
        Test 39 found one cut straight across the plunge pool of Krimml: the
        fall's water ran into it and came down its whole length as a curtain.
        A ravine keeps off the falls and the landmarks as it keeps off towns. */
-    if(c0&&cm&&c1&&far) for(const p of ravineKeepOff()){
+    if(far) for(const p of ravineKeepOff()){
       const ax=p[0]-x0, az=p[1]-z0, t=Math.max(0,Math.min(L*B,ax*dx+az*dz));
       if(Math.hypot(ax-dx*t,az-dz*t)<p[2]){ far=false; break; } }
-    if(c0&&cm&&c1&&far){
+    if(far){
       const x1=x0+dx*L*B, z1=z0+dz*L*B, gal=[];
       gal.push({x:x1,z:z1,dx,dz,len:40+Math.floor(hash2(gi*7.7,gj*3.3)*50)});
       const sg=hash2(gi*1.9,gj*8.1)<0.5?1:-1, th2=th+sg*(0.9+hash2(gi*4.4,gj*6.6)*0.8);
@@ -2293,6 +2328,10 @@ function ravineKeepOff(){
   if(window.WATERFALL&&WATERFALL.list) for(const f of WATERFALL.list()||[])
     a.push([f.x,f.z,((f.half||0)+(f.run||0)+40)*B]);
   for(const L of LANDMARKS){ const w=llToWorld(L.lat,L.lon); a.push([w[0],w[1],L.kind==='range'?1100:420]); }
+  /* the towns — measured to the whole cut, not only to its lip — and the
+     city of the great king and the traveller's own home, which are no town */
+  for(let i=0;i<SITES.length;i++){ const st=SITES[i]; if(st) a.push([st.x,st.z,cityFor(i)?760:560]); }
+  try{ if(yahruPos) a.push([yahruPos.x,yahruPos.z,1000]); if(homePos) a.push([homePos.x,homePos.z,600]); }catch(e){}
   if(window.WATERFALL) _ravKeep=a;     /* not kept until the falls are known */
   return a;
 }
@@ -2307,13 +2346,16 @@ function ravinesNear(x,z){
   if(_ravNear.size>20000) _ravNear.clear();
   _ravNear.set(k,a); _rnI=gi; _rnJ=gj; _rnA=a; return a;
 }
+/* the index of a column's first air run that reaches above the sea's level —
+   a hill's cave — or -1; the deep worms under it all end at or below nought */
+function hillRun(sp){ for(let i=0;i<sp.length;i+=2) if(sp[i+1]>0) return i; return -1; }
 /* whether the floor of an open ravine cut lies LOWER than height y (in
    blocks) anywhere within the reach of the cave light — `caveLightAt` looks
    eighteen blocks out on the diagonals, so twenty-six in a straight line.
    The cut falls from its lip to its foot, so only the stretch of it already
    deeper than y is asked about, and the chamber at its foot. */
 function ravineOpenNear(ix,iz,y){
-  const x=(ix+.5)*B, z=(iz+.5)*B, m=B*20, reach=B*27;
+  const x=(ix+.5)*B, z=(iz+.5)*B, m=B*30, reach=B*27;
   for(const R of ravinesNear(x,z)){
     if(x<R.bx0-m||x>R.bx1+m||z<R.bz0-m||z>R.bz1+m) continue;
     if(Math.hypot(x-R.x1,z-R.z1)<reach+B*3.6) return true;          /* the chamber */
@@ -2327,6 +2369,7 @@ function ravineOpenNear(ix,iz,y){
    and the gallery runs it drives through it */
 const _galR=[];
 function ravineCut(c,x,z){
+  if(!c.dk) return;
   const list=ravinesNear(x,z); if(!list.length) return;
   let floor=Infinity; _galR.length=0;
   for(const R of list){
@@ -2640,7 +2683,7 @@ function litRuns(ix,iz,sp,out){
   out.length=0;
   for(let i=0;i<sp.length;i+=2){
     if(sp[i+1]<=0&&!_deepOn){ out.push(CAVE_DARK); continue; }   /* its faces are not being built */
-    const ym=(sp[i]+sp[i+1])*0.5, k=((ix+32768)*65536+(iz+32768))*512+(ym*2+256);
+    const ym=(sp[i]+sp[i+1])*0.5, k=((ix+32768)*65536+(iz+32768))*4096+(ym*2+1024);
     let v=_litMemo.get(k);
     if(v===undefined){ v=CAVE_DARK+(1-CAVE_DARK)*caveLightAt(ix,iz,ym); _litMemo.set(k,v); }
     out.push(v);
@@ -2698,12 +2741,19 @@ function editedCell(ix,iz,cc,em,out){
   let top=cc.h;
   for(let y=hi;y>=cc.h;y--) if(tS(y)){ top=y+1; break; }
   while(top>-DEEP&&!tS(top-1)) top--;       /* down through the dug earth to what is left */
-  const air=[]; let run=-1;
-  for(let y=Math.min(lo,0);y<top;y++){
-    if(!tS(y)){ if(run<0) run=y; }
-    else if(run>=0){ air.push(run,y); run=-1; }
+  /* `run` is null while no run is open — a course can be NEGATIVE (the deep,
+     a pit dug under the sea's level), so -1 is a course and not a sentinel */
+  const air=[]; let run=null;
+  /* from the foot of the deepest hollow the column has, not from nought: the
+     deep worms lie below it, and a column a hand has touched (every tree's,
+     every village's) lost them and drew solid rock where a man walks */
+  let from=Math.min(lo,0);
+  if(cc.spans&&cc.spans.length&&cc.spans[0]<from) from=cc.spans[0];
+  for(let y=from;y<top;y++){
+    if(!tS(y)){ if(run===null) run=y; }
+    else if(run!==null){ air.push(run,y); run=null; }
   }
-  if(run>=0&&run<top) air.push(run,top);
+  if(run!==null&&run<top) air.push(run,top);
   out.h=Math.max(-DEEP+1,top); out.kind=cc.kind; out.tree=0; out.ci=cc.ci;
   out.spans=air.length?Int16Array.from(air):null;
   return out;
@@ -2924,7 +2974,7 @@ function emitColumn(G,ix,iz,cc){
       /* THE FLOOR IS THE TOP OF THE BLOCK BENEATH IT and the roof the underside
          of the one above, so where either of those is a seam it is the seam a
          man sees when he walks in with a light. */
-      if(hi<=0&&!_deepOn) continue;
+      if(hi<=0&&!_deepOn){ _deepSkipped=true; continue; }
       const nF=seamAt(lo-1), nR=seamAt(hi);
       const GF=hi<=0?GD:G;
       faceTop(GF,nF?blockOf(nF).mTop:strataMat(cc.kind,cc.h,lo-1),x0,z0,x1,z1,lo*B,1.0*f);      /* the floor of the passage */
@@ -3057,7 +3107,7 @@ function emitColumn(G,ix,iz,cc){
           const enclosed=!!nc&&cut<=nc.h-0.001;
           /* a sealed face of the deep, in a chunk too far off to show it: not
              built at all (see `_deepOn`), and not lit either */
-          if(enclosed&&cut<=0&&!_deepOn){ if(nbv>y) y=nbv; if(y>=my1) break; continue; }
+          if(enclosed&&cut<=0&&!_deepOn){ _deepSkipped=true; if(nbv>y) y=nbv; if(y>=my1) break; continue; }
           const lit=!enclosed?1
             :(myLit?litAt(cc.spans,myLit,(y+cut)*0.5)
                    :(nc.spans?litAt(nc.spans,nbLit||(nbLit=litRuns(ix+nb[d][0],iz+nb[d][1],nc.spans,[])),(y+cut)*0.5)
@@ -4105,7 +4155,7 @@ function mergeInto(G,BA,key){
 }
 function buildChunk(cx,cz){
   const G=newG(); _bcx=cx; _bcz=cz; _chunkGD=newG(); _litMemo.clear();
-  _deepOn=deepWanted(cx,cz);
+  _deepOn=deepWanted(cx,cz); _deepSkipped=false;
   placedBegin();      /* the built faces are gathered for the whole chunk, then merged */
   /* ---- WHOSE COUNTRY THIS CHUNK IS IN ----
      Every tree and every bush asks what land it grows in, and the answer is
@@ -4143,7 +4193,7 @@ function buildChunk(cx,cz){
          a phantom trunk in ~100% of columns, read by an eight-column probe
          with every cell SOLID log — the "war" was phantoms fighting, and
          the draw-call win was a slab of timber occluding the world. */
-      if(!cc||!cc.tree||cc.kind==='wall'||cc.kind==='floe') continue;
+      if(!cc||!cc.tree||cc.kind==='wall'||cc.kind==='floe'||noTreeAt(ix,iz)) continue;
       /* `riverBankCell`, EXACTLY as the mesh walk asks it at its own tree
          call — a different `wet` here could pick a different tree, and the
          trunk stamped now would stand under somebody else's crown */
@@ -4242,13 +4292,13 @@ function buildChunk(cx,cz){
          silent as it always was. The bole call inside re-stamps the same
          trunk, which marks nothing (a stamp that changes nothing marks
          nothing). */
-      if(cc.tree){ const bb=blockOf(em.get(cc.h)||0);
+      if(cc.tree&&!noTreeAt(ix,iz)){ const bb=blockOf(em.get(cc.h)||0);
         if(bb&&bb.drops==='log') emitTree(G,ix,iz,cc); }
       continue;
     }
     emitColumn(G,ix,iz,cc);
     const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B, j=hash2(ix*1.7,iz*2.9);
-    if(cc.tree) emitTree(G,ix,iz,cc);
+    if(cc.tree&&!noTreeAt(ix,iz)) emitTree(G,ix,iz,cc);
     else {
       /* thickest where no one lives — a village keeps its ground grazed.
          Every ground the grass file knows is asked; the ones it does not
@@ -4265,7 +4315,10 @@ function buildChunk(cx,cz){
   /* and the inside of the deep caves, as meshes of their own (deepTick) */
   const GD=_chunkGD; _chunkGD=null;
   if(GD&&Object.keys(GD).length){ mergeBlockArray(GD); chunkMeshes(GD,meshes,true); }
-  chunks.set(cx+','+cz,{meshes,cx,cz,deep:_deepOn});
+  /* `deep`: nothing of the deep is missing from it — either it was built,
+     or there was none to leave out (most of the earth), and deepTick need
+     not send it back */
+  chunks.set(cx+','+cz,{meshes,cx,cz,deep:_deepOn||!_deepSkipped});
   _deepOn=true;
 }
 /* the buckets of one chunk made into meshes under the chunk root */
@@ -5352,10 +5405,16 @@ function caveFacesShown(){ return Math.max(Math.abs(_bcx-_deepAt[0]),Math.abs(_b
    build. A chunk now builds its deep only within one chunk more than it may
    be shown at (`_deepOn`), says so, and `deepTick` sends any chunk that
    comes into reach without it back to be built again. */
-let _deepOn=true;
+let _deepOn=true, _deepSkipped=false, _deepUnder=false;
 function deepRange(){
   const cp=camera.position;
-  return [Math.floor(cp.x/CHW),Math.floor(cp.z/CHW),(cp.y<-2&&landAtWorld(cp.x,cp.z))?5:2]; }
+  /* down in the rock the reach is five chunks, and it stays five until the
+     eye is well up again — a step on a ravine's ramp going back and forth
+     across the line would otherwise send a ring of chunks to be rebuilt
+     each time */
+  if(cp.y<-2&&landAtWorld(cp.x,cp.z)) _deepUnder=true;
+  else if(cp.y>8) _deepUnder=false;
+  return [Math.floor(cp.x/CHW),Math.floor(cp.z/CHW),_deepUnder?5:2]; }
 function deepWanted(cx,cz){
   let a; try{ a=deepRange(); }catch(e){ return true; }
   return Math.max(Math.abs(cx-a[0]),Math.abs(cz-a[1]))<=a[2]+1; }
@@ -11572,6 +11631,24 @@ function houseWashed(i,seed){
   const egypt=lat<32&&lat>18&&lon>24&&lon<36;
   return hash2(seed*1.37,seed*0.71)<(egypt?0.8:0.3);
 }
+/* ---- NO TREE GROWS ON A HOUSE'S LOT ----
+   A village levels only its core and never asked the trees: one house in
+   three stood with a trunk up through the room and out of the roof (read in
+   Kenya, Yasharal, Britain, Egypt, Greece and India, 3 to 10 houses in each).
+   The trunk is a stamp in the same layer the house is, and every rebuild of
+   the chunk stamps it again, so clearing it once was never enough: the lot is
+   WRITTEN DOWN as treeless, the bole pass and the crown both ask it, and the
+   trunk already standing there is taken out. */
+var NOTREE=null;      /* var: a chunk may be built before this line has run */
+function noTreeAt(ix,iz){ return !!NOTREE&&NOTREE.has((ix+32768)*65536+(iz+32768)); }
+function clearLotOfTrees(x0,z0,x1,z1,y){
+  const cy0=Math.floor(y/B);
+  for(let ix=Math.floor(x0/B);ix<=Math.floor(x1/B);ix++) for(let iz=Math.floor(z0/B);iz<=Math.floor(z1/B);iz++){
+    (NOTREE||(NOTREE=new Set())).add((ix+32768)*65536+(iz+32768));
+    if(!_stampOn) continue;
+    for(let cy=cy0-1;cy<=cy0+48;cy++){ const b=blockOf(blockAt(ix,cy,iz));
+      if(b&&/^log-/.test(b.id)) stampBlock(ix,cy,iz,0); } }
+}
 function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   const style=(ex&&ex.style)||'levant';
   /* w,d in blocks (odd best); walls 3 blocks; local axis-aligned.
@@ -11580,6 +11657,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
      and a hearth-light that burns when the sun departs. */
   const rnd=k=>hash2(seed*7.7+k*3.1,seed*3.3+k*9.7);
   const x0=hx-w*B/2, x1=hx+w*B/2, z0=hz-d*B/2, z1=hz+d*B/2;
+  clearLotOfTrees(x0-B*1.5,z0-B*1.5,x1+B*1.5,z1+B*1.5,y);
   /* four blocks to the eaves now, not three — a house a man does not have
      to stoop into reads as a HOUSE, not a hut */
   const wallH=4*B, T=B*0.5, gw=B*0.75;
@@ -11629,16 +11707,21 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   else wall(x0,z0,x0+T,z1);
   /* the lowest course of a washed or brick wall is the stone footing carried
      up — ground-damp dissolves brick, so no one laid it on the earth */
-  if(style==='med'||style==='levant'){
-    const cm='cobble';
-    emitBox(G,x0,wy0,z0,x1,wy0+B*0.5,z0+T,cm,cm,null);
-    emitBox(G,x0,wy0,z1-T,x1,wy0+B*0.5,z1,cm,cm,null);
-    emitBox(G,x0,wy0,z0,x0+T,wy0+B*0.5,z1,cm,cm,null);
-    emitBox(G,x1-T,wy0,z0,x1,wy0+B*0.5,z1,cm,cm,null);
+  /* It is the course OVER the base (the base is cobble already), and it is
+     a thing of blocks: stamped, where the wall's own first course would be.
+     Hung at the wall's foot as it was, it fell inside the base course and
+     changed nothing — and the doorway clearing beneath it took a block out
+     of the threshold instead. */
+  if((style==='med'||style==='levant')&&_stampOn){
+    const cm='cobble', fy0=y+B*1.05, fy1=y+B*1.95;
+    emitBox(G,x0,fy0,z0,x1,fy1,z0+T,cm,cm,null);
+    emitBox(G,x0,fy0,z1-T,x1,fy1,z1,cm,cm,null);
+    emitBox(G,x0,fy0,z0,x0+T,fy1,z1,cm,cm,null);
+    emitBox(G,x1-T,fy0,z0,x1,fy1,z1,cm,cm,null);
     /* and the doorway is never walled across by it */
-    if(_stampOn){ const dcx=Math.floor((doorDir===2?x1-T/2:doorDir===3?x0+T/2:gx)/B),
-        dcz=Math.floor((doorDir===0?z1-T/2:doorDir===1?z0+T/2:gz)/B), dcy=Math.floor((wy0+B*0.1)/B);
-      stampBlock(dcx,dcy,dcz,0); } }
+    const dcx=Math.floor((doorDir===2?x1-T/2:doorDir===3?x0+T/2:gx)/B),
+          dcz=Math.floor((doorDir===0?z1-T/2:doorDir===1?z0+T/2:gz)/B), dcy=Math.floor((y+B*1.5)/B);
+    stampBlock(dcx,dcy,dcz,0); }
   /* timber posts at the corners — the frame of a timber house only */
   if(style==='north'||style==='east')
     for(const cx of [x0-0.12,x1-B*0.5+0.12]) for(const cz of [z0-0.12,z1-B*0.5+0.12])
@@ -11665,32 +11748,34 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   if(style==='round'&&_stampOn){
     for(const [cx,cz] of [[x0+T/2,z0+T/2],[x1-T/2,z0+T/2],[x0+T/2,z1-T/2],[x1-T/2,z1-T/2]]){
       const ix=Math.floor(cx/B), iz=Math.floor(cz/B);
-      for(let iy=Math.floor(wy0/B);iy<Math.ceil(wy1/B);iy++) stampBlock(ix,iy,iz,0);
-      /* and the wall turns the corner one cell in */
-      const jx=ix+(cx<hx?1:-1), jz=iz+(cz<hz?1:-1);
-      for(let iy=Math.floor(wy0/B);iy<Math.ceil(wy1/B);iy++) stampBlock(jx,iy,jz,blockForMat(wallMat)); } }
+      for(let iy=Math.floor(wy0/B);iy<Math.ceil(wy1/B);iy++) stampBlock(ix,iy,iz,0); } }
+  /* (the two walls still meet edge to edge across the empty corner, so the
+     room stays shut; a pillar set one cell in to "turn the corner" stood in
+     the room itself, where the bed, the chest and the lamps go) */
   /* the door is a separate swinging leaf, built in spawnVillage (closed by
      default) — see ex.houses[].door below */
   /* ---- THE ROOF ---- */
   const alongX = w>=d;
-  let steps=0, roofTop=y+wallH+B;
+  let steps=0, roofTop=y+wallH+B, stairAt=null;
   if(style==='levant'){
     /* FLAT: beams across the walls, their ends standing out of them, and a
        course of beaten earth over, with a parapet about it and a stair up
        the outside to it */
     const ry=y+wallH;
     emitBox(G, x0,ry,z0, x1,ry+B*0.6,z1, 'path','path',lintelMat);
-    for(let k=1;k<(alongX?w:d)-1;k+=2){
-      if(alongX){ const bx=x0+(k+0.25)*B;
-        emitBox(G,bx,ry,z0-B*0.55,bx+B*0.5,ry+B*0.45,z0,'logSide','logTop',null);
-        emitBox(G,bx,ry,z1,bx+B*0.5,ry+B*0.45,z1+B*0.55,'logSide','logTop',null); }
-      else { const bz=z0+(k+0.25)*B;
-        emitBox(G,x0-B*0.55,ry,bz,x0,ry+B*0.45,bz+B*0.5,'logSide','logTop',null);
-        emitBox(G,x1,ry,bz,x1+B*0.55,ry+B*0.45,bz+B*0.5,'logSide','logTop',null); } }
     const py0=ry+B*0.6, py1=py0+B*0.9;
     /* the stair: along the side wall that is not the door's, rising a course
        a step to the roof, and the parapet left open where it arrives */
     const sd=(doorDir===0||doorDir===1)?(rnd(4)<0.5?2:3):(rnd(4)<0.5?0:1);
+    /* (no beam end stands out over the stair: it would be at head height
+       over the top steps) */
+    for(let k=1;k<(alongX?w:d)-1;k+=2){
+      if(alongX){ const bx=x0+(k+0.25)*B;
+        if(sd!==1) emitBox(G,bx,ry,z0-B*0.55,bx+B*0.5,ry+B*0.45,z0,'logSide','logTop',null);
+        if(sd!==0) emitBox(G,bx,ry,z1,bx+B*0.5,ry+B*0.45,z1+B*0.55,'logSide','logTop',null); }
+      else { const bz=z0+(k+0.25)*B;
+        if(sd!==3) emitBox(G,x0-B*0.55,ry,bz,x0,ry+B*0.45,bz+B*0.5,'logSide','logTop',null);
+        if(sd!==2) emitBox(G,x1,ry,bz,x1+B*0.55,ry+B*0.45,bz+B*0.5,'logSide','logTop',null); } }
     const nSt=Math.round(wallH/B);
     for(let k=0;k<nSt;k++){ const t=y+B*(k+1);
       if(sd===2){ const sz=z0+B*(k+1); emitBox(G,x1,y,sz,x1+B,t,sz+B,wallMat,wallMat,null); }
@@ -11703,7 +11788,20 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
     if(sd===1){ gap(x0,x0+sa,z0,z0+T); gap(x0+sb,x1,z0,z0+T); } else gap(x0,x1,z0,z0+T);
     if(sd===2){ gap(x1-T,x1,z0,z0+sa); gap(x1-T,x1,z0+sb,z1); } else gap(x1-T,x1,z0,z1);
     if(sd===3){ gap(x0,x0+T,z0,z0+sa); gap(x0,x0+T,z0+sb,z1); } else gap(x0,x0+T,z0,z1);
-    roofTop=py1;
+    /* ---- AND THE STAIR ARRIVES THROUGH AN OPEN GAP ----
+       The house does not sit on the block grid, and a stamp claims every cell
+       a box enters, so the parapet on either side of the gap claimed the one
+       cell between them wherever the house fell off the grid — the stair ran
+       up into a wall. The gap is opened on the grid, at the cell the top step
+       stands beside, as the doorway is (Round 95). */
+    if(_stampOn){
+      const along=(sd===2||sd===3), cA=Math.floor(((along?z0:x0)+B*(nSt+0.5))/B);
+      const pc=Math.floor((ry+B*1.2)/B);
+      const w0=sd===2?x1-T:sd===3?x0:sd===0?z1-T:z0, w1=w0+T, cells=[];
+      for(let c2=Math.floor((w0+0.01)/B);c2<=Math.floor((w1-0.01)/B);c2++){ cells.push(c2);
+        for(const cy of [pc,pc+1]){ if(along) stampBlock(c2,cy,cA,0); else stampBlock(cA,cy,c2,0); } }
+      stairAt={sd,along,cA,cells,pc,nSt}; }
+    roofTop=ry+B*2;
     /* the clay oven by the house — the tabun, where the bread was baked */
     const ox=(doorDir===2?x1+B*1.2:doorDir===3?x0-B*2.2:x1+B*0.3), oz=(doorDir===0?z1+B*0.3:doorDir===1?z0-B*1.3:z1+B*0.3);
     emitBox(G,ox,y,oz,ox+B*0.9,y+B*0.9,oz+B*0.9,'badSide','badTop',null);
@@ -11779,7 +11877,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   const hingeZ = (doorDir>=2)?gz-gw:gapCZ;
   const baseAng = (doorDir>=2)?-Math.PI/2:0;
   const swing = (doorDir===0||doorDir===3)?1.7:-1.7;   /* open outward */
-  ex.houses.push({x0,x1,z0,z1, dx:gapCX, dz:gapCZ, gw, apron,
+  ex.houses.push({x0,x1,z0,z1, dx:gapCX, dz:gapCZ, gw, apron, style, stair:stairAt,
     yb:y, top:roofTop,   /* footing and ridge (or parapet) — the eye rides over these */
     door:{dir:doorDir, hx:hingeX, hz:hingeZ, base:baseAng, y:y+B*0.05,
       w:gw*2.0, h:B*2.05, swing, open:false, ang:baseAng, target:baseAng}});
@@ -13059,20 +13157,28 @@ function makeFigureLod(root){
 function figureLod(e){ const m=e&&e.m; if(!m) return;
   const cp=camera.position, d2=(m.position.x-cp.x)**2+(m.position.z-cp.z)**2;
   const want=d2>FIGURE_LOD*FIGURE_LOD?0:d2>FIGURE_NEAR*FIGURE_NEAR?1:2;
+  /* held every frame, not only on the change: other code may show a figure
+     (waking, coming out of doors) while it stands beyond the draw */
+  if(want===0&&m.visible){ m.visible=false; e._lodHid=true; }
+  if(want===1&&e._lod){ for(const c of m.children)                 /* a part added since (a tool taken up) */
+    if(c!==e._lod&&c.visible){ c.userData._lodWas=true; c.visible=false; } }
   if(want===e._lodState) return;
-  if(want===0){ if(m.visible){ m.visible=false; e._lodHid=true; } }
-  else if(e._lodHid){ m.visible=true; e._lodHid=false; }
+  if(want!==0&&e._lodHid){ m.visible=true; e._lodHid=false; }
+  /* the welded figure is made again each time he walks out of the near
+     ring, so it wears the pose he last had — seated, asleep, rod held */
+  if(want===1&&e._lodState===2&&e._lod){ restoreRig(m,e); m.remove(e._lod); e._lod.geometry.dispose(); e._lod=null; }
   if(want===1&&!e._lod&&!e._lodNone){
     const L=makeFigureLod(m);
-    if(L){ e._rig=m.children.slice(); m.add(L); e._lod=L; } else e._lodNone=true; }
+    if(L){ m.add(L); e._lod=L; } else e._lodNone=true; }
   if(e._lod){
     const far=want===1;
     e._lod.visible=far;
-    for(const c of e._rig){
-      if(far){ c.userData._lodWas=c.visible; c.visible=false; }
-      else if(c.userData._lodWas!==undefined){ c.visible=c.userData._lodWas; delete c.userData._lodWas; } } }
+    if(far){ for(const c of m.children) if(c!==e._lod&&c.visible){ c.userData._lodWas=true; c.visible=false; } }
+    else restoreRig(m,e); }
   e._lodState=want;
 }
+function restoreRig(m,e){
+  for(const c of m.children) if(c!==e._lod&&c.userData._lodWas!==undefined){ c.visible=true; delete c.userData._lodWas; } }
 function updateVillages(px,pz,dt,nightF,dayF){
   worldNight=nightF;
   if(dayF!==undefined) worldDay=dayF;
@@ -14975,6 +15081,7 @@ function toggleDoor(){ if(!promptDoor||!promptDoor.door) return;
 function treeBlocked(nx,nz){
   const c=landAtWorld(nx,nz); if(!c||!c.tree) return false;
   const ix=Math.floor(nx/B), iz=Math.floor(nz/B);
+  if(noTreeAt(ix,iz)) return false;
   return Math.hypot(nx-(ix+.5)*B, nz-(iz+.5)*B)<B*0.55;
 }
 /* the walking surface under a point — a pier deck, the land, or the swim line */
@@ -16641,7 +16748,13 @@ function placeTick(){
   else{
     const ci=countryAtUV(u,v);
     if(ci){ const cty=cityFor(ci-1);
-      txt=(cty?cty.name+' — '+COUNTRIES[ci-1].n:COUNTRIES[ci-1].n).toUpperCase(); }
+      txt=(cty?cty.name+' — '+COUNTRIES[ci-1].n:COUNTRIES[ci-1].n).toUpperCase();
+      /* on a river, or on its bank away from the town, the river is named:
+         THE GIḤON (NILE) — EGYPT. In the town itself the town keeps it. */
+      if(state.mode==='boat'||state.mode==='walk'){
+        const st=SITES[ci-1], inTown=state.mode==='walk'&&st&&Math.hypot(p.x-st.x,p.z-st.z)<600;
+        const rn=inTown?null:riverNameAt(p.x,p.z);
+        if(rn) txt=(rn+' — '+COUNTRIES[ci-1].n).toUpperCase(); } }
     else if(state.mode==='walk'&&landAtWorld(p.x,p.z)) txt='AN UNCHARTED ISLE';
     else{ let best=-1,bd=1e9;
       for(let i=0;i<COUNTRIES.length;i++){ const c=COUNTRIES[i].c;
@@ -17807,12 +17920,14 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
       const cx=Math.floor(g.x/B), cz=Math.floor(g.z/B);
       for(let a=-90;a<=90;a+=2) for(let b=-90;b<=90;b+=2){
         const ix=cx+a, iz=cz+b, c=cell(ix,iz); if(!c||!c.spans) continue;
-        const lo=c.spans[0], hi=c.spans[1];
+        const hs=hillRun(c.spans); if(hs<0) continue;           /* the hill's cave, not the deep under it */
+        const lo=c.spans[hs], hi=c.spans[hs+1];
         for(const d of [[1,0],[-1,0],[0,1],[0,-1]]){
           const n=cell(ix+d[0],iz+d[1]); if(!n||n.h>lo+1) continue;
           let run=0; const my=Math.floor((lo+hi)/2);
           for(let k=1;k<=60;k++){ const q=cell(ix-d[0]*k,iz-d[1]*k);
-            if(!q||!q.spans||my<q.spans[0]||my>q.spans[1]) break; run=k; }
+            const qh=q&&q.spans?hillRun(q.spans):-1;
+            if(qh<0||my<q.spans[qh]||my>q.spans[qh+1]) break; run=k; }
           const score=run*3+(hi-lo)*2+Math.min(40,c.h);
           if(!best||score>best.score) best={score,ix,iz,lo,hi,my,run,
             dx:d[0],dz:d[1],x:(ix+0.5)*B,y:(lo+0.6)*B,z:(iz+0.5)*B};
@@ -17821,8 +17936,8 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   caveWalkIn:(m,n)=>{ const k=Math.min(n,m.run);
     if(k<1) return null;
     const ix=m.ix-m.dx*k, iz=m.iz-m.dz*k, c=cell(ix,iz);
-    if(!c||!c.spans) return null;
-    return {x:(ix+0.5)*B,y:(c.spans[0]+0.6)*B,z:(iz+0.5)*B,ix,iz}; },
+    const hs=c&&c.spans?hillRun(c.spans):-1; if(hs<0) return null;
+    return {x:(ix+0.5)*B,y:(c.spans[hs]+0.6)*B,z:(iz+0.5)*B,ix,iz}; },
   /* drive the traveller at the rock for a while and report whether his body
      was EVER found inside it — the plainest reading of "he passes through
      nothing", and it exercises the real walker, not a proxy for him */
@@ -18179,6 +18294,11 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
       if(k>10&&!buildQueue.length){ flushEdits(1e9); await new Promise(r=>requestAnimationFrame(r)); return k; } }
     return -1; },
   ravinesNear:(x,z)=>ravinesNear(x,z),
+  /* a column as the mesher sees it, the hand's edits and all */
+  editedView:(ix,iz)=>{ const c=cell(ix,iz); if(!c) return null; const em=editColumn(ix,iz);
+    const v=em&&em.size?editedCell(ix,iz,c,em,{}):c; return {h:v.h,spans:v.spans?Array.from(v.spans):null,edited:!!(em&&em.size)}; },
+  riverNameAt:(x,z)=>riverNameAt(x,z),
+  yahruPos:()=>yahruPos, homePos:()=>homePos,
   throwSpear:()=>throwSpear(),
   spearState:()=>({active:spear.active,x:spear.x,y:spear.y,z:spear.z,stick:spear.stick}),
   spearCosts:()=>({flock:REP_SPEAR_FLOCK,wolf:REP_SPEAR_WOLF}),
