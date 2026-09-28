@@ -9512,7 +9512,7 @@ running on inland under the shore. `seacaveHollow` (and the two tests that mirro
 27 and 57) now pass over any run that ends at or below the sea's level. Test 57 is back
 to its old figures: 80 caves on the best coast, 18 in range, 4 caches, all at the back.
 
-The suite on the final code: 65 pass, 0 fail. Five are pending, as before: 12 (a timing,
+The suite on the final code: 64 pass, 0 fail. Five are pending, as before: 12 (a timing,
 on a slower box) and the four measurement-only tests 50, 53, 54, 55.
 
 ## 5. Further recommendations (future work)
