@@ -9501,6 +9501,20 @@ Profiled over the same 1,630 plains chunks: `emitColumn` 3.8 s → 2.9 s, cave l
 1.42 s → 0.65 s (what is left is the hills' own caves, which predate Round 105),
 `ravineCut` 0.53 s → 0.14 s.
 
+Measured against Round 104 on the same machine, back to back (test 12 on each): ocean
+0.867 → 0.870 ms a chunk, plains **3.50 → 3.96 ms**. The caves under a third of the
+earth cost the plains build about 13 %, and that is what is left to pay.
+
+**Sea caves are at the water, not under it.** Test 57 found caches "not at the back" of
+their sea caves. The sea-cave test took the first air run starting at or below course 4
+as the cave at the waterline, and near a coast that is now often a deep worm at −30,
+running on inland under the shore. `seacaveHollow` (and the two tests that mirror it,
+27 and 57) now pass over any run that ends at or below the sea's level. Test 57 is back
+to its old figures: 80 caves on the best coast, 18 in range, 4 caches, all at the back.
+
+The suite on the final code: 65 pass, 0 fail. Five are pending, as before: 12 (a timing,
+on a slower box) and the four measurement-only tests 50, 53, 54, 55.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

@@ -14213,6 +14213,7 @@ function seacaveHollow(c){
   if(!c||!c.spans) return null;
   for(let i=0;i<c.spans.length;i+=2){
     if(c.spans[i]>4) continue;                 /* not down at the water */
+    if(c.spans[i+1]<=0) continue;              /* the deep worms (Round 105) — under the water, not at it */
     if(c.spans[i+1]>=c.h-1) return null;       /* no rock over it: a notch */
     return {lo:c.spans[i],hi:c.spans[i+1]};
   }
