@@ -5439,9 +5439,10 @@ function caveFacesShown(){ return Math.max(Math.abs(_bcx-_deepAt[0]),Math.abs(_b
    Hidden was not enough: every chunk in the view still walked, lit and
    meshed its whole deep, some five hundred chunks of it for the two dozen
    that can show it — the largest part of what the plains caves added to a
-   build. A chunk now builds its deep only within one chunk more than it may
-   be shown at (`_deepOn`), says so, and `deepTick` sends any chunk that
-   comes into reach without it back to be built again. */
+   build. A chunk now builds its deep only where it may be shown
+   (`_deepOn`), says so, and `deepTick` sends any chunk that comes into
+   reach without it back to be built again — five or so a chunk crossed,
+   spread over the frames by flushEdits. */
 let _deepOn=true, _deepSkipped=false, _deepUnder=false;
 function deepRange(){
   const cp=camera.position;
@@ -5454,7 +5455,7 @@ function deepRange(){
   return [Math.floor(cp.x/CHW),Math.floor(cp.z/CHW),_deepUnder?5:2]; }
 function deepWanted(cx,cz){
   let a; try{ a=deepRange(); }catch(e){ return true; }
-  return Math.max(Math.abs(cx-a[0]),Math.abs(cz-a[1]))<=a[2]+1; }
+  return Math.max(Math.abs(cx-a[0]),Math.abs(cz-a[1]))<=a[2]; }
 function deepTick(dt){
   _deepT-=dt; if(_deepT>0) return; _deepT=0.2;
   const [ccx,ccz,R]=deepRange();

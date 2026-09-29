@@ -9639,9 +9639,22 @@ brought it back:
 - *An edited column* copies its own runs below its lowest edit instead of walking them
   course by course.
 
-Test 12 now reads 3.31 and 2.93 ms (ceiling 3.31). The ravine walk, the deep meshes near
-the eye (20 in the 25 chunks about him) and the edited columns over the deep (9 of 9)
-were read again after.
+That was still too close: in the full suite test 12 read 3.49 ms, on a machine whose own
+loop swung from 37 to 86 ms during the run. So the deep is now built only for the chunks
+it may be shown in (two about the eye, five below ground), not one chunk beyond. The next
+ring is rebuilt as the traveller crosses into it, five or so chunks a crossing, spread
+over the frames. Test 12 reads 3.25, 3.12 and 3.00 ms on three runs; Round 104 read 3.06
+on the same machine.
+
+After the last change these tests were run again, and all pass: 1–7 (caves, the torch,
+the walker, digging and building), 12 (the build), 26–28 (breastplate stones, sea caves,
+the great scrolls), 39 (the falls), 56 (authored places) and 57 (sea-cave caches). Also
+read again: the ravine walk, the deep meshes near the eye (20 in the 25 chunks about
+him), and the edited columns over the deep (9 of 9).
+
+The last full suite before that one change: 64 pass. Test 12 failed at 3.49 ms, which is
+the reading that led to it. Four are pending, the measurement-only 50, 53, 54 and 55,
+as they have been since they were written.
 
 ## 5. Further recommendations (future work)
 
