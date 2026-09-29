@@ -79,6 +79,12 @@ EARTH.landmark({n:"Mount Zaphon", lat:35.95, lon:35.97, kind:'mount', elev:1717,
    Both carry their TRUE elevations; MTN_M_PER_BLOCK keeps them in proportion
    with every other height on the earth. */
 EARTH.landmark({n:"The Zagros", lat:33.40, lon:46.30, kind:'range', elev:4548, r:2100, style:'stony', secret:1});
+/* ---- AND THE GARDEN'S RANGE ----
+   The garden of Ĕḏen is set in the south of Africa (the player's reading;
+   AUDIT Round 107), and the Cave of Treasures under it needs rock to be cut
+   into, as the Zagros gave it before. The Drakensberg: the high basalt wall
+   of KwaZulu-Natal, 3,450 m at Mafadi, cliffs over green valleys. */
+EARTH.landmark({n:"The Drakensberg", lat:-28.95, lon:29.55, kind:'range', elev:3450, r:1700, style:'cliff', secret:1});
 EARTH.landmark({n:"The Simien Mountains", lat:13.19, lon:38.37, kind:'range', elev:4550, r:1500, style:'stony', secret:1});
 EARTH.landmark({n:"The Blue Mountains", lat:18.10, lon:-76.90, kind:'range', elev:2256, r:1400, style:'cliff', secret:1});
 EARTH.landmark({n:"The Northern Range", lat:10.37, lon:-61.33, kind:'range', elev:940, r:1000, style:'cliff', secret:1});

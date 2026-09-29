@@ -151,7 +151,9 @@ T[4]={name:'an overhang exists — solid, air, solid in one column',
     for(const s of D.caveSeeds()){
       for(let dx=-40;dx<=40&&found<1;dx+=3) for(let dz=-40;dz<=40&&found<1;dz+=3){
         const sp=D.cellSpans(s.ix+dx,s.iz+dz); scanned++;
-        if(sp&&sp.length>=2&&sp[0]>0) found++;    /* air with solid under AND over it */
+        /* air with solid under AND over it — any run, not the first: the
+           first is now often a deep worm (Round 105) */
+        if(sp&&sp.length>=2&&sp.some((v,i)=>i%2===0&&v>0)) found++;
       } }
     return {ok:found>0, got:found+' overhangs in '+scanned+' columns'};
   })};
@@ -4363,6 +4365,7 @@ T[57]={name:'the something at the back of the sea caves — there, at the BACK, 
       const sp=D.cellSpans(ix,iz); if(!sp) return null;
       for(let i=0;i<sp.length;i+=2){
         if(sp[i]>4) continue;
+        if(sp[i+1]<=0) continue;            /* the deep worms, as the engine skips them */
         if(sp[i+1]>=c.h-1) return null;
         return {lo:sp[i],hi:sp[i+1]};
       }
@@ -5980,6 +5983,7 @@ T[27]={name:'the sea has cut caves at the waterline, open to the water',
         const sp=D.cellSpans(ix,iz); if(!sp||!sp.length) continue;
         for(let i=0;i<sp.length;i+=2){
           if(sp[i]>4) continue;                     /* not down at the water */
+          if(sp[i+1]<=0) continue;                  /* the deep worms, as the engine skips them */
           atWater++;
           /* and it must have rock over it, or it is a notch and not a cave */
           if(sp[i+1]<c.h-1) openSea++;

@@ -167,6 +167,19 @@ const B = {
   stone:       { b: P.limestone,                               // was flat 125,125,125
                  a: shade(mix(P.limestone,P.rawUmber,0.18),0.88),
                  vein: lift(P.limestone,0.16) },
+  /* --- the houses of the ancient world: sun-dried brick of the land's own
+         earth with the straw still in it, the lime wash over it, and the
+         thatch of the north and of the south --- */
+  mudbrick:    { b: mix(mix(P.ochre, P.rawUmber, 0.55), P.limestone, 0.30),
+                 a: shade(mix(P.ochre, P.rawUmber, 0.65), 0.84),
+                 mortar: shade(mix(P.rawUmber, P.ochre, 0.40), 0.72),
+                 straw: lift(mix(P.saffron, P.bone, 0.35), 0.05) },
+  plaster:     { b: mix(P.lime, P.bone, 0.45),
+                 a: shade(mix(P.lime, P.ochre, 0.18), 0.92),
+                 crack: shade(mix(P.bone, P.rawUmber, 0.25), 0.72) },
+  thatch:      { b: mix(P.ochre, P.saffron, 0.35),
+                 a: shade(mix(P.ochre, P.rawUmber, 0.35), 0.78),
+                 c: lift(mix(P.saffron, P.bone, 0.5), 0.08) },
   /* --- the rock under the sea's level: basalt, dark and close-grained --- */
   deepStone:   { b: mix(P.basalt, P.slate, 0.35),
                  a: shade(P.basalt, 0.80),

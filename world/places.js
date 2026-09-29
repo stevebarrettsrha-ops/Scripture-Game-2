@@ -99,7 +99,7 @@
    49 of hewn-stone floor, 14 of cobble bench, 5 of gold in the back wall and
    299 of stone shell — 495 cells, which is 9 × 5 × 11 exactly. */
 EARTH.place({
-  n:'The Cave of Treasures', at:'The Zagros',
+  n:'The Cave of Treasures', at:'The Drakensberg',   /* under the garden, in the south of Africa (Round 107) */
   dx:0, dy:-3, dz:0,
   w:9, h:5, d:11, keep:true,
   /* ---- THE PALETTE, AND WHY INDEX 0 AND INDEX 1 ARE BOTH AIR ----
