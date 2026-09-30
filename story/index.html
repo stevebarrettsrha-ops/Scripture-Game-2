@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>The Fullness of Time</title>
+<style>
+:root{ --ink:#f3e7c7; --dim:#b9aa86; --gold:#d4af37; --panel:rgba(16,12,8,0.86); --rule:rgba(212,175,55,0.35); }
+*{ box-sizing:border-box; }
+html,body{ margin:0; height:100%; background:#0d0a07; color:var(--ink); font-family:Georgia,'Times New Roman',serif; overflow:hidden; -webkit-user-select:none; user-select:none; }
+button{ font-family:inherit; }
+.off{ display:none !important; }
+#gl{ position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+
+/* ---------- the hub ---------- */
+#hub{ position:fixed; inset:0; overflow-y:auto; padding:28px 16px 40px;
+  background:radial-gradient(ellipse at 50% 0%,#2a2014 0%,#120d08 60%,#0a0705 100%); z-index:20; }
+.hub-in{ max-width:880px; margin:0 auto; }
+.h-title{ text-align:center; letter-spacing:0.28em; font-size:clamp(26px,5vw,44px); color:var(--gold); margin:10px 0 4px; }
+.h-sub{ text-align:center; color:var(--dim); font-style:italic; margin-bottom:6px; }
+.h-verse{ text-align:center; color:var(--ink); max-width:640px; margin:16px auto 6px; line-height:1.5; }
+.h-ref{ text-align:center; color:var(--gold); font-size:13px; letter-spacing:0.12em; margin-bottom:18px; }
+#hub-msg{ text-align:center; color:#9fd79a; min-height:1.3em; margin-bottom:10px; }
+.h-sec{ color:var(--gold); letter-spacing:0.18em; font-size:13px; border-bottom:1px solid var(--rule); padding-bottom:6px; margin:22px 0 10px; }
+#acts{ display:grid; gap:8px; }
+.act{ display:grid; grid-template-columns:52px 1fr auto; grid-template-rows:auto auto; text-align:left; background:rgba(212,175,55,0.05);
+  border:1px solid var(--rule); border-radius:6px; padding:12px 14px; color:var(--ink); cursor:pointer; }
+.act:hover{ border-color:var(--gold); background:rgba(212,175,55,0.1); }
+.act .an{ grid-row:1/3; font-size:22px; color:var(--gold); align-self:center; }
+.act .at{ font-size:18px; } .act .as{ grid-column:2; color:var(--dim); font-size:13px; font-style:italic; }
+.act .ast{ grid-row:1/3; grid-column:3; align-self:center; color:var(--gold); font-size:13px; letter-spacing:0.06em; }
+.act.locked{ opacity:0.5; cursor:default; } .act.done .ast{ color:#9fd79a; }
+.h-links{ display:flex; gap:10px; justify-content:center; margin-top:24px; flex-wrap:wrap; }
+.h-links a,.h-links button{ color:var(--dim); border:1px solid var(--rule); border-radius:5px; padding:8px 14px; text-decoration:none; background:none; font-size:14px; cursor:pointer; }
+.h-how{ color:var(--dim); font-size:13px; line-height:1.55; }
+
+/* ---------- the Codex ---------- */
+.cx{ border:1px solid var(--rule); border-radius:6px; padding:10px 12px; margin-bottom:8px; background:rgba(0,0,0,0.25); }
+.cx-name{ color:var(--gold); margin-bottom:4px; }
+.cx-v{ font-size:14px; line-height:1.5; margin-top:4px; } .cx-v b{ color:var(--gold); font-weight:normal; letter-spacing:0.04em; margin-right:4px; }
+.cx-v.dim{ color:#8a7d62; font-style:italic; } .cx-v.ful{ color:#e9f3d4; }
+.cx.ful{ border-color:var(--gold); box-shadow:0 0 18px rgba(212,175,55,0.18) inset; }
+
+/* ---------- in play ---------- */
+#play{ position:fixed; inset:0; pointer-events:none; z-index:5; }
+#play > *{ pointer-events:auto; }
+#where{ position:fixed; top:12px; left:50%; transform:translateX(-50%); background:var(--panel); border:1px solid var(--rule);
+  padding:5px 16px; border-radius:4px; letter-spacing:0.14em; font-size:13px; color:var(--gold); pointer-events:none; white-space:nowrap; }
+#goal{ position:fixed; top:48px; left:50%; transform:translateX(-50%); background:rgba(40,30,12,0.88); border:1px solid var(--gold);
+  padding:7px 16px; border-radius:4px; font-size:15px; max-width:92vw; text-align:center; pointer-events:none; }
+.topbtns{ position:fixed; top:10px; right:10px; display:flex; gap:6px; }
+.topbtns button{ background:var(--panel); color:var(--ink); border:1px solid var(--rule); border-radius:5px; padding:7px 11px; font-size:13px; cursor:pointer; }
+#verse{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%); width:min(760px,94vw); background:var(--panel);
+  border:1px solid var(--rule); border-radius:8px; padding:14px 18px 12px; cursor:pointer; box-shadow:0 8px 30px rgba(0,0,0,0.5); }
+#verse .who{ color:var(--gold); letter-spacing:0.14em; font-size:13px; text-transform:uppercase; margin-bottom:6px; }
+#verse .who.narr{ color:var(--dim); }
+#v-text{ font-size:clamp(16px,2.2vw,20px); line-height:1.55; }
+#v-ref{ margin-top:8px; text-align:right; color:var(--gold); font-size:12px; letter-spacing:0.14em; }
+.vtap{ position:absolute; left:18px; bottom:10px; font-size:11px; color:#7f7258; }
+#card{ position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; cursor:pointer; padding:24px; }
+#card.title{ background:rgba(8,6,4,0.72); } #card.note,#card.you{ background:rgba(8,6,4,0.55); }
+#card .ttl{ font-size:clamp(26px,5vw,46px); letter-spacing:0.22em; color:var(--gold); }
+#card .sub{ margin-top:10px; color:var(--dim); font-style:italic; font-size:clamp(15px,2vw,19px); }
+#card .note-h,#eras .note-h{ color:var(--gold); letter-spacing:0.16em; font-size:12px; text-transform:uppercase; margin-bottom:10px; }
+#card .you{ color:#9fc7e0; letter-spacing:0.16em; font-size:12px; text-transform:uppercase; margin-bottom:10px; }
+#card .note,#eras .note{ max-width:620px; font-size:clamp(16px,2vw,19px); line-height:1.6; background:var(--panel); border:1px solid var(--rule); border-radius:6px; padding:16px 20px; }
+.tap{ margin-top:18px; color:#8a7d62; font-size:12px; letter-spacing:0.14em; }
+#choice{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%); width:min(560px,94vw); display:flex; flex-direction:column; gap:8px; }
+#choice .c-h{ color:#9fc7e0; letter-spacing:0.16em; font-size:12px; text-transform:uppercase; text-align:center; }
+#choice button{ background:var(--panel); color:var(--ink); border:1px solid var(--rule); border-radius:6px; padding:12px 14px; font-size:16px; cursor:pointer; text-align:left; }
+#choice button:hover{ border-color:#9fc7e0; }
+#prompt{ position:fixed; left:50%; bottom:130px; transform:translateX(-50%); background:rgba(40,30,12,0.92); border:1px solid var(--gold); border-radius:5px; padding:8px 16px; overflow:hidden; }
+#prompt-t{ position:relative; z-index:1; } #hold{ position:absolute; left:0; bottom:0; height:3px; width:0; background:var(--gold); }
+#toast{ position:fixed; top:90px; left:50%; transform:translateX(-50%) translateY(-10px); background:rgba(40,30,12,0.95); border:1px solid var(--gold);
+  border-radius:5px; padding:9px 16px; opacity:0; transition:opacity .4s, transform .4s; pointer-events:none; color:var(--gold); max-width:92vw; text-align:center; }
+#toast.on{ opacity:1; transform:translateX(-50%) translateY(0); }
+#fulfil{ position:fixed; inset:0; background:rgba(6,5,3,0.84); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:18px; z-index:30; cursor:pointer; }
+.f-h{ color:var(--gold); letter-spacing:0.3em; font-size:clamp(20px,3.6vw,32px); margin-bottom:4px; text-shadow:0 0 18px rgba(212,175,55,0.6); }
+#f-name{ color:var(--dim); font-style:italic; margin-bottom:18px; }
+.f-cols{ display:grid; grid-template-columns:1fr 1fr; gap:14px; max-width:900px; width:100%; }
+.f-col{ background:var(--panel); border:1px solid var(--gold); border-radius:8px; padding:14px 16px; }
+.f-col .lab{ color:var(--dim); letter-spacing:0.14em; font-size:11px; text-transform:uppercase; }
+.f-col .ref{ color:var(--gold); letter-spacing:0.12em; font-size:13px; margin:4px 0 8px; }
+.f-col .txt{ line-height:1.55; font-size:clamp(15px,1.9vw,18px); }
+@media (max-width:640px){ .f-cols{ grid-template-columns:1fr; } }
+#codex{ position:fixed; right:10px; top:52px; bottom:10px; width:min(420px,94vw); overflow-y:auto; background:var(--panel); border:1px solid var(--rule); border-radius:8px; padding:12px; z-index:25; }
+#codex .ch{ display:flex; justify-content:space-between; color:var(--gold); letter-spacing:0.16em; font-size:13px; margin-bottom:10px; }
+#codex .ch button{ background:none; border:1px solid var(--rule); color:var(--ink); border-radius:4px; cursor:pointer; }
+#eras{ position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:min(820px,94vw); cursor:pointer; text-align:center; background:rgba(12,9,6,0.5); padding:14px 16px; border-radius:8px; }
+.era-bar{ display:flex; height:42px; border-radius:6px; overflow:hidden; border:1px solid var(--rule); margin-bottom:6px; }
+.era{ display:flex; align-items:center; justify-content:center; opacity:0.35; transition:opacity .6s; font-size:13px; color:#fff; overflow:hidden; white-space:nowrap; }
+.era.past{ opacity:0.6; } .era.on{ opacity:1; box-shadow:0 0 0 2px var(--gold) inset; }
+.era-axis{ display:flex; justify-content:space-between; color:var(--dim); font-size:12px; margin-bottom:14px; }
+#fade{ position:fixed; inset:0; background:#000; opacity:0; pointer-events:none; z-index:40; }
+/* touch */
+#joy{ position:fixed; left:22px; bottom:22px; width:120px; height:120px; border-radius:50%; border:1px solid var(--rule); background:rgba(0,0,0,0.18); touch-action:none; display:none; }
+#knob{ position:absolute; left:38px; top:38px; width:44px; height:44px; border-radius:50%; background:rgba(212,175,55,0.35); border:1px solid var(--gold); }
+#actbtn{ position:fixed; right:22px; bottom:150px; width:74px; height:74px; border-radius:50%; background:rgba(40,30,12,0.85); border:1px solid var(--gold); color:var(--gold); font-size:15px; display:none; }
+@media (pointer:coarse){ #joy,#actbtn{ display:block; } }
+#keys{ position:fixed; left:10px; bottom:10px; color:#8a7d62; font-size:11px; pointer-events:none; }
+@media (pointer:coarse){ #keys{ display:none; } }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div id="hub">
+  <div class="hub-in">
+    <div class="h-title">THE FULLNESS OF TIME</div>
+    <div class="h-sub">From the promise of Yahshayahu to the end of the earth</div>
+    <div class="h-verse" id="h-verse"></div>
+    <div class="h-ref" id="h-ref"></div>
+    <div id="hub-msg"></div>
+    <div class="h-sec">THE ROAD</div>
+    <div id="acts"></div>
+    <div class="h-sec">THE PROPHECY CODEX — YOUR FAMILY SCROLL</div>
+    <div id="hub-codex"></div>
+    <div class="h-sec">HOW IT IS WALKED</div>
+    <div class="h-how">
+      You walk among the events as a witness. Named figures say only what the Besorah says — every word is the Besorah’s,
+      with its reference beneath it; your own lines are your reactions, and are marked as yours. Notes on dates and empires are history,
+      and marked as notes.<br><br>
+      <b>Move</b> W A S D or the arrow keys (touch: the stick) · <b>look</b> drag the view, Q / R to turn · <b>run</b> Shift ·
+      <b>do what is asked</b> E (touch: the round button) — some things are held · <b>continue</b> Enter, Space or tap · <b>the Codex</b> J
+    </div>
+    <div class="h-links">
+      <a href="../index.html">⚓ Back to the Voyage</a>
+      <button id="h-reset">Begin the road again</button>
+    </div>
+  </div>
+</div>
+
+<div id="play" class="off">
+  <div id="where"></div>
+  <div id="goal" class="off"></div>
+  <div class="topbtns"><button id="b-codex">📜 Codex</button><button id="b-hub">☰ The road</button></div>
+  <div id="verse" class="off"><div class="who" id="v-who"></div><div id="v-text"></div><div id="v-ref"></div><div class="vtap">continue ▸</div></div>
+  <div id="card" class="off"></div>
+  <div id="eras" class="off"></div>
+  <div id="choice" class="off"></div>
+  <div id="prompt" class="off"><span id="prompt-t"></span><div id="hold"></div></div>
+  <div id="joy"><div id="knob"></div></div>
+  <button id="actbtn">E</button>
+  <div id="keys">WASD move · drag to look · E act · Enter continue · J Codex</div>
+</div>
+<div id="toast"></div>
+<div id="codex" class="off"><div class="ch"><span>THE PROPHECY CODEX</span><button onclick="document.getElementById('codex').classList.add('off')">✕</button></div><div id="codex-list"></div></div>
+<div id="fulfil" class="off">
+  <div class="f-h">FULFILLED</div>
+  <div id="f-name"></div>
+  <div class="f-cols">
+    <div class="f-col"><div class="lab">The promise — in your family scroll</div><div class="ref" id="f-pref"></div><div class="txt" id="f-ptext"></div></div>
+    <div class="f-col"><div class="lab">The promise kept</div><div class="ref" id="f-fref"></div><div class="txt" id="f-ftext"></div></div>
+  </div>
+  <div class="tap">continue ▸</div>
+</div>
+<div id="fade"></div>
+
+<script src="../three.min.js"></script>
+<script src="world.js"></script>
+<script src="settings.js"></script>
+<script src="engine.js"></script>
+<script src="scripture.js"></script>
+<script src="acts/00-codex.js"></script>
+<script src="acts/01-prologue.js"></script>
+<script src="acts/02-bridge.js"></script>
+<script src="acts/03-coming.js"></script>
+<script src="acts/09-to-come.js"></script>
+<script>
+  /* the verse the whole game is named for, in the Besorah's own words */
+  (function(){ const r='GALATIANS 4:4', e=STORY.text[r];
+    if(e){ document.getElementById('h-verse').textContent=e.t; document.getElementById('h-ref').textContent=r; } })();
+  document.getElementById('h-reset').onclick=()=>{ if(confirm('Wash the family scroll clean and begin the road again?')) window.__STORY.reset(); };
+  document.getElementById('fulfil').addEventListener('click',()=>window.__STORY.advance());
+  STORY.boot();
+</script>
+</body>
+</html>
