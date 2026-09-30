@@ -73,7 +73,7 @@ EARTH.work({
   of:{ 'stone':1 }, gives:{ 'hewn-stone':1 },
   needs:'pick',
   verse:{ t:'And the House, when it was being built, was built with finished stone made ready beforehand, so that no hammer or chisel or any iron tool was heard in the House while it was being built.',
-          ref:'MELAKIM ALEPH 6:7' }
+          ref:'1 MALAḴIM 6:7' }
 });
 
 /* --- COURSED STONE — the mason's work, dressed and laid --- */
@@ -81,7 +81,7 @@ EARTH.work({
   id:'course-stone', name:'Lay Stone in Courses',
   of:{ 'hewn-stone':4 }, gives:{ 'cobble':4 },
   verse:{ t:'And the sovereign commanded and they brought large stones, precious stones, to lay the foundation of the House with hewn stones.',
-          ref:'MELAKIM ALEPH 5:17' }
+          ref:'1 MALAḴIM 5:17' }
 });
 
 /* --- THE ALTAR OF UNHEWN STONE — and it refuses the hewn ---
@@ -93,9 +93,9 @@ EARTH.work({
   of:{ 'stone':12 }, gives:{ 'altar':1 },
   refuses:{ id:'hewn-stone',
             why:{ t:"And if you make Me an mizbe'ach of stone, do not build it of cut stone",
-                  ref:'SHEMOTH 20:25' } },
+                  ref:'SHAMOTH 20:25' } },
   verse:{ t:"And if you make Me an mizbe'ach of stone, do not build it of cut stone",
-          ref:'SHEMOTH 20:25' }
+          ref:'SHAMOTH 20:25' }
 });
 
 /* --- KNIVES OF FLINT — commanded by name, and the sharpest edge there is --- */
@@ -103,7 +103,7 @@ EARTH.work({
   id:'flint-knife', name:'Knives of Flint',
   of:{ 'flint':2, 'planks':1 }, gives:{ 'flint-knife':1 },
   verse:{ t:'Make knives of flint for yourself and circumcise the sons of Yasharal again the second time.',
-          ref:'YEHOSHUA 5:2' }
+          ref:'YAHUSHA 5:2' }
 });
 
 /* --- AND THE REST OF THE TOOLS, of the same stone and the same wood ---
@@ -208,7 +208,7 @@ EARTH.work({
   id:'bench', name:'A Carpenter\'s Bench',
   of:{ 'planks':4, 'log':2 }, gives:{ 'bench':1 },
   verse:{ t:'And Shelomoh’s builders and Ḥiram’s builders and the men of Geḇal did hew and prepared timber and stones to build the House.',
-          ref:'MELAKIM ALEPH 5:18' }
+          ref:'1 MALAḴIM 5:18' }
 });
 
 /* --- PANELLING — the plank dressed and fitted, which wants a bench ---
@@ -220,7 +220,7 @@ EARTH.work({
   id:'panelling', name:'Dress Boards', at:'bench',
   of:{ 'planks':4 }, gives:{ 'panel':4 },
   verse:{ t:'And he built the walls of the House inside with cedar boards, from the floor of the House to the ceiling he panelled them on the inside with wood and covered the floor of the House with planks of cypress.',
-          ref:'MELAKIM ALEPH 6:15' }
+          ref:'1 MALAḴIM 6:15' }
 });
 
 /* --- CARVED WORK — the second remove, and the first work in this world
@@ -232,7 +232,7 @@ EARTH.work({
   of:{ 'panel':1 }, gives:{ 'carved-panel':1 },
   needs:'knife',
   verse:{ t:'And he carved all the walls of the House all around, both inside and outside, with carved figures of keruḇim and palm trees and open flowers.',
-          ref:'MELAKIM ALEPH 6:29' }
+          ref:'1 MALAḴIM 6:29' }
 });
 /* --- THE FURNACE — built of the kiln's own brick, at the kiln's own fire ---
    The first time one work's product is another work's material, which is
@@ -243,12 +243,12 @@ EARTH.work({
   id:'furnace', name:'A Furnace', at:'kiln',
   of:{ 'brick':8 }, gives:{ 'furnace':1 },
   verse:{ t:'“But (YAHUAH) HWHY has taken you and brought you out of the iron furnace, out of Mitsrayim, to be His people, an inheritance, as it is today.',
-          ref:'DEḆARIM 4:20' }
+          ref:'DAḆARIM 4:20' }
 });
 
 /* ---------------- AND THE WORKS OF THE FURNACE ---------------- */
 
-/* --- SMELTING — the ore of DEḆARIM 8:9's hills becomes the metal ---
+/* --- SMELTING — the ore of DAḆARIM 8:9's hills becomes the metal ---
    The head of this file has said since Phase 4 that "the metal wants a
    fire hotter than a kiln and a work of its own." This is that work.
    IRON ONLY, and the restraint is the point: copper's metal waits until a

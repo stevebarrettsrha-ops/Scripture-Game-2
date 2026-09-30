@@ -12,5 +12,5 @@ EARTH.block({
   tool:'pick', drops:'jasper',
   opaque:true, gravity:false,
   verse:{ t:'the fourth row is a beryl and a shoham and a jasper. They are set in gold settings.',
-          ref:'SHEMOTH 28:20' }
+          ref:'SHAMOTH 28:20' }
 });

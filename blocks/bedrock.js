@@ -15,5 +15,5 @@ EARTH.block({
   place:false,
   opaque:true, gravity:false,
   verse:{ t:'Where were you when I laid the foundations of the earth? Declare, if you have understanding.',
-          ref:'IYOB 38:4' }
+          ref:'IYOḆ 38:4' }
 });

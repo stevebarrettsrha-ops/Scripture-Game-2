@@ -95,7 +95,7 @@ EARTH.mineral({
   lo:8, hi:40,
   often:0.030,
   verse:{ t:'a land whose stones are iron and out of whose hills you dig copper.',
-          ref:'DEḆARIM 8:9' }
+          ref:'DAḆARIM 8:9' }
 });
 
 /* --- IRON — the commonest of the metals worth the digging --- */
@@ -107,7 +107,7 @@ EARTH.mineral({
   lo:6, hi:56,
   often:0.026,
   verse:{ t:'a land whose stones are iron and out of whose hills you dig copper.',
-          ref:'DEḆARIM 8:9' }
+          ref:'DAḆARIM 8:9' }
 });
 
 /* --- SILVER — the metal a thing is weighed against --- */
@@ -138,7 +138,7 @@ EARTH.mineral({
          'United Kingdom','France','Denmark','Germany','Poland','Belgium'],
   lo:3, hi:30,
   often:0.034,
-  verse:{ t:'who brought water for you out of the flinty rock', ref:'DEḆARIM 8:15' }
+  verse:{ t:'who brought water for you out of the flinty rock', ref:'DAḆARIM 8:15' }
 });
 
 /* --- SALT — the Valley of Siddim, that is the Salt Sea ---
@@ -201,7 +201,7 @@ EARTH.mineral({
   lands:['Israel','Yasharal','Turkey','Iran','India','Afghanistan','Sri Lanka',
          'Myanmar','Ethiopia','Kenya','Madagascar','Australia'],
   lo:6, hi:120, often:0.055,
-  verse:{ t:'the second row is a turquoise, a sapphire and a diamond;', ref:'SHEMOTH 28:18' }
+  verse:{ t:'the second row is a turquoise, a sapphire and a diamond;', ref:'SHAMOTH 28:18' }
 });
 EARTH.mineral({
   id:'jasper', block:'jasper', in:'chamber', room:8,
@@ -209,33 +209,33 @@ EARTH.mineral({
          'Turkey','Greece','Italy','Spain','India','Brazil','United States of America'],
   lo:4, hi:120, often:0.070,
   verse:{ t:'the fourth row is a beryl and a shoham and a jasper. They are set in gold settings.',
-          ref:'SHEMOTH 28:20' }
+          ref:'SHAMOTH 28:20' }
 });
 EARTH.mineral({
   id:'topaz', block:'topaz', in:'chamber', room:8,
   lands:['Egypt','Ethiopia','Brazil','Russia','Pakistan','Nigeria','Mexico','Australia',
          'United States of America','Japan','Argentina'],
   lo:8, hi:120, often:0.048,
-  verse:{ t:'The first row is a ruby, a topaz and an emerald;', ref:'SHEMOTH 28:17' }
+  verse:{ t:'The first row is a ruby, a topaz and an emerald;', ref:'SHAMOTH 28:17' }
 });
 EARTH.mineral({
   id:'shoham', block:'shoham', in:'chamber', room:8,
   lands:['Yemen','Oman','Saudi Arabia','Egypt','Sudan','Ethiopia','India','Brazil'],
   lo:6, hi:120, often:0.052,
   verse:{ t:'the fourth row is a beryl and a shoham and a jasper. They are set in gold settings.',
-          ref:'SHEMOTH 28:20' }
+          ref:'SHAMOTH 28:20' }
 });
 EARTH.mineral({
   id:'emerald', block:'emerald', in:'chamber', room:8,
   lands:['Egypt','Ethiopia','Colombia','Brazil','Zambia','Afghanistan','Pakistan','Russia',
          'Switzerland','Tanzania','South Africa'],
   lo:10, hi:120, often:0.052,
-  verse:{ t:'The first row is a ruby, a topaz and an emerald;', ref:'SHEMOTH 28:17' }
+  verse:{ t:'The first row is a ruby, a topaz and an emerald;', ref:'SHAMOTH 28:17' }
 });
 EARTH.mineral({
   id:'ruby', block:'ruby', in:'chamber', room:8,
   lands:['Myanmar','Sri Lanka','Thailand','India','Afghanistan','Kenya','Tanzania','Madagascar',
          'Nepal','China'],
   lo:10, hi:120, often:0.050,
-  verse:{ t:'The first row is a ruby, a topaz and an emerald;', ref:'SHEMOTH 28:17' }
+  verse:{ t:'The first row is a ruby, a topaz and an emerald;', ref:'SHAMOTH 28:17' }
 });

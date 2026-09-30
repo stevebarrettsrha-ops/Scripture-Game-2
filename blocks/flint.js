@@ -20,5 +20,5 @@ EARTH.block({
   tool:'spade', drops:'flint',
   opaque:true, gravity:false,
   verse:{ t:'who brought water for you out of the flinty rock',
-          ref:'DEḆARIM 8:15' }
+          ref:'DAḆARIM 8:15' }
 });

@@ -12,5 +12,5 @@ EARTH.block({
   tool:'pick', drops:'ruby',
   opaque:true, gravity:false,
   verse:{ t:'The first row is a ruby, a topaz and an emerald;',
-          ref:'SHEMOTH 28:17' }
+          ref:'SHAMOTH 28:17' }
 });

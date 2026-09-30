@@ -11,5 +11,5 @@ EARTH.block({
   tool:'pick', drops:'copper-ore',
   opaque:true, gravity:false,
   verse:{ t:'a land whose stones are iron and out of whose hills you dig copper.',
-          ref:'DEḆARIM 8:9' }
+          ref:'DAḆARIM 8:9' }
 });

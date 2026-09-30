@@ -14,5 +14,5 @@ EARTH.block({
   tool:'pick', drops:'hewn-stone',
   opaque:true, gravity:false,
   verse:{ t:'And the sovereign commanded and they brought large stones, precious stones, to lay the foundation of the House with hewn stones.',
-          ref:'MELAKIM ALEPH 5:17' }
+          ref:'1 MALAḴIM 5:17' }
 });

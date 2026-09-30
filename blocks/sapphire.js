@@ -12,5 +12,5 @@ EARTH.block({
   tool:'pick', drops:'sapphire',
   opaque:true, gravity:false,
   verse:{ t:'the second row is a turquoise, a sapphire and a diamond;',
-          ref:'SHEMOTH 28:18' }
+          ref:'SHAMOTH 28:18' }
 });

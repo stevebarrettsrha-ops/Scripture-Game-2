@@ -119,8 +119,8 @@ EARTH.scroll({ id:'flood', book:'BERĔSHITH', name:'THE SCROLL OF THE FLOOD',
   words:'Forty days of rain, and a world gone under the waters — and on these heights the ark of Noaḥ came to rest, and the earth was given back.' });
 
 EARTH.scroll({ id:'babel', book:'BERĔSHITH', name:'THE SCROLL OF THE TOWER',
-  country:'Iraq', bearing:0.5, at:{ landmark:'Babel — Etemenanki of Babylon' },
-  verse:{ t:'That is why its name was called Baḇal, because there (YAHUAH) HWHY confused the language of all the earth and from there (YAHUAH) HWHY scattered them over the face of all the earth.',
+  country:'Iraq', bearing:0.5, at:{ landmark:'Baḇal (Baḇylon) — Etemenanki' },
+  verse:{ t:'That is why its name was called Baḇal (Baḇylon), because there (YAHUAH) HWHY confused the language of all the earth and from there (YAHUAH) HWHY scattered them over the face of all the earth.',
           ref:'BERĔSHITH 11:9' },
   words:'Here men of one speech built a tower to reach the shamayim, and here their tongues were confused and they were scattered over all the earth.' });
 
@@ -167,7 +167,7 @@ EARTH.scroll({ id:'nebo', book:'DAḆARIM', name:'THE SCROLL OF MOUNT NEḆO',
   words:'After forty years in the wilderness, Mosheh went up and was shown the whole land of promise — and died there, looking on it.' });
 
 EARTH.scroll({ id:'yericho', book:'YAHUSHA', name:'THE SCROLL OF YAHRIḤO',
-  country:'Yahudah', bearing:4.8, at:{ landmark:'The Walls of Yericho' },
+  country:'Yahudah', bearing:4.8, at:{ landmark:'The Walls of Yahriḥo' },
   verse:{ t:'And the people shouted when the kohanim blew the horns. And it came to be when the people heard the sound of the horn and the people shouted with a great shout, that the wall fell down flat. And the people went up into the city, every man straight before him and they captured the city.',
           ref:'YAHUSHA 6:20' },
   words:'Seven days they went round the city in silence, and on the seventh the horns sounded, the people shouted, and the walls fell flat.' });
@@ -191,13 +191,13 @@ EARTH.scroll({ id:'karmel', book:'1 MALAḴIM', name:'THE SCROLL OF KARMEL',
   words:'Eliyahu alone against the prophets of Baʽal on the mountain, the altar drenched with water — and the fire fell.' });
 
 EARTH.scroll({ id:'yonah', book:'YONAH', name:'THE SCROLL OF YONAH',
-  country:'Iraq', bearing:1.4, at:{ landmark:'The Gates of Nineveh' },
+  country:'Iraq', bearing:1.4, at:{ landmark:'The Gates of Ninewĕh' },
   verse:{ t:'And the men of Ninewĕh believed in Aluahim and proclaimed a fast and put on sackcloth, from the greatest to the least of them.',
           ref:'YONAH 3:5' },
   words:'The prophet who fled by sea and was swallowed by a great fish came at last to the gates of Ninewĕh — and the great city turned.' });
 
 EARTH.scroll({ id:'danial', book:'DANI\'AL', name:'THE SCROLL OF DANI’AL',
-  country:'Iraq', bearing:3.6, at:{ landmark:'Babel — Etemenanki of Babylon' },
+  country:'Iraq', bearing:3.6, at:{ landmark:'Baḇal (Baḇylon) — Etemenanki' },
   verse:{ t:'“My Al has sent His mal\'ak and has shut the lions’ mouths and they did not harm me, because I was found innocent before Him. And also before you, O sovereign, I have done no harm.”',
           ref:'DANI\'AL 6:22' },
   words:'Carried away to Baḇel, faithful in the court of its kings, thrown to the lions — and the lions’ mouths were shut.' });

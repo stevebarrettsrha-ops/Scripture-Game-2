@@ -20,5 +20,5 @@ EARTH.block({
   tool:'axe', drops:'carved-panel',
   opaque:true, gravity:false,
   verse:{ t:'And he carved all the walls of the House all around, both inside and outside, with carved figures of keruḇim and palm trees and open flowers.',
-          ref:'MELAKIM ALEPH 6:29' }
+          ref:'1 MALAḴIM 6:29' }
 });

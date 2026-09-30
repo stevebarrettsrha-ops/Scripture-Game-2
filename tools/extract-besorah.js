@@ -28,7 +28,7 @@
    its name, which is the only honest way to find the one you want. A
    reference this file does not have is an error and prints as one: a verse
    that cannot be sourced does not ship. */
-const fs=require('fs'), path=require('path');
+const fs=require('fs'), path=require('path'), vm=require('vm');
 
 const SRC=path.join(__dirname,'..','BESORAH - SCRIPTURAL','besorah-offline (1).html');
 
@@ -40,8 +40,21 @@ function load(){
   const s=fs.readFileSync(SRC,'utf8');
   const m=s.match(/<script[^>]*id=["']text-data["'][^>]*>([\s\S]*?)<\/script>/);
   if(!m){ console.error('no <script id="text-data"> in the Besorah'); process.exit(2); }
+  /* ---- AND THE BESORAH'S OWN HANDS ON ITS OWN TEXT ----
+     The Besorah is the director of this game: what it SHOWS is the text, not
+     merely what it stores. Its reader passes every verse through its own
+     word repair (BesorahWords) and answers old book ids with new ones
+     (BesorahIds). Those two modules are taken out of the file and RUN here,
+     unchanged, so a verse checked by this tool is the verse a reader of the
+     Besorah sees — and a new edition brings its own rules with it. */
+  const box={}; box.window=box; vm.createContext(box);
+  const re=/<script(?![^>]*text-data)[^>]*>([\s\S]*?)<\/script>/g; let q;
+  while((q=re.exec(s))) if(/BesorahWords =|BesorahIds =/.test(q[1])) vm.runInContext(q[1],box);
+  WORDS=box.BesorahWords||null; IDS=box.BesorahIds||null;
   return JSON.parse(m[1]);
 }
+let WORDS=null, IDS=null;
+function shown(t){ return plain(WORDS&&WORDS.repair?WORDS.repair(t):t); }
 
 /* the site's own markup for the Names, and nothing else, taken off */
 function plain(t){
@@ -53,20 +66,14 @@ function plain(t){
     .trim();
 }
 
-/* ---- THE PROJECT'S OWN NAMES FOR THE BOOKS ----
-   THE NAMES IN THIS GAME DO NOT CHANGE. The Besorah spells some books
-   differently from the way this project has spelled them since its first
-   round — DAḆARIM against DEḆARIM, YAHAZQ'AL against YEḤEZQAL, 1 MALAḴIM
-   against MELAKIM ALEPH — and the answer to that is NOT to go through the
-   world rewriting references. A reader who has seen DEḆARIM on a block since
-   the beginning should go on seeing it.
-
-   So the difference is reconciled HERE, once, in the tool. The source is
-   consulted for the WORDS OF THE VERSE, which must be exact; the NAME the
-   game prints is the project's own. Every alias below is a spelling of the
-   same book, and nothing else may be added to this table — an alias that
-   pointed at a different book would be a wrong reference wearing a right
-   one's name, which is the very thing this tool exists to prevent. */
+/* ---- THE BESORAH NAMES THE BOOKS (Round 109) ----
+   The Besorah is the director of this game: it decides what is said AND how
+   every name is spelled. The project once kept spellings of its own (DEḆARIM
+   against the Besorah's DAḆARIM, MELAKIM ALEPH against 1 MALAḴIM) and
+   reconciled them here; every reference in the world now uses the Besorah's
+   own name for its book. The table below is kept only so that an OLD
+   spelling still RESOLVES — to the same book, never to another — and so a
+   reference written the old way is found and can be put right. */
 const ALIAS={
   'deḇarim':'dabarim',   'debarim':'dabarim',    /* Deuteronomy */
   'yeḥezqal':'yahazqal', 'yehezqal':'yahazqal',  /* Ezekiel */
@@ -93,6 +100,7 @@ function resolve(TEXT,ref){
   const m=String(ref).match(/^\s*(.+?)\s+(\d+)\s*:\s*(\d+)\s*(?:[-–—]\s*(\d+))?\s*$/);
   if(!m) return {err:'not a reference: '+ref+'  (wanted e.g. "Shamoth 20:25")'};
   let want=norm(m[1]); if(ALIAS[want]) want=ALIAS[want];
+  if(IDS&&IDS.resolve){ const r=IDS.resolve(want); if(r) want=norm(r); }   /* the Besorah's own renames */
   const ch=m[2], v0=parseInt(m[3],10), v1=m[4]?parseInt(m[4],10):null;
   let book=null;
   for(const k of Object.keys(TEXT)){ const b=TEXT[k];
@@ -104,7 +112,7 @@ function resolve(TEXT,ref){
   for(let v=v0;v<=(v1===null?v0:v1);v++){
     const row=(c.verses||[]).find(q=>q.n===v);
     if(!row) return {err:'no verse '+v+' in '+(book.hebrew||book.english)+' '+ch};
-    parts.push(plain(row.t));
+    parts.push(shown(row.t));
   }
   /* AND THE REFERENCE COMES BACK IN THE NAME IT WAS ASKED IN. A tool that
      quietly answered "DAḆARIM" to a question about "DEḆARIM" would walk its
@@ -141,7 +149,7 @@ if(args[0]==='--find'){
   for(const k of Object.keys(TEXT)){ const b=TEXT[k];
     for(const ch of Object.keys(b.chapters||{})){
       for(const row of b.chapters[ch].verses||[]){
-        const t=plain(row.t);
+        const t=shown(row.t);
         if(norm(t).indexOf(needle)<0) continue;
         n++;
         console.log((b.hebrew||b.english)+' '+ch+':'+row.n);
@@ -193,7 +201,7 @@ if(args[0]==='--emit'){
     const chapters={};
     let verses=0;
     for(const ch of Object.keys(b.chapters||{})){
-      chapters[ch]=(b.chapters[ch].verses||[]).map(r=>{ verses++; return [r.n,plain(r.t)]; });
+      chapters[ch]=(b.chapters[ch].verses||[]).map(r=>{ verses++; return [r.n,shown(r.t)]; });
     }
     const body='BESORAH.book('+JSON.stringify({ id:out, hebrew:b.hebrew, english:b.english,
       section:b.section, chapters })+');\n';
@@ -264,10 +272,13 @@ if(args[0]==='--check'){
     if(k==='mineralList'||k==='blockList') return [];
     return (...a)=>{ for(const x of a) collect(x); }; } });
   const win={EARTH};
+  /* the palette is read for colours only: any depth of it answers a number,
+     so a block file that tints itself from it loads and has its verse read */
+  const PAL=new Proxy(function(){ return 0; },{ get:(t,k)=>k===Symbol.toPrimitive?(()=>0):PAL, apply:()=>0 });
   for(const f of files){
     const src=fs.readFileSync(f,'utf8');
     try{ new Function('EARTH','window','MANIFEST','PALETTE','document','console',src)
-      (EARTH,win,{load:()=>{}},{},{createElement:()=>({getContext:()=>({})})},console); }
+      (EARTH,win,{load:()=>{}},PAL,{createElement:()=>({getContext:()=>({})})},console); }
     catch(e){ /* a file that needs more of the world than this is skipped, and
                  says so, rather than being silently counted as clean */
       console.log('SKIP   '+path.relative(path.join(__dirname,'..'),f)+'  ('+e.message+')'); }
