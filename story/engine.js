@@ -66,7 +66,7 @@ function buildScene(sc){
   scene=new THREE.Scene();
   hemi=new THREE.HemisphereLight(0xdfe6ff,0x6b5a44,0.6); scene.add(hemi);
   sun=new THREE.DirectionalLight(0xffffff,1); sun.position.set(-80,140,60); scene.add(sun);
-  ctx={scene,colliders:[],markers:{},actors:{},things:{},glows:{},water:[],flicker:[],flock:[],groundY:()=>0,bounds:null};
+  ctx={scene,colliders:[],markers:{},actors:{},things:{},glows:{},water:[],flicker:[],flock:[],groundY:()=>0,bounds:null,wind:[0.5,0.2]};
   const st=new window.STORYWORLD.Static();
   const build=window.STORYSETTINGS[sc.place];
   if(!build) throw new Error('no such place: '+sc.place);
@@ -79,7 +79,9 @@ function buildScene(sc){
     const g=window.STORYWORLD.person(ctx,a);
     const p=pos(a.at); g.position.set(p[0],ctx.groundY(p[0],p[1]),p[1]);
     g.rotation.y=a.face!==undefined?a.face:0;
-    g.userData.id=a.id; g.userData.name=a.name; g.userData.target=null; g.userData.follow=null;
+    g.userData.id=a.id; g.userData.name=a.name; g.userData.target=null; g.userData.follow=null; g.userData.def=a;
+    if(a.y!==undefined){ g.userData.fixedY=a.y; g.position.y=a.y; }
+    if(a.hidden) g.visible=false;
     if(a.name) g.userData.label=makeLabel(a.name,g);
     ctx.actors[a.id]=g; }
   /* the things a witness may lay a hand on */
@@ -88,6 +90,7 @@ function buildScene(sc){
     if(t.kind==='lamb') obj=window.STORYWORLD.sheep(ctx,p[0],p[1],true);
     else if(t.kind==='camel') obj=window.STORYWORLD.camel(ctx,p[0],p[1]);
     else if(t.kind==='donkey') obj=window.STORYWORLD.donkey(ctx,p[0],p[1]);
+    else if(t.kind==='dove'){ obj=window.STORYWORLD.dove(ctx,p[0],t.y||12,p[1]); if(t.hidden) obj.visible=false; }
     else { obj=new THREE.Mesh(new THREE.BoxGeometry(t.w||0.5,t.h||0.5,t.d||0.5),new THREE.MeshLambertMaterial({color:t.color||0xc9b38a}));
       obj.position.set(p[0],(t.y||0)+(t.h||0.5)/2,p[1]); scene.add(obj); }
     if(t.face!==undefined) obj.rotation.y=t.face;
@@ -96,7 +99,9 @@ function buildScene(sc){
   for(const gl of sc.glows||[]){
     const p=gl.at.length===3?gl.at:[...pos(gl.at).slice(0,1),gl.y||2,pos(gl.at)[1]];
     const G=window.STORYWORLD.glow(ctx,p[0],p[1],p[2],gl.size||3,gl.color,gl.intensity===undefined?1.2:gl.intensity);
+    if(gl.h){ G.sprite.scale.set(gl.size||3,gl.h,1); }
     G.visible=!gl.hidden; G.pulse=gl.pulse; ctx.glows[gl.id]=G; }
+  ctx.drifts=[];
   if(sc.host){ ctx.host=[]; const h=sc.host;                     /* the heavenly host */
     for(let k=0;k<h.n;k++){ const a=k/h.n*Math.PI*2, r=h.r*(0.5+0.5*Math.random());
       const G=window.STORYWORLD.glow(ctx,h.at[0]+Math.cos(a)*r,h.y+Math.random()*h.h,h.at[1]+Math.sin(a)*r,1.2+Math.random()*1.2,0xfff4d8,0);
@@ -132,6 +137,7 @@ window.addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code==='KeyE'||e.code==='KeyF'){ if(!actHeld) actPressed=true; actHeld=true; }
   if(e.code==='Enter'||e.code==='Space'){ advance(); e.preventDefault(); }
   if(e.code==='KeyJ') toggleCodex();
+  if(e.code==='KeyV') toggleVoice();
   if(e.code==='Escape') closePanels(); });
 window.addEventListener('keyup',e=>{ keys[e.code]=false; if(e.code==='KeyE'||e.code==='KeyF') actHeld=false; });
 function wireInput(){
@@ -152,7 +158,8 @@ function wireInput(){
   ab.addEventListener('pointerdown',e=>{ actPressed=true; actHeld=true; e.preventDefault(); });
   ab.addEventListener('pointerup',()=>{ actHeld=false; }); ab.addEventListener('pointerleave',()=>{ actHeld=false; });
   $('verse').addEventListener('click',advance); $('card').addEventListener('click',advance); $('eras').addEventListener('click',advance);
-  $('b-codex').addEventListener('click',toggleCodex); $('b-hub').addEventListener('click',()=>{ stopAct(); showHub(); });
+  $('b-codex').addEventListener('click',toggleCodex);
+  $('b-voice').addEventListener('click',toggleVoice); $('b-voice').style.opacity=SV.on?'1':'0.45'; $('b-hub').addEventListener('click',()=>{ stopAct(); showHub(); });
 }
 function blocked(x,z,r){
   for(const c of ctx.colliders) if(x>c.x0-r&&x<c.x1+r&&z>c.z0-r&&z<c.z1+r) return true;
@@ -178,13 +185,43 @@ function movePlayer(dt){
     ud.walk=(ud.walk||0)+dt*sp*2.2;
   } else ud.walk=0;
   player.position.y=ctx.groundY(player.position.x,player.position.z);
-  animFigure(player,dt,L>0.05);
+  animFigure(player,dt,L>0.05); animFace(player,'player',dt);
 }
 function turnTo(a,b,k){ let d=b-a; while(d>Math.PI) d-=Math.PI*2; while(d<-Math.PI) d+=Math.PI*2; return a+d*Math.min(1,k); }
 function animFigure(g,dt,moving){
   const u=g.userData; u.phase=(u.phase||0)+dt*(moving?7:1.2);
   const sw=moving?Math.sin(u.phase)*0.55:Math.sin(u.phase)*0.03;
   if(u.legL){ u.legL.rotation.x=sw; u.legR.rotation.x=-sw; u.armL.rotation.x=-sw*0.8; u.armR.rotation.x=u.carrying?-0.9:sw*0.8; }
+  clothStep(g,dt,moving,sw);
+}
+/* THE CLOTH. Each panel of a hem, and the back of a head-cloth, hangs on a hinge and is
+   swung by a spring and a damper: gravity draws it back to hang straight; the air it
+   moves through (the place's wind, in gusts, less the figure's own going) pushes it out
+   along its face; the body's starting and stopping throws it; a stride kicks the front
+   of the hem. It cannot swing into the body, only away from it. */
+const CLOTH={k:34,c:5.5,gain:2.8,drag:1,inertia:0.22,kick:2.6,lo:-0.04,hi:1.05};
+function clothStep(g,dt,moving,stride){
+  const u=g.userData, C=u.cloth; if(!C||!dt) return;
+  const p=g.position;
+  if(!u.pp){ u.pp=p.clone(); u.vel=[0,0]; }
+  let vx=(p.x-u.pp.x)/dt, vz=(p.z-u.pp.z)/dt; u.pp.copy(p);
+  const sp=Math.hypot(vx,vz); if(sp>8){ vx=vx/sp*8; vz=vz/sp*8; }            /* a figure set down elsewhere is not a gale */
+  let ax=(vx-u.vel[0])/dt, az=(vz-u.vel[1])/dt; const al=Math.hypot(ax,az); if(al>20){ ax=ax/al*20; az=az/al*20; }
+  u.vel[0]+= (vx-u.vel[0])*Math.min(1,dt*12); u.vel[1]+=(vz-u.vel[1])*Math.min(1,dt*12);
+  const t=clock.elapsedTime, ph=(u.id||'').length*1.7+p.x*0.13;
+  const gust=0.55+0.45*Math.sin(t*0.9+ph)*Math.sin(t*0.37+ph*0.5)+0.25*Math.sin(t*3.1+ph);
+  const W=ctx.wind||[0,0];
+  const Fx=CLOTH.drag*(W[0]*gust-u.vel[0])-CLOTH.inertia*ax, Fz=CLOTH.drag*(W[1]*gust-u.vel[1])-CLOTH.inertia*az;
+  const r=g.rotation.y, cs=Math.cos(r), sn=Math.sin(r);
+  for(const q of C){
+    const nx=q.n[0]*cs+q.n[2]*sn, nz=-q.n[0]*sn+q.n[2]*cs;
+    let f=(Fx*nx+Fz*nz)*CLOTH.gain*(q.light?1.2:1);
+    if(moving&&q.axis==='x'&&q.sign>0) f+=CLOTH.kick*Math.max(0,Math.abs(stride)-0.15);   /* the stride lifts the front of the hem */
+    q.w+=(f-CLOTH.k*q.a-CLOTH.c*q.w)*dt; q.a+=q.w*dt;
+    const hi=q.light?0.75:CLOTH.hi;
+    if(q.a<CLOTH.lo){ q.a=CLOTH.lo; if(q.w<0) q.w=0; } else if(q.a>hi){ q.a=hi; if(q.w>0) q.w=0; }
+    if(q.axis==='x') q.pv.rotation.x=-q.sign*q.a; else q.pv.rotation.z=q.sign*q.a;
+  }
 }
 /* the actors walk where the story sends them */
 function moveActors(dt){
@@ -197,9 +234,9 @@ function moveActors(dt){
       if(d>0.15){ const sp=Math.min(d,(u.speed||2.6)*dt); g.position.x+=dx/d*sp; g.position.z+=dz/d*sp;
         g.rotation.y=turnTo(g.rotation.y,Math.atan2(dx,dz),dt*8); moving=true; }
       else if(!u.follow) u.target=null; }
-    g.position.y=ctx.groundY(g.position.x,g.position.z);
-    animFigure(g,dt,moving);
-    if(u.label){ const near=player&&Math.hypot(player.position.x-g.position.x,player.position.z-g.position.z)<7;
+    g.position.y=u.fixedY!==undefined?u.fixedY:ctx.groundY(g.position.x,g.position.z);
+    animFigure(g,dt,moving); animFace(g,id,dt);
+    if(u.label){ const near=!camTarget&&player&&Math.hypot(player.position.x-g.position.x,player.position.z-g.position.z)<3.6;
       u.label.visible=near||speaking===id; } }
 }
 /* the flock grazes, and a lamb that has been gathered goes to the fold */
@@ -222,7 +259,10 @@ function updateCamera(dt){
     camera.position.set(fp[0]+(tp[0]-fp[0])*e,fp[1]+(tp[1]-fp[1])*e,fp[2]+(tp[2]-fp[2])*e);
     const la=camTarget.look0, lb=camTarget.look;
     camera.lookAt(la[0]+(lb[0]-la[0])*e,la[1]+(lb[1]-la[1])*e,la[2]+(lb[2]-la[2])*e);
+    /* the player is not left filling the lens of a shot the story is holding */
+    if(player&&!ctx.playerHidden) player.visible=camera.position.distanceTo(player.position.clone().setY(player.position.y+1))>2.2;
     return; }
+  if(player&&!ctx.playerHidden) player.visible=true;
   if(!player) return;
   if(keys.KeyQ) camYaw+=dt*1.8; if(keys.KeyR) camYaw-=dt*1.8;
   const tx=player.position.x, ty=player.position.y+1.6, tz=player.position.z;
@@ -240,6 +280,83 @@ function lookNow(){ const d=new THREE.Vector3(); camera.getWorldDirection(d);
   return [camera.position.x+d.x*10,camera.position.y+d.y*10,camera.position.z+d.z*10]; }
 function releaseCamera(){ camTarget=null; if(player){ camYaw=player.rotation.y+Math.PI; } }
 
+/* ================= FACES THAT SPEAK ================= */
+/* The one speaking moves the mouth with the words, vowel by vowel; the brows and the corners
+   of the mouth show what the words carry, only joy turning it up; now and then an eye blinks.
+   (After Scripture-Game's face.js.) He who is shown as light has no face: His light swells
+   with His words instead, and so does a mal'ak's. */
+const SV=window.STORYVOICE;
+function talkingAs(id){ const T=SV.talk, sp=T&&T.sp; if(!sp) return null;
+  return (sp.actor===id||(sp.actors&&sp.actors.indexOf(id)>=0))?T:null; }
+function animFace(g,id,dt){
+  const u=g.userData, F=u.face, T=talkingAs(id), m=T?(SV.mouth(T.sp.key)||0):0;
+  if(u.aura){ const k=1+m*0.22+(T?0.06:0); u.aura.sprite.scale.setScalar(u.aura.base*k); }
+  if(!F) return;
+  const ex=T?SV.expr(T.text):'calm';
+  F.mIn.scale.y=0.018+m*0.075; F.mIn.position.y=-(0.009+m*0.0375);
+  const cy=ex==='joy'?0.011:(ex==='sorrow'||ex==='weep')?-0.011:0;
+  F.cL.position.y=F.cR.position.y=cy-0.009; F.cL.visible=F.cR.visible=cy!==0||m>0.05;
+  const rot=ex==='stern'?0.32:(ex==='sorrow'||ex==='fear'||ex==='weep')?-0.28:ex==='awe'?-0.12:0;
+  F.browL.rotation.z=-rot; F.browR.rotation.z=rot;
+  F.browL.position.y=F.browR.position.y=F.by+(ex==='awe'||ex==='fear'?0.012:ex==='stern'?-0.007:0);
+  F.blink-=dt; const shut=F.blink<0;
+  F.eyeL.scale.y=F.eyeR.scale.y=shut?0.15:(ex==='fear'||ex==='awe'?1.25:ex==='stern'?0.7:1);
+  if(F.blink<-0.12) F.blink=2.5+Math.random()*4;
+}
+
+/* ================= WHO SPEAKS — the one the Besorah says ================= */
+/* A beat names who speaks the words in its quotation marks: `who` (a figure in the scene,
+   or one of the act's `cast`), `whoName`, or `voices:[…]` — one for each quotation, in
+   order, when a verse has more than one speaker ("Are you Aliyahu?" So he said, "I am not.").
+   Everything outside the marks is the telling: the Besorah's own voice. */
+const NARR=SV.NARR;
+function speakerOf(spec){
+  const defs={}; for(const id in ctx.actors) defs[id]=Object.assign({},ctx.actors[id].userData.def,{name:ctx.actors[id].userData.name});
+  return SV.speaker(spec,defs,act&&act.cast);
+}
+
+/* ================= THE PORTRAIT in the verse box ================= */
+/* the face of the one speaking, drawn in pixels, its mouth moving with the words; the
+   narrator is the scroll; a mal'ak, the voice out of the shamayim and He who is shown as
+   light are light, and have no face */
+let portrait=null;
+function hex(c){ return '#'+(c>>>0).toString(16).padStart(6,'0'); }
+function drawPortrait(){
+  const cv=$('v-face'); if(!cv||!portrait) return; const g=cv.getContext('2d'), sp=portrait;
+  const R=(x,y,w,h,c)=>{ g.fillStyle=c; g.fillRect(x,y,w,h); };
+  g.clearRect(0,0,38,38);
+  const light=sp.kind==='angel'||sp.kind==='divine'||sp.kind==='yahusha'||sp.light;
+  const T=SV.talk, talking=T&&T.sp&&T.sp.key===sp.key, m=talking?(SV.mouth(sp.key)||0):0;
+  if(sp.kind==='narrator'){ R(0,0,38,38,'#201a13');
+    R(9,11,20,16,'#e2d3ad'); R(7,9,3,20,'#b89c6a'); R(28,9,3,20,'#b89c6a');
+    for(let k=0;k<4;k++) R(12,14+k*3,14-(k%2)*4,1,'#7a6448'); return; }
+  if(light){ const gr=g.createRadialGradient(19,18,1,19,18,19);
+    const k=0.8+m*0.2+(talking?0.1:0);
+    gr.addColorStop(0,'rgba(255,255,255,'+k+')'); gr.addColorStop(0.35,'rgba(255,240,200,'+(0.75*k)+')'); gr.addColorStop(1,'rgba(40,32,20,1)');
+    g.fillStyle=gr; g.fillRect(0,0,38,38); return; }
+  const L=sp.look||{}, skin=hex(L.skin||0x8a5a3a), cloth=hex(L.cloth||0xd9cfb6), robe=hex(L.robe||0x9a8466);
+  R(0,0,38,38,'#2a2219');
+  R(6,29,26,9,robe);                                   /* shoulders */
+  R(11,9,16,18,skin);                                  /* the face */
+  R(9,5,20,6,cloth); R(9,9,3,18,cloth); R(26,9,3,18,cloth);   /* the head-cloth */
+  const ex=talking?SV.expr(T.text):'calm';
+  const by=ex==='awe'||ex==='fear'?12:ex==='stern'?14:13;
+  const brow=L.beard&&L.beard!==0x6d6a66?hex(L.beard):'#2a1d14';
+  if(ex==='stern'){ R(13,by,4,1,brow); R(16,by+1,1,1,brow); R(21,by+1,1,1,brow); R(21,by,4,1,brow); }
+  else if(ex==='sorrow'||ex==='fear'||ex==='weep'){ R(13,by+1,4,1,brow); R(16,by,1,1,brow); R(21,by,1,1,brow); R(21,by+1,4,1,brow); }
+  else { R(13,by,4,1,brow); R(21,by,4,1,brow); }
+  const blink=(performance.now()%4200)<120;
+  if(blink){ R(14,16,3,1,'#1c120b'); R(21,16,3,1,'#1c120b'); }
+  else { R(13,15,4,2,'#e7ddcf'); R(21,15,4,2,'#e7ddcf'); R(15,15,2,2,'#1c120b'); R(22,15,2,2,'#1c120b'); }
+  R(18,17,2,4,'rgba(0,0,0,0.12)');                      /* the nose's shade */
+  if(L.beard){ R(12,21,14,7,hex(L.beard)); R(14,27,10,2,hex(L.beard)); }
+  const mh=Math.round(1+m*4), my=L.beard?22:23;
+  if(m>0.05) R(16,my,6,mh,'#3a1810');
+  else { const lip=L.beard?'#3a1810':'#6a3426'; R(16,my,6,1,lip);
+    if(ex==='joy'){ R(15,my-1,1,1,lip); R(22,my-1,1,1,lip); }
+    if(ex==='sorrow'||ex==='weep'){ R(15,my+1,1,1,lip); R(22,my+1,1,1,lip); } }
+}
+
 /* ================= THE STORY — beats run in order ================= */
 let act=null, sceneIx=0, beatIx=0, beat=null, running=false, controlsOn=true, speaking=null;
 let waitingAdvance=false, beatT=0, witness=null, onFrame=null;
@@ -250,7 +367,7 @@ function runAct(a,fromScene){
   $('hub').classList.add('off'); $('play').classList.remove('off');
   startScene();
 }
-function stopAct(){ running=false; act=null; closePanels(); hide('verse'); hide('card'); hide('goal'); hide('prompt'); hide('choice'); hide('eras'); ringOff(); witness=null; onFrame=null; }
+function stopAct(){ SV.stop(); running=false; act=null; closePanels(); hide('verse'); hide('card'); hide('goal'); hide('prompt'); hide('choice'); hide('eras'); ringOff(); witness=null; onFrame=null; }
 function startScene(){
   const sc=act.scenes[sceneIx];
   fade(1,0);
@@ -263,6 +380,7 @@ function nextBeat(){ beatIx++; enterBeat(); }
 function enterBeat(){
   const sc=act.scenes[sceneIx];
   hide('verse'); hide('card'); hide('prompt'); hide('choice'); speaking=null; waitingAdvance=false; beatT=0; onFrame=null;
+  SV.stop(); portrait=null;
   if(beatIx>=sc.beats.length){ endScene(); return; }
   beat=sc.beats[beatIx];
   const B=beat, T=B.t;
@@ -276,7 +394,7 @@ function enterBeat(){
   if(T==='choice'){ showChoice(B); return; }
   if(T==='collect'){ collect(B.id); return; }
   if(T==='fulfil'){ fulfil(B.id); return; }
-  if(T==='move'){ const who=[].concat(B.who), tos=[].concat(B.to); who.forEach((w,k)=>{ const g=ctx.actors[w]; if(!g) return;
+  if(T==='move'){ const who=[].concat(B.who), tos=Array.isArray(B.who)?[].concat(B.to):[B.to];   /* one figure, one place — even a place given as [x,z] */ who.forEach((w,k)=>{ const g=ctx.actors[w]; if(!g) return;
       const to=pos(tos[Math.min(k,tos.length-1)]);
       g.userData.follow=null; g.userData.target=to; if(B.speed) g.userData.speed=B.speed;
       if(ST.fast){ g.position.x=to[0]; g.position.z=to[1]; } });
@@ -284,7 +402,7 @@ function enterBeat(){
     onFrame=()=>{ if(who.every(w=>!ctx.actors[w]||!ctx.actors[w].userData.target)) nextBeat(); }; return; }
   if(T==='follow'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.target=null; g.userData.follow=B.target||'player'; } } return nextBeat(); }
   if(T==='stop'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.follow=null; g.userData.target=null; } } return nextBeat(); }
-  if(T==='face'){ const g=ctx.actors[B.who]; const p=B.to==='player'?[player.position.x,player.position.z]:pos(B.to);
+  if(T==='face'){ const g=ctx.actors[B.who]; const p=B.to==='player'?[player.position.x,player.position.z]:ctx.actors[B.to]?thingPos(B.to):pos(B.to);
     if(g) g.rotation.y=Math.atan2(p[0]-g.position.x,p[1]-g.position.z); return nextBeat(); }
   if(T==='place'){ const g=B.who==='player'?player:ctx.actors[B.who]; const p=pos(B.at); if(g){ g.position.set(p[0],ctx.groundY(p[0],p[1]),p[1]); if(B.face!==undefined) g.rotation.y=B.face; } return nextBeat(); }
   if(T==='cam'){ controlsOn=!!B.free;
@@ -296,8 +414,16 @@ function enterBeat(){
   if(T==='show'||T==='hide'){ for(const id of [].concat(B.id)){ const o=ctx.glows[id]||ctx.things[id]||ctx.actors[id]; if(o) o.visible=(T==='show'); }
     if(B.host!==undefined&&ctx.host) for(const G of ctx.host) G.visible=!!B.host;
     if(B.star!==undefined&&ctx.star) ctx.star.visible=!!B.star;
+    if(B.kingdoms!==undefined&&ctx.kingdoms) for(const G of ctx.kingdoms) G.visible=!!B.kingdoms;
     return nextBeat(); }
   if(T==='time'){ applyTime(B.to); return nextBeat(); }
+  if(T==='robe'){ const g=ctx.actors[B.who]; if(g&&g.userData.robeMats) for(const m of g.userData.robeMats) m.color.setHex(B.color); return nextBeat(); }
+  if(T==='drift'){ const objs=[], o=ctx.things[B.id]||ctx.actors[B.id], G=ctx.glows[B.id];
+    if(o){ objs.push(o); o.visible=true; } if(G){ objs.push(G.sprite); if(G.light) objs.push(G.light); G.visible=true; }
+    const D={objs,from:objs.map(q=>q.position.clone()),to:new THREE.Vector3(...B.to),t:0,dur:ST.fast?0.001:(B.dur||3)};
+    ctx.drifts.push(D);
+    if(B.wait===false) return nextBeat();
+    onFrame=()=>{ if(D.t>=1) nextBeat(); }; return; }
   if(T==='wait'){ onFrame=()=>{ if(ST.fast||beatT>=B.s) nextBeat(); }; return; }
   if(T==='player'){ ctx.playerHidden=!!B.hidden; player.visible=!B.hidden; if(B.hidden) controlsOn=false; return nextBeat(); }
   if(T==='era'){ showEra(B); return; }
@@ -318,23 +444,39 @@ function finishAct(){
   showHub('The act is complete: '+a.title+'.');
 }
 
-/* ---- the words of the Besorah, as they are said ---- */
+/* ---- the words of the Besorah, as they are said ----
+   The verse is shown whole, and read in its parts: the telling by the narrator, each
+   quotation by the one the Besorah says spoke it. The part being said is lit, the one
+   speaking moves the mouth, and their face is in the corner of the box. */
 function showVerse(B){
   const t=textOf(B.ref);
-  const refLabel=B.ref;
   if(t===null){ /* a passage the generator has not written: it is NOT shown */
     console.error('passage not in story/scripture.js: '+B.ref+' (run tools/extract-besorah.js --story)');
     nextBeat(); return; }
-  speaking=B.who||null;
-  if(B.who&&ctx.actors[B.who]&&player){ const g=ctx.actors[B.who];
-    if(B.turn!==false&&!camTarget) g.rotation.y=Math.atan2(player.position.x-g.position.x,player.position.z-g.position.z); }
-  const name=B.who?(ctx.actors[B.who]&&ctx.actors[B.who].userData.name)||B.whoName||'':B.whoName||'';
-  $('v-who').textContent=name?name:'The Besorah';
-  $('v-who').className=name?'who':'who narr';
-  $('v-text').textContent=t;
-  $('v-ref').textContent=refLabel;
+  const segs=SV.segs(t,B,spec=>{ const sp=speakerOf(spec);
+      if(!sp) console.error('no speaker for the words in '+B.ref+' — the Besorah says who speaks them; name them');
+      return sp||{name:'',key:'unknown',kind:'man'}; },NARR);
+  const distinct=new Set(segs.filter(x=>x.q).map(x=>x.sp.key));
+  const tags=distinct.size>1;
+  $('v-text').innerHTML=segs.map((x,i)=>(tags&&x.q&&(i===0||segs[i-1].sp.key!==x.sp.key||!segs[i-1].q)?'<span class="tag">'+esc(x.sp.name)+'</span>':'')+
+    '<span class="pt'+(x.q?' q':'')+'" data-i="'+i+'">'+esc(x.text)+'</span>').join('');
+  $('v-ref').textContent=B.ref;
+  const main=segs.find(x=>x.q);
+  const setWho=sp=>{ const nm=sp&&sp.kind!=='narrator'?sp.name:'';
+    $('v-who').textContent=nm||'The Besorah'; $('v-who').className=nm?'who':'who narr';
+    /* the trier is never given a shape — no face in the box either */
+    portrait=sp&&sp.kind!=='dark'?sp:null; $('verse').classList.toggle('has-face',!!portrait);
+    speaking=sp&&sp.actor||null;
+    if(sp&&sp.actor&&ctx.actors[sp.actor]&&player&&B.turn!==false&&!camTarget){ const g=ctx.actors[sp.actor];
+      g.rotation.y=Math.atan2(player.position.x-g.position.x,player.position.z-g.position.z); } };
+  const lightPart=i=>{ const els=$('v-text').querySelectorAll('.pt');
+    els.forEach((e,k)=>{ e.classList.toggle('now',k===i); e.classList.toggle('later',k>i); }); };
+  $('v-text').classList.add('flow');
+  setWho(segs[0].sp); lightPart(0);
   show('verse');
   waitingAdvance=true;
+  SV.play(segs.map(x=>({text:x.text,sp:x.sp})),i=>{ setWho(segs[i].sp); lightPart(i); },
+    ()=>{ $('v-text').classList.remove('flow'); setWho(main?main.sp:NARR); });
 }
 function advance(){
   if(fulfilOpen){ closeFulfil(); return; }
@@ -442,6 +584,7 @@ function codexHTML(){
 function toggleCodex(){ const p=$('codex'); if(!p.classList.contains('off')){ hide('codex'); return; }
   $('codex-list').innerHTML=codexHTML(); show('codex'); }
 function closePanels(){ hide('codex'); }
+function toggleVoice(){ SV.setOn(!SV.on); $('b-voice').style.opacity=SV.on?'1':'0.45'; toast(SV.on?'🗣  Voices on':'Voices off'); }
 function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('on'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('on'),3800); }
 
 /* ================= SOUND: the air of a place, and the bell of fulfilment ================= */
@@ -496,6 +639,12 @@ function frame(){
   if(ctx.host) for(const G of ctx.host){ if(!G.visible) continue; G.sprite.position.y+=Math.sin(t*1.3+G.ph)*0.01; }
   if(ring){ ring.material.opacity=0.55+Math.sin(t*4)*0.25; }
   for(const w of ctx.water) w.material.opacity=0.82+Math.sin(t*1.7)*0.05;
+  for(const D of ctx.drifts){ if(D.t>=1) continue; D.t=Math.min(1,D.t+dt/D.dur); const e=D.t<0.5?2*D.t*D.t:1-Math.pow(-2*D.t+2,2)/2;
+    D.objs.forEach((o,k)=>o.position.lerpVectors(D.from[k],D.to,e)); }
+  for(const id in ctx.things){ const w=ctx.things[id].userData.wings; if(w){ const a=Math.sin(t*9)*0.5; w[0].rotation.z=a; w[1].rotation.z=-a; } }
+  if(portrait&&!$('verse').classList.contains('off')) drawPortrait();
+  { const T=SV.talk, g=T&&T.sp&&T.sp.glow&&ctx.glows[T.sp.glow];          /* a mal'ak's light swells with the words */
+    if(g){ const m=SV.mouth(T.sp.key)||0; g.sprite.scale.setScalar(g.base*(1+m*0.12)); } }
   if(ST.fast) fastStep();
   if(onFrame) onFrame(dt);
   actPressed=false;

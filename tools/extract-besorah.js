@@ -273,6 +273,51 @@ function storyRefs(){
     for(const m of s.matchAll(/\b(?:ref|fulfil|promise)\s*:\s*(['"])(.*?)\1/g)) refs.add(m[2]); }
   return refs;
 }
+/* WHO SPEAKS: every quotation in a story verse is given to the one the Besorah says
+   spoke it, and the rest is the telling. This runs the acts and the story's own voice.js
+   (how it cuts a verse at its marks) and reports any quotation with no one to speak it.
+   --speakers prints every verse the story says, cut into its parts, with each part's
+   speaker, so the casting can be read against the text. */
+function storyBeats(){
+  const dir=path.join(__dirname,'..','story'), win={};
+  vm.runInNewContext(fs.readFileSync(path.join(dir,'voice.js'),'utf8'),{window:win,addEventListener(){},setInterval(){},localStorage:{getItem(){return null;},setItem(){}},performance:{now:()=>0},console});
+  const acts=[], STORY={act:a=>acts.push(a),codex(){},scripture(){}};
+  for(const f of fs.readdirSync(path.join(dir,'acts')).sort()) if(f.endsWith('.js'))
+    vm.runInNewContext(fs.readFileSync(path.join(dir,'acts',f),'utf8'),{STORY,Math,Object,Array,console});
+  const out=[];
+  for(const a of acts) for(const sc of a.scenes||[]) for(const B of sc.beats||[]) if((B.t==='read'||B.t==='say')&&B.ref)
+    out.push({a,sc,B,where:a.id+'/'+sc.id});
+  return {beats:out,V:win.STORYVOICE};
+}
+function checkSpeakers(print){
+  const {beats,V}=storyBeats(); let bad=0, prevOpen=null;
+  const nm=(a,s)=>typeof s==='object'?s.name:s==='narrator'?'the Besorah':((a.cast&&a.cast[s]&&a.cast[s].name)||s);
+  for(const {a,sc,B,where} of beats){
+    const r=resolve(TEXT,B.ref); if(r.err) continue;
+    const t=r.t, P=V.parts(t), isQ=p=>p.q&&/[A-Za-zÀ-ɏḀ-ỿ]/.test(t.slice(p.a,p.b)), n=P.filter(isQ).length;
+    const base=B.who||B.whoName, list=B.voices||null;
+    let err='';
+    if(n&&!base&&!list) err='NO SPEAKER for '+n+' quotation'+(n>1?'s':'');
+    else if(list&&list.length!==n) err=list.length+' speakers named for '+n+' quotations';
+    /* a speech left open at the end of the verse before runs on into this one */
+    /* `who`, `teller` and `voices` name a figure of the scene or one of the act's cast */
+    const ids=new Set(['narrator',...(sc.actors||[]).map(x=>x.id),...Object.keys(a.cast||{})]);
+    for(const w of [B.who,B.teller,...(list||[])]) if(typeof w==='string'&&!ids.has(w)&&!err) err='names "'+w+'", who is not in the scene or the cast';
+    const rp=/^(.*) (\d+):(\d+)(?:-(\d+))?$/.exec(B.ref)||[];
+    const next=prevOpen&&prevOpen.where===where&&prevOpen.book===rp[1]&&prevOpen.ch===rp[2]&&+rp[3]===prevOpen.v+1;
+    if(!err&&!n&&!base&&next) err='runs on from a speech the verse before left open — name its speaker';
+    const last=P[P.length-1];
+    prevOpen=last&&last.q&&!/”[\s’]*$/.test(t)?{where,book:rp[1],ch:rp[2],v:+(rp[4]||rp[3])}:null;
+    if(err){ bad++; console.log('STORY WHO  '+where+'  '+B.ref+'  '+err); }
+    if(print){ let k=0;
+      const tel=B.teller?nm(a,B.teller):'·';
+      const segs=!n&&base?[{s:t,w:nm(a,base)}]:P.map(p=>({s:t.slice(p.a,p.b),w:isQ(p)?nm(a,list?list[Math.min(k++,list.length-1)]:base):tel}));
+      console.log('\n'+where+'  '+B.ref); for(const g of segs) console.log('   ['+g.w+']  '+g.s); }
+  }
+  return {n:beats.length,bad};
+}
+if(args[0]==='--speakers'){ const r=checkSpeakers(true); console.log('\n'+r.n+' verses · '+r.bad+' with a quotation no one speaks'); process.exit(r.bad?1:0); }
+
 if(args[0]==='--story'){
   const out={}; let bad=0;
   for(const ref of [...storyRefs()].sort()){
@@ -417,6 +462,8 @@ if(args[0]==='--check'){
       if(h.t!==r.t){ sBad++; console.log('STORY DRIFTED  '+ref+'\n   ships:  '+h.t+'\n   source: '+r.t); continue; }
       sOk++; }
     console.log('story mode: '+sOk+' passages exact · '+sBad+' not');
+    const W2=checkSpeakers(false); sBad+=W2.bad;
+    console.log('story mode: '+W2.n+' verses said · '+W2.bad+' with a quotation no one speaks');
   }
   if(sBad) wrong+=sBad;
   console.log('\n'+ok+' exact · '+wrong+' paraphrased · '+missing+' unsourceable  ('+verses.length+' verses)');

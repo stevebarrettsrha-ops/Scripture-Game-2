@@ -9,12 +9,25 @@
 
    Reverent framing (Key Decision 1): the mal'ak is light and the Child is
    light; neither is given a figure or a face. */
-const MIRYAM={robe:0x3f5a8a, cloth:0xe8e2d2, skin:0x8e5c3c};
+const MIRYAM={robe:0x3f5a8a, cloth:0xe8e2d2, skin:0x8e5c3c, kind:'woman'};
 const YOSEPH={robe:0x6e5238, cloth:0xcfc4aa, beard:0x3a2a1e, skin:0x86573a};
 const BOY={small:true, robe:0x8a7454, cloth:0xd8cfb8};
 STORY.act({
   id:'coming', n:3, num:'II', title:'The Coming',
   sub:'Natsareth · the road · Bĕyth Leḥem · c. 5–4 BCE',
+  /* who speaks, where the one speaking is light or many: each quotation goes to the one the
+     Besorah names, and a mal'ak's light swells with the words */
+  cast:{
+    gabrial:{name:'Gaḇri’al', kind:'angel', glow:'gabrial'},
+    dreamMalak:{name:'A mal’ak of (YAHUAH) HWHY', kind:'angel', glow:'dream'},
+    malak:{name:'The mal’ak', kind:'angel', glow:'malak'},
+    host:{name:'The heavenly host', kind:'angel'},
+    shepherds:{name:'The shepherds', kind:'man', actor:'sh1', actors:['sh1','sh2','sh3']},
+    magi:{name:'Magi from the East', kind:'man', actor:'m1', actors:['m1','m2','m3']},
+    kohanim:{name:'The chief kohanim and scribes', kind:'oldman', actor:'k1', actors:['k1','k2']},
+    /* "what was spoken by (YAHUAH) HWHY through the naḇi" */
+    byNabi:{name:'(YAHUAH) HWHY, through the naḇi', key:'(YAHUAH) HWHY', kind:'divine'}
+  },
   scenes:[
 
   /* ---------------- II.1 — THE ACCOUNT OF NATSARETH ---------------- */
@@ -32,20 +45,20 @@ STORY.act({
       {t:'read', ref:'LUKE 1:26'},
       {t:'read', ref:'LUKE 1:27'},
       {t:'show', id:'gabrial'},
-      {t:'say', whoName:'Gaḇri’al', ref:'LUKE 1:28'},
+      {t:'say', who:'gabrial', ref:'LUKE 1:28'},
       {t:'read', ref:'LUKE 1:29'},
-      {t:'say', whoName:'Gaḇri’al', ref:'LUKE 1:30-33'},
+      {t:'say', who:'gabrial', ref:'LUKE 1:30-33'},
       {t:'say', who:'miryam', ref:'LUKE 1:34', turn:false},
-      {t:'say', whoName:'Gaḇri’al', ref:'LUKE 1:35-37'},
+      {t:'say', who:'gabrial', ref:'LUKE 1:35-37'},
       {t:'say', who:'miryam', ref:'LUKE 1:38', turn:false},
       {t:'hide', id:'gabrial'},
       {t:'cam', from:[18,4,8], look:'yoseph', dur:4},
       {t:'read', ref:'MATTITHYAHU 1:18'},
       {t:'read', ref:'MATTITHYAHU 1:19'},
       {t:'show', id:'dream'},
-      {t:'say', whoName:'A mal’ak', ref:'MATTITHYAHU 1:20-21'},
+      {t:'say', who:'dreamMalak', ref:'MATTITHYAHU 1:20-21'},
       {t:'hide', id:'dream'},
-      {t:'read', ref:'MATTITHYAHU 1:22-23'},
+      {t:'read', ref:'MATTITHYAHU 1:22-23', voices:['byNabi','narrator']},     /* "which translated, means, “Al with us.”" is the telling's own gloss */
       {t:'fulfil', id:'y7-14'},
       {t:'read', ref:'MATTITHYAHU 1:24'},
       {t:'end'}
@@ -91,16 +104,16 @@ STORY.act({
       {t:'show', id:'malak'},
       {t:'cam', from:[8,2.4,12], look:[2,6,-8], dur:2.5},
       {t:'read', ref:'LUKE 2:9'},
-      {t:'say', whoName:'The mal’ak', ref:'LUKE 2:10'},
-      {t:'say', whoName:'The mal’ak', ref:'LUKE 2:11'},
-      {t:'say', whoName:'The mal’ak', ref:'LUKE 2:12'},
+      {t:'say', who:'malak', ref:'LUKE 2:10'},
+      {t:'say', who:'malak', ref:'LUKE 2:11'},
+      {t:'say', who:'malak', ref:'LUKE 2:12'},
       {t:'show', id:[], host:true},
       {t:'cam', from:[10,1.8,16], look:[2,11,-10], dur:3},
       {t:'read', ref:'LUKE 2:13'},
-      {t:'say', whoName:'The heavenly host', ref:'LUKE 2:14'},
+      {t:'say', who:'host', ref:'LUKE 2:14'},
       {t:'hide', id:'malak', host:false},
       {t:'cam', release:true},
-      {t:'say', who:'sh1', ref:'LUKE 2:15'},
+      {t:'say', who:'shepherds', ref:'LUKE 2:15'},
       {t:'follow', who:['sh1','sh2','sh3']},
       {t:'goal', text:'Go up in haste to Bĕyth Leḥem with the shepherds', goto:'villageRoad', r:5},
       {t:'end'}
@@ -163,9 +176,9 @@ STORY.act({
       {t:'note', text:'Again you are not there: this is the account, as the Besorah gives it.'},
       {t:'cam', from:[31,4.5,33], look:[16,1.4,30], dur:0.1},
       {t:'read', ref:'MATTITHYAHU 2:1'},
-      {t:'say', who:'m1', ref:'MATTITHYAHU 2:2', turn:false},
+      {t:'say', who:'magi', ref:'MATTITHYAHU 2:2', turn:false},
       {t:'read', ref:'MATTITHYAHU 2:3-4'},
-      {t:'say', who:'k1', ref:'MATTITHYAHU 2:5-6', turn:false},
+      {t:'say', who:'kohanim', ref:'MATTITHYAHU 2:5-6', turn:false},
       {t:'read', ref:'MATTITHYAHU 2:7'},
       {t:'say', who:'herodes', ref:'MATTITHYAHU 2:8', turn:false},
       {t:'end'}
@@ -207,11 +220,11 @@ STORY.act({
     beats:[
       {t:'cam', from:[2,4,14], look:[11.8,1.4,6], dur:0.1},
       {t:'show', id:'dream'},
-      {t:'say', whoName:'A mal’ak', ref:'MATTITHYAHU 2:13'},
+      {t:'say', who:'dreamMalak', ref:'MATTITHYAHU 2:13'},
       {t:'hide', id:['dream','child']},
       {t:'move', who:['yoseph','miryam'], to:[[-2,40],[-3,41]], speed:1.8, wait:false},
       {t:'cam', from:[6,8,30], look:[0,1,26], dur:8, wait:false},
-      {t:'read', ref:'MATTITHYAHU 2:14-15'},
+      {t:'read', ref:'MATTITHYAHU 2:14-15', who:'byNabi'},
       {t:'title', text:'The end of Act II', sub:'Next: The Forerunner — Yahuchanon the Immerser in the wilderness'},
       {t:'end'}
     ]}

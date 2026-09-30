@@ -3,7 +3,6 @@
    come", so the whole road from Bĕyth Leḥem to Rome can be seen from the
    start; each becomes playable when its scenes are written. */
 [
-  {n:4, num:'III', id:'forerunner', title:'The Forerunner', sub:'Yahuchanon the Immerser · the immersion · the forty days'},
   {n:5, num:'IV', id:'galil', title:'Galil', sub:'The calling of the twelve · the first signs · Natsareth’s synagogue'},
   {n:6, num:'V', id:'road-up', title:'The Road to Yahrushalayim', sub:'Shim‛on Kĕpha’s confession · the long road south'},
   {n:7, num:'VI', id:'passion', title:'Passion Week', sub:'The entry · Pesach · Gethsemane · Golgotha'},

@@ -9,6 +9,10 @@
 STORY.act({
   id:'bridge', n:2, num:'—', title:'The Seven Hundred Years',
   sub:'Ashshur · Baḇal (Baḇylon) · Persia · Greece · Rome',
+  cast:{
+    gabrial:{name:'Gaḇri’al', kind:'angel'},          /* "Gaḇri’al, make this man understand the vision" (8:16) */
+    danial:{name:'Dani’al', kind:'man'}               /* to the sovereign of Baḇal, telling his dream (2:36) */
+  },
   eras:[
     {name:'Ashshur', from:-740, to:-612, color:'#6d7fa6'},
     {name:'Baḇal',   from:-612, to:-539, color:'#b8744f'},
@@ -30,10 +34,10 @@ STORY.act({
       {t:'read', ref:'EZRA 1:1'},
       {t:'time', to:'day'},
       {t:'era', i:3, head:'331 BCE — Greece', text:'Alexander of Macedon overthrows Persia; after him come the Greek kingdoms, and the struggle of the Maqqabim.'},
-      {t:'read', ref:"DANI'AL 8:21"},
+      {t:'read', ref:"DANI'AL 8:21", who:'gabrial'},
       {t:'time', to:'dusk'},
       {t:'era', i:4, head:'63 BCE — Rome', text:'Rome takes Yahrushalayim. The empire that will rule Yahuḏah when the child of the promise is born now stands on its roads.'},
-      {t:'read', ref:"DANI'AL 2:44"},
+      {t:'read', ref:"DANI'AL 2:44", who:'danial'},
       {t:'time', to:'night'},
       {t:'read', ref:'GALATIANS 4:4'},
       {t:'title', text:'Around 4 BCE', sub:'into this Roman world, the child of the promise is born'},

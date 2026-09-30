@@ -9756,6 +9756,84 @@ ever given a body or a face.
   - The sign at the upper pool is now a two-shot of the prophet and the king.
   - The timeline panel now has a backing.
 
+## 4dj. Round 111 — Act III, The Forerunner; the voices of the Besorah; faces that speak; cloth ✅
+
+**Act III — The Forerunner** (`story/acts/04-forerunner.js`), about 28 CE. The shepherd boy
+of Act II is a man past thirty who comes down to the Yardĕn with the crowds.
+
+- **A voice in the wilderness.** Luke 3:1-2, and Mattithyahu 3:1-4, where the Codex fulfils
+  Yashayahu 40:3. Luke 3:10-18: the crowds, the tax collectors and the soldiers each ask,
+  and he answers. The player gives his second garment to a man who has none (3:11) and may
+  go down into the water.
+- **The immersion.** Mattithyahu 3:13-17. The player helps the old up the ford's bank.
+  Yahusha comes up from the water, the shamayim open, and the Ruach descends like a dove of
+  light; the Codex fulfils 11:1-2. A voice out of the shamayim speaks. Then Mark 1:12.
+- **The forty days** (Mattithyahu 4:1-11), shown as the Besorah's account: the stones in
+  the wilderness, the edge of the Qodash, and a very high mountain with the reigns of the
+  world as lights on the horizon.
+- **The Lamb of Aluahim** (Yahuchanon 1:19-42), set after the forty days as the Besorah
+  sets it: the kohanim and Lĕwites sent from Yahrushalayim, "See, the Lamb of Aluahim",
+  the two taught ones who follow, "Come and see", and Andri bringing Shim‛on to be named
+  Kĕpha. The player walks after them, which is how a man of Bĕyth Leḥem comes to Galil for
+  Act IV.
+- **New places.** The Yardĕn at Bĕyth Anyah: a river in a real channel, waist-deep at the
+  ford, with a green thicket of tamarisk and reed under pale marl hills, Yahuchanon's booth,
+  and a house "where He was staying". The wilderness of Yahuḏah. The high mountain.
+- **Reverent framing.** Yahusha is shown as light with no face, seen from behind or at the
+  edge of the frame; His light swells with His words. The trier is never given a shape: only
+  his words, as the Besorah has them, with no face even in the verse box.
+
+**The persons speak as the Besorah says they speak.** This follows Scripture-Game
+(stevebarrettsrha-ops/Scripture-Game, `voice.js` and `face.js`); the story's code is
+`story/voice.js`.
+
+- **Who says each part.** Every verse is cut at its own quotation marks. The telling is the
+  narrator's, and each quotation belongs to the one the Besorah says spoke it. A beat names
+  its speaker, or gives `voices:[…]`, one per quotation, when a verse has more than one
+  ("Are you Aliyahu?" So he said, "I am not." — Yahuchanon 1:21). The engine and the
+  recording tool share this one function, `V.segs`, so they cannot disagree.
+- **Faults this found in Acts I–II.** Seven quotations had no speaker, among them the words
+  of (YAHUAH) HWHY to Yahshayahu and to Aḥaz (Yashayahu 7:3-4, 7:11), and "what was spoken
+  by (YAHUAH) HWHY through the naḇi" (Mattithyahu 1:22-23, 2:15). Gaḇri'al's words in Luke
+  1:32 were read as narration, because the Besorah opens that verse with ” set against its
+  first word. The mal'akim were cast as ordinary men. All of these are fixed.
+- **The check.** `extract-besorah.js --check` now fails when a quotation has no speaker,
+  when a speech left open in one verse runs on into the next with no speaker named, or when
+  a beat names someone who is not in the scene or the cast. `--speakers` prints every verse
+  in its parts with each part's speaker, so the casting can be read against the text.
+
+**The voices are Scripture-Game's.**
+
+- **The builder.** `tools/story-voices.js` lists every line with its speaker and recording
+  key. `tools/voices/story-build.py` records them with Kokoro, using that game's casting,
+  voices and encoding.
+- **The same cast.** The cast starts from its `voices/cast.json`. The narrator is `bm_george`;
+  the Voice of (YAHUAH) HWHY is `am_onyx`, slow and lowered, given to no one else; and
+  Yahshayahu, Miryam, Yosĕph, Gaḇri'al and Aḥaz keep the voices they have in that game.
+  Yahusha, who is not the son of Nun of its books, has a voice of His own.
+- **Playback.** Recordings are `story/voices/<key[:2]>/<key>.webm`, listed in
+  `story/voices/bank.js`. A line with no recording is spoken with the device's own voices,
+  and with voices off the words keep the pace of reading. His Name is said "Yah-hoo-wah";
+  the Besorah's names are respelled so a voice reading English says them rightly
+  (al-oo-ah-heem, yah-hoo-kah-nohn).
+- **On screen.** The verse box lights the part being said, tags each speaker when a verse
+  has more than one, and shows the speaker's face in the corner: a speaking pixel portrait
+  for people, the scroll for the narrator, light for a mal'ak, the voice out of the shamayim
+  and Yahusha. 🗣 or V turns the voices off and on.
+
+**Faces that speak.** Every figure has eyes, brows and a mouth. The one speaking moves the
+mouth vowel by vowel with the words. The brows and the corners of the mouth follow what the
+words carry (only joy turns the mouth up), and the eyes blink.
+
+**Cloth.** Each robe's hem hangs in four panels from the waist, and the back of the
+head-cloth hangs from the crown. Each swings on its hinge with a spring and a damper: gravity
+draws it straight; the place's wind in gusts, less the figure's own going, pushes it; starting
+and stopping throws it; a stride kicks the front; and it cannot pass into the body. Measured on
+the player: standing in the Yardĕn's wind, the front hem lifts about 0.1 rad; running, the back
+flares to about 0.6; on stopping, the front swings forward and settles within a second and a
+half. Every figure in the story has it, crowds included. A full cloth mesh was weighed and not
+used: at this block scale it would look the same and cost far more on a phone.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

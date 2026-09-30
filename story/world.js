@@ -77,6 +77,7 @@ W.ground=function(ctx,o){
     pos.setY(k,hf(x,z));
     const n=vnoise(x*0.06,z*0.06), n2=vnoise(x*0.3+7,z*0.3-3);
     const c=base.clone().lerp(alt,Math.min(1,n*0.8+n2*0.25)); c.multiplyScalar(0.88+n2*0.2);
+    if(o.tint) o.tint(x,z,c,n2);
     cols.push(c.r,c.g,c.b); }
   g.setAttribute('color',new THREE.Float32BufferAttribute(cols,3)); g.computeVertexNormals();
   const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true}));
@@ -88,7 +89,22 @@ W.heightFn=function(o){
     const t=Math.max(0,Math.min(1,(d-flat)/60));
     let h=(vnoise(x*0.02,z*0.02)-0.3)*hills*t + vnoise(x*0.09,z*0.09)*0.6*t;
     if(o.valley) h-=Math.max(0,1-Math.abs(z-o.valley.z)/o.valley.w)*o.valley.d*t;
-    return Math.max(-0.2,h); };
+    if(o.peak){ const p=o.peak, q=Math.max(0,1-Math.hypot(x-p.x,z-p.z)/p.r); h+=p.h*q*q*(3-2*q); }
+    h=Math.max(-0.2,h);
+    if(o.river){ const r=o.river, dx=Math.abs(x-W.riverX(r,z));      /* the channel: a flat bed, sloping banks */
+      h-=r.d*Math.max(0,Math.min(1,(r.w+r.b-dx)/r.b)); }
+    return h; };
+};
+/* where a river's middle runs at z: a slow meander, straight at the ford (z≈0) */
+W.riverX=function(r,z){ return Math.sin(z*(r.f||0.018))*(r.amp===undefined?8:r.amp); };
+/* the water of a river, a strip following its meander */
+W.riverWater=function(ctx,r,len){
+  len=len||400; const n=Math.round(len/4), g=new THREE.PlaneGeometry(1,len,1,n); g.rotateX(-Math.PI/2);
+  const P=g.attributes.position, half=r.w+r.b*0.55;
+  for(let k=0;k<P.count;k++){ const z=P.getZ(k); P.setX(k,W.riverX(r,z)+(P.getX(k)>0?half:-half)); }
+  g.computeVertexNormals();
+  const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color:r.color||0x5d7f78,transparent:true,opacity:0.86,depthWrite:false}));
+  m.position.y=r.level===undefined?-0.35:r.level; m.renderOrder=2; ctx.scene.add(m); ctx.water.push(m); return m;
 };
 
 /* ================= BUILDINGS ================= */
@@ -186,6 +202,22 @@ W.olive=function(S,x,z,s){ s=s||1;
   S.colliders.push({x0:x-0.3*s,x1:x+0.3*s,z0:z-0.3*s,z1:z+0.3*s,y0:0,y1:1.6*s}); };
 W.palm=function(S,x,z){ for(let k=0;k<6;k++) S.box(x-0.18+k*0.04,k*0.9,z-0.18,x+0.18+k*0.04,(k+1)*0.9,z+0.18,C.bark,{collide:false});
   S.box(x-1.6,5.3,z-0.35,x+1.8,5.6,z+0.35,C.olive,{collide:false}); S.box(x-0.35,5.3,z-1.6,x+0.45,5.6,z+1.7,C.olive,{collide:false}); };
+/* reeds and rushes at the water's edge */
+W.reeds=function(S,x,z,y,n){ y=y||0; n=n||7;
+  for(let k=0;k<n;k++){ const a=hash(x+k,z-k)*6.28, r=hash(z+k*3,x)*0.9, px=x+Math.cos(a)*r, pz=z+Math.sin(a)*r, h=1.2+hash(px,pz)*1.1;
+    S.box(px-0.05,y,pz-0.05,px+0.05,y+h,pz+0.05,k%3?0x7d8a45:0xa99a5a,{collide:false,jitter:0.15});
+    if(k%3===0) S.box(px-0.08,y+h,pz-0.08,px+0.08,y+h+0.25,pz+0.08,0x6e5238,{collide:false}); } };
+/* the thicket of the Yardĕn: tamarisk, grey-green and feathery */
+W.tamarisk=function(S,x,z,s,y){ s=s||1; y=y||0;
+  S.box(x-0.2*s,y,z-0.2*s,x+0.2*s,y+1.4*s,z+0.2*s,C.bark,{collide:false});
+  S.box(x-1.4*s,y+1.1*s,z-1.2*s,x+1.3*s,y+2.4*s,z+1.3*s,0x8a9467,{collide:false});
+  S.box(x-0.9*s,y+2.3*s,z-0.8*s,x+0.8*s,y+3.1*s,z+0.9*s,0x9aa27a,{collide:false});
+  S.colliders.push({x0:x-0.3*s,x1:x+0.3*s,z0:z-0.3*s,z1:z+0.3*s,y0:y,y1:y+1.4*s}); };
+/* a booth of poles roofed with branches — a shelter in the wilderness */
+W.booth=function(S,x,z,y){ y=y||0;
+  for(const [a,b] of [[-1.6,-1.2],[1.6,-1.2],[-1.6,1.2],[1.6,1.2]]) S.box(x+a-0.1,y,z+b-0.1,x+a+0.1,y+2.2,z+b+0.1,C.timber);
+  S.box(x-2,y+2.2,z-1.6,x+2,y+2.45,z+1.6,0x7c7a4e,{collide:false});
+  S.box(x-1.8,y,z-1.3,x+1.8,y+0.9,z-1.1,0x8d7a55,{collide:false}); };
 W.rock=function(S,x,z,s){ s=s||1; S.box(x-0.8*s,0,z-0.6*s,x+0.7*s,0.7*s,z+0.8*s,C.rock); };
 W.jar=function(S,x,z){ S.box(x-0.22,0,z-0.22,x+0.22,0.7,z+0.22,0xa0703f,{collide:false}); };
 W.desk=function(S,x,z){ S.box(x-0.9,0,z-0.5,x+0.9,0.8,z+0.5,C.timber); S.box(x-0.5,0.8,z-0.3,x+0.4,0.84,z+0.25,0xe9dfc2,{collide:false}); };
@@ -219,26 +251,64 @@ W.fire=function(ctx,S,x,z){
    of a man (1.8 units). `o.robe`, `o.cloth`, `o.skin`; a child is `o.small`. */
 W.person=function(ctx,o){
   o=o||{}; const g=new THREE.Group(), s=o.small?0.72:1;
-  const mat=c=>new THREE.MeshLambertMaterial({color:c});
-  const bx=(w,h,d,c,x,y,z)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c)); m.position.set(x,y,z); return m; };
-  const skin=o.skin||0x8a5a3a, robe=o.robe||0x9a8466, cloth=o.cloth||0xd9cfb6;
+  let mat=c=>new THREE.MeshLambertMaterial({color:c});
+  const bx=(w,h,d,c,x,y,z)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c)); m.position.set(x,y,z); if(c===robe) robeMats.push(m.material); return m; };
+  const robeMats=[];
+  if(o.light){                      /* reverent framing: He is shown as light, with no face */
+    const lm=c=>new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.9});
+    const cache={}; mat=c=>cache[c]||(cache[c]=lm(c)); o=Object.assign({},o,{robe:0xfff0cf,cloth:0xfffaf0,skin:0xfbe6c4,under:0xf3e2c0,sash:0xf0d9a8,beard:null,staff:false}); }
+  const skin=o.skin||0x8a5a3a, robe=o.robe||0x9a8466, clothC=o.cloth||0xd9cfb6;
   const legL=bx(0.26,0.8,0.28,o.under||0x5b4a3a,-0.14,0.4,0), legR=bx(0.26,0.8,0.28,o.under||0x5b4a3a,0.14,0.4,0);
   const body=bx(0.62,0.9,0.36,robe,0,1.15,0);
-  const skirt=bx(0.66,0.55,0.4,robe,0,0.68,0);
+  const skirt=bx(0.6,0.5,0.34,robe,0,0.7,0);                         /* the robe's body, under its hem */
+  /* THE CLOTH: the hem hangs in four panels from the waist, and the back of the head-cloth
+     from the crown; each swings on its hinge (the engine moves them: story/engine.js, clothStep) */
+  const cloth=[];
+  const panel=(w,h,d,c,px,py,pz,axis,sign)=>{ const pv=new THREE.Group(); pv.position.set(px,py,pz);
+    const m=bx(w,h,d,c,0,-h/2,0); pv.add(m); g.add(pv); cloth.push({pv,axis,sign,a:0,w:0,n:axis==='x'?[0,0,sign]:[sign,0,0]}); return pv; };
+  panel(0.66,0.56,0.04,robe,0,0.955,0.19,'x',1);  panel(0.66,0.56,0.04,robe,0,0.955,-0.19,'x',-1);
+  panel(0.04,0.56,0.38,robe,0.32,0.955,0,'z',1);  panel(0.04,0.56,0.38,robe,-0.32,0.955,0,'z',-1);
   const sash=bx(0.64,0.1,0.38,o.sash||0x6a3b2a,0,0.95,0);
   const head=bx(0.4,0.4,0.4,skin,0,1.82,0);
-  const hc=bx(0.46,0.22,0.46,cloth,0,2.02,0); const hcb=bx(0.46,0.46,0.12,cloth,0,1.8,-0.2);
+  const hc=bx(0.46,0.22,0.46,clothC,0,2.02,0);
+  const hcb=new THREE.Group(); hcb.position.set(0,2.03,-0.2); hcb.add(bx(0.46,0.46,0.12,clothC,0,-0.23,0));
+  cloth.push({pv:hcb,axis:'x',sign:-1,a:0,w:0,n:[0,0,-1],light:true});
   const armL=new THREE.Group(), armR=new THREE.Group();
   armL.position.set(-0.4,1.55,0); armR.position.set(0.4,1.55,0);
   armL.add(bx(0.2,0.7,0.24,robe,0,-0.33,0)); armL.add(bx(0.18,0.16,0.2,skin,0,-0.74,0));
   armR.add(bx(0.2,0.7,0.24,robe,0,-0.33,0)); armR.add(bx(0.18,0.16,0.2,skin,0,-0.74,0));
   if(o.beard) g.add(bx(0.36,0.18,0.08,o.beard,0,1.66,0.2));
+  /* THE FACE: eyes, brows and a mouth that opens with the words (Scripture-Game's face.js,
+     in blocks). He who is shown as light has none: reverent framing gives Him no face. */
+  if(!o.light){
+    const fm=c=>new THREE.MeshBasicMaterial({color:c});
+    const dark=fm(0x1c120b), lipC=fm(0x3a1810), browC=fm(o.brow||(o.beard&&o.beard!==0x6d6a66?o.beard:0x2a1d14));
+    const fb=(w,h,m,x,y,z)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,0.012),m); q.position.set(x,y,z); g.add(q); return q; };
+    const fz=0.206, mz=o.beard?0.246:fz;
+    const eyeL=fb(0.065,0.05,dark,-0.09,1.86,fz), eyeR=fb(0.065,0.05,dark,0.09,1.86,fz);
+    const browL=fb(0.1,0.022,browC,-0.09,1.905,fz+0.002), browR=fb(0.1,0.022,browC,0.09,1.905,fz+0.002);
+    const mouth=new THREE.Group(); mouth.position.set(0,o.beard?1.715:1.735,mz); g.add(mouth);
+    const mIn=new THREE.Mesh(new THREE.BoxGeometry(0.1,1,0.012),lipC); mIn.scale.y=0.018; mIn.position.y=-0.009; mouth.add(mIn);
+    const cL=new THREE.Mesh(new THREE.BoxGeometry(0.028,0.018,0.012),lipC), cR=cL.clone(); cL.position.x=-0.062; cR.position.x=0.062; mouth.add(cL,cR);
+    g.userData.face={eyeL,eyeR,browL,browR,mouth,mIn,cL,cR,blink:2+Math.random()*4,by:1.905};
+  }
   g.add(legL,legR,body,skirt,sash,head,hc,hcb,armL,armR);
   if(o.staff){ const st=bx(0.08,2.2,0.08,C.timber,0.12,-0.2,0.18); armR.add(st); }
   if(o.carry){ const it=bx(0.3,0.36,0.24,o.carry,0,-0.85,0.2); armR.add(it); g.userData.carry=it; }
+  if(o.light){ const G=W.glow({scene:g},0,1.2,0,4.2,0xfff0c8,0); G.sprite.material.opacity=0.75; g.userData.aura=G;
+    const L=new THREE.PointLight(0xffecc0,0.9,10,1.6); L.position.set(0,1.6,0.6); g.add(L); }
   g.scale.setScalar(s);
-  g.userData={legL,legR,armL,armR,phase:Math.random()*6,s,...g.userData};
+  g.userData={legL,legR,armL,armR,phase:Math.random()*6,s,robeMats,cloth,...g.userData};
   ctx.scene.add(g); return g;
+};
+/* a dove of light — "the Ruach of Aluahim descending like a dove" (Mattithyahu 3:16) */
+W.dove=function(ctx,x,y,z){
+  const g=new THREE.Group(), m=new THREE.MeshBasicMaterial({color:0xfffdf6});
+  const b=(w,h,d,px,py,pz)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); q.position.set(px,py,pz); g.add(q); return q; };
+  b(0.16,0.14,0.42,0,0,0); b(0.12,0.12,0.14,0,0.06,0.24); b(0.12,0.04,0.2,0,0.02,-0.28);
+  const wl=b(0.5,0.03,0.2,-0.3,0.04,0), wr=b(0.5,0.03,0.2,0.3,0.04,0);
+  const G=W.glow({scene:g},0,0,0,2.6,0xfff8e4,0); G.sprite.material.opacity=0.9;
+  g.userData.wings=[wl,wr]; g.position.set(x,y,z); ctx.scene.add(g); return g;
 };
 /* a sheep; `lamb` smaller */
 W.sheep=function(ctx,x,z,lamb){

@@ -55,6 +55,17 @@ button{ font-family:inherit; }
 #verse .who{ color:var(--gold); letter-spacing:0.14em; font-size:13px; text-transform:uppercase; margin-bottom:6px; }
 #verse .who.narr{ color:var(--dim); }
 #v-text{ font-size:clamp(16px,2.2vw,20px); line-height:1.55; }
+#verse.has-face{ padding-left:104px; min-height:96px; }
+#v-face{ position:absolute; left:14px; top:14px; width:76px; height:76px; border-radius:6px; border:1px solid var(--rule); background:#1c1712; image-rendering:pixelated; }
+#verse:not(.has-face) #v-face{ display:none; }
+#verse.has-face .vtap{ left:104px; }
+/* the parts of a verse: the telling, and each one's own words */
+#v-text .pt{ transition:opacity .35s, color .35s; }
+#v-text .pt.q{ color:#f6e7bf; }
+#v-text.flow .pt.later{ opacity:0.38; }
+#v-text.flow .pt.now.q{ color:#fff3cf; text-shadow:0 0 12px rgba(242,210,122,0.25); }
+#v-text .tag{ font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; color:var(--gold); opacity:0.8;
+  margin:0 5px 0 2px; padding:1px 5px; border:1px solid rgba(212,175,55,0.35); border-radius:3px; vertical-align:2px; white-space:nowrap; font-family:Georgia,serif; }
 #v-ref{ margin-top:8px; text-align:right; color:var(--gold); font-size:12px; letter-spacing:0.14em; }
 .vtap{ position:absolute; left:18px; bottom:10px; font-size:11px; color:#7f7258; }
 #card{ position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; cursor:pointer; padding:24px; }
@@ -133,15 +144,15 @@ button{ font-family:inherit; }
 <div id="play" class="off">
   <div id="where"></div>
   <div id="goal" class="off"></div>
-  <div class="topbtns"><button id="b-codex">📜 Codex</button><button id="b-hub">☰ The road</button></div>
-  <div id="verse" class="off"><div class="who" id="v-who"></div><div id="v-text"></div><div id="v-ref"></div><div class="vtap">continue ▸</div></div>
+  <div class="topbtns"><button id="b-voice" title="Voices on or off (V)">🗣 Voices</button><button id="b-codex">📜 Codex</button><button id="b-hub">☰ The road</button></div>
+  <div id="verse" class="off"><canvas id="v-face" width="38" height="38"></canvas><div class="who" id="v-who"></div><div id="v-text"></div><div id="v-ref"></div><div class="vtap">continue ▸</div></div>
   <div id="card" class="off"></div>
   <div id="eras" class="off"></div>
   <div id="choice" class="off"></div>
   <div id="prompt" class="off"><span id="prompt-t"></span><div id="hold"></div></div>
   <div id="joy"><div id="knob"></div></div>
   <button id="actbtn">E</button>
-  <div id="keys">WASD move · drag to look · E act · Enter continue · J Codex</div>
+  <div id="keys">WASD move · drag to look · E act · Enter continue · J Codex · V voices</div>
 </div>
 <div id="toast"></div>
 <div id="codex" class="off"><div class="ch"><span>THE PROPHECY CODEX</span><button onclick="document.getElementById('codex').classList.add('off')">✕</button></div><div id="codex-list"></div></div>
@@ -157,6 +168,8 @@ button{ font-family:inherit; }
 <div id="fade"></div>
 
 <script src="../three.min.js"></script>
+<script src="voices/bank.js"></script>
+<script src="voice.js"></script>
 <script src="world.js"></script>
 <script src="settings.js"></script>
 <script src="engine.js"></script>
@@ -165,6 +178,7 @@ button{ font-family:inherit; }
 <script src="acts/01-prologue.js"></script>
 <script src="acts/02-bridge.js"></script>
 <script src="acts/03-coming.js"></script>
+<script src="acts/04-forerunner.js"></script>
 <script src="acts/09-to-come.js"></script>
 <script>
   /* the verse the whole game is named for, in the Besorah's own words */

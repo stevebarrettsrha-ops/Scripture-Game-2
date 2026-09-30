@@ -6,12 +6,20 @@
    main story. Everything a named figure says is a passage of the Besorah,
    cited by `ref`; the words themselves live only in story/scripture.js.
 
-   Who speaks: a verse is given to a figure only where the Besorah itself
-   puts the words in his mouth (Aḥaz, 7:12; Yahshayahu, 7:13-14 and his own
-   "I saw", 6:1); the rest is read as the Besorah, not voiced by anyone. */
+   Who speaks: every quotation is given to the one the Besorah says spoke it —
+   (YAHUAH) HWHY to Yahshayahu (7:3-4) and to Aḥaz (7:11), the word brought to
+   the house of Dawiḏ (7:2), Aḥaz (7:12), Yahshayahu (7:13-14). Where the book
+   is the naḇi's own telling ("I saw", 6:1; "my taught ones", 8:16; "I shall
+   wait", 8:17, and the words he was given to speak) the whole verse is his.
+   The rest is the Besorah's telling, in the narrator's voice. */
 STORY.act({
   id:'prologue', n:1, num:'I', title:'The Promise',
   sub:'Yahrushalayim · in the days of Yahshayahu (c. 740–701 BCE)',
+  cast:{
+    yahuah:{name:'(YAHUAH) HWHY', kind:'divine'},
+    nabi:{name:'Yahshayahu', kind:'oldman', look:{robe:0x4a3c33, cloth:0xb9ab8e, beard:0x6d6a66}},
+    report:{name:'Those who brought word', kind:'man'}
+  },
   scenes:[
 
   /* ---------------- I.1 — THE VISION ---------------- */
@@ -26,7 +34,7 @@ STORY.act({
       {t:'note', text:'Yahrushalayim, about 740 BCE. The words of Yahshayahu son of Amots span the reigns of four sovereigns of Yahuḏah — from the year Uzziyahu died, about 740, into the days of Ḥizqiyahu, to about 701.'},
       {t:'show', id:'hekalLight'},
       {t:'cam', from:[6,9,-2], look:[6,8,-28], dur:4},
-      {t:'read', ref:'YASHAYAHU 6:1', whoName:'Yahshayahu'},
+      {t:'read', ref:'YASHAYAHU 6:1', who:'nabi'},
       {t:'hide', id:'hekalLight'},
       {t:'end'}
     ]},
@@ -46,9 +54,9 @@ STORY.act({
              {id:'writeStone', kind:'box', at:[-61.6,70.6], w:1.0, h:0.5, d:0.8, color:0x9c9486} ],
     beats:[
       {t:'read', ref:'YASHAYAHU 7:1'},
-      {t:'read', ref:'YASHAYAHU 7:2'},
+      {t:'read', ref:'YASHAYAHU 7:2', who:'report'},
       {t:'note', text:'About 735 BCE. Aram and the northern kingdom have marched against Yahrushalayim to force Yahuḏah into their war against Ashshur. The city is afraid.'},
-      {t:'read', ref:'YASHAYAHU 7:3'},
+      {t:'read', ref:'YASHAYAHU 7:3', who:'yahuah'},
       {t:'witness', text:'Take up the writing-board — you keep the prophet’s words', items:['board'], verb:'Take up the writing-board', hold:0.6},
       {t:'hide', id:'board'},
       {t:'move', who:['yah','son'], to:['gateOut','gateOut'], wait:false},
@@ -57,9 +65,9 @@ STORY.act({
       {t:'goal', text:'Follow them along the highway of the Launderer’s Field to the upper pool', goto:'pool', r:4},
       {t:'face', who:'ahaz', to:'player'},
       {t:'cam', from:[-56,4.5,76], look:'ahaz', dur:2.5},
-      {t:'read', ref:'YASHAYAHU 7:4'},
+      {t:'read', ref:'YASHAYAHU 7:4', who:'yahuah'},
       {t:'read', ref:'YASHAYAHU 7:10'},
-      {t:'read', ref:'YASHAYAHU 7:11'},
+      {t:'read', ref:'YASHAYAHU 7:11', who:'yahuah'},
       {t:'say', who:'ahaz', ref:'YASHAYAHU 7:12'},
       {t:'cam', from:[-64.5,4.2,79.5], look:[-63.5,1.4,71], dur:2},
       {t:'say', who:'yah', ref:'YASHAYAHU 7:13'},
@@ -85,7 +93,7 @@ STORY.act({
              {id:'scroll2', kind:'box', at:[-29.4,21.3], w:0.7, h:0.1, d:0.35, y:0.84, color:0xe9dfc2},
              {id:'scroll3', kind:'box', at:[-30.6,21.3], w:0.7, h:0.1, d:0.35, y:0.84, color:0xe9dfc2} ],
     beats:[
-      {t:'read', ref:'YASHAYAHU 8:16'},
+      {t:'say', who:'yah', ref:'YASHAYAHU 8:16'},
       {t:'goal', text:'Go in to the desk where the words are kept', goto:'studyDesk', r:2},
       {t:'say', who:'yah', ref:'YASHAYAHU 9:6-7'},
       {t:'witness', text:'Copy the words into your family scroll', items:['scroll1'], verb:'Copy the words', hold:1.6},
@@ -99,7 +107,7 @@ STORY.act({
       {t:'witness', text:'Copy the words into your family scroll', items:['scroll3'], verb:'Copy the words', hold:1.4},
       {t:'collect', id:'y35-5'},
       {t:'time', to:'dusk'},
-      {t:'say', who:'yah', ref:'YASHAYAHU 40:3'},
+      {t:'say', who:'yah', teller:'yah', ref:'YASHAYAHU 40:3'},
       {t:'witness', text:'Copy the words into your family scroll', items:['scroll1'], verb:'Copy the words', hold:1.4},
       {t:'collect', id:'y40-3'},
       {t:'time', to:'night'},
@@ -113,7 +121,7 @@ STORY.act({
       {t:'choice', prompt:'You', options:[
         {text:'Roll up the scroll and bind it', reply:'Seven words, copied in your own hand. You tie the cord. Your children will keep it, and theirs after them.'},
         {text:'Read the seven words over once more', reply:'You read them in the dawn light, from the sign at the upper pool to the one who was pierced.'} ]},
-      {t:'read', ref:'YASHAYAHU 8:17'},
+      {t:'say', who:'yah', ref:'YASHAYAHU 8:17'},
       {t:'end'}
     ]}
   ]

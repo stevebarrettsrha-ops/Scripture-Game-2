@@ -1,0 +1,1626 @@
+{
+ "story": {
+  "items": [
+   {
+    "key": "0e66220deaec",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "The vision of Yahshayahu son of Amots, which he saw concerning Yahuḏah and Yahrushalayim in the days of Uzziyahu, Yotham, Aḥaz, Ḥizqiyahu – sovereigns of Yahuḏah.",
+    "kk": "The vision of yah-shah-yah-hoo son of Amots, which he saw concerning yah-hoo-dah and yah-roo-shah-lah-yeem in the days of Uzziyahu, Yotham, ah-khahz, Kizqiyahu, sovereigns of yah-hoo-dah.",
+    "where": "prologue/vision YASHAYAHU 1:1"
+   },
+   {
+    "key": "3b650e10128f",
+    "kind": "oldman",
+    "name": "yahshayahu",
+    "who": "Yahshayahu",
+    "text": "In the year that Sovereign Uzziyahu died, I saw (YAHUAH) HWHY sitting on a throne, high and lifted up and the train of His robe filled the Hĕḵal.",
+    "kk": "In the year that Sovereign Uzziyahu died, I saw YAHUAH sitting on a throne, high and lifted up and the train of His robe filled the hay-kahl.",
+    "where": "prologue/vision YASHAYAHU 6:1"
+   },
+   {
+    "key": "d2c231adc23c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And it came to be in the days of Aḥaz son of Yotham, son of Uzziyahu, sovereign of Yahuḏah, that Retsin sovereign of Aram and Peqaḥ son of Remalyahu, sovereign of Yasharal, went up to Yahrushalayim to fight against it, but could not prevail against it.",
+    "kk": "And it came to be in the days of ah-khahz son of Yotham, son of Uzziyahu, sovereign of yah-hoo-dah, that Retsin sovereign of Aram and Peqak son of Remalyahu, sovereign of yah-shar-al, went up to yah-roo-shah-lah-yeem to fight against it, but could not prevail against it.",
+    "where": "prologue/upper-pool YASHAYAHU 7:1"
+   },
+   {
+    "key": "0dc560c91880",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And it was reported to the house of Dawiḏ, saying, ",
+    "kk": "And it was reported to the house of dah-veed, saying,",
+    "where": "prologue/upper-pool YASHAYAHU 7:2"
+   },
+   {
+    "key": "75765ea3a7ba",
+    "kind": "man",
+    "name": "those who brought word",
+    "who": "Those who brought word",
+    "text": "“Aram has set up camp in Ephrayim.”",
+    "kk": "Aram has set up camp in Ephrayim.",
+    "where": "prologue/upper-pool YASHAYAHU 7:2"
+   },
+   {
+    "key": "367a1f28406b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And his heart and the heart of his people were moved as the trees of the forest are moved with the ruach.",
+    "kk": "And his heart and the heart of his people were moved as the trees of the forest are moved with the roo-ahk.",
+    "where": "prologue/upper-pool YASHAYAHU 7:2"
+   },
+   {
+    "key": "2bf66a30c79b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And (YAHUAH) HWHY said to Yahshayahu, ",
+    "kk": "And YAHUAH said to yah-shah-yah-hoo,",
+    "where": "prologue/upper-pool YASHAYAHU 7:3"
+   },
+   {
+    "key": "af2b7b5aa22b",
+    "kind": "divine",
+    "name": "divine",
+    "who": "(YAHUAH) HWHY",
+    "text": "“Go out now to meet Aḥaz, you and She’ar-Yashuḇ your son, at the end of the channel of the upper pool, on the highway of the Launderer’s Field,",
+    "kk": "Go out now to meet ah-khahz, you and Shear-Yashub your son, at the end of the channel of the upper pool, on the highway of the Launderer's Field,",
+    "where": "prologue/upper-pool YASHAYAHU 7:3"
+   },
+   {
+    "key": "21a911939ace",
+    "kind": "divine",
+    "name": "divine",
+    "who": "(YAHUAH) HWHY",
+    "text": "and say to him, ‘Take heed and be calm; do not fear or be faint-hearted for these two stubs of smoking fire brands, for the fierce displeasure of Retsin and Aram and the son of Remalyahu.",
+    "kk": "and say to him, Take heed and be calm, do not fear or be faint-hearted for these two stubs of smoking fire brands, for the fierce displeasure of Retsin and Aram and the son of Remalyahu.",
+    "where": "prologue/upper-pool YASHAYAHU 7:4"
+   },
+   {
+    "key": "b44a40eae6cb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And (YAHUAH) HWHY spoke again to Aḥaz, saying,",
+    "kk": "And YAHUAH spoke again to ah-khahz, saying,",
+    "where": "prologue/upper-pool YASHAYAHU 7:10"
+   },
+   {
+    "key": "aba8caeb4fd6",
+    "kind": "divine",
+    "name": "divine",
+    "who": "(YAHUAH) HWHY",
+    "text": "“Ask a sign for yourself from (YAHUAH) HWHY your Aluahim; make deep the request or make it high.”",
+    "kk": "Ask a sign for yourself from YAHUAH your al-oo-ah-heem, make deep the request or make it high.",
+    "where": "prologue/upper-pool YASHAYAHU 7:11"
+   },
+   {
+    "key": "96b31ada63ff",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But Aḥaz said, ",
+    "kk": "But ah-khahz said,",
+    "where": "prologue/upper-pool YASHAYAHU 7:12"
+   },
+   {
+    "key": "8966af969983",
+    "kind": "man",
+    "name": "ahaz",
+    "who": "Aḥaz",
+    "text": "“I do not ask nor try (YAHUAH) HWHY!”",
+    "kk": "I do not ask nor try YAHUAH!",
+    "where": "prologue/upper-pool YASHAYAHU 7:12"
+   },
+   {
+    "key": "81d25c86c527",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And he said, ",
+    "kk": "And he said,",
+    "where": "prologue/upper-pool YASHAYAHU 7:13"
+   },
+   {
+    "key": "840456f797b8",
+    "kind": "oldman",
+    "name": "yahshayahu",
+    "who": "Yahshayahu",
+    "text": "“Hear now, O house of Dawiḏ! Is it not enough that you weary men, that you weary my Aluahim also?",
+    "kk": "Hear now, O house of dah-veed! Is it not enough that you weary men, that you weary my al-oo-ah-heem also?",
+    "where": "prologue/upper-pool YASHAYAHU 7:13"
+   },
+   {
+    "key": "1cbe0559ff0e",
+    "kind": "oldman",
+    "name": "yahshayahu",
+    "who": "Yahshayahu",
+    "text": "“Therefore (YAHUAH) HWHY Himself gives you a sign: Look, the maiden conceives and gives birth to a Son and shall call His Name Immanu’al.",
+    "kk": "Therefore YAHUAH Himself gives you a sign, Look, the maiden conceives and gives birth to a Son and shall call His Name ee-mah-noo-ahl.",
+    "where": "prologue/upper-pool YASHAYAHU 7:14"
+   },
+   {
+    "key": "912a4b4eccb7",
+    "kind": "oldman",
+    "name": "yahshayahu",
+    "who": "Yahshayahu",
+    "text": "Bind up the witness and seal the Torah among my taught ones.",
+    "kk": "Bind up the witness and seal the toh-rah among my taught ones.",
+    "where": "prologue/taught-ones YASHAYAHU 8:16"
+   },
+   {
+    "key": "3c42cda3030e",
+    "kind": "oldman",
+    "name": "yahshayahu",
+    "who": "Yahshayahu",
+    "text": "For a Child shall be born unto us, a Son shall be given unto us and the rule is on His shoulder. And His Name is called Wonder, Counsellor, Strong Al, Father of Continuity, Prince of Shalom. Of the increase of His rule and shalom there is no end, upon the throne of Dawiḏ and over His reign, to establish it and sustain it with right-ruling and with righteousness from now on, even forever. The ardour of (YAHUAH) HWHY of hosts does this.",
+    "kk": "For a Child shall be born unto us, a Son shall be given unto us and the rule is on His shoulder. And His Name is called Wonder, Counsellor, Strong Al, Father of Continuity, Prince of shah-lohm. Of the increase of His rule and shah-lohm there is no end, upon the throne of dah-veed and over His reign, to establish it and sustain it with right-ruling and with righteousness from now on, even forever. The ardour of YAHUAH of hosts does this.",
+    "where": "prologue/taught-ones YASHAYAHU 9:6-7"
+   },
+   {
+    "key": "e515026f6b6c",
+    "kind": "oldman",
+    "name": "yahshayahu",
+    "who": "Yahshayahu",
+    "text": "And a Rod shall come forth from the stump of Yahshai and a Sprout from his roots shall bear fruit. The Ruach of (YAHUAH) HWHY shall rest upon Him – the Ruach of wisdom and understanding, the Ruach of counsel and might, the Ruach of knowledge and of the fear of (YAHUAH) HWHY,",
+    "kk": "And a Rod shall come forth from the stump of yah-shy and a Sprout from his roots shall bear fruit. The roo-ahk of YAHUAH shall rest upon Him, the roo-ahk of wisdom and understanding, the roo-ahk of counsel and might, the roo-ahk of knowledge and of the fear of YAHUAH,",
+    "where": "prologue/taught-ones YASHAYAHU 11:1-2"
+   },
+   {
+    "key": "b4af531736ba",
+    "kind": "oldman",
+    "name": "yahshayahu",
+    "who": "Yahshayahu",
+    "text": "Then the eyes of the blind shall be opened and the ears of the deaf be opened. Then the lame shall leap like a deer and the tongue of the dumb sing, because waters shall burst forth in the wilderness and streams in the desert.",
+    "kk": "Then the eyes of the blind shall be opened and the ears of the deaf be opened. Then the lame shall leap like a deer and the tongue of the dumb sing, because waters shall burst forth in the wilderness and streams in the desert.",
+    "where": "prologue/taught-ones YASHAYAHU 35:5-6"
+   },
+   {
+    "key": "be601f190cfc",
+    "kind": "oldman",
+    "name": "yahshayahu",
+    "who": "Yahshayahu",
+    "text": "The voice of one crying in the wilderness, ",
+    "kk": "The voice of one crying in the wilderness,",
+    "where": "prologue/taught-ones YASHAYAHU 40:3"
+   },
+   {
+    "key": "385f35561701",
+    "kind": "oldman",
+    "name": "yahshayahu",
+    "who": "Yahshayahu",
+    "text": "“Prepare the way of (YAHUAH) HWHY; make straight in the desert a highway for our Aluahim.",
+    "kk": "Prepare the way of YAHUAH, make straight in the desert a highway for our al-oo-ah-heem.",
+    "where": "prologue/taught-ones YASHAYAHU 40:3"
+   },
+   {
+    "key": "8429c00fc568",
+    "kind": "oldman",
+    "name": "yahshayahu",
+    "who": "Yahshayahu",
+    "text": "despised and rejected by men, a man of pains and knowing sickness. And as one from whom the face is hidden, being despised and we did not consider Him. Truly, He has borne our sicknesses and carried our pains. Yet we reckoned Him stricken, smitten by Aluahim and afflicted. But He was pierced for our transgressions, He was crushed for our crookednesses. The chastisement for our shalom was upon Him and by His stripes we are healed.",
+    "kk": "despised and rejected by men, a man of pains and knowing sickness. And as one from whom the face is hidden, being despised and we did not consider Him. Truly, He has borne our sicknesses and carried our pains. Yet we reckoned Him stricken, smitten by al-oo-ah-heem and afflicted. But He was pierced for our transgressions, He was crushed for our crookednesses. The chastisement for our shah-lohm was upon Him and by His stripes we are healed.",
+    "where": "prologue/taught-ones YASHAYAHU 53:3-5"
+   },
+   {
+    "key": "e9934de2662d",
+    "kind": "oldman",
+    "name": "yahshayahu",
+    "who": "Yahshayahu",
+    "text": "The Ruach of the Master (YAHUAH) HWHY is upon Me, because (YAHUAH) HWHY has anointed Me to bring the besorah to the meek. He has sent Me to bind up the broken-hearted, to proclaim release to the captives and the opening of the prison to those who are bound, to proclaim the acceptable year of (YAHUAH) HWHY and the day of vengeance of our Aluahim, to comfort all who mourn,",
+    "kk": "The roo-ahk of the Master YAHUAH is upon Me, because YAHUAH has anointed Me to bring the beh-soh-rah to the meek. He has sent Me to bind up the broken-hearted, to proclaim release to the captives and the opening of the prison to those who are bound, to proclaim the acceptable year of YAHUAH and the day of vengeance of our al-oo-ah-heem, to comfort all who mourn,",
+    "where": "prologue/taught-ones YASHAYAHU 61:1-2"
+   },
+   {
+    "key": "36f202d9b308",
+    "kind": "oldman",
+    "name": "yahshayahu",
+    "who": "Yahshayahu",
+    "text": "And I shall wait on (YAHUAH) HWHY, who hides His face from the house of Ya‛aqoḇ. And I shall look for Him.",
+    "kk": "And I shall wait on YAHUAH, who hides His face from the house of Yaaqob. And I shall look for Him.",
+    "where": "prologue/taught-ones YASHAYAHU 8:17"
+   },
+   {
+    "key": "da6f236fee2e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And in the first year of Koresh sovereign of Persia, that the Word of (YAHUAH) HWHY by the mouth of Yahrmeyah might be accomplished, (YAHUAH) HWHY stirred up the ruach of Koresh sovereign of Persia, to proclaim throughout all his reign and also in writing, saying,",
+    "kk": "And in the first year of koh-resh sovereign of Persia, that the Word of YAHUAH by the mouth of Yahrmeyah might be accomplished, YAHUAH stirred up the roo-ahk of koh-resh sovereign of Persia, to proclaim throughout all his reign and also in writing, saying,",
+    "where": "bridge/years EZRA 1:1"
+   },
+   {
+    "key": "3ff7b4140093",
+    "kind": "angel",
+    "name": "gabrial",
+    "who": "Gaḇri’al",
+    "text": "“And the male goat is the sovereign of Greece and the large horn between its eyes is the first sovereign.",
+    "kk": "And the male goat is the sovereign of Greece and the large horn between its eyes is the first sovereign.",
+    "where": "bridge/years DANI'AL 8:21"
+   },
+   {
+    "key": "d21a8a21765c",
+    "kind": "man",
+    "name": "danial",
+    "who": "Dani’al",
+    "text": "“And in the days of these sovereigns the Al of the shamayim shall set up a reign which shall never be destroyed, nor the reign pass on to other people – it crushes and puts to an end all these reigns and it shall stand forever.",
+    "kk": "And in the days of these sovereigns the Al of the shah-mah-yeem shall set up a reign which shall never be destroyed, nor the reign pass on to other people, it crushes and puts to an end all these reigns and it shall stand forever.",
+    "where": "bridge/years DANI'AL 2:44"
+   },
+   {
+    "key": "a34dc3664cd3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But when the completion of the time came, Aluahim sent forth His Son, born of a woman, born under Torah,",
+    "kk": "But when the completion of the time came, al-oo-ah-heem sent forth His Son, born of a woman, born under toh-rah,",
+    "where": "bridge/years GALATIANS 4:4"
+   },
+   {
+    "key": "54b7212da8e0",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And in the sixth month the mal'ak Gaḇri’al was sent by Aluahim to a city of Galil named Natsareth,",
+    "kk": "And in the sixth month the mahl-ahk gahv-ree-ahl was sent by al-oo-ah-heem to a city of gah-leel named nahts-ah-ret,",
+    "where": "coming/natsareth LUKE 1:26"
+   },
+   {
+    "key": "25acbf823bcf",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "to a maiden engaged to a man whose name was Yosĕph, of the house of Dawiḏ. And the maiden’s name was Miryam.",
+    "kk": "to a maiden engaged to a man whose name was yoh-sef, of the house of dah-veed. And the maiden's name was meer-yahm.",
+    "where": "coming/natsareth LUKE 1:27"
+   },
+   {
+    "key": "d38f551a1edb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the mal'ak, coming to her, said, ",
+    "kk": "And the mahl-ahk, coming to her, said,",
+    "where": "coming/natsareth LUKE 1:28"
+   },
+   {
+    "key": "a46e93648403",
+    "kind": "angel",
+    "name": "gabrial",
+    "who": "Gaḇri’al",
+    "text": "“Greetings, favoured one, the Master is with you. Baruk are you among women!”",
+    "kk": "Greetings, favoured one, the Master is with you. Baruk are you among women!",
+    "where": "coming/natsareth LUKE 1:28"
+   },
+   {
+    "key": "1d68628064ed",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But she was greatly disturbed at his word and wondered what kind of greeting this was.",
+    "kk": "But she was greatly disturbed at his word and wondered what kind of greeting this was.",
+    "where": "coming/natsareth LUKE 1:29"
+   },
+   {
+    "key": "a7df09c3e5f4",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the mal'ak said to her, ",
+    "kk": "And the mahl-ahk said to her,",
+    "where": "coming/natsareth LUKE 1:30-33"
+   },
+   {
+    "key": "7608abd10a8c",
+    "kind": "angel",
+    "name": "gabrial",
+    "who": "Gaḇri’al",
+    "text": "“Do not be afraid, Miryam, for you have found chen with Aluahim. “And see, you shall conceive in your womb and shall give birth to a Son and call His Name Yahusha. ”He shall be great and shall be called the Son of the Most High. And (YAHUAH) HWHY Aluahim shall give Him the throne of His father Dawiḏ. “And He shall reign over the house of Ya‛aqoḇ forever and there shall be no end to His reign.”",
+    "kk": "Do not be afraid, meer-yahm, for you have found khen with al-oo-ah-heem. And see, you shall conceive in your womb and shall give birth to a Son and call His Name yah-hoo-shah. He shall be great and shall be called the Son of the Most High. And YAHUAH al-oo-ah-heem shall give Him the throne of His father dah-veed. And He shall reign over the house of Yaaqob forever and there shall be no end to His reign.",
+    "where": "coming/natsareth LUKE 1:30-33"
+   },
+   {
+    "key": "215fb0471dea",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Miryam said to the mal'ak, ",
+    "kk": "And meer-yahm said to the mahl-ahk,",
+    "where": "coming/natsareth LUKE 1:34"
+   },
+   {
+    "key": "27d70cea25d7",
+    "kind": "woman",
+    "name": "miryam",
+    "who": "Miryam",
+    "text": "“How shall this be, since I do not know a man?”",
+    "kk": "How shall this be, since I do not know a man?",
+    "where": "coming/natsareth LUKE 1:34"
+   },
+   {
+    "key": "7f576889e570",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the mal'ak answering, said to her, ",
+    "kk": "And the mahl-ahk answering, said to her,",
+    "where": "coming/natsareth LUKE 1:35-37"
+   },
+   {
+    "key": "93e2bf34a6b5",
+    "kind": "angel",
+    "name": "gabrial",
+    "who": "Gaḇri’al",
+    "text": "“The Ruach HaQadash shall come upon you and the power of the Most High shall overshadow you. And for that reason the Qadash (Set Apart One) born of you shall be called: Son of Aluahim. “And see, Alisheḇa your relative, she has also conceived a son in her old age. And this is now the sixth month to her who was called barren, because with Aluahim no matter shall be impossible.”",
+    "kk": "The roo-ahk hah-kah-dahsh shall come upon you and the power of the Most High shall overshadow you. And for that reason the kah-dahsh born of you shall be called, Son of al-oo-ah-heem. And see, Alisheba your relative, she has also conceived a son in her old age. And this is now the sixth month to her who was called barren, because with al-oo-ah-heem no matter shall be impossible.",
+    "where": "coming/natsareth LUKE 1:35-37"
+   },
+   {
+    "key": "4827896888a1",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Miryam said, ",
+    "kk": "And meer-yahm said,",
+    "where": "coming/natsareth LUKE 1:38"
+   },
+   {
+    "key": "6e89b89f7f08",
+    "kind": "woman",
+    "name": "miryam",
+    "who": "Miryam",
+    "text": "“See the female servant of (YAHUAH) HWHY! Let it be to me according to your word.”",
+    "kk": "See the female servant of YAHUAH! Let it be to me according to your word.",
+    "where": "coming/natsareth LUKE 1:38"
+   },
+   {
+    "key": "7da7878f274e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And the mal'ak went away from her.",
+    "kk": "And the mahl-ahk went away from her.",
+    "where": "coming/natsareth LUKE 1:38"
+   },
+   {
+    "key": "3548c71c708b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But the birth of Yahusha Mashiach was as follows: After His mother Miryam was engaged to Yosĕph, before they came together, she was found to be pregnant from the Ruach HaQadash.",
+    "kk": "But the birth of yah-hoo-shah mah-shee-ahk was as follows, After His mother meer-yahm was engaged to yoh-sef, before they came together, she was found to be pregnant from the roo-ahk hah-kah-dahsh.",
+    "where": "coming/natsareth MATTITHYAHU 1:18"
+   },
+   {
+    "key": "0406e0f36f6a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Yosĕph her husband, being righteous and not wishing to make a show of her, had in mind to put her away secretly.",
+    "kk": "And yoh-sef her husband, being righteous and not wishing to make a show of her, had in mind to put her away secretly.",
+    "where": "coming/natsareth MATTITHYAHU 1:19"
+   },
+   {
+    "key": "d12c5400194f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But while he thought about this, see, a mal'ak of (YAHUAH) HWHY appeared to him in a dream, saying, ",
+    "kk": "But while he thought about this, see, a mahl-ahk of YAHUAH appeared to him in a dream, saying,",
+    "where": "coming/natsareth MATTITHYAHU 1:20-21"
+   },
+   {
+    "key": "eaff4a769e4b",
+    "kind": "angel",
+    "name": "malak",
+    "who": "A mal’ak of (YAHUAH) HWHY",
+    "text": "“Yosĕph, son of Dawiḏ, do not be afraid to take Miryam as your wife, for that which is in her was brought forth from the Ruach HaQadash. “She shall give birth to a Son and you shall call His Name Yahusha for He shall save His people from their sins. ”",
+    "kk": "yoh-sef, son of dah-veed, do not be afraid to take meer-yahm as your wife, for that which is in her was brought forth from the roo-ahk hah-kah-dahsh. She shall give birth to a Son and you shall call His Name yah-hoo-shah for He shall save His people from their sins.",
+    "where": "coming/natsareth MATTITHYAHU 1:20-21"
+   },
+   {
+    "key": "57abbfef506c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And all this came to be in order to fill what was spoken by (YAHUAH) HWHY through the naḇi, saying, ",
+    "kk": "And all this came to be in order to fill what was spoken by YAHUAH through the nah-vee, saying,",
+    "where": "coming/natsareth MATTITHYAHU 1:22-23"
+   },
+   {
+    "key": "5fbc77e04993",
+    "kind": "divine",
+    "name": "divine",
+    "who": "(YAHUAH) HWHY, through the naḇi",
+    "text": "“See, a maiden shall conceive and she shall give birth to a Son and they shall call His Name Immanu’al,”",
+    "kk": "See, a maiden shall conceive and she shall give birth to a Son and they shall call His Name ee-mah-noo-ahl,",
+    "where": "coming/natsareth MATTITHYAHU 1:22-23"
+   },
+   {
+    "key": "9efa60ba5d37",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " which translated, means, ",
+    "kk": "which translated, means,",
+    "where": "coming/natsareth MATTITHYAHU 1:22-23"
+   },
+   {
+    "key": "10c20f43b54c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "“Al with us.”",
+    "kk": "Al with us.",
+    "where": "coming/natsareth MATTITHYAHU 1:22-23"
+   },
+   {
+    "key": "af4cc5f3d7c8",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Yosĕph, awaking from his sleep, did as the mal'ak of (YAHUAH) HWHY commanded him and took his wife,",
+    "kk": "And yoh-sef, awaking from his sleep, did as the mahl-ahk of YAHUAH commanded him and took his wife,",
+    "where": "coming/natsareth MATTITHYAHU 1:24"
+   },
+   {
+    "key": "96e95fd74a20",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And it came to be in those days that a decree went out from Caesar Augustus for all the world to be registered.",
+    "kk": "And it came to be in those days that a decree went out from Caesar Augustus for all the world to be registered.",
+    "where": "coming/road LUKE 2:1"
+   },
+   {
+    "key": "45271bf51b32",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "This took place as a first registration while Quirinius was governing Syria. And all were going to be registered, each one to his own city.",
+    "kk": "This took place as a first registration while Quirinius was governing Syria. And all were going to be registered, each one to his own city.",
+    "where": "coming/road LUKE 2:2-3"
+   },
+   {
+    "key": "c686110140b8",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Yosĕph also went up from Galil, out of the city of Natsareth to Yahuḏah, to the city of Dawiḏ, which is called Bĕyth Leḥem, because he was of the house and lineage of Dawiḏ, to be registered with Miryam, who was engaged to him – being pregnant.",
+    "kk": "And yoh-sef also went up from gah-leel, out of the city of nahts-ah-ret to yah-hoo-dah, to the city of dah-veed, which is called bayt leh-khem, because he was of the house and lineage of dah-veed, to be registered with meer-yahm, who was engaged to him, being pregnant.",
+    "where": "coming/road LUKE 2:4-5"
+   },
+   {
+    "key": "7966b45f9f70",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And in the same country there were shepherds living out in the fields, keeping watch over their flock by night.",
+    "kk": "And in the same country there were shepherds living out in the fields, keeping watch over their flock by night.",
+    "where": "coming/fields LUKE 2:8"
+   },
+   {
+    "key": "e449abafba94",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And look, a mal'ak of (YAHUAH) HWHY stood before them and the esteem of (YAHUAH) HWHY shone around them and they were greatly afraid.",
+    "kk": "And look, a mahl-ahk of YAHUAH stood before them and the esteem of YAHUAH shone around them and they were greatly afraid.",
+    "where": "coming/fields LUKE 2:9"
+   },
+   {
+    "key": "6c73ff24f449",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the mal'ak said to them, ",
+    "kk": "And the mahl-ahk said to them,",
+    "where": "coming/fields LUKE 2:10"
+   },
+   {
+    "key": "964db98bf174",
+    "kind": "angel",
+    "name": "malak",
+    "who": "The mal’ak",
+    "text": "“Do not be afraid, for look, I bring you the besorah of great joy which shall be to all people.",
+    "kk": "Do not be afraid, for look, I bring you the beh-soh-rah of great joy which shall be to all people.",
+    "where": "coming/fields LUKE 2:10"
+   },
+   {
+    "key": "8e141b53de8c",
+    "kind": "angel",
+    "name": "malak",
+    "who": "The mal’ak",
+    "text": "“Because there was born to you today in the city of Dawiḏ a Saviour, who is Mashiach, the Master.",
+    "kk": "Because there was born to you today in the city of dah-veed a Saviour, who is mah-shee-ahk, the Master.",
+    "where": "coming/fields LUKE 2:11"
+   },
+   {
+    "key": "1262249c62cb",
+    "kind": "angel",
+    "name": "malak",
+    "who": "The mal’ak",
+    "text": "“And this is the sign to you: You shall find a baby wrapped up, lying in a feeding trough.”",
+    "kk": "And this is the sign to you, You shall find a baby wrapped up, lying in a feeding trough.",
+    "where": "coming/fields LUKE 2:12"
+   },
+   {
+    "key": "3514a13ffd06",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And suddenly there was with the mal'ak a crowd of the heavenly host praising Aluahim and saying,",
+    "kk": "And suddenly there was with the mahl-ahk a crowd of the heavenly host praising al-oo-ah-heem and saying,",
+    "where": "coming/fields LUKE 2:13"
+   },
+   {
+    "key": "be8aad6ce9a3",
+    "kind": "angel",
+    "name": "heavenly host",
+    "who": "The heavenly host",
+    "text": "“Esteem to Aluahim in the highest and on earth shalom among men with whom He is pleased!”",
+    "kk": "Esteem to al-oo-ah-heem in the highest and on earth shah-lohm among men with whom He is pleased!",
+    "where": "coming/fields LUKE 2:14"
+   },
+   {
+    "key": "ecf57497e4e6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "It came to be, when the mal'akim had gone away from them into the shamayim, that the shepherds said to each other, ",
+    "kk": "It came to be, when the mahl-ah-keem had gone away from them into the shah-mah-yeem, that the shepherds said to each other,",
+    "where": "coming/fields LUKE 2:15"
+   },
+   {
+    "key": "4f7a98bf7370",
+    "kind": "man",
+    "name": "shepherds",
+    "who": "The shepherds",
+    "text": "“Indeed, let us go to Bĕyth Leḥem and see this matter that has taken place, which the Master has made known to us.”",
+    "kk": "Indeed, let us go to bayt leh-khem and see this matter that has taken place, which the Master has made known to us.",
+    "where": "coming/fields LUKE 2:15"
+   },
+   {
+    "key": "e93230fbfc72",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they came in haste and found Miryam and Yosĕph and the baby lying in a feeding trough.",
+    "kk": "And they came in haste and found meer-yahm and yoh-sef and the baby lying in a feeding trough.",
+    "where": "coming/trough LUKE 2:16"
+   },
+   {
+    "key": "b4b8a078e45b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And she gave birth to her first-born Son and wrapped Him up and laid Him down in a feeding trough, because there was no room for them in a lodging place.",
+    "kk": "And she gave birth to her first-born Son and wrapped Him up and laid Him down in a feeding trough, because there was no room for them in a lodging place.",
+    "where": "coming/trough LUKE 2:7"
+   },
+   {
+    "key": "a325ead003c9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having seen, they made known the matter which was spoken to them concerning the child.",
+    "kk": "And having seen, they made known the matter which was spoken to them concerning the child.",
+    "where": "coming/trough LUKE 2:17"
+   },
+   {
+    "key": "470f3c58d68f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And all those who heard marvelled at what the shepherds said to them.",
+    "kk": "And all those who heard marvelled at what the shepherds said to them.",
+    "where": "coming/trough LUKE 2:18"
+   },
+   {
+    "key": "f5747abe062d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But Miryam kept all these matters, considering them in her heart.",
+    "kk": "But meer-yahm kept all these matters, considering them in her heart.",
+    "where": "coming/trough LUKE 2:19"
+   },
+   {
+    "key": "d0c4cd4effcf",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the shepherds returned, boasting and praising Aluahim for all they had heard and seen, as it was spoken to them.",
+    "kk": "And the shepherds returned, boasting and praising al-oo-ah-heem for all they had heard and seen, as it was spoken to them.",
+    "where": "coming/trough LUKE 2:20"
+   },
+   {
+    "key": "29caa108af7f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Yahusha having been born in Bĕyth Leḥem of Yahuḏah in the days of Herodes the sovereign, see, Magi from the East came to Yahrushalayim,",
+    "kk": "And yah-hoo-shah having been born in bayt leh-khem of yah-hoo-dah in the days of Herodes the sovereign, see, Magi from the East came to yah-roo-shah-lah-yeem,",
+    "where": "coming/herodes MATTITHYAHU 2:1"
+   },
+   {
+    "key": "a82e5aec9443",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "saying, ",
+    "kk": "saying,",
+    "where": "coming/herodes MATTITHYAHU 2:2"
+   },
+   {
+    "key": "ccf7ad4aefdf",
+    "kind": "man",
+    "name": "magi from the east",
+    "who": "Magi from the East",
+    "text": "“Where is He who has been born Sovereign of the Yahuḏim? For we saw His star in the East and have come to do reverence to Him.”",
+    "kk": "Where is He who has been born Sovereign of the yah-hoo-deem? For we saw His star in the East and have come to do reverence to Him.",
+    "where": "coming/herodes MATTITHYAHU 2:2"
+   },
+   {
+    "key": "efde3e33d1d6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Herodes the sovereign, having heard, was troubled and all Yahrushalayim with him. And having gathered all the chief kohanim and scribes of the people together, he asked them where the Mashiach was to be born.",
+    "kk": "And Herodes the sovereign, having heard, was troubled and all yah-roo-shah-lah-yeem with him. And having gathered all the chief koh-hah-neem and scribes of the people together, he asked them where the mah-shee-ahk was to be born.",
+    "where": "coming/herodes MATTITHYAHU 2:3-4"
+   },
+   {
+    "key": "fef2c100a93f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they said to him, ",
+    "kk": "And they said to him,",
+    "where": "coming/herodes MATTITHYAHU 2:5-6"
+   },
+   {
+    "key": "e99cfa8a8beb",
+    "kind": "oldman",
+    "name": "chief kohanim and scribes",
+    "who": "The chief kohanim and scribes",
+    "text": "“In Bĕyth Leḥem of Yahuḏah, for thus it has been written by the naḇi, ‘But you, Bĕyth Leḥem, in the land of Yahuḏah, you are by no means least among the rulers of Yahuḏah, for out of you shall come a Ruler who shall shepherd My people Yasharal.’ ”",
+    "kk": "In bayt leh-khem of yah-hoo-dah, for thus it has been written by the nah-vee, But you, bayt leh-khem, in the land of yah-hoo-dah, you are by no means least among the rulers of yah-hoo-dah, for out of you shall come a Ruler who shall shepherd My people yah-shar-al.",
+    "where": "coming/herodes MATTITHYAHU 2:5-6"
+   },
+   {
+    "key": "f8a8525f7338",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then Herodes, having called the Magi secretly, learned exactly from them what time the star appeared.",
+    "kk": "Then Herodes, having called the Magi secretly, learned exactly from them what time the star appeared.",
+    "where": "coming/herodes MATTITHYAHU 2:7"
+   },
+   {
+    "key": "f0944c88d34b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having sent them to Bĕyth Leḥem, he said, ",
+    "kk": "And having sent them to bayt leh-khem, he said,",
+    "where": "coming/herodes MATTITHYAHU 2:8"
+   },
+   {
+    "key": "9417d6e52a7c",
+    "kind": "man",
+    "name": "herodes",
+    "who": "Herodes",
+    "text": "“Go and search diligently for the Child and when you have found Him, bring back word to me, so that I too might go and do reverence to Him.”",
+    "kk": "Go and search diligently for the Child and when you have found Him, bring back word to me, so that I too might go and do reverence to Him.",
+    "where": "coming/herodes MATTITHYAHU 2:8"
+   },
+   {
+    "key": "5121274a1aeb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having heard the sovereign, they went. And see, the star which they had seen in the East went before them, until it came and stood over where the Child was.",
+    "kk": "And having heard the sovereign, they went. And see, the star which they had seen in the East went before them, until it came and stood over where the Child was.",
+    "where": "coming/star MATTITHYAHU 2:9"
+   },
+   {
+    "key": "99c300d36c36",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And seeing the star, they rejoiced with exceedingly great joy.",
+    "kk": "And seeing the star, they rejoiced with exceedingly great joy.",
+    "where": "coming/star MATTITHYAHU 2:10"
+   },
+   {
+    "key": "af488c458648",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And coming into the house, they saw the Child with Miryam His mother and fell down and did reverence to Him and opening their treasures, they presented to Him gifts of gold and frankincense and myrrh.",
+    "kk": "And coming into the house, they saw the Child with meer-yahm His mother and fell down and did reverence to Him and opening their treasures, they presented to Him gifts of gold and frankincense and myrrh.",
+    "where": "coming/star MATTITHYAHU 2:11"
+   },
+   {
+    "key": "673b5090e9d7",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having been warned in a dream that they should not return to Herodes, they departed for their own country by another way.",
+    "kk": "And having been warned in a dream that they should not return to Herodes, they departed for their own country by another way.",
+    "where": "coming/star MATTITHYAHU 2:12"
+   },
+   {
+    "key": "31ca5db8d24b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when they had left, see, a mal'ak of (YAHUAH) HWHY appeared to Yosĕph in a dream, saying, ",
+    "kk": "And when they had left, see, a mahl-ahk of YAHUAH appeared to yoh-sef in a dream, saying,",
+    "where": "coming/flight MATTITHYAHU 2:13"
+   },
+   {
+    "key": "183b33e93042",
+    "kind": "angel",
+    "name": "malak",
+    "who": "A mal’ak of (YAHUAH) HWHY",
+    "text": "“Arise, take the Child and His mother and flee to Mitsrayim and remain there until I bring you word, for Herodes is about to seek the Child to destroy Him.”",
+    "kk": "Arise, take the Child and His mother and flee to meets-rah-yeem and remain there until I bring you word, for Herodes is about to seek the Child to destroy Him.",
+    "where": "coming/flight MATTITHYAHU 2:13"
+   },
+   {
+    "key": "c4b0d1fa9097",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And rising up, he took the Child and His mother by night and departed for Mitsrayim, and remained there until the death of Herodes, to fill what was spoken by (YAHUAH) HWHY through the naḇi, saying, ",
+    "kk": "And rising up, he took the Child and His mother by night and departed for meets-rah-yeem, and remained there until the death of Herodes, to fill what was spoken by YAHUAH through the nah-vee, saying,",
+    "where": "coming/flight MATTITHYAHU 2:14-15"
+   },
+   {
+    "key": "b2c17fc43ca7",
+    "kind": "divine",
+    "name": "divine",
+    "who": "(YAHUAH) HWHY, through the naḇi",
+    "text": "“Out of Mitsrayim I have called My Son.”",
+    "kk": "Out of meets-rah-yeem I have called My Son.",
+    "where": "coming/flight MATTITHYAHU 2:14-15"
+   },
+   {
+    "key": "d02a379e8ea7",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And in the fifteenth year of the reign of Tiberius Caesar, when Pontius Pilate was governor of Yahuḏah and Herodes district ruler of Galil and his brother Philip district ruler of Yahtur and the country of Trachonitis and Lusanias district ruler of Aḇilene, Ḥanan and Qayapha being kohen gadols, the Word of Aluahim came to Yahuchanon the son of Zaḵaryahu in the wilderness.",
+    "kk": "And in the fifteenth year of the reign of Tiberius Caesar, when Pontius Pilate was governor of yah-hoo-dah and Herodes district ruler of gah-leel and his brother Philip district ruler of Yahtur and the country of Trachonitis and Lusanias district ruler of Abilene, Kanan and Qayapha being kohen gadols, the Word of al-oo-ah-heem came to yah-hoo-kah-nohn the son of zah-khar-yah-hoo in the wilderness.",
+    "where": "forerunner/voice LUKE 3:1-2"
+   },
+   {
+    "key": "6bea5a29c42c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And in those days Yahuchanon the Immerser came proclaiming in the wilderness of Yahuḏah,",
+    "kk": "And in those days yah-hoo-kah-nohn the Immerser came proclaiming in the wilderness of yah-hoo-dah,",
+    "where": "forerunner/voice MATTITHYAHU 3:1"
+   },
+   {
+    "key": "4e1a7d9d2aba",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "and saying, ",
+    "kk": "and saying,",
+    "where": "forerunner/voice MATTITHYAHU 3:2"
+   },
+   {
+    "key": "a475271fede4",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“Repent, for the reign of the shamayim has come near!”",
+    "kk": "Repent, for the reign of the shah-mah-yeem has come near!",
+    "where": "forerunner/voice MATTITHYAHU 3:2"
+   },
+   {
+    "key": "158b976e4c8f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "For this is he who was spoken of by the naḇi Yahshayahu, saying, ",
+    "kk": "For this is he who was spoken of by the nah-vee yah-shah-yah-hoo, saying,",
+    "where": "forerunner/voice MATTITHYAHU 3:3"
+   },
+   {
+    "key": "f8ed6496c11f",
+    "kind": "oldman",
+    "name": "yahshayahu",
+    "who": "Yahshayahu the naḇi",
+    "text": "“A voice of one crying in the wilderness, ‘Prepare the way of (YAHUAH) HWHY, make His paths straight.’ ”",
+    "kk": "A voice of one crying in the wilderness, Prepare the way of YAHUAH, make His paths straight.",
+    "where": "forerunner/voice MATTITHYAHU 3:3"
+   },
+   {
+    "key": "c61c9c6cbefd",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Yahuchanon had a garment of camel’s hair and a leather girdle around his waist. His food was locusts and wild honey.",
+    "kk": "And yah-hoo-kah-nohn had a garment of camel's hair and a leather girdle around his waist. His food was locusts and wild honey.",
+    "where": "forerunner/voice MATTITHYAHU 3:4"
+   },
+   {
+    "key": "664e9f250722",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then Yahrushalayim and all Yahuḏah and all the country around the Yardĕn went out to him, and they were immersed by him in the Yardĕn, confessing their sins.",
+    "kk": "Then yah-roo-shah-lah-yeem and all yah-hoo-dah and all the country around the yar-den went out to him, and they were immersed by him in the yar-den, confessing their sins.",
+    "where": "forerunner/voice MATTITHYAHU 3:5-6"
+   },
+   {
+    "key": "1f0afbf6e9b5",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the crowds asked him, saying, ",
+    "kk": "And the crowds asked him, saying,",
+    "where": "forerunner/voice LUKE 3:10"
+   },
+   {
+    "key": "164ba3e14c9e",
+    "kind": "crowd",
+    "name": "crowds",
+    "who": "The crowds",
+    "text": "“What, then, shall we do?”",
+    "kk": "What, then, shall we do?",
+    "where": "forerunner/voice LUKE 3:10"
+   },
+   {
+    "key": "99b0273f7876",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And answering He said to them, ",
+    "kk": "And answering He said to them,",
+    "where": "forerunner/voice LUKE 3:11"
+   },
+   {
+    "key": "e9faf1f5698c",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“Let him who has two undergarments share with him who has none and let him who has food do likewise.”",
+    "kk": "Let him who has two undergarments share with him who has none and let him who has food do likewise.",
+    "where": "forerunner/voice LUKE 3:11"
+   },
+   {
+    "key": "4d06166549ec",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And tax collectors also came to be immersed and said to him, ",
+    "kk": "And tax collectors also came to be immersed and said to him,",
+    "where": "forerunner/voice LUKE 3:12"
+   },
+   {
+    "key": "a9b6734b9bc8",
+    "kind": "man",
+    "name": "tax collectors",
+    "who": "Tax collectors",
+    "text": "“Teacher, what shall we do?”",
+    "kk": "Teacher, what shall we do?",
+    "where": "forerunner/voice LUKE 3:12"
+   },
+   {
+    "key": "a09f62350c40",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And he said to them, ",
+    "kk": "And he said to them,",
+    "where": "forerunner/voice LUKE 3:13"
+   },
+   {
+    "key": "a26b95715b28",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“Collect no more than what is appointed for you.”",
+    "kk": "Collect no more than what is appointed for you.",
+    "where": "forerunner/voice LUKE 3:13"
+   },
+   {
+    "key": "532ec9155cac",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And soldiers also asked him, saying, ",
+    "kk": "And soldiers also asked him, saying,",
+    "where": "forerunner/voice LUKE 3:14"
+   },
+   {
+    "key": "de0420d536d4",
+    "kind": "man",
+    "name": "soldiers",
+    "who": "Soldiers",
+    "text": "“What shall we do?”",
+    "kk": "What shall we do?",
+    "where": "forerunner/voice LUKE 3:14"
+   },
+   {
+    "key": "f90b44be18b9",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“Do not intimidate anyone or accuse falsely and be satisfied with your pay.”",
+    "kk": "Do not intimidate anyone or accuse falsely and be satisfied with your pay.",
+    "where": "forerunner/voice LUKE 3:14"
+   },
+   {
+    "key": "c0ded3b02ab7",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But as the people were in expectation and all were reasoning in their hearts about Yahuchanon,whether he was the Mashiach or not,",
+    "kk": "But as the people were in expectation and all were reasoning in their hearts about yah-hoo-kah-nohn,whether he was the mah-shee-ahk or not,",
+    "where": "forerunner/voice LUKE 3:15"
+   },
+   {
+    "key": "22b31f956a68",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Yahuchanon answered, saying to them all, ",
+    "kk": "yah-hoo-kah-nohn answered, saying to them all,",
+    "where": "forerunner/voice LUKE 3:16-17"
+   },
+   {
+    "key": "8ce0decaf945",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“I indeed immerse you in water, but One mightier than I is coming, whose sandal straps I am not worthy to loosen. He shall immerse you in the Ruach HaQadash and fire. “His winnowing fork is in His hand and He shall thoroughly cleanse His threshing-floor and gather the wheat into His storehouse, but the chaff He shall burn with unquenchable fire.”",
+    "kk": "I indeed immerse you in water, but One mightier than I is coming, whose sandal straps I am not worthy to loosen. He shall immerse you in the roo-ahk hah-kah-dahsh and fire. His winnowing fork is in His hand and He shall thoroughly cleanse His threshing-floor and gather the wheat into His storehouse, but the chaff He shall burn with unquenchable fire.",
+    "where": "forerunner/voice LUKE 3:16-17"
+   },
+   {
+    "key": "a9e07faa5049",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And urging with many other words, he brought the besorah to the people.",
+    "kk": "And urging with many other words, he brought the beh-soh-rah to the people.",
+    "where": "forerunner/voice LUKE 3:18"
+   },
+   {
+    "key": "72af3cddb3a6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then Yahusha came from Galil to Yahuchanon at the Yardĕn to be immersed by him.",
+    "kk": "Then yah-hoo-shah came from gah-leel to yah-hoo-kah-nohn at the yar-den to be immersed by him.",
+    "where": "forerunner/immersion MATTITHYAHU 3:13"
+   },
+   {
+    "key": "49366328d8e3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But Yahuchanon was hindering Him, saying, ",
+    "kk": "But yah-hoo-kah-nohn was hindering Him, saying,",
+    "where": "forerunner/immersion MATTITHYAHU 3:14"
+   },
+   {
+    "key": "120a802bfa44",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“I need to be immersed by You and You come to me?”",
+    "kk": "I need to be immersed by You and You come to me?",
+    "where": "forerunner/immersion MATTITHYAHU 3:14"
+   },
+   {
+    "key": "9355be976778",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But Yahusha answering, said to him, ",
+    "kk": "But yah-hoo-shah answering, said to him,",
+    "where": "forerunner/immersion MATTITHYAHU 3:15"
+   },
+   {
+    "key": "d4ab9e4ac6c9",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Permit it now, for thus it is fitting for us to fill all righteousness.”",
+    "kk": "Permit it now, for thus it is fitting for us to fill all righteousness.",
+    "where": "forerunner/immersion MATTITHYAHU 3:15"
+   },
+   {
+    "key": "45b030af8fc2",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " Then he permitted Him.",
+    "kk": "Then he permitted Him.",
+    "where": "forerunner/immersion MATTITHYAHU 3:15"
+   },
+   {
+    "key": "0dbeaefa230f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having been immersed, Yahusha went up immediately from the water and see, the shamayim were opened and He saw the Ruach of Aluahim descending like a dove and coming upon Him,",
+    "kk": "And having been immersed, yah-hoo-shah went up immediately from the water and see, the shah-mah-yeem were opened and He saw the roo-ahk of al-oo-ah-heem descending like a dove and coming upon Him,",
+    "where": "forerunner/immersion MATTITHYAHU 3:16"
+   },
+   {
+    "key": "f25fa3d8d85b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "and see, a voice out of the shamayim, saying, ",
+    "kk": "and see, a voice out of the shah-mah-yeem, saying,",
+    "where": "forerunner/immersion MATTITHYAHU 3:17"
+   },
+   {
+    "key": "61d6afe90c20",
+    "kind": "divine",
+    "name": "divine",
+    "who": "A voice out of the shamayim",
+    "text": "“This is My Son, the Beloved, in whom I did delight.”",
+    "kk": "This is My Son, the Beloved, in whom I did delight.",
+    "where": "forerunner/immersion MATTITHYAHU 3:17"
+   },
+   {
+    "key": "d27ba6ab49b2",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And immediately the Ruach drove Him into the wilderness.",
+    "kk": "And immediately the roo-ahk drove Him into the wilderness.",
+    "where": "forerunner/immersion MARK 1:12"
+   },
+   {
+    "key": "f7bf654a6827",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then Yahusha was led up by the Ruach into the wilderness to be tried by the devil.",
+    "kk": "Then yah-hoo-shah was led up by the roo-ahk into the wilderness to be tried by the devil.",
+    "where": "forerunner/forty MATTITHYAHU 4:1"
+   },
+   {
+    "key": "96d0450a0ed9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And after having fasted forty days and forty nights, He was hungry.",
+    "kk": "And after having fasted forty days and forty nights, He was hungry.",
+    "where": "forerunner/forty MATTITHYAHU 4:2"
+   },
+   {
+    "key": "3d56b6da3ac9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the trier came and said to Him, ",
+    "kk": "And the trier came and said to Him,",
+    "where": "forerunner/forty MATTITHYAHU 4:3"
+   },
+   {
+    "key": "a2a5374af6e5",
+    "kind": "dark",
+    "name": "devil",
+    "who": "The trier",
+    "text": "“If You are the Son of Aluahim, command that these stones become bread.”",
+    "kk": "If You are the Son of al-oo-ah-heem, command that these stones become bread.",
+    "where": "forerunner/forty MATTITHYAHU 4:3"
+   },
+   {
+    "key": "a761336cf78b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But He answering, said, ",
+    "kk": "But He answering, said,",
+    "where": "forerunner/forty MATTITHYAHU 4:4"
+   },
+   {
+    "key": "eeec7f23316a",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“It has been written, ‘Man shall not live by bread alone, but by every word that comes from the mouth of (YAHUAH) HWHY.’ ”",
+    "kk": "It has been written, Man shall not live by bread alone, but by every word that comes from the mouth of YAHUAH.",
+    "where": "forerunner/forty MATTITHYAHU 4:4"
+   },
+   {
+    "key": "ca4711a9f0f2",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then the devil took Him up into the qadash (Set Apart) city, set Him on the edge of the Qodash (Set Apart Place),",
+    "kk": "Then the devil took Him up into the kah-dahsh city, set Him on the edge of the koh-dahsh,",
+    "where": "forerunner/qodash MATTITHYAHU 4:5"
+   },
+   {
+    "key": "f966a442a923",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "and said to Him, ",
+    "kk": "and said to Him,",
+    "where": "forerunner/qodash MATTITHYAHU 4:6"
+   },
+   {
+    "key": "89d3b8f48413",
+    "kind": "dark",
+    "name": "devil",
+    "who": "The devil",
+    "text": "“If You are the Son of Aluahim, throw Yourself down. For it has been written, ‘He shall command His mal'akim concerning you,’ and ‘In their hands they shall bear you up so that you do not dash your foot against a stone.’ ”",
+    "kk": "If You are the Son of al-oo-ah-heem, throw Yourself down. For it has been written, He shall command His mahl-ah-keem concerning you, and In their hands they shall bear you up so that you do not dash your foot against a stone.",
+    "where": "forerunner/qodash MATTITHYAHU 4:6"
+   },
+   {
+    "key": "c8ae7462a867",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Yahusha said to him, ",
+    "kk": "yah-hoo-shah said to him,",
+    "where": "forerunner/qodash MATTITHYAHU 4:7"
+   },
+   {
+    "key": "08d0c0c43c25",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“It has also been written, ‘You shall not try (YAHUAH) HWHY your Aluahim.’ ”",
+    "kk": "It has also been written, You shall not try YAHUAH your al-oo-ah-heem.",
+    "where": "forerunner/qodash MATTITHYAHU 4:7"
+   },
+   {
+    "key": "57868fae09f1",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Again, the devil took Him up on a very high mountain and showed Him all the reigns of the world and their esteem,",
+    "kk": "Again, the devil took Him up on a very high mountain and showed Him all the reigns of the world and their esteem,",
+    "where": "forerunner/mountain MATTITHYAHU 4:8"
+   },
+   {
+    "key": "d5bc21345ced",
+    "kind": "dark",
+    "name": "devil",
+    "who": "The devil",
+    "text": "“All these I shall give You if You fall down and worship me.”",
+    "kk": "All these I shall give You if You fall down and worship me.",
+    "where": "forerunner/mountain MATTITHYAHU 4:9"
+   },
+   {
+    "key": "26742a4ddc52",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then Yahusha said to him, ",
+    "kk": "Then yah-hoo-shah said to him,",
+    "where": "forerunner/mountain MATTITHYAHU 4:10"
+   },
+   {
+    "key": "7a27649c8c7d",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Go, Satan! For it has been written, ‘You shall worship (YAHUAH) HWHY your Aluahim and Him alone you shall serve.’ ”",
+    "kk": "Go, Satan! For it has been written, You shall worship YAHUAH your al-oo-ah-heem and Him alone you shall serve.",
+    "where": "forerunner/mountain MATTITHYAHU 4:10"
+   },
+   {
+    "key": "8f1af23fd9d2",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then the devil left Him and see, mal'akim came and attended Him.",
+    "kk": "Then the devil left Him and see, mahl-ah-keem came and attended Him.",
+    "where": "forerunner/mountain MATTITHYAHU 4:11"
+   },
+   {
+    "key": "34ec3438c443",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Now this was the witness of Yahuchanon when the Yahuḏim sent from Yahrushalayim kohanim and Lĕwites to ask him, ",
+    "kk": "Now this was the witness of yah-hoo-kah-nohn when the yah-hoo-deem sent from yah-roo-shah-lah-yeem koh-hah-neem and lay-vites to ask him,",
+    "where": "forerunner/lamb YAHUCHANON 1:19"
+   },
+   {
+    "key": "c9bd80df24f4",
+    "kind": "oldman",
+    "name": "those sent from yahrushalayim",
+    "who": "Those sent from Yahrushalayim",
+    "text": "“Who are you?”",
+    "kk": "Who are you?",
+    "where": "forerunner/lamb YAHUCHANON 1:19"
+   },
+   {
+    "key": "7ea82d93fb0c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And he confessed and did not deny, but confessed, ",
+    "kk": "And he confessed and did not deny, but confessed,",
+    "where": "forerunner/lamb YAHUCHANON 1:20"
+   },
+   {
+    "key": "39e3546f3df0",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“I am not the Mashiach.”",
+    "kk": "I am not the mah-shee-ahk.",
+    "where": "forerunner/lamb YAHUCHANON 1:20"
+   },
+   {
+    "key": "f3545cc24831",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they asked him, ",
+    "kk": "And they asked him,",
+    "where": "forerunner/lamb YAHUCHANON 1:21"
+   },
+   {
+    "key": "1f9049f5a388",
+    "kind": "oldman",
+    "name": "those sent from yahrushalayim",
+    "who": "Those sent from Yahrushalayim",
+    "text": "“What then, are you Aliyahu?”",
+    "kk": "What then, are you ah-lee-yah-hoo?",
+    "where": "forerunner/lamb YAHUCHANON 1:21"
+   },
+   {
+    "key": "221a6f858ffa",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " So he said, ",
+    "kk": "So he said,",
+    "where": "forerunner/lamb YAHUCHANON 1:21"
+   },
+   {
+    "key": "e967540ccb25",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“I am not.”",
+    "kk": "I am not.",
+    "where": "forerunner/lamb YAHUCHANON 1:21"
+   },
+   {
+    "key": "f2860b511fa4",
+    "kind": "oldman",
+    "name": "those sent from yahrushalayim",
+    "who": "Those sent from Yahrushalayim",
+    "text": "“Are you the Naḇi?”",
+    "kk": "Are you the nah-vee?",
+    "where": "forerunner/lamb YAHUCHANON 1:21"
+   },
+   {
+    "key": "f7b3f1a08ae1",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And he answered, ",
+    "kk": "And he answered,",
+    "where": "forerunner/lamb YAHUCHANON 1:21"
+   },
+   {
+    "key": "31a8b39d92ec",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“No.”",
+    "kk": "No.",
+    "where": "forerunner/lamb YAHUCHANON 1:21"
+   },
+   {
+    "key": "2a7f90b5ed86",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Therefore they said to him, ",
+    "kk": "Therefore they said to him,",
+    "where": "forerunner/lamb YAHUCHANON 1:22"
+   },
+   {
+    "key": "453f9426cac1",
+    "kind": "oldman",
+    "name": "those sent from yahrushalayim",
+    "who": "Those sent from Yahrushalayim",
+    "text": "“Who are you, so that we give an answer to those who sent us? What do you say about yourself?”",
+    "kk": "Who are you, so that we give an answer to those who sent us? What do you say about yourself?",
+    "where": "forerunner/lamb YAHUCHANON 1:22"
+   },
+   {
+    "key": "55eebe955f68",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "He said, ",
+    "kk": "He said,",
+    "where": "forerunner/lamb YAHUCHANON 1:23"
+   },
+   {
+    "key": "8855c7c8411b",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“I am a voice of one crying in the wilderness, ‘Make straight the way of (YAHUAH) HWHY,’ as the naḇi Yahshayahu said.”",
+    "kk": "I am a voice of one crying in the wilderness, Make straight the way of YAHUAH, as the nah-vee yah-shah-yah-hoo said.",
+    "where": "forerunner/lamb YAHUCHANON 1:23"
+   },
+   {
+    "key": "7ffb69e814ff",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And those sent were of the Pharisees,",
+    "kk": "And those sent were of the Pharisees,",
+    "where": "forerunner/lamb YAHUCHANON 1:24"
+   },
+   {
+    "key": "166378c1662a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "and they asked him, saying,",
+    "kk": "and they asked him, saying,",
+    "where": "forerunner/lamb YAHUCHANON 1:25"
+   },
+   {
+    "key": "e41df0bc3a05",
+    "kind": "oldman",
+    "name": "those sent from yahrushalayim",
+    "who": "Those sent from Yahrushalayim",
+    "text": "“Why then do you immerse if you are not the Mashiach, nor Aliyahu, nor the Naḇi?”",
+    "kk": "Why then do you immerse if you are not the mah-shee-ahk, nor ah-lee-yah-hoo, nor the nah-vee?",
+    "where": "forerunner/lamb YAHUCHANON 1:25"
+   },
+   {
+    "key": "7c03babdbd1e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Yahuchanon answered them, saying, ",
+    "kk": "yah-hoo-kah-nohn answered them, saying,",
+    "where": "forerunner/lamb YAHUCHANON 1:26-27"
+   },
+   {
+    "key": "c8f262b2da8b",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“I immerse in water, but in your midst stands One whom you do not know, the One coming after me, who has become before me, whose sandal strap I am not worthy to loosen.”",
+    "kk": "I immerse in water, but in your midst stands One whom you do not know, the One coming after me, who has become before me, whose sandal strap I am not worthy to loosen.",
+    "where": "forerunner/lamb YAHUCHANON 1:26-27"
+   },
+   {
+    "key": "090a299b6858",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "This took place in Bĕyth Anyah beyond the Yardĕn, where Yahuchanon was immersing.",
+    "kk": "This took place in bayt ahn-yah beyond the yar-den, where yah-hoo-kah-nohn was immersing.",
+    "where": "forerunner/lamb YAHUCHANON 1:28"
+   },
+   {
+    "key": "ed3c0b0d49d0",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "The next day Yahuchanon saw Yahusha coming toward him, and said, ",
+    "kk": "The next day yah-hoo-kah-nohn saw yah-hoo-shah coming toward him, and said,",
+    "where": "forerunner/lamb YAHUCHANON 1:29"
+   },
+   {
+    "key": "f47a5e4f445c",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“See, the Lamb of Aluahim who takes away the sin of the world!",
+    "kk": "See, the Lamb of al-oo-ah-heem who takes away the sin of the world!",
+    "where": "forerunner/lamb YAHUCHANON 1:29"
+   },
+   {
+    "key": "3886c130120d",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“This is He of whom I said,‘After me comes a Man who has become before me, for He was before me.’ “And I did not know Him, but that He might be revealed to Yasharal, therefore I came immersing in water.”",
+    "kk": "This is He of whom I said,After me comes a Man who has become before me, for He was before me. And I did not know Him, but that He might be revealed to yah-shar-al, therefore I came immersing in water.",
+    "where": "forerunner/lamb YAHUCHANON 1:30-31"
+   },
+   {
+    "key": "056ddbfe51bf",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Yahuchanon bore witness, saying, ",
+    "kk": "And yah-hoo-kah-nohn bore witness, saying,",
+    "where": "forerunner/lamb YAHUCHANON 1:32-34"
+   },
+   {
+    "key": "7ca0de05c25a",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“I have seen the Ruach coming down from shamayim like a dove and remain on Him. “And I did not know Him, but He who sent me to immerse in water said to me, ‘Upon whom you see the Ruach coming down and remaining on Him, this is He who immerses in the Ruach HaQadash.’ “And I have seen and have witnessed that this is the Son of Aluahim.”",
+    "kk": "I have seen the roo-ahk coming down from shah-mah-yeem like a dove and remain on Him. And I did not know Him, but He who sent me to immerse in water said to me, Upon whom you see the roo-ahk coming down and remaining on Him, this is He who immerses in the roo-ahk hah-kah-dahsh. And I have seen and have witnessed that this is the Son of al-oo-ah-heem.",
+    "where": "forerunner/lamb YAHUCHANON 1:32-34"
+   },
+   {
+    "key": "52726041818e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Again the following day, Yahuchanon was standing with two of his taught ones,",
+    "kk": "Again the following day, yah-hoo-kah-nohn was standing with two of his taught ones,",
+    "where": "forerunner/lamb YAHUCHANON 1:35"
+   },
+   {
+    "key": "1a2bae26a097",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "and looking at Yahusha walking, he said, ",
+    "kk": "and looking at yah-hoo-shah walking, he said,",
+    "where": "forerunner/lamb YAHUCHANON 1:36"
+   },
+   {
+    "key": "24c3bbc99182",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“See the Lamb of Aluahim!”",
+    "kk": "See the Lamb of al-oo-ah-heem!",
+    "where": "forerunner/lamb YAHUCHANON 1:36"
+   },
+   {
+    "key": "9f64e3730cb4",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the two taught ones heard him speaking and they followed Yahusha.",
+    "kk": "And the two taught ones heard him speaking and they followed yah-hoo-shah.",
+    "where": "forerunner/lamb YAHUCHANON 1:37"
+   },
+   {
+    "key": "b505969ba5a4",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Yahusha turning, and seeing them following, said to them, ",
+    "kk": "And yah-hoo-shah turning, and seeing them following, said to them,",
+    "where": "forerunner/lamb YAHUCHANON 1:38"
+   },
+   {
+    "key": "06947531c92e",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“What do you seek?”",
+    "kk": "What do you seek?",
+    "where": "forerunner/lamb YAHUCHANON 1:38"
+   },
+   {
+    "key": "ff1fd6a02a9f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And they said to Him, ",
+    "kk": "And they said to Him,",
+    "where": "forerunner/lamb YAHUCHANON 1:38"
+   },
+   {
+    "key": "3ed0e813fcf0",
+    "kind": "man",
+    "name": "two taught ones",
+    "who": "The two taught ones",
+    "text": "“Rabbi”",
+    "kk": "Rabbi",
+    "where": "forerunner/lamb YAHUCHANON 1:38"
+   },
+   {
+    "key": "40595fb1caf8",
+    "kind": "man",
+    "name": "two taught ones",
+    "who": "The two taught ones",
+    "text": "“where are You staying?”",
+    "kk": "where are You staying?",
+    "where": "forerunner/lamb YAHUCHANON 1:38"
+   },
+   {
+    "key": "2e49f80ab36b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "He said to them, ",
+    "kk": "He said to them,",
+    "where": "forerunner/lamb YAHUCHANON 1:39"
+   },
+   {
+    "key": "972c24d6af21",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Come and see.”",
+    "kk": "Come and see.",
+    "where": "forerunner/lamb YAHUCHANON 1:39"
+   },
+   {
+    "key": "4cf7094dd964",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " They went and saw where He was staying, and remained with Him that day. Now it was about the tenth hour.",
+    "kk": "They went and saw where He was staying, and remained with Him that day. Now it was about the tenth hour.",
+    "where": "forerunner/lamb YAHUCHANON 1:39"
+   },
+   {
+    "key": "6950184772b6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Andri, the brother of Shim‛on Kĕpha, was one of the two who heard from Yahuchanon, and followed Him.",
+    "kk": "ahn-dree, the brother of sheem-ohn kay-fah, was one of the two who heard from yah-hoo-kah-nohn, and followed Him.",
+    "where": "forerunner/lamb YAHUCHANON 1:40"
+   },
+   {
+    "key": "794f4340b4d7",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "First he found his own brother Shim‛on and said to him, ",
+    "kk": "First he found his own brother sheem-ohn and said to him,",
+    "where": "forerunner/lamb YAHUCHANON 1:41"
+   },
+   {
+    "key": "99a1bfcd1ce8",
+    "kind": "man",
+    "name": "andri",
+    "who": "Andri",
+    "text": "“We have found the Mashiach”",
+    "kk": "We have found the mah-shee-ahk",
+    "where": "forerunner/lamb YAHUCHANON 1:41"
+   },
+   {
+    "key": "05f4fe67dd4a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And he brought him to Yahusha. And looking at him, Yahusha said,",
+    "kk": "And he brought him to yah-hoo-shah. And looking at him, yah-hoo-shah said,",
+    "where": "forerunner/lamb YAHUCHANON 1:42"
+   },
+   {
+    "key": "4d3c2e253ae0",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“You are Shim‛on, the son of Yonah, you shall be called Kĕpha”",
+    "kk": "You are sheem-ohn, the son of yoh-nah, you shall be called kay-fah",
+    "where": "forerunner/lamb YAHUCHANON 1:42"
+   }
+  ]
+ }
+}
