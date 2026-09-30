@@ -7,7 +7,7 @@
 EARTH.country({
 n:"Yahudah",
 verse:{ t:"And Yahuḏah and Yasharal dwelt safely, each man under his vine and his fig tree, from Dan as far as Be’ĕrsheḇa",
-        ref:"MELAKIM ALEPH 4:25" },
+        ref:"1 MALAḴIM 4:25" },
 c:[0.1865,0.264],
 p:[[[0.1885,0.265],[0.1865,0.267],[0.186,0.266],[0.1865,0.2645],[0.185,0.2645],[0.184,0.261],[0.186,0.2605],[0.188,0.263],[0.1885,0.265]]]
 });

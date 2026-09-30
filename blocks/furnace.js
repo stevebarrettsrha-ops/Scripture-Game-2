@@ -19,5 +19,5 @@ EARTH.block({
   light:11,             /* it burns hotter than the kiln's 9 */
   opaque:true, gravity:false,
   verse:{ t:'“But (YAHUAH) HWHY has taken you and brought you out of the iron furnace, out of Mitsrayim, to be His people, an inheritance, as it is today.',
-          ref:'DEḆARIM 4:20' }
+          ref:'DAḆARIM 4:20' }
 });

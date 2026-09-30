@@ -12,5 +12,5 @@ EARTH.block({
   tool:'pick', drops:'altar',
   opaque:true, gravity:false,
   verse:{ t:"And if you make Me an mizbe'ach of stone, do not build it of cut stone",
-          ref:'SHEMOTH 20:25' }
+          ref:'SHAMOTH 20:25' }
 });

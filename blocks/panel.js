@@ -20,5 +20,5 @@ EARTH.block({
   tool:'axe', drops:'panel',
   opaque:true, gravity:false,
   verse:{ t:'And he built the walls of the House inside with cedar boards, from the floor of the House to the ceiling he panelled them on the inside with wood and covered the floor of the House with planks of cypress.',
-          ref:'MELAKIM ALEPH 6:15' }
+          ref:'1 MALAḴIM 6:15' }
 });

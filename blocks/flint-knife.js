@@ -18,5 +18,5 @@ EARTH.block({
   place:false,
   opaque:true, gravity:false,
   verse:{ t:'Make knives of flint for yourself and circumcise the sons of Yasharal again the second time.',
-          ref:'YEHOSHUA 5:2' }
+          ref:'YAHUSHA 5:2' }
 });

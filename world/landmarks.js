@@ -18,14 +18,14 @@
 /* ---- the works of the ancients, as they stood BCE ---- */
 EARTH.landmark({n:"The Pyramids of Giza", lat:29.98, lon:31.13, kind:'pyramid', s:1.3});
 EARTH.landmark({n:"The Ziggurat of Ur", lat:30.96, lon:46.10, kind:'ziggurat'});
-EARTH.landmark({n:"Babel — Etemenanki of Babylon", lat:32.54, lon:44.42, kind:'ziggurat'});
-EARTH.landmark({n:"The Gates of Nineveh", lat:36.36, lon:43.15, kind:'gate'});
+EARTH.landmark({n:"Baḇal (Baḇylon) — Etemenanki", lat:32.54, lon:44.42, kind:'ziggurat'});
+EARTH.landmark({n:"The Gates of Ninewĕh", lat:36.36, lon:43.15, kind:'gate'});
 EARTH.landmark({n:"The Temple of Artemis at Ephesus", lat:37.95, lon:27.36, kind:'temple', s:1.2});
 EARTH.landmark({n:"The Parthenon of Athens", lat:37.97, lon:23.73, kind:'temple'});
 EARTH.landmark({n:"The Standing Stones of Stonehenge", lat:51.18, lon:-1.83, kind:'stonecircle'});
 EARTH.landmark({n:"Gobekli Tepe", lat:37.22, lon:38.92, kind:'stonecircle'});
 EARTH.landmark({n:"The Great Wall", lat:40.43, lon:116.57, kind:'wall', s:3});
-EARTH.landmark({n:"The Walls of Yericho", lat:31.87, lon:35.44, kind:'city'});
+EARTH.landmark({n:"The Walls of Yahriḥo", lat:31.87, lon:35.44, kind:'city'});
 EARTH.landmark({n:"The Lighthouse of Alexandria", lat:31.21, lon:29.89, kind:'lighthouse'});
 EARTH.landmark({n:"Petra of the Rock", lat:30.33, lon:35.44, kind:'temple'});
 EARTH.landmark({n:"Persepolis of Persia", lat:29.93, lon:52.89, kind:'temple', s:1.3});
