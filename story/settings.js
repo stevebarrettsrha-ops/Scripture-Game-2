@@ -335,6 +335,7 @@ function galil(ctx,st,o){
     W.wild(ctx,'chicken',-16,14,4,3,0.4); W.wild(ctx,'goat',-28,-20,3,4,0.4); W.wild(ctx,'dog',-4,18,1,4,0.6);
     mk(ctx,'beach',SHORE.x-3,4); mk(ctx,'street',-2,0); mk(ctx,'house',4,10); mk(ctx,'houseDoor',8,10);
     mk(ctx,'mount',-30,6); mk(ctx,'mountTop',-35,6); mk(ctx,'mountCrowd',-24,6);   /* on the first slope of the hills above the town */
+    ctx.api.clearTrees(-42,-6,-20,18);                                                /* the slope He taught and named the Twelve on, open */
   } else {
     for(let k=0;k<70;k++){ const x=-60+W.hash(k,7)*72, z=-50+W.hash(k,8)*100;
       if(Math.hypot(x+20,z)<26) continue; st.detail(x-0.4,ctx.groundY(x,z),z-0.4,x+0.4,ctx.groundY(x,z)+0.35,z+0.4,0x6e8a46); }

@@ -345,7 +345,7 @@ STORY.act({
       {t:'time', to:'dawn'},
       {t:'face', who:'yahusha', to:'kepha'},
       {t:'stand', who:'yahusha'},
-      {t:'cam', from:[-40,9,10], look:[-29,1.4,4], dur:3},
+      {t:'cam', from:[-37.6,10.6,7.4], look:[-29,2.2,5], dur:3},      /* on the hillside behind Him, above the ground */
       {t:'read', ref:'LUKE 6:13'},
       {t:'move', who:['kepha','andri','yaaqob','yahuchanon','philip','bartholomi'], to:[[-32.4,1.6],[-31.4,3.2],[-30.6,4.8],[-30.2,6.6],[-30.4,8.4],[-31,10]], speed:1.6, wait:false},
       {t:'read', ref:'LUKE 6:14'},

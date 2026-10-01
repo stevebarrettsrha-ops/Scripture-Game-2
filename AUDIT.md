@@ -9957,7 +9957,9 @@ before it is folded, and the block array is mipmapped.
 - **The Raḇshaqĕh** stands on the lip of Moriyah, by the channel of the upper pool. His army
   comes up the slope behind him; it had stood below the hill, out of sight.
 - **Rome takes the city** by day, the legion marching on her walls below the timeline.
-- **The Twelve and the blind men** are shot from behind His shoulder.
+- **The Twelve and the blind men** are shot from behind His shoulder. The slope where He names
+  the Twelve is cleared of the voyage's trees (`clearTrees` in the set builder); a tree had stood
+  on one of their marks.
 - **The Pharisees** stand on the open beach, not on a house.
 - **Bĕyth Anyah** opens across the mourners to the sisters' house and the tomb.
 
