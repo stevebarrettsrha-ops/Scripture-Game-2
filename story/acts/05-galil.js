@@ -611,7 +611,7 @@ STORY.act({
     things:[ {id:'stone', kind:'roundStone', at:'stone', face:0, r:1.3} ],
     beats:[
       {t:'title', text:'Bĕyth Anyah', sub:'near Yahrushalayim'},
-      {t:'cam', from:[6,4,14], look:[-3,1.2,6], dur:0.1},
+      {t:'cam', from:[9.4,2.6,3.6], look:[-2.4,1.2,5.8], dur:0.1},
       {t:'read', ref:'YAHUCHANON 11:1'},
       {t:'say', who:'sisters', ref:'YAHUCHANON 11:3'},
       {t:'say', who:'yahusha', ref:'YAHUCHANON 11:4', turn:false},

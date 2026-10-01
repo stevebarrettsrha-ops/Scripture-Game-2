@@ -95,7 +95,7 @@ const TIMES={
 /* the hour is the world's own: the sun, the moon and the stars stand where they stand over
    that place at that hour, and the story only names the hour */
 /* (dawn and dusk are taken where the voyage's own sun is up and low, not before and after it) */
-const HOURS={day:10.5,dusk:18.1,night:23.2,dawn:6.5};
+const HOURS={day:10.5,dusk:17.2,night:23.2,dawn:6.5};
 let timeNow=null, hourNow=10.5;
 function applyTime(name){
   timeNow=name; hourNow=HOURS[name]===undefined?10.5:HOURS[name];
@@ -115,6 +115,10 @@ function buildScene(sc){
   /* WHERE IT HAPPENED: the place's anchor in the world (story/places.js) */
   const A=window.STORYPLACES.at(sc.place,act);
   anchor=A;
+  /* THE SEASON is the scene's own, not the voyage's year: spring unless the scene names
+     another (Rome was founded, by its own reckoning, on 21 April; the shepherds lay out in the
+     fields; the lake is crossed in fair weather) — the snow is never laid on a scene by chance */
+  if(window.SEASON) SEASON.setSeason(sc.season||act.season||'Spring');
   root=new THREE.Group(); root.name='story-scene'; root.position.set(A.x,A.y,A.z); root.scale.setScalar(S); k.scene.add(root);
   scene=root;
   ctx={scene:root,colliders:[],markers:{},actors:{},things:{},glows:{},water:[],flicker:[],flock:[],bounds:null,wind:[0.5,0.2],place:sc.place};
@@ -1131,7 +1135,7 @@ ST.boot=function(opt){
   /* for the test harness: where the story stands, and a way to run it */
   window.__STORY={ST,save,get act(){ return act&&act.id; },get scene(){ return act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id; },
     get beat(){ return beat; },get beatIx(){ return beatIx; },run:(id,s)=>{ const a=ST.acts.find(q=>q.id===id); stopAct(); runAct(a,s||0); },
-    advance, get running(){ return running; }, ctx:()=>ctx, faceExposed, dbg:{clearShot,lineClear,camFree,exposedFrom}, player:()=>player, camera:()=>camera,
+    advance, get running(){ return running; }, ctx:()=>ctx, faceExposed, dbg:{clearShot,lineClear,camFree,exposedFrom,HOURS,applyTime}, player:()=>player, camera:()=>camera,
     reset:()=>{ save.codex={}; save.acts={}; save.witnessed=0; save.road={}; save.bonds={}; persist(); } };
 };
 })();

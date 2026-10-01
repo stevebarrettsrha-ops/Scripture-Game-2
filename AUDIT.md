@@ -9908,6 +9908,73 @@ same violet shadow upon the man it holds.
 - **In the browser,** all 341 parts played across Acts I–IV found their recording.
 - **With the voices off,** the mouths keep the pace of reading.
 
+## 4dl. Round 113 — the story in the voyage's world; Yahrushalayim on Moriyah; the acts re-staged and their gaps filled ✅
+
+**One engine, one world.** The story no longer draws a world of its own. Each act is its own
+page (`story/act-*.html`, loaded by `story/shell.js`). The page raises the voyage's engine,
+earth, blocks, folk, sea and sky from `world/manifest.js`, then plays its scenes in that
+world (`window.__KIT`, `__STAGE_TICK`). The launcher, `story/index.html`, raises no world. It
+shows the road, the Codex, the journal map, "Those you walk with" and what the witness said.
+
+**Every scene stands at its true place** on the voyage's earth, by latitude and longitude
+(`story/places.js`):
+
+- **Where a set cannot stand there,** it moves out along its true bearing, to level dry
+  ground clear of towns, landmarks and scrolls. Bĕyth Leḥem would otherwise stand inside the
+  city.
+- **How sets are built.** They are laid in the voyage's own blocks (`setBuilder`), eased into
+  the land at their edges, and taken up when the scene changes.
+- **The seats of the empires** stand where they stood: the Tiber, Ninewĕh, Baḇal and Pella.
+
+**Yahrushalayim is on her mountain.** Mount Moriyah is a voyage landmark with a level
+crown, and the city stands on it (2 DIḆRĔ HAYAMIM 3:1). In the city, the paving keeps to its
+terraces. In story scenes, the clouds are lifted above the Hĕḵal.
+
+**The people of those days** (`story/people.js`):
+
+- **Clothing by role:** tunic and mantle, kohen, Lĕwite, scribe, king, Herodian guard,
+  legionary and centurion, magi, shepherd, and camel's hair.
+- **Assyrians:** conical helmets and scale shirts. The Raḇshaqĕh wears a fringed robe.
+- **Al‛azar** is wrapped in grave-clothes.
+- **Faces:** eyes with lids, brows, nose, mouth and beard, which change with what is felt.
+- **Skin:** Yasharal is brown, Rome and Greece olive, the north light.
+- **His face is never shown.** Every frame of every act is tested for it, and none show it.
+
+**Ground flicker fixed.** The white streaks crawling over grass came from the block shader
+folding a texture layer index that had not been rounded first. The layer is now rounded
+before it is folded, and the block array is mipmapped.
+
+**Re-staged.** Every scene was shot and looked at. Shots that were poor have been fixed:
+
+- **The camera never sits in a tree or a wall.** It is tested by ray, and searches about its
+  subject for a clear place.
+- **Lighting.** A lamp lights the subject by night. Dawn and dusk are taken where the
+  voyage's own sun is low; dusk is a golden hour (17:12), not a murky brown.
+- **Season.** Each scene is in its own season, spring unless it names another. The voyage's
+  winter no longer lays snow over Rome's founding.
+- **The road to Yahuḏah** is laid on 30 m of level ground. Miryam and Yosĕph walk toward the
+  camera.
+- **The Raḇshaqĕh** stands on the lip of Moriyah, by the channel of the upper pool. His army
+  comes up the slope behind him; it had stood below the hill, out of sight.
+- **Rome takes the city** by day, the legion marching on her walls below the timeline.
+- **The Twelve and the blind men** are shot from behind His shoulder.
+- **The Pharisees** stand on the open beach, not on a house.
+- **Bĕyth Anyah** opens across the mourners to the sisters' house and the tomb.
+
+**Gaps filled:**
+
+| Act | New scenes |
+|---|---|
+| Act I | The siege (Yashayahu 36; 2 Diḇrĕ haYamim 32), with the springs stopped and Ḥizqiyahu's tunnel. The deliverance (Yashayahu 37), from the prayer at dusk to the mal'aḵ by night. |
+| The bridge | A montage across the world: the Tiber (753 BCE), Ninewĕh burning (612), the fall of Yahrushalayim (586), Koresh at Baḇal (539), Macedon (331), and Rome at Yahrushalayim (63). |
+| Act IV | Mattithyahu at the tax office, the naming of the Twelve at dawn, the sower from the boat, and Al‛azar raised at Bĕyth Anyah (the act's last scene). |
+
+**Checks:**
+
+- **Besorah:** 278 passages exact. 275 verses said, with 0 quotations that no one speaks.
+- **Voices:** 487 of 487 lines recorded (Martha and Miryam of Bĕyth Anyah are new voices).
+- **Playthrough:** all five acts play through with no errors and 0 face-exposed frames.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
