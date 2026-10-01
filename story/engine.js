@@ -190,7 +190,7 @@ function makeLabel(name,g){
   const w=Math.min(250,c.measureText(name).width+22); c.fillRect(128-w/2,6,w,36);
   c.fillStyle='#f3e3b3'; c.fillText(name,128,33);
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,depthTest:false,sizeAttenuation:false}));
-  sp.scale.set(0.24,0.045,1); sp.position.set(0,2.75,0); sp.visible=false; sp.renderOrder=10; g.add(sp); return sp;
+  sp.scale.set(0.24/S,0.045/S,1); sp.position.set(0,2.4,0);   /* the scene's root is scaled by S: undone, so a name is the same size on the screen */ sp.visible=false; sp.renderOrder=10; g.add(sp); return sp;
 }
 
 /* ================= THE PLAYER, THE CAMERA, THE HAND ================= */
