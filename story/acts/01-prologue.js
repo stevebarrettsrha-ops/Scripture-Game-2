@@ -160,16 +160,16 @@ STORY.act({
       {t:'goal', text:'Go back into the city and up onto the wall — the army of Ashshur is coming', goto:'gateIn', r:4},
       {t:'player', at:[-22,38.2], y:7.2, lock:true, face:0},
       {t:'show', id:['rab','a0','a1','a2','a3','a4','a5','a6','a7']},
-      {t:'move', who:['rab','a0','a1','a2','a3','a4','a5','a6','a7'], to:[[-62,78],[-58,84],[-60,85],[-62,86],[-64,85.4],[-66,86],[-68,85],[-56,86.4],[-70,84]], speed:2.2, wait:false},
-      {t:'cam', from:[-46,5,66], look:[-60,1.5,82], dur:3},
+      {t:'move', who:['rab','a0','a1','a2','a3','a4','a5','a6','a7'], to:[[-57,74.5],[-53,77],[-55,77.6],[-57,78],[-59,77.6],[-53,74.8],[-49.8,74],[-51,76],[-60.6,76.2]], speed:2.2, wait:false},   /* the lip of the hill; the army behind on the slope */
+      {t:'cam', from:[-46,5,66], look:[-58,1.2,76], dur:3},
       {t:'read', ref:'YASHAYAHU 36:2'},
-      {t:'move', who:['alyaqim','shebnah','yoah'], to:[[-60,73],[-62,72.4],[-58,72.6]], speed:2},
+      {t:'move', who:['alyaqim','shebnah','yoah'], to:[[-58,70.2],[-60,70.6],[-56,70.4]], speed:2},
       {t:'face', who:'rab', to:'alyaqim'},
       {t:'read', ref:'YASHAYAHU 36:3'},
-      {t:'cam', from:[-55,3,70], look:'rab', dur:2.5},
+      {t:'cam', from:[-59.6,2.3,67.6], look:'rab', dur:2.5},     /* over Alyaqim's shoulder */
       {t:'say', who:'rab', ref:'YASHAYAHU 36:4', turn:false},
       {t:'face', who:'rab', to:[-22,38]},
-      {t:'cam', from:[-50,4,70], look:'rab', dur:2.5},
+      {t:'cam', from:[-53.4,2.2,71.2], look:'rab', dur:2.5},       /* he turns to call up to the wall */
       {t:'say', who:'rab', ref:'YASHAYAHU 36:13', turn:false},
       {t:'say', who:'rab', ref:'YASHAYAHU 36:14', turn:false},
       {t:'say', who:'rab', teller:'rab', ref:'YASHAYAHU 36:15', turn:false},   /* his speech runs on from 36:14 */

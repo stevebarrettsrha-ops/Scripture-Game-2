@@ -68,14 +68,16 @@ STORY.act({
   /* ---------------- II.2 — THE DECREE, AND THE ROAD ---------------- */
   { id:'road', title:'The road to Yahuḏah', date:'c. 5–4 BCE', place:'road', time:'day',
     player:{ at:[0,30], hidden:true },
-    actors:[ Object.assign({id:'miryam', name:'Miryam', at:[-58,0.6], face:Math.PI/2},MIRYAM),
-             Object.assign({id:'yoseph', name:'Yosĕph', at:[-56,-0.4], face:Math.PI/2},YOSEPH) ],
+    /* the two keep to the road across the level ground of the set (its pad is 30 m about the
+       middle; beyond it the hills of Shomeron rise in their own terraces) */
+    actors:[ Object.assign({id:'miryam', name:'Miryam', at:[-24,-2.2], face:Math.PI/2},MIRYAM),
+             Object.assign({id:'yoseph', name:'Yosĕph', at:[-22.6,-3.2], face:Math.PI/2},YOSEPH) ],
     beats:[
-      {t:'cam', from:[-50,2.6,6.5], look:[-57,1.3,0.2], dur:0.1},
+      {t:'cam', from:[-15,2.4,3.4], look:[-23,1.3,-2.6], dur:0.1},
       {t:'read', ref:'LUKE 2:1'},
       {t:'read', ref:'LUKE 2:2-3'},
-      {t:'move', who:['yoseph','miryam'], to:[[-30,1.8],[-32,2.6]], speed:1.4, wait:false},
-      {t:'cam', from:[-36,2.4,8.5], look:[-38,1.3,2], dur:6, wait:false},
+      {t:'move', who:['yoseph','miryam'], to:[[2,0.4],[0.4,1.3]], speed:1.4, wait:false},
+      {t:'cam', from:[6.5,2.1,5.2], look:[-1,1.3,0.2], dur:12, wait:false},
       {t:'read', ref:'LUKE 2:4-5'},
       {t:'note', text:'From Natsareth to Bĕyth Leḥem is about 150 km — some days on foot, down the Yarden valley or through the hills of Shomeron, and up into the hill country of Yahuḏah.'},
       {t:'end'}

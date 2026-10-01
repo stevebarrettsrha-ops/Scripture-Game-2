@@ -345,7 +345,7 @@ STORY.act({
       {t:'time', to:'dawn'},
       {t:'face', who:'yahusha', to:'kepha'},
       {t:'stand', who:'yahusha'},
-      {t:'cam', from:[-40,9,10], look:[-29,1.4,4], dur:3},
+      {t:'cam', from:[-37.6,10.6,7.4], look:[-29,2.2,5], dur:3},      /* on the hillside behind Him, above the ground */
       {t:'read', ref:'LUKE 6:13'},
       {t:'move', who:['kepha','andri','yaaqob','yahuchanon','philip','bartholomi'], to:[[-32.4,1.6],[-31.4,3.2],[-30.6,4.8],[-30.2,6.6],[-30.4,8.4],[-31,10]], speed:1.6, wait:false},
       {t:'read', ref:'LUKE 6:14'},
@@ -611,7 +611,7 @@ STORY.act({
     things:[ {id:'stone', kind:'roundStone', at:'stone', face:0, r:1.3} ],
     beats:[
       {t:'title', text:'Bĕyth Anyah', sub:'near Yahrushalayim'},
-      {t:'cam', from:[6,4,14], look:[-3,1.2,6], dur:0.1},
+      {t:'cam', from:[9.4,2.6,3.6], look:[-2.4,1.2,5.8], dur:0.1},
       {t:'read', ref:'YAHUCHANON 11:1'},
       {t:'say', who:'sisters', ref:'YAHUCHANON 11:3'},
       {t:'say', who:'yahusha', ref:'YAHUCHANON 11:4', turn:false},

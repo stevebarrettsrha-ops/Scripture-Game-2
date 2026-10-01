@@ -28,8 +28,8 @@ STORY.act({
   { id:'tiber', title:'Meanwhile, far to the west', date:'c. 753 BCE', place:'tiber', time:'day',
     player:{ at:[0,40], hidden:true },
     beats:[
-      {t:'cam', from:[30,14,34], look:[0,1,0], dur:0.1},
-      {t:'cam', from:[-26,10,30], look:[0,1,0], dur:18, wait:false},
+      {t:'cam', from:[17,6,21], look:[-2,1.6,-3], dur:0.1},
+      {t:'cam', from:[-15,5.5,19], look:[-2,1.6,-3], dur:18, wait:false},
       {t:'title', text:'The Seven Hundred Years', sub:'Ashshur · Baḇal · Persia · Greece · Rome'},
       {t:'note', text:'While Yahshayahu spoke in Yahrushalayim, far to the west a village of huts stood on a hill above the river Tiber. By its own reckoning it was founded in 753 BCE. Its name was Rome. In seven hundred years it will rule the world — and Yahuḏah with it.'},
       {t:'end'}
@@ -70,7 +70,7 @@ STORY.act({
       {t:'read', ref:"DANI'AL 8:21", who:'gabrial'},
       {t:'end'}
     ]},
-  { id:'rome', title:'Yahrushalayim', date:'63 BCE', place:'yahrushalayim', time:'dusk',
+  { id:'rome', title:'Yahrushalayim', date:'63 BCE', place:'yahrushalayim', time:'day',
     player:{ at:[-10,26], hidden:true },
     actors:[0,1,2,3,4,5,6,7,8,9,10,11].map(k=>({id:'l'+k, folk:'roman', dress:k===0?'centurion':'legionary', name:k===0?'A captain':undefined,
       at:[-70+(k%3)*1.4, 96+Math.floor(k/3)*1.6], face:Math.PI*1.25, robe:0x8a2a22})),
@@ -78,10 +78,10 @@ STORY.act({
       {t:'cam', from:[-36,4,62], look:[-62,1.5,88], dur:0.1},
       {t:'move', who:['l0','l1','l2','l3','l4','l5','l6','l7','l8','l9','l10','l11'],
         to:[0,1,2,3,4,5,6,7,8,9,10,11].map(k=>[-26+(k%3)*1.4, 52+Math.floor(k/3)*1.6]), speed:1.3, wait:false},
-      {t:'cam', from:[-20,6,40], look:[-40,1.6,64], dur:14, wait:false},
+      {t:'cam', from:[-36,7,66], look:[-15,6.5,46], dur:14, wait:false},   /* the march on the city, below the panel */
       {t:'era', i:4, head:'63 BCE — Rome', text:'Rome takes Yahrushalayim. The village of huts on the Tiber is now the empire that will rule Yahuḏah when the child of the promise is born, and its soldiers stand on her roads.'},
       {t:'read', ref:"DANI'AL 2:44", who:'danial'},
-      {t:'time', to:'night'},
+      {t:'time', to:'dusk'},
       {t:'read', ref:'GALATIANS 4:4'},
       {t:'title', text:'Around 4 BCE', sub:'into this Roman world, the child of the promise is born'},
       {t:'end'}

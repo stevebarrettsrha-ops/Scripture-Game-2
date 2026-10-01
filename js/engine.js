@@ -18001,6 +18001,9 @@ function setBuilder(ax,az,baseY,opt){
       if((o&&o.surface)||(Math.abs(y1-y0)<0.3&&Math.max(y0,y1)<=0.35&&Math.min(y0,y1)>=-0.05)){ return api.top(x0,z0,x1,z1,col); }
       const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1)), [j0,j1]=cells(Y(y0),Y(y1));
       for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++) for(let j=j0;j<=j1;j++) stampBlock(i,j,k,n); },
+    /* the land's own trees taken off a lot of the set where no pad is laid (a slope a scene
+       is played on); the lot is written down as treeless, as a house's lot is */
+    clearTrees(x0,z0,x1,z1){ clearLotOfTrees(Math.min(X(x0),X(x1)),Math.min(Z(z0),Z(z1)),Math.max(X(x0),X(x1)),Math.max(Z(z0),Z(z1)),baseY); },
     /* the ground's own top course laid with something else: a path, a floor, a field */
     top(x0,z0,x1,z1,col){ const n=setBlockFor(col); if(!n) return;
       const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1));

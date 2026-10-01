@@ -6,6 +6,9 @@
    site  : OPTIONAL — [lat, lon] to place this land's village at a spot you choose */
 EARTH.country({
 n:"Yasharal",
+/* her village stands on the level ground of the south, clear of the city of the great king and
+   her hill (a village is never raised inside her walls) and of the hill country's slopes */
+site:[30.6,34.84],
 verse:{ t:"For (YAHUAH) HWHY your Aluahim is bringing you into a good land, a land of streams of water, of fountains and springs, that flow out of valleys and hills, a land of wheat and barley, of vines and fig trees and pomegranates, a land of olive oil and honey",
         ref:"DAḆARIM 8:7-8" },
 c:[0.1855,0.2635],
