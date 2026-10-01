@@ -82,11 +82,14 @@ function dressOf(o){
 }
 /* ---- A PERSON ---- */
 W.person=function(ctx,o){
-  o=Object.assign({},o||{});
+  const def=o||{};
+  o=Object.assign({},def);
   if(o.fallen) o=Object.assign(o,W.FALLEN,{kind:o.kind||'dark'});
   const dress=dressOf(o);
   if(dress==='yahusha') o=Object.assign(o,{robe:o.robe||0xd6c9a8, mantle:o.mantle||0xe9e2cf, cloth:o.cloth||0xe2d8c0, sash:o.sash||0x5a4632, skin:o.skin||0x704a27, beard:null});
   if(!o.skin) o.skin=W.skinFor(Object.assign({folk:dress==='legionary'||dress==='centurion'?'roman':o.folk},o));
+  /* the one speaking is drawn in the verse box from the same look: written back to its definition */
+  def.dress=dress; if(def.skin==null) def.skin=o.skin;
   const female=dress==='woman', child=!!o.small;
   const roman=dress==='legionary'||dress==='centurion';
   const g=new THREE.Group(), body=new THREE.Group(); g.add(body);
@@ -173,10 +176,13 @@ W.person=function(ctx,o){
   box(0.03,0.05,0.035,skin,hw/2+0.012,0,0,head); box(0.03,0.05,0.035,skin,-hw/2-0.012,0,0,head);     /* ears */
   const hairM=cloth(hairHex,'shaggy');
   const covered=dress==='woman'||dress==='kohen'||dress==='levite'||dress==='magi'||roman||(o.cloth!=null&&o.cloth!==null&&dress!=='herodian');
-  /* hair: on the crown and behind; long on the immerser, short and close on a Roman */
+  /* hair: on the crown and behind; long on the immerser, short and close on a Roman. Under a
+     head-cloth, a turban or a mantle only the cloth is seen behind (dress==='king' wears a diadem) */
+  const veiled=covered||dress==='yahusha'||dress==='fallen';
   box(hw+0.02,0.06,hd+0.02,hairM,0,hh/2,0,head);
-  box(hw+0.02,dress==='camelhair'?0.30:roman?0.10:0.16,0.04,hairM,0,dress==='camelhair'?-0.09:-0.02,-hd/2-0.01,head);
-  box(0.02,0.09,hd-0.04,hairM,hw/2+0.005,0.04,-0.01,head); box(0.02,0.09,hd-0.04,hairM,-hw/2-0.005,0.04,-0.01,head);
+  if(!veiled){
+    box(hw+0.02,dress==='camelhair'?0.30:roman?0.10:0.16,0.04,hairM,0,dress==='camelhair'?-0.09:-0.02,-hd/2-0.01,head);
+    box(0.02,0.09,hd-0.04,hairM,hw/2+0.005,0.04,-0.01,head); box(0.02,0.09,hd-0.04,hairM,-hw/2-0.005,0.04,-0.01,head); }
   /* THE FACE (never on Yahusha: His head is drawn with no face) */
   let F=null;
   if(dress!=='yahusha'){
@@ -213,7 +219,8 @@ W.person=function(ctx,o){
     box(hw+0.035,0.05,hd+0.035,cM,0,hh/2+0.02,0,head);                                               /* over the crown */
     box(0.02,0.16,hd+0.02,cM,hw/2+0.02,0.0,-0.01,head); box(0.02,0.16,hd+0.02,cM,-hw/2-0.02,0.0,-0.01,head);
     if(dress!=='woman'&&dress!=='fallen'&&dress!=='yahusha'&&o.cord!==false) box(hw+0.045,0.02,hd+0.045,flat(0x4a3020),0,hh/2-0.005,0,head);   /* the cord about it */
-    hinge(head,hw+0.03,female?0.50:0.30,0.025,cM,0,hh/2,-hd/2-0.02,'x',-1,true);                          /* hanging behind */
+    box(hw+0.03,hh+0.02,0.02,cM,0,0,-hd/2-0.012,head);                                               /* over the back of the head */
+    hinge(head,hw+0.03,female?0.50:0.32,0.025,cM,0,hh/2+0.01,-hd/2-0.028,'x',-1,true);                     /* hanging behind */
   }
   if(dress==='woman'){ const cM=cloth(o.cloth!=null?o.cloth:0x6a5a7a,'folds'); box(0.04,0.30,0.18,cM,0.13,1.45,-0.02,body); box(0.04,0.30,0.18,cM,-0.13,1.45,-0.02,body); }
 

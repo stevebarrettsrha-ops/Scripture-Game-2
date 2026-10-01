@@ -4109,7 +4109,15 @@ function blockArray(){
     /* a canvas texture is flipped on upload and an array is not: row by row */
     for(let r=0;r<S;r++) data.set(px.subarray((S-1-r)*S*4,(S-r)*S*4),(li*S*S+r*S)*4); });
   const tex=new THREE.DataTexture2DArray(data,S,S,N);
-  tex.magFilter=tex.minFilter=THREE.NearestFilter; tex.generateMipmaps=false;
+  /* ---- THE GROUND DOES NOT SHIMMER ----
+     Drawn nearest-texel at every distance, a field seen along the ground at a man's eye height
+     sampled a different texel of the grass at each pixel every frame: the far ground crawled in
+     bands of light and dark, and the more so the flatter it lay (a city's level ground, a set
+     of the story). The blocks keep their sharp pixels near to (magFilter nearest), and far off
+     are drawn from the texture's own smaller copies, blended between, with anisotropic filtering
+     for the long grazing view. */
+  tex.magFilter=THREE.NearestFilter; tex.minFilter=THREE.NearestMipmapLinearFilter; tex.generateMipmaps=true;
+  try{ tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){ tex.anisotropy=4; }
   tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.needsUpdate=true;
   const layer=Object.create(null);
   names.forEach((k,i)=>{ layer[k]=i+(MAT[k].userData.snow?256:0); });
@@ -4121,7 +4129,13 @@ function blockArray(){
         '\n  vSeas.y*=step(255.5,aLayer);\n  vLayer=aLayer;');
     sh.fragmentShader='uniform highp sampler2DArray uArr;\nvarying float vLayer;\nvarying vec2 vSeas;\n'+
       sh.fragmentShader.replace('#include <map_fragment>',
-        'vec4 texelColor=texture(uArr,vec3(vUv,mod(vLayer,256.0)));\n'+
+        /* ---- THE LAYER IS ROUNDED BEFORE IT IS FOLDED ----
+           A snowy top's layer carries 256 over its index; the varying that brings it here is
+           interpolated, and 256 arrives now and then as 255.9999 — whose mod is 255.9999, which
+           the sampler rounds to 256 and clamps to the LAST layer of the array. Rows of pixels
+           across every grass field were drawn from the wrong block, in white streaks that
+           crawled as the eye moved (the story's level ground showed it worst). */
+        'vec4 texelColor=texture(uArr,vec3(vUv,mod(floor(vLayer+0.5),256.0)));\n'+
         'texelColor=mapTexelToLinear(texelColor);\ndiffuseColor*=texelColor;')
       .replace('#include <color_fragment>','#include <color_fragment>\n'+SNOW_FS); };
   mat.customProgramCacheKey=()=>'blockArr';
@@ -4179,7 +4193,7 @@ function plantArray(){
         '  transformed.z+=ws2*P_AMP[pL]*0.7*uWindA*wgt; }');
     sh.fragmentShader='uniform highp sampler2DArray uArr;\nvarying float vLayer;\nvarying float vTint;\nvarying vec2 vSeas;\n'+
       sh.fragmentShader.replace('#include <map_fragment>',
-        'vec4 texelColor=texture(uArr,vec3(vUv,vLayer));\n'+
+        'vec4 texelColor=texture(uArr,vec3(vUv,floor(vLayer+0.5)));\n'+
         'texelColor=mapTexelToLinear(texelColor);\ndiffuseColor*=texelColor;')
       .replace('#include <color_fragment>','#include <color_fragment>\n'+
         '  if(vTint>0.5&&vTint<1.5){ '+SEASON_FS+' }\n  else if(vTint>1.5){ '+SNOW_FS+' }'); };
@@ -18062,7 +18076,7 @@ window.__KIT={
   robeMat:robeMatHex, blockMat:n=>MAT[n]||null, solidAt, playerXZ, jointTick, tickGait, makeBird, makePerson,
   /* the floor of cloud, which a story lifts high over its scenes: the voyage's clouds stand
      at the scale of its earth, and a scene is built at the scale of a man */
-  clouds:()=>clouds, CLOUD_Y,
+  clouds:()=>clouds, CLOUD_Y, blockArr:()=>BARR,
   /* the names of lands and cities over the world: a story shows none */
   setNames:v=>{ namesOn=!!v; },
   blockId, stampGroup:fn=>stampedGroup(fn), stampDrop, stampBlock, stampBox, stampTop,

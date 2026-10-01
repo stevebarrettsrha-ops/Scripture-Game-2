@@ -366,6 +366,7 @@ function updateCamera(dt){
   const tx=player.position.x, ty=player.position.y+1.6, tz=player.position.z;
   const want=[tx+Math.sin(camYaw)*Math.cos(camPitch)*camDist, ty+Math.sin(camPitch)*camDist, tz+Math.cos(camYaw)*Math.cos(camPitch)*camDist];
   want[1]=Math.max(want[1],ctx.groundY(want[0],want[2])+0.6);
+  { const c=clearShot(want,[tx,ty,tz]); want[0]=c[0]; want[1]=c[1]; want[2]=c[2]; }
   const k=Math.min(1,dt*6);
   camera.position.x+=(want[0]-camera.position.x)*k; camera.position.y+=(want[1]-camera.position.y)*k; camera.position.z+=(want[2]-camera.position.z)*k;
   camera.lookAt(tx,ty,tz);
@@ -463,7 +464,25 @@ function shotOf(B){
 }
 function holdCamera(from,look,dur){
   camTarget={from0:[camera.position.x,camera.position.y,camera.position.z],
-    look0:camTarget?camTarget.look:lookNow(),to:from,look,dur:dur||2}; camT=0;
+    look0:camTarget?camTarget.look:lookNow(),to:clearShot(from,look),look,dur:dur||2}; camT=0;
+}
+/* A CLEAR SHOT: the blocks of the world stand where they stand, and a shot written for a scene
+   can find a wall, a roof, a tree or a hillside between the eye and what it looks at. The eye
+   is brought in along its line of sight, from what it looks at, to the last point with nothing
+   solid between — so the subject is always seen. (Drawn in toward the subject, the eye stays on
+   the same side of it: a shot from behind His shoulder stays behind it.) */
+function clearShot(from,look){
+  if(!anchor) return from;
+  const k=K(), B=k.B, solid=(x,y,z)=>k.solidAt(anchor.x+x*S,anchor.y+y*S,anchor.z+z*S);
+  const dx=from[0]-look[0], dy=from[1]-look[1], dz=from[2]-look[2], L=Math.hypot(dx,dy,dz);
+  if(L<0.5) return from;
+  const step=0.2, n=Math.ceil(L/step);
+  let last=0;
+  for(let i=Math.ceil(0.6/step);i<=n;i++){ const t=i/n, x=look[0]+dx*t, y=look[1]+dy*t, z=look[2]+dz*t;
+    if(solid(x,y,z)||solid(x,y+0.25,z)||solid(x,y-0.25,z)){ break; } last=t; }
+  if(last>=0.999) return from;
+  const t=Math.max(0.15,last-0.3/L);
+  return [look[0]+dx*t,look[1]+dy*t,look[2]+dz*t];
 }
 function lookNow(){ const d=new THREE.Vector3(); camera.getWorldDirection(d);
   return [camera.position.x+d.x*10,camera.position.y+d.y*10,camera.position.z+d.z*10]; }
@@ -544,12 +563,19 @@ function drawPortrait(){
     const k=0.8+m*0.2+(talking?0.1:0);
     gr.addColorStop(0,'rgba(255,255,255,'+k+')'); gr.addColorStop(0.35,'rgba(255,240,200,'+(0.75*k)+')'); gr.addColorStop(1,'rgba(40,32,20,1)');
     g.fillStyle=gr; g.fillRect(0,0,38,38); return; }
-  const L=sp.look||{}, skin=hex(L.skin||0x8a5a3a), cloth=hex(L.cloth||0xd9cfb6), robe=hex(L.robe||0x9a8466);
-  R(0,0,38,38,sp.kind==='dark'?'#2a1e30':'#2a2219');
-  if(sp.kind==='dark'&&L.fallen){ const gr=g.createRadialGradient(19,20,4,19,20,22); gr.addColorStop(0,'rgba(120,80,140,0.55)'); gr.addColorStop(1,'rgba(20,12,24,0)'); g.fillStyle=gr; g.fillRect(0,0,38,38); }
-  R(6,29,26,9,robe);                                   /* shoulders */
+  const L0=sp.look||{}, L=L0.fallen?Object.assign({},L0,window.STORYWORLD.FALLEN):L0, dr=L.dress||'';
+  const skin=hex(L.skin||0x8a5a3a), robe=hex(L.robe||0x9a8466);
+  R(0,0,38,38,L.fallen?'#2a1e30':'#2a2219');
+  if(L.fallen){ const gr=g.createRadialGradient(19,20,4,19,20,22); gr.addColorStop(0,'rgba(120,80,140,0.55)'); gr.addColorStop(1,'rgba(20,12,24,0)'); g.fillStyle=gr; g.fillRect(0,0,38,38); }
+  R(6,29,26,9,dr==='legionary'||dr==='centurion'?'#8a8c90':robe);                  /* shoulders (mail on a soldier of Rome) */
   R(11,9,16,18,skin);                                  /* the face */
-  R(9,5,20,6,cloth); R(9,9,3,18,cloth); R(26,9,3,18,cloth);   /* the head-cloth */
+  /* what is on the head, by the dress: helmet, turban, cap, diadem, head-cloth — or the hair */
+  if(dr==='legionary'||dr==='centurion'){ R(9,5,20,6,'#b08848'); R(9,9,3,12,'#b08848'); R(26,9,3,12,'#b08848'); if(dr==='centurion') R(7,2,24,3,'#a02020'); }
+  else if(dr==='kohen'||dr==='levite'){ R(8,3,22,8,'#f4f0e6'); R(10,1,18,3,'#f4f0e6'); }
+  else if(dr==='magi'){ const c=hex(L.cloth||0x8a2a2a); R(9,4,20,7,c); R(12,1,14,4,c); R(20,0,8,3,c); }
+  else if(dr==='king'){ R(10,6,18,4,hex(L.hair||0x1e1610)); R(9,8,20,2,'#d4af37'); }
+  else if(L.cloth===null||dr==='camelhair'){ const h=hex(L.hair||0x1e1610); R(9,4,20,7,h); R(9,9,3,14,h); R(26,9,3,14,h); }
+  else { const cloth=hex(L.cloth||0xd9cfb6); R(9,5,20,6,cloth); R(9,9,3,18,cloth); R(26,9,3,18,cloth); }   /* the head-cloth */
   const ex=talking?SV.expr(T.text):'calm';
   const by=ex==='awe'||ex==='fear'?12:ex==='stern'?14:13;
   const brow=L.beard&&L.beard!==0x6d6a66?hex(L.beard):'#2a1d14';
