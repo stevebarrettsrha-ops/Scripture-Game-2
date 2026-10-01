@@ -131,7 +131,9 @@ function buildScene(sc){
   ctx.api.end();
   root.add(st.mesh());
   k.updateChunks(A.x,A.z,9999);
-  if(k.flushEdits) k.flushEdits();
+  /* every chunk the last set was taken out of, and this one laid into, is built again now,
+     behind the fade — not a few a frame while the scene plays */
+  if(k.flushEdits) for(let n=0;n<40&&k.flushEdits(4000);n++){}
   applyTime(sc.time||'day');
   setBed(sc.place,sc.time||'day');
   /* the people of the scene */
@@ -471,21 +473,31 @@ function holdCamera(from,look,dur){
    is brought in along its line of sight, from what it looks at, to the last point with nothing
    solid between — so the subject is always seen. (Drawn in toward the subject, the eye stays on
    the same side of it: a shot from behind His shoulder stays behind it.) */
+const _ray=new THREE.Raycaster();
 function clearShot(from,look){
-  if(!anchor) return from;
-  const k=K(), B=k.B, solid=(x,y,z)=>k.solidAt(anchor.x+x*S,anchor.y+y*S,anchor.z+z*S);
-  const dx=from[0]-look[0], dy=from[1]-look[1], dz=from[2]-look[2], L=Math.hypot(dx,dy,dz);
-  if(L<0.5) return from;
-  const step=0.2, n=Math.ceil(L/step);
-  let last=0;
-  for(let i=Math.ceil(0.6/step);i<=n;i++){ const t=i/n, x=look[0]+dx*t, y=look[1]+dy*t, z=look[2]+dz*t;
-    if(solid(x,y,z)||solid(x,y+0.25,z)||solid(x,y-0.25,z)){ break; } last=t; }
-  if(last>=0.999) return from;
-  const t=Math.max(0.15,last-0.3/L);
-  return [look[0]+dx*t,look[1]+dy*t,look[2]+dz*t];
+  if(!anchor||!root) return from;
+  const k=K(), W=v=>new THREE.Vector3(anchor.x+v[0]*S,anchor.y+v[1]*S,anchor.z+v[2]*S);
+  const a=W(look), b=W(from), dir=b.clone().sub(a), L=dir.length(); if(L<0.5*S) return from;
+  dir.divideScalar(L);
+  /* what is drawn between: the world's blocks and growing things, and the set's own details */
+  const targets=[k.chunkRoot]; root.traverse(o=>{ if(o.name==='story-details') targets.push(o); });
+  _ray.set(a.clone().addScaledVector(dir,0.6*S),dir); _ray.far=L-0.6*S;
+  const hit=_ray.intersectObjects(targets,true).find(h=>h.object.visible!==false);
+  /* and the block grid itself, for a block whose face is not drawn on this side */
+  let tb=1; const n=Math.ceil(L/(0.2*S));
+  for(let i=Math.ceil(0.6*S/(0.2*S));i<=n;i++){ const t=i/n, x=a.x+dir.x*L*t, y=a.y+dir.y*L*t, z=a.z+dir.z*L*t;
+    if(k.solidAt(x,y,z)){ tb=t; break; } }
+  let t=Math.min(tb, hit?(hit.distance+0.6*S)/L:1);
+  if(t>=0.999) return from;
+  t=Math.max(0.12,t-0.35*S/L);
+  return [look[0]+(from[0]-look[0])*t,look[1]+(from[1]-look[1])*t,look[2]+(from[2]-look[2])*t];
 }
 function lookNow(){ const d=new THREE.Vector3(); camera.getWorldDirection(d);
   return [camera.position.x+d.x*10,camera.position.y+d.y*10,camera.position.z+d.z*10]; }
+/* what the eye is on: the scene's held subject, or the witness, or ten metres ahead */
+function lookAtNow(){ if(camTarget) return camTarget.look;
+  if(player&&!ctx.playerHidden) return [player.position.x,player.position.y+1.2,player.position.z];
+  return lookNow(); }
 function releaseCamera(){ camTarget=null; if(player){ camYaw=player.rotation.y+Math.PI; } }
 
 /* ================= FACES THAT SPEAK ================= */
@@ -1016,6 +1028,21 @@ function frame(dtW){
   if(ST.camHold){ camera.position.set(...ST.camHold.from); camera.lookAt(...ST.camHold.look); }
   guardFace();
   writeCamera();
+  sceneLamp();
+}
+/* THE WITNESS'S LAMP: night in the voyage's world is truly dark. In a scene by night, at dusk,
+   or under a roof, what the eye looks at is lit warmly — by the voyage's own torch-light on the
+   blocks and beasts, and by a small lamp on the people of the scene. */
+let lampLight=null;
+function sceneLamp(){
+  const k=K(); if(!k.lamp||!root) return;
+  const at=lookAtNow(), lx=at[0], ly=at[1], lz=at[2];
+  const roofed=k.solidAt(anchor.x+lx*S,anchor.y+(ly+2.6)*S,anchor.z+lz*S)||k.solidAt(anchor.x+lx*S,anchor.y+(ly+3.6)*S,anchor.z+lz*S);
+  const want=timeNow==='night'?0.85:timeNow==='dusk'?0.5:timeNow==='dawn'?0.35:roofed?0.45:0;
+  if(!lampLight){ lampLight=new THREE.PointLight(0xffd9a0,0,14*S,1.4); }
+  if(lampLight.parent!==root) root.add(lampLight);
+  lampLight.position.set(lx,ly+1.6,lz); lampLight.intensity=want*1.3;
+  if(want>0) k.lamp(anchor.x+lx*S,anchor.y+(ly+1.2)*S,anchor.z+lz*S,want,12*S);
 }
 /* the world is held for the scene: the hour the scene names, the traveller where the witness
    is (so the ground about him is the ground that is built), and never seen */

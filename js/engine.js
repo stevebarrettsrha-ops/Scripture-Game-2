@@ -18020,7 +18020,27 @@ function setBuilder(ax,az,baseY,opt){
         const c=cell(i,k); if(!c||c.kind==='wall') continue; const h=c.h;
         for(let j=tY;j<Math.max(h,tY)+2;j++) stampBlock(i,j,k,0);
         for(let j=Math.min(h,tY)-1;j<tY-1;j++) if(j>=h-1) stampBlock(i,j,k,fill);
-        stampBlock(i,tY-1,k,top); } },
+        stampBlock(i,tY-1,k,top); }
+      /* ---- AND ITS EDGE IS EASED INTO THE LAND ----
+         Cut level into a hillside, a set stood in a pit with sheer earthen walls; laid on a
+         slope, it stood on a cliff. The ground for `blend` blocks about it is eased from the
+         set's height to the land's own, cut down or filled up, so the level ground lies in the
+         country the way a threshing floor or a village square does. (A city on terraces —
+         walls of coursed stone — asks for none.) */
+      const bl=o.blend===undefined?10:o.blend;
+      if(bl>0){ const cx=(i0+i1)/2, cz=(k0+k1)/2, rx=(i1-i0)/2+0.5, rz=(k1-k0)/2+0.5;
+        for(let i=i0-bl;i<=i1+bl;i++) for(let k=k0-bl;k<=k1+bl;k++){
+          if(api.inPad(i,k)) continue;
+          let d;
+          if(P.r){ const q=Math.hypot((i-cx)/rx,(k-cz)/rz); if(q<=1) continue; d=(q-1)*Math.min(rx,rz); }
+          else { const dx=Math.max(i0-i,0,i-i1), dz=Math.max(k0-k,0,k-k1); d=Math.max(dx,dz); if(d<=0) continue; }
+          if(d>=bl) continue;
+          const c=cell(i,k); if(!c||c.kind==='wall') continue; const h=c.h;
+          if(api.mtops&&api.mtops.has(i+','+k)) continue;
+          const t=d/bl, e=t*t*(3-2*t), want=Math.round(tY+(h-tY)*e);
+          if(want===h) continue;
+          if(want<h){ for(let j=want;j<h+2;j++) stampBlock(i,j,k,0); stampBlock(i,want-1,k,top); }
+          else { for(let j=h-1;j<want-1;j++) stampBlock(i,j,k,fill); stampBlock(i,want-1,k,top); } } } },
     /* standing water: a channel, a pool, a lake — `depth` courses of water, its face level
        with the ground's (or `drop` courses below it) */
     water(x0,z0,x1,z1,o){ o=o||{}; const d=o.depth||2, dr=o.drop||0, w=blockId('water'), bed=blockId(o.bed||'sand');
@@ -18076,7 +18096,12 @@ window.__KIT={
   robeMat:robeMatHex, blockMat:n=>MAT[n]||null, solidAt, playerXZ, jointTick, tickGait, makeBird, makePerson,
   /* the floor of cloud, which a story lifts high over its scenes: the voyage's clouds stand
      at the scale of its earth, and a scene is built at the scale of a man */
-  clouds:()=>clouds, CLOUD_Y, blockArr:()=>BARR,
+  clouds:()=>clouds, CLOUD_Y, blockArr:()=>BARR, chunkRoot,
+  /* THE LAMP OF A SCENE: the torch's own light (the one every block and beast already takes),
+     set where a story wants it — on what the eye is looking at in a scene by night or under a
+     roof. It is set after the torch's own tick each frame, so it holds only while asked. */
+  lamp:(x,y,z,s,r)=>{ TORCH_P.value.set(x,y,z); TORCH_S.value=s; TORCH_R.value=r||78; },
+  lampOff:()=>{ TORCH_R.value=78; },
   /* the names of lands and cities over the world: a story shows none */
   setNames:v=>{ namesOn=!!v; },
   blockId, stampGroup:fn=>stampedGroup(fn), stampDrop, stampBlock, stampBox, stampTop,
