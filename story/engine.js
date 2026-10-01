@@ -159,6 +159,7 @@ function buildScene(sc){
     else if(t.kind==='jar'){ obj=window.STORYWORLD.stoneJar(ctx,p[0],p[1]); }
     else if(t.kind==='basket'){ obj=window.STORYWORLD.basket(ctx,p[0],p[1],t.full); }
     else if(t.kind==='infant'){ obj=window.STORYWORLD.infant(ctx,p[0],p[1],t); }
+    else if(t.kind==='roundStone'){ obj=window.STORYWORLD.roundStone(ctx,p[0],p[1],t); }
     else { obj=new THREE.Mesh(new THREE.BoxGeometry(t.w||0.5,t.h||0.5,t.d||0.5),new THREE.MeshLambertMaterial({color:t.color||0xc9b38a}));
       obj.position.set(p[0],(t.y||0)+(t.h||0.5)/2,p[1]); scene.add(obj); }
     if(t.face!==undefined) obj.rotation.y=t.face;
@@ -325,7 +326,7 @@ function moveActors(dt){
         g.rotation.y=turnTo(g.rotation.y,Math.atan2(dx,dz),dt*8); moving=true; }
       else if(!u.follow) u.target=null; }
     if(u.fixedY!==undefined) g.position.y=u.fixedY-(u.sit?0.44*(u.s||1):0);
-    else { u.gy=stepGround(g.position.x,g.position.z,u.gy===undefined?ctx.groundY(g.position.x,g.position.z):u.gy); g.position.y=u.gy-(u.sit?0.44*(u.s||1):0); }
+    else { u.gy=stepGround(g.position.x,g.position.z,u.gy===undefined?ctx.groundY(g.position.x,g.position.z):u.gy); g.position.y=u.gy-(u.sit?0.44*(u.s||1):0)+(u.lie?0.16:0); }
     animFigure(g,dt,moving); animFace(g,id,dt);
     if(u.label){ const near=!camTarget&&player&&Math.hypot(player.position.x-g.position.x,player.position.z-g.position.z)<3.6;
       u.label.visible=near||speaking===id; } }
@@ -341,7 +342,9 @@ function moveFlock(dt,t){
     s.position.y=ctx.groundY(s.position.x,s.position.z); }
   for(const id in ctx.things){ const o=ctx.things[id], u=o.userData;
     if(u.goTo){ const dx=u.goTo[0]-o.position.x, dz=u.goTo[1]-o.position.z, d=Math.hypot(dx,dz);
-      if(d>0.2){ o.position.x+=dx/d*dt*2.4; o.position.z+=dz/d*dt*2.4; o.rotation.y=Math.atan2(dx,dz); } else u.goTo=null; }
+      if(d>0.2){ const sp=u.wheel?0.9:2.4; o.position.x+=dx/d*dt*sp; o.position.z+=dz/d*dt*sp;
+        if(u.wheel) u.wheel.rotation.x+=dt*sp/u.r;              /* a round stone rolls in its channel */
+        else o.rotation.y=Math.atan2(dx,dz); } else u.goTo=null; }
     if(u.following&&player){ const dx=player.position.x-o.position.x, dz=player.position.z-o.position.z, d=Math.hypot(dx,dz);
       if(d>1.6){ o.position.x+=dx/d*dt*Math.min(5,d*1.6); o.position.z+=dz/d*dt*Math.min(5,d*1.6); o.rotation.y=Math.atan2(dx,dz); } } }
 }
@@ -368,7 +371,7 @@ function updateCamera(dt){
   const tx=player.position.x, ty=player.position.y+1.6, tz=player.position.z;
   const want=[tx+Math.sin(camYaw)*Math.cos(camPitch)*camDist, ty+Math.sin(camPitch)*camDist, tz+Math.cos(camYaw)*Math.cos(camPitch)*camDist];
   want[1]=Math.max(want[1],ctx.groundY(want[0],want[2])+0.6);
-  { const c=clearShot(want,[tx,ty,tz]); want[0]=c[0]; want[1]=c[1]; want[2]=c[2]; }
+  { const c=pullIn(want,[tx,ty,tz]); want[0]=c[0]; want[1]=c[1]; want[2]=c[2]; }
   const k=Math.min(1,dt*6);
   camera.position.x+=(want[0]-camera.position.x)*k; camera.position.y+=(want[1]-camera.position.y)*k; camera.position.z+=(want[2]-camera.position.z)*k;
   camera.lookAt(tx,ty,tz);
@@ -474,23 +477,51 @@ function holdCamera(from,look,dur){
    solid between — so the subject is always seen. (Drawn in toward the subject, the eye stays on
    the same side of it: a shot from behind His shoulder stays behind it.) */
 const _ray=new THREE.Raycaster();
+/* is the line from the eye to a point of the scene open? (blocks of the world, its growing
+   things, the set's details — everything drawn but the people and the light) */
+function lineClear(from,to){
+  const k=K(), W=v=>new THREE.Vector3(anchor.x+v[0]*S,anchor.y+v[1]*S,anchor.z+v[2]*S);
+  const a=W(to), b=W(from), dir=b.clone().sub(a), L=dir.length(); if(L<0.4*S) return true;
+  dir.divideScalar(L);
+  const n=Math.ceil(L/(0.25*S));
+  for(let i=Math.ceil(0.5*S/(0.25*S));i<=n;i++){ const t=i/n; if(k.solidAt(a.x+dir.x*L*t,a.y+dir.y*L*t,a.z+dir.z*L*t)) return false; }
+  const targets=[k.chunkRoot]; root.traverse(o=>{ if(o.name==='story-details') targets.push(o); });
+  _ray.set(a.clone().addScaledVector(dir,0.5*S),dir); _ray.far=L-0.5*S;
+  return !_ray.intersectObjects(targets,true).some(h=>h.object.visible!==false&&!(h.object.material&&h.object.material.transparent&&h.object.material.opacity<0.5));
+}
+/* the follow camera, each frame: brought in along its line until no block stands between */
+function pullIn(from,look){
+  const k=K(); let t=1; const n=12;
+  for(let i=1;i<=n;i++){ const f=i/n, x=look[0]+(from[0]-look[0])*f, y=look[1]+(from[1]-look[1])*f, z=look[2]+(from[2]-look[2])*f;
+    if(k.solidAt(anchor.x+x*S,anchor.y+y*S,anchor.z+z*S)){ t=Math.max(0.15,(i-1.5)/n); break; } }
+  return [look[0]+(from[0]-look[0])*t,look[1]+(from[1]-look[1])*t,look[2]+(from[2]-look[2])*t];
+}
+function camFree(p){ const k=K(), B=k.B, x=anchor.x+p[0]*S, y=anchor.y+p[1]*S, z=anchor.z+p[2]*S;
+  return !k.solidAt(x,y,z)&&!k.solidAt(x,y+0.35*S,z)&&!k.solidAt(x,y-0.35*S,z)&&!k.solidAt(x+0.4*S,y,z)&&!k.solidAt(x-0.4*S,y,z)&&!k.solidAt(x,y,z+0.4*S)&&!k.solidAt(x,y,z-0.4*S); }
+/* A CLEAR SHOT. The blocks of the world stand where they stand, and a shot written for a scene
+   can find a wall, a roof, a tree or a hillside between the eye and what it looks at. When it
+   does, the eye looks for the nearest place to the one the scene asked for — turned a little
+   about the subject, nearer or farther, higher — from which the subject is seen, head and
+   feet, with nothing between; never one that would look on His face. Failing every one, it is
+   brought in along its own line until the subject is seen. */
 function clearShot(from,look){
   if(!anchor||!root) return from;
-  const k=K(), W=v=>new THREE.Vector3(anchor.x+v[0]*S,anchor.y+v[1]*S,anchor.z+v[2]*S);
-  const a=W(look), b=W(from), dir=b.clone().sub(a), L=dir.length(); if(L<0.5*S) return from;
-  dir.divideScalar(L);
-  /* what is drawn between: the world's blocks and growing things, and the set's own details */
-  const targets=[k.chunkRoot]; root.traverse(o=>{ if(o.name==='story-details') targets.push(o); });
-  _ray.set(a.clone().addScaledVector(dir,0.6*S),dir); _ray.far=L-0.6*S;
-  const hit=_ray.intersectObjects(targets,true).find(h=>h.object.visible!==false);
-  /* and the block grid itself, for a block whose face is not drawn on this side */
-  let tb=1; const n=Math.ceil(L/(0.2*S));
-  for(let i=Math.ceil(0.6*S/(0.2*S));i<=n;i++){ const t=i/n, x=a.x+dir.x*L*t, y=a.y+dir.y*L*t, z=a.z+dir.z*L*t;
-    if(k.solidAt(x,y,z)){ tb=t; break; } }
-  let t=Math.min(tb, hit?(hit.distance+0.6*S)/L:1);
-  if(t>=0.999) return from;
-  t=Math.max(0.12,t-0.35*S/L);
-  return [look[0]+(from[0]-look[0])*t,look[1]+(from[1]-look[1])*t,look[2]+(from[2]-look[2])*t];
+  const low=[look[0],look[1]-0.9,look[2]];
+  const ok=p=>camFree(p)&&lineClear(p,look)&&lineClear(p,low)&&!exposedFrom(p,look);
+  if(ok(from)) return from;
+  const dx=from[0]-look[0], dz=from[2]-look[2], d0=Math.max(1.5,Math.hypot(dx,dz)), a0=Math.atan2(dx,dz), h0=from[1]-look[1];
+  let best=null, bs=1e9;
+  for(const da of [0,0.35,-0.35,0.7,-0.7,1.05,-1.05,1.5,-1.5,2.0,-2.0,2.6,-2.6,Math.PI])
+    for(const dk of [1,0.75,1.3,0.55,1.7])
+      for(const dh of [0,1.2,2.6,4.5]){
+        const score=Math.abs(da)*2+Math.abs(Math.log(dk))*2.2+dh*0.45; if(score>=bs) continue;
+        const d=d0*dk, a=a0+da, p=[look[0]+Math.sin(a)*d, look[1]+h0+dh, look[2]+Math.cos(a)*d];
+        const gy=ctx.groundY(p[0],p[2]); if(p[1]<gy+0.6) p[1]=gy+0.6;
+        if(ok(p)){ best=p; bs=score; } }
+  if(best) return best;
+  /* nothing clear about it: in along the line to the subject */
+  for(let t=0.9;t>0.15;t-=0.08){ const p=[look[0]+(from[0]-look[0])*t,look[1]+(from[1]-look[1])*t,look[2]+(from[2]-look[2])*t]; if(camFree(p)&&lineClear(p,look)) return p; }
+  return from;
 }
 function lookNow(){ const d=new THREE.Vector3(); camera.getWorldDirection(d);
   return [camera.position.x+d.x*10,camera.position.y+d.y*10,camera.position.z+d.z*10]; }
@@ -694,7 +725,9 @@ function enterBeat(){
   /* the wind and the waves: "the ruach was against it" … "the ruach ceased" */
   if(T==='weather'){ if(B.wind) ctx.wind=B.wind; if(B.rough!==undefined) ctx.rough=B.rough; return nextBeat(); }
   /* "Make the people sit down" (Yahuchanon 6:10): on the grass, legs out before them */
-  if(T==='sit'||T==='stand'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g) g.userData.sit=(T==='sit'); } return nextBeat(); }
+  if(T==='sit'||T==='stand'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.sit=(T==='sit'); g.userData.lie=false; g.rotation.x=0; } } return nextBeat(); }
+  /* lying on the ground: asleep in a camp, or fallen (Yashayahu 37:36) */
+  if(T==='lie'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.lie=true; g.userData.sit=false; g.rotation.x=-Math.PI/2; } } return nextBeat(); }
   if(T==='robe'){ const g=ctx.actors[B.who]; if(g) window.STORYWORLD.recolor(g,B.color); return nextBeat(); }
   if(T==='drift'){ const objs=[];
     /* one thing to a place (`to`), or several together by the same distance (`by`) — a boat
@@ -912,7 +945,7 @@ const BEDS={
   road:{wind:0.7},   fields:{wind:0.4,night:0.8},  beythlehem:{wind:0.3,crowd:0.2},
   yarden:{river:0.8,wind:0.35,crowd:0.25},          wilderness:{wind:1.0},  mountain:{wind:1.3},
   qanah:{crowd:0.8,wind:0.2},  galil:{shore:0.8,wind:0.35,crowd:0.2},  galilEast:{shore:0.6,wind:0.4,crowd:0.4},
-  galilSea:{shore:1.0,wind:1.4}
+  galilSea:{shore:1.0,wind:1.4},  bethanyah:{wind:0.35,crowd:0.45}
 };
 function noiseBuf(A,brown){ const n=A.createBuffer(1,A.sampleRate*3,A.sampleRate), d=n.getChannelData(0); let last=0;
   for(let k=0;k<d.length;k++){ const w=Math.random()*2-1; if(brown){ last=(last+0.02*w)/1.02; d[k]=last*3.4; } else d[k]=w*0.5; }
@@ -981,7 +1014,8 @@ function showHub(msg){
    scenes the witness shared with each, and so how near each has become. Nothing is said by
    them that the Besorah does not say — the bond is only what was seen together. */
 /* the same man by both his names: Shim‛on is named Kĕpha the day he is brought (Yahuchanon 1:42) */
-const FOLLOWERS={kepha:'kepha',shimon:'kepha',andri:'andri',yaaqob:'yaaqob',yahuchanon:'yahuchanon',philip:'philip',nethanel:'nethanel',mattithyahu:'mattithyahu'};
+const FOLLOWERS={kepha:'kepha',shimon:'kepha',andri:'andri',yaaqob:'yaaqob',yahuchanon:'yahuchanon',philip:'philip',nethanel:'nethanel',mattithyahu:'mattithyahu',
+  bartholomi:'bartholomi',toma:'toma',yaaqobA:'yaaqobA',shimonZ:'shimonZ',yahudahY:'yahudahY'};
 function journal(sc){
   save.road=save.road||{}; save.bonds=save.bonds||{};
   const k=act.id+'/'+sc.id;

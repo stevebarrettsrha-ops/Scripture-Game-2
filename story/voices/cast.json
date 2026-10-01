@@ -1205,6 +1205,10 @@
   "kind": "man",
   "voice": "bm_fable"
  },
+ "martha": {
+  "kind": "woman",
+  "voice": "bf_alice"
+ },
  "mastema": {
   "kind": "dark",
   "voice": "bm_lewis:.5+am_eric:.5"
@@ -1284,6 +1288,10 @@
  "miryam": {
   "kind": "woman",
   "voice": "af_jessica"
+ },
+ "miryam of beyth anyah": {
+  "kind": "woman",
+  "voice": "bf_lily"
  },
  "mitsrites": {
   "kind": "crowd",
@@ -1504,6 +1512,10 @@
  "pharaoh": {
   "kind": "man",
   "voice": "am_fenrir"
+ },
+ "pharisees": {
+  "kind": "man",
+  "voice": "am_liam:.5+am_puck:.5"
  },
  "philip": {
   "kind": "man",

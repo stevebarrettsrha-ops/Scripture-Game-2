@@ -143,12 +143,14 @@ W.pool=function(ctx,S,x,z,w,d,o){
 };
 /* a lean-to on posts over a stone feeding trough, beside a house */
 W.stable=function(S,x,z){
-  for(const [a,b] of [[-2.2,-1.6],[2.2,-1.6],[-2.2,1.6],[2.2,1.6]]) S.box(x+a-0.3,0,z+b-0.3,x+a+0.3,2.6,z+b+0.3,C.timber);
-  S.box(x-2.6,2.6,z-2,x+2.6,3.2,z+2,'thatch');                                 /* the roof of straw */
-  S.box(x-2.5,0,z-2.2,x+2.5,1.6,z-1.6,C.stone);                               /* back wall */
+  /* (in the world's courses: the posts carry the straw roof above the third course, so a man
+     stands under it with room to spare and an eye can be set beneath it) */
+  for(const [a,b] of [[-2.8,-2],[2.8,-2],[-2.8,2],[2.8,2]]) S.box(x+a-0.3,0,z+b-0.3,x+a+0.3,3.3,z+b+0.3,C.timber);
+  S.box(x-3.2,3.3,z-2.5,x+3.2,3.9,z+2.3,'thatch');                             /* the roof of straw */
+  S.box(x-3.1,0,z-2.6,x+3.1,1.7,z-2.0,C.stone);                               /* back wall */
   S.box(x-0.8,0,z-0.4,x+0.8,0.55,z+0.4,C.stone);                               /* the trough */
   S.detail(x-0.65,0.5,z-0.28,x+0.65,0.62,z+0.28,C.hay);                        /* straw in it */
-  S.box(x+1.4,0,z-1.4,x+2.3,0.9,z-0.5,'hay');                                  /* fodder */
+  S.box(x+1.8,0,z-1.8,x+2.7,0.9,z-0.9,'hay');                                  /* fodder */
 };
 W.fold=function(S,x,z,r){                     /* a sheepfold of stacked stone, open on +z */
   for(let a=0;a<28;a++){ const t=a/28*Math.PI*2; if(Math.abs(t-Math.PI/2)<0.35) continue;
@@ -265,6 +267,12 @@ W.stoneJar=function(ctx,x,z){
   const r=new THREE.Mesh(new THREE.BoxGeometry(0.74,0.1,0.74),m); r.position.y=0.95; g.add(r);
   const w=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.02,0.5),new THREE.MeshBasicMaterial({color:0x6f8f9a})); w.position.y=0.94; w.visible=false; g.add(w);
   g.userData.fill=w; g.position.set(x,0,z); ctx.scene.add(g); return g; };
+/* the round stone rolled in its channel against the door of a tomb */
+W.roundStone=function(ctx,x,z,o){ o=o||{};
+  const r=o.r||1.25, g=new THREE.Group();
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,o.w||0.45,14),new THREE.MeshLambertMaterial({color:0xcfc4a8}));
+  m.rotation.z=Math.PI/2; m.position.y=r; g.add(m); g.userData.wheel=m; g.userData.r=r;
+  g.position.set(x,0,z); g.rotation.y=o.face||0; ctx.scene.add(g); return g; };
 W.basket=function(ctx,x,z,full){
   const g=new THREE.Group();
   const a=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.4,0.6),new THREE.MeshLambertMaterial({color:0xa8844a})); a.position.y=0.2; g.add(a);

@@ -30,6 +30,12 @@ const PLACES={
   fields:     {lat:31.700, lon:35.215, flat:34, clear:900, why:'the pasture below Bĕyth Leḥem'},
   yarden:     {lat:31.837, lon:35.550, flat:46, why:'Bĕyth Anyah beyond the Yardĕn, below Yeriḥo'},
   wilderness: {lat:31.70,  lon:35.40,  flat:12, clear:820, why:'the wilderness of Yahuḏah, falling to the rift'},
+  bethanyah:  {lat:31.771, lon:35.262, flat:28, clear:820, why:'Bĕyth Anyah, beyond the Mount of Olives from the city'},
+  /* the seven hundred years: the empires, each at its own seat */
+  tiber:      {lat:41.89, lon:12.49, flat:20, why:'by the Tiber, where Rome begins'},
+  nineveh:    {lat:36.36, lon:43.15, flat:36, why:'Ninewĕh on the Ḥiddeqel, seat of Ashshur'},
+  babel:      {lat:32.54, lon:44.42, flat:40, why:'Baḇal on the Euphrates'},
+  pella:      {lat:40.76, lon:22.52, flat:26, why:'Pella of Macedon, the city of Alexander'},
   mountain:   {lat:33.42,  lon:35.86,  flat:6, high:true, why:'"a very high mountain" — the heights of Ḥermon'}
 };
 const cache={};

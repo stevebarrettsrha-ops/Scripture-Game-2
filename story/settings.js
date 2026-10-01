@@ -59,7 +59,7 @@ S.natsareth=function(ctx,st){
 /* ================= THE ROAD TO YAHUḎAH ================= */
 S.road=function(ctx,st){
   ctx.wind=[1.1,0.3];
-  W.ground(ctx,{size:420,color:C.grassDry,alt:C.sand,flat:8,hills:22});
+  W.ground(ctx,{size:420,color:C.grassDry,alt:C.sand,flat:30,hills:22});
   for(let k=-60;k<60;k++) st.box(k*1.5-0.8,0,-1.4+Math.sin(k*0.08)*3,k*1.5+0.8,0.1,1.4+Math.sin(k*0.08)*3,C.path,{collide:false,jitter:0.12});
   for(let k=0;k<24;k++){ const x=(W.hash(k,4)-0.5)*170, z=(W.hash(k,6)>0.5?1:-1)*(8+W.hash(k,8)*30); W.rock(st,x,z,1+W.hash(k,2)); if(k%3===0) W.olive(st,x+3,z+2,0.9); }
   mk(ctx,'roadA',-60,Math.sin(-40*0.08)*3); mk(ctx,'roadB',40,Math.sin(26*0.08)*3);
@@ -217,6 +217,90 @@ S.qanah=function(ctx,st){
   ctx.bounds={x0:-120,x1:120,z0:-120,z1:120};
 };
 
+/* ================= BĔYTH ANYAH, near Yahrushalayim =================
+   "Now Bĕyth Anyah was near Yahrushalayim, about three kilometers away" (Yahuchanon 11:18): a
+   village of the hill country on the far side of the Mount of Olives, houses of stone on the
+   slope, olive trees; and outside it, "a cave, and a stone lay against it" (11:38) — a tomb
+   cut into the rock of the hillside, closed by a round stone. */
+S.bethanyah=function(ctx,st){
+  ctx.wind=[0.6,0.3];
+  W.ground(ctx,{color:C.grassDry,flat:28,peak:{x:-40,z:-8,h:9,r:26}});
+  /* the rock face of the hill, and the tomb cut into it */
+  st.box(-27,0,-15,-21,5.2,-1,C.limestone);                                    /* the face of the rock */
+  st.box(-26,0,-10,-21.2,2.4,-6,'air');                                       /* the cave */
+  st.box(-26.5,0,-10.5,-26,2.8,-5.5,C.limestone);                             /* its back wall */
+  st.box(-21.2,0,-11.2,-20.4,0.3,-4.8,C.stone);                               /* the threshold, a channel for the stone */
+  const hs=[[-2,14],[8,10],[16,18],[-12,20],[4,26],[18,4],[-8,6]];
+  hs.forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:x>0?'w':'e',color:k%2?C.limestone:C.whitewash,h:3}));
+  for(let k=0;k<16;k++){ const a=W.hash(k,7)*6.28, r=24+W.hash(k,8)*30; const x=Math.cos(a)*r+6, z=Math.sin(a)*r+10; if(x<-14&&z<6) continue; W.olive(st,x,z,0.9+W.hash(k,9)*0.3); }
+  W.wild(ctx,'goat',20,-20,3,6,0.4); W.wild(ctx,'chicken',4,18,3,3,0.4);
+  mk(ctx,'tomb',-21.8,-8); mk(ctx,'tombIn',-24,-8); mk(ctx,'tombOut',-17.5,-8); mk(ctx,'tombFront',-14,-8);
+  mk(ctx,'stone',-20.1,-8); mk(ctx,'stoneAside',-20.1,-12.4);
+  mk(ctx,'road',26,-6); mk(ctx,'meet',14,-4); mk(ctx,'house',-8,6); mk(ctx,'houseDoor',-4.2,6);
+  ctx.bounds={x0:-120,x1:120,z0:-120,z1:120};
+};
+
+/* ================= THE SEVEN HUNDRED YEARS: the seats of the empires =================
+   Each is drawn as a glimpse, as the design document's montage asks: what the eye would
+   take in from a hilltop as the centuries go by. */
+/* a round hut of wattle and daub under a peaked roof of thatch */
+function hut(st,x,z,r){ r=r||2.4;
+  st.box(x-r,0,z-r,x+r,1.9,z+r,'mudbrick'); st.box(x-0.5,0,z+r-0.4,x+0.5,1.5,z+r+0.1,'air');
+  st.box(x-r-0.3,1.9,z-r-0.3,x+r+0.3,2.5,z+r+0.3,'thatch'); st.box(x-r+0.6,2.5,z-r+0.6,x+r-0.6,3.1,z+r-0.6,'thatch'); st.box(x-0.7,3.1,z-0.7,x+0.7,3.6,z+0.7,'thatch'); }
+/* ROME, 753 BCE by its own reckoning: huts of wattle on the Palatine above the Tiber */
+S.tiber=function(ctx,st){
+  ctx.wind=[0.6,0.2];
+  W.ground(ctx,{color:C.grass,flat:20,peak:{x:-10,z:-6,h:5,r:30}});
+  [[-14,-10],[-6,-14],[2,-8],[-10,0],[6,2],[-2,8],[10,-4]].forEach(([x,z])=>hut(st,x,z,2.2));
+  for(let k=0;k<26;k++){ const a=k/26*Math.PI*2, x=Math.cos(a)*19, z=Math.sin(a)*19; if(Math.abs(a-1.6)<0.2) continue; st.box(x-0.25,0,z-0.25,x+0.25,1.8,z+0.25,'log'); }   /* the palisade */
+  W.wild(ctx,'sheep',12,12,5,4,0.4); W.wild(ctx,'pig',-16,10,3,4,0.4);
+  for(let k=0;k<10;k++){ const a=W.hash(k,3)*6.28, r=26+W.hash(k,4)*20; W.olive(st,Math.cos(a)*r,Math.sin(a)*r,0.9); }
+  mk(ctx,'center',0,0);
+  ctx.bounds=null;
+};
+/* NINEWĔH, 612 BCE: the great wall of mud brick and its gate, guarded by winged bulls of stone
+   (the lamassu, still standing in Mosul's museum until 2015), the palace mound behind — burning */
+S.nineveh=function(ctx,st){
+  ctx.wind=[1.2,0.4];
+  W.ground(ctx,{color:C.grassDry,flat:36,top:'sand'});
+  W.wall(st,-34,10,34,10,{h:9,t:3,color:'mudbrick',gap:[0,10,5]});
+  W.gate(st,0,10,'x',{w:5,h:12,color:'mudbrick'});
+  for(const sx of [-1,1]){ const x=sx*4.6; st.box(x-0.7,0,12,x+0.7,3.6,16,'alabaster'); st.box(x-0.9,3.6,12.2,x+0.9,4.2,15.6,'alabaster'); }   /* the lamassu */
+  st.box(-20,0,-24,20,6,-6,'mudbrick'); st.box(-12,6,-20,12,12,-10,'mudbrick'); st.box(-6,12,-17,6,15,-13,'mudbrick');   /* the palace mound */
+  ctx.flames=[];
+  for(let k=0;k<14;k++){ const x=-26+W.hash(k,1)*52, z=-24+W.hash(k,2)*30; const f=W.glow(ctx,x,2+W.hash(k,3)*10,z,5+W.hash(k,4)*5,0xff7a2a,0); f.flicker=true; ctx.flicker.push(f); }
+  mk(ctx,'gate',0,10);
+  ctx.bounds=null;
+};
+/* BAḆAL, 539 BCE: the stepped temple tower of seven stages and the gate faced with blue glazed
+   brick and the beasts of gold that stood on it */
+S.babel=function(ctx,st){
+  ctx.wind=[1.0,0.2];
+  W.ground(ctx,{color:C.grassDry,flat:40,top:'sand'});
+  let w=30; for(let k=0;k<7;k++){ const h=k*4.2; st.box(-w/2,h,-30-w/2,w/2,h+4.2,-30+w/2,k%2?'mudbrick':'brick'); w-=4; }
+  st.box(-3,0,-30+15,3,6,-30+19,'mudbrick');                                      /* the great stair */
+  for(const sx of [-1,1]){ const x=sx*6; st.box(x-3,0,14,x+3,13,20,'sapphire');      /* the gate towers, blue */
+    for(let y=2;y<12;y+=3) st.box(x-3.05,y,13.9,x+3.05,y+0.9,14,'hay'); }            /* the beasts of gold */
+  st.box(-3,9,14,3,13,20,'sapphire');
+  W.wall(st,-40,17,-9,17,{h:10,t:3,color:'mudbrick'}); W.wall(st,9,17,40,17,{h:10,t:3,color:'mudbrick'});
+  for(let k=0;k<12;k++){ const a=W.hash(k,6)*6.28, r=30+W.hash(k,7)*20; W.palm(st,Math.cos(a)*r,Math.sin(a)*r+20); }
+  mk(ctx,'gate',0,22);
+  ctx.bounds=null;
+};
+/* MACEDON, 331 BCE: a temple of the Greeks in white stone on its stepped base, columns all about */
+S.pella=function(ctx,st){
+  ctx.wind=[0.8,0.4];
+  W.ground(ctx,{color:C.grass,flat:26});
+  st.box(-10,0,-16,10,1.2,16,'alabaster'); st.box(-9,1.2,-15,9,1.8,15,'alabaster');
+  for(const x of [-8,-4.8,-1.6,1.6,4.8,8]) for(const z of [-14,14]) st.box(x-0.6,1.8,z-0.6,x+0.6,8.8,z+0.6,'alabaster');
+  for(const z of [-10,-6,-2,2,6,10]) for(const x of [-8,8]) st.box(x-0.6,1.8,z-0.6,x+0.6,8.8,z+0.6,'alabaster');
+  st.box(-9,8.8,-15,9,10,15,'alabaster'); st.box(-7,10,-15,7,11,15,'alabaster'); st.box(-4,11,-15,4,12,15,'alabaster');
+  st.box(-5,1.8,-8,5,8.8,8,'plaster');                                             /* the inner shrine */
+  for(let k=0;k<12;k++){ const a=W.hash(k,8)*6.28, r=20+W.hash(k,9)*18; W.olive(st,Math.cos(a)*r,Math.sin(a)*r,1); }
+  mk(ctx,'temple',0,0);
+  ctx.bounds=null;
+};
+
 /* ================= THE SEA OF GALIL: Kephar Naḥum on its shore =================
    The lake east of the stage; a beach of pebbles where the boats are drawn up and the nets
    washed (Luke 5:2); the town of black basalt behind it, its qahal of stone; the hills going
@@ -226,7 +310,7 @@ S.qanah=function(ctx,st){
 const SHORE={x:22,d:6,slope:0.16};
 function galil(ctx,st,o){
   W.ground(ctx,{color:o.village?C.grassDry:C.grass,flat:30,
-    peak:o.village?{x:-80,z:6,h:22,r:70}:{x:-46,z:0,h:12,r:56}});
+    peak:o.village?{x:-80,z:6,h:11,r:72}:{x:-46,z:0,h:8,r:56}});
   /* THE LAKE: its floor levelled and its water laid, from the beach out past where the boats
      go; a beach of pebbles along its edge */
   ctx.api.pad(SHORE.x-8,-80,SHORE.x+92,80,{top:'sand'});
@@ -235,7 +319,8 @@ function galil(ctx,st,o){
   for(let k=0;k<26;k++){ const z=-90+k*7, x=SHORE.x-3+W.hash(k,5)*2.2; W.rock(st,x,z,0.35+W.hash(k,6)*0.4); }
   if(o.village){
     const BAS='basalt', BAS2='basalt';                                   /* the black basalt of Kephar Naḥum */
-    const hs=[[-8,-24],[2,-26],[-18,-14],[6,-12],[-24,4],[-10,8],[4,10],[-20,20],[-6,24],[8,24],[-30,-8],[-32,14]];
+    /* the town lies along the shore; the slope of the hills west of it is left open, for the crowds */
+    const hs=[[-8,-24],[2,-26],[-14,-14],[6,-12],[-10,8],[4,10],[-6,24],[8,24],[-4,-34],[10,-32]];
     hs.forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:x>-12?'e':'w',color:k%2?BAS:BAS2,h:2.9}));
     { const qx=-8, qz=-6;                                                /* the qahal (Mark 1:21) */
       st.box(qx-6,0,qz-4.5,qx+6,0.3,qz+4.5,'cobble');
@@ -249,7 +334,7 @@ function galil(ctx,st,o){
     st.box(SHORE.x-4,1.5,-14.1,SHORE.x-0.6,1.65,-9.9,0xb8a882,{collide:false});
     W.wild(ctx,'chicken',-16,14,4,3,0.4); W.wild(ctx,'goat',-28,-20,3,4,0.4); W.wild(ctx,'dog',-4,18,1,4,0.6);
     mk(ctx,'beach',SHORE.x-3,4); mk(ctx,'street',-2,0); mk(ctx,'house',4,10); mk(ctx,'houseDoor',8,10);
-    mk(ctx,'mount',-40,6); mk(ctx,'mountTop',-48,6); mk(ctx,'mountCrowd',-34,6);
+    mk(ctx,'mount',-30,6); mk(ctx,'mountTop',-35,6); mk(ctx,'mountCrowd',-24,6);   /* on the first slope of the hills above the town */
   } else {
     for(let k=0;k<70;k++){ const x=-60+W.hash(k,7)*72, z=-50+W.hash(k,8)*100;
       if(Math.hypot(x+20,z)<26) continue; st.detail(x-0.4,ctx.groundY(x,z),z-0.4,x+0.4,ctx.groundY(x,z)+0.35,z+0.4,0x6e8a46); }

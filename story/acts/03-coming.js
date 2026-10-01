@@ -71,11 +71,11 @@ STORY.act({
     actors:[ Object.assign({id:'miryam', name:'Miryam', at:[-58,0.6], face:Math.PI/2},MIRYAM),
              Object.assign({id:'yoseph', name:'Yosĕph', at:[-56,-0.4], face:Math.PI/2},YOSEPH) ],
     beats:[
-      {t:'cam', from:[-40,9,22], look:[-56,1,0], dur:0.1},
+      {t:'cam', from:[-50,2.6,6.5], look:[-57,1.3,0.2], dur:0.1},
       {t:'read', ref:'LUKE 2:1'},
       {t:'read', ref:'LUKE 2:2-3'},
-      {t:'move', who:['yoseph','miryam'], to:[[36,2.2],[34,3.2]], speed:1.6, wait:false},
-      {t:'cam', from:[10,14,26], look:[0,1,0], dur:14, wait:false},
+      {t:'move', who:['yoseph','miryam'], to:[[-30,1.8],[-32,2.6]], speed:1.4, wait:false},
+      {t:'cam', from:[-36,2.4,8.5], look:[-38,1.3,2], dur:6, wait:false},
       {t:'read', ref:'LUKE 2:4-5'},
       {t:'note', text:'From Natsareth to Bĕyth Leḥem is about 150 km — some days on foot, down the Yarden valley or through the hills of Shomeron, and up into the hill country of Yahuḏah.'},
       {t:'end'}
@@ -141,7 +141,7 @@ STORY.act({
       {t:'goal', text:'Find the sign you were told of: a baby wrapped up, lying in a feeding trough', goto:'troughView', r:3.2},
       {t:'move', who:['sh1','sh2','sh3'], to:['sh1','sh2','sh3'], wait:false},
       {t:'read', ref:'LUKE 2:16'},
-      {t:'cam', from:[7,2.6,3.6], look:[7,0.8,-1], dur:3},
+      {t:'cam', from:[7.6,2.3,4.6], look:[6.8,0.8,-0.8], dur:3},
       {t:'read', ref:'LUKE 2:7'},
       {t:'fulfil', id:'y9-6'},
       {t:'cam', release:true},
@@ -149,7 +149,7 @@ STORY.act({
       {t:'show', id:'lampLight'},
       {t:'read', ref:'LUKE 2:17'},
       {t:'read', ref:'LUKE 2:18'},
-      {t:'cam', from:[4.2,2.2,2.6], look:'miryam', dur:2.5},
+      {t:'cam', from:[3.4,2.1,3.8], look:'miryam', dur:2.5},
       {t:'read', ref:'LUKE 2:19'},
       {t:'cam', release:true},
       {t:'choice', prompt:'You', options:[
@@ -220,12 +220,12 @@ STORY.act({
     glows:[ {id:'dream', at:[10.4,2.8,6.4], size:3.4, color:0xfff4d6, intensity:1.2, pulse:true, hidden:true},
             {id:'child', at:[11.6,1.3,5.6], size:1.4, color:0xfff3d0, intensity:0.6, pulse:true} ],
     beats:[
-      {t:'cam', from:[2,4,14], look:[11.8,1.4,6], dur:0.1},
+      {t:'cam', from:[6,2.4,9], look:[11.4,1.4,6], dur:0.1},
       {t:'show', id:'dream'},
       {t:'say', who:'dreamMalak', ref:'MATTITHYAHU 2:13'},
       {t:'hide', id:['dream','child']},
       {t:'move', who:['yoseph','miryam'], to:[[-2,40],[-3,41]], speed:1.8, wait:false},
-      {t:'cam', from:[6,8,30], look:[0,1,26], dur:8, wait:false},
+      {t:'cam', from:[-9,3,30], look:[-2.4,1.3,38], dur:8, wait:false},
       {t:'read', ref:'MATTITHYAHU 2:14-15', who:'byNabi'},
       {t:'title', text:'The end of Act II', sub:'Next: The Forerunner — Yahuchanon the Immerser in the wilderness'},
       {t:'end'}

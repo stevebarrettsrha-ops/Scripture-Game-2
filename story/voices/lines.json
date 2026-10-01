@@ -299,13 +299,364 @@
     "where": "prologue/taught-ones YASHAYAHU 8:17"
    },
    {
+    "key": "be1774e9c324",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "The fourteenth year of Ḥizqiyahu. c. 701 BCE",
+    "kk": "The fourteenth year of Kizqiyahu. about 701 B.C.E.",
+    "where": "prologue/siege title"
+   },
+   {
+    "key": "55e10ea1f80c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And it came to be in the fourteenth year of Sovereign Ḥizqiyahu that Sanḥĕriḇ sovereign of Ashshur came up against all the walled cities of Yahuḏah and took them.",
+    "kk": "And it came to be in the fourteenth year of Sovereign Kizqiyahu that Sankerib sovereign of ah-shoor came up against all the walled cities of yah-hoo-dah and took them.",
+    "where": "prologue/siege YASHAYAHU 36:1"
+   },
+   {
+    "key": "d93fe5840837",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "About 701 BCE. Sanḥĕriḇ’s own annals, found at Ninewĕh, boast of taking forty-six walled cities of Yahuḏah and of shutting Ḥizqiyahu up in Yahrushalayim “like a bird in a cage” — but they do not claim the city. His palace walls show the siege of Laḵish.",
+    "kk": "About 701 B.C.E. Sankeribs own annals, found at Nineweh, boast of taking forty-six walled cities of yah-hoo-dah and of shutting Kizqiyahu up in yah-roo-shah-lah-yeem like a bird in a cage, but they do not claim the city. His palace walls show the siege of Lakish.",
+    "where": "prologue/siege note"
+   },
+   {
+    "key": "9505b2be4a61",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Ḥizqiyahu saw that Sanḥĕriḇ had come and his face set to fight against Yahrushalayim,",
+    "kk": "And Kizqiyahu saw that Sankerib had come and his face set to fight against yah-roo-shah-lah-yeem,",
+    "where": "prologue/siege 2 DIḆRĔ HAYAMIM 32:2"
+   },
+   {
+    "key": "fac98ba5eb56",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "and he took counsel with his rulers and mighty men to stop the water from the springs which were outside the city. And they helped him.",
+    "kk": "and he took counsel with his rulers and mighty men to stop the water from the springs which were outside the city. And they helped him.",
+    "where": "prologue/siege 2 DIḆRĔ HAYAMIM 32:3"
+   },
+   {
+    "key": "63932efdb91c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And many people were gathered and they stopped all the springs and the stream that ran through the land, saying, ",
+    "kk": "And many people were gathered and they stopped all the springs and the stream that ran through the land, saying,",
+    "where": "prologue/siege 2 DIḆRĔ HAYAMIM 32:4"
+   },
+   {
+    "key": "57ef01c71184",
+    "kind": "crowd",
+    "name": "people",
+    "who": "The people",
+    "text": "“Why should the sovereigns of Ashshur come and find much water?”",
+    "kk": "Why should the sovereigns of ah-shoor come and find much water?",
+    "where": "prologue/siege 2 DIḆRĔ HAYAMIM 32:4"
+   },
+   {
+    "key": "71f6342c9123",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Ḥizqiyahu himself had stopped the upper outlet of the waters of Giḥon and directed them to the west side of the City of Dawiḏ. And Ḥizqiyahu prospered in all his work.",
+    "kk": "And Kizqiyahu himself had stopped the upper outlet of the waters of Gikon and directed them to the west side of the City of dah-veed. And Kizqiyahu prospered in all his work.",
+    "where": "prologue/siege 2 DIḆRĔ HAYAMIM 32:30"
+   },
+   {
+    "key": "bd3b41a50548",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "The channel he cut is there still: 533 metres through the rock beneath the City of Dawiḏ, from the spring of Giḥon to the pool of Shiloaḥ. An inscription found in it in 1880 tells how the two crews of hewers, cutting from either end, heard each other’s picks through the rock and met.",
+    "kk": "The channel he cut is there still, 533 metres through the rock beneath the City of dah-veed, from the spring of Gikon to the pool of Shiloak. An inscription found in it in 1880 tells how the two crews of hewers, cutting from either end, heard each other's picks through the rock and met.",
+    "where": "prologue/siege note"
+   },
+   {
+    "key": "c46e6e4631cf",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the sovereign of Ashshur sent the Raḇshaqĕh with a great army from Laḵish to Sovereign Ḥizqiyahu at Yahrushalayim. And he stood by the channel of the upper pool, on the highway to the Launderer’s Field.",
+    "kk": "And the sovereign of ah-shoor sent the Rabshaqeh with a great army from Lakish to Sovereign Kizqiyahu at yah-roo-shah-lah-yeem. And he stood by the channel of the upper pool, on the highway to the Launderer's Field.",
+    "where": "prologue/siege YASHAYAHU 36:2"
+   },
+   {
+    "key": "05da6dbe43d5",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And there came to him Alyaqim son of Ḥilqiyahu, who was over the household and Sheḇnah the scribe and Yo’aḥ son of Asaph, the recorder.",
+    "kk": "And there came to him Alyaqim son of Kilqiyahu, who was over the household and Shebnah the scribe and Yoak son of Asaph, the recorder.",
+    "where": "prologue/siege YASHAYAHU 36:3"
+   },
+   {
+    "key": "ac9b4759a714",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "The Raḇshaqĕh then said to them, ",
+    "kk": "The Rabshaqeh then said to them,",
+    "where": "prologue/siege YASHAYAHU 36:4"
+   },
+   {
+    "key": "f1d22e9b3974",
+    "kind": "man",
+    "name": "rabshaqeh",
+    "who": "The Raḇshaqĕh",
+    "text": "“Please say to Ḥizqiyahu, ‘Thus said the great sovereign, the sovereign of Ashshur, “What trust is this in which you trust?",
+    "kk": "Please say to Kizqiyahu, Thus said the great sovereign, the sovereign of ah-shoor, What trust is this in which you trust?",
+    "where": "prologue/siege YASHAYAHU 36:4"
+   },
+   {
+    "key": "30441f491392",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the Raḇshaqĕh stood and called out with a loud voice in the language of Yahuḏah and said, ",
+    "kk": "And the Rabshaqeh stood and called out with a loud voice in the language of yah-hoo-dah and said,",
+    "where": "prologue/siege YASHAYAHU 36:13"
+   },
+   {
+    "key": "d859b3d81b2f",
+    "kind": "man",
+    "name": "rabshaqeh",
+    "who": "The Raḇshaqĕh",
+    "text": "“Hear the words of the great sovereign, the sovereign of Ashshur!",
+    "kk": "Hear the words of the great sovereign, the sovereign of ah-shoor!",
+    "where": "prologue/siege YASHAYAHU 36:13"
+   },
+   {
+    "key": "a9863583efe8",
+    "kind": "man",
+    "name": "rabshaqeh",
+    "who": "The Raḇshaqĕh",
+    "text": "“Thus said the sovereign, ‘Do not let Ḥizqiyahu deceive you, for he is unable to deliver you,",
+    "kk": "Thus said the sovereign, Do not let Kizqiyahu deceive you, for he is unable to deliver you,",
+    "where": "prologue/siege YASHAYAHU 36:14"
+   },
+   {
+    "key": "3880b44ef699",
+    "kind": "man",
+    "name": "rabshaqeh",
+    "who": "The Raḇshaqĕh",
+    "text": "and do not let Ḥizqiyahu make you trust in (YAHUAH) HWHY, saying, ",
+    "kk": "and do not let Kizqiyahu make you trust in YAHUAH, saying,",
+    "where": "prologue/siege YASHAYAHU 36:15"
+   },
+   {
+    "key": "3e3e06d24875",
+    "kind": "man",
+    "name": "rabshaqeh",
+    "who": "The Raḇshaqĕh",
+    "text": "“(YAHUAH) HWHY shall certainly deliver us, this city is not given into the hand of the sovereign of Ashshur.”",
+    "kk": "YAHUAH shall certainly deliver us, this city is not given into the hand of the sovereign of ah-shoor.",
+    "where": "prologue/siege YASHAYAHU 36:15"
+   },
+   {
+    "key": "3d1fd8ac48bb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But they were silent and answered him not a word, for the command of the sovereign was, ",
+    "kk": "But they were silent and answered him not a word, for the command of the sovereign was,",
+    "where": "prologue/siege YASHAYAHU 36:21"
+   },
+   {
+    "key": "0c49ca32e72b",
+    "kind": "man",
+    "name": "hizqiyahu",
+    "who": "Ḥizqiyahu",
+    "text": "“Do not answer him.”",
+    "kk": "Do not answer him.",
+    "where": "prologue/siege YASHAYAHU 36:21"
+   },
+   {
+    "key": "eafac7f82d91",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Alyaqim son of Ḥilqiyahu, who was over the household, Sheḇnah the scribe and Yo’aḥ son of Asaph, the recorder, came to Ḥizqiyahu with their garments torn and they reported to him the words of the Raḇshaqĕh.",
+    "kk": "And Alyaqim son of Kilqiyahu, who was over the household, Shebnah the scribe and Yoak son of Asaph, the recorder, came to Kizqiyahu with their garments torn and they reported to him the words of the Rabshaqeh.",
+    "where": "prologue/siege YASHAYAHU 36:22"
+   },
+   {
+    "key": "812432b0ff5b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "You hold your tongue on the wall with the others. Below, the army of Ashshur waits.",
+    "kk": "You hold your tongue on the wall with the others. Below, the army of ah-shoor waits.",
+    "where": "prologue/siege choice"
+   },
+   {
+    "key": "d819f569be02",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Thirty years ago, here at the upper pool, the naḇi gave a sign to Aḥaz. You still have the board you wrote it on.",
+    "kk": "Thirty years ago, here at the upper pool, the nah-vee gave a sign to ah-khahz. You still have the board you wrote it on.",
+    "where": "prologue/siege choice"
+   },
+   {
+    "key": "19b6af1d68d6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And it came to be, when Sovereign Ḥizqiyahu heard it, that he tore his clothes and covered himself with sackcloth and went into the House of (YAHUAH) HWHY,",
+    "kk": "And it came to be, when Sovereign Kizqiyahu heard it, that he tore his clothes and covered himself with sackcloth and went into the House of YAHUAH,",
+    "where": "prologue/deliverance YASHAYAHU 37:1"
+   },
+   {
+    "key": "2296bf6cb801",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Ḥizqiyahu received the letter from the hand of the mal'akim and read it. And Ḥizqiyahu went up to the House of (YAHUAH) HWHY and spread it before (YAHUAH) HWHY.",
+    "kk": "And Kizqiyahu received the letter from the hand of the mahl-ah-keem and read it. And Kizqiyahu went up to the House of YAHUAH and spread it before YAHUAH.",
+    "where": "prologue/deliverance YASHAYAHU 37:14"
+   },
+   {
+    "key": "63e1600dddcc",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Ḥizqiyahu prayed to (YAHUAH) HWHY,",
+    "kk": "And Kizqiyahu prayed to YAHUAH,",
+    "where": "prologue/deliverance YASHAYAHU 37:15"
+   },
+   {
+    "key": "d407a8337944",
+    "kind": "man",
+    "name": "hizqiyahu",
+    "who": "Ḥizqiyahu",
+    "text": "“O (YAHUAH) HWHY of hosts, Aluahim of Yasharal, the One who dwells between the keruḇim, You are Aluahim, You alone, of all the reigns of the earth. You have made the shamayim and earth.",
+    "kk": "O YAHUAH of hosts, al-oo-ah-heem of yah-shar-al, the One who dwells between the kerubim, You are al-oo-ah-heem, You alone, of all the reigns of the earth. You have made the shah-mah-yeem and earth.",
+    "where": "prologue/deliverance YASHAYAHU 37:16"
+   },
+   {
+    "key": "0d7b41f7708e",
+    "kind": "man",
+    "name": "hizqiyahu",
+    "who": "Ḥizqiyahu",
+    "text": "“And now, O (YAHUAH) HWHY our Aluahim, save us from his hand, so that all the reigns of the earth know that You are (YAHUAH) HWHY, You alone.”",
+    "kk": "And now, O YAHUAH our al-oo-ah-heem, save us from his hand, so that all the reigns of the earth know that You are YAHUAH, You alone.",
+    "where": "prologue/deliverance YASHAYAHU 37:20"
+   },
+   {
+    "key": "dac7afc8860f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then Yahshayahu son of Amots sent to Ḥizqiyahu, saying, ",
+    "kk": "Then yah-shah-yah-hoo son of Amots sent to Kizqiyahu, saying,",
+    "where": "prologue/deliverance YASHAYAHU 37:21"
+   },
+   {
+    "key": "d5de294912aa",
+    "kind": "oldman",
+    "name": "yahshayahu",
+    "who": "Yahshayahu",
+    "text": "“Thus said (YAHUAH) HWHY Aluahim of Yasharal, ‘Because you have prayed to Me against Sanḥĕriḇ sovereign of Ashshur,",
+    "kk": "Thus said YAHUAH al-oo-ah-heem of yah-shar-al, Because you have prayed to Me against Sankerib sovereign of ah-shoor,",
+    "where": "prologue/deliverance YASHAYAHU 37:21"
+   },
+   {
+    "key": "d5b8af57d71c",
+    "kind": "oldman",
+    "name": "yahshayahu",
+    "who": "Yahshayahu",
+    "text": "“Therefore thus said (YAHUAH) HWHY concerning the sovereign of Ashshur, ‘He does not come into this city, nor does he shoot an arrow there, nor does he come before it with shield, nor does he build a siege mound against it.",
+    "kk": "Therefore thus said YAHUAH concerning the sovereign of ah-shoor, He does not come into this city, nor does he shoot an arrow there, nor does he come before it with shield, nor does he build a siege mound against it.",
+    "where": "prologue/deliverance YASHAYAHU 37:33"
+   },
+   {
+    "key": "48d71e4a9e73",
+    "kind": "oldman",
+    "name": "yahshayahu",
+    "who": "Yahshayahu",
+    "text": "‘By the way that he came, by the same he turns back. And into this city he does not come,’ declares (YAHUAH) HWHY.",
+    "kk": "By the way that he came, by the same he turns back. And into this city he does not come, declares YAHUAH.",
+    "where": "prologue/deliverance YASHAYAHU 37:34"
+   },
+   {
+    "key": "4deea3b59cc8",
+    "kind": "oldman",
+    "name": "yahshayahu",
+    "who": "Yahshayahu",
+    "text": "‘And I shall defend this city, to save it for My own sake and for the sake of My servant Dawiḏ.’ ”",
+    "kk": "And I shall defend this city, to save it for My own sake and for the sake of My servant dah-veed.",
+    "where": "prologue/deliverance YASHAYAHU 37:35"
+   },
+   {
+    "key": "ac3fec24af11",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And a mal'ak of (YAHUAH) HWHY went out and killed in the camp of Ashshur one hundred and eighty-five thousand. And they arose early in the morning and saw all of them, dead bodies.",
+    "kk": "And a mahl-ahk of YAHUAH went out and killed in the camp of ah-shoor one hundred and eighty-five thousand. And they arose early in the morning and saw all of them, dead bodies.",
+    "where": "prologue/deliverance YASHAYAHU 37:36"
+   },
+   {
+    "key": "467f5b226c31",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Sanḥĕriḇ the sovereign of Ashshur broke camp and went away and turned back and remained at Ninewĕh.",
+    "kk": "And Sankerib the sovereign of ah-shoor broke camp and went away and turned back and remained at Nineweh.",
+    "where": "prologue/deliverance YASHAYAHU 37:37"
+   },
+   {
+    "key": "b260a23d9f72",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "“He does not come into this city.” You add it beneath the rest, with the date. The scroll is heavier than it was.",
+    "kk": "He does not come into this city. You add it beneath the rest, with the date. The scroll is heavier than it was.",
+    "where": "prologue/deliverance choice"
+   },
+   {
+    "key": "01fd810210c7",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "The road to Laḵish is quiet. The springs you stopped will be opened again.",
+    "kk": "The road to Lakish is quiet. The springs you stopped will be opened again.",
+    "where": "prologue/deliverance choice"
+   },
+   {
+    "key": "b41242e4b83f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "The Seven Hundred Years. Ashshur · Baḇal · Persia · Greece · Rome",
+    "kk": "The Seven Hundred Years. ah-shoor bah-vahl Persia Greece Rome",
+    "where": "bridge/tiber title"
+   },
+   {
+    "key": "d8b10de9131a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "While Yahshayahu spoke in Yahrushalayim, far to the west a village of huts stood on a hill above the river Tiber. By its own reckoning it was founded in 753 BCE. Its name was Rome. In seven hundred years it will rule the world — and Yahuḏah with it.",
+    "kk": "While yah-shah-yah-hoo spoke in yah-roo-shah-lah-yeem, far to the west a village of huts stood on a hill above the river Tiber. By its own reckoning it was founded in 753 B.C.E. Its name was Rome. In seven hundred years it will rule the world, and yah-hoo-dah with it.",
+    "where": "bridge/tiber note"
+   },
+   {
     "key": "a73b205f9870",
     "kind": "narrator",
     "name": "narrator",
     "who": "The Besorah (narrator)",
     "text": "612 BCE — Ashshur falls. The empire that menaced the days of Yahshayahu is itself destroyed: Ninewĕh burns.",
     "kk": "612 B.C.E. ah-shoor falls. The empire that menaced the days of yah-shah-yah-hoo is itself destroyed, Nineweh burns.",
-    "where": "bridge/years era"
+    "where": "bridge/nineveh era"
    },
    {
     "key": "8118820aa563",
@@ -314,7 +665,7 @@
     "who": "The Besorah (narrator)",
     "text": "586 BCE — the Hĕḵal destroyed. Baḇal (Baḇylon) takes Yahrushalayim, burns the Hĕḵal, and carries Yahuḏah into exile.",
     "kk": "586 B.C.E. the hay-kahl destroyed. bah-vahl babylon takes yah-roo-shah-lah-yeem, burns the hay-kahl, and carries yah-hoo-dah into exile.",
-    "where": "bridge/years era"
+    "where": "bridge/fall era"
    },
    {
     "key": "f0c134dd3698",
@@ -323,7 +674,7 @@
     "who": "The Besorah (narrator)",
     "text": "539 BCE — Koresh of Persia. Koresh sovereign of Persia takes Baḇal and lets the exiles go home to build again.",
     "kk": "539 B.C.E. koh-resh of Persia. koh-resh sovereign of Persia takes bah-vahl and lets the exiles go home to build again.",
-    "where": "bridge/years era"
+    "where": "bridge/babel era"
    },
    {
     "key": "da6f236fee2e",
@@ -332,7 +683,7 @@
     "who": "The Besorah",
     "text": "And in the first year of Koresh sovereign of Persia, that the Word of (YAHUAH) HWHY by the mouth of Yahrmeyah might be accomplished, (YAHUAH) HWHY stirred up the ruach of Koresh sovereign of Persia, to proclaim throughout all his reign and also in writing, saying,",
     "kk": "And in the first year of koh-resh sovereign of Persia, that the Word of YAHUAH by the mouth of Yahrmeyah might be accomplished, YAHUAH stirred up the roo-ahk of koh-resh sovereign of Persia, to proclaim throughout all his reign and also in writing, saying,",
-    "where": "bridge/years EZRA 1:1"
+    "where": "bridge/babel EZRA 1:1"
    },
    {
     "key": "91cf124cf639",
@@ -341,7 +692,7 @@
     "who": "The Besorah (narrator)",
     "text": "331 BCE — Greece. Alexander of Macedon overthrows Persia; after him come the Greek kingdoms, and the struggle of the Maqqabim.",
     "kk": "331 B.C.E. Greece. Alexander of Macedon overthrows Persia, after him come the Greek kingdoms, and the struggle of the Maqqabim.",
-    "where": "bridge/years era"
+    "where": "bridge/greece era"
    },
    {
     "key": "3ff7b4140093",
@@ -350,16 +701,16 @@
     "who": "Gaḇri’al",
     "text": "“And the male goat is the sovereign of Greece and the large horn between its eyes is the first sovereign.",
     "kk": "And the male goat is the sovereign of Greece and the large horn between its eyes is the first sovereign.",
-    "where": "bridge/years DANI'AL 8:21"
+    "where": "bridge/greece DANI'AL 8:21"
    },
    {
-    "key": "7d8d95028ab9",
+    "key": "654fb3884601",
     "kind": "narrator",
     "name": "narrator",
     "who": "The Besorah (narrator)",
-    "text": "63 BCE — Rome. Rome takes Yahrushalayim. The empire that will rule Yahuḏah when the child of the promise is born now stands on its roads.",
-    "kk": "63 B.C.E. Rome. Rome takes yah-roo-shah-lah-yeem. The empire that will rule yah-hoo-dah when the child of the promise is born now stands on its roads.",
-    "where": "bridge/years era"
+    "text": "63 BCE — Rome. Rome takes Yahrushalayim. The village of huts on the Tiber is now the empire that will rule Yahuḏah when the child of the promise is born, and its soldiers stand on her roads.",
+    "kk": "63 B.C.E. Rome. Rome takes yah-roo-shah-lah-yeem. The village of huts on the Tiber is now the empire that will rule yah-hoo-dah when the child of the promise is born, and its soldiers stand on her roads.",
+    "where": "bridge/rome era"
    },
    {
     "key": "d21a8a21765c",
@@ -368,7 +719,7 @@
     "who": "Dani’al",
     "text": "“And in the days of these sovereigns the Al of the shamayim shall set up a reign which shall never be destroyed, nor the reign pass on to other people – it crushes and puts to an end all these reigns and it shall stand forever.",
     "kk": "And in the days of these sovereigns the Al of the shah-mah-yeem shall set up a reign which shall never be destroyed, nor the reign pass on to other people, it crushes and puts to an end all these reigns and it shall stand forever.",
-    "where": "bridge/years DANI'AL 2:44"
+    "where": "bridge/rome DANI'AL 2:44"
    },
    {
     "key": "a34dc3664cd3",
@@ -377,7 +728,7 @@
     "who": "The Besorah",
     "text": "But when the completion of the time came, Aluahim sent forth His Son, born of a woman, born under Torah,",
     "kk": "But when the completion of the time came, al-oo-ah-heem sent forth His Son, born of a woman, born under toh-rah,",
-    "where": "bridge/years GALATIANS 4:4"
+    "where": "bridge/rome GALATIANS 4:4"
    },
    {
     "key": "c18d4ea0a66b",
@@ -386,7 +737,7 @@
     "who": "The Besorah (narrator)",
     "text": "Around 4 BCE. into this Roman world, the child of the promise is born",
     "kk": "Around 4 B.C.E. into this Roman world, the child of the promise is born",
-    "where": "bridge/years title"
+    "where": "bridge/rome title"
    },
    {
     "key": "1fb82dcd3b98",
@@ -2567,6 +2918,168 @@
     "where": "galil/unclean MARK 1:28"
    },
    {
+    "key": "546572cccae3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Kephar Naḥum stood on the road along the lake, at the edge of the land of Herodes Antipas, tetrarch of Galil. Tolls on the goods that came along it were gathered here.",
+    "kk": "Kephar Nakum stood on the road along the lake, at the edge of the land of Herodes Antipas, tetrarch of gah-leel. Tolls on the goods that came along it were gathered here.",
+    "where": "galil/tax note"
+   },
+   {
+    "key": "3759eb9fb950",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And as Yahusha passed on from there, He saw a man called Mattithyahu sitting at the tax office. And He said to him, ",
+    "kk": "And as yah-hoo-shah passed on from there, He saw a man called Mattithyahu sitting at the tax office. And He said to him,",
+    "where": "galil/tax MATTITHYAHU 9:9"
+   },
+   {
+    "key": "aa63b3b3f356",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Follow Me.”",
+    "kk": "Follow Me.",
+    "where": "galil/tax MATTITHYAHU 9:9"
+   },
+   {
+    "key": "55ef1ae9415e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And he rose and followed Him.",
+    "kk": "And he rose and followed Him.",
+    "where": "galil/tax MATTITHYAHU 9:9"
+   },
+   {
+    "key": "fc81557d7e94",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And it came to be, as Yahusha sat at the table in the house, that see, many tax collectors and sinners came and sat down with Him and His taught ones.",
+    "kk": "And it came to be, as yah-hoo-shah sat at the table in the house, that see, many tax collectors and sinners came and sat down with Him and His taught ones.",
+    "where": "galil/tax MATTITHYAHU 9:10"
+   },
+   {
+    "key": "5773f4499174",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when the Pharisees saw it, they said to His taught ones, ",
+    "kk": "And when the Pharisees saw it, they said to His taught ones,",
+    "where": "galil/tax MATTITHYAHU 9:11"
+   },
+   {
+    "key": "fc359e4428d5",
+    "kind": "man",
+    "name": "pharisees",
+    "who": "The Pharisees",
+    "text": "“Why does your Teacher eat with tax collectors and sinners?”",
+    "kk": "Why does your Teacher eat with tax collectors and sinners?",
+    "where": "galil/tax MATTITHYAHU 9:11"
+   },
+   {
+    "key": "a4e318e13e54",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Yahusha hearing this said to them, ",
+    "kk": "And yah-hoo-shah hearing this said to them,",
+    "where": "galil/tax MATTITHYAHU 9:12"
+   },
+   {
+    "key": "21d0b5ea34e3",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Those who are strong have no need of a physician, but those who are sick,",
+    "kk": "Those who are strong have no need of a physician, but those who are sick,",
+    "where": "galil/tax MATTITHYAHU 9:12"
+   },
+   {
+    "key": "0529cd61a268",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“But go and learn what this means, ‘I desire compassion and not offering.’ For I did not come to call the righteous to repentance, but sinners.”",
+    "kk": "But go and learn what this means, I desire compassion and not offering. For I did not come to call the righteous to repentance, but sinners.",
+    "where": "galil/tax MATTITHYAHU 9:13"
+   },
+   {
+    "key": "bb00f850eca3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "You sit between a fisherman and a tax collector. The bread is passed along to you like to anyone.",
+    "kk": "You sit between a fisherman and a tax collector. The bread is passed along to you like to anyone.",
+    "where": "galil/tax choice"
+   },
+   {
+    "key": "b3e67692221f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "This morning he sat behind the toll-table. Now he is the one pouring out for the others.",
+    "kk": "This morning he sat behind the toll-table. Now he is the one pouring out for the others.",
+    "where": "galil/tax choice"
+   },
+   {
+    "key": "675f37e760a8",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And in those days it came to be that He went out to the mountain to pray and was spending the night in prayer to Aluahim.",
+    "kk": "And in those days it came to be that He went out to the mountain to pray and was spending the night in prayer to al-oo-ah-heem.",
+    "where": "galil/twelve LUKE 6:12"
+   },
+   {
+    "key": "8f6f12cd712e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when it became day, He called near His taught ones and chose from them twelve, whom He also named emissaries:",
+    "kk": "And when it became day, He called near His taught ones and chose from them twelve, whom He also named emissaries,",
+    "where": "galil/twelve LUKE 6:13"
+   },
+   {
+    "key": "15e8a1243ecd",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Shim‛on whom He also named Kĕpha and his brother Andri, Ya‛aqoḇ and Yahuchanon, Philip and Bartholomi,",
+    "kk": "sheem-ohn whom He also named kay-fah and his brother ahn-dree, Yaaqob and yah-hoo-kah-nohn, Philip and Bartholomi,",
+    "where": "galil/twelve LUKE 6:14"
+   },
+   {
+    "key": "cf4beda3fed2",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Mattithyahu and T’oma, Ya‛aqoḇ the son of Alphai and Shim‛on, the one called the Ardent One,",
+    "kk": "Mattithyahu and Toma, Yaaqob the son of Alphai and sheem-ohn, the one called the Ardent One,",
+    "where": "galil/twelve LUKE 6:15"
+   },
+   {
+    "key": "7684e90a943d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Yahuḏah the son of Ya‛aqoḇ and Yahuḏah from Qerioth who also became the betrayer.",
+    "kk": "yah-hoo-dah the son of Yaaqob and yah-hoo-dah from Qerioth who also became the betrayer.",
+    "where": "galil/twelve LUKE 6:16"
+   },
+   {
+    "key": "b0d9930a04c9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Shim‛on, Andri, Ya‛aqoḇ, Yahuchanon, Philip, Bartholomi, Mattithyahu, T’oma, Ya‛aqoḇ, Shim‛on, Yahuḏah, Yahuḏah. Twelve, like the tribes.",
+    "kk": "sheem-ohn, ahn-dree, Yaaqob, yah-hoo-kah-nohn, Philip, Bartholomi, Mattithyahu, Toma, Yaaqob, sheem-ohn, yah-hoo-dah, yah-hoo-dah. Twelve, like the tribes.",
+    "where": "galil/twelve choice"
+   },
+   {
     "key": "979fca3e9951",
     "kind": "narrator",
     "name": "narrator",
@@ -2898,6 +3411,186 @@
     "text": "“Go, report to Yahuchanon what you hear and see: “Blind receive sight and lame walk, lepers are cleansed and deaf hear, dead are raised up and poor are brought the Besorah. “Baruk is he who does not stumble in Me.”",
     "kk": "Go, report to yah-hoo-kah-nohn what you hear and see, Blind receive sight and lame walk, lepers are cleansed and deaf hear, dead are raised up and poor are brought the beh-soh-rah. Baruk is he who does not stumble in Me.",
     "where": "galil/blind MATTITHYAHU 11:4-6"
+   },
+   {
+    "key": "6ecd6d2bea04",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And on that day Yahusha went out of the house and sat by the sea.",
+    "kk": "And on that day yah-hoo-shah went out of the house and sat by the sea.",
+    "where": "galil/sower MATTITHYAHU 13:1"
+   },
+   {
+    "key": "1662212b814c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And large crowds were gathered together to Him, so that He went into a boat and sat down. And all the crowd stood on the beach.",
+    "kk": "And large crowds were gathered together to Him, so that He went into a boat and sat down. And all the crowd stood on the beach.",
+    "where": "galil/sower MATTITHYAHU 13:2"
+   },
+   {
+    "key": "e5dc160fadfe",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And He spoke to them much in parables, saying, ",
+    "kk": "And He spoke to them much in parables, saying,",
+    "where": "galil/sower MATTITHYAHU 13:3"
+   },
+   {
+    "key": "f0024217f066",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“See, the sower went out to sow.",
+    "kk": "See, the sower went out to sow.",
+    "where": "galil/sower MATTITHYAHU 13:3"
+   },
+   {
+    "key": "d18551f8bceb",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“And as he sowed, some indeed fell by the wayside and the birds came and devoured them.",
+    "kk": "And as he sowed, some indeed fell by the wayside and the birds came and devoured them.",
+    "where": "galil/sower MATTITHYAHU 13:4"
+   },
+   {
+    "key": "c79ef66a1e83",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“And others fell on rocky places, where they did not have much soil and immediately they sprang up, because they had no depth of soil.",
+    "kk": "And others fell on rocky places, where they did not have much soil and immediately they sprang up, because they had no depth of soil.",
+    "where": "galil/sower MATTITHYAHU 13:5"
+   },
+   {
+    "key": "3d89103af135",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“But when the sun was up they were scorched and because they had no root they withered.",
+    "kk": "But when the sun was up they were scorched and because they had no root they withered.",
+    "where": "galil/sower MATTITHYAHU 13:6"
+   },
+   {
+    "key": "1be5c44e1b65",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“And others fell among thorns and the thorns came up and choked them.",
+    "kk": "And others fell among thorns and the thorns came up and choked them.",
+    "where": "galil/sower MATTITHYAHU 13:7"
+   },
+   {
+    "key": "d25f38a8bd85",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“And others fell on good soil and yielded a crop, some a hundredfold, some sixty, some thirty.",
+    "kk": "And others fell on good soil and yielded a crop, some a hundredfold, some sixty, some thirty.",
+    "where": "galil/sower MATTITHYAHU 13:8"
+   },
+   {
+    "key": "61b8b2c884f7",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "”He who has ears to hear let him hear!”",
+    "kk": "He who has ears to hear let him hear!",
+    "where": "galil/sower MATTITHYAHU 13:9"
+   },
+   {
+    "key": "52f2f1a7a03c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Another parable He put before them, saying, ",
+    "kk": "Another parable He put before them, saying,",
+    "where": "galil/sower MATTITHYAHU 13:31"
+   },
+   {
+    "key": "634b35ceeacd",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“The reign of the shamayim is like a mustard seed, which a man took and sowed in his field,",
+    "kk": "The reign of the shah-mah-yeem is like a mustard seed, which a man took and sowed in his field,",
+    "where": "galil/sower MATTITHYAHU 13:31"
+   },
+   {
+    "key": "60e3898704de",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "which indeed is less than all the seeds, but when it is grown it is greater than the plants and becomes a tree, so that the birds of the shamayim come and dwell in its branches.”",
+    "kk": "which indeed is less than all the seeds, but when it is grown it is greater than the plants and becomes a tree, so that the birds of the shah-mah-yeem come and dwell in its branches.",
+    "where": "galil/sower MATTITHYAHU 13:32"
+   },
+   {
+    "key": "10f1852dc882",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Another parable He spoke to them, ",
+    "kk": "Another parable He spoke to them,",
+    "where": "galil/sower MATTITHYAHU 13:33"
+   },
+   {
+    "key": "f72beab4f4b9",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“The reign of the shamayim is like leaven, which a woman took and hid in three measures of meal until all was leavened.”",
+    "kk": "The reign of the shah-mah-yeem is like leaven, which a woman took and hid in three measures of meal until all was leavened.",
+    "where": "galil/sower MATTITHYAHU 13:33"
+   },
+   {
+    "key": "3c1134d41cbf",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Yahusha said all this to the crowds in parables and He did not speak to them without a parable,",
+    "kk": "yah-hoo-shah said all this to the crowds in parables and He did not speak to them without a parable,",
+    "where": "galil/sower MATTITHYAHU 13:34"
+   },
+   {
+    "key": "4bf3c137e55e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "so that what was spoken by the naḇi might be filled, saying, ",
+    "kk": "so that what was spoken by the nah-vee might be filled, saying,",
+    "where": "galil/sower MATTITHYAHU 13:35"
+   },
+   {
+    "key": "4db7c3a37fda",
+    "kind": "oldman",
+    "name": "nabi",
+    "who": "The naḇi",
+    "text": "“I shall open My mouth in parables, I shall pour forth what has been hidden from the foundation of the world.”",
+    "kk": "I shall open My mouth in parables, I shall pour forth what has been hidden from the foundation of the world.",
+    "where": "galil/sower MATTITHYAHU 13:35"
+   },
+   {
+    "key": "8befdbf6b667",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "The wayside, the rock, the thorns, the good soil. You do not say it aloud.",
+    "kk": "The wayside, the rock, the thorns, the good soil. You do not say it aloud.",
+    "where": "galil/sower choice"
+   },
+   {
+    "key": "81fef2bacdaf",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Somebody up there is sowing even now, and the birds are following him.",
+    "kk": "Somebody up there is sowing even now, and the birds are following him.",
+    "where": "galil/sower choice"
    },
    {
     "key": "2291d74ff066",
@@ -3251,13 +3944,445 @@
     "where": "galil/sea MATTITHYAHU 14:33"
    },
    {
+    "key": "3146a5ed0e12",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Bĕyth Anyah. near Yahrushalayim",
+    "kk": "bayt ahn-yah. near yah-roo-shah-lah-yeem",
+    "where": "galil/elazar title"
+   },
+   {
+    "key": "fe4ef33f8d92",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And a certain one was sick, Al‛azar from Bĕyth Anyah, the village of Miryam and her sister Martha.",
+    "kk": "And a certain one was sick, Alazar from bayt ahn-yah, the village of meer-yahm and her sister Martha.",
+    "where": "galil/elazar YAHUCHANON 11:1"
+   },
+   {
+    "key": "3911318bc8da",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Therefore the sisters sent to Him, saying, ",
+    "kk": "Therefore the sisters sent to Him, saying,",
+    "where": "galil/elazar YAHUCHANON 11:3"
+   },
+   {
+    "key": "339ac8210b46",
+    "kind": "woman",
+    "name": "martha",
+    "who": "The sisters",
+    "text": "“Master, see, he whom You love is sick,”",
+    "kk": "Master, see, he whom You love is sick,",
+    "where": "galil/elazar YAHUCHANON 11:3"
+   },
+   {
+    "key": "259e44bdbd44",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But when Yahusha heard, He said, ",
+    "kk": "But when yah-hoo-shah heard, He said,",
+    "where": "galil/elazar YAHUCHANON 11:4"
+   },
+   {
+    "key": "bd9034c8f697",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“This sickness is not unto death, but for the esteem of Aluahim, so that the Son of Aluahim might be esteemed by it.”",
+    "kk": "This sickness is not unto death, but for the esteem of al-oo-ah-heem, so that the Son of al-oo-ah-heem might be esteemed by it.",
+    "where": "galil/elazar YAHUCHANON 11:4"
+   },
+   {
+    "key": "a808180863fd",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Now Yahusha loved Martha and her sister and Al‛azar.",
+    "kk": "Now yah-hoo-shah loved Martha and her sister and Alazar.",
+    "where": "galil/elazar YAHUCHANON 11:5"
+   },
+   {
+    "key": "08b2dbe8474d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Therefore, when He heard that he was sick, then indeed He stayed at the place where He was, two more days.",
+    "kk": "Therefore, when He heard that he was sick, then indeed He stayed at the place where He was, two more days.",
+    "where": "galil/elazar YAHUCHANON 11:6"
+   },
+   {
+    "key": "b59426ae3ae9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Therefore, when Yahusha arrived, He found that he had already been four days in the tomb.",
+    "kk": "Therefore, when yah-hoo-shah arrived, He found that he had already been four days in the tomb.",
+    "where": "galil/elazar YAHUCHANON 11:17"
+   },
+   {
+    "key": "c38f272c69a5",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Now Bĕyth Anyah was near Yahrushalayim, about three kilometers away.",
+    "kk": "Now bayt ahn-yah was near yah-roo-shah-lah-yeem, about three kilometers away.",
+    "where": "galil/elazar YAHUCHANON 11:18"
+   },
+   {
+    "key": "7efd61138f82",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And many of the Yahuḏim had come to Martha and Miryam, to comfort them concerning their brother.",
+    "kk": "And many of the yah-hoo-deem had come to Martha and meer-yahm, to comfort them concerning their brother.",
+    "where": "galil/elazar YAHUCHANON 11:19"
+   },
+   {
+    "key": "2ffd3606c42d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Martha, then, when she heard that Yahusha was coming, met Him, but Miryam was sitting in the house.",
+    "kk": "Martha, then, when she heard that yah-hoo-shah was coming, met Him, but meer-yahm was sitting in the house.",
+    "where": "galil/elazar YAHUCHANON 11:20"
+   },
+   {
+    "key": "239f0204b2f1",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Martha, then, said to Yahusha, ",
+    "kk": "Martha, then, said to yah-hoo-shah,",
+    "where": "galil/elazar YAHUCHANON 11:21"
+   },
+   {
+    "key": "176b8f416f7a",
+    "kind": "woman",
+    "name": "martha",
+    "who": "Martha",
+    "text": "“Master, if You had been here, my brother would not have died.",
+    "kk": "Master, if You had been here, my brother would not have died.",
+    "where": "galil/elazar YAHUCHANON 11:21"
+   },
+   {
+    "key": "8e07761b0fee",
+    "kind": "woman",
+    "name": "martha",
+    "who": "Martha",
+    "text": "“But even now I know that whatever You might ask of Aluahim, Aluahim shall give You.”",
+    "kk": "But even now I know that whatever You might ask of al-oo-ah-heem, al-oo-ah-heem shall give You.",
+    "where": "galil/elazar YAHUCHANON 11:22"
+   },
+   {
+    "key": "b2485f8e5eff",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Your brother shall rise again.”",
+    "kk": "Your brother shall rise again.",
+    "where": "galil/elazar YAHUCHANON 11:23"
+   },
+   {
+    "key": "3298ecd6d405",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Martha said to Him, ",
+    "kk": "Martha said to Him,",
+    "where": "galil/elazar YAHUCHANON 11:24"
+   },
+   {
+    "key": "ccdb04459f66",
+    "kind": "woman",
+    "name": "martha",
+    "who": "Martha",
+    "text": "“I know that he shall rise again in the resurrection at the last day.”",
+    "kk": "I know that he shall rise again in the resurrection at the last day.",
+    "where": "galil/elazar YAHUCHANON 11:24"
+   },
+   {
+    "key": "d07294e97190",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“I am the resurrection and the life. He who believes in Me, though he dies, he shall live.",
+    "kk": "I am the resurrection and the life. He who believes in Me, though he dies, he shall live.",
+    "where": "galil/elazar YAHUCHANON 11:25"
+   },
+   {
+    "key": "cd15c864a8f9",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“And everyone that is living and believing in Me shall never die at all. Do you believe this?”",
+    "kk": "And everyone that is living and believing in Me shall never die at all. Do you believe this?",
+    "where": "galil/elazar YAHUCHANON 11:26"
+   },
+   {
+    "key": "d5cd7463cc26",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "She said to Him, ",
+    "kk": "She said to Him,",
+    "where": "galil/elazar YAHUCHANON 11:27"
+   },
+   {
+    "key": "0678aea7684e",
+    "kind": "woman",
+    "name": "martha",
+    "who": "Martha",
+    "text": "“Yea, Master, I believe that You are the Mashiach, the Son of Aluahim, who is coming into the world.”",
+    "kk": "Yea, Master, I believe that You are the mah-shee-ahk, the Son of al-oo-ah-heem, who is coming into the world.",
+    "where": "galil/elazar YAHUCHANON 11:27"
+   },
+   {
+    "key": "824edef05a57",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having said this she went away and called her sister Miryam secretly, saying, ",
+    "kk": "And having said this she went away and called her sister meer-yahm secretly, saying,",
+    "where": "galil/elazar YAHUCHANON 11:28"
+   },
+   {
+    "key": "b9518c97e670",
+    "kind": "woman",
+    "name": "martha",
+    "who": "Martha",
+    "text": "“The Teacher is here and calls you.”",
+    "kk": "The Teacher is here and calls you.",
+    "where": "galil/elazar YAHUCHANON 11:28"
+   },
+   {
+    "key": "ddcb0cdf6ee6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Miryam, therefore, when she came where Yahusha was, and saw Him, she fell down at His feet, saying to Him, ",
+    "kk": "meer-yahm, therefore, when she came where yah-hoo-shah was, and saw Him, she fell down at His feet, saying to Him,",
+    "where": "galil/elazar YAHUCHANON 11:32"
+   },
+   {
+    "key": "fd8dddc8de3f",
+    "kind": "woman",
+    "name": "miryam of beyth anyah",
+    "who": "Miryam",
+    "text": "“Master, if You had been here, my brother would not have died.”",
+    "kk": "Master, if You had been here, my brother would not have died.",
+    "where": "galil/elazar YAHUCHANON 11:32"
+   },
+   {
+    "key": "443318c513f2",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Yahusha, therefore, when He saw her weeping, and the Yahuḏim who came with her weeping, He groaned in the ruach and was troubled,",
+    "kk": "yah-hoo-shah, therefore, when He saw her weeping, and the yah-hoo-deem who came with her weeping, He groaned in the roo-ahk and was troubled,",
+    "where": "galil/elazar YAHUCHANON 11:33"
+   },
+   {
+    "key": "eb9112c56cf6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "and said, ",
+    "kk": "and said,",
+    "where": "galil/elazar YAHUCHANON 11:34"
+   },
+   {
+    "key": "11e8ce078b86",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Where have you laid him?”",
+    "kk": "Where have you laid him?",
+    "where": "galil/elazar YAHUCHANON 11:34"
+   },
+   {
+    "key": "a6325fdfb1cc",
+    "kind": "crowd",
+    "name": "yahudim",
+    "who": "The Yahuḏim",
+    "text": "“Master, come and see.”",
+    "kk": "Master, come and see.",
+    "where": "galil/elazar YAHUCHANON 11:34"
+   },
+   {
+    "key": "56692cacf617",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Yahusha wept.",
+    "kk": "yah-hoo-shah wept.",
+    "where": "galil/elazar YAHUCHANON 11:35"
+   },
+   {
+    "key": "3504e08b2d90",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "The Yahuḏim therefore said, ",
+    "kk": "The yah-hoo-deem therefore said,",
+    "where": "galil/elazar YAHUCHANON 11:36"
+   },
+   {
+    "key": "6ae1723ee511",
+    "kind": "crowd",
+    "name": "yahudim",
+    "who": "The Yahuḏim",
+    "text": "“See how He loved Him!”",
+    "kk": "See how He loved Him!",
+    "where": "galil/elazar YAHUCHANON 11:36"
+   },
+   {
+    "key": "7cad80679158",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Yahusha, therefore, again groaning in Himself, came to the tomb. Now it was a cave, and a stone lay against it.",
+    "kk": "yah-hoo-shah, therefore, again groaning in Himself, came to the tomb. Now it was a cave, and a stone lay against it.",
+    "where": "galil/elazar YAHUCHANON 11:38"
+   },
+   {
+    "key": "e7b26dc55aca",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Yahusha said, ",
+    "kk": "yah-hoo-shah said,",
+    "where": "galil/elazar YAHUCHANON 11:39"
+   },
+   {
+    "key": "157bb81b83a2",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Take away the stone.”",
+    "kk": "Take away the stone.",
+    "where": "galil/elazar YAHUCHANON 11:39"
+   },
+   {
+    "key": "9fdb391b2d0a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " Martha, the sister of him who had died, said to Him, ",
+    "kk": "Martha, the sister of him who had died, said to Him,",
+    "where": "galil/elazar YAHUCHANON 11:39"
+   },
+   {
+    "key": "3c315bf1dcec",
+    "kind": "woman",
+    "name": "martha",
+    "who": "Martha",
+    "text": "“Master, already he smells, for it is four days.”",
+    "kk": "Master, already he smells, for it is four days.",
+    "where": "galil/elazar YAHUCHANON 11:39"
+   },
+   {
+    "key": "38b0127acb09",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Did I not say to you, that if you believe, you shall see the esteem of Aluahim?”",
+    "kk": "Did I not say to you, that if you believe, you shall see the esteem of al-oo-ah-heem?",
+    "where": "galil/elazar YAHUCHANON 11:40"
+   },
+   {
+    "key": "509316a44e87",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "So they took away the stone where the dead man was laid. And Yahusha lifted up His eyes and said, ",
+    "kk": "So they took away the stone where the dead man was laid. And yah-hoo-shah lifted up His eyes and said,",
+    "where": "galil/elazar YAHUCHANON 11:41-42"
+   },
+   {
+    "key": "519ba4ffccd8",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Father, I thank You that You have heard Me. “And I know that You always hear Me, but because of the crowd standing by I said this, in order that they believe that You sent Me.”",
+    "kk": "Father, I thank You that You have heard Me. And I know that You always hear Me, but because of the crowd standing by I said this, in order that they believe that You sent Me.",
+    "where": "galil/elazar YAHUCHANON 11:41-42"
+   },
+   {
+    "key": "186db306445b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when He had said this, He cried with a loud voice, ",
+    "kk": "And when He had said this, He cried with a loud voice,",
+    "where": "galil/elazar YAHUCHANON 11:43"
+   },
+   {
+    "key": "d0acb75bda96",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Al‛azar, come out!”",
+    "kk": "Alazar, come out!",
+    "where": "galil/elazar YAHUCHANON 11:43"
+   },
+   {
+    "key": "d06cafe9c8b4",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And he who died came out bound feet and hands with wrappings, and his face was wrapped with a cloth. Yahusha said to them, ",
+    "kk": "And he who died came out bound feet and hands with wrappings, and his face was wrapped with a cloth. yah-hoo-shah said to them,",
+    "where": "galil/elazar YAHUCHANON 11:44"
+   },
+   {
+    "key": "eafb8d467815",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Loosen him, and let him go.”",
+    "kk": "Loosen him, and let him go.",
+    "where": "galil/elazar YAHUCHANON 11:44"
+   },
+   {
+    "key": "76a7b6fd93b6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Therefore many of the Yahuḏim who had come to Miryam, and had seen what Yahusha did, believed in Him.",
+    "kk": "Therefore many of the yah-hoo-deem who had come to meer-yahm, and had seen what yah-hoo-shah did, believed in Him.",
+    "where": "galil/elazar YAHUCHANON 11:45"
+   },
+   {
+    "key": "0c2018029ea1",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "The linen is stiff with spices. Under your hands it gives, turn by turn, and a man who was dead four days stands up straight.",
+    "kk": "The linen is stiff with spices. Under your hands it gives, turn by turn, and a man who was dead four days stands up straight.",
+    "where": "galil/elazar choice"
+   },
+   {
+    "key": "2208eafdd9bc",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Martha is laughing and weeping at once. Miryam has not let go of her brother’s hand.",
+    "kk": "Martha is laughing and weeping at once. meer-yahm has not let go of her brother's hand.",
+    "where": "galil/elazar choice"
+   },
+   {
     "key": "d7d76f5594e8",
     "kind": "narrator",
     "name": "narrator",
     "who": "The Besorah (narrator)",
     "text": "The end of Act IV. Next: The Road to Yahrushalayim",
     "kk": "The end of Act four. Next, The Road to yah-roo-shah-lah-yeem",
-    "where": "galil/sea title"
+    "where": "galil/elazar title"
    }
   ]
  }

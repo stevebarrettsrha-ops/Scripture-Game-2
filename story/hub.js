@@ -51,7 +51,7 @@ const SPOTS=[
   {k:'fields',n:'',lat:31.70,lon:35.22},{k:'natsareth',n:'Natsareth',lat:32.702,lon:35.297},{k:'qanah',n:'Qanah',lat:32.746,lon:35.342},
   {k:'galil',n:'Kephar Naḥum',lat:32.881,lon:35.575},{k:'galilEast',n:'',lat:32.836,lon:35.65},{k:'galilSea',n:'',lat:32.83,lon:35.585},
   {k:'road',n:'',lat:32.2,lon:35.28},{k:'yarden',n:'Bĕyth Anyah',lat:31.837,lon:35.55},{k:'wilderness',n:'The wilderness',lat:31.6,lon:35.38},
-  {k:'mountain',n:'',lat:33.0,lon:35.75}];
+  {k:'mountain',n:'',lat:33.0,lon:35.75},{k:'bethanyah',n:'',lat:31.771,lon:35.262}];
 function drawMap(){
   const cv=$('road-map'), g=cv.getContext('2d'), W=cv.width, H=cv.height;
   const lat0=30.95, lat1=33.35, lon0=34.25, lon1=36.0;

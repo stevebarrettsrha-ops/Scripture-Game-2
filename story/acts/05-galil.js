@@ -35,7 +35,15 @@ const T12={
   yaaqob:{name:'Ya‛aqoḇ', key:'Ya‛aqoḇ son of Zaḇdai', robe:0x7a3a2a, cloth:0xcfc4aa, beard:0x2c241f, skin:0x7a4e29},
   yahuchanon:{name:'Yahuchanon', key:'Yahuchanon son of Zaḇdai', robe:0x4a5a3a, cloth:0xe6e0cf, skin:0x855a33},
   philip:{name:'Philip', key:'Philip', robe:0x6a5a7a, cloth:0xd8ceb4, beard:0x2c241f, skin:0x7c5430},
-  nethanel:{name:'Nethanĕ’l', key:'Nethanĕ’l', robe:0x8a6a3a, cloth:0xcfc4aa, beard:0x3a2a1e, skin:0x643f1c}
+  nethanel:{name:'Nethanĕ’l', key:'Nethanĕ’l', robe:0x8a6a3a, cloth:0xcfc4aa, beard:0x3a2a1e, skin:0x643f1c},
+  /* and those named with them on the mountain (Luke 6:14-16) */
+  bartholomi:{name:'Bartholomi', key:'Bartholomi', robe:0x6a5a44, cloth:0xd8ceb4, beard:0x2c241f, skin:0x7a4e29},
+  mattithyahu:{name:'Mattithyahu', key:'Mattithyahu', robe:0x4a5a6a, cloth:0xe6e0cf, beard:0x2c241f, skin:0x855a33},
+  toma:{name:'T’oma', key:'T’oma', robe:0x7a6a4a, cloth:0xcfc4aa, beard:0x3a2a1e, skin:0x6e4524},
+  yaaqobA:{name:'Ya‛aqoḇ the son of Alphai', key:'Ya‛aqoḇ the son of Alphai', robe:0x5a4a3a, cloth:0xd8ceb4, beard:0x1e1814, skin:0x704a27},
+  shimonZ:{name:'Shim‛on the Ardent One', key:'Shim‛on the Ardent One', robe:0x7a3a2a, cloth:0xb9ab8e, beard:0x2c241f, skin:0x5c3a1f},
+  yahudahY:{name:'Yahuḏah the son of Ya‛aqoḇ', key:'Yahuḏah the son of Ya‛aqoḇ', robe:0x5f6a52, cloth:0xe6e0cf, beard:0x3a2a1e, skin:0x7c5430},
+  yahudahQ:{name:'Yahuḏah from Qerioth', key:'Yahuḏah from Qerioth', robe:0x6e5a70, cloth:0xcfc4aa, beard:0x1e1814, skin:0x8a6038}
 };
 const T=(id,at,extra)=>Object.assign({id,at},T12[id],extra||{});
 /* people of a place: unnamed, each a face of its own (their skin is their people's — world.js) */
@@ -57,11 +65,15 @@ const WEDDING=folk('w',12,[-7,-6,7,1.5],0);
 const QAHAL_N=folk('n',14,[-8,-31,6,-21.5],Math.PI,{});
 const SHOREFOLK=folk('s',16,[12,-12,20,14],Math.PI/2);
 const QAHAL_K=folk('q',12,[-13,-9.5,-4,-2.5],Math.PI/2);
-const MOUNT=folk('m',30,[-34,-12,-22,24],-Math.PI/2,{sit:true});
+const MOUNT=folk('m',30,[-27,-12,-14,24],-Math.PI/2,{sit:true});
 const STREET=folk('k',10,[-4,-6,1.5,6],Math.PI/2);
 const GROUPS=[[-14,-26],[-14,-12],[-14,2],[-14,16],[-14,30]];
 const FIVE=[].concat(...GROUPS.map((g,i)=>folk('g'+i+'_',7,[g[0]-3,g[1]-3,g[0]+3,g[1]+3],-Math.PI/2,{sit:true})));
 const LEADS=GROUPS.map((g,i)=>'g'+i+'_0');
+const TABLE=folk('t',8,[8,6,13,13],-Math.PI/2,{sit:true});            /* tax collectors and sinners at the table */
+const BEACH=folk('b',18,[13,-10,19.5,10],Math.PI/2);                   /* the crowd on the beach */
+const MOURN=folk('y',10,[-1,0,6,12],-Math.PI/2);                               /* the Yahuḏim come to comfort the sisters */
+const SISTER_M={name:'Miryam', key:'Miryam of Bĕyth Anyah', kind:'woman', robe:0x5a4a6a, cloth:0x3c3a44, skin:0x7a4e30};
 
 STORY.act({
   id:'galil', n:5, num:'IV', title:'Galil',
@@ -75,7 +87,11 @@ STORY.act({
     blind:{name:'Two blind men', kind:'man', actor:'blind1', actors:['blind1','blind2']},
     messengers:{name:'Two taught ones of Yahuchanon', kind:'man', actor:'mess1', actors:['mess1','mess2']},
     men:{name:'The men', kind:'crowd', actor:'g2_1', actors:ids(FIVE)},
-    boatmen:{name:'The taught ones', kind:'crowd', actor:'andri', actors:['andri','yaaqob','yahuchanon','philip']}
+    boatmen:{name:'The taught ones', kind:'crowd', actor:'andri', actors:['andri','yaaqob','yahuchanon','philip']},
+    pharisees:{name:'The Pharisees', key:'the pharisees', kind:'man', actor:'ph1', actors:['ph1','ph2']},
+    psalmist:{name:'The naḇi', key:'the nabi', kind:'oldman'},
+    sisters:{name:'The sisters', key:'Martha', kind:'woman', actor:'martha', actors:['martha','miryamB']},
+    mourners:{name:'The Yahuḏim', key:'the yahudim', kind:'crowd', actor:'y1', actors:ids(MOURN)}
   },
   scenes:[
 
@@ -267,20 +283,98 @@ STORY.act({
       {t:'end'}
     ]},
 
+
+  /* ---------------- IV.4b — THE TAX OFFICE ---------------- */
+  { id:'tax', title:'Kephar Naḥum', date:'by the lake road', place:'galil', time:'day',
+    player:{ at:[17,8], face:-Math.PI*0.8, look:ADULT },
+    actors:[
+      Object.assign({id:'yahusha', at:[20,-10], face:-0.2},YAHUSHA),
+      T('kepha',[21.2,-12],{face:-0.2}), T('andri',[19,-12.4],{face:-0.2}),
+      Object.assign({},T('mattithyahu',[14.2,-4.9],{face:Math.PI/2,sit:true})),
+      {id:'ph1', name:'The Pharisees', dress:'scribe', at:[-2,4], face:Math.PI/2, robe:0xd8d0bb, cloth:0x3a3a4a, beard:0x2c241f},
+      {id:'ph2', dress:'scribe', at:[-2.6,5.8], face:Math.PI/2, robe:0xcfc4aa, cloth:0x4a4a5a, beard:0x6d6a66},
+      ...TABLE
+    ],
+    things:[ {id:'booth', kind:'box', at:[14.8,-4], w:1.4, h:0.8, d:2.2, color:0x6e5238},
+             {id:'coins', kind:'box', at:[14.8,-4.2], w:0.5, h:0.05, d:0.4, y:0.8, color:0xb8a060},
+             {id:'table', kind:'box', at:[10.6,9.6], w:1.4, h:0.5, d:5.2, color:0x7a5a3e},
+             {id:'bread1', kind:'basket', at:[17.6,3.6], full:true}, {id:'bread2', kind:'basket', at:[18.4,4.6], full:true}, {id:'bread3', kind:'basket', at:[16.8,4.8], full:true} ],
+    beats:[
+      {t:'note', text:'Kephar Naḥum stood on the road along the lake, at the edge of the land of Herodes Antipas, tetrarch of Galil. Tolls on the goods that came along it were gathered here.'},
+      {t:'cam', from:[19,3,4], look:[14.6,1.2,-4.6], dur:0.1},
+      {t:'move', who:['yahusha','kepha','andri'], to:[[16.2,-6],[17.4,-7.6],[16,-8.2]], speed:1.5},
+      {t:'face', who:'yahusha', to:'mattithyahu'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'mattithyahu', dur:1.8},
+      {t:'read', ref:'MATTITHYAHU 9:9', who:'yahusha'},
+      {t:'stand', who:'mattithyahu'},
+      {t:'move', who:'mattithyahu', to:[15,-7], speed:1.4},
+      {t:'cam', release:true},
+      {t:'witness', text:'There is to be a meal at the house. Carry the bread to the table', items:['bread1','bread2','bread3'], verb:'Lift the basket', hold:0.4, deliver:[11.6,9.6], r:3, carryText:'Take the bread to the table'},
+      {t:'place', who:'yahusha', at:[11.6,7.2], face:Math.PI/2}, {t:'place', who:'mattithyahu', at:[9.4,7.4], face:Math.PI/2},
+      {t:'place', who:'kepha', at:[11.6,12.2], face:-Math.PI/2}, {t:'place', who:'andri', at:[9.6,12.2], face:-Math.PI/2},
+      {t:'sit', who:['yahusha','mattithyahu','kepha','andri']},
+      {t:'cam', from:[16,3,11], look:[10.6,1,9.6], dur:2.5},
+      {t:'read', ref:'MATTITHYAHU 9:10'},
+      {t:'move', who:['ph1','ph2'], to:[[5,7.6],[4.6,9.6]], speed:1.3},
+      {t:'cam', from:[13,2.4,4], look:[5,1.5,8.6], dur:2.5},
+      {t:'say', who:'pharisees', ref:'MATTITHYAHU 9:11', turn:false},
+      {t:'face', who:'yahusha', to:'ph1'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'ph1', dur:1.8},
+      {t:'say', who:'yahusha', ref:'MATTITHYAHU 9:12', turn:false},
+      {t:'say', who:'yahusha', ref:'MATTITHYAHU 9:13', turn:false},
+      {t:'cam', release:true},
+      {t:'choice', prompt:'You', options:[
+        {text:'Sit down at the table with them', reply:'You sit between a fisherman and a tax collector. The bread is passed along to you like to anyone.'},
+        {text:'Look at Mattithyahu', reply:'This morning he sat behind the toll-table. Now he is the one pouring out for the others.'} ]},
+      {t:'end'}
+    ]},
+
+  /* ---------------- IV.4c — THE TWELVE ---------------- */
+  { id:'twelve', title:'The mountain above the lake', date:'at daybreak', place:'galil', time:'night',
+    player:{ at:[-18,0], face:-Math.PI/2, look:ADULT },
+    actors:[
+      Object.assign({id:'yahusha', at:'mountTop', face:-Math.PI/2, sit:true},YAHUSHA),
+      ...['kepha','andri','yaaqob','yahuchanon','philip','bartholomi','mattithyahu','toma','yaaqobA','shimonZ','yahudahY','yahudahQ']
+        
+        .map((id,k)=>T(id,[-17-(k%4)*1.6,-8+Math.floor(k/4)*2.4+(k%2)*0.6],{face:-Math.PI/2}))
+    ],
+    beats:[
+      {t:'cam', from:[-26,4.5,10], look:'yahusha', dur:0.1},
+      {t:'read', ref:'LUKE 6:12'},
+      {t:'time', to:'dawn'},
+      {t:'face', who:'yahusha', to:'kepha'},
+      {t:'stand', who:'yahusha'},
+      {t:'cam', from:[-22,4,-8], look:[-31,3,4], dur:3},
+      {t:'read', ref:'LUKE 6:13'},
+      {t:'move', who:['kepha','andri','yaaqob','yahuchanon','philip','bartholomi'], to:[[-32.4,1.6],[-31.4,3.2],[-30.6,4.8],[-30.2,6.6],[-30.4,8.4],[-31,10]], speed:1.6, wait:false},
+      {t:'read', ref:'LUKE 6:14'},
+      {t:'move', who:['mattithyahu','toma','yaaqobA','shimonZ'], to:[[-29,1.2],[-28.2,3],[-27.8,5],[-27.8,7]], speed:1.6, wait:false},
+      {t:'read', ref:'LUKE 6:15'},
+      {t:'move', who:['yahudahY','yahudahQ'], to:[[-28,9],[-28.8,10.8]], speed:1.6},
+      {t:'read', ref:'LUKE 6:16'},
+      {t:'time', to:'day'},
+      {t:'cam', release:true},
+      {t:'choice', prompt:'You', options:[
+        {text:'Say their names over to yourself', reply:'Shim‛on, Andri, Ya‛aqoḇ, Yahuchanon, Philip, Bartholomi, Mattithyahu, T’oma, Ya‛aqoḇ, Shim‛on, Yahuḏah, Yahuḏah. Twelve, like the tribes.'},
+        {text:'Stay at the edge of the crowd and watch'} ]},
+      {t:'end'}
+    ]},
+
+
   /* ---------------- IV.5 — ON THE MOUNTAIN ---------------- */
   { id:'mountain', title:'The mountain above the lake', date:'Galil', place:'galil', time:'day',
     player:{ at:[-18,8], face:-Math.PI/2, look:ADULT },
     actors:[
       Object.assign({id:'yahusha', at:'mountTop', face:Math.PI/2, sit:true},YAHUSHA),
-      T('kepha',[-44,3.2],{face:-Math.PI/2,sit:true}), T('andri',[-43.4,5.4],{face:-Math.PI/2,sit:true}),
-      T('yaaqob',[-43.6,8.2],{face:-Math.PI/2,sit:true}), T('yahuchanon',[-44.4,10],{face:-Math.PI/2,sit:true}),
-      T('philip',[-42.6,1.2],{face:-Math.PI/2,sit:true}), T('nethanel',[-42.4,11.6],{face:-Math.PI/2,sit:true}),
+      T('kepha',[-32,3.2],{face:-Math.PI/2,sit:true}), T('andri',[-31.4,5.4],{face:-Math.PI/2,sit:true}),
+      T('yaaqob',[-31.6,8.2],{face:-Math.PI/2,sit:true}), T('yahuchanon',[-32.4,10],{face:-Math.PI/2,sit:true}),
+      T('philip',[-30.6,1.2],{face:-Math.PI/2,sit:true}), T('nethanel',[-30.4,11.6],{face:-Math.PI/2,sit:true}),
       ...MOUNT
     ],
     beats:[
-      {t:'cam', from:[-6,16,30], look:[-44,8,6], dur:0.1},
+      {t:'cam', from:[-4,8,28], look:[-32,4,6], dur:0.1},
       {t:'goal', text:'Climb up after the crowds, and sit among them', goto:'mountCrowd', r:3},
-      {t:'cam', from:[-32,8.4,14], look:[-48,10.2,6], dur:3},
+      {t:'cam', from:[-20,4.6,14], look:[-34,4.4,6], dur:3},
       {t:'read', ref:'MATTITHYAHU 5:1-2'},
       {t:'face', who:'yahusha', to:'m10'},
       {t:'cam', on:'yahusha', shot:'back', toward:'m10', dur:1.8},
@@ -291,7 +385,7 @@ STORY.act({
       {t:'face', who:'yahusha', to:'m20'},
       {t:'cam', on:'yahusha', shot:'back', toward:'m20', side:-1, dur:1.8},
       {t:'say', who:'yahusha', ref:'MATTITHYAHU 5:11-12', turn:false},
-      {t:'cam', from:[-24,7,-10], look:[-40,8,6], dur:3},
+      {t:'cam', from:[-12,4,-10], look:[-26,2,6], dur:3},
       {t:'read', ref:'MATTITHYAHU 7:28-29'},
       {t:'cam', release:true},
       {t:'choice', prompt:'You', options:[
@@ -376,6 +470,46 @@ STORY.act({
       {t:'end'}
     ]},
 
+
+  /* ---------------- IV.7b — THE SOWER ---------------- */
+  { id:'sower', title:'By the Sea of Galil', date:'on that day', place:'galil', time:'day',
+    player:{ at:[14,12], face:Math.PI/2, look:ADULT },
+    actors:[
+      Object.assign({id:'yahusha', at:[6,-2], face:Math.PI/2},YAHUSHA),
+      T('kepha',[23,-2.6],{face:-Math.PI/2}), T('andri',[22.6,1.6],{face:-Math.PI/2}),
+      ...BEACH
+    ],
+    things:[ {id:'boat1', kind:'boat', at:[25.6,0], y:-0.2, face:Math.PI/2} ],
+    beats:[
+      {t:'cam', from:[8,6,18], look:[18,0.5,0], dur:0.1},
+      {t:'read', ref:'MATTITHYAHU 13:1'},
+      {t:'move', who:'yahusha', to:[21.4,0], speed:1.5},
+      {t:'read', ref:'MATTITHYAHU 13:2'},
+      {t:'place', who:'yahusha', at:[25.6,0.4], y:0.05, face:-Math.PI/2},
+      {t:'sit', who:'yahusha'},
+      {t:'goal', text:'Find a place to stand on the beach among the crowd', goto:[16,4], r:3},
+      {t:'cam', on:'yahusha', shot:'back', toward:'b6', dur:1.8},
+      {t:'say', who:'yahusha', ref:'MATTITHYAHU 13:3', turn:false},
+      {t:'say', who:'yahusha', ref:'MATTITHYAHU 13:4', turn:false},
+      {t:'say', who:'yahusha', ref:'MATTITHYAHU 13:5', turn:false},
+      {t:'say', who:'yahusha', ref:'MATTITHYAHU 13:6', turn:false},
+      {t:'say', who:'yahusha', ref:'MATTITHYAHU 13:7', turn:false},
+      {t:'say', who:'yahusha', ref:'MATTITHYAHU 13:8', turn:false},
+      {t:'say', who:'yahusha', ref:'MATTITHYAHU 13:9', turn:false},
+      {t:'cam', on:'yahusha', shot:'back', toward:'b12', side:-1, dur:1.8},
+      {t:'say', who:'yahusha', ref:'MATTITHYAHU 13:31', turn:false},
+      {t:'say', who:'yahusha', ref:'MATTITHYAHU 13:32', turn:false},
+      {t:'say', who:'yahusha', ref:'MATTITHYAHU 13:33', turn:false},
+      {t:'cam', release:true},
+      {t:'read', ref:'MATTITHYAHU 13:34'},
+      {t:'read', ref:'MATTITHYAHU 13:35', who:'psalmist'},
+      {t:'choice', prompt:'You', options:[
+        {text:'Ask yourself which ground you are', reply:'The wayside, the rock, the thorns, the good soil. You do not say it aloud.'},
+        {text:'Look at the fields on the hills above the lake', reply:'Somebody up there is sowing even now, and the birds are following him.'} ]},
+      {t:'end'}
+    ]},
+
+
   /* ---------------- IV.8 — FIVE LOAVES AND TWO FISH ---------------- */
   { id:'loaves', title:'Across the Sea of Galil', date:'the Pesach near', place:'galilEast', time:'day',
     player:{ at:[2,2], face:-Math.PI/2, look:ADULT },
@@ -458,9 +592,83 @@ STORY.act({
       {t:'read', ref:'MATTITHYAHU 14:32'},
       {t:'cam', from:[56.4,1.4,-4.2], look:[60,0.6,3], dur:2.5},
       {t:'say', who:'boatmen', ref:'MATTITHYAHU 14:33', turn:false},
+      {t:'end'}
+    ]},
+
+  /* ---------------- IV.10 — AL‛AZAR ---------------- */
+  { id:'elazar', title:'Bĕyth Anyah', date:'near Yahrushalayim', place:'bethanyah', time:'day',
+    player:{ at:[20,-2], face:-Math.PI/2, look:ADULT },
+    actors:[
+      Object.assign({id:'yahusha', at:'road', face:-Math.PI/2},YAHUSHA),
+      T('kepha',[28,-7.6],{face:-Math.PI/2}), T('yahuchanon',[28.4,-4.6],{face:-Math.PI/2}), T('toma',[30,-6],{face:-Math.PI/2}),
+      {id:'martha', name:'Martha', kind:'woman', at:[-2.4,4.6], face:Math.PI/2, robe:0x6a4a3a, cloth:0x2e2a30, skin:0x7c5430, key:'Martha'},
+      Object.assign({id:'miryamB', at:[-3.4,7.2], face:Math.PI/2, sit:true},SISTER_M),
+      {id:'elazar', name:'Al‛azar', dress:'wrapped', at:'tombIn', face:Math.PI/2, hidden:true, skin:0x7a4e29},
+      ...MOURN
+    ],
+    things:[ {id:'stone', kind:'roundStone', at:'stone', face:0, r:1.3} ],
+    beats:[
+      {t:'title', text:'Bĕyth Anyah', sub:'near Yahrushalayim'},
+      {t:'cam', from:[6,4,14], look:[-3,1.2,6], dur:0.1},
+      {t:'read', ref:'YAHUCHANON 11:1'},
+      {t:'say', who:'sisters', ref:'YAHUCHANON 11:3'},
+      {t:'say', who:'yahusha', ref:'YAHUCHANON 11:4', turn:false},
+      {t:'read', ref:'YAHUCHANON 11:5'},
+      {t:'read', ref:'YAHUCHANON 11:6'},
+      {t:'move', who:['yahusha','kepha','yahuchanon','toma'], to:['meet',[17.6,-6.4],[17.8,-3],[19.4,-5]], speed:1.5, wait:false},
+      {t:'read', ref:'YAHUCHANON 11:17'},
+      {t:'read', ref:'YAHUCHANON 11:18'},
+      {t:'read', ref:'YAHUCHANON 11:19'},
+      {t:'move', who:'martha', to:[11.2,-3.6], speed:1.8},
+      {t:'read', ref:'YAHUCHANON 11:20'},
+      {t:'face', who:'yahusha', to:'martha'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'martha', dur:1.8},
+      {t:'say', who:'martha', ref:'YAHUCHANON 11:21', turn:false},
+      {t:'say', who:'martha', ref:'YAHUCHANON 11:22', turn:false},
+      {t:'say', who:'yahusha', ref:'YAHUCHANON 11:23', turn:false},
+      {t:'say', who:'martha', ref:'YAHUCHANON 11:24', turn:false},
+      {t:'say', who:'yahusha', ref:'YAHUCHANON 11:25', turn:false},
+      {t:'say', who:'yahusha', ref:'YAHUCHANON 11:26', turn:false},
+      {t:'say', who:'martha', ref:'YAHUCHANON 11:27', turn:false},
+      {t:'move', who:'martha', to:[-2.6,6.4], speed:1.8, wait:false},
+      {t:'say', who:'martha', ref:'YAHUCHANON 11:28'},
+      {t:'stand', who:'miryamB'},
+      {t:'move', who:['miryamB','martha'], to:[[11.4,-3.8],[11,-1.8]], speed:2},
+      {t:'follow', who:['y1','y2','y3','y4','y5'], target:'miryamB'},
+      {t:'sit', who:'miryamB'},
+      {t:'say', who:'miryamB', ref:'YAHUCHANON 11:32', turn:false},
+      {t:'read', ref:'YAHUCHANON 11:33'},
+      {t:'say', voices:['yahusha','mourners'], ref:'YAHUCHANON 11:34', turn:false},
+      {t:'stand', who:'miryamB'},
+      {t:'cam', from:[13.6,2.2,-2], look:'yahusha', dur:2.5},
+      {t:'read', ref:'YAHUCHANON 11:35'},
+      {t:'say', who:'mourners', ref:'YAHUCHANON 11:36'},
+      {t:'stop', who:['y1','y2','y3','y4','y5']},
+      {t:'move', who:['yahusha','martha','miryamB','kepha','yahuchanon','toma','y1','y2','y3','y4','y5'],
+        to:['tombFront',[-13.6,-5.4],[-13,-4],[-12.4,-10.6],[-11.6,-9],[-11,-11.6],[-9.6,-4.4],[-9.4,-6.4],[-9.2,-8.6],[-9,-10.6],[-8.6,-12.4]], speed:1.4},
+      {t:'face', who:'yahusha', to:'stone'},
+      {t:'cam', from:[-12,3,-1], look:[-20.6,1.2,-8], dur:2.5},
+      {t:'read', ref:'YAHUCHANON 11:38'},
+      {t:'say', voices:['yahusha','martha'], ref:'YAHUCHANON 11:39', turn:false},
+      {t:'say', who:'yahusha', ref:'YAHUCHANON 11:40', turn:false},
+      {t:'cam', release:true},
+      {t:'witness', text:'Put your shoulder to the stone with the others', items:['stone'], verb:'Roll the stone aside', hold:1.6, reach:3, send:'stoneAside'},
+      {t:'cam', from:[-11,2.6,-2.6], look:[-21,1.4,-8], dur:2.5},
+      {t:'say', who:'yahusha', ref:'YAHUCHANON 11:41-42', turn:false},
+      {t:'say', who:'yahusha', ref:'YAHUCHANON 11:43', turn:false},
+      {t:'show', id:'elazar'},
+      {t:'move', who:'elazar', to:'tombOut', speed:0.5},
+      {t:'say', who:'yahusha', ref:'YAHUCHANON 11:44', turn:false},
+      {t:'move', who:['martha','miryamB'], to:[[-16.4,-6.6],[-16.6,-9.4]], speed:1.8},
+      {t:'read', ref:'YAHUCHANON 11:45'},
+      {t:'cam', release:true},
+      {t:'choice', prompt:'You', options:[
+        {text:'Help loosen the wrappings', reply:'The linen is stiff with spices. Under your hands it gives, turn by turn, and a man who was dead four days stands up straight.'},
+        {text:'Stand still and watch the sisters', reply:'Martha is laughing and weeping at once. Miryam has not let go of her brother’s hand.'} ]},
       {t:'title', text:'The end of Act IV', sub:'Next: The Road to Yahrushalayim'},
       {t:'end'}
     ]}
+
   ]
 });
 })();

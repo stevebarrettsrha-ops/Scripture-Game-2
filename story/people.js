@@ -92,6 +92,7 @@ W.person=function(ctx,o){
   def.dress=dress; if(def.skin==null) def.skin=o.skin;
   const female=dress==='woman', child=!!o.small;
   const roman=dress==='legionary'||dress==='centurion';
+  const ashshur=dress==='assyrian'||dress==='rabshaqeh';
   const g=new THREE.Group(), body=new THREE.Group(); g.add(body);
   /* proportions: a man 1.70, a woman 1.58, a child about 1.15 with a larger head for his size */
   const H=child?1.15:female?1.58:1.70, k=H/1.70, hk=child?1.22:1;
@@ -100,7 +101,8 @@ W.person=function(ctx,o){
   const hairHex=o.hair||(roman?0x2a1e16:o.fallen?0x120a0a:0x1e1610);
   const robe=o.robe||0x9a8466;
   /* the tunic's cloth, by the dress */
-  const tunicM=dress==='kohen'||dress==='levite'?cloth(o.robe||0xf0ece0,'folds')
+  const tunicM=dress==='wrapped'?cloth(0xe8e0cc,'folds')
+    :dress==='kohen'||dress==='levite'?cloth(o.robe||0xf0ece0,'folds')
     :dress==='camelhair'?cloth(o.robe||0x8a6a40,'shaggy')
     :roman?cloth(o.robe||0x8a2a22,'folds')
     :dress==='king'?cloth(robe,'folds')
@@ -110,7 +112,7 @@ W.person=function(ctx,o){
     box(w,h,d,m,0,-h/2,0,pv); cloths.push({pv,axis,sign,a:0,w:0,n:axis==='x'?[0,0,sign]:[sign,0,0],light:!!light}); return pv; };
 
   /* LEGS: thigh, knee, shin, the foot in its sandal */
-  const hemY=female||dress==='kohen'||dress==='levite'?0.07:roman||dress==='herodian'||dress==='camelhair'||dress==='shepherd'||child?0.50:0.30;
+  const hemY=female||dress==='kohen'||dress==='levite'||dress==='wrapped'||dress==='rabshaqeh'?0.07:dress==='assyrian'?0.48:roman||dress==='herodian'||dress==='camelhair'||dress==='shepherd'||child?0.50:0.30;
   const legM=dress==='magi'?cloth(o.under||0x6a3a2a,'folds'):skin;
   const footM=roman?cloth(0x5a3a22,'leather'):flat(0x5a4028);
   const mkLeg=(x)=>{ const L=new THREE.Group(); L.position.set(x,0.90,0); body.add(L);
@@ -139,6 +141,13 @@ W.person=function(ctx,o){
   if(dress==='shepherd') box(0.14,0.16,0.07,cloth(0x8a6a40,'leather'),0.22,0.86,0.04,body);                                     /* the bag */
   /* over the tunic: mail, or leather */
   if(roman){ const mail=cloth(0x8a8c90,'mail'); box(0.40,0.40,0.24,mail,0,1.21,0,body); box(0.44,0.08,0.26,mail,0,1.40,0,body); }
+  /* ASHSHUR, as its own palace reliefs show its men: the soldier in a shirt of bronze scales over a
+     tunic to the knee, a broad belt, a round shield and a spear; the Raḇshaqĕh, an officer of the
+     sovereign, in a long robe bordered with fringe, a sash about it, a band about his brow */
+  if(dress==='assyrian'){ const sc=cloth(0x9a7a40,'mail'); box(0.41,0.46,0.25,sc,0,1.17,0,body); box(0.42,0.1,0.26,flat(0x5a3a22),0,0.97,0,body);
+    const sh=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.05,12),flat(0x8a6a3a)); sh.rotation.x=Math.PI/2; sh.position.set(0.3,1.05,0.16); body.add(sh);
+    box(0.035,1.9,0.035,flat(0x6a4a2a),-0.3,1.0,0.12,body); box(0.06,0.14,0.06,flat(0xa8a8b0),-0.3,1.97,0.12,body); }
+  if(dress==='rabshaqeh'){ const fr=flat(0xd4af37); box(0.46,0.05,0.26,fr,0,0.08,0,body); box(0.05,0.9,0.26,fr,0.2,0.5,0,body); box(0.42,0.12,0.26,cloth(o.sash||0x8a1a2a,'folds'),0,0.98,0,body); }
   if(dress==='herodian') box(0.40,0.36,0.24,cloth(0x7a5232,'leather'),0,1.21,0,body);
   /* the neck */
   box(0.09,0.09,0.09,skin,0,1.465,0.005,body);
@@ -157,7 +166,7 @@ W.person=function(ctx,o){
 
   /* THE MANTLE: over the back from both shoulders, its left end brought over the left shoulder
      to hang before; a tassel at each corner, a cord of blue in each */
-  const mantled=!roman&&dress!=='herodian'&&dress!=='camelhair'&&dress!=='magi'&&dress!=='levite'&&!child;
+  const mantled=!roman&&!ashshur&&dress!=='herodian'&&dress!=='camelhair'&&dress!=='magi'&&dress!=='levite'&&!child;
   if(mantled||dress==='shepherd'||dress==='magi'){
     const mHex=dress==='shepherd'?0xd8ccb0:o.mantle||(dress==='fallen'?o.sash:dress==='king'?0x5a2060:dress==='kohen'?0xf4f0e6:female?(o.cloth||0x6a5a7a):shade(robe,0.82));
     const mM=dress==='shepherd'?cloth(mHex,'fleece'):dress==='king'?cloth(mHex,'border',0xd4af37):cloth(mHex,'folds');
@@ -183,9 +192,14 @@ W.person=function(ctx,o){
   if(!veiled){
     box(hw+0.02,dress==='camelhair'?0.30:roman?0.10:0.16,0.04,hairM,0,dress==='camelhair'?-0.09:-0.02,-hd/2-0.01,head);
     box(0.02,0.09,hd-0.04,hairM,hw/2+0.005,0.04,-0.01,head); box(0.02,0.09,hd-0.04,hairM,-hw/2-0.005,0.04,-0.01,head); }
+  /* ONE WHO DIED, COME OUT: "bound feet and hands with wrappings, and his face was wrapped with
+     a cloth" (Yahuchanon 11:44) — the whole head bound, bands about the body */
+  if(dress==='wrapped'){ const lin=cloth(0xe8e0cc,'folds'), band=flat(0xc8bea6);
+    box(hw+0.04,hh+0.04,hd+0.04,lin,0,0,0,head);
+    for(const y of [1.32,1.16,0.98,0.80,0.60,0.40,0.22]) box(0.44,0.025,0.25,band,0,y,0,body); }
   /* THE FACE (never on Yahusha: His head is drawn with no face) */
   let F=null;
-  if(dress!=='yahusha'){
+  if(dress!=='yahusha'&&dress!=='wrapped'){
     const eyeY=0.012, white=basic(0xeee8dc), dark=basic(0x1a120c);
     const eye=(x)=>{ const e=new THREE.Group(); e.position.set(x,eyeY,fz); head.add(e);
       box(0.042,0.022,0.006,white,0,0,0,e); box(0.018,0.022,0.008,dark,0,0,0.001,e);
@@ -197,13 +211,19 @@ W.person=function(ctx,o){
     const mouth=new THREE.Group(); mouth.position.set(0,-0.065,fz); head.add(mouth);
     const mIn=box(0.055,1,0.006,basic(0x3a1810),0,0,0.002,mouth); mIn.scale.y=0.008;
     const cL=box(0.012,0.008,0.006,basic(0x5a2818),0.03,0,0.002,mouth), cR=box(0.012,0.008,0.006,basic(0x5a2818),-0.03,0,0.002,mouth);
-    if(o.beard!=null){ const bM=cloth(o.beard,'shaggy');
+    if(ashshur){ const bM=cloth(o.beard||0x14100e,'shaggy');                  /* the long squared beard, curled in rows */
+      box(0.18,0.20,0.05,bM,0,-0.17,fz-0.005,head); box(0.035,0.14,0.12,bM,hw/2-0.01,-0.07,0.03,head); box(0.035,0.14,0.12,bM,-hw/2+0.01,-0.07,0.03,head);
+      for(const y of [-0.12,-0.18,-0.24]) box(0.185,0.012,0.012,flat(0x2a2018),0,y,fz+0.022,head); }
+    else if(o.beard!=null){ const bM=cloth(o.beard,'shaggy');
       box(0.17,0.08,0.05,bM,0,-0.105,fz-0.005,head); box(0.035,0.10,0.12,bM,hw/2-0.01,-0.06,0.03,head); box(0.035,0.10,0.12,bM,-hw/2+0.01,-0.06,0.03,head);
       box(0.08,0.014,0.01,bM,0,-0.047,fz+0.004,head);                                        /* the moustache */
       if(o.beard===0x6d6a66||dress==='kohen') box(0.12,0.08,0.04,bM,0,-0.16,fz-0.01,head); }    /* an old man's beard, long */
     F={eL,eR,browL,browR,mIn,cL,cR};
   }
   /* WHAT IS ON THE HEAD */
+  if(dress==='assyrian'){ const br=flat(0xa88850);
+    box(hw+0.035,0.08,hd+0.035,br,0,0.10,0,head); box(hw-0.03,0.07,hd-0.03,br,0,0.17,0,head); box(hw-0.1,0.07,hd-0.1,br,0,0.23,0,head); box(0.04,0.06,0.04,br,0,0.29,0,head); }
+  else if(dress==='rabshaqeh'){ box(hw+0.03,0.035,hd+0.03,flat(0xd4af37),0,0.06,0,head); }
   if(roman){ const br=flat(0xb08848);
     box(hw+0.04,0.09,hd+0.04,br,0,0.10,0,head); box(hw+0.06,0.02,0.07,br,0,0.07,-hd/2-0.03,head);                 /* bowl, neck-guard */
     box(0.015,0.10,0.07,br,hw/2+0.02,-0.02,0.04,head); box(0.015,0.10,0.07,br,-hw/2-0.02,-0.02,0.04,head);       /* cheek-pieces */
