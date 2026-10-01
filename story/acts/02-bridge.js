@@ -25,7 +25,7 @@ STORY.act({
      on the roads of Judea") is flown across the voyage's own earth — Rome a village of huts,
      Ninewĕh burning, the Hĕḵal burning, Baḇal taken, Macedon, and the legions at Yahrushalayim */
   scenes:[
-  { id:'tiber', title:'Meanwhile, far to the west', date:'c. 753 BCE', place:'tiber', time:'dawn',
+  { id:'tiber', title:'Meanwhile, far to the west', date:'c. 753 BCE', place:'tiber', time:'day',
     player:{ at:[0,40], hidden:true },
     beats:[
       {t:'cam', from:[30,14,34], look:[0,1,0], dur:0.1},
@@ -34,7 +34,7 @@ STORY.act({
       {t:'note', text:'While Yahshayahu spoke in Yahrushalayim, far to the west a village of huts stood on a hill above the river Tiber. By its own reckoning it was founded in 753 BCE. Its name was Rome. In seven hundred years it will rule the world — and Yahuḏah with it.'},
       {t:'end'}
     ]},
-  { id:'nineveh', title:'Ninewĕh', date:'612 BCE', place:'nineveh', time:'night',
+  { id:'nineveh', title:'Ninewĕh', date:'612 BCE', place:'nineveh', time:'dusk',
     player:{ at:[0,60], hidden:true },
     beats:[
       {t:'cam', from:[34,16,46], look:[0,6,0], dur:0.1},
@@ -42,7 +42,7 @@ STORY.act({
       {t:'era', i:0, head:'612 BCE — Ashshur falls', text:'The empire that menaced the days of Yahshayahu is itself destroyed: Ninewĕh burns.'},
       {t:'end'}
     ]},
-  { id:'fall', title:'Yahrushalayim', date:'586 BCE', place:'yahrushalayim', time:'night',
+  { id:'fall', title:'Yahrushalayim', date:'586 BCE', place:'yahrushalayim', time:'dusk',
     player:{ at:[-10,26], hidden:true },
     glows:[0,1,2,3,4,5,6,7,8,9].map(k=>({id:'f'+k, at:[-30+k*7, 3+(k%3)*4, -50+(k%4)*16], size:7, color:0xff7a2a, intensity:k%3===0?1.2:0, pulse:true})),
     beats:[
@@ -51,7 +51,7 @@ STORY.act({
       {t:'era', i:1, head:'586 BCE — the Hĕḵal destroyed', text:'Baḇal (Baḇylon) takes Yahrushalayim, burns the Hĕḵal, and carries Yahuḏah into exile.'},
       {t:'end'}
     ]},
-  { id:'babel', title:'Baḇal', date:'539 BCE', place:'babel', time:'dawn',
+  { id:'babel', title:'Baḇal', date:'539 BCE', place:'babel', time:'day',
     player:{ at:[0,60], hidden:true },
     beats:[
       {t:'cam', from:[26,8,56], look:[0,10,-10], dur:0.1},

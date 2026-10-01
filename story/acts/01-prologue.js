@@ -161,7 +161,7 @@ STORY.act({
       {t:'player', at:[-22,38.2], y:7.2, lock:true, face:0},
       {t:'show', id:['rab','a0','a1','a2','a3','a4','a5','a6','a7']},
       {t:'move', who:['rab','a0','a1','a2','a3','a4','a5','a6','a7'], to:[[-62,78],[-58,84],[-60,85],[-62,86],[-64,85.4],[-66,86],[-68,85],[-56,86.4],[-70,84]], speed:2.2, wait:false},
-      {t:'cam', from:[-24,10,35], look:[-58,1.5,78], dur:3},
+      {t:'cam', from:[-46,5,66], look:[-60,1.5,82], dur:3},
       {t:'read', ref:'YASHAYAHU 36:2'},
       {t:'move', who:['alyaqim','shebnah','yoah'], to:[[-60,73],[-62,72.4],[-58,72.6]], speed:2},
       {t:'face', who:'rab', to:'alyaqim'},
@@ -169,7 +169,7 @@ STORY.act({
       {t:'cam', from:[-55,3,70], look:'rab', dur:2.5},
       {t:'say', who:'rab', ref:'YASHAYAHU 36:4', turn:false},
       {t:'face', who:'rab', to:[-22,38]},
-      {t:'cam', from:[-25,9,34], look:'rab', dur:2.5},
+      {t:'cam', from:[-50,4,70], look:'rab', dur:2.5},
       {t:'say', who:'rab', ref:'YASHAYAHU 36:13', turn:false},
       {t:'say', who:'rab', ref:'YASHAYAHU 36:14', turn:false},
       {t:'say', who:'rab', teller:'rab', ref:'YASHAYAHU 36:15', turn:false},   /* his speech runs on from 36:14 */

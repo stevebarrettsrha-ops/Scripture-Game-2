@@ -94,7 +94,8 @@ const TIMES={
 };
 /* the hour is the world's own: the sun, the moon and the stars stand where they stand over
    that place at that hour, and the story only names the hour */
-const HOURS={day:10.5,dusk:18.75,night:23.2,dawn:5.7};
+/* (dawn and dusk are taken where the voyage's own sun is up and low, not before and after it) */
+const HOURS={day:10.5,dusk:18.1,night:23.2,dawn:6.5};
 let timeNow=null, hourNow=10.5;
 function applyTime(name){
   timeNow=name; hourNow=HOURS[name]===undefined?10.5:HOURS[name];
@@ -1130,7 +1131,7 @@ ST.boot=function(opt){
   /* for the test harness: where the story stands, and a way to run it */
   window.__STORY={ST,save,get act(){ return act&&act.id; },get scene(){ return act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id; },
     get beat(){ return beat; },get beatIx(){ return beatIx; },run:(id,s)=>{ const a=ST.acts.find(q=>q.id===id); stopAct(); runAct(a,s||0); },
-    advance, get running(){ return running; }, ctx:()=>ctx, faceExposed, player:()=>player, camera:()=>camera,
+    advance, get running(){ return running; }, ctx:()=>ctx, faceExposed, dbg:{clearShot,lineClear,camFree,exposedFrom}, player:()=>player, camera:()=>camera,
     reset:()=>{ save.codex={}; save.acts={}; save.witnessed=0; save.road={}; save.bonds={}; persist(); } };
 };
 })();
