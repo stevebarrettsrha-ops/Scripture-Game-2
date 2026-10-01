@@ -226,9 +226,11 @@ W.skinFor=function(o){ const P=W.SKIN[o.folk||'yasharal']||W.SKIN.yasharal;
    black, a shadowed, ashen face, and a dim violet light about him (rgb 120,80,140). */
 W.FALLEN={robe:0x2a2230, sash:0x5a1a24, cloth:0x120a0a, beard:0x120a0a, skin:0x4a3a40, under:0x1e1824, brow:0x120a0a};
 const WOMEN=/^(Miryam|Elisheḇa|Ḥannah|A widow|The bride|A woman|Her )/;
-/* ---- A PERSON: the voyage's figure, in the look the story gives it ----
-   Returned in metres (the figure itself is built in world units and scaled down inside it),
-   so the scene moves it, turns it and sits it down as before. */
+/* ---- A PERSON IS ONE OF THE VOYAGE'S FOLK ----
+   Built by the voyage's own makePerson (through the kit's makeFigure): the same head, face,
+   robe, leggings and two-jointed limbs as every villager of the world, dressed in the look
+   the story gives it. Returned in metres (the figure itself is built in world units and
+   scaled down inside it), so the scene moves it, turns it and sits it down as before. */
 W.person=function(ctx,o){
   o=o||{};
   if(o.fallen) o=Object.assign(o,W.FALLEN,{kind:o.kind||'dark'});
@@ -240,7 +242,8 @@ W.person=function(ctx,o){
   if(!o.skin) o.skin=W.skinFor(o);
   const k=K(), S=k.setScale;
   const female=o.kind==='woman'||WOMEN.test(o.name||'');
-  const fig=k.makeFigure({skin:o.skin, hair:o.hair, robe:o.robe||0x9a8466, sash:o.sash||0x6a3b2a, under:o.under||0x5b4a3a,
+  let seed=7; for(const ch of String(o.id||o.name||'')+String(o.at)) seed=(seed*31+ch.charCodeAt(0))%100003;
+  const fig=k.makeFigure({seed, folk:o.folk==='roman'||o.folk==='greek'?'med':o.folk==='north'?'north':'levant', skin:o.skin, hair:o.hair, robe:o.robe||0x9a8466, sash:o.sash||0x6a3b2a, under:o.under||0x5b4a3a,
     cloth:o.cloth===null?null:(o.cloth||0xd9cfb6), beard:o.beard||null, female, small:o.small?(o.small===true?0.72:o.small):0,
     staff:!!o.staff, holy:!!o.holy, fallen:!!o.fallen, brow:o.brow?'#'+(o.brow>>>0).toString(16).padStart(6,'0'):null});
   fig.scale.multiplyScalar(1/S);
@@ -256,12 +259,10 @@ W.person=function(ctx,o){
 };
 /* a dove of light — "the Ruach of Aluahim descending like a dove" (Mattithyahu 3:16) */
 W.dove=function(ctx,x,y,z){
-  const g=new THREE.Group(), m=new THREE.MeshBasicMaterial({color:0xfffdf6});
-  const b=(w,h,d,px,py,pz)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); q.position.set(px,py,pz); g.add(q); return q; };
-  b(0.16,0.14,0.42,0,0,0); b(0.12,0.12,0.14,0,0.06,0.24); b(0.12,0.04,0.2,0,0.02,-0.28);
-  const wl=b(0.5,0.03,0.2,-0.3,0.04,0), wr=b(0.5,0.03,0.2,0.3,0.04,0);
+  const g=new THREE.Group(), k=K(), bird=k.makeBird?k.makeBird('dove'):null;
+  if(bird){ bird.scale.multiplyScalar(1.4/k.setScale); g.add(bird); }
   const G=W.glow({scene:g},0,0,0,2.6,0xfff8e4,0); G.sprite.material.opacity=0.9;
-  g.userData.wings=[wl,wr]; g.position.set(x,y,z); ctx.scene.add(g); return g;
+  g.userData.bird=bird; g.position.set(x,y,z); ctx.scene.add(g); return g;
 };
 /* a fishing boat of the lake: planked hull, a thwart, a mast stepped amidships (the
    Kinnereth boat found at Ginosar, 8 m by 2.3) — a group, so it can be moved on the water */
@@ -316,7 +317,15 @@ function beast(ctx,kind,x,z){
   if(b){ b.scale.multiplyScalar(1/k.setScale); g.add(b); }
   g.position.set(x,0,z); ctx.scene.add(g); return g; }
 W.sheep=function(ctx,x,z,lamb){ const g=beast(ctx,'sheep',x,z); if(lamb) g.scale.setScalar(0.62);
-  g.rotation.y=Math.random()*6; g.userData={home:[x,z],t:Math.random()*5}; return g; };
+  g.rotation.y=Math.random()*6; g.userData={home:[x,z],t:Math.random()*5,kind:'sheep',roam:2,sp:0.5}; return g; };
 W.camel=function(ctx,x,z){ return beast(ctx,'camel',x,z); };
+/* THE LIVING THINGS OF A PLACE — the voyage's own beasts and creeping things, the kinds of that
+   land, wandering about their ground on the voyage's own gait: `n` of a kind about (x,z) within
+   `r` metres, going at `sp` metres a second. They are the scene's flock, so they keep to it. */
+W.wild=function(ctx,kind,x,z,n,r,sp){
+  for(let k=0;k<(n||1);k++){ const a=hash(x+k*7.1,z-k*3.3)*6.28, d=hash(z+k,x-k)*(r||6);
+    const px=x+Math.cos(a)*d, pz=z+Math.sin(a)*d, g=beast(ctx,kind,px,pz);
+    g.rotation.y=hash(px,pz)*6.28;
+    g.userData={home:[x,z],t:hash(k,x)*4,kind,roam:r||6,sp:sp||0.6}; ctx.flock.push(g); } };
 W.donkey=function(ctx,x,z){ return beast(ctx,'donkey',x,z); };
 })();

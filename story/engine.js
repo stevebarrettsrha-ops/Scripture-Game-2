@@ -264,6 +264,12 @@ function animFigure(g,dt,moving){
   const sw=moving?Math.sin(u.phase)*0.55:Math.sin(u.phase)*0.03;
   if(u.legL){ u.legL.rotation.x=sw; u.legR.rotation.x=-sw; u.armL.rotation.x=-sw*0.8; u.armR.rotation.x=u.carrying?-0.9:sw*0.8; }
   if(u.sit&&u.legL){ u.legL.rotation.x=u.legR.rotation.x=-1.45; u.armL.rotation.x=u.armR.rotation.x=-0.5; }
+  /* THE SPEAKER'S HANDS: one who is speaking and standing still lifts a hand with the words */
+  if(u.talkM!==undefined&&!moving&&!u.sit&&!u.carrying&&u.armR){ const k=u.talkM;
+    u.armR.rotation.x+=(-0.55-k*0.35+Math.sin(u.phase*0.9)*0.08-u.armR.rotation.x)*Math.min(1,dt*5);
+    u.armL.rotation.x+=(-0.18-k*0.15-u.armL.rotation.x)*Math.min(1,dt*4); }
+  /* knees and elbows fold as the voyage's folk fold theirs */
+  const jt=K().jointTick; if(jt&&u.legL&&!u.sit) for(const L of [u.legL,u.legR,u.armL,u.armR]) jt(L,moving);
   clothStep(g,dt,moving,sw);
 }
 /* THE CLOTH. Each panel of a hem, and the back of a head-cloth, hangs on a hinge and is
@@ -315,9 +321,12 @@ function moveActors(dt){
 /* the flock grazes, and a lamb that has been gathered goes to the fold */
 function moveFlock(dt,t){
   for(const s of ctx.flock){ const u=s.userData; u.t-=dt;
-    if(u.t<0){ u.t=2+Math.random()*4; u.to=[u.home[0]+(Math.random()-0.5)*4,u.home[1]+(Math.random()-0.5)*4]; }
+    const R=(u.roam||2)*2, sp=u.sp||0.5;
+    if(u.t<0){ u.t=2+Math.random()*4; u.to=[u.home[0]+(Math.random()-0.5)*R,u.home[1]+(Math.random()-0.5)*R]; }
     if(u.to){ const dx=u.to[0]-s.position.x, dz=u.to[1]-s.position.z, d=Math.hypot(dx,dz);
-      if(d>0.1){ s.position.x+=dx/d*dt*0.5; s.position.z+=dz/d*dt*0.5; s.rotation.y=Math.atan2(dx,dz); } } }
+      if(d>0.1){ s.position.x+=dx/d*dt*sp; s.position.z+=dz/d*dt*sp; s.rotation.y=Math.atan2(dx,dz); }
+      if(s.children[0]&&K().tickGait){ u.ent=u.ent||{m:s.children[0]}; K().tickGait(u.ent,u.kind||'sheep',d>0.1?sp*S:0,dt); } }
+    s.position.y=ctx.groundY(s.position.x,s.position.z); }
   for(const id in ctx.things){ const o=ctx.things[id], u=o.userData;
     if(u.goTo){ const dx=u.goTo[0]-o.position.x, dz=u.goTo[1]-o.position.z, d=Math.hypot(dx,dz);
       if(d>0.2){ o.position.x+=dx/d*dt*2.4; o.position.z+=dz/d*dt*2.4; o.rotation.y=Math.atan2(dx,dz); } else u.goTo=null; }
@@ -337,6 +346,12 @@ function updateCamera(dt){
     return; }
   if(player&&!ctx.playerHidden) player.visible=true;
   if(!player) return;
+  /* SHOT AND REVERSE SHOT: while one near the witness speaks and the scene has not set a
+     camera, the eye goes over the witness's shoulder onto the one speaking — and, when it is
+     He who speaks, over His shoulder onto the witness, so His face is never before it */
+  const cs=convoShot();
+  if(cs){ const k=Math.min(1,dt*3); camera.position.x+=(cs.from[0]-camera.position.x)*k; camera.position.y+=(cs.from[1]-camera.position.y)*k; camera.position.z+=(cs.from[2]-camera.position.z)*k;
+    camera.lookAt(...cs.look); return; }
   if(keys.KeyQ) camYaw+=dt*1.8; if(keys.KeyR) camYaw-=dt*1.8;
   const tx=player.position.x, ty=player.position.y+1.6, tz=player.position.z;
   const want=[tx+Math.sin(camYaw)*Math.cos(camPitch)*camDist, ty+Math.sin(camPitch)*camDist, tz+Math.cos(camYaw)*Math.cos(camPitch)*camDist];
@@ -344,6 +359,19 @@ function updateCamera(dt){
   const k=Math.min(1,dt*6);
   camera.position.x+=(want[0]-camera.position.x)*k; camera.position.y+=(want[1]-camera.position.y)*k; camera.position.z+=(want[2]-camera.position.z)*k;
   camera.lookAt(tx,ty,tz);
+}
+function convoShot(){
+  if(ST.fast||!speaking||!player||ctx.playerHidden||!$('sverse')||$('sverse').classList.contains('off')) return null;
+  const g=ctx.actors[speaking]; if(!g||!g.visible) return null;
+  const p=player.position, q=g.position, dx=q.x-p.x, dz=q.z-p.z, d=Math.hypot(dx,dz);
+  if(d>8||d<0.7) return null;
+  const ux=dx/d, uz=dz/d, sx=uz, sz=-ux;
+  let from, look;
+  if(g.userData.holy){ from=[q.x+ux*2.4+sx*1.1, q.y+2.15, q.z+uz*2.4+sz*1.1]; look=[p.x,p.y+1.45,p.z]; }
+  else { from=[p.x-ux*1.6+sx*0.8, p.y+1.95, p.z-uz*1.6+sz*0.8]; look=[q.x,q.y+1.5*(g.userData.s||1),q.z]; }
+  if(from[1]<ctx.groundY(from[0],from[2])+0.5) return null;
+  const k=K(); if(k.solidAt(anchor.x+from[0]*S,anchor.y+from[1]*S,anchor.z+from[2]*S)) return null;
+  return {from,look};
 }
 /* HIS FACE IS NEVER SHOWN. Yahusha has a body like every man's; His face is never seen.
    Every frame, for each figure marked holy (and the Child in the trough), this asks whether
@@ -444,7 +472,18 @@ function animFace(g,id,dt){
   if(u.aura){ const k=1+m*0.22+(T?0.06:0); u.aura.sprite.scale.setScalar(u.aura.base*k); }
   if(u.setFace){                             /* the voyage's figure: its face drawn in each state */
     u.blink=(u.blink||3)-dt; const shut=u.blink<0; if(u.blink<-0.13) u.blink=2.5+Math.random()*4;
-    u.setFace(m<0.12?0:m<0.55?1:2,shut); return; }
+    u.talkM=T?m:undefined;
+    u.setFace(m<0.12?0:m<0.55?1:2,shut,T?SV.expr(T.text):'calm');
+    /* THE HEAD TURNS TO WHOEVER IS SPEAKING (or, near, to the witness) — never His: the
+       direction His head faces is what keeps every camera from His face */
+    if(u.head&&!u.holy){ let tgt=null;
+      if(speaking&&speaking!==id&&ctx.actors[speaking]) tgt=ctx.actors[speaking].position;
+      else if(!T&&player&&!ctx.playerHidden&&g!==player&&Math.hypot(player.position.x-g.position.x,player.position.z-g.position.z)<4) tgt=player.position;
+      let want=0;
+      if(tgt){ let a=Math.atan2(tgt.x-g.position.x,tgt.z-g.position.z)-g.rotation.y; while(a>Math.PI) a-=Math.PI*2; while(a<-Math.PI) a+=Math.PI*2;
+        want=Math.max(-0.75,Math.min(0.75,a)); }
+      u.head.rotation.y+=(want-u.head.rotation.y)*Math.min(1,dt*4); }
+    return; }
   if(!F) return;
   const ex=T?SV.expr(T.text):'calm';
   F.mIn.scale.y=0.018+m*0.075; F.mIn.position.y=-(0.009+m*0.0375);
@@ -527,7 +566,20 @@ ST.fast=false;                                     /* the test harness sets this
 function runAct(a,fromScene){
   act=a; sceneIx=fromScene||0; running=true;
   $('play').classList.remove('off');
+  recap=sceneIx===0?recapOf(a):null;
   startScene();
+}
+/* PREVIOUSLY, ON THE ROAD — an act opens on what the witness saw in the act before it, read
+   from the journal: the scenes, where and when, and what the witness said there */
+let recap=null;
+function recapOf(a){
+  const R=window.STORY_ROAD||[], i=R.findIndex(r=>r.id===a.id); if(i<=0) return null;
+  const prev=R[i-1].id, road=save.road||{}, seen=Object.keys(road).filter(k=>k.indexOf(prev+'/')===0);
+  if(!seen.length) return null;
+  const said=Object.entries(save.choices||{}).filter(([k])=>k.indexOf(prev+'/')===0).map(([,v])=>v);
+  return '<div class="note-h">Previously, on the road</div><div class="note">'+
+    seen.map(k=>'· '+esc(road[k].title||'')+(road[k].date?' — '+esc(road[k].date):'')).join('<br>')+
+    (said.length?'<br><br><i>You said: “'+said.slice(-2).map(c=>esc(c.said)).join('” · “')+'”</i>':'')+'</div>';
 }
 function stopAct(){ SV.stop(); running=false; act=null; closePanels(); hide('sverse'); hide('card'); hide('goal'); hide('sprompt'); hide('choice'); hide('eras'); ringOff(); witness=null; onFrame=null; }
 function startScene(){
@@ -545,6 +597,7 @@ function enterBeat(){
   SV.stop(); portrait=null;
   if(beatIx>=sc.beats.length){ endScene(); return; }
   beat=sc.beats[beatIx];
+  if(recap){ const h=recap; recap=null; showCard(h,'note'); waitingAdvance=true; beatIx--; return; }
   const B=beat, T=B.t;
   if(ST.stopAt&&ST.stopAt(B)){ ST.fast=false; ST.stopAt=null; }
   if(T==='title'){ showCard('<div class="ttl">'+esc(B.text)+'</div>'+(B.sub?'<div class="sub">'+esc(B.sub)+'</div>':''),'title'); waitingAdvance=true; narrate(B); return; }
@@ -730,7 +783,12 @@ function narrate(B,only){ const L=only!==undefined?[only]:SV.cardLines(B); if(L.
 function showChoice(B){
   const c=$('choice'); c.innerHTML='<div class="c-h">'+esc(B.prompt||'You')+'</div>';
   B.options.forEach((o,k)=>{ const b=document.createElement('button'); b.textContent=o.text;
-    b.onclick=()=>{ hide('choice'); if(o.reply){ showCard('<div class="you">You</div><div class="note">'+esc(o.reply)+'</div>','you'); waitingAdvance=true; narrate(B,o.reply); } else nextBeat(); };
+    b.onclick=()=>{ hide('choice');
+      /* "…will remember that": what the witness said or did is kept in the journal (only the
+         witness's own words — no named figure is ever made to answer them) */
+      save.choices=save.choices||{}; save.choices[act.id+'/'+act.scenes[sceneIx].id+'#'+beatIx]={said:o.text,where:act.scenes[sceneIx].title||''}; persist();
+      toast('Your journal will remember that.');
+      if(o.reply){ showCard('<div class="you">You</div><div class="note">'+esc(o.reply)+'</div>','you'); waitingAdvance=true; narrate(B,o.reply); } else nextBeat(); };
     c.appendChild(b); });
   show('choice');
 }
@@ -881,6 +939,8 @@ function journal(sc){
   const k=act.id+'/'+sc.id;
   save.road[k]={place:sc.place,title:sc.title||'',date:sc.date||'',act:act.id};
   for(const a of sc.actors||[]){ const id=FOLLOWERS[a.id]; if(!id) continue;
+    /* Yahuchanon the immerser is not Yahuchanon son of Zaḇdai */
+    if((id==='yahuchanon'||id==='yaaqob')&&!/Zaḇdai/.test(a.key||'')) continue;
     const b=save.bonds[id]=save.bonds[id]||{name:a.name,scenes:[]};
     if(id==='kepha'&&a.id==='kepha') b.name=a.name;
     if(b.scenes.indexOf(k)<0) b.scenes.push(k); }
@@ -907,7 +967,7 @@ function frame(dtW){
       if(o===player&&ctx.playerY!==undefined) ctx.playerY=o.position.y;
       if(o.userData&&o.userData.fixedY!==undefined) o.userData.fixedY=o.position.y;
       if(o.userData&&o.userData.baseY!==undefined) o.userData.baseY=o.position.y; }); }
-  for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; const w=u.wings; if(w){ const a=Math.sin(t*9)*0.5; w[0].rotation.z=a; w[1].rotation.z=-a; }
+  for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; const w=u.wings||(u.bird&&u.bird.userData&&u.bird.userData.wings); if(w&&w[0]){ const a=Math.sin(t*9)*0.5; w[0].rotation.z=a; w[1].rotation.z=-a; }
     if(u.bob){ const k=ctx.rough||1; o.position.y=u.baseY+Math.sin(t*1.3+o.position.x)*0.06*k; o.rotation.z=Math.sin(t*0.9+o.position.z)*0.025*k; } }
   if(portrait&&!$('sverse').classList.contains('off')) drawPortrait();
   { const T=SV.talk, g=T&&T.sp&&T.sp.glow&&ctx.glows[T.sp.glow];          /* a mal'ak's light swells with the words */

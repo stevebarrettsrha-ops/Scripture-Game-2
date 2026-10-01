@@ -7273,26 +7273,33 @@ function personHeadMats(sk,HR,EY){
   const mats=[hairM,hairM,hairM,lam(sk),faceM,hairM];   // [px,nx,top,bottom,front,back]
   personHead[key]=mats; return mats;
 }
-function makePerson(seed, role, child, female, folk){
-  const g=new THREE.Group(), F=FOLKS[folk]||FOLKS.levant;
-  const sk=F.skin[Math.floor(hash2(seed,1.1)*F.skin.length)];
-  const HR=F.hair[Math.floor(hash2(seed,2.3)*F.hair.length)], EY=F.eye[Math.floor(hash2(seed,4.9)*F.eye.length)];
-  const robeM=robeMatFor(Math.floor(hash2(seed,3.7)*ROBES.length));
-  const head=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),personHeadMats(sk,HR,EY));
+/* `look` (optional) is how THE FULLNESS OF TIME dresses one of these folk as a person of its
+   story — the skin, hair and eyes it names, a robe of its colour, a head-cloth, a beard, a face
+   that can speak (see makeFigure). Without it every one of the world's folk is exactly as
+   before. */
+function makePerson(seed, role, child, female, folk, look){
+  const g=new THREE.Group(), F=FOLKS[folk]||FOLKS.levant, L=look||null;
+  const sk=L&&L.skin!=null?L.skin:F.skin[Math.floor(hash2(seed,1.1)*F.skin.length)];
+  const HR=L&&L.hair?L.hair:F.hair[Math.floor(hash2(seed,2.3)*F.hair.length)], EY=L&&L.eye?L.eye:F.eye[Math.floor(hash2(seed,4.9)*F.eye.length)];
+  const robeM=L&&L.robe!=null?robeMatHex(L.robe,L.sash):robeMatFor(Math.floor(hash2(seed,3.7)*ROBES.length));
+  const headMats=L?L.headMats(sk,HR,EY):personHeadMats(sk,HR,EY);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),headMats);
   head.position.y=10.4; g.add(head);
-  if(female){ /* long hair falling to the shoulders behind and beside */
+  if(female&&!(L&&L.cloth!=null)){ /* long hair falling to the shoulders behind and beside */
     const hm=lam(hairHex(HR));
     const back=new THREE.Mesh(new THREE.BoxGeometry(3.2,3.6,0.6),hm); back.position.set(0,9.0,-1.6); g.add(back);
     for(const s of [1,-1]){ const fall=new THREE.Mesh(new THREE.BoxGeometry(0.6,2.6,2.6),hm);
       fall.position.set(s*1.75,9.4,-0.3); g.add(fall); } }
   const body=new THREE.Mesh(new THREE.BoxGeometry(3,4.6,1.7),robeM); body.position.y=6.6; g.add(body);
   /* women wear the robe to the ankle; men show sandalled shins */
-  const hem=female?new THREE.Mesh(new THREE.BoxGeometry(3.3,3.6,2.1),robeM):lbox(3.2,1.0,2.0,0x3a2c1c);
-  hem.position.y=female?2.8:4.1; g.add(hem);
+  let hem=null;
+  if(L&&L.hem) L.hem(g,female,robeM);               /* a hem that hangs free and swings (makeFigure) */
+  else { hem=female?new THREE.Mesh(new THREE.BoxGeometry(3.3,3.6,2.1),robeM):lbox(3.2,1.0,2.0,0x3a2c1c);
+    hem.position.y=female?2.8:4.1; g.add(hem); }
   /* limbs in TWO BONES apiece: thigh and shin about a knee, upper arm and
      forearm about an elbow — so the folk of the world walk like people and
      not like clothes-pegs. The engine folds the joints as the limbs swing. */
-  const legMat=lam(0x2e3350);
+  const legMat=L&&L.under!=null?lam(L.under):lam(0x2e3350);
   const mkLimb=(w2,len,d2,mat,px2,py,elbow)=>{
     const U=new THREE.Mesh(new THREE.BoxGeometry(w2,len*0.55,d2),mat);
     U.geometry.translate(0,-len*0.275,0); U.position.set(px2,py,0);
@@ -7337,6 +7344,7 @@ function makePerson(seed, role, child, female, folk){
     const rim=lbox(1.0,0.4,1.0,0x7a4a32); rim.position.set(0,13.9,0); g.add(rim); }
   if(child) g.scale.set(0.62,0.62,0.62);
   g.userData={legs:[legL,legR,armL,armR],armL,armR,rod,rodLine,rodBob,rodFish,female:!!female};
+  if(L) Object.assign(g.userData,{legL,legR,head,robeMat:robeM,sk,HR,EY});
   return g;
 }
 /* ---- EVERY BEAST OF THE FIELD, AND WHERE IT IS BUILT ----
@@ -17818,79 +17826,99 @@ function robeMatHex(hex,girdle){
     g.fillStyle='rgba(0,0,0,0.3)'; g.fillRect(0,15,16,1); });
   return ROBETEX[key]=new THREE.MeshLambertMaterial({map:t});
 }
-/* THE FACE, in the voyage's own pixels (personFaceTex), drawn in each of the states a face
-   that speaks passes through: the mouth shut, half open, open; the eyes open or shut. A
-   beard grows on the lower face; a head-cloth frames it instead of the fringe of hair. */
-function figFace(o,mouth,shut){
-  const key=[o.skin,o.hair,o.eye,o.beard,o.cloth,o.blank?1:0,mouth,shut?1:0].join(',');
+/* THE FACE, in the voyage's own pixels — personFaceTex's very face (the same brows, eyes,
+   nose and mouth on the same sixteen squares), drawn in each of the states a face that speaks
+   passes through: the mouth shut, half open, open; the eyes open or shut. A beard grows on
+   the lower face; a head-cloth frames it instead of the fringe of hair. */
+/* THE FEELING IS IN THE BROWS AND THE EYES. Minecraft: Story Mode put moving mouths on blocky
+   heads and the mouths were what read as wrong; its eyes and brows carried the feeling. So a
+   face here says what the words carry chiefly with its brows and eyes — raised in awe and
+   fear, knit in sternness, lifted at the inner ends in sorrow, a smile in the eyes of joy — and
+   the mouth stays a few small pixels: shut, parted, open, its corners up or down. `ex` is one
+   of calm · joy · sorrow · weep · stern · awe · fear (story/voice.js reads it from the words). */
+function figFace(o,sk,HR,EY,mouth,shut,ex){
+  ex=ex||'calm';
+  const key=[sk,HR.join('.'),EY.join('.'),o.beard,o.cloth,o.blank?1:0,o.brow||'',mouth,shut?1:0,ex].join(',');
   if(FIG_FACE[key]) return FIG_FACE[key];
-  const sk=o.skin, r=sk>>16&255, g2=sk>>8&255, b2=sk&255, HR=o.hairRGB, EY=o.eyeRGB;
+  const r=sk>>16&255, g2=sk>>8&255, b2=sk&255;
   const tex=mkTex(g=>{ g.fillStyle=rgb(r,g2,b2); g.fillRect(0,0,16,16);
     if(o.blank) return;
     if(o.cloth!=null){ const c=o.cloth; g.fillStyle=rgb(c>>16&255,c>>8&255,c&255); g.fillRect(0,0,16,4); g.fillRect(0,4,2,12); g.fillRect(14,4,2,12); }
     else for(let y=0;y<6;y++)for(let x=0;x<16;x++){ if(y<4||hash2(x*3.1,y*7.7)>0.5){
       const c=jit(HR,22,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } }
-    g.fillStyle=o.brow||'rgb(48,34,24)'; g.fillRect(3,6,4,1); g.fillRect(9,6,4,1);
+    /* the brows: two strokes of five, set as the feeling sets them (outer end x=2/13, inner 6/9) */
+    g.fillStyle=o.brow||'rgb(58,42,28)';
+    const brow=(dy0,dyIn)=>{ for(let k=0;k<5;k++){ const t=k/4, y=6+Math.round(dy0+(dyIn-dy0)*t);
+      g.fillRect(2+k,y,1,1); g.fillRect(13-k,y,1,1); } };
+    if(ex==='stern') brow(-1,1); else if(ex==='sorrow'||ex==='weep') brow(1,-1);
+    else if(ex==='awe'||ex==='fear') brow(-2,-2); else if(ex==='joy') brow(-1,-1); else brow(0,0);
+    /* the eyes: open, narrowed in sternness, wide in awe and fear, smiling in joy, or shut */
     if(shut){ g.fillStyle='rgb(40,28,20)'; g.fillRect(3,9,3,1); g.fillRect(10,9,3,1); }
-    else { g.fillStyle='rgb(236,228,214)'; g.fillRect(3,8,3,2); g.fillRect(10,8,3,2);
-      g.fillStyle=rgb(EY[0],EY[1],EY[2]); g.fillRect(4,8,2,2); g.fillRect(11,8,2,2); }
+    else if(ex==='joy'){ g.fillStyle='rgb(40,28,20)'; g.fillRect(3,9,3,1); g.fillRect(10,9,3,1); g.fillRect(4,8,1,1); g.fillRect(11,8,1,1);
+      g.fillStyle=rgb(EY[0],EY[1],EY[2]); g.fillRect(4,9,2,1); g.fillRect(11,9,2,1); }
+    else { const y0=ex==='awe'||ex==='fear'?7:ex==='stern'?9:8, h=ex==='awe'||ex==='fear'?3:ex==='stern'?1:2;
+      g.fillStyle='rgb(255,255,255)'; g.fillRect(3,y0,3,h); g.fillRect(10,y0,3,h);
+      g.fillStyle=rgb(EY[0],EY[1],EY[2]); g.fillRect(4,8,2,Math.min(2,h)); g.fillRect(11,8,2,Math.min(2,h));
+      if(ex==='weep'){ g.fillStyle='rgb(150,190,220)'; g.fillRect(3,10,1,2); g.fillRect(12,10,1,1); } }
     g.fillStyle=rgb(Math.max(0,r-40),Math.max(0,g2-34),Math.max(0,b2-30)); g.fillRect(7,10,2,2);
     if(o.beard!=null){ const b=o.beard; g.fillStyle=rgb(b>>16&255,b>>8&255,b&255);
       g.fillRect(3,12,10,4); g.fillRect(2,10,2,4); g.fillRect(12,10,2,4); }
     const lip=o.beard!=null?'rgb(40,20,14)':'rgb(120,72,48)';
-    if(mouth===0){ g.fillStyle=lip; g.fillRect(6,13,4,1); }
+    if(mouth===0){ g.fillStyle=lip; g.fillRect(6,13,4,1);
+      if(ex==='joy'){ g.fillRect(5,12,1,1); g.fillRect(10,12,1,1); }
+      else if(ex==='sorrow'||ex==='weep'||ex==='stern'){ g.fillRect(5,14,1,1); g.fillRect(10,14,1,1); } }
     else if(mouth===1){ g.fillStyle='rgb(40,20,14)'; g.fillRect(6,12,4,2); }
     else { g.fillStyle='rgb(36,16,12)'; g.fillRect(5,12,6,3); } });
   return FIG_FACE[key]=new THREE.MeshLambertMaterial({map:tex});
 }
-/* A FIGURE OF THE STORY, built as makePerson builds the folk of the world — the same head,
-   robe, two-bone limbs and proportions — but in the look the story gives it: skin, hair,
-   eyes, robe, sash, beard, head-cloth; a child; a woman's long robe. The hem hangs in four
-   panels and the head-cloth's tail behind, on hinges the story swings (its cloth). `holy`:
-   no face is drawn at all — His face is never shown. `fallen`: as the voyage's sister game
-   draws the fallen. Returned in world units, feet at the origin, about twelve units tall. */
+/* A PERSON OF THE STORY IS ONE OF THE WORLD'S FOLK. It is built by makePerson — the very
+   builder of every villager, sailor and trader of the voyage: the same head and face, robe,
+   leggings, two-jointed limbs, proportions and long hair on a woman — and dressed as the story
+   asks: skin, hair and eyes; a robe of its colour; a head-cloth (its sides and crown and a tail
+   behind); a beard; a staff (the herder's); a child. Only three things are added: the face
+   can speak and blink, the hem and the head-cloth's tail hang free and swing (the story's
+   cloth), and `holy` — His face is never drawn at all; `fallen` — the violet light about the
+   fallen, as the voyage's sister game draws them. Returned in world units, feet at the
+   origin, twelve units tall. */
 function makeFigure(o){
   o=Object.assign({},o||{});
-  const g=new THREE.Group();
   const hex2rgb=h=>[h>>16&255,h>>8&255,h&255];
-  o.skin=o.skin==null?0x7a4e29:o.skin; o.hairRGB=hex2rgb(o.hair==null?0x2a1d14:o.hair); o.eyeRGB=hex2rgb(o.eye==null?0x3a2618:o.eye);
   if(o.holy) o.blank=true;
-  const robe=o.robe==null?0x8a7454:o.robe, robeM=robeMatHex(robe,o.sash);
-  const clothM=o.cloth!=null?figMat(o.cloth):lam(hairHex(o.hairRGB));
-  const faces=[]; for(const m of [0,1,2]) for(const sh of [0,1]) faces.push(figFace(o,m,sh));
-  const headMats=[clothM,clothM,clothM,figMat(o.skin),faces[0],clothM];
-  const head=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),headMats); head.position.y=10.4; g.add(head);
-  if(o.cloth!=null){ const top=new THREE.Mesh(new THREE.BoxGeometry(3.4,1.0,3.4),clothM); top.position.y=12.2; g.add(top); }
-  const body=new THREE.Mesh(new THREE.BoxGeometry(3,4.6,1.7),robeM); body.position.y=6.6; g.add(body);
-  const legMat=figMat(o.under==null?0x5a4632:o.under);
-  const mkLimb=(w2,len,d2,mat,px2,py,elbow)=>{
-    const U=new THREE.Mesh(new THREE.BoxGeometry(w2,len*0.55,d2),mat);
-    U.geometry.translate(0,-len*0.275,0); U.position.set(px2,py,0);
-    const F=new THREE.Mesh(new THREE.BoxGeometry(w2*0.9,len*0.52,d2*0.9),mat);
-    F.geometry.translate(0,-len*0.26,0); F.position.set(0,-len*0.53,0);
-    U.add(F); U.userData[elbow?'elbow':'knee']=F; g.add(U); return U; };
-  const legL=mkLimb(1.35,4.2,1.5,legMat,0.74,4.3,false), legR=mkLimb(1.35,4.2,1.5,legMat,-0.74,4.3,false);
-  const armL=mkLimb(1.2,4.4,1.5,robeM,2.15,8.7,true), armR=mkLimb(1.2,4.4,1.5,robeM,-2.15,8.7,true);
-  /* the hands, of the skin */
-  for(const A of [armL,armR]){ const hd=new THREE.Mesh(new THREE.BoxGeometry(1.0,0.9,1.1),figMat(o.skin)); hd.position.y=-2.4; A.userData.elbow.add(hd); }
-  /* THE HEM: a robe to the shin (a woman's to the ankle), in four panels hung from the waist */
-  const cloth=[], hemLen=o.female?3.9:3.0;
-  const panel=(w,d,px,pz,axis,sign)=>{ const pv=new THREE.Group(); pv.position.set(px,4.45,pz);
-    const m=new THREE.Mesh(new THREE.BoxGeometry(w,hemLen,d),robeM); m.position.y=-hemLen/2; pv.add(m); g.add(pv);
-    cloth.push({pv,axis,sign,a:0,w:0,n:axis==='x'?[0,0,sign]:[sign,0,0]}); };
-  panel(3.2,0.32,0,0.9,'x',1); panel(3.2,0.32,0,-0.9,'x',-1); panel(0.32,1.9,1.62,0,'z',1); panel(0.32,1.9,-1.62,0,'z',-1);
-  if(o.cloth!=null){ const pv=new THREE.Group(); pv.position.set(0,12.0,-1.6);
-    const m=new THREE.Mesh(new THREE.BoxGeometry(3.3,3.2,0.35),clothM); m.position.y=-1.6; pv.add(m); g.add(pv);
+  const cloth=[], female=!!o.female;
+  let faces=null, fk=null;
+  const look={skin:o.skin, hair:o.hair!=null?hex2rgb(o.hair):null, eye:o.eye!=null?hex2rgb(o.eye):null,
+    robe:o.robe==null?0x8a7454:o.robe, sash:o.sash, under:o.under, cloth:o.cloth,
+    headMats(sk,HR,EY){
+      fk=[sk,HR,EY]; faces=[figFace(o,sk,HR,EY,0,false,'calm')];
+      const side=o.cloth!=null?figMat(o.cloth):lam(hairHex(HR));
+      return [side,side,side,figMat(sk),faces[0],side]; },
+    /* THE HEM, the voyage's own — a woman's robe to the ankle, a man's dark border at the
+       knee — cut into four panels hung from where it begins, each on a hinge */
+    hem(g,fem,robeM){
+      const top=fem?4.6:4.6, len=fem?3.6:1.0, w=fem?3.3:3.2, d=fem?2.1:2.0;
+      const mat=fem?robeM:lam(0x3a2c1c);
+      const panel=(pw,pd,px,pz,axis,sign)=>{ const pv=new THREE.Group(); pv.position.set(px,top,pz);
+        const m=new THREE.Mesh(new THREE.BoxGeometry(pw,len,pd),mat); m.position.y=-len/2; pv.add(m); g.add(pv);
+        cloth.push({pv,axis,sign,a:0,w:0,n:axis==='x'?[0,0,sign]:[sign,0,0]}); };
+      panel(w,0.3,0,d/2-0.15,'x',1); panel(w,0.3,0,-d/2+0.15,'x',-1);
+      panel(0.3,d-0.6,w/2-0.15,0,'z',1); panel(0.3,d-0.6,-w/2+0.15,0,'z',-1); }
+  };
+  const g=makePerson(o.seed||1, o.staff?'herder':null, false, female, o.folk||'levant', look);
+  const u=g.userData;
+  if(o.cloth!=null){ const cm=figMat(o.cloth);
+    const top=new THREE.Mesh(new THREE.BoxGeometry(3.4,1.0,3.4),cm); top.position.y=12.2; g.add(top);
+    const pv=new THREE.Group(); pv.position.set(0,12.0,-1.6);
+    const m=new THREE.Mesh(new THREE.BoxGeometry(3.3,3.2,0.35),cm); m.position.y=-1.6; pv.add(m); g.add(pv);
     cloth.push({pv,axis:'x',sign:-1,a:0,w:0,n:[0,0,-1],light:true}); }
-  else if(o.female){ const hm=lam(hairHex(o.hairRGB)); const back=new THREE.Mesh(new THREE.BoxGeometry(3.2,3.6,0.6),hm); back.position.set(0,9.0,-1.6); g.add(back); }
-  if(o.staff){ const st=lbox(0.3,8.5,0.3,0x7a5a30); st.position.set(-2.6,8.0,0.6); g.add(st); }
   if(o.fallen){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexCv,color:0x785090,transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending}));
-    sp.scale.set(26,26,1); sp.position.y=7; g.add(sp); g.userData.aura={sprite:sp,base:26}; }
-  if(o.small) g.scale.setScalar(o.small===true?0.72:o.small);
-  Object.assign(g.userData,{legs:[legL,legR,armL,armR],legL,legR,armL,armR,cloth,head,faces,robeMat:robeM,
+    sp.scale.set(26,26,1); sp.position.y=7; g.add(sp); u.aura={sprite:sp,base:26}; }
+  const sc=o.small?(o.small===true?0.72:o.small):1;
+  if(sc!==1) g.scale.setScalar(sc);
+  const head=u.head;
+  Object.assign(u,{cloth,faces,holy:!!o.holy,s:sc,
     /* the face as the words go: mouth 0 shut … 2 open; eyes shut for a blink */
-    setFace:(m,shut)=>{ const k=Math.max(0,Math.min(2,m))*2+(shut?1:0); if(head.material[4]!==faces[k]){ head.material[4]=faces[k]; } },
-    holy:!!o.holy, s:o.small?(o.small===true?0.72:o.small):1});
+    setFace:(m,shut,ex)=>{ if(!fk) return; const f=figFace(o,fk[0],fk[1],fk[2],Math.max(0,Math.min(2,m)),!!shut,ex||'calm');
+      if(head.material[4]!==f){ head.material=head.material.slice(); head.material[4]=f; } }});
   return g;
 }
 /* a house of the land, stamped where the story asks, with its door and its furniture, and
@@ -18018,7 +18046,7 @@ function buildYahruPlan(period){
 window.__KIT={
   B, U_PER_M, R_WORLD, WATER_Y, THREE, scene, camera, renderer,
   makeFigure, makeAnimal:k=>{ try{ return makeAnimal(k); }catch(e){ return null; } },
-  robeMat:robeMatHex, blockMat:n=>MAT[n]||null, solidAt, playerXZ,
+  robeMat:robeMatHex, blockMat:n=>MAT[n]||null, solidAt, playerXZ, jointTick, tickGait, makeBird, makePerson,
   /* the names of lands and cities over the world: a story shows none */
   setNames:v=>{ namesOn=!!v; },
   blockId, stampGroup:fn=>stampedGroup(fn), stampDrop, stampBlock, stampBox, stampTop,

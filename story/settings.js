@@ -52,6 +52,7 @@ S.natsareth=function(ctx,st){
   for(let k=0;k<18;k++){ const a=W.hash(k,1)*6.28, r=28+W.hash(k,2)*40; W.olive(st,Math.cos(a)*r,Math.sin(a)*r,1); }
   mk(ctx,'miryamHouse',-4,-6.4); mk(ctx,'miryam',-4,-5.2); mk(ctx,'malak',-4,-2.6); mk(ctx,'spring',1,2);
   mk(ctx,'yoseph',14,1.2); mk(ctx,'yosephDream',14,0.6);
+  W.wild(ctx,'chicken',8,4,4,3,0.4); W.wild(ctx,'goat',-20,14,3,5,0.4); W.wild(ctx,'lizard',30,-30,2,6,0.5);
   ctx.bounds={x0:-120,x1:120,z0:-120,z1:120};
 };
 
@@ -62,6 +63,7 @@ S.road=function(ctx,st){
   for(let k=-60;k<60;k++) st.box(k*1.5-0.8,0,-1.4+Math.sin(k*0.08)*3,k*1.5+0.8,0.1,1.4+Math.sin(k*0.08)*3,C.path,{collide:false,jitter:0.12});
   for(let k=0;k<24;k++){ const x=(W.hash(k,4)-0.5)*170, z=(W.hash(k,6)>0.5?1:-1)*(8+W.hash(k,8)*30); W.rock(st,x,z,1+W.hash(k,2)); if(k%3===0) W.olive(st,x+3,z+2,0.9); }
   mk(ctx,'roadA',-60,Math.sin(-40*0.08)*3); mk(ctx,'roadB',40,Math.sin(26*0.08)*3);
+  W.wild(ctx,'lizard',10,-12,3,10,0.6); W.wild(ctx,'gazelle',-30,50,3,14,1.2);
   ctx.bounds={x0:-150,x1:150,z0:-80,z1:80};
 };
 
@@ -82,6 +84,7 @@ S.fields=function(ctx,st){
   mk(ctx,'hill',-2,-40); mk(ctx,'villageRoad',-2,-52);
   mk(ctx,'s1',6.2,3.2); mk(ctx,'s2',2,5.8); mk(ctx,'s3',5.6,6.2);
   mk(ctx,'lamb1',22,-14); mk(ctx,'lamb2',-26,12); mk(ctx,'lamb3',16,24);
+  W.wild(ctx,'dog',0,10,1,3,0.6); W.wild(ctx,'hedgehog',-20,-24,1,6,0.2);
   ctx.bounds={x0:-110,x1:110,z0:-100,z1:100};
 };
 
@@ -102,6 +105,7 @@ S.beythlehem=function(ctx,st){
   mk(ctx,'sh1',5.6,2.6); mk(ctx,'sh2',8.6,2.6); mk(ctx,'sh3',7,3.4);
   mk(ctx,'house',16,6); mk(ctx,'houseDoor',12.5,6); mk(ctx,'camels',6,22); mk(ctx,'well',-6,22);
   st.box(-7,0,21,-5,0.8,23,C.stone); W.jar(st,-4.4,22);
+  W.wild(ctx,'chicken',-14,6,4,3,0.4); W.wild(ctx,'goat',22,-14,3,4,0.4); W.wild(ctx,'dog',-18,18,1,4,0.6);
   ctx.bounds={x0:-100,x1:100,z0:-100,z1:100};
 };
 
@@ -148,6 +152,7 @@ S.yarden=function(ctx,st){
   mk(ctx,'jesusOut',-9.5,-2.2); mk(ctx,'wild',-70,-40);
   mk(ctx,'lambWalk',-9,-6); mk(ctx,'passBy',-14,-10); mk(ctx,'staying',-40.5,-25.5); mk(ctx,'followPt',-22,-14); mk(ctx,'followMe',-16.5,-8.5);
   mk(ctx,'edgeW',-7.4,1); mk(ctx,'edgeE',7.4,-1);
+  W.wild(ctx,'boar',-28,60,2,8,0.6); W.wild(ctx,'jackal',30,-60,1,10,0.8); W.wild(ctx,'lizard',-26,-10,2,6,0.5);
   ctx.bounds={x0:-150,x1:150,z0:-150,z1:150};
 };
 
@@ -170,6 +175,9 @@ S.wilderness=function(ctx,st){
   for(let k=0;k<18;k++){ const a=W.hash(k,41)*6.28, r=14+W.hash(k,42)*60, x=Math.cos(a)*r, z=Math.sin(a)*r;
     st.box(x-0.6,0,z-0.6,x+0.6,0.9,z+0.6,'leaves'); }   /* broom in the wadis */
   mk(ctx,'seat',0,-0.6); mk(ctx,'stones',0,3);
+  /* "He was with the wild beasts" (Mark 1:13) */
+  W.wild(ctx,'jackal',24,-30,2,10,0.8); W.wild(ctx,'hyena',-40,36,1,10,0.7); W.wild(ctx,'goat',40,40,3,10,0.6);
+  W.wild(ctx,'lizard',6,8,3,6,0.5); W.wild(ctx,'scorpion',-5,6,3,4,0.2); W.wild(ctx,'viper',9,-6,1,4,0.25);
   ctx.bounds={x0:-200,x1:200,z0:-200,z1:200};
 };
 /* "a very high mountain" (Mattithyahu 4:8): the land falls away on every side */
@@ -182,6 +190,7 @@ S.mountain=function(ctx,st){
   for(let k=0;k<14;k++){ const a=k/14*6.28+W.hash(k,61), r=150+W.hash(k,62)*90, x=Math.cos(a)*r, z=Math.sin(a)*r;
     const G=W.glow(ctx,x,ctx.groundY(x,z)+3,z,10+W.hash(k,63)*8,0xffd9a0,0); G.sprite.material.fog=false; G.visible=false; ctx.kingdoms.push(G); }
   mk(ctx,'summit',0,0);
+  W.wild(ctx,'goat',-30,24,3,10,0.6); W.wild(ctx,'leopard',44,-38,1,12,0.7);   /* Ḥermon, "the mountains of the leopards" */
   ctx.bounds={x0:-200,x1:200,z0:-200,z1:200};
 };
 
@@ -203,6 +212,7 @@ S.qanah=function(ctx,st){
   for(let k=0;k<14;k++){ const a=W.hash(k,1)*6.28, r=30+W.hash(k,2)*40; W.olive(st,Math.cos(a)*r,Math.sin(a)*r,1); }
   st.box(cx+7,0,cz+16,cx+9,0.8,cz+18,C.stone); W.jar(st,cx+9.6,cz+17);            /* the well */
   mk(ctx,'well',cx+8,cz+15); mk(ctx,'gate',cx,cz+9); mk(ctx,'lane',cx-2,cz+22); mk(ctx,'master',cx+2.5,cz-5.4);
+  W.wild(ctx,'chicken',cx+6,cz+20,4,3,0.4); W.wild(ctx,'dog',cx-6,cz+26,1,4,0.6); W.wild(ctx,'donkey',cx+18,cz+12,1,2,0.3);
   mk(ctx,'jars',cx-6,cz+5.2); mk(ctx,'bride',cx-1,cz-1.2); mk(ctx,'miryam',cx-4,cz+2.6); mk(ctx,'yahusha',cx-1.6,cz+3.6);
   ctx.bounds={x0:-120,x1:120,z0:-120,z1:120};
 };
@@ -237,6 +247,7 @@ function galil(ctx,st,o){
     /* the beach: boats drawn up, nets on their racks */
     for(const z of [-14,-10]){ st.box(SHORE.x-4,0,z-0.1,SHORE.x-0.6,1.6,z+0.1,C.timber,{collide:false}); }
     st.box(SHORE.x-4,1.5,-14.1,SHORE.x-0.6,1.65,-9.9,0xb8a882,{collide:false});
+    W.wild(ctx,'chicken',-16,14,4,3,0.4); W.wild(ctx,'goat',-28,-20,3,4,0.4); W.wild(ctx,'dog',-4,18,1,4,0.6);
     mk(ctx,'beach',SHORE.x-3,4); mk(ctx,'street',-2,0); mk(ctx,'house',4,10); mk(ctx,'houseDoor',8,10);
     mk(ctx,'mount',-40,6); mk(ctx,'mountTop',-48,6); mk(ctx,'mountCrowd',-34,6);
   } else {

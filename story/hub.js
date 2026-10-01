@@ -83,14 +83,20 @@ function bonds(){
     return '<div class="bond"><span class="bn">'+esc(b.name)+'</span><span class="bs">'+near+' · '+n+' scene'+(n>1?'s':'')+'</span>'+
       '<span class="bw">'+b.scenes.map(titleOf).map(esc).join(' — ')+'</span></div>'; }).join('');
 }
+/* what the witness said on the road — "the journal will remember that" */
+function said(){
+  const C=Object.values(save.choices||{}), el=$('said'); if(!el) return;
+  el.innerHTML=C.length?C.map(c=>'<div class="bond"><span class="bn">“'+esc(c.said)+'”</span><span class="bs">'+esc(c.where||'')+'</span></div>').join('')
+    :'<div class="cx-v dim">Nothing yet. What you say on the road is written here.</div>';
+}
 function render(){
   const r='GALATIANS 4:4'; if(ST.text[r]){ $('h-verse').textContent=ST.text[r].t; $('h-ref').textContent=r; }
   const q=new URLSearchParams(location.search), d=q.get('done');
   const a=d&&ST.acts.find(x=>x.id===d); $('hub-msg').textContent=a?'The act is complete: '+a.title+'.':'';
-  acts(); $('hub-codex').innerHTML=codexHTML(); drawMap(); bonds();
+  acts(); $('hub-codex').innerHTML=codexHTML(); drawMap(); bonds(); said();
 }
 $('h-reset').onclick=()=>{ if(!confirm('Wash the family scroll clean and begin the road again?')) return;
-  save.codex={}; save.acts={}; save.witnessed=0; save.road={}; save.bonds={}; persist(); render(); };
+  save.codex={}; save.acts={}; save.witnessed=0; save.road={}; save.bonds={}; save.choices={}; persist(); render(); };
 window.__HUB={save,render};
 render();
 })();
