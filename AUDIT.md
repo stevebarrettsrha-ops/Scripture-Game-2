@@ -9975,6 +9975,23 @@ before it is folded, and the block array is mipmapped.
 - **Voices:** 487 of 487 lines recorded (Martha and Miryam of Bĕyth Anyah are new voices).
 - **Playthrough:** all five acts play through with no errors and 0 face-exposed frames.
 
+**Yasharal's village moves out of the city.**
+
+- **Why it moved.** It had stood 376 units from the city's centre, which is inside the walls
+  of the city that now stands on Moriyah. Sites within 900 units of her are refused, so its
+  site is now set in `countries/israel.js` (`site:[30.6,34.84]`). That is the most level dry
+  ground in the land that is clear of the city and of the Galil scenes.
+- **Tests 18 and 62** pass there.
+- **Test 63 does not pass yet.** Its bed check needs 19 of 33 lying at 800 frames; this
+  village gets 16–17 (13–15 on the site the search found before the pin). Round 112 sits on
+  that line, passing 2 of 3 runs with 18–19. Its village had stood on the ground the old city
+  had levelled: about 130 steps of two or more blocks within the village's reach. Every site in
+  Yasharal clear of the city has 290 or more. This is the folk finding their way home over
+  stepped ground, not a fault in the doors or the beds. Settling it means levelling more
+  ground about a village or improving the folk's path home, and either change touches every
+  village in the world.
+
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
