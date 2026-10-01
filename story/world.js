@@ -89,7 +89,8 @@ W.heightFn=function(o){
     const t=Math.max(0,Math.min(1,(d-flat)/60));
     let h=(vnoise(x*0.02,z*0.02)-0.3)*hills*t + vnoise(x*0.09,z*0.09)*0.6*t;
     if(o.valley) h-=Math.max(0,1-Math.abs(z-o.valley.z)/o.valley.w)*o.valley.d*t;
-    if(o.peak){ const p=o.peak, q=Math.max(0,1-Math.hypot(x-p.x,z-p.z)/p.r); h+=p.h*q*q*(3-2*q); }
+    if(o.peak){ for(const p of [].concat(o.peak)){ const q=Math.max(0,1-Math.hypot(x-p.x,z-p.z)/p.r); h+=p.h*q*q*(3-2*q); } }
+    if(o.shore){ const sh=o.shore, dx=x-sh.x; if(dx>0) return -Math.min(sh.d,dx*(sh.slope||0.12))-0.05; }
     h=Math.max(-0.2,h);
     if(o.river){ const r=o.river, dx=Math.abs(x-W.riverX(r,z));      /* the channel: a flat bed, sloping banks */
       h-=r.d*Math.max(0,Math.min(1,(r.w+r.b-dx)/r.b)); }
@@ -249,14 +250,37 @@ W.fire=function(ctx,S,x,z){
 /* ---- A PERSON, block on block ----
    Robe, sash, head-cloth, hands and feet: the voyage's figure, at the scale
    of a man (1.8 units). `o.robe`, `o.cloth`, `o.skin`; a child is `o.small`. */
+/* ---- THE PEOPLES, AS THEY LOOKED ----
+   Skin follows the palette of Scripture-Game, the game this one continues: the people of
+   Yasharal and all the lands about them (Mitsrayim, Aram, Arabia, Baḇal, Persia) brown, deep
+   to medium; the Romans and Greeks olive and tan; the Germans and the peoples of the north
+   lightest. A figure given no skin takes one of its people's by its name, so a crowd is
+   many faces, not one. */
+W.SKIN={
+  yasharal:[0x5c3a1f,0x643f1c,0x6e4524,0x704a27,0x7a4e29,0x7c5430,0x855a33,0x8a6038],
+  roman:[0xb8845a,0xc08c60,0xc8956a,0xc8a07a], greek:[0xc8956a,0xc8a07a,0xd8b48a],
+  north:[0xe8c9a4,0xe2bf9c,0xeccdb0]
+};
+W.skinFor=function(o){ const P=W.SKIN[o.folk||'yasharal']||W.SKIN.yasharal;
+  let h=2166136261; const k=String(o.id||o.name||'')+(o.at||''); for(let i=0;i<k.length;i++){ h^=k.charCodeAt(i); h=Math.imul(h,16777619); }
+  return P[(h>>>0)%P.length]; };
+/* THE FALLEN, as Scripture-Game draws Satan, Mastema and the Watchers (its `darkAngel`): a
+   robe of deep violet-grey (#2a2230), a mantle of dark crimson (#5a1a24), hair and beard near
+   black, a shadowed, ashen face, and a dim violet light about him (rgb 120,80,140). */
+W.FALLEN={robe:0x2a2230, sash:0x5a1a24, cloth:0x120a0a, beard:0x120a0a, skin:0x4a3a40, under:0x1e1824, brow:0x120a0a};
 W.person=function(ctx,o){
-  o=o||{}; const g=new THREE.Group(), s=o.small?0.72:1;
+  o=o||{};
+  if(o.fallen) o=Object.assign(o,W.FALLEN,{kind:o.kind||'dark'});
+  /* YAHUSHA: a body like every other man's — a man of Yasharal, brown, in a plain robe of
+     undyed wool with a mantle of blue — and His face never shown: the figure is made with
+     no face at all, and the engine keeps every camera from looking on the front of His
+     head (story/engine.js, guardFace) */
+  if(o.holy) o=Object.assign(o,{robe:o.robe||0xd6c9a8, cloth:o.cloth||0xe2d8c0, sash:o.sash||0x3f5a8a, skin:o.skin||0x704a27, under:0x8a7a62, beard:null});
+  if(!o.skin) o.skin=W.skinFor(o);
+  const g=new THREE.Group(), s=o.small?0.72:1;
   let mat=c=>new THREE.MeshLambertMaterial({color:c});
   const bx=(w,h,d,c,x,y,z)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c)); m.position.set(x,y,z); if(c===robe) robeMats.push(m.material); return m; };
   const robeMats=[];
-  if(o.light){                      /* reverent framing: He is shown as light, with no face */
-    const lm=c=>new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.9});
-    const cache={}; mat=c=>cache[c]||(cache[c]=lm(c)); o=Object.assign({},o,{robe:0xfff0cf,cloth:0xfffaf0,skin:0xfbe6c4,under:0xf3e2c0,sash:0xf0d9a8,beard:null,staff:false}); }
   const skin=o.skin||0x8a5a3a, robe=o.robe||0x9a8466, clothC=o.cloth||0xd9cfb6;
   const legL=bx(0.26,0.8,0.28,o.under||0x5b4a3a,-0.14,0.4,0), legR=bx(0.26,0.8,0.28,o.under||0x5b4a3a,0.14,0.4,0);
   const body=bx(0.62,0.9,0.36,robe,0,1.15,0);
@@ -279,8 +303,8 @@ W.person=function(ctx,o){
   armR.add(bx(0.2,0.7,0.24,robe,0,-0.33,0)); armR.add(bx(0.18,0.16,0.2,skin,0,-0.74,0));
   if(o.beard) g.add(bx(0.36,0.18,0.08,o.beard,0,1.66,0.2));
   /* THE FACE: eyes, brows and a mouth that opens with the words (Scripture-Game's face.js,
-     in blocks). He who is shown as light has none: reverent framing gives Him no face. */
-  if(!o.light){
+     in blocks). Yahusha has none: His face is never shown (reverent framing). */
+  if(!o.holy){
     const fm=c=>new THREE.MeshBasicMaterial({color:c});
     const dark=fm(0x1c120b), lipC=fm(0x3a1810), browC=fm(o.brow||(o.beard&&o.beard!==0x6d6a66?o.beard:0x2a1d14));
     const fb=(w,h,m,x,y,z)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,0.012),m); q.position.set(x,y,z); g.add(q); return q; };
@@ -295,8 +319,9 @@ W.person=function(ctx,o){
   g.add(legL,legR,body,skirt,sash,head,hc,hcb,armL,armR);
   if(o.staff){ const st=bx(0.08,2.2,0.08,C.timber,0.12,-0.2,0.18); armR.add(st); }
   if(o.carry){ const it=bx(0.3,0.36,0.24,o.carry,0,-0.85,0.2); armR.add(it); g.userData.carry=it; }
-  if(o.light){ const G=W.glow({scene:g},0,1.2,0,4.2,0xfff0c8,0); G.sprite.material.opacity=0.75; g.userData.aura=G;
-    const L=new THREE.PointLight(0xffecc0,0.9,10,1.6); L.position.set(0,1.6,0.6); g.add(L); }
+  if(o.fallen){ const G=W.glow({scene:g},0,1.2,0,3.6,0x785090,0); G.sprite.material.opacity=0.6; g.userData.aura=G;
+    const sh=W.glow({scene:g},0,0.05,0,2.4,0x3a2244,0); sh.sprite.material.opacity=0.5; }
+  if(o.holy) g.userData.holy=true;
   g.scale.setScalar(s);
   g.userData={legL,legR,armL,armR,phase:Math.random()*6,s,robeMats,cloth,...g.userData};
   ctx.scene.add(g); return g;
@@ -310,6 +335,52 @@ W.dove=function(ctx,x,y,z){
   const G=W.glow({scene:g},0,0,0,2.6,0xfff8e4,0); G.sprite.material.opacity=0.9;
   g.userData.wings=[wl,wr]; g.position.set(x,y,z); ctx.scene.add(g); return g;
 };
+/* a fishing boat of the lake: planked hull, a thwart, a mast stepped amidships (the
+   Kinnereth boat found at Ginosar, 8 m by 2.3) — a group, so it can be moved on the water */
+W.boat=function(ctx,x,z,o){ o=o||{};
+  const g=new THREE.Group(), m=c=>new THREE.MeshLambertMaterial({color:c});
+  const b=(w,h,d,c,px,py,pz)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m(c)); q.position.set(px,py,pz); g.add(q); return q; };
+  const wood=0x6a4a30, dark=0x4a3220;
+  b(2.0,0.25,7.0,dark,0,-0.35,0);                                     /* the bottom */
+  b(0.18,0.75,7.0,wood,-1.05,0.05,0); b(0.18,0.75,7.0,wood,1.05,0.05,0);  /* the sides */
+  b(2.1,0.75,0.2,wood,0,0.05,3.5); b(1.6,0.9,0.5,wood,0,0.15,3.9);  /* the bow */
+  b(2.1,0.75,0.2,wood,0,0.05,-3.5);                                   /* the stern */
+  b(2.0,0.1,0.4,0x8a6a48,0,0.2,0.8);                                  /* a thwart */
+  if(o.mast!==false){ b(0.16,4.5,0.16,0x7a5a3e,0,2.4,1.2); b(2.6,0.1,0.1,0x7a5a3e,0,3.9,1.2); }
+  g.position.set(x,o.y===undefined?-0.2:o.y,z); g.rotation.y=o.face||0; ctx.scene.add(g); return g; };
+/* a net, heaped or hanging, and the fish that fill it */
+W.net=function(ctx,x,z,o){ o=o||{};
+  const g=new THREE.Group(), mat=new THREE.MeshLambertMaterial({color:0xb8a882,transparent:true,opacity:0.75});
+  const q=new THREE.Mesh(new THREE.BoxGeometry(o.w||1.6,o.h||0.4,o.d||1.4),mat); g.add(q);
+  const fish=new THREE.Group(), fm=new THREE.MeshLambertMaterial({color:0xc8ccd0,emissive:0x2a2c30});
+  for(let k=0;k<(o.n||40);k++){ const f=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.08,0.1),fm);
+    f.position.set((hash(k,1)-0.5)*(o.w||1.6)*0.9,(hash(k,2)-0.3)*(o.h||0.4)*1.6,(hash(k,3)-0.5)*(o.d||1.4)*0.9); f.rotation.y=hash(k,4)*6; fish.add(f); }
+  fish.visible=!!o.full; g.add(fish); g.userData.fish=fish;
+  g.position.set(x,o.y||0,z); ctx.scene.add(g); return g; };
+/* a stone water-jug "according to the mode of cleansing" (Yahuchanon 2:6): chalk stone, waist-high */
+W.stoneJar=function(ctx,x,z){
+  const g=new THREE.Group(), m=new THREE.MeshLambertMaterial({color:0xd8d0bc});
+  const a=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.95,0.62),m); a.position.y=0.475; g.add(a);
+  const r=new THREE.Mesh(new THREE.BoxGeometry(0.74,0.1,0.74),m); r.position.y=0.95; g.add(r);
+  const w=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.02,0.5),new THREE.MeshBasicMaterial({color:0x6f8f9a})); w.position.y=0.94; w.visible=false; g.add(w);
+  g.userData.fill=w; g.position.set(x,0,z); ctx.scene.add(g); return g; };
+W.basket=function(ctx,x,z,full){
+  const g=new THREE.Group();
+  const a=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.4,0.6),new THREE.MeshLambertMaterial({color:0xa8844a})); a.position.y=0.2; g.add(a);
+  const f=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.12,0.5),new THREE.MeshLambertMaterial({color:0xd8b878})); f.position.y=0.42; f.visible=!!full; g.add(f);
+  g.userData.fill=f; g.position.set(x,0,z); ctx.scene.add(g); return g; };
+/* THE CHILD in the feeding trough, wrapped up (Luke 2:7): a swaddled body, the cloth drawn
+   over His head, lying with His face toward the back of the stall — and never seen (the
+   engine's guard keeps every camera from it) */
+W.infant=function(ctx,x,z,o){ o=o||{};
+  const g=new THREE.Group(), m=c=>new THREE.MeshLambertMaterial({color:c});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.2,0.22),m(0xefe6d2)); g.add(body);
+  for(const bx of [-0.18,0,0.18]){ const band=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.21,0.23),m(0xd8ccb0)); band.position.x=bx; g.add(band); }
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.17,0.17),m(0x704a27)); head.position.set(0.38,0.02,0); g.add(head);
+  const hood=new THREE.Mesh(new THREE.BoxGeometry(0.21,0.2,0.19),m(0xefe6d2)); hood.position.set(0.39,0.04,0.012); g.add(hood);
+  g.position.set(x,o.y||0.62,z); g.rotation.y=o.face||0; ctx.scene.add(g);
+  g.userData.holy=true; g.userData.head=head; g.userData.faceDir=new THREE.Vector3(0,0,-1);
+  return g; };
 /* a sheep; `lamb` smaller */
 W.sheep=function(ctx,x,z,lamb){
   const g=new THREE.Group(), s=lamb?0.62:1, m=c=>new THREE.MeshLambertMaterial({color:c});

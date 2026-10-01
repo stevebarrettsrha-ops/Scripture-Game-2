@@ -7107,7 +7107,7 @@ const faceTexP=mkTex(g=>{ g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,0,16,16);
   for(let y=4;y<8;y++) for(const x of [0,1,14,15]){           /* sideburns */
     const c=jit(HAIR_RGB,16,x*7+y); P(g,x,y,rgb(c[0],c[1],c[2])); }
   g.fillStyle='rgb(255,255,255)'; g.fillRect(3,8,2,2); g.fillRect(11,8,2,2);  /* eyes */
-  g.fillStyle=C(PF.eye);         g.fillRect(5,8,2,2); g.fillRect(9,8,2,2);    /* the blue of the veil */
+  g.fillStyle=C(PF.eye);         g.fillRect(5,8,2,2); g.fillRect(9,8,2,2);    /* dark brown */
   g.fillStyle=C(PF.nose);        g.fillRect(7,10,2,2);                         /* the nose */
   g.fillStyle=C(PF.mouth); g.fillRect(6,13,4,FG); g.fillRect(5,12,FG,FG); g.fillRect(10,12,FG,FG); /* the mouth */ });
 const hairTopTex=mkTex(g=>speckle(g,HAIR_RGB,14,[38,26,14],0.35));
@@ -7202,36 +7202,74 @@ function robeMatFor(idx){
    Real folk, built like the traveller — hair, an ancient robe, striding
    legs — no more big-nosed villager mobs. Skin, hair and robe vary by seed;
    a role gives each a tool and a task (herding, hunting, teaching, tilling). */
-const P_SKIN=[0xc79467,0xb07c54,0x966642,0x7c5436,0xd8a878,0x8a5a36];
-const P_HAIR=[[74,50,30],[40,28,20],[96,74,44],[150,130,96],[28,28,32],[110,86,54]];
+/* THE PEOPLES OF THE EARTH, AS THEY LOOKED. Skin, hair and eyes come from where a village
+   stands, in the palette of Scripture-Game (the game this one continues): the people of
+   Yasharal and of all the lands about them — Mitsrayim, Arabia, Ashshur and Baḇal, Persia —
+   brown, from deep to medium (Haḡar #573920 … an elder of Yasharal #8a6038); Africa south of
+   the desert deeper; the Greeks and Romans of the middle sea lighter, olive and tan (a
+   soldier of the Greeks #c8956a, Antiochus #d8b48a); the Germans and the other peoples of the
+   cold north lightest, and only there light hair and light eyes. */
+const FOLKS={
+  levant:{skin:[0x5c3a1f,0x643f1c,0x6e4524,0x704a27,0x7a4e29,0x7c5430,0x855a33,0x8a6038],
+          hair:[[40,28,20],[28,22,18],[52,36,24],[34,26,20]], eye:[[58,38,24],[44,30,20],[66,44,26]]},
+  africa:{skin:[0x3e2716,0x4a2e1a,0x51321c,0x573920,0x5c3a1f],
+          hair:[[24,20,18],[30,24,20]], eye:[[44,30,20],[36,26,18]]},
+  india: {skin:[0x5e3c22,0x6b4828,0x744c2c,0x7a5232,0x8a5e34],
+          hair:[[24,20,18],[34,26,20]], eye:[[44,30,20],[58,38,24]]},
+  med:   {skin:[0xb8845a,0xc08c60,0xc8956a,0xc8a07a,0xd8b48a],
+          hair:[[40,28,20],[52,36,24],[74,50,30],[28,22,18]], eye:[[58,38,24],[66,44,26],[70,80,60]]},
+  north: {skin:[0xe8c9a4,0xe2bf9c,0xd8b48a,0xeccdb0],
+          hair:[[150,130,96],[110,86,54],[96,74,44],[74,50,30],[160,96,52]], eye:[[62,86,120],[90,110,120],[70,90,70],[66,44,26]]},
+  east:  {skin:[0xc89a6e,0xd0a678,0xb88a5e,0xc49464],
+          hair:[[24,20,18],[30,24,22]], eye:[[44,30,20],[36,26,18]]},
+  west:  {skin:[0x8a5e38,0x9a6a40,0xa8764a,0x7a5232],
+          hair:[[24,20,18],[30,24,22]], eye:[[44,30,20],[58,38,24]]}
+};
+/* which people a place on the earth belongs to */
+function folkAt(lat,lon){
+  if(lon>=-20&&lon<=65){
+    if(lat>=47) return 'north';                                   /* Germania, the Baltic, the north */
+    if(lat>=36&&lon<28) return 'med';                              /* Iberia, Gaul's south, Italy, Greece */
+    if(lat>=40&&lon<45) return lon<36?'med':'north';               /* Anatolia's west coast; the steppe */
+    if(lat>=12||(lat>=4&&lon>=32&&lon<=52)) return 'levant';       /* Mitsrayim, Yasharal, Arabia, Mesopotamia, Persia, Kush */
+    return 'africa'; }
+  if(lon>65&&lon<=97){ if(lat>=40) return 'east'; if(lat>=6) return 'india'; return 'india'; }
+  if(lon>97&&lon<=180){ if(lat<-10&&lon>110) return 'africa'; return 'east'; }
+  if(lon<-30&&lon>=-170) return 'west';
+  return 'levant';
+}
+function folkOfCountry(i){
+  const co=COUNTRIES[i]; if(!co||!co.c) return 'levant';
+  const u=co.c[0], v=co.c[1]; return folkAt(90-180*Math.hypot(u,v),Math.atan2(u,v)*180/Math.PI);
+}
 function hairHex(h){ return (h[0]<<16)|(h[1]<<8)|h[2]; }
 const personHead={};
-function personFaceTex(skHex,HR){
+function personFaceTex(skHex,HR,EY){
   const r=(skHex>>16)&255,g2=(skHex>>8)&255,b2=skHex&255;
   return mkTex(g=>{ g.fillStyle=rgb(r,g2,b2); g.fillRect(0,0,16,16);
     for(let y=0;y<6;y++)for(let x=0;x<16;x++){ if(y<4||hash2(x*3.1,y*7.7)>0.5){
       const c=jit(HR,22,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } }
     g.fillStyle='rgb(58,42,28)'; g.fillRect(2,6,5,1); g.fillRect(9,6,5,1);      // brows
     g.fillStyle='rgb(255,255,255)'; g.fillRect(3,8,3,2); g.fillRect(10,8,3,2);  // eyes
-    g.fillStyle='rgb(62,86,120)'; g.fillRect(4,8,2,2); g.fillRect(11,8,2,2);
+    g.fillStyle=rgb(EY[0],EY[1],EY[2]); g.fillRect(4,8,2,2); g.fillRect(11,8,2,2);
     g.fillStyle=rgb(Math.max(0,r-40),Math.max(0,g2-34),Math.max(0,b2-30)); g.fillRect(7,10,2,2);
     g.fillStyle='rgb(120,72,48)'; g.fillRect(6,13,4,1); }); }
-function personHeadMats(si,hi){
-  const key=si+','+hi; if(personHead[key]) return personHead[key];
-  const sk=P_SKIN[si], hairM=lam(hairHex(P_HAIR[hi]));
-  const faceM=new THREE.MeshLambertMaterial({map:personFaceTex(sk,P_HAIR[hi])});
+function personHeadMats(sk,HR,EY){
+  const key=sk+','+HR+','+EY; if(personHead[key]) return personHead[key];
+  const hairM=lam(hairHex(HR));
+  const faceM=new THREE.MeshLambertMaterial({map:personFaceTex(sk,HR,EY)});
   const mats=[hairM,hairM,hairM,lam(sk),faceM,hairM];   // [px,nx,top,bottom,front,back]
   personHead[key]=mats; return mats;
 }
-function makePerson(seed, role, child, female){
-  const g=new THREE.Group();
-  const si=Math.floor(hash2(seed,1.1)*P_SKIN.length);
-  const hi=Math.floor(hash2(seed,2.3)*P_HAIR.length);
+function makePerson(seed, role, child, female, folk){
+  const g=new THREE.Group(), F=FOLKS[folk]||FOLKS.levant;
+  const sk=F.skin[Math.floor(hash2(seed,1.1)*F.skin.length)];
+  const HR=F.hair[Math.floor(hash2(seed,2.3)*F.hair.length)], EY=F.eye[Math.floor(hash2(seed,4.9)*F.eye.length)];
   const robeM=robeMatFor(Math.floor(hash2(seed,3.7)*ROBES.length));
-  const head=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),personHeadMats(si,hi));
+  const head=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),personHeadMats(sk,HR,EY));
   head.position.y=10.4; g.add(head);
   if(female){ /* long hair falling to the shoulders behind and beside */
-    const hm=lam(hairHex(P_HAIR[hi]));
+    const hm=lam(hairHex(HR));
     const back=new THREE.Mesh(new THREE.BoxGeometry(3.2,3.6,0.6),hm); back.position.set(0,9.0,-1.6); g.add(back);
     for(const s of [1,-1]){ const fall=new THREE.Mesh(new THREE.BoxGeometry(0.6,2.6,2.6),hm);
       fall.position.set(s*1.75,9.4,-0.3); g.add(fall); } }
@@ -12421,6 +12459,7 @@ function* spawnVillage(i,exShell){
       const x=wx+Math.cos(th)*r, z=wz+Math.sin(th)*r;
       if(spawnFree(x,z)) return {x,z}; }
     return {x:wx,z:wz}; };
+  const folk=folkOfCountry(i);                     /* the people of this land, as they looked */
   const addPerson=(role,hx,hz,roamR,child,female,data)=>{
     const seed=i*1000+people.length*7;
     const onDk=deckMap.get(Math.floor(hx/B)+','+Math.floor(hz/B))!==undefined;
@@ -12428,7 +12467,7 @@ function* spawnVillage(i,exShell){
       const cc=landAtWorld(hx,hz);
       if(!cc||cc.kind==='wall'){ hx=cx; hz=cz; }
       const sp=clearSpawn(hx,hz); hx=sp.x; hz=sp.z; }
-    const per=makePerson(seed,role,child,female);
+    const per=makePerson(seed,role,child,female,folk);
     per.position.set(hx,topY(Math.floor(hx/B),Math.floor(hz/B)),hz); g.add(per);
     placedAt.push({x:hx,z:hz});
     const ent=Object.assign({m:per,role,hx,hz,roamR:roamR||3,tx:hx,tz:hz,t:hash2(seed,7)*4,

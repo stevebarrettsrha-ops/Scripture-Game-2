@@ -1005,6 +1005,10 @@
   "kind": "crowd",
   "voice": "am_liam:.5+am_puck:.5"
  },
+ "kephar": {
+  "kind": "crowd",
+  "voice": "bm_fable:.5+am_liam:.5"
+ },
  "kerubim": {
   "kind": "angel",
   "voice": "am_michael:.6+bm_fable:.4"
@@ -1204,6 +1208,10 @@
  "mastema": {
   "kind": "dark",
   "voice": "bm_lewis:.5+am_eric:.5"
+ },
+ "master": {
+  "kind": "oldman",
+  "voice": "am_fenrir:.6+bm_daniel:.4"
  },
  "mattityahu": {
   "kind": "oldman",
@@ -1496,6 +1504,10 @@
  "pharaoh": {
   "kind": "man",
   "voice": "am_fenrir"
+ },
+ "philip": {
+  "kind": "man",
+  "voice": "am_eric"
  },
  "pinehas": {
   "kind": "man",
@@ -1921,6 +1933,10 @@
   "kind": "man",
   "voice": "am_fenrir:.5+bm_fable:.5"
  },
+ "taught": {
+  "kind": "crowd",
+  "voice": "am_puck:.5+am_eric:.5"
+ },
  "tax collectors": {
   "kind": "man",
   "voice": "am_fenrir:.6+am_echo:.4"
@@ -1940,6 +1956,10 @@
  "they": {
   "kind": "crowd",
   "voice": "am_liam:.5+am_echo:.5"
+ },
+ "those in the qahal": {
+  "kind": "crowd",
+  "voice": "am_eric:.5+bm_fable:.5"
  },
  "those sent from yahrushalayim": {
   "kind": "oldman",
@@ -2013,9 +2033,21 @@
   "kind": "man",
   "voice": "am_fenrir:.6+am_echo:.4"
  },
+ "two blind men": {
+  "kind": "man",
+  "voice": "am_michael:.6+am_adam:.4"
+ },
  "two taught ones": {
   "kind": "man",
   "voice": "am_puck:.5+am_michael:.5"
+ },
+ "two taught ones of yahuchanon": {
+  "kind": "man",
+  "voice": "am_echo:.5+bm_daniel:.5"
+ },
+ "unclean": {
+  "kind": "dark",
+  "voice": "am_liam:.5+bm_lewis:.5"
  },
  "urial": {
   "kind": "angel",

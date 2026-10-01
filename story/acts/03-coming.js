@@ -7,8 +7,9 @@
    What you did NOT see — the account of Natsareth, the dream of Yosĕph,
    Herodes' court — is shown as the Besorah tells it, and said to be so.
 
-   Reverent framing (Key Decision 1): the mal'ak is light and the Child is
-   light; neither is given a figure or a face. */
+   Reverent framing (Key Decision 1): the mal'ak is light; the Child has a body, swaddled
+   in the feeding trough, and His face is never shown (the engine keeps every camera from
+   it). */
 const MIRYAM={robe:0x3f5a8a, cloth:0xe8e2d2, skin:0x8e5c3c, kind:'woman'};
 const YOSEPH={robe:0x6e5238, cloth:0xcfc4aa, beard:0x3a2a1e, skin:0x86573a};
 const BOY={small:true, robe:0x8a7454, cloth:0xd8cfb8};
@@ -129,8 +130,9 @@ STORY.act({
       {id:'sh2', name:'A shepherd', at:[-1,36], face:Math.PI, robe:0x5c5040, cloth:0xa89a7e, beard:0x2c241f, staff:true},
       {id:'sh3', name:'A shepherd', at:[1,35.5], face:Math.PI, robe:0x74604a, cloth:0xc1b394}
     ],
-    things:[ {id:'lamp', kind:'box', at:[5.6,1.4], w:0.28, h:0.3, d:0.28, color:0xb0703a} ],
-    glows:[ {id:'child', at:[7,1.0,-1], size:2.2, color:0xfff3d0, intensity:1.1, pulse:true},
+    things:[ {id:'lamp', kind:'box', at:[5.6,1.4], w:0.28, h:0.3, d:0.28, color:0xb0703a},
+             {id:'infant', kind:'infant', at:[7,-1], y:0.7} ],
+    glows:[ {id:'child', at:[6.6,1.9,-0.4], size:1.3, color:0xffd9a0, intensity:0.9},
             {id:'lampLight', at:[5.6,1.9,1.4], size:1.6, color:0xffc070, intensity:0.8, hidden:true},
             {id:'l1', at:[-1,2.2,1.2], size:1.4, color:0xffc070, intensity:0},
             {id:'l2', at:[12.9,2.1,6], size:1.4, color:0xffc070, intensity:0} ],

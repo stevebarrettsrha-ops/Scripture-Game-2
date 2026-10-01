@@ -64,7 +64,22 @@ S.yahrushalayim=function(ctx,st){
 
 /* ================= NATSARETH, a village of Galil ================= */
 S.natsareth=function(ctx,st){
-  W.ground(ctx,{size:360,color:C.grass,alt:C.grassDry,flat:30,hills:14});
+  W.ground(ctx,{size:360,color:C.grass,alt:C.grassDry,flat:30,hills:14,peak:{x:52,z:-58,h:16,r:34}});
+  /* the qahal where He read (Luke 4:16): a hall of stone on pillars, open along its front so
+     the light comes in, benches about the walls, and the place where the scroll is read */
+  { const qx=-2, qz=-26;
+    st.box(qx-8,0,qz-6,qx+8,0.3,qz+6,C.stone,{collide:false});
+    st.box(qx-8,0.3,qz-6,qx+8,4.2,qz-5.5,C.limestone); st.box(qx-8,0.3,qz-6,qx-7.5,4.2,qz+6,C.limestone); st.box(qx+7.5,0.3,qz-6,qx+8,4.2,qz+6,C.limestone);
+    for(const px of [-7.6,-4,0,4,7.6]) st.box(qx+px-0.3,0.3,qz+5.5,qx+px+0.3,4.2,qz+6.1,C.limestone);
+    st.box(qx-8.3,4.2,qz-6.3,qx+8.3,4.6,qz+6.3,C.roofEarth,{collide:false});
+    for(const sd of [-1,1]) st.box(qx-7.4,0.3,qz+sd*4.6-0.5,qx+7.4,0.75,qz+sd*4.6+0.5,C.stoneDark,{collide:false});
+    st.box(qx-7.4,0.3,qz-5.4,qx+7.4,0.75,qz-4.4,C.stoneDark,{collide:false});            /* benches about the walls */
+    st.box(qx-1,0.3,qz-2.2,qx+1,1.3,qz-1.4,C.timber);                                     /* the reading-desk */
+    mk(ctx,'qahal',qx,qz); mk(ctx,'reader',qx,qz-1); mk(ctx,'qahalDoor',qx,qz+9); mk(ctx,'qahalSeat',qx+3.4,qz+2.4); }
+  /* the brow of the hill on which their city was built (Luke 4:29): a rock edge and the drop */
+  for(let k=0;k<7;k++){ const x=62+k*1.6, z=-66+W.hash(k,9)*3; const y=ctx.groundY(x,z);
+    st.box(x-0.9,y-3,z-0.9,x+0.9,y+0.5+W.hash(k,4)*0.6,z+0.9,C.rock); }
+  mk(ctx,'brow',56,-60); mk(ctx,'browEdge',60,-63);
   const hs=[[-12,-6],[-4,-10],[6,-8],[14,-2],[-14,6],[10,8],[-3,12],[18,12]];
   hs.forEach(([x,z],k)=>W.house(st,x,z,5.5,5,{door:z<0?'s':'n',color:k%3?C.mudbrick:C.whitewash,h:2.8}));
   st.box(-1,0,-1,3,0.5,3,C.stone); W.jar(st,0,0); W.jar(st,1.2,0.4);            /* the spring */
@@ -202,4 +217,72 @@ S.mountain=function(ctx,st){
   mk(ctx,'summit',0,0);
   ctx.bounds={x0:-200,x1:200,z0:-200,z1:200};
 };
+
+/* ================= QANAH OF GALIL: the wedding =================
+   A courtyard house on the hill village: rooms on three sides, an awning of branches over
+   the tables, lamps, the six stone water-jugs by the door (Yahuchanon 2:6), and the village
+   well a little way down the lane. */
+S.qanah=function(ctx,st){
+  W.ground(ctx,{size:360,color:C.grass,alt:C.grassDry,flat:34,hills:16});
+  const cx=0, cz=0;
+  st.box(cx-10,0,cz-8,cx+10,0.12,cz+8,C.path,{collide:false});
+  W.house(st,cx-4,cz-11,12,6,{door:'s',color:C.whitewash,h:3.4,noStair:true});
+  W.house(st,cx-13.5,cz,6,14,{door:'e',color:C.mudbrick,h:3.2,noStair:true});
+  W.house(st,cx+13.5,cz-2,6,10,{door:'w',color:C.whitewash,h:3.2});
+  for(const px of [-7,-2,3,8]) for(const pz of [-6,2]) st.box(cx+px-0.12,0,cz+pz-0.12,cx+px+0.12,2.7,cz+pz+0.12,C.timber,{collide:false});
+  st.box(cx-8,2.7,cz-7,cx+9,2.85,cz+3,0x7c7a4e,{collide:false});                    /* the awning */
+  for(const [x,z,w] of [[-4,-3.5,4],[2.5,-3.5,4],[-1,0.4,6]]) st.box(cx+x-w/2,0,cz+z-0.6,cx+x+w/2,0.75,cz+z+0.6,C.timber);
+  for(let k=0;k<5;k++){ const x=-6+k*3; W.glow(ctx,cx+x,2.3,cz-2,1.1,0xffc070,0); }
+  for(let k=0;k<14;k++){ const a=W.hash(k,1)*6.28, r=30+W.hash(k,2)*40; W.olive(st,Math.cos(a)*r,Math.sin(a)*r,1); }
+  st.box(cx+7,0,cz+16,cx+9,0.8,cz+18,C.stone); W.jar(st,cx+9.6,cz+17);            /* the well */
+  mk(ctx,'well',cx+8,cz+15); mk(ctx,'gate',cx,cz+9); mk(ctx,'lane',cx-2,cz+22); mk(ctx,'master',cx+2.5,cz-5.4);
+  mk(ctx,'jars',cx-6,cz+5.2); mk(ctx,'bride',cx-1,cz-1.2); mk(ctx,'miryam',cx-4,cz+2.6); mk(ctx,'yahusha',cx-1.6,cz+3.6);
+  ctx.bounds={x0:-120,x1:120,z0:-120,z1:120};
+};
+
+/* ================= THE SEA OF GALIL: Kephar Naḥum on its shore =================
+   The lake east of the stage; a beach of pebbles where the boats are drawn up and the nets
+   washed (Luke 5:2); the town of black basalt behind it, its qahal of stone; the hills going
+   up to the west, where He went up on a mountain (Mattithyahu 5:1). `village:false` is the
+   other side of the sea: the shore and the grassy slope where the five thousand sat down
+   (Yahuchanon 6:10). */
+const SHORE={x:22,d:6,slope:0.16};
+function galil(ctx,st,o){
+  W.ground(ctx,{size:520,color:o.village?C.grassDry:C.grass,alt:o.village?C.earth:C.grass,flat:30,hills:12,shore:SHORE,
+    peak:o.village?{x:-80,z:6,h:22,r:70}:{x:-46,z:0,h:12,r:56},
+    tint:(x,z,c)=>{ if(x>SHORE.x-6&&x<SHORE.x+2) c.set(0x9a9184); }});
+  const lake=new THREE.Mesh(new THREE.PlaneGeometry(600,600),new THREE.MeshLambertMaterial({color:0x4a7088,transparent:true,opacity:0.9,depthWrite:false}));
+  lake.rotation.x=-Math.PI/2; lake.position.set(SHORE.x+300-1,-0.35,0); lake.renderOrder=2; ctx.scene.add(lake); ctx.water.push(lake);
+  /* the far hills across the water: the Golan, and the Galil rising to the north */
+  for(let k=0;k<9;k++){ const z=-220+k*55, x=260+W.hash(k,3)*40, h=18+W.hash(k,4)*22;
+    st.box(x-40,-1,z-30,x+40,h,z+30,0x8a8a78,{collide:false}); }
+  for(let k=0;k<26;k++){ const z=-90+k*7, x=SHORE.x-3+W.hash(k,5)*2.2; W.rock(st,x,z,0.35+W.hash(k,6)*0.4); }
+  if(o.village){
+    const BAS=0x4e4a46, BAS2=0x5c5752;                                   /* the black basalt of Kephar Naḥum */
+    const hs=[[-8,-24],[2,-26],[-18,-14],[6,-12],[-24,4],[-10,8],[4,10],[-20,20],[-6,24],[8,24],[-30,-8],[-32,14]];
+    hs.forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:x>-12?'e':'w',color:k%2?BAS:BAS2,h:2.9}));
+    { const qx=-8, qz=-6;                                                /* the qahal (Mark 1:21) */
+      st.box(qx-6,0,qz-4.5,qx+6,0.3,qz+4.5,0x6a6560,{collide:false});
+      st.box(qx-6,0.3,qz-4.5,qx-5.5,4,qz+4.5,BAS); st.box(qx+5.5,0.3,qz-4.5,qx+6,4,qz+4.5,BAS); st.box(qx-6,0.3,qz-4.5,qx+6,4,qz-4,BAS);
+      for(const pz of [-2.2,0.6,3.4]) st.box(qx+5.3,0.3,pz-0.2+qz-0.6,qx+5.8,4,pz+0.2+qz-0.6,BAS2);
+      st.box(qx-6.3,4,qz-4.8,qx+6.3,4.35,qz+4.8,C.roofEarth,{collide:false});
+      st.box(qx-5.2,0.3,qz-3.6,qx+4.4,0.75,qz-3,C.stoneDark,{collide:false}); st.box(qx-5.2,0.3,qz+3,qx+4.4,0.75,qz+3.6,C.stoneDark,{collide:false});
+      mk(ctx,'qahal',qx,qz); mk(ctx,'qahalIn',qx+2.6,qz); mk(ctx,'qahalDoor',qx+8.5,qz); }
+    /* the beach: boats drawn up, nets on their racks */
+    for(const z of [-14,-10]){ st.box(SHORE.x-4,0,z-0.1,SHORE.x-0.6,1.6,z+0.1,C.timber,{collide:false}); }
+    st.box(SHORE.x-4,1.5,-14.1,SHORE.x-0.6,1.65,-9.9,0xb8a882,{collide:false});
+    mk(ctx,'beach',SHORE.x-3,4); mk(ctx,'street',-2,0); mk(ctx,'house',4,10); mk(ctx,'houseDoor',8,10);
+    mk(ctx,'mount',-40,6); mk(ctx,'mountTop',-48,6); mk(ctx,'mountCrowd',-34,6);
+  } else {
+    for(let k=0;k<70;k++){ const x=-60+W.hash(k,7)*72, z=-50+W.hash(k,8)*100;
+      if(Math.hypot(x+20,z)<26) continue; st.box(x-0.4,ctx.groundY(x,z),z-0.4,x+0.4,ctx.groundY(x,z)+0.35,z+0.4,0x6e8a46,{collide:false}); }
+    mk(ctx,'beach',SHORE.x-3,0); mk(ctx,'slope',-20,0); mk(ctx,'seat',-30,0);
+  }
+  ctx.wind=o.wind||[0.9,0.5];
+  ctx.bounds={x0:-200,x1:SHORE.x+3,z0:-200,z1:200};
+}
+S.galil=function(ctx,st){ galil(ctx,st,{village:true}); };
+S.galilEast=function(ctx,st){ galil(ctx,st,{village:false}); };
+/* the boat in the middle of the sea by night, the wind against it (Mattithyahu 14:24) */
+S.galilSea=function(ctx,st){ galil(ctx,st,{village:false,wind:[3.2,-1.4]}); ctx.rough=3.5; ctx.bounds=null; };
 })();

@@ -8,9 +8,10 @@
      sovereign, a mother, the crowds, the voice out of the shamayim. A quotation inside a
      quotation (‘…’) stays with the one quoting it: when Yahuchanon says "as the naḇi
      Yahshayahu said", it is still Yahuchanon speaking.
-   · Everyone who speaks has a voice of their own kind (the device's own voices, the Web
-     Speech API): the narrator one warm voice; men, women, elders and a boy each theirs;
-     a mal'ak and the voice out of the shamayim deeper and slower, given to no one else.
+   · Every line is RECORDED, in the voices of Scripture-Game's cast (Kokoro, offline): the
+     narrator one warm voice; men, women, elders and a boy each their own; the Voice of
+     (YAHUAH) HWHY the deepest, slow and low, given to no one else. Nothing is spoken by
+     the device's own voices.
    · The one speaking moves the mouth with the words, vowel by vowel, and the face shows
      what the words carry (only joy turns a mouth up). With the voices off, the mouths keep
      the pace of reading instead, so a speaker is never seen silent.
@@ -19,12 +20,12 @@
    and put side by side they are that text, letter for letter. */
 (function(){
 'use strict';
-const W=window, synth=W.speechSynthesis, Utt=W.SpeechSynthesisUtterance;
+const W=window;
 const now=()=>(W.performance&&performance.now)?performance.now():Date.now();
 const cl=(v,a,b)=>v<a?a:v>b?b:v;
 const store={ get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
               set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} } };
-const V=W.STORYVOICE={ supported:!!(synth&&Utt), on:store.get('fullness:voices')!=='0', rate:1 };
+const V=W.STORYVOICE={ on:store.get('fullness:voices')!=='0', rate:1 };
 
 /* ================= WHOSE WORDS: the quotation marks ================= */
 /* the verse cut at its own marks: [{a,b,q}] — q is a quotation (depth one); a ‘…’ inside a
@@ -64,7 +65,7 @@ V.quoteSpans=quoteSpans; V.parts=parts;
 const NARR=V.NARR={key:'narrator',kind:'narrator',name:'The Besorah'};
 const keyOf=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[‘’ʼ'`´ʿʾ‛]/g,'').toLowerCase().trim();
 V.nameKey=keyOf;
-const kindOf=a=>a.kind||(a.light?'yahusha':a.small?'boy':a.beard===0x6d6a66?'oldman':'man');
+const kindOf=a=>a.kind||(a.fallen?'dark':a.holy?'yahusha':a.small?'boy':a.beard===0x6d6a66?'oldman':'man');
 V.speaker=function(spec,actors,cast){
   if(spec&&typeof spec==='object') return Object.assign({kind:'man'},spec,{key:keyOf(spec.key||spec.name)});
   if(typeof spec!=='string') return null;
@@ -95,6 +96,16 @@ function fnv(s,seed){ let h=seed>>>0; for(let i=0;i<s.length;i++){ h^=s.charCode
 V.clipKey=function(sp,text){
   const s=(sp.kind||'man')+':'+(sp.key||'')+'|'+String(text||'').replace(/\s+/g,' ').trim();
   return fnv(s,2166136261).toString(16).padStart(8,'0')+(fnv(s,0x811c9dc5^0x5bd1e995)&0xffff).toString(16).padStart(4,'0');
+};
+/* THE NARRATOR'S OTHER LINES — the titles, the notes on the history, the cards of the
+   seven hundred years, and what follows your choices: all read in the narrator's voice,
+   and all recorded. One rule for the game and the recorder. */
+V.cardLines=function(B){
+  if(B.t==='title') return [B.text+(B.sub?'. '+B.sub:'')];
+  if(B.t==='note') return [B.text];
+  if(B.t==='era') return [(B.head?B.head+'. ':'')+B.text];
+  if(B.t==='choice') return (B.options||[]).filter(o=>o.reply).map(o=>o.reply);
+  return [];
 };
 /* how many speakers a verse needs: one for each quotation in it */
 V.quotes=t=>parts(t).filter(s=>s.q&&/[A-Za-zÀ-ɏḀ-ỿ]/.test(t.slice(s.a,s.b))).length;
@@ -132,8 +143,11 @@ function sayWord(w){
   if(o.length>1&&o===o.toUpperCase()&&/[A-Z]/.test(o)) o=o.toLowerCase();       /* YASHAYAHU: a word, not letters */
   return o||w;
 }
+const ROMAN={I:'one',II:'two',III:'three',IV:'four',V:'five',VI:'six',VII:'seven',VIII:'eight'};
 function speakable(text,rec){
-  return String(text||'').replace(GLOSS,'').replace(HWHY,'$1').replace(/\bHWHY\b/g,'YAHUAH')
+  return String(text||'').replace(/\b(Act|Part) (VIII|VII|VI|IV|V|III|II|I)\b/g,(m,a,r)=>a+' '+ROMAN[r])
+    .replace(/\bBCE\b/g,'B.C.E.').replace(/\bCE\b/g,'C.E.').replace(/\bc\.\s*(?=\d)/g,'about ').replace(/\bkm\b/g,'kilometres')
+    .replace(GLOSS,'').replace(HWHY,'$1').replace(/\bHWHY\b/g,'YAHUAH')
     .replace(WORD_RE,w=>rec&&/^YAHUAH(?:[’']s)?$/.test(w)?w.replace(/[’']/,''):sayWord(w))
     .replace(/\s*[‐‑‒–—―−]+\s*|\s+-+\s*|-+(?![A-Za-z])/g,', ').replace(/…/g,', ').replace(/[;:]/g,',')
     .replace(/["`´“”‘’«»(){}\[\]<>|\\\/_~^*%#@$&+=§¶†‡•·✦]/g,' ')
@@ -142,63 +156,16 @@ function speakable(text,rec){
 }
 V.speakable=speakable;
 
-/* ================= A VOICE FOR EACH KIND OF SPEAKER ================= */
-/* as in Scripture-Game: a natural voice of the right sort, only lightly shaded — a voice
-   pushed far from its own pitch no longer sounds like a person */
-const KIND={
-  narrator:{sex:'*',pitch:1,   rate:.95},
-  divine:  {sex:'m',pitch:.78, rate:.84},       /* the voice out of the shamayim: the deepest, slow and low */
-  angel:   {sex:'m',pitch:.95, rate:.9},
-  dark:    {sex:'m',pitch:.86, rate:.9},        /* the trier */
-  man:     {sex:'m',pitch:1,   rate:1},
-  woman:   {sex:'f',pitch:1,   rate:1},
-  oldman:  {sex:'m',pitch:.92, rate:.92},
-  boy:     {sex:'f',pitch:1.15,rate:1.04},
-  crowd:   {sex:'m',pitch:.97, rate:1.02},
-  yahusha: {sex:'m',pitch:.97, rate:.93}
-};
-const FEMALE=/\b(zira|aria|jenny|michelle|emma|ava|sonia|libby|hazel|susan|samantha|karen|moira|tessa|victoria|fiona|serena|allison|zoe|kate|catherine|linda|natasha|clara|salli|joanna|kendra|kimberly|ivy|amy|olivia|nicole|elizabeth|jane|sara|jessica|monica|kylie|female)\b/i;
-const MALE=/\b(david|mark|guy|andrew|brian|christopher|eric|roger|ryan|thomas|william|george|james|daniel|fred|tom|arthur|gordon|oliver|lee|alex|aaron|rishi|male)\b/i;
-let all=[], pools={m:[],f:[],n:[]};
-const roles=new Map();
-function quality(v){ const n=(v.name||'').toLowerCase();
-  if(/bad news|bells|boing|bubbles|cellos|jester|organ|superstar|trinoids|whisper|wobble|zarvox|deranged|hysterical|albert/.test(n)) return 9;
-  if(/natural|neural|enhanced|premium|siri/.test(n)) return 0; if(/google|microsoft/.test(n)) return 1; return v.localService===false?2:3; }
-function sexOf(v){ const n=(v.name||'')+' '+(v.voiceURI||''); if(/\bfemale\b/i.test(n)) return 'f'; if(/\bmale\b/i.test(n)) return 'm';
-  const f=FEMALE.test(n), m=MALE.test(n); return f&&!m?'f':m&&!f?'m':'n'; }
-function loadVoices(){
-  const raw=(synth&&synth.getVoices&&synth.getVoices())||[];
-  let en=raw.filter(v=>/^en/i.test(v.lang||'')&&quality(v)<9); if(!en.length) en=raw.slice();
-  all=en.sort((a,b)=>quality(a)-quality(b)||String(a.name).localeCompare(String(b.name)));
-  pools={m:[],f:[],n:[]}; for(const v of all) pools[sexOf(v)].push(v); roles.clear();
-}
-if(V.supported){ loadVoices(); try{ synth.addEventListener('voiceschanged',loadVoices); }catch(e){ synth.onvoiceschanged=loadVoices; } }
-function hash(s){ let h=2166136261; s=String(s); for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
-/* sp: {key, kind} — the key keeps one person one voice through the whole story */
-function role(sp){
-  const k=(sp.kind||'man')+'|'+(sp.key||''); let r=roles.get(k); if(r) return r;
-  const K=KIND[sp.kind]||KIND.man, h=hash(sp.key||sp.kind); let voice=null, pitch=K.pitch;
-  if(sp.kind==='narrator') voice=all[0]||null;
-  else { const want=K.sex==='f'?'f':'m', other=want==='f'?'m':'f';
-    let pool=pools[want]; if(!pool.length) pool=pools.n;
-    if(!pool.length){ pool=pools[other]; pitch*=want==='m'?.9:1.1; }
-    if(pool.length){ const nv=all[0], opts=pool.length>1?pool.filter(v=>v!==nv):pool;
-      voice=sp.kind==='divine'?(opts.find(v=>/david|guy|george|daniel|christopher|roger/i.test(v.name))||opts[0]):opts[h%opts.length];
-      if(sp.kind!=='divine') pitch+=[-.04,-.02,0,.02,.04][(h>>>8)%5]; } }
-  r={voice,pitch:cl(pitch,.5,1.6),rate:K.rate}; roles.set(k,r); return r;
-}
-
 /* ================= SPEAKING, AND THE MOUTH THAT MOVES WITH IT ================= */
 /* V.talk: who is speaking now, and the words, and when they began — the mouths and the
-   portrait read it. When the device cannot speak (or the voices are off), the same clock
-   runs at the pace of reading, so the one speaking is still seen to speak. */
+   portrait read it. With the voices off, the same clock runs at the pace of reading, so
+   the one speaking is still seen to speak. */
 V.talk=null;
 let gen=0, queue=[], onPart=null, onDone=null, dog=0;
-const READ_CPS=15, SPEAK_CPS=13.5;
-V.canSpeak=()=>V.on&&V.supported&&!V.broken&&!(W.STORY&&W.STORY.fast);
+const READ_CPS=15;
 function stop(){ gen++; queue=[]; onPart=onDone=null; clearTimeout(dog); V.talk=null;
   if(playing){ try{ playing.pause(); playing.onended=playing.onerror=null; }catch(e){} playing=null; }
-  if(V.supported&&(synth.speaking||synth.pending)){ try{ synth.cancel(); }catch(e){} } }
+}
 /* items: [{text, sp:{key,kind,id}}] in order; part(i) when each begins; done() at the end */
 function play(items,part,done){
   stop(); const my=gen;
@@ -213,24 +180,13 @@ function next(my){
   if(!said||!/[A-Za-z]/.test(said)){ next(my); return; }
   const clip=clipFor(q.sp,q.text);
   if(clip&&V.on&&!(W.STORY&&W.STORY.fast)&&!V.clipsBroken){ playClip(q,said,clip,my); return; }
-  if(!V.canSpeak()){ const ms=said.length/READ_CPS*1000/V.rate;              /* the pace of reading */
-    V.talk={sp:q.sp,text:q.text,said,t0:now(),dur:ms};
-    dog=setTimeout(()=>next(my),ms+250); return; }
-  const r=role(q.sp), u=new Utt(said);
-  if(r.voice){ u.voice=r.voice; u.lang=r.voice.lang; }
-  u.pitch=r.pitch; u.rate=cl(r.rate*V.rate,.5,2);
-  const est=said.length/(SPEAK_CPS*u.rate)*1000;
-  let started=false, ended=false;
-  const fin=()=>{ if(ended) return; ended=true; clearTimeout(dog); if(my===gen) next(my); };
-  u.onstart=()=>{ started=true; V.talk={sp:q.sp,text:q.text,said,t0:now(),dur:est}; clearTimeout(dog); dog=setTimeout(fin,est*1.8+2500); };
-  u.onboundary=e=>{ if(V.talk&&e&&e.charIndex!=null&&said.length){                /* keep the mouth on the word being said */
-      const f=e.charIndex/said.length; V.talk.t0=now()-f*V.talk.dur; } };
-  u.onend=fin;
-  u.onerror=e=>{ const er=e&&e.error; if(er==='interrupted'||er==='canceled') return;
-    if(!started&&++V.fails>=3) V.broken=true; fin(); };
-  V.talk={sp:q.sp,text:q.text,said,t0:now(),dur:est};
-  try{ synth.speak(u); }catch(e){ fin(); return; }
-  dog=setTimeout(()=>{ if(started||ended) return; try{ synth.cancel(); }catch(e){} if(++V.fails>=3) V.broken=true; fin(); },Math.max(3000,est*.6));
+  /* voices off, or a test running fast: the words keep the pace of reading, and the mouth
+     with them. Every line the story says is RECORDED (tools/voices/story-build.py); there
+     is no voice of the device's own. A line with no recording is a fault, and
+     tools/extract-besorah.js --check fails on it. */
+  const ms=(clip?clip.ms:said.length/READ_CPS*1000)/V.rate;
+  V.talk={sp:q.sp,text:q.text,said,t0:now(),dur:ms};
+  dog=setTimeout(()=>next(my),ms+250);
 }
 /* the recordings: story/voices/<key[:2]>/<key>.webm, listed with their lengths in
    story/voices/bank.js (window.STORY_VOICE_BANK), made by tools/voices/story-build.py with
@@ -246,7 +202,7 @@ function clipFor(sp,text){
 function playClip(q,said,clip,my){
   const a=new Audio(clip.url); playing=a; let done=false;
   const fin=ok=>{ if(done) return; done=true; clearTimeout(dog); a.onended=a.onerror=null; if(my!==gen) return; playing=null;
-    if(ok) next(my); else { V.clipsBroken=true; queue.unshift(q); next(my); } };   /* a recording that will not play: the device speaks it */
+    if(ok) next(my); else { V.clipsBroken=true; queue.unshift(q); next(my); } };   /* a recording that will not play: the rest keep the pace of reading */
   a.onended=()=>fin(true); a.onerror=()=>fin(false);
   try{ a.playbackRate=V.rate; }catch(e){}
   V.talk={sp:q.sp,text:q.text,said,t0:now()+60,dur:Math.max(250,(clip.ms-220)/V.rate)};   /* the words lie between its short silences */
@@ -256,8 +212,6 @@ function playClip(q,said,clip,my){
       V.talk={sp:q.sp,text:q.text,said,t0:now(),dur:clip.ms}; dog=setTimeout(()=>next(my),clip.ms+250); } else fin(false); });
 }
 V.fails=0; V.play=play; V.stop=stop;
-/* Chrome's online voices fall silent after fifteen seconds unless nudged */
-setInterval(()=>{ if(V.supported&&synth.speaking){ try{ synth.pause(); synth.resume(); }catch(e){} } },10000);
 addEventListener('visibilitychange',()=>{ if(document.hidden) stop(); });
 
 /* how open the mouth of `key` is this moment (0 shut … 1 wide), or null if not speaking:

@@ -9834,6 +9834,80 @@ flares to about 0.6; on stopping, the front swings forward and settles within a 
 half. Every figure in the story has it, crowds included. A full cloth mesh was weighed and not
 used: at this block scale it would look the same and cost far more on a phone.
 
+## 4dk. Round 112 — Act IV, Galil; His face never shown; the peoples as they looked; every voice recorded ✅
+
+**Act IV — Galil** (`story/acts/05-galil.js`) has nine scenes, in the harmonized order. The
+man of Bĕyth Leḥem walks in among the taught ones.
+
+- **Qanah** (Yahuchanon 2:1-11). He fills the six stone jars at the well, and takes the cup
+  to the master of the feast. The water in the jars becomes wine.
+- **The qahal of Natsareth** (Luke 4:14-30). Yahusha reads Yashayahu 61, and the Codex
+  marks it fulfilled. The congregation drives Him to the brow of the hill, and He passes
+  through their midst.
+- **The catch** (Luke 5:1-11). The player is in the partners' boat and hauls the breaking
+  net. Both boats fill, and "from now on you shall catch men."
+- **The qahal of Kephar Naḥum** (Mark 1:21-28). The unclean ruach speaks in the man's mouth
+  and leaves him as a violet shadow when it is rebuked.
+- **The mountain** (Mattithyahu 5:1-12, 7:28-29). The crowds sit on the slope above the lake.
+- **The captain** (Mattithyahu 8:5-13), a Roman, drawn as one.
+- **The two blind men** (9:27-31). The player leads them to the house. Then Yahuchanon's
+  messengers come (11:2-6), and the Codex fulfils 35:5-6.
+- **The five loaves** (Yahuchanon 6:1-14). The player gives the bread to each company
+  sitting on the grass and fills three of the twelve baskets.
+- **The fourth watch** (Mattithyahu 14:22-33). In the boat in the wind, Kĕpha walks, sinks,
+  and is taken by the hand, and the wind ceases.
+
+New places: Qanah, the qahal and the brow of the hill at Natsareth, Kephar Naḥum of black
+basalt on the lake, the far shore, and the sea by night. New things: boats and nets that move
+with everyone standing in them, stone jars, baskets, and sitting on the grass.
+
+**Yahusha: a body like every man's; His face never shown.** This replaces the figure of light.
+
+- **The figure.** He is a man of Yasharal, brown, in a plain robe of undyed wool with a
+  mantle of blue. No face is drawn on Him.
+- **When He speaks** the camera looks over His shoulder from behind, toward the one He
+  speaks to: the back of His head, His shoulders and arms (`cam` with on:'yahusha',
+  shot:'back'). A close shot of His body, from the knees to below the chin (shot:'body'),
+  is also there, though it reads as little more than robe at this block scale.
+- **The guard.** Every frame, `guardFace` asks whether any camera, the player's free camera
+  included, stands anywhere but behind His head and could see it. If so, it tips the camera
+  until the head is out of the picture. A shot a scene sets that would look on His face is
+  first moved behind His shoulder (`faceSafe`).
+- **The Child in the trough** is swaddled, the cloth drawn over His head, His face toward
+  the back of the stall, and is under the same guard.
+- **Measured.** Two checks found no frame with His face in view: every frame of a
+  playthrough of Acts II–IV, and a full circle of the free camera with the player standing
+  before Him. The verse box shows the back of His head.
+
+**The trier and the fallen** are drawn as Scripture-Game draws Satan, Mastema and the
+Watchers: a robe of deep violet-grey (#2a2230), a dark crimson mantle, near-black hair, a
+dim violet light (rgb 120,80,140), and a shadowed, ashen face. That ashen face is a shadow,
+not a darker human skin, so evil is never marked by skin colour. An unclean ruach is the
+same violet shadow upon the man it holds.
+
+**The peoples, as they looked**, in Scripture-Game's own palette:
+
+- **Who is brown.** The people of Yasharal and the lands about them, Mitsrayim, Aram,
+  Arabia, Baḇal and Persia, are brown, deep to medium (#573920 to #8a6038). Africa south of
+  the desert is deeper.
+- **Who is lighter.** The Greeks and Romans are olive and tan (#b8845a to #d8b48a). The
+  Germans and the north are lightest, and only there light hair and light eyes.
+- **In the story,** a figure given no skin takes one of its people's by its name.
+- **In the voyage,** each village's people take their skin, hair and eyes from the country's
+  place on the earth (`folkAt`). They had been dealt at random from one mixed palette with
+  blue eyes anywhere on the earth. The traveller is now a brown man of Yasharal with dark
+  brown eyes. Test 18 passes: 48 of 48 villagers.
+
+**Every voice is recorded.** The device's own voices are gone from the story.
+
+- **What is recorded:** every verse, every speaker, and the narrator's titles, history notes,
+  timeline cards and the replies that follow a choice. That is 362 lines, all made with
+  Kokoro in Scripture-Game's voices.
+- **The check.** `--check` fails if any line the story says has no recording ("362 lines
+  heard · 362 recorded · 0 not").
+- **In the browser,** all 341 parts played across Acts I–IV found their recording.
+- **With the voices off,** the mouths keep the pace of reading.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

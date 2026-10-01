@@ -35,6 +35,9 @@ const items=new Map(); let missing=0;
 for(const a of acts) for(const sc of a.scenes||[]){
   const defs={}; for(const x of sc.actors||[]) defs[x.id]=x;
   for(const B of sc.beats||[]){
+    /* the narrator's cards: titles, notes, eras, what follows a choice */
+    for(const t of V.cardLines(B)){ const kk=V.speakable(t,true); if(!/[A-Za-z]/.test(kk)) continue;
+      const key=V.clipKey(V.NARR,t); if(!items.has(key)) items.set(key,{key,kind:'narrator',name:'narrator',who:'The Besorah (narrator)',text:t,kk,where:a.id+'/'+sc.id+' '+B.t}); }
     if(!(B.t==='read'||B.t==='say')||!B.ref) continue;
     const e=TEXT[B.ref]; if(!e){ missing++; console.error('not emitted: '+B.ref); continue; }
     const segs=V.segs(e.t,B,s=>V.speaker(s,defs,a.cast)||{key:'unknown',kind:'man'},V.NARR);
@@ -45,9 +48,13 @@ for(const a of acts) for(const sc of a.scenes||[]){
     }
   }
 }
+/* --check asks this for the lines (require), and writes nothing */
+module.exports={items:[...items.values()]};
+if(require.main===module){
 const out=path.join(DIR,'voices','lines.json');
 fs.mkdirSync(path.dirname(out),{recursive:true});
 fs.writeFileSync(out,JSON.stringify({'story':{items:[...items.values()]}},null,1));
 const by={}; for(const it of items.values()) by[it.name]=(by[it.name]||0)+1;
 console.log(items.size+' lines to be heard'+(missing?' · '+missing+' passages not emitted':'')+'\n'+
   Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([n,c])=>'  '+n+': '+c).join('\n'));
+}

@@ -381,15 +381,15 @@ const WOOD = {
    named out of the materials the tabernacle was hung with: blue, purple,
    scarlet and fine linen, and gold upon the hem. */
 const FOLK = {
-  skin:      [199,140, 95],
+  skin:      [122, 78, 41],                         /* brown, as a man of Yasharal (Scripture-Game's #7a4e29) */
   hair:      mix(P.burntUmber, P.lampblack, 0.42),
   robe:      mix(P.indigo, P.lapis, 0.30),          /* the blue */
   robeDeep:  shade(mix(P.indigo, P.lapis, 0.30), 0.86),
   trim:      mix(P.gold, P.darkOchre, 0.22),        /* gold upon the hem */
   clasp:     shade(mix(P.gold, P.darkOchre, 0.22), 0.80),
-  eye:       mix(P.tyrian, P.lapis, 0.44),
-  nose:      [160,105, 70],
-  mouth:     shade([160,105,70], 0.70),
+  eye:       [ 58, 38, 24],                         /* dark brown eyes */
+  nose:      [ 96, 60, 32],
+  mouth:     shade([96,60,32], 0.70),
   leg:       mix(P.indigo, P.slate, 0.24)
 };
 

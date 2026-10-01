@@ -464,6 +464,13 @@ if(args[0]==='--check'){
     console.log('story mode: '+sOk+' passages exact · '+sBad+' not');
     const W2=checkSpeakers(false); sBad+=W2.bad;
     console.log('story mode: '+W2.n+' verses said · '+W2.bad+' with a quotation no one speaks');
+    /* and every line is RECORDED: nothing in the story is spoken by a device's own voice */
+    { const lines=require('./story-voices.js').items, bf=path.join(__dirname,'..','story','voices','bank.js');
+      let bank={}; try{ const b=fs.readFileSync(bf,'utf8'); bank=JSON.parse(b.slice(b.indexOf('k:')+2,b.lastIndexOf('}'))); }catch(e){}
+      const miss=lines.filter(it=>!bank[it.key]||!fs.existsSync(path.join(__dirname,'..','story','voices',it.key.slice(0,2),it.key+'.webm')));
+      for(const it of miss.slice(0,8)) console.log('STORY NOT RECORDED  '+it.where+'  ['+it.who+']  '+it.text.slice(0,60));
+      console.log('story mode: '+lines.length+' lines heard · '+(lines.length-miss.length)+' recorded · '+miss.length+' not'+(miss.length?'   (python3 tools/voices/story-build.py --models …)':''));
+      sBad+=miss.length; }
   }
   if(sBad) wrong+=sBad;
   console.log('\n'+ok+' exact · '+wrong+' paraphrased · '+missing+' unsourceable  ('+verses.length+' verses)');
