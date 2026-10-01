@@ -33,17 +33,48 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 function textOf(ref){ const e=ST.text[ref]; return e?e.t:null; }
 
-/* ================= THREE ================= */
-let renderer, scene, camera, ctx=null, sky=null;
+/* ================= THE WORLD IT IS PLAYED IN =================
+   The voyage's world, raised by the page before this runs (story/shell.js): its renderer,
+   its scene, its sky, sea, sun and blocks, reached through its story kit. A scene's root is
+   set at the scene's place in that world and scaled by S, so everything below speaks in
+   metres about the place; the story keeps a camera of its own in those metres, and the
+   voyage's camera is set from it every frame. */
+const K=()=>window.__KIT;
+let renderer, scene, camera, ctx=null, root=null, anchor=null, S=6.5;
 const clock=new THREE.Clock();
 function initGL(){
-  renderer=new THREE.WebGLRenderer({canvas:$('gl'),antialias:true});
-  renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
-  camera=new THREE.PerspectiveCamera(55,1,0.1,2000);
+  renderer=K().renderer; S=K().setScale;
+  camera=new THREE.PerspectiveCamera(55,1,0.05,4000);
   resize(); window.addEventListener('resize',resize);
 }
-function resize(){ const w=window.innerWidth, h=window.innerHeight;
-  renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+function resize(){ const vc=K().camera; camera.aspect=vc.aspect||window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); }
+/* the voyage's eye, put where the story's is: the same look, scaled out to the world */
+function writeCamera(){
+  if(!root) return;
+  const vc=K().camera;
+  vc.position.set(anchor.x+camera.position.x*S, anchor.y+camera.position.y*S, anchor.z+camera.position.z*S);
+  vc.quaternion.copy(camera.quaternion);
+  if(vc.fov!==camera.fov){ vc.fov=camera.fov; vc.updateProjectionMatrix(); }
+  if(camera.aspect!==vc.aspect){ camera.aspect=vc.aspect; camera.updateProjectionMatrix(); }
+  vc.updateMatrixWorld();
+}
+/* the ground under a point of the scene, in its metres; `ref` the height the asker stands
+   at (so a floor under a roof is found, and not the roof) */
+function groundAt(x,z,ref){
+  const k=K(); let r;
+  if(ref!==undefined) r=anchor.y+ref*S;
+  else r=ctx&&ctx.api&&ctx.api.inPadL(x,z)?anchor.y+2.2*S:undefined;
+  const g=k.groundInfo(anchor.x+x*S,anchor.z+z*S,r);
+  return ((g&&g.y!=null?g.y:anchor.y)-anchor.y)/S;
+}
+/* is a man of the scene stopped here? the blocks of the world are what stop him: a step of
+   one course he climbs; anything higher, or a lintel at his head, he does not */
+function solidFor(x,z,y){
+  const k=K(), B=k.B, wx=anchor.x+x*S, wz=anchor.z+z*S, foot=anchor.y+y*S;
+  const at=d=>k.solidAt(wx,foot+d*B,wz);
+  if(at(0.5)) return at(1.5)||at(2.5);
+  return at(1.5);
+}
 
 /* the hour of a scene: sky, sun, fog and how much the stars show */
 const TIMES={
@@ -52,35 +83,55 @@ const TIMES={
   night:{top:0x05070f,hor:0x1a2440,fog:0x0d1322,sun:0x8aa0d0,sunI:0.18,hemi:0.2,stars:1,near:24,far:210},
   dawn: {top:0x3a4f84,hor:0xe7b98a,fog:0xc9a88a,sun:0xffd2a0,sunI:0.6,hemi:0.45,stars:0.15,near:40,far:320}
 };
-let sun, hemi, timeNow=null;
+/* the hour is the world's own: the sun, the moon and the stars stand where they stand over
+   that place at that hour, and the story only names the hour */
+const HOURS={day:10.5,dusk:18.75,night:23.2,dawn:5.7};
+let timeNow=null, hourNow=10.5;
 function applyTime(name){
-  const T=TIMES[name]||TIMES.day; timeNow=name;
-  scene.fog=new THREE.Fog(T.fog,T.near,T.far); scene.background=new THREE.Color(T.fog);
-  sun.color.setHex(T.sun); sun.intensity=T.sunI; hemi.intensity=T.hemi;
-  if(sky){ sky.paint(T.top,T.hor); sky.stars.material.opacity=T.stars; sky.stars.visible=T.stars>0; }
+  timeNow=name; hourNow=HOURS[name]===undefined?10.5:HOURS[name];
+  if(anchor) K().setLocalHour(hourNow,anchor.x,anchor.z);
 }
 
 /* ================= A SCENE ================= */
+/* the set of the last scene taken up again: its blocks out of the world, its people gone */
+function dropScene(){
+  if(root){ K().scene.remove(root); root.traverse(o=>{ if(o.geometry&&!o.userData.keep) o.geometry.dispose(); }); root=null; }
+  if(ctx&&ctx.api) ctx.api.drop();
+  ctx=null; ring=null;
+}
 function buildScene(sc){
-  if(ctx){ scene.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); }
-  scene=new THREE.Scene();
-  hemi=new THREE.HemisphereLight(0xdfe6ff,0x6b5a44,0.6); scene.add(hemi);
-  sun=new THREE.DirectionalLight(0xffffff,1); sun.position.set(-80,140,60); scene.add(sun);
-  ctx={scene,colliders:[],markers:{},actors:{},things:{},glows:{},water:[],flicker:[],flock:[],groundY:()=>0,bounds:null,wind:[0.5,0.2]};
-  const st=new window.STORYWORLD.Static();
+  dropScene();
+  const k=K();
+  /* WHERE IT HAPPENED: the place's anchor in the world (story/places.js) */
+  const A=window.STORYPLACES.at(sc.place,act);
+  anchor=A;
+  root=new THREE.Group(); root.name='story-scene'; root.position.set(A.x,A.y,A.z); root.scale.setScalar(S); k.scene.add(root);
+  scene=root;
+  ctx={scene:root,colliders:[],markers:{},actors:{},things:{},glows:{},water:[],flicker:[],flock:[],bounds:null,wind:[0.5,0.2],place:sc.place};
+  ctx.groundY=(x,z,ref)=>groundAt(x,z,ref);
+  /* the traveller is stood there, unseen, so the world is built about the scene */
+  standWalker(A.x,A.z,A.y);
+  /* the city of the great king is the voyage's own, raised as she stood in the act's days;
+     a scene there lays only its own things about her */
+  if(A.city){ ctx.markers=Object.assign({},k.yahruAs(A.period)); }
+  ctx.api=k.setBuilder(A.x,A.z,A.y);
+  const st=new window.STORYWORLD.Static(ctx.api);
   const build=window.STORYSETTINGS[sc.place];
   if(!build) throw new Error('no such place: '+sc.place);
   build(ctx,st);
-  scene.add(st.mesh()); ctx.colliders.push(...st.colliders);
-  sky=window.STORYWORLD.sky(ctx);
+  ctx.api.end();
+  root.add(st.mesh());
+  k.updateChunks(A.x,A.z,9999);
+  if(k.flushEdits) k.flushEdits();
   applyTime(sc.time||'day');
+  setBed(sc.place,sc.time||'day');
   /* the people of the scene */
   for(const a of sc.actors||[]){
     const g=window.STORYWORLD.person(ctx,a);
-    const p=pos(a.at); g.position.set(p[0],ctx.groundY(p[0],p[1]),p[1]);
+    const p=pos(a.at); g.position.set(p[0],ctx.groundY(p[0],p[1]),p[1]); g.userData.id=a.id;
     g.rotation.y=a.face!==undefined?a.face:0;
     g.userData.id=a.id; g.userData.name=a.name; g.userData.target=null; g.userData.follow=null; g.userData.def=a;
-    if(a.y!==undefined){ g.userData.fixedY=a.y; g.position.y=a.y; }
+    if(a.y!==undefined){ g.userData.fixedY=yOf(a.y); g.position.y=g.userData.fixedY; }
     if(a.hidden) g.visible=false;
     if(a.sit) g.userData.sit=true;
     if(a.name) g.userData.label=makeLabel(a.name,g);
@@ -119,11 +170,16 @@ function buildScene(sc){
   /* the player */
   const P=sc.player||{};
   player=window.STORYWORLD.person(ctx,Object.assign({robe:0x7a6a8e,cloth:0xcfc6b0,skin:0x8a5a3a},P.look||{}));
-  const pp=pos(P.at||[0,0]); player.position.set(pp[0],0,pp[1]); player.rotation.y=P.face||0;
+  const pp=pos(P.at||[0,0]); player.position.set(pp[0],ctx.groundY(pp[0],pp[1]),pp[1]); player.rotation.y=P.face||0;
   camYaw=(P.face||0)+Math.PI; camTarget=null;
   ctx.playerHidden=!!P.hidden; player.visible=!P.hidden;
 }
-function pos(at){ if(typeof at==='string'){ const m=ctx.markers[at]; if(!m) throw new Error('no marker '+at); return m; } return at; }
+function pos(at){ if(typeof at==='string'){ const m=ctx.markers[at]; if(!m) throw new Error('no marker '+at); return m; }
+  /* a marker and a step from it: ['pinnacle',1.6,-0.7] */
+  if(Array.isArray(at)&&typeof at[0]==='string'){ const m=pos(at[0]); return [m[0]+at[1],m[1]+at[2]]; }
+  return at; }
+/* a height given as a marker's (the city's 'pinnacleY'), or as metres */
+function yOf(y){ return typeof y==='string'?pos(y)[0]:y; }
 function thingPos(id){ const o=ctx.things[id]||ctx.actors[id]; return o?[o.position.x,o.position.z]:null; }
 
 /* a name floating over a head, shown near or while speaking — a fixed size
@@ -141,13 +197,16 @@ function makeLabel(name,g){
 let player=null, camYaw=0, camPitch=0.32, camDist=7.5, camTarget=null, camT=0;
 const keys={};
 let joy={x:0,y:0,active:false}, actHeld=false, actPressed=false;
-window.addEventListener('keydown',e=>{ keys[e.code]=true;
+/* The keys are the story's. They are taken at the window before the voyage's own hands see
+   them, so W walks the witness and never the voyage's traveller, and E lays a hand on what the
+   scene asks and never breaks a block of the world. */
+window.addEventListener('keydown',e=>{ e.stopImmediatePropagation(); keys[e.code]=true;
   if(e.code==='KeyE'||e.code==='KeyF'){ if(!actHeld) actPressed=true; actHeld=true; }
   if(e.code==='Enter'||e.code==='Space'){ advance(); e.preventDefault(); }
   if(e.code==='KeyJ') toggleCodex();
   if(e.code==='KeyV') toggleVoice();
-  if(e.code==='Escape') closePanels(); });
-window.addEventListener('keyup',e=>{ keys[e.code]=false; if(e.code==='KeyE'||e.code==='KeyF') actHeld=false; });
+  if(e.code==='Escape') closePanels(); },true);
+window.addEventListener('keyup',e=>{ e.stopImmediatePropagation(); keys[e.code]=false; if(e.code==='KeyE'||e.code==='KeyF') actHeld=false; },true);
 function wireInput(){
   const gl=$('gl'); let drag=null;
   gl.addEventListener('pointerdown',e=>{ if(e.pointerType==='touch'&&e.clientX<window.innerWidth*0.4) return; drag={x:e.clientX,y:e.clientY}; });
@@ -155,7 +214,7 @@ function wireInput(){
   window.addEventListener('pointerup',()=>{ drag=null; });
   gl.addEventListener('wheel',e=>{ camDist=Math.max(3.5,Math.min(16,camDist+e.deltaY*0.01)); },{passive:true});
   /* the touch stick, bottom left */
-  const pad=$('joy'), knob=$('knob'); let jid=null, c0=null;
+  const pad=$('sjoy'), knob=$('knob'); let jid=null, c0=null;
   pad.addEventListener('pointerdown',e=>{ jid=e.pointerId; const r=pad.getBoundingClientRect(); c0=[r.left+r.width/2,r.top+r.height/2]; joy.active=true; pad.setPointerCapture(jid); moveJoy(e); });
   pad.addEventListener('pointermove',e=>{ if(e.pointerId===jid) moveJoy(e); });
   const endJ=()=>{ jid=null; joy={x:0,y:0,active:false}; knob.style.transform=''; };
@@ -165,13 +224,13 @@ function wireInput(){
   const ab=$('actbtn');
   ab.addEventListener('pointerdown',e=>{ actPressed=true; actHeld=true; e.preventDefault(); });
   ab.addEventListener('pointerup',()=>{ actHeld=false; }); ab.addEventListener('pointerleave',()=>{ actHeld=false; });
-  $('verse').addEventListener('click',advance); $('card').addEventListener('click',advance); $('eras').addEventListener('click',advance);
+  $('sverse').addEventListener('click',advance); $('card').addEventListener('click',advance); $('eras').addEventListener('click',advance);
   $('b-codex').addEventListener('click',toggleCodex);
   $('b-voice').addEventListener('click',toggleVoice); $('b-voice').style.opacity=SV.on?'1':'0.45'; $('b-hub').addEventListener('click',()=>{ stopAct(); showHub(); });
 }
-function blocked(x,z,r){
-  for(const c of ctx.colliders) if(x>c.x0-r&&x<c.x1+r&&z>c.z0-r&&z<c.z1+r) return true;
+function blocked(x,z,r,y){
   const b=ctx.bounds; if(b&&(x<b.x0||x>b.x1||z<b.z0||z>b.z1)) return true;
+  for(const [dx,dz] of [[r,r],[r,-r],[-r,r],[-r,-r]]) if(solidFor(x+dx,z+dz,y)) return true;
   return false;
 }
 function movePlayer(dt){
@@ -187,12 +246,16 @@ function movePlayer(dt){
     const fwd=camYaw+Math.PI, ang=fwd+Math.atan2(fx,fz);
     const dx=Math.sin(ang)*sp*dt, dz=Math.cos(ang)*sp*dt;
     const x=player.position.x, z=player.position.z;
-    if(!blocked(x+dx,z,0.35)) player.position.x+=dx;
-    if(!blocked(player.position.x,z+dz,0.35)) player.position.z+=dz;
+    const y=player.position.y;
+    if(!blocked(x+dx,z,0.3,y)) player.position.x+=dx;
+    if(!blocked(player.position.x,z+dz,0.3,y)) player.position.z+=dz;
     player.rotation.y=turnTo(player.rotation.y,ang,dt*10);
     ud.walk=(ud.walk||0)+dt*sp*2.2;
   } else ud.walk=0;
-  player.position.y=ctx.playerY!==undefined?ctx.playerY:ctx.groundY(player.position.x,player.position.z);
+  if(ctx.playerY!==undefined) player.position.y=ctx.playerY;
+  else { const gy=ctx.groundY(player.position.x,player.position.z,player.position.y+1.5);
+    /* a step up is taken at once; a drop is fallen, not floated down */
+    player.position.y=gy>player.position.y?gy:Math.max(gy,player.position.y-dt*9); }
   animFigure(player,dt,L>0.05); animFace(player,'player',dt);
 }
 function turnTo(a,b,k){ let d=b-a; while(d>Math.PI) d-=Math.PI*2; while(d<-Math.PI) d+=Math.PI*2; return a+d*Math.min(1,k); }
@@ -243,7 +306,8 @@ function moveActors(dt){
       if(d>0.15){ const sp=Math.min(d,(u.speed||2.6)*dt); g.position.x+=dx/d*sp; g.position.z+=dz/d*sp;
         g.rotation.y=turnTo(g.rotation.y,Math.atan2(dx,dz),dt*8); moving=true; }
       else if(!u.follow) u.target=null; }
-    g.position.y=(u.fixedY!==undefined?u.fixedY:ctx.groundY(g.position.x,g.position.z))-(u.sit?0.62*(u.s||1):0);
+    if(u.fixedY!==undefined) g.position.y=u.fixedY-(u.sit?0.62*(u.s||1):0);
+    else { const gy=ctx.groundY(g.position.x,g.position.z,(u.gy===undefined?g.position.y:u.gy)+1.5); u.gy=gy; g.position.y=gy-(u.sit?0.62*(u.s||1):0); }
     animFigure(g,dt,moving); animFace(g,id,dt);
     if(u.label){ const near=!camTarget&&player&&Math.hypot(player.position.x-g.position.x,player.position.z-g.position.z)<3.6;
       u.label.visible=near||speaking===id; } }
@@ -290,7 +354,7 @@ const _v=new THREE.Vector3(), _h=new THREE.Vector3();
 function holyHeads(){
   const out=[];
   for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; if(!u.holy||!g.visible) continue;
-    const sc=u.s||1, y=g.position.y+1.82*sc;
+    const sc=u.s||1, y=g.position.y+(u.headY||1.82*sc);
     out.push({p:new THREE.Vector3(g.position.x,y,g.position.z), f:new THREE.Vector3(Math.sin(g.rotation.y),0,Math.cos(g.rotation.y)), r:0.26*sc}); }
   for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; if(!u.holy||!o.visible) continue;
     o.updateMatrixWorld(); const hp=u.head.getWorldPosition(new THREE.Vector3());
@@ -378,6 +442,9 @@ function talkingAs(id){ const T=SV.talk, sp=T&&T.sp; if(!sp) return null;
 function animFace(g,id,dt){
   const u=g.userData, F=u.face, T=talkingAs(id), m=T?(SV.mouth(T.sp.key)||0):0;
   if(u.aura){ const k=1+m*0.22+(T?0.06:0); u.aura.sprite.scale.setScalar(u.aura.base*k); }
+  if(u.setFace){                             /* the voyage's figure: its face drawn in each state */
+    u.blink=(u.blink||3)-dt; const shut=u.blink<0; if(u.blink<-0.13) u.blink=2.5+Math.random()*4;
+    u.setFace(m<0.12?0:m<0.55?1:2,shut); return; }
   if(!F) return;
   const ex=T?SV.expr(T.text):'calm';
   F.mIn.scale.y=0.018+m*0.075; F.mIn.position.y=-(0.009+m*0.0375);
@@ -459,10 +526,10 @@ ST.fast=false;                                     /* the test harness sets this
 
 function runAct(a,fromScene){
   act=a; sceneIx=fromScene||0; running=true;
-  $('hub').classList.add('off'); $('play').classList.remove('off');
+  $('play').classList.remove('off');
   startScene();
 }
-function stopAct(){ SV.stop(); running=false; act=null; closePanels(); hide('verse'); hide('card'); hide('goal'); hide('prompt'); hide('choice'); hide('eras'); ringOff(); witness=null; onFrame=null; }
+function stopAct(){ SV.stop(); running=false; act=null; closePanels(); hide('sverse'); hide('card'); hide('goal'); hide('sprompt'); hide('choice'); hide('eras'); ringOff(); witness=null; onFrame=null; }
 function startScene(){
   const sc=act.scenes[sceneIx];
   fade(1,0);
@@ -474,7 +541,7 @@ function startScene(){
 function nextBeat(){ beatIx++; enterBeat(); }
 function enterBeat(){
   const sc=act.scenes[sceneIx];
-  hide('verse'); hide('card'); hide('prompt'); hide('choice'); speaking=null; waitingAdvance=false; beatT=0; onFrame=null;
+  hide('sverse'); hide('card'); hide('sprompt'); hide('choice'); speaking=null; waitingAdvance=false; beatT=0; onFrame=null;
   SV.stop(); portrait=null;
   if(beatIx>=sc.beats.length){ endScene(); return; }
   beat=sc.beats[beatIx];
@@ -502,14 +569,18 @@ function enterBeat(){
   if(T==='face'){ const g=ctx.actors[B.who]; const p=B.to==='player'?[player.position.x,player.position.z]:ctx.actors[B.to]?thingPos(B.to):pos(B.to);
     if(g) g.rotation.y=Math.atan2(p[0]-g.position.x,p[1]-g.position.z); return nextBeat(); }
   if(T==='place'){ const g=B.who==='player'?player:ctx.actors[B.who]; const p=pos(B.at);
-    if(g){ g.position.set(p[0],B.y!==undefined?B.y:ctx.groundY(p[0],p[1]),p[1]); if(B.face!==undefined) g.rotation.y=B.face;
+    if(g){ g.position.set(p[0],B.y!==undefined?B.y:ctx.groundY(p[0],p[1]),p[1]); g.userData.gy=g.position.y; if(B.face!==undefined) g.rotation.y=B.face;
       /* `y`: standing on something that is not the ground — the floor of a boat */
       if(B.y!==undefined&&g!==player) g.userData.fixedY=B.y; else if(B.y===null) delete g.userData.fixedY; }
     return nextBeat(); }
   if(T==='cam'){ controlsOn=!!B.free;
     if(B.release){ releaseCamera(); controlsOn=true; return nextBeat(); }
     const S=B.on?shotOf(B):null;
-    const at=S?S.look:Array.isArray(B.look)&&B.look.length===3?B.look:lookAtSpec(B.look), from=S?S.from:B.from.length===3?B.from:[pos(B.from)[0],B.fy||4,pos(B.from)[1]];
+    const at=S?S.look:Array.isArray(B.look)&&B.look.length===3?B.look:lookAtSpec(B.look);
+    let from;
+    if(S) from=S.from;
+    else if(B.from&&B.from.rel){ const g=ctx.actors[B.from.rel]||ctx.things[B.from.rel], o=B.from.off; from=[g.position.x+o[0],g.position.y+o[1],g.position.z+o[2]]; }
+    else from=B.from.length===3?B.from:[pos(B.from)[0],B.fy||4,pos(B.from)[1]];
     holdCamera(S?from:faceSafe(from,at),at,ST.fast?0.01:(B.dur||2.5));
     if(B.wait===false) return nextBeat();
     onFrame=()=>{ if(camT>=1) nextBeat(); }; return; }
@@ -518,12 +589,12 @@ function enterBeat(){
     if(B.star!==undefined&&ctx.star) ctx.star.visible=!!B.star;
     if(B.kingdoms!==undefined&&ctx.kingdoms) for(const G of ctx.kingdoms) G.visible=!!B.kingdoms;
     return nextBeat(); }
-  if(T==='time'){ applyTime(B.to); return nextBeat(); }
+  if(T==='time'){ applyTime(B.to); setBed(ctx.place,B.to); return nextBeat(); }
   /* the wind and the waves: "the ruach was against it" … "the ruach ceased" */
   if(T==='weather'){ if(B.wind) ctx.wind=B.wind; if(B.rough!==undefined) ctx.rough=B.rough; return nextBeat(); }
   /* "Make the people sit down" (Yahuchanon 6:10): on the grass, legs out before them */
   if(T==='sit'||T==='stand'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g) g.userData.sit=(T==='sit'); } return nextBeat(); }
-  if(T==='robe'){ const g=ctx.actors[B.who]; if(g&&g.userData.robeMats) for(const m of g.userData.robeMats) m.color.setHex(B.color); return nextBeat(); }
+  if(T==='robe'){ const g=ctx.actors[B.who]; if(g&&g.userData.robeMeshes){ const m=K().robeMat(B.color); for(const q of g.userData.robeMeshes) q.material=m; } return nextBeat(); }
   if(T==='drift'){ const objs=[];
     /* one thing to a place (`to`), or several together by the same distance (`by`) — a boat
        and everyone standing in it, the player too */
@@ -553,13 +624,14 @@ function lookAtSpec(l){ if(typeof l==='string'){ if(ctx.actors[l]){ const g=ctx.
     if(ctx.glows[l]){ const s=ctx.glows[l].sprite.position; return [s.x,s.y,s.z]; }
     const m=pos(l); return [m[0],1.5,m[1]]; } return l; }
 function endScene(){
+  journal(act.scenes[sceneIx]);
   sceneIx++;
   if(sceneIx>=act.scenes.length){ finishAct(); return; }
   controlsOn=true; releaseCamera(); startScene();
 }
 function finishAct(){
   save.acts[act.id]='done'; persist();
-  const a=act; stopAct();
+  const a=act; ST.doneId=a.id; stopAct();
   showHub('The act is complete: '+a.title+'.');
 }
 
@@ -584,7 +656,7 @@ function showVerse(B){
   const setWho=sp=>{ const nm=sp&&sp.kind!=='narrator'?sp.name:'';
     $('v-who').textContent=nm||'The Besorah'; $('v-who').className=nm?'who':'who narr';
     /* the trier is never given a shape — no face in the box either */
-    portrait=sp&&(sp.kind!=='dark'||sp.look)?sp:null; $('verse').classList.toggle('has-face',!!portrait);
+    portrait=sp&&(sp.kind!=='dark'||sp.look)?sp:null; $('sverse').classList.toggle('has-face',!!portrait);
     speaking=sp&&sp.actor||null;
     if(sp&&sp.actor&&ctx.actors[sp.actor]&&player&&B.turn!==false&&!camTarget){ const g=ctx.actors[sp.actor];
       g.rotation.y=Math.atan2(player.position.x-g.position.x,player.position.z-g.position.z); } };
@@ -592,7 +664,7 @@ function showVerse(B){
     els.forEach((e,k)=>{ e.classList.toggle('now',k===i); e.classList.toggle('later',k>i); }); };
   $('v-text').classList.add('flow');
   setWho(segs[0].sp); lightPart(0);
-  show('verse');
+  show('sverse');
   waitingAdvance=true;
   SV.play(segs.map(x=>({text:x.text,sp:x.sp})),i=>{ setWho(segs[i].sp); lightPart(i); },
     ()=>{ $('v-text').classList.remove('flow'); setWho(main?main.sp:NARR); });
@@ -611,8 +683,8 @@ let ring=null;
 function ringAt(m){ ringOff();
   const g=new THREE.RingGeometry(0.9,1.25,40); g.rotateX(-Math.PI/2);
   ring=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0xf2d27a,transparent:true,opacity:0.8,depthWrite:false}));
-  ring.position.set(m[0],ctx.groundY(m[0],m[1])+0.06,m[1]); scene.add(ring);
-  ring.userData.beam=window.STORYWORLD.glow(ctx,m[0],2.2,m[1],2.4,0xffe7a0,0); }
+  const gy=ctx.groundY(m[0],m[1]); ring.position.set(m[0],gy+0.08,m[1]); scene.add(ring);
+  ring.userData.beam=window.STORYWORLD.glow(ctx,m[0],gy+2.2,m[1],2.4,0xffe7a0,0); }
 function ringOff(){ if(ring){ scene.remove(ring); ring.userData.beam.sprite.parent&&ring.userData.beam.sprite.parent.remove(ring.userData.beam.sprite); ring=null; } }
 
 /* ---- THE WITNESS: small faithful things to do ----
@@ -635,10 +707,10 @@ function startWitness(B){
       if(actHeld||actPressed){ W.holding+=dt; actPressed=false;
         setProgress(B.hold?W.holding/B.hold:1);
         if(!B.hold||W.holding>=B.hold){ W.holding=0; setProgress(0);
-          if(B.deliver){ W.carrying=near; ctx.things[near].userData.following=true; player.userData.carrying=true; setGoal(B.carryText||('Bring it to its place')); hide('prompt'); }
+          if(B.deliver){ W.carrying=near; ctx.things[near].userData.following=true; player.userData.carrying=true; setGoal(B.carryText||('Bring it to its place')); hide('sprompt'); }
           else { if(B.send){ ctx.things[near].userData.goTo=pos(B.send); } witnessDone(near); } } }
       else { W.holding=Math.max(0,W.holding-dt*2); setProgress(B.hold?W.holding/B.hold:0); } }
-    else { hide('prompt'); W.holding=0; setProgress(0); } };
+    else { hide('sprompt'); W.holding=0; setProgress(0); } };
 }
 function witnessDone(id){
   const W=witness; if(!W||W.done.has(id)) return; W.done.add(id);
@@ -647,9 +719,9 @@ function witnessDone(id){
   /* what the hand did shows: the jar filled, the group given its bread */
   if(B.reveal&&B.reveal[id]){ for(const r of [].concat(B.reveal[id])){ const o=ctx.things[r];
       if(o){ if(o.userData.fill) o.userData.fill.visible=true; else o.visible=true; } } } setGoal(B.text+'  ('+W.done.size+'/'+B.items.length+')');
-  if(W.done.size>=B.items.length){ hide('prompt'); setGoal(''); witness=null; nextBeat(); }
+  if(W.done.size>=B.items.length){ hide('sprompt'); setGoal(''); witness=null; nextBeat(); }
 }
-function showPrompt(t){ $('prompt-t').textContent='E  '+t; show('prompt'); }
+function showPrompt(t){ $('prompt-t').textContent='E  '+t; show('sprompt'); }
 function setProgress(f){ $('hold').style.width=Math.round(Math.max(0,Math.min(1,f))*100)+'%'; }
 
 /* ---- the player's own voice: reactions, never a named figure's ---- */
@@ -691,7 +763,7 @@ function fulfil(id){
   $('f-pref').textContent=d.promise; $('f-ptext').textContent=textOf(d.promise)||'';
   $('f-fref').textContent=d.fulfil; $('f-ftext').textContent=textOf(d.fulfil)||'';
   $('f-name').textContent=d.name;
-  show('fulfil'); fulfilOpen=true; chime(1.4);
+  show('fulfil'); fulfilOpen=true; motif();
 }
 function closeFulfil(){ fulfilOpen=false; hide('fulfil'); if(beat&&beat.t==='fulfil') nextBeat(); }
 function codexHTML(){
@@ -714,6 +786,8 @@ function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('on')
 /* ================= SOUND: the air of a place, and the bell of fulfilment ================= */
 let AC=null, amb=null;
 function audio(){ if(AC) return AC; try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; } return AC; }
+/* a browser keeps sound shut until the player first touches the page */
+['pointerdown','keydown'].forEach(ev=>window.addEventListener(ev,()=>{ const A=audio(); if(A&&A.state==='suspended') A.resume(); if(!amb) ambience(); },true));
 function chime(strength){
   const A=audio(); if(!A) return; const t=A.currentTime;
   [523.25,659.25,783.99,1046.5].forEach((f,k)=>{ const o=A.createOscillator(), g=A.createGain();
@@ -721,41 +795,106 @@ function chime(strength){
     g.gain.linearRampToValueAtTime(0.06*strength,t+k*0.12+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+k*0.12+1.6);
     o.connect(g).connect(A.destination); o.start(t+k*0.12); o.stop(t+k*0.12+1.7); });
 }
+/* THE AIR OF A PLACE (the design document: "ambient beds per location — wind, shore, crowd,
+   Temple"). Each bed is made of a few voices drawn from noise and tone, and the place a scene
+   is set in says which sound and how loud: the wind on the heights and in the wilderness, the
+   lap of the lake at Kephar Naḥum, the murmur of a crowd at a wedding or a city gate, the low
+   hum of the courts of the Hĕḵal, the running of the Yardĕn, the crickets of a night in the
+   fields. They cross-fade from scene to scene. */
+const BEDS={
+  yahrushalayim:{crowd:0.5,temple:0.6,wind:0.25},  natsareth:{wind:0.35,crowd:0.15},
+  road:{wind:0.7},   fields:{wind:0.4,night:0.8},  beythlehem:{wind:0.3,crowd:0.2},
+  yarden:{river:0.8,wind:0.35,crowd:0.25},          wilderness:{wind:1.0},  mountain:{wind:1.3},
+  qanah:{crowd:0.8,wind:0.2},  galil:{shore:0.8,wind:0.35,crowd:0.2},  galilEast:{shore:0.6,wind:0.4,crowd:0.4},
+  galilSea:{shore:1.0,wind:1.4}
+};
+function noiseBuf(A,brown){ const n=A.createBuffer(1,A.sampleRate*3,A.sampleRate), d=n.getChannelData(0); let last=0;
+  for(let k=0;k<d.length;k++){ const w=Math.random()*2-1; if(brown){ last=(last+0.02*w)/1.02; d[k]=last*3.4; } else d[k]=w*0.5; }
+  return n; }
 function ambience(){ const A=audio(); if(!A||amb) return;
-  const n=A.createBuffer(1,A.sampleRate*2,A.sampleRate), d=n.getChannelData(0); let last=0;
-  for(let k=0;k<d.length;k++){ last=(last+0.02*(Math.random()*2-1))/1.02; d[k]=last*3.2; }
-  const src=A.createBufferSource(); src.buffer=n; src.loop=true;
-  const f=A.createBiquadFilter(); f.type='lowpass'; f.frequency.value=520;
-  const g=A.createGain(); g.gain.value=0.05; src.connect(f).connect(g).connect(A.destination); src.start(); amb={g}; }
+  const out=A.createGain(); out.gain.value=0.9; out.connect(A.destination);
+  const loop=(buf)=>{ const s=A.createBufferSource(); s.buffer=buf; s.loop=true; s.start(); return s; };
+  const brown=noiseBuf(A,true), white=noiseBuf(A,false);
+  const voice=(src,type,freq,q)=>{ const f=A.createBiquadFilter(); f.type=type; f.frequency.value=freq; f.Q.value=q||0.7;
+    const g=A.createGain(); g.gain.value=0; src.connect(f).connect(g).connect(out); return {f,g}; };
+  const lfo=(hz,depth,target)=>{ const o=A.createOscillator(), g=A.createGain(); o.frequency.value=hz; g.gain.value=depth; o.connect(g).connect(target); o.start(); };
+  const V={};
+  V.wind=voice(loop(brown),'lowpass',420); lfo(0.07,180,V.wind.f.frequency);
+  V.shore=voice(loop(white),'lowpass',900); { const sw=A.createGain(); sw.gain.value=0.5; lfo(0.11,0.5,sw.gain); V.shore.g.disconnect(); V.shore.g.connect(sw).connect(out); }
+  V.river=voice(loop(white),'bandpass',1400,0.6); lfo(0.3,200,V.river.f.frequency);
+  V.crowd=voice(loop(brown),'bandpass',520,1.4); lfo(0.5,120,V.crowd.f.frequency);
+  /* the courts of the Hĕḵal: a low fifth, very quiet, under the city */
+  V.temple=(()=>{ const g=A.createGain(); g.gain.value=0; g.connect(out);
+    for(const [f,v] of [[73.4,0.5],[110,0.32],[146.8,0.18]]){ const o=A.createOscillator(); o.type='sine'; o.frequency.value=f; const gg=A.createGain(); gg.gain.value=v; o.connect(gg).connect(g); o.start(); }
+    return {g}; })();
+  /* the crickets of a night in the fields: a high chirp, pulsed */
+  V.night=(()=>{ const o=A.createOscillator(); o.type='sine'; o.frequency.value=4300; const am=A.createGain(); am.gain.value=0;
+    lfo(14,0.5,am.gain); const g=A.createGain(); g.gain.value=0; o.connect(am).connect(g).connect(out); o.start();
+    return {g}; })();
+  amb={V,LEVEL:{wind:0.05,shore:0.06,river:0.05,crowd:0.035,temple:0.03,night:0.006}};
+  setBed(ctx&&ctx.place, timeNow);
+}
+/* the bed of a place, faded in over a few seconds */
+function setBed(place,time){
+  if(!amb||!AC) return; const want=Object.assign({},BEDS[place]||{wind:0.4});
+  if(time==='night'&&want.night===undefined) want.night=0.5;
+  const t=AC.currentTime;
+  for(const k in amb.V){ const g=amb.V[k].g.gain; g.cancelScheduledValues(t); g.setValueAtTime(g.value,t);
+    g.linearRampToValueAtTime((want[k]||0)*amb.LEVEL[k]*(SV.on?0.7:1),t+2.5); }
+}
+/* THE MOTIF OF FULFILMENT: when a promise in the family scroll is kept, a slow chord swells
+   under a rising figure — the same few notes each time, so the ear comes to know them */
+function motif(){
+  const A=audio(); if(!A) return; const t=A.currentTime+0.05;
+  const pad=A.createGain(); pad.gain.setValueAtTime(0,t); pad.gain.linearRampToValueAtTime(0.05,t+1.6); pad.gain.linearRampToValueAtTime(0.0001,t+6.5); pad.connect(A.destination);
+  for(const f of [146.83,220,293.66,369.99]){ const o=A.createOscillator(); o.type='triangle'; o.frequency.value=f; o.connect(pad); o.start(t); o.stop(t+6.6); }
+  [[293.66,0.6],[440,1.2],[587.33,1.8],[554.37,2.5],[587.33,3.0],[739.99,3.6]].forEach(([f,at])=>{
+    const o=A.createOscillator(), g=A.createGain(); o.type='sine'; o.frequency.value=f;
+    g.gain.setValueAtTime(0,t+at); g.gain.linearRampToValueAtTime(0.07,t+at+0.06); g.gain.exponentialRampToValueAtTime(0.0001,t+at+(at>3.5?2.8:1.2));
+    o.connect(g).connect(A.destination); o.start(t+at); o.stop(t+at+3); });
+}
 
 /* ================= FADE ================= */
 function fade(to,dur){ const f=$('fade'); f.style.transition='opacity '+(dur||0)+'s'; f.style.opacity=to; }
 function show(id){ $(id).classList.remove('off'); }
 function hide(id){ $(id).classList.add('off'); }
 
-/* ================= THE HUB ================= */
+/* ================= THE ROAD BACK TO THE LAUNCHER =================
+   An act is played on its own page; the road, the Codex and the journal are on the launcher
+   (story/index.html). When an act is finished, or left, the launcher is gone back to. */
 function showHub(msg){
-  $('play').classList.add('off'); $('hub').classList.remove('off');
-  const list=$('acts'); list.innerHTML='';
-  const acts=ST.acts.slice().sort((a,b)=>a.n-b.n);
-  let open=true;
-  for(const a of acts){
-    const done=save.acts[a.id]==='done', can=open&&!a.planned;
-    const d=document.createElement('button'); d.className='act'+(done?' done':'')+(can?'':' locked');
-    d.innerHTML='<span class="an">'+esc(a.num||'')+'</span><span class="at">'+esc(a.title)+'</span><span class="as">'+esc(a.sub||'')+'</span>'+
-      '<span class="ast">'+(a.planned?'To come':done?'Walked ✓':can?'Begin ▸':'After the act before')+'</span>';
-    if(can) d.onclick=()=>{ ambience(); runAct(a); };
-    list.appendChild(d);
-    if(!done&&!a.planned) open=false; }
-  $('hub-codex').innerHTML=codexHTML();
-  $('hub-msg').textContent=msg||'';
+  ST.finished=msg||'left';
+  if(ST.stay) return;                        /* the test harness stays on the page */
+  location.href='index.html'+(ST.doneId?'?done='+encodeURIComponent(ST.doneId):'');
 }
 
-/* ================= THE FRAME ================= */
-function frame(){
-  requestAnimationFrame(frame);
+/* ================= THE JOURNAL — the road walked, and those walked with =================
+   Each scene witnessed is written into the journal: the place on the road from Bĕyth Leḥem
+   to Rome, and the day. Those who are called to follow Him (Kepha, Andri, Ya‛aqoḇ,
+   Yahuchanon, Philip, Nethan’al …) are walked with, scene by scene: the journal keeps which
+   scenes the witness shared with each, and so how near each has become. Nothing is said by
+   them that the Besorah does not say — the bond is only what was seen together. */
+/* the same man by both his names: Shim‛on is named Kĕpha the day he is brought (Yahuchanon 1:42) */
+const FOLLOWERS={kepha:'kepha',shimon:'kepha',andri:'andri',yaaqob:'yaaqob',yahuchanon:'yahuchanon',philip:'philip',nethanel:'nethanel',mattithyahu:'mattithyahu'};
+function journal(sc){
+  save.road=save.road||{}; save.bonds=save.bonds||{};
+  const k=act.id+'/'+sc.id;
+  save.road[k]={place:sc.place,title:sc.title||'',date:sc.date||'',act:act.id};
+  for(const a of sc.actors||[]){ const id=FOLLOWERS[a.id]; if(!id) continue;
+    const b=save.bonds[id]=save.bonds[id]||{name:a.name,scenes:[]};
+    if(id==='kepha'&&a.id==='kepha') b.name=a.name;
+    if(b.scenes.indexOf(k)<0) b.scenes.push(k); }
+  persist();
+}
+
+/* ================= THE FRAME =================
+   The voyage runs the frame — its sea, its sky, its light, its chunks — and calls this at the
+   end of each one (window.__STAGE_TICK), before it draws: the story moves its people, holds
+   its camera, keeps His face from the lens, and sets the voyage's eye from its own. */
+function frame(dtW){
   const dt=Math.min(0.05,clock.getDelta()), t=clock.elapsedTime;
-  if(!running||!ctx) return;
+  if(!running||!ctx){ idleView(t); return; }
+  keepWorld();
   beatT+=dt;
   movePlayer(dt); moveActors(dt); moveFlock(dt,t);
   for(const f of ctx.flicker){ const k=0.85+Math.sin(t*13)*0.08+Math.sin(t*7.3)*0.07; f.sprite.scale.setScalar(f.base*k); if(f.light) f.light.intensity=1.4*k; }
@@ -770,7 +909,7 @@ function frame(){
       if(o.userData&&o.userData.baseY!==undefined) o.userData.baseY=o.position.y; }); }
   for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; const w=u.wings; if(w){ const a=Math.sin(t*9)*0.5; w[0].rotation.z=a; w[1].rotation.z=-a; }
     if(u.bob){ const k=ctx.rough||1; o.position.y=u.baseY+Math.sin(t*1.3+o.position.x)*0.06*k; o.rotation.z=Math.sin(t*0.9+o.position.z)*0.025*k; } }
-  if(portrait&&!$('verse').classList.contains('off')) drawPortrait();
+  if(portrait&&!$('sverse').classList.contains('off')) drawPortrait();
   { const T=SV.talk, g=T&&T.sp&&T.sp.glow&&ctx.glows[T.sp.glow];          /* a mal'ak's light swells with the words */
     if(g){ const m=SV.mouth(T.sp.key)||0; g.sprite.scale.setScalar(g.base*(1+m*0.12)); } }
   if(ST.fast) fastStep();
@@ -778,7 +917,30 @@ function frame(){
   actPressed=false;
   updateCamera(dt);
   guardFace();
-  renderer.render(scene,camera);
+  writeCamera();
+}
+/* the world is held for the scene: the hour the scene names, the traveller where the witness
+   is (so the ground about him is the ground that is built), and never seen */
+function standWalker(x,z,y){
+  const k=K(), w=k.state.walk;
+  if(k.state.mode!=='walk') k.setMode('walk');
+  w.x=x; w.z=z; w.feetY=y; w.vy=0; w.grounded=true;
+  const wg=k.walkerG(); if(wg){ wg.visible=false; wg.position.set(x,y,z); }
+}
+function keepWorld(){
+  const k=K();
+  if(anchor) k.setLocalHour(hourNow,anchor.x,anchor.z);
+  const p=player&&!ctx.playerHidden?player.position:{x:0,y:0,z:0};
+  standWalker(anchor.x+p.x*S,anchor.z+p.z*S,anchor.y+p.y*S);
+}
+/* with no act running, the eye turns slowly over the city of the great king */
+let idleAt=null;
+function idleView(t){
+  const k=K(); if(!k) return;
+  if(!idleAt){ const yp=k.yahruPos&&k.yahruPos(); if(!yp) return; idleAt={x:yp.x,z:yp.z,y:k.topY(yp.ix,yp.iz)}; standWalker(idleAt.x,idleAt.z+60,idleAt.y); }
+  const vc=k.camera, a=t*0.035, R=820;
+  vc.position.set(idleAt.x+Math.sin(a)*R, idleAt.y+300, idleAt.z+Math.cos(a)*R);
+  vc.lookAt(idleAt.x,idleAt.y+30,idleAt.z); vc.updateMatrixWorld();
 }
 
 /* ---- THE TEST HARNESS'S HAND: one beat a frame, taken as a player would ---- */
@@ -790,20 +952,25 @@ function fastStep(){
   if(B.t==='witness'&&witness){ const W=witness;
     if(W.carrying){ player.userData.carrying=false; ctx.things[W.carrying].userData.following=false; const id=W.carrying; W.carrying=null; witnessDone(id); return; }
     for(const id of B.items) if(!W.done.has(id)){ witnessDone(id); return; } }
-  if(B.t==='goal'){ const m=pos(B.goto); player.position.set(m[0],0,m[1]); return; }
+  if(B.t==='goal'){ const m=pos(B.goto); player.position.set(m[0],ctx.groundY(m[0],m[1]),m[1]); return; }
   if(B.t==='cam') camT=1;
 }
 
 /* ================= BOOT ================= */
-ST.boot=function(){
+ST.boot=function(opt){
+  opt=opt||{};
   loadSave(); initGL(); wireInput();
-  scene=new THREE.Scene();
-  showHub();
-  requestAnimationFrame(frame);
+  /* the world's clock is taken off the room's own ('live'), or the hour a scene names would be
+     read back over four times a second */
+  { const st=K().state; if(st.dayIdx===0) st.dayIdx=1; }
+  K().setNames(false);                     /* no names of the lands written over a scene */
+  window.__STAGE_TICK=dt=>{ try{ frame(dt); }catch(e){ console.error(e); } };
+  if(opt.act){ const a=ST.acts.find(q=>q.id===opt.act); if(a){ ambience(); runAct(a,opt.scene||0); } }
+  else showHub();
   /* for the test harness: where the story stands, and a way to run it */
   window.__STORY={ST,save,get act(){ return act&&act.id; },get scene(){ return act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id; },
     get beat(){ return beat; },get beatIx(){ return beatIx; },run:(id,s)=>{ const a=ST.acts.find(q=>q.id===id); stopAct(); runAct(a,s||0); },
     advance, get running(){ return running; }, ctx:()=>ctx, faceExposed, player:()=>player, camera:()=>camera,
-    reset:()=>{ save.codex={}; save.acts={}; save.witnessed=0; persist(); showHub(); } };
+    reset:()=>{ save.codex={}; save.acts={}; save.witnessed=0; save.road={}; save.bonds={}; persist(); } };
 };
 })();

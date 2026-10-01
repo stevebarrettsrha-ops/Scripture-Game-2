@@ -212,6 +212,16 @@ TEX.cobble     = mkTex(g=>{ speckle(g,PB.cobble.mortar,10);
     g.fillStyle=rgb(c[0],c[1],c[2]); g.fillRect(s[0]+FG,s[1]+FG,s[2]-2*FG,s[3]-2*FG);
     const hi=jit(PB.cobble.a,14,i2+7);                       /* the worked face catches the light */
     g.fillStyle=rgb(hi[0],hi[1],hi[2]); g.fillRect(s[0]+FG,s[1]+FG,s[2]-2*FG,FG); } },16,16,RIM);
+/* BASALT — the black stone of the shore of the Sea of Galil. Kephar Naḥum, Korazin and
+   Bĕyth Tsaiḏa were built of it: dark rough field-stones, pitted with the bubbles the fire
+   left in them, laid in courses with pale mud packed between. */
+TEX.basalt     = mkTex(g=>{ speckle(g,[118,110,98],12);
+  const st=[[0,0,6,4],[7,0,4,4],[12,0,4,3],[0,5,5,5],[6,5,5,4],[12,4,4,5],[0,11,4,5],[5,10,6,6],[12,10,4,6]];
+  for(let i2=0;i2<st.length;i2++){ const s=st[i2], c=jit([66,63,60],16,i2);
+    g.fillStyle=rgb(c[0],c[1],c[2]); g.fillRect(s[0]+FG,s[1]+FG,s[2]-2*FG,s[3]-2*FG);
+    g.fillStyle='rgba(20,18,18,0.75)';
+    for(let q=0;q<3;q++){ const px=s[0]+FG+Math.floor(hash2(i2*3.3,q*7.1)*Math.max(1,s[2]-3*FG)), py=s[1]+FG+Math.floor(hash2(q*5.9,i2*1.7)*Math.max(1,s[3]-3*FG)); g.fillRect(px,py,FG,FG); }
+    const hi=jit([92,88,82],10,i2+7); g.fillStyle=rgb(hi[0],hi[1],hi[2]); g.fillRect(s[0]+FG,s[1]+FG,s[2]-2*FG,FG); } },16,16,RIM);
 TEX.planks     = mkTex(g=>{ speckle(g,PB.planks.b,14,PB.planks.a,0.3);
   g.fillStyle=C(PB.planks.seam);
   for(let y=3;y<16;y+=4) g.fillRect(0,y,16,FG);
@@ -635,7 +645,7 @@ blockMat('ironPick',TEX.ironPick,{transparent:true});
 blockMat('goldOre',TEX.goldOre); blockMat('silverOre',TEX.silverOre);
 blockMat('copperOre',TEX.copperOre); blockMat('ironOre',TEX.ironOre);
 blockMat('alabaster',TEX.alabaster); blockMat('flint',TEX.flint);
-blockMat('sand',TEX.sand); blockMat('stone',TEX.stone); blockMat('cobble',TEX.cobble);
+blockMat('sand',TEX.sand); blockMat('stone',TEX.stone); blockMat('cobble',TEX.cobble); blockMat('basalt',TEX.basalt);
 blockMat('deepStone',TEX.deepStone); blockMat('bedrock',TEX.bedrock);
 blockMat('mudbrick',TEX.mudbrick); blockMat('plaster',TEX.plaster); blockMat('thatch',TEX.thatch);
 blockMat('snow',TEX.snow); blockMat('ice',TEX.ice);
@@ -2460,6 +2470,8 @@ function computeSites(){
     let maxH=12;
     const tryPt=(u,v)=>{ const ix=Math.floor(u*R_WORLD/B), iz=Math.floor(v*R_WORLD/B);
       const cc=cellRaw(ix,iz);
+      /* the city of the great king stands on her own hill: no village is raised inside her walls */
+      if(yahruPos&&Math.hypot((ix+.5)*B-yahruPos.x,(iz+.5)*B-yahruPos.z)<900) return null;
       if(cc&&cc.kind!=='wall'&&cc.kind!=='floe'&&cc.h<=maxH)
         return {i,ix,iz,x:(ix+.5)*B,z:(iz+.5)*B,h0:Math.max(2,cc.h)};
       return null; };
@@ -11740,7 +11752,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   /* the stone footing, and the floor laid upon it — beaten earth in the
      brick lands and the huts, boards in the timber ones */
   const earthFloor=(style==='levant'||style==='round');
-  const wallMat=style==='east'?'planks'
+  const wallMat=(ex&&ex.wall)?ex.wall:style==='east'?'planks'
     :style==='north'?'plaster'
     :style==='med'?'plaster'
     :(ex&&ex.washed!==undefined?ex.washed:houseWashed(ex&&ex.ci!==undefined?ex.ci:0,seed))?'plaster':'mudbrick';
@@ -13863,7 +13875,7 @@ function spearTick(dt){
 }
 
 /* ================= YAHRUSHALAYIM ================= */
-let yahruPos=null;
+let yahruPos=null, YAHRU_MARKS={}, yahruStamp=null, yahruPeriod=null;
 { const lat=31.78, lon=35.23, r=(90-lat)/180;
   const u=r*Math.sin(lon*Math.PI/180), v=r*Math.cos(lon*Math.PI/180);
   const ix0=Math.floor(u*R_WORLD/B), iz0=Math.floor(v*R_WORLD/B);
@@ -13872,7 +13884,9 @@ let yahruPos=null;
     const jx=ix0+Math.round(Math.cos(th)*rad), jz=iz0+Math.round(Math.sin(th)*rad);
     const cc=cellRaw(jx,jz); if(cc&&cc.kind!=='wall') yahruPos={ix:jx,iz:jz,x:(jx+.5)*B,z:(jz+.5)*B};
   } }
-function buildYahru(){ if(!yahruPos) return; stamped(null,()=>buildYahruIn()); }
+function buildYahru(){ if(!yahruPos) return;
+  if(window.YAHRU_PLAN){ buildYahruPlan(window.__STORY_PERIOD||'kings'); return; }
+  stamped(null,()=>buildYahruIn()); }
 /* the city of the great king, raised in stone. She is set down ONCE and never
    taken up again, so her stamp is owned by nobody: there is no village to
    hand the group to and nothing that could ever drop it. */
@@ -17033,6 +17047,7 @@ $('bigmap').addEventListener('click',toggleMap);
    window.storage API is kept as a secondary channel where it exists. */
 const SAVE_KEY='voyage:state';
 async function saveState(){
+  if(window.__STORY_HOST) return;        /* THE FULLNESS OF TIME borrows this world; it never writes the voyage's save */
   /* NOTHING IS WRITTEN BEFORE THE VOYAGE BEGINS. The menu's options lean on
      the rail buttons, and several of those save on click — fired before
      begin() they would write the menu's empty stand-in state straight over
@@ -17783,6 +17798,237 @@ async function begin(fresh,roam){
    had their say — so that whatever the other game sets, STAYS set for that
    frame. When nothing is hooked (the voyage, played by itself) both of
    these cost one undefined check a frame and change nothing whatever. */
+/* ================= THE STORY KIT =================
+   THE FULLNESS OF TIME (story/) plays in THIS world — the same earth, the same blocks, the
+   same folk, the same sky — and stages its scenes in it, the way SCRIPTURE UNFOLDS does.
+   The story page sets __HOST_BOOT and __STORY_HOST before the engine loads, and reaches in
+   through this one door: figures drawn as the voyage draws its folk, block stamps for its
+   sets, the levant house, the ground, the hour, the traveller. Nothing here runs unless a
+   story asks, and the voyage's own save is never written while a story holds the world. */
+const FIG_MAT={}, FIG_FACE={};
+function figMat(hex){ return FIG_MAT[hex]||(FIG_MAT[hex]=lam(hex)); }
+/* a robe of any colour, woven as robeMatFor weaves the seven: folds, girdle, a dark hem */
+function robeMatHex(hex,girdle){
+  const key=hex+':'+(girdle||0); if(ROBETEX[key]) return ROBETEX[key];
+  const r=hex>>16&255, g2=hex>>8&255, b2=hex&255, gd=girdle===undefined?0x3a2c1c:girdle;
+  const t=mkTex(g=>{
+    speckle(g,[r,g2,b2],18,[Math.max(0,r-22),Math.max(0,g2-22),Math.max(0,b2-22)],0.3);
+    g.fillStyle='rgba(0,0,0,0.22)'; for(const x of [3,8,13]) g.fillRect(x,4,1,12);
+    g.fillStyle=rgb(gd>>16&255,gd>>8&255,gd&255); g.fillRect(0,10,16,2);
+    g.fillStyle='rgba(0,0,0,0.3)'; g.fillRect(0,15,16,1); });
+  return ROBETEX[key]=new THREE.MeshLambertMaterial({map:t});
+}
+/* THE FACE, in the voyage's own pixels (personFaceTex), drawn in each of the states a face
+   that speaks passes through: the mouth shut, half open, open; the eyes open or shut. A
+   beard grows on the lower face; a head-cloth frames it instead of the fringe of hair. */
+function figFace(o,mouth,shut){
+  const key=[o.skin,o.hair,o.eye,o.beard,o.cloth,o.blank?1:0,mouth,shut?1:0].join(',');
+  if(FIG_FACE[key]) return FIG_FACE[key];
+  const sk=o.skin, r=sk>>16&255, g2=sk>>8&255, b2=sk&255, HR=o.hairRGB, EY=o.eyeRGB;
+  const tex=mkTex(g=>{ g.fillStyle=rgb(r,g2,b2); g.fillRect(0,0,16,16);
+    if(o.blank) return;
+    if(o.cloth!=null){ const c=o.cloth; g.fillStyle=rgb(c>>16&255,c>>8&255,c&255); g.fillRect(0,0,16,4); g.fillRect(0,4,2,12); g.fillRect(14,4,2,12); }
+    else for(let y=0;y<6;y++)for(let x=0;x<16;x++){ if(y<4||hash2(x*3.1,y*7.7)>0.5){
+      const c=jit(HR,22,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } }
+    g.fillStyle=o.brow||'rgb(48,34,24)'; g.fillRect(3,6,4,1); g.fillRect(9,6,4,1);
+    if(shut){ g.fillStyle='rgb(40,28,20)'; g.fillRect(3,9,3,1); g.fillRect(10,9,3,1); }
+    else { g.fillStyle='rgb(236,228,214)'; g.fillRect(3,8,3,2); g.fillRect(10,8,3,2);
+      g.fillStyle=rgb(EY[0],EY[1],EY[2]); g.fillRect(4,8,2,2); g.fillRect(11,8,2,2); }
+    g.fillStyle=rgb(Math.max(0,r-40),Math.max(0,g2-34),Math.max(0,b2-30)); g.fillRect(7,10,2,2);
+    if(o.beard!=null){ const b=o.beard; g.fillStyle=rgb(b>>16&255,b>>8&255,b&255);
+      g.fillRect(3,12,10,4); g.fillRect(2,10,2,4); g.fillRect(12,10,2,4); }
+    const lip=o.beard!=null?'rgb(40,20,14)':'rgb(120,72,48)';
+    if(mouth===0){ g.fillStyle=lip; g.fillRect(6,13,4,1); }
+    else if(mouth===1){ g.fillStyle='rgb(40,20,14)'; g.fillRect(6,12,4,2); }
+    else { g.fillStyle='rgb(36,16,12)'; g.fillRect(5,12,6,3); } });
+  return FIG_FACE[key]=new THREE.MeshLambertMaterial({map:tex});
+}
+/* A FIGURE OF THE STORY, built as makePerson builds the folk of the world — the same head,
+   robe, two-bone limbs and proportions — but in the look the story gives it: skin, hair,
+   eyes, robe, sash, beard, head-cloth; a child; a woman's long robe. The hem hangs in four
+   panels and the head-cloth's tail behind, on hinges the story swings (its cloth). `holy`:
+   no face is drawn at all — His face is never shown. `fallen`: as the voyage's sister game
+   draws the fallen. Returned in world units, feet at the origin, about twelve units tall. */
+function makeFigure(o){
+  o=Object.assign({},o||{});
+  const g=new THREE.Group();
+  const hex2rgb=h=>[h>>16&255,h>>8&255,h&255];
+  o.skin=o.skin==null?0x7a4e29:o.skin; o.hairRGB=hex2rgb(o.hair==null?0x2a1d14:o.hair); o.eyeRGB=hex2rgb(o.eye==null?0x3a2618:o.eye);
+  if(o.holy) o.blank=true;
+  const robe=o.robe==null?0x8a7454:o.robe, robeM=robeMatHex(robe,o.sash);
+  const clothM=o.cloth!=null?figMat(o.cloth):lam(hairHex(o.hairRGB));
+  const faces=[]; for(const m of [0,1,2]) for(const sh of [0,1]) faces.push(figFace(o,m,sh));
+  const headMats=[clothM,clothM,clothM,figMat(o.skin),faces[0],clothM];
+  const head=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),headMats); head.position.y=10.4; g.add(head);
+  if(o.cloth!=null){ const top=new THREE.Mesh(new THREE.BoxGeometry(3.4,1.0,3.4),clothM); top.position.y=12.2; g.add(top); }
+  const body=new THREE.Mesh(new THREE.BoxGeometry(3,4.6,1.7),robeM); body.position.y=6.6; g.add(body);
+  const legMat=figMat(o.under==null?0x5a4632:o.under);
+  const mkLimb=(w2,len,d2,mat,px2,py,elbow)=>{
+    const U=new THREE.Mesh(new THREE.BoxGeometry(w2,len*0.55,d2),mat);
+    U.geometry.translate(0,-len*0.275,0); U.position.set(px2,py,0);
+    const F=new THREE.Mesh(new THREE.BoxGeometry(w2*0.9,len*0.52,d2*0.9),mat);
+    F.geometry.translate(0,-len*0.26,0); F.position.set(0,-len*0.53,0);
+    U.add(F); U.userData[elbow?'elbow':'knee']=F; g.add(U); return U; };
+  const legL=mkLimb(1.35,4.2,1.5,legMat,0.74,4.3,false), legR=mkLimb(1.35,4.2,1.5,legMat,-0.74,4.3,false);
+  const armL=mkLimb(1.2,4.4,1.5,robeM,2.15,8.7,true), armR=mkLimb(1.2,4.4,1.5,robeM,-2.15,8.7,true);
+  /* the hands, of the skin */
+  for(const A of [armL,armR]){ const hd=new THREE.Mesh(new THREE.BoxGeometry(1.0,0.9,1.1),figMat(o.skin)); hd.position.y=-2.4; A.userData.elbow.add(hd); }
+  /* THE HEM: a robe to the shin (a woman's to the ankle), in four panels hung from the waist */
+  const cloth=[], hemLen=o.female?3.9:3.0;
+  const panel=(w,d,px,pz,axis,sign)=>{ const pv=new THREE.Group(); pv.position.set(px,4.45,pz);
+    const m=new THREE.Mesh(new THREE.BoxGeometry(w,hemLen,d),robeM); m.position.y=-hemLen/2; pv.add(m); g.add(pv);
+    cloth.push({pv,axis,sign,a:0,w:0,n:axis==='x'?[0,0,sign]:[sign,0,0]}); };
+  panel(3.2,0.32,0,0.9,'x',1); panel(3.2,0.32,0,-0.9,'x',-1); panel(0.32,1.9,1.62,0,'z',1); panel(0.32,1.9,-1.62,0,'z',-1);
+  if(o.cloth!=null){ const pv=new THREE.Group(); pv.position.set(0,12.0,-1.6);
+    const m=new THREE.Mesh(new THREE.BoxGeometry(3.3,3.2,0.35),clothM); m.position.y=-1.6; pv.add(m); g.add(pv);
+    cloth.push({pv,axis:'x',sign:-1,a:0,w:0,n:[0,0,-1],light:true}); }
+  else if(o.female){ const hm=lam(hairHex(o.hairRGB)); const back=new THREE.Mesh(new THREE.BoxGeometry(3.2,3.6,0.6),hm); back.position.set(0,9.0,-1.6); g.add(back); }
+  if(o.staff){ const st=lbox(0.3,8.5,0.3,0x7a5a30); st.position.set(-2.6,8.0,0.6); g.add(st); }
+  if(o.fallen){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexCv,color:0x785090,transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending}));
+    sp.scale.set(26,26,1); sp.position.y=7; g.add(sp); g.userData.aura={sprite:sp,base:26}; }
+  if(o.small) g.scale.setScalar(o.small===true?0.72:o.small);
+  Object.assign(g.userData,{legs:[legL,legR,armL,armR],legL,legR,armL,armR,cloth,head,faces,robeMat:robeM,
+    /* the face as the words go: mouth 0 shut … 2 open; eyes shut for a blink */
+    setFace:(m,shut)=>{ const k=Math.max(0,Math.min(2,m))*2+(shut?1:0); if(head.material[4]!==faces[k]){ head.material[4]=faces[k]; } },
+    holy:!!o.holy, s:o.small?(o.small===true?0.72:o.small):1});
+  return g;
+}
+/* a house of the land, stamped where the story asks, with its door and its furniture, and
+   counted with the standalone houses so it collides and opens like the traveller's home */
+function storyHouse(hx,hz,y,w,d,door,seed,style,more){
+  const G=newG(), ex=Object.assign({doors:[],houses:[],torchIn:[],style:style||'levant'},more||{});
+  if(ex.washed===undefined) delete ex.washed; if(!ex.wall) delete ex.wall;
+  const grp=stampedGroup(()=>emitHouse(G,ex,hx,hz,y,w,d,door,seed||1));
+  const g=new THREE.Group();
+  for(const mat in G){ const gg=G[mat]; if(!gg.p||!gg.p.length) continue; const bg=new THREE.BufferGeometry();
+    bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
+    bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
+    bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
+    bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
+  const regs=[];
+  for(const H of ex.houses){ if(!H.door) continue; const D2=H.door;
+    const dm=new THREE.Mesh(new THREE.BoxGeometry(D2.w,D2.h,0.6),doorLeafMat);
+    dm.geometry.translate(D2.w/2,D2.h/2,0); dm.position.set(D2.hx,D2.y,D2.hz); dm.rotation.y=D2.base;
+    g.add(dm); D2.mesh=dm; standaloneHouses.push(H); regs.push(H); }
+  scene.add(g);
+  return {group:g, stamp:grp, drop:()=>{ stampDrop(grp); scene.remove(g);
+    for(const H of regs){ const i=standaloneHouses.indexOf(H); if(i>=0) standaloneHouses.splice(i,1); } }};
+}
+/* THE SET BUILDER — one way of raising a set in this world, used by the city of the great
+   king at boot and by every scene of the story. Everything is given in METRES about an
+   anchor (a man is 1.85 m, the voyage's folk twelve units, so S=6.5 units to the metre),
+   with y measured up from the anchor's ground; it is laid as blocks of the world, in one
+   stamp group that can be taken up again whole. A colour is read as the block nearest it
+   (limestone is hewn stone, whitewash plaster, mud brick mud brick …); a name is a block;
+   'air' carves. */
+const SET_S=6.5;
+const SET_PAL=[[0xd8cfb8,'hewn-stone'],[0xece6d6,'plaster'],[0xe6e0cf,'plaster'],[0xa8835a,'mudbrick'],[0x8a6a47,'mudbrick'],
+  [0x9c9486,'stone'],[0x7a7266,'cobble'],[0x8e877a,'cobble'],[0x4e4a46,'cobble'],[0x5c5752,'cobble'],[0x9b7b55,'dirt'],
+  [0xa28a66,'dirt'],[0xb49a74,'path'],[0x7f8f4e,'grass'],[0xa99f63,'grass'],[0x6d7a4a,'leaves'],[0x55603a,'leaves'],
+  [0x8a9467,'leaves'],[0x9aa27a,'leaves'],[0x7d8a45,'leaves'],[0x5d4a36,'log'],[0x6e5238,'planks'],[0x7a5a3e,'planks'],
+  [0x8d7a55,'planks'],[0xd4af37,'hay'],[0xb08d3c,'hay'],[0xcdb36a,'hay'],[0xefe9dc,'wool'],[0xe0d4b0,'wool'],
+  [0xcdbb92,'sand'],[0x8d8272,'stone'],[0x7c7a4e,'thatch'],[0xa99c84,'stone'],[0x4f7f95,'water'],[0x6a6560,'cobble']];
+function setBlockFor(col){
+  if(typeof col==='string') return col==='air'?0:blockId(col);
+  if(col===0x2b241d) return 0;                                 /* the dark of a doorway: an opening */
+  const r=col>>16&255, g2=col>>8&255, b2=col&255; let best=null, bd=1e9;
+  for(const [c,id] of SET_PAL){ const d=(r-(c>>16&255))**2+(g2-(c>>8&255))**2+(b2-(c&255))**2; if(d<bd){ bd=d; best=id; } }
+  return blockId(best);
+}
+function setBuilder(ax,az,baseY,opt){
+  opt=opt||{}; const S=opt.S||SET_S, houses=[], marks={};
+  const X=x=>ax+x*S, Z=z=>az+z*S, Y=y=>baseY+y*S, tY=Math.round(baseY/B);
+  const was=_stampOn; if(!was) stampBegin();
+  const grp=_stampOn;
+  const cells=(x0,x1,lo,hi)=>{ const e=STAMP_EPS*B; let a=Math.floor((Math.min(x0,x1)+e)/B), b=Math.ceil((Math.max(x0,x1)-e)/B)-1; if(b<a){ b=a=Math.floor((x0+x1)/2/B); } return [a,b]; };
+  const api={ S, ax, az, baseY, marks,
+    X, Z, Y, local:(wx,wz)=>[(wx-ax)/S,(wz-az)/S],
+    /* a box of blocks; boxes of no size at all (a beam end, a lamp) are details for the eye
+       and are left to the things of a scene */
+    box(x0,y0,z0,x1,y1,z1,col,o){
+      if(Math.max(Math.abs(x1-x0),Math.abs(y1-y0),Math.abs(z1-z0))<0.4) return;
+      const n=setBlockFor(col); if(n===undefined||n===null) return;
+      if((o&&o.surface)||(Math.abs(y1-y0)<0.3&&Math.max(y0,y1)<=0.35&&Math.min(y0,y1)>=-0.05)){ return api.top(x0,z0,x1,z1,col); }
+      const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1)), [j0,j1]=cells(Y(y0),Y(y1));
+      for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++) for(let j=j0;j<=j1;j++) stampBlock(i,j,k,n); },
+    /* the ground's own top course laid with something else: a path, a floor, a field */
+    top(x0,z0,x1,z1,col){ const n=setBlockFor(col); if(!n) return;
+      const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1));
+      for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ const c=cell(i,k); const t=api.flat&&api.inPad(i,k)?tY:(c?c.h:tY); stampBlock(i,t-1,k,n); } },
+    /* THE GROUND MADE LEVEL for a set: higher land cut down, lower land filled, the top laid
+       with `top` (grass), trees taken off the lot; `r` rounds the corners into an oval */
+    pads:[], flat:false,
+    inPad(i,k){ for(const p of api.pads) if(i>=p.i0&&i<=p.i1&&k>=p.k0&&k<=p.k1){ if(!p.r) return true;
+        const cx=(p.i0+p.i1)/2, cz=(p.k0+p.k1)/2, rx=(p.i1-p.i0)/2+0.5, rz=(p.k1-p.k0)/2+0.5;
+        if(((i-cx)/rx)**2+((k-cz)/rz)**2<=1) return true; } return false; },
+    pad(x0,z0,x1,z1,o){ o=o||{}; const top=setBlockFor(o.top||'grass'), fill=blockId('dirt');
+      const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1)); const P={i0,i1,k0,k1,r:!!o.round}; api.pads.push(P); api.flat=true;
+      clearLotOfTrees(X(Math.min(x0,x1)),Z(Math.min(z0,z1)),X(Math.max(x0,x1)),Z(Math.max(z0,z1)),baseY);
+      for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ if(P.r&&!api.inPad(i,k)) continue;
+        const c=cell(i,k); if(!c||c.kind==='wall') continue; const h=c.h;
+        for(let j=tY;j<Math.max(h,tY)+2;j++) stampBlock(i,j,k,0);
+        for(let j=Math.min(h,tY)-1;j<tY-1;j++) if(j>=h-1) stampBlock(i,j,k,fill);
+        stampBlock(i,tY-1,k,top); } },
+    /* standing water: a channel, a pool, a lake — `depth` courses of water, its face level
+       with the ground's (or `drop` courses below it) */
+    water(x0,z0,x1,z1,o){ o=o||{}; const d=o.depth||2, dr=o.drop||0, w=blockId('water'), bed=blockId(o.bed||'sand');
+      const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1));
+      for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ if(o.test&&!o.test(...api.local((i+.5)*B,(k+.5)*B))) continue;
+        const c=cell(i,k); const h=Math.max(c?c.h:tY,tY);
+        for(let j=tY-dr;j<h+2;j++) stampBlock(i,j,k,0);
+        for(let j=tY-dr-d;j<tY-dr;j++) stampBlock(i,j,k,w);
+        stampBlock(i,tY-dr-d-1,k,bed); } },
+    /* a house of the land — the voyage's own, with its door, floor and furniture */
+    house(x,z,w,d,o){ o=o||{}; const odd=v=>{ v=Math.max(5,Math.round(v*S/B)); return v%2?v:v+1; };
+      const dir={s:0,n:1,e:2,w:3}[o.door||'s'];
+      /* on the level ground of the set, at its height; anywhere else, on the ground where it stands */
+      const hy=api.inPadL(x,z)?baseY:(()=>{ const c=cell(Math.floor(X(x)/B),Math.floor(Z(z)/B)); return c?c.h*B:baseY; })();
+      houses.push(storyHouse(X(x),Z(z),hy,odd(w),odd(d),dir,o.seed||Math.floor(Math.abs(x*31+z*17))+1,o.style||'levant',{washed:o.washed,wall:o.wall})); },
+    inPadL(x,z){ return api.inPad(Math.floor(X(x)/B),Math.floor(Z(z)/B)); },
+    /* A HILL HEAPED UP where the story needs one the world's coarse ground does not have — the
+       brow of Natsareth's hill, the slope of a mount: `h` metres high at (x,z), falling away
+       smoothly over `r`; earth under a top of `top`; never cut below the ground already there */
+    mound(x,z,h,r,o){ o=o||{}; const top=setBlockFor(o.top||'grass'), fill=blockId('dirt'), rock=blockId('stone');
+      const [i0,i1]=cells(X(x-r),X(x+r)), [k0,k1]=cells(Z(z-r),Z(z+r));
+      for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ const [lx,lz]=api.local((i+.5)*B,(k+.5)*B);
+        const q=Math.max(0,1-Math.hypot(lx-x,lz-z)/r); if(q<=0) continue;
+        const c=cell(i,k); if(!c||c.kind==='wall'||api.inPad(i,k)) continue;   /* the set's level ground stays level */
+        const g0=c.h, want=tY+Math.round(h*q*q*(3-2*q)*S/B);
+        if(want<=g0) continue;
+        for(let j=g0-1;j<want-1;j++) stampBlock(i,j,k,j<want-3?rock:fill);
+        stampBlock(i,want-1,k,top); } },
+    groundY(x,z){ const g=groundInfo(X(x),Z(z),baseY+40); return ((g&&g.y!=null?g.y:baseY)-baseY)/S; },
+    mark(name,x,z){ marks[name]=[x,z]; },
+    end(){ if(!was&&_stampOn===grp) stampEnd(); return api; },
+    drop(){ api.end(); stampDrop(grp); for(const h of houses) h.drop(); houses.length=0; }
+  };
+  return api;
+}
+/* THE CITY OF THE GREAT KING, BY PERIOD. world/yahrushalayim.js holds her plan; the voyage
+   raises her as she stood in the days of the kings (Solomon's Hĕḵal), and a story set in the
+   days of Herodes raises her with his great courts instead — the same city, one at a time. */
+function buildYahruPlan(period){
+  if(yahruStamp){ yahruStamp.drop(); yahruStamp=null; }
+  const base=topY(yahruPos.ix,yahruPos.iz);
+  const api=setBuilder(yahruPos.x,yahruPos.z,base);
+  try{ window.YAHRU_PLAN(api,period||'kings'); } finally{ api.end(); }
+  YAHRU_MARKS=api.marks; yahruStamp=api; yahruPeriod=period||'kings';
+  return api;
+}
+window.__KIT={
+  B, U_PER_M, R_WORLD, WATER_Y, THREE, scene, camera, renderer,
+  makeFigure, makeAnimal:k=>{ try{ return makeAnimal(k); }catch(e){ return null; } },
+  robeMat:robeMatHex, blockMat:n=>MAT[n]||null, solidAt, playerXZ,
+  /* the names of lands and cities over the world: a story shows none */
+  setNames:v=>{ namesOn=!!v; },
+  blockId, stampGroup:fn=>stampedGroup(fn), stampDrop, stampBlock, stampBox, stampTop,
+  storyHouse, topY, cell, landAtWorld, groundInfo, llToWorld, setLocalHour, localHourAt,
+  state, setMode, walkerG:()=>walkerG, updateChunks, flushEdits,
+  yahruPos:()=>yahruPos, yahruMarks:()=>YAHRU_MARKS, sites:()=>SITES,
+  setBuilder, setScale:SET_S, yahruPeriod:()=>yahruPeriod,
+  /* raise the city as she stood in a period ('kings' | 'herodes'), if she is not already */
+  yahruAs:p=>{ if(yahruPos&&window.YAHRU_PLAN&&yahruPeriod!==p) buildYahruPlan(p); return YAHRU_MARKS; }
+};
 window.__WORLD={
   scene,camera,renderer,THREE,
   sun,moon,sunMat2,moonMat2,sunHalo,moonHalo,starGroup,

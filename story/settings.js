@@ -5,7 +5,9 @@
    and markers by name and never to a coordinate, so a place can be rebuilt
    without a scene being rewritten.
 
-   Scale: one unit is about a metre; a man is 1.8. */
+   Scale: one unit is a metre; a man is 1.85. The sets are laid as blocks of the voyage's
+   world at each scene's true place (story/places.js); a box below is read as the block of
+   its colour, and stands on the ground where it is. */
 (function(){
 'use strict';
 const W=window.STORYWORLD, C=W.C;
@@ -18,47 +20,11 @@ const mk=(ctx,id,x,z)=>{ ctx.markers[id]=[x,z]; };
    it the road past the Launderer's Field to the upper pool and its channel
    (Yashayahu 7:3). */
 S.yahrushalayim=function(ctx,st){
-  W.ground(ctx,{size:420,color:C.grassDry,alt:C.earth,flat:70,hills:9});
-  const cx=0, cz=-20, hw=46, hd=58;
-  W.wall(st,cx-hw,cz-hd,cx+hw,cz-hd);
-  W.wall(st,cx+hw,cz-hd,cx+hw,cz+hd);
-  W.wall(st,cx+hw,cz+hd,cx-hw,cz+hd,{gap:[cx-14,cz+hd,5]});
-  W.wall(st,cx-hw,cz+hd,cx-hw,cz-hd);
-  W.gate(st,cx-14,cz+hd,'x');
-  W.hekal(st,cx+6,cz-30);
-  const hx=cx-30, hz=cz+44;                             /* the house of the taught ones, below */
-  /* the houses of the city, street by street, doors on the lanes */
-  for(let r=0;r<4;r++) for(let c=0;c<6;c++){
-    const x=cx-38+c*14+(W.hash(r,c)-0.5)*2, z=cz+2+r*12+(W.hash(c,r)-0.5)*2;
-    if(Math.abs(x-(cx-14))<5&&r===3) continue;          /* keep the gate street open */
-    if(Math.abs(x-(cx-2))<5) continue;                  /* the street up to the Hĕḵal */
-    if(Math.abs(x-hx)<12&&Math.abs(z-hz)<11) continue;  /* the taught ones' court */
-    W.house(st,x,z,6+W.hash(r*3,c)*2,6+W.hash(c*5,r)*2,{door:r%2?'n':'s',h:3+W.hash(r,c*7)*1.2});
-  }
-  /* the house where the taught ones keep the words (Yashayahu 8:16):
-     a courtyard house near the gate, its court open to the sky */
-  st.box(hx-6,0,hz-5,hx+6,0.2,hz+5,C.path,{collide:false});
-  st.box(hx-6,0,hz-5,hx+6,2.6,hz-4.6,C.whitewash); st.box(hx-6,0,hz-5,hx-5.6,2.6,hz+5,C.whitewash);
-  st.box(hx+5.6,0,hz-5,hx+6,2.6,hz+5,C.whitewash);
-  st.box(hx-6,0,hz+4.6,hx-1.2,2.6,hz+5,C.whitewash); st.box(hx+1.2,0,hz+4.6,hx+6,2.6,hz+5,C.whitewash);
-  st.box(hx-5.6,2.6,hz-4.6,hx+5.6,2.8,hz-1.8,C.roofEarth,{collide:false});
-  W.desk(st,hx,hz-3); W.jar(st,hx+2,hz-3.6); W.jar(st,hx+2.6,hz-3.6);
-  st.box(hx-4.8,0,hz-4.4,hx-3.2,1.8,hz-3.6,C.timber);             /* a shelf of scrolls */
-  for(let k=0;k<4;k++) st.box(hx-4.7+k*0.4,1.8,hz-4.3,hx-4.4+k*0.4,2.1,hz-3.7,0xe0d4b0,{collide:false});
-  mk(ctx,'studyDesk',hx,hz-1.8); mk(ctx,'studyDoor',hx,hz+6.5); mk(ctx,'studyIn',hx+2,hz);
-  mk(ctx,'studyShelf',hx-4,hz-2.8);
-  /* outside the gate: the highway of the Launderer's Field and the pool */
-  const gx=cx-14, gz=cz+hd+6;
-  mk(ctx,'gateIn',gx,cz+hd-8); mk(ctx,'gateOut',gx,gz+2);
-  for(let k=0;k<30;k++) st.box(gx-2-k*1.6,0,gz+k*0.9-1.2,gx-0.4-k*1.6,0.12,gz+k*0.9+1.2,C.path,{collide:false,jitter:0.1});
-  const px=gx-58, pz=gz+34;
-  W.pool(ctx,st,px,pz,16,11,{channel:[gx-6,gz+2]});
-  mk(ctx,'pool',px+10,pz+2); mk(ctx,'poolEnd',px+9.5,pz-6.5); mk(ctx,'ahaz',px+4,pz-8);
-  mk(ctx,'field',px+22,pz+10);
-  for(let k=0;k<7;k++){ const fx=px+14+k*3, fz=pz+14+(k%2)*2;       /* cloth laid out to dry: the Launderer's Field */
-    st.box(fx,0.02,fz,fx+2.2,0.08,fz+1.4,[0xe8e2d0,0xc9b38a,0xa35a3a,0xe8e2d0][k%4],{collide:false}); }
-  for(let k=0;k<26;k++){ const a=W.hash(k,3)*6.28, r=70+W.hash(k,9)*60; W.olive(st,Math.cos(a)*r+cx,Math.sin(a)*r+cz,0.9+W.hash(k,5)*0.4); }
-  mk(ctx,'hekalView',cx+6,cz-2); mk(ctx,'hekal',cx+6,cz-24); mk(ctx,'street',cx-2,cz+30);
+  /* SHE IS THE VOYAGE'S OWN CITY (world/yahrushalayim.js): the same walls, gate, houses, the
+     taught ones' court, the highway, the upper pool and its conduit, and the Hĕḵal on the
+     height — raised as she stood in the act's days (the kings', or Herodes'). Her marks are
+     the scene's markers; nothing is built here. */
+  ctx.wind=[0.8,0.3];
   ctx.bounds={x0:-200,x1:200,z0:-200,z1:200};
 };
 
@@ -77,8 +43,8 @@ S.natsareth=function(ctx,st){
     st.box(qx-1,0.3,qz-2.2,qx+1,1.3,qz-1.4,C.timber);                                     /* the reading-desk */
     mk(ctx,'qahal',qx,qz); mk(ctx,'reader',qx,qz-1); mk(ctx,'qahalDoor',qx,qz+9); mk(ctx,'qahalSeat',qx+3.4,qz+2.4); }
   /* the brow of the hill on which their city was built (Luke 4:29): a rock edge and the drop */
-  for(let k=0;k<7;k++){ const x=62+k*1.6, z=-66+W.hash(k,9)*3; const y=ctx.groundY(x,z);
-    st.box(x-0.9,y-3,z-0.9,x+0.9,y+0.5+W.hash(k,4)*0.6,z+0.9,C.rock); }
+  for(let k=0;k<7;k++){ const x=62+k*1.6, z=-66+W.hash(k,9)*3;
+    st.box(x-0.9,-3,z-0.9,x+0.9,0.9+W.hash(k,4)*0.6,z+0.9,C.rock); }
   mk(ctx,'brow',56,-60); mk(ctx,'browEdge',60,-63);
   const hs=[[-12,-6],[-4,-10],[6,-8],[14,-2],[-14,6],[10,8],[-3,12],[18,12]];
   hs.forEach(([x,z],k)=>W.house(st,x,z,5.5,5,{door:z<0?'s':'n',color:k%3?C.mudbrick:C.whitewash,h:2.8}));
@@ -111,7 +77,7 @@ S.fields=function(ctx,st){
   for(let k=0;k<30;k++){ const x=(W.hash(k,5)-0.5)*120, z=(W.hash(k,7)-0.5)*120; if(Math.hypot(x,z)<22) continue; W.rock(st,x,z,0.6+W.hash(k,3)); }
   /* the village on the hill, its lamps showing */
   for(let k=0;k<9;k++){ const x=-30+k*7+(W.hash(k,1)-0.5)*3, z=-62-W.hash(k,2)*8; W.house(st,x,z,5,5,{door:'s',h:3,noStair:true});
-    if(k%2===0) W.glow(ctx,x,2,z+2.6,1.6,0xffc070,0); }
+    if(k%2===0) W.glow(ctx,x,ctx.groundY(x,z+2.6)+2,z+2.6,1.6,0xffc070,0); }
   mk(ctx,'fold',-8,1.6); mk(ctx,'foldIn',-8,-4); mk(ctx,'fire',4,4); mk(ctx,'sit',4,6.4);
   mk(ctx,'hill',-2,-40); mk(ctx,'villageRoad',-2,-52);
   mk(ctx,'s1',6.2,3.2); mk(ctx,'s2',2,5.8); mk(ctx,'s3',5.6,6.2);
@@ -154,14 +120,15 @@ S.yarden=function(ctx,st){
       if(dx<RIVER.w+RIVER.b) c.set(0x6f6048).multiplyScalar(0.9+n*0.2);                 /* the mud of the banks */
       else if(dx<24) c.lerp(green,0.75*(1-(dx-8.5)/15.5));
       else c.lerp(marl,Math.min(0.85,(dx-24)/40)); }});
-  W.riverWater(ctx,RIVER,460);
+  ctx.api.pad(-34,-132,34,132,{top:'grass'});         /* the floor of the rift, along the river */
+  W.riverWater(ctx,RIVER,256);
   const rx=z=>W.riverX(RIVER,z), edge=RIVER.w+RIVER.b;
   /* reeds along both banks, the ford left open */
-  for(let z=-150;z<150;z+=3.2) for(const sd of [-1,1]){
+  for(let z=-124;z<124;z+=3.2) for(const sd of [-1,1]){
     if(Math.abs(z)<9) continue;
     W.reeds(st,rx(z)+sd*(edge-1.2+W.hash(z,sd)*1.6),z,-0.3,6); }
   /* the thicket: tamarisk and willow on the flood-plain */
-  for(let k=0;k<140;k++){ const z=(W.hash(k,11)-0.5)*300, sd=W.hash(k,12)<0.5?-1:1, d=edge+2+W.hash(k,13)*16, x=rx(z)+sd*d;
+  for(let k=0;k<140;k++){ const z=(W.hash(k,11)-0.5)*240, sd=W.hash(k,12)<0.5?-1:1, d=edge+2+W.hash(k,13)*16, x=rx(z)+sd*d;
     if(x>-22&&x<-4&&z>-18&&z<18) continue;          /* the crowds' bank */
     if(x>8&&x<24&&z>-14&&z<8) continue;             /* his camp */
     if(x<-4&&Math.abs(z-(0.45*x+2))<5) continue;     /* the road down */
@@ -195,22 +162,22 @@ S.wilderness=function(ctx,st){
   ctx.wind=[1.6,-0.7];
   wildGround(ctx);
   for(let k=0;k<70;k++){ const a=W.hash(k,21)*6.28, r=5+W.hash(k,22)*90, x=Math.cos(a)*r, z=Math.sin(a)*r;
-    const y=ctx.groundY(x,z); st.box(x-0.8,y-0.2,z-0.6,x+0.7,y+0.4+W.hash(k,23)*0.8,z+0.8,C.rock); }
+    st.box(x-0.8,-0.2,z-0.6,x+0.7,0.8+W.hash(k,23)*0.8,z+0.8,C.rock); }
   /* the stones, round as loaves */
   for(let k=0;k<9;k++){ const a=k*0.7+0.4, r=2.2+W.hash(k,31)*2.4, x=Math.cos(a)*r, z=Math.sin(a)*r+2;
     st.box(x-0.28,0,z-0.28,x+0.28,0.3,z+0.28,0xb8a888,{collide:false}); }
   st.box(-0.9,0,-1.2,0.9,0.6,-0.1,C.rock);                           /* a rock to sit on */
-  for(let k=0;k<18;k++){ const a=W.hash(k,41)*6.28, r=14+W.hash(k,42)*60, x=Math.cos(a)*r, z=Math.sin(a)*r, y=ctx.groundY(x,z);
-    st.box(x-0.6,y,z-0.6,x+0.6,y+0.7,z+0.6,0x7f855a,{collide:false}); }   /* broom in the wadis */
+  for(let k=0;k<18;k++){ const a=W.hash(k,41)*6.28, r=14+W.hash(k,42)*60, x=Math.cos(a)*r, z=Math.sin(a)*r;
+    st.box(x-0.6,0,z-0.6,x+0.6,0.9,z+0.6,'leaves'); }   /* broom in the wadis */
   mk(ctx,'seat',0,-0.6); mk(ctx,'stones',0,3);
   ctx.bounds={x0:-200,x1:200,z0:-200,z1:200};
 };
 /* "a very high mountain" (Mattithyahu 4:8): the land falls away on every side */
 S.mountain=function(ctx,st){
   ctx.wind=[2.8,1.1];                                  /* high up, the wind is strong */
-  wildGround(ctx,{flat:0,hills:40,peak:{x:0,z:0,h:46,r:110}});
-  for(let k=0;k<40;k++){ const a=W.hash(k,51)*6.28, r=4+W.hash(k,52)*50, x=Math.cos(a)*r, z=Math.sin(a)*r, y=ctx.groundY(x,z);
-    st.box(x-0.7,y-0.3,z-0.6,x+0.7,y+0.6,z+0.7,C.rock); }
+  wildGround(ctx,{flat:6,top:'stone'});                /* the summit of Ḥermon itself; the land falls away */
+  for(let k=0;k<40;k++){ const a=W.hash(k,51)*6.28, r=8+W.hash(k,52)*50, x=Math.cos(a)*r, z=Math.sin(a)*r;
+    st.box(x-0.7,-0.3,z-0.6,x+0.7,0.9,z+0.7,C.rock); }
   ctx.kingdoms=[];
   for(let k=0;k<14;k++){ const a=k/14*6.28+W.hash(k,61), r=150+W.hash(k,62)*90, x=Math.cos(a)*r, z=Math.sin(a)*r;
     const G=W.glow(ctx,x,ctx.groundY(x,z)+3,z,10+W.hash(k,63)*8,0xffd9a0,0); G.sprite.material.fog=false; G.visible=false; ctx.kingdoms.push(G); }
@@ -248,21 +215,20 @@ S.qanah=function(ctx,st){
    (Yahuchanon 6:10). */
 const SHORE={x:22,d:6,slope:0.16};
 function galil(ctx,st,o){
-  W.ground(ctx,{size:520,color:o.village?C.grassDry:C.grass,alt:o.village?C.earth:C.grass,flat:30,hills:12,shore:SHORE,
-    peak:o.village?{x:-80,z:6,h:22,r:70}:{x:-46,z:0,h:12,r:56},
-    tint:(x,z,c)=>{ if(x>SHORE.x-6&&x<SHORE.x+2) c.set(0x9a9184); }});
-  const lake=new THREE.Mesh(new THREE.PlaneGeometry(600,600),new THREE.MeshLambertMaterial({color:0x4a7088,transparent:true,opacity:0.9,depthWrite:false}));
-  lake.rotation.x=-Math.PI/2; lake.position.set(SHORE.x+300-1,-0.35,0); lake.renderOrder=2; ctx.scene.add(lake); ctx.water.push(lake);
-  /* the far hills across the water: the Golan, and the Galil rising to the north */
-  for(let k=0;k<9;k++){ const z=-220+k*55, x=260+W.hash(k,3)*40, h=18+W.hash(k,4)*22;
-    st.box(x-40,-1,z-30,x+40,h,z+30,0x8a8a78,{collide:false}); }
+  W.ground(ctx,{color:o.village?C.grassDry:C.grass,flat:30,
+    peak:o.village?{x:-80,z:6,h:22,r:70}:{x:-46,z:0,h:12,r:56}});
+  /* THE LAKE: its floor levelled and its water laid, from the beach out past where the boats
+     go; a beach of pebbles along its edge */
+  ctx.api.pad(SHORE.x-8,-80,SHORE.x+92,80,{top:'sand'});
+  ctx.api.water(SHORE.x,-78,SHORE.x+90,78,{depth:3,bed:'sand'});
+  st.box(SHORE.x-6,0,-80,SHORE.x,0.1,80,'sand');
   for(let k=0;k<26;k++){ const z=-90+k*7, x=SHORE.x-3+W.hash(k,5)*2.2; W.rock(st,x,z,0.35+W.hash(k,6)*0.4); }
   if(o.village){
-    const BAS=0x4e4a46, BAS2=0x5c5752;                                   /* the black basalt of Kephar Naḥum */
+    const BAS='basalt', BAS2='basalt';                                   /* the black basalt of Kephar Naḥum */
     const hs=[[-8,-24],[2,-26],[-18,-14],[6,-12],[-24,4],[-10,8],[4,10],[-20,20],[-6,24],[8,24],[-30,-8],[-32,14]];
     hs.forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:x>-12?'e':'w',color:k%2?BAS:BAS2,h:2.9}));
     { const qx=-8, qz=-6;                                                /* the qahal (Mark 1:21) */
-      st.box(qx-6,0,qz-4.5,qx+6,0.3,qz+4.5,0x6a6560,{collide:false});
+      st.box(qx-6,0,qz-4.5,qx+6,0.3,qz+4.5,'cobble');
       st.box(qx-6,0.3,qz-4.5,qx-5.5,4,qz+4.5,BAS); st.box(qx+5.5,0.3,qz-4.5,qx+6,4,qz+4.5,BAS); st.box(qx-6,0.3,qz-4.5,qx+6,4,qz-4,BAS);
       for(const pz of [-2.2,0.6,3.4]) st.box(qx+5.3,0.3,pz-0.2+qz-0.6,qx+5.8,4,pz+0.2+qz-0.6,BAS2);
       st.box(qx-6.3,4,qz-4.8,qx+6.3,4.35,qz+4.8,C.roofEarth,{collide:false});
@@ -275,11 +241,11 @@ function galil(ctx,st,o){
     mk(ctx,'mount',-40,6); mk(ctx,'mountTop',-48,6); mk(ctx,'mountCrowd',-34,6);
   } else {
     for(let k=0;k<70;k++){ const x=-60+W.hash(k,7)*72, z=-50+W.hash(k,8)*100;
-      if(Math.hypot(x+20,z)<26) continue; st.box(x-0.4,ctx.groundY(x,z),z-0.4,x+0.4,ctx.groundY(x,z)+0.35,z+0.4,0x6e8a46,{collide:false}); }
+      if(Math.hypot(x+20,z)<26) continue; st.detail(x-0.4,ctx.groundY(x,z),z-0.4,x+0.4,ctx.groundY(x,z)+0.35,z+0.4,0x6e8a46); }
     mk(ctx,'beach',SHORE.x-3,0); mk(ctx,'slope',-20,0); mk(ctx,'seat',-30,0);
   }
   ctx.wind=o.wind||[0.9,0.5];
-  ctx.bounds={x0:-200,x1:SHORE.x+3,z0:-200,z1:200};
+  ctx.bounds={x0:-200,x1:SHORE.x+3,z0:-80,z1:80};
 }
 S.galil=function(ctx,st){ galil(ctx,st,{village:true}); };
 S.galilEast=function(ctx,st){ galil(ctx,st,{village:false}); };
