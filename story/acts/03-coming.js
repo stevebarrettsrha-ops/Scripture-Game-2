@@ -85,9 +85,9 @@ STORY.act({
   { id:'fields', title:'The fields by night', date:'near Bĕyth Leḥem', place:'fields', time:'night',
     player:{ at:[8,10], face:Math.PI, look:BOY },
     actors:[
-      {id:'sh1', name:'A shepherd', at:'s1', face:-2.4, robe:0x6b5a44, cloth:0xb3a58a, beard:0x6d6a66, staff:true},
-      {id:'sh2', name:'A shepherd', at:'s2', face:2.2, robe:0x5c5040, cloth:0xa89a7e, beard:0x2c241f, staff:true},
-      {id:'sh3', name:'A shepherd', at:'s3', face:3.3, robe:0x74604a, cloth:0xc1b394}
+      {id:'sh1', name:'A shepherd', dress:'shepherd', at:'s1', face:-2.4, robe:0x6b5a44, cloth:0xb3a58a, beard:0x6d6a66, staff:true},
+      {id:'sh2', name:'A shepherd', dress:'shepherd', at:'s2', face:2.2, robe:0x5c5040, cloth:0xa89a7e, beard:0x2c241f, staff:true},
+      {id:'sh3', name:'A shepherd', dress:'shepherd', at:'s3', face:3.3, robe:0x74604a, cloth:0xc1b394}
     ],
     things:[ {id:'lamb1', kind:'lamb', at:'lamb1'}, {id:'lamb2', kind:'lamb', at:'lamb2'}, {id:'lamb3', kind:'lamb', at:'lamb3'} ],
     glows:[ {id:'malak', at:[2,7,-8], size:9, color:0xfff6dc, intensity:2.6, pulse:true, hidden:true} ],
@@ -126,9 +126,9 @@ STORY.act({
     actors:[
       Object.assign({id:'miryam', name:'Miryam', at:[5.3,-0.4], face:0.6},MIRYAM),
       Object.assign({id:'yoseph', name:'Yosĕph', at:[8.8,-0.1], face:-0.6},YOSEPH),
-      {id:'sh1', name:'A shepherd', at:[-3,35], face:Math.PI, robe:0x6b5a44, cloth:0xb3a58a, beard:0x6d6a66, staff:true},
-      {id:'sh2', name:'A shepherd', at:[-1,36], face:Math.PI, robe:0x5c5040, cloth:0xa89a7e, beard:0x2c241f, staff:true},
-      {id:'sh3', name:'A shepherd', at:[1,35.5], face:Math.PI, robe:0x74604a, cloth:0xc1b394}
+      {id:'sh1', name:'A shepherd', dress:'shepherd', at:[-3,35], face:Math.PI, robe:0x6b5a44, cloth:0xb3a58a, beard:0x6d6a66, staff:true},
+      {id:'sh2', name:'A shepherd', dress:'shepherd', at:[-1,36], face:Math.PI, robe:0x5c5040, cloth:0xa89a7e, beard:0x2c241f, staff:true},
+      {id:'sh3', name:'A shepherd', dress:'shepherd', at:[1,35.5], face:Math.PI, robe:0x74604a, cloth:0xc1b394}
     ],
     things:[ {id:'lamp', kind:'box', at:[5.6,1.4], w:0.28, h:0.3, d:0.28, color:0xb0703a},
              {id:'infant', kind:'infant', at:[7,-1], y:0.7} ],
@@ -165,12 +165,12 @@ STORY.act({
   { id:'herodes', title:'Yahrushalayim', date:'some time after', place:'yahrushalayim', time:'day',
     player:{ at:[-10,26], hidden:true },
     actors:[
-      {id:'herodes', name:'Herodes', at:[15,27], face:0, robe:0x6a2440, cloth:0xd4af37, sash:0xd4af37, beard:0x2c241f},
-      {id:'k1', name:'The chief kohanim and scribes', at:[20,29], face:-1.2, robe:0xe6e0cf, cloth:0x6b5a44},
-      {id:'k2', at:[21,30.5], face:-1.2, robe:0xd8d0bb, cloth:0x5c5040},
-      {id:'m1', name:'Magi from the East', at:[14,33], face:Math.PI, robe:0x2f4f6f, cloth:0xd4af37},
-      {id:'m2', at:[16,33.5], face:Math.PI, robe:0x6f3f2f, cloth:0xe6d6a8},
-      {id:'m3', at:[12,33.4], face:Math.PI, robe:0x3f6a4a, cloth:0xcfc4aa}
+      {id:'herodes', name:'Herodes', dress:'king', at:[15,27], face:0, robe:0x6a2440, cloth:0xd4af37, sash:0xd4af37, beard:0x2c241f},
+      {id:'k1', name:'The chief kohanim and scribes', dress:'kohen', at:[20,29], face:-1.2, robe:0xe6e0cf, cloth:0x6b5a44},
+      {id:'k2', dress:'scribe', at:[21,30.5], face:-1.2, robe:0xd8d0bb, cloth:0x5c5040},
+      {id:'m1', name:'Magi from the East', dress:'magi', at:[14,33], face:Math.PI, robe:0x2f4f6f, cloth:0xd4af37},
+      {id:'m2', dress:'magi', at:[16,33.5], face:Math.PI, robe:0x6f3f2f, cloth:0xe6d6a8},
+      {id:'m3', dress:'magi', at:[12,33.4], face:Math.PI, robe:0x3f6a4a, cloth:0xcfc4aa}
     ],
     things:[ {id:'dais', kind:'box', at:[15,26.2], w:4, h:0.02, d:2.4, color:0x6a2440},
              {id:'seat', kind:'box', at:[15,26.1], w:1.2, h:1.5, d:0.5, color:0x8a6a3a} ],
@@ -190,9 +190,9 @@ STORY.act({
   { id:'star', title:'Bĕyth Leḥem', date:'the same days', place:'beythlehem', time:'dusk',
     player:{ at:'well', face:0.5, look:BOY },
     actors:[
-      {id:'m1', name:'Magi from the East', at:[4,19], face:0, robe:0x2f4f6f, cloth:0xd4af37},
-      {id:'m2', at:[7,19.4], face:0, robe:0x6f3f2f, cloth:0xe6d6a8},
-      {id:'m3', at:[10,19], face:0, robe:0x3f6a4a, cloth:0xcfc4aa}
+      {id:'m1', name:'Magi from the East', dress:'magi', at:[4,19], face:0, robe:0x2f4f6f, cloth:0xd4af37},
+      {id:'m2', dress:'magi', at:[7,19.4], face:0, robe:0x6f3f2f, cloth:0xe6d6a8},
+      {id:'m3', dress:'magi', at:[10,19], face:0, robe:0x3f6a4a, cloth:0xcfc4aa}
     ],
     things:[ {id:'camel1', kind:'camel', at:[3,23], face:1.2}, {id:'camel2', kind:'camel', at:[7,24.5], face:1.4}, {id:'camel3', kind:'camel', at:[11,23], face:1.7} ],
     glows:[ {id:'window', at:[12.6,1.6,6], size:1.6, color:0xfff3d0, intensity:0.7, pulse:true} ],

@@ -50,7 +50,10 @@ Static.prototype.box=function(x0,y0,z0,x1,y1,z1,color,opt){
   if(!opt.detail&&y1-y0<0.3&&y1<=0.35&&y0>=-0.05&&Math.max(x1-x0,z1-z0)>=0.6){ this.api.top(x0,z0,x1,z1,color); return; }
   /* too small to be a block: kept as a little thing of the scene */
   const span=Math.max(x1-x0,z1-z0);
-  if(opt.detail||span<0.4||(opt.collide===false&&span<0.6)){ this.detail(x0,y0+g,z0,x1,y1+g,z1,color,opt); return; }
+  /* an awning, a beam, a lintel of a shelter — a thin thing above the ground is drawn, not laid
+     as a course of blocks a man would have to stoop under */
+  const thinAbove=y1-y0<0.32&&y0>0.6;
+  if(opt.detail||span<0.4||(opt.collide===false&&span<0.6)||thinAbove){ this.detail(x0,y0+g,z0,x1,y1+g,z1,typeof color==='number'?color:0x7c7a4e,opt); return; }
   this.api.box(x0,y0+g,z0,x1,y1+g,z1,color);
 };
 /* the little things, gathered into one mesh a scene, shaded by the way each face looks */
@@ -89,8 +92,7 @@ W.ground=function(ctx,o){
   const top=o.top||(o.color===C.grass?'grass':o.color===0xc9b48a?'sand':'grass');
   if(f>0) api.pad(-f,-f,f,f,{round:true,top});
   for(const p of [].concat(o.peak||[])) api.mound(p.x,p.z,p.h,p.r,{top});
-  ctx.groundY=(x,z)=>api.groundY(x,z);
-  return null;
+  return null;   /* ctx.groundY stays the engine's: it looks for the floor under a man, not the roof over him */
 };
 /* where a river's middle runs at z: a slow meander, straight at the ford (z≈0) */
 W.riverX=function(r,z){ return Math.sin(z*(r.f||0.018))*(r.amp===undefined?8:r.amp); };
@@ -225,38 +227,8 @@ W.skinFor=function(o){ const P=W.SKIN[o.folk||'yasharal']||W.SKIN.yasharal;
    robe of deep violet-grey (#2a2230), a mantle of dark crimson (#5a1a24), hair and beard near
    black, a shadowed, ashen face, and a dim violet light about him (rgb 120,80,140). */
 W.FALLEN={robe:0x2a2230, sash:0x5a1a24, cloth:0x120a0a, beard:0x120a0a, skin:0x4a3a40, under:0x1e1824, brow:0x120a0a};
-const WOMEN=/^(Miryam|Elisheḇa|Ḥannah|A widow|The bride|A woman|Her )/;
-/* ---- A PERSON IS ONE OF THE VOYAGE'S FOLK ----
-   Built by the voyage's own makePerson (through the kit's makeFigure): the same head, face,
-   robe, leggings and two-jointed limbs as every villager of the world, dressed in the look
-   the story gives it. Returned in metres (the figure itself is built in world units and
-   scaled down inside it), so the scene moves it, turns it and sits it down as before. */
-W.person=function(ctx,o){
-  o=o||{};
-  if(o.fallen) o=Object.assign(o,W.FALLEN,{kind:o.kind||'dark'});
-  /* YAHUSHA: a body like every other man's — a man of Yasharal, brown, in a plain robe of
-     undyed wool with a mantle of blue — and His face never shown: the figure is made with
-     no face at all, and the engine keeps every camera from looking on the front of His
-     head (story/engine.js, guardFace) */
-  if(o.holy) o=Object.assign(o,{robe:o.robe||0xd6c9a8, cloth:o.cloth||0xe2d8c0, sash:o.sash||0x3f5a8a, skin:o.skin||0x704a27, under:0x8a7a62, beard:null});
-  if(!o.skin) o.skin=W.skinFor(o);
-  const k=K(), S=k.setScale;
-  const female=o.kind==='woman'||WOMEN.test(o.name||'');
-  let seed=7; for(const ch of String(o.id||o.name||'')+String(o.at)) seed=(seed*31+ch.charCodeAt(0))%100003;
-  const fig=k.makeFigure({seed, folk:o.folk==='roman'||o.folk==='greek'?'med':o.folk==='north'?'north':'levant', skin:o.skin, hair:o.hair, robe:o.robe||0x9a8466, sash:o.sash||0x6a3b2a, under:o.under||0x5b4a3a,
-    cloth:o.cloth===null?null:(o.cloth||0xd9cfb6), beard:o.beard||null, female, small:o.small?(o.small===true?0.72:o.small):0,
-    staff:!!o.staff, holy:!!o.holy, fallen:!!o.fallen, brow:o.brow?'#'+(o.brow>>>0).toString(16).padStart(6,'0'):null});
-  fig.scale.multiplyScalar(1/S);
-  const g=new THREE.Group(); g.add(fig);
-  const u=fig.userData, s=u.s||1;
-  if(o.carry){ const it=new THREE.Mesh(new THREE.BoxGeometry(2,2.3,1.6),new THREE.MeshLambertMaterial({color:o.carry}));
-    it.position.set(0,-2.9,1.2); u.armR.userData.elbow.add(it); }
-  g.userData={legL:u.legL,legR:u.legR,armL:u.armL,armR:u.armR,cloth:u.cloth,setFace:u.setFace,aura:u.aura,
-    head:u.head,headY:1.6*s,s,holy:!!o.holy,phase:Math.random()*6,fig,
-    robeMeshes:(()=>{ const out=[]; const rm=u.robeMat; fig.traverse(q=>{ if(q.isMesh&&q.material===rm) out.push(q); }); return out; })(),
-    face:null, blink:2+Math.random()*4};
-  ctx.scene.add(g); return g;
-};
+/* A PERSON is built in story/people.js: a man or woman of their own day, dressed as the
+   finds and writings of the time show them. */
 /* a dove of light — "the Ruach of Aluahim descending like a dove" (Mattithyahu 3:16) */
 W.dove=function(ctx,x,y,z){
   const g=new THREE.Group(), k=K(), bird=k.makeBird?k.makeBird('dove'):null;
@@ -266,9 +238,8 @@ W.dove=function(ctx,x,y,z){
 };
 /* a fishing boat of the lake: planked hull, a thwart, a mast stepped amidships (the
    Kinnereth boat found at Ginosar, 8 m by 2.3) — a group, so it can be moved on the water */
-const PLANK=()=>K().blockMat?K().blockMat('planks'):null;
 W.boat=function(ctx,x,z,o){ o=o||{};
-  const g=new THREE.Group(), pm=PLANK(), m=c=>pm&&c!==0x4a3220?pm:new THREE.MeshLambertMaterial({color:c});
+  const g=new THREE.Group(), m=c=>new THREE.MeshLambertMaterial({color:c});
   const b=(w,h,d,c,px,py,pz)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m(c)); q.position.set(px,py,pz); g.add(q); return q; };
   const wood=0x6a4a30, dark=0x4a3220;
   b(2.0,0.25,7.0,dark,0,-0.35,0);

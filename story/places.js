@@ -41,7 +41,9 @@ function standing(){
   for(const L of (E.waterfallList||[])) if(isFinite(L.lat)){ const p=k.llToWorld(L.lat,L.lon); out.push({x:p[0],z:p[1],r:260}); }
   for(const L of (E.placeList||[])) if(isFinite(L.lat)){ const p=k.llToWorld(L.lat,L.lon); out.push({x:p[0],z:p[1],r:260}); }
   for(const L of (E.scrollList||[])) if(isFinite(L.lat)){ const p=k.llToWorld(L.lat,L.lon); out.push({x:p[0],z:p[1],r:200}); }
-  for(const s of (k.sites()||[])) if(s&&isFinite(s.x)) out.push({x:s.x,z:s.z,r:520});
+  /* a village of the voyage spreads its folk, lamps and fields some 300 units about its site,
+     and a city's walls 760: a scene is kept well clear of either */
+  for(const s of (k.sites()||[])) if(s&&isFinite(s.x)) out.push({x:s.x,z:s.z,r:1100});
   const yp=k.yahruPos(); if(yp) out.push({x:yp.x,z:yp.z,r:760});
   return out;
 }
@@ -62,7 +64,7 @@ function find(def){
   if(yp&&def.clear){ const d=dist(P,yp); if(d<def.clear){ const ux=(P.x-yp.x)/(d||1), uz=(P.z-yp.z)/(d||1); P={x:yp.x+ux*def.clear,z:yp.z+uz*def.clear}; } }
   const busy=standing();
   let best=null, bs=1e18;
-  for(let ring=0;ring<=14;ring++){ const n=Math.max(1,ring*8);
+  for(let ring=0;ring<=32;ring++){ const n=Math.max(1,ring*8);
     for(let a=0;a<n;a++){ const t=a/n*Math.PI*2, d=ring*45, x=P.x+Math.cos(t)*d, z=P.z+Math.sin(t)*d;
       if(busy.some(b=>Math.hypot(x-b.x,z-b.z)<b.r)) continue;
       const g=rough(x,z,def.flat); if(!g) continue;

@@ -63,9 +63,18 @@ function writeCamera(){
 function groundAt(x,z,ref){
   const k=K(); let r;
   if(ref!==undefined) r=anchor.y+ref*S;
-  else r=ctx&&ctx.api&&ctx.api.inPadL(x,z)?anchor.y+2.2*S:undefined;
+  else if(ctx&&ctx.api){ if(ctx.api.inPadL(x,z)) r=anchor.y+2.2*S;
+    else { const m=ctx.api.moundL(x,z); if(m!==null) r=anchor.y+(m+0.5)*S; } }
   const g=k.groundInfo(anchor.x+x*S,anchor.z+z*S,r);
   return ((g&&g.y!=null?g.y:anchor.y)-anchor.y)/S;
+}
+/* THE GROUND UNDER ONE OF THE SCENE'S PEOPLE as they go: a step of one course is taken up if
+   there is room for a man over it; a wall is never climbed course by course onto a roof */
+function stepGround(x,z,cur){
+  let f=groundAt(x,z,cur+1.0);
+  if(f>cur+0.05){ const k=K(), B=k.B, wx=anchor.x+x*S, wz=anchor.z+z*S, fy=anchor.y+f*S;
+    if(f>cur+1.0||k.solidAt(wx,fy+0.5*B,wz)||k.solidAt(wx,fy+1.5*B,wz)) f=cur; }
+  return f;
 }
 /* is a man of the scene stopped here? the blocks of the world are what stop him: a step of
    one course he climbs; anything higher, or a lintel at his head, he does not */
@@ -263,7 +272,8 @@ function animFigure(g,dt,moving){
   const u=g.userData; u.phase=(u.phase||0)+dt*(moving?7:1.2);
   const sw=moving?Math.sin(u.phase)*0.55:Math.sin(u.phase)*0.03;
   if(u.legL){ u.legL.rotation.x=sw; u.legR.rotation.x=-sw; u.armL.rotation.x=-sw*0.8; u.armR.rotation.x=u.carrying?-0.9:sw*0.8; }
-  if(u.sit&&u.legL){ u.legL.rotation.x=u.legR.rotation.x=-1.45; u.armL.rotation.x=u.armR.rotation.x=-0.5; }
+  if(u.sit&&u.legL){ u.legL.rotation.x=u.legR.rotation.x=-1.45; u.armL.rotation.x=u.armR.rotation.x=-0.5;
+    for(const L of [u.legL,u.legR]) if(L.userData.knee) L.userData.knee.rotation.x=1.45; }    /* the shins down from the knee */
   /* THE SPEAKER'S HANDS: one who is speaking and standing still lifts a hand with the words */
   if(u.talkM!==undefined&&!moving&&!u.sit&&!u.carrying&&u.armR){ const k=u.talkM;
     u.armR.rotation.x+=(-0.55-k*0.35+Math.sin(u.phase*0.9)*0.08-u.armR.rotation.x)*Math.min(1,dt*5);
@@ -312,8 +322,8 @@ function moveActors(dt){
       if(d>0.15){ const sp=Math.min(d,(u.speed||2.6)*dt); g.position.x+=dx/d*sp; g.position.z+=dz/d*sp;
         g.rotation.y=turnTo(g.rotation.y,Math.atan2(dx,dz),dt*8); moving=true; }
       else if(!u.follow) u.target=null; }
-    if(u.fixedY!==undefined) g.position.y=u.fixedY-(u.sit?0.62*(u.s||1):0);
-    else { const gy=ctx.groundY(g.position.x,g.position.z,(u.gy===undefined?g.position.y:u.gy)+1.5); u.gy=gy; g.position.y=gy-(u.sit?0.62*(u.s||1):0); }
+    if(u.fixedY!==undefined) g.position.y=u.fixedY-(u.sit?0.44*(u.s||1):0);
+    else { u.gy=stepGround(g.position.x,g.position.z,u.gy===undefined?ctx.groundY(g.position.x,g.position.z):u.gy); g.position.y=u.gy-(u.sit?0.44*(u.s||1):0); }
     animFigure(g,dt,moving); animFace(g,id,dt);
     if(u.label){ const near=!camTarget&&player&&Math.hypot(player.position.x-g.position.x,player.position.z-g.position.z)<3.6;
       u.label.visible=near||speaking===id; } }
@@ -614,7 +624,7 @@ function enterBeat(){
   if(T==='move'){ const who=[].concat(B.who), tos=Array.isArray(B.who)?[].concat(B.to):[B.to];   /* one figure, one place — even a place given as [x,z] */ who.forEach((w,k)=>{ const g=ctx.actors[w]; if(!g) return;
       const to=pos(tos[Math.min(k,tos.length-1)]);
       g.userData.follow=null; g.userData.target=to; if(B.speed) g.userData.speed=B.speed;
-      if(ST.fast){ g.position.x=to[0]; g.position.z=to[1]; } });
+      if(ST.fast){ g.position.x=to[0]; g.position.z=to[1]; g.userData.gy=undefined; } });
     if(B.wait===false) return nextBeat();
     onFrame=()=>{ if(who.every(w=>!ctx.actors[w]||!ctx.actors[w].userData.target)) nextBeat(); }; return; }
   if(T==='follow'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.target=null; g.userData.follow=B.target||'player'; } } return nextBeat(); }
@@ -647,7 +657,7 @@ function enterBeat(){
   if(T==='weather'){ if(B.wind) ctx.wind=B.wind; if(B.rough!==undefined) ctx.rough=B.rough; return nextBeat(); }
   /* "Make the people sit down" (Yahuchanon 6:10): on the grass, legs out before them */
   if(T==='sit'||T==='stand'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g) g.userData.sit=(T==='sit'); } return nextBeat(); }
-  if(T==='robe'){ const g=ctx.actors[B.who]; if(g&&g.userData.robeMeshes){ const m=K().robeMat(B.color); for(const q of g.userData.robeMeshes) q.material=m; } return nextBeat(); }
+  if(T==='robe'){ const g=ctx.actors[B.who]; if(g) window.STORYWORLD.recolor(g,B.color); return nextBeat(); }
   if(T==='drift'){ const objs=[];
     /* one thing to a place (`to`), or several together by the same distance (`by`) — a boat
        and everyone standing in it, the player too */
@@ -976,6 +986,8 @@ function frame(dtW){
   if(onFrame) onFrame(dt);
   actPressed=false;
   updateCamera(dt);
+  /* the test harness may hold the eye on a point (ST.camHold: {from,look}) — never past the guard */
+  if(ST.camHold){ camera.position.set(...ST.camHold.from); camera.lookAt(...ST.camHold.look); }
   guardFace();
   writeCamera();
 }
@@ -990,6 +1002,7 @@ function standWalker(x,z,y){
 function keepWorld(){
   const k=K();
   if(anchor) k.setLocalHour(hourNow,anchor.x,anchor.z);
+  { const cl=k.clouds&&k.clouds(); if(cl&&anchor) cl.position.y=Math.max(k.CLOUD_Y,anchor.y+180*S); }
   const p=player&&!ctx.playerHidden?player.position:{x:0,y:0,z:0};
   standWalker(anchor.x+p.x*S,anchor.z+p.z*S,anchor.y+p.y*S);
 }

@@ -1640,7 +1640,10 @@ for(const L of LANDMARKS){ if(L.kind!=='mount') continue;
      long climb. (A rock that is FAMOUS for standing sheer — Uluru, Table
      Mountain — says steep:1 in world/landmarks.js and keeps its walls.) */
   const Rm=L.steep?(L.r||110)*1.75:Math.max((L.r||110)*1.75, peak*B*3.6);
-  MOUNTS.push({x:mx,z:mz,R:Rm,peak}); }
+  /* `flat` (units): a mountain with a broad crown a whole city stands on — Mount Moriyah,
+     with Yahrushalayim upon it — instead of a summit court nine blocks across */
+  if(L.flat) MOUNTS.push({x:mx+(L.ox||0),z:mz+(L.oz||0),R:L.flat+(L.flank||Math.max(Rm,peak*B*3.2)),peak,flat:L.flat});
+  else MOUNTS.push({x:mx,z:mz,R:Rm,peak}); }
 /* ---- AND THE FALLING WATERS, LAID IN THE SAME WAY ----
    world/waterfalls.js is data exactly as world/landmarks.js is, and it is
    turned into world coordinates here for the same reason: the file that
@@ -1865,6 +1868,11 @@ function mountUpliftAt(x,z){ let up=0;
   for(const m of MOUNTS){ const dx=x-m.x; if(dx>m.R||dx<-m.R) continue;
     const dz=z-m.z; if(dz>m.R||dz<-m.R) continue;
     const d=Math.hypot(dx,dz); if(d>=m.R) continue;
+    if(m.flat){ /* the crowned mountain: level within its crown, its flanks falling away smoothly,
+         a little broken by the ridge field low down */
+      const t=d<=m.flat?1:1-(d-m.flat)/(m.R-m.flat), sm=t*t*(3-2*t);
+      const u=m.peak*sm+(d>m.flat?m.peak*0.12*sm*(1-sm)*ridgeNoise(x*0.0013-21,z*0.0013+33):0);
+      if(u>up) up=u; continue; }
     const tb=1-d/m.R, broad=tb*tb*(3-2*tb);
     /* the summit cone is seated OUTSIDE the flat crown — measured from the
        court's rim, not the centre — so the cone rises to meet the court and
@@ -1891,9 +1899,9 @@ function mountUpliftAt(x,z){ let up=0;
    which is what the top of such a mountain is. */
 const MTN_FLAT_R=27;
 function mountFlatAt(x,z){
-  for(const m of MOUNTS){ const dx=x-m.x; if(dx>MTN_FLAT_R||dx<-MTN_FLAT_R) continue;
-    const dz=z-m.z; if(dz>MTN_FLAT_R||dz<-MTN_FLAT_R) continue;
-    if(dx*dx+dz*dz<=MTN_FLAT_R*MTN_FLAT_R) return 1+Math.round(m.peak); }
+  for(const m of MOUNTS){ const FR=m.flat||MTN_FLAT_R; const dx=x-m.x; if(dx>FR||dx<-FR) continue;
+    const dz=z-m.z; if(dz>FR||dz<-FR) continue;
+    if(dx*dx+dz*dz<=FR*FR) return 1+Math.round(m.peak); }
   return 0; }
 /* ---- RIDGED MULTIFRACTAL — the shape a mountain chain actually takes ----
    Plain fbm makes round blobs. Folding it about its midline (1−|2f−1|) puts
@@ -17985,11 +17993,13 @@ function setBuilder(ax,az,baseY,opt){
       for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ const c=cell(i,k); const t=api.flat&&api.inPad(i,k)?tY:(c?c.h:tY); stampBlock(i,t-1,k,n); } },
     /* THE GROUND MADE LEVEL for a set: higher land cut down, lower land filled, the top laid
        with `top` (grass), trees taken off the lot; `r` rounds the corners into an oval */
-    pads:[], flat:false,
+    pads:[], flat:false, mtops:new Map(),
+    /* the height a heaped hill was raised to here, in metres above the anchor, or null */
+    moundL(x,z){ const v=api.mtops.get(Math.floor(X(x)/B)+','+Math.floor(Z(z)/B)); return v===undefined?null:(v*B-baseY)/S; },
     inPad(i,k){ for(const p of api.pads) if(i>=p.i0&&i<=p.i1&&k>=p.k0&&k<=p.k1){ if(!p.r) return true;
         const cx=(p.i0+p.i1)/2, cz=(p.k0+p.k1)/2, rx=(p.i1-p.i0)/2+0.5, rz=(p.k1-p.k0)/2+0.5;
         if(((i-cx)/rx)**2+((k-cz)/rz)**2<=1) return true; } return false; },
-    pad(x0,z0,x1,z1,o){ o=o||{}; const top=setBlockFor(o.top||'grass'), fill=blockId('dirt');
+    pad(x0,z0,x1,z1,o){ o=o||{}; const top=setBlockFor(o.top||'grass'), fill=blockId(o.fill||'dirt');
       const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1)); const P={i0,i1,k0,k1,r:!!o.round}; api.pads.push(P); api.flat=true;
       clearLotOfTrees(X(Math.min(x0,x1)),Z(Math.min(z0,z1)),X(Math.max(x0,x1)),Z(Math.max(z0,z1)),baseY);
       for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ if(P.r&&!api.inPad(i,k)) continue;
@@ -18023,9 +18033,12 @@ function setBuilder(ax,az,baseY,opt){
         const c=cell(i,k); if(!c||c.kind==='wall'||api.inPad(i,k)) continue;   /* the set's level ground stays level */
         const g0=c.h, want=tY+Math.round(h*q*q*(3-2*q)*S/B);
         if(want<=g0) continue;
+        api.mtops.set(i+','+k,want);
         for(let j=g0-1;j<want-1;j++) stampBlock(i,j,k,j<want-3?rock:fill);
         stampBlock(i,want-1,k,top); } },
-    groundY(x,z){ const g=groundInfo(X(x),Z(z),baseY+40); return ((g&&g.y!=null?g.y:baseY)-baseY)/S; },
+    groundY(x,z){ const m=api.moundL(x,z), c=cell(Math.floor(X(x)/B),Math.floor(Z(z)/B));
+      const ref=api.inPadL(x,z)?baseY+2.2*S:Math.max(m===null?-1e9:baseY+m*S,c?c.h*B:baseY)+12;
+      const g=groundInfo(X(x),Z(z),ref); return ((g&&g.y!=null?g.y:baseY)-baseY)/S; },
     mark(name,x,z){ marks[name]=[x,z]; },
     end(){ if(!was&&_stampOn===grp) stampEnd(); return api; },
     drop(){ api.end(); stampDrop(grp); for(const h of houses) h.drop(); houses.length=0; }
@@ -18047,6 +18060,9 @@ window.__KIT={
   B, U_PER_M, R_WORLD, WATER_Y, THREE, scene, camera, renderer,
   makeFigure, makeAnimal:k=>{ try{ return makeAnimal(k); }catch(e){ return null; } },
   robeMat:robeMatHex, blockMat:n=>MAT[n]||null, solidAt, playerXZ, jointTick, tickGait, makeBird, makePerson,
+  /* the floor of cloud, which a story lifts high over its scenes: the voyage's clouds stand
+     at the scale of its earth, and a scene is built at the scale of a man */
+  clouds:()=>clouds, CLOUD_Y,
   /* the names of lands and cities over the world: a story shows none */
   setNames:v=>{ namesOn=!!v; },
   blockId, stampGroup:fn=>stampedGroup(fn), stampDrop, stampBlock, stampBox, stampTop,

@@ -107,7 +107,7 @@ async function chain(list){ for(const f of list) await script(f); }
     window.__VOYAGE();
     await window.__WORLD.buildWorld();
     BUI.stage('Opening the scroll…',0.96);
-    await chain(['voices/bank.js','voice.js','world.js','settings.js','places.js','engine.js','scripture.js','acts/00-codex.js',entry.file]);
+    await chain(['voices/bank.js','voice.js','world.js','people.js','settings.js','places.js','engine.js','scripture.js','acts/00-codex.js',entry.file]);
     window.__WORLD.setRunning(true);         /* the sea moves, the light lives, the world breathes */
     STORY.page=entry;
     D.getElementById('fulfil').addEventListener('click',()=>window.__STORY.advance());

@@ -25,7 +25,7 @@
 const TRIER={id:'trier', name:'The trier', fallen:true, key:'the devil'};
 (function(){
 const ADULT={robe:0x8a7454, cloth:0xd8cfb8, beard:0x3a2a1e, skin:0x86573a};
-const YAHUCHANON={name:'Yahuchanon', robe:0x7b5a3a, cloth:0x2a2019, beard:0x2a2019, sash:0x3e2a1a, skin:0x7a4e30, key:'Yahuchanon'};
+const YAHUCHANON={name:'Yahuchanon', dress:'camelhair', robe:0x8a6a42, cloth:null, beard:0x2a2019, sash:0x3e2a1a, skin:0x7a4e30, key:'Yahuchanon'};
 const YAHUSHA={name:'Yahusha', holy:true, kind:'yahusha', key:'Yahusha'};
 const YAHSHAYAHU={robe:0x4a3c33, cloth:0xb9ab8e, beard:0x6d6a66};
 
@@ -71,8 +71,8 @@ STORY.act({
       {id:'cold', name:'A man with no cloak', at:[-12.6,8.4], face:Math.PI/2, robe:0xd9d1bc, cloth:0xcfc4aa, beard:0x3a2a1e},
       {id:'taxc', name:'A tax collector', at:[-13.5,-7.5], face:Math.PI/2, robe:0x3f4f6a, cloth:0xd8ceb4, sash:0xb08d3c},
       {id:'taxc2', at:[-14.6,-8.6], face:Math.PI/2, robe:0x4a4460, cloth:0xcfc4aa, beard:0x2c241f},
-      {id:'soldier', name:'A soldier', at:[-16,5.5], face:Math.PI/2, robe:0x8a2a22, cloth:0x9a8a70, sash:0x6e5238},
-      {id:'soldier2', at:[-17,6.8], face:Math.PI/2, robe:0x7a2620, cloth:0x9a8a70, sash:0x6e5238, beard:0x2c241f}
+      {id:'soldier', name:'A soldier', dress:'herodian', at:[-16,5.5], face:Math.PI/2, robe:0x8a2a22, cloth:0x9a8a70, sash:0x6e5238},
+      {id:'soldier2', dress:'herodian', at:[-17,6.8], face:Math.PI/2, robe:0x7a2620, cloth:0x9a8a70, sash:0x6e5238, beard:0x2c241f}
     ],
     beats:[
       {t:'cam', from:[-60,26,38], look:[0,0,0], dur:0.1},
@@ -227,9 +227,9 @@ STORY.act({
     player:{ at:'bank', face:Math.PI/2, look:ADULT },
     actors:[
       Object.assign({id:'yahuchanon', at:'yahIn', face:-Math.PI/2},YAHUCHANON),
-      {id:'k1', name:'Kohanim and Lĕwites', at:[-7.8,0.4], face:Math.PI/2, robe:0xe6e0cf, cloth:0xf2eee2, beard:0x6d6a66, sash:0x4a5a8a},
-      {id:'k2', at:[-8.4,2.2], face:Math.PI/2, robe:0xd8d0bb, cloth:0xf2eee2, beard:0x2c241f, sash:0x4a5a8a},
-      {id:'l1', at:[-8.2,-1.6], face:Math.PI/2, robe:0xcfc4aa, cloth:0xe6e0cf, beard:0x3a2a1e},
+      {id:'k1', name:'Kohanim and Lĕwites', dress:'kohen', at:[-7.8,0.4], face:Math.PI/2, robe:0xe6e0cf, cloth:0xf2eee2, beard:0x6d6a66, sash:0x4a5a8a},
+      {id:'k2', dress:'kohen', at:[-8.4,2.2], face:Math.PI/2, robe:0xd8d0bb, cloth:0xf2eee2, beard:0x2c241f, sash:0x4a5a8a},
+      {id:'l1', dress:'levite', at:[-8.2,-1.6], face:Math.PI/2, robe:0xcfc4aa, cloth:0xe6e0cf, beard:0x3a2a1e},
       {id:'andri', name:'Andri', at:[-11.5,5.5], face:Math.PI/2, robe:0x5a6a7a, cloth:0xd8ceb4, beard:0x3a2a1e, key:'Andri'},
       {id:'other', name:'Another taught one', at:[-12.6,6.4], face:Math.PI/2, robe:0x7a6a4a, cloth:0xcfc4aa},
       {id:'shimon', name:'Shim‛on', at:[-60,-30], face:Math.PI/2, robe:0x6e5238, cloth:0xb9ab8e, beard:0x3a2a1e, key:'Shim‛on Kĕpha', hidden:true},

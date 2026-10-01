@@ -26,8 +26,10 @@ window.YAHRU_PLAN=function(api,period){
   const herod=period==='herodes';
 
   /* ---- the ground made level within the walls, and about the pool without them ---- */
-  api.pad(cx-hw-6,cz-hd-6,cx+hw+6,cz+hd+8);
-  api.pad(-98,38,-6,100,{round:true});
+  /* she stands on Mount Moriyah (world/landmarks.js): where her level ground stands out over
+     the mountain's flank it is held up as the city's terraces were, in coursed stone */
+  api.pad(cx-hw-6,cz-hd-6,cx+hw+6,cz+hd+8,{fill:'cobble'});
+  api.pad(-98,38,-6,100,{round:true,fill:'cobble'});
 
   /* ---- THE WALL, with crenels, and the gate in the south-west ---- */
   const wall=(x0,z0,x1,z1,gap)=>{ const h=7, t=2.2, dx=x1-x0, dz=z1-z0, L=Math.hypot(dx,dz), n=Math.max(1,Math.round(L/2));

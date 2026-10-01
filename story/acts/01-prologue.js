@@ -45,7 +45,7 @@ STORY.act({
     actors:[
       {id:'yah', name:'Yahshayahu', at:[-16,30], face:Math.PI, robe:0x4a3c33, cloth:0xb9ab8e, beard:0x6d6a66, staff:true},
       {id:'son', name:'She’ar-Yashuḇ', at:[-17.5,31], face:Math.PI, robe:0x8e6f4c, cloth:0xd8ceb4, small:true},
-      {id:'ahaz', name:'Aḥaz', at:'ahaz', face:0, robe:0x5a2d6b, cloth:0xd4af37, sash:0xd4af37, beard:0x2c241f},
+      {id:'ahaz', name:'Aḥaz', dress:'king', at:'ahaz', face:0, robe:0x5a2d6b, cloth:0xd4af37, sash:0xd4af37, beard:0x2c241f},
       {id:'guard1', at:[-66,69], face:0, robe:0x6b5a44, cloth:0x8a7a60},
       {id:'guard2', at:[-70,69.4], face:0, robe:0x6b5a44, cloth:0x8a7a60}
     ],
