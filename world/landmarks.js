@@ -43,6 +43,14 @@ EARTH.landmark({n:"The Great Heads of the Olmec", lat:18.10, lon:-94.04, kind:'s
 /* ---- the named summits — the land itself rises to meet them ---- */
 EARTH.landmark({n:"Mount Ararat", lat:39.70, lon:44.30, kind:'mount', elev:5137, r:520});
 EARTH.landmark({n:"Mount Sinai", lat:28.54, lon:33.97, kind:'mount', elev:2285, r:260});
+/* MOUNT MORIYAH — "Shelomoh began to build the House of (YAHUAH) HWHY at Yahrushalayim on
+   Mount Moriyah" (2 DIḆRĔ HAYAMIM 3:1). The city of the great king stands upon a great
+   mountain: its crown is level and broad enough for the whole city (world/yahrushalayim.js,
+   which both games raise on it) — the walls, the houses, the courts of the Hĕḵal and the upper
+   pool — and its flanks fall away on every side to the valleys below. */
+/* (ox, oz: the crown is centred on the middle of the city, a little north of her anchor; its
+   flanks fall about one in three) */
+EARTH.landmark({n:"Mount Moriyah", lat:31.78, lon:35.23, kind:'mount', peak:22, r:200, flat:560, flank:420, ox:0, oz:-130});
 EARTH.landmark({n:"Mount Hermon", lat:33.42, lon:35.86, kind:'mount', elev:2814, r:300});
 EARTH.landmark({n:"Mount Olympus", lat:40.09, lon:22.36, kind:'mount', elev:2917, r:330});
 EARTH.landmark({n:"Mount Everest", lat:27.99, lon:86.93, kind:'mount', elev:8849, r:5400});

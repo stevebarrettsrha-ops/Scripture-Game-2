@@ -7,8 +7,9 @@
    What you did NOT see — the account of Natsareth, the dream of Yosĕph,
    Herodes' court — is shown as the Besorah tells it, and said to be so.
 
-   Reverent framing (Key Decision 1): the mal'ak is light and the Child is
-   light; neither is given a figure or a face. */
+   Reverent framing (Key Decision 1): the mal'ak is light; the Child has a body, swaddled
+   in the feeding trough, and His face is never shown (the engine keeps every camera from
+   it). */
 const MIRYAM={robe:0x3f5a8a, cloth:0xe8e2d2, skin:0x8e5c3c, kind:'woman'};
 const YOSEPH={robe:0x6e5238, cloth:0xcfc4aa, beard:0x3a2a1e, skin:0x86573a};
 const BOY={small:true, robe:0x8a7454, cloth:0xd8cfb8};
@@ -70,11 +71,11 @@ STORY.act({
     actors:[ Object.assign({id:'miryam', name:'Miryam', at:[-58,0.6], face:Math.PI/2},MIRYAM),
              Object.assign({id:'yoseph', name:'Yosĕph', at:[-56,-0.4], face:Math.PI/2},YOSEPH) ],
     beats:[
-      {t:'cam', from:[-40,9,22], look:[-56,1,0], dur:0.1},
+      {t:'cam', from:[-50,2.6,6.5], look:[-57,1.3,0.2], dur:0.1},
       {t:'read', ref:'LUKE 2:1'},
       {t:'read', ref:'LUKE 2:2-3'},
-      {t:'move', who:['yoseph','miryam'], to:[[36,2.2],[34,3.2]], speed:1.6, wait:false},
-      {t:'cam', from:[10,14,26], look:[0,1,0], dur:14, wait:false},
+      {t:'move', who:['yoseph','miryam'], to:[[-30,1.8],[-32,2.6]], speed:1.4, wait:false},
+      {t:'cam', from:[-36,2.4,8.5], look:[-38,1.3,2], dur:6, wait:false},
       {t:'read', ref:'LUKE 2:4-5'},
       {t:'note', text:'From Natsareth to Bĕyth Leḥem is about 150 km — some days on foot, down the Yarden valley or through the hills of Shomeron, and up into the hill country of Yahuḏah.'},
       {t:'end'}
@@ -84,9 +85,9 @@ STORY.act({
   { id:'fields', title:'The fields by night', date:'near Bĕyth Leḥem', place:'fields', time:'night',
     player:{ at:[8,10], face:Math.PI, look:BOY },
     actors:[
-      {id:'sh1', name:'A shepherd', at:'s1', face:-2.4, robe:0x6b5a44, cloth:0xb3a58a, beard:0x6d6a66, staff:true},
-      {id:'sh2', name:'A shepherd', at:'s2', face:2.2, robe:0x5c5040, cloth:0xa89a7e, beard:0x2c241f, staff:true},
-      {id:'sh3', name:'A shepherd', at:'s3', face:3.3, robe:0x74604a, cloth:0xc1b394}
+      {id:'sh1', name:'A shepherd', dress:'shepherd', at:'s1', face:-2.4, robe:0x6b5a44, cloth:0xb3a58a, beard:0x6d6a66, staff:true},
+      {id:'sh2', name:'A shepherd', dress:'shepherd', at:'s2', face:2.2, robe:0x5c5040, cloth:0xa89a7e, beard:0x2c241f, staff:true},
+      {id:'sh3', name:'A shepherd', dress:'shepherd', at:'s3', face:3.3, robe:0x74604a, cloth:0xc1b394}
     ],
     things:[ {id:'lamb1', kind:'lamb', at:'lamb1'}, {id:'lamb2', kind:'lamb', at:'lamb2'}, {id:'lamb3', kind:'lamb', at:'lamb3'} ],
     glows:[ {id:'malak', at:[2,7,-8], size:9, color:0xfff6dc, intensity:2.6, pulse:true, hidden:true} ],
@@ -125,12 +126,13 @@ STORY.act({
     actors:[
       Object.assign({id:'miryam', name:'Miryam', at:[5.3,-0.4], face:0.6},MIRYAM),
       Object.assign({id:'yoseph', name:'Yosĕph', at:[8.8,-0.1], face:-0.6},YOSEPH),
-      {id:'sh1', name:'A shepherd', at:[-3,35], face:Math.PI, robe:0x6b5a44, cloth:0xb3a58a, beard:0x6d6a66, staff:true},
-      {id:'sh2', name:'A shepherd', at:[-1,36], face:Math.PI, robe:0x5c5040, cloth:0xa89a7e, beard:0x2c241f, staff:true},
-      {id:'sh3', name:'A shepherd', at:[1,35.5], face:Math.PI, robe:0x74604a, cloth:0xc1b394}
+      {id:'sh1', name:'A shepherd', dress:'shepherd', at:[-3,35], face:Math.PI, robe:0x6b5a44, cloth:0xb3a58a, beard:0x6d6a66, staff:true},
+      {id:'sh2', name:'A shepherd', dress:'shepherd', at:[-1,36], face:Math.PI, robe:0x5c5040, cloth:0xa89a7e, beard:0x2c241f, staff:true},
+      {id:'sh3', name:'A shepherd', dress:'shepherd', at:[1,35.5], face:Math.PI, robe:0x74604a, cloth:0xc1b394}
     ],
-    things:[ {id:'lamp', kind:'box', at:[5.6,1.4], w:0.28, h:0.3, d:0.28, color:0xb0703a} ],
-    glows:[ {id:'child', at:[7,1.0,-1], size:2.2, color:0xfff3d0, intensity:1.1, pulse:true},
+    things:[ {id:'lamp', kind:'box', at:[5.6,1.4], w:0.28, h:0.3, d:0.28, color:0xb0703a},
+             {id:'infant', kind:'infant', at:[7,-1], y:0.7} ],
+    glows:[ {id:'child', at:[6.6,1.9,-0.4], size:1.3, color:0xffd9a0, intensity:0.9},
             {id:'lampLight', at:[5.6,1.9,1.4], size:1.6, color:0xffc070, intensity:0.8, hidden:true},
             {id:'l1', at:[-1,2.2,1.2], size:1.4, color:0xffc070, intensity:0},
             {id:'l2', at:[12.9,2.1,6], size:1.4, color:0xffc070, intensity:0} ],
@@ -139,7 +141,7 @@ STORY.act({
       {t:'goal', text:'Find the sign you were told of: a baby wrapped up, lying in a feeding trough', goto:'troughView', r:3.2},
       {t:'move', who:['sh1','sh2','sh3'], to:['sh1','sh2','sh3'], wait:false},
       {t:'read', ref:'LUKE 2:16'},
-      {t:'cam', from:[7,2.6,3.6], look:[7,0.8,-1], dur:3},
+      {t:'cam', from:[7.6,2.3,4.6], look:[6.8,0.8,-0.8], dur:3},
       {t:'read', ref:'LUKE 2:7'},
       {t:'fulfil', id:'y9-6'},
       {t:'cam', release:true},
@@ -147,7 +149,7 @@ STORY.act({
       {t:'show', id:'lampLight'},
       {t:'read', ref:'LUKE 2:17'},
       {t:'read', ref:'LUKE 2:18'},
-      {t:'cam', from:[4.2,2.2,2.6], look:'miryam', dur:2.5},
+      {t:'cam', from:[3.4,2.1,3.8], look:'miryam', dur:2.5},
       {t:'read', ref:'LUKE 2:19'},
       {t:'cam', release:true},
       {t:'choice', prompt:'You', options:[
@@ -163,12 +165,12 @@ STORY.act({
   { id:'herodes', title:'Yahrushalayim', date:'some time after', place:'yahrushalayim', time:'day',
     player:{ at:[-10,26], hidden:true },
     actors:[
-      {id:'herodes', name:'Herodes', at:[15,27], face:0, robe:0x6a2440, cloth:0xd4af37, sash:0xd4af37, beard:0x2c241f},
-      {id:'k1', name:'The chief kohanim and scribes', at:[20,29], face:-1.2, robe:0xe6e0cf, cloth:0x6b5a44},
-      {id:'k2', at:[21,30.5], face:-1.2, robe:0xd8d0bb, cloth:0x5c5040},
-      {id:'m1', name:'Magi from the East', at:[14,33], face:Math.PI, robe:0x2f4f6f, cloth:0xd4af37},
-      {id:'m2', at:[16,33.5], face:Math.PI, robe:0x6f3f2f, cloth:0xe6d6a8},
-      {id:'m3', at:[12,33.4], face:Math.PI, robe:0x3f6a4a, cloth:0xcfc4aa}
+      {id:'herodes', name:'Herodes', dress:'king', at:[15,27], face:0, robe:0x6a2440, cloth:0xd4af37, sash:0xd4af37, beard:0x2c241f},
+      {id:'k1', name:'The chief kohanim and scribes', dress:'kohen', at:[20,29], face:-1.2, robe:0xe6e0cf, cloth:0x6b5a44},
+      {id:'k2', dress:'scribe', at:[21,30.5], face:-1.2, robe:0xd8d0bb, cloth:0x5c5040},
+      {id:'m1', name:'Magi from the East', dress:'magi', at:[14,33], face:Math.PI, robe:0x2f4f6f, cloth:0xd4af37},
+      {id:'m2', dress:'magi', at:[16,33.5], face:Math.PI, robe:0x6f3f2f, cloth:0xe6d6a8},
+      {id:'m3', dress:'magi', at:[12,33.4], face:Math.PI, robe:0x3f6a4a, cloth:0xcfc4aa}
     ],
     things:[ {id:'dais', kind:'box', at:[15,26.2], w:4, h:0.02, d:2.4, color:0x6a2440},
              {id:'seat', kind:'box', at:[15,26.1], w:1.2, h:1.5, d:0.5, color:0x8a6a3a} ],
@@ -188,9 +190,9 @@ STORY.act({
   { id:'star', title:'Bĕyth Leḥem', date:'the same days', place:'beythlehem', time:'dusk',
     player:{ at:'well', face:0.5, look:BOY },
     actors:[
-      {id:'m1', name:'Magi from the East', at:[4,19], face:0, robe:0x2f4f6f, cloth:0xd4af37},
-      {id:'m2', at:[7,19.4], face:0, robe:0x6f3f2f, cloth:0xe6d6a8},
-      {id:'m3', at:[10,19], face:0, robe:0x3f6a4a, cloth:0xcfc4aa}
+      {id:'m1', name:'Magi from the East', dress:'magi', at:[4,19], face:0, robe:0x2f4f6f, cloth:0xd4af37},
+      {id:'m2', dress:'magi', at:[7,19.4], face:0, robe:0x6f3f2f, cloth:0xe6d6a8},
+      {id:'m3', dress:'magi', at:[10,19], face:0, robe:0x3f6a4a, cloth:0xcfc4aa}
     ],
     things:[ {id:'camel1', kind:'camel', at:[3,23], face:1.2}, {id:'camel2', kind:'camel', at:[7,24.5], face:1.4}, {id:'camel3', kind:'camel', at:[11,23], face:1.7} ],
     glows:[ {id:'window', at:[12.6,1.6,6], size:1.6, color:0xfff3d0, intensity:0.7, pulse:true} ],
@@ -218,12 +220,12 @@ STORY.act({
     glows:[ {id:'dream', at:[10.4,2.8,6.4], size:3.4, color:0xfff4d6, intensity:1.2, pulse:true, hidden:true},
             {id:'child', at:[11.6,1.3,5.6], size:1.4, color:0xfff3d0, intensity:0.6, pulse:true} ],
     beats:[
-      {t:'cam', from:[2,4,14], look:[11.8,1.4,6], dur:0.1},
+      {t:'cam', from:[6,2.4,9], look:[11.4,1.4,6], dur:0.1},
       {t:'show', id:'dream'},
       {t:'say', who:'dreamMalak', ref:'MATTITHYAHU 2:13'},
       {t:'hide', id:['dream','child']},
       {t:'move', who:['yoseph','miryam'], to:[[-2,40],[-3,41]], speed:1.8, wait:false},
-      {t:'cam', from:[6,8,30], look:[0,1,26], dur:8, wait:false},
+      {t:'cam', from:[-9,3,30], look:[-2.4,1.3,38], dur:8, wait:false},
       {t:'read', ref:'MATTITHYAHU 2:14-15', who:'byNabi'},
       {t:'title', text:'The end of Act II', sub:'Next: The Forerunner — Yahuchanon the Immerser in the wilderness'},
       {t:'end'}

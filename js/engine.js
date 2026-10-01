@@ -212,6 +212,16 @@ TEX.cobble     = mkTex(g=>{ speckle(g,PB.cobble.mortar,10);
     g.fillStyle=rgb(c[0],c[1],c[2]); g.fillRect(s[0]+FG,s[1]+FG,s[2]-2*FG,s[3]-2*FG);
     const hi=jit(PB.cobble.a,14,i2+7);                       /* the worked face catches the light */
     g.fillStyle=rgb(hi[0],hi[1],hi[2]); g.fillRect(s[0]+FG,s[1]+FG,s[2]-2*FG,FG); } },16,16,RIM);
+/* BASALT — the black stone of the shore of the Sea of Galil. Kephar Naḥum, Korazin and
+   Bĕyth Tsaiḏa were built of it: dark rough field-stones, pitted with the bubbles the fire
+   left in them, laid in courses with pale mud packed between. */
+TEX.basalt     = mkTex(g=>{ speckle(g,[118,110,98],12);
+  const st=[[0,0,6,4],[7,0,4,4],[12,0,4,3],[0,5,5,5],[6,5,5,4],[12,4,4,5],[0,11,4,5],[5,10,6,6],[12,10,4,6]];
+  for(let i2=0;i2<st.length;i2++){ const s=st[i2], c=jit([66,63,60],16,i2);
+    g.fillStyle=rgb(c[0],c[1],c[2]); g.fillRect(s[0]+FG,s[1]+FG,s[2]-2*FG,s[3]-2*FG);
+    g.fillStyle='rgba(20,18,18,0.75)';
+    for(let q=0;q<3;q++){ const px=s[0]+FG+Math.floor(hash2(i2*3.3,q*7.1)*Math.max(1,s[2]-3*FG)), py=s[1]+FG+Math.floor(hash2(q*5.9,i2*1.7)*Math.max(1,s[3]-3*FG)); g.fillRect(px,py,FG,FG); }
+    const hi=jit([92,88,82],10,i2+7); g.fillStyle=rgb(hi[0],hi[1],hi[2]); g.fillRect(s[0]+FG,s[1]+FG,s[2]-2*FG,FG); } },16,16,RIM);
 TEX.planks     = mkTex(g=>{ speckle(g,PB.planks.b,14,PB.planks.a,0.3);
   g.fillStyle=C(PB.planks.seam);
   for(let y=3;y<16;y+=4) g.fillRect(0,y,16,FG);
@@ -635,7 +645,7 @@ blockMat('ironPick',TEX.ironPick,{transparent:true});
 blockMat('goldOre',TEX.goldOre); blockMat('silverOre',TEX.silverOre);
 blockMat('copperOre',TEX.copperOre); blockMat('ironOre',TEX.ironOre);
 blockMat('alabaster',TEX.alabaster); blockMat('flint',TEX.flint);
-blockMat('sand',TEX.sand); blockMat('stone',TEX.stone); blockMat('cobble',TEX.cobble);
+blockMat('sand',TEX.sand); blockMat('stone',TEX.stone); blockMat('cobble',TEX.cobble); blockMat('basalt',TEX.basalt);
 blockMat('deepStone',TEX.deepStone); blockMat('bedrock',TEX.bedrock);
 blockMat('mudbrick',TEX.mudbrick); blockMat('plaster',TEX.plaster); blockMat('thatch',TEX.thatch);
 blockMat('snow',TEX.snow); blockMat('ice',TEX.ice);
@@ -1630,7 +1640,10 @@ for(const L of LANDMARKS){ if(L.kind!=='mount') continue;
      long climb. (A rock that is FAMOUS for standing sheer — Uluru, Table
      Mountain — says steep:1 in world/landmarks.js and keeps its walls.) */
   const Rm=L.steep?(L.r||110)*1.75:Math.max((L.r||110)*1.75, peak*B*3.6);
-  MOUNTS.push({x:mx,z:mz,R:Rm,peak}); }
+  /* `flat` (units): a mountain with a broad crown a whole city stands on — Mount Moriyah,
+     with Yahrushalayim upon it — instead of a summit court nine blocks across */
+  if(L.flat) MOUNTS.push({x:mx+(L.ox||0),z:mz+(L.oz||0),R:L.flat+(L.flank||Math.max(Rm,peak*B*3.2)),peak,flat:L.flat});
+  else MOUNTS.push({x:mx,z:mz,R:Rm,peak}); }
 /* ---- AND THE FALLING WATERS, LAID IN THE SAME WAY ----
    world/waterfalls.js is data exactly as world/landmarks.js is, and it is
    turned into world coordinates here for the same reason: the file that
@@ -1855,6 +1868,11 @@ function mountUpliftAt(x,z){ let up=0;
   for(const m of MOUNTS){ const dx=x-m.x; if(dx>m.R||dx<-m.R) continue;
     const dz=z-m.z; if(dz>m.R||dz<-m.R) continue;
     const d=Math.hypot(dx,dz); if(d>=m.R) continue;
+    if(m.flat){ /* the crowned mountain: level within its crown, its flanks falling away smoothly,
+         a little broken by the ridge field low down */
+      const t=d<=m.flat?1:1-(d-m.flat)/(m.R-m.flat), sm=t*t*(3-2*t);
+      const u=m.peak*sm+(d>m.flat?m.peak*0.12*sm*(1-sm)*ridgeNoise(x*0.0013-21,z*0.0013+33):0);
+      if(u>up) up=u; continue; }
     const tb=1-d/m.R, broad=tb*tb*(3-2*tb);
     /* the summit cone is seated OUTSIDE the flat crown — measured from the
        court's rim, not the centre — so the cone rises to meet the court and
@@ -1881,9 +1899,9 @@ function mountUpliftAt(x,z){ let up=0;
    which is what the top of such a mountain is. */
 const MTN_FLAT_R=27;
 function mountFlatAt(x,z){
-  for(const m of MOUNTS){ const dx=x-m.x; if(dx>MTN_FLAT_R||dx<-MTN_FLAT_R) continue;
-    const dz=z-m.z; if(dz>MTN_FLAT_R||dz<-MTN_FLAT_R) continue;
-    if(dx*dx+dz*dz<=MTN_FLAT_R*MTN_FLAT_R) return 1+Math.round(m.peak); }
+  for(const m of MOUNTS){ const FR=m.flat||MTN_FLAT_R; const dx=x-m.x; if(dx>FR||dx<-FR) continue;
+    const dz=z-m.z; if(dz>FR||dz<-FR) continue;
+    if(dx*dx+dz*dz<=FR*FR) return 1+Math.round(m.peak); }
   return 0; }
 /* ---- RIDGED MULTIFRACTAL — the shape a mountain chain actually takes ----
    Plain fbm makes round blobs. Folding it about its midline (1−|2f−1|) puts
@@ -2460,6 +2478,8 @@ function computeSites(){
     let maxH=12;
     const tryPt=(u,v)=>{ const ix=Math.floor(u*R_WORLD/B), iz=Math.floor(v*R_WORLD/B);
       const cc=cellRaw(ix,iz);
+      /* the city of the great king stands on her own hill: no village is raised inside her walls */
+      if(yahruPos&&Math.hypot((ix+.5)*B-yahruPos.x,(iz+.5)*B-yahruPos.z)<900) return null;
       if(cc&&cc.kind!=='wall'&&cc.kind!=='floe'&&cc.h<=maxH)
         return {i,ix,iz,x:(ix+.5)*B,z:(iz+.5)*B,h0:Math.max(2,cc.h)};
       return null; };
@@ -4089,7 +4109,15 @@ function blockArray(){
     /* a canvas texture is flipped on upload and an array is not: row by row */
     for(let r=0;r<S;r++) data.set(px.subarray((S-1-r)*S*4,(S-r)*S*4),(li*S*S+r*S)*4); });
   const tex=new THREE.DataTexture2DArray(data,S,S,N);
-  tex.magFilter=tex.minFilter=THREE.NearestFilter; tex.generateMipmaps=false;
+  /* ---- THE GROUND DOES NOT SHIMMER ----
+     Drawn nearest-texel at every distance, a field seen along the ground at a man's eye height
+     sampled a different texel of the grass at each pixel every frame: the far ground crawled in
+     bands of light and dark, and the more so the flatter it lay (a city's level ground, a set
+     of the story). The blocks keep their sharp pixels near to (magFilter nearest), and far off
+     are drawn from the texture's own smaller copies, blended between, with anisotropic filtering
+     for the long grazing view. */
+  tex.magFilter=THREE.NearestFilter; tex.minFilter=THREE.NearestMipmapLinearFilter; tex.generateMipmaps=true;
+  try{ tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy()); }catch(e){ tex.anisotropy=4; }
   tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.needsUpdate=true;
   const layer=Object.create(null);
   names.forEach((k,i)=>{ layer[k]=i+(MAT[k].userData.snow?256:0); });
@@ -4101,7 +4129,13 @@ function blockArray(){
         '\n  vSeas.y*=step(255.5,aLayer);\n  vLayer=aLayer;');
     sh.fragmentShader='uniform highp sampler2DArray uArr;\nvarying float vLayer;\nvarying vec2 vSeas;\n'+
       sh.fragmentShader.replace('#include <map_fragment>',
-        'vec4 texelColor=texture(uArr,vec3(vUv,mod(vLayer,256.0)));\n'+
+        /* ---- THE LAYER IS ROUNDED BEFORE IT IS FOLDED ----
+           A snowy top's layer carries 256 over its index; the varying that brings it here is
+           interpolated, and 256 arrives now and then as 255.9999 — whose mod is 255.9999, which
+           the sampler rounds to 256 and clamps to the LAST layer of the array. Rows of pixels
+           across every grass field were drawn from the wrong block, in white streaks that
+           crawled as the eye moved (the story's level ground showed it worst). */
+        'vec4 texelColor=texture(uArr,vec3(vUv,mod(floor(vLayer+0.5),256.0)));\n'+
         'texelColor=mapTexelToLinear(texelColor);\ndiffuseColor*=texelColor;')
       .replace('#include <color_fragment>','#include <color_fragment>\n'+SNOW_FS); };
   mat.customProgramCacheKey=()=>'blockArr';
@@ -4159,7 +4193,7 @@ function plantArray(){
         '  transformed.z+=ws2*P_AMP[pL]*0.7*uWindA*wgt; }');
     sh.fragmentShader='uniform highp sampler2DArray uArr;\nvarying float vLayer;\nvarying float vTint;\nvarying vec2 vSeas;\n'+
       sh.fragmentShader.replace('#include <map_fragment>',
-        'vec4 texelColor=texture(uArr,vec3(vUv,vLayer));\n'+
+        'vec4 texelColor=texture(uArr,vec3(vUv,floor(vLayer+0.5)));\n'+
         'texelColor=mapTexelToLinear(texelColor);\ndiffuseColor*=texelColor;')
       .replace('#include <color_fragment>','#include <color_fragment>\n'+
         '  if(vTint>0.5&&vTint<1.5){ '+SEASON_FS+' }\n  else if(vTint>1.5){ '+SNOW_FS+' }'); };
@@ -7107,7 +7141,7 @@ const faceTexP=mkTex(g=>{ g.fillStyle=rgb(...SKIN_RGB); g.fillRect(0,0,16,16);
   for(let y=4;y<8;y++) for(const x of [0,1,14,15]){           /* sideburns */
     const c=jit(HAIR_RGB,16,x*7+y); P(g,x,y,rgb(c[0],c[1],c[2])); }
   g.fillStyle='rgb(255,255,255)'; g.fillRect(3,8,2,2); g.fillRect(11,8,2,2);  /* eyes */
-  g.fillStyle=C(PF.eye);         g.fillRect(5,8,2,2); g.fillRect(9,8,2,2);    /* the blue of the veil */
+  g.fillStyle=C(PF.eye);         g.fillRect(5,8,2,2); g.fillRect(9,8,2,2);    /* dark brown */
   g.fillStyle=C(PF.nose);        g.fillRect(7,10,2,2);                         /* the nose */
   g.fillStyle=C(PF.mouth); g.fillRect(6,13,4,FG); g.fillRect(5,12,FG,FG); g.fillRect(10,12,FG,FG); /* the mouth */ });
 const hairTopTex=mkTex(g=>speckle(g,HAIR_RGB,14,[38,26,14],0.35));
@@ -7202,47 +7236,92 @@ function robeMatFor(idx){
    Real folk, built like the traveller — hair, an ancient robe, striding
    legs — no more big-nosed villager mobs. Skin, hair and robe vary by seed;
    a role gives each a tool and a task (herding, hunting, teaching, tilling). */
-const P_SKIN=[0xc79467,0xb07c54,0x966642,0x7c5436,0xd8a878,0x8a5a36];
-const P_HAIR=[[74,50,30],[40,28,20],[96,74,44],[150,130,96],[28,28,32],[110,86,54]];
+/* THE PEOPLES OF THE EARTH, AS THEY LOOKED. Skin, hair and eyes come from where a village
+   stands, in the palette of Scripture-Game (the game this one continues): the people of
+   Yasharal and of all the lands about them — Mitsrayim, Arabia, Ashshur and Baḇal, Persia —
+   brown, from deep to medium (Haḡar #573920 … an elder of Yasharal #8a6038); Africa south of
+   the desert deeper; the Greeks and Romans of the middle sea lighter, olive and tan (a
+   soldier of the Greeks #c8956a, Antiochus #d8b48a); the Germans and the other peoples of the
+   cold north lightest, and only there light hair and light eyes. */
+const FOLKS={
+  levant:{skin:[0x5c3a1f,0x643f1c,0x6e4524,0x704a27,0x7a4e29,0x7c5430,0x855a33,0x8a6038],
+          hair:[[40,28,20],[28,22,18],[52,36,24],[34,26,20]], eye:[[58,38,24],[44,30,20],[66,44,26]]},
+  africa:{skin:[0x3e2716,0x4a2e1a,0x51321c,0x573920,0x5c3a1f],
+          hair:[[24,20,18],[30,24,20]], eye:[[44,30,20],[36,26,18]]},
+  india: {skin:[0x5e3c22,0x6b4828,0x744c2c,0x7a5232,0x8a5e34],
+          hair:[[24,20,18],[34,26,20]], eye:[[44,30,20],[58,38,24]]},
+  med:   {skin:[0xb8845a,0xc08c60,0xc8956a,0xc8a07a,0xd8b48a],
+          hair:[[40,28,20],[52,36,24],[74,50,30],[28,22,18]], eye:[[58,38,24],[66,44,26],[70,80,60]]},
+  north: {skin:[0xe8c9a4,0xe2bf9c,0xd8b48a,0xeccdb0],
+          hair:[[150,130,96],[110,86,54],[96,74,44],[74,50,30],[160,96,52]], eye:[[62,86,120],[90,110,120],[70,90,70],[66,44,26]]},
+  east:  {skin:[0xc89a6e,0xd0a678,0xb88a5e,0xc49464],
+          hair:[[24,20,18],[30,24,22]], eye:[[44,30,20],[36,26,18]]},
+  west:  {skin:[0x8a5e38,0x9a6a40,0xa8764a,0x7a5232],
+          hair:[[24,20,18],[30,24,22]], eye:[[44,30,20],[58,38,24]]}
+};
+/* which people a place on the earth belongs to */
+function folkAt(lat,lon){
+  if(lon>=-20&&lon<=65){
+    if(lat>=47) return 'north';                                   /* Germania, the Baltic, the north */
+    if(lat>=36&&lon<28) return 'med';                              /* Iberia, Gaul's south, Italy, Greece */
+    if(lat>=40&&lon<45) return lon<36?'med':'north';               /* Anatolia's west coast; the steppe */
+    if(lat>=12||(lat>=4&&lon>=32&&lon<=52)) return 'levant';       /* Mitsrayim, Yasharal, Arabia, Mesopotamia, Persia, Kush */
+    return 'africa'; }
+  if(lon>65&&lon<=97){ if(lat>=40) return 'east'; if(lat>=6) return 'india'; return 'india'; }
+  if(lon>97&&lon<=180){ if(lat<-10&&lon>110) return 'africa'; return 'east'; }
+  if(lon<-30&&lon>=-170) return 'west';
+  return 'levant';
+}
+function folkOfCountry(i){
+  const co=COUNTRIES[i]; if(!co||!co.c) return 'levant';
+  const u=co.c[0], v=co.c[1]; return folkAt(90-180*Math.hypot(u,v),Math.atan2(u,v)*180/Math.PI);
+}
 function hairHex(h){ return (h[0]<<16)|(h[1]<<8)|h[2]; }
 const personHead={};
-function personFaceTex(skHex,HR){
+function personFaceTex(skHex,HR,EY){
   const r=(skHex>>16)&255,g2=(skHex>>8)&255,b2=skHex&255;
   return mkTex(g=>{ g.fillStyle=rgb(r,g2,b2); g.fillRect(0,0,16,16);
     for(let y=0;y<6;y++)for(let x=0;x<16;x++){ if(y<4||hash2(x*3.1,y*7.7)>0.5){
       const c=jit(HR,22,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } }
     g.fillStyle='rgb(58,42,28)'; g.fillRect(2,6,5,1); g.fillRect(9,6,5,1);      // brows
     g.fillStyle='rgb(255,255,255)'; g.fillRect(3,8,3,2); g.fillRect(10,8,3,2);  // eyes
-    g.fillStyle='rgb(62,86,120)'; g.fillRect(4,8,2,2); g.fillRect(11,8,2,2);
+    g.fillStyle=rgb(EY[0],EY[1],EY[2]); g.fillRect(4,8,2,2); g.fillRect(11,8,2,2);
     g.fillStyle=rgb(Math.max(0,r-40),Math.max(0,g2-34),Math.max(0,b2-30)); g.fillRect(7,10,2,2);
     g.fillStyle='rgb(120,72,48)'; g.fillRect(6,13,4,1); }); }
-function personHeadMats(si,hi){
-  const key=si+','+hi; if(personHead[key]) return personHead[key];
-  const sk=P_SKIN[si], hairM=lam(hairHex(P_HAIR[hi]));
-  const faceM=new THREE.MeshLambertMaterial({map:personFaceTex(sk,P_HAIR[hi])});
+function personHeadMats(sk,HR,EY){
+  const key=sk+','+HR+','+EY; if(personHead[key]) return personHead[key];
+  const hairM=lam(hairHex(HR));
+  const faceM=new THREE.MeshLambertMaterial({map:personFaceTex(sk,HR,EY)});
   const mats=[hairM,hairM,hairM,lam(sk),faceM,hairM];   // [px,nx,top,bottom,front,back]
   personHead[key]=mats; return mats;
 }
-function makePerson(seed, role, child, female){
-  const g=new THREE.Group();
-  const si=Math.floor(hash2(seed,1.1)*P_SKIN.length);
-  const hi=Math.floor(hash2(seed,2.3)*P_HAIR.length);
-  const robeM=robeMatFor(Math.floor(hash2(seed,3.7)*ROBES.length));
-  const head=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),personHeadMats(si,hi));
+/* `look` (optional) is how THE FULLNESS OF TIME dresses one of these folk as a person of its
+   story — the skin, hair and eyes it names, a robe of its colour, a head-cloth, a beard, a face
+   that can speak (see makeFigure). Without it every one of the world's folk is exactly as
+   before. */
+function makePerson(seed, role, child, female, folk, look){
+  const g=new THREE.Group(), F=FOLKS[folk]||FOLKS.levant, L=look||null;
+  const sk=L&&L.skin!=null?L.skin:F.skin[Math.floor(hash2(seed,1.1)*F.skin.length)];
+  const HR=L&&L.hair?L.hair:F.hair[Math.floor(hash2(seed,2.3)*F.hair.length)], EY=L&&L.eye?L.eye:F.eye[Math.floor(hash2(seed,4.9)*F.eye.length)];
+  const robeM=L&&L.robe!=null?robeMatHex(L.robe,L.sash):robeMatFor(Math.floor(hash2(seed,3.7)*ROBES.length));
+  const headMats=L?L.headMats(sk,HR,EY):personHeadMats(sk,HR,EY);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),headMats);
   head.position.y=10.4; g.add(head);
-  if(female){ /* long hair falling to the shoulders behind and beside */
-    const hm=lam(hairHex(P_HAIR[hi]));
+  if(female&&!(L&&L.cloth!=null)){ /* long hair falling to the shoulders behind and beside */
+    const hm=lam(hairHex(HR));
     const back=new THREE.Mesh(new THREE.BoxGeometry(3.2,3.6,0.6),hm); back.position.set(0,9.0,-1.6); g.add(back);
     for(const s of [1,-1]){ const fall=new THREE.Mesh(new THREE.BoxGeometry(0.6,2.6,2.6),hm);
       fall.position.set(s*1.75,9.4,-0.3); g.add(fall); } }
   const body=new THREE.Mesh(new THREE.BoxGeometry(3,4.6,1.7),robeM); body.position.y=6.6; g.add(body);
   /* women wear the robe to the ankle; men show sandalled shins */
-  const hem=female?new THREE.Mesh(new THREE.BoxGeometry(3.3,3.6,2.1),robeM):lbox(3.2,1.0,2.0,0x3a2c1c);
-  hem.position.y=female?2.8:4.1; g.add(hem);
+  let hem=null;
+  if(L&&L.hem) L.hem(g,female,robeM);               /* a hem that hangs free and swings (makeFigure) */
+  else { hem=female?new THREE.Mesh(new THREE.BoxGeometry(3.3,3.6,2.1),robeM):lbox(3.2,1.0,2.0,0x3a2c1c);
+    hem.position.y=female?2.8:4.1; g.add(hem); }
   /* limbs in TWO BONES apiece: thigh and shin about a knee, upper arm and
      forearm about an elbow — so the folk of the world walk like people and
      not like clothes-pegs. The engine folds the joints as the limbs swing. */
-  const legMat=lam(0x2e3350);
+  const legMat=L&&L.under!=null?lam(L.under):lam(0x2e3350);
   const mkLimb=(w2,len,d2,mat,px2,py,elbow)=>{
     const U=new THREE.Mesh(new THREE.BoxGeometry(w2,len*0.55,d2),mat);
     U.geometry.translate(0,-len*0.275,0); U.position.set(px2,py,0);
@@ -7287,6 +7366,7 @@ function makePerson(seed, role, child, female){
     const rim=lbox(1.0,0.4,1.0,0x7a4a32); rim.position.set(0,13.9,0); g.add(rim); }
   if(child) g.scale.set(0.62,0.62,0.62);
   g.userData={legs:[legL,legR,armL,armR],armL,armR,rod,rodLine,rodBob,rodFish,female:!!female};
+  if(L) Object.assign(g.userData,{legL,legR,head,robeMat:robeM,sk,HR,EY});
   return g;
 }
 /* ---- EVERY BEAST OF THE FIELD, AND WHERE IT IS BUILT ----
@@ -11702,7 +11782,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   /* the stone footing, and the floor laid upon it — beaten earth in the
      brick lands and the huts, boards in the timber ones */
   const earthFloor=(style==='levant'||style==='round');
-  const wallMat=style==='east'?'planks'
+  const wallMat=(ex&&ex.wall)?ex.wall:style==='east'?'planks'
     :style==='north'?'plaster'
     :style==='med'?'plaster'
     :(ex&&ex.washed!==undefined?ex.washed:houseWashed(ex&&ex.ci!==undefined?ex.ci:0,seed))?'plaster':'mudbrick';
@@ -12421,6 +12501,7 @@ function* spawnVillage(i,exShell){
       const x=wx+Math.cos(th)*r, z=wz+Math.sin(th)*r;
       if(spawnFree(x,z)) return {x,z}; }
     return {x:wx,z:wz}; };
+  const folk=folkOfCountry(i);                     /* the people of this land, as they looked */
   const addPerson=(role,hx,hz,roamR,child,female,data)=>{
     const seed=i*1000+people.length*7;
     const onDk=deckMap.get(Math.floor(hx/B)+','+Math.floor(hz/B))!==undefined;
@@ -12428,7 +12509,7 @@ function* spawnVillage(i,exShell){
       const cc=landAtWorld(hx,hz);
       if(!cc||cc.kind==='wall'){ hx=cx; hz=cz; }
       const sp=clearSpawn(hx,hz); hx=sp.x; hz=sp.z; }
-    const per=makePerson(seed,role,child,female);
+    const per=makePerson(seed,role,child,female,folk);
     per.position.set(hx,topY(Math.floor(hx/B),Math.floor(hz/B)),hz); g.add(per);
     placedAt.push({x:hx,z:hz});
     const ent=Object.assign({m:per,role,hx,hz,roamR:roamR||3,tx:hx,tz:hz,t:hash2(seed,7)*4,
@@ -13824,7 +13905,7 @@ function spearTick(dt){
 }
 
 /* ================= YAHRUSHALAYIM ================= */
-let yahruPos=null;
+let yahruPos=null, YAHRU_MARKS={}, yahruStamp=null, yahruPeriod=null;
 { const lat=31.78, lon=35.23, r=(90-lat)/180;
   const u=r*Math.sin(lon*Math.PI/180), v=r*Math.cos(lon*Math.PI/180);
   const ix0=Math.floor(u*R_WORLD/B), iz0=Math.floor(v*R_WORLD/B);
@@ -13833,7 +13914,9 @@ let yahruPos=null;
     const jx=ix0+Math.round(Math.cos(th)*rad), jz=iz0+Math.round(Math.sin(th)*rad);
     const cc=cellRaw(jx,jz); if(cc&&cc.kind!=='wall') yahruPos={ix:jx,iz:jz,x:(jx+.5)*B,z:(jz+.5)*B};
   } }
-function buildYahru(){ if(!yahruPos) return; stamped(null,()=>buildYahruIn()); }
+function buildYahru(){ if(!yahruPos) return;
+  if(window.YAHRU_PLAN){ buildYahruPlan(window.__STORY_PERIOD||'kings'); return; }
+  stamped(null,()=>buildYahruIn()); }
 /* the city of the great king, raised in stone. She is set down ONCE and never
    taken up again, so her stamp is owned by nobody: there is no village to
    hand the group to and nothing that could ever drop it. */
@@ -16994,6 +17077,7 @@ $('bigmap').addEventListener('click',toggleMap);
    window.storage API is kept as a secondary channel where it exists. */
 const SAVE_KEY='voyage:state';
 async function saveState(){
+  if(window.__STORY_HOST) return;        /* THE FULLNESS OF TIME borrows this world; it never writes the voyage's save */
   /* NOTHING IS WRITTEN BEFORE THE VOYAGE BEGINS. The menu's options lean on
      the rail buttons, and several of those save on click — fired before
      begin() they would write the menu's empty stand-in state straight over
@@ -17744,6 +17828,290 @@ async function begin(fresh,roam){
    had their say — so that whatever the other game sets, STAYS set for that
    frame. When nothing is hooked (the voyage, played by itself) both of
    these cost one undefined check a frame and change nothing whatever. */
+/* ================= THE STORY KIT =================
+   THE FULLNESS OF TIME (story/) plays in THIS world — the same earth, the same blocks, the
+   same folk, the same sky — and stages its scenes in it, the way SCRIPTURE UNFOLDS does.
+   The story page sets __HOST_BOOT and __STORY_HOST before the engine loads, and reaches in
+   through this one door: figures drawn as the voyage draws its folk, block stamps for its
+   sets, the levant house, the ground, the hour, the traveller. Nothing here runs unless a
+   story asks, and the voyage's own save is never written while a story holds the world. */
+const FIG_MAT={}, FIG_FACE={};
+function figMat(hex){ return FIG_MAT[hex]||(FIG_MAT[hex]=lam(hex)); }
+/* a robe of any colour, woven as robeMatFor weaves the seven: folds, girdle, a dark hem */
+function robeMatHex(hex,girdle){
+  const key=hex+':'+(girdle||0); if(ROBETEX[key]) return ROBETEX[key];
+  const r=hex>>16&255, g2=hex>>8&255, b2=hex&255, gd=girdle===undefined?0x3a2c1c:girdle;
+  const t=mkTex(g=>{
+    speckle(g,[r,g2,b2],18,[Math.max(0,r-22),Math.max(0,g2-22),Math.max(0,b2-22)],0.3);
+    g.fillStyle='rgba(0,0,0,0.22)'; for(const x of [3,8,13]) g.fillRect(x,4,1,12);
+    g.fillStyle=rgb(gd>>16&255,gd>>8&255,gd&255); g.fillRect(0,10,16,2);
+    g.fillStyle='rgba(0,0,0,0.3)'; g.fillRect(0,15,16,1); });
+  return ROBETEX[key]=new THREE.MeshLambertMaterial({map:t});
+}
+/* THE FACE, in the voyage's own pixels — personFaceTex's very face (the same brows, eyes,
+   nose and mouth on the same sixteen squares), drawn in each of the states a face that speaks
+   passes through: the mouth shut, half open, open; the eyes open or shut. A beard grows on
+   the lower face; a head-cloth frames it instead of the fringe of hair. */
+/* THE FEELING IS IN THE BROWS AND THE EYES. Minecraft: Story Mode put moving mouths on blocky
+   heads and the mouths were what read as wrong; its eyes and brows carried the feeling. So a
+   face here says what the words carry chiefly with its brows and eyes — raised in awe and
+   fear, knit in sternness, lifted at the inner ends in sorrow, a smile in the eyes of joy — and
+   the mouth stays a few small pixels: shut, parted, open, its corners up or down. `ex` is one
+   of calm · joy · sorrow · weep · stern · awe · fear (story/voice.js reads it from the words). */
+function figFace(o,sk,HR,EY,mouth,shut,ex){
+  ex=ex||'calm';
+  const key=[sk,HR.join('.'),EY.join('.'),o.beard,o.cloth,o.blank?1:0,o.brow||'',mouth,shut?1:0,ex].join(',');
+  if(FIG_FACE[key]) return FIG_FACE[key];
+  const r=sk>>16&255, g2=sk>>8&255, b2=sk&255;
+  const tex=mkTex(g=>{ g.fillStyle=rgb(r,g2,b2); g.fillRect(0,0,16,16);
+    if(o.blank) return;
+    if(o.cloth!=null){ const c=o.cloth; g.fillStyle=rgb(c>>16&255,c>>8&255,c&255); g.fillRect(0,0,16,4); g.fillRect(0,4,2,12); g.fillRect(14,4,2,12); }
+    else for(let y=0;y<6;y++)for(let x=0;x<16;x++){ if(y<4||hash2(x*3.1,y*7.7)>0.5){
+      const c=jit(HR,22,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } }
+    /* the brows: two strokes of five, set as the feeling sets them (outer end x=2/13, inner 6/9) */
+    g.fillStyle=o.brow||'rgb(58,42,28)';
+    const brow=(dy0,dyIn)=>{ for(let k=0;k<5;k++){ const t=k/4, y=6+Math.round(dy0+(dyIn-dy0)*t);
+      g.fillRect(2+k,y,1,1); g.fillRect(13-k,y,1,1); } };
+    if(ex==='stern') brow(-1,1); else if(ex==='sorrow'||ex==='weep') brow(1,-1);
+    else if(ex==='awe'||ex==='fear') brow(-2,-2); else if(ex==='joy') brow(-1,-1); else brow(0,0);
+    /* the eyes: open, narrowed in sternness, wide in awe and fear, smiling in joy, or shut */
+    if(shut){ g.fillStyle='rgb(40,28,20)'; g.fillRect(3,9,3,1); g.fillRect(10,9,3,1); }
+    else if(ex==='joy'){ g.fillStyle='rgb(40,28,20)'; g.fillRect(3,9,3,1); g.fillRect(10,9,3,1); g.fillRect(4,8,1,1); g.fillRect(11,8,1,1);
+      g.fillStyle=rgb(EY[0],EY[1],EY[2]); g.fillRect(4,9,2,1); g.fillRect(11,9,2,1); }
+    else { const y0=ex==='awe'||ex==='fear'?7:ex==='stern'?9:8, h=ex==='awe'||ex==='fear'?3:ex==='stern'?1:2;
+      g.fillStyle='rgb(255,255,255)'; g.fillRect(3,y0,3,h); g.fillRect(10,y0,3,h);
+      g.fillStyle=rgb(EY[0],EY[1],EY[2]); g.fillRect(4,8,2,Math.min(2,h)); g.fillRect(11,8,2,Math.min(2,h));
+      if(ex==='weep'){ g.fillStyle='rgb(150,190,220)'; g.fillRect(3,10,1,2); g.fillRect(12,10,1,1); } }
+    g.fillStyle=rgb(Math.max(0,r-40),Math.max(0,g2-34),Math.max(0,b2-30)); g.fillRect(7,10,2,2);
+    if(o.beard!=null){ const b=o.beard; g.fillStyle=rgb(b>>16&255,b>>8&255,b&255);
+      g.fillRect(3,12,10,4); g.fillRect(2,10,2,4); g.fillRect(12,10,2,4); }
+    const lip=o.beard!=null?'rgb(40,20,14)':'rgb(120,72,48)';
+    if(mouth===0){ g.fillStyle=lip; g.fillRect(6,13,4,1);
+      if(ex==='joy'){ g.fillRect(5,12,1,1); g.fillRect(10,12,1,1); }
+      else if(ex==='sorrow'||ex==='weep'||ex==='stern'){ g.fillRect(5,14,1,1); g.fillRect(10,14,1,1); } }
+    else if(mouth===1){ g.fillStyle='rgb(40,20,14)'; g.fillRect(6,12,4,2); }
+    else { g.fillStyle='rgb(36,16,12)'; g.fillRect(5,12,6,3); } });
+  return FIG_FACE[key]=new THREE.MeshLambertMaterial({map:tex});
+}
+/* A PERSON OF THE STORY IS ONE OF THE WORLD'S FOLK. It is built by makePerson — the very
+   builder of every villager, sailor and trader of the voyage: the same head and face, robe,
+   leggings, two-jointed limbs, proportions and long hair on a woman — and dressed as the story
+   asks: skin, hair and eyes; a robe of its colour; a head-cloth (its sides and crown and a tail
+   behind); a beard; a staff (the herder's); a child. Only three things are added: the face
+   can speak and blink, the hem and the head-cloth's tail hang free and swing (the story's
+   cloth), and `holy` — His face is never drawn at all; `fallen` — the violet light about the
+   fallen, as the voyage's sister game draws them. Returned in world units, feet at the
+   origin, twelve units tall. */
+function makeFigure(o){
+  o=Object.assign({},o||{});
+  const hex2rgb=h=>[h>>16&255,h>>8&255,h&255];
+  if(o.holy) o.blank=true;
+  const cloth=[], female=!!o.female;
+  let faces=null, fk=null;
+  const look={skin:o.skin, hair:o.hair!=null?hex2rgb(o.hair):null, eye:o.eye!=null?hex2rgb(o.eye):null,
+    robe:o.robe==null?0x8a7454:o.robe, sash:o.sash, under:o.under, cloth:o.cloth,
+    headMats(sk,HR,EY){
+      fk=[sk,HR,EY]; faces=[figFace(o,sk,HR,EY,0,false,'calm')];
+      const side=o.cloth!=null?figMat(o.cloth):lam(hairHex(HR));
+      return [side,side,side,figMat(sk),faces[0],side]; },
+    /* THE HEM, the voyage's own — a woman's robe to the ankle, a man's dark border at the
+       knee — cut into four panels hung from where it begins, each on a hinge */
+    hem(g,fem,robeM){
+      const top=fem?4.6:4.6, len=fem?3.6:1.0, w=fem?3.3:3.2, d=fem?2.1:2.0;
+      const mat=fem?robeM:lam(0x3a2c1c);
+      const panel=(pw,pd,px,pz,axis,sign)=>{ const pv=new THREE.Group(); pv.position.set(px,top,pz);
+        const m=new THREE.Mesh(new THREE.BoxGeometry(pw,len,pd),mat); m.position.y=-len/2; pv.add(m); g.add(pv);
+        cloth.push({pv,axis,sign,a:0,w:0,n:axis==='x'?[0,0,sign]:[sign,0,0]}); };
+      panel(w,0.3,0,d/2-0.15,'x',1); panel(w,0.3,0,-d/2+0.15,'x',-1);
+      panel(0.3,d-0.6,w/2-0.15,0,'z',1); panel(0.3,d-0.6,-w/2+0.15,0,'z',-1); }
+  };
+  const g=makePerson(o.seed||1, o.staff?'herder':null, false, female, o.folk||'levant', look);
+  const u=g.userData;
+  if(o.cloth!=null){ const cm=figMat(o.cloth);
+    const top=new THREE.Mesh(new THREE.BoxGeometry(3.4,1.0,3.4),cm); top.position.y=12.2; g.add(top);
+    const pv=new THREE.Group(); pv.position.set(0,12.0,-1.6);
+    const m=new THREE.Mesh(new THREE.BoxGeometry(3.3,3.2,0.35),cm); m.position.y=-1.6; pv.add(m); g.add(pv);
+    cloth.push({pv,axis:'x',sign:-1,a:0,w:0,n:[0,0,-1],light:true}); }
+  if(o.fallen){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexCv,color:0x785090,transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending}));
+    sp.scale.set(26,26,1); sp.position.y=7; g.add(sp); u.aura={sprite:sp,base:26}; }
+  const sc=o.small?(o.small===true?0.72:o.small):1;
+  if(sc!==1) g.scale.setScalar(sc);
+  const head=u.head;
+  Object.assign(u,{cloth,faces,holy:!!o.holy,s:sc,
+    /* the face as the words go: mouth 0 shut … 2 open; eyes shut for a blink */
+    setFace:(m,shut,ex)=>{ if(!fk) return; const f=figFace(o,fk[0],fk[1],fk[2],Math.max(0,Math.min(2,m)),!!shut,ex||'calm');
+      if(head.material[4]!==f){ head.material=head.material.slice(); head.material[4]=f; } }});
+  return g;
+}
+/* a house of the land, stamped where the story asks, with its door and its furniture, and
+   counted with the standalone houses so it collides and opens like the traveller's home */
+function storyHouse(hx,hz,y,w,d,door,seed,style,more){
+  const G=newG(), ex=Object.assign({doors:[],houses:[],torchIn:[],style:style||'levant'},more||{});
+  if(ex.washed===undefined) delete ex.washed; if(!ex.wall) delete ex.wall;
+  const grp=stampedGroup(()=>emitHouse(G,ex,hx,hz,y,w,d,door,seed||1));
+  const g=new THREE.Group();
+  for(const mat in G){ const gg=G[mat]; if(!gg.p||!gg.p.length) continue; const bg=new THREE.BufferGeometry();
+    bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
+    bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
+    bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
+    bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
+  const regs=[];
+  for(const H of ex.houses){ if(!H.door) continue; const D2=H.door;
+    const dm=new THREE.Mesh(new THREE.BoxGeometry(D2.w,D2.h,0.6),doorLeafMat);
+    dm.geometry.translate(D2.w/2,D2.h/2,0); dm.position.set(D2.hx,D2.y,D2.hz); dm.rotation.y=D2.base;
+    g.add(dm); D2.mesh=dm; standaloneHouses.push(H); regs.push(H); }
+  scene.add(g);
+  return {group:g, stamp:grp, drop:()=>{ stampDrop(grp); scene.remove(g);
+    for(const H of regs){ const i=standaloneHouses.indexOf(H); if(i>=0) standaloneHouses.splice(i,1); } }};
+}
+/* THE SET BUILDER — one way of raising a set in this world, used by the city of the great
+   king at boot and by every scene of the story. Everything is given in METRES about an
+   anchor (a man is 1.85 m, the voyage's folk twelve units, so S=6.5 units to the metre),
+   with y measured up from the anchor's ground; it is laid as blocks of the world, in one
+   stamp group that can be taken up again whole. A colour is read as the block nearest it
+   (limestone is hewn stone, whitewash plaster, mud brick mud brick …); a name is a block;
+   'air' carves. */
+const SET_S=6.5;
+const SET_PAL=[[0xd8cfb8,'hewn-stone'],[0xece6d6,'plaster'],[0xe6e0cf,'plaster'],[0xa8835a,'mudbrick'],[0x8a6a47,'mudbrick'],
+  [0x9c9486,'stone'],[0x7a7266,'cobble'],[0x8e877a,'cobble'],[0x4e4a46,'cobble'],[0x5c5752,'cobble'],[0x9b7b55,'dirt'],
+  [0xa28a66,'dirt'],[0xb49a74,'path'],[0x7f8f4e,'grass'],[0xa99f63,'grass'],[0x6d7a4a,'leaves'],[0x55603a,'leaves'],
+  [0x8a9467,'leaves'],[0x9aa27a,'leaves'],[0x7d8a45,'leaves'],[0x5d4a36,'log'],[0x6e5238,'planks'],[0x7a5a3e,'planks'],
+  [0x8d7a55,'planks'],[0xd4af37,'hay'],[0xb08d3c,'hay'],[0xcdb36a,'hay'],[0xefe9dc,'wool'],[0xe0d4b0,'wool'],
+  [0xcdbb92,'sand'],[0x8d8272,'stone'],[0x7c7a4e,'thatch'],[0xa99c84,'stone'],[0x4f7f95,'water'],[0x6a6560,'cobble']];
+function setBlockFor(col){
+  if(typeof col==='string') return col==='air'?0:blockId(col);
+  if(col===0x2b241d) return 0;                                 /* the dark of a doorway: an opening */
+  const r=col>>16&255, g2=col>>8&255, b2=col&255; let best=null, bd=1e9;
+  for(const [c,id] of SET_PAL){ const d=(r-(c>>16&255))**2+(g2-(c>>8&255))**2+(b2-(c&255))**2; if(d<bd){ bd=d; best=id; } }
+  return blockId(best);
+}
+function setBuilder(ax,az,baseY,opt){
+  opt=opt||{}; const S=opt.S||SET_S, houses=[], marks={};
+  const X=x=>ax+x*S, Z=z=>az+z*S, Y=y=>baseY+y*S, tY=Math.round(baseY/B);
+  const was=_stampOn; if(!was) stampBegin();
+  const grp=_stampOn;
+  const cells=(x0,x1,lo,hi)=>{ const e=STAMP_EPS*B; let a=Math.floor((Math.min(x0,x1)+e)/B), b=Math.ceil((Math.max(x0,x1)-e)/B)-1; if(b<a){ b=a=Math.floor((x0+x1)/2/B); } return [a,b]; };
+  const api={ S, ax, az, baseY, marks,
+    X, Z, Y, local:(wx,wz)=>[(wx-ax)/S,(wz-az)/S],
+    /* a box of blocks; boxes of no size at all (a beam end, a lamp) are details for the eye
+       and are left to the things of a scene */
+    box(x0,y0,z0,x1,y1,z1,col,o){
+      if(Math.max(Math.abs(x1-x0),Math.abs(y1-y0),Math.abs(z1-z0))<0.4) return;
+      const n=setBlockFor(col); if(n===undefined||n===null) return;
+      if((o&&o.surface)||(Math.abs(y1-y0)<0.3&&Math.max(y0,y1)<=0.35&&Math.min(y0,y1)>=-0.05)){ return api.top(x0,z0,x1,z1,col); }
+      const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1)), [j0,j1]=cells(Y(y0),Y(y1));
+      for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++) for(let j=j0;j<=j1;j++) stampBlock(i,j,k,n); },
+    /* the ground's own top course laid with something else: a path, a floor, a field */
+    top(x0,z0,x1,z1,col){ const n=setBlockFor(col); if(!n) return;
+      const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1));
+      for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ const c=cell(i,k); const t=api.flat&&api.inPad(i,k)?tY:(c?c.h:tY); stampBlock(i,t-1,k,n); } },
+    /* THE GROUND MADE LEVEL for a set: higher land cut down, lower land filled, the top laid
+       with `top` (grass), trees taken off the lot; `r` rounds the corners into an oval */
+    pads:[], flat:false, mtops:new Map(),
+    /* the height a heaped hill was raised to here, in metres above the anchor, or null */
+    moundL(x,z){ const v=api.mtops.get(Math.floor(X(x)/B)+','+Math.floor(Z(z)/B)); return v===undefined?null:(v*B-baseY)/S; },
+    inPad(i,k){ for(const p of api.pads) if(i>=p.i0&&i<=p.i1&&k>=p.k0&&k<=p.k1){ if(!p.r) return true;
+        const cx=(p.i0+p.i1)/2, cz=(p.k0+p.k1)/2, rx=(p.i1-p.i0)/2+0.5, rz=(p.k1-p.k0)/2+0.5;
+        if(((i-cx)/rx)**2+((k-cz)/rz)**2<=1) return true; } return false; },
+    pad(x0,z0,x1,z1,o){ o=o||{}; const top=setBlockFor(o.top||'grass'), fill=blockId(o.fill||'dirt');
+      const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1)); const P={i0,i1,k0,k1,r:!!o.round}; api.pads.push(P); api.flat=true;
+      clearLotOfTrees(X(Math.min(x0,x1)),Z(Math.min(z0,z1)),X(Math.max(x0,x1)),Z(Math.max(z0,z1)),baseY);
+      for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ if(P.r&&!api.inPad(i,k)) continue;
+        const c=cell(i,k); if(!c||c.kind==='wall') continue; const h=c.h;
+        for(let j=tY;j<Math.max(h,tY)+2;j++) stampBlock(i,j,k,0);
+        for(let j=Math.min(h,tY)-1;j<tY-1;j++) if(j>=h-1) stampBlock(i,j,k,fill);
+        stampBlock(i,tY-1,k,top); }
+      /* ---- AND ITS EDGE IS EASED INTO THE LAND ----
+         Cut level into a hillside, a set stood in a pit with sheer earthen walls; laid on a
+         slope, it stood on a cliff. The ground for `blend` blocks about it is eased from the
+         set's height to the land's own, cut down or filled up, so the level ground lies in the
+         country the way a threshing floor or a village square does. (A city on terraces —
+         walls of coursed stone — asks for none.) */
+      const bl=o.blend===undefined?10:o.blend;
+      if(bl>0){ const cx=(i0+i1)/2, cz=(k0+k1)/2, rx=(i1-i0)/2+0.5, rz=(k1-k0)/2+0.5;
+        for(let i=i0-bl;i<=i1+bl;i++) for(let k=k0-bl;k<=k1+bl;k++){
+          if(api.inPad(i,k)) continue;
+          let d;
+          if(P.r){ const q=Math.hypot((i-cx)/rx,(k-cz)/rz); if(q<=1) continue; d=(q-1)*Math.min(rx,rz); }
+          else { const dx=Math.max(i0-i,0,i-i1), dz=Math.max(k0-k,0,k-k1); d=Math.max(dx,dz); if(d<=0) continue; }
+          if(d>=bl) continue;
+          const c=cell(i,k); if(!c||c.kind==='wall') continue; const h=c.h;
+          if(api.mtops&&api.mtops.has(i+','+k)) continue;
+          const t=d/bl, e=t*t*(3-2*t), want=Math.round(tY+(h-tY)*e);
+          if(want===h) continue;
+          if(want<h){ for(let j=want;j<h+2;j++) stampBlock(i,j,k,0); stampBlock(i,want-1,k,top); }
+          else { for(let j=h-1;j<want-1;j++) stampBlock(i,j,k,fill); stampBlock(i,want-1,k,top); } } } },
+    /* standing water: a channel, a pool, a lake — `depth` courses of water, its face level
+       with the ground's (or `drop` courses below it) */
+    water(x0,z0,x1,z1,o){ o=o||{}; const d=o.depth||2, dr=o.drop||0, w=blockId('water'), bed=blockId(o.bed||'sand');
+      const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1));
+      for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ if(o.test&&!o.test(...api.local((i+.5)*B,(k+.5)*B))) continue;
+        const c=cell(i,k); const h=Math.max(c?c.h:tY,tY);
+        for(let j=tY-dr;j<h+2;j++) stampBlock(i,j,k,0);
+        for(let j=tY-dr-d;j<tY-dr;j++) stampBlock(i,j,k,w);
+        stampBlock(i,tY-dr-d-1,k,bed); } },
+    /* a house of the land — the voyage's own, with its door, floor and furniture */
+    house(x,z,w,d,o){ o=o||{}; const odd=v=>{ v=Math.max(5,Math.round(v*S/B)); return v%2?v:v+1; };
+      const dir={s:0,n:1,e:2,w:3}[o.door||'s'];
+      /* on the level ground of the set, at its height; anywhere else, on the ground where it stands */
+      const hy=api.inPadL(x,z)?baseY:(()=>{ const c=cell(Math.floor(X(x)/B),Math.floor(Z(z)/B)); return c?c.h*B:baseY; })();
+      houses.push(storyHouse(X(x),Z(z),hy,odd(w),odd(d),dir,o.seed||Math.floor(Math.abs(x*31+z*17))+1,o.style||'levant',{washed:o.washed,wall:o.wall})); },
+    inPadL(x,z){ return api.inPad(Math.floor(X(x)/B),Math.floor(Z(z)/B)); },
+    /* A HILL HEAPED UP where the story needs one the world's coarse ground does not have — the
+       brow of Natsareth's hill, the slope of a mount: `h` metres high at (x,z), falling away
+       smoothly over `r`; earth under a top of `top`; never cut below the ground already there */
+    mound(x,z,h,r,o){ o=o||{}; const top=setBlockFor(o.top||'grass'), fill=blockId('dirt'), rock=blockId('stone');
+      const [i0,i1]=cells(X(x-r),X(x+r)), [k0,k1]=cells(Z(z-r),Z(z+r));
+      for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ const [lx,lz]=api.local((i+.5)*B,(k+.5)*B);
+        const q=Math.max(0,1-Math.hypot(lx-x,lz-z)/r); if(q<=0) continue;
+        const c=cell(i,k); if(!c||c.kind==='wall'||api.inPad(i,k)) continue;   /* the set's level ground stays level */
+        const g0=c.h, want=tY+Math.round(h*q*q*(3-2*q)*S/B);
+        if(want<=g0) continue;
+        api.mtops.set(i+','+k,want);
+        for(let j=g0-1;j<want-1;j++) stampBlock(i,j,k,j<want-3?rock:fill);
+        stampBlock(i,want-1,k,top); } },
+    groundY(x,z){ const m=api.moundL(x,z), c=cell(Math.floor(X(x)/B),Math.floor(Z(z)/B));
+      const ref=api.inPadL(x,z)?baseY+2.2*S:Math.max(m===null?-1e9:baseY+m*S,c?c.h*B:baseY)+12;
+      const g=groundInfo(X(x),Z(z),ref); return ((g&&g.y!=null?g.y:baseY)-baseY)/S; },
+    mark(name,x,z){ marks[name]=[x,z]; },
+    end(){ if(!was&&_stampOn===grp) stampEnd(); return api; },
+    drop(){ api.end(); stampDrop(grp); for(const h of houses) h.drop(); houses.length=0; }
+  };
+  return api;
+}
+/* THE CITY OF THE GREAT KING, BY PERIOD. world/yahrushalayim.js holds her plan; the voyage
+   raises her as she stood in the days of the kings (Solomon's Hĕḵal), and a story set in the
+   days of Herodes raises her with his great courts instead — the same city, one at a time. */
+function buildYahruPlan(period){
+  if(yahruStamp){ yahruStamp.drop(); yahruStamp=null; }
+  const base=topY(yahruPos.ix,yahruPos.iz);
+  const api=setBuilder(yahruPos.x,yahruPos.z,base);
+  try{ window.YAHRU_PLAN(api,period||'kings'); } finally{ api.end(); }
+  YAHRU_MARKS=api.marks; yahruStamp=api; yahruPeriod=period||'kings';
+  return api;
+}
+window.__KIT={
+  B, U_PER_M, R_WORLD, WATER_Y, THREE, scene, camera, renderer,
+  makeFigure, makeAnimal:k=>{ try{ return makeAnimal(k); }catch(e){ return null; } },
+  robeMat:robeMatHex, blockMat:n=>MAT[n]||null, solidAt, playerXZ, jointTick, tickGait, makeBird, makePerson,
+  /* the floor of cloud, which a story lifts high over its scenes: the voyage's clouds stand
+     at the scale of its earth, and a scene is built at the scale of a man */
+  clouds:()=>clouds, CLOUD_Y, blockArr:()=>BARR, chunkRoot,
+  /* THE LAMP OF A SCENE: the torch's own light (the one every block and beast already takes),
+     set where a story wants it — on what the eye is looking at in a scene by night or under a
+     roof. It is set after the torch's own tick each frame, so it holds only while asked. */
+  lamp:(x,y,z,s,r)=>{ TORCH_P.value.set(x,y,z); TORCH_S.value=s; TORCH_R.value=r||78; },
+  lampOff:()=>{ TORCH_R.value=78; },
+  /* the names of lands and cities over the world: a story shows none */
+  setNames:v=>{ namesOn=!!v; },
+  blockId, stampGroup:fn=>stampedGroup(fn), stampDrop, stampBlock, stampBox, stampTop,
+  storyHouse, topY, cell, landAtWorld, groundInfo, llToWorld, setLocalHour, localHourAt,
+  state, setMode, walkerG:()=>walkerG, updateChunks, flushEdits,
+  yahruPos:()=>yahruPos, yahruMarks:()=>YAHRU_MARKS, sites:()=>SITES,
+  setBuilder, setScale:SET_S, yahruPeriod:()=>yahruPeriod,
+  /* raise the city as she stood in a period ('kings' | 'herodes'), if she is not already */
+  yahruAs:p=>{ if(yahruPos&&window.YAHRU_PLAN&&yahruPeriod!==p) buildYahruPlan(p); return YAHRU_MARKS; }
+};
 window.__WORLD={
   scene,camera,renderer,THREE,
   sun,moon,sunMat2,moonMat2,sunHalo,moonHalo,starGroup,

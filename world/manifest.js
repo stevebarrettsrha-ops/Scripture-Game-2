@@ -253,6 +253,7 @@ const FILES=[
   'world/rivers.js',
   'world/verses.js',
   'world/landmarks.js',
+  'world/yahrushalayim.js',
   /* the authored places (Phase 8) — AFTER landmarks, because a place names
      the landmark it stands in and the list must already hold it */
   'world/places.js',
@@ -513,6 +514,7 @@ const FILES=[
   'blocks/brick.js',
   'blocks/clay-band.js',
   'blocks/cobble.js',
+  'blocks/basalt.js',
   'blocks/copper-ore.js',
   'blocks/dirt.js',
   'blocks/emerald.js',

@@ -16,14 +16,17 @@
    marks are the telling. Where a verse has more than one speaker, `voices` gives them in
    order ("Are you Aliyahu?" So he said, "I am not." — 1:21).
 
-   REVERENT FRAMING (Key Decision 1). Yahusha is shown as light, with no face, seen from
-   behind or at the edge of the frame; His words are heard. The Ruach descends as a dove
-   of light. The trier is never given a shape at all: only his words, as the Besorah has
-   them. The Codex lights 40:3 and 11:1-2. */
+   REVERENT FRAMING (Key Decision 1). Yahusha has a body like every man of Yasharal, and
+   His face is never shown: when He speaks the camera frames His body and hands, or looks
+   over His shoulder from behind, and the engine keeps every camera from His face. The Ruach
+   descends as a dove of light. The trier is drawn as Scripture-Game draws Satan and the
+   fallen: a figure in a robe of deep violet-grey with a dark crimson mantle, a shadowed face,
+   a dim violet light about him. The Codex lights 40:3 and 11:1-2. */
+const TRIER={id:'trier', name:'The trier', fallen:true, key:'the devil'};
 (function(){
 const ADULT={robe:0x8a7454, cloth:0xd8cfb8, beard:0x3a2a1e, skin:0x86573a};
-const YAHUCHANON={name:'Yahuchanon', robe:0x7b5a3a, cloth:0x2a2019, beard:0x2a2019, sash:0x3e2a1a, skin:0x7a4e30, key:'Yahuchanon'};
-const YAHUSHA={name:'Yahusha', light:true, key:'Yahusha'};
+const YAHUCHANON={name:'Yahuchanon', dress:'camelhair', robe:0x8a6a42, cloth:null, beard:0x2a2019, sash:0x3e2a1a, skin:0x7a4e30, key:'Yahuchanon'};
+const YAHUSHA={name:'Yahusha', holy:true, kind:'yahusha', key:'Yahusha'};
 const YAHSHAYAHU={robe:0x4a3c33, cloth:0xb9ab8e, beard:0x6d6a66};
 
 /* the crowds from Yahrushalayim and all Yahuḏah (Mattithyahu 3:5), on the west bank */
@@ -52,8 +55,8 @@ STORY.act({
     nabi:{name:'Yahshayahu the naḇi', key:'Yahshayahu', kind:'oldman', look:YAHSHAYAHU},
     /* "a voice out of the shamayim, saying, “This is My Son …”" */
     voice:{name:'A voice out of the shamayim', key:'(YAHUAH) HWHY', kind:'divine'},
-    trier:{name:'The trier', key:'the devil', kind:'dark'},
-    devil:{name:'The devil', key:'the devil', kind:'dark'},
+    trier:{name:'The trier', key:'the devil', kind:'dark', actor:'trier'},
+    devil:{name:'The devil', key:'the devil', kind:'dark', actor:'trier'},
     sent:{name:'Those sent from Yahrushalayim', kind:'oldman', actor:'k1', actors:['k1','k2','l1']},
     taught:{name:'The two taught ones', kind:'man', actor:'andri', actors:['andri','other']}
   },
@@ -68,8 +71,8 @@ STORY.act({
       {id:'cold', name:'A man with no cloak', at:[-12.6,8.4], face:Math.PI/2, robe:0xd9d1bc, cloth:0xcfc4aa, beard:0x3a2a1e},
       {id:'taxc', name:'A tax collector', at:[-13.5,-7.5], face:Math.PI/2, robe:0x3f4f6a, cloth:0xd8ceb4, sash:0xb08d3c},
       {id:'taxc2', at:[-14.6,-8.6], face:Math.PI/2, robe:0x4a4460, cloth:0xcfc4aa, beard:0x2c241f},
-      {id:'soldier', name:'A soldier', at:[-16,5.5], face:Math.PI/2, robe:0x8a2a22, cloth:0x9a8a70, sash:0x6e5238},
-      {id:'soldier2', at:[-17,6.8], face:Math.PI/2, robe:0x7a2620, cloth:0x9a8a70, sash:0x6e5238, beard:0x2c241f}
+      {id:'soldier', name:'A soldier', dress:'herodian', at:[-16,5.5], face:Math.PI/2, robe:0x8a2a22, cloth:0x9a8a70, sash:0x6e5238},
+      {id:'soldier2', dress:'herodian', at:[-17,6.8], face:Math.PI/2, robe:0x7a2620, cloth:0x9a8a70, sash:0x6e5238, beard:0x2c241f}
     ],
     beats:[
       {t:'cam', from:[-60,26,38], look:[0,0,0], dur:0.1},
@@ -133,6 +136,8 @@ STORY.act({
       {t:'move', who:'yahusha', to:'jesusBank', speed:1.5},
       {t:'cam', from:[-12.5,2.4,-3.2], look:'yahuchanon', dur:2},
       {t:'say', who:'yahuchanon', ref:'MATTITHYAHU 3:14', turn:false},
+      {t:'face', who:'yahusha', to:'yahuchanon'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'yahuchanon', dur:1.8},
       {t:'say', who:'yahusha', ref:'MATTITHYAHU 3:15', turn:false},
       {t:'move', who:'yahusha', to:'jesusIn', speed:1.1},
       {t:'cam', from:[-14,4.5,-8], look:[-1,-0.4,-0.4], dur:2.5},
@@ -157,7 +162,8 @@ STORY.act({
   /* ---------------- III.3 — THE FORTY DAYS ---------------- */
   { id:'forty', title:'The wilderness of Yahuḏah', date:'forty days', place:'wilderness', time:'dusk',
     player:{ at:[0,40], hidden:true },
-    actors:[ Object.assign({id:'yahusha', at:'seat', face:0.4},YAHUSHA) ],
+    actors:[ Object.assign({id:'yahusha', at:'seat', face:0.4},YAHUSHA),
+             Object.assign({at:[3.6,5.4], face:Math.PI+0.6, hidden:true},TRIER) ],
     beats:[
       {t:'cam', from:[-34,16,40], look:[0,1,0], dur:0.1},
       {t:'note', text:'What follows you did not see. No one did but He. It is shown as the Besorah tells it.'},
@@ -167,9 +173,11 @@ STORY.act({
       {t:'time', to:'day'}, {t:'wait', s:1.2}, {t:'time', to:'dusk'}, {t:'wait', s:1.2}, {t:'time', to:'night'}, {t:'wait', s:1.2},
       {t:'time', to:'dawn'},
       {t:'read', ref:'MATTITHYAHU 4:2'},
-      {t:'cam', from:[-4.6,1.6,7.4], look:[0,0.3,3], dur:3},
-      {t:'say', who:'trier', ref:'MATTITHYAHU 4:3'},
-      {t:'cam', from:[-2.6,2.4,-5.2], look:[0.8,1.2,3], dur:2.5},
+      {t:'show', id:'trier'},
+      {t:'face', who:'yahusha', to:'trier'},
+      {t:'cam', from:[-4.6,1.8,8.4], look:[2.6,1,4], dur:3},
+      {t:'say', who:'trier', ref:'MATTITHYAHU 4:3', turn:false},
+      {t:'cam', on:'yahusha', shot:'back', toward:'trier', dur:1.8},
       {t:'say', who:'yahusha', ref:'MATTITHYAHU 4:4', turn:false},
       {t:'end'}
     ]},
@@ -177,12 +185,15 @@ STORY.act({
   /* ---------------- III.4 — THE EDGE OF THE QODASH ---------------- */
   { id:'qodash', title:'Yahrushalayim', date:'the forty days', place:'yahrushalayim', time:'day',
     player:{ at:[-10,26], hidden:true },
-    actors:[ Object.assign({id:'yahusha', at:[6,-44.3], y:14, face:0},YAHUSHA) ],
+    /* the wing of the Hĕḵal of Herodes' days, high over the court (the city's own mark) */
+    actors:[ Object.assign({id:'yahusha', at:'pinnacle', y:'pinnacleY', face:0},YAHUSHA),
+             Object.assign({at:['pinnacle',1.6,-0.7], y:'pinnacleY', face:-1.9},TRIER) ],
     beats:[
-      {t:'cam', from:[20,4,-24], look:[6,14.5,-44.3], dur:0.1},
+      {t:'cam', from:{rel:'yahusha',off:[16,-11,24]}, look:'yahusha', dur:0.1},
       {t:'read', ref:'MATTITHYAHU 4:5'},
-      {t:'say', who:'devil', ref:'MATTITHYAHU 4:6'},
-      {t:'cam', from:[6,20,-30], look:[6,13,-46], dur:3},
+      {t:'say', who:'devil', ref:'MATTITHYAHU 4:6', turn:false},
+      {t:'face', who:'yahusha', to:'trier'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'trier', dur:1.8},
       {t:'say', who:'yahusha', ref:'MATTITHYAHU 4:7', turn:false},
       {t:'end'}
     ]},
@@ -190,18 +201,21 @@ STORY.act({
   /* ---------------- III.5 — A VERY HIGH MOUNTAIN ---------------- */
   { id:'mountain', title:'A very high mountain', date:'the forty days', place:'mountain', time:'dusk',
     player:{ at:[0,60], hidden:true },
-    actors:[ Object.assign({id:'yahusha', at:'summit', face:2.2},YAHUSHA) ],
-    glows:[ {id:'a1', at:[3.6,48.6,2.2], size:1.8, color:0xfff6dc, intensity:0.5, pulse:true, hidden:true},
-            {id:'a2', at:[-3.4,48.8,1.8], size:1.8, color:0xfff6dc, intensity:0, pulse:true, hidden:true},
-            {id:'a3', at:[0.6,49.2,-3.6], size:1.8, color:0xfff6dc, intensity:0, pulse:true, hidden:true} ],
+    actors:[ Object.assign({id:'yahusha', at:'summit', face:2.2},YAHUSHA),
+             Object.assign({at:[2.6,-1.4], face:-1.0},TRIER) ],
+    glows:[ {id:'a1', at:[3.6,2.6,2.2], size:1.8, color:0xfff6dc, intensity:0.5, pulse:true, hidden:true},
+            {id:'a2', at:[-3.4,2.8,1.8], size:1.8, color:0xfff6dc, intensity:0, pulse:true, hidden:true},
+            {id:'a3', at:[0.6,3.2,-3.6], size:1.8, color:0xfff6dc, intensity:0, pulse:true, hidden:true} ],
     beats:[
-      {t:'cam', from:[-22,58,28], look:[0,46,0], dur:0.1},
+      {t:'cam', from:[-22,12,28], look:[0,0,0], dur:0.1},
       {t:'read', ref:'MATTITHYAHU 4:8'},
       {t:'show', id:[], kingdoms:true},
-      {t:'cam', from:[-8,52,10], look:[140,20,-120], dur:6},
-      {t:'say', who:'devil', ref:'MATTITHYAHU 4:9'},
-      {t:'cam', from:[-6,49.5,6], look:[0,47.6,0], dur:2.5},
+      {t:'cam', from:[-8,6,10], look:[140,-26,-120], dur:6},
+      {t:'say', who:'devil', ref:'MATTITHYAHU 4:9', turn:false},
+      {t:'face', who:'yahusha', to:'trier'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'trier', dur:1.8},
       {t:'say', who:'yahusha', ref:'MATTITHYAHU 4:10', turn:false},
+      {t:'hide', id:'trier'},
       {t:'show', id:['a1','a2','a3'], kingdoms:false},
       {t:'time', to:'dawn'},
       {t:'read', ref:'MATTITHYAHU 4:11'},
@@ -213,9 +227,9 @@ STORY.act({
     player:{ at:'bank', face:Math.PI/2, look:ADULT },
     actors:[
       Object.assign({id:'yahuchanon', at:'yahIn', face:-Math.PI/2},YAHUCHANON),
-      {id:'k1', name:'Kohanim and Lĕwites', at:[-7.8,0.4], face:Math.PI/2, robe:0xe6e0cf, cloth:0xf2eee2, beard:0x6d6a66, sash:0x4a5a8a},
-      {id:'k2', at:[-8.4,2.2], face:Math.PI/2, robe:0xd8d0bb, cloth:0xf2eee2, beard:0x2c241f, sash:0x4a5a8a},
-      {id:'l1', at:[-8.2,-1.6], face:Math.PI/2, robe:0xcfc4aa, cloth:0xe6e0cf, beard:0x3a2a1e},
+      {id:'k1', name:'Kohanim and Lĕwites', dress:'kohen', at:[-7.8,0.4], face:Math.PI/2, robe:0xe6e0cf, cloth:0xf2eee2, beard:0x6d6a66, sash:0x4a5a8a},
+      {id:'k2', dress:'kohen', at:[-8.4,2.2], face:Math.PI/2, robe:0xd8d0bb, cloth:0xf2eee2, beard:0x2c241f, sash:0x4a5a8a},
+      {id:'l1', dress:'levite', at:[-8.2,-1.6], face:Math.PI/2, robe:0xcfc4aa, cloth:0xe6e0cf, beard:0x3a2a1e},
       {id:'andri', name:'Andri', at:[-11.5,5.5], face:Math.PI/2, robe:0x5a6a7a, cloth:0xd8ceb4, beard:0x3a2a1e, key:'Andri'},
       {id:'other', name:'Another taught one', at:[-12.6,6.4], face:Math.PI/2, robe:0x7a6a4a, cloth:0xcfc4aa},
       {id:'shimon', name:'Shim‛on', at:[-60,-30], face:Math.PI/2, robe:0x6e5238, cloth:0xb9ab8e, beard:0x3a2a1e, key:'Shim‛on Kĕpha', hidden:true},
@@ -267,6 +281,8 @@ STORY.act({
       {t:'face', who:'andri', to:'yahusha'}, {t:'face', who:'other', to:'yahusha'},
       {t:'cam', from:[-24.5,2.4,-9.5], look:[-18.4,1.5,-12.4], dur:2.5},
       {t:'read', ref:'YAHUCHANON 1:38', voices:['yahusha','taught','taught']},
+      {t:'face', who:'yahusha', to:'andri'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'andri', dur:1.8},
       {t:'say', who:'yahusha', ref:'YAHUCHANON 1:39', turn:false},
       {t:'choice', prompt:'You', options:[
         {text:'Go with them', reply:'No one sends you away. You walk behind the three of them up from the river, the scroll under your arm.'},
@@ -279,6 +295,8 @@ STORY.act({
       {t:'cam', from:[-31,3,-20.5], look:[-39.5,1.4,-24.5], dur:2.5},
       {t:'say', who:'andri', ref:'YAHUCHANON 1:41', turn:false},
       {t:'face', who:'yahusha', to:'shimon'},
+      {t:'face', who:'yahusha', to:'shimon'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'shimon', dur:1.8},
       {t:'say', who:'yahusha', ref:'YAHUCHANON 1:42', turn:false},
       {t:'title', text:'The end of Act III', sub:'Next: Galil — “Follow Me” (Yahuchanon 1:43)'},
       {t:'end'}
