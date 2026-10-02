@@ -1677,6 +1677,10 @@
   "kind": "man",
   "voice": "am_puck:.6+bm_lewis:.4"
  },
+ "scribes": {
+  "kind": "man",
+  "voice": "am_puck"
+ },
  "second woman": {
   "kind": "woman",
   "voice": "bf_alice"
@@ -1968,6 +1972,10 @@
  "they": {
   "kind": "crowd",
   "voice": "am_liam:.5+am_echo:.5"
+ },
+ "those from the rulers house": {
+  "kind": "man",
+  "voice": "am_echo"
  },
  "those in the qahal": {
   "kind": "crowd",
@@ -2277,6 +2285,10 @@
  "yahushua": {
   "kind": "man",
   "voice": "bm_lewis"
+ },
+ "yair": {
+  "kind": "man",
+  "voice": "am_michael"
  },
  "yarab": {
   "kind": "man",

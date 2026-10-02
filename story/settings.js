@@ -308,6 +308,31 @@ S.pella=function(ctx,st){
    other side of the sea: the shore and the grassy slope where the five thousand sat down
    (Yahuchanon 6:10). */
 const SHORE={x:22,d:6,slope:0.16};
+/* A HOUSE OF KEPHAR NAḤUM as the digs there show them: one room of black basalt, the roof of
+   beams laid over with earth, reached by a stair up the outside wall (Mark 2:4, "they
+   uncovered the roof where He was"). `hole` leaves an opening in the roof, which the scene
+   covers with a patch of earth and branches (a thing it can take away). The room is
+   (x0,z0)-(x1,z1); the door is in the wall named by `door`, the stair along the south wall. */
+function room(ctx,st,x0,z0,x1,z1,o){
+  o=o||{}; const H=2.8, t=0.5, BAS='basalt', mx=(x0+x1)/2, mz=(z0+z1)/2;
+  st.box(x0,0,z0,x1,0.08,z1,C.path);                                                /* the floor of beaten earth */
+  const dz0=mz-0.7, dz1=mz+0.7;
+  /* the four walls, the door left open in its own */
+  if(o.door==='e'){ st.box(x1-t,0,z0,x1,H,dz0,BAS); st.box(x1-t,0,dz1,x1,H,z1,BAS); st.box(x1-t,2.2,dz0,x1,H,dz1,BAS); } else st.box(x1-t,0,z0,x1,H,z1,BAS);
+  if(o.door==='w'){ st.box(x0,0,z0,x0+t,H,dz0,BAS); st.box(x0,0,dz1,x0+t,H,z1,BAS); st.box(x0,2.2,dz0,x0+t,H,dz1,BAS); } else st.box(x0,0,z0,x0+t,H,z1,BAS);
+  st.box(x0,0,z0,x1,H,z0+t,BAS); st.box(x0,0,z1-t,x1,H,z1,BAS);
+  /* the roof, a course thick, and its opening */
+  const h=o.hole;
+  if(h){ st.box(x0,H,z0,x1,H+0.92,h[1],C.roofEarth); st.box(x0,H,h[3],x1,H+0.92,z1,C.roofEarth);
+         st.box(x0,H,h[1],h[0],H+0.92,h[3],C.roofEarth); st.box(h[2],H,h[1],x1,H+0.92,h[3],C.roofEarth); }
+  else st.box(x0,H,z0,x1,H+0.92,z1,C.roofEarth);
+  /* the stair up the outside of the south wall, from the east */
+  for(let k=0;k<6;k++){ const sx=x1-0.4-k*0.95; st.box(sx-0.95,0,z1,sx,0.62*(k+1),z1+1.2,C.stoneDark); }
+  /* a mat to lie on, a lamp niche, a water jar by the door */
+  st.box(x0+t+0.2,0.08,z0+t+0.2,x0+t+2.2,0.2,z0+t+1.2,0xb39a6a,{collide:false});
+  return {roofY:H+0.92};
+}
+
 function galil(ctx,st,o){
   W.ground(ctx,{color:o.village?C.grassDry:C.grass,flat:30,
     peak:o.village?{x:-80,z:6,h:11,r:72}:{x:-46,z:0,h:8,r:56}});
@@ -320,7 +345,14 @@ function galil(ctx,st,o){
   if(o.village){
     const BAS='basalt', BAS2='basalt';                                   /* the black basalt of Kephar Naḥum */
     /* the town lies along the shore; the slope of the hills west of it is left open, for the crowds */
-    const hs=[[-8,-24],[2,-26],[-14,-14],[6,-12],[-10,8],[4,10],[-6,24],[8,24],[-4,-34],[10,-32]];
+    const hs=[[-8,-24],[2,-26],[-14,-14],[4,10],[-6,24],[8,24],[-4,-34],[10,-32]];
+    /* the house of Shim‛on and Andri (Mark 1:29), its roof opened over the room (2:4); the
+       house of Ya‛ir, a ruler of the qahal, by the qahal (5:22, 38) */
+    room(ctx,st,-14.5,5,-7.5,11,{door:'e',hole:[-12.3,7.1,-10.3,8.9]});
+    mk(ctx,'simon',-11,8); mk(ctx,'simonIn',-9,8); mk(ctx,'simonDoor',-5.6,8); mk(ctx,'simonBed',-12.6,6.4);
+    mk(ctx,'simonStair',-7.4,11.7); mk(ctx,'simonRoof',-11.3,9.8); mk(ctx,'simonHole',-11.3,8);
+    room(ctx,st,2.5,-15.5,10,-8.5,{door:'w'});
+    mk(ctx,'yair',6.4,-12); mk(ctx,'yairIn',4.2,-12); mk(ctx,'yairDoor',0.6,-12); mk(ctx,'yairBed',8.2,-14.2);
     hs.forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:x>-12?'e':'w',color:k%2?BAS:BAS2,h:2.9}));
     { const qx=-8, qz=-6;                                                /* the qahal (Mark 1:21) */
       st.box(qx-6,0,qz-4.5,qx+6,0.3,qz+4.5,'cobble');

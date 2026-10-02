@@ -11,9 +11,13 @@
 
    THE ORDER, harmonized: Qanah first ("the beginning of the signs", Yahuchanon 2:11); the
    reading in Natsareth as Luke sets it at the start (4:16-30); the calling by the lake (Luke
-   5:1-11), then the qahal of Kephar Naḥum as Mark follows it (1:21-28); the teaching on the
+   5:1-11), then the qahal of Kephar Naḥum as Mark follows it (1:21-28), the house of Shim‛on
+   and the whole city at its door that evening (1:29-34), and the man let down through the roof
+   (2:1-12); the tax office (Mattithyahu 9:9-13); the teaching on the
    mountain (Mattithyahu 5); the captain (8:5-13); the blind and the messengers of Yahuchanon
-   (9:27-31, 11:2-6); the loaves and the sea (Yahuchanon 6:1-14, Mattithyahu 14:22-33).
+   (9:27-31, 11:2-6); the sower (Mattithyahu 13), and that evening the storm stilled (Mark
+   4:35-41); Ya‛ir's daughter and the woman who touched His garment (Mark 5:21-43); the loaves
+   and the sea (Yahuchanon 6:1-14, Mattithyahu 14:22-33).
    El‛azar is raised at Bĕyth Anyah near Yahrushalayim (Yahuchanon 11), and is told on the
    road there, in Act V.
 
@@ -65,7 +69,7 @@ const WEDDING=folk('w',12,[-7,-6,7,1.5],0);
 const QAHAL_N=folk('n',14,[-8,-31,6,-21.5],Math.PI,{});
 const SHOREFOLK=folk('s',16,[12,-12,20,14],Math.PI/2);
 const QAHAL_K=folk('q',12,[-13,-9.5,-4,-2.5],Math.PI/2);
-const MOUNT=folk('m',30,[-27,-12,-14,24],-Math.PI/2,{sit:true});
+const MOUNT=folk('m',30,[-27,-12,-15.6,24],-Math.PI/2,{sit:true});
 const STREET=folk('k',10,[-4,-6,1.5,6],Math.PI/2);
 const GROUPS=[[-14,-26],[-14,-12],[-14,2],[-14,16],[-14,30]];
 const FIVE=[].concat(...GROUPS.map((g,i)=>folk('g'+i+'_',7,[g[0]-3,g[1]-3,g[0]+3,g[1]+3],-Math.PI/2,{sit:true})));
@@ -73,6 +77,10 @@ const LEADS=GROUPS.map((g,i)=>'g'+i+'_0');
 const TABLE=folk('t',8,[8,6,13,13],-Math.PI/2,{sit:true});            /* tax collectors and sinners at the table */
 const BEACH=folk('b',18,[13,-10,19.5,10],Math.PI/2);                   /* the crowd on the beach */
 const MOURN=folk('y',10,[-1,0,6,12],-Math.PI/2);                               /* the Yahuḏim come to comfort the sisters */
+const DOORFOLK=folk('d',12,[-1.8,3,0.3,14],-Math.PI/2);                       /* the whole city at the door (Mark 1:33) */
+const ROOMFOLK=folk('r',7,[-10.4,5.8,-8.2,10.2],-Math.PI/2,{sit:true});        /* so many there was no more room (2:2) */
+const PRESS=folk('p',10,[-6.6,5.2,-3,11],-Math.PI/2);                          /* not even at the door */
+const WAIL=folk('l',8,[-1.2,-17,1.2,-8.6],Math.PI/2);                             /* the weeping at Ya‛ir's house (5:38) */
 const SISTER_M={name:'Miryam', key:'Miryam of Bĕyth Anyah', kind:'woman', robe:0x5a4a6a, cloth:0x3c3a44, skin:0x7a4e30};
 
 STORY.act({
@@ -91,7 +99,9 @@ STORY.act({
     pharisees:{name:'The Pharisees', key:'the pharisees', kind:'man', actor:'ph1', actors:['ph1','ph2']},
     psalmist:{name:'The naḇi', key:'the nabi', kind:'oldman'},
     sisters:{name:'The sisters', key:'Martha', kind:'woman', actor:'martha', actors:['martha','miryamB']},
-    mourners:{name:'The Yahuḏim', key:'the yahudim', kind:'crowd', actor:'y1', actors:ids(MOURN)}
+    mourners:{name:'The Yahuḏim', key:'the yahudim', kind:'crowd', actor:'y1', actors:ids(MOURN)},
+    scribes:{name:'Some of the scribes', key:'the scribes', kind:'man', actor:'sc1', actors:['sc1','sc2']},
+    household:{name:'Those from the ruler’s house', key:'those from the ruler’s house', kind:'man', actor:'hh1', actors:['hh1','hh2']}
   },
   scenes:[
 
@@ -284,7 +294,125 @@ STORY.act({
     ]},
 
 
-  /* ---------------- IV.4b — THE TAX OFFICE ---------------- */
+  /* ---------------- IV.4a — THE HOUSE OF SHIM‛ON, AND THE CITY AT THE DOOR ---------------- */
+  { id:'house', title:'Kephar Naḥum', date:'the same Shabbath', place:'galil', time:'day',
+    player:{ at:[-1,2], face:-Math.PI/2, look:ADULT },
+    actors:[
+      Object.assign({id:'yahusha', at:'qahalDoor', face:Math.PI/2},YAHUSHA),
+      T('kepha',[1.4,-7.6],{face:Math.PI/2}), T('andri',[1.6,-4.4],{face:Math.PI/2}),
+      T('yaaqob',[2.6,-6.8],{face:Math.PI/2}), T('yahuchanon',[2.6,-5.2],{face:Math.PI/2}),
+      /* Shim‛on's wife's mother, sick on her mat */
+      {id:'mil', name:'The mother-in-law of Shim‛on', kind:'woman', at:[-11.9,6.2], face:Math.PI/2, robe:0x5a4a3a, cloth:0xcfc8b8, skin:0x6e4524},
+      /* the sick, carried out when the Shabbath ended at sunset */
+      {id:'sick0', name:'A sick man', at:[-0.6,4.4], face:-Math.PI/2, robe:0x6b5a44, cloth:0x8a7a60, beard:0x3a2a1e, hidden:true},
+      {id:'sick1', name:'A sick woman', kind:'woman', at:[-0.8,9.6], face:-Math.PI/2, robe:0x5c5040, cloth:0x3c3a44, hidden:true},
+      {id:'sick2', name:'A sick man', at:[-1.4,13.2], face:-Math.PI/2, robe:0x74604a, cloth:0xa89a7e, beard:0x6d6a66, kind:'oldman', hidden:true},
+      ...DOORFOLK.map(d=>Object.assign({},d,{hidden:true}))
+    ],
+    things:[ {id:'jarH', kind:'jar', at:[-8.2,10.2]} ],
+    beats:[
+      {t:'lie', who:'mil'},
+      {t:'cam', from:[3.4,3.4,-1.6], look:[-8,1.4,6], dur:0.1},
+      {t:'read', ref:'MARK 1:29'},
+      {t:'move', who:['yahusha','kepha','andri','yaaqob','yahuchanon'], to:[[-9.4,8],[-8.6,6.2],[-8.4,9.8],[-6,6.4],[-6,9.6]], speed:1.4, wait:false},
+      {t:'goal', text:'Go with them to the house of Shim‛on', goto:'simonDoor', r:3},
+      {t:'read', ref:'MARK 1:30'},
+      {t:'move', who:'yahusha', to:[-12.6,7.6], speed:1.2},
+      {t:'face', who:'yahusha', to:[-12.7,6.2]},
+      {t:'cam', from:[-10.1,1.7,8.8], look:[-12.7,0.4,6.3], dur:1.8},     /* past His right shoulder, to her */
+      {t:'read', ref:'MARK 1:31'},
+      {t:'stand', who:'mil'},
+      {t:'move', who:'mil', to:[-9.2,9.6], speed:1},
+      {t:'cam', release:true},
+      {t:'time', to:'dusk'},
+      {t:'note', text:'The Shabbath ended at sunset. Until then nothing might be carried through the streets — so the sick were brought only “when the sun had set”.'},
+      {t:'read', ref:'MARK 1:32'},
+      {t:'show', id:['sick0','sick1','sick2']},
+      {t:'sit', who:['sick0','sick1','sick2']},
+      {t:'witness', text:'Help the sick to the door of the house', items:['sick0','sick1','sick2'], verb:'Help them up', hold:0.6, reach:2.4},
+      {t:'stand', who:['sick0','sick1','sick2']},
+      {t:'move', who:['sick0','sick1','sick2'], to:[[-2.6,6.6],[-2.2,8.4],[-2.8,10.2]], speed:1, wait:false},
+      {t:'show', id:ids(DOORFOLK)},
+      {t:'read', ref:'MARK 1:33'},
+      {t:'move', who:'yahusha', to:[-4.4,8.2], speed:1.2},
+      {t:'face', who:'yahusha', to:'sick1'},
+      {t:'cam', from:[-7.8,3.3,11], look:[-1.8,1.1,8], dur:2},
+      {t:'read', ref:'MARK 1:34'},
+      {t:'cam', release:true},
+      {t:'choice', prompt:'You', options:[
+        {text:'Look for the woman who was sick this morning', reply:'She is going among the crowd at the door with water. She does not look like someone who was in bed at noon.'},
+        {text:'Stay near the door', reply:'All through the evening they keep coming, carried and led. Nobody is sent away.'} ]},
+      {t:'end'}
+    ]},
+
+  /* ---------------- IV.4b — THROUGH THE ROOF ---------------- */
+  { id:'roof', title:'Kephar Naḥum', date:'some days later', place:'galil', time:'day',
+    player:{ at:[1.6,15.4], face:-Math.PI*0.6, look:ADULT },
+    actors:[
+      Object.assign({id:'yahusha', at:[-11.3,6.6], face:0},YAHUSHA),
+      T('kepha',[-12.4,9.6],{face:Math.PI*0.75,sit:true}), T('andri',[-9.2,10],{face:-Math.PI*0.75,sit:true}),
+      {id:'sc1', name:'A scribe', dress:'scribe', at:[-12.7,7.9], face:Math.PI/2, sit:true, robe:0xd8d0bb, cloth:0x3a3a4a, beard:0x6d6a66, kind:'oldman'},
+      {id:'sc2', dress:'scribe', at:[-12.7,6.7], face:Math.PI/2, sit:true, robe:0xcfc4aa, cloth:0x4a4a5a, beard:0x2c241f},
+      /* the paralytic on his bed, and the four who carry him */
+      {id:'para', name:'A paralysed man', at:[1,17.4], y:0.18, face:Math.PI/2, robe:0x6b5a44, cloth:0x8a7a60, beard:0x3a2a1e},
+      {id:'f1', name:'One of the four', at:[-0.6,16.6], face:-Math.PI/2, robe:0x7c6a52, cloth:0xcfc4aa, beard:0x2c241f},
+      {id:'f2', at:[-0.6,18.2], face:-Math.PI/2, robe:0x5f6a52, cloth:0xd8ceb4, beard:0x3a2a1e},
+      {id:'f3', at:[1.4,16.6], face:-Math.PI/2, robe:0x8e6f4c, cloth:0xb9ab8e},
+      {id:'f4', at:[1.4,18.2], face:-Math.PI/2, robe:0x6e5a70, cloth:0xe6e0cf, beard:0x1e1814},
+      ...ROOMFOLK, ...PRESS
+    ],
+    things:[ {id:'bedP', kind:'box', at:[0.4,17.4], y:0.02, w:1.8, h:0.1, d:0.8, color:0xb39a6a},
+             /* the patch of the roof over the room: beams, brush and earth, taken up (Mark 2:4) */
+             {id:'patch', kind:'box', at:'simonHole', y:2.8, w:2.3, h:0.94, d:2.1, color:0xa28a66} ],
+    beats:[
+      {t:'lie', who:'para'},
+      {t:'cam', from:[3.4,3.8,17], look:[-5.4,1.3,8.6], dur:0.1},
+      {t:'read', ref:'MARK 2:1'},
+      {t:'read', ref:'MARK 2:2'},
+      {t:'read', ref:'MARK 2:3'},
+      {t:'move', who:['f1','f2','f3','f4'], to:[[-4.4,12.2],[-4.4,13.8],[-2.4,12.2],[-2.4,13.8]], speed:1.1, wait:false},
+      {t:'drift', id:['para','bedP'], by:[-3.8,0,-4.4], dur:4},
+      {t:'witness', text:'There is no way in at the door — take a corner of the bed with the four, up the stair to the roof', items:['para'], verb:'Take a corner of the bed', hold:0.8, reach:2.8},
+      {t:'place', who:'f1', at:[-12.9,9.9], y:3.72, face:0}, {t:'place', who:'f2', at:[-9.7,9.9], y:3.72, face:0},
+      {t:'place', who:'f3', at:[-12.9,6.1], y:3.72, face:Math.PI}, {t:'place', who:'f4', at:[-9.7,6.1], y:3.72, face:Math.PI},
+      {t:'player', at:[-8.2,11.4], y:3.72, lock:true, face:-Math.PI/2},
+      {t:'drift', id:'para', to:[-10.7,3.9,10.6], dur:0.1}, {t:'drift', id:'bedP', to:[-11.3,3.77,10.6], dur:0.1},
+      {t:'cam', from:[-3.6,6.8,15], look:[-11.3,4.6,8.6], dur:2.5},
+      {t:'hide', id:'patch'},
+      {t:'drift', id:['para','bedP'], by:[0,0,-2.6], dur:1.6},
+      {t:'cam', from:[-8.7,1.8,6.1], look:[-11.3,1.5,8.4], dur:1.5},
+      {t:'drift', id:'bedP', to:[-11.3,0.12,8.2], dur:3.4, wait:false},
+      {t:'drift', id:'para', to:[-10.7,0.3,8.2], dur:3.4},
+      {t:'read', ref:'MARK 2:4'},
+      {t:'cam', from:[-9.2,2,6], look:[-11,0.4,8.4], dur:1.8},          /* past His right shoulder, down to the man on his bed */
+      {t:'say', who:'yahusha', ref:'MARK 2:5', turn:false},
+      {t:'cam', from:[-8.7,1.7,6.1], look:[-12.7,0.9,7.4], dur:2},
+      {t:'read', ref:'MARK 2:6'},
+      {t:'say', who:'scribes', ref:'MARK 2:7', turn:false},
+      {t:'face', who:'yahusha', to:'sc1'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'sc1', dur:1.8},
+      {t:'say', who:'yahusha', ref:'MARK 2:8', turn:false},
+      {t:'say', who:'yahusha', ref:'MARK 2:9', turn:false},
+      {t:'say', who:'yahusha', ref:'MARK 2:10', turn:false},
+      {t:'face', who:'yahusha', to:'para'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'para', dur:1.8},
+      {t:'say', who:'yahusha', ref:'MARK 2:11', turn:false},
+      {t:'stand', who:'para'}, {t:'place', who:'para', at:[-11.3,8.4], y:null, face:Math.PI/2},
+      {t:'hide', id:'bedP'},
+      {t:'move', who:'para', to:[-6,8.2], speed:1.3},
+      {t:'move', who:'para', to:[2,15], speed:1.6, wait:false},
+      {t:'cam', from:[-1.6,3.2,4.2], look:[-5.4,1.4,8.6], dur:2},
+      {t:'say', who:'amazed', ref:'MARK 2:12', turn:false},
+      {t:'cam', release:true},
+      {t:'player', at:[-6.4,12.4], y:null, lock:false},
+      {t:'choice', prompt:'You', options:[
+        {text:'Look up at the hole in the roof', reply:'Somebody will have to mend it tonight. You think Shim‛on will not mind.'},
+        {text:'Think of what was said first', reply:'“Your sins are forgiven.” He said that before He said anything about walking.'} ]},
+      {t:'end'}
+    ]},
+
+
+  /* ---------------- IV.4c — THE TAX OFFICE ---------------- */
   { id:'tax', title:'Kephar Naḥum', date:'by the lake road', place:'galil', time:'day',
     player:{ at:[17,8], face:-Math.PI*0.8, look:ADULT },
     actors:[
@@ -508,6 +636,139 @@ STORY.act({
       {t:'choice', prompt:'You', options:[
         {text:'Ask yourself which ground you are', reply:'The wayside, the rock, the thorns, the good soil. You do not say it aloud.'},
         {text:'Look at the fields on the hills above the lake', reply:'Somebody up there is sowing even now, and the birds are following him.'} ]},
+      {t:'end'}
+    ]},
+
+
+  /* ---------------- IV.7c — THE STORM STILLED ---------------- */
+  { id:'storm', title:'The Sea of Galil', date:'the evening of that day', place:'galilSea', time:'dusk',
+    player:{ at:[59.2,0.8], face:Math.PI, look:ADULT },
+    actors:[
+      T('kepha',[60.4,1.8],{face:Math.PI, y:-0.6}), T('andri',[59.4,-0.6],{face:Math.PI, y:-0.6}), T('yaaqob',[60.6,-0.8],{face:Math.PI, y:-0.6}),
+      T('yahuchanon',[59.6,2.4],{face:Math.PI, y:-0.6}),
+      /* "in the stern, asleep on a cushion" — sitting against the stern, His back to them */
+      Object.assign({id:'yahusha', at:[60,-2.7], face:Math.PI, y:-0.45, sit:true},YAHUSHA)
+    ],
+    things:[ {id:'boat', kind:'boat', at:[60,0], y:-0.35},
+             {id:'boat2', kind:'boat', at:[71,9], y:-0.35, face:0.4},
+             {id:'cushion', kind:'box', at:[60,-3.3], y:-0.2, w:0.7, h:0.22, d:0.45, color:0x8a6a4a},
+             {id:'water0', kind:'box', at:[59.6,-1.4], y:-0.55, w:0.6, h:0.05, d:0.5, color:0x4a6a7a, hidden:true},
+             {id:'water1', kind:'box', at:[60.6,0.4], y:-0.55, w:0.6, h:0.05, d:0.5, color:0x4a6a7a, hidden:true},
+             {id:'water2', kind:'box', at:[59.8,1.6], y:-0.55, w:0.6, h:0.05, d:0.5, color:0x4a6a7a, hidden:true} ],
+    beats:[
+      {t:'player', at:[59.2,0.8], y:-0.6, lock:true, face:Math.PI},
+      {t:'weather', wind:[0.5,0.2], rough:0.4},
+      {t:'cam', from:[49,5,-10], look:[60,0,0], dur:0.1},
+      {t:'say', who:'yahusha', ref:'MARK 4:35', turn:false},
+      {t:'read', ref:'MARK 4:36'},
+      {t:'cam', from:[54,3,-7], look:[60,0.4,0], dur:4, wait:false},
+      {t:'time', to:'night'},
+      {t:'weather', wind:[5.5,-2.4], rough:7},
+      {t:'read', ref:'MARK 4:37'},
+      {t:'show', id:['water0','water1','water2']},
+      {t:'witness', text:'The waves are coming over the side — bail the water out of the boat', items:['water0','water1','water2'], verb:'Bail it out', hold:0.5, reach:2.4},
+      {t:'hide', id:['water0','water1','water2']},
+      {t:'cam', from:[59.4,1.9,1.4], look:[60,0.3,-2.8], dur:2},
+      {t:'say', who:'boatmen', ref:'MARK 4:38', turn:false},
+      {t:'stand', who:'yahusha'}, {t:'place', who:'yahusha', at:[60,-2.5], y:-0.45, face:Math.PI},
+      {t:'cam', from:[60.5,1.5,0.6], look:[60,1.3,-9], dur:1.5},
+      {t:'say', who:'yahusha', ref:'MARK 4:39', turn:false},
+      {t:'weather', wind:[0.15,0.05], rough:0.1},
+      {t:'face', who:'yahusha', to:'kepha'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'kepha', dur:1.8},
+      {t:'say', who:'yahusha', ref:'MARK 4:40', turn:false},
+      {t:'cam', from:[56.6,1.4,-3.6], look:[60,0.6,1.2], dur:2.5},
+      {t:'say', who:'boatmen', ref:'MARK 4:41', turn:false},
+      {t:'choice', prompt:'You', options:[
+        {text:'Ask yourself the same question', reply:'Who then is this? You were in the boat. The water is still in your sandals.'},
+        {text:'Look out at the still water', reply:'Flat as a floor, from here to the other shore. The stars are in it.'} ]},
+      {t:'end'}
+    ]},
+
+  /* ---------------- IV.7d — YA‛IR'S DAUGHTER, AND THE WOMAN WHO TOUCHED HIS GARMENT ---------------- */
+  { id:'yair', title:'Kephar Naḥum', date:'by the sea', place:'galil', time:'day',
+    player:{ at:[14.6,6.4], face:-Math.PI/2, look:ADULT },
+    actors:[
+      Object.assign({id:'yahusha', at:[18.4,0.6], face:-Math.PI/2},YAHUSHA),
+      T('kepha',[19.6,-1],{face:-Math.PI/2}), T('yaaqob',[19.8,2.2],{face:-Math.PI/2}), T('yahuchanon',[20.6,0.6],{face:-Math.PI/2}),
+      T('andri',[21,-2.2],{face:-Math.PI/2}),
+      {id:'yairA', name:'Ya‛ir', key:'Ya‛ir', dress:'scribe', at:[3,-6], face:Math.PI/2, robe:0x4a4a6a, cloth:0xe8e2d2, beard:0x2c241f, sash:0xb08d3c},
+      {id:'wom', name:'A woman', key:'the woman', kind:'woman', at:[12.6,9.4], face:-Math.PI/2, robe:0x5a5048, cloth:0x3c3a44, skin:0x6e4524},
+      {id:'hh1', name:'One from the ruler’s house', at:'yairDoor', face:Math.PI/2, robe:0x6b5a44, cloth:0xcfc4aa, beard:0x3a2a1e, hidden:true},
+      {id:'hh2', at:[0.4,-13.4], face:Math.PI/2, robe:0x5f6a52, cloth:0xd8ceb4, hidden:true},
+      {id:'mother', name:'The girl’s mother', kind:'woman', at:[6.4,-10.4], face:Math.PI, robe:0x6a4a5a, cloth:0x2e2a30, skin:0x7c5430, hidden:true},
+      {id:'girl', name:'The girl', kind:'woman', small:true, at:[7.5,-14.2], y:0.18, face:-Math.PI/2, robe:0x9a5a62, cloth:0xe0c27a, skin:0x7a4e29},
+      ...BEACH, ...WAIL.map(d=>Object.assign({},d,{hidden:true}))
+    ],
+    things:[ {id:'boatY', kind:'boat', at:[25.6,0], y:-0.2, face:Math.PI/2},
+             {id:'matY', kind:'box', at:[8.2,-14.2], y:0.02, w:1.6, h:0.1, d:0.8, color:0xb39a6a},
+             {id:'loaf', kind:'basket', at:[-1.4,-6.6], full:true} ],
+    beats:[
+      {t:'lie', who:'girl'},
+      {t:'cam', from:[9,3.6,12], look:[17.4,1.2,1], dur:0.1},
+      {t:'read', ref:'MARK 5:21'},
+      {t:'move', who:'yairA', to:[16.4,0.6], speed:1.8},
+      {t:'face', who:'yahusha', to:'yairA'},
+      {t:'read', ref:'MARK 5:22'},
+      {t:'sit', who:'yairA'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'yairA', dur:1.8},
+      {t:'say', who:'yairA', ref:'MARK 5:23', turn:false},
+      {t:'stand', who:'yairA'},
+      {t:'cam', release:true},
+      {t:'read', ref:'MARK 5:24'},
+      {t:'move', who:['yairA','yahusha','kepha','yaaqob','yahuchanon'], to:[[7.6,-4.8],[9.6,-3.6],[10.6,-5.6],[11.2,-2],[12,-4]], speed:1.1, wait:false},
+      {t:'follow', who:ids(BEACH).slice(0,10), target:'yahusha'},
+      {t:'read', ref:'MARK 5:25'},
+      {t:'read', ref:'MARK 5:26'},
+      {t:'move', who:'wom', to:[10.4,-2.4], speed:1.2},
+      {t:'cam', from:[13.4,2.4,2.6], look:[10.2,1.1,-3], dur:2},
+      {t:'read', ref:'MARK 5:27'},
+      {t:'say', who:'wom', ref:'MARK 5:28', turn:false},
+      {t:'read', ref:'MARK 5:29'},
+      {t:'stop', who:ids(BEACH).slice(0,10)},
+      {t:'face', who:'yahusha', to:'wom'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'wom', dur:1.8},
+      {t:'say', who:'yahusha', ref:'MARK 5:30', turn:false},
+      {t:'say', who:'boatmen', ref:'MARK 5:31', turn:false},
+      {t:'read', ref:'MARK 5:32'},
+      {t:'sit', who:'wom'},
+      {t:'read', ref:'MARK 5:33'},
+      {t:'say', who:'yahusha', ref:'MARK 5:34', turn:false},
+      {t:'show', id:['hh1','hh2']},
+      {t:'move', who:['hh1','hh2'], to:[[8,-6.4],[7,-5.4]], speed:2},
+      {t:'cam', from:[12.6,2.4,-1.4], look:[7.6,1.4,-5.6], dur:2},
+      {t:'say', who:'household', ref:'MARK 5:35', turn:false},
+      {t:'face', who:'yahusha', to:'yairA'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'yairA', dur:1.8},
+      {t:'say', who:'yahusha', ref:'MARK 5:36', turn:false},
+      {t:'cam', release:true},
+      {t:'read', ref:'MARK 5:37'},
+      {t:'show', id:ids(WAIL).concat('mother')},
+      {t:'move', who:['yairA','yahusha','kepha','yaaqob','yahuchanon','hh1','hh2'], to:[[0.4,-10.4],[-0.6,-12],[-1.2,-13.6],[-1.6,-10.8],[-2.2,-12.8],[-0.8,-8.2],[-1,-15.8]], speed:1.3},
+      {t:'goal', text:'Follow as far as the house of Ya‛ir', goto:[-4.4,-7.6], r:3},
+      {t:'cam', from:[-6.6,2.8,-5.4], look:[-0.6,1.3,-12], dur:2},
+      {t:'read', ref:'MARK 5:38'},
+      {t:'face', who:'yahusha', to:'l2'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'l2', dur:1.8},
+      {t:'say', who:'yahusha', ref:'MARK 5:39', turn:false},
+      {t:'read', ref:'MARK 5:40'},
+      {t:'move', who:ids(WAIL), to:WAIL.map((d,k)=>[-1+(k%4)*1.2,-19-Math.floor(k/4)*1.4]), speed:1.4, wait:false},
+      {t:'place', who:'yahusha', at:[8.1,-12.9], face:Math.PI}, {t:'place', who:'yairA', at:[5.2,-10.4], face:Math.PI*0.8},
+      {t:'place', who:'mother', at:[8.4,-10.4], face:-Math.PI*0.8}, {t:'place', who:'kepha', at:[4.4,-14], face:Math.PI*0.25},
+      {t:'place', who:'yaaqob', at:[3.7,-13.2], face:Math.PI/2}, {t:'place', who:'yahuchanon', at:[5.6,-14.6], face:0},
+      {t:'face', who:'yahusha', to:[8.1,-14.2]},
+      {t:'cam', from:[5.8,1.7,-11.8], look:[8.1,0.4,-14.2], dur:1.8},    /* past His left shoulder, to her */
+      {t:'say', who:'yahusha', ref:'MARK 5:41', turn:false},
+      {t:'stand', who:'girl'}, {t:'place', who:'girl', at:[7.6,-13.4], y:null, face:-Math.PI/2},
+      {t:'move', who:'girl', to:[5.6,-12.4], speed:0.9},
+      {t:'cam', from:[3.6,1.8,-9.6], look:[5.6,1,-12.4], dur:2},
+      {t:'read', ref:'MARK 5:42'},
+      {t:'read', ref:'MARK 5:43'},
+      {t:'cam', release:true},
+      {t:'witness', text:'She is to be given food — take the bread to the door of the house', items:['loaf'], verb:'Lift the bread', hold:0.4, deliver:'yairDoor', r:2.6, carryText:'Hand it in at the door'},
+      {t:'choice', prompt:'You', options:[
+        {text:'Think of the woman on the road', reply:'Twelve years she was sick. Twelve years the girl had lived. Both of them were called “daughter” today.'},
+        {text:'Say nothing, as He ordered', reply:'You keep it. It is not the kind of thing that keeps easily.'} ]},
       {t:'end'}
     ]},
 

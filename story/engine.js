@@ -404,7 +404,7 @@ function holyHeads(){
   const out=[];
   for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; if(!u.holy||!g.visible) continue;
     const sc=u.s||1, y=g.position.y+(u.headY||1.82*sc);
-    out.push({p:new THREE.Vector3(g.position.x,y,g.position.z), f:new THREE.Vector3(Math.sin(g.rotation.y),0,Math.cos(g.rotation.y)), r:0.26*sc}); }
+    out.push({p:new THREE.Vector3(g.position.x,y,g.position.z), f:new THREE.Vector3(Math.sin(g.rotation.y),0,Math.cos(g.rotation.y)), r:0.26*sc, a:1}); }
   for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; if(!u.holy||!o.visible) continue;
     o.updateMatrixWorld(); const hp=u.head.getWorldPosition(new THREE.Vector3());
     out.push({p:hp, f:u.faceDir.clone().applyQuaternion(o.quaternion), r:0.12}); }
@@ -448,6 +448,8 @@ function exposedFrom(from,at){
   _tc.aspect=camera.aspect; _tc.updateProjectionMatrix(); _tc.position.set(...from); _tc.lookAt(...at); _tc.updateMatrixWorld();
   for(const H of holyHeads()){ _h.set(...from).sub(H.p); const d=_h.length(); if(d>45||d<0.01) continue; _h.divideScalar(d);
     if(H.f.y>0.5){ if(_h.y<0.35) continue; } else { if(_h.y>0.82) continue; const fl=Math.hypot(_h.x,_h.z); if(fl<1e-3||(H.f.x*_h.x+H.f.z*_h.z)/fl<-0.05) continue; }
+    /* a wall or a roof between the eye and His head: the face is not seen from there */
+    if(H.a&&!lineClear(from,[H.p.x,H.p.y,H.p.z])) continue;
     for(const dy of [-H.r,0,H.r]){ _v.set(H.p.x,H.p.y+dy,H.p.z).project(_tc); if(_v.z<1&&Math.abs(_v.x)<1.04&&Math.abs(_v.y)<1.04) return H; } }
   return null;
 }
@@ -511,7 +513,8 @@ function camFree(p){ const k=K(), B=k.B, x=anchor.x+p[0]*S, y=anchor.y+p[1]*S, z
    brought in along its own line until the subject is seen. */
 function clearShot(from,look){
   if(!anchor||!root) return from;
-  const low=[look[0],look[1]-0.9,look[2]];
+  /* the feet of what is looked at — never below the ground, as they would be under one lying down */
+  const gl=ctx.groundY(look[0],look[2]), low=[look[0],Math.max(look[1]-0.9,(gl==null?look[1]-0.9:gl)+0.2),look[2]];
   const ok=p=>camFree(p)&&lineClear(p,look)&&lineClear(p,low)&&!exposedFrom(p,look);
   if(ok(from)) return from;
   const dx=from[0]-look[0], dz=from[2]-look[2], d0=Math.max(1.5,Math.hypot(dx,dz)), a0=Math.atan2(dx,dz), h0=from[1]-look[1];
@@ -695,7 +698,7 @@ function enterBeat(){
   if(T==='choice'){ showChoice(B); return; }
   if(T==='collect'){ collect(B.id); return; }
   if(T==='fulfil'){ fulfil(B.id); return; }
-  if(T==='move'){ const who=[].concat(B.who), tos=Array.isArray(B.who)?[].concat(B.to):[B.to];   /* one figure, one place — even a place given as [x,z] */ who.forEach((w,k)=>{ const g=ctx.actors[w]; if(!g) return;
+  if(T==='move'){ const who=[].concat(B.who), tos=Array.isArray(B.who)||Array.isArray(B.to&&B.to[0])?[].concat(B.to):[B.to];   /* one figure, one place — even a place given as [x,z] */ who.forEach((w,k)=>{ const g=ctx.actors[w]; if(!g) return;
       const to=pos(tos[Math.min(k,tos.length-1)]);
       g.userData.follow=null; g.userData.target=to; if(B.speed) g.userData.speed=B.speed;
       if(ST.fast){ g.position.x=to[0]; g.position.z=to[1]; g.userData.gy=undefined; } });
@@ -706,9 +709,11 @@ function enterBeat(){
   if(T==='face'){ const g=ctx.actors[B.who]; const p=B.to==='player'?[player.position.x,player.position.z]:ctx.actors[B.to]?thingPos(B.to):pos(B.to);
     if(g) g.rotation.y=Math.atan2(p[0]-g.position.x,p[1]-g.position.z); return nextBeat(); }
   if(T==='place'){ const g=B.who==='player'?player:ctx.actors[B.who]; const p=pos(B.at);
-    if(g){ g.position.set(p[0],B.y!==undefined?B.y:ctx.groundY(p[0],p[1]),p[1]); g.userData.gy=g.position.y; if(B.face!==undefined) g.rotation.y=B.face;
-      /* `y`: standing on something that is not the ground — the floor of a boat */
-      if(B.y!==undefined&&g!==player) g.userData.fixedY=B.y; else if(B.y===null) delete g.userData.fixedY; }
+    if(g){ const onIt=B.y!==undefined&&B.y!==null;
+      g.position.set(p[0],onIt?B.y:ctx.groundY(p[0],p[1]),p[1]); g.userData.gy=g.position.y; if(B.face!==undefined) g.rotation.y=B.face;
+      /* `y`: standing on something that is not the ground — the floor of a boat, a roof;
+         `y:null` sets him back down on the ground */
+      if(onIt&&g!==player) g.userData.fixedY=B.y; else if(B.y===null) delete g.userData.fixedY; }
     return nextBeat(); }
   if(T==='cam'){ controlsOn=!!B.free;
     if(B.release){ releaseCamera(); controlsOn=true; return nextBeat(); }
@@ -732,7 +737,7 @@ function enterBeat(){
   /* "Make the people sit down" (Yahuchanon 6:10): on the grass, legs out before them */
   if(T==='sit'||T==='stand'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.sit=(T==='sit'); g.userData.lie=false; g.rotation.x=0; } } return nextBeat(); }
   /* lying on the ground: asleep in a camp, or fallen (Yashayahu 37:36) */
-  if(T==='lie'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.lie=true; g.userData.sit=false; g.rotation.x=-Math.PI/2; } } return nextBeat(); }
+  if(T==='lie'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.lie=true; g.userData.sit=false; g.rotation.order='YXZ'; g.rotation.x=-Math.PI/2; }   /* on the back, along the way he faced */ } return nextBeat(); }
   if(T==='robe'){ const g=ctx.actors[B.who]; if(g) window.STORYWORLD.recolor(g,B.color); return nextBeat(); }
   if(T==='drift'){ const objs=[];
     /* one thing to a place (`to`), or several together by the same distance (`by`) — a boat
@@ -747,9 +752,10 @@ function enterBeat(){
   if(T==='wait'){ onFrame=()=>{ if(ST.fast||beatT>=B.s) nextBeat(); }; return; }
   if(T==='player'){ ctx.playerHidden=!!B.hidden; player.visible=!B.hidden; if(B.hidden) controlsOn=false;
     /* set the player down somewhere — in a boat, say — and hold him there (lock), or let him go */
-    if(B.at){ const p=pos(B.at); player.position.set(p[0],B.y!==undefined?B.y:ctx.groundY(p[0],p[1]),p[1]); }
+    const onIt=B.y!==undefined&&B.y!==null;
+    if(B.at){ const p=pos(B.at); player.position.set(p[0],onIt?B.y:ctx.groundY(p[0],p[1]),p[1]); }
     if(B.face!==undefined){ player.rotation.y=B.face; camYaw=B.face+Math.PI; }
-    if(B.y!==undefined) ctx.playerY=B.y; else if(B.lock===false) ctx.playerY=undefined;
+    if(onIt) ctx.playerY=B.y; else if(B.y===null||B.lock===false) ctx.playerY=undefined;
     if(B.lock!==undefined) ctx.playerLock=!!B.lock;
     return nextBeat(); }
   /* the jars filled, the baskets heaped, the net full of fish; `color` turns water to wine */
