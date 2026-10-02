@@ -1098,6 +1098,8 @@ function journal(sc){
   for(const a of sc.actors||[]){ const id=FOLLOWERS[a.id]; if(!id) continue;
     /* Yahuchanon the immerser is not Yahuchanon son of Zaḇdai */
     if((id==='yahuchanon'||id==='yaaqob')&&!/Zaḇdai/.test(a.key||'')) continue;
+    /* nor is the righteous Shim‛on of the courts (Luke 2:25) Shim‛on Kĕpha */
+    if(id==='kepha'&&!/Kĕpha/.test(a.key||'')) continue;
     const b=save.bonds[id]=save.bonds[id]||{name:a.name,scenes:[]};
     if(id==='kepha'&&a.id==='kepha') b.name=a.name;
     if(b.scenes.indexOf(k)<0) b.scenes.push(k); }

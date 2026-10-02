@@ -9994,6 +9994,106 @@ before it is folded, and the block array is mipmapped.
   village in the world.
 
 
+## 4dm. Round 114 — the acts deepened from the Besorah; robes that sit; no one in a wall
+
+**Every act is deepened from the Besorah**, in its own order. Each new scene's every word is
+the Besorah's, and each speaker is the one it names.
+
+**Act I, The Promise**, now runs to seven scenes. Two are new and one grows:
+
+- **The vision** now gives the whole of Yashayahu 6, inside the Set Apart Place of Shelomoh's
+  house: He who sits on the throne is not drawn — the light fills the house — and the seraphim
+  are light. Yashayahu tells it himself; "Here am I! Send me."
+- **Ḥizqiyahu's sickness** (Yashayahu 38): the sovereign's house below the courts, the stair of
+  Aḥaz beside it, and the shadow drawn back ten steps.
+- **The envoys of Baḇal** (39): the treasures shown, and the word that all of it would be carried
+  to Baḇal.
+
+**The bridge** has a seventh scene: **the foundation laid** (Ezra 3:10-13), the old men weeping
+and the people shouting, in the city as the exiles found her. Yahrushalayim now has a third
+period, `return`: her wall broken down and burnt, few houses standing, the altar built again,
+and of the house only the foundation. A scene may stand in a different period from its act
+(`period` on the scene).
+
+**Act II, The Coming**, now runs to twelve scenes. Five are new:
+
+- **Zaḵaryahu in the Dwelling Place** (Luke 1:5-23): the lot, the incense, Gaḇri'al at the
+  right of the altar, and the kohen who comes out unable to speak. It now opens the act.
+- **Miryam in the hill country** (1:24-25, 39-56): Alisheḇa's greeting and Miryam's song, at
+  Ayin Kerem west of the city.
+- **His name is Yahuchanon** (1:57-80): the tablet, the tongue loosed, and Zaḵaryahu's
+  prophecy over the child.
+- **Shim'on and Ḥannah** (2:22-38): the turtledoves, and the Child in the old man's arms.
+- **The boy in the house of His Father** (2:39-52): found in Shelomoh's porch among the
+  teachers. He speaks in a boy's voice, and His face is never shown. It now ends the act.
+
+**Act III, The Forerunner**, now runs to ten scenes. Four are new:
+
+- **Philip, and Nethanĕ'l under the fig tree** (Yahuchanon 1:43-51).
+- **Naḵdimon by night** (3:1-21), by a lamp the witness trims.
+- **"He must increase"** at Ayin near Salim (3:22-30).
+- **The woman at Ya'aqoḇ's fountain** (4:1-42): Sheḵem between Gerizim and Ebal, the fields
+  white for harvest, and the Shomeronites coming out. The act now ends with it.
+
+**Act IV, Galil**, now runs to seventeen scenes. Four are new, in Mark's order:
+
+- **Shim'on's house, and the whole city at the door** (Mark 1:29-34).
+- **The man let down through the roof** (2:1-12).
+- **The storm stilled** (4:35-41).
+- **Ya'ir's daughter, and the woman who touched His garment** (5:21-43).
+
+**New sets:**
+
+- **Kephar Naḥum:** houses of one basalt room with an earthen roof and an outside stair. The
+  roof of Shim'on's house is opened over the room.
+- **Sheḵem:** the fountain, Gerizim, the town, and the wheat.
+- **The hill country:** the kohen's limestone house above its spring.
+- **The Set Apart Place** within both Hĕḵals, Shelomoh's and Herodes': the golden altar of
+  incense, the lampstand, the table and the veil. Herodes' inner courts are now a terrace
+  built up from the ground, with steps from the street; they had floated over the city.
+
+**Robes that sit (the user's report: "men's legs are shown when they sit down; the cloth
+should be real and move with the body, not a block").**
+
+- **On the legs.** The robe lies on each thigh and shin down to its hem, and goes with the leg
+  in the stride.
+- **Seated.** The hanging skirt is put by for a seated drape: one breadth over both thighs
+  from the hips to the knees, falling to the hem in front of the shins, full over the hips.
+- **How people sit.** On the ground they sit with knees drawn up; on a bench, a boat's thwart
+  or the toll-table, with thighs level.
+- **Length.** A man's tunic is to the ankle, the kethoneth. Shepherds and soldiers keep their
+  working knee-length tunics.
+
+**No one in a wall (the user's report: "a lot of clip-through").**
+
+- **Measured.** A clipping audit lays every mark of every scene against the blocks: anyone in
+  a wall, on a roof, or two in one place. Every IN-WALL finding in all five acts was fixed;
+  what the audit still flags is people on a slope or terrace, not inside anything.
+- **The ground under a man.** With no height to go on — the city's courts, terraces and houses
+  — the floor is now found from below. The world's own query looked only two courses above
+  the land, so it stood men inside the Temple platform and on roofs.
+- **People keep apart.** No one stands inside another; the one walking gives way.
+- **People go round walls.** A step that would put a body into a block is turned aside until it
+  would not; before, people walked straight through any wall between them and their mark.
+- **The camera.** It is never set inside or against a body. The face guard counts a wall
+  between the eye and His head, and a shot never checks for feet below the floor.
+- **Lying down.** People lie along the way they face.
+- **The launcher.** Every built act can be begun from it, not only the next one in order.
+
+**Checks:**
+
+- **Besorah:** 535 passages exact; 532 verses said, with 0 quotations no one speaks.
+- **Voices:** 870 of 870 lines recorded.
+- **Playthrough:** all five acts play through with no errors and 0 face-exposed frames.
+
+| Act | Scenes | Frames |
+|---|---|---|
+| Act I | 7 | 146 |
+| The bridge | 7 | 26 |
+| Act II | 12 | 209 |
+| Act III | 10 | 227 |
+| Act IV | 17 | 365 |
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
