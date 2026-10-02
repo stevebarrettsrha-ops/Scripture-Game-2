@@ -28,13 +28,15 @@ function codexHTML(){
 }
 function acts(){
   const list=$('acts'); list.innerHTML='';
+  /* every act that is built can be begun: the road is best walked in order, and the hub says
+     so, but no one is kept from the Galil because the Prologue is not yet finished */
   let open=true;
   for(const a of ST.acts.slice().sort((x,y)=>x.n-y.n)){
-    const done=save.acts[a.id]==='done', can=open&&!a.planned&&!!pageOf(a.id);
+    const done=save.acts[a.id]==='done', can=!a.planned&&!!pageOf(a.id), inOrder=open;
     const d=document.createElement(can?'a':'div'); d.className='act'+(done?' done':'')+(can?'':' locked');
     if(can) d.href=pageOf(a.id);
     d.innerHTML='<span class="an">'+esc(a.num||'')+'</span><span class="at">'+esc(a.title)+'</span><span class="as">'+esc(a.sub||'')+'</span>'+
-      '<span class="ast">'+(a.planned?'To come':done?'Walked ✓ · again ▸':can?'Begin ▸':'After the act before')+'</span>';
+      '<span class="ast">'+(a.planned?'To come':done?'Walked ✓ · again ▸':inOrder?'Begin ▸':'Begin ▸ (best after the act before)')+'</span>';
     list.appendChild(d);
     if(!done&&!a.planned) open=false; }
 }
@@ -51,7 +53,7 @@ const SPOTS=[
   {k:'fields',n:'',lat:31.70,lon:35.22},{k:'natsareth',n:'Natsareth',lat:32.702,lon:35.297},{k:'qanah',n:'Qanah',lat:32.746,lon:35.342},
   {k:'galil',n:'Kephar Naḥum',lat:32.881,lon:35.575},{k:'galilEast',n:'',lat:32.836,lon:35.65},{k:'galilSea',n:'',lat:32.83,lon:35.585},
   {k:'road',n:'',lat:32.2,lon:35.28},{k:'yarden',n:'Bĕyth Anyah',lat:31.837,lon:35.55},{k:'wilderness',n:'The wilderness',lat:31.6,lon:35.38},
-  {k:'mountain',n:'',lat:33.0,lon:35.75},{k:'bethanyah',n:'',lat:31.771,lon:35.262}];
+  {k:'mountain',n:'',lat:33.0,lon:35.75},{k:'bethanyah',n:'',lat:31.771,lon:35.262},{k:'shekem',n:'Sheḵem',lat:32.213,lon:35.285},{k:'hillcountry',n:'',lat:31.768,lon:35.162}];
 function drawMap(){
   const cv=$('road-map'), g=cv.getContext('2d'), W=cv.width, H=cv.height;
   const lat0=30.95, lat1=33.35, lon0=34.25, lon1=36.0;

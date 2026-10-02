@@ -66,11 +66,11 @@ const ids=list=>list.map(a=>a.id);
 
 /* the crowds of each scene */
 const WEDDING=folk('w',12,[-7,-6,7,1.5],0);
-const QAHAL_N=folk('n',14,[-8,-31,6,-21.5],Math.PI,{});
+const QAHAL_N=folk('n',14,[-8.4,-29,4.4,-22.6],Math.PI,{});
 const SHOREFOLK=folk('s',16,[12,-12,20,14],Math.PI/2);
 const QAHAL_K=folk('q',12,[-13,-9.5,-4,-2.5],Math.PI/2);
-const MOUNT=folk('m',30,[-27,-12,-15.6,24],-Math.PI/2,{sit:true});
-const STREET=folk('k',10,[-4,-6,1.5,6],Math.PI/2);
+const MOUNT=folk('m',30,[-27,-10,-15.6,24],-Math.PI/2,{sit:true});
+const STREET=folk('k',10,[-1,-6,1.5,6],Math.PI/2);
 const GROUPS=[[-14,-26],[-14,-12],[-14,2],[-14,16],[-14,30]];
 const FIVE=[].concat(...GROUPS.map((g,i)=>folk('g'+i+'_',7,[g[0]-3,g[1]-3,g[0]+3,g[1]+3],-Math.PI/2,{sit:true})));
 const LEADS=GROUPS.map((g,i)=>'g'+i+'_0');
@@ -269,8 +269,8 @@ STORY.act({
     player:{ at:'qahalDoor', face:-Math.PI/2, look:ADULT },
     actors:[
       Object.assign({id:'yahusha', at:'qahalIn', face:-Math.PI/2},YAHUSHA),
-      T('kepha',[-1.6,-2.6],{face:-Math.PI/2}), T('andri',[-1.4,-9.6],{face:-Math.PI/2}),
-      T('yaaqob',[-2.2,-8.4],{face:-Math.PI/2}), T('yahuchanon',[-2.4,-3.6],{face:-Math.PI/2}),
+      T('kepha',[-4.4,-2.8],{face:-Math.PI/2}), T('andri',[-4.4,-8.6],{face:-Math.PI/2}),
+      T('yaaqob',[-5.2,-7.6],{face:-Math.PI/2}), T('yahuchanon',[-5.2,-3.8],{face:-Math.PI/2}),
       {id:'possessed', name:'A man of the qahal', at:[-9.6,-3], face:Math.PI/2, robe:0x5c5040, cloth:0x8a7a60, beard:0x2c241f},
       ...QAHAL_K
     ],
@@ -314,7 +314,8 @@ STORY.act({
       {t:'lie', who:'mil'},
       {t:'cam', from:[3.4,3.4,-1.6], look:[-8,1.4,6], dur:0.1},
       {t:'read', ref:'MARK 1:29'},
-      {t:'move', who:['yahusha','kepha','andri','yaaqob','yahuchanon'], to:[[-9.4,8],[-8.6,6.2],[-8.4,9.8],[-6,6.4],[-6,9.6]], speed:1.4, wait:false},
+      {t:'move', who:['yahusha','kepha','andri','yaaqob','yahuchanon'], to:[[-5.4,8],[-4.8,6.6],[-4.6,9.4],[-3.2,7],[-3.2,9]], speed:1.4},
+      {t:'move', who:['yahusha','kepha','andri','yaaqob','yahuchanon'], to:[[-9.4,8],[-8.6,6.2],[-8.4,9.8],[-6,6.4],[-6,9.6]], speed:1.2, wait:false},
       {t:'goal', text:'Go with them to the house of Shim‛on', goto:'simonDoor', r:3},
       {t:'read', ref:'MARK 1:30'},
       {t:'move', who:'yahusha', to:[-12.6,7.6], speed:1.2},
@@ -418,7 +419,7 @@ STORY.act({
     actors:[
       Object.assign({id:'yahusha', at:[20,-10], face:-0.2},YAHUSHA),
       T('kepha',[21.2,-12],{face:-0.2}), T('andri',[19,-12.4],{face:-0.2}),
-      Object.assign({},T('mattithyahu',[14.2,-4.9],{face:Math.PI/2,sit:true})),
+      Object.assign({},T('mattithyahu',[14.2,-4.9],{face:Math.PI/2,sit:true,bench:true})),
       {id:'ph1', name:'The Pharisees', dress:'scribe', at:[22,2], face:-Math.PI/2, robe:0xd8d0bb, cloth:0x3a3a4a, beard:0x2c241f},
       {id:'ph2', dress:'scribe', at:[22.6,3.8], face:-Math.PI/2, robe:0xcfc4aa, cloth:0x4a4a5a, beard:0x6d6a66},
       ...TABLE
@@ -569,7 +570,7 @@ STORY.act({
       {id:'blind2', name:'A blind man', at:[-11.4,15.8], face:Math.PI/2, robe:0x5c5040, cloth:0xa89a7e, beard:0x6d6a66, kind:'oldman'},
       {id:'mess1', name:'A taught one of Yahuchanon', at:[-40,30], face:Math.PI/4, robe:0x7b5a3a, cloth:0x2a2019, beard:0x2a2019, hidden:true},
       {id:'mess2', at:[-41.4,31.2], face:Math.PI/4, robe:0x6e5238, cloth:0x2a2019, beard:0x3a2a1e, hidden:true},
-      ...folk('h',8,[-4,14,8,22],-Math.PI/2)
+      ...folk('h',8,[-4,14,8,20.4],-Math.PI/2)
     ],
     beats:[
       {t:'say', who:'blind', ref:'MATTITHYAHU 9:27', turn:false},
@@ -588,9 +589,10 @@ STORY.act({
       {t:'cam', release:true},
       {t:'title', text:'In those days', sub:'Yahuchanon is in prison'},
       {t:'show', id:['mess1','mess2']},
-      {t:'move', who:['mess1','mess2'], to:[[3.6,11.4],[4.6,12.6]], speed:2, wait:false},
+      {t:'move', who:['mess1','mess2'], to:[[10.6,13.6],[11.8,12.6]], speed:2, wait:false},
       {t:'place', who:'yahusha', at:[7.4,10.6], face:Math.PI},
-      {t:'cam', from:[0.6,2.6,16], look:[6,1.5,11], dur:3},
+      {t:'face', who:'yahusha', to:'mess1'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'mess1', side:-1, dur:3},
       {t:'say', who:'messengers', ref:'MATTITHYAHU 11:2-3', turn:false},
       {t:'face', who:'yahusha', to:'mess1'},
       {t:'cam', on:'yahusha', shot:'back', toward:'mess1', dur:1.8},
@@ -755,7 +757,7 @@ STORY.act({
       {t:'move', who:ids(WAIL), to:WAIL.map((d,k)=>[-1+(k%4)*1.2,-19-Math.floor(k/4)*1.4]), speed:1.4, wait:false},
       {t:'place', who:'yahusha', at:[8.1,-12.9], face:Math.PI}, {t:'place', who:'yairA', at:[5.2,-10.4], face:Math.PI*0.8},
       {t:'place', who:'mother', at:[8.4,-10.4], face:-Math.PI*0.8}, {t:'place', who:'kepha', at:[4.4,-14], face:Math.PI*0.25},
-      {t:'place', who:'yaaqob', at:[3.7,-13.2], face:Math.PI/2}, {t:'place', who:'yahuchanon', at:[5.6,-14.6], face:0},
+      {t:'place', who:'yaaqob', at:[3.7,-13.2], face:Math.PI/2}, {t:'place', who:'yahuchanon', at:[6,-14], face:0},
       {t:'face', who:'yahusha', to:[8.1,-14.2]},
       {t:'cam', from:[5.8,1.7,-11.8], look:[8.1,0.4,-14.2], dur:1.8},    /* past His left shoulder, to her */
       {t:'say', who:'yahusha', ref:'MARK 5:41', turn:false},

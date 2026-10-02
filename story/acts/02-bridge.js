@@ -11,7 +11,8 @@ STORY.act({
   sub:'Ashshur · Baḇal (Baḇylon) · Persia · Greece · Rome',
   cast:{
     gabrial:{name:'Gaḇri’al', kind:'angel'},          /* "Gaḇri’al, make this man understand the vision" (8:16) */
-    danial:{name:'Dani’al', kind:'man'}               /* to the sovereign of Baḇal, telling his dream (2:36) */
+    danial:{name:'Dani’al', kind:'man'},              /* to the sovereign of Baḇal, telling his dream (2:36) */
+    returned:{name:'The people', key:'people', kind:'crowd', actor:'rp0', actors:['rp0','rp1','rp2','rp3','rp4','rp5','rp6','rp7']}
   },
   eras:[
     {name:'Ashshur', from:-740, to:-612, color:'#6d7fa6'},
@@ -60,6 +61,28 @@ STORY.act({
       {t:'read', ref:'EZRA 1:1'},
       {t:'end'}
     ]},
+  { id:'return', title:'Yahrushalayim', date:'c. 536 BCE', place:'yahrushalayim', period:'return', time:'dawn',
+    player:{ at:[-10,26], hidden:true },
+    /* the kohanim in their robes with trumpets, the Lĕwites with cymbals, the old men who had
+       seen the first House, and the people (Ezra 3:10-12) */
+    actors:[
+      ...[0,1,2,3].map(k=>({id:'kh'+k, dress:'kohen', at:[1+k*3.2,-33.6], face:Math.PI, beard:[0x6d6a66,0x2c241f,0x3a2a1e,0x9a948a][k]})),
+      ...[0,1,2].map(k=>({id:'lw'+k, dress:'levite', at:[17+k*1.6,-36+k*1.2], face:-Math.PI*0.6, beard:0x3a2a1e})),
+      ...[0,1,2].map(k=>({id:'old'+k, kind:'oldman', at:[-6.4+k*1.4,-38.4-k*0.8], face:Math.PI*0.75, robe:[0x5c5040,0x6b5a44,0x4a4036][k], cloth:0xe8e2d2, beard:0xc8c4bc})),
+      ...[0,1,2,3,4,5,6,7].map(k=>({id:'rp'+k, at:[-4+k*2.2,-28.6+(k%2)*1.6], face:Math.PI,
+        robe:[0x7c6a52,0x5f6a52,0x8e6f4c,0x6b5a44,0x74604a,0x5c5040,0x8a7a60,0x6e5a70][k], cloth:[0xcfc4aa,0xe8e2d2,0xb9ab8e,0x3c3a44][k%4], beard:k%3===1?null:0x2c241f, kind:k%3===1?'woman':'man'}))
+    ],
+    beats:[
+      {t:'cam', from:[-30,18,6], look:[6,2,-48], dur:0.1},
+      {t:'cam', from:[24,7,-24], look:[6,1.6,-46], dur:14, wait:false},
+      {t:'era', i:2, head:'536 BCE — the foundation laid', text:'The exiles come home to a city broken down and burnt. They build the altar again on its place, and in the second year they lay the foundation of the House.'},
+      {t:'read', ref:'EZRA 3:10'},
+      {t:'read', ref:'EZRA 3:11', voices:['returned']},
+      {t:'cam', from:[-1,3,-34], look:[-5.4,1.8,-38.8], dur:2.5},
+      {t:'read', ref:'EZRA 3:12'},
+      {t:'read', ref:'EZRA 3:13'},
+      {t:'end'}
+    ]},
   { id:'greece', title:'Macedon', date:'331 BCE', place:'pella', time:'day',
     player:{ at:[0,40], hidden:true },
     glows:[ {id:'gabrial', at:[0,14,26], size:5, color:0xfff4d6, intensity:0, pulse:true} ],
@@ -73,9 +96,9 @@ STORY.act({
   { id:'rome', title:'Yahrushalayim', date:'63 BCE', place:'yahrushalayim', time:'day',
     player:{ at:[-10,26], hidden:true },
     actors:[0,1,2,3,4,5,6,7,8,9,10,11].map(k=>({id:'l'+k, folk:'roman', dress:k===0?'centurion':'legionary', name:k===0?'A captain':undefined,
-      at:[-70+(k%3)*1.4, 96+Math.floor(k/3)*1.6], face:Math.PI*1.25, robe:0x8a2a22})),
+      at:[-50+(k%3)*1.4, 68+Math.floor(k/3)*1.6], face:Math.PI*0.75, robe:0x8a2a22})),
     beats:[
-      {t:'cam', from:[-36,4,62], look:[-62,1.5,88], dur:0.1},
+      {t:'cam', from:[-38,4,58], look:[-48.6,1.5,70.4], dur:0.1},
       {t:'move', who:['l0','l1','l2','l3','l4','l5','l6','l7','l8','l9','l10','l11'],
         to:[0,1,2,3,4,5,6,7,8,9,10,11].map(k=>[-26+(k%3)*1.4, 52+Math.floor(k/3)*1.6]), speed:1.3, wait:false},
       {t:'cam', from:[-36,7,66], look:[-15,6.5,46], dur:14, wait:false},   /* the march on the city, below the panel */

@@ -30,6 +30,8 @@ const PLACES={
   fields:     {lat:31.700, lon:35.215, flat:34, clear:900, why:'the pasture below Bĕyth Leḥem'},
   yarden:     {lat:31.837, lon:35.550, flat:46, why:'Bĕyth Anyah beyond the Yardĕn, below Yeriḥo'},
   wilderness: {lat:31.70,  lon:35.40,  flat:12, clear:820, why:'the wilderness of Yahuḏah, falling to the rift'},
+  hillcountry:{lat:31.768, lon:35.162, flat:30, clear:820, why:'Ayin Kerem in the hill country of Yahuḏah, west of the city'},
+  shekem:     {lat:32.213, lon:35.285, flat:34, why:'Ya‛aqoḇ’s fountain at Sheḵem, between Gerizim and Ebal'},
   bethanyah:  {lat:31.771, lon:35.262, flat:28, clear:820, why:'Bĕyth Anyah, beyond the Mount of Olives from the city'},
   /* the seven hundred years: the empires, each at its own seat */
   tiber:      {lat:41.89, lon:12.49, flat:20, why:'by the Tiber, where Rome begins'},

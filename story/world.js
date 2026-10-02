@@ -162,6 +162,12 @@ W.olive=function(S,x,z,s){ s=s||1;
   S.box(x-0.35,0,z-0.35,x+0.35,1.7*s,z+0.35,'log');
   S.box(x-1.5*s,1.6*s,z-1.4*s,x+1.4*s,2.7*s,z+1.5*s,'leaves');
   S.box(x-0.9*s,2.6*s,z-0.9*s,x+1.0*s,3.4*s,z+0.8*s,'leaves'); };
+/* A FIG: a short trunk and a broad, low crown of big leaves, shade enough to sit under
+   (Yahuchanon 1:48, "when you were under the fig tree") */
+W.fig=function(S,x,z){
+  S.box(x-0.35,0,z-0.35,x+0.35,2.9,z+0.35,'log');
+  S.box(x-2.7,2.8,z-2.5,x+2.6,3.7,z+2.6,'leaves');
+  S.box(x-1.8,3.6,z-1.7,x+1.8,4.4,z+1.8,'leaves'); };
 W.palm=function(S,x,z){ S.box(x-0.35,0,z-0.35,x+0.35,5.4,z+0.35,'log');
   S.box(x-2,5.3,z-0.5,x+2,5.9,z+0.5,'leaves'); S.box(x-0.5,5.3,z-2,x+0.5,5.9,z+2,'leaves'); };
 /* reeds and rushes at the water's edge — too fine to be blocks */
@@ -288,7 +294,8 @@ W.infant=function(ctx,x,z,o){ o=o||{};
   const head=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.17,0.17),m(0x704a27)); head.position.set(0.38,0.02,0); g.add(head);
   const hood=new THREE.Mesh(new THREE.BoxGeometry(0.21,0.2,0.19),m(0xefe6d2)); hood.position.set(0.39,0.04,0.012); g.add(hood);
   g.position.set(x,o.y||0.62,z); g.rotation.y=o.face||0; ctx.scene.add(g);
-  g.userData.holy=true; g.userData.head=head; g.userData.faceDir=new THREE.Vector3(0,0,-1);
+  /* the Child's face is guarded; another newborn (Yahuchanon, Luke 1:57) is `holy:false` */
+  g.userData.holy=o.holy!==false; g.userData.head=head; g.userData.faceDir=new THREE.Vector3(0,0,-1);
   return g; };
 /* THE BEASTS are the voyage's beasts, at their true size */
 function beast(ctx,kind,x,z){

@@ -11,7 +11,10 @@
      'herodes'  in the days of Herodes, who rebuilt the house and raised the great courts
                 about it (Yahuchanon 2:20 — "forty-six years this Hĕḵal was being built"):
                 a vast platform on walls of great stones, its edges colonnaded, the house
-                taller and white, and the fortress at its corner.
+                taller and white, and the fortress at its corner;
+     'return'   as the exiles found her on coming back from Baḇal (Ezra 3, c. 536 BCE): her wall
+                broken down and burnt, few houses standing, the altar built again on its
+                place (3:2-3), and of the house only the foundation being laid (3:10).
    The houses of the city, the wall and its gate, the house of the taught ones (Yashayahu
    8:16), the highway of the Launderer's Field and the upper pool with its channel
    (Yashayahu 7:3) stand in both.
@@ -23,7 +26,7 @@ window.YAHRU_PLAN=function(api,period){
   const LIME=0xd8cfb8, STONE=0x9c9486, STONE2=0x7a7266, PATH=0xb49a74, TIMBER=0x6e5238, GOLD='hay', WHITE=0xece6d6;
   const hash=(x,z)=>{ const s=Math.sin(x*127.1+z*311.7)*43758.5453; return s-Math.floor(s); };
   const cx=0, cz=-20, hw=46, hd=58;
-  const herod=period==='herodes';
+  const herod=period==='herodes', ruin=period==='return';
 
   /* ---- the ground made level within the walls, and about the pool without them ---- */
   /* she stands on Mount Moriyah (world/landmarks.js): where her level ground stands out over
@@ -36,6 +39,8 @@ window.YAHRU_PLAN=function(api,period){
     for(let k=0;k<n;k++){ const a=k/n, b=(k+1)/n, ax=x0+dx*a, az=z0+dz*a, bx=x0+dx*b, bz=z0+dz*b;
       if(gap&&Math.hypot((ax+bx)/2-gap[0],(az+bz)/2-gap[1])<gap[2]) continue;
       const mx=(ax+bx)/2, mz=(az+bz)/2, rx=Math.abs(bx-ax)/2+t/2, rz=Math.abs(bz-az)/2+t/2;
+      if(ruin){ const r=hash(mx,mz); if(r<0.3) continue;                                 /* broken down (Neḥemyah 1:3) */
+        api.box(mx-rx,0,mz-rz,mx+rx,1+r*4.5,mz+rz,STONE2); continue; }
       api.box(mx-rx,0,mz-rz,mx+rx,h,mz+rz,LIME);
       if(k%2===0) api.box(mx-rx*0.6,h,mz-rz*0.6,mx+rx*0.6,h+1,mz+rz*0.6,LIME);
       if(k%9===0) api.box(mx-2.4,0,mz-2.4,mx+2.4,h+2.6,mz+2.4,LIME); } };   /* towers */
@@ -47,7 +52,39 @@ window.YAHRU_PLAN=function(api,period){
 
   /* ---- THE HOUSE OF ALUAHIM, on the height to the north ---- */
   const hx=cx+6, hz=cz-30;
-  if(!herod){
+  if(ruin){
+    /* the courts, overgrown and broken; the altar built again on its place (Ezra 3:2-3); the
+       foundation of the house being laid, course by course, the cut stones beside it */
+    api.box(hx-16,0,hz-20,hx+16,1.2,hz+20,STONE2);
+    api.box(hx-2,1.2,hz+10.5,hx+2,2.6,hz+13,0xa99c84);                            /* the altar */
+    const fo=(x0,z0,x1,z1)=>api.box(x0,1.2,z0,x1,2.1,z1,LIME);
+    fo(hx-5,hz-11,hx+5,hz-10.2); fo(hx-5,hz+5.2,hx+5,hz+6); fo(hx-5,hz-11,hx-4.2,hz+6); fo(hx+4.2,hz-11,hx+5,hz+6);
+    fo(hx-5,hz+2.6,hx+5,hz+3.2);
+    for(let k=0;k<9;k++){ const x=hx-12+hash(k,3)*24, z=hz-16+hash(k,5)*8; api.box(x-0.7,1.2,z-0.5,x+0.7,1.9,z+0.5,LIME); }
+    api.mark('foundation',hx,hz-2); api.mark('altarFront',hx,hz+16); api.mark('pinnacle',hx,hz+4.4); api.mark('pinnacleY',2,0);
+  }
+  /* THE SET APART PLACE within the house (Shemoth 26:33-35; Luke 1:9): through the doorway of
+     the porch, a hall of the house's own stone, and in it the golden altar of incense before
+     the veil, the lampstand on the one side and the table of the bread on the other; the veil
+     of blue, purple and scarlet across its far end, and behind it the Most Set Apart, unseen.
+     o: the passage through the porch (half-width px, up to ph, from pz0 to pz1) and the hall
+     (half-width hw, up to hh, from z0 to z1), all on the floor at y */
+  function setApartPlace(hx,hz,y,o){
+    api.box(hx-o.px,y,o.pz0,hx+o.px,o.ph,o.pz1,'air');
+    api.box(hx-o.hw,y,o.z0,hx+o.hw,o.hh,o.z1,'air');
+    api.box(hx-o.hw,y,o.z0,hx+o.hw,y+0.05,o.z1,0x8a7a5a);                        /* the floor, of cypress */
+    api.box(hx-o.hw,y,o.z0,hx+o.hw,o.hh,o.z0+0.4,0x4a2a6a);                       /* the veil */
+    const ia=o.z0+2.2;
+    api.box(hx-0.5,y,ia-0.5,hx+0.5,y+1.0,ia+0.5,GOLD);                            /* the altar of incense */
+    const lx=hx+o.hw-1.4, lz=(o.z0+o.z1)/2;                                       /* the lampstand */
+    api.box(lx-0.12,y,lz-0.12,lx+0.12,y+1.6,lz+0.12,GOLD); api.box(lx-0.12,y+1.5,lz-0.8,lx+0.12,y+1.7,lz+0.8,GOLD);
+    const tx2=hx-o.hw+1.4;                                                        /* the table of the bread */
+    api.box(tx2-0.45,y,lz-0.7,tx2+0.45,y+0.9,lz+0.7,GOLD);
+    api.mark('holyPlace',hx,(o.z0+o.z1)/2+1); api.mark('incense',hx,ia+1.2); api.mark('incenseAltar',hx,ia);
+    api.mark('lampstand',lx,lz); api.mark('porchFront',hx,o.pz1+1.6);
+  }
+  if(ruin){}
+  else if(!herod){
     api.box(hx-16,0,hz-20,hx+16,1.2,hz+20,STONE);                       /* the outer court */
     api.box(hx-10,1.2,hz-14,hx+10,2.2,hz+14,LIME);                      /* the inner court */
     for(let s=0;s<3;s++) api.box(hx-3,0.4*s,hz+20+(2-s)*0.8,hx+3,0.4*(s+1),hz+21+(2-s)*0.8,STONE);
@@ -58,6 +95,7 @@ window.YAHRU_PLAN=function(api,period){
     api.box(hx+2.8,2.2,hz+7.2,hx+4.2,10,hz+8.6,GOLD);
     api.box(hx-1.2,2.2,hz+6,hx+1.2,7,hz+6.4,'air');                       /* the doorway */
     api.box(hx-2,2.2,hz+10.5,hx+2,3.6,hz+13,0xa99c84);                    /* the altar */
+    setApartPlace(hx,hz,2.2,{px:1.2,ph:7,pz0:hz+2.6,pz1:hz+6.4,hw:3.8,hh:9,z0:hz-6,z1:hz+2.6});
     api.mark('pinnacle',hx,hz+4.4); api.mark('pinnacleY',14,0);
   } else {
     /* the great courts of Herodes: a platform on walls of great stones, colonnades about
@@ -73,13 +111,15 @@ window.YAHRU_PLAN=function(api,period){
     colonnade(P.x0+1,P.z1-1.5,P.x1-1,P.z1-1.5);                           /* the royal porch, south */
     colonnade(P.x1-1.5,P.z0+1,P.x1-1.5,P.z1-1);                            /* Shelomoh's porch, east */
     colonnade(P.x0+1,P.z0+1.5,P.x1-1,P.z0+1.5);
-    api.box(hx-14,ph,hz-16,hx+14,ph+1.2,hz+14,LIME);                       /* the inner courts */
+    api.box(hx-14,0,hz-16,hx+14,ph+1.2,hz+14,LIME);                        /* the inner courts, a terrace built up from the ground */
+    for(let s=0;s<5;s++) api.box(hx-3,0,hz+14+s,hx+3,ph+1.2-(s+1)*0.88,hz+15+s,STONE);   /* the steps up to the court of the women */
     api.box(hx-11,ph+1.2,hz+8,hx+11,ph+1.4,hz+14,PATH);                    /* the court of the women */
     api.box(hx-6,ph+1.2,hz-13,hx+6,ph+17,hz+1,WHITE);                      /* the house, raised high */
     api.box(hx-9,ph+1.2,hz+1,hx+9,ph+19,hz+4.5,WHITE);                     /* the porch, broad and taller */
     api.box(hx-9.4,ph+19,hz+0.6,hx+9.4,ph+19.6,hz+4.9,GOLD);               /* gold along its crown */
     api.box(hx-1.6,ph+1.2,hz+4.5,hx+1.6,ph+10,hz+4.9,'air');              /* its great doorway */
     api.box(hx-3,ph+1.2,hz+6.5,hx+3,ph+3.4,hz+10,0xa99c84);                /* the altar */
+    setApartPlace(hx,hz,ph+1.2,{px:1.6,ph:ph+10,pz0:hz+0.6,pz1:hz+4.9,hw:4.6,hh:ph+9.5,z0:hz-9,z1:hz+1});
     /* the fortress at the corner, its four towers (later called Antonia) */
     const A={x0:P.x0-2,x1:P.x0+14,z0:P.z0-2,z1:P.z0+12};
     api.box(A.x0,0,A.z0,A.x1,ph+9,A.z1,LIME);
@@ -94,6 +134,7 @@ window.YAHRU_PLAN=function(api,period){
     if(Math.abs(x-(cx-14))<5&&r===3) continue;                             /* the gate street */
     if(Math.abs(x-tx)<12&&Math.abs(z-tz)<11) continue;
     if(x>4&&x<26&&r===3) continue;                                         /* the square before the south wall */
+    if(ruin&&hash(c*3,r*7)<0.62) continue;                                    /* few houses built again yet */
     api.house(x,z,6+hash(r*3,c)*2,6+hash(c*5,r)*2,{door:r%2?'n':'s',seed:r*7+c+3});
   }
   /* the street up to the house of Aluahim */

@@ -5,7 +5,7 @@
    hand reaching mid-thigh, a man about 1.70 m, a woman 1.58) and dressed as the finds and the
    writings of the time show them:
 
-   · a MAN OF YASHARAL: a tunic of wool to the calf (kethoneth), girded at the waist; a mantle
+   · a MAN OF YASHARAL: a tunic of wool to the ankle (kethoneth), girded at the waist; a mantle
      (the tallith, the himation) over the shoulders and back, with a tassel at each of its four
      corners and in each a cord of blue ("make tassels on the corners of their garments … and
      put a cord of blue in the tassel", Bemiḏbar 15:38); sandals of leather; a cloth over the
@@ -112,7 +112,7 @@ W.person=function(ctx,o){
     box(w,h,d,m,0,-h/2,0,pv); cloths.push({pv,axis,sign,a:0,w:0,n:axis==='x'?[0,0,sign]:[sign,0,0],light:!!light}); return pv; };
 
   /* LEGS: thigh, knee, shin, the foot in its sandal */
-  const hemY=female||dress==='kohen'||dress==='levite'||dress==='wrapped'||dress==='rabshaqeh'?0.07:dress==='assyrian'?0.48:roman||dress==='herodian'||dress==='camelhair'||dress==='shepherd'||child?0.50:0.30;
+  const hemY=female||dress==='kohen'||dress==='levite'||dress==='wrapped'||dress==='rabshaqeh'?0.07:dress==='assyrian'?0.48:roman||dress==='herodian'||dress==='camelhair'||dress==='shepherd'||child?0.50:0.10;
   const legM=dress==='magi'?cloth(o.under||0x6a3a2a,'folds'):skin;
   const footM=roman?cloth(0x5a3a22,'leather'):flat(0x5a4028);
   const mkLeg=(x)=>{ const L=new THREE.Group(); L.position.set(x,0.90,0); body.add(L);
@@ -124,12 +124,31 @@ W.person=function(ctx,o){
     box(0.115,0.02,0.26,flat(0x3a2818),0,-0.47,0.045,K2);                               /* the sole */
     if(!roman&&dress!=='magi') box(0.112,0.015,0.03,flat(0x4a3018),0,-0.40,0.07,K2);     /* the strap */
     if(roman) for(const yy of [-0.36,-0.32]) box(0.118,0.012,0.13,flat(0x3a2414),0,yy,0.0,K2);
+    /* THE CLOTH ON THE LEG: under the hanging skirt the robe lies on the thigh and the shin
+       down to its hem, and goes with the leg — forward in the stride, over the lap and down
+       the shins when he sits — so a robe to the ankle never shows a bare knee */
+    const tl=Math.min(0.42,0.90-hemY); if(tl>0.02) box(0.158,tl,0.168,tunicM,0,-tl/2+0.005,0,L);
+    const sl=Math.min(0.40,0.48-hemY); if(sl>0.02) box(0.138,sl,0.148,tunicM,0,-sl/2,0.004,K2);
     return L; };
   const legL=mkLeg(0.085), legR=mkLeg(-0.085);
+  /* THE ROBE OF ONE SEATED: the hanging skirt cannot sit, so when he sits it is put by and the
+     robe is drawn as it falls on a seated man — one breadth of cloth across both thighs from
+     the hips to the knees, falling from the knees in front of the shins to its hem, and full
+     over the hips behind. It goes with the legs, on the ground or on a bench. */
+  const drapes=[];
+  { const lap=box(0.40,0.46,0.22,tunicM,-0.085,-0.22,0.005,legL); drapes.push(lap);
+    const fall=Math.min(0.46,0.50-hemY); if(fall>0.04){ const f=box(0.38,fall,0.20,tunicM,-0.085,-fall/2+0.02,0.01,legL.userData.knee); drapes.push(f); }
+    drapes.push(box(0.41,0.26,0.25,tunicM,0,0.86,-0.01,body));
+    for(const d of drapes) d.visible=false; }
   /* THE TUNIC: the body from hip to shoulder, and its skirt hanging in four panels to the hem */
   box(0.38,0.48,0.22,tunicM,0,1.18,0,body);
   const skirtLen=0.98-hemY, sw=female?0.44:0.41;
-  hinge(body,sw,skirtLen,0.035,tunicM,0,0.98,0.10,'x',1); hinge(body,sw,skirtLen,0.035,tunicM,0,0.98,-0.10,'x',-1);
+  /* the front of the skirt in two lengths, folding at the knee: hanging straight when he
+     stands, over the lap and falling from the knees when he sits */
+  { const up=Math.min(skirtLen,0.44), front=hinge(body,sw,up,0.035,tunicM,0,0.98,0.10,'x',1);
+    if(skirtLen>up+0.01){ const lo=new THREE.Group(); lo.position.set(0,-up,0); front.add(lo);
+      box(sw,skirtLen-up,0.035,tunicM,0,-(skirtLen-up)/2,0,lo); cloths[cloths.length-1].low=lo; } }
+  hinge(body,sw,skirtLen,0.035,tunicM,0,0.98,-0.10,'x',-1);
   hinge(body,0.035,skirtLen,0.19,tunicM,0.195,0.98,0,'z',1); hinge(body,0.035,skirtLen,0.19,tunicM,-0.195,0.98,0,'z',-1);
   /* the girdle */
   const beltM=dress==='kohen'?cloth(0,'sash'):dress==='camelhair'||roman||dress==='herodian'||dress==='shepherd'?cloth(0x4a3020,'leather'):cloth(o.sash||0x5a4632,'folds');
@@ -260,7 +279,7 @@ W.person=function(ctx,o){
     F.eL.lid.scale.y=F.eR.lid.scale.y=Math.max(0.01,open); F.eL.lid.position.y=F.eR.lid.position.y=0.013-open*0.009; };
   setFace(0,false,'calm');
 
-  g.userData={legL,legR,armL,armR,cloth:cloths,head,headY:(1.61*k),setFace,aura:g.userData.aura,
+  g.userData={legL,legR,armL,armR,cloth:cloths,drapes,head,headY:(1.61*k),setFace,aura:g.userData.aura,
     s:k,holy:dress==='yahusha',dress,phase:Math.random()*6,blink:2+Math.random()*4,
     tunicMeshes:(()=>{ const out=[]; g.traverse(q=>{ if(q.isMesh&&q.material===tunicM) out.push(q); }); return out; })()};
   ctx.scene.add(g); return g;

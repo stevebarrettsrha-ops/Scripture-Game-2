@@ -139,6 +139,10 @@
   "kind": "oldman",
   "voice": "bm_fable:.6+am_adam:.4"
  },
+ "alisheba": {
+  "kind": "woman",
+  "voice": "af_alloy:.5+af_sarah:.5"
+ },
  "alqanah": {
   "kind": "man",
   "voice": "am_puck"
@@ -362,6 +366,10 @@
  "boaz": {
   "kind": "man",
   "voice": "am_echo"
+ },
+ "boy": {
+  "kind": "boy",
+  "voice": "af_sky:.6+am_puck:.4"
  },
  "bride of yasharal": {
   "kind": "woman",
@@ -1361,6 +1369,10 @@
   "kind": "man",
   "voice": "am_eric"
  },
+ "nakdimon": {
+  "kind": "oldman",
+  "voice": "am_michael:.6+bm_daniel:.4"
+ },
  "naomi": {
   "kind": "oldwoman",
   "voice": "af_aoede"
@@ -1404,6 +1416,14 @@
  "neighbour": {
   "kind": "man",
   "voice": "am_puck"
+ },
+ "neighbours": {
+  "kind": "crowd",
+  "voice": "bm_lewis:.5+am_liam:.5"
+ },
+ "nethanel": {
+  "kind": "man",
+  "voice": "am_fenrir:.5+bm_daniel:.5"
  },
  "nicanor": {
   "kind": "man",
@@ -1629,6 +1649,10 @@
   "kind": "woman",
   "voice": "af_jessica"
  },
+ "righteous": {
+  "kind": "oldman",
+  "voice": "am_eric:.5+bm_daniel:.5"
+ },
  "ritspah": {
   "kind": "woman",
   "voice": "af_nova"
@@ -1808,6 +1832,10 @@
  "shipmaster": {
   "kind": "man",
   "voice": "am_fenrir:.6+am_echo:.4"
+ },
+ "shomeronites": {
+  "kind": "crowd",
+  "voice": "am_liam:.5+am_echo:.5"
  },
  "shomron_woman": {
   "kind": "man",
@@ -2181,6 +2209,10 @@
   "kind": "woman",
   "voice": "bf_alice"
  },
+ "woman of shomeron": {
+  "kind": "woman",
+  "voice": "af_nova:.5+bf_alice:.5"
+ },
  "woman of yasharal": {
   "kind": "woman",
   "voice": "af_heart:.5+bf_emma:.5"
@@ -2461,6 +2493,10 @@
  "youth of beyth-el": {
   "kind": "boy",
   "voice": "af_sky:.6+am_puck:.4"
+ },
+ "zakaryahu": {
+  "kind": "oldman",
+  "voice": "bm_fable:.6+am_adam:.4"
  },
  "zebah": {
   "kind": "man",
