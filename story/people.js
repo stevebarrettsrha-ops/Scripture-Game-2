@@ -150,10 +150,10 @@ W.person=function(ctx,o){
     if(hemY<0.3){                                                                          /* a robe to the ankle (a working tunic to the knee falls no further) */
       /* on the ground, knees drawn up: the fold between the knees, and the sides falling to the ground */
       dr(box(0.14,0.34,0.03,tunicM,0,0.85,0.37,body),'g');
-      for(const sx of [1,-1]){ dr(box(0.03,0.26,0.40,tunicM,sx*0.19,0.76,0.18,body),'g'); dr(box(0.03,0.11,0.16,tunicM,sx*0.19,0.945,0.30,body),'g'); }
+      for(const sx of [1,-1]){ dr(box(0.03,0.26,0.40,tunicM,sx*0.20,0.76,0.18,body),'g').rotation.z=sx*0.14; dr(box(0.03,0.11,0.16,tunicM,sx*0.19,0.945,0.30,body),'g'); }   /* the sides flare a little as they fall */
       /* on a bench, thighs level: the fold between the knees falls toward the feet; the sides hang a hand's breadth */
       dr(box(0.14,0.36,0.03,tunicM,0,0.66,0.40,body),'b');
-      for(const sx of [1,-1]) dr(box(0.03,0.16,0.42,tunicM,sx*0.19,0.78,0.20,body),'b');
+      for(const sx of [1,-1]) dr(box(0.03,0.16,0.42,tunicM,sx*0.20,0.78,0.20,body),'b').rotation.z=sx*0.14;
     }
     dr(box(0.41,0.26,0.25,tunicM,0,0.86,-0.01,body));                                    /* over the hips behind */
     for(const d of drapes) d.visible=false; }
