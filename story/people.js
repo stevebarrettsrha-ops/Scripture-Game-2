@@ -95,7 +95,7 @@ W.person=function(ctx,o){
   const ashshur=dress==='assyrian'||dress==='rabshaqeh';
   const g=new THREE.Group(), body=new THREE.Group(); g.add(body);
   /* proportions: a man 1.70, a woman 1.58, a child about 1.15 with a larger head for his size */
-  const H=child?1.15:female?1.58:1.70, k=H/1.70, hk=child?1.22:1;
+  const H=o.height||(child?1.15:female?1.58:1.70), k=H/1.70, hk=child?1.22:1;   /* `height`: a man small of stature (Luke 19:3) */
   body.scale.setScalar(k);
   const skin=flat(o.skin), skinD=flat(Math.max(0,(o.skin&0xfefefe)>>1)|0);
   const hairHex=o.hair||(roman?0x2a1e16:o.fallen?0x120a0a:0x1e1610);

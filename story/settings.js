@@ -450,4 +450,139 @@ S.galil=function(ctx,st){ galil(ctx,st,{village:true}); };
 S.galilEast=function(ctx,st){ galil(ctx,st,{village:false}); };
 /* the boat in the middle of the sea by night, the wind against it (Mattithyahu 14:24) */
 S.galilSea=function(ctx,st){ galil(ctx,st,{village:false,wind:[3.2,-1.4]}); ctx.rough=3.5; ctx.bounds=null; };
+
+/* ================= THE ROAD TO YAHRUSHALAYIM (Act V) ================= */
+
+/* CAESAREA PHILIPPI (Mattithyahu 16:13), where the Yardĕn rises: a great face of rock at the
+   foot of Ḥermon, a cave in it out of which the springs come, and the stream running away
+   south between oaks; before the cave the white house Herodes built to Caesar, and niches cut
+   in the rock for the idols of the nations; down the stream, the city Philip built and named. */
+S.caesarea=function(ctx,st){
+  ctx.wind=[0.8,0.4];
+  W.ground(ctx,{color:C.grass,flat:30,peak:[{x:0,z:-74,h:26,r:46},{x:-52,z:-62,h:18,r:40},{x:48,z:-64,h:16,r:36}]});
+  /* the face of the rock, and the cave at its foot */
+  st.box(-30,0,-32,24,13,-22,C.limestone);
+  st.box(-30,0,-36,24,9,-32,C.rock);
+  st.box(-11,0,-27.5,-2,5.4,-22,'air');                                         /* the cave */
+  for(const x of [5,9,13,17]) st.box(x-0.7,4.2,-22.6,x+0.7,6.4,-22,'air');      /* the niches for the idols */
+  /* the house of Caesar before the cave: a podium, a cella, a porch of columns */
+  st.box(2,0,-21.6,12,1,-12,C.whitewash);
+  st.box(3,1,-21.4,11,6,-15.6,C.whitewash);
+  for(const px of [2.6,5,7,9,11.4]) st.box(px-0.35,1,-13,px+0.35,6,-12.3,C.whitewash);
+  st.box(1.6,6,-21.8,12.4,6.8,-11.8,C.limestone);
+  /* the springs at the cave's mouth, and the stream they become */
+  const sx=z=>-7+Math.sin(z*0.05)*4;
+  st.box(-14,0,-21.8,-0.4,0.5,-21.2,C.stone);
+  ctx.api.water(-14,-21.2,-0.4,-14,{depth:1,bed:'stone'});
+  ctx.api.water(-16,-14,4,110,{depth:1,bed:'dirt',test:(x,z)=>Math.abs(x-sx(z))<2.4});
+  for(let z=-12;z<100;z+=4.5) for(const sd of [-1,1]) if(W.hash(z,sd)<0.6) W.reeds(st,sx(z)+sd*3.2,z,0,5);
+  /* oaks and planes along the water */
+  for(let k=0;k<30;k++){ const z=-8+W.hash(k,3)*100, sd=W.hash(k,4)<0.5?-1:1, x=sx(z)+sd*(5+W.hash(k,5)*16);
+    if(x>-2&&x<22&&z>-12&&z<26) continue;
+    W.olive(st,x,z,1.2+W.hash(k,6)*0.4); }
+  /* the city of Philip, down the stream: houses of the white stone, and the path up to the springs */
+  [[30,24],[38,20],[36,32],[44,28],[28,36],[46,40]].forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:'w',color:k%2?C.limestone:C.whitewash,h:3}));
+  for(let k=0;k<22;k++){ const t=k/21, x=26-t*18, z=22-t*28; st.box(x-0.9,0,z-0.9,x+0.9,0.08,z+0.9,C.path,{collide:false,jitter:0.12}); }
+  W.wild(ctx,'goat',-30,-40,3,6,0.5); W.wild(ctx,'lizard',14,-18,2,4,0.5);
+  mk(ctx,'cave',-6.5,-20); mk(ctx,'spring',-6,-12.6); mk(ctx,'temple',7,-10.4); mk(ctx,'rock',16,-20.6);
+  mk(ctx,'here',8,-2); mk(ctx,'path',24,18); mk(ctx,'city',34,28); mk(ctx,'stream',-3,8); mk(ctx,'foot',8,14);
+  mk(ctx,'hermon',0,-74);
+  ctx.bounds={x0:-120,x1:120,z0:-120,z1:120};
+};
+
+/* AYIN GANNIM, "the spring of gardens", where the plain of Yizre‛ĕl meets the hills of Shomeron:
+   the last village of Shomeron on the road down from Galil (Luke 9:52; 17:11-12). Houses about
+   a little square and its spring, gardens below it, the road going by to the south, and a field
+   being ploughed beside the road (9:62). */
+S.ginae=function(ctx,st){
+  ctx.wind=[1,0.4];
+  W.ground(ctx,{color:C.grassDry,flat:32,peak:[{x:-54,z:-40,h:14,r:40},{x:-44,z:52,h:10,r:34}]});
+  const rx=z=>18+Math.sin(z*0.04)*4;
+  for(let k=-50;k<50;k++){ const z=k*1.6, x=rx(z); st.box(x-1.1,0,z-0.9,x+1.1,0.08,z+0.9,C.path,{collide:false,jitter:0.12}); }
+  const hs=[[-6,-14],[4,-15],[-15,-4],[-15,8],[-5,15],[6,15],[-25,-12],[-25,4]];
+  hs.forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:z<0?'s':(x<-10?'e':'n'),color:k%2?C.limestone:C.mudbrick,h:2.9}));
+  st.box(-1.2,0,-1.2,1.2,0.6,1.2,C.stone); W.jar(st,1.7,0.6); W.jar(st,-1.8,-0.4);   /* the spring */
+  /* under the vine before a house, a table: tax collectors and sinners eat at it (Luke 15:1-2) */
+  for(const [a,b] of [[-6.4,5],[-0.6,5],[-6.4,9],[-0.6,9]]) st.box(a-0.12,0,b-0.12,a+0.12,2.7,b+0.12,C.timber,{collide:false});
+  st.box(-6.8,2.7,4.6,-0.2,2.85,9.4,0x6d8a3e,{collide:false});
+  st.box(-5.8,0,6.5,-1.2,0.42,7.5,C.timber);                                          /* low, as they reclined to eat */
+  /* the gardens below the spring */
+  for(let r=0;r<5;r++) for(let k=0;k<12;k++){ const x=-44+k*2.2, z=24+r*2.4; st.detail(x-0.3,0,z-0.3,x+0.3,0.5,z+0.3,[0x6d8a3e,0x7f8f4e,0x8a9a50][k%3]); }
+  /* the field by the road, half ploughed */
+  for(let r=0;r<7;r++){ const x=27+r*1.3; st.box(x-0.35,0,18,x+0.35,0.1,38,C.earth,{collide:false}); }
+  for(let k=0;k<26;k++){ const a=W.hash(k,1)*6.28, r=34+W.hash(k,2)*40, x=Math.cos(a)*r, z=Math.sin(a)*r;
+    if(Math.abs(x-rx(z))<6||(x>24&&x<40&&z>14&&z<42)) continue; W.olive(st,x,z,0.9+W.hash(k,3)*0.3); }
+  W.wild(ctx,'chicken',-4,10,4,3,0.4); W.wild(ctx,'goat',-30,20,3,5,0.4); W.wild(ctx,'dog',8,4,1,4,0.6);
+  mk(ctx,'spring',0,0); mk(ctx,'square',-2,2.4); mk(ctx,'table',-3.5,7); mk(ctx,'gate',12,1);
+  mk(ctx,'roadN',rx(-64),-64); mk(ctx,'roadS',rx(64),64); mk(ctx,'bend',rx(-24),-24); mk(ctx,'by',rx(14),14);
+  mk(ctx,'field',31,28); mk(ctx,'plough',30.4,24); mk(ctx,'meetLepers',rx(-50),-50); mk(ctx,'lepers',rx(-36)+4,-36);
+  ctx.bounds={x0:-120,x1:120,z0:-120,z1:120};
+};
+
+/* YAHRIḤO, the city of palm trees (Deḇarim 34:3), in the deep of the rift: the road from the
+   Yardĕn coming in at the east, out at the west and up through the wilderness to Yahrushalayim;
+   houses of mudbrick within a low wall, the sycamore by the street (Luke 19:4), the house of
+   Zakkai, the palms and gardens of the spring, and the mountains of the wilderness standing over
+   the city on the west. */
+function sycamore(st,x,z){
+  st.box(x-0.55,0,z-0.55,x+0.55,2.5,z+0.55,'log');
+  st.box(x,2.2,z-0.3,x+4.4,2.6,z+0.3,'log');                                      /* the low limb over the street */
+  st.box(x-3.8,2.9,z-3.4,x+1.6,4.4,z+3.6,'leaves'); st.box(x-2.6,4.3,z-2.4,x+1,5.3,z+2.6,'leaves');
+  st.box(x+0.6,4.7,z-1.8,x+3.6,5.5,z+2,'leaves');
+}
+S.yeriho=function(ctx,st){
+  ctx.wind=[0.5,0.2];
+  W.ground(ctx,{color:C.grass,flat:36,peak:[{x:-78,z:-10,h:24,r:46},{x:-70,z:44,h:16,r:36}]});
+  const rz=x=>Math.sin(x*0.03)*2;
+  for(let k=-62;k<62;k++){ const x=k*1.6, z=rz(x); st.box(x-0.9,0,z-1.3,x+0.9,0.08,z+1.3,C.path,{collide:false,jitter:0.12}); }
+  /* the low wall, open where the road goes through */
+  for(const gx of [-30,30]){ st.box(gx-0.8,0,-24,gx+0.8,3,-3.2,C.mudbrick); st.box(gx-0.8,0,3.2,gx+0.8,3,24,C.mudbrick);
+    st.box(gx-1.4,0,-4.4,gx+1.4,3.8,-3.2,C.mudDark); st.box(gx-1.4,0,3.2,gx+1.4,3.8,4.4,C.mudDark); }
+  st.box(-30,0,-24.8,30,3,-23.2,C.mudbrick); st.box(-30,0,23.2,30,3,24.8,C.mudbrick);
+  [[-20,-10],[-8,-11],[6,-10],[18,-11],[-20,11],[-9,12],[22,11]].forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:z<0?'s':'n',color:k%2?C.mudbrick:C.whitewash,h:2.9}));
+  W.house(st,9,12.5,8,7,{door:'n',color:C.whitewash,h:3.2});                     /* the house of Zakkai */
+  sycamore(st,-2,5);
+  /* the palms of the city, and the gardens of the spring */
+  for(let k=0;k<26;k++){ const x=-28+W.hash(k,7)*56, z=(W.hash(k,8)<0.5?-1:1)*(15+W.hash(k,9)*7); W.palm(st,x,z); }
+  for(let k=0;k<30;k++){ const a=W.hash(k,11)*6.28, r=34+W.hash(k,12)*30, x=Math.cos(a)*r, z=Math.sin(a)*r;
+    if(Math.abs(z-rz(x))<5) continue; if(x<-40) continue; W.palm(st,x,z); }
+  for(let k=0;k<6;k++){ const x=-40-k*1.4; st.box(x-0.3,0,-3.2,x+0.3,0.5,-2.6,C.stone); }   /* stones by the way out */
+  W.wild(ctx,'chicken',4,-6,3,3,0.4); W.wild(ctx,'donkey',26,8,1,2,0.3); W.wild(ctx,'dog',-14,4,1,4,0.6);
+  mk(ctx,'gateE',33,0); mk(ctx,'gateW',-33,0); mk(ctx,'street',0,0); mk(ctx,'sycamore',-2,5);
+  mk(ctx,'limb',1.2,5); mk(ctx,'zakkai',9,12.5); mk(ctx,'zakkaiDoor',9,7.8); mk(ctx,'zakkaiIn',9,11);
+  mk(ctx,'roadE',72,rz(72)); mk(ctx,'plainE',52,rz(52)); mk(ctx,'bartimai',-42,-3.4); mk(ctx,'roadW',-64,rz(-64)); mk(ctx,'roadW2',-52,rz(-52));
+  ctx.bounds={x0:-130,x1:130,z0:-120,z1:120};
+};
+
+/* THE MOUNT OF OLIVES, over against the city (Luke 19:29-41): Bĕyth Phaḡi on the shoulder of the
+   mount, the road over the top and down its western face through the olive groves, and at the
+   brow, across the Qidron, the whole city at once — her walls, and the House shining over them.
+   The set is laid along the true line from here to her, so "down" is always toward the city. */
+S.olives=function(ctx,st){
+  ctx.wind=[0.8,0.3];
+  const k=window.__KIT, A=ctx.anchor, yp=k.yahruPos&&k.yahruPos();
+  let ux=-1, uz=0, dist=300, cy=0;
+  if(yp&&A){ const dx=yp.x-A.x, dz=yp.z-A.z, d=Math.hypot(dx,dz)||1; ux=dx/d; uz=dz/d; dist=d/ctx.scene.scale.x;
+    const c=k.cell(yp.ix,yp.iz); if(c) cy=(c.h*k.B-A.y)/ctx.scene.scale.x; }
+  const vx=-uz, vz=ux, P=(a,b)=>[a*ux+b*vx,a*uz+b*vz];
+  const top=P(-56,0);
+  W.ground(ctx,{color:C.grassDry,flat:24,peak:[{x:top[0],z:top[1],h:12,r:44}]});
+  /* the road from Bĕyth Phaḡi over the mount and down toward the city */
+  const rb=a=>Math.sin(a*0.08)*5;
+  for(let a=-46;a<=30;a+=1.2){ const p=P(a,rb(a)); st.box(p[0]-1,0,p[1]-1,p[0]+1,0.08,p[1]+1,C.path,{collide:false,jitter:0.12}); }
+  /* Bĕyth Phaḡi, a few houses up on the shoulder; a door with a ring for tying a beast */
+  [[-36,-12],[-42,-4],[-36,10],[-44,12]].forEach(([a,b],n)=>{ const p=P(a,b); W.house(st,p[0],p[1],5.5,5,{door:'s',color:n%2?C.limestone:C.whitewash,h:2.9}); });
+  /* the olive groves either side of the way */
+  for(let n=0;n<48;n++){ const a=-44+W.hash(n,3)*72, b=(W.hash(n,4)<0.5?-1:1)*(6+W.hash(n,5)*30);
+    if(Math.abs(b-rb(a))<5) continue; const p=P(a,b); W.olive(st,p[0],p[1],0.9+W.hash(n,6)*0.35); }
+  /* the stones of the hillside (Luke 19:40) */
+  for(let n=0;n<14;n++){ const a=-20+W.hash(n,8)*48, b=rb(a)+(W.hash(n,9)<0.5?-1:1)*(2.4+W.hash(n,10)*2); const p=P(a,b); W.rock(st,p[0],p[1],0.4+W.hash(n,11)*0.3); }
+  const M=(id,a,b)=>{ const p=P(a,b===undefined?rb(a):b); mk(ctx,id,p[0],p[1]); };
+  M('phagi',-38,0); M('colt',-39,-7); M('wait',-24); M('top',-18); M('d0',-8); M('d1',0); M('d2',8); M('d3',16); M('brow',24); M('browSide',22,rb(22)+3.4);
+  M('crowdA',-12,rb(-12)-4); M('crowdB',-4,rb(-4)+4); M('pharisees',18,rb(18)-3.6);
+  { const c=Math.min(dist,420), p=P(c,0); ctx.markers.city=[p[0],p[1],cy+8]; }
+  ctx.dir=[ux,uz];
+  W.wild(ctx,'goat',P(-20,26)[0],P(-20,26)[1],3,5,0.4);
+  ctx.bounds={x0:-140,x1:140,z0:-140,z1:140};
+};
 })();

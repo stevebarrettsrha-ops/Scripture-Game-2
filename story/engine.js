@@ -133,7 +133,7 @@ function buildScene(sc){
   if(window.SEASON) SEASON.setSeason(sc.season||act.season||'Spring');
   root=new THREE.Group(); root.name='story-scene'; root.position.set(A.x,A.y,A.z); root.scale.setScalar(S); k.scene.add(root);
   scene=root;
-  ctx={scene:root,colliders:[],markers:{},actors:{},things:{},glows:{},water:[],flicker:[],flock:[],bounds:null,wind:[0.5,0.2],place:sc.place,period:sc.period||A.period};
+  ctx={scene:root,colliders:[],markers:{},actors:{},things:{},glows:{},water:[],flicker:[],flock:[],bounds:null,wind:[0.5,0.2],place:sc.place,period:sc.period||A.period,anchor:A};
   ctx.groundY=(x,z,ref)=>groundAt(x,z,ref);
   /* the traveller is stood there, unseen, so the world is built about the scene */
   standWalker(A.x,A.z,A.y);
@@ -291,7 +291,7 @@ function movePlayer(dt){
 }
 function turnTo(a,b,k){ let d=b-a; while(d>Math.PI) d-=Math.PI*2; while(d<-Math.PI) d+=Math.PI*2; return a+d*Math.min(1,k); }
 /* on the ground, or on something? (one held at a height — in a boat — or set on a bench) */
-function groundSit(u){ return u.fixedY===undefined&&!(u.def&&u.def.bench); }
+function groundSit(u){ return u.fixedY===undefined&&!u.ride&&!(u.def&&u.def.bench); }
 /* how far one sitting is lowered: on the ground the hips nearly to it, on a bench to its height */
 function sitDrop(u){ return u.sit?(groundSit(u)?0.63:0.44)*(u.s||1):0; }
 function animFigure(g,dt,moving){
@@ -370,10 +370,20 @@ function moveActors(dt){
       else if(!u.follow) u.target=null; }
     if(u.fixedY!==undefined) g.position.y=u.fixedY-sitDrop(u);
     else { u.gy=stepGround(g.position.x,g.position.z,u.gy===undefined?ctx.groundY(g.position.x,g.position.z):u.gy); g.position.y=u.gy-sitDrop(u)+(u.lie?0.16:0); }
+    /* riding (Luke 19:35): the beast goes where the rider goes, under him, at its own gait */
+    if(u.ride){ const t=ctx.things[u.ride]; if(t){ const gy=u.fixedY!==undefined?u.fixedY:u.gy;
+        g.position.y=gy-sitDrop(u)+RIDE_H; t.position.set(g.position.x,gy,g.position.z); t.rotation.y=g.rotation.y;
+        if(t.children[0]&&K().tickGait){ t.userData.ent=t.userData.ent||{m:t.children[0]}; K().tickGait(t.userData.ent,'donkey',moving?(u.speed||1)*S:0,dt); } } }
     animFigure(g,dt,moving); animFace(g,id,dt);
     if(u.label){ const near=!camTarget&&player&&Math.hypot(player.position.x-g.position.x,player.position.z-g.position.z)<3.6;
       u.label.visible=near||speaking===id; } }
   keepApart(dt);
+  /* a beast led by the halter (Luke 19:35): it walks a step behind the one leading it */
+  for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; if(!u.leadBy) continue; const g=ctx.actors[u.leadBy]; if(!g) continue;
+    const tx=g.position.x-Math.sin(g.rotation.y)*1.3, tz=g.position.z-Math.cos(g.rotation.y)*1.3, dx=tx-o.position.x, dz=tz-o.position.z, d=Math.hypot(dx,dz);
+    const step=Math.min(d,dt*3.2); if(d>0.05){ o.position.x+=dx/d*step; o.position.z+=dz/d*step; o.rotation.y=turnTo(o.rotation.y,Math.atan2(dx,dz),dt*6); }
+    o.position.y=ctx.groundY(o.position.x,o.position.z);
+    if(o.children[0]&&K().tickGait){ u.ent=u.ent||{m:o.children[0]}; K().tickGait(u.ent,'donkey',d>0.2?2*S:0,dt); } }
 }
 /* NO ONE STANDS INSIDE ANOTHER. Two who come closer than a body's breadth step apart, each
    half the way, a little each frame, so a crowd never stands through itself and nobody
@@ -381,6 +391,7 @@ function moveActors(dt){
    unseen are left where they are, and so is anyone already at rest on his mark when the one
    coming up to him is walking (the walker gives way). */
 const APART=0.46;
+const RIDE_H=0.62;                                  /* a rider's seat above the ground, on a young donkey */
 function keepApart(dt){
   const L=[]; for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; if(!g.visible||u.lie||u.fixedY!==undefined) continue; L.push(g); }
   const k=Math.min(1,dt*6);
@@ -534,7 +545,8 @@ function shotOf(B){
   if(B.shot==='body'){ /* close, at His chest: the picture runs from the knees to below the chin — hands, arms, robe */
     const k=g.userData.s||1, fx=p.x+f.x*1.6*k+sd.x*0.3, fz=p.z+f.z*1.6*k+sd.z*0.3;
     return {from:[fx,p.y+(1.25+sit)*k,fz], look:[p.x,p.y+(0.95+sit)*k,p.z]}; }
-  const t=B.toward&&ctx.actors[B.toward]?ctx.actors[B.toward].position:p.clone().addScaledVector(f,6);
+  const m=B.toward&&!ctx.actors[B.toward]&&ctx.markers[B.toward];        /* toward a person, or a place (the city, far off) */
+  const t=B.toward&&ctx.actors[B.toward]?ctx.actors[B.toward].position:m?new THREE.Vector3(m[0],(m[2]!==undefined?m[2]:1.5)-1.3,m[1]):p.clone().addScaledVector(f,6);
   const side=B.side||1;
   return {from:[p.x-f.x*3.6+sd.x*1.5*side,p.y+2.3+sit,p.z-f.z*3.6+sd.z*1.5*side], look:[t.x,t.y+1.3,t.z]};
 }
@@ -786,7 +798,9 @@ function enterBeat(){
     let from;
     if(S) from=S.from;
     else if(B.from&&B.from.rel){ const g=ctx.actors[B.from.rel]||ctx.things[B.from.rel], o=B.from.off; from=[g.position.x+o[0],g.position.y+o[1],g.position.z+o[2]]; }
-    else from=B.from.length===3?B.from:[pos(B.from)[0],B.fy||4,pos(B.from)[1]];
+    else if(Array.isArray(B.from)&&B.from.length===3&&typeof B.from[0]==='number') from=B.from;
+    /* a marker (or a marker and a step from it), at `fy` metres, or `fdy` above the ground there */
+    else { const m=pos(B.from); from=[m[0],B.fdy!==undefined?(ctx.groundY(m[0],m[1])||0)+B.fdy:(B.fy||4),m[1]]; }
     holdCamera(S?from:faceSafe(from,at),at,ST.fast?0.01:(B.dur||2.5));
     if(B.wait===false) return nextBeat();
     onFrame=()=>{ if(camT>=1) nextBeat(); }; return; }
@@ -801,7 +815,13 @@ function enterBeat(){
   /* "Make the people sit down" (Yahuchanon 6:10): on the grass, legs out before them */
   if(T==='sit'||T==='stand'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.sit=(T==='sit'); g.userData.lie=false; g.rotation.x=0; } } return nextBeat(); }
   /* lying on the ground: asleep in a camp, or fallen (Yashayahu 37:36) */
-  if(T==='lie'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.lie=true; g.userData.sit=false; g.rotation.order='YXZ'; g.rotation.x=-Math.PI/2; }   /* on the back, along the way he faced */ } return nextBeat(); }
+  if(T==='lie'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.lie=true; g.userData.sit=false; g.rotation.order='YXZ'; g.rotation.x=B.prone?Math.PI/2:-Math.PI/2; }   /* on the back, along the way he faced; or `prone`, on his face (Mattithyahu 17:6) */ } return nextBeat(); }
+  /* set on a beast, and carried by it: `on` a thing (a donkey), or `off` */
+  if(T==='lead'){ const o=ctx.things[B.id]; if(o) o.userData.leadBy=B.by||null; return nextBeat(); }
+  if(T==='ride'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(!g) continue; const u=g.userData;
+      if(B.off){ const t=ctx.things[u.ride]; u.ride=null; u.sit=false; if(t){ g.position.x=t.position.x+Math.cos(g.rotation.y)*0.7; g.position.z=t.position.z-Math.sin(g.rotation.y)*0.7; } }
+      else { const t=ctx.things[B.on]; if(t){ t.userData.leadBy=null; u.ride=B.on; u.sit=true; g.position.x=t.position.x; g.position.z=t.position.z; g.rotation.y=t.rotation.y; } } }
+    return nextBeat(); }
   if(T==='robe'){ const g=ctx.actors[B.who]; if(g) window.STORYWORLD.recolor(g,B.color); return nextBeat(); }
   if(T==='drift'){ const objs=[];
     /* one thing to a place (`to`), or several together by the same distance (`by`) — a boat
@@ -831,7 +851,7 @@ function enterBeat(){
 }
 function lookAtSpec(l){ if(typeof l==='string'){ if(ctx.actors[l]){ const g=ctx.actors[l]; return [g.position.x,g.position.y+1.5,g.position.z]; }
     if(ctx.glows[l]){ const s=ctx.glows[l].sprite.position; return [s.x,s.y,s.z]; }
-    const m=pos(l); return [m[0],1.5,m[1]]; } return l; }
+    const m=pos(l); return [m[0],m[2]!==undefined?m[2]:1.5,m[1]]; } return l; }   /* a marker may carry its own height: [x,z,y] */
 function endScene(){
   journal(act.scenes[sceneIx]);
   sceneIx++;
@@ -1020,7 +1040,8 @@ const BEDS={
   road:{wind:0.7},   fields:{wind:0.4,night:0.8},  beythlehem:{wind:0.3,crowd:0.2},
   yarden:{river:0.8,wind:0.35,crowd:0.25},          wilderness:{wind:1.0},  mountain:{wind:1.3},
   qanah:{crowd:0.8,wind:0.2},  galil:{shore:0.8,wind:0.35,crowd:0.2},  galilEast:{shore:0.6,wind:0.4,crowd:0.4},
-  galilSea:{shore:1.0,wind:1.4},  bethanyah:{wind:0.35,crowd:0.45},  shekem:{wind:0.55,crowd:0.12},  hillcountry:{wind:0.45,crowd:0.15}
+  galilSea:{shore:1.0,wind:1.4},  bethanyah:{wind:0.35,crowd:0.45},  shekem:{wind:0.55,crowd:0.12},  hillcountry:{wind:0.45,crowd:0.15},
+  caesarea:{wind:0.35,river:0.7,crowd:0.1},  ginae:{wind:0.5,crowd:0.15},  yeriho:{wind:0.2,crowd:0.6},  olives:{wind:0.5,crowd:0.5}
 };
 function noiseBuf(A,brown){ const n=A.createBuffer(1,A.sampleRate*3,A.sampleRate), d=n.getChannelData(0); let last=0;
   for(let k=0;k<d.length;k++){ const w=Math.random()*2-1; if(brown){ last=(last+0.02*w)/1.02; d[k]=last*3.4; } else d[k]=w*0.5; }
