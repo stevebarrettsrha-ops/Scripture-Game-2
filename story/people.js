@@ -132,13 +132,30 @@ W.person=function(ctx,o){
     return L; };
   const legL=mkLeg(0.085), legR=mkLeg(-0.085);
   /* THE ROBE OF ONE SEATED: the hanging skirt cannot sit, so when he sits it is put by and the
-     robe is drawn as it falls on a seated man — one breadth of cloth across both thighs from
-     the hips to the knees, falling from the knees in front of the shins to its hem, and full
-     over the hips behind. It goes with the legs, on the ground or on a bench. */
+     robe is drawn as it falls on a seated man. It is not one board over the lap: each thigh
+     has its own loose breadth, the cloth rounds over each knee, lies down each shin to a hem
+     that spreads at the ankle, sags in a fold between the knees, and falls at either side
+     from the thighs to the ground. The fold between the knees and the sides hang as cloth
+     hangs — straight down — so they are drawn for the way he sits: knees drawn up on the
+     ground (`pose` g), or thighs level on a bench (b). Full over the hips behind. */
   const drapes=[];
-  { const lap=box(0.40,0.46,0.22,tunicM,-0.085,-0.22,0.005,legL); drapes.push(lap);
-    const fall=Math.min(0.46,0.50-hemY); if(fall>0.04){ const f=box(0.38,fall,0.20,tunicM,-0.085,-fall/2+0.02,0.01,legL.userData.knee); drapes.push(f); }
-    drapes.push(box(0.41,0.26,0.25,tunicM,0,0.86,-0.01,body));
+  { const dr=(m,pose)=>{ if(pose) m.userData.pose=pose; drapes.push(m); return m; };
+    const shin=Math.min(0.46,0.50-hemY);
+    for(const L of [legL,legR]){
+      dr(box(0.20,0.44,0.20,tunicM,0,-0.21,0.012,L));                                    /* the thigh's breadth, loose */
+      const kr=new THREE.Group(); kr.rotation.x=-0.72; L.userData.knee.add(kr);              /* half the knee's bend: the cloth rounds over it */
+      dr(box(0.20,0.15,0.215,tunicM,0,0,0.012,kr));
+      if(shin>0.04){ dr(box(0.19,shin,0.18,tunicM,0,-shin/2+0.02,0.022,L.userData.knee));   /* down the shin */
+        dr(box(0.225,0.05,0.205,tunicM,0,-shin+0.045,0.02,L.userData.knee)); } }            /* the hem, spreading at the ankle */
+    if(hemY<0.3){                                                                          /* a robe to the ankle (a working tunic to the knee falls no further) */
+      /* on the ground, knees drawn up: the fold between the knees, and the sides falling to the ground */
+      dr(box(0.14,0.34,0.03,tunicM,0,0.85,0.37,body),'g');
+      for(const sx of [1,-1]){ dr(box(0.03,0.26,0.40,tunicM,sx*0.19,0.76,0.18,body),'g'); dr(box(0.03,0.11,0.16,tunicM,sx*0.19,0.945,0.30,body),'g'); }
+      /* on a bench, thighs level: the fold between the knees falls toward the feet; the sides hang a hand's breadth */
+      dr(box(0.14,0.36,0.03,tunicM,0,0.66,0.40,body),'b');
+      for(const sx of [1,-1]) dr(box(0.03,0.16,0.42,tunicM,sx*0.19,0.78,0.20,body),'b');
+    }
+    dr(box(0.41,0.26,0.25,tunicM,0,0.86,-0.01,body));                                    /* over the hips behind */
     for(const d of drapes) d.visible=false; }
   /* THE TUNIC: the body from hip to shoulder, and its skirt hanging in four panels to the hem */
   box(0.38,0.48,0.22,tunicM,0,1.18,0,body);

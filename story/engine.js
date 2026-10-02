@@ -205,7 +205,9 @@ function buildScene(sc){
   camYaw=(P.face||0)+Math.PI; camTarget=null;
   ctx.playerHidden=!!P.hidden; player.visible=!P.hidden;
 }
-function pos(at){ if(typeof at==='string'){ const m=ctx.markers[at]; if(!m) throw new Error('no marker '+at); return m; }
+function pos(at){ if(typeof at==='string'){ const m=ctx.markers[at]; if(m) return m;
+    const g=ctx.actors[at]||ctx.things[at]; if(g) return [g.position.x,g.position.z];   /* a person or a thing: where they are now */
+    throw new Error('no marker '+at); }
   /* a marker and a step from it: ['pinnacle',1.6,-0.7] */
   if(Array.isArray(at)&&typeof at[0]==='string'){ const m=pos(at[0]); return [m[0]+at[1],m[1]+at[2]]; }
   return at; }
@@ -320,7 +322,9 @@ function animFigure(g,dt,moving){
 const CLOTH={k:34,c:5.5,gain:2.8,drag:1,inertia:0.22,kick:2.6,lo:-0.04,hi:1.05};
 function clothStep(g,dt,moving,stride){
   const u=g.userData, C=u.cloth; if(!C||!dt) return;
-  if(u.drapes&&u.drapeOn!==!!u.sit){ u.drapeOn=!!u.sit; for(const d of u.drapes) d.visible=u.drapeOn; }
+  /* the seated robe, drawn for the way he sits: on the ground, or on a bench (people.js) */
+  const dk=u.sit?(groundSit(u)?'g':'b'):'';
+  if(u.drapes&&u.drapeOn!==dk){ u.drapeOn=dk; for(const d of u.drapes) d.visible=!!dk&&(!d.userData.pose||d.userData.pose===dk); }
   const p=g.position;
   if(!u.pp){ u.pp=p.clone(); u.vel=[0,0]; }
   let vx=(p.x-u.pp.x)/dt, vz=(p.z-u.pp.z)/dt; u.pp.copy(p);
