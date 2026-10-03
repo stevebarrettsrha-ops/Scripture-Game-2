@@ -191,6 +191,10 @@
   "kind": "oldwoman",
   "voice": "af_nova:.5+bf_alice:.5"
  },
+ "another who would follow": {
+  "kind": "man",
+  "voice": "am_puck:.5+am_eric:.5"
+ },
  "antiochus": {
   "kind": "man",
   "voice": "am_michael:.5+am_echo:.5"
@@ -298,6 +302,10 @@
  "baraq": {
   "kind": "man",
   "voice": "am_fenrir:.5+bm_fable:.5"
+ },
+ "bartimai": {
+  "kind": "oldman",
+  "voice": "am_fenrir:.6+bm_daniel:.4"
  },
  "baruk": {
   "kind": "man",
@@ -458,6 +466,14 @@
  "commanders": {
   "kind": "crowd",
   "voice": "am_liam:.5+am_echo:.5"
+ },
+ "crowd": {
+  "kind": "crowd",
+  "voice": "bm_fable:.5+am_liam:.5"
+ },
+ "crowd of the taught ones": {
+  "kind": "crowd",
+  "voice": "am_fenrir:.6+am_echo:.4"
  },
  "crowds": {
   "kind": "crowd",
@@ -696,6 +712,10 @@
  "falsenavi": {
   "kind": "man",
   "voice": "am_michael:.5+am_echo:.5"
+ },
+ "father": {
+  "kind": "man",
+  "voice": "am_fenrir:.5+bm_fable:.5"
  },
  "father, remembered": {
   "kind": "oldman",
@@ -1081,6 +1101,10 @@
   "kind": "woman",
   "voice": "af_alloy"
  },
+ "learned": {
+  "kind": "man",
+  "voice": "am_fenrir"
+ },
  "lemek": {
   "kind": "man",
   "voice": "am_fenrir:.5+bm_fable:.5"
@@ -1161,6 +1185,10 @@
   "kind": "man",
   "voice": "am_eric"
  },
+ "man called to follow": {
+  "kind": "man",
+  "voice": "am_echo:.5+bm_daniel:.5"
+ },
  "man clothed in linen": {
   "kind": "man",
   "voice": "am_echo"
@@ -1208,6 +1236,10 @@
  "manoah": {
   "kind": "man",
   "voice": "am_liam"
+ },
+ "many": {
+  "kind": "crowd",
+  "voice": "am_eric"
  },
  "mariner": {
   "kind": "man",
@@ -1517,6 +1549,10 @@
   "kind": "man",
   "voice": "am_liam"
  },
+ "owners": {
+  "kind": "man",
+  "voice": "am_liam:.5+am_puck:.5"
+ },
  "pashhur": {
   "kind": "man",
   "voice": "am_echo:.5+bm_daniel:.5"
@@ -1648,6 +1684,10 @@
  "ribqah": {
   "kind": "woman",
   "voice": "af_jessica"
+ },
+ "rich": {
+  "kind": "man",
+  "voice": "am_puck:.6+bm_lewis:.4"
  },
  "righteous": {
   "kind": "oldman",
@@ -1989,6 +2029,10 @@
   "kind": "oldman",
   "voice": "am_fenrir:.5+bm_fable:.5"
  },
+ "ten": {
+  "kind": "crowd",
+  "voice": "am_michael:.6+am_adam:.4"
+ },
  "terah": {
   "kind": "oldman",
   "voice": "am_fenrir:.6+am_echo:.4"
@@ -2016,6 +2060,10 @@
  "those who brought word": {
   "kind": "man",
   "voice": "bm_lewis:.5+am_liam:.5"
+ },
+ "those who received the tax": {
+  "kind": "man",
+  "voice": "am_eric:.5+bm_fable:.5"
  },
  "tiller": {
   "kind": "man",
@@ -2092,6 +2140,10 @@
  "two taught ones of yahuchanon": {
   "kind": "man",
   "voice": "am_echo:.5+bm_daniel:.5"
+ },
+ "two who were sent": {
+  "kind": "man",
+  "voice": "am_michael"
  },
  "unclean": {
   "kind": "dark",
@@ -2497,6 +2549,10 @@
  "zakaryahu": {
   "kind": "oldman",
   "voice": "bm_fable:.6+am_adam:.4"
+ },
+ "zakkai": {
+  "kind": "man",
+  "voice": "bm_fable"
  },
  "zebah": {
   "kind": "man",
