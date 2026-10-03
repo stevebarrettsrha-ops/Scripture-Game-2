@@ -503,7 +503,7 @@ S.ginae=function(ctx,st){
   hs.forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:z<0?'s':(x<-10?'e':'n'),color:k%2?C.limestone:C.mudbrick,h:2.9}));
   st.box(-1.2,0,-1.2,1.2,0.6,1.2,C.stone); W.jar(st,1.7,0.6); W.jar(st,-1.8,-0.4);   /* the spring */
   /* before a house, a table: tax collectors and sinners eat at it (Luke 15:1-2) */
-  st.box(-5.8,0,6.5,-1.2,0.42,7.5,C.timber);                                          /* low, as they reclined to eat */
+  st.box(-5.8,0,6.5,-1.2,0.42,7.5,C.timber,{detail:true});                             /* low, as they reclined to eat (drawn at its size, not a block) */
   /* the gardens below the spring */
   for(let r=0;r<5;r++) for(let k=0;k<12;k++){ const x=-44+k*2.2, z=24+r*2.4; st.detail(x-0.3,0,z-0.3,x+0.3,0.5,z+0.3,[0x6d8a3e,0x7f8f4e,0x8a9a50][k%3]); }
   /* the field by the road, half ploughed */

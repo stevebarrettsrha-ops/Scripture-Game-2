@@ -68,7 +68,7 @@ const SINNERS=[[-5.2,5.6,0],[-3.6,5.6,0],[-2,5.6,0],[-5.2,8.4,Math.PI],[-3.6,8.4
   .map(([x,z,f],k)=>({id:'s'+k, at:[x,z], face:f, sit:true, robe:ROBES[(k*5+3)%ROBES.length], cloth:CLOTHS[k%CLOTHS.length], beard:k%3?0x2c241f:null, kind:k===4?'woman':'man'}));
 const BANK=folk('b',16,[-22,-10,-14,10],Math.PI/2);                               /* beyond the Yardĕn (Yahuchanon 10:41) */
 const ROADCROWD=folk('r',12,[62,-4,74,4],-Math.PI/2);                            /* those who followed, afraid (Mark 10:32) */
-const STREET=folk('k',16,[-22,2.4,22,4.2],Math.PI).concat(folk('j',14,[-22,-4.2,22,-2.4],0));   /* Yahriḥo's street */
+const STREET=folk('k',16,[-22,2.4,22,3.6],Math.PI).map(a=>a.at[0]>-7&&a.at[0]<5?Object.assign(a,{at:[a.at[0]+13,a.at[1]]}):a).concat(folk('j',14,[-22,-4.2,22,-2.4],0));   /* Yahriḥo's street */
 const MULT=folk('u',18,[-6,-6,6,6],0);                                             /* the crowd of the taught ones (Luke 19:37) */
 
 STORY.act({
@@ -190,7 +190,6 @@ STORY.act({
       {t:'robe', who:'yahusha', color:0xd6c9a8},
       {t:'read', ref:'MATTITHYAHU 17:8'},
       {t:'time', to:'dawn'},
-      {t:'move', who:['yahusha','kepha','yaaqob','yahuchanon'], to:[[1,4.4],[-0.6,6.4],[1.4,6.8],[2.8,5.8]], speed:0.9, wait:false},
       {t:'face', who:'yahusha', to:'kepha'},
       {t:'cam', on:'yahusha', shot:'back', toward:'kepha', dur:3},
       {t:'say', who:'yahusha', ref:'MATTITHYAHU 17:9', turn:false},
@@ -278,8 +277,8 @@ STORY.act({
       T('yahuchanon',[-0.4,5.6],{face:Math.PI}), T('philip',[-2.6,11.4],{face:Math.PI}), T('toma',[-0.8,10.6],{face:-Math.PI/2}),
       {id:'tx1', name:'One who received the tax', at:[2.4,1.4], face:-Math.PI/2, robe:0x5a5040, cloth:0x8a7a60, beard:0x2c241f},
       {id:'tx2', at:[2.8,-0.2], face:-Math.PI/2, robe:0x6a5a44, cloth:0xb9ab8e, beard:0x6d6a66, kind:'oldman'},
-      {id:'little', name:'A little child', kind:'boy', small:true, at:[1.6,13.4], face:Math.PI, robe:0x9a7a5a, cloth:0xd8cfb8},
-      {id:'mother', name:'His mother', kind:'woman', at:[2.6,13.8], face:Math.PI, robe:0x6a4a5a, cloth:0x3c3a44}
+      {id:'little', name:'A little child', kind:'boy', small:true, at:[1.6,15.4], face:Math.PI, robe:0x9a7a5a, cloth:0xd8cfb8},
+      {id:'mother', name:'His mother', kind:'woman', at:[2.8,15.8], face:Math.PI, robe:0x6a4a5a, cloth:0x3c3a44}
     ],
     beats:[
       {t:'cam', from:[8,3.4,-6], look:[-2,1.2,2], dur:0.1},
@@ -529,9 +528,9 @@ STORY.act({
       {id:'c0', name:'A little child', kind:'boy', small:true, at:[-21.4,-4.2], face:Math.PI/2, robe:0x9a7a5a, cloth:0xd8cfb8},
       {id:'c1', name:'A little girl', kind:'woman', small:true, at:[-21.8,0.4], face:Math.PI/2, robe:0x9a5a62, cloth:0xe0c27a},
       {id:'c2', name:'A little child', kind:'boy', small:true, at:[-21.2,4.4], face:Math.PI/2, robe:0x6a7a5a, cloth:0xe6e0cf},
-      {id:'mom0', kind:'woman', at:[-22.8,-5], face:Math.PI/2, robe:0x5a4a6a, cloth:0x3c3a44},
-      {id:'mom1', kind:'woman', at:[-23,1.2], face:Math.PI/2, robe:0x6a4a3a, cloth:0xe8e2d2},
-      {id:'mom2', kind:'woman', at:[-22.6,5.4], face:Math.PI/2, robe:0x4f6a4f, cloth:0x8a6a5a},
+      {id:'mom0', kind:'woman', at:[-21.6,-5.4], face:Math.PI/2, robe:0x5a4a6a, cloth:0x3c3a44},
+      {id:'mom1', kind:'woman', at:[-21.8,1.6], face:Math.PI/2, robe:0x6a4a3a, cloth:0xe8e2d2},
+      {id:'mom2', kind:'woman', at:[-21.6,5.6], face:Math.PI/2, robe:0x4f6a4f, cloth:0x8a6a5a},
       {id:'rich', name:'One who came running', key:'rich man', at:'westRoad', face:Math.PI*0.35, robe:0x6a2a4a, cloth:0xe6dcc0, sash:0xb08d3c, beard:0x2c241f, hidden:true},
       ...BANK
     ],
@@ -590,20 +589,20 @@ STORY.act({
 
   /* ---------------- V.10 — GOING UP ---------------- */
   { id:'goingup', title:'Going up to Yahrushalayim', date:'the road from the Yardĕn', place:'yeriho', time:'day',
-    player:{ at:[80,5], face:-Math.PI/2, look:ADULT },
+    player:{ at:[78,5], face:-Math.PI/2, look:ADULT },
     actors:[
-      Object.assign({id:'yahusha', at:[66,0.4], face:-Math.PI/2},YAHUSHA),
-      T('kepha',[71,-1],{face:-Math.PI/2}), T('andri',[71.6,1.2],{face:-Math.PI/2}), T('yaaqob',[72.6,-0.4],{face:-Math.PI/2}),
-      T('yahuchanon',[73,1.6],{face:-Math.PI/2}), T('philip',[74.2,-1.2],{face:-Math.PI/2}), T('mattithyahu',[74.6,0.8],{face:-Math.PI/2}),
-      T('toma',[75.8,-0.6],{face:-Math.PI/2}), T('yahudahQ',[76,1.4],{face:-Math.PI/2}),
-      ...ROADCROWD.map(a=>Object.assign({},a,{at:[a.at[0]+16,a.at[1]]}))
+      Object.assign({id:'yahusha', at:[58,0.4], face:-Math.PI/2},YAHUSHA),
+      T('kepha',[61.4,-1],{face:-Math.PI/2}), T('andri',[62,1.2],{face:-Math.PI/2}), T('yaaqob',[63,-0.4],{face:-Math.PI/2}),
+      T('yahuchanon',[63.4,1.6],{face:-Math.PI/2}), T('philip',[64.6,-1.2],{face:-Math.PI/2}), T('mattithyahu',[65,0.8],{face:-Math.PI/2}),
+      T('toma',[66.2,-0.6],{face:-Math.PI/2}), T('yahudahQ',[66.4,1.4],{face:-Math.PI/2}),
+      ...ROADCROWD.map(a=>Object.assign({},a,{at:[a.at[0]+8,a.at[1]]}))
     ],
     beats:[
-      {t:'cam', from:[40,6,-14], look:[66,1,0], dur:0.1},
+      {t:'cam', from:[38,6,-14], look:[60,1,0], dur:0.1},
       {t:'move', who:'yahusha', to:[48,0.6], speed:1.2, wait:false},
       {t:'move', who:['kepha','andri','yaaqob','yahuchanon','philip','mattithyahu','toma','yahudahQ'],
         to:[[55,-1],[55.6,1.2],[56.6,-0.4],[57,1.6],[58.2,-1.2],[58.6,0.8],[59.8,-0.6],[60,1.4]], speed:1.1, wait:false},
-      {t:'move', who:ids(ROADCROWD), to:ROADCROWD.map(a=>[a.at[0]+6,a.at[1]]), speed:1, wait:false},
+      {t:'move', who:ids(ROADCROWD), to:ROADCROWD.map(a=>[a.at[0]+2,a.at[1]]), speed:1, wait:false},
       {t:'read', ref:'MARK 10:32'},
       {t:'move', who:'yahusha', to:[52,0.4], speed:1.2},
       {t:'face', who:'yahusha', to:'kepha'},
@@ -755,7 +754,7 @@ STORY.act({
       {t:'cam', on:'yahusha', shot:'back', toward:'sent1', dur:1.8},
       {t:'read', ref:'LUKE 19:35'},
       {t:'ride', who:'yahusha', on:'colt'},
-      {t:'cam', on:'yahusha', shot:'body', dur:1.8},
+      {t:'cam', on:'yahusha', shot:'back', toward:'city', back:7, dur:1.8},
       {t:'read', ref:'MATTITHYAHU 21:4'},
       {t:'read', ref:'MATTITHYAHU 21:5', who:'psalmist'},
       {t:'move', who:'yahusha', to:'d0', speed:0.9, wait:false},
@@ -765,7 +764,7 @@ STORY.act({
       {t:'witness', text:'Spread your own garment on the way before Him', items:['myGar'], verb:'Lay down your garment', hold:0.8, reach:2.6, reveal:{myGar:'myGar'}},
       {t:'show', id:['gar2','gar3','gar4','gar5']},
       {t:'move', who:'yahusha', to:'d2', speed:0.9, wait:false},
-      {t:'cam', on:'yahusha', shot:'back', toward:'city', back:6, lift:1, dur:3},
+      {t:'cam', on:'yahusha', shot:'back', toward:'city', back:8, dur:3},
       {t:'read', ref:'LUKE 19:37'},
       {t:'say', who:'multitude', ref:'LUKE 19:38', turn:false},
       {t:'move', who:'yahusha', to:'d3', speed:0.9},
@@ -777,7 +776,7 @@ STORY.act({
       {t:'move', who:'yahusha', to:'brow', speed:0.8},
       {t:'face', who:'yahusha', to:'city'},
       {t:'stop', who:ids(MULT).slice(0,12).concat(['kepha','andri','yaaqob','yahuchanon','philip','toma'])},
-      {t:'cam', on:'yahusha', shot:'back', toward:'city', back:5, lift:0.6, dur:3},        /* over Him, to the city across the Qidron */
+      {t:'cam', on:'yahusha', shot:'back', toward:'city', back:8, dur:3},        /* over Him, to the city across the Qidron */
       {t:'read', ref:'LUKE 19:41'},
       {t:'say', who:'yahusha', ref:'LUKE 19:42', turn:false},
       {t:'say', who:'yahusha', ref:'LUKE 19:43-44', turn:false},
