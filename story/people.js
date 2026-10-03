@@ -150,10 +150,16 @@ W.person=function(ctx,o){
     if(hemY<0.3){                                                                          /* a robe to the ankle (a working tunic to the knee falls no further) */
       /* on the ground, knees drawn up: the fold between the knees, and the sides falling to the ground */
       dr(box(0.14,0.34,0.03,tunicM,0,0.85,0.37,body),'g');
-      for(const sx of [1,-1]){ dr(box(0.03,0.26,0.40,tunicM,sx*0.20,0.76,0.18,body),'g').rotation.z=sx*0.14; dr(box(0.03,0.11,0.16,tunicM,sx*0.19,0.945,0.30,body),'g'); }   /* the sides flare a little as they fall */
+      /* the side of the robe, from under the raised thigh to the ground: narrow lengths whose tops
+         follow the thigh up to the knee, each falling a little further out than the last, so the
+         edge runs as one slope and the cloth flares as it falls, not a slab with a stepped top */
+      for(const sx of [1,-1]) for(let i=0;i<6;i++){ const z=0.02+i*0.066, top=0.885+z*0.36, bot=0.635;
+        dr(box(0.028,top-bot,0.07,tunicM,sx*(0.188+i*0.005),(top+bot)/2,z,body),'g').rotation.z=sx*(0.10+i*0.012); }
       /* on a bench, thighs level: the fold between the knees falls toward the feet; the sides hang a hand's breadth */
       dr(box(0.14,0.36,0.03,tunicM,0,0.66,0.40,body),'b');
-      for(const sx of [1,-1]) dr(box(0.03,0.16,0.42,tunicM,sx*0.20,0.78,0.20,body),'b').rotation.z=sx*0.14;
+      /* the side on a bench: it hangs a hand's breadth by the hip and lower toward the knee */
+      for(const sx of [1,-1]) for(let i=0;i<6;i++){ const z=0.02+i*0.07, top=0.875-z*0.1, bot=top-(0.09+i*0.025);
+        dr(box(0.028,top-bot,0.075,tunicM,sx*(0.188+i*0.004),(top+bot)/2,z,body),'b').rotation.z=sx*(0.10+i*0.01); }
     }
     dr(box(0.41,0.26,0.25,tunicM,0,0.86,-0.01,body));                                    /* over the hips behind */
     for(const d of drapes) d.visible=false; }
