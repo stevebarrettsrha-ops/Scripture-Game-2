@@ -207,6 +207,7 @@ W.person=function(ctx,o){
     box(0.085,0.26,0.09,dress==='magi'||dress==='kohen'?sleeveM:skin,0,-0.13,0,E);
     const hand=box(0.08,0.09,0.06,skin,0,-0.31,0.005,E); A.userData.hand=hand; return A; };
   const armL=mkArm(0.245), armR=mkArm(-0.245);
+  if(dress==='tombs') for(const P of [armL,armR,legL,legR]) P.scale.set(0.72,1,0.72);           /* arms and legs gone to bone */
   if(dress==='tombs') for(const A of [armL,armR]){ box(0.11,0.05,0.11,iron,0,-0.22,0,A.userData.elbow); box(0.025,0.16,0.025,iron,0,-0.32,0.06,A.userData.elbow); }
   if(o.staff||dress==='shepherd'||dress==='centurion'){ const len=dress==='centurion'?0.95:1.7;
     box(0.035,len,0.035,flat(dress==='centurion'?0x5a3a20:0x7a5a30),0,-0.31+len*0.38,0.06,armR.userData.elbow); }
@@ -227,7 +228,7 @@ W.person=function(ctx,o){
   }
 
   /* THE HEAD */
-  const head=new THREE.Group(); head.position.set(0,1.61,0.005); head.scale.setScalar(hk); body.add(head);
+  const head=new THREE.Group(); head.position.set(0,1.61,0.005); head.scale.setScalar(hk*(dress==='tombs'?1.12:1)); body.add(head);
   const hw=0.19, hh=0.22, hd=0.21, fz=hd/2+0.002;
   box(hw,hh,hd,skin,0,0,0,head);
   box(0.03,0.05,0.035,skin,hw/2+0.012,0,0,head); box(0.03,0.05,0.035,skin,-hw/2-0.012,0,0,head);     /* ears */
@@ -236,11 +237,12 @@ W.person=function(ctx,o){
   /* hair: on the crown and behind; long on the immerser, short and close on a Roman. Under a
      head-cloth, a turban or a mantle only the cloth is seen behind (dress==='king' wears a diadem) */
   const veiled=covered||dress==='yahusha'||dress==='fallen';
-  box(hw+0.02,0.06,hd+0.02,hairM,0,hh/2,0,head);
+  if(dress==='tombs') box(hw+0.01,0.03,hd+0.01,skin,0,hh/2-0.01,0,head);                      /* the scalp, nearly bare */
+  else box(hw+0.02,0.06,hd+0.02,hairM,0,hh/2,0,head);
   if(!veiled){
-    box(hw+0.02,dress==='camelhair'?0.30:dress==='tombs'?0.36:roman?0.10:0.16,0.04,hairM,0,dress==='camelhair'?-0.09:dress==='tombs'?-0.12:-0.02,-hd/2-0.01,head);
-    if(dress==='tombs'){ for(const sx of [1,-1]) box(0.03,0.30,0.06,hairM,sx*(hw/2+0.012),-0.10,0.03,head);       /* matted, uncut, over the ears */
-      box(hw+0.04,0.05,0.05,hairM,0,0.09,hd/2-0.01,head); }                                                         /* hanging over the brow */
+    if(dress==='tombs'){ for(const [x,z,l] of [[0.07,-0.06,0.34],[-0.05,-0.09,0.30],[0.02,-0.11,0.38],[-0.08,0.0,0.26],[0.09,0.03,0.22],[-0.02,0.08,0.12]])
+        box(0.018,l,0.018,hairM,x,hh/2-l/2+0.02,z,head); }                                                          /* a few long strands, lank and uncut */
+    else box(hw+0.02,dress==='camelhair'?0.30:roman?0.10:0.16,0.04,hairM,0,dress==='camelhair'?-0.09:-0.02,-hd/2-0.01,head);
     box(0.02,0.09,hd-0.04,hairM,hw/2+0.005,0.04,-0.01,head); box(0.02,0.09,hd-0.04,hairM,-hw/2-0.005,0.04,-0.01,head); }
   /* ONE WHO DIED, COME OUT: "bound feet and hands with wrappings, and his face was wrapped with
      a cloth" (Yahuchanon 11:44) — the whole head bound, bands about the body */
@@ -255,7 +257,7 @@ W.person=function(ctx,o){
       box(0.042,0.022,0.006,white,0,0,0,e); box(0.018,0.022,0.008,dark,0,0,0.001,e);
       const lid=box(0.046,0.026,0.004,skinD,0,0.004,0.004,e); lid.scale.y=0.01; return {e,lid}; };
     const eL=eye(0.045), eR=eye(-0.045);
-    if(dress==='tombs') for(const q of [eL,eR]) q.e.scale.set(1.35,1.7,1);                     /* wide, staring */
+    if(dress==='tombs') for(const q of [eL,eR]) q.e.scale.set(1.6,2.1,1);                      /* wide, staring */
     const browM=basic(o.brow||(o.fallen?0x120a0a:Math.min(hairHex,0x2a1d14)));
     const browL=box(0.055,0.012,0.008,browM,0.045,0.045,fz+0.002,head), browR=box(0.055,0.012,0.008,browM,-0.045,0.045,fz+0.002,head);
     box(0.03,0.055,0.03,skin,0,-0.018,fz+0.012,head);                                         /* the nose */
