@@ -253,7 +253,7 @@ STORY.act({
       {t:'stand', who:'boyR'}, {t:'place', who:'boyR', at:[11.4,10.8], y:null, face:-Math.PI*0.5},
       {t:'read', ref:'MARK 9:27'},
       {t:'move', who:['yahusha','kepha','yaaqob','yahuchanon','andri','philip','mattithyahu','toma','yahudahQ'],
-        to:[[25.6,19.6],[24.2,18.8],[24.6,20.8],[23.2,20],[22.8,18],[23,21.8],[21.6,19.2],[21.8,21],[22.2,17]], speed:1.3},
+        to:[[25.6,19.6],[24.4,17.4],[24.6,20.8],[23.2,20],[22.8,18],[23,21.8],[21.6,19.2],[21.8,21],[22.2,17]], speed:1.3},
       {t:'say', who:'taught', ref:'MARK 9:28', turn:false},
       {t:'face', who:'yahusha', to:'andri'},
       {t:'cam', on:'yahusha', shot:'back', toward:'andri', dur:1.6},
