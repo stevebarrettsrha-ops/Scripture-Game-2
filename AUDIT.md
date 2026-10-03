@@ -10300,6 +10300,7 @@ Gethsemane; Yahudah's betrayal; the trials; Golgotha; the tomb. Codex lights: 53
 **Checks:**
 
 - **Besorah:** 941 passages exact; 938 verses said, with 0 quotations no one speaks.
+- **Voices:** 1,544 of 1,544 lines recorded (380 new).
 - **Playthrough:** Act VI plays through in 12 scenes and 375 frames, with no errors and 0
   face-exposed frames.
 
