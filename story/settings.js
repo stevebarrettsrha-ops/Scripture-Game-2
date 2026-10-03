@@ -590,6 +590,11 @@ S.olivet=function(ctx,st){
    platform's north-west corner, and outside the west wall the knoll and the garden. `G` is the
    floor under a point (the platform's top on the courts), so a thing set there stands on it. */
 const floorAt=ctx=>(x,z)=>ctx.groundY(x,z)||0;
+/* A set raised twice on the same ground — the upper room made ready, then supped in; Golgotha, then
+   the tomb beside it — must not stand on what it left there the first time: these sets are laid at
+   a fixed height (`abs`), the city's own level or the land's own, never on the ground found under them. */
+const fixed=st0=>({box:(a,b,c,d,e,f,g,h)=>st0.box(a,b,c,d,e,f,g,Object.assign({abs:true},h||{})), detail:(...a)=>st0.detail(...a), ground:()=>0, api:st0.api});
+const landY=(ctx,x,z)=>{ const k=window.__KIT, A=ctx.anchor, S=ctx.scene.scale.x, c=k.cell(Math.floor((A.x+x*S)/k.B),Math.floor((A.z+z*S)/k.B)); return c?(c.h*k.B-A.y)/S:0; };
 
 /* THE COURTS OF THE HOUSE (Mark 11:15; 12:41): the tables of the money changers in rows and the
    seats of those who sold doves on the court of the nations, west of the inner courts; and the
@@ -612,8 +617,9 @@ S.courts=function(ctx,st){
 /* THE LARGE UPPER ROOM (Luke 22:12), in the lower city by the square: a house of two storeys,
    its lower rooms not entered, the guest room on the roof of them reached by a stair up the
    outside of the east wall; within, a low table, and the lamps. */
-S.upperroom=function(ctx,st){
+S.upperroom=function(ctx,st0){
   ctx.wind=[0.4,0.2];
+  const st=fixed(st0);
   const x0=12,z0=26,x1=22,z1=34, F=2.77;                                               /* three courses of the world's blocks */
   st.box(x0,0,z0,x1,F,z1,C.limestone);
   st.detail(16.3,0,z0-0.06,17.7,2.0,z0,0x3a2a1e);                                       /* the door of the house below */
@@ -630,8 +636,9 @@ S.upperroom=function(ctx,st){
 /* THE COURTYARD OF THE KOHEN GADOL (Mark 14:54; Yahuchanon 18:15-18): a court within walls, a fire
    of coals in its middle, and on the north the hall of the house, open to the court on its
    pillars, where the council sits; the door kept by a servant girl, and the porch without it. */
-S.highpriest=function(ctx,st){
+S.highpriest=function(ctx,st0){
   ctx.wind=[0.4,0.2];
+  const st=fixed(st0);
   const x0=4,z0=24,x1=22,z1=36, L=C.limestone;
   st.box(x0,0,z0,x1,3,z0+0.5,L); st.box(x0,0,z1-0.5,x1,3,z1,L); st.box(x0,0,z0,x0+0.5,3,z1,L);
   st.box(x1-0.5,0,z0,x1,3,29.2,L); st.box(x1-0.5,0,30.8,x1,3,z1,L);
@@ -676,9 +683,10 @@ S.golgotha=function(ctx,st){
   for(let x=-14;x>=-58;x-=1.6) ctx.api.top(x-1,43,x+1,45,C.path);                         /* out of the gate, west below the wall */
   for(let z=44;z>=-28;z-=1.6) ctx.api.top(-59,z-1,-57,z+1,C.path);                        /* and north along it, outside */
   /* the garden: the face of the rock and the tomb cut into it */
-  st.box(-78,0,-17,-70,5,-5,C.limestone);
-  st.box(-74,0,-12.6,-70.1,2.4,-9.4,'air');
-  st.box(-70,0,-13,-69.2,0.3,-9,C.stone);
+  const ly=landY(ctx,-70,-11);
+  st.box(-78,ly,-17,-70,ly+5,-5,C.limestone,{abs:true});
+  st.box(-74,ly,-12.6,-70.1,ly+2.4,-9.4,'air',{abs:true});
+  st.box(-70,ly,-13,-69.2,ly+0.3,-9,C.stone,{abs:true});
   for(let k=0;k<12;k++){ const a=W.hash(k,5)*6.28, r=6+W.hash(k,6)*9, x=-60+Math.cos(a)*r, z=-8+Math.sin(a)*r; if(x<-68) continue; if(k%3) W.olive(st,x,z,0.8); else W.fig(st,x,z); }
   for(let k=0;k<40;k++){ const x=-66+W.hash(k,8)*14, z=-18+W.hash(k,9)*18; st.detail(x-0.12,0,z-0.12,x+0.12,0.25,z+0.12,[0xd8c25a,0xe8e0f0,0xb8506a][k%3]); }
   ctx.markers.stakeY=[G(-66,-34)+0.9,0];                                                /* the height of His feet on the stake */
