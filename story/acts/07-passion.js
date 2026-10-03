@@ -530,7 +530,7 @@ STORY.act({
     ]},
 
   /* ---------------- VI.9 — THE COURTYARD OF THE KOHEN GADOL ---------------- */
-  { id:'courtyard', title:'The house of the kohen gadol', date:'that night', place:'highpriest', time:'night',
+  { id:'courtyard', title:'The house of the kohen gadol', date:'that night', place:'highpriest', time:'lamplit',
     player:{ at:[15.4,33.6], face:-Math.PI*0.75, look:ADULT },
     actors:[
       Object.assign({id:'yahusha', at:'accused', face:Math.PI},YAHUSHA),
@@ -555,7 +555,7 @@ STORY.act({
       {t:'say', who:'witnesses', ref:'MARK 14:57-58', turn:false},
       {t:'read', ref:'MARK 14:59'},
       {t:'stand', who:'qayapha'},
-      {t:'cam', on:'yahusha', shot:'back', toward:'qayapha', lift:-0.9, dur:1.8},
+      {t:'cam', on:'yahusha', shot:'back', toward:'qayapha', dur:1.8},
       {t:'say', who:'qayapha', ref:'MARK 14:60', turn:false},
       {t:'say', who:'qayapha', ref:'MARK 14:61', turn:false},
       {t:'say', who:'yahusha', ref:'MARK 14:62', turn:false},
@@ -751,7 +751,7 @@ STORY.act({
       {t:'read', ref:'MATTITHYAHU 27:51'},
       {t:'cam', from:['captain',2.6,2.6], fdy:1.8, look:'captain', dur:2},
       {t:'say', who:'captain', ref:'MARK 15:39', turn:false},
-      {t:'move', who:ids(ROADFOLK).concat(['kg1','kg2']), to:ROADFOLK.concat(PLOTTERS).map((a,k)=>[-59+(k%3)*1.4,14+Math.floor(k/3)*1.6]), speed:1, wait:false},
+      {t:'move', who:ids(ROADFOLK).concat(['kg1','kg2']), to:ROADFOLK.concat(PLOTTERS).map((a,k)=>[-59+(k%3)*1.4,2+Math.floor(k/3)*1.4]), speed:1, wait:false},
       {t:'cam', from:['afar',3,4], fdy:2.2, look:'yahushaS', dur:3},
       {t:'read', ref:'LUKE 23:48'},
       {t:'read', ref:'LUKE 23:49'},
@@ -799,7 +799,7 @@ STORY.act({
       {t:'hide', id:'yahushaS'},
       {t:'show', id:'body'},
       {t:'lie', who:'body'},
-      {t:'move', who:['yoseph','nakdimon'], to:[['tombOut',0.6,-1.4],['tombOut',0.6,1.4]], speed:1},
+      {t:'move', who:['yoseph','nakdimon'], to:[['tombOut',1.6,-1.6],['tombOut',1.6,1.6]], speed:1},
       {t:'cam', from:['tombFront',3,-3], fdy:2, look:'tombOut', dur:2.5},
       {t:'read', ref:'YAHUCHANON 19:40'},
       {t:'read', ref:'YAHUCHANON 19:41'},

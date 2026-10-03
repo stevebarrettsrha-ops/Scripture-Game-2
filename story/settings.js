@@ -643,7 +643,6 @@ S.highpriest=function(ctx,st0){
   st.box(x0,0,z0,x1,3,z0+0.5,L); st.box(x0,0,z1-0.5,x1,3,z1,L); st.box(x0,0,z0,x0+0.5,3,z1,L);
   st.box(x1-0.5,0,z0,x1,3,29.2,L); st.box(x1-0.5,0,30.8,x1,3,z1,L);
   for(const px of [6,10,14,18]) st.box(px-0.3,0,28.2,px+0.3,2.8,28.8,L);                  /* the pillars of the hall */
-  st.detail(x0,2.8,z0,x1,3.2,28.8,C.roofEarth);
   st.detail(5,0,24.6,19,0.46,25.4,C.stoneDark);                                          /* the council's bench */
   st.detail(11.3,0,24.6,12.7,1.0,25.5,C.timber);                                         /* the seat of the kohen gadol */
   W.fire(ctx,st,13,32.2);
