@@ -10193,6 +10193,116 @@ a bench. A working tunic to the knee stops at the knee.
 - **Clipping audit:** what remains in Act V is people passing close in a crowd, whom
   keep-apart separates.
 
+## 4do. Round 116 — Act VI, Passion Week
+
+**Act VI is built:** twelve scenes, from the entry into the city to the sealed tomb. Every word
+comes from the Besorah, and each speaker is the one it names. The design document asks for:
+"The triumphal entry; cleansing the Temple; the Passover supper and the washing of feet;
+Gethsemane; Yahudah's betrayal; the trials; Golgotha; the tomb. Codex lights: 53."
+
+1. **The entry** (Mattithyahu 21:8-11; Mark 11:11):
+   - He rides the colt in at the gate.
+   - The witness cuts a branch and lays it on the road.
+   - "Hoshia-na", then "Who is this?", and He looks round on all of it and goes out as the
+     hour grows late.
+2. **The house of prayer** (Mark 11:15-18; Mattithyahu 21:14-16):
+   - The money changers' tables are overturned and the doves fly up.
+   - The blind and the lame come to Him in the court.
+   - The children's Hoshia-na, and "out of the mouth of babes".
+3. **Caesar's coin and the widow's two coins** (Mark 12:13-17, 41-44): in the court of the
+   women, before the treasury.
+4. **The anointing at Bĕyth Anyah** (Mark 14:1-11): the alabaster flask broken over His head.
+   Yahuḏah goes from the table to the chief kohanim.
+5. **The Pesach made ready** (Luke 22:7-13):
+   - The man carrying a jar of water leads them to the house.
+   - The witness carries the basin up to the upper room.
+6. **The supper:**
+   - The feet washed (Yahuchanon 13:1-15).
+   - "One of you shall deliver Me up" (Mattithyahu 26:21-25; Yahuchanon 13:23-30).
+   - Yahuḏah goes out, and it was night.
+   - The bread and the cup (Mattithyahu 26:26-29), and the renewed command (Yahuchanon
+     13:34-35).
+   - The witness keeps the door.
+7. **Gethsemane** (Mark 14:27-42; Yahuchanon 18:1; Luke 22:43-44):
+   - The witness lights the lamp at the gate of the garden.
+   - "Abba, Father … not what I desire, but what You desire."
+   - The mal'ak, and the three asleep.
+8. **The arrest** (Mark 14:43-50; Yahuchanon 18:4-14; Luke 22:48-51):
+   - The torches; "I am", and they drew back and fell.
+   - The kiss, and Meleḵ's ear healed.
+   - They all left Him and fled.
+9. **The courtyard of the kohen gadol** (Yahuchanon 18:15-18; Mark 14:53-70; Luke 22:59-62):
+   - The fire of coals, and the council's false witness.
+   - "I am", and the three denials.
+   - The Master turned and looked at Kĕpha.
+10. **The Pavement** (Yahuchanon 18:28-19:16; Mattithyahu 27:19, 24-25):
+    - "What is truth?"; Barabba; "See the Man!"; Gabbatha.
+    - The basin and the washed hands.
+11. **Golgotha** (Luke 23; Yahuchanon 19:17-30; Mark 15:33-39; Mattithyahu 27:51):
+    - Shim'on of Kurene bears the crossbeam, and "Daughters of Yahrushalayim".
+    - "Father, forgive them", the title, the garments divided, and the two evil-doers:
+      "today … in Paradise".
+    - "Woman, see your son".
+    - The darkness, and "It has been accomplished!"
+    - **The Codex lights Yashayahu 53**, then the captain's "Truly this Man was the Son of
+      Aluahim!"
+    - The witness stands with the women at a distance.
+12. **The tomb in the garden** (Yahuchanon 19:31-42; Luke 23:50-56; Mattithyahu 27:60-66):
+    - Yosĕph of Ramathayim comes.
+    - The witness helps Naḵdimon carry the myrrh and aloes, and puts his shoulder to the stone.
+    - The women sit opposite the tomb, and the guard and the seal are set.
+
+**Reverence:**
+
+- His face is never shown, on the road, at the table, in the garden, before Pilate, on the
+  stake or in the tomb. The camera is behind Him, at His robe, or far off.
+- The flogging, the blows and the spear are read, never drawn, and a note says so. The camera
+  is on those who watched.
+
+**New places on the city's own ground**, each in Herodes' days:
+
+- **The courts:** the money changers' tables and the dove sellers' seats in the court of the
+  nations, and the treasury chests in the court of the women.
+- **The upper room:** two storeys at the square, the stair up the outside of the house.
+- **The courtyard of the kohen gadol:** the fire, and the council's hall on its pillars.
+- **The Pavement:** before the fortress, with the mishpat seat and the palace hall cut into the
+  fortress.
+- **Golgotha:** outside the west wall, near the city: the knoll and its three stakes, the road
+  round the wall, and the garden with the new tomb cut in the rock.
+- **Gat-Shemen:** a walled olive garden with its press, at the foot of the Mount of Olives
+  across the Qidron.
+
+**What the engine learned:**
+
+| Ability | What it does |
+|---|---|
+| `pose` (arms out) | A figure's arms stretched out on the crossbeam. |
+| Carrying | A thing can be carried as well as led: the crossbeam on Shim'on's shoulders. |
+| Two new hours | `darkness`, the land darkened at the sixth hour, still seen by; and `lamplit`, a night in which the figures can be seen. |
+| Heights as markers | A height may be given as a marker (`stakeY`). |
+| Cameras near a marker | A camera may look at a point near a marker. |
+| Rooms without a stair | `room()` can leave out its roof-stair. |
+
+**Found and fixed while staging:**
+
+- **A set raised twice on the same ground was built on top of itself.** The upper room was made
+  ready and then supped in, and its floor ended two storeys up, with the diners above the
+  camera. The rock of the garden tomb did the same after Golgotha. These sets now stand at a
+  fixed height: the city's level, or the land's own.
+- **The face guard.** Every camera of the supper had looked at Him from the front, and the guard
+  threw them out of the room. He now sits on the long side of the table, and the room is seen
+  from behind Him.
+- **Golgotha's cameras looked at the city through the stake,** so the clear-shot pulled them past
+  it to the walls. They now look at Him, from above and beside the stake.
+- **No one stands under the porch roofs or in the walls.**
+- **The road to Golgotha** runs outside the wall.
+
+**Checks:**
+
+- **Besorah:** 941 passages exact; 938 verses said, with 0 quotations no one speaks.
+- **Playthrough:** Act VI plays through in 12 scenes and 375 frames, with no errors and 0
+  face-exposed frames.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

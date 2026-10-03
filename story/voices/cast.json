@@ -143,6 +143,10 @@
   "kind": "woman",
   "voice": "af_alloy:.5+af_sarah:.5"
  },
+ "all": {
+  "kind": "crowd",
+  "voice": "am_fenrir:.5+bm_fable:.5"
+ },
  "alqanah": {
   "kind": "man",
   "voice": "am_puck"
@@ -190,6 +194,10 @@
  "anna": {
   "kind": "oldwoman",
   "voice": "af_nova:.5+bf_alice:.5"
+ },
+ "another at the fire": {
+  "kind": "man",
+  "voice": "bm_lewis:.5+am_liam:.5"
  },
  "another who would follow": {
   "kind": "man",
@@ -426,6 +434,14 @@
  "chaldean": {
   "kind": "man",
   "voice": "am_fenrir"
+ },
+ "chief kohanim": {
+  "kind": "oldman",
+  "voice": "bm_fable:.6+am_adam:.4"
+ },
+ "chief kohanim and pharisees": {
+  "kind": "oldman",
+  "voice": "am_michael:.6+bm_daniel:.4"
  },
  "chief kohanim and scribes": {
   "kind": "oldman",
@@ -701,6 +717,10 @@
   "kind": "man",
   "voice": "am_echo"
  },
+ "evil-doer": {
+  "kind": "man",
+  "voice": "am_fenrir:.6+am_echo:.4"
+ },
  "ezra": {
   "kind": "man",
   "voice": "am_echo:.5+bm_daniel:.5"
@@ -708,6 +728,10 @@
  "fair": {
   "kind": "woman",
   "voice": "af_river"
+ },
+ "false": {
+  "kind": "man",
+  "voice": "am_puck:.5+am_michael:.5"
  },
  "falsenavi": {
   "kind": "man",
@@ -1545,6 +1569,10 @@
   "kind": "woman",
   "voice": "af_heart"
  },
+ "other": {
+  "kind": "man",
+  "voice": "am_michael:.5+am_echo:.5"
+ },
  "othnial": {
   "kind": "man",
   "voice": "am_liam"
@@ -1576,6 +1604,10 @@
  "philip": {
   "kind": "man",
   "voice": "am_eric"
+ },
+ "pilate": {
+  "kind": "man",
+  "voice": "am_puck"
  },
  "pinehas": {
   "kind": "man",
@@ -1616,6 +1648,10 @@
  "qahal": {
   "kind": "crowd",
   "voice": "am_fenrir:.5+bm_fable:.5"
+ },
+ "qayapha": {
+  "kind": "oldman",
+  "voice": "bm_daniel:.6+am_adam:.4"
  },
  "qayin": {
   "kind": "man",
@@ -1917,6 +1953,10 @@
   "kind": "man",
   "voice": "am_puck:.6+bm_lewis:.4"
  },
+ "some": {
+  "kind": "man",
+  "voice": "am_echo"
+ },
  "someone": {
   "kind": "man",
   "voice": "am_puck:.5+am_michael:.5"
@@ -2057,6 +2097,10 @@
   "kind": "oldman",
   "voice": "bm_daniel:.6+am_adam:.4"
  },
+ "those standing by the stake": {
+  "kind": "crowd",
+  "voice": "am_puck:.6+bm_lewis:.4"
+ },
  "those who brought word": {
   "kind": "man",
   "voice": "bm_lewis:.5+am_liam:.5"
@@ -2064,6 +2108,14 @@
  "those who received the tax": {
   "kind": "man",
   "voice": "am_eric:.5+bm_fable:.5"
+ },
+ "those who stood by the fire": {
+  "kind": "man",
+  "voice": "am_fenrir:.5+bm_daniel:.5"
+ },
+ "those who struck him": {
+  "kind": "man",
+  "voice": "am_eric"
  },
  "tiller": {
   "kind": "man",

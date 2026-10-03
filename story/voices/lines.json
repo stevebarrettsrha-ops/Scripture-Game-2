@@ -10476,6 +10476,3426 @@
     "text": "The end of Act V. Next: Passion Week",
     "kk": "The end of Act five. Next, Passion Week",
     "where": "road-up/olives title"
+   },
+   {
+    "key": "0635b5fc5b6b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Act VI · Passion Week. The entry · Pesach · Gethsemane · Golgotha",
+    "kk": "Act six Passion Week. The entry peh-sahk Gethsemane Golgotha",
+    "where": "passion/entry title"
+   },
+   {
+    "key": "09332cdc5053",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Pilgrims came up to Yahrushalayim from all the land for the Pesach, and the city was full. The road from the Mount of Olives brought Him round to her gates, and the crowds came out to meet Him.",
+    "kk": "Pilgrims came up to yah-roo-shah-lah-yeem from all the land for the peh-sahk, and the city was full. The road from the Mount of Olives brought Him round to her gates, and the crowds came out to meet Him.",
+    "where": "passion/entry note"
+   },
+   {
+    "key": "cde09e6850bf",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And most of the crowd spread their garments on the way, while others cut down branches from the trees and spread them on the way.",
+    "kk": "And most of the crowd spread their garments on the way, while others cut down branches from the trees and spread them on the way.",
+    "where": "passion/entry MATTITHYAHU 21:8"
+   },
+   {
+    "key": "21c8aad4dfd1",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the crowds who went before and those who followed cried out, saying, ",
+    "kk": "And the crowds who went before and those who followed cried out, saying,",
+    "where": "passion/entry MATTITHYAHU 21:9"
+   },
+   {
+    "key": "1b2e5a6c8667",
+    "kind": "crowd",
+    "name": "crowds",
+    "who": "The crowds",
+    "text": "“Hoshia-na to the Son of Dawiḏ! Baruk is He who is coming in the Name of (YAHUAH) HWHY! Hoshia-na in the highest!”",
+    "kk": "Hoshia-na to the Son of dah-veed! Baruk is He who is coming in the Name of YAHUAH! Hoshia-na in the highest!",
+    "where": "passion/entry MATTITHYAHU 21:9"
+   },
+   {
+    "key": "c9adf1d75c54",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "As He entered into Yahrushalayim all the city was saying, ",
+    "kk": "As He entered into yah-roo-shah-lah-yeem all the city was saying,",
+    "where": "passion/entry MATTITHYAHU 21:10"
+   },
+   {
+    "key": "bd045a950f1a",
+    "kind": "crowd",
+    "name": "all",
+    "who": "All the city",
+    "text": "“Who is this?”",
+    "kk": "Who is this?",
+    "where": "passion/entry MATTITHYAHU 21:10"
+   },
+   {
+    "key": "a2d14a9978ac",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "The crowds said, ",
+    "kk": "The crowds said,",
+    "where": "passion/entry MATTITHYAHU 21:11"
+   },
+   {
+    "key": "58948953a9ac",
+    "kind": "crowd",
+    "name": "crowds",
+    "who": "The crowds",
+    "text": "“This is Yahusha, the naḇi from Natsareth of Galil.”",
+    "kk": "This is yah-hoo-shah, the nah-vee from nahts-ah-ret of gah-leel.",
+    "where": "passion/entry MATTITHYAHU 21:11"
+   },
+   {
+    "key": "1b56f48479c3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Yahusha went into Yahrushalayim and into the Qodash (Set Apart Place). And having looked around on all, He went out to Bĕyth Anyah with the twelve, as the hour was already late.",
+    "kk": "And yah-hoo-shah went into yah-roo-shah-lah-yeem and into the koh-dahsh. And having looked around on all, He went out to bayt ahn-yah with the twelve, as the hour was already late.",
+    "where": "passion/entry MARK 11:11"
+   },
+   {
+    "key": "20acd1d405cf",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "White and gold in the last of the sun, higher than anything men have built in the land. He looked round at all of it, and went out again.",
+    "kk": "White and gold in the last of the sun, higher than anything men have built in the land. He looked round at all of it, and went out again.",
+    "where": "passion/entry choice"
+   },
+   {
+    "key": "e99f0200eb39",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "They are still singing at the gate. Half of them could not tell you who He is; the other half think they know.",
+    "kk": "They are still singing at the gate. Half of them could not tell you who He is, the other half think they know.",
+    "where": "passion/entry choice"
+   },
+   {
+    "key": "44fb1733ef1a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "In the great court of the House — the court any nation might enter — the money changers sat at their tables, changing the coins of every land into the silver of the House, and the sellers sat with doves and beasts for the offerings.",
+    "kk": "In the great court of the House, the court any nation might enter, the money changers sat at their tables, changing the coins of every land into the silver of the House, and the sellers sat with doves and beasts for the offerings.",
+    "where": "passion/cleansing note"
+   },
+   {
+    "key": "2d7f7c75048a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they came to Yahrushalayim. Yahusha, entering into the Qodash (Set Apart Place), began to drive out those who bought and sold in the Qodash (Set Apart Place) and overturned the tables of the money-changers and the seats of those selling doves.",
+    "kk": "And they came to yah-roo-shah-lah-yeem. yah-hoo-shah, entering into the koh-dahsh, began to drive out those who bought and sold in the koh-dahsh and overturned the tables of the money-changers and the seats of those selling doves.",
+    "where": "passion/cleansing MARK 11:15"
+   },
+   {
+    "key": "7602163b147c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And He did not allow anyone to carry a vessel through the Qodash (Set Apart Place).",
+    "kk": "And He did not allow anyone to carry a vessel through the koh-dahsh.",
+    "where": "passion/cleansing MARK 11:16"
+   },
+   {
+    "key": "c02ef7b1d250",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And He was teaching, saying to them, ",
+    "kk": "And He was teaching, saying to them,",
+    "where": "passion/cleansing MARK 11:17"
+   },
+   {
+    "key": "05f2585156b4",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Has it not been written, ‘My House shall be called a house of prayer for all nations’? But you have made it a ‘den of robbers.’ ”",
+    "kk": "Has it not been written, My House shall be called a house of prayer for all nations? But you have made it a den of robbers.",
+    "where": "passion/cleansing MARK 11:17"
+   },
+   {
+    "key": "3fb0d144c4c7",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And blind and lame ones came to Him in the Qodash (Set Apart Place) and He healed them.",
+    "kk": "And blind and lame ones came to Him in the koh-dahsh and He healed them.",
+    "where": "passion/cleansing MATTITHYAHU 21:14"
+   },
+   {
+    "key": "72cdfa33f090",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But when the chief kohanim and scribes saw the wonders which He did and the children crying out in the Qodash (Set Apart Place) and saying, ",
+    "kk": "But when the chief koh-hah-neem and scribes saw the wonders which He did and the children crying out in the koh-dahsh and saying,",
+    "where": "passion/cleansing MATTITHYAHU 21:15"
+   },
+   {
+    "key": "324f72d240d1",
+    "kind": "boy",
+    "name": "children",
+    "who": "The children",
+    "text": "“Hoshia-na to the Son of Dawiḏ!”",
+    "kk": "Hoshia-na to the Son of dah-veed!",
+    "where": "passion/cleansing MATTITHYAHU 21:15"
+   },
+   {
+    "key": "1f4ebc2455fb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " they were greatly displeased,",
+    "kk": "they were greatly displeased,",
+    "where": "passion/cleansing MATTITHYAHU 21:15"
+   },
+   {
+    "key": "3e1703943ab1",
+    "kind": "oldman",
+    "name": "chief kohanim and scribes",
+    "who": "The chief kohanim and scribes",
+    "text": "“Do You hear what these say?”",
+    "kk": "Do You hear what these say?",
+    "where": "passion/cleansing MATTITHYAHU 21:16"
+   },
+   {
+    "key": "ac4abe7e7257",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Yea, have you never read, ‘Out of the mouth of babes and nurslings You have perfected praise’?”",
+    "kk": "Yea, have you never read, Out of the mouth of babes and nurslings You have perfected praise?",
+    "where": "passion/cleansing MATTITHYAHU 21:16"
+   },
+   {
+    "key": "6b2c50485c87",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the scribes and the chief kohanim heard it and they were seeking how to destroy Him, for they feared Him, because all the crowd was astonished at His teaching.",
+    "kk": "And the scribes and the chief koh-hah-neem heard it and they were seeking how to destroy Him, for they feared Him, because all the crowd was astonished at His teaching.",
+    "where": "passion/cleansing MARK 11:18"
+   },
+   {
+    "key": "f76df9ecc80d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "A silver piece of Tsor, with a god on it. It is the only coin the House will take. You set it on the step.",
+    "kk": "A silver piece of Tsor, with a god on it. It is the only coin the House will take. You set it on the step.",
+    "where": "passion/cleansing choice"
+   },
+   {
+    "key": "35860b8143c6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "They have no idea they are quoting a psalm. They are just shouting what everyone shouted at the gate.",
+    "kk": "They have no idea they are quoting a psalm. They are just shouting what everyone shouted at the gate.",
+    "where": "passion/cleansing choice"
+   },
+   {
+    "key": "cb94fe9cba7b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they sent to Him some of the Pharisees and the Herodians, to catch Him in a word.",
+    "kk": "And they sent to Him some of the Pharisees and the Herodians, to catch Him in a word.",
+    "where": "passion/treasury MARK 12:13"
+   },
+   {
+    "key": "9f7677e4118b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when they came, they said to Him, ",
+    "kk": "And when they came, they said to Him,",
+    "where": "passion/treasury MARK 12:14"
+   },
+   {
+    "key": "4bd7224892f1",
+    "kind": "man",
+    "name": "pharisees",
+    "who": "The Pharisees and the Herodians",
+    "text": "“Teacher, we know that You are true and it does not concern You about anyone, for You are not partial to any, but teach the way of Aluahim in truth. Is it right to pay taxes to Caesar, or not?",
+    "kk": "Teacher, we know that You are true and it does not concern You about anyone, for You are not partial to any, but teach the way of al-oo-ah-heem in truth. Is it right to pay taxes to Caesar, or not?",
+    "where": "passion/treasury MARK 12:14"
+   },
+   {
+    "key": "294b4fe80741",
+    "kind": "man",
+    "name": "pharisees",
+    "who": "The Pharisees and the Herodians",
+    "text": "“Should we pay, or should we not pay?”",
+    "kk": "Should we pay, or should we not pay?",
+    "where": "passion/treasury MARK 12:15"
+   },
+   {
+    "key": "e7c8cd680dc9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And He, knowing their hypocrisy, said to them, ",
+    "kk": "And He, knowing their hypocrisy, said to them,",
+    "where": "passion/treasury MARK 12:15"
+   },
+   {
+    "key": "4b6b4fc9b0f8",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Why do you try Me? Bring Me a silver piece to look at.”",
+    "kk": "Why do you try Me? Bring Me a silver piece to look at.",
+    "where": "passion/treasury MARK 12:15"
+   },
+   {
+    "key": "583c037a1e1f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they brought it and He said to them, ",
+    "kk": "And they brought it and He said to them,",
+    "where": "passion/treasury MARK 12:16"
+   },
+   {
+    "key": "e36bcc1e4c21",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Whose likeness and inscription is this?”",
+    "kk": "Whose likeness and inscription is this?",
+    "where": "passion/treasury MARK 12:16"
+   },
+   {
+    "key": "33b6a272e5e1",
+    "kind": "man",
+    "name": "pharisees",
+    "who": "The Pharisees and the Herodians",
+    "text": "“Caesar’s.”",
+    "kk": "Caesar's.",
+    "where": "passion/treasury MARK 12:16"
+   },
+   {
+    "key": "1c3af7ca7d37",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "So Yahusha said to them, ",
+    "kk": "So yah-hoo-shah said to them,",
+    "where": "passion/treasury MARK 12:17"
+   },
+   {
+    "key": "196a76c2505d",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Give to Caesar what is Caesar’s and to Aluahim what is Aluahim’s.”",
+    "kk": "Give to Caesar what is Caesar's and to al-oo-ah-heem what is al-oo-ah-heems.",
+    "where": "passion/treasury MARK 12:17"
+   },
+   {
+    "key": "ecb469db249e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And they marvelled at Him.",
+    "kk": "And they marvelled at Him.",
+    "where": "passion/treasury MARK 12:17"
+   },
+   {
+    "key": "b95dd0a5191e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And sitting opposite the treasury He saw how the people put copper into the treasury. And many rich ones put in much.",
+    "kk": "And sitting opposite the treasury He saw how the people put copper into the treasury. And many rich ones put in much.",
+    "where": "passion/treasury MARK 12:41"
+   },
+   {
+    "key": "876715f26153",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And a poor widow came and threw in two small copper coins, which amount to a cent.",
+    "kk": "And a poor widow came and threw in two small copper coins, which amount to a cent.",
+    "where": "passion/treasury MARK 12:42"
+   },
+   {
+    "key": "95638dfff66c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And calling near His taught ones He said to them, ",
+    "kk": "And calling near His taught ones He said to them,",
+    "where": "passion/treasury MARK 12:43-44"
+   },
+   {
+    "key": "ea58c570e33d",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Truly, I say to you that this poor widow has put in more than all those putting into the treasury, for they all put in out of their excess, but she out of her poverty put in all that she had, her entire livelihood.”",
+    "kk": "Truly, I say to you that this poor widow has put in more than all those putting into the treasury, for they all put in out of their excess, but she out of her poverty put in all that she had, her entire livelihood.",
+    "where": "passion/treasury MARK 12:43-44"
+   },
+   {
+    "key": "c26256fbdb38",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Two copper coins. Nobody else in the court saw her. He did.",
+    "kk": "Two copper coins. Nobody else in the court saw her. He did.",
+    "where": "passion/treasury choice"
+   },
+   {
+    "key": "c94cc0e2e507",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Give Caesar his own coin back. And give Aluahim what has His likeness on it.",
+    "kk": "Give Caesar his own coin back. And give al-oo-ah-heem what has His likeness on it.",
+    "where": "passion/treasury choice"
+   },
+   {
+    "key": "271479e1d388",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Now the Pesach and the Festival of Unleavened Bread was after two days. And the chief kohanim and the scribes were seeking how to take Him through treachery and put Him to death.",
+    "kk": "Now the peh-sahk and the Festival of Unleavened Bread was after two days. And the chief koh-hah-neem and the scribes were seeking how to take Him through treachery and put Him to death.",
+    "where": "passion/anointing MARK 14:1"
+   },
+   {
+    "key": "4a2a673c2089",
+    "kind": "oldman",
+    "name": "chief kohanim and scribes",
+    "who": "The chief kohanim and scribes",
+    "text": "“Not at the festival, lest there shall be an uproar of the people.”",
+    "kk": "Not at the festival, lest there shall be an uproar of the people.",
+    "where": "passion/anointing MARK 14:2"
+   },
+   {
+    "key": "af2051f0fd77",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And while He was in Bĕyth Anyah in the house of Shim‛on the leper and sitting at the table, a woman came having an alabaster flask of perfume, genuine nard, very costly. And breaking the flask she poured it on His head.",
+    "kk": "And while He was in bayt ahn-yah in the house of sheem-ohn the leper and sitting at the table, a woman came having an alabaster flask of perfume, genuine nard, very costly. And breaking the flask she poured it on His head.",
+    "where": "passion/anointing MARK 14:3"
+   },
+   {
+    "key": "9e29ff279954",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But there were some who were much displeased among themselves and said, ",
+    "kk": "But there were some who were much displeased among themselves and said,",
+    "where": "passion/anointing MARK 14:4"
+   },
+   {
+    "key": "01c65f440c4d",
+    "kind": "man",
+    "name": "some",
+    "who": "Some who were displeased",
+    "text": "“Why was this perfume wasted?",
+    "kk": "Why was this perfume wasted?",
+    "where": "passion/anointing MARK 14:4"
+   },
+   {
+    "key": "e79f301a332f",
+    "kind": "man",
+    "name": "some",
+    "who": "Some who were displeased",
+    "text": "“For it could have been sold for more than three hundred pieces of silver and given to the poor.”",
+    "kk": "For it could have been sold for more than three hundred pieces of silver and given to the poor.",
+    "where": "passion/anointing MARK 14:5"
+   },
+   {
+    "key": "43be8385c6c2",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And they were scolding her.",
+    "kk": "And they were scolding her.",
+    "where": "passion/anointing MARK 14:5"
+   },
+   {
+    "key": "ab94da56a46d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But Yahusha said, ",
+    "kk": "But yah-hoo-shah said,",
+    "where": "passion/anointing MARK 14:6"
+   },
+   {
+    "key": "447275bd3168",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Leave her alone. Why do you trouble her? She has done a good work for Me.",
+    "kk": "Leave her alone. Why do you trouble her? She has done a good work for Me.",
+    "where": "passion/anointing MARK 14:6"
+   },
+   {
+    "key": "41fd73f004c9",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“For you have the poor with you always and you are able do good to them, whenever you wish. But you do not always have Me.",
+    "kk": "For you have the poor with you always and you are able do good to them, whenever you wish. But you do not always have Me.",
+    "where": "passion/anointing MARK 14:7"
+   },
+   {
+    "key": "7c88aec095cf",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“What she had, she used. She took it beforehand to anoint My body for the burial.",
+    "kk": "What she had, she used. She took it beforehand to anoint My body for the burial.",
+    "where": "passion/anointing MARK 14:8"
+   },
+   {
+    "key": "e740d3b02803",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Truly, I say to you, wherever this besorah is proclaimed in all the world, what this woman did shall also be spoken of, to her remembrance.”",
+    "kk": "Truly, I say to you, wherever this beh-soh-rah is proclaimed in all the world, what this woman did shall also be spoken of, to her remembrance.",
+    "where": "passion/anointing MARK 14:9"
+   },
+   {
+    "key": "5a148958d2c7",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Yahuḏah from Qerioth, one of the twelve, went to the chief kohanim to deliver Him up to them.",
+    "kk": "And yah-hoo-dah from Qerioth, one of the twelve, went to the chief koh-hah-neem to deliver Him up to them.",
+    "where": "passion/anointing MARK 14:10"
+   },
+   {
+    "key": "5c0ed137da14",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when they heard it, they were glad and promised to give him silver. And he was seeking how to deliver Him up, conveniently.",
+    "kk": "And when they heard it, they were glad and promised to give him silver. And he was seeking how to deliver Him up, conveniently.",
+    "where": "passion/anointing MARK 14:11"
+   },
+   {
+    "key": "c2f609365677",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "The whole house is full of it. Three hundred pieces of silver, poured out in a moment.",
+    "kk": "The whole house is full of it. Three hundred pieces of silver, poured out in a moment.",
+    "where": "passion/anointing choice"
+   },
+   {
+    "key": "cdb3cc02d547",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "He keeps the bag. You never thought twice about him. You do now.",
+    "kk": "He keeps the bag. You never thought twice about him. You do now.",
+    "where": "passion/anointing choice"
+   },
+   {
+    "key": "344ccfcd536a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the Day of Unleavened Bread came when the Pesach had to be slaughtered.",
+    "kk": "And the Day of Unleavened Bread came when the peh-sahk had to be slaughtered.",
+    "where": "passion/prepare LUKE 22:7"
+   },
+   {
+    "key": "9e818460331b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And He sent Kĕpha and Yahuchanon, saying, ",
+    "kk": "And He sent kay-fah and yah-hoo-kah-nohn, saying,",
+    "where": "passion/prepare LUKE 22:8"
+   },
+   {
+    "key": "9d96dfc35762",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Go and prepare the Pesach for us to eat.”",
+    "kk": "Go and prepare the peh-sahk for us to eat.",
+    "where": "passion/prepare LUKE 22:8"
+   },
+   {
+    "key": "0d99fc169f4f",
+    "kind": "man",
+    "name": "two who were sent",
+    "who": "Kĕpha and Yahuchanon",
+    "text": "“Where do You wish us to prepare?”",
+    "kk": "Where do You wish us to prepare?",
+    "where": "passion/prepare LUKE 22:9"
+   },
+   {
+    "key": "08cccaa7194e",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“See, as you enter into the city, a man shall meet you carrying a jar of water. Follow him into the house he enters.",
+    "kk": "See, as you enter into the city, a man shall meet you carrying a jar of water. Follow him into the house he enters.",
+    "where": "passion/prepare LUKE 22:10"
+   },
+   {
+    "key": "efa23fbceebf",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“And you shall say to the master of the house,‘The Teacher says to you, “Where is the guest room where I might eat the Pesach with My taught ones?’",
+    "kk": "And you shall say to the master of the house,The Teacher says to you, Where is the guest room where I might eat the peh-sahk with My taught ones?",
+    "where": "passion/prepare LUKE 22:11"
+   },
+   {
+    "key": "7b6c361718ce",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“And he shall show you a large, furnished upper room. Prepare it there.”",
+    "kk": "And he shall show you a large, furnished upper room. Prepare it there.",
+    "where": "passion/prepare LUKE 22:12"
+   },
+   {
+    "key": "e37307cc8335",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And going they found it as He had said to them and they prepared the Pesach.",
+    "kk": "And going they found it as He had said to them and they prepared the peh-sahk.",
+    "where": "passion/prepare LUKE 22:13"
+   },
+   {
+    "key": "e0ba0b866767",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Cushions about a low table, lamps in the walls, the unleavened bread laid ready. Large enough for thirteen and a few more.",
+    "kk": "Cushions about a low table, lamps in the walls, the unleavened bread laid ready. Large enough for thirteen and a few more.",
+    "where": "passion/prepare choice"
+   },
+   {
+    "key": "b141db880abb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "A man carrying a jar of water — women carry the water. He was there, just as He said.",
+    "kk": "A man carrying a jar of water, women carry the water. He was there, just as He said.",
+    "where": "passion/prepare choice"
+   },
+   {
+    "key": "c0c62048d8c9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And before the Festival of the Pesach, Yahusha knowing that His hour had come that He should move out of this world unto the Father, having loved His own who were in the world, He loved them to the end.",
+    "kk": "And before the Festival of the peh-sahk, yah-hoo-shah knowing that His hour had come that He should move out of this world unto the Father, having loved His own who were in the world, He loved them to the end.",
+    "where": "passion/supper YAHUCHANON 13:1"
+   },
+   {
+    "key": "832010f79a50",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And supper taking place, the devil having already put it into the heart of Yahuḏah from Qerioth, son of Shim‛on, to deliver Him up, Yahusha, knowing that the Father had given all into His hands, and that He had come from Aluahim and was going to Aluahim, rose from supper and laid aside His garments, and having taken a towel, He girded Himself.",
+    "kk": "And supper taking place, the devil having already put it into the heart of yah-hoo-dah from Qerioth, son of sheem-ohn, to deliver Him up, yah-hoo-shah, knowing that the Father had given all into His hands, and that He had come from al-oo-ah-heem and was going to al-oo-ah-heem, rose from supper and laid aside His garments, and having taken a towel, He girded Himself.",
+    "where": "passion/supper YAHUCHANON 13:2-4"
+   },
+   {
+    "key": "fd2a1c51ef3e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "After that He put water into a basin and began to wash the feet of the taught ones, and to wipe them with the towel with which He was girded.",
+    "kk": "After that He put water into a basin and began to wash the feet of the taught ones, and to wipe them with the towel with which He was girded.",
+    "where": "passion/supper YAHUCHANON 13:5"
+   },
+   {
+    "key": "c1416d5034e5",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And so He came to Shim‛on Kĕpha, and he said to Him, ",
+    "kk": "And so He came to sheem-ohn kay-fah, and he said to Him,",
+    "where": "passion/supper YAHUCHANON 13:6"
+   },
+   {
+    "key": "5e6d5d15b816",
+    "kind": "man",
+    "name": "shimon",
+    "who": "Shim‛on Kĕpha",
+    "text": "“Master, do You wash my feet?”",
+    "kk": "Master, do You wash my feet?",
+    "where": "passion/supper YAHUCHANON 13:6"
+   },
+   {
+    "key": "ae39130f27a8",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“You do not know what I am doing now, but you shall know after this.”",
+    "kk": "You do not know what I am doing now, but you shall know after this.",
+    "where": "passion/supper YAHUCHANON 13:7"
+   },
+   {
+    "key": "7686416c56fd",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Kĕpha said to Him, ",
+    "kk": "kay-fah said to Him,",
+    "where": "passion/supper YAHUCHANON 13:8"
+   },
+   {
+    "key": "e8a1cf52138b",
+    "kind": "man",
+    "name": "shimon",
+    "who": "Shim‛on Kĕpha",
+    "text": "“By no means shall You wash my feet, ever!”",
+    "kk": "By no means shall You wash my feet, ever!",
+    "where": "passion/supper YAHUCHANON 13:8"
+   },
+   {
+    "key": "9a7428051582",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " Yahusha answered him, ",
+    "kk": "yah-hoo-shah answered him,",
+    "where": "passion/supper YAHUCHANON 13:8"
+   },
+   {
+    "key": "418b1f31c73a",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“If I do not wash you, you have no part with Me.”",
+    "kk": "If I do not wash you, you have no part with Me.",
+    "where": "passion/supper YAHUCHANON 13:8"
+   },
+   {
+    "key": "d2544371ee5c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Shim‛on Kĕpha said to Him, ",
+    "kk": "sheem-ohn kay-fah said to Him,",
+    "where": "passion/supper YAHUCHANON 13:9"
+   },
+   {
+    "key": "912f70ae46d9",
+    "kind": "man",
+    "name": "shimon",
+    "who": "Shim‛on Kĕpha",
+    "text": "“Master, not my feet only, but also my hands and my head!”",
+    "kk": "Master, not my feet only, but also my hands and my head!",
+    "where": "passion/supper YAHUCHANON 13:9"
+   },
+   {
+    "key": "c60a4fe255d1",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“He who has had a bath does not need to wash, except his feet, but is clean altogether. And you are clean, but not all of you.”",
+    "kk": "He who has had a bath does not need to wash, except his feet, but is clean altogether. And you are clean, but not all of you.",
+    "where": "passion/supper YAHUCHANON 13:10"
+   },
+   {
+    "key": "de9702ab8930",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "For He knew who would deliver Him up, so He said, ",
+    "kk": "For He knew who would deliver Him up, so He said,",
+    "where": "passion/supper YAHUCHANON 13:11"
+   },
+   {
+    "key": "43ba84481c1d",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“You are not all clean.”",
+    "kk": "You are not all clean.",
+    "where": "passion/supper YAHUCHANON 13:11"
+   },
+   {
+    "key": "f326448cb8d7",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "So when He had washed their feet and taken His garments, and sat down again, He said to them, ",
+    "kk": "So when He had washed their feet and taken His garments, and sat down again, He said to them,",
+    "where": "passion/supper YAHUCHANON 13:12"
+   },
+   {
+    "key": "4244cd4e0ec5",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Do you know what I have done to you?",
+    "kk": "Do you know what I have done to you?",
+    "where": "passion/supper YAHUCHANON 13:12"
+   },
+   {
+    "key": "69f8c33ed2ab",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“You call me Teacher and Master, and you say well, for I am.",
+    "kk": "You call me Teacher and Master, and you say well, for I am.",
+    "where": "passion/supper YAHUCHANON 13:13"
+   },
+   {
+    "key": "9ad8293639bd",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Then if I, Master and Teacher, have washed your feet, you also ought to wash one another’s feet.",
+    "kk": "Then if I, Master and Teacher, have washed your feet, you also ought to wash one another's feet.",
+    "where": "passion/supper YAHUCHANON 13:14"
+   },
+   {
+    "key": "2d3db04ffb34",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“For I gave you an example, that you should do as I have done to you.",
+    "kk": "For I gave you an example, that you should do as I have done to you.",
+    "where": "passion/supper YAHUCHANON 13:15"
+   },
+   {
+    "key": "a5e527ea88e3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And while they were eating, He said, ",
+    "kk": "And while they were eating, He said,",
+    "where": "passion/supper MATTITHYAHU 26:21"
+   },
+   {
+    "key": "6e66c2509ea9",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Truly, I say to you, one of you shall deliver Me up.”",
+    "kk": "Truly, I say to you, one of you shall deliver Me up.",
+    "where": "passion/supper MATTITHYAHU 26:21"
+   },
+   {
+    "key": "5351fc7f0a68",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they were deeply grieved and began to say to Him, each of them, ",
+    "kk": "And they were deeply grieved and began to say to Him, each of them,",
+    "where": "passion/supper MATTITHYAHU 26:22"
+   },
+   {
+    "key": "2dcd8bc13130",
+    "kind": "crowd",
+    "name": "taught",
+    "who": "The taught ones",
+    "text": "“Master, is it I?”",
+    "kk": "Master, is it I?",
+    "where": "passion/supper MATTITHYAHU 26:22"
+   },
+   {
+    "key": "2845a60a16b1",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And He answering, said, ",
+    "kk": "And He answering, said,",
+    "where": "passion/supper MATTITHYAHU 26:23"
+   },
+   {
+    "key": "e39aea2a04ef",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“He who has dipped his hand with Me in the dish, he shall deliver Me up.",
+    "kk": "He who has dipped his hand with Me in the dish, he shall deliver Me up.",
+    "where": "passion/supper MATTITHYAHU 26:23"
+   },
+   {
+    "key": "93960687708e",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Indeed, the Son of Aḏam goes as it has been written concerning Him, but woe to that man by whom the Son of Aḏam is delivered up! It would have been good for that man if he had not been born.”",
+    "kk": "Indeed, the Son of Adam goes as it has been written concerning Him, but woe to that man by whom the Son of Adam is delivered up! It would have been good for that man if he had not been born.",
+    "where": "passion/supper MATTITHYAHU 26:24"
+   },
+   {
+    "key": "c7ad0e008501",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Yahuḏah – he who delivered Him up – answering, said, ",
+    "kk": "And yah-hoo-dah, he who delivered Him up, answering, said,",
+    "where": "passion/supper MATTITHYAHU 26:25"
+   },
+   {
+    "key": "ab09e7b33516",
+    "kind": "man",
+    "name": "yahudah",
+    "who": "Yahuḏah from Qerioth",
+    "text": "“Rabbi, is it I?”",
+    "kk": "Rabbi, is it I?",
+    "where": "passion/supper MATTITHYAHU 26:25"
+   },
+   {
+    "key": "fd0dd9f22c05",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " He said to him, ",
+    "kk": "He said to him,",
+    "where": "passion/supper MATTITHYAHU 26:25"
+   },
+   {
+    "key": "89f0a1b93f2e",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“You have said it.”",
+    "kk": "You have said it.",
+    "where": "passion/supper MATTITHYAHU 26:25"
+   },
+   {
+    "key": "9d31dd373422",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And one of His taught ones, whom Yahusha loved, was reclining on the bosom of Yahusha.",
+    "kk": "And one of His taught ones, whom yah-hoo-shah loved, was reclining on the bosom of yah-hoo-shah.",
+    "where": "passion/supper YAHUCHANON 13:23"
+   },
+   {
+    "key": "415780ef6e7a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Shim‛on Kĕpha then motioned to him to ask who it was of whom He spoke.",
+    "kk": "sheem-ohn kay-fah then motioned to him to ask who it was of whom He spoke.",
+    "where": "passion/supper YAHUCHANON 13:24"
+   },
+   {
+    "key": "77779c1b179c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And leaning back on the breast of Yahusha he said to Him, ",
+    "kk": "And leaning back on the breast of yah-hoo-shah he said to Him,",
+    "where": "passion/supper YAHUCHANON 13:25"
+   },
+   {
+    "key": "a25c627469db",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“Master, who is it?”",
+    "kk": "Master, who is it?",
+    "where": "passion/supper YAHUCHANON 13:25"
+   },
+   {
+    "key": "8c034970040b",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“It is he to whom I shall give a piece of bread when I have dipped it.”",
+    "kk": "It is he to whom I shall give a piece of bread when I have dipped it.",
+    "where": "passion/supper YAHUCHANON 13:26"
+   },
+   {
+    "key": "753b531fdaa2",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And having dipped the bread, He gave it to Yahuḏah from Qerioth, son of Shim‛on.",
+    "kk": "And having dipped the bread, He gave it to yah-hoo-dah from Qerioth, son of sheem-ohn.",
+    "where": "passion/supper YAHUCHANON 13:26"
+   },
+   {
+    "key": "e6aa01ad52f4",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And after the piece of bread, Satan entered into him. Yahusha, therefore, said to him, ",
+    "kk": "And after the piece of bread, Satan entered into him. yah-hoo-shah, therefore, said to him,",
+    "where": "passion/supper YAHUCHANON 13:27"
+   },
+   {
+    "key": "39a733693cb4",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“What you do, do quickly.”",
+    "kk": "What you do, do quickly.",
+    "where": "passion/supper YAHUCHANON 13:27"
+   },
+   {
+    "key": "3cfe0e0f3bd4",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But no one at the table knew why He said this to him,",
+    "kk": "But no one at the table knew why He said this to him,",
+    "where": "passion/supper YAHUCHANON 13:28"
+   },
+   {
+    "key": "371a6d154e52",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "for some were supposing, because Yahuḏah had the bag, that Yahusha was saying to him, ",
+    "kk": "for some were supposing, because yah-hoo-dah had the bag, that yah-hoo-shah was saying to him,",
+    "where": "passion/supper YAHUCHANON 13:29"
+   },
+   {
+    "key": "f8737936e34b",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Buy what we need for the festival,”",
+    "kk": "Buy what we need for the festival,",
+    "where": "passion/supper YAHUCHANON 13:29"
+   },
+   {
+    "key": "f1882f1ee13f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " or that he should give somewhat to the poor.",
+    "kk": "or that he should give somewhat to the poor.",
+    "where": "passion/supper YAHUCHANON 13:29"
+   },
+   {
+    "key": "2b3a742ef01f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "So, having received the piece of bread, he then went out straightaway, and it was night.",
+    "kk": "So, having received the piece of bread, he then went out straightaway, and it was night.",
+    "where": "passion/supper YAHUCHANON 13:30"
+   },
+   {
+    "key": "03c27868be99",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And as they were eating, Yahusha took bread and having baruk, broke and gave it to the taught ones and said, ",
+    "kk": "And as they were eating, yah-hoo-shah took bread and having baruk, broke and gave it to the taught ones and said,",
+    "where": "passion/supper MATTITHYAHU 26:26"
+   },
+   {
+    "key": "fdd637472a48",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Take, eat, this is My body.”",
+    "kk": "Take, eat, this is My body.",
+    "where": "passion/supper MATTITHYAHU 26:26"
+   },
+   {
+    "key": "8b03951454b1",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And taking the cup, and giving thanks, He gave it to them, saying, ",
+    "kk": "And taking the cup, and giving thanks, He gave it to them, saying,",
+    "where": "passion/supper MATTITHYAHU 26:27-28"
+   },
+   {
+    "key": "28c1cfb5d6e8",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Drink from it, all of you. “For this is My blood, that of the renewed berith, which is shed for many for the forgiveness of sins.",
+    "kk": "Drink from it, all of you. For this is My blood, that of the renewed berith, which is shed for many for the forgiveness of sins.",
+    "where": "passion/supper MATTITHYAHU 26:27-28"
+   },
+   {
+    "key": "402beeea2649",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“But I say to you, I shall certainly not drink of this fruit of the vine from now on til that day when I drink it anew with you in the reign of My Father.”",
+    "kk": "But I say to you, I shall certainly not drink of this fruit of the vine from now on til that day when I drink it anew with you in the reign of My Father.",
+    "where": "passion/supper MATTITHYAHU 26:29"
+   },
+   {
+    "key": "3a8b7f761959",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“A renewed command I give to you, that you love one another, as I have loved you, that you also love one another. “By this shall all know that you are My taught ones, if you have love for one another.”",
+    "kk": "A renewed command I give to you, that you love one another, as I have loved you, that you also love one another. By this shall all know that you are My taught ones, if you have love for one another.",
+    "where": "passion/supper YAHUCHANON 13:34-35"
+   },
+   {
+    "key": "8a69a8680f4b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having sung a song, they went out to the Mount of Olives.",
+    "kk": "And having sung a song, they went out to the Mount of Olives.",
+    "where": "passion/supper MATTITHYAHU 26:30"
+   },
+   {
+    "key": "5eaa6ea37388",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "You carried it up for the guests to wash. You did not think He would be the one to kneel with it.",
+    "kk": "You carried it up for the guests to wash. You did not think He would be the one to kneel with it.",
+    "where": "passion/supper choice"
+   },
+   {
+    "key": "0da2198d80d2",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "You held it open for him. It was night.",
+    "kk": "You held it open for him. It was night.",
+    "where": "passion/supper choice"
+   },
+   {
+    "key": "a0b7aa89e72e",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“All of you shall stumble in Me this night, for it has been written, ‘I shall strike the shepherd and the sheep shall be scattered.’ “But after I am raised, I shall go before you to Galil.”",
+    "kk": "All of you shall stumble in Me this night, for it has been written, I shall strike the shepherd and the sheep shall be scattered. But after I am raised, I shall go before you to gah-leel.",
+    "where": "passion/gethsemane MARK 14:27-28"
+   },
+   {
+    "key": "efdc80bb179e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Kĕpha said to Him, ",
+    "kk": "And kay-fah said to Him,",
+    "where": "passion/gethsemane MARK 14:29"
+   },
+   {
+    "key": "a1bdec5102e8",
+    "kind": "man",
+    "name": "shimon",
+    "who": "Shim‛on Kĕpha",
+    "text": "“Even if all shall stumble, yet not I.”",
+    "kk": "Even if all shall stumble, yet not I.",
+    "where": "passion/gethsemane MARK 14:29"
+   },
+   {
+    "key": "dd3c8c50b231",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Truly, I say to you that today, this night, before the cock shall crow twice, you shall deny Me three times.”",
+    "kk": "Truly, I say to you that today, this night, before the cock shall crow twice, you shall deny Me three times.",
+    "where": "passion/gethsemane MARK 14:30"
+   },
+   {
+    "key": "b61963903ec7",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But he spoke more strongly, ",
+    "kk": "But he spoke more strongly,",
+    "where": "passion/gethsemane MARK 14:31"
+   },
+   {
+    "key": "7781995720a8",
+    "kind": "man",
+    "name": "shimon",
+    "who": "Shim‛on Kĕpha",
+    "text": "“If I have to die with You, I shall not deny You!”",
+    "kk": "If I have to die with You, I shall not deny You!",
+    "where": "passion/gethsemane MARK 14:31"
+   },
+   {
+    "key": "4d6db55bcda4",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And they all said the same.",
+    "kk": "And they all said the same.",
+    "where": "passion/gethsemane MARK 14:31"
+   },
+   {
+    "key": "9d0674885bb1",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Having said these words, Yahusha went out with His taught ones beyond the Qiḏron torrent, where there was a garden, into which He and His taught ones entered.",
+    "kk": "Having said these words, yah-hoo-shah went out with His taught ones beyond the Qidron torrent, where there was a garden, into which He and His taught ones entered.",
+    "where": "passion/gethsemane YAHUCHANON 18:1"
+   },
+   {
+    "key": "4af0e009b9ba",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they came to a place called Gethsemane. And He said to His taught ones, ",
+    "kk": "And they came to a place called Gethsemane. And He said to His taught ones,",
+    "where": "passion/gethsemane MARK 14:32"
+   },
+   {
+    "key": "e8dd573eeb1f",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Sit here while I pray.”",
+    "kk": "Sit here while I pray.",
+    "where": "passion/gethsemane MARK 14:32"
+   },
+   {
+    "key": "0c42c55bba16",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And He took with Him Kĕpha and Ya‛aqoḇ and Yahuchanon and He began to be greatly amazed and to be deeply distressed.",
+    "kk": "And He took with Him kay-fah and Yaaqob and yah-hoo-kah-nohn and He began to be greatly amazed and to be deeply distressed.",
+    "where": "passion/gethsemane MARK 14:33"
+   },
+   {
+    "key": "e2fb405c995d",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“My being is exceedingly grieved, even to death. Stay here and watch.”",
+    "kk": "My being is exceedingly grieved, even to death. Stay here and watch.",
+    "where": "passion/gethsemane MARK 14:34"
+   },
+   {
+    "key": "a75c17709179",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And He went on a little and fell on the ground and was praying that if it were possible, the hour might pass from Him.",
+    "kk": "And He went on a little and fell on the ground and was praying that if it were possible, the hour might pass from Him.",
+    "where": "passion/gethsemane MARK 14:35"
+   },
+   {
+    "key": "7bd90e5b26da",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Abba, Father, all is possible for You. Make this cup pass from Me. Yet not what I desire, but what You desire.”",
+    "kk": "Abba, Father, all is possible for You. Make this cup pass from Me. Yet not what I desire, but what You desire.",
+    "where": "passion/gethsemane MARK 14:36"
+   },
+   {
+    "key": "193990640379",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And there appeared a mal'ak from shamayim to Him, strengthening Him.",
+    "kk": "And there appeared a mahl-ahk from shah-mah-yeem to Him, strengthening Him.",
+    "where": "passion/gethsemane LUKE 22:43"
+   },
+   {
+    "key": "c6365a3f9780",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And being in agony, He was praying more earnestly. And His sweat became like great drops of blood falling down to the ground.",
+    "kk": "And being in agony, He was praying more earnestly. And His sweat became like great drops of blood falling down to the ground.",
+    "where": "passion/gethsemane LUKE 22:44"
+   },
+   {
+    "key": "7810969da284",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And He came and found them sleeping and said to Kĕpha, ",
+    "kk": "And He came and found them sleeping and said to kay-fah,",
+    "where": "passion/gethsemane MARK 14:37"
+   },
+   {
+    "key": "862b44c7c60e",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Shim‛on, are you sleeping? You were not able to watch one hour!",
+    "kk": "sheem-ohn, are you sleeping? You were not able to watch one hour!",
+    "where": "passion/gethsemane MARK 14:37"
+   },
+   {
+    "key": "0701bbbc4d89",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Watch and pray, lest you enter into trial. The ruach indeed is eager, but the flesh is weak.”",
+    "kk": "Watch and pray, lest you enter into trial. The roo-ahk indeed is eager, but the flesh is weak.",
+    "where": "passion/gethsemane MARK 14:38"
+   },
+   {
+    "key": "0044b0305c5f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And again He went away and prayed and spoke the same words.",
+    "kk": "And again He went away and prayed and spoke the same words.",
+    "where": "passion/gethsemane MARK 14:39"
+   },
+   {
+    "key": "a4f0d0236330",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having returned, He found them asleep again, for their eyes were heavy. And they did not know what to answer Him.",
+    "kk": "And having returned, He found them asleep again, for their eyes were heavy. And they did not know what to answer Him.",
+    "where": "passion/gethsemane MARK 14:40"
+   },
+   {
+    "key": "a67114e17020",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And He came the third time and said to them, ",
+    "kk": "And He came the third time and said to them,",
+    "where": "passion/gethsemane MARK 14:41-42"
+   },
+   {
+    "key": "cc6af0064d21",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Are you still sleeping and resting? It is enough! The hour has come. See, the Son of Aḏam is being delivered up into the hands of the sinners. “Rise up, let us go. See, he who is delivering Me up has drawn near.”",
+    "kk": "Are you still sleeping and resting? It is enough! The hour has come. See, the Son of Adam is being delivered up into the hands of the sinners. Rise up, let us go. See, he who is delivering Me up has drawn near.",
+    "where": "passion/gethsemane MARK 14:41-42"
+   },
+   {
+    "key": "5434b2c3e12c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And immediately, while He was still speaking, Yahuḏah, one of the twelve, with a large crowd with swords and clubs, came from the chief kohanim and the scribes and the elders.",
+    "kk": "And immediately, while He was still speaking, yah-hoo-dah, one of the twelve, with a large crowd with swords and clubs, came from the chief koh-hah-neem and the scribes and the elders.",
+    "where": "passion/arrest MARK 14:43"
+   },
+   {
+    "key": "c4799018e399",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the one who was delivering Him up had given them a signal, saying, ",
+    "kk": "And the one who was delivering Him up had given them a signal, saying,",
+    "where": "passion/arrest MARK 14:44"
+   },
+   {
+    "key": "a622daf0789d",
+    "kind": "man",
+    "name": "yahudah",
+    "who": "Yahuḏah from Qerioth",
+    "text": "“Whomever I kiss, it is He – seize Him and lead Him away safely.”",
+    "kk": "Whomever I kiss, it is He, seize Him and lead Him away safely.",
+    "where": "passion/arrest MARK 14:44"
+   },
+   {
+    "key": "5064f3aba7e4",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Yahusha, then, knowing all that would come upon Him, went forward and said to them, ",
+    "kk": "yah-hoo-shah, then, knowing all that would come upon Him, went forward and said to them,",
+    "where": "passion/arrest YAHUCHANON 18:4"
+   },
+   {
+    "key": "f1667950d557",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Whom do you seek?”",
+    "kk": "Whom do you seek?",
+    "where": "passion/arrest YAHUCHANON 18:4"
+   },
+   {
+    "key": "13ef656c43fd",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "They answered Him, ",
+    "kk": "They answered Him,",
+    "where": "passion/arrest YAHUCHANON 18:5"
+   },
+   {
+    "key": "1aebe3976562",
+    "kind": "crowd",
+    "name": "officers",
+    "who": "The officers",
+    "text": "“Yahusha of Natsareth.”",
+    "kk": "yah-hoo-shah of nahts-ah-ret.",
+    "where": "passion/arrest YAHUCHANON 18:5"
+   },
+   {
+    "key": "b4ee011b009c",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“I am.”",
+    "kk": "I am.",
+    "where": "passion/arrest YAHUCHANON 18:5"
+   },
+   {
+    "key": "739babe6afad",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And Yahuḏah, who delivered Him up, was also standing with them.",
+    "kk": "And yah-hoo-dah, who delivered Him up, was also standing with them.",
+    "where": "passion/arrest YAHUCHANON 18:5"
+   },
+   {
+    "key": "92a33e188737",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "When, therefore, He said to them, ",
+    "kk": "When, therefore, He said to them,",
+    "where": "passion/arrest YAHUCHANON 18:6"
+   },
+   {
+    "key": "f8f2e95524fa",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“I am,”",
+    "kk": "I am,",
+    "where": "passion/arrest YAHUCHANON 18:6"
+   },
+   {
+    "key": "9da18d2de828",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " they drew back and fell to the ground.",
+    "kk": "they drew back and fell to the ground.",
+    "where": "passion/arrest YAHUCHANON 18:6"
+   },
+   {
+    "key": "e89bfb820dfb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Once more He asked them, ",
+    "kk": "Once more He asked them,",
+    "where": "passion/arrest YAHUCHANON 18:7"
+   },
+   {
+    "key": "6e700f30d711",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“I said to you that I am. If, then, you seek Me, allow these to go,”",
+    "kk": "I said to you that I am. If, then, you seek Me, allow these to go,",
+    "where": "passion/arrest YAHUCHANON 18:8"
+   },
+   {
+    "key": "e86e02b0aee9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "in order that the word might be filled which He spoke, ",
+    "kk": "in order that the word might be filled which He spoke,",
+    "where": "passion/arrest YAHUCHANON 18:9"
+   },
+   {
+    "key": "325501e6f813",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Of those whom You have given Me, I have lost none.”",
+    "kk": "Of those whom You have given Me, I have lost none.",
+    "where": "passion/arrest YAHUCHANON 18:9"
+   },
+   {
+    "key": "c936a73e0671",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And coming, going straight up to Him, he said to Him, ",
+    "kk": "And coming, going straight up to Him, he said to Him,",
+    "where": "passion/arrest MARK 14:45"
+   },
+   {
+    "key": "2e2c94cfb51e",
+    "kind": "man",
+    "name": "yahudah",
+    "who": "Yahuḏah from Qerioth",
+    "text": "“Rabbi, Rabbi!”",
+    "kk": "Rabbi, Rabbi!",
+    "where": "passion/arrest MARK 14:45"
+   },
+   {
+    "key": "771b8f9f498c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " and kissed Him.",
+    "kk": "and kissed Him.",
+    "where": "passion/arrest MARK 14:45"
+   },
+   {
+    "key": "16fc48e5e8a6",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Yahuḏah, do you deliver up the Son of Aḏam with a kiss?”",
+    "kk": "yah-hoo-dah, do you deliver up the Son of Adam with a kiss?",
+    "where": "passion/arrest LUKE 22:48"
+   },
+   {
+    "key": "12b703b41253",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And those around Him, seeing what was about to take place, said to Him, ",
+    "kk": "And those around Him, seeing what was about to take place, said to Him,",
+    "where": "passion/arrest LUKE 22:49"
+   },
+   {
+    "key": "3b5b3b4f1100",
+    "kind": "crowd",
+    "name": "taught",
+    "who": "The taught ones",
+    "text": "“Master, shall we strike with the sword?”",
+    "kk": "Master, shall we strike with the sword?",
+    "where": "passion/arrest LUKE 22:49"
+   },
+   {
+    "key": "26f3a83cfb09",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then Shim‛on Kĕpha, having a sword, drew it and struck the kohen gadol’s servant, and cut off his right ear. And the servant’s name was Meleḵ.",
+    "kk": "Then sheem-ohn kay-fah, having a sword, drew it and struck the kohen gadol's servant, and cut off his right ear. And the servant's name was Melek.",
+    "where": "passion/arrest YAHUCHANON 18:10"
+   },
+   {
+    "key": "77e68afe8f19",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then Yahusha said to Kĕpha, ",
+    "kk": "Then yah-hoo-shah said to kay-fah,",
+    "where": "passion/arrest YAHUCHANON 18:11"
+   },
+   {
+    "key": "3781ecfdff2e",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Put your sword into the sheath. Shall I not drink the cup which My Father has given Me?”",
+    "kk": "Put your sword into the sheath. Shall I not drink the cup which My Father has given Me?",
+    "where": "passion/arrest YAHUCHANON 18:11"
+   },
+   {
+    "key": "6c9e153ae8eb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But Yahusha answering, said, ",
+    "kk": "But yah-hoo-shah answering, said,",
+    "where": "passion/arrest LUKE 22:51"
+   },
+   {
+    "key": "dd916f457708",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Allow it this far.”",
+    "kk": "Allow it this far.",
+    "where": "passion/arrest LUKE 22:51"
+   },
+   {
+    "key": "1a6ae2b36eec",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And touching his ear He healed him.",
+    "kk": "And touching his ear He healed him.",
+    "where": "passion/arrest LUKE 22:51"
+   },
+   {
+    "key": "b076f5aff216",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Have you come out as against a robber, with swords and clubs, to take Me? “Daily I was with you in the Qodash (Set Apart Place) teaching and you did not seize Me. But let the Scriptures be filled.”",
+    "kk": "Have you come out as against a robber, with swords and clubs, to take Me? Daily I was with you in the koh-dahsh teaching and you did not seize Me. But let the Scriptures be filled.",
+    "where": "passion/arrest MARK 14:48-49"
+   },
+   {
+    "key": "b2503c8c1cd3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they all left Him and fled.",
+    "kk": "And they all left Him and fled.",
+    "where": "passion/arrest MARK 14:50"
+   },
+   {
+    "key": "c0cde1666045",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then the company of soldiers and the commander and the officers of the Yahuḏim seized Yahusha and bound Him, and they led Him away to Ḥanan first, for he was the father-in-law of Qayapha who was kohen gadol that year.",
+    "kk": "Then the company of soldiers and the commander and the officers of the yah-hoo-deem seized yah-hoo-shah and bound Him, and they led Him away to Kanan first, for he was the father-in-law of Qayapha who was kohen gadol that year.",
+    "where": "passion/arrest YAHUCHANON 18:12-13"
+   },
+   {
+    "key": "687508e8a199",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Now Qayapha was the one who gave counsel to the Yahuḏim that it was better that one man should die for the people.",
+    "kk": "Now Qayapha was the one who gave counsel to the yah-hoo-deem that it was better that one man should die for the people.",
+    "where": "passion/arrest YAHUCHANON 18:14"
+   },
+   {
+    "key": "9e8460531190",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "You are halfway up the slope before you know you have run. The torches go down toward the city without you.",
+    "kk": "You are halfway up the slope before you know you have run. The torches go down toward the city without you.",
+    "where": "passion/arrest choice"
+   },
+   {
+    "key": "c34ccf88b01b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Kĕpha is ahead of you in the dark, keeping well back. So are you.",
+    "kk": "kay-fah is ahead of you in the dark, keeping well back. So are you.",
+    "where": "passion/arrest choice"
+   },
+   {
+    "key": "8dd071c4ca1d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they led Yahusha away to the kohen gadol. And all the chief kohanim and the elders and the scribes came together to Him.",
+    "kk": "And they led yah-hoo-shah away to the kohen gadol. And all the chief koh-hah-neem and the elders and the scribes came together to Him.",
+    "where": "passion/courtyard MARK 14:53"
+   },
+   {
+    "key": "92cc54c8fd5b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Shim‛on Kĕpha followed Yahusha, with another taught one, and that taught one was known to the kohen gadol, and went with Yahusha into the courtyard of the kohen gadol.",
+    "kk": "And sheem-ohn kay-fah followed yah-hoo-shah, with another taught one, and that taught one was known to the kohen gadol, and went with yah-hoo-shah into the courtyard of the kohen gadol.",
+    "where": "passion/courtyard YAHUCHANON 18:15"
+   },
+   {
+    "key": "9b833531ddfa",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But Kĕpha was standing outside at the door. So the other taught one, who was known to the kohen gadol, went out and spoke to her who kept the door, and brought Kĕpha in.",
+    "kk": "But kay-fah was standing outside at the door. So the other taught one, who was known to the kohen gadol, went out and spoke to her who kept the door, and brought kay-fah in.",
+    "where": "passion/courtyard YAHUCHANON 18:16"
+   },
+   {
+    "key": "3159528eaa13",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the servants and officers who had made a fire of coals stood there, because it was cold, and they warmed themselves. And Kĕpha was standing with them and warming himself.",
+    "kk": "And the servants and officers who had made a fire of coals stood there, because it was cold, and they warmed themselves. And kay-fah was standing with them and warming himself.",
+    "where": "passion/courtyard YAHUCHANON 18:18"
+   },
+   {
+    "key": "8578da51411c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the chief kohanim and all the council were seeking witness against Yahusha to put Him to death and they were finding none.",
+    "kk": "And the chief koh-hah-neem and all the council were seeking witness against yah-hoo-shah to put Him to death and they were finding none.",
+    "where": "passion/courtyard MARK 14:55"
+   },
+   {
+    "key": "8c1ffbefc5ec",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "For many bore false witness against Him, but their evidences did not agree.",
+    "kk": "For many bore false witness against Him, but their evidences did not agree.",
+    "where": "passion/courtyard MARK 14:56"
+   },
+   {
+    "key": "82a2158d4e6c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And some rose up and bore false witness against Him, saying, ",
+    "kk": "And some rose up and bore false witness against Him, saying,",
+    "where": "passion/courtyard MARK 14:57-58"
+   },
+   {
+    "key": "0203fd840d73",
+    "kind": "man",
+    "name": "false",
+    "who": "Some who bore false witness",
+    "text": "“We heard Him saying, ‘I shall destroy this Dwelling Place that is made with hands and within three days I shall build another made without hands.’ ”",
+    "kk": "We heard Him saying, I shall destroy this Dwelling Place that is made with hands and within three days I shall build another made without hands.",
+    "where": "passion/courtyard MARK 14:57-58"
+   },
+   {
+    "key": "48b2bdcc7079",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And not even then did their witness agree.",
+    "kk": "And not even then did their witness agree.",
+    "where": "passion/courtyard MARK 14:59"
+   },
+   {
+    "key": "09dff3ed2468",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then the kohen gadol stood up in the centre and asked Yahusha, saying, ",
+    "kk": "Then the kohen gadol stood up in the centre and asked yah-hoo-shah, saying,",
+    "where": "passion/courtyard MARK 14:60"
+   },
+   {
+    "key": "ce08aa661631",
+    "kind": "oldman",
+    "name": "qayapha",
+    "who": "Qayapha the kohen gadol",
+    "text": "“Have You no answer to make? What do these witness against You?”",
+    "kk": "Have You no answer to make? What do these witness against You?",
+    "where": "passion/courtyard MARK 14:60"
+   },
+   {
+    "key": "596cf41faf56",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But He remained silent and gave no answer. Again the kohen gadol asked Him, saying to Him, ",
+    "kk": "But He remained silent and gave no answer. Again the kohen gadol asked Him, saying to Him,",
+    "where": "passion/courtyard MARK 14:61"
+   },
+   {
+    "key": "2ec680d766f6",
+    "kind": "oldman",
+    "name": "qayapha",
+    "who": "Qayapha the kohen gadol",
+    "text": "“Are You the Mashiach, the Son of the baruk?”",
+    "kk": "Are You the mah-shee-ahk, the Son of the baruk?",
+    "where": "passion/courtyard MARK 14:61"
+   },
+   {
+    "key": "ca7c46a6ab31",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“I am and you shall see the Son of Aḏam sitting at the right hand of the Power and coming with the clouds of the shamayim.”",
+    "kk": "I am and you shall see the Son of Adam sitting at the right hand of the Power and coming with the clouds of the shah-mah-yeem.",
+    "where": "passion/courtyard MARK 14:62"
+   },
+   {
+    "key": "a4f0aba90716",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And tearing his garments, the kohen gadol said, ",
+    "kk": "And tearing his garments, the kohen gadol said,",
+    "where": "passion/courtyard MARK 14:63-64"
+   },
+   {
+    "key": "4599bedffa38",
+    "kind": "oldman",
+    "name": "qayapha",
+    "who": "Qayapha the kohen gadol",
+    "text": "“What further need do we have of witnesses? “You have heard the blasphemy! What do you think?”",
+    "kk": "What further need do we have of witnesses? You have heard the blasphemy! What do you think?",
+    "where": "passion/courtyard MARK 14:63-64"
+   },
+   {
+    "key": "6420e936076d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And they all condemned Him to be liable to death.",
+    "kk": "And they all condemned Him to be liable to death.",
+    "where": "passion/courtyard MARK 14:63-64"
+   },
+   {
+    "key": "a71df345016a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And some began to spit on Him and to blindfold Him and to beat Him and to say to Him, ",
+    "kk": "And some began to spit on Him and to blindfold Him and to beat Him and to say to Him,",
+    "where": "passion/courtyard MARK 14:65"
+   },
+   {
+    "key": "2843e642109f",
+    "kind": "man",
+    "name": "those who struck him",
+    "who": "Some of them",
+    "text": "“Prophesy!”",
+    "kk": "Prophesy!",
+    "where": "passion/courtyard MARK 14:65"
+   },
+   {
+    "key": "fae87147b556",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And the officers struck Him with the palms of their hands.",
+    "kk": "And the officers struck Him with the palms of their hands.",
+    "where": "passion/courtyard MARK 14:65"
+   },
+   {
+    "key": "2ee9c9691ef0",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And as Kĕpha was below in the courtyard, one of the servant girls of the kohen gadol came, and seeing Kĕpha warming himself, she looked at him and said, ",
+    "kk": "And as kay-fah was below in the courtyard, one of the servant girls of the kohen gadol came, and seeing kay-fah warming himself, she looked at him and said,",
+    "where": "passion/courtyard MARK 14:66-67"
+   },
+   {
+    "key": "b201e1b99132",
+    "kind": "woman",
+    "name": "servant",
+    "who": "A servant girl",
+    "text": "“And you were with Yahusha of Natsareth.”",
+    "kk": "And you were with yah-hoo-shah of nahts-ah-ret.",
+    "where": "passion/courtyard MARK 14:66-67"
+   },
+   {
+    "key": "1a987676dcbd",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But he denied it, saying, ",
+    "kk": "But he denied it, saying,",
+    "where": "passion/courtyard MARK 14:68"
+   },
+   {
+    "key": "08559ffe227b",
+    "kind": "man",
+    "name": "shimon",
+    "who": "Shim‛on Kĕpha",
+    "text": "“I do not know nor understand what you are saying.”",
+    "kk": "I do not know nor understand what you are saying.",
+    "where": "passion/courtyard MARK 14:68"
+   },
+   {
+    "key": "a97d748c90cb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And he went out onto the porch and a cock crowed.",
+    "kk": "And he went out onto the porch and a cock crowed.",
+    "where": "passion/courtyard MARK 14:68"
+   },
+   {
+    "key": "2b9455cb503a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the servant girl saw him again and began to say to those who stood by, ",
+    "kk": "And the servant girl saw him again and began to say to those who stood by,",
+    "where": "passion/courtyard MARK 14:69"
+   },
+   {
+    "key": "0b1736b9d8b4",
+    "kind": "woman",
+    "name": "servant",
+    "who": "A servant girl",
+    "text": "“This is one of them.”",
+    "kk": "This is one of them.",
+    "where": "passion/courtyard MARK 14:69"
+   },
+   {
+    "key": "e67a3eaa6865",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And again he was denying it. And after a little while those who stood by again said to Kĕpha, ",
+    "kk": "And again he was denying it. And after a little while those who stood by again said to kay-fah,",
+    "where": "passion/courtyard MARK 14:70"
+   },
+   {
+    "key": "b628210a6a05",
+    "kind": "man",
+    "name": "those who stood by the fire",
+    "who": "Those who stood by",
+    "text": "“Truly you are one of them, for you are a Galilean too and your speech is alike.”",
+    "kk": "Truly you are one of them, for you are a Galilean too and your speech is alike.",
+    "where": "passion/courtyard MARK 14:70"
+   },
+   {
+    "key": "59ecf1f98ee8",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And about an hour later, another insisted, saying, ",
+    "kk": "And about an hour later, another insisted, saying,",
+    "where": "passion/courtyard LUKE 22:59"
+   },
+   {
+    "key": "52b51ed6bd2d",
+    "kind": "man",
+    "name": "another at the fire",
+    "who": "Another",
+    "text": "“Truly, this one was with Him too, for he is a Galilean too.”",
+    "kk": "Truly, this one was with Him too, for he is a Galilean too.",
+    "where": "passion/courtyard LUKE 22:59"
+   },
+   {
+    "key": "5d5028fc3b27",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But Kĕpha said,",
+    "kk": "But kay-fah said,",
+    "where": "passion/courtyard LUKE 22:60"
+   },
+   {
+    "key": "015dc1aa219b",
+    "kind": "man",
+    "name": "shimon",
+    "who": "Shim‛on Kĕpha",
+    "text": "“Man, I do not know what you are saying!”",
+    "kk": "Man, I do not know what you are saying!",
+    "where": "passion/courtyard LUKE 22:60"
+   },
+   {
+    "key": "0fd2f02a24f3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And immediately, while he was still speaking, a cock crowed.",
+    "kk": "And immediately, while he was still speaking, a cock crowed.",
+    "where": "passion/courtyard LUKE 22:60"
+   },
+   {
+    "key": "7b3e0c8322fa",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the Master turned and looked at Kĕpha and Kĕpha remembered the word of the Master, how He had said to him, ",
+    "kk": "And the Master turned and looked at kay-fah and kay-fah remembered the word of the Master, how He had said to him,",
+    "where": "passion/courtyard LUKE 22:61"
+   },
+   {
+    "key": "2fcf276fb4d4",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Before a cock crows, you shall deny Me three times.”",
+    "kk": "Before a cock crows, you shall deny Me three times.",
+    "where": "passion/courtyard LUKE 22:61"
+   },
+   {
+    "key": "ae479c3c56b3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Kĕpha went out and wept bitterly.",
+    "kk": "kay-fah went out and wept bitterly.",
+    "where": "passion/courtyard LUKE 22:62"
+   },
+   {
+    "key": "be564bca21c1",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "He is sitting against the wall in the lane with his face in his hands. You sit down beside him and say nothing.",
+    "kk": "He is sitting against the wall in the lane with his face in his hands. You sit down beside him and say nothing.",
+    "where": "passion/courtyard choice"
+   },
+   {
+    "key": "e941c1fb1ce4",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "The servant girl looks at you too. You hold her eyes, and she looks away.",
+    "kk": "The servant girl looks at you too. You hold her eyes, and she looks away.",
+    "where": "passion/courtyard choice"
+   },
+   {
+    "key": "5d66fefaa237",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then they led Yahusha from Qayapha to the palace, and it was early. And they themselves did not go into the palace, lest they should be defiled, but that they might eat the Pesach.",
+    "kk": "Then they led yah-hoo-shah from Qayapha to the palace, and it was early. And they themselves did not go into the palace, lest they should be defiled, but that they might eat the peh-sahk.",
+    "where": "passion/pilate YAHUCHANON 18:28"
+   },
+   {
+    "key": "4a5c75d33610",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Pilate, therefore, came out to them and said, ",
+    "kk": "Pilate, therefore, came out to them and said,",
+    "where": "passion/pilate YAHUCHANON 18:29"
+   },
+   {
+    "key": "d3ed24e7ec0c",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“What accusation do you bring against this Man?”",
+    "kk": "What accusation do you bring against this Man?",
+    "where": "passion/pilate YAHUCHANON 18:29"
+   },
+   {
+    "key": "ca91de797c08",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "They answered and said to him, ",
+    "kk": "They answered and said to him,",
+    "where": "passion/pilate YAHUCHANON 18:30"
+   },
+   {
+    "key": "0ed63bd029bb",
+    "kind": "crowd",
+    "name": "yahudim",
+    "who": "The Yahuḏim",
+    "text": "“If He were not an evil-doer, we would not have delivered Him up to you.”",
+    "kk": "If He were not an evil-doer, we would not have delivered Him up to you.",
+    "where": "passion/pilate YAHUCHANON 18:30"
+   },
+   {
+    "key": "29ec984d79d2",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then Pilate said to them, ",
+    "kk": "Then Pilate said to them,",
+    "where": "passion/pilate YAHUCHANON 18:31-32"
+   },
+   {
+    "key": "88c31b7db424",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“You take Him and judge Him according to your law.”",
+    "kk": "You take Him and judge Him according to your law.",
+    "where": "passion/pilate YAHUCHANON 18:31-32"
+   },
+   {
+    "key": "f238e6f48fcd",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " The Yahuḏim said to him, ",
+    "kk": "The yah-hoo-deem said to him,",
+    "where": "passion/pilate YAHUCHANON 18:31-32"
+   },
+   {
+    "key": "91c1762393ce",
+    "kind": "crowd",
+    "name": "yahudim",
+    "who": "The Yahuḏim",
+    "text": "“It is not right for us to put anyone to death,”",
+    "kk": "It is not right for us to put anyone to death,",
+    "where": "passion/pilate YAHUCHANON 18:31-32"
+   },
+   {
+    "key": "1443a638ee43",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " in order that the Word of Yahusha might be filled which He spoke, signifying by what death He was about to die.",
+    "kk": "in order that the Word of yah-hoo-shah might be filled which He spoke, signifying by what death He was about to die.",
+    "where": "passion/pilate YAHUCHANON 18:31-32"
+   },
+   {
+    "key": "a086e9336f84",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then Pilate went back into the palace, and called Yahusha, and said to Him, ",
+    "kk": "Then Pilate went back into the palace, and called yah-hoo-shah, and said to Him,",
+    "where": "passion/pilate YAHUCHANON 18:33"
+   },
+   {
+    "key": "d6993eac88fd",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“Are You the Sovereign of the Yahuḏim?”",
+    "kk": "Are You the Sovereign of the yah-hoo-deem?",
+    "where": "passion/pilate YAHUCHANON 18:33"
+   },
+   {
+    "key": "f5f885b58c3c",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Do you say this from yourself, or did others talk to you about Me?”",
+    "kk": "Do you say this from yourself, or did others talk to you about Me?",
+    "where": "passion/pilate YAHUCHANON 18:34"
+   },
+   {
+    "key": "138f1273f93e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Pilate answered, ",
+    "kk": "Pilate answered,",
+    "where": "passion/pilate YAHUCHANON 18:35"
+   },
+   {
+    "key": "7e99ffd01885",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“Am I a Yahuḏite? Your own nation and the chief kohanim have delivered You to me. What did You do?”",
+    "kk": "Am I a Yahudite? Your own nation and the chief koh-hah-neem have delivered You to me. What did You do?",
+    "where": "passion/pilate YAHUCHANON 18:35"
+   },
+   {
+    "key": "c19f537cd389",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“My reign is not of this world. If My reign were of this world, My servants would fight, so that I should not be delivered to the Yahuḏim. But now My reign is not from here.”",
+    "kk": "My reign is not of this world. If My reign were of this world, My servants would fight, so that I should not be delivered to the yah-hoo-deem. But now My reign is not from here.",
+    "where": "passion/pilate YAHUCHANON 18:36"
+   },
+   {
+    "key": "710993cb8f5a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then Pilate said to Him, ",
+    "kk": "Then Pilate said to Him,",
+    "where": "passion/pilate YAHUCHANON 18:37"
+   },
+   {
+    "key": "32e9d1c5ac32",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“You are a sovereign, then?”",
+    "kk": "You are a sovereign, then?",
+    "where": "passion/pilate YAHUCHANON 18:37"
+   },
+   {
+    "key": "fcf64b49134e",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“You say it, because I am a Sovereign. For this I was born, and for this I have come into the world, that I should bear witness to the truth. Everyone who is of the truth hears My voice.”",
+    "kk": "You say it, because I am a Sovereign. For this I was born, and for this I have come into the world, that I should bear witness to the truth. Everyone who is of the truth hears My voice.",
+    "where": "passion/pilate YAHUCHANON 18:37"
+   },
+   {
+    "key": "9512b1aa6335",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Pilate said to Him, ",
+    "kk": "Pilate said to Him,",
+    "where": "passion/pilate YAHUCHANON 18:38"
+   },
+   {
+    "key": "94241f17163c",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“What is truth?”",
+    "kk": "What is truth?",
+    "where": "passion/pilate YAHUCHANON 18:38"
+   },
+   {
+    "key": "4e8a71f9d5d0",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And when he had said this, he went out again to the Yahuḏim, and said to them, ",
+    "kk": "And when he had said this, he went out again to the yah-hoo-deem, and said to them,",
+    "where": "passion/pilate YAHUCHANON 18:38"
+   },
+   {
+    "key": "afea02cf4c78",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“I find no guilt in Him.",
+    "kk": "I find no guilt in Him.",
+    "where": "passion/pilate YAHUCHANON 18:38"
+   },
+   {
+    "key": "37eff6923ae9",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“But you have a habit that I shall release someone to you at the Pesach. Do you wish, then, that I release to you the Sovereign of the Yahuḏim?”",
+    "kk": "But you have a habit that I shall release someone to you at the peh-sahk. Do you wish, then, that I release to you the Sovereign of the yah-hoo-deem?",
+    "where": "passion/pilate YAHUCHANON 18:39"
+   },
+   {
+    "key": "fec9955aba9b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then they all shouted again, saying, ",
+    "kk": "Then they all shouted again, saying,",
+    "where": "passion/pilate YAHUCHANON 18:40"
+   },
+   {
+    "key": "1298d6a1fcfc",
+    "kind": "crowd",
+    "name": "yahudim",
+    "who": "The Yahuḏim",
+    "text": "“Not this One, but Barabba!”",
+    "kk": "Not this One, but Barabba!",
+    "where": "passion/pilate YAHUCHANON 18:40"
+   },
+   {
+    "key": "8a60fc79291e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And Barabba was a robber.",
+    "kk": "And Barabba was a robber.",
+    "where": "passion/pilate YAHUCHANON 18:40"
+   },
+   {
+    "key": "46913db4cf6d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And as he was sitting on the mishpat seat, his wife sent to him, saying, ",
+    "kk": "And as he was sitting on the mishpat seat, his wife sent to him, saying,",
+    "where": "passion/pilate MATTITHYAHU 27:19"
+   },
+   {
+    "key": "4b4afc6d93e0",
+    "kind": "woman",
+    "name": "wife",
+    "who": "The wife of Pilate",
+    "text": "“Have none at all to do with that righteous Man, for I have suffered much today in a dream because of Him.”",
+    "kk": "Have none at all to do with that righteous Man, for I have suffered much today in a dream because of Him.",
+    "where": "passion/pilate MATTITHYAHU 27:19"
+   },
+   {
+    "key": "930e3337a05c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "The flogging and the mocking are told here as the Besorah tells them. They are not shown.",
+    "kk": "The flogging and the mocking are told here as the beh-soh-rah tells them. They are not shown.",
+    "where": "passion/pilate note"
+   },
+   {
+    "key": "64b1e6b46eb7",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then, therefore, Pilate took Yahusha and flogged Him.",
+    "kk": "Then, therefore, Pilate took yah-hoo-shah and flogged Him.",
+    "where": "passion/pilate YAHUCHANON 19:1"
+   },
+   {
+    "key": "31724b32c473",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the soldiers plaited a crown of thorns and placed it on His head, and they put a purple robe on Him,",
+    "kk": "And the soldiers plaited a crown of thorns and placed it on His head, and they put a purple robe on Him,",
+    "where": "passion/pilate YAHUCHANON 19:2"
+   },
+   {
+    "key": "9e9247d1fe7a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "and came to Him and said, ",
+    "kk": "and came to Him and said,",
+    "where": "passion/pilate YAHUCHANON 19:3"
+   },
+   {
+    "key": "923a7b9f36a0",
+    "kind": "man",
+    "name": "soldiers",
+    "who": "The soldiers",
+    "text": "“Greetings, Sovereign of the Yahuḏim!”",
+    "kk": "Greetings, Sovereign of the yah-hoo-deem!",
+    "where": "passion/pilate YAHUCHANON 19:3"
+   },
+   {
+    "key": "f342cbca3f85",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And they slapped Him in the face.",
+    "kk": "And they slapped Him in the face.",
+    "where": "passion/pilate YAHUCHANON 19:3"
+   },
+   {
+    "key": "b34e5fa3b086",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Pilate went outside again, and said to them, ",
+    "kk": "And Pilate went outside again, and said to them,",
+    "where": "passion/pilate YAHUCHANON 19:4"
+   },
+   {
+    "key": "c5e1771b2602",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“See, I am bringing Him out to you, to let you know that I find no guilt in Him.”",
+    "kk": "See, I am bringing Him out to you, to let you know that I find no guilt in Him.",
+    "where": "passion/pilate YAHUCHANON 19:4"
+   },
+   {
+    "key": "9e00a26c51f9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then Yahusha came outside, wearing the crown of thorns and the purple robe. And Pilate said to them, ",
+    "kk": "Then yah-hoo-shah came outside, wearing the crown of thorns and the purple robe. And Pilate said to them,",
+    "where": "passion/pilate YAHUCHANON 19:5"
+   },
+   {
+    "key": "a4292c46801d",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“See the Man!”",
+    "kk": "See the Man!",
+    "where": "passion/pilate YAHUCHANON 19:5"
+   },
+   {
+    "key": "8ac8dd80e08f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "So when the chief kohanim and officers saw Him, they shouted, saying, ",
+    "kk": "So when the chief koh-hah-neem and officers saw Him, they shouted, saying,",
+    "where": "passion/pilate YAHUCHANON 19:6"
+   },
+   {
+    "key": "660509324ce7",
+    "kind": "oldman",
+    "name": "chief kohanim",
+    "who": "The chief kohanim",
+    "text": "“Impale! Impale!”",
+    "kk": "Impale! Impale!",
+    "where": "passion/pilate YAHUCHANON 19:6"
+   },
+   {
+    "key": "74b15e22f8bb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " Pilate said to them, ",
+    "kk": "Pilate said to them,",
+    "where": "passion/pilate YAHUCHANON 19:6"
+   },
+   {
+    "key": "3fdde0583d2f",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“You take Him and impale Him, for I find no guilt in Him.”",
+    "kk": "You take Him and impale Him, for I find no guilt in Him.",
+    "where": "passion/pilate YAHUCHANON 19:6"
+   },
+   {
+    "key": "0239810bdf94",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "The Yahuḏim answered him, ",
+    "kk": "The yah-hoo-deem answered him,",
+    "where": "passion/pilate YAHUCHANON 19:7"
+   },
+   {
+    "key": "0ecce0a54024",
+    "kind": "crowd",
+    "name": "yahudim",
+    "who": "The Yahuḏim",
+    "text": "“We have a law, and according to our law He ought to die, for He has made Himself the Son of Aluahim.”",
+    "kk": "We have a law, and according to our law He ought to die, for He has made Himself the Son of al-oo-ah-heem.",
+    "where": "passion/pilate YAHUCHANON 19:7"
+   },
+   {
+    "key": "c7079ac2f8c5",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "So when Pilate heard this word, he was more afraid,",
+    "kk": "So when Pilate heard this word, he was more afraid,",
+    "where": "passion/pilate YAHUCHANON 19:8"
+   },
+   {
+    "key": "9073acd0d743",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "and went back into the palace, and asked Yahusha,",
+    "kk": "and went back into the palace, and asked yah-hoo-shah,",
+    "where": "passion/pilate YAHUCHANON 19:9"
+   },
+   {
+    "key": "7988334ed3fb",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“Where are You from?”",
+    "kk": "Where are You from?",
+    "where": "passion/pilate YAHUCHANON 19:9"
+   },
+   {
+    "key": "5f06e3cf6ad4",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " But Yahusha gave him no answer.",
+    "kk": "But yah-hoo-shah gave him no answer.",
+    "where": "passion/pilate YAHUCHANON 19:9"
+   },
+   {
+    "key": "6b5ee60eddeb",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“Do You not speak to me? Do You not know that I possess authority to impale You, and I possess authority to release You?”",
+    "kk": "Do You not speak to me? Do You not know that I possess authority to impale You, and I possess authority to release You?",
+    "where": "passion/pilate YAHUCHANON 19:10"
+   },
+   {
+    "key": "a3439beec589",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“You would possess no authority against Me if it were not given you from above. Because of this, he who delivered Me to you has greater sin.”",
+    "kk": "You would possess no authority against Me if it were not given you from above. Because of this, he who delivered Me to you has greater sin.",
+    "where": "passion/pilate YAHUCHANON 19:11"
+   },
+   {
+    "key": "0865a32e5c07",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "From then on Pilate was seeking to release Him, but the Yahuḏim shouted, saying, ",
+    "kk": "From then on Pilate was seeking to release Him, but the yah-hoo-deem shouted, saying,",
+    "where": "passion/pilate YAHUCHANON 19:12"
+   },
+   {
+    "key": "136676b5166c",
+    "kind": "crowd",
+    "name": "yahudim",
+    "who": "The Yahuḏim",
+    "text": "“If you release this One, you are not Caesar’s friend. Everyone who makes himself a sovereign, does speak against Caesar.”",
+    "kk": "If you release this One, you are not Caesar's friend. Everyone who makes himself a sovereign, does speak against Caesar.",
+    "where": "passion/pilate YAHUCHANON 19:12"
+   },
+   {
+    "key": "d74ee4d6bf4f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Therefore, when Pilate heard these words, he brought Yahusha out and sat down in the mishpat seat in a place that is called Pavement, but in Heḇrew, Gabbatha.",
+    "kk": "Therefore, when Pilate heard these words, he brought yah-hoo-shah out and sat down in the mishpat seat in a place that is called Pavement, but in Hebrew, Gabbatha.",
+    "where": "passion/pilate YAHUCHANON 19:13"
+   },
+   {
+    "key": "2e4ca0802719",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And it was the Preparation Day of the Pesach week, and about the sixth hour. And he said to the Yahuḏim, ",
+    "kk": "And it was the Preparation Day of the peh-sahk week, and about the sixth hour. And he said to the yah-hoo-deem,",
+    "where": "passion/pilate YAHUCHANON 19:14"
+   },
+   {
+    "key": "2647a82c80b1",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“See your Sovereign!”",
+    "kk": "See your Sovereign!",
+    "where": "passion/pilate YAHUCHANON 19:14"
+   },
+   {
+    "key": "8ee7d4be626d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But they shouted, ",
+    "kk": "But they shouted,",
+    "where": "passion/pilate YAHUCHANON 19:15"
+   },
+   {
+    "key": "a3ac54ccddb3",
+    "kind": "crowd",
+    "name": "yahudim",
+    "who": "The Yahuḏim",
+    "text": "“Away, away, impale Him!”",
+    "kk": "Away, away, impale Him!",
+    "where": "passion/pilate YAHUCHANON 19:15"
+   },
+   {
+    "key": "fc66813c655b",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“Shall I impale your Sovereign?”",
+    "kk": "Shall I impale your Sovereign?",
+    "where": "passion/pilate YAHUCHANON 19:15"
+   },
+   {
+    "key": "5041534328b8",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " The chief kohanim answered, ",
+    "kk": "The chief koh-hah-neem answered,",
+    "where": "passion/pilate YAHUCHANON 19:15"
+   },
+   {
+    "key": "36f1eeea8d9b",
+    "kind": "oldman",
+    "name": "chief kohanim",
+    "who": "The chief kohanim",
+    "text": "“We have no sovereign except Caesar!”",
+    "kk": "We have no sovereign except Caesar!",
+    "where": "passion/pilate YAHUCHANON 19:15"
+   },
+   {
+    "key": "5a61390f4ff6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when Pilate saw that he was getting nowhere, but rather an uproar was starting, he took water and washed his hands before the crowd, saying, ",
+    "kk": "And when Pilate saw that he was getting nowhere, but rather an uproar was starting, he took water and washed his hands before the crowd, saying,",
+    "where": "passion/pilate MATTITHYAHU 27:24"
+   },
+   {
+    "key": "8b3e3c19a9ce",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“I am innocent of the blood of this righteous One. You shall see to it.”",
+    "kk": "I am innocent of the blood of this righteous One. You shall see to it.",
+    "where": "passion/pilate MATTITHYAHU 27:24"
+   },
+   {
+    "key": "f29578f29555",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And all the people answering, said, ",
+    "kk": "And all the people answering, said,",
+    "where": "passion/pilate MATTITHYAHU 27:25"
+   },
+   {
+    "key": "8d6293f3ea12",
+    "kind": "crowd",
+    "name": "all",
+    "who": "All the people",
+    "text": "“His blood be on us and on our children.”",
+    "kk": "His blood be on us and on our children.",
+    "where": "passion/pilate MATTITHYAHU 27:25"
+   },
+   {
+    "key": "b2a80ed2eaad",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "At that time, then, he delivered Him to them to be impaled. And they took Yahusha and led Him away.",
+    "kk": "At that time, then, he delivered Him to them to be impaled. And they took yah-hoo-shah and led Him away.",
+    "where": "passion/pilate YAHUCHANON 19:16"
+   },
+   {
+    "key": "2b4b4b363b35",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "You find none of the Twelve. You find a man from Kephar Naḥum who ate the bread on the grass. He is shouting with the rest.",
+    "kk": "You find none of the Twelve. You find a man from Kephar Nakum who ate the bread on the grass. He is shouting with the rest.",
+    "where": "passion/pilate choice"
+   },
+   {
+    "key": "e13f703f3486",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "He is walking out through the crowd, rubbing his wrists, not quite believing it. A man who should have died today.",
+    "kk": "He is walking out through the crowd, rubbing his wrists, not quite believing it. A man who should have died today.",
+    "where": "passion/pilate choice"
+   },
+   {
+    "key": "f87f521b8502",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And as they led Him away, they laid hold of a certain man, Shim‛on a Cyrenian, who was coming from the field and they put the stake on him, to bear it behind Yahusha.",
+    "kk": "And as they led Him away, they laid hold of a certain man, sheem-ohn a Cyrenian, who was coming from the field and they put the stake on him, to bear it behind yah-hoo-shah.",
+    "where": "passion/golgotha LUKE 23:26"
+   },
+   {
+    "key": "3494d548fb2b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And a great number of the people were following Him and women who also were mourning and lamenting Him.",
+    "kk": "And a great number of the people were following Him and women who also were mourning and lamenting Him.",
+    "where": "passion/golgotha LUKE 23:27"
+   },
+   {
+    "key": "ea7831824735",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But Yahusha, turning to them, said, ",
+    "kk": "But yah-hoo-shah, turning to them, said,",
+    "where": "passion/golgotha LUKE 23:28"
+   },
+   {
+    "key": "ae829468dcbf",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Daughters of Yahrushalayim, do not weep for Me, but weep for yourselves and for your children.",
+    "kk": "Daughters of yah-roo-shah-lah-yeem, do not weep for Me, but weep for yourselves and for your children.",
+    "where": "passion/golgotha LUKE 23:28"
+   },
+   {
+    "key": "f5f47a7eff45",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“For look, days are coming in which they shall say,‘Baruk are the barren and wombs that never bore and the breasts which never nursed!’",
+    "kk": "For look, days are coming in which they shall say,Baruk are the barren and wombs that never bore and the breasts which never nursed!",
+    "where": "passion/golgotha LUKE 23:29"
+   },
+   {
+    "key": "f7dd36b45f15",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Then they shall begin ‘to say to the mountains, “Fall on us!” and to the hills, “Cover us!” ’",
+    "kk": "Then they shall begin to say to the mountains, Fall on us! and to the hills, Cover us!",
+    "where": "passion/golgotha LUKE 23:30"
+   },
+   {
+    "key": "5b5b09972626",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“If they do this to the green tree, what is going to be done to the dry tree?”",
+    "kk": "If they do this to the green tree, what is going to be done to the dry tree?",
+    "where": "passion/golgotha LUKE 23:31"
+   },
+   {
+    "key": "2c57db8c73c1",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And two others also, evil-doers, were led with Him to be put to death.",
+    "kk": "And two others also, evil-doers, were led with Him to be put to death.",
+    "where": "passion/golgotha LUKE 23:32"
+   },
+   {
+    "key": "703951b9e1ee",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when they had come to the place called Golgotha, they impaled Him there and the evil-doers, one on the right and the other on the left.",
+    "kk": "And when they had come to the place called Golgotha, they impaled Him there and the evil-doers, one on the right and the other on the left.",
+    "where": "passion/golgotha LUKE 23:33"
+   },
+   {
+    "key": "e451fb853690",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Father, forgive them, for they do not know what they do.”",
+    "kk": "Father, forgive them, for they do not know what they do.",
+    "where": "passion/golgotha LUKE 23:34"
+   },
+   {
+    "key": "5957234c50c9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And they divided His garments and cast lots.",
+    "kk": "And they divided His garments and cast lots.",
+    "where": "passion/golgotha LUKE 23:34"
+   },
+   {
+    "key": "6a52504ee17b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Pilate wrote a title too, and put it on the stake, and it was written: Yahusha OF NATSARETH, THE SOVEREIGN OF THE YAHUḎIM.",
+    "kk": "And Pilate wrote a title too, and put it on the stake, and it was written, yah-hoo-shah of nahts-ah-ret, the sovereign of the yah-hoo-deem.",
+    "where": "passion/golgotha YAHUCHANON 19:19"
+   },
+   {
+    "key": "7e6c602723ec",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Many of the Yahuḏim therefore read this title, for the place where Yahusha was impaled was near the city, and it was written in Heḇrew, in Greek, in Roman.",
+    "kk": "Many of the yah-hoo-deem therefore read this title, for the place where yah-hoo-shah was impaled was near the city, and it was written in Hebrew, in Greek, in Roman.",
+    "where": "passion/golgotha YAHUCHANON 19:20"
+   },
+   {
+    "key": "b28c8b0b34d4",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "So the chief kohanim of the Yahuḏim said to Pilate, ",
+    "kk": "So the chief koh-hah-neem of the yah-hoo-deem said to Pilate,",
+    "where": "passion/golgotha YAHUCHANON 19:21"
+   },
+   {
+    "key": "3febfca209e1",
+    "kind": "oldman",
+    "name": "chief kohanim",
+    "who": "The chief kohanim",
+    "text": "“Do not write,‘The Sovereign of the Yahuḏim,’but, ‘He said, “I am the Sovereign of the Yahuḏim.” ’ ”",
+    "kk": "Do not write,The Sovereign of the yah-hoo-deem,but, He said, I am the Sovereign of the yah-hoo-deem.",
+    "where": "passion/golgotha YAHUCHANON 19:21"
+   },
+   {
+    "key": "16b02dd3db6c",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“What I have written, I have written.”",
+    "kk": "What I have written, I have written.",
+    "where": "passion/golgotha YAHUCHANON 19:22"
+   },
+   {
+    "key": "2a574f688c29",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then the soldiers, when they had impaled Yahusha, took His outer garments and made four parts, to each soldier a part, and the inner garment. But the inner garment was without seam, woven from the top in one piece.",
+    "kk": "Then the soldiers, when they had impaled yah-hoo-shah, took His outer garments and made four parts, to each soldier a part, and the inner garment. But the inner garment was without seam, woven from the top in one piece.",
+    "where": "passion/golgotha YAHUCHANON 19:23"
+   },
+   {
+    "key": "cf9d35c42063",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "So they said to each other, ",
+    "kk": "So they said to each other,",
+    "where": "passion/golgotha YAHUCHANON 19:24"
+   },
+   {
+    "key": "803c1d5a90bf",
+    "kind": "man",
+    "name": "soldiers",
+    "who": "The soldiers",
+    "text": "“Let us not tear it, but cast lots for it – whose it shall be,”",
+    "kk": "Let us not tear it, but cast lots for it, whose it shall be,",
+    "where": "passion/golgotha YAHUCHANON 19:24"
+   },
+   {
+    "key": "1969bede1e8d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " in order that the Scripture might be filled which says, ",
+    "kk": "in order that the Scripture might be filled which says,",
+    "where": "passion/golgotha YAHUCHANON 19:24"
+   },
+   {
+    "key": "b10f6a8b0076",
+    "kind": "oldman",
+    "name": "nabi",
+    "who": "The Scripture",
+    "text": "“They divided My garments among them, and for My clothing they cast lots.”",
+    "kk": "They divided My garments among them, and for My clothing they cast lots.",
+    "where": "passion/golgotha YAHUCHANON 19:24"
+   },
+   {
+    "key": "1f53ef27ec44",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " The soldiers therefore indeed did this.",
+    "kk": "The soldiers therefore indeed did this.",
+    "where": "passion/golgotha YAHUCHANON 19:24"
+   },
+   {
+    "key": "63f0016ade45",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the people were standing, looking on and the rulers also were sneering with them, saying, ",
+    "kk": "And the people were standing, looking on and the rulers also were sneering with them, saying,",
+    "where": "passion/golgotha LUKE 23:35"
+   },
+   {
+    "key": "ce8cee7e803d",
+    "kind": "oldman",
+    "name": "rulers",
+    "who": "The rulers",
+    "text": "“He saved others, let Him save Himself if He is the Mashiach, the chosen of Aluahim.”",
+    "kk": "He saved others, let Him save Himself if He is the mah-shee-ahk, the chosen of al-oo-ah-heem.",
+    "where": "passion/golgotha LUKE 23:35"
+   },
+   {
+    "key": "e782a5b84ec3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "The soldiers were mocking Him too, coming and offering Him sour wine, and saying, ",
+    "kk": "The soldiers were mocking Him too, coming and offering Him sour wine, and saying,",
+    "where": "passion/golgotha LUKE 23:36-37"
+   },
+   {
+    "key": "a25f24b97b58",
+    "kind": "man",
+    "name": "soldiers",
+    "who": "The soldiers",
+    "text": "“If You are the Sovereign of the Yahuḏim, save Yourself.”",
+    "kk": "If You are the Sovereign of the yah-hoo-deem, save Yourself.",
+    "where": "passion/golgotha LUKE 23:36-37"
+   },
+   {
+    "key": "a0381400eb47",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And there was also an inscription written over Him in letters of Greek and Roman and Heḇrew: THIS IS THE SOVEREIGN OF THE YAHHUḎIM.",
+    "kk": "And there was also an inscription written over Him in letters of Greek and Roman and Hebrew, this is the sovereign of the yahhudim.",
+    "where": "passion/golgotha LUKE 23:38"
+   },
+   {
+    "key": "e391c5f52000",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And one of the evil-doers who were hanged, was speaking evil of Him, saying, ",
+    "kk": "And one of the evil-doers who were hanged, was speaking evil of Him, saying,",
+    "where": "passion/golgotha LUKE 23:39"
+   },
+   {
+    "key": "e39876a0ce47",
+    "kind": "man",
+    "name": "evil-doer",
+    "who": "An evil-doer",
+    "text": "“If You are the Mashiach, save Yourself and us.”",
+    "kk": "If You are the mah-shee-ahk, save Yourself and us.",
+    "where": "passion/golgotha LUKE 23:39"
+   },
+   {
+    "key": "f0298e07d16c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But the other, responding, rebuked him, saying, ",
+    "kk": "But the other, responding, rebuked him, saying,",
+    "where": "passion/golgotha LUKE 23:40-41"
+   },
+   {
+    "key": "9a425b2d7d64",
+    "kind": "man",
+    "name": "other",
+    "who": "The other evil-doer",
+    "text": "“Do you not even fear Aluahim, since you are under the same mishpat? “And we, indeed, rightly so, for we receive the due reward of our deeds, but this One has done no wrong.”",
+    "kk": "Do you not even fear al-oo-ah-heem, since you are under the same mishpat? And we, indeed, rightly so, for we receive the due reward of our deeds, but this One has done no wrong.",
+    "where": "passion/golgotha LUKE 23:40-41"
+   },
+   {
+    "key": "3531d7f6c0a9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And he said to Yahusha, ",
+    "kk": "And he said to yah-hoo-shah,",
+    "where": "passion/golgotha LUKE 23:42"
+   },
+   {
+    "key": "00914f10377d",
+    "kind": "man",
+    "name": "other",
+    "who": "The other evil-doer",
+    "text": "“Master, remember me when You come into Your reign.”",
+    "kk": "Master, remember me when You come into Your reign.",
+    "where": "passion/golgotha LUKE 23:42"
+   },
+   {
+    "key": "2a061ab7e1f6",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Truly, I say to you today, you shall be with Me in Paradise.”",
+    "kk": "Truly, I say to you today, you shall be with Me in Paradise.",
+    "where": "passion/golgotha LUKE 23:43"
+   },
+   {
+    "key": "9b3d3e28ce3b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And by the stake of Yahusha stood His mother, and His mother’s sister, Miryam the wife of Qlophah, and Miryam from Maḡdala.",
+    "kk": "And by the stake of yah-hoo-shah stood His mother, and His mother's sister, meer-yahm the wife of Qlophah, and meer-yahm from Magdala.",
+    "where": "passion/golgotha YAHUCHANON 19:25"
+   },
+   {
+    "key": "3c1643994288",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then Yahusha, seeing His mother and the taught one whom He loved standing by, He said to His mother, ",
+    "kk": "Then yah-hoo-shah, seeing His mother and the taught one whom He loved standing by, He said to His mother,",
+    "where": "passion/golgotha YAHUCHANON 19:26"
+   },
+   {
+    "key": "4a327f3d639c",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Woman, see your son!”",
+    "kk": "Woman, see your son!",
+    "where": "passion/golgotha YAHUCHANON 19:26"
+   },
+   {
+    "key": "33966481c412",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then to the taught one He said, ",
+    "kk": "Then to the taught one He said,",
+    "where": "passion/golgotha YAHUCHANON 19:27"
+   },
+   {
+    "key": "4d75493059af",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“See, your mother!”",
+    "kk": "See, your mother!",
+    "where": "passion/golgotha YAHUCHANON 19:27"
+   },
+   {
+    "key": "fd13e671e344",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And from that hour that taught one took her to his own home.",
+    "kk": "And from that hour that taught one took her to his own home.",
+    "where": "passion/golgotha YAHUCHANON 19:27"
+   },
+   {
+    "key": "cf11997d8b8e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when the sixth hour came, darkness came over all the land until the ninth hour.",
+    "kk": "And when the sixth hour came, darkness came over all the land until the ninth hour.",
+    "where": "passion/golgotha MARK 15:33"
+   },
+   {
+    "key": "08391c29f900",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And at the ninth hour Yahusha cried out with a loud voice, saying, ",
+    "kk": "And at the ninth hour yah-hoo-shah cried out with a loud voice, saying,",
+    "where": "passion/golgotha MARK 15:34"
+   },
+   {
+    "key": "eeef63b35b78",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Ali, Ali, lamah sheḇaqtani?”",
+    "kk": "Ali, Ali, lamah shebaqtani?",
+    "where": "passion/golgotha MARK 15:34"
+   },
+   {
+    "key": "2d690a2f7960",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“My Al, My Al, why have You forsaken Me?”",
+    "kk": "My Al, My Al, why have You forsaken Me?",
+    "where": "passion/golgotha MARK 15:34"
+   },
+   {
+    "key": "37363ca752ea",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And some of those standing by, when they heard it, said, ",
+    "kk": "And some of those standing by, when they heard it, said,",
+    "where": "passion/golgotha MARK 15:35"
+   },
+   {
+    "key": "a54dc9b5823e",
+    "kind": "crowd",
+    "name": "those standing by the stake",
+    "who": "Some of those standing by",
+    "text": "“See, He is calling for Aliyahu!”",
+    "kk": "See, He is calling for ah-lee-yah-hoo!",
+    "where": "passion/golgotha MARK 15:35"
+   },
+   {
+    "key": "1e74b630ca73",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And someone ran and filled a sponge with sour wine and put it on a reed and offered it to Him to drink, saying, ",
+    "kk": "And someone ran and filled a sponge with sour wine and put it on a reed and offered it to Him to drink, saying,",
+    "where": "passion/golgotha MARK 15:36"
+   },
+   {
+    "key": "2f5f4ed3be72",
+    "kind": "man",
+    "name": "someone",
+    "who": "Someone",
+    "text": "“Leave Him, let us see if Aliyahu does come to take Him down.”",
+    "kk": "Leave Him, let us see if ah-lee-yah-hoo does come to take Him down.",
+    "where": "passion/golgotha MARK 15:36"
+   },
+   {
+    "key": "3eac95853872",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "After this, Yahusha, knowing that all had been accomplished, in order that the Scripture might be accomplished, said, ",
+    "kk": "After this, yah-hoo-shah, knowing that all had been accomplished, in order that the Scripture might be accomplished, said,",
+    "where": "passion/golgotha YAHUCHANON 19:28"
+   },
+   {
+    "key": "a97cf09a22b1",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“I thirst!”",
+    "kk": "I thirst!",
+    "where": "passion/golgotha YAHUCHANON 19:28"
+   },
+   {
+    "key": "2f047842d1a9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "A bowl of sour wine stood there, and they filled a sponge with sour wine, put it on hyssop, and held it to His mouth.",
+    "kk": "A bowl of sour wine stood there, and they filled a sponge with sour wine, put it on hyssop, and held it to His mouth.",
+    "where": "passion/golgotha YAHUCHANON 19:29"
+   },
+   {
+    "key": "8555ac2a5d89",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "So when Yahusha took the sour wine He said, ",
+    "kk": "So when yah-hoo-shah took the sour wine He said,",
+    "where": "passion/golgotha YAHUCHANON 19:30"
+   },
+   {
+    "key": "475542d2ca15",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“It has been accomplished!”",
+    "kk": "It has been accomplished!",
+    "where": "passion/golgotha YAHUCHANON 19:30"
+   },
+   {
+    "key": "1825d53cbac5",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And bowing His head, He gave up His ruach.",
+    "kk": "And bowing His head, He gave up His roo-ahk.",
+    "where": "passion/golgotha YAHUCHANON 19:30"
+   },
+   {
+    "key": "1268987547d6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And see, the veil of the Dwelling Place was torn in two from top to bottom and the earth was shaken and the rocks were split,",
+    "kk": "And see, the veil of the Dwelling Place was torn in two from top to bottom and the earth was shaken and the rocks were split,",
+    "where": "passion/golgotha MATTITHYAHU 27:51"
+   },
+   {
+    "key": "0d3981f29f17",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when the captain, who was standing opposite Him, saw that He cried out like this and breathed His last, he said, ",
+    "kk": "And when the captain, who was standing opposite Him, saw that He cried out like this and breathed His last, he said,",
+    "where": "passion/golgotha MARK 15:39"
+   },
+   {
+    "key": "52ffdee6a991",
+    "kind": "man",
+    "name": "captain",
+    "who": "The captain",
+    "text": "“Truly this Man was the Son of Aluahim!”",
+    "kk": "Truly this Man was the Son of al-oo-ah-heem!",
+    "where": "passion/golgotha MARK 15:39"
+   },
+   {
+    "key": "235c19202be9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when all the crowds who had gathered to that sight saw what took place, they beat their breasts and went away.",
+    "kk": "And when all the crowds who had gathered to that sight saw what took place, they beat their breasts and went away.",
+    "where": "passion/golgotha LUKE 23:48"
+   },
+   {
+    "key": "cd8a406d199a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And all those who knew Him and the women who followed Him from Galil, stood at a distance, watching this.",
+    "kk": "And all those who knew Him and the women who followed Him from gah-leel, stood at a distance, watching this.",
+    "where": "passion/golgotha LUKE 23:49"
+   },
+   {
+    "key": "ab72be4801e5",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "“He was pierced for our transgressions, crushed for our crookednesses.” Your father’s fathers copied it out seven hundred years ago. You have just watched it.",
+    "kk": "He was pierced for our transgressions, crushed for our crookednesses. Your father's fathers copied it out seven hundred years ago. You have just watched it.",
+    "where": "passion/golgotha choice"
+   },
+   {
+    "key": "c4386a5b132c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Nobody speaks. His mother has not moved. You stay until the light goes.",
+    "kk": "Nobody speaks. His mother has not moved. You stay until the light goes.",
+    "where": "passion/golgotha choice"
+   },
+   {
+    "key": "8b9e76905dbd",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Therefore, since it was the Preparation Day, that the bodies should not remain on the stake on the Shabbath – for that Shabbath was a high one – the Yahuḏim asked Pilate to have their legs broken and that they be taken away.",
+    "kk": "Therefore, since it was the Preparation Day, that the bodies should not remain on the stake on the Shabbath, for that Shabbath was a high one, the yah-hoo-deem asked Pilate to have their legs broken and that they be taken away.",
+    "where": "passion/tomb YAHUCHANON 19:31"
+   },
+   {
+    "key": "1b77a705e15a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Therefore the soldiers came and broke the legs of the first, and of the other who was impaled with Him,",
+    "kk": "Therefore the soldiers came and broke the legs of the first, and of the other who was impaled with Him,",
+    "where": "passion/tomb YAHUCHANON 19:32"
+   },
+   {
+    "key": "d82e7c194c48",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "but when they came to Yahusha and saw that He was already dead, they did not break His legs.",
+    "kk": "but when they came to yah-hoo-shah and saw that He was already dead, they did not break His legs.",
+    "where": "passion/tomb YAHUCHANON 19:33"
+   },
+   {
+    "key": "fd164237b3be",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But one of the soldiers pierced His side with a spear, and instantly blood and water came out.",
+    "kk": "But one of the soldiers pierced His side with a spear, and instantly blood and water came out.",
+    "where": "passion/tomb YAHUCHANON 19:34"
+   },
+   {
+    "key": "fa6386546e75",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And he who has seen has witnessed, and his witness is true. And he knows that he is speaking the truth, in order that you might believe.",
+    "kk": "And he who has seen has witnessed, and his witness is true. And he knows that he is speaking the truth, in order that you might believe.",
+    "where": "passion/tomb YAHUCHANON 19:35"
+   },
+   {
+    "key": "8b414c1879c5",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "For this took place in order for the Scripture to be filled: ",
+    "kk": "For this took place in order for the Scripture to be filled,",
+    "where": "passion/tomb YAHUCHANON 19:36"
+   },
+   {
+    "key": "359dec051c02",
+    "kind": "oldman",
+    "name": "nabi",
+    "who": "The Scripture",
+    "text": "“Not one of His bones shall be broken.”",
+    "kk": "Not one of His bones shall be broken.",
+    "where": "passion/tomb YAHUCHANON 19:36"
+   },
+   {
+    "key": "98745b46a139",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And again another Scripture says, ",
+    "kk": "And again another Scripture says,",
+    "where": "passion/tomb YAHUCHANON 19:37"
+   },
+   {
+    "key": "c215f495be82",
+    "kind": "oldman",
+    "name": "nabi",
+    "who": "The Scripture",
+    "text": "“They shall look on Him whom they pierced.”",
+    "kk": "They shall look on Him whom they pierced.",
+    "where": "passion/tomb YAHUCHANON 19:37"
+   },
+   {
+    "key": "e5012edd9674",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And see, a man named Yosĕph, a council member, good and righteous,",
+    "kk": "And see, a man named yoh-sef, a council member, good and righteous,",
+    "where": "passion/tomb LUKE 23:50"
+   },
+   {
+    "key": "75af2a21d746",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "was not agreeing with their counsel and deed – from Ramathayim, a city of the Yahuḏim, who himself was also waiting for the reign of Aluahim,",
+    "kk": "was not agreeing with their counsel and deed, from Ramathayim, a city of the yah-hoo-deem, who himself was also waiting for the reign of al-oo-ah-heem,",
+    "where": "passion/tomb LUKE 23:51"
+   },
+   {
+    "key": "1fa0dcd61fcd",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "he, going to Pilate, asked for the body of Yahusha.",
+    "kk": "he, going to Pilate, asked for the body of yah-hoo-shah.",
+    "where": "passion/tomb LUKE 23:52"
+   },
+   {
+    "key": "fa2691181edd",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And after this, Yosĕph of Ramathayim, being a taught one of Yahusha, but secretly, for fear of the Yahuḏim, asked Pilate that he might take the body of Yahusha, and Pilate gave permission. Therefore he came and took the body of Yahusha.",
+    "kk": "And after this, yoh-sef of Ramathayim, being a taught one of yah-hoo-shah, but secretly, for fear of the yah-hoo-deem, asked Pilate that he might take the body of yah-hoo-shah, and Pilate gave permission. Therefore he came and took the body of yah-hoo-shah.",
+    "where": "passion/tomb YAHUCHANON 19:38"
+   },
+   {
+    "key": "409338c07059",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Naḵdimon, who at first came to Yahusha by night, also came, bringing a mixture of myrrh and aloes, about a hundred pounds.",
+    "kk": "And Nakdimon, who at first came to yah-hoo-shah by night, also came, bringing a mixture of myrrh and aloes, about a hundred pounds.",
+    "where": "passion/tomb YAHUCHANON 19:39"
+   },
+   {
+    "key": "19f95c2223af",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then they took the body of Yahusha, and bound it in linen wrappings with the spices, as was the habit of the Yahuḏim for burial.",
+    "kk": "Then they took the body of yah-hoo-shah, and bound it in linen wrappings with the spices, as was the habit of the yah-hoo-deem for burial.",
+    "where": "passion/tomb YAHUCHANON 19:40"
+   },
+   {
+    "key": "fd29c66aa6b5",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And at the place where He was impaled there was a garden, and in the garden a fresh tomb in which no one had yet been laid.",
+    "kk": "And at the place where He was impaled there was a garden, and in the garden a fresh tomb in which no one had yet been laid.",
+    "where": "passion/tomb YAHUCHANON 19:41"
+   },
+   {
+    "key": "4fef68cefb0d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "There, then, because of the Preparation Day of the Yahuḏim, they laid Yahusha, because the tomb was near.",
+    "kk": "There, then, because of the Preparation Day of the yah-hoo-deem, they laid yah-hoo-shah, because the tomb was near.",
+    "where": "passion/tomb YAHUCHANON 19:42"
+   },
+   {
+    "key": "8bd572a5126e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And taking it down, he wrapped it in linen and laid it in a tomb hewn out of the rock, where no one was yet laid.",
+    "kk": "And taking it down, he wrapped it in linen and laid it in a tomb hewn out of the rock, where no one was yet laid.",
+    "where": "passion/tomb LUKE 23:53"
+   },
+   {
+    "key": "f07c1426ab5f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "and laid it in his new tomb which he had hewn out of the rock. And he rolled a large stone against the door of the tomb and went away.",
+    "kk": "and laid it in his new tomb which he had hewn out of the rock. And he rolled a large stone against the door of the tomb and went away.",
+    "where": "passion/tomb MATTITHYAHU 27:60"
+   },
+   {
+    "key": "bb5063426f37",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Miryam from Maḡdala was there and the other Miryam, sitting opposite the tomb.",
+    "kk": "And meer-yahm from Magdala was there and the other meer-yahm, sitting opposite the tomb.",
+    "where": "passion/tomb MATTITHYAHU 27:61"
+   },
+   {
+    "key": "1c3f72f53328",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And it was Preparation day and the Shabbath was approaching.",
+    "kk": "And it was Preparation day and the Shabbath was approaching.",
+    "where": "passion/tomb LUKE 23:54"
+   },
+   {
+    "key": "df3b8990166f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the women who had come with Him from Galil followed after and saw the tomb and how His body was laid.",
+    "kk": "And the women who had come with Him from gah-leel followed after and saw the tomb and how His body was laid.",
+    "where": "passion/tomb LUKE 23:55"
+   },
+   {
+    "key": "08852f492dd6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having returned, they prepared spices and perfumes and they rested the Shabbath according to the command.",
+    "kk": "And having returned, they prepared spices and perfumes and they rested the Shabbath according to the command.",
+    "where": "passion/tomb LUKE 23:56"
+   },
+   {
+    "key": "f93914d425a1",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "The next day was the Shabbath.",
+    "kk": "The next day was the Shabbath.",
+    "where": "passion/tomb note"
+   },
+   {
+    "key": "24073ab0c23d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "On the next day, which was after the preparation, the chief kohanim and Pharisees gathered together to Pilate,",
+    "kk": "On the next day, which was after the preparation, the chief koh-hah-neem and Pharisees gathered together to Pilate,",
+    "where": "passion/tomb MATTITHYAHU 27:62"
+   },
+   {
+    "key": "5e3669fb0d28",
+    "kind": "oldman",
+    "name": "chief kohanim and pharisees",
+    "who": "The chief kohanim and Pharisees",
+    "text": "“Master, we remember, while He was still alive, how that deceiver said, ‘After three days I am raised.’ “Command, then, that the tomb be safeguarded until the third day, lest His taught ones come by night and steal Him away and say to the people, ‘He was raised from the dead.’ And the last deception shall be worse than the first.”",
+    "kk": "Master, we remember, while He was still alive, how that deceiver said, After three days I am raised. Command, then, that the tomb be safeguarded until the third day, lest His taught ones come by night and steal Him away and say to the people, He was raised from the dead. And the last deception shall be worse than the first.",
+    "where": "passion/tomb MATTITHYAHU 27:63-64"
+   },
+   {
+    "key": "3b671c324249",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "So Pilate said to them, ",
+    "kk": "So Pilate said to them,",
+    "where": "passion/tomb MATTITHYAHU 27:65"
+   },
+   {
+    "key": "c69edd0f4c7e",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“You have a watch, go, safeguard it as you know how.”",
+    "kk": "You have a watch, go, safeguard it as you know how.",
+    "where": "passion/tomb MATTITHYAHU 27:65"
+   },
+   {
+    "key": "1db63e5958fc",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they went and safeguarded the tomb, sealing the stone and setting the watch.",
+    "kk": "And they went and safeguarded the tomb, sealing the stone and setting the watch.",
+    "where": "passion/tomb MATTITHYAHU 27:66"
+   },
+   {
+    "key": "d951dfa75c16",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "You pushed it there yourself. It is very heavy, and now there is a seal on it and Romans in front of it.",
+    "kk": "You pushed it there yourself. It is very heavy, and now there is a seal on it and Romans in front of it.",
+    "where": "passion/tomb choice"
+   },
+   {
+    "key": "2d8f93f85253",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "“After I am raised, I shall go before you to Galil.” He said it on the way to the garden. You did not understand it then. You do not understand it now.",
+    "kk": "After I am raised, I shall go before you to gah-leel. He said it on the way to the garden. You did not understand it then. You do not understand it now.",
+    "where": "passion/tomb choice"
+   },
+   {
+    "key": "bec5a04df196",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "The end of Act VI. Next: The Rising",
+    "kk": "The end of Act six. Next, The Rising",
+    "where": "passion/tomb title"
    }
   ]
  }
