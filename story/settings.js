@@ -500,7 +500,7 @@ S.ginae=function(ctx,st){
   const rx=z=>18+Math.sin(z*0.04)*4;
   for(let k=-50;k<50;k++){ const z=k*1.6, x=rx(z); st.box(x-1.1,0,z-0.9,x+1.1,0.08,z+0.9,C.path,{collide:false,jitter:0.12}); }
   const hs=[[-6,-14],[4,-15],[-15,-4],[-15,8],[-5,15],[6,15],[-25,-12],[-25,4]];
-  hs.forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:z<0?'s':(x<-10?'e':'n'),color:k%2?C.limestone:C.mudbrick,h:2.9}));
+  hs.forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:z<0?'s':(x<-10?'w':'s'),color:k%2?C.limestone:C.mudbrick,h:2.9}));   /* (the houses about the square open away from it, so their roof-stairs do not come down over the table) */
   st.box(-1.2,0,-1.2,1.2,0.6,1.2,C.stone); W.jar(st,1.7,0.6); W.jar(st,-1.8,-0.4);   /* the spring */
   /* before a house, a table: tax collectors and sinners eat at it (Luke 15:1-2) */
   st.box(-5.8,0,6.5,-1.2,0.42,7.5,C.timber,{detail:true});                             /* low, as they reclined to eat (drawn at its size, not a block) */

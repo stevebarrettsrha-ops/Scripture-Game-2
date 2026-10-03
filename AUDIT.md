@@ -10094,6 +10094,105 @@ should be real and move with the body, not a block").**
 | Act III | 10 | 227 |
 | Act IV | 17 | 365 |
 
+## 4dn. Round 115 — Act V, The Road to Yahrushalayim; the seated robe folds over the knee
+
+**Act V is built:** twelve scenes, from Kĕpha's confession to the brow of the Mount of Olives.
+Every word comes from the Besorah, and each speaker is the one it names. The order is the
+design document's: the transfiguration, Kĕpha's confession, the three foretellings, Luke's long
+journey south, and the approach to the city. The entry itself opens Act VI.
+
+1. **Caesarea Philippi** (Mattithyahu 16:13-28): "on this rock", said before the face of rock,
+   the cave of the springs and Caesar's white house beside it. Then "Get behind Me" and
+   "take up his stake".
+2. **The high mountain** (17:1-13, with Luke 9:30-32):
+   - The witness was not there. Only three went up, "by themselves", and it is told as they
+     told it once He was raised.
+   - At night His garments turn white and shine. Mosheh and Aliyahu appear in light, speaking
+     of what He would complete at Yahrushalayim.
+   - The cloud comes, the voice speaks, and the three fall on their faces.
+3. **The boy at the mountain's foot** (Mark 9:14-32): "I believe Master, help my unbelief!" The
+   witness helps the father bring the boy, and the second foretelling follows.
+4. **Kephar Naḥum** (Mattithyahu 17:24-18:6): the tax, and the little child set in the midst.
+5. **He set His face** (Luke 9:51-62): the Shomeronite village that would not receive Him, the
+   fire the sons of Zaḇdai asked for, and the ploughman in the field beside the road.
+6. **The ten lepers** (17:11-19): nine go on, and the Shomeronite comes back and falls on his
+   face at His feet.
+7. **The neighbour** (10:25-37), on the road.
+8. **The lost sheep, the coin and the son** (15), told at the table of the tax collectors; the
+   witness carries the bread to it.
+9. **Beyond the Yardĕn** (Yahuchanon 10:40-42; Mark 10:13-31): the witness makes a way for the
+   children. The rich man kneels, then goes away grieved.
+10. **Going up** (Mark 10:32-45): He walks ahead of them. The third foretelling, the sons of
+    Zaḇdai, and "a ransom for many".
+11. **Yahriḥo** (Luke 19:1-10; Mark 10:46-52):
+    - Zakkai, small of stature, in the sycamore.
+    - Next morning, Bartimai by the road. The witness goes out to him: "Take courage, arise,
+      He is calling you."
+12. **The Mount of Olives** (Luke 19:28-44, with Mattithyahu 21:4-5):
+    - The colt is led from Bĕyth Phaḡi, and He rides it down the mount.
+    - The witness spreads his own garment on the way.
+    - The crowd's "Baruk is the Sovereign", and "the stones would cry out".
+    - At the brow, with the city across the Qidron, He weeps over her.
+
+Where Luke does not say where a thing was said (chapters 10 and 15), it is set on the road
+south, and a note says so. Yahusha's face is never shown: on the mountain the light is seen
+from behind Him, and on the Mount of Olives over His shoulder.
+
+**New places:**
+
+- **Caesarea Philippi:** the rock face and its cave, the springs and stream, Caesar's house,
+  the niches, and Philip's town.
+- **Ayin Gannim,** the last village of Shomeron: the square and its spring, the gardens, the
+  road, and the ploughed field.
+- **Yahriḥo:** the low wall and its two gates, the palms, the sycamore with its low limb over
+  the street, and Zakkai's house.
+- **The Mount of Olives** is laid on the city's own ground, east of her walls across the
+  Qidron. Placed as a set on its own, it stood three hundred metres off behind a hill, and the
+  city could not be seen from it.
+
+**What the engine learned:**
+
+| Ability | What it does |
+|---|---|
+| `ride` | A rider is carried by a beast, which walks at its own gait. |
+| `lead` | A beast walks a step behind the one leading it. |
+| `lie` with `prone` | A figure falls on his face. |
+| `height` | A man small of stature. |
+| Shots toward a place | An over-the-shoulder shot can look toward a far place, from farther back (`back`) or higher (`lift`). |
+| Markers with a height | A marker can carry its own height. |
+| Goals and moves | A goal or move may name a person or a thing as well as a marker. |
+| Cameras from a marker | A camera can stand at a marker, a set height above the ground there (`fdy`). |
+
+**The seated robe folds over the knee** (the user: "the cloth should be real and move with
+body and not a block"). The single board across the lap is gone.
+
+- Each thigh has its own loose breadth.
+- The cloth rounds over each knee and runs down each shin to a hem that spreads at the ankle.
+- A fold sags between the knees.
+- The sides fall in narrow lengths. Their tops follow the thigh, and each falls a little
+  further out than the last.
+
+These pieces are drawn for how a figure sits: knees drawn up on the ground, or thighs level on
+a bench. A working tunic to the knee stops at the knee.
+
+**Fixed while staging:**
+
+- The levelled ground of Ayin Gannim and Yahriḥo now covers the whole length of road their
+  scenes walk.
+- The house beside the tax collectors' table opens away from it, so its roof-stair no longer
+  comes down over the diners.
+- The table is drawn at its true size, not swollen to a block.
+- No one stands in the sycamore's trunk or in a tamarisk.
+
+**Checks:**
+
+- **Besorah:** 724 passages exact; 721 verses said, with 0 quotations no one speaks.
+- **Voices:** 1,164 of 1,164 lines recorded (294 new).
+- **Playthrough:** Act V plays through in 12 scenes and 348 frames, with no errors and 0
+  face-exposed frames.
+- **Clipping audit:** what remains in Act V is people passing close in a crowd, whom
+  keep-apart separates.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
