@@ -496,7 +496,7 @@ S.caesarea=function(ctx,st){
    being ploughed beside the road (9:62). */
 S.ginae=function(ctx,st){
   ctx.wind=[1,0.4];
-  W.ground(ctx,{color:C.grassDry,flat:32,peak:[{x:-54,z:-40,h:14,r:40},{x:-44,z:52,h:10,r:34}]});
+  W.ground(ctx,{color:C.grassDry,flat:70,peak:[{x:-62,z:-40,h:14,r:36},{x:-56,z:56,h:10,r:30}]});   /* level the length of the road the scenes walk */
   const rx=z=>18+Math.sin(z*0.04)*4;
   for(let k=-50;k<50;k++){ const z=k*1.6, x=rx(z); st.box(x-1.1,0,z-0.9,x+1.1,0.08,z+0.9,C.path,{collide:false,jitter:0.12}); }
   const hs=[[-6,-14],[4,-15],[-15,-4],[-15,8],[-5,15],[6,15],[-25,-12],[-25,4]];
@@ -532,7 +532,7 @@ function sycamore(st,x,z){
 }
 S.yeriho=function(ctx,st){
   ctx.wind=[0.5,0.2];
-  W.ground(ctx,{color:C.grass,flat:36,peak:[{x:-78,z:-10,h:24,r:46},{x:-70,z:44,h:16,r:36}]});
+  W.ground(ctx,{color:C.grass,flat:84,peak:[{x:-118,z:-10,h:26,r:50},{x:-104,z:56,h:16,r:36}]});   /* the valley floor from the Yardĕn road to the ascent */
   const rz=x=>Math.sin(x*0.03)*2;
   for(let k=-62;k<62;k++){ const x=k*1.6, z=rz(x); st.box(x-0.9,0,z-1.3,x+0.9,0.08,z+1.3,C.path,{collide:false,jitter:0.12}); }
   /* the low wall, open where the road goes through */
@@ -565,8 +565,9 @@ S.olives=function(ctx,st){
   if(yp&&A){ const dx=yp.x-A.x, dz=yp.z-A.z, d=Math.hypot(dx,dz)||1; ux=dx/d; uz=dz/d; dist=d/ctx.scene.scale.x;
     const c=k.cell(yp.ix,yp.iz); if(c) cy=(c.h*k.B-A.y)/ctx.scene.scale.x; }
   const vx=-uz, vz=ux, P=(a,b)=>[a*ux+b*vx,a*uz+b*vz];
-  const top=P(-56,0);
-  W.ground(ctx,{color:C.grassDry,flat:24,peak:[{x:top[0],z:top[1],h:12,r:44}]});
+  /* the mount itself, under the set: its crown behind Bĕyth Phaḡi, the road falling from it toward the city */
+  const top=P(-20,0);
+  W.ground(ctx,{color:C.grassDry,flat:24,peak:[{x:top[0],z:top[1],h:26,r:80}]});
   /* the road from Bĕyth Phaḡi over the mount and down toward the city */
   const rb=a=>Math.sin(a*0.08)*5;
   for(let a=-46;a<=30;a+=1.2){ const p=P(a,rb(a)); st.box(p[0]-1,0,p[1]-1,p[0]+1,0.08,p[1]+1,C.path,{collide:false,jitter:0.12}); }
@@ -580,7 +581,7 @@ S.olives=function(ctx,st){
   const M=(id,a,b)=>{ const p=P(a,b===undefined?rb(a):b); mk(ctx,id,p[0],p[1]); };
   M('phagi',-38,0); M('colt',-39,-7); M('wait',-24); M('top',-18); M('d0',-8); M('d1',0); M('d2',8); M('d3',16); M('brow',24); M('browSide',22,rb(22)+3.4);
   M('crowdA',-12,rb(-12)-4); M('crowdB',-4,rb(-4)+4); M('pharisees',18,rb(18)-3.6);
-  { const c=Math.min(dist,420), p=P(c,0); ctx.markers.city=[p[0],p[1],cy+8]; }
+  { const c=Math.min(dist,420), p=P(c,0); ctx.markers.city=[p[0],p[1],cy+24];   /* the House, standing over her walls */ }
   ctx.dir=[ux,uz];
   W.wild(ctx,'goat',P(-20,26)[0],P(-20,26)[1],3,5,0.4);
   ctx.bounds={x0:-140,x1:140,z0:-140,z1:140};

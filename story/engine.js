@@ -552,7 +552,8 @@ function shotOf(B){
   const m=B.toward&&!ctx.actors[B.toward]&&ctx.markers[B.toward];        /* toward a person, or a place (the city, far off) */
   const t=B.toward&&ctx.actors[B.toward]?ctx.actors[B.toward].position:m?new THREE.Vector3(m[0],(m[2]!==undefined?m[2]:1.5)-1.3,m[1]):p.clone().addScaledVector(f,6);
   const side=B.side||1;
-  return {from:[p.x-f.x*3.6+sd.x*1.5*side,p.y+2.3+sit,p.z-f.z*3.6+sd.z*1.5*side], look:[t.x,t.y+1.3,t.z]};
+  const bk=B.back||3.6, up=B.lift||0;                                  /* `back`, `lift`: farther behind Him, higher over Him */
+  return {from:[p.x-f.x*bk+sd.x*1.5*side,p.y+2.3+sit+up,p.z-f.z*bk+sd.z*1.5*side], look:[t.x,t.y+1.3,t.z]};
 }
 function holdCamera(from,look,dur){
   camTarget={from0:[camera.position.x,camera.position.y,camera.position.z],

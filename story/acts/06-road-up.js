@@ -191,7 +191,8 @@ STORY.act({
       {t:'read', ref:'MATTITHYAHU 17:8'},
       {t:'time', to:'dawn'},
       {t:'move', who:['yahusha','kepha','yaaqob','yahuchanon'], to:[[10,10],[8.6,12],[10.6,12.4],[12,11]], speed:1.1, wait:false},
-      {t:'cam', from:[2,3,4], look:[10,1,11], dur:3},
+      {t:'face', who:'yahusha', to:'kepha'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'kepha', dur:3},
       {t:'say', who:'yahusha', ref:'MATTITHYAHU 17:9', turn:false},
       {t:'say', who:'three', ref:'MATTITHYAHU 17:10', turn:false},
       {t:'say', who:'yahusha', ref:'MATTITHYAHU 17:11', turn:false},
@@ -254,7 +255,6 @@ STORY.act({
       {t:'read', ref:'MARK 9:27'},
       {t:'move', who:['yahusha','kepha','yaaqob','yahuchanon','andri','philip','mattithyahu','toma','yahudahQ'],
         to:[[25.6,19.6],[24.2,18.8],[24.6,20.8],[23.2,20],[22.8,18],[23,21.8],[21.6,19.2],[21.8,21],[22.2,17]], speed:1.3},
-      {t:'cam', from:[19,2.4,24.4], look:[24.8,1.2,19.6], dur:2},
       {t:'say', who:'taught', ref:'MARK 9:28', turn:false},
       {t:'face', who:'yahusha', to:'andri'},
       {t:'cam', on:'yahusha', shot:'back', toward:'andri', dur:1.6},
@@ -283,7 +283,7 @@ STORY.act({
     ],
     beats:[
       {t:'cam', from:[8,3.4,-6], look:[-2,1.2,2], dur:0.1},
-      {t:'cam', from:[3.6,1.9,-2.4], look:'kepha', dur:2},
+      {t:'cam', from:[6.4,2.4,-4.4], look:'kepha', dur:2},
       {t:'say', who:'taxmen', ref:'MATTITHYAHU 17:24', turn:false},
       {t:'move', who:'kepha', to:[-6.4,8], speed:1.2},
       {t:'move', who:'kepha', to:[-9.8,7.2], speed:1},
@@ -489,7 +489,7 @@ STORY.act({
       {t:'say', who:'yahusha', ref:'LUKE 15:8', turn:false},
       {t:'say', who:'yahusha', ref:'LUKE 15:9', turn:false},
       {t:'say', who:'yahusha', ref:'LUKE 15:10', turn:false},
-      {t:'cam', from:[-8.4,1.6,4.2], look:[-1,0.7,7], dur:2.5},          /* along the table, the faces of those who sit at it */
+      {t:'cam', from:[3.8,2.2,11.6], look:[-3,0.6,7], dur:2.5},          /* across the table, the faces of those who sit at it */
       {t:'say', who:'yahusha', ref:'LUKE 15:11', turn:false},
       {t:'say', who:'yahusha', ref:'LUKE 15:12', turn:false},
       {t:'say', who:'yahusha', ref:'LUKE 15:13', turn:false},
@@ -735,7 +735,7 @@ STORY.act({
       .concat([{id:'myGar', kind:'box', at:['d1',0,0], w:1, h:0.06, d:1.5, color:0x7a6a8e, hidden:true}]),
     beats:[
       {t:'face', who:'yahusha', to:'city'},
-      {t:'cam', from:'top', fdy:6, look:'city', dur:0.1},
+      {t:'cam', from:'top', fdy:14, look:'city', dur:0.1},
       {t:'read', ref:'LUKE 19:28'},
       {t:'read', ref:'LUKE 19:29'},
       {t:'face', who:'yahusha', to:'sent1'},
@@ -751,6 +751,8 @@ STORY.act({
       {t:'move', who:['sent1','sent2'], to:[['wait',1.8,-1.8],['wait',3,-0.6]], speed:1.4},
       {t:'lead', id:'colt'},
       {t:'cam', release:true},
+      {t:'face', who:'yahusha', to:'sent1'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'sent1', dur:1.8},
       {t:'read', ref:'LUKE 19:35'},
       {t:'ride', who:'yahusha', on:'colt'},
       {t:'read', ref:'MATTITHYAHU 21:4'},
@@ -774,7 +776,7 @@ STORY.act({
       {t:'move', who:'yahusha', to:'brow', speed:0.8},
       {t:'face', who:'yahusha', to:'city'},
       {t:'stop', who:ids(MULT).slice(0,12).concat(['kepha','andri','yaaqob','yahuchanon','philip','toma'])},
-      {t:'cam', on:'yahusha', shot:'back', toward:'city', dur:3},
+      {t:'cam', on:'yahusha', shot:'back', toward:'city', back:9, lift:16, dur:3},        /* over Him, to the city across the Qidron */
       {t:'read', ref:'LUKE 19:41'},
       {t:'say', who:'yahusha', ref:'LUKE 19:42', turn:false},
       {t:'say', who:'yahusha', ref:'LUKE 19:43-44', turn:false},
