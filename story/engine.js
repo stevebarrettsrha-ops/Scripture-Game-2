@@ -107,7 +107,7 @@ const TIMES={
 /* the hour is the world's own: the sun, the moon and the stars stand where they stand over
    that place at that hour, and the story only names the hour */
 /* (dawn and dusk are taken where the voyage's own sun is up and low, not before and after it) */
-const HOURS={day:10.5,dusk:17.2,night:23.2,dawn:6.5};
+const HOURS={day:10.5,dusk:17.2,night:23.2,dawn:6.5,darkness:19.4,lamplit:20.4};   /* darkness: the land darkened at midday (Mark 15:33); lamplit: a night still seen by */
 let timeNow=null, hourNow=10.5;
 function applyTime(name){
   timeNow=name; hourNow=HOURS[name]===undefined?10.5:HOURS[name];

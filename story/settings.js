@@ -623,7 +623,7 @@ S.upperroom=function(ctx,st){
   st.detail(14.6,F,29.5,19.4,F+0.38,30.5,C.timber);                                     /* the low table */
   st.detail(15.2,F+0.38,29.8,15.8,F+0.46,30.2,0xd8c08a); st.detail(17.6,F+0.38,29.9,17.9,F+0.6,30.1,0x7a2a2a);   /* bread, a cup */
   for(const [lx,lz] of [[12.8,27],[12.8,33],[21.2,27],[21.2,33]]) W.glow(ctx,lx,F+2,lz,1.1,0xffc070,0.8);
-  mk(ctx,'urHouse',17,24.4); mk(ctx,'stairFoot',22.8,26.2); mk(ctx,'stairTop',22.8,30.2); mk(ctx,'roomDoor',21.2,30); mk(ctx,'roomIn',20.4,30);
+  mk(ctx,'urHouse',17,24.4); mk(ctx,'stairFoot',22.8,26.2); mk(ctx,'stairTop',22.8,30.2); mk(ctx,'roomDoor',20.6,30); mk(ctx,'roomIn',20.4,30);
   mk(ctx,'table',17,30); mk(ctx,'roomCorner',13.4,33);
 };
 
@@ -673,7 +673,8 @@ S.golgotha=function(ctx,st){
     st.detail(x-0.13,y+2.3,z-1.15,x+0.13,y+2.56,z+1.15,0x6e5238); }                       /* the crossbeam */
   { const y=G(-66,-34); st.detail(-65.86,y+3.2,-34.5,-65.8,y+3.6,-33.5,0xece6d6); }        /* the title (Yahuchanon 19:19) */
   /* the road from the gate, round the wall to the knoll */
-  for(let k=0;k<=40;k++){ const t=k/40, x=-14-t*50, z=44-t*72+Math.sin(t*3)*4; ctx.api.top(x-1,z-1,x+1,z+1,C.path); }
+  for(let x=-14;x>=-58;x-=1.6) ctx.api.top(x-1,43,x+1,45,C.path);                         /* out of the gate, west below the wall */
+  for(let z=44;z>=-28;z-=1.6) ctx.api.top(-59,z-1,-57,z+1,C.path);                        /* and north along it, outside */
   /* the garden: the face of the rock and the tomb cut into it */
   st.box(-78,0,-17,-70,5,-5,C.limestone);
   st.box(-74,0,-12.6,-70.1,2.4,-9.4,'air');
@@ -683,7 +684,7 @@ S.golgotha=function(ctx,st){
   ctx.markers.stakeY=[G(-66,-34)+0.9,0];                                                /* the height of His feet on the stake */
   mk(ctx,'skull',-66,-34); mk(ctx,'stakeL',-66,-37.4); mk(ctx,'stakeR',-66,-30.6); mk(ctx,'onStake',-65.7,-34);
   mk(ctx,'foot',-61.6,-34); mk(ctx,'soldiers',-61.4,-37.6); mk(ctx,'scoffers',-56,-30); mk(ctx,'mother',-62.2,-31.4);
-  mk(ctx,'afar',-50,-44); mk(ctx,'gateRoad',-18,44); mk(ctx,'roadBend',-42,8);
+  mk(ctx,'afar',-52,-44); mk(ctx,'gateRoad',-18,44); mk(ctx,'roadBend',-58,-4);
   mk(ctx,'tomb',-70.6,-11); mk(ctx,'tombIn',-72.4,-11); mk(ctx,'tombOut',-67,-11); mk(ctx,'tombFront',-64,-11);
   mk(ctx,'stone',-68.8,-14); mk(ctx,'stoneShut',-68.8,-11); mk(ctx,'garden',-60,-8); mk(ctx,'opposite',-60,-13);
   const hk=ctx.markers.hekal||[6,-44]; ctx.markers.city=[hk[0],hk[1],16];
