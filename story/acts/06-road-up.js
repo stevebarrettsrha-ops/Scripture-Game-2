@@ -715,7 +715,7 @@ STORY.act({
     ]},
 
   /* ---------------- V.12 — THE DESCENT OF THE MOUNT OF OLIVES ---------------- */
-  { id:'olives', title:'The Mount of Olives', date:'before the Pesach', place:'olives', time:'day',
+  { id:'olives', title:'The Mount of Olives', date:'before the Pesach', place:'olivet', time:'day',
     player:{ at:'top', look:ADULT },
     actors:[
       Object.assign({id:'yahusha', at:'wait'},YAHUSHA),
@@ -735,7 +735,7 @@ STORY.act({
       .concat([{id:'myGar', kind:'box', at:['d1',0,0], w:1, h:0.06, d:1.5, color:0x7a6a8e, hidden:true}]),
     beats:[
       {t:'face', who:'yahusha', to:'city'},
-      {t:'cam', from:'top', fdy:14, look:'city', dur:0.1},
+      {t:'cam', from:'top', fdy:6, look:'city', dur:0.1},
       {t:'read', ref:'LUKE 19:28'},
       {t:'read', ref:'LUKE 19:29'},
       {t:'face', who:'yahusha', to:'sent1'},
@@ -776,7 +776,7 @@ STORY.act({
       {t:'move', who:'yahusha', to:'brow', speed:0.8},
       {t:'face', who:'yahusha', to:'city'},
       {t:'stop', who:ids(MULT).slice(0,12).concat(['kepha','andri','yaaqob','yahuchanon','philip','toma'])},
-      {t:'cam', on:'yahusha', shot:'back', toward:'city', back:9, lift:16, dur:3},        /* over Him, to the city across the Qidron */
+      {t:'cam', on:'yahusha', shot:'back', toward:'city', back:6, lift:3, dur:3},        /* over Him, to the city across the Qidron */
       {t:'read', ref:'LUKE 19:41'},
       {t:'say', who:'yahusha', ref:'LUKE 19:42', turn:false},
       {t:'say', who:'yahusha', ref:'LUKE 19:43-44', turn:false},

@@ -37,7 +37,7 @@ const PLACES={
   caesarea:   {lat:33.248, lon:35.694, flat:30, why:'Caesarea Philippi, at the springs of the Yardĕn below Ḥermon'},
   ginae:      {lat:32.461, lon:35.302, flat:56, why:'Ayin Gannim, the last village of Shomeron on the road from Galil'},
   yeriho:     {lat:31.857, lon:35.444, flat:64, why:'Yahriḥo, the city of palm trees, below the ascent to Yahrushalayim'},
-  olives:     {lat:31.778, lon:35.245, flat:24, clear:1000, why:'the descent of the Mount of Olives, over against the city'},
+  olivet:     {city:true, why:'the descent of the Mount of Olives, across the Qidron from her walls'},
   /* the seven hundred years: the empires, each at its own seat */
   tiber:      {lat:41.89, lon:12.49, flat:20, why:'by the Tiber, where Rome begins'},
   nineveh:    {lat:36.36, lon:43.15, flat:36, why:'Ninewĕh on the Ḥiddeqel, seat of Ashshur'},

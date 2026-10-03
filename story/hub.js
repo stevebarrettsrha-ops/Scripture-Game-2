@@ -54,7 +54,7 @@ const SPOTS=[
   {k:'galil',n:'Kephar Naḥum',lat:32.881,lon:35.575},{k:'galilEast',n:'',lat:32.836,lon:35.65},{k:'galilSea',n:'',lat:32.83,lon:35.585},
   {k:'road',n:'',lat:32.2,lon:35.28},{k:'yarden',n:'Bĕyth Anyah',lat:31.837,lon:35.55},{k:'wilderness',n:'The wilderness',lat:31.6,lon:35.38},
   {k:'mountain',n:'',lat:33.0,lon:35.75},{k:'bethanyah',n:'',lat:31.771,lon:35.262},{k:'shekem',n:'Sheḵem',lat:32.213,lon:35.285},{k:'hillcountry',n:'',lat:31.768,lon:35.162},
-  {k:'caesarea',n:'Caesarea Philippi',lat:33.248,lon:35.694},{k:'ginae',n:'',lat:32.461,lon:35.302},{k:'yeriho',n:'Yahriḥo',lat:31.857,lon:35.444},{k:'olives',n:'',lat:31.778,lon:35.245}];
+  {k:'caesarea',n:'Caesarea Philippi',lat:33.248,lon:35.694},{k:'ginae',n:'',lat:32.461,lon:35.302},{k:'yeriho',n:'Yahriḥo',lat:31.857,lon:35.444},{k:'olivet',n:'',lat:31.778,lon:35.245}];
 function drawMap(){
   const cv=$('road-map'), g=cv.getContext('2d'), W=cv.width, H=cv.height;
   const lat0=30.95, lat1=33.35, lon0=34.25, lon1=36.0;

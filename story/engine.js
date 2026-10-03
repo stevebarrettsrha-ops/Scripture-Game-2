@@ -1046,7 +1046,7 @@ const BEDS={
   yarden:{river:0.8,wind:0.35,crowd:0.25},          wilderness:{wind:1.0},  mountain:{wind:1.3},
   qanah:{crowd:0.8,wind:0.2},  galil:{shore:0.8,wind:0.35,crowd:0.2},  galilEast:{shore:0.6,wind:0.4,crowd:0.4},
   galilSea:{shore:1.0,wind:1.4},  bethanyah:{wind:0.35,crowd:0.45},  shekem:{wind:0.55,crowd:0.12},  hillcountry:{wind:0.45,crowd:0.15},
-  caesarea:{wind:0.35,river:0.7,crowd:0.1},  ginae:{wind:0.5,crowd:0.15},  yeriho:{wind:0.2,crowd:0.6},  olives:{wind:0.5,crowd:0.5}
+  caesarea:{wind:0.35,river:0.7,crowd:0.1},  ginae:{wind:0.5,crowd:0.15},  yeriho:{wind:0.2,crowd:0.6},  olivet:{wind:0.5,crowd:0.5}
 };
 function noiseBuf(A,brown){ const n=A.createBuffer(1,A.sampleRate*3,A.sampleRate), d=n.getChannelData(0); let last=0;
   for(let k=0;k<d.length;k++){ const w=Math.random()*2-1; if(brown){ last=(last+0.02*w)/1.02; d[k]=last*3.4; } else d[k]=w*0.5; }

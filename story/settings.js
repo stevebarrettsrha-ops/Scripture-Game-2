@@ -554,36 +554,28 @@ S.yeriho=function(ctx,st){
   ctx.bounds={x0:-130,x1:130,z0:-120,z1:120};
 };
 
-/* THE MOUNT OF OLIVES, over against the city (Luke 19:29-41): Bĕyth Phaḡi on the shoulder of the
-   mount, the road over the top and down its western face through the olive groves, and at the
-   brow, across the Qidron, the whole city at once — her walls, and the House shining over them.
-   The set is laid along the true line from here to her, so "down" is always toward the city. */
-S.olives=function(ctx,st){
+/* THE MOUNT OF OLIVES, over against the city (Luke 19:29-41), laid on the city's own ground: it
+   rises east of her walls across the Qidron, Bĕyth Phaḡi on its shoulder, and the road comes
+   over the top and down its western face through the olive groves to the brow, where the whole
+   city lies below at once — her walls, and the House standing over them. (East is +x on her
+   plan; the House is at her middle, north of the square.) */
+S.olivet=function(ctx,st){
   ctx.wind=[0.8,0.3];
-  const k=window.__KIT, A=ctx.anchor, yp=k.yahruPos&&k.yahruPos();
-  let ux=-1, uz=0, dist=300, cy=0;
-  if(yp&&A){ const dx=yp.x-A.x, dz=yp.z-A.z, d=Math.hypot(dx,dz)||1; ux=dx/d; uz=dz/d; dist=d/ctx.scene.scale.x;
-    const c=k.cell(yp.ix,yp.iz); if(c) cy=(c.h*k.B-A.y)/ctx.scene.scale.x; }
-  const vx=-uz, vz=ux, P=(a,b)=>[a*ux+b*vx,a*uz+b*vz];
-  /* the mount itself, under the set: its crown behind Bĕyth Phaḡi, the road falling from it toward the city */
-  const top=P(-20,0);
-  W.ground(ctx,{color:C.grassDry,flat:24,peak:[{x:top[0],z:top[1],h:26,r:80}]});
-  /* the road from Bĕyth Phaḡi over the mount and down toward the city */
-  const rb=a=>Math.sin(a*0.08)*5;
-  for(let a=-46;a<=30;a+=1.2){ const p=P(a,rb(a)); st.box(p[0]-1,0,p[1]-1,p[0]+1,0.08,p[1]+1,C.path,{collide:false,jitter:0.12}); }
-  /* Bĕyth Phaḡi, a few houses up on the shoulder; a door with a ring for tying a beast */
-  [[-36,-12],[-42,-4],[-36,10],[-44,12]].forEach(([a,b],n)=>{ const p=P(a,b); W.house(st,p[0],p[1],5.5,5,{door:'s',color:n%2?C.limestone:C.whitewash,h:2.9}); });
+  ctx.api.mound(158,-42,28,112,{top:'grass'});                                     /* the mount, heaped east of the Qidron */
+  const rz=x=>-42-(160-x)*0.05+Math.sin(x*0.09)*2.4;                                /* the road, over the top and down toward the city */
+  for(let x=170;x>=74;x-=1.2){ const z=rz(x); st.box(x-1,0,z-1.1,x+1,0.08,z+1.1,C.path,{collide:false,jitter:0.12}); }
+  /* Bĕyth Phaḡi on the shoulder of the mount */
+  [[160,-58],[170,-50],[164,-28],[174,-32]].forEach(([x,z],n)=>W.house(st,x,z,5.5,5,{door:z<-42?'s':'n',color:n%2?C.limestone:C.whitewash,h:2.9}));
   /* the olive groves either side of the way */
-  for(let n=0;n<48;n++){ const a=-44+W.hash(n,3)*72, b=(W.hash(n,4)<0.5?-1:1)*(6+W.hash(n,5)*30);
-    if(Math.abs(b-rb(a))<5) continue; const p=P(a,b); W.olive(st,p[0],p[1],0.9+W.hash(n,6)*0.35); }
+  for(let n=0;n<70;n++){ const x=74+W.hash(n,3)*96, z=-96+W.hash(n,4)*104;
+    if(Math.abs(z-rz(x))<5.5||(x>154&&Math.abs(z+42)<22)) continue; W.olive(st,x,z,0.9+W.hash(n,6)*0.35); }
   /* the stones of the hillside (Luke 19:40) */
-  for(let n=0;n<14;n++){ const a=-20+W.hash(n,8)*48, b=rb(a)+(W.hash(n,9)<0.5?-1:1)*(2.4+W.hash(n,10)*2); const p=P(a,b); W.rock(st,p[0],p[1],0.4+W.hash(n,11)*0.3); }
-  const M=(id,a,b)=>{ const p=P(a,b===undefined?rb(a):b); mk(ctx,id,p[0],p[1]); };
-  M('phagi',-38,0); M('colt',-39,-7); M('wait',-24); M('top',-18); M('d0',-8); M('d1',0); M('d2',8); M('d3',16); M('brow',24); M('browSide',22,rb(22)+3.4);
-  M('crowdA',-12,rb(-12)-4); M('crowdB',-4,rb(-4)+4); M('pharisees',18,rb(18)-3.6);
-  { const c=Math.min(dist,420), p=P(c,0); ctx.markers.city=[p[0],p[1],cy+24];   /* the House, standing over her walls */ }
-  ctx.dir=[ux,uz];
-  W.wild(ctx,'goat',P(-20,26)[0],P(-20,26)[1],3,5,0.4);
-  ctx.bounds={x0:-140,x1:140,z0:-140,z1:140};
+  for(let n=0;n<16;n++){ const x=78+W.hash(n,8)*60, z=rz(x)+(W.hash(n,9)<0.5?-1:1)*(2.6+W.hash(n,10)*2.2); W.rock(st,x,z,0.4+W.hash(n,11)*0.3); }
+  const M=(id,x,dz)=>mk(ctx,id,x,rz(x)+(dz||0));
+  M('phagi',162); mk(ctx,'colt',161,-52.6); M('wait',146); M('top',138); M('d0',126); M('d1',112); M('d2',100); M('d3',90); M('brow',80); M('browSide',80,3.4);
+  M('crowdA',134,-4); M('crowdB',118,4); M('pharisees',92,-3.8);
+  const hk=ctx.markers.hekal||[6,-44]; ctx.markers.city=[hk[0],hk[1],12];             /* the House, standing over her walls */
+  W.wild(ctx,'goat',130,-80,3,5,0.4);
+  ctx.bounds={x0:-200,x1:240,z0:-200,z1:200};
 };
 })();
