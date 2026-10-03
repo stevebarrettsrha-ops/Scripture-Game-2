@@ -190,7 +190,7 @@ STORY.act({
       {t:'robe', who:'yahusha', color:0xd6c9a8},
       {t:'read', ref:'MATTITHYAHU 17:8'},
       {t:'time', to:'dawn'},
-      {t:'move', who:['yahusha','kepha','yaaqob','yahuchanon'], to:[[10,10],[8.6,12],[10.6,12.4],[12,11]], speed:1.1, wait:false},
+      {t:'move', who:['yahusha','kepha','yaaqob','yahuchanon'], to:[[1,4.4],[-0.6,6.4],[1.4,6.8],[2.8,5.8]], speed:0.9, wait:false},
       {t:'face', who:'yahusha', to:'kepha'},
       {t:'cam', on:'yahusha', shot:'back', toward:'kepha', dur:3},
       {t:'say', who:'yahusha', ref:'MATTITHYAHU 17:9', turn:false},
@@ -283,7 +283,7 @@ STORY.act({
     ],
     beats:[
       {t:'cam', from:[8,3.4,-6], look:[-2,1.2,2], dur:0.1},
-      {t:'cam', from:[6.4,2.4,-4.4], look:'kepha', dur:2},
+      {t:'cam', from:[-3.8,1.8,-2.6], look:'kepha', dur:2},
       {t:'say', who:'taxmen', ref:'MATTITHYAHU 17:24', turn:false},
       {t:'move', who:'kepha', to:[-6.4,8], speed:1.2},
       {t:'move', who:'kepha', to:[-9.8,7.2], speed:1},
@@ -755,6 +755,7 @@ STORY.act({
       {t:'cam', on:'yahusha', shot:'back', toward:'sent1', dur:1.8},
       {t:'read', ref:'LUKE 19:35'},
       {t:'ride', who:'yahusha', on:'colt'},
+      {t:'cam', on:'yahusha', shot:'body', dur:1.8},
       {t:'read', ref:'MATTITHYAHU 21:4'},
       {t:'read', ref:'MATTITHYAHU 21:5', who:'psalmist'},
       {t:'move', who:'yahusha', to:'d0', speed:0.9, wait:false},
@@ -764,7 +765,7 @@ STORY.act({
       {t:'witness', text:'Spread your own garment on the way before Him', items:['myGar'], verb:'Lay down your garment', hold:0.8, reach:2.6, reveal:{myGar:'myGar'}},
       {t:'show', id:['gar2','gar3','gar4','gar5']},
       {t:'move', who:'yahusha', to:'d2', speed:0.9, wait:false},
-      {t:'cam', from:['d1',0,5], fdy:3, look:'yahusha', dur:3},
+      {t:'cam', on:'yahusha', shot:'back', toward:'city', back:6, lift:1, dur:3},
       {t:'read', ref:'LUKE 19:37'},
       {t:'say', who:'multitude', ref:'LUKE 19:38', turn:false},
       {t:'move', who:'yahusha', to:'d3', speed:0.9},
@@ -776,7 +777,7 @@ STORY.act({
       {t:'move', who:'yahusha', to:'brow', speed:0.8},
       {t:'face', who:'yahusha', to:'city'},
       {t:'stop', who:ids(MULT).slice(0,12).concat(['kepha','andri','yaaqob','yahuchanon','philip','toma'])},
-      {t:'cam', on:'yahusha', shot:'back', toward:'city', back:6, lift:3, dur:3},        /* over Him, to the city across the Qidron */
+      {t:'cam', on:'yahusha', shot:'back', toward:'city', back:5, lift:0.6, dur:3},        /* over Him, to the city across the Qidron */
       {t:'read', ref:'LUKE 19:41'},
       {t:'say', who:'yahusha', ref:'LUKE 19:42', turn:false},
       {t:'say', who:'yahusha', ref:'LUKE 19:43-44', turn:false},

@@ -502,9 +502,7 @@ S.ginae=function(ctx,st){
   const hs=[[-6,-14],[4,-15],[-15,-4],[-15,8],[-5,15],[6,15],[-25,-12],[-25,4]];
   hs.forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:z<0?'s':(x<-10?'e':'n'),color:k%2?C.limestone:C.mudbrick,h:2.9}));
   st.box(-1.2,0,-1.2,1.2,0.6,1.2,C.stone); W.jar(st,1.7,0.6); W.jar(st,-1.8,-0.4);   /* the spring */
-  /* under the vine before a house, a table: tax collectors and sinners eat at it (Luke 15:1-2) */
-  for(const [a,b] of [[-6.4,5],[-0.6,5],[-6.4,9],[-0.6,9]]) st.box(a-0.12,0,b-0.12,a+0.12,2.7,b+0.12,C.timber,{collide:false});
-  st.box(-6.8,2.7,4.6,-0.2,2.85,9.4,0x6d8a3e,{collide:false});
+  /* before a house, a table: tax collectors and sinners eat at it (Luke 15:1-2) */
   st.box(-5.8,0,6.5,-1.2,0.42,7.5,C.timber);                                          /* low, as they reclined to eat */
   /* the gardens below the spring */
   for(let r=0;r<5;r++) for(let k=0;k<12;k++){ const x=-44+k*2.2, z=24+r*2.4; st.detail(x-0.3,0,z-0.3,x+0.3,0.5,z+0.3,[0x6d8a3e,0x7f8f4e,0x8a9a50][k%3]); }
