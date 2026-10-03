@@ -397,7 +397,7 @@ function room(ctx,st0,x0,z0,x1,z1,o){ let st;
          st.box(x0,R,h[1],h[0],R+0.92,h[3],C.roofEarth); st.box(h[2],R,h[1],x1,R+0.92,h[3],C.roofEarth); }
   else st.box(x0,R,z0,x1,R+0.92,z1,C.roofEarth);
   /* the stair up the outside of the south wall, from the east */
-  for(let k=0;k<6;k++){ const sx=x1-0.4-k*0.95; st.box(sx-0.95,0,z1,sx,0.62*(k+1),z1+1.2,C.stoneDark); }
+  if(!o.noStair) for(let k=0;k<6;k++){ const sx=x1-0.4-k*0.95; st.box(sx-0.95,0,z1,sx,0.62*(k+1),z1+1.2,C.stoneDark); }
   /* a mat to lie on, a lamp niche, a water jar by the door */
   st.box(x0+t+0.2,0.08,z0+t+0.2,x0+t+2.2,0.2,z0+t+1.2,0xb39a6a,{collide:false});
   return {roofY:H+0.92};
@@ -573,7 +573,119 @@ S.olivet=function(ctx,st){
   M('phagi',162); mk(ctx,'colt',161,-52.6); M('wait',146); M('top',138); M('d0',126); M('d1',112); M('d2',100); M('d3',90); M('brow',80); M('browSide',80,3.4);
   M('crowdA',134,-4); M('crowdB',118,4); M('pharisees',92,-3.8);
   const hk=ctx.markers.hekal||[6,-44]; ctx.markers.city=[hk[0],hk[1],12];             /* the House, standing over her walls */
+  /* GAT-SHEMEN at the foot of the mount, beyond the Qidron (Mark 14:32; Yahuchanon 18:1): a walled
+     olive garden, its press of stone, and a gate toward the city */
+  for(const [ax,az,bx,bz] of [[62,-66,80,-65.4],[62,-50.6,80,-50],[79.4,-66,80,-50],[62,-66,62.6,-60],[62,-56,62.6,-50]]) st.box(ax,0,az,bx,1.1,bz,C.stone);
+  for(let n=0;n<14;n++){ const x=65+W.hash(n,21)*13, z=-63+W.hash(n,22)*11; if(Math.abs(z+58)<2.6&&x<72) continue; W.olive(st,x,z,0.85+W.hash(n,23)*0.25); }
+  st.detail(76,0,-64.6,77.6,0.7,-63,C.stone); st.detail(76.6,0.7,-64,77,1.6,-63.6,C.timber);          /* the press */
+  mk(ctx,'gGate',61,-58); mk(ctx,'gIn',64.6,-58); mk(ctx,'eight',65.4,-55.6); mk(ctx,'three',70.6,-58.4); mk(ctx,'prayer',74.6,-58.6);
+  mk(ctx,'qidron',54,-58); mk(ctx,'cityPath',44,-58);
   W.wild(ctx,'goat',130,-80,3,5,0.4);
   ctx.bounds={x0:-200,x1:240,z0:-200,z1:200};
+};
+
+/* ================= PASSION WEEK (Act VI): the places of the week, on the city's own ground =================
+   Each is laid on Yahrushalayim as she stood in Herodes' days (world/yahrushalayim.js): the courts
+   of the House on its great platform, the lower city by the square, the fortress at the
+   platform's north-west corner, and outside the west wall the knoll and the garden. `G` is the
+   floor under a point (the platform's top on the courts), so a thing set there stands on it. */
+const floorAt=ctx=>(x,z)=>ctx.groundY(x,z)||0;
+
+/* THE COURTS OF THE HOUSE (Mark 11:15; 12:41): the tables of the money changers in rows and the
+   seats of those who sold doves on the court of the nations, west of the inner courts; and the
+   chests of the treasury along the court of the women. */
+S.courts=function(ctx,st){
+  ctx.wind=[0.5,0.2];
+  const G=floorAt(ctx);
+  for(let r=0;r<1;r++) for(let k=0;k<4;k++){ const x=-32+k*5, z=-62+r*7, y=G(x,z);       /* (the near row is the act's own: it is overturned) */
+    st.detail(x-1,y,z-0.45,x+1,y+0.8,z+0.45,C.timber);
+    st.detail(x-0.6,y+0.8,z-0.2,x-0.2,y+0.86,z+0.2,0xc8a050); st.detail(x+0.2,y+0.8,z-0.25,x+0.5,y+0.84,z+0.1,0xb08d3c); }
+  for(let k=0;k<4;k++){ const x=-34+k*3.4, z=-50, y=G(x,z);
+    st.detail(x-0.7,y,z-0.5,x+0.7,y+0.9,z+0.5,0x8a6a40); st.detail(x-0.6,y+0.9,z-0.45,x+0.6,y+1.4,z+0.45,0xd8d0bb); }
+  for(const x of [-4,-1.6,0.8,11.2,13.6,16]){ const z=-37.2, y=G(x,z);
+    st.detail(x-0.35,y,z-0.35,x+0.35,y+0.9,z+0.35,0xa0703f); st.detail(x-0.16,y+0.9,z-0.16,x+0.16,y+1.3,z+0.16,0xb08d3c); }
+  mk(ctx,'southSteps',-11,-40); mk(ctx,'outer',-24,-54); mk(ctx,'tables',-24,-58); mk(ctx,'doves',-29,-51.6);
+  mk(ctx,'womenCourt',6,-38.4); mk(ctx,'treasury',-1.6,-38.2); mk(ctx,'treasurySeat',13.6,-39.2); mk(ctx,'innerSteps',6,-30);
+  mk(ctx,'porch',33,-60); mk(ctx,'below',-8,-30);
+};
+
+/* THE LARGE UPPER ROOM (Luke 22:12), in the lower city by the square: a house of two storeys,
+   its lower rooms not entered, the guest room on the roof of them reached by a stair up the
+   outside of the east wall; within, a low table, and the lamps. */
+S.upperroom=function(ctx,st){
+  ctx.wind=[0.4,0.2];
+  const x0=12,z0=26,x1=22,z1=34, F=2.77;                                               /* three courses of the world's blocks */
+  st.box(x0,0,z0,x1,F,z1,C.limestone);
+  st.detail(16.3,0,z0-0.06,17.7,2.0,z0,0x3a2a1e);                                       /* the door of the house below */
+  room(ctx,st,x0,z0,x1,z1,{door:'e',wall:C.limestone,y:F,noStair:true});
+  st.box(x1+0.1,0,z0+1,x1+1.5,0.92,z0+2,C.stoneDark); st.box(x1+0.1,0,z0+2,x1+1.5,1.85,z0+3,C.stoneDark);   /* the stair */
+  st.box(x1+0.1,0,z0+3,x1+1.5,F,z0+5.2,C.stoneDark);                                    /* its landing at the door */
+  st.detail(14.6,F,29.5,19.4,F+0.38,30.5,C.timber);                                     /* the low table */
+  st.detail(15.2,F+0.38,29.8,15.8,F+0.46,30.2,0xd8c08a); st.detail(17.6,F+0.38,29.9,17.9,F+0.6,30.1,0x7a2a2a);   /* bread, a cup */
+  for(const [lx,lz] of [[12.8,27],[12.8,33],[21.2,27],[21.2,33]]) W.glow(ctx,lx,F+2,lz,1.1,0xffc070,0.8);
+  mk(ctx,'urHouse',17,24.4); mk(ctx,'stairFoot',22.8,26.2); mk(ctx,'stairTop',22.8,30.2); mk(ctx,'roomDoor',21.2,30); mk(ctx,'roomIn',20.4,30);
+  mk(ctx,'table',17,30); mk(ctx,'roomCorner',13.4,33);
+};
+
+/* THE COURTYARD OF THE KOHEN GADOL (Mark 14:54; Yahuchanon 18:15-18): a court within walls, a fire
+   of coals in its middle, and on the north the hall of the house, open to the court on its
+   pillars, where the council sits; the door kept by a servant girl, and the porch without it. */
+S.highpriest=function(ctx,st){
+  ctx.wind=[0.4,0.2];
+  const x0=4,z0=24,x1=22,z1=36, L=C.limestone;
+  st.box(x0,0,z0,x1,3,z0+0.5,L); st.box(x0,0,z1-0.5,x1,3,z1,L); st.box(x0,0,z0,x0+0.5,3,z1,L);
+  st.box(x1-0.5,0,z0,x1,3,29.2,L); st.box(x1-0.5,0,30.8,x1,3,z1,L);
+  for(const px of [6,10,14,18]) st.box(px-0.3,0,28.2,px+0.3,2.8,28.8,L);                  /* the pillars of the hall */
+  st.detail(x0,2.8,z0,x1,3.2,28.8,C.roofEarth);
+  st.detail(5,0,24.6,19,0.46,25.4,C.stoneDark);                                          /* the council's bench */
+  st.detail(11.3,0,24.6,12.7,1.0,25.5,C.timber);                                         /* the seat of the kohen gadol */
+  W.fire(ctx,st,13,32.2);
+  st.detail(22.2,2.6,28.6,25.2,2.8,31.4,C.roofEarth);                                   /* the porch over the gate, without */
+  st.detail(24.6,0,28.8,25,2.6,29.2,C.timber); st.detail(24.6,0,30.8,25,2.6,31.2,C.timber);
+  mk(ctx,'fire',13,32.2); mk(ctx,'hall',12,26.6); mk(ctx,'qayapha',12,25.9); mk(ctx,'accused',12,27.4);
+  mk(ctx,'hpGate',21.2,30); mk(ctx,'hpPorch',23.6,30); mk(ctx,'hpStreet',27,30);
+};
+
+/* THE PAVEMENT, GABBATHA (Yahuchanon 19:13): the court before the fortress at the platform's corner,
+   paved; the door of the palace in its south face and the hall within; the mishpat seat on its
+   step at the west of the pavement. Those who would not be defiled stand in the court below it. */
+S.praetorium=function(ctx,st){
+  ctx.wind=[0.6,0.2];
+  const G=floorAt(ctx), y0=G(-32,-56);
+  st.box(-37,y0,-73,-27,y0+5,-64.4,'air',{abs:true});                                   /* the hall */
+  st.box(-33.2,y0,-64.6,-30.8,y0+3.2,-63.6,'air',{abs:true});                           /* its door */
+  for(let x=-40;x<-22;x+=2) for(let z=-63;z<-52;z+=2) st.detail(x+0.05,y0+0.01,z+0.05,x+1.95,y0+0.05,z+1.95,(x+z)%4===0?0xd8cfb8:0xc8bea6);
+  st.box(-40,y0,-63.2,-36,y0+0.92,-59.4,C.limestone,{abs:true});                         /* the step of the seat */
+  st.detail(-38.6,y0+0.92,-62.9,-37.4,y0+1.7,-62.1,0xe8e0cc);                            /* the mishpat seat */
+  mk(ctx,'bema',-38,-61.2); mk(ctx,'seat',-38,-62.4); mk(ctx,'palaceDoor',-32,-62.8); mk(ctx,'palaceIn',-32,-68.5);
+  mk(ctx,'pavement',-32,-58); mk(ctx,'crowd',-26,-50); mk(ctx,'kohanim',-30,-53.6); mk(ctx,'basin',-35.6,-60);
+};
+
+/* GOLGOTHA AND THE GARDEN (Yahuchanon 19:17, 20, 41): outside the west wall, near the city, a knoll of
+   bare rock, the three stakes upon it facing the city; and close by a garden, and in it a tomb
+   newly cut in the face of the rock, a round stone at its door. */
+S.golgotha=function(ctx,st){
+  ctx.wind=[1.0,0.4];
+  ctx.api.mound(-66,-34,4,10,{top:'stone'});
+  const G=floorAt(ctx);
+  for(const dz of [-3.4,0,3.4]){ const x=-66, z=-34+dz, y=G(x,z);
+    st.detail(x-0.16,y-0.4,z-0.16,x+0.16,y+3.7,z+0.16,0x6e5238);                         /* the upright */
+    st.detail(x-0.13,y+2.3,z-1.15,x+0.13,y+2.56,z+1.15,0x6e5238); }                       /* the crossbeam */
+  { const y=G(-66,-34); st.detail(-65.86,y+3.2,-34.5,-65.8,y+3.6,-33.5,0xece6d6); }        /* the title (Yahuchanon 19:19) */
+  /* the road from the gate, round the wall to the knoll */
+  for(let k=0;k<=40;k++){ const t=k/40, x=-14-t*50, z=44-t*72+Math.sin(t*3)*4; ctx.api.top(x-1,z-1,x+1,z+1,C.path); }
+  /* the garden: the face of the rock and the tomb cut into it */
+  st.box(-78,0,-17,-70,5,-5,C.limestone);
+  st.box(-74,0,-12.6,-70.1,2.4,-9.4,'air');
+  st.box(-70,0,-13,-69.2,0.3,-9,C.stone);
+  for(let k=0;k<12;k++){ const a=W.hash(k,5)*6.28, r=6+W.hash(k,6)*9, x=-60+Math.cos(a)*r, z=-8+Math.sin(a)*r; if(x<-68) continue; if(k%3) W.olive(st,x,z,0.8); else W.fig(st,x,z); }
+  for(let k=0;k<40;k++){ const x=-66+W.hash(k,8)*14, z=-18+W.hash(k,9)*18; st.detail(x-0.12,0,z-0.12,x+0.12,0.25,z+0.12,[0xd8c25a,0xe8e0f0,0xb8506a][k%3]); }
+  ctx.markers.stakeY=[G(-66,-34)+0.9,0];                                                /* the height of His feet on the stake */
+  mk(ctx,'skull',-66,-34); mk(ctx,'stakeL',-66,-37.4); mk(ctx,'stakeR',-66,-30.6); mk(ctx,'onStake',-65.7,-34);
+  mk(ctx,'foot',-61.6,-34); mk(ctx,'soldiers',-61.4,-37.6); mk(ctx,'scoffers',-56,-30); mk(ctx,'mother',-62.2,-31.4);
+  mk(ctx,'afar',-50,-44); mk(ctx,'gateRoad',-18,44); mk(ctx,'roadBend',-42,8);
+  mk(ctx,'tomb',-70.6,-11); mk(ctx,'tombIn',-72.4,-11); mk(ctx,'tombOut',-67,-11); mk(ctx,'tombFront',-64,-11);
+  mk(ctx,'stone',-68.8,-14); mk(ctx,'stoneShut',-68.8,-11); mk(ctx,'garden',-60,-8); mk(ctx,'opposite',-60,-13);
+  const hk=ctx.markers.hekal||[6,-44]; ctx.markers.city=[hk[0],hk[1],16];
 };
 })();

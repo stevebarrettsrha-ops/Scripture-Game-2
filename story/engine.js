@@ -312,6 +312,8 @@ function animFigure(g,dt,moving){
     u.armL.rotation.x+=(-0.18-k*0.15-u.armL.rotation.x)*Math.min(1,dt*4); }
   /* knees and elbows fold as the voyage's folk fold theirs */
   const jt=K().jointTick; if(jt&&u.legL&&!u.sit) for(const L of [u.legL,u.legR,u.armL,u.armR]) jt(L,moving);
+  /* the arms stretched out on the crossbeam (the `pose` beat): still, the legs straight */
+  if(u.armsOut&&u.armL){ u.armL.rotation.set(0,0,Math.PI/2); u.armR.rotation.set(0,0,-Math.PI/2); u.legL.rotation.x=u.legR.rotation.x=0; }
   clothStep(g,dt,moving,sw);
 }
 /* THE CLOTH. Each panel of a hem, and the back of a head-cloth, hangs on a hinge and is
@@ -384,7 +386,9 @@ function moveActors(dt){
   keepApart(dt);
   /* a beast led by the halter (Luke 19:35): it walks a step behind the one leading it */
   for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; if(!u.leadBy) continue; const g=ctx.actors[u.leadBy]; if(!g) continue;
-    const tx=g.position.x-Math.sin(g.rotation.y)*1.3, tz=g.position.z-Math.cos(g.rotation.y)*1.3, dx=tx-o.position.x, dz=tz-o.position.z, d=Math.hypot(dx,dz);
+    /* or carried (`up` off the ground, at `back` behind or on him, turned by `turn`): the crossbeam on Shim‛on's shoulders */
+    const bk=u.leadBack!==undefined?u.leadBack:1.3, tx=g.position.x-Math.sin(g.rotation.y)*bk, tz=g.position.z-Math.cos(g.rotation.y)*bk, dx=tx-o.position.x, dz=tz-o.position.z, d=Math.hypot(dx,dz);
+    if(u.leadUp){ o.position.x=tx; o.position.z=tz; o.rotation.y=g.rotation.y+(u.leadTurn||0); o.position.y=g.position.y+u.leadUp; continue; }
     const step=Math.min(d,dt*3.2); if(d>0.05){ o.position.x+=dx/d*step; o.position.z+=dz/d*step; o.rotation.y=turnTo(o.rotation.y,Math.atan2(dx,dz),dt*6); }
     o.position.y=ctx.groundY(o.position.x,o.position.z);
     if(o.children[0]&&K().tickGait){ u.ent=u.ent||{m:o.children[0]}; K().tickGait(u.ent,'donkey',d>0.2?2*S:0,dt); } }
@@ -791,10 +795,10 @@ function enterBeat(){
     if(g) g.rotation.y=Math.atan2(p[0]-g.position.x,p[1]-g.position.z); return nextBeat(); }
   if(T==='place'){ const g=B.who==='player'?player:ctx.actors[B.who]; const p=pos(B.at);
     if(g){ const onIt=B.y!==undefined&&B.y!==null;
-      g.position.set(p[0],onIt?B.y:ctx.groundY(p[0],p[1]),p[1]); g.userData.gy=g.position.y; if(B.face!==undefined) g.rotation.y=B.face;
+      g.position.set(p[0],onIt?yOf(B.y):ctx.groundY(p[0],p[1]),p[1]); g.userData.gy=g.position.y; if(B.face!==undefined) g.rotation.y=B.face;
       /* `y`: standing on something that is not the ground — the floor of a boat, a roof;
          `y:null` sets him back down on the ground */
-      if(onIt&&g!==player) g.userData.fixedY=B.y; else if(B.y===null) delete g.userData.fixedY; }
+      if(onIt&&g!==player) g.userData.fixedY=yOf(B.y); else if(B.y===null) delete g.userData.fixedY; }
     return nextBeat(); }
   if(T==='cam'){ controlsOn=!!B.free;
     if(B.release){ releaseCamera(); controlsOn=true; return nextBeat(); }
@@ -822,7 +826,8 @@ function enterBeat(){
   /* lying on the ground: asleep in a camp, or fallen (Yashayahu 37:36) */
   if(T==='lie'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.lie=true; g.userData.sit=false; g.rotation.order='YXZ'; g.rotation.x=B.prone?Math.PI/2:-Math.PI/2; }   /* on the back, along the way he faced; or `prone`, on his face (Mattithyahu 17:6) */ } return nextBeat(); }
   /* set on a beast, and carried by it: `on` a thing (a donkey), or `off` */
-  if(T==='lead'){ const o=ctx.things[B.id]; if(o) o.userData.leadBy=B.by||null; return nextBeat(); }
+  if(T==='pose'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g) g.userData.armsOut=B.arms==='out'; } return nextBeat(); }
+  if(T==='lead'){ const o=ctx.things[B.id]; if(o){ o.userData.leadBy=B.by||null; o.userData.leadBack=B.back; o.userData.leadUp=B.up; o.userData.leadTurn=B.turn; } return nextBeat(); }
   if(T==='ride'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(!g) continue; const u=g.userData;
       if(B.off){ const t=ctx.things[u.ride]; u.ride=null; u.sit=false; if(t){ g.position.x=t.position.x+Math.cos(g.rotation.y)*0.7; g.position.z=t.position.z-Math.sin(g.rotation.y)*0.7; } }
       else { const t=ctx.things[B.on]; if(t){ t.userData.leadBy=null; u.ride=B.on; u.sit=true; g.position.x=t.position.x; g.position.z=t.position.z; g.rotation.y=t.rotation.y; } } }
@@ -856,7 +861,9 @@ function enterBeat(){
 }
 function lookAtSpec(l){ if(typeof l==='string'){ if(ctx.actors[l]){ const g=ctx.actors[l]; return [g.position.x,g.position.y+1.5,g.position.z]; }
     if(ctx.glows[l]){ const s=ctx.glows[l].sprite.position; return [s.x,s.y,s.z]; }
-    const m=pos(l); return [m[0],m[2]!==undefined?m[2]:1.5,m[1]]; } return l; }   /* a marker may carry its own height: [x,z,y] */
+    const m=pos(l); return [m[0],m[2]!==undefined?m[2]:1.5,m[1]]; }
+  if(Array.isArray(l)&&typeof l[0]==='string'){ const m=pos(l); return [m[0],(ctx.groundY(m[0],m[1])||0)+1.4,m[1]]; }   /* near a marker: a step from it, at a man's height */
+  return l; }   /* a marker may carry its own height: [x,z,y] */
 function endScene(){
   journal(act.scenes[sceneIx]);
   sceneIx++;
@@ -1046,7 +1053,8 @@ const BEDS={
   yarden:{river:0.8,wind:0.35,crowd:0.25},          wilderness:{wind:1.0},  mountain:{wind:1.3},
   qanah:{crowd:0.8,wind:0.2},  galil:{shore:0.8,wind:0.35,crowd:0.2},  galilEast:{shore:0.6,wind:0.4,crowd:0.4},
   galilSea:{shore:1.0,wind:1.4},  bethanyah:{wind:0.35,crowd:0.45},  shekem:{wind:0.55,crowd:0.12},  hillcountry:{wind:0.45,crowd:0.15},
-  caesarea:{wind:0.35,river:0.7,crowd:0.1},  ginae:{wind:0.5,crowd:0.15},  yeriho:{wind:0.2,crowd:0.6},  olivet:{wind:0.5,crowd:0.5}
+  caesarea:{wind:0.35,river:0.7,crowd:0.1},  ginae:{wind:0.5,crowd:0.15},  yeriho:{wind:0.2,crowd:0.6},  olivet:{wind:0.5,crowd:0.5},
+  courts:{crowd:0.7,temple:0.6,wind:0.2},  upperroom:{crowd:0.15,wind:0.15},  highpriest:{crowd:0.3,wind:0.3},  praetorium:{crowd:0.9,wind:0.3},  golgotha:{wind:0.8,crowd:0.3}
 };
 function noiseBuf(A,brown){ const n=A.createBuffer(1,A.sampleRate*3,A.sampleRate), d=n.getChannelData(0); let last=0;
   for(let k=0;k<d.length;k++){ const w=Math.random()*2-1; if(brown){ last=(last+0.02*w)/1.02; d[k]=last*3.4; } else d[k]=w*0.5; }

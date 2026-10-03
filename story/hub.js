@@ -11,7 +11,7 @@ const save={codex:{},acts:{},witnessed:0,road:{},bonds:{}};
 try{ const s=localStorage.getItem('fullness:v1'); if(s) Object.assign(save,JSON.parse(s)); }catch(e){}
 const persist=()=>{ try{ localStorage.setItem('fullness:v1',JSON.stringify(save)); }catch(e){} };
 const ROAD=[{id:'prologue',page:'act-prologue.html'},{id:'bridge',page:'act-bridge.html'},{id:'coming',page:'act-coming.html'},
-  {id:'forerunner',page:'act-forerunner.html'},{id:'galil',page:'act-galil.html'},{id:'road-up',page:'act-road-up.html'}];
+  {id:'forerunner',page:'act-forerunner.html'},{id:'galil',page:'act-galil.html'},{id:'road-up',page:'act-road-up.html'},{id:'passion',page:'act-passion.html'}];
 const pageOf=id=>(ROAD.find(r=>r.id===id)||{}).page;
 const textOf=r=>{ const e=ST.text[r]; return e?e.t:''; };
 
@@ -54,7 +54,8 @@ const SPOTS=[
   {k:'galil',n:'Kephar Naḥum',lat:32.881,lon:35.575},{k:'galilEast',n:'',lat:32.836,lon:35.65},{k:'galilSea',n:'',lat:32.83,lon:35.585},
   {k:'road',n:'',lat:32.2,lon:35.28},{k:'yarden',n:'Bĕyth Anyah',lat:31.837,lon:35.55},{k:'wilderness',n:'The wilderness',lat:31.6,lon:35.38},
   {k:'mountain',n:'',lat:33.0,lon:35.75},{k:'bethanyah',n:'',lat:31.771,lon:35.262},{k:'shekem',n:'Sheḵem',lat:32.213,lon:35.285},{k:'hillcountry',n:'',lat:31.768,lon:35.162},
-  {k:'caesarea',n:'Caesarea Philippi',lat:33.248,lon:35.694},{k:'ginae',n:'',lat:32.461,lon:35.302},{k:'yeriho',n:'Yahriḥo',lat:31.857,lon:35.444},{k:'olivet',n:'',lat:31.778,lon:35.245}];
+  {k:'caesarea',n:'Caesarea Philippi',lat:33.248,lon:35.694},{k:'ginae',n:'',lat:32.461,lon:35.302},{k:'yeriho',n:'Yahriḥo',lat:31.857,lon:35.444},{k:'olivet',n:'',lat:31.778,lon:35.245},
+  {k:'courts',n:'',lat:31.778,lon:35.235},{k:'upperroom',n:'',lat:31.772,lon:35.229},{k:'highpriest',n:'',lat:31.772,lon:35.23},{k:'praetorium',n:'',lat:31.779,lon:35.233},{k:'golgotha',n:'',lat:31.779,lon:35.226}];
 function drawMap(){
   const cv=$('road-map'), g=cv.getContext('2d'), W=cv.width, H=cv.height;
   const lat0=30.95, lat1=33.35, lon0=34.25, lon1=36.0;

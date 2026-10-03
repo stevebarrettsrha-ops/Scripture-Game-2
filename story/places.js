@@ -17,7 +17,7 @@
 'use strict';
 const K=()=>window.__KIT;
 /* the days each act is set in: the city of the kings (Solomon's Hĕḵal), or of Herodes */
-const PERIOD={prologue:'kings', bridge:'kings', coming:'herodes', forerunner:'herodes', galil:'herodes', 'road-up':'herodes'};
+const PERIOD={prologue:'kings', bridge:'kings', coming:'herodes', forerunner:'herodes', galil:'herodes', 'road-up':'herodes', passion:'herodes'};
 const PLACES={
   yahrushalayim:{city:true},
   natsareth:  {lat:32.702, lon:35.297, flat:30, why:'Natsareth, in the hills of the lower Galil'},
@@ -38,6 +38,12 @@ const PLACES={
   ginae:      {lat:32.461, lon:35.302, flat:56, why:'Ayin Gannim, the last village of Shomeron on the road from Galil'},
   yeriho:     {lat:31.857, lon:35.444, flat:64, why:'Yahriḥo, the city of palm trees, below the ascent to Yahrushalayim'},
   olivet:     {city:true, why:'the descent of the Mount of Olives, across the Qidron from her walls'},
+  /* Passion Week (Act VI): each on the city's own ground */
+  courts:     {city:true, why:'the courts of the House, on its platform'},
+  upperroom:  {city:true, why:'a house of two storeys in the lower city, by the square'},
+  highpriest: {city:true, why:'the courtyard of the kohen gadol'},
+  praetorium: {city:true, why:'the Pavement, before the fortress at the corner of the courts'},
+  golgotha:   {city:true, why:'outside the west wall, near the city: the knoll and the garden'},
   /* the seven hundred years: the empires, each at its own seat */
   tiber:      {lat:41.89, lon:12.49, flat:20, why:'by the Tiber, where Rome begins'},
   nineveh:    {lat:36.36, lon:43.15, flat:36, why:'Ninewĕh on the Ḥiddeqel, seat of Ashshur'},
