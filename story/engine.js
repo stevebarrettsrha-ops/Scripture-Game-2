@@ -312,6 +312,10 @@ function animFigure(g,dt,moving){
     u.armL.rotation.x+=(-0.18-k*0.15-u.armL.rotation.x)*Math.min(1,dt*4); }
   /* knees and elbows fold as the voyage's folk fold theirs */
   const jt=K().jointTick; if(jt&&u.legL&&!u.sit) for(const L of [u.legL,u.legR,u.armL,u.armR]) jt(L,moving);
+  /* CROUCHED on his haunches when he is still (a def's `crouch`): the man of the tombs */
+  u.crouching=!!(u.def&&u.def.crouch&&!moving&&!u.sit&&!u.lie&&u.legL);
+  if(u.crouching){ u.legL.rotation.x=u.legR.rotation.x=-1.3; for(const L of [u.legL,u.legR]) if(L.userData.knee) L.userData.knee.rotation.x=2.2;
+    u.armL.rotation.x=u.armR.rotation.x=-0.75; }
   /* the arms stretched out on the crossbeam (the `pose` beat): still, the legs straight */
   if(u.armsOut&&u.armL){ u.armL.rotation.set(0,0,Math.PI/2); u.armR.rotation.set(0,0,-Math.PI/2); u.legL.rotation.x=u.legR.rotation.x=0; }
   clothStep(g,dt,moving,sw);
@@ -375,7 +379,7 @@ function moveActors(dt){
         g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=true; }
       else if(!u.follow) u.target=null; }
     if(u.fixedY!==undefined) g.position.y=u.fixedY-sitDrop(u);
-    else { u.gy=stepGround(g.position.x,g.position.z,u.gy===undefined?ctx.groundY(g.position.x,g.position.z):u.gy); g.position.y=u.gy-sitDrop(u)+(u.lie?0.16:0); }
+    else { u.gy=stepGround(g.position.x,g.position.z,u.gy===undefined?ctx.groundY(g.position.x,g.position.z):u.gy); g.position.y=u.gy-sitDrop(u)+(u.lie?0.16:0)-(u.crouching?0.52*(u.s||1):0); }
     /* riding (Luke 19:35): the beast goes where the rider goes, under him, at its own gait */
     if(u.ride){ const t=ctx.things[u.ride]; if(t){ const gy=u.fixedY!==undefined?u.fixedY:u.gy;
         g.position.y=gy-sitDrop(u)+RIDE_H; t.position.set(g.position.x,gy,g.position.z); t.rotation.y=g.rotation.y;
@@ -826,6 +830,10 @@ function enterBeat(){
   /* lying on the ground: asleep in a camp, or fallen (Yashayahu 37:36) */
   if(T==='lie'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.lie=true; g.userData.sit=false; g.rotation.order='YXZ'; g.rotation.x=B.prone?Math.PI/2:-Math.PI/2; }   /* on the back, along the way he faced; or `prone`, on his face (Mattithyahu 17:6) */ } return nextBeat(); }
   /* set on a beast, and carried by it: `on` a thing (a donkey), or `off` */
+  /* a herd of the place driven (`to` a point, at `sp`), or taken from sight (`hide`): "the herd rushed
+     down the steep place into the sea" (Mark 5:13) */
+  if(T==='herd'){ for(const b of ctx.flock){ const u=b.userData; if(u.kind!==B.kind) continue;
+      if(B.hide){ b.visible=false; continue; } if(B.to){ u.home=pos(B.to); u.roam=B.roam||0.6; u.sp=B.sp||4; u.t=0; } } return nextBeat(); }
   if(T==='pose'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g) g.userData.armsOut=B.arms==='out'; } return nextBeat(); }
   if(T==='lead'){ const o=ctx.things[B.id]; if(o){ o.userData.leadBy=B.by||null; o.userData.leadBack=B.back; o.userData.leadUp=B.up; o.userData.leadTurn=B.turn; } return nextBeat(); }
   if(T==='ride'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(!g) continue; const u=g.userData;
@@ -1052,7 +1060,7 @@ const BEDS={
   road:{wind:0.7},   fields:{wind:0.4,night:0.8},  beythlehem:{wind:0.3,crowd:0.2},
   yarden:{river:0.8,wind:0.35,crowd:0.25},          wilderness:{wind:1.0},  mountain:{wind:1.3},
   qanah:{crowd:0.8,wind:0.2},  galil:{shore:0.8,wind:0.35,crowd:0.2},  galilEast:{shore:0.6,wind:0.4,crowd:0.4},
-  galilSea:{shore:1.0,wind:1.4},  bethanyah:{wind:0.35,crowd:0.45},  shekem:{wind:0.55,crowd:0.12},  hillcountry:{wind:0.45,crowd:0.15},
+  galilSea:{shore:1.0,wind:1.4},  gadarenes:{shore:0.8,wind:0.5},  bethanyah:{wind:0.35,crowd:0.45},  shekem:{wind:0.55,crowd:0.12},  hillcountry:{wind:0.45,crowd:0.15},
   caesarea:{wind:0.35,river:0.7,crowd:0.1},  ginae:{wind:0.5,crowd:0.15},  yeriho:{wind:0.2,crowd:0.6},  olivet:{wind:0.5,crowd:0.5},
   courts:{crowd:0.7,temple:0.6,wind:0.2},  upperroom:{crowd:0.15,wind:0.15},  highpriest:{crowd:0.3,wind:0.3},  praetorium:{crowd:0.9,wind:0.3},  golgotha:{wind:0.8,crowd:0.3}
 };

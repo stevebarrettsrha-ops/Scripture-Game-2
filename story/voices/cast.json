@@ -1129,6 +1129,10 @@
   "kind": "man",
   "voice": "am_fenrir"
  },
+ "legion": {
+  "kind": "dark",
+  "voice": "bm_lewis:.6+am_echo:.4"
+ },
  "lemek": {
   "kind": "man",
   "voice": "am_fenrir:.5+bm_fable:.5"

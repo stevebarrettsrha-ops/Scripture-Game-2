@@ -97,6 +97,7 @@ W.person=function(ctx,o){
   /* proportions: a man 1.70, a woman 1.58, a child about 1.15 with a larger head for his size */
   const H=o.height||(child?1.15:female?1.58:1.70), k=H/1.70, hk=child?1.22:1;   /* `height`: a man small of stature (Luke 19:3) */
   body.scale.setScalar(k);
+  if(dress==='tombs'){ body.scale.x*=0.82; body.scale.z*=0.8; }                                   /* wasted to the bone */
   const skin=flat(o.skin), skinD=flat(Math.max(0,(o.skin&0xfefefe)>>1)|0);
   const hairHex=o.hair||(roman?0x2a1e16:o.fallen?0x120a0a:0x1e1610);
   const robe=o.robe||0x9a8466;
@@ -112,7 +113,7 @@ W.person=function(ctx,o){
     box(w,h,d,m,0,-h/2,0,pv); cloths.push({pv,axis,sign,a:0,w:0,n:axis==='x'?[0,0,sign]:[sign,0,0],light:!!light}); return pv; };
 
   /* LEGS: thigh, knee, shin, the foot in its sandal */
-  const hemY=female||dress==='kohen'||dress==='levite'||dress==='wrapped'||dress==='rabshaqeh'?0.07:dress==='assyrian'?0.48:roman||dress==='herodian'||dress==='camelhair'||dress==='shepherd'||child?0.50:0.10;
+  const hemY=female||dress==='kohen'||dress==='levite'||dress==='wrapped'||dress==='rabshaqeh'?0.07:dress==='assyrian'?0.48:roman||dress==='herodian'||dress==='camelhair'||dress==='shepherd'||child?0.50:dress==='tombs'?0.56:0.10;
   const legM=dress==='magi'?cloth(o.under||0x6a3a2a,'folds'):skin;
   const footM=roman?cloth(0x5a3a22,'leather'):flat(0x5a4028);
   const mkLeg=(x)=>{ const L=new THREE.Group(); L.position.set(x,0.90,0); body.add(L);
@@ -131,6 +132,10 @@ W.person=function(ctx,o){
     const sl=Math.min(0.40,0.48-hemY); if(sl>0.02) box(0.138,sl,0.148,tunicM,0,-sl/2,0.004,K2);
     return L; };
   const legL=mkLeg(0.085), legR=mkLeg(-0.085);
+  /* THE MAN OF THE TOMBS (Mark 5:3-5): the shackles still on his ankles and wrists, the links that
+     were pulled apart hanging from them (the wrists' are added with the arms) */
+  const iron=flat(0x3a3a3e);
+  if(dress==='tombs') for(const L of [legL,legR]){ box(0.15,0.06,0.16,iron,0,-0.33,0.0,L.userData.knee); box(0.03,0.12,0.03,iron,0.03,-0.42,0.08,L.userData.knee); }
   /* THE ROBE OF ONE SEATED: the hanging skirt cannot sit, so when he sits it is put by and the
      robe is drawn as it falls on a seated man. It is not one board over the lap: each thigh
      has its own loose breadth, the cloth rounds over each knee, lies down each shin to a hem
@@ -202,13 +207,14 @@ W.person=function(ctx,o){
     box(0.085,0.26,0.09,dress==='magi'||dress==='kohen'?sleeveM:skin,0,-0.13,0,E);
     const hand=box(0.08,0.09,0.06,skin,0,-0.31,0.005,E); A.userData.hand=hand; return A; };
   const armL=mkArm(0.245), armR=mkArm(-0.245);
+  if(dress==='tombs') for(const A of [armL,armR]){ box(0.11,0.05,0.11,iron,0,-0.22,0,A.userData.elbow); box(0.025,0.16,0.025,iron,0,-0.32,0.06,A.userData.elbow); }
   if(o.staff||dress==='shepherd'||dress==='centurion'){ const len=dress==='centurion'?0.95:1.7;
     box(0.035,len,0.035,flat(dress==='centurion'?0x5a3a20:0x7a5a30),0,-0.31+len*0.38,0.06,armR.userData.elbow); }
   if(o.carry) box(0.20,0.24,0.16,flat(o.carry),0,-0.42,0.08,armR.userData.elbow);
 
   /* THE MANTLE: over the back from both shoulders, its left end brought over the left shoulder
      to hang before; a tassel at each corner, a cord of blue in each */
-  const mantled=!roman&&!ashshur&&dress!=='herodian'&&dress!=='camelhair'&&dress!=='magi'&&dress!=='levite'&&!child;
+  const mantled=!roman&&!ashshur&&dress!=='herodian'&&dress!=='camelhair'&&dress!=='magi'&&dress!=='levite'&&dress!=='tombs'&&!child;
   if(mantled||dress==='shepherd'||dress==='magi'){
     const mHex=dress==='shepherd'?0xd8ccb0:o.mantle||(dress==='fallen'?o.sash:dress==='king'?0x5a2060:dress==='kohen'?0xf4f0e6:female?(o.cloth||0x6a5a7a):shade(robe,0.82));
     const mM=dress==='shepherd'?cloth(mHex,'fleece'):dress==='king'?cloth(mHex,'border',0xd4af37):cloth(mHex,'folds');
@@ -226,13 +232,15 @@ W.person=function(ctx,o){
   box(hw,hh,hd,skin,0,0,0,head);
   box(0.03,0.05,0.035,skin,hw/2+0.012,0,0,head); box(0.03,0.05,0.035,skin,-hw/2-0.012,0,0,head);     /* ears */
   const hairM=cloth(hairHex,'shaggy');
-  const covered=dress==='woman'||dress==='kohen'||dress==='levite'||dress==='magi'||roman||(o.cloth!=null&&o.cloth!==null&&dress!=='herodian');
+  const covered=dress!=='tombs'&&(dress==='woman'||dress==='kohen'||dress==='levite'||dress==='magi'||roman||(o.cloth!=null&&o.cloth!==null&&dress!=='herodian'));
   /* hair: on the crown and behind; long on the immerser, short and close on a Roman. Under a
      head-cloth, a turban or a mantle only the cloth is seen behind (dress==='king' wears a diadem) */
   const veiled=covered||dress==='yahusha'||dress==='fallen';
   box(hw+0.02,0.06,hd+0.02,hairM,0,hh/2,0,head);
   if(!veiled){
-    box(hw+0.02,dress==='camelhair'?0.30:roman?0.10:0.16,0.04,hairM,0,dress==='camelhair'?-0.09:-0.02,-hd/2-0.01,head);
+    box(hw+0.02,dress==='camelhair'?0.30:dress==='tombs'?0.36:roman?0.10:0.16,0.04,hairM,0,dress==='camelhair'?-0.09:dress==='tombs'?-0.12:-0.02,-hd/2-0.01,head);
+    if(dress==='tombs'){ for(const sx of [1,-1]) box(0.03,0.30,0.06,hairM,sx*(hw/2+0.012),-0.10,0.03,head);       /* matted, uncut, over the ears */
+      box(hw+0.04,0.05,0.05,hairM,0,0.09,hd/2-0.01,head); }                                                         /* hanging over the brow */
     box(0.02,0.09,hd-0.04,hairM,hw/2+0.005,0.04,-0.01,head); box(0.02,0.09,hd-0.04,hairM,-hw/2-0.005,0.04,-0.01,head); }
   /* ONE WHO DIED, COME OUT: "bound feet and hands with wrappings, and his face was wrapped with
      a cloth" (Yahuchanon 11:44) — the whole head bound, bands about the body */
@@ -247,6 +255,7 @@ W.person=function(ctx,o){
       box(0.042,0.022,0.006,white,0,0,0,e); box(0.018,0.022,0.008,dark,0,0,0.001,e);
       const lid=box(0.046,0.026,0.004,skinD,0,0.004,0.004,e); lid.scale.y=0.01; return {e,lid}; };
     const eL=eye(0.045), eR=eye(-0.045);
+    if(dress==='tombs') for(const q of [eL,eR]) q.e.scale.set(1.35,1.7,1);                     /* wide, staring */
     const browM=basic(o.brow||(o.fallen?0x120a0a:Math.min(hairHex,0x2a1d14)));
     const browL=box(0.055,0.012,0.008,browM,0.045,0.045,fz+0.002,head), browR=box(0.055,0.012,0.008,browM,-0.045,0.045,fz+0.002,head);
     box(0.03,0.055,0.03,skin,0,-0.018,fz+0.012,head);                                         /* the nose */

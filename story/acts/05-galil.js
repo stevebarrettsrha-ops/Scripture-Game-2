@@ -16,7 +16,8 @@
    (2:1-12); the tax office (Mattithyahu 9:9-13); the teaching on the
    mountain (Mattithyahu 5); the captain (8:5-13); the blind and the messengers of Yahuchanon
    (9:27-31, 11:2-6); the sower (Mattithyahu 13), and that evening the storm stilled (Mark
-   4:35-41); Ya‛ir's daughter and the woman who touched His garment (Mark 5:21-43); the loaves
+   4:35-41), and on the other side the man of the tombs (5:1-20); Ya‛ir's daughter and the woman
+   who touched His garment (Mark 5:21-43); the loaves
    and the sea (Yahuchanon 6:1-14, Mattithyahu 14:22-33).
    El‛azar is raised at Bĕyth Anyah near Yahrushalayim (Yahuchanon 11), and is told on the
    road there, in Act V.
@@ -92,6 +93,7 @@ STORY.act({
        man's mouth (Mark 1:23-24) */
     unclean:{name:'An unclean ruach', key:'an unclean ruach', kind:'dark', actor:'possessed', actors:['possessed']},
     amazed:{name:'Those in the qahal', key:'kephar nahum', kind:'crowd', actor:'q1', actors:ids(QAHAL_K)},
+    legion:{name:'Legion', key:'legion', kind:'dark', actor:'tombman'},
     blind:{name:'Two blind men', kind:'man', actor:'blind1', actors:['blind1','blind2']},
     messengers:{name:'Two taught ones of Yahuchanon', kind:'man', actor:'mess1', actors:['mess1','mess2']},
     men:{name:'The men', kind:'crowd', actor:'g2_1', actors:ids(FIVE)},
@@ -684,6 +686,88 @@ STORY.act({
       {t:'choice', prompt:'You', options:[
         {text:'Ask yourself the same question', reply:'Who then is this? You were in the boat. The water is still in your sandals.'},
         {text:'Look out at the still water', reply:'Flat as a floor, from here to the other shore. The stars are in it.'} ]},
+      {t:'end'}
+    ]},
+
+  /* ---------------- IV.7c2 — THE MAN OF THE TOMBS (Mark 5:1-20) ----------------
+     He is drawn as a man the unclean ruchot had wasted: bare-headed and matted, thin to the bone,
+     in rags, the broken shackles still on him, crouched on his haunches among the tombs, staring.
+     The ruchot themselves are what Scripture-Game draws the fallen as — a dim violet shadow upon
+     him — and they go out of him into the herd. Afterwards he is the same man, sitting, dressed,
+     and in his right mind (5:15). */
+  { id:'tombs', title:'The country of the Gaḏarenes', date:'the other side of the sea', place:'gadarenes', time:'day',
+    player:{ at:[20.6,2.6], face:-Math.PI/2, look:ADULT },
+    actors:[
+      Object.assign({id:'yahusha', at:'boatLand', face:-Math.PI/2},YAHUSHA),
+      T('kepha',[21,-1.6],{face:-Math.PI/2}), T('andri',[21.4,1.4],{face:-Math.PI/2}), T('yaaqob',[20.6,-2.8],{face:-Math.PI/2}), T('yahuchanon',[21.6,3.6],{face:-Math.PI/2}),
+      {id:'tombman', name:'A man with an unclean ruach', dress:'tombs', crouch:true, at:'tombMouth', face:Math.PI/2, robe:0x6a6258, cloth:null, hair:0x2a2622, skin:0x8a7a6a, height:1.62},
+      {id:'healed', name:'The man who had the legion', at:'seat', face:0, sit:true, robe:0x8a7454, cloth:0xd8cfb8, hair:0x2a2622, skin:0x8a7a6a, height:1.62, hidden:true},
+      {id:'herder1', name:'One who fed the pigs', at:'herders', face:Math.PI/2, robe:0x6b5a44, cloth:0xa89a7e, beard:0x2c241f},
+      {id:'herder2', at:['herders',-1.6,1.2], face:Math.PI/2, robe:0x5c5040, cloth:0x8a7a60, beard:0x3a2a1e},
+      ...[0,1,2,3,4,5].map(k=>({id:'gd'+k, at:['cityWay',k*1.4,(k%2)*1.6], face:Math.PI/2, robe:[0x7c6a52,0x5f6a52,0x8e6f4c,0x6b5a44,0x74604a,0x5c5040][k], cloth:[0xcfc4aa,0xd8ceb4,0xb9ab8e][k%3], beard:k%3?0x2c241f:null, kind:k%3===1?'woman':'man', hidden:true}))
+    ],
+    things:[ {id:'boatG', kind:'boat', at:[23.6,0], y:-0.2},
+             {id:'garment', kind:'box', at:[20.4,4.4], w:0.6, h:0.12, d:0.5, color:0x8a7454} ],
+    glows:[ {id:'legion', at:[-9.2,1.3,-12.4], size:3.2, color:0x785090, intensity:0},
+            {id:'legion2', at:[-9.6,1.8,-12], size:2.2, color:0x5a3a70, intensity:0} ],
+    beats:[
+      {t:'cam', from:[34,6,-10], look:[10,1.4,-4], dur:0.1},
+      {t:'read', ref:'MARK 5:1'},
+      {t:'cam', from:[24,2.2,-5], look:[-9,1,-12.4], dur:2.5},
+      {t:'move', who:'tombman', to:'meet', speed:3.2, wait:false},
+      {t:'drift', id:['legion','legion2'], to:[12,1.3,-2.6], dur:3.6, wait:false},
+      {t:'read', ref:'MARK 5:2'},
+      {t:'read', ref:'MARK 5:3'},
+      {t:'cam', from:[-4,1.8,-9], look:[-8.4,0.2,-13], dur:2.5},
+      {t:'read', ref:'MARK 5:4'},
+      {t:'read', ref:'MARK 5:5'},
+      {t:'face', who:'tombman', to:'yahusha'},
+      {t:'move', who:'yahusha', to:[16.6,-1.4], speed:1},
+      {t:'cam', from:[16,1.8,2.6], look:'tombman', dur:2},
+      {t:'lie', who:'tombman', prone:true},
+      {t:'read', ref:'MARK 5:6'},
+      {t:'stand', who:'tombman'},
+      {t:'say', who:'legion', ref:'MARK 5:7', turn:false},
+      {t:'face', who:'yahusha', to:'tombman'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'tombman', dur:1.6},
+      {t:'read', ref:'MARK 5:8', voices:['yahusha']},
+      {t:'say', voices:['yahusha','legion'], ref:'MARK 5:9', turn:false},
+      {t:'read', ref:'MARK 5:10'},
+      {t:'cam', from:[14,4,10], look:[2,4,30], dur:2.5},
+      {t:'read', ref:'MARK 5:11'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'tombman', dur:1.6},
+      {t:'say', who:'legion', ref:'MARK 5:12', turn:false},
+      {t:'drift', id:['legion','legion2'], to:[2,6,30], dur:2.4, wait:false},
+      {t:'cam', from:[20,5,18], look:[8,3,32], dur:2},
+      {t:'herd', kind:'pig', to:'sea', sp:5.5, roam:4},
+      {t:'read', ref:'MARK 5:13'},
+      {t:'hide', id:['legion','legion2']},
+      {t:'herd', kind:'pig', hide:true},
+      {t:'move', who:['herder1','herder2'], to:['cityWay',['cityWay',1.4,1.2]], speed:3, wait:false},
+      {t:'read', ref:'MARK 5:14'},
+      {t:'hide', id:['herder1','herder2']},
+      {t:'cam', release:true},
+      {t:'witness', text:'He has nothing to wear — bring him the garment from the boat', items:['garment'], verb:'Take up the garment', hold:0.5, deliver:'seat', r:2.4, carryText:'Give it to him'},
+      {t:'hide', id:['tombman','garment']},
+      {t:'show', id:['healed'].concat(['gd0','gd1','gd2','gd3','gd4','gd5'])},
+      {t:'move', who:['gd0','gd1','gd2','gd3','gd4','gd5'], to:[[4,0],[5,-1.6],[4.4,1.8],[3,-0.8],[3.2,2.4],[5.8,1]], speed:2.2},
+      {t:'cam', from:[8.6,2,-4.6], look:'healed', dur:2.5},
+      {t:'read', ref:'MARK 5:15'},
+      {t:'read', ref:'MARK 5:16'},
+      {t:'read', ref:'MARK 5:17'},
+      {t:'move', who:['yahusha','kepha','andri','yaaqob','yahuchanon'], to:[[20,0.4],[21.6,-1.2],[22,1.4],[21.2,-2.6],[22.4,3]], speed:1.1, wait:false},
+      {t:'stand', who:'healed'},
+      {t:'move', who:'healed', to:[18.2,0.4], speed:1.4},
+      {t:'read', ref:'MARK 5:18'},
+      {t:'face', who:'yahusha', to:'healed'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'healed', dur:1.6},
+      {t:'say', who:'yahusha', ref:'MARK 5:19', turn:false},
+      {t:'move', who:'healed', to:'cityWay', speed:1.2, wait:false},
+      {t:'cam', from:[22,3,6], look:[-10,1.4,4], dur:3},
+      {t:'read', ref:'MARK 5:20'},
+      {t:'choice', prompt:'You', options:[
+        {text:'Watch him go up the road', reply:'Yesterday nobody could hold him with chains. Today he is walking to his own city in your spare garment, to tell them.'},
+        {text:'Look at the water where the herd went in', reply:'Flat again, and empty. The herders are already halfway to the city.'} ]},
       {t:'end'}
     ]},
 

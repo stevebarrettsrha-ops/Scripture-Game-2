@@ -25,6 +25,7 @@ const PLACES={
   galil:      {lat:32.881, lon:35.575, flat:30, why:'Kephar Naḥum, on the north shore of the lake'},
   galilEast:  {lat:32.836, lon:35.650, flat:30, why:'the east shore, below the grassy slopes (Bĕyth Tsaiḏa)'},
   galilSea:   {lat:32.830, lon:35.585, flat:30, why:'out on the lake, between the shores'},
+  gadarenes:  {lat:32.826, lon:35.648, flat:30, why:'the country of the Gaḏarenes, the steep east shore of the lake (Mark 5:1)'},
   road:       {lat:32.20,  lon:35.28,  flat:30, why:'the hill road through Shomeron'},
   beythlehem: {lat:31.705, lon:35.200, flat:36, clear:820, why:'Bĕyth Leḥem, south of the city'},
   fields:     {lat:31.700, lon:35.215, flat:34, clear:900, why:'the pasture below Bĕyth Leḥem'},
