@@ -31,6 +31,8 @@ function castName(sp){
   const k=sp.key.replace(/^(the|a|an)\s+/,'');
   /* Miryam the sister of Martha is not Miryam His mother: a voice of her own */
   if(sp.key==='miryam of beyth anyah') return 'miryam of beyth anyah';
+  /* nor is the woman at Ya‛aqoḇ's fountain the woman of Kephar Naḥum */
+  if(k==='woman of shomeron') return 'woman of shomeron';
   return /^(crowds?|shepherds|magi|heavenly|devil|trier|two|tax|soldiers|those|chief|kohanim|another|man|widow|old)\b/.test(k)?k:k.split(/[\s,]+/)[0];
 }
 const items=new Map(); let missing=0;

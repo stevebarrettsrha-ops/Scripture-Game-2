@@ -9994,6 +9994,316 @@ before it is folded, and the block array is mipmapped.
   village in the world.
 
 
+## 4dm. Round 114 — the acts deepened from the Besorah; robes that sit; no one in a wall
+
+**Every act is deepened from the Besorah**, in its own order. Each new scene's every word is
+the Besorah's, and each speaker is the one it names.
+
+**Act I, The Promise**, now runs to seven scenes. Two are new and one grows:
+
+- **The vision** now gives the whole of Yashayahu 6, inside the Set Apart Place of Shelomoh's
+  house: He who sits on the throne is not drawn — the light fills the house — and the seraphim
+  are light. Yashayahu tells it himself; "Here am I! Send me."
+- **Ḥizqiyahu's sickness** (Yashayahu 38): the sovereign's house below the courts, the stair of
+  Aḥaz beside it, and the shadow drawn back ten steps.
+- **The envoys of Baḇal** (39): the treasures shown, and the word that all of it would be carried
+  to Baḇal.
+
+**The bridge** has a seventh scene: **the foundation laid** (Ezra 3:10-13), the old men weeping
+and the people shouting, in the city as the exiles found her. Yahrushalayim now has a third
+period, `return`: her wall broken down and burnt, few houses standing, the altar built again,
+and of the house only the foundation. A scene may stand in a different period from its act
+(`period` on the scene).
+
+**Act II, The Coming**, now runs to twelve scenes. Five are new:
+
+- **Zaḵaryahu in the Dwelling Place** (Luke 1:5-23): the lot, the incense, Gaḇri'al at the
+  right of the altar, and the kohen who comes out unable to speak. It now opens the act.
+- **Miryam in the hill country** (1:24-25, 39-56): Alisheḇa's greeting and Miryam's song, at
+  Ayin Kerem west of the city.
+- **His name is Yahuchanon** (1:57-80): the tablet, the tongue loosed, and Zaḵaryahu's
+  prophecy over the child.
+- **Shim'on and Ḥannah** (2:22-38): the turtledoves, and the Child in the old man's arms.
+- **The boy in the house of His Father** (2:39-52): found in Shelomoh's porch among the
+  teachers. He speaks in a boy's voice, and His face is never shown. It now ends the act.
+
+**Act III, The Forerunner**, now runs to ten scenes. Four are new:
+
+- **Philip, and Nethanĕ'l under the fig tree** (Yahuchanon 1:43-51).
+- **Naḵdimon by night** (3:1-21), by a lamp the witness trims.
+- **"He must increase"** at Ayin near Salim (3:22-30).
+- **The woman at Ya'aqoḇ's fountain** (4:1-42): Sheḵem between Gerizim and Ebal, the fields
+  white for harvest, and the Shomeronites coming out. The act now ends with it.
+
+**Act IV, Galil**, now runs to seventeen scenes. Four are new, in Mark's order:
+
+- **Shim'on's house, and the whole city at the door** (Mark 1:29-34).
+- **The man let down through the roof** (2:1-12).
+- **The storm stilled** (4:35-41).
+- **Ya'ir's daughter, and the woman who touched His garment** (5:21-43).
+
+**New sets:**
+
+- **Kephar Naḥum:** houses of one basalt room with an earthen roof and an outside stair. The
+  roof of Shim'on's house is opened over the room.
+- **Sheḵem:** the fountain, Gerizim, the town, and the wheat.
+- **The hill country:** the kohen's limestone house above its spring.
+- **The Set Apart Place** within both Hĕḵals, Shelomoh's and Herodes': the golden altar of
+  incense, the lampstand, the table and the veil. Herodes' inner courts are now a terrace
+  built up from the ground, with steps from the street; they had floated over the city.
+
+**Robes that sit (the user's report: "men's legs are shown when they sit down; the cloth
+should be real and move with the body, not a block").**
+
+- **On the legs.** The robe lies on each thigh and shin down to its hem, and goes with the leg
+  in the stride.
+- **Seated.** The hanging skirt is put by for a seated drape: one breadth over both thighs
+  from the hips to the knees, falling to the hem in front of the shins, full over the hips.
+- **How people sit.** On the ground they sit with knees drawn up; on a bench, a boat's thwart
+  or the toll-table, with thighs level.
+- **Length.** A man's tunic is to the ankle, the kethoneth. Shepherds and soldiers keep their
+  working knee-length tunics.
+
+**No one in a wall (the user's report: "a lot of clip-through").**
+
+- **Measured.** A clipping audit lays every mark of every scene against the blocks: anyone in
+  a wall, on a roof, or two in one place. Every IN-WALL finding in all five acts was fixed;
+  what the audit still flags is people on a slope or terrace, not inside anything.
+- **The ground under a man.** With no height to go on — the city's courts, terraces and houses
+  — the floor is now found from below. The world's own query looked only two courses above
+  the land, so it stood men inside the Temple platform and on roofs.
+- **People keep apart.** No one stands inside another; the one walking gives way.
+- **People go round walls.** A step that would put a body into a block is turned aside until it
+  would not; before, people walked straight through any wall between them and their mark.
+- **The camera.** It is never set inside or against a body. The face guard counts a wall
+  between the eye and His head, and a shot never checks for feet below the floor.
+- **Lying down.** People lie along the way they face.
+- **The launcher.** Every built act can be begun from it, not only the next one in order.
+
+**Checks:**
+
+- **Besorah:** 535 passages exact; 532 verses said, with 0 quotations no one speaks.
+- **Voices:** 870 of 870 lines recorded.
+- **Playthrough:** all five acts play through with no errors and 0 face-exposed frames.
+
+| Act | Scenes | Frames |
+|---|---|---|
+| Act I | 7 | 146 |
+| The bridge | 7 | 26 |
+| Act II | 12 | 209 |
+| Act III | 10 | 227 |
+| Act IV | 17 | 365 |
+
+## 4dn. Round 115 — Act V, The Road to Yahrushalayim; the seated robe folds over the knee
+
+**Act V is built:** twelve scenes, from Kĕpha's confession to the brow of the Mount of Olives.
+Every word comes from the Besorah, and each speaker is the one it names. The order is the
+design document's: the transfiguration, Kĕpha's confession, the three foretellings, Luke's long
+journey south, and the approach to the city. The entry itself opens Act VI.
+
+1. **Caesarea Philippi** (Mattithyahu 16:13-28): "on this rock", said before the face of rock,
+   the cave of the springs and Caesar's white house beside it. Then "Get behind Me" and
+   "take up his stake".
+2. **The high mountain** (17:1-13, with Luke 9:30-32):
+   - The witness was not there. Only three went up, "by themselves", and it is told as they
+     told it once He was raised.
+   - At night His garments turn white and shine. Mosheh and Aliyahu appear in light, speaking
+     of what He would complete at Yahrushalayim.
+   - The cloud comes, the voice speaks, and the three fall on their faces.
+3. **The boy at the mountain's foot** (Mark 9:14-32): "I believe Master, help my unbelief!" The
+   witness helps the father bring the boy, and the second foretelling follows.
+4. **Kephar Naḥum** (Mattithyahu 17:24-18:6): the tax, and the little child set in the midst.
+5. **He set His face** (Luke 9:51-62): the Shomeronite village that would not receive Him, the
+   fire the sons of Zaḇdai asked for, and the ploughman in the field beside the road.
+6. **The ten lepers** (17:11-19): nine go on, and the Shomeronite comes back and falls on his
+   face at His feet.
+7. **The neighbour** (10:25-37), on the road.
+8. **The lost sheep, the coin and the son** (15), told at the table of the tax collectors; the
+   witness carries the bread to it.
+9. **Beyond the Yardĕn** (Yahuchanon 10:40-42; Mark 10:13-31): the witness makes a way for the
+   children. The rich man kneels, then goes away grieved.
+10. **Going up** (Mark 10:32-45): He walks ahead of them. The third foretelling, the sons of
+    Zaḇdai, and "a ransom for many".
+11. **Yahriḥo** (Luke 19:1-10; Mark 10:46-52):
+    - Zakkai, small of stature, in the sycamore.
+    - Next morning, Bartimai by the road. The witness goes out to him: "Take courage, arise,
+      He is calling you."
+12. **The Mount of Olives** (Luke 19:28-44, with Mattithyahu 21:4-5):
+    - The colt is led from Bĕyth Phaḡi, and He rides it down the mount.
+    - The witness spreads his own garment on the way.
+    - The crowd's "Baruk is the Sovereign", and "the stones would cry out".
+    - At the brow, with the city across the Qidron, He weeps over her.
+
+Where Luke does not say where a thing was said (chapters 10 and 15), it is set on the road
+south, and a note says so. Yahusha's face is never shown: on the mountain the light is seen
+from behind Him, and on the Mount of Olives over His shoulder.
+
+**New places:**
+
+- **Caesarea Philippi:** the rock face and its cave, the springs and stream, Caesar's house,
+  the niches, and Philip's town.
+- **Ayin Gannim,** the last village of Shomeron: the square and its spring, the gardens, the
+  road, and the ploughed field.
+- **Yahriḥo:** the low wall and its two gates, the palms, the sycamore with its low limb over
+  the street, and Zakkai's house.
+- **The Mount of Olives** is laid on the city's own ground, east of her walls across the
+  Qidron. Placed as a set on its own, it stood three hundred metres off behind a hill, and the
+  city could not be seen from it.
+
+**What the engine learned:**
+
+| Ability | What it does |
+|---|---|
+| `ride` | A rider is carried by a beast, which walks at its own gait. |
+| `lead` | A beast walks a step behind the one leading it. |
+| `lie` with `prone` | A figure falls on his face. |
+| `height` | A man small of stature. |
+| Shots toward a place | An over-the-shoulder shot can look toward a far place, from farther back (`back`) or higher (`lift`). |
+| Markers with a height | A marker can carry its own height. |
+| Goals and moves | A goal or move may name a person or a thing as well as a marker. |
+| Cameras from a marker | A camera can stand at a marker, a set height above the ground there (`fdy`). |
+
+**The seated robe folds over the knee** (the user: "the cloth should be real and move with
+body and not a block"). The single board across the lap is gone.
+
+- Each thigh has its own loose breadth.
+- The cloth rounds over each knee and runs down each shin to a hem that spreads at the ankle.
+- A fold sags between the knees.
+- The sides fall in narrow lengths. Their tops follow the thigh, and each falls a little
+  further out than the last.
+
+These pieces are drawn for how a figure sits: knees drawn up on the ground, or thighs level on
+a bench. A working tunic to the knee stops at the knee.
+
+**Fixed while staging:**
+
+- The levelled ground of Ayin Gannim and Yahriḥo now covers the whole length of road their
+  scenes walk.
+- The house beside the tax collectors' table opens away from it, so its roof-stair no longer
+  comes down over the diners.
+- The table is drawn at its true size, not swollen to a block.
+- No one stands in the sycamore's trunk or in a tamarisk.
+
+**Checks:**
+
+- **Besorah:** 724 passages exact; 721 verses said, with 0 quotations no one speaks.
+- **Voices:** 1,164 of 1,164 lines recorded (294 new).
+- **Playthrough:** Act V plays through in 12 scenes and 348 frames, with no errors and 0
+  face-exposed frames.
+- **Clipping audit:** what remains in Act V is people passing close in a crowd, whom
+  keep-apart separates.
+
+## 4do. Round 116 — Act VI, Passion Week
+
+**Act VI is built:** twelve scenes, from the entry into the city to the sealed tomb. Every word
+comes from the Besorah, and each speaker is the one it names. The design document asks for:
+"The triumphal entry; cleansing the Temple; the Passover supper and the washing of feet;
+Gethsemane; Yahudah's betrayal; the trials; Golgotha; the tomb. Codex lights: 53."
+
+1. **The entry** (Mattithyahu 21:8-11; Mark 11:11):
+   - He rides the colt in at the gate.
+   - The witness cuts a branch and lays it on the road.
+   - "Hoshia-na", then "Who is this?", and He looks round on all of it and goes out as the
+     hour grows late.
+2. **The house of prayer** (Mark 11:15-18; Mattithyahu 21:14-16):
+   - The money changers' tables are overturned and the doves fly up.
+   - The blind and the lame come to Him in the court.
+   - The children's Hoshia-na, and "out of the mouth of babes".
+3. **Caesar's coin and the widow's two coins** (Mark 12:13-17, 41-44): in the court of the
+   women, before the treasury.
+4. **The anointing at Bĕyth Anyah** (Mark 14:1-11): the alabaster flask broken over His head.
+   Yahuḏah goes from the table to the chief kohanim.
+5. **The Pesach made ready** (Luke 22:7-13):
+   - The man carrying a jar of water leads them to the house.
+   - The witness carries the basin up to the upper room.
+6. **The supper:**
+   - The feet washed (Yahuchanon 13:1-15).
+   - "One of you shall deliver Me up" (Mattithyahu 26:21-25; Yahuchanon 13:23-30).
+   - Yahuḏah goes out, and it was night.
+   - The bread and the cup (Mattithyahu 26:26-29), and the renewed command (Yahuchanon
+     13:34-35).
+   - The witness keeps the door.
+7. **Gethsemane** (Mark 14:27-42; Yahuchanon 18:1; Luke 22:43-44):
+   - The witness lights the lamp at the gate of the garden.
+   - "Abba, Father … not what I desire, but what You desire."
+   - The mal'ak, and the three asleep.
+8. **The arrest** (Mark 14:43-50; Yahuchanon 18:4-14; Luke 22:48-51):
+   - The torches; "I am", and they drew back and fell.
+   - The kiss, and Meleḵ's ear healed.
+   - They all left Him and fled.
+9. **The courtyard of the kohen gadol** (Yahuchanon 18:15-18; Mark 14:53-70; Luke 22:59-62):
+   - The fire of coals, and the council's false witness.
+   - "I am", and the three denials.
+   - The Master turned and looked at Kĕpha.
+10. **The Pavement** (Yahuchanon 18:28-19:16; Mattithyahu 27:19, 24-25):
+    - "What is truth?"; Barabba; "See the Man!"; Gabbatha.
+    - The basin and the washed hands.
+11. **Golgotha** (Luke 23; Yahuchanon 19:17-30; Mark 15:33-39; Mattithyahu 27:51):
+    - Shim'on of Kurene bears the crossbeam, and "Daughters of Yahrushalayim".
+    - "Father, forgive them", the title, the garments divided, and the two evil-doers:
+      "today … in Paradise".
+    - "Woman, see your son".
+    - The darkness, and "It has been accomplished!"
+    - **The Codex lights Yashayahu 53**, then the captain's "Truly this Man was the Son of
+      Aluahim!"
+    - The witness stands with the women at a distance.
+12. **The tomb in the garden** (Yahuchanon 19:31-42; Luke 23:50-56; Mattithyahu 27:60-66):
+    - Yosĕph of Ramathayim comes.
+    - The witness helps Naḵdimon carry the myrrh and aloes, and puts his shoulder to the stone.
+    - The women sit opposite the tomb, and the guard and the seal are set.
+
+**Reverence:**
+
+- His face is never shown, on the road, at the table, in the garden, before Pilate, on the
+  stake or in the tomb. The camera is behind Him, at His robe, or far off.
+- The flogging, the blows and the spear are read, never drawn, and a note says so. The camera
+  is on those who watched.
+
+**New places on the city's own ground**, each in Herodes' days:
+
+- **The courts:** the money changers' tables and the dove sellers' seats in the court of the
+  nations, and the treasury chests in the court of the women.
+- **The upper room:** two storeys at the square, the stair up the outside of the house.
+- **The courtyard of the kohen gadol:** the fire, and the council's hall on its pillars.
+- **The Pavement:** before the fortress, with the mishpat seat and the palace hall cut into the
+  fortress.
+- **Golgotha:** outside the west wall, near the city: the knoll and its three stakes, the road
+  round the wall, and the garden with the new tomb cut in the rock.
+- **Gat-Shemen:** a walled olive garden with its press, at the foot of the Mount of Olives
+  across the Qidron.
+
+**What the engine learned:**
+
+| Ability | What it does |
+|---|---|
+| `pose` (arms out) | A figure's arms stretched out on the crossbeam. |
+| Carrying | A thing can be carried as well as led: the crossbeam on Shim'on's shoulders. |
+| Two new hours | `darkness`, the land darkened at the sixth hour, still seen by; and `lamplit`, a night in which the figures can be seen. |
+| Heights as markers | A height may be given as a marker (`stakeY`). |
+| Cameras near a marker | A camera may look at a point near a marker. |
+| Rooms without a stair | `room()` can leave out its roof-stair. |
+
+**Found and fixed while staging:**
+
+- **A set raised twice on the same ground was built on top of itself.** The upper room was made
+  ready and then supped in, and its floor ended two storeys up, with the diners above the
+  camera. The rock of the garden tomb did the same after Golgotha. These sets now stand at a
+  fixed height: the city's level, or the land's own.
+- **The face guard.** Every camera of the supper had looked at Him from the front, and the guard
+  threw them out of the room. He now sits on the long side of the table, and the room is seen
+  from behind Him.
+- **Golgotha's cameras looked at the city through the stake,** so the clear-shot pulled them past
+  it to the walls. They now look at Him, from above and beside the stake.
+- **No one stands under the porch roofs or in the walls.**
+- **The road to Golgotha** runs outside the wall.
+
+**Checks:**
+
+- **Besorah:** 941 passages exact; 938 verses said, with 0 quotations no one speaks.
+- **Voices:** 1,544 of 1,544 lines recorded (380 new).
+- **Playthrough:** Act VI plays through in 12 scenes and 375 frames, with no errors and 0
+  face-exposed frames.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

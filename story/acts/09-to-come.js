@@ -3,8 +3,6 @@
    come", so the whole road from Bĕyth Leḥem to Rome can be seen from the
    start; each becomes playable when its scenes are written. */
 [
-  {n:6, num:'V', id:'road-up', title:'The Road to Yahrushalayim', sub:'Shim‛on Kĕpha’s confession · the long road south'},
-  {n:7, num:'VI', id:'passion', title:'Passion Week', sub:'The entry · Pesach · Gethsemane · Golgotha'},
   {n:8, num:'VII', id:'risen', title:'The Rising', sub:'The empty tomb · the road to Amma’us · the ascension'},
   {n:9, num:'VIII', id:'ends-of-earth', title:'To the End of the Earth', sub:'The Festival of weeks · Sha’ul · Shomeron · Rome'}
 ].forEach(a=>STORY.act(Object.assign({planned:true, scenes:[]},a)));

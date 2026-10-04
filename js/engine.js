@@ -18096,7 +18096,7 @@ function buildYahruPlan(period){
 window.__KIT={
   B, U_PER_M, R_WORLD, WATER_Y, THREE, scene, camera, renderer,
   makeFigure, makeAnimal:k=>{ try{ return makeAnimal(k); }catch(e){ return null; } },
-  robeMat:robeMatHex, blockMat:n=>MAT[n]||null, solidAt, playerXZ, jointTick, tickGait, makeBird, makePerson,
+  robeMat:robeMatHex, blockMat:n=>MAT[n]||null, solidAt, splash:(x,y,z,big)=>splash(x,y,z,big), playerXZ, jointTick, tickGait, makeBird, makePerson,
   /* the floor of cloud, which a story lifts high over its scenes: the voyage's clouds stand
      at the scale of its earth, and a scene is built at the scale of a man */
   clouds:()=>clouds, CLOUD_Y, blockArr:()=>BARR, chunkRoot,

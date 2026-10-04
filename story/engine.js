@@ -65,6 +65,18 @@ function groundAt(x,z,ref){
   if(ref!==undefined) r=anchor.y+ref*S;
   else if(ctx&&ctx.api){ if(ctx.api.inPadL(x,z)) r=anchor.y+2.2*S;
     else { const m=ctx.api.moundL(x,z); if(m!==null) r=anchor.y+(m+0.5)*S; } }
+  /* with nothing to say how high (the city's courts, terraces, houses and the Hĕḵal), the
+     floor is found from below: up from under the natural ground, through the stone, to the
+     first floor with a man's headroom over it — the platform's top in the courts, the floor
+     under a roof, never the roof (the world's own query only looks two courses above the
+     land, and would stand a man inside a platform built higher than that) */
+  if(r===undefined){ const B=k.B, wx=anchor.x+x*S, wz=anchor.z+z*S, c=k.cell(Math.floor(wx/B),Math.floor(wz/B));
+    if(c){ let b=c.h-6, n=0;
+      while(n<40&&!k.solidAt(wx,(b+0.5)*B,wz)){ b++; n++; }
+      for(;n<120;){ while(n<120&&k.solidAt(wx,(b+0.5)*B,wz)){ b++; n++; }
+        if(!k.solidAt(wx,(b+1.5)*B,wz)) break;
+        b++; n++; }
+      return (b*B-anchor.y)/S; } }
   const g=k.groundInfo(anchor.x+x*S,anchor.z+z*S,r);
   return ((g&&g.y!=null?g.y:anchor.y)-anchor.y)/S;
 }
@@ -95,7 +107,7 @@ const TIMES={
 /* the hour is the world's own: the sun, the moon and the stars stand where they stand over
    that place at that hour, and the story only names the hour */
 /* (dawn and dusk are taken where the voyage's own sun is up and low, not before and after it) */
-const HOURS={day:10.5,dusk:17.2,night:23.2,dawn:6.5};
+const HOURS={day:10.5,dusk:17.2,night:23.2,dawn:6.5,darkness:19.4,lamplit:19.1};   /* darkness: the land darkened at midday (Mark 15:33); lamplit: a night still seen by */
 let timeNow=null, hourNow=10.5;
 function applyTime(name){
   timeNow=name; hourNow=HOURS[name]===undefined?10.5:HOURS[name];
@@ -121,13 +133,13 @@ function buildScene(sc){
   if(window.SEASON) SEASON.setSeason(sc.season||act.season||'Spring');
   root=new THREE.Group(); root.name='story-scene'; root.position.set(A.x,A.y,A.z); root.scale.setScalar(S); k.scene.add(root);
   scene=root;
-  ctx={scene:root,colliders:[],markers:{},actors:{},things:{},glows:{},water:[],flicker:[],flock:[],bounds:null,wind:[0.5,0.2],place:sc.place};
+  ctx={scene:root,colliders:[],markers:{},actors:{},things:{},glows:{},water:[],flicker:[],flock:[],bounds:null,wind:[0.5,0.2],place:sc.place,period:sc.period||A.period,anchor:A};
   ctx.groundY=(x,z,ref)=>groundAt(x,z,ref);
   /* the traveller is stood there, unseen, so the world is built about the scene */
   standWalker(A.x,A.z,A.y);
   /* the city of the great king is the voyage's own, raised as she stood in the act's days;
      a scene there lays only its own things about her */
-  if(A.city){ ctx.markers=Object.assign({},k.yahruAs(A.period)); }
+  if(A.city){ ctx.markers=Object.assign({},k.yahruAs(sc.period||A.period)); }   /* a scene may stand in another of her days */
   ctx.api=k.setBuilder(A.x,A.z,A.y);
   const st=new window.STORYWORLD.Static(ctx.api);
   const build=window.STORYSETTINGS[sc.place];
@@ -166,7 +178,9 @@ function buildScene(sc){
     else if(t.kind==='infant'){ obj=window.STORYWORLD.infant(ctx,p[0],p[1],t); }
     else if(t.kind==='roundStone'){ obj=window.STORYWORLD.roundStone(ctx,p[0],p[1],t); }
     else { obj=new THREE.Mesh(new THREE.BoxGeometry(t.w||0.5,t.h||0.5,t.d||0.5),new THREE.MeshLambertMaterial({color:t.color||0xc9b38a}));
-      obj.position.set(p[0],(t.y||0)+(t.h||0.5)/2,p[1]); scene.add(obj); }
+      /* `y` a height in the scene; `dy` (or nothing) above the ground where it lies */
+      const gy=t.y!==undefined?t.y:(ctx.groundY(p[0],p[1])||0)+(t.dy||0);
+      obj.position.set(p[0],gy+(t.h||0.5)/2,p[1]); scene.add(obj); }
     if(t.face!==undefined) obj.rotation.y=t.face;
     if(t.hidden) obj.visible=false;
     if(t.y!==undefined&&t.kind!=='box'&&t.kind!=='dove') obj.position.y=t.y;
@@ -191,7 +205,9 @@ function buildScene(sc){
   camYaw=(P.face||0)+Math.PI; camTarget=null;
   ctx.playerHidden=!!P.hidden; player.visible=!P.hidden;
 }
-function pos(at){ if(typeof at==='string'){ const m=ctx.markers[at]; if(!m) throw new Error('no marker '+at); return m; }
+function pos(at){ if(typeof at==='string'){ const m=ctx.markers[at]; if(m) return m;
+    const g=ctx.actors[at]||ctx.things[at]; if(g) return [g.position.x,g.position.z];   /* a person or a thing: where they are now */
+    throw new Error('no marker '+at); }
   /* a marker and a step from it: ['pinnacle',1.6,-0.7] */
   if(Array.isArray(at)&&typeof at[0]==='string'){ const m=pos(at[0]); return [m[0]+at[1],m[1]+at[2]]; }
   return at; }
@@ -276,18 +292,44 @@ function movePlayer(dt){
   animFigure(player,dt,L>0.05); animFace(player,'player',dt);
 }
 function turnTo(a,b,k){ let d=b-a; while(d>Math.PI) d-=Math.PI*2; while(d<-Math.PI) d+=Math.PI*2; return a+d*Math.min(1,k); }
+/* on the ground, or on something? (one held at a height — in a boat — or set on a bench) */
+function groundSit(u){ return u.fixedY===undefined&&!u.ride&&!(u.def&&u.def.bench); }
+/* how far one sitting is lowered: on the ground the hips nearly to it, on a bench to its height */
+function sitDrop(u){ return u.sit?(groundSit(u)?0.63:0.44)*(u.s||1):0; }
+/* the pose on all fours (radians, and metres for a man of 1.70): worked so the hands and the feet bear alike */
+const FOURS={pitch:1.05,thigh:-2.85,knee:2.1,arm:-1.2,splay:0.3,head:-0.85,lift:-0.034,back:1.12};
 function animFigure(g,dt,moving){
   const u=g.userData; u.phase=(u.phase||0)+dt*(moving?7:1.2);
   const sw=moving?Math.sin(u.phase)*0.55:Math.sin(u.phase)*0.03;
   if(u.legL){ u.legL.rotation.x=sw; u.legR.rotation.x=-sw; u.armL.rotation.x=-sw*0.8; u.armR.rotation.x=u.carrying?-0.9:sw*0.8; }
-  if(u.sit&&u.legL){ u.legL.rotation.x=u.legR.rotation.x=-1.45; u.armL.rotation.x=u.armR.rotation.x=-0.5;
-    for(const L of [u.legL,u.legR]) if(L.userData.knee) L.userData.knee.rotation.x=1.45; }    /* the shins down from the knee */
+  /* SEATED: on the ground (the grass, a floor) the knees are drawn up and the feet set before
+     him; on something (a bench, a boat's thwart, the toll-table) the thighs lie level and the
+     shins hang down */
+  if(u.sit&&u.legL){ const gr=groundSit(u);
+    u.legL.rotation.x=u.legR.rotation.x=gr?-1.92:-1.45; u.armL.rotation.x=u.armR.rotation.x=gr?-0.9:-0.5;
+    for(const L of [u.legL,u.legR]) if(L.userData.knee) L.userData.knee.rotation.x=gr?1.42:1.45; }
   /* THE SPEAKER'S HANDS: one who is speaking and standing still lifts a hand with the words */
   if(u.talkM!==undefined&&!moving&&!u.sit&&!u.carrying&&u.armR){ const k=u.talkM;
     u.armR.rotation.x+=(-0.55-k*0.35+Math.sin(u.phase*0.9)*0.08-u.armR.rotation.x)*Math.min(1,dt*5);
     u.armL.rotation.x+=(-0.18-k*0.15-u.armL.rotation.x)*Math.min(1,dt*4); }
   /* knees and elbows fold as the voyage's folk fold theirs */
   const jt=K().jointTick; if(jt&&u.legL&&!u.sit) for(const L of [u.legL,u.legR,u.armL,u.armR]) jt(L,moving);
+  /* ON ALL FOURS (a def's `crouch`): the man of the tombs, hunched forward over his hands, his knees
+     drawn up by his shoulders and splayed, his feet under him on their toes, his head craned up; going, he scuttles, the
+     hands and feet stepping crosswise. The body is pitched about its feet and set back, so hands
+     and feet both meet the ground over the place he is at. */
+  u.crouching=!!(u.def&&u.def.crouch&&!u.sit&&!u.lie&&u.legL&&u.body);
+  if(u.crouching){ const P=FOURS, s=moving?Math.sin(u.phase)*0.32:Math.sin(u.phase)*0.02, k=u.s||1;
+    u.body.rotation.x=P.pitch; u.body.position.set(0,P.lift*k,-P.back*k);
+    u.legL.rotation.x=P.thigh+s; u.legR.rotation.x=P.thigh-s; u.legL.rotation.z=P.splay; u.legR.rotation.z=-P.splay;   /* the knees splayed */
+    u.armL.rotation.x=P.arm-s*1.1; u.armR.rotation.x=P.arm+s*1.1; u.armL.rotation.z=0.1; u.armR.rotation.z=-0.1;
+    for(const L of [u.legL,u.legR]) if(L.userData.knee) L.userData.knee.rotation.x=P.knee;
+    for(const A of [u.armL,u.armR]) if(A.userData.elbow) A.userData.elbow.rotation.x=0;
+    if(u.head) u.head.rotation.x=P.head; u.fours=true; }
+  else if(u.fours){ u.fours=false; u.body.rotation.x=0; u.body.position.set(0,0,0); if(u.head) u.head.rotation.x=0;
+    for(const P of [u.legL,u.legR,u.armL,u.armR]) P.rotation.z=0; }
+  /* the arms stretched out on the crossbeam (the `pose` beat): still, the legs straight */
+  if(u.armsOut&&u.armL){ u.armL.rotation.set(0,0,Math.PI/2); u.armR.rotation.set(0,0,-Math.PI/2); u.legL.rotation.x=u.legR.rotation.x=0; }
   clothStep(g,dt,moving,sw);
 }
 /* THE CLOTH. Each panel of a hem, and the back of a head-cloth, hangs on a hinge and is
@@ -298,6 +340,9 @@ function animFigure(g,dt,moving){
 const CLOTH={k:34,c:5.5,gain:2.8,drag:1,inertia:0.22,kick:2.6,lo:-0.04,hi:1.05};
 function clothStep(g,dt,moving,stride){
   const u=g.userData, C=u.cloth; if(!C||!dt) return;
+  /* the seated robe, drawn for the way he sits: on the ground, or on a bench (people.js) */
+  const dk=u.sit?(groundSit(u)?'g':'b'):'';
+  if(u.drapes&&u.drapeOn!==dk){ u.drapeOn=dk; for(const d of u.drapes) d.visible=!!dk&&(!d.userData.pose||d.userData.pose===dk); }
   const p=g.position;
   if(!u.pp){ u.pp=p.clone(); u.vel=[0,0]; }
   let vx=(p.x-u.pp.x)/dt, vz=(p.z-u.pp.z)/dt; u.pp.copy(p);
@@ -316,9 +361,17 @@ function clothStep(g,dt,moving,stride){
     q.w+=(f-CLOTH.k*q.a-CLOTH.c*q.w)*dt; q.a+=q.w*dt;
     const hi=q.light?0.75:CLOTH.hi;
     if(q.a<CLOTH.lo){ q.a=CLOTH.lo; if(q.w<0) q.w=0; } else if(q.a>hi){ q.a=hi; if(q.w>0) q.w=0; }
+    /* seated: the front of the skirt lies over the lap and falls from the knees; the back
+       is sat upon, and lies flat behind */
+    /* seated, the hanging skirt is put by for the seated robe (people.js: drapes) */
+    if(!q.light) q.pv.visible=!u.sit;
     if(q.axis==='x') q.pv.rotation.x=-q.sign*q.a; else q.pv.rotation.z=q.sign*q.a;
+    if(q.low) q.low.rotation.x=q.a*0.3;                          /* the lower length trails the upper */
   }
 }
+/* is there a block where a man's body would be, standing at height gy here? */
+function wallAt(x,z,gy){ if(gy===undefined) return false; const k=K(), wx=anchor.x+x*S, wz=anchor.z+z*S;
+  return k.solidAt(wx,anchor.y+(gy+0.9)*S,wz)||k.solidAt(wx,anchor.y+(gy+1.5)*S,wz); }
 /* the actors walk where the story sends them */
 function moveActors(dt){
   for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData;
@@ -327,18 +380,93 @@ function moveActors(dt){
       if(f){ const d=Math.hypot(f.position.x-g.position.x,f.position.z-g.position.z); tgt=d>2.4?[f.position.x,f.position.z]:null; } }
     let moving=false;
     if(tgt){ const dx=tgt[0]-g.position.x, dz=tgt[1]-g.position.z, d=Math.hypot(dx,dz);
-      if(d>0.15){ const sp=Math.min(d,(u.speed||2.6)*dt); g.position.x+=dx/d*sp; g.position.z+=dz/d*sp;
-        g.rotation.y=turnTo(g.rotation.y,Math.atan2(dx,dz),dt*8); moving=true; }
+      if(d>0.15){ const sp=Math.min(d,(u.speed||2.6)*dt);
+        /* a wall in the way is gone round, not walked through: the step is turned aside, a
+           little and then more, until the body would not stand in a block */
+        let a0=Math.atan2(dx,dz), a=a0;
+        if(u.fixedY===undefined&&wallAt(g.position.x+Math.sin(a0)*0.45,g.position.z+Math.cos(a0)*0.45,u.gy)){
+          for(const da of [0.5,-0.5,1.0,-1.0,1.5,-1.5,2.1,-2.1]){ const b=a0+da+(u.steer||0)*0.0;
+            if(!wallAt(g.position.x+Math.sin(b)*0.45,g.position.z+Math.cos(b)*0.45,u.gy)){ a=b; break; } } }
+        g.position.x+=Math.sin(a)*sp; g.position.z+=Math.cos(a)*sp;
+        g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=true; }
       else if(!u.follow) u.target=null; }
-    if(u.fixedY!==undefined) g.position.y=u.fixedY-(u.sit?0.44*(u.s||1):0);
-    else { u.gy=stepGround(g.position.x,g.position.z,u.gy===undefined?ctx.groundY(g.position.x,g.position.z):u.gy); g.position.y=u.gy-(u.sit?0.44*(u.s||1):0)+(u.lie?0.16:0); }
+    if(u.fixedY!==undefined) g.position.y=u.fixedY-sitDrop(u);
+    else { u.gy=stepGround(g.position.x,g.position.z,u.gy===undefined?ctx.groundY(g.position.x,g.position.z):u.gy); g.position.y=u.gy-sitDrop(u)+(u.lie?0.16:0); }
+    /* riding (Luke 19:35): the beast goes where the rider goes, under him, at its own gait */
+    if(u.ride){ const t=ctx.things[u.ride]; if(t){ const gy=u.fixedY!==undefined?u.fixedY:u.gy;
+        g.position.y=gy-sitDrop(u)+RIDE_H; t.position.set(g.position.x,gy,g.position.z); t.rotation.y=g.rotation.y;
+        if(t.children[0]&&K().tickGait){ t.userData.ent=t.userData.ent||{m:t.children[0]}; K().tickGait(t.userData.ent,'donkey',moving?(u.speed||1)*S:0,dt); } } }
     animFigure(g,dt,moving); animFace(g,id,dt);
     if(u.label){ const near=!camTarget&&player&&Math.hypot(player.position.x-g.position.x,player.position.z-g.position.z)<3.6;
       u.label.visible=near||speaking===id; } }
+  keepApart(dt);
+  /* a beast led by the halter (Luke 19:35): it walks a step behind the one leading it */
+  for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; if(!u.leadBy) continue; const g=ctx.actors[u.leadBy]; if(!g) continue;
+    /* or carried (`up` off the ground, at `back` behind or on him, turned by `turn`): the crossbeam on Shim‛on's shoulders */
+    const bk=u.leadBack!==undefined?u.leadBack:1.3, tx=g.position.x-Math.sin(g.rotation.y)*bk, tz=g.position.z-Math.cos(g.rotation.y)*bk, dx=tx-o.position.x, dz=tz-o.position.z, d=Math.hypot(dx,dz);
+    if(u.leadUp){ o.position.x=tx; o.position.z=tz; o.rotation.y=g.rotation.y+(u.leadTurn||0); o.position.y=g.position.y+u.leadUp; continue; }
+    const step=Math.min(d,dt*3.2); if(d>0.05){ o.position.x+=dx/d*step; o.position.z+=dz/d*step; o.rotation.y=turnTo(o.rotation.y,Math.atan2(dx,dz),dt*6); }
+    o.position.y=ctx.groundY(o.position.x,o.position.z);
+    if(o.children[0]&&K().tickGait){ u.ent=u.ent||{m:o.children[0]}; K().tickGait(u.ent,'donkey',d>0.2?2*S:0,dt); } }
+}
+/* NO ONE STANDS INSIDE ANOTHER. Two who come closer than a body's breadth step apart, each
+   half the way, a little each frame, so a crowd never stands through itself and nobody
+   walks through the witness. Those held at a height (in a boat, on a roof), lying down, or
+   unseen are left where they are, and so is anyone already at rest on his mark when the one
+   coming up to him is walking (the walker gives way). */
+const APART=0.46;
+const RIDE_H=0.62;                                  /* a rider's seat above the ground, on a young donkey */
+function keepApart(dt){
+  const L=[]; for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; if(!g.visible||u.lie||u.fixedY!==undefined) continue; L.push(g); }
+  const k=Math.min(1,dt*6);
+  for(let i=0;i<L.length;i++){ const a=L[i];
+    for(let j=i+1;j<L.length;j++){ const b=L[j], dx=b.position.x-a.position.x, dz=b.position.z-a.position.z, d=Math.hypot(dx,dz);
+      if(d>=APART) continue;
+      const nx=d>1e-4?dx/d:Math.cos(i+j), nz=d>1e-4?dz/d:Math.sin(i+j), push=(APART-d)*k;
+      const am=!!a.userData.target, bm=!!b.userData.target, wa=am===bm?0.5:am?1:0, wb=1-wa;
+      a.position.x-=nx*push*wa; a.position.z-=nz*push*wa; b.position.x+=nx*push*wb; b.position.z+=nz*push*wb; } }
+  if(player&&player.visible) for(const a of L){ const dx=a.position.x-player.position.x, dz=a.position.z-player.position.z, d=Math.hypot(dx,dz);
+    if(d<APART&&d>1e-4){ const push=(APART-d)*k; a.position.x+=dx/d*push; a.position.z+=dz/d*push; } }
+}
+/* is a point inside or against someone? (the eye is never set there) */
+function inBody(p){
+  const near=(g,r)=>{ if(!g||!g.visible) return false; const dx=p[0]-g.position.x, dz=p[2]-g.position.z;
+    return dx*dx+dz*dz<r*r&&p[1]>g.position.y-0.2&&p[1]<g.position.y+2.0; };
+  for(const id in ctx.actors) if(near(ctx.actors[id],0.5)) return true;
+  return !ctx.playerHidden&&near(player,0.5);
+}
+/* INTO THE SEA (Mark 5:13): a beast of a herd driven over runs straight for the edge at a gallop,
+   down whatever lies between; where the ground falls away under it, it falls — on, and down, nose
+   first — strikes the water in a splash, goes under, and is not seen again. */
+/* the ground under a beast where it is now — a headland, a hilltop — not only the ground a man
+   would stand on (on a set's level ground that is looked for no higher than a little over him) */
+function groundUnder(x,z,y){ return ctx.groundY(x,z,Math.max(y,ctx.groundY(x,z))+1.5); }
+function plunge(s,u,dt){
+  const P=u.plunge, p=s.position;
+  if(P.wait>0){ P.wait-=dt; return; }
+  if(P.sunk) return;
+  if(!P.fall){
+    const dx=P.to[0]-p.x, dz=P.to[1]-p.z, d=Math.hypot(dx,dz)||1, sp=u.sp;
+    p.x+=dx/d*dt*sp; p.z+=dz/d*dt*sp; s.rotation.y=Math.atan2(dx,dz);
+    const gy=groundUnder(p.x,p.z,p.y);
+    if(gy<p.y-1.4){ P.fall=true; P.vx=dx/d*sp*0.45; P.vz=dz/d*sp*0.45; P.vy=0.6; s.rotation.order='YXZ'; }
+    else p.y=gy;
+    if(s.children[0]&&K().tickGait){ u.ent=u.ent||{m:s.children[0]}; K().tickGait(u.ent,u.kind||'sheep',sp*S,dt); }
+    return; }
+  if(!P.wet){
+    P.vy-=9.8*dt; p.x+=P.vx*dt; p.z+=P.vz*dt; p.y+=P.vy*dt; s.rotation.x=Math.min(1.3,s.rotation.x+dt*1.8);
+    const gy=groundUnder(p.x,p.z,p.y);
+    if(p.y<=0.02){ P.wet=true; P.vy=-1.2; p.y=0;                                         /* the sea */
+      const w=ctx.scene.localToWorld(new THREE.Vector3(p.x,0.1,p.z)); if(K().splash) K().splash(w.x,w.y,w.z,true); }
+    else if(gy>0.3&&p.y<=gy){ p.y=gy; P.fall=false; s.rotation.x=0; }                 /* a ledge: on its feet, and on */
+    return; }
+  P.vx*=Math.max(0,1-dt*3); P.vz*=Math.max(0,1-dt*3); p.x+=P.vx*dt; p.z+=P.vz*dt; p.y+=P.vy*dt;
+  if(p.y<-1.4){ P.sunk=true; s.visible=false; }
 }
 /* the flock grazes, and a lamb that has been gathered goes to the fold */
 function moveFlock(dt,t){
   for(const s of ctx.flock){ const u=s.userData; u.t-=dt;
+    if(u.plunge){ plunge(s,u,dt); continue; }
     const R=(u.roam||2)*2, sp=u.sp||0.5;
     if(u.t<0){ u.t=2+Math.random()*4; u.to=[u.home[0]+(Math.random()-0.5)*R,u.home[1]+(Math.random()-0.5)*R]; }
     if(u.to){ const dx=u.to[0]-s.position.x, dz=u.to[1]-s.position.z, d=Math.hypot(dx,dz);
@@ -404,7 +532,7 @@ function holyHeads(){
   const out=[];
   for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; if(!u.holy||!g.visible) continue;
     const sc=u.s||1, y=g.position.y+(u.headY||1.82*sc);
-    out.push({p:new THREE.Vector3(g.position.x,y,g.position.z), f:new THREE.Vector3(Math.sin(g.rotation.y),0,Math.cos(g.rotation.y)), r:0.26*sc}); }
+    out.push({p:new THREE.Vector3(g.position.x,y,g.position.z), f:new THREE.Vector3(Math.sin(g.rotation.y),0,Math.cos(g.rotation.y)), r:0.26*sc, a:1}); }
   for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; if(!u.holy||!o.visible) continue;
     o.updateMatrixWorld(); const hp=u.head.getWorldPosition(new THREE.Vector3());
     out.push({p:hp, f:u.faceDir.clone().applyQuaternion(o.quaternion), r:0.12}); }
@@ -448,6 +576,8 @@ function exposedFrom(from,at){
   _tc.aspect=camera.aspect; _tc.updateProjectionMatrix(); _tc.position.set(...from); _tc.lookAt(...at); _tc.updateMatrixWorld();
   for(const H of holyHeads()){ _h.set(...from).sub(H.p); const d=_h.length(); if(d>45||d<0.01) continue; _h.divideScalar(d);
     if(H.f.y>0.5){ if(_h.y<0.35) continue; } else { if(_h.y>0.82) continue; const fl=Math.hypot(_h.x,_h.z); if(fl<1e-3||(H.f.x*_h.x+H.f.z*_h.z)/fl<-0.05) continue; }
+    /* a wall or a roof between the eye and His head: the face is not seen from there */
+    if(H.a&&!lineClear(from,[H.p.x,H.p.y,H.p.z])) continue;
     for(const dy of [-H.r,0,H.r]){ _v.set(H.p.x,H.p.y+dy,H.p.z).project(_tc); if(_v.z<1&&Math.abs(_v.x)<1.04&&Math.abs(_v.y)<1.04) return H; } }
   return null;
 }
@@ -468,9 +598,11 @@ function shotOf(B){
   if(B.shot==='body'){ /* close, at His chest: the picture runs from the knees to below the chin — hands, arms, robe */
     const k=g.userData.s||1, fx=p.x+f.x*1.6*k+sd.x*0.3, fz=p.z+f.z*1.6*k+sd.z*0.3;
     return {from:[fx,p.y+(1.25+sit)*k,fz], look:[p.x,p.y+(0.95+sit)*k,p.z]}; }
-  const t=B.toward&&ctx.actors[B.toward]?ctx.actors[B.toward].position:p.clone().addScaledVector(f,6);
+  const m=B.toward&&!ctx.actors[B.toward]&&ctx.markers[B.toward];        /* toward a person, or a place (the city, far off) */
+  const t=B.toward&&ctx.actors[B.toward]?ctx.actors[B.toward].position:m?new THREE.Vector3(m[0],(m[2]!==undefined?m[2]:1.5)-1.3,m[1]):p.clone().addScaledVector(f,6);
   const side=B.side||1;
-  return {from:[p.x-f.x*3.6+sd.x*1.5*side,p.y+2.3+sit,p.z-f.z*3.6+sd.z*1.5*side], look:[t.x,t.y+1.3,t.z]};
+  const bk=B.back||3.6, up=B.lift||0;                                  /* `back`, `lift`: farther behind Him, higher over Him */
+  return {from:[p.x-f.x*bk+sd.x*1.5*side,p.y+2.3+sit+up,p.z-f.z*bk+sd.z*1.5*side], look:[t.x,t.y+1.3,t.z]};
 }
 function holdCamera(from,look,dur){
   camTarget={from0:[camera.position.x,camera.position.y,camera.position.z],
@@ -511,8 +643,9 @@ function camFree(p){ const k=K(), B=k.B, x=anchor.x+p[0]*S, y=anchor.y+p[1]*S, z
    brought in along its own line until the subject is seen. */
 function clearShot(from,look){
   if(!anchor||!root) return from;
-  const low=[look[0],look[1]-0.9,look[2]];
-  const ok=p=>camFree(p)&&lineClear(p,look)&&lineClear(p,low)&&!exposedFrom(p,look);
+  /* the feet of what is looked at — never below the ground, as they would be under one lying down */
+  const gl=ctx.groundY(look[0],look[2]), low=[look[0],Math.max(look[1]-0.9,(gl==null?look[1]-0.9:gl)+0.2),look[2]];
+  const ok=p=>camFree(p)&&!inBody(p)&&lineClear(p,look)&&lineClear(p,low)&&!exposedFrom(p,look);
   if(ok(from)) return from;
   const dx=from[0]-look[0], dz=from[2]-look[2], d0=Math.max(1.5,Math.hypot(dx,dz)), a0=Math.atan2(dx,dz), h0=from[1]-look[1];
   let best=null, bs=1e9;
@@ -525,7 +658,7 @@ function clearShot(from,look){
         if(ok(p)){ best=p; bs=score; } }
   if(best) return best;
   /* nothing clear about it: in along the line to the subject */
-  for(let t=0.9;t>0.15;t-=0.08){ const p=[look[0]+(from[0]-look[0])*t,look[1]+(from[1]-look[1])*t,look[2]+(from[2]-look[2])*t]; if(camFree(p)&&lineClear(p,look)) return p; }
+  for(let t=0.9;t>0.15;t-=0.08){ const p=[look[0]+(from[0]-look[0])*t,look[1]+(from[1]-look[1])*t,look[2]+(from[2]-look[2])*t]; if(camFree(p)&&!inBody(p)&&lineClear(p,look)) return p; }
   return from;
 }
 function lookNow(){ const d=new THREE.Vector3(); camera.getWorldDirection(d);
@@ -595,12 +728,12 @@ function drawPortrait(){
   const cv=$('v-face'); if(!cv||!portrait) return; const g=cv.getContext('2d'), sp=portrait;
   const R=(x,y,w,h,c)=>{ g.fillStyle=c; g.fillRect(x,y,w,h); };
   g.clearRect(0,0,38,38);
-  const light=sp.kind==='angel'||sp.kind==='divine'||sp.kind==='yahusha'||sp.light;
+  const light=sp.kind==='angel'||sp.kind==='divine'||sp.kind==='yahusha'||sp.holy||sp.light;
   const T=SV.talk, talking=T&&T.sp&&T.sp.key===sp.key, m=talking?(SV.mouth(sp.key)||0):0;
   if(sp.kind==='narrator'){ R(0,0,38,38,'#201a13');
     R(9,11,20,16,'#e2d3ad'); R(7,9,3,20,'#b89c6a'); R(28,9,3,20,'#b89c6a');
     for(let k=0;k<4;k++) R(12,14+k*3,14-(k%2)*4,1,'#7a6448'); return; }
-  if(sp.kind==='yahusha'){ /* His face is never shown: the back of His head, His shoulders */
+  if(sp.kind==='yahusha'||sp.holy){ /* His face is never shown: the back of His head, His shoulders (the boy's too) */
     const L=sp.look||{}; R(0,0,38,38,'#2a2219');
     R(6,27,26,11,hex(L.robe||0xd6c9a8)); R(4,30,7,8,hex(L.sash||0x3f5a8a)); R(27,30,7,8,hex(L.sash||0x3f5a8a));
     R(12,8,14,20,hex(L.cloth||0xe2d8c0)); R(11,10,16,6,hex(L.cloth||0xe2d8c0));
@@ -615,12 +748,13 @@ function drawPortrait(){
   const skin=hex(L.skin||0x8a5a3a), robe=hex(L.robe||0x9a8466);
   R(0,0,38,38,L.fallen?'#2a1e30':'#2a2219');
   if(L.fallen){ const gr=g.createRadialGradient(19,20,4,19,20,22); gr.addColorStop(0,'rgba(120,80,140,0.55)'); gr.addColorStop(1,'rgba(20,12,24,0)'); g.fillStyle=gr; g.fillRect(0,0,38,38); }
-  R(6,29,26,9,dr==='legionary'||dr==='centurion'?'#8a8c90':robe);                  /* shoulders (mail on a soldier of Rome) */
+  R(6,29,26,9,dr==='legionary'||dr==='centurion'?'#8a8c90':dr==='tombs'?skin:robe);                  /* shoulders (mail on a soldier of Rome) */
   R(11,9,16,18,skin);                                  /* the face */
   /* what is on the head, by the dress: helmet, turban, cap, diadem, head-cloth — or the hair */
   if(dr==='legionary'||dr==='centurion'){ R(9,5,20,6,'#b08848'); R(9,9,3,12,'#b08848'); R(26,9,3,12,'#b08848'); if(dr==='centurion') R(7,2,24,3,'#a02020'); }
   else if(dr==='kohen'||dr==='levite'){ R(8,3,22,8,'#f4f0e6'); R(10,1,18,3,'#f4f0e6'); }
   else if(dr==='magi'){ const c=hex(L.cloth||0x8a2a2a); R(9,4,20,7,c); R(12,1,14,4,c); R(20,0,8,3,c); }
+  else if(dr==='tombs'){ const h=hex(L.hair||0x1e1610); R(10,8,2,14,h); R(14,8,1,6,h); R(25,8,2,16,h); R(22,8,1,5,h); }   /* bare, a few long strands */
   else if(dr==='king'){ R(10,6,18,4,hex(L.hair||0x1e1610)); R(9,8,20,2,'#d4af37'); }
   else if(L.cloth===null||dr==='camelhair'){ const h=hex(L.hair||0x1e1610); R(9,4,20,7,h); R(9,9,3,14,h); R(26,9,3,14,h); }
   else { const cloth=hex(L.cloth||0xd9cfb6); R(9,5,20,6,cloth); R(9,9,3,18,cloth); R(26,9,3,18,cloth); }   /* the head-cloth */
@@ -695,7 +829,7 @@ function enterBeat(){
   if(T==='choice'){ showChoice(B); return; }
   if(T==='collect'){ collect(B.id); return; }
   if(T==='fulfil'){ fulfil(B.id); return; }
-  if(T==='move'){ const who=[].concat(B.who), tos=Array.isArray(B.who)?[].concat(B.to):[B.to];   /* one figure, one place — even a place given as [x,z] */ who.forEach((w,k)=>{ const g=ctx.actors[w]; if(!g) return;
+  if(T==='move'){ const who=[].concat(B.who), tos=Array.isArray(B.who)||Array.isArray(B.to&&B.to[0])?[].concat(B.to):[B.to];   /* one figure, one place — even a place given as [x,z] */ who.forEach((w,k)=>{ const g=ctx.actors[w]; if(!g) return;
       const to=pos(tos[Math.min(k,tos.length-1)]);
       g.userData.follow=null; g.userData.target=to; if(B.speed) g.userData.speed=B.speed;
       if(ST.fast){ g.position.x=to[0]; g.position.z=to[1]; g.userData.gy=undefined; } });
@@ -703,12 +837,14 @@ function enterBeat(){
     onFrame=()=>{ if(who.every(w=>!ctx.actors[w]||!ctx.actors[w].userData.target)) nextBeat(); }; return; }
   if(T==='follow'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.target=null; g.userData.follow=B.target||'player'; } } return nextBeat(); }
   if(T==='stop'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.follow=null; g.userData.target=null; } } return nextBeat(); }
-  if(T==='face'){ const g=ctx.actors[B.who]; const p=B.to==='player'?[player.position.x,player.position.z]:ctx.actors[B.to]?thingPos(B.to):pos(B.to);
+  if(T==='face'){ const g=ctx.actors[B.who]; const p=B.to==='player'?[player.position.x,player.position.z]:(ctx.actors[B.to]||ctx.things[B.to])?thingPos(B.to):pos(B.to);
     if(g) g.rotation.y=Math.atan2(p[0]-g.position.x,p[1]-g.position.z); return nextBeat(); }
   if(T==='place'){ const g=B.who==='player'?player:ctx.actors[B.who]; const p=pos(B.at);
-    if(g){ g.position.set(p[0],B.y!==undefined?B.y:ctx.groundY(p[0],p[1]),p[1]); g.userData.gy=g.position.y; if(B.face!==undefined) g.rotation.y=B.face;
-      /* `y`: standing on something that is not the ground — the floor of a boat */
-      if(B.y!==undefined&&g!==player) g.userData.fixedY=B.y; else if(B.y===null) delete g.userData.fixedY; }
+    if(g){ const onIt=B.y!==undefined&&B.y!==null;
+      g.position.set(p[0],onIt?yOf(B.y):ctx.groundY(p[0],p[1]),p[1]); g.userData.gy=g.position.y; if(B.face!==undefined) g.rotation.y=B.face;
+      /* `y`: standing on something that is not the ground — the floor of a boat, a roof;
+         `y:null` sets him back down on the ground */
+      if(onIt&&g!==player) g.userData.fixedY=yOf(B.y); else if(B.y===null) delete g.userData.fixedY; }
     return nextBeat(); }
   if(T==='cam'){ controlsOn=!!B.free;
     if(B.release){ releaseCamera(); controlsOn=true; return nextBeat(); }
@@ -717,7 +853,9 @@ function enterBeat(){
     let from;
     if(S) from=S.from;
     else if(B.from&&B.from.rel){ const g=ctx.actors[B.from.rel]||ctx.things[B.from.rel], o=B.from.off; from=[g.position.x+o[0],g.position.y+o[1],g.position.z+o[2]]; }
-    else from=B.from.length===3?B.from:[pos(B.from)[0],B.fy||4,pos(B.from)[1]];
+    else if(Array.isArray(B.from)&&B.from.length===3&&typeof B.from[0]==='number') from=B.from;
+    /* a marker (or a marker and a step from it), at `fy` metres, or `fdy` above the ground there */
+    else { const m=pos(B.from); from=[m[0],B.fdy!==undefined?(ctx.groundY(m[0],m[1])||0)+B.fdy:(B.fy||4),m[1]]; }
     holdCamera(S?from:faceSafe(from,at),at,ST.fast?0.01:(B.dur||2.5));
     if(B.wait===false) return nextBeat();
     onFrame=()=>{ if(camT>=1) nextBeat(); }; return; }
@@ -732,7 +870,21 @@ function enterBeat(){
   /* "Make the people sit down" (Yahuchanon 6:10): on the grass, legs out before them */
   if(T==='sit'||T==='stand'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.sit=(T==='sit'); g.userData.lie=false; g.rotation.x=0; } } return nextBeat(); }
   /* lying on the ground: asleep in a camp, or fallen (Yashayahu 37:36) */
-  if(T==='lie'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.lie=true; g.userData.sit=false; g.rotation.x=-Math.PI/2; } } return nextBeat(); }
+  if(T==='lie'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.lie=true; g.userData.sit=false; g.rotation.order='YXZ'; g.rotation.x=B.prone?Math.PI/2:-Math.PI/2; }   /* on the back, along the way he faced; or `prone`, on his face (Mattithyahu 17:6) */ } return nextBeat(); }
+  /* set on a beast, and carried by it: `on` a thing (a donkey), or `off` */
+  /* a herd of the place driven (`to` a point, at `sp`), or taken from sight (`hide`): "the herd rushed
+     down the steep place into the sea" (Mark 5:13) */
+  if(T==='herd'){ let n=0; for(const b of ctx.flock){ const u=b.userData; if(u.kind!==B.kind) continue;
+      if(B.hide){ b.visible=false; continue; }
+      /* `over`: the whole herd rushes down the steep place, each in its own lane, and over the edge */
+      if(B.over){ const o=pos(B.over); u.plunge={to:[o[0],o[1]+((n*7)%11-5)*0.32],wait:(n%9)*0.22+Math.random()*0.3}; u.sp=B.sp||5.5; n++; continue; }
+      if(B.to){ u.home=pos(B.to); u.roam=B.roam||0.6; u.sp=B.sp||4; u.t=0; } } return nextBeat(); }
+  if(T==='pose'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g) g.userData.armsOut=B.arms==='out'; } return nextBeat(); }
+  if(T==='lead'){ const o=ctx.things[B.id]; if(o){ o.userData.leadBy=B.by||null; o.userData.leadBack=B.back; o.userData.leadUp=B.up; o.userData.leadTurn=B.turn; } return nextBeat(); }
+  if(T==='ride'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(!g) continue; const u=g.userData;
+      if(B.off){ const t=ctx.things[u.ride]; u.ride=null; u.sit=false; if(t){ g.position.x=t.position.x+Math.cos(g.rotation.y)*0.7; g.position.z=t.position.z-Math.sin(g.rotation.y)*0.7; } }
+      else { const t=ctx.things[B.on]; if(t){ t.userData.leadBy=null; u.ride=B.on; u.sit=true; g.position.x=t.position.x; g.position.z=t.position.z; g.rotation.y=t.rotation.y; } } }
+    return nextBeat(); }
   if(T==='robe'){ const g=ctx.actors[B.who]; if(g) window.STORYWORLD.recolor(g,B.color); return nextBeat(); }
   if(T==='drift'){ const objs=[];
     /* one thing to a place (`to`), or several together by the same distance (`by`) — a boat
@@ -747,9 +899,10 @@ function enterBeat(){
   if(T==='wait'){ onFrame=()=>{ if(ST.fast||beatT>=B.s) nextBeat(); }; return; }
   if(T==='player'){ ctx.playerHidden=!!B.hidden; player.visible=!B.hidden; if(B.hidden) controlsOn=false;
     /* set the player down somewhere — in a boat, say — and hold him there (lock), or let him go */
-    if(B.at){ const p=pos(B.at); player.position.set(p[0],B.y!==undefined?B.y:ctx.groundY(p[0],p[1]),p[1]); }
+    const onIt=B.y!==undefined&&B.y!==null;
+    if(B.at){ const p=pos(B.at); player.position.set(p[0],onIt?B.y:ctx.groundY(p[0],p[1]),p[1]); }
     if(B.face!==undefined){ player.rotation.y=B.face; camYaw=B.face+Math.PI; }
-    if(B.y!==undefined) ctx.playerY=B.y; else if(B.lock===false) ctx.playerY=undefined;
+    if(onIt) ctx.playerY=B.y; else if(B.y===null||B.lock===false) ctx.playerY=undefined;
     if(B.lock!==undefined) ctx.playerLock=!!B.lock;
     return nextBeat(); }
   /* the jars filled, the baskets heaped, the net full of fish; `color` turns water to wine */
@@ -759,9 +912,11 @@ function enterBeat(){
   if(T==='end') return endScene();
   console.warn('unknown beat',B); nextBeat();
 }
-function lookAtSpec(l){ if(typeof l==='string'){ if(ctx.actors[l]){ const g=ctx.actors[l]; return [g.position.x,g.position.y+1.5,g.position.z]; }
+function lookAtSpec(l){ if(typeof l==='string'){ if(ctx.actors[l]){ const g=ctx.actors[l]; return [g.position.x,g.position.y+(g.userData.fours?0.75:1.5),g.position.z]; }
     if(ctx.glows[l]){ const s=ctx.glows[l].sprite.position; return [s.x,s.y,s.z]; }
-    const m=pos(l); return [m[0],1.5,m[1]]; } return l; }
+    const m=pos(l); return [m[0],m[2]!==undefined?m[2]:1.5,m[1]]; }
+  if(Array.isArray(l)&&typeof l[0]==='string'){ const m=pos(l); return [m[0],(ctx.groundY(m[0],m[1])||0)+1.4,m[1]]; }   /* near a marker: a step from it, at a man's height */
+  return l; }   /* a marker may carry its own height: [x,z,y] */
 function endScene(){
   journal(act.scenes[sceneIx]);
   sceneIx++;
@@ -950,7 +1105,9 @@ const BEDS={
   road:{wind:0.7},   fields:{wind:0.4,night:0.8},  beythlehem:{wind:0.3,crowd:0.2},
   yarden:{river:0.8,wind:0.35,crowd:0.25},          wilderness:{wind:1.0},  mountain:{wind:1.3},
   qanah:{crowd:0.8,wind:0.2},  galil:{shore:0.8,wind:0.35,crowd:0.2},  galilEast:{shore:0.6,wind:0.4,crowd:0.4},
-  galilSea:{shore:1.0,wind:1.4},  bethanyah:{wind:0.35,crowd:0.45}
+  galilSea:{shore:1.0,wind:1.4},  gadarenes:{shore:0.8,wind:0.5},  bethanyah:{wind:0.35,crowd:0.45},  shekem:{wind:0.55,crowd:0.12},  hillcountry:{wind:0.45,crowd:0.15},
+  caesarea:{wind:0.35,river:0.7,crowd:0.1},  ginae:{wind:0.5,crowd:0.15},  yeriho:{wind:0.2,crowd:0.6},  olivet:{wind:0.5,crowd:0.5},
+  courts:{crowd:0.7,temple:0.6,wind:0.2},  upperroom:{crowd:0.15,wind:0.15},  highpriest:{crowd:0.3,wind:0.3},  praetorium:{crowd:0.9,wind:0.3},  golgotha:{wind:0.8,crowd:0.3}
 };
 function noiseBuf(A,brown){ const n=A.createBuffer(1,A.sampleRate*3,A.sampleRate), d=n.getChannelData(0); let last=0;
   for(let k=0;k<d.length;k++){ const w=Math.random()*2-1; if(brown){ last=(last+0.02*w)/1.02; d[k]=last*3.4; } else d[k]=w*0.5; }
@@ -1028,6 +1185,8 @@ function journal(sc){
   for(const a of sc.actors||[]){ const id=FOLLOWERS[a.id]; if(!id) continue;
     /* Yahuchanon the immerser is not Yahuchanon son of Zaḇdai */
     if((id==='yahuchanon'||id==='yaaqob')&&!/Zaḇdai/.test(a.key||'')) continue;
+    /* nor is the righteous Shim‛on of the courts (Luke 2:25) Shim‛on Kĕpha */
+    if(id==='kepha'&&!/Kĕpha/.test(a.key||'')) continue;
     const b=save.bonds[id]=save.bonds[id]||{name:a.name,scenes:[]};
     if(id==='kepha'&&a.id==='kepha') b.name=a.name;
     if(b.scenes.indexOf(k)<0) b.scenes.push(k); }

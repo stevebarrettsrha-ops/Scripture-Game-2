@@ -139,6 +139,14 @@
   "kind": "oldman",
   "voice": "bm_fable:.6+am_adam:.4"
  },
+ "alisheba": {
+  "kind": "woman",
+  "voice": "af_alloy:.5+af_sarah:.5"
+ },
+ "all": {
+  "kind": "crowd",
+  "voice": "am_fenrir:.5+bm_fable:.5"
+ },
  "alqanah": {
   "kind": "man",
   "voice": "am_puck"
@@ -186,6 +194,14 @@
  "anna": {
   "kind": "oldwoman",
   "voice": "af_nova:.5+bf_alice:.5"
+ },
+ "another at the fire": {
+  "kind": "man",
+  "voice": "bm_lewis:.5+am_liam:.5"
+ },
+ "another who would follow": {
+  "kind": "man",
+  "voice": "am_puck:.5+am_eric:.5"
  },
  "antiochus": {
   "kind": "man",
@@ -295,6 +311,10 @@
   "kind": "man",
   "voice": "am_fenrir:.5+bm_fable:.5"
  },
+ "bartimai": {
+  "kind": "oldman",
+  "voice": "am_fenrir:.6+bm_daniel:.4"
+ },
  "baruk": {
   "kind": "man",
   "voice": "bm_fable:.5+am_liam:.5"
@@ -363,6 +383,10 @@
   "kind": "man",
   "voice": "am_echo"
  },
+ "boy": {
+  "kind": "boy",
+  "voice": "af_sky:.6+am_puck:.4"
+ },
  "bride of yasharal": {
   "kind": "woman",
   "voice": "bf_lily"
@@ -411,6 +435,14 @@
   "kind": "man",
   "voice": "am_fenrir"
  },
+ "chief kohanim": {
+  "kind": "oldman",
+  "voice": "bm_fable:.6+am_adam:.4"
+ },
+ "chief kohanim and pharisees": {
+  "kind": "oldman",
+  "voice": "am_michael:.6+bm_daniel:.4"
+ },
  "chief kohanim and scribes": {
   "kind": "oldman",
   "voice": "am_eric:.5+bm_daniel:.5"
@@ -450,6 +482,14 @@
  "commanders": {
   "kind": "crowd",
   "voice": "am_liam:.5+am_echo:.5"
+ },
+ "crowd": {
+  "kind": "crowd",
+  "voice": "bm_fable:.5+am_liam:.5"
+ },
+ "crowd of the taught ones": {
+  "kind": "crowd",
+  "voice": "am_fenrir:.6+am_echo:.4"
  },
  "crowds": {
   "kind": "crowd",
@@ -677,6 +717,10 @@
   "kind": "man",
   "voice": "am_echo"
  },
+ "evil-doer": {
+  "kind": "man",
+  "voice": "am_fenrir:.6+am_echo:.4"
+ },
  "ezra": {
   "kind": "man",
   "voice": "am_echo:.5+bm_daniel:.5"
@@ -685,9 +729,17 @@
   "kind": "woman",
   "voice": "af_river"
  },
+ "false": {
+  "kind": "man",
+  "voice": "am_puck:.5+am_michael:.5"
+ },
  "falsenavi": {
   "kind": "man",
   "voice": "am_michael:.5+am_echo:.5"
+ },
+ "father": {
+  "kind": "man",
+  "voice": "am_fenrir:.5+bm_fable:.5"
  },
  "father, remembered": {
   "kind": "oldman",
@@ -1073,6 +1125,14 @@
   "kind": "woman",
   "voice": "af_alloy"
  },
+ "learned": {
+  "kind": "man",
+  "voice": "am_fenrir"
+ },
+ "legion": {
+  "kind": "dark",
+  "voice": "bm_lewis:.6+am_echo:.4"
+ },
  "lemek": {
   "kind": "man",
   "voice": "am_fenrir:.5+bm_fable:.5"
@@ -1153,6 +1213,10 @@
   "kind": "man",
   "voice": "am_eric"
  },
+ "man called to follow": {
+  "kind": "man",
+  "voice": "am_echo:.5+bm_daniel:.5"
+ },
  "man clothed in linen": {
   "kind": "man",
   "voice": "am_echo"
@@ -1200,6 +1264,10 @@
  "manoah": {
   "kind": "man",
   "voice": "am_liam"
+ },
+ "many": {
+  "kind": "crowd",
+  "voice": "am_eric"
  },
  "mariner": {
   "kind": "man",
@@ -1361,6 +1429,10 @@
   "kind": "man",
   "voice": "am_eric"
  },
+ "nakdimon": {
+  "kind": "oldman",
+  "voice": "am_michael:.6+bm_daniel:.4"
+ },
  "naomi": {
   "kind": "oldwoman",
   "voice": "af_aoede"
@@ -1404,6 +1476,14 @@
  "neighbour": {
   "kind": "man",
   "voice": "am_puck"
+ },
+ "neighbours": {
+  "kind": "crowd",
+  "voice": "bm_lewis:.5+am_liam:.5"
+ },
+ "nethanel": {
+  "kind": "man",
+  "voice": "am_fenrir:.5+bm_daniel:.5"
  },
  "nicanor": {
   "kind": "man",
@@ -1493,9 +1573,17 @@
   "kind": "woman",
   "voice": "af_heart"
  },
+ "other": {
+  "kind": "man",
+  "voice": "am_michael:.5+am_echo:.5"
+ },
  "othnial": {
   "kind": "man",
   "voice": "am_liam"
+ },
+ "owners": {
+  "kind": "man",
+  "voice": "am_liam:.5+am_puck:.5"
  },
  "pashhur": {
   "kind": "man",
@@ -1520,6 +1608,10 @@
  "philip": {
   "kind": "man",
   "voice": "am_eric"
+ },
+ "pilate": {
+  "kind": "man",
+  "voice": "am_puck"
  },
  "pinehas": {
   "kind": "man",
@@ -1560,6 +1652,10 @@
  "qahal": {
   "kind": "crowd",
   "voice": "am_fenrir:.5+bm_fable:.5"
+ },
+ "qayapha": {
+  "kind": "oldman",
+  "voice": "bm_daniel:.6+am_adam:.4"
  },
  "qayin": {
   "kind": "man",
@@ -1629,6 +1725,14 @@
   "kind": "woman",
   "voice": "af_jessica"
  },
+ "rich": {
+  "kind": "man",
+  "voice": "am_puck:.6+bm_lewis:.4"
+ },
+ "righteous": {
+  "kind": "oldman",
+  "voice": "am_eric:.5+bm_daniel:.5"
+ },
  "ritspah": {
   "kind": "woman",
   "voice": "af_nova"
@@ -1676,6 +1780,10 @@
  "scribe": {
   "kind": "man",
   "voice": "am_puck:.6+bm_lewis:.4"
+ },
+ "scribes": {
+  "kind": "man",
+  "voice": "am_puck"
  },
  "second woman": {
   "kind": "woman",
@@ -1805,6 +1913,10 @@
   "kind": "man",
   "voice": "am_fenrir:.6+am_echo:.4"
  },
+ "shomeronites": {
+  "kind": "crowd",
+  "voice": "am_liam:.5+am_echo:.5"
+ },
  "shomron_woman": {
   "kind": "man",
   "voice": "am_echo"
@@ -1844,6 +1956,10 @@
  "soldiers": {
   "kind": "man",
   "voice": "am_puck:.6+bm_lewis:.4"
+ },
+ "some": {
+  "kind": "man",
+  "voice": "am_echo"
  },
  "someone": {
   "kind": "man",
@@ -1957,6 +2073,10 @@
   "kind": "oldman",
   "voice": "am_fenrir:.5+bm_fable:.5"
  },
+ "ten": {
+  "kind": "crowd",
+  "voice": "am_michael:.6+am_adam:.4"
+ },
  "terah": {
   "kind": "oldman",
   "voice": "am_fenrir:.6+am_echo:.4"
@@ -1969,6 +2089,10 @@
   "kind": "crowd",
   "voice": "am_liam:.5+am_echo:.5"
  },
+ "those from the rulers house": {
+  "kind": "man",
+  "voice": "am_echo"
+ },
  "those in the qahal": {
   "kind": "crowd",
   "voice": "am_eric:.5+bm_fable:.5"
@@ -1977,9 +2101,25 @@
   "kind": "oldman",
   "voice": "bm_daniel:.6+am_adam:.4"
  },
+ "those standing by the stake": {
+  "kind": "crowd",
+  "voice": "am_puck:.6+bm_lewis:.4"
+ },
  "those who brought word": {
   "kind": "man",
   "voice": "bm_lewis:.5+am_liam:.5"
+ },
+ "those who received the tax": {
+  "kind": "man",
+  "voice": "am_eric:.5+bm_fable:.5"
+ },
+ "those who stood by the fire": {
+  "kind": "man",
+  "voice": "am_fenrir:.5+bm_daniel:.5"
+ },
+ "those who struck him": {
+  "kind": "man",
+  "voice": "am_eric"
  },
  "tiller": {
   "kind": "man",
@@ -2056,6 +2196,10 @@
  "two taught ones of yahuchanon": {
   "kind": "man",
   "voice": "am_echo:.5+bm_daniel:.5"
+ },
+ "two who were sent": {
+  "kind": "man",
+  "voice": "am_michael"
  },
  "unclean": {
   "kind": "dark",
@@ -2173,6 +2317,10 @@
   "kind": "woman",
   "voice": "bf_alice"
  },
+ "woman of shomeron": {
+  "kind": "woman",
+  "voice": "af_nova:.5+bf_alice:.5"
+ },
  "woman of yasharal": {
   "kind": "woman",
   "voice": "af_heart:.5+bf_emma:.5"
@@ -2277,6 +2425,10 @@
  "yahushua": {
   "kind": "man",
   "voice": "bm_lewis"
+ },
+ "yair": {
+  "kind": "man",
+  "voice": "am_michael"
  },
  "yarab": {
   "kind": "man",
@@ -2449,6 +2601,14 @@
  "youth of beyth-el": {
   "kind": "boy",
   "voice": "af_sky:.6+am_puck:.4"
+ },
+ "zakaryahu": {
+  "kind": "oldman",
+  "voice": "bm_fable:.6+am_adam:.4"
+ },
+ "zakkai": {
+  "kind": "man",
+  "voice": "bm_fable"
  },
  "zebah": {
   "kind": "man",

@@ -17,7 +17,7 @@
 'use strict';
 const K=()=>window.__KIT;
 /* the days each act is set in: the city of the kings (Solomon's Hĕḵal), or of Herodes */
-const PERIOD={prologue:'kings', bridge:'kings', coming:'herodes', forerunner:'herodes', galil:'herodes'};
+const PERIOD={prologue:'kings', bridge:'kings', coming:'herodes', forerunner:'herodes', galil:'herodes', 'road-up':'herodes', passion:'herodes'};
 const PLACES={
   yahrushalayim:{city:true},
   natsareth:  {lat:32.702, lon:35.297, flat:30, why:'Natsareth, in the hills of the lower Galil'},
@@ -25,12 +25,26 @@ const PLACES={
   galil:      {lat:32.881, lon:35.575, flat:30, why:'Kephar Naḥum, on the north shore of the lake'},
   galilEast:  {lat:32.836, lon:35.650, flat:30, why:'the east shore, below the grassy slopes (Bĕyth Tsaiḏa)'},
   galilSea:   {lat:32.830, lon:35.585, flat:30, why:'out on the lake, between the shores'},
+  gadarenes:  {lat:32.826, lon:35.648, flat:30, why:'the country of the Gaḏarenes, the steep east shore of the lake (Mark 5:1)'},
   road:       {lat:32.20,  lon:35.28,  flat:30, why:'the hill road through Shomeron'},
   beythlehem: {lat:31.705, lon:35.200, flat:36, clear:820, why:'Bĕyth Leḥem, south of the city'},
   fields:     {lat:31.700, lon:35.215, flat:34, clear:900, why:'the pasture below Bĕyth Leḥem'},
   yarden:     {lat:31.837, lon:35.550, flat:46, why:'Bĕyth Anyah beyond the Yardĕn, below Yeriḥo'},
   wilderness: {lat:31.70,  lon:35.40,  flat:12, clear:820, why:'the wilderness of Yahuḏah, falling to the rift'},
+  hillcountry:{lat:31.768, lon:35.162, flat:30, clear:820, why:'Ayin Kerem in the hill country of Yahuḏah, west of the city'},
+  shekem:     {lat:32.213, lon:35.285, flat:34, why:'Ya‛aqoḇ’s fountain at Sheḵem, between Gerizim and Ebal'},
   bethanyah:  {lat:31.771, lon:35.262, flat:28, clear:820, why:'Bĕyth Anyah, beyond the Mount of Olives from the city'},
+  /* the road south (Act V) */
+  caesarea:   {lat:33.248, lon:35.694, flat:30, why:'Caesarea Philippi, at the springs of the Yardĕn below Ḥermon'},
+  ginae:      {lat:32.461, lon:35.302, flat:56, why:'Ayin Gannim, the last village of Shomeron on the road from Galil'},
+  yeriho:     {lat:31.857, lon:35.444, flat:64, why:'Yahriḥo, the city of palm trees, below the ascent to Yahrushalayim'},
+  olivet:     {city:true, why:'the descent of the Mount of Olives, across the Qidron from her walls'},
+  /* Passion Week (Act VI): each on the city's own ground */
+  courts:     {city:true, why:'the courts of the House, on its platform'},
+  upperroom:  {city:true, why:'a house of two storeys in the lower city, by the square'},
+  highpriest: {city:true, why:'the courtyard of the kohen gadol'},
+  praetorium: {city:true, why:'the Pavement, before the fortress at the corner of the courts'},
+  golgotha:   {city:true, why:'outside the west wall, near the city: the knoll and the garden'},
   /* the seven hundred years: the empires, each at its own seat */
   tiber:      {lat:41.89, lon:12.49, flat:20, why:'by the Tiber, where Rome begins'},
   nineveh:    {lat:36.36, lon:43.15, flat:36, why:'Ninewĕh on the Ḥiddeqel, seat of Ashshur'},
