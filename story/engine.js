@@ -475,7 +475,7 @@ function moveFlock(dt,t){
     s.position.y=ctx.groundY(s.position.x,s.position.z); }
   for(const id in ctx.things){ const o=ctx.things[id], u=o.userData;
     if(u.goTo){ const dx=u.goTo[0]-o.position.x, dz=u.goTo[1]-o.position.z, d=Math.hypot(dx,dz);
-      if(d>0.2){ const sp=u.wheel?0.9:2.4; o.position.x+=dx/d*dt*sp; o.position.z+=dz/d*dt*sp;
+      if(d>0.2){ const sp=u.wheel?1.5:2.4; o.position.x+=dx/d*dt*sp; o.position.z+=dz/d*dt*sp;
         if(u.wheel) u.wheel.rotation.x+=dt*sp/u.r;              /* a round stone rolls in its channel */
         else o.rotation.y=Math.atan2(dx,dz); } else u.goTo=null; }
     if(u.following&&player){ const dx=player.position.x-o.position.x, dz=player.position.z-o.position.z, d=Math.hypot(dx,dz);
@@ -1002,7 +1002,7 @@ function startWitness(B){
         setProgress(B.hold?W.holding/B.hold:1);
         if(!B.hold||W.holding>=B.hold){ W.holding=0; setProgress(0);
           if(B.deliver){ W.carrying=near; ctx.things[near].userData.following=true; player.userData.carrying=true; setGoal(B.carryText||('Bring it to its place')); hide('sprompt'); }
-          else { if(B.send){ ctx.things[near].userData.goTo=pos(B.send); } witnessDone(near); } } }
+          else witnessDone(near); } }
       else { W.holding=Math.max(0,W.holding-dt*2); setProgress(B.hold?W.holding/B.hold:0); } }
     else { hide('sprompt'); W.holding=0; setProgress(0); } };
 }
@@ -1010,6 +1010,7 @@ function witnessDone(id){
   const W=witness; if(!W||W.done.has(id)) return; W.done.add(id);
   save.witnessed=(save.witnessed||0)+1; persist(); chime(0.25);
   const B=W.B;
+  if(B.send&&ctx.things[id]) ctx.things[id].userData.goTo=pos(B.send);   /* sent on its own: the stone rolled aside */
   /* what the hand did shows: the jar filled, the group given its bread */
   if(B.reveal&&B.reveal[id]){ for(const r of [].concat(B.reveal[id])){ const o=ctx.things[r];
       if(o){ if(o.userData.fill) o.userData.fill.visible=true; else o.visible=true; } } } setGoal(B.text+'  ('+W.done.size+'/'+B.items.length+')');
