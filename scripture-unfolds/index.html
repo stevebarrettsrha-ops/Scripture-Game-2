@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- progress kept in the saves/ folder when played from this computer (local/saves.js) -->
+<script src="../local/saves.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0b0806">
@@ -335,6 +337,12 @@ window.__WORLDFILES.catch(function(){});
     document.head.appendChild(l);
   }
   BUI.stage('Raising the firmament…',0.05);
+  /* PLAYED FROM THIS DEVICE (the local launchers serve the game on this computer's own
+     address, or the page is opened straight from its folder), or with no network at all: the
+     copy of three.js shipped beside the game is taken at once, and nothing is asked of the
+     internet — an offline machine would otherwise wait on the CDN before falling back */
+  var LOCAL=location.protocol==='file:'||/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)||navigator.onLine===false;
+  if(LOCAL){ tryLocal(); return; }
   var s=document.createElement('script');
   s.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
   s.onload=function(){ if(window.THREE) boot(); else tryLocal(); };

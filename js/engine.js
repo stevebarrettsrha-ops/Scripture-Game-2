@@ -3993,7 +3993,20 @@ function rleDecode(arr,remap){
    (Seen as: reload, and one chunk of two comes back. A race loses rarely,
    which is the worst rate there is.) */
 let _inFlight=null;
+/* ---- AND INTO THE SAVES FOLDER, WHEN THE GAME IS PLAYED FROM THIS COMPUTER ----
+   (local/saves.js): each edited chunk is a file of its own in saves/world/, with the block table
+   beside them, written at once — before the database is so much as opened — so a page closing
+   in the same moment still gets them out of the door */
+function editsToFolder(keys){
+  const L=window.LOCALSAVE; if(!L||!L.on) return;
+  for(const k of keys){ const m=EDITS.get(k), path='world/'+L.enc(k)+'.json';
+    if(!m||!m.size) L.del(path);
+    else L.put(path,JSON.stringify({k,v:EDIT_VER,d:Array.from(rleEncode(m))})); }
+  L.put('world/blocks.json',JSON.stringify({k:'blocks',v:EDIT_VER,ids:BLOCKS.map(b=>b?b.id:null)}));
+  L.flush();
+}
 function editsSave(){
+  if(EDIT_SAVE.size) editsToFolder(Array.from(EDIT_SAVE));
   if(EDB.fail) return Promise.resolve(false);
   if(_saveT){ clearTimeout(_saveT); _saveT=null; }
   const prev=_inFlight;
@@ -4025,6 +4038,21 @@ async function editsWrite(){
     for(const k of keys) EDIT_SAVE.add(k); editsTouch(); return false; }
 }
 async function editsLoad(){
+  /* the saves folder, once this browser has been joined to it, is the world's master copy */
+  const L=window.LOCALSAVE;
+  if(L&&L.on&&(L.worldJoined||Object.keys(L.world).length)){
+    const meta=L.world['blocks.json'];
+    let remap=null;
+    if(meta&&meta.ids){ remap=[];
+      for(let i=1;i<meta.ids.length;i++){ const b=BLOCK_BY_ID[meta.ids[i]]; remap[i]=b?b.n:0; } }
+    let n=0;
+    for(const f in L.world){ const rec=L.world[f];
+      if(f==='blocks.json'||!rec||rec.v!==EDIT_VER||!rec.d) continue;
+      const m=rleDecode(rec.d,remap);
+      if(m.size){ EDITS.set(rec.k,m); n+=m.size; } }
+    editColumnsChanged();
+    return n;
+  }
   const db=await edbOpen(); if(!db) return 0;
   try{
     const tx=db.transaction([EDB_ST,EDB_MT],'readonly');
@@ -4044,6 +4072,8 @@ async function editsLoad(){
       if(m.size){ EDITS.set(rec.k,m); n+=m.size; }
     }
     editColumnsChanged();     /* a world reopened is a world of new answers */
+    /* the first time this browser meets the saves folder, the world it was keeping goes into it */
+    if(L&&L.on&&EDITS.size) editsToFolder(Array.from(EDITS.keys()));
     return n;
   }catch(e){ return 0; }
 }
