@@ -5267,6 +5267,19 @@ const sea=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),farSeaMat);
    shelf along every coast truly shows through the clear shallows above it */
 sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y-SEA_DISC; scene.add(sea);
 
+/* SHIP_S sets her size in every dimension. She was raised to twice the hull's own
+   proportions, a galleon with deck room for twelve souls — and that was a ship too small for
+   the seas she sails: the merchantmen of the age carried companies of hundreds (the ship that
+   bore Sha'ul to Rome carried two hundred and seventy-six, Acts 27:37). So she is twice that
+   again: some thirty-seven metres from stern to bow and fifteen in the beam, a waist that holds
+   a ship's company and passengers besides, and a hold beneath it. SHIP_SX widens the beam
+   further still, so she sits broad upon the screen; SHIP_K is how much greater she is than the
+   ship every fixed distance below was first measured against (the boom of the helm's eye, the
+   reach to board her, the room a merchantman gives her), and each of those is scaled by it. */
+const SHIP_S=4.0, SHIP_SX=SHIP_S*1.85, SHIP_K=SHIP_S/2;
+/* her plan: half her beam, and her stern and stem from her middle */
+const SHIP_HALFX=6.2*SHIP_SX, SHIP_Z0=-28.5*SHIP_S, SHIP_Z1=26.5*SHIP_S;
+
 /* ================= THE WAVES OF THE DEEP =================
    A true trochoidal (Gerstner) sea: several travelling swells summed, so
    crests rise sharp and troughs roll round. The same wave field drives the
@@ -5311,13 +5324,33 @@ const waveUnroll=WAVES.map(w=>`{
   disp.x+=Q*A*D.x*c; disp.z+=Q*A*D.y*c; disp.y+=A*s;
   float WA=k*A; nrm.x-=D.x*WA*c; nrm.z-=D.y*WA*c; nrm.y-=Q*WA*s;
 }`).join('\n');
+/* ---- THE SKIN OF THE SEA IS SMOOTH ----
+   The fine chop on the swell was read out of the water BLOCK's own texture — sixteen pixels of
+   speckle, tiled ten thousand times — and it laid a grid of dashes across the whole ocean, rows
+   and columns of them, plain to anyone at a ship's rail. The chop is read now out of a field of
+   its own: a sum of travelling sines whose every wave fits the tile a whole number of times, so
+   it repeats with no seam, has no pixels in it, and is filtered smooth at every distance. Red and
+   green are two slopes of the chop, blue a third octave for the foam and the colour to break on. */
+const SEA_NOISE=(()=>{ const N=256, data=new Uint8Array(N*N*4);
+  let seed=7; const rnd=()=>{ seed=(seed*16807)%2147483647; return seed/2147483647; };
+  const set=()=>{ const w=[]; for(let i=0;i<14;i++){ let kx=0,ky=0; while(!kx&&!ky){ kx=Math.round((rnd()-0.5)*14); ky=Math.round((rnd()-0.5)*14); }
+      const L=Math.hypot(kx,ky); w.push([kx*2*Math.PI/N,ky*2*Math.PI/N,rnd()*6.283,1/Math.pow(L,0.85)]); } return w; };
+  const W=[set(),set(),set()], out=[new Float32Array(N*N),new Float32Array(N*N),new Float32Array(N*N)];
+  for(let c=0;c<3;c++){ let lo=1e9,hi=-1e9;
+    for(let y=0;y<N;y++) for(let x=0;x<N;x++){ let v=0; for(const w of W[c]) v+=w[3]*Math.sin(w[0]*x+w[1]*y+w[2]);
+      out[c][y*N+x]=v; if(v<lo) lo=v; if(v>hi) hi=v; }
+    for(let k=0;k<N*N;k++) data[k*4+c]=Math.round((out[c][k]-lo)/(hi-lo)*255); }
+  for(let k=0;k<N*N;k++) data[k*4+3]=255;
+  const t=new THREE.DataTexture(data,N,N,THREE.RGBAFormat);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; t.magFilter=THREE.LinearFilter; t.minFilter=THREE.LinearMipmapLinearFilter;
+  t.generateMipmaps=true; t.needsUpdate=true; return t; })();
 const waveMat=new THREE.ShaderMaterial({
   transparent:true, side:THREE.DoubleSide,
   uniforms:{ uTime:{value:0}, uAmp:{value:1}, uCenter:{value:new THREE.Vector2()},
     uLight:{value:new THREE.Color(1,1,1)}, uFogColor:{value:new THREE.Color(0x9fc5e8)},
     uFogNear:{value:260}, uFogFar:{value:870}, uSunDir:{value:new THREE.Vector3(0.4,1,0.25)},
     uDeep:{value:new THREE.Color(0x0e2c4e)}, uShallow:{value:new THREE.Color(0x2fb3cf)},
-    uMap:{value:seaTex}, uOpacity:{value:0.9}, uCamPos:{value:new THREE.Vector3()},
+    uMap:{value:SEA_NOISE}, uOpacity:{value:0.9}, uCamPos:{value:new THREE.Vector3()},
     uShoal:{value:SHOAL_TEX}, uZenith:{value:new THREE.Color(0x3d76c0)},
     uShip:{value:new THREE.Vector4()}, uShipH:{value:0}, uSunCol:{value:new THREE.Color(1,0.96,0.85)},
     /* the lesser light to rule the night */
@@ -5392,12 +5425,18 @@ const waveMat=new THREE.ShaderMaterial({
       vec2 fwd=vec2(sin(uShipH),cos(uShipH)), rgt=vec2(cos(uShipH),-sin(uShipH));
       vec2 rel=vP-uShip.xy; float along=dot(rel,fwd), side=dot(rel,rgt);
       float spd=uShip.z, near=uShip.w;
-      float d=max(0.0,-along+6.0);
-      float arm=smoothstep(4.5,0.0,abs(abs(side)-d*0.33))*smoothstep(230.0,0.0,d);
-      float cen=smoothstep(9.0+d*0.14,0.0,abs(side))*smoothstep(80.0,0.0,d)*0.6;
-      float collar=smoothstep(38.0,13.0,length(rel));
-      float wob=0.6+0.4*sin(vP.x*0.6+vP.y*0.55+uTime*7.0);
-      float wake=clamp((arm+cen+collar*0.8)*spd*wob*near,0.0,1.0);
+      /* (measured against the ship of SHIP_K = 1, and grown with her). The V opens from her STEM
+         and runs astern — and only astern: drawn from her middle with nothing to stop it forward,
+         its arms met on her centreline ahead of her and laid a white line out before her bow. */
+      float bowA=${(SHIP_Z1*0.95).toFixed(1)};
+      float d=max(0.0,bowA-along), astern=1.0-smoothstep(bowA-${(8*SHIP_K).toFixed(1)},bowA+${(4*SHIP_K).toFixed(1)},along);
+      float arm=smoothstep(${(4.5*SHIP_K).toFixed(2)},0.0,abs(abs(side)-d*0.35))*smoothstep(${(230*SHIP_K).toFixed(1)},0.0,d)*astern;
+      float cen=smoothstep(${(9*SHIP_K).toFixed(2)}+d*0.14,0.0,abs(side))*smoothstep(${(80*SHIP_K).toFixed(1)},${(30*SHIP_K).toFixed(1)},d)*0.6*astern;
+      float collar=smoothstep(${(38*SHIP_K).toFixed(1)},${(13*SHIP_K).toFixed(1)},length(rel));
+      /* broken by the chop, not by a sine: a wake is torn foam, never a row of stripes */
+      float wob=smoothstep(0.30,0.78,texture2D(uMap,vP*0.021+vec2(uTime*0.03,-uTime*0.02)).b)*0.85
+               +smoothstep(0.40,0.85,texture2D(uMap,vP*0.067-vec2(uTime*0.05,uTime*0.04)).g)*0.45;
+      float wake=clamp((arm*0.8+cen+collar*0.8)*spd*wob*near,0.0,1.0);
       /* SHORE-LAPPING WASH — rings of foam marching down the shoal gradient,
          so each line of surf wraps the coast and runs up the strand in turn,
          broken ragged by the water texture so no two waves break alike */
@@ -5516,6 +5555,201 @@ waveMat.uniforms.uHole=HOLE_T; waveMat.uniforms.uHoleO=HOLE_O; waveMat.uniforms.
 waveMat.fragmentShader=waveMat.fragmentShader.replace('    void main(){',
   HOLE_GLSL+'    void main(){\n      if(inHole(vWorld.xz)) discard;');
 waveMat.needsUpdate=true;
+
+/* ================= THE WATER ANSWERS =================
+   The swell was the sea's whole motion: it rose and fell and ran on whatever fell into it. A
+   dolphin breached, a man dived, a whole herd went over a cliff — and the water threw up a few
+   white flecks and lay exactly as before, as though nothing had touched it.
+
+   So about the eye there is a sheet of LIVE water: a field of heights, some eighty metres across,
+   worked by the wave equation itself — each cell pulled toward the level of its neighbours and
+   carried on past it, so whatever strikes the water goes out from it in rings, the rings run on
+   and widen and die away, and where they meet a hull they turn back from it. It is fixed to the
+   world, not to the eye: the field slides under a moving ship a whole number of cells at a time,
+   so a ring stays where it was struck. A ship under way is a disturbance that keeps moving — water
+   heaped at her stem, drawn down along her flanks — and the moving disturbance makes her own V of
+   waves astern, which nothing has to draw. A swimmer's strokes ring it, and every splash in the
+   game strikes it (splash, below), and where the drops of a splash fall back they ring it again.
+
+   The field is drawn into the sea's own shading (its slope bends the light, its foam whitens the
+   crest) and into the still water of lakes and rivers (MAT.waterB, below), through one small
+   texture written when the field has moved. With nothing stirring it the field falls flat and
+   the work stops — it costs nothing on a calm sea that no one has touched. */
+const RIP_N=160, RIP_CELL=3.0, RIP_SPAN=RIP_N*RIP_CELL;           /* 480 units, eighty metres */
+const RIP_HZ=24, RIP_C2=0.30, RIP_DAMP=0.986;                   /* rings run about five metres a second */
+let RA=new Float32Array(RIP_N*RIP_N), RB=new Float32Array(RIP_N*RIP_N);
+const RF=new Float32Array(RIP_N*RIP_N);                         /* the foam on it, dying away */
+const RIP_EDGE=(()=>{ const e=new Float32Array(RIP_N*RIP_N), W=10;   /* a soft rim: rings run out, not back */
+  for(let j=0;j<RIP_N;j++) for(let i=0;i<RIP_N;i++){ const d=Math.min(i,j,RIP_N-1-i,RIP_N-1-j);
+    e[j*RIP_N+i]=d>=W?1:0.80+0.20*(d/W); } return e; })();
+const RIP_DATA=new Uint8Array(RIP_N*RIP_N*4);
+for(let k=0;k<RIP_N*RIP_N;k++){ RIP_DATA[k*4]=128; RIP_DATA[k*4+1]=128; RIP_DATA[k*4+2]=128; }
+const ripTex=new THREE.DataTexture(RIP_DATA,RIP_N,RIP_N,THREE.RGBAFormat);
+ripTex.magFilter=ripTex.minFilter=THREE.LinearFilter; ripTex.generateMipmaps=false; ripTex.needsUpdate=true;
+const RIP_T={value:ripTex}, RIP_O={value:new THREE.Vector2(-1e9,-1e9)}, RIP_ON={value:0};
+let ripIX=null, ripIZ=null, ripAcc=0, ripCalm=99, ripDirty=false;
+/* the field kept under the eye — slid a whole number of cells at a time, so the water it holds
+   keeps its place in the world */
+function ripRecentre(x,z){
+  const ix=Math.floor(x/RIP_CELL)-RIP_N/2, iz=Math.floor(z/RIP_CELL)-RIP_N/2;
+  if(ripIX===null){ ripIX=ix; ripIZ=iz; return; }
+  const dx=ix-ripIX, dz=iz-ripIZ;
+  if(Math.abs(dx)<12&&Math.abs(dz)<12) return;
+  const N=RIP_N, shift=a=>{ const o=a.slice(); a.fill(0);
+    for(let j=0;j<N;j++){ const sj=j+dz; if(sj<0||sj>=N) continue;
+      for(let i=0;i<N;i++){ const si=i+dx; if(si<0||si>=N) continue; a[j*N+i]=o[sj*N+si]; } } };
+  shift(RA); shift(RB); shift(RF);
+  ripIX=ix; ripIZ=iz; ripDirty=true;
+}
+/* strike the water at (x,z): `amp` units up (or down, if less than nought) across `rad` units,
+   and as much foam as `foam` */
+function rippleAt(x,z,amp,rad,foam){
+  if(ripIX===null) return;
+  const cx=x/RIP_CELL-ripIX, cz=z/RIP_CELL-ripIZ, r=Math.max(1,(rad||3)/RIP_CELL);
+  const i0=Math.max(1,Math.floor(cx-2*r)), i1=Math.min(RIP_N-2,Math.ceil(cx+2*r));
+  const j0=Math.max(1,Math.floor(cz-2*r)), j1=Math.min(RIP_N-2,Math.ceil(cz+2*r));
+  if(i0>i1||j0>j1) return;
+  const ir2=1/(r*r), fo=foam||0;
+  for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
+    const d2=(i-cx)*(i-cx)+(j-cz)*(j-cz), w=Math.exp(-d2*ir2*1.6); if(w<0.02) continue;
+    const k=j*RIP_N+i; RA[k]+=amp*w; if(fo) RF[k]=Math.min(1,RF[k]+fo*w); }
+  ripCalm=0;
+}
+/* hold the water at (x,z) to `h` units, up or down, across `rad` units — a PRESSURE, not a blow: a
+   ship's stem keeps the water before it heaped so high and no higher, however long she sails */
+function rippleHold(x,z,h,rad,foam){
+  if(ripIX===null) return;
+  const cx=x/RIP_CELL-ripIX, cz=z/RIP_CELL-ripIZ, r=Math.max(1,rad/RIP_CELL);
+  const i0=Math.max(1,Math.floor(cx-2*r)), i1=Math.min(RIP_N-2,Math.ceil(cx+2*r));
+  const j0=Math.max(1,Math.floor(cz-2*r)), j1=Math.min(RIP_N-2,Math.ceil(cz+2*r));
+  const ir2=1/(r*r), fo=foam||0;
+  for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
+    const d2=(i-cx)*(i-cx)+(j-cz)*(j-cz), w=Math.exp(-d2*ir2*1.6); if(w<0.03) continue;
+    const k=j*RIP_N+i, t=h*w;
+    if(h>0?RA[k]<t:RA[k]>t) RA[k]+=(t-RA[k])*0.5;
+    if(fo) RF[k]=Math.min(1,RF[k]+fo*w); }
+  ripCalm=0;
+}
+/* one tick of the wave equation, and the hull standing in it */
+function rippleStep(){
+  const N=RIP_N, A=RA, P=RB, c2=RIP_C2, dm=RIP_DAMP;
+  for(let j=1;j<N-1;j++){ let k=j*N+1;
+    for(let i=1;i<N-1;i++,k++){ const a=A[k];
+      let v=(2*a-P[k]+c2*(A[k-1]+A[k+1]+A[k-N]+A[k+N]-4*a))*dm*RIP_EDGE[k];
+      P[k]=v>4?4:v<-4?-4:v; } }                               /* (no ring stands higher than a man's chest) */
+  RA=P; RB=A;
+  for(let k=0;k<RF.length;k++) if(RF[k]>0.002) RF[k]*=0.968; else RF[k]=0;
+  /* ---- SHE IS IN THE WATER ----
+     Under her hull there is no free surface: the field is held level there, so a ring that comes
+     to her side turns back from it. And under way she is a disturbance that keeps on moving —
+     water heaped and white at her stem, drawn down along her flanks — and the waves she makes
+     run off astern in her own V. */
+  if(typeof boatG!=='undefined'&&boatG.visible&&state.mode!=='firm'){
+    const b=state.boat, c=Math.cos(b.heading), s=Math.sin(b.heading);
+    const hx=SHIP_HALFX*0.86, z0=SHIP_Z0*0.9, z1=SHIP_Z1*0.88;
+    const rr=Math.hypot(hx,Math.max(-z0,z1))/RIP_CELL;
+    const cx=b.x/RIP_CELL-ripIX, cz=b.z/RIP_CELL-ripIZ;
+    const i0=Math.max(1,Math.floor(cx-rr)), i1=Math.min(N-2,Math.ceil(cx+rr));
+    const j0=Math.max(1,Math.floor(cz-rr)), j1=Math.min(N-2,Math.ceil(cz+rr));
+    for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
+      const dx=(i+ripIX+0.5)*RIP_CELL-b.x, dz=(j+ripIZ+0.5)*RIP_CELL-b.z;
+      const lx=c*dx-s*dz, lz=s*dx+c*dz;
+      if(lz<z0||lz>z1) continue;
+      /* her plan narrows to the stem and a little to the stern */
+      const t=lz>0?lz/z1:lz/z0, half=hx*(lz>0?Math.sqrt(Math.max(0,1-t*t*t)):1-0.25*t*t);
+      if(Math.abs(lx)<half){ const k=j*N+i; RA[k]*=0.2; RB[k]*=0.2; } }
+    const sp=Math.abs(b.speed);
+    if(sp>1.5){ const fx=Math.sin(b.heading), fz=Math.cos(b.heading), rx=Math.cos(b.heading), rz=-Math.sin(b.heading);
+      const bow=z1*1.04, k2=Math.min(1,sp/40);
+      rippleHold(b.x+fx*bow, b.z+fz*bow, 1.6*k2, 8*SHIP_K, 0.35*k2);                      /* the heap at her stem */
+      for(const sd of [1,-1]) for(const f of [0.55,0.1,-0.4]){
+        const lz=f*(f>0?z1:-z0), w=hx*(f>0?Math.sqrt(Math.max(0,1-f*f*f)):1)+3;
+        rippleHold(b.x+fx*lz+rx*sd*w, b.z+fz*lz+rz*sd*w, -0.6*k2, 5*SHIP_K, 0.12*k2); }   /* drawn down along her flanks */
+      rippleHold(b.x-fx*(-z0*1.02), b.z-fz*(-z0*1.02), 0.3*k2, 9*SHIP_K, 0.3*k2);         /* her wake, white astern */
+    }
+  }
+  ripDirty=true;
+}
+/* the field into its texture: its slope (to bend the light), its height, and its foam */
+function rippleUpload(){
+  const N=RIP_N, A=RA, inv=1/(2*RIP_CELL), D=RIP_DATA;
+  for(let j=0;j<N;j++) for(let i=0;i<N;i++){ const k=j*N+i;
+    const gx=i>0&&i<N-1?(A[k-1]-A[k+1])*inv:0, gz=j>0&&j<N-1?(A[k-N]-A[k+N])*inv:0;
+    const o=k*4;
+    D[o]=Math.max(0,Math.min(255,128+gx*212)); D[o+1]=Math.max(0,Math.min(255,128+gz*212));
+    D[o+2]=Math.max(0,Math.min(255,128+A[k]*42)); D[o+3]=Math.min(255,RF[k]*255); }
+  ripTex.needsUpdate=true;
+  RIP_O.value.set(ripIX*RIP_CELL,ripIZ*RIP_CELL); RIP_ON.value=1;
+}
+function rippleTick(dt,px,pz){
+  ripRecentre(px,pz);
+  /* a swimmer's strokes */
+  const w=state.walk;
+  if(state.mode==='walk'&&w.inWater){ w._ripT=(w._ripT||0)-dt;
+    const sp=Math.hypot(w.vx||0,w.vz||0)||(axis()[0]?10:0);
+    if(w._ripT<=0){ w._ripT=sp>2?0.32:0.9; rippleAt(w.x,w.z,sp>2?-0.55:-0.18,4,sp>2?0.25:0.05); } }
+  ripCalm+=dt;
+  const moving=boatG.visible&&Math.abs(state.boat.speed)>1.5;
+  if(ripCalm>9&&!moving){ if(RIP_ON.value&&ripCalm>9.5){ RA.fill(0); RB.fill(0); RF.fill(0); rippleUpload(); RIP_ON.value=0; } return; }
+  ripAcc=Math.min(ripAcc+dt,3/RIP_HZ);
+  while(ripAcc>=1/RIP_HZ){ ripAcc-=1/RIP_HZ; rippleStep(); }
+  if(ripDirty){ ripDirty=false; rippleUpload(); }
+}
+/* ---- AND THE SEA SHADED BY IT ---- */
+Object.assign(waveMat.uniforms,{uRip:RIP_T,uRipO:RIP_O,uRipOn:RIP_ON});
+waveMat.fragmentShader=waveMat.fragmentShader
+  .replace('    float h21(vec2 p){','    uniform sampler2D uRip; uniform vec2 uRipO; uniform float uRipOn;\n    float h21(vec2 p){')
+  .replace('      vec3 V=normalize(uCamPos-vWorld);',
+    '      /* the live water: its slope bends the light, its foam lies white on it */\n'+
+    '      float rFoam=0.0;\n'+
+    '      if(uRipOn>0.5){ vec2 rc=(vP-uRipO)/'+RIP_SPAN.toFixed(1)+';\n'+
+    '        if(rc.x>0.0&&rc.y>0.0&&rc.x<1.0&&rc.y<1.0){ vec4 rp=texture2D(uRip,rc);\n'+
+    '          float ek=smoothstep(0.0,0.07,min(min(rc.x,rc.y),min(1.0-rc.x,1.0-rc.y)));\n'+
+    '          vec2 gr=(rp.rg-0.5)*2.4*ek; N=normalize(N+vec3(gr.x,0.0,gr.y)*1.5);\n'+
+    '          rFoam=rp.a*ek; } }\n'+
+    '      vec3 V=normalize(uCamPos-vWorld);')
+  .replace('      float allFoam=clamp(foam*0.32+wake*0.95+lap,0.0,1.0);',
+    '      float allFoam=clamp(foam*0.32+wake*0.95+lap+rFoam*0.95*(0.6+0.4*rB.b),0.0,1.0);');
+waveMat.needsUpdate=true;
+/* ---- AND THE STILL WATER TOO ----
+   A lake, a river, the Sea of Galil were flat sheets of painted blue: the same picture under the
+   noon sun as under a cloud, and nothing in them moved. The water block now takes the light as
+   the sea does — a fine ripple running across it, the sky mirrored in it at a slant, the sun's
+   path burning on it — and it is struck and rings as the sea is, out of the same live field.
+   (Drawn by its own material, not out of the plain-block array, so that it can.) */
+if(MAT.waterB&&renderer.capabilities.isWebGL2){        /* (the face is found by derivatives: WebGL2) */
+  MAT.waterB.userData.plain=false;
+  const WU=waveMat.uniforms;
+  addPatch(MAT.waterB,sh=>{
+    Object.assign(sh.uniforms,{uRip:RIP_T,uRipO:RIP_O,uRipOn:RIP_ON,uWTime:WU.uTime,uWSun:WU.uSunDir,uWSunC:WU.uSunCol,
+      uWZen:WU.uZenith,uWFog:WU.uFogColor,uWCam:WU.uCamPos,uWLight:WU.uLight});
+    sh.vertexShader='varying vec3 vWP;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n  vWP=position;');
+    sh.fragmentShader='varying vec3 vWP;\nuniform sampler2D uRip; uniform vec2 uRipO; uniform float uRipOn, uWTime;\n'+
+      'uniform vec3 uWSun, uWSunC, uWZen, uWFog, uWCam, uWLight;\n'+
+      sh.fragmentShader.replace('gl_FragColor = vec4( outgoingLight, diffuseColor.a );',
+      'gl_FragColor = vec4( outgoingLight, diffuseColor.a );\n'+
+      '  { vec3 fdx=dFdx(vWP), fdy=dFdy(vWP); vec3 fn=normalize(cross(fdx,fdy));\n'+
+      '    if(abs(fn.y)>0.7){                                  /* the water\'s face, not its sides */\n'+
+      '      vec2 p=vWP.xz;\n'+
+      '      vec3 N=vec3(0.0,1.0,0.0);\n'+
+      '      N.x+=0.10*sin(p.x*0.21+uWTime*1.3)+0.06*sin(p.y*0.37-uWTime*1.9+p.x*0.11)+0.035*sin((p.x+p.y)*0.83+uWTime*2.7);\n'+
+      '      N.z+=0.10*sin(p.y*0.19-uWTime*1.1)+0.06*sin(p.x*0.33+uWTime*1.7-p.y*0.13)+0.035*sin((p.x-p.y)*0.79-uWTime*2.3);\n'+
+      '      float rf=0.0;\n'+
+      '      if(uRipOn>0.5){ vec2 rc=(p-uRipO)/'+RIP_SPAN.toFixed(1)+';\n'+
+      '        if(rc.x>0.0&&rc.y>0.0&&rc.x<1.0&&rc.y<1.0){ vec4 rp=texture2D(uRip,rc);\n'+
+      '          float ek=smoothstep(0.0,0.07,min(min(rc.x,rc.y),min(1.0-rc.x,1.0-rc.y)));\n'+
+      '          N.xz+=(rp.rg-0.5)*3.6*ek; rf=rp.a*ek; } }\n'+
+      '      N=normalize(N);\n'+
+      '      vec3 V=normalize(uWCam-vWP), L=normalize(uWSun), H=normalize(V+L);\n'+
+      '      float fres=pow(1.0-max(dot(N,V),0.0),4.0);\n'+
+      '      vec3 R=reflect(-V,N); vec3 sky=mix(uWFog*1.04,uWZen,pow(clamp(R.y,0.0,1.0),0.7))*uWLight;\n'+
+      '      gl_FragColor.rgb=mix(gl_FragColor.rgb,sky,clamp(0.18+fres*0.6,0.0,0.85));\n'+
+      '      float sp=pow(max(dot(N,H),0.0),160.0)*1.6+pow(max(dot(N,H),0.0),36.0)*0.12;\n'+
+      '      gl_FragColor.rgb+=uWSunC*sp*clamp(L.y*3.0,0.0,1.0);\n'+
+      '      gl_FragColor.rgb=mix(gl_FragColor.rgb,vec3(0.90,0.94,1.0)*uWLight,clamp(rf*0.85,0.0,0.85));\n'+
+      '    } }');
+  },'water-live');
+}
 farSeaMat.onBeforeCompile=sh=>{ sh.uniforms.uHole=HOLE_T; sh.uniforms.uHoleO=HOLE_O; sh.uniforms.uHoleOn=HOLE_ON;
   sh.vertexShader='varying vec2 vHW;\n'+sh.vertexShader.replace('#include <begin_vertex>',
     '#include <begin_vertex>\n  vHW=(modelMatrix*vec4(transformed,1.0)).xz;');
@@ -5635,7 +5869,7 @@ function waterTick(px,pz,dayF,storm){
   u.uMoon.value=Math.max(0,1-dayF*1.5)*moonB*(1-storm*0.55);
   u.uCamPos.value.copy(camera.position);
   const spd=Math.min(1,Math.abs(state.boat.speed)/30);
-  const shown=(state.mode!=='walk')?1:Math.max(0,1-Math.hypot(px-state.boat.x,pz-state.boat.z)/400);
+  const shown=(state.mode!=='walk')?1:Math.max(0,1-Math.hypot(px-state.boat.x,pz-state.boat.z)/(400*SHIP_K));
   u.uShip.value.set(state.boat.x,state.boat.z,spd,shown);
   u.uShipH.value=state.boat.heading;
 }
@@ -6186,10 +6420,7 @@ function texBox(w,h,d, matSide, matTop, matBot){
    place — the traveller stands at the wheel to sail, and can walk the planks. */
 /* Hull-local proportions (the hull is built at these, then scaled up whole). */
 const DECK_Y=6.2, QDECK_Y=11, FDECK_Y=8.8, FDECK_Z=17.5, QDECK_Z=-17.6, HELM={x:0,z:-22.6}, WHEEL_Z=-20.4;
-/* SHIP_S doubles her in every dimension — a great galleon, deck room for
-   twelve souls and more, and a walkable cargo hold below the waist deck.
-   SHIP_SX widens the beam further still, so she sits broad upon the screen. */
-const SHIP_S=2.0, SHIP_SX=SHIP_S*1.85;
+/* (SHIP_S, SHIP_SX and SHIP_K, her size, are declared ahead of the sea: the wake is drawn to it) */
 const SD={ deckY:DECK_Y*SHIP_S, qdeckY:QDECK_Y*SHIP_S, fdeckY:FDECK_Y*SHIP_S,
   fdeckZ:FDECK_Z*SHIP_S, qdeckZ:QDECK_Z*SHIP_S, helmZ:HELM.z*SHIP_S, wheelZ:WHEEL_Z*SHIP_S };
 const HOLD={halfX:2.9*SHIP_SX, z0:-19*SHIP_S, z1:23*SHIP_S, y:0.55*SHIP_S};
@@ -6333,8 +6564,11 @@ function deckAllowed(lx,lz){
   if(Math.abs(lx)<1.7*SHIP_SX&&lz>2.9*SHIP_S&&lz<6.3*SHIP_S) return false;   /* the open hatchway */
   for(const o of DECK_OBS){ if(Math.hypot(lx-o[0],lz-o[1])<o[2]) return false; }
   if(lz<SD.qdeckZ&&Math.hypot(lx,lz-SD.wheelZ)<1.6*SHIP_SX) return false;
+  /* and the passengers and the benches they sit on are bodies too: walk round them */
+  for(const o of PAX_OBS){ if(Math.hypot(lx-o[0],lz-o[1])<o[2]) return false; }
   return true;
 }
+const PAX_OBS=[];
 function deckHeightAt(lz){ return lz<SD.qdeckZ?SD.qdeckY:(lz>SD.fdeckZ?SD.fdeckY:SD.deckY); }
 /* ---- AND SHE IS A SOLID THING TO EVERYTHING THAT WOULD SET DOWN ----
    THE FAULT: "the boat is not being treated as a physical structure — birds
@@ -6359,7 +6593,7 @@ function deckHeightAt(lz){ return lz<SD.qdeckZ?SD.qdeckY:(lz>SD.fdeckZ?SD.fdeckY
    the minute, which is the very fault reported, only upside down. So what
    would settle where she is is put BESIDE her — out along her beam to open
    water, which is where a gull waiting on a ship actually sits. */
-const SHIP_HALFX=6.2*SHIP_SX, SHIP_Z0=-28.5*SHIP_S, SHIP_Z1=26.5*SHIP_S;
+/* (SHIP_HALFX, SHIP_Z0 and SHIP_Z1, her plan, are declared with her size, ahead of the sea) */
 const _shipL={x:0,z:0};
 /* a point of the world, in the ship's own frame (she yaws by state.boat.heading) */
 function shipLocalOf(x,z,out){
@@ -6389,22 +6623,70 @@ function besideShip(x,z,out){
 function holdAllowed(lx,lz){
   return Math.abs(lx)<HOLD.halfX && lz>HOLD.z0 && lz<HOLD.z1;
 }
-/* ================= THE CREW =================
-   Six sailors keep the deck alive: a lookout at the bow shading his eyes,
-   a mate by the helm, and hands who walk the waist and haul on the lines. */
+/* ================= THE SHIP'S COMPANY =================
+   She carries a company as a ship of her size did: a watch at the bow shading his eyes, a mate
+   by the helm and a bosun at the quarterdeck rail, a dozen hands who walk the waist and haul on
+   the lines — and passengers besides, men, women and children of the peoples she trades among,
+   standing along the rails to watch the sea or sitting on the benches in the waist.
+
+   A figure is a dozen boxes and more, so the company is drawn as the villages are (figureLod):
+   the whole rig near the eye, one welded mesh beyond it — at their own distances, since they ride
+   in the ship's frame and a man at the helm must still see the people at her bow. */
 const CREW=[];
+const SHIP_FOLK=['levant','levant','levant','med','africa','east','india','north','west'];
+function paxSeat(m,sc){ const u=m.userData;                   /* sat on a bench, as a villager sits (sitDown) */
+  m.position.y-=2.4*sc;
+  for(let i=0;i<2;i++){ u.legs[i].rotation.x=1.35; const k=u.legs[i].userData.knee; if(k) k.rotation.x=-0.7; } }
 function initCrew(){ if(CREW.length) return;
+  const X=SHIP_SX, Z=SHIP_S;
   const posts=[
-    {lx:0,lz:21*SHIP_S,kind:'watch'},
-    {lx:-2.5*SHIP_SX,lz:-19*SHIP_S,kind:'mate'},
-    {lx:3.5*SHIP_SX,lz:8*SHIP_S,kind:'hand'},
-    {lx:-3.5*SHIP_SX,lz:-8*SHIP_S,kind:'hand'},
-    {lx:4.5*SHIP_SX,lz:-2*SHIP_S,kind:'hand'},
-    {lx:-4.5*SHIP_SX,lz:14*SHIP_S,kind:'hand'}];
+    {lx:0,lz:21*Z,kind:'watch'},
+    {lx:-2.5*X,lz:-19*Z,kind:'mate'},
+    {lx:3.2*X,lz:-16.6*Z,kind:'bosun'}];
+  /* a dozen hands, spread down both sides of the waist and the forecastle */
+  for(let k=0;k<12;k++){ const sd=k%2?1:-1;
+    posts.push({lx:sd*(2.8+(k%3)*0.9)*X, lz:(-14+k*2.6)*Z, kind:'hand'}); }
   for(let k=0;k<posts.length;k++){ const p=posts[k];
-    const m=makePerson(9000+k*13,'sailor',false,false);
+    const m=makePerson(9000+k*13,'sailor',false,false,SHIP_FOLK[k%SHIP_FOLK.length]);
     m.position.set(p.lx,deckHeightAt(p.lz),p.lz); boatG.add(m);
-    CREW.push({m,kind:p.kind,hx:p.lx,hz:p.lz,tx:p.lx,tz:p.lz,t:k*1.7}); } }
+    CREW.push({m,kind:p.kind,hx:p.lx,hz:p.lz,tx:p.lx,tz:p.lz,t:k*1.7}); }
+  /* ---- THE PASSENGERS ----
+     Along each rail of the waist, a line of them standing and looking out; on two benches either
+     side of the mainmast, a row sitting; and a few more on the forecastle. Each is placed only
+     where the deck is open, clear of the hatch, the masts and the cargo — and each is a body the
+     walker and the hands go round. */
+  const spots=[];
+  for(const sd of [1,-1]){
+    for(let z=-15;z<=15;z+=2.15) spots.push({lx:sd*5.05*X, lz:z*Z, ry:sd>0?Math.PI/2:-Math.PI/2, how:'rail'});
+    for(let z=-11;z<=-5.5;z+=1.35) spots.push({lx:sd*2.9*X, lz:z*Z, ry:sd>0?-Math.PI/2:Math.PI/2, how:'bench'});
+    for(let z=8.5;z<=14;z+=1.35) spots.push({lx:sd*2.9*X, lz:z*Z, ry:sd>0?-Math.PI/2:Math.PI/2, how:'bench'});
+    for(let z=18.5;z<=23;z+=2.2) spots.push({lx:sd*3.6*X, lz:z*Z, ry:sd>0?Math.PI/2:-Math.PI/2, how:'rail'}); }
+  /* the benches themselves: planks on two trestles, a seat's height off the deck, under the sitters
+     (a seated figure's hips are over his own feet's mark, his thighs out before him) */
+  const benchObs=[];
+  for(const sd of [1,-1]) for(const [z0,z1] of [[-11.6,-4.9],[7.9,14.6]]){
+    const len=(z1-z0)*Z, bz=(z0+z1)/2*Z, bx=sd*(2.9*X+0.5);
+    const seat=texBox(3.0,0.55,len,'planks','benchTop'); seat.position.set(bx,SD.deckY+2.9,bz); boatG.add(seat);
+    for(const e of [-0.44,0.44]){ const leg=texBox(1.6,2.6,0.8,'planks'); leg.position.set(bx,SD.deckY+1.4,bz+e*len); boatG.add(leg); }
+    for(let z=z0;z<=z1;z+=1.1) benchObs.push([bx,z*Z,1.8]); }
+  let n=0;
+  for(const sp of spots){
+    if(!deckAllowed(sp.lx,sp.lz)) continue;
+    const seed=4100+n*31, h=hash2(seed,7.7);
+    const child=h<0.16, female=!child&&hash2(seed,3.3)<0.45;
+    const m=makePerson(seed,'villager',child,female,SHIP_FOLK[Math.floor(hash2(seed,5.1)*SHIP_FOLK.length)]);
+    const sc=m.scale.y||1;
+    m.position.set(sp.lx,deckHeightAt(sp.lz),sp.lz); m.rotation.y=sp.ry+(hash2(seed,9.9)-0.5)*0.6;
+    if(sp.how==='bench') paxSeat(m,sc);
+    else if(hash2(seed,2.2)<0.4){ m.userData.armL.rotation.x=-0.5; m.userData.armR.rotation.x=-0.5; }   /* hands on the rail */
+    boatG.add(m);
+    PAX_OBS.push([sp.lx,sp.lz,1.5]);
+    CREW.push({m,kind:'pax',sat:sp.how==='bench',hx:sp.lx,hz:sp.lz,ry:m.rotation.y,t:hash2(seed,1.9)*6,ph:hash2(seed,4.4)*6.28});
+    n++; }
+  for(const o of benchObs) PAX_OBS.push(o);          /* (solid only once the sitters are set on them) */
+}
+const _crewW=new THREE.Vector3();
+const CREW_NEAR=46, CREW_FAR=2600;       /* full rig within eight metres or so; a face further off is a few pixels */
 function crewTick(dt){ initCrew();
   const ph=performance.now()*0.012;
   for(const c of CREW){
@@ -6423,11 +6705,21 @@ function crewTick(dt){ initCrew();
       c.m.position.y=deckHeightAt(c.m.position.z);
       for(const L of u.legs) L.rotation.x=moving?Math.sin(ph+(L.userData.ph||0))*0.55:0;
       if(!moving&&c.t<1.4){ u.armL.rotation.x=-0.8+Math.sin(ph*0.4)*0.4; u.armR.rotation.x=-0.8-Math.sin(ph*0.4)*0.4; } /* hauling a line */
+    } else if(c.kind==='pax'){
+      /* the passengers keep their places: a turn of the head to look along the ship, a word with a
+         neighbour (an arm lifted a moment), and they sway as she rolls */
+      if(c.t<=0){ c.t=3+Math.random()*7; c.look=(Math.random()-0.5)*1.1; c.talk=Math.random()<0.3?1.6:0; }
+      c.m.rotation.y+=(c.ry+(c.look||0)*0.5-c.m.rotation.y)*Math.min(1,dt*1.5);
+      c.m.rotation.z=Math.sin(performance.now()*0.0011+c.ph)*0.025;
+      if(c.talk>0){ c.talk-=dt; u.armR.rotation.x=-0.6-Math.sin(ph*0.6+c.ph)*0.25; }
+      else if(!c.sat&&u.armR.rotation.x<-0.55&&u.armR.rotation.x>-0.95) u.armR.rotation.x=-0.5;
     } else {
       c.m.position.y=deckHeightAt(c.m.position.z);
       c.m.rotation.y=(c.kind==='watch'?0:Math.PI)+Math.sin(performance.now()*0.0005+c.hx)*0.7;
       if(c.kind==='watch'){ u.armR.rotation.x=-1.5; }   /* a hand shading the eyes */
     }
+    /* near the eye the whole rig, beyond it one welded mesh — reckoned where he stands in the world */
+    c.m.getWorldPosition(_crewW); figureLod(c,_crewW,CREW_NEAR,CREW_FAR);
   }
 }
 /* ================= PASSING TRADERS — SAILS ON THE HORIZON =================
@@ -6475,11 +6767,11 @@ function traderTick(px,pz,dt){ initTraders();
       T.x=x; T.z=z; T.h=Math.random()*6.28; T.set=true; T.g.visible=true; }
     if(T.halt&&T.halt>0){ T.halt-=dt; }                                   /* hove to for the trading */
     else {
-      const ax=T.x+Math.sin(T.h)*140, az=T.z+Math.cos(T.h)*140;
+      const ax=T.x+Math.sin(T.h)*140*SHIP_K, az=T.z+Math.cos(T.h)*140*SHIP_K;
       if(landAtWorld(ax,az)||Math.hypot(ax,az)/R_WORLD>0.93) T.h+=dt*0.8; /* bear away from the shoals */
       /* and a merchantman gives way to the traveller's ship as she gives way
          to a shoal — she does not sail through him */
-      else if(Math.hypot(ax-state.boat.x,az-state.boat.z)<170) T.h+=dt*0.8;
+      else if(Math.hypot(ax-state.boat.x,az-state.boat.z)<170*SHIP_K) T.h+=dt*0.8;
       T.x+=Math.sin(T.h)*T.sp*dt; T.z+=Math.cos(T.h)*T.sp*dt;
     }
     /* THE HELMSMAN WORKS HER ROUND. His hands stay on the wheel and he leans
@@ -8365,11 +8657,11 @@ function updateDolphins(px,py,pz,dt,t){ initDolphins();
       const a=Math.random()*6.28, r=80+Math.random()*260; d.x=px+Math.cos(a)*r; d.z=pz+Math.sin(a)*r;
       const fy=haunt(d.x,d.z,H_DOLPHIN); d.y=Math.min(SEA_SURF-6,fy+30+Math.random()*40); d.dir=Math.random()*6.28; d.set=true; d.m.visible=true; }
     let sp=18;
-    const escort=sailing&&escN<2&&Math.hypot(d.x-state.boat.x,d.z-state.boat.z)<420;
+    const escort=sailing&&escN<2&&Math.hypot(d.x-state.boat.x,d.z-state.boat.z)<420*SHIP_K;
     if(escort){ const side=(escN===0)?1:-1; escN++;
       const b=state.boat, fx=Math.sin(b.heading), fz=Math.cos(b.heading);
-      const tx=b.x+fx*(46+Math.sin(t*0.8+d.ph)*14)+Math.cos(b.heading)*side*15;
-      const tz=b.z+fz*(46+Math.sin(t*0.8+d.ph)*14)-Math.sin(b.heading)*side*15;
+      const tx=b.x+fx*(46*SHIP_K+Math.sin(t*0.8+d.ph)*14)+Math.cos(b.heading)*side*15*SHIP_K;
+      const tz=b.z+fz*(46*SHIP_K+Math.sin(t*0.8+d.ph)*14)-Math.sin(b.heading)*side*15*SHIP_K;
       const want=Math.atan2(tz-d.z,tx-d.x);
       let da=want-d.dir; while(da>Math.PI)da-=2*Math.PI; while(da<-Math.PI)da+=2*Math.PI;
       d.dir+=da*Math.min(1,dt*2.4);
@@ -13336,9 +13628,12 @@ function makeFigureLod(root){
   const m=new THREE.Mesh(bg,_lodMat); m.name='figureLod';
   return m;
 }
-function figureLod(e){ const m=e&&e.m; if(!m) return;
-  const cp=camera.position, d2=(m.position.x-cp.x)**2+(m.position.z-cp.z)**2;
-  const want=d2>FIGURE_LOD*FIGURE_LOD?0:d2>FIGURE_NEAR*FIGURE_NEAR?1:2;
+function figureLod(e,wp,near,lod){ const m=e&&e.m; if(!m) return;
+  /* `wp`: where he stands in the WORLD, for one carried in a moving frame (the ship's company,
+     whose own position is the ship's); `near`/`lod`: that company's own distances */
+  const P=wp||m.position, NR=near||FIGURE_NEAR, LD=lod||FIGURE_LOD;
+  const cp=camera.position, d2=(P.x-cp.x)**2+(P.z-cp.z)**2;
+  const want=d2>LD*LD?0:d2>NR*NR?1:2;
   /* held every frame, not only on the change: other code may show a figure
      (waking, coming out of doors) while it stands beyond the draw */
   if(want===0&&m.visible){ m.visible=false; e._lodHid=true; }
@@ -13561,7 +13856,7 @@ function nearestStallVillage(){
 function nearestTrader(){
   if(state.mode!=='boat'&&state.mode!=='deck') return null;
   for(let k=0;k<TRADERS.length;k++){ const T=TRADERS[k];
-    if(T.set&&Math.hypot(T.x-state.boat.x,T.z-state.boat.z)<260) return {T,k}; }
+    if(T.set&&Math.hypot(T.x-state.boat.x,T.z-state.boat.z)<260*SHIP_K) return {T,k}; }
   return null;
 }
 
@@ -14991,11 +15286,11 @@ function blockedForBoat(x,z){ const cc=landAtWorld(x,z); if(cc) return true;
    frame). The ship used to sail clean THROUGH a passing trader. */
 function insideTraderHull(x,z,margin){
   for(const T of TRADERS){ if(!T.set) continue;
-    if(Math.hypot(x-T.x,z-T.z)>110) continue;
+    if(Math.hypot(x-T.x,z-T.z)>110*SHIP_K) continue;
     const c=Math.cos(T.h), sn=Math.sin(T.h);
     const dx=x-T.x, dz=z-T.z;
     const lx=dx*c-dz*sn, lz=dx*sn+dz*c;
-    if(Math.abs(lx)<15+(margin||0)&&Math.abs(lz)<46+(margin||0)) return T; }
+    if(Math.abs(lx)<15*SHIP_K+(margin||0)&&Math.abs(lz)<46*SHIP_K+(margin||0)) return T; }
   return null;
 }
 function boatTick(dt,helm){
@@ -15035,7 +15330,7 @@ function boatTick(dt,helm){
   let pitch=cl(-(sl.x*fwdX+sl.z*fwdZ)*0.9, MAXTILT) - cl(bt.speed*0.0012,0.03);
   let roll =cl((sl.x*fwdZ-sl.z*fwdX)*0.9, MAXTILT)
     + cl(t*Math.min(1,Math.abs(bt.speed)/24)*0.10, 0.10);      /* lean into the turn */
-  boatG.position.set(bt.x, WATER_Y-2.1+hd*0.65, bt.z);   /* she draws deeper now, great as she is */
+  boatG.position.set(bt.x, WATER_Y-2.1*SHIP_K+hd*0.65, bt.z);   /* she draws deeper, great as she is */
   boatG.rotation.set(pitch, bt.heading, roll);
   const w=windAt(bt.x,bt.z);                       // the pennant flies downwind
   if(boatG.userData.flag) boatG.userData.flag.rotation.y=Math.atan2(w.x,w.z)-bt.heading;
@@ -15348,24 +15643,93 @@ function insideHouse(x,z){
   }
   return insideHouseIn(x,z,standaloneHouses);
 }
-/* ---- SPLASH — a burst of white spray where a body meets the water ---- */
-const SPLASH=[]; const SPL_N=26;
-function initSplash(){ if(SPLASH.length) return;
-  for(let k=0;k<SPL_N;k++){ const s=new THREE.Sprite(new THREE.SpriteMaterial({color:0xeaf6ff,transparent:true,opacity:0,depthWrite:false}));
-    s.visible=false; scene.add(s); SPLASH.push({s,life:0,x:0,y:0,z:0,vx:0,vy:0,vz:0,sz:0}); } }
+/* ---- A SPLASH IS WATER THROWN AND WATER FALLING BACK ----
+   It was twenty-six flat white squares that flew up and vanished in the air. A splash is drops: a
+   crown of them thrown out and up from the rim of what went in, a column standing up from the
+   middle of it, a breath of spray hanging over it — and every drop that falls back strikes the
+   water and rings it (rippleAt). And the water itself is struck where the thing went in, so the
+   rings go out from the place. All the drops in the air are ONE draw (a single cloud of points). */
+const SPL_N=420;
+const SPL={x:new Float32Array(SPL_N),y:new Float32Array(SPL_N),z:new Float32Array(SPL_N),vx:new Float32Array(SPL_N),
+  vy:new Float32Array(SPL_N),vz:new Float32Array(SPL_N),life:new Float32Array(SPL_N),max:new Float32Array(SPL_N),
+  sz:new Float32Array(SPL_N),surf:new Float32Array(SPL_N),mist:new Uint8Array(SPL_N),live:0,next:0};
+const splPos=new Float32Array(SPL_N*3), splSize=new Float32Array(SPL_N), splAlpha=new Float32Array(SPL_N);
+let splPts=null;
+const SPL_LIGHT={value:new THREE.Color(1,1,1)};
+function initSplash(){ if(splPts) return;
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(splPos,3).setUsage(THREE.DynamicDrawUsage));
+  g.setAttribute('size',new THREE.BufferAttribute(splSize,1).setUsage(THREE.DynamicDrawUsage));
+  g.setAttribute('alpha',new THREE.BufferAttribute(splAlpha,1).setUsage(THREE.DynamicDrawUsage));
+  const m=new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{uLight:SPL_LIGHT,uScale:{value:600}},
+    vertexShader:'attribute float size; attribute float alpha; varying float vA; uniform float uScale;\n'+
+      'void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); vA=alpha; gl_PointSize=clamp(size*uScale/max(1.0,-mv.z),1.0,96.0); gl_Position=projectionMatrix*mv; }',
+    fragmentShader:'uniform vec3 uLight; varying float vA;\n'+
+      'void main(){ vec2 d=gl_PointCoord-0.5; float r=length(d); if(r>0.5) discard;\n'+
+      '  float a=vA*smoothstep(0.5,0.18,r); float hl=smoothstep(0.32,0.0,length(d+vec2(0.12,0.14)));\n'+
+      '  gl_FragColor=vec4(mix(vec3(0.80,0.88,0.95),vec3(1.0),hl*0.6)*uLight,a); }'});
+  splPts=new THREE.Points(g,m); splPts.frustumCulled=false; splPts.renderOrder=3; scene.add(splPts);
+}
+function splEmit(x,y,z,vx,vy,vz,life,sz,surf,mist){
+  const k=SPL.next; SPL.next=(k+1)%SPL_N;
+  SPL.x[k]=x; SPL.y[k]=y; SPL.z[k]=z; SPL.vx[k]=vx; SPL.vy[k]=vy; SPL.vz[k]=vz;
+  SPL.life[k]=SPL.max[k]=life; SPL.sz[k]=sz; SPL.surf[k]=surf; SPL.mist[k]=mist?1:0; }
+/* the water's face under a point: the sea's own swell near the level of the sea, or (a lake or a
+   river, high in the land) the level the splash was asked for */
+function splSurface(x,y,z){ return Math.abs(y-WATER_Y)<14?WATER_Y+seaHeight(x,z):y-1.2; }
 function splash(x,y,z,big){ initSplash();
-  let n=big?16:8;
-  for(const p of SPLASH){ if(n<=0) break; if(p.life>0) continue; n--;
-    const a=Math.random()*Math.PI*2, r=(big?10:5)*(0.4+Math.random());
-    p.life=0.55+Math.random()*0.35; p.x=x; p.y=y; p.z=z;
-    p.vx=Math.cos(a)*r; p.vz=Math.sin(a)*r; p.vy=(big?16:9)*(0.5+Math.random());
-    p.sz=(big?1.4:0.8)*(0.6+Math.random()*0.7); p.s.visible=true; } }
-function splashTick(dt){ if(!SPLASH.length) return;
-  for(const p of SPLASH){ if(p.life<=0) continue;
-    p.life-=dt; p.vy-=42*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.z+=p.vz*dt;
-    p.s.position.set(p.x,p.y,p.z); p.s.scale.setScalar(p.sz);
-    p.s.material.opacity=Math.max(0,Math.min(0.85,p.life*1.6));
-    if(p.life<=0) p.s.visible=false; } }
+  const surf=splSurface(x,y,z), k=big?1:0.55;
+  /* the crown, thrown out and up from the rim */
+  const nC=big?46:18;
+  for(let i=0;i<nC;i++){ const a=(i/nC)*Math.PI*2+Math.random()*0.3, r=(big?11:6)*(0.5+Math.random()*0.8);
+    splEmit(x+Math.cos(a)*1.5*k,surf+0.3,z+Math.sin(a)*1.5*k, Math.cos(a)*r,(big?20:11)*(0.55+Math.random()*0.7),Math.sin(a)*r,
+      1.6,(big?1.1:0.7)*(0.6+Math.random()*0.8),surf,false); }
+  /* the column out of the middle */
+  const nM=big?16:5;
+  for(let i=0;i<nM;i++){ const a=Math.random()*6.28, r=Math.random()*2.2*k;
+    splEmit(x,surf+0.5,z, Math.cos(a)*r,(big?34:18)*(0.6+Math.random()*0.6),Math.sin(a)*r, 2.2,(big?1.5:0.9)*(0.6+Math.random()*0.6),surf,false); }
+  /* and the spray hanging over it */
+  const nS=big?7:2;
+  for(let i=0;i<nS;i++){ const a=Math.random()*6.28, r=(2+Math.random()*4)*k;
+    splEmit(x+Math.cos(a)*r,surf+1+Math.random()*3*k,z+Math.sin(a)*r, Math.cos(a)*2,3+Math.random()*3,Math.sin(a)*2, 1.4+Math.random()*0.8,(big?7:4)*(0.7+Math.random()*0.6),surf,true); }
+  /* the water struck where it went in */
+  rippleAt(x,z,big?-2.6:-1.0,big?7:3.5,big?0.95:0.5);
+}
+/* a ship's bow-spray: thrown out and up off her stem as she drives into the water */
+function sprayAt(x,z,dx,dz,sp){ initSplash();
+  const surf=WATER_Y+seaHeight(x,z), n=Math.min(10,2+Math.floor(sp/7));
+  for(let i=0;i<n;i++){ const out=sp*(0.18+Math.random()*0.25);
+    splEmit(x+(Math.random()-0.5)*5,surf+0.6,z+(Math.random()-0.5)*5, dx*out+(Math.random()-0.5)*4,sp*(0.30+Math.random()*0.35),dz*out+(Math.random()-0.5)*4,
+      1.5,(1.2+Math.random()*1.6)*SHIP_K*0.6,surf,false); }
+  if(Math.random()<0.6) splEmit(x,surf+2,z, dx*sp*0.12,4+Math.random()*4,dz*sp*0.12, 1.5,(8+Math.random()*7)*SHIP_K*0.6,surf,true);
+}
+const SPL_G=50;
+function splashTick(dt){ if(!splPts) return;
+  let live=0;
+  for(let k=0;k<SPL_N;k++){
+    let L=SPL.life[k]; if(L<=0){ if(splAlpha[k]!==0){ splAlpha[k]=0; splSize[k]=0; } continue; }
+    L-=dt;
+    if(SPL.mist[k]){                                  /* spray drifts, spreads and thins */
+      SPL.vy[k]-=4*dt; SPL.vx[k]*=1-dt*1.2; SPL.vz[k]*=1-dt*1.2;
+      SPL.x[k]+=SPL.vx[k]*dt; SPL.y[k]+=SPL.vy[k]*dt; SPL.z[k]+=SPL.vz[k]*dt;
+      SPL.sz[k]*=1+dt*0.9;
+      splAlpha[k]=Math.max(0,Math.min(0.38,L/SPL.max[k]*0.5));
+    } else {                                          /* a drop falls, and where it falls back the water rings */
+      SPL.vy[k]-=SPL_G*dt; SPL.vx[k]*=1-dt*0.25; SPL.vz[k]*=1-dt*0.25;
+      SPL.x[k]+=SPL.vx[k]*dt; SPL.y[k]+=SPL.vy[k]*dt; SPL.z[k]+=SPL.vz[k]*dt;
+      if(SPL.vy[k]<0&&SPL.y[k]<=SPL.surf[k]){ if(SPL.sz[k]>0.9&&Math.random()<0.5) rippleAt(SPL.x[k],SPL.z[k],-0.22*SPL.sz[k],2.2,0.12); L=0; }
+      splAlpha[k]=L>0?Math.min(0.9,0.35+L/SPL.max[k]):0;
+    }
+    SPL.life[k]=L;
+    splPos[k*3]=SPL.x[k]; splPos[k*3+1]=SPL.y[k]; splPos[k*3+2]=SPL.z[k]; splSize[k]=L>0?SPL.sz[k]:0;
+    if(L>0) live++;
+  }
+  SPL.live=live;
+  const g=splPts.geometry; g.attributes.position.needsUpdate=true; g.attributes.size.needsUpdate=true; g.attributes.alpha.needsUpdate=true;
+  splPts.visible=live>0&&!_nearHidden;
+  splPts.material.uniforms.uScale.value=renderer.domElement.height*0.9;
+  SPL_LIGHT.value.copy(waveMat.uniforms.uLight.value);
+}
 const STEP=B*1.2, JUMPH=B*2.3, CLIMBH=B*4.6;   /* step / must-jump / can-climb heights */
 const HEAD_R=B*1.9;   /* a man's own height, for the roof of a passage */
 const BODY_R=1.9;   /* the traveller's own half-breadth — he is a body, not a point */
@@ -15511,7 +15875,7 @@ function walkTick(dt){
   const tryStep=(tx,tz)=>{
     const g2=groundInfo(tx,tz,w.feetY+0.1);
     const d2=g2.y-w.feetY;
-    const near2=Math.hypot(tx-state.boat.x,tz-state.boat.z)<90;
+    const near2=Math.hypot(tx-state.boat.x,tz-state.boat.z)<90*SHIP_K;
     const deck2=deckMap.get(Math.floor(tx/B)+','+Math.floor(tz/B))!==undefined;
     const solid2=blockedByStructure(tx,tz)||treeBlocked(tx,tz)||blockedBySolid(tx,tz)||blockedByEntity(tx,tz,walkerG)
       ||!!landmarkSolidAt(tx,tz,w.feetY+2.2,w.feetY+8);   /* the works of the ancients bar the way */
@@ -16205,7 +16569,7 @@ function alight(){
     state.walk.x=fl.x; state.walk.z=fl.z; state.walk.heading=fl.heading;
     state.walk.feetY=undefined; state.walk.vy=0; state.walk.grounded=true;  /* re-seat on the ground here */
     setMode('walk'); markDiscovery(fl.x,fl.z); toast('You alight softly upon the earth.');
-  } else if(Math.hypot(fl.x-state.boat.x,fl.z-state.boat.z)<90){
+  } else if(Math.hypot(fl.x-state.boat.x,fl.z-state.boat.z)<90*SHIP_K){
     /* the ship truly lies below — settle onto her deck where she rides */
     setMode('boat'); toast('You settle back onto the deck.');
   } else {
@@ -16364,7 +16728,7 @@ function toggleAshore(){
     goAshoreFromShip(); return;
   }
   /* ashore: board the ship if she lies near */
-  if(Math.hypot(state.walk.x-state.boat.x,state.walk.z-state.boat.z)<95){
+  if(Math.hypot(state.walk.x-state.boat.x,state.walk.z-state.boat.z)<95*SHIP_K){
     state.deck={lx:4.6*SHIP_SX,lz:2*SHIP_S,h:Math.PI*0.5,level:'deck'};
     setMode('deck');
   } else toast('The ship lies too far off — return to the water\u2019s edge.');
@@ -16543,7 +16907,7 @@ function camInsideShip(wx,wy,wz){
 const _camHold=new THREE.Vector3();
 /* the helm's boom: k × the zoom, never under `min` at the usual zoom, looking
    `fwd` ahead of the ship and `up` over her deck */
-const BOAT_LOOK=Object.assign({k:1.7,min:190,fwd:70,up:26},window.__CAMTUNE||{});
+const BOAT_LOOK=Object.assign({k:1.7,min:190*SHIP_K,fwd:70*SHIP_K,up:26*SHIP_K},window.__CAMTUNE||{});
 function cameraTick(dt){
   if(cut){ sceneTick(dt); return; }
   /* ---- THE SLIDE ----
@@ -17605,7 +17969,7 @@ function encounterTick(px,pz,dt,t){
 function nearestEncounter(){
   if(!ENC.kind) return null;
   const p=state.mode==='walk'?state.walk:state.boat;
-  const reach=ENC.kind==='bottle'?34:52;
+  const reach=ENC.kind==='bottle'?34:52*(state.mode==='walk'?1:SHIP_K);
   if(Math.hypot(ENC.x-p.x,ENC.z-p.z)>reach) return null;
   if(state.mode==='walk'&&ENC.kind!=='bottle') return null;   /* a swimmer can take up only the bottle */
   return ENC;
@@ -18347,6 +18711,10 @@ if(!window.__HOST_BOOT){
 
 /* a small debug handle — used by the automated smoke tests; harmless in play */
 window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
+  /* the ship and her company — her deck's open ground, and who is aboard */
+  SHIP_SX,SHIP_K,SD,deckAllowed,holdAllowed,CREW,initCrew,
+  /* and the water that answers: a splash, a strike, the field's own state */
+  splash,rippleAt,WATER_Y,ripState:()=>({on:RIP_ON.value,calm:ripCalm,live:SPL.live,peak:(()=>{ let m=0; for(let k=0;k<RA.length;k++){ const v=Math.abs(RA[k]); if(v>m) m=v; } return m; })()}),
   /* the light in the corners, and the count of standing chunks — tools/acceptance.js */
   aoLevel,aoTop,chunkCount:()=>chunks.size,bodyLenOf,
   sceneRef:()=>scene, blockLayers:()=>{ const A=blockArray(); return A?A.names:null; },
@@ -19142,9 +19510,8 @@ function setNearWorldVisible(on,zF){
   for(const[,vv] of activeVillages) if(vv.g) vv.g.visible=on;
   for(const[,A] of activeLandmarks){ if(A.g) A.g.visible=on; if(A.label) A.label.visible=on; }
   for(const[,L] of shownLabels) if(L) L.visible=on;
-  for(const p2 of SPLASH) if(p2.s&&p2.life<=0) p2.s.visible=false;
   if(!on){
-    for(const p2 of SPLASH) if(p2.s) p2.s.visible=false;
+    if(splPts) splPts.visible=false;
     for(const f of FIREFLIES) if(f.s) f.s.visible=false;
     for(const k of SMOKES) if(k.s) k.s.visible=false;
     for(const b of BARKS){ if(b.sp) b.sp.visible=false; }
@@ -20941,7 +21308,13 @@ function frame(){
     sea.position.y    +=((shallowView?WATER_Y-520:WATER_Y-SEA_DISC )-sea.position.y    )*Math.min(1,dt*2.5);
     seaDeep.position.y+=((shallowView?WATER_Y-820:WATER_Y-SEA_DISC_DEEP)-seaDeep.position.y)*Math.min(1,dt*2.5); }
   seaLifeTick(p.x,p.z,dt);
+  rippleTick(dt,p.x,p.z);
   splashTick(dt);
+  if(boatG.visible&&Math.abs(state.boat.speed)>14){ const b=state.boat;     /* she throws the sea off her bow */
+    b._spr=(b._spr||0)-dt*Math.abs(b.speed)/10;
+    if(b._spr<=0){ b._spr=1; const fx=Math.sin(b.heading), fz=Math.cos(b.heading), rx=Math.cos(b.heading), rz=-Math.sin(b.heading);
+      /* from the stem itself, where her cutwater meets the sea, and thrown out to either side */
+      for(const sd of [1,-1]) sprayAt(b.x+fx*SHIP_Z1*0.98+rx*sd*(SHIP_HALFX*0.08+3), b.z+fz*SHIP_Z1*0.98+rz*sd*(SHIP_HALFX*0.08+3), rx*sd*0.8+fx*0.35, rz*sd*0.8+fz*0.35, Math.abs(b.speed)); } }
   fishTick(dt);
   spearTick(dt);
   crewTick(dt);

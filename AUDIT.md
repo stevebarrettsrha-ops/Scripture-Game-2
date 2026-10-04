@@ -10353,6 +10353,84 @@ progress in.
   under PowerShell 7.
 - **Acceptance tests** 5–7 (break, place, survive a reload) still pass in the browser-only path.
 
+## 4dq. Round 118 — a ship for a ship's company; water that answers
+
+**Asked:** the ships are too small and should hold a lot of people; the water should look far
+more real, with liquid physics for splashes.
+
+**The ship:**
+
+- **Size:** she is twice the size she was (`SHIP_S` 2 → 4): about 37 m from stern to bow and
+  15 m in the beam. That is the size of a large merchantman of the age; the one that carried
+  Sha'ul carried 276 souls (Acts 27:37).
+- **Scaled with her:** every fixed distance that was measured against the old ship now scales by
+  `SHIP_K`:
+  - the helm camera's boom, and how far it looks ahead and above;
+  - the reach to board her from the shore or the air, and to step ashore;
+  - how far she sits in the water;
+  - the room a merchantman gives her, and its hull for collisions;
+  - the dolphins' escort station, and how near a castaway must be;
+  - the wake.
+- **Her company:** 65 souls:
+  - a watch, a mate, a bosun and twelve hands at work;
+  - 50 passengers of the peoples she trades among. Lines of them stand at both rails, 20 sit on
+    four benches in the waist, and some are children.
+  - Passengers turn to look along the ship and lift a hand to talk to a neighbour, and all of
+    them sway as she rolls.
+  - Passengers and benches are solid: the walker and the hands go round them.
+  - They are drawn as villagers are, the full rig within about 8 m of the eye and one welded
+    mesh beyond, using their position in the world rather than in the ship.
+- **Deck flood check (2-unit grid from the helm entry):**
+  - 3,946 open cells;
+  - both entry points are open;
+  - the bow, forecastle, hatch, boarding spot and both waists can all be reached.
+
+**The water:**
+
+- **A live water field about the eye:** a 160 × 160 heightfield, 3 units a cell (80 m across),
+  stepped 24 times a second by the wave equation, with damping and a soft rim.
+  - It is fixed to the world and slides a whole number of cells as the eye moves, so a ring
+    stays where it was struck.
+  - **The hull:** the water is held level inside her plan, so rings turn back from her side.
+  - **Under way:** the water is held heaped at her stem, drawn down along her flanks and white
+    astern. These are pressures (`rippleHold`), not blows, so a long passage cannot pump them up.
+  - **Swimmers:** each stroke rings the water.
+  - **At rest:** the field falls flat and stops computing after 9 calm seconds.
+- **Splashes:** they were 26 flat sprites. A splash is now:
+  - a crown of drops thrown from the rim;
+  - a column from the middle;
+  - drifting spray;
+  - a strike on the field where the thing went in.
+  Each drop falls under gravity and rings the water where it lands. All drops are one point
+  cloud: 420 slots, one draw call. Every existing caller (diving, jumping in, breaching whales,
+  the story's pigs going into the sea) gets this.
+- **Her bow throws spray** from the stem when she is under way.
+- **The sea's shading:**
+  - the field's slope bends the light and its foam whitens the surface;
+  - the chop is read from a seamless field of travelling sines instead of the water block's
+    16-pixel texture, so there is no longer a grid of dashes across the ocean;
+  - the wake's V now opens from her stem and runs astern only. It had drawn a white line out
+    ahead of her bow.
+- **Lakes and rivers (the water block)**, on WebGL2:
+  - a fine running ripple;
+  - the sky mirrored at a slant;
+  - the sun's path on the surface;
+  - the same live rings and foam as the sea.
+
+**Checks:**
+
+- **Splashes:** struck beside the ship, the field peaks at 2.6 units and decays (1.4 after a
+  second, 0.95 after three), with rings visible from the rail.
+- **Under way:** the field holds at about 1.5 units at full sail. The first version, with blows
+  instead of pressures, reached 26.
+- **The pigs (Mark 5:13):** all 30 go over the cliff in crown splashes with rings on the Sea of
+  Galil.
+- **Scripture Unfolds** boots with no errors.
+- **Acceptance tests:**
+  - tests 5, 6, 7 and 51 pass;
+  - test 12 (chunk build speed) fails on this machine with and without these changes, at the same
+    plains figure (3.37 / 3.42 ms against a 3.31 ceiling). It is the machine, not this change.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
