@@ -10353,6 +10353,139 @@ progress in.
   under PowerShell 7.
 - **Acceptance tests** 5–7 (break, place, survive a reload) still pass in the browser-only path.
 
+## 4dq. Round 118 — a ship for a ship's company; water that answers
+
+**Asked:** the ships are too small and should hold a lot of people; the water should look far
+more real, with liquid physics for splashes.
+
+**The ship:**
+
+- **Size:** she is twice the size she was (`SHIP_S` 2 → 4): about 37 m from stern to bow and
+  15 m in the beam. That is the size of a large merchantman of the age; the one that carried
+  Sha'ul carried 276 souls (Acts 27:37).
+- **Scaled with her:** every fixed distance that was measured against the old ship now scales by
+  `SHIP_K`:
+  - the helm camera's boom, and how far it looks ahead and above;
+  - the reach to board her from the shore or the air, and to step ashore;
+  - how far she sits in the water;
+  - the room a merchantman gives her, and its hull for collisions;
+  - the dolphins' escort station, and how near a castaway must be;
+  - the wake.
+- **Her company:** 65 souls:
+  - a watch, a mate, a bosun and twelve hands at work;
+  - 50 passengers of the peoples she trades among. Lines of them stand at both rails, 20 sit on
+    four benches in the waist, and some are children.
+  - Passengers turn to look along the ship and lift a hand to talk to a neighbour, and all of
+    them sway as she rolls.
+  - Passengers and benches are solid: the walker and the hands go round them.
+  - They are drawn as villagers are, the full rig within about 8 m of the eye and one welded
+    mesh beyond, using their position in the world rather than in the ship.
+- **Deck flood check (2-unit grid from the helm entry):**
+  - 3,946 open cells;
+  - both entry points are open;
+  - the bow, forecastle, hatch, boarding spot and both waists can all be reached.
+
+**The water:**
+
+- **A live water field about the eye:** a 160 × 160 heightfield, 3 units a cell (80 m across),
+  stepped 24 times a second by the wave equation, with damping and a soft rim.
+  - It is fixed to the world and slides a whole number of cells as the eye moves, so a ring
+    stays where it was struck.
+  - **The hull:** the water is held level inside her plan, so rings turn back from her side.
+  - **Under way:** the water is held heaped at her stem, drawn down along her flanks and white
+    astern. These are pressures (`rippleHold`), not blows, so a long passage cannot pump them up.
+  - **Swimmers:** each stroke rings the water.
+  - **At rest:** the field falls flat and stops computing after 9 calm seconds.
+- **Splashes:** they were 26 flat sprites. A splash is now:
+  - a crown of drops thrown from the rim;
+  - a column from the middle;
+  - drifting spray;
+  - a strike on the field where the thing went in.
+  Each drop falls under gravity and rings the water where it lands. All drops are one point
+  cloud: 420 slots, one draw call. Every existing caller (diving, jumping in, breaching whales,
+  the story's pigs going into the sea) gets this.
+- **Her bow throws spray** from the stem when she is under way.
+- **The sea's shading:**
+  - the field's slope bends the light and its foam whitens the surface;
+  - the chop is read from a seamless field of travelling sines instead of the water block's
+    16-pixel texture, so there is no longer a grid of dashes across the ocean;
+  - the wake's V now opens from her stem and runs astern only. It had drawn a white line out
+    ahead of her bow.
+- **Lakes and rivers (the water block)**, on WebGL2:
+  - a fine running ripple;
+  - the sky mirrored at a slant;
+  - the sun's path on the surface;
+  - the same live rings and foam as the sea.
+
+**Checks:**
+
+- **Splashes:** struck beside the ship, the field peaks at 2.6 units and decays (1.4 after a
+  second, 0.95 after three), with rings visible from the rail.
+- **Under way:** the field holds at about 1.5 units at full sail. The first version, with blows
+  instead of pressures, reached 26.
+- **The pigs (Mark 5:13):** all 30 go over the cliff in crown splashes with rings on the Sea of
+  Galil.
+- **Scripture Unfolds** boots with no errors.
+- **Acceptance tests:**
+  - tests 5, 6, 7 and 51 pass;
+  - test 12 (chunk build speed) fails on this machine with and without these changes, at the same
+    plains figure (3.37 / 3.42 ms against a 3.31 ceiling). It is the machine, not this change.
+
+## 4dr. Round 119 — the boat that held the Twelve; the squall on the lake; walking on the sea
+
+**Asked:** verify, in story mode, Yahusha walking on the sea to the boat (a boat unlike the great
+ship, but able to hold the Twelve), and the storm in which He slept and the taught ones nearly
+drowned.
+
+**Found:** both scenes were there (Act IV, scenes 12 and 16), but:
+
+- The boat was a 7 m tray with a gunwale seven centimetres above the water, carrying four or five
+  of the disciples.
+- The lake was flat water blocks, so the "great windstorm" moved the boat a few centimetres, and
+  no wave rose or broke.
+- The camera on Him coming over the water was thrown off by the face guard and showed empty sea.
+
+**Made:**
+
+- **The lake's fishing boat** (`STORYWORLD.bigBoat`), after the 1st-century boat found at
+  Kinnereth in 1986, made a little larger (10.6 × 3.1 m):
+  - a planked hull that narrows to stem and stern;
+  - four thwarts, floor-boards, and small decks at bow and stern;
+  - a mast stepped forward with its yard and furled sail;
+  - a steering oar, and oars shipped along her sides.
+  The Twelve sit on her thwarts in both scenes.
+- **Yahusha in the storm:** He sleeps in the stern on the floor-boards with His back to them. A
+  new `ground` flag gives a figure held at a height the knees-up seated pose.
+- **The lake's own waves** (`STORYWORLD.lakeWaves`, `lakeTick`):
+  - A surface of five travelling waves, scaled to the wind and sharpened at the crests, laid over
+    the set's water.
+  - The water blocks under it are put by (a `lake-hide` patch on the water material). The hull is
+    cut out of the surface, so she is dry inside.
+  - The CPU reads the same height sum (`lakeH`), so the boat heaves, pitches and rolls on the
+    water that is drawn.
+  - Everyone aboard, the witness included, moves with her.
+  - A figure on the water outside her stands on the wave under its feet. Each step rings the live
+    field, and going under throws up a splash.
+  - Lit with the voyage sea's own light, sun, moon and fog, and white water is torn off the
+    crests in a gale.
+- **The squall:** the `weather` beat takes `storm`. The world's own rain, thunder and dark come
+  down over the boat (the rain and the live field now follow a story's focus), and the waves
+  build to 0.55 m. Spray breaks over her weather side and whitecaps break about her. At "Shalom,
+  be still!" the sea falls to a flat calm within seconds (Mark 4:39).
+- **Walking on the sea:**
+  - He comes over the waves from 46 m off, seen from behind Him with the boat ahead.
+  - Kĕpha goes over the bow onto the water, goes under in a burst of spray, and is caught.
+  - They come into the boat together, onto her foredeck (Mattithyahu 14:32).
+
+**Checks:**
+
+- **Measured over three seconds:**
+  - before the storm: the boat heaves 0.07 m and rolls 0.09 rad;
+  - in the gale: she heaves 0.41 m and rolls 0.34 rad, and Kĕpha, seated, moves 0.68 m with her;
+  - after the word: 0.04 m.
+- **Aboard:** 13 figures in both scenes.
+- **Act IV playthrough:** 402 frames, no errors, 0 frames showing His face.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

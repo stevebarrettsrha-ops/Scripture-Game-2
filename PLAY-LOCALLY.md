@@ -12,15 +12,10 @@ internet. Your progress is kept in the [`saves/`](saves/README.md) folder inside
 git clone --depth 1 https://github.com/stevebarrettsrha-ops/Scripture-Game-2.git
 ```
 
-**Without Git**: on the repository's GitHub page choose **Code → Download ZIP**, then unzip it
-somewhere you will keep it, such as your Documents folder. Don't play it from inside the zip.
+**Without Git**: on the repository's GitHub page choose **Code → Download ZIP** (or go straight
+to <https://github.com/stevebarrettsrha-ops/Scripture-Game-2/archive/refs/heads/main.zip>), then
+unzip it somewhere you will keep it, such as your Documents folder. Don't play it from inside the zip.
 (If the repository is private, sign in to GitHub first.)
-
-> Until the branch `claude/upbeat-maxwell-knw3wi` is merged into `main`, these launchers are on
-> that branch only. Clone it with
-> `git clone --depth 1 -b claude/upbeat-maxwell-knw3wi https://github.com/stevebarrettsrha-ops/Scripture-Game-2.git`,
-> or download
-> <https://github.com/stevebarrettsrha-ops/Scripture-Game-2/archive/refs/heads/claude/upbeat-maxwell-knw3wi.zip>.
 
 The download is about 60 MB.
 

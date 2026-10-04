@@ -473,7 +473,10 @@ S.gadarenes=function(ctx,st){
   mk(ctx,'tombMouth',-9.2,-12.4); mk(ctx,'tombs',-6,-12.4); mk(ctx,'meet',12,-2.6); mk(ctx,'boatLand',19.6,0);
   mk(ctx,'herd',2,30); mk(ctx,'sea',34,38); mk(ctx,'edge',23.4,33); mk(ctx,'over',31,33); mk(ctx,'cityWay',-60,10); mk(ctx,'seat',13.4,-1.6); mk(ctx,'herders',-2,24);
 };
-S.galilSea=function(ctx,st){ galil(ctx,st,{village:false,wind:[3.2,-1.4]}); ctx.rough=3.5; ctx.bounds=null; };
+/* out on the lake: its own waves laid over the still water (story/engine.js, lakeTick) — a breath of a
+   swell in a calm, a metre and more in the squall */
+S.galilSea=function(ctx,st){ galil(ctx,st,{village:false,wind:[3.2,-1.4]}); ctx.rough=3.5; ctx.bounds=null;
+  ctx.lake={rect:[SHORE.x+0.4,-78,SHORE.x+90,78]}; };
 
 /* ================= THE ROAD TO YAHRUSHALAYIM (Act V) ================= */
 

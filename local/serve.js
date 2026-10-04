@@ -59,7 +59,11 @@ function handle(req,res){
     if(e||!st.isFile()){ res.writeHead(404,{'Content-Type':'text/plain'}); res.end('Not found'); return; }
     const head={'Content-Type':TYPES[path.extname(f).toLowerCase()]||'application/octet-stream','Cache-Control':'no-cache','Accept-Ranges':'bytes'};
     const m=/^bytes=(\d*)-(\d*)$/.exec(req.headers.range||'');
-    if(m&&(m[1]||m[2])){ let a=m[1]?+m[1]:st.size-+m[2], b=m[1]&&m[2]?+m[2]:st.size-1;
+    if(m&&(m[1]||m[2])){
+      /* a suffix range (bytes=-N) asks for the last N bytes, however many there are; an end past
+         the file is the end of the file. Anything still out of reach is refused, never streamed. */
+      let a=m[1]?+m[1]:Math.max(0,st.size-+m[2]), b=m[1]&&m[2]?Math.min(+m[2],st.size-1):st.size-1;
+      if(!m[1]&&+m[2]===0) a=st.size;
       if(a>=st.size||a>b){ res.writeHead(416,{'Content-Range':'bytes */'+st.size}); res.end(); return; }
       res.writeHead(206,Object.assign(head,{'Content-Range':`bytes ${a}-${b}/${st.size}`,'Content-Length':b-a+1}));
       if(req.method==='HEAD') return res.end(); fs.createReadStream(f,{start:a,end:b}).pipe(res); return; }
