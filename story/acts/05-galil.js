@@ -691,7 +691,7 @@ STORY.act({
 
   /* ---------------- IV.7c2 — THE MAN OF THE TOMBS (Mark 5:1-20) ----------------
      He is drawn as a man the unclean ruchot had wasted: bare-headed and matted, thin to the bone,
-     in rags, the broken shackles still on him, crouched on his haunches among the tombs, staring.
+     naked but for a rag about his loins, the broken shackles still on him, on all fours among the tombs, staring.
      The ruchot themselves are what Scripture-Game draws the fallen as — a dim violet shadow upon
      him — and they go out of him into the herd. Afterwards he is the same man, sitting, dressed,
      and in his right mind (5:15). */

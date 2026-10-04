@@ -296,6 +296,8 @@ function turnTo(a,b,k){ let d=b-a; while(d>Math.PI) d-=Math.PI*2; while(d<-Math.
 function groundSit(u){ return u.fixedY===undefined&&!u.ride&&!(u.def&&u.def.bench); }
 /* how far one sitting is lowered: on the ground the hips nearly to it, on a bench to its height */
 function sitDrop(u){ return u.sit?(groundSit(u)?0.63:0.44)*(u.s||1):0; }
+/* the pose on all fours (radians, and metres for a man of 1.70): worked so the hands and the feet bear alike */
+const FOURS={pitch:1.05,thigh:-2.85,knee:2.1,arm:-1.2,splay:0.3,head:-0.85,lift:-0.034,back:1.12};
 function animFigure(g,dt,moving){
   const u=g.userData; u.phase=(u.phase||0)+dt*(moving?7:1.2);
   const sw=moving?Math.sin(u.phase)*0.55:Math.sin(u.phase)*0.03;
@@ -312,10 +314,20 @@ function animFigure(g,dt,moving){
     u.armL.rotation.x+=(-0.18-k*0.15-u.armL.rotation.x)*Math.min(1,dt*4); }
   /* knees and elbows fold as the voyage's folk fold theirs */
   const jt=K().jointTick; if(jt&&u.legL&&!u.sit) for(const L of [u.legL,u.legR,u.armL,u.armR]) jt(L,moving);
-  /* CROUCHED on his haunches when he is still (a def's `crouch`): the man of the tombs */
-  u.crouching=!!(u.def&&u.def.crouch&&!moving&&!u.sit&&!u.lie&&u.legL);
-  if(u.crouching){ u.legL.rotation.x=u.legR.rotation.x=-1.3; for(const L of [u.legL,u.legR]) if(L.userData.knee) L.userData.knee.rotation.x=2.2;
-    u.armL.rotation.x=u.armR.rotation.x=-0.75; }
+  /* ON ALL FOURS (a def's `crouch`): the man of the tombs, hunched forward over his hands, his knees
+     drawn up by his shoulders and splayed, his feet under him on their toes, his head craned up; going, he scuttles, the
+     hands and feet stepping crosswise. The body is pitched about its feet and set back, so hands
+     and feet both meet the ground over the place he is at. */
+  u.crouching=!!(u.def&&u.def.crouch&&!u.sit&&!u.lie&&u.legL&&u.body);
+  if(u.crouching){ const P=FOURS, s=moving?Math.sin(u.phase)*0.32:Math.sin(u.phase)*0.02, k=u.s||1;
+    u.body.rotation.x=P.pitch; u.body.position.set(0,P.lift*k,-P.back*k);
+    u.legL.rotation.x=P.thigh+s; u.legR.rotation.x=P.thigh-s; u.legL.rotation.z=P.splay; u.legR.rotation.z=-P.splay;   /* the knees splayed */
+    u.armL.rotation.x=P.arm-s*1.1; u.armR.rotation.x=P.arm+s*1.1; u.armL.rotation.z=0.1; u.armR.rotation.z=-0.1;
+    for(const L of [u.legL,u.legR]) if(L.userData.knee) L.userData.knee.rotation.x=P.knee;
+    for(const A of [u.armL,u.armR]) if(A.userData.elbow) A.userData.elbow.rotation.x=0;
+    if(u.head) u.head.rotation.x=P.head; u.fours=true; }
+  else if(u.fours){ u.fours=false; u.body.rotation.x=0; u.body.position.set(0,0,0); if(u.head) u.head.rotation.x=0;
+    for(const P of [u.legL,u.legR,u.armL,u.armR]) P.rotation.z=0; }
   /* the arms stretched out on the crossbeam (the `pose` beat): still, the legs straight */
   if(u.armsOut&&u.armL){ u.armL.rotation.set(0,0,Math.PI/2); u.armR.rotation.set(0,0,-Math.PI/2); u.legL.rotation.x=u.legR.rotation.x=0; }
   clothStep(g,dt,moving,sw);
@@ -379,7 +391,7 @@ function moveActors(dt){
         g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=true; }
       else if(!u.follow) u.target=null; }
     if(u.fixedY!==undefined) g.position.y=u.fixedY-sitDrop(u);
-    else { u.gy=stepGround(g.position.x,g.position.z,u.gy===undefined?ctx.groundY(g.position.x,g.position.z):u.gy); g.position.y=u.gy-sitDrop(u)+(u.lie?0.16:0)-(u.crouching?0.52*(u.s||1):0); }
+    else { u.gy=stepGround(g.position.x,g.position.z,u.gy===undefined?ctx.groundY(g.position.x,g.position.z):u.gy); g.position.y=u.gy-sitDrop(u)+(u.lie?0.16:0); }
     /* riding (Luke 19:35): the beast goes where the rider goes, under him, at its own gait */
     if(u.ride){ const t=ctx.things[u.ride]; if(t){ const gy=u.fixedY!==undefined?u.fixedY:u.gy;
         g.position.y=gy-sitDrop(u)+RIDE_H; t.position.set(g.position.x,gy,g.position.z); t.rotation.y=g.rotation.y;
@@ -707,12 +719,13 @@ function drawPortrait(){
   const skin=hex(L.skin||0x8a5a3a), robe=hex(L.robe||0x9a8466);
   R(0,0,38,38,L.fallen?'#2a1e30':'#2a2219');
   if(L.fallen){ const gr=g.createRadialGradient(19,20,4,19,20,22); gr.addColorStop(0,'rgba(120,80,140,0.55)'); gr.addColorStop(1,'rgba(20,12,24,0)'); g.fillStyle=gr; g.fillRect(0,0,38,38); }
-  R(6,29,26,9,dr==='legionary'||dr==='centurion'?'#8a8c90':robe);                  /* shoulders (mail on a soldier of Rome) */
+  R(6,29,26,9,dr==='legionary'||dr==='centurion'?'#8a8c90':dr==='tombs'?skin:robe);                  /* shoulders (mail on a soldier of Rome) */
   R(11,9,16,18,skin);                                  /* the face */
   /* what is on the head, by the dress: helmet, turban, cap, diadem, head-cloth — or the hair */
   if(dr==='legionary'||dr==='centurion'){ R(9,5,20,6,'#b08848'); R(9,9,3,12,'#b08848'); R(26,9,3,12,'#b08848'); if(dr==='centurion') R(7,2,24,3,'#a02020'); }
   else if(dr==='kohen'||dr==='levite'){ R(8,3,22,8,'#f4f0e6'); R(10,1,18,3,'#f4f0e6'); }
   else if(dr==='magi'){ const c=hex(L.cloth||0x8a2a2a); R(9,4,20,7,c); R(12,1,14,4,c); R(20,0,8,3,c); }
+  else if(dr==='tombs'){ const h=hex(L.hair||0x1e1610); R(10,8,2,14,h); R(14,8,1,6,h); R(25,8,2,16,h); R(22,8,1,5,h); }   /* bare, a few long strands */
   else if(dr==='king'){ R(10,6,18,4,hex(L.hair||0x1e1610)); R(9,8,20,2,'#d4af37'); }
   else if(L.cloth===null||dr==='camelhair'){ const h=hex(L.hair||0x1e1610); R(9,4,20,7,h); R(9,9,3,14,h); R(26,9,3,14,h); }
   else { const cloth=hex(L.cloth||0xd9cfb6); R(9,5,20,6,cloth); R(9,9,3,18,cloth); R(26,9,3,18,cloth); }   /* the head-cloth */
@@ -867,7 +880,7 @@ function enterBeat(){
   if(T==='end') return endScene();
   console.warn('unknown beat',B); nextBeat();
 }
-function lookAtSpec(l){ if(typeof l==='string'){ if(ctx.actors[l]){ const g=ctx.actors[l]; return [g.position.x,g.position.y+1.5,g.position.z]; }
+function lookAtSpec(l){ if(typeof l==='string'){ if(ctx.actors[l]){ const g=ctx.actors[l]; return [g.position.x,g.position.y+(g.userData.fours?0.75:1.5),g.position.z]; }
     if(ctx.glows[l]){ const s=ctx.glows[l].sprite.position; return [s.x,s.y,s.z]; }
     const m=pos(l); return [m[0],m[2]!==undefined?m[2]:1.5,m[1]]; }
   if(Array.isArray(l)&&typeof l[0]==='string'){ const m=pos(l); return [m[0],(ctx.groundY(m[0],m[1])||0)+1.4,m[1]]; }   /* near a marker: a step from it, at a man's height */
