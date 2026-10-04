@@ -5295,19 +5295,56 @@ const WAVES=(()=>{
     return {dx:r[0]/m,dy:r[1]/m,k,A:r[3],Q:r[4],omega:Math.sqrt(G_GRAV*k)}; });
 })();
 let seaTime=0, seaAmp=1;                    /* shared clock + storm amplitude */
+/* ================= THE SEAS A STORM RAISES =================
+   The four swells above are the sea on an ordinary day; a TEMPEST (THE STORM ENGINE, below)
+   raises seas of another order over the water it covers — long ridged swells running before
+   its wind, some seventy metres crest to crest and, at its height, eight metres high, with
+   two shorter trains crossing them a little off the wind, so no two crests are alike. Each
+   storm raises its own seas in the direction it is travelling, full in its heart and falling
+   away over its outer bands, so a ship sailing in feels them build. And in the worst of it a
+   ROGUE comes through: one wall of water, near twice the rest, running down on her out of the
+   storm. They lie down over the shallows as every sea does. The heights are the same sum on
+   the CPU (what the ship rides) and on the GPU (what is drawn). */
+const TEMPESTS=[];
+const TSWELL=[[0,420,1.0,0.78],[0.38,250,0.46,0.70],[-0.52,140,0.22,0.60]].map(r=>({off:r[0],k:2*Math.PI/r[1],A:r[2],Q:r[3],
+  omega:Math.sqrt(G_GRAV*2*Math.PI/r[1]),c:Math.cos(r[0]),s:Math.sin(r[0])}));
+const TS_H=30;                                   /* the great swell's height at a storm's full fury (units; 6 to the metre) */
+const ROGUE={on:false,x:0,z:0,dx:1,dz:0,A:0,W:95,c:34,run:0};
+function _ss(a,b,x){ const t=Math.max(0,Math.min(1,(x-a)/(b-a))); return t*t*(3-2*t); }
+/* how hard a tempest blows at a point: full over its heart, falling away over its outer bands */
+function tempestW(T,x,z){ const d=Math.hypot(x-T.x,z-T.z); if(d>=T.R*1.8) return 0; return T.I*(1-_ss(T.R*0.5,T.R*1.8,d)); }
+/* the swell lies down over the shallows (the GPU's own `lie`, off the same shoal field) */
+function seaLie(x,z){ return 0.05+0.95*(1-_ss(0.22,0.90,shoalAt(x,z))); }
+function stormSea(x,z,sl){
+  let h=0, lie=-1;
+  for(const T of TEMPESTS){ const w=tempestW(T,x,z); if(w<=0) continue;
+    if(lie<0) lie=seaLie(x,z);
+    const H=TS_H*Math.pow(w,1.25)*lie;
+    for(const c of TSWELL){ const Dx=c.c*T.dx-c.s*T.dz, Dz=c.s*T.dx+c.c*T.dz;
+      const f=c.k*(Dx*x+Dz*z)-c.omega*seaTime, A=H*c.A;
+      h+=A*Math.sin(f); if(sl){ const q=Math.cos(f)*A*c.k; sl.x+=q*Dx; sl.z+=q*Dz; } } }
+  if(ROGUE.on){ if(lie<0) lie=seaLie(x,z);
+    const rx=x-ROGUE.x, rz=z-ROGUE.z, sd=rx*ROGUE.dx+rz*ROGUE.dz, lat=-rx*ROGUE.dz+rz*ROGUE.dx, W=ROGUE.W;
+    const e=Math.exp(-(lat*lat)/490000)*lie, g1=Math.exp(-(sd*sd)/(W*W)), u=sd+1.7*W, g2=Math.exp(-(u*u)/(W*W));
+    h+=ROGUE.A*e*(g1-0.32*g2);
+    if(sl){ const d=ROGUE.A*e*(-2*sd/(W*W)*g1+0.64*u/(W*W)*g2); sl.x+=d*ROGUE.dx; sl.z+=d*ROGUE.dz; } }
+  return h; }
 function seaHeight(x,z){ let y=0;
   for(const w of WAVES){ const f=w.k*(w.dx*x+w.dy*z)+w.omega*seaTime; y+=w.A*seaAmp*Math.sin(f); }
+  if(TEMPESTS.length||ROGUE.on) y+=stormSea(x,z,null);
   return y; }
 const _slope={x:0,z:0};
 function seaSlope(x,z){ let sx=0,sz=0;
   for(const w of WAVES){ const f=w.k*(w.dx*x+w.dy*z)+w.omega*seaTime;
     const c=Math.cos(f)*w.A*seaAmp*w.k; sx+=c*w.dx; sz+=c*w.dy; }
-  _slope.x=sx; _slope.z=sz; return _slope; }
+  _slope.x=sx; _slope.z=sz;
+  if(TEMPESTS.length||ROGUE.on) stormSea(x,z,_slope);
+  return _slope; }
 
 /* the GPU wave grid, following the ship/traveller across the deep.
    It has to reach as far as the haze now does, or its flat edge stands out
    as a seam on open water where the fog no longer hides it. */
-const WG_S=2500, WG_SEG=200;
+const WG_S=2500, WG_SEG=260;          /* (fine enough to carry a storm's shortest sea, 140 units crest to crest) */
 const waveGeo=(()=>{
   const g=new THREE.BufferGeometry(), pos=[], idx=[], N=WG_SEG+1;
   for(let j=0;j<N;j++) for(let i=0;i<N;i++)
@@ -5317,6 +5354,13 @@ const waveGeo=(()=>{
   g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
   g.setIndex(idx); return g;
 })();
+/* each storm's three seas, unrolled for the GPU — the very sum stormSea() takes on the CPU */
+const tempestUnroll=TSWELL.map(c=>`
+          { vec2 D=vec2(${c.c.toFixed(5)}*D0.x-(${c.s.toFixed(5)})*D0.y, ${c.s.toFixed(5)}*D0.x+${c.c.toFixed(5)}*D0.y);
+            float A=H*${c.A.toFixed(3)}, k=${c.k.toFixed(6)}, Q=${c.Q.toFixed(3)};
+            float f=k*dot(D,P)-${c.omega.toFixed(5)}*uTime, cc=cos(f), ss=sin(f);
+            disp.x+=Q*A*D.x*cc; disp.z+=Q*A*D.y*cc; disp.y+=A*ss; swl+=A*ss;
+            float WA=k*A; nrm.x-=D.x*WA*cc; nrm.z-=D.y*WA*cc; nrm.y-=Q*WA*ss; }`).join('\n');
 const waveUnroll=WAVES.map(w=>`{
   vec2 D=vec2(${w.dx.toFixed(5)},${w.dy.toFixed(5)});
   float A=amp*${w.A.toFixed(4)}, k=${w.k.toFixed(6)}, Q=${w.Q.toFixed(3)};
@@ -5355,10 +5399,16 @@ const waveMat=new THREE.ShaderMaterial({
     uShip:{value:new THREE.Vector4()}, uShipH:{value:0}, uSunCol:{value:new THREE.Color(1,0.96,0.85)},
     /* the lesser light to rule the night */
     uMoonDir:{value:new THREE.Vector3(0,1,0)}, uMoonCol:{value:new THREE.Color(0.60,0.70,0.96)},
-    uMoon:{value:0} },
+    uMoon:{value:0},
+    /* the storms about the traveller and the rogue among them (THE STORM ENGINE) */
+    uTS:{value:[new THREE.Vector4(),new THREE.Vector4(),new THREE.Vector4()]},
+    uTD:{value:[new THREE.Vector2(1,0),new THREE.Vector2(1,0),new THREE.Vector2(1,0)]},
+    uRog:{value:new THREE.Vector4(0,0,1,0)}, uRogA:{value:0}, uRogW:{value:95}, uStormDir:{value:new THREE.Vector2(1,0)} },
   vertexShader:`
     uniform float uTime, uAmp; uniform vec2 uCenter; uniform sampler2D uShoal;
+    uniform vec4 uTS[3]; uniform vec2 uTD[3]; uniform vec4 uRog; uniform float uRogA, uRogW;
     varying vec3 vNormal, vWorld; varying float vHeight, vFog, vTaper; varying vec2 vUv, vP;
+    varying float vStorm, vSwell, vSH;
     void main(){
       vec2 P=position.xz+uCenter;
       float ed=max(abs(position.x),abs(position.z));
@@ -5377,7 +5427,20 @@ const waveMat=new THREE.ShaderMaterial({
       vec3 disp=vec3(P.x, ${WATER_Y.toFixed(3)}, P.y);
       vec3 nrm=vec3(0.0,1.0,0.0);
       ${waveUnroll}
-      vHeight=disp.y-${WATER_Y.toFixed(3)}; vTaper=taper;
+      float baseH=disp.y;
+      /* THE SEAS OF THE STORMS about the traveller, and the rogue among them */
+      float sw=0.0, swl=0.0, sH=0.0, lieS=(0.05+0.95*lie)*taper;
+      for(int i=0;i<3;i++){ vec4 T=uTS[i]; if(T.w<=0.0) continue;
+        float dd=distance(P,T.xy); float w=T.w*(1.0-smoothstep(T.z*0.5,T.z*1.8,dd)); if(w<=0.0) continue;
+        sw+=w; float H=${TS_H.toFixed(1)}*pow(w,1.25)*lieS; sH+=H; vec2 D0=uTD[i];
+        ${tempestUnroll}
+      }
+      if(uRogA>0.0){ vec2 rr=P-uRog.xy; float sd=dot(rr,uRog.zw), lat=-rr.x*uRog.w+rr.y*uRog.z, W=uRogW, u=sd+1.7*W;
+        float e=exp(-lat*lat/490000.0)*lieS, g1=exp(-sd*sd/(W*W)), g2=exp(-u*u/(W*W));
+        float hr=uRogA*e*(g1-0.32*g2); disp.y+=hr; swl+=hr; disp.xz+=uRog.zw*hr*0.35;
+        float dh=uRogA*e*(-2.0*sd/(W*W)*g1+0.64*u/(W*W)*g2); nrm.xz-=uRog.zw*dh; sH=max(sH,uRogA*e); }
+      vStorm=clamp(sw,0.0,1.0); vSwell=swl; vSH=sH;
+      vHeight=baseH-${WATER_Y.toFixed(3)}; vTaper=taper;
       vNormal=normalize(nrm); vUv=P*0.02; vP=P; vWorld=disp;
       vec4 mv=viewMatrix*vec4(disp,1.0); vFog=-mv.z;
       gl_Position=projectionMatrix*mv;
@@ -5386,8 +5449,9 @@ const waveMat=new THREE.ShaderMaterial({
     precision highp float;
     uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow, uCamPos, uSunCol, uZenith; uniform sampler2D uMap, uShoal;
     uniform float uFogNear, uFogFar, uOpacity, uTime, uShipH; uniform vec4 uShip;
-    uniform vec3 uMoonDir, uMoonCol; uniform float uMoon;
+    uniform vec3 uMoonDir, uMoonCol; uniform float uMoon; uniform vec2 uStormDir;
     varying vec3 vNormal, vWorld; varying float vHeight, vFog, vTaper; varying vec2 vUv, vP;
+    varying float vStorm, vSwell, vSH;
     float h21(vec2 p){ return fract(sin(dot(p,vec2(41.3,289.1)))*43758.5); }
     void main(){
       vec3 N=normalize(vNormal);
@@ -5418,6 +5482,8 @@ const waveMat=new THREE.ShaderMaterial({
          with a breath of the old wave-height shading kept within it */
       vec3 base=mix(uShallow,uDeep,deepF);
       base*=0.88+0.24*clamp(vHeight*0.22+0.5,0.0,1.0);
+      /* a storm sea is dark slate-green, lighter where a crest stands up against the sky */
+      base=mix(base,vec3(0.075,0.14,0.15)*(0.85+0.45*clamp(vSwell/(vSH*1.4+0.01)*0.5+0.5,0.0,1.0)),vStorm*0.65);
       vec3 col=base*(0.62+0.5*diff)*(0.82+0.36*tex.b);
       /* crest foam — only the tallest crests, torn ragged by the ripple noise */
       float foam=smoothstep(2.1,3.3,vHeight)*(0.45+0.9*rB.b);
@@ -5459,6 +5525,12 @@ const waveMat=new THREE.ShaderMaterial({
            coast alone */
         lap+=smoothstep(0.9,0.99,shoalRaw)*brk*(0.5+0.3*sin(uTime*1.7+shoalRaw*40.0))*open;
       }
+      /* THE STORM'S WHITE WATER: the crests of the great seas breaking, and long streaks of foam
+         laid down the wind across their backs (counted in with the shore's wash) */
+      float sCrest=smoothstep(0.42,0.92,vSwell/(vSH*1.25+0.01))*smoothstep(0.12,0.5,vStorm)*(0.35+0.95*rB.b);
+      vec2 Dw=normalize(uStormDir+vec2(0.0001));
+      float stk=texture2D(uMap,vec2(dot(vP,Dw)*0.0032+uTime*0.015, dot(vP,vec2(-Dw.y,Dw.x))*0.042)).b;
+      lap+=sCrest*0.95+smoothstep(0.64,0.9,stk)*smoothstep(0.2,0.7,vStorm)*0.6;
       float allFoam=clamp(foam*0.32+wake*0.95+lap,0.0,1.0);
       /* foam is white ON TOP of the water; from underneath it is only a
          paler patch of ceiling, not a lamp */
@@ -5529,7 +5601,9 @@ const waveMat=new THREE.ShaderMaterial({
          the haze opens, its square corner stood on the ocean like a raft. */
       aa*=smoothstep(0.0,0.35,vTaper);
       float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
-      gl_FragColor=vec4(mix(col,uFogColor,ff),aa);
+      /* the haze over storm water is the storm's own dark, not the fair sky's */
+      vec3 fogC=mix(uFogColor,vec3(0.10,0.12,0.14)*(0.45+0.55*uLight),smoothstep(0.0,0.6,vStorm)*0.85);
+      gl_FragColor=vec4(mix(col,fogC,ff),aa);
     }`
 });
 const waveGrid=new THREE.Mesh(waveGeo,waveMat);
@@ -5884,6 +5958,7 @@ function waterTick(px,pz,dayF,storm){
   const shown=(state.mode!=='walk')?1:Math.max(0,1-Math.hypot(px-state.boat.x,pz-state.boat.z)/(400*SHIP_K));
   u.uShip.value.set(state.boat.x,state.boat.z,spd,shown);
   u.uShipH.value=state.boat.heading;
+  tempestUniforms(u);
 }
 
 /* flat drifting clouds, minecraft-fashion.
@@ -6258,7 +6333,235 @@ let STORM_FORCE=null;
 function stormAt(x,z){ let f=STORM_FORCE||0;
   for(const s of STORMS){ const sx=Math.sin(s.a)*s.r*R_WORLD, sz=Math.cos(s.a)*s.r*R_WORLD;
     const d=Math.hypot(x-sx,z-sz); if(d<s.R) f=Math.max(f,1-d/s.R); }
-  return f; }
+  /* and the tempests about the ship (THE STORM ENGINE) */
+  let t=0; for(const T of TEMPESTS) t+=tempestW(T,x,z);
+  return Math.max(f,Math.min(1,t)); }
+/* ================= THE STORM ENGINE =================
+   The nine wandering cells above are the sea's weather in the large. A TEMPEST is a storm met
+   on the voyage. It is born over deep water within sight of the ship (never over the shelf,
+   never against a coast), gathers, rages and blows itself out, travelling all the while. It is
+   seen long before it is felt — a dark wall of rain under a black deck of cloud on the horizon,
+   with lightning working in it — and as she sails into it the seas it raises build about her
+   (stormSea, above), the rain comes down, the wind tears the spray off the crests, and in its
+   heart a rogue sea comes running out of it and the sky lets down a waterspout. */
+let tempestT=50, tempestSeq=0;
+const TEMP_MAX=3, TEMP_LIFE=[85,380,130];                 /* gathering, raging, blowing out (seconds) */
+function tempestBearing(x,z){ const b=state.boat;
+  const pu=b.x/R_WORLD, pv=b.z/R_WORLD, rr=Math.hypot(pu,pv)||1e-9;
+  const nX=-pu/rr, nZ=-pv/rr, eX=pv/rr, eZ=-pu/rr, dx=x-b.x, dz=z-b.z;
+  return COMPASS8[(Math.round(Math.atan2(dx*eX+dz*eZ, dx*nX+dz*nZ)/(Math.PI/4))+8)%8]; }
+/* deep water all about: not over the shelf, and no land under its heart or its rim */
+function deepWater(x,z,R){ if(offshoreAt(x,z)<0.45) return false;
+  for(let k=0;k<8;k++){ const a=k/8*Math.PI*2; if(landAtWorld(x+Math.cos(a)*R,z+Math.sin(a)*R)) return false; }
+  return !landAtWorld(x,z); }
+/* raise a tempest `dist` units off on bearing `ang` (or where the sea allows); o.I its fury, o.now to skip the gathering */
+function spawnTempest(o){ o=o||{}; const b=state.boat;
+  for(let tries=0;tries<14;tries++){
+    const ang=o.ang!==undefined?o.ang:Math.random()*Math.PI*2, dist=o.dist!==undefined?o.dist:3600+Math.random()*2600;
+    const R=o.R||1100+Math.random()*900, x=b.x+Math.sin(ang)*dist, z=b.z+Math.cos(ang)*dist;
+    if(!o.force&&!deepWater(x,z,R)) continue;
+    /* it comes down toward the ship's waters, a little to one side, at a pace she can outrun */
+    const toward=Math.atan2(b.x-x,b.z-z)+(Math.random()-0.5)*0.9, sp=o.sp!==undefined?o.sp:7+Math.random()*5;
+    const T={id:++tempestSeq,x,z,R,peak:o.I||0.7+Math.random()*0.3,I:0,age:o.now?TEMP_LIFE[0]:0,
+      life:[TEMP_LIFE[0],TEMP_LIFE[1]*(0.8+Math.random()*0.5),TEMP_LIFE[2]],
+      vx:Math.sin(toward)*sp,vz:Math.cos(toward)*sp,dx:Math.sin(toward),dz:Math.cos(toward),
+      boltT:2+Math.random()*4,flash:0,warned:false,upon:false,spouts:[],vis:null};
+    TEMPESTS.push(T);
+    if(!o.quiet) toast('Dark weather gathers to the '+tempestBearing(x,z)+' — a storm is rising over the deep.');
+    return T; }
+  return null; }
+function tempestLife(T){ const a=T.age, L=T.life;
+  if(a<L[0]) return _ss(0,1,a/L[0]);
+  if(a<L[0]+L[1]) return 1;
+  return 1-_ss(0,1,(a-L[0]-L[1])/L[2]); }
+let rogueT=40, greenSeen=false;
+function tempestTick(dt){
+  const b=state.boat;
+  const atSea=running&&!window.__STORY_HOST&&!state.firm&&(state.mode==='boat'||state.mode==='deck');
+  /* ---- BORN ---- */
+  if(atSea&&TEMPESTS.length<TEMP_MAX){ tempestT-=dt;
+    if(tempestT<=0){ tempestT=120+Math.random()*170;
+      if(offshoreAt(b.x,b.z)>0.3&&TEMPESTS.length<2) spawnTempest(); } }
+  /* ---- LIVES, TRAVELS, AND IS SPENT ---- */
+  for(let i=TEMPESTS.length-1;i>=0;i--){ const T=TEMPESTS[i];
+    T.age+=dt; T.I=T.peak*tempestLife(T);
+    T.x+=T.vx*dt; T.z+=T.vz*dt;
+    /* it dies over the land, as storms do, and is lost when the ship has left it far behind */
+    if(landAtWorld(T.x,T.z)) T.age=Math.max(T.age,T.life[0]+T.life[1]);
+    const far=Math.hypot(T.x-b.x,T.z-b.z);
+    if(T.age>T.life[0]+T.life[1]+T.life[2]||far>16000){ tempestDrop(T); TEMPESTS.splice(i,1); continue; }
+    const w=tempestW(T,b.x,b.z);
+    if(atSea&&w>0.55&&!T.upon){ T.upon=true; toast('The storm is upon you — hold her head to the seas!'); }
+    if(w<0.25) T.upon=false;
+    tempestVisTick(T,dt,far);
+    tempestSpouts(T,dt); }
+  /* ---- THE ROGUE ----
+     In the heart of a storm, now and then, one sea comes out of it near twice the height of the
+     rest: a wall seen coming for half a minute before it reaches her. */
+  let wS=0, Tm=null; for(const T of TEMPESTS){ const w=tempestW(T,b.x,b.z); if(w>wS){ wS=w; Tm=T; } }
+  if(ROGUE.on){ ROGUE.x+=ROGUE.dx*ROGUE.c*dt; ROGUE.z+=ROGUE.dz*ROGUE.c*dt; ROGUE.run+=ROGUE.c*dt;
+    if(ROGUE.run>4200) ROGUE.on=false; }
+  else if(atSea&&Tm&&wS>0.55){ rogueT-=dt;
+    if(rogueT<=0){ rogueT=70+Math.random()*90;
+      const d=1900; ROGUE.dx=Tm.dx; ROGUE.dz=Tm.dz; ROGUE.x=b.x-ROGUE.dx*d; ROGUE.z=b.z-ROGUE.dz*d; ROGUE.run=0;
+      ROGUE.A=Math.max(34,TS_H*Math.pow(wS,1.25)*1.75); ROGUE.on=true;
+      toast('A great sea is coming out of the storm — meet it bow-on!'); } }
+  /* ---- SPINDRIFT: the wind tears the spray off the crests about her ---- */
+  if(atSea&&wS>0.4&&typeof splEmit==='function'){ b._sdT=(b._sdT||0)-dt;
+    const wnd=windAt(b.x,b.z), H=TS_H*Math.pow(wS,1.25);
+    while(b._sdT<=0){ b._sdT+=0.045/wS;
+      const a=Math.random()*Math.PI*2, r=60+Math.random()*320, x=b.x+Math.sin(a)*r, z=b.z+Math.cos(a)*r, h=seaHeight(x,z);
+      if(h<H*0.45) continue;
+      const sp=30+50*wS;
+      splEmit(x,WATER_Y+h+1,z, (wnd.x||Tm.dx)*sp,6+Math.random()*10,(wnd.z||Tm.dz)*sp, 1.6+Math.random()*0.8,(12+Math.random()*16),WATER_Y+h-20,true); } }
+}
+/* the storms' seas, handed to the GPU */
+function tempestUniforms(u){
+  for(let i=0;i<3;i++){ const T=TEMPESTS[i];
+    if(T){ u.uTS.value[i].set(T.x,T.z,T.R,T.I); u.uTD.value[i].set(T.dx,T.dz); } else u.uTS.value[i].set(0,0,1,0); }
+  u.uRogA.value=ROGUE.on?ROGUE.A:0; u.uRog.value.set(ROGUE.x,ROGUE.z,ROGUE.dx,ROGUE.dz); u.uRogW.value=ROGUE.W;
+  let best=0; for(const T of TEMPESTS){ const w=tempestW(T,state.boat.x,state.boat.z); if(w>best){ best=w; u.uStormDir.value.set(T.dx,T.dz); } } }
+
+/* ---- THE STORM SEEN FROM AFAR: a wall of rain under a black deck of cloud ----
+   Drawn without the haze (it is seen across forty kilometres of sea, where the haze has long
+   since taken everything else), faded by hand: thinned as the eye comes into it, so from within
+   it is the rain and the dark that close about the ship, not a painted wall. */
+const TEMP_GEO={wall:new THREE.CylinderGeometry(1,1,1,56,1,true), deck:new THREE.SphereGeometry(1,72,36,0,Math.PI*2,0,Math.PI*0.5), skirt:new THREE.CircleGeometry(1,64)};
+TEMP_GEO.wall.translate(0,0.5,0); TEMP_GEO.skirt.rotateX(-Math.PI/2);
+function tempestVis(T){
+  const U={uT:{value:0},uI:{value:0},uFlash:{value:0},uIn:{value:0},uLight:waveMat.uniforms.uLight,uNoise:{value:SEA_NOISE},uCam:waveMat.uniforms.uCamPos,uC:{value:new THREE.Vector2()}};
+  const wallM=new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,side:THREE.DoubleSide,fog:false,
+    vertexShader:'varying vec2 vUv; varying vec3 vW; void main(){ vUv=uv; vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }',
+    fragmentShader:`uniform float uT,uI,uFlash,uIn; uniform vec3 uLight,uCam; uniform vec2 uC; uniform sampler2D uNoise; varying vec2 vUv; varying vec3 vW;
+      void main(){ float y=vUv.y;
+        float st=texture2D(uNoise,vec2(vUv.x*16.0,y*0.7+uT*0.35)).b*0.6+texture2D(uNoise,vec2(vUv.x*43.0+0.3,y*2.4+uT*0.9)).g*0.4;
+        /* a curtain, not a wall: thin where it is seen edge-on, and its head torn into the cloud */
+        vec2 nr=normalize(vW.xz-uC), vv=normalize(uCam.xz-vW.xz);
+        float face=smoothstep(0.05,0.55,abs(dot(nr,vv)));
+        float top=0.30+0.32*texture2D(uNoise,vec2(vUv.x*6.0+uT*0.004,0.37)).b;
+        float shaft=smoothstep(0.35,0.75,texture2D(uNoise,vec2(vUv.x*5.0+uT*0.01,0.2)).b);   /* heavier and lighter falls */
+        float a=uI*0.80*(1.0-smoothstep(0.75,1.0,y))*(0.35+0.45*st)*(0.45+0.55*shaft)*face;
+        a*=smoothstep(80.0,900.0,length(vW.xz-uCam.xz))*(1.0-uIn*0.8);
+        vec3 col=vec3(0.30,0.32,0.36)*(0.3+0.7*uLight)*(0.75+0.45*st)+vec3(0.85,0.9,1.0)*uFlash*0.85*(0.4+0.6*st);
+        gl_FragColor=vec4(col,a); }`});
+  /* THE STORM-CLOUD: a towering mass, black at its foot and torn at its head, seen on the horizon
+     long before the sea feels it; lit from within by the lightning */
+  const deckM=new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,side:THREE.DoubleSide,fog:false,
+    /* billowed: the dome heaped into towers by a sum of lumps along its normal, and its head spread
+       out flat into an anvil, as a thunderhead's is */
+    vertexShader:`uniform float uT; varying vec3 vN,vW; varying vec3 vP;
+      float lump(vec3 p){ return sin(p.x*7.1+uT*0.03)*sin(p.z*6.3-uT*0.02)*0.5+sin(p.x*13.7+p.z*11.1+uT*0.05)*0.25+sin(p.y*9.0+p.x*5.0)*0.25+sin((p.x-p.z)*21.0)*0.12; }
+      void main(){ vec3 p=position; float y=p.y;
+        p+=normal*(0.10+0.07*lump(p))*smoothstep(0.0,0.25,y);
+        float anv=smoothstep(0.62,0.95,y); p.xz*=1.0+anv*0.55; p.y=mix(p.y,0.80+p.y*0.25,anv);
+        p.xz*=mix(0.55,1.0,smoothstep(0.0,0.35,y));          /* narrower at the foot: a column rising */
+        vP=p; vN=normalize(mat3(modelMatrix)*normal); vec4 w=modelMatrix*vec4(p,1.0); vW=w.xyz;
+        gl_Position=projectionMatrix*viewMatrix*w; }`,
+    fragmentShader:`uniform float uT,uI,uFlash,uIn; uniform vec3 uLight,uCam; uniform sampler2D uNoise; varying vec3 vN,vW,vP;
+      void main(){
+        vec2 q=vec2(atan(vP.z,vP.x)*1.4, vP.y*1.6);
+        float n=texture2D(uNoise,q*0.9+vec2(uT*0.004,uT*0.002)).b*0.55+texture2D(uNoise,q*2.7-vec2(uT*0.006,0.0)).g*0.3+texture2D(uNoise,q*7.0).r*0.15;
+        vec3 V=normalize(uCam-vW); float face=abs(dot(normalize(vN),V));
+        /* billowed edge: the outline eaten away by the noise, so it has no hard rim */
+        float a=uI*smoothstep(0.08,0.5,face+0.35*(n-0.5))*(0.80+0.25*n)*(1.0-uIn*0.65);
+        float up=clamp(vP.y,0.0,1.0);
+        /* black at the foot, slate in the body, the head of it pale where the sun still reaches it */
+        vec3 col=mix(vec3(0.05,0.055,0.07),vec3(0.27,0.29,0.33),smoothstep(0.0,0.6,up)+n*0.3);
+        col=mix(col,vec3(0.62,0.62,0.64),smoothstep(0.62,0.95,up)*0.75);
+        col*=0.35+0.65*uLight;
+        col+=vec3(0.75,0.8,0.95)*uFlash*(0.35+0.65*n)*(1.0-up*0.5);
+        gl_FragColor=vec4(col,min(a,0.97)); }`});
+  /* AND THE SEA BENEATH IT: dark slate out to the horizon, so the storm stands on the water and does
+     not float over a band of pale sea (drawn past the haze, faded out near the eye where the waves are) */
+  const skirtM=new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,fog:false,
+    vertexShader:'varying vec2 vUv; varying vec3 vW; void main(){ vUv=uv; vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }',
+    fragmentShader:`uniform float uI,uFlash; uniform vec3 uLight,uCam; varying vec2 vUv; varying vec3 vW;
+      void main(){ float r=length(vUv-0.5)*2.0;
+        float a=uI*0.9*(1.0-smoothstep(0.55,1.0,r))*smoothstep(500.0,1500.0,length(vW.xz-uCam.xz));
+        vec3 col=vec3(0.07,0.10,0.11)*(0.4+0.6*uLight)+vec3(0.5,0.55,0.65)*uFlash*0.25;
+        gl_FragColor=vec4(col,a); }`});
+  const wall=new THREE.Mesh(TEMP_GEO.wall,wallM), deck=new THREE.Mesh(TEMP_GEO.deck,deckM), skirt=new THREE.Mesh(TEMP_GEO.skirt,skirtM);
+  wall.frustumCulled=deck.frustumCulled=skirt.frustumCulled=false; wall.renderOrder=4; deck.renderOrder=5; skirt.renderOrder=2;
+  scene.add(wall); scene.add(deck); scene.add(skirt);
+  return {wall,deck,skirt,U,bolts:[]}; }
+function tempestDrop(T){ const V=T.vis; if(!V) return;
+  scene.remove(V.wall); scene.remove(V.deck); scene.remove(V.skirt); V.wall.material.dispose(); V.deck.material.dispose(); V.skirt.material.dispose();
+  for(const b2 of V.bolts){ scene.remove(b2.m); b2.m.geometry.dispose(); b2.m.material.dispose(); }
+  for(const sp of T.spouts){ scene.remove(sp.m); sp.m.material.dispose(); } T.vis=null; }
+const _bolt=new THREE.Vector3();
+function tempestBolt(T,x,z){ const V=T.vis; if(!V) return;
+  /* a jagged stroke from the cloud-deck to the sea, forking once */
+  const top=WATER_Y+300, pts=[]; let px=x, pz=z;
+  for(let k=0;k<=14;k++){ const t=k/14; pts.push(new THREE.Vector3(px,top-(top-WATER_Y)*t,pz)); px+=(Math.random()-0.5)*40; pz+=(Math.random()-0.5)*40; }
+  const geo=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts,false,'catmullrom',0.1),40,2.2,4,false);
+  const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0xeef4ff,transparent:true,opacity:1,fog:false,depthWrite:false}));
+  m.renderOrder=5; scene.add(m); V.bolts.push({m,t:0.32});
+  T.flash=1;
+  /* and the thunder, as far behind it as the stroke is away */
+  const d=Math.hypot(x-camera.position.x,z-camera.position.z);
+  if(d<9000) setTimeout(()=>{ if(running) thunderClap(); },Math.min(8000,d/2000*1000)); }
+function tempestVisTick(T,dt,far){
+  if(!T.vis) T.vis=tempestVis(T);
+  const V=T.vis, U=V.U, cp=camera.position;
+  V.wall.position.set(T.x,WATER_Y-30,T.z); V.wall.scale.set(T.R*0.95,210,T.R*0.95); U.uC.value.set(T.x,T.z);
+  V.deck.position.set(T.x,WATER_Y+120,T.z); V.deck.scale.set(T.R*1.3,760,T.R*1.3);
+  V.skirt.position.set(T.x,WATER_Y+1.5,T.z); V.skirt.scale.set(T.R*1.7,1,T.R*1.7);
+  U.uT.value=performance.now()*0.001; U.uI.value=T.I;
+  U.uIn.value=1-_ss(T.R*0.55,T.R*1.05,Math.hypot(cp.x-T.x,cp.z-T.z));
+  /* lightning works in it, seen from far off */
+  T.boltT-=dt;
+  if(T.boltT<=0&&T.I>0.4){ T.boltT=2.5+Math.random()*6/(T.I+0.2);
+    const a=Math.random()*Math.PI*2, r=Math.random()*T.R*0.85; tempestBolt(T,T.x+Math.cos(a)*r,T.z+Math.sin(a)*r); }
+  T.flash=Math.max(0,T.flash-dt*4); U.uFlash.value=T.flash*(0.6+0.4*Math.random());
+  for(let i=V.bolts.length-1;i>=0;i--){ const b2=V.bolts[i]; b2.t-=dt; b2.m.material.opacity=b2.t>0?(0.55+0.45*Math.random()):0;
+    if(b2.t<=0){ scene.remove(b2.m); b2.m.geometry.dispose(); b2.m.material.dispose(); V.bolts.splice(i,1); } } }
+
+/* ---- THE WATERSPOUT ----
+   In a storm at its height the cloud lets down a spout: a twisting column of spray from the
+   deck of cloud to the sea, wandering through the storm's heart. Come within its reach and it
+   takes hold of her — spins her, drags her, throws the sea over her — and what is not lashed
+   down goes over the side. */
+const SPOUT_GEO=new THREE.CylinderGeometry(1,1,1,22,18,true); SPOUT_GEO.translate(0,0.5,0);
+function spoutMat(){ return new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,fog:false,
+  uniforms:{uT:{value:0},uA:{value:0},uLight:waveMat.uniforms.uLight,uNoise:{value:SEA_NOISE}},
+  vertexShader:`uniform float uT; varying vec2 vUv; void main(){ vUv=uv; vec3 p=position; float y=p.y;
+      float r=mix(0.18,1.0,pow(y,1.7)); p.xz*=r;
+      p.x+=sin(y*3.2+uT*0.9)*0.35*y+sin(uT*0.6)*0.2*y; p.z+=cos(y*2.6+uT*0.7)*0.3*y;
+      gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0); }`,
+  fragmentShader:`uniform float uT,uA; uniform vec3 uLight; uniform sampler2D uNoise; varying vec2 vUv;
+    void main(){ float sw=texture2D(uNoise,vec2(vUv.x*3.0+vUv.y*2.2-uT*0.55,vUv.y*1.2-uT*0.2)).b;
+      float a=uA*(0.35+0.55*sw)*smoothstep(0.0,0.05,vUv.y)*(1.0-smoothstep(0.82,1.0,vUv.y));
+      vec3 col=mix(vec3(0.30,0.33,0.36),vec3(0.78,0.82,0.86),sw*0.6+vUv.y*0.2)*(0.3+0.7*uLight);
+      gl_FragColor=vec4(col,a); }`}); }
+function tempestSpouts(T,dt){
+  /* only a storm at its height lets one down */
+  if(T.peak>0.72&&T.I>0.85&&T.spouts.length<(T.peak>0.88?2:1)&&Math.random()<dt*0.04){
+    const m=new THREE.Mesh(SPOUT_GEO,spoutMat()); m.frustumCulled=false; m.renderOrder=4; scene.add(m);
+    T.spouts.push({m,ang:Math.random()*Math.PI*2,rad:T.R*(0.15+Math.random()*0.45),va:(Math.random()<0.5?-1:1)*(0.02+Math.random()*0.03),a:0,t:60+Math.random()*90,hold:0}); }
+  const b=state.boat, now=performance.now()*0.001;
+  for(let i=T.spouts.length-1;i>=0;i--){ const S=T.spouts[i];
+    S.t-=dt; S.ang+=S.va*dt; S.a+=((S.t>4&&T.I>0.6?1:0)-S.a)*Math.min(1,dt*0.6);
+    const x=T.x+Math.cos(S.ang)*S.rad, z=T.z+Math.sin(S.ang)*S.rad;
+    S.m.position.set(x,WATER_Y+seaHeight(x,z)-4,z); S.m.scale.set(46,300,46);
+    S.m.material.uniforms.uT.value=now; S.m.material.uniforms.uA.value=S.a;
+    if(S.t<=0&&S.a<0.02){ scene.remove(S.m); S.m.material.dispose(); T.spouts.splice(i,1); continue; }
+    /* the sea boiling up at its foot */
+    const dc=Math.hypot(x-camera.position.x,z-camera.position.z);
+    if(S.a>0.3&&dc<2200&&typeof splEmit==='function'&&Math.random()<dt*14){ const a=Math.random()*6.28;
+      splEmit(x+Math.cos(a)*14,WATER_Y+seaHeight(x,z)+2,z+Math.sin(a)*14, -Math.sin(a)*40,20+Math.random()*25,Math.cos(a)*40, 2.2,22+Math.random()*16,WATER_Y-30,true); }
+    /* and it takes hold of her */
+    const d=Math.hypot(b.x-x,b.z-z);
+    if(S.a>0.4&&d<180&&running&&(state.mode==='boat'||state.mode==='deck')){
+      const k=1-d/180; b.heading+=dt*2.2*k; b.speed*=1-dt*0.8*k;
+      b.x+=(x-b.x)/Math.max(d,1)*dt*24*k; b.z+=(z-b.z)/Math.max(d,1)*dt*24*k;
+      state.shake=Math.max(state.shake||0,0.8*k);
+      S.hold+=dt;
+      if(S.hold>2.5){ S.hold=-12;
+        const ks=Object.keys(state.cargo);
+        if(ks.length){ const g=ks[Math.floor(Math.random()*ks.length)]; state.cargo[g]--; if(!state.cargo[g]) delete state.cargo[g];
+          const G=GOODS.find(q=>q.k===g); toast('The spout wrenches '+(G?G.n.toLowerCase():'a crate')+' from her deck — it is gone over the side!'); }
+        else toast('The spout has her — spinning, the sea thrown over her rails!'); } } } }
+
 /* the courses themselves live in js/sun-moon.js — the one file that is the
    whole law of the two great lights. These are the engine's thin hands. */
 function dayOfYear(){ return SUNMOON.dayOfYear(state.simHours); }
@@ -6402,10 +6705,12 @@ function skyTick(px,pz){
   starGroup.rotation.y=-(state.simHours/24)*2*Math.PI;
   sun.position.set(S.x,S.y,S.z);
   sun.userData.tx=S.x; sun.userData.ty=S.y; sun.userData.tz=S.z;   /* the true station, for the water */
-  sunMat2.opacity=S.bright; sun.userData.bright=S.bright;
+  /* under a storm's deck of cloud the lights are hidden (the water still reads their true brightness) */
+  const veil=1-_ss(0.25,0.7,st);
+  sunMat2.opacity=S.bright*veil; sun.userData.bright=S.bright;
   const M=SUNMOON.place(state.simHours,px,pz,R_WORLD,'moon');
   moon.position.set(M.x,M.y,M.z);
-  moonMat2.opacity=M.bright; moon.userData.bright=M.bright;
+  moonMat2.opacity=M.bright*veil; moon.userData.bright=M.bright;
   /* and the LIGHT UPON THE LAND falls from where the ruling light truly
      stands — the long shadows of evening lie away from the sunset, and by
      night the land is lit from the moon's quarter */
@@ -6779,7 +7084,18 @@ function traderTick(px,pz,dt){ initTraders();
       const a=Math.random()*6.28, r=(flyOpen?3600:1400)+Math.random()*1800;
       const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r;
       if(landAtWorld(x,z)||Math.hypot(x,z)/R_WORLD>0.93){ T.g.visible=false; T.set=false; continue; }
+      { let inStorm=false; for(const S of TEMPESTS) if(Math.hypot(x-S.x,z-S.z)<S.R*1.6) inStorm=true;
+        if(inStorm){ T.g.visible=false; T.set=false; continue; } }       /* no merchantman puts out into a tempest */
       T.x=x; T.z=z; T.h=Math.random()*6.28; T.set=true; T.g.visible=true; }
+    /* ---- AND ONE A STORM OVERTAKES IS LOST IN IT ----
+       Under its rain and its dark a ship is not seen past a cable or two: one standing inside a
+       tempest beyond that showed as a pale shape against the storm's own wall. */
+    { let hid=false; const dc=Math.hypot(T.x-camera.position.x,T.z-camera.position.z);
+      for(const S of TEMPESTS){ const w=tempestW(S,T.x,T.z); if(w>0.15&&dc>260+(1-w)*900) hid=true;
+        /* and one beyond a storm, seen through it, is behind the curtain */
+        if(!hid&&S.I>0.2){ const cx=camera.position.x, cz=camera.position.z, ax=S.x-cx, az=S.z-cz, bx=T.x-cx, bz=T.z-cz;
+          const L=Math.hypot(ax,az); if(L>S.R&&Math.hypot(bx,bz)>L-S.R){ const lat=Math.abs(ax*bz-az*bx)/Math.max(1,Math.hypot(bx,bz)); if(lat<S.R) hid=true; } } }
+      if(T.set) T.g.visible=!hid; }
     if(T.halt&&T.halt>0){ T.halt-=dt; }                                   /* hove to for the trading */
     else {
       const ax=T.x+Math.sin(T.h)*140*SHIP_K, az=T.z+Math.cos(T.h)*140*SHIP_K;
@@ -6803,7 +7119,7 @@ function traderTick(px,pz,dt){ initTraders();
           m.userData.armL.rotation.x=-1.15; m.userData.armR.rotation.x=-1.15;
           m.userData.armL.rotation.z= 0.18+lean; m.userData.armR.rotation.z=-0.18+lean; } } }
     const hd=seaHeight(T.x,T.z);
-    T.g.position.set(T.x,WATER_Y-1.4+hd*0.6,T.z);
+    T.g.position.set(T.x,WATER_Y-1.4+hd*0.85,T.z);
     T.g.rotation.y=T.h; T.g.rotation.z=Math.sin(performance.now()*0.0009+T.x*0.01)*0.04;
     /* hailed and hove to, her crew turn to the rail — and the bow watch waves */
     if(T.crew&&T.crew.length>1){
@@ -15336,17 +15652,42 @@ function boatTick(dt,helm){
        :(!insideTraderHull(bowX,bowZ,10)&&!insideTraderHull(nx,nz,10)));
   if(clear){ state.dist+=Math.hypot(nx-bt.x,nz-bt.z); bt.x=nx; bt.z=nz; }
   else bt.speed*=-0.15;
-  /* ride the swell: heave to the wave height, and lean GENTLY to its slope.
-     (Slopes can be large; clamp hard so she rocks like a ship, never flips.) */
-  const hd=seaHeight(bt.x,bt.z), sl=seaSlope(bt.x,bt.z);
-  const fwdX=Math.sin(bt.heading), fwdZ=Math.cos(bt.heading);
+  /* ---- SHE RIDES THE SEA ----
+     The water is read under her whole length and breadth — at her stem, her stern, either beam
+     and amidships — so she lifts to a sea as a hull does, not as a cork at her middle: short
+     chop is spread out under her and hardly moves her, and a great storm sea takes her up its
+     face bow-first, holds her on its crest and lets her fall down its back. She has weight: her
+     pitch and roll come to the sea through a spring and a damper, so she lags it, overshoots a
+     little and swings back, and climbing a face costs her way while running down one adds to it. */
+  const fwdX=Math.sin(bt.heading), fwdZ=Math.cos(bt.heading), rgX=fwdZ, rgZ=-fwdX;
   const cl=(v,m)=>v<-m?-m:v>m?m:v;
-  const MAXTILT=0.14;
-  let pitch=cl(-(sl.x*fwdX+sl.z*fwdZ)*0.9, MAXTILT) - cl(bt.speed*0.0012,0.03);
-  let roll =cl((sl.x*fwdZ-sl.z*fwdX)*0.9, MAXTILT)
-    + cl(t*Math.min(1,Math.abs(bt.speed)/24)*0.10, 0.10);      /* lean into the turn */
-  boatG.position.set(bt.x, WATER_Y-2.1*SHIP_K+hd*0.65, bt.z);   /* she draws deeper, great as she is */
-  boatG.rotation.set(pitch, bt.heading, roll);
+  const zb=SHIP_Z1*0.85, zs=SHIP_Z0*0.85, hb=SHIP_HALFX*0.85;
+  const hB=seaHeight(bt.x+fwdX*zb,bt.z+fwdZ*zb), hS=seaHeight(bt.x+fwdX*zs,bt.z+fwdZ*zs);
+  const hP=seaHeight(bt.x-rgX*hb,bt.z-rgZ*hb), hR=seaHeight(bt.x+rgX*hb,bt.z+rgZ*hb), hC=seaHeight(bt.x,bt.z);
+  const heaveT=(hC*2+hB+hS+hP+hR)/6;
+  const pitchT=cl(-Math.atan2(hB-hS,zb-zs),0.42)-cl(bt.speed*0.0012,0.03);
+  const rollT=cl(Math.atan2(hR-hP,2*hb)*1.6,0.42)+cl(t*Math.min(1,Math.abs(bt.speed)/24)*0.10,0.10);   /* and she leans into the turn */
+  if(bt.pitch===undefined){ bt.pitch=pitchT; bt.roll=rollT; bt.pv=0; bt.rv=0; bt.heave=heaveT; }
+  const ddt=Math.min(dt,0.05);
+  bt.pv+=((pitchT-bt.pitch)*7.5-bt.pv*3.6)*ddt; bt.pitch=cl(bt.pitch+bt.pv*ddt,0.5);
+  bt.rv+=((rollT-bt.roll)*5.0-bt.rv*2.4)*ddt;   bt.roll=cl(bt.roll+bt.rv*ddt,0.45);
+  bt.heave+=(heaveT-bt.heave)*Math.min(1,ddt*3.0);
+  /* down a face she gathers way; up one she loses it */
+  if(Math.abs(bt.speed)>1) bt.speed+=cl(bt.pitch,0.4)*26*ddt*Math.sign(bt.speed);
+  boatG.position.set(bt.x, WATER_Y-2.1*SHIP_K+bt.heave, bt.z);   /* she draws deeper, great as she is */
+  boatG.rotation.set(bt.pitch, bt.heading, bt.roll);
+  /* ---- GREEN WATER ----
+     When she buries her bow in a sea taller than her forecastle stands, the sea comes aboard
+     solid: it bursts over her head, sweeps her deck, stops her way and shakes her end to end. */
+  bt.greenT=(bt.greenT||0)-dt;
+  if(bt.greenT<=0&&(TEMPESTS.length||ROGUE.on)&&boatG.visible){
+    const bowDeck=boatG.position.y+SD.fdeckY*Math.cos(bt.pitch)-zb*Math.sin(bt.pitch);
+    if(WATER_Y+hB>bowDeck-2){ bt.greenT=2.6;
+      const bx=bt.x+fwdX*zb, bz=bt.z+fwdZ*zb;
+      for(let k=0;k<5;k++){ const s2=(k-2)*SHIP_HALFX*0.35; splash(bx+rgX*s2,bowDeck+4,bz+rgZ*s2,true); }
+      for(let k=0;k<4;k++){ const f2=0.55-k*0.3; splash(bt.x+fwdX*zb*f2+rgX*(Math.random()-0.5)*SHIP_HALFX,bowDeck,bt.z+fwdZ*zb*f2+rgZ*(Math.random()-0.5)*SHIP_HALFX,true); }
+      bt.speed*=0.7; state.shake=Math.max(state.shake||0,1);
+      if(!greenSeen){ greenSeen=true; toast('Green water! The sea comes aboard over her bow.'); } } }
   const w=windAt(bt.x,bt.z);                       // the pennant flies downwind
   if(boatG.userData.flag) boatG.userData.flag.rotation.y=Math.atan2(w.x,w.z)-bt.heading;
   if(boatG.userData.wheel) boatG.userData.wheel.rotation.z-=t*dt*2.5;
@@ -17205,6 +17546,9 @@ function cameraTick(dt){
     /* nor within the hull, when the eye comes down at the ship's side */
     if((state.mode==='boat'||state.mode==='deck')&&camInsideShip(camPos.x,camPos.y,camPos.z))
       camPos.y=Math.max(camPos.y,boatG.position.y+SD.qdeckY+3.0);
+    /* nor under a storm sea's face: the swell that stands between the eye and the ship lifts the eye over it */
+    if(state.mode==='boat'||state.mode==='deck'){ const sf=WATER_Y+seaHeight(camPos.x,camPos.z)+6;
+      if(camPos.y<sf) camPos.y=sf; }
   }
   /* far out, a near plane of one unit against a 384,000-unit far plane leaves
      the depth buffer nothing to work with and the world z-fights — open it
@@ -17219,6 +17563,10 @@ function cameraTick(dt){
     if(Math.abs(camera.near-wantNear)>Math.max(0.5,camera.near*0.15)){
       camera.near=wantNear; camera.updateProjectionMatrix(); } }
   camera.position.lerp(camPos,Math.min(1,dt*5));
+  /* the shock of a sea striking her, or a spout taking hold, comes up through her into the eye */
+  if(state.shake>0.01&&(state.mode==='boat'||state.mode==='deck')){ const k=state.shake*state.shake*3.2;
+    camera.position.x+=(Math.random()-0.5)*k; camera.position.y+=(Math.random()-0.5)*k; camera.position.z+=(Math.random()-0.5)*k;
+    state.shake*=Math.max(0,1-dt*2.4); }
   if(state.mode==='dive'||swimCam){ const cp=camera.position;
     const lc=landAtWorld(cp.x,cp.z);
     const floor=Math.max(seabedDepth(cp.x,cp.z), lc?lc.h*B:-1e9)+3.0;
@@ -17471,6 +17819,11 @@ function drawMapInto(ctx2,size,withNames,noMark){
     ctx2.beginPath(); ctx2.arc(sx,sy,s.R/R_WORLD*Hh*2,0,Math.PI*2);
     ctx2.fillStyle='rgba(110,118,132,0.4)'; ctx2.fill();
   }
+  /* and the tempests about the ship: a dark eye of weather, ringed red while it rages */
+  for(const T of TEMPESTS){ if(T.I<0.05) continue;
+    const sx=(T.x/R_WORLD+1)*Hh, sy=(T.z/R_WORLD+1)*Hh, r=Math.max(3,T.R*1.4/R_WORLD*Hh);
+    ctx2.beginPath(); ctx2.arc(sx,sy,r,0,Math.PI*2); ctx2.fillStyle='rgba(40,46,60,'+(0.35+0.4*T.I)+')'; ctx2.fill();
+    ctx2.lineWidth=Math.max(1,size/400); ctx2.strokeStyle='rgba(200,70,60,'+(T.I*0.9)+')'; ctx2.stroke(); }
   const [su,sv]=sunUV();
   ctx2.beginPath(); ctx2.arc((su+1)*Hh,(sv+1)*Hh,Math.max(3,size/120),0,Math.PI*2);
   ctx2.fillStyle='#ffe9a8'; ctx2.fill();
@@ -18735,6 +19088,8 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SH
   /* the ship and her company — her deck's open ground, and who is aboard */
   SHIP_SX,SHIP_K,SD,deckAllowed,holdAllowed,CREW,initCrew,
   /* and the water that answers: a splash, a strike, the field's own state */
+  /* the storm engine */
+  TEMPESTS,ROGUE,spawnTempest,seaHeight,tempestW,stormAt,
   splash,rippleAt,WATER_Y,ripState:()=>({on:RIP_ON.value,calm:ripCalm,live:SPL.live,peak:(()=>{ let m=0; for(let k=0;k<RA.length;k++){ const v=Math.abs(RA[k]); if(v>m) m=v; } return m; })()}),
   /* the light in the corners, and the count of standing chunks — tools/acceptance.js */
   aoLevel,aoTop,chunkCount:()=>chunks.size,bodyLenOf,
@@ -20955,6 +21310,7 @@ function frame(){
     else state.simHours+=dt*SPEEDS[state.speedIdx][0]/3600;
   }
   stormTick(dt);
+  tempestTick(dt);
   boatTick(dt,state.mode==='boat');
   /* the traveller does not stir while he stands with his hand on the glass */
   if(cut){ /* the scene has the body */ }
