@@ -1008,6 +1008,7 @@ STORY.act({
       {t:'say', who:'yahusha', ref:'YAHUCHANON 11:41-42', turn:false},
       {t:'say', who:'yahusha', ref:'YAHUCHANON 11:43', turn:false},
       {t:'show', id:'elazar'},
+      {t:'cam', from:[-11.4,3.3,-6.4], look:[-19.6,1.1,-8.2], dur:2},
       {t:'move', who:'elazar', to:'tombOut', speed:0.5},
       {t:'say', who:'yahusha', ref:'YAHUCHANON 11:44', turn:false},
       {t:'move', who:['martha','miryamB'], to:[[-16.4,-6.6],[-16.6,-9.4]], speed:1.8},

@@ -292,9 +292,9 @@ S.bethanyah=function(ctx,st){
   W.ground(ctx,{color:C.grassDry,flat:28,peak:{x:-40,z:-8,h:9,r:26}});
   /* the rock face of the hill, and the tomb cut into it */
   st.box(-27,0,-15,-21,5.2,-1,C.limestone);                                    /* the face of the rock */
-  st.box(-26,0,-10,-21.2,2.4,-6,'air');                                       /* the cave */
+  st.box(-26,0,-10,-20.6,2.4,-6,'air');                                       /* the cave, cut clean through the face */
   st.box(-26.5,0,-10.5,-26,2.8,-5.5,C.limestone);                             /* its back wall */
-  st.box(-21.2,0,-11.2,-20.4,0.3,-4.8,C.stone);                               /* the threshold, a channel for the stone */
+  st.box(-21.2,0,-11.2,-20.4,0.2,-4.8,C.stone);                               /* the threshold, a channel for the stone, level with the ground */
   const hs=[[-2,14],[8,10],[16,18],[-12,20],[4,26],[18,4],[-8,6]];
   hs.forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:x>0?'w':'e',color:k%2?C.limestone:C.whitewash,h:3}));
   for(let k=0;k<16;k++){ const a=W.hash(k,7)*6.28, r=24+W.hash(k,8)*30; const x=Math.cos(a)*r+6, z=Math.sin(a)*r+10; if(x<-14&&z<6) continue; W.olive(st,x,z,0.9+W.hash(k,9)*0.3); }
@@ -708,8 +708,8 @@ S.golgotha=function(ctx,st){
   /* the garden: the face of the rock and the tomb cut into it */
   const ly=landY(ctx,-70,-11);
   st.box(-78,ly,-17,-70,ly+5,-5,C.limestone,{abs:true});
-  st.box(-74,ly,-12.6,-70.1,ly+2.4,-9.4,'air',{abs:true});
-  st.box(-70,ly,-13,-69.2,ly+0.3,-9,C.stone,{abs:true});
+  st.box(-74,ly,-12.6,-69.6,ly+2.4,-9.4,'air',{abs:true});                    /* cut clean through the face */
+  ctx.api.top(-70,-13,-69.2,-9,C.stone);                                         /* the threshold, level with the ground */
   for(let k=0;k<12;k++){ const a=W.hash(k,5)*6.28, r=6+W.hash(k,6)*9, x=-60+Math.cos(a)*r, z=-8+Math.sin(a)*r; if(x<-68) continue; if(k%3) W.olive(st,x,z,0.8); else W.fig(st,x,z); }
   for(let k=0;k<40;k++){ const x=-66+W.hash(k,8)*14, z=-18+W.hash(k,9)*18; st.detail(x-0.12,0,z-0.12,x+0.12,0.25,z+0.12,[0xd8c25a,0xe8e0f0,0xb8506a][k%3]); }
   ctx.markers.stakeY=[G(-66,-34)+0.9,0];                                                /* the height of His feet on the stake */

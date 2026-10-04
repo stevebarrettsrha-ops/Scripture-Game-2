@@ -115,7 +115,7 @@ W.person=function(ctx,o){
   /* LEGS: thigh, knee, shin, the foot in its sandal */
   const hemY=female||dress==='kohen'||dress==='levite'||dress==='wrapped'||dress==='rabshaqeh'?0.07:dress==='assyrian'?0.48:roman||dress==='herodian'||dress==='camelhair'||dress==='shepherd'||child?0.50:bare?0.90:0.10;
   const legM=dress==='magi'?cloth(o.under||0x6a3a2a,'folds'):skin;
-  const footM=roman?cloth(0x5a3a22,'leather'):flat(0x5a4028);
+  const footM=roman?cloth(0x5a3a22,'leather'):dress==='wrapped'?tunicM:flat(0x5a4028);    /* the dead bound feet and hands (Yahuchanon 11:44) */
   const mkLeg=(x)=>{ const L=new THREE.Group(); L.position.set(x,0.90,0); body.add(L);
     box(0.13*th,0.42,0.14*th,legM,0,-0.21,0,L);
     const K2=new THREE.Group(); K2.position.set(0,-0.42,0); L.add(K2); L.userData.knee=K2;
@@ -123,7 +123,7 @@ W.person=function(ctx,o){
     if(dress==='centurion') box(0.125,0.26,0.05,flat(0xb8bcc4),0,-0.2,0.055,K2);          /* greaves */
     box(0.105,0.065,0.25,footM,0,-0.43,0.045,K2);                                       /* the foot */
     box(0.115,0.02,0.26,flat(0x3a2818),0,-0.47,0.045,K2);                               /* the sole */
-    if(!roman&&dress!=='magi') box(0.112,0.015,0.03,flat(0x4a3018),0,-0.40,0.07,K2);     /* the strap */
+    if(!roman&&dress!=='magi'&&dress!=='wrapped') box(0.112,0.015,0.03,flat(0x4a3018),0,-0.40,0.07,K2);     /* the strap */
     if(roman) for(const yy of [-0.36,-0.32]) box(0.118,0.012,0.13,flat(0x3a2414),0,yy,0.0,K2);
     /* THE CLOTH ON THE LEG: under the hanging skirt the robe lies on the thigh and the shin
        down to its hem, and goes with the leg — forward in the stride, over the lap and down
@@ -214,8 +214,8 @@ W.person=function(ctx,o){
   const mkArm=(x)=>{ const A=new THREE.Group(); A.position.set(x,1.39,0); body.add(A);
     box(0.10*th,0.30,0.11*th,bare?skin:sleeveM,0,-0.15,0,A);
     const E=new THREE.Group(); E.position.set(0,-0.30,0); A.add(E); A.userData.elbow=E;
-    box(0.085*th,0.26,0.09*th,dress==='magi'||dress==='kohen'?sleeveM:skin,0,-0.13,0,E);
-    const hand=box(0.08*(bare?0.85:1),0.09,0.06,skin,0,-0.31,0.005,E); A.userData.hand=hand; return A; };
+    box(0.085*th,0.26,0.09*th,dress==='magi'||dress==='kohen'||dress==='wrapped'?sleeveM:skin,0,-0.13,0,E);
+    const hand=box(0.08*(bare?0.85:1),0.09,0.06,dress==='wrapped'?tunicM:skin,0,-0.31,0.005,E); A.userData.hand=hand; return A; };
   const armL=mkArm(0.245), armR=mkArm(-0.245);
   if(dress==='tombs') for(const A of [armL,armR]){ box(0.085,0.05,0.09,iron,0,-0.22,0,A.userData.elbow); box(0.02,0.14,0.02,iron,0,-0.30,0.06,A.userData.elbow); }
   if(o.staff||dress==='shepherd'||dress==='centurion'){ const len=dress==='centurion'?0.95:1.7;
