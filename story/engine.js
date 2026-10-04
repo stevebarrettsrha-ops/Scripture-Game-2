@@ -117,6 +117,7 @@ function applyTime(name){
 /* ================= A SCENE ================= */
 /* the set of the last scene taken up again: its blocks out of the world, its people gone */
 function dropScene(){
+  if(K().setStorm){ K().setStorm(null); K().lakeHide(null); K().ripple.focus(null); }
   if(root){ K().scene.remove(root); root.traverse(o=>{ if(o.geometry&&!o.userData.keep) o.geometry.dispose(); }); root=null; }
   if(ctx&&ctx.api) ctx.api.drop();
   ctx=null; ring=null;
@@ -171,7 +172,7 @@ function buildScene(sc){
     else if(t.kind==='camel') obj=window.STORYWORLD.camel(ctx,p[0],p[1]);
     else if(t.kind==='donkey') obj=window.STORYWORLD.donkey(ctx,p[0],p[1]);
     else if(t.kind==='dove'){ obj=window.STORYWORLD.dove(ctx,p[0],t.y||12,p[1]); if(t.hidden) obj.visible=false; }
-    else if(t.kind==='boat'){ obj=window.STORYWORLD.boat(ctx,p[0],p[1],{y:t.y,face:t.face,mast:t.mast}); obj.userData.bob=t.bob!==false; }
+    else if(t.kind==='boat'){ obj=window.STORYWORLD.boat(ctx,p[0],p[1],{y:t.y,face:t.face,mast:t.mast,big:t.big}); obj.userData.bob=t.bob!==false; }
     else if(t.kind==='net'){ obj=window.STORYWORLD.net(ctx,p[0],p[1],t); }
     else if(t.kind==='jar'){ obj=window.STORYWORLD.stoneJar(ctx,p[0],p[1]); }
     else if(t.kind==='basket'){ obj=window.STORYWORLD.basket(ctx,p[0],p[1],t.full); }
@@ -185,6 +186,13 @@ function buildScene(sc){
     if(t.hidden) obj.visible=false;
     if(t.y!==undefined&&t.kind!=='box'&&t.kind!=='dove') obj.position.y=t.y;
     obj.userData.thing=t; obj.userData.baseY=obj.position.y; ctx.things[t.id]=obj; }
+  /* THE LAKE'S OWN WAVES, where the set has asked for them (S.galilSea): laid over the still water,
+     which is put by beneath them */
+  if(ctx.lake&&K().ripple){ const L=ctx.lake, r=L.rect;
+    L.w=window.STORYWORLD.lakeWaves(ctx,r); L.A=0.025+0.075*(ctx.rough||1); L.t=0;
+    root.updateMatrixWorld(true);                   /* (not yet drawn: its world matrix is not yet worked out) */
+    const a=root.localToWorld(new THREE.Vector3(r[0],0,r[1])), b=root.localToWorld(new THREE.Vector3(r[2],0,r[3]));
+    K().lakeHide([Math.min(a.x,b.x),Math.min(a.z,b.z),Math.max(a.x,b.x),Math.max(a.z,b.z)]); }
   /* lights: a mal'ak is LIGHT, never a figure; so is the Child (reverent framing) */
   for(const gl of sc.glows||[]){
     const p=gl.at.length===3?gl.at:[...pos(gl.at).slice(0,1),gl.y||2,pos(gl.at)[1]];
@@ -292,8 +300,77 @@ function movePlayer(dt){
   animFigure(player,dt,L>0.05); animFace(player,'player',dt);
 }
 function turnTo(a,b,k){ let d=b-a; while(d>Math.PI) d-=Math.PI*2; while(d<-Math.PI) d+=Math.PI*2; return a+d*Math.min(1,k); }
+/* ================= THE LAKE IN A GALE =================
+   The height of the lake's waves at a point of the set — the same sum the waves are drawn with
+   (STORYWORLD.lakeWaves), so a boat rides and a man walks on exactly the water that is seen.
+   Their height follows the wind: a breath of it at rest, a metre and more in the squall (Mark
+   4:37), and back to a floor when He speaks to it (4:39). */
+function lakeH(x,z){ const L=ctx.lake, r=L.rect;
+  const e=Math.min(x-r[0],r[2]-x,z-r[1],r[3]-z); if(e<=0) return 0;
+  const ef=e>=6?1:(e/6)*(e/6)*(3-2*e/6);
+  const wl=Math.hypot(ctx.wind[0],ctx.wind[1])||1, dx=ctx.wind[0]/wl, dz=ctx.wind[1]/wl;
+  let h=0;
+  for(const c of window.STORYWORLD.LAKE_WAVES){ const k=2*Math.PI/c[1], om=Math.sqrt(9.8*k), cs=Math.cos(c[0]), sn=Math.sin(c[0]);
+    const Dx=cs*dx-sn*dz, Dz=sn*dx+cs*dz; h+=L.A*c[2]*Math.sin(k*(Dx*x+Dz*z)-om*L.t); }
+  return h*ef; }
+/* where a point of the set lies in a boat's own frame (along her, across her), and whether it is inside her */
+function inBoat(o,x,z){ const B=o.userData.boat; if(!B) return null;
+  const h=o.rotation.y, dx=x-o.position.x, dz=z-o.position.z;
+  const al=dx*Math.sin(h)+dz*Math.cos(h), ac=dx*Math.cos(h)-dz*Math.sin(h);
+  const t=Math.abs(al)/(B.len/2); if(t>=0.97) return null;
+  const half=B.beam/2*Math.sqrt(Math.max(0,1-Math.pow(t,al>0?2.6:3.4)));
+  return Math.abs(ac)<half?{al,ac}:null; }
+const _lw=new THREE.Vector3();
+function toWorld(x,y,z){ return root.localToWorld(_lw.set(x,y,z)); }
+function lakeTick(dt){
+  const L=ctx.lake, KIT=K();
+  L.t+=dt;
+  const want=0.025+0.075*(ctx.rough||0);
+  L.A+=(want-L.A)*Math.min(1,dt*(want<L.A?1.6:0.5));            /* the calm comes at a word; the storm builds */
+  const U=L.w.U; U.uT.value=L.t; U.uA.value=L.A;
+  { const wl=Math.hypot(ctx.wind[0],ctx.wind[1])||1; U.uDir.value.set(ctx.wind[0]/wl,ctx.wind[1]/wl); }
+  /* the boats ride it: heave with the water under her, pitch and roll with its slope, and heel to the wind */
+  let main=null;
+  for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; if(!u.bob||!o.visible) continue;
+    const B=u.boat||{len:7,beam:2}, h=o.rotation.y, fx=Math.sin(h), fz=Math.cos(h), rx=Math.cos(h), rz=-Math.sin(h);
+    const x=o.position.x, z=o.position.z, ha=B.len*0.36, hb=B.beam*0.5;
+    const hc=lakeH(x,z), hf=lakeH(x+fx*ha,z+fz*ha), hs=lakeH(x-fx*ha,z-fz*ha), hp=lakeH(x+rx*hb,z+rz*hb), hn=lakeH(x-rx*hb,z-rz*hb);
+    const cl=(v,m)=>v<-m?-m:v>m?m:v;
+    u.heave=(hc*2+hf+hs)/4*0.9; u.pitch=cl(Math.atan2(hf-hs,2*ha),0.2); u.roll=cl(Math.atan2(hp-hn,2*hb)*0.8,0.24);
+    o.position.y=u.baseY+u.heave; o.rotation.x=-u.pitch; o.rotation.z=u.roll;
+    if(u.boat&&!main) main=o; }
+  if(main){ U.uBoat.value.set(main.position.x,main.position.z,main.userData.boat.len,main.userData.boat.beam); U.uBoatH.value=main.rotation.y;
+    const w=toWorld(main.position.x,0,main.position.z); KIT.ripple.focus({x:w.x,y:w.y,z:w.z}); }
+  /* everyone in her moves with her; everyone on the water stands on its face */
+  const ride=(g,base)=>{ if(!main) return false; const b=inBoat(main,g.position.x,g.position.z); if(!b) return false;
+    const u=main.userData; g.position.y=base+u.heave+b.al*Math.sin(u.pitch)+b.ac*Math.sin(u.roll); return true; };
+  const r=L.rect;
+  for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; if(!g.visible||u.fixedY===undefined) continue;
+    const base=g.position.y;
+    if(ride(g,base)) continue;
+    const x=g.position.x, z=g.position.z;
+    if(x<=r[0]||x>=r[2]||z<=r[1]||z>=r[3]||u.fixedY<-2) continue;
+    /* on the sea: the wave under His feet; a ring where each step falls; and a man going under throws the water up */
+    g.position.y=base+lakeH(x,z);
+    const lp=u._lakeP; if(!lp||Math.hypot(x-lp[0],z-lp[1])>0.55){ u._lakeP=[x,z];
+      if(lp){ const w=toWorld(x,0,z); KIT.ripple.at(w.x,w.z,-0.9,6,0.35); } }
+    if(u.fixedY<-0.8&&!u._sunk){ u._sunk=true; const w=toWorld(x,0.2,z); KIT.splash(w.x,w.y,w.z,true); }
+    else if(u.fixedY>-0.45&&u._sunk){ u._sunk=false; const w=toWorld(x,0.1,z); KIT.splash(w.x,w.y,w.z,false); } }
+  if(player&&ctx.playerY!==undefined) ride(player,player.position.y);
+  /* THE WAVES BEAT INTO THE BOAT (Mark 4:37): in a gale the sea breaks over her weather side in
+     sheets of spray, and white water is torn off the crests all about her */
+  if(main&&L.A>0.3){ L.spT=(L.spT||0)-dt;
+    if(L.spT<=0){ L.spT=0.35+Math.random()*0.7*(0.6/L.A);
+      const B=main.userData.boat, h=main.rotation.y, al=(Math.random()-0.3)*B.len*0.8;
+      const wl=Math.hypot(ctx.wind[0],ctx.wind[1])||1, side=(ctx.wind[0]*Math.cos(h)-ctx.wind[1]*Math.sin(h))/wl>0?-1:1;
+      const ac=side*(B.beam/2+0.25), x=main.position.x+al*Math.sin(h)+ac*Math.cos(h), z=main.position.z+al*Math.cos(h)-ac*Math.sin(h);
+      const w=toWorld(x,main.position.y+0.4,z); KIT.splash(w.x,w.y,w.z,true); }
+    L.wcT=(L.wcT||0)-dt;
+    if(L.wcT<=0){ L.wcT=0.12; const a=Math.random()*6.28, d=4+Math.random()*28;
+      const w=toWorld(main.position.x+Math.cos(a)*d,0,main.position.z+Math.sin(a)*d); KIT.ripple.at(w.x,w.z,1.2*L.A,9,0.7); } }
+}
 /* on the ground, or on something? (one held at a height — in a boat — or set on a bench) */
-function groundSit(u){ return u.fixedY===undefined&&!u.ride&&!(u.def&&u.def.bench); }
+function groundSit(u){ return (u.def&&u.def.ground)||(u.fixedY===undefined&&!u.ride&&!(u.def&&u.def.bench)); }   /* `ground`: on a floor though held at its height (a boat's) */
 /* how far one sitting is lowered: on the ground the hips nearly to it, on a bench to its height */
 function sitDrop(u){ return u.sit?(groundSit(u)?0.63:0.44)*(u.s||1):0; }
 /* the pose on all fours (radians, and metres for a man of 1.70): worked so the hands and the feet bear alike */
@@ -866,7 +943,9 @@ function enterBeat(){
     return nextBeat(); }
   if(T==='time'){ applyTime(B.to); setBed(ctx.place,B.to); return nextBeat(); }
   /* the wind and the waves: "the ruach was against it" … "the ruach ceased" */
-  if(T==='weather'){ if(B.wind) ctx.wind=B.wind; if(B.rough!==undefined) ctx.rough=B.rough; return nextBeat(); }
+  if(T==='weather'){ if(B.wind) ctx.wind=B.wind; if(B.rough!==undefined) ctx.rough=B.rough;
+    if(B.storm!==undefined&&K().setStorm) K().setStorm(B.storm||null);      /* the rain, the thunder and the dark of a squall */
+    return nextBeat(); }
   /* "Make the people sit down" (Yahuchanon 6:10): on the grass, legs out before them */
   if(T==='sit'||T==='stand'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.sit=(T==='sit'); g.userData.lie=false; g.rotation.x=0; } } return nextBeat(); }
   /* lying on the ground: asleep in a camp, or fallen (Yashayahu 37:36) */
@@ -1215,7 +1294,8 @@ function frame(dtW){
       if(o.userData&&o.userData.fixedY!==undefined) o.userData.fixedY=o.position.y;
       if(o.userData&&o.userData.baseY!==undefined) o.userData.baseY=o.position.y; }); }
   for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; const w=u.wings||(u.bird&&u.bird.userData&&u.bird.userData.wings); if(w&&w[0]){ const a=Math.sin(t*9)*0.5; w[0].rotation.z=a; w[1].rotation.z=-a; }
-    if(u.bob){ const k=ctx.rough||1; o.position.y=u.baseY+Math.sin(t*1.3+o.position.x)*0.06*k; o.rotation.z=Math.sin(t*0.9+o.position.z)*0.025*k; } }
+    if(u.bob&&!ctx.lake){ const k=ctx.rough||1; o.position.y=u.baseY+Math.sin(t*1.3+o.position.x)*0.06*k; o.rotation.z=Math.sin(t*0.9+o.position.z)*0.025*k; } }
+  if(ctx.lake&&ctx.lake.w) lakeTick(dt);
   if(portrait&&!$('sverse').classList.contains('off')) drawPortrait();
   { const T=SV.talk, g=T&&T.sp&&T.sp.glow&&ctx.glows[T.sp.glow];          /* a mal'ak's light swells with the words */
     if(g){ const m=SV.mouth(T.sp.key)||0; g.sprite.scale.setScalar(g.base*(1+m*0.12)); } }

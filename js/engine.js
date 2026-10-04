@@ -5681,7 +5681,9 @@ function rippleUpload(){
   ripTex.needsUpdate=true;
   RIP_O.value.set(ripIX*RIP_CELL,ripIZ*RIP_CELL); RIP_ON.value=1;
 }
+let RIP_FOCUS=null;                   /* a story's subject (its boat), held under the field instead of the eye */
 function rippleTick(dt,px,pz){
+  if(RIP_FOCUS){ px=RIP_FOCUS.x; pz=RIP_FOCUS.z; }
   ripRecentre(px,pz);
   /* a swimmer's strokes */
   const w=state.walk;
@@ -5717,6 +5719,16 @@ waveMat.needsUpdate=true;
    the sea does — a fine ripple running across it, the sky mirrored in it at a slant, the sun's
    path burning on it — and it is struck and rings as the sea is, out of the same live field.
    (Drawn by its own material, not out of the plain-block array, so that it can.) */
+/* ---- AND WHERE A STORY LAYS ITS OWN WAVES, THE STILL WATER UNDER THEM IS PUT BY ----
+   (THE FULLNESS OF TIME's lake in a gale: its waves rise and fall over the water blocks, and the
+   flat face of the blocks must not show through the troughs) */
+const LAKE_HIDE={value:new THREE.Vector4(0,0,0,0)}, LAKE_HIDE_ON={value:0};
+if(MAT.waterB) addPatch(MAT.waterB,sh=>{
+  sh.uniforms.uLakeHide=LAKE_HIDE; sh.uniforms.uLakeHideOn=LAKE_HIDE_ON;
+  sh.vertexShader='varying vec3 vLH;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n  vLH=position;');
+  sh.fragmentShader='varying vec3 vLH;\nuniform vec4 uLakeHide; uniform float uLakeHideOn;\n'+sh.fragmentShader.replace('#include <clipping_planes_fragment>',
+    '#include <clipping_planes_fragment>\n  if(uLakeHideOn>0.5&&vLH.x>uLakeHide.x&&vLH.x<uLakeHide.z&&vLH.z>uLakeHide.y&&vLH.z<uLakeHide.w) discard;');
+},'lake-hide');
 if(MAT.waterB&&renderer.capabilities.isWebGL2){        /* (the face is found by derivatives: WebGL2) */
   MAT.waterB.userData.plain=false;
   const WU=waveMat.uniforms;
@@ -6240,7 +6252,10 @@ for(let i=0;i<9;i++) STORMS.push({
   va:(hash2(i,4.9)-0.5)*0.004, vr:(hash2(i,5.7)-0.5)*0.0006 });
 function stormTick(dt){ for(const s of STORMS){ s.a+=s.va*dt; s.r+=s.vr*dt;
   if(s.r<0.1||s.r>0.9) s.vr*=-1; } }
-function stormAt(x,z){ let f=0;
+/* a storm a story calls down where it stands (THE FULLNESS OF TIME: the squall on the lake) — the
+   rain, the thunder and the dark come with it as with any other */
+let STORM_FORCE=null;
+function stormAt(x,z){ let f=STORM_FORCE||0;
   for(const s of STORMS){ const sx=Math.sin(s.a)*s.r*R_WORLD, sz=Math.cos(s.a)*s.r*R_WORLD;
     const d=Math.hypot(x-sx,z-sz); if(d<s.R) f=Math.max(f,1-d/s.R); }
   return f; }
@@ -17820,7 +17835,9 @@ function weatherTick(px,pz,dt,storm){
   rain.visible=show;
   if(show){
     rainMat.opacity=Math.min(0.6,wet*0.8);
-    rain.position.set(px,0,pz);
+    /* over a story's own subject (its boat), and at the height of its water, not the sea's */
+    if(RIP_FOCUS){ px=RIP_FOCUS.x; pz=RIP_FOCUS.z; }
+    rain.position.set(px,RIP_FOCUS&&RIP_FOCUS.y!==undefined?RIP_FOCUS.y-20:0,pz);
     const w=windAt(px,pz), a=rainGeo.attributes.position.array;
     for(let i=0;i<RAIN_N;i++){ const j=i*3;
       a[j+1]-=(140+(i%9)*9)*dt; a[j]+=w.x*36*dt; a[j+2]+=w.z*36*dt;
@@ -18523,7 +18540,11 @@ function buildYahruPlan(period){
 window.__KIT={
   B, U_PER_M, R_WORLD, WATER_Y, THREE, scene, camera, renderer,
   makeFigure, makeAnimal:k=>{ try{ return makeAnimal(k); }catch(e){ return null; } },
-  robeMat:robeMatHex, blockMat:n=>MAT[n]||null, solidAt, splash:(x,y,z,big)=>splash(x,y,z,big), playerXZ, jointTick, tickGait, makeBird, makePerson,
+  robeMat:robeMatHex, blockMat:n=>MAT[n]||null, solidAt, splash:(x,y,z,big)=>splash(x,y,z,big),
+  /* the live water, the storm and the hidden still water — for a story's own sea */
+  ripple:{tex:RIP_T,o:RIP_O,on:RIP_ON,span:RIP_SPAN,at:(x,z,a,r,f)=>rippleAt(x,z,a,r,f),focus:p=>{ RIP_FOCUS=p||null; }},
+  setStorm:v=>{ STORM_FORCE=v==null?null:+v; },
+  lakeHide:(r)=>{ if(r){ LAKE_HIDE.value.set(r[0],r[1],r[2],r[3]); LAKE_HIDE_ON.value=1; } else LAKE_HIDE_ON.value=0; }, playerXZ, jointTick, tickGait, makeBird, makePerson,
   /* the floor of cloud, which a story lifts high over its scenes: the voyage's clouds stand
      at the scale of its earth, and a scene is built at the scale of a man */
   clouds:()=>clouds, CLOUD_Y, blockArr:()=>BARR, chunkRoot,

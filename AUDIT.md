@@ -10431,6 +10431,61 @@ more real, with liquid physics for splashes.
   - test 12 (chunk build speed) fails on this machine with and without these changes, at the same
     plains figure (3.37 / 3.42 ms against a 3.31 ceiling). It is the machine, not this change.
 
+## 4dr. Round 119 — the boat that held the Twelve; the squall on the lake; walking on the sea
+
+**Asked:** verify, in story mode, Yahusha walking on the sea to the boat (a boat unlike the great
+ship, but able to hold the Twelve), and the storm in which He slept and the taught ones nearly
+drowned.
+
+**Found:** both scenes were there (Act IV, scenes 12 and 16), but:
+
+- The boat was a 7 m tray with a gunwale seven centimetres above the water, carrying four or five
+  of the disciples.
+- The lake was flat water blocks, so the "great windstorm" moved the boat a few centimetres, and
+  no wave rose or broke.
+- The camera on Him coming over the water was thrown off by the face guard and showed empty sea.
+
+**Made:**
+
+- **The lake's fishing boat** (`STORYWORLD.bigBoat`), after the 1st-century boat found at
+  Kinnereth in 1986, made a little larger (10.6 × 3.1 m):
+  - a planked hull that narrows to stem and stern;
+  - four thwarts, floor-boards, and small decks at bow and stern;
+  - a mast stepped forward with its yard and furled sail;
+  - a steering oar, and oars shipped along her sides.
+  The Twelve sit on her thwarts in both scenes.
+- **Yahusha in the storm:** He sleeps in the stern on the floor-boards with His back to them. A
+  new `ground` flag gives a figure held at a height the knees-up seated pose.
+- **The lake's own waves** (`STORYWORLD.lakeWaves`, `lakeTick`):
+  - A surface of five travelling waves, scaled to the wind and sharpened at the crests, laid over
+    the set's water.
+  - The water blocks under it are put by (a `lake-hide` patch on the water material). The hull is
+    cut out of the surface, so she is dry inside.
+  - The CPU reads the same height sum (`lakeH`), so the boat heaves, pitches and rolls on the
+    water that is drawn.
+  - Everyone aboard, the witness included, moves with her.
+  - A figure on the water outside her stands on the wave under its feet. Each step rings the live
+    field, and going under throws up a splash.
+  - Lit with the voyage sea's own light, sun, moon and fog, and white water is torn off the
+    crests in a gale.
+- **The squall:** the `weather` beat takes `storm`. The world's own rain, thunder and dark come
+  down over the boat (the rain and the live field now follow a story's focus), and the waves
+  build to 0.55 m. Spray breaks over her weather side and whitecaps break about her. At "Shalom,
+  be still!" the sea falls to a flat calm within seconds (Mark 4:39).
+- **Walking on the sea:**
+  - He comes over the waves from 46 m off, seen from behind Him with the boat ahead.
+  - Kĕpha goes over the bow onto the water, goes under in a burst of spray, and is caught.
+  - They come into the boat together, onto her foredeck (Mattithyahu 14:32).
+
+**Checks:**
+
+- **Measured over three seconds:**
+  - before the storm: the boat heaves 0.07 m and rolls 0.09 rad;
+  - in the gale: she heaves 0.41 m and rolls 0.34 rad, and Kĕpha, seated, moves 0.68 m with her;
+  - after the word: 0.04 m.
+- **Aboard:** 13 figures in both scenes.
+- **Act IV playthrough:** 402 frames, no errors, 0 frames showing His face.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

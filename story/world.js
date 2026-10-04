@@ -246,7 +246,117 @@ W.dove=function(ctx,x,y,z){
 };
 /* a fishing boat of the lake: planked hull, a thwart, a mast stepped amidships (the
    Kinnereth boat found at Ginosar, 8 m by 2.3) — a group, so it can be moved on the water */
+/* THE FISHING BOAT OF THE LAKE (`big`), as the one raised from the mud of Kinnereth's shore in
+   1986 shows them: a broad open hull some nine metres long and two and a half in the beam, a
+   mast stepped forward with its yard, a little deck at bow and at stern, and the crew on thwarts
+   across her — and she is made here a little larger, ten and a half metres by three, so that
+   the Twelve and their Teacher sit in her as the accounts have them do (Mark 4:36, Mattithyahu
+   14:22). Her measures are kept on her for the engine: `len`, `beam`, the height of her floor,
+   thwarts and decks above her own waterline. */
+W.BOAT={len:10.6,beam:3.1,floor:-0.42,seat:0.0,deck:0.08,gunwale:0.62,thwarts:[3.05,1.65,-1.35,-2.75],mast:2.35};
+function bigBoat(ctx,x,z,o){
+  const g=new THREE.Group(), m=c=>new THREE.MeshLambertMaterial({color:c});
+  const wood=m(0x6a4a30), dark=m(0x4a3220), pale=m(0x8a6a48), tar=m(0x2a2018);
+  const b=(w,h,d,mt,px,py,pz,ry)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mt); q.position.set(px,py,pz); if(ry) q.rotation.y=ry; g.add(q); return q; };
+  const P=W.BOAT, L=P.len, HB=P.beam/2;
+  /* the half-breadth along her: full through the waist, drawn in to the stem and the stern */
+  const half=z=>{ const t=Math.abs(z)/(L/2); return HB*Math.sqrt(Math.max(0,1-Math.pow(t,z>0?2.6:3.4))); };
+  /* the bottom, in strakes that narrow as she does */
+  for(let i=0;i<14;i++){ const z0=-L/2+0.25+i*(L-0.5)/14, z1=z0+(L-0.5)/14, zc=(z0+z1)/2, w=Math.max(0.3,2*half(zc)-0.25);
+    b(w,0.2,z1-z0+0.02,dark,0,P.floor-0.1,zc); }
+  /* the sides: three strakes a side, each segment set along the curve of her */
+  const N=16;
+  for(const sd of [1,-1]) for(let i=0;i<N;i++){
+    const z0=-L/2+i*L/N, z1=z0+L/N, x0=sd*half(z0), x1=sd*half(z1), zc=(z0+z1)/2, xc=(x0+x1)/2;
+    const len=Math.hypot(x1-x0,z1-z0)+0.04, ang=Math.atan2(x1-x0,z1-z0);
+    for(let r=0;r<3;r++){ const y0=P.floor-0.2+r*0.4; b(0.09,0.42,len,r===2?wood:(r?pale:wood),xc,y0+0.21,zc,ang); }
+    b(0.16,0.07,len,tar,xc,P.gunwale+0.02,zc,ang); }                                    /* the gunwale's cap */
+  /* stem and sternpost, rising a little */
+  b(0.22,1.5,0.3,dark,0,P.gunwale-0.2,L/2-0.08); b(0.22,1.35,0.3,dark,0,P.gunwale-0.25,-L/2+0.08);
+  /* the thwarts across her, and the little decks at bow and stern */
+  for(const tz of P.thwarts) b(2*half(tz)-0.1,0.09,0.32,pale,0,P.seat-0.05,tz);
+  b(2*half(4.6)-0.12,0.1,1.25,pale,0,P.deck-0.05,4.55); b(2*half(-4.5)-0.12,0.1,1.15,pale,0,P.deck-0.05,-4.45);
+  /* the floor-boards she is walked on */
+  b(1.9,0.05,7.6,m(0x7a5a3c),0,P.floor+0.03,0.15);
+  /* the mast, its yard, the sail furled along it; the steering oar on her quarter */
+  if(o.mast!==false){ b(0.2,6.4,0.2,m(0x7a5a3e),0,P.floor+3.2,P.mast);
+    const yd=b(4.6,0.12,0.12,m(0x7a5a3e),0,5.2,P.mast); yd.rotation.z=0.06;
+    b(4.3,0.3,0.3,m(0xd8cfb8),0,5.0,P.mast+0.05); }
+  const oar=b(0.12,0.12,3.4,dark,HB-0.15,P.gunwale-0.4,-L/2+0.6); oar.rotation.x=0.42; oar.rotation.y=0.18;
+  b(0.5,0.08,0.9,dark,HB+0.05,P.gunwale-1.45,-L/2-0.65);
+  /* oars shipped along her sides */
+  for(const sd of [1,-1]) for(const dz of [-1.0,1.3]){ const q=b(0.09,0.09,3.6,wood,sd*(HB-0.45),P.gunwale-0.05,dz); q.rotation.y=sd*0.04; }
+  g.userData.boat={len:L,beam:P.beam};
+  g.position.set(x,o.y===undefined?-0.1:o.y,z); g.rotation.order='YXZ'; g.rotation.y=o.face||0; ctx.scene.add(g); return g; }
+/* THE LAKE'S OWN WAVES, over the still water of a set (galilSea): a surface of travelling waves
+   whose height is the story engine's own (lakeH) on the CPU and here on the GPU, so that a boat
+   rides exactly the water that is drawn, and a man walks on it. Lit as the voyage lights its sea,
+   by the same light, sun, moon and fog; struck and ringing out of the same live field. */
+W.lakeWaves=function(ctx,r){
+  const KIT=window.__KIT, WU=window.__WORLD.waveMat.uniforms, RP=KIT.ripple;
+  const w=r[2]-r[0], d=r[3]-r[1], sx=Math.ceil(w/0.5), sz=Math.ceil(d/0.5);
+  const geo=new THREE.PlaneGeometry(w,d,sx,sz); geo.rotateX(-Math.PI/2); geo.translate((r[0]+r[2])/2,0,(r[1]+r[3])/2);
+  const U={uT:{value:0},uA:{value:0},uDir:{value:new THREE.Vector2(0,1)},uRect:{value:new THREE.Vector4(r[0],r[1],r[2],r[3])},
+    uBoat:{value:new THREE.Vector4(0,0,0,-99)},uBoatH:{value:0},
+    uLight:WU.uLight,uSunDir:WU.uSunDir,uSunCol:WU.uSunCol,uZenith:WU.uZenith,uFogColor:WU.uFogColor,uFogNear:WU.uFogNear,uFogFar:WU.uFogFar,
+    uCamPos:WU.uCamPos,uMoonDir:WU.uMoonDir,uMoonCol:WU.uMoonCol,uMoon:WU.uMoon,uNoise:WU.uMap,
+    uRip:RP.tex,uRipO:RP.o,uRipOn:RP.on};
+  const WAVE=W.LAKE_WAVES.map(c=>`{ float a=uA*${c[2].toFixed(3)}, k=${(2*Math.PI/c[1]).toFixed(4)}, om=${Math.sqrt(9.8*2*Math.PI/c[1]).toFixed(4)};
+      vec2 D=vec2(cos(${c[0].toFixed(3)})*uDir.x-sin(${c[0].toFixed(3)})*uDir.y, sin(${c[0].toFixed(3)})*uDir.x+cos(${c[0].toFixed(3)})*uDir.y);
+      float f=k*dot(D,P)-om*uT, c=cos(f), s=sin(f);
+      dp.xz+=0.55*a*D*c; dp.y+=a*s; nr.xz-=D*k*a*c; nr.y-=0.55*k*a*s; }`).join('\n');
+  const mat=new THREE.ShaderMaterial({uniforms:U,transparent:true,
+    vertexShader:`uniform float uT,uA; uniform vec2 uDir; uniform vec4 uRect;
+      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP;
+      void main(){ vec2 P=position.xz; vec3 dp=vec3(0.0); vec3 nr=vec3(0.0,1.0,0.0);
+        /* the waves lie down within a few metres of the shore */
+        float e=smoothstep(0.0,6.0,min(min(P.x-uRect.x,uRect.z-P.x),min(P.y-uRect.y,uRect.w-P.y)));
+        ${WAVE}
+        dp*=e; vEdge=e; vH=dp.y; vP=P; vN=normalize(mix(vec3(0.0,1.0,0.0),nr,e));
+        vec4 wp=modelMatrix*vec4(position+dp,1.0); vW=wp.xyz;
+        vec4 mv=viewMatrix*wp; vFog=-mv.z; gl_Position=projectionMatrix*mv; }`,
+    fragmentShader:`precision highp float;
+      uniform vec3 uLight,uSunDir,uSunCol,uZenith,uFogColor,uCamPos,uMoonDir,uMoonCol; uniform float uFogNear,uFogFar,uMoon,uA,uT,uBoatH;
+      uniform vec4 uBoat; uniform sampler2D uNoise,uRip; uniform vec2 uRipO; uniform float uRipOn;
+      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP;
+      void main(){
+        /* none of it inside the boat's own hull */
+        vec2 rb=vP-uBoat.xy; float cb=cos(uBoatH), sb=sin(uBoatH);
+        vec2 lb=vec2(cb*rb.x-sb*rb.y, sb*rb.x+cb*rb.y);
+        if(abs(lb.y)<uBoat.z*0.5-0.1){ float t=abs(lb.y)/(uBoat.z*0.5); if(abs(lb.x)<uBoat.w*0.5*sqrt(max(0.0,1.0-pow(t,2.8)))-0.06) discard; }
+        vec3 N=normalize(vN);
+        vec3 n1=texture2D(uNoise,vP*0.11+vec2(uT*0.05,uT*0.03)).rgb, n2=texture2D(uNoise,vP*0.37-vec2(uT*0.08,-uT*0.06)).rgb;
+        N=normalize(N+vec3((n1.r-0.5)*0.32+(n2.r-0.5)*0.2,0.0,(n1.g-0.5)*0.32+(n2.g-0.5)*0.2));
+        float rf=0.0;
+        if(uRipOn>0.5){ vec2 rc=(vW.xz-uRipO)/${RP.span.toFixed(1)};
+          if(rc.x>0.0&&rc.y>0.0&&rc.x<1.0&&rc.y<1.0){ vec4 rp=texture2D(uRip,rc); N=normalize(N+vec3((rp.r-0.5)*2.6,0.0,(rp.g-0.5)*2.6)); rf=rp.a; } }
+        vec3 V=normalize(uCamPos-vW), Ls=normalize(uSunDir);
+        float above=step(vW.y,uCamPos.y);
+        vec3 deep=vec3(0.05,0.20,0.27), shallow=vec3(0.13,0.42,0.44);
+        vec3 base=mix(shallow,deep,0.65)*(0.80+0.30*clamp(vH/(uA*1.4+0.05)*0.5+0.5,0.0,1.0));
+        float diff=clamp(dot(N,Ls),0.0,1.0);
+        vec3 col=base*(0.55+0.55*diff);
+        /* white water on the crests the gale tears off them, and the foam of the live field */
+        float crest=smoothstep(0.38,0.85,vH/(uA*1.25+0.001))*smoothstep(0.12,0.4,uA)*(0.55+0.9*n2.b);
+        float foam=clamp(crest*0.85+rf*0.95,0.0,1.0);
+        col=mix(col,vec3(0.86,0.91,0.96),foam);
+        col*=uLight;
+        if(uMoon>0.002){ vec3 M=normalize(uMoonDir); float md=clamp(dot(N,M),0.0,1.0); col+=base*uMoonCol*(0.3+0.8*md)*uMoon*1.3;
+          vec3 HM=normalize(V+M); col+=uMoonCol*pow(max(dot(N,HM),0.0),110.0)*1.4*md*uMoon; col+=uMoonCol*foam*uMoon*0.4; }
+        vec3 H=normalize(V+Ls); col+=uSunCol*(pow(max(dot(N,H),0.0),140.0)*1.6+pow(max(dot(N,H),0.0),38.0)*0.15)*diff*above;
+        float fres=pow(1.0-max(dot(N,V),0.0),4.0); vec3 R=reflect(-V,N);
+        col=mix(col,mix(uFogColor*1.05,uZenith,pow(clamp(R.y,0.0,1.0),0.7)),fres*0.55*above);
+        float a=mix(0.86,0.97,fres); a=max(a,foam);
+        float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
+        gl_FragColor=vec4(mix(col,uFogColor,ff),a); }`});
+  const mesh=new THREE.Mesh(geo,mat); mesh.renderOrder=1; mesh.frustumCulled=false; ctx.scene.add(mesh);
+  return {mesh,U};
+};
+/* the waves of the lake: [turned from the wind, wavelength in metres, share of the height] —
+   the story engine reads the same table for the height a boat rides and a man walks on */
+W.LAKE_WAVES=[[0,9.0,0.46],[0.45,6.4,0.30],[-0.55,4.5,0.22],[1.15,3.1,0.12],[-1.4,2.2,0.07]];
 W.boat=function(ctx,x,z,o){ o=o||{};
+  if(o.big) return bigBoat(ctx,x,z,o);
   const g=new THREE.Group(), m=c=>new THREE.MeshLambertMaterial({color:c});
   const b=(w,h,d,c,px,py,pz)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m(c)); q.position.set(px,py,pz); g.add(q); return q; };
   const wood=0x6a4a30, dark=0x4a3220;

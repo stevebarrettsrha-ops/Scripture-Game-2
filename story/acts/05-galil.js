@@ -51,6 +51,10 @@ const T12={
   yahudahQ:{name:'Yahuḏah from Qerioth', key:'Yahuḏah from Qerioth', robe:0x6e5a70, cloth:0xcfc4aa, beard:0x1e1814, skin:0x8a6038}
 };
 const T=(id,at,extra)=>Object.assign({id,at},T12[id],extra||{});
+/* THE LAKE'S FISHING BOAT (story/world.js, bigBoat), laid at [60,0] facing up the lake: her floor-boards,
+   her little decks, and the Twelve on her thwarts — `seats` are [across, along] from her middle */
+const BOAT_FLOOR=-0.52, BOAT_DECK=-0.02;
+const BOAT_SEATS=(ids,face,seats)=>ids.map((id,k)=>T(id,[60+seats[k][0],seats[k][1]],{face, y:BOAT_FLOOR, sit:true}));
 /* people of a place: unnamed, each a face of its own (their skin is their people's — world.js) */
 let seed=11; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
 const ROBES=[0x7c6a52,0x5f6a52,0x8e6f4c,0x6b5a44,0x74604a,0x5c5040,0x8a7a60,0x6e5a70,0x7a5040,0x5a6470,0x8a5a3a,0x4f6a4f];
@@ -646,42 +650,46 @@ STORY.act({
 
   /* ---------------- IV.7c — THE STORM STILLED ---------------- */
   { id:'storm', title:'The Sea of Galil', date:'the evening of that day', place:'galilSea', time:'dusk',
-    player:{ at:[59.2,0.8], face:Math.PI, look:ADULT },
+    /* THE BOAT holds them all: the Twelve on her thwarts, the witness standing in her waist, and in the
+       stern, on the floor-boards with His back to them, He sleeps on a cushion (Mark 4:38). She is the
+       lake's fishing boat (story/world.js, bigBoat) — not the voyage's ship. The squall comes down on
+       the lake as it does to this day off the heights to the east: the waves rise and break into her,
+       the rain drives, and at a word it is flat calm. */
+    player:{ at:[59.45,0.2], face:Math.PI, look:ADULT },
     actors:[
-      T('kepha',[60.4,1.8],{face:Math.PI, y:-0.6}), T('andri',[59.4,-0.6],{face:Math.PI, y:-0.6}), T('yaaqob',[60.6,-0.8],{face:Math.PI, y:-0.6}),
-      T('yahuchanon',[59.6,2.4],{face:Math.PI, y:-0.6}),
-      /* "in the stern, asleep on a cushion" — sitting against the stern, His back to them */
-      Object.assign({id:'yahusha', at:[60,-2.7], face:Math.PI, y:-0.45, sit:true},YAHUSHA)
+      ...BOAT_SEATS(['kepha','yaaqob','yahuchanon','andri','toma','philip','mattithyahu','bartholomi','yaaqobA','shimonZ','yahudahY','yahudahQ'],Math.PI,
+        [[-0.9,-2.75],[0,-2.75],[0.9,-2.75],[-0.9,-1.35],[0,-1.35],[0.9,-1.35],[-0.9,1.65],[0,1.65],[0.9,1.65],[-0.9,3.05],[0,3.05],[0.9,3.05]]),
+      Object.assign({id:'yahusha', at:[60,-3.35], face:Math.PI, y:BOAT_FLOOR, sit:true, ground:true},YAHUSHA)
     ],
-    things:[ {id:'boat', kind:'boat', at:[60,0], y:-0.35},
+    things:[ {id:'boat', kind:'boat', big:true, at:[60,0], y:-0.1},
              {id:'boat2', kind:'boat', at:[71,9], y:-0.35, face:0.4},
-             {id:'cushion', kind:'box', at:[60,-3.3], y:-0.2, w:0.7, h:0.22, d:0.45, color:0x8a6a4a},
-             {id:'water0', kind:'box', at:[59.6,-1.4], y:-0.55, w:0.6, h:0.05, d:0.5, color:0x4a6a7a, hidden:true},
-             {id:'water1', kind:'box', at:[60.6,0.4], y:-0.55, w:0.6, h:0.05, d:0.5, color:0x4a6a7a, hidden:true},
-             {id:'water2', kind:'box', at:[59.8,1.6], y:-0.55, w:0.6, h:0.05, d:0.5, color:0x4a6a7a, hidden:true} ],
+             {id:'cushion', kind:'box', at:[60,-3.45], y:BOAT_FLOOR, w:0.62, h:0.16, d:0.5, color:0x8a6a4a},
+             {id:'water0', kind:'box', at:[60.4,0.6], y:BOAT_FLOOR, w:0.6, h:0.05, d:0.5, color:0x4a6a7a, hidden:true},
+             {id:'water1', kind:'box', at:[59.8,-0.6], y:BOAT_FLOOR, w:0.6, h:0.05, d:0.5, color:0x4a6a7a, hidden:true},
+             {id:'water2', kind:'box', at:[60.5,-0.3], y:BOAT_FLOOR, w:0.6, h:0.05, d:0.5, color:0x4a6a7a, hidden:true} ],
     beats:[
-      {t:'player', at:[59.2,0.8], y:-0.6, lock:true, face:Math.PI},
+      {t:'player', at:[59.45,0.2], y:BOAT_FLOOR, lock:true, face:Math.PI},
       {t:'weather', wind:[0.5,0.2], rough:0.4},
-      {t:'cam', from:[49,5,-10], look:[60,0,0], dur:0.1},
+      {t:'cam', from:[48,5,-11], look:[60,0,0], dur:0.1},
       {t:'say', who:'yahusha', ref:'MARK 4:35', turn:false},
       {t:'read', ref:'MARK 4:36'},
-      {t:'cam', from:[54,3,-7], look:[60,0.4,0], dur:4, wait:false},
+      {t:'cam', from:[53,3.4,-8], look:[60,0.4,0], dur:4, wait:false},
       {t:'time', to:'night'},
-      {t:'weather', wind:[5.5,-2.4], rough:7},
+      {t:'weather', wind:[5.5,-2.4], rough:7, storm:0.85},
       {t:'read', ref:'MARK 4:37'},
       {t:'show', id:['water0','water1','water2']},
       {t:'witness', text:'The waves are coming over the side — bail the water out of the boat', items:['water0','water1','water2'], verb:'Bail it out', hold:0.5, reach:2.4},
       {t:'hide', id:['water0','water1','water2']},
-      {t:'cam', from:[59.4,1.9,1.4], look:[60,0.3,-2.8], dur:2},
+      {t:'cam', from:[61.4,3.3,-0.6], look:[60,-0.3,-3.5], dur:2},
       {t:'say', who:'boatmen', ref:'MARK 4:38', turn:false},
-      {t:'stand', who:'yahusha'}, {t:'place', who:'yahusha', at:[60,-2.5], y:-0.45, face:Math.PI},
-      {t:'cam', from:[60.5,1.5,0.6], look:[60,1.3,-9], dur:1.5},
+      {t:'stand', who:'yahusha'}, {t:'place', who:'yahusha', at:[60,-3.4], y:BOAT_FLOOR, face:Math.PI},
+      {t:'cam', from:[60.5,3.0,0.4], look:[60,0.2,-9], dur:1.5},
       {t:'say', who:'yahusha', ref:'MARK 4:39', turn:false},
-      {t:'weather', wind:[0.15,0.05], rough:0.1},
+      {t:'weather', wind:[0.15,0.05], rough:0.1, storm:0},
       {t:'face', who:'yahusha', to:'kepha'},
       {t:'cam', on:'yahusha', shot:'back', toward:'kepha', dur:1.8},
       {t:'say', who:'yahusha', ref:'MARK 4:40', turn:false},
-      {t:'cam', from:[56.6,1.4,-3.6], look:[60,0.6,1.2], dur:2.5},
+      {t:'cam', from:[56.4,1.6,-3.8], look:[60,0.5,1.0], dur:2.5},
       {t:'say', who:'boatmen', ref:'MARK 4:41', turn:false},
       {t:'choice', prompt:'You', options:[
         {text:'Ask yourself the same question', reply:'Who then is this? You were in the boat. The water is still in your sandals.'},
@@ -905,22 +913,27 @@ STORY.act({
 
   /* ---------------- IV.9 — THE FOURTH WATCH ---------------- */
   { id:'sea', title:'The Sea of Galil', date:'the fourth watch of the night', place:'galilSea', time:'night',
-    player:{ at:[58.6,-1.6], face:0, look:ADULT },
+    /* The Twelve in the same boat, rowing against a head wind (Mattithyahu 14:24); He comes to them on
+       the waves themselves — His feet on the water's face as it rises and falls, a ring going out
+       where each step falls. Kĕpha goes over the bow to Him, walks, looks at the wind, and goes under. */
+    player:{ at:[59.45,-0.1], face:0, look:ADULT },
     actors:[
-      T('kepha',[60.2,2.4],{face:0, y:-0.6}), T('andri',[59.4,-0.4],{face:0, y:-0.6}), T('yaaqob',[60.6,-2.2],{face:0, y:-0.6}),
-      T('yahuchanon',[59.2,1.2],{face:0, y:-0.6}), T('philip',[60.6,0.4],{face:0.4, y:-0.6}),
-      Object.assign({id:'yahusha', at:[60,46], face:Math.PI, y:-0.35, hidden:true},YAHUSHA)
+      T('kepha',[60.45,4.3],{face:0, y:BOAT_DECK}),
+      ...BOAT_SEATS(['yaaqob','andri','yahuchanon','philip','toma','mattithyahu','bartholomi','yaaqobA','shimonZ','yahudahY','yahudahQ'],0,
+        [[0,3.05],[-0.9,3.05],[0.9,3.05],[-0.9,1.65],[0,1.65],[0.9,1.65],[-0.9,-1.35],[0,-1.35],[0.9,-1.35],[-0.9,-2.75],[0.9,-2.75]]),
+      Object.assign({id:'yahusha', at:[60,46], face:Math.PI, y:0, hidden:true},YAHUSHA)
     ],
-    things:[ {id:'boat', kind:'boat', at:[60,0], y:-0.35} ],
+    things:[ {id:'boat', kind:'boat', big:true, at:[60,0], y:-0.1} ],
     beats:[
-      {t:'player', at:[58.6,-1.6], y:-0.6, lock:true, face:0},
-      {t:'cam', from:[48,6,-14], look:[60,0,0], dur:0.1},
+      {t:'player', at:[59.45,-0.1], y:BOAT_FLOOR, lock:true, face:0},
+      {t:'weather', wind:[-1.6,-4.2], rough:3.6},
+      {t:'cam', from:[47,6,-14], look:[60,0,0], dur:0.1},
       {t:'read', ref:'MATTITHYAHU 14:22-23'},
-      {t:'cam', from:[54,3,-8], look:[60,0.4,2], dur:4, wait:false},
+      {t:'cam', from:[53,3.4,-9], look:[60,0.4,2], dur:4, wait:false},
       {t:'read', ref:'MATTITHYAHU 14:24'},
       {t:'show', id:'yahusha'},
-      {t:'move', who:'yahusha', to:[60,9], speed:1.6, wait:false},
-      {t:'cam', from:[58.4,1.6,-4.6], look:[60,0.8,20], dur:3},
+      {t:'move', who:'yahusha', to:[60,9.6], speed:1.6, wait:false},
+      {t:'cam', from:[60.7,2.6,52], look:[60,0.4,6], dur:3},         /* behind Him on the water, the boat ahead */
       {t:'read', ref:'MATTITHYAHU 14:25'},
       {t:'say', who:'boatmen', ref:'MATTITHYAHU 14:26', turn:false},
       {t:'face', who:'yahusha', to:'andri'},
@@ -930,18 +943,19 @@ STORY.act({
       {t:'face', who:'yahusha', to:'kepha'},
       {t:'cam', on:'yahusha', shot:'back', toward:'kepha', dur:1.8},
       {t:'say', who:'yahusha', ref:'MATTITHYAHU 14:29', turn:false},
-      {t:'drift', id:'kepha', to:[60,-0.35,5.4], dur:2.4},
-      {t:'cam', from:[63.6,1.4,1.4], look:[60,0.6,6.6], dur:2},
-      {t:'drift', id:'kepha', to:[60,-1.15,6.4], dur:2.4, wait:false},
+      {t:'drift', id:'kepha', to:[60.4,0,6.2], dur:2.4},
+      {t:'cam', from:[64.2,1.5,2.4], look:[60.2,0.4,7.2], dur:2},
+      {t:'drift', id:'kepha', to:[60.4,-1.15,7.3], dur:2.4, wait:false},
       {t:'say', who:'kepha', ref:'MATTITHYAHU 14:30', turn:false},
-      {t:'drift', id:'kepha', to:[60,-0.35,7.4], dur:1.2},
+      {t:'drift', id:'kepha', to:[60.4,0,8.3], dur:1.2},
       {t:'face', who:'yahusha', to:'kepha'},
       {t:'cam', on:'yahusha', shot:'back', toward:'kepha', dur:1.8},
       {t:'say', who:'yahusha', ref:'MATTITHYAHU 14:31', turn:false},
-      {t:'drift', id:['yahusha','kepha'], by:[0,0,-5.4], dur:3},
+      {t:'drift', id:'kepha', to:[60.5,BOAT_DECK,4.2], dur:3, wait:false},
+      {t:'drift', id:'yahusha', to:[60,BOAT_DECK,4.75], dur:3},
       {t:'weather', wind:[0.2,0.1], rough:0.4},
       {t:'read', ref:'MATTITHYAHU 14:32'},
-      {t:'cam', from:[56.4,1.4,-4.2], look:[60,0.6,3], dur:2.5},
+      {t:'cam', from:[56.2,1.6,-4.4], look:[60,0.6,3], dur:2.5},
       {t:'say', who:'boatmen', ref:'MATTITHYAHU 14:33', turn:false},
       {t:'end'}
     ]},
