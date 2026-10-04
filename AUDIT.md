@@ -10486,6 +10486,75 @@ drowned.
 - **Aboard:** 13 figures in both scenes.
 - **Act IV playthrough:** 402 frames, no errors, 0 frames showing His face.
 
+## 4ds. Round 120 — the storm engine: tempests over the deep, and the seas they raise
+
+**Asked:** a real storm engine, with massive swells when storms appear on the deep sea, like
+*Assassin's Creed IV: Black Flag*. The player then reported that ships showed as pale
+silhouettes inside a storm, that its dark did not come down to the horizon, and that it did not
+look right.
+
+**Made (js/engine.js):**
+
+- **Tempests (`TEMPESTS`, `spawnTempest`, `tempestTick`):**
+  - **Birth:** they form only over deep water, never over the shelf or against a coast, 3.6 to
+    6.2 km from the ship. Each is 1.1 to 2 km in radius, and at most two form on their own.
+  - **Life cycle:** each gathers for about 85 s, rages for about 380 s and blows itself out over
+    about 130 s.
+  - **Movement:** each travels toward the ship's waters at 7 to 12 units a second, slower than
+    she sails. One that reaches land dies there.
+  - **Warnings:** you are told the bearing when one forms ("Dark weather gathers to the NE…") and
+    again when it is upon you.
+  - **Charts:** each storm shows on the map as a dark disc ringed red while it rages.
+  - **Weather:** `stormAt` counts them, so the existing rain, thunder, darkening and fog all come
+    with them.
+- **The seas (`stormSea`):** each storm raises three crossed swell trains in its direction of
+  travel, 420, 250 and 140 units crest to crest, with a summed height of up to about 30 units
+  (5 m) amplitude.
+  - They are full in the storm's heart, fall away over its outer bands, and lie down over the
+    shallows.
+  - The CPU (`seaHeight`, `seaSlope`) and the GPU sum the same waves, so the ship rides exactly
+    the water that is drawn. The wave grid was refined (200 → 260 segments) to carry the
+    shortest of them.
+- **The rogue (`ROGUE`):** in the heart of a storm, every 70 to 160 s, one wall of water near
+  twice the rest comes running out of the storm toward her, with a warning.
+- **The ship rides them (`boatTick`):**
+  - The sea is read at her stem, stern, both beams and amidships.
+  - Pitch and roll follow it through a spring and a damper, so she lags, overshoots and swings
+    back.
+  - She gathers way running down a face and loses it climbing one.
+  - **Green water:** when the bow buries in a sea taller than her forecastle, white water bursts
+    over her head and sweeps her deck, her way is checked, and the eye shakes.
+- **Seen from afar (`tempestVis`):**
+  - a thunderhead: a billowed mass that rises to an anvil, black at its foot with a pale crown,
+    drawn past the haze;
+  - grey rain shafts that hang from its base to the sea;
+  - dark water beneath it out to the horizon;
+  - lightning strokes inside it that light the cloud from within, with thunder that comes later
+    the further off they strike.
+  - From inside the storm the curtain thins away, and the rain and the dark close round the ship.
+- **Waterspouts:** a storm at its height may let down one or two. They wander its heart, with the
+  sea boiling at their foot. One that catches her spins and drags her, and can tear cargo from
+  her deck.
+- **Spindrift:** spray is torn off the crests round her and driven downwind.
+- **The sea's look:**
+  - storm water darkens to slate-green;
+  - the great crests break white, and foam streaks lie down the wind;
+  - the haze over storm water is the storm's own dark;
+  - the sun and moon are hidden under the cloud.
+- **The camera** is never under a sea's face at the helm or on deck.
+- **Traders:** none put out into a storm. One a storm overtakes is lost in its rain, and one
+  beyond a storm is hidden behind its curtain. This fixes the pale silhouettes the player
+  reported.
+
+**Checks:**
+
+- **Measured:** in calm, the ship heaves 1.2 units. In a full storm the sea at a point rises and
+  falls over 96 units (16 m), she heaves 24 units, and under way she heaves 28 units and pitches
+  0.26 rad.
+- **Regressions:** the Act IV story plays through with no errors (no storms in story mode), and
+  Scripture Unfolds boots cleanly.
+- **Acceptance tests:** 5, 6, 7 and 51 pass.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
