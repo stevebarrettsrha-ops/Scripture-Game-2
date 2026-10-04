@@ -435,9 +435,38 @@ function inBody(p){
   for(const id in ctx.actors) if(near(ctx.actors[id],0.5)) return true;
   return !ctx.playerHidden&&near(player,0.5);
 }
+/* INTO THE SEA (Mark 5:13): a beast of a herd driven over runs straight for the edge at a gallop,
+   down whatever lies between; where the ground falls away under it, it falls — on, and down, nose
+   first — strikes the water in a splash, goes under, and is not seen again. */
+/* the ground under a beast where it is now — a headland, a hilltop — not only the ground a man
+   would stand on (on a set's level ground that is looked for no higher than a little over him) */
+function groundUnder(x,z,y){ return ctx.groundY(x,z,Math.max(y,ctx.groundY(x,z))+1.5); }
+function plunge(s,u,dt){
+  const P=u.plunge, p=s.position;
+  if(P.wait>0){ P.wait-=dt; return; }
+  if(P.sunk) return;
+  if(!P.fall){
+    const dx=P.to[0]-p.x, dz=P.to[1]-p.z, d=Math.hypot(dx,dz)||1, sp=u.sp;
+    p.x+=dx/d*dt*sp; p.z+=dz/d*dt*sp; s.rotation.y=Math.atan2(dx,dz);
+    const gy=groundUnder(p.x,p.z,p.y);
+    if(gy<p.y-1.4){ P.fall=true; P.vx=dx/d*sp*0.45; P.vz=dz/d*sp*0.45; P.vy=0.6; s.rotation.order='YXZ'; }
+    else p.y=gy;
+    if(s.children[0]&&K().tickGait){ u.ent=u.ent||{m:s.children[0]}; K().tickGait(u.ent,u.kind||'sheep',sp*S,dt); }
+    return; }
+  if(!P.wet){
+    P.vy-=9.8*dt; p.x+=P.vx*dt; p.z+=P.vz*dt; p.y+=P.vy*dt; s.rotation.x=Math.min(1.3,s.rotation.x+dt*1.8);
+    const gy=groundUnder(p.x,p.z,p.y);
+    if(p.y<=0.02){ P.wet=true; P.vy=-1.2; p.y=0;                                         /* the sea */
+      const w=ctx.scene.localToWorld(new THREE.Vector3(p.x,0.1,p.z)); if(K().splash) K().splash(w.x,w.y,w.z,true); }
+    else if(gy>0.3&&p.y<=gy){ p.y=gy; P.fall=false; s.rotation.x=0; }                 /* a ledge: on its feet, and on */
+    return; }
+  P.vx*=Math.max(0,1-dt*3); P.vz*=Math.max(0,1-dt*3); p.x+=P.vx*dt; p.z+=P.vz*dt; p.y+=P.vy*dt;
+  if(p.y<-1.4){ P.sunk=true; s.visible=false; }
+}
 /* the flock grazes, and a lamb that has been gathered goes to the fold */
 function moveFlock(dt,t){
   for(const s of ctx.flock){ const u=s.userData; u.t-=dt;
+    if(u.plunge){ plunge(s,u,dt); continue; }
     const R=(u.roam||2)*2, sp=u.sp||0.5;
     if(u.t<0){ u.t=2+Math.random()*4; u.to=[u.home[0]+(Math.random()-0.5)*R,u.home[1]+(Math.random()-0.5)*R]; }
     if(u.to){ const dx=u.to[0]-s.position.x, dz=u.to[1]-s.position.z, d=Math.hypot(dx,dz);
@@ -845,8 +874,11 @@ function enterBeat(){
   /* set on a beast, and carried by it: `on` a thing (a donkey), or `off` */
   /* a herd of the place driven (`to` a point, at `sp`), or taken from sight (`hide`): "the herd rushed
      down the steep place into the sea" (Mark 5:13) */
-  if(T==='herd'){ for(const b of ctx.flock){ const u=b.userData; if(u.kind!==B.kind) continue;
-      if(B.hide){ b.visible=false; continue; } if(B.to){ u.home=pos(B.to); u.roam=B.roam||0.6; u.sp=B.sp||4; u.t=0; } } return nextBeat(); }
+  if(T==='herd'){ let n=0; for(const b of ctx.flock){ const u=b.userData; if(u.kind!==B.kind) continue;
+      if(B.hide){ b.visible=false; continue; }
+      /* `over`: the whole herd rushes down the steep place, each in its own lane, and over the edge */
+      if(B.over){ const o=pos(B.over); u.plunge={to:[o[0],o[1]+((n*7)%11-5)*0.32],wait:(n%9)*0.22+Math.random()*0.3}; u.sp=B.sp||5.5; n++; continue; }
+      if(B.to){ u.home=pos(B.to); u.roam=B.roam||0.6; u.sp=B.sp||4; u.t=0; } } return nextBeat(); }
   if(T==='pose'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g) g.userData.armsOut=B.arms==='out'; } return nextBeat(); }
   if(T==='lead'){ const o=ctx.things[B.id]; if(o){ o.userData.leadBy=B.by||null; o.userData.leadBack=B.back; o.userData.leadUp=B.up; o.userData.leadTurn=B.turn; } return nextBeat(); }
   if(T==='ride'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(!g) continue; const u=g.userData;

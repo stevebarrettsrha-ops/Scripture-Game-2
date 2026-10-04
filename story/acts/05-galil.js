@@ -693,7 +693,8 @@ STORY.act({
      He is drawn as a man the unclean ruchot had wasted: bare-headed and matted, thin to the bone,
      naked but for a rag about his loins, the broken shackles still on him, on all fours among the tombs, staring.
      The ruchot themselves are what Scripture-Game draws the fallen as — a dim violet shadow upon
-     him — and they go out of him into the herd. Afterwards he is the same man, sitting, dressed,
+     him — and they go out of him into the herd, which rushes down the hill and over the sheer face
+     of the steep place into the sea. Afterwards he is the same man, sitting, dressed,
      and in his right mind (5:15). */
   { id:'tombs', title:'The country of the Gaḏarenes', date:'the other side of the sea', place:'gadarenes', time:'day',
     player:{ at:[20.6,2.6], face:-Math.PI/2, look:ADULT },
@@ -738,8 +739,9 @@ STORY.act({
       {t:'cam', on:'yahusha', shot:'back', toward:'tombman', dur:1.6},
       {t:'say', who:'legion', ref:'MARK 5:12', turn:false},
       {t:'drift', id:['legion','legion2'], to:[2,6,30], dur:2.4, wait:false},
-      {t:'cam', from:[20,5,18], look:[8,3,32], dur:2},
-      {t:'herd', kind:'pig', to:'sea', sp:5.5, roam:4},
+      {t:'cam', from:[39,6.5,20.5], look:[24.5,1.6,33], dur:2.2},
+      {t:'herd', kind:'pig', over:'over', sp:6},
+      {t:'drift', id:['legion','legion2'], to:[26,1,33], dur:5, wait:false},
       {t:'read', ref:'MARK 5:13'},
       {t:'hide', id:['legion','legion2']},
       {t:'herd', kind:'pig', hide:true},
