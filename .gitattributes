@@ -1,0 +1,6 @@
+# the Windows launchers keep Windows line endings, the Mac and Linux ones Unix line endings,
+# whatever the computer that checks them out (a .bat with the wrong endings can misread its lines)
+*.bat      text eol=crlf
+*.ps1      text eol=crlf
+*.sh       text eol=lf
+*.command  text eol=lf

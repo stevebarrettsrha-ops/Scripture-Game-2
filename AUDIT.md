@@ -10304,6 +10304,55 @@ Gethsemane; Yahudah's betrayal; the trials; Golgotha; the tomb. Codex lights: 53
 - **Playthrough:** Act VI plays through in 12 scenes and 375 frames, with no errors and 0
   face-exposed frames.
 
+## 4dp. Round 117 — played offline from this computer; progress kept in the game's own folder
+
+**Asked:** start the game locally after downloading the repository, with offline launchers for
+each kind of computer and a desktop shortcut installer; and a folder in the game's files to save
+progress in.
+
+**Made** (all described for players in `PLAY-LOCALLY.md`):
+
+- **Launchers:** `Play-Windows.bat`, `Play-Mac.command` and `Play-Linux.sh` serve the game folder
+  on `localhost` only and open it in the default browser. There are three servers that do the
+  same thing, so no computer needs anything installed: `local/serve.ps1` (Windows PowerShell),
+  `local/serve.py` (Python 3) and `local/serve.js` (Node.js). They always use the same port
+  (8642), so the browser's per-address storage stays the same, and a running instance is reused.
+  On macOS and Linux, with neither Python nor Node, the page is opened straight from the folder.
+- **Desktop shortcuts:** `Install-Desktop-Shortcut-*` makes **The Voyage** and **The Fullness of
+  Time**: Windows `.lnk` files on the desktop and in the Start menu; macOS app bundles on the
+  Desktop and in `~/Applications`; Linux `.desktop` entries on the desktop and in the
+  applications menu. Each uses the game's own mark as its icon (`local/icon.svg`, drawn to
+  `.png`, `.ico` and `.icns` by `local/make-icons.js`). Run with `remove` / `--remove`, the
+  installer takes them off again.
+- **Offline first:** served locally or opened from a file, the main game and Scripture Unfolds
+  take the three.js shipped beside them at once. They no longer ask the CDN first, which on an
+  offline machine meant waiting for it to fail.
+- **The `saves/` folder:** `local/saves.js` runs before any game script. It reads the folder
+  from the local server and lays it into the browser's storage. It sends every change back:
+  one file for each stored key, and one file in `saves/world/` for each edited chunk of the world
+  (written from `editsSave` before the database is opened, so a closing page still gets them
+  out). The folder is the master copy: a second browser sees the same progress, and emptying the
+  folder starts afresh. The first time a browser meets the folder, what it was already keeping is
+  carried in. Online, or opened from a file, it does nothing. `.gitignore` keeps the saves out of
+  git.
+
+**Checks:**
+
+- **Offline boot:** all three servers boot the voyage menu and an act of the story with every
+  request off this computer refused: 953 to 959 requests, 0 outside, no errors. The page opened
+  straight from the folder in an ordinary browser does the same.
+- **Servers:** the right file types, including `audio/webm` for the voices. Paths outside the
+  folder, and save names outside `saves/`, are refused (403/404). A second launch opens the
+  running server.
+- **Saves, on each of the three servers:** browser A starts a voyage, digs a block and keeps
+  story progress. The files appear in `saves/` and `saves/world/`. Browser B, with empty
+  storage, opens with the same voyage and story progress, and the block is still dug. With the
+  folder emptied, B opens fresh.
+- **Shortcuts (Linux and the macOS layout):** made, launched from their own `Exec` and launcher
+  lines, and removed again. The Windows `.lnk` cannot be made here, but its script parses
+  under PowerShell 7.
+- **Acceptance tests** 5–7 (break, place, survive a reload) still pass in the browser-only path.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
