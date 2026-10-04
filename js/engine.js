@@ -3993,17 +3993,34 @@ function rleDecode(arr,remap){
    (Seen as: reload, and one chunk of two comes back. A race loses rarely,
    which is the worst rate there is.) */
 let _inFlight=null;
+/* ---- EACH CHUNK'S RECORD NAMES THE BLOCK TABLE IT WAS WRITTEN WITH ----
+   A block's number is an accident of the order blocks/ is read in, so a record is only readable
+   beside the table of ids it was numbered by. One table shared by every record is not enough:
+   after an update renumbers the blocks, a chunk dug again is written with the NEW numbering while
+   every chunk left untouched still holds the OLD — and a single shared table can be right for only
+   one of them, so the others would come back as the wrong stone, or as air. So every record
+   carries the hash of its own table, and each table is kept under its hash, written once. */
+function blockIds(){ return BLOCKS.map(b=>b?b.id:null); }
+function tableHash(ids){ const t=JSON.stringify(ids); let h=0x811c9dc5;
+  for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; }
+  return ('0000000'+h.toString(16)).slice(-8); }
+/* old number -> new number, by the id each stood for when the table was written */
+function remapFor(ids){ if(!ids) return null; const r=[];
+  for(let i=1;i<ids.length;i++){ const b=BLOCK_BY_ID[ids[i]]; r[i]=b?b.n:0; } return r; }
 /* ---- AND INTO THE SAVES FOLDER, WHEN THE GAME IS PLAYED FROM THIS COMPUTER ----
-   (local/saves.js): each edited chunk is a file of its own in saves/world/, with the block table
-   beside them, written at once — before the database is so much as opened — so a page closing
-   in the same moment still gets them out of the door */
+   (local/saves.js): each edited chunk is a file of its own in saves/world/, its block table beside
+   it under its hash, written at once — before the database is so much as opened — so a page closing
+   in the same moment still gets them out of the door. Answers a promise of whether they all landed. */
+const FOLDER_TABLES=new Set();
 function editsToFolder(keys){
-  const L=window.LOCALSAVE; if(!L||!L.on) return;
+  const L=window.LOCALSAVE; if(!L||!L.on) return Promise.resolve(false);
+  const ids=blockIds(), t=tableHash(ids);
+  if(!FOLDER_TABLES.has(t)){ FOLDER_TABLES.add(t);
+    L.put('world/blocks-'+t+'.json',JSON.stringify({k:'blocks',v:EDIT_VER,h:t,ids})); }
   for(const k of keys){ const m=EDITS.get(k), path='world/'+L.enc(k)+'.json';
     if(!m||!m.size) L.del(path);
-    else L.put(path,JSON.stringify({k,v:EDIT_VER,d:Array.from(rleEncode(m))})); }
-  L.put('world/blocks.json',JSON.stringify({k:'blocks',v:EDIT_VER,ids:BLOCKS.map(b=>b?b.id:null)}));
-  L.flush();
+    else L.put(path,JSON.stringify({k,v:EDIT_VER,t,d:Array.from(rleEncode(m))})); }
+  return L.flush();
 }
 function editsSave(){
   if(EDIT_SAVE.size) editsToFolder(Array.from(EDIT_SAVE));
@@ -4026,10 +4043,11 @@ async function editsWrite(){
   try{
     const tx=db.transaction([EDB_ST,EDB_MT],'readwrite');
     const st=tx.objectStore(EDB_ST);
+    const ids=blockIds(), t=tableHash(ids);
     for(const k of keys){ const m=EDITS.get(k);
       if(!m||!m.size) st.delete(k);
-      else st.put({k, v:EDIT_VER, d:rleEncode(m)}); }
-    tx.objectStore(EDB_MT).put({k:'blocks', v:EDIT_VER, ids:BLOCKS.map(b=>b?b.id:null)});
+      else st.put({k, v:EDIT_VER, t, d:rleEncode(m)}); }
+    tx.objectStore(EDB_MT).put({k:'blocks:'+t, v:EDIT_VER, ids});
     await new Promise((res,rej)=>{ tx.oncomplete=res; tx.onerror=()=>rej(tx.error); });
     return true;
   }catch(e){
@@ -4038,42 +4056,57 @@ async function editsWrite(){
     for(const k of keys) EDIT_SAVE.add(k); editsTouch(); return false; }
 }
 async function editsLoad(){
-  /* the saves folder, once this browser has been joined to it, is the world's master copy */
+  /* THE SAVES FOLDER is the world's master copy once THIS GAME has carried the browser's world into
+     it — a mark of its own (L.worldJoined), set only here: the story's and Scripture Unfolds' pages
+     join the folder too, but they never read the world, and their joining must not stand in for
+     the world's. Before that, the folder is read only if it already holds a world (another
+     browser's); otherwise the browser's own record is read and carried in. */
   const L=window.LOCALSAVE;
   if(L&&L.on&&(L.worldJoined||Object.keys(L.world).length)){
-    const meta=L.world['blocks.json'];
-    let remap=null;
-    if(meta&&meta.ids){ remap=[];
-      for(let i=1;i<meta.ids.length;i++){ const b=BLOCK_BY_ID[meta.ids[i]]; remap[i]=b?b.n:0; } }
+    const tables={}; let legacy=null;
+    for(const f in L.world){ const r=L.world[f]; if(!r||!r.ids) continue;
+      if(f==='blocks.json') legacy=r.ids; else if(r.h) tables[r.h]=r.ids; }
+    const remaps={};
     let n=0;
     for(const f in L.world){ const rec=L.world[f];
-      if(f==='blocks.json'||!rec||rec.v!==EDIT_VER||!rec.d) continue;
-      const m=rleDecode(rec.d,remap);
+      if(f.indexOf('blocks')===0||!rec||rec.v!==EDIT_VER||!rec.d) continue;
+      const ids=rec.t?tables[rec.t]:legacy;
+      if(rec.t&&!ids) continue;               /* its table is missing: left alone rather than misread */
+      const key=rec.t||'';
+      if(!(key in remaps)) remaps[key]=remapFor(ids);
+      const m=rleDecode(rec.d,remaps[key]);
       if(m.size){ EDITS.set(rec.k,m); n+=m.size; } }
+    for(const h in tables) FOLDER_TABLES.add(h);
     editColumnsChanged();
+    L.markWorld();
     return n;
   }
   const db=await edbOpen(); if(!db) return 0;
   try{
     const tx=db.transaction([EDB_ST,EDB_MT],'readonly');
-    const meta=await new Promise(res=>{ const r=tx.objectStore(EDB_MT).get('blocks');
-      r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); });
-    /* old number -> new number, by the id each stood for when it was saved */
-    let remap=null;
-    if(meta&&meta.ids){ remap=[];
-      for(let i=1;i<meta.ids.length;i++){ const b=BLOCK_BY_ID[meta.ids[i]];
-        remap[i]=b?b.n:0; } }
+    const metas=await new Promise(res=>{ const r=tx.objectStore(EDB_MT).getAll();
+      r.onsuccess=()=>res(r.result||[]); r.onerror=()=>res([]); });
+    /* each table under its hash ('blocks:<hash>'); 'blocks' is the one table records written
+       before the hash was kept were numbered by */
+    const tables={}; for(const m of metas) if(m&&m.ids) tables[m.k]=m.ids;
+    const remaps={};
     const all=await new Promise(res=>{ const r=tx.objectStore(EDB_ST).getAll();
       r.onsuccess=()=>res(r.result||[]); r.onerror=()=>res([]); });
     let n=0;
     for(const rec of all){
       if(rec.v!==EDIT_VER) continue;          /* a version we do not know: left alone */
-      const m=rleDecode(rec.d,remap);
+      const key=rec.t?'blocks:'+rec.t:'blocks';
+      if(rec.t&&!tables[key]) continue;       /* its table is missing: left alone rather than misread */
+      if(!(key in remaps)) remaps[key]=remapFor(tables[key]);
+      const m=rleDecode(rec.d,remaps[key]);
       if(m.size){ EDITS.set(rec.k,m); n+=m.size; }
     }
     editColumnsChanged();     /* a world reopened is a world of new answers */
-    /* the first time this browser meets the saves folder, the world it was keeping goes into it */
-    if(L&&L.on&&EDITS.size) editsToFolder(Array.from(EDITS.keys()));
+    /* the first time this game meets the saves folder, the world the browser was keeping goes into
+       it, and the folder becomes the world's master copy only once every piece of it has landed */
+    if(L&&L.on){
+      if(EDITS.size) editsToFolder(Array.from(EDITS.keys())).then(ok=>{ if(ok) L.markWorld(); });
+      else L.markWorld(); }
     return n;
   }catch(e){ return 0; }
 }
