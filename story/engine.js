@@ -405,8 +405,15 @@ function animFigure(g,dt,moving){
     if(u.head) u.head.rotation.x=P.head; u.fours=true; }
   else if(u.fours){ u.fours=false; u.body.rotation.x=0; u.body.position.set(0,0,0); if(u.head) u.head.rotation.x=0;
     for(const P of [u.legL,u.legR,u.armL,u.armR]) P.rotation.z=0; }
-  /* the arms stretched out on the crossbeam (the `pose` beat): still, the legs straight */
-  if(u.armsOut&&u.armL){ u.armL.rotation.set(0,0,Math.PI/2); u.armR.rotation.set(0,0,-Math.PI/2); u.legL.rotation.x=u.legR.rotation.x=0; }
+  /* ON THE STAKE (the `pose` beat): the Besorah's word is a stake, an upright pole — the hands
+     drawn up over the head and nailed together to it, the feet nailed below; still, the legs
+     straight and together, the head fallen forward a little */
+  if(u.armsOut&&u.armL){ const up=u.armsOut==='up';
+    u.armL.rotation.set(0,0,up?Math.PI+0.36:Math.PI/2); u.armR.rotation.set(0,0,up?-(Math.PI+0.36):-Math.PI/2);
+    for(const A of [u.armL,u.armR]) if(A.userData.elbow) A.userData.elbow.rotation.x=0;
+    u.legL.rotation.set(0,0,up?-0.03:0); u.legR.rotation.set(0,0,up?0.03:0);
+    for(const L of [u.legL,u.legR]) if(L.userData.knee) L.userData.knee.rotation.x=up?0.08:0;
+    if(up&&u.head) u.head.rotation.x=0.22; }
   clothStep(g,dt,moving,sw);
 }
 /* THE CLOTH. Each panel of a hem, and the back of a head-cloth, hangs on a hinge and is
@@ -568,7 +575,7 @@ function updateCamera(dt){
     camera.lookAt(la[0]+(lb[0]-la[0])*e,la[1]+(lb[1]-la[1])*e,la[2]+(lb[2]-la[2])*e);
     /* the player is not left filling the lens of a shot the story is holding */
     if(player&&!ctx.playerHidden) player.visible=camera.position.distanceTo(player.position.clone().setY(player.position.y+1))>2.2;
-    return; }
+    quake(dt); return; }
   if(player&&!ctx.playerHidden) player.visible=true;
   if(!player) return;
   /* SHOT AND REVERSE SHOT: while one near the witness speaks and the scene has not set a
@@ -585,6 +592,13 @@ function updateCamera(dt){
   const k=Math.min(1,dt*6);
   camera.position.x+=(want[0]-camera.position.x)*k; camera.position.y+=(want[1]-camera.position.y)*k; camera.position.z+=(want[2]-camera.position.z)*k;
   camera.lookAt(tx,ty,tz);
+  quake(dt);
+}
+/* "there was a great earthquake" (Mattithyahu 28:2): the eye is shaken, hard and then less */
+function quake(dt){
+  if(!ctx||!(ctx.quake>0)) return;
+  ctx.quake=Math.max(0,ctx.quake-dt); const a=Math.min(1,ctx.quake)*0.14;
+  camera.position.x+=(Math.random()-0.5)*a; camera.position.y+=(Math.random()-0.5)*a; camera.position.z+=(Math.random()-0.5)*a;
 }
 function convoShot(){
   if(ST.fast||!speaking||!player||ctx.playerHidden||!$('sverse')||$('sverse').classList.contains('off')) return null;
@@ -909,7 +923,11 @@ function enterBeat(){
   if(T==='move'){ const who=[].concat(B.who), tos=Array.isArray(B.who)||Array.isArray(B.to&&B.to[0])?[].concat(B.to):[B.to];   /* one figure, one place — even a place given as [x,z] */ who.forEach((w,k)=>{ const g=ctx.actors[w]; if(!g) return;
       const to=pos(tos[Math.min(k,tos.length-1)]);
       g.userData.follow=null; g.userData.target=to; if(B.speed) g.userData.speed=B.speed;
-      if(ST.fast){ g.position.x=to[0]; g.position.z=to[1]; g.userData.gy=undefined; } });
+      if(ST.fast){ g.position.x=to[0]; g.position.z=to[1];
+        /* set straight down where he was going: on the floor he would have walked to (a hall
+           under a roof), not on the roof over it */
+        const top=ctx.groundY(to[0],to[1]), cur=g.position.y, near=ctx.groundY(to[0],to[1],cur+1.6);
+        g.userData.gy=near!=null&&isFinite(near)&&top-near>2&&Math.abs(near-cur)<3?near:undefined; } });
     if(B.wait===false) return nextBeat();
     onFrame=()=>{ if(who.every(w=>!ctx.actors[w]||!ctx.actors[w].userData.target)) nextBeat(); }; return; }
   if(T==='follow'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.target=null; g.userData.follow=B.target||'player'; } } return nextBeat(); }
@@ -926,7 +944,7 @@ function enterBeat(){
   if(T==='cam'){ controlsOn=!!B.free;
     if(B.release){ releaseCamera(); controlsOn=true; return nextBeat(); }
     const S=B.on?shotOf(B):null;
-    const at=S?S.look:Array.isArray(B.look)&&B.look.length===3?B.look:lookAtSpec(B.look);
+    const at=S?S.look:Array.isArray(B.look)&&B.look.length===3&&typeof B.look[0]==='number'?B.look:lookAtSpec(B.look);
     let from;
     if(S) from=S.from;
     else if(B.from&&B.from.rel){ const g=ctx.actors[B.from.rel]||ctx.things[B.from.rel], o=B.from.off; from=[g.position.x+o[0],g.position.y+o[1],g.position.z+o[2]]; }
@@ -958,13 +976,15 @@ function enterBeat(){
       /* `over`: the whole herd rushes down the steep place, each in its own lane, and over the edge */
       if(B.over){ const o=pos(B.over); u.plunge={to:[o[0],o[1]+((n*7)%11-5)*0.32],wait:(n%9)*0.22+Math.random()*0.3}; u.sp=B.sp||5.5; n++; continue; }
       if(B.to){ u.home=pos(B.to); u.roam=B.roam||0.6; u.sp=B.sp||4; u.t=0; } } return nextBeat(); }
-  if(T==='pose'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g) g.userData.armsOut=B.arms==='out'; } return nextBeat(); }
+  if(T==='pose'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g) g.userData.armsOut=B.arms==='out'?true:B.arms==='up'?'up':false; } return nextBeat(); }
+  /* "they put it on His head" (Mattithyahu 27:29) */
+  if(T==='crown'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g&&g.userData.head) window.STORYWORLD.crown(g.userData.head); } return nextBeat(); }
   if(T==='lead'){ const o=ctx.things[B.id]; if(o){ o.userData.leadBy=B.by||null; o.userData.leadBack=B.back; o.userData.leadUp=B.up; o.userData.leadTurn=B.turn; } return nextBeat(); }
   if(T==='ride'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(!g) continue; const u=g.userData;
       if(B.off){ const t=ctx.things[u.ride]; u.ride=null; u.sit=false; if(t){ g.position.x=t.position.x+Math.cos(g.rotation.y)*0.7; g.position.z=t.position.z-Math.sin(g.rotation.y)*0.7; } }
       else { const t=ctx.things[B.on]; if(t){ t.userData.leadBy=null; u.ride=B.on; u.sit=true; g.position.x=t.position.x; g.position.z=t.position.z; g.rotation.y=t.rotation.y; } } }
     return nextBeat(); }
-  if(T==='robe'){ const g=ctx.actors[B.who]; if(g) window.STORYWORLD.recolor(g,B.color); return nextBeat(); }
+  if(T==='robe'){ const g=ctx.actors[B.who]; if(g) window.STORYWORLD.recolor(g,B.color,B.mantle); return nextBeat(); }
   if(T==='drift'){ const objs=[];
     /* one thing to a place (`to`), or several together by the same distance (`by`) — a boat
        and everyone standing in it, the player too */
@@ -975,6 +995,7 @@ function enterBeat(){
     ctx.drifts.push(D);
     if(B.wait===false) return nextBeat();
     onFrame=()=>{ if(D.t>=1) nextBeat(); }; return; }
+  if(T==='quake'){ ctx.quake=ST.fast?0:(B.s||2.5); return nextBeat(); }
   if(T==='wait'){ onFrame=()=>{ if(ST.fast||beatT>=B.s) nextBeat(); }; return; }
   if(T==='player'){ ctx.playerHidden=!!B.hidden; player.visible=!B.hidden; if(B.hidden) controlsOn=false;
     /* set the player down somewhere — in a boat, say — and hold him there (lock), or let him go */

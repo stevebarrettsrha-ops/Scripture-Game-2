@@ -10555,6 +10555,75 @@ look right.
   Scripture Unfolds boots cleanly.
 - **Acceptance tests:** 5, 6, 7 and 51 pass.
 
+## 4dt. Round 121 — Golgotha as it stood: the stake, the quarry, the choice of Barabba, the court
+
+**Asked:** the stakes should not be crosses but a pole their hands and feet are nailed to. Research
+how Golgotha looked (outside the city walls, on a hill, with refuse at its foot, as the player
+had read). Add the beating and the condemnation, where the people chose the robber over Him.
+All three on the stakes should wear only a loincloth, since His garments were taken and lots cast
+for them. The player sent Lipsius' drawing of the *crux simplex* (*De cruce libri tres*, 1629).
+
+**Research:**
+
+- **The site:** the digging under the Church of the Holy Sepulchre (Corbo, 1960s; Broshi, 1976)
+  found a disused quarry of the 8th–1st centuries BCE. Rising out of it was a spur of rock the
+  quarrymen had left because its stone was poor.
+- **What lay around it:** rock-cut tombs of the first century in its sides, garden soil laid over
+  the fill, and the Gennath (Garden) gate and the roads out of it close by.
+- **The refuse:** that it was the city's rubbish heap has no evidence behind it. The refuse went
+  out at the Dung Gate, to the Hinnom valley on the south. The "burning dump" itself goes back
+  only to Kimchi, about 1200 CE. What lay at the spur's foot was the quarry's own waste: chips,
+  spoil, and blocks cut and left.
+
+**Made:**
+
+- **The set (story/settings.js, `S.golgotha`):**
+  - The knoll is now a grey spur of rock 6 m high, with crags.
+  - A quarry is cut 2.6 m down to its west, in steps. It has a bedrock floor, cut blocks left
+    lying, and the channels where blocks were split from the face.
+  - Heaps of spoil and chips lie at the spur's foot and along the road.
+  - The road from the gate now passes below the spur.
+  - **The stakes:** each is a single upright pole 0.22 m thick, wedged with stones, with no
+    crossbeam. The title is set over His head.
+- **The figures (story/people.js):**
+  - **`stripped`:** a loincloth of linen and nothing else. It differs from the man of the tombs:
+    no wasting, no ribs, no shackles.
+  - **Yahusha stripped:** His head-cloth is off and His face is still never drawn.
+  - **`crown`:** a ring of thorn-brush about the head (`W.crown`).
+  - **`recolor`:** can now change the mantle as well as the tunic, for the scarlet robe.
+- **The engine (story/engine.js):**
+  - **`pose` with `arms:'up'`:** the hands are drawn up over the head and nailed together to the
+    pole, the legs straight and together, the head fallen forward. This is Lipsius' plate.
+  - **New beats:** `crown`, and `quake` (the camera shaken, for Act VII).
+- **Act VI, the Pavement:**
+  - **The choice** (Mattithyahu 27:15-16, 18-20, 22-23; Mark 15:7; Yahuchanon 18:39-40):
+    Barabba is brought out in his chains and the chief kohanim work the crowd. Pilate asks and
+    the crowd answers "Let Him be impaled!" The witness chooses whether to cry out His name or
+    keep silent; nothing he does changes what the Besorah says.
+  - **The court** (Yahuchanon 19:1; Mattithyahu 27:27-30): the whole company rings Him at the
+    post in the hall. They put the scarlet robe and the crown on Him and kneel in mockery. It is
+    read, with the camera on the soldiers and His back, never on a blow.
+  - **The sentence** (Luke 23:24-25; Mattithyahu 27:31): Barabba walks free, and Yahusha's own
+    garments are put back on Him.
+- **Act VI, Golgotha:**
+  - All three are stripped to the loincloth. His garments lie where the soldiers sit and cast
+    lots.
+  - **The shots:** a frontal establishing shot from far over the city's side (too far for any
+    face), and side-behind shots at the stakes, so the pole stands at their backs. The thieves
+    may be seen from the front.
+- **Fixes found on the way:**
+  - A move fast-forwarded into a roofed hall set the figure on the roof. It now lands on the
+    floor.
+  - A camera `look` written as a marker and two offsets (three items) was read as raw
+    coordinates and gave NaN.
+
+**Checks:**
+
+- **Besorah:** `--story`, `--speakers` (0 unspoken quotations) and `--check` (93 exact, 0
+  unsourceable) all pass.
+- **Voices:** all 1589 lines are recorded.
+- **Playthrough:** Act VI plays through end to end (394 frames, 0 face exposures, no errors).
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

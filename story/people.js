@@ -80,6 +80,13 @@ function dressOf(o){
   if(o.kind==='woman') return 'woman';
   return 'man';
 }
+/* THE CROWN OF THORNS: a ring of twisted thorn-brush about the head, the thorns standing out of it */
+W.crown=function(head){
+  if(head.userData.crown) return; const m=flat(0x4a3a24), t=flat(0x2e2418), R=0.135, g=new THREE.Group(); g.position.y=0.085; head.add(g);
+  for(let i=0;i<14;i++){ const a=i/14*Math.PI*2, x=Math.cos(a)*R, z=Math.sin(a)*R*1.08;
+    const b=box(0.065,0.035,0.03,m,x,(i%2)*0.012,z,g); b.rotation.y=-a+Math.PI/2+((i%3)-1)*0.3;
+    const th=box(0.012,0.012,0.06,t,x*1.12,0.02,z*1.12,g); th.rotation.y=-a; th.rotation.x=((i%4)-1.5)*0.5; }
+  head.userData.crown=g; };
 /* ---- A PERSON ---- */
 W.person=function(ctx,o){
   const def=o||{};
@@ -97,7 +104,9 @@ W.person=function(ctx,o){
   /* proportions: a man 1.70, a woman 1.58, a child about 1.15 with a larger head for his size */
   const H=o.height||(child?1.15:female?1.58:1.70), k=H/1.70, hk=child?1.22:1;   /* `height`: a man small of stature (Luke 19:3) */
   body.scale.setScalar(k);
-  const bare=dress==='tombs', th=bare?0.72:1;                       /* the man of the tombs: naked but for a loincloth, wasted to the bone */
+  /* the man of the tombs: naked but for a loincloth, wasted to the bone; and those `stripped` for the
+     stake (Yahuchanon 19:23, "the soldiers … took His garments"): a loincloth of linen, nothing else */
+  const wasted=dress==='tombs', stripped=!!o.stripped, bare=wasted||stripped, th=wasted?0.72:1;
   const skin=flat(o.skin), skinD=flat(Math.max(0,(o.skin&0xfefefe)>>1)|0);
   const hairHex=o.hair||(roman?0x2a1e16:o.fallen?0x120a0a:0x1e1610);
   const robe=o.robe||0x9a8466;
@@ -170,14 +179,14 @@ W.person=function(ctx,o){
     for(const d of drapes) d.visible=false; }
   /* THE MAN OF THE TOMBS (Mark 5:2-5, Luke 8:27 "for a long time he wore no garment"): a narrow
      chest with the ribs showing, a rag of loincloth about the hips and between the legs, nothing else */
-  if(bare){ const rag=cloth(robe,'folds'), rib=flat(shade(o.skin,0.74));
-    box(0.31,0.48,0.17,skin,0,1.18,0,body);
-    for(let i=0;i<5;i++){ const y=1.13+i*0.045; box(0.315,0.012,0.175,rib,0,y,0.0,body); }
-    box(0.12,0.10,0.02,rib,0,1.04,0.08,body);                                           /* the hollow of the belly */
+  if(bare){ const rag=cloth(stripped?0xd8cfb8:robe,'folds'), rib=flat(shade(o.skin,0.74));
+    box(stripped?0.36:0.31,0.48,stripped?0.2:0.17,skin,0,1.18,0,body);
+    if(wasted){ for(let i=0;i<5;i++){ const y=1.13+i*0.045; box(0.315,0.012,0.175,rib,0,y,0.0,body); }
+      box(0.12,0.10,0.02,rib,0,1.04,0.08,body); }                                         /* the hollow of the belly */
     box(0.33,0.08,0.19,rag,0,0.95,0,body);                                              /* the band about the hips */
     box(0.075,0.16,0.02,rag,0,0.85,0.085,body); box(0.075,0.14,0.02,rag,0,0.86,-0.085,body);   /* passed between the legs */
     box(0.075,0.04,0.17,rag,0,0.78,0,body);
-    box(0.05,0.09,0.02,rag,0.11,0.88,0.09,body).rotation.z=0.3; }                       /* a torn end hanging */
+    if(wasted) box(0.05,0.09,0.02,rag,0.11,0.88,0.09,body).rotation.z=0.3; }            /* a torn end hanging */
   /* THE TUNIC: the body from hip to shoulder, and its skirt hanging in four panels to the hem */
   if(!bare){ box(0.38,0.48,0.22,tunicM,0,1.18,0,body);
   const skirtLen=0.98-hemY, sw=female?0.44:0.41;
@@ -224,11 +233,12 @@ W.person=function(ctx,o){
 
   /* THE MANTLE: over the back from both shoulders, its left end brought over the left shoulder
      to hang before; a tassel at each corner, a cord of blue in each */
-  const mantled=!roman&&!ashshur&&dress!=='herodian'&&dress!=='camelhair'&&dress!=='magi'&&dress!=='levite'&&dress!=='tombs'&&!child;
+  const mantled=!roman&&!ashshur&&dress!=='herodian'&&dress!=='camelhair'&&dress!=='magi'&&dress!=='levite'&&!bare&&!child;
+  let mantleM=null;
   if(mantled||dress==='shepherd'||dress==='magi'){
     const mHex=dress==='shepherd'?0xd8ccb0:o.mantle||(dress==='fallen'?o.sash:dress==='king'?0x5a2060:dress==='kohen'?0xf4f0e6:female?(o.cloth||0x6a5a7a):shade(robe,0.82));
     const mM=dress==='shepherd'?cloth(mHex,'fleece'):dress==='king'?cloth(mHex,'border',0xd4af37):cloth(mHex,'folds');
-    const backLen=female?1.0:dress==='shepherd'?0.62:0.82;
+    const backLen=female?1.0:dress==='shepherd'?0.62:0.82; mantleM=mM;
     const back=hinge(body,0.46,backLen,0.035,mM,0,1.43,-0.135,'x',-1,true);
     box(0.47,0.05,0.30,mM,0,1.43,-0.01,body);                                           /* over the shoulders */
     if(mantled&&!female){ const front=hinge(body,0.13,0.78,0.03,mM,0.13,1.42,0.125,'x',1,true);
@@ -242,10 +252,10 @@ W.person=function(ctx,o){
   box(hw,hh,hd,skin,0,0,0,head);
   box(0.03,0.05,0.035,skin,hw/2+0.012,0,0,head); box(0.03,0.05,0.035,skin,-hw/2-0.012,0,0,head);     /* ears */
   const hairM=cloth(hairHex,'shaggy');
-  const covered=dress!=='tombs'&&(dress==='woman'||dress==='kohen'||dress==='levite'||dress==='magi'||roman||(o.cloth!=null&&o.cloth!==null&&dress!=='herodian'));
+  const covered=!bare&&(dress==='woman'||dress==='kohen'||dress==='levite'||dress==='magi'||roman||(o.cloth!=null&&o.cloth!==null&&dress!=='herodian'));
   /* hair: on the crown and behind; long on the immerser, short and close on a Roman. Under a
      head-cloth, a turban or a mantle only the cloth is seen behind (dress==='king' wears a diadem) */
-  const veiled=covered||dress==='yahusha'||dress==='fallen';
+  const veiled=covered||(dress==='yahusha'&&!stripped)||dress==='fallen';
   if(dress==='tombs') box(hw+0.01,0.03,hd+0.01,skin,0,hh/2-0.01,0,head);                      /* the scalp, nearly bare */
   else box(hw+0.02,0.06,hd+0.02,hairM,0,hh/2,0,head);
   if(!veiled){
@@ -296,7 +306,7 @@ W.person=function(ctx,o){
   else if(dress==='magi'){ const cM=cloth(o.cloth||0x8a2a2a,'folds');
     box(hw+0.03,0.08,hd+0.03,cM,0,0.11,0,head); box(hw-0.03,0.07,hd-0.04,cM,0,0.17,0.03,head); box(hw-0.08,0.05,0.07,cM,0,0.20,0.08,head); }  /* the soft cap, leaning forward */
   else if(dress==='king'){ box(hw+0.025,0.03,hd+0.025,flat(0xd4af37),0,0.08,0,head); }                         /* the diadem */
-  else if(covered||dress==='yahusha'||dress==='fallen'){
+  else if(covered||(dress==='yahusha'&&!stripped)||dress==='fallen'){
     const cHex=o.cloth!=null?o.cloth:female?0x6a5a7a:0xd9cfb6, cM=cloth(cHex,'folds');
     box(hw+0.035,0.05,hd+0.035,cM,0,hh/2+0.02,0,head);                                               /* over the crown */
     box(0.02,0.16,hd+0.02,cM,hw/2+0.02,0.0,-0.01,head); box(0.02,0.16,hd+0.02,cM,-hw/2-0.02,0.0,-0.01,head);
@@ -306,6 +316,8 @@ W.person=function(ctx,o){
   }
   if(dress==='woman'){ const cM=cloth(o.cloth!=null?o.cloth:0x6a5a7a,'folds'); box(0.04,0.30,0.18,cM,0.13,1.45,-0.02,body); box(0.04,0.30,0.18,cM,-0.13,1.45,-0.02,body); }
 
+  /* "plaiting a crown of thorns, they put it on His head" (Mattithyahu 27:29) */
+  if(o.crown) W.crown(head);
   /* the fallen: the violet light about them */
   if(o.fallen){ const G=W.glow({scene:g},0,1.0,0,3.4,0x785090,0); G.sprite.material.opacity=0.55; g.userData.aura=G;
     const sh=W.glow({scene:g},0,0.05,0,2.2,0x3a2244,0); sh.sprite.material.opacity=0.5; }
@@ -324,10 +336,13 @@ W.person=function(ctx,o){
 
   g.userData={legL,legR,armL,armR,body,cloth:cloths,drapes,head,headY:(1.61*k),setFace,aura:g.userData.aura,
     s:k,holy:dress==='yahusha',dress,phase:Math.random()*6,blink:2+Math.random()*4,
-    tunicMeshes:(()=>{ const out=[]; g.traverse(q=>{ if(q.isMesh&&q.material===tunicM) out.push(q); }); return out; })()};
+    tunicMeshes:(()=>{ const out=[]; g.traverse(q=>{ if(q.isMesh&&q.material===tunicM) out.push(q); }); return out; })(),
+    mantleMeshes:(()=>{ const out=[]; if(mantleM) g.traverse(q=>{ if(q.isMesh&&q.material===mantleM) out.push(q); }); return out; })()};
   ctx.scene.add(g); return g;
 };
 function shade(h,k){ return (Math.min(255,Math.round((h>>16&255)*k))<<16)|(Math.min(255,Math.round((h>>8&255)*k))<<8)|Math.min(255,Math.round((h&255)*k)); }
 /* a robe made another colour (the 'robe' beat): the same weave, the new colour */
-W.recolor=function(g,hex){ const m=cloth(hex,'clavi',shade(hex,0.5)); for(const q of g.userData.tunicMeshes||[]) q.material=m; };
+/* a garment changed: the tunic, and the mantle over it (`mantle`) — "they put a scarlet robe on Him" */
+W.recolor=function(g,hex,mantle){ const m=cloth(hex,'clavi',shade(hex,0.5)); for(const q of g.userData.tunicMeshes||[]) q.material=m;
+  if(mantle!=null){ const mm=cloth(mantle,'folds'); for(const q of g.userData.mantleMeshes||[]) q.material=mm; } };
 })();

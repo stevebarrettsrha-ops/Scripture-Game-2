@@ -12917,6 +12917,33 @@
     "where": "passion/pilate YAHUCHANON 18:38"
    },
    {
+    "key": "9c7d023aa10b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And at the festival the governor used to release to the crowd one prisoner whom they wished.",
+    "kk": "And at the festival the governor used to release to the crowd one prisoner whom they wished.",
+    "where": "passion/pilate MATTITHYAHU 27:15"
+   },
+   {
+    "key": "66d8897d8376",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they had then a well-known prisoner called Barabba.",
+    "kk": "And they had then a well-known prisoner called Barabba.",
+    "where": "passion/pilate MATTITHYAHU 27:16"
+   },
+   {
+    "key": "f8d706b2472d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And there was one called Barabba, chained with his fellow rebels, who had committed murder in the uprising.",
+    "kk": "And there was one called Barabba, chained with his fellow rebels, who had committed murder in the uprising.",
+    "where": "passion/pilate MARK 15:7"
+   },
+   {
     "key": "37eff6923ae9",
     "kind": "man",
     "name": "pilate",
@@ -12953,6 +12980,15 @@
     "where": "passion/pilate YAHUCHANON 18:40"
    },
    {
+    "key": "3c68d4f00c77",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "For he knew that because of envy they had delivered Him up.",
+    "kk": "For he knew that because of envy they had delivered Him up.",
+    "where": "passion/pilate MATTITHYAHU 27:18"
+   },
+   {
     "key": "46913db4cf6d",
     "kind": "narrator",
     "name": "narrator",
@@ -12971,12 +13007,102 @@
     "where": "passion/pilate MATTITHYAHU 27:19"
    },
    {
-    "key": "930e3337a05c",
+    "key": "e30b265b5ada",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But the chief kohanim and elders persuaded the crowds that they should ask for Barabba and to destroy Yahusha.",
+    "kk": "But the chief koh-hah-neem and elders persuaded the crowds that they should ask for Barabba and to destroy yah-hoo-shah.",
+    "where": "passion/pilate MATTITHYAHU 27:20"
+   },
+   {
+    "key": "74b15e22f8bb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Pilate said to them, ",
+    "kk": "Pilate said to them,",
+    "where": "passion/pilate MATTITHYAHU 27:22"
+   },
+   {
+    "key": "fdfe3fa55990",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“What then shall I do with Yahusha who is called Mashiach?”",
+    "kk": "What then shall I do with yah-hoo-shah who is called mah-shee-ahk?",
+    "where": "passion/pilate MATTITHYAHU 27:22"
+   },
+   {
+    "key": "8d53c9242e13",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " They all said to him, ",
+    "kk": "They all said to him,",
+    "where": "passion/pilate MATTITHYAHU 27:22"
+   },
+   {
+    "key": "f2125e52c17d",
+    "kind": "crowd",
+    "name": "yahudim",
+    "who": "The Yahuḏim",
+    "text": "“Let Him be impaled!”",
+    "kk": "Let Him be impaled!",
+    "where": "passion/pilate MATTITHYAHU 27:22"
+   },
+   {
+    "key": "5ee2b472edc3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the governor said, ",
+    "kk": "And the governor said,",
+    "where": "passion/pilate MATTITHYAHU 27:23"
+   },
+   {
+    "key": "12121f56758d",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“Indeed, what evil has He done?”",
+    "kk": "Indeed, what evil has He done?",
+    "where": "passion/pilate MATTITHYAHU 27:23"
+   },
+   {
+    "key": "cf9ac4b378ba",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And they were crying out all the more, saying, ",
+    "kk": "And they were crying out all the more, saying,",
+    "where": "passion/pilate MATTITHYAHU 27:23"
+   },
+   {
+    "key": "da125bc9c56e",
     "kind": "narrator",
     "name": "narrator",
     "who": "The Besorah (narrator)",
-    "text": "The flogging and the mocking are told here as the Besorah tells them. They are not shown.",
-    "kk": "The flogging and the mocking are told here as the beh-soh-rah tells them. They are not shown.",
+    "text": "One voice in all that noise. The man beside you looks at you, and then away, and shouts the louder.",
+    "kk": "One voice in all that noise. The man beside you looks at you, and then away, and shouts the louder.",
+    "where": "passion/pilate choice"
+   },
+   {
+    "key": "92da9e0d73c6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "You say nothing. Neither does He. Only the crowd is loud.",
+    "kk": "You say nothing. Neither does He. Only the crowd is loud.",
+    "where": "passion/pilate choice"
+   },
+   {
+    "key": "8f44a95e936b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "What was done to Him in the court is told here as the Besorah tells it. It is not shown.",
+    "kk": "What was done to Him in the court is told here as the beh-soh-rah tells it. It is not shown.",
     "where": "passion/pilate note"
    },
    {
@@ -12989,22 +13115,31 @@
     "where": "passion/pilate YAHUCHANON 19:1"
    },
    {
-    "key": "31724b32c473",
+    "key": "5933e01bdfa8",
     "kind": "narrator",
     "name": "narrator",
     "who": "The Besorah",
-    "text": "And the soldiers plaited a crown of thorns and placed it on His head, and they put a purple robe on Him,",
-    "kk": "And the soldiers plaited a crown of thorns and placed it on His head, and they put a purple robe on Him,",
-    "where": "passion/pilate YAHUCHANON 19:2"
+    "text": "Then the soldiers of the governor took Yahusha into the court and gathered the entire company of soldiers around Him.",
+    "kk": "Then the soldiers of the governor took yah-hoo-shah into the court and gathered the entire company of soldiers around Him.",
+    "where": "passion/pilate MATTITHYAHU 27:27"
    },
    {
-    "key": "9e9247d1fe7a",
+    "key": "d21222ab405a",
     "kind": "narrator",
     "name": "narrator",
     "who": "The Besorah",
-    "text": "and came to Him and said, ",
-    "kk": "and came to Him and said,",
-    "where": "passion/pilate YAHUCHANON 19:3"
+    "text": "And having stripped Him, they put a scarlet robe on Him.",
+    "kk": "And having stripped Him, they put a scarlet robe on Him.",
+    "where": "passion/pilate MATTITHYAHU 27:28"
+   },
+   {
+    "key": "ab20cd89765c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And plaiting a crown of thorns, they put it on His head and a reed in His right hand. And they kneeled down before Him and mocked Him, saying, ",
+    "kk": "And plaiting a crown of thorns, they put it on His head and a reed in His right hand. And they kneeled down before Him and mocked Him, saying,",
+    "where": "passion/pilate MATTITHYAHU 27:29"
    },
    {
     "key": "923a7b9f36a0",
@@ -13013,16 +13148,16 @@
     "who": "The soldiers",
     "text": "“Greetings, Sovereign of the Yahuḏim!”",
     "kk": "Greetings, Sovereign of the yah-hoo-deem!",
-    "where": "passion/pilate YAHUCHANON 19:3"
+    "where": "passion/pilate MATTITHYAHU 27:29"
    },
    {
-    "key": "f342cbca3f85",
+    "key": "3e90c502078f",
     "kind": "narrator",
     "name": "narrator",
     "who": "The Besorah",
-    "text": " And they slapped Him in the face.",
-    "kk": "And they slapped Him in the face.",
-    "where": "passion/pilate YAHUCHANON 19:3"
+    "text": "And spitting on Him they took the reed and struck Him on the head.",
+    "kk": "And spitting on Him they took the reed and struck Him on the head.",
+    "where": "passion/pilate MATTITHYAHU 27:30"
    },
    {
     "key": "b34e5fa3b086",
@@ -13076,15 +13211,6 @@
     "who": "The chief kohanim",
     "text": "“Impale! Impale!”",
     "kk": "Impale! Impale!",
-    "where": "passion/pilate YAHUCHANON 19:6"
-   },
-   {
-    "key": "74b15e22f8bb",
-    "kind": "narrator",
-    "name": "narrator",
-    "who": "The Besorah",
-    "text": " Pilate said to them, ",
-    "kk": "Pilate said to them,",
     "where": "passion/pilate YAHUCHANON 19:6"
    },
    {
@@ -13295,13 +13421,31 @@
     "where": "passion/pilate MATTITHYAHU 27:25"
    },
    {
-    "key": "b2a80ed2eaad",
+    "key": "3d5f60f6abb9",
     "kind": "narrator",
     "name": "narrator",
     "who": "The Besorah",
-    "text": "At that time, then, he delivered Him to them to be impaled. And they took Yahusha and led Him away.",
-    "kk": "At that time, then, he delivered Him to them to be impaled. And they took yah-hoo-shah and led Him away.",
-    "where": "passion/pilate YAHUCHANON 19:16"
+    "text": "And Pilate pronounced sentence that what they asked should be done.",
+    "kk": "And Pilate pronounced sentence that what they asked should be done.",
+    "where": "passion/pilate LUKE 23:24"
+   },
+   {
+    "key": "3eb5e2a16e28",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And he released the one they asked for, who for uprising and murder had been thrown into prison, but he handed Yahusha over to their wishes.",
+    "kk": "And he released the one they asked for, who for uprising and murder had been thrown into prison, but he handed yah-hoo-shah over to their wishes.",
+    "where": "passion/pilate LUKE 23:25"
+   },
+   {
+    "key": "562d3c1b31f6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when they had mocked Him, they took the robe off Him, then put His own garments on Him and led Him away to be impaled.",
+    "kk": "And when they had mocked Him, they took the robe off Him, then put His own garments on Him and led Him away to be impaled.",
+    "where": "passion/pilate MATTITHYAHU 27:31"
    },
    {
     "key": "2b4b4b363b35",
