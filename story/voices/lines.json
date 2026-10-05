@@ -12917,6 +12917,33 @@
     "where": "passion/pilate YAHUCHANON 18:38"
    },
    {
+    "key": "9c7d023aa10b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And at the festival the governor used to release to the crowd one prisoner whom they wished.",
+    "kk": "And at the festival the governor used to release to the crowd one prisoner whom they wished.",
+    "where": "passion/pilate MATTITHYAHU 27:15"
+   },
+   {
+    "key": "66d8897d8376",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they had then a well-known prisoner called Barabba.",
+    "kk": "And they had then a well-known prisoner called Barabba.",
+    "where": "passion/pilate MATTITHYAHU 27:16"
+   },
+   {
+    "key": "f8d706b2472d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And there was one called Barabba, chained with his fellow rebels, who had committed murder in the uprising.",
+    "kk": "And there was one called Barabba, chained with his fellow rebels, who had committed murder in the uprising.",
+    "where": "passion/pilate MARK 15:7"
+   },
+   {
     "key": "37eff6923ae9",
     "kind": "man",
     "name": "pilate",
@@ -12953,6 +12980,15 @@
     "where": "passion/pilate YAHUCHANON 18:40"
    },
    {
+    "key": "3c68d4f00c77",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "For he knew that because of envy they had delivered Him up.",
+    "kk": "For he knew that because of envy they had delivered Him up.",
+    "where": "passion/pilate MATTITHYAHU 27:18"
+   },
+   {
     "key": "46913db4cf6d",
     "kind": "narrator",
     "name": "narrator",
@@ -12971,12 +13007,102 @@
     "where": "passion/pilate MATTITHYAHU 27:19"
    },
    {
-    "key": "930e3337a05c",
+    "key": "e30b265b5ada",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But the chief kohanim and elders persuaded the crowds that they should ask for Barabba and to destroy Yahusha.",
+    "kk": "But the chief koh-hah-neem and elders persuaded the crowds that they should ask for Barabba and to destroy yah-hoo-shah.",
+    "where": "passion/pilate MATTITHYAHU 27:20"
+   },
+   {
+    "key": "74b15e22f8bb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Pilate said to them, ",
+    "kk": "Pilate said to them,",
+    "where": "passion/pilate MATTITHYAHU 27:22"
+   },
+   {
+    "key": "fdfe3fa55990",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“What then shall I do with Yahusha who is called Mashiach?”",
+    "kk": "What then shall I do with yah-hoo-shah who is called mah-shee-ahk?",
+    "where": "passion/pilate MATTITHYAHU 27:22"
+   },
+   {
+    "key": "8d53c9242e13",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " They all said to him, ",
+    "kk": "They all said to him,",
+    "where": "passion/pilate MATTITHYAHU 27:22"
+   },
+   {
+    "key": "f2125e52c17d",
+    "kind": "crowd",
+    "name": "yahudim",
+    "who": "The Yahuḏim",
+    "text": "“Let Him be impaled!”",
+    "kk": "Let Him be impaled!",
+    "where": "passion/pilate MATTITHYAHU 27:22"
+   },
+   {
+    "key": "5ee2b472edc3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the governor said, ",
+    "kk": "And the governor said,",
+    "where": "passion/pilate MATTITHYAHU 27:23"
+   },
+   {
+    "key": "12121f56758d",
+    "kind": "man",
+    "name": "pilate",
+    "who": "Pilate",
+    "text": "“Indeed, what evil has He done?”",
+    "kk": "Indeed, what evil has He done?",
+    "where": "passion/pilate MATTITHYAHU 27:23"
+   },
+   {
+    "key": "cf9ac4b378ba",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And they were crying out all the more, saying, ",
+    "kk": "And they were crying out all the more, saying,",
+    "where": "passion/pilate MATTITHYAHU 27:23"
+   },
+   {
+    "key": "da125bc9c56e",
     "kind": "narrator",
     "name": "narrator",
     "who": "The Besorah (narrator)",
-    "text": "The flogging and the mocking are told here as the Besorah tells them. They are not shown.",
-    "kk": "The flogging and the mocking are told here as the beh-soh-rah tells them. They are not shown.",
+    "text": "One voice in all that noise. The man beside you looks at you, and then away, and shouts the louder.",
+    "kk": "One voice in all that noise. The man beside you looks at you, and then away, and shouts the louder.",
+    "where": "passion/pilate choice"
+   },
+   {
+    "key": "92da9e0d73c6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "You say nothing. Neither does He. Only the crowd is loud.",
+    "kk": "You say nothing. Neither does He. Only the crowd is loud.",
+    "where": "passion/pilate choice"
+   },
+   {
+    "key": "8f44a95e936b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "What was done to Him in the court is told here as the Besorah tells it. It is not shown.",
+    "kk": "What was done to Him in the court is told here as the beh-soh-rah tells it. It is not shown.",
     "where": "passion/pilate note"
    },
    {
@@ -12989,22 +13115,31 @@
     "where": "passion/pilate YAHUCHANON 19:1"
    },
    {
-    "key": "31724b32c473",
+    "key": "5933e01bdfa8",
     "kind": "narrator",
     "name": "narrator",
     "who": "The Besorah",
-    "text": "And the soldiers plaited a crown of thorns and placed it on His head, and they put a purple robe on Him,",
-    "kk": "And the soldiers plaited a crown of thorns and placed it on His head, and they put a purple robe on Him,",
-    "where": "passion/pilate YAHUCHANON 19:2"
+    "text": "Then the soldiers of the governor took Yahusha into the court and gathered the entire company of soldiers around Him.",
+    "kk": "Then the soldiers of the governor took yah-hoo-shah into the court and gathered the entire company of soldiers around Him.",
+    "where": "passion/pilate MATTITHYAHU 27:27"
    },
    {
-    "key": "9e9247d1fe7a",
+    "key": "d21222ab405a",
     "kind": "narrator",
     "name": "narrator",
     "who": "The Besorah",
-    "text": "and came to Him and said, ",
-    "kk": "and came to Him and said,",
-    "where": "passion/pilate YAHUCHANON 19:3"
+    "text": "And having stripped Him, they put a scarlet robe on Him.",
+    "kk": "And having stripped Him, they put a scarlet robe on Him.",
+    "where": "passion/pilate MATTITHYAHU 27:28"
+   },
+   {
+    "key": "ab20cd89765c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And plaiting a crown of thorns, they put it on His head and a reed in His right hand. And they kneeled down before Him and mocked Him, saying, ",
+    "kk": "And plaiting a crown of thorns, they put it on His head and a reed in His right hand. And they kneeled down before Him and mocked Him, saying,",
+    "where": "passion/pilate MATTITHYAHU 27:29"
    },
    {
     "key": "923a7b9f36a0",
@@ -13013,16 +13148,16 @@
     "who": "The soldiers",
     "text": "“Greetings, Sovereign of the Yahuḏim!”",
     "kk": "Greetings, Sovereign of the yah-hoo-deem!",
-    "where": "passion/pilate YAHUCHANON 19:3"
+    "where": "passion/pilate MATTITHYAHU 27:29"
    },
    {
-    "key": "f342cbca3f85",
+    "key": "3e90c502078f",
     "kind": "narrator",
     "name": "narrator",
     "who": "The Besorah",
-    "text": " And they slapped Him in the face.",
-    "kk": "And they slapped Him in the face.",
-    "where": "passion/pilate YAHUCHANON 19:3"
+    "text": "And spitting on Him they took the reed and struck Him on the head.",
+    "kk": "And spitting on Him they took the reed and struck Him on the head.",
+    "where": "passion/pilate MATTITHYAHU 27:30"
    },
    {
     "key": "b34e5fa3b086",
@@ -13076,15 +13211,6 @@
     "who": "The chief kohanim",
     "text": "“Impale! Impale!”",
     "kk": "Impale! Impale!",
-    "where": "passion/pilate YAHUCHANON 19:6"
-   },
-   {
-    "key": "74b15e22f8bb",
-    "kind": "narrator",
-    "name": "narrator",
-    "who": "The Besorah",
-    "text": " Pilate said to them, ",
-    "kk": "Pilate said to them,",
     "where": "passion/pilate YAHUCHANON 19:6"
    },
    {
@@ -13295,13 +13421,31 @@
     "where": "passion/pilate MATTITHYAHU 27:25"
    },
    {
-    "key": "b2a80ed2eaad",
+    "key": "3d5f60f6abb9",
     "kind": "narrator",
     "name": "narrator",
     "who": "The Besorah",
-    "text": "At that time, then, he delivered Him to them to be impaled. And they took Yahusha and led Him away.",
-    "kk": "At that time, then, he delivered Him to them to be impaled. And they took yah-hoo-shah and led Him away.",
-    "where": "passion/pilate YAHUCHANON 19:16"
+    "text": "And Pilate pronounced sentence that what they asked should be done.",
+    "kk": "And Pilate pronounced sentence that what they asked should be done.",
+    "where": "passion/pilate LUKE 23:24"
+   },
+   {
+    "key": "3eb5e2a16e28",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And he released the one they asked for, who for uprising and murder had been thrown into prison, but he handed Yahusha over to their wishes.",
+    "kk": "And he released the one they asked for, who for uprising and murder had been thrown into prison, but he handed yah-hoo-shah over to their wishes.",
+    "where": "passion/pilate LUKE 23:25"
+   },
+   {
+    "key": "562d3c1b31f6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when they had mocked Him, they took the robe off Him, then put His own garments on Him and led Him away to be impaled.",
+    "kk": "And when they had mocked Him, they took the robe off Him, then put His own garments on Him and led Him away to be impaled.",
+    "where": "passion/pilate MATTITHYAHU 27:31"
    },
    {
     "key": "2b4b4b363b35",
@@ -14157,6 +14301,1896 @@
     "text": "The end of Act VI. Next: The Rising",
     "kk": "The end of Act six. Next, The Rising",
     "where": "passion/tomb title"
+   },
+   {
+    "key": "3257a900e79d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when the Shabbath was past, Miryam from Maḡdala and Miryam the mother of Ya‛aqoḇ and Shelomah bought spices, to go and anoint Him.",
+    "kk": "And when the Shabbath was past, meer-yahm from Magdala and meer-yahm the mother of Yaaqob and Shelomah bought spices, to go and anoint Him.",
+    "where": "risen/dawn MARK 16:1"
+   },
+   {
+    "key": "21b788549ddd",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And very early on the first day of the week, they came to the tomb when the sun had risen.",
+    "kk": "And very early on the first day of the week, they came to the tomb when the sun had risen.",
+    "where": "risen/dawn MARK 16:2"
+   },
+   {
+    "key": "a3aef4d1413a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they said among themselves, ",
+    "kk": "And they said among themselves,",
+    "where": "risen/dawn MARK 16:3"
+   },
+   {
+    "key": "6d26df5b0f30",
+    "kind": "woman",
+    "name": "women",
+    "who": "The women",
+    "text": "“Who shall roll away the stone from the entrance of the tomb for us?”",
+    "kk": "Who shall roll away the stone from the entrance of the tomb for us?",
+    "where": "risen/dawn MARK 16:3"
+   },
+   {
+    "key": "50b32927eac8",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And see, there was a great earthquake, for a mal'ak of (YAHUAH) HWHY came down out of shamayim and came and rolled back the stone from the door, and sat on it.",
+    "kk": "And see, there was a great earthquake, for a mahl-ahk of YAHUAH came down out of shah-mah-yeem and came and rolled back the stone from the door, and sat on it.",
+    "where": "risen/dawn MATTITHYAHU 28:2"
+   },
+   {
+    "key": "d373e49633f3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And his appearance was like lightning and his garments as white as snow.",
+    "kk": "And his appearance was like lightning and his garments as white as snow.",
+    "where": "risen/dawn MATTITHYAHU 28:3"
+   },
+   {
+    "key": "0b377f09afd2",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the guards trembled for fear of him and became like dead men.",
+    "kk": "And the guards trembled for fear of him and became like dead men.",
+    "where": "risen/dawn MATTITHYAHU 28:4"
+   },
+   {
+    "key": "ba12e28ef0e5",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the mal'ak responding, said to the women, ",
+    "kk": "And the mahl-ahk responding, said to the women,",
+    "where": "risen/dawn MATTITHYAHU 28:5"
+   },
+   {
+    "key": "b7384dc4d397",
+    "kind": "angel",
+    "name": "malak",
+    "who": "A mal’ak of (YAHUAH) HWHY",
+    "text": "“Do not be afraid, for I know that you seek Yahusha who was impaled.",
+    "kk": "Do not be afraid, for I know that you seek yah-hoo-shah who was impaled.",
+    "where": "risen/dawn MATTITHYAHU 28:5"
+   },
+   {
+    "key": "2be7abdcd879",
+    "kind": "angel",
+    "name": "malak",
+    "who": "A mal’ak of (YAHUAH) HWHY",
+    "text": "”He is not here, for He was raised, as He said. Come, see the place where the Master lay.",
+    "kk": "He is not here, for He was raised, as He said. Come, see the place where the Master lay.",
+    "where": "risen/dawn MATTITHYAHU 28:6"
+   },
+   {
+    "key": "cea43cfa95c7",
+    "kind": "angel",
+    "name": "malak",
+    "who": "A mal’ak of (YAHUAH) HWHY",
+    "text": "“And go quickly, say to His taught ones that He was raised from the dead, and see, He is going before you to Galil. There you shall see Him. See, I have told you.”",
+    "kk": "And go quickly, say to His taught ones that He was raised from the dead, and see, He is going before you to gah-leel. There you shall see Him. See, I have told you.",
+    "where": "risen/dawn MATTITHYAHU 28:7"
+   },
+   {
+    "key": "dc959298adeb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they left the tomb quickly, with fear and great joy and ran to report to His taught ones.",
+    "kk": "And they left the tomb quickly, with fear and great joy and ran to report to His taught ones.",
+    "where": "risen/dawn MATTITHYAHU 28:8"
+   },
+   {
+    "key": "7a788f34cbd3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And as they were going to report to His taught ones, see, Yahusha met them, saying, ",
+    "kk": "And as they were going to report to His taught ones, see, yah-hoo-shah met them, saying,",
+    "where": "risen/dawn MATTITHYAHU 28:9"
+   },
+   {
+    "key": "6823c8713d0c",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Greetings!”",
+    "kk": "Greetings!",
+    "where": "risen/dawn MATTITHYAHU 28:9"
+   },
+   {
+    "key": "29bd9df9eaac",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And they came and held Him by the feet and did bow to Him.",
+    "kk": "And they came and held Him by the feet and did bow to Him.",
+    "where": "risen/dawn MATTITHYAHU 28:9"
+   },
+   {
+    "key": "73ca16b308ea",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then Yahusha said to them, ",
+    "kk": "Then yah-hoo-shah said to them,",
+    "where": "risen/dawn MATTITHYAHU 28:10"
+   },
+   {
+    "key": "762615c75252",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Do not be afraid. Go, report to My brothers, to go to Galil and they shall see Me there.”",
+    "kk": "Do not be afraid. Go, report to My brothers, to go to gah-leel and they shall see Me there.",
+    "where": "risen/dawn MATTITHYAHU 28:10"
+   },
+   {
+    "key": "5d6fafc99870",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "You helped roll it across the door the day before yesterday. It lies back in its channel now, and the tomb is open to the morning.",
+    "kk": "You helped roll it across the door the day before yesterday. It lies back in its channel now, and the tomb is open to the morning.",
+    "where": "risen/dawn choice"
+   },
+   {
+    "key": "08ce5544e285",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "They are getting up off the ground, slowly, the way men do who do not know what has happened to them. One of them is already running for the city.",
+    "kk": "They are getting up off the ground, slowly, the way men do who do not know what has happened to them. One of them is already running for the city.",
+    "where": "risen/dawn choice"
+   },
+   {
+    "key": "85d07e336354",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And while they were going, see, some of the watch having gone into the city, reported to the chief kohanim all that took place.",
+    "kk": "And while they were going, see, some of the watch having gone into the city, reported to the chief koh-hah-neem all that took place.",
+    "where": "risen/watch MATTITHYAHU 28:11"
+   },
+   {
+    "key": "d8d115f8ac63",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when they came together with the elders and taken counsel, they gave enough silver to the soldiers,",
+    "kk": "And when they came together with the elders and taken counsel, they gave enough silver to the soldiers,",
+    "where": "risen/watch MATTITHYAHU 28:12"
+   },
+   {
+    "key": "6e144ee8524d",
+    "kind": "oldman",
+    "name": "chief kohanim and elders",
+    "who": "The chief kohanim and the elders",
+    "text": "“Say that His taught ones came at night and stole Him away while we slept.",
+    "kk": "Say that His taught ones came at night and stole Him away while we slept.",
+    "where": "risen/watch MATTITHYAHU 28:13"
+   },
+   {
+    "key": "96e9fbc5cf24",
+    "kind": "oldman",
+    "name": "chief kohanim and elders",
+    "who": "The chief kohanim and the elders",
+    "text": "“And if this should be reported to the governor, we shall win him over and keep you out of trouble.”",
+    "kk": "And if this should be reported to the governor, we shall win him over and keep you out of trouble.",
+    "where": "risen/watch MATTITHYAHU 28:14"
+   },
+   {
+    "key": "a1c48877dcbe",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having taken the silver they did as they were instructed. And this account was widely spread among the Yahuḏim, to this day.",
+    "kk": "And having taken the silver they did as they were instructed. And this account was widely spread among the yah-hoo-deem, to this day.",
+    "where": "risen/watch MATTITHYAHU 28:15"
+   },
+   {
+    "key": "74f23e9d0a2c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "They do not look at you. One of them is still white in the face. You will hear their story in the market by evening, and you will know it is not true.",
+    "kk": "They do not look at you. One of them is still white in the face. You will hear their story in the market by evening, and you will know it is not true.",
+    "where": "risen/watch choice"
+   },
+   {
+    "key": "8e3e2bae94fb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "\"We slept,\" he says, too quickly, and does not stop walking.",
+    "kk": "We slept, he says, too quickly, and does not stop walking.",
+    "where": "risen/watch choice"
+   },
+   {
+    "key": "a7eae1543773",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having returned from the tomb they reported all this to the eleven and to all the rest.",
+    "kk": "And having returned from the tomb they reported all this to the eleven and to all the rest.",
+    "where": "risen/told LUKE 24:9"
+   },
+   {
+    "key": "f5f8ee3c2b65",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And it was Miryam from Maḡdala and Yoḥanah and Miryam the mother of Ya‛aqoḇ and the rest with them, who told this to the emissaries.",
+    "kk": "And it was meer-yahm from Magdala and Yokanah and meer-yahm the mother of Yaaqob and the rest with them, who told this to the emissaries.",
+    "where": "risen/told LUKE 24:10"
+   },
+   {
+    "key": "bfb1fb4523d0",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Their words appeared to them to be nonsense and they did not believe them.",
+    "kk": "Their words appeared to them to be nonsense and they did not believe them.",
+    "where": "risen/told LUKE 24:11"
+   },
+   {
+    "key": "1a7b684b9adc",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "So she ran and came to Shim‛on Kĕpha, and to the other taught one whom Yahusha loved, and said to them, ",
+    "kk": "So she ran and came to sheem-ohn kay-fah, and to the other taught one whom yah-hoo-shah loved, and said to them,",
+    "where": "risen/told YAHUCHANON 20:2"
+   },
+   {
+    "key": "4c0b517951f6",
+    "kind": "woman",
+    "name": "miryam",
+    "who": "Miryam from Maḡdala",
+    "text": "“They have taken the Master out of the tomb, and we do not know where they laid Him.”",
+    "kk": "They have taken the Master out of the tomb, and we do not know where they laid Him.",
+    "where": "risen/told YAHUCHANON 20:2"
+   },
+   {
+    "key": "5fff4e8e117d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then Kĕpha and the other taught one went out and they were going to the tomb,",
+    "kk": "Then kay-fah and the other taught one went out and they were going to the tomb,",
+    "where": "risen/told YAHUCHANON 20:3"
+   },
+   {
+    "key": "df37f3df473a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "and the two were running together, but the other taught one outran Kĕpha and came to the tomb first.",
+    "kk": "and the two were running together, but the other taught one outran kay-fah and came to the tomb first.",
+    "where": "risen/garden YAHUCHANON 20:4"
+   },
+   {
+    "key": "63a7d5252b1a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And stooping down he saw the linen wrappings lying, but he did not go in.",
+    "kk": "And stooping down he saw the linen wrappings lying, but he did not go in.",
+    "where": "risen/garden YAHUCHANON 20:5"
+   },
+   {
+    "key": "df9b3263814c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then Shim‛on Kĕpha came, following him, and went into the tomb. And he saw the linen wrappings lying,",
+    "kk": "Then sheem-ohn kay-fah came, following him, and went into the tomb. And he saw the linen wrappings lying,",
+    "where": "risen/garden YAHUCHANON 20:6"
+   },
+   {
+    "key": "eb1f2de90bc6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "and the cloth which had been on His head, not lying with the linen wrappings, but folded up in a place by itself.",
+    "kk": "and the cloth which had been on His head, not lying with the linen wrappings, but folded up in a place by itself.",
+    "where": "risen/garden YAHUCHANON 20:7"
+   },
+   {
+    "key": "b6acacaaa107",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "So, then, the other taught one, who came to the tomb first, also went in. And he saw and believed.",
+    "kk": "So, then, the other taught one, who came to the tomb first, also went in. And he saw and believed.",
+    "where": "risen/garden YAHUCHANON 20:8"
+   },
+   {
+    "key": "10174fdef935",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "For they did not yet know the Scripture, that He has to rise again from the dead.",
+    "kk": "For they did not yet know the Scripture, that He has to rise again from the dead.",
+    "where": "risen/garden YAHUCHANON 20:9"
+   },
+   {
+    "key": "7fc03dbf7d54",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Therefore the taught ones went away again, by themselves.",
+    "kk": "Therefore the taught ones went away again, by themselves.",
+    "where": "risen/garden YAHUCHANON 20:10"
+   },
+   {
+    "key": "3ab822f56d90",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But Miryam was standing outside by the tomb weeping. Then as she wept, she stooped down to the tomb,",
+    "kk": "But meer-yahm was standing outside by the tomb weeping. Then as she wept, she stooped down to the tomb,",
+    "where": "risen/garden YAHUCHANON 20:11"
+   },
+   {
+    "key": "0c11e103d396",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "and saw two mal'akim in white sitting, one at the head and the other at the feet, where the body of Yahusha had been laid.",
+    "kk": "and saw two mahl-ah-keem in white sitting, one at the head and the other at the feet, where the body of yah-hoo-shah had been laid.",
+    "where": "risen/garden YAHUCHANON 20:12"
+   },
+   {
+    "key": "b45d1d6f3470",
+    "kind": "angel",
+    "name": "two malakim in the tomb",
+    "who": "Two mal’akim in white",
+    "text": "“Woman, why do you weep?”",
+    "kk": "Woman, why do you weep?",
+    "where": "risen/garden YAHUCHANON 20:13"
+   },
+   {
+    "key": "7e651fa55ba6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " She said to them, ",
+    "kk": "She said to them,",
+    "where": "risen/garden YAHUCHANON 20:13"
+   },
+   {
+    "key": "d4006db78cfe",
+    "kind": "woman",
+    "name": "miryam",
+    "who": "Miryam from Maḡdala",
+    "text": "“Because they took away my Master, and I do not know where they laid Him.”",
+    "kk": "Because they took away my Master, and I do not know where they laid Him.",
+    "where": "risen/garden YAHUCHANON 20:13"
+   },
+   {
+    "key": "7859312cf5fb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having said this, she turned around and saw Yahusha standing, but she did not know that it was Yahusha.",
+    "kk": "And having said this, she turned around and saw yah-hoo-shah standing, but she did not know that it was yah-hoo-shah.",
+    "where": "risen/garden YAHUCHANON 20:14"
+   },
+   {
+    "key": "816d61bcec07",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Woman, why do you weep? Whom do you seek?”",
+    "kk": "Woman, why do you weep? Whom do you seek?",
+    "where": "risen/garden YAHUCHANON 20:15"
+   },
+   {
+    "key": "baab9edabe3f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " Thinking He was the gardener, she said to Him, ",
+    "kk": "Thinking He was the gardener, she said to Him,",
+    "where": "risen/garden YAHUCHANON 20:15"
+   },
+   {
+    "key": "dd0db3326d8d",
+    "kind": "woman",
+    "name": "miryam",
+    "who": "Miryam from Maḡdala",
+    "text": "“Master, if You have carried Him away, say to me where You put Him, and I shall take Him away.”",
+    "kk": "Master, if You have carried Him away, say to me where You put Him, and I shall take Him away.",
+    "where": "risen/garden YAHUCHANON 20:15"
+   },
+   {
+    "key": "c8af73cec371",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Miryam!”",
+    "kk": "meer-yahm!",
+    "where": "risen/garden YAHUCHANON 20:16"
+   },
+   {
+    "key": "693c74140bc7",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " She turned and said to Him, ",
+    "kk": "She turned and said to Him,",
+    "where": "risen/garden YAHUCHANON 20:16"
+   },
+   {
+    "key": "02a29e640fa5",
+    "kind": "woman",
+    "name": "miryam",
+    "who": "Miryam from Maḡdala",
+    "text": "“Rabboni!”",
+    "kk": "Rabboni!",
+    "where": "risen/garden YAHUCHANON 20:16"
+   },
+   {
+    "key": "8ae1ce7ba12c",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Do not hold on to Me, for I have not yet ascended to My Father. But go to My brothers and say to them, ‘I am ascending to My Father and your Father and to My Aluahim and your Aluahim.’ ”",
+    "kk": "Do not hold on to Me, for I have not yet ascended to My Father. But go to My brothers and say to them, I am ascending to My Father and your Father and to My al-oo-ah-heem and your al-oo-ah-heem.",
+    "where": "risen/garden YAHUCHANON 20:17"
+   },
+   {
+    "key": "4decbc598b26",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Miryam from Maḡdala came announcing to the taught ones that she had seen the Master, and that He had told her this.",
+    "kk": "meer-yahm from Magdala came announcing to the taught ones that she had seen the Master, and that He had told her this.",
+    "where": "risen/garden YAHUCHANON 20:18"
+   },
+   {
+    "key": "1b1eb3bf0046",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "It lies by itself, folded, apart from the wrappings. Thieves do not fold things.",
+    "kk": "It lies by itself, folded, apart from the wrappings. Thieves do not fold things.",
+    "where": "risen/garden choice"
+   },
+   {
+    "key": "ac52ffce70d5",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "There is no one in the garden but you now, and the bees in the flowers.",
+    "kk": "There is no one in the garden but you now, and the bees in the flowers.",
+    "where": "risen/garden choice"
+   },
+   {
+    "key": "43b7381f2f32",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And see, two of them were going that same day to a village called Amma’us, which was twelve kilometres from Yahrushalayim.",
+    "kk": "And see, two of them were going that same day to a village called Ammaus, which was twelve kilometres from yah-roo-shah-lah-yeem.",
+    "where": "risen/emmaus LUKE 24:13"
+   },
+   {
+    "key": "27c22d75d5c0",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they were talking to each other of all this which had taken place.",
+    "kk": "And they were talking to each other of all this which had taken place.",
+    "where": "risen/emmaus LUKE 24:14"
+   },
+   {
+    "key": "a833fa1e29dd",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And it came to be, as they were talking and reasoning, that Yahusha Himself drew near and went with them.",
+    "kk": "And it came to be, as they were talking and reasoning, that yah-hoo-shah Himself drew near and went with them.",
+    "where": "risen/emmaus LUKE 24:15"
+   },
+   {
+    "key": "77518ade22c3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But their eyes were restrained, so that they did not know Him.",
+    "kk": "But their eyes were restrained, so that they did not know Him.",
+    "where": "risen/emmaus LUKE 24:16"
+   },
+   {
+    "key": "c21be0fc8b31",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“What are these words you are exchanging with each other as you’re walking and are sad?”",
+    "kk": "What are these words you are exchanging with each other as you're walking and are sad?",
+    "where": "risen/emmaus LUKE 24:17"
+   },
+   {
+    "key": "0e38c7d4bb03",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the one whose name was Qleophas answering, said to Him, ",
+    "kk": "And the one whose name was Qleophas answering, said to Him,",
+    "where": "risen/emmaus LUKE 24:18"
+   },
+   {
+    "key": "838fdd1dbdc4",
+    "kind": "man",
+    "name": "qleophas",
+    "who": "Qleophas",
+    "text": "“Are You the lone visitor in Yahrushalayim who does not know what took place in it these days?”",
+    "kk": "Are You the lone visitor in yah-roo-shah-lah-yeem who does not know what took place in it these days?",
+    "where": "risen/emmaus LUKE 24:18"
+   },
+   {
+    "key": "3d19d0d35d4c",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“What?”",
+    "kk": "What?",
+    "where": "risen/emmaus LUKE 24:19"
+   },
+   {
+    "key": "9fc3098a8729",
+    "kind": "man",
+    "name": "two on the road to ammaus",
+    "who": "Qleophas and his companion",
+    "text": "“Concerning Yahusha of Natsareth, who was a Naḇi mighty in deed and word before Aluahim and all the people,",
+    "kk": "Concerning yah-hoo-shah of nahts-ah-ret, who was a nah-vee mighty in deed and word before al-oo-ah-heem and all the people,",
+    "where": "risen/emmaus LUKE 24:19"
+   },
+   {
+    "key": "c51d5f8a8263",
+    "kind": "man",
+    "name": "two on the road to ammaus",
+    "who": "Qleophas and his companion",
+    "text": "and how the chief kohanim and our rulers delivered Him to be condemned to death and impaled Him.",
+    "kk": "and how the chief koh-hah-neem and our rulers delivered Him to be condemned to death and impaled Him.",
+    "where": "risen/emmaus LUKE 24:20"
+   },
+   {
+    "key": "c05e5e1503b4",
+    "kind": "man",
+    "name": "two on the road to ammaus",
+    "who": "Qleophas and his companion",
+    "text": "“We, however, were expecting that it was He who was going to redeem Yasharal. But besides all this, today is the third day since these matters took place.",
+    "kk": "We, however, were expecting that it was He who was going to redeem yah-shar-al. But besides all this, today is the third day since these matters took place.",
+    "where": "risen/emmaus LUKE 24:21"
+   },
+   {
+    "key": "b3e674c8abb5",
+    "kind": "man",
+    "name": "two on the road to ammaus",
+    "who": "Qleophas and his companion",
+    "text": "“Certain women of ours, who arrived at the tomb early, also astonished us,",
+    "kk": "Certain women of ours, who arrived at the tomb early, also astonished us,",
+    "where": "risen/emmaus LUKE 24:22"
+   },
+   {
+    "key": "0f34446425bb",
+    "kind": "man",
+    "name": "two on the road to ammaus",
+    "who": "Qleophas and his companion",
+    "text": "when they did not find His body, they came saying that they had also seen a vision of mal'akim who said He was alive.",
+    "kk": "when they did not find His body, they came saying that they had also seen a vision of mahl-ah-keem who said He was alive.",
+    "where": "risen/emmaus LUKE 24:23"
+   },
+   {
+    "key": "ebe9407ed307",
+    "kind": "man",
+    "name": "two on the road to ammaus",
+    "who": "Qleophas and his companion",
+    "text": "“Some of those with us went to the tomb and found it, as also the women had said, but they did not see Him.”",
+    "kk": "Some of those with us went to the tomb and found it, as also the women had said, but they did not see Him.",
+    "where": "risen/emmaus LUKE 24:24"
+   },
+   {
+    "key": "f324d1be8ef1",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“O thoughtless ones and slow of heart to believe in all that the naḇi'im have spoken!",
+    "kk": "O thoughtless ones and slow of heart to believe in all that the nabiim have spoken!",
+    "where": "risen/emmaus LUKE 24:25"
+   },
+   {
+    "key": "9c09fb2f6658",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Was it not necessary for the Mashiach to suffer these and to enter into His esteem?”",
+    "kk": "Was it not necessary for the mah-shee-ahk to suffer these and to enter into His esteem?",
+    "where": "risen/emmaus LUKE 24:26"
+   },
+   {
+    "key": "768f40dfe08e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And beginning at Mosheh and all the Naḇi'im, He was explaining to them in all the Scriptures the matters concerning Himself.",
+    "kk": "And beginning at Mosheh and all the Nabiim, He was explaining to them in all the Scriptures the matters concerning Himself.",
+    "where": "risen/emmaus LUKE 24:27"
+   },
+   {
+    "key": "e348f7b23951",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they approached the village where they were going and He seemed to be going on.",
+    "kk": "And they approached the village where they were going and He seemed to be going on.",
+    "where": "risen/emmaus LUKE 24:28"
+   },
+   {
+    "key": "184edc761b93",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But they urged Him strongly, saying, ",
+    "kk": "But they urged Him strongly, saying,",
+    "where": "risen/emmaus LUKE 24:29"
+   },
+   {
+    "key": "c431557c6295",
+    "kind": "man",
+    "name": "two on the road to ammaus",
+    "who": "Qleophas and his companion",
+    "text": "“Stay with us, for it is toward evening and the day has declined.”",
+    "kk": "Stay with us, for it is toward evening and the day has declined.",
+    "where": "risen/emmaus LUKE 24:29"
+   },
+   {
+    "key": "d2bfb48ab589",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And He went in to stay with them.",
+    "kk": "And He went in to stay with them.",
+    "where": "risen/emmaus LUKE 24:29"
+   },
+   {
+    "key": "ef52084c4389",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And it came to be, when He sat at the table with them, having taken the bread, He baruk and having broken, He was giving it to them.",
+    "kk": "And it came to be, when He sat at the table with them, having taken the bread, He baruk and having broken, He was giving it to them.",
+    "where": "risen/emmaus LUKE 24:30"
+   },
+   {
+    "key": "f53626e3a7fe",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And their eyes were opened and they recognised Him. And He disappeared from their sight.",
+    "kk": "And their eyes were opened and they recognised Him. And He disappeared from their sight.",
+    "where": "risen/emmaus LUKE 24:31"
+   },
+   {
+    "key": "859077e771f6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they said to each other, ",
+    "kk": "And they said to each other,",
+    "where": "risen/emmaus LUKE 24:32"
+   },
+   {
+    "key": "152e5f0c9f53",
+    "kind": "man",
+    "name": "two on the road to ammaus",
+    "who": "Qleophas and his companion",
+    "text": "“Was not our heart burning within us as He was speaking to us on the way and as He was opening the Scriptures to us?”",
+    "kk": "Was not our heart burning within us as He was speaking to us on the way and as He was opening the Scriptures to us?",
+    "where": "risen/emmaus LUKE 24:32"
+   },
+   {
+    "key": "47ce866dae34",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And rising up that same hour they returned to Yahrushalayim and found the eleven and those who were with them gathered together,",
+    "kk": "And rising up that same hour they returned to yah-roo-shah-lah-yeem and found the eleven and those who were with them gathered together,",
+    "where": "risen/emmaus LUKE 24:33"
+   },
+   {
+    "key": "10125a66d905",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "The bread lies broken where He broke it. The cushion is still pressed down.",
+    "kk": "The bread lies broken where He broke it. The cushion is still pressed down.",
+    "where": "risen/emmaus choice"
+   },
+   {
+    "key": "ef38b95e4353",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Twelve kilometres, in the dark, uphill. None of you notices.",
+    "kk": "Twelve kilometres, in the dark, uphill. None of you notices.",
+    "where": "risen/emmaus choice"
+   },
+   {
+    "key": "cce483099c8e",
+    "kind": "crowd",
+    "name": "eleven",
+    "who": "The eleven and those with them",
+    "text": "“The Master was truly raised and has appeared to Shim‛on!”",
+    "kk": "The Master was truly raised and has appeared to sheem-ohn!",
+    "where": "risen/evening LUKE 24:34"
+   },
+   {
+    "key": "c4a181ee2fc9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they related what took place on the way and how He was recognised by them in the breaking of the bread.",
+    "kk": "And they related what took place on the way and how He was recognised by them in the breaking of the bread.",
+    "where": "risen/evening LUKE 24:35"
+   },
+   {
+    "key": "14f01c02c073",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "As they were saying this, Yahusha Himself stood in the midst of them and said to them, ",
+    "kk": "As they were saying this, yah-hoo-shah Himself stood in the midst of them and said to them,",
+    "where": "risen/evening LUKE 24:36"
+   },
+   {
+    "key": "72f44652c3e3",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Shalom to you.”",
+    "kk": "shah-lohm to you.",
+    "where": "risen/evening LUKE 24:36"
+   },
+   {
+    "key": "710d13684a41",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And being startled and frightened, they thought they had seen a ruach.",
+    "kk": "And being startled and frightened, they thought they had seen a roo-ahk.",
+    "where": "risen/evening LUKE 24:37"
+   },
+   {
+    "key": "6b4f46dff5b6",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Why are you troubled? And why do doubts arise in your hearts?",
+    "kk": "Why are you troubled? And why do doubts arise in your hearts?",
+    "where": "risen/evening LUKE 24:38"
+   },
+   {
+    "key": "4122470dd4f8",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“See My hands and My feet, that it is I Myself. Handle Me and see, for a ruach does not have flesh and bones as you see I have.”",
+    "kk": "See My hands and My feet, that it is I Myself. Handle Me and see, for a roo-ahk does not have flesh and bones as you see I have.",
+    "where": "risen/evening LUKE 24:39"
+   },
+   {
+    "key": "d42276c976ea",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And saying this, He showed them His hands and His feet.",
+    "kk": "And saying this, He showed them His hands and His feet.",
+    "where": "risen/evening LUKE 24:40"
+   },
+   {
+    "key": "ac0d0e940841",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And while they were still not believing for joy and marvelling, He said to them, ",
+    "kk": "And while they were still not believing for joy and marvelling, He said to them,",
+    "where": "risen/evening LUKE 24:41"
+   },
+   {
+    "key": "77320b705037",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Have you any food here?”",
+    "kk": "Have you any food here?",
+    "where": "risen/evening LUKE 24:41"
+   },
+   {
+    "key": "6c401a7c46a3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they gave Him a piece of a broiled fish and some honeycomb.",
+    "kk": "And they gave Him a piece of a broiled fish and some honeycomb.",
+    "where": "risen/evening LUKE 24:42"
+   },
+   {
+    "key": "863a734060d7",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And taking it He ate in their presence.",
+    "kk": "And taking it He ate in their presence.",
+    "where": "risen/evening LUKE 24:43"
+   },
+   {
+    "key": "75be03e39152",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“These are the words which I spoke to you while I was still with you, that all have to be filled that were written in the Torah of Mosheh and the Naḇi'im and the Psalms concerning Me.”",
+    "kk": "These are the words which I spoke to you while I was still with you, that all have to be filled that were written in the toh-rah of Mosheh and the Nabiim and the Psalms concerning Me.",
+    "where": "risen/evening LUKE 24:44"
+   },
+   {
+    "key": "a0a01a7d3cb4",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then He opened their minds to understand the Scriptures,",
+    "kk": "Then He opened their minds to understand the Scriptures,",
+    "where": "risen/evening LUKE 24:45"
+   },
+   {
+    "key": "7df62dbae465",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "and said to them, ",
+    "kk": "and said to them,",
+    "where": "risen/evening LUKE 24:46"
+   },
+   {
+    "key": "13121bbb9524",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Thus it has been written and so it was necessary for the Mashiach to suffer and to rise again from the dead the third day,",
+    "kk": "Thus it has been written and so it was necessary for the mah-shee-ahk to suffer and to rise again from the dead the third day,",
+    "where": "risen/evening LUKE 24:46"
+   },
+   {
+    "key": "0cfb1639074c",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "and that repentance and forgiveness of sins should be proclaimed in His Name to all nations, beginning at Yahrushalayim.",
+    "kk": "and that repentance and forgiveness of sins should be proclaimed in His Name to all nations, beginning at yah-roo-shah-lah-yeem.",
+    "where": "risen/evening LUKE 24:47"
+   },
+   {
+    "key": "2c3856df74c6",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“You are witnesses of these matters.",
+    "kk": "You are witnesses of these matters.",
+    "where": "risen/evening LUKE 24:48"
+   },
+   {
+    "key": "03bef018643d",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“See, I am sending the Promise of My Father upon you, but you are to remain in the city of Yahrushalayim until you are clothed with power from on high.”",
+    "kk": "See, I am sending the Promise of My Father upon you, but you are to remain in the city of yah-roo-shah-lah-yeem until you are clothed with power from on high.",
+    "where": "risen/evening LUKE 24:49"
+   },
+   {
+    "key": "6d70e58bcd76",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then Yahusha said to them again, ",
+    "kk": "Then yah-hoo-shah said to them again,",
+    "where": "risen/evening YAHUCHANON 20:21"
+   },
+   {
+    "key": "2f2f7cd9ebc4",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Shalom to you! As the Father has sent Me, I also send you.”",
+    "kk": "shah-lohm to you! As the Father has sent Me, I also send you.",
+    "where": "risen/evening YAHUCHANON 20:21"
+   },
+   {
+    "key": "f99f945e3239",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having said this, He breathed on them and said to them, ",
+    "kk": "And having said this, He breathed on them and said to them,",
+    "where": "risen/evening YAHUCHANON 20:22"
+   },
+   {
+    "key": "bcdb8ab348ca",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Receive the Ruach HaQadash.",
+    "kk": "Receive the roo-ahk hah-kah-dahsh.",
+    "where": "risen/evening YAHUCHANON 20:22"
+   },
+   {
+    "key": "626805441e17",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“If you forgive the sins of any, they are forgiven them; if you retain the sins of any, they have been retained.”",
+    "kk": "If you forgive the sins of any, they are forgiven them, if you retain the sins of any, they have been retained.",
+    "where": "risen/evening YAHUCHANON 20:23"
+   },
+   {
+    "key": "8d73e85c40f7",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But T’oma, called the Twin, one of the twelve, was not with them when Yahusha came,",
+    "kk": "But Toma, called the Twin, one of the twelve, was not with them when yah-hoo-shah came,",
+    "where": "risen/evening YAHUCHANON 20:24"
+   },
+   {
+    "key": "c33cebd6f31d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "so the other taught ones said to him, ",
+    "kk": "so the other taught ones said to him,",
+    "where": "risen/evening YAHUCHANON 20:25"
+   },
+   {
+    "key": "1703f824bb49",
+    "kind": "crowd",
+    "name": "taught",
+    "who": "The taught ones",
+    "text": "“We have seen the Master.”",
+    "kk": "We have seen the Master.",
+    "where": "risen/evening YAHUCHANON 20:25"
+   },
+   {
+    "key": "e134d86773d2",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " But he said to them, ",
+    "kk": "But he said to them,",
+    "where": "risen/evening YAHUCHANON 20:25"
+   },
+   {
+    "key": "12bceb8cebd1",
+    "kind": "man",
+    "name": "toma",
+    "who": "T’oma",
+    "text": "“Unless I see in His hands the mark of the nails, and put my finger into the imprint of the nails, and put my hand into His side, I shall by no means believe.”",
+    "kk": "Unless I see in His hands the mark of the nails, and put my finger into the imprint of the nails, and put my hand into His side, I shall by no means believe.",
+    "where": "risen/evening YAHUCHANON 20:25"
+   },
+   {
+    "key": "442f4668696d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "He looks round the room at all of them, then at you. You were there. You cannot make him see it.",
+    "kk": "He looks round the room at all of them, then at you. You were there. You cannot make him see it.",
+    "where": "risen/evening choice"
+   },
+   {
+    "key": "8b76d6535284",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "He looks at it a long time. \"Anyone can eat a fish,\" he says, but more quietly than before.",
+    "kk": "He looks at it a long time. Anyone can eat a fish, he says, but more quietly than before.",
+    "where": "risen/evening choice"
+   },
+   {
+    "key": "8c10f29ca307",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And after eight days His taught ones were again inside, and T’oma with them. Yahusha came, the doors having been shut, and He stood in the midst, and said, ",
+    "kk": "And after eight days His taught ones were again inside, and Toma with them. yah-hoo-shah came, the doors having been shut, and He stood in the midst, and said,",
+    "where": "risen/toma YAHUCHANON 20:26"
+   },
+   {
+    "key": "32ed25cd0d04",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Shalom to you!”",
+    "kk": "shah-lohm to you!",
+    "where": "risen/toma YAHUCHANON 20:26"
+   },
+   {
+    "key": "14a9a37f46ea",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then He said to T’oma,",
+    "kk": "Then He said to Toma,",
+    "where": "risen/toma YAHUCHANON 20:27"
+   },
+   {
+    "key": "a43bb60b5964",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Bring your finger here, and see My hands. Bring your hand and put it into My side – and do not be unbelieving, but believing.”",
+    "kk": "Bring your finger here, and see My hands. Bring your hand and put it into My side, and do not be unbelieving, but believing.",
+    "where": "risen/toma YAHUCHANON 20:27"
+   },
+   {
+    "key": "a5df5142cbd9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And T’oma answered and said to Him, ",
+    "kk": "And Toma answered and said to Him,",
+    "where": "risen/toma YAHUCHANON 20:28"
+   },
+   {
+    "key": "66804324f651",
+    "kind": "man",
+    "name": "toma",
+    "who": "T’oma",
+    "text": "“My Master and my Aluahim!”",
+    "kk": "My Master and my al-oo-ah-heem!",
+    "where": "risen/toma YAHUCHANON 20:28"
+   },
+   {
+    "key": "d889cf9a356f",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“T’oma, because you have seen Me, you have believed. Baruk are those who have not seen and have believed.”",
+    "kk": "Toma, because you have seen Me, you have believed. Baruk are those who have not seen and have believed.",
+    "where": "risen/toma YAHUCHANON 20:29"
+   },
+   {
+    "key": "b04e53c232e9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "There were indeed many other signs that Yahusha did in the presence of His taught ones, which are not written in this book,",
+    "kk": "There were indeed many other signs that yah-hoo-shah did in the presence of His taught ones, which are not written in this book,",
+    "where": "risen/toma YAHUCHANON 20:30"
+   },
+   {
+    "key": "6767667bad76",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "but these have been written so that you believe that Yahusha is the Mashiach, the Son of Aluahim, and that, believing, you might possess life in His Name.",
+    "kk": "but these have been written so that you believe that yah-hoo-shah is the mah-shee-ahk, the Son of al-oo-ah-heem, and that, believing, you might possess life in His Name.",
+    "where": "risen/toma YAHUCHANON 20:31"
+   },
+   {
+    "key": "9ba481deb359",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "They have not seen. They will have only what you tell them, and the scroll.",
+    "kk": "They have not seen. They will have only what you tell them, and the scroll.",
+    "where": "risen/toma choice"
+   },
+   {
+    "key": "5d0af33cd9bf",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "You have read the words all your life. You have seen them now. You do not know which is the harder.",
+    "kk": "You have read the words all your life. You have seen them now. You do not know which is the harder.",
+    "where": "risen/toma choice"
+   },
+   {
+    "key": "a48fd31fd300",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "After this Yahusha manifested Himself again to the taught ones at the Sea of Kinnereth, and He manifested this way:",
+    "kk": "After this yah-hoo-shah manifested Himself again to the taught ones at the Sea of Kinnereth, and He manifested this way,",
+    "where": "risen/shore YAHUCHANON 21:1"
+   },
+   {
+    "key": "bd73f862c335",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Shim‛on Kĕpha, and T’oma called the Twin, and Nethanĕ’l of Qanah in Galil, the sons of Zaḇdai, and two others of His taught ones were together.",
+    "kk": "sheem-ohn kay-fah, and Toma called the Twin, and Nethanel of Qanah in gah-leel, the sons of Zabdai, and two others of His taught ones were together.",
+    "where": "risen/shore YAHUCHANON 21:2"
+   },
+   {
+    "key": "deb3268fc708",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Shim‛on Kĕpha said to them, ",
+    "kk": "sheem-ohn kay-fah said to them,",
+    "where": "risen/shore YAHUCHANON 21:3"
+   },
+   {
+    "key": "f2b9ea914440",
+    "kind": "man",
+    "name": "shimon",
+    "who": "Shim‛on Kĕpha",
+    "text": "“I am going to fish.”",
+    "kk": "I am going to fish.",
+    "where": "risen/shore YAHUCHANON 21:3"
+   },
+   {
+    "key": "598e6b255b5a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " They said to him, ",
+    "kk": "They said to him,",
+    "where": "risen/shore YAHUCHANON 21:3"
+   },
+   {
+    "key": "c9605c478c86",
+    "kind": "crowd",
+    "name": "taught",
+    "who": "The taught ones",
+    "text": "“We are also coming with you.”",
+    "kk": "We are also coming with you.",
+    "where": "risen/shore YAHUCHANON 21:3"
+   },
+   {
+    "key": "04b9b084d63d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " They went out and immediately entered into the boat. And that night they caught none at all.",
+    "kk": "They went out and immediately entered into the boat. And that night they caught none at all.",
+    "where": "risen/shore YAHUCHANON 21:3"
+   },
+   {
+    "key": "efd55f469c4f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But when it became early morning, Yahusha stood on the beach. However, the taught ones did not know that it was Yahusha.",
+    "kk": "But when it became early morning, yah-hoo-shah stood on the beach. However, the taught ones did not know that it was yah-hoo-shah.",
+    "where": "risen/shore YAHUCHANON 21:4"
+   },
+   {
+    "key": "03f8f927f80a",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Children, have you any food?”",
+    "kk": "Children, have you any food?",
+    "where": "risen/shore YAHUCHANON 21:5"
+   },
+   {
+    "key": "f90d3cdd3fb6",
+    "kind": "crowd",
+    "name": "taught",
+    "who": "The taught ones",
+    "text": "“No.”",
+    "kk": "No.",
+    "where": "risen/shore YAHUCHANON 21:5"
+   },
+   {
+    "key": "e1fd226acbc7",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Throw the net on the right side of the boat, and you shall find.”",
+    "kk": "Throw the net on the right side of the boat, and you shall find.",
+    "where": "risen/shore YAHUCHANON 21:6"
+   },
+   {
+    "key": "75fc219d331c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " So they threw, and they were no longer able to draw it in because of the large number of fish.",
+    "kk": "So they threw, and they were no longer able to draw it in because of the large number of fish.",
+    "where": "risen/shore YAHUCHANON 21:6"
+   },
+   {
+    "key": "064ea3cdfa3c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "That taught one whom Yahusha loved then said to Kĕpha, ",
+    "kk": "That taught one whom yah-hoo-shah loved then said to kay-fah,",
+    "where": "risen/shore YAHUCHANON 21:7"
+   },
+   {
+    "key": "d88bddbdcb14",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“It is the Master!”",
+    "kk": "It is the Master!",
+    "where": "risen/shore YAHUCHANON 21:7"
+   },
+   {
+    "key": "6e9567cd35ec",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " Then Shim‛on Kĕpha, hearing that it was the Master, put on his outer garment – for he was stripped – and plunged into the sea.",
+    "kk": "Then sheem-ohn kay-fah, hearing that it was the Master, put on his outer garment, for he was stripped, and plunged into the sea.",
+    "where": "risen/shore YAHUCHANON 21:7"
+   },
+   {
+    "key": "622bd15de78a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the other taught ones came in the little boat – for they were not far from land, but about two hundred cubits – dragging the net with fish.",
+    "kk": "And the other taught ones came in the little boat, for they were not far from land, but about two hundred cubits, dragging the net with fish.",
+    "where": "risen/shore YAHUCHANON 21:8"
+   },
+   {
+    "key": "ce97809f5e5c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "So when they had come to land, they saw a fire of coals there, and fish laid on it and bread.",
+    "kk": "So when they had come to land, they saw a fire of coals there, and fish laid on it and bread.",
+    "where": "risen/shore YAHUCHANON 21:9"
+   },
+   {
+    "key": "7d8d9d803e7f",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Bring some of the fish which you have now caught.”",
+    "kk": "Bring some of the fish which you have now caught.",
+    "where": "risen/shore YAHUCHANON 21:10"
+   },
+   {
+    "key": "8077f6fafe21",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Shim‛on Kĕpha went up and dragged the net to land, filled with one hundred and fifty-three big fish. And though there were so many, the net was not broken.",
+    "kk": "sheem-ohn kay-fah went up and dragged the net to land, filled with one hundred and fifty-three big fish. And though there were so many, the net was not broken.",
+    "where": "risen/shore YAHUCHANON 21:11"
+   },
+   {
+    "key": "6cca9faf5474",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Come, have breakfast.”",
+    "kk": "Come, have breakfast.",
+    "where": "risen/shore YAHUCHANON 21:12"
+   },
+   {
+    "key": "bec72fbf2166",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And not one of the taught ones had the courage to ask Him, ",
+    "kk": "And not one of the taught ones had the courage to ask Him,",
+    "where": "risen/shore YAHUCHANON 21:12"
+   },
+   {
+    "key": "8296785af6b9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "“Who are You?,”",
+    "kk": "Who are You?",
+    "where": "risen/shore YAHUCHANON 21:12"
+   },
+   {
+    "key": "09af29222101",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " knowing that it was the Master.",
+    "kk": "knowing that it was the Master.",
+    "where": "risen/shore YAHUCHANON 21:12"
+   },
+   {
+    "key": "d8dab9fc6a6b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Yahusha came and took the bread and gave it to them and the same with the fish.",
+    "kk": "yah-hoo-shah came and took the bread and gave it to them and the same with the fish.",
+    "where": "risen/shore YAHUCHANON 21:13"
+   },
+   {
+    "key": "b85320814c34",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "This was now the third time Yahusha was manifested to His taught ones after He was raised from the dead.",
+    "kk": "This was now the third time yah-hoo-shah was manifested to His taught ones after He was raised from the dead.",
+    "where": "risen/shore YAHUCHANON 21:14"
+   },
+   {
+    "key": "470cb0317e5e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "When, therefore, they had eaten breakfast, Yahusha said to Shim‛on Kĕpha, ",
+    "kk": "When, therefore, they had eaten breakfast, yah-hoo-shah said to sheem-ohn kay-fah,",
+    "where": "risen/shore YAHUCHANON 21:15"
+   },
+   {
+    "key": "aa2372019ab4",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Shim‛on, son of Yonah, do you love Me more than these?”",
+    "kk": "sheem-ohn, son of yoh-nah, do you love Me more than these?",
+    "where": "risen/shore YAHUCHANON 21:15"
+   },
+   {
+    "key": "fd3aef92f5a5",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " He said to Him, ",
+    "kk": "He said to Him,",
+    "where": "risen/shore YAHUCHANON 21:15"
+   },
+   {
+    "key": "82a83bb58d8a",
+    "kind": "man",
+    "name": "shimon",
+    "who": "Shim‛on Kĕpha",
+    "text": "“Yea, Master, You know that I love You.”",
+    "kk": "Yea, Master, You know that I love You.",
+    "where": "risen/shore YAHUCHANON 21:15"
+   },
+   {
+    "key": "bf183845fad0",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Feed My lambs.”",
+    "kk": "Feed My lambs.",
+    "where": "risen/shore YAHUCHANON 21:15"
+   },
+   {
+    "key": "bad370541529",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "He said to him again, the second time, ",
+    "kk": "He said to him again, the second time,",
+    "where": "risen/shore YAHUCHANON 21:16"
+   },
+   {
+    "key": "c6b09646af5f",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Shim‛on, son of Yonah, do you love Me?”",
+    "kk": "sheem-ohn, son of yoh-nah, do you love Me?",
+    "where": "risen/shore YAHUCHANON 21:16"
+   },
+   {
+    "key": "ef552b9ecb93",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Shepherd My sheep.”",
+    "kk": "Shepherd My sheep.",
+    "where": "risen/shore YAHUCHANON 21:16"
+   },
+   {
+    "key": "f479ca37edca",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "He said to him the third time, ",
+    "kk": "He said to him the third time,",
+    "where": "risen/shore YAHUCHANON 21:17"
+   },
+   {
+    "key": "f5d8134db7bc",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " Kĕpha was sad because He said to him the third time, ",
+    "kk": "kay-fah was sad because He said to him the third time,",
+    "where": "risen/shore YAHUCHANON 21:17"
+   },
+   {
+    "key": "a86f3fa5e372",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Do you love Me?”",
+    "kk": "Do you love Me?",
+    "where": "risen/shore YAHUCHANON 21:17"
+   },
+   {
+    "key": "0f09657310d4",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And he said to Him, ",
+    "kk": "And he said to Him,",
+    "where": "risen/shore YAHUCHANON 21:17"
+   },
+   {
+    "key": "35e29211b828",
+    "kind": "man",
+    "name": "shimon",
+    "who": "Shim‛on Kĕpha",
+    "text": "“Master, You know all, You know that I love You.”",
+    "kk": "Master, You know all, You know that I love You.",
+    "where": "risen/shore YAHUCHANON 21:17"
+   },
+   {
+    "key": "a408337cf7d7",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Feed My sheep.",
+    "kk": "Feed My sheep.",
+    "where": "risen/shore YAHUCHANON 21:17"
+   },
+   {
+    "key": "4b1e89d1bb8e",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Truly, truly, I say to you, when you were younger you girded yourself and walked where you wished, but when you are old you shall stretch out your hands, and another shall gird you and bring you where you do not wish.”",
+    "kk": "Truly, truly, I say to you, when you were younger you girded yourself and walked where you wished, but when you are old you shall stretch out your hands, and another shall gird you and bring you where you do not wish.",
+    "where": "risen/shore YAHUCHANON 21:18"
+   },
+   {
+    "key": "4dda0f7b2ca0",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Now this He said, signifying by what death he would esteem Aluahim. And having said this, He said to him, ",
+    "kk": "Now this He said, signifying by what death he would esteem al-oo-ah-heem. And having said this, He said to him,",
+    "where": "risen/shore YAHUCHANON 21:19"
+   },
+   {
+    "key": "e822de55ead8",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Kĕpha, turning around, saw the taught one whom Yahusha loved following, who also had leaned on His breast at the supper, and said, ",
+    "kk": "And kay-fah, turning around, saw the taught one whom yah-hoo-shah loved following, who also had leaned on His breast at the supper, and said,",
+    "where": "risen/shore YAHUCHANON 21:20"
+   },
+   {
+    "key": "b039cb314946",
+    "kind": "man",
+    "name": "yahuchanon",
+    "who": "Yahuchanon",
+    "text": "“Master, who is the one who is delivering You up?”",
+    "kk": "Master, who is the one who is delivering You up?",
+    "where": "risen/shore YAHUCHANON 21:20"
+   },
+   {
+    "key": "4f206bfa3ba3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Seeing him, Kĕpha said to Yahusha, ",
+    "kk": "Seeing him, kay-fah said to yah-hoo-shah,",
+    "where": "risen/shore YAHUCHANON 21:21"
+   },
+   {
+    "key": "e2c24ef8167b",
+    "kind": "man",
+    "name": "shimon",
+    "who": "Shim‛on Kĕpha",
+    "text": "“But Master, what about this one?”",
+    "kk": "But Master, what about this one?",
+    "where": "risen/shore YAHUCHANON 21:21"
+   },
+   {
+    "key": "802076eaa1b5",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“If I wish him to remain til I come, what is that to you? You follow Me.”",
+    "kk": "If I wish him to remain til I come, what is that to you? You follow Me.",
+    "where": "risen/shore YAHUCHANON 21:22"
+   },
+   {
+    "key": "9e8b1571b752",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Therefore this word went out among the brothers that this taught one would not die. However, Yahusha did not say to him that he would not die, but, ",
+    "kk": "Therefore this word went out among the brothers that this taught one would not die. However, yah-hoo-shah did not say to him that he would not die, but,",
+    "where": "risen/shore YAHUCHANON 21:23"
+   },
+   {
+    "key": "ec446b882b41",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“If I desire him to remain until I come, what is it to you?”",
+    "kk": "If I desire him to remain until I come, what is it to you?",
+    "where": "risen/shore YAHUCHANON 21:23"
+   },
+   {
+    "key": "1aff5298d7e5",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "This is the taught one who bears witness about these matters, and wrote these matters. And we know that his witness is true.",
+    "kk": "This is the taught one who bears witness about these matters, and wrote these matters. And we know that his witness is true.",
+    "where": "risen/shore YAHUCHANON 21:24"
+   },
+   {
+    "key": "9e94c5e4cd4b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Now there is much else that Yahusha did. If every one of them were written down, I think that the world itself would not contain the written books. Amĕn.",
+    "kk": "Now there is much else that yah-hoo-shah did. If every one of them were written down, I think that the world itself would not contain the written books. Amen.",
+    "where": "risen/shore YAHUCHANON 21:25"
+   },
+   {
+    "key": "6255922dd018",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "One hundred and fifty-three. You count them twice. The net has not torn.",
+    "kk": "One hundred and fifty-three. You count them twice. The net has not torn.",
+    "where": "risen/shore choice"
+   },
+   {
+    "key": "59b4227ba26c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "The coals are still warm. The last time you saw Kĕpha by a fire of coals, he was warming his hands in the courtyard of the kohen gadol.",
+    "kk": "The coals are still warm. The last time you saw kay-fah by a fire of coals, he was warming his hands in the courtyard of the kohen gadol.",
+    "where": "risen/shore choice"
+   },
+   {
+    "key": "340baf240291",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the eleven taught ones went away into Galil, to the mountain which Yahusha had appointed for them.",
+    "kk": "And the eleven taught ones went away into gah-leel, to the mountain which yah-hoo-shah had appointed for them.",
+    "where": "risen/mountain MATTITHYAHU 28:16"
+   },
+   {
+    "key": "bf81f73188f6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when they saw Him, they bowed to Him, but some doubted.",
+    "kk": "And when they saw Him, they bowed to Him, but some doubted.",
+    "where": "risen/mountain MATTITHYAHU 28:17"
+   },
+   {
+    "key": "4d30c6cb662e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Yahusha came up and spoke to them, saying, ",
+    "kk": "And yah-hoo-shah came up and spoke to them, saying,",
+    "where": "risen/mountain MATTITHYAHU 28:18"
+   },
+   {
+    "key": "55c67329edd2",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“All authority has been given to Me in shamayim and on earth.",
+    "kk": "All authority has been given to Me in shah-mah-yeem and on earth.",
+    "where": "risen/mountain MATTITHYAHU 28:18"
+   },
+   {
+    "key": "c75673cf7d2a",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“Therefore, go and make taught ones of all the nations, immersing them in the Name of the Father and of the Son and of the Ruach HaQadash,",
+    "kk": "Therefore, go and make taught ones of all the nations, immersing them in the Name of the Father and of the Son and of the roo-ahk hah-kah-dahsh,",
+    "where": "risen/mountain MATTITHYAHU 28:19"
+   },
+   {
+    "key": "d47d311b0d54",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "teaching them to guard all that I have commanded you. And see, I am with you always, until the end of the age.”",
+    "kk": "teaching them to guard all that I have commanded you. And see, I am with you always, until the end of the age.",
+    "where": "risen/mountain MATTITHYAHU 28:20"
+   },
+   {
+    "key": "05d83ccef14d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " Amĕn.",
+    "kk": "Amen.",
+    "where": "risen/mountain MATTITHYAHU 28:20"
+   },
+   {
+    "key": "796e9511f06c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Kephar Naḥum, the boats drawn up, the road west to the sea. Beyond the sea, the nations. It is a long way.",
+    "kk": "Kephar Nakum, the boats drawn up, the road west to the sea. Beyond the sea, the nations. It is a long way.",
+    "where": "risen/mountain choice"
+   },
+   {
+    "key": "6ef44e69544a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Fishermen, a tax collector, a zealot. Some of them still doubt. He has given it to them anyway.",
+    "kk": "Fishermen, a tax collector, a zealot. Some of them still doubt. He has given it to them anyway.",
+    "where": "risen/mountain choice"
+   },
+   {
+    "key": "c9de1025805a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "to whom He also presented Himself alive after His suffering by many infallible proofs, being seen by them for forty days, speaking concerning the reign of Aluahim.",
+    "kk": "to whom He also presented Himself alive after His suffering by many infallible proofs, being seen by them for forty days, speaking concerning the reign of al-oo-ah-heem.",
+    "where": "risen/olivet ACTS 1:3"
+   },
+   {
+    "key": "2e9561345c4b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And meeting with them, He commanded them not to leave Yahrushalayim, but to wait for the Promise of the Father, ",
+    "kk": "And meeting with them, He commanded them not to leave yah-roo-shah-lah-yeem, but to wait for the Promise of the Father,",
+    "where": "risen/olivet ACTS 1:4"
+   },
+   {
+    "key": "5c3d844a09e1",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“which you have heard from Me –",
+    "kk": "which you have heard from Me,",
+    "where": "risen/olivet ACTS 1:4"
+   },
+   {
+    "key": "df5725c8f3f3",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "because Yahuchanon truly immersed in water but you shall be immersed in the Ruach HaQadash not many days from now.”",
+    "kk": "because yah-hoo-kah-nohn truly immersed in water but you shall be immersed in the roo-ahk hah-kah-dahsh not many days from now.",
+    "where": "risen/olivet ACTS 1:5"
+   },
+   {
+    "key": "2116bbed64e6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "So when they had come together, they asked Him, saying, ",
+    "kk": "So when they had come together, they asked Him, saying,",
+    "where": "risen/olivet ACTS 1:6"
+   },
+   {
+    "key": "cbb2684f0c2c",
+    "kind": "crowd",
+    "name": "taught",
+    "who": "The taught ones",
+    "text": "“Master, would You at this time restore the reign to Yasharal?”",
+    "kk": "Master, would You at this time restore the reign to yah-shar-al?",
+    "where": "risen/olivet ACTS 1:6"
+   },
+   {
+    "key": "96a7c127bc82",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“It is not for you to know times or seasons which the Father has put in His own authority.",
+    "kk": "It is not for you to know times or seasons which the Father has put in His own authority.",
+    "where": "risen/olivet ACTS 1:7"
+   },
+   {
+    "key": "0ce0e6ac7b7b",
+    "kind": "yahusha",
+    "name": "yahusha mashiach",
+    "who": "Yahusha",
+    "text": "“But you shall receive power when the Ruach HaQadash has come upon you and you shall be My witnesses in Yahrushalayim and in all Yahuḏah and Shomeron and to the end of the earth.”",
+    "kk": "But you shall receive power when the roo-ahk hah-kah-dahsh has come upon you and you shall be My witnesses in yah-roo-shah-lah-yeem and in all yah-hoo-dah and Shomeron and to the end of the earth.",
+    "where": "risen/olivet ACTS 1:8"
+   },
+   {
+    "key": "4f7ad51ffa64",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And He led them out as far as Bĕyth Anyah and lifting up His hands He baruk them.",
+    "kk": "And He led them out as far as bayt ahn-yah and lifting up His hands He baruk them.",
+    "where": "risen/olivet LUKE 24:50"
+   },
+   {
+    "key": "c57d0e7b3e72",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And it came to be, while He was berakah them, that He was parted from them and was taken up into the shamayim.",
+    "kk": "And it came to be, while He was berakah them, that He was parted from them and was taken up into the shah-mah-yeem.",
+    "where": "risen/olivet LUKE 24:51"
+   },
+   {
+    "key": "684bfd07e8ac",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having said this, while they were looking on, He was taken up and a cloud hid Him from their sight.",
+    "kk": "And having said this, while they were looking on, He was taken up and a cloud hid Him from their sight.",
+    "where": "risen/olivet ACTS 1:9"
+   },
+   {
+    "key": "eaf4187a53f1",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And as they were gazing into the shamayim as He went up, see, two men stood by them dressed in white,",
+    "kk": "And as they were gazing into the shah-mah-yeem as He went up, see, two men stood by them dressed in white,",
+    "where": "risen/olivet ACTS 1:10"
+   },
+   {
+    "key": "7c63fed9da88",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "who also said, ",
+    "kk": "who also said,",
+    "where": "risen/olivet ACTS 1:11"
+   },
+   {
+    "key": "2f1181d408eb",
+    "kind": "angel",
+    "name": "two men in white",
+    "who": "Two men in white",
+    "text": "“Men of Galil, why do you stand looking up into the shamayim? This same Yahusha, who was taken up from you into the shamayim, shall come in the same way as you saw Him go into the shamayim.”",
+    "kk": "Men of gah-leel, why do you stand looking up into the shah-mah-yeem? This same yah-hoo-shah, who was taken up from you into the shah-mah-yeem, shall come in the same way as you saw Him go into the shah-mah-yeem.",
+    "where": "risen/olivet ACTS 1:11"
+   },
+   {
+    "key": "d6fab34535f6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they, having bowed down to Him, returned to Yahrushalayim with great joy,",
+    "kk": "And they, having bowed down to Him, returned to yah-roo-shah-lah-yeem with great joy,",
+    "where": "risen/olivet LUKE 24:52"
+   },
+   {
+    "key": "d40457f693dd",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then they went back to Yahrushalayim from the Mount of Olives, which is near Yahrushalayim, a Shabbath day’s journey.",
+    "kk": "Then they went back to yah-roo-shah-lah-yeem from the Mount of Olives, which is near yah-roo-shah-lah-yeem, a Shabbath day's journey.",
+    "where": "risen/olivet ACTS 1:12"
+   },
+   {
+    "key": "15178dca6f77",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "There is only the sky, and the light going west over the city. \"This same Yahusha … shall come in the same way.\"",
+    "kk": "There is only the sky, and the light going west over the city. This same yah-hoo-shah, shall come in the same way.",
+    "where": "risen/olivet choice"
+   },
+   {
+    "key": "2fa1143d4446",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "They are not weeping. That is the strange thing. They go down the mount as if they were going to a wedding.",
+    "kk": "They are not weeping. That is the strange thing. They go down the mount as if they were going to a wedding.",
+    "where": "risen/olivet choice"
+   },
+   {
+    "key": "1d883341c660",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when they came in, they went up into the upper room where they were staying: both Kĕpha and Ya‛aqoḇ and Yahuchanon and Andri, Philip and T’oma, Bartholomi and Mattithyahu, Ya‛aqoḇ the son of Alphai and Shim‛on the Zealot and Yahuḏah the son of Ya‛aqoḇ.",
+    "kk": "And when they came in, they went up into the upper room where they were staying, both kay-fah and Yaaqob and yah-hoo-kah-nohn and ahn-dree, Philip and Toma, Bartholomi and Mattithyahu, Yaaqob the son of Alphai and sheem-ohn the Zealot and yah-hoo-dah the son of Yaaqob.",
+    "where": "risen/waiting ACTS 1:13"
+   },
+   {
+    "key": "d226517b1dba",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "All these were continuing with one mind in prayer and supplication, with the women and Miryam the mother of Yahusha and with His brothers.",
+    "kk": "All these were continuing with one mind in prayer and supplication, with the women and meer-yahm the mother of yah-hoo-shah and with His brothers.",
+    "where": "risen/waiting ACTS 1:14"
+   },
+   {
+    "key": "6df364fad29f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "and were continually in the Qodash (Set Apart Place) praising and berakah Aluahim! Amĕn.",
+    "kk": "and were continually in the koh-dahsh praising and berakah al-oo-ah-heem! Amen.",
+    "where": "risen/waiting LUKE 24:53"
+   },
+   {
+    "key": "edbab05dfaf6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Ten days of it. You learn the eleven names, and the women's, and His mother's voice when she prays.",
+    "kk": "Ten days of it. You learn the eleven names, and the women's, and His mother's voice when she prays.",
+    "where": "risen/waiting choice"
+   },
+   {
+    "key": "c342cad7c25c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "The city is filling up for the Festival of Weeks. Pilgrims from every nation under the heavens are coming up the roads.",
+    "kk": "The city is filling up for the Festival of Weeks. Pilgrims from every nation under the heavens are coming up the roads.",
+    "where": "risen/waiting choice"
+   },
+   {
+    "key": "cc7609927475",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "The end of Act VII. Next: To the End of the Earth",
+    "kk": "The end of Act seven. Next, To the End of the Earth",
+    "where": "risen/waiting title"
    }
   ]
  }

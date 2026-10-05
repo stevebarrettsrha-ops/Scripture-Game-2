@@ -671,11 +671,10 @@ S.highpriest=function(ctx,st0){
   st.box(x1-0.5,0,z0,x1,3,29.2,L); st.box(x1-0.5,0,30.8,x1,3,z1,L);
   for(const px of [6,10,14,18]) st.box(px-0.3,0,28.2,px+0.3,2.8,28.8,L);                  /* the pillars of the hall */
   st.detail(5,0,24.6,19,0.46,25.4,C.stoneDark);                                          /* the council's bench */
-  st.detail(11.3,0,24.6,12.7,1.0,25.5,C.timber);                                         /* the seat of the kohen gadol */
   W.fire(ctx,st,13,32.2);
   st.detail(22.2,2.6,28.6,25.2,2.8,31.4,C.roofEarth);                                   /* the porch over the gate, without */
   st.detail(24.6,0,28.8,25,2.6,29.2,C.timber); st.detail(24.6,0,30.8,25,2.6,31.2,C.timber);
-  mk(ctx,'fire',13,32.2); mk(ctx,'hall',12,26.6); mk(ctx,'qayapha',12,25.9); mk(ctx,'accused',12,27.4);
+  mk(ctx,'fire',13,32.2); mk(ctx,'hall',12,26.6); mk(ctx,'qayapha',12,25.75); mk(ctx,'accused',12,27.4);
   mk(ctx,'hpGate',21.2,30); mk(ctx,'hpPorch',23.6,30); mk(ctx,'hpStreet',27,30);
 };
 
@@ -689,25 +688,45 @@ S.praetorium=function(ctx,st){
   st.box(-33.2,y0,-64.6,-30.8,y0+3.2,-63.6,'air',{abs:true});                           /* its door */
   for(let x=-40;x<-22;x+=2) for(let z=-63;z<-52;z+=2) st.detail(x+0.05,y0+0.01,z+0.05,x+1.95,y0+0.05,z+1.95,(x+z)%4===0?0xd8cfb8:0xc8bea6);
   st.box(-40,y0,-63.2,-36,y0+0.92,-59.4,C.limestone,{abs:true});                         /* the step of the seat */
-  st.detail(-38.6,y0+0.92,-62.9,-37.4,y0+1.7,-62.1,0xe8e0cc);                            /* the mishpat seat */
-  mk(ctx,'bema',-38,-61.2); mk(ctx,'seat',-38,-62.4); mk(ctx,'palaceDoor',-32,-62.8); mk(ctx,'palaceIn',-32,-68.5);
+  mk(ctx,'bema',-38,-61.2); mk(ctx,'seat',-38,-62.4); mk(ctx,'throne',-38,-62.3);   /* the mishpat seat is the act's own (a throne) */ mk(ctx,'palaceDoor',-32,-62.8); mk(ctx,'palaceIn',-32,-68.5);
   mk(ctx,'pavement',-32,-58); mk(ctx,'crowd',-26,-50); mk(ctx,'kohanim',-30,-53.6); mk(ctx,'basin',-35.6,-60);
 };
 
-/* GOLGOTHA AND THE GARDEN (Yahuchanon 19:17, 20, 41): outside the west wall, near the city, a knoll of
-   bare rock, the three stakes upon it facing the city; and close by a garden, and in it a tomb
-   newly cut in the face of the rock, a round stone at its door. */
+/* GOLGOTHA AND THE GARDEN (Yahuchanon 19:17, 20, 41), as the digging under the Church of the Holy
+   Sepulchre found the ground (V. Corbo, 1960s; M. Broshi, 1976): outside the second wall, by the
+   Gennath — the Garden — gate and the roads out of it ("those passing by", Mark 15:29), a disused
+   quarry of the kings' days, and standing up out of it a spur of rock the quarrymen left because its
+   stone was poor. On the spur, the stakes, facing the city. About its foot, the quarry's waste —
+   heaps of chips and spoil, blocks cut and never carried away — and in the quarry's sides tombs cut
+   in the rock; over the old workings, earth laid for gardens (19:41). (That it was the city's
+   rubbish heap is not found: the refuse went out at the Dung Gate, to the south.) The stake is an
+   upright pole: the Besorah's word is "stake", and so it stands, without a crossbeam. */
 S.golgotha=function(ctx,st){
   ctx.wind=[1.0,0.4];
-  ctx.api.mound(-66,-34,4,10,{top:'stone'});
+  /* THE SPUR: a mass of grey rock standing up out of the workings */
+  ctx.api.mound(-66,-34,6,11,{top:'stone'});
+  for(const [x,z,w,d,h] of [[-70.5,-36,2.2,3,2.6],[-62,-38.6,2.6,1.8,1.6],[-63.4,-28.8,1.8,2.4,2.0],[-69.4,-29.6,1.6,1.8,2.4],[-67.6,-40.2,2,1.6,1.4]])
+    st.box(x-w/2,-0.6,z-d/2,x+w/2,h,z+d/2,C.rock);
+  /* THE QUARRY west of it, cut two and a half metres down in steps, the spur's west face left sheer */
+  st.box(-90,-2.6,-54,-74.5,4,-21,'air'); st.box(-74.5,-1.3,-50,-72.4,4,-24,'air');
+  st.box(-90,-3.5,-54,-74.5,-2.6,-21,C.limestone);                                       /* its floor, the bed the blocks were split from */
+  for(const [x,z,r] of [[-84,-46,0.2],[-80.4,-30,1.1],[-86,-26,0.4],[-78.6,-40,0.9],[-88,-36,0.1]]){ const y=-2.6;   /* blocks cut and left lying */
+    st.box(x-0.8,y,z-0.5,x+0.8,y+0.92,z+0.5,C.limestone); }
+  for(let k=0;k<6;k++){ const z=-52+k*5.4; st.box(-90.6,-2.6,z,-89.6,-1.7,z+0.6,C.stoneDark); }   /* the channels cut to split a block from the face */
+  /* the waste of the quarry heaped at the foot of the spur and along the road: chips and spoil */
+  for(let k=0;k<26;k++){ const a=W.hash(k,31)*6.28, r=11+W.hash(k,32)*6, x=-66+Math.cos(a)*r, z=-34+Math.sin(a)*r;
+    if(x<-74||Math.abs(x+56)<2.2) continue; const s=0.5+W.hash(k,33)*0.9; st.box(x-s,0,z-s*0.8,x+s,0.5+s*0.6,z+s*0.8,k%3?C.rock:'cobble'); }
+  for(let k=0;k<40;k++){ const x=-80+W.hash(k,41)*30, z=-52+W.hash(k,42)*30; const y=x<-74.5?-2.6:0;
+    if(Math.hypot(x+66,z+34)<9) continue; st.detail(x-0.18,y,z-0.14,x+0.18,y+0.14,z+0.14,[0xb8b0a0,0xa8a090,0xcfc6b2][k%3]); }   /* the chips */
   const G=floorAt(ctx);
+  /* THE THREE STAKES on the top of the spur: an upright pole each, sunk in the rock */
   for(const dz of [-3.4,0,3.4]){ const x=-66, z=-34+dz, y=G(x,z);
-    st.detail(x-0.16,y-0.4,z-0.16,x+0.16,y+3.7,z+0.16,0x6e5238);                         /* the upright */
-    st.detail(x-0.13,y+2.3,z-1.15,x+0.13,y+2.56,z+1.15,0x6e5238); }                       /* the crossbeam */
-  { const y=G(-66,-34); st.detail(-65.86,y+3.2,-34.5,-65.8,y+3.6,-33.5,0xece6d6); }        /* the title (Yahuchanon 19:19) */
-  /* the road from the gate, round the wall to the knoll */
-  for(let x=-14;x>=-58;x-=1.6) ctx.api.top(x-1,43,x+1,45,C.path);                         /* out of the gate, west below the wall */
-  for(let z=44;z>=-28;z-=1.6) ctx.api.top(-59,z-1,-57,z+1,C.path);                        /* and north along it, outside */
+    st.detail(x-0.11,y-0.6,z-0.11,x+0.11,y+4.5,z+0.11,0x6e5238);
+    st.detail(x-0.3,y,z-0.3,x+0.3,y+0.25,z+0.3,0x8a8070); }                               /* wedged with stones at its foot */
+  { const y=G(-66,-34); st.detail(-65.9,y+3.55,-34.4,-65.84,y+3.95,-33.6,0xece6d6); }        /* the title over His head (Yahuchanon 19:19) */
+  /* the road from the gate, round the wall and north past the spur, outside */
+  for(let x=-14;x>=-56;x-=1.6) ctx.api.top(x-1,43,x+1,45,C.path);                         /* out of the gate, west below the wall */
+  for(let z=44;z>=-56;z-=1.6) ctx.api.top(-57,z-1,-55,z+1,C.path);                        /* and north along it, below the spur */
   /* the garden: the face of the rock and the tomb cut into it */
   const ly=landY(ctx,-70,-11);
   st.box(-78,ly,-17,-70,ly+5,-5,C.limestone,{abs:true});
@@ -722,5 +741,49 @@ S.golgotha=function(ctx,st){
   mk(ctx,'tomb',-70.6,-11); mk(ctx,'tombIn',-72.4,-11); mk(ctx,'tombOut',-67,-11); mk(ctx,'tombFront',-64,-11);
   mk(ctx,'stone',-68.8,-14); mk(ctx,'stoneShut',-68.8,-11); mk(ctx,'garden',-60,-8); mk(ctx,'opposite',-60,-13);
   const hk=ctx.markers.hekal||[6,-44]; ctx.markers.city=[hk[0],hk[1],16];
+};
+
+/* ================= THE RISING (Act VII) ================= */
+
+/* AMMA'US (Luke 24:13): "a village … twelve kilometres from Yahrushalayim", in the hills west of
+   the city. The road comes up to it from the east, from the city, over the open hillside; the
+   village is houses of stone on the slope, terraces of olives and vines; and at its edge the
+   house where the two were going, its one room with a low table, a lamp in its niche. */
+S.emmaus=function(ctx,st){
+  ctx.wind=[0.6,0.3];
+  W.ground(ctx,{color:C.grassDry,flat:44,peak:[{x:-30,z:-44,h:10,r:30},{x:44,z:62,h:7,r:24}]});
+  const rz=x=>Math.sin(x*0.035)*3.2;                                              /* the road, east to the city */
+  for(let x=96;x>=-2;x-=1.4){ const z=rz(x); st.box(x-0.9,0,z-1.1,x+0.9,0.08,z+1.1,C.path,{collide:false,jitter:0.12}); }
+  /* the village on the slope */
+  [[-24,10],[-30,-2],[-22,-14],[-36,12],[-40,-10],[-14,16]].forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:z>0?'s':'n',color:k%2?C.limestone:C.whitewash,h:2.9}));
+  /* the house where they stayed (24:29): one room, its door to the road, a low table within */
+  room(ctx,st,-14,-6.4,-6,1.6,{door:'e',wall:C.limestone});
+  st.detail(-11.2,0.08,-3.1,-8.8,0.46,-1.7,C.timber);                               /* the low table */
+  st.detail(-10.4,0.46,-2.6,-9.8,0.54,-2.2,0xd8c08a);                               /* the bread */
+  st.detail(-13.42,1.4,-1.0,-13.3,1.62,-0.6,0x8a6a40);                              /* the lamp in its niche */
+  /* olives and vines on the terraces, the stones of the hillside */
+  for(let n=0;n<44;n++){ const x=-70+W.hash(n,3)*150, z=-70+W.hash(n,4)*140;
+    if(Math.abs(z-rz(x))<5||(x<-4&&x>-46&&Math.abs(z)<22)) continue; W.olive(st,x,z,0.85+W.hash(n,6)*0.35); }
+  for(let n=0;n<14;n++){ const x=6+W.hash(n,8)*80, z=rz(x)+(W.hash(n,9)<0.5?-1:1)*(2.8+W.hash(n,10)*3); W.rock(st,x,z,0.35+W.hash(n,11)*0.3); }
+  W.wild(ctx,'goat',30,-30,3,6,0.4); W.wild(ctx,'chicken',-20,6,3,3,0.4);
+  const M=(id,x,dz)=>mk(ctx,id,x,rz(x)+(dz||0));
+  M('road0',34); M('road1',26); M('road2',17); M('road3',8); M('edge',2);
+  mk(ctx,'house',-10,-2.4); mk(ctx,'houseDoor',-4.4,-2.4); mk(ctx,'houseIn',-7.2,-1.2);
+  mk(ctx,'seatH',-10,-4.1); mk(ctx,'seatA',-10.8,-0.8); mk(ctx,'seatB',-9.2,-0.8); mk(ctx,'lamp',-13.1,-0.8);
+  ctx.bounds={x0:-120,x1:140,z0:-120,z1:120};
+};
+
+/* THE SEA OF KINNERETH at dawn (Yahuchanon 21): the lake under the hills of Galil, its water the
+   lake's own (story/engine.js, lakeTick) with hardly a breath on it; a beach of pebbles, and on it a
+   fire of coals with fish laid on it, and bread (21:9). The boat lies out on the water, about two
+   hundred cubits from land (21:8). */
+S.tiberias=function(ctx,st){
+  galil(ctx,st,{village:false,wind:[0.3,0.1]}); ctx.rough=0.35; ctx.bounds=null;
+  ctx.lake={rect:[SHORE.x+0.4,-78,SHORE.x+90,78]};
+  W.fire(ctx,st,16,2);
+  st.detail(15.7,0.3,1.8,16.3,0.36,2.0,0x9aa6a8); st.detail(15.8,0.3,2.2,16.4,0.36,2.4,0x8a969a);   /* fish laid on it */
+  st.detail(14.6,0.05,3.0,15.1,0.2,3.4,0xd8c08a);                                                      /* and bread */
+  mk(ctx,'fire',16,2); mk(ctx,'water',SHORE.x+0.6,0); mk(ctx,'strand',SHORE.x-1.6,-1.4);
+  mk(ctx,'walk1',12,-14); mk(ctx,'walk2',10,-22);
 };
 })();

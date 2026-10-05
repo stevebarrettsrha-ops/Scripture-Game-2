@@ -17,7 +17,8 @@ const ROAD=window.STORY_ROAD=[
   {id:'forerunner', page:'act-forerunner.html', file:'acts/04-forerunner.js', period:'herodes'},
   {id:'galil',      page:'act-galil.html',      file:'acts/05-galil.js',      period:'herodes'},
   {id:'road-up',    page:'act-road-up.html',    file:'acts/06-road-up.js',    period:'herodes'},
-  {id:'passion',    page:'act-passion.html',    file:'acts/07-passion.js',    period:'herodes'}
+  {id:'passion',    page:'act-passion.html',    file:'acts/07-passion.js',    period:'herodes'},
+  {id:'risen',      page:'act-risen.html',      file:'acts/08-risen.js',      period:'herodes'}
 ];
 const ACT=window.STORY_ACT, entry=ROAD.find(r=>r.id===ACT);
 if(!entry){ if(ACT) document.body.textContent='No such act: '+ACT; return; }

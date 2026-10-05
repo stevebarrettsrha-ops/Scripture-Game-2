@@ -178,14 +178,16 @@ function buildScene(sc){
     else if(t.kind==='basket'){ obj=window.STORYWORLD.basket(ctx,p[0],p[1],t.full); }
     else if(t.kind==='infant'){ obj=window.STORYWORLD.infant(ctx,p[0],p[1],t); }
     else if(t.kind==='roundStone'){ obj=window.STORYWORLD.roundStone(ctx,p[0],p[1],t); }
+    else if(t.kind==='throne'){ obj=window.STORYWORLD.throne(ctx,p[0],p[1],t); obj.position.y=t.y!==undefined?yOf(t.y):(ctx.groundY(p[0],p[1])||0); }
     else { obj=new THREE.Mesh(new THREE.BoxGeometry(t.w||0.5,t.h||0.5,t.d||0.5),new THREE.MeshLambertMaterial({color:t.color||0xc9b38a}));
       /* `y` a height in the scene; `dy` (or nothing) above the ground where it lies */
       const gy=t.y!==undefined?t.y:(ctx.groundY(p[0],p[1])||0)+(t.dy||0);
       obj.position.set(p[0],gy+(t.h||0.5)/2,p[1]); scene.add(obj); }
     if(t.face!==undefined) obj.rotation.y=t.face;
     if(t.hidden) obj.visible=false;
-    if(t.y!==undefined&&t.kind!=='box'&&t.kind!=='dove') obj.position.y=t.y;
+    if(t.y!==undefined&&t.kind!=='box'&&t.kind!=='dove'&&t.kind!=='throne') obj.position.y=t.y;
     obj.userData.thing=t; obj.userData.baseY=obj.position.y; ctx.things[t.id]=obj; }
+  placeCrowds(sc);
   /* THE LAKE'S OWN WAVES, where the set has asked for them (S.galilSea): laid over the still water,
      which is put by beneath them */
   if(ctx.lake&&K().ripple){ const L=ctx.lake, r=L.rect;
@@ -195,7 +197,9 @@ function buildScene(sc){
     K().lakeHide([Math.min(a.x,b.x),Math.min(a.z,b.z),Math.max(a.x,b.x),Math.max(a.z,b.z)]); }
   /* lights: a mal'ak is LIGHT, never a figure; so is the Child (reverent framing) */
   for(const gl of sc.glows||[]){
-    const p=gl.at.length===3?gl.at:[...pos(gl.at).slice(0,1),gl.y||2,pos(gl.at)[1]];
+    /* at [x,y,z]; or at a marker (or a marker and a step from it), `y` high, or `dy` above the ground there */
+    const p=gl.at.length===3&&typeof gl.at[0]==='number'?gl.at:(()=>{ const m=pos(gl.at);
+      return [m[0],gl.dy!==undefined?(ctx.groundY(m[0],m[1])||0)+gl.dy:(gl.y||2),m[1]]; })();
     const G=window.STORYWORLD.glow(ctx,p[0],p[1],p[2],gl.size||3,gl.color,gl.intensity===undefined?1.2:gl.intensity);
     if(gl.h){ G.sprite.scale.set(gl.size||3,gl.h,1); }
     G.visible=!gl.hidden; G.pulse=gl.pulse; ctx.glows[gl.id]=G; }
@@ -212,6 +216,56 @@ function buildScene(sc){
   const pp=pos(P.at||[0,0]); player.position.set(pp[0],ctx.groundY(pp[0],pp[1]),pp[1]); player.rotation.y=P.face||0;
   camYaw=(P.face||0)+Math.PI; camTarget=null;
   ctx.playerHidden=!!P.hidden; player.visible=!P.hidden;
+}
+/* THE MULTITUDE of a scene (`crowds`): beyond its named people, the many — `n` of them, in an
+   `area` [x0,z0,x1,z1] or a `ring` [marker, r0, r1] (an `arc` of it, [a0,a1] radians), facing a
+   marker (`look`) or a way (`face`), standing or `sit`ting; never in a wall or a house, never on
+   one of the named or the witness, kept off `keep` [[x0,z0,x1,z1]…] and a `path` (a road left open). Each is
+   one mesh, a thing of the scene, so `show` and `hide` take a crowd in or out by its `id`. */
+const CROWD_ROBES=[0x7c6a52,0x5f6a52,0x8e6f4c,0x6b5a44,0x74604a,0x5c5040,0x8a7a60,0x6e5a70,0x7a5040,0x5a6470,0x8a5a3a,0x4f6a4f,0x9a8466,0x6a4a3a,0x5a5a3a,0x7a6a8e];
+const CROWD_CLOTHS=[0xcfc4aa,0xd8ceb4,0xb9ab8e,0xe6e0cf,0xc1b394,0xa89a7e,0xe8e2d2];
+const CROWD_VEILS=[0xe8e2d2,0x3c3a44,0x8a6a5a,0x6a5a7a,0x5a3a4a,0xc8b89a,0x2e2a30];
+const CROWD_SKIN=[0x5c3a1f,0x643f1c,0x6e4524,0x704a27,0x7a4e29,0x7c5430,0x845634,0x8a5a36,0x8e5c3c,0x6a4426];
+function placeCrowds(sc){
+  ctx.crowdPts=[];
+  if(!sc.crowds||!K().solidAt) return;
+  const k=K(), taken=[];
+  for(const id in ctx.actors){ const g=ctx.actors[id]; taken.push([g.position.x,g.position.z,1.1]); }
+  for(const id in ctx.things){ const o=ctx.things[id]; taken.push([o.position.x,o.position.z,1.2]); }
+  const pp=pos((sc.player&&sc.player.at)||[0,0]); taken.push([pp[0],pp[1],1.6]);
+  for(const c of sc.crowds){
+    let h=2166136261; for(const ch of (act.id+'/'+sc.id+'/'+c.id)) h=Math.imul(h^ch.charCodeAt(0),16777619);
+    const r=()=>{ h=Math.imul(h^(h>>>15),2246822507); h=Math.imul(h^(h>>>13),3266489909); h^=h>>>16; return (h>>>0)/4294967296; };
+    const look=c.look?pos(c.look):null, gap=c.gap||0.72, figs=[], path=c.path?c.path.map(q=>pos(q)):null;
+    /* the level of the ground they stand on (the middle of their area or ring, or `refY`): none is
+       set on a wall-top, a roof or a terrace far above or below it (more than `dy`) */
+    const mid=c.ring?pos(c.ring[0]):[(c.area[0]+c.area[2])/2,(c.area[1]+c.area[3])/2];
+    const refY=c.refY!==undefined?c.refY:ctx.groundY(mid[0],mid[1])||0, dyMax=c.dy||2.6;   /* `path`: a way through them left open, `clear` wide each side */
+    for(let t=0;t<c.n*14&&figs.length<c.n;t++){
+      let x,z;
+      if(c.ring){ const m=pos(c.ring[0]), a=c.arc?c.arc[0]+r()*(c.arc[1]-c.arc[0]):r()*Math.PI*2, d=c.ring[1]+Math.sqrt(r())*(c.ring[2]-c.ring[1]); x=m[0]+Math.sin(a)*d; z=m[1]+Math.cos(a)*d; }
+      else { const A=c.area; x=A[0]+r()*(A[2]-A[0]); z=A[1]+r()*(A[3]-A[1]); }
+      if(c.keep&&c.keep.some(q=>x>q[0]&&x<q[2]&&z>q[1]&&z<q[3])) continue;
+      if(path&&path.some((q,i)=>{ if(!i) return false; const a0=path[i-1], dx=q[0]-a0[0], dz=q[1]-a0[1], L2=dx*dx+dz*dz||1,
+          u=Math.max(0,Math.min(1,((x-a0[0])*dx+(z-a0[1])*dz)/L2)); return (x-a0[0]-u*dx)**2+(z-a0[1]-u*dz)**2<(c.clear||2.4)**2; })) continue;
+      if(taken.some(q=>(q[0]-x)**2+(q[1]-z)**2<(q[2]||gap)**2)) continue;
+      const y=ctx.groundY(x,z); if(y==null||!isFinite(y)) continue;
+      const wx=anchor.x+x*S, wz=anchor.z+z*S;
+      if(k.solidAt(wx,anchor.y+(y+0.5)*S,wz)||k.solidAt(wx,anchor.y+(y+1.4)*S,wz)) continue;     /* in a wall, a tree, a house */
+      if(c.minY!==undefined&&y<c.minY) continue;
+      if(Math.abs(y-refY)>dyMax) continue;
+      /* facing what they came to see: a marker, the way through them (`facePath`), or a bearing */
+      let tgt=look;
+      if(c.facePath&&path){ let bd=1e9; for(let i=1;i<path.length;i++){ const a0=path[i-1], q=path[i], dx=q[0]-a0[0], dz=q[1]-a0[1], L2=dx*dx+dz*dz||1,
+          u=Math.max(0,Math.min(1,((x-a0[0])*dx+(z-a0[1])*dz)/L2)), px=a0[0]+u*dx, pz=a0[1]+u*dz, d=(x-px)**2+(z-pz)**2; if(d<bd){ bd=d; tgt=[px,pz]; } } }
+      const face=tgt?Math.atan2(tgt[0]-x,tgt[1]-z)+(r()-0.5)*(c.jitter===undefined?0.6:c.jitter):(c.face||0)+(r()-0.5)*(c.jitter===undefined?1.0:c.jitter);
+      const woman=!c.roman&&r()<(c.women===undefined?0.42:c.women), child=!c.roman&&!woman&&r()<(c.children===undefined?0.12:c.children);
+      figs.push({x,y,z,face,s:child?0.66+r()*0.1:(woman?0.9:0.95)+r()*0.1, sit:!!c.sit, roman:!!c.roman, woman,
+        robe:CROWD_ROBES[Math.floor(r()*CROWD_ROBES.length)], cloth:woman?CROWD_VEILS[Math.floor(r()*CROWD_VEILS.length)]:CROWD_CLOTHS[Math.floor(r()*CROWD_CLOTHS.length)],
+        skin:CROWD_SKIN[Math.floor(r()*CROWD_SKIN.length)], sash:r()<0.2?0xb08d3c:null,
+        beard:!woman&&!child&&r()<0.75?[0x2c241f,0x3a2a1e,0x6d6a66,0x1e1814][Math.floor(r()*4)]:null});
+      taken.push([x,z,gap]); ctx.crowdPts.push([x,y,z]); }
+    const mesh=window.STORYWORLD.crowd(ctx,figs); mesh.visible=!c.hidden; mesh.userData.crowd=true; ctx.things[c.id]=mesh; }
 }
 function pos(at){ if(typeof at==='string'){ const m=ctx.markers[at]; if(m) return m;
     const g=ctx.actors[at]||ctx.things[at]; if(g) return [g.position.x,g.position.z];   /* a person or a thing: where they are now */
@@ -405,8 +459,15 @@ function animFigure(g,dt,moving){
     if(u.head) u.head.rotation.x=P.head; u.fours=true; }
   else if(u.fours){ u.fours=false; u.body.rotation.x=0; u.body.position.set(0,0,0); if(u.head) u.head.rotation.x=0;
     for(const P of [u.legL,u.legR,u.armL,u.armR]) P.rotation.z=0; }
-  /* the arms stretched out on the crossbeam (the `pose` beat): still, the legs straight */
-  if(u.armsOut&&u.armL){ u.armL.rotation.set(0,0,Math.PI/2); u.armR.rotation.set(0,0,-Math.PI/2); u.legL.rotation.x=u.legR.rotation.x=0; }
+  /* ON THE STAKE (the `pose` beat): the Besorah's word is a stake, an upright pole — the hands
+     drawn up over the head and nailed together to it, the feet nailed below; still, the legs
+     straight and together, the head fallen forward a little */
+  if(u.armsOut&&u.armL){ const up=u.armsOut==='up';
+    u.armL.rotation.set(0,0,up?Math.PI+0.36:Math.PI/2); u.armR.rotation.set(0,0,up?-(Math.PI+0.36):-Math.PI/2);
+    for(const A of [u.armL,u.armR]) if(A.userData.elbow) A.userData.elbow.rotation.x=0;
+    u.legL.rotation.set(0,0,up?-0.03:0); u.legR.rotation.set(0,0,up?0.03:0);
+    for(const L of [u.legL,u.legR]) if(L.userData.knee) L.userData.knee.rotation.x=up?0.08:0;
+    if(up&&u.head) u.head.rotation.x=0.22; }
   clothStep(g,dt,moving,sw);
 }
 /* THE CLOTH. Each panel of a hem, and the back of a head-cloth, hangs on a hinge and is
@@ -510,6 +571,7 @@ function inBody(p){
   const near=(g,r)=>{ if(!g||!g.visible) return false; const dx=p[0]-g.position.x, dz=p[2]-g.position.z;
     return dx*dx+dz*dz<r*r&&p[1]>g.position.y-0.2&&p[1]<g.position.y+2.0; };
   for(const id in ctx.actors) if(near(ctx.actors[id],0.5)) return true;
+  for(const q of ctx.crowdPts||[]) if((p[0]-q[0])**2+(p[2]-q[2])**2<0.25&&p[1]>q[1]-0.2&&p[1]<q[1]+2.0) return true;   /* nor inside one of the crowd */
   return !ctx.playerHidden&&near(player,0.5);
 }
 /* INTO THE SEA (Mark 5:13): a beast of a herd driven over runs straight for the edge at a gallop,
@@ -568,7 +630,7 @@ function updateCamera(dt){
     camera.lookAt(la[0]+(lb[0]-la[0])*e,la[1]+(lb[1]-la[1])*e,la[2]+(lb[2]-la[2])*e);
     /* the player is not left filling the lens of a shot the story is holding */
     if(player&&!ctx.playerHidden) player.visible=camera.position.distanceTo(player.position.clone().setY(player.position.y+1))>2.2;
-    return; }
+    quake(dt); return; }
   if(player&&!ctx.playerHidden) player.visible=true;
   if(!player) return;
   /* SHOT AND REVERSE SHOT: while one near the witness speaks and the scene has not set a
@@ -585,6 +647,13 @@ function updateCamera(dt){
   const k=Math.min(1,dt*6);
   camera.position.x+=(want[0]-camera.position.x)*k; camera.position.y+=(want[1]-camera.position.y)*k; camera.position.z+=(want[2]-camera.position.z)*k;
   camera.lookAt(tx,ty,tz);
+  quake(dt);
+}
+/* "there was a great earthquake" (Mattithyahu 28:2): the eye is shaken, hard and then less */
+function quake(dt){
+  if(!ctx||!(ctx.quake>0)) return;
+  ctx.quake=Math.max(0,ctx.quake-dt); const a=Math.min(1,ctx.quake)*0.14;
+  camera.position.x+=(Math.random()-0.5)*a; camera.position.y+=(Math.random()-0.5)*a; camera.position.z+=(Math.random()-0.5)*a;
 }
 function convoShot(){
   if(ST.fast||!speaking||!player||ctx.playerHidden||!$('sverse')||$('sverse').classList.contains('off')) return null;
@@ -909,7 +978,11 @@ function enterBeat(){
   if(T==='move'){ const who=[].concat(B.who), tos=Array.isArray(B.who)||Array.isArray(B.to&&B.to[0])?[].concat(B.to):[B.to];   /* one figure, one place — even a place given as [x,z] */ who.forEach((w,k)=>{ const g=ctx.actors[w]; if(!g) return;
       const to=pos(tos[Math.min(k,tos.length-1)]);
       g.userData.follow=null; g.userData.target=to; if(B.speed) g.userData.speed=B.speed;
-      if(ST.fast){ g.position.x=to[0]; g.position.z=to[1]; g.userData.gy=undefined; } });
+      if(ST.fast){ g.position.x=to[0]; g.position.z=to[1];
+        /* set straight down where he was going: on the floor he would have walked to (a hall
+           under a roof), not on the roof over it */
+        const top=ctx.groundY(to[0],to[1]), cur=g.position.y, near=ctx.groundY(to[0],to[1],cur+1.6);
+        g.userData.gy=near!=null&&isFinite(near)&&top-near>2&&Math.abs(near-cur)<3?near:undefined; } });
     if(B.wait===false) return nextBeat();
     onFrame=()=>{ if(who.every(w=>!ctx.actors[w]||!ctx.actors[w].userData.target)) nextBeat(); }; return; }
   if(T==='follow'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.target=null; g.userData.follow=B.target||'player'; } } return nextBeat(); }
@@ -926,7 +999,7 @@ function enterBeat(){
   if(T==='cam'){ controlsOn=!!B.free;
     if(B.release){ releaseCamera(); controlsOn=true; return nextBeat(); }
     const S=B.on?shotOf(B):null;
-    const at=S?S.look:Array.isArray(B.look)&&B.look.length===3?B.look:lookAtSpec(B.look);
+    const at=S?S.look:Array.isArray(B.look)&&B.look.length===3&&typeof B.look[0]==='number'?B.look:lookAtSpec(B.look);
     let from;
     if(S) from=S.from;
     else if(B.from&&B.from.rel){ const g=ctx.actors[B.from.rel]||ctx.things[B.from.rel], o=B.from.off; from=[g.position.x+o[0],g.position.y+o[1],g.position.z+o[2]]; }
@@ -958,23 +1031,28 @@ function enterBeat(){
       /* `over`: the whole herd rushes down the steep place, each in its own lane, and over the edge */
       if(B.over){ const o=pos(B.over); u.plunge={to:[o[0],o[1]+((n*7)%11-5)*0.32],wait:(n%9)*0.22+Math.random()*0.3}; u.sp=B.sp||5.5; n++; continue; }
       if(B.to){ u.home=pos(B.to); u.roam=B.roam||0.6; u.sp=B.sp||4; u.t=0; } } return nextBeat(); }
-  if(T==='pose'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g) g.userData.armsOut=B.arms==='out'; } return nextBeat(); }
+  if(T==='pose'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g) g.userData.armsOut=B.arms==='out'?true:B.arms==='up'?'up':false; } return nextBeat(); }
+  /* "they put it on His head" (Mattithyahu 27:29) */
+  if(T==='crown'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g&&g.userData.head) window.STORYWORLD.crown(g.userData.head); } return nextBeat(); }
   if(T==='lead'){ const o=ctx.things[B.id]; if(o){ o.userData.leadBy=B.by||null; o.userData.leadBack=B.back; o.userData.leadUp=B.up; o.userData.leadTurn=B.turn; } return nextBeat(); }
   if(T==='ride'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(!g) continue; const u=g.userData;
       if(B.off){ const t=ctx.things[u.ride]; u.ride=null; u.sit=false; if(t){ g.position.x=t.position.x+Math.cos(g.rotation.y)*0.7; g.position.z=t.position.z-Math.sin(g.rotation.y)*0.7; } }
       else { const t=ctx.things[B.on]; if(t){ t.userData.leadBy=null; u.ride=B.on; u.sit=true; g.position.x=t.position.x; g.position.z=t.position.z; g.rotation.y=t.rotation.y; } } }
     return nextBeat(); }
-  if(T==='robe'){ const g=ctx.actors[B.who]; if(g) window.STORYWORLD.recolor(g,B.color); return nextBeat(); }
+  if(T==='robe'){ const g=ctx.actors[B.who]; if(g) window.STORYWORLD.recolor(g,B.color,B.mantle); return nextBeat(); }
   if(T==='drift'){ const objs=[];
     /* one thing to a place (`to`), or several together by the same distance (`by`) — a boat
        and everyone standing in it, the player too */
     for(const id of [].concat(B.id)){ const o=id==='player'?player:(ctx.things[id]||ctx.actors[id]), G=ctx.glows[id];
       if(o){ objs.push(o); if(id!=='player') o.visible=true; } if(G){ objs.push(G.sprite); if(G.light) objs.push(G.light); G.visible=true; } }
     const by=B.by?new THREE.Vector3(...B.by):null;
+    /* `hold`: a figure carried up (Acts 1:9) is held where the drift leaves him, not set back on the ground */
+    if(B.hold) for(const id of [].concat(B.id)){ const g=ctx.actors[id]; if(g&&g.userData.fixedY===undefined) g.userData.fixedY=g.position.y; }
     const D={objs,from:objs.map(q=>q.position.clone()),to:by?null:new THREE.Vector3(...B.to),by,t:0,dur:ST.fast?0.001:(B.dur||3)};
     ctx.drifts.push(D);
     if(B.wait===false) return nextBeat();
     onFrame=()=>{ if(D.t>=1) nextBeat(); }; return; }
+  if(T==='quake'){ ctx.quake=ST.fast?0:(B.s||2.5); return nextBeat(); }
   if(T==='wait'){ onFrame=()=>{ if(ST.fast||beatT>=B.s) nextBeat(); }; return; }
   if(T==='player'){ ctx.playerHidden=!!B.hidden; player.visible=!B.hidden; if(B.hidden) controlsOn=false;
     /* set the player down somewhere — in a boat, say — and hold him there (lock), or let him go */

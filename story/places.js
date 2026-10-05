@@ -17,7 +17,7 @@
 'use strict';
 const K=()=>window.__KIT;
 /* the days each act is set in: the city of the kings (Solomon's Hĕḵal), or of Herodes */
-const PERIOD={prologue:'kings', bridge:'kings', coming:'herodes', forerunner:'herodes', galil:'herodes', 'road-up':'herodes', passion:'herodes'};
+const PERIOD={prologue:'kings', bridge:'kings', coming:'herodes', forerunner:'herodes', galil:'herodes', 'road-up':'herodes', passion:'herodes', risen:'herodes'};
 const PLACES={
   yahrushalayim:{city:true},
   natsareth:  {lat:32.702, lon:35.297, flat:30, why:'Natsareth, in the hills of the lower Galil'},
@@ -45,6 +45,9 @@ const PLACES={
   highpriest: {city:true, why:'the courtyard of the kohen gadol'},
   praetorium: {city:true, why:'the Pavement, before the fortress at the corner of the courts'},
   golgotha:   {city:true, why:'outside the west wall, near the city: the knoll and the garden'},
+  /* The Rising (Act VII) */
+  emmaus:     {lat:31.840, lon:35.130, flat:34, clear:820, why:'Amma’us, twelve kilometres from Yahrushalayim (Luke 24:13), in the hills to the west'},
+  tiberias:   {lat:32.873, lon:35.549, flat:30, why:'the shore of the Sea of Kinnereth below the hills, west of Kephar Naḥum (Yahuchanon 21:1)'},
   /* the seven hundred years: the empires, each at its own seat */
   tiber:      {lat:41.89, lon:12.49, flat:20, why:'by the Tiber, where Rome begins'},
   nineveh:    {lat:36.36, lon:43.15, flat:36, why:'Ninewĕh on the Ḥiddeqel, seat of Ashshur'},

@@ -10555,6 +10555,173 @@ look right.
   Scripture Unfolds boots cleanly.
 - **Acceptance tests:** 5, 6, 7 and 51 pass.
 
+## 4dt. Round 121 — Golgotha as it stood: the stake, the quarry, the choice of Barabba, the court
+
+**Asked:** the stakes should not be crosses but a pole their hands and feet are nailed to. Research
+how Golgotha looked (outside the city walls, on a hill, with refuse at its foot, as the player
+had read). Add the beating and the condemnation, where the people chose the robber over Him.
+All three on the stakes should wear only a loincloth, since His garments were taken and lots cast
+for them. The player sent Lipsius' drawing of the *crux simplex* (*De cruce libri tres*, 1629).
+
+**Research:**
+
+- **The site:** the digging under the Church of the Holy Sepulchre (Corbo, 1960s; Broshi, 1976)
+  found a disused quarry of the 8th–1st centuries BCE. Rising out of it was a spur of rock the
+  quarrymen had left because its stone was poor.
+- **What lay around it:** rock-cut tombs of the first century in its sides, garden soil laid over
+  the fill, and the Gennath (Garden) gate and the roads out of it close by.
+- **The refuse:** that it was the city's rubbish heap has no evidence behind it. The refuse went
+  out at the Dung Gate, to the Hinnom valley on the south. The "burning dump" itself goes back
+  only to Kimchi, about 1200 CE. What lay at the spur's foot was the quarry's own waste: chips,
+  spoil, and blocks cut and left.
+
+**Made:**
+
+- **The set (story/settings.js, `S.golgotha`):**
+  - The knoll is now a grey spur of rock 6 m high, with crags.
+  - A quarry is cut 2.6 m down to its west, in steps. It has a bedrock floor, cut blocks left
+    lying, and the channels where blocks were split from the face.
+  - Heaps of spoil and chips lie at the spur's foot and along the road.
+  - The road from the gate now passes below the spur.
+  - **The stakes:** each is a single upright pole 0.22 m thick, wedged with stones, with no
+    crossbeam. The title is set over His head.
+- **The figures (story/people.js):**
+  - **`stripped`:** a loincloth of linen and nothing else. It differs from the man of the tombs:
+    no wasting, no ribs, no shackles.
+  - **Yahusha stripped:** His head-cloth is off and His face is still never drawn.
+  - **`crown`:** a ring of thorn-brush about the head (`W.crown`).
+  - **`recolor`:** can now change the mantle as well as the tunic, for the scarlet robe.
+- **The engine (story/engine.js):**
+  - **`pose` with `arms:'up'`:** the hands are drawn up over the head and nailed together to the
+    pole, the legs straight and together, the head fallen forward. This is Lipsius' plate.
+  - **New beats:** `crown`, and `quake` (the camera shaken, for Act VII).
+- **Act VI, the Pavement:**
+  - **The choice** (Mattithyahu 27:15-16, 18-20, 22-23; Mark 15:7; Yahuchanon 18:39-40):
+    Barabba is brought out in his chains and the chief kohanim work the crowd. Pilate asks and
+    the crowd answers "Let Him be impaled!" The witness chooses whether to cry out His name or
+    keep silent; nothing he does changes what the Besorah says.
+  - **The court** (Yahuchanon 19:1; Mattithyahu 27:27-30): the whole company rings Him at the
+    post in the hall. They put the scarlet robe and the crown on Him and kneel in mockery. It is
+    read, with the camera on the soldiers and His back, never on a blow.
+  - **The sentence** (Luke 23:24-25; Mattithyahu 27:31): Barabba walks free, and Yahusha's own
+    garments are put back on Him.
+- **Act VI, Golgotha:**
+  - All three are stripped to the loincloth. His garments lie where the soldiers sit and cast
+    lots.
+  - **The shots:** a frontal establishing shot from far over the city's side (too far for any
+    face), and side-behind shots at the stakes, so the pole stands at their backs. The thieves
+    may be seen from the front.
+- **Fixes found on the way:**
+  - A move fast-forwarded into a roofed hall set the figure on the roof. It now lands on the
+    floor.
+  - A camera `look` written as a marker and two offsets (three items) was read as raw
+    coordinates and gave NaN.
+
+**Checks:**
+
+- **Besorah:** `--story`, `--speakers` (0 unspoken quotations) and `--check` (93 exact, 0
+  unsourceable) all pass.
+- **Voices:** all 1589 lines are recorded.
+- **Playthrough:** Act VI plays through end to end (394 frames, 0 face exposures, no errors).
+
+## 4du. Round 122 — Act VII, The Rising
+
+**Asked:** continue with the next act. The design document gives it as: "Resurrection. The empty
+tomb; the road to Emmaus; the appearances to the disciples; the great commission; the ascension."
+
+**Made: story/acts/08-risen.js, eleven scenes laid from the four accounts and Acts 1**
+
+1. **The garden at dawn** (Mark 16:1-3; Mattithyahu 28:2-10):
+   - The witness carries the spices with the women.
+   - In the earthquake the camera shakes, the stone rolls back, the mal'ak is light upon it, and
+     the watch falls like dead men.
+   - Miryam from Maḡdala runs for Kĕpha. The other women meet Him on the road: "Greetings!"
+2. **The watch paid** (Mattithyahu 28:11-15), in the courtyard of the kohen gadol.
+3. **The women's report** to the eleven in the upper room (Luke 24:9-11; Yahuchanon 20:2-3).
+4. **The linen wrappings and the folded head-cloth; Miryam in the garden** (Yahuchanon 20:4-18):
+   - Two lights sit where He lay.
+   - "Miryam!" — "Rabboni!" is seen over His shoulder.
+5. **Amma'us** (Luke 24:13-33), a new place, 12 km west of the city:
+   - The road, the village, the house.
+   - The witness lights the lamp; He breaks the bread and is gone.
+6. **That evening, the doors shut** (Luke 24:34-49; Yahuchanon 20:21-25):
+   - The witness hands Him the broiled fish and the honeycomb.
+   - T'oma comes in after.
+7. **Eight days after, T'oma** (Yahuchanon 20:26-31).
+8. **The Sea of Kinnereth** (Yahuchanon 21), a new set on the lake's own waves:
+   - **On the water:** a night of nothing; at dawn the net is thrown on the right side by the
+     witness. Kĕpha goes over the side and swims ashore with splashes, while the boat drags the
+     net in.
+   - **On the beach:** the fire of coals; the witness carries up the catch; "do you love Me?"
+     three times; "Follow Me".
+9. **The mountain in Galil**: the commission (Mattithyahu 28:16-20).
+10. **The Mount of Olives** (Acts 1:3-12; Luke 24:50-52): He is taken up, seen from behind Him,
+    into a cloud of light. The two men in white are light.
+11. **Waiting in the upper room** (Acts 1:13-14; Luke 24:53). The act ends: "Next: To the End of
+    the Earth".
+
+**Wiring:** act-risen.html (with the saves/ line), shell.js, hub.js (the road, and two new spots on
+the map), index.html, places.js (`emmaus`, `tiberias`, and `risen` in PERIOD). The act is gone
+from 09-to-come.js.
+
+**Engine:**
+- **`quake`:** shakes the camera.
+- **Lights:** a light may stand `dy` above the ground at a marker.
+- **`drift` with `hold`:** a figure carried up stays where the drift leaves him, instead of
+  being set back on the ground.
+- **Marker looks:** a light's or a camera's marker-plus-offset (three items) is no longer read as
+  coordinates.
+
+**Checks:**
+- **Besorah:** 1103 passages exact; 0 quotations unspoken.
+- **Voices:** all 1799 lines are recorded.
+- **Playthrough:** the act plays end to end (218 frames, 0 face exposures, no errors).
+
+## 4dv. Round 123 — thrones, and the multitude
+
+**Asked:** Pilate and the kings should sit on a throne, not the ground. The crowds are far too
+small.
+
+**Made:**
+
+- **Thrones (story/world.js, `W.throne`):** the seat is at the height of the engine's bench
+  sitting, with a back, arms and a footstool. There are three styles:
+  - **`king`:** purple and gold. Herodes now sits on it before the Magi; before, he stood in
+    front of a box.
+  - **`roman`:** ivory and gold, the mishpat seat on the bema. Pilate goes up and sits on it
+    twice, where before he sat on the step.
+  - **`kohen`:** cedar. Qayapha sits on it, and stands up from it at Mark 14:60.
+- **The multitude (`crowds` on a scene; story/engine.js `placeCrowds`, story/world.js
+  `W.crowd`):**
+  - **What they are:** hundreds of plainer figures beyond the named few, welded into one mesh
+    per crowd. They are robed and girded; the men wear head-cloths and beards, the women veils,
+    and there are children. Each has its own colours, height and bearing, and all have the brown
+    skins of the land.
+  - **How they stand:** standing or sitting on the grass. They face what they came to see, or
+    the road through them (`facePath`), which is left open (`path`, `clear`).
+  - **Where they are never put:** in a wall, a tree or a house; on a named figure or the
+    witness; or on a wall-top or roof (`dy` from their ground).
+  - **Hiding them:** `hide` takes a crowd away ("they beat their breasts and went away").
+  - **The camera** is never set inside one of them.
+- **Where they stand:**
+
+  | Scene | Crowd |
+  |---|---|
+  | The entry to the city | 320 lining the way |
+  | The courts of the House | 240 |
+  | The treasury | 160 |
+  | The Pavement | 280 |
+  | Golgotha | 170 |
+  | Yahriḥo | 280 |
+  | The descent of the Mount of Olives | 300 |
+  | The foot of the mountain | 200 |
+  | Beyond the Yardĕn | 220 |
+  | The road up | 140 |
+  | The mount above the lake | 320 sitting |
+  | The beach of the parables | 260 |
+  | The five thousand | 520 sitting, by companies |
+  | The Yardĕn (Act III) | 200–220 |
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

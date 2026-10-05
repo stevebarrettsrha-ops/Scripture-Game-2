@@ -72,6 +72,7 @@ STORY.act({
   /* ---------------- III.1 — A VOICE IN THE WILDERNESS ---------------- */
   { id:'voice', title:'The Yardĕn', date:'c. 28 CE', place:'yarden', time:'day',
     player:{ at:'arrive', face:Math.PI/2.4, look:ADULT },
+    crowds:[ {id:'yardencrowd', n:200, area:[-44,-34,-8,36], look:'yahIn', minY:-0.3, dy:12} ],
     actors:[
       Object.assign({id:'yahuchanon', at:'yahIn', face:-Math.PI/2},YAHUCHANON),
       ...crowd,
@@ -124,6 +125,7 @@ STORY.act({
   /* ---------------- III.2 — THE IMMERSION ---------------- */
   { id:'immersion', title:'The Yardĕn', date:'in those days', place:'yarden', time:'day',
     player:{ at:'bank2', face:Math.PI/2, look:ADULT },
+    crowds:[ {id:'yardencrowd', n:220, area:[-44,-34,-8,36], look:'yahIn', minY:-0.3, dy:12} ],
     actors:[
       Object.assign({id:'yahuchanon', at:'yahIn', face:-Math.PI/2},YAHUCHANON),
       Object.assign({id:'yahusha', at:'westRoad', face:Math.PI/2},YAHUSHA),

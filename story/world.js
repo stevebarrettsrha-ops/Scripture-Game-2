@@ -389,6 +389,78 @@ W.roundStone=function(ctx,x,z,o){ o=o||{};
   const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,o.w||0.45,14),new THREE.MeshLambertMaterial({color:0xcfc4a8}));
   m.rotation.z=Math.PI/2; m.position.y=r; g.add(m); g.userData.wheel=m; g.userData.r=r;
   g.position.set(x,0,z); g.rotation.y=o.face||0; ctx.scene.add(g); return g; };
+/* THE MULTITUDE (Mark 3:9, "because of the crowd, lest they should press upon Him"): the many,
+   beyond the named few who move and speak — hundreds of plainer figures, robed, girded, the men
+   in head-cloths and beards, the women veiled, each its own colours and height and its own way
+   of facing, all welded into one mesh so that a scene can hold a city's worth of them. They
+   stand (or `sit` on the ground, legs before them) where the engine has found ground for them
+   (story/engine.js, placeCrowd). `figs`: [{x,y,z,face,s,robe,cloth,skin,sash,woman,beard,sit,roman}] */
+W.crowd=function(ctx,figs){
+  const P=[], N=[], Cc=[], I=[]; let n=0;
+  const col=new THREE.Color();
+  const FACES=[[[1,0,0],[[1,-1,-1],[1,1,-1],[1,1,1],[1,-1,1]],0.8],[[-1,0,0],[[-1,-1,1],[-1,1,1],[-1,1,-1],[-1,-1,-1]],0.72],
+               [[0,1,0],[[-1,1,1],[1,1,1],[1,1,-1],[-1,1,-1]],1.0],[[0,-1,0],[[-1,-1,-1],[1,-1,-1],[1,-1,1],[-1,-1,1]],0.5],
+               [[0,0,1],[[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]],0.9],[[0,0,-1],[[1,-1,-1],[-1,-1,-1],[-1,1,-1],[1,1,-1]],0.66]];
+  /* a box of the figure: (cx,cy,cz) its middle and (w,h,d) its size, in the figure's own frame */
+  const box=(F,cx,cy,cz,w,h,d,hex)=>{ col.setHex(hex); const c=Math.cos(F.face), sn=Math.sin(F.face), k=F.s;
+    for(const [nr,vs,sh] of FACES){ const o=n;
+      for(const v of vs){ const lx=(cx+v[0]*w/2)*k, ly=(cy+v[1]*h/2)*k, lz=(cz+v[2]*d/2)*k;
+        P.push(F.x+lx*c+lz*sn, F.y+ly, F.z-lx*sn+lz*c); N.push(nr[0]*c+nr[2]*sn, nr[1], -nr[0]*sn+nr[2]*c);
+        Cc.push(col.r*sh,col.g*sh,col.b*sh); n++; }
+      I.push(o,o+1,o+2,o,o+2,o+3); } };
+  for(const F of figs){
+    const R=F.robe, C=F.cloth, K=F.skin, dark=0x2a2018, belt=F.sash||0x4a3a2a, sit=F.sit;
+    if(F.roman){                                                                  /* a soldier of the cohort */
+      box(F,0.09,0.42,0,0.12,0.84,0.13,K); box(F,-0.09,0.42,0,0.12,0.84,0.13,K);
+      box(F,0,0.86,0,0.42,0.3,0.26,0x8a2a22); box(F,0,1.2,0,0.42,0.42,0.26,0x8a8c90);
+      box(F,0.25,1.13,0,0.1,0.56,0.12,0x8a2a22); box(F,-0.25,1.13,0,0.1,0.56,0.12,0x8a2a22);
+      box(F,0,1.6,0,0.19,0.22,0.21,K); box(F,0,1.74,0,0.24,0.1,0.25,0xb08d3c); box(F,0,1.82,0,0.04,0.08,0.22,0x8a2a22);
+      continue; }
+    if(sit){                                                                      /* sitting on the grass */
+      box(F,0,0.12,0.28,0.42,0.24,0.62,R); box(F,0.09,0.06,0.62,0.11,0.1,0.14,dark); box(F,-0.09,0.06,0.62,0.11,0.1,0.14,dark);
+      box(F,0,0.36,0,0.44,0.3,0.3,R); box(F,0,0.73,0,0.4,0.46,0.24,R); box(F,0,0.5,0,0.42,0.06,0.26,belt);
+      box(F,0.24,0.62,0.12,0.1,0.42,0.12,R); box(F,-0.24,0.62,0.12,0.1,0.42,0.12,R);
+      box(F,0.24,0.42,0.28,0.08,0.08,0.08,K); box(F,-0.24,0.42,0.28,0.08,0.08,0.08,K); }
+    else {
+      box(F,0.09,0.05,0.02,0.12,0.1,0.16,dark); box(F,-0.09,0.05,0.02,0.12,0.1,0.16,dark);
+      box(F,0,0.12,0,0.2,0.14,0.14,K);                                           /* the ankles under the hem */
+      box(F,0,F.woman?0.55:0.57,0,F.woman?0.46:0.44,F.woman?0.92:0.86,0.28,R);  /* the robe from the hem */
+      box(F,0,1.22,0,0.4,0.48,0.24,R); box(F,0,0.98,0,0.42,0.07,0.26,belt);
+      box(F,0.25,1.14,0,0.1,0.56,0.12,R); box(F,-0.25,1.14,0,0.1,0.56,0.12,R);
+      box(F,0.25,0.82,0.01,0.08,0.09,0.07,K); box(F,-0.25,0.82,0.01,0.08,0.09,0.07,K); }
+    const hy=sit?1.12:1.61;
+    box(F,0,hy,0,0.19,0.22,0.21,K);                                               /* the head */
+    box(F,0.045,hy+0.02,0.106,0.035,0.022,0.01,0x1a120c); box(F,-0.045,hy+0.02,0.106,0.035,0.022,0.01,0x1a120c);   /* the eyes */
+    if(F.beard!=null) box(F,0,hy-0.075,0.1,0.17,0.08,0.03,F.beard);
+    box(F,0,hy+0.12,0,0.23,0.06,0.25,C);                                          /* the head-cloth, or the veil */
+    box(F,0.105,hy-0.01,-0.01,0.02,F.woman?0.3:0.18,0.22,C); box(F,-0.105,hy-0.01,-0.01,0.02,F.woman?0.3:0.18,0.22,C);
+    const vl=F.woman?(sit?0.4:0.66):0.34; box(F,0,hy+0.1-vl/2,-0.115,0.24,vl,0.03,C); }      /* falling behind, to the shoulders (a woman's to the waist) */
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(P,3)); geo.setAttribute('normal',new THREE.Float32BufferAttribute(N,3));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(Cc,3)); geo.setIndex(I); geo.computeBoundingSphere();
+  const mesh=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({vertexColors:true}));
+  mesh.name='story-crowd'; ctx.scene.add(mesh); return mesh; };
+
+/* A SEAT OF RULE: the throne of a king (`king`: a high back and arms, gold over purple, a step
+   before it for the feet); the governor's judgement seat on the bema (`roman`: ivory and gold,
+   low-backed); the seat of the kohen gadol at the head of the council (`kohen`: cedar). The seat
+   is at the height a man sits at (the engine's `bench` sitting), facing +z before it is turned. */
+W.throne=function(ctx,x,z,o){ o=o||{};
+  const st=o.style||'king', g=new THREE.Group(), m=c=>new THREE.MeshLambertMaterial({color:c});
+  const b=(w,h,d,c,px,py,pz)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m(c)); q.position.set(px,py,pz); g.add(q); return q; };
+  const frame=st==='roman'?0xe8e0cc:st==='kohen'?0x7a5a3a:0xb8902c, trim=st==='kohen'?0x5a4028:0xd4af37,
+        cushion=st==='roman'?0x8a2a22:st==='kohen'?0x3a3a6a:o.cushion||0x5a2060;
+  const H=0.46, W2=0.36, back=st==='king'?1.55:st==='roman'?0.7:1.05;
+  for(const sx of [-1,1]) for(const sz of [-1,1]) b(0.08,H,0.08,frame,sx*(W2-0.05),H/2,sz*0.25);   /* the legs */
+  b(W2*2,0.07,0.6,frame,0,H-0.035,0);                                                   /* the seat */
+  b(W2*2-0.08,0.06,0.52,cushion,0,H+0.03,0.01);                                          /* its cushion */
+  b(W2*2,back,0.08,frame,0,H+back/2,-0.29);                                              /* the back */
+  b(W2*2-0.12,back-0.16,0.02,cushion,0,H+back/2,-0.245);
+  b(W2*2+0.06,0.06,0.12,trim,0,H+back,-0.29);                                            /* its cresting */
+  if(st==='king'){ b(0.12,0.16,0.12,trim,W2,H+back+0.08,-0.29); b(0.12,0.16,0.12,trim,-W2,H+back+0.08,-0.29); }
+  for(const sx of [-1,1]){ b(0.08,0.06,0.58,trim,sx*W2,H+0.3,0.0); b(0.07,0.3,0.07,frame,sx*W2,H+0.15,0.26); }   /* the arms */
+  if(st!=='kohen') b(W2*2+0.2,0.12,0.42,st==='king'?0x6a2440:0xd8d0bb,0,0.06,0.5);          /* the footstool */
+  g.position.set(x,0,z); g.rotation.y=o.face||0; ctx.scene.add(g); return g; };
 W.basket=function(ctx,x,z,full){
   const g=new THREE.Group();
   const a=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.4,0.6),new THREE.MeshLambertMaterial({color:0xa8844a})); a.position.y=0.2; g.add(a);
