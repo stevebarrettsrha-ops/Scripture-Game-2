@@ -203,6 +203,7 @@ STORY.act({
   /* ---------------- V.3 — THE BOY AT THE MOUNTAIN'S FOOT ---------------- */
   { id:'foot', title:'At the foot of the mountain', date:'the next day', place:'caesarea', time:'day',
     player:{ at:[14.6,18.6], face:-Math.PI*0.8, look:ADULT },
+    crowds:[ {id:'footcrowd', n:200, area:[-6,4,24,32], face:-Math.PI*0.75, jitter:0.9, dy:8} ],
     actors:[
       Object.assign({id:'yahusha', at:[26,-14], face:-Math.PI*0.7},YAHUSHA),
       T('kepha',[27.4,-15],{face:-Math.PI*0.7}), T('yaaqob',[27,-13.2],{face:-Math.PI*0.7}), T('yahuchanon',[28.4,-13.8],{face:-Math.PI*0.7}),
@@ -521,6 +522,7 @@ STORY.act({
   /* ---------------- V.9 — BEYOND THE YARDĔN: THE CHILDREN, AND THE RICH MAN ---------------- */
   { id:'beyond', title:'Beyond the Yardĕn', date:'where Yahuchanon immersed at first', place:'yarden', time:'day',
     player:{ at:[-24,-12], face:Math.PI/2, look:ADULT },
+    crowds:[ {id:'bankcrowd', n:220, area:[-46,-32,-12,32], face:Math.PI/2, jitter:0.8, minY:-0.3, dy:12} ],
     actors:[
       Object.assign({id:'yahusha', at:[-10,0], face:-Math.PI/2},YAHUSHA),
       T('kepha',[-8.8,2.8],{face:-Math.PI/2}), T('andri',[-8.8,-2.8],{face:-Math.PI/2}), T('yaaqob',[-9,4.4],{face:-Math.PI/2}),
@@ -590,6 +592,7 @@ STORY.act({
   /* ---------------- V.10 — GOING UP ---------------- */
   { id:'goingup', title:'Going up to Yahrushalayim', date:'the road from the Yardĕn', place:'yeriho', time:'day',
     player:{ at:[78,5], face:-Math.PI/2, look:ADULT },
+    crowds:[ {id:'followers', n:140, area:[56,-14,100,14], face:-Math.PI/2, jitter:0.7, path:[[104,0],[40,0]], clear:1.8, dy:10} ],
     actors:[
       Object.assign({id:'yahusha', at:[58,0.4], face:-Math.PI/2},YAHUSHA),
       T('kepha',[61.4,-1],{face:-Math.PI/2}), T('andri',[62,1.2],{face:-Math.PI/2}), T('yaaqob',[63,-0.4],{face:-Math.PI/2}),
@@ -637,6 +640,7 @@ STORY.act({
   /* ---------------- V.11 — YAHRIḤO: ZAKKAI, AND BARTIMAI ---------------- */
   { id:'yeriho', title:'Yahriḥo', date:'the city of palm trees', place:'yeriho', time:'day',
     player:{ at:[28,-1.4], face:-Math.PI/2, look:ADULT },
+    crowds:[ {id:'yerihoCrowd', n:280, area:[-62,-18,46,18], path:[[46,0],[30,0],[0,0],[-33,0],[-46,-2]], clear:2.0, facePath:true} ],
     actors:[
       Object.assign({id:'yahusha', at:[30,0.4], face:-Math.PI/2},YAHUSHA),
       T('kepha',[32.4,-0.8],{face:-Math.PI/2}), T('andri',[32.6,1.2],{face:-Math.PI/2}), T('yahuchanon',[34,0.2],{face:-Math.PI/2}),
@@ -716,6 +720,7 @@ STORY.act({
   /* ---------------- V.12 — THE DESCENT OF THE MOUNT OF OLIVES ---------------- */
   { id:'olives', title:'The Mount of Olives', date:'before the Pesach', place:'olivet', time:'day',
     player:{ at:'top', look:ADULT },
+    crowds:[ {id:'disciples', n:300, area:[66,-80,172,-10], path:[['phagi',0,0],['wait',0,0],['top',0,0],['d0',0,0],['d1',0,0],['d2',0,0],['d3',0,0],['brow',0,0]], clear:2.2, facePath:true, dy:40} ],
     actors:[
       Object.assign({id:'yahusha', at:'wait'},YAHUSHA),
       T('kepha',['wait',1.6,1.2]), T('andri',['wait',-1.4,1.6]), T('yaaqob',['wait',2.2,-1]), T('yahuchanon',['wait',-1.8,-1.4]),

@@ -309,6 +309,7 @@ STORY.act({
   /* ---------------- II.4b — SHIM‛ON AND ḤANNAH ---------------- */
   { id:'presentation', title:'Yahrushalayim', date:'the fortieth day', place:'yahrushalayim', time:'day',
     player:{ at:[9.6,-37.4], face:Math.PI*1.2, look:BOY },
+    crowds:[ {id:'worshippers', n:180, area:[-16,-58,26,-28], jitter:6.3, keep:[[1,-39.4,17,-35.6],[10,-49,14,-45]]} ],
     actors:[ Object.assign({id:'miryam', name:'Miryam', key:'Miryam', at:[4.2,-37.6], face:Math.PI},MIRYAM),
              Object.assign({id:'yoseph', name:'Yosĕph', key:'Yosĕph', at:[2.8,-37.2], face:Math.PI},YOSEPH),
              {id:'shimon', name:'Shim‛on', key:'the righteous Shim‛on', at:[12,-47], face:-Math.PI*0.8, kind:'oldman', robe:0x6a5a4a, cloth:0xe8e2d2, beard:0xc8c4bc, skin:0x7c5430},
@@ -356,7 +357,7 @@ STORY.act({
   { id:'herodes', title:'Yahrushalayim', date:'some time after', place:'yahrushalayim', time:'day',
     player:{ at:[-10,26], hidden:true },
     actors:[
-      {id:'herodes', name:'Herodes', dress:'king', at:[15,27], face:0, robe:0x6a2440, cloth:0xd4af37, sash:0xd4af37, beard:0x2c241f},
+      {id:'herodes', name:'Herodes', dress:'king', at:[15,26.7], face:0, robe:0x6a2440, cloth:0xd4af37, sash:0xd4af37, beard:0x2c241f, sit:true, bench:true},
       {id:'k1', name:'The chief kohanim and scribes', dress:'kohen', at:[20,29], face:-1.2, robe:0xe6e0cf, cloth:0x6b5a44},
       {id:'k2', dress:'scribe', at:[21,30.5], face:-1.2, robe:0xd8d0bb, cloth:0x5c5040},
       {id:'m1', name:'Magi from the East', dress:'magi', at:[14,33], face:Math.PI, robe:0x2f4f6f, cloth:0xd4af37},
@@ -364,7 +365,7 @@ STORY.act({
       {id:'m3', dress:'magi', at:[12,33.4], face:Math.PI, robe:0x3f6a4a, cloth:0xcfc4aa}
     ],
     things:[ {id:'dais', kind:'box', at:[15,26.2], w:4, h:0.02, d:2.4, color:0x6a2440},
-             {id:'seat', kind:'box', at:[15,26.1], w:1.2, h:1.5, d:0.5, color:0x8a6a3a} ],
+             {id:'seat', kind:'throne', style:'king', at:[15,26.7], face:0} ],
     beats:[
       {t:'note', text:'Again you are not there: this is the account, as the Besorah gives it.'},
       {t:'cam', from:[31,4.5,33], look:[16,1.4,30], dur:0.1},
@@ -424,6 +425,7 @@ STORY.act({
   /* ---------------- II.7 — THE BOY IN THE HOUSE OF HIS FATHER ---------------- */
   { id:'boy', title:'Yahrushalayim', date:'twelve years later, at the Pesach', place:'yahrushalayim', time:'day',
     player:{ at:[18,-52], face:Math.PI/2, look:{robe:0x8a7454, cloth:0xd8cfb8, beard:0x3a2a1e, skin:0x86573a} },
+    crowds:[ {id:'pilgrims', n:240, area:[-4,-74,44,-38], jitter:6.3, keep:[[29,-64,38,-54]]} ],
     actors:[ Object.assign({id:'miryam', name:'Miryam', key:'Miryam', at:[10,-50.6], face:Math.PI/2},MIRYAM),
              Object.assign({id:'yoseph', name:'Yosĕph', key:'Yosĕph', at:[9.6,-49.2], face:Math.PI/2},YOSEPH,{beard:0x5a5048}),
              {id:'boy', name:'Yahusha', holy:true, kind:'yahusha', small:true, at:[31.6,-60], face:Math.PI/2, sit:true},

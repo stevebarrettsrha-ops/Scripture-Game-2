@@ -439,6 +439,10 @@
   "kind": "oldman",
   "voice": "bm_fable:.6+am_adam:.4"
  },
+ "chief kohanim and elders": {
+  "kind": "oldman",
+  "voice": "am_eric:.5+bm_daniel:.5"
+ },
  "chief kohanim and pharisees": {
   "kind": "oldman",
   "voice": "am_michael:.6+bm_daniel:.4"
@@ -648,6 +652,10 @@
  "elders": {
   "kind": "crowd",
   "voice": "am_fenrir:.5+bm_daniel:.5"
+ },
+ "eleven": {
+  "kind": "crowd",
+  "voice": "am_eric:.5+bm_fable:.5"
  },
  "eli": {
   "kind": "oldman",
@@ -1665,6 +1673,10 @@
   "kind": "man",
   "voice": "am_echo:.5+bm_daniel:.5"
  },
+ "qleophas": {
+  "kind": "man",
+  "voice": "am_michael:.6+am_adam:.4"
+ },
  "qorah": {
   "kind": "man",
   "voice": "bm_lewis:.5+am_liam:.5"
@@ -2141,6 +2153,10 @@
   "kind": "man",
   "voice": "am_fenrir"
  },
+ "toma": {
+  "kind": "man",
+  "voice": "am_puck:.5+am_eric:.5"
+ },
  "tribes": {
   "kind": "crowd",
   "voice": "am_liam:.5+am_echo:.5"
@@ -2188,6 +2204,18 @@
  "two blind men": {
   "kind": "man",
   "voice": "am_michael:.6+am_adam:.4"
+ },
+ "two malakim in the tomb": {
+  "kind": "angel",
+  "voice": "am_michael:.6+bm_fable:.4"
+ },
+ "two men in white": {
+  "kind": "angel",
+  "voice": "am_michael:.6+bm_fable:.4"
+ },
+ "two on the road to ammaus": {
+  "kind": "man",
+  "voice": "bm_fable:.5+am_liam:.5"
  },
  "two taught ones": {
   "kind": "man",

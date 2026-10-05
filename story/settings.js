@@ -671,11 +671,10 @@ S.highpriest=function(ctx,st0){
   st.box(x1-0.5,0,z0,x1,3,29.2,L); st.box(x1-0.5,0,30.8,x1,3,z1,L);
   for(const px of [6,10,14,18]) st.box(px-0.3,0,28.2,px+0.3,2.8,28.8,L);                  /* the pillars of the hall */
   st.detail(5,0,24.6,19,0.46,25.4,C.stoneDark);                                          /* the council's bench */
-  st.detail(11.3,0,24.6,12.7,1.0,25.5,C.timber);                                         /* the seat of the kohen gadol */
   W.fire(ctx,st,13,32.2);
   st.detail(22.2,2.6,28.6,25.2,2.8,31.4,C.roofEarth);                                   /* the porch over the gate, without */
   st.detail(24.6,0,28.8,25,2.6,29.2,C.timber); st.detail(24.6,0,30.8,25,2.6,31.2,C.timber);
-  mk(ctx,'fire',13,32.2); mk(ctx,'hall',12,26.6); mk(ctx,'qayapha',12,25.9); mk(ctx,'accused',12,27.4);
+  mk(ctx,'fire',13,32.2); mk(ctx,'hall',12,26.6); mk(ctx,'qayapha',12,25.75); mk(ctx,'accused',12,27.4);
   mk(ctx,'hpGate',21.2,30); mk(ctx,'hpPorch',23.6,30); mk(ctx,'hpStreet',27,30);
 };
 
@@ -689,8 +688,7 @@ S.praetorium=function(ctx,st){
   st.box(-33.2,y0,-64.6,-30.8,y0+3.2,-63.6,'air',{abs:true});                           /* its door */
   for(let x=-40;x<-22;x+=2) for(let z=-63;z<-52;z+=2) st.detail(x+0.05,y0+0.01,z+0.05,x+1.95,y0+0.05,z+1.95,(x+z)%4===0?0xd8cfb8:0xc8bea6);
   st.box(-40,y0,-63.2,-36,y0+0.92,-59.4,C.limestone,{abs:true});                         /* the step of the seat */
-  st.detail(-38.6,y0+0.92,-62.9,-37.4,y0+1.7,-62.1,0xe8e0cc);                            /* the mishpat seat */
-  mk(ctx,'bema',-38,-61.2); mk(ctx,'seat',-38,-62.4); mk(ctx,'palaceDoor',-32,-62.8); mk(ctx,'palaceIn',-32,-68.5);
+  mk(ctx,'bema',-38,-61.2); mk(ctx,'seat',-38,-62.4); mk(ctx,'throne',-38,-62.3);   /* the mishpat seat is the act's own (a throne) */ mk(ctx,'palaceDoor',-32,-62.8); mk(ctx,'palaceIn',-32,-68.5);
   mk(ctx,'pavement',-32,-58); mk(ctx,'crowd',-26,-50); mk(ctx,'kohanim',-30,-53.6); mk(ctx,'basin',-35.6,-60);
 };
 
@@ -753,7 +751,7 @@ S.golgotha=function(ctx,st){
    house where the two were going, its one room with a low table, a lamp in its niche. */
 S.emmaus=function(ctx,st){
   ctx.wind=[0.6,0.3];
-  W.ground(ctx,{color:C.grassDry,flat:34,peak:[{x:-30,z:-40,h:10,r:34},{x:40,z:46,h:7,r:30}]});
+  W.ground(ctx,{color:C.grassDry,flat:44,peak:[{x:-30,z:-44,h:10,r:30},{x:44,z:62,h:7,r:24}]});
   const rz=x=>Math.sin(x*0.035)*3.2;                                              /* the road, east to the city */
   for(let x=96;x>=-2;x-=1.4){ const z=rz(x); st.box(x-0.9,0,z-1.1,x+0.9,0.08,z+1.1,C.path,{collide:false,jitter:0.12}); }
   /* the village on the slope */
@@ -769,7 +767,7 @@ S.emmaus=function(ctx,st){
   for(let n=0;n<14;n++){ const x=6+W.hash(n,8)*80, z=rz(x)+(W.hash(n,9)<0.5?-1:1)*(2.8+W.hash(n,10)*3); W.rock(st,x,z,0.35+W.hash(n,11)*0.3); }
   W.wild(ctx,'goat',30,-30,3,6,0.4); W.wild(ctx,'chicken',-20,6,3,3,0.4);
   const M=(id,x,dz)=>mk(ctx,id,x,rz(x)+(dz||0));
-  M('road0',86); M('road1',64); M('road2',44); M('road3',24); M('edge',6);
+  M('road0',34); M('road1',26); M('road2',17); M('road3',8); M('edge',2);
   mk(ctx,'house',-10,-2.4); mk(ctx,'houseDoor',-4.4,-2.4); mk(ctx,'houseIn',-7.2,-1.2);
   mk(ctx,'seatH',-10,-4.1); mk(ctx,'seatA',-10.8,-0.8); mk(ctx,'seatB',-9.2,-0.8); mk(ctx,'lamp',-13.1,-0.8);
   ctx.bounds={x0:-120,x1:140,z0:-120,z1:120};

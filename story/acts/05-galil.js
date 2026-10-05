@@ -500,6 +500,7 @@ STORY.act({
   /* ---------------- IV.5 — ON THE MOUNTAIN ---------------- */
   { id:'mountain', title:'The mountain above the lake', date:'Galil', place:'galil', time:'day',
     player:{ at:[-18,8], face:-Math.PI/2, look:ADULT },
+    crowds:[ {id:'multitude', n:320, area:[-30,-22,-6,34], look:'mountTop', sit:true, women:0.45, children:0.18, dy:16} ],
     actors:[
       Object.assign({id:'yahusha', at:'mountTop', face:Math.PI/2, sit:true},YAHUSHA),
       T('kepha',[-32,3.2],{face:-Math.PI/2,sit:true}), T('andri',[-31.4,5.4],{face:-Math.PI/2,sit:true}),
@@ -612,6 +613,7 @@ STORY.act({
   /* ---------------- IV.7b — THE SOWER ---------------- */
   { id:'sower', title:'By the Sea of Galil', date:'on that day', place:'galil', time:'day',
     player:{ at:[14,12], face:Math.PI/2, look:ADULT },
+    crowds:[ {id:'beachcrowd', n:260, area:[-6,-30,20.4,30], look:[25.6,0], dy:6} ],
     actors:[
       Object.assign({id:'yahusha', at:[6,-2], face:Math.PI/2},YAHUSHA),
       T('kepha',[23,-2.6],{face:-Math.PI/2}), T('andri',[22.6,1.6],{face:-Math.PI/2}),
@@ -872,6 +874,7 @@ STORY.act({
   /* ---------------- IV.8 — FIVE LOAVES AND TWO FISH ---------------- */
   { id:'loaves', title:'Across the Sea of Galil', date:'the Pesach near', place:'galilEast', time:'day',
     player:{ at:[2,2], face:-Math.PI/2, look:ADULT },
+    crowds:[ {id:'fivethousand', n:520, area:[-24,-46,18,46], look:'seat', sit:true, gap:0.68, women:0.4, children:0.2, dy:12} ],
     actors:[
       Object.assign({id:'yahusha', at:'seat', face:Math.PI/2},YAHUSHA),
       T('philip',[-27,-3],{face:Math.PI*0.7}), T('andri',[-27.4,3.4],{face:-Math.PI*0.7}),

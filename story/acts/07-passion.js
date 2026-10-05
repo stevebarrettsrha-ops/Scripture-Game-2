@@ -110,6 +110,7 @@ STORY.act({
   /* ---------------- VI.1 — THE ENTRY ---------------- */
   { id:'entry', title:'Yahrushalayim', date:'before the Pesach, c. 30 CE', place:'yahrushalayim', time:'day',
     player:{ at:[-9,47], face:Math.PI, look:ADULT },
+    crowds:[ {id:'pilgrims', n:320, area:[-42,28,8,76], path:[[-30,66],[-24,58],[-15.6,47],'gateIn',[-2,24]], clear:2.6, facePath:true} ],
     actors:[
       Object.assign({id:'yahusha', at:[-24,58], face:Math.PI*0.85},YAHUSHA),
       T('kepha',[-22,60],{face:Math.PI*0.85}), T('yahuchanon',[-26,60.6],{face:Math.PI*0.85}), T('andri',[-23.4,62.4],{face:Math.PI*0.85}),
@@ -152,6 +153,7 @@ STORY.act({
   /* ---------------- VI.2 — THE HOUSE OF PRAYER ---------------- */
   { id:'cleansing', title:'The courts of the House', date:'the next day', place:'courts', time:'day',
     player:{ at:[-11,-38], face:Math.PI, look:ADULT },
+    crowds:[ {id:'courtcrowd', n:240, area:[-42,-66,12,-34], look:[-22,-54], path:[[-11,-42.6],[-24,-55]], clear:2.2, keep:[[-35,-57.4,-14,-52.6]]} ],
     actors:[
       Object.assign({id:'yahusha', at:[-11,-42.6], face:Math.PI},YAHUSHA),
       T('kepha',[-9.6,-40.4],{face:Math.PI}), T('yahuchanon',[-12.4,-40.4],{face:Math.PI}), T('andri',[-10.4,-39.2],{face:Math.PI}),
@@ -204,6 +206,7 @@ STORY.act({
   /* ---------------- VI.3 — CAESAR'S COIN, AND THE WIDOW'S TWO COINS ---------------- */
   { id:'treasury', title:'The courts of the House', date:'in the days before the Pesach', place:'courts', time:'day',
     player:{ at:[6,-31], face:Math.PI, look:ADULT },
+    crowds:[ {id:'courtcrowd', n:160, area:[-30,-60,22,-32], look:'treasury', keep:[[-6,-41.4,18,-36.6]]} ],
     actors:[
       Object.assign({id:'yahusha', at:[8.6,-38.6], face:-Math.PI/2},YAHUSHA),
       T('kepha',[10.4,-38],{face:-Math.PI/2}), T('yahuchanon',[10.6,-39.6],{face:-Math.PI/2}), T('andri',[12,-38.8],{face:-Math.PI/2}),
@@ -534,11 +537,12 @@ STORY.act({
     player:{ at:[15.4,33.6], face:-Math.PI*0.75, look:ADULT },
     actors:[
       Object.assign({id:'yahusha', at:'accused', face:Math.PI},YAHUSHA),
-      {id:'qayapha', name:'Qayapha the kohen gadol', key:'Qayapha', dress:'kohen', at:'qayapha', face:0, robe:0x3a3a6a, cloth:0xe8e0cc, beard:0x6d6a66, kind:'oldman', sit:true},
+      {id:'qayapha', name:'Qayapha the kohen gadol', key:'Qayapha', dress:'kohen', at:'qayapha', face:0, robe:0x3a3a6a, cloth:0xe8e0cc, beard:0x6d6a66, kind:'oldman', sit:true, bench:true},
       T('kepha',[27,30],{face:-Math.PI/2}),
       {id:'maid', name:'A servant girl', kind:'woman', at:[20.2,31.4], face:Math.PI/2, robe:0x7a5a4a, cloth:0xe8e2d2, skin:0x7c5430},
       ...COUNCIL.map(a=>Object.assign({},a,{sit:true})), ...HPCOURT
     ],
+    things:[ {id:'seatQ', kind:'throne', style:'kohen', at:'qayapha', face:0} ],
     beats:[
       {t:'cam', from:[20,4.4,35], look:[12,1.4,27], dur:0.1},
       {t:'read', ref:'MARK 14:53'},
@@ -588,9 +592,10 @@ STORY.act({
   /* ---------------- VI.10 — BEFORE PILATE ---------------- */
   { id:'pilate', title:'The Pavement', date:'early, the Preparation of the Pesach', place:'praetorium', time:'dawn',
     player:{ at:[-24,-52], face:Math.PI, look:ADULT },
+    crowds:[ {id:'multitude', n:280, area:[-48,-58,-14,-40], look:'pavement', keep:[[-41,-64,-26,-58.4]], path:[[-32,-58],[-22,-51],[-11,-41]], clear:1.4} ],
     actors:[
       Object.assign({id:'yahusha', at:[-30,-55], face:Math.PI},YAHUSHA),
-      {id:'pilate', name:'Pilate', key:'Pilate', folk:'roman', dress:'herodian', at:'palaceIn', face:0, robe:0xece6d6, cloth:0x8a2a22, sash:0xb08d3c, skin:0xb08060},
+      {id:'pilate', name:'Pilate', key:'Pilate', folk:'roman', dress:'herodian', at:'palaceIn', face:0, robe:0xece6d6, cloth:0x8a2a22, sash:0xb08d3c, skin:0xb08060, bench:true},
       LEGION('sold1',[-31.2,-56],Math.PI), LEGION('sold2',[-28.8,-56],Math.PI),
       LEGION('sold3',[-34.4,-63.4],0), LEGION('sold4',[-29.6,-63.4],0),
       {id:'barabba', name:'Barabba', key:'Barabba', at:'palaceDoor', face:0, robe:0x4a3a2a, cloth:0x6a5a44, beard:0x1e1814, hidden:true},
@@ -600,6 +605,7 @@ STORY.act({
       ...YAHUDIM
     ],
     things:[ {id:'basinP', kind:'jar', at:'basin'},
+             {id:'mishpat', kind:'throne', style:'roman', at:'throne', face:0},
              {id:'post', kind:'box', at:['palaceIn',0,-2.2], w:0.42, h:1.05, d:0.42, color:0x9a9080} ],
     beats:[
       {t:'cam', from:[-16,9,-44], look:[-32,4,-62], dur:0.1},
@@ -634,7 +640,8 @@ STORY.act({
       {t:'say', who:'pilate', ref:'YAHUCHANON 18:39', turn:false},
       {t:'say', who:'yahudim', ref:'YAHUCHANON 18:40', turn:false},
       {t:'read', ref:'MATTITHYAHU 27:18'},
-      {t:'move', who:'pilate', to:'bema', speed:1},
+      {t:'move', who:'pilate', to:'throne', speed:1},
+      {t:'place', who:'pilate', at:'throne', face:0},
       {t:'sit', who:'pilate'},
       {t:'read', ref:'MATTITHYAHU 27:19', voices:['wife']},
       {t:'move', who:['kg1','kg2'], to:[[-27,-50.4],[-24.4,-51.6]], speed:1, wait:false},
@@ -683,7 +690,8 @@ STORY.act({
       {t:'cam', on:'yahusha', shot:'back', toward:'pilate', dur:1.6},
       {t:'say', who:'yahusha', ref:'YAHUCHANON 19:11', turn:false},
       {t:'say', who:'yahudim', ref:'YAHUCHANON 19:12', turn:false},
-      {t:'move', who:'pilate', to:'bema', speed:1},
+      {t:'move', who:'pilate', to:'throne', speed:1},
+      {t:'place', who:'pilate', at:'throne', face:0},
       {t:'sit', who:'pilate'},
       {t:'cam', from:[-34,6.2,-55.6], look:[-38,5,-61.6], dur:2},
       {t:'read', ref:'YAHUCHANON 19:13'},
@@ -711,6 +719,7 @@ STORY.act({
   /* ---------------- VI.11 — GOLGOTHA ---------------- */
   { id:'golgotha', title:'Golgotha', date:'the sixth hour', place:'golgotha', time:'day',
     player:{ at:[-57,8], face:Math.PI, look:ADULT },
+    crowds:[ {id:'onlookers', n:170, area:[-56,-52,-42,-16], look:'skull', path:[[-56,44],[-56,-58]], clear:1.3} ],
     actors:[
       Object.assign({id:'yahusha', at:'roadBend', face:-Math.PI*0.85, crown:true},YAHUSHA),
       /* stripped of their garments, in a loincloth only (Yahuchanon 19:23-24) */
@@ -802,6 +811,7 @@ STORY.act({
       {t:'move', who:ids(ROADFOLK).concat(['kg1','kg2']), to:ROADFOLK.concat(PLOTTERS).map((a,k)=>[-59+(k%3)*1.4,2+Math.floor(k/3)*1.4]), speed:1, wait:false},
       {t:'cam', from:{rel:'evil1', off:[-5,1.4,-6]}, look:['afar',0,0], dur:3},
       {t:'read', ref:'LUKE 23:48'},
+      {t:'hide', id:'onlookers'},
       {t:'read', ref:'LUKE 23:49'},
       {t:'cam', release:true},
       {t:'choice', prompt:'You', options:[
