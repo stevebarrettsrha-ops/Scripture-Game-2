@@ -10916,6 +10916,79 @@ lying "like a mat".
 
 **Verified:** screenshots of every new piece; playthroughs (below).
 
+## 4dz. Round 127 — the people of the place
+
+**Asked:** the game felt dead and empty in places, with no one walking or doing any work.
+
+**Found:**
+- Every figure in a scene was either a scripted actor or part of a crowd.
+  - Actors stand still unless a beat moves them.
+  - Crowds are one merged, unmoving mesh.
+- Only beasts and the water creatures moved on their own.
+- The voyage's villager system was not in the story kit, and every story set is placed more
+  than 1100 units from the voyage's own villages.
+- The emptiest scenes:
+  - Damascus and the street called Straight;
+  - Yapho;
+  - the road to Damascus;
+  - Emmaus;
+  - Natsareth;
+  - the hill country;
+  - the census road;
+  - the city street at the Pesach.
+
+**Made: the people of the place (`W.folk`, `spawnFolk`, `folkTick`).**
+- A set says what its townsfolk do and where. The engine raises them with seeded variety,
+  never on the scene's stage, and keeps them at it.
+- **Jobs on the move:**
+  - **walk:** travellers along a road, to and fro, some leading an ass or, on the desert
+    road, a camel.
+  - **stroll:** going about the town between its places.
+  - **water:** down to the spring with the empty jar at the hip, kneeling to fill it, home
+    with it on the head (Bereshith 24:11, Yahuchanon 4:7).
+  - **carry:** a load (basket, sack, wood, a jar) between two places, set down and fetched
+    again. In the city street at the Pesach this is "a man carrying a jar of water"
+    (Marqos 14:13).
+  - **play:** children running in a game (Mattithyahu 11:16).
+  - **herd:** a shepherd with his staff going about the flock.
+  - **plough:** a man behind an ox, up and down the furrow (Luqas 9:62).
+- **Jobs in one place, each with its own motion:**
+  - grinding at the hand-mill (Mattithyahu 24:41);
+  - mending nets (Marqos 1:19);
+  - spinning;
+  - washing (the launderers by the upper pool, Yashayahu 7:3);
+  - sweeping;
+  - hoeing;
+  - reaping with a sickle (the white fields at Shekem, Yahuchanon 4:35);
+  - hammering;
+  - picking olives and dates;
+  - selling at a table under an awning (`W.stall`: loaves, fruit, pots, cloth, fish or
+    doves);
+  - standing in talk, taking turns to speak.
+- **Behaviour:**
+  - They step round walls.
+  - They step aside for, or wait on, any of the story's people and the witness in their
+    way.
+  - They are not out at night or by lamplight, and fewer are out at dawn and dusk.
+  - A scene may ask for none (`folk:false`) or a different number (`folk:<scale>`).
+  - A townsfolk entry that cannot be placed is left out without breaking the scene.
+- **Skin:** Greeks and Romans get their own people's skin, not a legionary's dress.
+- **Where:**
+  - Natsareth, the hill country, Shekem (reapers in the field; the well left to the woman
+    who came to it alone), the census road ("all were going to be registered"),
+    Bĕyth Leḥem;
+  - the Yardĕn (washers up and down the banks, travellers on the road down), Qanah,
+    Bĕyth Anyah, the huts by the Tiber;
+  - Kephar Naḥum (fishers washing and mending nets, the catch carried up and sold),
+    Caesarea Philippi, Ginae (the ploughman, the gardeners), Yeriḥo (dates sold in the
+    street, washing at the spring);
+  - the Mount of Olives (pickers, Bĕyth Phaḡi, the road busy for the feast), the courts,
+    Yahrushalayim (the gate, the launderers, sellers in the square), the street of the
+    upper room and of the high priest's house;
+  - Emmaus, the Azzah road (a camel string), Damascus (sellers along Straight), Yapho (the
+    tanner's men at the vats), Caesarea, Antioch, Athens (the market-place, Acts 17:17) and
+    Rome.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
