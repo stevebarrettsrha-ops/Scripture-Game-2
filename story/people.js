@@ -342,7 +342,7 @@ W.person=function(ctx,o){
      awe, stern. Each feeling is a set of the face's parts, eased toward, not snapped to. */
   const FACES={
     calm:  {lid:0.12,low:0,wide:1,  bt:0,    by:0,     w:1,   bend:0,     open:0,   iris:1},
-    joy:   {lid:0.2, low:0.38,wide:1, bt:-0.06,by:0.004, w:1.25,bend:0.011, open:0.22,iris:1},
+    joy:   {lid:0.2, low:0.38,wide:1, bt:-0.06,by:0.004, w:1.2, bend:0.007, open:0.3, iris:1},
     sorrow:{lid:0.38,low:0,wide:1,  bt:-0.42,by:0.003, w:0.9, bend:-0.009,open:0,   iris:1},
     weep:  {lid:0.45,low:0.1,wide:1,bt:-0.48,by:0.004, w:1.0, bend:-0.011,open:0.35,iris:1},
     fear:  {lid:0,   low:0,wide:1.35,bt:-0.32,by:0.014, w:0.8, bend:-0.004,open:0.55,iris:0.75},
@@ -361,7 +361,7 @@ W.person=function(ctx,o){
     F.mC.d.scale.y=h; F.mL.d.scale.y=F.mR.d.scale.y=Math.max(0.006,h*(open>0.3?0.8:0.6));
     F.mL.q.position.set(0.024*c.w,c.bend,0.002); F.mR.q.position.set(-0.024*c.w,c.bend,0.002); F.mC.q.position.y=c.bend<0?c.bend*0.15:0;
     for(const S of [F.mC,F.mL,F.mR]) S.t.visible=open>0.18&&ex!=='awe'&&ex!=='fear';
-    F.mL.q.scale.x=F.mR.q.scale.x=Math.max(0.4,c.w*0.9);
+    F.mL.q.scale.x=F.mR.q.scale.x=Math.max(0.45,c.w*1.15);                                   /* the pieces meet: one mouth, not three */
     F.tears.forEach((t,i)=>{ t.visible=ex==='weep'; if(t.visible){ F.tt=((F.tt||0)+0.012)%1; t.position.y=-0.01-((F.tt+i*0.5)%1)*0.07; } }); };
   setFace(0,false,'calm');
 

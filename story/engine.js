@@ -990,7 +990,8 @@ function roomCam(){
     const from=[x,p.y+1.95,z];
     if(!camFree(from)||!underRoof(x,p.y,z)) continue;
     let da=a-f; while(da>Math.PI) da-=Math.PI*2; while(da<-Math.PI) da+=Math.PI*2;
-    const sc=r*2-Math.abs(da)*0.6; if(sc<=bs) continue;
+    let open=0; for(const [ox,oz] of [[0.75,0],[-0.75,0],[0,0.75],[0,-0.75]]) if(camFree([x+ox,from[1],z+oz])) open++;   /* room about it: no shelf or bed filling the lens */
+    const sc=r*2-Math.abs(da)*0.6+open*0.9; if(sc<=bs) continue;
     if(!lineClear(from,head)) continue;
     bs=sc; best={from,chk:0.4}; }
   return best; }
