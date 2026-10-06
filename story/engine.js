@@ -921,12 +921,24 @@ function updateCamera(dt){
      does, to a shot held within the room (or, going out, without it) that sees him come through
      the door, and when he has come in it goes back to his shoulder */
   if(ctx._roofRaw===undefined) ctx._roofRaw=roof;
-  if(roof!==ctx._roofRaw){ ctx._roofRaw=roof; if(!ST.fast){ const D=doorShot(roof); if(D){ ctx.doorShot=D; dip(); } } }
+  if(roof!==ctx._roofRaw){ ctx._roofRaw=roof; ctx.roomCam=null; ctx.doorShot=null;
+    if(!ST.fast){ if(roof){ ctx.roomCam=doorShot(true); if(ctx.roomCam) dip(); }
+      else { const D=doorShot(false); if(D){ ctx.doorShot=D; dip(); } } } }
+  /* INSIDE, the eye is the room's own, as Story Mode's is: held at a place in the room and
+     turning to keep him in view, and cut to another place when he is lost from it or comes
+     too near it — and W walks him away from it, as the eye sees */
+  if(roof){ const p=player.position, head=[p.x,p.y+1.25,p.z]; let R=ctx.roomCam;
+    if(R){ R.chk=(R.chk||0)-dt; const d=Math.hypot(p.x-R.from[0],p.z-R.from[2]);
+      if(d<1.1||d>7||(R.chk<0&&(R.chk=0.4,!lineClear(R.from,head)))) R=null; }
+    if(!R&&!ST.fast){ R=roomCam(); if(R&&ctx.roomCam) dip(); }
+    ctx.roomCam=R;
+    if(R){ camera.position.set(...R.from); camera.lookAt(...head);
+      camYaw=Math.atan2(R.from[0]-p.x,R.from[2]-p.z); player.visible=!ctx.playerHidden; ctx._in=1; quake(dt); return; } }
   if(ctx.doorShot){ const D=ctx.doorShot; D.t+=dt;
     const p=player.position, gone=Math.hypot(p.x-D.at[0],p.z-D.at[1]);
     if(D.t<D.dur&&gone<4.2&&!(keys.KeyQ||keys.KeyR)){
       camera.position.set(...D.from); camera.lookAt(p.x,p.y+1.25,p.z); player.visible=!ctx.playerHidden;
-      ctx._in=roof?1:0; quake(dt); return; }
+      ctx._in=0; quake(dt); return; }
     ctx.doorShot=null; camYaw=player.rotation.y+Math.PI; }
   ctx._in=(ctx._in||0)+((roof?1:0)-(ctx._in||0))*Math.min(1,dt*(roof?4:2));
   const ins=ctx._in, dist=camDist+(2.3-camDist)*ins, pitch=camPitch+(0.1-camPitch)*ins;
@@ -967,8 +979,21 @@ function doorShot(inside){
     if(!camFree(from)) continue;
     if(inside!==underRoof(x,p.y,z)) continue;                /* the shot stands on the same side of the door as he is going */
     if(!lineClear(from,head)) continue;
-    return {from,at:[p.x,p.z],t:0,dur:inside?2.6:2.2}; }
+    return {from,at:[p.x,p.z],t:0,dur:inside?2.6:2.2,chk:0.4}; }
   return null; }
+/* a place in the room to watch him from: about him at two or three metres, up under the
+   beams, clear of the walls and the furniture, under the same roof, with a clear line to him —
+   the farthest such, before him rather than behind */
+function roomCam(){
+  const p=player.position, head=[p.x,p.y+1.25,p.z], f=player.rotation.y; let best=null, bs=-1e9;
+  for(const r of [3.0,2.5,2.0,1.6]) for(let i=0;i<12;i++){ const a=i/12*Math.PI*2, x=p.x+Math.sin(a)*r, z=p.z+Math.cos(a)*r;
+    const from=[x,p.y+1.95,z];
+    if(!camFree(from)||!underRoof(x,p.y,z)) continue;
+    let da=a-f; while(da>Math.PI) da-=Math.PI*2; while(da<-Math.PI) da+=Math.PI*2;
+    const sc=r*2-Math.abs(da)*0.6; if(sc<=bs) continue;
+    if(!lineClear(from,head)) continue;
+    bs=sc; best={from,chk:0.4}; }
+  return best; }
 /* the blink of a cut */
 function dip(){ const f=$('fade'); if(!f) return; f.style.transition='none'; f.style.opacity=0.85; void f.offsetWidth; f.style.transition='opacity 0.35s'; f.style.opacity=0; }
 /* a roof (or the floor of an upper room, or a lintel) over the head here: the world's blocks
@@ -1161,7 +1186,17 @@ function animFace(g,id,dt){
   if(u.setFace){                             /* the voyage's figure: its face drawn in each state */
     u.blink=(u.blink||3)-dt; const shut=u.blink<0; if(u.blink<-0.13) u.blink=2.5+Math.random()*4;
     u.talkM=T?m:undefined;
-    u.setFace(m<0.12?0:m<0.55?1:2,shut,T?SV.expr(T.text):'calm');
+    /* the feeling: the speaker's from the words; a `mood` the scene has set; or, for those
+       standing by one who speaks, the words' feeling as it falls on the hearer — gladness on
+       the glad, grief on the grieved, fear and wonder spreading; a rebuke does not make them glad */
+    let ex=T?SV.expr(T.text):'calm';
+    if(u.mood) ex=u.mood;
+    else if(!T&&speaking&&speaking!==id&&ctx.actors[speaking]){ const S2=talkingAs(speaking), sp=ctx.actors[speaking];
+      if(S2&&Math.hypot(sp.position.x-g.position.x,sp.position.z-g.position.z)<9){ const e2=SV.expr(S2.text);
+        ex={joy:'joy',sorrow:'sorrow',weep:'sorrow',fear:'fear',awe:'awe'}[e2]||'calm'; } }
+    else if(!T&&SV.talk&&SV.talk.sp&&SV.talk.sp.kind==='narrator'){                     /* "and they were greatly afraid": the Besorah's telling on their faces */
+      const e3=SV.expr(SV.talk.text); if(e3==='fear'||e3==='awe'||e3==='joy'||e3==='weep'||e3==='sorrow') ex=e3; }
+    u.setFace(Math.min(1,m*1.4),shut,ex);
     /* THE HEAD TURNS TO WHOEVER IS SPEAKING (or, near, to the witness) — never His: the
        direction His head faces is what keeps every camera from His face */
     if(u.head&&!u.holy){ let tgt=null;
@@ -1381,6 +1416,9 @@ function enterBeat(){
         u.aboard=null; u.sit=false; u.target=null; }
       else { u.aboard={id:B.on,off:B.at||[0,0,0],face:B.face||0}; u.sit=true; u.target=null; u.follow=null; } }
     return nextBeat(); }
+  /* `mood`: the face a scene gives someone until it gives another (`ex`: joy · sorrow · weep ·
+     fear · awe · stern; none, to let the words carry it again) */
+  if(T==='mood'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g) g.userData.mood=B.ex||null; } return nextBeat(); }
   if(T==='robe'){ const g=ctx.actors[B.who]; if(g) window.STORYWORLD.recolor(g,B.color,B.mantle); return nextBeat(); }
   if(T==='drift'){ const objs=[];
     /* one thing to a place (`to`), or several together by the same distance (`by`) — a boat
