@@ -5809,7 +5809,14 @@ if(MAT.waterB&&renderer.capabilities.isWebGL2){        /* (the face is found by 
   addPatch(MAT.waterB,sh=>{
     Object.assign(sh.uniforms,{uRip:RIP_T,uRipO:RIP_O,uRipOn:RIP_ON,uWTime:WU.uTime,uWSun:WU.uSunDir,uWSunC:WU.uSunCol,
       uWZen:WU.uZenith,uWFog:WU.uFogColor,uWCam:WU.uCamPos,uWLight:WU.uLight});
-    sh.vertexShader='varying vec3 vWP;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n  vWP=position;');
+    /* THE FACE OF STILL WATER MOVES: little waves run over a pond, a river, a lake — the face rises
+       and falls a few hundredths of a block, never above its banks (it only ever sinks from the level
+       of its blocks), and the edges of the faces beside it go with it, so no seam opens */
+    sh.vertexShader='varying vec3 vWP;\nuniform float uWTime;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n'+
+      '  { float fb=fract(position.y/'+B.toFixed(4)+'); if(fb<0.02||fb>0.98){ vec2 q=position.xz/'+B.toFixed(4)+';\n'+
+      '      float w=0.5*sin(q.x*2.03+uWTime*1.7)+0.35*sin(q.y*1.61-uWTime*1.3+q.x*0.4)+0.25*sin((q.x+q.y)*2.9+uWTime*2.3)+0.15*sin((q.x-q.y)*4.1-uWTime*3.1);\n'+
+      '      transformed.y+=(w-1.25)*'+(B*0.055).toFixed(4)+'; } }\n'+
+      '  vWP=transformed;');
     sh.fragmentShader='varying vec3 vWP;\nuniform sampler2D uRip; uniform vec2 uRipO; uniform float uRipOn, uWTime;\n'+
       'uniform vec3 uWSun, uWSunC, uWZen, uWFog, uWCam, uWLight;\n'+
       sh.fragmentShader.replace('gl_FragColor = vec4( outgoingLight, diffuseColor.a );',
@@ -18893,6 +18900,8 @@ function buildYahruPlan(period){
 window.__KIT={
   B, U_PER_M, R_WORLD, WATER_Y, THREE, scene, camera, renderer,
   makeFigure, makeAnimal:k=>{ try{ return makeAnimal(k); }catch(e){ return null; } },
+  /* is this point in water (a block of it, a lake's or a river's)? — a man wades in it, he does not stand on it */
+  waterAt:(x,y,z)=>blockAt(Math.floor(x/B),Math.floor(y/B),Math.floor(z/B))===blockId('water'),
   robeMat:robeMatHex, blockMat:n=>MAT[n]||null, solidAt, splash:(x,y,z,big)=>splash(x,y,z,big),
   /* the live water, the storm and the hidden still water — for a story's own sea */
   ripple:{tex:RIP_T,o:RIP_O,on:RIP_ON,span:RIP_SPAN,at:(x,z,a,r,f)=>rippleAt(x,z,a,r,f),focus:p=>{ RIP_FOCUS=p||null; }},

@@ -10722,6 +10722,273 @@ small.
   | The five thousand | 520 sitting, by companies |
   | The Yardĕn (Act III) | 200–220 |
 
+## 4dw. Round 124 — Act VIII, To the End of the Earth
+
+**Asked:** continue the acts. The design document gives the last act as: "Shavuot and the coming
+of the Ruach ha'Qodesh; Kefa's sermon; the first assembly; Stephen; the conversion of Sha'ul
+(Paul); Philip and the Ethiopian official; Cornelius (the door opens to the nations); the
+missionary journeys ... ending in Rome. The final act closes the loop: the good news arrives in
+the very city that began as a muddy village in the prologue's montage."
+
+**Made: story/acts/09-ends.js, fifteen scenes from Acts 2–28**
+
+1. **The Festival of weeks** (2:1-41):
+   - In the upper room the wind comes, the camera shakes, and a tongue of fire settles over
+     each head.
+   - Down in the street, 340 pilgrims hear in their own languages.
+   - Kĕpha preaches, from Yo'al to "Master and Mashiach", and three thousand are immersed.
+2. **The first assembly** (2:42-47; 4:32-35): the witness breaks the bread.
+3. **The Lovely Gate** (3:1-10): "rise up and walk". He goes in leaping.
+4. **Stephanos before the council** (6:8-15; 7:1-2, 48-56):
+   - His face is lit, and the history he tells is given as a note.
+   - The heavens open as a light.
+5. **Outside the city** (7:57-8:4):
+   - The stoning is read, never drawn. The camera is on the young man Sha'ul and the coats
+     at his feet.
+   - The witness kneels with the men who bury him.
+6. **The road down to Azzah** (8:26-40):
+   - A Kushite official rides west in a chariot drawn by a pair of the voyage's horses, reading
+     Yahshayahu 53 aloud. The **Codex card for Yahshayahu 53 shows again** (the scroll's own
+     verse, read on that road).
+   - The witness holds the horses while they go down into the water. Philip is caught away in
+     a flash of light.
+7. **The road to Damascus** (9:1-9):
+   - A blinding light, and Sha'ul down on his face. Yahusha is light and a voice only.
+   - The witness leads him by the hand to the gate.
+8. **The street called Straight** (9:10-22): the vision to Ḥananyah, the scales fall, and the
+   witness brings him bread.
+9. **The house-top at Yapho** (10:9-23):
+   - The sheet comes down three times and goes back.
+   - The witness opens the gate to the captain's men.
+10. **The house of Cornelius** (10:24-48): the Ruach falls on the nations, fire over their heads,
+    and the witness fetches water.
+11. **Antioch** (11:19-26; 13:1-3): "Natsarim" first. Barnaḇah and Sha'ul are sent, and the
+    witness carries their bundles to the road.
+12. **Athens** (17:16-34):
+    - The witness reads the altar ("to an unknown god"; Pausanias saw such altars).
+    - Sha'ul speaks on the hill of Ares under the Parthenon. Dionusios and Damaris stay.
+13. **The Northeaster** (27:9-44):
+    - **The ship:** the grain ship (the lake's boat, built 2.2 times as large) under Crete.
+    - **The storm:** the storm engine's rain and seas; the witness heaves the cargo over the side.
+    - **On board:** Sha'ul's word of the mal'ak; the sailors' boat cut away; bread at dawn.
+    - **The wreck:** she runs for the beach and grounds where two seas meet. All reach land.
+14. **Melite** (28:1-6): the fire in the rain, the witness's sticks, and the viper shaken off.
+15. **Rome** (28:14-31):
+    - A note closes the prologue's loop: the palisade of huts on the Palatine is now the houses
+      of the Caesars.
+    - Sha'ul goes in under guard to a rented house, and the witness carries in the scrolls.
+    - "With all boldness, unhindered." The last shot is over the city to the Tiber. The final
+      title reads "From Bĕyth Leḥem to Rome — the promise, kept".
+
+**New sets (story/settings.js):** each is placed at its true latitude and longitude (places.js).
+
+| Set | What it holds |
+|---|---|
+| `gazaroad` | A paved Roman road through desert, a wadi with water and reeds |
+| `damascus` | A walled city, a gate, the colonnaded Straight Street, the house of Yahuḏah |
+| `yapho` | The sea, the tanner's house with roof and stair, his vats |
+| `caesareaM` | A Roman court-house with its pool and portico, Herodes' harbour mole and tower |
+| `antioch` | The colonnaded street, Mount Silpius, the house of the qahal |
+| `athens` | The Acropolis with its temple on a built terrace, the hill of Ares with cut steps, the agora's porch, the altar, the images |
+| `malta` | The bay, the reef, the rocks, the fire; the lake's waves laid over the open sea |
+| `rome` | The Tiber and a stone bridge, brick insulae with windows, a temple on the Palatine and one by the way, the rented house |
+
+**Engine and world:**
+- **`W.chariot`:** a car, two wheels, a pole, a yoke and a pair of horses walking on the voyage's
+  gait. It is ridden with `ride`.
+- **Boats:** a boat may be built at any `scale`.
+- **`temple()`:** may stand on a hill's crown.
+- **`sea()`:** lays an open-sea set.
+
+**Hub:** Act VIII is playable; eight new spots are on the map, and 09-to-come.js is empty.
+
+## 4dx. Round 125 — the oasis, the desert floor, the date palm
+
+**Asked:** the water on the Azzah road was too plain. With four reference pictures of desert
+oases, the player asked for an oasis, and for ground that looks a little rocky rather than
+lying "like a mat".
+
+**Made (story/world.js):**
+
+- **`W.oasis`: a pool in a hollow of the desert.**
+  - **Its edge** wanders on a sum of sines rather than following a rule. It is wading-deep all
+    round and deeper in the middle.
+  - **The bank:** a ring of grass and dark wet earth fading out into the sand, and stones lying
+    flat in the bank (one in ten standing proud).
+  - **In and on the water:** reeds and rushes in the shallows, and lily pads, some in flower
+    (pink, yellow, white).
+  - **Around it:** grass tufts and flowers in the green, date palms, an acacia and a couple of
+    worn boulders.
+  - **`open`:** leaves one side clear, toward the road.
+- **`W.desert`: the floor of the wilderness, broken up.**
+  - Drifts of brown earth and grit, walked out cell by cell from a seed so that no patch is a
+    tile; a stone showing here and there.
+  - Dunes stepped in courses, ribs of rock, and dry scrub.
+  - All of it kept off the road and the oasis.
+- **The date palm, rebuilt.**
+  - **Trunk:** slim and ringed, leaning more as it climbs.
+  - **Crown:** eight fronds, each an arch of leaflets that rises from the crown and bows to the
+    tip, with clusters of dates under it.
+  - **Where:** it now stands everywhere a palm does (the Yardĕn, Baḇel, Yahriḥo, the oases).
+    Before, it was a trunk with a cross of leaves.
+
+**Where:**
+- **The road to Azzah (Act VIII):** the official is immersed in an oasis beside a road through
+  broken desert.
+- **Yahriḥo (Act V):** an oasis at the spring outside the wall (2 Meleḵim 2:19-22) under six
+  palms.
+
+## 4dy. Round 126 — living water, the carriage of state, Kepha's vision
+
+**Asked:**
+- People were still walking on the water. Oases, rivers and lakes should look like water,
+  with ripples and small waves, and have life about them: creeping things, fish.
+- The Kushite official's chariot should look glorious and seat two or three.
+- Kepha's vision at Yapho should be shown, with the creatures Acts 10:12 lists.
+
+**Made:**
+- **Wading, not walking on water (story/engine.js, js/engine.js).**
+  - The cause: edited water counts as solid in the voyage's `blockSolidAt`, so the ground
+    under a figure was the water's surface.
+  - `groundAt` now asks the kit's new `waterAt`. Where there is water, it goes down to the
+    bed and stands a figure there, at most 1.25 deep.
+  - At Acts 8:38-39 the treasurer now stands 1.25 deep and Philip 0.92 (probed).
+  - Crowds are no longer placed on water.
+  - Boats and the lake-walk (Mattithyahu 14) are held at their own heights and are unchanged.
+- **Waves.**
+  - The voyage's water-block shader now moves the top of every water block in four crossing
+    swells. The surface only ever sinks, so it never rises through its banks.
+  - A figure in water rings the ripple field with each step, and faintly while standing.
+- **Life at the water (`W.creature`, `W.waterLife`, `spawnLife`, `lifeTick`).**
+  - **Fish** wander in water at least half a metre deep. They turn at the bank, their tails
+    working, and now and then one leaps and splashes.
+  - **Frogs** sit on the bank, hop, and plop in with a ring.
+  - **Dragonflies** dart over the water, their wings flickering.
+  - **Egrets** stalk the dry shore and strike with the neck.
+  - **Turtles** sun on the bank; **butterflies** wheel over the flowers.
+  - **Where:**
+    - every oasis;
+    - the Yardĕn;
+    - the shore of the Kinnereth;
+    - the springs at Caesarea Philippi;
+    - the Great Sea's edge;
+    - the Tiber;
+    - the spring at Natsareth.
+- **The carriage of state (`W.chariot`, Acts 8:27-31).**
+  - The official is treasurer over all the treasure of the Kandake. He sits reading and
+    "invited Philip to come up and sit with him", so this is a travelling carriage, not a
+    war-car.
+  - **The car:** a long car of red lacquer, panelled and gilded with bosses, on four spoked
+    wheels shod in bronze (the larger pair behind).
+  - **The seats:** a purple-cushioned bench for two at the back, and the driver's bench
+    before it.
+  - **The canopy:** striped in white and Nile blue on four gilded posts, with a gold fringe,
+    the curtains tied back, and a gold finial.
+  - **The team:** a pole and yoke to a pair of horses under red-and-gold caparisons with
+    plumes.
+  - **Motion:** its wheels turn as it goes.
+- **Engine support for it.**
+  - A carriage now carries its own seat height (`seatH`), where its rider sits (`rideOff`),
+    and how far out one steps down (`side`).
+  - The new `aboard` beat seats another figure at a seat of a thing, carried with it, and
+    sets them down at its side again.
+- **The scene (Act VIII, the road to Azzah).**
+  - A driver of Kush in white linen sits on the front bench throughout. Acts 8:38 has the
+    treasurer command the chariot to stand still.
+  - After 8:31 Philip is aboard beside the treasurer. They ride together to the water, and
+    both get down before going into it.
+- **Kepha's vision (`W.vision`, Acts 10:11-16).**
+  - **The sheet:** a great linen sheet that sags under its load, hemmed, its four corners
+    knotted to cords of light. The cords run up into the opened shamayim, which is light
+    only, never figures.
+  - **What is in it:**
+    - four-footed beasts of the earth: camel, pig, hare, goat, donkey;
+    - wild beasts: lion, bear, leopard, wolf, boar, hyena;
+    - creeping creatures: viper, lizard, scorpion, hedgehog, frog, turtle, crocodile;
+    - the birds of the shamayim: eagle, owl, raven, dove and gull, some perched on its
+      edge and some wheeling about it.
+  - **Motion:** each beast looks about and shifts on its feet.
+  - **Staging:**
+    - It is let down before Kepha over the tanner's yard.
+    - During 10:12 the camera moves slowly across the sheet.
+    - It goes up and comes down three times (10:16), then is taken back up.
+    - Kepha's answer (10:14) is framed close on him.
+
+**Verified:** screenshots of every new piece; playthroughs (below).
+
+## 4dz. Round 127 — the people of the place
+
+**Asked:** the game felt dead and empty in places, with no one walking or doing any work.
+
+**Found:**
+- Every figure in a scene was either a scripted actor or part of a crowd.
+  - Actors stand still unless a beat moves them.
+  - Crowds are one merged, unmoving mesh.
+- Only beasts and the water creatures moved on their own.
+- The voyage's villager system was not in the story kit, and every story set is placed more
+  than 1100 units from the voyage's own villages.
+- The emptiest scenes:
+  - Damascus and the street called Straight;
+  - Yapho;
+  - the road to Damascus;
+  - Emmaus;
+  - Natsareth;
+  - the hill country;
+  - the census road;
+  - the city street at the Pesach.
+
+**Made: the people of the place (`W.folk`, `spawnFolk`, `folkTick`).**
+- A set says what its townsfolk do and where. The engine raises them with seeded variety,
+  never on the scene's stage, and keeps them at it.
+- **Jobs on the move:**
+  - **walk:** travellers along a road, to and fro, some leading an ass or, on the desert
+    road, a camel.
+  - **stroll:** going about the town between its places.
+  - **water:** down to the spring with the empty jar at the hip, kneeling to fill it, home
+    with it on the head (Bereshith 24:11, Yahuchanon 4:7).
+  - **carry:** a load (basket, sack, wood, a jar) between two places, set down and fetched
+    again. In the city street at the Pesach this is "a man carrying a jar of water"
+    (Marqos 14:13).
+  - **play:** children running in a game (Mattithyahu 11:16).
+  - **herd:** a shepherd with his staff going about the flock.
+  - **plough:** a man behind an ox, up and down the furrow (Luqas 9:62).
+- **Jobs in one place, each with its own motion:**
+  - grinding at the hand-mill (Mattithyahu 24:41);
+  - mending nets (Marqos 1:19);
+  - spinning;
+  - washing (the launderers by the upper pool, Yashayahu 7:3);
+  - sweeping;
+  - hoeing;
+  - reaping with a sickle (the white fields at Shekem, Yahuchanon 4:35);
+  - hammering;
+  - picking olives and dates;
+  - selling at a table under an awning (`W.stall`: loaves, fruit, pots, cloth, fish or
+    doves);
+  - standing in talk, taking turns to speak.
+- **Behaviour:**
+  - They step round walls.
+  - They step aside for, or wait on, any of the story's people and the witness in their
+    way.
+  - They are not out at night or by lamplight, and fewer are out at dawn and dusk.
+  - A scene may ask for none (`folk:false`) or a different number (`folk:<scale>`).
+  - A townsfolk entry that cannot be placed is left out without breaking the scene.
+- **Skin:** Greeks and Romans get their own people's skin, not a legionary's dress.
+- **Where:**
+  - Natsareth, the hill country, Shekem (reapers in the field; the well left to the woman
+    who came to it alone), the census road ("all were going to be registered"),
+    Bĕyth Leḥem;
+  - the Yardĕn (washers up and down the banks, travellers on the road down), Qanah,
+    Bĕyth Anyah, the huts by the Tiber;
+  - Kephar Naḥum (fishers washing and mending nets, the catch carried up and sold),
+    Caesarea Philippi, Ginae (the ploughman, the gardeners), Yeriḥo (dates sold in the
+    street, washing at the spring);
+  - the Mount of Olives (pickers, Bĕyth Phaḡi, the road busy for the feast), the courts,
+    Yahrushalayim (the gate, the launderers, sellers in the square), the street of the
+    upper room and of the high priest's house;
+  - Emmaus, the Azzah road (a camel string), Damascus (sellers along Straight), Yapho (the
+    tanner's men at the vats), Caesarea, Antioch, Athens (the market-place, Acts 17:17) and
+    Rome.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

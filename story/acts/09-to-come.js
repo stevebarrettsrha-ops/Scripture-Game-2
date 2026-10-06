@@ -3,5 +3,5 @@
    come", so the whole road from Bĕyth Leḥem to Rome can be seen from the
    start; each becomes playable when its scenes are written. */
 [
-  {n:9, num:'VIII', id:'ends-of-earth', title:'To the End of the Earth', sub:'The Festival of weeks · Sha’ul · Shomeron · Rome'}
+  /* (every act of the design document is now built) */
 ].forEach(a=>STORY.act(Object.assign({planned:true, scenes:[]},a)));

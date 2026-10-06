@@ -17,7 +17,7 @@
 'use strict';
 const K=()=>window.__KIT;
 /* the days each act is set in: the city of the kings (Solomon's Hĕḵal), or of Herodes */
-const PERIOD={prologue:'kings', bridge:'kings', coming:'herodes', forerunner:'herodes', galil:'herodes', 'road-up':'herodes', passion:'herodes', risen:'herodes'};
+const PERIOD={prologue:'kings', bridge:'kings', coming:'herodes', forerunner:'herodes', galil:'herodes', 'road-up':'herodes', passion:'herodes', risen:'herodes', 'ends-of-earth':'herodes'};
 const PLACES={
   yahrushalayim:{city:true},
   natsareth:  {lat:32.702, lon:35.297, flat:30, why:'Natsareth, in the hills of the lower Galil'},
@@ -48,6 +48,15 @@ const PLACES={
   /* The Rising (Act VII) */
   emmaus:     {lat:31.840, lon:35.130, flat:34, clear:820, why:'Amma’us, twelve kilometres from Yahrushalayim (Luke 24:13), in the hills to the west'},
   tiberias:   {lat:32.873, lon:35.549, flat:30, why:'the shore of the Sea of Kinnereth below the hills, west of Kephar Naḥum (Yahuchanon 21:1)'},
+  /* To the End of the Earth (Act VIII) */
+  gazaroad:   {lat:31.58,  lon:34.92,  flat:46, why:'the way down from Yahrushalayim to Azzah, "this is desert" (Acts 8:26)'},
+  damascus:   {lat:33.51,  lon:36.29,  flat:60, why:'Damascus, the road in from the south-west and the street called Straight (Acts 9:11)'},
+  yapho:      {lat:32.054, lon:34.752, flat:34, why:'Yapho by the sea, the house of Shim‛on the tanner (Acts 10:6)'},
+  caesareaM:  {lat:32.50,  lon:34.892, flat:34, why:'Caesarea by the sea, the house of the captain Cornelius (Acts 10:24)'},
+  antioch:    {lat:36.20,  lon:36.16,  flat:46, why:'Antioch on the Orontes, where they were first called Natsarim (Acts 11:26)'},
+  athens:     {lat:37.972, lon:23.722, flat:40, why:'Athens, the hill of Ares below the Acropolis (Acts 17:22)'},
+  malta:      {lat:35.95,  lon:14.42,  flat:30, why:'Melite, the bay where the ship ran aground (Acts 27:39, 28:1)'},
+  rome:       {lat:41.89,  lon:12.485, flat:50, why:'Rome, by the Tiber under the Palatine (Acts 28:16)'},
   /* the seven hundred years: the empires, each at its own seat */
   tiber:      {lat:41.89, lon:12.49, flat:20, why:'by the Tiber, where Rome begins'},
   nineveh:    {lat:36.36, lon:43.15, flat:36, why:'Ninewĕh on the Ḥiddeqel, seat of Ashshur'},

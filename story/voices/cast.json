@@ -263,6 +263,10 @@
   "kind": "woman",
   "voice": "af_nicole"
  },
+ "athenians": {
+  "kind": "crowd",
+  "voice": "am_liam"
+ },
  "athenobius": {
   "kind": "man",
   "voice": "am_puck:.5+am_eric:.5"
@@ -487,9 +491,17 @@
   "kind": "crowd",
   "voice": "am_liam:.5+am_echo:.5"
  },
+ "cornelius": {
+  "kind": "man",
+  "voice": "am_puck"
+ },
  "crowd": {
   "kind": "crowd",
   "voice": "bm_fable:.5+am_liam:.5"
+ },
+ "crowd at the festival of weeks": {
+  "kind": "crowd",
+  "voice": "am_liam:.5+am_echo:.5"
  },
  "crowd of the taught ones": {
   "kind": "crowd",
@@ -717,6 +729,10 @@
   "kind": "woman",
   "voice": "bf_emma"
  },
+ "eunuch": {
+  "kind": "man",
+  "voice": "bm_lewis"
+ },
  "eved": {
   "kind": "man",
   "voice": "bm_lewis"
@@ -881,6 +897,10 @@
   "kind": "man",
   "voice": "am_eric"
  },
+ "hananyah": {
+  "kind": "oldman",
+  "voice": "am_fenrir:.6+bm_daniel:.4"
+ },
  "hananyahu": {
   "kind": "man",
   "voice": "am_puck:.5+am_eric:.5"
@@ -1036,6 +1056,10 @@
  "ish-boshet": {
   "kind": "man",
   "voice": "am_michael"
+ },
+ "islanders": {
+  "kind": "crowd",
+  "voice": "am_michael:.5+am_echo:.5"
  },
  "iyob": {
   "kind": "man",
@@ -1585,6 +1609,10 @@
   "kind": "man",
   "voice": "am_michael:.5+am_echo:.5"
  },
+ "others": {
+  "kind": "man",
+  "voice": "am_fenrir"
+ },
  "othnial": {
   "kind": "man",
   "voice": "am_liam"
@@ -1604,6 +1632,10 @@
  "people": {
   "kind": "crowd",
   "voice": "bm_lewis"
+ },
+ "ph1": {
+  "kind": "man",
+  "voice": "am_puck:.5+am_michael:.5"
  },
  "pharaoh": {
   "kind": "man",
@@ -2045,6 +2077,10 @@
   "kind": "man",
   "voice": "am_michael:.6+am_adam:.4"
  },
+ "stephanos": {
+  "kind": "man",
+  "voice": "am_liam:.5+am_puck:.5"
+ },
  "steward": {
   "kind": "man",
   "voice": "bm_daniel"
@@ -2108,6 +2144,10 @@
  "those in the qahal": {
   "kind": "crowd",
   "voice": "am_eric:.5+bm_fable:.5"
+ },
+ "those in the qahalim of damascus": {
+  "kind": "crowd",
+  "voice": "bm_daniel"
  },
  "those sent from yahrushalayim": {
   "kind": "oldman",
