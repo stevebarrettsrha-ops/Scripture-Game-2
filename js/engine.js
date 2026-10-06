@@ -12471,7 +12471,12 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   clearLotOfTrees(x0-B*1.5,z0-B*1.5,x1+B*1.5,z1+B*1.5,y);
   /* four blocks to the eaves now, not three — a house a man does not have
      to stoop into reads as a HOUSE, not a hut */
-  const wallH=4*B, T=B*0.5, gw=B*0.75;
+  /* ---- A DOOR A MAN WALKS THROUGH UPRIGHT (Round 128) ----
+     The houses of the story and of the city of the great king (`big`) are a course
+     taller, and their doorway two cells wide and three courses high: the one-cell,
+     two-course doorway over a step a course high read, beside a man, as a hatch. */
+  const big=!!(ex&&ex.big);
+  const wallH=(big?5:4)*B, T=B*0.5, gw=big?B+0.02:B*0.75;
   /* the stone footing, and the floor laid upon it — beaten earth in the
      brick lands and the huts, boards in the timber ones */
   const earthFloor=(style==='levant'||style==='round');
@@ -12491,7 +12496,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
      rule that a floor wants two courses of clear air over it (noRoom, in
      moveEnt) refused every soul in the world its own doorway, and nobody
      had ever gone indoors. Three courses even: the doorway is two clear. */
-  const wy0=y+B*0.55, wy1=y+wallH, ly=y+B*3;      /* ly = lintel underside */
+  const wy0=y+B*0.55, wy1=y+wallH, ly=y+B*(big?4:3);      /* ly = lintel underside */
   /* ---- THE DOORWAY SITS ON A CELL (Round 95) ----
      The gap was cut about the house's own middle, wherever on the block
      grid that fell. A stamp claims every cell a box touches, so when the
@@ -12502,7 +12507,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
      solid two courses up. The gap is cut about the CENTRE of the cell the
      middle falls in, so exactly one cell — a doorway a man can pass — is
      ever left free between the segments. */
-  const gx=(Math.floor(hx/B)+0.5)*B, gz=(Math.floor(hz/B)+0.5)*B;
+  const gx=big?Math.round(hx/B)*B:(Math.floor(hx/B)+0.5)*B, gz=big?Math.round(hz/B)*B:(Math.floor(hz/B)+0.5)*B;   /* (two cells: about the line between them) */
   const wall=(ax0,az0,ax1,az1)=>emitBox(G,ax0,wy0,az0,ax1,wy1,az1,wallMat,wallMat,null);
   if(doorDir===0){ wall(x0,z1-T,gx-gw,z1); wall(gx+gw,z1-T,x1,z1);
     emitBox(G,gx-gw,ly,z1-T,gx+gw,wy1,z1,lintelMat,lintelMat,lintelMat); }
@@ -12532,7 +12537,8 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
     /* and the doorway is never walled across by it */
     const dcx=Math.floor((doorDir===2?x1-T/2:doorDir===3?x0+T/2:gx)/B),
           dcz=Math.floor((doorDir===0?z1-T/2:doorDir===1?z0+T/2:gz)/B), dcy=Math.floor((y+B*1.5)/B);
-    stampBlock(dcx,dcy,dcz,0); }
+    stampBlock(dcx,dcy,dcz,0);
+    if(big){ if(doorDir<=1) stampBlock(Math.floor((gx-B*0.5)/B),dcy,dcz,0); else stampBlock(dcx,dcy,Math.floor((gz-B*0.5)/B),0); } }
   /* timber posts at the corners — the frame of a timber house only */
   if(style==='north'||style==='east')
     for(const cx of [x0-0.12,x1-B*0.5+0.12]) for(const cz of [z0-0.12,z1-B*0.5+0.12])
@@ -12690,8 +12696,8 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   const swing = (doorDir===0||doorDir===3)?1.7:-1.7;   /* open outward */
   ex.houses.push({x0,x1,z0,z1, dx:gapCX, dz:gapCZ, gw, apron, style, stair:stairAt,
     yb:y, top:roofTop,   /* footing and ridge (or parapet) — the eye rides over these */
-    door:{dir:doorDir, hx:hingeX, hz:hingeZ, base:baseAng, y:y+B*0.05,
-      w:gw*2.0, h:B*2.05, swing, open:false, ang:baseAng, target:baseAng}});
+    door:{dir:doorDir, hx:hingeX, hz:hingeZ, base:baseAng, y:big?y+B:y+B*0.05,      /* (a big house's leaf hangs from its threshold) */
+      w:gw*2.0, h:big?B*2.98:B*2.05, swing, open:false, ang:baseAng, target:baseAng}});
 }
 /* ---- THE FIELD, AND WHAT IS SOWN IN IT ----
    Every farm on the earth grew the same twelve anonymous green crosses, in the
@@ -18862,7 +18868,7 @@ function setBuilder(ax,az,baseY,opt){
       const dir={s:0,n:1,e:2,w:3}[o.door||'s'];
       /* on the level ground of the set, at its height; anywhere else, on the ground where it stands */
       const hy=api.inPadL(x,z)?baseY:(()=>{ const c=cell(Math.floor(X(x)/B),Math.floor(Z(z)/B)); return c?c.h*B:baseY; })();
-      houses.push(storyHouse(X(x),Z(z),hy,odd(w),odd(d),dir,o.seed||Math.floor(Math.abs(x*31+z*17))+1,o.style||'levant',{washed:o.washed,wall:o.wall})); },
+      houses.push(storyHouse(X(x),Z(z),hy,odd(w),odd(d),dir,o.seed||Math.floor(Math.abs(x*31+z*17))+1,o.style||'levant',{washed:o.washed,wall:o.wall,big:o.big!==false})); },
     inPadL(x,z){ return api.inPad(Math.floor(X(x)/B),Math.floor(Z(z)/B)); },
     /* A HILL HEAPED UP where the story needs one the world's coarse ground does not have — the
        brow of Natsareth's hill, the slope of a mount: `h` metres high at (x,z), falling away
@@ -18918,6 +18924,7 @@ window.__KIT={
   /* the names of lands and cities over the world: a story shows none */
   setNames:v=>{ namesOn=!!v; },
   blockId, stampGroup:fn=>stampedGroup(fn), stampDrop, stampBlock, stampBox, stampTop,
+  houses:()=>standaloneHouses,          /* the set's houses, their doors (the story swings them for whoever comes) */
   storyHouse, topY, cell, landAtWorld, groundInfo, llToWorld, setLocalHour, localHourAt,
   state, setMode, walkerG:()=>walkerG, updateChunks, flushEdits,
   yahruPos:()=>yahruPos, yahruMarks:()=>YAHRU_MARKS, sites:()=>SITES,

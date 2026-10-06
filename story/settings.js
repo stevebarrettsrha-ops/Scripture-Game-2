@@ -467,7 +467,7 @@ function room(ctx,st0,x0,z0,x1,z1,o){ let st;
   const Y=o.y||0, H=2.8+Y; st={box:(a,b,c,d,e,f,g,h)=>st0.box(a,b+Y,c,d,e+Y,f,g,h)}; 
   st.box(x0,0,z0,x1,0.08,z1,C.path);                                                /* the floor of beaten earth */
   st.detail=(...a)=>st0.detail(a[0],a[1]+Y,a[2],a[3],a[4]+Y,a[5],a[6],a[7]);
-  const dz0=mz-0.7, dz1=mz+0.7;
+  const dz0=mz-1.0, dz1=mz+1.0;                                                     /* a doorway two of the world's cells across */
   /* the four walls, the door left open in its own */
   const WH=H-Y;
   if(o.door==='e'){ st.box(x1-t,0,z0,x1,WH,dz0,BAS); st.box(x1-t,0,dz1,x1,WH,z1,BAS); st.box(x1-t,2.2,dz0,x1,WH,dz1,BAS); } else st.box(x1-t,0,z0,x1,WH,z1,BAS);

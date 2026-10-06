@@ -912,15 +912,69 @@ function updateCamera(dt){
   if(cs){ const k=Math.min(1,dt*3); camera.position.x+=(cs.from[0]-camera.position.x)*k; camera.position.y+=(cs.from[1]-camera.position.y)*k; camera.position.z+=(cs.from[2]-camera.position.z)*k;
     camera.lookAt(...cs.look); return; }
   if(keys.KeyQ) camYaw+=dt*1.8; if(keys.KeyR) camYaw-=dt*1.8;
-  const tx=player.position.x, ty=player.position.y+1.6, tz=player.position.z;
-  const want=[tx+Math.sin(camYaw)*Math.cos(camPitch)*camDist, ty+Math.sin(camPitch)*camDist, tz+Math.cos(camYaw)*Math.cos(camPitch)*camDist];
+  /* INDOORS (under a roof, through a doorway): the eye comes in close behind the shoulder and
+     down level with the room, under the beams, so it never rides up into the roof or out
+     through the wall; out under the sky again it goes back up and out to its own distance */
+  const roof=underRoof(player.position.x,player.position.y,player.position.z);
+  /* THROUGH A DOOR the eye does not follow him through the doorway: it CUTS, as a told story
+     does, to a shot held within the room (or, going out, without it) that sees him come through
+     the door, and when he has come in it goes back to his shoulder */
+  if(ctx._roofRaw===undefined) ctx._roofRaw=roof;
+  if(roof!==ctx._roofRaw){ ctx._roofRaw=roof; if(!ST.fast){ const D=doorShot(roof); if(D){ ctx.doorShot=D; dip(); } } }
+  if(ctx.doorShot){ const D=ctx.doorShot; D.t+=dt;
+    const p=player.position, gone=Math.hypot(p.x-D.at[0],p.z-D.at[1]);
+    if(D.t<D.dur&&gone<4.2&&!(keys.KeyQ||keys.KeyR)){
+      camera.position.set(...D.from); camera.lookAt(p.x,p.y+1.25,p.z); player.visible=!ctx.playerHidden;
+      ctx._in=roof?1:0; quake(dt); return; }
+    ctx.doorShot=null; camYaw=player.rotation.y+Math.PI; }
+  ctx._in=(ctx._in||0)+((roof?1:0)-(ctx._in||0))*Math.min(1,dt*(roof?4:2));
+  const ins=ctx._in, dist=camDist+(2.3-camDist)*ins, pitch=camPitch+(0.1-camPitch)*ins;
+  const tx=player.position.x, ty=player.position.y+1.6-0.12*ins, tz=player.position.z;
+  const want=[tx+Math.sin(camYaw)*Math.cos(pitch)*dist, ty+Math.sin(pitch)*dist, tz+Math.cos(camYaw)*Math.cos(pitch)*dist];
   want[1]=Math.max(want[1],ctx.groundY(want[0],want[2])+0.6);
   { const c=pullIn(want,[tx,ty,tz]); want[0]=c[0]; want[1]=c[1]; want[2]=c[2]; }
-  const k=Math.min(1,dt*6);
+  /* drawn in toward the witness at once (never left a moment inside a wall); let out again gently */
+  const dNow=Math.hypot(camera.position.x-tx,camera.position.y-ty,camera.position.z-tz), dWant=Math.hypot(want[0]-tx,want[1]-ty,want[2]-tz);
+  const k=dWant<dNow-0.05&&!camFree([camera.position.x,camera.position.y,camera.position.z])?1:Math.min(1,dt*6);
   camera.position.x+=(want[0]-camera.position.x)*k; camera.position.y+=(want[1]-camera.position.y)*k; camera.position.z+=(want[2]-camera.position.z)*k;
   camera.lookAt(tx,ty,tz);
+  /* and so close that the eye would be inside the witness's own head, the witness is not drawn */
+  if(!ctx.playerHidden) player.visible=Math.hypot(camera.position.x-tx,camera.position.y-ty,camera.position.z-tz)>0.75;
   quake(dt);
 }
+/* THE DOORS of the set's houses open before whoever comes to them — the witness, the story's
+   people, the townsfolk — and swing shut again behind them; no one walks through a shut leaf */
+function doorsTick(dt){
+  const k=K(); if(!k.houses||!player) return;
+  const near=(x,z)=>{ const r2=2.3*2.3, t=(g)=>g&&g.visible&&(g.position.x-x)**2+(g.position.z-z)**2<r2;
+    if(!ctx.playerHidden&&(player.position.x-x)**2+(player.position.z-z)**2<r2) return true;      /* (the witness, though the eye be too close to draw him) */ for(const id in ctx.actors) if(t(ctx.actors[id])) return true;
+    for(const F of ctx.folk||[]) if(t(F.g)) return true; return false; };
+  for(const H of k.houses()){ const D=H.door; if(!D||!D.mesh) continue;
+    const x=(H.dx-anchor.x)/S, z=(H.dz-anchor.z)/S;
+    if(Math.abs(x-player.position.x)>90||Math.abs(z-player.position.z)>90) continue;
+    D.target=near(x,z)?D.base+D.swing:D.base;
+    if(Math.abs(D.ang-D.target)>0.001){ D.ang+=(D.target-D.ang)*Math.min(1,dt*5); D.mesh.rotation.y=D.ang; } } }
+/* the held shot at a doorway: going in, from deep in the room and to one side, looking back at
+   him in the door; going out, from the yard before the door. The first such place clear of
+   the walls with a clear line to him is taken; failing all, the eye just follows. */
+function doorShot(inside){
+  const p=player.position, f=player.rotation.y, fx=Math.sin(f), fz=Math.cos(f), sx=fz, sz=-fx;
+  const ds=inside?[3.4,2.9,2.4,1.9]:[5.0,4.2,3.4], ls=inside?[1.3,-1.3,0.8,-0.8,0]:[1.8,-1.8,0.9,-0.9,0], h=inside?1.75:2.3;
+  const head=[p.x,p.y+1.3,p.z];
+  for(const d of ds) for(const l of ls){
+    const x=p.x+fx*d+sx*l, z=p.z+fz*d+sz*l, from=[x,p.y+h,z];
+    if(!camFree(from)) continue;
+    if(inside!==underRoof(x,p.y,z)) continue;                /* the shot stands on the same side of the door as he is going */
+    if(!lineClear(from,head)) continue;
+    return {from,at:[p.x,p.z],t:0,dur:inside?2.6:2.2}; }
+  return null; }
+/* the blink of a cut */
+function dip(){ const f=$('fade'); if(!f) return; f.style.transition='none'; f.style.opacity=0.85; void f.offsetWidth; f.style.transition='opacity 0.35s'; f.style.opacity=0; }
+/* a roof (or the floor of an upper room, or a lintel) over the head here: the world's blocks
+   between two and four metres above the feet */
+function underRoof(x,y,z){ const k=K(); if(!k.solidAt) return false;
+  for(const h of [2.0,2.6,3.2,3.8]) if(k.solidAt(anchor.x+x*S,anchor.y+(y+h)*S,anchor.z+z*S)) return true;
+  return false; }
 /* "there was a great earthquake" (Mattithyahu 28:2): the eye is shaken, hard and then less */
 function quake(dt){
   if(!ctx||!(ctx.quake>0)) return;
@@ -1046,9 +1100,14 @@ function lineClear(from,to){
 }
 /* the follow camera, each frame: brought in along its line until no block stands between */
 function pullIn(from,look){
-  const k=K(); let t=1; const n=12;
+  /* walked out from the head toward where the eye would be, in short steps, stopping a hand's
+     breadth short of the first block met — or of one beside the line (a door-jamb) that the
+     lens, being a little wide, would cut into */
+  const k=K(); let t=1; const L=Math.hypot(from[0]-look[0],from[1]-look[1],from[2]-look[2]), n=Math.max(8,Math.ceil(L/0.18));
+  const hit=(x,y,z)=>{ const wx=anchor.x+x*S, wy=anchor.y+y*S, wz=anchor.z+z*S, m=0.22*S;
+    return k.solidAt(wx,wy,wz)||k.solidAt(wx+m,wy,wz)||k.solidAt(wx-m,wy,wz)||k.solidAt(wx,wy,wz+m)||k.solidAt(wx,wy,wz-m)||k.solidAt(wx,wy+m,wz); };
   for(let i=1;i<=n;i++){ const f=i/n, x=look[0]+(from[0]-look[0])*f, y=look[1]+(from[1]-look[1])*f, z=look[2]+(from[2]-look[2])*f;
-    if(k.solidAt(anchor.x+x*S,anchor.y+y*S,anchor.z+z*S)){ t=Math.max(0.15,(i-1.5)/n); break; } }
+    if(hit(x,y,z)){ t=Math.max(0.1,(i-1)/n); break; } }
   return [look[0]+(from[0]-look[0])*t,look[1]+(from[1]-look[1])*t,look[2]+(from[2]-look[2])*t];
 }
 function camFree(p){ const k=K(), B=k.B, x=anchor.x+p[0]*S, y=anchor.y+p[1]*S, z=anchor.z+p[2]*S;
@@ -1657,7 +1716,7 @@ function frame(dtW){
     if(u.tick&&o.visible) u.tick(dt);
     if(u.bob&&!ctx.lake){ const k=ctx.rough||1; o.position.y=u.baseY+Math.sin(t*1.3+o.position.x)*0.06*k; o.rotation.z=Math.sin(t*0.9+o.position.z)*0.025*k; } }
   if(ctx.lake&&ctx.lake.w) lakeTick(dt);
-  lifeTick(dt); wadeTick(dt); folkTick(dt);
+  lifeTick(dt); wadeTick(dt); folkTick(dt); doorsTick(dt);
   if(portrait&&!$('sverse').classList.contains('off')) drawPortrait();
   { const T=SV.talk, g=T&&T.sp&&T.sp.glow&&ctx.glows[T.sp.glow];          /* a mal'ak's light swells with the words */
     if(g){ const m=SV.mouth(T.sp.key)||0; g.sprite.scale.setScalar(g.base*(1+m*0.12)); } }
@@ -1737,7 +1796,7 @@ ST.boot=function(opt){
   /* for the test harness: where the story stands, and a way to run it */
   window.__STORY={ST,save,get act(){ return act&&act.id; },get scene(){ return act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id; },
     get beat(){ return beat; },get beatIx(){ return beatIx; },run:(id,s)=>{ const a=ST.acts.find(q=>q.id===id); stopAct(); runAct(a,s||0); },
-    advance, get running(){ return running; }, ctx:()=>ctx, faceExposed, dbg:{clearShot,lineClear,camFree,exposedFrom,HOURS,applyTime}, player:()=>player, camera:()=>camera,
+    advance, get running(){ return running; }, ctx:()=>ctx, faceExposed, dbg:{clearShot,lineClear,camFree,exposedFrom,HOURS,applyTime,free:()=>{ releaseCamera(); controlsOn=true; onFrame=null; }}, player:()=>player, camera:()=>camera,
     reset:()=>{ save.codex={}; save.acts={}; save.witnessed=0; save.road={}; save.bonds={}; persist(); } };
 };
 })();
