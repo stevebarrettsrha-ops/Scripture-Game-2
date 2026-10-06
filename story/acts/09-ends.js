@@ -67,8 +67,7 @@ const SEATS=[[14.4,28.7,0],[15.6,28.7,0],[16.8,28.7,0],[18,28.7,0],[19.2,28.7,0]
              [13.6,30,Math.PI/2],[20.4,29.4,-Math.PI/2],[20.4,30.6,-Math.PI/2]];
 const ROOM=(list,o)=>list.map((id,k)=>T(id,[SEATS[k][0],SEATS[k][1]],Object.assign({face:SEATS[k][2], sit:true},o||{})));
 /* "divided tongues, as of fire, and settled on each one of them" (2:3) */
-const TONGUES=SEATS.slice(0,11).map((s,k)=>({id:'f'+k, at:[s[0],F+1.62,s[1]], size:0.55, color:0xff9a3a, intensity:0.9, pulse:true, hidden:true}))
-  .concat([[21,29],[21,31.8],[13.4,31.8]].map((p,k)=>({id:'fw'+k, at:[p[0],F+1.55,p[1]], size:0.5, color:0xff9a3a, intensity:0.9, pulse:true, hidden:true})));
+const TONGUES=ELEVEN.concat(['miryam','magdala','yohanah']).map((id,k)=>({id:'f'+k, on:id, dy:0.16, size:0.42, color:0xff8a2a, intensity:0.7, pulse:true, hidden:true}));   /* one on each (Acts 2:3) */
 /* THE GRAIN SHIP OF ALEXANDRIA (27:6, 37): the lake's boat built two and a fifth times as large */
 const SC=2.2, SX=110, SFLOOR=-0.1-0.42*SC;
 const ABOARD=(id,dx,dz,o)=>Object.assign({id,at:[SX+dx,dz],y:SFLOOR},o||{});
