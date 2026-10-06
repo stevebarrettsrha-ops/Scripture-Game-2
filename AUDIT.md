@@ -10722,6 +10722,86 @@ small.
   | The five thousand | 520 sitting, by companies |
   | The Yardĕn (Act III) | 200–220 |
 
+## 4dw. Round 124 — Act VIII, To the End of the Earth
+
+**Asked:** continue the acts. The design document gives the last act as: "Shavuot and the coming
+of the Ruach ha'Qodesh; Kefa's sermon; the first assembly; Stephen; the conversion of Sha'ul
+(Paul); Philip and the Ethiopian official; Cornelius (the door opens to the nations); the
+missionary journeys ... ending in Rome. The final act closes the loop: the good news arrives in
+the very city that began as a muddy village in the prologue's montage."
+
+**Made: story/acts/09-ends.js, fifteen scenes from Acts 2–28**
+
+1. **The Festival of weeks** (2:1-41):
+   - In the upper room the wind comes, the camera shakes, and a tongue of fire settles over
+     each head.
+   - Down in the street, 340 pilgrims hear in their own languages.
+   - Kĕpha preaches, from Yo'al to "Master and Mashiach", and three thousand are immersed.
+2. **The first assembly** (2:42-47; 4:32-35): the witness breaks the bread.
+3. **The Lovely Gate** (3:1-10): "rise up and walk". He goes in leaping.
+4. **Stephanos before the council** (6:8-15; 7:1-2, 48-56):
+   - His face is lit, and the history he tells is given as a note.
+   - The heavens open as a light.
+5. **Outside the city** (7:57-8:4):
+   - The stoning is read, never drawn. The camera is on the young man Sha'ul and the coats
+     at his feet.
+   - The witness kneels with the men who bury him.
+6. **The road down to Azzah** (8:26-40):
+   - A Kushite official rides west in a chariot drawn by a pair of the voyage's horses, reading
+     Yahshayahu 53 aloud. The **Codex card for Yahshayahu 53 shows again** (the scroll's own
+     verse, read on that road).
+   - The witness holds the horses while they go down into the water. Philip is caught away in
+     a flash of light.
+7. **The road to Damascus** (9:1-9):
+   - A blinding light, and Sha'ul down on his face. Yahusha is light and a voice only.
+   - The witness leads him by the hand to the gate.
+8. **The street called Straight** (9:10-22): the vision to Ḥananyah, the scales fall, and the
+   witness brings him bread.
+9. **The house-top at Yapho** (10:9-23):
+   - The sheet comes down three times and goes back.
+   - The witness opens the gate to the captain's men.
+10. **The house of Cornelius** (10:24-48): the Ruach falls on the nations, fire over their heads,
+    and the witness fetches water.
+11. **Antioch** (11:19-26; 13:1-3): "Natsarim" first. Barnaḇah and Sha'ul are sent, and the
+    witness carries their bundles to the road.
+12. **Athens** (17:16-34):
+    - The witness reads the altar ("to an unknown god"; Pausanias saw such altars).
+    - Sha'ul speaks on the hill of Ares under the Parthenon. Dionusios and Damaris stay.
+13. **The Northeaster** (27:9-44):
+    - **The ship:** the grain ship (the lake's boat, built 2.2 times as large) under Crete.
+    - **The storm:** the storm engine's rain and seas; the witness heaves the cargo over the side.
+    - **On board:** Sha'ul's word of the mal'ak; the sailors' boat cut away; bread at dawn.
+    - **The wreck:** she runs for the beach and grounds where two seas meet. All reach land.
+14. **Melite** (28:1-6): the fire in the rain, the witness's sticks, and the viper shaken off.
+15. **Rome** (28:14-31):
+    - A note closes the prologue's loop: the palisade of huts on the Palatine is now the houses
+      of the Caesars.
+    - Sha'ul goes in under guard to a rented house, and the witness carries in the scrolls.
+    - "With all boldness, unhindered." The last shot is over the city to the Tiber. The final
+      title reads "From Bĕyth Leḥem to Rome — the promise, kept".
+
+**New sets (story/settings.js):** each is placed at its true latitude and longitude (places.js).
+
+| Set | What it holds |
+|---|---|
+| `gazaroad` | A paved Roman road through desert, a wadi with water and reeds |
+| `damascus` | A walled city, a gate, the colonnaded Straight Street, the house of Yahuḏah |
+| `yapho` | The sea, the tanner's house with roof and stair, his vats |
+| `caesareaM` | A Roman court-house with its pool and portico, Herodes' harbour mole and tower |
+| `antioch` | The colonnaded street, Mount Silpius, the house of the qahal |
+| `athens` | The Acropolis with its temple on a built terrace, the hill of Ares with cut steps, the agora's porch, the altar, the images |
+| `malta` | The bay, the reef, the rocks, the fire; the lake's waves laid over the open sea |
+| `rome` | The Tiber and a stone bridge, brick insulae with windows, a temple on the Palatine and one by the way, the rented house |
+
+**Engine and world:**
+- **`W.chariot`:** a car, two wheels, a pole, a yoke and a pair of horses walking on the voyage's
+  gait. It is ridden with `ride`.
+- **Boats:** a boat may be built at any `scale`.
+- **`temple()`:** may stand on a hill's crown.
+- **`sea()`:** lays an open-sea set.
+
+**Hub:** Act VIII is playable; eight new spots are on the map, and 09-to-come.js is empty.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

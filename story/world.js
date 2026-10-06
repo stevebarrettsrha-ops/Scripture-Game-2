@@ -286,7 +286,8 @@ function bigBoat(ctx,x,z,o){
   b(0.5,0.08,0.9,dark,HB+0.05,P.gunwale-1.45,-L/2-0.65);
   /* oars shipped along her sides */
   for(const sd of [1,-1]) for(const dz of [-1.0,1.3]){ const q=b(0.09,0.09,3.6,wood,sd*(HB-0.45),P.gunwale-0.05,dz); q.rotation.y=sd*0.04; }
-  g.userData.boat={len:L,beam:P.beam};
+  /* `scale`: a ship of the sea built as she is, larger — the grain ship of Alexandria (Acts 27:37) */
+  const sc=o.scale||1; g.scale.setScalar(sc); g.userData.boat={len:L*sc,beam:P.beam*sc};
   g.position.set(x,o.y===undefined?-0.1:o.y,z); g.rotation.order='YXZ'; g.rotation.y=o.face||0; ctx.scene.add(g); return g; }
 /* THE LAKE'S OWN WAVES, over the still water of a set (galilSea): a surface of travelling waves
    whose height is the story engine's own (lakeH) on the CPU and here on the GPU, so that a boat
@@ -487,6 +488,24 @@ function beast(ctx,kind,x,z){
 W.sheep=function(ctx,x,z,lamb){ const g=beast(ctx,'sheep',x,z); if(lamb) g.scale.setScalar(0.62);
   g.rotation.y=Math.random()*6; g.userData={home:[x,z],t:Math.random()*5,kind:'sheep',roam:2,sp:0.5}; return g; };
 W.camel=function(ctx,x,z){ return beast(ctx,'camel',x,z); };
+/* A CHARIOT of a great man (Acts 8:28): a car of wood and bronze on two wheels, a seat in it, a pole
+   forward to the yoke and a pair of horses under it. Ridden (the `ride` beat), it goes where its
+   rider goes, the horses walking on the voyage's own gait. Faces +z. */
+W.chariot=function(ctx,x,z){
+  const k=K(), g=new THREE.Group(), m=c=>new THREE.MeshLambertMaterial({color:c});
+  const b=(w,h,d,c,px,py,pz)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m(c)); q.position.set(px,py,pz); g.add(q); return q; };
+  b(1.3,0.08,1.2,0x6e5238,0,0.52,0);                                     /* the floor of the car */
+  b(1.3,0.62,0.06,0x8a6a3a,0,0.86,0.6); b(0.06,0.5,1.2,0x8a6a3a,0.65,0.8,0); b(0.06,0.5,1.2,0x8a6a3a,-0.65,0.8,0);   /* its sides */
+  b(1.34,0.05,0.08,0xb08d3c,0,1.17,0.6);                                  /* bronze on its rail */
+  b(1.0,0.12,0.5,0x7a3a2a,0,0.62,-0.25);                                  /* the seat */
+  for(const sx of [-1,1]){ const w=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.55,0.08,12),m(0x4a3220)); w.rotation.z=Math.PI/2; w.position.set(sx*0.74,0.55,0); g.add(w);
+    b(0.1,0.12,0.12,0xb08d3c,sx*0.79,0.55,0); }
+  b(0.1,0.1,2.6,0x6e5238,0,0.7,1.9);                                      /* the pole */
+  b(1.8,0.08,0.1,0x6e5238,0,1.2,3.1);                                     /* the yoke */
+  const team=[];
+  for(const sx of [-0.45,0.45]){ const h=k.makeAnimal&&k.makeAnimal('horse'); if(!h) continue;
+    const hg=new THREE.Group(); h.scale.multiplyScalar(1/k.setScale); hg.add(h); hg.position.set(sx,0,3.0); g.add(hg); team.push({m:h}); }
+  g.userData.team=team; g.position.set(x,0,z); ctx.scene.add(g); return g; };
 /* THE LIVING THINGS OF A PLACE — the voyage's own beasts and creeping things, the kinds of that
    land, wandering about their ground on the voyage's own gait: `n` of a kind about (x,z) within
    `r` metres, going at `sp` metres a second. They are the scene's flock, so they keep to it. */

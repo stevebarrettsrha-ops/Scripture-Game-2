@@ -786,4 +786,163 @@ S.tiberias=function(ctx,st){
   mk(ctx,'fire',16,2); mk(ctx,'water',SHORE.x+0.6,0); mk(ctx,'strand',SHORE.x-1.6,-1.4);
   mk(ctx,'walk1',12,-14); mk(ctx,'walk2',10,-22);
 };
+
+/* ================= TO THE END OF THE EARTH (Act VIII) ================= */
+
+/* a temple of the nations on its stepped base, columns all about (Athens; Rome) */
+function temple(st0,x,z,w,d,h,col,y0){ col=col||'alabaster';
+  /* `y0`: set on a height (a hill's top) at that level, not on the ground found under each part */
+  const st=y0===undefined?st0:{box:(a,b,c,d2,e,f,g)=>st0.box(a,b+y0,c,d2,e+y0,f,g,{abs:true})};
+  if(y0!==undefined) st.box(x-w/2-1,-8,z-d/2-1,x+w/2+1,0,z+d/2+1,C.limestone);              /* its terrace, built up level on the hill's crown */
+  st.box(x-w/2,0,z-d/2,x+w/2,1.2,z+d/2,col); st.box(x-w/2+1,1.2,z-d/2+1,x+w/2-1,1.8,z+d/2-1,col);
+  const cx=Math.max(2,Math.round((w-4)/3.2)), cz=Math.max(2,Math.round((d-4)/3.2));
+  for(let i=0;i<=cx;i++) for(const zz of [z-d/2+2,z+d/2-2]){ const xx=x-w/2+2+i*(w-4)/cx; st.box(xx-0.55,1.8,zz-0.55,xx+0.55,1.8+h,zz+0.55,col); }
+  for(let i=1;i<cz;i++) for(const xx of [x-w/2+2,x+w/2-2]){ const zz=z-d/2+2+i*(d-4)/cz; st.box(xx-0.55,1.8,zz-0.55,xx+0.55,1.8+h,zz+0.55,col); }
+  st.box(x-w/2+1,1.8+h,z-d/2+1,x+w/2-1,2.8+h,z+d/2-1,col); st.box(x-w/2+2.6,2.8+h,z-d/2+1,x+w/2-2.6,3.6+h,z+d/2-1,col);
+  st.box(x-w/2+4.2,3.6+h,z-d/2+1,x+w/2-4.2,4.2+h,z+d/2-1,col);
+  st.box(x-w/2+4,1.8,z-d/2+4,x+w/2-4,1.8+h,z+d/2-4,'plaster'); }
+/* the sea laid along +x from `x0`: its floor levelled, a beach of sand, the water `depth` deep */
+function sea(ctx,st,x0,o){ o=o||{};
+  ctx.api.pad(x0-8,-120,x0+150,120,{top:'sand'});
+  ctx.api.water(x0,-118,x0+148,118,{depth:o.depth||4,bed:'sand'});
+  st.box(x0-6,0,-120,x0,0.1,120,'sand'); }
+
+/* THE WAY DOWN FROM YAHRUSHALAYIM TO AZZAH (Acts 8:26, "This is desert"): a road of the empire
+   across bare hills of chalk and scrub, a wadi where water has gathered beside it (8:36) */
+S.gazaroad=function(ctx,st){
+  ctx.wind=[1.2,0.4];
+  W.ground(ctx,{color:0xc9b48a,flat:46,top:'sand',peak:[{x:-30,z:-50,h:8,r:30},{x:40,z:52,h:10,r:34}]});
+  const rz=x=>Math.sin(x*0.03)*3;
+  for(let x=90;x>=-90;x-=1.5){ const z=rz(x); st.box(x-1.1,0,z-1.6,x+1.1,0.08,z+1.6,C.cobble,{collide:false,jitter:0.1}); }   /* paved, a Roman road */
+  ctx.api.water(-14,6,-4,12,{depth:1,bed:'sand'});                                           /* the water, in the wadi beside the road */
+  for(const [x,z] of [[-16,5],[-2,5],[-15,13],[-3,13.4]]) W.reeds(st,x,z,0,5);
+  for(let k=0;k<16;k++){ const x=-80+W.hash(k,3)*160, z=(W.hash(k,4)<0.5?-1:1)*(8+W.hash(k,5)*30); if(Math.abs(x+9)<10&&z>0&&z<20) continue; W.tamarisk(st,x,z,0.6+W.hash(k,6)*0.4); }
+  for(let k=0;k<20;k++){ const x=-80+W.hash(k,7)*160, z=rz(x)+(W.hash(k,8)<0.5?-1:1)*(3+W.hash(k,9)*8); W.rock(st,x,z,0.4+W.hash(k,10)*0.4); }
+  const M=(id,x,dz)=>mk(ctx,id,x,rz(x)+(dz||0));
+  M('road0',70); M('road1',40); M('road2',16); M('stop',-6); M('roadW',-60);
+  mk(ctx,'hill',34,-22); mk(ctx,'water',-9,9); mk(ctx,'waterIn',-9,8.6); mk(ctx,'bank',-9,4.6);
+  ctx.bounds={x0:-140,x1:140,z0:-120,z1:120};
+};
+
+/* DAMASCUS (Acts 9): the road from the south-west through the gardens of the Abana, to a gate
+   in the city's wall; within it the street called Straight, running east and west the length
+   of the city between its colonnades, and on it the house of Yahuḏah. */
+S.damascus=function(ctx,st){
+  ctx.wind=[0.6,0.3];
+  W.ground(ctx,{color:C.grassDry,flat:60});
+  W.wall(st,-22,-40,-22,-3.5,{h:8,t:2.4,color:C.limestone}); W.wall(st,-22,3.5,-22,40,{h:8,t:2.4,color:C.limestone});
+  W.gate(st,-22,0,'z',{w:5,h:10,color:C.limestone});
+  for(let x=-110;x<-24;x+=1.5){ const z=Math.min(0,(x+24)*0.08); st.box(x-1,0,z-1.4,x+1,0.08,z+1.4,C.path,{collide:false,jitter:0.12}); }
+  for(let x=-20;x<60;x+=1.5) st.box(x-1,0,-2.4,x+1,0.08,2.4,C.cobble,{collide:false,jitter:0.08});   /* the street called Straight */
+  for(let x=-16;x<58;x+=4) for(const z of [-3.2,3.2]) st.box(x-0.3,0,z-0.3,x+0.3,3.6,z+0.3,C.limestone);   /* its colonnades */
+  [[-12,-9],[-2,-9],[8,-9],[30,-9],[40,-9],[-12,9],[-2,9],[30,9],[40,9],[50,-9],[50,9]].forEach(([x,z],k)=>W.house(st,x,z,7,6,{door:z<0?'n':'s',color:k%2?C.limestone:C.whitewash,h:3}));
+  room(ctx,st,15,5,23,12,{door:'w',wall:C.limestone});                                           /* the house of Yahuḏah */
+  for(let k=0;k<26;k++){ const x=-100+W.hash(k,2)*70, z=(W.hash(k,3)<0.5?-1:1)*(5+W.hash(k,4)*30); W.olive(st,x,z,0.9); }   /* the gardens */
+  mk(ctx,'road0',-58,-2.7); mk(ctx,'road1',-50,-2.1); mk(ctx,'light',-42,-1.4); mk(ctx,'road2',-32,-0.6); mk(ctx,'gate',-22,0); mk(ctx,'gateIn',-17,0);
+  mk(ctx,'straight',4,0); mk(ctx,'yahudahDoor',14,8.5); mk(ctx,'yahudahIn',17.4,8.5); mk(ctx,'bed',21,10.5); mk(ctx,'hananyah',40,-6);
+  ctx.bounds={x0:-130,x1:90,z0:-90,z1:90};
+};
+
+/* THE COAST OF THE GREAT SEA: Yapho, the tanner's house by the sea with its flat roof (Acts 10:6, 9),
+   the vats of his trade in the yard; or Caesarea, the house of the captain Cornelius, a Roman
+   house about a court (10:24), the harbour Herodes built in sight beyond it. */
+function coast(ctx,st,o){
+  ctx.wind=[1.4,0.5];
+  W.ground(ctx,{color:C.grassDry,flat:34,peak:{x:-50,z:0,h:9,r:40}});
+  sea(ctx,st,20);
+  for(let k=0;k<24;k++){ const z=-110+k*9, x=17+W.hash(k,5)*2; W.rock(st,x,z,0.4+W.hash(k,6)*0.5); }
+  if(o.town==='yapho'){
+    room(ctx,st,4,-6,12,2,{door:'w',wall:C.limestone});                                         /* the tanner's house, its stair up the outside */
+    for(const [x,z,c] of [[0,-10,0x6a4a2a],[2.4,-10,0x8a6a3a],[4.8,-10,0x5a3a1a]]) { st.box(x-1,0,z-1,x+1,0.7,z+1,C.stone); st.detail(x-0.8,0.5,z-0.8,x+0.8,0.62,z+0.8,c); }   /* his vats */
+    [[-10,-16],[-12,-4],[-10,8],[-22,-10],[-22,6],[-4,14],[6,14]].forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:x<-4?'e':'s',color:k%2?C.limestone:C.whitewash,h:3}));
+    mk(ctx,'tanner',8,-2); mk(ctx,'tannerIn',6,-2); mk(ctx,'tannerDoor',2.6,-2); mk(ctx,'stairFoot',12.6,2.8); mk(ctx,'roof',9,-3); mk(ctx,'gate',-2,-2);
+    mk(ctx,'street',-6,-2); mk(ctx,'sheet',9,-3);
+    ctx.markers.roofY=[2.8+0.92+0.02,0];
+  } else {
+    /* the captain's house: a court open to the sky, rooms about it, a portico of columns before the door */
+    const L=C.whitewash;
+    st.box(-10,0,-10,10,3.4,-9.4,L); st.box(-10,0,9.4,10,3.4,10,L); st.box(-10,0,-10,-9.4,3.4,10,L);
+    st.box(9.4,0,-10,10,3.4,-1.4,L); st.box(9.4,0,1.4,10,3.4,10,L);
+    st.box(-10,3.4,-10,10,3.9,-6,C.roofEarth); st.box(-10,3.4,6,10,3.9,10,C.roofEarth); st.box(-10,3.4,-6,-6,3.9,6,C.roofEarth);
+    for(const z of [-5.6,-2,2,5.6]) st.box(5.4,0,z-0.3,6,3.4,z+0.3,'alabaster');
+    st.box(-3,0,-3,3,0.1,3,'cobble'); W.pool(ctx,st,0,0,2.4,2.4);
+    for(const z of [-3,3]) st.box(10.4,0,z-0.4,11.2,3.6,z+0.4,'alabaster');
+    st.box(30,0,-30,36,0.6,40,C.stone); st.box(31,0.6,36,35,9,40,C.limestone);                   /* the harbour's mole, its tower */
+    mk(ctx,'villa',0,0); mk(ctx,'court',-4,0); mk(ctx,'door',9.6,0); mk(ctx,'porch',12.4,0); mk(ctx,'street',16,0); mk(ctx,'inner',-7,0);
+  }
+  mk(ctx,'beach',16,0);
+  ctx.bounds={x0:-120,x1:40,z0:-120,z1:120};
+}
+S.yapho=function(ctx,st){ coast(ctx,st,{town:'yapho'}); };
+S.caesareaM=function(ctx,st){ coast(ctx,st,{town:'caesarea'}); };
+
+/* ANTIOCH ON THE ORONTES (Acts 11:26, 13:1): its great street paved and colonnaded, Mount Silpius
+   over the city, and a house of the qahal, its room full */
+S.antioch=function(ctx,st){
+  ctx.wind=[0.6,0.2];
+  W.ground(ctx,{color:C.grass,flat:46,peak:{x:-20,z:-70,h:22,r:50}});
+  for(let x=-50;x<50;x+=1.5) st.box(x-1,0,-3.4,x+1,0.08,3.4,C.cobble,{collide:false,jitter:0.08});
+  for(let x=-48;x<50;x+=4) for(const z of [-4.4,4.4]){ st.box(x-0.35,0,z-0.35,x+0.35,4.6,z+0.35,'alabaster'); }
+  st.box(-50,4.6,-5.6,50,5.0,-3.6,C.roofEarth); st.box(-50,4.6,3.6,50,5.0,5.6,C.roofEarth);   /* the roofs of the porticoes */
+  [[-36,-12],[-24,-12],[-12,-12],[14,-12],[26,-12],[38,-12],[-36,12],[-24,12],[24,12],[36,12]].forEach(([x,z],k)=>W.house(st,x,z,8,7,{door:z<0?'n':'s',color:k%2?C.limestone:C.whitewash,h:3.4}));
+  room(ctx,st,-6,8,8,18,{door:'e',wall:C.limestone});
+  mk(ctx,'street',0,0); mk(ctx,'house',1,13); mk(ctx,'houseDoor',9.2,13); mk(ctx,'houseIn',5.6,13); mk(ctx,'east',44,0); mk(ctx,'west',-44,0);
+  ctx.bounds={x0:-120,x1:120,z0:-120,z1:120};
+};
+
+/* ATHENS (Acts 17): the hill of Ares, bare rock with its steps cut, below the Acropolis, the house
+   of Athena standing white over all; the market-place and its porch; an altar "TO THE UNKNOWN
+   MIGHTY ONE" (17:23) */
+S.athens=function(ctx,st){
+  ctx.wind=[0.8,0.3];
+  W.ground(ctx,{color:C.grassDry,flat:40});
+  ctx.api.mound(-62,0,20,34,{top:'stone'});                                                    /* the Acropolis */
+  temple(st,-62,0,16,30,7,'alabaster',ctx.groundY(-62,0)||20);
+  ctx.api.mound(-14,-6,5,12,{top:'stone'});                                                    /* the hill of Ares */
+  for(let k=0;k<6;k++) st.box(-6+k*0.6,0,-8+k*0.4,-5.4+k*0.6,0.4+k*0.6,-6+k*0.4,C.rock);     /* its steps cut in the rock */
+  for(let x=10;x<40;x+=3.2) st.box(x-0.4,0,13.6,x+0.4,4.2,14.4,'alabaster'); st.box(9,4.2,13,41,4.8,18,C.roofEarth); st.box(9,0,17.6,41,4.2,18,'alabaster');   /* the porch of the agora */
+  st.box(18,0,4,19.4,1.1,5.2,'alabaster'); st.detail(17.96,0.5,4.2,18.0,0.9,5.0,0x3a2a1e);    /* the altar, and its inscription */
+  for(let k=0;k<5;k++){ const x=24+k*3; st.box(x-0.4,0,-6.4,x+0.4,2.2,-5.6,'alabaster'); st.box(x-0.5,2.2,-6.5,x+0.5,2.5,-5.5,C.gold); }   /* the images of the city's gods */
+  for(let k=0;k<14;k++){ const a=W.hash(k,4)*6.28, r=34+W.hash(k,5)*20; W.olive(st,Math.cos(a)*r+20,Math.sin(a)*r,0.9); }
+  mk(ctx,'agora',24,8); mk(ctx,'altar',18.7,4.6); mk(ctx,'altarFront',21,4.6); mk(ctx,'porch',24,12); mk(ctx,'areopagus',-14,-6); mk(ctx,'arFoot',-2,-6);
+  mk(ctx,'idols',30,-4); mk(ctx,'crowd',-10,-2);
+  const ay=ctx.groundY(-62,0)||20; ctx.markers.acropolis=[-62,0,ay+6];
+  ctx.bounds={x0:-130,x1:110,z0:-110,z1:110};
+};
+
+/* MELITE (Acts 27:39-28:6): a bay with a beach, the open sea, and a place where two seas meet,
+   a reef off a point; a fire kindled on the shore in the rain (28:2) */
+S.malta=function(ctx,st){
+  ctx.wind=[4,-1.6];
+  W.ground(ctx,{color:C.grassDry,flat:30,peak:[{x:-40,z:-40,h:10,r:30},{x:-40,z:50,h:12,r:34}]});
+  sea(ctx,st,20,{depth:5});
+  for(let k=0;k<10;k++){ const z=-4+W.hash(k,2)*8, x=38+W.hash(k,3)*8; st.box(x-1,-5,z-1,x+1,0.3+W.hash(k,4)*0.5,z+1,C.rock); }   /* the reef where the two seas meet */
+  for(let k=0;k<30;k++){ const z=-110+k*7.4; if(Math.abs(z)<30) continue; st.box(14,0,z-3,20,1+W.hash(k,6)*3,z+3,C.rock); }      /* the rocks either side of the bay */
+  W.fire(ctx,st,8,2);
+  for(let k=0;k<6;k++) st.detail(9+k*0.3,0,4+k*0.2,9.2+k*0.3,0.12,4.9+k*0.2,0x5d4a36);         /* the sticks gathered */
+  mk(ctx,'fire',8,2); mk(ctx,'beach',16,0); mk(ctx,'water',20.6,0); mk(ctx,'sticks',9.6,4.4); mk(ctx,'land',4,0);
+  ctx.lake={rect:[20.4,-118,168,118]}; ctx.rough=0.5; ctx.bounds=null;
+};
+
+/* ROME (Acts 28:16, 30): the city on her seven hills where the prologue saw a palisade of huts —
+   the Tiber under the Palatine, and on the hill the houses of the Caesars; temples on their
+   podiums, blocks of brick houses many storeys high, and among them a house Sha'ul rented, its
+   door on the street, a soldier at it. */
+S.rome=function(ctx,st){
+  ctx.wind=[0.6,0.2];
+  W.ground(ctx,{color:C.grass,flat:50,peak:{x:-40,z:-56,h:16,r:36}});
+  ctx.api.water(48,-120,60,120,{depth:2,bed:'dirt'});                                           /* the Tiber */
+  st.box(46,0,-6,62,1.8,6,C.stone); for(const z of [-5,5]) st.box(46,1.8,z-0.6,62,2.6,z+0.6,C.stone);   /* a bridge of stone over her */
+  for(let x=-40;x<46;x+=1.5) st.box(x-1,0,-2,x+1,0.08,2,C.cobble,{collide:false,jitter:0.08});
+  const BR=0xa0603a;
+  for(const [x,z,w,d,h] of [[-30,-12,14,10,12],[-12,-12,12,10,15],[6,-12,14,10,11],[24,-12,12,10,14],[-30,12,14,10,14],[24,12,12,10,12],[38,12,8,10,9]]){   /* the insulae */
+    st.box(x-w/2,0,z-d/2,x+w/2,h,z+d/2,BR);
+    for(let y=2;y<h-1;y+=2.8) for(let i=-w/2+1.5;i<w/2-1;i+=2.4) st.box(x+i-0.4,y,z+(z<0?d/2:-d/2)-0.06,x+i+0.4,y+1.2,z+(z<0?d/2:-d/2)+0.06,0x2b241d); }
+  { const y=ctx.groundY(-40,-56)||16; st.box(-52,y-1,-66,-28,y,-46,C.limestone,{abs:true}); temple(st,-40,-56,18,14,6,'alabaster',y); }   /* on the Palatine */
+  temple(st,8,26,16,12,6,'alabaster');                                                         /* a temple by the way */
+  room(ctx,st,-12,7,0,16,{door:'e',wall:BR});                                                   /* Sha'ul's rented house */
+  mk(ctx,'street',0,0); mk(ctx,'door',0.4,11.5); mk(ctx,'doorOut',2.4,11.5); mk(ctx,'houseIn',-2.2,11.5); mk(ctx,'seat',-8.6,11.5); mk(ctx,'tiber',54,0);
+  mk(ctx,'bridge',40,0); mk(ctx,'palatine',-40,-56); mk(ctx,'east',40,0); mk(ctx,'overlook',30,-36);
+  ctx.bounds={x0:-130,x1:130,z0:-130,z1:130};
+};
 })();

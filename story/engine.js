@@ -172,12 +172,13 @@ function buildScene(sc){
     else if(t.kind==='camel') obj=window.STORYWORLD.camel(ctx,p[0],p[1]);
     else if(t.kind==='donkey') obj=window.STORYWORLD.donkey(ctx,p[0],p[1]);
     else if(t.kind==='dove'){ obj=window.STORYWORLD.dove(ctx,p[0],t.y||12,p[1]); if(t.hidden) obj.visible=false; }
-    else if(t.kind==='boat'){ obj=window.STORYWORLD.boat(ctx,p[0],p[1],{y:t.y,face:t.face,mast:t.mast,big:t.big}); obj.userData.bob=t.bob!==false; }
+    else if(t.kind==='boat'){ obj=window.STORYWORLD.boat(ctx,p[0],p[1],{y:t.y,face:t.face,mast:t.mast,big:t.big,scale:t.scale}); obj.userData.bob=t.bob!==false; }
     else if(t.kind==='net'){ obj=window.STORYWORLD.net(ctx,p[0],p[1],t); }
     else if(t.kind==='jar'){ obj=window.STORYWORLD.stoneJar(ctx,p[0],p[1]); }
     else if(t.kind==='basket'){ obj=window.STORYWORLD.basket(ctx,p[0],p[1],t.full); }
     else if(t.kind==='infant'){ obj=window.STORYWORLD.infant(ctx,p[0],p[1],t); }
     else if(t.kind==='roundStone'){ obj=window.STORYWORLD.roundStone(ctx,p[0],p[1],t); }
+    else if(t.kind==='chariot'){ obj=window.STORYWORLD.chariot(ctx,p[0],p[1]); obj.position.y=ctx.groundY(p[0],p[1])||0; }
     else if(t.kind==='throne'){ obj=window.STORYWORLD.throne(ctx,p[0],p[1],t); obj.position.y=t.y!==undefined?yOf(t.y):(ctx.groundY(p[0],p[1])||0); }
     else { obj=new THREE.Mesh(new THREE.BoxGeometry(t.w||0.5,t.h||0.5,t.d||0.5),new THREE.MeshLambertMaterial({color:t.color||0xc9b38a}));
       /* `y` a height in the scene; `dy` (or nothing) above the ground where it lies */
@@ -533,7 +534,8 @@ function moveActors(dt){
     /* riding (Luke 19:35): the beast goes where the rider goes, under him, at its own gait */
     if(u.ride){ const t=ctx.things[u.ride]; if(t){ const gy=u.fixedY!==undefined?u.fixedY:u.gy;
         g.position.y=gy-sitDrop(u)+RIDE_H; t.position.set(g.position.x,gy,g.position.z); t.rotation.y=g.rotation.y;
-        if(t.children[0]&&K().tickGait){ t.userData.ent=t.userData.ent||{m:t.children[0]}; K().tickGait(t.userData.ent,'donkey',moving?(u.speed||1)*S:0,dt); } } }
+        if(t.userData.team){ if(K().tickGait) for(const e of t.userData.team) K().tickGait(e,'horse',moving?(u.speed||1)*S:0,dt); }   /* a chariot's pair */
+        else if(t.children[0]&&K().tickGait){ t.userData.ent=t.userData.ent||{m:t.children[0]}; K().tickGait(t.userData.ent,'donkey',moving?(u.speed||1)*S:0,dt); } } }
     animFigure(g,dt,moving); animFace(g,id,dt);
     if(u.label){ const near=!camTarget&&player&&Math.hypot(player.position.x-g.position.x,player.position.z-g.position.z)<3.6;
       u.label.visible=near||speaking===id; } }
