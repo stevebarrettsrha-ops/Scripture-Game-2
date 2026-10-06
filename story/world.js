@@ -549,8 +549,9 @@ W.net=function(ctx,x,z,o){ o=o||{};
 W.stoneJar=function(ctx,x,z){
   const g=new THREE.Group(), m=new THREE.MeshLambertMaterial({color:0xd8d0bc});
   const a=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.95,0.62),m); a.position.y=0.475; g.add(a);
-  const r=new THREE.Mesh(new THREE.BoxGeometry(0.74,0.1,0.74),m); r.position.y=0.95; g.add(r);
-  const w=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.02,0.5),new THREE.MeshBasicMaterial({color:0x6f8f9a})); w.position.y=0.94; w.visible=false; g.add(w);
+  for(const [rx,rz,rw,rd] of [[0,0.32,0.74,0.1],[0,-0.32,0.74,0.1],[0.32,0,0.1,0.54],[-0.32,0,0.1,0.54]]){   /* the lip, a ring about the mouth */
+    const r=new THREE.Mesh(new THREE.BoxGeometry(rw,0.1,rd),m); r.position.set(rx,0.95,rz); g.add(r); }
+  const w=new THREE.Mesh(new THREE.BoxGeometry(0.54,0.02,0.54),new THREE.MeshBasicMaterial({color:0x6f8f9a})); w.position.y=0.965; w.visible=false; g.add(w);   /* what is in it, seen within the lip */
   g.userData.fill=w; g.position.set(x,0,z); ctx.scene.add(g); return g; };
 /* the round stone rolled in its channel against the door of a tomb */
 W.roundStone=function(ctx,x,z,o){ o=o||{};
@@ -806,8 +807,9 @@ W.net=function(ctx,x,z,o){ o=o||{};
 W.stoneJar=function(ctx,x,z){
   const g=new THREE.Group(), m=new THREE.MeshLambertMaterial({color:0xd8d0bc});
   const a=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.95,0.62),m); a.position.y=0.475; g.add(a);
-  const r=new THREE.Mesh(new THREE.BoxGeometry(0.74,0.1,0.74),m); r.position.y=0.95; g.add(r);
-  const w=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.02,0.5),new THREE.MeshBasicMaterial({color:0x6f8f9a})); w.position.y=0.94; w.visible=false; g.add(w);
+  for(const [rx,rz,rw,rd] of [[0,0.32,0.74,0.1],[0,-0.32,0.74,0.1],[0.32,0,0.1,0.54],[-0.32,0,0.1,0.54]]){   /* the lip, a ring about the mouth */
+    const r=new THREE.Mesh(new THREE.BoxGeometry(rw,0.1,rd),m); r.position.set(rx,0.95,rz); g.add(r); }
+  const w=new THREE.Mesh(new THREE.BoxGeometry(0.54,0.02,0.54),new THREE.MeshBasicMaterial({color:0x6f8f9a})); w.position.y=0.965; w.visible=false; g.add(w);   /* what is in it, seen within the lip */
   g.userData.fill=w; g.position.set(x,0,z); ctx.scene.add(g); return g; };
 /* the round stone rolled in its channel against the door of a tomb */
 W.roundStone=function(ctx,x,z,o){ o=o||{};

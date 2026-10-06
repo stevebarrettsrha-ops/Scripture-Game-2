@@ -419,7 +419,7 @@ STORY.act({
       T('mattithyahu',[50.4,-57.4],{face:Math.PI/2}), T('bartholomi',[50.2,-55.8],{face:Math.PI/2})
     ],
     things:[ {id:'lamp', kind:'jar', at:[60.4,-56.6]} ],
-    glows:[ {id:'lampGlow', at:[61,1.6,-57], size:1.6, color:0xffb060, intensity:1, hidden:true},
+    glows:[ {id:'lampGlow', at:[61,-57], dy:1.6, size:1.6, color:0xffb060, intensity:1, hidden:true},
             {id:'malak', at:[78.6,-62.4], dy:3.4, size:3, color:0xfff4d8, intensity:1.1, hidden:true} ],
     beats:[
       {t:'cam', from:['qidron',-2,6], fdy:3.4, look:'yahusha', dur:0.1},

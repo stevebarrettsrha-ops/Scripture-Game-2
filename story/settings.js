@@ -1095,6 +1095,7 @@ S.athens=function(ctx,st){
 S.malta=function(ctx,st){
   ctx.wind=[4,-1.6];
   W.ground(ctx,{color:C.grassDry,flat:30,peak:[{x:-40,z:-40,h:10,r:30},{x:-40,z:50,h:12,r:34}]});
+  ctx.api.pad(-34,-46,14,46,{top:'sand'});                                                     /* the shore they came ashore on, above the sea (Acts 28:1) */
   sea(ctx,st,20,{depth:5});
   for(let k=0;k<10;k++){ const z=-4+W.hash(k,2)*8, x=38+W.hash(k,3)*8; st.box(x-1,-5,z-1,x+1,0.3+W.hash(k,4)*0.5,z+1,C.rock); }   /* the reef where the two seas meet */
   for(let k=0;k<30;k++){ const z=-110+k*7.4; if(Math.abs(z)<30) continue; st.box(14,0,z-3,20,1+W.hash(k,6)*3,z+3,C.rock); }      /* the rocks either side of the bay */

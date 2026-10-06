@@ -218,7 +218,7 @@ function buildScene(sc){
     const p=gl.at.length===3&&typeof gl.at[0]==='number'?gl.at:(()=>{ const m=pos(gl.at);
       return [m[0],gl.dy!==undefined?(ctx.groundY(m[0],m[1])||0)+gl.dy:(gl.y||2),m[1]]; })();
     const G=window.STORYWORLD.glow(ctx,p[0],p[1],p[2],gl.size||3,gl.color,gl.intensity===undefined?1.2:gl.intensity);
-    if(gl.h){ G.sprite.scale.set(gl.size||3,gl.h,1); }
+    if(gl.h){ G.sprite.scale.set(gl.size||3,gl.h,1); G.aspect=gl.h/(gl.size||3); }      /* a column of light keeps its height as it pulses or swells */
     G.visible=!gl.hidden; G.pulse=gl.pulse; ctx.glows[gl.id]=G; }
   ctx.drifts=[];
   if(sc.host){ ctx.host=[]; const h=sc.host;                     /* the heavenly host */
@@ -1743,7 +1743,7 @@ function frame(dtW){
   beatT+=dt;
   movePlayer(dt); moveActors(dt); moveFlock(dt,t);
   for(const f of ctx.flicker){ const k=0.85+Math.sin(t*13)*0.08+Math.sin(t*7.3)*0.07; f.sprite.scale.setScalar(f.base*k); if(f.light) f.light.intensity=1.4*k; }
-  for(const id in ctx.glows){ const G=ctx.glows[id]; if(G.pulse){ const k=1+Math.sin(t*2)*0.08; G.sprite.scale.setScalar(G.base*k); } }
+  for(const id in ctx.glows){ const G=ctx.glows[id]; if(G.pulse){ const k=1+Math.sin(t*2)*0.08; G.sprite.scale.set(G.base*k,G.base*k*(G.aspect||1),1); } }
   if(ctx.host) for(const G of ctx.host){ if(!G.visible) continue; G.sprite.position.y+=Math.sin(t*1.3+G.ph)*0.01; }
   if(ring){ ring.material.opacity=0.55+Math.sin(t*4)*0.25; }
   for(const w of ctx.water) w.material.opacity=0.82+Math.sin(t*1.7)*0.05;
@@ -1759,7 +1759,7 @@ function frame(dtW){
   lifeTick(dt); wadeTick(dt); folkTick(dt); doorsTick(dt);
   if(portrait&&!$('sverse').classList.contains('off')) drawPortrait();
   { const T=SV.talk, g=T&&T.sp&&T.sp.glow&&ctx.glows[T.sp.glow];          /* a mal'ak's light swells with the words */
-    if(g){ const m=SV.mouth(T.sp.key)||0; g.sprite.scale.setScalar(g.base*(1+m*0.12)); } }
+    if(g){ const m=SV.mouth(T.sp.key)||0, k=1+m*0.12; g.sprite.scale.set(g.base*k,g.base*k*(g.aspect||1),1); } }
   if(ST.fast) fastStep();
   if(onFrame) onFrame(dt);
   actPressed=false;
