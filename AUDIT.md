@@ -10802,6 +10802,42 @@ the very city that began as a muddy village in the prologue's montage."
 
 **Hub:** Act VIII is playable; eight new spots are on the map, and 09-to-come.js is empty.
 
+## 4dx. Round 125 — the oasis, the desert floor, the date palm
+
+**Asked:** the water on the Azzah road was too plain. With four reference pictures of desert
+oases, the player asked for an oasis, and for ground that looks a little rocky rather than
+lying "like a mat".
+
+**Made (story/world.js):**
+
+- **`W.oasis`: a pool in a hollow of the desert.**
+  - **Its edge** wanders on a sum of sines rather than following a rule. It is wading-deep all
+    round and deeper in the middle.
+  - **The bank:** a ring of grass and dark wet earth fading out into the sand, and stones lying
+    flat in the bank (one in ten standing proud).
+  - **In and on the water:** reeds and rushes in the shallows, and lily pads, some in flower
+    (pink, yellow, white).
+  - **Around it:** grass tufts and flowers in the green, date palms, an acacia and a couple of
+    worn boulders.
+  - **`open`:** leaves one side clear, toward the road.
+- **`W.desert`: the floor of the wilderness, broken up.**
+  - Drifts of brown earth and grit, walked out cell by cell from a seed so that no patch is a
+    tile; a stone showing here and there.
+  - Dunes stepped in courses, ribs of rock, and dry scrub.
+  - All of it kept off the road and the oasis.
+- **The date palm, rebuilt.**
+  - **Trunk:** slim and ringed, leaning more as it climbs.
+  - **Crown:** eight fronds, each an arch of leaflets that rises from the crown and bows to the
+    tip, with clusters of dates under it.
+  - **Where:** it now stands everywhere a palm does (the Yardĕn, Baḇel, Yahriḥo, the oases).
+    Before, it was a trunk with a cross of leaves.
+
+**Where:**
+- **The road to Azzah (Act VIII):** the official is immersed in an oasis beside a road through
+  broken desert.
+- **Yahriḥo (Act V):** an oasis at the spring outside the wall (2 Meleḵim 2:19-22) under six
+  palms.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

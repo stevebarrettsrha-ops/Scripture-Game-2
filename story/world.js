@@ -168,8 +168,91 @@ W.fig=function(S,x,z){
   S.box(x-0.35,0,z-0.35,x+0.35,2.9,z+0.35,'log');
   S.box(x-2.7,2.8,z-2.5,x+2.6,3.7,z+2.6,'leaves');
   S.box(x-1.8,3.6,z-1.7,x+1.8,4.4,z+1.8,'leaves'); };
-W.palm=function(S,x,z){ S.box(x-0.35,0,z-0.35,x+0.35,5.4,z+0.35,'log');
-  S.box(x-2,5.3,z-0.5,x+2,5.9,z+0.5,'leaves'); S.box(x-0.5,5.3,z-2,x+0.5,5.9,z+2,'leaves'); };
+/* THE DATE PALM: a trunk that leans a little as it climbs, a crown of fronds reaching out and
+   bowing at their tips, and the dates hanging in clusters under them */
+W.palm=function(S,x,z){
+  const y0=S.ground(x,z), h=5.2+hash(x,z)*2.4, lean=(hash(z,x)-0.5)*1.1, la=hash(x*1.7,z)*6.28, lx=Math.cos(la)*lean, lz=Math.sin(la)*lean;
+  /* the trunk: slim, ringed where the old fronds were cut, leaning as it climbs */
+  const seg=14; for(let i=0;i<seg;i++){ const t0=i/seg, t1=(i+1)/seg, ox=lx*t0*t0, oz=lz*t0*t0, w=0.24-0.05*t0;
+    S.detail(x+ox-w,y0+h*t0,z+oz-w,x+ox+w,y0+h*t1,z+oz+w,i%2?0x6a5038:0x5a4430,{jitter:0.08}); }
+  const tx=x+lx, tz=z+lz, ty=y0+h;
+  S.detail(tx-0.3,ty-0.1,tz-0.3,tx+0.3,ty+0.45,tz+0.3,0x4e6a2c);
+  /* the fronds: each an arch of leaflets, rising from the crown and bowing to the tip */
+  const N=8;
+  for(let k=0;k<N;k++){ const a=k/N*Math.PI*2+hash(x+k,z)*0.5, ca=Math.cos(a), sa=Math.sin(a), L=2.8+hash(k,x)*0.9, up=0.5+hash(z,k)*0.5;
+    for(let d=0.3;d<=L;d+=0.34){ const t=d/L, y=ty+0.2+up*Math.sin(Math.PI*t*0.8)-1.5*t*t, px=tx+ca*d, pz=tz+sa*d, g=[0x5e7a32,0x6d8a3a,0x55702c][k%3];
+      S.detail(px-0.09,y-0.05,pz-0.09,px+0.09,y+0.05,pz+0.09,g);
+      const w=0.42*(1-t*0.6), sx=-sa*w, sz=ca*w;                                                 /* the leaflets either side */
+      S.detail(px+sx-0.07,y-0.18*t-0.04,pz+sz-0.07,px+sx+0.07,y-0.18*t+0.03,pz+sz+0.07,g);
+      S.detail(px-sx-0.07,y-0.18*t-0.04,pz-sz-0.07,px-sx+0.07,y-0.18*t+0.03,pz-sz+0.07,g); } }
+  for(let k=0;k<3;k++){ const a=k*2.1+0.5; S.detail(tx+Math.cos(a)*0.38-0.14,ty-0.7,tz+Math.sin(a)*0.38-0.14,tx+Math.cos(a)*0.38+0.14,ty-0.15,tz+Math.sin(a)*0.38+0.14,0xc0702a); }   /* the dates */
+};
+/* AN OASIS (Acts 8:36, "they came to some water"): a pool in a hollow of the desert where a spring
+   rises — its edge not drawn with a rule but wandering; shallow at the edge and deep in the middle,
+   a ring of grass and dark earth about it where nothing else grows green, stones along its lip,
+   reeds and rushes standing in the shallows, lilies on the water, flowers in the grass, date
+   palms and an acacia leaning over it, and great boulders the water has rounded. */
+W.oasis=function(ctx,S,cx,cz,R,o){ o=o||{};
+  const ph=hash(cx,cz)*6.28, rr=a=>R*(1+0.16*Math.sin(3*a+ph)+0.09*Math.sin(5*a+ph*1.7)+0.05*Math.sin(7*a+2));
+  const f=(x,z)=>{ const dx=x-cx, dz=z-cz; return Math.hypot(dx,dz)/rr(Math.atan2(dz,dx)); };   /* 1 at the water's edge */
+  const E=R*1.5+5;
+  /* the green ring, and the dark wet earth at the water */
+  for(let x=cx-E;x<=cx+E;x+=0.9) for(let z=cz-E;z<=cz+E;z+=0.9){ const q=f(x,z); if(q<0.98||q>1.55) continue; const h=hash(x*1.3,z*0.7);
+    ctx.api.top(x-0.45,z-0.45,x+0.45,z+0.45, q<1.12?(h<0.6?'grass':'dirt'):q<1.35?(h<0.55?'grass':h<0.75?'dirt':'sand'):(h<0.3?'grass':h<0.4?'dirt':'sand')); }
+  /* the water: a wading depth all round, deeper in the middle */
+  ctx.api.water(cx-E,cz-E,cx+E,cz+E,{depth:1,bed:'sand',test:(x,z)=>f(x,z)<1});
+  ctx.api.water(cx-E,cz-E,cx+E,cz+E,{depth:2,bed:'dirt',test:(x,z)=>f(x,z)<0.55});
+  /* stones along the lip, lying in the bank, not all the way round */
+  const N=Math.round(R*5);
+  for(let i=0;i<N;i++){ const a=i/N*Math.PI*2+hash(i,cx)*0.2, h=hash(i,cz); if(h<0.4) continue;
+    const r=rr(a)+0.5, x=cx+Math.cos(a)*r, z=cz+Math.sin(a)*r;
+    if(h>0.9) S.box(x-0.45,0,z-0.45,x+0.45,0.45,z+0.45,'stone');                          /* one standing proud */
+    else ctx.api.top(x-0.45,z-0.45,x+0.45,z+0.45,h<0.7?'stone':'cobble'); }                    /* the rest flat in the bank */
+  /* reeds and rushes in the shallows */
+  for(let i=0;i<Math.round(R*2.2);i++){ const a=hash(i,7+cx)*6.28; if(o.open&&Math.abs(((a-o.open+Math.PI*3)%(Math.PI*2))-Math.PI)<0.5) continue;
+    const r=rr(a)*(0.82+hash(i,9)*0.14); W.reeds(S,cx+Math.cos(a)*r,cz+Math.sin(a)*r,0,6); }
+  /* lilies on the water, some in flower */
+  for(let i=0;i<Math.round(R*2.6);i++){ const a=hash(i,11)*6.28, r=rr(a)*(0.2+hash(i,12)*0.55), x=cx+Math.cos(a)*r, z=cz+Math.sin(a)*r, s=0.22+hash(i,13)*0.14;
+    S.detail(x-s,0.0,z-s,x+s,0.04,z+s,[0x4e7a30,0x5c8a38,0x46702c][i%3],{jitter:0.1});
+    if(i%3===0) S.detail(x-0.07,0.04,z-0.07,x+0.07,0.17,z+0.07,[0xe86aa0,0xf2e070,0xf6f2ea,0xd05a8a][i%4]); }
+  /* flowers and grass in the green ring */
+  for(let i=0;i<Math.round(R*9);i++){ const a=hash(i,21)*6.28, r=rr(a)*(1.04+hash(i,22)*0.42), x=cx+Math.cos(a)*r, z=cz+Math.sin(a)*r, y=S.ground(x,z);
+    if(i%3) S.detail(x-0.06,y,z-0.06,x+0.06,y+0.35+hash(i,23)*0.35,z+0.06,[0x7d8a45,0x8a9a4a,0x6d7a3a][i%3],{jitter:0.15});
+    else S.detail(x-0.09,y+0.22,z-0.09,x+0.09,y+0.4,z+0.09,[0xd8403a,0xf2d050,0xf0ece0,0xb070c0,0xe88a30][i%5]); }
+  /* the palms, an acacia, the boulders */
+  for(let i=0;i<(o.palms||4);i++){ const a=ph+i*(Math.PI*2/(o.palms||4))+hash(i,31)*0.6, r=rr(a)+1.6+hash(i,32)*1.8;
+    if(o.open&&Math.abs(((a-o.open+Math.PI*3)%(Math.PI*2))-Math.PI)<0.6) continue;
+    W.palm(S,cx+Math.cos(a)*r,cz+Math.sin(a)*r); }
+  { const a=ph+2.4, r=rr(a)+3.4; W.tamarisk(S,cx+Math.cos(a)*r,cz+Math.sin(a)*r,1.1); }
+  for(let i=0;i<2;i++){ const a=ph+1+i*2.6, r=rr(a)+2.8; W.rock(S,cx+Math.cos(a)*r,cz+Math.sin(a)*r,0.55+hash(i,41)*0.25); }
+  return {f,rr};
+};
+/* THE DESERT FLOOR: not a mat of sand laid level, but the wilderness as it lies — dunes stepped
+   with the wind, ribs of rock breaking through, patches of gravel and of hard brown earth, and the
+   dry scrub of broom and thorn. `area` [x0,z0,x1,z1]; `keep(x,z)` leaves ground clear (a road). */
+W.desert=function(ctx,S,o){ o=o||{};
+  const A=o.area||[-90,-90,90,90], keep=o.keep||(()=>false), H=(i,j)=>hash(i*1.37+(o.seed||0),j*2.11);
+  /* the ground's own course broken: drifts of hard brown earth and of grit, wandering as the wind
+     left them, a stone showing here and there — single cells walked out from a seed, never a tile */
+  for(let k=0;k<(o.patches||70);k++){ let x=A[0]+H(k,61)*(A[2]-A[0]), z=A[1]+H(k,62)*(A[3]-A[1]);
+    const kind=H(k,63)<0.55?'dirt':H(k,63)<0.9?'path':'stone', n=4+Math.floor(H(k,64)*14);
+    for(let i=0;i<n;i++){ if(!keep(x,z)) ctx.api.top(x-0.45,z-0.45,x+0.45,z+0.45,kind);
+      const a=H(k*7+i,65)*6.28; x+=Math.cos(a)*0.92; z+=Math.sin(a)*0.92; } }
+  /* dunes, stepped */
+  for(let k=0;k<(o.dunes||14);k++){ const x=A[0]+H(k,1)*(A[2]-A[0]), z=A[1]+H(k,2)*(A[3]-A[1]); if(keep(x,z)) continue;
+    const rx=3+H(k,3)*6, rz=2+H(k,4)*4, n=1+Math.floor(H(k,5)*3);
+    if(keep(x-rx,z)||keep(x+rx,z)||keep(x,z-rz)||keep(x,z+rz)) continue;
+    for(let s=0;s<n;s++){ const t=1-s/(n+0.5)*0.75; S.box(x-rx*t,s*0.92,z-rz*t,x+rx*t,(s+1)*0.92,z+rz*t,'sand'); } }
+  /* ribs of rock */
+  for(let k=0;k<(o.rocks||18);k++){ const x=A[0]+H(k,11)*(A[2]-A[0]), z=A[1]+H(k,12)*(A[3]-A[1]); if(keep(x,z)) continue;
+    const n=2+Math.floor(H(k,13)*4);
+    for(let i=0;i<n;i++){ const dx=(H(k,14+i)-0.5)*3.4, dz=(H(k,20+i)-0.5)*2.4, h=0.6+H(k,26+i)*1.4;
+      if(keep(x+dx,z+dz)) continue; S.box(x+dx-0.5,0,z+dz-0.5,x+dx+0.5,h,z+dz+0.5,H(k,30+i)<0.5?'stone':'hewn-stone'); } }
+  /* the scrub */
+  for(let k=0;k<(o.scrub||60);k++){ const x=A[0]+H(k,41)*(A[2]-A[0]), z=A[1]+H(k,42)*(A[3]-A[1]); if(keep(x,z)) continue; const y=S.ground(x,z);
+    const c=[0x8a6a40,0x9a8a58,0x7a6a3a][k%3], hh=0.3+H(k,43)*0.4;
+    S.detail(x-0.05,y,z-0.05,x+0.05,y+hh,z+0.05,c); S.detail(x-0.28,y+hh*0.5,z-0.04,x+0.28,y+hh*0.6,z+0.04,c); S.detail(x-0.04,y+hh*0.7,z-0.24,x+0.04,y+hh*0.8,z+0.24,c); }
+};
 /* reeds and rushes at the water's edge — too fine to be blocks */
 W.reeds=function(S,x,z,y,n){ y=y||0; n=n||7;
   for(let k=0;k<n;k++){ const a=hash(x+k,z-k)*6.28, r=hash(z+k*3,x)*0.9, px=x+Math.cos(a)*r, pz=z+Math.sin(a)*r, h=1.2+hash(px,pz)*1.1;

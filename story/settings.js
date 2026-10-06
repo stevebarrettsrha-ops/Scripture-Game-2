@@ -567,6 +567,8 @@ S.yeriho=function(ctx,st){
   [[-20,-10],[-8,-11],[6,-10],[18,-11],[-20,11],[-9,12],[22,11]].forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:z<0?'s':'n',color:k%2?C.mudbrick:C.whitewash,h:2.9}));
   W.house(st,9,12.5,8,7,{door:'n',color:C.whitewash,h:3.2});                     /* the house of Zakkai */
   sycamore(st,-2,5);
+  /* the spring outside the wall (2 Meleḵim 2:19-22, the waters Elishaʽ healed), an oasis under its palms */
+  W.oasis(ctx,st,6,-42,6,{palms:6});
   /* the palms of the city, and the gardens of the spring */
   for(let k=0;k<26;k++){ const x=-28+W.hash(k,7)*56, z=(W.hash(k,8)<0.5?-1:1)*(15+W.hash(k,9)*7); W.palm(st,x,z); }
   for(let k=0;k<30;k++){ const a=W.hash(k,11)*6.28, r=34+W.hash(k,12)*30, x=Math.cos(a)*r, z=Math.sin(a)*r;
@@ -814,13 +816,15 @@ S.gazaroad=function(ctx,st){
   W.ground(ctx,{color:0xc9b48a,flat:46,top:'sand',peak:[{x:-30,z:-50,h:8,r:30},{x:40,z:52,h:10,r:34}]});
   const rz=x=>Math.sin(x*0.03)*3;
   for(let x=90;x>=-90;x-=1.5){ const z=rz(x); st.box(x-1.1,0,z-1.6,x+1.1,0.08,z+1.6,C.cobble,{collide:false,jitter:0.1}); }   /* paved, a Roman road */
-  ctx.api.water(-14,6,-4,12,{depth:1,bed:'sand'});                                           /* the water, in the wadi beside the road */
-  for(const [x,z] of [[-16,5],[-2,5],[-15,13],[-3,13.4]]) W.reeds(st,x,z,0,5);
-  for(let k=0;k<16;k++){ const x=-80+W.hash(k,3)*160, z=(W.hash(k,4)<0.5?-1:1)*(8+W.hash(k,5)*30); if(Math.abs(x+9)<10&&z>0&&z<20) continue; W.tamarisk(st,x,z,0.6+W.hash(k,6)*0.4); }
-  for(let k=0;k<20;k++){ const x=-80+W.hash(k,7)*160, z=rz(x)+(W.hash(k,8)<0.5?-1:1)*(3+W.hash(k,9)*8); W.rock(st,x,z,0.4+W.hash(k,10)*0.4); }
+  /* the water beside the road (8:36): an oasis in a hollow, its open side toward the road */
+  const OX=-9, OZ=10.5, OR=5.2;
+  W.oasis(ctx,st,OX,OZ,OR,{open:-Math.PI/2, palms:5});
+  /* the desert about it: dunes, rock, gravel, scrub — the road, the oasis and the path from the hill kept clear */
+  W.desert(ctx,st,{area:[-88,-80,88,80], seed:3, keep:(x,z)=>Math.abs(z-rz(x))<3.4||Math.hypot(x-OX,z-OZ)<OR*1.9+2||(Math.abs(x-30)<7&&z<0&&z>-26)});
+  for(let k=0;k<10;k++){ const x=-80+W.hash(k,3)*160, z=(W.hash(k,4)<0.5?-1:1)*(10+W.hash(k,5)*30); if(Math.hypot(x-OX,z-OZ)<18) continue; W.tamarisk(st,x,z,0.6+W.hash(k,6)*0.4); }   /* acacias */
   const M=(id,x,dz)=>mk(ctx,id,x,rz(x)+(dz||0));
   M('road0',70); M('road1',40); M('road2',16); M('stop',-6); M('roadW',-60);
-  mk(ctx,'hill',34,-22); mk(ctx,'water',-9,9); mk(ctx,'waterIn',-9,8.6); mk(ctx,'bank',-9,4.6);
+  mk(ctx,'hill',34,-22); mk(ctx,'water',OX,OZ); mk(ctx,'waterIn',OX,OZ-OR*0.62); mk(ctx,'bank',OX,OZ-OR-1.4);
   ctx.bounds={x0:-140,x1:140,z0:-120,z1:120};
 };
 
