@@ -60,7 +60,19 @@ function writeCamera(){
 }
 /* the ground under a point of the scene, in its metres; `ref` the height the asker stands
    at (so a floor under a roof is found, and not the roof) */
+/* WATER IS NOT GROUND: where the floor found is the face of a pool, a river or a lake, a man goes
+   down through it to its bed — and in water deeper than his chest he is held at his chest, his head
+   and shoulders above it, wading or swimming, never standing on it */
 function groundAt(x,z,ref){
+  const y=groundAt0(x,z,ref), k=K();
+  if(!k.waterAt||!anchor) return y;
+  const B=k.B, wx=anchor.x+x*S, wz=anchor.z+z*S, wy=anchor.y+y*S;
+  if(!k.waterAt(wx,wy-0.5*B,wz)) return y;
+  let b=wy-0.5*B, n=0; while(n<12&&k.waterAt(wx,b,wz)){ b-=B; n++; }
+  const bed=(Math.floor(b/B)+1)*B;                                            /* the top of the first block that is not water */
+  return Math.max((bed-anchor.y)/S, y-1.25);
+}
+function groundAt0(x,z,ref){
   const k=K(); let r;
   if(ref!==undefined) r=anchor.y+ref*S;
   else if(ctx&&ctx.api){ if(ctx.api.inPadL(x,z)) r=anchor.y+2.2*S;
@@ -179,6 +191,7 @@ function buildScene(sc){
     else if(t.kind==='infant'){ obj=window.STORYWORLD.infant(ctx,p[0],p[1],t); }
     else if(t.kind==='roundStone'){ obj=window.STORYWORLD.roundStone(ctx,p[0],p[1],t); }
     else if(t.kind==='chariot'){ obj=window.STORYWORLD.chariot(ctx,p[0],p[1]); obj.position.y=ctx.groundY(p[0],p[1])||0; }
+    else if(t.kind==='vision'){ obj=window.STORYWORLD.vision(ctx,p[0],p[1],t); obj.position.y=t.y!==undefined?yOf(t.y):(ctx.groundY(p[0],p[1])||0); }
     else if(t.kind==='throne'){ obj=window.STORYWORLD.throne(ctx,p[0],p[1],t); obj.position.y=t.y!==undefined?yOf(t.y):(ctx.groundY(p[0],p[1])||0); }
     else { obj=new THREE.Mesh(new THREE.BoxGeometry(t.w||0.5,t.h||0.5,t.d||0.5),new THREE.MeshLambertMaterial({color:t.color||0xc9b38a}));
       /* `y` a height in the scene; `dy` (or nothing) above the ground where it lies */
@@ -186,9 +199,10 @@ function buildScene(sc){
       obj.position.set(p[0],gy+(t.h||0.5)/2,p[1]); scene.add(obj); }
     if(t.face!==undefined) obj.rotation.y=t.face;
     if(t.hidden) obj.visible=false;
-    if(t.y!==undefined&&t.kind!=='box'&&t.kind!=='dove'&&t.kind!=='throne') obj.position.y=t.y;
+    if(t.y!==undefined&&t.kind!=='box'&&t.kind!=='dove'&&t.kind!=='throne'&&t.kind!=='vision') obj.position.y=t.y;
     obj.userData.thing=t; obj.userData.baseY=obj.position.y; ctx.things[t.id]=obj; }
   placeCrowds(sc);
+  spawnLife();
   /* THE LAKE'S OWN WAVES, where the set has asked for them (S.galilSea): laid over the still water,
      which is put by beneath them */
   if(ctx.lake&&K().ripple){ const L=ctx.lake, r=L.rect;
@@ -255,6 +269,7 @@ function placeCrowds(sc){
       if(k.solidAt(wx,anchor.y+(y+0.5)*S,wz)||k.solidAt(wx,anchor.y+(y+1.4)*S,wz)) continue;     /* in a wall, a tree, a house */
       if(c.minY!==undefined&&y<c.minY) continue;
       if(Math.abs(y-refY)>dyMax) continue;
+      if(k.waterAt&&k.waterAt(wx,anchor.y+(y+0.3)*S,wz)) continue;                         /* nor standing in a pool */
       /* facing what they came to see: a marker, the way through them (`facePath`), or a bearing */
       let tgt=look;
       if(c.facePath&&path){ let bd=1e9; for(let i=1;i<path.length;i++){ const a0=path[i-1], q=path[i], dx=q[0]-a0[0], dz=q[1]-a0[1], L2=dx*dx+dz*dz||1,
@@ -267,6 +282,87 @@ function placeCrowds(sc){
         beard:!woman&&!child&&r()<0.75?[0x2c241f,0x3a2a1e,0x6d6a66,0x1e1814][Math.floor(r()*4)]:null});
       taken.push([x,z,gap]); ctx.crowdPts.push([x,y,z]); }
     const mesh=window.STORYWORLD.crowd(ctx,figs); mesh.visible=!c.hidden; mesh.userData.crowd=true; ctx.things[c.id]=mesh; }
+}
+/* ---- THE LIFE OF THE WATERS, AND THE WATER STIRRED ----
+   Is there water at (x,z) under the face `y`? (a pool's, a river's, a lake's blocks) */
+function wetAt(x,z,y){ const k=K(); return !!(k.waterAt&&k.waterAt(anchor.x+x*S,anchor.y+((y||0)-0.3)*S,anchor.z+z*S)); }
+function toW(x,y,z){ return new THREE.Vector3(anchor.x+x*S,anchor.y+y*S,anchor.z+z*S); }
+/* the creatures of each water the set asked for (W.waterLife): fish in it, frogs and turtles at its
+   edge, egrets in its shallows, dragonflies over it, butterflies over the green about it */
+function spawnLife(){
+  ctx.life=[]; ctx.hasWater=false;
+  for(const o of ctx.lifeSpecs||[]){
+    const y=o.y||0, rnd=Math.random;
+    const pick=(test,tries)=>{ for(let t=0;t<(tries||60);t++){ const a=rnd()*6.28, d=Math.sqrt(rnd())*o.r, x=o.at[0]+Math.cos(a)*d, z=o.at[1]+Math.sin(a)*d; if(test(x,z)) return [x,z]; } return null; };
+    const shore=(x,z)=>!wetAt(x,z,y)&&(wetAt(x+1,z,y)||wetAt(x-1,z,y)||wetAt(x,z+1,y)||wetAt(x,z-1,y));
+    const shallow=(x,z)=>wetAt(x,z,y)&&(!wetAt(x+1.4,z,y)||!wetAt(x-1.4,z,y)||!wetAt(x,z+1.4,y)||!wetAt(x,z-1.4,y));
+    const add=(kind,p,py,st)=>{ if(!p) return; const g=window.STORYWORLD.creature(ctx,kind); g.position.set(p[0],py,p[1]); g.rotation.y=rnd()*6.28;
+      ctx.life.push(Object.assign({g,kind,y,home:p.slice(),t:rnd()*5,o},st||{})); ctx.hasWater=true; };
+    for(let i=0;i<(o.fish||0);i++) add('fish',pick((x,z)=>wetAt(x,z,y)&&wetAt(x,z,y-0.5)),y-0.32-rnd()*0.2,{sp:0.4+rnd()*0.5});
+    for(let i=0;i<(o.frogs||0);i++){ const p=pick(shore,90); if(p) add('frog',p,ctx.groundY(p[0],p[1])||y,{}); }
+    for(let i=0;i<(o.turtles||0);i++){ const p=pick(shore,90); if(p) add('turtle',p,ctx.groundY(p[0],p[1])||y,{}); }
+    for(let i=0;i<(o.egrets||0);i++){ const p=pick(shore,90); if(p) add('egret',p,ctx.groundY(p[0],p[1])||y,{}); }
+    for(let i=0;i<(o.flies||0);i++) add('fly',pick((x,z)=>wetAt(x,z,y)),y+0.5+rnd()*0.6,{to:null});
+    if(o.butterflies&&K().makeBird) for(let i=0;i<o.butterflies;i++){ const p=pick(shore,90); if(!p) continue;
+      const b=K().makeBird('butterfly'); if(!b) continue; const g=new THREE.Group(); b.scale.multiplyScalar(1/K().setScale); g.add(b); ctx.scene.add(g);
+      g.position.set(p[0],(ctx.groundY(p[0],p[1])||y)+0.8,p[1]); ctx.life.push({g,kind:'butterfly',y,home:p.slice(),t:rnd()*5,o,b}); }
+  }
+}
+function lifeTick(dt){
+  if(!ctx.life||!ctx.life.length) return;
+  const k=K(), now=performance.now()/1000;
+  for(const L of ctx.life){ const g=L.g; L.t+=dt;
+    if(L.kind==='fish'){
+      /* swimming: on, turning a little, turning hard from the bank; now and then a leap */
+      if(L.leap){ L.leap.t+=dt/0.9; const q=L.leap.t; g.position.x+=Math.sin(g.rotation.y)*1.6*dt; g.position.z+=Math.cos(g.rotation.y)*1.6*dt;
+        g.position.y=L.y-0.1+Math.sin(Math.min(1,q)*Math.PI)*0.7; g.rotation.x=-Math.cos(Math.min(1,q)*Math.PI)*0.8;
+        if(q>=1){ L.leap=null; g.position.y=L.y-0.35; g.rotation.x=0; if(k.splash){ const w=toW(g.position.x,L.y,g.position.z); k.splash(w.x,w.y,w.z,false); } } continue; }
+      g.rotation.y+=(Math.sin(L.t*0.7+L.home[0])*0.6)*dt;
+      const nx=g.position.x+Math.sin(g.rotation.y)*L.sp*dt, nz=g.position.z+Math.cos(g.rotation.y)*L.sp*dt;
+      if(wetAt(nx+Math.sin(g.rotation.y)*0.5,nz+Math.cos(g.rotation.y)*0.5,L.y)){ g.position.x=nx; g.position.z=nz; } else g.rotation.y+=2.2+Math.random();
+      if(L.u===undefined) L.u=g.userData; if(L.u.tail) L.u.tail.rotation.y=Math.sin(L.t*9)*0.5;
+      if(Math.random()<dt/45){ L.leap={t:0}; if(k.splash){ const w=toW(g.position.x,L.y,g.position.z); k.splash(w.x,w.y,w.z,false); } } }
+    else if(L.kind==='frog'){
+      /* sitting at the edge; a hop now and then — sometimes plop into the water, and back */
+      if(L.hop){ L.hop.t+=dt/0.45; const q=Math.min(1,L.hop.t); g.position.x=L.hop.a[0]+(L.hop.b[0]-L.hop.a[0])*q; g.position.z=L.hop.a[1]+(L.hop.b[1]-L.hop.a[1])*q;
+        g.position.y=L.hop.y0+(L.hop.y1-L.hop.y0)*q+Math.sin(q*Math.PI)*0.35;
+        if(q>=1){ L.hop=null; if(L.inWater&&k.ripple){ const w=toW(g.position.x,0,g.position.z); k.ripple.at(w.x,w.z,-0.5,4,0.2); } } continue; }
+      if(L.t>3+Math.random()*4){ L.t=0; const into=!L.inWater&&Math.random()<0.35, back=L.inWater;
+        const a=Math.random()*6.28, b=back?L.home:[g.position.x+Math.cos(a)*(into?0.9:0.5),g.position.z+Math.sin(a)*(into?0.9:0.5)];
+        if(into&&!wetAt(b[0],b[1],L.y)) continue; if(!into&&!back&&wetAt(b[0],b[1],L.y)) continue;
+        L.inWater=into; g.rotation.y=Math.atan2(b[0]-g.position.x,b[1]-g.position.z);
+        L.hop={t:0,a:[g.position.x,g.position.z],b,y0:g.position.y,y1:into?L.y-0.06:(ctx.groundY(b[0],b[1])||L.y)}; } }
+    else if(L.kind==='fly'){
+      /* darting over the water and hanging still, then darting again */
+      if(L.u===undefined) L.u=g.userData; for(const w of L.u.wings||[]) w.rotation.z=Math.sin(L.t*60)*0.5;
+      if(!L.to||L.t>1.4+Math.random()){ L.t=0; const a=Math.random()*6.28, d=0.6+Math.random()*2.2, x=g.position.x+Math.cos(a)*d, z=g.position.z+Math.sin(a)*d;
+        L.to=wetAt(x,z,L.y)?[x,L.y+0.35+Math.random()*0.8,z]:[L.home[0],L.y+0.6,L.home[1]]; }
+      const f=Math.min(1,dt*3.2); g.position.x+=(L.to[0]-g.position.x)*f; g.position.y+=(L.to[1]-g.position.y)*f; g.position.z+=(L.to[2]-g.position.z)*f;
+      g.rotation.y=Math.atan2(L.to[0]-g.position.x,L.to[2]-g.position.z); }
+    else if(L.kind==='egret'){
+      /* still as a post; then the neck darts down at a fish, and a slow step or two */
+      if(L.u===undefined) L.u=g.userData; const n=L.u.neck;
+      const c=(L.t%7)/7; n.rotation.x=c>0.86?Math.sin((c-0.86)/0.14*Math.PI)*1.2:0;
+      if(c>0.5&&c<0.56){ const a=g.rotation.y, x=g.position.x+Math.sin(a)*0.25*dt*8, z=g.position.z+Math.cos(a)*0.25*dt*8; if(!wetAt(x,z,L.y)) { g.position.x=x; g.position.z=z; } else g.rotation.y+=0.8*dt*8; } }
+    else if(L.kind==='butterfly'){
+      g.position.x=L.home[0]+Math.sin(L.t*0.6)*1.6+Math.sin(L.t*1.7)*0.4; g.position.z=L.home[1]+Math.cos(L.t*0.5)*1.6;
+      g.position.y=(ctx.groundY(g.position.x,g.position.z)||L.y)+0.7+Math.sin(L.t*2.3)*0.25; g.rotation.y=L.t*0.6+Math.PI/2;
+      if(L.b&&L.b.userData&&L.b.userData.wings){ const w=L.b.userData.wings, a=Math.sin(L.t*16)*0.9; if(w[0]) w[0].rotation.z=a; if(w[1]) w[1].rotation.z=-a; } }
+  }
+}
+/* THE WATER STIRRED: the live water's field follows the one who is seen, and whoever stands in water
+   rings it — at each step as he wades, and faintly as he stands */
+function wadeTick(dt){
+  const k=K(); if(!k.ripple||!k.waterAt) return;
+  if(!ctx.lake&&(ctx.hasWater||ctx.wet)){ const p=player||null; if(p){ const w=toW(p.position.x,0,p.position.z); k.ripple.focus({x:w.x,y:w.y,z:w.z}); } }
+  const ring=(g)=>{ const u=g.userData; if(!g.visible) return; const x=g.position.x, z=g.position.z;
+    if(!k.waterAt(anchor.x+x*S,anchor.y+(g.position.y+0.35)*S,anchor.z+z*S)) return;
+    ctx.wet=true;
+    const lp=u._wadeP; u._wadeT=(u._wadeT||0)-dt;
+    if(!lp||Math.hypot(x-lp[0],z-lp[1])>0.5){ u._wadeP=[x,z]; const w=toW(x,0,z); k.ripple.at(w.x,w.z,-0.8,5,0.25); u._wadeT=1.6; }
+    else if(u._wadeT<=0){ u._wadeT=1.6+Math.random(); const w=toW(x,0,z); k.ripple.at(w.x,w.z,-0.3,4,0.05); } };
+  for(const id in ctx.actors){ const g=ctx.actors[id]; if(g.userData.fixedY===undefined||!ctx.lake) ring(g); }
+  if(player) ring(player);
 }
 function pos(at){ if(typeof at==='string'){ const m=ctx.markers[at]; if(m) return m;
     const g=ctx.actors[at]||ctx.things[at]; if(g) return [g.position.x,g.position.z];   /* a person or a thing: where they are now */
@@ -425,7 +521,7 @@ function lakeTick(dt){
       const w=toWorld(main.position.x+Math.cos(a)*d,0,main.position.z+Math.sin(a)*d); KIT.ripple.at(w.x,w.z,1.2*L.A,9,0.7); } }
 }
 /* on the ground, or on something? (one held at a height — in a boat — or set on a bench) */
-function groundSit(u){ return (u.def&&u.def.ground)||(u.fixedY===undefined&&!u.ride&&!(u.def&&u.def.bench)); }   /* `ground`: on a floor though held at its height (a boat's) */
+function groundSit(u){ return (u.def&&u.def.ground)||(u.fixedY===undefined&&!u.ride&&!u.aboard&&!(u.def&&u.def.bench)); }   /* `ground`: on a floor though held at its height (a boat's) */
 /* how far one sitting is lowered: on the ground the hips nearly to it, on a bench to its height */
 function sitDrop(u){ return u.sit?(groundSit(u)?0.63:0.44)*(u.s||1):0; }
 /* the pose on all fours (radians, and metres for a man of 1.70): worked so the hands and the feet bear alike */
@@ -514,6 +610,7 @@ function wallAt(x,z,gy){ if(gy===undefined) return false; const k=K(), wx=anchor
 /* the actors walk where the story sends them */
 function moveActors(dt){
   for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData;
+    if(u.aboard) continue;
     let tgt=u.target;
     if(u.follow){ const f=u.follow==='player'?player:ctx.actors[u.follow];
       if(f){ const d=Math.hypot(f.position.x-g.position.x,f.position.z-g.position.z); tgt=d>2.4?[f.position.x,f.position.z]:null; } }
@@ -533,12 +630,23 @@ function moveActors(dt){
     else { u.gy=stepGround(g.position.x,g.position.z,u.gy===undefined?ctx.groundY(g.position.x,g.position.z):u.gy); g.position.y=u.gy-sitDrop(u)+(u.lie?0.16:0); }
     /* riding (Luke 19:35): the beast goes where the rider goes, under him, at its own gait */
     if(u.ride){ const t=ctx.things[u.ride]; if(t){ const gy=u.fixedY!==undefined?u.fixedY:u.gy;
-        g.position.y=gy-sitDrop(u)+RIDE_H; t.position.set(g.position.x,gy,g.position.z); t.rotation.y=g.rotation.y;
+        const tu=t.userData, ro=tu.rideOff||[0,0], c=Math.cos(g.rotation.y), sn=Math.sin(g.rotation.y);
+        g.position.y=gy-sitDrop(u)+(tu.seatH||RIDE_H); t.rotation.y=g.rotation.y;
+        t.position.set(g.position.x-(ro[0]*c+ro[1]*sn),gy,g.position.z-(-ro[0]*sn+ro[1]*c));      /* a carriage: its rider sits where its seat is */
         if(t.userData.team){ if(K().tickGait) for(const e of t.userData.team) K().tickGait(e,'horse',moving?(u.speed||1)*S:0,dt); }   /* a chariot's pair */
+        if(tu.wheels&&moving) for(const w of tu.wheels) w.rotation.x+=(u.speed||1)*dt/w.position.y;            /* and its wheels turn */
         else if(t.children[0]&&K().tickGait){ t.userData.ent=t.userData.ent||{m:t.children[0]}; K().tickGait(t.userData.ent,'donkey',moving?(u.speed||1)*S:0,dt); } } }
     animFigure(g,dt,moving); animFace(g,id,dt);
     if(u.label){ const near=!camTarget&&player&&Math.hypot(player.position.x-g.position.x,player.position.z-g.position.z)<3.6;
       u.label.visible=near||speaking===id; } }
+  /* ABOARD (Acts 8:31, "he invited Philip to come up and sit with him"): carried in a carriage at a
+     seat of it, after its rider has moved it */
+  for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; if(!u.aboard) continue;
+    const t=ctx.things[u.aboard.id]; if(t){ const o=u.aboard.off, c=Math.cos(t.rotation.y), sn=Math.sin(t.rotation.y);
+      g.position.set(t.position.x+o[0]*c+o[2]*sn,t.position.y-sitDrop(u)+(o[1]||t.userData.seatH||RIDE_H),t.position.z-o[0]*sn+o[2]*c);
+      g.rotation.y=t.rotation.y+(u.aboard.face||0); }
+    animFigure(g,dt,false); animFace(g,id,dt);
+    if(u.label) u.label.visible=speaking===id; }
   keepApart(dt);
   /* a beast led by the halter (Luke 19:35): it walks a step behind the one leading it */
   for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; if(!u.leadBy) continue; const g=ctx.actors[u.leadBy]; if(!g) continue;
@@ -557,7 +665,7 @@ function moveActors(dt){
 const APART=0.46;
 const RIDE_H=0.62;                                  /* a rider's seat above the ground, on a young donkey */
 function keepApart(dt){
-  const L=[]; for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; if(!g.visible||u.lie||u.fixedY!==undefined) continue; L.push(g); }
+  const L=[]; for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; if(!g.visible||u.lie||u.fixedY!==undefined||u.ride||u.aboard) continue; L.push(g); }
   const k=Math.min(1,dt*6);
   for(let i=0;i<L.length;i++){ const a=L[i];
     for(let j=i+1;j<L.length;j++){ const b=L[j], dx=b.position.x-a.position.x, dz=b.position.z-a.position.z, d=Math.hypot(dx,dz);
@@ -1038,8 +1146,18 @@ function enterBeat(){
   if(T==='crown'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g&&g.userData.head) window.STORYWORLD.crown(g.userData.head); } return nextBeat(); }
   if(T==='lead'){ const o=ctx.things[B.id]; if(o){ o.userData.leadBy=B.by||null; o.userData.leadBack=B.back; o.userData.leadUp=B.up; o.userData.leadTurn=B.turn; } return nextBeat(); }
   if(T==='ride'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(!g) continue; const u=g.userData;
-      if(B.off){ const t=ctx.things[u.ride]; u.ride=null; u.sit=false; if(t){ g.position.x=t.position.x+Math.cos(g.rotation.y)*0.7; g.position.z=t.position.z-Math.sin(g.rotation.y)*0.7; } }
-      else { const t=ctx.things[B.on]; if(t){ t.userData.leadBy=null; u.ride=B.on; u.sit=true; g.position.x=t.position.x; g.position.z=t.position.z; g.rotation.y=t.rotation.y; } } }
+      if(B.off){ const t=ctx.things[u.ride]; u.ride=null; u.sit=false; if(t){ const sd=t.userData.side||0.7, ro=t.userData.rideOff||[0,0], c=Math.cos(t.rotation.y), sn=Math.sin(t.rotation.y), x=(ro[0]<0?-sd:sd), z=ro[1];
+          g.position.x=t.position.x+x*c+z*sn; g.position.z=t.position.z-x*sn+z*c; } }
+      else { const t=ctx.things[B.on]; if(t){ t.userData.leadBy=null; u.ride=B.on; u.sit=true; g.rotation.y=t.rotation.y;
+          const ro=t.userData.rideOff||[0,0], c=Math.cos(t.rotation.y), sn=Math.sin(t.rotation.y);
+          g.position.x=t.position.x+ro[0]*c+ro[1]*sn; g.position.z=t.position.z-ro[0]*sn+ro[1]*c; } } }
+    return nextBeat(); }
+  /* `aboard`: up into a carriage at a seat of it (`off` [x,seatY|0,z] in its own frame), or down out of it at its side */
+  if(T==='aboard'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(!g) continue; const u=g.userData;
+      if(B.off){ const t=u.aboard&&ctx.things[u.aboard.id]; if(t){ const o=u.aboard.off, sd=t.userData.side||0.9, x=o[0]<0?-sd:sd, c=Math.cos(t.rotation.y), sn=Math.sin(t.rotation.y);
+          g.position.x=t.position.x+x*c+o[2]*sn; g.position.z=t.position.z-x*sn+o[2]*c; u.gy=ctx.groundY(g.position.x,g.position.z); }
+        u.aboard=null; u.sit=false; u.target=null; }
+      else { u.aboard={id:B.on,off:B.at||[0,0,0],face:B.face||0}; u.sit=true; u.target=null; u.follow=null; } }
     return nextBeat(); }
   if(T==='robe'){ const g=ctx.actors[B.who]; if(g) window.STORYWORLD.recolor(g,B.color,B.mantle); return nextBeat(); }
   if(T==='drift'){ const objs=[];
@@ -1374,8 +1492,10 @@ function frame(dtW){
       if(o.userData&&o.userData.fixedY!==undefined) o.userData.fixedY=o.position.y;
       if(o.userData&&o.userData.baseY!==undefined) o.userData.baseY=o.position.y; }); }
   for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; const w=u.wings||(u.bird&&u.bird.userData&&u.bird.userData.wings); if(w&&w[0]){ const a=Math.sin(t*9)*0.5; w[0].rotation.z=a; w[1].rotation.z=-a; }
+    if(u.tick&&o.visible) u.tick(dt);
     if(u.bob&&!ctx.lake){ const k=ctx.rough||1; o.position.y=u.baseY+Math.sin(t*1.3+o.position.x)*0.06*k; o.rotation.z=Math.sin(t*0.9+o.position.z)*0.025*k; } }
   if(ctx.lake&&ctx.lake.w) lakeTick(dt);
+  lifeTick(dt); wadeTick(dt);
   if(portrait&&!$('sverse').classList.contains('off')) drawPortrait();
   { const T=SV.talk, g=T&&T.sp&&T.sp.glow&&ctx.glows[T.sp.glow];          /* a mal'ak's light swells with the words */
     if(g){ const m=SV.mouth(T.sp.key)||0; g.sprite.scale.setScalar(g.base*(1+m*0.12)); } }

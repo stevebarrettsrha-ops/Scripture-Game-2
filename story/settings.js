@@ -51,6 +51,7 @@ S.hillcountry=function(ctx,st){
   /* the spring in its basin of stone, and the path up from it */
   st.box(12,0,8,16.4,0.5,8.5,C.stone); st.box(12,0,11.6,16.4,0.5,12.1,C.stone); st.box(12,0,8,12.5,0.5,12.1,C.stone); st.box(15.9,0,8,16.4,0.5,12.1,C.stone);
   ctx.api.water(12.5,8.5,15.9,11.6,{depth:1,bed:'stone'});
+  W.waterLife(ctx,{at:[14.2,10], r:5, y:0, frogs:2, flies:3, butterflies:2});
   for(let k=0;k<12;k++){ const t=k/11, x=4+t*9, z=1+t*6; st.box(x-0.8,0,z-0.8,x+0.8,0.08,z+0.8,C.path,{collide:false,jitter:0.12}); }
   mk(ctx,'spring',13.6,6.8); mk(ctx,'pathUp',20,14);
   /* the neighbours' houses, the terraces of vines and olives */
@@ -189,6 +190,7 @@ S.yarden=function(ctx,st){
       else c.lerp(marl,Math.min(0.85,(dx-24)/40)); }});
   ctx.api.pad(-34,-132,34,132,{top:'grass'});         /* the floor of the rift, along the river */
   W.riverWater(ctx,RIVER,256);
+  W.waterLife(ctx,{at:[0,0], r:70, y:0, fish:16, frogs:8, flies:8, egrets:3, turtles:2, butterflies:4});   /* the life of the Yardĕn */
   const rx=z=>W.riverX(RIVER,z), edge=RIVER.w+RIVER.b;
   /* reeds along both banks, the ford left open */
   for(let z=-124;z<124;z+=3.2) for(const sd of [-1,1]){
@@ -410,6 +412,7 @@ function galil(ctx,st,o){
      go; a beach of pebbles along its edge */
   ctx.api.pad(SHORE.x-8,-80,SHORE.x+92,80,{top:'sand'});
   ctx.api.water(SHORE.x,-78,SHORE.x+90,78,{depth:3,bed:'sand'});
+  W.waterLife(ctx,{at:[SHORE.x+12,0], r:36, y:0, fish:18, frogs:3, flies:4, egrets:3, turtles:1, butterflies:2});   /* the fish of Galil, the egrets of its shore */
   st.box(SHORE.x-6,0,-80,SHORE.x,0.1,80,'sand');
   for(let k=0;k<26;k++){ const z=-90+k*7, x=SHORE.x-3+W.hash(k,5)*2.2; W.rock(st,x,z,0.35+W.hash(k,6)*0.4); }
   if(o.village){
@@ -502,6 +505,7 @@ S.caesarea=function(ctx,st){
   st.box(-14,0,-21.8,-0.4,0.5,-21.2,C.stone);
   ctx.api.water(-14,-21.2,-0.4,-14,{depth:1,bed:'stone'});
   ctx.api.water(-16,-14,4,110,{depth:1,bed:'dirt',test:(x,z)=>Math.abs(x-sx(z))<2.4});
+  W.waterLife(ctx,{at:[-6,24], r:42, y:0, fish:7, frogs:6, flies:6, egrets:1, turtles:1, butterflies:3});
   for(let z=-12;z<100;z+=4.5) for(const sd of [-1,1]) if(W.hash(z,sd)<0.6) W.reeds(st,sx(z)+sd*3.2,z,0,5);
   /* oaks and planes along the water */
   for(let k=0;k<30;k++){ const z=-8+W.hash(k,3)*100, sd=W.hash(k,4)<0.5?-1:1, x=sx(z)+sd*(5+W.hash(k,5)*16);
@@ -807,6 +811,7 @@ function temple(st0,x,z,w,d,h,col,y0){ col=col||'alabaster';
 function sea(ctx,st,x0,o){ o=o||{};
   ctx.api.pad(x0-8,-120,x0+150,120,{top:'sand'});
   ctx.api.water(x0,-118,x0+148,118,{depth:o.depth||4,bed:'sand'});
+  W.waterLife(ctx,{at:[x0+10,0], r:26, y:0, fish:10, egrets:2, flies:2});
   st.box(x0-6,0,-120,x0,0.1,120,'sand'); }
 
 /* THE WAY DOWN FROM YAHRUSHALAYIM TO AZZAH (Acts 8:26, "This is desert"): a road of the empire
@@ -860,7 +865,7 @@ function coast(ctx,st,o){
     for(const [x,z,c] of [[0,-10,0x6a4a2a],[2.4,-10,0x8a6a3a],[4.8,-10,0x5a3a1a]]) { st.box(x-1,0,z-1,x+1,0.7,z+1,C.stone); st.detail(x-0.8,0.5,z-0.8,x+0.8,0.62,z+0.8,c); }   /* his vats */
     [[-10,-16],[-12,-4],[-10,8],[-22,-10],[-22,6],[-4,14],[6,14]].forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:x<-4?'e':'s',color:k%2?C.limestone:C.whitewash,h:3}));
     mk(ctx,'tanner',8,-2); mk(ctx,'tannerIn',6,-2); mk(ctx,'tannerDoor',2.6,-2); mk(ctx,'stairFoot',12.6,2.8); mk(ctx,'roof',9,-3); mk(ctx,'gate',-2,-2);
-    mk(ctx,'street',-6,-2); mk(ctx,'sheet',9,-3);
+    mk(ctx,'street',-6,-2); mk(ctx,'sheet',14.8,-3);
     ctx.markers.roofY=[2.8+0.92+0.02,0];
   } else {
     /* the captain's house: a court open to the sky, rooms about it, a portico of columns before the door */
@@ -936,6 +941,7 @@ S.rome=function(ctx,st){
   ctx.wind=[0.6,0.2];
   W.ground(ctx,{color:C.grass,flat:50,peak:{x:-40,z:-56,h:16,r:36}});
   ctx.api.water(48,-120,60,120,{depth:2,bed:'dirt'});                                           /* the Tiber */
+  W.waterLife(ctx,{at:[54,0], r:40, y:0, fish:8, frogs:3, flies:3, egrets:2});
   st.box(46,0,-6,62,1.8,6,C.stone); for(const z of [-5,5]) st.box(46,1.8,z-0.6,62,2.6,z+0.6,C.stone);   /* a bridge of stone over her */
   for(let x=-40;x<46;x+=1.5) st.box(x-1,0,-2,x+1,0.08,2,C.cobble,{collide:false,jitter:0.08});
   const BR=0xa0603a;

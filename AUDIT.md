@@ -10838,6 +10838,84 @@ lying "like a mat".
 - **Yahriḥo (Act V):** an oasis at the spring outside the wall (2 Meleḵim 2:19-22) under six
   palms.
 
+## 4dy. Round 126 — living water, the carriage of state, Kepha's vision
+
+**Asked:**
+- People were still walking on the water. Oases, rivers and lakes should look like water,
+  with ripples and small waves, and have life about them: creeping things, fish.
+- The Kushite official's chariot should look glorious and seat two or three.
+- Kepha's vision at Yapho should be shown, with the creatures Acts 10:12 lists.
+
+**Made:**
+- **Wading, not walking on water (story/engine.js, js/engine.js).**
+  - The cause: edited water counts as solid in the voyage's `blockSolidAt`, so the ground
+    under a figure was the water's surface.
+  - `groundAt` now asks the kit's new `waterAt`. Where there is water, it goes down to the
+    bed and stands a figure there, at most 1.25 deep.
+  - At Acts 8:38-39 the treasurer now stands 1.25 deep and Philip 0.92 (probed).
+  - Crowds are no longer placed on water.
+  - Boats and the lake-walk (Mattithyahu 14) are held at their own heights and are unchanged.
+- **Waves.**
+  - The voyage's water-block shader now moves the top of every water block in four crossing
+    swells. The surface only ever sinks, so it never rises through its banks.
+  - A figure in water rings the ripple field with each step, and faintly while standing.
+- **Life at the water (`W.creature`, `W.waterLife`, `spawnLife`, `lifeTick`).**
+  - **Fish** wander in water at least half a metre deep. They turn at the bank, their tails
+    working, and now and then one leaps and splashes.
+  - **Frogs** sit on the bank, hop, and plop in with a ring.
+  - **Dragonflies** dart over the water, their wings flickering.
+  - **Egrets** stalk the dry shore and strike with the neck.
+  - **Turtles** sun on the bank; **butterflies** wheel over the flowers.
+  - **Where:**
+    - every oasis;
+    - the Yardĕn;
+    - the shore of the Kinnereth;
+    - the springs at Caesarea Philippi;
+    - the Great Sea's edge;
+    - the Tiber;
+    - the spring at Natsareth.
+- **The carriage of state (`W.chariot`, Acts 8:27-31).**
+  - The official is treasurer over all the treasure of the Kandake. He sits reading and
+    "invited Philip to come up and sit with him", so this is a travelling carriage, not a
+    war-car.
+  - **The car:** a long car of red lacquer, panelled and gilded with bosses, on four spoked
+    wheels shod in bronze (the larger pair behind).
+  - **The seats:** a purple-cushioned bench for two at the back, and the driver's bench
+    before it.
+  - **The canopy:** striped in white and Nile blue on four gilded posts, with a gold fringe,
+    the curtains tied back, and a gold finial.
+  - **The team:** a pole and yoke to a pair of horses under red-and-gold caparisons with
+    plumes.
+  - **Motion:** its wheels turn as it goes.
+- **Engine support for it.**
+  - A carriage now carries its own seat height (`seatH`), where its rider sits (`rideOff`),
+    and how far out one steps down (`side`).
+  - The new `aboard` beat seats another figure at a seat of a thing, carried with it, and
+    sets them down at its side again.
+- **The scene (Act VIII, the road to Azzah).**
+  - A driver of Kush in white linen sits on the front bench throughout. Acts 8:38 has the
+    treasurer command the chariot to stand still.
+  - After 8:31 Philip is aboard beside the treasurer. They ride together to the water, and
+    both get down before going into it.
+- **Kepha's vision (`W.vision`, Acts 10:11-16).**
+  - **The sheet:** a great linen sheet that sags under its load, hemmed, its four corners
+    knotted to cords of light. The cords run up into the opened shamayim, which is light
+    only, never figures.
+  - **What is in it:**
+    - four-footed beasts of the earth: camel, pig, hare, goat, donkey;
+    - wild beasts: lion, bear, leopard, wolf, boar, hyena;
+    - creeping creatures: viper, lizard, scorpion, hedgehog, frog, turtle, crocodile;
+    - the birds of the shamayim: eagle, owl, raven, dove and gull, some perched on its
+      edge and some wheeling about it.
+  - **Motion:** each beast looks about and shifts on its feet.
+  - **Staging:**
+    - It is let down before Kepha over the tanner's yard.
+    - During 10:12 the camera moves slowly across the sheet.
+    - It goes up and comes down three times (10:16), then is taken back up.
+    - Kepha's answer (10:14) is framed close on him.
+
+**Verified:** screenshots of every new piece; playthroughs (below).
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
