@@ -96,7 +96,7 @@ STORY.act({
     actors:[ Object.assign({id:'miryam', name:'Miryam', at:'miryam', face:0},MIRYAM),
              Object.assign({id:'yoseph', name:'Yosĕph', at:'yoseph', face:0},YOSEPH) ],
     glows:[ {id:'gabrial', at:[-4,2.4,-2.2], size:4.5, color:0xfff4d6, intensity:1.6, pulse:true, hidden:true},
-            {id:'dream', at:[14,2.6,2.6], size:3.4, color:0xfff4d6, intensity:1.2, pulse:true, hidden:true} ],
+            {id:'dream', at:[15,1.9,3.2], size:3.4, color:0xfff4d6, intensity:1.2, pulse:true, hidden:true} ],
     beats:[
       {t:'cam', from:[20,14,26], look:[0,1,-4], dur:0.1},
       {t:'cam', from:[4,5,6], look:'miryam', dur:4},
@@ -113,11 +113,23 @@ STORY.act({
       {t:'cam', from:[18,4,8], look:'yoseph', dur:4},
       {t:'read', ref:'MATTITHYAHU 1:18'},
       {t:'read', ref:'MATTITHYAHU 1:19'},
+      /* "while he pondered these, see, a mal'ak … appeared to him in a dream": night, and he asleep
+         before his door, his head away from it */
+      {t:'time', to:'night'},
+      {t:'face', who:'yoseph', to:[14,-6]},
+      {t:'lie', who:'yoseph'},
+      {t:'cam', from:[19.6,2.6,6.4], look:[14.4,0.6,2.4], dur:3},
       {t:'show', id:'dream'},
       {t:'say', who:'dreamMalak', ref:'MATTITHYAHU 1:20-21'},
       {t:'hide', id:'dream'},
       {t:'read', ref:'MATTITHYAHU 1:22-23', voices:['byNabi','narrator']},     /* "which translated, means, “Al with us.”" is the telling's own gloss */
       {t:'fulfil', id:'y7-14'},
+      /* "and Yosĕph, rising from sleep, did as the mal'ak … commanded him" */
+      {t:'time', to:'dawn'},
+      {t:'stand', who:'yoseph'},
+      {t:'face', who:'yoseph', to:'miryam'},
+      {t:'cam', from:[21,4.2,5.4], look:[9,1.2,0.8], dur:4, wait:false},
+      {t:'move', who:'yoseph', to:[4.8,0.6], speed:1.1, wait:false},
       {t:'read', ref:'MATTITHYAHU 1:24'},
       {t:'end'}
     ]},
@@ -182,9 +194,17 @@ STORY.act({
       {t:'witness', text:'He is asking for something to write on — fetch the writing tablet from the house', items:['tablet'], verb:'Take the tablet', hold:0.5, deliver:[6.8,-1.6], r:2.4, carryText:'Give it to Zaḵaryahu'},
       {t:'cam', from:[9.6,2,-3.6], look:[6.2,1.3,-2.6], dur:2},
       {t:'read', ref:'LUKE 1:63', voices:['narrator']},
+      /* "and at once his mouth was opened … and he spoke, blessing Aluah": close on him, his hands
+         lifted; the neighbours all turn to him */
+      {t:'pose', who:'zek', arms:'up'},
+      {t:'face', who:'nb1', to:'zek'}, {t:'face', who:'nb2', to:'zek'}, {t:'face', who:'nb3', to:'zek'},
+      {t:'face', who:'nb4', to:'zek'}, {t:'face', who:'nb5', to:'zek'}, {t:'face', who:'alisheba', to:'zek'},
+      {t:'cam', from:[7.4,1.9,-0.2], look:[6.2,1.6,-2.6], dur:1.6},
       {t:'read', ref:'LUKE 1:64'},
+      {t:'cam', from:[11.4,2.6,1.8], look:[7.4,1.3,-2], dur:2.2},
       {t:'read', ref:'LUKE 1:65'},
       {t:'read', ref:'LUKE 1:66', voices:['neighbours']},
+      {t:'pose', who:'zek'},
       {t:'cam', from:[3.4,2.2,1.6], look:[6.2,1.5,-2.6], dur:2},
       {t:'read', ref:'LUKE 1:67'},
       {t:'say', who:'zek', ref:'LUKE 1:68', turn:false},
@@ -235,7 +255,9 @@ STORY.act({
       {id:'sh3', name:'A shepherd', dress:'shepherd', at:'s3', face:3.3, robe:0x74604a, cloth:0xc1b394}
     ],
     things:[ {id:'lamb1', kind:'lamb', at:'lamb1'}, {id:'lamb2', kind:'lamb', at:'lamb2'}, {id:'lamb3', kind:'lamb', at:'lamb3'} ],
-    glows:[ {id:'malak', at:[2,7,-8], size:9, color:0xfff6dc, intensity:2.6, pulse:true, hidden:true} ],
+    glows:[ {id:'malak', at:[2,7,-8], size:9, color:0xfff6dc, intensity:2.6, pulse:true, hidden:true},
+            /* "and the esteem of (YAHUAH) HWHY shone around them" (2:9): the whole place about the fire */
+            {id:'shone', at:[4,3.4,3.6], size:13, color:0xfff2d6, intensity:1.6, hidden:true} ],
     host:{ at:[2,-8], y:6, h:14, r:26, n:70 },
     beats:[
       {t:'title', text:'The fields by night', sub:'near Bĕyth Leḥem, the city of Dawiḏ'},
@@ -247,17 +269,23 @@ STORY.act({
       {t:'choice', prompt:'You', options:[
         {text:'Say over the old words from your family’s scroll', reply:'You say them quietly, the way your father taught you. The fire cracks. The men are silent.'},
         {text:'Watch the fire, and the stars' } ]},
-      {t:'show', id:'malak'},
+      {t:'show', id:['malak','shone']},
       {t:'cam', from:[8,2.4,12], look:[2,6,-8], dur:2.5},
+      /* "and they feared a great fear": the men down on their faces in the light */
+      {t:'face', who:'sh1', to:[2,-8]}, {t:'face', who:'sh2', to:[2,-8]}, {t:'face', who:'sh3', to:[8.4,-8]},
+      {t:'lie', who:['sh1','sh2','sh3'], prone:true},
+      {t:'cam', from:[10.6,3.6,11.4], look:[4.2,0.5,4.2], dur:2},
       {t:'read', ref:'LUKE 2:9'},
+      {t:'cam', from:[8,2.4,12], look:[2,6,-8], dur:2},
       {t:'say', who:'malak', ref:'LUKE 2:10'},
+      {t:'stand', who:['sh1','sh2','sh3']},
       {t:'say', who:'malak', ref:'LUKE 2:11'},
       {t:'say', who:'malak', ref:'LUKE 2:12'},
       {t:'show', id:[], host:true},
       {t:'cam', from:[10,1.8,16], look:[2,11,-10], dur:3},
       {t:'read', ref:'LUKE 2:13'},
       {t:'say', who:'host', ref:'LUKE 2:14'},
-      {t:'hide', id:'malak', host:false},
+      {t:'hide', id:['malak','shone'], host:false},
       {t:'cam', release:true},
       {t:'say', who:'shepherds', ref:'LUKE 2:15'},
       {t:'follow', who:['sh1','sh2','sh3']},
@@ -387,19 +415,37 @@ STORY.act({
       {id:'m3', dress:'magi', at:[10,19], face:0, robe:0x3f6a4a, cloth:0xcfc4aa}
     ],
     things:[ {id:'camel1', kind:'camel', at:[3,23], face:1.2}, {id:'camel2', kind:'camel', at:[7,24.5], face:1.4}, {id:'camel3', kind:'camel', at:[11,23], face:1.7} ],
-    glows:[ {id:'window', at:[12.6,1.6,6], size:1.6, color:0xfff3d0, intensity:0.7, pulse:true} ],
-    star:{ at:[16,6], y:34, size:18 },
+    glows:[ {id:'window', at:[12.6,1.6,6], size:1.6, color:0xfff3d0, intensity:0.7, pulse:true},
+            /* the star they saw in the east: it goes before them, and comes to stand over the house (2:9) */
+            {id:'starG', at:[0,30,58], size:7, color:0xf6f0ff, intensity:0, pulse:true, hidden:true},
+            /* the warning in a dream (2:12) */
+            {id:'warn', at:[6.2,1.5,22.8], size:2.2, color:0xfff4d6, intensity:0.9, pulse:true, hidden:true} ],
     beats:[
       {t:'title', text:'The star', sub:'Bĕyth Leḥem'},
+      {t:'show', id:'starG'},
+      {t:'cam', from:[6,6.5,40], look:[13,11,6], dur:0.1},              /* behind the strangers, toward the town */
+      {t:'drift', id:'starG', to:[16,15,6], dur:8, wait:false},
       {t:'read', ref:'MATTITHYAHU 2:9'},
-      {t:'cam', from:[-6,4,44], look:[16,16,6], dur:3},
+      {t:'cam', from:[-6,4,44], look:[16,13,6], dur:3},
       {t:'read', ref:'MATTITHYAHU 2:10'},
       {t:'cam', release:true},
       {t:'witness', text:'The strangers’ camels are thirsty — draw water at the well and give each a drink', items:['camel1','camel2','camel3'], verb:'Water the camel', hold:1.0, reach:3.2},
       {t:'move', who:['m1','m2','m3'], to:[[11,5],[11,7],[11.2,3.6]], speed:1.8},
       {t:'cam', from:[8.5,2.8,9.6], look:[12.6,1.4,6], dur:3},
       {t:'read', ref:'MATTITHYAHU 2:11'},
+      /* that night, by their camels: one of them asleep, and the warning */
+      {t:'time', to:'night'},
+      {t:'place', who:'m1', at:[5.6,20.4], face:Math.PI}, {t:'place', who:'m2', at:[3.2,20.8], face:Math.PI},
+      {t:'place', who:'m3', at:[8.4,20.6], face:Math.PI},
+      {t:'lie', who:['m1','m2','m3']},
+      {t:'cam', from:[10.2,2.6,15.4], look:[5.8,0.5,21], dur:2.5},
+      {t:'show', id:'warn'},
       {t:'read', ref:'MATTITHYAHU 2:12'},
+      {t:'hide', id:['warn','starG']},
+      {t:'time', to:'dawn'},
+      {t:'stand', who:['m1','m2','m3']},
+      {t:'move', who:['m1','m2','m3'], to:[[-24,42],[-26,43],[-22,43.6]], speed:1.6, wait:false},
+      {t:'cam', from:[12,3.4,14], look:[-6,1.4,34], dur:4},           /* by another way */
       {t:'cam', release:true},
       {t:'end'}
     ]},
@@ -409,13 +455,22 @@ STORY.act({
     player:{ at:[2,14], hidden:true },
     actors:[ Object.assign({id:'yoseph', name:'Yosĕph', at:[11.8,6.6], face:-1.6},YOSEPH),
              Object.assign({id:'miryam', name:'Miryam', at:[11.8,5.2], face:-1.6},MIRYAM) ],
-    glows:[ {id:'dream', at:[10.4,2.8,6.4], size:3.4, color:0xfff4d6, intensity:1.2, pulse:true, hidden:true},
-            {id:'child', at:[11.6,1.3,5.6], size:1.4, color:0xfff3d0, intensity:0.6, pulse:true} ],
+    glows:[ {id:'dream', at:[9.6,1.9,7.4], size:3.4, color:0xfff4d6, intensity:1.2, pulse:true, hidden:true},
+            {id:'child', at:[10.8,0.5,4.6], size:1.2, color:0xfff3d0, intensity:0.6, pulse:true} ],
     beats:[
-      {t:'cam', from:[6,2.4,9], look:[11.4,1.4,6], dur:0.1},
+      /* asleep before the door, the Child beside His mother */
+      {t:'face', who:'yoseph', to:[16,6.6]}, {t:'face', who:'miryam', to:[16,5.2]},
+      {t:'lie', who:['yoseph','miryam']},
+      {t:'cam', from:[6,2.4,9.4], look:[10.6,0.5,6], dur:0.1},
       {t:'show', id:'dream'},
       {t:'say', who:'dreamMalak', ref:'MATTITHYAHU 2:13'},
-      {t:'hide', id:['dream','child']},
+      {t:'hide', id:'dream'},
+      /* "and rising up, he took the Child and His mother by night" (2:14) */
+      {t:'stand', who:'yoseph'},
+      {t:'wait', s:0.8},
+      {t:'stand', who:'miryam'},
+      {t:'wait', s:0.6},
+      {t:'hide', id:'child'},
       {t:'move', who:['yoseph','miryam'], to:[[-2,40],[-3,41]], speed:1.8, wait:false},
       {t:'cam', from:[-9,3,30], look:[-2.4,1.3,38], dur:8, wait:false},
       {t:'read', ref:'MATTITHYAHU 2:14-15', who:'byNabi'},

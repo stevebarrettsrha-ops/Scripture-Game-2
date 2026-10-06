@@ -86,7 +86,7 @@ STORY.act({
     malak:{name:'A mal’ak of (YAHUAH) HWHY', kind:'angel', glow:'malak'},
     ruach:{name:'The Ruach', key:'the ruach haqadash', kind:'divine'},
     master:{name:'Yahusha', key:'Yahusha', kind:'yahusha', glow:'light'},
-    voice:{name:'A voice', key:'the voice to Kepha', kind:'divine'},
+    voice:{name:'A voice', key:'the voice to Kepha', kind:'divine', glow:'opened'},     /* out of the opened shamayim (10:11-13) */
     damascenes:{name:'All who heard', key:'those in the qahalim of damascus', kind:'crowd', actor:'dq0', actors:['dq0','dq1','dq2']},
     men:{name:'The men from Cornelius', key:'the men sent from Cornelius', kind:'man', actor:'sent0', actors:['sent0','sent1','sent2']},
     cornelius:{name:'Cornelius', key:'Cornelius', kind:'man', folk:'roman'},
@@ -117,6 +117,9 @@ STORY.act({
       {t:'read', ref:'ACTS 2:2'},
       {t:'show', id:ids(TONGUES)},
       {t:'read', ref:'ACTS 2:3'},
+      /* "and settled on each one of them": close over their heads, a flame on each */
+      {t:'cam', from:[13.4,5.2,27.4], look:[16.6,4.2,30], dur:2},
+      {t:'quake', s:0.8},
       {t:'read', ref:'ACTS 2:4'},
       {t:'weather', wind:[0.6,0.2]},
       {t:'cam', from:['urHouse',-14,-20], fdy:10, look:['urHouse',0,-6], dur:2.5},
@@ -213,8 +216,16 @@ STORY.act({
       {t:'say', who:'kepha', ref:'ACTS 3:6', turn:false},
       {t:'stand', who:'lameM'},
       {t:'read', ref:'ACTS 3:7'},
+      /* "and leaping up, he stood and walked … walking and leaping and praising Aluah" */
+      {t:'drift', id:'lameM', by:[0,0.45,0], dur:0.28, hold:true}, {t:'drift', id:'lameM', by:[0,-0.45,0], dur:0.3},
+      {t:'drift', id:'lameM', by:[0,0.45,0], dur:0.28}, {t:'drift', id:'lameM', by:[0,-0.45,0], dur:0.3},
+      {t:'place', who:'lameM', at:'lameM', y:null},
       {t:'move', who:'lameM', to:['womenCourt',-2,-0.6], speed:3, wait:false},
       {t:'read', ref:'ACTS 3:8'},
+      {t:'drift', id:'lameM', by:[0,0.45,0], dur:0.28, hold:true}, {t:'drift', id:'lameM', by:[0,-0.45,0], dur:0.3},
+      {t:'drift', id:'lameM', by:[0,0.45,0], dur:0.28}, {t:'drift', id:'lameM', by:[0,-0.45,0], dur:0.3},
+      {t:'drift', id:'lameM', by:[0,0.45,0], dur:0.28}, {t:'drift', id:'lameM', by:[0,-0.45,0], dur:0.3},
+      {t:'place', who:'lameM', at:'lameM', y:null},
       {t:'move', who:'lameM', to:['womenCourt',0.4,2], speed:3, wait:false},
       {t:'move', who:['kepha','yahuchanon'], to:[['womenCourt',-0.6,1.2],['womenCourt',-1.2,2.4]], speed:1, wait:false},
       {t:'cam', from:['womenCourt',-9,-7], fdy:4, look:'lameM', dur:3},
@@ -427,10 +438,13 @@ STORY.act({
       ...folk('dq',3,[-14,-2,-6,2],Math.PI/2)
     ],
     things:[ {id:'food', kind:'basket', at:['straight',6,1.4], full:true} ],
-    glows:[ {id:'vision', at:['hananyah',0,-1.6], dy:2.4, size:2.6, color:0xfff6dc, intensity:1.2, pulse:true, hidden:true} ],
+    /* the Master in a vision: light, as on the road (the speaker's glow is 'light') */
+    glows:[ {id:'light', at:['hananyah',0,-1.6], dy:2.4, size:2.6, color:0xfff6dc, intensity:1.2, pulse:true, hidden:true},
+            /* "something like scales fell from his eyes" (9:18) */
+            {id:'scales', at:['bed',-0.2,0], dy:1.2, size:0.9, color:0xfffbea, intensity:0.6, hidden:true} ],
     beats:[
       {t:'cam', from:['hananyah',-5,5], fdy:2.4, look:'hananyah', dur:0.1},
-      {t:'show', id:'vision'},
+      {t:'show', id:'light'},
       {t:'say', voices:['master','hananyah'], ref:'ACTS 9:10', turn:false},
       {t:'say', who:'master', ref:'ACTS 9:11', turn:false},
       {t:'say', who:'master', ref:'ACTS 9:12', turn:false},
@@ -438,12 +452,15 @@ STORY.act({
       {t:'say', who:'hananyah', ref:'ACTS 9:14', turn:false},
       {t:'say', who:'master', ref:'ACTS 9:15', turn:false},
       {t:'say', who:'master', ref:'ACTS 9:16', turn:false},
-      {t:'hide', id:'vision'},
+      {t:'hide', id:'light'},
       {t:'move', who:'hananyah', to:'yahudahDoor', speed:1.2},
       {t:'move', who:'hananyah', to:['bed',-1.4,0], speed:1},
       {t:'face', who:'hananyah', to:'shaul'},
       {t:'cam', from:['yahudahIn',0,-1.4], fdy:1.9, look:'shaul', dur:2},
+      {t:'pose', who:'hananyah', arms:'out'},                            /* "and laying his hands on him" */
       {t:'say', who:'hananyah', ref:'ACTS 9:17', turn:false},
+      {t:'show', id:'scales'}, {t:'wait', s:0.35}, {t:'hide', id:'scales'},
+      {t:'pose', who:'hananyah'},
       {t:'stand', who:'shaul'},
       {t:'read', ref:'ACTS 9:18'},
       {t:'cam', release:true},
@@ -536,7 +553,11 @@ STORY.act({
       ...folk('br',4,[22,-2,26,2],-Math.PI/2)
     ],
     things:[ {id:'jarC', kind:'jar', at:['inner',0,-2.4]} ],
-    glows:[0,1,2,3,4,5].map(k=>({id:'r'+k, at:[-7+k*1.6,2.4,-3+(k%3)*2.4], size:0.5, color:0xff9a3a, intensity:0.9, pulse:true, hidden:true})),
+    /* "the Set-apart Spirit fell upon all those hearing the word" (10:44): a flame over each head of the
+       household where they stand — the women a little lower — and over Cornelius */
+    glows:[[0.22,0.85,0.64],[1.58,2.92,-0.91],[-0.91,2.1,2.58],[0.3,2.1,-5.87],[1.68,2.0,-4.66],[-2.51,2.1,-0.16],
+           [-6.79,2.1,3.79],[-1.63,2.92,-0.29],[-6.85,2.1,1.98],[1.4,3.02,-1.65],[-2.4,2.2,1.4]]
+      .map((p,k)=>({id:'r'+k, at:p, size:0.5, color:0xff9a3a, intensity:k%2?0.5:0.8, pulse:true, hidden:true})),
     beats:[
       {t:'cam', from:['porch',6,6], fdy:3, look:['door',0,0], dur:0.1},
       {t:'move', who:['kepha','br0','br1','br2','br3'], to:['porch',['porch',1.4,-1],['porch',1.6,1],['porch',2.6,-0.4],['porch',2.8,0.8]], speed:1.2, wait:false},
@@ -567,7 +588,7 @@ STORY.act({
       {t:'say', who:'kepha', ref:'ACTS 10:41', turn:false},
       {t:'say', who:'kepha', ref:'ACTS 10:42', turn:false},
       {t:'say', who:'kepha', ref:'ACTS 10:43', turn:false},
-      {t:'show', id:['r0','r1','r2','r3','r4','r5']},
+      {t:'show', id:['r0','r1','r2','r3','r4','r5','r6','r7','r8','r9','r10']},
       {t:'cam', from:['court',4,4], fdy:3.2, look:['court',-3,0], dur:2.5},
       {t:'read', ref:'ACTS 10:44'},
       {t:'read', ref:'ACTS 10:45'},
@@ -575,7 +596,7 @@ STORY.act({
       {t:'say', who:'kepha', ref:'ACTS 10:47', turn:false},
       {t:'cam', release:true},
       {t:'witness', text:'Fetch water for them to be immersed', items:['jarC'], verb:'Take up the water jar', hold:0.6, deliver:'court', r:2.4, carryText:'Carry it to Kĕpha'},
-      {t:'hide', id:['r0','r1','r2','r3','r4','r5']},
+      {t:'hide', id:['r0','r1','r2','r3','r4','r5','r6','r7','r8','r9','r10']},
       {t:'read', ref:'ACTS 10:48'},
       {t:'choice', prompt:'You', options:[
         {text:'Look at the Romans', reply:'A captain of the Italian regiment, his soldiers, his slaves, his wife\'s brothers. The fire came on them as it came on the eleven in the upper room. Kĕpha cannot stop smiling.'},
@@ -799,8 +820,11 @@ STORY.act({
       {t:'cam', from:['fire',4,3], fdy:1.8, look:'shaul', dur:1.8},
       {t:'read', ref:'ACTS 28:3'},
       {t:'say', who:'islanders', ref:'ACTS 28:4', turn:false},
-      {t:'hide', id:'viper'},
+      /* "he shook off the creature into the fire" */
+      {t:'cam', from:['fire',3.4,2.6], fdy:2.4, look:[8.8,0.2,2.6], dur:1.4},
+      {t:'drift', id:'viper', to:[8.1,-0.1,2.1], dur:0.6, wait:false},
       {t:'read', ref:'ACTS 28:5'},
+      {t:'hide', id:'viper'},
       {t:'read', ref:'ACTS 28:6'},
       {t:'choice', prompt:'You', options:[
         {text:'Count the ones on the beach', reply:'Two hundred and seventy-six. You count them twice, as you counted the fish in Galil. Not one is missing.'},

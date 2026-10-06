@@ -91,7 +91,9 @@ STORY.act({
     ],
     things:[ {id:'stone', kind:'roundStone', at:'stoneShut', face:0, r:1.25},
              {id:'spices', kind:'jar', at:['roadBend',0.6,18.4]} ],
-    glows:[ {id:'malak', at:['stone',0,0], dy:2.6, size:3.6, color:0xfff6dc, intensity:2.2, pulse:true, hidden:true} ],
+    glows:[ {id:'malak', at:['stone',0,0], dy:2.6, size:3.6, color:0xfff6dc, intensity:2.2, pulse:true, hidden:true},
+            /* "his appearance was like lightning" (28:3) */
+            {id:'flash', at:['tombOut',0,-1.4], dy:2.6, size:24, color:0xffffff, intensity:0, hidden:true} ],
     beats:[
       {t:'cam', from:['roadBend',7,28], fdy:3.4, look:['roadBend',0,20], dur:0.1},
       {t:'read', ref:'MARK 16:1'},
@@ -110,6 +112,7 @@ STORY.act({
       {t:'show', id:'malak'},
       {t:'drift', id:'stone', by:[0,0,-3], dur:1.8, wait:false},
       {t:'read', ref:'MATTITHYAHU 28:2'},
+      {t:'show', id:'flash'}, {t:'wait', s:0.4}, {t:'hide', id:'flash'},
       {t:'read', ref:'MATTITHYAHU 28:3'},
       {t:'lie', who:['guard1','guard2'], prone:true},
       {t:'read', ref:'MATTITHYAHU 28:4'},
@@ -310,7 +313,12 @@ STORY.act({
       {t:'show', id:'lampG'},
       {t:'cam', from:{rel:'yahusha', off:[-0.6,1.6,-1.6]}, look:'qleophas', dur:2},
       {t:'read', ref:'LUKE 24:30'},
+      /* "and He became invisible to them": the table seen whole from behind His place — and then
+         from their side of it, His place empty and the bread broken on the table */
+      {t:'cam', from:[-12.6,2.3,-5.6], look:[-10,0.7,-1.8], dur:1.6},
+      {t:'wait', s:0.7},
       {t:'hide', id:'yahusha'},
+      {t:'cam', from:[-10,1.7,0.9], look:[-10,0.5,-3.8], dur:2.2, wait:false},
       {t:'read', ref:'LUKE 24:31'},
       {t:'say', who:'two', ref:'LUKE 24:32', turn:false},
       {t:'stand', who:['qleophas','friend']},
@@ -339,15 +347,25 @@ STORY.act({
       {t:'move', who:['qleophas','friend'], to:[[19.4,32.7],[18.2,32.9]], speed:1.6},
       {t:'say', who:'eleven', ref:'LUKE 24:34', turn:false},
       {t:'read', ref:'LUKE 24:35'},
+      /* "Yahusha Himself stood in the midst of them": the room seen from just over and behind where He stands */
+      {t:'cam', from:OVER, look:[17,3.1,29.6], dur:1.6},
       {t:'show', id:'yahusha'},
-      {t:'cam', from:OVER, look:'kepha', dur:1.6},
       {t:'say', who:'yahusha', ref:'LUKE 24:36', turn:false},
       {t:'stand', who:ELEVEN.filter(k=>k!=='toma')},
+      /* "they were startled and afraid": some shrink back down */
+      {t:'sit', who:['bartholomi','yaaqobA','shimonZ']},
+      {t:'lie', who:'mattithyahu'},
       {t:'read', ref:'LUKE 24:37'},
+      {t:'cam', from:OVER, look:'kepha', dur:1.6},
       {t:'say', who:'yahusha', ref:'LUKE 24:38', turn:false},
       {t:'say', who:'yahusha', ref:'LUKE 24:39', turn:false},
+      /* "He showed them His hands and His feet" */
+      {t:'pose', who:'yahusha', arms:'out'},
+      {t:'cam', from:[20.8,5,33.6], look:[16.8,3.1,31.8], dur:1.4},        /* from behind His right shoulder: the arms held out */
       {t:'read', ref:'LUKE 24:40'},
+      {t:'stand', who:['bartholomi','yaaqobA','shimonZ','mattithyahu']},
       {t:'say', who:'yahusha', ref:'LUKE 24:41', turn:false},
+      {t:'pose', who:'yahusha'},
       {t:'cam', release:true},
       {t:'witness', text:'Give Him the broiled fish and the honeycomb', items:['fish','honey'], verb:'Take it up', hold:0.4, deliver:'yahusha', r:1.8, carryText:'Give it to Him'},
       {t:'read', ref:'LUKE 24:42'},
@@ -384,13 +402,18 @@ STORY.act({
     ],
     beats:[
       {t:'cam', from:[13,4.6,26.9], look:[18,3,31], dur:0.1},
+      /* "the doors having been shut, Yahusha came and stood in the midst": seen from over and behind Him */
+      {t:'cam', from:OVER, look:[17,3.1,29.6], dur:1.6},
       {t:'show', id:'yahusha'},
+      {t:'stand', who:ELEVEN},
       {t:'say', who:'yahusha', ref:'YAHUCHANON 20:26', turn:false},
-      {t:'stand', who:'toma'},
       {t:'move', who:'toma', to:[16.1,32.1], speed:0.8},
       {t:'face', who:'toma', to:'yahusha'}, {t:'face', who:'yahusha', to:'toma'},
       {t:'cam', from:OVER, look:'toma', dur:1.8},
+      {t:'pose', who:'yahusha', arms:'out'},                            /* "see My hands … and put it into My side" */
+      {t:'cam', from:[20.6,5,33.6], look:[16.4,3.1,32.2], dur:1.4},
       {t:'say', who:'yahusha', ref:'YAHUCHANON 20:27', turn:false},
+      {t:'pose', who:'yahusha'},
       {t:'sit', who:'toma'},
       {t:'say', who:'toma', ref:'YAHUCHANON 20:28', turn:false},
       {t:'say', who:'yahusha', ref:'YAHUCHANON 20:29', turn:false},
@@ -541,16 +564,21 @@ STORY.act({
       /* "He was taken up and a cloud hid Him from their sight": seen from behind Him, over Him, on
          the eleven looking up */
       {t:'cam', from:['wait',10,0.8], fdy:2.6, look:['wait',-3,0], dur:2},
+      ...ELEVEN.map(id=>({t:'face', who:id, to:'yahusha'})),             /* every one of them toward Him */
       {t:'show', id:'cloud'},
       {t:'drift', id:['yahusha','cloud'], by:[0,22,0], dur:9, wait:false, hold:true},
+      /* the eye goes up with Him, from low behind Him */
+      {t:'cam', from:['wait',9.4,1.4], fdy:0.9, look:[147.6,44,-41.4], dur:9, wait:false},
       {t:'read', ref:'LUKE 24:51'},
       {t:'read', ref:'ACTS 1:9'},
-      {t:'hide', id:['yahusha','cloud']},
-      {t:'cam', from:['wait',-9,1.6], fdy:1.6, look:['wait',0,0], dur:2.5},
+      {t:'hide', id:'yahusha'},
+      /* "and as they were gazing into the heaven as He went up": from low behind the eleven, up to the cloud */
+      {t:'cam', from:['wait',-17,1], fdy:1.2, look:[148,36,-41.4], dur:2.5},
       {t:'show', id:['w1','w2']},
       {t:'read', ref:'ACTS 1:10'},
+      {t:'cam', from:['wait',-9,1.6], fdy:1.6, look:['wait',0,0], dur:2},
       {t:'say', who:'whiteMen', ref:'ACTS 1:11', turn:false},
-      {t:'hide', id:['w1','w2']},
+      {t:'hide', id:['w1','w2','cloud']},
       {t:'sit', who:ELEVEN},
       {t:'read', ref:'LUKE 24:52'},
       {t:'stand', who:ELEVEN},
