@@ -153,6 +153,7 @@ function buildScene(sc){
   /* the city of the great king is the voyage's own, raised as she stood in the act's days;
      a scene there lays only its own things about her */
   if(A.city){ ctx.markers=Object.assign({},k.yahruAs(sc.period||A.period)); }   /* a scene may stand in another of her days */
+  if(k.aimOff) k.aimOff(true);                                    /* (the voyage's mark on the block in reach is not the story's) */
   ctx.api=k.setBuilder(A.x,A.z,A.y);
   const st=new window.STORYWORLD.Static(ctx.api);
   const build=window.STORYSETTINGS[sc.place];

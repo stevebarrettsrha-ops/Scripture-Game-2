@@ -12308,12 +12308,21 @@ function emitFurniture(G, ex, x0,x1,z0,z1, fy, T, hx,hz, doorDir){
   box(R(B*0.34,B*0.9,B*0.4,B*1.65),  fy+B*0.42,fy+B*0.6,'wool','wool');
   /* the table and its chairs, drawn back against the OTHER side wall */
   const ta=aLen*0.52, tb1=bLen-B*0.35;
+  /* in the land of the story they ate reclining about a low table, on mats and cushions, and
+     kept their oil, grain and water in great jars against the wall */
+  if(ex&&ex.big){
+    box(R(ta-B*0.75,ta+B*0.75,bLen-B*1.6,tb1), fy,fy+B*0.42,'planks','benchTop');
+    for(const s of [-1,1]){ const ca=ta+s*B*1.25; box(R(ca-B*0.32,ca+B*0.32,bLen-B*1.4,bLen-B*0.55), fy,fy+B*0.16,'wool','wool'); }
+    for(const [j,jb] of [[0,B*0.12],[1,B*0.72]]){ const ja=aLen-B*1.9-j*B*0.05;
+      box(R(ja,ja+B*0.48,jb,jb+B*0.48), fy,fy+B*0.75,'badSide','badTop'); }
+  } else {
   box(R(ta-B*0.15,ta+B*0.15,bLen-B*1.2,bLen-B*0.9), fy,fy+B*0.72,'logSide','logTop');
   box(R(ta-B*0.8,ta+B*0.8,bLen-B*1.75,tb1),         fy+B*0.72,fy+B*0.86,'planks','benchTop');
   for(const s of [-1,1]){ const ca=ta+s*B*1.15;
     box(R(ca-B*0.3,ca+B*0.3,bLen-B*1.35,bLen-B*0.75), fy,fy+B*0.44,'planks','planks');
     box(R(ca+(s>0?B*0.18:-B*0.3),ca+(s>0?B*0.3:-B*0.18),bLen-B*1.35,bLen-B*0.75),
         fy+B*0.44,fy+B*1.05,'planks','planks'); }
+  }
   /* shelves along the far wall, in the span the bed leaves free */
   { const s0=B*2.1, s1=bLen-B*2.0;
     for(let sb=s0; sb+B*0.9<=s1; sb+=B*1.1){
@@ -12646,7 +12655,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
       roofTop=ry1;
     }
   }
-  emitFurniture(G, ex, x0,x1,z0,z1, y+B*0.58, T, hx,hz, doorDir);
+  emitFurniture(G, ex, x0,x1,z0,z1, big?y+B+0.02:y+B*0.58, T, hx,hz, doorDir);   /* (a big house's goods stand on its floor, not sunk in the footing under it) */
   ex.torchIn.push({x:hx,y:y+B*0.58+B*2.05,z:hz});
   ex.doors.push({x:(doorDir<=1?gx:hx)+(doorDir===2?w*B/2+B:doorDir===3?-w*B/2-B:0),
                  z:(doorDir>=2?gz:hz)+(doorDir===0?d*B/2+B:doorDir===1?-d*B/2-B:0)});
@@ -18924,7 +18933,7 @@ window.__KIT={
   /* the names of lands and cities over the world: a story shows none */
   setNames:v=>{ namesOn=!!v; },
   blockId, stampGroup:fn=>stampedGroup(fn), stampDrop, stampBlock, stampBox, stampTop,
-  houses:()=>standaloneHouses,          /* the set's houses, their doors (the story swings them for whoever comes) */
+  houses:()=>standaloneHouses, aimOff:v=>{ AIM_OFF=!!v; if(v&&markG) markG.visible=false; },          /* the set's houses, their doors (the story swings them for whoever comes) */
   storyHouse, topY, cell, landAtWorld, groundInfo, llToWorld, setLocalHour, localHourAt,
   state, setMode, walkerG:()=>walkerG, updateChunks, flushEdits,
   yahruPos:()=>yahruPos, yahruMarks:()=>YAHRU_MARKS, sites:()=>SITES,
@@ -20014,8 +20023,9 @@ function ensureMark(){
   return markG;
 }
 /* asked once a frame, and only where a hand could reach anything */
+let AIM_OFF=false;        /* a story told in the world lays no hand on its blocks, and marks none */
 function aimTick(){
-  const can = !state.firm && state.mode!=='fly' && zoomMapFadeCache<0.02;
+  const can = !AIM_OFF && !state.firm && state.mode!=='fly' && zoomMapFadeCache<0.02;
   if(!can){ AIM=null; if(markG) markG.visible=false; return; }
   eyeRay();
   AIM=aimAt(_aimP.x,_aimP.y,_aimP.z, _aimD.x,_aimD.y,_aimD.z, REACH);
