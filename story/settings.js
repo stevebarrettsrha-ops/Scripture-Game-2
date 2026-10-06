@@ -36,6 +36,15 @@ S.yahrushalayim=function(ctx,st){
     st.box(37.2,0,-33.4,37.8,4.6,-32.8,C.stone);                                    /* the gnomon above the stair */
     mk(ctx,'dial',35.8,-27.6); mk(ctx,'dialFoot',33,-21.6);
   }
+  /* the city about its day: those coming and going at the gate on the highway, the launderers at
+     the upper pool beside the Launderer's Field (Yashayahu 7:3), and the square full of sellers */
+  { const sq=ctx.markers.square||[15,30];
+    W.folk(ctx,[
+      {do:'wash', at:['poolEnd',-2.6,1.2], face:0}, {do:'wash', at:['poolEnd',3.2,1.0], face:0}, {do:'wash', at:['field',-3,-2], face:Math.PI},
+      {do:'walk', path:['gateOut',['gateOut',-24,13.5],['gateOut',-46,26]], n:3, donkey:true},
+      {do:'sell', at:[sq[0]-5,sq[1]-4], face:Math.PI/2, goods:'bread'}, {do:'sell', at:[sq[0]+5,sq[1]+4], face:-Math.PI/2, goods:'pots'}, {do:'sell', at:[sq[0]-4,sq[1]+5], face:0, goods:'cloth'},
+      {do:'talk', at:[sq[0]+3,sq[1]-4], n:3}, {do:'play', at:[sq[0]-2,sq[1]+1], r:2, n:2},
+      {do:'stroll', area:[sq[0]-8,sq[1]-8,sq[0]+8,sq[1]+8], n:4}]); }
   ctx.bounds={x0:-200,x1:200,z0:-200,z1:200};
 };
 
@@ -59,6 +68,16 @@ S.hillcountry=function(ctx,st){
   for(let r=0;r<4;r++) for(let k=0;k<10;k++){ const x=-28+k*2.6, z=22+r*3.2; st.detail(x-0.08,0,z-0.08,x+0.08,1.2,z+0.08,0x5d4a36); st.detail(x-0.5,1.0,z-0.3,x+0.5,1.5,z+0.3,0x6d8a3e); }
   for(let k=0;k<10;k++){ const a=W.hash(k,4)*6.28, r=22+W.hash(k,5)*16; W.olive(st,Math.cos(a)*r,Math.sin(a)*r,0.9); }
   W.wild(ctx,'goat',22,16,3,5,0.4); W.wild(ctx,'chicken',6,4,3,3,0.4);
+  /* the hill village about its day: water from the spring, the vine-dressers in the terraces,
+     the goatherd, and a man going up the path with his ass */
+  { const D=[[-16,8,'w'],[12,-12,'e'],[20,-2,'w'],[-14,-16,'e'],[-4,14,'w']].map(([x,z,s])=>W.door(x,z,6,5.5,s));
+    W.folk(ctx,[
+      {do:'water', from:[13.6,6.4], to:D, n:3},
+      {do:'pick', at:[-20,23.4]}, {do:'pick', at:[-12.2,26.6]}, {do:'hoe', at:[-24,29.8], face:0},
+      {do:'grind', at:[D[3][0]+1.2,D[3][1]+0.6], face:-1.6}, {do:'spin', at:[D[0][0]-0.4,D[0][1]+1.6], face:1.6},
+      {do:'herd', at:[22,16], r:5}, {do:'play', at:[-9,4], r:2.2, n:2},
+      {do:'stroll', area:[-18,-14,22,16], n:2},
+      {do:'walk', path:[[4,1],[13,7],[20,14],[36,26]], n:1, donkey:true}]); }
   ctx.bounds={x0:-120,x1:120,z0:-120,z1:120};
 };
 
@@ -89,6 +108,16 @@ S.shekem=function(ctx,st){
   W.wild(ctx,'goat',-20,20,3,5,0.4); W.wild(ctx,'lizard',6,-8,2,4,0.5);
   mk(ctx,'well',0,0); mk(ctx,'wellSeat',1.5,0.6); mk(ctx,'town',22,10); mk(ctx,'townGate',20,9);
   mk(ctx,'gerizim',-46,-52); mk(ctx,'fields',-14,-18);
+  /* the town up the road about its day, and the reapers in the ripe field ("the fields are already
+     white for harvest", Yahuchanon 4:35); the well itself is left to the woman who comes to it alone */
+  { const D=[[24,16],[30,10],[30,22],[36,16],[24,28],[38,28]].map(([x,z])=>W.door(x,z,6,5.5,'w'));
+    W.folk(ctx,[
+      {do:'reap', at:[-20,-21], face:0.4}, {do:'reap', at:[-11,-24], face:0.2}, {do:'reap', at:[2,-15], face:-0.3}, {do:'reap', at:[-24,-12], face:0.6},
+      {do:'carry', from:[-12,-16], to:[19,7], load:'wood', n:1},
+      {do:'grind', at:[D[1][0]-0.4,D[1][1]+1.4], face:-1.6}, {do:'spin', at:[D[4][0]-0.2,D[4][1]-1.4], face:-1.4},
+      {do:'talk', at:[20,20], n:3}, {do:'play', at:[19,25], r:2.2, n:2},
+      {do:'stroll', area:[18,6,42,32], n:2},
+      {do:'walk', path:[[-36,-22.8],[-12,-9.6],[14,4.7],[30,13.5]], n:1, donkey:true}]); }
   ctx.bounds={x0:-120,x1:120,z0:-120,z1:120};
 };
 
@@ -113,7 +142,17 @@ S.natsareth=function(ctx,st){
   const hs=[[-12,-6],[-4,-10],[6,-8],[14,-2],[-14,6],[10,8],[-3,12],[18,12]];
   hs.forEach(([x,z],k)=>W.house(st,x,z,5.5,5,{door:z<0?'s':'n',color:k%3?C.mudbrick:C.whitewash,h:2.8}));
   st.box(-1,0,-1,3,0.5,3,C.stone); W.jar(st,0,0); W.jar(st,1.2,0.4);            /* the spring */
-  for(let k=0;k<18;k++){ const a=W.hash(k,1)*6.28, r=28+W.hash(k,2)*40; W.olive(st,Math.cos(a)*r,Math.sin(a)*r,1); }
+  const olv=[]; for(let k=0;k<18;k++){ const a=W.hash(k,1)*6.28, r=28+W.hash(k,2)*40; W.olive(st,Math.cos(a)*r,Math.sin(a)*r,1); olv.push([Math.cos(a)*(r-1.6),Math.sin(a)*(r-1.6)]); }
+  /* the village about its day: the women at the spring and home with the jar, a woman at the mill
+     at her door and one spinning, the children at play, a man hoeing among the olives, the
+     goatherd, and the way out of the village down to the valley road */
+  W.folk(ctx,[
+    {do:'water', from:[1,3.4], to:[[-12,-2.2],[6,-4.2],[-14,2.2],[10,4.2],[-3,8.2],[18,8.2]], n:3},
+    {do:'grind', at:[-11,-1.9], face:2.6}, {do:'spin', at:[11.4,4.4], face:-2.6}, {do:'sweep', at:[-3.6,8.6], face:0},
+    {do:'play', at:[5,5.5], r:2.4, n:3},
+    {do:'pick', at:olv[0]}, {do:'hoe', at:olv[3]}, {do:'herd', at:[-20,14], r:5},
+    {do:'stroll', area:[-16,-4,18,10], n:2},
+    {do:'walk', path:[[-40,4],[-18,1],[0,-2],[22,2],[44,12]], n:2, donkey:true}]);
   mk(ctx,'miryamHouse',-4,-6.4); mk(ctx,'miryam',-4,-5.2); mk(ctx,'malak',-4,-2.6); mk(ctx,'spring',1,2);
   mk(ctx,'yoseph',14,1.2); mk(ctx,'yosephDream',14,0.6);
   W.wild(ctx,'chicken',8,4,4,3,0.4); W.wild(ctx,'goat',-20,14,3,5,0.4); W.wild(ctx,'lizard',30,-30,2,6,0.5);
@@ -128,6 +167,10 @@ S.road=function(ctx,st){
   for(let k=0;k<24;k++){ const x=(W.hash(k,4)-0.5)*170, z=(W.hash(k,6)>0.5?1:-1)*(8+W.hash(k,8)*30); W.rock(st,x,z,1+W.hash(k,2)); if(k%3===0) W.olive(st,x+3,z+2,0.9); }
   mk(ctx,'roadA',-60,Math.sin(-40*0.08)*3); mk(ctx,'roadB',40,Math.sin(26*0.08)*3);
   W.wild(ctx,'lizard',10,-12,3,10,0.6); W.wild(ctx,'gazelle',-30,50,3,14,1.2);
+  /* "and all were going to be registered, each to his own city" (Luqas 2:3): the road is full of
+     travellers going up and down it, on foot and with their asses */
+  { const z=x=>Math.sin(x/1.5*0.08)*3, P=[-84,-60,-36,-12,12,36,60].map(x=>[x,z(x)+0.4]);
+    W.folk(ctx,[{do:'walk', path:P, n:7, donkey:true}, {do:'talk', at:[-28,z(-28)+5], n:2}, {do:'herd', at:[30,-24], r:6}]); }
   ctx.bounds={x0:-150,x1:150,z0:-80,z1:80};
 };
 
@@ -170,6 +213,15 @@ S.beythlehem=function(ctx,st){
   mk(ctx,'house',16,6); mk(ctx,'houseDoor',12.5,6); mk(ctx,'camels',6,22); mk(ctx,'well',-6,22);
   st.box(-7,0,21,-5,0.8,23,C.stone); W.jar(st,-4.4,22);
   W.wild(ctx,'chicken',-14,6,4,3,0.4); W.wild(ctx,'goat',22,-14,3,4,0.4); W.wild(ctx,'dog',-18,18,1,4,0.6);
+  /* the town of Dawiḏ about its day: water from the well, the mill at a door, people about the
+     square and the lodging place full with those come to be registered (Luqas 2:7) */
+  { const hd=[[-14,-10],[-4,-14],[8,-12],[18,-6],[-18,2],[16,6],[-10,12],[4,14],[20,18],[-22,-18]], D=hd.map(([x,z])=>W.door(x,z,6,5.5,x>0?'w':'e'));
+    W.folk(ctx,[
+      {do:'water', from:[-6,19.8], to:[D[6],D[4],D[7],D[0]], n:3},
+      {do:'grind', at:[D[4][0]+0.4,D[4][1]+1.5], face:1.6}, {do:'spin', at:[D[8][0]-0.2,D[8][1]-1.5], face:-1.6},
+      {do:'talk', at:[-12,-2], n:3}, {do:'play', at:[-14,8], r:2, n:3},
+      {do:'stroll', area:[-20,-16,22,18], n:3},
+      {do:'walk', path:[[-2,40],[-2,24],[0,12],[-4,4]], n:2, donkey:true}]); }
   ctx.bounds={x0:-100,x1:100,z0:-100,z1:100};
 };
 
@@ -220,6 +272,15 @@ S.yarden=function(ctx,st){
   mk(ctx,'lambWalk',-9,-6); mk(ctx,'passBy',-14,-10); mk(ctx,'staying',-40.5,-25.5); mk(ctx,'followPt',-22,-14); mk(ctx,'followMe',-16.5,-8.5);
   mk(ctx,'edgeW',-7.4,1); mk(ctx,'edgeE',7.4,-1);
   W.wild(ctx,'boar',-28,60,2,8,0.6); W.wild(ctx,'jackal',30,-60,1,10,0.8); W.wild(ctx,'lizard',-26,-10,2,6,0.5);
+  /* the life of the river outside the crowds at the ford: women washing at the water's edge up and
+     down the banks, water carried up to the house by the fig, travellers on the road down to the
+     ford with their asses, a goatherd on the slope */
+  W.wild(ctx,'goat',-58,44,5,6,0.4);
+  W.folk(ctx,[
+    {do:'wash', at:[rx(40)-edge-0.9,40], face:Math.PI/2}, {do:'wash', at:[rx(52)-edge-0.9,52], face:Math.PI/2}, {do:'wash', at:[rx(-44)+edge+0.9,-44], face:-Math.PI/2},
+    {do:'water', from:[rx(-30)-edge-0.4,-30], to:[[-41,-27]], n:1},
+    {do:'walk', path:[[-70,-29.5],[-50,-20.5],[-30,-11.5],[-16,-5.2]], n:3, donkey:true},
+    {do:'herd', at:[-58,44], r:6}, {do:'talk', at:[-52,-6], n:2}]);
   ctx.bounds={x0:-150,x1:150,z0:-150,z1:150};
 };
 
@@ -281,6 +342,10 @@ S.qanah=function(ctx,st){
   mk(ctx,'well',cx+8,cz+15); mk(ctx,'gate',cx,cz+9); mk(ctx,'lane',cx-2,cz+22); mk(ctx,'master',cx+2.5,cz-5.4);
   W.wild(ctx,'chicken',cx+6,cz+20,4,3,0.4); W.wild(ctx,'dog',cx-6,cz+26,1,4,0.6); W.wild(ctx,'donkey',cx+18,cz+12,1,2,0.3);
   mk(ctx,'jars',cx-6,cz+5.2); mk(ctx,'bride',cx-1,cz-1.2); mk(ctx,'miryam',cx-4,cz+2.6); mk(ctx,'yahusha',cx-1.6,cz+3.6);
+  /* the village outside the wedding house: the lane up from the well, the children, the neighbours */
+  W.folk(ctx,[
+    {do:'walk', path:[[-2,44],[-2,30],[2,20],[6,15.5]], n:2, donkey:true},
+    {do:'play', at:[12,24], r:2.4, n:3}, {do:'talk', at:[-14,16], n:3}, {do:'stroll', area:[-20,12,20,34], n:2}]);
   ctx.bounds={x0:-120,x1:120,z0:-120,z1:120};
 };
 
@@ -304,6 +369,15 @@ S.bethanyah=function(ctx,st){
   mk(ctx,'tomb',-21.8,-8); mk(ctx,'tombIn',-24,-8); mk(ctx,'tombOut',-17.5,-8); mk(ctx,'tombFront',-14,-8);
   mk(ctx,'stone',-20.1,-8); mk(ctx,'stoneAside',-20.1,-12.4);
   mk(ctx,'road',26,-6); mk(ctx,'meet',14,-4); mk(ctx,'house',-8,6); mk(ctx,'houseDoor',-4.2,6);
+  /* the village about its day: the mill and the spindle at the doors, children, the goatherd,
+     and the road from Yeriḥo coming up past it */
+  { const hs=[[-2,14],[8,10],[16,18],[-12,20],[4,26],[18,4],[-8,6]], D=hs.map(([x,z])=>W.door(x,z,6,5.5,x>0?'w':'e'));
+    W.folk(ctx,[
+      {do:'grind', at:[D[3][0]+0.2,D[3][1]+1.5], face:1.6}, {do:'spin', at:[D[2][0]-0.2,D[2][1]+1.5], face:-1.6}, {do:'sweep', at:[D[4][0],D[4][1]-1.2], face:-1.6},
+      {do:'play', at:[6,20], r:2.2, n:3}, {do:'herd', at:[20,-20], r:6},
+      {do:'carry', from:[10,32], to:[D[4][0]+0.6,D[4][1]+0.6], load:'wood', n:1},
+      {do:'stroll', area:[-14,2,22,30], n:2},
+      {do:'walk', path:[[70,-10],[50,-8],[34,-6]], n:1, donkey:true}]); }
   ctx.bounds={x0:-120,x1:120,z0:-120,z1:120};
 };
 
@@ -323,6 +397,12 @@ S.tiber=function(ctx,st){
   W.wild(ctx,'sheep',12,12,5,4,0.4); W.wild(ctx,'pig',-16,10,3,4,0.4);
   for(let k=0;k<10;k++){ const a=W.hash(k,3)*6.28, r=26+W.hash(k,4)*20; W.olive(st,Math.cos(a)*r,Math.sin(a)*r,0.9); }
   mk(ctx,'center',0,0);
+  /* the people of the huts by the river, in the days when Roma was a few shepherds' huts on a hill:
+     at the quern and the spindle, at the hearth, the children, the swineherd and the shepherd */
+  W.folk(ctx,[
+    {do:'grind', at:[-8,-12], face:0.4}, {do:'spin', at:[4,-6], face:2.6}, {do:'hammer', at:[-12,2], face:-0.6},
+    {do:'play', at:[-2,0], r:3, n:3}, {do:'herd', at:[12,12], r:4}, {do:'herd', at:[-16,10], r:4},
+    {do:'carry', from:[16,-8], to:[2,-6], load:'wood', n:1}, {do:'stroll', area:[-14,-14,10,10], n:2}], {folk:'roman'});
   ctx.bounds=null;
 };
 /* NINEWĔH, 612 BCE: the great wall of mud brick and its gate, guarded by winged bulls of stone
@@ -438,6 +518,17 @@ function galil(ctx,st,o){
     for(const z of [-14,-10]){ st.box(SHORE.x-4,0,z-0.1,SHORE.x-0.6,1.6,z+0.1,C.timber,{collide:false}); }
     st.box(SHORE.x-4,1.5,-14.1,SHORE.x-0.6,1.65,-9.9,0xb8a882,{collide:false});
     W.wild(ctx,'chicken',-16,14,4,3,0.4); W.wild(ctx,'goat',-28,-20,3,4,0.4); W.wild(ctx,'dog',-4,18,1,4,0.6);
+    /* Kephar Naḥum about its day: the fishers out of their boats washing and mending their nets on
+       the beach (Luqas 5:2, Marqos 1:19), the catch carried up and sold, the mill at the doors, the
+       children, the way along the shore */
+    { const D=hs.map(([x,z])=>W.door(x,z,6,5.5,x>-12?'e':'w'));
+      W.folk(ctx,[
+        {do:'mend', at:[SHORE.x-5.2,-19], face:Math.PI/2}, {do:'mend', at:[SHORE.x-5.4,-23.5], face:Math.PI/2}, {do:'wash', at:[SHORE.x-0.9,24], face:Math.PI/2},
+        {do:'carry', from:[SHORE.x-3,-17], to:[SHORE.x-10,16], load:'basket', n:1}, {do:'sell', at:[SHORE.x-10,18.5], face:-Math.PI/2, goods:'fish'},
+        {do:'grind', at:[D[4][0]+0.3,D[4][1]+1.5], face:1.6}, {do:'spin', at:[D[0][0]+0.2,D[0][1]+1.5], face:1.6},
+        {do:'play', at:[-2,18], r:2.4, n:3}, {do:'talk', at:[2,-20], n:3}, {do:'herd', at:[-28,-20], r:5},
+        {do:'stroll', area:[-16,-36,12,28], n:3},
+        {do:'walk', path:[[SHORE.x-8,-72],[SHORE.x-8,-40],[SHORE.x-8,40],[SHORE.x-8,72]], n:2, donkey:true}]); }
     mk(ctx,'beach',SHORE.x-3,4); mk(ctx,'street',-2,0); mk(ctx,'house',4,10); mk(ctx,'houseDoor',8,10);
     mk(ctx,'mount',-30,6); mk(ctx,'mountTop',-35,6); mk(ctx,'mountCrowd',-24,6);   /* on the first slope of the hills above the town */
     ctx.api.clearTrees(-42,-6,-20,18);                                                /* the slope He taught and named the Twelve on, open */
@@ -518,6 +609,14 @@ S.caesarea=function(ctx,st){
   mk(ctx,'cave',-6.5,-20); mk(ctx,'spring',-6,-12.6); mk(ctx,'temple',7,-10.4); mk(ctx,'rock',16,-20.6);
   mk(ctx,'here',8,-2); mk(ctx,'path',24,18); mk(ctx,'city',34,28); mk(ctx,'stream',-3,8); mk(ctx,'foot',8,14);
   mk(ctx,'hermon',0,-74);
+  /* the city of Philip about its day, the women washing at the stream, the goatherd on the slope */
+  { const D=[[30,24],[38,20],[36,32],[44,28],[28,36],[46,40]].map(([x,z])=>W.door(x,z,6,5.5,'w'));
+    W.folk(ctx,[
+      {do:'wash', at:[sx(44)+2.6,44], face:-Math.PI/2}, {do:'wash', at:[sx(56)-2.6,56], face:Math.PI/2},
+      {do:'grind', at:[D[1][0]+0.2,D[1][1]+1.5], face:-1.6}, {do:'spin', at:[D[3][0],D[3][1]-1.5], face:-1.6}, {do:'sell', at:[24,30], face:Math.PI/2, goods:'fruit'},
+      {do:'play', at:[32,40], r:2.2, n:2}, {do:'talk', at:[42,22], n:2}, {do:'herd', at:[-30,-40], r:6},
+      {do:'stroll', area:[24,16,50,44], n:3},
+      {do:'walk', path:[[60,40],[40,36],[26,22],[20,13]], n:1, donkey:true}]); }
   ctx.bounds={x0:-120,x1:120,z0:-120,z1:120};
 };
 
@@ -545,6 +644,16 @@ S.ginae=function(ctx,st){
   mk(ctx,'spring',0,0); mk(ctx,'square',-2,2.4); mk(ctx,'table',-3.5,7); mk(ctx,'gate',12,1);
   mk(ctx,'roadN',rx(-64),-64); mk(ctx,'roadS',rx(64),64); mk(ctx,'bend',rx(-24),-24); mk(ctx,'by',rx(14),14);
   mk(ctx,'field',31,28); mk(ctx,'plough',30.4,24); mk(ctx,'meetLepers',rx(-50),-50); mk(ctx,'lepers',rx(-36)+4,-36);
+  /* the village about its day: water from the spring, the ploughman in the field behind his ox
+     (Luqas 9:62), the gardeners, the mill at the door, the road busy with travellers */
+  { const D=[[-6,-14],[4,-15],[-15,-4],[-15,8],[-5,15],[6,15],[-25,-12],[-25,4]].map(([x,z])=>W.door(x,z,6,5.5,z<0?'s':(x<-10?'w':'s')));
+    W.folk(ctx,[
+      {do:'water', from:[1.8,-1.6], to:[D[6],D[7],D[2]], n:2},
+      {do:'plough', from:[34.2,19], to:[34.2,37]},
+      {do:'hoe', at:[-36,26.4], face:0}, {do:'hoe', at:[-27,31], face:0}, {do:'pick', at:[-40,28.8]},
+      {do:'grind', at:[D[6][0]+0.4,D[6][1]+1.3], face:0}, {do:'spin', at:[D[7][0]-0.2,D[7][1]+1.5], face:-1.6},
+      {do:'play', at:[-14,-12], r:2, n:3}, {do:'talk', at:[-20,16], n:2},
+      {do:'walk', path:[[rx(-76),-76],[rx(-40),-40],[rx(0),0],[rx(40),40],[rx(76),76]], n:3, donkey:true}]); }
   ctx.bounds={x0:-120,x1:120,z0:-120,z1:120};
 };
 
@@ -582,6 +691,16 @@ S.yeriho=function(ctx,st){
   mk(ctx,'gateE',33,0); mk(ctx,'gateW',-33,0); mk(ctx,'street',0,0); mk(ctx,'sycamore',-2,5);
   mk(ctx,'limb',1.2,5); mk(ctx,'zakkai',9,12.5); mk(ctx,'zakkaiDoor',9,7.8); mk(ctx,'zakkaiIn',9,11);
   mk(ctx,'roadE',72,rz(72)); mk(ctx,'plainE',52,rz(52)); mk(ctx,'bartimai',-42,-3.4); mk(ctx,'roadW',-64,rz(-64)); mk(ctx,'roadW2',-52,rz(-52));
+  /* the city of palms about its day: dates sold in the street, the mill and the spindle at the doors,
+     women washing at the spring outside the wall, the roads busy both ways with asses and loads */
+  { const D=[[-20,-10],[-8,-11],[6,-10],[18,-11],[-20,11],[-9,12],[22,11]].map(([x,z])=>W.door(x,z,6,5.5,z<0?'s':'n'));
+    W.folk(ctx,[
+      {do:'wash', at:[-0.8,-42], face:Math.PI/2}, {do:'wash', at:[12.8,-43], face:-Math.PI/2},
+      {do:'sell', at:[-14,-6.4], face:0, goods:'fruit'}, {do:'sell', at:[14,6.6], face:Math.PI, goods:'bread'},
+      {do:'grind', at:[D[0][0]+1.6,D[0][1]-0.4], face:1.6}, {do:'spin', at:[D[5][0]+1.4,D[5][1]+0.4], face:1.6},
+      {do:'pick', at:[-12,18.6]}, {do:'play', at:[-24,4.5], r:1.8, n:2},
+      {do:'walk', path:[[-96,rz(-96)],[-70,rz(-70)],[-38,rz(-38)]], n:2, donkey:true},
+      {do:'walk', path:[[96,rz(96)],[64,rz(64)],[38,rz(38)]], n:2, donkey:true}]); }
   ctx.bounds={x0:-130,x1:130,z0:-120,z1:120};
 };
 
@@ -614,6 +733,15 @@ S.olivet=function(ctx,st){
   mk(ctx,'gGate',61,-58); mk(ctx,'gIn',64.6,-58); mk(ctx,'eight',65.4,-55.6); mk(ctx,'three',70.6,-58.4); mk(ctx,'prayer',74.6,-58.6);
   mk(ctx,'qidron',54,-58); mk(ctx,'cityPath',44,-58);
   W.wild(ctx,'goat',130,-80,3,5,0.4);
+  /* the mount about its day: pickers in the olive groves, the women of Bĕyth Phaḡi at their doors,
+     the goatherd, and the road over the top busy with those going up to the city for the feast */
+  for(const [x,z] of [[108,-72],[124,-80],[140,-68],[96,-28]]) W.olive(st,x,z,1);
+  { const D=[[160,-58,'s'],[170,-50,'s'],[164,-28,'n'],[174,-32,'n']].map(([x,z,s])=>W.door(x,z,5.5,5,s));
+    W.folk(ctx,[
+      {do:'pick', at:[106.6,-70.4]}, {do:'pick', at:[125.6,-78.6]}, {do:'pick', at:[138.4,-66.6]}, {do:'carry', from:[96,-30.6], to:[104,-70], load:'basket', n:1},
+      {do:'grind', at:[D[0][0]+1.4,D[0][1]+0.4], face:0}, {do:'spin', at:[D[2][0]+1.4,D[2][1]-0.4], face:Math.PI},
+      {do:'herd', at:[130,-80], r:5},
+      {do:'walk', path:[[176,rz(176)],[150,rz(150)],[124,rz(124)],[98,rz(98)],[76,rz(76)]], n:3, donkey:true}]); }
   ctx.bounds={x0:-200,x1:240,z0:-200,z1:200};
 };
 
@@ -642,6 +770,8 @@ S.courts=function(ctx,st){
     st.detail(x-0.7,y,z-0.5,x+0.7,y+0.9,z+0.5,0x8a6a40); st.detail(x-0.6,y+0.9,z-0.45,x+0.6,y+1.4,z+0.45,0xd8d0bb); }
   for(const x of [-4,-1.6,0.8,11.2,13.6,16]){ const z=-37.2, y=G(x,z);
     st.detail(x-0.35,y,z-0.35,x+0.35,y+0.9,z+0.35,0xa0703f); st.detail(x-0.16,y+0.9,z-0.16,x+0.16,y+1.3,z+0.16,0xb08d3c); }
+  /* the courts about their day: those come up to the House, walking and standing in talk */
+  W.folk(ctx,[{do:'stroll', area:[-40,-66,-14,-44], n:4}, {do:'talk', at:[-36,-46], n:3}, {do:'talk', at:[-16,-64], n:2}]);
   mk(ctx,'southSteps',-11,-40); mk(ctx,'outer',-24,-54); mk(ctx,'tables',-24,-58); mk(ctx,'doves',-29,-51.6);
   mk(ctx,'womenCourt',6,-38.4); mk(ctx,'treasury',-1.6,-38.2); mk(ctx,'treasurySeat',13.6,-39.2); mk(ctx,'innerSteps',6,-30);
   mk(ctx,'porch',33,-60); mk(ctx,'below',-8,-30);
@@ -662,6 +792,8 @@ S.upperroom=function(ctx,st0){
   st.detail(14.6,F,29.5,19.4,F+0.38,30.5,C.timber);                                     /* the low table */
   st.detail(15.2,F+0.38,29.8,15.8,F+0.46,30.2,0xd8c08a); st.detail(17.6,F+0.38,29.9,17.9,F+0.6,30.1,0x7a2a2a);   /* bread, a cup */
   for(const [lx,lz] of [[12.8,27],[12.8,33],[21.2,27],[21.2,33]]) W.glow(ctx,lx,F+2,lz,1.1,0xffc070,0.8);
+  /* the street outside about its day — and "a man carrying a jar of water" (Marqos 14:13) */
+  W.folk(ctx,[{do:'carry', from:[8,20], to:[27,22], load:'jar', n:1}, {do:'stroll', area:[6,16,30,24], n:3}, {do:'talk', at:[26,36], n:2}]);
   mk(ctx,'urHouse',17,24.4); mk(ctx,'stairFoot',22.8,26.2); mk(ctx,'stairTop',22.8,30.2); mk(ctx,'roomDoor',20.6,30); mk(ctx,'roomIn',20.4,30);
   mk(ctx,'table',17,30); mk(ctx,'roomCorner',13.4,33);
 };
@@ -680,6 +812,7 @@ S.highpriest=function(ctx,st0){
   W.fire(ctx,st,13,32.2);
   st.detail(22.2,2.6,28.6,25.2,2.8,31.4,C.roofEarth);                                   /* the porch over the gate, without */
   st.detail(24.6,0,28.8,25,2.6,29.2,C.timber); st.detail(24.6,0,30.8,25,2.6,31.2,C.timber);
+  W.folk(ctx,[{do:'stroll', area:[26,22,36,40], n:2}]);                                      /* the street without, by day */
   mk(ctx,'fire',13,32.2); mk(ctx,'hall',12,26.6); mk(ctx,'qayapha',12,25.75); mk(ctx,'accused',12,27.4);
   mk(ctx,'hpGate',21.2,30); mk(ctx,'hpPorch',23.6,30); mk(ctx,'hpStreet',27,30);
 };
@@ -776,6 +909,12 @@ S.emmaus=function(ctx,st){
   M('road0',34); M('road1',26); M('road2',17); M('road3',8); M('edge',2);
   mk(ctx,'house',-10,-2.4); mk(ctx,'houseDoor',-4.4,-2.4); mk(ctx,'houseIn',-7.2,-1.2);
   mk(ctx,'seatH',-10,-4.1); mk(ctx,'seatA',-10.8,-0.8); mk(ctx,'seatB',-9.2,-0.8); mk(ctx,'lamp',-13.1,-0.8);
+  /* the village about its day, and another going along the road */
+  { const D=[[-24,10],[-30,-2],[-22,-14],[-36,12],[-40,-10],[-14,16]].map(([x,z])=>W.door(x,z,6,5.5,z>0?'s':'n'));
+    W.folk(ctx,[
+      {do:'grind', at:[D[0][0]+1.4,D[0][1]+0.2], face:0}, {do:'spin', at:[D[3][0]+1.4,D[3][1]], face:0}, {do:'sweep', at:[D[2][0],D[2][1]-0.6], face:Math.PI},
+      {do:'play', at:[-30,6], r:2, n:2}, {do:'herd', at:[30,-30], r:6}, {do:'hoe', at:[50,-20], face:0},
+      {do:'walk', path:[[110,rz(110)],[70,rz(70)],[40,rz(40)]], n:1, donkey:true}]); }
   ctx.bounds={x0:-120,x1:140,z0:-120,z1:120};
 };
 
@@ -830,6 +969,8 @@ S.gazaroad=function(ctx,st){
   const M=(id,x,dz)=>mk(ctx,id,x,rz(x)+(dz||0));
   M('road0',70); M('road1',40); M('road2',16); M('stop',-6); M('roadW',-60);
   mk(ctx,'hill',34,-22); mk(ctx,'water',OX,OZ); mk(ctx,'waterIn',OX,OZ-OR*0.62); mk(ctx,'bank',OX,OZ-OR-1.4);
+  /* "This is desert": the odd traveller on the road of the empire, a string of camels with a load */
+  W.folk(ctx,[{do:'walk', path:[[96,rz(96)-3],[50,rz(50)-3],[0,rz(0)-3.2],[-50,rz(-50)-3],[-96,rz(-96)-3]], n:2, donkey:true, beast:'camel'}]);
   ctx.bounds={x0:-140,x1:140,z0:-120,z1:120};
 };
 
@@ -849,6 +990,13 @@ S.damascus=function(ctx,st){
   for(let k=0;k<26;k++){ const x=-100+W.hash(k,2)*70, z=(W.hash(k,3)<0.5?-1:1)*(5+W.hash(k,4)*30); W.olive(st,x,z,0.9); }   /* the gardens */
   mk(ctx,'road0',-58,-2.7); mk(ctx,'road1',-50,-2.1); mk(ctx,'light',-42,-1.4); mk(ctx,'road2',-32,-0.6); mk(ctx,'gate',-22,0); mk(ctx,'gateIn',-17,0);
   mk(ctx,'straight',4,0); mk(ctx,'yahudahDoor',14,8.5); mk(ctx,'yahudahIn',17.4,8.5); mk(ctx,'bed',21,10.5); mk(ctx,'hananyah',40,-6);
+  /* the city about its day: sellers along the street called Straight under its colonnades, people
+     going up and down it, the gardeners among the trees outside the wall */
+  W.folk(ctx,[
+    {do:'sell', at:[6,-5.4], face:0, goods:'cloth'}, {do:'sell', at:[26,5.4], face:Math.PI, goods:'fruit'}, {do:'sell', at:[44,-5.4], face:0, goods:'pots'},
+    {do:'stroll', area:[-16,-2,56,2], n:4}, {do:'talk', at:[34,-5.2], n:2}, {do:'play', at:[46,4.6], r:1.4, n:2},
+    {do:'walk', path:[[-17,0.6],[20,0.6],[56,0.6]], n:2, donkey:true},
+    {do:'pick', at:[-82,-22]}, {do:'pick', at:[-64,24]}, {do:'hoe', at:[-74,-30], face:0}]);
   ctx.bounds={x0:-130,x1:90,z0:-90,z1:90};
 };
 
@@ -867,6 +1015,16 @@ function coast(ctx,st,o){
     mk(ctx,'tanner',8,-2); mk(ctx,'tannerIn',6,-2); mk(ctx,'tannerDoor',2.6,-2); mk(ctx,'stairFoot',12.6,2.8); mk(ctx,'roof',9,-3); mk(ctx,'gate',-2,-2);
     mk(ctx,'street',-6,-2); mk(ctx,'sheet',14.8,-3);
     ctx.markers.roofY=[2.8+0.92+0.02,0];
+    /* the port about its day: the tanner's men at the vats, the fishers on the beach at their nets,
+       the catch carried up and sold, and the mill and spindle at the doors */
+    { const D=[[-10,-16],[-12,-4],[-10,8],[-22,-10],[-22,6],[-4,14],[6,14]].map(([x,z])=>W.door(x,z,6,5.5,x<-4?'e':'s'));
+      W.folk(ctx,[
+        {do:'wash', at:[2.4,-11.7], face:0}, {do:'wash', at:[4.8,-11.7], face:0},
+        {do:'mend', at:[15.2,-22], face:Math.PI/2}, {do:'mend', at:[15.4,18], face:Math.PI/2},
+        {do:'carry', from:[16,-26], to:[-2,-20], load:'basket', n:1}, {do:'sell', at:[-4,-21], face:Math.PI/2, goods:'fish'},
+        {do:'grind', at:[D[3][0]+0.2,D[3][1]+1.5], face:Math.PI/2}, {do:'spin', at:[D[5][0]+1.6,D[5][1]-0.2], face:0},
+        {do:'play', at:[-16,14], r:1.8, n:2},
+        {do:'walk', path:[[16.5,-60],[16.5,-30],[16.5,30],[16.5,60]], n:1, donkey:true}]); }
   } else {
     /* the captain's house: a court open to the sky, rooms about it, a portico of columns before the door */
     const L=C.whitewash;
@@ -877,6 +1035,10 @@ function coast(ctx,st,o){
     st.box(-3,0,-3,3,0.1,3,'cobble'); W.pool(ctx,st,0,0,2.4,2.4);
     for(const z of [-3,3]) st.box(10.4,0,z-0.4,11.2,3.6,z+0.4,'alabaster');
     st.box(30,0,-30,36,0.6,40,C.stone); st.box(31,0.6,36,35,9,40,C.limestone);                   /* the harbour's mole, its tower */
+    /* the city of Caesarea about its day: porters at the harbour, people along the way */
+    W.folk(ctx,[
+      {do:'carry', from:[19,-26], to:[10,-26], load:'sack', n:2}, {do:'walk', path:[[22,-70],[22,-20],[22,20],[22,70]], n:3, donkey:true},
+      {do:'mend', at:[15.4,-40], face:Math.PI/2}, {do:'talk', at:[14,22], n:2}], {folk:'roman'});
     mk(ctx,'villa',0,0); mk(ctx,'court',-4,0); mk(ctx,'door',9.6,0); mk(ctx,'porch',12.4,0); mk(ctx,'street',16,0); mk(ctx,'inner',-7,0);
   }
   mk(ctx,'beach',16,0);
@@ -896,6 +1058,11 @@ S.antioch=function(ctx,st){
   [[-36,-12],[-24,-12],[-12,-12],[14,-12],[26,-12],[38,-12],[-36,12],[-24,12],[24,12],[36,12]].forEach(([x,z],k)=>W.house(st,x,z,8,7,{door:z<0?'n':'s',color:k%2?C.limestone:C.whitewash,h:3.4}));
   room(ctx,st,-6,8,8,18,{door:'e',wall:C.limestone});
   mk(ctx,'street',0,0); mk(ctx,'house',1,13); mk(ctx,'houseDoor',9.2,13); mk(ctx,'houseIn',5.6,13); mk(ctx,'east',44,0); mk(ctx,'west',-44,0);
+  /* the great city of Suria about its day: sellers in the porticoes, the street full */
+  W.folk(ctx,[
+    {do:'sell', at:[-30,-6.6], face:0, goods:'cloth'}, {do:'sell', at:[20,6.6], face:Math.PI, goods:'pots'}, {do:'sell', at:[-12,6.6], face:Math.PI, goods:'fruit'},
+    {do:'stroll', area:[-48,-2.8,48,2.8], n:5}, {do:'talk', at:[30,-6.4], n:3}, {do:'play', at:[-22,6.8], r:1.4, n:2},
+    {do:'walk', path:[[-50,1.6],[0,1.6],[50,1.6]], n:2, donkey:true}], {folk:'greek'});
   ctx.bounds={x0:-120,x1:120,z0:-120,z1:120};
 };
 
@@ -916,6 +1083,10 @@ S.athens=function(ctx,st){
   mk(ctx,'agora',24,8); mk(ctx,'altar',18.7,4.6); mk(ctx,'altarFront',21,4.6); mk(ctx,'porch',24,12); mk(ctx,'areopagus',-14,-6); mk(ctx,'arFoot',-2,-6);
   mk(ctx,'idols',30,-4); mk(ctx,'crowd',-10,-2);
   const ay=ctx.groundY(-62,0)||20; ctx.markers.acropolis=[-62,0,ay+6];
+  /* the market-place "every day with those who happened to be there" (Acts 17:17) */
+  W.folk(ctx,[
+    {do:'sell', at:[36,6], face:-Math.PI/2, goods:'pots'}, {do:'sell', at:[12,9], face:Math.PI/2, goods:'cloth'},
+    {do:'stroll', area:[10,-2,40,12], n:4}, {do:'talk', at:[34,-1], n:3}, {do:'walk', path:[[70,8],[44,8],[30,10]], n:1, donkey:true}], {folk:'greek'});
   ctx.bounds={x0:-130,x1:110,z0:-110,z1:110};
 };
 
@@ -953,6 +1124,13 @@ S.rome=function(ctx,st){
   room(ctx,st,-12,7,0,16,{door:'e',wall:BR});                                                   /* Sha'ul's rented house */
   mk(ctx,'street',0,0); mk(ctx,'door',0.4,11.5); mk(ctx,'doorOut',2.4,11.5); mk(ctx,'houseIn',-2.2,11.5); mk(ctx,'seat',-8.6,11.5); mk(ctx,'tiber',54,0);
   mk(ctx,'bridge',40,0); mk(ctx,'palatine',-40,-56); mk(ctx,'east',40,0); mk(ctx,'overlook',30,-36);
+  /* the city about its day: the street between the insulae, the sellers, the bridge over the Tiber
+     with its traffic, a woman washing at the river */
+  W.folk(ctx,[
+    {do:'sell', at:[-22,-5.8], face:0, goods:'bread'}, {do:'sell', at:[14,5.8], face:Math.PI, goods:'fruit'},
+    {do:'stroll', area:[-38,-1.6,44,1.6], n:4}, {do:'talk', at:[30,-5.6], n:2},
+    {do:'walk', path:[[84,0],[62,0],[46,0],[20,0],[-38,0]], n:3, donkey:true},
+    {do:'wash', at:[46.9,-30], face:Math.PI/2}, {do:'carry', from:[44,-3], to:[-30,-3], load:'sack', n:1}], {folk:'roman'});
   ctx.bounds={x0:-130,x1:130,z0:-130,z1:130};
 };
 })();

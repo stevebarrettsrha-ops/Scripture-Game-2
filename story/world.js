@@ -214,6 +214,63 @@ W.creature=function(ctx,kind){
 /* the life of a water, to be set about it once the set is laid: `at` [x,z] and `r` the reach to look
    for water in, `y` its face; how many of each */
 W.waterLife=function(ctx,o){ (ctx.lifeSpecs=ctx.lifeSpecs||[]).push(o); };
+/* THE PEOPLE OF THE PLACE, about their day: not the ones the story speaks of, but the town they
+   live in — women going down to the spring and coming up with the jar on the head (Bereshith
+   24:11, Yahuchanon 4:7), a man carrying a jar of water through the street (Marqos 14:13), grinding
+   at the mill (Mattithyahu 24:41), the fishers washing and mending their nets (Luqas 5:2, Marqos
+   1:19), the sower and the ploughman (Luqas 8:5, 9:62), children calling to one another in the
+   market-places (Mattithyahu 11:16), sellers at their tables, travellers on the road with an ass.
+   A set lays down what its people do and where; the engine raises them (spawnFolk) and keeps
+   them at it, out of the way of the ones the scene is about. `o.folk` the people they are
+   (yasharal, greek, roman, north). Each entry's `do` is one of:
+     walk   {path:[[x,z]…], n, donkey}   travellers along a way, to and fro
+     stroll {area:[x0,z0,x1,z1], n}      going about the town between its places
+     water  {from:[x,z], to:[[x,z]…], n} down to the spring with a jar, home with it on the head
+     carry  {from, to, n, load}          a load (basket · sack · wood) from one place to another
+     grind · mend · spin · wash · sweep · hoe · reap · hammer · pick · sell {at:[x,z], face, goods}
+     talk   {at, n}                      a few standing together, talking
+     play   {at, r, n}                   children running in a game
+     herd   {at, r}                      a shepherd going about his flock, the staff in hand
+     plough {from, to}                   a man behind an ox, up and down a furrow */
+/* the step before a house's door (`side` as W.house has it), where its people come and go */
+W.door=function(x,z,w,d,side){ const o=1.2; return side==='n'?[x,z-d/2-o]:side==='e'?[x+w/2+o,z]:side==='w'?[x-w/2-o,z]:[x,z+d/2+o]; };
+W.folk=function(ctx,list,o){ for(const s of list) (ctx.folkSpecs=ctx.folkSpecs||[]).push(Object.assign({},o||{},s)); };
+/* the things in their hands, built small and held at the hand (or on the head) */
+W.prop=function(kind){
+  const g=new THREE.Group(), M=c=>new THREE.MeshLambertMaterial({color:c});
+  const bx=(w,h,d,c,x,y,z)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),M(c)); q.position.set(x,y,z); g.add(q); return q; };
+  const cy=(r0,r1,h,c,x,y,z,seg)=>{ const q=new THREE.Mesh(new THREE.CylinderGeometry(r0,r1,h,seg||9),M(c)); q.position.set(x,y,z); g.add(q); return q; };
+  if(kind==='jar'){ cy(0.07,0.12,0.26,0xa8643a,0,0.13,0); cy(0.05,0.07,0.08,0x9a5a34,0,0.3,0); cy(0.11,0.07,0.06,0x8a5030,0,0.02,0); }
+  else if(kind==='basket'){ cy(0.2,0.15,0.2,0xa88a50,0,0.1,0,10); cy(0.17,0.17,0.04,0x8a4a3a,0,0.2,0,10); }
+  else if(kind==='sack'){ bx(0.3,0.22,0.5,0xc8b48a,0,0.11,0); bx(0.1,0.08,0.1,0xb8a07a,0,0.24,0.2); }
+  else if(kind==='wood'){ for(let i=0;i<4;i++){ const q=cy(0.035,0.035,0.8,0x6a4a2a,-0.09+i*0.06,0.04+(i%2)*0.05,0,6); q.rotation.x=Math.PI/2; } }
+  else if(kind==='broom'){ cy(0.016,0.016,1.1,0x7a5a30,0,-0.45,0,5); bx(0.16,0.2,0.05,0xb89a5a,0,-1.05,0); }
+  else if(kind==='hoe'){ cy(0.018,0.018,1.15,0x6a4a2a,0,-0.42,0,5); bx(0.14,0.05,0.18,0x5a5a5a,0,-1.0,0.07); }
+  else if(kind==='hammer'){ cy(0.016,0.016,0.32,0x6a4a2a,0,-0.12,0,5); bx(0.06,0.06,0.13,0x4a4a4a,0,-0.28,0); }
+  else if(kind==='spindle'){ cy(0.008,0.008,0.3,0x8a6a40,0,-0.15,0,4); cy(0.04,0.04,0.02,0xd8ceb4,0,-0.26,0,8); }
+  else if(kind==='quern'){ cy(0.3,0.34,0.14,0x7a7468,0,0.07,0,12); cy(0.26,0.26,0.08,0x8a8478,0,0.18,0,12); bx(0.03,0.16,0.03,0x6a4a2a,0.18,0.28,0); }
+  else if(kind==='net'){ bx(1.1,0.08,0.7,0x8a7a5a,0,0.04,0); for(let i=0;i<4;i++) cy(0.03,0.03,0.04,0xd8c890,-0.4+i*0.27,0.09,0.3,6); }
+  else if(kind==='wash'){ bx(0.6,0.06,0.4,0xe8e0cc,0,0.03,0); }
+  else if(kind==='plough'){ bx(0.06,0.06,1.5,0x6a4a2a,0,0.5,0.45); bx(0.05,0.7,0.05,0x6a4a2a,0,0.35,-0.25); bx(0.05,0.05,0.4,0x4a4a4a,0,0.03,-0.1); }
+  else if(kind==='sickle'){ cy(0.016,0.016,0.22,0x6a4a2a,0,-0.08,0,5); const q=new THREE.Mesh(new THREE.TorusGeometry(0.14,0.014,4,10,Math.PI*1.1),M(0x8a8a8a)); q.position.set(0,-0.22,0.12); q.rotation.y=Math.PI/2; g.add(q); }
+  else if(kind==='tree'){ cy(0.02,0.02,1.7,0x6a4a2a,0,-0.6,0,5); }
+  return g; };
+/* A SELLER'S TABLE in the street: a board on trestles under an awning, its goods laid out —
+   loaves, fruit, pots, cloth, fish or doves */
+W.stall=function(ctx,x,z,face,goods){
+  const g=new THREE.Group(), M=c=>new THREE.MeshLambertMaterial({color:c});
+  const bx=(w,h,d,c,px,py,pz)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),M(c)); q.position.set(px,py,pz); g.add(q); return q; };
+  bx(1.6,0.06,0.7,0x7a5a3a,0,0.78,0); for(const sx of [-0.7,0.7]) for(const sz of [-0.28,0.28]) bx(0.06,0.76,0.06,0x5a3a22,sx,0.38,sz);
+  for(const sx of [-0.8,0.8]) bx(0.05,2.1,0.05,0x5a3a22,sx,1.05,-0.45);
+  const aw=bx(1.9,0.03,1.1,[0xd8ceb4,0x9a5a3a,0x5a6a8a,0xc8a050][(Math.abs(Math.round(x*7+z*3)))%4],0,2.0,0.05); aw.rotation.x=0.22;
+  const G={bread:[0xc89a5a,0xb8864a],fruit:[0x8a2a4a,0x5a7a2a,0xd8a030],pots:[0xa8643a,0x9a5a34,0xb87448],cloth:[0x8a3a3a,0x3a4a8a,0xd8ceb4,0x6a5a2a],fish:[0x9aa6a0,0x7a8a80],doves:[0xf2f0ea,0xdad6ce]}[goods||'bread']||[0xc89a5a];
+  for(let i=0;i<9;i++){ const c=G[i%G.length], px=-0.6+(i%5)*0.3, pz=i<5?-0.15:0.15;
+    if(goods==='pots') { const q=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.09,0.18,8),M(c)); q.position.set(px,0.9,pz); g.add(q); }
+    else if(goods==='cloth') bx(0.28,0.08,0.28,c,px,0.85+(i%3)*0.04,pz);
+    else if(goods==='fish') bx(0.08,0.04,0.26,c,px,0.83,pz);
+    else if(goods==='doves') { bx(0.24,0.18,0.24,0x8a7a5a,px,0.9,pz); bx(0.1,0.08,0.14,c,px,0.92,pz); }
+    else { const q=new THREE.Mesh(new THREE.SphereGeometry(goods==='bread'?0.1:0.07,8,6),M(c)); q.scale.y=goods==='bread'?0.55:1; q.position.set(px,0.86,pz); g.add(q); } }
+  g.position.set(x,ctx.groundY?ctx.groundY(x,z)||0:0,z); g.rotation.y=face||0; ctx.scene.add(g); return g; };
 /* AN OASIS (Acts 8:36, "they came to some water"): a pool in a hollow of the desert where a spring
    rises — its edge not drawn with a rule but wandering; shallow at the edge and deep in the middle,
    a ring of grass and dark earth about it where nothing else grows green, stones along its lip,
@@ -1003,4 +1060,6 @@ W.wild=function(ctx,kind,x,z,n,r,sp){
     g.rotation.y=hash(px,pz)*6.28;
     g.userData={home:[x,z],t:hash(k,x)*4,kind,roam:r||6,sp:sp||0.6}; ctx.flock.push(g); } };
 W.donkey=function(ctx,x,z){ return beast(ctx,'donkey',x,z); };
+/* a beast of the townsfolk's (W.folk): an ass on the road, an ox at the plough — theirs to lead, not the scene's flock */
+W.donkeyFree=function(ctx,x,z,kind){ return beast(ctx,kind||'donkey',x,z); };
 })();

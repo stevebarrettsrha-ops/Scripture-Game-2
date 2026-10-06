@@ -203,6 +203,7 @@ function buildScene(sc){
     obj.userData.thing=t; obj.userData.baseY=obj.position.y; ctx.things[t.id]=obj; }
   placeCrowds(sc);
   spawnLife();
+  spawnFolk(sc);
   /* THE LAKE'S OWN WAVES, where the set has asked for them (S.galilSea): laid over the still water,
      which is put by beneath them */
   if(ctx.lake&&K().ripple){ const L=ctx.lake, r=L.rect;
@@ -363,6 +364,167 @@ function wadeTick(dt){
     else if(u._wadeT<=0){ u._wadeT=1.6+Math.random(); const w=toW(x,0,z); k.ripple.at(w.x,w.z,-0.3,4,0.05); } };
   for(const id in ctx.actors){ const g=ctx.actors[id]; if(g.userData.fixedY===undefined||!ctx.lake) ring(g); }
   if(player) ring(player);
+}
+/* THE PEOPLE OF THE PLACE (W.folk in a set): the town about its day while the story is told in
+   it. They are not the scene's actors — no beat moves them, none speaks — and they keep clear of
+   those who are: never set down near where the scene's people or the witness stand, stepping
+   aside for anyone in their way. Not at night, nor by lamplight (the town is asleep); fewer at
+   dawn and dusk. A scene may ask for none (`folk:false`) or more or fewer (`folk:<scale>`). */
+const FOLK_MAX=20;
+function spawnFolk(sc){
+  ctx.folk=[];
+  const specs=ctx.folkSpecs; if(!specs||!specs.length||sc.folk===false) return;
+  const tm=sc.time||'day';
+  if((tm==='night'||tm==='lamplit'||tm==='darkness')&&typeof sc.folk!=='number') return;
+  const scale=typeof sc.folk==='number'?sc.folk:(tm==='dusk'||tm==='dawn'?0.6:1), MAX=Math.round(FOLK_MAX*Math.min(1.4,scale));
+  let h=2166136261; for(const ch of (act.id+'/'+sc.id+'/folk')) h=Math.imul(h^ch.charCodeAt(0),16777619);
+  const r=()=>{ h=Math.imul(h^(h>>>15),2246822507); h=Math.imul(h^(h>>>13),3266489909); h^=h>>>16; return (h>>>0)/4294967296; };
+  const pick=a=>a[Math.floor(r()*a.length)%a.length];
+  /* the stage: where the scene's people, its things and the witness are at the start */
+  const stage=[]; for(const id in ctx.actors){ const g=ctx.actors[id]; if(g.visible) stage.push([g.position.x,g.position.z]); }
+  for(const id in ctx.things){ const o=ctx.things[id]; if(o.visible) stage.push([o.position.x,o.position.z]); }
+  stage.push(pos((sc.player&&sc.player.at)||[0,0]));
+  const clear=(x,z,d)=>stage.every(p=>Math.hypot(p[0]-x,p[1]-z)>=d)&&(ctx.crowdPts||[]).every(q=>Math.hypot(q[0]-x,q[2]-z)>=1.0)
+    &&!wallAt(x,z,ctx.groundY(x,z))&&!(K().waterAt&&wetAt(x,z,ctx.groundY(x,z)+0.2));
+  const W=window.STORYWORLD;
+  const person=(s,o)=>{ o=o||{}; const woman=o.woman!==undefined?o.woman:r()<0.45, child=!!o.child, folk=s.folk||'yasharal';
+    const def={id:'folk'+ctx.folk.length, kind:woman?'woman':(!child&&r()<0.15?'oldman':'man'), small:child||undefined,
+      robe:pick(CROWD_ROBES), cloth:woman?pick(CROWD_VEILS):pick(CROWD_CLOTHS), sash:r()<0.5?pick(CROWD_ROBES):undefined,
+      beard:!woman&&!child&&r()<0.8?pick([0x2c241f,0x3a2a1e,0x1e1814,0x6d6a66]):null, staff:o.staff, skin:folk==='yasharal'?pick(CROWD_SKIN):pick(W.SKIN[folk]||CROWD_SKIN)};   /* the skin of their people, not (for Romans) a legionary's dress */
+    const g=W.person(ctx,def); g.userData.def=def; g.userData.folkG=true; return g; };
+  const hold=(g,kind,where)=>{ const p=W.prop(kind), u=g.userData;
+    if(where==='head'&&u.head){ p.position.set(0,0.13,0); u.head.add(p); }
+    else { const E=u.armR&&u.armR.userData.elbow; if(E){ p.position.set(0,-0.33,0.03); E.add(p); } else g.add(p); }
+    return p; };
+  const add=(g,x,z,face,st)=>{ const gy=ctx.groundY(x,z)||0; g.position.set(x,gy,z); g.rotation.y=face||0; g.userData.gy=gy;
+    const F=Object.assign({g,t:r()*4,ph:r()*6.28,sp:0.95+r()*0.35},st); ctx.folk.push(F); return F; };
+  const ptIn=(A,tries)=>{ for(let t=0;t<(tries||30);t++){ const x=A[0]+r()*(A[2]-A[0]), z=A[1]+r()*(A[3]-A[1]); if(clear(x,z,3)) return [x,z]; } return null; };
+  for(const s0 of specs){
+    if(ctx.folk.length>=MAX) break;
+    try{ folkOne(s0); }catch(e){ console.warn('folk:',s0.do,e.message); }      /* one that cannot be placed is left out, not the scene */
+  }
+  function folkOne(s0){
+    const s=s0, n=Math.max(s.n===undefined?1:1,Math.round((s.n||1)*scale)), job=s.do;
+    for(let i=0;i<n&&ctx.folk.length<MAX;i++){
+      if(job==='walk'){ const P=s.path.map(q=>pos(q)); if(P.length<2) break;
+        const seg=Math.floor(r()*(P.length-1)), f=r(), a=P[seg], b=P[seg+1], x=a[0]+(b[0]-a[0])*f, z=a[1]+(b[1]-a[1])*f;
+        if(!clear(x,z,2.4)) continue;
+        const g=person(s,{woman:r()<0.3}), dir=r()<0.5?1:-1, F=add(g,x,z,0,{job,P,i:dir>0?seg+1:seg,dir,sp:1.0+r()*0.3});
+        if(r()<0.4) F.load=hold(g,pick(['sack','basket','wood']),'head');
+        if(s.donkey&&r()<(s.beast?0.85:0.6)&&K().makeAnimal){ const d=W.donkeyFree?W.donkeyFree(ctx,x,z,s.beast):null; if(d){ F.beast=d; F.beastKind=s.beast||'donkey'; } }
+        continue; }
+      if(job==='stroll'){ const p=ptIn(s.area); if(!p) continue; const g=person(s,{child:r()<0.12}), F=add(g,p[0],p[1],r()*6.28,{job,A:s.area,state:'pause'});
+        if(r()<0.3) F.load=hold(g,pick(['basket','jar','sack']),'head'); continue; }
+      if(job==='water'){ const S=pos(s.from), H=s.to.map(q=>pos(q)), home=pick(H), f=r(), x=S[0]+(home[0]-S[0])*f, z=S[1]+(home[1]-S[1])*f;
+        if(!clear(x,z,2.4)) continue;
+        const g=person(s,{woman:s.men?false:r()<0.85}), F=add(g,x,z,0,{job,S,H,home,state:r()<0.5?'down':'up'});
+        F.jarH=hold(g,'jar','head'); F.jarA=hold(g,'jar','hand'); F.jarA.scale.setScalar(0.85); F.jarA.position.set(0,-0.62,0.05); continue; }
+      if(job==='carry'){ const A=pos(s.from), B=pos(s.to), f=r(), x=A[0]+(B[0]-A[0])*f, z=A[1]+(B[1]-A[1])*f; if(!clear(x,z,2.4)) continue;
+        const g=person(s,{woman:r()<0.3}), F=add(g,x,z,0,{job,A,B,state:r()<0.5?'to':'back'}); F.load=hold(g,s.load||'sack','head'); continue; }
+      if(job==='play'){ const c=pos(s.at), R=s.r||3; let p=null; for(let t=0;t<20&&!p;t++){ const a=r()*6.28, d=r()*R, x=c[0]+Math.cos(a)*d, z=c[1]+Math.sin(a)*d; if(clear(x,z,3)) p=[x,z]; }
+        if(!p) continue; const g=person(s,{child:true,woman:r()<0.4}); add(g,p[0],p[1],r()*6.28,{job,c,R,sp:2.0+r()*0.8,state:'pause'}); continue; }
+      if(job==='herd'){ const c=pos(s.at); if(!clear(c[0],c[1],2.5)) continue; const g=person(s,{woman:false,staff:true}); add(g,c[0],c[1],r()*6.28,{job,c,R:s.r||5,sp:0.6,state:'pause'}); continue; }
+      if(job==='talk'){ const c=pos(s.at); if(!clear(c[0],c[1],3.5)) break; const m=Math.max(2,s.n||2);
+        for(let j=0;j<m&&ctx.folk.length<MAX;j++){ const a=j/m*6.28+r()*0.4, x=c[0]+Math.cos(a)*0.62, z=c[1]+Math.sin(a)*0.62;
+          const g=person(s,{}), F=add(g,x,z,Math.atan2(c[0]-x,c[1]-z),{job,turn:j,m}); }
+        break; }
+      if(job==='plough'){ const A=pos(s.from), B=pos(s.to); if(!clear(A[0],A[1],3)) break;
+        const g=person(s,{woman:false}), F=add(g,A[0],A[1],Math.atan2(B[0]-A[0],B[1]-A[1]),{job,A,B,state:'to',sp:0.5});
+        const pl=W.prop('plough'); g.add(pl); pl.position.set(0,0,0.25); F.prop=pl;
+        if(W.donkeyFree){ F.beast=W.donkeyFree(ctx,A[0],A[1],'ox'); F.beastAhead=2.2; }
+        break; }
+      /* one at their work in one place */
+      const c=pos(s.at), jx=i?(r()-0.5)*1.6:0, jz=i?(r()-0.5)*1.6:0, x=c[0]+jx, z=c[1]+jz;
+      if(!clear(x,z,3)) continue;
+      const seated=job==='grind'||job==='mend'||job==='wash'||(job==='spin'&&r()<0.6)||(job==='hammer'&&r()<0.5);
+      const g=person(s,{woman:job==='grind'||job==='spin'||job==='wash'?r()<0.9:job==='mend'||job==='hoe'||job==='hammer'||job==='reap'?r()<0.15:undefined});
+      const face=s.face!==undefined?s.face+(r()-0.5)*0.4:r()*6.28, F=add(g,x,z,face,{job,c:[x,z],seated});
+      if(seated) g.userData.sit=true;
+      const fwd=(d)=>[Math.sin(face)*d,Math.cos(face)*d];
+      const ground=(kind,d)=>{ const p=W.prop(kind), f=fwd(d); p.position.set(x+f[0],ctx.groundY(x+f[0],z+f[1])||0,z+f[1]); p.rotation.y=face; ctx.scene.add(p); return p; };
+      if(job==='grind') ground('quern',0.62); else if(job==='mend') ground('net',0.75); else if(job==='wash') ground('wash',0.6);
+      else if(job==='sweep') F.prop=hold(g,'broom'); else if(job==='hoe') F.prop=hold(g,'hoe'); else if(job==='reap') F.prop=hold(g,'sickle'); else if(job==='hammer') F.prop=hold(g,'hammer');
+      else if(job==='spin') F.prop=hold(g,'spindle'); else if(job==='pick'){ ground('basket',0.5); }
+      else if(job==='sell'){ const f=fwd(0.75); W.stall(ctx,x+f[0],z+f[1],face+Math.PI,s.goods); }
+    }
+  }
+}
+/* the next step of one of them toward [x,z]: round a wall, aside for a person in the way; false when there */
+function folkStep(F,to,dt){
+  const g=F.g, u=g.userData, dx=to[0]-g.position.x, dz=to[1]-g.position.z, d=Math.hypot(dx,dz);
+  if(d<0.2) return false;
+  let a=Math.atan2(dx,dz);
+  /* someone in the way (one of the story's people, or the witness): go round them, or wait */
+  let block=null; const look=(o)=>{ if(!o||!o.visible) return; const ox=o.position.x-g.position.x, oz=o.position.z-g.position.z, od=Math.hypot(ox,oz);
+      if(od<1.5&&(ox*Math.sin(a)+oz*Math.cos(a))>0) block=block&&block.d<od?block:{d:od,ox,oz}; };
+  for(const id in ctx.actors) look(ctx.actors[id]); if(!ctx.playerHidden) look(player);
+  if(block){ const side=(block.ox*Math.cos(a)-block.oz*Math.sin(a))>0?-1:1; a+=side*1.1; F.stuck=(F.stuck||0)+dt; }
+  if(wallAt(g.position.x+Math.sin(a)*0.45,g.position.z+Math.cos(a)*0.45,u.gy)){
+    let ok=false; for(const da of [0.6,-0.6,1.2,-1.2,1.8,-1.8]){ const b=a+da; if(!wallAt(g.position.x+Math.sin(b)*0.45,g.position.z+Math.cos(b)*0.45,u.gy)){ a=b; ok=true; break; } }
+    if(!ok){ F.stuck=(F.stuck||0)+dt; return true; } }
+  const sp=Math.min(d,F.sp*dt);
+  g.position.x+=Math.sin(a)*sp; g.position.z+=Math.cos(a)*sp; g.rotation.y=turnTo(g.rotation.y,a,dt*6);
+  u.gy=stepGround(g.position.x,g.position.z,u.gy); g.position.y=u.gy;
+  return true; }
+function folkTick(dt){
+  if(!ctx.folk||!ctx.folk.length) return;
+  const T=(ctx._folkT=(ctx._folkT||0)+dt);
+  for(const F of ctx.folk){ const g=F.g, u=g.userData; F.t-=dt; let moving=false;
+    const far=()=>{ const c=camera.position; return Math.hypot(c.x-g.position.x,c.z-g.position.z)>70; };
+    if(F.job==='walk'){
+      if(F.t>0){ /* resting at the end of the way */ }
+      else { const to=F.P[F.i]; moving=folkStep(F,to,dt);
+        if(!moving||(F.stuck||0)>5){ F.stuck=0;
+          const nx=F.i+F.dir; if(nx<0||nx>=F.P.length){ F.dir=-F.dir; F.t=2+Math.random()*5; } F.i=Math.max(0,Math.min(F.P.length-1,F.i+F.dir)); } } }
+    else if(F.job==='stroll'||F.job==='play'||F.job==='herd'){
+      if(F.state==='pause'){ if(F.t<=0){ let p=null;
+          for(let t=0;t<12&&!p;t++){ let x,z; if(F.A){ x=F.A[0]+Math.random()*(F.A[2]-F.A[0]); z=F.A[1]+Math.random()*(F.A[3]-F.A[1]); }
+            else { const a=Math.random()*6.28, dd=Math.random()*F.R; x=F.c[0]+Math.cos(a)*dd; z=F.c[1]+Math.sin(a)*dd; }
+            if(!wallAt(x,z,ctx.groundY(x,z))&&!wetAt(x,z,ctx.groundY(x,z)+0.2)) p=[x,z]; }
+          if(p){ F.to=p; F.state='go'; F.stuck=0; } else F.t=2; } }
+      else { moving=folkStep(F,F.to,dt); if(!moving||(F.stuck||0)>4){ F.state='pause'; F.t=F.job==='play'?0.4+Math.random()*1.2:F.job==='herd'?3+Math.random()*5:3+Math.random()*7; } } }
+    else if(F.job==='water'){
+      if(F.state==='down'){ moving=folkStep(F,F.S,dt); if(!moving||(F.stuck||0)>8){ F.state='fill'; F.t=3+Math.random()*3; F.stuck=0; } }
+      else if(F.state==='fill'){ u.sit=true; if(F.t<=0){ u.sit=false; F.state='up'; F.home=F.H[Math.floor(Math.random()*F.H.length)]; } }
+      else if(F.state==='up'){ moving=folkStep(F,F.home,dt); if(!moving||(F.stuck||0)>8){ F.state='home'; F.t=4+Math.random()*6; F.stuck=0; } }
+      else if(F.state==='home'){ if(F.t<=0) F.state='down'; }
+      const full=F.state==='up'||F.state==='home'; F.jarH.visible=full; F.jarA.visible=!full; }
+    else if(F.job==='carry'){
+      const to=F.state==='to'?F.B:F.A;
+      if(F.t<=0){ moving=folkStep(F,to,dt); if(!moving||(F.stuck||0)>8){ F.state=F.state==='to'?'back':'to'; F.t=3+Math.random()*4; F.stuck=0; F.load.visible=F.state==='to'; } } }
+    else if(F.job==='plough'){
+      const to=F.state==='to'?F.B:F.A; moving=folkStep(F,to,dt);
+      if(!moving){ F.state=F.state==='to'?'back':'to'; F.t=1.5; }
+      if(F.beast){ const b=F.beast, a=g.rotation.y; b.position.set(g.position.x+Math.sin(a)*F.beastAhead,ctx.groundY(g.position.x+Math.sin(a)*F.beastAhead,g.position.z+Math.cos(a)*F.beastAhead)||g.position.y,g.position.z+Math.cos(a)*F.beastAhead); b.rotation.y=a;
+        if(b.children[0]&&K().tickGait){ b.userData.ent=b.userData.ent||{m:b.children[0]}; K().tickGait(b.userData.ent,'ox',moving?F.sp*S:0,dt); } } }
+    if(F.beast&&F.job==='walk'){ const b=F.beast, a=g.rotation.y, bx=g.position.x-Math.sin(a)*1.5, bz=g.position.z-Math.cos(a)*1.5, dd=Math.hypot(bx-b.position.x,bz-b.position.z);
+      if(dd>0.05){ b.position.x+=(bx-b.position.x)*Math.min(1,dt*3); b.position.z+=(bz-b.position.z)*Math.min(1,dt*3); b.rotation.y=turnTo(b.rotation.y,Math.atan2(bx-b.position.x,bz-b.position.z)||a,dt*4); }
+      b.position.y=ctx.groundY(b.position.x,b.position.z)||0;
+      if(b.children[0]&&K().tickGait){ b.userData.ent=b.userData.ent||{m:b.children[0]}; K().tickGait(b.userData.ent,F.beastKind||'donkey',moving?F.sp*S:0,dt); } }
+    if(!moving&&!u.sit) g.position.y=u.gy;
+    if(u.sit) g.position.y=u.gy-sitDrop(u);
+    if(far()) continue;                           /* far off, the hands need not be worked */
+    animFigure(g,dt,moving);
+    /* AND THE HANDS AT THEIR WORK */
+    const w=T*1+F.ph, A=u.armR, L=u.armL; if(!A||!L) continue;
+    const E=x=>x&&x.userData.elbow;
+    if(F.job==='water'&&(F.state==='up'||F.state==='home')){ A.rotation.x=-2.75; A.rotation.z=-0.35; if(E(A)) E(A).rotation.x=-0.6; }
+    else if((F.job==='carry'||F.job==='walk'||F.job==='stroll')&&F.load&&F.load.visible){ L.rotation.x=-2.75; L.rotation.z=0.35; if(E(L)) E(L).rotation.x=-0.6; }
+    else if(F.job==='water'&&F.state==='down'){ A.rotation.x=-0.15; A.rotation.z=-0.12; if(E(A)) E(A).rotation.x=-0.25; }   /* the empty jar swung at the hip */
+    else if(F.job==='water'&&F.state==='fill'){ A.rotation.x=L.rotation.x=-1.0+Math.sin(w*2)*0.1; }
+    else if(F.job==='grind'){ const s=Math.sin(w*2.6); A.rotation.x=L.rotation.x=-1.05+s*0.32; if(E(A)) E(A).rotation.x=E(L).rotation.x=-0.3-s*0.25; }
+    else if(F.job==='mend'){ A.rotation.x=-0.95+Math.sin(w*3.1)*0.12; L.rotation.x=-0.85+Math.sin(w*2.3)*0.1; if(E(A)) E(A).rotation.x=-0.7; }
+    else if(F.job==='spin'){ L.rotation.x=-1.9; L.rotation.z=0.3; A.rotation.x=-0.6+Math.sin(w*4)*0.08; }
+    else if(F.job==='wash'){ const s=Math.sin(w*3); A.rotation.x=L.rotation.x=-1.25+s*0.25; }
+    else if(F.job==='sweep'){ const s=Math.sin(w*2.2); A.rotation.x=-0.55; L.rotation.x=-0.65; A.rotation.z=s*0.35; L.rotation.z=s*0.3; }
+    else if(F.job==='hoe'){ const s=(Math.sin(w*1.9)+1)/2; A.rotation.x=L.rotation.x=-0.4-s*2.0; if(E(A)) E(A).rotation.x=E(L).rotation.x=-0.3*s; }
+    else if(F.job==='reap'){ const s=Math.sin(w*2.4); A.rotation.x=-0.9+s*0.25; A.rotation.z=s*0.5; L.rotation.x=-1.0; if(u.body) u.body.rotation.x=0.45; }   /* bent to the ears, the sickle sweeping */
+    else if(F.job==='hammer'){ const s=Math.max(0,Math.sin(w*4.2)); A.rotation.x=-0.7-s*1.3; L.rotation.x=-0.8; }
+    else if(F.job==='pick'){ const s=Math.sin(w*1.4); A.rotation.x=-2.7+s*0.3; L.rotation.x=-2.3-s*0.3; }
+    else if(F.job==='sell'||F.job==='talk'){ const turn=F.job==='talk'?((Math.floor(T/4)%F.m)===F.turn):Math.sin(w*0.3)>0.6;
+      u.talkM=turn?0.4+Math.sin(T*7+F.ph)*0.3:undefined; if(u.setFace) u.setFace(turn&&Math.sin(T*11+F.ph)>0?1:0,false,'calm'); }
+    else if(F.job==='herd'&&E(A)) {}
+  }
 }
 function pos(at){ if(typeof at==='string'){ const m=ctx.markers[at]; if(m) return m;
     const g=ctx.actors[at]||ctx.things[at]; if(g) return [g.position.x,g.position.z];   /* a person or a thing: where they are now */
@@ -1495,7 +1657,7 @@ function frame(dtW){
     if(u.tick&&o.visible) u.tick(dt);
     if(u.bob&&!ctx.lake){ const k=ctx.rough||1; o.position.y=u.baseY+Math.sin(t*1.3+o.position.x)*0.06*k; o.rotation.z=Math.sin(t*0.9+o.position.z)*0.025*k; } }
   if(ctx.lake&&ctx.lake.w) lakeTick(dt);
-  lifeTick(dt); wadeTick(dt);
+  lifeTick(dt); wadeTick(dt); folkTick(dt);
   if(portrait&&!$('sverse').classList.contains('off')) drawPortrait();
   { const T=SV.talk, g=T&&T.sp&&T.sp.glow&&ctx.glows[T.sp.glow];          /* a mal'ak's light swells with the words */
     if(g){ const m=SV.mouth(T.sp.key)||0; g.sprite.scale.setScalar(g.base*(1+m*0.12)); } }
