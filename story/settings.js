@@ -993,8 +993,8 @@ S.damascus=function(ctx,st){
   /* the city about its day: sellers along the street called Straight under its colonnades, people
      going up and down it, the gardeners among the trees outside the wall */
   W.folk(ctx,[
-    {do:'sell', at:[6,-5.4], face:0, goods:'cloth'}, {do:'sell', at:[26,5.4], face:Math.PI, goods:'fruit'}, {do:'sell', at:[44,-5.4], face:0, goods:'pots'},
-    {do:'stroll', area:[-16,-2,56,2], n:4}, {do:'talk', at:[34,-5.2], n:2}, {do:'play', at:[46,4.6], r:1.4, n:2},
+    {do:'sell', at:[6,-4.6], face:0, goods:'cloth'}, {do:'sell', at:[26,4.6], face:Math.PI, goods:'fruit'}, {do:'sell', at:[46,-4.6], face:0, goods:'pots'},
+    {do:'stroll', area:[-16,-2,56,2], n:4}, {do:'talk', at:[34,-4.4], n:2}, {do:'play', at:[46,4.6], r:1.4, n:2},
     {do:'walk', path:[[-17,0.6],[20,0.6],[56,0.6]], n:2, donkey:true},
     {do:'pick', at:[-82,-22]}, {do:'pick', at:[-64,24]}, {do:'hoe', at:[-74,-30], face:0}]);
   ctx.bounds={x0:-130,x1:90,z0:-90,z1:90};
