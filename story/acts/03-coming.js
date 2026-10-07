@@ -96,7 +96,7 @@ STORY.act({
     actors:[ Object.assign({id:'miryam', name:'Miryam', at:'miryam', face:0},MIRYAM),
              Object.assign({id:'yoseph', name:'Yosĕph', at:'yoseph', face:0},YOSEPH) ],
     glows:[ {id:'gabrial', at:[-4,2.4,-2.2], size:4.5, color:0xfff4d6, intensity:1.6, pulse:true, hidden:true},
-            {id:'dream', at:[14.8,1.7,-2.9], size:2.6, color:0xfff4d6, intensity:1.0, pulse:true, hidden:true} ],
+            {id:'dream', at:[13.6,1.35,-2.5], size:2.2, color:0xfff4d6, intensity:1.0, pulse:true, hidden:true} ],
     beats:[
       {t:'cam', from:[20,14,26], look:[0,1,-4], dur:0.1},
       {t:'cam', from:[4,5,6], look:'miryam', dur:4},
@@ -116,9 +116,9 @@ STORY.act({
       /* "while he pondered these, see, a mal'ak … appeared to him in a dream": night, and he asleep
          within his house, on the floor beside the bed, the light standing by his head */
       {t:'time', to:'night'},
-      {t:'place', who:'yoseph', at:[13.7,-2.5], face:Math.PI/2},
+      {t:'place', who:'yoseph', at:[13.7,-2.5], face:Math.PI},
       {t:'lie', who:'yoseph'},
-      {t:'cam', from:[15.9,2.1,-0.6], look:[13.9,0.3,-2.6], dur:0.1},
+      {t:'cam', from:[16.0,1.75,-0.9], look:[13.5,-0.35,-2.6], dur:0.1},              /* down across the room to him, so he lies above the words */
       {t:'show', id:'dream'},
       {t:'say', who:'dreamMalak', ref:'MATTITHYAHU 1:20-21'},
       {t:'hide', id:'dream'},
