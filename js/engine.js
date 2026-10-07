@@ -12481,11 +12481,12 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   /* four blocks to the eaves now, not three — a house a man does not have
      to stoop into reads as a HOUSE, not a hut */
   /* ---- A DOOR A MAN WALKS THROUGH UPRIGHT (Round 128) ----
-     The houses of the story and of the city of the great king (`big`) are a course
-     taller, and their doorway two cells wide and three courses high: the one-cell,
-     two-course doorway over a step a course high read, beside a man, as a hatch. */
+     The houses of the story and of the city of the great king (`big`) stand on the ground,
+     their floor level with the street, and their doorway is two cells wide and three
+     courses high from the ground: the one-cell, two-course doorway over a step a course
+     high read, beside a man, as a hatch, and the step was a block in his way. */
   const big=!!(ex&&ex.big);
-  const wallH=(big?5:4)*B, T=B*0.5, gw=big?B+0.02:B*0.75;
+  const wallH=4*B, T=B*0.5, gw=big?B+0.02:B*0.75;
   /* the stone footing, and the floor laid upon it — beaten earth in the
      brick lands and the huts, boards in the timber ones */
   const earthFloor=(style==='levant'||style==='round');
@@ -12494,8 +12495,13 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
     :style==='med'?'plaster'
     :(ex&&ex.washed!==undefined?ex.washed:houseWashed(ex&&ex.ci!==undefined?ex.ci:0,seed))?'plaster':'mudbrick';
   const lintelMat=style==='east'?'planks':'logSide';
-  emitBox(G, x0,y,z0, x1,y+B*0.55,z1, 'cobble','cobble',null);
-  emitTop(G,earthFloor?'path':'planks', x0+T,z0+T, x1-T,z1-T, y+B*0.58, 0.95);
+  /* a big house stands on the ground, its floor level with the street and no course to climb
+     at its door: the footing is laid in the earth beneath it, and the room is cleared to it */
+  if(big){ emitBox(G, x0,y-B*0.98,z0, x1,y-B*0.02,z1, 'cobble','cobble',null);
+    if(_stampOn){ const i0=Math.ceil((x0+T)/B), i1=Math.floor((x1-T)/B)-1, k0=Math.ceil((z0+T)/B), k1=Math.floor((z1-T)/B)-1, j0=Math.floor((y+B*0.5)/B);
+      for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++) for(let j=j0;j<j0+3;j++) stampBlock(i,j,k,0); } }
+  else emitBox(G, x0,y,z0, x1,y+B*0.55,z1, 'cobble','cobble',null);
+  emitTop(G,earthFloor?'path':'planks', x0+T,z0+T, x1-T,z1-T, big?y+0.03:y+B*0.58, 0.95);
   /* four hollow walls; the doorway is left open on doorDir (0=+z 1=-z 2=+x 3=-x) */
   /* ---- THE LINTEL SITS ON A COURSE (Round 95) ----
      It was hung at 2.75 courses, and a stamp claims every cell a box
@@ -12505,7 +12511,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
      rule that a floor wants two courses of clear air over it (noRoom, in
      moveEnt) refused every soul in the world its own doorway, and nobody
      had ever gone indoors. Three courses even: the doorway is two clear. */
-  const wy0=y+B*0.55, wy1=y+wallH, ly=y+B*(big?4:3);      /* ly = lintel underside */
+  const wy0=big?y+0.02:y+B*0.55, wy1=y+wallH, ly=y+B*3;      /* ly = lintel underside: three courses clear over a big house's ground-floor, two over another's footing */
   /* ---- THE DOORWAY SITS ON A CELL (Round 95) ----
      The gap was cut about the house's own middle, wherever on the block
      grid that fell. A stamp claims every cell a box touches, so when the
@@ -12538,14 +12544,14 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
      changed nothing — and the doorway clearing beneath it took a block out
      of the threshold instead. */
   if((style==='med'||style==='levant')&&_stampOn){
-    const cm='cobble', fy0=y+B*1.05, fy1=y+B*1.95;
+    const cm='cobble', fy0=big?y+B*0.05:y+B*1.05, fy1=big?y+B*0.95:y+B*1.95;
     emitBox(G,x0,fy0,z0,x1,fy1,z0+T,cm,cm,null);
     emitBox(G,x0,fy0,z1-T,x1,fy1,z1,cm,cm,null);
     emitBox(G,x0,fy0,z0,x0+T,fy1,z1,cm,cm,null);
     emitBox(G,x1-T,fy0,z0,x1,fy1,z1,cm,cm,null);
     /* and the doorway is never walled across by it */
     const dcx=Math.floor((doorDir===2?x1-T/2:doorDir===3?x0+T/2:gx)/B),
-          dcz=Math.floor((doorDir===0?z1-T/2:doorDir===1?z0+T/2:gz)/B), dcy=Math.floor((y+B*1.5)/B);
+          dcz=Math.floor((doorDir===0?z1-T/2:doorDir===1?z0+T/2:gz)/B), dcy=Math.floor((y+B*(big?0.5:1.5))/B);
     stampBlock(dcx,dcy,dcz,0);
     if(big){ if(doorDir<=1) stampBlock(Math.floor((gx-B*0.5)/B),dcy,dcz,0); else stampBlock(dcx,dcy,Math.floor((gz-B*0.5)/B),0); } }
   /* timber posts at the corners — the frame of a timber house only */
@@ -12655,7 +12661,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
       roofTop=ry1;
     }
   }
-  emitFurniture(G, ex, x0,x1,z0,z1, big?y+B+0.02:y+B*0.58, T, hx,hz, doorDir);   /* (a big house's goods stand on its floor, not sunk in the footing under it) */
+  emitFurniture(G, ex, x0,x1,z0,z1, big?y+0.03:y+B*0.58, T, hx,hz, doorDir);   /* (a big house's goods stand on its floor, not sunk in the footing under it) */
   ex.torchIn.push({x:hx,y:y+B*0.58+B*2.05,z:hz});
   ex.doors.push({x:(doorDir<=1?gx:hx)+(doorDir===2?w*B/2+B:doorDir===3?-w*B/2-B:0),
                  z:(doorDir>=2?gz:hz)+(doorDir===0?d*B/2+B:doorDir===1?-d*B/2-B:0)});
@@ -12682,7 +12688,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
        and a man cannot climb the 54 to the 66 coming home). It gives up
        after two ranks with nothing to lay: a terrace can run level for a
        cell and fall again past it. */
-    let prevTop=y+B, dry=0;
+    let prevTop=big?y:y+B, dry=0;
     /* three cells wide — the gap's cell and one to either side — because a
        soul comes at its door from anywhere in the yard, and a stair one
        cell wide met from the side is a two-course bank (a hunter and a
@@ -12705,7 +12711,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   const swing = (doorDir===0||doorDir===3)?1.7:-1.7;   /* open outward */
   ex.houses.push({x0,x1,z0,z1, dx:gapCX, dz:gapCZ, gw, apron, style, stair:stairAt,
     yb:y, top:roofTop,   /* footing and ridge (or parapet) — the eye rides over these */
-    door:{dir:doorDir, hx:hingeX, hz:hingeZ, base:baseAng, y:big?y+B:y+B*0.05,      /* (a big house's leaf hangs from its threshold) */
+    door:{dir:doorDir, hx:hingeX, hz:hingeZ, base:baseAng, y:big?y+0.02:y+B*0.05,      /* (a big house's leaf hangs from its threshold) */
       w:gw*2.0, h:big?B*2.98:B*2.05, swing, open:false, ang:baseAng, target:baseAng}});
 }
 /* ---- THE FIELD, AND WHAT IS SOWN IN IT ----
