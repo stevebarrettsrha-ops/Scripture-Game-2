@@ -340,7 +340,7 @@ STORY.act({
       T('toma','stairTop',{face:-Math.PI/2, hidden:true}),
       Object.assign({id:'yahusha', at:MIDST, face:Math.PI, hidden:true},YAHUSHA)
     ],
-    things:[ {id:'fish', kind:'box', at:[21.3,32.2], y:F, w:0.42, h:0.08, d:0.16, color:0xa8784a},
+    things:[ {id:'fish', kind:'fish', at:[21.3,32.2], y:F+0.02, color:0xa8784a},             /* a piece of a broiled fish (Luqas 24:42) */
              {id:'honey', kind:'box', at:[21.4,31.5], y:F, w:0.22, h:0.12, d:0.22, color:0xd8a030} ],
     beats:[
       {t:'cam', from:[13,4.6,26.9], look:[18,3,31], dur:0.1},
@@ -438,7 +438,7 @@ STORY.act({
     things:[ {id:'boat', kind:'boat', big:true, at:[BX,0], y:-0.1},
              {id:'netPile', kind:'box', at:[BX+0.4,-0.4], y:BOAT_FLOOR, w:0.9, h:0.3, d:0.8, color:0xb8a882},
              {id:'net', kind:'net', at:[BX-2.6,0.6], y:-0.35, w:1.4, h:0.5, d:2.8, n:90, hidden:true},
-             {id:'fishes', kind:'box', at:['water',-1.6,-2.6], w:0.7, h:0.14, d:0.42, color:0xc8ccd0, hidden:true} ],
+             {id:'fishes', kind:'fish', at:['water',-1.6,-2.6], n:6, dy:0.05, color:0xb8bcb4, hidden:true} ],
     beats:[
       {t:'player', at:[BX-0.55,-0.1], y:BOAT_FLOOR, lock:true, face:-Math.PI/2},
       {t:'cam', from:[BX+12,5,-12], look:[BX,0.4,0], dur:0.1},

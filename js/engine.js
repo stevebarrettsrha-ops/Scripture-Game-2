@@ -7419,7 +7419,13 @@ const BEAST_KIT={
        joint at the bottom of it (userData.knee), which the engine folds
        as the leg swings — set it and the beast picks its feet up. */
     for(const sx of [1,-1]) for(const sz of [1,-1]){
-      const L=lbox(t,h*0.55,t,col); L.geometry.translate(0,-h*0.275,0);
+      /* ---- AND THE LEG GOES UP INTO THE BODY (Round 129) ----
+         The hip was set at `h`, and many a barrel hangs its belly a hand or
+         more above that (the ox's by 0.4 of its 2.75): the leg stood off
+         under the beast with daylight between them, a table on its trestles.
+         The thigh is carried up a quarter of its height into the body, where
+         it is hidden, and swung, it never shows the gap. */
+      const up=h*0.25, L=lbox(t,h*0.55+up,t,col); L.geometry.translate(0,-h*0.275+up/2,0);
       L.position.set(sx*x,h,sz*z); L.userData.ph=(sx*sz>0)?0:Math.PI;
       /* AND EVERY FOOT KNOWS WHICH FOOT IT IS — near fore 0, off fore 1,
          near hind 2, off hind 3. The gait law is nothing but four numbers
@@ -7803,6 +7809,13 @@ function makeBeast(name,arg){
   const spec=BEAST_BY_NAME[name];
   if(!spec) throw new Error('no creature file for "'+name+'"');
   const inner=spec.build(BEAST_KIT,arg);
+  /* ---- THE TAIL HANGS BEHIND (Round 129) ----
+     A long tail set at the rump and laid down past the level (ox, cow, ass,
+     camel, lion, bear, elephant) was turned about the wrong way — down and
+     FORWARD, toward the head — so it grew back into the beast's own haunch
+     and no one ever saw it. Down and back, as it hangs. */
+  { const tl=inner.userData&&inner.userData.tail;
+    if(tl&&tl.position.z<0&&tl.rotation.x>Math.PI/2) tl.rotation.x=-tl.rotation.x; }
   coatBeast(inner,spec);
   mergeBeast(inner);            /* and the still parts are welded into one */
   const span=beastSpan(inner,trueAxis(name,spec));
@@ -18921,6 +18934,8 @@ function buildYahruPlan(period){
 window.__KIT={
   B, U_PER_M, R_WORLD, WATER_Y, THREE, scene, camera, renderer,
   makeFigure, makeAnimal:k=>{ try{ return makeAnimal(k); }catch(e){ return null; } },
+  /* the voyage's own fish (creatures/: fish, sardine, catfish, trout, mackerel …), its colour given */
+  makeFish:(k,col)=>{ try{ return makeBeast(k||'fish',col); }catch(e){ return null; } },
   /* is this point in water (a block of it, a lake's or a river's)? — a man wades in it, he does not stand on it */
   waterAt:(x,y,z)=>blockAt(Math.floor(x/B),Math.floor(y/B),Math.floor(z/B))===blockId('water'),
   robeMat:robeMatHex, blockMat:n=>MAT[n]||null, solidAt, splash:(x,y,z,big)=>splash(x,y,z,big),

@@ -196,9 +196,7 @@ const lm=(c,o)=>{ const k=c+(o?'t':''); return LIFE_M[k]||(LIFE_M[k]=new THREE.M
 const lb=(g,w,h,d,c,x,y,z,o)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),lm(c,o)); q.position.set(x,y,z); g.add(q); return q; };
 W.creature=function(ctx,kind){
   const g=new THREE.Group(); const u=g.userData;
-  if(kind==='fish'){ const big=Math.random()<0.3, s=big?1.5:1;
-    lb(g,0.08*s,0.1*s,0.3*s,big?0x6a7a5a:0x9aa6a0,0,0,0); lb(g,0.06*s,0.05*s,0.16*s,0xc8d0c8,0,-0.04*s,0.02);   /* the back, the pale belly */
-    u.tail=lb(g,0.02,0.12*s,0.1*s,big?0x5a6a4a:0x8a968e,0,0,-0.19*s); lb(g,0.015,0.06*s,0.08*s,0x5a6a4a,0,0.07*s,0); }   /* the tail, the fin */
+  if(kind==='fish'){ const f=W.voyageFish(); if(f){ g.add(f); u.body=f; } }                     /* the voyage's own fish */
   else if(kind==='frog'){ lb(g,0.15,0.07,0.18,0x4e7a30,0,0.05,0); lb(g,0.11,0.05,0.07,0x5c8a38,0,0.08,0.08);
     lb(g,0.03,0.03,0.03,0xd8c040,0.045,0.11,0.1); lb(g,0.03,0.03,0.03,0xd8c040,-0.045,0.11,0.1);
     lb(g,0.05,0.04,0.12,0x46702c,0.09,0.03,-0.04); lb(g,0.05,0.04,0.12,0x46702c,-0.09,0.03,-0.04); }
@@ -213,6 +211,13 @@ W.creature=function(ctx,kind){
 };
 /* the life of a water, to be set about it once the set is laid: `at` [x,z] and `r` the reach to look
    for water in, `y` its face; how many of each */
+/* THE FISH ARE THE VOYAGE'S OWN: the musht of the lake (a silver-grey of the `fish` file), the
+   little Kinneret sardine and the catfish in its mud; each made by the voyage's creature files,
+   at its true size, nose to +z */
+const FISH_KINDS=[['fish',0x9aa6a0],['fish',0x7a8a80],['fish',0xa8b0a0],['sardine'],['sardine'],['catfish']];
+W.voyageFish=function(pick){ const k=K(); if(!k.makeFish) return null;
+  const F=pick||FISH_KINDS[Math.floor(Math.random()*FISH_KINDS.length)], m=k.makeFish(F[0],F[1]); if(!m) return null;
+  m.scale.multiplyScalar(1/k.setScale); return m; };
 W.waterLife=function(ctx,o){ (ctx.lifeSpecs=ctx.lifeSpecs||[]).push(o); };
 /* THE PEOPLE OF THE PLACE, about their day: not the ones the story speaks of, but the town they
    live in — women going down to the spring and coming up with the jar on the head (Bereshith
@@ -255,6 +260,12 @@ W.prop=function(kind){
   else if(kind==='sickle'){ cy(0.016,0.016,0.22,0x6a4a2a,0,-0.08,0,5); const q=new THREE.Mesh(new THREE.TorusGeometry(0.14,0.014,4,10,Math.PI*1.1),M(0x8a8a8a)); q.position.set(0,-0.22,0.12); q.rotation.y=Math.PI/2; g.add(q); }
   else if(kind==='tree'){ cy(0.02,0.02,1.7,0x6a4a2a,0,-0.6,0,5); }
   return g; };
+/* A FISH laid out to sell (the musht of the lake, Luqas 5:6): a deep body tapering to the tail,
+   a forked tail-fin, the fin along the back, a pale belly, a dark eye — lying on its side */
+W.fishProp=function(col,x,y,z,ry){
+  const g=new THREE.Group(), f=W.voyageFish(col===0x7a8a80?['fish',0x7a8a80]:['fish',0x9aa6a0]);
+  if(f){ f.scale.multiplyScalar(0.8); g.add(f); }                                     /* a musht, laid out on its side */
+  g.rotation.z=Math.PI/2; g.rotation.y=ry||0; const h=new THREE.Group(); h.add(g); h.position.set(x,y+0.02,z); return h; };
 /* A SELLER'S TABLE in the street: a board on trestles under an awning, its goods laid out —
    loaves, fruit, pots, cloth, fish or doves */
 W.stall=function(ctx,x,z,face,goods){
@@ -267,7 +278,7 @@ W.stall=function(ctx,x,z,face,goods){
   for(let i=0;i<9;i++){ const c=G[i%G.length], px=-0.6+(i%5)*0.3, pz=i<5?-0.15:0.15;
     if(goods==='pots') { const q=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.09,0.18,8),M(c)); q.position.set(px,0.9,pz); g.add(q); }
     else if(goods==='cloth') bx(0.28,0.08,0.28,c,px,0.85+(i%3)*0.04,pz);
-    else if(goods==='fish') bx(0.08,0.04,0.26,c,px,0.83,pz);
+    else if(goods==='fish') g.add(W.fishProp(c,px,0.84,pz,(i%2?0.3:-0.25)));
     else if(goods==='doves') { bx(0.24,0.18,0.24,0x8a7a5a,px,0.9,pz); bx(0.1,0.08,0.14,c,px,0.92,pz); }
     else { const q=new THREE.Mesh(new THREE.SphereGeometry(goods==='bread'?0.1:0.07,8,6),M(c)); q.scale.y=goods==='bread'?0.55:1; q.position.set(px,0.86,pz); g.add(q); } }
   g.position.set(x,ctx.groundY?ctx.groundY(x,z)||0:0,z); g.rotation.y=face||0; ctx.scene.add(g); return g; };
@@ -540,9 +551,10 @@ W.boat=function(ctx,x,z,o){ o=o||{};
 W.net=function(ctx,x,z,o){ o=o||{};
   const g=new THREE.Group(), mat=new THREE.MeshLambertMaterial({color:0xb8a882,transparent:true,opacity:0.75});
   const q=new THREE.Mesh(new THREE.BoxGeometry(o.w||1.6,o.h||0.4,o.d||1.4),mat); g.add(q);
-  const fish=new THREE.Group(), fm=new THREE.MeshLambertMaterial({color:0xc8ccd0,emissive:0x2a2c30});
-  for(let k=0;k<(o.n||40);k++){ const f=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.08,0.1),fm);
-    f.position.set((hash(k,1)-0.5)*(o.w||1.6)*0.9,(hash(k,2)-0.3)*(o.h||0.4)*1.6,(hash(k,3)-0.5)*(o.d||1.4)*0.9); f.rotation.y=hash(k,4)*6; fish.add(f); }
+  const fish=new THREE.Group();                                                       /* the catch: the voyage's own fish, heaped in the net */
+  for(let k=0;k<Math.min(28,o.n||28);k++){ const f=W.voyageFish(FISH_KINDS[Math.floor(hash(k,5)*5)]); if(!f) continue;
+    const h=new THREE.Group(); h.add(f); h.position.set((hash(k,1)-0.5)*(o.w||1.6)*0.9,(hash(k,2)-0.3)*(o.h||0.4)*1.6,(hash(k,3)-0.5)*(o.d||1.4)*0.9);
+    h.rotation.set(hash(k,6)*0.6,hash(k,4)*6,(hash(k,7)-0.5)*2.4); fish.add(h); }
   fish.visible=!!o.full; g.add(fish); g.userData.fish=fish;
   g.position.set(x,o.y||0,z); ctx.scene.add(g); return g; };
 /* a stone water-jug "according to the mode of cleansing" (Yahuchanon 2:6): chalk stone, waist-high */
@@ -798,9 +810,10 @@ W.boat=function(ctx,x,z,o){ o=o||{};
 W.net=function(ctx,x,z,o){ o=o||{};
   const g=new THREE.Group(), mat=new THREE.MeshLambertMaterial({color:0xb8a882,transparent:true,opacity:0.75});
   const q=new THREE.Mesh(new THREE.BoxGeometry(o.w||1.6,o.h||0.4,o.d||1.4),mat); g.add(q);
-  const fish=new THREE.Group(), fm=new THREE.MeshLambertMaterial({color:0xc8ccd0,emissive:0x2a2c30});
-  for(let k=0;k<(o.n||40);k++){ const f=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.08,0.1),fm);
-    f.position.set((hash(k,1)-0.5)*(o.w||1.6)*0.9,(hash(k,2)-0.3)*(o.h||0.4)*1.6,(hash(k,3)-0.5)*(o.d||1.4)*0.9); f.rotation.y=hash(k,4)*6; fish.add(f); }
+  const fish=new THREE.Group();                                                       /* the catch: the voyage's own fish, heaped in the net */
+  for(let k=0;k<Math.min(28,o.n||28);k++){ const f=W.voyageFish(FISH_KINDS[Math.floor(hash(k,5)*5)]); if(!f) continue;
+    const h=new THREE.Group(); h.add(f); h.position.set((hash(k,1)-0.5)*(o.w||1.6)*0.9,(hash(k,2)-0.3)*(o.h||0.4)*1.6,(hash(k,3)-0.5)*(o.d||1.4)*0.9);
+    h.rotation.set(hash(k,6)*0.6,hash(k,4)*6,(hash(k,7)-0.5)*2.4); fish.add(h); }
   fish.visible=!!o.full; g.add(fish); g.userData.fish=fish;
   g.position.set(x,o.y||0,z); ctx.scene.add(g); return g; };
 /* a stone water-jug "according to the mode of cleansing" (Yahuchanon 2:6): chalk stone, waist-high */
