@@ -365,7 +365,15 @@ W.person=function(ctx,o){
     F.tears.forEach((t,i)=>{ t.visible=ex==='weep'; if(t.visible){ F.tt=((F.tt||0)+0.012)%1; t.position.y=-0.01-((F.tt+i*0.5)%1)*0.07; } }); };
   setFace(0,false,'calm');
 
-  g.userData={legL,legR,armL,armR,body,cloth:cloths,drapes,head,headY:(1.61*k),setFace,aura:g.userData.aura,
+  /* ---- THE WAIST ----
+     A figure was one stiff piece from the hips up, and could only be tipped over whole from its
+     feet, like a post. Everything above the belt — the chest, the shoulders and the arms, the
+     neck and the head, a mantle or a mail-shirt — now hangs from a joint at the waist, so one
+     who reaps or hoes or bends to the water bends there, over legs that stay planted. */
+  const waist=new THREE.Group(); waist.position.set(0,0.98,0); body.add(waist);
+  for(const c of [...body.children]){ if(c===waist||c===legL||c===legR) continue;
+    if(c.position.y>1.0){ body.remove(c); c.position.y-=0.98; waist.add(c); } }
+  g.userData={legL,legR,armL,armR,body,waist,cloth:cloths,drapes,head,headY:(1.61*k),setFace,aura:g.userData.aura,
     s:k,holy:dress==='yahusha',dress,phase:Math.random()*6,blink:2+Math.random()*4,
     tunicMeshes:(()=>{ const out=[]; g.traverse(q=>{ if(q.isMesh&&q.material===tunicM) out.push(q); }); return out; })(),
     mantleMeshes:(()=>{ const out=[]; if(mantleM) g.traverse(q=>{ if(q.isMesh&&q.material===mantleM) out.push(q); }); return out; })()};

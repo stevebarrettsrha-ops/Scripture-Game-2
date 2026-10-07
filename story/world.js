@@ -170,6 +170,74 @@ W.fig=function(S,x,z){
   S.box(x-1.8,3.6,z-1.7,x+1.8,4.4,z+1.8,'leaves'); };
 /* THE DATE PALM: a trunk that leans a little as it climbs, a crown of fronds reaching out and
    bowing at their tips, and the dates hanging in clusters under them */
+/* A FIELD OF WHEAT, white for harvest (Yahuchanon 4:35): not blocks but the plant itself — a
+   jointed stalk, two narrow leaves drying on it, and at the top the ear of paired grains with
+   its bristling beards, nodding over with its own weight; three stalks to a tuft, each a little
+   other in height and lean, and the whole field swaying with the wind. Drawn as one shape set
+   down a few thousand times (an instanced mesh), so a field costs no more than a house.
+   `test(x,z)` keeps a place clear (a path, a swath already reaped). */
+function wheatTuft(seed){
+  const P=[], C=[], N=[], I=[];
+  const R=(k)=>hash(seed*13.1+k,seed*7.7-k);
+  const quad=(a,b,c,d,col)=>{ const n=new THREE.Vector3().subVectors(b,a).cross(new THREE.Vector3().subVectors(d,a)).normalize(), o=P.length/3;
+    for(const v of [a,b,c,d]){ P.push(v.x,v.y,v.z); N.push(n.x,n.y,n.z); C.push(col.r,col.g,col.b); }
+    I.push(o,o+1,o+2,o,o+2,o+3); };
+  /* a box along a line from p to q, `w` thick (`t` deep): the stalk's lengths, the grains */
+  const bar=(p,q,w,t,hex)=>{ const col=new THREE.Color(hex), d=new THREE.Vector3().subVectors(q,p), up=Math.abs(d.y)>0.9*d.length()?new THREE.Vector3(1,0,0):new THREE.Vector3(0,1,0);
+    const s=new THREE.Vector3().crossVectors(d,up).normalize().multiplyScalar(w/2), u=new THREE.Vector3().crossVectors(s,d).normalize().multiplyScalar((t||w)/2);
+    const c=[p.clone().sub(s).sub(u),p.clone().add(s).sub(u),p.clone().add(s).add(u),p.clone().sub(s).add(u)], e=c.map(v=>v.clone().add(d));
+    quad(c[0],c[1],e[1],e[0],col); quad(c[1],c[2],e[2],e[1],col);
+    if((t||w)>0.008){ quad(c[2],c[3],e[3],e[2],col); quad(c[3],c[0],e[0],e[3],col); } };     /* (a hair-thin beard or a blade of leaf: two faces are enough, drawn both sides) */
+  for(let k=0;k<3;k++){
+    const ox=(R(k*5)-0.5)*0.09, oz=(R(k*5+1)-0.5)*0.09, h=0.82+R(k*5+2)*0.3, lean=0.05+R(k*5+3)*0.1, dir=R(k*5+4)*6.28;
+    const lx=Math.cos(dir), lz=Math.sin(dir);
+    const at=(t)=>new THREE.Vector3(ox+lx*lean*h*t*t, h*t, oz+lz*lean*h*t*t);            /* the stalk bows a little more as it rises */
+    const stalk=[0xc8ae64,0xbfa55c,0xd2b870][k%3];
+    let prev=at(0); for(const t of [0.4,0.75,1.0]){ const nx=at(t); bar(prev,nx,0.011,0.011,stalk); prev=nx; }
+    /* two leaves from the lower joints, long and narrow, falling away from the stalk */
+    for(const [t,a] of [[0.4,dir+2.4],[0.75,dir-2.0]]){ const b=at(t), out=new THREE.Vector3(Math.cos(a),0,Math.sin(a));
+      const m=b.clone().addScaledVector(out,0.12).add(new THREE.Vector3(0,0.06,0)), e=b.clone().addScaledVector(out,0.24).add(new THREE.Vector3(0,-0.04,0));
+      bar(b,e.clone().lerp(m,0.4),0.02,0.003,0xb09656); }
+    /* the ear: nodding over from the top of the stalk, paired grains up it, the beards standing out */
+    const top=at(1), nod=new THREE.Vector3(lx*0.55,0.83,lz*0.55).normalize(), side=new THREE.Vector3(-lz,0,lx);
+    const L=0.1;
+    for(let g=0;g<5;g++){ const c=top.clone().addScaledVector(nod,0.012+g*L/5), sd=g%2?1:-1;
+      const a=c.clone().addScaledVector(side,sd*0.006), b=a.clone().addScaledVector(nod,0.022).addScaledVector(side,sd*0.004);
+      bar(a,b,0.016,0.012,[0xe6c97c,0xdcbc6a][g%2]);
+      if(g%2===0){ const aw=b.clone().addScaledVector(nod,0.11).addScaledVector(side,sd*0.035); bar(b,aw,0.003,0.003,0xd8c486); } }
+    bar(top.clone().addScaledVector(nod,L+0.01),top.clone().addScaledVector(nod,L+0.13),0.003,0.003,0xd8c486);   /* the beard at the tip */
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(P,3)); geo.setAttribute('normal',new THREE.Float32BufferAttribute(N,3));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(C,3)); geo.setIndex(I); return geo; }
+W.wheatField=function(ctx,area,o){ o=o||{};
+  const [x0,z0,x1,z1]=area, n=o.n||2400, test=o.test||(()=>true), mats=[];
+  const mat=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide});
+  /* the wind through it: each tuft bends from its foot, the more the higher, in a wave across the field */
+  const U={uWT:{value:0}};
+  mat.onBeforeCompile=sh=>{ sh.uniforms.uWT=U.uWT; sh.vertexShader='uniform float uWT;\n'+sh.vertexShader.replace('#include <begin_vertex>',
+    '#include <begin_vertex>\n  { vec3 ip=vec3(instanceMatrix[3][0],0.0,instanceMatrix[3][2]); float ph=uWT*1.6+ip.x*0.35+ip.z*0.22;\n'+
+    '    float b=(sin(ph)*0.6+sin(ph*2.3+ip.z)*0.25)*0.07*transformed.y*transformed.y; transformed.x+=b; transformed.z+=b*0.4; }'); };
+  const kinds=[wheatTuft(1),wheatTuft(2),wheatTuft(3)], meshes=kinds.map(g=>new THREE.InstancedMesh(g,mat,Math.ceil(n/3)+4)), count=[0,0,0];
+  const m4=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(), sc=new THREE.Vector3();
+  for(let k=0;k<n*3&&count.reduce((a,b)=>a+b,0)<n;k++){
+    const x=x0+hash(k,31)*(x1-x0), z=z0+hash(k,37)*(z1-z0); if(!test(x,z)) continue;
+    const v=k%3; if(count[v]>=meshes[v].count) continue;
+    e.set(0,hash(k,41)*6.28,0); q.setFromEuler(e); const s=0.9+hash(k,43)*0.22; sc.set(s,s,s);
+    m4.compose(new THREE.Vector3(x,ctx.groundY?ctx.groundY(x,z)||0:0,z),q,sc); meshes[v].setMatrixAt(count[v]++,m4); }
+  const g=new THREE.Group();
+  meshes.forEach((m,i)=>{ m.count=count[i]; m.instanceMatrix.needsUpdate=true; m.frustumCulled=false; g.add(m); });
+  ctx.scene.add(g); (ctx.tickers=ctx.tickers||[]).push(dt=>{ U.uWT.value+=dt; });
+  return g; };
+/* a sheaf the reapers have bound and laid down behind them: a bundle of stalks tied about the
+   middle, the ears all at one end */
+W.sheaf=function(ctx,x,z,ry){
+  const g=new THREE.Group(), M=c=>new THREE.MeshLambertMaterial({color:c});
+  for(let i=0;i<9;i++){ const a=i/9*6.28, r=0.05+(i%3)*0.02;
+    const s=new THREE.Mesh(new THREE.BoxGeometry(0.016,0.016,0.78),M(0xc8ae64)); s.position.set(Math.cos(a)*r,0.08+Math.sin(a)*r*0.6,0); g.add(s);
+    const ear=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.03,0.12),M(0xe2c478)); ear.position.set(Math.cos(a)*r*1.3,0.08+Math.sin(a)*r*0.8,0.44); g.add(ear); }
+  const band=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.16,0.05),M(0x9a8448)); band.position.set(0,0.08,-0.02); g.add(band);
+  g.position.set(x,ctx.groundY?ctx.groundY(x,z)||0:0,z); g.rotation.y=ry||0; ctx.scene.add(g); return g; };
 W.palm=function(S,x,z){
   const y0=S.ground(x,z), h=5.2+hash(x,z)*2.4, lean=(hash(z,x)-0.5)*1.1, la=hash(x*1.7,z)*6.28, lx=Math.cos(la)*lean, lz=Math.sin(la)*lean;
   /* the trunk: slim, ringed where the old fronds were cut, leaning as it climbs */

@@ -105,13 +105,13 @@ S.shekem=function(ctx,st){
   const REAP=[[-20,-21,0.4],[-11,-24,0.2],[2,-15,-0.3],[-24,-12,0.6]];
   const cut=(x,z)=>REAP.some(([rx,rz,f])=>{ const dx=x-rx, dz=z-rz, al=dx*Math.sin(f)+dz*Math.cos(f), ac=dx*Math.cos(f)-dz*Math.sin(f);
     return Math.hypot(dx,dz)<1.3||(al<0.4&&al>-7&&Math.abs(ac)<1.1); });
-  for(let k=0;k<1500;k++){ const x=-30+W.hash(k,3)*52, z=-30+W.hash(k,4)*24;
-    if(Math.hypot(x,z)<7||Math.abs(z-(x*0.55-3))<3.2) continue;
-    if(cut(x,z)){ if(k%2===0) st.detail(x-0.03,0,z-0.03,x+0.03,0.12,z+0.03,0xb8a066); continue; }      /* stubble */
-    const h=0.75+W.hash(k,5)*0.3, col=[0xd6c27e,0xcdb874,0xe0cc8a][k%3], head=[0xe8d496,0xdcc27a,0xf0e0a8][k%3];
-    for(let j=0;j<2;j++){ const sx=x+(j?0.09:-0.07), sz=z+(j?-0.05:0.06), hh=h-(j*0.08);
-      st.detail(sx-0.018,0,sz-0.018,sx+0.018,hh,sz+0.018,col);                                     /* the stalk */
-      st.detail(sx-0.04,hh,sz-0.04,sx+0.04,hh+0.17,sz+0.04,head); } }                               /* the ear */
+  for(let x=-30;x<22;x+=1.6) for(let z=-30;z<-6;z+=1.6){ if(Math.hypot(x+0.8,z+0.8)<7.5||Math.abs(z+0.8-((x+0.8)*0.55-3))<2.6) continue;   /* the ploughed earth the wheat stands in */
+    ctx.api.top(x,z,x+1.6,z+1.6,'dirt'); }
+  W.wheatField(ctx,[-30,-30,22,-6],{n:4600,test:(x,z)=>!(Math.hypot(x,z)<7||Math.abs(z-(x*0.55-3))<3.2||cut(x,z))});
+  for(let k=0;k<700;k++){ const x=-30+W.hash(k,3)*52, z=-30+W.hash(k,4)*24;                         /* the stubble where it is cut */
+    if(!cut(x,z)||Math.hypot(x,z)<7||Math.abs(z-(x*0.55-3))<3.2) continue; st.detail(x-0.012,0,z-0.012,x+0.012,0.1,z+0.012,0xb8a066); }
+  for(const [rx,rz,f] of REAP) for(const d of [2.2,4.4]){                                                      /* the sheaves bound and laid behind them */
+    const x=rx-Math.sin(f)*d+(W.hash(rx,d)-0.5)*0.6, z=rz-Math.cos(f)*d+(W.hash(rz,d)-0.5)*0.6; W.sheaf(ctx,x,z,f+1.2+W.hash(d,rx)); }
   for(let k=0;k<8;k++){ const a=W.hash(k,9)*6.28, r=12+W.hash(k,8)*10; const x=Math.cos(a)*r, z=Math.sin(a)*r+8; if(z<-6) continue; W.olive(st,x,z,0.9); }
   W.wild(ctx,'goat',-20,20,3,5,0.4); W.wild(ctx,'lizard',6,-8,2,4,0.5);
   mk(ctx,'well',0,0); mk(ctx,'wellSeat',1.5,0.6); mk(ctx,'town',22,10); mk(ctx,'townGate',20,9);
