@@ -512,8 +512,8 @@ function folkTick(dt){
     /* AND THE HANDS AT THEIR WORK */
     const w=T*1+F.ph, A=u.armR, L=u.armL; if(!A||!L) continue;
     const E=x=>x&&x.userData.elbow;
-    if(F.job==='water'&&(F.state==='up'||F.state==='home')){ A.rotation.x=-2.75; A.rotation.z=-0.35; if(E(A)) E(A).rotation.x=-0.6; }
-    else if((F.job==='carry'||F.job==='walk'||F.job==='stroll')&&F.load&&F.load.visible){ L.rotation.x=-2.75; L.rotation.z=0.35; if(E(L)) E(L).rotation.x=-0.6; }
+    if(F.job==='water'&&(F.state==='up'||F.state==='home')){ A.rotation.x=-2.55; A.rotation.z=0.42; if(E(A)) E(A).rotation.x=-1.25; }   /* the hand up on the jar, the elbow out */
+    else if((F.job==='carry'||F.job==='walk'||F.job==='stroll')&&F.load&&F.load.visible){ L.rotation.x=-2.55; L.rotation.z=-0.42; if(E(L)) E(L).rotation.x=-1.25; }
     else if(F.job==='water'&&F.state==='down'){ A.rotation.x=-0.15; A.rotation.z=-0.12; if(E(A)) E(A).rotation.x=-0.25; }   /* the empty jar swung at the hip */
     else if(F.job==='water'&&F.state==='fill'){ A.rotation.x=L.rotation.x=-1.0+Math.sin(w*2)*0.1; }
     else if(F.job==='grind'){ const s=Math.sin(w*2.6); A.rotation.x=L.rotation.x=-1.05+s*0.32; if(E(A)) E(A).rotation.x=E(L).rotation.x=-0.3-s*0.25; }
