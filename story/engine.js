@@ -184,6 +184,8 @@ function buildScene(sc){
     if(t.kind==='lamb') obj=window.STORYWORLD.sheep(ctx,p[0],p[1],true);
     else if(t.kind==='camel') obj=window.STORYWORLD.camel(ctx,p[0],p[1]);
     else if(t.kind==='donkey') obj=window.STORYWORLD.donkey(ctx,p[0],p[1]);
+    else if(t.kind==='beast') { obj=window.STORYWORLD.donkeyFree(ctx,p[0],p[1],t.beast||'ox'); obj.position.y=ctx.groundY(p[0],p[1])||0; }   /* an ox led to the altar (Acts 14:13) */
+    else if(t.kind==='wreath'){ obj=window.STORYWORLD.wreath(ctx); obj.position.set(p[0],(ctx.groundY(p[0],p[1])||0)+(t.dy||1.1),p[1]); }
     else if(t.kind==='dove'){ obj=window.STORYWORLD.dove(ctx,p[0],t.y||12,p[1]); if(t.hidden) obj.visible=false; }
     else if(t.kind==='boat'){ obj=window.STORYWORLD.boat(ctx,p[0],p[1],{y:t.y,face:t.face,mast:t.mast,big:t.big,scale:t.scale}); obj.userData.bob=t.bob!==false; }
     else if(t.kind==='net'){ obj=window.STORYWORLD.net(ctx,p[0],p[1],t); }
@@ -273,7 +275,7 @@ function placeCrowds(sc){
       if(path&&path.some((q,i)=>{ if(!i) return false; const a0=path[i-1], dx=q[0]-a0[0], dz=q[1]-a0[1], L2=dx*dx+dz*dz||1,
           u=Math.max(0,Math.min(1,((x-a0[0])*dx+(z-a0[1])*dz)/L2)); return (x-a0[0]-u*dx)**2+(z-a0[1]-u*dz)**2<(c.clear||2.4)**2; })) continue;
       if(taken.some(q=>(q[0]-x)**2+(q[1]-z)**2<(q[2]||gap)**2)) continue;
-      const y=ctx.groundY(x,z); if(y==null||!isFinite(y)) continue;
+      const y=c.top!==undefined?ctx.groundY(x,z,c.top):ctx.groundY(x,z); if(y==null||!isFinite(y)) continue;   /* `top`: found from that height down — the seats of a theatre */
       const wx=anchor.x+x*S, wz=anchor.z+z*S;
       if(k.solidAt(wx,anchor.y+(y+0.5)*S,wz)||k.solidAt(wx,anchor.y+(y+1.4)*S,wz)) continue;     /* in a wall, a tree, a house */
       if(c.minY!==undefined&&y<c.minY) continue;
@@ -830,7 +832,7 @@ function moveActors(dt){
         g.position.x+=Math.sin(a)*sp; g.position.z+=Math.cos(a)*sp;
         g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=true; }
       else if(!u.follow) u.target=null; }
-    if(u.fixedY!==undefined) g.position.y=u.fixedY-sitDrop(u);
+    if(u.fixedY!==undefined) g.position.y=u.fixedY-sitDrop(u)+(u.lie?0.16:0);
     else { u.gy=stepGround(g.position.x,g.position.z,u.gy===undefined?ctx.groundY(g.position.x,g.position.z):u.gy); g.position.y=u.gy-sitDrop(u)+(u.lie?0.16:0); }
     /* riding (Luke 19:35): the beast goes where the rider goes, under him, at its own gait */
     if(u.ride){ const t=ctx.things[u.ride]; if(t){ const gy=u.fixedY!==undefined?u.fixedY:u.gy;
@@ -857,9 +859,10 @@ function moveActors(dt){
     /* or carried (`up` off the ground, at `back` behind or on him, turned by `turn`): the crossbeam on Shim‛on's shoulders */
     const bk=u.leadBack!==undefined?u.leadBack:1.3, tx=g.position.x-Math.sin(g.rotation.y)*bk, tz=g.position.z-Math.cos(g.rotation.y)*bk, dx=tx-o.position.x, dz=tz-o.position.z, d=Math.hypot(dx,dz);
     if(u.leadUp){ o.position.x=tx; o.position.z=tz; o.rotation.y=g.rotation.y+(u.leadTurn||0); o.position.y=g.position.y+u.leadUp; continue; }
+    if(d>6){ o.position.x=tx; o.position.z=tz; o.rotation.y=g.rotation.y; }   /* the one leading it was set down elsewhere (a cut): it is there with him */
     const step=Math.min(d,dt*3.2); if(d>0.05){ o.position.x+=dx/d*step; o.position.z+=dz/d*step; o.rotation.y=turnTo(o.rotation.y,Math.atan2(dx,dz),dt*6); }
     o.position.y=ctx.groundY(o.position.x,o.position.z);
-    if(o.children[0]&&K().tickGait){ u.ent=u.ent||{m:o.children[0]}; K().tickGait(u.ent,'donkey',d>0.2?2*S:0,dt); } }
+    if(o.children[0]&&K().tickGait){ u.ent=u.ent||{m:o.children[0]}; K().tickGait(u.ent,u.thing&&u.thing.beast||'donkey',d>0.2?2*S:0,dt); } }
 }
 /* NO ONE STANDS INSIDE ANOTHER. Two who come closer than a body's breadth step apart, each
    half the way, a little each frame, so a crowd never stands through itself and nobody
@@ -1226,13 +1229,13 @@ function animFace(g,id,dt){
   const u=g.userData, F=u.face, T=talkingAs(id), m=T?(SV.mouth(T.sp.key)||0):0;
   if(u.aura){ const k=1+m*0.22+(T?0.06:0); u.aura.sprite.scale.setScalar(u.aura.base*k); }
   if(u.setFace){                             /* the voyage's figure: its face drawn in each state */
-    u.blink=(u.blink||3)-dt; const shut=u.blink<0; if(u.blink<-0.13) u.blink=2.5+Math.random()*4;
+    u.blink=(u.blink||3)-dt; const shut=u.blink<0||u.mood==='sleep'; if(u.blink<-0.13) u.blink=2.5+Math.random()*4;   /* `sleep`: asleep, or the dead (Acts 9:37) — the eyes kept shut */
     u.talkM=T?m:undefined;
     /* the feeling: the speaker's from the words; a `mood` the scene has set; or, for those
        standing by one who speaks, the words' feeling as it falls on the hearer — gladness on
        the glad, grief on the grieved, fear and wonder spreading; a rebuke does not make them glad */
     let ex=T?SV.expr(T.text):'calm';
-    if(u.mood) ex=u.mood;
+    if(u.mood) ex=u.mood==='sleep'?'calm':u.mood;
     else if(!T&&speaking&&speaking!==id&&ctx.actors[speaking]){ const S2=talkingAs(speaking), sp=ctx.actors[speaking];
       if(S2&&Math.hypot(sp.position.x-g.position.x,sp.position.z-g.position.z)<9){ const e2=SV.expr(S2.text);
         ex={joy:'joy',sorrow:'sorrow',weep:'sorrow',fear:'fear',awe:'awe'}[e2]||'calm'; } }
@@ -1687,7 +1690,8 @@ const BEDS={
   qanah:{crowd:0.8,wind:0.2},  galil:{shore:0.8,wind:0.35,crowd:0.2},  galilEast:{shore:0.6,wind:0.4,crowd:0.4},
   galilSea:{shore:1.0,wind:1.4},  gadarenes:{shore:0.8,wind:0.5},  bethanyah:{wind:0.35,crowd:0.45},  shekem:{wind:0.55,crowd:0.12},  hillcountry:{wind:0.45,crowd:0.15},
   caesarea:{wind:0.35,river:0.7,crowd:0.1},  ginae:{wind:0.5,crowd:0.15},  yeriho:{wind:0.2,crowd:0.6},  olivet:{wind:0.5,crowd:0.5},
-  courts:{crowd:0.7,temple:0.6,wind:0.2},  upperroom:{crowd:0.15,wind:0.15},  highpriest:{crowd:0.3,wind:0.3},  praetorium:{crowd:0.9,wind:0.3},  golgotha:{wind:0.8,crowd:0.3}
+  courts:{crowd:0.7,temple:0.6,wind:0.2},  upperroom:{crowd:0.15,wind:0.15},  highpriest:{crowd:0.3,wind:0.3},  praetorium:{crowd:0.9,wind:0.3},  golgotha:{wind:0.8,crowd:0.3},
+  prison:{wind:0.15},  lystra:{wind:0.6,crowd:0.4},  philippi:{river:0.5,wind:0.4,crowd:0.4},  ephesos:{crowd:0.9,wind:0.4}
 };
 function noiseBuf(A,brown){ const n=A.createBuffer(1,A.sampleRate*3,A.sampleRate), d=n.getChannelData(0); let last=0;
   for(let k=0;k<d.length;k++){ const w=Math.random()*2-1; if(brown){ last=(last+0.02*w)/1.02; d[k]=last*3.4; } else d[k]=w*0.5; }

@@ -1153,6 +1153,12 @@ W.wild=function(ctx,kind,x,z,n,r,sp){
     g.rotation.y=hash(px,pz)*6.28;
     g.userData={home:[x,z],t:hash(k,x)*4,kind,roam:r||6,sp:sp||0.6}; ctx.flock.push(g); } };
 W.donkey=function(ctx,x,z){ return beast(ctx,'donkey',x,z); };
+/* a garland of leaves and flowers, such as were hung on the beasts brought to an altar of the nations (Acts 14:13) */
+W.wreath=function(ctx){ const g=new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.TorusGeometry(0.22,0.05,6,14),new THREE.MeshLambertMaterial({color:0x4e7a30})));
+  for(let k=0;k<7;k++){ const a=k/7*6.28, f=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.07,0.07),new THREE.MeshLambertMaterial({color:[0xe8d040,0xf0ece0,0xc03a2a][k%3]}));
+    f.position.set(Math.cos(a)*0.22,Math.sin(a)*0.22,0.04); g.add(f); }
+  g.rotation.x=Math.PI/2; const h=new THREE.Group(); h.add(g); ctx.scene.add(h); return h; };
 /* a beast of the townsfolk's (W.folk): an ass on the road, an ox at the plough — theirs to lead, not the scene's flock */
 W.donkeyFree=function(ctx,x,z,kind){ return beast(ctx,kind||'donkey',x,z); };
 })();

@@ -59,7 +59,7 @@ const SPOTS=[
   {k:'courts',n:'',lat:31.778,lon:35.235},{k:'upperroom',n:'',lat:31.772,lon:35.229},{k:'highpriest',n:'',lat:31.772,lon:35.23},{k:'praetorium',n:'',lat:31.779,lon:35.233},{k:'golgotha',n:'',lat:31.779,lon:35.226},
   {k:'emmaus',n:'Amma’us',lat:31.840,lon:35.130},{k:'tiberias',n:'',lat:32.873,lon:35.549},
   {k:'gazaroad',n:'',lat:31.58,lon:34.92},{k:'damascus',n:'Damascus',lat:33.51,lon:36.29},{k:'yapho',n:'Yapho',lat:32.054,lon:34.752},
-  {k:'caesareaM',n:'Caesarea',lat:32.5,lon:34.892},{k:'antioch',n:'Antioch',lat:36.2,lon:36.16},{k:'athens',n:'Athens',lat:37.972,lon:23.722},
+  {k:'caesareaM',n:'Caesarea',lat:32.5,lon:34.892},{k:'antioch',n:'Antioch',lat:36.2,lon:36.16},{k:'athens',n:'Athens',lat:37.972,lon:23.722},{k:'lystra',n:'Lustra',lat:37.578,lon:32.453},{k:'philippi',n:'Philippi',lat:41.013,lon:24.287},{k:'ephesos',n:'Ephesos',lat:37.941,lon:27.342},{k:'prison',n:'',lat:31.779,lon:35.233},
   {k:'malta',n:'Melite',lat:35.95,lon:14.42},{k:'rome',n:'Rome',lat:41.89,lon:12.485}];
 function drawMap(){
   const cv=$('road-map'), g=cv.getContext('2d'), W=cv.width, H=cv.height;
