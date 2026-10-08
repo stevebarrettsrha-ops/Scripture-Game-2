@@ -227,8 +227,13 @@ W.person=function(ctx,o){
     const hand=box(0.08*(bare?0.85:1),0.09,0.06,dress==='wrapped'?tunicM:skin,0,-0.31,0.005,E); A.userData.hand=hand; return A; };
   const armL=mkArm(0.245), armR=mkArm(-0.245);
   if(dress==='tombs') for(const A of [armL,armR]){ box(0.085,0.05,0.09,iron,0,-0.22,0,A.userData.elbow); box(0.02,0.14,0.02,iron,0,-0.30,0.06,A.userData.elbow); }
-  if(o.staff||dress==='shepherd'||dress==='centurion'){ const len=dress==='centurion'?0.95:1.7;
-    box(0.035,len,0.035,flat(dress==='centurion'?0x5a3a20:0x7a5a30),0,-0.31+len*0.38,0.06,armR.userData.elbow); }
+  if(o.staff||dress==='shepherd'||dress==='centurion'){ const cen=dress==='centurion', len=cen?0.95:1.95;
+    /* the shepherd's staff stands from the ground to above his head, the hand on it at the elbow's
+       reach; the centurion's vine-stick is short, carried */
+    const sm=flat(cen?0x5a3a20:0x7a5a30), E2=armR.userData.elbow, mid=cen?-0.31+len*0.38:-1.02+len/2, top=mid+len/2;
+    box(0.035,len,0.035,sm,0,mid,0.06,E2);
+    if(!cen){ box(0.035,0.035,0.13,sm,0,top+0.01,0.115,E2); box(0.035,0.11,0.035,sm,0,top-0.04,0.17,E2); }   /* the crook at its head */
+    armR.userData.staff=true; }
   if(o.carry) box(0.20,0.24,0.16,flat(o.carry),0,-0.42,0.08,armR.userData.elbow);
 
   /* THE MANTLE: over the back from both shoulders, its left end brought over the left shoulder

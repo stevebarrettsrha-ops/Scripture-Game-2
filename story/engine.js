@@ -558,7 +558,8 @@ function folkTick(dt){
       A.rotation.x=-2.7+s*0.3; L.rotation.x=-2.3-s*0.3; }
     else if(F.job==='sell'||F.job==='talk'){ const turn=F.job==='talk'?((Math.floor(T/4)%F.m)===F.turn):Math.sin(w*0.3)>0.6;
       u.talkM=turn?0.4+Math.sin(T*7+F.ph)*0.3:undefined; if(u.setFace) u.setFace(turn&&Math.sin(T*11+F.ph)>0?0.5:0,false,'calm'); }
-    else if(F.job==='herd'&&E(A)) {}
+    else if(F.job==='herd'&&E(A)){ const st=moving?Math.sin(u.phase||0):0;                 /* the staff set down ahead with each other step, held upright, its crook forward */
+      A.rotation.x=-0.42-st*0.18; A.rotation.z=-0.08; E(A).rotation.x=-A.rotation.x+0.1; bend=moving?0.06:0.02; }
     else if(F.job==='plough'){ bend=0.3; A.rotation.x=L.rotation.x=-0.55; A.rotation.z=-0.1; L.rotation.z=0.1; if(E(A)) E(A).rotation.x=E(L).rotation.x=-0.35; }   /* bent to the handle, both hands on it, pressing the share in */
     if(u.waist){ u.waist.rotation.x+=(bend-u.waist.rotation.x)*Math.min(1,dt*6);
       const onHead=(F.jarH&&F.jarH.visible)||(F.load&&F.load.visible&&F.load.parent===u.head);
