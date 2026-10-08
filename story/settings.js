@@ -150,7 +150,8 @@ S.natsareth=function(ctx,st){
   const hs=[[-12,-6],[-4,-10],[6,-8],[14,-2],[-14,6],[10,8],[-3,12],[18,12]];
   hs.forEach(([x,z],k)=>W.house(st,x,z,5.5,5,{door:z<0?'s':'n',color:k%3?C.mudbrick:C.whitewash,h:2.8}));
   st.box(-1,0,-1,3,0.5,3,C.stone); W.jar(st,0,0); W.jar(st,1.2,0.4);            /* the spring */
-  const olv=[]; for(let k=0;k<18;k++){ const a=W.hash(k,1)*6.28, r=28+W.hash(k,2)*40; W.olive(st,Math.cos(a)*r,Math.sin(a)*r,1); olv.push([Math.cos(a)*(r-1.6),Math.sin(a)*(r-1.6)]); }
+  const olv=[]; for(let k=0;k<18;k++){ const a=W.hash(k,1)*6.28, r=28+W.hash(k,2)*40; W.olive(st,Math.cos(a)*r,Math.sin(a)*r,1); olv.push([a,r]); }
+  const olvAt=(i,d)=>{ const [a,r]=olv[i]; return [Math.cos(a)*(r-d),Math.sin(a)*(r-d)]; }, olvFace=i=>{ const a=olv[i][0]; return Math.atan2(Math.cos(a),Math.sin(a)); };   /* a place `d` in from a tree toward the village; facing the tree */
   /* the village about its day: the women at the spring and home with the jar, a woman at the mill
      at her door and one spinning, the children at play, a man hoeing among the olives, the
      goatherd, and the way out of the village down to the valley road */
@@ -158,7 +159,7 @@ S.natsareth=function(ctx,st){
     {do:'water', from:[1,3.4], to:[[-12,-2.2],[6,-4.2],[-14,2.2],[10,4.2],[-3,8.2],[18,8.2]], n:3},
     {do:'grind', at:[-11,-1.9], face:2.6}, {do:'spin', at:[11.4,4.4], face:-2.6}, {do:'sweep', at:[-3.6,8.6], face:0},
     {do:'play', at:[5,5.5], r:2.4, n:3},
-    {do:'pick', at:olv[0]}, {do:'hoe', at:olv[3]}, {do:'herd', at:[-20,14], r:5},
+    {do:'pick', at:olvAt(0,2.0), face:olvFace(0)}, {do:'hoe', at:olvAt(3,3.6), face:olvFace(3)}, {do:'herd', at:[-20,14], r:5},          /* at the edge of the boughs; the ground beyond them */
     {do:'stroll', area:[-16,-4,18,10], n:2},
     {do:'walk', path:[[-40,4],[-18,1],[0,-2],[22,2],[44,12]], n:2, donkey:true}]);
   mk(ctx,'miryamHouse',-4,-6.4); mk(ctx,'miryam',-4,-5.2); mk(ctx,'malak',-4,-2.6); mk(ctx,'spring',1,2);

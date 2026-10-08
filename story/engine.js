@@ -484,9 +484,13 @@ function folkStep(F,to,dt){
     for(const q of ctx.folkSolids||[]) if(Math.hypot(q[0]-px,q[1]-pz)<q[2]+0.3&&Math.hypot(q[0]-g.position.x,q[1]-g.position.z)>q[2]+0.05) return false;
     for(const O of ctx.folk) if(O!==F&&Math.hypot(O.g.position.x-px,O.g.position.z-pz)<0.62) return false;
     return true; };
+  /* come up against the very thing gone to — a well's curb, a table — near enough: there */
+  if(d<0.95&&!free(Math.atan2(dx,dz))){ F.near=null; return false; }
   if(!free(a)){
     let ok=false; for(const da of [0.5,-0.5,1.0,-1.0,1.5,-1.5,2.1,-2.1]){ const b=a+da; if(free(b)){ a=b; ok=true; break; } }
     if(!ok){ F.stuck=(F.stuck||0)+dt; return true; } }
+  /* and one going round and round a thing without coming nearer is stuck, not going */
+  if(!F.near||F.near.to!==to||d<F.near.d-0.15){ F.near={to,d,t:0}; } else { F.near.t+=dt; if(F.near.t>4){ F.stuck=(F.stuck||0)+F.near.t; F.near=null; return false; } }
   const sp=Math.min(d,F.sp*dt);
   g.position.x+=Math.sin(a)*sp; g.position.z+=Math.cos(a)*sp; g.rotation.y=turnTo(g.rotation.y,a,dt*6);
   u.gy=stepGround(g.position.x,g.position.z,u.gy); g.position.y=u.gy;
@@ -510,7 +514,7 @@ function folkTick(dt){
       else { moving=folkStep(F,F.to,dt); if(!moving||(F.stuck||0)>4){ F.state='pause'; F.t=F.job==='play'?0.4+Math.random()*1.2:F.job==='herd'?3+Math.random()*5:3+Math.random()*7; } } }
     else if(F.job==='water'){
       if(F.state==='down'){ moving=folkStep(F,F.S,dt); if(!moving||(F.stuck||0)>8){ F.state='fill'; F.t=3+Math.random()*3; F.stuck=0; } }
-      else if(F.state==='fill'){ u.sit=true; if(F.t<=0){ u.sit=false; F.state='up'; F.home=F.H[Math.floor(Math.random()*F.H.length)]; } }
+      else if(F.state==='fill'){ if(F.t<=0){ F.state='up'; F.home=F.H[Math.floor(Math.random()*F.H.length)]; } }
       else if(F.state==='up'){ moving=folkStep(F,F.home,dt); if(!moving||(F.stuck||0)>8){ F.state='home'; F.t=4+Math.random()*6; F.stuck=0; } }
       else if(F.state==='home'){ if(F.t<=0) F.state='down'; }
       const full=F.state==='up'||F.state==='home'; F.jarH.visible=full; F.jarA.visible=!full; }
@@ -534,28 +538,30 @@ function folkTick(dt){
     const w=T*1+F.ph, A=u.armR, L=u.armL; if(!A||!L) continue;
     const E=x=>x&&x.userData.elbow;
     let bend=0, knees=0;                                     /* how far forward at the waist the work bends them; how far the knees give */
-    if(F.job==='water'&&(F.state==='up'||F.state==='home')){ A.rotation.x=-2.55; A.rotation.z=0.42; if(E(A)) E(A).rotation.x=-1.25; }   /* the hand up on the jar, the elbow out */
+    if(F.job==='water'&&(F.state==='up'||F.state==='home')){ A.rotation.x=-2.25; A.rotation.z=-0.55; if(E(A)) E(A).rotation.x=-1.05; }   /* the hand up to the jar's side, the elbow out */
     else if((F.job==='carry'||F.job==='walk'||F.job==='stroll')&&F.load&&F.load.visible){ L.rotation.x=-2.55; L.rotation.z=-0.42; if(E(L)) E(L).rotation.x=-1.25; }
     else if(F.job==='water'&&F.state==='down'){ A.rotation.x=-0.15; A.rotation.z=-0.12; if(E(A)) E(A).rotation.x=-0.25; }   /* the empty jar swung at the hip */
-    else if(F.job==='water'&&F.state==='fill'){ bend=0.55; A.rotation.x=L.rotation.x=-1.25+Math.sin(w*2)*0.1; }
+    else if(F.job==='water'&&F.state==='fill'){ bend=0.7; knees=0.55; A.rotation.x=L.rotation.x=-1.35+Math.sin(w*2)*0.12; }   /* down on her knees at the spring, dipping the jar */
     else if(F.job==='grind'){ const s=Math.sin(w*2.6); bend=0.32+s*0.14;                 /* rocking over the stone as she pushes it round */
       A.rotation.x=L.rotation.x=-1.0+s*0.25; if(E(A)) E(A).rotation.x=E(L).rotation.x=-0.3-s*0.25; }
     else if(F.job==='mend'){ bend=0.42; A.rotation.x=-1.05+Math.sin(w*3.1)*0.12; L.rotation.x=-0.95+Math.sin(w*2.3)*0.1; if(E(A)) E(A).rotation.x=-0.7; }
     else if(F.job==='spin'){ bend=0.08; L.rotation.x=-1.9; L.rotation.z=0.3; A.rotation.x=-0.6+Math.sin(w*4)*0.08; }
     else if(F.job==='wash'){ const s=Math.sin(w*3); bend=0.6+s*0.08; A.rotation.x=L.rotation.x=-1.3+s*0.25; }   /* bent over the washing, scrubbing */
     else if(F.job==='sweep'){ const s=Math.sin(w*2.2); bend=0.32; knees=0.15; A.rotation.x=-0.75; L.rotation.x=-0.85; A.rotation.z=s*0.35; L.rotation.z=s*0.3; }
-    else if(F.job==='hoe'){ const s=(Math.sin(w*1.9)+1)/2; bend=0.15+(1-s)*0.45; knees=0.2;  /* up with the hoe, and down at the waist with the stroke */
-      A.rotation.x=L.rotation.x=-0.4-s*2.0; if(E(A)) E(A).rotation.x=E(L).rotation.x=-0.3*s; }
+    else if(F.job==='hoe'){ const ph=(w*0.32)%1, up=ph<0.55?ph/0.55:1-(ph-0.55)/0.45, s=up*up*(3-2*up);   /* raised slowly over the shoulder, brought down hard */
+      bend=0.25+(1-s)*0.5; knees=0.22;
+      A.rotation.x=L.rotation.x=-0.55-s*2.15; if(E(A)) E(A).rotation.x=E(L).rotation.x=-0.15-0.35*s; }
     else if(F.job==='reap'){ const s=Math.sin(w*2.4); bend=1.0+s*0.08; knees=0.32;         /* bent deep at the waist over the ears, knees given, the sickle sweeping low */
       A.rotation.x=-1.35+s*0.25; A.rotation.z=s*0.45; L.rotation.x=-1.2+Math.max(0,-s)*0.2; L.rotation.z=0.15; if(E(L)) E(L).rotation.x=-0.5; }
     else if(F.job==='hammer'){ const s=Math.max(0,Math.sin(w*4.2)); bend=0.22; A.rotation.x=-0.7-s*1.3; L.rotation.x=-0.8; }
-    else if(F.job==='pick'){ bend=-0.08; }                                                 /* reaching up into the tree, leaning back a little */
-    else if(F.job==='pick'){ const s=Math.sin(w*1.4); A.rotation.x=-2.7+s*0.3; L.rotation.x=-2.3-s*0.3; }
+    else if(F.job==='pick'){ const s=Math.sin(w*1.4); bend=-0.08;                         /* reaching up into the tree, leaning back a little */
+      A.rotation.x=-2.7+s*0.3; L.rotation.x=-2.3-s*0.3; }
     else if(F.job==='sell'||F.job==='talk'){ const turn=F.job==='talk'?((Math.floor(T/4)%F.m)===F.turn):Math.sin(w*0.3)>0.6;
-      u.talkM=turn?0.4+Math.sin(T*7+F.ph)*0.3:undefined; if(u.setFace) u.setFace(turn&&Math.sin(T*11+F.ph)>0?1:0,false,'calm'); }
+      u.talkM=turn?0.4+Math.sin(T*7+F.ph)*0.3:undefined; if(u.setFace) u.setFace(turn&&Math.sin(T*11+F.ph)>0?0.5:0,false,'calm'); }
     else if(F.job==='herd'&&E(A)) {}
     if(u.waist){ u.waist.rotation.x+=(bend-u.waist.rotation.x)*Math.min(1,dt*6);
-      if(u.head&&!u.holy) u.head.rotation.x=-Math.max(0,u.waist.rotation.x)*0.32; }          /* the head kept up a little, looking at the work */
+      const onHead=(F.jarH&&F.jarH.visible)||(F.load&&F.load.visible&&F.load.parent===u.head);
+      if(u.head&&!u.holy) u.head.rotation.x=onHead?-u.waist.rotation.x:-Math.max(0,u.waist.rotation.x)*0.32; }   /* the head kept up a little, looking at the work — and level under a load */
     if(knees&&!u.sit&&u.legL){ for(const Lg of [u.legL,u.legR]){ Lg.rotation.x=-knees*0.7; if(Lg.userData.knee) Lg.userData.knee.rotation.x=knees*1.4; }
       g.position.y=u.gy-knees*0.12; }                                                       /* the knees given, the body let down on them */
   }

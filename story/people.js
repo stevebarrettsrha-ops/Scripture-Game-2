@@ -338,7 +338,7 @@ W.person=function(ctx,o){
     const sh=W.glow({scene:g},0,0.05,0,2.2,0x3a2244,0); sh.sprite.material.opacity=0.5; }
 
   /* THE FACE AS THE WORDS GO, AND AS THE HEART IS: `m` how far the mouth is open with the word
-     (0..1, or the old 0/1/2), `shut` a blink, `ex` the feeling — calm, joy, sorrow, weep, fear,
+     (0..1), `shut` a blink, `ex` the feeling — calm, joy, sorrow, weep, fear,
      awe, stern. Each feeling is a set of the face's parts, eased toward, not snapped to. */
   const FACES={
     calm:  {lid:0.12,low:0,wide:1,  bt:0,    by:0,     w:1,   bend:0,     open:0,   iris:1},
@@ -349,7 +349,7 @@ W.person=function(ctx,o){
     awe:   {lid:0,   low:0,wide:1.25,bt:-0.08,by:0.012, w:0.55,bend:0,     open:0.42,iris:0.85},
     stern: {lid:0.42,low:0.12,wide:1,bt:0.46, by:-0.008,w:1.05,bend:-0.006,open:0,   iris:1}};
   const setFace=(m,shut,ex)=>{ if(!F) return;
-    const M=m>1?[0,0.5,1][m]||0:(m===1&&Number.isInteger(m)?0.5:m)||0, T=FACES[ex]||FACES.calm;
+    const M=Math.max(0,Math.min(1,+m||0)), T=FACES[ex]||FACES.calm;                       /* how open, 0 to 1: a speech peak stays wide */
     const c=F.cur||(F.cur=Object.assign({},FACES.calm)), k=0.22;
     for(const n in T) c[n]+=(T[n]-c[n])*k;
     const open=Math.max(c.open,M*0.9);
