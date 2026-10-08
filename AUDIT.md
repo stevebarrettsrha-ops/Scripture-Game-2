@@ -9697,7 +9697,7 @@ passage is missing at run time, it is logged and skipped, never paraphrased.
   account, as the Besorah gives it."
 - The player's own lines are reactions only, and never scripture.
 
-**Reverent framing.** A mal'ak is light, never a figure. So is the Child. Neither is
+**Reverent framing.** A mal'ak is light, never a figure (superseded, Round 130: a mal'ak is seen, a man in white within a light). So is the Child. Neither is
 ever given a body or a face.
 
 **What is playable.**
@@ -11120,6 +11120,73 @@ Engine changes:
 - A figure lying on a raised floor no longer sinks into it.
 - The new places (lystra, philippi, ephesos, prison) are added to the map, the hub, and the
   ambient sound.
+
+## 4ec. Round 130 — the mal'akim seen; things held; chains
+
+The user's direction: the Besorah is the director.
+
+**The mal'akim are seen, in every act.** Each one is a man of dark skin, robed in white, standing
+within his light. Before this round a mal'ak was only a light. Now:
+- When the light is near the ground he stands on it; high in the air he is borne up in it.
+- He turns toward the one he is sent to, and his mouth moves with his words.
+- His light stays around him, with a second lamp on the side the camera sees, so his face shows.
+- The heavenly host is a figure in each of its lights, turned toward the field.
+
+The scenes:
+- Prologue: the mal'ak over the camp of Ashshur.
+- The 700-year bridge: Gaḇri’al to Dani'el.
+- The Coming: Gaḇri’al with Zekaryah and with Miryam; the mal'ak in Yoseph's two dreams; the mal'ak
+  and the host over the shepherds.
+- Passion Week: the mal'ak in Gethsemane.
+- The Rising:
+  - the mal'ak who rolled back the stone sits on it and moves with it (Mattithyahu 28:2);
+  - the two in the tomb are seated (Yahuchanon 20:12);
+  - the two men in white stand at the ascension.
+- Act VIII: the mal'ak on the Azzah road, and the one in Herodes' prison.
+
+The seraphim of Yashayahu 6 are left as lights. They are not called mal'akim, and the
+Besorah gives them six wings and has them cover their faces.
+
+**Things held in the hands.** A new `hold` beat puts a thing in someone's two hands: the arms come
+forward with the elbows bent, and the thing is carried at the hands each frame.
+- The widows' garments (Acts 9:39) are now `garment`s, tunics hanging from where they are held,
+  instead of flat boards floating in front of them.
+- The kohen of Zeus holds the garland.
+
+**Chains** (`chain`): iron links hung each frame between two wrists, or a wrist and a ring in the
+wall. The `loose` beat drops the bound end where it was.
+- Kĕpha is "bound with two chains between two soldiers" (12:6), a soldier sitting on either side
+  of him, until "his chains fell off his hands" (12:7).
+- The prisoners at Philippi are chained to the walls until "all the chains came loose" (16:26).
+
+**A pose let go now lets go.** Clearing `pose` only reset the arms' forward angle, so arms raised
+or held out stayed up behind the head when a figure sat down. This is what put Sha’ul's and Sila's
+hands behind their heads at the jailer's table. The arms and legs are now set back to hang.
+
+**Further, on review:**
+- **Mal'akim are brown**, as the people of the land are, and lit from within: each surface of
+  the figure glows its own colour back, so he is bright in his light, not a dark figure before it.
+  One high in the air is drawn a little larger.
+- **Chain links like the example given.** Each link is an oblong loop of iron bars, open in the
+  middle and turned a quarter from the last, threaded one through the next. As many links are
+  laid along the hanging line as its length takes, and the cuffs are squared bands.
+  - Nothing hangs through anything: each point of the chain is lifted out of any block of the
+    world and over the body of anyone lying, sitting or kneeling under it.
+  - The man of the tombs' broken fetters and the broken chains on the ground in the country of
+    the Gaḏarenes are made the same way.
+- **Gethsemane.**
+  - The olive is redrawn as the old trees of the land stand: a short split bole, two or three
+    grey limbs twisting up and out, and open heads of small grey-green leaves with the sky
+    showing through. It is no longer a block on a post. This is every olive in the story.
+  - In the garden the trees stand in rows either side of the walk to the place of prayer.
+  - After He falls on His face (Marqos 14:35), He kneels (Luqas 22:41, a new verse, recorded).
+    He is seen from behind with His head bowed, weeping.
+  - The mal'ak comes down out of the sky and is over Him, his hands reached out to Him
+    (Luqas 22:43), and the camera looks up past Him to the mal'ak (22:44).
+  - A new `kneel` beat makes the kneeling.
+
+Also: the Rhode gate camera now stands at head height before Kĕpha's face as he knocks, and the
+Philippi inner-prison cameras look into Sha’ul's and Sila's faces, lit by a lamp on the east wall.
 
 ## 5. Further recommendations (future work)
 

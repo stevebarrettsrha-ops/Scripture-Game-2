@@ -420,7 +420,9 @@ STORY.act({
     ],
     things:[ {id:'lamp', kind:'jar', at:[60.4,-56.6]} ],
     glows:[ {id:'lampGlow', at:[61,-57], dy:1.6, size:1.6, color:0xffb060, intensity:1, hidden:true},
-            {id:'malak', at:[78.6,-62.4], dy:3.4, size:3, color:0xfff4d8, intensity:1.1, hidden:true} ],
+            /* "there appeared a mal'ak from shamayim to Him, strengthening Him" (Luqas 22:43): he comes down out
+               of the sky and is over Him, his hands reached out to Him */
+            {id:'malak', malak:true, float:true, arms:'hold', toward:'yahusha', at:[77.2,-58.7], dy:10, size:3, color:0xfff4d8, intensity:1.3, hidden:true} ],
     beats:[
       {t:'cam', from:['qidron',-2,6], fdy:3.4, look:'yahusha', dur:0.1},
       {t:'face', who:'yahusha', to:'kepha'},
@@ -447,14 +449,20 @@ STORY.act({
       {t:'move', who:'yahusha', to:'prayer', speed:0.8},
       {t:'face', who:'yahusha', to:[80,-58.6]},
       {t:'lie', who:'yahusha', prone:true},
-      {t:'cam', from:[71,5.4,-57], look:[75.4,6.2,-58.6], dur:2.5},          /* low behind Him, fallen on His face, under the olives */
+      {t:'cam', from:['prayer',-3.6,1.2], fdy:1.5, look:['prayer',1.2,0], dur:2.5},     /* low behind Him, fallen on His face, the olives either side */
       {t:'read', ref:'MARK 14:35'},
       {t:'say', who:'yahusha', ref:'MARK 14:36', turn:false},
+      /* "and falling on His knees He was praying" (Luqas 22:41) — seen from behind, His head bowed */
+      {t:'kneel', who:'yahusha'}, {t:'mood', who:'yahusha', ex:'weep'},
+      {t:'cam', from:['prayer',-3.4,-1.4], fdy:1.6, look:['prayer',1.6,0], dur:2},
+      {t:'read', ref:'LUKE 22:41'},
       {t:'show', id:'malak'},
-      {t:'drift', id:'malak', to:[76.3,5.7,-59.2], dur:3.5, wait:false},     /* "a mal'ak … appeared to Him, strengthening Him": the light comes down to Him */
+      {t:'cam', from:['prayer',-4.2,0.6], fdy:1.3, look:['prayer',2,0], dur:3.5, wait:false},
+      {t:'drift', id:'malak', by:[0,-6.8,0], dur:4.5},                                  /* down out of the sky to over Him */
       {t:'read', ref:'LUKE 22:43'},
+      {t:'cam', from:['prayer',-4.4,-1.8], fdy:1.2, look:'malak', dur:3},                 /* behind Him, looking up past Him to the one over Him */
       {t:'read', ref:'LUKE 22:44'},
-      {t:'hide', id:'malak'},
+      {t:'hide', id:'malak'}, {t:'mood', who:'yahusha'},
       {t:'sit', who:['kepha','yaaqob','yahuchanon']},
       {t:'lie', who:['kepha','yahuchanon']},
       {t:'stand', who:'yahusha'}, {t:'place', who:'yahusha', at:'prayer', y:null},

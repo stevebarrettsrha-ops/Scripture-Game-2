@@ -21,8 +21,8 @@
    Luke 24:53).
 
    REVERENCE. Yahusha's face is never shown, risen as before: the camera is behind Him, or far
-   off, or on those who see Him. A mal’ak is light, never a figure — the one on the stone, the
-   two in the tomb, the two men in white. He is taken up in a cloud of light. */
+   off, or on those who see Him. A mal’ak is seen, a man dark of skin and robed in white within a
+   light — the one sitting on the stone, the two sitting in the tomb, the two men in white. He is taken up in a cloud of light. */
 (function(){
 const ADULT={robe:0x8a7454, cloth:0xd8cfb8, beard:0x3a2a1e, skin:0x86573a};
 const YAHUSHA={name:'Yahusha', holy:true, kind:'yahusha', key:'Yahusha'};
@@ -91,7 +91,7 @@ STORY.act({
     ],
     things:[ {id:'stone', kind:'roundStone', at:'stoneShut', face:0, r:1.25},
              {id:'spices', kind:'jar', at:['roadBend',0.6,18.4]} ],
-    glows:[ {id:'malak', at:['stone',0,0], dy:2.6, size:3.6, color:0xfff6dc, intensity:2.2, pulse:true, hidden:true},
+    glows:[ {id:'malak', malak:true, seat:2.45, at:['stone',0,0], dy:2.6, size:3.6, color:0xfff6dc, intensity:2.2, pulse:true, hidden:true},
             /* "his appearance was like lightning" (28:3) */
             {id:'flash', at:['tombOut',0,-1.4], dy:2.6, size:24, color:0xffffff, intensity:0, hidden:true} ],
     beats:[
@@ -110,7 +110,7 @@ STORY.act({
       {t:'cam', from:['tombFront',7,-3.4], fdy:2.8, look:['tombOut',0,-1.4], dur:1.2},
       {t:'quake', s:3.2},
       {t:'show', id:'malak'},
-      {t:'drift', id:'stone', by:[0,0,-3], dur:1.8, wait:false},
+      {t:'drift', id:['stone','malak'], by:[0,0,-3], dur:1.8, wait:false},   /* "rolled back the stone … and sat on it" (28:2) */
       {t:'read', ref:'MATTITHYAHU 28:2'},
       {t:'show', id:'flash'}, {t:'wait', s:0.4}, {t:'hide', id:'flash'},
       {t:'read', ref:'MATTITHYAHU 28:3'},
@@ -209,8 +209,8 @@ STORY.act({
     things:[ {id:'stone', kind:'roundStone', at:'stone', face:0, r:1.25},
              {id:'linen', kind:'box', at:['tombIn',0.2,0], w:1.7, h:0.16, d:0.42, color:0xe8e2d2},
              {id:'headcloth', kind:'box', at:['tombIn',-1.1,0.9], w:0.32, h:0.1, d:0.28, color:0xe0d8c4} ],
-    glows:[ {id:'m1', at:['tombIn',-1.0,0], dy:0.9, size:1.9, color:0xfff6dc, intensity:1.4, pulse:true, hidden:true},
-            {id:'m2', at:['tombIn',1.2,0], dy:0.9, size:1.9, color:0xfff6dc, intensity:1.4, pulse:true, hidden:true} ],
+    glows:[ {id:'m1', malak:true, sit:true, at:['tombIn',-1.0,0], dy:0.9, size:1.9, color:0xfff6dc, intensity:1.4, pulse:true, hidden:true},
+            {id:'m2', malak:true, sit:true, at:['tombIn',1.2,0], dy:0.9, size:1.9, color:0xfff6dc, intensity:1.4, pulse:true, hidden:true} ],
     beats:[
       {t:'cam', from:['garden',6,6], fdy:3, look:['tombOut',0,0], dur:0.1},
       {t:'move', who:'yahuchanon', to:'tombOut', speed:4.4, wait:false},
@@ -548,8 +548,8 @@ STORY.act({
       Object.assign({id:'yahusha', at:['wait',2.4,0], face:-Math.PI/2},YAHUSHA)
     ],
     glows:[ {id:'cloud', at:['wait',2.4,0], dy:3.0, size:8, color:0xfffaf0, intensity:2.4, pulse:true, hidden:true},
-            {id:'w1', at:['wait',-1.6,3.2], dy:1.4, size:2.4, color:0xfff6dc, intensity:1.4, pulse:true, hidden:true},
-            {id:'w2', at:['wait',-1.6,-3.2], dy:1.4, size:2.4, color:0xfff6dc, intensity:1.4, pulse:true, hidden:true} ],
+            {id:'w1', malak:true, at:['wait',-1.6,3.2], dy:1.4, size:2.4, color:0xfff6dc, intensity:1.4, pulse:true, hidden:true},
+            {id:'w2', malak:true, at:['wait',-1.6,-3.2], dy:1.4, size:2.4, color:0xfff6dc, intensity:1.4, pulse:true, hidden:true} ],
     beats:[
       {t:'cam', from:['wait',-14,8], fdy:4, look:['wait',0,0], dur:0.1},
       {t:'read', ref:'ACTS 1:3'},

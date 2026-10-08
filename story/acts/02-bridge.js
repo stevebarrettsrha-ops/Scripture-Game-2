@@ -85,7 +85,7 @@ STORY.act({
     ]},
   { id:'greece', title:'Macedon', date:'331 BCE', place:'pella', time:'day',
     player:{ at:[0,40], hidden:true },
-    glows:[ {id:'gabrial', at:[0,14,26], size:5, color:0xfff4d6, intensity:0, pulse:true} ],
+    glows:[ {id:'gabrial', malak:true, at:[0,14,26], size:5, color:0xfff4d6, intensity:0, pulse:true} ],
     beats:[
       {t:'cam', from:[24,8,34], look:[0,5,0], dur:0.1},
       {t:'cam', from:[-26,9,30], look:[0,5,0], dur:16, wait:false},

@@ -158,10 +158,28 @@ W.fold=function(S,x,z,r){                     /* a sheepfold of stacked stone, o
     S.box(px-0.55,0,pz-0.55,px+0.55,1.1,pz+0.55,C.rock); }
 };
 /* AN OLIVE: a short twisted trunk and a low grey-green crown, as the voyage grows its trees */
-W.olive=function(S,x,z,s){ s=s||1;
-  S.box(x-0.35,0,z-0.35,x+0.35,1.7*s,z+0.35,'log');
-  S.box(x-1.5*s,1.6*s,z-1.4*s,x+1.4*s,2.7*s,z+1.5*s,'leaves');
-  S.box(x-0.9*s,2.6*s,z-0.9*s,x+1.0*s,3.4*s,z+0.8*s,'leaves'); };
+/* AN OLIVE as they stand in the groves of the land, old: a short bole thick and split, two or three
+   grey limbs twisting out and up from it, and on each an open head of small leaves, grey-green above
+   and silver beneath, the sky showing through — never a ball. The bole is a block of the world (it
+   stops a man); the limbs and the leaves are the scene's own small things. */
+const OLIVE_LEAF=[0x5f6e45,0x6b7a4f,0x77865a,0x56653e,0x8c9a72,0x66754a];
+W.olive=function(S,x,z,s){ s=s||1; const h0=hash(x*1.31,z*0.77), a0=h0*6.283, gy=S.ground(x,z);
+  S.box(x-0.4,0,z-0.4,x+0.4,0.95*s,z+0.4,'log');                                           /* the bole */
+  const D=(x0,y0,z0,w,hh,c)=>S.detail(x0-w/2,gy+y0,z0-w/2,x0+w/2,gy+y0+hh,z0+w/2,c,{jitter:0.08});
+  D(x,0,z,1.0*s,0.5*s,0x6a6254);                                                            /* its swollen foot */
+  const n=h0<0.35?2:3;
+  for(let k=0;k<n;k++){ const b=a0+k*(6.283/n)+(hash(k+x,z-k)-0.5)*0.9, dx=Math.cos(b), dz=Math.sin(b);
+    /* a limb, stepping out and up, turning a little as it goes */
+    let px=x, pz=z, py=0.8*s; const steps=3+(k%2);
+    for(let j=0;j<steps;j++){ const tw=(hash(j+k*3,x+z)-0.5)*0.5; px+=(dx+tw*dz)*0.36*s; pz+=(dz-tw*dx)*0.36*s; py+=0.42*s;
+      D(px,py,pz,0.34*s,0.5*s,j%2?0x8a8270:0x766e60); }
+    /* and its head of leaves: an open heap of small clumps about the end of it */
+    const cx=px+dx*0.45*s, cz=pz+dz*0.45*s, cy=py+0.55*s, R=1.0*s;
+    for(let q=0;q<30;q++){ const u=hash(q*1.7+k,x-q), v=hash(z+q*2.3,k-q), w=hash(q+x*0.3,q-z*0.3);
+      const ox=(u-0.5)*2*R, oz=(v-0.5)*2*R, oy=(w-0.35)*0.7*R; if(ox*ox+oz*oz+oy*oy*2.6>R*R) continue;     /* a flattish, open head */
+      const sz=(0.24+hash(q,k+x)*0.2)*s; D(cx+ox,cy+oy,cz+oz,sz,sz*0.75,OLIVE_LEAF[(q+k)%OLIVE_LEAF.length]); } }
+  /* a few tufts over the heart of it, so the heads join into one low, broad crown */
+  for(let q=0;q<8;q++){ const a=q*0.8+a0, r=(0.2+hash(q,x)*0.5)*s; D(x+Math.cos(a)*r,(2.9+hash(x,q)*0.4)*s,z+Math.sin(a)*r,0.3*s,0.24*s,OLIVE_LEAF[q%OLIVE_LEAF.length]); } };
 /* A FIG: a short trunk and a broad, low crown of big leaves, shade enough to sit under
    (Yahuchanon 1:48, "when you were under the fig tree") */
 W.fig=function(S,x,z){
@@ -1153,6 +1171,46 @@ W.wild=function(ctx,kind,x,z,n,r,sp){
     g.rotation.y=hash(px,pz)*6.28;
     g.userData={home:[x,z],t:hash(k,x)*4,kind,roam:r||6,sp:sp||0.6}; ctx.flock.push(g); } };
 W.donkey=function(ctx,x,z){ return beast(ctx,'donkey',x,z); };
+/* A GARMENT made by hand, held up by its shoulders (Acts 9:39): a tunic hanging from where it is held —
+   its body, its short sleeves, a band at the hem, the folds of the cloth — the group's origin at its top */
+W.garment=function(ctx,t){ const g=new THREE.Group(), c=new THREE.Color(t.color||0xe6dcc0), w=t.w||0.62, h=t.h||0.95;
+  const M=k=>new THREE.MeshLambertMaterial({color:c.clone().multiplyScalar(k),side:THREE.DoubleSide});
+  const bx=(W2,H,D,m,x,y,z)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(W2,H,D),m); q.position.set(x,y,z); g.add(q); return q; };
+  bx(w,h,0.025,M(1),0,-h/2,0.12);                                                  /* the body of it */
+  for(const sx of [-1,1]) bx(0.2,0.2,0.025,M(0.96),sx*(w/2+0.09),-0.12,0.12);     /* the sleeves */
+  bx(w,0.07,0.03,M(t.hem?1:0.78),0,-h+0.035,0.12);                                 /* the hem */
+  for(const fx of [-0.18,0.02,0.2]) bx(0.03,h*0.8,0.03,M(0.86),fx*w/0.62,-h*0.55,0.125);   /* its folds */
+  ctx.scene.add(g); return g; };
+/* A CHAIN between two wrists, or a wrist and a ring in the wall (Acts 12:6; 16:26): links of iron the
+   engine hangs between its two ends, each frame (story/engine.js, chainTick), and a cuff at each end */
+W.chain=function(ctx,t){ const g=new THREE.Group(), n=t.n||40;
+  const m=new THREE.MeshLambertMaterial({color:0x2e3036}), hi=new THREE.MeshLambertMaterial({color:0x4a4d55});
+  /* ONE LINK: an oblong loop of iron bars, open in the middle, `LK` long — the next link passes through it */
+  const LK=0.2, W2=0.12, T=0.035;
+  const link=()=>{ const L=new THREE.Group();
+    for(const sx of [-1,1]){ const q=new THREE.Mesh(new THREE.BoxGeometry(T,T,LK),sx<0?m:hi); q.position.set(sx*(W2/2-T/2),0,0); L.add(q); }
+    for(const sz of [-1,1]){ const q=new THREE.Mesh(new THREE.BoxGeometry(W2,T,T),m); q.position.set(0,0,sz*(LK/2-T/2)); L.add(q); }
+    g.add(L); return L; };
+  const links=[]; for(let i=0;i<n;i++) links.push(link());
+  const cuff=()=>{ const C=new THREE.Group();                                         /* the manacle: a squared band */
+    for(const [x,z,w,d] of [[0,-0.055,0.13,0.025],[0,0.055,0.13,0.025],[-0.055,0,0.025,0.13],[0.055,0,0.025,0.13]]){ const q=new THREE.Mesh(new THREE.BoxGeometry(w,0.06,d),hi); q.position.set(x,0,z); C.add(q); }
+    g.add(C); return C; };
+  g.userData.links=links; g.userData.pitch=LK-T*1.6; g.userData.cuffA=cuff(); g.userData.cuffB=cuff();
+  ctx.scene.add(g); return g; };
+/* A BROKEN LENGTH OF CHAIN lying on the ground: `n` links along the bearing `ry`, every other one lying
+   flat and the one between standing on its edge through them, as iron links fall */
+W.chainPiece=function(S,x,z,n,ry){ ry=Math.round(ry/(Math.PI/2))*(Math.PI/2);   /* square to the world, as its blocks are */
+  const y0=S.ground(x,z), c=Math.cos(ry), s=Math.sin(ry), IR=0x2e3036, HI=0x4a4d55, LK=0.2, W2=0.12, T=0.035, P=LK-T*1.6;
+  const seg=(ax,az,bx,bz,y,h,col)=>{ const x0=Math.min(ax,bx)-T/2, x1=Math.max(ax,bx)+T/2, z0=Math.min(az,bz)-T/2, z1=Math.max(az,bz)+T/2; S.detail(x0,y0+y,z0,x1,y0+y+h,z1,col,{jitter:0}); };
+  for(let i=0;i<n;i++){ const d=(i-(n-1)/2)*P, cx=x+c*d, cz=z+s*d, ax=c*LK/2, az=s*LK/2, px=-s*W2/2, pz=c*W2/2;
+    if(i%2===0){ for(const k of [-1,1]) seg(cx-ax+px*k*0.85,cz-az+pz*k*0.85,cx+ax+px*k*0.85,cz+az+pz*k*0.85,0,T,k<0?IR:HI);      /* lying flat: its two sides */
+      for(const k of [-1,1]) seg(cx+ax*k*0.85-px,cz+az*k*0.85-pz,cx+ax*k*0.85+px,cz+az*k*0.85+pz,0,T,IR); }                         /* and its two ends */
+    else { seg(cx-ax,cz-az,cx+ax,cz+az,0,T,IR); seg(cx-ax,cz-az,cx+ax,cz+az,W2-T,T,HI);                                               /* on its edge: its foot and its top */
+      for(const k of [-1,1]) seg(cx+ax*k*0.85,cz+az*k*0.85,cx+ax*k*0.85,cz+az*k*0.85,0,W2,IR); } } };                              /* and its two ends upright */
+/* a fetter burst open: a squared band of iron, one side of it sprung */
+W.shackle=function(S,x,z,ry){ ry=Math.round(ry/(Math.PI/2))*(Math.PI/2); const y0=S.ground(x,z), c=Math.cos(ry), s=Math.sin(ry), r=0.075, T=0.035;
+  const pt=(u,v)=>[x+c*u-s*v,z+s*u+c*v], seg=(a,b)=>{ S.detail(Math.min(a[0],b[0])-T/2,y0,Math.min(a[1],b[1])-T/2,Math.max(a[0],b[0])+T/2,y0+0.06,Math.max(a[1],b[1])+T/2,0x3a3c42,{jitter:0}); };
+  seg(pt(-r,-r),pt(r,-r)); seg(pt(-r,-r),pt(-r,r)); seg(pt(-r,r),pt(0,r)); seg(pt(r,-r),pt(r+0.05,r*0.4)); W.chainPiece(S,x+c*0.22,z+s*0.22,2,ry); };
 /* a garland of leaves and flowers, such as were hung on the beasts brought to an altar of the nations (Acts 14:13) */
 W.wreath=function(ctx){ const g=new THREE.Group();
   g.add(new THREE.Mesh(new THREE.TorusGeometry(0.22,0.05,6,14),new THREE.MeshLambertMaterial({color:0x4e7a30})));
