@@ -492,6 +492,7 @@ function folkStep(F,to,dt){
      the world's blocks, of the other townsfolk and of the mills, nets and tables they work at */
   const free=(b)=>{ const fx=Math.sin(b), fz=Math.cos(b), px=g.position.x+fx*0.5, pz=g.position.z+fz*0.5, sx=fz*0.3, sz=-fx*0.3;
     if(wallAt(px,pz,u.gy)||wallAt(px+sx,pz+sz,u.gy)||wallAt(px-sx,pz-sz,u.gy)) return false;
+    if(hullCross(g.position.x,g.position.z,px,pz,true)) return false;                         /* nor through a boat */
     for(const q of ctx.folkSolids||[]) if(Math.hypot(q[0]-px,q[1]-pz)<q[2]+0.3&&Math.hypot(q[0]-g.position.x,q[1]-g.position.z)>q[2]+0.05) return false;
     for(const O of ctx.folk) if(O!==F&&Math.hypot(O.g.position.x-px,O.g.position.z-pz)<0.62) return false;
     return true; };
@@ -654,8 +655,8 @@ function movePlayer(dt){
     const dx=Math.sin(ang)*sp*dt, dz=Math.cos(ang)*sp*dt;
     const x=player.position.x, z=player.position.z;
     const y=player.position.y;
-    if(!blocked(x+dx,z,0.3,y)) player.position.x+=dx;
-    if(!blocked(player.position.x,z+dz,0.3,y)) player.position.z+=dz;
+    if(!blocked(x+dx,z,0.3,y)&&!hullCross(x,z,x+dx,z)) player.position.x+=dx;
+    if(!blocked(player.position.x,z+dz,0.3,y)&&!hullCross(player.position.x,z,player.position.x,z+dz)) player.position.z+=dz;
     player.rotation.y=turnTo(player.rotation.y,ang,dt*10);
     ud.walk=(ud.walk||0)+dt*sp*2.2;
   } else ud.walk=0;
@@ -679,6 +680,18 @@ function lakeH(x,z){ const L=ctx.lake, r=L.rect;
   for(const c of window.STORYWORLD.LAKE_WAVES){ const k=2*Math.PI/c[1], om=Math.sqrt(9.8*k), cs=Math.cos(c[0]), sn=Math.sin(c[0]);
     const Dx=cs*dx-sn*dz, Dz=sn*dx+cs*dz; h+=L.A*c[2]*Math.sin(k*(Dx*x+Dz*z)-om*L.t); }
   return h*ef; }
+/* A BOAT IS SOLID: her sides are not walked through. Whether a step from (x0,z0) to (x1,z1) would pass
+   through a hull — from outside her to inside, or (for the townsfolk) out again — over the gunwale of
+   any boat of the scene, beached or afloat. Those the story itself sends aboard are not stopped: their
+   going in is the scene's own (Luqas 5:3, "He entered one of the boats"). */
+function inHull(o,x,z){ const t=o.userData.thing||{}, B=o.userData.boat||(t.big?{len:window.STORYWORLD.BOAT.len*(t.scale||1),beam:window.STORYWORLD.BOAT.beam*(t.scale||1)}:{len:7,beam:2.1});
+  const h=o.rotation.y, dx=x-o.position.x, dz=z-o.position.z;
+  const al=dx*Math.sin(h)+dz*Math.cos(h), ac=dx*Math.cos(h)-dz*Math.sin(h);
+  return Math.abs(al)<B.len/2+0.15&&Math.abs(ac)<B.beam/2+0.15; }
+function hullCross(x0,z0,x1,z1,both){
+  for(const id in ctx.things){ const o=ctx.things[id], t=o.userData.thing; if(!t||t.kind!=='boat'||!o.visible) continue;
+    const a=inHull(o,x0,z0), b=inHull(o,x1,z1); if(!a&&b) return true; if(both&&a&&!b) return true; }
+  return false; }
 /* where a point of the set lies in a boat's own frame (along her, across her), and whether it is inside her */
 function inBoat(o,x,z){ const B=o.userData.boat; if(!B) return null;
   const h=o.rotation.y, dx=x-o.position.x, dz=z-o.position.z;
@@ -705,6 +718,10 @@ function lakeTick(dt){
     u.heave=(hc*2+hf+hs)/4*0.9; u.pitch=cl(Math.atan2(hf-hs,2*ha),0.2); u.roll=cl(Math.atan2(hp-hn,2*hb)*0.8,0.24);
     o.position.y=u.baseY+u.heave; o.rotation.x=-u.pitch; o.rotation.z=u.roll;
     if(u.boat&&!main) main=o; }
+  { let n=0; for(const id in ctx.things){ const o=ctx.things[id], t=o.userData.thing; if(n>=8||!o.visible||!t||t.kind!=='boat') continue;
+      const B=o.userData.boat||(t.big?{len:window.STORYWORLD.BOAT.len*(t.scale||1),beam:window.STORYWORLD.BOAT.beam*(t.scale||1)}:{len:7,beam:2.1});
+      U.uBoats.value[n].set(o.position.x,o.position.z,B.len,B.beam); U.uBoatHs.value[n]=o.rotation.y; n++; }
+    for(;n<8;n++) U.uBoats.value[n].w=-99; }
   if(main){ U.uBoat.value.set(main.position.x,main.position.z,main.userData.boat.len,main.userData.boat.beam); U.uBoatH.value=main.rotation.y;
     const w=toWorld(main.position.x,0,main.position.z); KIT.ripple.focus({x:w.x,y:w.y,z:w.z}); }
   /* everyone in her moves with her; everyone on the water stands on its face */

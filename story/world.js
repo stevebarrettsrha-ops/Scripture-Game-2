@@ -541,6 +541,14 @@ W.dove=function(ctx,x,y,z){
    14:22). Her measures are kept on her for the engine: `len`, `beam`, the height of her floor,
    thwarts and decks above her own waterline. */
 W.BOAT={len:10.6,beam:3.1,floor:-0.42,seat:0.0,deck:0.08,gunwale:0.62,thwarts:[3.05,1.65,-1.35,-2.75],mast:2.35};
+/* THE WATER IS NOT INSIDE HER. A hull is open, and the lake's water (the world's own blocks of it, or the
+   lake's waves) lies level through it — so it stood inside every boat, up to the thwarts. Within her is laid
+   a MASK: a shape filling the hold, drawn with no colour at all, only its depth, after the people and the
+   things in her and before the water — so the water behind it is not drawn there, and everything else is.
+   (A net is drawn before it, so the catch heaped in her is seen.) */
+const HULL_MASK=new THREE.MeshBasicMaterial({colorWrite:false,transparent:true,depthWrite:true});
+function hullMask(g,parts){ for(const [w,h,d,x,y,z] of parts){ const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),HULL_MASK);
+    q.position.set(x,y,z); q.renderOrder=-1; q.userData.mask=true; g.add(q); } }
 function bigBoat(ctx,x,z,o){
   const g=new THREE.Group(), m=c=>new THREE.MeshLambertMaterial({color:c});
   const wood=m(0x6a4a30), dark=m(0x4a3220), pale=m(0x8a6a48), tar=m(0x2a2018);
@@ -575,6 +583,8 @@ function bigBoat(ctx,x,z,o){
   for(const sd of [1,-1]) for(const dz of [-1.0,1.3]){ const q=b(0.09,0.09,3.6,wood,sd*(HB-0.45),P.gunwale-0.05,dz); q.rotation.y=sd*0.04; }
   /* `scale`: a ship of the sea built as she is, larger — the grain ship of Alexandria (Acts 27:37) */
   const sc=o.scale||1; g.scale.setScalar(sc); g.userData.boat={len:L*sc,beam:P.beam*sc};
+  { const parts=[]; for(let i=0;i<14;i++){ const z0=-L/2+0.4+i*(L-0.8)/14, z1=z0+(L-0.8)/14, zc=(z0+z1)/2, w=2*half(zc)-0.22; if(w<0.3) continue;
+      parts.push([w,P.gunwale-0.06-(P.floor+0.06),z1-z0+0.01,0,(P.gunwale-0.06+P.floor+0.06)/2,zc]); } hullMask(g,parts); }
   g.position.set(x,o.y===undefined?-0.1:o.y,z); g.rotation.order='YXZ'; g.rotation.y=o.face||0; ctx.scene.add(g); return g; }
 /* THE LAKE'S OWN WAVES, over the still water of a set (galilSea): a surface of travelling waves
    whose height is the story engine's own (lakeH) on the CPU and here on the GPU, so that a boat
@@ -586,6 +596,8 @@ W.lakeWaves=function(ctx,r){
   const geo=new THREE.PlaneGeometry(w,d,sx,sz); geo.rotateX(-Math.PI/2); geo.translate((r[0]+r[2])/2,0,(r[1]+r[3])/2);
   const U={uT:{value:0},uA:{value:0},uDir:{value:new THREE.Vector2(0,1)},uRect:{value:new THREE.Vector4(r[0],r[1],r[2],r[3])},
     uBoat:{value:new THREE.Vector4(0,0,0,-99)},uBoatH:{value:0},
+    /* every boat on the lake, not only the one being sailed: the water is never drawn inside a hull */
+    uBoats:{value:[0,1,2,3,4,5,6,7].map(()=>new THREE.Vector4(0,0,0,-99))},uBoatHs:{value:[0,0,0,0,0,0,0,0]},
     uLight:WU.uLight,uSunDir:WU.uSunDir,uSunCol:WU.uSunCol,uZenith:WU.uZenith,uFogColor:WU.uFogColor,uFogNear:WU.uFogNear,uFogFar:WU.uFogFar,
     uCamPos:WU.uCamPos,uMoonDir:WU.uMoonDir,uMoonCol:WU.uMoonCol,uMoon:WU.uMoon,uNoise:WU.uMap,
     uRip:RP.tex,uRipO:RP.o,uRipOn:RP.on};
@@ -605,13 +617,16 @@ W.lakeWaves=function(ctx,r){
         vec4 mv=viewMatrix*wp; vFog=-mv.z; gl_Position=projectionMatrix*mv; }`,
     fragmentShader:`precision highp float;
       uniform vec3 uLight,uSunDir,uSunCol,uZenith,uFogColor,uCamPos,uMoonDir,uMoonCol; uniform float uFogNear,uFogFar,uMoon,uA,uT,uBoatH;
-      uniform vec4 uBoat; uniform sampler2D uNoise,uRip; uniform vec2 uRipO; uniform float uRipOn;
+      uniform vec4 uBoat; uniform vec4 uBoats[8]; uniform float uBoatHs[8]; uniform sampler2D uNoise,uRip; uniform vec2 uRipO; uniform float uRipOn;
       varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP;
       void main(){
         /* none of it inside the boat's own hull */
         vec2 rb=vP-uBoat.xy; float cb=cos(uBoatH), sb=sin(uBoatH);
         vec2 lb=vec2(cb*rb.x-sb*rb.y, sb*rb.x+cb*rb.y);
         if(abs(lb.y)<uBoat.z*0.5-0.1){ float t=abs(lb.y)/(uBoat.z*0.5); if(abs(lb.x)<uBoat.w*0.5*sqrt(max(0.0,1.0-pow(t,2.8)))-0.06) discard; }
+        for(int i=0;i<8;i++){ vec4 Bt=uBoats[i]; if(Bt.w<0.0) continue;
+          vec2 rq=vP-Bt.xy; float cq=cos(uBoatHs[i]), sq=sin(uBoatHs[i]); vec2 lq=vec2(cq*rq.x-sq*rq.y, sq*rq.x+cq*rq.y);
+          if(abs(lq.y)<Bt.z*0.5-0.1){ float tq=abs(lq.y)/(Bt.z*0.5); if(abs(lq.x)<Bt.w*0.5*sqrt(max(0.0,1.0-pow(tq,2.8)))-0.06) discard; } }
         vec3 N=normalize(vN);
         vec3 n1=texture2D(uNoise,vP*0.11+vec2(uT*0.05,uT*0.03)).rgb, n2=texture2D(uNoise,vP*0.37-vec2(uT*0.08,-uT*0.06)).rgb;
         N=normalize(N+vec3((n1.r-0.5)*0.32+(n2.r-0.5)*0.2,0.0,(n1.g-0.5)*0.32+(n2.g-0.5)*0.2));
@@ -654,11 +669,12 @@ W.boat=function(ctx,x,z,o){ o=o||{};
   b(2.1,0.75,0.2,wood,0,0.05,-3.5);
   b(2.0,0.1,0.4,0x8a6a48,0,0.2,0.8);
   if(o.mast!==false){ b(0.16,4.5,0.16,0x7a5a3e,0,2.4,1.2); b(2.6,0.1,0.1,0x7a5a3e,0,3.9,1.2); }
+  hullMask(g,[[1.88,0.6,6.75,0,0.075,0]]);                                     /* the hold, floor to gunwale */
   g.position.set(x,o.y===undefined?-0.2:o.y,z); g.rotation.y=o.face||0; ctx.scene.add(g); return g; };
 /* a net, heaped or hanging, and the fish that fill it */
 W.net=function(ctx,x,z,o){ o=o||{};
   const g=new THREE.Group(), mat=new THREE.MeshLambertMaterial({color:0xb8a882,transparent:true,opacity:0.75});
-  const q=new THREE.Mesh(new THREE.BoxGeometry(o.w||1.6,o.h||0.4,o.d||1.4),mat); g.add(q);
+  const q=new THREE.Mesh(new THREE.BoxGeometry(o.w||1.6,o.h||0.4,o.d||1.4),mat); q.renderOrder=-2; g.add(q);   /* (drawn before a hull's mask) */
   const fish=new THREE.Group();                                                       /* the catch: the voyage's own fish, heaped in the net */
   for(let k=0;k<Math.min(28,o.n||28);k++){ const f=W.voyageFish(FISH_KINDS[Math.floor(hash(k,5)*5)]); if(!f) continue;
     const h=new THREE.Group(); h.add(f); h.position.set((hash(k,1)-0.5)*(o.w||1.6)*0.9,(hash(k,2)-0.3)*(o.h||0.4)*1.6,(hash(k,3)-0.5)*(o.d||1.4)*0.9);
@@ -834,6 +850,8 @@ function bigBoat(ctx,x,z,o){
   for(const sd of [1,-1]) for(const dz of [-1.0,1.3]){ const q=b(0.09,0.09,3.6,wood,sd*(HB-0.45),P.gunwale-0.05,dz); q.rotation.y=sd*0.04; }
   /* `scale`: a ship of the sea built as she is, larger — the grain ship of Alexandria (Acts 27:37) */
   const sc=o.scale||1; g.scale.setScalar(sc); g.userData.boat={len:L*sc,beam:P.beam*sc};
+  { const parts=[]; for(let i=0;i<14;i++){ const z0=-L/2+0.4+i*(L-0.8)/14, z1=z0+(L-0.8)/14, zc=(z0+z1)/2, w=2*half(zc)-0.22; if(w<0.3) continue;
+      parts.push([w,P.gunwale-0.06-(P.floor+0.06),z1-z0+0.01,0,(P.gunwale-0.06+P.floor+0.06)/2,zc]); } hullMask(g,parts); }
   g.position.set(x,o.y===undefined?-0.1:o.y,z); g.rotation.order='YXZ'; g.rotation.y=o.face||0; ctx.scene.add(g); return g; }
 /* THE LAKE'S OWN WAVES, over the still water of a set (galilSea): a surface of travelling waves
    whose height is the story engine's own (lakeH) on the CPU and here on the GPU, so that a boat
@@ -845,6 +863,8 @@ W.lakeWaves=function(ctx,r){
   const geo=new THREE.PlaneGeometry(w,d,sx,sz); geo.rotateX(-Math.PI/2); geo.translate((r[0]+r[2])/2,0,(r[1]+r[3])/2);
   const U={uT:{value:0},uA:{value:0},uDir:{value:new THREE.Vector2(0,1)},uRect:{value:new THREE.Vector4(r[0],r[1],r[2],r[3])},
     uBoat:{value:new THREE.Vector4(0,0,0,-99)},uBoatH:{value:0},
+    /* every boat on the lake, not only the one being sailed: the water is never drawn inside a hull */
+    uBoats:{value:[0,1,2,3,4,5,6,7].map(()=>new THREE.Vector4(0,0,0,-99))},uBoatHs:{value:[0,0,0,0,0,0,0,0]},
     uLight:WU.uLight,uSunDir:WU.uSunDir,uSunCol:WU.uSunCol,uZenith:WU.uZenith,uFogColor:WU.uFogColor,uFogNear:WU.uFogNear,uFogFar:WU.uFogFar,
     uCamPos:WU.uCamPos,uMoonDir:WU.uMoonDir,uMoonCol:WU.uMoonCol,uMoon:WU.uMoon,uNoise:WU.uMap,
     uRip:RP.tex,uRipO:RP.o,uRipOn:RP.on};
@@ -864,13 +884,16 @@ W.lakeWaves=function(ctx,r){
         vec4 mv=viewMatrix*wp; vFog=-mv.z; gl_Position=projectionMatrix*mv; }`,
     fragmentShader:`precision highp float;
       uniform vec3 uLight,uSunDir,uSunCol,uZenith,uFogColor,uCamPos,uMoonDir,uMoonCol; uniform float uFogNear,uFogFar,uMoon,uA,uT,uBoatH;
-      uniform vec4 uBoat; uniform sampler2D uNoise,uRip; uniform vec2 uRipO; uniform float uRipOn;
+      uniform vec4 uBoat; uniform vec4 uBoats[8]; uniform float uBoatHs[8]; uniform sampler2D uNoise,uRip; uniform vec2 uRipO; uniform float uRipOn;
       varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP;
       void main(){
         /* none of it inside the boat's own hull */
         vec2 rb=vP-uBoat.xy; float cb=cos(uBoatH), sb=sin(uBoatH);
         vec2 lb=vec2(cb*rb.x-sb*rb.y, sb*rb.x+cb*rb.y);
         if(abs(lb.y)<uBoat.z*0.5-0.1){ float t=abs(lb.y)/(uBoat.z*0.5); if(abs(lb.x)<uBoat.w*0.5*sqrt(max(0.0,1.0-pow(t,2.8)))-0.06) discard; }
+        for(int i=0;i<8;i++){ vec4 Bt=uBoats[i]; if(Bt.w<0.0) continue;
+          vec2 rq=vP-Bt.xy; float cq=cos(uBoatHs[i]), sq=sin(uBoatHs[i]); vec2 lq=vec2(cq*rq.x-sq*rq.y, sq*rq.x+cq*rq.y);
+          if(abs(lq.y)<Bt.z*0.5-0.1){ float tq=abs(lq.y)/(Bt.z*0.5); if(abs(lq.x)<Bt.w*0.5*sqrt(max(0.0,1.0-pow(tq,2.8)))-0.06) discard; } }
         vec3 N=normalize(vN);
         vec3 n1=texture2D(uNoise,vP*0.11+vec2(uT*0.05,uT*0.03)).rgb, n2=texture2D(uNoise,vP*0.37-vec2(uT*0.08,-uT*0.06)).rgb;
         N=normalize(N+vec3((n1.r-0.5)*0.32+(n2.r-0.5)*0.2,0.0,(n1.g-0.5)*0.32+(n2.g-0.5)*0.2));
@@ -913,11 +936,12 @@ W.boat=function(ctx,x,z,o){ o=o||{};
   b(2.1,0.75,0.2,wood,0,0.05,-3.5);
   b(2.0,0.1,0.4,0x8a6a48,0,0.2,0.8);
   if(o.mast!==false){ b(0.16,4.5,0.16,0x7a5a3e,0,2.4,1.2); b(2.6,0.1,0.1,0x7a5a3e,0,3.9,1.2); }
+  hullMask(g,[[1.88,0.6,6.75,0,0.075,0]]);                                     /* the hold, floor to gunwale */
   g.position.set(x,o.y===undefined?-0.2:o.y,z); g.rotation.y=o.face||0; ctx.scene.add(g); return g; };
 /* a net, heaped or hanging, and the fish that fill it */
 W.net=function(ctx,x,z,o){ o=o||{};
   const g=new THREE.Group(), mat=new THREE.MeshLambertMaterial({color:0xb8a882,transparent:true,opacity:0.75});
-  const q=new THREE.Mesh(new THREE.BoxGeometry(o.w||1.6,o.h||0.4,o.d||1.4),mat); g.add(q);
+  const q=new THREE.Mesh(new THREE.BoxGeometry(o.w||1.6,o.h||0.4,o.d||1.4),mat); q.renderOrder=-2; g.add(q);   /* (drawn before a hull's mask) */
   const fish=new THREE.Group();                                                       /* the catch: the voyage's own fish, heaped in the net */
   for(let k=0;k<Math.min(28,o.n||28);k++){ const f=W.voyageFish(FISH_KINDS[Math.floor(hash(k,5)*5)]); if(!f) continue;
     const h=new THREE.Group(); h.add(f); h.position.set((hash(k,1)-0.5)*(o.w||1.6)*0.9,(hash(k,2)-0.3)*(o.h||0.4)*1.6,(hash(k,3)-0.5)*(o.d||1.4)*0.9);

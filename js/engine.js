@@ -6120,10 +6120,46 @@ function voidStarTick(op){
 }
 
 /* the two great lights — square, as they ought to be */
-const sunMat2=new THREE.SpriteMaterial({map:TEX.sun,fog:false,transparent:true,depthWrite:false});
-const sun=new THREE.Sprite(sunMat2); sun.scale.set(R_WORLD*0.075,R_WORLD*0.075,1); scene.add(sun);
+/* ---- THE TWO GREAT LIGHTS ARE ROUND, AND THEY SHINE ----
+   They were squares, as the voyage's first sky had them, and then for a while
+   round faces beheld from without and squares within (see the notes at the
+   haloes below). The traveller looking at the vault of the sky (THE VAULT OF
+   THE SKY) asked for them as the light of the star over Bĕyth Leḥem is drawn:
+   "Remove old sun and moon too and use the new one in all the game, even the
+   ascending/firmament and zoom out." So both are round now at every distance —
+   the SUN a white-hot disc in a soft glow of its own light, drawn by adding
+   light (so it brightens the sky behind it, and the sky's own glow about it
+   from the vault meets it), and the MOON a pale body with her soft seas, a
+   little blue light standing about her. Each face is drawn smooth (linear,
+   not the pixel grid of the blocks), and the sprite is larger than the old
+   square because the glow is part of it: the disc itself is about the size
+   the square was. */
+const SUN_S=R_WORLD*0.15, MOON_S=R_WORLD*0.095;
+function lightFace(draw,n){ const c=texCanvas(n,n), g=c.getContext('2d'); draw(g,n);
+  const t=new THREE.CanvasTexture(c); t.magFilter=THREE.LinearFilter; t.minFilter=THREE.LinearMipmapLinearFilter; return t; }
+TEX.sun=lightFace((g,n)=>{ const R=n/2, gr=g.createRadialGradient(R,R,0,R,R,R);
+  gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(0.30,'rgba(255,252,238,1)');      /* the disc, white hot */
+  gr.addColorStop(0.36,'rgba(255,240,200,0.92)');                                              /* its edge, softened */
+  gr.addColorStop(0.48,'rgba(255,228,170,0.42)'); gr.addColorStop(0.72,'rgba(255,214,150,0.12)');
+  gr.addColorStop(1,'rgba(255,205,140,0)');
+  g.fillStyle=gr; g.fillRect(0,0,n,n); },256);
+TEX.moon=lightFace((g,n)=>{ const R=n/2;
+  /* the light about her first, then her body over it */
+  let gr=g.createRadialGradient(R,R,R*0.30,R,R,R);
+  gr.addColorStop(0,'rgba(200,215,255,0.45)'); gr.addColorStop(0.35,'rgba(170,190,240,0.14)'); gr.addColorStop(1,'rgba(150,170,230,0)');
+  g.fillStyle=gr; g.fillRect(0,0,n,n);
+  const r=R*0.34; gr=g.createRadialGradient(R-r*0.25,R-r*0.25,0,R,R,r);
+  gr.addColorStop(0,'rgba(250,250,244,1)'); gr.addColorStop(0.8,'rgba(226,230,236,1)'); gr.addColorStop(0.97,'rgba(206,214,230,0.9)'); gr.addColorStop(1,'rgba(206,214,230,0)');
+  g.fillStyle=gr; g.beginPath(); g.arc(R,R,r,0,Math.PI*2); g.fill();
+  /* her seas, soft, so she is a body and not a coin */
+  for(const [x,y,m] of [[-0.30,-0.18,0.26],[0.22,0.28,0.20],[0.30,-0.32,0.15],[-0.05,0.12,0.12]]){
+    const cx=R+x*r, cy=R+y*r, rr=m*r, sg=g.createRadialGradient(cx,cy,0,cx,cy,rr);
+    sg.addColorStop(0,'rgba(150,158,176,0.55)'); sg.addColorStop(1,'rgba(150,158,176,0)');
+    g.fillStyle=sg; g.beginPath(); g.arc(cx,cy,rr,0,Math.PI*2); g.fill(); } },256);
+const sunMat2=new THREE.SpriteMaterial({map:TEX.sun,fog:false,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+const sun=new THREE.Sprite(sunMat2); sun.scale.set(SUN_S,SUN_S,1); scene.add(sun);
 const moonMat2=new THREE.SpriteMaterial({map:TEX.moon,fog:false,transparent:true,depthWrite:false});
-const moon=new THREE.Sprite(moonMat2); moon.scale.set(R_WORLD*0.055,R_WORLD*0.055,1); scene.add(moon);
+const moon=new THREE.Sprite(moonMat2); moon.scale.set(MOON_S,MOON_S,1); scene.add(moon);
 const glowTexCv=(()=>{ const c=texCanvas(128); const g=c.getContext('2d');
   const gr=g.createRadialGradient(64,64,4,64,64,62);
   gr.addColorStop(0,'rgba(255,214,110,0.9)'); gr.addColorStop(1,'rgba(255,190,80,0)');
@@ -6183,6 +6219,8 @@ const sunRound=new THREE.Sprite(sunRoundMat); sunRound.visible=false; scene.add(
 const moonRoundMat=new THREE.SpriteMaterial({map:TEX.moonRound,fog:false,transparent:true,
   opacity:0,depthWrite:false});
 const moonRound=new THREE.Sprite(moonRoundMat); moonRound.visible=false; scene.add(moonRound);
+/* (Round 131: the lights are ROUND at every distance now, at the traveller's own word — see THE TWO
+   GREAT LIGHTS ARE ROUND above. The history below is kept so the turns are not lost.) */
 /* ---- AND THE LIGHTS ARE SQUARE EVERYWHERE, INSIDE THE WORLD AND OUT ----
    THE ROUND FACES ARE GONE, and the reason is that they were asked for and
    then unasked for. The round pair was built because a hard tile beheld from
@@ -6211,9 +6249,9 @@ function haloTick(whole){
   /* the haloes keep their proportion to the discs they stand about — the
      discs themselves are resized against the eye in the framed views */
   if(sunHalo.visible){ sunHalo.position.copy(sun.position);
-    const h=sun.scale.x*4.0; sunHalo.scale.set(h,h,1); }
+    const h=sun.scale.x*2.0; sunHalo.scale.set(h,h,1); }
   if(moonHalo.visible){ moonHalo.position.copy(moon.position);
-    const h=moon.scale.x*3.45; moonHalo.scale.set(h,h,1); }
+    const h=moon.scale.x*2.0; moonHalo.scale.set(h,h,1); }
   /* the round pair is kept in the file, dark and never shown, so that the
      reason it was tried is not lost with the code — see the note above */
   sunRound.visible=false; moonRound.visible=false;
@@ -6731,7 +6769,7 @@ const SKYDOME={ hor:new THREE.Color(0x9fc5e8), dayF:1 };
   const dome=new THREE.Mesh(geo,mat); dome.renderOrder=-10; dome.frustumCulled=false; dome.name='sky-vault'; scene.add(dome);
   const _top=new THREE.Color(), _sun=new THREE.Vector3(), _sc=new THREE.Color();
   /* called just before each frame is drawn, when everything that colours the sky has had its say */
-  SKYDOME.mesh=dome; window.__SKYDOME=SKYDOME; window.__camForward=()=>camera.getWorldDirection(new THREE.Vector3());                  /* (tools: tools/sky-shots.js sets the old flat sky beside it) */
+  SKYDOME.mesh=dome; window.__SKYDOME=SKYDOME; window.__camForward=()=>camera.getWorldDirection(new THREE.Vector3()); window.__camPos=()=>camera.position.clone();                  /* (tools: tools/sky-shots.js sets the old flat sky beside it) */
   SKYDOME.tick=function(){
     dome.position.copy(camera.position);
     if(SKYDOME.off){ dome.visible=false; return; }
@@ -21700,9 +21738,9 @@ function frame(){
        distance from the eye instead, easing back to the great square of the
        ground sky as the band is left. */
     for(const L of [sun,moon]){
-      const baseS=(L===sun?R_WORLD*0.075:R_WORLD*0.055);
+      const baseS=(L===sun?SUN_S:MOON_S);
       const cd=camera.position.distanceTo(L.position);
-      const want=Math.min(baseS, Math.max(900, cd*(L===sun?0.052:0.040)));
+      const want=Math.min(baseS, Math.max(1800, cd*(L===sun?0.104:0.080)));   /* (the faces carry their own glow: twice the old square's size for the same disc) */
       const s2=baseS+(want-baseS)*sk;
       L.scale.set(s2,s2,1);
     }
@@ -21749,8 +21787,8 @@ function frame(){
   }
   /* leaving the whole-earth band, the lights take back their ground size —
      and the depth test with it, so a mountain hides the setting sun again */
-  if(wholeF<=0.02){ sun.scale.set(R_WORLD*0.075,R_WORLD*0.075,1);
-    moon.scale.set(R_WORLD*0.055,R_WORLD*0.055,1);
+  if(wholeF<=0.02){ sun.scale.set(SUN_S,SUN_S,1);
+    moon.scale.set(MOON_S,MOON_S,1);
     for(const L of [sun,moon,sunHalo,moonHalo]){
       L.renderOrder=0; L.material.depthTest=true; } }
   haloTick(wholeF);               /* the lights get their glow when the earth is beheld whole */

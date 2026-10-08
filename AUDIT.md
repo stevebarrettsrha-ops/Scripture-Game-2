@@ -11224,6 +11224,35 @@ change of its own: the dawn on the lake, the dusk at Bĕyth Leḥem, and the res
 the sun and facing away. It finds the hours of dawn and dusk from the sun's own height at the
 station.
 
+## 4ee. Round 132 — round lights; dry, solid boats
+
+**The sun and the moon are round, everywhere.** They had been squares from the voyage's first sky.
+(For a while they were round faces beheld from without and squares within, until they were made
+square everywhere at an earlier word.) The traveller asked for them as the light of the star over
+Bĕyth Leḥem is drawn: "use the new one in all the game, even the ascending/firmament and zoom out".
+- The sun is a white-hot disc in a soft glow of its own light, drawn by adding light, so it
+  brightens the sky behind it, and the vault's glow about it meets it.
+- The moon is a pale body with soft seas, a little blue light standing about her.
+- Both faces are drawn smooth, not on the blocks' pixel grid.
+- The sprites are twice the old squares' size, because the glow is part of them. The disc itself
+  is about the size the square was.
+- The firmament view, the whole-earth view and the framed views keep each light's steady
+  apparent size and its haloes.
+- `tools/light-shots.js` photographs them on the ground (the sun and the moon), aloft, in the
+  firmament and over the whole earth.
+
+**The water is not inside the boats.** A hull is open, and the lake's water lay level through it,
+standing inside every boat up to the thwarts. Two mends:
+- A mask fills each boat's hold. It is drawn with depth and no colour, after the people and
+  things in her and before the water, so the water is not drawn there and everything else is.
+  The heaped net with its catch is drawn before the mask.
+- The lake's own waves leave out the water inside every boat on them, up to eight, not only the
+  one being sailed.
+
+**The boats are solid.** The witness can no longer walk through a hull from outside, and the
+townsfolk neither walk in nor out over a gunwale. Those the story sends aboard still go aboard,
+since that is the scene's own doing (Luqas 5:3).
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
