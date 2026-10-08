@@ -10989,6 +10989,138 @@ lying "like a mat".
     tanner's men at the vats), Caesarea, Antioch, Athens (the market-place, Acts 17:17) and
     Rome.
 
+## 4ea. Round 128 — doors, the eye indoors, faces that feel, the wonders shown
+
+**Asked:**
+- House doors looked too small.
+- Walk into a house and see how the camera follows; mend the camera and the interiors, and
+  look at how Minecraft: Story Mode treats walking through a door.
+- Look at how that game shows feeling on its faces.
+- Go through every vision and wonder so each is shown as the Besorah tells it, with meaning.
+
+**Found:**
+- **The doorway** was one block wide and two high, standing on a footing a block high, with the
+  leaf drawn from the ground up, so it read as a hatch.
+- **The doors** never opened in story mode: everyone walked through a shut leaf, and the
+  camera's pull-in did not see it.
+- **The follow camera** rode up into the roof indoors and slid through walls.
+- **The furniture** was laid at the footing's height, so it was sunk 0.4 m into the floor.
+- **The voyage's mark on the block in reach** (a yellow wire box) showed in the story.
+- **The faces** were small: four-centimetre eyes, a five-centimetre mouth hidden behind the
+  beard, brows tilted the wrong way for anger. Only the speaker showed any feeling.
+
+**Made: doors and interiors.**
+- **Door size:** story and city houses (`big`) are a course taller, with a doorway two cells
+  wide and three courses high and the leaf hung from the threshold. The sets' own rooms have
+  doorways two cells across.
+- **Doors open:** they swing open before the witness, the story's people and the townsfolk, and
+  shut behind them (`doorsTick`, through the kit's new `houses`).
+- **Furnishing:**
+  - A big house's goods stand on its floor.
+  - It is dressed for the land: a low table with floor cushions instead of chairs ("they
+    reclined"), and great jars against the wall.
+- **The block mark** is switched off in the story (the kit's `aimOff`).
+
+**Made: the camera through a door.** It does what Story Mode and Telltale do: the eye does
+not squeeze through the doorway.
+- **Going in:** it cuts, with a blink, to a shot held within the room that sees the witness
+  come through the door.
+- **Indoors:**
+  - The eye is the room's own: held at a clear place under the beams and turning to keep
+    the witness in view.
+  - It cuts to another place when the witness is lost from it or comes too near.
+  - It prefers places with room about them.
+  - W walks away from the eye, as it sees.
+- **Going out:** a shot from the yard looks back at the door.
+- **Under any roof:** the follow camera comes in low and close.
+- **Walls:** it pulls in at once when a wall comes between, a hand's breadth short of it,
+  and the witness is not drawn when the eye would be inside their head.
+
+**Made: faces as Story Mode draws them.**
+- **Eyes:** broad, with white about a dark iris, a pupil and a point of light. They widen in
+  fear and wonder, and narrow in sternness and in a smile's squint, with lower lids.
+- **Brows:** thick bars, tilted the right way: inner ends down in anger, up in grief and fear,
+  raised in wonder.
+- **Mouth:** three pieces that make one grin showing the teeth, bend down in grief, open
+  square to shout, or round small in wonder. It is shown on the beard.
+- **Tears** run for weeping.
+- **Who shows feeling:**
+  - Hearers near one who speaks take on the feeling of the words.
+  - The Besorah's own telling ("they were greatly afraid") shows on the faces of all present.
+  - A scene may set a face with the new `mood` beat.
+
+**Made: the wonders shown as the Besorah tells them.**
+- Twenty-nine scenes were restaged with no new words; every scene of Yahusha keeps His face
+  unseen (`exp:0` throughout).
+- **Act II:** dreams slept and woken from; the star going before the Magi to stand over the
+  house; Zaḵaryahu's mouth opened in praise; the esteem shining about the shepherds as they
+  fall.
+- **Act III:** the heavens opened and the dove seen coming down, the voice given its light.
+- **Act IV:** the unclean ruach throwing the man down; the jars seen filled (their lip now
+  open, so the wine shows); the healed man carrying his bed out; the blind looking about
+  them.
+- **Act V:** the leper made clean and fallen at His feet; Bartimai seeing.
+- **Act VI:** the strengthening mal'ak coming down in Gethsemane (its lamp set above the
+  garden's ground); Meleḵ's ear healed; the earth shaken at His death, the eye turned to the
+  House.
+- **Act VII:**
+  - the lightning-flash at the tomb;
+  - His vanishing at Emmaus;
+  - His hands and feet shown;
+  - the eleven looking up as He is taken up.
+- **Act VIII:**
+  - Sha'ul's scales falling (the Master's light now named so the scene can find it);
+  - the flames over each head;
+  - the lame man leaping;
+  - the viper shaken into the fire, on a shore now raised above the sea.
+- **Light columns:** a column of light keeps its height as it pulses and swells with a voice.
+
+## 4eb. Round 129 — the missing scenes of Acts
+
+Act VIII went from the house of Cornelius straight to Antioch and from Athens straight to the
+storm. Seven scenes now fill those gaps, in the Besorah's order, every verse taken from it and
+every quotation given a speaker and recorded:
+
+- **Taḇitha** (9:36-43), at Yapho. A new two-storey house has an upper room and an outside stair,
+  like the one in Yahrushalayim. The widows hold up the garments she made. Kĕpha sends them out,
+  kneels and prays, and the dead woman's eyes stay shut until "Taḇitha, arise". The witness goes
+  out on the road to Lod for him, then goes down to call the widows back.
+- **The prison of Herodes** (12:1-12). It is the fortress hall behind the Pavement, with an iron
+  grating across it. The mal'ak is a light that goes before Kĕpha. The chains fall, both guard
+  posts are passed, and the iron gate slides open by itself. The sword that killed Ya‛aqoḇ is
+  read, never drawn.
+- **Rhode at the gate** (12:12-19), in the house of Miryam (the upper-room set, at night). The
+  witness goes down the stair with Rhode, who runs back up without opening. "It is his mal'ak",
+  and then the whole house at the gate.
+- **Lustra** (14:8-22). This is a new set: a mud-brick town, the house of Zeus before its gate,
+  and an altar. The lame man stands and walks. The kohen of Zeus comes with two oxen, led as the
+  townsfolk's beasts are, and a garland. Barnaḇah and Sha’ul run in among the crowd. The stoning
+  is read while the camera is outside the gate; Sha’ul is then found lying outside the city, and
+  he rises.
+- **By the river at Philippi** (16:11-15). This is a new set: the colony on the Via Egnatia, the
+  river outside the west gate, and stones to sit on where there used to be prayer. Ludia and her
+  household are immersed, and the witness carries her purple home.
+  - 16:14 is left out: the Besorah file reads "Ludia,fa seller of purple", a stray footnote
+    mark. A history note on the purple-dyers of Thyatira stands in its place, without
+    paraphrasing the verse.
+- **The jailer** (16:16-34). The slave girl follows them crying out; her masters drag them to the
+  captains' seat in the market-place. The rods are read with the camera on the captains. Then
+  come the inner prison and the stocks, and at midnight the songs. The earthquake slides both
+  doors open. The witness brings the light the jailer calls for, and the wounds are washed at
+  the trough before the household eats together.
+- **The theatre at Ephesos** (19:23-41). This is a new set: a half-ring of seats stepped up
+  around the orchestra, the stage house, the colonnaded street, Demetrios' workshop with its
+  silver shrines and furnace, and the house of Artemis far off. The witness stands in the
+  doorway so Sha’ul cannot go in. Alexander is shouted down for two hours, and the city clerk
+  dismisses the qahal.
+
+Engine changes:
+- A `sleep` mood keeps the eyes shut, for the sleeping and the dead.
+- Two new kinds of thing: `beast` (an ox that can be led, with the right gait) and `wreath`.
+- A figure lying on a raised floor no longer sinks into it.
+- The new places (lystra, philippi, ephesos, prison) are added to the map, the hub, and the
+  ambient sound.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

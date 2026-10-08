@@ -419,8 +419,8 @@ STORY.act({
       T('mattithyahu',[50.4,-57.4],{face:Math.PI/2}), T('bartholomi',[50.2,-55.8],{face:Math.PI/2})
     ],
     things:[ {id:'lamp', kind:'jar', at:[60.4,-56.6]} ],
-    glows:[ {id:'lampGlow', at:[61,1.6,-57], size:1.6, color:0xffb060, intensity:1, hidden:true},
-            {id:'malak', at:[74.6,2.6,-60.4], size:3, color:0xfff4d8, intensity:1.1, hidden:true} ],
+    glows:[ {id:'lampGlow', at:[61,-57], dy:1.6, size:1.6, color:0xffb060, intensity:1, hidden:true},
+            {id:'malak', at:[78.6,-62.4], dy:3.4, size:3, color:0xfff4d8, intensity:1.1, hidden:true} ],
     beats:[
       {t:'cam', from:['qidron',-2,6], fdy:3.4, look:'yahusha', dur:0.1},
       {t:'face', who:'yahusha', to:'kepha'},
@@ -447,10 +447,11 @@ STORY.act({
       {t:'move', who:'yahusha', to:'prayer', speed:0.8},
       {t:'face', who:'yahusha', to:[80,-58.6]},
       {t:'lie', who:'yahusha', prone:true},
-      {t:'cam', from:[71.6,2,-55.6], look:[74.8,0.4,-58.6], dur:2.5},
+      {t:'cam', from:[71,5.4,-57], look:[75.4,6.2,-58.6], dur:2.5},          /* low behind Him, fallen on His face, under the olives */
       {t:'read', ref:'MARK 14:35'},
       {t:'say', who:'yahusha', ref:'MARK 14:36', turn:false},
       {t:'show', id:'malak'},
+      {t:'drift', id:'malak', to:[76.3,5.7,-59.2], dur:3.5, wait:false},     /* "a mal'ak … appeared to Him, strengthening Him": the light comes down to Him */
       {t:'read', ref:'LUKE 22:43'},
       {t:'read', ref:'LUKE 22:44'},
       {t:'hide', id:'malak'},
@@ -485,7 +486,9 @@ STORY.act({
       {id:'melek', name:'Meleḵ', at:[51,-60], face:Math.PI/2, robe:0x6a5a44, cloth:0x8a7a60, beard:0x2c241f},
       ...BAND
     ],
-    glows:[0,1,2,3,4].map(k=>({id:'torch'+k, at:[52+k*1.2,2.2,-62+k*2.2], size:1.4, color:0xff9a40, intensity:0.9})),
+    glows:[0,1,2,3,4].map(k=>({id:'torch'+k, at:[52+k*1.2,2.2,-62+k*2.2], size:1.4, color:0xff9a40, intensity:0.9}))
+      /* "and having touched his ear, He healed him" (Luke 22:51) */
+      .concat([{id:'ear', at:[62.6,-60], dy:1.7, size:0.8, color:0xfff4d8, intensity:0.5, hidden:true}]),
     beats:[
       {t:'cam', from:['three',2,-4], fdy:2.4, look:'yahudahQ', dur:0.1},
       {t:'move', who:['yahudahQ','melek'].concat(ids(BAND)), to:[[63.4,-58],[62.6,-60]].concat(BAND.map((a,k)=>[58.6+(k%5)*1.1,-61+Math.floor(k/5)*3.4+(k%2)*0.6])), speed:1.4, wait:false},
@@ -514,8 +517,13 @@ STORY.act({
       {t:'face', who:'yahusha', to:'kepha'},
       {t:'cam', on:'yahusha', shot:'back', toward:'kepha', dur:1.4},
       {t:'say', who:'yahusha', ref:'YAHUCHANON 18:11', turn:false},
-      {t:'face', who:'yahusha', to:'melek'},
+      {t:'move', who:'kepha', to:[64.6,-61.4], speed:1.2, wait:false},
+      {t:'move', who:'yahusha', to:[63.8,-59], speed:1},
+      {t:'face', who:'yahusha', to:'melek'}, {t:'face', who:'melek', to:'yahusha'},
+      {t:'cam', on:'yahusha', shot:'back', toward:'melek', back:2.2, dur:1.4},
+      {t:'show', id:'ear'},
       {t:'say', who:'yahusha', ref:'LUKE 22:51', turn:false},
+      {t:'hide', id:'ear'},
       {t:'face', who:'yahusha', to:'b2'},
       {t:'cam', on:'yahusha', shot:'back', toward:'b2', dur:1.4},
       {t:'say', who:'yahusha', ref:'MARK 14:48-49', turn:false},
@@ -804,6 +812,10 @@ STORY.act({
       {t:'cam', from:{rel:'yahushaS', off:[-1.3,1.1,3.3]}, look:'yahushaS', dur:3},
       {t:'say', who:'yahushaS', ref:'YAHUCHANON 19:30', turn:false},
       {t:'fulfil', id:'y53-5'},
+      /* "and see, the veil of the Dwelling Place was torn in two … and the earth was shaken, and the
+         rocks were split": from behind the stakes, over the city to the House */
+      {t:'cam', from:['skull',-5,1], fdy:6, look:[6,24,-44], dur:3, wait:false},
+      {t:'quake', s:4},
       {t:'time', to:'dusk'},
       {t:'read', ref:'MATTITHYAHU 27:51'},
       {t:'cam', from:['captain',2.6,2.6], fdy:1.8, look:'captain', dur:2},

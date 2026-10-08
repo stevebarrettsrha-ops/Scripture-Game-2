@@ -7419,7 +7419,13 @@ const BEAST_KIT={
        joint at the bottom of it (userData.knee), which the engine folds
        as the leg swings — set it and the beast picks its feet up. */
     for(const sx of [1,-1]) for(const sz of [1,-1]){
-      const L=lbox(t,h*0.55,t,col); L.geometry.translate(0,-h*0.275,0);
+      /* ---- AND THE LEG GOES UP INTO THE BODY (Round 129) ----
+         The hip was set at `h`, and many a barrel hangs its belly a hand or
+         more above that (the ox's by 0.4 of its 2.75): the leg stood off
+         under the beast with daylight between them, a table on its trestles.
+         The thigh is carried up a quarter of its height into the body, where
+         it is hidden, and swung, it never shows the gap. */
+      const up=h*0.25, L=lbox(t,h*0.55+up,t,col); L.geometry.translate(0,-h*0.275+up/2,0);
       L.position.set(sx*x,h,sz*z); L.userData.ph=(sx*sz>0)?0:Math.PI;
       /* AND EVERY FOOT KNOWS WHICH FOOT IT IS — near fore 0, off fore 1,
          near hind 2, off hind 3. The gait law is nothing but four numbers
@@ -7803,6 +7809,13 @@ function makeBeast(name,arg){
   const spec=BEAST_BY_NAME[name];
   if(!spec) throw new Error('no creature file for "'+name+'"');
   const inner=spec.build(BEAST_KIT,arg);
+  /* ---- THE TAIL HANGS BEHIND (Round 129) ----
+     A long tail set at the rump and laid down past the level (ox, cow, ass,
+     camel, lion, bear, elephant) was turned about the wrong way — down and
+     FORWARD, toward the head — so it grew back into the beast's own haunch
+     and no one ever saw it. Down and back, as it hangs. */
+  { const tl=inner.userData&&inner.userData.tail;
+    if(tl&&tl.position.z<0&&tl.rotation.x>Math.PI/2) tl.rotation.x=-tl.rotation.x; }
   coatBeast(inner,spec);
   mergeBeast(inner);            /* and the still parts are welded into one */
   const span=beastSpan(inner,trueAxis(name,spec));
@@ -12308,12 +12321,21 @@ function emitFurniture(G, ex, x0,x1,z0,z1, fy, T, hx,hz, doorDir){
   box(R(B*0.34,B*0.9,B*0.4,B*1.65),  fy+B*0.42,fy+B*0.6,'wool','wool');
   /* the table and its chairs, drawn back against the OTHER side wall */
   const ta=aLen*0.52, tb1=bLen-B*0.35;
+  /* in the land of the story they ate reclining about a low table, on mats and cushions, and
+     kept their oil, grain and water in great jars against the wall */
+  if(ex&&ex.big){
+    box(R(ta-B*0.75,ta+B*0.75,bLen-B*1.6,tb1), fy,fy+B*0.42,'planks','benchTop');
+    for(const s of [-1,1]){ const ca=ta+s*B*1.25; box(R(ca-B*0.32,ca+B*0.32,bLen-B*1.4,bLen-B*0.55), fy,fy+B*0.16,'wool','wool'); }
+    for(const [j,jb] of [[0,B*0.12],[1,B*0.72]]){ const ja=aLen-B*1.9-j*B*0.05;
+      box(R(ja,ja+B*0.48,jb,jb+B*0.48), fy,fy+B*0.75,'badSide','badTop'); }
+  } else {
   box(R(ta-B*0.15,ta+B*0.15,bLen-B*1.2,bLen-B*0.9), fy,fy+B*0.72,'logSide','logTop');
   box(R(ta-B*0.8,ta+B*0.8,bLen-B*1.75,tb1),         fy+B*0.72,fy+B*0.86,'planks','benchTop');
   for(const s of [-1,1]){ const ca=ta+s*B*1.15;
     box(R(ca-B*0.3,ca+B*0.3,bLen-B*1.35,bLen-B*0.75), fy,fy+B*0.44,'planks','planks');
     box(R(ca+(s>0?B*0.18:-B*0.3),ca+(s>0?B*0.3:-B*0.18),bLen-B*1.35,bLen-B*0.75),
         fy+B*0.44,fy+B*1.05,'planks','planks'); }
+  }
   /* shelves along the far wall, in the span the bed leaves free */
   { const s0=B*2.1, s1=bLen-B*2.0;
     for(let sb=s0; sb+B*0.9<=s1; sb+=B*1.1){
@@ -12471,7 +12493,13 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   clearLotOfTrees(x0-B*1.5,z0-B*1.5,x1+B*1.5,z1+B*1.5,y);
   /* four blocks to the eaves now, not three — a house a man does not have
      to stoop into reads as a HOUSE, not a hut */
-  const wallH=4*B, T=B*0.5, gw=B*0.75;
+  /* ---- A DOOR A MAN WALKS THROUGH UPRIGHT (Round 128) ----
+     The houses of the story and of the city of the great king (`big`) stand on the ground,
+     their floor level with the street, and their doorway is two cells wide and three
+     courses high from the ground: the one-cell, two-course doorway over a step a course
+     high read, beside a man, as a hatch, and the step was a block in his way. */
+  const big=!!(ex&&ex.big);
+  const wallH=4*B, T=B*0.5, gw=big?B+0.02:B*0.75;
   /* the stone footing, and the floor laid upon it — beaten earth in the
      brick lands and the huts, boards in the timber ones */
   const earthFloor=(style==='levant'||style==='round');
@@ -12480,8 +12508,13 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
     :style==='med'?'plaster'
     :(ex&&ex.washed!==undefined?ex.washed:houseWashed(ex&&ex.ci!==undefined?ex.ci:0,seed))?'plaster':'mudbrick';
   const lintelMat=style==='east'?'planks':'logSide';
-  emitBox(G, x0,y,z0, x1,y+B*0.55,z1, 'cobble','cobble',null);
-  emitTop(G,earthFloor?'path':'planks', x0+T,z0+T, x1-T,z1-T, y+B*0.58, 0.95);
+  /* a big house stands on the ground, its floor level with the street and no course to climb
+     at its door: the footing is laid in the earth beneath it, and the room is cleared to it */
+  if(big){ emitBox(G, x0,y-B*0.98,z0, x1,y-B*0.02,z1, 'cobble','cobble',null);
+    if(_stampOn){ const i0=Math.ceil((x0+T)/B), i1=Math.floor((x1-T)/B)-1, k0=Math.ceil((z0+T)/B), k1=Math.floor((z1-T)/B)-1, j0=Math.floor((y+B*0.5)/B);
+      for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++) for(let j=j0;j<j0+3;j++) stampBlock(i,j,k,0); } }
+  else emitBox(G, x0,y,z0, x1,y+B*0.55,z1, 'cobble','cobble',null);
+  emitTop(G,earthFloor?'path':'planks', x0+T,z0+T, x1-T,z1-T, big?y+0.03:y+B*0.58, 0.95);
   /* four hollow walls; the doorway is left open on doorDir (0=+z 1=-z 2=+x 3=-x) */
   /* ---- THE LINTEL SITS ON A COURSE (Round 95) ----
      It was hung at 2.75 courses, and a stamp claims every cell a box
@@ -12491,7 +12524,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
      rule that a floor wants two courses of clear air over it (noRoom, in
      moveEnt) refused every soul in the world its own doorway, and nobody
      had ever gone indoors. Three courses even: the doorway is two clear. */
-  const wy0=y+B*0.55, wy1=y+wallH, ly=y+B*3;      /* ly = lintel underside */
+  const wy0=big?y+0.02:y+B*0.55, wy1=y+wallH, ly=y+B*3;      /* ly = lintel underside: three courses clear over a big house's ground-floor, two over another's footing */
   /* ---- THE DOORWAY SITS ON A CELL (Round 95) ----
      The gap was cut about the house's own middle, wherever on the block
      grid that fell. A stamp claims every cell a box touches, so when the
@@ -12502,7 +12535,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
      solid two courses up. The gap is cut about the CENTRE of the cell the
      middle falls in, so exactly one cell — a doorway a man can pass — is
      ever left free between the segments. */
-  const gx=(Math.floor(hx/B)+0.5)*B, gz=(Math.floor(hz/B)+0.5)*B;
+  const gx=big?Math.round(hx/B)*B:(Math.floor(hx/B)+0.5)*B, gz=big?Math.round(hz/B)*B:(Math.floor(hz/B)+0.5)*B;   /* (two cells: about the line between them) */
   const wall=(ax0,az0,ax1,az1)=>emitBox(G,ax0,wy0,az0,ax1,wy1,az1,wallMat,wallMat,null);
   if(doorDir===0){ wall(x0,z1-T,gx-gw,z1); wall(gx+gw,z1-T,x1,z1);
     emitBox(G,gx-gw,ly,z1-T,gx+gw,wy1,z1,lintelMat,lintelMat,lintelMat); }
@@ -12524,15 +12557,16 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
      changed nothing — and the doorway clearing beneath it took a block out
      of the threshold instead. */
   if((style==='med'||style==='levant')&&_stampOn){
-    const cm='cobble', fy0=y+B*1.05, fy1=y+B*1.95;
+    const cm='cobble', fy0=big?y+B*0.05:y+B*1.05, fy1=big?y+B*0.95:y+B*1.95;
     emitBox(G,x0,fy0,z0,x1,fy1,z0+T,cm,cm,null);
     emitBox(G,x0,fy0,z1-T,x1,fy1,z1,cm,cm,null);
     emitBox(G,x0,fy0,z0,x0+T,fy1,z1,cm,cm,null);
     emitBox(G,x1-T,fy0,z0,x1,fy1,z1,cm,cm,null);
     /* and the doorway is never walled across by it */
     const dcx=Math.floor((doorDir===2?x1-T/2:doorDir===3?x0+T/2:gx)/B),
-          dcz=Math.floor((doorDir===0?z1-T/2:doorDir===1?z0+T/2:gz)/B), dcy=Math.floor((y+B*1.5)/B);
-    stampBlock(dcx,dcy,dcz,0); }
+          dcz=Math.floor((doorDir===0?z1-T/2:doorDir===1?z0+T/2:gz)/B), dcy=Math.floor((y+B*(big?0.5:1.5))/B);
+    stampBlock(dcx,dcy,dcz,0);
+    if(big){ if(doorDir<=1) stampBlock(Math.floor((gx-B*0.5)/B),dcy,dcz,0); else stampBlock(dcx,dcy,Math.floor((gz-B*0.5)/B),0); } }
   /* timber posts at the corners — the frame of a timber house only */
   if(style==='north'||style==='east')
     for(const cx of [x0-0.12,x1-B*0.5+0.12]) for(const cz of [z0-0.12,z1-B*0.5+0.12])
@@ -12640,7 +12674,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
       roofTop=ry1;
     }
   }
-  emitFurniture(G, ex, x0,x1,z0,z1, y+B*0.58, T, hx,hz, doorDir);
+  emitFurniture(G, ex, x0,x1,z0,z1, big?y+0.03:y+B*0.58, T, hx,hz, doorDir);   /* (a big house's goods stand on its floor, not sunk in the footing under it) */
   ex.torchIn.push({x:hx,y:y+B*0.58+B*2.05,z:hz});
   ex.doors.push({x:(doorDir<=1?gx:hx)+(doorDir===2?w*B/2+B:doorDir===3?-w*B/2-B:0),
                  z:(doorDir>=2?gz:hz)+(doorDir===0?d*B/2+B:doorDir===1?-d*B/2-B:0)});
@@ -12667,7 +12701,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
        and a man cannot climb the 54 to the 66 coming home). It gives up
        after two ranks with nothing to lay: a terrace can run level for a
        cell and fall again past it. */
-    let prevTop=y+B, dry=0;
+    let prevTop=big?y:y+B, dry=0;
     /* three cells wide — the gap's cell and one to either side — because a
        soul comes at its door from anywhere in the yard, and a stair one
        cell wide met from the side is a two-course bank (a hunter and a
@@ -12690,8 +12724,8 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   const swing = (doorDir===0||doorDir===3)?1.7:-1.7;   /* open outward */
   ex.houses.push({x0,x1,z0,z1, dx:gapCX, dz:gapCZ, gw, apron, style, stair:stairAt,
     yb:y, top:roofTop,   /* footing and ridge (or parapet) — the eye rides over these */
-    door:{dir:doorDir, hx:hingeX, hz:hingeZ, base:baseAng, y:y+B*0.05,
-      w:gw*2.0, h:B*2.05, swing, open:false, ang:baseAng, target:baseAng}});
+    door:{dir:doorDir, hx:hingeX, hz:hingeZ, base:baseAng, y:big?y+0.02:y+B*0.05,      /* (a big house's leaf hangs from its threshold) */
+      w:gw*2.0, h:big?B*2.98:B*2.05, swing, open:false, ang:baseAng, target:baseAng}});
 }
 /* ---- THE FIELD, AND WHAT IS SOWN IN IT ----
    Every farm on the earth grew the same twelve anonymous green crosses, in the
@@ -18862,7 +18896,7 @@ function setBuilder(ax,az,baseY,opt){
       const dir={s:0,n:1,e:2,w:3}[o.door||'s'];
       /* on the level ground of the set, at its height; anywhere else, on the ground where it stands */
       const hy=api.inPadL(x,z)?baseY:(()=>{ const c=cell(Math.floor(X(x)/B),Math.floor(Z(z)/B)); return c?c.h*B:baseY; })();
-      houses.push(storyHouse(X(x),Z(z),hy,odd(w),odd(d),dir,o.seed||Math.floor(Math.abs(x*31+z*17))+1,o.style||'levant',{washed:o.washed,wall:o.wall})); },
+      houses.push(storyHouse(X(x),Z(z),hy,odd(w),odd(d),dir,o.seed||Math.floor(Math.abs(x*31+z*17))+1,o.style||'levant',{washed:o.washed,wall:o.wall,big:o.big!==false})); },
     inPadL(x,z){ return api.inPad(Math.floor(X(x)/B),Math.floor(Z(z)/B)); },
     /* A HILL HEAPED UP where the story needs one the world's coarse ground does not have — the
        brow of Natsareth's hill, the slope of a mount: `h` metres high at (x,z), falling away
@@ -18900,6 +18934,8 @@ function buildYahruPlan(period){
 window.__KIT={
   B, U_PER_M, R_WORLD, WATER_Y, THREE, scene, camera, renderer,
   makeFigure, makeAnimal:k=>{ try{ return makeAnimal(k); }catch(e){ return null; } },
+  /* the voyage's own fish (creatures/: fish, sardine, catfish, trout, mackerel …), its colour given */
+  makeFish:(k,col)=>{ try{ return makeBeast(k||'fish',col); }catch(e){ return null; } },
   /* is this point in water (a block of it, a lake's or a river's)? — a man wades in it, he does not stand on it */
   waterAt:(x,y,z)=>blockAt(Math.floor(x/B),Math.floor(y/B),Math.floor(z/B))===blockId('water'),
   robeMat:robeMatHex, blockMat:n=>MAT[n]||null, solidAt, splash:(x,y,z,big)=>splash(x,y,z,big),
@@ -18918,6 +18954,7 @@ window.__KIT={
   /* the names of lands and cities over the world: a story shows none */
   setNames:v=>{ namesOn=!!v; },
   blockId, stampGroup:fn=>stampedGroup(fn), stampDrop, stampBlock, stampBox, stampTop,
+  houses:()=>standaloneHouses, aimOff:v=>{ AIM_OFF=!!v; if(v&&markG) markG.visible=false; },          /* the set's houses, their doors (the story swings them for whoever comes) */
   storyHouse, topY, cell, landAtWorld, groundInfo, llToWorld, setLocalHour, localHourAt,
   state, setMode, walkerG:()=>walkerG, updateChunks, flushEdits,
   yahruPos:()=>yahruPos, yahruMarks:()=>YAHRU_MARKS, sites:()=>SITES,
@@ -20007,8 +20044,9 @@ function ensureMark(){
   return markG;
 }
 /* asked once a frame, and only where a hand could reach anything */
+let AIM_OFF=false;        /* a story told in the world lays no hand on its blocks, and marks none */
 function aimTick(){
-  const can = !state.firm && state.mode!=='fly' && zoomMapFadeCache<0.02;
+  const can = !AIM_OFF && !state.firm && state.mode!=='fly' && zoomMapFadeCache<0.02;
   if(!can){ AIM=null; if(markG) markG.visible=false; return; }
   eyeRay();
   AIM=aimAt(_aimP.x,_aimP.y,_aimP.z, _aimD.x,_aimD.y,_aimD.z, REACH);

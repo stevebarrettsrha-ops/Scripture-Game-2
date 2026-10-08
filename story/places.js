@@ -44,6 +44,7 @@ const PLACES={
   upperroom:  {city:true, why:'a house of two storeys in the lower city, by the square'},
   highpriest: {city:true, why:'the courtyard of the kohen gadol'},
   praetorium: {city:true, why:'the Pavement, before the fortress at the corner of the courts'},
+  prison:     {city:true, why:'the fortress at the corner of the courts, where Kĕpha was kept (Acts 12:4)'},
   golgotha:   {city:true, why:'outside the west wall, near the city: the knoll and the garden'},
   /* The Rising (Act VII) */
   emmaus:     {lat:31.840, lon:35.130, flat:34, clear:820, why:'Amma’us, twelve kilometres from Yahrushalayim (Luke 24:13), in the hills to the west'},
@@ -54,6 +55,9 @@ const PLACES={
   yapho:      {lat:32.054, lon:34.752, flat:34, why:'Yapho by the sea, the house of Shim‛on the tanner (Acts 10:6)'},
   caesareaM:  {lat:32.50,  lon:34.892, flat:34, why:'Caesarea by the sea, the house of the captain Cornelius (Acts 10:24)'},
   antioch:    {lat:36.20,  lon:36.16,  flat:46, why:'Antioch on the Orontes, where they were first called Natsarim (Acts 11:26)'},
+  lystra:     {lat:37.578,  lon:32.453, flat:46, why:'Lustra in Lukaonia, the house of Zeus before its gate (Acts 14:13)'},
+  philippi:   {lat:41.013,  lon:24.287, flat:60, why:'Philippi of Makedonia, a colony, its river outside the gate (Acts 16:12-13)'},
+  ephesos:    {lat:37.941,  lon:27.342, flat:62, why:'Ephesos, the great theatre under Mount Pion (Acts 19:29)'},
   athens:     {lat:37.972, lon:23.722, flat:40, why:'Athens, the hill of Ares below the Acropolis (Acts 17:22)'},
   malta:      {lat:35.95,  lon:14.42,  flat:30, why:'Melite, the bay where the ship ran aground (Acts 27:39, 28:1)'},
   rome:       {lat:41.89,  lon:12.485, flat:50, why:'Rome, by the Tiber under the Palatine (Acts 28:16)'},

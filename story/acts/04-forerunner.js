@@ -58,7 +58,7 @@ STORY.act({
     /* "spoken of by the naḇi Yahshayahu, saying, “A voice …”" — his voice, as in the Prologue */
     nabi:{name:'Yahshayahu the naḇi', key:'Yahshayahu', kind:'oldman', look:YAHSHAYAHU},
     /* "a voice out of the shamayim, saying, “This is My Son …”" */
-    voice:{name:'A voice out of the shamayim', key:'(YAHUAH) HWHY', kind:'divine'},
+    voice:{name:'A voice out of the shamayim', key:'(YAHUAH) HWHY', kind:'divine', glow:'shamayim'},
     trier:{name:'The trier', key:'the devil', kind:'dark', actor:'trier'},
     devil:{name:'The devil', key:'the devil', kind:'dark', actor:'trier'},
     sent:{name:'Those sent from Yahrushalayim', kind:'oldman', actor:'k1', actors:['k1','k2','l1']},
@@ -134,7 +134,9 @@ STORY.act({
       {id:'old2', name:'A widow', at:[-4.8,-3.6], face:-Math.PI/2, robe:0x3c3a44, cloth:0x2c2a30, kind:'woman'}
     ],
     things:[ {id:'dove', kind:'dove', at:[-9.5,-2.2], y:44, hidden:true} ],
-    glows:[ {id:'open', at:[-9.5,40,-2.2], size:7, h:90, color:0xfff6dc, intensity:0, hidden:true} ],
+    glows:[ {id:'open', at:[-9.5,40,-2.2], size:7, h:90, color:0xfff6dc, intensity:0, hidden:true},
+            /* the opened shamayim over Him, from which the voice comes (3:17) */
+            {id:'shamayim', at:[-9.5,30,-2.2], size:16, color:0xfffaea, intensity:0, pulse:true, hidden:true} ],
     beats:[
       {t:'witness', text:'The bank at the ford is steep and slick with mud — give a hand to those coming up out of the water', items:['old1','old2'], verb:'Give a hand', hold:0.8, reach:2.4},
       {t:'move', who:['old1','old2'], to:[[-12,5.5],[-12.5,-7]], speed:1.2, wait:false},
@@ -152,13 +154,18 @@ STORY.act({
       {t:'cam', from:[-14,4.5,-8], look:[-1,-0.4,-0.4], dur:2.5},
       {t:'wait', s:2.2},
       {t:'move', who:'yahusha', to:'jesusOut', speed:1.2},
+      /* "and see, the shamayim were opened": the eye goes up to them, and comes down with the dove */
       {t:'show', id:'open'},
-      {t:'cam', from:[-18,2.8,5], look:[-9.5,4.2,-2.2], dur:2.5, wait:false},
-      {t:'drift', id:'dove', to:[-9.5,2.7,-2.2], dur:5},
+      {t:'cam', from:[-3.2,1.6,2.6], look:[-9.5,34,-2.2], dur:2.5},     /* from behind Him, on the water */
+      {t:'show', id:'dove'},
+      {t:'drift', id:'dove', to:[-9.5,2.7,-2.2], dur:8, wait:false},
+      {t:'cam', from:[-3.6,2.2,2.4], look:[-9.5,3.2,-2.2], dur:8, wait:false},
       {t:'read', ref:'MATTITHYAHU 3:16'},
       {t:'fulfil', id:'y11-1'},
+      {t:'show', id:'shamayim'},
+      {t:'cam', from:[-3,1.8,2.8], look:[-9.5,9,-2.2], dur:2.5, wait:false},
       {t:'read', ref:'MATTITHYAHU 3:17', who:'voice'},
-      {t:'hide', id:['open','dove']},
+      {t:'hide', id:['open','dove','shamayim']},
       {t:'cam', release:true},
       {t:'move', who:'yahusha', to:'wild', speed:1.6, wait:false},
       {t:'read', ref:'MARK 1:12'},
@@ -213,8 +220,8 @@ STORY.act({
     actors:[ Object.assign({id:'yahusha', at:'summit', face:2.2},YAHUSHA),
              Object.assign({at:[2.6,-1.4], face:-1.0},TRIER) ],
     glows:[ {id:'a1', at:[3.6,2.6,2.2], size:1.8, color:0xfff6dc, intensity:0.5, pulse:true, hidden:true},
-            {id:'a2', at:[-3.4,2.8,1.8], size:1.8, color:0xfff6dc, intensity:0, pulse:true, hidden:true},
-            {id:'a3', at:[0.6,3.2,-3.6], size:1.8, color:0xfff6dc, intensity:0, pulse:true, hidden:true} ],
+            {id:'a2', at:[-3.4,2.8,1.8], size:1.8, color:0xfff6dc, intensity:0.5, pulse:true, hidden:true},
+            {id:'a3', at:[0.6,3.2,-3.6], size:1.8, color:0xfff6dc, intensity:0.5, pulse:true, hidden:true} ],
     beats:[
       {t:'cam', from:[-22,12,28], look:[0,0,0], dur:0.1},
       {t:'read', ref:'MATTITHYAHU 4:8'},
@@ -227,6 +234,8 @@ STORY.act({
       {t:'hide', id:'trier'},
       {t:'show', id:['a1','a2','a3'], kingdoms:false},
       {t:'time', to:'dawn'},
+      /* "and see, mal'akim came and attended Him": from behind and above Him, the lights about Him */
+      {t:'cam', from:[-5.6,6.4,4.4], look:[0.6,1.4,-0.6], dur:3},
       {t:'read', ref:'MATTITHYAHU 4:11'},
       {t:'end'}
     ]},

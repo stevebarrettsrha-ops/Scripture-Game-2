@@ -17651,6 +17651,114 @@
     "where": "ends-of-earth/straight choice"
    },
    {
+    "key": "4235876fe6be",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And in Yapho there was a certain taught one named Taḇitha, which means Dorkas. This woman was filled with good works and kind deeds which she did.",
+    "kk": "And in Yapho there was a certain taught one named Tabitha, which means Dorkas. This woman was filled with good works and kind deeds which she did.",
+    "where": "ends-of-earth/tabitha ACTS 9:36"
+   },
+   {
+    "key": "d4b5b59c15d7",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And it came to be in those days that she became sick and died. And having washed her, they laid her in an upper room.",
+    "kk": "And it came to be in those days that she became sick and died. And having washed her, they laid her in an upper room.",
+    "where": "ends-of-earth/tabitha ACTS 9:37"
+   },
+   {
+    "key": "e4d7ea6da0f6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Lod being near to Yapho and the taught ones having heard that Kĕpha was there, they sent two men to him, urging him not to delay in coming to them.",
+    "kk": "And Lod being near to Yapho and the taught ones having heard that kay-fah was there, they sent two men to him, urging him not to delay in coming to them.",
+    "where": "ends-of-earth/tabitha ACTS 9:38"
+   },
+   {
+    "key": "1ce89c78b08b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having risen up, Kĕpha went with them. And when he arrived, they brought him to the upper room. And all the widows stood beside him weeping, showing the inner garments and outer garments which Dorkas had made while she was with them.",
+    "kk": "And having risen up, kay-fah went with them. And when he arrived, they brought him to the upper room. And all the widows stood beside him weeping, showing the inner garments and outer garments which Dorkas had made while she was with them.",
+    "where": "ends-of-earth/tabitha ACTS 9:39"
+   },
+   {
+    "key": "f151e1bbddaa",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But Kĕpha sent them all out and knelt down and prayed and turning to the body he said,",
+    "kk": "But kay-fah sent them all out and knelt down and prayed and turning to the body he said,",
+    "where": "ends-of-earth/tabitha ACTS 9:40"
+   },
+   {
+    "key": "973852de2c29",
+    "kind": "oldman",
+    "name": "shimon",
+    "who": "Shim‛on Kĕpha",
+    "text": "“Taḇitha, arise.”",
+    "kk": "Tabitha, arise.",
+    "where": "ends-of-earth/tabitha ACTS 9:40"
+   },
+   {
+    "key": "5cc21950f007",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And she opened her eyes and seeing Kĕpha, she sat up.",
+    "kk": "And she opened her eyes and seeing kay-fah, she sat up.",
+    "where": "ends-of-earth/tabitha ACTS 9:40"
+   },
+   {
+    "key": "6d798e94c7b1",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And giving her his hand, he lifted her up. And calling the qadashiyms (Set Apart Ones) and widows, he presented her alive.",
+    "kk": "And giving her his hand, he lifted her up. And calling the qadashiyms and widows, he presented her alive.",
+    "where": "ends-of-earth/tabitha ACTS 9:41"
+   },
+   {
+    "key": "b75bbf96369d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And it became known throughout all Yapho and many believed on the Master.",
+    "kk": "And it became known throughout all Yapho and many believed on the Master.",
+    "where": "ends-of-earth/tabitha ACTS 9:42"
+   },
+   {
+    "key": "dc623966ba15",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And it came to be that he stayed for many days in Yapho with Shim‛on, a leather-tanner.",
+    "kk": "And it came to be that he stayed for many days in Yapho with sheem-ohn, a leather-tanner.",
+    "where": "ends-of-earth/tabitha ACTS 9:43"
+   },
+   {
+    "key": "873988460ff3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "They are holding the coats up again, but now to her — this one you made me, and this one. Taḇitha is laughing at them.",
+    "kk": "They are holding the coats up again, but now to her, this one you made me, and this one. Tabitha is laughing at them.",
+    "where": "ends-of-earth/tabitha choice"
+   },
+   {
+    "key": "1c5a68104edb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "\"Talitha, qumi,\" He said to the little girl, and put everyone out of the room. Kĕpha was one of the three He let stay. He has done just as he saw done.",
+    "kk": "Talitha, qumi, He said to the little girl, and put everyone out of the room. kay-fah was one of the three He let stay. He has done just as he saw done.",
+    "where": "ends-of-earth/tabitha choice"
+   },
+   {
     "key": "90573bf6bcc3",
     "kind": "narrator",
     "name": "narrator",
@@ -18101,6 +18209,303 @@
     "where": "ends-of-earth/cornelius choice"
    },
    {
+    "key": "03454497a686",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And about that time Herodes the sovereign put forth his hands to do evil to some from the qahal.",
+    "kk": "And about that time Herodes the sovereign put forth his hands to do evil to some from the qahal.",
+    "where": "ends-of-earth/prison ACTS 12:1"
+   },
+   {
+    "key": "e661aaab751c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And he killed Ya‛aqoḇ the brother of Yahuchanon with the sword.",
+    "kk": "And he killed Yaaqob the brother of yah-hoo-kah-nohn with the sword.",
+    "where": "ends-of-earth/prison ACTS 12:2"
+   },
+   {
+    "key": "1cba4509ffd0",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And seeing that it was pleasing to the Yahuḏim, he proceeded further to arrest Kĕpha as well – and they were the Days of Unleavened Bread.",
+    "kk": "And seeing that it was pleasing to the yah-hoo-deem, he proceeded further to arrest kay-fah as well, and they were the Days of Unleavened Bread.",
+    "where": "ends-of-earth/prison ACTS 12:3"
+   },
+   {
+    "key": "647d32902a4d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "So when he had seized him, he put him in prison and delivered him to four squads of soldiers to watch over him, intending to bring him before the people after Pesach.",
+    "kk": "So when he had seized him, he put him in prison and delivered him to four squads of soldiers to watch over him, intending to bring him before the people after peh-sahk.",
+    "where": "ends-of-earth/prison ACTS 12:4"
+   },
+   {
+    "key": "d074c395a73c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "So Kĕpha was indeed kept in prison, but prayer was earnestly made to Aluahim on his behalf by the qahal.",
+    "kk": "So kay-fah was indeed kept in prison, but prayer was earnestly made to al-oo-ah-heem on his behalf by the qahal.",
+    "where": "ends-of-earth/prison ACTS 12:5"
+   },
+   {
+    "key": "7afeaff0f4bb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when Herodes was about to bring him out, that night Kĕpha was sleeping, bound with two chains between two soldiers. And the guards before the door were keeping the prison.",
+    "kk": "And when Herodes was about to bring him out, that night kay-fah was sleeping, bound with two chains between two soldiers. And the guards before the door were keeping the prison.",
+    "where": "ends-of-earth/prison ACTS 12:6"
+   },
+   {
+    "key": "5b097dfd7c08",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And see, a mal'ak of (YAHUAH) HWHY stood by and a light shone in the building. And smiting the side of Kĕpha he raised him up, saying, ",
+    "kk": "And see, a mahl-ahk of YAHUAH stood by and a light shone in the building. And smiting the side of kay-fah he raised him up, saying,",
+    "where": "ends-of-earth/prison ACTS 12:7"
+   },
+   {
+    "key": "ec16496209f7",
+    "kind": "angel",
+    "name": "malak",
+    "who": "A mal’ak of (YAHUAH) HWHY",
+    "text": "“Get up quickly!”",
+    "kk": "Get up quickly!",
+    "where": "ends-of-earth/prison ACTS 12:7"
+   },
+   {
+    "key": "321d82742db9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And his chains fell off his hands.",
+    "kk": "And his chains fell off his hands.",
+    "where": "ends-of-earth/prison ACTS 12:7"
+   },
+   {
+    "key": "8a8655b0da2f",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the mal'ak said to him,",
+    "kk": "And the mahl-ahk said to him,",
+    "where": "ends-of-earth/prison ACTS 12:8"
+   },
+   {
+    "key": "a7060b93057e",
+    "kind": "angel",
+    "name": "malak",
+    "who": "A mal’ak of (YAHUAH) HWHY",
+    "text": "“Gird yourself and bind on your sandals,”",
+    "kk": "Gird yourself and bind on your sandals,",
+    "where": "ends-of-earth/prison ACTS 12:8"
+   },
+   {
+    "key": "95e2e3b05b55",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "and he did so. And he said to him, ",
+    "kk": "and he did so. And he said to him,",
+    "where": "ends-of-earth/prison ACTS 12:8"
+   },
+   {
+    "key": "3ee83a794466",
+    "kind": "angel",
+    "name": "malak",
+    "who": "A mal’ak of (YAHUAH) HWHY",
+    "text": "“Put on your garment and follow me.”",
+    "kk": "Put on your garment and follow me.",
+    "where": "ends-of-earth/prison ACTS 12:8"
+   },
+   {
+    "key": "bb10efc7958a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And coming out he followed him and knew not that what was done by the mal'ak was true, but thought he was seeing a vision.",
+    "kk": "And coming out he followed him and knew not that what was done by the mahl-ahk was true, but thought he was seeing a vision.",
+    "where": "ends-of-earth/prison ACTS 12:9"
+   },
+   {
+    "key": "881840eb05da",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when they had passed the first and the second guard posts, they came to the iron gate that leads to the city, which opened to them by itself. And they went out and went down one street and the mal'ak instantly withdrew from him.",
+    "kk": "And when they had passed the first and the second guard posts, they came to the iron gate that leads to the city, which opened to them by itself. And they went out and went down one street and the mahl-ahk instantly withdrew from him.",
+    "where": "ends-of-earth/prison ACTS 12:10"
+   },
+   {
+    "key": "554bd94dc5fc",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when Kĕpha had come to himself, he said, ",
+    "kk": "And when kay-fah had come to himself, he said,",
+    "where": "ends-of-earth/prison ACTS 12:11"
+   },
+   {
+    "key": "cedd54bbd50c",
+    "kind": "oldman",
+    "name": "shimon",
+    "who": "Shim‛on Kĕpha",
+    "text": "“Now I truly know that (YAHUAH) HWHY has sent His mal'ak and delivered me from the hand of Herodes and from all the Yahudi people were anticipating.”",
+    "kk": "Now I truly know that YAHUAH has sent His mahl-ahk and delivered me from the hand of Herodes and from all the Yahudi people were anticipating.",
+    "where": "ends-of-earth/prison ACTS 12:11"
+   },
+   {
+    "key": "994fdf88fccb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having realised this, he went to the house of Miryam, the mother of Yahuchanon who was also called Mark, where many had gathered to pray.",
+    "kk": "And having realised this, he went to the house of meer-yahm, the mother of yah-hoo-kah-nohn who was also called Mark, where many had gathered to pray.",
+    "where": "ends-of-earth/prison ACTS 12:12"
+   },
+   {
+    "key": "f31197ce7e1d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "The house of Miryam was the gathering place of the Natsarim in Yahrushalayim; her son Yahuchanon, who was also called Mark, would set out with Barnaḇah and Sha’ul (Acts 12:25). Rhode is a Greek name: \"rose\".",
+    "kk": "The house of meer-yahm was the gathering place of the Natsarim in yah-roo-shah-lah-yeem, her son yah-hoo-kah-nohn, who was also called Mark, would set out with Barnabah and Shaul Acts 12,25. Rhode is a Greek name, rose.",
+    "where": "ends-of-earth/rhode note"
+   },
+   {
+    "key": "cf517e1a9717",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when Kĕpha knocked at the door of the gate, a girl named Rhode came to answer.",
+    "kk": "And when kay-fah knocked at the door of the gate, a girl named Rhode came to answer.",
+    "where": "ends-of-earth/rhode ACTS 12:13"
+   },
+   {
+    "key": "e51959713218",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when she recognised Kĕpha’s voice, she did not open the gate because of her joy, but ran in and reported that Kĕpha stood before the gate.",
+    "kk": "And when she recognised kay-fahs voice, she did not open the gate because of her joy, but ran in and reported that kay-fah stood before the gate.",
+    "where": "ends-of-earth/rhode ACTS 12:14"
+   },
+   {
+    "key": "8b89abd06909",
+    "kind": "crowd",
+    "name": "those gathered at the house of miryam",
+    "who": "Those gathered",
+    "text": "“You are mad!”",
+    "kk": "You are mad!",
+    "where": "ends-of-earth/rhode ACTS 12:15"
+   },
+   {
+    "key": "7a0fb6b9cdcc",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " But she kept insisting that it was so and they said, ",
+    "kk": "But she kept insisting that it was so and they said,",
+    "where": "ends-of-earth/rhode ACTS 12:15"
+   },
+   {
+    "key": "848b9a9c971f",
+    "kind": "crowd",
+    "name": "those gathered at the house of miryam",
+    "who": "Those gathered",
+    "text": "“It is his mal'ak.”",
+    "kk": "It is his mahl-ahk.",
+    "where": "ends-of-earth/rhode ACTS 12:15"
+   },
+   {
+    "key": "5cf4d7d6a70b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Kĕpha continued knocking and having opened they saw him and were amazed.",
+    "kk": "And kay-fah continued knocking and having opened they saw him and were amazed.",
+    "where": "ends-of-earth/rhode ACTS 12:16"
+   },
+   {
+    "key": "37ee187d1d92",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And motioning to them with his hand to be silent, he told them how the Master brought him out of the prison. And he said, ",
+    "kk": "And motioning to them with his hand to be silent, he told them how the Master brought him out of the prison. And he said,",
+    "where": "ends-of-earth/rhode ACTS 12:17"
+   },
+   {
+    "key": "e970ef12541d",
+    "kind": "oldman",
+    "name": "shimon",
+    "who": "Shim‛on Kĕpha",
+    "text": "“Report this to Ya‛aqoḇ and to the brothers.”",
+    "kk": "Report this to Yaaqob and to the brothers.",
+    "where": "ends-of-earth/rhode ACTS 12:17"
+   },
+   {
+    "key": "e9aaf35afcff",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And he left and went to another place.",
+    "kk": "And he left and went to another place.",
+    "where": "ends-of-earth/rhode ACTS 12:17"
+   },
+   {
+    "key": "b5f15031d342",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Ya‛aqoḇ here is the brother of the Master (Galatians 1:19), not the son of Zaḇdai, whom Herodes had killed.",
+    "kk": "Yaaqob here is the brother of the Master Galatians 1,19, not the son of Zabdai, whom Herodes had killed.",
+    "where": "ends-of-earth/rhode note"
+   },
+   {
+    "key": "d26856558ef6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Now when day came, there was no small stir among the soldiers about what had become of Kĕpha.",
+    "kk": "Now when day came, there was no small stir among the soldiers about what had become of kay-fah.",
+    "where": "ends-of-earth/rhode ACTS 12:18"
+   },
+   {
+    "key": "bd04af39802a",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when Herodes had searched for him and did not find him, he examined the guards and ordered them to be led away. And he went down from Yahuḏah to Caesarea and stayed there.",
+    "kk": "And when Herodes had searched for him and did not find him, he examined the guards and ordered them to be led away. And he went down from yah-hoo-dah to Caesarea and stayed there.",
+    "where": "ends-of-earth/rhode ACTS 12:19"
+   },
+   {
+    "key": "845b2578a7cb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "She left him standing in the street. She will hear about it for the rest of her life, and she does not mind at all.",
+    "kk": "She left him standing in the street. She will hear about it for the rest of her life, and she does not mind at all.",
+    "where": "ends-of-earth/rhode choice"
+   },
+   {
+    "key": "a9362a4725be",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "He has gone already. \"Another place,\" he said, and no one asks where; the less they know, the less Herodes can make them tell.",
+    "kk": "He has gone already. Another place, he said, and no one asks where, the less they know, the less Herodes can make them tell.",
+    "where": "ends-of-earth/rhode choice"
+   },
+   {
     "key": "216a7529ce00",
     "kind": "narrator",
     "name": "narrator",
@@ -18225,6 +18630,510 @@
     "text": "\"Where the Ruach sends,\" Barnaḇah says. Sha’ul is already looking at the sea.",
     "kk": "Where the roo-ahk sends, Barnabah says. Shaul is already looking at the sea.",
     "where": "ends-of-earth/antioch choice"
+   },
+   {
+    "key": "03c6c21e2d37",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And in Lustra there was sitting a certain man, disabled in his feet, a cripple from his mother’s womb, who had never walked.",
+    "kk": "And in Lustra there was sitting a certain man, disabled in his feet, a cripple from his mother's womb, who had never walked.",
+    "where": "ends-of-earth/lystra ACTS 14:8"
+   },
+   {
+    "key": "9a3feb29a15c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "This one heard Sha’ul speaking, who, looking intently at him and seeing that he had belief to be healed,",
+    "kk": "This one heard Shaul speaking, who, looking intently at him and seeing that he had belief to be healed,",
+    "where": "ends-of-earth/lystra ACTS 14:9"
+   },
+   {
+    "key": "ed90d88d15ce",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "said with a loud voice, ",
+    "kk": "said with a loud voice,",
+    "where": "ends-of-earth/lystra ACTS 14:10"
+   },
+   {
+    "key": "a8c7a7b6f805",
+    "kind": "man",
+    "name": "shaul",
+    "who": "Sha’ul",
+    "text": "“Stand upright on your feet!”",
+    "kk": "Stand upright on your feet!",
+    "where": "ends-of-earth/lystra ACTS 14:10"
+   },
+   {
+    "key": "dbe81b8d9636",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And he sprang up and began to walk.",
+    "kk": "And he sprang up and began to walk.",
+    "where": "ends-of-earth/lystra ACTS 14:10"
+   },
+   {
+    "key": "87f7372f77ac",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when the crowds saw what Sha’ul had done, they lifted up their voices, saying in Lukaonian, ",
+    "kk": "And when the crowds saw what Shaul had done, they lifted up their voices, saying in Lukaonian,",
+    "where": "ends-of-earth/lystra ACTS 14:11"
+   },
+   {
+    "key": "bbb795bf228a",
+    "kind": "crowd",
+    "name": "crowds of lustra",
+    "who": "The crowds",
+    "text": "“The mighty ones have become like men and come down to us!”",
+    "kk": "The mighty ones have become like men and come down to us!",
+    "where": "ends-of-earth/lystra ACTS 14:11"
+   },
+   {
+    "key": "44aa414a81e7",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they called Barnaḇah Zeus and Sha’ul Hermes, since he was the chief speaker.",
+    "kk": "And they called Barnabah Zeus and Shaul Hermes, since he was the chief speaker.",
+    "where": "ends-of-earth/lystra ACTS 14:12"
+   },
+   {
+    "key": "f6aa9d0cd6c3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the kohen of Zeus, being in front of their city, brought oxen and wreaths to the gates and wished to offer with the crowds.",
+    "kk": "And the kohen of Zeus, being in front of their city, brought oxen and wreaths to the gates and wished to offer with the crowds.",
+    "where": "ends-of-earth/lystra ACTS 14:13"
+   },
+   {
+    "key": "7dedfdb935f2",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when the emissaries Barnaḇah and Sha’ul heard this, they tore their garments and ran in among the crowd, crying out",
+    "kk": "And when the emissaries Barnabah and Shaul heard this, they tore their garments and ran in among the crowd, crying out",
+    "where": "ends-of-earth/lystra ACTS 14:14"
+   },
+   {
+    "key": "8dd93da94ebc",
+    "kind": "man",
+    "name": "shaul",
+    "who": "Sha’ul and his companion",
+    "text": "“Men, why are you doing this? We also are men with the same nature as you, bringing to you the Besorah: to turn from these worthless matters to the living Aluahim, who made the shamayim and the earth and the sea and all that is in them,",
+    "kk": "Men, why are you doing this? We also are men with the same nature as you, bringing to you the beh-soh-rah, to turn from these worthless matters to the living al-oo-ah-heem, who made the shah-mah-yeem and the earth and the sea and all that is in them,",
+    "where": "ends-of-earth/lystra ACTS 14:15"
+   },
+   {
+    "key": "c76a244667eb",
+    "kind": "man",
+    "name": "shaul",
+    "who": "Sha’ul and his companion",
+    "text": "who in past generations allowed all the nations to walk in their own ways,",
+    "kk": "who in past generations allowed all the nations to walk in their own ways,",
+    "where": "ends-of-earth/lystra ACTS 14:16"
+   },
+   {
+    "key": "0eea538519b8",
+    "kind": "man",
+    "name": "shaul",
+    "who": "Sha’ul and his companion",
+    "text": "though, indeed, He did not leave Himself without witness, doing good – giving us rain from shamayim and fruit-bearing seasons, filling our hearts with food and gladness.”",
+    "kk": "though, indeed, He did not leave Himself without witness, doing good, giving us rain from shah-mah-yeem and fruit-bearing seasons, filling our hearts with food and gladness.",
+    "where": "ends-of-earth/lystra ACTS 14:17"
+   },
+   {
+    "key": "50ac57fc9cef",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Even with these words they still had difficulty in stopping the crowds from offering to them.",
+    "kk": "Even with these words they still had difficulty in stopping the crowds from offering to them.",
+    "where": "ends-of-earth/lystra ACTS 14:18"
+   },
+   {
+    "key": "93f4b88ee815",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But Yahuḏim arrived from Antioch and Ikonion and having won over the crowds, they stoned Sha’ul, dragged him out of the city, thinking he was dead.",
+    "kk": "But yah-hoo-deem arrived from Antioch and Ikonion and having won over the crowds, they stoned Shaul, dragged him out of the city, thinking he was dead.",
+    "where": "ends-of-earth/lystra ACTS 14:19"
+   },
+   {
+    "key": "f008995b6cd6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But while the taught ones gathered around him, he rose up and went into the city. And on the next day he went away with Barnaḇah to Derbe.",
+    "kk": "But while the taught ones gathered around him, he rose up and went into the city. And on the next day he went away with Barnabah to Derbe.",
+    "where": "ends-of-earth/lystra ACTS 14:20"
+   },
+   {
+    "key": "20ebd136efe7",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having brought the Besorah to that city and having made many taught ones, they returned to Lustra and Ikonion and Antioch,",
+    "kk": "And having brought the beh-soh-rah to that city and having made many taught ones, they returned to Lustra and Ikonion and Antioch,",
+    "where": "ends-of-earth/lystra ACTS 14:21"
+   },
+   {
+    "key": "6d375ae0c17d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "strengthening the beings of the taught ones, encouraging them to continue in the belief and that through many pressures we have to enter the reign of Aluahim.",
+    "kk": "strengthening the beings of the taught ones, encouraging them to continue in the belief and that through many pressures we have to enter the reign of al-oo-ah-heem.",
+    "where": "ends-of-earth/lystra ACTS 14:22"
+   },
+   {
+    "key": "9ea91dd00a87",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "He is walking up and down outside the gate, as if he means to wear the road out. He will not let anyone carry anything for him now.",
+    "kk": "He is walking up and down outside the gate, as if he means to wear the road out. He will not let anyone carry anything for him now.",
+    "where": "ends-of-earth/lystra choice"
+   },
+   {
+    "key": "7463d2b38b70",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "He kept the garments of those who stoned Stephanos. Now he has been dragged out of a city for dead himself — and he has got up, and walked back in.",
+    "kk": "He kept the garments of those who stoned Stephanos. Now he has been dragged out of a city for dead himself, and he has got up, and walked back in.",
+    "where": "ends-of-earth/lystra choice"
+   },
+   {
+    "key": "8130f5398b74",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Therefore, sailing from Troas, we ran a straight course to Samothrake and the next day came to Neapolis,",
+    "kk": "Therefore, sailing from Troas, we ran a straight course to Samothrake and the next day came to Neapolis,",
+    "where": "ends-of-earth/ludia ACTS 16:11"
+   },
+   {
+    "key": "313362a3227e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "and from there to Philippi, which is the principal city of that part of Makedonia, a colony. And we were staying in that city for some days.",
+    "kk": "and from there to Philippi, which is the principal city of that part of Makedonia, a colony. And we were staying in that city for some days.",
+    "where": "ends-of-earth/ludia ACTS 16:12"
+   },
+   {
+    "key": "84753e5433ad",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And on the Shabbath day we went outside the city by a river, where there used to be prayer. And having sat down we were speaking to the women who met there.",
+    "kk": "And on the Shabbath day we went outside the city by a river, where there used to be prayer. And having sat down we were speaking to the women who met there.",
+    "where": "ends-of-earth/ludia ACTS 16:13"
+   },
+   {
+    "key": "20c0407e5267",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Thyatira, in Asia, was a city of dyers: inscriptions found there name its guild of purple-dyers. The purple was dear, and those who sold it were not poor.",
+    "kk": "Thyatira, in Asia, was a city of dyers, inscriptions found there name its guild of purple-dyers. The purple was dear, and those who sold it were not poor.",
+    "where": "ends-of-earth/ludia note"
+   },
+   {
+    "key": "3661301195aa",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And when she was immersed and her household, she begged us, saying, ",
+    "kk": "And when she was immersed and her household, she begged us, saying,",
+    "where": "ends-of-earth/ludia ACTS 16:15"
+   },
+   {
+    "key": "f747cad8d4af",
+    "kind": "woman",
+    "name": "ludia",
+    "who": "Ludia",
+    "text": "“If you have judged me to be believing in the Master, come to my house and stay.”",
+    "kk": "If you have judged me to be believing in the Master, come to my house and stay.",
+    "where": "ends-of-earth/ludia ACTS 16:15"
+   },
+   {
+    "key": "95fb1ee39910",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And she urged us.",
+    "kk": "And she urged us.",
+    "where": "ends-of-earth/ludia ACTS 16:15"
+   },
+   {
+    "key": "97a364127731",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "A few women on the stones by the water, as on every Shabbath. No qahal of ten men in Philippi — and the first house of Makedonia to believe is a woman's.",
+    "kk": "A few women on the stones by the water, as on every Shabbath. No qahal of ten men in Philippi, and the first house of Makedonia to believe is a woman's.",
+    "where": "ends-of-earth/ludia choice"
+   },
+   {
+    "key": "ef7515028ce3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Heavy, and dyed so deep it is almost black until the sun is on it. A king's colour, carried through a Roman colony by a woman of Asia.",
+    "kk": "Heavy, and dyed so deep it is almost black until the sun is on it. A king's colour, carried through a Roman colony by a woman of Asia.",
+    "where": "ends-of-earth/ludia choice"
+   },
+   {
+    "key": "02a478f8f7d3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And it came to be, as we went to prayer, that a certain slave girl possessed with a ruach of Puthon, did meet us, who brought her masters much profit by foretelling.",
+    "kk": "And it came to be, as we went to prayer, that a certain slave girl possessed with a roo-ahk of Puthon, did meet us, who brought her masters much profit by foretelling.",
+    "where": "ends-of-earth/jail ACTS 16:16"
+   },
+   {
+    "key": "015e429145fe",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Having followed Sha’ul and us, she cried out, saying, ",
+    "kk": "Having followed Shaul and us, she cried out, saying,",
+    "where": "ends-of-earth/jail ACTS 16:17"
+   },
+   {
+    "key": "64d7021f5afe",
+    "kind": "woman",
+    "name": "slave",
+    "who": "A slave girl",
+    "text": "“These men are the servants of the Most High Aluahim, who proclaim to us the way of deliverance.”",
+    "kk": "These men are the servants of the Most High al-oo-ah-heem, who proclaim to us the way of deliverance.",
+    "where": "ends-of-earth/jail ACTS 16:17"
+   },
+   {
+    "key": "37420da333d2",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And she was doing this for many days. But Sha’ul, greatly annoyed, turned and said to the ruach, ",
+    "kk": "And she was doing this for many days. But Shaul, greatly annoyed, turned and said to the roo-ahk,",
+    "where": "ends-of-earth/jail ACTS 16:18"
+   },
+   {
+    "key": "13f39993ddbc",
+    "kind": "man",
+    "name": "shaul",
+    "who": "Sha’ul",
+    "text": "“I command you in the Name of Yahusha Mashiach to come out of her.”",
+    "kk": "I command you in the Name of yah-hoo-shah mah-shee-ahk to come out of her.",
+    "where": "ends-of-earth/jail ACTS 16:18"
+   },
+   {
+    "key": "8acfa6e24685",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": " And it came out that same hour.",
+    "kk": "And it came out that same hour.",
+    "where": "ends-of-earth/jail ACTS 16:18"
+   },
+   {
+    "key": "b53e894bd652",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But when her masters saw that their anticipation of money-making was gone, they seized Sha’ul and Sila and dragged them into the market-place to the rulers.",
+    "kk": "But when her masters saw that their anticipation of money-making was gone, they seized Shaul and Sila and dragged them into the market-place to the rulers.",
+    "where": "ends-of-earth/jail ACTS 16:19"
+   },
+   {
+    "key": "05405a525f09",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having brought them to the captains, they said, ",
+    "kk": "And having brought them to the captains, they said,",
+    "where": "ends-of-earth/jail ACTS 16:20"
+   },
+   {
+    "key": "f9f66eb03ce1",
+    "kind": "man",
+    "name": "masters",
+    "who": "Her masters",
+    "text": "“These men, being Yahuḏim, greatly disturb our city,",
+    "kk": "These men, being yah-hoo-deem, greatly disturb our city,",
+    "where": "ends-of-earth/jail ACTS 16:20"
+   },
+   {
+    "key": "4196cbd88dff",
+    "kind": "man",
+    "name": "masters",
+    "who": "Her masters",
+    "text": "and they proclaim practices which are not right for us to receive nor to do, being Romans.”",
+    "kk": "and they proclaim practices which are not right for us to receive nor to do, being Romans.",
+    "where": "ends-of-earth/jail ACTS 16:21"
+   },
+   {
+    "key": "96b146fe0a47",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the crowd rose up together against them. And the captains tore off their garments and commanded them to be beaten with rods.",
+    "kk": "And the crowd rose up together against them. And the captains tore off their garments and commanded them to be beaten with rods.",
+    "where": "ends-of-earth/jail ACTS 16:22"
+   },
+   {
+    "key": "74f8a267fa80",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having laid many blows upon them, they threw them into prison, commanding the jailer to keep them safely,",
+    "kk": "And having laid many blows upon them, they threw them into prison, commanding the jailer to keep them safely,",
+    "where": "ends-of-earth/jail ACTS 16:23"
+   },
+   {
+    "key": "12fe339181c4",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "who, having received such a command, put them into the inner prison and fastened their feet in the stocks.",
+    "kk": "who, having received such a command, put them into the inner prison and fastened their feet in the stocks.",
+    "where": "ends-of-earth/jail ACTS 16:24"
+   },
+   {
+    "key": "51b164d47923",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And at midnight Sha’ul and Sila were praying and singing songs to Aluahim and the prisoners were listening to them.",
+    "kk": "And at midnight Shaul and Sila were praying and singing songs to al-oo-ah-heem and the prisoners were listening to them.",
+    "where": "ends-of-earth/jail ACTS 16:25"
+   },
+   {
+    "key": "92ca1a6077fd",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And suddenly a great earthquake took place, so that the foundations of the prison were shaken and immediately all the doors were opened and all the chains came loose.",
+    "kk": "And suddenly a great earthquake took place, so that the foundations of the prison were shaken and immediately all the doors were opened and all the chains came loose.",
+    "where": "ends-of-earth/jail ACTS 16:26"
+   },
+   {
+    "key": "ceb5b0752ab6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the jailer, awaking from sleep and seeing the prison doors open, thinking the prisoners had fled, drew his sword and was about to kill himself.",
+    "kk": "And the jailer, awaking from sleep and seeing the prison doors open, thinking the prisoners had fled, drew his sword and was about to kill himself.",
+    "where": "ends-of-earth/jail ACTS 16:27"
+   },
+   {
+    "key": "08402699aab4",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But Sha’ul called with a loud voice, saying, ",
+    "kk": "But Shaul called with a loud voice, saying,",
+    "where": "ends-of-earth/jail ACTS 16:28"
+   },
+   {
+    "key": "1d63fe3edbcb",
+    "kind": "man",
+    "name": "shaul",
+    "who": "Sha’ul",
+    "text": "“Do no harm to yourself, for we are all here.”",
+    "kk": "Do no harm to yourself, for we are all here.",
+    "where": "ends-of-earth/jail ACTS 16:28"
+   },
+   {
+    "key": "d3c9b671712e",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And asking for a light, he ran in and fell down trembling before Sha’ul and Sila.",
+    "kk": "And asking for a light, he ran in and fell down trembling before Shaul and Sila.",
+    "where": "ends-of-earth/jail ACTS 16:29"
+   },
+   {
+    "key": "12d4a5fd1b7c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having led them outside he said, ",
+    "kk": "And having led them outside he said,",
+    "where": "ends-of-earth/jail ACTS 16:30"
+   },
+   {
+    "key": "27a11ce18da6",
+    "kind": "man",
+    "name": "jailer",
+    "who": "The jailer",
+    "text": "“Masters, what do I have to do to be saved?”",
+    "kk": "Masters, what do I have to do to be saved?",
+    "where": "ends-of-earth/jail ACTS 16:30"
+   },
+   {
+    "key": "3f479abfdc2a",
+    "kind": "man",
+    "name": "shaul",
+    "who": "Sha’ul and his companion",
+    "text": "“Believe on the Master Yahusha Mashiach and you shall be saved, you and your household.”",
+    "kk": "Believe on the Master yah-hoo-shah mah-shee-ahk and you shall be saved, you and your household.",
+    "where": "ends-of-earth/jail ACTS 16:31"
+   },
+   {
+    "key": "6e1478254596",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And they spoke the Word of (YAHUAH) HWHY to him and to all who were in his house.",
+    "kk": "And they spoke the Word of YAHUAH to him and to all who were in his house.",
+    "where": "ends-of-earth/jail ACTS 16:32"
+   },
+   {
+    "key": "96e3d1a7ea66",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And taking them in that hour of the night, he washed their wounds and immediately he was immersed, he and all that were his.",
+    "kk": "And taking them in that hour of the night, he washed their wounds and immediately he was immersed, he and all that were his.",
+    "where": "ends-of-earth/jail ACTS 16:33"
+   },
+   {
+    "key": "04a6943e5353",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having brought them into his house, he set food before them. And he rejoiced with all his household, having believed in Aluahim.",
+    "kk": "And having brought them into his house, he set food before them. And he rejoiced with all his household, having believed in al-oo-ah-heem.",
+    "where": "ends-of-earth/jail ACTS 16:34"
+   },
+   {
+    "key": "5af6cc853396",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "He washed them himself, with the water from the trough, with the same hands that fastened their feet in the stocks at dusk.",
+    "kk": "He washed them himself, with the water from the trough, with the same hands that fastened their feet in the stocks at dusk.",
+    "where": "ends-of-earth/jail choice"
+   },
+   {
+    "key": "e80ecf5f93f0",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Dogs barking all over Philippi since the shaking. In this one house they are eating bread at the third watch, and laughing.",
+    "kk": "Dogs barking all over Philippi since the shaking. In this one house they are eating bread at the third watch, and laughing.",
+    "where": "ends-of-earth/jail choice"
    },
    {
     "key": "f04b777e1b43",
@@ -18486,6 +19395,240 @@
     "text": "A judge of the hill of Ares, a woman named Damaris, a few others. That is all. It is enough to begin with.",
     "kk": "A judge of the hill of Ares, a woman named Damaris, a few others. That is all. It is enough to begin with.",
     "where": "ends-of-earth/athens choice"
+   },
+   {
+    "key": "a6297a2dcdf6",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And about that time there came to be a great commotion about the Way.",
+    "kk": "And about that time there came to be a great commotion about the Way.",
+    "where": "ends-of-earth/ephesos ACTS 19:23"
+   },
+   {
+    "key": "37fd8034aacb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "For a certain man named Demetrios, a silversmith, who made silver shrines of Artemis, provided no little business to the craftsmen,",
+    "kk": "For a certain man named Demetrios, a silversmith, who made silver shrines of Artemis, provided no little business to the craftsmen,",
+    "where": "ends-of-earth/ephesos ACTS 19:24"
+   },
+   {
+    "key": "5b1c3f7adc9b",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "who, having called them together, with the workers of similar trade, said, ",
+    "kk": "who, having called them together, with the workers of similar trade, said,",
+    "where": "ends-of-earth/ephesos ACTS 19:25"
+   },
+   {
+    "key": "3e5fab5a860b",
+    "kind": "oldman",
+    "name": "demetrios",
+    "who": "Demetrios",
+    "text": "“Men, you know that our wealth is from this business.",
+    "kk": "Men, you know that our wealth is from this business.",
+    "where": "ends-of-earth/ephesos ACTS 19:25"
+   },
+   {
+    "key": "10fc792acf43",
+    "kind": "oldman",
+    "name": "demetrios",
+    "who": "Demetrios",
+    "text": "“And you see and hear that not only at Ephesos, but throughout almost all Asia, this Sha’ul has persuaded and turned away a large number, saying that they are not mighty ones which are made with hands.",
+    "kk": "And you see and hear that not only at Ephesos, but throughout almost all Asia, this Shaul has persuaded and turned away a large number, saying that they are not mighty ones which are made with hands.",
+    "where": "ends-of-earth/ephesos ACTS 19:26"
+   },
+   {
+    "key": "c0ab67bdeb6a",
+    "kind": "oldman",
+    "name": "demetrios",
+    "who": "Demetrios",
+    "text": "“And not only is this trade of ours in danger of coming to rejection, but also that the heykal of the great female mighty one Artemis whom all Asia and the world worship, shall be regarded as worthless and her greatness diminished.”",
+    "kk": "And not only is this trade of ours in danger of coming to rejection, but also that the heykal of the great female mighty one Artemis whom all Asia and the world worship, shall be regarded as worthless and her greatness diminished.",
+    "where": "ends-of-earth/ephesos ACTS 19:27"
+   },
+   {
+    "key": "ca1a737c8639",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having heard this, they were filled with rage and cried out, saying, ",
+    "kk": "And having heard this, they were filled with rage and cried out, saying,",
+    "where": "ends-of-earth/ephesos ACTS 19:28"
+   },
+   {
+    "key": "d21639c0018b",
+    "kind": "crowd",
+    "name": "craftsmen",
+    "who": "The craftsmen",
+    "text": "“Great is Artemis of the Ephesians!”",
+    "kk": "Great is Artemis of the Ephesians!",
+    "where": "ends-of-earth/ephesos ACTS 19:28"
+   },
+   {
+    "key": "025acf5faa2c",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the entire city was filled with confusion and they rushed with one mind into the theatre, having seized Gaios and Aristarchos, Makedonians, Sha’ul’s fellow travellers.",
+    "kk": "And the entire city was filled with confusion and they rushed with one mind into the theatre, having seized Gaios and Aristarchos, Makedonians, Shauls fellow travellers.",
+    "where": "ends-of-earth/ephesos ACTS 19:29"
+   },
+   {
+    "key": "fa296657e756",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And Sha’ul, intending to go in among the mob, the taught ones did not allow him.",
+    "kk": "And Shaul, intending to go in among the mob, the taught ones did not allow him.",
+    "where": "ends-of-earth/ephesos ACTS 19:30"
+   },
+   {
+    "key": "d85cb3faade9",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And some of the officials of Asia, being his friends, sent to him begging him not to risk himself into the theatre.",
+    "kk": "And some of the officials of Asia, being his friends, sent to him begging him not to risk himself into the theatre.",
+    "where": "ends-of-earth/ephesos ACTS 19:31"
+   },
+   {
+    "key": "d2940a1997b2",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then others indeed shouted this and others that, for the qahal was confused and most of them did not know why they had come together.",
+    "kk": "Then others indeed shouted this and others that, for the qahal was confused and most of them did not know why they had come together.",
+    "where": "ends-of-earth/ephesos ACTS 19:32"
+   },
+   {
+    "key": "9de642eeeebb",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And some of the crowd instructed Alexander – the Yahuḏim putting him forward. And Alexander motioned with his hand and wished to make his defence to the people.",
+    "kk": "And some of the crowd instructed Alexander, the yah-hoo-deem putting him forward. And Alexander motioned with his hand and wished to make his defence to the people.",
+    "where": "ends-of-earth/ephesos ACTS 19:33"
+   },
+   {
+    "key": "8ebcf98ecea5",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "But having recognised that he was a Yahuḏi, all with one voice cried out for about two hours, ",
+    "kk": "But having recognised that he was a Yahudi, all with one voice cried out for about two hours,",
+    "where": "ends-of-earth/ephesos ACTS 19:34"
+   },
+   {
+    "key": "8f8917ede31a",
+    "kind": "crowd",
+    "name": "crowd in the theatre",
+    "who": "The crowd in the theatre",
+    "text": "“Great is Artemis of the Ephesians!”",
+    "kk": "Great is Artemis of the Ephesians!",
+    "where": "ends-of-earth/ephesos ACTS 19:34"
+   },
+   {
+    "key": "0ca285a6e23d",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "The theatre at Ephesos was cut into the side of Mount Pion and held, by the reckoning of those who have dug there, some twenty-four thousand.",
+    "kk": "The theatre at Ephesos was cut into the side of Mount Pion and held, by the reckoning of those who have dug there, some twenty-four thousand.",
+    "where": "ends-of-earth/ephesos note"
+   },
+   {
+    "key": "5c715c072616",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And the city clerk, having calmed the crowd, said, ",
+    "kk": "And the city clerk, having calmed the crowd, said,",
+    "where": "ends-of-earth/ephesos ACTS 19:35"
+   },
+   {
+    "key": "19205f3e14c7",
+    "kind": "oldman",
+    "name": "city",
+    "who": "The city clerk",
+    "text": "“Men of Ephesos, what man is there who does not know that the city of the Ephesians is the guardian of the heykal of the great female mighty one Artemis and of that which fell down from Zeus?",
+    "kk": "Men of Ephesos, what man is there who does not know that the city of the Ephesians is the guardian of the heykal of the great female mighty one Artemis and of that which fell down from Zeus?",
+    "where": "ends-of-earth/ephesos ACTS 19:35"
+   },
+   {
+    "key": "bc58efe44a65",
+    "kind": "oldman",
+    "name": "city",
+    "who": "The city clerk",
+    "text": "“Therefore, if these matters are undeniable, you need to be calm and do not act rashly.",
+    "kk": "Therefore, if these matters are undeniable, you need to be calm and do not act rashly.",
+    "where": "ends-of-earth/ephesos ACTS 19:36"
+   },
+   {
+    "key": "5047217fe900",
+    "kind": "oldman",
+    "name": "city",
+    "who": "The city clerk",
+    "text": "“For you have brought these men here who are neither heykal-robbers nor speaking evil of your female mighty one.",
+    "kk": "For you have brought these men here who are neither heykal-robbers nor speaking evil of your female mighty one.",
+    "where": "ends-of-earth/ephesos ACTS 19:37"
+   },
+   {
+    "key": "e1a703ee4f45",
+    "kind": "oldman",
+    "name": "city",
+    "who": "The city clerk",
+    "text": "“If truly then Demetrios and his fellow craftsmen have a case against anyone, the courts are open and there are proconsuls. Let them accuse one another.",
+    "kk": "If truly then Demetrios and his fellow craftsmen have a case against anyone, the courts are open and there are proconsuls. Let them accuse one another.",
+    "where": "ends-of-earth/ephesos ACTS 19:38"
+   },
+   {
+    "key": "f5d39721c3a8",
+    "kind": "oldman",
+    "name": "city",
+    "who": "The city clerk",
+    "text": "“And if you have any further complaint, it shall be settled in the regular qahal.",
+    "kk": "And if you have any further complaint, it shall be settled in the regular qahal.",
+    "where": "ends-of-earth/ephesos ACTS 19:39"
+   },
+   {
+    "key": "b8985c8fe3d2",
+    "kind": "oldman",
+    "name": "city",
+    "who": "The city clerk",
+    "text": "“For we are in danger of being accused of riot concerning today, there being no reason which we could give to account for this disorderly gathering.”",
+    "kk": "For we are in danger of being accused of riot concerning today, there being no reason which we could give to account for this disorderly gathering.",
+    "where": "ends-of-earth/ephesos ACTS 19:40"
+   },
+   {
+    "key": "e50a22843fe3",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "And having said this, he dismissed the qahal.",
+    "kk": "And having said this, he dismissed the qahal.",
+    "where": "ends-of-earth/ephesos ACTS 19:41"
+   },
+   {
+    "key": "d7ff6880a667",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Little houses of Artemis, each the size of a hand, with the goddess inside. A whole street lives by them, and this year they are not selling.",
+    "kk": "Little houses of Artemis, each the size of a hand, with the goddess inside. A whole street lives by them, and this year they are not selling.",
+    "where": "ends-of-earth/ephesos choice"
+   },
+   {
+    "key": "fdb13314d8fd",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah (narrator)",
+    "text": "Still angry at being kept in. \"Gaios and Aristarchos were in there for me,\" he says. They come up the street at last, and he holds them a long time.",
+    "kk": "Still angry at being kept in. Gaios and Aristarchos were in there for me, he says. They come up the street at last, and he holds them a long time.",
+    "where": "ends-of-earth/ephesos choice"
    },
    {
     "key": "6a6990f94c80",

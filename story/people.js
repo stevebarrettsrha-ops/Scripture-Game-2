@@ -227,8 +227,13 @@ W.person=function(ctx,o){
     const hand=box(0.08*(bare?0.85:1),0.09,0.06,dress==='wrapped'?tunicM:skin,0,-0.31,0.005,E); A.userData.hand=hand; return A; };
   const armL=mkArm(0.245), armR=mkArm(-0.245);
   if(dress==='tombs') for(const A of [armL,armR]){ box(0.085,0.05,0.09,iron,0,-0.22,0,A.userData.elbow); box(0.02,0.14,0.02,iron,0,-0.30,0.06,A.userData.elbow); }
-  if(o.staff||dress==='shepherd'||dress==='centurion'){ const len=dress==='centurion'?0.95:1.7;
-    box(0.035,len,0.035,flat(dress==='centurion'?0x5a3a20:0x7a5a30),0,-0.31+len*0.38,0.06,armR.userData.elbow); }
+  if(o.staff||dress==='shepherd'||dress==='centurion'){ const cen=dress==='centurion', len=cen?0.95:1.95;
+    /* the shepherd's staff stands from the ground to above his head, the hand on it at the elbow's
+       reach; the centurion's vine-stick is short, carried */
+    const sm=flat(cen?0x5a3a20:0x7a5a30), E2=armR.userData.elbow, mid=cen?-0.31+len*0.38:-1.02+len/2, top=mid+len/2;
+    box(0.035,len,0.035,sm,0,mid,0.06,E2);
+    if(!cen){ box(0.035,0.035,0.13,sm,0,top+0.01,0.115,E2); box(0.035,0.11,0.035,sm,0,top-0.04,0.17,E2); }   /* the crook at its head */
+    armR.userData.staff=true; }
   if(o.carry) box(0.20,0.24,0.16,flat(o.carry),0,-0.42,0.08,armR.userData.elbow);
 
   /* THE MANTLE: over the back from both shoulders, its left end brought over the left shoulder
@@ -271,26 +276,41 @@ W.person=function(ctx,o){
   /* THE FACE (never on Yahusha: His head is drawn with no face) */
   let F=null;
   if(dress!=='yahusha'&&dress!=='wrapped'){
-    const eyeY=0.012, white=basic(0xeee8dc), dark=basic(0x1a120c);
-    const eye=(x)=>{ const e=new THREE.Group(); e.position.set(x,eyeY,fz); head.add(e);
-      box(0.042,0.022,0.006,white,0,0,0,e); box(0.018,0.022,0.008,dark,0,0,0.001,e);
-      const lid=box(0.046,0.026,0.004,skinD,0,0.004,0.004,e); lid.scale.y=0.01; return {e,lid}; };
-    const eL=eye(0.045), eR=eye(-0.045);
-    if(dress==='tombs') for(const q of [eL,eR]) q.e.scale.set(1.6,2.1,1);                      /* wide, staring */
+    /* THE FACE AS MINECRAFT: STORY MODE DRAWS ONE — few blocks, and every one of them large
+       enough to read across a room: two broad eyes, white about a dark iris set toward the nose,
+       the pupil and a point of light in it; a thick bar of brow over each that tilts hard with
+       the feeling; and a mouth of three pieces that bends up into a smile or down into grief,
+       opens square on the teeth to shout, rounds small in wonder. */
+    const eyeY=0.008, white=basic(0xf2ece0), iris=basic(o.eyes||0x4a2c16), pup=basic(0x0c0806), glint=basic(0xffffff);
+    const eye=(x)=>{ const side=x>0?-1:1, e=new THREE.Group(); e.position.set(x,eyeY,fz); head.add(e);
+      const wh=box(0.05,0.028,0.006,white,0,0,0,e);
+      const ir=new THREE.Group(); ir.position.set(side*0.009,0,0.001); e.add(ir);
+      box(0.022,0.028,0.006,iris,0,0,0.001,ir); box(0.011,0.014,0.006,pup,side*0.002,-0.003,0.002,ir); box(0.006,0.006,0.006,glint,-side*0.005,0.007,0.003,ir);
+      const lid=box(0.054,0.03,0.004,skinD,0,0.015,0.006,e); lid.geometry.translate(0,-0.015,0); lid.scale.y=0.1;      /* hung from its top: it comes down */
+      const low=box(0.054,0.03,0.004,skinD,0,-0.015,0.006,e); low.geometry.translate(0,0.015,0); low.scale.y=0.01;    /* and the lower, up, in a smile's squint */
+      return {e,lid,low,ir,wh}; };
+    const eL=eye(0.046), eR=eye(-0.046);
+    if(dress==='tombs') for(const q of [eL,eR]) q.e.scale.set(1.3,1.7,1);                      /* wide, staring */
     const browM=basic(o.brow||(o.fallen?0x120a0a:Math.min(hairHex,0x2a1d14)));
-    const browL=box(0.055,0.012,0.008,browM,0.045,0.045,fz+0.002,head), browR=box(0.055,0.012,0.008,browM,-0.045,0.045,fz+0.002,head);
-    box(0.03,0.055,0.03,skin,0,-0.018,fz+0.012,head);                                         /* the nose */
-    const mouth=new THREE.Group(); mouth.position.set(0,-0.065,fz); head.add(mouth);
-    const mIn=box(0.055,1,0.006,basic(0x3a1810),0,0,0.002,mouth); mIn.scale.y=0.008;
-    const cL=box(0.012,0.008,0.006,basic(0x5a2818),0.03,0,0.002,mouth), cR=box(0.012,0.008,0.006,basic(0x5a2818),-0.03,0,0.002,mouth);
+    const browL=box(0.062,0.017,0.009,browM,0.046,0.04,fz+0.003,head), browR=box(0.062,0.017,0.009,browM,-0.046,0.04,fz+0.003,head);
+    box(0.03,0.05,0.03,skin,0,-0.02,fz+0.012,head);                                          /* the nose */
+    const mouth=new THREE.Group(); mouth.position.set(0,-0.066,fz); head.add(mouth);
+    const mDark=basic(0x2a0e08), teethM=basic(0xf0ebe0), lipM=basic(0x5a2818);
+    const seg=(x)=>{ const q=new THREE.Group(); q.position.set(x,0,0.002); mouth.add(q);
+      const d=box(0.026,1,0.006,mDark,0,0,0,q); d.geometry.translate(0,-0.5,0);                /* the dark of it, opening downward */
+      const t=box(0.024,0.008,0.006,teethM,0,-0.004,0.001,q);                                  /* the upper teeth */
+      return {q,d,t}; };
+    const mC=seg(0), mL=seg(0.024), mR=seg(-0.024);
+    const tearM=basic(0x9cc8e8), tears=[0.046,-0.046].map(x=>{ const q=box(0.008,0.016,0.006,tearM,x,-0.01,fz+0.004,head); q.visible=false; return q; });
     if(ashshur){ const bM=cloth(o.beard||0x14100e,'shaggy');                  /* the long squared beard, curled in rows */
       box(0.18,0.20,0.05,bM,0,-0.17,fz-0.005,head); box(0.035,0.14,0.12,bM,hw/2-0.01,-0.07,0.03,head); box(0.035,0.14,0.12,bM,-hw/2+0.01,-0.07,0.03,head);
-      for(const y of [-0.12,-0.18,-0.24]) box(0.185,0.012,0.012,flat(0x2a2018),0,y,fz+0.022,head); }
+      for(const y of [-0.12,-0.18,-0.24]) box(0.185,0.012,0.012,flat(0x2a2018),0,y,fz+0.022,head); mouth.position.z=fz+0.028; }
     else if(o.beard!=null){ const bM=cloth(o.beard,'shaggy');
       box(0.17,0.08,0.05,bM,0,-0.105,fz-0.005,head); box(0.035,0.10,0.12,bM,hw/2-0.01,-0.06,0.03,head); box(0.035,0.10,0.12,bM,-hw/2+0.01,-0.06,0.03,head);
       box(0.08,0.014,0.01,bM,0,-0.047,fz+0.004,head);                                        /* the moustache */
+      mouth.position.z=fz+0.027;                                                               /* the mouth shows on the beard, as it does in Story Mode's bearded faces */
       if(o.beard===0x6d6a66||dress==='kohen') box(0.12,0.08,0.04,bM,0,-0.16,fz-0.01,head); }    /* an old man's beard, long */
-    F={eL,eR,browL,browR,mIn,cL,cR};
+    F={eL,eR,browL,browR,mC,mL,mR,tears,cur:null};
   }
   /* WHAT IS ON THE HEAD */
   if(dress==='assyrian'){ const br=flat(0xa88850);
@@ -322,19 +342,43 @@ W.person=function(ctx,o){
   if(o.fallen){ const G=W.glow({scene:g},0,1.0,0,3.4,0x785090,0); G.sprite.material.opacity=0.55; g.userData.aura=G;
     const sh=W.glow({scene:g},0,0.05,0,2.2,0x3a2244,0); sh.sprite.material.opacity=0.5; }
 
-  /* THE FACE AS THE WORDS GO: the mouth opens; the brows and eyes carry the feeling */
-  const setFace=(m,shut,ex)=>{ if(!F) return; const M=[0,0.5,1][m]||0;
-    F.mIn.scale.y=0.008+M*0.035; F.mIn.position.y=-M*0.008;
-    const up=ex==='joy'?0.006:(ex==='sorrow'||ex==='weep'||ex==='stern')?-0.006:0;
-    F.cL.position.y=F.cR.position.y=up; F.cL.visible=F.cR.visible=up!==0||M>0;
-    const tilt=ex==='stern'?0.32:(ex==='sorrow'||ex==='weep'||ex==='fear')?-0.28:0;
-    F.browL.rotation.z=-tilt; F.browR.rotation.z=tilt;
-    F.browL.position.y=F.browR.position.y=0.045+(ex==='awe'||ex==='fear'?0.012:ex==='stern'?-0.008:ex==='joy'?0.004:0);
-    const open=shut?1:ex==='stern'?0.45:ex==='joy'?0.35:ex==='awe'||ex==='fear'?0:0.01;
-    F.eL.lid.scale.y=F.eR.lid.scale.y=Math.max(0.01,open); F.eL.lid.position.y=F.eR.lid.position.y=0.013-open*0.009; };
+  /* THE FACE AS THE WORDS GO, AND AS THE HEART IS: `m` how far the mouth is open with the word
+     (0..1), `shut` a blink, `ex` the feeling — calm, joy, sorrow, weep, fear,
+     awe, stern. Each feeling is a set of the face's parts, eased toward, not snapped to. */
+  const FACES={
+    calm:  {lid:0.12,low:0,wide:1,  bt:0,    by:0,     w:1,   bend:0,     open:0,   iris:1},
+    joy:   {lid:0.2, low:0.38,wide:1, bt:-0.06,by:0.004, w:1.2, bend:0.007, open:0.3, iris:1},
+    sorrow:{lid:0.38,low:0,wide:1,  bt:-0.42,by:0.003, w:0.9, bend:-0.009,open:0,   iris:1},
+    weep:  {lid:0.45,low:0.1,wide:1,bt:-0.48,by:0.004, w:1.0, bend:-0.011,open:0.35,iris:1},
+    fear:  {lid:0,   low:0,wide:1.35,bt:-0.32,by:0.014, w:0.8, bend:-0.004,open:0.55,iris:0.75},
+    awe:   {lid:0,   low:0,wide:1.25,bt:-0.08,by:0.012, w:0.55,bend:0,     open:0.42,iris:0.85},
+    stern: {lid:0.42,low:0.12,wide:1,bt:0.46, by:-0.008,w:1.05,bend:-0.006,open:0,   iris:1}};
+  const setFace=(m,shut,ex)=>{ if(!F) return;
+    const M=Math.max(0,Math.min(1,+m||0)), T=FACES[ex]||FACES.calm;                       /* how open, 0 to 1: a speech peak stays wide */
+    const c=F.cur||(F.cur=Object.assign({},FACES.calm)), k=0.22;
+    for(const n in T) c[n]+=(T[n]-c[n])*k;
+    const open=Math.max(c.open,M*0.9);
+    for(const E of [F.eL,F.eR]){ E.wh.scale.y=c.wide; E.ir.scale.set(c.iris,c.wide*c.iris,1);
+      E.lid.scale.y=shut?1.05:Math.max(0.02,c.lid); E.low.scale.y=shut?0.01:Math.max(0.01,c.low); }
+    F.browL.rotation.z=c.bt; F.browR.rotation.z=-c.bt;                                         /* + the inner ends down (anger); - up (grief, fear) */
+    F.browL.position.y=F.browR.position.y=0.04+c.by;
+    const h=0.007+open*0.042;                                                                 /* the mouth: closed a line, open a square */
+    F.mC.d.scale.y=h; F.mL.d.scale.y=F.mR.d.scale.y=Math.max(0.006,h*(open>0.3?0.8:0.6));
+    F.mL.q.position.set(0.024*c.w,c.bend,0.002); F.mR.q.position.set(-0.024*c.w,c.bend,0.002); F.mC.q.position.y=c.bend<0?c.bend*0.15:0;
+    for(const S of [F.mC,F.mL,F.mR]) S.t.visible=open>0.18&&ex!=='awe'&&ex!=='fear';
+    F.mL.q.scale.x=F.mR.q.scale.x=Math.max(0.45,c.w*1.15);                                   /* the pieces meet: one mouth, not three */
+    F.tears.forEach((t,i)=>{ t.visible=ex==='weep'; if(t.visible){ F.tt=((F.tt||0)+0.012)%1; t.position.y=-0.01-((F.tt+i*0.5)%1)*0.07; } }); };
   setFace(0,false,'calm');
 
-  g.userData={legL,legR,armL,armR,body,cloth:cloths,drapes,head,headY:(1.61*k),setFace,aura:g.userData.aura,
+  /* ---- THE WAIST ----
+     A figure was one stiff piece from the hips up, and could only be tipped over whole from its
+     feet, like a post. Everything above the belt — the chest, the shoulders and the arms, the
+     neck and the head, a mantle or a mail-shirt — now hangs from a joint at the waist, so one
+     who reaps or hoes or bends to the water bends there, over legs that stay planted. */
+  const waist=new THREE.Group(); waist.position.set(0,0.98,0); body.add(waist);
+  for(const c of [...body.children]){ if(c===waist||c===legL||c===legR) continue;
+    if(c.position.y>1.0){ body.remove(c); c.position.y-=0.98; waist.add(c); } }
+  g.userData={legL,legR,armL,armR,body,waist,cloth:cloths,drapes,head,headY:(1.61*k),setFace,aura:g.userData.aura,
     s:k,holy:dress==='yahusha',dress,phase:Math.random()*6,blink:2+Math.random()*4,
     tunicMeshes:(()=>{ const out=[]; g.traverse(q=>{ if(q.isMesh&&q.material===tunicM) out.push(q); }); return out; })(),
     mantleMeshes:(()=>{ const out=[]; if(mantleM) g.traverse(q=>{ if(q.isMesh&&q.material===mantleM) out.push(q); }); return out; })()};

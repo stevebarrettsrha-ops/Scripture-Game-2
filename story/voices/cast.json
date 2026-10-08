@@ -483,6 +483,10 @@
   "kind": "man",
   "voice": "am_michael"
  },
+ "city": {
+  "kind": "oldman",
+  "voice": "am_michael:.6+bm_daniel:.4"
+ },
  "commander": {
   "kind": "man",
   "voice": "am_fenrir:.5+bm_daniel:.5"
@@ -495,6 +499,10 @@
   "kind": "man",
   "voice": "am_puck"
  },
+ "craftsmen": {
+  "kind": "crowd",
+  "voice": "bm_lewis:.5+am_liam:.5"
+ },
  "crowd": {
   "kind": "crowd",
   "voice": "bm_fable:.5+am_liam:.5"
@@ -503,6 +511,10 @@
   "kind": "crowd",
   "voice": "am_liam:.5+am_echo:.5"
  },
+ "crowd in the theatre": {
+  "kind": "crowd",
+  "voice": "am_echo:.5+bm_daniel:.5"
+ },
  "crowd of the taught ones": {
   "kind": "crowd",
   "voice": "am_fenrir:.6+am_echo:.4"
@@ -510,6 +522,10 @@
  "crowds": {
   "kind": "crowd",
   "voice": "am_liam:.5+am_echo:.5"
+ },
+ "crowds of lustra": {
+  "kind": "crowd",
+  "voice": "am_echo"
  },
  "cupbearer": {
   "kind": "man",
@@ -590,6 +606,10 @@
  "delilah": {
   "kind": "woman",
   "voice": "af_bella"
+ },
+ "demetrios": {
+  "kind": "oldman",
+  "voice": "bm_daniel:.6+am_adam:.4"
  },
  "demetrius": {
   "kind": "man",
@@ -1073,6 +1093,10 @@
   "kind": "woman",
   "voice": "af_nova:.5+bf_alice:.5"
  },
+ "jailer": {
+  "kind": "man",
+  "voice": "am_fenrir:.5+bm_daniel:.5"
+ },
  "kaleb": {
   "kind": "man",
   "voice": "bm_daniel"
@@ -1205,6 +1229,10 @@
   "kind": "man",
   "voice": "am_eric:.5+bm_fable:.5"
  },
+ "ludia": {
+  "kind": "woman",
+  "voice": "af_bella"
+ },
  "luluwa": {
   "kind": "woman",
   "voice": "af_alloy:.5+af_sarah:.5"
@@ -1316,6 +1344,10 @@
  "master": {
   "kind": "oldman",
   "voice": "am_fenrir:.6+bm_daniel:.4"
+ },
+ "masters": {
+  "kind": "man",
+  "voice": "bm_fable"
  },
  "mattityahu": {
   "kind": "oldman",
@@ -1981,6 +2013,10 @@
   "kind": "woman",
   "voice": "af_bella:.5+af_kore:.5"
  },
+ "slave": {
+  "kind": "woman",
+  "voice": "af_heart"
+ },
  "slave-merchant": {
   "kind": "man",
   "voice": "am_michael:.6+am_adam:.4"
@@ -2140,6 +2176,10 @@
  "those from the rulers house": {
   "kind": "man",
   "voice": "am_echo"
+ },
+ "those gathered at the house of miryam": {
+  "kind": "crowd",
+  "voice": "am_fenrir:.5+bm_fable:.5"
  },
  "those in the qahal": {
   "kind": "crowd",

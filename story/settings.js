@@ -100,10 +100,18 @@ S.shekem=function(ctx,st){
   const hs=[[24,16],[30,10],[30,22],[36,16],[24,28],[38,28]];
   hs.forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:'w',color:k%2?C.limestone:C.whitewash,h:2.9}));
   /* the wheat, white for harvest, on the plain either side of the road */
-  for(let k=0;k<1400;k++){ const x=-30+W.hash(k,3)*52, z=-30+W.hash(k,4)*24;     /* close-sown, in tufts of ripe ears */
-    if(Math.hypot(x,z)<7||Math.abs(z-(x*0.55-3))<3.2) continue;
-    const r=0.2+W.hash(k,6)*0.12, h=0.7+W.hash(k,5)*0.25;
-    st.detail(x-r,0,z-r,x+r,h,z+r,[0xe4d39a,0xd6c27e,0xeadcae,0xcdb874][k%4],{jitter:0.08}); }
+  /* the wheat, close-sown and white for harvest: slender stalks each with its head of grain —
+     and where the reapers are at work a swath already cut behind them, to the stubble */
+  const REAP=[[-20,-21,0.4],[-11,-24,0.2],[2,-15,-0.3],[-24,-12,0.6]];
+  const cut=(x,z)=>REAP.some(([rx,rz,f])=>{ const dx=x-rx, dz=z-rz, al=dx*Math.sin(f)+dz*Math.cos(f), ac=dx*Math.cos(f)-dz*Math.sin(f);
+    return Math.hypot(dx,dz)<1.3||(al<0.4&&al>-7&&Math.abs(ac)<1.1); });
+  for(let x=-30;x<22;x+=1.6) for(let z=-30;z<-6;z+=1.6){ if(Math.hypot(x+0.8,z+0.8)<7.5||Math.abs(z+0.8-((x+0.8)*0.55-3))<2.6) continue;   /* the ploughed earth the wheat stands in */
+    ctx.api.top(x,z,x+1.6,z+1.6,'dirt'); }
+  W.wheatField(ctx,[-30,-30,22,-6],{n:4600,test:(x,z)=>!(Math.hypot(x,z)<7||Math.abs(z-(x*0.55-3))<3.2||cut(x,z))});
+  for(let k=0;k<700;k++){ const x=-30+W.hash(k,3)*52, z=-30+W.hash(k,4)*24;                         /* the stubble where it is cut */
+    if(!cut(x,z)||Math.hypot(x,z)<7||Math.abs(z-(x*0.55-3))<3.2) continue; st.detail(x-0.012,0,z-0.012,x+0.012,0.1,z+0.012,0xb8a066); }
+  for(const [rx,rz,f] of REAP) for(const d of [2.2,4.4]){                                                      /* the sheaves bound and laid behind them */
+    const x=rx-Math.sin(f)*d+(W.hash(rx,d)-0.5)*0.6, z=rz-Math.cos(f)*d+(W.hash(rz,d)-0.5)*0.6; W.sheaf(ctx,x,z,f+1.2+W.hash(d,rx)); }
   for(let k=0;k<8;k++){ const a=W.hash(k,9)*6.28, r=12+W.hash(k,8)*10; const x=Math.cos(a)*r, z=Math.sin(a)*r+8; if(z<-6) continue; W.olive(st,x,z,0.9); }
   W.wild(ctx,'goat',-20,20,3,5,0.4); W.wild(ctx,'lizard',6,-8,2,4,0.5);
   mk(ctx,'well',0,0); mk(ctx,'wellSeat',1.5,0.6); mk(ctx,'town',22,10); mk(ctx,'townGate',20,9);
@@ -142,7 +150,8 @@ S.natsareth=function(ctx,st){
   const hs=[[-12,-6],[-4,-10],[6,-8],[14,-2],[-14,6],[10,8],[-3,12],[18,12]];
   hs.forEach(([x,z],k)=>W.house(st,x,z,5.5,5,{door:z<0?'s':'n',color:k%3?C.mudbrick:C.whitewash,h:2.8}));
   st.box(-1,0,-1,3,0.5,3,C.stone); W.jar(st,0,0); W.jar(st,1.2,0.4);            /* the spring */
-  const olv=[]; for(let k=0;k<18;k++){ const a=W.hash(k,1)*6.28, r=28+W.hash(k,2)*40; W.olive(st,Math.cos(a)*r,Math.sin(a)*r,1); olv.push([Math.cos(a)*(r-1.6),Math.sin(a)*(r-1.6)]); }
+  const olv=[]; for(let k=0;k<18;k++){ const a=W.hash(k,1)*6.28, r=28+W.hash(k,2)*40; W.olive(st,Math.cos(a)*r,Math.sin(a)*r,1); olv.push([a,r]); }
+  const olvAt=(i,d)=>{ const [a,r]=olv[i]; return [Math.cos(a)*(r-d),Math.sin(a)*(r-d)]; }, olvFace=i=>{ const a=olv[i][0]; return Math.atan2(Math.cos(a),Math.sin(a)); };   /* a place `d` in from a tree toward the village; facing the tree */
   /* the village about its day: the women at the spring and home with the jar, a woman at the mill
      at her door and one spinning, the children at play, a man hoeing among the olives, the
      goatherd, and the way out of the village down to the valley road */
@@ -150,7 +159,7 @@ S.natsareth=function(ctx,st){
     {do:'water', from:[1,3.4], to:[[-12,-2.2],[6,-4.2],[-14,2.2],[10,4.2],[-3,8.2],[18,8.2]], n:3},
     {do:'grind', at:[-11,-1.9], face:2.6}, {do:'spin', at:[11.4,4.4], face:-2.6}, {do:'sweep', at:[-3.6,8.6], face:0},
     {do:'play', at:[5,5.5], r:2.4, n:3},
-    {do:'pick', at:olv[0]}, {do:'hoe', at:olv[3]}, {do:'herd', at:[-20,14], r:5},
+    {do:'pick', at:olvAt(0,2.0), face:olvFace(0)}, {do:'hoe', at:olvAt(3,3.6), face:olvFace(3)}, {do:'herd', at:[-20,14], r:5},          /* at the edge of the boughs; the ground beyond them */
     {do:'stroll', area:[-16,-4,18,10], n:2},
     {do:'walk', path:[[-40,4],[-18,1],[0,-2],[22,2],[44,12]], n:2, donkey:true}]);
   mk(ctx,'miryamHouse',-4,-6.4); mk(ctx,'miryam',-4,-5.2); mk(ctx,'malak',-4,-2.6); mk(ctx,'spring',1,2);
@@ -467,7 +476,7 @@ function room(ctx,st0,x0,z0,x1,z1,o){ let st;
   const Y=o.y||0, H=2.8+Y; st={box:(a,b,c,d,e,f,g,h)=>st0.box(a,b+Y,c,d,e+Y,f,g,h)}; 
   st.box(x0,0,z0,x1,0.08,z1,C.path);                                                /* the floor of beaten earth */
   st.detail=(...a)=>st0.detail(a[0],a[1]+Y,a[2],a[3],a[4]+Y,a[5],a[6],a[7]);
-  const dz0=mz-0.7, dz1=mz+0.7;
+  const dz0=mz-1.0, dz1=mz+1.0;                                                     /* a doorway two of the world's cells across */
   /* the four walls, the door left open in its own */
   const WH=H-Y;
   if(o.door==='e'){ st.box(x1-t,0,z0,x1,WH,dz0,BAS); st.box(x1-t,0,dz1,x1,WH,z1,BAS); st.box(x1-t,2.2,dz0,x1,WH,dz1,BAS); } else st.box(x1-t,0,z0,x1,WH,z1,BAS);
@@ -831,6 +840,30 @@ S.praetorium=function(ctx,st){
   mk(ctx,'pavement',-32,-58); mk(ctx,'crowd',-26,-50); mk(ctx,'kohanim',-30,-53.6); mk(ctx,'basin',-35.6,-60);
 };
 
+/* THE PRISON OF HERODES (Acts 12:4-10): Kĕpha kept in the fortress at the corner of the courts, in
+   the hall the Pavement's door opens into, behind a grating of iron; the first guard before the
+   grating, the second at the door, and beyond the Pavement the way down into the city. */
+S.prison=function(ctx,st){
+  ctx.wind=[0.4,0.2];
+  const G=floorAt(ctx), y0=G(-32,-56), A={abs:true}, IRON=0x2e2c2a, L=C.limestone;
+  st.box(-37,y0,-73,-27,y0+4.2,-64.4,'air',A);
+  st.box(-33.2,y0,-64.6,-30.8,y0+3.2,-63.6,'air',A);
+  /* its own walls and vault: a ward is shut in on every side but the door */
+  st.box(-37.9,y0,-73.9,-26.1,y0+5.2,-73,L,A); st.box(-37.9,y0,-73.9,-37,y0+5.2,-63.6,L,A); st.box(-27,y0,-73.9,-26.1,y0+5.2,-63.6,L,A);
+  st.box(-37.9,y0+4.2,-73.9,-26.1,y0+5.2,-63.6,L,A);
+  st.box(-37.9,y0+3.2,-64.4,-26.1,y0+4.2,-63.6,L,A); st.box(-37.9,y0,-64.4,-33.2,y0+3.2,-63.6,L,A); st.box(-30.8,y0,-64.4,-26.1,y0+3.2,-63.6,L,A);
+  /* the grating across the hall, its gate left for the act (it opens of itself) */
+  for(let x=-36.9;x<-27.1;x+=0.36){ if(x>-32.8&&x<-31.2) continue; st.detail(x,y0,-69.12,x+0.07,y0+3.1,-69.0,IRON); }
+  for(const y of [0.2,1.5,3.0]) st.detail(-37,y0+y,-69.16,-27,y0+y+0.12,-68.96,IRON);
+  st.detail(-35.6,y0,-72.8,-28.4,y0+0.05,-70.2,0xb39a6a);                                     /* the straw of the ward */
+  for(const x of [-33.4,-30.6]) st.detail(x-0.08,y0+0.9,-72.98,x+0.08,y0+1.1,-72.9,IRON);      /* the rings the chains are made fast to */
+  for(let x=-40;x<-22;x+=2) for(let z=-63;z<-52;z+=2) st.detail(x+0.05,y0+0.01,z+0.05,x+1.95,y0+0.05,z+1.95,(x+z)%4===0?0xd8cfb8:0xc8bea6);
+  W.glow(ctx,-28,y0+2.2,-67,0.7,0xffa040,0.6);                                                 /* the guards' lamp */
+  mk(ctx,'cell',-32,-71.6); mk(ctx,'cellGate',-32,-69.06); mk(ctx,'post1',-32,-67.6); mk(ctx,'post2',-32,-65.2);
+  mk(ctx,'palaceDoor',-32,-62.8); mk(ctx,'pavement',-32,-58); mk(ctx,'street',-26,-50);
+  ctx.markers.sleeper=[-31.9,-71.6,y0+0.4];
+};
+
 /* GOLGOTHA AND THE GARDEN (Yahuchanon 19:17, 20, 41), as the digging under the Church of the Holy
    Sepulchre found the ground (V. Corbo, 1960s; M. Broshi, 1976): outside the second wall, by the
    Gennath — the Garden — gate and the roads out of it ("those passing by", Mark 15:29), a disused
@@ -1014,6 +1047,19 @@ function coast(ctx,st,o){
     [[-10,-16],[-12,-4],[-10,8],[-22,-10],[-22,6],[-4,14],[6,14]].forEach(([x,z],k)=>W.house(st,x,z,6,5.5,{door:x<-4?'e':'s',color:k%2?C.limestone:C.whitewash,h:3}));
     mk(ctx,'tanner',8,-2); mk(ctx,'tannerIn',6,-2); mk(ctx,'tannerDoor',2.6,-2); mk(ctx,'stairFoot',12.6,2.8); mk(ctx,'roof',9,-3); mk(ctx,'gate',-2,-2);
     mk(ctx,'street',-6,-2); mk(ctx,'sheet',14.8,-3);
+    /* THE HOUSE OF TAḆITHA (Acts 9:37, 39): two storeys, "an upper room" over the lower, reached by a
+       stair up the outside of its east wall, as the upper room in Yahrushalayim is; her mat by the west wall */
+    { const x0=-14,z0=20,x1=-4,z1=28,F=2.77;
+      st.box(x0,0,z0,x1,F,z1,C.limestone); st.detail(-9.7,0,z0-0.06,-8.3,2.0,z0,0x3a2a1e);
+      room(ctx,st,x0,z0,x1,z1,{door:'e',wall:C.whitewash,y:F,noStair:true});
+      st.box(x1+0.1,0,z0+1,x1+1.5,0.92,z0+2,C.stoneDark); st.box(x1+0.1,0,z0+2,x1+1.5,1.85,z0+3,C.stoneDark);
+      st.box(x1+0.1,0,z0+3,x1+1.5,F,z0+5.2,C.stoneDark);
+      st.detail(x0+1.2,F+0.08,23.2,x0+3.4,F+0.2,24.8,0xe8e0cc);                                  /* the linen she was laid on */
+      st.detail(x1-2.6,F+0.08,z1-1.6,x1-0.9,F+0.6,z1-0.9,C.timber);                              /* a chest of the garments she made */
+      W.glow(ctx,x0+0.9,F+1.9,z1-0.9,0.6,0xffc070,0.22); W.glow(ctx,x0+0.9,F+1.9,z0+0.9,0.6,0xffc070,0.22);
+      mk(ctx,'tabRoom',-8.6,24); mk(ctx,'bier',-11.7,24); mk(ctx,'tabDoor',-4.6,24); mk(ctx,'tabLanding',-3.3,24.2);
+      mk(ctx,'tabStair',-3.2,20.2); mk(ctx,'tabStreet',-1.6,18.4); mk(ctx,'tabBelow',-9,18.6); mk(ctx,'lodRoad',-34,22);
+      ctx.markers.tabY=[F+0.08,0]; }
     ctx.markers.roofY=[2.8+0.92+0.02,0];
     /* the port about its day: the tanner's men at the vats, the fishers on the beach at their nets,
        the catch carried up and sold, and the mill and spindle at the doors */
@@ -1023,7 +1069,7 @@ function coast(ctx,st,o){
         {do:'mend', at:[15.2,-22], face:Math.PI/2}, {do:'mend', at:[15.4,18], face:Math.PI/2},
         {do:'carry', from:[16,-26], to:[-2,-20], load:'basket', n:1}, {do:'sell', at:[-4,-21], face:Math.PI/2, goods:'fish'},
         {do:'grind', at:[D[3][0]+0.2,D[3][1]+1.5], face:Math.PI/2}, {do:'spin', at:[D[5][0]+1.6,D[5][1]-0.2], face:0},
-        {do:'play', at:[-16,14], r:1.8, n:2},
+        {do:'play', at:[-18,14], r:1.6, n:2},
         {do:'walk', path:[[16.5,-60],[16.5,-30],[16.5,30],[16.5,60]], n:1, donkey:true}]); }
   } else {
     /* the captain's house: a court open to the sky, rooms about it, a portico of columns before the door */
@@ -1090,11 +1136,135 @@ S.athens=function(ctx,st){
   ctx.bounds={x0:-130,x1:110,z0:-110,z1:110};
 };
 
+/* LUSTRA IN LUKAONIA (Acts 14:8-20): a small walled town on the plain, its gate on the west; before
+   the gate, beside the road, the house of Zeus "in front of their city" (14:13) and its altar; inside,
+   a square where the lame man sat. Shepherds' country: the flocks on the plain without. */
+S.lystra=function(ctx,st){
+  ctx.wind=[0.9,0.3];
+  W.ground(ctx,{color:C.grassDry,flat:46,peak:[{x:-20,z:-80,h:12,r:40},{x:40,z:70,h:10,r:36}]});
+  W.wall(st,-10,-34,-10,-3.5,{h:6.4,t:2,color:C.mudbrick}); W.wall(st,-10,3.5,-10,34,{h:6.4,t:2,color:C.mudbrick});
+  W.gate(st,-10,0,'z',{w:5,h:8.4,color:C.limestone});
+  for(let x=-90;x<-12;x+=1.5) st.box(x-1,0,-1.6,x+1,0.08,1.6,C.path,{collide:false,jitter:0.12});      /* the road from Ikonion */
+  for(let x=-7;x<26;x+=1.5) for(let z=-6;z<6;z+=1.5) st.box(x,0,z,x+1.5,0.08,z+1.5,C.cobble,{collide:false,jitter:0.1});   /* the square */
+  /* the house of Zeus, facing the road, and its altar before the steps */
+  temple(st,-30,-17,12,16,4.6,C.limestone);
+  st.box(-31,0,-6.6,-29,1.1,-5.2,C.stone); st.detail(-30.8,1.1,-6.4,-29.2,1.18,-5.4,0x4a3a2a);
+  /* the town about the square */
+  [[-2,-14],[10,-14],[22,-14],[-2,14],[10,14],[22,14],[32,-4]].forEach(([x,z],k)=>W.house(st,x,z,8,7,{door:z<0?'n':'s',color:k%2?C.mudbrick:C.whitewash,h:3}));
+  for(let k=0;k<12;k++){ const a=W.hash(k,7)*6.28, r=44+W.hash(k,8)*22; W.olive(st,Math.cos(a)*r,Math.sin(a)*r+20,0.8); }
+  mk(ctx,'gate',-10,0); mk(ctx,'gateOut',-15,0); mk(ctx,'gateIn',-5,0); mk(ctx,'square',8,0); mk(ctx,'lame',4,-4.4);
+  mk(ctx,'speak',8,-1.2); mk(ctx,'temple',-30,-17); mk(ctx,'templeSteps',-30,-8.2); mk(ctx,'altar',-30,-4.6);
+  mk(ctx,'outside',-24,12); mk(ctx,'road',-60,0); mk(ctx,'east',30,0);
+  /* the town about its day, the shepherds out on the plain (folk of the land, not of Yasharal) */
+  W.folk(ctx,[
+    {do:'sell', at:[16,-5], face:0, goods:'pots'}, {do:'sell', at:[0,5], face:Math.PI, goods:'bread'},
+    {do:'stroll', area:[-4,-4,24,4], n:3}, {do:'talk', at:[20,4.4], n:2}, {do:'spin', at:[10,9.4], face:0},
+    {do:'walk', path:[[-90,0.8],[-40,0.8],[-12,0.8],[20,0.8]], n:1, donkey:true},
+    {do:'herd', at:[-52,26], r:7}, {do:'hoe', at:[-46,-26], face:0}], {folk:'greek'});
+  W.wild(ctx,'sheep',-52,26,10,7,0.4);
+  ctx.bounds={x0:-120,x1:100,z0:-110,z1:110};
+};
+
+/* PHILIPPI OF MAKEDONIA, A COLONY (Acts 16:12-40): the Via Egnatia through the city from its gate in
+   the west wall; outside, the river where there was prayer (16:13); within, the market-place and
+   the seat of the captains (16:19-20), and over the way the prison — an outer room, the inner
+   prison with its stocks (16:24) — and the jailer's house beside it (16:34). */
+S.philippi=function(ctx,st){
+  ctx.wind=[0.8,0.3];
+  W.ground(ctx,{color:C.grass,flat:60,peak:[{x:20,z:-100,h:26,r:50},{x:-90,z:60,h:12,r:36}]});
+  W.wall(st,-20,-40,-20,-3.5,{h:7,t:2.2,color:C.stone}); W.wall(st,-20,3.5,-20,40,{h:7,t:2.2,color:C.stone});
+  W.gate(st,-20,0,'z',{w:5,h:9,color:C.stone});
+  for(let x=-90;x<56;x+=1.5) st.box(x-1,0,-2,x+1,0.08,2,C.cobble,{collide:false,jitter:0.08});    /* the Via Egnatia */
+  /* the river, and the road over it on a bridge of stone */
+  ctx.api.water(-66,-120,-58,120,{depth:2,bed:'sand'});
+  st.box(-67,0,-2.6,-57,1.4,2.6,C.stone); for(const z of [-2.2,2.2]) st.box(-67,1.4,z-0.4,-57,2.1,z+0.4,C.stone);
+  W.waterLife(ctx,{at:[-62,16], r:30, y:0, fish:8, frogs:3, flies:3, egrets:2});
+  for(const [x,z] of [[-52,8],[-51,20],[-50,26],[-53,-12]]) W.tamarisk(st,x,z,0.9);
+  for(const [x,z] of [[-53.4,12.2],[-52.2,15.6],[-54,17.4],[-51.4,11]]) st.box(x-0.5,0,z-0.4,x+0.5,0.46,z+0.4,C.rock);   /* stones to sit on by the water */
+  W.reeds(st,-57.2,6,0,6); W.reeds(st,-57.4,22,0,6);
+  /* the market-place: paved, a portico along its north side, and the seat of the captains before it */
+  for(let x=-4;x<28;x+=1.5) for(let z=-16;z<-2;z+=1.5) st.box(x,0,z,x+1.5,0.08,z+1.5,'alabaster',{collide:false,jitter:0.06});
+  for(let x=-3;x<28;x+=3.2) st.box(x-0.35,0,-20.4,x+0.35,4.4,-19.7,'alabaster');
+  st.box(-4,4.4,-22,28,4.8,-19.4,C.roofEarth); st.box(-4,0,-22.4,28,4.4,-22,C.limestone);
+  st.box(6,0,-17.6,14,1.1,-14.2,'alabaster'); st.box(8.6,0,-14.2,11.4,0.5,-13.3,'alabaster');                  /* the seat, and its step */
+  /* THE PRISON: an outer room; through a second door the inner prison, the stocks across it */
+  room(ctx,st,8,6,20,16,{door:'w',wall:C.stone,noStair:true});
+  st.box(13.8,0,6.4,14.3,2.8,10,C.stone); st.box(13.8,0,12,14.3,2.8,15.6,C.stone); st.box(13.8,2.2,10,14.3,2.8,12,C.stone);
+  st.detail(18.1,0,7.2,18.6,0.46,14.8,C.timber); for(let z=7.6;z<14.6;z+=0.9) st.detail(18.05,0.18,z,18.65,0.3,z+0.16,0x2e2c2a);
+  W.glow(ctx,9,2.1,6.9,0.6,0xffa040,0.5);
+  /* the jailer's house beside it, and a trough of water before its door */
+  room(ctx,st,22,6,30,14,{door:'w',wall:C.whitewash});
+  st.detail(25,0.08,9,27.4,0.5,11,C.timber);
+  st.box(21.6,0,2.8,24.4,0.7,4,C.stone); st.detail(21.8,0.6,2.95,24.2,0.66,3.85,C.water);
+  /* the colony's houses */
+  [[-8,-14],[-8,14],[36,-12],[36,14],[44,-24],[-6,28],[10,28]].forEach(([x,z],k)=>W.house(st,x,z,8,7,{door:z<0?'s':'n',color:k%2?C.limestone:C.whitewash,h:3.2}));
+  W.glow(ctx,26,2.2,7,0.7,0xffc070,0.55);
+  mk(ctx,'gate',-20,0); mk(ctx,'gateOut',-25,0); mk(ctx,'gateIn',-15,0); mk(ctx,'way',-38,0);
+  mk(ctx,'river',-62,15); mk(ctx,'riverIn',-59.6,15); mk(ctx,'bank',-55.6,15); mk(ctx,'prayer',-52.6,14.4);
+  mk(ctx,'forum',10,-8); mk(ctx,'bema',10,-16); mk(ctx,'bemaFront',10,-11.4); mk(ctx,'street',10,0.8);
+  mk(ctx,'prisonDoor',6.6,11); mk(ctx,'prisonIn',10.6,11); mk(ctx,'innerDoor',14,11); mk(ctx,'inner',16.6,11); mk(ctx,'stocks',17.4,11);
+  mk(ctx,'jailerDoor',20.8,10); mk(ctx,'jailerIn',25.6,8.4); mk(ctx,'trough',23,5.2); mk(ctx,'lampAt',21.2,6.8);
+  mk(ctx,'ludia',-8,8.6); mk(ctx,'tableC',26.2,10);
+  W.folk(ctx,[
+    {do:'sell', at:[2,-6], face:Math.PI/2, goods:'cloth'}, {do:'sell', at:[22,-10], face:-Math.PI/2, goods:'fruit'},
+    {do:'stroll', area:[-2,-14,26,-4], n:4}, {do:'talk', at:[24,-4.6], n:2},
+    {do:'walk', path:[[-90,1],[-40,1],[-15,1],[54,1]], n:2, donkey:true},
+    {do:'wash', at:[-57,30], face:-Math.PI/2}, {do:'hoe', at:[-40,-30], face:0}, {do:'herd', at:[-36,40], r:6}], {folk:'roman'});
+  W.wild(ctx,'sheep',-36,40,8,6,0.4);
+  ctx.bounds={x0:-130,x1:110,z0:-120,z1:120};
+};
+
+/* EPHESOS (Acts 19:23-41): the great theatre cut into the side of Mount Pion, its seats rising in a
+   half-ring over the orchestra and the stage-house before it; the street below, and on it the
+   workshop of Demetrios the silversmith with the little silver shrines of Artemis (19:24); far off
+   on the plain, her house. */
+S.ephesos=function(ctx,st){
+  ctx.wind=[0.8,0.3];
+  W.ground(ctx,{color:C.grassDry,flat:62,peak:[{x:0,z:-100,h:20,r:40},{x:-90,z:-60,h:14,r:34}]});
+  /* the theatre: the half-ring of seats, step above step, about the orchestra (O) */
+  const OX=0, OZ=-26, R0=9, R1=30;
+  for(let x=-R1;x<R1;x+=0.9) for(let z=OZ-R1;z<OZ+0.5;z+=0.9){ const d=Math.hypot(x+0.45-OX,z+0.45-OZ);
+    if(d<R0||d>R1) continue;
+    const h=Math.min(19,0.6+Math.floor((d-R0)/1.15)*0.92);
+    st.box(x,0,z,x+0.9,h,z+0.9,(Math.floor(d)%7===0)?C.stone:C.limestone); }
+  for(let x=-10;x<10;x+=1.5) for(let z=-35;z<-17;z+=1.5) if(Math.hypot(x+0.75,z+0.75-OZ)<R0+0.4) st.box(x,0,z,x+1.5,0.08,z+1.5,'alabaster',{collide:false,jitter:0.04});
+  /* the stage-house, two storeys of columns and doors, its stage before it */
+  st.box(-22,0,-15,22,8.4,-11.6,C.limestone);
+  for(let x=-19;x<=19;x+=3.8){ st.box(x-0.35,2.4,-15.6,x+0.35,8.4,-15,'alabaster'); }
+  st.box(-22,0,-17.4,22,2.4,-15,C.limestone);
+  for(const x of [-8,0,8]) st.detail(x-1,2.4,-15.06,x+1,5,-15,0x3a2a1e);
+  /* the street before it, colonnaded */
+  for(let x=-60;x<60;x+=1.5) st.box(x-1,0,-6,x+1,0.08,-1,'alabaster',{collide:false,jitter:0.05});
+  for(let x=-58;x<60;x+=4) st.box(x-0.35,0,0.2,x+0.35,4.6,0.9,'alabaster');
+  st.box(-60,4.6,0,60,5,2.6,C.roofEarth);
+  /* the workshop of Demetrios: open to the street, the shrines on its shelves, the furnace at the back */
+  st.box(14,0,11.6,24,3.4,12.2,C.limestone); st.box(14,0,3,14.6,3.4,12.2,C.limestone); st.box(23.4,0,3,24,3.4,12.2,C.limestone);
+  st.box(14,3.4,3,24,3.8,12.2,C.roofEarth);
+  st.detail(15,0,10.4,23,1.6,11.4,C.timber);
+  for(let k=0;k<10;k++){ const x=15.3+k*0.75; st.detail(x,1.6,10.6,x+0.34,2.0,11.0,0xc8ccd0); st.detail(x+0.08,2.0,10.68,x+0.26,2.14,10.92,0xc8ccd0); }   /* the silver shrines */
+  st.detail(16,0,6.2,18,0.9,7.6,C.timber); for(let k=0;k<3;k++) st.detail(16.3+k*0.5,0.9,6.6,16.6+k*0.5,1.22,6.9,0xd8dce0);
+  st.box(21,0,8.2,23,1.6,10.2,C.stoneDark); W.glow(ctx,22,1.2,8,0.9,0xff7a2a,0.8);
+  /* Sha'ul's lodging, down the street */
+  room(ctx,st,-36,4,-26,12,{door:'e',wall:C.whitewash});
+  [[-12,10],[0,10],[34,10],[46,10],[-48,10],[40,-16],[-40,-16]].forEach(([x,z],k)=>W.house(st,x,z,8,7,{door:z>0?'n':'s',color:k%2?C.limestone:C.whitewash,h:3.4}));
+  /* her house, far off on the plain toward the sea */
+  temple(st,96,60,20,34,8,'alabaster');
+  mk(ctx,'theatre',OX,OZ); mk(ctx,'orchestra',0,-22); mk(ctx,'stage',0,-16.2); mk(ctx,'parodos',26,-20); mk(ctx,'parodosIn',13,-21);
+  mk(ctx,'street',0,-3.6); mk(ctx,'shop',19,7.6); mk(ctx,'shopFront',19,2); mk(ctx,'lodging',-31,8); mk(ctx,'lodgingDoor',-24.4,8);
+  mk(ctx,'artemision',96,60); ctx.markers.cavea=[0,-48,19];
+  W.folk(ctx,[
+    {do:'sell', at:[-14,-1.6], face:Math.PI, goods:'cloth'}, {do:'sell', at:[30,-1.6], face:Math.PI, goods:'pots'},
+    {do:'hammer', at:[17,7], face:0}, {do:'stroll', area:[-56,-5,56,-2], n:4}, {do:'talk', at:[-6,-2.4], n:2},
+    {do:'walk', path:[[-60,-3],[0,-3],[60,-3]], n:2, donkey:true}], {folk:'greek'});
+  ctx.bounds={x0:-130,x1:140,z0:-120,z1:120};
+};
+
 /* MELITE (Acts 27:39-28:6): a bay with a beach, the open sea, and a place where two seas meet,
    a reef off a point; a fire kindled on the shore in the rain (28:2) */
 S.malta=function(ctx,st){
   ctx.wind=[4,-1.6];
   W.ground(ctx,{color:C.grassDry,flat:30,peak:[{x:-40,z:-40,h:10,r:30},{x:-40,z:50,h:12,r:34}]});
+  ctx.api.pad(-34,-46,14,46,{top:'sand'});                                                     /* the shore they came ashore on, above the sea (Acts 28:1) */
   sea(ctx,st,20,{depth:5});
   for(let k=0;k<10;k++){ const z=-4+W.hash(k,2)*8, x=38+W.hash(k,3)*8; st.box(x-1,-5,z-1,x+1,0.3+W.hash(k,4)*0.5,z+1,C.rock); }   /* the reef where the two seas meet */
   for(let k=0;k<30;k++){ const z=-110+k*7.4; if(Math.abs(z)<30) continue; st.box(14,0,z-3,20,1+W.hash(k,6)*3,z+3,C.rock); }      /* the rocks either side of the bay */

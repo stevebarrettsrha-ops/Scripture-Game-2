@@ -170,6 +170,74 @@ W.fig=function(S,x,z){
   S.box(x-1.8,3.6,z-1.7,x+1.8,4.4,z+1.8,'leaves'); };
 /* THE DATE PALM: a trunk that leans a little as it climbs, a crown of fronds reaching out and
    bowing at their tips, and the dates hanging in clusters under them */
+/* A FIELD OF WHEAT, white for harvest (Yahuchanon 4:35): not blocks but the plant itself — a
+   jointed stalk, two narrow leaves drying on it, and at the top the ear of paired grains with
+   its bristling beards, nodding over with its own weight; three stalks to a tuft, each a little
+   other in height and lean, and the whole field swaying with the wind. Drawn as one shape set
+   down a few thousand times (an instanced mesh), so a field costs no more than a house.
+   `test(x,z)` keeps a place clear (a path, a swath already reaped). */
+function wheatTuft(seed){
+  const P=[], C=[], N=[], I=[];
+  const R=(k)=>hash(seed*13.1+k,seed*7.7-k);
+  const quad=(a,b,c,d,col)=>{ const n=new THREE.Vector3().subVectors(b,a).cross(new THREE.Vector3().subVectors(d,a)).normalize(), o=P.length/3;
+    for(const v of [a,b,c,d]){ P.push(v.x,v.y,v.z); N.push(n.x,n.y,n.z); C.push(col.r,col.g,col.b); }
+    I.push(o,o+1,o+2,o,o+2,o+3); };
+  /* a box along a line from p to q, `w` thick (`t` deep): the stalk's lengths, the grains */
+  const bar=(p,q,w,t,hex)=>{ const col=new THREE.Color(hex), d=new THREE.Vector3().subVectors(q,p), up=Math.abs(d.y)>0.9*d.length()?new THREE.Vector3(1,0,0):new THREE.Vector3(0,1,0);
+    const s=new THREE.Vector3().crossVectors(d,up).normalize().multiplyScalar(w/2), u=new THREE.Vector3().crossVectors(s,d).normalize().multiplyScalar((t||w)/2);
+    const c=[p.clone().sub(s).sub(u),p.clone().add(s).sub(u),p.clone().add(s).add(u),p.clone().sub(s).add(u)], e=c.map(v=>v.clone().add(d));
+    quad(c[0],c[1],e[1],e[0],col); quad(c[1],c[2],e[2],e[1],col);
+    if((t||w)>0.008){ quad(c[2],c[3],e[3],e[2],col); quad(c[3],c[0],e[0],e[3],col); } };     /* (a hair-thin beard or a blade of leaf: two faces are enough, drawn both sides) */
+  for(let k=0;k<3;k++){
+    const ox=(R(k*5)-0.5)*0.09, oz=(R(k*5+1)-0.5)*0.09, h=0.82+R(k*5+2)*0.3, lean=0.05+R(k*5+3)*0.1, dir=R(k*5+4)*6.28;
+    const lx=Math.cos(dir), lz=Math.sin(dir);
+    const at=(t)=>new THREE.Vector3(ox+lx*lean*h*t*t, h*t, oz+lz*lean*h*t*t);            /* the stalk bows a little more as it rises */
+    const stalk=[0xc8ae64,0xbfa55c,0xd2b870][k%3];
+    let prev=at(0); for(const t of [0.4,0.75,1.0]){ const nx=at(t); bar(prev,nx,0.011,0.011,stalk); prev=nx; }
+    /* two leaves from the lower joints, long and narrow, falling away from the stalk */
+    for(const [t,a] of [[0.4,dir+2.4],[0.75,dir-2.0]]){ const b=at(t), out=new THREE.Vector3(Math.cos(a),0,Math.sin(a));
+      const m=b.clone().addScaledVector(out,0.12).add(new THREE.Vector3(0,0.06,0)), e=b.clone().addScaledVector(out,0.24).add(new THREE.Vector3(0,-0.04,0));
+      bar(b,e.clone().lerp(m,0.4),0.02,0.003,0xb09656); }
+    /* the ear: nodding over from the top of the stalk, paired grains up it, the beards standing out */
+    const top=at(1), nod=new THREE.Vector3(lx*0.55,0.83,lz*0.55).normalize(), side=new THREE.Vector3(-lz,0,lx);
+    const L=0.1;
+    for(let g=0;g<5;g++){ const c=top.clone().addScaledVector(nod,0.012+g*L/5), sd=g%2?1:-1;
+      const a=c.clone().addScaledVector(side,sd*0.006), b=a.clone().addScaledVector(nod,0.022).addScaledVector(side,sd*0.004);
+      bar(a,b,0.016,0.012,[0xe6c97c,0xdcbc6a][g%2]);
+      if(g%2===0){ const aw=b.clone().addScaledVector(nod,0.11).addScaledVector(side,sd*0.035); bar(b,aw,0.003,0.003,0xd8c486); } }
+    bar(top.clone().addScaledVector(nod,L+0.01),top.clone().addScaledVector(nod,L+0.13),0.003,0.003,0xd8c486);   /* the beard at the tip */
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(P,3)); geo.setAttribute('normal',new THREE.Float32BufferAttribute(N,3));
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(C,3)); geo.setIndex(I); return geo; }
+W.wheatField=function(ctx,area,o){ o=o||{};
+  const [x0,z0,x1,z1]=area, n=o.n||2400, test=o.test||(()=>true), mats=[];
+  const mat=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide});
+  /* the wind through it: each tuft bends from its foot, the more the higher, in a wave across the field */
+  const U={uWT:{value:0}};
+  mat.onBeforeCompile=sh=>{ sh.uniforms.uWT=U.uWT; sh.vertexShader='uniform float uWT;\n'+sh.vertexShader.replace('#include <begin_vertex>',
+    '#include <begin_vertex>\n  { vec3 ip=vec3(instanceMatrix[3][0],0.0,instanceMatrix[3][2]); float ph=uWT*1.6+ip.x*0.35+ip.z*0.22;\n'+
+    '    float b=(sin(ph)*0.6+sin(ph*2.3+ip.z)*0.25)*0.07*transformed.y*transformed.y; transformed.x+=b; transformed.z+=b*0.4; }'); };
+  const kinds=[wheatTuft(1),wheatTuft(2),wheatTuft(3)], meshes=kinds.map(g=>new THREE.InstancedMesh(g,mat,Math.ceil(n/3)+4)), count=[0,0,0];
+  const m4=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(), sc=new THREE.Vector3();
+  for(let k=0;k<n*3&&count.reduce((a,b)=>a+b,0)<n;k++){
+    const x=x0+hash(k,31)*(x1-x0), z=z0+hash(k,37)*(z1-z0); if(!test(x,z)) continue;
+    const v=k%3; if(count[v]>=meshes[v].count) continue;
+    e.set(0,hash(k,41)*6.28,0); q.setFromEuler(e); const s=0.9+hash(k,43)*0.22; sc.set(s,s,s);
+    m4.compose(new THREE.Vector3(x,ctx.groundY?ctx.groundY(x,z)||0:0,z),q,sc); meshes[v].setMatrixAt(count[v]++,m4); }
+  const g=new THREE.Group();
+  meshes.forEach((m,i)=>{ m.count=count[i]; m.instanceMatrix.needsUpdate=true; m.frustumCulled=false; g.add(m); });
+  ctx.scene.add(g); (ctx.tickers=ctx.tickers||[]).push(dt=>{ U.uWT.value+=dt; });
+  return g; };
+/* a sheaf the reapers have bound and laid down behind them: a bundle of stalks tied about the
+   middle, the ears all at one end */
+W.sheaf=function(ctx,x,z,ry){
+  const g=new THREE.Group(), M=c=>new THREE.MeshLambertMaterial({color:c});
+  for(let i=0;i<9;i++){ const a=i/9*6.28, r=0.05+(i%3)*0.02;
+    const s=new THREE.Mesh(new THREE.BoxGeometry(0.016,0.016,0.78),M(0xc8ae64)); s.position.set(Math.cos(a)*r,0.08+Math.sin(a)*r*0.6,0); g.add(s);
+    const ear=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.03,0.12),M(0xe2c478)); ear.position.set(Math.cos(a)*r*1.3,0.08+Math.sin(a)*r*0.8,0.44); g.add(ear); }
+  const band=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.16,0.05),M(0x9a8448)); band.position.set(0,0.08,-0.02); g.add(band);
+  g.position.set(x,ctx.groundY?ctx.groundY(x,z)||0:0,z); g.rotation.y=ry||0; ctx.scene.add(g); return g; };
 W.palm=function(S,x,z){
   const y0=S.ground(x,z), h=5.2+hash(x,z)*2.4, lean=(hash(z,x)-0.5)*1.1, la=hash(x*1.7,z)*6.28, lx=Math.cos(la)*lean, lz=Math.sin(la)*lean;
   /* the trunk: slim, ringed where the old fronds were cut, leaning as it climbs */
@@ -196,9 +264,7 @@ const lm=(c,o)=>{ const k=c+(o?'t':''); return LIFE_M[k]||(LIFE_M[k]=new THREE.M
 const lb=(g,w,h,d,c,x,y,z,o)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),lm(c,o)); q.position.set(x,y,z); g.add(q); return q; };
 W.creature=function(ctx,kind){
   const g=new THREE.Group(); const u=g.userData;
-  if(kind==='fish'){ const big=Math.random()<0.3, s=big?1.5:1;
-    lb(g,0.08*s,0.1*s,0.3*s,big?0x6a7a5a:0x9aa6a0,0,0,0); lb(g,0.06*s,0.05*s,0.16*s,0xc8d0c8,0,-0.04*s,0.02);   /* the back, the pale belly */
-    u.tail=lb(g,0.02,0.12*s,0.1*s,big?0x5a6a4a:0x8a968e,0,0,-0.19*s); lb(g,0.015,0.06*s,0.08*s,0x5a6a4a,0,0.07*s,0); }   /* the tail, the fin */
+  if(kind==='fish'){ const f=W.voyageFish(); if(f){ g.add(f); u.body=f; } }                     /* the voyage's own fish */
   else if(kind==='frog'){ lb(g,0.15,0.07,0.18,0x4e7a30,0,0.05,0); lb(g,0.11,0.05,0.07,0x5c8a38,0,0.08,0.08);
     lb(g,0.03,0.03,0.03,0xd8c040,0.045,0.11,0.1); lb(g,0.03,0.03,0.03,0xd8c040,-0.045,0.11,0.1);
     lb(g,0.05,0.04,0.12,0x46702c,0.09,0.03,-0.04); lb(g,0.05,0.04,0.12,0x46702c,-0.09,0.03,-0.04); }
@@ -213,6 +279,13 @@ W.creature=function(ctx,kind){
 };
 /* the life of a water, to be set about it once the set is laid: `at` [x,z] and `r` the reach to look
    for water in, `y` its face; how many of each */
+/* THE FISH ARE THE VOYAGE'S OWN: the musht of the lake (a silver-grey of the `fish` file), the
+   little Kinneret sardine and the catfish in its mud; each made by the voyage's creature files,
+   at its true size, nose to +z */
+const FISH_KINDS=[['fish',0x9aa6a0],['fish',0x7a8a80],['fish',0xa8b0a0],['sardine'],['sardine'],['catfish']];
+W.voyageFish=function(pick){ const k=K(); if(!k.makeFish) return null;
+  const F=pick||FISH_KINDS[Math.floor(Math.random()*FISH_KINDS.length)], m=k.makeFish(F[0],F[1]); if(!m) return null;
+  m.scale.multiplyScalar(1/k.setScale); return m; };
 W.waterLife=function(ctx,o){ (ctx.lifeSpecs=ctx.lifeSpecs||[]).push(o); };
 /* THE PEOPLE OF THE PLACE, about their day: not the ones the story speaks of, but the town they
    live in — women going down to the spring and coming up with the jar on the head (Bereshith
@@ -245,16 +318,32 @@ W.prop=function(kind){
   else if(kind==='sack'){ bx(0.3,0.22,0.5,0xc8b48a,0,0.11,0); bx(0.1,0.08,0.1,0xb8a07a,0,0.24,0.2); }
   else if(kind==='wood'){ for(let i=0;i<4;i++){ const q=cy(0.035,0.035,0.8,0x6a4a2a,-0.09+i*0.06,0.04+(i%2)*0.05,0,6); q.rotation.x=Math.PI/2; } }
   else if(kind==='broom'){ cy(0.016,0.016,1.1,0x7a5a30,0,-0.45,0,5); bx(0.16,0.2,0.05,0xb89a5a,0,-1.05,0); }
-  else if(kind==='hoe'){ cy(0.018,0.018,1.15,0x6a4a2a,0,-0.42,0,5); bx(0.14,0.05,0.18,0x5a5a5a,0,-1.0,0.07); }
+  else if(kind==='hoe'){ cy(0.018,0.018,1.15,0x6a4a2a,0,-0.42,0,5); bx(0.16,0.2,0.04,0x4a4a4a,0,-0.98,0.09); }   /* the blade set across the haft, edge down */
   else if(kind==='hammer'){ cy(0.016,0.016,0.32,0x6a4a2a,0,-0.12,0,5); bx(0.06,0.06,0.13,0x4a4a4a,0,-0.28,0); }
   else if(kind==='spindle'){ cy(0.008,0.008,0.3,0x8a6a40,0,-0.15,0,4); cy(0.04,0.04,0.02,0xd8ceb4,0,-0.26,0,8); }
   else if(kind==='quern'){ cy(0.3,0.34,0.14,0x7a7468,0,0.07,0,12); cy(0.26,0.26,0.08,0x8a8478,0,0.18,0,12); bx(0.03,0.16,0.03,0x6a4a2a,0.18,0.28,0); }
   else if(kind==='net'){ bx(1.1,0.08,0.7,0x8a7a5a,0,0.04,0); for(let i=0;i<4;i++) cy(0.03,0.03,0.04,0xd8c890,-0.4+i*0.27,0.09,0.3,6); }
-  else if(kind==='wash'){ bx(0.6,0.06,0.4,0xe8e0cc,0,0.03,0); }
-  else if(kind==='plough'){ bx(0.06,0.06,1.5,0x6a4a2a,0,0.5,0.45); bx(0.05,0.7,0.05,0x6a4a2a,0,0.35,-0.25); bx(0.05,0.05,0.4,0x4a4a4a,0,0.03,-0.1); }
+  else if(kind==='wash'){                                                                 /* a flat stone at the water's edge, a garment wet on it, a bundle waiting */
+    const col=[0x8a3a3a,0x3a4a8a,0xd8ceb4,0x6a5a2a,0x5a6a4a][Math.floor(Math.random()*5)];
+    bx(0.62,0.1,0.44,0x8e877a,0,0.05,0); bx(0.5,0.08,0.38,0x7a7266,0.04,0.02,0.03);
+    const wet=new THREE.Color(col).multiplyScalar(0.8).getHex();
+    bx(0.46,0.04,0.3,wet,0,0.12,0); bx(0.3,0.05,0.18,wet,-0.06,0.155,-0.04); bx(0.12,0.04,0.32,wet,0.2,0.08,0.02).rotation.z=-0.6;   /* the garment, rucked and hanging over the edge */
+    bx(0.24,0.12,0.2,0xe0d8c0,-0.42,0.06,0.2); bx(0.2,0.08,0.18,col,-0.42,0.15,0.2); }                                          /* the bundle of washing still to do */
+  else if(kind==='plough'){                                                               /* the ard: a share in the earth, the handle to his hands, the long beam forward to the yoke on the ox's neck */
+    const beam=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.07,3.3),M(0x6a4a2a)); beam.position.set(0,0.62,1.95); beam.rotation.x=-Math.atan2(0.85,3.3); g.add(beam);
+    const hd=bx(0.05,0.85,0.05,0x6a4a2a,0,0.42,0.25); hd.rotation.x=-0.5;                 /* the stilt up to the hand */
+    bx(0.04,0.04,0.3,0x6a4a2a,0,0.78,0.08);                                              /* its grip */
+    bx(0.07,0.07,0.42,0x5a3a20,0,0.06,0.42); bx(0.06,0.05,0.2,0x4a4a4a,0,0.03,0.7);      /* the sole, the iron share */
+    bx(1.0,0.08,0.1,0x6a4a2a,0,1.08,3.55); for(const sx of [-1,1]) bx(0.05,0.3,0.05,0x6a4a2a,sx*0.3,0.95,3.55); }   /* the yoke over the neck, its pegs */
   else if(kind==='sickle'){ cy(0.016,0.016,0.22,0x6a4a2a,0,-0.08,0,5); const q=new THREE.Mesh(new THREE.TorusGeometry(0.14,0.014,4,10,Math.PI*1.1),M(0x8a8a8a)); q.position.set(0,-0.22,0.12); q.rotation.y=Math.PI/2; g.add(q); }
   else if(kind==='tree'){ cy(0.02,0.02,1.7,0x6a4a2a,0,-0.6,0,5); }
   return g; };
+/* A FISH laid out to sell (the musht of the lake, Luqas 5:6): a deep body tapering to the tail,
+   a forked tail-fin, the fin along the back, a pale belly, a dark eye — lying on its side */
+W.fishProp=function(col,x,y,z,ry){
+  const g=new THREE.Group(), f=W.voyageFish(col===0x7a8a80?['fish',0x7a8a80]:['fish',0x9aa6a0]);
+  if(f){ f.scale.multiplyScalar(0.6); g.add(f); }                                     /* a musht, a hand and a half long, laid out on its side */
+  g.rotation.z=Math.PI/2; g.rotation.y=ry||0; const h=new THREE.Group(); h.add(g); h.position.set(x,y+0.02,z); return h; };
 /* A SELLER'S TABLE in the street: a board on trestles under an awning, its goods laid out —
    loaves, fruit, pots, cloth, fish or doves */
 W.stall=function(ctx,x,z,face,goods){
@@ -267,7 +356,7 @@ W.stall=function(ctx,x,z,face,goods){
   for(let i=0;i<9;i++){ const c=G[i%G.length], px=-0.6+(i%5)*0.3, pz=i<5?-0.15:0.15;
     if(goods==='pots') { const q=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.09,0.18,8),M(c)); q.position.set(px,0.9,pz); g.add(q); }
     else if(goods==='cloth') bx(0.28,0.08,0.28,c,px,0.85+(i%3)*0.04,pz);
-    else if(goods==='fish') bx(0.08,0.04,0.26,c,px,0.83,pz);
+    else if(goods==='fish') g.add(W.fishProp(c,px,0.84,pz,(i%2?0.3:-0.25)));
     else if(goods==='doves') { bx(0.24,0.18,0.24,0x8a7a5a,px,0.9,pz); bx(0.1,0.08,0.14,c,px,0.92,pz); }
     else { const q=new THREE.Mesh(new THREE.SphereGeometry(goods==='bread'?0.1:0.07,8,6),M(c)); q.scale.y=goods==='bread'?0.55:1; q.position.set(px,0.86,pz); g.add(q); } }
   g.position.set(x,ctx.groundY?ctx.groundY(x,z)||0:0,z); g.rotation.y=face||0; ctx.scene.add(g); return g; };
@@ -540,17 +629,19 @@ W.boat=function(ctx,x,z,o){ o=o||{};
 W.net=function(ctx,x,z,o){ o=o||{};
   const g=new THREE.Group(), mat=new THREE.MeshLambertMaterial({color:0xb8a882,transparent:true,opacity:0.75});
   const q=new THREE.Mesh(new THREE.BoxGeometry(o.w||1.6,o.h||0.4,o.d||1.4),mat); g.add(q);
-  const fish=new THREE.Group(), fm=new THREE.MeshLambertMaterial({color:0xc8ccd0,emissive:0x2a2c30});
-  for(let k=0;k<(o.n||40);k++){ const f=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.08,0.1),fm);
-    f.position.set((hash(k,1)-0.5)*(o.w||1.6)*0.9,(hash(k,2)-0.3)*(o.h||0.4)*1.6,(hash(k,3)-0.5)*(o.d||1.4)*0.9); f.rotation.y=hash(k,4)*6; fish.add(f); }
+  const fish=new THREE.Group();                                                       /* the catch: the voyage's own fish, heaped in the net */
+  for(let k=0;k<Math.min(28,o.n||28);k++){ const f=W.voyageFish(FISH_KINDS[Math.floor(hash(k,5)*5)]); if(!f) continue;
+    const h=new THREE.Group(); h.add(f); h.position.set((hash(k,1)-0.5)*(o.w||1.6)*0.9,(hash(k,2)-0.3)*(o.h||0.4)*1.6,(hash(k,3)-0.5)*(o.d||1.4)*0.9);
+    h.rotation.set(hash(k,6)*0.6,hash(k,4)*6,(hash(k,7)-0.5)*2.4); fish.add(h); }
   fish.visible=!!o.full; g.add(fish); g.userData.fish=fish;
   g.position.set(x,o.y||0,z); ctx.scene.add(g); return g; };
 /* a stone water-jug "according to the mode of cleansing" (Yahuchanon 2:6): chalk stone, waist-high */
 W.stoneJar=function(ctx,x,z){
   const g=new THREE.Group(), m=new THREE.MeshLambertMaterial({color:0xd8d0bc});
   const a=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.95,0.62),m); a.position.y=0.475; g.add(a);
-  const r=new THREE.Mesh(new THREE.BoxGeometry(0.74,0.1,0.74),m); r.position.y=0.95; g.add(r);
-  const w=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.02,0.5),new THREE.MeshBasicMaterial({color:0x6f8f9a})); w.position.y=0.94; w.visible=false; g.add(w);
+  for(const [rx,rz,rw,rd] of [[0,0.32,0.74,0.1],[0,-0.32,0.74,0.1],[0.32,0,0.1,0.54],[-0.32,0,0.1,0.54]]){   /* the lip, a ring about the mouth */
+    const r=new THREE.Mesh(new THREE.BoxGeometry(rw,0.1,rd),m); r.position.set(rx,0.95,rz); g.add(r); }
+  const w=new THREE.Mesh(new THREE.BoxGeometry(0.54,0.02,0.54),new THREE.MeshBasicMaterial({color:0x6f8f9a})); w.position.y=0.965; w.visible=false; g.add(w);   /* what is in it, seen within the lip */
   g.userData.fill=w; g.position.set(x,0,z); ctx.scene.add(g); return g; };
 /* the round stone rolled in its channel against the door of a tomb */
 W.roundStone=function(ctx,x,z,o){ o=o||{};
@@ -797,17 +888,19 @@ W.boat=function(ctx,x,z,o){ o=o||{};
 W.net=function(ctx,x,z,o){ o=o||{};
   const g=new THREE.Group(), mat=new THREE.MeshLambertMaterial({color:0xb8a882,transparent:true,opacity:0.75});
   const q=new THREE.Mesh(new THREE.BoxGeometry(o.w||1.6,o.h||0.4,o.d||1.4),mat); g.add(q);
-  const fish=new THREE.Group(), fm=new THREE.MeshLambertMaterial({color:0xc8ccd0,emissive:0x2a2c30});
-  for(let k=0;k<(o.n||40);k++){ const f=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.08,0.1),fm);
-    f.position.set((hash(k,1)-0.5)*(o.w||1.6)*0.9,(hash(k,2)-0.3)*(o.h||0.4)*1.6,(hash(k,3)-0.5)*(o.d||1.4)*0.9); f.rotation.y=hash(k,4)*6; fish.add(f); }
+  const fish=new THREE.Group();                                                       /* the catch: the voyage's own fish, heaped in the net */
+  for(let k=0;k<Math.min(28,o.n||28);k++){ const f=W.voyageFish(FISH_KINDS[Math.floor(hash(k,5)*5)]); if(!f) continue;
+    const h=new THREE.Group(); h.add(f); h.position.set((hash(k,1)-0.5)*(o.w||1.6)*0.9,(hash(k,2)-0.3)*(o.h||0.4)*1.6,(hash(k,3)-0.5)*(o.d||1.4)*0.9);
+    h.rotation.set(hash(k,6)*0.6,hash(k,4)*6,(hash(k,7)-0.5)*2.4); fish.add(h); }
   fish.visible=!!o.full; g.add(fish); g.userData.fish=fish;
   g.position.set(x,o.y||0,z); ctx.scene.add(g); return g; };
 /* a stone water-jug "according to the mode of cleansing" (Yahuchanon 2:6): chalk stone, waist-high */
 W.stoneJar=function(ctx,x,z){
   const g=new THREE.Group(), m=new THREE.MeshLambertMaterial({color:0xd8d0bc});
   const a=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.95,0.62),m); a.position.y=0.475; g.add(a);
-  const r=new THREE.Mesh(new THREE.BoxGeometry(0.74,0.1,0.74),m); r.position.y=0.95; g.add(r);
-  const w=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.02,0.5),new THREE.MeshBasicMaterial({color:0x6f8f9a})); w.position.y=0.94; w.visible=false; g.add(w);
+  for(const [rx,rz,rw,rd] of [[0,0.32,0.74,0.1],[0,-0.32,0.74,0.1],[0.32,0,0.1,0.54],[-0.32,0,0.1,0.54]]){   /* the lip, a ring about the mouth */
+    const r=new THREE.Mesh(new THREE.BoxGeometry(rw,0.1,rd),m); r.position.set(rx,0.95,rz); g.add(r); }
+  const w=new THREE.Mesh(new THREE.BoxGeometry(0.54,0.02,0.54),new THREE.MeshBasicMaterial({color:0x6f8f9a})); w.position.y=0.965; w.visible=false; g.add(w);   /* what is in it, seen within the lip */
   g.userData.fill=w; g.position.set(x,0,z); ctx.scene.add(g); return g; };
 /* the round stone rolled in its channel against the door of a tomb */
 W.roundStone=function(ctx,x,z,o){ o=o||{};
@@ -1060,6 +1153,12 @@ W.wild=function(ctx,kind,x,z,n,r,sp){
     g.rotation.y=hash(px,pz)*6.28;
     g.userData={home:[x,z],t:hash(k,x)*4,kind,roam:r||6,sp:sp||0.6}; ctx.flock.push(g); } };
 W.donkey=function(ctx,x,z){ return beast(ctx,'donkey',x,z); };
+/* a garland of leaves and flowers, such as were hung on the beasts brought to an altar of the nations (Acts 14:13) */
+W.wreath=function(ctx){ const g=new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.TorusGeometry(0.22,0.05,6,14),new THREE.MeshLambertMaterial({color:0x4e7a30})));
+  for(let k=0;k<7;k++){ const a=k/7*6.28, f=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.07,0.07),new THREE.MeshLambertMaterial({color:[0xe8d040,0xf0ece0,0xc03a2a][k%3]}));
+    f.position.set(Math.cos(a)*0.22,Math.sin(a)*0.22,0.04); g.add(f); }
+  g.rotation.x=Math.PI/2; const h=new THREE.Group(); h.add(g); ctx.scene.add(h); return h; };
 /* a beast of the townsfolk's (W.folk): an ass on the road, an ox at the plough — theirs to lead, not the scene's flock */
 W.donkeyFree=function(ctx,x,z,kind){ return beast(ctx,kind||'donkey',x,z); };
 })();

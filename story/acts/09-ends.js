@@ -9,8 +9,12 @@
    eleven; breaks the bread at the table of the first assembly; stands at the edge of the crowd
    when Stephanos is stoned, and kneels with those who bury him; runs with Philip after the chariot
    and holds the horses at the water; leads Sha’ul by the hand into Damascus and brings him food;
-   opens the tanner's gate at Yapho; draws water in the captain's house at Caesarea; carries the
-   bundles of Barnaḇah and Sha’ul to the road at Antioch; reads the altar in Athens; throws the cargo
+   goes out on the road to Lod for Kĕpha and calls the widows back up to Taḇitha; opens the tanner's
+   gate at Yapho; draws water in the captain's house at Caesarea; goes down with Rhode to the gate of
+   Miryam's house; carries the bundles of Barnaḇah and Sha’ul to the road at Antioch; runs to tell them
+   of the kohen of Zeus at Lustra, and goes out to Sha’ul where he lies outside the city; carries
+   Ludia's purple home and brings the jailer at Philippi his light; stands in the door at Ephesos so
+   Sha’ul cannot go into the theatre; reads the altar in Athens; throws the cargo
    into the sea off Crete and gathers sticks on Melite; and carries the scrolls into a rented house in
    Rome. He never speaks in a named mouth, and nothing he does changes what the Besorah says.
 
@@ -19,7 +23,8 @@
 
    REVERENCE. Yahusha is not seen in this act. At Damascus He is light, and a voice; to Ḥananyah He
    is a voice in a vision. A mal’ak is light, never a figure. The stoning of Stephanos is read,
-   never drawn: the camera is on Sha’ul and the garments at his feet. */
+   never drawn: the camera is on Sha’ul and the garments at his feet. So with the sword that killed
+   Ya‛aqoḇ, the stones at Lustra and the rods at Philippi: each is read, and the camera is elsewhere. */
 (function(){
 const ADULT={robe:0x8a7454, cloth:0xd8cfb8, beard:0x3a2a1e, skin:0x86573a};
 const T12={
@@ -46,6 +51,9 @@ const STEPHANOS={name:'Stephanos', key:'Stephanos', robe:0x6a5a3a, cloth:0xe6e0c
 const PHILIP_E={name:'Philip', key:'Philip the proclaimer', robe:0x4a6a5a, cloth:0xd8ceb4, beard:0x2c241f, skin:0x7a4e29};
 const KUSHI={name:'A man of Kush', key:'the eunuch of Kandake', robe:0x2a4a8a, cloth:0xd4af37, sash:0xd4af37, skin:0x3a2416};
 const HANANYAH={name:'Ḥananyah', key:'Hananyah of Damascus', robe:0x6b5a44, cloth:0xe6e0cf, beard:0x6d6a66, skin:0x7a4e29, kind:'oldman'};
+const SILA={name:'Sila', key:'Sila', robe:0x6a5a44, cloth:0xd8cfb8, beard:0x3a2a1e, skin:0x7c5430};
+/* the widows about Taḇitha's mat in her upper room at Yapho (Acts 9:39): [x, z, facing] */
+const WIDOWS=[[-10.2,22.6,0],[-9,22.8,0.3],[-10.2,25.4,Math.PI],[-8.8,25.2,Math.PI-0.3]];
 const BARNABAH={name:'Barnaḇah', key:'Barnabah', robe:0x5f6a52, cloth:0xcfc4aa, beard:0x3a2a1e, skin:0x7c5430};
 const LEGION=(id,at,face,extra)=>Object.assign({id,at,face,folk:'roman',dress:'legionary'},extra||{});
 let seed=53; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
@@ -67,15 +75,14 @@ const SEATS=[[14.4,28.7,0],[15.6,28.7,0],[16.8,28.7,0],[18,28.7,0],[19.2,28.7,0]
              [13.6,30,Math.PI/2],[20.4,29.4,-Math.PI/2],[20.4,30.6,-Math.PI/2]];
 const ROOM=(list,o)=>list.map((id,k)=>T(id,[SEATS[k][0],SEATS[k][1]],Object.assign({face:SEATS[k][2], sit:true},o||{})));
 /* "divided tongues, as of fire, and settled on each one of them" (2:3) */
-const TONGUES=SEATS.slice(0,11).map((s,k)=>({id:'f'+k, at:[s[0],F+1.62,s[1]], size:0.55, color:0xff9a3a, intensity:0.9, pulse:true, hidden:true}))
-  .concat([[21,29],[21,31.8],[13.4,31.8]].map((p,k)=>({id:'fw'+k, at:[p[0],F+1.55,p[1]], size:0.5, color:0xff9a3a, intensity:0.9, pulse:true, hidden:true})));
+const TONGUES=ELEVEN.concat(['miryam','magdala','yohanah']).map((id,k)=>({id:'f'+k, on:id, dy:0.16, size:0.42, color:0xff8a2a, intensity:0.7, pulse:true, hidden:true}));   /* one on each (Acts 2:3) */
 /* THE GRAIN SHIP OF ALEXANDRIA (27:6, 37): the lake's boat built two and a fifth times as large */
 const SC=2.2, SX=110, SFLOOR=-0.1-0.42*SC;
 const ABOARD=(id,dx,dz,o)=>Object.assign({id,at:[SX+dx,dz],y:SFLOOR},o||{});
 
 STORY.act({
   id:'ends-of-earth', n:9, num:'VIII', title:'To the End of the Earth',
-  sub:'The Festival of weeks · Sha’ul · Shomeron · Rome',
+  sub:'The Festival of weeks · Sha’ul · Yapho · Lustra · Philippi · Ephesos · Rome',
   cast:{
     nations:{name:'The crowd', key:'the crowd at the festival of weeks', kind:'crowd', actor:'n2', actors:['n0','n1','n2','n3','n4','n5']},
     mockers:{name:'Others, mocking', key:'others mocking', kind:'man', actor:'n4'},
@@ -86,14 +93,21 @@ STORY.act({
     malak:{name:'A mal’ak of (YAHUAH) HWHY', kind:'angel', glow:'malak'},
     ruach:{name:'The Ruach', key:'the ruach haqadash', kind:'divine'},
     master:{name:'Yahusha', key:'Yahusha', kind:'yahusha', glow:'light'},
-    voice:{name:'A voice', key:'the voice to Kepha', kind:'divine'},
+    voice:{name:'A voice', key:'the voice to Kepha', kind:'divine', glow:'opened'},     /* out of the opened shamayim (10:11-13) */
     damascenes:{name:'All who heard', key:'those in the qahalim of damascus', kind:'crowd', actor:'dq0', actors:['dq0','dq1','dq2']},
     men:{name:'The men from Cornelius', key:'the men sent from Cornelius', kind:'man', actor:'sent0', actors:['sent0','sent1','sent2']},
     cornelius:{name:'Cornelius', key:'Cornelius', kind:'man', folk:'roman'},
     philosophers:{name:'Some of the philosophers', key:'the philosophers of athens', kind:'man', actor:'ph0', actors:['ph0','ph1','ph2']},
     athenians:{name:'The Athenians', key:'the athenians', kind:'crowd', actor:'ph2', actors:['ph0','ph1','ph2','ph3']},
     islanders:{name:'The islanders', key:'the islanders of melite', kind:'crowd', actor:'is0', actors:['is0','is1','is2','is3']},
-    leaders:{name:'The leaders of the Yahuḏim', key:'the leaders of the yahudim at rome', kind:'oldman', actor:'ld0', actors:['ld0','ld1','ld2']}
+    leaders:{name:'The leaders of the Yahuḏim', key:'the leaders of the yahudim at rome', kind:'oldman', actor:'ld0', actors:['ld0','ld1','ld2']},
+    gathered:{name:'Those gathered', key:'those gathered at the house of miryam', kind:'crowd', actor:'pr2', actors:['pr0','pr1','pr2','pr3','pr4','pr5','pr6','pr7','pr8','miryamM']},
+    lukaonians:{name:'The crowds', key:'the crowds of lustra', kind:'crowd', actor:'ly0', actors:['ly0','ly1','ly2','ly3','ly4','ly5','ly6','ly7']},
+    /* "the emissaries … crying out and saying" (Acts 14:14-15); "and they said" (16:31): Sha’ul's voice for both */
+    emissaries:{name:'Sha’ul and his companion', key:'Sha’ul of Tarsos', kind:'man', actor:'shaul', actors:['shaul','barnabah','sila']},
+    masters:{name:'Her masters', key:'the masters of the slave girl', kind:'man', actor:'ms0', actors:['ms0','ms1']},
+    craftsmen:{name:'The craftsmen', key:'the craftsmen of ephesos', kind:'crowd', actor:'cr0', actors:['cr0','cr1','cr2','cr3','cr4','cr5']},
+    ephesians:{name:'The crowd in the theatre', key:'the crowd in the theatre', kind:'crowd', actor:'cr1', actors:['cr0','cr1']}
   },
   scenes:[
 
@@ -117,6 +131,9 @@ STORY.act({
       {t:'read', ref:'ACTS 2:2'},
       {t:'show', id:ids(TONGUES)},
       {t:'read', ref:'ACTS 2:3'},
+      /* "and settled on each one of them": close over their heads, a flame on each */
+      {t:'cam', from:[13.4,5.2,27.4], look:[16.6,4.2,30], dur:2},
+      {t:'quake', s:0.8},
       {t:'read', ref:'ACTS 2:4'},
       {t:'weather', wind:[0.6,0.2]},
       {t:'cam', from:['urHouse',-14,-20], fdy:10, look:['urHouse',0,-6], dur:2.5},
@@ -213,8 +230,16 @@ STORY.act({
       {t:'say', who:'kepha', ref:'ACTS 3:6', turn:false},
       {t:'stand', who:'lameM'},
       {t:'read', ref:'ACTS 3:7'},
+      /* "and leaping up, he stood and walked … walking and leaping and praising Aluah" */
+      {t:'drift', id:'lameM', by:[0,0.45,0], dur:0.28, hold:true}, {t:'drift', id:'lameM', by:[0,-0.45,0], dur:0.3},
+      {t:'drift', id:'lameM', by:[0,0.45,0], dur:0.28}, {t:'drift', id:'lameM', by:[0,-0.45,0], dur:0.3},
+      {t:'place', who:'lameM', at:'lameM', y:null},
       {t:'move', who:'lameM', to:['womenCourt',-2,-0.6], speed:3, wait:false},
       {t:'read', ref:'ACTS 3:8'},
+      {t:'drift', id:'lameM', by:[0,0.45,0], dur:0.28, hold:true}, {t:'drift', id:'lameM', by:[0,-0.45,0], dur:0.3},
+      {t:'drift', id:'lameM', by:[0,0.45,0], dur:0.28}, {t:'drift', id:'lameM', by:[0,-0.45,0], dur:0.3},
+      {t:'drift', id:'lameM', by:[0,0.45,0], dur:0.28}, {t:'drift', id:'lameM', by:[0,-0.45,0], dur:0.3},
+      {t:'place', who:'lameM', at:'lameM', y:null},
       {t:'move', who:'lameM', to:['womenCourt',0.4,2], speed:3, wait:false},
       {t:'move', who:['kepha','yahuchanon'], to:[['womenCourt',-0.6,1.2],['womenCourt',-1.2,2.4]], speed:1, wait:false},
       {t:'cam', from:['womenCourt',-9,-7], fdy:4, look:'lameM', dur:3},
@@ -427,10 +452,13 @@ STORY.act({
       ...folk('dq',3,[-14,-2,-6,2],Math.PI/2)
     ],
     things:[ {id:'food', kind:'basket', at:['straight',6,1.4], full:true} ],
-    glows:[ {id:'vision', at:['hananyah',0,-1.6], dy:2.4, size:2.6, color:0xfff6dc, intensity:1.2, pulse:true, hidden:true} ],
+    /* the Master in a vision: light, as on the road (the speaker's glow is 'light') */
+    glows:[ {id:'light', at:['hananyah',0,-1.6], dy:2.4, size:2.6, color:0xfff6dc, intensity:1.2, pulse:true, hidden:true},
+            /* "something like scales fell from his eyes" (9:18) */
+            {id:'scales', at:['bed',-0.2,0], dy:1.2, size:0.9, color:0xfffbea, intensity:0.6, hidden:true} ],
     beats:[
       {t:'cam', from:['hananyah',-5,5], fdy:2.4, look:'hananyah', dur:0.1},
-      {t:'show', id:'vision'},
+      {t:'show', id:'light'},
       {t:'say', voices:['master','hananyah'], ref:'ACTS 9:10', turn:false},
       {t:'say', who:'master', ref:'ACTS 9:11', turn:false},
       {t:'say', who:'master', ref:'ACTS 9:12', turn:false},
@@ -438,12 +466,15 @@ STORY.act({
       {t:'say', who:'hananyah', ref:'ACTS 9:14', turn:false},
       {t:'say', who:'master', ref:'ACTS 9:15', turn:false},
       {t:'say', who:'master', ref:'ACTS 9:16', turn:false},
-      {t:'hide', id:'vision'},
+      {t:'hide', id:'light'},
       {t:'move', who:'hananyah', to:'yahudahDoor', speed:1.2},
       {t:'move', who:'hananyah', to:['bed',-1.4,0], speed:1},
       {t:'face', who:'hananyah', to:'shaul'},
       {t:'cam', from:['yahudahIn',0,-1.4], fdy:1.9, look:'shaul', dur:2},
+      {t:'pose', who:'hananyah', arms:'out'},                            /* "and laying his hands on him" */
       {t:'say', who:'hananyah', ref:'ACTS 9:17', turn:false},
+      {t:'show', id:'scales'}, {t:'wait', s:0.35}, {t:'hide', id:'scales'},
+      {t:'pose', who:'hananyah'},
       {t:'stand', who:'shaul'},
       {t:'read', ref:'ACTS 9:18'},
       {t:'cam', release:true},
@@ -461,7 +492,87 @@ STORY.act({
       {t:'end'}
     ]},
 
-  /* ---------------- VIII.9 — THE HOUSE-TOP AT YAPHO ---------------- */
+  /* ---------------- VIII.9 — TAḆITHA ---------------- */
+  /* Yapho: the woman "filled with good works" laid in the upper room of her house; the widows with the
+     garments she made; Kĕpha sends them out, kneels, and calls her by her name (Acts 9:36-43) */
+  { id:'tabitha', title:'Yapho', date:'in those days', place:'yapho', time:'day',
+    player:{ at:'tabStreet', face:-Math.PI/2, look:ADULT },
+    actors:[
+      {id:'tabitha', name:'Taḇitha', key:'Tabitha', kind:'woman', at:[-10.5,24], y:'tabY', face:Math.PI/2, robe:0x8a6a5a, cloth:0xe8e2d2, skin:0x86573a},
+      ...WIDOWS.map(([x,z,f],k)=>({id:'wd'+k, name:k?undefined:'The widows', key:'the widows of yapho', kind:'woman', at:[x,z], y:'tabY', face:f,
+        robe:[0x3c3a44,0x4a3a3a,0x3a3a2e,0x44403a][k], cloth:[0x3c3a44,0x5a4a44,0x2e2c30,0x6a5a4a][k], skin:[0x7a4e30,0x86573a,0x704a27,0x7c5430][k]})),
+      {id:'m0', name:'Two men', key:'the two men sent to kepha', at:['tabStreet',-1,-1.2], face:-Math.PI/2, robe:0x6b5a44, cloth:0xd8ceb4, beard:0x2c241f},
+      {id:'m1', at:['tabStreet',-1.4,0.4], face:-Math.PI/2, robe:0x5a6470, cloth:0xcfc4aa, beard:0x3a2a1e},
+      T('kepha',['lodRoad',-16,0],{face:Math.PI/2})
+    ],
+    /* the garments she made (9:39), held up by the widows */
+    things:[ {id:'coat0', kind:'box', at:[WIDOWS[0][0],WIDOWS[0][1]+0.42], y:3.75, w:0.6, h:0.8, d:0.06, color:0xe6dcc0, hidden:true},
+             {id:'coat1', kind:'box', at:[WIDOWS[1][0],WIDOWS[1][1]+0.42], y:3.75, w:0.6, h:0.8, d:0.06, color:0x8a5a3a, hidden:true},
+             {id:'coat2', kind:'box', at:[WIDOWS[2][0],WIDOWS[2][1]-0.42], y:3.75, w:0.6, h:0.8, d:0.06, color:0x5a6a7a, hidden:true} ],
+    beats:[
+      {t:'lie', who:'tabitha'}, {t:'mood', who:'tabitha', ex:'sleep'},
+      {t:'mood', who:['wd0','wd1','wd2','wd3'], ex:'weep'},
+      {t:'cam', from:['tabStreet',8,-6], fdy:5, look:['tabRoom',0,0], dur:0.1},
+      {t:'read', ref:'ACTS 9:36'},
+      {t:'cam', from:[-5.4,4.9,26.6], look:[-10.4,3.2,24], dur:2.5},
+      {t:'read', ref:'ACTS 9:37'},
+      {t:'move', who:['m0','m1'], to:[['lodRoad',0,-0.8],['lodRoad',0,0.8]], speed:1.5, wait:false},
+      {t:'cam', from:['tabStreet',3,4], fdy:2.2, look:'m0', dur:2},
+      {t:'read', ref:'ACTS 9:38'},
+      {t:'cam', release:true},
+      {t:'goal', text:'Go out on the road toward Lod to meet Kĕpha', goto:'lodRoad', r:3},
+      {t:'face', who:'kepha', to:'player'},
+      {t:'move', who:['kepha','m0','m1'], to:[['tabStair',0,0],['tabStair',-0.6,-1.4],['tabStair',0.8,-1.2]], speed:1.4, wait:false},
+      {t:'cam', from:['tabStreet',4,-4], fdy:2.4, look:['tabStair',0,0], dur:2},
+      {t:'wait', s:2.5},
+      /* up the stair and in */
+      {t:'place', who:'kepha', at:[-6,24.4], y:'tabY', face:-Math.PI/2},
+      {t:'place', who:'m0', at:['tabStreet',0,-1.4], y:null}, {t:'place', who:'m1', at:['tabStreet',-0.6,1], y:null},
+      {t:'face', who:'wd0', to:'kepha'}, {t:'face', who:'wd1', to:'kepha'}, {t:'face', who:'wd2', to:'kepha'},
+      {t:'lead', id:'coat0', by:'wd0', up:0.95, back:-0.34}, {t:'lead', id:'coat1', by:'wd1', up:0.95, back:-0.34}, {t:'lead', id:'coat2', by:'wd2', up:0.95, back:-0.34},
+      {t:'show', id:['coat0','coat1','coat2']},
+      {t:'pose', who:['wd0','wd1','wd2'], arms:'out'},
+      {t:'cam', from:[-6.6,4.7,21.2], look:[-10,3.7,24.4], dur:2},
+      {t:'read', ref:'ACTS 9:39'},
+      /* "Kĕpha sent them all out" */
+      {t:'pose', who:['wd0','wd1','wd2']},
+      {t:'hide', id:['coat0','coat1','coat2']},
+      {t:'move', who:['wd0','wd1','wd2','wd3'], to:[[-5.8,23.2],[-5.4,24.2],[-5.8,25.2],[-6.4,24]], speed:1},
+      {t:'hide', id:['wd0','wd1','wd2','wd3']},
+      {t:'move', who:'kepha', to:[-11.2,22.7], speed:0.9},
+      {t:'face', who:'kepha', to:'tabitha'},
+      {t:'sit', who:'kepha'},
+      {t:'cam', from:[-7.6,4.3,21.4], look:[-11,3.3,23.4], dur:2.5},
+      {t:'pose', who:'kepha', arms:'up'}, {t:'wait', s:2}, {t:'pose', who:'kepha'},
+      {t:'cam', from:[-9.2,3.9,22.6], look:[-11.6,3.2,24], dur:2},
+      {t:'say', who:'kepha', ref:'ACTS 9:40', turn:false},
+      {t:'mood', who:'tabitha', ex:'awe'},
+      {t:'sit', who:'tabitha'},
+      {t:'stand', who:'kepha'},
+      {t:'pose', who:'kepha', arms:'out'},
+      {t:'wait', s:0.8},
+      {t:'stand', who:'tabitha'},
+      {t:'pose', who:'kepha'},
+      {t:'mood', who:'tabitha', ex:'joy'},
+      {t:'cam', release:true},
+      {t:'goal', text:'Go down and call the widows and the set-apart ones', goto:'tabStreet', r:2.6},
+      /* they come up again */
+      ...WIDOWS.map(([x,z,f],k)=>({t:'place', who:'wd'+k, at:[x+1.4,z], y:'tabY', face:f})),
+      {t:'show', id:['wd0','wd1','wd2','wd3']},
+      {t:'mood', who:['wd0','wd1','wd2','wd3'], ex:'joy'},
+      {t:'cam', from:[-5.4,4.9,26.6], look:[-10,3.4,24], dur:2},
+      {t:'read', ref:'ACTS 9:41'},
+      {t:'cam', from:['tabStreet',14,-12], fdy:8, look:['tabRoom',0,0], dur:3},
+      {t:'read', ref:'ACTS 9:42'},
+      {t:'cam', from:['tanner',-6,10], fdy:4, look:['tanner',0,0], dur:3},
+      {t:'read', ref:'ACTS 9:43'},
+      {t:'choice', prompt:'You', options:[
+        {text:'Look at the widows', reply:'They are holding the coats up again, but now to her — this one you made me, and this one. Taḇitha is laughing at them.'},
+        {text:'Think of the house in Kephar Naḥum', reply:'"Talitha, qumi," He said to the little girl, and put everyone out of the room. Kĕpha was one of the three He let stay. He has done just as he saw done.'} ]},
+      {t:'end'}
+    ]},
+
+  /* ---------------- VIII.10 — THE HOUSE-TOP AT YAPHO ---------------- */
   { id:'yapho', title:'Yapho', date:'about the sixth hour', place:'yapho', time:'day',
     player:{ at:['gate',3,-3], face:Math.PI/2, look:ADULT },
     actors:[
@@ -526,7 +637,7 @@ STORY.act({
       {t:'end'}
     ]},
 
-  /* ---------------- VIII.10 — THE HOUSE OF CORNELIUS ---------------- */
+  /* ---------------- VIII.11 — THE HOUSE OF CORNELIUS ---------------- */
   { id:'cornelius', title:'Caesarea', date:'the following day', place:'caesareaM', time:'day',
     player:{ at:['inner',1.4,3], face:Math.PI/2, look:ADULT },
     actors:[
@@ -536,7 +647,11 @@ STORY.act({
       ...folk('br',4,[22,-2,26,2],-Math.PI/2)
     ],
     things:[ {id:'jarC', kind:'jar', at:['inner',0,-2.4]} ],
-    glows:[0,1,2,3,4,5].map(k=>({id:'r'+k, at:[-7+k*1.6,2.4,-3+(k%3)*2.4], size:0.5, color:0xff9a3a, intensity:0.9, pulse:true, hidden:true})),
+    /* "the Set-apart Spirit fell upon all those hearing the word" (10:44): a flame over each head of the
+       household where they stand — the women a little lower — and over Cornelius */
+    glows:[[0.22,0.85,0.64],[1.58,2.92,-0.91],[-0.91,2.1,2.58],[0.3,2.1,-5.87],[1.68,2.0,-4.66],[-2.51,2.1,-0.16],
+           [-6.79,2.1,3.79],[-1.63,2.92,-0.29],[-6.85,2.1,1.98],[1.4,3.02,-1.65],[-2.4,2.2,1.4]]
+      .map((p,k)=>({id:'r'+k, at:p, size:0.5, color:0xff9a3a, intensity:k%2?0.5:0.8, pulse:true, hidden:true})),
     beats:[
       {t:'cam', from:['porch',6,6], fdy:3, look:['door',0,0], dur:0.1},
       {t:'move', who:['kepha','br0','br1','br2','br3'], to:['porch',['porch',1.4,-1],['porch',1.6,1],['porch',2.6,-0.4],['porch',2.8,0.8]], speed:1.2, wait:false},
@@ -567,7 +682,7 @@ STORY.act({
       {t:'say', who:'kepha', ref:'ACTS 10:41', turn:false},
       {t:'say', who:'kepha', ref:'ACTS 10:42', turn:false},
       {t:'say', who:'kepha', ref:'ACTS 10:43', turn:false},
-      {t:'show', id:['r0','r1','r2','r3','r4','r5']},
+      {t:'show', id:['r0','r1','r2','r3','r4','r5','r6','r7','r8','r9','r10']},
       {t:'cam', from:['court',4,4], fdy:3.2, look:['court',-3,0], dur:2.5},
       {t:'read', ref:'ACTS 10:44'},
       {t:'read', ref:'ACTS 10:45'},
@@ -575,7 +690,7 @@ STORY.act({
       {t:'say', who:'kepha', ref:'ACTS 10:47', turn:false},
       {t:'cam', release:true},
       {t:'witness', text:'Fetch water for them to be immersed', items:['jarC'], verb:'Take up the water jar', hold:0.6, deliver:'court', r:2.4, carryText:'Carry it to Kĕpha'},
-      {t:'hide', id:['r0','r1','r2','r3','r4','r5']},
+      {t:'hide', id:['r0','r1','r2','r3','r4','r5','r6','r7','r8','r9','r10']},
       {t:'read', ref:'ACTS 10:48'},
       {t:'choice', prompt:'You', options:[
         {text:'Look at the Romans', reply:'A captain of the Italian regiment, his soldiers, his slaves, his wife\'s brothers. The fire came on them as it came on the eleven in the upper room. Kĕpha cannot stop smiling.'},
@@ -583,7 +698,127 @@ STORY.act({
       {t:'end'}
     ]},
 
-  /* ---------------- VIII.11 — ANTIOCH ---------------- */
+  /* ---------------- VIII.12 — THE PRISON OF HERODES ---------------- */
+  /* Kĕpha asleep between two soldiers, bound with two chains; a mal'ak — light, never a figure — and
+     a light in the building; the chains fall, the guard posts are passed, the iron gate opens of
+     itself (Acts 12:1-12). The killing of Ya‛aqoḇ is read, never drawn. */
+  { id:'prison', title:'Yahrushalayim', date:'the Days of Unleavened Bread', place:'prison', time:'night',
+    player:{ at:'street', face:Math.PI, look:ADULT, hidden:true },
+    actors:[
+      T('kepha',[-31.1,-71.6],{face:Math.PI/2}),
+      LEGION('sl0',[-33.6,-72.4],0,{sit:true, ground:true}), LEGION('sl1',[-29.6,-72.4],0,{sit:true, ground:true}),
+      LEGION('gd0',['post1',-1.2,0],Math.PI), LEGION('gd1',['post1',1.2,0],Math.PI),
+      LEGION('gd2',['post2',-1.4,0.4],Math.PI), LEGION('gd3',['post2',1.4,0.4],Math.PI)
+    ],
+    things:[ {id:'ch0', kind:'box', at:[-32.9,-71.9], dy:0.22, w:1.0, h:0.05, d:0.05, color:0x4a4846},
+             {id:'ch1', kind:'box', at:[-30.4,-71.9], dy:0.22, w:1.0, h:0.05, d:0.05, color:0x4a4846},
+             {id:'grate', kind:'box', at:'cellGate', w:1.6, h:3.1, d:0.08, color:0x2e2c2a},
+             {id:'iron', kind:'box', at:['palaceDoor',0,-0.9], w:2.4, h:3.2, d:0.12, color:0x3a3836} ],
+    glows:[ {id:'malak', at:['cell',0.6,0.6], dy:1.7, size:2.4, color:0xfff6dc, intensity:1.4, pulse:true, hidden:true},
+            {id:'shone', at:['cell',0,2], dy:2.6, size:6, color:0xfff4d8, intensity:0.55, hidden:true} ],
+    beats:[
+      {t:'lie', who:'kepha'}, {t:'mood', who:['kepha','sl0','sl1'], ex:'sleep'},
+      {t:'cam', from:['pavement',8,8], fdy:4, look:['palaceDoor',0,0], dur:0.1},
+      {t:'read', ref:'ACTS 12:1'},
+      {t:'read', ref:'ACTS 12:2'},
+      {t:'read', ref:'ACTS 12:3'},
+      {t:'cam', from:['post2',2.2,1.4], fdy:2.3, look:'gd0', dur:2},
+      {t:'read', ref:'ACTS 12:4'},
+      {t:'read', ref:'ACTS 12:5'},
+      {t:'cam', from:['cell',2.6,2.2], fdy:2.2, look:'sleeper', dur:2.5},
+      {t:'read', ref:'ACTS 12:6'},
+      /* "a mal'ak of (YAHUAH) HWHY stood by and a light shone in the building" */
+      {t:'show', id:['shone','malak']},
+      {t:'say', who:'malak', ref:'ACTS 12:7', turn:false},
+      {t:'hide', id:['ch0','ch1']},
+      {t:'mood', who:'kepha', ex:'awe'},
+      {t:'sit', who:'kepha'}, {t:'wait', s:0.6}, {t:'stand', who:'kepha'},
+      {t:'say', who:'malak', ref:'ACTS 12:8', turn:false},
+      /* out past the first guard post and the second, the light going before */
+      {t:'drift', id:'grate', by:[1.7,0,0], dur:1.2, wait:false},
+      {t:'drift', id:'malak', by:[-0.6,0,3.4], dur:3, wait:false},
+      {t:'move', who:'kepha', to:['post1',0,0.4], speed:0.9, wait:false},
+      {t:'cam', from:['post2',-2.2,1.2], fdy:2.0, look:'kepha', dur:3},
+      {t:'read', ref:'ACTS 12:9'},
+      {t:'drift', id:'iron', by:[2.6,0,0], dur:1.6, wait:false},
+      {t:'drift', id:'malak', by:[0,0,7.6], dur:4, wait:false},
+      {t:'move', who:'kepha', to:'pavement', speed:1},
+      {t:'cam', from:['street',5,3], fdy:2.6, look:'kepha', dur:2.5, wait:false},
+      {t:'drift', id:'malak', by:[6,0,10], dur:4, wait:false},
+      {t:'move', who:'kepha', to:['street',1,1], speed:1, wait:false},
+      {t:'read', ref:'ACTS 12:10'},
+      {t:'hide', id:['malak','shone']},
+      {t:'mood', who:'kepha'},
+      {t:'cam', from:['street',3,3], fdy:1.9, look:'kepha', dur:2},
+      {t:'say', who:'kepha', ref:'ACTS 12:11', turn:false},
+      {t:'read', ref:'ACTS 12:12'},
+      {t:'end'}
+    ]},
+
+  /* ---------------- VIII.13 — AT THE DOOR OF THE GATE ---------------- */
+  /* the house of Miryam the mother of Yahuchanon Marqos, many gathered praying; Rhode at the gate
+     too glad to open it (Acts 12:12-19) */
+  { id:'rhode', title:'The house of Miryam', date:'the same night', place:'upperroom', time:'lamplit',
+    player:{ at:[20.2,31.4], face:-Math.PI/2, look:ADULT },
+    actors:[
+      ...SEATS.slice(0,9).map((s,k)=>Object.assign({id:'pr'+k, at:[s[0],s[1]], face:s[2], sit:true,
+        robe:ROBES[(k*5)%ROBES.length], cloth:k%3===1?0xe8e2d2:CLOTHS[k%CLOTHS.length], beard:k%3===1?null:[0x2c241f,0x3a2a1e,0x6d6a66][k%3], kind:k%3===1?'woman':'man'},
+        k===0?{name:'Those gathered', key:'those gathered at the house of miryam'}:{})),
+      {id:'miryamM', name:'Miryam', key:'Miryam the mother of Mark', kind:'woman', at:[SEATS[10][0],SEATS[10][1]], face:SEATS[10][2], sit:true, robe:0x6a4a5a, cloth:0xe8e2d2, skin:0x86573a},
+      {id:'rhode', name:'Rhode', key:'Rhode', kind:'woman', at:[19.6,30.8], face:Math.PI, robe:0x8a7a60, cloth:0xd8cfb8, skin:0x8a5a36},
+      T('kepha',[12,22.6],{face:Math.PI/2})
+    ],
+    /* the gate of the court where the stair comes down, its leaf shut */
+    things:[ {id:'gpost0', kind:'box', at:[21.8,24.4], w:0.3, h:2.4, d:0.3, color:0xd8cfb8},
+             {id:'gpost1', kind:'box', at:[23.8,24.4], w:0.3, h:2.4, d:0.3, color:0xd8cfb8},
+             {id:'leaf', kind:'box', at:[22.8,24.4], w:1.7, h:2.2, d:0.1, color:0x6e5238},
+             /* the wall of the court, the lower house's door within it */
+             {id:'cwallW', kind:'box', at:[16.8,24.4], w:9.7, h:2.4, d:0.3, color:0xc8bea6},
+             {id:'cwallE', kind:'box', at:[24.8,24.4], w:1.7, h:2.4, d:0.3, color:0xc8bea6},
+             {id:'cwallS', kind:'box', at:[25.6,29.2], w:0.3, h:2.4, d:9.6, color:0xc8bea6} ],
+    glows:[ {id:'gl', at:[22.8,25.8], dy:2.3, size:1.2, color:0xffc070, intensity:0.6} ],
+    beats:[
+      {t:'cam', from:['table',3.2,2.4], fdy:1.7, look:'pr2', dur:0.1},
+      {t:'note', text:'The house of Miryam was the gathering place of the Natsarim in Yahrushalayim; her son Yahuchanon, who was also called Mark, would set out with Barnaḇah and Sha’ul (Acts 12:25). Rhode is a Greek name: "rose".'},
+      {t:'move', who:'kepha', to:[22.8,22.9], speed:1.2, wait:false},
+      {t:'cam', from:[26.4,2.1,20.6], look:[22.6,1.5,23.6], dur:2},
+      {t:'face', who:'kepha', to:'leaf'},
+      {t:'read', ref:'ACTS 12:13'},
+      {t:'cam', release:true},
+      {t:'goal', text:'Go down the stair with Rhode to the gate', goto:'stairFoot', r:2.4},
+      {t:'place', who:'rhode', at:[22.8,25.5], y:null, face:Math.PI},
+      {t:'mood', who:'rhode', ex:'joy'},
+      {t:'cam', from:[20.6,2.0,26.6], look:'rhode', dur:1.6},
+      {t:'read', ref:'ACTS 12:14'},
+      {t:'place', who:'rhode', at:[19.8,30.6], face:Math.PI},
+      {t:'cam', from:['table',3,2.2], fdy:1.7, look:'rhode', dur:1.4},
+      {t:'face', who:'pr2', to:'rhode'},
+      {t:'say', who:'gathered', ref:'ACTS 12:15', turn:false},
+      /* he goes on knocking; they come down and open */
+      {t:'stand', who:['pr0','pr1','pr2','pr5','miryamM']},
+      {t:'place', who:'pr0', at:[21.6,25.8], y:null, face:Math.PI}, {t:'place', who:'pr1', at:[23.8,25.9], y:null, face:Math.PI},
+      {t:'place', who:'pr2', at:[22.4,26.8], y:null, face:Math.PI}, {t:'place', who:'pr5', at:[23.6,27.2], y:null, face:Math.PI},
+      {t:'place', who:'miryamM', at:[21.2,26.6], y:null, face:Math.PI}, {t:'place', who:'rhode', at:[22.4,25.6], y:null, face:Math.PI},
+      {t:'hide', id:'leaf'},
+      {t:'mood', who:['pr0','pr1','pr2','pr5','miryamM'], ex:'awe'},
+      {t:'cam', from:[21.2,2.1,28.2], look:[22.8,1.6,23.2], dur:2},
+      {t:'read', ref:'ACTS 12:16'},
+      {t:'pose', who:'kepha', arms:'up'},
+      {t:'say', who:'kepha', ref:'ACTS 12:17', turn:false},
+      {t:'pose', who:'kepha'},
+      {t:'move', who:'kepha', to:[6,21.6], speed:1.3, wait:false},
+      {t:'cam', from:[24,3,20], look:'kepha', dur:3},
+      {t:'hide', id:'kepha'},
+      {t:'note', text:'Ya‛aqoḇ here is the brother of the Master (Galatians 1:19), not the son of Zaḇdai, whom Herodes had killed.'},
+      {t:'read', ref:'ACTS 12:18'},
+      {t:'read', ref:'ACTS 12:19'},
+      {t:'choice', prompt:'You', options:[
+        {text:'Look at Rhode', reply:'She left him standing in the street. She will hear about it for the rest of her life, and she does not mind at all.'},
+        {text:'Look up the street', reply:'He has gone already. "Another place," he said, and no one asks where; the less they know, the less Herodes can make them tell.'} ]},
+      {t:'end'}
+    ]},
+
+  /* ---------------- VIII.14 — ANTIOCH ---------------- */
   { id:'antioch', title:'Antioch', date:'some years after', place:'antioch', time:'day',
     player:{ at:['street',4,2], face:Math.PI/2, look:ADULT },
     crowds:[ {id:'citizens', n:220, area:[-50,-10,50,10], path:[[-50,0],[50,0]], clear:1.4, jitter:6.3} ],
@@ -621,7 +856,262 @@ STORY.act({
       {t:'end'}
     ]},
 
-  /* ---------------- VIII.12 — THE HILL OF ARES ---------------- */
+  /* ---------------- VIII.15 — LUSTRA ---------------- */
+  /* the man lame from his mother's womb made to stand; the crowds crying that the mighty ones have
+     come down; the kohen of Zeus at the gate with oxen and garlands; and then the stoning, which is
+     read and never drawn — the camera stays on the gate (Acts 14:8-20) */
+  { id:'lystra', title:'Lustra', date:'the first journey', place:'lystra', time:'day',
+    player:{ at:['square',-2,3.4], face:Math.PI/2, look:ADULT },
+    crowds:[ {id:'lyc', n:120, area:[-6,-5.4,26,5.4], look:'speak', keep:[[-1,-6,12,2.6],[-7,-1.6,-3,1.6]], hidden:true} ],
+    actors:[
+      Object.assign({id:'shaul', at:'speak', face:-Math.PI*0.8},SHAUL),
+      Object.assign({id:'barnabah', at:['speak',1.4,0.8], face:-Math.PI*0.75},BARNABAH),
+      {id:'lameL', name:'A man disabled in his feet', key:'the lame man of lustra', at:'lame', face:0.4, sit:true, ground:true, robe:0x6b5a44, cloth:0x8a7a60, beard:0x3a2a1e, skin:0x9a6a44},
+      ...[[2,2.2],[5,2.6],[9,2.4],[12,-1],[13,1.8],[0.6,-1.6],[-0.6,1.4],[10.6,-3.4]].map(([dx,dz],k)=>Object.assign({id:'ly'+k, at:['square',dx-6,dz], face:Math.atan2(-dx+6-0,-dz-1.2+0)+(k%3-1)*0.3,
+        folk:'greek', robe:ROBES[(k*7+3)%ROBES.length], cloth:k%3===1?0xe8e2d2:CLOTHS[(k*5)%CLOTHS.length], beard:k%3!==1&&k%4!==0?0x3a2a1e:null, kind:k%3===1?'woman':'man'},
+        k===0?{name:'The crowds', key:'the crowds of lustra'}:{})),
+      {id:'kz', name:'The kohen of Zeus', key:'the kohen of zeus', folk:'greek', at:['templeSteps',0,0.6], face:0, robe:0xf0ece0, cloth:0xe8e0cc, sash:0x8a2a22, beard:0x9a948a, kind:'oldman'},
+      {id:'at0', at:['templeSteps',-1.6,2.4], face:0, folk:'greek', robe:0xd8cfb8, cloth:0xc1b394},
+      {id:'at1', at:['templeSteps',1.6,2.4], face:0, folk:'greek', robe:0xd8cfb8, cloth:0xc1b394},
+      ...[0,1,2].map(k=>({id:'yd'+k, name:k?undefined:'Yahuḏim from Antioch and Ikonion', key:'yahudim from antioch', at:['road',-k*1.4,(k%2?1:-1)*0.8], face:Math.PI/2, robe:[0x5a4a3a,0x3a3a5a,0x6a5a3a][k], cloth:[0xe6e0cf,0xcfc4aa,0xd8ceb4][k], beard:[0x2c241f,0x6d6a66,0x1e1814][k], hidden:true})),
+      ...[0,1,2].map(k=>({id:'tg'+k, at:['square',16+k*1.2,-3+k], face:Math.PI*1.4, robe:ROBES[(k*3+1)%ROBES.length], cloth:CLOTHS[k], beard:k===1?null:0x2c241f, kind:k===1?'woman':'man', folk:'greek'}))
+    ],
+    things:[ {id:'ox0', kind:'beast', beast:'ox', at:['templeSteps',-1.6,3.8], face:0},
+             {id:'ox1', kind:'beast', beast:'ox', at:['templeSteps',1.6,3.8], face:0},
+             {id:'wr0', kind:'wreath', at:['templeSteps',0,1.6]} ],
+    beats:[
+      {t:'cam', from:['gateIn',6,10], fdy:5, look:['square',0,-2], dur:0.1},
+      {t:'show', id:'lyc'},
+      {t:'cam', from:['lame',3.4,3], fdy:1.6, look:'lameL', dur:2.2},
+      {t:'read', ref:'ACTS 14:8'},
+      {t:'face', who:'shaul', to:'lameL'},
+      {t:'cam', from:['lame',-2.6,3.6], fdy:2, look:'shaul', dur:2},
+      {t:'read', ref:'ACTS 14:9'},
+      {t:'say', who:'shaul', ref:'ACTS 14:10', turn:false},
+      {t:'stand', who:'lameL'},
+      {t:'mood', who:'lameL', ex:'joy'},
+      {t:'move', who:'lameL', to:['lame',2.6,2.2], speed:1.6},
+      {t:'move', who:'lameL', to:['lame',-1.6,2.8], speed:1.8},
+      {t:'mood', who:['ly0','ly1','ly2','ly3','ly4','ly5'], ex:'awe'},
+      {t:'cam', from:['square',-6,7], fdy:2.6, look:'ly0', dur:2},
+      {t:'say', who:'lukaonians', ref:'ACTS 14:11', turn:false},
+      {t:'read', ref:'ACTS 14:12'},
+      /* the kohen of Zeus, out of the house before the city, with the oxen and the garlands */
+      {t:'lead', id:'ox0', by:'at0'}, {t:'lead', id:'ox1', by:'at1'}, {t:'lead', id:'wr0', by:'kz', up:1.15, back:-0.42},
+      {t:'move', who:['kz','at0','at1'], to:[['gateOut',-1,0],['gateOut',-3.4,-1.4],['gateOut',-3.4,1.4]], speed:1.1, wait:false},
+      {t:'cam', from:['templeSteps',8,6], fdy:3, look:'kz', dur:3},
+      {t:'read', ref:'ACTS 14:13'},
+      {t:'move', who:['kz','at0','at1'], to:[['square',-4.4,0],['square',-6.6,-1.4],['square',-6.6,1.4]], speed:1.1, wait:false},
+      {t:'move', who:['shaul','barnabah'], to:[['square',14,-1],['square',15,0.6]], speed:1.2, wait:false},
+      {t:'cam', release:true},
+      {t:'goal', text:'Run and tell Barnaḇah and Sha’ul what the kohen of Zeus is doing', goto:['square',14,0], r:3},
+      {t:'face', who:'shaul', to:'kz'}, {t:'face', who:'barnabah', to:'kz'},
+      {t:'mood', who:['shaul','barnabah'], ex:'sorrow'},
+      {t:'cam', from:['square',8,5], fdy:2.4, look:'shaul', dur:2},
+      {t:'read', ref:'ACTS 14:14'},
+      {t:'move', who:['shaul','barnabah'], to:[['square',-1.6,-0.6],['square',-1,1.2]], speed:2.4},
+      {t:'face', who:'shaul', to:'kz'}, {t:'mood', who:['shaul','barnabah']},
+      {t:'cam', from:['square',-6.4,4.6], fdy:2.2, look:'shaul', dur:2},
+      {t:'say', who:'emissaries', ref:'ACTS 14:15', turn:false},
+      {t:'say', who:'emissaries', ref:'ACTS 14:16', turn:false},
+      {t:'say', who:'emissaries', ref:'ACTS 14:17', turn:false},
+      {t:'read', ref:'ACTS 14:18'},
+      /* those from Antioch and Ikonion; and the stoning, read with the camera on the gate */
+      {t:'show', id:['yd0','yd1','yd2']},
+      {t:'move', who:['yd0','yd1','yd2'], to:[['square',-3,-3],['square',-2,3],['square',0,-3.4]], speed:1.4, wait:false},
+      {t:'cam', from:['gateIn',3,5], fdy:2.2, look:'yd0', dur:3},
+      {t:'mood', who:['ly0','ly1','ly2','ly3','ly4','ly5','ly6','ly7'], ex:'stern'},
+      {t:'cam', from:['road',8,10], fdy:5, look:['gate',0,0], dur:2.5},
+      {t:'hide', id:['shaul','lyc']},
+      {t:'read', ref:'ACTS 14:19'},
+      {t:'hide', id:['yd0','yd1','yd2','kz','at0','at1','ox0','ox1','wr0']},
+      {t:'place', who:'shaul', at:'outside', face:Math.PI/2},
+      {t:'lie', who:'shaul'}, {t:'mood', who:'shaul', ex:'sleep'}, {t:'show', id:'shaul'},
+      {t:'place', who:'barnabah', at:['outside',1.6,1.6], face:-Math.PI*0.75},
+      {t:'place', who:'tg0', at:['outside',-1.4,1.6], face:Math.PI*0.75}, {t:'place', who:'tg1', at:['outside',0.4,-1.8], face:0}, {t:'place', who:'tg2', at:['outside',2.4,-0.6], face:-Math.PI/2},
+      {t:'mood', who:['barnabah','tg0','tg1','tg2'], ex:'weep'},
+      {t:'cam', release:true},
+      {t:'goal', text:'Go out to him, outside the city', goto:'outside', r:3},
+      {t:'cam', from:['outside',3.4,3.4], fdy:1.8, look:['outside',0.6,0], dur:2},
+      {t:'mood', who:'shaul'}, {t:'wait', s:1},
+      {t:'sit', who:'shaul'}, {t:'wait', s:0.8}, {t:'stand', who:'shaul'},
+      {t:'mood', who:['barnabah','tg0','tg1','tg2'], ex:'joy'},
+      {t:'read', ref:'ACTS 14:20'},
+      {t:'move', who:['shaul','barnabah'], to:[['gateIn',0,-0.8],['gateIn',0,0.8]], speed:1},
+      {t:'read', ref:'ACTS 14:21'},
+      {t:'read', ref:'ACTS 14:22'},
+      {t:'choice', prompt:'You', options:[
+        {text:'Look at the man who was lame', reply:'He is walking up and down outside the gate, as if he means to wear the road out. He will not let anyone carry anything for him now.'},
+        {text:'Think of the coats in Yahrushalayim', reply:'He kept the garments of those who stoned Stephanos. Now he has been dragged out of a city for dead himself — and he has got up, and walked back in.'} ]},
+      {t:'end'}
+    ]},
+
+  /* ---------------- VIII.16 — BY THE RIVER ---------------- */
+  /* Philippi, a colony: on the Shabbath outside the gate by the river, where there used to be
+     prayer; the women who met there, and Ludia, a seller of purple from Thyatira (Acts 16:12-15) */
+  { id:'ludia', title:'Philippi', date:'the second journey, on the Shabbath', place:'philippi', time:'day',
+    player:{ at:['way',-4,2], face:-Math.PI/2, look:ADULT },
+    actors:[
+      Object.assign({id:'shaul', at:['gateOut',-1,-0.8], face:-Math.PI/2},SHAUL),
+      Object.assign({id:'sila', at:['gateOut',-1.4,0.8], face:-Math.PI/2},SILA),
+      {id:'ludia', name:'Ludia', key:'Ludia', kind:'woman', folk:'greek', at:[-52.2,15.6], face:-Math.PI*0.6, sit:true, robe:0x5a1a5a, cloth:0xe8e2d2, sash:0xb08d3c, skin:0xa87a50},
+      ...[[-53.4,12.2,-Math.PI*0.4],[-54,17.4,-Math.PI*0.7],[-51.4,11,-Math.PI*0.3]].map(([x,z,f],k)=>({id:'lw'+k, kind:'woman', folk:'greek', at:[x,z], face:f, sit:true,
+        robe:[0x6a5a44,0x4f6a4f,0x8a6a5a][k], cloth:[0xe8e2d2,0x3c3a44,0xd8cfb8][k], skin:[0xa87a50,0xb08060,0x9a6a44][k]})),
+      ...[0,1,2].map(k=>({id:'lh'+k, at:[-46+k*1.2,22+k], face:-Math.PI/2, folk:'greek', kind:k===1?'woman':'man', robe:[0x7a5040,0x5a6470,0x6b5a44][k], cloth:[0xcfc4aa,0xe8e2d2,0xd8ceb4][k], beard:k===0?0x2c241f:null, hidden:true}))
+    ],
+    things:[ {id:'purple0', kind:'box', at:[-51,16.6], w:0.7, h:0.22, d:0.4, color:0x5a1a5a},
+             {id:'purple1', kind:'box', at:[-50.6,17.2], w:0.6, h:0.2, d:0.36, color:0x6a2a6a} ],
+    beats:[
+      {t:'cam', from:['bank',10,-12], fdy:5, look:['river',0,0], dur:0.1},
+      {t:'read', ref:'ACTS 16:11'},
+      {t:'read', ref:'ACTS 16:12'},
+      {t:'move', who:['shaul','sila'], to:[['prayer',0.4,-1.4],['prayer',1.4,-0.4]], speed:1.2, wait:false},
+      {t:'cam', release:true},
+      {t:'goal', text:'Go down to the river, where there used to be prayer', goto:'prayer', r:3.4},
+      {t:'face', who:'shaul', to:'ludia'},
+      {t:'sit', who:['shaul','sila']},
+      {t:'cam', from:['prayer',3,4], fdy:1.6, look:'shaul', dur:2},
+      {t:'read', ref:'ACTS 16:13'},
+      {t:'note', text:'Thyatira, in Asia, was a city of dyers: inscriptions found there name its guild of purple-dyers. The purple was dear, and those who sold it were not poor.'},
+      {t:'mood', who:'ludia', ex:'awe'},
+      {t:'cam', from:['prayer',-2.4,3.4], fdy:1.4, look:'ludia', dur:2.5},
+      {t:'wait', s:1.5},
+      /* she and her household immersed in the river */
+      {t:'show', id:['lh0','lh1','lh2']},
+      {t:'stand', who:['shaul','ludia']},
+      {t:'move', who:['lh0','lh1','lh2'], to:[['bank',0,2],['bank',0.6,3.2],['bank',-0.4,4]], speed:1.4, wait:false},
+      {t:'move', who:['shaul','ludia'], to:[['riverIn',-0.6,-0.6],['riverIn',-0.6,0.8]], speed:1},
+      {t:'cam', from:['bank',2.4,-3.4], fdy:1.6, look:'ludia', dur:2},
+      {t:'sit', who:'ludia'}, {t:'wait', s:1.2}, {t:'stand', who:'ludia'},
+      {t:'mood', who:'ludia', ex:'joy'},
+      {t:'move', who:['shaul','ludia'], to:[['bank',0,-0.8],['bank',0.4,0.8]], speed:1},
+      {t:'face', who:'ludia', to:'shaul'},
+      {t:'cam', from:['bank',3,2], fdy:1.7, look:'ludia', dur:2},
+      {t:'say', who:'ludia', ref:'ACTS 16:15', turn:false},
+      {t:'cam', release:true},
+      {t:'witness', text:'Carry the bolts of purple to Ludia’s house in the city', items:['purple0','purple1'], verb:'Take up the purple', hold:0.5, deliver:'ludia', r:2.6, carryText:'Carry it to her door'},
+      {t:'choice', prompt:'You', options:[
+        {text:'Look back at the river', reply:'A few women on the stones by the water, as on every Shabbath. No qahal of ten men in Philippi — and the first house of Makedonia to believe is a woman\'s.'},
+        {text:'Feel the cloth', reply:'Heavy, and dyed so deep it is almost black until the sun is on it. A king\'s colour, carried through a Roman colony by a woman of Asia.'} ]},
+      {t:'end'}
+    ]},
+
+  /* ---------------- VIII.17 — THE JAILER ---------------- */
+  /* the slave girl with the ruach of Puthon; her masters drag Sha’ul and Sila to the captains; the
+     rods (read, never drawn); the inner prison and the stocks; at midnight the songs, the earthquake,
+     the doors open; the jailer and his household (Acts 16:16-34) */
+  { id:'jail', title:'Philippi', date:'many days after', place:'philippi', time:'day',
+    player:{ at:['way',6,2.6], face:-Math.PI/2, look:ADULT },
+    crowds:[ {id:'forumc', n:90, area:[-2,-15,26,-3], look:'bemaFront', keep:[[5,-15,15,-8]], hidden:true} ],
+    actors:[
+      Object.assign({id:'shaul', at:['way',-2,-0.8], face:-Math.PI/2},SHAUL),
+      Object.assign({id:'sila', at:['way',-2.4,0.8], face:-Math.PI/2},SILA),
+      {id:'girl', name:'A slave girl', key:'the slave girl of philippi', kind:'woman', folk:'greek', at:['way',4,-2.6], face:-Math.PI/2, robe:0x8a7a60, cloth:0x6a5a4a, skin:0xa87a50, small:true},
+      {id:'ms0', name:'Her masters', key:'the masters of the slave girl', folk:'roman', dress:'man', at:['gateIn',2,-3], face:-Math.PI/2, robe:0xe6e0cf, cloth:0xd8cfb8, sash:0x5a1a5a},
+      {id:'ms1', folk:'roman', dress:'man', at:['gateIn',2.6,-1.8], face:-Math.PI/2, robe:0x8a5a3a, cloth:0xd8cfb8, beard:0x2c241f},
+      {id:'cp0', name:'The captains', key:'the captains of philippi', folk:'roman', dress:'herodian', at:['bema',-1.2,0], face:0, robe:0xf0ece0, cloth:0xe8e0cc, sash:0x6a1a3a, kind:'oldman'},
+      {id:'cp1', folk:'roman', dress:'herodian', at:['bema',1.2,0], face:0, robe:0xf0ece0, cloth:0xe8e0cc, sash:0x6a1a3a},
+      LEGION('lc0',['bemaFront',-3,-1],0), LEGION('lc1',['bemaFront',3,-1],0),
+      {id:'jailer', name:'The jailer', key:'the jailer of philippi', folk:'roman', dress:'man', at:['prisonDoor',-1.2,1.6], face:-Math.PI/2, robe:0x6a4a3a, cloth:0xb9ab8e, sash:0x3a2a1a, beard:0x3a2a1e},
+      ...[[10,7.6,0],[10.6,14.6,Math.PI],[12.4,7.4,0]].map(([x,z,f],k)=>({id:'pz'+k, at:[x,z], face:f, sit:true, ground:true, robe:[0x5c5040,0x4f6a4f,0x6b5a44][k], cloth:[0xa89a7e,0x8a7a60,0x9a8a70][k], beard:[0x3a2a1e,0x2c241f,0x6d6a66][k], skin:[0x9a6a40,0x8a5a36,0xa87a50][k]})),
+      ...[0,1,2].map(k=>({id:'jh'+k, at:['jailerIn',k*1.2-1.2,1], face:-Math.PI/2, folk:'roman', kind:k===0?'woman':'man', dress:k===0?'woman':'man', small:k===2, robe:[0x7a5040,0x5a6470,0x8a7a60][k], cloth:[0xe8e2d2,0xcfc4aa,0xd8ceb4][k]}))
+    ],
+    things:[ {id:'door1', kind:'box', at:[8.25,11], w:0.14, h:2.2, d:2.0, color:0x5d4a36, hidden:true},
+             {id:'door2', kind:'box', at:[14.05,11], w:0.14, h:2.2, d:2.0, color:0x5d4a36, hidden:true},
+             {id:'lampP', kind:'box', at:'lampAt', dy:0.7, w:0.24, h:0.12, d:0.14, color:0xc89a5a} ],
+    glows:[ {id:'lampG', at:'lampAt', dy:1.0, size:0.5, color:0xffb050, intensity:0.6, pulse:true},
+            {id:'inLamp', at:['inner',0.4,-2.4], dy:1.8, size:0.6, color:0xffa040, intensity:0.45, hidden:true} ],
+    beats:[
+      {t:'follow', who:'girl', target:'shaul'},
+      {t:'move', who:['shaul','sila'], to:[['way',-14,-0.8],['way',-14.4,0.8]], speed:1, wait:false},
+      {t:'cam', from:['way',-6,6], fdy:2.4, look:'girl', dur:2},
+      {t:'read', ref:'ACTS 16:16'},
+      {t:'mood', who:'girl', ex:'fear'},
+      {t:'say', who:'girl', ref:'ACTS 16:17', turn:false},
+      {t:'face', who:'shaul', to:'girl'},
+      {t:'mood', who:'shaul', ex:'stern'},
+      {t:'cam', from:['way',-10,3.4], fdy:1.8, look:'shaul', dur:2},
+      {t:'say', who:'shaul', ref:'ACTS 16:18', turn:false},
+      {t:'move', who:'girl', to:['way',-8,3.2], speed:0.8, wait:false},
+      {t:'mood', who:'girl'}, {t:'mood', who:'shaul'},
+      {t:'move', who:['ms0','ms1'], to:[['way',-11,-1.8],['way',-11.4,1.6]], speed:2.2},
+      {t:'mood', who:['ms0','ms1'], ex:'stern'},
+      {t:'read', ref:'ACTS 16:19'},
+      /* the market-place: the captains on their seat */
+      {t:'show', id:'forumc'},
+      {t:'place', who:'shaul', at:['bemaFront',-0.8,1.4], face:Math.PI}, {t:'place', who:'sila', at:['bemaFront',0.8,1.4], face:Math.PI},
+      {t:'place', who:'ms0', at:['bemaFront',-2,0.4], face:Math.PI}, {t:'place', who:'ms1', at:['bemaFront',2,0.6], face:Math.PI},
+      {t:'place', who:'girl', at:['way',-12,3], face:Math.PI/2},
+      {t:'cam', from:['bemaFront',4,6], fdy:2.6, look:'cp0', dur:0.1},
+      {t:'say', who:'masters', ref:'ACTS 16:20', turn:false},
+      {t:'say', who:'masters', ref:'ACTS 16:21', turn:false},
+      {t:'mood', who:['cp0','cp1'], ex:'stern'},
+      {t:'cam', from:['bemaFront',-5,-1.6], fdy:2.8, look:'cp1', dur:2},
+      {t:'read', ref:'ACTS 16:22'},
+      {t:'cam', from:['prisonDoor',-5,-2], fdy:2.2, look:'jailer', dur:2},
+      {t:'read', ref:'ACTS 16:23'},
+      {t:'hide', id:'forumc'},
+      {t:'place', who:'shaul', at:[17.2,9.8], face:Math.PI/2}, {t:'place', who:'sila', at:[17.2,12.3], face:Math.PI/2},
+      {t:'sit', who:['shaul','sila']},
+      {t:'show', id:['door1','door2','inLamp']},
+      {t:'cam', from:[15.0,2.0,13.8], look:[17.6,0.7,11], dur:0.1},
+      {t:'read', ref:'ACTS 16:24'},
+      /* midnight */
+      {t:'time', to:'night'},
+      {t:'place', who:'jailer', at:['prisonDoor',-1.4,1.8], face:-Math.PI/2},
+      {t:'sit', who:'jailer'}, {t:'mood', who:'jailer', ex:'sleep'},
+      {t:'player', at:['street',-6,0]},
+      {t:'pose', who:['shaul','sila'], arms:'up'},
+      {t:'mood', who:['pz0','pz1','pz2'], ex:'awe'},
+      {t:'cam', from:[19.2,2.2,7.4], look:[17.2,0.9,11], dur:2.5},
+      {t:'read', ref:'ACTS 16:25'},
+      {t:'pose', who:['shaul','sila']},
+      {t:'quake', s:3},
+      {t:'drift', id:'door1', by:[0,0,-1.95], dur:0.8, wait:false},
+      {t:'drift', id:'door2', by:[0,0,-1.95], dur:0.8, wait:false},
+      {t:'cam', from:['prisonDoor',-5,3], fdy:2.4, look:['prisonDoor',1.2,0], dur:1.5},
+      {t:'read', ref:'ACTS 16:26'},
+      {t:'mood', who:'jailer', ex:'fear'},
+      {t:'stand', who:'jailer'},
+      {t:'face', who:'jailer', to:'prisonIn'},
+      {t:'cam', from:['prisonDoor',-3.4,-1.6], fdy:1.8, look:'jailer', dur:1.6},
+      {t:'read', ref:'ACTS 16:27'},
+      {t:'stand', who:['shaul','sila']},
+      {t:'cam', from:[15.4,1.9,13.4], look:'shaul', dur:1.4},
+      {t:'say', who:'shaul', ref:'ACTS 16:28', turn:false},
+      {t:'cam', release:true},
+      {t:'witness', text:'He is calling for a light — bring him the lamp', items:['lampP'], verb:'Take up the lamp', hold:0.5, deliver:'prisonDoor', r:2.4, carryText:'Bring it to the jailer'},
+      {t:'hide', id:'lampG'},
+      {t:'move', who:'jailer', to:['inner',0,0], speed:2},
+      {t:'lie', who:'jailer', prone:true},
+      {t:'cam', from:[15.0,2.0,13.6], look:[16.8,0.6,11], dur:1.6},
+      {t:'read', ref:'ACTS 16:29'},
+      {t:'stand', who:'jailer'},
+      {t:'move', who:['jailer','shaul','sila'], to:[['prisonDoor',-1.6,0],['prisonDoor',-2.6,-1.2],['prisonDoor',-2.6,1.2]], speed:1},
+      {t:'face', who:'jailer', to:'shaul'}, {t:'face', who:'shaul', to:'jailer'},
+      {t:'cam', from:['prisonDoor',-4.6,3.4], fdy:1.9, look:'jailer', dur:2},
+      {t:'say', who:'jailer', ref:'ACTS 16:30', turn:false},
+      {t:'say', who:'emissaries', ref:'ACTS 16:31', turn:false},
+      {t:'mood', who:'jailer'},
+      {t:'move', who:['jh0','jh1','jh2'], to:[['jailerDoor',-1.2,-1.6],['jailerDoor',-1.8,-0.4],['jailerDoor',-1.2,0.8]], speed:1.2, wait:false},
+      {t:'read', ref:'ACTS 16:32'},
+      /* the wounds washed at the trough, and he immersed, he and all his */
+      {t:'move', who:['jailer','shaul','sila','jh0','jh1','jh2'], to:[['trough',-0.4,0.4],['trough',-1.8,0.6],['trough',0.9,0.6],['trough',-2.6,1.8],['trough',-0.8,2],['trough',1.4,2]], speed:1},
+      {t:'cam', from:['trough',3.4,3.4], fdy:1.8, look:'jailer', dur:2},
+      {t:'read', ref:'ACTS 16:33'},
+      {t:'move', who:['jailer','shaul','sila','jh0','jh1','jh2'], to:[[24.3,9.4],[28.1,9.4],[28.1,10.8],[24.3,10.8],[26.2,8.2],[26.2,12]], speed:1},
+      ...['jailer','shaul','sila','jh0','jh1','jh2'].map(w=>({t:'face', who:w, to:'tableC'})),
+      {t:'sit', who:['shaul','sila','jailer','jh0','jh1','jh2']},
+      {t:'mood', who:['jailer','jh0','jh1','jh2'], ex:'joy'},
+      {t:'cam', from:[23.0,2.3,7.0], look:[26.6,0.9,10.6], dur:2},
+      {t:'read', ref:'ACTS 16:34'},
+      {t:'choice', prompt:'You', options:[
+        {text:'Look at their backs', reply:'He washed them himself, with the water from the trough, with the same hands that fastened their feet in the stocks at dusk.'},
+        {text:'Listen to the city', reply:'Dogs barking all over Philippi since the shaking. In this one house they are eating bread at the third watch, and laughing.'} ]},
+      {t:'end'}
+    ]},
+
+  /* ---------------- VIII.18 — THE HILL OF ARES ---------------- */
   { id:'athens', title:'Athens', date:'the second journey', place:'athens', time:'day',
     player:{ at:['agora',-3,2], face:-Math.PI/2, look:ADULT },
     crowds:[ {id:'agoracrowd', n:160, area:[6,-14,44,22], jitter:6.3, keep:[[16,2,22,8]]},
@@ -677,7 +1167,99 @@ STORY.act({
       {t:'end'}
     ]},
 
-  /* ---------------- VIII.13 — THE NORTHEASTER ---------------- */
+  /* ---------------- VIII.19 — THE THEATRE AT EPHESOS ---------------- */
+  /* Demetrios and the silversmiths; "Great is Artemis of the Ephesians!"; the whole city rushing into
+     the theatre with Gaios and Aristarchos; Sha’ul held back by the taught ones; two hours of
+     shouting, and the city clerk who quiets it (Acts 19:23-41) */
+  { id:'ephesos', title:'Ephesos', date:'the third journey', place:'ephesos', time:'day',
+    player:{ at:['lodgingDoor',2.4,1.6], face:Math.PI/2, look:ADULT },
+    crowds:[ {id:'mob', n:70, area:[6,-5.6,40,-1.6], look:'shopFront', hidden:true},
+             {id:'theatrec', n:300, area:[-29,-55,29,-27], look:'orchestra', dy:20, top:21, keep:[[-11,-36,11,-24],[-31,-58,-19,-44],[19,-58,31,-44]], hidden:true} ],
+    actors:[
+      {id:'demetrios', name:'Demetrios', key:'Demetrios', folk:'greek', at:['shopFront',0,-0.6], face:Math.PI, robe:0x6a5a7a, cloth:0xd8cfb8, sash:0x8a6a3a, beard:0x6d6a66, kind:'oldman'},
+      ...[[-2.6,-3.6],[-1,-4.4],[1,-4.4],[2.6,-3.6],[-3.6,-3.0],[3.6,-3.0]].map(([dx,dz],k)=>Object.assign({id:'cr'+k, at:['shopFront',dx,dz], face:Math.atan2(-dx,-0.6-dz), folk:'greek',
+        robe:[0x5a4a3a,0x6b5a44,0x7a5040,0x4f6a4f,0x8a6a5a,0x5a6470][k], cloth:CLOTHS[k%CLOTHS.length], beard:k%2?0x2c241f:0x3a2a1e},
+        k===0?{name:'The craftsmen', key:'the craftsmen of ephesos'}:{})),
+      Object.assign({id:'shaul', at:['lodging',1.2,0], face:Math.PI/2},SHAUL),
+      {id:'tg0', name:'The taught ones', at:['lodging',2.4,-1.6], face:-Math.PI/2, folk:'greek', robe:0x6e5a70, cloth:0xcfc4aa, beard:0x2c241f},
+      {id:'tg1', at:['lodging',2.6,1.8], face:-Math.PI/2, folk:'greek', robe:0x5f6a52, cloth:0xd8ceb4},
+      {id:'gaios', name:'Gaios', key:'Gaios', at:['street',-8,0.8], face:Math.PI/2, folk:'greek', robe:0x7a6a4a, cloth:0xcfc4aa, beard:0x3a2a1e},
+      {id:'aristarchos', name:'Aristarchos', key:'Aristarchos', at:['street',-9,-0.6], face:Math.PI/2, folk:'greek', robe:0x4a5a6a, cloth:0xe6e0cf, beard:0x2c241f},
+      {id:'messenger', name:'From the officials of Asia', key:'a messenger from the asiarchs', at:['street',-40,0], face:Math.PI/2, folk:'greek', robe:0xf0ece0, cloth:0xd8cfb8, sash:0x6a1a3a, hidden:true},
+      {id:'alexander', name:'Alexander', key:'Alexander', at:['parodosIn',2,1.4], face:-Math.PI/2, robe:0x5a4a3a, cloth:0xe6e0cf, beard:0x6d6a66, hidden:true},
+      {id:'clerk', name:'The city clerk', key:'the city clerk of ephesos', folk:'greek', at:['stage',0,-0.7], y:2.4, face:Math.PI, robe:0xf0ece0, cloth:0xe8e0cc, sash:0x6a1a3a, beard:0x9a948a, kind:'oldman', hidden:true}
+    ],
+    beats:[
+      {t:'cam', from:['street',-20,8], fdy:6, look:['shop',0,0], dur:0.1},
+      {t:'read', ref:'ACTS 19:23'},
+      {t:'cam', from:['shopFront',-1.8,1.4], fdy:1.8, look:[19,1.8,10.8], dur:2.5},
+      {t:'read', ref:'ACTS 19:24'},
+      {t:'cam', from:['shopFront',2,-6.4], fdy:2.2, look:'demetrios', dur:2},
+      {t:'say', who:'demetrios', ref:'ACTS 19:25', turn:false},
+      {t:'say', who:'demetrios', ref:'ACTS 19:26', turn:false},
+      {t:'say', who:'demetrios', ref:'ACTS 19:27', turn:false},
+      {t:'mood', who:['cr0','cr1','cr2','cr3','cr4','cr5','demetrios'], ex:'stern'},
+      {t:'pose', who:['cr1','cr2','cr4'], arms:'up'},
+      {t:'cam', from:['shopFront',-3,-7.4], fdy:2.2, look:'cr1', dur:1.6},
+      {t:'say', who:'craftsmen', ref:'ACTS 19:28', turn:false},
+      {t:'pose', who:['cr1','cr2','cr4']},
+      /* the city into the theatre, dragging Sha’ul's companions */
+      {t:'show', id:'mob'},
+      {t:'move', who:['cr0','cr1','gaios','aristarchos'], to:[['street',-6,0],['street',-6.4,-1.2],['street',-6,1.6],['street',-7.4,0.2]], speed:2.2, wait:false},
+      {t:'cam', from:['street',4,6], fdy:3, look:'gaios', dur:2},
+      {t:'read', ref:'ACTS 19:29'},
+      {t:'hide', id:'mob'}, {t:'show', id:'theatrec'},
+      {t:'place', who:'gaios', at:['orchestra',-1.2,1.6], face:Math.PI}, {t:'place', who:'aristarchos', at:['orchestra',1.2,1.8], face:Math.PI},
+      {t:'place', who:'cr0', at:['orchestra',-2.6,0.4], face:Math.PI*0.75}, {t:'place', who:'cr1', at:['orchestra',2.8,0.2], face:-Math.PI*0.75},
+      {t:'mood', who:['gaios','aristarchos'], ex:'fear'},
+      {t:'cam', from:[0,20,-50], look:[0,2,-21], dur:0.1},
+      {t:'wait', s:2.5},
+      /* at the lodging: "the taught ones did not allow him" */
+      {t:'cam', from:['lodgingDoor',5,4], fdy:2.4, look:'shaul', dur:0.1},
+      {t:'move', who:'shaul', to:['lodgingDoor',-1.6,0], speed:1.3, wait:false},
+      {t:'cam', release:true},
+      {t:'goal', text:'Stand in the doorway — do not let Sha’ul go into the theatre', goto:'lodgingDoor', r:1.4},
+      {t:'face', who:'shaul', to:'player'},
+      {t:'move', who:['tg0','tg1'], to:[['lodgingDoor',-2.2,-1],['lodgingDoor',-2.2,1]], speed:1.4},
+      {t:'cam', from:['lodgingDoor',3,-2.4], fdy:1.9, look:'shaul', dur:2},
+      {t:'read', ref:'ACTS 19:30'},
+      {t:'show', id:'messenger'},
+      {t:'move', who:'messenger', to:['lodgingDoor',2,1.2], speed:2.4},
+      {t:'face', who:'messenger', to:'shaul'},
+      {t:'read', ref:'ACTS 19:31'},
+      /* the theatre */
+      {t:'cam', from:[14,9,-44], look:[0,1.6,-22], dur:0.1},
+      {t:'read', ref:'ACTS 19:32'},
+      {t:'show', id:'alexander'},
+      {t:'move', who:'alexander', to:['orchestra',0,-0.6], speed:1.2},
+      {t:'face', who:'alexander', to:['cavea',0,0]},
+      {t:'pose', who:'alexander', arms:'out'},
+      {t:'cam', from:['orchestra',0,5.4], fdy:2.2, look:'alexander', dur:2},
+      {t:'read', ref:'ACTS 19:33'},
+      {t:'pose', who:'alexander'},
+      {t:'cam', from:[0,4,-15.2], look:[0,10,-44], dur:3},
+      {t:'say', who:'ephesians', ref:'ACTS 19:34', turn:false},
+      {t:'hide', id:'alexander'},
+      {t:'note', text:'The theatre at Ephesos was cut into the side of Mount Pion and held, by the reckoning of those who have dug there, some twenty-four thousand.'},
+      {t:'show', id:'clerk'},
+      {t:'cam', from:['orchestra',3.4,-5], fdy:2.8, look:'clerk', dur:2},
+      {t:'say', who:'clerk', ref:'ACTS 19:35', turn:false},
+      {t:'say', who:'clerk', ref:'ACTS 19:36', turn:false},
+      {t:'say', who:'clerk', ref:'ACTS 19:37', turn:false},
+      {t:'say', who:'clerk', ref:'ACTS 19:38', turn:false},
+      {t:'say', who:'clerk', ref:'ACTS 19:39', turn:false},
+      {t:'say', who:'clerk', ref:'ACTS 19:40', turn:false},
+      {t:'mood', who:['gaios','aristarchos']},
+      {t:'cam', from:[20,14,-52], look:[0,3,-22], dur:3, wait:false},
+      {t:'read', ref:'ACTS 19:41'},
+      {t:'hide', id:'theatrec'},
+      {t:'choice', prompt:'You', options:[
+        {text:'Look at the silver shrines', reply:'Little houses of Artemis, each the size of a hand, with the goddess inside. A whole street lives by them, and this year they are not selling.'},
+        {text:'Look at Sha’ul', reply:'Still angry at being kept in. "Gaios and Aristarchos were in there for me," he says. They come up the street at last, and he holds them a long time.'} ]},
+      {t:'end'}
+    ]},
+
+  /* ---------------- VIII.20 — THE NORTHEASTER ---------------- */
   { id:'storm', title:'The Great Sea', date:'after the Fast, in the winter', place:'malta', time:'dusk',
     /* a grain ship of Alexandria under Crete, two hundred and seventy-six souls aboard (27:37) —
        the captain of the guard, the soldiers, the prisoners, the sailors, Sha’ul — caught by the
@@ -774,7 +1356,7 @@ STORY.act({
       {t:'end'}
     ]},
 
-  /* ---------------- VIII.14 — MELITE ---------------- */
+  /* ---------------- VIII.21 — MELITE ---------------- */
   { id:'melite', title:'Melite', date:'the same day', place:'malta', time:'day',
     player:{ at:['fire',3,-2], face:-Math.PI/2, look:ADULT },
     actors:[
@@ -799,8 +1381,11 @@ STORY.act({
       {t:'cam', from:['fire',4,3], fdy:1.8, look:'shaul', dur:1.8},
       {t:'read', ref:'ACTS 28:3'},
       {t:'say', who:'islanders', ref:'ACTS 28:4', turn:false},
-      {t:'hide', id:'viper'},
+      /* "he shook off the creature into the fire" */
+      {t:'cam', from:['fire',3.4,2.6], fdy:2.4, look:[8.8,0.2,2.6], dur:1.4},
+      {t:'drift', id:'viper', to:[8.1,-0.1,2.1], dur:0.6, wait:false},
       {t:'read', ref:'ACTS 28:5'},
+      {t:'hide', id:'viper'},
       {t:'read', ref:'ACTS 28:6'},
       {t:'choice', prompt:'You', options:[
         {text:'Count the ones on the beach', reply:'Two hundred and seventy-six. You count them twice, as you counted the fish in Galil. Not one is missing.'},
@@ -808,7 +1393,7 @@ STORY.act({
       {t:'end'}
     ]},
 
-  /* ---------------- VIII.15 — ROME ---------------- */
+  /* ---------------- VIII.22 — ROME ---------------- */
   { id:'rome', title:'Rome', date:'the two years', place:'rome', time:'day',
     player:{ at:['street',6,2], face:-Math.PI/2, look:ADULT },
     crowds:[ {id:'romans', n:260, area:[-40,-8,44,8], path:[[-40,0],[46,0]], clear:1.3, jitter:6.3, dy:3},
