@@ -443,7 +443,7 @@ function spawnFolk(sc){
       if(job==='plough'){ const A=pos(s.from), B=pos(s.to); if(!clear(A[0],A[1],3)) break;
         const g=person(s,{woman:false}), F=add(g,A[0],A[1],Math.atan2(B[0]-A[0],B[1]-A[1]),{job,A,B,state:'to',sp:0.5});
         const pl=W.prop('plough'); g.add(pl); pl.position.set(0,0,0.25); F.prop=pl;
-        if(W.donkeyFree){ F.beast=W.donkeyFree(ctx,A[0],A[1],'ox'); F.beastAhead=2.2; }
+        if(W.donkeyFree){ F.beast=W.donkeyFree(ctx,A[0],A[1],'ox'); F.beastAhead=2.75; }
         break; }
       /* one at their work in one place */
       const c=pos(s.at), jx=i?(r()-0.5)*1.6:0, jz=i?(r()-0.5)*1.6:0, x=c[0]+jx, z=c[1]+jz;
@@ -559,6 +559,7 @@ function folkTick(dt){
     else if(F.job==='sell'||F.job==='talk'){ const turn=F.job==='talk'?((Math.floor(T/4)%F.m)===F.turn):Math.sin(w*0.3)>0.6;
       u.talkM=turn?0.4+Math.sin(T*7+F.ph)*0.3:undefined; if(u.setFace) u.setFace(turn&&Math.sin(T*11+F.ph)>0?0.5:0,false,'calm'); }
     else if(F.job==='herd'&&E(A)) {}
+    else if(F.job==='plough'){ bend=0.3; A.rotation.x=L.rotation.x=-0.55; A.rotation.z=-0.1; L.rotation.z=0.1; if(E(A)) E(A).rotation.x=E(L).rotation.x=-0.35; }   /* bent to the handle, both hands on it, pressing the share in */
     if(u.waist){ u.waist.rotation.x+=(bend-u.waist.rotation.x)*Math.min(1,dt*6);
       const onHead=(F.jarH&&F.jarH.visible)||(F.load&&F.load.visible&&F.load.parent===u.head);
       if(u.head&&!u.holy) u.head.rotation.x=onHead?-u.waist.rotation.x:-Math.max(0,u.waist.rotation.x)*0.32; }   /* the head kept up a little, looking at the work — and level under a load */

@@ -323,8 +323,18 @@ W.prop=function(kind){
   else if(kind==='spindle'){ cy(0.008,0.008,0.3,0x8a6a40,0,-0.15,0,4); cy(0.04,0.04,0.02,0xd8ceb4,0,-0.26,0,8); }
   else if(kind==='quern'){ cy(0.3,0.34,0.14,0x7a7468,0,0.07,0,12); cy(0.26,0.26,0.08,0x8a8478,0,0.18,0,12); bx(0.03,0.16,0.03,0x6a4a2a,0.18,0.28,0); }
   else if(kind==='net'){ bx(1.1,0.08,0.7,0x8a7a5a,0,0.04,0); for(let i=0;i<4;i++) cy(0.03,0.03,0.04,0xd8c890,-0.4+i*0.27,0.09,0.3,6); }
-  else if(kind==='wash'){ bx(0.6,0.06,0.4,0xe8e0cc,0,0.03,0); }
-  else if(kind==='plough'){ bx(0.06,0.06,1.5,0x6a4a2a,0,0.5,0.45); bx(0.05,0.7,0.05,0x6a4a2a,0,0.35,-0.25); bx(0.05,0.05,0.4,0x4a4a4a,0,0.03,-0.1); }
+  else if(kind==='wash'){                                                                 /* a flat stone at the water's edge, a garment wet on it, a bundle waiting */
+    const col=[0x8a3a3a,0x3a4a8a,0xd8ceb4,0x6a5a2a,0x5a6a4a][Math.floor(Math.random()*5)];
+    bx(0.62,0.1,0.44,0x8e877a,0,0.05,0); bx(0.5,0.08,0.38,0x7a7266,0.04,0.02,0.03);
+    const wet=new THREE.Color(col).multiplyScalar(0.8).getHex();
+    bx(0.46,0.04,0.3,wet,0,0.12,0); bx(0.3,0.05,0.18,wet,-0.06,0.155,-0.04); bx(0.12,0.04,0.32,wet,0.2,0.08,0.02).rotation.z=-0.6;   /* the garment, rucked and hanging over the edge */
+    bx(0.24,0.12,0.2,0xe0d8c0,-0.42,0.06,0.2); bx(0.2,0.08,0.18,col,-0.42,0.15,0.2); }                                          /* the bundle of washing still to do */
+  else if(kind==='plough'){                                                               /* the ard: a share in the earth, the handle to his hands, the long beam forward to the yoke on the ox's neck */
+    const beam=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.07,3.3),M(0x6a4a2a)); beam.position.set(0,0.62,1.95); beam.rotation.x=-Math.atan2(0.85,3.3); g.add(beam);
+    const hd=bx(0.05,0.85,0.05,0x6a4a2a,0,0.42,0.25); hd.rotation.x=-0.5;                 /* the stilt up to the hand */
+    bx(0.04,0.04,0.3,0x6a4a2a,0,0.78,0.08);                                              /* its grip */
+    bx(0.07,0.07,0.42,0x5a3a20,0,0.06,0.42); bx(0.06,0.05,0.2,0x4a4a4a,0,0.03,0.7);      /* the sole, the iron share */
+    bx(1.0,0.08,0.1,0x6a4a2a,0,1.08,3.55); for(const sx of [-1,1]) bx(0.05,0.3,0.05,0x6a4a2a,sx*0.3,0.95,3.55); }   /* the yoke over the neck, its pegs */
   else if(kind==='sickle'){ cy(0.016,0.016,0.22,0x6a4a2a,0,-0.08,0,5); const q=new THREE.Mesh(new THREE.TorusGeometry(0.14,0.014,4,10,Math.PI*1.1),M(0x8a8a8a)); q.position.set(0,-0.22,0.12); q.rotation.y=Math.PI/2; g.add(q); }
   else if(kind==='tree'){ cy(0.02,0.02,1.7,0x6a4a2a,0,-0.6,0,5); }
   return g; };
@@ -332,7 +342,7 @@ W.prop=function(kind){
    a forked tail-fin, the fin along the back, a pale belly, a dark eye — lying on its side */
 W.fishProp=function(col,x,y,z,ry){
   const g=new THREE.Group(), f=W.voyageFish(col===0x7a8a80?['fish',0x7a8a80]:['fish',0x9aa6a0]);
-  if(f){ f.scale.multiplyScalar(0.8); g.add(f); }                                     /* a musht, laid out on its side */
+  if(f){ f.scale.multiplyScalar(0.6); g.add(f); }                                     /* a musht, a hand and a half long, laid out on its side */
   g.rotation.z=Math.PI/2; g.rotation.y=ry||0; const h=new THREE.Group(); h.add(g); h.position.set(x,y+0.02,z); return h; };
 /* A SELLER'S TABLE in the street: a board on trestles under an awning, its goods laid out —
    loaves, fruit, pots, cloth, fish or doves */
