@@ -158,28 +158,40 @@ W.fold=function(S,x,z,r){                     /* a sheepfold of stacked stone, o
     S.box(px-0.55,0,pz-0.55,px+0.55,1.1,pz+0.55,C.rock); }
 };
 /* AN OLIVE: a short twisted trunk and a low grey-green crown, as the voyage grows its trees */
-/* AN OLIVE as they stand in the groves of the land, old: a short bole thick and split, two or three
-   grey limbs twisting out and up from it, and on each an open head of small leaves, grey-green above
-   and silver beneath, the sky showing through — never a ball. The bole is a block of the world (it
-   stops a man); the limbs and the leaves are the scene's own small things. */
-const OLIVE_LEAF=[0x5f6e45,0x6b7a4f,0x77865a,0x56653e,0x8c9a72,0x66754a];
-W.olive=function(S,x,z,s){ s=s||1; const h0=hash(x*1.31,z*0.77), a0=h0*6.283, gy=S.ground(x,z);
-  S.box(x-0.4,0,z-0.4,x+0.4,0.95*s,z+0.4,'log');                                           /* the bole */
-  const D=(x0,y0,z0,w,hh,c)=>S.detail(x0-w/2,gy+y0,z0-w/2,x0+w/2,gy+y0+hh,z0+w/2,c,{jitter:0.08});
-  D(x,0,z,1.0*s,0.5*s,0x6a6254);                                                            /* its swollen foot */
-  const n=h0<0.35?2:3;
-  for(let k=0;k<n;k++){ const b=a0+k*(6.283/n)+(hash(k+x,z-k)-0.5)*0.9, dx=Math.cos(b), dz=Math.sin(b);
-    /* a limb, stepping out and up, turning a little as it goes */
-    let px=x, pz=z, py=0.8*s; const steps=3+(k%2);
-    for(let j=0;j<steps;j++){ const tw=(hash(j+k*3,x+z)-0.5)*0.5; px+=(dx+tw*dz)*0.36*s; pz+=(dz-tw*dx)*0.36*s; py+=0.42*s;
-      D(px,py,pz,0.34*s,0.5*s,j%2?0x8a8270:0x766e60); }
-    /* and its head of leaves: an open heap of small clumps about the end of it */
-    const cx=px+dx*0.45*s, cz=pz+dz*0.45*s, cy=py+0.55*s, R=1.0*s;
-    for(let q=0;q<30;q++){ const u=hash(q*1.7+k,x-q), v=hash(z+q*2.3,k-q), w=hash(q+x*0.3,q-z*0.3);
-      const ox=(u-0.5)*2*R, oz=(v-0.5)*2*R, oy=(w-0.35)*0.7*R; if(ox*ox+oz*oz+oy*oy*2.6>R*R) continue;     /* a flattish, open head */
-      const sz=(0.24+hash(q,k+x)*0.2)*s; D(cx+ox,cy+oy,cz+oz,sz,sz*0.75,OLIVE_LEAF[(q+k)%OLIVE_LEAF.length]); } }
-  /* a few tufts over the heart of it, so the heads join into one low, broad crown */
-  for(let q=0;q<8;q++){ const a=q*0.8+a0, r=(0.2+hash(q,x)*0.5)*s; D(x+Math.cos(a)*r,(2.9+hash(x,q)*0.4)*s,z+Math.sin(a)*r,0.3*s,0.24*s,OLIVE_LEAF[q%OLIVE_LEAF.length]); } };
+/* AN OLIVE, built of the world's blocks as the great olives of the block-builders are (the user's
+   examples): a thick twisted bole of olive timber, flared and rooted at the foot, splitting into
+   limbs that step out and up a block at a time, and on each limb a ragged clump of olive leaf —
+   grey-green, the light through it — the clumps together making one broad, uneven crown.
+   `s` scales it (1: some 8 blocks across and 7 high). Every piece is one block, laid on the ground
+   where the tree stands (`abs`), so a tree on a slope stays whole. */
+W.olive=function(S,x,z,s){ s=s||1; const P=S.api, Bw=K().B, c=Bw/P.S, gy=S.ground(x,z), A={abs:true}, h=c*0.3;
+  /* each piece set on the centre of one cell of the world, so it fills that one block and no more */
+  const snap=(v,o,sc)=>((Math.floor((o+v*sc)/Bw)+0.5)*Bw-o)/sc;
+  const blk=(bx,by,bz,id)=>{ const px=snap(x+bx*c,P.ax,P.S), py=snap(gy+(by+0.5)*c,P.baseY,P.S), pz=snap(z+bz*c,P.az,P.S);
+    S.box(px-h,py-h,pz-h,px+h,py+h,pz+h,id,A); };
+  const H=(a,b)=>hash(x*1.7+a*3.1,z*2.3+b*5.7);
+  /* the bole: two blocks square, three high; its flared foot and roots */
+  const th=Math.max(2,Math.round(3*s));
+  for(let y=0;y<th;y++) for(const [dx,dz] of [[0,0],[1,0],[0,1],[1,1]]) blk(dx,y,dz,'log-olive');
+  for(const [dx,dz] of [[-1,0],[2,1],[0,2],[1,-1]]) if(H(dx,dz)<0.8) blk(dx,0,dz,'log-olive');
+  for(const [dx,dz] of [[-1,1],[2,0]]) if(H(dz,dx)<0.5) blk(dx,1,dz,'log-olive');
+  /* the limbs: two to four, each stepping out a block and up a block, then up */
+  const n=2+Math.floor(H(9,9)*2.99), a0=H(1,7)*6.283, ends=[];
+  for(let k=0;k<n;k++){ const a=a0+k*6.283/n+(H(k,3)-0.5)*0.8, dx=Math.cos(a), dz=Math.sin(a);
+    let px=0.5, pz=0.5, py=th; const reach=Math.round((2+H(k,5)*1.6)*s);
+    for(let j=0;j<reach;j++){ px+=dx; pz+=dz; if(j%2===0) py++; blk(Math.round(px),py,Math.round(pz),'log-olive'); }
+    blk(Math.round(px),py+1,Math.round(pz),'log-olive');
+    ends.push([Math.round(px),py+1,Math.round(pz)]); }
+  ends.push([0.5,th+2,0.5]);                                                        /* and the heart of the crown over the bole */
+  /* the clumps of leaf about each limb's end: a flattened heap, ragged at its edge */
+  const R=2.3*s, RY=1.3*s, done=new Set();
+  ends.forEach(([ex,ey,ez],k)=>{ const r=k===ends.length-1?R*0.9:R;
+    for(let by=-1;by<=2;by++) for(let bx=-3;bx<=3;bx++) for(let bz=-3;bz<=3;bz++){
+      const d=(bx*bx+bz*bz)/(r*r)+((by-0.4)*(by-0.4))/(RY*RY); if(d>1) continue;
+      if(d>0.55&&H(bx+ex*7+k,bz+by*13+ez)<0.35) continue;                        /* the edge broken up, the sky through it */
+      const X=Math.round(ex+bx), Y=Math.round(ey+by), Z=Math.round(ez+bz), key=X+','+Y+','+Z; if(done.has(key)) continue; done.add(key);
+      blk(X,Y,Z,'leaves-olive'); } });
+};
 /* A FIG: a short trunk and a broad, low crown of big leaves, shade enough to sit under
    (Yahuchanon 1:48, "when you were under the fig tree") */
 W.fig=function(S,x,z){

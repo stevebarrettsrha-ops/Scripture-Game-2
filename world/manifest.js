@@ -580,6 +580,9 @@ const FILES=[
   'blocks/mudbrick.js',
   'blocks/plaster.js',
   'blocks/thatch.js',
+  /* the olive's leaf and bole, for the groves of the story (Round 130) — appended */
+  'blocks/leaves-olive.js',
+  'blocks/log-olive.js',
   'js/engine.js',
 ];
 

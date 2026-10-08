@@ -739,7 +739,7 @@ S.olivet=function(ctx,st){
   for(const [ax,az,bx,bz] of [[62,-66,80,-65.4],[62,-50.6,80,-50],[79.4,-66,80,-50],[62,-66,62.6,-60],[62,-56,62.6,-50]]) st.box(ax,0,az,bx,1.1,bz,C.stone);
   /* the old trees in their rows either side of the walk from the gate to the place He prayed, the walk
      and a space about that place left open (the eight sit inside the gate, the three a little further) */
-  for(const z of [-64,-61.6,-54.6,-52.2]) for(let x=65.2;x<79;x+=3.3){ const j=W.hash(x,z); W.olive(st,x+(j-0.5)*1.0,z+(W.hash(z,x)-0.5)*0.8,0.9+j*0.3); }
+  for(const z of [-63.4,-53.2]) for(let x=65.4;x<79;x+=5.6){ const j=W.hash(x,z); W.olive(st,x+(j-0.5)*0.8,z+(W.hash(z,x)-0.5)*0.6,0.85+j*0.2); }
   st.detail(76,0,-64.6,77.6,0.7,-63,C.stone); st.detail(76.6,0.7,-64,77,1.6,-63.6,C.timber);          /* the press */
   mk(ctx,'gGate',61,-58); mk(ctx,'gIn',64.6,-58); mk(ctx,'eight',65.4,-55.6); mk(ctx,'three',70.6,-58.4); mk(ctx,'prayer',74.6,-58.6);
   mk(ctx,'qidron',54,-58); mk(ctx,'cityPath',44,-58);

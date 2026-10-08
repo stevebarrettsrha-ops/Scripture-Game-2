@@ -11178,6 +11178,12 @@ hands behind their heads at the jailer's table. The arms and legs are now set ba
   - The olive is redrawn as the old trees of the land stand: a short split bole, two or three
     grey limbs twisting up and out, and open heads of small grey-green leaves with the sky
     showing through. It is no longer a block on a post. This is every olive in the story.
+  - Rebuilt again, from the user's examples of block-built olives: the tree is now laid in the
+    world's own blocks — two new blocks, appended to world/manifest.js: `log-olive` (twisted
+    bark, the olive's grey-brown) and `leaves-olive` (the flora's grey leaf mass with the light
+    through it, tinted grey-green). A flared two-block bole with roots; two to four limbs
+    stepping out and up a block at a time; ragged clumps of leaf on each, making one broad crown.
+    Each piece is snapped to one cell of the world so it fills exactly one block.
   - In the garden the trees stand in rows either side of the walk to the place of prayer.
   - After He falls on His face (Marqos 14:35), He kneels (Luqas 22:41, a new verse, recorded).
     He is seen from behind with His head bowed, weeping.
