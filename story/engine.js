@@ -1545,7 +1545,7 @@ const MALAK_SKIN=[0x6e4524,0x704a27,0x7a4e29,0x6a4426];   /* brown, as the peopl
 function malakFigure(G,gl){
   const k=Math.abs((gl.id||'').split('').reduce((a,c)=>a*31+c.charCodeAt(0),7))%MALAK_SKIN.length;
   const f=window.STORYWORLD.person(ctx,{id:'glow:'+gl.id, dress:'man', robe:0xf4f1e8, cloth:0xfbf8ef, sash:0xe8dcb0, skin:MALAK_SKIN[k], beard:gl.beard||null});
-  f.userData.id='glow:'+gl.id; f.userData.def={ground:true}; f.userData.malak=true; f.visible=false;
+  f.userData.id='glow:'+gl.id; f.userData.def={ground:true}; f.userData.malak=true; f.userData.noShadow=true; f.visible=false;   /* (light throws no shadow) */
   if(gl.sit) f.userData.sit=true;
   f.userData.s=gl.scale||(gl.float||(gl.at&&gl.at.length===3&&gl.at[1]>5)?1.35:1.08); f.scale.setScalar(f.userData.s);
   /* LIT FROM WITHIN: he stands in the light, and is bright with it — each of his surfaces given back its

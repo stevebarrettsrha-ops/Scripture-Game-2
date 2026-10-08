@@ -11253,6 +11253,75 @@ standing inside every boat up to the thwarts. Two mends:
 townsfolk neither walk in nor out over a gunwale. Those the story sends aboard still go aboard,
 since that is the scene's own doing (Luqas 5:3).
 
+## 4ef. Round 133 — clear water, the sun's shadows, the world in the water, the glow
+
+The traveller sent pictures of a voxel world with clear turquoise shallows, shadows under its
+trees and a soft glow over everything: "this is how good I want the game to look … remove the
+lines out of the water … in all areas." These changes apply to the voyage and to every act of
+the story, which is drawn by the same engine.
+
+**The lines are out of the water.**
+- The sea had a random glitter that flickered in rows of light. It is gone. The sun's road on
+  the water is now one smooth highlight with a soft sheen around it.
+- The fine ripple on the sea and the lakes now fades out with distance. Far off, it could only
+  shimmer into stripes.
+- The still-water texture was painted with streaks. It is now plain, and the ripples are the
+  shader's own.
+- The sea, the lakes and still water now reflect the sky as water does: little when you look
+  straight down, a mirror when you look along the surface.
+
+**The water is clear.**
+- Looking down into shallow water, you see the sand and stones of the bed.
+- The bed carries moving bright lines of sunlight (caustics).
+- The deeper the bed, the bluer and darker it is, because water takes out red light first.
+- This works under the open sea and under every lake, pool and river a story set lays.
+
+**The sun throws shadows.**
+- Every tree, wall, house and hill throws a shadow, and so does everything standing on the
+  ground: the traveller, the ship, the townsfolk, the beasts, and every person and thing in a
+  scene of the story.
+- Leaves and grass throw shadows through their own shapes, and sway with them.
+- A face turned away from the sun is in shade too.
+- Shade is coloured by the open sky, a cool blue.
+- Shadows come with the sun and go with him: long at morning and evening, none at night or under
+  a storm, none in a cave.
+- People and things lit by the scene's lamps keep the sky's light in shade and lose only the
+  sun's.
+- The mal'akim are light and throw no shadow.
+
+How it is drawn:
+- Each frame, the ground about the eye is drawn once more as the sun sees it, as a map of
+  depths. Every surface checks that map.
+- The map is moved only in whole steps of itself, so shadow edges do not crawl as you walk.
+- A face's direction is worked out relative to the eye, not from world coordinates. The world's
+  coordinates run to tens of thousands, and reading them directly speckled close walls with
+  false shade.
+
+**The world in the water.**
+- The lake of a story scene shows the hills, trees, boats and people on its shore, upside down
+  and broken by the ripples. So does the sea near a coast.
+- How it is drawn: when the eye is over water, the world is drawn again at half size from the
+  eye's mirror image below the surface. Only what stands above the water is included.
+
+**The glow and the grade.**
+- The frame is drawn into a picture first. Whatever is near white glows softly over its
+  surroundings: the sun and the air about him, his road on the water, a white wall at noon, a
+  mal'ak's light.
+- The colour is then graded:
+  - a little more colour;
+  - a gentle curve through the middle tones;
+  - shadows a little cooler and highlights a little warmer;
+  - corners a little darker, as a lens leaves them.
+- The edges stay smooth: the picture is drawn many-sampled where the graphics card allows it.
+
+**Look: full or fast.** A new menu button, ☰ → **✨ Look: full / fast**, turns the shadows, the
+reflections and the glow on or off together. "Fast" draws the world as before, for a slower
+computer. The choice is remembered on this computer, and the story's acts follow it.
+
+**Switches for tools.** Each part also has its own off switch: `__SHADOW.on`, `__REFLECT.on` and
+`__POST.on`, or `__INJECT.noShadow`, `noReflect` and `noPost` at boot. The renderer's draw count
+is now the whole frame's, including the shadow map, the reflection and the glow.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

@@ -599,26 +599,29 @@ W.lakeWaves=function(ctx,r){
     /* every boat on the lake, not only the one being sailed: the water is never drawn inside a hull */
     uBoats:{value:[0,1,2,3,4,5,6,7].map(()=>new THREE.Vector4(0,0,0,-99))},uBoatHs:{value:[0,0,0,0,0,0,0,0]},
     uLight:WU.uLight,uSunDir:WU.uSunDir,uSunCol:WU.uSunCol,uZenith:WU.uZenith,uFogColor:WU.uFogColor,uFogNear:WU.uFogNear,uFogFar:WU.uFogFar,
+    uSkyHor:WU.uSkyHor,uSkyTop:WU.uSkyTop,
     uCamPos:WU.uCamPos,uMoonDir:WU.uMoonDir,uMoonCol:WU.uMoonCol,uMoon:WU.uMoon,uNoise:WU.uMap,
-    uRip:RP.tex,uRipO:RP.o,uRipOn:RP.on};
+    uRip:RP.tex,uRipO:RP.o,uRipOn:RP.on,
+    uRefl:WU.uRefl,uReflMat:WU.uReflMat,uReflOn:WU.uReflOn,uReflY:WU.uReflY};
   const WAVE=W.LAKE_WAVES.map(c=>`{ float a=uA*${c[2].toFixed(3)}, k=${(2*Math.PI/c[1]).toFixed(4)}, om=${Math.sqrt(9.8*2*Math.PI/c[1]).toFixed(4)};
       vec2 D=vec2(cos(${c[0].toFixed(3)})*uDir.x-sin(${c[0].toFixed(3)})*uDir.y, sin(${c[0].toFixed(3)})*uDir.x+cos(${c[0].toFixed(3)})*uDir.y);
       float f=k*dot(D,P)-om*uT, c=cos(f), s=sin(f);
       dp.xz+=0.55*a*D*c; dp.y+=a*s; nr.xz-=D*k*a*c; nr.y-=0.55*k*a*s; }`).join('\n');
   const mat=new THREE.ShaderMaterial({uniforms:U,transparent:true,
-    vertexShader:`uniform float uT,uA; uniform vec2 uDir; uniform vec4 uRect;
-      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP;
+    vertexShader:`uniform float uT,uA; uniform vec2 uDir; uniform vec4 uRect; uniform mat4 uReflMat;
+      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP; varying vec4 vRefl;
       void main(){ vec2 P=position.xz; vec3 dp=vec3(0.0); vec3 nr=vec3(0.0,1.0,0.0);
         /* the waves lie down within a few metres of the shore */
         float e=smoothstep(0.0,6.0,min(min(P.x-uRect.x,uRect.z-P.x),min(P.y-uRect.y,uRect.w-P.y)));
         ${WAVE}
         dp*=e; vEdge=e; vH=dp.y; vP=P; vN=normalize(mix(vec3(0.0,1.0,0.0),nr,e));
-        vec4 wp=modelMatrix*vec4(position+dp,1.0); vW=wp.xyz;
+        vec4 wp=modelMatrix*vec4(position+dp,1.0); vW=wp.xyz; vRefl=uReflMat*wp;
         vec4 mv=viewMatrix*wp; vFog=-mv.z; gl_Position=projectionMatrix*mv; }`,
     fragmentShader:`precision highp float;
-      uniform vec3 uLight,uSunDir,uSunCol,uZenith,uFogColor,uCamPos,uMoonDir,uMoonCol; uniform float uFogNear,uFogFar,uMoon,uA,uT,uBoatH;
+      uniform vec3 uLight,uSunDir,uSunCol,uZenith,uFogColor,uCamPos,uMoonDir,uMoonCol,uSkyHor,uSkyTop; uniform float uFogNear,uFogFar,uMoon,uA,uT,uBoatH;
       uniform vec4 uBoat; uniform vec4 uBoats[8]; uniform float uBoatHs[8]; uniform sampler2D uNoise,uRip; uniform vec2 uRipO; uniform float uRipOn;
-      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP;
+      uniform sampler2D uRefl; uniform float uReflOn,uReflY;
+      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP; varying vec4 vRefl;
       void main(){
         /* none of it inside the boat's own hull */
         vec2 rb=vP-uBoat.xy; float cb=cos(uBoatH), sb=sin(uBoatH);
@@ -629,13 +632,18 @@ W.lakeWaves=function(ctx,r){
           if(abs(lq.y)<Bt.z*0.5-0.1){ float tq=abs(lq.y)/(Bt.z*0.5); if(abs(lq.x)<Bt.w*0.5*sqrt(max(0.0,1.0-pow(tq,2.8)))-0.06) discard; } }
         vec3 N=normalize(vN);
         vec3 n1=texture2D(uNoise,vP*0.11+vec2(uT*0.05,uT*0.03)).rgb, n2=texture2D(uNoise,vP*0.37-vec2(uT*0.08,-uT*0.06)).rgb;
-        N=normalize(N+vec3((n1.r-0.5)*0.32+(n2.r-0.5)*0.2,0.0,(n1.g-0.5)*0.32+(n2.g-0.5)*0.2));
+        /* the fine ripple lies down with distance (afar it can only alias into streaks of light) */
+        float nearD=1.0-smoothstep(25.0,140.0,vFog);
+        N=normalize(N+vec3((n1.r-0.5)*0.26+(n2.r-0.5)*0.12*nearD,0.0,(n1.g-0.5)*0.26+(n2.g-0.5)*0.12*nearD));
+        /* and the waves themselves lie flat to the eye far off: a lake seen across is a smooth mirror of its
+           far shore, not rows of crests turned light and dark against each other (the lines in the water) */
+        N=normalize(mix(N,vec3(0.0,1.0,0.0),smoothstep(18.0,170.0,vFog)*0.85));
         float rf=0.0;
         if(uRipOn>0.5){ vec2 rc=(vW.xz-uRipO)/${RP.span.toFixed(1)};
           if(rc.x>0.0&&rc.y>0.0&&rc.x<1.0&&rc.y<1.0){ vec4 rp=texture2D(uRip,rc); N=normalize(N+vec3((rp.r-0.5)*2.6,0.0,(rp.g-0.5)*2.6)); rf=rp.a; } }
         vec3 V=normalize(uCamPos-vW), Ls=normalize(uSunDir);
         float above=step(vW.y,uCamPos.y);
-        vec3 deep=vec3(0.05,0.20,0.27), shallow=vec3(0.13,0.42,0.44);
+        vec3 deep=vec3(0.02,0.12,0.20), shallow=vec3(0.07,0.40,0.38);
         vec3 base=mix(shallow,deep,0.65)*(0.80+0.30*clamp(vH/(uA*1.4+0.05)*0.5+0.5,0.0,1.0));
         float diff=clamp(dot(N,Ls),0.0,1.0);
         vec3 col=base*(0.55+0.55*diff);
@@ -646,13 +654,19 @@ W.lakeWaves=function(ctx,r){
         col*=uLight;
         if(uMoon>0.002){ vec3 M=normalize(uMoonDir); float md=clamp(dot(N,M),0.0,1.0); col+=base*uMoonCol*(0.3+0.8*md)*uMoon*1.3;
           vec3 HM=normalize(V+M); col+=uMoonCol*pow(max(dot(N,HM),0.0),110.0)*1.4*md*uMoon; col+=uMoonCol*foam*uMoon*0.4; }
-        vec3 H=normalize(V+Ls); col+=uSunCol*(pow(max(dot(N,H),0.0),140.0)*1.6+pow(max(dot(N,H),0.0),38.0)*0.15)*diff*above;
-        float fres=pow(1.0-max(dot(N,V),0.0),4.0); vec3 R=reflect(-V,N);
-        col=mix(col,mix(uFogColor*1.05,uZenith,pow(clamp(R.y,0.0,1.0),0.7)),fres*0.55*above);
-        float a=mix(0.86,0.97,fres); a=max(a,foam);
+        vec3 H=normalize(V+Ls); col+=uSunCol*(pow(max(dot(N,H),0.0),220.0)*2.2+pow(max(dot(N,H),0.0),48.0)*0.14)*diff*above;
+        float fres=0.02+0.98*pow(1.0-max(dot(N,V),0.0),5.0); vec3 R=reflect(-V,N);
+        vec3 skyR=mix(uSkyHor,uSkyTop,pow(clamp(R.y,0.0,1.0),0.5));
+        /* the hills, the trees, the boats and the people on the shore, in the water (THE WORLD IN THE WATER) */
+        if(uReflOn>0.001){ vec2 ruv=vRefl.xy/vRefl.w+N.xz*0.035;
+          skyR=mix(skyR,texture2D(uRefl,clamp(ruv,0.002,0.998)).rgb,uReflOn*(1.0-smoothstep(4.0,14.0,abs(vW.y-uReflY)))); }
+        col=mix(col,skyR,clamp(fres*0.9,0.0,0.9)*above);
+        /* clear: the sand and its light seen through it, a mirror only where the eye looks along it */
+        float a=clamp(0.38+fres*0.8,0.0,0.97); a=max(a,foam);
         float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
         gl_FragColor=vec4(mix(col,uFogColor,ff),a); }`});
   const mesh=new THREE.Mesh(geo,mat); mesh.renderOrder=1; mesh.frustumCulled=false; ctx.scene.add(mesh);
+  if(window.__REFLECT) window.__REFLECT.lakes.add(mesh);                       /* the face the world is mirrored in */
   return {mesh,U};
 };
 /* the waves of the lake: [turned from the wind, wavelength in metres, share of the height] —
@@ -866,26 +880,29 @@ W.lakeWaves=function(ctx,r){
     /* every boat on the lake, not only the one being sailed: the water is never drawn inside a hull */
     uBoats:{value:[0,1,2,3,4,5,6,7].map(()=>new THREE.Vector4(0,0,0,-99))},uBoatHs:{value:[0,0,0,0,0,0,0,0]},
     uLight:WU.uLight,uSunDir:WU.uSunDir,uSunCol:WU.uSunCol,uZenith:WU.uZenith,uFogColor:WU.uFogColor,uFogNear:WU.uFogNear,uFogFar:WU.uFogFar,
+    uSkyHor:WU.uSkyHor,uSkyTop:WU.uSkyTop,
     uCamPos:WU.uCamPos,uMoonDir:WU.uMoonDir,uMoonCol:WU.uMoonCol,uMoon:WU.uMoon,uNoise:WU.uMap,
-    uRip:RP.tex,uRipO:RP.o,uRipOn:RP.on};
+    uRip:RP.tex,uRipO:RP.o,uRipOn:RP.on,
+    uRefl:WU.uRefl,uReflMat:WU.uReflMat,uReflOn:WU.uReflOn,uReflY:WU.uReflY};
   const WAVE=W.LAKE_WAVES.map(c=>`{ float a=uA*${c[2].toFixed(3)}, k=${(2*Math.PI/c[1]).toFixed(4)}, om=${Math.sqrt(9.8*2*Math.PI/c[1]).toFixed(4)};
       vec2 D=vec2(cos(${c[0].toFixed(3)})*uDir.x-sin(${c[0].toFixed(3)})*uDir.y, sin(${c[0].toFixed(3)})*uDir.x+cos(${c[0].toFixed(3)})*uDir.y);
       float f=k*dot(D,P)-om*uT, c=cos(f), s=sin(f);
       dp.xz+=0.55*a*D*c; dp.y+=a*s; nr.xz-=D*k*a*c; nr.y-=0.55*k*a*s; }`).join('\n');
   const mat=new THREE.ShaderMaterial({uniforms:U,transparent:true,
-    vertexShader:`uniform float uT,uA; uniform vec2 uDir; uniform vec4 uRect;
-      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP;
+    vertexShader:`uniform float uT,uA; uniform vec2 uDir; uniform vec4 uRect; uniform mat4 uReflMat;
+      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP; varying vec4 vRefl;
       void main(){ vec2 P=position.xz; vec3 dp=vec3(0.0); vec3 nr=vec3(0.0,1.0,0.0);
         /* the waves lie down within a few metres of the shore */
         float e=smoothstep(0.0,6.0,min(min(P.x-uRect.x,uRect.z-P.x),min(P.y-uRect.y,uRect.w-P.y)));
         ${WAVE}
         dp*=e; vEdge=e; vH=dp.y; vP=P; vN=normalize(mix(vec3(0.0,1.0,0.0),nr,e));
-        vec4 wp=modelMatrix*vec4(position+dp,1.0); vW=wp.xyz;
+        vec4 wp=modelMatrix*vec4(position+dp,1.0); vW=wp.xyz; vRefl=uReflMat*wp;
         vec4 mv=viewMatrix*wp; vFog=-mv.z; gl_Position=projectionMatrix*mv; }`,
     fragmentShader:`precision highp float;
-      uniform vec3 uLight,uSunDir,uSunCol,uZenith,uFogColor,uCamPos,uMoonDir,uMoonCol; uniform float uFogNear,uFogFar,uMoon,uA,uT,uBoatH;
+      uniform vec3 uLight,uSunDir,uSunCol,uZenith,uFogColor,uCamPos,uMoonDir,uMoonCol,uSkyHor,uSkyTop; uniform float uFogNear,uFogFar,uMoon,uA,uT,uBoatH;
       uniform vec4 uBoat; uniform vec4 uBoats[8]; uniform float uBoatHs[8]; uniform sampler2D uNoise,uRip; uniform vec2 uRipO; uniform float uRipOn;
-      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP;
+      uniform sampler2D uRefl; uniform float uReflOn,uReflY;
+      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP; varying vec4 vRefl;
       void main(){
         /* none of it inside the boat's own hull */
         vec2 rb=vP-uBoat.xy; float cb=cos(uBoatH), sb=sin(uBoatH);
@@ -896,13 +913,18 @@ W.lakeWaves=function(ctx,r){
           if(abs(lq.y)<Bt.z*0.5-0.1){ float tq=abs(lq.y)/(Bt.z*0.5); if(abs(lq.x)<Bt.w*0.5*sqrt(max(0.0,1.0-pow(tq,2.8)))-0.06) discard; } }
         vec3 N=normalize(vN);
         vec3 n1=texture2D(uNoise,vP*0.11+vec2(uT*0.05,uT*0.03)).rgb, n2=texture2D(uNoise,vP*0.37-vec2(uT*0.08,-uT*0.06)).rgb;
-        N=normalize(N+vec3((n1.r-0.5)*0.32+(n2.r-0.5)*0.2,0.0,(n1.g-0.5)*0.32+(n2.g-0.5)*0.2));
+        /* the fine ripple lies down with distance (afar it can only alias into streaks of light) */
+        float nearD=1.0-smoothstep(25.0,140.0,vFog);
+        N=normalize(N+vec3((n1.r-0.5)*0.26+(n2.r-0.5)*0.12*nearD,0.0,(n1.g-0.5)*0.26+(n2.g-0.5)*0.12*nearD));
+        /* and the waves themselves lie flat to the eye far off: a lake seen across is a smooth mirror of its
+           far shore, not rows of crests turned light and dark against each other (the lines in the water) */
+        N=normalize(mix(N,vec3(0.0,1.0,0.0),smoothstep(18.0,170.0,vFog)*0.85));
         float rf=0.0;
         if(uRipOn>0.5){ vec2 rc=(vW.xz-uRipO)/${RP.span.toFixed(1)};
           if(rc.x>0.0&&rc.y>0.0&&rc.x<1.0&&rc.y<1.0){ vec4 rp=texture2D(uRip,rc); N=normalize(N+vec3((rp.r-0.5)*2.6,0.0,(rp.g-0.5)*2.6)); rf=rp.a; } }
         vec3 V=normalize(uCamPos-vW), Ls=normalize(uSunDir);
         float above=step(vW.y,uCamPos.y);
-        vec3 deep=vec3(0.05,0.20,0.27), shallow=vec3(0.13,0.42,0.44);
+        vec3 deep=vec3(0.02,0.12,0.20), shallow=vec3(0.07,0.40,0.38);
         vec3 base=mix(shallow,deep,0.65)*(0.80+0.30*clamp(vH/(uA*1.4+0.05)*0.5+0.5,0.0,1.0));
         float diff=clamp(dot(N,Ls),0.0,1.0);
         vec3 col=base*(0.55+0.55*diff);
@@ -913,13 +935,19 @@ W.lakeWaves=function(ctx,r){
         col*=uLight;
         if(uMoon>0.002){ vec3 M=normalize(uMoonDir); float md=clamp(dot(N,M),0.0,1.0); col+=base*uMoonCol*(0.3+0.8*md)*uMoon*1.3;
           vec3 HM=normalize(V+M); col+=uMoonCol*pow(max(dot(N,HM),0.0),110.0)*1.4*md*uMoon; col+=uMoonCol*foam*uMoon*0.4; }
-        vec3 H=normalize(V+Ls); col+=uSunCol*(pow(max(dot(N,H),0.0),140.0)*1.6+pow(max(dot(N,H),0.0),38.0)*0.15)*diff*above;
-        float fres=pow(1.0-max(dot(N,V),0.0),4.0); vec3 R=reflect(-V,N);
-        col=mix(col,mix(uFogColor*1.05,uZenith,pow(clamp(R.y,0.0,1.0),0.7)),fres*0.55*above);
-        float a=mix(0.86,0.97,fres); a=max(a,foam);
+        vec3 H=normalize(V+Ls); col+=uSunCol*(pow(max(dot(N,H),0.0),220.0)*2.2+pow(max(dot(N,H),0.0),48.0)*0.14)*diff*above;
+        float fres=0.02+0.98*pow(1.0-max(dot(N,V),0.0),5.0); vec3 R=reflect(-V,N);
+        vec3 skyR=mix(uSkyHor,uSkyTop,pow(clamp(R.y,0.0,1.0),0.5));
+        /* the hills, the trees, the boats and the people on the shore, in the water (THE WORLD IN THE WATER) */
+        if(uReflOn>0.001){ vec2 ruv=vRefl.xy/vRefl.w+N.xz*0.035;
+          skyR=mix(skyR,texture2D(uRefl,clamp(ruv,0.002,0.998)).rgb,uReflOn*(1.0-smoothstep(4.0,14.0,abs(vW.y-uReflY)))); }
+        col=mix(col,skyR,clamp(fres*0.9,0.0,0.9)*above);
+        /* clear: the sand and its light seen through it, a mirror only where the eye looks along it */
+        float a=clamp(0.38+fres*0.8,0.0,0.97); a=max(a,foam);
         float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
         gl_FragColor=vec4(mix(col,uFogColor,ff),a); }`});
   const mesh=new THREE.Mesh(geo,mat); mesh.renderOrder=1; mesh.frustumCulled=false; ctx.scene.add(mesh);
+  if(window.__REFLECT) window.__REFLECT.lakes.add(mesh);                       /* the face the world is mirrored in */
   return {mesh,U};
 };
 /* the waves of the lake: [turned from the wind, wavelength in metres, share of the height] —
