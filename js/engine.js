@@ -6685,6 +6685,71 @@ function gradeHaze(px,pz,dayF,storm){
   scene.fog.color.lerp(_hazeC,HAZE_FOG*k);
   scene.background.lerp(_hazeC,HAZE_SKY*k);
 }
+/* ================= THE VAULT OF THE SKY =================
+   "The heavens declare the glory of El; and the firmament sheweth his handywork."
+
+   The sky was ONE colour — the hour's blend of night, dusk and day laid flat
+   behind everything — so a sunset was the whole sky turning orange at once,
+   east as well as west, and noon was one pale blue from the horizon to the
+   top of the heaven. A real sky is a vault: pale and hazed at the horizon
+   (the long road of light through the air), deep blue overhead, and at the
+   two edges of the day the fire is in the WEST — a band along the horizon on
+   the side the sun is going down, burning brightest about the sun, while the
+   east has already gone violet. The halo stands about the sun in the air.
+
+   A dome about the eye, drawn first and furthest (at the far plane, written
+   to no depth), so everything of the world, the clouds, the stars, the sun
+   and the moon stand in front of it. Its HORIZON is the very colour the sky
+   had before — the fog is still that colour, so the land still dissolves
+   into the sky without a seam — and its zenith, its sunset fire and its halo
+   are laid over it from the hour. Whatever else colours the sky (a storm's
+   deck, the haze of a country, the outer darkness at the world's rim, the
+   flash of a bolt) takes the vault with it: the further the sky is pulled
+   from the hour's own colour, the more the vault is pulled flat to it. */
+const SKYDOME={ hor:new THREE.Color(0x9fc5e8), dayF:1 };
+{ const geo=new THREE.SphereGeometry(1000,48,24);
+  const U={ uHor:{value:new THREE.Color()}, uTop:{value:new THREE.Color()}, uSet:{value:new THREE.Color(0xff7a3a)},
+    uSetAmt:{value:0}, uSunDir:{value:new THREE.Vector3(0,1,0)}, uSunCol:{value:new THREE.Color(1,0.9,0.7)}, uSunUp:{value:0}, uFlat:{value:0} };
+  const mat=new THREE.ShaderMaterial({ uniforms:U, side:THREE.BackSide, depthWrite:false, depthTest:true, fog:false,
+    vertexShader:`varying vec3 vDir;
+      void main(){ vDir=position; vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.0); gl_Position=p.xyww; }`,
+    fragmentShader:`uniform vec3 uHor, uTop, uSet, uSunDir, uSunCol; uniform float uSetAmt, uSunUp, uFlat; varying vec3 vDir;
+      void main(){
+        vec3 d=normalize(vDir); float h=d.y;
+        /* pale at the horizon, deep overhead; under the horizon a little darker, as the haze over far land is */
+        vec3 col=mix(uHor,uTop,pow(clamp(h,0.0,1.0),0.5));
+        if(h<0.0) col=mix(uHor,uHor*0.72,smoothstep(0.0,-0.35,h));
+        float sd=dot(d,normalize(uSunDir));
+        /* the fire of the sun's going down: a band on the horizon, on his side of the sky */
+        float band=exp(-abs(h)*5.0);
+        col=mix(col,uSet,clamp(uSetAmt*band*pow(max(sd*0.5+0.5,0.0),3.0),0.0,1.0));
+        /* the glow of the air about him (the disc itself is the sun's own) */
+        col+=uSunCol*(pow(max(sd,0.0),60.0)*0.22+pow(max(sd,0.0),8.0)*0.06)*uSunUp;
+        /* a storm, a country's haze, the outer darkness: the vault laid flat to the sky's own colour */
+        col=mix(col,uHor,uFlat);
+        gl_FragColor=vec4(col,1.0); }` });
+  const dome=new THREE.Mesh(geo,mat); dome.renderOrder=-10; dome.frustumCulled=false; dome.name='sky-vault'; scene.add(dome);
+  const _top=new THREE.Color(), _sun=new THREE.Vector3(), _sc=new THREE.Color();
+  /* called just before each frame is drawn, when everything that colours the sky has had its say */
+  SKYDOME.mesh=dome; window.__SKYDOME=SKYDOME; window.__camForward=()=>camera.getWorldDirection(new THREE.Vector3());                  /* (tools: tools/sky-shots.js sets the old flat sky beside it) */
+  SKYDOME.tick=function(){
+    dome.position.copy(camera.position);
+    if(SKYDOME.off){ dome.visible=false; return; }
+    const bg=scene.background; if(!bg||!bg.isColor){ dome.visible=false; return; } dome.visible=true;
+    const f=SKYDOME.dayF;
+    /* the zenith of the hour: night's black-blue, the violet over a sunset, noon's deep blue */
+    _top.copy(mix3(0x02040e,0x40508a,0x3b78d6,f));
+    /* how far the sky is taken from the hour's own: a storm's deck, the outer darkness at the rim, a bolt,
+       the eye under the water (a country's haze only tints the horizon, which the vault takes from the sky) */
+    const pull=Math.min(1,Math.max((SKYDOME.storm||0)*0.9,SKYDOME.voidF||0,boltFlash*0.6,_eyeSub||0));
+    U.uHor.value.copy(bg); U.uTop.value.copy(_top).lerp(bg,pull); U.uFlat.value=Math.max(0,pull-0.6)*2.5;
+    /* the sunset: strongest as the sun touches the rim of the earth, gone at full day and full night */
+    U.uSetAmt.value=Math.max(0,1-Math.abs(f-0.42)/0.38)*0.85;
+    _sun.copy(sun.position).sub(camera.position); if(_sun.lengthSq()>1e-6) U.uSunDir.value.copy(_sun.normalize());
+    U.uSunUp.value=Math.min(1,(sun.userData.bright||0))*(1-pull);
+    _sc.setRGB(1.0,0.55,0.25).lerp(_c3.setRGB(1.0,0.95,0.85),Math.min(1,Math.max(0,(f-0.35)/0.5))); U.uSunCol.value.copy(_sc);
+  };
+}
 function skyTick(px,pz){
   /* ---- THE TWO GREAT LIGHTS, WHERE THEY TRULY ARE ----
      js/sun-moon.js is the whole law: each light's own circuit over the
@@ -6695,8 +6760,11 @@ function skyTick(px,pz){
      under, at exactly the distance where its daylight gives out. */
   const S=SUNMOON.place(state.simHours,px,pz,R_WORLD,'sun');
   const dayF=SUNMOON.dayF(S.dUV);
-  let sky=mix3(0x0a1024,0xe58a4a,0x9fc5e8,dayF).getHex();
-  const st=stormAt(px,pz);
+  /* the horizon of the hour: at dusk a soft peach all round — the burning orange is the vault's,
+     laid along the horizon on the side the sun is going down (THE VAULT OF THE SKY) */
+  let sky=mix3(0x0a1024,0xd9a07e,0x9fc5e8,dayF).getHex();
+  SKYDOME.dayF=dayF;
+  const st=stormAt(px,pz); SKYDOME.storm=st;
   if(st>0.01){ _c1.setHex(sky); _c2.setHex(0x4c545e); sky=_c1.lerp(_c2,st*0.75).getHex(); }
   scene.background.setHex(sky);
   if(scene.fog){ scene.fog.color.setHex(sky); /* fog is detached in the firmament view */
@@ -21339,9 +21407,9 @@ function frame(){
   /* before the voyage begins the MENU stands over the living world: the sky
      keeps its hour, the sea runs, the ship rides the swell at her anchorage,
      and the eye is carried slowly round her */
-  if(!running){ if(menuView) menuTick(dt); stageHook(dt); renderer.render(scene,camera); return; }
+  if(!running){ if(menuView) menuTick(dt); stageHook(dt); SKYDOME.tick(); renderer.render(scene,camera); return; }
   /* paused — the world is drawn as it stands, and not one thing in it stirs */
-  if(gamePaused){ stageHook(dt); renderer.render(scene,camera); return; }
+  if(gamePaused){ stageHook(dt); SKYDOME.tick(); renderer.render(scene,camera); return; }
   /* ---- THE SKY KEEPS YOUR OWN CLOCK, IF YOU ASK IT TO ----
      On 'live' the hour is not run forward by the course at all: it is read
      off the machine's own clock a few times a second, and set as the LOCAL
@@ -21692,6 +21760,7 @@ function frame(){
      is the whole of what the scene at the world's edge is for, so the dark
      and the host come up there too, on the scene's own ramp. */
   const voidF=state.firm?1:Math.max(zMapF, sceneSet('voidDark'));
+  SKYDOME.voidF=voidF;
   if(voidF>0.002) scene.background.lerp(_voidC,Math.min(1,voidF*1.14));
   voidStarTick(voidF);            /* and the host of the shamayim stands in it */
   /* and the haze of the near world must not blind an eye drawn back off it */
@@ -21968,6 +22037,7 @@ function frame(){
   TEX.surf.offset.x=(_pn*0.00006)%1; TEX.surf.offset.y=(_pn*0.00013)%1;
   surfMat.opacity=0.42+0.28*Math.sin(_pn*0.0022);      /* the wash advancing and drawing back */
   stageHook(dt);
+  SKYDOME.tick();
   renderer.render(scene,camera);
 }
 frame();

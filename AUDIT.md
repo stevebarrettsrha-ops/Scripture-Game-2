@@ -11194,6 +11194,36 @@ hands behind their heads at the jailer's table. The arms and legs are now set ba
 Also: the Rhode gate camera now stands at head height before Kĕpha's face as he knocks, and the
 Philippi inner-prison cameras look into Sha’ul's and Sila's faces, lit by a lamp on the east wall.
 
+## 4ed. Round 131 — the vault of the sky
+
+Taken from the user's reference game (a single-file voxel game), with the voyage's own lights left
+as they are. Before this round the sky was one flat colour: the hour's blend of night, dusk and
+day laid behind everything. At sunset the whole sky turned orange at once, east as well as west,
+and at noon the sky was one pale blue from the horizon to the top of the sky.
+
+The sky is now a **vault**, a dome about the eye drawn at the far plane and behind everything
+else:
+- pale at the horizon, deep blue overhead (`#3b78d6` at noon);
+- at dusk and dawn, violet overhead (`#40508a`), a soft peach horizon all round (`#d9a07e`), and
+  the burning orange (`#ff7a3a`) only in a band along the horizon on the side where the sun is
+  going down;
+- a glow in the air about the sun, warm and orange at the rim of the day, near white at noon;
+- night is a deep blue-black overhead.
+
+Its horizon is the sky colour the fog already uses, so the land still dissolves into the sky
+without a seam. The sun, moon, stars and clouds are unchanged and stand in front of it.
+
+A storm's deck, the outer darkness at the world's rim, a lightning bolt and the eye under the
+water pull the vault flat to the sky's own colour, as before. A country's haze only tints its
+horizon.
+
+The story mode takes its hours from the voyage's clock, so every scene has the vault with no
+change of its own: the dawn on the lake, the dusk at Bĕyth Leḥem, and the rest.
+
+`tools/sky-shots.js` sets the old flat sky beside the vault at the same place and hour, facing
+the sun and facing away. It finds the hours of dawn and dusk from the sun's own height at the
+station.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
