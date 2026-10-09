@@ -11,7 +11,8 @@ The traveller asked for the voyage to feel like "the world went on without me". 
 
 Then, once that is done:
 
-- Scrolls found in the voyage play out as cutscenes, made the way the story game makes them.
+- Every scroll, from Berĕshith to Ḥazon, plays as a cutscene made in the style of **Scripture-Game** (stevebarrettsrha-ops/Scripture-Game). Nothing from this game's story mode is used in the voyage.
+- Some scrolls are found where their events happened. Others are given only by townsfolk around the world, for work done for them.
 - The gathered scrolls can be put together and played as one film of the whole Bible.
 
 Everything below was checked: four read-throughs of the code, plus a day kept in Yasharal's town in the running game.
@@ -56,18 +57,25 @@ Everything below was checked: four read-throughs of the code, plus a day kept in
 
 ### Scrolls and cutscenes
 
-- **The scrolls:** there are 24, all Old Testament or other early writings, and none from the New Testament.
+- **The scrolls:** there are 24, all Old Testament or other early writings, and none from the New Testament. All 24 lie on the ground to be found. None is given by anyone.
 - **What a scroll scene shows today:** taking one plays a 19-second scene. The camera circles the traveller as he lifts it, and one verse is shown. There are no other figures and no voice.
-- **The story game:** it has 9 acts, 110 scenes and about 3,900 beats. Each scene has:
-  - figures with faces and moods, and a camera director (Yahusha's face is guarded every frame);
-  - recorded voices, with the Besorah verse shown in a panel;
-  - sets built at their true places in the voyage world.
-  - Each act runs only on its own page.
-- **Other films and the link between games:** Scripture Unfolds has 8 long films (Creation to Shemoth). They run on a third engine, and nothing chains them. The voyage's scroll list is only a count in THE LOG.
+- **Scripture-Game, the model to follow.** Its cutscenes are a painted 2D stage drawn on a canvas (`cinema.js`), with no 3D engine. Each verse is one slide:
+  - One continuous take per verse, with one gentle camera move, almost always a slow push in.
+  - The verse is split into parts at its pauses. Each part is held while its voice speaks, then the slide cross-dissolves into the next. There are no hard cuts.
+  - The caption is at the bottom, in gold-referenced italic over a dark band. A title card opens each telling.
+  - The narrator reads, each speaker has his own voice, and YAHUAH's voice is the deepest and is given to no one else. Soft piano plays underneath.
+  - YAHUAH is shown only as light, cloud and fire. Mal'akim are brown men without wings. Everyone is brown-skinned. Violence is never drawn: Golyath simply falls.
+  - Each slide is written as data: the place, the hour, the weather, the camera, the cast with their poses, crowds, props and effects.
+- **What Scripture-Game covers:**
+  - All 39 books of the Tanakh have a page, and every story and prophetic book has staged slides (2,111 slides, about 9 hours voiced). There are 38,549 recorded voice clips.
+  - There is nothing from Mattithyahu to Ḥazon: no page, no slide and no voice.
+  - Most climaxes are voiced but not staged: a chapter's stage holds its opening and closing verses, and the climax is told in the playable scene.
+  - For this game's 24 scrolls, 9 have their own verse staged in Scripture-Game, 13 have the chapter staged around them, and 2 (Yashar 1:2 and Yoḇelim 1:1) have only nearby material.
+- **One rule Scripture-Game does not keep:** it draws the Servant and the Son of Enosh with faces. In this game Yahusha's face is never shown, so the new player must guard it on every frame.
 
 ## Can it be done?
 
-Yes, all of it. The engine already has the parts to build on: hours per trade, doors and homes, beds for beasts, a scene player, and the story game's beat player and sets.
+Yes, all of it. The engine already has the parts to build on: hours per trade, doors and homes, beds for beasts, a scene player with shots, captions and title cards, and Scripture-Game's slides and recorded voices to follow.
 
 There are two real limits:
 
@@ -101,7 +109,8 @@ There are two real limits:
   - Hunter: "the wolf at the fold"
   - Water-bearer: "fill the jars"
   - Builder: "cut 20 cedar", or "repair the wall"
-- **B2. Talking.** The player can **speak, ask for work, or trade**. Jobs are tracked in THE LOG and kept in the save. The reward is shekels, the village's goodwill, and sometimes a verse.
+- **B2. Talking.** The player can **speak, ask for work, or trade**. Jobs are tracked in THE LOG and kept in the save. The reward is shekels and the village's goodwill.
+- **B3. Scrolls as rewards.** Some scrolls of Phase F are never found lying anywhere. Townsfolk give them, after a job or a chain of jobs, in a land that fits the book: a scribe in Yahudah, an elder in Babel, a merchant in Tsor.
 
 ### Phase C — settlements and the land they change
 
@@ -141,24 +150,36 @@ There are two real limits:
 - **E2. Livestock** (the same work as A5).
 - **E3. The sea by night.** Reef fish shelter in coral, rock and kelp. The night hunters roam: reef and tiger sharks, morays, octopus. Shoals tighten, and the day fish come out again at dawn.
 
-### Phase F — scrolls that play as scenes, and the whole Bible as one film (after A–E)
+### Phase F — the scrolls as films, Berĕshith to Ḥazon, and the whole Bible as one film (after A–E)
 
-- **F1. Bring the story game's player into the voyage.**
-  - Its input, panels and state are scoped.
-  - The voyage is saved before a scene and put back after.
-  - The beat player, camera director, figures, voices and verse panel then run inside the voyage page.
-- **F2. A scene for every Old Testament scroll.** Taking one of the 24 scrolls plays its scene in the story game's style:
-  - Flood, Babel, Abram, Sedom, Moriyah, Bĕyth Ĕl, Yosĕph, the Red Sea, Nebo, Yeriḥo, Golyath, the Temple, Karmel, Yonah, Dani'ĕl, Estĕr, and the book scrolls.
-  - Each has figures, the camera, the Besorah's words and voices.
-  - Each is set where it happened, with the world dressed for its period.
-  - Scenes can be skipped and replayed.
-- **F3. Scrolls of the Messiah's days.** New scrolls in the voyage, at Bĕyth Leḥem, the Yardĕn, Galil and Yahrushalayim, open the story game's acts as their scenes.
-- **F4. The Scroll Library and "Play the whole Bible".**
-  - THE LOG lists every scroll in canonical order, from Berĕshith to the end, with each gathered one playable.
-  - **Play the whole Bible** runs every gathered scroll's scene and the story game's acts back to back.
-  - The film moves on by itself when each voice ends, with title cards for each age and the Bridge of the seven hundred years between the Testaments.
-  - Scrolls not yet found stand as gaps that say where to look.
-- **F5. Checked words.** Every new caption is checked against the Besorah by `tools/extract-besorah.js --check`, as the story game's lines are.
+**Nothing from this game's story mode ("The Fullness of Time") is used in the voyage.** The films are built new, in Scripture-Game's style, inside the voyage's own 3D world.
+
+- **F1. A film player in Scripture-Game's style.**
+  - It is built inside the voyage's existing scene machine (shots, captions, title cards, fades, skip).
+  - It keeps Scripture-Game's slide format as the way films are written: place, hour, weather, camera, cast, poses, crowds, props and effects per verse.
+  - The 2D stage is laid onto the real land at the scroll's place: across the screen becomes across the camera's view, and depth becomes distance.
+  - It keeps Scripture-Game's pacing: one take per verse, a slow push in, parts held while each voice speaks, cross-dissolves, the caption panel and title cards in its look, and its piano music (`music.js`, brought over almost as it is).
+  - It adds the rules this game keeps: Yahusha's face blank and guarded from the camera on every frame, YAHUAH shown only as light, cloud and fire, mal'akim as brown men lit from within, the people brown, and violence read in the caption, never drawn.
+  - New pieces in the voyage engine: about 40 props (altar, ark, tent, lampstand, throne, well, gate, ship, furnace, den, ladder, ziggurat and more), about 25 effects (glory, rays, pillar of fire, cloud, rain, locusts), and the interiors (palace, temple, tent, prison, cave, lions' den, furnace, tomb, vision).
+- **F2. The voices.**
+  - A tool imports Scripture-Game's recorded voice clips for each verse used, keeping only those clips (about 5–10 MB for the first 24 scrolls).
+  - The words shown are always the Besorah's own, checked by `tools/extract-besorah.js --check`. Scripture-Game shows the Name in a shortened form that the check rejects, so its text is used only to find the right clip.
+  - The New Testament has no recordings in Scripture-Game. Its voices must be made with Scripture-Game's own voice pipeline, which needs its voice model to hand.
+- **F3. One scroll per event, Berĕshith to Ḥazon.** About 60–90 events in the Besorah's order: about 45 from the Tanakh and 25–30 from the New Testament, with an optional bridge from the Maqqabim between the Testaments.
+  - The 24 scrolls there now come first. For 9 of them, Scripture-Game's own slides are adapted. For 13, the climax verse is staged new around Scripture-Game's chapter. For Yashar and Yoḇelim, new stages are made beside the nearby material.
+  - Then new scrolls for the rest of the Tanakh, and the whole New Testament, all staged new in the same style.
+  - Each film is set at its true place in the voyage world, dressed for its period, and can be skipped and replayed.
+- **F4. Found, or earned from the people.**
+  - Some scrolls lie where their events happened and are found.
+  - Others cannot be found lying anywhere. They are given by townsfolk around the world as the reward for work done for them (Phase B's jobs): a scribe, an elder, a priest, a merchant or a widow, in a land that fits the book.
+  - The split is chosen per scroll and kept in the scroll list. The Scroll Library tells the player which kind each missing scroll is, and where to look or whom to help.
+- **F5. The Scroll Library and "Play the whole Bible".**
+  - THE LOG lists every scroll in the Besorah's order, from Berĕshith to Ḥazon. Each gathered one can be played.
+  - **Play the whole Bible** plays every gathered scroll's film back to back, in order.
+  - Each verse moves on by itself when its voice ends. A title card marks each age.
+  - Scrolls not yet gathered appear as gap cards that say where the scroll lies, or who in which land will give it.
+  - With 60–90 events at 1.5–3 minutes each, the whole film runs about 2.5–4 hours.
+- **F6. Checked words.** Every caption is checked against the Besorah by `tools/extract-besorah.js --check`.
 
 ## How each phase is proven
 
@@ -169,6 +190,6 @@ Each phase ships with a probe that runs in the actual game, as the rounds before
 - **Phase C:** the flatness of squares, the share of cleared ground, and the stumps are measured.
 - **Phase D:** prices are compared by land.
 - **Phase E:** beasts and fish are counted at their homes or shelters by night.
-- **Phase F:** every scroll's scene plays end to end, with the face rule kept.
+- **Phase F:** every scroll's film plays end to end, with the face rule kept on every frame and every caption passing the Besorah check.
 
 Before and after screenshots come with each round.

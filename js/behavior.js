@@ -294,8 +294,28 @@ vendor:  {rise:6.5, bed:20.0, work:0.78, pace:6,   rest:null, acts:[['talk',5],[
           greet:'Fresh wares, friend — come and see!'},
 shopper: {rise:7.0, bed:20.5, work:0.40, pace:6.5, rest:null, acts:[['talk',5],['carry',3],['watch',2],['eat',2],['rest',1]],
           greet:'Have you seen the prices at the stalls today?'},
-teacher: {rise:6.0, bed:21.0, work:0.60, pace:5.5, rest:13.0, acts:[['talk',4],['pray',3],['rest',2],['eat',2]],
+teacher: {rise:6.0, bed:21.0, work:0.60, pace:5.5, rest:13.0, lesson:[8.0,13.0], acts:[['talk',4],['pray',3],['rest',2],['eat',2]],
           greet:'Peace, traveller. The children are at their letters.'},
+/* ---- THE TRADES OF THE HOUSEHOLD (Round 137) ----
+   the town's own crafts, each worked in the yard of its own house or out at
+   its own place: a household keeps one trade for the men and one for the
+   women, and the tools of both stand by its door */
+potter:  {rise:5.5, bed:20.5, work:0.74, pace:6.5, rest:13.0, acts:[['eat',3],['talk',3],['rest',2],['carry',2],['pray',1]],
+          greet:'The clay is good this year — see how it holds the wheel.'},
+weaver:  {rise:5.5, bed:20.0, work:0.72, pace:6,   rest:13.0, acts:[['talk',4],['eat',3],['rest',2],['carry',1]],
+          greet:'Peace to you. The warp is strung; the cloth will be done by the new moon.'},
+baker:   {rise:4.5, bed:19.5, work:0.70, pace:6,   rest:13.0, acts:[['talk',3],['carry',3],['eat',2],['rest',2]],
+          greet:'Bread from the oven, still warm. The fire was lit before the light.'},
+carpenter:{rise:5.5, bed:20.5, work:0.74, pace:6.5, rest:13.0, acts:[['eat',3],['talk',2],['carry',3],['rest',2]],
+          greet:'A yoke for an ox, a beam for a roof — whatever the town needs.'},
+woodcutter:{rise:5.0, bed:20.0, work:0.78, pace:7,  rest:13.0, acts:[['eat',3],['rest',3],['talk',1],['watch',1]],
+          greet:'Out to the trees at first light, home with the load by evening.'},
+mason:   {rise:5.5, bed:20.0, work:0.76, pace:6,   rest:13.0, acts:[['eat',3],['rest',2],['talk',2]],
+          greet:'Stone on stone, and every course true.'},
+spinner: {rise:5.5, bed:20.0, work:0.72, pace:6,   rest:13.0, acts:[['talk',4],['eat',3],['rest',2],['carry',1]],
+          greet:'Peace. The spindle never stops in this house.'},
+gleaner: {rise:5.5, bed:19.5, work:0.70, pace:6.5, rest:13.0, acts:[['carry',4],['eat',3],['rest',2],['talk',2]],
+          greet:'The ears the reapers leave are for the poor and the stranger.'},
 child:   {rise:6.5, bed:19.0, work:0.20, pace:8.5, rest:13.5, acts:[['play',8],['eat',2],['watch',1],['talk',1]],
           greet:'Come and play! You cannot catch me!',
           greetLesson:'Shh — the teacher is looking!'},
@@ -555,6 +575,8 @@ window.BEHAVIOR={
   folkResting:(role,h)=>{ const f=FOLK[role]; if(!f||f.rest==null) return false;
     return h>=f.rest&&h<f.rest+1.1; },
   folkPaceOf:(role,fb)=>{ const f=FOLK[role]; return (f&&f.pace)||fb; },
+  /* the hours of the morning lesson, as the teacher's own row keeps them */
+  folkLesson:h=>{ const L=FOLK.teacher&&FOLK.teacher.lesson; return !!L&&h>=L[0]&&h<L[1]; },
   /* the trade's own word to a passing traveller — null for a role with no
      row, and the child at the lesson has a hushed one of its own */
   folkGreet:(role,atLesson)=>{ const f=FOLK[role]; if(!f) return null;
