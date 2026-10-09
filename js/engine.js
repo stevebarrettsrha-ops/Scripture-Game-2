@@ -16931,7 +16931,7 @@ function walkTick(dt){
   if(Math.abs(w.stepOff)<0.02) w.stepOff=0;
   walkerG.position.set(w.x,w.feetY,w.z); walkerG.rotation.y=w.heading;
   /* ---- animation ---- */
-  const moving=Math.abs(sp)>0.5;
+  const moving=Math.abs(sp)>0.5; w.moving=moving;          /* (read by the hand in his own view, F5) */
   if(swimming){ const s=performance.now()*0.008;
     const prone=Math.abs(f)>0.15;                        /* stroking forward, or treading */
     walkerG.rotation.x=(prone?1.30+Math.sin(s*0.7)*0.05:0.22)+(w.wPitch||0);
@@ -17726,7 +17726,7 @@ function deckTick(dt){
   if(allowed(d.lx,nz)) d.lz=nz;
   walkerG.position.set(d.lx,d.level==='hold'?HOLD.y:deckHeightAt(d.lz),d.lz);
   walkerG.rotation.y=d.h;
-  const ph=performance.now()*0.011, moving=Math.abs(sp)>0.5, u=walkerG.userData;
+  const ph=performance.now()*0.011, moving=Math.abs(sp)>0.5, u=walkerG.userData; d.moving=moving;
   u.legL.rotation.x=moving?Math.sin(ph)*0.7:0; u.legR.rotation.x=moving?-Math.sin(ph)*0.7:0;
   u.armL.rotation.x=moving?-Math.sin(ph)*0.5:0; u.armR.rotation.x=moving?Math.sin(ph)*0.5:0;
 }
@@ -17907,6 +17907,7 @@ let fpHid=false;
 /* the arm and the thing in the hand, drawn over the world at the foot of the view (on a layer of their
    own: the sun's map and the water's picture never see them) */
 const fpView=new THREE.Group(); fpView.visible=false; fpView.userData.noShadow=true; scene.add(fpView);
+window.__FP=fpView;                                   /* (tools: the hand in the view) */
 camera.layers.enable(1);
 const fpPivot=new THREE.Group(); fpView.add(fpPivot);
 const _fpMats=new Map();
@@ -17959,7 +17960,7 @@ function fpEye(dt){
     if(key!==fpHeldKey){ if(fpHeldG){ fpFore.remove(fpHeldG); fpHeldG=null; }
       if(b){ fpHeldG=heldModel(b); fpLayer(fpHeldG); fpFore.add(fpHeldG); } fpHeldKey=key; }
     /* at rest the hand is carried forward at the right of the view; the blow swings it down and back */
-    const t=performance.now()*0.001, mv=(Math.abs(w.sp||0)>0.5)?1:0;
+    const t=performance.now()*0.001, mv=(state.mode==='walk'?w.moving:state.deck&&state.deck.moving)?1:0;
     let sw=0; if(MINE.on) sw=Math.max(0,Math.sin(t*3.1*Math.PI*2)); else if(swingT>0) sw=Math.sin((1-swingT/0.3)*Math.PI);
     fpPivot.position.set(2.15,-2.05+Math.sin(t*7)*0.08*mv,-3.1);
     fpPivot.rotation.set(1.6-sw*0.9,0.28+sw*0.25,0.12);
