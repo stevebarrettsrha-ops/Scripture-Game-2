@@ -11776,20 +11776,34 @@ function hideBlooms(){ for(const b of BLOOMS) if(b.m) b.m.visible=false; }
    in the ground), a step of one block at most, the blocks over that floor clear for the height of its
    body, and the houses, the wells and the stalls barring it as they bar the townsfolk. */
 const BEAST_BOX=Object.create(null);
+/* the points of its footprint, turned to its bearing: three across (its flanks and its middle) by three along
+   (its haunch, its middle and its head) */
+const _bfp=new Float32Array(2*64);
+let _bfn=0;
+function beastFoot(a,x,z,heading){
+  const bx=BEAST_BOX[a.kind]||{x0:-1,x1:1,z0:-2,z1:2,ht:B};
+  /* (the grid is as fine as it must be that no block can lie between two of its points: a goat is three by
+     three, an elephant three by seven) */
+  if(!bx.pts){ const nx=Math.max(3,Math.ceil((bx.x1-bx.x0)*0.9/(B*0.8))+1), nz=Math.max(3,Math.ceil((bx.z1-bx.z0)*0.9/(B*0.8))+1);
+    bx.pts=[]; for(let i=0;i<nx;i++) for(let j=0;j<nz;j++) if(bx.pts.length<128)
+      bx.pts.push(bx.x0*0.9+(bx.x1-bx.x0)*0.9*i/(nx-1), bx.z0*0.92+(bx.z1-bx.z0)*0.92*j/(nz-1)); }
+  const c=Math.cos(heading), s=Math.sin(heading), L=bx.pts;
+  _bfn=L.length;
+  for(let k=0;k<L.length;k+=2){ const lx=L[k], lz=L[k+1]; _bfp[k]=x+lx*c+lz*s; _bfp[k+1]=z-lx*s+lz*c; }
+  return _bfp;
+}
 function beastFloor(a,x,z,heading,refY,cap){
-  const bx=BEAST_BOX[a.kind]||{len:B,ht:B}, h=bx.len*0.42, sx=Math.sin(heading)*h, sz=Math.cos(heading)*h;
-  let y=-Infinity, land=true;
-  for(const k of [-1,0,1]){ const g=groundInfo(x+sx*k,z+sz*k,refY+0.1); if(!g.land){ land=false; continue; }
-    /* (ground over `cap` is a wall in front of it, not a floor under it — the stride is refused at it, and
-       a beast standing still is not hoisted up onto a terrace by the tip of its nose) */
-    if(cap!==undefined&&g.y>cap) continue;
+  const P=beastFoot(a,x,z,heading);
+  let y=-Infinity, land=true, over=false;
+  for(let k=0;k<_bfn;k+=2){ const g=groundInfo(P[k],P[k+1],refY+0.1); if(!g.land){ land=false; continue; }
+    if(cap!==undefined&&g.y>cap){ over=true; continue; }
     if(g.y>y) y=g.y; }
-  return {y,land};
+  return {y,land,over};
 }
 function beastClear(a,x,z,heading,fy){
-  const bx=BEAST_BOX[a.kind]||{len:B,ht:B}, h=bx.len*0.42, sx=Math.sin(heading)*h, sz=Math.cos(heading)*h;
-  const y0=Math.floor((fy+0.3)/B), y1=Math.floor((fy+Math.max(B*0.6,bx.ht*0.9))/B);
-  for(const k of [-1,0,1]){ const ix=Math.floor((x+sx*k)/B), iz=Math.floor((z+sz*k)/B);
+  const bx=BEAST_BOX[a.kind]||{ht:B}, P=beastFoot(a,x,z,heading);
+  const y0=Math.floor((fy+0.3)/B), y1=Math.floor((fy+Math.max(B*0.6,bx.ht*0.92))/B);
+  for(let k=0;k<_bfn;k+=2){ const ix=Math.floor(P[k]/B), iz=Math.floor(P[k+1]/B);
     for(let iy=y0;iy<=y1;iy++) if(blockSolidAt(ix,iy,iz)||isLiquid(blockAt(ix,iy,iz))) return false; }   /* (nor into a well) */
   return true;
 }
@@ -11832,8 +11846,12 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       a.dead=0; a.den=null; a.act=null; a.burst=0; a.fear=0; a.panicT=0; a.ph=Math.random()*6.283;
       a.m.rotation.set(0,0,0);
       /* (the size of its body, measured once a kind off the beast itself, for the blocks it may not enter) */
-      if(!BEAST_BOX[kind]){ a.m.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(a.m), sz=bb.getSize(new THREE.Vector3());
-        BEAST_BOX[kind]={len:Math.min(B*4,Math.max(sz.x,sz.z)), ht:Math.min(B*3,Math.max(1,sz.y))}; }
+      if(!BEAST_BOX[kind]){ a.m.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(a.m), p0=a.m.position;
+        /* its OWN extents about the point it stands on — a beast is not centred there: the head and the trunk
+           run on well in front, and an elephant is as broad as a block */
+        const cl=v=>Math.max(-B*3,Math.min(B*3,v));
+        BEAST_BOX[kind]={x0:cl(bb.min.x-p0.x), x1:cl(bb.max.x-p0.x), z0:cl(bb.min.z-p0.z), z1:cl(bb.max.z-p0.z),
+          ht:Math.min(B*3,Math.max(1,bb.max.y-p0.y))}; }
       a.gy=undefined;
       /* ---- UP THE TREE, IF THAT IS WHERE IT LIVES ----
          Set at the true crown height of the tree standing on its own cell,
@@ -11863,7 +11881,7 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       if(!a.upTree){ let ok=false;
         for(let k=0;k<8&&!ok;k++){ const hd=k*Math.PI/4+Math.random()*0.5;
           const fl=beastFloor(a,a.x,a.z,hd,sp.y+B*0.3,sp.y+B*1.05);
-          if(fl.land&&fl.y>-1e8&&beastClear(a,a.x,a.z,hd,fl.y)){ a.heading=hd; a.gy=fl.y; ok=true; } }
+          if(fl.land&&!fl.over&&fl.y>-1e8&&beastClear(a,a.x,a.z,hd,fl.y)){ a.heading=hd; a.gy=fl.y; ok=true; } }
         if(!ok){ if(a.m)a.m.visible=false; hideYoung(a); a.set=false; continue; } }
       /* ---- AND WHETHER IT OWNS A BED, AND THE HOUR IT TAKES TO IT ----
          §2.3.6 promises that "a beast with a home WALKS TO IT at dusk". Sixty
@@ -12289,9 +12307,9 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
          does — the goat and the chamois still go where the slope is a staircase, a block at a time) */
       const stepH=Math.min(B*1.05,B*(window.BEHAVIOR?BEHAVIOR.climbOf(a.kind):1.0));
       const hd=Math.atan2(dx,dz), gy0=(a.gy!==undefined)?a.gy:(c?c.h*B:WATER_Y);
-      const fN=beastFloor(a,nx,nz,hd,gy0+stepH);
+      const fN=beastFloor(a,nx,nz,hd,gy0+stepH,gy0+stepH);
       const rise=fN.y-gy0;
-      if(c&&fN.land&&rise<=stepH&&rise>-B*3.2&&beastMayStand(a.kind,c)&&beastClear(a,nx,nz,hd,fN.y)
+      if(c&&fN.land&&!fN.over&&fN.y>-1e8&&rise<=stepH&&rise>-B*3.2&&beastMayStand(a.kind,c)&&beastClear(a,nx,nz,hd,fN.y)
         &&!blockedByStructureNPC(nx,nz)&&!blockedBySolid(nx,nz,1.0)
         &&!landmarkSolidAt(nx,nz,fN.y+2,fN.y+8)){   /* no beast strides through the masonry either */
         a.x=nx; a.z=nz; a.heading=hd; a.stuck=0; a.gy=fN.y; }
@@ -12309,7 +12327,8 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
         const reach=26+Math.random()*34;
         a.tx=a.x+Math.sin(away)*reach; a.tz=a.z+Math.cos(away)*reach;
         /* (and it does not turn its nose into the rock it is standing against) */
-        if(beastClear(a,a.x,a.z,away,a.gy!==undefined?a.gy:(c?c.h*B:WATER_Y))) a.heading=away;
+        { const gyA=a.gy!==undefined?a.gy:(c?c.h*B:WATER_Y), fA=beastFloor(a,a.x,a.z,away,gyA+B*0.3,gyA+B*1.05);
+          if(!fA.over&&beastClear(a,a.x,a.z,away,gyA)) a.heading=away; }
         a.jt=Math.max(a.jt,0.6);
         /* and if it has been penned a long while, it gives up that ground and
            looks for another spot of its own country altogether */
@@ -12363,9 +12382,9 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
        leaves the ground and a walking elephant truly does not. */
     const GT=tickGait(a,a.kind,moving?spd:0,dt);
     /* it stands on the highest floor under its whole length — never with a part of it in the ground */
-    { const g0=(a.gy!==undefined?a.gy:(c2?c2.h*B:WATER_Y));
+    if(a.gy===undefined||a._gx!==a.x||a._gz!==a.z){ const g0=(a.gy!==undefined?a.gy:(c2?c2.h*B:WATER_Y));
       const f2=beastFloor(a,a.x,a.z,a.heading||0,g0+B*0.3,g0+B*1.05);
-      a.gy=f2.y>-1e8?f2.y:(c2?c2.h*B:WATER_Y); }
+      a.gy=f2.y>-1e8?f2.y:(c2?c2.h*B:WATER_Y); a._gx=a.x; a._gz=a.z; }
     a.m.position.set(a.x,a.gy+lift+(GT?Math.max(0,GT.rise):0),a.z);
     a.m.rotation.y=a.heading; a.m.rotation.x=lean; a.m.rotation.z=roll;
     /* ---- THE BREATH IN THE BODY ----
@@ -20126,7 +20145,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
   /* ---- THE BODY'S OWN STEP, FOR THE WALK FUZZER (Round 136) ----
      The walk run frame by frame without drawing, the keys it reads, and the block truth it is judged by */
   walkTick:dt=>walkTick(dt), keys, blockSolidAt, cellAt:(ix,iz)=>cell(ix,iz),
-  walkUnstuck:()=>walkUnstuck, bodyInBlocks:(x,fy,z,lo,hi)=>bodyInBlocks(x,fy,z,lo,hi),
+  walkUnstuck:()=>walkUnstuck, bodyInBlocks:(x,fy,z,lo,hi)=>bodyInBlocks(x,fy,z,lo,hi), BEAST_BOX,
   caveAt:(x,z)=>window.CAVES?CAVES.regionAt(x,z):0,
   caveSeeds:()=>RANGES.map(g=>({ix:Math.floor(g.x/B),iz:Math.floor(g.z/B)})),
   lightTorch:on=>{ setTorch(on); TORCH.s=on?1:0; TORCH_S.value=on?1:0;

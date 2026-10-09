@@ -11483,8 +11483,17 @@ by walking into it.
   lies on it, the eye comes in to just short of it at once, with no easing. Before, the eye eased toward
   its target and spent the frames of every swing or corner on the far side of the stone. That gave the
   views of the underside of the world and of ore in the strata that came with the report.
-- **Wild beasts have bodies.** Each kind's length and height are measured once from the beast itself. A
-  beast stands on the highest floor under its back, middle and nose, so no part of it is in the ground.
+
+  A probe walked him for 260 frames with the camera swung and drawn in and out at random, in Yasharal's
+  town and at two cave mouths, counting frames where the eye was inside a block or a block stood
+  between his head and it. Before: 3 + 4 in the town, 7 + 53 at the first cave, 0 + 136 at the second.
+  After: 0 in all three.
+- **Wild beasts have bodies.** Each kind's own extents are measured once from the beast itself, about the
+  point it stands on. A beast is not centred there: a zebra's head runs five units ahead and its haunch
+  four behind, and an elephant's trunk fifteen ahead. Its footprint is sampled as a grid fine enough that
+  no block can lie between two points (a goat three by three, an elephant three by seven). It stands on
+  the highest floor under that footprint, so no part of it is in the ground, and ground more than a
+  block over its feet anywhere under it refuses the stride.
   It takes at most a block in a stride (the goat's old two and a half is gone). Its body height over
   that floor must be clear of blocks and of water. The houses, wells and stalls bar it as they bar the
   townsfolk; before, wild beasts were asked only about the procedural ground under their middle, so a
@@ -11492,6 +11501,18 @@ by walking into it.
   it, and a beast is set down facing a bearing its whole body is clear on, or the spot is given up. Its
   slot used to keep whatever bearing it last had, so on a mountainside beasts were born with their
   noses in the slope.
+
+  Measured with each beast's own drawn body: points through its torso, neck and head (the upper half,
+  so a lying beast's belly is not counted), turned and placed exactly as drawn, about 700 beasts a site.
+  "Deep" means more than a quarter of a block inside the rock.
+
+  | site | old: any part / deep | new: any part / deep |
+  |---|---|---|
+  | Yasharal | 15% / 1.9% | 0% / 0% |
+  | a mountain range in Iran | 41% / 7.7% | 4.3% / 0% |
+  | the Cape | 52% / 14.4% | 8.1% / 0% |
+
+  What is left are flanks brushing a block's edge by less than a quarter of a block.
 - **Water is waded.** A water block is no longer solid to anything:
   - He walks into a well, a trough, a channel or a poured bucket and stands on its bed.
   - The water holds him back (about half speed). Over his chest he barely sinks and treads water.
