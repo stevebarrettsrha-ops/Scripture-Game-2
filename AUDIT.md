@@ -11375,6 +11375,78 @@ Mine craft)".
 - For tools, `__VDBG.seabedDepth` gives the height of the sea bed at any point, so a test can
   place a diver over water deep enough to swim in.
 
+## 4eh. Round 135 — the rest of the VoxelCraft list
+
+The traveller asked which items on the VoxelCraft adoption list were still undone, then said "do
+all of them and show me screenshots". These are the eight that were undone or only part done.
+
+- **The colour of the light.** The people, the beasts and every Lambert-lit thing were lit by a
+  white sun at every hour and a white moon. Now the sun's light is orange (1.0, 0.5, 0.22) as it
+  touches the horizon and whitens to (1.0, 0.96, 0.88) as it climbs. By night the moon's light is
+  a cool blue (0.55, 0.66, 1.0). The light from the whole sky takes the sky's own colour: horizon
+  and zenith mixed, brought up to full brightness and eased a third of the way to white. The
+  ground throws back a warm brown (0.45, 0.38, 0.3) from below. A storm greys both lights.
+- **The sky's colours are VoxelCraft's exactly:**
+  - by day, the horizon `#c9e0f2` under the zenith `#3b78d6`;
+  - at sunset, the horizon pulled half-way to `#f29a62`, the zenith a third of the way to
+    `#40508a`, and the `#ff7a3a` glow on the sun's side;
+  - by night, `#0b1226` under `#01030a`.
+
+  The formula is VoxelCraft's too (night to day by the light, then the sunset laid over it). The
+  fog takes the horizon colour, so far land still melts into the sky.
+- **The filmic finish (ACES).** The last pass now runs three.js's ACES fit at VoxelCraft's
+  exposure of 1.08. The picture is taken out of display gamma first and put back after. Shadows
+  sit a little deeper, the middle tones a little brighter, and highlights roll over instead of
+  cutting flat to white. The older S-curve is eased from 0.20 to 0.06 while ACES is on, so the
+  contrast is not doubled. By night the eye adapts: ACES's toe crushed a moonlit field and the
+  traveller in it nearly to black, so after dusk ACES runs at just over half strength and the
+  exposure rises by half a step. `__POST.aces=0` turns ACES off; the **✨ Look** button turns the
+  whole finish off as before.
+- **Light lying in the air (volumetric shafts).** The frame now keeps its depth. At a quarter of
+  the picture's size, every point marches 24 staggered steps from the eye toward what it shows,
+  up to 600 units (about a hundred blocks; the open sky gets the full 600). At each step it asks
+  the sun's shadow map whether the sun reaches that bit of air. The lit air sends back light by a
+  Henyey–Greenstein phase with g = 0.6, so it is strongest toward the sun but there whichever way
+  the eye looks. The result is softened and added in the sun's colour. Like VoxelCraft, it is
+  strongest at sunset, with strength (0.42 + 0.7 × sunset). It runs only while the sun casts
+  shadows: not at night, in a storm, under the water or in the firmament view. This means beams
+  between trees show even with the sun behind the eye or off to the side, where the screen-space
+  shafts of Round 133 cannot reach. `__POST.vol=0` turns it off.
+- **The hand lags a turn, and a new item rises.** In first person, the hand now trails a turn
+  and swings back after it, and follows a look up or down a moment late. This uses VoxelCraft's
+  numbers (clamped to ±0.25 and dying away at e^(−8t)). It is driven by the turn itself, so a
+  drag, a key and a touch all move it the same way. Taking a new thing in hand drops the hand
+  out of view and raises it again over a fifth of a second. From the shoulder, the arm drops to
+  his side and comes back up, and the tool grows into the hand.
+- **Hurt.** A shark's strike, or the breath giving out under the water, now shows a red shade
+  at the edges of the view (VoxelCraft's inset glow, `rgba(200,0,0,.75)`). It appears at once
+  and fades over half a second. The words of the hurt are still the toast, as before.
+- **The snow line is ragged.** Every mountain wore a cap cut level all the way round. The snow
+  line now wanders about a sixth of its height either way on a broad noise, so tongues of snow
+  run down and bare ridges stand above it. A block or two of jitter per column breaks the edge
+  into patches. A researched snowcap (the Hida, Paektu) has the same ragged edge on its crest
+  instead of a ruled ring.
+- **The grid, as a choice.** The works page has a new switch, **☰ the ledger** or **▦ the grid**,
+  and the choice is remembered on this computer. The grid is three by three:
+  - What is laid on it comes out of the satchel. What is left goes back when the page is shut,
+    and is saved with the game meanwhile.
+  - Each of the 21 works now has a shape in `world/works.js`, such as the pick
+    `FFF / .P. / .P.` and the furnace a ring of brick. A cell takes an equal share of its
+    material each time, so the altar's twelve stones in six cells are two to a cell.
+  - A shape matches wherever it lies on the grid, and mirrored. It is the same work as the
+    ledger's: the same fire, the same tool in the hand, and the same refusal. Dressed stone laid
+    in the altar's shape is refused, in the words of Shemoth 20:25.
+  - A touch on a cell lays one of what is picked up; shift lays the whole stack. A touch on a
+    laid cell takes it back.
+  - A touch on the result makes it once; **shift makes as many as the grid holds**.
+  - In grid mode the ledger becomes a book of shapes: a row lays its work out on the grid
+    (shift lays as many makings as the satchel holds).
+- **Shift-click elsewhere on the page.** On a ledger row, shift makes the work as many times as
+  the satchel allows. On a satchel token, shift sends it straight between the satchel and the
+  belt. The controls book lists both.
+- A small bug fixed while in there: with nothing picked up, every token in **The Stores** (free
+  hand) was drawn with the "picked" outline. The test read `-1 === -1`.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

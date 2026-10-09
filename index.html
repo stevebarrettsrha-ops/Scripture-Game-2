@@ -64,7 +64,7 @@
      Parchment, a gold rule, and a lettered initial. Not a grid of grey. */
   #page{ position:fixed; z-index:9; inset:0; display:none;
     background:rgba(4,6,12,.72); align-items:center; justify-content:center; }
-  #page-in{ width:min(78vw,560px); padding:3vmin 3.4vmin 2.4vmin;
+  #page-in{ width:min(78vw,560px); padding:3vmin 3.4vmin 2.4vmin; max-height:96vh; overflow-y:auto;
     border-radius:.6vmin; border:.22vmin solid #8d7648;
     background:linear-gradient(180deg,#efe4c8,#dcceac);
     box-shadow:0 2vmin 6vmin rgba(0,0,0,.7), inset 0 0 4vmin rgba(160,132,80,.25);
@@ -109,6 +109,27 @@
   #page-works .wk.refused .of{ color:#8a2f24; }
   #page .tok{ width:6.4vmin; height:6.4vmin; }
   #page .tok.pick{ outline:.3vmin solid #8a2f24; outline-offset:.2vmin; }
+  /* THE GRID — a choice on the page (Round 135): the ledger, or three by three */
+  #page-mode{ display:flex; justify-content:center; gap:1.2vmin; margin:-.4vmin 0 1vmin; }
+  #page-mode span{ font-size:1.7vmin; font-style:italic; letter-spacing:.12em; color:#6b5a38;
+    cursor:pointer; padding:.25vmin 1vmin; border-radius:.5vmin; pointer-events:auto; }
+  #page-mode span.on{ color:#8a2f24; background:rgba(138,47,36,.10); }
+  #page-craft,#page-craft-help{ display:none; }
+  body.gridmode #page-craft{ display:flex; align-items:center; justify-content:center; gap:2.2vmin; margin:.2vmin 0 .8vmin; }
+  body.gridmode #page-craft-help{ display:block; text-align:center; font-size:1.45vmin; font-style:italic;
+    letter-spacing:.06em; color:#6d5c39; margin-bottom:1vmin; }
+  body.gridmode #page-works{ max-height:18vh; }
+  #page-craft .g3{ display:grid; grid-template-columns:repeat(3,auto); gap:.6vmin; padding:.8vmin;
+    border-radius:.8vmin; background:rgba(74,60,34,.14); }
+  #page-craft .arrow{ font-size:3.6vmin; color:#8d7648; }
+  #page-craft .res{ display:flex; flex-direction:column; align-items:center; gap:.6vmin; width:17vmin; }
+  #page-craft .res .tok{ width:7.6vmin; height:7.6vmin; }
+  #page-craft .res .tok.ready{ border-color:var(--gold); box-shadow:0 0 1.3vmin rgba(232,198,106,.55),
+    inset 0 .25vmin .5vmin rgba(255,236,200,.4), 0 .5vmin 1vmin rgba(0,0,0,.6); }
+  #page-craft .res .tok.no{ opacity:.5; }
+  #page-craft .res .tok.refused{ outline:.3vmin solid #8a2f24; outline-offset:.2vmin; opacity:.7; }
+  #page-craft .res .why{ font-size:1.55vmin; font-style:italic; color:#6b5a38; text-align:center; min-height:2vmin; }
+  #page-craft .res .why.refused{ color:#8a2f24; }
   #hint{ left:50%; bottom:1.6vh; transform:translateX(-50%); font-size:clamp(9px,1.4vmin,12px);
     letter-spacing:.16em; color:#6a6252; white-space:nowrap; }
   /* THE BUTTON RAIL IS BOUNDED. It grew upward from the foot of the screen
@@ -187,6 +208,8 @@
   /* THE BREATH BAR KEEPS CLEAR OF THE WORDS. It sat at 20vh, square on top of
      the place-line at 19vh, and covered the depth reading whenever the diver
      was under. It rides BELOW the place-line now, on the same centre axis. */
+  #hurt{ position:fixed; inset:0; z-index:5; pointer-events:none; opacity:0;
+    box-shadow:inset 0 0 160px 40px rgba(200,0,0,.75); }
   #breath{ position:fixed; z-index:6; left:50%; bottom:16.5vh; transform:translateX(-50%);
     margin-left:-11vw;
     width:min(40vw,240px); height:10px; border:1px solid rgba(232,198,106,.55); border-radius:5px;
@@ -627,6 +650,7 @@
     <span class="k">right-click / V</span><span class="v">lay the block in your hand against the face you are looking at</span>
     <span class="k">1 &ndash; 8</span><span class="v">take up a token from the belt at the foot of the screen</span>
     <span class="k">I</span><span class="v">the satchel &mdash; and THE WORKS: planks from timber, tools of flint, a kiln, brick, glass and more</span>
+    <span class="k">&#8679; + click</span><span class="v">on the page: a thing straight between satchel and belt &middot; a work made as many times as you can &middot; or choose &ldquo;&#9638; the grid&rdquo; and lay the works out three by three</span>
     <span class="k">T</span><span class="v">strike a torch in the left hand, and put it out &mdash; the caves and the shafts are dark</span>
     <span class="k">&mdash;</span><span class="v"><i>You set out with a flint pick and a flint axe. Rock will not give to bare hands. Dig DOWN: earth, then stone, then the dark deep stone, to the foundations of the earth fifty courses under the sea. Emerald lies high in the mountains; bitumen and copper through the hills; iron about the sea&rsquo;s level; sapphire, silver and gold below; ruby, topaz and diamond at the very bottom &mdash; and diamond wants a pick of IRON. Under every land the caves run deep beneath the sea&rsquo;s level, with the ore in their walls: look on the plains for a RAVINE &mdash; a narrow cut in the ground &mdash; and walk down it, torch lit, into the galleries at its foot.</i></span>
   </div></div>
@@ -775,6 +799,9 @@ window.__MENUUI=(function(){
     <div id="page-foot">the belt — what the hand can reach</div>
     <div id="page-rule"></div>
     <div id="page-head2"><span class="cap">T</span><span class="ttl">he Works</span></div>
+    <div id="page-mode"></div>
+    <div id="page-craft"></div>
+    <div id="page-craft-help">a touch lays one of what you hold · ⇧ lays it all · ⇧ on what it makes, makes all it can</div>
     <div id="page-works"></div>
     <div id="page-rule3"></div>
     <div id="page-head3"><span class="cap">T</span><span class="ttl">he Stores</span></div>
@@ -787,6 +814,7 @@ window.__MENUUI=(function(){
   <canvas id="mini" width="280" height="280"></canvas>
 </div>
 <div id="breath"><div id="breath-fill"></div></div>
+<div id="hurt"></div>
 <div id="joy"><div id="joyk"></div></div>
 <div id="flypad"><button id="fp-up" class="fpb">▲</button><button id="fp-dn" class="fpb">▼</button></div>
 <div id="cine"><div class="bar t"></div><div class="bar b"></div>

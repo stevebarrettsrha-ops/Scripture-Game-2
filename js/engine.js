@@ -1892,8 +1892,8 @@ function rangeShapeAt(x,z){
     const jag=ridgeNoise(x*0.0042+g.sd, z*0.0042-g.sd);
     const u=g.peak*broad*(0.22+0.78*Math.pow(jag, g.style==='stony'?1.1:1.5));
     if(u>up){ up=u; cliff=(g.style==='cliff')?broad:0;
-      /* a researched snowcap whitens the upper crests only */
-      snowTop=g.snowcap&&u>g.peak*0.72; }
+      /* a researched snowcap whitens the upper crests only — down to a RAGGED edge, never a ruled ring */
+      snowTop=g.snowcap&&u>g.peak*(0.72+(fbm(x*0.011+g.sd,z*0.011-g.sd)-0.5)*0.18+(hash2(x*0.37,z*0.37)-0.5)*0.035); }
     /* the caves: slot canyons where the vein-field pinches to nothing */
     const vein=1-Math.abs(2*fbm(x*0.0058-g.sd*2, z*0.0058+g.sd*2)-1);
     if(vein>0.84&&broad>0.2){ const c=(vein-0.84)/0.16*14*Math.min(1,broad*1.7);
@@ -2277,7 +2277,12 @@ function cellRaw(ix,iz){
      to 1,800 m in the Alps, to 3,000 m on Kilimanjaro. */
   const snowLine=Math.max(3, 5000*(1-Math.pow(Math.min(1,Math.abs(lat)/78),1.6))/MTN_M_PER_BLOCK);
   const treeLine=snowLine*0.62;
-  const snow = lat>72 || lat<-55 || h>snowLine || !!(rs&&rs.snowTop);
+  /* AND THE SNOW'S EDGE IS RAGGED. It stood at one height all round a mountain, so every peak wore a
+     cap cut level with a rule. Tongues of it run down the gullies and the shaded sides, the windward
+     ridges stand bare above it, and cell by cell the last of it lies in patches: the line wanders a
+     sixth of its height either way, and a block or two more at every step */
+  const snowEdge=snowLine*(1+(fbm(ix*.045+311,iz*.045-97)-0.5)*0.34)+(hash2(ix*0.71+5,iz*0.71-3)-0.5)*3;
+  const snow = lat>72 || lat<-55 || h>snowEdge || !!(rs&&rs.snowTop);
   const tundra = !snow && lat>58 && lat<=72;
   const alpine = !snow && !tundra && h>treeLine;
   const desert = !alpine && lat>11 && lat<36 && n2>0.42 && inland>0.5;
@@ -6909,7 +6914,7 @@ function gradeHaze(px,pz,dayF,storm){
    deck, the haze of a country, the outer darkness at the world's rim, the
    flash of a bolt) takes the vault with it: the further the sky is pulled
    from the hour's own colour, the more the vault is pulled flat to it. */
-const SKYDOME={ hor:new THREE.Color(0x9fc5e8), dayF:1 };
+const SKYDOME={ hor:new THREE.Color(0xc9e0f2), top:new THREE.Color(0x3b78d6), dayF:1 };
 { const geo=new THREE.SphereGeometry(1000,48,24);
   const U={ uHor:{value:new THREE.Color()}, uTop:{value:new THREE.Color()}, uSet:{value:new THREE.Color(0xff7a3a)},
     uSetAmt:{value:0}, uSunDir:{value:new THREE.Vector3(0,1,0)}, uSunCol:{value:new THREE.Color(1,0.9,0.7)}, uSunUp:{value:0}, uFlat:{value:0} };
@@ -6942,7 +6947,7 @@ const SKYDOME={ hor:new THREE.Color(0x9fc5e8), dayF:1 };
     const bg=scene.background; if(!bg||!bg.isColor){ dome.visible=false; HZ_U.uHzFlat.value=1; return; } dome.visible=true;
     const f=SKYDOME.dayF;
     /* the zenith of the hour: night's black-blue, the violet over a sunset, noon's deep blue */
-    _top.copy(mix3(0x02040e,0x40508a,0x3b78d6,f));
+    _top.copy(SKYDOME.top);   /* (the hour's, from skyTick) */
     /* how far the sky is taken from the hour's own: a storm's deck, the outer darkness at the rim, a bolt,
        the eye under the water (a country's haze only tints the horizon, which the vault takes from the sky) */
     const pull=Math.min(1,Math.max((SKYDOME.storm||0)*0.9,SKYDOME.voidF||0,boltFlash*0.6,_eyeSub||0));
@@ -7072,7 +7077,8 @@ const SHADOW={ on:!((window.__INJECT||{}).noShadow), size:2048, R:480 };
    a little more colour, a gentle curve through the middle tones, the shadows a breath cooler and the
    lights a breath warmer, and the corners a little darker, as a lens leaves them.
    POST.on=false (or __INJECT.noPost) draws straight to the screen, as before. */
-const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14, curve:0.20, vig:0.26, rays:1.3, rayGain:8 };
+const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14, curve:0.20, vig:0.26, rays:1.3, rayGain:8,
+  aces:1, expo:1.08, acesCurve:0.06, vol:1, volGain:2.0 };
 { const VS='varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }';
   const qs=new THREE.Scene(), qc=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
   const quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2)); quad.frustumCulled=false; qs.add(quad);
@@ -7111,9 +7117,46 @@ const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14,
          whole disc is bright, and drawn out at that strength it would only be a great blur */
       vec3 s0=texture2D(t,sun).rgb; float opn=smoothstep(0.35,0.9,max(s0.r,max(s0.g,s0.b)));
       gl_FragColor=vec4(acc*(gain*(1.0-0.8*opn)/28.0),1.0); }`);
+  /* ---- THE LIGHT LYING IN THE AIR ----
+     The shafts above are drawn on the picture, from where the sun is on it, so they are only there while
+     he is in front of the eye. Here they are found in the air itself: from the eye along the line of every
+     point of the picture, two dozen steps out to what that point shows (or a hundred blocks, for the open
+     sky), and at each step the sun's own map of shadows is asked whether he reaches it. The air that he
+     reaches gives back a little of his light toward the eye — most when the eye looks toward him, a
+     little whatever way it looks — so that standing in a wood at evening the beams lie between the trunks
+     and through the gaps of the leaves, even with the sun behind. (Worked at a quarter of the picture
+     and softened, as a light in the air is soft; the steps are staggered pixel by pixel, so two dozen
+     read as many.) */
+  const mVol=mk({dep:{value:null},sm:{value:null},invP:{value:new THREE.Matrix4()},camR:{value:new THREE.Matrix3()},
+    shM:{value:new THREE.Matrix3()},shO:{value:new THREE.Vector3()},sunD:{value:new THREE.Vector3(0,1,0)},
+    bias:{value:0.0001},maxL:{value:600},dens:{value:0.0015},g:{value:0.6}},`
+    uniform sampler2D dep, sm; uniform mat4 invP; uniform mat3 camR, shM; uniform vec3 shO, sunD;
+    uniform float bias, maxL, dens, g; varying vec2 vUv;
+    float ign(vec2 p){ return fract(52.9829189*fract(dot(p,vec2(0.06711056,0.00583715)))); }
+    void main(){
+      float d=texture2D(dep,vUv).x;
+      vec4 vp=invP*vec4(vUv*2.0-1.0,d*2.0-1.0,1.0); vp/=vp.w;
+      vec3 rd=camR*vp.xyz; float L=length(rd); rd/=max(L,1e-4); L=min(L,maxL);
+      float hg=(1.0-g*g)/pow(1.0+g*g-2.0*g*dot(rd,sunD),1.5);
+      float phase=hg*0.026+0.022;
+      float st=L/24.0, j=ign(gl_FragCoord.xy), lit=0.0;
+      for(int i=0;i<24;i++){
+        vec3 c=shO+shM*(rd*(st*(float(i)+j)));
+        float s=1.0;
+        if(c.x>0.0&&c.x<1.0&&c.y>0.0&&c.y<1.0&&c.z<1.0) s=step(c.z-bias,texture2D(sm,c.xy).r);
+        lit+=s; }
+      gl_FragColor=vec4(vec3((lit/24.0)*(1.0-exp(-L*dens))*phase),1.0); }`);
   const mComp=mk({t:{value:null},b1:{value:null},b2:{value:null},rays:{value:null},rayAmt:{value:0},rayCol:{value:new THREE.Color(1,0.9,0.7)},
+    vol:{value:null},volAmt:{value:0},aces:{value:0},expo:{value:1},
     bloom:{value:0.4},sat:{value:1.1},curve:{value:0.2},vig:{value:0.25}},`
-    uniform sampler2D t, b1, b2, rays; uniform float bloom, sat, curve, vig, rayAmt; uniform vec3 rayCol; varying vec2 vUv;
+    uniform sampler2D t, b1, b2, rays, vol; uniform float bloom, sat, curve, vig, rayAmt, volAmt, aces, expo; uniform vec3 rayCol; varying vec2 vUv;
+    /* the filmic finish (ACES, as three.js fits it): the shadows a little deeper, the middle a little
+       brighter, and the brightest rolled over softly where they would otherwise cut flat to white */
+    vec3 rrt(vec3 v){ vec3 a=v*(v+0.0245786)-0.000090537; vec3 b=v*(0.983729*v+0.4329510)+0.238081; return a/b; }
+    vec3 acesFit(vec3 c){
+      const mat3 IN=mat3(vec3(0.59719,0.07600,0.02840),vec3(0.35458,0.90834,0.13383),vec3(0.04823,0.01566,0.83777));
+      const mat3 OUT=mat3(vec3(1.60475,-0.10208,-0.00327),vec3(-0.53108,1.10813,-0.07276),vec3(-0.07367,-0.00605,1.07602));
+      return clamp(OUT*rrt(IN*(c*(expo/0.6))),0.0,1.0); }
     void main(){
       vec3 c=texture2D(t,vUv).rgb;
       c+=(texture2D(b1,vUv).rgb*0.7+texture2D(b2,vUv).rgb*1.0)*bloom;
@@ -7121,30 +7164,37 @@ const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14,
          over the open sky about the sun, already bright with him, they add little */
       if(rayAmt>0.001){ float self=smoothstep(0.55,0.95,max(c.r,max(c.g,c.b)));
         c+=texture2D(rays,vUv).rgb*rayCol*rayAmt*(1.0-0.7*self); }
+      if(volAmt>0.001) c+=texture2D(vol,vUv).rgb*rayCol*volAmt;
+      if(aces>0.001){ vec3 lc=pow(max(c,0.0),vec3(2.2)); c=mix(c,pow(acesFit(lc),vec3(1.0/2.2)),aces); }
       float l=dot(c,vec3(0.2126,0.7152,0.0722));
       c=max(mix(vec3(l),c,sat),0.0);
       c=clamp(c,0.0,1.0); c=mix(c,c*c*(3.0-2.0*c),curve);
       c*=mix(vec3(0.975,0.99,1.035),vec3(1.03,1.005,0.965),smoothstep(0.15,0.85,l));
       vec2 q=vUv-0.5; c*=1.0-vig*dot(q,q)*1.9;
       gl_FragColor=vec4(c,1.0); }`);
-  let ok=null, W=0, H=0, rtS=null, rtH=null, rtQ=null, rtQ2=null, rtE=null, rtE2=null, rtR=null;
+  let ok=null, W=0, H=0, rtS=null, rtH=null, rtQ=null, rtQ2=null, rtE=null, rtE2=null, rtR=null, rtV=null, rtV2=null, depOk=true;
+  const _m3=new THREE.Matrix3(), _shO=new THREE.Vector3();
   const _sp=new THREE.Vector3();
   const _sz=new THREE.Vector2();
   const lin={minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,generateMipmaps:false,depthBuffer:false,stencilBuffer:false};
   function size(){
     renderer.getDrawingBufferSize(_sz); const w=Math.max(1,_sz.x|0), h=Math.max(1,_sz.y|0);
     if(w===W&&h===H&&rtS) return; W=w; H=h;
-    for(const r of [rtS,rtH,rtQ,rtQ2,rtE,rtE2,rtR]) if(r) r.dispose();
+    for(const r of [rtS,rtH,rtQ,rtQ2,rtE,rtE2,rtR,rtV,rtV2]) if(r){ if(r.depthTexture) r.depthTexture.dispose(); r.dispose(); }
     /* the frame keeps its edges smooth: drawn many-sampled where the card can, as the screen itself is */
     if(renderer.capabilities.isWebGL2&&THREE.WebGLMultisampleRenderTarget){
       rtS=new THREE.WebGLMultisampleRenderTarget(W,H,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,generateMipmaps:false});
       rtS.samples=4; }
     else rtS=new THREE.WebGLRenderTarget(W,H,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,generateMipmaps:false});
+    /* (and keeps how far each point stands, for the light in the air) */
+    if(depOk&&(renderer.capabilities.isWebGL2||renderer.extensions.get('WEBGL_depth_texture'))){
+      rtS.depthTexture=new THREE.DepthTexture(W,H); rtS.depthTexture.type=THREE.UnsignedIntType; }
     const h2=[Math.max(1,W>>1),Math.max(1,H>>1)], q4=[Math.max(1,W>>2),Math.max(1,H>>2)], e8=[Math.max(1,W>>3),Math.max(1,H>>3)];
     rtH=new THREE.WebGLRenderTarget(h2[0],h2[1],lin);
     rtQ=new THREE.WebGLRenderTarget(q4[0],q4[1],lin); rtQ2=new THREE.WebGLRenderTarget(q4[0],q4[1],lin);
     rtE=new THREE.WebGLRenderTarget(e8[0],e8[1],lin); rtE2=new THREE.WebGLRenderTarget(e8[0],e8[1],lin);
-    rtR=new THREE.WebGLRenderTarget(q4[0],q4[1],lin); }
+    rtR=new THREE.WebGLRenderTarget(q4[0],q4[1],lin);
+    rtV=new THREE.WebGLRenderTarget(q4[0],q4[1],lin); rtV2=new THREE.WebGLRenderTarget(q4[0],q4[1],lin); }
   function pass(m,target){ quad.material=m; renderer.setRenderTarget(target); renderer.render(qs,qc); }
   function blur(a,b){ const w=a.width, h=a.height;
     mBlur.uniforms.t.value=a.texture; mBlur.uniforms.dir.value.set(1/w,0); pass(mBlur,b);
@@ -7169,9 +7219,23 @@ const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14,
           *(1-_ss(0.15,0.6,SKYDOME.storm||0))*(1-(_eyeSub||0))*(0.6+0.4*(1-_ss(0.6,1.0,SKYDOME.dayF)));
         if(ray>0.001){ mRays.uniforms.t.value=rtQ.texture; mRays.uniforms.gain.value=POST.rayGain; mRays.uniforms.sun.value.set(_sp.x*0.5+0.5,_sp.y*0.5+0.5);
           mRays.uniforms.asp.value=W/H; pass(mRays,rtR); } } }
+    /* the light in the air: while the sun throws shadows, strongest as he goes down (VoxelCraft's measure) */
+    let vol=0; const VU=mVol.uniforms;
+    if(POST.vol>0&&rtS.depthTexture&&SHADOW.rt&&SH_U.uShAmt.value>0.01){
+      const f=SKYDOME.dayF, setF=Math.max(0,1-Math.abs(f-0.42)/0.38);
+      vol=POST.vol*(0.42+0.7*setF)*Math.min(1,SH_U.uShAmt.value/0.6);
+      VU.dep.value=rtS.depthTexture; VU.sm.value=SHADOW.rt.depthTexture;
+      VU.invP.value.copy(camera.projectionMatrixInverse); VU.camR.value.setFromMatrix4(camera.matrixWorld);
+      VU.shM.value.setFromMatrix4(SH_U.uShMat.value); _shO.copy(camera.position).applyMatrix4(SH_U.uShMat.value); VU.shO.value.copy(_shO);
+      VU.sunD.value.copy(SKYDOME.U.uSunDir.value); VU.bias.value=SH_U.uShBias.value*2.0;
+      pass(mVol,rtV); blur(rtV,rtV2); }
     const U=mComp.uniforms; U.t.value=rtS.texture; U.b1.value=rtQ.texture; U.b2.value=rtE.texture;
     U.rays.value=rtR.texture; U.rayAmt.value=ray; U.rayCol.value.copy(SKYDOME.U.uSunCol.value);
-    U.bloom.value=POST.bloom; U.sat.value=POST.sat; U.curve.value=POST.curve; U.vig.value=POST.vig;
+    U.vol.value=rtV.texture; U.volAmt.value=vol*POST.volGain;
+    /* (and as the light goes the eye opens to it: the filmic toe would crush a moonlit field to black,
+       so by night it is laid on at a little over half strength and the exposure is raised a step) */
+    { const f=SKYDOME.dayF; U.aces.value=POST.aces*(0.55+0.45*_ss(0.1,0.5,f)); U.expo.value=POST.expo+0.5*(1-_ss(0.05,0.45,f)); }
+    U.bloom.value=POST.bloom; U.sat.value=POST.sat; U.curve.value=POST.aces>0?POST.acesCurve:POST.curve; U.vig.value=POST.vig;
     pass(mComp,null); };
   window.__POST=POST;
 }
@@ -7260,6 +7324,7 @@ function setLook(full,keep){
                'The fast look: no shadows, no reflections in the water, no glow — for a slower machine.'); }; }
 renderer.info.autoReset=false;
 function drawWorld(){ renderer.info.reset(); SKYDOME.tick(); SHADOW.tick(); REFLECT.tick(); POST.render(); }
+const _skyHor=new THREE.Color(0xc9e0f2);
 function skyTick(px,pz){
   /* ---- THE TWO GREAT LIGHTS, WHERE THEY TRULY ARE ----
      js/sun-moon.js is the whole law: each light's own circuit over the
@@ -7272,7 +7337,13 @@ function skyTick(px,pz){
   const dayF=SUNMOON.dayF(S.dUV);
   /* the horizon of the hour: at dusk a soft peach all round — the burning orange is the vault's,
      laid along the horizon on the side the sun is going down (THE VAULT OF THE SKY) */
-  let sky=mix3(0x0a1024,0xd9a07e,0x9fc5e8,dayF).getHex();
+  /* THE COLOURS OF A CLEAR SKY, the world over: the pale noon horizon #c9e0f2 under a deep #3b78d6
+     zenith; the blue-black #0b1226 of night under #01030a; and as the sun touches the rim the orange
+     #f29a62 laid along the horizon and the zenith drawn to violet #40508a (VOXELCRAFT'S, Round 135) */
+  const setF=Math.max(0,1-Math.abs(dayF-0.42)/0.38);
+  _skyHor.setHex(0x0b1226).lerp(_c2.setHex(0xc9e0f2),dayF).lerp(_c2.setHex(0xf29a62),setF*0.5);
+  SKYDOME.top.setHex(0x01030a).lerp(_c2.setHex(0x3b78d6),dayF).lerp(_c2.setHex(0x40508a),setF*0.35);
+  let sky=_skyHor.getHex();
   SKYDOME.dayF=dayF;
   const st=stormAt(px,pz); SKYDOME.storm=st;
   if(st>0.01){ _c1.setHex(sky); _c2.setHex(0x4c545e); sky=_c1.lerp(_c2,st*0.75).getHex(); }
@@ -7285,6 +7356,17 @@ function skyTick(px,pz){
   setBlockLight(l.r*dim,l.g*dim,l.b*dim);
   setIceLight(l.r*dim,l.g*dim,l.b*dim);
   hemi.intensity=0.35+dayF*0.6; dirL.intensity=0.15+dayF*0.45;
+  /* THE COLOUR OF THE LIGHT ITSELF. The people, the beasts and every lit thing were lit by a white
+     sun at every hour and a white moon. The sun's light is orange as it touches the rim and whitens
+     as he climbs; the moon's is a cool blue; and the light from the whole sky is the sky's own
+     colour (horizon and zenith together, made bright and eased toward white), with the warm brown
+     of the earth thrown back up from below. */
+  if(dayF>0.06) dirL.color.setRGB(1.0,0.5,0.22).lerp(_c2.setRGB(1.0,0.96,0.88),_ss(0.3,0.75,dayF));
+  else dirL.color.setRGB(0.55,0.66,1.0);
+  _c2.copy(_skyHor).lerp(SKYDOME.top,0.4); { const mx=Math.max(_c2.r,_c2.g,_c2.b,0.001); _c2.multiplyScalar(1/mx); }
+  hemi.color.copy(_c2).lerp(_c3.setRGB(1,1,1),0.35);
+  hemi.groundColor.setRGB(0.45,0.38,0.3);
+  if(st>0.01){ hemi.color.lerp(_c3.setRGB(0.8,0.82,0.86),st*0.7); dirL.color.lerp(_c3.setRGB(0.8,0.82,0.86),st*0.7); }
   cloudMat.opacity=0.35+dayF*0.5;
   starGroup.userData.mat.opacity=Math.max(0,1-dayF*1.6)*0.95;
   starGroup.rotation.y=-(state.simHours/24)*2*Math.PI;
@@ -9577,6 +9659,14 @@ function updateSquid(px,py,pz,dt,t){ initSquid(); for(const q of SQUIDS){
 const DOLPHINS=[], DOL_N=6, DOL_R=440;
 function initDolphins(){ if(DOLPHINS.length) return; for(let k=0;k<DOL_N;k++){ const m=makeBeast('dolphin'); m.visible=false; scene.add(m);
   DOLPHINS.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false}); } }
+/* ---- HURT ----
+   A blow (the shark's, or the breath giving out under the water) is felt at the edges of the eye: a red
+   shade that closes in at once and lets go over half a second (VoxelCraft's). The blow is told in words,
+   as every hurt in the game is; this is only the body knowing it. */
+function hurtFlash(){ const el=$('hurt'); if(!el) return;
+  el.style.transition='none'; el.style.opacity='1'; void el.offsetWidth;
+  el.style.transition='opacity 0.5s ease-out'; el.style.opacity='0'; }
+window.__hurtFlash=hurtFlash;
 function updateDolphins(px,py,pz,dt,t){ initDolphins();
   /* dolphins RIDE THE BOW when the ship runs fast — two peel off and race
      her flanks, arcing in her pressure wave, as they do on every real sea */
@@ -9659,6 +9749,7 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
           splash(w2.x,SEA_SURF+1,w2.z,true);
         }
         toast('The shark strikes!'+(lost?' It tears '+lost+' fish from your catch.':'')+' Make for the light of the surface.');
+        hurtFlash();
         saveState();
       }
     }
@@ -17958,14 +18049,27 @@ function fpEye(dt){
     let b=heldBlock(); if(!b&&freeHand()) b=BLOCK_BY_ID['iron-pick']||null;
     const key=b?b.id:null;
     if(key!==fpHeldKey){ if(fpHeldG){ fpFore.remove(fpHeldG); fpHeldG=null; }
-      if(b){ fpHeldG=heldModel(b); fpLayer(fpHeldG); fpFore.add(fpHeldG); } fpHeldKey=key; }
+      if(b){ fpHeldG=heldModel(b); fpLayer(fpHeldG); fpFore.add(fpHeldG); }
+      if(fpHeldKey!==undefined) fpSway.eq=0;         /* (a new thing in the hand comes up from below) */
+      fpHeldKey=key; }
+    /* the hand is a little behind the eye: turn, and it lags the turn and swings back after it; look
+       up or down, and it follows a moment late (VoxelCraft's measure, by the turn itself and not the mouse,
+       so a drag, a key and a touch all move it alike) */
+    const dy=Math.atan2(Math.sin(yaw-fpSway.yaw),Math.cos(yaw-fpSway.yaw)), dp=p-fpSway.p;
+    fpSway.yaw=yaw; fpSway.p=p;
+    if(Math.abs(dy)<0.6&&Math.abs(dp)<0.6){
+      fpSway.x=Math.max(-0.25,Math.min(0.25,fpSway.x-dy*0.55)); fpSway.y=Math.max(-0.25,Math.min(0.25,fpSway.y+dp*0.55)); }
+    const k=Math.exp(-8*dt); fpSway.x*=k; fpSway.y*=k;
+    fpSway.eq=Math.min(1,fpSway.eq+dt*5);
     /* at rest the hand is carried forward at the right of the view; the blow swings it down and back */
     const t=performance.now()*0.001, mv=(state.mode==='walk'?w.moving:state.deck&&state.deck.moving)?1:0;
     let sw=0; if(MINE.on) sw=Math.max(0,Math.sin(t*3.1*Math.PI*2)); else if(swingT>0) sw=Math.sin((1-swingT/0.3)*Math.PI);
-    fpPivot.position.set(2.15,-2.05+Math.sin(t*7)*0.08*mv,-3.1);
-    fpPivot.rotation.set(1.6-sw*0.9,0.28+sw*0.25,0.12);
+    const dip=1-fpSway.eq;
+    fpPivot.position.set(2.15-fpSway.x*1.2,-2.05+Math.sin(t*7)*0.08*mv-dip*dip*2.4+fpSway.y*0.6,-3.1);
+    fpPivot.rotation.set(1.6-sw*0.9+fpSway.y*0.6+dip*0.5,0.28+sw*0.25+fpSway.x*0.6,0.12);
   }
 }
+const fpSway={x:0,y:0,yaw:0,p:0,eq:1}; window.__FPSWAY=fpSway;
 function cameraTick(dt){
   if(cut){ sceneTick(dt); return; }
   /* ---- THE SLIDE ----
@@ -18602,7 +18706,7 @@ async function saveState(){
        given. The satchel is written slot by slot — the ORDER is his, he
        arranged it, and a save that re-sorted his belt would be a save that
        rearranged his hands. */
-    sa:SATCHEL.map(sl=>sl?[sl.id,sl.n]:0), sp:[...SPOKEN]});
+    sa:SATCHEL.map(sl=>sl?[sl.id,sl.n]:0), gr:GRID.map(sl=>sl?[sl.id,sl.n]:0), sp:[...SPOKEN]});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
 }
@@ -19276,6 +19380,9 @@ async function begin(fresh,roam){
        the block table is read by ID for exactly this reason. */
     if(saved.sa) for(let i=0;i<SATCHEL_N&&i<saved.sa.length;i++){ const e=saved.sa[i];
       SATCHEL[i]=(e&&BLOCK_BY_ID[e[0]]&&e[1]>0)?{id:e[0],n:Math.min(STACK,e[1])}:null; }
+    /* (and what was left lying on the grid, Round 135) */
+    if(saved.gr) for(let i=0;i<9&&i<saved.gr.length;i++){ const e=saved.gr[i];
+      GRID[i]=(e&&BLOCK_BY_ID[e[0]]&&e[1]>0)?{id:e[0],n:Math.min(STACK,e[1])}:null; }
     if(saved.sp) for(const k of saved.sp) SPOKEN.add(k); }
   else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5;
     /* ---- A NEW VOYAGE SETS OUT WITH A PICK AND AN AXE ----
@@ -21115,6 +21222,7 @@ const SPOKEN=new Set();            /* the substances whose word has been given *
    disagree, which is the bug that owns every inventory ever written. */
 const STACK=20, BELT_N=8, SATCHEL_N=32;
 const SATCHEL=new Array(SATCHEL_N).fill(null);   /* {id,n} or null */
+const GRID=new Array(9).fill(null);              /* what is laid on the grid of the page (THE GRID, below) */
 /* how many of a substance are held, all told */
 function satchelCount(id){ let k=0;
   for(const sl of SATCHEL) if(sl&&sl.id===id) k+=sl.n;
@@ -21237,6 +21345,21 @@ function takeUp(d){
    its verse. That is the difference between having read the account and
    having a crafting grid. */
 const WORK_DEFS=(window.EARTH&&EARTH.workList)||[];
+/* ---- AND ITS SHAPE, FOR THE GRID (Round 135) ----
+   A work may say how it is laid out on a three-by-three grid (world/works.js, `shape` and `key`). The
+   shape is read into cells, each with the share of its material it takes at one making; a shape whose
+   cells do not add up to what the work takes is dropped here, and the work is made from the ledger only. */
+function workShape(w,of){
+  const rows=w.shape;
+  if(!Array.isArray(rows)||!w.key||!rows.length||rows.length>3||!rows.every(r=>typeof r==='string'&&r.length<=3)) return null;
+  const wd=Math.max(...rows.map(r=>r.length)), ids=[], cnt=Object.create(null);
+  for(let y=0;y<rows.length;y++) for(let x=0;x<wd;x++){ const ch=rows[y][x]||' ';
+    if(ch===' '){ ids.push(null); continue; }
+    const id=w.key[ch]; if(!id||!of.some(q=>q.id===id)) return null;
+    ids.push(id); cnt[id]=(cnt[id]||0)+1; }
+  for(const q of of) if(!cnt[q.id]||q.c%cnt[q.id]) return null;
+  return {w:wd, h:rows.length, cells:ids.map(id=>id?{id, c:of.find(q=>q.id===id).c/cnt[id]}:null)};
+}
 const WORKS=[], WORK_BY_ID=Object.create(null);
 for(const w of WORK_DEFS){
   /* a work whose materials or product this build has not got is dropped at
@@ -21260,7 +21383,7 @@ for(const w of WORK_DEFS){
   if(!good||!of.length||!gives.length) continue;
   const rf=w.refuses&&blockId(w.refuses.id)?{...w.refuses,n:blockId(w.refuses.id)}:null;
   const rec={id:w.id, name:w.name||w.id, of, gives, at:w.at||null,
-             needs:w.needs||null, refuses:rf, verse:w.verse||null};
+             needs:w.needs||null, refuses:rf, verse:w.verse||null, shape:workShape(w,of)};
   WORKS.push(rec); WORK_BY_ID[w.id]=rec;
 }
 /* ---- IS HE STANDING AT A FIRE? ----
@@ -21612,9 +21735,10 @@ function heldTick(dt){
   const key=show&&b?b.id:null;
   if(key!==heldKey){
     if(heldG){ el.remove(heldG); heldG.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); heldG=null; }
-    if(key) { heldG=heldModel(b); el.add(heldG); }
+    if(key) { heldG=heldModel(b); el.add(heldG); if(heldKey) heldEq=0; }
     heldKey=key; }
   if(!show) return;
+  heldEq=Math.min(1,heldEq+dt*5);
   /* the blow: while the hand is on a block the arm rises and falls three
      times a second; a block laid is one quick stroke */
   swingT=Math.max(0,swingT-dt);
@@ -21629,13 +21753,16 @@ function heldTick(dt){
   } else if(heldG){
     /* at rest the tool is carried a little forward, not dangled */
     u.armR.rotation.x=Math.min(u.armR.rotation.x,-0.25+u.armR.rotation.x*0.4);
+    /* and a new thing taken in hand is brought up from his side */
+    if(heldEq<1){ u.armR.rotation.x*=heldEq; heldG.scale.setScalar(0.55+0.45*heldEq); } else heldG.scale.setScalar(1);
   }
 }
+let heldEq=1;
 /* one clay token, with the face of its substance fired into it */
 function tokenEl(slot,idx,inPage){
   const d=D.createElement('div');
   d.className='tok'+(slot?'':' bare')+(!inPage&&idx===heldSlot?' held':'')
-    +(inPage&&idx===pagePick?' pick':'');
+    +(inPage&&idx>=0&&idx===pagePick?' pick':'');
   if(slot){
     const b=BLOCK_BY_ID[slot.id];
     const t=b&&TEX[b.mTop];
@@ -21672,11 +21799,25 @@ function pageDraw(){
   /* the page holds the four-and-twenty; the strap beneath holds the eight,
      so a thing is moved down to the hand by two touches and no dragging —
      which is the only scheme that works the same with a finger and a mouse */
+  /* (shift and a click sends a thing straight between the satchel and the belt) */
   for(let i=BELT_N;i<SATCHEL_N;i++){ const t=tokenEl(SATCHEL[i],i,true);
-    t.onpointerdown=e=>{ e.preventDefault(); pageTouch(i); }; g.appendChild(t); }
+    t.onpointerdown=e=>{ e.preventDefault(); if(e.shiftKey) quickMove(i); else pageTouch(i); }; g.appendChild(t); }
   for(let i=0;i<BELT_N;i++){ const t=tokenEl(SATCHEL[i],i,true);
-    t.onpointerdown=e=>{ e.preventDefault(); pageTouch(i); }; b2.appendChild(t); }
-  worksDraw(); storesDraw();
+    t.onpointerdown=e=>{ e.preventDefault(); if(e.shiftKey) quickMove(i); else pageTouch(i); }; b2.appendChild(t); }
+  gridDraw(); worksDraw(); storesDraw();
+}
+/* ---- SHIFT AND A CLICK ----
+   A thing on the belt goes up into the satchel, and a thing in the satchel comes down to the belt, in
+   one click and no picking up: onto a part-filled stack of the same first, then into the first free
+   place; what will not go stays where it was. */
+function quickMove(i){
+  const s=SATCHEL[i]; if(!s) return;
+  const [a,b]=i<BELT_N?[BELT_N,SATCHEL_N]:[0,BELT_N];
+  let n=s.n;
+  for(let k=a;k<b&&n>0;k++){ const t=SATCHEL[k]; if(t&&t.id===s.id&&t.n<STACK){ const put=Math.min(n,STACK-t.n); t.n+=put; n-=put; } }
+  for(let k=a;k<b&&n>0;k++) if(!SATCHEL[k]){ SATCHEL[k]={id:s.id,n}; n=0; }
+  if(n>0) s.n=n; else SATCHEL[i]=null;
+  pagePick=-1; satchelTouch(); pageDraw(); beltDraw();
 }
 /* ---- THE STORES ----
    §11's "unlimited blocks", and the only honest reading of it: not a satchel
@@ -21730,12 +21871,138 @@ function worksDraw(){
     const of=D.createElement('span'); of.className='of';
     of.textContent=workLine(w,st);
     row.appendChild(nm); row.appendChild(of);
+    /* a click makes it once; shift and a click makes as many as the satchel will run to. On the grid
+       the ledger is the book of shapes instead: a click lays the work out on the grid from the satchel
+       (shift lays as many makings as it holds), so a man may see the shape and then make it there */
     row.onpointerdown=e=>{ e.preventDefault();
-      const r=workMake(w.id);
+      if(gridMode&&w.shape){ gridLay(w,e.shiftKey); pageDraw(); beltDraw(); return; }
+      const r=e.shiftKey?workMakeAll(w.id):workMake(w.id);
       if(r.ok||r.why==='refused'){ pageDraw(); beltDraw(); } else worksDraw(); };
+    if(gridMode&&w.shape) row.title='lay it out on the grid';
     el.appendChild(row);
   }
 }
+function workMakeAll(id){
+  let r=workMake(id), made=0;
+  while(r.ok&&made<64){ made++; r=workMake(id); }
+  return made?{ok:true,made}:r;
+}
+/* ================= THE GRID (a choice on the page, Round 135) =================
+   For a man who would rather lay a thing out than read it off a ledger: three by three, as the block
+   games have it. What is laid on it is taken out of the satchel, and what is left on it goes back when the
+   page is shut (and is kept with the satchel meanwhile, so nothing laid there is ever lost). A shape is
+   matched wherever it lies on the grid and either way about, and the work is the SAME work as the
+   ledger's — the same fire it wants, the same tool in the hand, the same refusal in the same words: dressed
+   stone laid out in the altar's shape is not an altar. A touch on a cell lays one of what is picked up
+   (so a shape is laid in a few touches), shift lays the whole of it; a touch on a laid cell takes it back.
+   A touch on what it makes makes it once; shift makes as many as the grid holds. */
+const GRID_KEY='voyage-grid';
+let gridMode=false, pickLaid=false; try{ gridMode=localStorage.getItem(GRID_KEY)==='1'; }catch(e){}
+function setGridMode(on){ gridMode=!!on; try{ localStorage.setItem(GRID_KEY,gridMode?'1':'0'); }catch(e){}
+  if(!gridMode) gridReturn(); D.body.classList.toggle('gridmode',gridMode); pageDraw(); beltDraw(); }
+function gridBox(){ let x0=3,y0=3,x1=-1,y1=-1;
+  for(let i=0;i<9;i++) if(GRID[i]){ const x=i%3, y=(i/3)|0; if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+  return x1<0?null:{x0,y0,w:x1-x0+1,h:y1-y0+1}; }
+/* which work lies on the grid, which way about, whether it is the refused stuff, and how many makings it holds */
+function gridMatch(){
+  const bx=gridBox(); if(!bx) return null;
+  for(const w of WORKS){ const S=w.shape; if(!S||S.w!==bx.w||S.h!==bx.h) continue;
+    for(const mir of [false,true]){ let ok=true, refused=false, times=Infinity;
+      for(let y=0;y<S.h&&ok;y++) for(let x=0;x<S.w&&ok;x++){
+        const want=S.cells[y*S.w+(mir?S.w-1-x:x)], have=GRID[(bx.y0+y)*3+bx.x0+x];
+        if(!want){ if(have) ok=false; continue; }
+        if(!have){ ok=false; continue; }
+        if(have.id===want.id) times=Math.min(times,Math.floor(have.n/want.c));
+        else if(w.refuses&&have.id===w.refuses.id&&w.of.length===1&&want.id===w.of[0].id) refused=true;
+        else ok=false; }
+      if(ok) return {w, mir, bx, refused, times:refused?0:times}; } }
+  return null;
+}
+function gridWhy(m){
+  if(!m) return '';
+  const w=m.w;
+  if(m.refused) return 'not of '+blockName(w.refuses.n);
+  if(w.at&&!workPlaceAt(w.at)){ const nm=blockName(blockId(w.at)); return 'at '+(/^(a|an|the) /i.test(nm)?nm:'a '+nm); }
+  if(w.needs){ const h=heldBlock(); if(!h||h.serves!==w.needs) return 'wants a '+w.needs+' in the hand'; }
+  if(m.times<1) return 'more in each place';
+  return '';
+}
+function gridMake(all){
+  const m=gridMatch(); if(!m) return {ok:false, why:'none'};
+  const w=m.w;
+  if(m.refused){ if(w.refuses.why) toast(w.refuses.why.t, w.refuses.why.ref); return {ok:false, why:'refused'}; }
+  if(gridWhy(m)) return {ok:false, why:'want'};
+  let made=0;
+  while(made<(all?64:1)){ const mm=gridMatch(); if(!mm||mm.w!==w||mm.times<1) break;
+    if(!w.gives.every(q=>satchelRoom(q.id))) break;
+    const S=w.shape;
+    for(let y=0;y<S.h;y++) for(let x=0;x<S.w;x++){ const want=S.cells[y*S.w+(mm.mir?S.w-1-x:x)]; if(!want) continue;
+      const i=(mm.bx.y0+y)*3+mm.bx.x0+x; GRID[i].n-=want.c; if(GRID[i].n<=0) GRID[i]=null; }
+    for(const q of w.gives) satchelAdd(q.id,q.c);
+    made++; }
+  if(!made){ toast('The satchel is full.'); return {ok:false, why:'full'}; }
+  if(w.verse&&!SPOKEN.has('work:'+w.id)){ SPOKEN.add('work:'+w.id); toast(w.verse.t, w.verse.ref); }
+  satchelTouch(); return {ok:true, made, gave:w.gives.map(q=>q.id+' x'+q.c*made).join(', ')};
+}
+/* a touch on a cell: lay one of what is picked up (shift: all of it), or take back what lies there */
+function gridTouch(i,all){
+  const g=GRID[i];
+  if(pagePick>=0&&SATCHEL[pagePick]){ const s=SATCHEL[pagePick];
+    if(!g||g.id===s.id){ const n=Math.min(all?s.n:1, STACK-(g?g.n:0));
+      if(n>0){ if(g) g.n+=n; else GRID[i]={id:s.id,n}; s.n-=n; }
+      if(s.n<=0){ SATCHEL[pagePick]=null; pagePick=-1; pickLaid=false; } else if(all){ pagePick=-1; pickLaid=false; } else pickLaid=true; }
+    else { GRID[i]={id:s.id,n:s.n}; SATCHEL[pagePick]={id:g.id,n:g.n}; pagePick=-1; pickLaid=false; } }
+  else if(g){ const n=all?1:g.n, put=satchelAdd(g.id,n); g.n-=put; if(g.n<=0) GRID[i]=null; }
+  satchelTouch(); pageDraw(); beltDraw();
+}
+/* everything on the grid back into the satchel (what will not go stays on the grid) */
+function gridReturn(){
+  for(let i=0;i<9;i++){ const g=GRID[i]; if(!g) continue;
+    const put=satchelAdd(g.id,g.n); g.n-=put; if(g.n<=0) GRID[i]=null; }
+  satchelTouch();
+}
+/* the book of shapes: a work laid out on the grid from the satchel, once (or as many times as it holds) */
+function gridLay(w,many){
+  gridReturn(); if(GRID.some(Boolean)) return;
+  const S=w.shape, need=Object.create(null);
+  for(const c of S.cells) if(c) need[c.id]=(need[c.id]||0)+c.c;
+  let times=many?99:1;
+  for(const id in need) times=Math.min(times,Math.floor(satchelCount(id)/need[id]));
+  for(const c of S.cells) if(c) times=Math.min(times,Math.floor(STACK/c.c));
+  if(times<1){ toast('Not enough in the satchel to lay out '+w.name+'.'); return; }
+  const ox=Math.floor((3-S.w)/2), oy=Math.floor((3-S.h)/2);
+  for(let y=0;y<S.h;y++) for(let x=0;x<S.w;x++){ const c=S.cells[y*S.w+x]; if(!c) continue;
+    const got=satchelTake(c.id,c.c*times); GRID[(oy+y)*3+ox+x]={id:c.id,n:got}; }
+  satchelTouch();
+}
+function gridDraw(){
+  D.body.classList.toggle('gridmode',gridMode);
+  const md=$('page-mode');
+  if(md){ md.textContent='';
+    for(const [on,label] of [[false,'☰ the ledger'],[true,'▦ the grid']]){
+      const sp=D.createElement('span'); sp.textContent=label; if(gridMode===on) sp.className='on';
+      sp.onpointerdown=e=>{ e.preventDefault(); if(gridMode!==on) setGridMode(on); };
+      md.appendChild(sp); } }
+  const el=$('page-craft'); if(!el) return;
+  el.textContent='';
+  if(!gridMode) return;
+  const g3=D.createElement('div'); g3.className='g3';
+  for(let i=0;i<9;i++){ const t=tokenEl(GRID[i],-1,true);
+    t.onpointerdown=e=>{ e.preventDefault(); gridTouch(i,e.shiftKey||e.button===2); };
+    t.oncontextmenu=e=>e.preventDefault();
+    g3.appendChild(t); }
+  const ar=D.createElement('div'); ar.className='arrow'; ar.textContent='➜';
+  const res=D.createElement('div'); res.className='res';
+  const m=gridMatch(), why=gridWhy(m);
+  const out=m?tokenEl({id:m.w.gives[0].id,n:m.w.gives[0].c},-1,true):tokenEl(null,-1,true);
+  if(m){ out.classList.add(m.refused?'refused':why?'no':'ready'); out.title=m.w.name;
+    out.onpointerdown=e=>{ e.preventDefault(); gridMake(e.shiftKey); pageDraw(); beltDraw(); }; }
+  const nm=D.createElement('div'); nm.className='why'+(m&&m.refused?' refused':'');
+  nm.textContent=m?(why||m.w.name):'';
+  res.appendChild(out); res.appendChild(nm);
+  el.appendChild(g3); el.appendChild(ar); el.appendChild(res);
+}
+window.__GRID={GRID, gridMatch, gridMake, gridTouch, gridLay, gridReturn, setGridMode, quickMove, workMakeAll, get mode(){ return gridMode; }};
 /* what a work costs, written the way a man would say it */
 function workLine(w,st){
   const cost=w.of.map(q=>q.c+' '+blockName(q.n)).join(', ');
@@ -21749,6 +22016,9 @@ function workLine(w,st){
   return cost;
 }
 function pageTouch(i){
+  /* (a thing picked up and laid on the grid is let go of by the next touch on the page: that touch picks
+     up what it touches, as a man reaches for the next stuff, and does not trade the two places) */
+  if(pickLaid){ pickLaid=false; pagePick=SATCHEL[i]&&pagePick!==i?i:-1; pageDraw(); beltDraw(); return; }
   if(pagePick<0){ if(SATCHEL[i]) pagePick=i; }
   else if(pagePick===i){ pagePick=-1; }
   else {
@@ -21761,7 +22031,7 @@ function pageTouch(i){
   }
   pageDraw(); beltDraw();
 }
-function togglePage(){ pageOpen=!pageOpen; pagePick=-1; pageDraw(); beltDraw(); }
+function togglePage(){ pageOpen=!pageOpen; pagePick=-1; pickLaid=false; if(!pageOpen) gridReturn(); pageDraw(); beltDraw(); }
 
 /* ================= THE PLACING =================
    Phase 4, step 6. A block set down against the face that was struck, on the
@@ -22200,7 +22470,7 @@ function frame(){
     else { state.breath-=dt/75;
       if(state.breath<0.3&&!state._breathWarn){ state._breathWarn=true;
         toast('Your chest tightens — the surface is life. Rise and breathe, or take the immortal breath.'); }
-      if(state.breath<=0){ state.breath=0.15; state._breathWarn=false; surface();
+      if(state.breath<=0){ state.breath=0.15; state._breathWarn=false; surface(); hurtFlash();
         toast('Your breath fails — you break for the surface, gasping.'); } }
   } else { state.breath=Math.min(1,state.breath+dt/6); if(state.breath>0.5) state._breathWarn=false; }
   { const bEl=$('breath'); if(bEl){ const show=state.mode==='dive';
