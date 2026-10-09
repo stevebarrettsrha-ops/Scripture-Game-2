@@ -11314,6 +11314,17 @@ How it is drawn:
   - corners a little darker, as a lens leaves them.
 - The edges stay smooth: the picture is drawn many-sampled where the graphics card allows it.
 
+**Shafts of sunlight.** When the sun stands behind a wood, a wall or a ship's rigging, the bright
+sky between the leaves is drawn out along lines from the sun. The light comes through the gaps in
+shafts and hangs in the air. Only the sky near the sun is bright enough to make them, and only
+while he is up and in front of the eye. They are strongest when he is low.
+
+**The air toward the sun.** Far land fades into the fog, and the fog is the colour of the horizon.
+But the horizon is not one colour: the air about the sun is bright with him, and at sunset the
+horizon on his side burns orange. A far ridge used to fade into the plain horizon colour and stood
+out against the sunset as a grey seam. It now fades into the sky behind it, glow and fire and
+all. The sea and the story's lakes do the same. This works the same in the fast look.
+
 **Look: full or fast.** A new menu button, ☰ → **✨ Look: full / fast**, turns the shadows, the
 reflections and the glow on or off together. "Fast" draws the world as before, for a slower
 computer. The choice is remembered on this computer, and the story's acts follow it.

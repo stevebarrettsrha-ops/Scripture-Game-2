@@ -602,7 +602,8 @@ W.lakeWaves=function(ctx,r){
     uSkyHor:WU.uSkyHor,uSkyTop:WU.uSkyTop,
     uCamPos:WU.uCamPos,uMoonDir:WU.uMoonDir,uMoonCol:WU.uMoonCol,uMoon:WU.uMoon,uNoise:WU.uMap,
     uRip:RP.tex,uRipO:RP.o,uRipOn:RP.on,
-    uRefl:WU.uRefl,uReflMat:WU.uReflMat,uReflOn:WU.uReflOn,uReflY:WU.uReflY};
+    uRefl:WU.uRefl,uReflMat:WU.uReflMat,uReflOn:WU.uReflOn,uReflY:WU.uReflY,
+    uHzDir:WU.uHzDir,uHzCol:WU.uHzCol,uHzSet:WU.uHzSet,uHzSetAmt:WU.uHzSetAmt,uHzFlat:WU.uHzFlat};
   const WAVE=W.LAKE_WAVES.map(c=>`{ float a=uA*${c[2].toFixed(3)}, k=${(2*Math.PI/c[1]).toFixed(4)}, om=${Math.sqrt(9.8*2*Math.PI/c[1]).toFixed(4)};
       vec2 D=vec2(cos(${c[0].toFixed(3)})*uDir.x-sin(${c[0].toFixed(3)})*uDir.y, sin(${c[0].toFixed(3)})*uDir.x+cos(${c[0].toFixed(3)})*uDir.y);
       float f=k*dot(D,P)-om*uT, c=cos(f), s=sin(f);
@@ -621,6 +622,7 @@ W.lakeWaves=function(ctx,r){
       uniform vec3 uLight,uSunDir,uSunCol,uZenith,uFogColor,uCamPos,uMoonDir,uMoonCol,uSkyHor,uSkyTop; uniform float uFogNear,uFogFar,uMoon,uA,uT,uBoatH;
       uniform vec4 uBoat; uniform vec4 uBoats[8]; uniform float uBoatHs[8]; uniform sampler2D uNoise,uRip; uniform vec2 uRipO; uniform float uRipOn;
       uniform sampler2D uRefl; uniform float uReflOn,uReflY;
+      ${window.__KIT.hazeGLSL||'vec3 hazeOf(vec3 f,vec3 d){ return f; }'}
       varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP; varying vec4 vRefl;
       void main(){
         /* none of it inside the boat's own hull */
@@ -664,7 +666,7 @@ W.lakeWaves=function(ctx,r){
         /* clear: the sand and its light seen through it, a mirror only where the eye looks along it */
         float a=clamp(0.38+fres*0.8,0.0,0.97); a=max(a,foam);
         float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
-        gl_FragColor=vec4(mix(col,uFogColor,ff),a); }`});
+        gl_FragColor=vec4(mix(col,hazeOf(uFogColor,normalize(vW-uCamPos)),ff),a); }`});
   const mesh=new THREE.Mesh(geo,mat); mesh.renderOrder=1; mesh.frustumCulled=false; ctx.scene.add(mesh);
   if(window.__REFLECT) window.__REFLECT.lakes.add(mesh);                       /* the face the world is mirrored in */
   return {mesh,U};
@@ -883,7 +885,8 @@ W.lakeWaves=function(ctx,r){
     uSkyHor:WU.uSkyHor,uSkyTop:WU.uSkyTop,
     uCamPos:WU.uCamPos,uMoonDir:WU.uMoonDir,uMoonCol:WU.uMoonCol,uMoon:WU.uMoon,uNoise:WU.uMap,
     uRip:RP.tex,uRipO:RP.o,uRipOn:RP.on,
-    uRefl:WU.uRefl,uReflMat:WU.uReflMat,uReflOn:WU.uReflOn,uReflY:WU.uReflY};
+    uRefl:WU.uRefl,uReflMat:WU.uReflMat,uReflOn:WU.uReflOn,uReflY:WU.uReflY,
+    uHzDir:WU.uHzDir,uHzCol:WU.uHzCol,uHzSet:WU.uHzSet,uHzSetAmt:WU.uHzSetAmt,uHzFlat:WU.uHzFlat};
   const WAVE=W.LAKE_WAVES.map(c=>`{ float a=uA*${c[2].toFixed(3)}, k=${(2*Math.PI/c[1]).toFixed(4)}, om=${Math.sqrt(9.8*2*Math.PI/c[1]).toFixed(4)};
       vec2 D=vec2(cos(${c[0].toFixed(3)})*uDir.x-sin(${c[0].toFixed(3)})*uDir.y, sin(${c[0].toFixed(3)})*uDir.x+cos(${c[0].toFixed(3)})*uDir.y);
       float f=k*dot(D,P)-om*uT, c=cos(f), s=sin(f);
@@ -902,6 +905,7 @@ W.lakeWaves=function(ctx,r){
       uniform vec3 uLight,uSunDir,uSunCol,uZenith,uFogColor,uCamPos,uMoonDir,uMoonCol,uSkyHor,uSkyTop; uniform float uFogNear,uFogFar,uMoon,uA,uT,uBoatH;
       uniform vec4 uBoat; uniform vec4 uBoats[8]; uniform float uBoatHs[8]; uniform sampler2D uNoise,uRip; uniform vec2 uRipO; uniform float uRipOn;
       uniform sampler2D uRefl; uniform float uReflOn,uReflY;
+      ${window.__KIT.hazeGLSL||'vec3 hazeOf(vec3 f,vec3 d){ return f; }'}
       varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP; varying vec4 vRefl;
       void main(){
         /* none of it inside the boat's own hull */
@@ -945,7 +949,7 @@ W.lakeWaves=function(ctx,r){
         /* clear: the sand and its light seen through it, a mirror only where the eye looks along it */
         float a=clamp(0.38+fres*0.8,0.0,0.97); a=max(a,foam);
         float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
-        gl_FragColor=vec4(mix(col,uFogColor,ff),a); }`});
+        gl_FragColor=vec4(mix(col,hazeOf(uFogColor,normalize(vW-uCamPos)),ff),a); }`});
   const mesh=new THREE.Mesh(geo,mat); mesh.renderOrder=1; mesh.frustumCulled=false; ctx.scene.add(mesh);
   if(window.__REFLECT) window.__REFLECT.lakes.add(mesh);                       /* the face the world is mirrored in */
   return {mesh,U};

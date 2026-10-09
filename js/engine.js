@@ -1112,11 +1112,26 @@ const RF_U={ uRefl:{value:null}, uReflMat:{value:new THREE.Matrix4()}, uReflOn:{
    of the shade — the blue of the open sky, which is all that lights it. The shade comes in with the
    sun and goes with him (none by night, under a storm's deck, or in the dark of a cave, whose faces
    already carry their own low light), and fades out toward the rim of the map. */
+/* ---- THE AIR TOWARD THE SUN ----
+   The far land fades into the sky's own colour (the fog is that colour) — but the sky is not one colour:
+   about the sun the air is bright with him, and at his going down the horizon on his side burns orange.
+   The land fading into it took only the even colour of the horizon, so a far ridge stood out against the
+   sunset as a grey seam. It fades now into the sky that is behind it, glow and fire and all (the vault's
+   own reckoning, THE VAULT OF THE SKY, set into these each frame). */
+const HZ_U={ uHzDir:{value:new THREE.Vector3(0,1,0)}, uHzCol:{value:new THREE.Color(0,0,0)}, uHzSet:{value:new THREE.Color(0xff7a3a)},
+  uHzSetAmt:{value:0}, uHzFlat:{value:1} };
+const HZ_GLSL=`
+  uniform vec3 uHzDir, uHzCol, uHzSet; uniform float uHzSetAmt, uHzFlat;
+  vec3 hazeOf(vec3 fogC, vec3 d){ float sd=dot(d,uHzDir), band=exp(-abs(d.y)*5.0);
+    vec3 c=mix(fogC,uHzSet,clamp(uHzSetAmt*band*pow(max(sd*0.5+0.5,0.0),3.0),0.0,1.0));
+    c+=uHzCol*(pow(max(sd,0.0),60.0)*0.22+pow(max(sd,0.0),8.0)*0.06);
+    return mix(c,fogC,uHzFlat); }`;
 const SH_U={ uShMap:{value:null}, uShMat:{value:new THREE.Matrix4()}, uShAmt:{value:0}, uShDir:{value:new THREE.Vector3(0,1,0)},
   uShTexel:{value:1/2048}, uShOff:{value:0.7}, uShBias:{value:0.0001}, uShTone:{value:new THREE.Color(0.54,0.6,0.76)} };
 const SH_GLSL=`
   uniform sampler2D uShMap; uniform mat4 uShMat; uniform float uShAmt, uShTexel, uShOff, uShBias; uniform vec3 uShDir, uShTone;
   varying vec3 vShL, vShV;
+  ${HZ_GLSL}
   /* the face's own direction, from how its place changes across the screen. Read from the place RELATIVE
      TO THE EYE: the world's own numbers run to tens of thousands, and the difference of two of them from
      one pixel to the next is mostly rounding — a wall seen close was speckled with the shade */
@@ -1136,14 +1151,15 @@ const SH_GLSL=`
 /* where the point stands in the sun's map, and where it stands from the eye */
 const SH_VS='#include <project_vertex>\n  { vec4 shP=vec4(transformed,1.0);\n  #ifdef USE_INSTANCING\n  shP=instanceMatrix*shP;\n  #endif\n  vShL=(uShMat*(modelMatrix*shP)).xyz; vShV=mvPosition.xyz; }';
 const SH_VPARS='uniform mat4 uShMat;\nvarying vec3 vShL, vShV;\n';
+const SH_FOG='#include <fog_fragment>\n#ifdef USE_FOG\n  gl_FragColor.rgb+=(hazeOf(fogColor,normalize((vec4(vShV,0.0)*viewMatrix).xyz))-fogColor)*fogFactor;\n#endif';
 const _shadowed=new WeakSet();
 /* a block face, or a thing drawn by the day's light alone (the chunks, the timbers of a ship) */
 function shadowLight(mat){
   if(_shadowed.has(mat)) return; _shadowed.add(mat);
   mat.extensions=Object.assign(mat.extensions||{},{derivatives:true});
-  addPatch(mat,sh=>{ Object.assign(sh.uniforms,SH_U);
+  addPatch(mat,sh=>{ Object.assign(sh.uniforms,SH_U,HZ_U);
     sh.vertexShader=SH_VPARS+sh.vertexShader.replace('#include <project_vertex>',SH_VS);
-    sh.fragmentShader=SH_GLSL+'\n'+sh.fragmentShader.replace('vec3 outgoingLight = reflectedLight.indirectDiffuse;',
+    sh.fragmentShader=SH_GLSL+'\n'+sh.fragmentShader.replace('#include <fog_fragment>',SH_FOG).replace('vec3 outgoingLight = reflectedLight.indirectDiffuse;',
       'vec3 outgoingLight = reflectedLight.indirectDiffuse;\n'+
       '  if(uShAmt>0.001){ vec3 shN=shadowNormal(); float shSky=1.0;\n'+
       '    #ifdef USE_COLOR\n    shSky=smoothstep(0.10,0.40,max(vColor.r,max(vColor.g,vColor.b)));\n    #endif\n'+
@@ -1154,9 +1170,9 @@ function shadowLight(mat){
 function shadowLambert(mat){
   if(_shadowed.has(mat)) return; _shadowed.add(mat);
   mat.extensions=Object.assign(mat.extensions||{},{derivatives:true});
-  addPatch(mat,sh=>{ Object.assign(sh.uniforms,SH_U);
+  addPatch(mat,sh=>{ Object.assign(sh.uniforms,SH_U,HZ_U);
     sh.vertexShader=SH_VPARS+sh.vertexShader.replace('#include <project_vertex>',SH_VS);
-    sh.fragmentShader=SH_GLSL+'\n'+sh.fragmentShader.replace('#include <aomap_fragment>',
+    sh.fragmentShader=SH_GLSL+'\n'+sh.fragmentShader.replace('#include <fog_fragment>',SH_FOG).replace('#include <aomap_fragment>',
       '  if(uShAmt>0.001){ vec3 shN=shadowNormal();\n'+
       '    reflectedLight.directDiffuse*=mix(1.0,shadowCast(shN),uShAmt); }\n#include <aomap_fragment>'); },'shadowL');
 }
@@ -5511,7 +5527,8 @@ const waveMat=new THREE.ShaderMaterial({
     uTS:{value:[new THREE.Vector4(),new THREE.Vector4(),new THREE.Vector4()]},
     uTD:{value:[new THREE.Vector2(1,0),new THREE.Vector2(1,0),new THREE.Vector2(1,0)]},
     uRog:{value:new THREE.Vector4(0,0,1,0)}, uRogA:{value:0}, uRogW:{value:95}, uStormDir:{value:new THREE.Vector2(1,0)},
-    uRefl:RF_U.uRefl, uReflMat:RF_U.uReflMat, uReflOn:RF_U.uReflOn, uReflY:RF_U.uReflY },
+    uRefl:RF_U.uRefl, uReflMat:RF_U.uReflMat, uReflOn:RF_U.uReflOn, uReflY:RF_U.uReflY,
+    uHzDir:HZ_U.uHzDir, uHzCol:HZ_U.uHzCol, uHzSet:HZ_U.uHzSet, uHzSetAmt:HZ_U.uHzSetAmt, uHzFlat:HZ_U.uHzFlat },
   vertexShader:`
     uniform float uTime, uAmp; uniform vec2 uCenter; uniform sampler2D uShoal;
     uniform vec4 uTS[3]; uniform vec2 uTD[3]; uniform vec4 uRog; uniform float uRogA, uRogW;
@@ -5562,6 +5579,7 @@ const waveMat=new THREE.ShaderMaterial({
     varying vec3 vNormal, vWorld; varying float vHeight, vFog, vTaper; varying vec2 vUv, vP;
     varying float vStorm, vSwell, vSH;
     uniform sampler2D uRefl; uniform float uReflOn, uReflY; varying vec4 vRefl;
+    ${HZ_GLSL}
     float h21(vec2 p){ return fract(sin(dot(p,vec2(41.3,289.1)))*43758.5); }
     void main(){
       vec3 N=normalize(vNormal);
@@ -5723,7 +5741,7 @@ const waveMat=new THREE.ShaderMaterial({
       aa*=smoothstep(0.0,0.35,vTaper);
       float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
       /* the haze over storm water is the storm's own dark, not the fair sky's */
-      vec3 fogC=mix(uFogColor,vec3(0.10,0.12,0.14)*(0.45+0.55*uLight),smoothstep(0.0,0.6,vStorm)*0.85);
+      vec3 fogC=mix(hazeOf(uFogColor,normalize(vWorld-uCamPos)),vec3(0.10,0.12,0.14)*(0.45+0.55*uLight),smoothstep(0.0,0.6,vStorm)*0.85);
       gl_FragColor=vec4(mix(col,fogC,ff),aa);
     }`
 });
@@ -6900,8 +6918,8 @@ const SKYDOME={ hor:new THREE.Color(0x9fc5e8), dayF:1 };
   SKYDOME.tick=function(){
     UW.uUwT.value=performance.now()*0.001; UW.uUwSun.value=Math.min(1,Math.max(0,(SKYDOME.dayF-0.3)/0.5));   /* (THE LIGHT UNDER THE WATER) */
     dome.position.copy(camera.position);
-    if(SKYDOME.off){ dome.visible=false; return; }
-    const bg=scene.background; if(!bg||!bg.isColor){ dome.visible=false; return; } dome.visible=true;
+    if(SKYDOME.off){ dome.visible=false; HZ_U.uHzFlat.value=1; return; }
+    const bg=scene.background; if(!bg||!bg.isColor){ dome.visible=false; HZ_U.uHzFlat.value=1; return; } dome.visible=true;
     const f=SKYDOME.dayF;
     /* the zenith of the hour: night's black-blue, the violet over a sunset, noon's deep blue */
     _top.copy(mix3(0x02040e,0x40508a,0x3b78d6,f));
@@ -6915,6 +6933,9 @@ const SKYDOME={ hor:new THREE.Color(0x9fc5e8), dayF:1 };
     _sun.copy(sun.position).sub(camera.position); if(_sun.lengthSq()>1e-6) U.uSunDir.value.copy(_sun.normalize());
     U.uSunUp.value=Math.min(1,(sun.userData.bright||0))*(1-pull);
     _sc.setRGB(1.0,0.55,0.25).lerp(_c3.setRGB(1.0,0.95,0.85),Math.min(1,Math.max(0,(f-0.35)/0.5))); U.uSunCol.value.copy(_sc);
+    /* and the air toward the sun, for whatever fades into the sky (THE AIR TOWARD THE SUN) */
+    HZ_U.uHzDir.value.copy(U.uSunDir.value); HZ_U.uHzCol.value.copy(_sc).multiplyScalar(U.uSunUp.value);
+    HZ_U.uHzSet.value.copy(U.uSet.value); HZ_U.uHzSetAmt.value=U.uSetAmt.value; HZ_U.uHzFlat.value=U.uFlat.value;
   };
 }
 /* ================= THE SHADOWS OF THE DAY (what the sun sees) =================
@@ -7031,7 +7052,7 @@ const SHADOW={ on:!((window.__INJECT||{}).noShadow), size:2048, R:480 };
    a little more colour, a gentle curve through the middle tones, the shadows a breath cooler and the
    lights a breath warmer, and the corners a little darker, as a lens leaves them.
    POST.on=false (or __INJECT.noPost) draws straight to the screen, as before. */
-const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14, curve:0.20, vig:0.26 };
+const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14, curve:0.20, vig:0.26, rays:0.55 };
 { const VS='varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }';
   const qs=new THREE.Scene(), qc=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
   const quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2)); quad.frustumCulled=false; qs.add(quad);
@@ -7053,24 +7074,39 @@ const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14,
       c+=(texture2D(t,vUv+dir*1.3846153846).rgb+texture2D(t,vUv-dir*1.3846153846).rgb)*0.3162162162;
       c+=(texture2D(t,vUv+dir*3.2307692308).rgb+texture2D(t,vUv-dir*3.2307692308).rgb)*0.0702702703;
       gl_FragColor=vec4(c,1.0); }`);
-  const mComp=mk({t:{value:null},b1:{value:null},b2:{value:null},bloom:{value:0.4},sat:{value:1.1},curve:{value:0.2},vig:{value:0.25}},`
-    uniform sampler2D t, b1, b2; uniform float bloom, sat, curve, vig; varying vec2 vUv;
+  /* ---- THE SHAFTS OF THE SUN ----
+     Where the sun stands behind a wood (or a wall, or a ship's rigging), the bright sky between the leaves
+     is drawn out along the lines from the sun, a little at a time, so the light comes through the gaps in
+     shafts and lies in the air. Only the sky near him is bright enough to give them, and only while he is
+     up, and in front of the eye. */
+  const mRays=mk({t:{value:null},sun:{value:new THREE.Vector2(0.5,0.5)},asp:{value:1}},`
+    uniform sampler2D t; uniform vec2 sun; uniform float asp; varying vec2 vUv;
+    void main(){ vec2 d=(vUv-sun)*(0.92/28.0); vec2 uv=vUv; float decay=1.0; vec3 acc=vec3(0.0);
+      for(int i=0;i<28;i++){ uv-=d; vec3 c=texture2D(t,clamp(uv,0.0,1.0)).rgb;
+        float l=max(c.r,max(c.g,c.b)); vec2 q=(uv-sun)*vec2(asp,1.0);
+        acc+=c*smoothstep(0.55,0.95,l)*exp(-dot(q,q)*9.0)*decay; decay*=0.95; }
+      gl_FragColor=vec4(acc*(1.0/28.0),1.0); }`);
+  const mComp=mk({t:{value:null},b1:{value:null},b2:{value:null},rays:{value:null},rayAmt:{value:0},rayCol:{value:new THREE.Color(1,0.9,0.7)},
+    bloom:{value:0.4},sat:{value:1.1},curve:{value:0.2},vig:{value:0.25}},`
+    uniform sampler2D t, b1, b2, rays; uniform float bloom, sat, curve, vig, rayAmt; uniform vec3 rayCol; varying vec2 vUv;
     void main(){
       vec3 c=texture2D(t,vUv).rgb;
       c+=(texture2D(b1,vUv).rgb*0.7+texture2D(b2,vUv).rgb*1.0)*bloom;
+      if(rayAmt>0.001) c+=texture2D(rays,vUv).rgb*rayCol*rayAmt;
       float l=dot(c,vec3(0.2126,0.7152,0.0722));
       c=max(mix(vec3(l),c,sat),0.0);
       c=clamp(c,0.0,1.0); c=mix(c,c*c*(3.0-2.0*c),curve);
       c*=mix(vec3(0.975,0.99,1.035),vec3(1.03,1.005,0.965),smoothstep(0.15,0.85,l));
       vec2 q=vUv-0.5; c*=1.0-vig*dot(q,q)*1.9;
       gl_FragColor=vec4(c,1.0); }`);
-  let ok=null, W=0, H=0, rtS=null, rtH=null, rtQ=null, rtQ2=null, rtE=null, rtE2=null;
+  let ok=null, W=0, H=0, rtS=null, rtH=null, rtQ=null, rtQ2=null, rtE=null, rtE2=null, rtR=null;
+  const _sp=new THREE.Vector3();
   const _sz=new THREE.Vector2();
   const lin={minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,generateMipmaps:false,depthBuffer:false,stencilBuffer:false};
   function size(){
     renderer.getDrawingBufferSize(_sz); const w=Math.max(1,_sz.x|0), h=Math.max(1,_sz.y|0);
     if(w===W&&h===H&&rtS) return; W=w; H=h;
-    for(const r of [rtS,rtH,rtQ,rtQ2,rtE,rtE2]) if(r) r.dispose();
+    for(const r of [rtS,rtH,rtQ,rtQ2,rtE,rtE2,rtR]) if(r) r.dispose();
     /* the frame keeps its edges smooth: drawn many-sampled where the card can, as the screen itself is */
     if(renderer.capabilities.isWebGL2&&THREE.WebGLMultisampleRenderTarget){
       rtS=new THREE.WebGLMultisampleRenderTarget(W,H,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,generateMipmaps:false});
@@ -7079,7 +7115,8 @@ const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14,
     const h2=[Math.max(1,W>>1),Math.max(1,H>>1)], q4=[Math.max(1,W>>2),Math.max(1,H>>2)], e8=[Math.max(1,W>>3),Math.max(1,H>>3)];
     rtH=new THREE.WebGLRenderTarget(h2[0],h2[1],lin);
     rtQ=new THREE.WebGLRenderTarget(q4[0],q4[1],lin); rtQ2=new THREE.WebGLRenderTarget(q4[0],q4[1],lin);
-    rtE=new THREE.WebGLRenderTarget(e8[0],e8[1],lin); rtE2=new THREE.WebGLRenderTarget(e8[0],e8[1],lin); }
+    rtE=new THREE.WebGLRenderTarget(e8[0],e8[1],lin); rtE2=new THREE.WebGLRenderTarget(e8[0],e8[1],lin);
+    rtR=new THREE.WebGLRenderTarget(q4[0],q4[1],lin); }
   function pass(m,target){ quad.material=m; renderer.setRenderTarget(target); renderer.render(qs,qc); }
   function blur(a,b){ const w=a.width, h=a.height;
     mBlur.uniforms.t.value=a.texture; mBlur.uniforms.dir.value.set(1/w,0); pass(mBlur,b);
@@ -7094,7 +7131,18 @@ const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14,
     blur(rtQ,rtQ2);
     mDown.uniforms.t.value=rtQ.texture; mDown.uniforms.px.value.set(1/rtQ.width,1/rtQ.height); pass(mDown,rtE);
     blur(rtE,rtE2);
+    /* the shafts: where the sun is on the screen, and how much of him there is to give them */
+    let ray=0;
+    if(POST.rays>0&&!state.firm&&(sun.userData.bright||0)>0.05&&SKYDOME.dayF>0.4){
+      /* (a point toward him a little way off, not his own far station, which may lie past the eye's far plane) */
+      _sp.copy(SKYDOME.U.uSunDir.value).multiplyScalar(500).add(camera.position).project(camera);
+      if(_sp.z<1&&_sp.z>-1&&Math.abs(_sp.x)<1.6&&Math.abs(_sp.y)<1.6){
+        ray=POST.rays*Math.min(1,sun.userData.bright)*(1-_ss(1.0,1.6,Math.max(Math.abs(_sp.x),Math.abs(_sp.y))))
+          *(1-_ss(0.15,0.6,SKYDOME.storm||0))*(1-(_eyeSub||0))*(0.6+0.4*(1-_ss(0.6,1.0,SKYDOME.dayF)));
+        if(ray>0.001){ mRays.uniforms.t.value=rtS.texture; mRays.uniforms.sun.value.set(_sp.x*0.5+0.5,_sp.y*0.5+0.5);
+          mRays.uniforms.asp.value=W/H; pass(mRays,rtR); } } }
     const U=mComp.uniforms; U.t.value=rtS.texture; U.b1.value=rtQ.texture; U.b2.value=rtE.texture;
+    U.rays.value=rtR.texture; U.rayAmt.value=ray; U.rayCol.value.copy(SKYDOME.U.uSunCol.value);
     U.bloom.value=POST.bloom; U.sat.value=POST.sat; U.curve.value=POST.curve; U.vig.value=POST.vig;
     pass(mComp,null); };
   window.__POST=POST;
@@ -19449,6 +19497,8 @@ window.__KIT={
   /* the floor of cloud, which a story lifts high over its scenes: the voyage's clouds stand
      at the scale of its earth, and a scene is built at the scale of a man */
   clouds:()=>clouds, CLOUD_Y, blockArr:()=>BARR, chunkRoot,
+  /* the air toward the sun, for a story's own water to fade into (THE AIR TOWARD THE SUN) */
+  hazeGLSL:HZ_GLSL,
   /* THE LAMP OF A SCENE: the torch's own light (the one every block and beast already takes),
      set where a story wants it — on what the eye is looking at in a scene by night or under a
      roof. It is set after the torch's own tick each frame, so it holds only while asked. */
