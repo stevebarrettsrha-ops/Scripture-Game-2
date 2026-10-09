@@ -14333,6 +14333,7 @@ function* spawnVillage(i,exShell){
       { const bu=beastUnits(rideKind), by=bu*0.74;       /* saddled for the road, as the traveller's own */
         const blanket=lbox(4.4,0.5,5.6,0x7a4a2a); blanket.position.set(0,by,-0.3); an.add(blanket);
         const seat=lbox(3.4,1.1,4.4,0x5a3a22); seat.position.set(0,by+0.6,-0.3); an.add(seat); }
+      an.scale.setScalar(mountScale(rideKind));
       an.position.set(spot.x,spot.y,spot.z); an.rotation.y=Math.atan2(ux,uz); g.add(an);
       const M={m:an,kind:rideKind,owner:e,home:{x:spot.x,z:spot.z},tx:spot.x,tz:spot.z,t:0,seed:i*100+70+mounts.length,isMount:true};
       e.mountE=M; mounts.push(M); } }
@@ -14390,6 +14391,21 @@ function sp0OfEnt(ent){ return ent.panic?12:6; }
    leaves the beast tied there. Bound home for the night, it rides to the
    beast's own place at the door and walks the last steps in. */
 const RIDE_PACE={donkey:9,horse:13,camel:10,mule:10};
+/* ---- A BEAST BIG ENOUGH TO BE RIDDEN (Round 137) ----
+   Drawn at its true size beside the blocky folk, a donkey came to a man's knee, and a
+   rider sat on it like a man on a footstool, towering over it. The block games draw a
+   mount so that its back is at the rider's hip and his legs hang down its flanks; a
+   beast taken for riding is drawn so, its back at the height its kind is given here. */
+const RIDE_BACK={donkey:8.4,mule:8.8,horse:9.8,camel:12.5};
+function mountScale(kind){ const base=beastUnits(kind)*0.74; return Math.max(1,(RIDE_BACK[kind]||8.6)/Math.max(0.5,base)); }
+/* the rider's legs astride: thighs forward along the flanks and a little apart, shins hanging */
+function astride(u){
+  const legs=u.legs?[u.legs[0],u.legs[1]]:[u.legL,u.legR];
+  for(let k=0;k<2;k++){ const L=legs[k]; L.rotation.x=-1.35; L.rotation.z=k?-0.32:0.32;
+    const kn=L.userData.knee; if(kn) kn.rotation.x=0.55; }
+  u.armL.rotation.x=-0.75; u.armR.rotation.x=-0.75;
+  for(const A of [u.armL,u.armR]){ const el=A.userData&&A.userData.elbow; if(el) el.rotation.x=-0.45; }
+}
 function moveSoul(ent,dt,sp){
   const M=ent.mountE;
   if(!M||ent.child) return moveEnt(ent,dt,sp);
@@ -14415,17 +14431,17 @@ function moveSoul(ent,dt,sp){
 }
 function seatRider(ent,M,moving){
   const u=ent.m.userData, sc=ent.m.scale.y||1, ph=performance.now()*0.013;
-  const seat=beastUnits(M.kind)*0.74, bump=moving?Math.abs(Math.sin(ph))*0.9:0;
-  ent.m.position.set(M.m.position.x,M.m.position.y+seat-4.1*sc+bump,M.m.position.z);
+  const seat=beastUnits(M.kind)*0.74*(M.m.scale.x||1)+0.6, bump=moving?Math.abs(Math.sin(ph))*0.9:0;
+  ent.m.position.set(M.m.position.x,M.m.position.y+seat-4.3*sc+bump,M.m.position.z);
   ent.m.rotation.y=M.m.rotation.y; ent.m.rotation.x=0;
-  for(let k=0;k<2;k++){ const L=u.legs[k]; L.rotation.x=-1.2; L.rotation.z=k?-0.35:0.35; const kn=L.userData.knee; if(kn) kn.rotation.x=1.25; }
-  u.armL.rotation.x=-0.55; u.armR.rotation.x=-0.55;
+  astride(u);
   ent.anim='ride'; ent.acting=false;
 }
 function getDown(ent,M){
   const u=ent.m.userData;
   ent._riding=false; M.rider=null; M.tx=M.m.position.x; M.tz=M.m.position.z; M._path=null;
   for(let k=0;k<2;k++){ const L=u.legs[k]; L.rotation.x=0; L.rotation.z=0; const kn=L.userData.knee; if(kn) kn.rotation.x=0; }
+  for(const A of [u.armL,u.armR]){ const el=A.userData&&A.userData.elbow; if(el) el.rotation.x=0; }
   /* down on the beast's near side, on ground he may stand on */
   const a=M.m.rotation.y+Math.PI/2;
   for(const sd of [1,-1]){ const x=M.m.position.x+Math.sin(a)*sd*B*0.9, z=M.m.position.z+Math.cos(a)*sd*B*0.9;
@@ -14440,7 +14456,7 @@ function mountTick(M,vv,dt){
   M.tx=M.m.position.x; M.tz=M.m.position.z;
   moveEnt(M,dt,0);
   const tnow=performance.now()*0.001, ph2=(M.seed||0)*6.28;
-  M.m.scale.y=1+0.012*Math.sin(tnow*2.1+ph2);
+  M.m.scale.y=(M.m.scale.x||1)*(1+0.012*Math.sin(tnow*2.1+ph2));   /* (breathing about its riding size) */
   const tl=M.m.userData&&M.m.userData.tail; if(tl) tl.rotation.y=Math.sin(tnow*1.5+ph2)*0.15;
   const gz=Math.sin(tnow*0.4+ph2); M.m.rotation.x=gz>0.35?0.2+Math.sin(tnow*3+ph2)*0.05:0;
 }
@@ -17365,6 +17381,7 @@ function mountUp(a){
     const pommel=lbox(1.0,1.0,1.0,0x4a2f1c); pommel.position.set(0,by+1.3,1.6); m.add(pommel);
     for(const s of [1,-1]){ const girth=lbox(0.4,bu*0.5,0.5,0x4a2f1c);
       girth.position.set(s*2.1,by-bu*0.25,-0.3); m.add(girth); } }
+  m.scale.setScalar(mountScale(a.kind));
   scene.add(m);
   state.mount={kind:a.kind,m};
   state.walk.heading=a.heading;
@@ -18019,17 +18036,11 @@ function walkTick(dt){
     if(legs) for(const L of legs){
       L.rotation.x=moving?Math.sin(ph+(L.userData.ph||0))*0.62:0;
       jointTick(L,moving); }
-    const seat=beastUnits(M.kind)*0.74;
+    const seat=beastUnits(M.kind)*0.74*(M.m.scale.x||1)+0.6;
     const bump=moving?Math.abs(Math.sin(ph))*0.9:0;
-    walkerG.position.y=w.feetY+seat-4.1+bump;
+    walkerG.position.y=w.feetY+seat-4.3+bump;
     walkerG.rotation.x=0;
-    u.legL.rotation.x=-1.2; u.legR.rotation.x=-1.2;
-    u.legL.rotation.z=0.35; u.legR.rotation.z=-0.35;
-    if(u.legL.userData.knee) u.legL.userData.knee.rotation.x=1.25;
-    if(u.legR.userData.knee) u.legR.userData.knee.rotation.x=1.25;
-    u.armL.rotation.x=-0.55; u.armR.rotation.x=-0.55;
-    if(u.armL.userData.elbow) u.armL.userData.elbow.rotation.x=-0.5;
-    if(u.armR.userData.elbow) u.armR.userData.elbow.rotation.x=-0.5;
+    astride(u);
   } else { u.legL.rotation.z=0; u.legR.rotation.z=0; }
   /* the held-back height is paid out of the DRAWING, last of all and over
      every pose above — the body and the beast under it ride the step up
