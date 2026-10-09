@@ -569,8 +569,8 @@ S.gadarenes=function(ctx,st){
   for(const [x,z] of [[25.4,26.6],[25,39]]) st.box(x-0.6,-3,z-0.6,x+0.6,0.4,z+0.6,C.rock);
   st.box(-24,0,-17,-10,4.6,-9,C.limestone);                                              /* the face of rock, and its tombs */
   for(const z of [-15.2,-12.4,-10.6]) st.box(-12.6,0,z-0.6,-9.95,2.1,z+0.6,'air');
-  for(let k=0;k<7;k++){ const x=-8.6+W.hash(k,2)*2.4, z=-15+W.hash(k,3)*4.6; st.detail(x-0.25,0,z-0.04,x+0.25,0.05,z+0.04,0x3a3a3e); }   /* chains pulled apart */
-  for(let k=0;k<5;k++){ const x=-7.4+W.hash(k,6)*2, z=-14+W.hash(k,7)*3; st.detail(x-0.12,0,z-0.12,x+0.12,0.08,z+0.12,0x3a3a3e); }    /* broken shackles */
+  for(let k=0;k<7;k++){ const x=-8.6+W.hash(k,2)*2.4, z=-15+W.hash(k,3)*4.6; W.chainPiece(st,x,z,2+(k%3),W.hash(k,4)*3.14); }   /* chains pulled apart (Marqos 5:4) */
+  for(let k=0;k<5;k++){ const x=-7.4+W.hash(k,6)*2, z=-14+W.hash(k,7)*3; W.shackle(st,x,z,W.hash(k,8)*3.14); }                 /* broken shackles */
   for(let k=0;k<10;k++) W.rock(st,-30+W.hash(k,4)*24,-28+W.hash(k,5)*12,0.5+W.hash(k,9)*0.5);
   W.wild(ctx,'pig',3,30,30,6,0.35);                                                         /* the herd, feeding near the mountains */
   mk(ctx,'tombMouth',-9.2,-12.4); mk(ctx,'tombs',-6,-12.4); mk(ctx,'meet',12,-2.6); mk(ctx,'boatLand',19.6,0);
@@ -737,7 +737,9 @@ S.olivet=function(ctx,st){
   /* GAT-SHEMEN at the foot of the mount, beyond the Qidron (Mark 14:32; Yahuchanon 18:1): a walled
      olive garden, its press of stone, and a gate toward the city */
   for(const [ax,az,bx,bz] of [[62,-66,80,-65.4],[62,-50.6,80,-50],[79.4,-66,80,-50],[62,-66,62.6,-60],[62,-56,62.6,-50]]) st.box(ax,0,az,bx,1.1,bz,C.stone);
-  for(let n=0;n<14;n++){ const x=65+W.hash(n,21)*13, z=-63+W.hash(n,22)*11; if(Math.abs(z+58)<2.6&&x<72) continue; W.olive(st,x,z,0.85+W.hash(n,23)*0.25); }
+  /* the old trees in their rows either side of the walk from the gate to the place He prayed, the walk
+     and a space about that place left open (the eight sit inside the gate, the three a little further) */
+  for(const z of [-63.4,-53.2]) for(let x=65.4;x<79;x+=5.6){ const j=W.hash(x,z); W.olive(st,x+(j-0.5)*0.8,z+(W.hash(z,x)-0.5)*0.6,0.85+j*0.2); }
   st.detail(76,0,-64.6,77.6,0.7,-63,C.stone); st.detail(76.6,0.7,-64,77,1.6,-63.6,C.timber);          /* the press */
   mk(ctx,'gGate',61,-58); mk(ctx,'gIn',64.6,-58); mk(ctx,'eight',65.4,-55.6); mk(ctx,'three',70.6,-58.4); mk(ctx,'prayer',74.6,-58.6);
   mk(ctx,'qidron',54,-58); mk(ctx,'cityPath',44,-58);
@@ -861,7 +863,7 @@ S.prison=function(ctx,st){
   W.glow(ctx,-28,y0+2.2,-67,0.7,0xffa040,0.6);                                                 /* the guards' lamp */
   mk(ctx,'cell',-32,-71.6); mk(ctx,'cellGate',-32,-69.06); mk(ctx,'post1',-32,-67.6); mk(ctx,'post2',-32,-65.2);
   mk(ctx,'palaceDoor',-32,-62.8); mk(ctx,'pavement',-32,-58); mk(ctx,'street',-26,-50);
-  ctx.markers.sleeper=[-31.9,-71.6,y0+0.4];
+  ctx.markers.sleeper=[-31.9,-71.25,y0+0.4];
 };
 
 /* GOLGOTHA AND THE GARDEN (Yahuchanon 19:17, 20, 41), as the digging under the Church of the Holy

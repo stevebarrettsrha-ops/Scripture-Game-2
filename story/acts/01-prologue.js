@@ -227,7 +227,7 @@ STORY.act({
     ],
     things:[ {id:'letter', kind:'box', at:[-30,22.6], w:0.5, h:0.08, d:0.3, y:0.84, color:0xe9dfc2},
              ...[0,1,2,3,4].map(k=>({id:'tent'+k, kind:'box', at:[-46.4-k*4.2,76.2-(k%2)*0.6], w:3.2, h:1.9, d:2.2, color:0xb8a888})) ],
-    glows:[ {id:'malak', at:[-34,13,70], size:12, color:0xfff6dc, intensity:2.2, pulse:true, hidden:true} ],
+    glows:[ {id:'malak', malak:true, at:[-34,13,70], size:12, color:0xfff6dc, intensity:2.2, pulse:true, hidden:true} ],
     beats:[
       {t:'cam', from:[12,4,-4], look:'hiz', dur:0.1},
       {t:'move', who:'hiz', to:[6,-26], speed:1.2, wait:false},

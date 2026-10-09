@@ -286,9 +286,10 @@ TEX.leaves     = mkTex(g=>{ g.clearRect(0,0,16,16);
 TEX.leavesTr   = mkTex(g=>{ g.clearRect(0,0,16,16);
   for(let y=0;y<16;y+=FG)for(let x=0;x<16;x+=FG){ if(hash2(x*5.7,y*4.3)<0.87){
     const c=jit(PB.leavesTr.b,36,x+y*16+9); Pf(g,x,y,rgb(c[0],c[1],c[2])); } } });
-TEX.water      = mkTex(g=>{ speckle(g,PB.water.b,14,PB.water.a,0.4);
-  g.fillStyle='rgba('+PB.water.sheen[0]+','+PB.water.sheen[1]+','+PB.water.sheen[2]+',0.55)';
-  for(const y of [2,7,12]) for(let x=0;x<16;x+=FG){ if(hash2(x,y*2.2)>0.55) g.fillRect(x,y,2*FG,FG); } });
+/* still water: its colour and the faintest grain, and nothing more — the light strokes once painted on
+   it repeated on every block and drew lines across every lake and river. Its ripple, its sky and its
+   sun are the shader's (the still water too, THE WATER ANSWERS) */
+TEX.water      = mkTex(g=>{ speckle(g,PB.water.b,5,PB.water.a,0.15); });
 /* cherry blossom — soft pink canopy */
 TEX.cherry     = mkTex(g=>{ g.clearRect(0,0,16,16);
   for(let y=0;y<16;y+=FG)for(let x=0;x<16;x+=FG){ if(hash2(x*5.1,y*3.7)<0.9){
@@ -691,6 +692,26 @@ TEX.plantW = mkTex(g=>{ g.clearRect(0,0,16,16);
         g.fillRect(x+(y>h2-3?(hash2(k,9.1)>0.5?FG:-FG):0),16-FG-y,FG,FG); } } });
 TEX.solidW = mkTex(g=>speckle(g,[228,228,228],26,[198,198,198],0.35),16,16,RIM);
 blockMat('leafW',TEX.leafW,{alphaTest:0.4}); blockMat('barkW',TEX.barkW);
+/* ---- THE OLIVE'S OWN LEAF, OPEN TO THE SUN ----
+   The same grey leaf, ribbed the same way and tinted by its block, but the olive's crown is a thin,
+   silvery thing that the sun comes through. The common leaf lets the light through single pinholes,
+   and a crown built of it stood against the evening sun as one dark mass. This one has its holes
+   gathered into gaps — soft blobs a quarter of a block across, laid out so they meet across the edge
+   of the face — and the low sun comes through them in shafts (Gat-Shemen and the Mount of Olives:
+   blocks/leaves-olive.js, story/world.js W.olive). */
+TEX.leafOlive=mkTex(g=>{
+  const P=4, sm=t=>t*t*(3-2*t), hw=(i,j)=>hash2((((i%P)+P)%P)*7.3+19.1,(((j%P)+P)%P)*5.9+3.7);
+  const sn=(x,y)=>{ const i=Math.floor(x), j=Math.floor(y), fx=sm(x-i), fy=sm(y-j), a=hw(i,j), b=hw(i+1,j), c=hw(i,j+1), d=hw(i+1,j+1);
+    return a+(b-a)*fx+(c-a)*fy+(a-b-c+d)*fx*fy; };
+  for(let y=0;y<16;y+=FG) for(let x=0;x<16;x+=FG){
+    const gap=sn(x/4,y/4), n=hash2(x*2.7+y*1.3,y*3.1+x*0.7);
+    if(gap<0.47||n<0.10){ g.clearRect(x,y,FG,FG); continue; }      /* the gaps the sun comes through */
+    let v=196+hash2(x*5.1,y*7.3)*58;
+    const rib=Math.abs(((x*0.9+y*0.35)%4)-2);
+    if(rib<0.6) v*=0.86; else if(rib>1.8) v*=1.05;
+    if(gap<0.55) v*=1.08;                                           /* the leaves at a gap's edge, lit through */
+    Pf(g,x,y,rgb(Math.round(Math.min(255,v)),Math.round(Math.min(255,v)),Math.round(Math.min(255,v)))); } });
+blockMat('leafOlive',TEX.leafOlive,{alphaTest:0.4});
 /* ================= §2.4.3 — THE BARK OF EACH KIND =================
    *"Bark per species. Silver-birch paper, cork oak, cedar fissures, palm
    rings, olive's twisted grey. One 32×32 texture each, generated."*
@@ -915,7 +936,7 @@ windSway(MAT.flowerR,0.6,true,'snow'); windSway(MAT.flowerY,0.6,true,'snow');
    swings further than the sward, and the thorn crowns ride it */
 windSway(MAT.savgrass,1.5,true,'snow'); windSway(MAT.acacia,0.5,false,'leaf');
 /* and every leaf and every herb on the earth moves with it */
-windSway(MAT.leafW,0.55,false,'leaf'); windSway(MAT.everW,0.55,false,null);
+windSway(MAT.leafW,0.55,false,'leaf'); windSway(MAT.everW,0.55,false,null); windSway(MAT.leafOlive,0.55,false,'leaf');
 windSway(MAT.plantW,0.85,true,'snow');
 /* the two crops are NOT given windSway: `cropYear` below carries the same
    sway inside it, because it must own the whole vertex shader to sink the
@@ -1057,8 +1078,128 @@ function torchLight(mat){
    lamp. `torched` is a WeakSet rather than a flag on the material so
    nothing has to remember to set it. */
 const _torched=new WeakSet();
+/* ================= THE LIGHT UNDER THE WATER =================
+   Clear water lets the eye down to its bed, and the bed is not lit as dry ground is. The sunlight
+   comes through a moving face, so it lies on the sand in a net of bright lines that shift as the
+   ripples pass over (the caustics), and what it falls on is coloured by the water it went through:
+   the red goes first, then the green, so the deeper the bed the bluer and darker it is.
+   Drawn on every block face under water: under the open sea (below its level, where the field of the
+   shore says it is sea and not a pit in the land), and under every lake, pool and river a set of the
+   story lays (each set's water is written into a short list as it is laid, and taken out again when
+   the set is). A face in the dark of a cave under the water takes none of it; its vertex light is low. */
+const UW_N=8, UW_RECT=[], UW_Y=[], UW_OWN=[];
+for(let i=0;i<UW_N;i++){ UW_RECT.push(new THREE.Vector4(0,0,-1,-1)); UW_Y.push(0); UW_OWN.push(null); }
+const UW={ uUwT:{value:0}, uUwSun:{value:1}, uUwRect:{value:UW_RECT}, uUwY:{value:UW_Y} };
+function underWaterAdd(own,x0,z0,x1,z1,y){ let i=UW_OWN.indexOf(null); if(i<0) i=0;
+  UW_RECT[i].set(x0,z0,x1,z1); UW_Y[i]=y; UW_OWN[i]=own; }
+function underWaterDrop(own){ for(let i=0;i<UW_N;i++) if(UW_OWN[i]===own){ UW_OWN[i]=null; UW_RECT[i].set(0,0,-1,-1); } }
+const UW_GLSL=`
+  uniform float uUwT, uUwSun; uniform vec4 uUwRect[${UW_N}]; uniform float uUwY[${UW_N}]; uniform sampler2D uUwShoal;
+  varying vec3 vUwW;
+  float uwCaustic(vec2 p, float t){ vec2 q=p; float c=0.0;
+    for(int i=0;i<3;i++){ float fi=float(i);
+      q+=vec2(sin(q.y*1.7+t*0.9+fi), cos(q.x*1.5-t*0.8+fi*1.3))*0.45;
+      c+=abs(sin(q.x*2.1)*sin(q.y*2.3)); }
+    c=1.0-c/3.0; return pow(clamp(c,0.0,1.0),6.0)*3.0; }
+  vec3 underWater(vec3 lit){
+    float surf=-1e9;
+    for(int i=0;i<${UW_N};i++){ vec4 r=uUwRect[i]; if(r.z<r.x) continue;
+      if(vUwW.x>r.x&&vUwW.x<r.z&&vUwW.z>r.y&&vUwW.z<r.w) surf=max(surf,uUwY[i]); }
+    if(surf<-1e8&&vUwW.y<${WATER_Y.toFixed(3)}){                       /* the open sea */
+      float sh=texture2D(uUwShoal, vUwW.xz*${(0.5/R_WORLD).toFixed(10)}+0.5).r;
+      if(sh<0.985) surf=${WATER_Y.toFixed(3)}; }
+    float d=(surf-vUwW.y)/${B.toFixed(1)};                           /* how deep, in blocks */
+    if(d<=0.02) return lit;
+    float sky=smoothstep(0.18,0.55,max(lit.r,max(lit.g,lit.b)));        /* a cave's dark takes none of it */
+    vec3 absorb=exp(-vec3(0.30,0.07,0.05)*min(d,14.0))*vec3(0.82,1.0,0.97);
+    float c=uwCaustic(vUwW.xz/${B.toFixed(1)}*0.9, uUwT*1.2)*smoothstep(12.0,0.0,d);
+    vec3 o=lit*mix(vec3(1.0),absorb,sky);
+    return o*(1.0+sky*uUwSun*(c*0.75-0.12)); }`;
+function underWaterLight(mat){
+  addPatch(mat,sh=>{ Object.assign(sh.uniforms,UW); sh.uniforms.uUwShoal={value:SHOAL_TEX};
+    sh.vertexShader='varying vec3 vUwW;\n'+sh.vertexShader.replace('#include <project_vertex>',
+      '#include <project_vertex>\n  vUwW=(modelMatrix*vec4(transformed,1.0)).xyz;');
+    sh.fragmentShader=UW_GLSL+'\n'+sh.fragmentShader.replace('vec3 outgoingLight = reflectedLight.indirectDiffuse;',
+      'vec3 outgoingLight = reflectedLight.indirectDiffuse;\n  outgoingLight=underWater(outgoingLight);'); },'underwater');
+}
+/* (the picture of the world in the water — THE WORLD IN THE WATER, after the glow — read by the sea, the
+   lakes of the story and the still water of the blocks) */
+const RF_U={ uRefl:{value:null}, uReflMat:{value:new THREE.Matrix4()}, uReflOn:{value:0}, uReflY:{value:0} };
+/* ================= THE SHADOWS OF THE DAY (what falls on the ground) =================
+   The sun throws the shadow of every tree, wall and hill on what lies beyond it. The map of what the
+   sun sees (its depth, drawn each frame round the eye: SHADOWS OF THE DAY, after the vault) is read
+   at every block face: a face the sun cannot see, or one turned away from him, takes the cool colour
+   of the shade — the blue of the open sky, which is all that lights it. The shade comes in with the
+   sun and goes with him (none by night, under a storm's deck, or in the dark of a cave, whose faces
+   already carry their own low light), and fades out toward the rim of the map. */
+/* ---- THE AIR TOWARD THE SUN ----
+   The far land fades into the sky's own colour (the fog is that colour) — but the sky is not one colour:
+   about the sun the air is bright with him, and at his going down the horizon on his side burns orange.
+   The land fading into it took only the even colour of the horizon, so a far ridge stood out against the
+   sunset as a grey seam. It fades now into the sky that is behind it, glow and fire and all (the vault's
+   own reckoning, THE VAULT OF THE SKY, set into these each frame). */
+const HZ_U={ uHzDir:{value:new THREE.Vector3(0,1,0)}, uHzCol:{value:new THREE.Color(0,0,0)}, uHzSet:{value:new THREE.Color(0xff7a3a)},
+  uHzSetAmt:{value:0}, uHzFlat:{value:1} };
+const HZ_GLSL=`
+  uniform vec3 uHzDir, uHzCol, uHzSet; uniform float uHzSetAmt, uHzFlat;
+  vec3 hazeOf(vec3 fogC, vec3 d){ float sd=dot(d,uHzDir), band=exp(-abs(d.y)*5.0);
+    vec3 c=mix(fogC,uHzSet,clamp(uHzSetAmt*band*pow(max(sd*0.5+0.5,0.0),3.0),0.0,1.0));
+    c+=uHzCol*(pow(max(sd,0.0),60.0)*0.22+pow(max(sd,0.0),8.0)*0.06);
+    return mix(c,fogC,uHzFlat); }`;
+const SH_U={ uShMap:{value:null}, uShMat:{value:new THREE.Matrix4()}, uShAmt:{value:0}, uShDir:{value:new THREE.Vector3(0,1,0)},
+  uShTexel:{value:1/2048}, uShOff:{value:0.7}, uShBias:{value:0.0001}, uShTone:{value:new THREE.Color(0.54,0.6,0.76)} };
+const SH_GLSL=`
+  uniform sampler2D uShMap; uniform mat4 uShMat; uniform float uShAmt, uShTexel, uShOff, uShBias; uniform vec3 uShDir, uShTone;
+  varying vec3 vShL, vShV;
+  ${HZ_GLSL}
+  /* the face's own direction, from how its place changes across the screen. Read from the place RELATIVE
+     TO THE EYE: the world's own numbers run to tens of thousands, and the difference of two of them from
+     one pixel to the next is mostly rounding — a wall seen close was speckled with the shade */
+  vec3 shadowNormal(){ return normalize((vec4(cross(dFdx(vShV),dFdy(vShV)),0.0)*viewMatrix).xyz); }
+  /* how much of the sun reaches this point: 1 in the open, 0 behind a thing, between at the soft rim of a shadow */
+  float shadowCast(vec3 N){
+    float ndl=max(dot(N,uShDir),0.0);
+    vec3 p=vShL+mat3(uShMat)*(N*uShOff*(1.5-ndl));
+    float rim=max(abs(p.x-0.5),abs(p.y-0.5))*2.0;
+    if(rim>=1.0||p.z>=1.0) return 1.0;
+    float lit=0.0;
+    for(int i=-1;i<=1;i++) for(int j=-1;j<=1;j++)
+      lit+=step(p.z-uShBias,texture2D(uShMap,p.xy+vec2(float(i),float(j))*uShTexel).r);
+    return mix(lit/9.0,1.0,smoothstep(0.78,1.0,rim)); }
+  /* and a face turned away from him is in its own shade, whatever stands between */
+  float shadowLit(vec3 N){ float face=smoothstep(0.0,0.10,dot(N,uShDir)); return face<=0.0?0.0:face*shadowCast(N); }`;
+/* where the point stands in the sun's map, and where it stands from the eye */
+const SH_VS='#include <project_vertex>\n  { vec4 shP=vec4(transformed,1.0);\n  #ifdef USE_INSTANCING\n  shP=instanceMatrix*shP;\n  #endif\n  vShL=(uShMat*(modelMatrix*shP)).xyz; vShV=mvPosition.xyz; }';
+const SH_VPARS='uniform mat4 uShMat;\nvarying vec3 vShL, vShV;\n';
+const SH_FOG='#include <fog_fragment>\n#ifdef USE_FOG\n  gl_FragColor.rgb+=(hazeOf(fogColor,normalize((vec4(vShV,0.0)*viewMatrix).xyz))-fogColor)*fogFactor;\n#endif';
+const _shadowed=new WeakSet();
+/* a block face, or a thing drawn by the day's light alone (the chunks, the timbers of a ship) */
+function shadowLight(mat){
+  if(_shadowed.has(mat)) return; _shadowed.add(mat);
+  mat.extensions=Object.assign(mat.extensions||{},{derivatives:true});
+  addPatch(mat,sh=>{ Object.assign(sh.uniforms,SH_U,HZ_U);
+    sh.vertexShader=SH_VPARS+sh.vertexShader.replace('#include <project_vertex>',SH_VS);
+    sh.fragmentShader=SH_GLSL+'\n'+sh.fragmentShader.replace('#include <fog_fragment>',SH_FOG).replace('vec3 outgoingLight = reflectedLight.indirectDiffuse;',
+      'vec3 outgoingLight = reflectedLight.indirectDiffuse;\n'+
+      '  if(uShAmt>0.001){ vec3 shN=shadowNormal(); float shSky=1.0;\n'+
+      '    #ifdef USE_COLOR\n    shSky=smoothstep(0.10,0.40,max(vColor.r,max(vColor.g,vColor.b)));\n    #endif\n'+
+      '    outgoingLight*=mix(vec3(1.0),uShTone,(1.0-shadowLit(shN))*uShAmt*shSky); }'); },'shadow');
+}
+/* a thing lit by the lamps of the scene (the people of the story, their goods): the sun's own part of its
+   light is what the shadow takes; the sky's part stays */
+function shadowLambert(mat){
+  if(_shadowed.has(mat)) return; _shadowed.add(mat);
+  mat.extensions=Object.assign(mat.extensions||{},{derivatives:true});
+  addPatch(mat,sh=>{ Object.assign(sh.uniforms,SH_U,HZ_U);
+    sh.vertexShader=SH_VPARS+sh.vertexShader.replace('#include <project_vertex>',SH_VS);
+    sh.fragmentShader=SH_GLSL+'\n'+sh.fragmentShader.replace('#include <fog_fragment>',SH_FOG).replace('#include <aomap_fragment>',
+      '  if(uShAmt>0.001){ vec3 shN=shadowNormal();\n'+
+      '    reflectedLight.directDiffuse*=mix(1.0,shadowCast(shN),uShAmt); }\n#include <aomap_fragment>'); },'shadowL');
+}
 function torchAll(){
-  for(const m of LIT) if(!_torched.has(m)){ _torched.add(m); torchLight(m); }
+  for(const m of LIT) if(!_torched.has(m)){ _torched.add(m); torchLight(m);
+    if(m.vertexColors&&m.isMeshBasicMaterial&&m.name!=='waterB') underWaterLight(m);
+    if(m.isMeshBasicMaterial&&m.name!=='waterB'&&!m.transparent) shadowLight(m); }
   for(const m of ICE_MATS) if(!_torched.has(m)){ _torched.add(m); torchLight(m); }
 }
 torchAll();
@@ -4261,8 +4402,9 @@ function plantArray(){
       .replace('#include <color_fragment>','#include <color_fragment>\n'+
         '  if(vTint>0.5&&vTint<1.5){ '+SEASON_FS+' }\n  else if(vTint>1.5){ '+SNOW_FS+' }'); };
   mat.customProgramCacheKey=()=>'plantArr';
+  const compile=mat.onBeforeCompile;      /* its own shader, before the torch and the rest are chained on (THE SHADOWS OF THE DAY) */
   LIT.push(mat); torchAll();
-  PARR={mat,layer,names,tex};
+  PARR={mat,layer,names,tex,compile};
   return PARR;
 }
 /* the plain faces of a chunk's buckets, gathered into one with their layers */
@@ -5397,18 +5539,22 @@ const waveMat=new THREE.ShaderMaterial({
     uMap:{value:SEA_NOISE}, uOpacity:{value:0.9}, uCamPos:{value:new THREE.Vector3()},
     uShoal:{value:SHOAL_TEX}, uZenith:{value:new THREE.Color(0x3d76c0)},
     uShip:{value:new THREE.Vector4()}, uShipH:{value:0}, uSunCol:{value:new THREE.Color(1,0.96,0.85)},
+    uSkyHor:{value:new THREE.Color(0x9fc5e8)}, uSkyTop:{value:new THREE.Color(0x3b78d6)},
     /* the lesser light to rule the night */
     uMoonDir:{value:new THREE.Vector3(0,1,0)}, uMoonCol:{value:new THREE.Color(0.60,0.70,0.96)},
     uMoon:{value:0},
     /* the storms about the traveller and the rogue among them (THE STORM ENGINE) */
     uTS:{value:[new THREE.Vector4(),new THREE.Vector4(),new THREE.Vector4()]},
     uTD:{value:[new THREE.Vector2(1,0),new THREE.Vector2(1,0),new THREE.Vector2(1,0)]},
-    uRog:{value:new THREE.Vector4(0,0,1,0)}, uRogA:{value:0}, uRogW:{value:95}, uStormDir:{value:new THREE.Vector2(1,0)} },
+    uRog:{value:new THREE.Vector4(0,0,1,0)}, uRogA:{value:0}, uRogW:{value:95}, uStormDir:{value:new THREE.Vector2(1,0)},
+    uRefl:RF_U.uRefl, uReflMat:RF_U.uReflMat, uReflOn:RF_U.uReflOn, uReflY:RF_U.uReflY,
+    uHzDir:HZ_U.uHzDir, uHzCol:HZ_U.uHzCol, uHzSet:HZ_U.uHzSet, uHzSetAmt:HZ_U.uHzSetAmt, uHzFlat:HZ_U.uHzFlat },
   vertexShader:`
     uniform float uTime, uAmp; uniform vec2 uCenter; uniform sampler2D uShoal;
     uniform vec4 uTS[3]; uniform vec2 uTD[3]; uniform vec4 uRog; uniform float uRogA, uRogW;
     varying vec3 vNormal, vWorld; varying float vHeight, vFog, vTaper; varying vec2 vUv, vP;
     varying float vStorm, vSwell, vSH;
+    uniform mat4 uReflMat; varying vec4 vRefl;
     void main(){
       vec2 P=position.xz+uCenter;
       float ed=max(abs(position.x),abs(position.z));
@@ -5441,17 +5587,19 @@ const waveMat=new THREE.ShaderMaterial({
         float dh=uRogA*e*(-2.0*sd/(W*W)*g1+0.64*u/(W*W)*g2); nrm.xz-=uRog.zw*dh; sH=max(sH,uRogA*e); }
       vStorm=clamp(sw,0.0,1.0); vSwell=swl; vSH=sH;
       vHeight=baseH-${WATER_Y.toFixed(3)}; vTaper=taper;
-      vNormal=normalize(nrm); vUv=P*0.02; vP=P; vWorld=disp;
+      vNormal=normalize(nrm); vUv=P*0.02; vP=P; vWorld=disp; vRefl=uReflMat*vec4(disp,1.0);
       vec4 mv=viewMatrix*vec4(disp,1.0); vFog=-mv.z;
       gl_Position=projectionMatrix*mv;
     }`,
   fragmentShader:`
     precision highp float;
-    uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow, uCamPos, uSunCol, uZenith; uniform sampler2D uMap, uShoal;
+    uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow, uCamPos, uSunCol, uZenith, uSkyHor, uSkyTop; uniform sampler2D uMap, uShoal;
     uniform float uFogNear, uFogFar, uOpacity, uTime, uShipH; uniform vec4 uShip;
     uniform vec3 uMoonDir, uMoonCol; uniform float uMoon; uniform vec2 uStormDir;
     varying vec3 vNormal, vWorld; varying float vHeight, vFog, vTaper; varying vec2 vUv, vP;
     varying float vStorm, vSwell, vSH;
+    uniform sampler2D uRefl; uniform float uReflOn, uReflY; varying vec4 vRefl;
+    ${HZ_GLSL}
     float h21(vec2 p){ return fract(sin(dot(p,vec2(41.3,289.1)))*43758.5); }
     void main(){
       vec3 N=normalize(vNormal);
@@ -5459,7 +5607,12 @@ const waveMat=new THREE.ShaderMaterial({
          still: per-pixel normal detail breaks the big Gerstner facets into chop */
       vec3 rA=texture2D(uMap, vP*0.016+vec2(uTime*0.011,uTime*0.008)).rgb;
       vec3 rB=texture2D(uMap, vP*0.058+vec2(-uTime*0.019,uTime*0.014)).rgb;
-      N=normalize(N+vec3((rA.r-0.5)*0.34+(rB.r-0.5)*0.20, 0.0, (rA.g-0.5)*0.34+(rB.g-0.5)*0.20));
+      /* the fine octave lies down with distance: past a few dozen metres it can only alias into streaks */
+      float nearD=1.0-smoothstep(90.0,520.0,vFog);
+      N=normalize(N+vec3((rA.r-0.5)*0.30+(rB.r-0.5)*0.16*nearD, 0.0, (rA.g-0.5)*0.30+(rB.g-0.5)*0.16*nearD));
+      /* far off the swell lies flat to the eye: the open sea is a smooth sheen to the horizon, not rows of
+         crests turned light and dark against each other (the lines in the water). A storm's sea keeps its rows. */
+      N=normalize(mix(N,vec3(0.0,1.0,0.0),smoothstep(160.0,950.0,vFog)*0.8*(1.0-smoothstep(0.1,0.5,vStorm))));
       vec3 V=normalize(uCamPos-vWorld);
       vec3 L=normalize(uSunDir);
       /* ---- IS THE EYE OVER THIS WATER, OR UNDER IT? ----
@@ -5549,17 +5702,18 @@ const waveMat=new THREE.ShaderMaterial({
         col+=base*uMoonCol*(0.30+0.85*md)*uMoon*1.35;
         vec3 HM=normalize(V+M);
         float mdot=max(dot(N,HM),0.0);
-        float mglit=pow(mdot,34.0)*(0.45+0.55*h21(floor(vP*1.9)+floor(uTime*7.0)));
+        float mglit=pow(mdot,34.0)*0.7;
         col+=uMoonCol*(pow(mdot,120.0)*1.5+mglit*0.42)*md*uMoon;
         col+=uMoonCol*allFoam*uMoon*0.40;
       }
       /* sun specular + glitter — the sun's path burning on the swell */
       vec3 H=normalize(V+L);
       float spec=pow(max(dot(N,H),0.0),140.0);
-      float glit=pow(max(dot(N,H),0.0),40.0)*(0.5+0.5*h21(floor(vP*1.7)+floor(uTime*9.0)));
-      col+=uSunCol*(spec*1.8+glit*0.2)*diff*above;
-      /* caustic sparkle where the light passes through to the sand */
-      col+=uSunCol*glit*0.3*shoal*diff*above;
+      /* (no glitter: a random value for each little square of water, flickered nine times a second,
+         drew the whole sea in short bright streaks. The sun's path is the smooth highlight alone, and the
+         light that passes through to the sand is drawn ON the sand — THE LIGHT UNDER THE WATER) */
+      float sheen=pow(max(dot(N,H),0.0),48.0);
+      col+=uSunCol*(spec*2.2+sheen*0.16)*diff*above;
       /* light through the backlit crest — the glassy green heart of a wave */
       /* light through the backlit crest is a thing seen ACROSS the water, not
          from beneath it — from below, V and the sun agree and it blazed */
@@ -5567,10 +5721,15 @@ const waveMat=new THREE.ShaderMaterial({
       col+=vec3(0.05,0.38,0.36)*sss*(0.35+diff*0.65);
       /* fresnel — the true sky mirrored at grazing angles: the horizon haze
          where the reflected ray runs flat, the deep zenith blue where it climbs */
-      float fres=pow(1.0-max(dot(N,V),0.0),5.0);
+      float fres=0.02+0.98*pow(1.0-max(dot(N,V),0.0),5.0);
       vec3 R=reflect(-V,N);
-      vec3 skyR=mix(uFogColor*1.06, uZenith, pow(clamp(R.y,0.0,1.0),0.7));
-      col=mix(col,skyR,fres*0.6*above);
+      /* the sky it mirrors is the vault's own: its horizon low, its deep blue high */
+      vec3 skyR=mix(uSkyHor, uSkyTop, pow(clamp(R.y,0.0,1.0),0.5));
+      /* and the coast, the ship and the clouds over it, where the picture of them in the water is made */
+      if(uReflOn>0.001){ vec2 ruv=vRefl.xy/vRefl.w+N.xz*0.05;
+        float rw=uReflOn*(1.0-smoothstep(1.5,5.0,abs(vWorld.y-uReflY)))*(1.0-smoothstep(0.2,0.6,vStorm));
+        skyR=mix(skyR,texture2D(uRefl,clamp(ruv,0.002,0.998)).rgb,rw); }
+      col=mix(col,skyR,clamp(fres*0.85,0.0,0.9)*above);
       /* transparency by depth: the shallows let the bottom show through,
          the deep keeps its darkness; a mirror-skin at grazing angles */
       /* ---- HOW FAR THE EYE SEES DOWN INTO IT ----
@@ -5588,7 +5747,7 @@ const waveMat=new THREE.ShaderMaterial({
       float sp=1.0-pow(max(shoalRaw,0.0001),0.83333);
       float shelfM=2.17+197.8*pow(sp,2.6);           /* the depth here, in metres */
       float clear=1.0-smoothstep(8.0,62.0,shelfM);
-      float aa=mix(0.93,0.55,clear);
+      float aa=mix(0.93,0.30,clear);
       aa=mix(aa,0.985,fres*0.6*above);
       aa=max(aa,allFoam*0.95*above);
       /* and from beneath, the skin of the sea is thin — the daylight comes
@@ -5602,7 +5761,7 @@ const waveMat=new THREE.ShaderMaterial({
       aa*=smoothstep(0.0,0.35,vTaper);
       float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
       /* the haze over storm water is the storm's own dark, not the fair sky's */
-      vec3 fogC=mix(uFogColor,vec3(0.10,0.12,0.14)*(0.45+0.55*uLight),smoothstep(0.0,0.6,vStorm)*0.85);
+      vec3 fogC=mix(hazeOf(uFogColor,normalize(vWorld-uCamPos)),vec3(0.10,0.12,0.14)*(0.45+0.55*uLight),smoothstep(0.0,0.6,vStorm)*0.85);
       gl_FragColor=vec4(mix(col,fogC,ff),aa);
     }`
 });
@@ -5805,10 +5964,11 @@ if(MAT.waterB) addPatch(MAT.waterB,sh=>{
 },'lake-hide');
 if(MAT.waterB&&renderer.capabilities.isWebGL2){        /* (the face is found by derivatives: WebGL2) */
   MAT.waterB.userData.plain=false;
+  MAT.waterB.transparent=true;                                    /* (its alpha is the patch's: clear looking down, a mirror looking along) */
   const WU=waveMat.uniforms;
   addPatch(MAT.waterB,sh=>{
     Object.assign(sh.uniforms,{uRip:RIP_T,uRipO:RIP_O,uRipOn:RIP_ON,uWTime:WU.uTime,uWSun:WU.uSunDir,uWSunC:WU.uSunCol,
-      uWZen:WU.uZenith,uWFog:WU.uFogColor,uWCam:WU.uCamPos,uWLight:WU.uLight});
+      uWZen:WU.uZenith,uWFog:WU.uFogColor,uWCam:WU.uCamPos,uWLight:WU.uLight,uWHor:WU.uSkyHor,uWTop:WU.uSkyTop},RF_U);
     /* THE FACE OF STILL WATER MOVES: little waves run over a pond, a river, a lake — the face rises
        and falls a few hundredths of a block, never above its banks (it only ever sinks from the level
        of its blocks), and the edges of the faces beside it go with it, so no seam opens */
@@ -5818,7 +5978,8 @@ if(MAT.waterB&&renderer.capabilities.isWebGL2){        /* (the face is found by 
       '      transformed.y+=(w-1.25)*'+(B*0.055).toFixed(4)+'; } }\n'+
       '  vWP=transformed;');
     sh.fragmentShader='varying vec3 vWP;\nuniform sampler2D uRip; uniform vec2 uRipO; uniform float uRipOn, uWTime;\n'+
-      'uniform vec3 uWSun, uWSunC, uWZen, uWFog, uWCam, uWLight;\n'+
+      'uniform vec3 uWSun, uWSunC, uWZen, uWFog, uWCam, uWLight, uWHor, uWTop;\n'+
+      'uniform sampler2D uRefl; uniform mat4 uReflMat; uniform float uReflOn, uReflY;\n'+
       sh.fragmentShader.replace('gl_FragColor = vec4( outgoingLight, diffuseColor.a );',
       'gl_FragColor = vec4( outgoingLight, diffuseColor.a );\n'+
       '  { vec3 fdx=dFdx(vWP), fdy=dFdy(vWP); vec3 fn=normalize(cross(fdx,fdy));\n'+
@@ -5834,10 +5995,14 @@ if(MAT.waterB&&renderer.capabilities.isWebGL2){        /* (the face is found by 
       '          N.xz+=(rp.rg-0.5)*3.6*ek; rf=rp.a*ek; } }\n'+
       '      N=normalize(N);\n'+
       '      vec3 V=normalize(uWCam-vWP), L=normalize(uWSun), H=normalize(V+L);\n'+
-      '      float fres=pow(1.0-max(dot(N,V),0.0),4.0);\n'+
-      '      vec3 R=reflect(-V,N); vec3 sky=mix(uWFog*1.04,uWZen,pow(clamp(R.y,0.0,1.0),0.7))*uWLight;\n'+
-      '      gl_FragColor.rgb=mix(gl_FragColor.rgb,sky,clamp(0.18+fres*0.6,0.0,0.85));\n'+
-      '      float sp=pow(max(dot(N,H),0.0),160.0)*1.6+pow(max(dot(N,H),0.0),36.0)*0.12;\n'+
+      '      float fres=0.02+0.98*pow(1.0-max(dot(N,V),0.0),5.0);\n'+
+      '      vec3 R=reflect(-V,N); vec3 sky=mix(uWHor,uWTop,pow(clamp(R.y,0.0,1.0),0.5));\n'+
+      '      if(uReflOn>0.001){ vec4 rq=uReflMat*vec4(vWP,1.0); vec2 ruv=rq.xy/rq.w+N.xz*0.04;\n'+
+      '        sky=mix(sky,texture2D(uRefl,clamp(ruv,0.002,0.998)).rgb,uReflOn*(1.0-smoothstep(1.0,3.0,abs(vWP.y-uReflY)))); }\n'+
+      '      gl_FragColor.rgb=mix(gl_FragColor.rgb,sky,clamp(fres*0.9,0.0,0.9));\n'+
+      /* clear: the bed and its light seen through it where the eye looks down, a mirror where it looks along */
+      '      gl_FragColor.a=clamp(0.42+fres*0.75,0.0,0.97);\n'+
+      '      float sp=pow(max(dot(N,H),0.0),220.0)*2.2+pow(max(dot(N,H),0.0),48.0)*0.14;\n'+
       '      gl_FragColor.rgb+=uWSunC*sp*clamp(L.y*3.0,0.0,1.0);\n'+
       '      gl_FragColor.rgb=mix(gl_FragColor.rgb,vec3(0.90,0.94,1.0)*uWLight,clamp(rf*0.85,0.0,0.85));\n'+
       '    } }');
@@ -6120,10 +6285,46 @@ function voidStarTick(op){
 }
 
 /* the two great lights — square, as they ought to be */
-const sunMat2=new THREE.SpriteMaterial({map:TEX.sun,fog:false,transparent:true,depthWrite:false});
-const sun=new THREE.Sprite(sunMat2); sun.scale.set(R_WORLD*0.075,R_WORLD*0.075,1); scene.add(sun);
+/* ---- THE TWO GREAT LIGHTS ARE ROUND, AND THEY SHINE ----
+   They were squares, as the voyage's first sky had them, and then for a while
+   round faces beheld from without and squares within (see the notes at the
+   haloes below). The traveller looking at the vault of the sky (THE VAULT OF
+   THE SKY) asked for them as the light of the star over Bĕyth Leḥem is drawn:
+   "Remove old sun and moon too and use the new one in all the game, even the
+   ascending/firmament and zoom out." So both are round now at every distance —
+   the SUN a white-hot disc in a soft glow of its own light, drawn by adding
+   light (so it brightens the sky behind it, and the sky's own glow about it
+   from the vault meets it), and the MOON a pale body with her soft seas, a
+   little blue light standing about her. Each face is drawn smooth (linear,
+   not the pixel grid of the blocks), and the sprite is larger than the old
+   square because the glow is part of it: the disc itself is about the size
+   the square was. */
+const SUN_S=R_WORLD*0.15, MOON_S=R_WORLD*0.095;
+function lightFace(draw,n){ const c=texCanvas(n,n), g=c.getContext('2d'); draw(g,n);
+  const t=new THREE.CanvasTexture(c); t.magFilter=THREE.LinearFilter; t.minFilter=THREE.LinearMipmapLinearFilter; return t; }
+TEX.sun=lightFace((g,n)=>{ const R=n/2, gr=g.createRadialGradient(R,R,0,R,R,R);
+  gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(0.30,'rgba(255,252,238,1)');      /* the disc, white hot */
+  gr.addColorStop(0.36,'rgba(255,240,200,0.92)');                                              /* its edge, softened */
+  gr.addColorStop(0.48,'rgba(255,228,170,0.42)'); gr.addColorStop(0.72,'rgba(255,214,150,0.12)');
+  gr.addColorStop(1,'rgba(255,205,140,0)');
+  g.fillStyle=gr; g.fillRect(0,0,n,n); },256);
+TEX.moon=lightFace((g,n)=>{ const R=n/2;
+  /* the light about her first, then her body over it */
+  let gr=g.createRadialGradient(R,R,R*0.30,R,R,R);
+  gr.addColorStop(0,'rgba(200,215,255,0.45)'); gr.addColorStop(0.35,'rgba(170,190,240,0.14)'); gr.addColorStop(1,'rgba(150,170,230,0)');
+  g.fillStyle=gr; g.fillRect(0,0,n,n);
+  const r=R*0.34; gr=g.createRadialGradient(R-r*0.25,R-r*0.25,0,R,R,r);
+  gr.addColorStop(0,'rgba(250,250,244,1)'); gr.addColorStop(0.8,'rgba(226,230,236,1)'); gr.addColorStop(0.97,'rgba(206,214,230,0.9)'); gr.addColorStop(1,'rgba(206,214,230,0)');
+  g.fillStyle=gr; g.beginPath(); g.arc(R,R,r,0,Math.PI*2); g.fill();
+  /* her seas, soft, so she is a body and not a coin */
+  for(const [x,y,m] of [[-0.30,-0.18,0.26],[0.22,0.28,0.20],[0.30,-0.32,0.15],[-0.05,0.12,0.12]]){
+    const cx=R+x*r, cy=R+y*r, rr=m*r, sg=g.createRadialGradient(cx,cy,0,cx,cy,rr);
+    sg.addColorStop(0,'rgba(150,158,176,0.55)'); sg.addColorStop(1,'rgba(150,158,176,0)');
+    g.fillStyle=sg; g.beginPath(); g.arc(cx,cy,rr,0,Math.PI*2); g.fill(); } },256);
+const sunMat2=new THREE.SpriteMaterial({map:TEX.sun,fog:false,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
+const sun=new THREE.Sprite(sunMat2); sun.scale.set(SUN_S,SUN_S,1); scene.add(sun);
 const moonMat2=new THREE.SpriteMaterial({map:TEX.moon,fog:false,transparent:true,depthWrite:false});
-const moon=new THREE.Sprite(moonMat2); moon.scale.set(R_WORLD*0.055,R_WORLD*0.055,1); scene.add(moon);
+const moon=new THREE.Sprite(moonMat2); moon.scale.set(MOON_S,MOON_S,1); scene.add(moon);
 const glowTexCv=(()=>{ const c=texCanvas(128); const g=c.getContext('2d');
   const gr=g.createRadialGradient(64,64,4,64,64,62);
   gr.addColorStop(0,'rgba(255,214,110,0.9)'); gr.addColorStop(1,'rgba(255,190,80,0)');
@@ -6183,6 +6384,8 @@ const sunRound=new THREE.Sprite(sunRoundMat); sunRound.visible=false; scene.add(
 const moonRoundMat=new THREE.SpriteMaterial({map:TEX.moonRound,fog:false,transparent:true,
   opacity:0,depthWrite:false});
 const moonRound=new THREE.Sprite(moonRoundMat); moonRound.visible=false; scene.add(moonRound);
+/* (Round 131: the lights are ROUND at every distance now, at the traveller's own word — see THE TWO
+   GREAT LIGHTS ARE ROUND above. The history below is kept so the turns are not lost.) */
 /* ---- AND THE LIGHTS ARE SQUARE EVERYWHERE, INSIDE THE WORLD AND OUT ----
    THE ROUND FACES ARE GONE, and the reason is that they were asked for and
    then unasked for. The round pair was built because a hard tile beheld from
@@ -6211,9 +6414,9 @@ function haloTick(whole){
   /* the haloes keep their proportion to the discs they stand about — the
      discs themselves are resized against the eye in the framed views */
   if(sunHalo.visible){ sunHalo.position.copy(sun.position);
-    const h=sun.scale.x*4.0; sunHalo.scale.set(h,h,1); }
+    const h=sun.scale.x*2.0; sunHalo.scale.set(h,h,1); }
   if(moonHalo.visible){ moonHalo.position.copy(moon.position);
-    const h=moon.scale.x*3.45; moonHalo.scale.set(h,h,1); }
+    const h=moon.scale.x*2.0; moonHalo.scale.set(h,h,1); }
   /* the round pair is kept in the file, dark and never shown, so that the
      reason it was tried is not lost with the code — see the note above */
   sunRound.visible=false; moonRound.visible=false;
@@ -6685,6 +6888,378 @@ function gradeHaze(px,pz,dayF,storm){
   scene.fog.color.lerp(_hazeC,HAZE_FOG*k);
   scene.background.lerp(_hazeC,HAZE_SKY*k);
 }
+/* ================= THE VAULT OF THE SKY =================
+   "The heavens declare the glory of El; and the firmament sheweth his handywork."
+
+   The sky was ONE colour — the hour's blend of night, dusk and day laid flat
+   behind everything — so a sunset was the whole sky turning orange at once,
+   east as well as west, and noon was one pale blue from the horizon to the
+   top of the heaven. A real sky is a vault: pale and hazed at the horizon
+   (the long road of light through the air), deep blue overhead, and at the
+   two edges of the day the fire is in the WEST — a band along the horizon on
+   the side the sun is going down, burning brightest about the sun, while the
+   east has already gone violet. The halo stands about the sun in the air.
+
+   A dome about the eye, drawn first and furthest (at the far plane, written
+   to no depth), so everything of the world, the clouds, the stars, the sun
+   and the moon stand in front of it. Its HORIZON is the very colour the sky
+   had before — the fog is still that colour, so the land still dissolves
+   into the sky without a seam — and its zenith, its sunset fire and its halo
+   are laid over it from the hour. Whatever else colours the sky (a storm's
+   deck, the haze of a country, the outer darkness at the world's rim, the
+   flash of a bolt) takes the vault with it: the further the sky is pulled
+   from the hour's own colour, the more the vault is pulled flat to it. */
+const SKYDOME={ hor:new THREE.Color(0x9fc5e8), dayF:1 };
+{ const geo=new THREE.SphereGeometry(1000,48,24);
+  const U={ uHor:{value:new THREE.Color()}, uTop:{value:new THREE.Color()}, uSet:{value:new THREE.Color(0xff7a3a)},
+    uSetAmt:{value:0}, uSunDir:{value:new THREE.Vector3(0,1,0)}, uSunCol:{value:new THREE.Color(1,0.9,0.7)}, uSunUp:{value:0}, uFlat:{value:0} };
+  const mat=new THREE.ShaderMaterial({ uniforms:U, side:THREE.BackSide, depthWrite:false, depthTest:true, fog:false,
+    vertexShader:`varying vec3 vDir;
+      void main(){ vDir=position; vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.0); gl_Position=p.xyww; }`,
+    fragmentShader:`uniform vec3 uHor, uTop, uSet, uSunDir, uSunCol; uniform float uSetAmt, uSunUp, uFlat; varying vec3 vDir;
+      void main(){
+        vec3 d=normalize(vDir); float h=d.y;
+        /* pale at the horizon, deep overhead; under the horizon a little darker, as the haze over far land is */
+        vec3 col=mix(uHor,uTop,pow(clamp(h,0.0,1.0),0.5));
+        if(h<0.0) col=mix(uHor,uHor*0.72,smoothstep(0.0,-0.35,h));
+        float sd=dot(d,normalize(uSunDir));
+        /* the fire of the sun's going down: a band on the horizon, on his side of the sky */
+        float band=exp(-abs(h)*5.0);
+        col=mix(col,uSet,clamp(uSetAmt*band*pow(max(sd*0.5+0.5,0.0),3.0),0.0,1.0));
+        /* the glow of the air about him (the disc itself is the sun's own) */
+        col+=uSunCol*(pow(max(sd,0.0),60.0)*0.22+pow(max(sd,0.0),8.0)*0.06)*uSunUp;
+        /* a storm, a country's haze, the outer darkness: the vault laid flat to the sky's own colour */
+        col=mix(col,uHor,uFlat);
+        gl_FragColor=vec4(col,1.0); }` });
+  const dome=new THREE.Mesh(geo,mat); dome.renderOrder=-10; dome.frustumCulled=false; dome.name='sky-vault'; scene.add(dome);
+  const _top=new THREE.Color(), _sun=new THREE.Vector3(), _sc=new THREE.Color();
+  /* called just before each frame is drawn, when everything that colours the sky has had its say */
+  SKYDOME.mesh=dome; SKYDOME.U=U; window.__SKYDOME=SKYDOME; window.__camForward=()=>camera.getWorldDirection(new THREE.Vector3()); window.__camPos=()=>camera.position.clone();                  /* (tools: tools/sky-shots.js sets the old flat sky beside it) */
+  SKYDOME.tick=function(){
+    UW.uUwT.value=performance.now()*0.001; UW.uUwSun.value=Math.min(1,Math.max(0,(SKYDOME.dayF-0.3)/0.5));   /* (THE LIGHT UNDER THE WATER) */
+    dome.position.copy(camera.position);
+    if(SKYDOME.off){ dome.visible=false; HZ_U.uHzFlat.value=1; return; }
+    const bg=scene.background; if(!bg||!bg.isColor){ dome.visible=false; HZ_U.uHzFlat.value=1; return; } dome.visible=true;
+    const f=SKYDOME.dayF;
+    /* the zenith of the hour: night's black-blue, the violet over a sunset, noon's deep blue */
+    _top.copy(mix3(0x02040e,0x40508a,0x3b78d6,f));
+    /* how far the sky is taken from the hour's own: a storm's deck, the outer darkness at the rim, a bolt,
+       the eye under the water (a country's haze only tints the horizon, which the vault takes from the sky) */
+    const pull=Math.min(1,Math.max((SKYDOME.storm||0)*0.9,SKYDOME.voidF||0,boltFlash*0.6,_eyeSub||0));
+    U.uHor.value.copy(bg); U.uTop.value.copy(_top).lerp(bg,pull); U.uFlat.value=Math.max(0,pull-0.6)*2.5;
+    waveMat.uniforms.uSkyHor.value.copy(U.uHor.value); waveMat.uniforms.uSkyTop.value.copy(U.uTop.value);
+    /* the sunset: strongest as the sun touches the rim of the earth, gone at full day and full night */
+    U.uSetAmt.value=Math.max(0,1-Math.abs(f-0.42)/0.38)*0.85;
+    _sun.copy(sun.position).sub(camera.position); if(_sun.lengthSq()>1e-6) U.uSunDir.value.copy(_sun.normalize());
+    U.uSunUp.value=Math.min(1,(sun.userData.bright||0))*(1-pull);
+    _sc.setRGB(1.0,0.55,0.25).lerp(_c3.setRGB(1.0,0.95,0.85),Math.min(1,Math.max(0,(f-0.35)/0.5))); U.uSunCol.value.copy(_sc);
+    /* and the air toward the sun, for whatever fades into the sky (THE AIR TOWARD THE SUN) */
+    HZ_U.uHzDir.value.copy(U.uSunDir.value); HZ_U.uHzCol.value.copy(_sc).multiplyScalar(U.uSunUp.value);
+    HZ_U.uHzSet.value.copy(U.uSet.value); HZ_U.uHzSetAmt.value=U.uSetAmt.value; HZ_U.uHzFlat.value=U.uFlat.value;
+  };
+}
+/* ================= THE SHADOWS OF THE DAY (what the sun sees) =================
+   Each frame, before the world is drawn, the ground about the eye is drawn once more as the SUN sees
+   it — only how far each thing stands from him, into a map of depths — and every block face then asks
+   that map whether anything stood between it and him (the receiving half is beside the light under
+   the water, near the top of this file). Only the chunks are drawn into it: the stone, earth, timber
+   and every set the story lays; the leaves and the blades of grass are drawn through their own
+   texture, so a canopy lets the light through its gaps and a field throws the fine shade of its
+   blades, and both sway as the plants do. The water, the glass and the ice throw none.
+   The map is square, ±SHADOW.R about a point a little ahead of the eye, and is moved only by whole
+   texels of itself, so that walking does not make the edges of the shadows crawl. */
+const SHADOW={ on:!((window.__INJECT||{}).noShadow), size:2048, R:480 };
+{ const cam=new THREE.OrthographicCamera(-1,1,1,-1,1,10), SCN=new THREE.Scene();
+  const BIAS=new THREE.Matrix4().set(0.5,0,0,0.5, 0,0.5,0,0.5, 0,0,0.5,0.5, 0,0,0,1);
+  const solid=new THREE.MeshBasicMaterial({side:THREE.DoubleSide,colorWrite:false,fog:false});
+  const CAST=new WeakMap(), saved=[], SEEN=new WeakSet(), LAYER=7;
+  let scanT=0;
+  /* ---- AND EVERYTHING THAT STANDS ON THE GROUND ----
+     The traveller, the ship, the folk and the beasts of the world, and every person and thing a scene of
+     the story sets out, throw their shade too: each solid thing in the world is found once (a look over
+     the whole scene twice a second) and given a mark that the sun's drawing reads, and the people the
+     lamps light are given the receiving half. Water, glass, glows and the masks that keep the water out of
+     a hull are not solid; neither is anything as wide as a country (the sea, the clouds, the sky).
+     A thing may refuse a shadow by its userData.noShadow — the mal'akim are light. */
+  function scan(o){
+    if(o===chunkRoot||!o.visible||o.userData.noShadow||o.isSprite||o.isPoints||o.isLine) return;
+    if(o.isMesh&&!SEEN.has(o)){ SEEN.add(o);
+      const ms=Array.isArray(o.material)?o.material:[o.material];
+      let solid=!!o.geometry&&ms.every(m=>m&&!m.transparent&&m.colorWrite!==false&&m.depthWrite!==false&&!m.isShaderMaterial&&m.visible!==false);
+      if(solid){ const g=o.geometry; if(!g.boundingSphere) g.computeBoundingSphere();
+        if(!g.boundingSphere||g.boundingSphere.radius*o.matrixWorld.getMaxScaleOnAxis()>6000) solid=false; }
+      if(solid) o.layers.enable(LAYER);
+      for(const m of ms) if(m&&m.isMeshLambertMaterial&&!m.transparent) shadowLambert(m); }
+    const ch=o.children; for(let i=0;i<ch.length;i++) scan(ch[i]); }
+  const _L=new THREE.Vector3(), _C=new THREE.Vector3(), _F=new THREE.Vector3(), _ax=new THREE.Vector3(), _ay=new THREE.Vector3();
+  let rt=null, ok=null, plant=null;
+  /* what a chunk's material throws: the block array a solid shade, the plants their own shape, the
+     water and the glass nothing */
+  function caster(m){
+    if(CAST.has(m)) return CAST.get(m);
+    let c=null;
+    if(PARR&&m===PARR.mat){
+      if(!plant){ plant=new THREE.MeshBasicMaterial({map:m.map,vertexColors:true,side:THREE.DoubleSide,alphaTest:0.4,colorWrite:false});
+        plant.onBeforeCompile=PARR.compile; plant.customProgramCacheKey=()=>'plantArrShadow'; }
+      c=plant; }
+    else if(m.transparent||m.name==='waterB'||!m.visible) c=null;
+    else if(m.alphaTest>0&&m.map) c=new THREE.MeshBasicMaterial({map:m.map,alphaTest:m.alphaTest,side:THREE.DoubleSide,colorWrite:false});
+    else c=solid;
+    CAST.set(m,c); return c; }
+  SHADOW.tick=function(){
+    const S=SHADOW;
+    /* how strong the shade is: with the sun's coming, under no storm, with the eye in the air and not too high */
+    let amt=0;
+    if(S.on&&!state.firm&&chunkRoot.parent&&chunkRoot.children.length&&!SKYDOME.off){
+      amt=_ss(0.42,0.62,SKYDOME.dayF)*(1-_ss(0.15,0.6,SKYDOME.storm||0))*(1-(_eyeSub||0))*(1-_ss(1600,2600,camera.position.y));
+      amt*=Math.min(1,(sun.userData.bright||0)*1.5+0.2); }
+    SH_U.uShAmt.value=amt*0.9;
+    if(amt<0.01) return;
+    if(ok===null){ try{ ok=renderer.capabilities.isWebGL2||!!renderer.extensions.get('WEBGL_depth_texture'); }catch(e){ ok=false; } }
+    if(!ok){ SH_U.uShAmt.value=0; return; }
+    if(!rt){ rt=new THREE.WebGLRenderTarget(S.size,S.size,{minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter,generateMipmaps:false});
+      rt.depthTexture=new THREE.DepthTexture(S.size,S.size); rt.depthTexture.type=THREE.UnsignedIntType;
+      rt.depthTexture.minFilter=rt.depthTexture.magFilter=THREE.NearestFilter;
+      SH_U.uShMap.value=rt.depthTexture; }
+    /* toward the sun, never lower than a few degrees over the earth, or the shade of one hill would lie over a country */
+    _L.copy(sun.position).sub(camera.position); const hor=Math.hypot(_L.x,_L.z)||1, el=Math.max(0.2,Math.atan2(_L.y,hor));
+    _L.set(_L.x/hor*Math.cos(el),Math.sin(el),_L.z/hor*Math.cos(el));
+    /* about a point a little ahead of the eye */
+    camera.getWorldDirection(_F); _F.y=0; if(_F.lengthSq()<1e-6) _F.set(0,0,-1); _F.normalize();
+    _C.copy(camera.position).addScaledVector(_F,S.R*0.4);
+    const D=1200, R=S.R, tx=2*R/S.size;
+    cam.left=-R; cam.right=R; cam.top=R; cam.bottom=-R; cam.near=D-1000; cam.far=D+2400; cam.updateProjectionMatrix();
+    cam.up.set(0,1,0); if(Math.abs(_L.y)>0.995) cam.up.set(0,0,1);
+    cam.position.copy(_C).addScaledVector(_L,D); cam.lookAt(_C); cam.updateMatrixWorld();
+    _ax.setFromMatrixColumn(cam.matrixWorld,0); _ay.setFromMatrixColumn(cam.matrixWorld,1);
+    const px=cam.position.dot(_ax), py=cam.position.dot(_ay);
+    cam.position.addScaledVector(_ax,Math.round(px/tx)*tx-px).addScaledVector(_ay,Math.round(py/tx)*tx-py);
+    cam.updateMatrixWorld(); cam.matrixWorldInverse.copy(cam.matrixWorld).invert();
+    /* the chunks, lent to the sun's scene for one drawing, each in what it throws */
+    const P=chunkRoot.parent, idx=P.children.indexOf(chunkRoot), kids=chunkRoot.children;
+    saved.length=0;
+    for(let i=0;i<kids.length;i++){ const m=kids[i]; saved.push(m.material,m.visible);
+      if(!m.isMesh||!m.visible) continue;
+      const c=Array.isArray(m.material)?null:caster(m.material);
+      if(c) m.material=c; else m.visible=false; }
+    P.children.splice(idx,1); SCN.children.push(chunkRoot); chunkRoot.parent=SCN;
+    const prevRT=renderer.getRenderTarget();
+    cam.layers.set(0);
+    try{ renderer.setRenderTarget(rt); renderer.clear(true,true,false); renderer.render(SCN,cam); }
+    finally{
+      SCN.children.length=0; P.children.splice(idx,0,chunkRoot); chunkRoot.parent=P;
+      for(let i=0;i<kids.length;i++){ kids[i].material=saved[2*i]; kids[i].visible=saved[2*i+1]; } }
+    /* and then the things that stand on it, in one plain solid, into the same map */
+    if((scanT-=1)<=0){ scanT=30; scan(scene); }
+    const ov=scene.overrideMaterial, au=scene.autoUpdate, ac=renderer.autoClear, bg=scene.background, fg=scene.fog;
+    scene.overrideMaterial=solid; scene.autoUpdate=false; renderer.autoClear=false; scene.background=null; scene.fog=null;
+    cam.layers.set(LAYER);
+    try{ renderer.render(scene,cam); }
+    finally{ scene.overrideMaterial=ov; scene.autoUpdate=au; renderer.autoClear=ac; scene.background=bg; scene.fog=fg;
+      renderer.setRenderTarget(prevRT); }
+    SH_U.uShMat.value.multiplyMatrices(BIAS,cam.projectionMatrix).multiply(cam.matrixWorldInverse);
+    SH_U.uShDir.value.copy(_L); SH_U.uShTexel.value=1/S.size; SH_U.uShOff.value=tx*1.2;
+    SH_U.uShBias.value=0.25/(cam.far-cam.near);
+    S.rt=rt; S.cam=cam; S.U=SH_U;          /* (tools: the map itself, to look at) */
+  };
+  window.__SHADOW=SHADOW;
+}
+/* ================= THE GLOW AND THE GRADE =================
+   What the eye does with bright light and a camera does with colour. The frame is drawn first into a
+   picture of its own; whatever in it is near white — the sun and the air about him, his road of light
+   on the water, the glare off a white wall at noon, a mal'ak's light — is taken out, softened at a
+   quarter and an eighth of the size, and laid back over the frame as a glow. Then the frame is graded:
+   a little more colour, a gentle curve through the middle tones, the shadows a breath cooler and the
+   lights a breath warmer, and the corners a little darker, as a lens leaves them.
+   POST.on=false (or __INJECT.noPost) draws straight to the screen, as before. */
+const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14, curve:0.20, vig:0.26, rays:1.3, rayGain:8 };
+{ const VS='varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }';
+  const qs=new THREE.Scene(), qc=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+  const quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2)); quad.frustumCulled=false; qs.add(quad);
+  const mk=(u,fs)=>new THREE.ShaderMaterial({uniforms:u,vertexShader:VS,fragmentShader:fs,depthTest:false,depthWrite:false,fog:false});
+  /* the bright part, taken out as the picture is halved (four taps, so a single bright texel does not flicker) */
+  const mBright=mk({t:{value:null},px:{value:new THREE.Vector2()},thr:{value:0.8}},`
+    uniform sampler2D t; uniform vec2 px; uniform float thr; varying vec2 vUv;
+    void main(){ vec3 c=(texture2D(t,vUv+px*vec2(-0.5,-0.5)).rgb+texture2D(t,vUv+px*vec2(0.5,-0.5)).rgb
+                        +texture2D(t,vUv+px*vec2(-0.5,0.5)).rgb+texture2D(t,vUv+px*vec2(0.5,0.5)).rgb)*0.25;
+      float l=max(c.r,max(c.g,c.b)); gl_FragColor=vec4(c*smoothstep(thr,thr+0.2,l),1.0); }`);
+  const mDown=mk({t:{value:null},px:{value:new THREE.Vector2()}},`
+    uniform sampler2D t; uniform vec2 px; varying vec2 vUv;
+    void main(){ gl_FragColor=vec4((texture2D(t,vUv+px*vec2(-0.5,-0.5)).rgb+texture2D(t,vUv+px*vec2(0.5,-0.5)).rgb
+                                   +texture2D(t,vUv+px*vec2(-0.5,0.5)).rgb+texture2D(t,vUv+px*vec2(0.5,0.5)).rgb)*0.25,1.0); }`);
+  /* a nine-tap Gaussian in five reads, along one axis */
+  const mBlur=mk({t:{value:null},dir:{value:new THREE.Vector2()}},`
+    uniform sampler2D t; uniform vec2 dir; varying vec2 vUv;
+    void main(){ vec3 c=texture2D(t,vUv).rgb*0.2270270270;
+      c+=(texture2D(t,vUv+dir*1.3846153846).rgb+texture2D(t,vUv-dir*1.3846153846).rgb)*0.3162162162;
+      c+=(texture2D(t,vUv+dir*3.2307692308).rgb+texture2D(t,vUv-dir*3.2307692308).rgb)*0.0702702703;
+      gl_FragColor=vec4(c,1.0); }`);
+  /* ---- THE SHAFTS OF THE SUN ----
+     Where the sun stands behind a wood (or a wall, or a ship's rigging), the bright sky between the leaves
+     is drawn out along the lines from the sun, a little at a time, so the light comes through the gaps in
+     shafts and lies in the air. Only the sky near him is bright enough to give them, and only while he is
+     up, and in front of the eye. */
+  /* (drawn from the glow's own softened picture of the bright: a spot of sun through a gap in the leaves
+     is a few pixels, and drawn out as it is it gave a hair, not a shaft — softened, it gives a beam) */
+  const mRays=mk({t:{value:null},sun:{value:new THREE.Vector2(0.5,0.5)},asp:{value:1},gain:{value:3}},`
+    uniform sampler2D t; uniform vec2 sun; uniform float asp, gain; varying vec2 vUv;
+    void main(){ vec2 d=(vUv-sun)*(0.92/28.0); vec2 uv=vUv; float decay=1.0; vec3 acc=vec3(0.0);
+      for(int i=0;i<28;i++){ uv-=d; vec3 c=texture2D(t,clamp(uv,0.0,1.0)).rgb;
+        vec2 q=(uv-sun)*vec2(asp,1.0);
+        acc+=c*exp(-dot(q,q)*6.0)*decay; decay*=0.955; }
+      /* strongest when he is behind the leaves and shows only through their gaps; in the open sky his
+         whole disc is bright, and drawn out at that strength it would only be a great blur */
+      vec3 s0=texture2D(t,sun).rgb; float opn=smoothstep(0.35,0.9,max(s0.r,max(s0.g,s0.b)));
+      gl_FragColor=vec4(acc*(gain*(1.0-0.8*opn)/28.0),1.0); }`);
+  const mComp=mk({t:{value:null},b1:{value:null},b2:{value:null},rays:{value:null},rayAmt:{value:0},rayCol:{value:new THREE.Color(1,0.9,0.7)},
+    bloom:{value:0.4},sat:{value:1.1},curve:{value:0.2},vig:{value:0.25}},`
+    uniform sampler2D t, b1, b2, rays; uniform float bloom, sat, curve, vig, rayAmt; uniform vec3 rayCol; varying vec2 vUv;
+    void main(){
+      vec3 c=texture2D(t,vUv).rgb;
+      c+=(texture2D(b1,vUv).rgb*0.7+texture2D(b2,vUv).rgb*1.0)*bloom;
+      /* the shafts show in the air before what is darker than they (the leaves, the trunks, the ground);
+         over the open sky about the sun, already bright with him, they add little */
+      if(rayAmt>0.001){ float self=smoothstep(0.55,0.95,max(c.r,max(c.g,c.b)));
+        c+=texture2D(rays,vUv).rgb*rayCol*rayAmt*(1.0-0.7*self); }
+      float l=dot(c,vec3(0.2126,0.7152,0.0722));
+      c=max(mix(vec3(l),c,sat),0.0);
+      c=clamp(c,0.0,1.0); c=mix(c,c*c*(3.0-2.0*c),curve);
+      c*=mix(vec3(0.975,0.99,1.035),vec3(1.03,1.005,0.965),smoothstep(0.15,0.85,l));
+      vec2 q=vUv-0.5; c*=1.0-vig*dot(q,q)*1.9;
+      gl_FragColor=vec4(c,1.0); }`);
+  let ok=null, W=0, H=0, rtS=null, rtH=null, rtQ=null, rtQ2=null, rtE=null, rtE2=null, rtR=null;
+  const _sp=new THREE.Vector3();
+  const _sz=new THREE.Vector2();
+  const lin={minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,generateMipmaps:false,depthBuffer:false,stencilBuffer:false};
+  function size(){
+    renderer.getDrawingBufferSize(_sz); const w=Math.max(1,_sz.x|0), h=Math.max(1,_sz.y|0);
+    if(w===W&&h===H&&rtS) return; W=w; H=h;
+    for(const r of [rtS,rtH,rtQ,rtQ2,rtE,rtE2,rtR]) if(r) r.dispose();
+    /* the frame keeps its edges smooth: drawn many-sampled where the card can, as the screen itself is */
+    if(renderer.capabilities.isWebGL2&&THREE.WebGLMultisampleRenderTarget){
+      rtS=new THREE.WebGLMultisampleRenderTarget(W,H,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,generateMipmaps:false});
+      rtS.samples=4; }
+    else rtS=new THREE.WebGLRenderTarget(W,H,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,generateMipmaps:false});
+    const h2=[Math.max(1,W>>1),Math.max(1,H>>1)], q4=[Math.max(1,W>>2),Math.max(1,H>>2)], e8=[Math.max(1,W>>3),Math.max(1,H>>3)];
+    rtH=new THREE.WebGLRenderTarget(h2[0],h2[1],lin);
+    rtQ=new THREE.WebGLRenderTarget(q4[0],q4[1],lin); rtQ2=new THREE.WebGLRenderTarget(q4[0],q4[1],lin);
+    rtE=new THREE.WebGLRenderTarget(e8[0],e8[1],lin); rtE2=new THREE.WebGLRenderTarget(e8[0],e8[1],lin);
+    rtR=new THREE.WebGLRenderTarget(q4[0],q4[1],lin); }
+  function pass(m,target){ quad.material=m; renderer.setRenderTarget(target); renderer.render(qs,qc); }
+  function blur(a,b){ const w=a.width, h=a.height;
+    mBlur.uniforms.t.value=a.texture; mBlur.uniforms.dir.value.set(1/w,0); pass(mBlur,b);
+    mBlur.uniforms.t.value=b.texture; mBlur.uniforms.dir.value.set(0,1/h); pass(mBlur,a); }
+  POST.render=function(){
+    if(ok===null){ try{ ok=!!renderer.capabilities; }catch(e){ ok=false; } }
+    if(!POST.on||!ok){ renderer.setRenderTarget(null); renderer.render(scene,camera); return; }
+    size();
+    renderer.setRenderTarget(rtS); renderer.render(scene,camera);
+    mBright.uniforms.t.value=rtS.texture; mBright.uniforms.px.value.set(1/W,1/H); mBright.uniforms.thr.value=POST.thr; pass(mBright,rtH);
+    mDown.uniforms.t.value=rtH.texture; mDown.uniforms.px.value.set(1/rtH.width,1/rtH.height); pass(mDown,rtQ);
+    blur(rtQ,rtQ2);
+    mDown.uniforms.t.value=rtQ.texture; mDown.uniforms.px.value.set(1/rtQ.width,1/rtQ.height); pass(mDown,rtE);
+    blur(rtE,rtE2);
+    /* the shafts: where the sun is on the screen, and how much of him there is to give them */
+    let ray=0;
+    if(POST.rays>0&&!state.firm&&(sun.userData.bright||0)>0.05&&SKYDOME.dayF>0.4){
+      /* (a point toward him a little way off, not his own far station, which may lie past the eye's far plane) */
+      _sp.copy(SKYDOME.U.uSunDir.value).multiplyScalar(500).add(camera.position).project(camera);
+      if(_sp.z<1&&_sp.z>-1&&Math.abs(_sp.x)<1.6&&Math.abs(_sp.y)<1.6){
+        ray=POST.rays*Math.min(1,sun.userData.bright)*(1-_ss(1.0,1.6,Math.max(Math.abs(_sp.x),Math.abs(_sp.y))))
+          *(1-_ss(0.15,0.6,SKYDOME.storm||0))*(1-(_eyeSub||0))*(0.6+0.4*(1-_ss(0.6,1.0,SKYDOME.dayF)));
+        if(ray>0.001){ mRays.uniforms.t.value=rtQ.texture; mRays.uniforms.gain.value=POST.rayGain; mRays.uniforms.sun.value.set(_sp.x*0.5+0.5,_sp.y*0.5+0.5);
+          mRays.uniforms.asp.value=W/H; pass(mRays,rtR); } } }
+    const U=mComp.uniforms; U.t.value=rtS.texture; U.b1.value=rtQ.texture; U.b2.value=rtE.texture;
+    U.rays.value=rtR.texture; U.rayAmt.value=ray; U.rayCol.value.copy(SKYDOME.U.uSunCol.value);
+    U.bloom.value=POST.bloom; U.sat.value=POST.sat; U.curve.value=POST.curve; U.vig.value=POST.vig;
+    pass(mComp,null); };
+  window.__POST=POST;
+}
+/* ================= THE WORLD IN THE WATER =================
+   Still water gives back the shore: the hills, the trees, the boats and the people standing by it,
+   upside down and broken by the ripples. Each frame, when the eye is over water, the world is drawn
+   once more at half the size, from the eye's mirror image under the face of the water (and only what
+   stands above that face — the near plane of the drawing is laid along it), and the water reads it
+   where the mirrored sky was read before. One face at a time: the lake of a scene of the story when
+   one is laid, or else the sea when there is sea about; the still water of the blocks takes it where
+   it lies at that same level, and the mirrored sky elsewhere, as before. */
+const REFLECT={ on:!((window.__INJECT||{}).noReflect), scale:0.5, lakes:new Set() };
+{ const vcam=new THREE.PerspectiveCamera(), N=new THREE.Vector3(0,1,0), Pw=new THREE.Vector3(), Cw=new THREE.Vector3();
+  const view=new THREE.Vector3(), tgt=new THREE.Vector3(), look=new THREE.Vector3(), rot=new THREE.Matrix4();
+  const plane=new THREE.Plane(), clip=new THREE.Vector4(), q=new THREE.Vector4(), _sz=new THREE.Vector2();
+  const TM=new THREE.Matrix4().set(0.5,0,0,0.5, 0,0.5,0,0.5, 0,0,0.5,0.5, 0,0,0,1);
+  const hid=[]; let rt=null, seaT=0, seaNear=false;
+  function inScene(o){ while(o.parent) o=o.parent; return o===scene; }
+  /* is there open sea within sight of the eye (a few looks at the land about it, now and then) */
+  function seaAbout(){
+    if((seaT-=1)>0) return seaNear; seaT=12; seaNear=false;
+    const x=camera.position.x, z=camera.position.z;
+    for(let r=0;r<=900&&!seaNear;r+=300) for(let a=0;a<8;a++){ const t=a*Math.PI/4;
+      if(!landAtWorld(x+Math.cos(t)*r,z+Math.sin(t)*r)){ seaNear=true; break; } if(r===0) break; }
+    return seaNear; }
+  REFLECT.tick=function(){
+    RF_U.uReflOn.value=0;
+    if(!REFLECT.on||state.firm||_eyeUnder||(_eyeSub||0)>0.01) return;
+    let y=null;
+    for(const m of REFLECT.lakes){ if(!inScene(m)){ REFLECT.lakes.delete(m); continue; }
+      if(m.visible){ y=m.matrixWorld.elements[13]; break; } }
+    if(y===null&&seaAbout()) y=WATER_Y;
+    if(y===null) return;
+    camera.updateMatrixWorld(); Cw.setFromMatrixPosition(camera.matrixWorld);
+    const hgt=Cw.y-y; if(hgt<0.3||hgt>1800) return;
+    /* the eye's mirror image, under the face, looking up into it */
+    Pw.set(Cw.x,y,Cw.z);
+    view.subVectors(Pw,Cw).reflect(N).negate().add(Pw);
+    rot.extractRotation(camera.matrixWorld);
+    look.set(0,0,-1).applyMatrix4(rot).add(Cw);
+    tgt.subVectors(Pw,look).reflect(N).negate().add(Pw);
+    vcam.position.copy(view); vcam.up.set(0,1,0).applyMatrix4(rot).reflect(N); vcam.lookAt(tgt);
+    vcam.near=camera.near; vcam.far=camera.far; vcam.layers.mask=camera.layers.mask&~2;   /* (not the hand in the eye's own view, F5) */
+    vcam.updateMatrixWorld(); vcam.projectionMatrix.copy(camera.projectionMatrix);
+    RF_U.uReflMat.value.copy(TM).multiply(vcam.projectionMatrix).multiply(vcam.matrixWorldInverse);
+    /* the near plane laid along the face of the water, so nothing under it is drawn into the picture */
+    plane.setFromNormalAndCoplanarPoint(N,Pw); plane.applyMatrix4(vcam.matrixWorldInverse);
+    clip.set(plane.normal.x,plane.normal.y,plane.normal.z,plane.constant);
+    const pm=vcam.projectionMatrix.elements;
+    q.x=(Math.sign(clip.x)+pm[8])/pm[0]; q.y=(Math.sign(clip.y)+pm[9])/pm[5]; q.z=-1; q.w=(1+pm[10])/pm[14];
+    clip.multiplyScalar(2/clip.dot(q));
+    pm[2]=clip.x; pm[6]=clip.y; pm[10]=clip.z+1-0.003; pm[14]=clip.w;
+    renderer.getDrawingBufferSize(_sz);
+    const w=Math.max(16,Math.round(_sz.x*REFLECT.scale)), h=Math.max(16,Math.round(_sz.y*REFLECT.scale));
+    if(!rt) rt=new THREE.WebGLRenderTarget(w,h,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,generateMipmaps:false});
+    else if(rt.width!==w||rt.height!==h) rt.setSize(w,h);
+    /* the water itself is not in the picture of what stands over it */
+    hid.length=0;
+    const hide=o=>{ if(o&&o.visible){ o.visible=false; hid.push(o); } };
+    hide(waveGrid); hide(sea); hide(seaDeep);
+    for(const m of REFLECT.lakes) hide(m);
+    const kids=chunkRoot.children; for(let i=0;i<kids.length;i++) if(kids[i].material===MAT.waterB) hide(kids[i]);
+    const prev=renderer.getRenderTarget();
+    try{ renderer.setRenderTarget(rt); renderer.render(scene,vcam); }
+    finally{ renderer.setRenderTarget(prev); for(const o of hid) o.visible=true; }
+    RF_U.uRefl.value=rt.texture; RF_U.uReflY.value=y; RF_U.uReflOn.value=1;
+  };
+  window.__REFLECT=REFLECT;
+}
+/* the world, drawn: the sky's colours settled, the sun's map of the shade made, the world in the water,
+   and then the frame. The renderer's count of draws and triangles is the whole frame's (the sun's map,
+   the water's picture and the glow with it). */
+/* ---- THE LOOK, FULL OR FAST ----
+   The sun's map of the shade, the world in the water and the glow are the dearest work in a frame. A
+   slow machine may lay all three by (☰ → Look: fast) and have the world as it was drawn before; the
+   choice is kept on this machine, and the acts of the story, which are drawn by this same engine, read it. */
+const LOOK_KEY='voyage-look';
+function setLook(full,keep){
+  SHADOW.on=REFLECT.on=POST.on=!!full;
+  if(keep) try{ localStorage.setItem(LOOK_KEY,full?'full':'fast'); }catch(e){}
+  const b=$('b-look'); if(b) b.textContent='✨ Look: '+(full?'full':'fast'); }
+{ let fast=false; try{ fast=localStorage.getItem(LOOK_KEY)==='fast'; }catch(e){}
+  if(fast) setLook(false,false);
+  const b=$('b-look'); if(b) b.onclick=()=>{ const full=!(SHADOW.on||REFLECT.on||POST.on); setLook(full,true);
+    toast(full?'The full look: the shadows of the sun, the world in the water, the glow of the light.':
+               'The fast look: no shadows, no reflections in the water, no glow — for a slower machine.'); }; }
+renderer.info.autoReset=false;
+function drawWorld(){ renderer.info.reset(); SKYDOME.tick(); SHADOW.tick(); REFLECT.tick(); POST.render(); }
 function skyTick(px,pz){
   /* ---- THE TWO GREAT LIGHTS, WHERE THEY TRULY ARE ----
      js/sun-moon.js is the whole law: each light's own circuit over the
@@ -6695,8 +7270,11 @@ function skyTick(px,pz){
      under, at exactly the distance where its daylight gives out. */
   const S=SUNMOON.place(state.simHours,px,pz,R_WORLD,'sun');
   const dayF=SUNMOON.dayF(S.dUV);
-  let sky=mix3(0x0a1024,0xe58a4a,0x9fc5e8,dayF).getHex();
-  const st=stormAt(px,pz);
+  /* the horizon of the hour: at dusk a soft peach all round — the burning orange is the vault's,
+     laid along the horizon on the side the sun is going down (THE VAULT OF THE SKY) */
+  let sky=mix3(0x0a1024,0xd9a07e,0x9fc5e8,dayF).getHex();
+  SKYDOME.dayF=dayF;
+  const st=stormAt(px,pz); SKYDOME.storm=st;
   if(st>0.01){ _c1.setHex(sky); _c2.setHex(0x4c545e); sky=_c1.lerp(_c2,st*0.75).getHex(); }
   scene.background.setHex(sky);
   if(scene.fog){ scene.fog.color.setHex(sky); /* fog is detached in the firmament view */
@@ -15492,6 +16070,7 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code.indexOf('Digit')===0){ const k=+e.code.slice(5);
     if(k>=1&&k<=BELT_N){ heldSlot=k-1; beltDraw(); } }
   if(e.code==='KeyI'){ e.preventDefault(); togglePage(); }
+  if(e.code==='F5'&&!window.STORY){ e.preventDefault(); if(!state.firm) setPov(state.pov==='first'?'third':'first'); }   /* (the story keeps its own eye) */
   if(e.code==='KeyV'){ e.preventDefault();
     const r=placeBlock();
     if(r&&r.no&&r.no!=='nothing is within reach') toast('Not there — '+r.no+'.'); } });
@@ -16352,7 +16931,7 @@ function walkTick(dt){
   if(Math.abs(w.stepOff)<0.02) w.stepOff=0;
   walkerG.position.set(w.x,w.feetY,w.z); walkerG.rotation.y=w.heading;
   /* ---- animation ---- */
-  const moving=Math.abs(sp)>0.5;
+  const moving=Math.abs(sp)>0.5; w.moving=moving;          /* (read by the hand in his own view, F5) */
   if(swimming){ const s=performance.now()*0.008;
     const prone=Math.abs(f)>0.15;                        /* stroking forward, or treading */
     walkerG.rotation.x=(prone?1.30+Math.sin(s*0.7)*0.05:0.22)+(w.wPitch||0);
@@ -17147,7 +17726,7 @@ function deckTick(dt){
   if(allowed(d.lx,nz)) d.lz=nz;
   walkerG.position.set(d.lx,d.level==='hold'?HOLD.y:deckHeightAt(d.lz),d.lz);
   walkerG.rotation.y=d.h;
-  const ph=performance.now()*0.011, moving=Math.abs(sp)>0.5, u=walkerG.userData;
+  const ph=performance.now()*0.011, moving=Math.abs(sp)>0.5, u=walkerG.userData; d.moving=moving;
   u.legL.rotation.x=moving?Math.sin(ph)*0.7:0; u.legR.rotation.x=moving?-Math.sin(ph)*0.7:0;
   u.armL.rotation.x=moving?-Math.sin(ph)*0.5:0; u.armR.rotation.x=moving?Math.sin(ph)*0.5:0;
 }
@@ -17305,6 +17884,88 @@ const _camHold=new THREE.Vector3();
 /* the helm's boom: k × the zoom, never under `min` at the usual zoom, looking
    `fwd` ahead of the ship and `up` over her deck */
 const BOAT_LOOK=Object.assign({k:1.7,min:190*SHIP_K,fwd:70*SHIP_K,up:26*SHIP_K},window.__CAMTUNE||{});
+/* ================= THE EYE IN HIS OWN HEAD (F5) =================
+   As in Minecraft, the view may be the traveller's own: F5 (or ☰ → View) turns between the eye over his
+   shoulder and the eye in his head. In his head the body is not drawn — only his right arm at the foot of
+   the view, and whatever is in his hand, swinging as it swings — and to look about is to turn him: the
+   drag turns his heading and lifts or lowers his gaze, and he walks where he looks. It holds ashore, on
+   the deck, at the wheel, swimming, under the sea and in the air; the hold and the inside of a house were
+   seen from within already. The choice is kept on this machine. */
+const POV_KEY='voyage-pov';
+state.pov='third';
+try{ if(localStorage.getItem(POV_KEY)==='first') state.pov='first'; }catch(e){}
+function povFirst(){ return state.pov==='first'&&!window.STORY&&!state.firm&&running&&
+  (state.mode==='walk'||state.mode==='deck'||state.mode==='boat'||state.mode==='dive'||state.mode==='fly')&&zoomMapFadeCache<0.02; }
+function setPov(p,quiet){ state.pov=p==='first'?'first':'third';
+  try{ localStorage.setItem(POV_KEY,state.pov); }catch(e){}
+  const b=$('b-pov'); if(b) b.textContent='👁 View: '+(state.pov==='first'?'first person':'third person');
+  if(state.pov==='third'){ fpViewHide(); if(fpHid&&!camInside){ walkerG.visible=true; } fpHid=false; }
+  if(!quiet) toast(state.pov==='first'?'Through his own eyes — drag to look and to turn; F5 to stand back.':'Over his shoulder again — F5 to look through his eyes.'); }
+let fpHid=false;
+{ const bp=$('b-pov'); if(bp){ bp.textContent='👁 View: '+(state.pov==='first'?'first person':'third person');
+    bp.onclick=()=>setPov(state.pov==='first'?'third':'first'); } }
+/* the arm and the thing in the hand, drawn over the world at the foot of the view (on a layer of their
+   own: the sun's map and the water's picture never see them) */
+const fpView=new THREE.Group(); fpView.visible=false; fpView.userData.noShadow=true; scene.add(fpView);
+window.__FP=fpView;                                   /* (tools: the hand in the view) */
+camera.layers.enable(1);
+const fpPivot=new THREE.Group(); fpView.add(fpPivot);
+const _fpMats=new Map();
+function fpMat(m){ if(!m) return m; let c=_fpMats.get(m); if(!c){ c=m.clone(); c.depthTest=false; c.depthWrite=false; c.fog=false; _fpMats.set(m,c);
+    if(c.isMeshBasicMaterial) LIT.push(c); }                    /* (the day's light falls on it as on the rest) */
+  return c; }
+function fpLayer(o){ o.traverse(q=>{ q.layers.set(1); q.renderOrder=999; if(q.isMesh) q.material=Array.isArray(q.material)?q.material.map(fpMat):fpMat(q.material); q.frustumCulled=false; }); }
+const fpFore=new THREE.Mesh(new THREE.BoxGeometry(1.26,2.29,1.35).translate(0,-1.14,0),sleeveMatP); fpLayer(fpFore); fpPivot.add(fpFore);
+let fpHeldG=null, fpHeldKey=null;
+function fpViewHide(){ if(fpView.visible) fpView.visible=false; }
+const _fpE=new THREE.Vector3(), _fpT=new THREE.Vector3();
+function fpEye(dt){
+  /* to look about is to turn him: the drag's yaw is laid into his heading, and his gaze is the pitch */
+  if(state.camYaw){ const y=state.camYaw; state.camYaw=0;
+    if(state.mode==='walk') state.walk.heading+=y;
+    else if(state.mode==='deck') state.deck.h+=y;
+    else if(state.mode==='dive') state.dive.heading+=y;
+    else if(state.mode==='fly') state.fly.heading+=y;
+    else if(state.mode==='boat') fpEye.helmYaw=(fpEye.helmYaw||0)+y; }       /* at the wheel the eye turns, not the ship */
+  if(state.mode!=='boat') fpEye.helmYaw=0;
+  /* the eye is in his head, wherever the head is: upright ashore, prone in the water, on the deck. At the
+     wheel it is lifted over it: the ship is built four times the size of a man, and from his own head
+     the wheel filled the whole view like a wall */
+  const head=walkerG.children[0];
+  if(walkerG.parent) walkerG.parent.updateMatrixWorld(); walkerG.updateMatrixWorld();
+  if(state.mode==='boat'){ boatG.updateMatrixWorld(); _fpE.set(0,SD.qdeckY+26,SD.wheelZ-6); boatG.localToWorld(_fpE); }
+  else if(head){ head.getWorldPosition(_fpE); _fpE.y+=0.3; }
+  else { walkerG.getWorldPosition(_fpE); _fpE.y+=10.6; }
+  if(walkerG.visible){ walkerG.visible=false; fpHid=true; }
+  let yaw;
+  if(state.mode==='walk') yaw=state.walk.heading;
+  else if(state.mode==='deck') yaw=state.boat.heading+state.deck.h;
+  else if(state.mode==='dive') yaw=state.dive.heading;
+  else if(state.mode==='fly') yaw=state.fly.heading;
+  else yaw=state.boat.heading+(fpEye.helmYaw||0);
+  const p=state.camPitch, cp=Math.cos(p);
+  /* a hand's breadth forward of the head, so the eye is not inside it */
+  if(state.mode!=='boat'){ _fpE.x+=Math.sin(yaw)*0.5; _fpE.z+=Math.cos(yaw)*0.5; }
+  camera.position.copy(_fpE);
+  _fpT.set(_fpE.x+Math.sin(yaw)*cp*20, _fpE.y-Math.sin(p)*20, _fpE.z+Math.cos(yaw)*cp*20);
+  camera.lookAt(_fpT);
+  /* the arm and the tool: shown ashore and on the deck, where the hand holds something */
+  const w=state.walk;
+  const handOn=(state.mode==='walk'||state.mode==='deck')&&!state.fishing&&!state.mount&&!(state.mode==='walk'&&(w.inWater||w.climb));
+  fpView.visible=handOn;
+  if(handOn){
+    camera.updateMatrixWorld(); fpView.position.copy(camera.position); fpView.quaternion.copy(camera.quaternion);
+    let b=heldBlock(); if(!b&&freeHand()) b=BLOCK_BY_ID['iron-pick']||null;
+    const key=b?b.id:null;
+    if(key!==fpHeldKey){ if(fpHeldG){ fpFore.remove(fpHeldG); fpHeldG=null; }
+      if(b){ fpHeldG=heldModel(b); fpLayer(fpHeldG); fpFore.add(fpHeldG); } fpHeldKey=key; }
+    /* at rest the hand is carried forward at the right of the view; the blow swings it down and back */
+    const t=performance.now()*0.001, mv=(state.mode==='walk'?w.moving:state.deck&&state.deck.moving)?1:0;
+    let sw=0; if(MINE.on) sw=Math.max(0,Math.sin(t*3.1*Math.PI*2)); else if(swingT>0) sw=Math.sin((1-swingT/0.3)*Math.PI);
+    fpPivot.position.set(2.15,-2.05+Math.sin(t*7)*0.08*mv,-3.1);
+    fpPivot.rotation.set(1.6-sw*0.9,0.28+sw*0.25,0.12);
+  }
+}
 function cameraTick(dt){
   if(cut){ sceneTick(dt); return; }
   /* ---- THE SLIDE ----
@@ -17354,7 +18015,10 @@ function cameraTick(dt){
      The camera is clamped well inside the walls (never through them), the near
      plane is pulled in, and the body is hidden so it doesn't fill the view. */
   const Hin = state.mode==='walk' ? insideHouse(state.walk.x,state.walk.z) : null;
-  setCamInside(!!Hin);
+  const fpNow=povFirst();
+  setCamInside(!!Hin||fpNow);
+  if(fpNow&&!Hin){ fpEye(dt); return; }
+  fpViewHide();
   if(Hin){ const w=state.walk, H=Hin, hy=walkerG.position.y+8.5, inset=B*0.5+2.2;
     let cxp=w.x+Math.sin(w.heading)*1.0, czp=w.z+Math.cos(w.heading)*1.0;
     cxp=Math.max(H.x0+inset, Math.min(H.x1-inset, cxp));
@@ -18886,6 +19550,7 @@ function setBuilder(ax,az,baseY,opt){
        with the ground's (or `drop` courses below it) */
     water(x0,z0,x1,z1,o){ o=o||{}; const d=o.depth||2, dr=o.drop||0, w=blockId('water'), bed=blockId(o.bed||'sand');
       const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1));
+      underWaterAdd(grp,i0*B,k0*B,(i1+1)*B,(k1+1)*B,(tY-dr)*B);          /* its bed takes the light under the water */
       for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ if(o.test&&!o.test(...api.local((i+.5)*B,(k+.5)*B))) continue;
         const c=cell(i,k); const h=Math.max(c?c.h:tY,tY);
         for(let j=tY-dr;j<h+2;j++) stampBlock(i,j,k,0);
@@ -18916,7 +19581,7 @@ function setBuilder(ax,az,baseY,opt){
       const g=groundInfo(X(x),Z(z),ref); return ((g&&g.y!=null?g.y:baseY)-baseY)/S; },
     mark(name,x,z){ marks[name]=[x,z]; },
     end(){ if(!was&&_stampOn===grp) stampEnd(); return api; },
-    drop(){ api.end(); stampDrop(grp); for(const h of houses) h.drop(); houses.length=0; }
+    drop(){ api.end(); stampDrop(grp); for(const h of houses) h.drop(); houses.length=0; underWaterDrop(grp); }
   };
   return api;
 }
@@ -18946,6 +19611,8 @@ window.__KIT={
   /* the floor of cloud, which a story lifts high over its scenes: the voyage's clouds stand
      at the scale of its earth, and a scene is built at the scale of a man */
   clouds:()=>clouds, CLOUD_Y, blockArr:()=>BARR, chunkRoot,
+  /* the air toward the sun, for a story's own water to fade into (THE AIR TOWARD THE SUN) */
+  hazeGLSL:HZ_GLSL,
   /* THE LAMP OF A SCENE: the torch's own light (the one every block and beast already takes),
      set where a story wants it — on what the eye is looking at in a scene by night or under a
      roof. It is set after the torch's own tick each frame, so it holds only while asked. */
@@ -19130,7 +19797,7 @@ if(!window.__HOST_BOOT){
 }
 
 /* a small debug handle — used by the automated smoke tests; harmless in play */
-window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
+window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   /* the ship and her company — her deck's open ground, and who is aboard */
   SHIP_SX,SHIP_K,SD,deckAllowed,holdAllowed,CREW,initCrew,
   /* and the water that answers: a splash, a strike, the field's own state */
@@ -21339,9 +22006,9 @@ function frame(){
   /* before the voyage begins the MENU stands over the living world: the sky
      keeps its hour, the sea runs, the ship rides the swell at her anchorage,
      and the eye is carried slowly round her */
-  if(!running){ if(menuView) menuTick(dt); stageHook(dt); renderer.render(scene,camera); return; }
+  if(!running){ if(menuView) menuTick(dt); stageHook(dt); drawWorld(); return; }
   /* paused — the world is drawn as it stands, and not one thing in it stirs */
-  if(gamePaused){ stageHook(dt); renderer.render(scene,camera); return; }
+  if(gamePaused){ stageHook(dt); drawWorld(); return; }
   /* ---- THE SKY KEEPS YOUR OWN CLOCK, IF YOU ASK IT TO ----
      On 'live' the hour is not run forward by the course at all: it is read
      off the machine's own clock a few times a second, and set as the LOCAL
@@ -21632,9 +22299,9 @@ function frame(){
        distance from the eye instead, easing back to the great square of the
        ground sky as the band is left. */
     for(const L of [sun,moon]){
-      const baseS=(L===sun?R_WORLD*0.075:R_WORLD*0.055);
+      const baseS=(L===sun?SUN_S:MOON_S);
       const cd=camera.position.distanceTo(L.position);
-      const want=Math.min(baseS, Math.max(900, cd*(L===sun?0.052:0.040)));
+      const want=Math.min(baseS, Math.max(1800, cd*(L===sun?0.104:0.080)));   /* (the faces carry their own glow: twice the old square's size for the same disc) */
       const s2=baseS+(want-baseS)*sk;
       L.scale.set(s2,s2,1);
     }
@@ -21681,8 +22348,8 @@ function frame(){
   }
   /* leaving the whole-earth band, the lights take back their ground size —
      and the depth test with it, so a mountain hides the setting sun again */
-  if(wholeF<=0.02){ sun.scale.set(R_WORLD*0.075,R_WORLD*0.075,1);
-    moon.scale.set(R_WORLD*0.055,R_WORLD*0.055,1);
+  if(wholeF<=0.02){ sun.scale.set(SUN_S,SUN_S,1);
+    moon.scale.set(MOON_S,MOON_S,1);
     for(const L of [sun,moon,sunHalo,moonHalo]){
       L.renderOrder=0; L.material.depthTest=true; } }
   haloTick(wholeF);               /* the lights get their glow when the earth is beheld whole */
@@ -21692,6 +22359,7 @@ function frame(){
      is the whole of what the scene at the world's edge is for, so the dark
      and the host come up there too, on the scene's own ramp. */
   const voidF=state.firm?1:Math.max(zMapF, sceneSet('voidDark'));
+  SKYDOME.voidF=voidF;
   if(voidF>0.002) scene.background.lerp(_voidC,Math.min(1,voidF*1.14));
   voidStarTick(voidF);            /* and the host of the shamayim stands in it */
   /* and the haze of the near world must not blind an eye drawn back off it */
@@ -21968,7 +22636,7 @@ function frame(){
   TEX.surf.offset.x=(_pn*0.00006)%1; TEX.surf.offset.y=(_pn*0.00013)%1;
   surfMat.opacity=0.42+0.28*Math.sin(_pn*0.0022);      /* the wash advancing and drawing back */
   stageHook(dt);
-  renderer.render(scene,camera);
+  drawWorld();
 }
 frame();
 };

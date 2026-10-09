@@ -184,6 +184,8 @@ function buildScene(sc){
     if(t.kind==='lamb') obj=window.STORYWORLD.sheep(ctx,p[0],p[1],true);
     else if(t.kind==='camel') obj=window.STORYWORLD.camel(ctx,p[0],p[1]);
     else if(t.kind==='donkey') obj=window.STORYWORLD.donkey(ctx,p[0],p[1]);
+    else if(t.kind==='garment'){ obj=window.STORYWORLD.garment(ctx,t); obj.position.set(p[0],(ctx.groundY(p[0],p[1])||0)+(t.dy||0),p[1]); }
+    else if(t.kind==='chain'){ obj=window.STORYWORLD.chain(ctx,t); }
     else if(t.kind==='beast') { obj=window.STORYWORLD.donkeyFree(ctx,p[0],p[1],t.beast||'ox'); obj.position.y=ctx.groundY(p[0],p[1])||0; }   /* an ox led to the altar (Acts 14:13) */
     else if(t.kind==='wreath'){ obj=window.STORYWORLD.wreath(ctx); obj.position.set(p[0],(ctx.groundY(p[0],p[1])||0)+(t.dy||1.1),p[1]); }
     else if(t.kind==='dove'){ obj=window.STORYWORLD.dove(ctx,p[0],t.y||12,p[1]); if(t.hidden) obj.visible=false; }
@@ -218,7 +220,9 @@ function buildScene(sc){
     root.updateMatrixWorld(true);                   /* (not yet drawn: its world matrix is not yet worked out) */
     const a=root.localToWorld(new THREE.Vector3(r[0],0,r[1])), b=root.localToWorld(new THREE.Vector3(r[2],0,r[3]));
     K().lakeHide([Math.min(a.x,b.x),Math.min(a.z,b.z),Math.max(a.x,b.x),Math.max(a.z,b.z)]); }
-  /* lights: a mal'ak is LIGHT, never a figure; so is the Child (reverent framing) */
+  /* lights. A MAL'AK (`malak`) is seen: a man of dark skin, robed in white, standing within the light
+     (or, high in the air, borne up in it), turned toward those he is sent to; `sit` for those the
+     Besorah sets sitting (the tomb, Yahuchanon 20:12) */
   for(const gl of sc.glows||[]){
     /* at [x,y,z]; or at a marker (or a marker and a step from it), `y` high, or `dy` above the ground there */
     /* `on`: a light that rests on someone's head and goes with him — "tongues as of fire,
@@ -228,12 +232,17 @@ function buildScene(sc){
       return [m[0],gl.dy!==undefined?(ctx.groundY(m[0],m[1])||0)+gl.dy:(gl.y||2),m[1]]; })();
     const G=window.STORYWORLD.glow(ctx,p[0],p[1],p[2],gl.size||3,gl.color,gl.intensity===undefined?1.2:gl.intensity);
     if(gl.h){ G.sprite.scale.set(gl.size||3,gl.h,1); G.aspect=gl.h/(gl.size||3); }      /* a column of light keeps its height as it pulses or swells */
+    if(gl.malak) malakFigure(G,gl);
     G.visible=!gl.hidden; G.pulse=gl.pulse; if(gl.on&&ctx.actors[gl.on]){ G.on=ctx.actors[gl.on]; G.onDy=gl.dy===undefined?0.18:gl.dy; } ctx.glows[gl.id]=G; }
   ctx.drifts=[];
   if(sc.host){ ctx.host=[]; const h=sc.host;                     /* the heavenly host */
     for(let k=0;k<h.n;k++){ const a=k/h.n*Math.PI*2, r=h.r*(0.5+0.5*Math.random());
       const G=window.STORYWORLD.glow(ctx,h.at[0]+Math.cos(a)*r,h.y+Math.random()*h.h,h.at[1]+Math.sin(a)*r,1.2+Math.random()*1.2,0xfff4d8,0);
-      G.visible=false; G.ph=Math.random()*6; ctx.host.push(G); } }
+      G.visible=false; G.ph=Math.random()*6; ctx.host.push(G); }
+    /* and in each light one of the host, robed in white, turned to the field */
+    const figs=ctx.host.map(G=>{ const q=G.sprite.position; return {x:q.x,y:q.y-1.2,z:q.z,face:Math.atan2(h.at[0]-q.x,h.at[1]-q.z),s:1.0,sit:false,roman:false,woman:false,
+      robe:0xf4f1e8,cloth:0xfbf8ef,skin:MALAK_SKIN[Math.floor(Math.random()*MALAK_SKIN.length)],sash:0xe8dcb0,beard:null}; });
+    ctx.hostFigs=window.STORYWORLD.crowd(ctx,figs); ctx.hostFigs.visible=false; }
   ctx.star=null;
   if(sc.star){ const s=sc.star; ctx.star=window.STORYWORLD.glow(ctx,s.at[0],s.y,s.at[1],s.size||14,0xf6f0ff,0); ctx.star.visible=!s.hidden; }
   /* the player */
@@ -483,6 +492,7 @@ function folkStep(F,to,dt){
      the world's blocks, of the other townsfolk and of the mills, nets and tables they work at */
   const free=(b)=>{ const fx=Math.sin(b), fz=Math.cos(b), px=g.position.x+fx*0.5, pz=g.position.z+fz*0.5, sx=fz*0.3, sz=-fx*0.3;
     if(wallAt(px,pz,u.gy)||wallAt(px+sx,pz+sz,u.gy)||wallAt(px-sx,pz-sz,u.gy)) return false;
+    if(hullCross(g.position.x,g.position.z,px,pz,true)) return false;                         /* nor through a boat */
     for(const q of ctx.folkSolids||[]) if(Math.hypot(q[0]-px,q[1]-pz)<q[2]+0.3&&Math.hypot(q[0]-g.position.x,q[1]-g.position.z)>q[2]+0.05) return false;
     for(const O of ctx.folk) if(O!==F&&Math.hypot(O.g.position.x-px,O.g.position.z-pz)<0.62) return false;
     return true; };
@@ -645,8 +655,8 @@ function movePlayer(dt){
     const dx=Math.sin(ang)*sp*dt, dz=Math.cos(ang)*sp*dt;
     const x=player.position.x, z=player.position.z;
     const y=player.position.y;
-    if(!blocked(x+dx,z,0.3,y)) player.position.x+=dx;
-    if(!blocked(player.position.x,z+dz,0.3,y)) player.position.z+=dz;
+    if(!blocked(x+dx,z,0.3,y)&&!hullCross(x,z,x+dx,z)) player.position.x+=dx;
+    if(!blocked(player.position.x,z+dz,0.3,y)&&!hullCross(player.position.x,z,player.position.x,z+dz)) player.position.z+=dz;
     player.rotation.y=turnTo(player.rotation.y,ang,dt*10);
     ud.walk=(ud.walk||0)+dt*sp*2.2;
   } else ud.walk=0;
@@ -670,6 +680,18 @@ function lakeH(x,z){ const L=ctx.lake, r=L.rect;
   for(const c of window.STORYWORLD.LAKE_WAVES){ const k=2*Math.PI/c[1], om=Math.sqrt(9.8*k), cs=Math.cos(c[0]), sn=Math.sin(c[0]);
     const Dx=cs*dx-sn*dz, Dz=sn*dx+cs*dz; h+=L.A*c[2]*Math.sin(k*(Dx*x+Dz*z)-om*L.t); }
   return h*ef; }
+/* A BOAT IS SOLID: her sides are not walked through. Whether a step from (x0,z0) to (x1,z1) would pass
+   through a hull — from outside her to inside, or (for the townsfolk) out again — over the gunwale of
+   any boat of the scene, beached or afloat. Those the story itself sends aboard are not stopped: their
+   going in is the scene's own (Luqas 5:3, "He entered one of the boats"). */
+function inHull(o,x,z){ const t=o.userData.thing||{}, B=o.userData.boat||(t.big?{len:window.STORYWORLD.BOAT.len*(t.scale||1),beam:window.STORYWORLD.BOAT.beam*(t.scale||1)}:{len:7,beam:2.1});
+  const h=o.rotation.y, dx=x-o.position.x, dz=z-o.position.z;
+  const al=dx*Math.sin(h)+dz*Math.cos(h), ac=dx*Math.cos(h)-dz*Math.sin(h);
+  return Math.abs(al)<B.len/2+0.15&&Math.abs(ac)<B.beam/2+0.15; }
+function hullCross(x0,z0,x1,z1,both){
+  for(const id in ctx.things){ const o=ctx.things[id], t=o.userData.thing; if(!t||t.kind!=='boat'||!o.visible) continue;
+    const a=inHull(o,x0,z0), b=inHull(o,x1,z1); if(!a&&b) return true; if(both&&a&&!b) return true; }
+  return false; }
 /* where a point of the set lies in a boat's own frame (along her, across her), and whether it is inside her */
 function inBoat(o,x,z){ const B=o.userData.boat; if(!B) return null;
   const h=o.rotation.y, dx=x-o.position.x, dz=z-o.position.z;
@@ -696,6 +718,10 @@ function lakeTick(dt){
     u.heave=(hc*2+hf+hs)/4*0.9; u.pitch=cl(Math.atan2(hf-hs,2*ha),0.2); u.roll=cl(Math.atan2(hp-hn,2*hb)*0.8,0.24);
     o.position.y=u.baseY+u.heave; o.rotation.x=-u.pitch; o.rotation.z=u.roll;
     if(u.boat&&!main) main=o; }
+  { let n=0; for(const id in ctx.things){ const o=ctx.things[id], t=o.userData.thing; if(n>=8||!o.visible||!t||t.kind!=='boat') continue;
+      const B=o.userData.boat||(t.big?{len:window.STORYWORLD.BOAT.len*(t.scale||1),beam:window.STORYWORLD.BOAT.beam*(t.scale||1)}:{len:7,beam:2.1});
+      U.uBoats.value[n].set(o.position.x,o.position.z,B.len,B.beam); U.uBoatHs.value[n]=o.rotation.y; n++; }
+    for(;n<8;n++) U.uBoats.value[n].w=-99; }
   if(main){ U.uBoat.value.set(main.position.x,main.position.z,main.userData.boat.len,main.userData.boat.beam); U.uBoatH.value=main.rotation.y;
     const w=toWorld(main.position.x,0,main.position.z); KIT.ripple.focus({x:w.x,y:w.y,z:w.z}); }
   /* everyone in her moves with her; everyone on the water stands on its face */
@@ -729,7 +755,7 @@ function lakeTick(dt){
 /* on the ground, or on something? (one held at a height — in a boat — or set on a bench) */
 function groundSit(u){ return (u.def&&u.def.ground)||(u.fixedY===undefined&&!u.ride&&!u.aboard&&!(u.def&&u.def.bench)); }   /* `ground`: on a floor though held at its height (a boat's) */
 /* how far one sitting is lowered: on the ground the hips nearly to it, on a bench to its height */
-function sitDrop(u){ return u.sit?(groundSit(u)?0.63:0.44)*(u.s||1):0; }
+function sitDrop(u){ return u.kneel?0.43*(u.s||1):u.sit?(groundSit(u)?0.63:0.44)*(u.s||1):0; }
 /* the pose on all fours (radians, and metres for a man of 1.70): worked so the hands and the feet bear alike */
 const FOURS={pitch:1.05,thigh:-2.85,knee:2.1,arm:-1.2,splay:0.3,head:-0.85,lift:-0.034,back:1.12};
 function animFigure(g,dt,moving){
@@ -742,12 +768,16 @@ function animFigure(g,dt,moving){
   if(u.sit&&u.legL){ const gr=groundSit(u);
     u.legL.rotation.x=u.legR.rotation.x=gr?-1.92:-1.45; u.armL.rotation.x=u.armR.rotation.x=gr?-0.9:-0.5;
     for(const L of [u.legL,u.legR]) if(L.userData.knee) L.userData.knee.rotation.x=gr?1.42:1.45; }
+  /* KNEELING: the thighs upright, the shins laid back along the ground, the head bowed */
+  if(u.kneel&&u.legL){ u.legL.rotation.x=u.legR.rotation.x=-0.08;
+    for(const L of [u.legL,u.legR]) if(L.userData.knee) L.userData.knee.rotation.x=1.5;
+    u.armL.rotation.x=u.armR.rotation.x=-0.35; if(u.head) u.head.rotation.x=0.38; }
   /* THE SPEAKER'S HANDS: one who is speaking and standing still lifts a hand with the words */
   if(u.talkM!==undefined&&!moving&&!u.sit&&!u.carrying&&u.armR){ const k=u.talkM;
     u.armR.rotation.x+=(-0.55-k*0.35+Math.sin(u.phase*0.9)*0.08-u.armR.rotation.x)*Math.min(1,dt*5);
     u.armL.rotation.x+=(-0.18-k*0.15-u.armL.rotation.x)*Math.min(1,dt*4); }
   /* knees and elbows fold as the voyage's folk fold theirs */
-  const jt=K().jointTick; if(jt&&u.legL&&!u.sit) for(const L of [u.legL,u.legR,u.armL,u.armR]) jt(L,moving);
+  const jt=K().jointTick; if(jt&&u.legL&&!u.sit&&!u.kneel) for(const L of [u.legL,u.legR,u.armL,u.armR]) jt(L,moving);
   /* ON ALL FOURS (a def's `crouch`): the man of the tombs, hunched forward over his hands, his knees
      drawn up by his shoulders and splayed, his feet under him on their toes, his head craned up; going, he scuttles, the
      hands and feet stepping crosswise. The body is pitched about its feet and set back, so hands
@@ -770,7 +800,13 @@ function animFigure(g,dt,moving){
     for(const A of [u.armL,u.armR]) if(A.userData.elbow) A.userData.elbow.rotation.x=0;
     u.legL.rotation.set(0,0,up?-0.03:0); u.legR.rotation.set(0,0,up?0.03:0);
     for(const L of [u.legL,u.legR]) if(L.userData.knee) L.userData.knee.rotation.x=up?0.08:0;
-    if(up&&u.head) u.head.rotation.x=0.22; }
+    if(up&&u.head) u.head.rotation.x=0.22; u.posed=true; }
+  /* HOLDING something in both hands before him (the `hold` beat): the arms forward, the elbows bent */
+  else if(u.holding&&u.armL){ u.armL.rotation.set(-0.95,0,-0.16); u.armR.rotation.set(-0.95,0,0.16);
+    for(const A of [u.armL,u.armR]) if(A.userData.elbow) A.userData.elbow.rotation.x=-0.55; u.posed=true; }
+  /* a pose let go: the arms and legs come back to hang as they do (else they stay where the pose left them) */
+  else if(u.posed&&u.armL){ u.posed=false; for(const P of [u.armL,u.armR,u.legL,u.legR]){ P.rotation.y=0; P.rotation.z=0; }
+    if(u.head) u.head.rotation.x=0; }
   clothStep(g,dt,moving,sw);
 }
 /* THE CLOTH. Each panel of a hem, and the back of a head-cloth, hangs on a hinge and is
@@ -1221,10 +1257,10 @@ function releaseCamera(){ camTarget=null; if(player){ camYaw=player.rotation.y+M
 /* The one speaking moves the mouth with the words, vowel by vowel; the brows and the corners
    of the mouth show what the words carry, only joy turning it up; now and then an eye blinks.
    (After Scripture-Game's face.js.) Yahusha has no face drawn and none is ever seen (guardFace);
-   a mal'ak is light, and the light swells with the words. */
+   a mal'ak is seen within his light, and the light swells with the words. */
 const SV=window.STORYVOICE;
 function talkingAs(id){ const T=SV.talk, sp=T&&T.sp; if(!sp) return null;
-  return (sp.actor===id||(sp.actors&&sp.actors.indexOf(id)>=0))?T:null; }
+  return (sp.actor===id||(sp.actors&&sp.actors.indexOf(id)>=0)||(sp.glow&&id==='glow:'+sp.glow))?T:null; }
 function animFace(g,id,dt){
   const u=g.userData, F=u.face, T=talkingAs(id), m=T?(SV.mouth(T.sp.key)||0):0;
   if(u.aura){ const k=1+m*0.22+(T?0.06:0); u.aura.sprite.scale.setScalar(u.aura.base*k); }
@@ -1422,7 +1458,7 @@ function enterBeat(){
     if(B.wait===false) return nextBeat();
     onFrame=()=>{ if(camT>=1) nextBeat(); }; return; }
   if(T==='show'||T==='hide'){ for(const id of [].concat(B.id)){ const o=ctx.glows[id]||ctx.things[id]||ctx.actors[id]; if(o) o.visible=(T==='show'); }
-    if(B.host!==undefined&&ctx.host) for(const G of ctx.host) G.visible=!!B.host;
+    if(B.host!==undefined&&ctx.host){ for(const G of ctx.host) G.visible=!!B.host; if(ctx.hostFigs) ctx.hostFigs.visible=!!B.host; }
     if(B.star!==undefined&&ctx.star) ctx.star.visible=!!B.star;
     if(B.kingdoms!==undefined&&ctx.kingdoms) for(const G of ctx.kingdoms) G.visible=!!B.kingdoms;
     return nextBeat(); }
@@ -1432,7 +1468,9 @@ function enterBeat(){
     if(B.storm!==undefined&&K().setStorm) K().setStorm(B.storm||null);      /* the rain, the thunder and the dark of a squall */
     return nextBeat(); }
   /* "Make the people sit down" (Yahuchanon 6:10): on the grass, legs out before them */
-  if(T==='sit'||T==='stand'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.sit=(T==='sit'); g.userData.lie=false; g.rotation.x=0; } } return nextBeat(); }
+  if(T==='sit'||T==='stand'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.sit=(T==='sit'); g.userData.lie=false; g.userData.kneel=false; g.rotation.x=0; } } return nextBeat(); }
+  /* "falling on His knees He was praying" (Luqas 22:41) */
+  if(T==='kneel'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.kneel=true; g.userData.sit=false; g.userData.lie=false; g.rotation.x=0; } } return nextBeat(); }
   /* lying on the ground: asleep in a camp, or fallen (Yashayahu 37:36) */
   if(T==='lie'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.lie=true; g.userData.sit=false; g.rotation.order='YXZ'; g.rotation.x=B.prone?Math.PI/2:-Math.PI/2; }   /* on the back, along the way he faced; or `prone`, on his face (Mattithyahu 17:6) */ } return nextBeat(); }
   /* set on a beast, and carried by it: `on` a thing (a donkey), or `off` */
@@ -1443,6 +1481,14 @@ function enterBeat(){
       /* `over`: the whole herd rushes down the steep place, each in its own lane, and over the edge */
       if(B.over){ const o=pos(B.over); u.plunge={to:[o[0],o[1]+((n*7)%11-5)*0.32],wait:(n%9)*0.22+Math.random()*0.3}; u.sp=B.sp||5.5; n++; continue; }
       if(B.to){ u.home=pos(B.to); u.roam=B.roam||0.6; u.sp=B.sp||4; u.t=0; } } return nextBeat(); }
+  /* `hold`: a thing taken up in both hands and held before him (the widows' garments, Acts 9:39);
+     with no `who`, put down where it is */
+  if(T==='hold'){ for(const id of [].concat(B.id)){ const o=ctx.things[id]; if(!o) continue; const prev=o.userData.heldBy&&ctx.actors[o.userData.heldBy];
+      if(prev) prev.userData.holding=false;
+      if(B.who&&ctx.actors[B.who]){ o.userData.heldBy=B.who; ctx.actors[B.who].userData.holding=true; o.visible=true; }
+      else { o.userData.heldBy=null; o.position.y=ctx.groundY(o.position.x,o.position.z)||0; o.rotation.x=0; } } return nextBeat(); }
+  /* `loose`: chains fallen off the hands (Acts 12:7; 16:26) — the end on the bound one drops where it was */
+  if(T==='loose'){ for(const id of [].concat(B.id)){ const o=ctx.things[id]; if(o&&o.userData.ends){ const a=o.userData.ends[0].clone(); a.y=(ctx.groundY(a.x,a.z,a.y+0.5)||0)+0.04; o.userData.looseA=a; } } return nextBeat(); }
   if(T==='pose'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g) g.userData.armsOut=B.arms==='out'?true:B.arms==='up'?'up':false; } return nextBeat(); }
   /* "they put it on His head" (Mattithyahu 27:29) */
   if(T==='crown'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g&&g.userData.head) window.STORYWORLD.crown(g.userData.head); } return nextBeat(); }
@@ -1494,6 +1540,80 @@ function enterBeat(){
   if(T==='end') return endScene();
   console.warn('unknown beat',B); nextBeat();
 }
+/* ---- THE MAL'AKIM, SEEN ---- */
+const MALAK_SKIN=[0x6e4524,0x704a27,0x7a4e29,0x6a4426];   /* brown, as the people of the land are */
+function malakFigure(G,gl){
+  const k=Math.abs((gl.id||'').split('').reduce((a,c)=>a*31+c.charCodeAt(0),7))%MALAK_SKIN.length;
+  const f=window.STORYWORLD.person(ctx,{id:'glow:'+gl.id, dress:'man', robe:0xf4f1e8, cloth:0xfbf8ef, sash:0xe8dcb0, skin:MALAK_SKIN[k], beard:gl.beard||null});
+  f.userData.id='glow:'+gl.id; f.userData.def={ground:true}; f.userData.malak=true; f.userData.noShadow=true; f.visible=false;   /* (light throws no shadow) */
+  if(gl.sit) f.userData.sit=true;
+  f.userData.s=gl.scale||(gl.float||(gl.at&&gl.at.length===3&&gl.at[1]>5)?1.35:1.08); f.scale.setScalar(f.userData.s);
+  /* LIT FROM WITHIN: he stands in the light, and is bright with it — each of his surfaces given back its
+     own colour as a glow (his own copies of the materials, so no one else shines) */
+  f.traverse(m=>{ if(!m.isMesh||!m.material) return; const M=m.material.clone(); m.material=M;
+    if(M.emissive){ if(M.map){ M.emissiveMap=M.map; M.emissive.setRGB(0.62,0.58,0.52); } else M.emissive.copy(M.color).multiplyScalar(0.6); } });
+  G.sprite.material.opacity=(gl.size||3)>4?0.32:0.5;                         /* the light about him, not over him */
+  const S=(K()&&K().setScale)||6.5; G.faceLight=new THREE.PointLight(0xfff4e0,0,6*S,1.6); ctx.scene.add(G.faceLight);
+  if(gl.seat!==undefined){ f.userData.sit=true; f.userData.def={bench:true}; }
+  if(gl.arms==='hold') f.userData.holding=true;                                /* his hands reached out to the one he strengthens */
+  G.fig=f; G.toward=gl.toward; G.float=gl.float; G.seat=gl.seat;
+  Object.defineProperty(G,'visible',{configurable:true, get(){ return G.sprite.visible; },
+    set(v){ G.sprite.visible=v; if(G.light) G.light.intensity=v?G.light.userData.on:0; f.visible=v; G.faceLight.intensity=v?0.9:0; }}); }
+const _cw=new THREE.Vector3();
+function malakTick(G,id,dt){
+  const f=G.fig, u=f.userData, q=G.sprite.position, gr=ctx.groundY(q.x,q.z,q.y)||0;
+  /* standing on the ground under the light when it is near the ground; else borne up in it */
+  const stand=!G.float&&q.y-gr<4.2, feet=stand?gr:q.y-1.25*(u.s||1);
+  /* `seat`: sitting on something that high (the stone he rolled back and sat on, Mattithyahu 28:2) */
+  if(G.seat!==undefined) f.position.set(q.x,gr+G.seat-0.5*(u.s||1),q.z); else f.position.set(q.x,feet-sitDrop(u),q.z);
+  /* turned to the one he is sent to: `toward`, else the nearest of the people of the scene, else the witness */
+  let tg=G.toward&&ctx.actors[G.toward]; if(!tg){ let bd=1e9; for(const a in ctx.actors){ const g=ctx.actors[a]; if(!g.visible) continue; const d=(g.position.x-q.x)**2+(g.position.z-q.z)**2; if(d<bd&&d<900){ bd=d; tg=g; } } }
+  if(!tg) tg=player;
+  f.rotation.y=turnTo(f.rotation.y,Math.atan2(tg.position.x-q.x,tg.position.z-q.z),dt*4);
+  /* lit on the side that is seen */
+  camera.getWorldPosition(_cw); ctx.scene.worldToLocal(_cw); const dx=_cw.x-q.x, dy=_cw.y-q.y, dz=_cw.z-q.z, L=Math.hypot(dx,dy,dz)||1;
+  G.faceLight.position.set(f.position.x+dx/L*1.4,feet+1.7*(u.s||1),f.position.z+dz/L*1.4);
+  animFigure(f,dt,false); animFace(f,id&&('glow:'+id),dt); }
+/* ---- HELD IN THE HANDS, AND THE CHAINS ---- */
+const _h1=new THREE.Vector3(), _h2=new THREE.Vector3(), _Z=new THREE.Vector3(0,0,1);
+function handAt(g,side,out){ const A=side==='L'?g.userData.armL:g.userData.armR, h=A&&A.userData.hand;
+  if(!h){ return out.set(g.position.x,g.position.y+1.0,g.position.z); }
+  h.getWorldPosition(out); return ctx.scene.worldToLocal(out); }
+function holdTick(o){ const g=ctx.actors[o.userData.heldBy]; if(!g||!g.visible){ return; }
+  handAt(g,'L',_h1); handAt(g,'R',_h2);
+  o.position.set((_h1.x+_h2.x)/2,(_h1.y+_h2.y)/2+(o.userData.thing.kind==='garment'?0.04:0),(_h1.z+_h2.z)/2); o.rotation.set(0,g.rotation.y,0); }
+/* an end of a chain: [actor, 'L'|'R'] at the wrist, or {at:[x,z], dy} a ring in a wall */
+function chainEnd(e,out){ if(Array.isArray(e)&&ctx.actors[e[0]]) return handAt(ctx.actors[e[0]],e[1]||'R',out);
+  const m=pos(e.at); return out.set(m[0],e.y!==undefined?e.y:(ctx.groundY(m[0],m[1])||0)+(e.dy||1),m[1]); }   /* `y`: a ring set in a wall at that height (the ground found there would be the wall's top) */
+/* NOTHING HANGS THROUGH ANYTHING: a point of a chain (or anything let fall) lies on what is under it — out of a
+   block of the world, up onto the floor, and over the bodies of those lying or sitting there */
+function restOn(P){ const k=K(), B=k.B;
+  for(let n=0;n<60&&k.solidAt(anchor.x+P.x*S,anchor.y+(P.y-0.015)*S,anchor.z+P.z*S);n++) P.y+=0.03;
+  for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; if(!g.visible||!(u.lie||u.sit||u.kneel)) continue;
+    const dx=P.x-g.position.x, dz=P.z-g.position.z, s=u.s||1, fx=Math.sin(g.rotation.y), fz=Math.cos(g.rotation.y);
+    let inside=false, top=g.position.y;
+    if(u.lie){ const al=-(dx*fx+dz*fz), ac=Math.abs(dx*fz-dz*fx); inside=al>-0.15&&al<1.8*s&&ac<0.27*s; top+=0.34*s; }      /* along him, from his feet to his head */
+    else { const al=dx*fx+dz*fz, ac=Math.abs(dx*fz-dz*fx); inside=al>-0.3*s&&al<0.6*s&&ac<0.26*s; top+=u.kneel?0.9*s:0.62*s; }
+    if(inside&&P.y<top) P.y=top+0.02; } }
+/* the chain hung between its two ends: links laid along the sagging line, as many as its length takes,
+   each through the last and turned a quarter about the line from it */
+const _P=[]; for(let i=0;i<=24;i++) _P.push(new THREE.Vector3());
+function chainTick(o){ const u=o.userData, t=u.thing; u.ends=u.ends||[new THREE.Vector3(),new THREE.Vector3()];
+  const A=u.looseA?u.ends[0].copy(u.looseA):chainEnd(t.from,u.ends[0]), B=chainEnd(t.to,u.ends[1]);
+  const d=A.distanceTo(B), sag=Math.max(0.05,0.38-d*0.07);
+  /* the line, and its length */
+  let len=0; for(let i=0;i<=24;i++){ const s=i/24, P=_P[i]; P.set(A.x+(B.x-A.x)*s,A.y+(B.y-A.y)*s-sag*4*s*(1-s),A.z+(B.z-A.z)*s);
+    restOn(P); if(i) len+=P.distanceTo(_P[i-1]); }
+  const n=Math.min(u.links.length,Math.max(2,Math.round(len/u.pitch)));
+  let seg=1, acc=0; const step=len/n;
+  for(let k=0;k<u.links.length;k++){ const L=u.links[k]; L.visible=k<n; if(k>=n) continue;
+    const want=(k+0.5)*step;
+    while(seg<24&&acc+_P[seg].distanceTo(_P[seg-1])<want){ acc+=_P[seg].distanceTo(_P[seg-1]); seg++; }
+    const a=_P[seg-1], b=_P[seg], sl=a.distanceTo(b)||1, f=(want-acc)/sl;
+    L.position.lerpVectors(a,b,Math.min(1,Math.max(0,f)));
+    _h1.subVectors(b,a).normalize(); L.quaternion.setFromUnitVectors(_Z,_h1);
+    L.rotateZ(k%2?Math.PI/2:0); }
+  u.cuffA.position.copy(A); u.cuffB.position.copy(B); }
 function lookAtSpec(l){ if(typeof l==='string'){ if(ctx.actors[l]){ const g=ctx.actors[l]; return [g.position.x,g.position.y+(g.userData.fours?0.75:1.5),g.position.z]; }
     if(ctx.glows[l]){ const s=ctx.glows[l].sprite.position; return [s.x,s.y,s.z]; }
     const m=pos(l); return [m[0],m[2]!==undefined?m[2]:1.5,m[1]]; }
@@ -1792,7 +1912,8 @@ function frame(dtW){
   for(const id in ctx.glows){ const G=ctx.glows[id];
     if(G.on){ const g=G.on, u=g.userData, hy=g.position.y+(u.headY||1.6)+0.24*(u.s||1)+G.onDy;   /* on the top of the head, sitting or standing (the figure is already set down for sitting) */
       G.sprite.position.set(g.position.x,hy,g.position.z); if(G.light) G.light.position.set(g.position.x,hy,g.position.z); }
-    if(G.pulse){ const k=1+Math.sin(t*2)*0.08; G.sprite.scale.set(G.base*k,G.base*k*(G.aspect||1),1); } }
+    if(G.pulse){ const k=1+Math.sin(t*2)*0.08; G.sprite.scale.set(G.base*k,G.base*k*(G.aspect||1),1); }
+    if(G.fig&&G.sprite.visible) malakTick(G,id,dt); }
   if(ctx.host) for(const G of ctx.host){ if(!G.visible) continue; G.sprite.position.y+=Math.sin(t*1.3+G.ph)*0.01; }
   if(ring){ ring.material.opacity=0.55+Math.sin(t*4)*0.25; }
   for(const w of ctx.water) w.material.opacity=0.82+Math.sin(t*1.7)*0.05;
@@ -1801,6 +1922,7 @@ function frame(dtW){
       if(o===player&&ctx.playerY!==undefined) ctx.playerY=o.position.y;
       if(o.userData&&o.userData.fixedY!==undefined) o.userData.fixedY=o.position.y;
       if(o.userData&&o.userData.baseY!==undefined) o.userData.baseY=o.position.y; }); }
+  for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; if(u.heldBy) holdTick(o); if(u.thing&&u.thing.kind==='chain'&&o.visible) chainTick(o); }
   for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; const w=u.wings||(u.bird&&u.bird.userData&&u.bird.userData.wings); if(w&&w[0]){ const a=Math.sin(t*9)*0.5; w[0].rotation.z=a; w[1].rotation.z=-a; }
     if(u.tick&&o.visible) u.tick(dt);
     if(u.bob&&!ctx.lake){ const k=ctx.rough||1; o.position.y=u.baseY+Math.sin(t*1.3+o.position.x)*0.06*k; o.rotation.z=Math.sin(t*0.9+o.position.z)*0.025*k; } }

@@ -22,7 +22,7 @@
    their ends.
 
    REVERENCE. Yahusha is not seen in this act. At Damascus He is light, and a voice; to Ḥananyah He
-   is a voice in a vision. A mal’ak is light, never a figure. The stoning of Stephanos is read,
+   is a voice in a vision. A mal’ak is seen: a man, dark of skin and robed in white, within a light. The stoning of Stephanos is read,
    never drawn: the camera is on Sha’ul and the garments at his feet. So with the sword that killed
    Ya‛aqoḇ, the stones at Lustra and the rods at Philippi: each is read, and the camera is elsewhere. */
 (function(){
@@ -350,7 +350,7 @@ STORY.act({
     ],
     /* his carriage of state, canopied and gilded, room in it for him and a guest and the driver */
     things:[ {id:'chariot', kind:'chariot', at:'road0', face:-Math.PI/2} ],
-    glows:[ {id:'malak', at:['hill',0,-2], dy:3.2, size:4, color:0xfff6dc, intensity:1.6, pulse:true, hidden:true},
+    glows:[ {id:'malak', malak:true, at:['hill',0,-2], dy:3.2, size:4, color:0xfff6dc, intensity:1.6, pulse:true, hidden:true},
             {id:'flash', at:'waterIn', dy:1.6, size:6, color:0xfff6dc, intensity:2.4, hidden:true} ],
     beats:[
       {t:'ride', who:'kushi', on:'chariot'},
@@ -506,9 +506,9 @@ STORY.act({
       T('kepha',['lodRoad',-16,0],{face:Math.PI/2})
     ],
     /* the garments she made (9:39), held up by the widows */
-    things:[ {id:'coat0', kind:'box', at:[WIDOWS[0][0],WIDOWS[0][1]+0.42], y:3.75, w:0.6, h:0.8, d:0.06, color:0xe6dcc0, hidden:true},
-             {id:'coat1', kind:'box', at:[WIDOWS[1][0],WIDOWS[1][1]+0.42], y:3.75, w:0.6, h:0.8, d:0.06, color:0x8a5a3a, hidden:true},
-             {id:'coat2', kind:'box', at:[WIDOWS[2][0],WIDOWS[2][1]-0.42], y:3.75, w:0.6, h:0.8, d:0.06, color:0x5a6a7a, hidden:true} ],
+    things:[ {id:'coat0', kind:'garment', at:[WIDOWS[0][0],WIDOWS[0][1]], color:0xe6dcc0, hem:true, hidden:true},
+             {id:'coat1', kind:'garment', at:[WIDOWS[1][0],WIDOWS[1][1]], color:0x8a5a3a, h:1.0, hidden:true},
+             {id:'coat2', kind:'garment', at:[WIDOWS[2][0],WIDOWS[2][1]], color:0x5a6a7a, w:0.56, h:0.85, hidden:true} ],
     beats:[
       {t:'lie', who:'tabitha'}, {t:'mood', who:'tabitha', ex:'sleep'},
       {t:'mood', who:['wd0','wd1','wd2','wd3'], ex:'weep'},
@@ -529,13 +529,11 @@ STORY.act({
       {t:'place', who:'kepha', at:[-6,24.4], y:'tabY', face:-Math.PI/2},
       {t:'place', who:'m0', at:['tabStreet',0,-1.4], y:null}, {t:'place', who:'m1', at:['tabStreet',-0.6,1], y:null},
       {t:'face', who:'wd0', to:'kepha'}, {t:'face', who:'wd1', to:'kepha'}, {t:'face', who:'wd2', to:'kepha'},
-      {t:'lead', id:'coat0', by:'wd0', up:0.95, back:-0.34}, {t:'lead', id:'coat1', by:'wd1', up:0.95, back:-0.34}, {t:'lead', id:'coat2', by:'wd2', up:0.95, back:-0.34},
-      {t:'show', id:['coat0','coat1','coat2']},
-      {t:'pose', who:['wd0','wd1','wd2'], arms:'out'},
+      {t:'hold', id:'coat0', who:'wd0'}, {t:'hold', id:'coat1', who:'wd1'}, {t:'hold', id:'coat2', who:'wd2'},   /* "showing the inner garments and outer garments" */
       {t:'cam', from:[-6.6,4.7,21.2], look:[-10,3.7,24.4], dur:2},
       {t:'read', ref:'ACTS 9:39'},
       /* "Kĕpha sent them all out" */
-      {t:'pose', who:['wd0','wd1','wd2']},
+      {t:'hold', id:['coat0','coat1','coat2']},
       {t:'hide', id:['coat0','coat1','coat2']},
       {t:'move', who:['wd0','wd1','wd2','wd3'], to:[[-5.8,23.2],[-5.4,24.2],[-5.8,25.2],[-6.4,24]], speed:1},
       {t:'hide', id:['wd0','wd1','wd2','wd3']},
@@ -699,22 +697,23 @@ STORY.act({
     ]},
 
   /* ---------------- VIII.12 — THE PRISON OF HERODES ---------------- */
-  /* Kĕpha asleep between two soldiers, bound with two chains; a mal'ak — light, never a figure — and
+  /* Kĕpha asleep between two soldiers, bound with two chains; a mal'ak — a man in white within a light — and
      a light in the building; the chains fall, the guard posts are passed, the iron gate opens of
      itself (Acts 12:1-12). The killing of Ya‛aqoḇ is read, never drawn. */
   { id:'prison', title:'Yahrushalayim', date:'the Days of Unleavened Bread', place:'prison', time:'night',
     player:{ at:'street', face:Math.PI, look:ADULT, hidden:true },
     actors:[
-      T('kepha',[-31.1,-71.6],{face:Math.PI/2}),
-      LEGION('sl0',[-33.6,-72.4],0,{sit:true, ground:true}), LEGION('sl1',[-29.6,-72.4],0,{sit:true, ground:true}),
+      T('kepha',[-31.1,-71.25],{face:Math.PI/2}),
+      LEGION('sl0',[-32.0,-72.3],Math.PI/2,{sit:true, ground:true}), LEGION('sl1',[-32.0,-69.95],Math.PI/2,{sit:true, ground:true}),
       LEGION('gd0',['post1',-1.2,0],Math.PI), LEGION('gd1',['post1',1.2,0],Math.PI),
       LEGION('gd2',['post2',-1.4,0.4],Math.PI), LEGION('gd3',['post2',1.4,0.4],Math.PI)
     ],
-    things:[ {id:'ch0', kind:'box', at:[-32.9,-71.9], dy:0.22, w:1.0, h:0.05, d:0.05, color:0x4a4846},
-             {id:'ch1', kind:'box', at:[-30.4,-71.9], dy:0.22, w:1.0, h:0.05, d:0.05, color:0x4a4846},
+    /* "bound with two chains between two soldiers" (12:6): each of his wrists to a soldier's */
+    things:[ {id:'ch0', kind:'chain', at:'cell', from:['kepha','L'], to:['sl0','R']},
+             {id:'ch1', kind:'chain', at:'cell', from:['kepha','R'], to:['sl1','L']},
              {id:'grate', kind:'box', at:'cellGate', w:1.6, h:3.1, d:0.08, color:0x2e2c2a},
              {id:'iron', kind:'box', at:['palaceDoor',0,-0.9], w:2.4, h:3.2, d:0.12, color:0x3a3836} ],
-    glows:[ {id:'malak', at:['cell',0.6,0.6], dy:1.7, size:2.4, color:0xfff6dc, intensity:1.4, pulse:true, hidden:true},
+    glows:[ {id:'malak', malak:true, at:['cell',0.6,0.6], dy:1.7, size:2.4, color:0xfff6dc, intensity:1.4, pulse:true, hidden:true},
             {id:'shone', at:['cell',0,2], dy:2.6, size:6, color:0xfff4d8, intensity:0.55, hidden:true} ],
     beats:[
       {t:'lie', who:'kepha'}, {t:'mood', who:['kepha','sl0','sl1'], ex:'sleep'},
@@ -730,7 +729,7 @@ STORY.act({
       /* "a mal'ak of (YAHUAH) HWHY stood by and a light shone in the building" */
       {t:'show', id:['shone','malak']},
       {t:'say', who:'malak', ref:'ACTS 12:7', turn:false},
-      {t:'hide', id:['ch0','ch1']},
+      {t:'loose', id:['ch0','ch1']},                                                 /* "and his chains fell off his hands" */
       {t:'mood', who:'kepha', ex:'awe'},
       {t:'sit', who:'kepha'}, {t:'wait', s:0.6}, {t:'stand', who:'kepha'},
       {t:'say', who:'malak', ref:'ACTS 12:8', turn:false},
@@ -781,7 +780,7 @@ STORY.act({
       {t:'cam', from:['table',3.2,2.4], fdy:1.7, look:'pr2', dur:0.1},
       {t:'note', text:'The house of Miryam was the gathering place of the Natsarim in Yahrushalayim; her son Yahuchanon, who was also called Mark, would set out with Barnaḇah and Sha’ul (Acts 12:25). Rhode is a Greek name: "rose".'},
       {t:'move', who:'kepha', to:[22.8,22.9], speed:1.2, wait:false},
-      {t:'cam', from:[26.4,2.1,20.6], look:[22.6,1.5,23.6], dur:2},
+      {t:'cam', from:['stairFoot',-1.3,-2.25], fdy:1.7, look:'kepha', dur:2},   /* beside the gate, before his face as he knocks */
       {t:'face', who:'kepha', to:'leaf'},
       {t:'read', ref:'ACTS 12:13'},
       {t:'cam', release:true},
@@ -897,7 +896,7 @@ STORY.act({
       {t:'say', who:'lukaonians', ref:'ACTS 14:11', turn:false},
       {t:'read', ref:'ACTS 14:12'},
       /* the kohen of Zeus, out of the house before the city, with the oxen and the garlands */
-      {t:'lead', id:'ox0', by:'at0'}, {t:'lead', id:'ox1', by:'at1'}, {t:'lead', id:'wr0', by:'kz', up:1.15, back:-0.42},
+      {t:'lead', id:'ox0', by:'at0'}, {t:'lead', id:'ox1', by:'at1'}, {t:'hold', id:'wr0', who:'kz'},
       {t:'move', who:['kz','at0','at1'], to:[['gateOut',-1,0],['gateOut',-3.4,-1.4],['gateOut',-3.4,1.4]], speed:1.1, wait:false},
       {t:'cam', from:['templeSteps',8,6], fdy:3, look:'kz', dur:3},
       {t:'read', ref:'ACTS 14:13'},
@@ -1018,9 +1017,15 @@ STORY.act({
     ],
     things:[ {id:'door1', kind:'box', at:[8.25,11], w:0.14, h:2.2, d:2.0, color:0x5d4a36, hidden:true},
              {id:'door2', kind:'box', at:[14.05,11], w:0.14, h:2.2, d:2.0, color:0x5d4a36, hidden:true},
-             {id:'lampP', kind:'box', at:'lampAt', dy:0.7, w:0.24, h:0.12, d:0.14, color:0xc89a5a} ],
+             {id:'lampP', kind:'box', at:'lampAt', dy:0.7, w:0.24, h:0.12, d:0.14, color:0xc89a5a},
+             /* the prisoners chained to rings in the walls, "and all the chains came loose" (16:26) */
+             {id:'pc0', kind:'chain', at:'prisonIn', from:['pz0','R'], to:{at:[10,6.62], y:1.0}},
+             {id:'pc1', kind:'chain', at:'prisonIn', from:['pz1','L'], to:{at:[10.6,15.38], y:1.0}},
+             {id:'pc2', kind:'chain', at:'prisonIn', from:['pz2','L'], to:{at:[12.4,6.62], y:1.0}} ],
     glows:[ {id:'lampG', at:'lampAt', dy:1.0, size:0.5, color:0xffb050, intensity:0.6, pulse:true},
-            {id:'inLamp', at:['inner',0.4,-2.4], dy:1.8, size:0.6, color:0xffa040, intensity:0.45, hidden:true} ],
+            {id:'inLamp', at:['inner',0.4,-2.4], dy:1.8, size:0.6, color:0xffa040, intensity:0.45, hidden:true},
+            /* the lamp in its niche on the east wall, the side the two face */
+            {id:'inLamp2', at:[19.2,13.6], dy:1.7, size:0.5, color:0xffb050, intensity:0.5, hidden:true} ],
     beats:[
       {t:'follow', who:'girl', target:'shaul'},
       {t:'move', who:['shaul','sila'], to:[['way',-14,-0.8],['way',-14.4,0.8]], speed:1, wait:false},
@@ -1051,10 +1056,10 @@ STORY.act({
       {t:'cam', from:['prisonDoor',-5,-2], fdy:2.2, look:'jailer', dur:2},
       {t:'read', ref:'ACTS 16:23'},
       {t:'hide', id:'forumc'},
-      {t:'place', who:'shaul', at:[17.2,9.8], face:Math.PI/2}, {t:'place', who:'sila', at:[17.2,12.3], face:Math.PI/2},
+      {t:'place', who:'shaul', at:[17.2,10.45], face:Math.PI/2}, {t:'place', who:'sila', at:[17.2,11.55], face:Math.PI/2},
       {t:'sit', who:['shaul','sila']},
-      {t:'show', id:['door1','door2','inLamp']},
-      {t:'cam', from:[15.0,2.0,13.8], look:[17.6,0.7,11], dur:0.1},
+      {t:'show', id:['door1','door2','inLamp','inLamp2']},
+      {t:'cam', from:[19.25,1.45,11], look:[17.2,0.95,11], dur:0.1},
       {t:'read', ref:'ACTS 16:24'},
       /* midnight */
       {t:'time', to:'night'},
@@ -1062,13 +1067,14 @@ STORY.act({
       {t:'sit', who:'jailer'}, {t:'mood', who:'jailer', ex:'sleep'},
       {t:'player', at:['street',-6,0]},
       {t:'pose', who:['shaul','sila'], arms:'up'},
-      {t:'mood', who:['pz0','pz1','pz2'], ex:'awe'},
-      {t:'cam', from:[19.2,2.2,7.4], look:[17.2,0.9,11], dur:2.5},
+      {t:'mood', who:['pz0','pz1','pz2'], ex:'awe'}, {t:'mood', who:['shaul','sila'], ex:'joy'},
+      {t:'cam', from:[19.25,1.35,11.4], look:[17.2,1.0,11], dur:2.5},
       {t:'read', ref:'ACTS 16:25'},
-      {t:'pose', who:['shaul','sila']},
+      {t:'pose', who:['shaul','sila']}, {t:'mood', who:['shaul','sila']},
       {t:'quake', s:3},
       {t:'drift', id:'door1', by:[0,0,-1.95], dur:0.8, wait:false},
       {t:'drift', id:'door2', by:[0,0,-1.95], dur:0.8, wait:false},
+      {t:'loose', id:['pc0','pc1','pc2']},
       {t:'cam', from:['prisonDoor',-5,3], fdy:2.4, look:['prisonDoor',1.2,0], dur:1.5},
       {t:'read', ref:'ACTS 16:26'},
       {t:'mood', who:'jailer', ex:'fear'},
@@ -1077,7 +1083,7 @@ STORY.act({
       {t:'cam', from:['prisonDoor',-3.4,-1.6], fdy:1.8, look:'jailer', dur:1.6},
       {t:'read', ref:'ACTS 16:27'},
       {t:'stand', who:['shaul','sila']},
-      {t:'cam', from:[15.4,1.9,13.4], look:'shaul', dur:1.4},
+      {t:'cam', from:[19.25,1.7,11.1], look:[17.2,1.55,10.5], dur:1.4},
       {t:'say', who:'shaul', ref:'ACTS 16:28', turn:false},
       {t:'cam', release:true},
       {t:'witness', text:'He is calling for a light — bring him the lamp', items:['lampP'], verb:'Take up the lamp', hold:0.5, deliver:'prisonDoor', r:2.4, carryText:'Bring it to the jailer'},

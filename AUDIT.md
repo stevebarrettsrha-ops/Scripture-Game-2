@@ -9697,7 +9697,7 @@ passage is missing at run time, it is logged and skipped, never paraphrased.
   account, as the Besorah gives it."
 - The player's own lines are reactions only, and never scripture.
 
-**Reverent framing.** A mal'ak is light, never a figure. So is the Child. Neither is
+**Reverent framing.** A mal'ak is light, never a figure (superseded, Round 130: a mal'ak is seen, a man in white within a light). So is the Child. Neither is
 ever given a body or a face.
 
 **What is playable.**
@@ -11120,6 +11120,260 @@ Engine changes:
 - A figure lying on a raised floor no longer sinks into it.
 - The new places (lystra, philippi, ephesos, prison) are added to the map, the hub, and the
   ambient sound.
+
+## 4ec. Round 130 — the mal'akim seen; things held; chains
+
+The user's direction: the Besorah is the director.
+
+**The mal'akim are seen, in every act.** Each one is a man of dark skin, robed in white, standing
+within his light. Before this round a mal'ak was only a light. Now:
+- When the light is near the ground he stands on it; high in the air he is borne up in it.
+- He turns toward the one he is sent to, and his mouth moves with his words.
+- His light stays around him, with a second lamp on the side the camera sees, so his face shows.
+- The heavenly host is a figure in each of its lights, turned toward the field.
+
+The scenes:
+- Prologue: the mal'ak over the camp of Ashshur.
+- The 700-year bridge: Gaḇri’al to Dani'el.
+- The Coming: Gaḇri’al with Zekaryah and with Miryam; the mal'ak in Yoseph's two dreams; the mal'ak
+  and the host over the shepherds.
+- Passion Week: the mal'ak in Gethsemane.
+- The Rising:
+  - the mal'ak who rolled back the stone sits on it and moves with it (Mattithyahu 28:2);
+  - the two in the tomb are seated (Yahuchanon 20:12);
+  - the two men in white stand at the ascension.
+- Act VIII: the mal'ak on the Azzah road, and the one in Herodes' prison.
+
+The seraphim of Yashayahu 6 are left as lights. They are not called mal'akim, and the
+Besorah gives them six wings and has them cover their faces.
+
+**Things held in the hands.** A new `hold` beat puts a thing in someone's two hands: the arms come
+forward with the elbows bent, and the thing is carried at the hands each frame.
+- The widows' garments (Acts 9:39) are now `garment`s, tunics hanging from where they are held,
+  instead of flat boards floating in front of them.
+- The kohen of Zeus holds the garland.
+
+**Chains** (`chain`): iron links hung each frame between two wrists, or a wrist and a ring in the
+wall. The `loose` beat drops the bound end where it was.
+- Kĕpha is "bound with two chains between two soldiers" (12:6), a soldier sitting on either side
+  of him, until "his chains fell off his hands" (12:7).
+- The prisoners at Philippi are chained to the walls until "all the chains came loose" (16:26).
+
+**A pose let go now lets go.** Clearing `pose` only reset the arms' forward angle, so arms raised
+or held out stayed up behind the head when a figure sat down. This is what put Sha’ul's and Sila's
+hands behind their heads at the jailer's table. The arms and legs are now set back to hang.
+
+**Further, on review:**
+- **Mal'akim are brown**, as the people of the land are, and lit from within: each surface of
+  the figure glows its own colour back, so he is bright in his light, not a dark figure before it.
+  One high in the air is drawn a little larger.
+- **Chain links like the example given.** Each link is an oblong loop of iron bars, open in the
+  middle and turned a quarter from the last, threaded one through the next. As many links are
+  laid along the hanging line as its length takes, and the cuffs are squared bands.
+  - Nothing hangs through anything: each point of the chain is lifted out of any block of the
+    world and over the body of anyone lying, sitting or kneeling under it.
+  - The man of the tombs' broken fetters and the broken chains on the ground in the country of
+    the Gaḏarenes are made the same way.
+- **Gethsemane.**
+  - The olive is redrawn as the old trees of the land stand: a short split bole, two or three
+    grey limbs twisting up and out, and open heads of small grey-green leaves with the sky
+    showing through. It is no longer a block on a post. This is every olive in the story.
+  - Rebuilt again, from the user's examples of block-built olives: the tree is now laid in the
+    world's own blocks — two new blocks, appended to world/manifest.js: `log-olive` (twisted
+    bark, the olive's grey-brown) and `leaves-olive` (the flora's grey leaf mass with the light
+    through it, tinted grey-green). A flared two-block bole with roots; two to four limbs
+    stepping out and up a block at a time; ragged clumps of leaf on each, making one broad crown.
+    Each piece is snapped to one cell of the world so it fills exactly one block.
+  - In the garden the trees stand in rows either side of the walk to the place of prayer.
+  - After He falls on His face (Marqos 14:35), He kneels (Luqas 22:41, a new verse, recorded).
+    He is seen from behind with His head bowed, weeping.
+  - The mal'ak comes down out of the sky and is over Him, his hands reached out to Him
+    (Luqas 22:43), and the camera looks up past Him to the mal'ak (22:44).
+  - A new `kneel` beat makes the kneeling.
+
+Also: the Rhode gate camera now stands at head height before Kĕpha's face as he knocks, and the
+Philippi inner-prison cameras look into Sha’ul's and Sila's faces, lit by a lamp on the east wall.
+
+## 4ed. Round 131 — the vault of the sky
+
+Taken from the user's reference game (a single-file voxel game), with the voyage's own lights left
+as they are. Before this round the sky was one flat colour: the hour's blend of night, dusk and
+day laid behind everything. At sunset the whole sky turned orange at once, east as well as west,
+and at noon the sky was one pale blue from the horizon to the top of the sky.
+
+The sky is now a **vault**, a dome about the eye drawn at the far plane and behind everything
+else:
+- pale at the horizon, deep blue overhead (`#3b78d6` at noon);
+- at dusk and dawn, violet overhead (`#40508a`), a soft peach horizon all round (`#d9a07e`), and
+  the burning orange (`#ff7a3a`) only in a band along the horizon on the side where the sun is
+  going down;
+- a glow in the air about the sun, warm and orange at the rim of the day, near white at noon;
+- night is a deep blue-black overhead.
+
+Its horizon is the sky colour the fog already uses, so the land still dissolves into the sky
+without a seam. The sun, moon, stars and clouds are unchanged and stand in front of it.
+
+A storm's deck, the outer darkness at the world's rim, a lightning bolt and the eye under the
+water pull the vault flat to the sky's own colour, as before. A country's haze only tints its
+horizon.
+
+The story mode takes its hours from the voyage's clock, so every scene has the vault with no
+change of its own: the dawn on the lake, the dusk at Bĕyth Leḥem, and the rest.
+
+`tools/sky-shots.js` sets the old flat sky beside the vault at the same place and hour, facing
+the sun and facing away. It finds the hours of dawn and dusk from the sun's own height at the
+station.
+
+## 4ee. Round 132 — round lights; dry, solid boats
+
+**The sun and the moon are round, everywhere.** They had been squares from the voyage's first sky.
+(For a while they were round faces beheld from without and squares within, until they were made
+square everywhere at an earlier word.) The traveller asked for them as the light of the star over
+Bĕyth Leḥem is drawn: "use the new one in all the game, even the ascending/firmament and zoom out".
+- The sun is a white-hot disc in a soft glow of its own light, drawn by adding light, so it
+  brightens the sky behind it, and the vault's glow about it meets it.
+- The moon is a pale body with soft seas, a little blue light standing about her.
+- Both faces are drawn smooth, not on the blocks' pixel grid.
+- The sprites are twice the old squares' size, because the glow is part of them. The disc itself
+  is about the size the square was.
+- The firmament view, the whole-earth view and the framed views keep each light's steady
+  apparent size and its haloes.
+- `tools/light-shots.js` photographs them on the ground (the sun and the moon), aloft, in the
+  firmament and over the whole earth.
+
+**The water is not inside the boats.** A hull is open, and the lake's water lay level through it,
+standing inside every boat up to the thwarts. Two mends:
+- A mask fills each boat's hold. It is drawn with depth and no colour, after the people and
+  things in her and before the water, so the water is not drawn there and everything else is.
+  The heaped net with its catch is drawn before the mask.
+- The lake's own waves leave out the water inside every boat on them, up to eight, not only the
+  one being sailed.
+
+**The boats are solid.** The witness can no longer walk through a hull from outside, and the
+townsfolk neither walk in nor out over a gunwale. Those the story sends aboard still go aboard,
+since that is the scene's own doing (Luqas 5:3).
+
+## 4ef. Round 133 — clear water, the sun's shadows, the world in the water, the glow
+
+The traveller sent pictures of a voxel world with clear turquoise shallows, shadows under its
+trees and a soft glow over everything: "this is how good I want the game to look … remove the
+lines out of the water … in all areas." These changes apply to the voyage and to every act of
+the story, which is drawn by the same engine.
+
+**The lines are out of the water.**
+- The sea had a random glitter that flickered in rows of light. It is gone. The sun's road on
+  the water is now one smooth highlight with a soft sheen around it.
+- The fine ripple on the sea and the lakes now fades out with distance. Far off, it could only
+  shimmer into stripes.
+- The still-water texture was painted with streaks. It is now plain, and the ripples are the
+  shader's own.
+- The sea, the lakes and still water now reflect the sky as water does: little when you look
+  straight down, a mirror when you look along the surface.
+
+**The water is clear.**
+- Looking down into shallow water, you see the sand and stones of the bed.
+- The bed carries moving bright lines of sunlight (caustics).
+- The deeper the bed, the bluer and darker it is, because water takes out red light first.
+- This works under the open sea and under every lake, pool and river a story set lays.
+
+**The sun throws shadows.**
+- Every tree, wall, house and hill throws a shadow, and so does everything standing on the
+  ground: the traveller, the ship, the townsfolk, the beasts, and every person and thing in a
+  scene of the story.
+- Leaves and grass throw shadows through their own shapes, and sway with them.
+- A face turned away from the sun is in shade too.
+- Shade is coloured by the open sky, a cool blue.
+- Shadows come with the sun and go with him: long at morning and evening, none at night or under
+  a storm, none in a cave.
+- People and things lit by the scene's lamps keep the sky's light in shade and lose only the
+  sun's.
+- The mal'akim are light and throw no shadow.
+
+How it is drawn:
+- Each frame, the ground about the eye is drawn once more as the sun sees it, as a map of
+  depths. Every surface checks that map.
+- The map is moved only in whole steps of itself, so shadow edges do not crawl as you walk.
+- A face's direction is worked out relative to the eye, not from world coordinates. The world's
+  coordinates run to tens of thousands, and reading them directly speckled close walls with
+  false shade.
+
+**The world in the water.**
+- The lake of a story scene shows the hills, trees, boats and people on its shore, upside down
+  and broken by the ripples. So does the sea near a coast.
+- How it is drawn: when the eye is over water, the world is drawn again at half size from the
+  eye's mirror image below the surface. Only what stands above the water is included.
+
+**The glow and the grade.**
+- The frame is drawn into a picture first. Whatever is near white glows softly over its
+  surroundings: the sun and the air about him, his road on the water, a white wall at noon, a
+  mal'ak's light.
+- The colour is then graded:
+  - a little more colour;
+  - a gentle curve through the middle tones;
+  - shadows a little cooler and highlights a little warmer;
+  - corners a little darker, as a lens leaves them.
+- The edges stay smooth: the picture is drawn many-sampled where the graphics card allows it.
+
+**Shafts of sunlight.** When the sun stands behind a wood, a wall or a ship's rigging, the bright
+sky between the leaves is drawn out along lines from the sun. The light comes through the gaps in
+shafts and hangs in the air. Only the sky near the sun is bright enough to make them, and only
+while he is up and in front of the eye. They are strongest when he is low. They show in the air in
+front of darker things (leaves, trunks, the ground); over the open sky about the sun, already bright
+with him, they add little.
+- They are drawn from the glow's softened picture of the bright parts. A spot of sun through a gap
+  in the leaves is only a few pixels; drawn out as it was, it made a hair, not a shaft.
+- They are strongest while the sun is behind leaves and shows only through their gaps. In open sky
+  his whole disc is bright, and drawing it out at full strength would only make a large blur.
+
+**The olive's leaves are open.** The traveller asked for "the olive leaves bigger gaps so the beams
+come through". The olive crowns had been built of the leaf the whole flora wears, which lets light
+through single pinholes, so a crown stood against the evening sun as one dark mass.
+- The olive now has its own leaf (`leafOlive`), ribbed and tinted as before. Its holes are gathered
+  into soft gaps about a quarter of a block across, and the gaps meet across the edges of the
+  faces.
+- The leaves at a gap's edge are drawn a little lighter, as if lit through.
+- The crowns themselves have holes through them as well as ragged edges (story/world.js,
+  `W.olive`).
+- The low sun now comes through the groves of the Mount of Olives and Gat-Shemen in spots and
+  shafts. The olive's shadow on the ground is dappled through the same gaps.
+- Only the olive's leaves change. Every other tree in the world keeps the common leaf.
+
+**The air toward the sun.** Far land fades into the fog, and the fog is the colour of the horizon.
+But the horizon is not one colour: the air about the sun is bright with him, and at sunset the
+horizon on his side burns orange. A far ridge used to fade into the plain horizon colour and stood
+out against the sunset as a grey seam. It now fades into the sky behind it, glow and fire and
+all. The sea and the story's lakes do the same. This works the same in the fast look.
+
+**Look: full or fast.** A new menu button, ☰ → **✨ Look: full / fast**, turns the shadows, the
+reflections and the glow on or off together. "Fast" draws the world as before, for a slower
+computer. The choice is remembered on this computer, and the story's acts follow it.
+
+**Switches for tools.** Each part also has its own off switch: `__SHADOW.on`, `__REFLECT.on` and
+`__POST.on`, or `__INJECT.noShadow`, `noReflect` and `noPost` at boot. The renderer's draw count
+is now the whole frame's, including the shadow map, the reflection and the glow.
+
+## 4eg. Round 134 — through his own eyes (F5)
+
+The traveller asked: "in voyage make it possible to switch between third and first person (Like
+Mine craft)".
+
+- **F5**, or ☰ → **👁 View**, switches between the eye over the traveller's shoulder and the eye in
+  his own head. The choice is remembered on this computer.
+- In first person his body is not drawn. His right arm comes into the foot of the view at the
+  right, with whatever is in his hand (the pick, the axe, a block to lay). It swings as he
+  strikes and bobs a little as he walks. It is drawn over everything, as in Minecraft. The sun's
+  shadow map and the water's reflection do not include it.
+- Dragging to look turns him: the sideways drag turns his heading and the up-and-down drag lifts
+  or lowers his gaze, so he walks where he looks. The gold block outline follows the gaze, as it
+  did from the shoulder.
+- It works ashore, on the deck, swimming and under the sea, and in the air. At the wheel the
+  eye stands just behind and above the wheel, looking out over the deck: the ship is built four
+  times a man's size, and from his own head the wheel filled the view like a wall.
+- The hold and the inside of a house keep their own first-person eye, as before. Story mode is
+  not affected; its acts keep their own cameras.
+- The controls book and the hint line list F5.
+- For tools, `__VDBG.seabedDepth` gives the height of the sea bed at any point, so a test can
+  place a diver over water deep enough to swim in.
 
 ## 5. Further recommendations (future work)
 

@@ -7,7 +7,7 @@
    What you did NOT see — the account of Natsareth, the dream of Yosĕph,
    Herodes' court — is shown as the Besorah tells it, and said to be so.
 
-   Reverent framing (Key Decision 1): the mal'ak is light; the Child has a body, swaddled
+   Reverent framing (Key Decision 1): the mal'ak is seen, a man dark of skin, in white, within a light; the Child has a body, swaddled
    in the feeding trough, and His face is never shown (the engine keeps every camera from
    it). */
 const MIRYAM={robe:0x3f5a8a, cloth:0xe8e2d2, skin:0x8e5c3c, kind:'woman'};
@@ -45,7 +45,7 @@ STORY.act({
   { id:'zakaryahu', title:'Yahrushalayim', date:'in the days of Herodes', place:'yahrushalayim', time:'day',
     player:{ at:[10.6,-37.6], face:Math.PI, look:BOY },
     actors:[ Object.assign({id:'zek', at:[10.8,-44.4], face:Math.PI},ZAKAR), ...COURT ],
-    glows:[ {id:'gabrial', at:[7.6,6.4,-56.6], size:3.8, color:0xfff4d6, intensity:1.6, pulse:true, hidden:true},
+    glows:[ {id:'gabrial', malak:true, at:[7.6,6.4,-56.6], size:3.8, color:0xfff4d6, intensity:1.6, pulse:true, hidden:true},
             {id:'smoke', at:[6,5.9,-56.8], size:0.9, color:0xffd9a0, intensity:0.5, hidden:true} ],
     beats:[
       {t:'cam', from:[16,9,-28], look:[6,9,-50], dur:0.1},
@@ -95,8 +95,8 @@ STORY.act({
     player:{ at:[0,20], hidden:true },
     actors:[ Object.assign({id:'miryam', name:'Miryam', at:'miryam', face:0},MIRYAM),
              Object.assign({id:'yoseph', name:'Yosĕph', at:'yoseph', face:0},YOSEPH) ],
-    glows:[ {id:'gabrial', at:[-4,2.4,-2.2], size:4.5, color:0xfff4d6, intensity:1.6, pulse:true, hidden:true},
-            {id:'dream', at:[13.6,1.35,-2.5], size:2.2, color:0xfff4d6, intensity:1.0, pulse:true, hidden:true} ],
+    glows:[ {id:'gabrial', malak:true, at:[-4,2.4,-2.2], size:4.5, color:0xfff4d6, intensity:1.6, pulse:true, hidden:true},
+            {id:'dream', malak:true, at:[13.6,1.35,-2.5], size:2.2, color:0xfff4d6, intensity:1.0, pulse:true, hidden:true} ],
     beats:[
       {t:'cam', from:[20,14,26], look:[0,1,-4], dur:0.1},
       {t:'cam', from:[4,5,6], look:'miryam', dur:4},
@@ -257,7 +257,7 @@ STORY.act({
       {id:'sh3', name:'A shepherd', dress:'shepherd', at:'s3', face:3.3, robe:0x74604a, cloth:0xc1b394}
     ],
     things:[ {id:'lamb1', kind:'lamb', at:'lamb1'}, {id:'lamb2', kind:'lamb', at:'lamb2'}, {id:'lamb3', kind:'lamb', at:'lamb3'} ],
-    glows:[ {id:'malak', at:[2,7,-8], size:9, color:0xfff6dc, intensity:2.6, pulse:true, hidden:true},
+    glows:[ {id:'malak', malak:true, at:[2,7,-8], size:9, color:0xfff6dc, intensity:2.6, pulse:true, hidden:true},
             /* "and the esteem of (YAHUAH) HWHY shone around them" (2:9): the whole place about the fire */
             {id:'shone', at:[4,3.4,3.6], size:13, color:0xfff2d6, intensity:1.6, hidden:true} ],
     host:{ at:[2,-8], y:6, h:14, r:26, n:70 },
@@ -457,7 +457,7 @@ STORY.act({
     player:{ at:[2,14], hidden:true },
     actors:[ Object.assign({id:'yoseph', name:'Yosĕph', at:[11.8,6.6], face:-1.6},YOSEPH),
              Object.assign({id:'miryam', name:'Miryam', at:[11.8,5.2], face:-1.6},MIRYAM) ],
-    glows:[ {id:'dream', at:[9.6,1.9,7.4], size:3.4, color:0xfff4d6, intensity:1.2, pulse:true, hidden:true},
+    glows:[ {id:'dream', malak:true, at:[9.6,1.9,7.4], size:3.4, color:0xfff4d6, intensity:1.2, pulse:true, hidden:true},
             {id:'child', at:[10.8,0.5,4.6], size:1.2, color:0xfff3d0, intensity:0.6, pulse:true} ],
     beats:[
       /* asleep before the door, the Child beside His mother */

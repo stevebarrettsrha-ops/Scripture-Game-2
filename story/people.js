@@ -144,7 +144,10 @@ W.person=function(ctx,o){
   /* THE MAN OF THE TOMBS (Mark 5:3-5): the shackles still on his ankles and wrists, the links that
      were pulled apart hanging from them (the wrists' are added with the arms) */
   const iron=flat(0x3a3a3e);
-  if(dress==='tombs') for(const L of [legL,legR]){ box(0.11,0.06,0.115,iron,0,-0.33,0.0,L.userData.knee); box(0.025,0.12,0.025,iron,0.03,-0.40,0.07,L.userData.knee); }
+  /* a broken length of chain hanging from a fetter: oblong links of iron bars, each turned a quarter from the last */
+  const brokenChain=(parent,x,y,z,n)=>{ let yy=y; for(let i=0;i<n;i++){ const L=new THREE.Group(); L.position.set(x,yy,z); if(i%2) L.rotation.y=Math.PI/2; parent.add(L);
+      box(0.012,0.075,0.012,iron,-0.02,0,0,L); box(0.012,0.075,0.012,iron,0.02,0,0,L); box(0.052,0.012,0.012,iron,0,0.032,0,L); box(0.052,0.012,0.012,iron,0,-0.032,0,L); yy-=0.055; } };
+  if(dress==='tombs') for(const L of [legL,legR]){ box(0.11,0.06,0.115,iron,0,-0.33,0.0,L.userData.knee); brokenChain(L.userData.knee,0.03,-0.39,0.07,3); }
   /* THE ROBE OF ONE SEATED: the hanging skirt cannot sit, so when he sits it is put by and the
      robe is drawn as it falls on a seated man. It is not one board over the lap: each thigh
      has its own loose breadth, the cloth rounds over each knee, lies down each shin to a hem
@@ -226,7 +229,7 @@ W.person=function(ctx,o){
     box(0.085*th,0.26,0.09*th,dress==='magi'||dress==='kohen'||dress==='wrapped'?sleeveM:skin,0,-0.13,0,E);
     const hand=box(0.08*(bare?0.85:1),0.09,0.06,dress==='wrapped'?tunicM:skin,0,-0.31,0.005,E); A.userData.hand=hand; return A; };
   const armL=mkArm(0.245), armR=mkArm(-0.245);
-  if(dress==='tombs') for(const A of [armL,armR]){ box(0.085,0.05,0.09,iron,0,-0.22,0,A.userData.elbow); box(0.02,0.14,0.02,iron,0,-0.30,0.06,A.userData.elbow); }
+  if(dress==='tombs') for(const A of [armL,armR]){ box(0.085,0.05,0.09,iron,0,-0.22,0,A.userData.elbow); brokenChain(A.userData.elbow,0,-0.28,0.06,3); }
   if(o.staff||dress==='shepherd'||dress==='centurion'){ const cen=dress==='centurion', len=cen?0.95:1.95;
     /* the shepherd's staff stands from the ground to above his head, the hand on it at the elbow's
        reach; the centurion's vine-stick is short, carried */

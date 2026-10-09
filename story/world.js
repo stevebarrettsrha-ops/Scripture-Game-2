@@ -158,10 +158,41 @@ W.fold=function(S,x,z,r){                     /* a sheepfold of stacked stone, o
     S.box(px-0.55,0,pz-0.55,px+0.55,1.1,pz+0.55,C.rock); }
 };
 /* AN OLIVE: a short twisted trunk and a low grey-green crown, as the voyage grows its trees */
-W.olive=function(S,x,z,s){ s=s||1;
-  S.box(x-0.35,0,z-0.35,x+0.35,1.7*s,z+0.35,'log');
-  S.box(x-1.5*s,1.6*s,z-1.4*s,x+1.4*s,2.7*s,z+1.5*s,'leaves');
-  S.box(x-0.9*s,2.6*s,z-0.9*s,x+1.0*s,3.4*s,z+0.8*s,'leaves'); };
+/* AN OLIVE, built of the world's blocks as the great olives of the block-builders are (the user's
+   examples): a thick twisted bole of olive timber, flared and rooted at the foot, splitting into
+   limbs that step out and up a block at a time, and on each limb a ragged clump of olive leaf —
+   grey-green, the light through it — the clumps together making one broad, uneven crown.
+   `s` scales it (1: some 8 blocks across and 7 high). Every piece is one block, laid on the ground
+   where the tree stands (`abs`), so a tree on a slope stays whole. */
+W.olive=function(S,x,z,s){ s=s||1; const P=S.api, Bw=K().B, c=Bw/P.S, gy=S.ground(x,z), A={abs:true}, h=c*0.3;
+  /* each piece set on the centre of one cell of the world, so it fills that one block and no more */
+  const snap=(v,o,sc)=>((Math.floor((o+v*sc)/Bw)+0.5)*Bw-o)/sc;
+  const blk=(bx,by,bz,id)=>{ const px=snap(x+bx*c,P.ax,P.S), py=snap(gy+(by+0.5)*c,P.baseY,P.S), pz=snap(z+bz*c,P.az,P.S);
+    S.box(px-h,py-h,pz-h,px+h,py+h,pz+h,id,A); };
+  const H=(a,b)=>hash(x*1.7+a*3.1,z*2.3+b*5.7);
+  /* the bole: two blocks square, three high; its flared foot and roots */
+  const th=Math.max(2,Math.round(3*s));
+  for(let y=0;y<th;y++) for(const [dx,dz] of [[0,0],[1,0],[0,1],[1,1]]) blk(dx,y,dz,'log-olive');
+  for(const [dx,dz] of [[-1,0],[2,1],[0,2],[1,-1]]) if(H(dx,dz)<0.8) blk(dx,0,dz,'log-olive');
+  for(const [dx,dz] of [[-1,1],[2,0]]) if(H(dz,dx)<0.5) blk(dx,1,dz,'log-olive');
+  /* the limbs: two to four, each stepping out a block and up a block, then up */
+  const n=2+Math.floor(H(9,9)*2.99), a0=H(1,7)*6.283, ends=[];
+  for(let k=0;k<n;k++){ const a=a0+k*6.283/n+(H(k,3)-0.5)*0.8, dx=Math.cos(a), dz=Math.sin(a);
+    let px=0.5, pz=0.5, py=th; const reach=Math.round((2+H(k,5)*1.6)*s);
+    for(let j=0;j<reach;j++){ px+=dx; pz+=dz; if(j%2===0) py++; blk(Math.round(px),py,Math.round(pz),'log-olive'); }
+    blk(Math.round(px),py+1,Math.round(pz),'log-olive');
+    ends.push([Math.round(px),py+1,Math.round(pz)]); }
+  ends.push([0.5,th+2,0.5]);                                                        /* and the heart of the crown over the bole */
+  /* the clumps of leaf about each limb's end: a flattened heap, ragged at its edge */
+  const R=2.3*s, RY=1.3*s, done=new Set();
+  ends.forEach(([ex,ey,ez],k)=>{ const r=k===ends.length-1?R*0.9:R;
+    for(let by=-1;by<=2;by++) for(let bx=-3;bx<=3;bx++) for(let bz=-3;bz<=3;bz++){
+      const d=(bx*bx+bz*bz)/(r*r)+((by-0.4)*(by-0.4))/(RY*RY); if(d>1) continue;
+      if(d>0.55&&H(bx+ex*7+k,bz+by*13+ez)<0.35) continue;                        /* the edge broken up, the sky through it */
+      if(d<=0.55&&H(bz+ex*5+k,bx+by*11+ez)<0.34) continue;                   /* and holes through the crown, for the sun to come through */
+      const X=Math.round(ex+bx), Y=Math.round(ey+by), Z=Math.round(ez+bz), key=X+','+Y+','+Z; if(done.has(key)) continue; done.add(key);
+      blk(X,Y,Z,'leaves-olive'); } });
+};
 /* A FIG: a short trunk and a broad, low crown of big leaves, shade enough to sit under
    (Yahuchanon 1:48, "when you were under the fig tree") */
 W.fig=function(S,x,z){
@@ -511,6 +542,14 @@ W.dove=function(ctx,x,y,z){
    14:22). Her measures are kept on her for the engine: `len`, `beam`, the height of her floor,
    thwarts and decks above her own waterline. */
 W.BOAT={len:10.6,beam:3.1,floor:-0.42,seat:0.0,deck:0.08,gunwale:0.62,thwarts:[3.05,1.65,-1.35,-2.75],mast:2.35};
+/* THE WATER IS NOT INSIDE HER. A hull is open, and the lake's water (the world's own blocks of it, or the
+   lake's waves) lies level through it — so it stood inside every boat, up to the thwarts. Within her is laid
+   a MASK: a shape filling the hold, drawn with no colour at all, only its depth, after the people and the
+   things in her and before the water — so the water behind it is not drawn there, and everything else is.
+   (A net is drawn before it, so the catch heaped in her is seen.) */
+const HULL_MASK=new THREE.MeshBasicMaterial({colorWrite:false,transparent:true,depthWrite:true});
+function hullMask(g,parts){ for(const [w,h,d,x,y,z] of parts){ const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),HULL_MASK);
+    q.position.set(x,y,z); q.renderOrder=-1; q.userData.mask=true; g.add(q); } }
 function bigBoat(ctx,x,z,o){
   const g=new THREE.Group(), m=c=>new THREE.MeshLambertMaterial({color:c});
   const wood=m(0x6a4a30), dark=m(0x4a3220), pale=m(0x8a6a48), tar=m(0x2a2018);
@@ -545,6 +584,8 @@ function bigBoat(ctx,x,z,o){
   for(const sd of [1,-1]) for(const dz of [-1.0,1.3]){ const q=b(0.09,0.09,3.6,wood,sd*(HB-0.45),P.gunwale-0.05,dz); q.rotation.y=sd*0.04; }
   /* `scale`: a ship of the sea built as she is, larger — the grain ship of Alexandria (Acts 27:37) */
   const sc=o.scale||1; g.scale.setScalar(sc); g.userData.boat={len:L*sc,beam:P.beam*sc};
+  { const parts=[]; for(let i=0;i<14;i++){ const z0=-L/2+0.4+i*(L-0.8)/14, z1=z0+(L-0.8)/14, zc=(z0+z1)/2, w=2*half(zc)-0.22; if(w<0.3) continue;
+      parts.push([w,P.gunwale-0.06-(P.floor+0.06),z1-z0+0.01,0,(P.gunwale-0.06+P.floor+0.06)/2,zc]); } hullMask(g,parts); }
   g.position.set(x,o.y===undefined?-0.1:o.y,z); g.rotation.order='YXZ'; g.rotation.y=o.face||0; ctx.scene.add(g); return g; }
 /* THE LAKE'S OWN WAVES, over the still water of a set (galilSea): a surface of travelling waves
    whose height is the story engine's own (lakeH) on the CPU and here on the GPU, so that a boat
@@ -556,41 +597,56 @@ W.lakeWaves=function(ctx,r){
   const geo=new THREE.PlaneGeometry(w,d,sx,sz); geo.rotateX(-Math.PI/2); geo.translate((r[0]+r[2])/2,0,(r[1]+r[3])/2);
   const U={uT:{value:0},uA:{value:0},uDir:{value:new THREE.Vector2(0,1)},uRect:{value:new THREE.Vector4(r[0],r[1],r[2],r[3])},
     uBoat:{value:new THREE.Vector4(0,0,0,-99)},uBoatH:{value:0},
+    /* every boat on the lake, not only the one being sailed: the water is never drawn inside a hull */
+    uBoats:{value:[0,1,2,3,4,5,6,7].map(()=>new THREE.Vector4(0,0,0,-99))},uBoatHs:{value:[0,0,0,0,0,0,0,0]},
     uLight:WU.uLight,uSunDir:WU.uSunDir,uSunCol:WU.uSunCol,uZenith:WU.uZenith,uFogColor:WU.uFogColor,uFogNear:WU.uFogNear,uFogFar:WU.uFogFar,
+    uSkyHor:WU.uSkyHor,uSkyTop:WU.uSkyTop,
     uCamPos:WU.uCamPos,uMoonDir:WU.uMoonDir,uMoonCol:WU.uMoonCol,uMoon:WU.uMoon,uNoise:WU.uMap,
-    uRip:RP.tex,uRipO:RP.o,uRipOn:RP.on};
+    uRip:RP.tex,uRipO:RP.o,uRipOn:RP.on,
+    uRefl:WU.uRefl,uReflMat:WU.uReflMat,uReflOn:WU.uReflOn,uReflY:WU.uReflY,
+    uHzDir:WU.uHzDir,uHzCol:WU.uHzCol,uHzSet:WU.uHzSet,uHzSetAmt:WU.uHzSetAmt,uHzFlat:WU.uHzFlat};
   const WAVE=W.LAKE_WAVES.map(c=>`{ float a=uA*${c[2].toFixed(3)}, k=${(2*Math.PI/c[1]).toFixed(4)}, om=${Math.sqrt(9.8*2*Math.PI/c[1]).toFixed(4)};
       vec2 D=vec2(cos(${c[0].toFixed(3)})*uDir.x-sin(${c[0].toFixed(3)})*uDir.y, sin(${c[0].toFixed(3)})*uDir.x+cos(${c[0].toFixed(3)})*uDir.y);
       float f=k*dot(D,P)-om*uT, c=cos(f), s=sin(f);
       dp.xz+=0.55*a*D*c; dp.y+=a*s; nr.xz-=D*k*a*c; nr.y-=0.55*k*a*s; }`).join('\n');
   const mat=new THREE.ShaderMaterial({uniforms:U,transparent:true,
-    vertexShader:`uniform float uT,uA; uniform vec2 uDir; uniform vec4 uRect;
-      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP;
+    vertexShader:`uniform float uT,uA; uniform vec2 uDir; uniform vec4 uRect; uniform mat4 uReflMat;
+      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP; varying vec4 vRefl;
       void main(){ vec2 P=position.xz; vec3 dp=vec3(0.0); vec3 nr=vec3(0.0,1.0,0.0);
         /* the waves lie down within a few metres of the shore */
         float e=smoothstep(0.0,6.0,min(min(P.x-uRect.x,uRect.z-P.x),min(P.y-uRect.y,uRect.w-P.y)));
         ${WAVE}
         dp*=e; vEdge=e; vH=dp.y; vP=P; vN=normalize(mix(vec3(0.0,1.0,0.0),nr,e));
-        vec4 wp=modelMatrix*vec4(position+dp,1.0); vW=wp.xyz;
+        vec4 wp=modelMatrix*vec4(position+dp,1.0); vW=wp.xyz; vRefl=uReflMat*wp;
         vec4 mv=viewMatrix*wp; vFog=-mv.z; gl_Position=projectionMatrix*mv; }`,
     fragmentShader:`precision highp float;
-      uniform vec3 uLight,uSunDir,uSunCol,uZenith,uFogColor,uCamPos,uMoonDir,uMoonCol; uniform float uFogNear,uFogFar,uMoon,uA,uT,uBoatH;
-      uniform vec4 uBoat; uniform sampler2D uNoise,uRip; uniform vec2 uRipO; uniform float uRipOn;
-      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP;
+      uniform vec3 uLight,uSunDir,uSunCol,uZenith,uFogColor,uCamPos,uMoonDir,uMoonCol,uSkyHor,uSkyTop; uniform float uFogNear,uFogFar,uMoon,uA,uT,uBoatH;
+      uniform vec4 uBoat; uniform vec4 uBoats[8]; uniform float uBoatHs[8]; uniform sampler2D uNoise,uRip; uniform vec2 uRipO; uniform float uRipOn;
+      uniform sampler2D uRefl; uniform float uReflOn,uReflY;
+      ${window.__KIT.hazeGLSL||'vec3 hazeOf(vec3 f,vec3 d){ return f; }'}
+      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP; varying vec4 vRefl;
       void main(){
         /* none of it inside the boat's own hull */
         vec2 rb=vP-uBoat.xy; float cb=cos(uBoatH), sb=sin(uBoatH);
         vec2 lb=vec2(cb*rb.x-sb*rb.y, sb*rb.x+cb*rb.y);
         if(abs(lb.y)<uBoat.z*0.5-0.1){ float t=abs(lb.y)/(uBoat.z*0.5); if(abs(lb.x)<uBoat.w*0.5*sqrt(max(0.0,1.0-pow(t,2.8)))-0.06) discard; }
+        for(int i=0;i<8;i++){ vec4 Bt=uBoats[i]; if(Bt.w<0.0) continue;
+          vec2 rq=vP-Bt.xy; float cq=cos(uBoatHs[i]), sq=sin(uBoatHs[i]); vec2 lq=vec2(cq*rq.x-sq*rq.y, sq*rq.x+cq*rq.y);
+          if(abs(lq.y)<Bt.z*0.5-0.1){ float tq=abs(lq.y)/(Bt.z*0.5); if(abs(lq.x)<Bt.w*0.5*sqrt(max(0.0,1.0-pow(tq,2.8)))-0.06) discard; } }
         vec3 N=normalize(vN);
         vec3 n1=texture2D(uNoise,vP*0.11+vec2(uT*0.05,uT*0.03)).rgb, n2=texture2D(uNoise,vP*0.37-vec2(uT*0.08,-uT*0.06)).rgb;
-        N=normalize(N+vec3((n1.r-0.5)*0.32+(n2.r-0.5)*0.2,0.0,(n1.g-0.5)*0.32+(n2.g-0.5)*0.2));
+        /* the fine ripple lies down with distance (afar it can only alias into streaks of light) */
+        float nearD=1.0-smoothstep(25.0,140.0,vFog);
+        N=normalize(N+vec3((n1.r-0.5)*0.26+(n2.r-0.5)*0.12*nearD,0.0,(n1.g-0.5)*0.26+(n2.g-0.5)*0.12*nearD));
+        /* and the waves themselves lie flat to the eye far off: a lake seen across is a smooth mirror of its
+           far shore, not rows of crests turned light and dark against each other (the lines in the water) */
+        N=normalize(mix(N,vec3(0.0,1.0,0.0),smoothstep(18.0,170.0,vFog)*0.85));
         float rf=0.0;
         if(uRipOn>0.5){ vec2 rc=(vW.xz-uRipO)/${RP.span.toFixed(1)};
           if(rc.x>0.0&&rc.y>0.0&&rc.x<1.0&&rc.y<1.0){ vec4 rp=texture2D(uRip,rc); N=normalize(N+vec3((rp.r-0.5)*2.6,0.0,(rp.g-0.5)*2.6)); rf=rp.a; } }
         vec3 V=normalize(uCamPos-vW), Ls=normalize(uSunDir);
         float above=step(vW.y,uCamPos.y);
-        vec3 deep=vec3(0.05,0.20,0.27), shallow=vec3(0.13,0.42,0.44);
+        vec3 deep=vec3(0.02,0.12,0.20), shallow=vec3(0.07,0.40,0.38);
         vec3 base=mix(shallow,deep,0.65)*(0.80+0.30*clamp(vH/(uA*1.4+0.05)*0.5+0.5,0.0,1.0));
         float diff=clamp(dot(N,Ls),0.0,1.0);
         vec3 col=base*(0.55+0.55*diff);
@@ -601,13 +657,19 @@ W.lakeWaves=function(ctx,r){
         col*=uLight;
         if(uMoon>0.002){ vec3 M=normalize(uMoonDir); float md=clamp(dot(N,M),0.0,1.0); col+=base*uMoonCol*(0.3+0.8*md)*uMoon*1.3;
           vec3 HM=normalize(V+M); col+=uMoonCol*pow(max(dot(N,HM),0.0),110.0)*1.4*md*uMoon; col+=uMoonCol*foam*uMoon*0.4; }
-        vec3 H=normalize(V+Ls); col+=uSunCol*(pow(max(dot(N,H),0.0),140.0)*1.6+pow(max(dot(N,H),0.0),38.0)*0.15)*diff*above;
-        float fres=pow(1.0-max(dot(N,V),0.0),4.0); vec3 R=reflect(-V,N);
-        col=mix(col,mix(uFogColor*1.05,uZenith,pow(clamp(R.y,0.0,1.0),0.7)),fres*0.55*above);
-        float a=mix(0.86,0.97,fres); a=max(a,foam);
+        vec3 H=normalize(V+Ls); col+=uSunCol*(pow(max(dot(N,H),0.0),220.0)*2.2+pow(max(dot(N,H),0.0),48.0)*0.14)*diff*above;
+        float fres=0.02+0.98*pow(1.0-max(dot(N,V),0.0),5.0); vec3 R=reflect(-V,N);
+        vec3 skyR=mix(uSkyHor,uSkyTop,pow(clamp(R.y,0.0,1.0),0.5));
+        /* the hills, the trees, the boats and the people on the shore, in the water (THE WORLD IN THE WATER) */
+        if(uReflOn>0.001){ vec2 ruv=vRefl.xy/vRefl.w+N.xz*0.035;
+          skyR=mix(skyR,texture2D(uRefl,clamp(ruv,0.002,0.998)).rgb,uReflOn*(1.0-smoothstep(4.0,14.0,abs(vW.y-uReflY)))); }
+        col=mix(col,skyR,clamp(fres*0.9,0.0,0.9)*above);
+        /* clear: the sand and its light seen through it, a mirror only where the eye looks along it */
+        float a=clamp(0.38+fres*0.8,0.0,0.97); a=max(a,foam);
         float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
-        gl_FragColor=vec4(mix(col,uFogColor,ff),a); }`});
+        gl_FragColor=vec4(mix(col,hazeOf(uFogColor,normalize(vW-uCamPos)),ff),a); }`});
   const mesh=new THREE.Mesh(geo,mat); mesh.renderOrder=1; mesh.frustumCulled=false; ctx.scene.add(mesh);
+  if(window.__REFLECT) window.__REFLECT.lakes.add(mesh);                       /* the face the world is mirrored in */
   return {mesh,U};
 };
 /* the waves of the lake: [turned from the wind, wavelength in metres, share of the height] —
@@ -624,11 +686,12 @@ W.boat=function(ctx,x,z,o){ o=o||{};
   b(2.1,0.75,0.2,wood,0,0.05,-3.5);
   b(2.0,0.1,0.4,0x8a6a48,0,0.2,0.8);
   if(o.mast!==false){ b(0.16,4.5,0.16,0x7a5a3e,0,2.4,1.2); b(2.6,0.1,0.1,0x7a5a3e,0,3.9,1.2); }
+  hullMask(g,[[1.88,0.6,6.75,0,0.075,0]]);                                     /* the hold, floor to gunwale */
   g.position.set(x,o.y===undefined?-0.2:o.y,z); g.rotation.y=o.face||0; ctx.scene.add(g); return g; };
 /* a net, heaped or hanging, and the fish that fill it */
 W.net=function(ctx,x,z,o){ o=o||{};
   const g=new THREE.Group(), mat=new THREE.MeshLambertMaterial({color:0xb8a882,transparent:true,opacity:0.75});
-  const q=new THREE.Mesh(new THREE.BoxGeometry(o.w||1.6,o.h||0.4,o.d||1.4),mat); g.add(q);
+  const q=new THREE.Mesh(new THREE.BoxGeometry(o.w||1.6,o.h||0.4,o.d||1.4),mat); q.renderOrder=-2; g.add(q);   /* (drawn before a hull's mask) */
   const fish=new THREE.Group();                                                       /* the catch: the voyage's own fish, heaped in the net */
   for(let k=0;k<Math.min(28,o.n||28);k++){ const f=W.voyageFish(FISH_KINDS[Math.floor(hash(k,5)*5)]); if(!f) continue;
     const h=new THREE.Group(); h.add(f); h.position.set((hash(k,1)-0.5)*(o.w||1.6)*0.9,(hash(k,2)-0.3)*(o.h||0.4)*1.6,(hash(k,3)-0.5)*(o.d||1.4)*0.9);
@@ -804,6 +867,8 @@ function bigBoat(ctx,x,z,o){
   for(const sd of [1,-1]) for(const dz of [-1.0,1.3]){ const q=b(0.09,0.09,3.6,wood,sd*(HB-0.45),P.gunwale-0.05,dz); q.rotation.y=sd*0.04; }
   /* `scale`: a ship of the sea built as she is, larger — the grain ship of Alexandria (Acts 27:37) */
   const sc=o.scale||1; g.scale.setScalar(sc); g.userData.boat={len:L*sc,beam:P.beam*sc};
+  { const parts=[]; for(let i=0;i<14;i++){ const z0=-L/2+0.4+i*(L-0.8)/14, z1=z0+(L-0.8)/14, zc=(z0+z1)/2, w=2*half(zc)-0.22; if(w<0.3) continue;
+      parts.push([w,P.gunwale-0.06-(P.floor+0.06),z1-z0+0.01,0,(P.gunwale-0.06+P.floor+0.06)/2,zc]); } hullMask(g,parts); }
   g.position.set(x,o.y===undefined?-0.1:o.y,z); g.rotation.order='YXZ'; g.rotation.y=o.face||0; ctx.scene.add(g); return g; }
 /* THE LAKE'S OWN WAVES, over the still water of a set (galilSea): a surface of travelling waves
    whose height is the story engine's own (lakeH) on the CPU and here on the GPU, so that a boat
@@ -815,41 +880,56 @@ W.lakeWaves=function(ctx,r){
   const geo=new THREE.PlaneGeometry(w,d,sx,sz); geo.rotateX(-Math.PI/2); geo.translate((r[0]+r[2])/2,0,(r[1]+r[3])/2);
   const U={uT:{value:0},uA:{value:0},uDir:{value:new THREE.Vector2(0,1)},uRect:{value:new THREE.Vector4(r[0],r[1],r[2],r[3])},
     uBoat:{value:new THREE.Vector4(0,0,0,-99)},uBoatH:{value:0},
+    /* every boat on the lake, not only the one being sailed: the water is never drawn inside a hull */
+    uBoats:{value:[0,1,2,3,4,5,6,7].map(()=>new THREE.Vector4(0,0,0,-99))},uBoatHs:{value:[0,0,0,0,0,0,0,0]},
     uLight:WU.uLight,uSunDir:WU.uSunDir,uSunCol:WU.uSunCol,uZenith:WU.uZenith,uFogColor:WU.uFogColor,uFogNear:WU.uFogNear,uFogFar:WU.uFogFar,
+    uSkyHor:WU.uSkyHor,uSkyTop:WU.uSkyTop,
     uCamPos:WU.uCamPos,uMoonDir:WU.uMoonDir,uMoonCol:WU.uMoonCol,uMoon:WU.uMoon,uNoise:WU.uMap,
-    uRip:RP.tex,uRipO:RP.o,uRipOn:RP.on};
+    uRip:RP.tex,uRipO:RP.o,uRipOn:RP.on,
+    uRefl:WU.uRefl,uReflMat:WU.uReflMat,uReflOn:WU.uReflOn,uReflY:WU.uReflY,
+    uHzDir:WU.uHzDir,uHzCol:WU.uHzCol,uHzSet:WU.uHzSet,uHzSetAmt:WU.uHzSetAmt,uHzFlat:WU.uHzFlat};
   const WAVE=W.LAKE_WAVES.map(c=>`{ float a=uA*${c[2].toFixed(3)}, k=${(2*Math.PI/c[1]).toFixed(4)}, om=${Math.sqrt(9.8*2*Math.PI/c[1]).toFixed(4)};
       vec2 D=vec2(cos(${c[0].toFixed(3)})*uDir.x-sin(${c[0].toFixed(3)})*uDir.y, sin(${c[0].toFixed(3)})*uDir.x+cos(${c[0].toFixed(3)})*uDir.y);
       float f=k*dot(D,P)-om*uT, c=cos(f), s=sin(f);
       dp.xz+=0.55*a*D*c; dp.y+=a*s; nr.xz-=D*k*a*c; nr.y-=0.55*k*a*s; }`).join('\n');
   const mat=new THREE.ShaderMaterial({uniforms:U,transparent:true,
-    vertexShader:`uniform float uT,uA; uniform vec2 uDir; uniform vec4 uRect;
-      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP;
+    vertexShader:`uniform float uT,uA; uniform vec2 uDir; uniform vec4 uRect; uniform mat4 uReflMat;
+      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP; varying vec4 vRefl;
       void main(){ vec2 P=position.xz; vec3 dp=vec3(0.0); vec3 nr=vec3(0.0,1.0,0.0);
         /* the waves lie down within a few metres of the shore */
         float e=smoothstep(0.0,6.0,min(min(P.x-uRect.x,uRect.z-P.x),min(P.y-uRect.y,uRect.w-P.y)));
         ${WAVE}
         dp*=e; vEdge=e; vH=dp.y; vP=P; vN=normalize(mix(vec3(0.0,1.0,0.0),nr,e));
-        vec4 wp=modelMatrix*vec4(position+dp,1.0); vW=wp.xyz;
+        vec4 wp=modelMatrix*vec4(position+dp,1.0); vW=wp.xyz; vRefl=uReflMat*wp;
         vec4 mv=viewMatrix*wp; vFog=-mv.z; gl_Position=projectionMatrix*mv; }`,
     fragmentShader:`precision highp float;
-      uniform vec3 uLight,uSunDir,uSunCol,uZenith,uFogColor,uCamPos,uMoonDir,uMoonCol; uniform float uFogNear,uFogFar,uMoon,uA,uT,uBoatH;
-      uniform vec4 uBoat; uniform sampler2D uNoise,uRip; uniform vec2 uRipO; uniform float uRipOn;
-      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP;
+      uniform vec3 uLight,uSunDir,uSunCol,uZenith,uFogColor,uCamPos,uMoonDir,uMoonCol,uSkyHor,uSkyTop; uniform float uFogNear,uFogFar,uMoon,uA,uT,uBoatH;
+      uniform vec4 uBoat; uniform vec4 uBoats[8]; uniform float uBoatHs[8]; uniform sampler2D uNoise,uRip; uniform vec2 uRipO; uniform float uRipOn;
+      uniform sampler2D uRefl; uniform float uReflOn,uReflY;
+      ${window.__KIT.hazeGLSL||'vec3 hazeOf(vec3 f,vec3 d){ return f; }'}
+      varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP; varying vec4 vRefl;
       void main(){
         /* none of it inside the boat's own hull */
         vec2 rb=vP-uBoat.xy; float cb=cos(uBoatH), sb=sin(uBoatH);
         vec2 lb=vec2(cb*rb.x-sb*rb.y, sb*rb.x+cb*rb.y);
         if(abs(lb.y)<uBoat.z*0.5-0.1){ float t=abs(lb.y)/(uBoat.z*0.5); if(abs(lb.x)<uBoat.w*0.5*sqrt(max(0.0,1.0-pow(t,2.8)))-0.06) discard; }
+        for(int i=0;i<8;i++){ vec4 Bt=uBoats[i]; if(Bt.w<0.0) continue;
+          vec2 rq=vP-Bt.xy; float cq=cos(uBoatHs[i]), sq=sin(uBoatHs[i]); vec2 lq=vec2(cq*rq.x-sq*rq.y, sq*rq.x+cq*rq.y);
+          if(abs(lq.y)<Bt.z*0.5-0.1){ float tq=abs(lq.y)/(Bt.z*0.5); if(abs(lq.x)<Bt.w*0.5*sqrt(max(0.0,1.0-pow(tq,2.8)))-0.06) discard; } }
         vec3 N=normalize(vN);
         vec3 n1=texture2D(uNoise,vP*0.11+vec2(uT*0.05,uT*0.03)).rgb, n2=texture2D(uNoise,vP*0.37-vec2(uT*0.08,-uT*0.06)).rgb;
-        N=normalize(N+vec3((n1.r-0.5)*0.32+(n2.r-0.5)*0.2,0.0,(n1.g-0.5)*0.32+(n2.g-0.5)*0.2));
+        /* the fine ripple lies down with distance (afar it can only alias into streaks of light) */
+        float nearD=1.0-smoothstep(25.0,140.0,vFog);
+        N=normalize(N+vec3((n1.r-0.5)*0.26+(n2.r-0.5)*0.12*nearD,0.0,(n1.g-0.5)*0.26+(n2.g-0.5)*0.12*nearD));
+        /* and the waves themselves lie flat to the eye far off: a lake seen across is a smooth mirror of its
+           far shore, not rows of crests turned light and dark against each other (the lines in the water) */
+        N=normalize(mix(N,vec3(0.0,1.0,0.0),smoothstep(18.0,170.0,vFog)*0.85));
         float rf=0.0;
         if(uRipOn>0.5){ vec2 rc=(vW.xz-uRipO)/${RP.span.toFixed(1)};
           if(rc.x>0.0&&rc.y>0.0&&rc.x<1.0&&rc.y<1.0){ vec4 rp=texture2D(uRip,rc); N=normalize(N+vec3((rp.r-0.5)*2.6,0.0,(rp.g-0.5)*2.6)); rf=rp.a; } }
         vec3 V=normalize(uCamPos-vW), Ls=normalize(uSunDir);
         float above=step(vW.y,uCamPos.y);
-        vec3 deep=vec3(0.05,0.20,0.27), shallow=vec3(0.13,0.42,0.44);
+        vec3 deep=vec3(0.02,0.12,0.20), shallow=vec3(0.07,0.40,0.38);
         vec3 base=mix(shallow,deep,0.65)*(0.80+0.30*clamp(vH/(uA*1.4+0.05)*0.5+0.5,0.0,1.0));
         float diff=clamp(dot(N,Ls),0.0,1.0);
         vec3 col=base*(0.55+0.55*diff);
@@ -860,13 +940,19 @@ W.lakeWaves=function(ctx,r){
         col*=uLight;
         if(uMoon>0.002){ vec3 M=normalize(uMoonDir); float md=clamp(dot(N,M),0.0,1.0); col+=base*uMoonCol*(0.3+0.8*md)*uMoon*1.3;
           vec3 HM=normalize(V+M); col+=uMoonCol*pow(max(dot(N,HM),0.0),110.0)*1.4*md*uMoon; col+=uMoonCol*foam*uMoon*0.4; }
-        vec3 H=normalize(V+Ls); col+=uSunCol*(pow(max(dot(N,H),0.0),140.0)*1.6+pow(max(dot(N,H),0.0),38.0)*0.15)*diff*above;
-        float fres=pow(1.0-max(dot(N,V),0.0),4.0); vec3 R=reflect(-V,N);
-        col=mix(col,mix(uFogColor*1.05,uZenith,pow(clamp(R.y,0.0,1.0),0.7)),fres*0.55*above);
-        float a=mix(0.86,0.97,fres); a=max(a,foam);
+        vec3 H=normalize(V+Ls); col+=uSunCol*(pow(max(dot(N,H),0.0),220.0)*2.2+pow(max(dot(N,H),0.0),48.0)*0.14)*diff*above;
+        float fres=0.02+0.98*pow(1.0-max(dot(N,V),0.0),5.0); vec3 R=reflect(-V,N);
+        vec3 skyR=mix(uSkyHor,uSkyTop,pow(clamp(R.y,0.0,1.0),0.5));
+        /* the hills, the trees, the boats and the people on the shore, in the water (THE WORLD IN THE WATER) */
+        if(uReflOn>0.001){ vec2 ruv=vRefl.xy/vRefl.w+N.xz*0.035;
+          skyR=mix(skyR,texture2D(uRefl,clamp(ruv,0.002,0.998)).rgb,uReflOn*(1.0-smoothstep(4.0,14.0,abs(vW.y-uReflY)))); }
+        col=mix(col,skyR,clamp(fres*0.9,0.0,0.9)*above);
+        /* clear: the sand and its light seen through it, a mirror only where the eye looks along it */
+        float a=clamp(0.38+fres*0.8,0.0,0.97); a=max(a,foam);
         float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
-        gl_FragColor=vec4(mix(col,uFogColor,ff),a); }`});
+        gl_FragColor=vec4(mix(col,hazeOf(uFogColor,normalize(vW-uCamPos)),ff),a); }`});
   const mesh=new THREE.Mesh(geo,mat); mesh.renderOrder=1; mesh.frustumCulled=false; ctx.scene.add(mesh);
+  if(window.__REFLECT) window.__REFLECT.lakes.add(mesh);                       /* the face the world is mirrored in */
   return {mesh,U};
 };
 /* the waves of the lake: [turned from the wind, wavelength in metres, share of the height] —
@@ -883,11 +969,12 @@ W.boat=function(ctx,x,z,o){ o=o||{};
   b(2.1,0.75,0.2,wood,0,0.05,-3.5);
   b(2.0,0.1,0.4,0x8a6a48,0,0.2,0.8);
   if(o.mast!==false){ b(0.16,4.5,0.16,0x7a5a3e,0,2.4,1.2); b(2.6,0.1,0.1,0x7a5a3e,0,3.9,1.2); }
+  hullMask(g,[[1.88,0.6,6.75,0,0.075,0]]);                                     /* the hold, floor to gunwale */
   g.position.set(x,o.y===undefined?-0.2:o.y,z); g.rotation.y=o.face||0; ctx.scene.add(g); return g; };
 /* a net, heaped or hanging, and the fish that fill it */
 W.net=function(ctx,x,z,o){ o=o||{};
   const g=new THREE.Group(), mat=new THREE.MeshLambertMaterial({color:0xb8a882,transparent:true,opacity:0.75});
-  const q=new THREE.Mesh(new THREE.BoxGeometry(o.w||1.6,o.h||0.4,o.d||1.4),mat); g.add(q);
+  const q=new THREE.Mesh(new THREE.BoxGeometry(o.w||1.6,o.h||0.4,o.d||1.4),mat); q.renderOrder=-2; g.add(q);   /* (drawn before a hull's mask) */
   const fish=new THREE.Group();                                                       /* the catch: the voyage's own fish, heaped in the net */
   for(let k=0;k<Math.min(28,o.n||28);k++){ const f=W.voyageFish(FISH_KINDS[Math.floor(hash(k,5)*5)]); if(!f) continue;
     const h=new THREE.Group(); h.add(f); h.position.set((hash(k,1)-0.5)*(o.w||1.6)*0.9,(hash(k,2)-0.3)*(o.h||0.4)*1.6,(hash(k,3)-0.5)*(o.d||1.4)*0.9);
@@ -1153,6 +1240,46 @@ W.wild=function(ctx,kind,x,z,n,r,sp){
     g.rotation.y=hash(px,pz)*6.28;
     g.userData={home:[x,z],t:hash(k,x)*4,kind,roam:r||6,sp:sp||0.6}; ctx.flock.push(g); } };
 W.donkey=function(ctx,x,z){ return beast(ctx,'donkey',x,z); };
+/* A GARMENT made by hand, held up by its shoulders (Acts 9:39): a tunic hanging from where it is held —
+   its body, its short sleeves, a band at the hem, the folds of the cloth — the group's origin at its top */
+W.garment=function(ctx,t){ const g=new THREE.Group(), c=new THREE.Color(t.color||0xe6dcc0), w=t.w||0.62, h=t.h||0.95;
+  const M=k=>new THREE.MeshLambertMaterial({color:c.clone().multiplyScalar(k),side:THREE.DoubleSide});
+  const bx=(W2,H,D,m,x,y,z)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(W2,H,D),m); q.position.set(x,y,z); g.add(q); return q; };
+  bx(w,h,0.025,M(1),0,-h/2,0.12);                                                  /* the body of it */
+  for(const sx of [-1,1]) bx(0.2,0.2,0.025,M(0.96),sx*(w/2+0.09),-0.12,0.12);     /* the sleeves */
+  bx(w,0.07,0.03,M(t.hem?1:0.78),0,-h+0.035,0.12);                                 /* the hem */
+  for(const fx of [-0.18,0.02,0.2]) bx(0.03,h*0.8,0.03,M(0.86),fx*w/0.62,-h*0.55,0.125);   /* its folds */
+  ctx.scene.add(g); return g; };
+/* A CHAIN between two wrists, or a wrist and a ring in the wall (Acts 12:6; 16:26): links of iron the
+   engine hangs between its two ends, each frame (story/engine.js, chainTick), and a cuff at each end */
+W.chain=function(ctx,t){ const g=new THREE.Group(), n=t.n||40;
+  const m=new THREE.MeshLambertMaterial({color:0x2e3036}), hi=new THREE.MeshLambertMaterial({color:0x4a4d55});
+  /* ONE LINK: an oblong loop of iron bars, open in the middle, `LK` long — the next link passes through it */
+  const LK=0.2, W2=0.12, T=0.035;
+  const link=()=>{ const L=new THREE.Group();
+    for(const sx of [-1,1]){ const q=new THREE.Mesh(new THREE.BoxGeometry(T,T,LK),sx<0?m:hi); q.position.set(sx*(W2/2-T/2),0,0); L.add(q); }
+    for(const sz of [-1,1]){ const q=new THREE.Mesh(new THREE.BoxGeometry(W2,T,T),m); q.position.set(0,0,sz*(LK/2-T/2)); L.add(q); }
+    g.add(L); return L; };
+  const links=[]; for(let i=0;i<n;i++) links.push(link());
+  const cuff=()=>{ const C=new THREE.Group();                                         /* the manacle: a squared band */
+    for(const [x,z,w,d] of [[0,-0.055,0.13,0.025],[0,0.055,0.13,0.025],[-0.055,0,0.025,0.13],[0.055,0,0.025,0.13]]){ const q=new THREE.Mesh(new THREE.BoxGeometry(w,0.06,d),hi); q.position.set(x,0,z); C.add(q); }
+    g.add(C); return C; };
+  g.userData.links=links; g.userData.pitch=LK-T*1.6; g.userData.cuffA=cuff(); g.userData.cuffB=cuff();
+  ctx.scene.add(g); return g; };
+/* A BROKEN LENGTH OF CHAIN lying on the ground: `n` links along the bearing `ry`, every other one lying
+   flat and the one between standing on its edge through them, as iron links fall */
+W.chainPiece=function(S,x,z,n,ry){ ry=Math.round(ry/(Math.PI/2))*(Math.PI/2);   /* square to the world, as its blocks are */
+  const y0=S.ground(x,z), c=Math.cos(ry), s=Math.sin(ry), IR=0x2e3036, HI=0x4a4d55, LK=0.2, W2=0.12, T=0.035, P=LK-T*1.6;
+  const seg=(ax,az,bx,bz,y,h,col)=>{ const x0=Math.min(ax,bx)-T/2, x1=Math.max(ax,bx)+T/2, z0=Math.min(az,bz)-T/2, z1=Math.max(az,bz)+T/2; S.detail(x0,y0+y,z0,x1,y0+y+h,z1,col,{jitter:0}); };
+  for(let i=0;i<n;i++){ const d=(i-(n-1)/2)*P, cx=x+c*d, cz=z+s*d, ax=c*LK/2, az=s*LK/2, px=-s*W2/2, pz=c*W2/2;
+    if(i%2===0){ for(const k of [-1,1]) seg(cx-ax+px*k*0.85,cz-az+pz*k*0.85,cx+ax+px*k*0.85,cz+az+pz*k*0.85,0,T,k<0?IR:HI);      /* lying flat: its two sides */
+      for(const k of [-1,1]) seg(cx+ax*k*0.85-px,cz+az*k*0.85-pz,cx+ax*k*0.85+px,cz+az*k*0.85+pz,0,T,IR); }                         /* and its two ends */
+    else { seg(cx-ax,cz-az,cx+ax,cz+az,0,T,IR); seg(cx-ax,cz-az,cx+ax,cz+az,W2-T,T,HI);                                               /* on its edge: its foot and its top */
+      for(const k of [-1,1]) seg(cx+ax*k*0.85,cz+az*k*0.85,cx+ax*k*0.85,cz+az*k*0.85,0,W2,IR); } } };                              /* and its two ends upright */
+/* a fetter burst open: a squared band of iron, one side of it sprung */
+W.shackle=function(S,x,z,ry){ ry=Math.round(ry/(Math.PI/2))*(Math.PI/2); const y0=S.ground(x,z), c=Math.cos(ry), s=Math.sin(ry), r=0.075, T=0.035;
+  const pt=(u,v)=>[x+c*u-s*v,z+s*u+c*v], seg=(a,b)=>{ S.detail(Math.min(a[0],b[0])-T/2,y0,Math.min(a[1],b[1])-T/2,Math.max(a[0],b[0])+T/2,y0+0.06,Math.max(a[1],b[1])+T/2,0x3a3c42,{jitter:0}); };
+  seg(pt(-r,-r),pt(r,-r)); seg(pt(-r,-r),pt(-r,r)); seg(pt(-r,r),pt(0,r)); seg(pt(r,-r),pt(r+0.05,r*0.4)); W.chainPiece(S,x+c*0.22,z+s*0.22,2,ry); };
 /* a garland of leaves and flowers, such as were hung on the beasts brought to an altar of the nations (Acts 14:13) */
 W.wreath=function(ctx){ const g=new THREE.Group();
   g.add(new THREE.Mesh(new THREE.TorusGeometry(0.22,0.05,6,14),new THREE.MeshLambertMaterial({color:0x4e7a30})));
