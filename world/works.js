@@ -30,6 +30,14 @@
      needs   OPTIONAL — a tool that must be HELD, by what it serves as
      refuses OPTIONAL — the heart of the matter, and the reason this file
              exists at all. See below.
+     shape   OPTIONAL — how it is laid out on the GRID, for a man who would
+     key     rather lay a thing out than read it off the ledger (the grid is a
+             choice on the page, Round 135; the ledger is always there). Up
+             to three rows of up to three letters, ' ' for an empty cell, and
+             `key` names the block each letter stands for. A cell takes an
+             equal share of its material at each making, so the altar's twelve
+             stones in six cells are two to a cell. A shape that does not add
+             up to `of` is dropped at the door and the work stays ledger-only.
      verse   the words it is drawn from, quoted EXACTLY — see §5 and
              tools/extract-besorah.js, which is how every one of these was
              taken out of the Besorah and how any of them can be checked.
@@ -44,7 +52,9 @@
    refuse it. If the hand holds enough of the refused thing to make the work,
    and lacks the true material, the work is not merely withheld: it is
    refused, with its verse. That is the difference between a game that has
-   read the account and a game that has a crafting grid.
+   read the account and a game that has a crafting grid. (And now that there
+   IS a grid, as a choice, it keeps the same law: dressed stone laid out in
+   the altar's shape is refused on the grid in the same words.)
 
    ---- WHAT IS DELIBERATELY NOT HERE ----
    The tent of goat hair, the ark of gopher wood, the furnishings in acacia
@@ -62,7 +72,8 @@
 /* --- PLANKS — the first thing anybody does to a log --- */
 EARTH.work({
   id:'planks', name:'Rive Planks',
-  of:{ 'log':1 }, gives:{ 'planks':4 }
+  of:{ 'log':1 }, gives:{ 'planks':4 },
+  shape:['L'], key:{L:'log'}
 });
 
 /* --- HEWING — and it is a work, which is the whole point ---
@@ -71,6 +82,7 @@ EARTH.work({
 EARTH.work({
   id:'hew-stone', name:'Hew Stone',
   of:{ 'stone':1 }, gives:{ 'hewn-stone':1 },
+  shape:['S'], key:{S:'stone'},
   needs:'pick',
   verse:{ t:'And the House, when it was being built, was built with finished stone made ready beforehand, so that no hammer or chisel or any iron tool was heard in the House while it was being built.',
           ref:'1 MALAḴIM 6:7' }
@@ -80,6 +92,7 @@ EARTH.work({
 EARTH.work({
   id:'course-stone', name:'Lay Stone in Courses',
   of:{ 'hewn-stone':4 }, gives:{ 'cobble':4 },
+  shape:['HH','HH'], key:{H:'hewn-stone'},
   verse:{ t:'And the sovereign commanded and they brought large stones, precious stones, to lay the foundation of the House with hewn stones.',
           ref:'1 MALAḴIM 5:17' }
 });
@@ -91,6 +104,7 @@ EARTH.work({
 EARTH.work({
   id:'altar', name:'An Altar of Unhewn Stone',
   of:{ 'stone':12 }, gives:{ 'altar':1 },
+  shape:['SSS','SSS'], key:{S:'stone'},
   refuses:{ id:'hewn-stone',
             why:{ t:"And if you make Me an mizbe'ach of stone, do not build it of cut stone",
                   ref:'SHAMOTH 20:25' } },
@@ -102,6 +116,7 @@ EARTH.work({
 EARTH.work({
   id:'flint-knife', name:'Knives of Flint',
   of:{ 'flint':2, 'planks':1 }, gives:{ 'flint-knife':1 },
+  shape:['F','F','P'], key:{F:'flint',P:'planks'},
   verse:{ t:'Make knives of flint for yourself and circumcise the sons of Yasharal again the second time.',
           ref:'YAHUSHA 5:2' }
 });
@@ -110,13 +125,17 @@ EARTH.work({
    No verse on these: they are not named in the account, and §14 would rather
    have four honest tools than four invented citations. */
 EARTH.work({ id:'flint-pick',  name:'A Pick of Flint',
-  of:{ 'flint':3, 'planks':2 }, gives:{ 'flint-pick':1 } });
+  of:{ 'flint':3, 'planks':2 }, gives:{ 'flint-pick':1 },
+  shape:['FFF',' P ',' P '], key:{F:'flint',P:'planks'} });
 EARTH.work({ id:'flint-axe',   name:'An Axe of Flint',
-  of:{ 'flint':3, 'planks':2 }, gives:{ 'flint-axe':1 } });
+  of:{ 'flint':3, 'planks':2 }, gives:{ 'flint-axe':1 },
+  shape:['FF','FP',' P'], key:{F:'flint',P:'planks'} });
 EARTH.work({ id:'flint-spade', name:'A Spade of Flint',
-  of:{ 'flint':2, 'planks':2 }, gives:{ 'flint-spade':1 } });
+  of:{ 'flint':2, 'planks':2 }, gives:{ 'flint-spade':1 },
+  shape:['F','P','P'], key:{F:'flint',P:'planks'} });
 EARTH.work({ id:'flint-hoe',   name:'A Hoe of Flint',
-  of:{ 'flint':2, 'planks':2 }, gives:{ 'flint-hoe':1 } });
+  of:{ 'flint':2, 'planks':2 }, gives:{ 'flint-hoe':1 },
+  shape:['FF',' P',' P'], key:{F:'flint',P:'planks'} });
 
 /* --- THRESHING — seed corn beaten out of the sheaf ---
    The sheaves stand in every byre and pen on the earth, and the seed is IN
@@ -127,6 +146,7 @@ EARTH.work({ id:'flint-hoe',   name:'A Hoe of Flint',
 EARTH.work({
   id:'thresh', name:'Thresh Seed Corn',
   of:{ 'hay':1 }, gives:{ 'seed':4 },
+  shape:['H'], key:{H:'hay'},
   verse:{ t:'And she gleaned in the field until evening and beat out that which she had gleaned and it was about an ĕphah of barley.',
           ref:'RUTH 2:17' }
 });
@@ -138,7 +158,8 @@ EARTH.work({
    bench are at the foot of this file.) */
 EARTH.work({
   id:'kiln', name:'A Kiln',
-  of:{ 'stone':8, 'clay-band':4 }, gives:{ 'kiln':1 }
+  of:{ 'stone':8, 'clay-band':4 }, gives:{ 'kiln':1 },
+  shape:['SSS','SCS','SSS'], key:{S:'stone',C:'clay-band'}
 });
 
 /* ---------------- AND THE WORKS OF THE FIRE ---------------- */
@@ -149,6 +170,7 @@ EARTH.work({
 EARTH.work({
   id:'brick', name:'Bake Brick', at:'kiln',
   of:{ 'clay-band':4 }, gives:{ 'brick':4 },
+  shape:['CC','CC'], key:{C:'clay-band'},
   verse:{ t:'And they said to each other, “Come, let us make bricks and bake them thoroughly.” And they had brick for stone and they had asphalt for mortar.',
           ref:'BERĔSHITH 11:3' }
 });
@@ -162,6 +184,7 @@ EARTH.work({
 EARTH.work({
   id:'bucket', name:'A Bucket', at:'kiln',
   of:{ 'clay-band':3 }, gives:{ 'bucket':1 },
+  shape:['C C',' C '], key:{C:'clay-band'},
   verse:{ t:'And she hurried and emptied her jar into the trough, ran back to the fountain to draw water and drew for all his camels.',
           ref:'BERĔSHITH 24:20' }
 });
@@ -169,13 +192,15 @@ EARTH.work({
 /* --- ROOF TILE — the same clay, and the same fire --- */
 EARTH.work({
   id:'roof-tile', name:'Bake Roof Tile', at:'kiln',
-  of:{ 'clay-band':3 }, gives:{ 'roof-tile':3 }
+  of:{ 'clay-band':3 }, gives:{ 'roof-tile':3 },
+  shape:['CCC'], key:{C:'clay-band'}
 });
 
 /* --- GLASS — sand, and heat enough to make it run --- */
 EARTH.work({
   id:'glass', name:'Melt Glass', at:'kiln',
-  of:{ 'sand':4 }, gives:{ 'glass':4 }
+  of:{ 'sand':4 }, gives:{ 'glass':4 },
+  shape:['SS','SS'], key:{S:'sand'}
 });
 
 /* ================= AND THE WORKS OF THE BENCH (§17.5) =================
@@ -207,6 +232,7 @@ EARTH.work({
 EARTH.work({
   id:'bench', name:'A Carpenter\'s Bench',
   of:{ 'planks':4, 'log':2 }, gives:{ 'bench':1 },
+  shape:['PP','PP','LL'], key:{P:'planks',L:'log'},
   verse:{ t:'And Shelomoh’s builders and Ḥiram’s builders and the men of Geḇal did hew and prepared timber and stones to build the House.',
           ref:'1 MALAḴIM 5:18' }
 });
@@ -219,6 +245,7 @@ EARTH.work({
 EARTH.work({
   id:'panelling', name:'Dress Boards', at:'bench',
   of:{ 'planks':4 }, gives:{ 'panel':4 },
+  shape:['PP','PP'], key:{P:'planks'},
   verse:{ t:'And he built the walls of the House inside with cedar boards, from the floor of the House to the ceiling he panelled them on the inside with wood and covered the floor of the House with planks of cypress.',
           ref:'1 MALAḴIM 6:15' }
 });
@@ -230,6 +257,7 @@ EARTH.work({
 EARTH.work({
   id:'carved-panel', name:'Carve Boards', at:'bench',
   of:{ 'panel':1 }, gives:{ 'carved-panel':1 },
+  shape:['B'], key:{B:'panel'},
   needs:'knife',
   verse:{ t:'And he carved all the walls of the House all around, both inside and outside, with carved figures of keruḇim and palm trees and open flowers.',
           ref:'1 MALAḴIM 6:29' }
@@ -242,6 +270,7 @@ EARTH.work({
 EARTH.work({
   id:'furnace', name:'A Furnace', at:'kiln',
   of:{ 'brick':8 }, gives:{ 'furnace':1 },
+  shape:['BBB','B B','BBB'], key:{B:'brick'},
   verse:{ t:'“But (YAHUAH) HWHY has taken you and brought you out of the iron furnace, out of Mitsrayim, to be His people, an inheritance, as it is today.',
           ref:'DAḆARIM 4:20' }
 });
@@ -257,6 +286,7 @@ EARTH.work({
 EARTH.work({
   id:'smelt-iron', name:'Smelt Iron', at:'furnace',
   of:{ 'iron-ore':1 }, gives:{ 'iron':1 },
+  shape:['O'], key:{O:'iron-ore'},
   verse:{ t:'Iron is taken from the earth and copper is smelted from ore.',
           ref:'IYOḆ 28:2' }
 });
@@ -266,4 +296,5 @@ EARTH.work({
    it is not named in the account, and an honest tool beats an invented
    citation. */
 EARTH.work({ id:'iron-pick', name:'A Pick of Iron',
-  of:{ 'iron':3, 'planks':2 }, gives:{ 'iron-pick':1 } });
+  of:{ 'iron':3, 'planks':2 }, gives:{ 'iron-pick':1 },
+  shape:['III',' P ',' P '], key:{I:'iron',P:'planks'} });

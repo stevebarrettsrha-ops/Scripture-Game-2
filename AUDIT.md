@@ -11375,6 +11375,157 @@ Mine craft)".
 - For tools, `__VDBG.seabedDepth` gives the height of the sea bed at any point, so a test can
   place a diver over water deep enough to swim in.
 
+## 4eh. Round 135 — the rest of the VoxelCraft list
+
+The traveller asked which items on the VoxelCraft adoption list were still undone, then said "do
+all of them and show me screenshots". These are the eight that were undone or only part done.
+
+- **The colour of the light.** The people, the beasts and every Lambert-lit thing were lit by a
+  white sun at every hour and a white moon. Now the sun's light is orange (1.0, 0.5, 0.22) as it
+  touches the horizon and whitens to (1.0, 0.96, 0.88) as it climbs. By night the moon's light is
+  a cool blue (0.55, 0.66, 1.0). The light from the whole sky takes the sky's own colour: horizon
+  and zenith mixed, brought up to full brightness and eased a third of the way to white. The
+  ground throws back a warm brown (0.45, 0.38, 0.3) from below. A storm greys both lights.
+- **The sky's colours are VoxelCraft's exactly:**
+  - by day, the horizon `#c9e0f2` under the zenith `#3b78d6`;
+  - at sunset, the horizon pulled half-way to `#f29a62`, the zenith a third of the way to
+    `#40508a`, and the `#ff7a3a` glow on the sun's side;
+  - by night, `#0b1226` under `#01030a`.
+
+  The formula is VoxelCraft's too (night to day by the light, then the sunset laid over it). The
+  fog takes the horizon colour, so far land still melts into the sky.
+- **The filmic finish (ACES).** The last pass now runs three.js's ACES fit at VoxelCraft's
+  exposure of 1.08. The picture is taken out of display gamma first and put back after. Shadows
+  sit a little deeper, the middle tones a little brighter, and highlights roll over instead of
+  cutting flat to white. The older S-curve is eased from 0.20 to 0.06 while ACES is on, so the
+  contrast is not doubled. By night the eye adapts: ACES's toe crushed a moonlit field and the
+  traveller in it nearly to black, so after dusk ACES runs at just over half strength and the
+  exposure rises by half a step. `__POST.aces=0` turns ACES off; the **✨ Look** button turns the
+  whole finish off as before.
+- **Light lying in the air (volumetric shafts).** The frame now keeps its depth. At a quarter of
+  the picture's size, every point marches 24 staggered steps from the eye toward what it shows,
+  up to 600 units (about a hundred blocks; the open sky gets the full 600). At each step it asks
+  the sun's shadow map whether the sun reaches that bit of air. The lit air sends back light by a
+  Henyey–Greenstein phase with g = 0.6, so it is strongest toward the sun but there whichever way
+  the eye looks. The result is softened and added in the sun's colour. Like VoxelCraft, it is
+  strongest at sunset, with strength (0.42 + 0.7 × sunset). It runs only while the sun casts
+  shadows: not at night, in a storm, under the water or in the firmament view. This means beams
+  between trees show even with the sun behind the eye or off to the side, where the screen-space
+  shafts of Round 133 cannot reach. `__POST.vol=0` turns it off.
+- **The hand lags a turn, and a new item rises.** In first person, the hand now trails a turn
+  and swings back after it, and follows a look up or down a moment late. This uses VoxelCraft's
+  numbers (clamped to ±0.25 and dying away at e^(−8t)). It is driven by the turn itself, so a
+  drag, a key and a touch all move it the same way. Taking a new thing in hand drops the hand
+  out of view and raises it again over a fifth of a second. From the shoulder, the arm drops to
+  his side and comes back up, and the tool grows into the hand.
+- **Hurt.** A shark's strike, or the breath giving out under the water, now shows a red shade
+  at the edges of the view (VoxelCraft's inset glow, `rgba(200,0,0,.75)`). It appears at once
+  and fades over half a second. The words of the hurt are still the toast, as before.
+- **The snow line is ragged.** Every mountain wore a cap cut level all the way round. The snow
+  line now wanders about a sixth of its height either way on a broad noise, so tongues of snow
+  run down and bare ridges stand above it. A block or two of jitter per column breaks the edge
+  into patches. A researched snowcap (the Hida, Paektu) has the same ragged edge on its crest
+  instead of a ruled ring.
+- **The grid, as a choice.** The works page has a new switch, **☰ the ledger** or **▦ the grid**,
+  and the choice is remembered on this computer. The grid is three by three:
+  - What is laid on it comes out of the satchel. What is left goes back when the page is shut,
+    and is saved with the game meanwhile.
+  - Each of the 21 works now has a shape in `world/works.js`, such as the pick
+    `FFF / .P. / .P.` and the furnace a ring of brick. A cell takes an equal share of its
+    material each time, so the altar's twelve stones in six cells are two to a cell.
+  - A shape matches wherever it lies on the grid, and mirrored. It is the same work as the
+    ledger's: the same fire, the same tool in the hand, and the same refusal. Dressed stone laid
+    in the altar's shape is refused, in the words of Shemoth 20:25.
+  - A touch on a cell lays one of what is picked up; shift lays the whole stack. A touch on a
+    laid cell takes it back.
+  - A touch on the result makes it once; **shift makes as many as the grid holds**.
+  - In grid mode the ledger becomes a book of shapes: a row lays its work out on the grid
+    (shift lays as many makings as the satchel holds).
+- **Shift-click elsewhere on the page.** On a ledger row, shift makes the work as many times as
+  the satchel allows. On a satchel token, shift sends it straight between the satchel and the
+  belt. The controls book lists both.
+- A small bug fixed while in there: with nothing picked up, every token in **The Stores** (free
+  hand) was drawn with the "picked" outline. The test read `-1 === -1`.
+
+## 4ei. Round 136 — solid blocks, no falling through, the camera kept out of walls, wading
+
+The traveller reported: "fell through the ground. there is no ground in some places. Also animals are
+still walking through mountains and walls in voyage. camera also passing through walls. Also the blocks
+still do not seem solid like real minecraft, and the behavior of water." Then: "you should still wade in
+the water".
+
+**How it was found.** A walk fuzzer (driving `walkTick` blind for 2,500 steps at a time, with random
+turns and jumps, about Yasharal and three cave mouths) judged every step against the block truth. Under
+the old rules about Yasharal, 402 steps had his torso or head inside a block and 38 had his feet sunk in
+the roof or walls of a house. In the caves, between 559 and 1,860 steps each had some of him inside the
+rock. The walk read the world as one height per column: his midline's ground, four shoulder points asked
+only whether they stood more than a step higher, and any wall of three or four blocks was climbed simply
+by walking into it.
+
+- **The traveller is a box, and the blocks are solid.** The box is a little narrower than a block and
+  nearly two high. No part of it may be inside a solid block:
+  - A one-block step is taken in his stride.
+  - Anything higher must be jumped, a block and a half at most, so a two-block wall cannot be jumped.
+  - A wall of up to about four and a half blocks is climbed only **on purpose**: hold the jump (SPACE,
+    or the JUMP / CLIMB button) while pressing into it, and only if there is room on top.
+  - He stands on the highest block under any part of his feet, so a ledge's edge holds him, and the
+    floor is read before each frame's fall so no fall can pass through it.
+  - Any block over any part of his head stops a jump.
+  - If he is ever found inside rock all the same (a block laid on him, say), he is put back into the
+    open air above at once.
+
+  On the same fuzzer runs, the torso-in-a-wall count went from 402 to 5 about Yasharal. All five are
+  his head within a third of a unit of a ceiling at the top of a jump, above the doorway-height box he
+  is tested with. It went to 0 in all three caves, and sunk feet went from 38 to 0.
+- **The camera stays out of the rock.** The boom's sight-line now asks hollow and built columns block by
+  block (a cave's walls, a town wall), not just the column's height. Last of all, every frame, the line
+  from his head to where the eye actually is gets walked block by block (Amanatides–Woo). If a block
+  lies on it, the eye comes in to just short of it at once, with no easing. Before, the eye eased toward
+  its target and spent the frames of every swing or corner on the far side of the stone. That gave the
+  views of the underside of the world and of ore in the strata that came with the report.
+
+  A probe walked him for 260 frames with the camera swung and drawn in and out at random, in Yasharal's
+  town and at two cave mouths, counting frames where the eye was inside a block or a block stood
+  between his head and it. Before: 3 + 4 in the town, 7 + 53 at the first cave, 0 + 136 at the second.
+  After: 0 in all three.
+- **Wild beasts have bodies.** Each kind's own extents are measured once from the beast itself, about the
+  point it stands on. A beast is not centred there: a zebra's head runs five units ahead and its haunch
+  four behind, and an elephant's trunk fifteen ahead. Its footprint is sampled as a grid fine enough that
+  no block can lie between two points (a goat three by three, an elephant three by seven). It stands on
+  the highest floor under that footprint, so no part of it is in the ground, and ground more than a
+  block over its feet anywhere under it refuses the stride.
+  It takes at most a block in a stride (the goat's old two and a half is gone). Its body height over
+  that floor must be clear of blocks and of water. The houses, wells and stalls bar it as they bar the
+  townsfolk; before, wild beasts were asked only about the procedural ground under their middle, so a
+  herd walked through a village's walls. A beast turned back by the rock does not swing its nose into
+  it, and a beast is set down facing a bearing its whole body is clear on, or the spot is given up. Its
+  slot used to keep whatever bearing it last had, so on a mountainside beasts were born with their
+  noses in the slope.
+
+  Measured with each beast's own drawn body: points through its torso, neck and head (the upper half,
+  so a lying beast's belly is not counted), turned and placed exactly as drawn, about 700 beasts a site.
+  "Deep" means more than a quarter of a block inside the rock.
+
+  | site | old: any part / deep | new: any part / deep |
+  |---|---|---|
+  | Yasharal | 15% / 1.9% | 0% / 0% |
+  | a mountain range in Iran | 41% / 7.7% | 4.3% / 0% |
+  | the Cape | 52% / 14.4% | 8.1% / 0% |
+
+  What is left are flanks brushing a block's edge by less than a quarter of a block.
+- **Water is waded.** A water block is no longer solid to anything:
+  - He walks into a well, a trough, a channel or a poured bucket and stands on its bed.
+  - The water holds him back (about half speed). Over his chest he barely sinks and treads water.
+  - Jump held swims him up, and he hauls himself out over a one-block lip. The JUMP / CLIMB button
+    works held as well as tapped.
+  - Running water from a spring or a bucket carries him toward its thinner water, as in the block games.
+  - With his eye under block water the view is washed blue.
+  - A block dropped in water sinks to the bed and the water goes up over it.
+  - The faces of the blocks under the water are now drawn.
+  - The arm reaches through water to the bed. An empty bucket is still dipped into the water itself.
+
+  Wild beasts keep out of wells. The sea is unchanged and swum as before.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

@@ -1892,8 +1892,8 @@ function rangeShapeAt(x,z){
     const jag=ridgeNoise(x*0.0042+g.sd, z*0.0042-g.sd);
     const u=g.peak*broad*(0.22+0.78*Math.pow(jag, g.style==='stony'?1.1:1.5));
     if(u>up){ up=u; cliff=(g.style==='cliff')?broad:0;
-      /* a researched snowcap whitens the upper crests only */
-      snowTop=g.snowcap&&u>g.peak*0.72; }
+      /* a researched snowcap whitens the upper crests only — down to a RAGGED edge, never a ruled ring */
+      snowTop=g.snowcap&&u>g.peak*(0.72+(fbm(x*0.011+g.sd,z*0.011-g.sd)-0.5)*0.18+(hash2(x*0.37,z*0.37)-0.5)*0.035); }
     /* the caves: slot canyons where the vein-field pinches to nothing */
     const vein=1-Math.abs(2*fbm(x*0.0058-g.sd*2, z*0.0058+g.sd*2)-1);
     if(vein>0.84&&broad>0.2){ const c=(vein-0.84)/0.16*14*Math.min(1,broad*1.7);
@@ -2277,7 +2277,12 @@ function cellRaw(ix,iz){
      to 1,800 m in the Alps, to 3,000 m on Kilimanjaro. */
   const snowLine=Math.max(3, 5000*(1-Math.pow(Math.min(1,Math.abs(lat)/78),1.6))/MTN_M_PER_BLOCK);
   const treeLine=snowLine*0.62;
-  const snow = lat>72 || lat<-55 || h>snowLine || !!(rs&&rs.snowTop);
+  /* AND THE SNOW'S EDGE IS RAGGED. It stood at one height all round a mountain, so every peak wore a
+     cap cut level with a rule. Tongues of it run down the gullies and the shaded sides, the windward
+     ridges stand bare above it, and cell by cell the last of it lies in patches: the line wanders a
+     sixth of its height either way, and a block or two more at every step */
+  const snowEdge=snowLine*(1+(fbm(ix*.045+311,iz*.045-97)-0.5)*0.34)+(hash2(ix*0.71+5,iz*0.71-3)-0.5)*3;
+  const snow = lat>72 || lat<-55 || h>snowEdge || !!(rs&&rs.snowTop);
   const tundra = !snow && lat>58 && lat<=72;
   const alpine = !snow && !tundra && h>treeLine;
   const desert = !alpine && lat>11 && lat<36 && n2>0.42 && inland>0.5;
@@ -3763,7 +3768,10 @@ function blockSolidAt(ix,iy,iz){
      and the faces beside it are drawn as though it were air. It is still a
      block — blockAt answers it, the arm can be laid on it (aimAt asks for
      it by name), and breaking it is how the field is reaped. */
-  if(e!==undefined) return e!==0 && !(BLOCKS[e]&&BLOCKS[e].sown);
+  /* (and since Round 136 WATER is no wall either: "you should still wade in the water". A man walks
+     into a well or a stream and stands in it to the knee or the chest, or swims it; the bed under it is
+     his floor, a block dropped in it sinks to that bed, and the faces under the water are drawn) */
+  if(e!==undefined) return e!==0 && !(BLOCKS[e]&&(BLOCKS[e].sown||BLOCKS[e].liquid));
   return proceduralSolid(ix,iy,iz);
 }
 /* is a growing plant standing in this cell? asked by the arm, which must be
@@ -4575,7 +4583,7 @@ function buildChunk(cx,cz){
     emitColumn(G,ix,iz,cc);
     const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B, j=hash2(ix*1.7,iz*2.9);
     if(cc.tree&&!noTreeAt(ix,iz)) emitTree(G,ix,iz,cc);
-    else {
+    else if(!noTreeAt(ix,iz)){   /* (a cleared lot or yard grows no scrub either — Round 137) */
       /* thickest where no one lives — a village keeps its ground grazed.
          Every ground the grass file knows is asked; the ones it does not
          know (sand, stone, snow, the ice) simply bear nothing. */
@@ -6909,7 +6917,7 @@ function gradeHaze(px,pz,dayF,storm){
    deck, the haze of a country, the outer darkness at the world's rim, the
    flash of a bolt) takes the vault with it: the further the sky is pulled
    from the hour's own colour, the more the vault is pulled flat to it. */
-const SKYDOME={ hor:new THREE.Color(0x9fc5e8), dayF:1 };
+const SKYDOME={ hor:new THREE.Color(0xc9e0f2), top:new THREE.Color(0x3b78d6), dayF:1 };
 { const geo=new THREE.SphereGeometry(1000,48,24);
   const U={ uHor:{value:new THREE.Color()}, uTop:{value:new THREE.Color()}, uSet:{value:new THREE.Color(0xff7a3a)},
     uSetAmt:{value:0}, uSunDir:{value:new THREE.Vector3(0,1,0)}, uSunCol:{value:new THREE.Color(1,0.9,0.7)}, uSunUp:{value:0}, uFlat:{value:0} };
@@ -6942,7 +6950,7 @@ const SKYDOME={ hor:new THREE.Color(0x9fc5e8), dayF:1 };
     const bg=scene.background; if(!bg||!bg.isColor){ dome.visible=false; HZ_U.uHzFlat.value=1; return; } dome.visible=true;
     const f=SKYDOME.dayF;
     /* the zenith of the hour: night's black-blue, the violet over a sunset, noon's deep blue */
-    _top.copy(mix3(0x02040e,0x40508a,0x3b78d6,f));
+    _top.copy(SKYDOME.top);   /* (the hour's, from skyTick) */
     /* how far the sky is taken from the hour's own: a storm's deck, the outer darkness at the rim, a bolt,
        the eye under the water (a country's haze only tints the horizon, which the vault takes from the sky) */
     const pull=Math.min(1,Math.max((SKYDOME.storm||0)*0.9,SKYDOME.voidF||0,boltFlash*0.6,_eyeSub||0));
@@ -7072,7 +7080,8 @@ const SHADOW={ on:!((window.__INJECT||{}).noShadow), size:2048, R:480 };
    a little more colour, a gentle curve through the middle tones, the shadows a breath cooler and the
    lights a breath warmer, and the corners a little darker, as a lens leaves them.
    POST.on=false (or __INJECT.noPost) draws straight to the screen, as before. */
-const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14, curve:0.20, vig:0.26, rays:1.3, rayGain:8 };
+const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14, curve:0.20, vig:0.26, rays:1.3, rayGain:8,
+  aces:1, expo:1.08, acesCurve:0.06, vol:1, volGain:2.0 };
 { const VS='varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }';
   const qs=new THREE.Scene(), qc=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
   const quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2)); quad.frustumCulled=false; qs.add(quad);
@@ -7111,9 +7120,46 @@ const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14,
          whole disc is bright, and drawn out at that strength it would only be a great blur */
       vec3 s0=texture2D(t,sun).rgb; float opn=smoothstep(0.35,0.9,max(s0.r,max(s0.g,s0.b)));
       gl_FragColor=vec4(acc*(gain*(1.0-0.8*opn)/28.0),1.0); }`);
+  /* ---- THE LIGHT LYING IN THE AIR ----
+     The shafts above are drawn on the picture, from where the sun is on it, so they are only there while
+     he is in front of the eye. Here they are found in the air itself: from the eye along the line of every
+     point of the picture, two dozen steps out to what that point shows (or a hundred blocks, for the open
+     sky), and at each step the sun's own map of shadows is asked whether he reaches it. The air that he
+     reaches gives back a little of his light toward the eye — most when the eye looks toward him, a
+     little whatever way it looks — so that standing in a wood at evening the beams lie between the trunks
+     and through the gaps of the leaves, even with the sun behind. (Worked at a quarter of the picture
+     and softened, as a light in the air is soft; the steps are staggered pixel by pixel, so two dozen
+     read as many.) */
+  const mVol=mk({dep:{value:null},sm:{value:null},invP:{value:new THREE.Matrix4()},camR:{value:new THREE.Matrix3()},
+    shM:{value:new THREE.Matrix3()},shO:{value:new THREE.Vector3()},sunD:{value:new THREE.Vector3(0,1,0)},
+    bias:{value:0.0001},maxL:{value:600},dens:{value:0.0015},g:{value:0.6}},`
+    uniform sampler2D dep, sm; uniform mat4 invP; uniform mat3 camR, shM; uniform vec3 shO, sunD;
+    uniform float bias, maxL, dens, g; varying vec2 vUv;
+    float ign(vec2 p){ return fract(52.9829189*fract(dot(p,vec2(0.06711056,0.00583715)))); }
+    void main(){
+      float d=texture2D(dep,vUv).x;
+      vec4 vp=invP*vec4(vUv*2.0-1.0,d*2.0-1.0,1.0); vp/=vp.w;
+      vec3 rd=camR*vp.xyz; float L=length(rd); rd/=max(L,1e-4); L=min(L,maxL);
+      float hg=(1.0-g*g)/pow(1.0+g*g-2.0*g*dot(rd,sunD),1.5);
+      float phase=hg*0.026+0.022;
+      float st=L/24.0, j=ign(gl_FragCoord.xy), lit=0.0;
+      for(int i=0;i<24;i++){
+        vec3 c=shO+shM*(rd*(st*(float(i)+j)));
+        float s=1.0;
+        if(c.x>0.0&&c.x<1.0&&c.y>0.0&&c.y<1.0&&c.z<1.0) s=step(c.z-bias,texture2D(sm,c.xy).r);
+        lit+=s; }
+      gl_FragColor=vec4(vec3((lit/24.0)*(1.0-exp(-L*dens))*phase),1.0); }`);
   const mComp=mk({t:{value:null},b1:{value:null},b2:{value:null},rays:{value:null},rayAmt:{value:0},rayCol:{value:new THREE.Color(1,0.9,0.7)},
+    vol:{value:null},volAmt:{value:0},aces:{value:0},expo:{value:1},
     bloom:{value:0.4},sat:{value:1.1},curve:{value:0.2},vig:{value:0.25}},`
-    uniform sampler2D t, b1, b2, rays; uniform float bloom, sat, curve, vig, rayAmt; uniform vec3 rayCol; varying vec2 vUv;
+    uniform sampler2D t, b1, b2, rays, vol; uniform float bloom, sat, curve, vig, rayAmt, volAmt, aces, expo; uniform vec3 rayCol; varying vec2 vUv;
+    /* the filmic finish (ACES, as three.js fits it): the shadows a little deeper, the middle a little
+       brighter, and the brightest rolled over softly where they would otherwise cut flat to white */
+    vec3 rrt(vec3 v){ vec3 a=v*(v+0.0245786)-0.000090537; vec3 b=v*(0.983729*v+0.4329510)+0.238081; return a/b; }
+    vec3 acesFit(vec3 c){
+      const mat3 IN=mat3(vec3(0.59719,0.07600,0.02840),vec3(0.35458,0.90834,0.13383),vec3(0.04823,0.01566,0.83777));
+      const mat3 OUT=mat3(vec3(1.60475,-0.10208,-0.00327),vec3(-0.53108,1.10813,-0.07276),vec3(-0.07367,-0.00605,1.07602));
+      return clamp(OUT*rrt(IN*(c*(expo/0.6))),0.0,1.0); }
     void main(){
       vec3 c=texture2D(t,vUv).rgb;
       c+=(texture2D(b1,vUv).rgb*0.7+texture2D(b2,vUv).rgb*1.0)*bloom;
@@ -7121,30 +7167,37 @@ const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14,
          over the open sky about the sun, already bright with him, they add little */
       if(rayAmt>0.001){ float self=smoothstep(0.55,0.95,max(c.r,max(c.g,c.b)));
         c+=texture2D(rays,vUv).rgb*rayCol*rayAmt*(1.0-0.7*self); }
+      if(volAmt>0.001) c+=texture2D(vol,vUv).rgb*rayCol*volAmt;
+      if(aces>0.001){ vec3 lc=pow(max(c,0.0),vec3(2.2)); c=mix(c,pow(acesFit(lc),vec3(1.0/2.2)),aces); }
       float l=dot(c,vec3(0.2126,0.7152,0.0722));
       c=max(mix(vec3(l),c,sat),0.0);
       c=clamp(c,0.0,1.0); c=mix(c,c*c*(3.0-2.0*c),curve);
       c*=mix(vec3(0.975,0.99,1.035),vec3(1.03,1.005,0.965),smoothstep(0.15,0.85,l));
       vec2 q=vUv-0.5; c*=1.0-vig*dot(q,q)*1.9;
       gl_FragColor=vec4(c,1.0); }`);
-  let ok=null, W=0, H=0, rtS=null, rtH=null, rtQ=null, rtQ2=null, rtE=null, rtE2=null, rtR=null;
+  let ok=null, W=0, H=0, rtS=null, rtH=null, rtQ=null, rtQ2=null, rtE=null, rtE2=null, rtR=null, rtV=null, rtV2=null, depOk=true;
+  const _m3=new THREE.Matrix3(), _shO=new THREE.Vector3();
   const _sp=new THREE.Vector3();
   const _sz=new THREE.Vector2();
   const lin={minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,generateMipmaps:false,depthBuffer:false,stencilBuffer:false};
   function size(){
     renderer.getDrawingBufferSize(_sz); const w=Math.max(1,_sz.x|0), h=Math.max(1,_sz.y|0);
     if(w===W&&h===H&&rtS) return; W=w; H=h;
-    for(const r of [rtS,rtH,rtQ,rtQ2,rtE,rtE2,rtR]) if(r) r.dispose();
+    for(const r of [rtS,rtH,rtQ,rtQ2,rtE,rtE2,rtR,rtV,rtV2]) if(r){ if(r.depthTexture) r.depthTexture.dispose(); r.dispose(); }
     /* the frame keeps its edges smooth: drawn many-sampled where the card can, as the screen itself is */
     if(renderer.capabilities.isWebGL2&&THREE.WebGLMultisampleRenderTarget){
       rtS=new THREE.WebGLMultisampleRenderTarget(W,H,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,generateMipmaps:false});
       rtS.samples=4; }
     else rtS=new THREE.WebGLRenderTarget(W,H,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,generateMipmaps:false});
+    /* (and keeps how far each point stands, for the light in the air) */
+    if(depOk&&(renderer.capabilities.isWebGL2||renderer.extensions.get('WEBGL_depth_texture'))){
+      rtS.depthTexture=new THREE.DepthTexture(W,H); rtS.depthTexture.type=THREE.UnsignedIntType; }
     const h2=[Math.max(1,W>>1),Math.max(1,H>>1)], q4=[Math.max(1,W>>2),Math.max(1,H>>2)], e8=[Math.max(1,W>>3),Math.max(1,H>>3)];
     rtH=new THREE.WebGLRenderTarget(h2[0],h2[1],lin);
     rtQ=new THREE.WebGLRenderTarget(q4[0],q4[1],lin); rtQ2=new THREE.WebGLRenderTarget(q4[0],q4[1],lin);
     rtE=new THREE.WebGLRenderTarget(e8[0],e8[1],lin); rtE2=new THREE.WebGLRenderTarget(e8[0],e8[1],lin);
-    rtR=new THREE.WebGLRenderTarget(q4[0],q4[1],lin); }
+    rtR=new THREE.WebGLRenderTarget(q4[0],q4[1],lin);
+    rtV=new THREE.WebGLRenderTarget(q4[0],q4[1],lin); rtV2=new THREE.WebGLRenderTarget(q4[0],q4[1],lin); }
   function pass(m,target){ quad.material=m; renderer.setRenderTarget(target); renderer.render(qs,qc); }
   function blur(a,b){ const w=a.width, h=a.height;
     mBlur.uniforms.t.value=a.texture; mBlur.uniforms.dir.value.set(1/w,0); pass(mBlur,b);
@@ -7169,9 +7222,23 @@ const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14,
           *(1-_ss(0.15,0.6,SKYDOME.storm||0))*(1-(_eyeSub||0))*(0.6+0.4*(1-_ss(0.6,1.0,SKYDOME.dayF)));
         if(ray>0.001){ mRays.uniforms.t.value=rtQ.texture; mRays.uniforms.gain.value=POST.rayGain; mRays.uniforms.sun.value.set(_sp.x*0.5+0.5,_sp.y*0.5+0.5);
           mRays.uniforms.asp.value=W/H; pass(mRays,rtR); } } }
+    /* the light in the air: while the sun throws shadows, strongest as he goes down (VoxelCraft's measure) */
+    let vol=0; const VU=mVol.uniforms;
+    if(POST.vol>0&&rtS.depthTexture&&SHADOW.rt&&SH_U.uShAmt.value>0.01){
+      const f=SKYDOME.dayF, setF=Math.max(0,1-Math.abs(f-0.42)/0.38);
+      vol=POST.vol*(0.42+0.7*setF)*Math.min(1,SH_U.uShAmt.value/0.6);
+      VU.dep.value=rtS.depthTexture; VU.sm.value=SHADOW.rt.depthTexture;
+      VU.invP.value.copy(camera.projectionMatrixInverse); VU.camR.value.setFromMatrix4(camera.matrixWorld);
+      VU.shM.value.setFromMatrix4(SH_U.uShMat.value); _shO.copy(camera.position).applyMatrix4(SH_U.uShMat.value); VU.shO.value.copy(_shO);
+      VU.sunD.value.copy(SKYDOME.U.uSunDir.value); VU.bias.value=SH_U.uShBias.value*2.0;
+      pass(mVol,rtV); blur(rtV,rtV2); }
     const U=mComp.uniforms; U.t.value=rtS.texture; U.b1.value=rtQ.texture; U.b2.value=rtE.texture;
     U.rays.value=rtR.texture; U.rayAmt.value=ray; U.rayCol.value.copy(SKYDOME.U.uSunCol.value);
-    U.bloom.value=POST.bloom; U.sat.value=POST.sat; U.curve.value=POST.curve; U.vig.value=POST.vig;
+    U.vol.value=rtV.texture; U.volAmt.value=vol*POST.volGain;
+    /* (and as the light goes the eye opens to it: the filmic toe would crush a moonlit field to black,
+       so by night it is laid on at a little over half strength and the exposure is raised a step) */
+    { const f=SKYDOME.dayF; U.aces.value=POST.aces*(0.55+0.45*_ss(0.1,0.5,f)); U.expo.value=POST.expo+0.5*(1-_ss(0.05,0.45,f)); }
+    U.bloom.value=POST.bloom; U.sat.value=POST.sat; U.curve.value=POST.aces>0?POST.acesCurve:POST.curve; U.vig.value=POST.vig;
     pass(mComp,null); };
   window.__POST=POST;
 }
@@ -7260,6 +7327,7 @@ function setLook(full,keep){
                'The fast look: no shadows, no reflections in the water, no glow — for a slower machine.'); }; }
 renderer.info.autoReset=false;
 function drawWorld(){ renderer.info.reset(); SKYDOME.tick(); SHADOW.tick(); REFLECT.tick(); POST.render(); }
+const _skyHor=new THREE.Color(0xc9e0f2);
 function skyTick(px,pz){
   /* ---- THE TWO GREAT LIGHTS, WHERE THEY TRULY ARE ----
      js/sun-moon.js is the whole law: each light's own circuit over the
@@ -7272,7 +7340,13 @@ function skyTick(px,pz){
   const dayF=SUNMOON.dayF(S.dUV);
   /* the horizon of the hour: at dusk a soft peach all round — the burning orange is the vault's,
      laid along the horizon on the side the sun is going down (THE VAULT OF THE SKY) */
-  let sky=mix3(0x0a1024,0xd9a07e,0x9fc5e8,dayF).getHex();
+  /* THE COLOURS OF A CLEAR SKY, the world over: the pale noon horizon #c9e0f2 under a deep #3b78d6
+     zenith; the blue-black #0b1226 of night under #01030a; and as the sun touches the rim the orange
+     #f29a62 laid along the horizon and the zenith drawn to violet #40508a (VOXELCRAFT'S, Round 135) */
+  const setF=Math.max(0,1-Math.abs(dayF-0.42)/0.38);
+  _skyHor.setHex(0x0b1226).lerp(_c2.setHex(0xc9e0f2),dayF).lerp(_c2.setHex(0xf29a62),setF*0.5);
+  SKYDOME.top.setHex(0x01030a).lerp(_c2.setHex(0x3b78d6),dayF).lerp(_c2.setHex(0x40508a),setF*0.35);
+  let sky=_skyHor.getHex();
   SKYDOME.dayF=dayF;
   const st=stormAt(px,pz); SKYDOME.storm=st;
   if(st>0.01){ _c1.setHex(sky); _c2.setHex(0x4c545e); sky=_c1.lerp(_c2,st*0.75).getHex(); }
@@ -7285,6 +7359,17 @@ function skyTick(px,pz){
   setBlockLight(l.r*dim,l.g*dim,l.b*dim);
   setIceLight(l.r*dim,l.g*dim,l.b*dim);
   hemi.intensity=0.35+dayF*0.6; dirL.intensity=0.15+dayF*0.45;
+  /* THE COLOUR OF THE LIGHT ITSELF. The people, the beasts and every lit thing were lit by a white
+     sun at every hour and a white moon. The sun's light is orange as it touches the rim and whitens
+     as he climbs; the moon's is a cool blue; and the light from the whole sky is the sky's own
+     colour (horizon and zenith together, made bright and eased toward white), with the warm brown
+     of the earth thrown back up from below. */
+  if(dayF>0.06) dirL.color.setRGB(1.0,0.5,0.22).lerp(_c2.setRGB(1.0,0.96,0.88),_ss(0.3,0.75,dayF));
+  else dirL.color.setRGB(0.55,0.66,1.0);
+  _c2.copy(_skyHor).lerp(SKYDOME.top,0.4); { const mx=Math.max(_c2.r,_c2.g,_c2.b,0.001); _c2.multiplyScalar(1/mx); }
+  hemi.color.copy(_c2).lerp(_c3.setRGB(1,1,1),0.35);
+  hemi.groundColor.setRGB(0.45,0.38,0.3);
+  if(st>0.01){ hemi.color.lerp(_c3.setRGB(0.8,0.82,0.86),st*0.7); dirL.color.lerp(_c3.setRGB(0.8,0.82,0.86),st*0.7); }
   cloudMat.opacity=0.35+dayF*0.5;
   starGroup.userData.mat.opacity=Math.max(0,1-dayF*1.6)*0.95;
   starGroup.rotation.y=-(state.simHours/24)*2*Math.PI;
@@ -8572,6 +8657,55 @@ function personFaceTex(skHex,HR,EY){
     g.fillStyle=rgb(EY[0],EY[1],EY[2]); g.fillRect(4,8,2,2); g.fillRect(11,8,2,2);
     g.fillStyle=rgb(Math.max(0,r-40),Math.max(0,g2-34),Math.max(0,b2-30)); g.fillRect(7,10,2,2);
     g.fillStyle='rgb(120,72,48)'; g.fillRect(6,13,4,1); }); }
+/* ---- THE EYES CLOSE IN SLEEP (Round 137) ----
+   A sleeper lay on his back staring at the roof-beams, eyes wide, the same face
+   he worked the field with. Asleep, his eyes are shut — the lids a dark line
+   where the eyes were — and they open when he is woken: by the traveller
+   come close or speaking, or by a noise near him (a door, a blow on a block,
+   a splash). Woken, he lifts his head a moment and looks, then sleeps again. */
+const personSleepHead={};
+function personFaceShutTex(skHex,HR){
+  const r=(skHex>>16)&255,g2=(skHex>>8)&255,b2=skHex&255;
+  return mkTex(g=>{ g.fillStyle=rgb(r,g2,b2); g.fillRect(0,0,16,16);
+    for(let y=0;y<6;y++)for(let x=0;x<16;x++){ if(y<4||hash2(x*3.1,y*7.7)>0.5){
+      const c=jit(HR,22,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } }
+    g.fillStyle='rgb(58,42,28)'; g.fillRect(2,6,5,1); g.fillRect(9,6,5,1);      // brows
+    g.fillStyle='rgb(40,28,20)'; g.fillRect(3,9,3,1); g.fillRect(10,9,3,1);     // the lids, shut
+    g.fillStyle=rgb(Math.max(0,r-40),Math.max(0,g2-34),Math.max(0,b2-30)); g.fillRect(7,10,2,2);
+    g.fillStyle='rgb(120,72,48)'; g.fillRect(6,13,4,1); }); }
+function personSleepHeadMats(sk,HR,EY){
+  const key=sk+','+HR+','+EY; if(personSleepHead[key]) return personSleepHead[key];
+  const open=personHeadMats(sk,HR,EY).slice();
+  open[4]=new THREE.MeshLambertMaterial({map:personFaceShutTex(sk,HR)});
+  return personSleepHead[key]=open;
+}
+/* shut or open a soul's eyes (folk of the world; a figure of the story keeps its own setFace) */
+function setEyes(ent,shut){
+  const u=ent.m.userData; if(!u||!u.head||u.sk===undefined||u.setFace) return;
+  if(!!ent._eyesShut===!!shut) return;
+  ent._eyesShut=!!shut;
+  u.head.material=shut?personSleepHeadMats(u.sk,u.HR,u.EY):personHeadMats(u.sk,u.HR,u.EY);
+  if(ent._lod){ restoreRig(ent.m,ent); ent.m.remove(ent._lod); ent._lod.geometry.dispose(); ent._lod=null; ent._lodState=undefined; }   /* (welded again, with the new face) */
+}
+/* ---- NOISES THAT WAKE A SLEEPER ----
+   what the traveller does near a sleeping house: a door swung, a block struck
+   out or laid, a splash. Each is a place and a moment; a sleeper within reach
+   of it wakes. */
+const NOISES=[];
+function noiseAt(x,z,r){ NOISES.push({x,z,r:r||B*7,t:performance.now()*0.001}); if(NOISES.length>24) NOISES.shift(); }
+function wakeSleeper(ent,secs){ if(!ent._lying) return; ent._wokeT=Math.max(ent._wokeT||0,secs||5); }
+/* a soul lying asleep: woken, it opens its eyes and props itself up to look toward what woke it,
+   and lies back and sleeps again when the traveller has gone and the hush has held a while */
+function sleepTick(ent,dt){
+  const px=ent.m.position.x, pz=ent.m.position.z, now=performance.now()*0.001;
+  if(state.mode==='walk'&&Math.hypot(state.walk.x-px,state.walk.z-pz)<B*2.6) ent._wokeT=Math.max(ent._wokeT||0,3);
+  for(const N of NOISES) if(now-N.t<0.5&&N.t>(ent._heardT||0)&&Math.hypot(N.x-px,N.z-pz)<N.r){ ent._heardT=N.t; ent._wokeT=Math.max(ent._wokeT||0,5); }
+  if((ent._wokeT||0)>0){ ent._wokeT-=dt;
+    setEyes(ent,false);
+    ent.m.rotation.x=-Math.PI/2+0.5;                                  /* up on an elbow */
+    if(ent._wokeT<=0){ ent._wokeT=0; setEyes(ent,true); ent.m.rotation.x=-Math.PI/2; } }
+  else setEyes(ent,true);
+}
 function personHeadMats(sk,HR,EY){
   const key=sk+','+HR+','+EY; if(personHead[key]) return personHead[key];
   const hairM=lam(hairHex(HR));
@@ -8651,6 +8785,7 @@ function makePerson(seed, role, child, female, folk, look){
   if(child) g.scale.set(0.62,0.62,0.62);
   g.userData={legs:[legL,legR,armL,armR],armL,armR,rod,rodLine,rodBob,rodFish,female:!!female};
   if(L) Object.assign(g.userData,{legL,legR,head,robeMat:robeM,sk,HR,EY});
+  else Object.assign(g.userData,{head,sk,HR,EY});      /* (the face, so a sleeper's eyes can close) */
   return g;
 }
 /* ---- EVERY BEAST OF THE FIELD, AND WHERE IT IS BUILT ----
@@ -9577,6 +9712,14 @@ function updateSquid(px,py,pz,dt,t){ initSquid(); for(const q of SQUIDS){
 const DOLPHINS=[], DOL_N=6, DOL_R=440;
 function initDolphins(){ if(DOLPHINS.length) return; for(let k=0;k<DOL_N;k++){ const m=makeBeast('dolphin'); m.visible=false; scene.add(m);
   DOLPHINS.push({m,x:0,z:0,y:0,dir:Math.random()*6.28,ph:Math.random()*6.28,set:false}); } }
+/* ---- HURT ----
+   A blow (the shark's, or the breath giving out under the water) is felt at the edges of the eye: a red
+   shade that closes in at once and lets go over half a second (VoxelCraft's). The blow is told in words,
+   as every hurt in the game is; this is only the body knowing it. */
+function hurtFlash(){ const el=$('hurt'); if(!el) return;
+  el.style.transition='none'; el.style.opacity='1'; void el.offsetWidth;
+  el.style.transition='opacity 0.5s ease-out'; el.style.opacity='0'; }
+window.__hurtFlash=hurtFlash;
 function updateDolphins(px,py,pz,dt,t){ initDolphins();
   /* dolphins RIDE THE BOW when the ship runs fast — two peel off and race
      her flanks, arcing in her pressure wave, as they do on every real sea */
@@ -9659,6 +9802,7 @@ function updateSharks(px,py,pz,dt,t){ initSharks();
           splash(w2.x,SEA_SURF+1,w2.z,true);
         }
         toast('The shark strikes!'+(lost?' It tears '+lost+' fish from your catch.':'')+' Make for the light of the surface.');
+        hurtFlash();
         saveState();
       }
     }
@@ -11672,6 +11816,47 @@ function updateBlooms(px,pz,dt){ initBlooms(); const doy=dayOfYear();
     else b.m.visible=false;
   } }
 function hideBlooms(){ for(const b of BLOOMS) if(b.m) b.m.visible=false; }
+/* ---- A BEAST IS A BODY, AND THE BLOCKS ARE SOLID TO IT TOO (Round 136) ----
+   "Animals are still walking through mountains and walls." A wild beast was asked only how high the
+   procedural ground stood under its MIDDLE: the town walls and the houses (which are blocks laid over the
+   ground, not the ground) were not asked at all, so a herd walked straight through a village; a goat took
+   two and a half blocks in a stride; and a camel's whole fore-half went into the hillside in front of it
+   while its middle stood on the terrace below. Now it is asked as the traveller is: the floor under its
+   back, its middle and its nose (the highest of the three is what it stands on, so no part of it is ever
+   in the ground), a step of one block at most, the blocks over that floor clear for the height of its
+   body, and the houses, the wells and the stalls barring it as they bar the townsfolk. */
+const BEAST_BOX=Object.create(null);
+/* the points of its footprint, turned to its bearing: three across (its flanks and its middle) by three along
+   (its haunch, its middle and its head) */
+const _bfp=new Float32Array(2*64);
+let _bfn=0;
+function beastFoot(a,x,z,heading){
+  const bx=BEAST_BOX[a.kind]||{x0:-1,x1:1,z0:-2,z1:2,ht:B};
+  /* (the grid is as fine as it must be that no block can lie between two of its points: a goat is three by
+     three, an elephant three by seven) */
+  if(!bx.pts){ const nx=Math.max(3,Math.ceil((bx.x1-bx.x0)*0.9/(B*0.8))+1), nz=Math.max(3,Math.ceil((bx.z1-bx.z0)*0.9/(B*0.8))+1);
+    bx.pts=[]; for(let i=0;i<nx;i++) for(let j=0;j<nz;j++) if(bx.pts.length<128)
+      bx.pts.push(bx.x0*0.9+(bx.x1-bx.x0)*0.9*i/(nx-1), bx.z0*0.92+(bx.z1-bx.z0)*0.92*j/(nz-1)); }
+  const c=Math.cos(heading), s=Math.sin(heading), L=bx.pts;
+  _bfn=L.length;
+  for(let k=0;k<L.length;k+=2){ const lx=L[k], lz=L[k+1]; _bfp[k]=x+lx*c+lz*s; _bfp[k+1]=z-lx*s+lz*c; }
+  return _bfp;
+}
+function beastFloor(a,x,z,heading,refY,cap){
+  const P=beastFoot(a,x,z,heading);
+  let y=-Infinity, land=true, over=false;
+  for(let k=0;k<_bfn;k+=2){ const g=groundInfo(P[k],P[k+1],refY+0.1); if(!g.land){ land=false; continue; }
+    if(cap!==undefined&&g.y>cap){ over=true; continue; }
+    if(g.y>y) y=g.y; }
+  return {y,land,over};
+}
+function beastClear(a,x,z,heading,fy){
+  const bx=BEAST_BOX[a.kind]||{ht:B}, P=beastFoot(a,x,z,heading);
+  const y0=Math.floor((fy+0.3)/B), y1=Math.floor((fy+Math.max(B*0.6,bx.ht*0.92))/B);
+  for(let k=0;k<_bfn;k+=2){ const ix=Math.floor(P[k]/B), iz=Math.floor(P[k+1]/B);
+    for(let iy=y0;iy<=y1;iy++) if(blockSolidAt(ix,iy,iz)||isLiquid(blockAt(ix,iy,iz))) return false; }   /* (nor into a well) */
+  return true;
+}
 function updateLandLife(px,pz,dt,t){ initLandLife();
   const night=(worldNight||0)>0.6;
   /* ---- THE RING RIDES THE HAZE ----
@@ -11710,6 +11895,14 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       a.role=WILD_ROLE[kind]||'graze'; a.job='roam'; a.jt=Math.random()*3; a.prey=null; a.cool=0;
       a.dead=0; a.den=null; a.act=null; a.burst=0; a.fear=0; a.panicT=0; a.ph=Math.random()*6.283;
       a.m.rotation.set(0,0,0);
+      /* (the size of its body, measured once a kind off the beast itself, for the blocks it may not enter) */
+      if(!BEAST_BOX[kind]){ a.m.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(a.m), p0=a.m.position;
+        /* its OWN extents about the point it stands on — a beast is not centred there: the head and the trunk
+           run on well in front, and an elephant is as broad as a block */
+        const cl=v=>Math.max(-B*3,Math.min(B*3,v));
+        BEAST_BOX[kind]={x0:cl(bb.min.x-p0.x), x1:cl(bb.max.x-p0.x), z0:cl(bb.min.z-p0.z), z1:cl(bb.max.z-p0.z),
+          ht:Math.min(B*3,Math.max(1,bb.max.y-p0.y))}; }
+      a.gy=undefined;
       /* ---- UP THE TREE, IF THAT IS WHERE IT LIVES ----
          Set at the true crown height of the tree standing on its own cell,
          the same question the nests ask. It does not roam: it hangs there,
@@ -11731,6 +11924,15 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
          — drink or wallow in `acts` — and so does its trade: the bear fishes
          the shallows and the crocodile lies in them. Asked ONCE, here. */
       a.wets=wetKind(a.kind,a.role);
+      /* ---- AND IT IS SET DOWN FACING OPEN GROUND (Round 136) ----
+         It kept whatever bearing its slot last had, so on a mountainside a beast was born with its nose in
+         the slope. It is turned to a bearing its whole body is clear on — and a spot with no such bearing
+         (a ledge narrower than the beast, a cleft) is given up for another. */
+      if(!a.upTree){ let ok=false;
+        for(let k=0;k<8&&!ok;k++){ const hd=k*Math.PI/4+Math.random()*0.5;
+          const fl=beastFloor(a,a.x,a.z,hd,sp.y+B*0.3,sp.y+B*1.05);
+          if(fl.land&&!fl.over&&fl.y>-1e8&&beastClear(a,a.x,a.z,hd,fl.y)){ a.heading=hd; a.gy=fl.y; ok=true; } }
+        if(!ok){ if(a.m)a.m.visible=false; hideYoung(a); a.set=false; continue; } }
       /* ---- AND WHETHER IT OWNS A BED, AND THE HOUR IT TAKES TO IT ----
          §2.3.6 promises that "a beast with a home WALKS TO IT at dusk". Sixty
          kinds declare a real one — a den, a burrow, a tree, a rock — and
@@ -12151,11 +12353,16 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
          and a half blocks, a wolf a block and a half, an elephant or a
          hippo barely a kerb. A beast turned back by the rock sheers off
          along it, exactly as it does at any other barrier. */
-      const stepH=B*(window.BEHAVIOR?BEHAVIOR.climbOf(a.kind):1.0);
-      const rise=c?c.h*B-a.m.position.y:0;
-      if(c&&rise<stepH&&rise>-stepH*2.2&&beastMayStand(a.kind,c)
-        &&!landmarkSolidAt(nx,nz,a.m.position.y+2,a.m.position.y+8)){   /* no beast strides through the masonry either */
-        a.x=nx; a.z=nz; a.heading=Math.atan2(dx,dz); a.stuck=0; }
+      /* (and since Round 136 no beast takes more than a block in a stride, as no beast in the block games
+         does — the goat and the chamois still go where the slope is a staircase, a block at a time) */
+      const stepH=Math.min(B*1.05,B*(window.BEHAVIOR?BEHAVIOR.climbOf(a.kind):1.0));
+      const hd=Math.atan2(dx,dz), gy0=(a.gy!==undefined)?a.gy:(c?c.h*B:WATER_Y);
+      const fN=beastFloor(a,nx,nz,hd,gy0+stepH,gy0+stepH);
+      const rise=fN.y-gy0;
+      if(c&&fN.land&&!fN.over&&fN.y>-1e8&&rise<=stepH&&rise>-B*3.2&&beastMayStand(a.kind,c)&&beastClear(a,nx,nz,hd,fN.y)
+        &&!blockedByStructureNPC(nx,nz)&&!blockedBySolid(nx,nz,1.0)
+        &&!landmarkSolidAt(nx,nz,fN.y+2,fN.y+8)){   /* no beast strides through the masonry either */
+        a.x=nx; a.z=nz; a.heading=hd; a.stuck=0; a.gy=fN.y; }
       else {
         /* ---- A BEAST TURNS AWAY FROM WHAT IT CANNOT CROSS ----
            When the way was barred it only reset its work-timer and kept the
@@ -12169,7 +12376,10 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
         const away=Math.atan2(dx,dz)+(a.stuck%2?1:-1)*(0.7+0.45*Math.min(4,a.stuck));
         const reach=26+Math.random()*34;
         a.tx=a.x+Math.sin(away)*reach; a.tz=a.z+Math.cos(away)*reach;
-        a.heading=away; a.jt=Math.max(a.jt,0.6);
+        /* (and it does not turn its nose into the rock it is standing against) */
+        { const gyA=a.gy!==undefined?a.gy:(c?c.h*B:WATER_Y), fA=beastFloor(a,a.x,a.z,away,gyA+B*0.3,gyA+B*1.05);
+          if(!fA.over&&beastClear(a,a.x,a.z,away,gyA)) a.heading=away; }
+        a.jt=Math.max(a.jt,0.6);
         /* and if it has been penned a long while, it gives up that ground and
            looks for another spot of its own country altogether */
         if(a.stuck>14){ a.set=false; a.stuck=0; }
@@ -12221,7 +12431,11 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
        fall of the withers comes off the same law, so a bounding hare truly
        leaves the ground and a walking elephant truly does not. */
     const GT=tickGait(a,a.kind,moving?spd:0,dt);
-    a.m.position.set(a.x,(c2?c2.h*B:WATER_Y)+lift+(GT?Math.max(0,GT.rise):0),a.z);
+    /* it stands on the highest floor under its whole length — never with a part of it in the ground */
+    if(a.gy===undefined||a._gx!==a.x||a._gz!==a.z){ const g0=(a.gy!==undefined?a.gy:(c2?c2.h*B:WATER_Y));
+      const f2=beastFloor(a,a.x,a.z,a.heading||0,g0+B*0.3,g0+B*1.05);
+      a.gy=f2.y>-1e8?f2.y:(c2?c2.h*B:WATER_Y); a._gx=a.x; a._gz=a.z; }
+    a.m.position.set(a.x,a.gy+lift+(GT?Math.max(0,GT.rise):0),a.z);
     a.m.rotation.y=a.heading; a.m.rotation.x=lean; a.m.rotation.z=roll;
     /* ---- THE BREATH IN THE BODY ----
        Nothing standing still was truly still: no flank moved, no tail
@@ -12990,6 +13204,24 @@ function doorHead(nx,nz){
   if(window.__INJECT&&__INJECT.noDoorHead) return false;
   return inDoorway(nx,nz);
 }
+/* ---- A HOUSE'S OWN FLOOR IS A FLOOR (Round 137) ----
+   The rule against climbing the furniture judges a built surface by the
+   natural ground of its column: more than a course above it, and it is a
+   counter-top or a roof. A house raised on a slope has its floor laid level
+   over ground that falls away under it, so the downhill half of the room —
+   or all of it — stood more than a course over its own ground and was
+   judged a roof. In Yasharal the whole floor of two houses read that way,
+   and their households stood at the threshold all night. Within a house's
+   room, the surface at the house's own floor height is its floor; a bed, a
+   chest or a table a course over it is still furniture. */
+/* — and so is a lane built up in courses (emitStairLine): it was laid to be
+   walked on */
+const WAYS=new Map();
+function houseFloorAt(x,z,y){
+  if(WAYS.size&&WAYS.has(Math.floor(x/B)+','+Math.floor(z/B))) return true;
+  const H=insideHouse(x,z);
+  return !!(H&&H.yb!==undefined&&Math.abs(y-(H.yb+(H.big?0:B)))<1);
+}
 /* is this spot in some house's doorway (the gap, leaf open or shut)? */
 function inDoorway(nx,nz){
   if(window.__INJECT&&__INJECT.noDoorway) return false;
@@ -13058,7 +13290,10 @@ function clearLotOfTrees(x0,z0,x1,z1,y){
     (NOTREE||(NOTREE=new Set())).add((ix+32768)*65536+(iz+32768));
     if(!_stampOn) continue;
     for(let cy=cy0-1;cy<=cy0+48;cy++){ const b=blockOf(blockAt(ix,cy,iz));
-      if(b&&/^log-/.test(b.id)) stampBlock(ix,cy,iz,0); } }
+      /* the trunk of every kind, and the leaves and the bush too (Round 137 —
+         the test was `log-` alone, which missed the plain log and every leaf,
+         and left a bush standing in front of a door in Yasharal) */
+      if(b&&/^(log|leaves)(-|$)/.test(b.id)) stampBlock(ix,cy,iz,0); } }
 }
 function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   const style=(ex&&ex.style)||'levant';
@@ -13069,6 +13304,14 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   const rnd=k=>hash2(seed*7.7+k*3.1,seed*3.3+k*9.7);
   const x0=hx-w*B/2, x1=hx+w*B/2, z0=hz-d*B/2, z1=hz+d*B/2;
   clearLotOfTrees(x0-B*1.5,z0-B*1.5,x1+B*1.5,z1+B*1.5,y);
+  /* and the yard before the door is cleared further out than the lot about
+     the walls — the way in, and the household's work, are done there. It is
+     cleared BEFORE a block of the house is laid: the clearing takes timber,
+     and the lintel is timber (Round 137) */
+  { const ux=doorDir===2?1:doorDir===3?-1:0, uz=doorDir===0?1:doorDir===1?-1:0;
+    const fx=doorDir===2?x1:doorDir===3?x0:hx, fz=doorDir===0?z1:doorDir===1?z0:hz;
+    const ax=fx+ux*B*6.5, az=fz+uz*B*6.5, hw=B*4.5;
+    clearLotOfTrees(Math.min(fx,ax)-(uz?hw:0),Math.min(fz,az)-(ux?hw:0),Math.max(fx,ax)+(uz?hw:0),Math.max(fz,az)+(ux?hw:0),y); }
   /* four blocks to the eaves now, not three — a house a man does not have
      to stoop into reads as a HOUSE, not a hut */
   /* ---- A DOOR A MAN WALKS THROUGH UPRIGHT (Round 128) ----
@@ -13144,7 +13387,19 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
     const dcx=Math.floor((doorDir===2?x1-T/2:doorDir===3?x0+T/2:gx)/B),
           dcz=Math.floor((doorDir===0?z1-T/2:doorDir===1?z0+T/2:gz)/B), dcy=Math.floor((y+B*(big?0.5:1.5))/B);
     stampBlock(dcx,dcy,dcz,0);
-    if(big){ if(doorDir<=1) stampBlock(Math.floor((gx-B*0.5)/B),dcy,dcz,0); else stampBlock(dcx,dcy,Math.floor((gz-B*0.5)/B),0); } }
+    if(big){ if(doorDir<=1) stampBlock(Math.floor((gx-B*0.5)/B),dcy,dcz,0); else stampBlock(dcx,dcy,Math.floor((gz-B*0.5)/B),0); }
+    /* ---- AND THROUGH THE WHOLE THICKNESS OF THE WALL (Round 137) ----
+       The house is not on the block grid, so a wall half a block thick
+       falls across TWO cells about as often as one — and only the cell the
+       wall's middle lies in was cleared. The other kept this course: a step
+       of two courses at the threshold under a gap of one, which no soul can
+       take. Read at Yasharal: the doorways of houses 4, 6 and 15 stood shut
+       to their own households that way, and they slept in the yard. Every
+       cell the wall's thickness touches is cleared now. */
+    { const w0=doorDir===2?x1-T:doorDir===3?x0:doorDir===0?z1-T:z0, w1=w0+T;
+      for(let tc=Math.floor((w0+0.01)/B);tc<=Math.floor((w1-0.01)/B);tc++){
+        if(doorDir>=2){ stampBlock(tc,dcy,dcz,0); if(big) stampBlock(tc,dcy,Math.floor((gz-B*0.5)/B),0); }
+        else { stampBlock(dcx,dcy,tc,0); if(big) stampBlock(Math.floor((gx-B*0.5)/B),dcy,tc,0); } } } }
   /* timber posts at the corners — the frame of a timber house only */
   if(style==='north'||style==='east')
     for(const cx of [x0-0.12,x1-B*0.5+0.12]) for(const cz of [z0-0.12,z1-B*0.5+0.12])
@@ -13258,6 +13513,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
                  z:(doorDir>=2?gz:hz)+(doorDir===0?d*B/2+B:doorDir===1?-d*B/2-B:0)});
   const gapCX = doorDir===2?x1-T/2:doorDir===3?x0+T/2:gx;
   const gapCZ = doorDir===0?z1-T/2:doorDir===1?z0+T/2:gz;
+
   /* ---- AND A DOORSTEP WHERE THE YARD LIES BELOW (Round 96) ----
      A house on terraced land has no level side sometimes; its door then
      faces a yard a course or two down, and the footing hangs over it — a
@@ -13300,7 +13556,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   const hingeZ = (doorDir>=2)?gz-gw:gapCZ;
   const baseAng = (doorDir>=2)?-Math.PI/2:0;
   const swing = (doorDir===0||doorDir===3)?1.7:-1.7;   /* open outward */
-  ex.houses.push({x0,x1,z0,z1, dx:gapCX, dz:gapCZ, gw, apron, style, stair:stairAt,
+  ex.houses.push({x0,x1,z0,z1, dx:gapCX, dz:gapCZ, gw, apron, style, stair:stairAt, big,
     yb:y, top:roofTop,   /* footing and ridge (or parapet) — the eye rides over these */
     door:{dir:doorDir, hx:hingeX, hz:hingeZ, base:baseAng, y:big?y+0.02:y+B*0.05,      /* (a big house's leaf hangs from its threshold) */
       w:gw*2.0, h:big?B*2.98:B*2.05, swing, open:false, ang:baseAng, target:baseAng}});
@@ -13372,6 +13628,135 @@ function emitPathLine(G, x0,z0, x1,z1){
   for(let s=0;s<=steps;s++){ const t=s/steps;
     const ix=Math.floor((x0+(x1-x0)*t)/B), iz=Math.floor((z0+(z1-z0)*t)/B);
     const k=ix+','+iz; if(k===last) continue; last=k; emitPathCell(G,ix,iz); }
+}
+
+/* ---- THE HOUSEHOLD AT ITS TRADE (Round 137) ----
+   THE FAULT THIS MENDS. Kept through a day in Yasharal's town, thirteen of
+   its thirty-three souls had no work at all: the residents of the city
+   were `folk`, and folk wandered the square from the hour they rose to the
+   hour they went to bed. A town of the Bible days was a town of trades.
+   Every house now keeps one for its men and one for its women — the potter
+   at his wheel, the carpenter at his bench, the woodcutter out to the trees
+   and home with his load, the mason between the quarry and the wall; the
+   weaver at her loom, the baker at her trough and oven — and the tools of
+   both stand in its yard beside the door, where the work is done. */
+const MEN_TRADES=['potter','carpenter','woodcutter','mason'], WOMEN_TRADES=['weaver','baker','spinner','gleaner'];
+function yardSpot(H,side){
+  const dd=H.door?H.door.dir:0;
+  const ux=dd===2?1:dd===3?-1:0, uz=dd===0?1:dd===1?-1:0, vx=-uz, vz=ux;
+  const out=B*(1.4+(H.apron||0)*0.6);
+  return {x:H.dx+ux*out+vx*side*B*2.2, z:H.dz+uz*out+vz*side*B*2.2, ux,uz,vx,vz};
+}
+function emitTradeTools(G,H,trade,side,solids,houses){
+  let q=null;
+  for(const sd of [side,-side]){ const c0=yardSpot(H,sd), tx=c0.x+c0.vx*sd*B*1.1, tz=c0.z+c0.vz*sd*B*1.1;
+    const c=landAtWorld(tx,tz), cw=landAtWorld(c0.x,c0.z);
+    if(!c||!cw||c.kind==='wall'||c.kind==='floe'||Math.abs(c.h*B-H.yb)>B*1.5||Math.abs(cw.h*B-c.h*B)>B) continue;
+    if(houses.some(o=>tx>o.x0-B&&tx<o.x1+B&&tz>o.z0-B&&tz<o.z1+B)) continue;
+    if(solids.some(o=>Math.hypot(o.x-tx,o.z-tz)<o.r+B*0.8)) continue;
+    q=Object.assign(c0,{tx,tz,y:c.h*B,side:sd}); break; }
+  if(!q) return null;
+  const {tx,tz,y,ux,uz,vx,vz}=q, bx=(a,b2,c2,d2,e2,f2,m1,m2)=>emitBox(G,a,b2,c2,d2,e2,f2,m1,m2||m1,null);
+  const along=(o,w,h0,h1,dep,m1,m2)=>{ const cx=tx+vx*o, cz=tz+vz*o, hw=Math.abs(vx)*w+Math.abs(ux)*dep, hd=Math.abs(vz)*w+Math.abs(uz)*dep;
+    bx(cx-hw,y+h0,cz-hd,cx+hw,y+h1,cz+hd,m1,m2); };
+  if(trade==='potter'){                       /* the wheel, the pot upon it, and pots drying by the wall */
+    along(0,B*0.14,0,B*0.45,B*0.14,'logSide','logTop');
+    along(0,B*0.45,B*0.45,B*0.58,B*0.45,'stone','stone');
+    along(0,B*0.17,B*0.58,B*0.86,B*0.17,'badSide','badTop');
+    for(let k=0;k<3;k++){ const px=tx-ux*B*0.9+vx*(k-1)*B*0.5, pz=tz-uz*B*0.9+vz*(k-1)*B*0.5, ph=B*(0.32+0.12*k);
+      bx(px-B*0.15,y,pz-B*0.15,px+B*0.15,y+ph,pz+B*0.15,'badSide','badTop'); } }
+  else if(trade==='weaver'){                  /* the upright loom: two posts, the beam, the warp, the weights */
+    for(const o of [-B*0.65,B*0.65]) along(o,B*0.09,0,B*2.1,B*0.09,'logSide','logTop');
+    along(0,B*0.75,B*1.95,B*2.1,B*0.1,'logSide','logTop');
+    along(0,B*0.6,B*0.35,B*1.95,B*0.03,'wool','wool');
+    along(0,B*0.6,B*0.18,B*0.3,B*0.06,'stone','stone'); }
+  else if(trade==='baker'){                   /* the kneading trough, and an oven of clay */
+    along(0,B*0.55,0,B*0.5,B*0.3,'planks','sand');
+    if(H.style!=='levant'){ const ox=tx-ux*B*0.9, oz=tz-uz*B*0.9;
+      bx(ox-B*0.45,y,oz-B*0.45,ox+B*0.45,y+B*0.8,oz+B*0.45,'badSide','badTop'); } }
+  else if(trade==='carpenter'){               /* the bench, and timber waiting on it */
+    for(const o of [-B*0.55,B*0.55]) along(o,B*0.08,0,B*0.68,B*0.25,'logSide','logTop');
+    along(0,B*0.75,B*0.68,B*0.8,B*0.3,'planks','benchTop');
+    along(0,B*0.7,B*0.8,B*0.95,B*0.08,'logSide','logTop');
+    for(let k=0;k<2;k++){ const px=tx-ux*B*0.9, pz=tz-uz*B*0.9;
+      bx(px-Math.abs(vx)*B*0.7-Math.abs(ux)*B*0.12,y+k*B*0.24,pz-Math.abs(vz)*B*0.7-Math.abs(uz)*B*0.12,
+         px+Math.abs(vx)*B*0.7+Math.abs(ux)*B*0.12,y+(k+1)*B*0.24,pz+Math.abs(vz)*B*0.7+Math.abs(uz)*B*0.12,'logSide','logTop'); } }
+  else if(trade==='woodcutter'){              /* the woodpile against the wall, and the chopping block */
+    for(let k=0;k<3;k++) along(0,B*(0.75-k*0.12),k*B*0.25,(k+1)*B*0.25,B*0.32,'logSide','logTop');
+    { const px=tx-ux*B*1.0, pz=tz-uz*B*1.0; bx(px-B*0.25,y,pz-B*0.25,px+B*0.25,y+B*0.4,pz+B*0.25,'logSide','logTop'); } }
+  else if(trade==='spinner'){                 /* the stool, and the basket of combed wool */
+    along(0,B*0.3,0,B*0.45,B*0.3,'planks','benchTop');
+    { const px=tx-ux*B*0.8, pz=tz-uz*B*0.8; bx(px-B*0.3,y,pz-B*0.3,px+B*0.3,y+B*0.42,pz+B*0.3,'haySide','wool'); } }
+  else if(trade==='gleaner'){                 /* the sheaves she brought in, stood by the wall */
+    for(let k=0;k<2;k++) along((k-0.5)*B*0.7,B*0.22,0,B*0.75,B*0.22,'haySide','hayTop'); }
+  else if(trade==='mason'){                   /* dressed stone stacked, and a course being raised */
+    for(let k=0;k<3;k++) along((k-1)*B*0.42,B*0.2,0,B*(0.4+0.18*(k%2)),B*0.3,'hewnStone','hewnStone');
+    along(0,B*0.62,B*0.4,B*0.58,B*0.28,'cobble','cobble'); }
+  solids.push({x:tx,z:tz,r:B*0.5});
+  return {x:q.x,z:q.z,faceX:tx,faceZ:tz};
+}
+/* where the woodcutters of a town go: the direction with the most trunks
+   standing within a walk of it */
+function findWoodlot(site,rnd){
+  let best=null,bn=-1;
+  for(const r of [B*22,B*30,B*38]) for(let k=0;k<12;k++){ const a=k/12*6.2832+rnd(500)*0.5;
+    const x=site.x+Math.cos(a)*r, z=site.z+Math.sin(a)*r, c=landAtWorld(x,z);
+    if(!c||c.kind==='wall'||c.kind==='floe') continue;
+    let n=0; const ix=Math.floor(x/B), iz=Math.floor(z/B);
+    for(let dx=-2;dx<=2;dx++) for(let dz=-2;dz<=2;dz++){ const cc=cell(ix+dx,iz+dz); if(!cc) continue;
+      for(let cy=cc.h;cy<cc.h+4;cy++){ const b=blockOf(blockAt(ix+dx,cy,iz+dz)); if(b&&/^log-/.test(b.id)){ n++; break; } } }
+    if(n>bn+(best&&Math.hypot(best.x-site.x,best.z-site.z)<r?1:0)){ bn=n; best={x,z,trees:n}; } }
+  return best;
+}
+/* and where its masons cut their stone: a heap at the edge of the town,
+   away from the woodlot */
+function findQuarry(site,rnd,wood){
+  const a0=wood?Math.atan2(wood.z-site.z,wood.x-site.x)+Math.PI:rnd(510)*6.2832;
+  for(const da of [0,0.6,-0.6,1.2,-1.2,2.0,-2.0]) for(const r of [B*16,B*20,B*12]){
+    const x=site.x+Math.cos(a0+da)*r, z=site.z+Math.sin(a0+da)*r, c=landAtWorld(x,z);
+    if(c&&c.kind!=='wall'&&c.kind!=='floe'&&!houseAround(x,z)) return {x,z,y:c.h*B}; }
+  return null;
+}
+/* ---- A LANE A MAN CAN WALK (Round 137) ----
+   THE FAULT THIS MENDS. A lane was a strip of path laid on the top of the
+   ground, following every bump of it — so where a village stood on two
+   levels, the lane from the well to the fold went straight up the face of
+   a bank four and five courses high, and nobody could walk it. Kept
+   through a night at Yasharal: the hen that lived in the lower town never
+   reached the fold on the terrace, and the feeder who worked there could
+   not get down to his house.
+   A lane now is a way: its cells are joined edge to edge (never only at a
+   corner), and where the ground jumps it is built up in courses of stone
+   — from the high side down, a course lower each cell — so no step along
+   it is more than the one course a man or a beast can take. It is fill
+   only: nothing is cut, and nothing is laid inside a house. */
+function emitStairLine(G,ex,x0,z0,x1,z1){
+  const cells=[]; let ix=Math.floor(x0/B), iz=Math.floor(z0/B);
+  const ex1=Math.floor(x1/B), ez1=Math.floor(z1/B);
+  cells.push([ix,iz]);
+  for(let guard=0;(ix!==ex1||iz!==ez1)&&guard<2000;guard++){
+    /* step along whichever axis keeps nearest the true line */
+    const dx=ex1-ix, dz=ez1-iz;
+    const cx=(ix+0.5)*B, cz=(iz+0.5)*B, lx=x1-x0, lz=z1-z0, L2=lx*lx+lz*lz||1;
+    const off=(px,pz)=>{ const t=((px-x0)*lx+(pz-z0)*lz)/L2; return Math.hypot(x0+lx*t-px,z0+lz*t-pz); };
+    let nx=ix, nz=iz;
+    if(dx!==0&&dz!==0){ const sx=Math.sign(dx), sz=Math.sign(dz);
+      if(off(cx+sx*B,cz)<=off(cx,cz+sz*B)) nx+=sx; else nz+=sz; }
+    else if(dx!==0) nx+=Math.sign(dx); else nz+=Math.sign(dz);
+    ix=nx; iz=nz; cells.push([ix,iz]); }
+  const inHouse=(i,j)=>{ const x=(i+0.5)*B, z=(j+0.5)*B;
+    for(const H of (ex&&ex.houses)||[]) if(x>H.x0-B*0.6&&x<H.x1+B*0.6&&z>H.z0-B*0.6&&z<H.z1+B*0.6) return true; return false; };
+  const h=cells.map(([i,j])=>{ const c=cell(i,j); return (!c||c.kind==='wall')?null:c.h; });
+  const sH=h.slice();
+  /* the stair down from every high cell, both ways along the lane */
+  for(let k=1;k<sH.length;k++) if(sH[k]!==null&&sH[k-1]!==null) sH[k]=Math.max(sH[k],sH[k-1]-1);
+  for(let k=sH.length-2;k>=0;k--) if(sH[k]!==null&&sH[k+1]!==null) sH[k]=Math.max(sH[k],sH[k+1]-1);
+  for(let k=0;k<cells.length;k++){ const [i,j]=cells[k]; if(h[k]===null) continue;
+    if(sH[k]>h[k]&&!inHouse(i,j)){
+      emitBox(G,i*B,h[k]*B,j*B,(i+1)*B,sH[k]*B,(j+1)*B,'cobble','path',null);
+      const key=i+','+j; WAYS.set(key,(WAYS.get(key)||0)+1);
+      if(ex) (ex.ways||(ex.ways=[])).push(key); }
+    else emitPathCell(G,i,j); }
 }
 
 function emitFencePost(G,x,z,y){ emitBox(G,x-0.45,y,z-0.45,x+0.45,y+B*1.15,z+0.45,'logSide','logTop',null); }
@@ -13535,7 +13920,7 @@ function buildPier(G,ex,site,rnd,torches){
   { const ix=Math.floor(lastX/B), iz=Math.floor(lastZ/B), nLog=blockId('log');
     for(let k=1;k<=2;k++) stampBlock(ix,deckIY+k,iz,nLog); }   /* the lamp post */
   torches.push({x:lastX,y:deckY+B*2,z:lastZ});
-  stamped(ex,()=>emitPathLine(G,site.x,site.z,shoreX,shoreZ));
+  stamped(ex,()=>emitStairLine(G,ex,site.x,site.z,shoreX,shoreZ));
   /* the pier's own bearing is kept — it is the only thing that truly knows
      which way the water lies (radial "outward" is inland on half the coasts) */
   ex.pier={x:lastX,z:lastZ,dx,dz,y:deckY};
@@ -13581,8 +13966,16 @@ function* spawnVillage(i,exShell){
   const site=SITES[i]; if(!site){ activeVillages.set(i,{none:true}); return; }
   const rnd=k=>hash2(i*31.7+k*7.7, i*11.3+k*3.9);
   const G=newG(); const ex=exShell||{};
+  /* ---- THE DOORS OF THE STORY, IN EVERY TOWN (Round 137) ----
+     The houses of the story stand on the ground, their floor level with the
+     street, with a doorway two cells wide and three courses high and a leaf
+     to fill it. The villages kept the old door: one cell wide and two courses
+     high over a footing a course up, which beside a man reads as a hatch, has
+     a step in the way of every soul going in, and was the house's weak point
+     in every probe of the folk going home. Every house of a town is built as
+     the story builds its own. */
   Object.assign(ex,{doors:[],houses:[],torchIn:[],farms:[],stalls:[],pen:null,stamps:[],
-    style:houseStyleFor(i), ci:i});
+    style:houseStyleFor(i), ci:i, big:true});
   const wy=topY(site.ix,site.iz);
   const cfg=cityFor(i);                 /* a great city here, or a small village? */
   const torches=[]; const solids=[];
@@ -13606,7 +13999,7 @@ function* spawnVillage(i,exShell){
       const px2=site.x+Math.cos(a)*rr, pz2=site.z+Math.sin(a)*rr, pc=landAtWorld(px2,pz2);
       if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'&&rectFree(px2-B*3.5,px2+B*3.5,pz2-B*2.5,pz2+B*2.5,B)){
         stamped(ex,()=>{ emitPen(G,px2,pz2,pc.h*B,7,5);
-          emitPathLine(G,site.x,site.z,px2,pz2); }); ex.pen={x:px2,z:pz2};
+          emitStairLine(G,ex,site.x,site.z,px2,pz2); }); ex.pen={x:px2,z:pz2};
         addRect(px2-B*3.5,px2+B*3.5,pz2-B*2.5,pz2+B*2.5); break; } }
   } else {
     /* --- a village proper: a broad ring of homes about the well and square
@@ -13637,7 +14030,7 @@ function* spawnVillage(i,exShell){
     stamped(ex,()=>emitWell(G, site.x, site.z, wy));
     solids.push({x:site.x,z:site.z,r:B*1.5});
     addRect(site.x-B*1.5,site.x+B*1.5,site.z-B*1.5,site.z+B*1.5);
-    stamped(ex,()=>{ for(const dr of ex.doors) emitPathLine(G, site.x,site.z, dr.x,dr.z); });
+    stamped(ex,()=>{ for(const dr of ex.doors) emitStairLine(G,ex, site.x,site.z, dr.x,dr.z); });
     const nF=2+(rnd(40)>0.55?1:0);
     for(let f=0;f<nF;f++){
       let fx=0,fz=0,fc=null,found=false;
@@ -13648,7 +14041,7 @@ function* spawnVillage(i,exShell){
         if(!rectFree(tx-B*2.5,tx+B*2.5,tz-B*1.7,tz+B*1.7,B)) continue;
         fx=tx; fz=tz; fc=tc; found=true; }
       if(!found) continue;
-      stamped(ex,()=>{ emitFarm(G, fx,fz, fc.h*B, i*100+f); emitPathLine(G, site.x,site.z, fx,fz); });
+      stamped(ex,()=>{ emitFarm(G, fx,fz, fc.h*B, i*100+f); emitStairLine(G,ex, site.x,site.z, fx,fz); });
       addRect(fx-B*2.5,fx+B*2.5,fz-B*1.7,fz+B*1.7);
       ex.farms.push({x:fx,z:fz});
     }
@@ -13674,7 +14067,7 @@ function* spawnVillage(i,exShell){
       const pc=landAtWorld(px2,pz2);
       if(pc&&pc.kind!=='wall'&&pc.kind!=='floe'&&rectFree(px2-B*3,px2+B*3,pz2-B*2,pz2+B*2,B)){
         stamped(ex,()=>{ emitPen(G,px2,pz2,pc.h*B,6,4);
-          emitPathLine(G,site.x,site.z,px2,pz2); }); ex.pen={x:px2,z:pz2};
+          emitStairLine(G,ex,site.x,site.z,px2,pz2); }); ex.pen={x:px2,z:pz2};
         addRect(px2-B*3,px2+B*3,pz2-B*2,pz2+B*2); break; } }
     { const bx=site.x+B*1.9, bz=site.z-B*1.4; const bc=landAtWorld(bx,bz);
       if(bc&&bc.kind!=='wall'&&rectFree(bx-B*0.5,bx+B*0.5,bz-B*0.5,bz+B*0.5,0)){
@@ -13705,6 +14098,21 @@ function* spawnVillage(i,exShell){
       solids.push({x:px3,z:pz3,r:B*1.6}); addRect(px3-B*1.6,px3+B*1.6,pz3-B*1.4,pz3+B*1.4);
       ex.stalls.push({x:px3,z:pz3}); }
   }
+  /* ---- THE HOUSEHOLD AT ITS TRADE (Round 137): each house its two trades,
+     their tools in its yard, and the town's woodlot and stone-heap ---- */
+  ex.woodlot=findWoodlot(site,rnd);
+  ex.quarry=findQuarry(site,rnd,ex.woodlot);
+  if(ex.quarry){ const q=ex.quarry;
+    for(let k=0;k<6;k++){ const px=q.x+(rnd(520+k)-0.5)*B*2.4, pz=q.z+(rnd(530+k)-0.5)*B*2.4, ph=B*(0.3+rnd(540+k)*0.5);
+      emitBox(G,px-B*0.35,q.y,pz-B*0.3,px+B*0.35,q.y+ph,pz+B*0.3,k%2?'hewnStone':'stone',k%2?'hewnStone':'stone',null); }
+    solids.push({x:q.x,z:q.z,r:B*1.2}); }
+  for(let hi=0;hi<ex.houses.length;hi++){ const H=ex.houses[hi]; if(!H.door) continue;
+    const r1=rnd(400+hi*3), r2=rnd(401+hi*3), s0=r1<0.5?1:-1;
+    H.trade=MEN_TRADES[Math.floor(r1*MEN_TRADES.length)%MEN_TRADES.length];
+    H.ftrade=WOMEN_TRADES[Math.floor(r2*WOMEN_TRADES.length)%WOMEN_TRADES.length];
+    H.work=emitTradeTools(G,H,H.trade,s0,solids,ex.houses);
+    H.fwork=emitTradeTools(G,H,H.ftrade,-s0,solids,ex.houses);
+    if(hi%4===3) yield; }
   /* build the merged meshes */
   const g=new THREE.Group();
   for(const mat in G){ const gg=G[mat];
@@ -13766,7 +14174,12 @@ function* spawnVillage(i,exShell){
            empty house outright and, with the near houses full of adults,
            sent the children 220 paces to whichever house came first */
         if(e.child?(n>=CAP+2):(n>=CAP)) continue;
-        const d=Math.hypot((H.x0+H.x1)/2-c.x,(H.z0+H.z1)/2-c.z)+n*B*2+(e.child&&n===0?B*40:0);
+        /* and a house on the level of the work: a terrace four courses up
+           is a long way round for a man coming home in the dark (Round 137 —
+           the feeder of Yasharal's fold lived at the foot of a bank with no
+           way down it) */
+        const cl=landAtWorld(c.x,c.z), lev=cl?Math.abs(H.yb-cl.h*B)*3:0;
+        const d=Math.hypot((H.x0+H.x1)/2-c.x,(H.z0+H.z1)/2-c.z)+n*B*2+(e.child&&n===0?B*40:0)+lev;
         if(d<bd){ bd=d; best=H; } }
       if(!best){ let bn=1e9; for(const H of ex.houses){ const n=count.get(H)||0; if(n<bn){ bn=n; best=H; } } }
       e.home=homeOf(best); count.set(best,(count.get(best)||0)+1);
@@ -13856,6 +14269,18 @@ function* spawnVillage(i,exShell){
       if(h%4===3) yield; }
   }
   assignHomes();
+  /* every grown soul with no calling takes up its household's trade — a
+     couple of market-goers are kept where there is a market (Round 137) */
+  { let keep=ex.stalls.length?2:0;
+    for(const e of people){ if(e.child||!(e.role==='folk'||e.role==='shopper')) continue;
+      if(e.role==='shopper'&&keep>0){ keep--; continue; }
+      const H=e.home&&e.home.H; if(!H||!H.trade) continue;
+      e.role=e.female?H.ftrade:H.trade;
+      e.work=(e.female?H.fwork:H.work)||(e.home.ox!==undefined?{x:e.home.ox,z:e.home.oz}:{x:e.home.x,z:e.home.z});
+      if(e.role==='woodcutter') e.woodlot=ex.woodlot||null;
+      if(e.role==='mason') e.quarry=ex.quarry||null;
+      if(e.role==='gleaner'){ if(ex.farms&&ex.farms.length) e.farm=ex.farms[Math.floor(hash2(e.seed,6.1)*ex.farms.length)%ex.farms.length];
+        else e.role='weaver'; } } }
   yield;
   /* the beasts of the field, the creeping things — and now and then a wolf
      out of the wilds, come down to hunt the pigs and the fowl */
@@ -13882,15 +14307,50 @@ function* spawnVillage(i,exShell){
     an.position.set(bx,topY(Math.floor(bx/B),Math.floor(bz/B)),bz); g.add(an);
     placedAt.push({x:bx,z:bz});
     beasts.push({m:an,kind:'wolf',hx:bx,hz:bz,tx:bx,tz:bz,t:2,seed:i*100+99,roamR:10,cool:6}); }
+  /* ---- THE BEAST AT THE DOOR (Round 137) ----
+     A household whose work lies a long walk off keeps a beast for the road
+     — a camel in the desert lands, a horse in the north, a donkey
+     everywhere else — tethered at the door by night, saddled in the
+     morning, ridden out, tied up beside the work, and ridden home. */
+  const mounts=[];
+  { const rideKind=baseKind==='desert'?'camel':(lat>44?'horse':'donkey');
+    const placeOf=e=>e.role==='woodcutter'?e.woodlot:e.role==='mason'?e.quarry:(e.role==='farmer'||e.role==='gleaner')?e.farm:e.role==='fisher'?e.spot:null;
+    const kept=new Set();
+    for(const e of people){ if(e.child||!e.home||!e.home.H||e.home.ox===undefined) continue;
+      const P=placeOf(e); if(!P) continue;
+      const H=e.home.H; if(kept.has(H)) continue;
+      if(Math.hypot(P.x-e.home.ox,P.z-e.home.oz)<B*14) continue;
+      const dd=H.door.dir, ux=dd===2?1:dd===3?-1:0, uz=dd===0?1:dd===1?-1:0;
+      let spot=null;
+      for(const sd of [1,-1]){ const x=e.home.ox+ux*B*2.2-uz*sd*B*1.8, z=e.home.oz+uz*B*2.2+ux*sd*B*1.8, c=landAtWorld(x,z);
+        if(!c||c.kind==='wall'||c.kind==='floe'||Math.abs(c.h*B-H.yb)>B*1.5) continue;
+        if(ex.houses.some(o=>x>o.x0-B*0.8&&x<o.x1+B*0.8&&z>o.z0-B*0.8&&z<o.z1+B*0.8)) continue;
+        if(solids.some(o=>Math.hypot(o.x-x,o.z-z)<o.r+B)) continue;
+        spot={x,z,y:c.h*B}; break; }
+      if(!spot) continue;
+      kept.add(H);
+      const an=makeAnimal(rideKind);
+      { const bu=beastUnits(rideKind), by=bu*0.74;       /* saddled for the road, as the traveller's own */
+        const blanket=lbox(4.4,0.5,5.6,0x7a4a2a); blanket.position.set(0,by,-0.3); an.add(blanket);
+        const seat=lbox(3.4,1.1,4.4,0x5a3a22); seat.position.set(0,by+0.6,-0.3); an.add(seat); }
+      an.scale.setScalar(mountScale(rideKind));
+      an.position.set(spot.x,spot.y,spot.z); an.rotation.y=Math.atan2(ux,uz); g.add(an);
+      const M={m:an,kind:rideKind,owner:e,home:{x:spot.x,z:spot.z},tx:spot.x,tz:spot.z,t:0,seed:i*100+70+mounts.length,isMount:true};
+      e.mountE=M; mounts.push(M); } }
   /* birds of the air, wheeling above the land */
   const birds=[]; const nBirds=4+Math.floor(rnd(88)*4);
   for(let b2=0;b2<nBirds;b2++){ const bd=makeBird();
     const ph=rnd(b2+120)*6.28, rad=(6+rnd(b2+124)*10)*B, h2=wy+40+rnd(b2+128)*30;
     bd.position.set(cx+Math.cos(ph)*rad,h2,cz+Math.sin(ph)*rad); g.add(bd);
     birds.push({m:bd,ph,rad,h:h2,spd:0.2+rnd(b2+132)*0.25,cx,cz}); }
+  /* each stall knows its keeper, and has its cloth ready for the night */
+  for(const st of ex.stalls){ st.keeper=people.find(p=>p.stall===st)||null;
+    const sc=landAtWorld(st.x,st.z), sy=sc?sc.h*B:wy;
+    const cl=new THREE.Mesh(new THREE.BoxGeometry(B*2.5,B*0.42,B*2.1),STALL_CLOTH);
+    cl.position.set(st.x,sy+B*1.13,st.z); cl.visible=false; g.add(cl); st.cover=cl; }
   scene.add(g);
   activeVillages.set(i,{g,site,people,beasts,birds,torchMats,deckKeys,houses:ex.houses,solids,
-    farms:ex.farms,stalls:ex.stalls,pen:ex.pen,pier:ex.pier,stamps:ex.stamps,feedT:-99});
+    farms:ex.farms,stalls:ex.stalls,pen:ex.pen,pier:ex.pier,stamps:ex.stamps,ways:ex.ways||(ex.ways=[]),mounts,feedT:-99});
 }
 /* =================== THE LABOURS OF THE PEOPLE ===================
    A little task engine. moveEnt walks a body toward its mark with
@@ -13925,6 +14385,211 @@ function pushOutOfSolids(ent,dt){
   return false;
 }
 function sp0OfEnt(ent){ return ent.panic?12:6; }
+/* ---- TO THE WORK ON A BEAST, AND HOME AGAIN (Round 137) ----
+   A soul with a beast of its own, going further than a short walk, goes to
+   the beast first, swings up, and rides; it gets down where it is going and
+   leaves the beast tied there. Bound home for the night, it rides to the
+   beast's own place at the door and walks the last steps in. */
+const RIDE_PACE={donkey:9,horse:13,camel:10,mule:10};
+/* ---- A BEAST BIG ENOUGH TO BE RIDDEN (Round 137) ----
+   Drawn at its true size beside the blocky folk, a donkey came to a man's knee, and a
+   rider sat on it like a man on a footstool, towering over it. The block games draw a
+   mount so that its back is at the rider's hip and his legs hang down its flanks; a
+   beast taken for riding is drawn so, its back at the height its kind is given here. */
+const RIDE_BACK={donkey:8.4,mule:8.8,horse:9.8,camel:12.5};
+function mountScale(kind){ const base=beastUnits(kind)*0.74; return Math.max(1,(RIDE_BACK[kind]||8.6)/Math.max(0.5,base)); }
+/* the rider's legs astride: thighs forward along the flanks and a little apart, shins hanging */
+function astride(u){
+  const legs=u.legs?[u.legs[0],u.legs[1]]:[u.legL,u.legR];
+  for(let k=0;k<2;k++){ const L=legs[k]; L.rotation.x=-1.35; L.rotation.z=k?-0.32:0.32;
+    const kn=L.userData.knee; if(kn) kn.rotation.x=0.55; }
+  u.armL.rotation.x=-0.75; u.armR.rotation.x=-0.75;
+  for(const A of [u.armL,u.armR]){ const el=A.userData&&A.userData.elbow; if(el) el.rotation.x=-0.45; }
+}
+function moveSoul(ent,dt,sp){
+  const M=ent.mountE;
+  if(!M||ent.child) return moveEnt(ent,dt,sp);
+  const px=ent.m.position.x, pz=ent.m.position.z, homeward=!!(ent._abed||ent._shelter);
+  const goal=homeward?M.home:{x:ent.tx,z:ent.tz};
+  const far=Math.hypot(ent.tx-px,ent.tz-pz)>B*10;
+  if(ent._riding){
+    M.tx=goal.x; M.tz=goal.z;
+    const mv=moveEnt(M,dt,RIDE_PACE[M.kind]||9);
+    seatRider(ent,M,mv);
+    const there=homeward?Math.hypot(M.m.position.x-goal.x,M.m.position.z-goal.z)<1.6
+                        :Math.hypot(M.m.position.x-ent.tx,M.m.position.z-ent.tz)<B*2.2;
+    if(there||(!mv&&(M.stuck||0)===0&&(M._held||0)>200)) getDown(ent,M);
+    return mv; }
+  const dM=Math.hypot(M.m.position.x-px,M.m.position.z-pz);
+  if(far&&!M.rider&&dM<B*9){
+    if(dM<B*1.6){ ent._riding=true; M.rider=ent; M._path=null; M._held=0; return true; }   /* up into the saddle */
+    const tx=ent.tx, tz=ent.tz;                                                                /* to the beast first */
+    ent.tx=M.m.position.x; ent.tz=M.m.position.z; const mv=moveEnt(ent,dt,sp);
+    if(ent.tx===ent.m.position.x&&ent.tz===ent.m.position.z){ /* (refused: he keeps to his own feet) */ }
+    ent.tx=tx; ent.tz=tz; return mv; }
+  return moveEnt(ent,dt,sp);
+}
+function seatRider(ent,M,moving){
+  const u=ent.m.userData, sc=ent.m.scale.y||1, ph=performance.now()*0.013;
+  const seat=beastUnits(M.kind)*0.74*(M.m.scale.x||1)+0.6, bump=moving?Math.abs(Math.sin(ph))*0.9:0;
+  ent.m.position.set(M.m.position.x,M.m.position.y+seat-4.3*sc+bump,M.m.position.z);
+  ent.m.rotation.y=M.m.rotation.y; ent.m.rotation.x=0;
+  astride(u);
+  ent.anim='ride'; ent.acting=false;
+}
+function getDown(ent,M){
+  const u=ent.m.userData;
+  ent._riding=false; M.rider=null; M.tx=M.m.position.x; M.tz=M.m.position.z; M._path=null;
+  for(let k=0;k<2;k++){ const L=u.legs[k]; L.rotation.x=0; L.rotation.z=0; const kn=L.userData.knee; if(kn) kn.rotation.x=0; }
+  for(const A of [u.armL,u.armR]){ const el=A.userData&&A.userData.elbow; if(el) el.rotation.x=0; }
+  /* down on the beast's near side, on ground he may stand on */
+  const a=M.m.rotation.y+Math.PI/2;
+  for(const sd of [1,-1]){ const x=M.m.position.x+Math.sin(a)*sd*B*0.9, z=M.m.position.z+Math.cos(a)*sd*B*0.9;
+    const g=groundInfo(x,z,M.m.position.y+0.1);
+    if(g.land&&Math.abs(g.y-M.m.position.y)<B*1.2&&!blockedBySolid(x,z)&&!blockedByStructureNPC(x,z)){
+      ent.m.position.set(x,g.y,z); ent.gx=x; ent.gz=z; ent.gy=g.y; return; } }
+  ent.m.position.y=M.m.position.y; ent.gy=M.m.position.y;
+}
+/* the beast at its tether: it stands, breathes, swishes, and crops the grass */
+function mountTick(M,vv,dt){
+  if(M.rider) return;
+  M.tx=M.m.position.x; M.tz=M.m.position.z;
+  moveEnt(M,dt,0);
+  const tnow=performance.now()*0.001, ph2=(M.seed||0)*6.28;
+  M.m.scale.y=(M.m.scale.x||1)*(1+0.012*Math.sin(tnow*2.1+ph2));   /* (breathing about its riding size) */
+  const tl=M.m.userData&&M.m.userData.tail; if(tl) tl.rotation.y=Math.sin(tnow*1.5+ph2)*0.15;
+  const gz=Math.sin(tnow*0.4+ph2); M.m.rotation.x=gz>0.35?0.2+Math.sin(tnow*3+ph2)*0.05:0;
+}
+/* ---- THE WAY HOME IS FOUND, NOT GUESSED (Round 137) ----
+   THE FAULT THIS MENDS. A walker went straight at his mark, swung a step
+   to either side when refused, and after forty refusals took a waypoint
+   off to one side by lottery. That gets round a bale; it does not get
+   round a terrace. Kept through a night in Yasharal's town, fifteen of
+   thirty-three souls never reached their beds: the feeder stood all night
+   at the foot of a two-course bank ('steep'), others walked the length of
+   a house wall and back ('climb', 'noroom'), and the lottery sent them
+   along the very bank that held them.
+   A refused walker now plans: a grid of half-block cells over the ground
+   between him and his mark, each cell judged by EXACTLY the rules moveEnt
+   steps by (land, a step he may take, no climbing the furniture, room to
+   stand, no wall, no stall, no masonry — a shut door counts as a way,
+   because he opens it), and the shortest way through them. He walks it
+   corner to corner. Where no way reaches the mark he is given the way to
+   the nearest place that can be reached. Plans are rationed a few to a
+   frame, so a whole town turning home at once costs nothing to see. */
+let DBG_EYE=null;
+const FP_C=B/2;
+let fpLeft=3, fpCellLeft=700, fpOut=false;
+const FP_STATS={plans:0,found:0,partial:0,none:0,ms:0,maxMs:0,cells:0,hits:0};
+/* every cell judged is remembered until something is built or dug: the
+   ground of a town does not change between one soul's plan and the next */
+const FP_CACHE=new Map(); let fpSig='';
+const FP_N=120000;
+const FP_BUF={gen:new Int32Array(FP_N),st:new Uint8Array(FP_N),ys:new Float32Array(FP_N),g:new Float32Array(FP_N),
+  from:new Int32Array(FP_N),shut:new Uint8Array(FP_N)};
+let fpGen=0;
+function folkCellCached(i,j,refY){
+  const sig=EDITS.size+'|'+SEDITS.size+'|'+activeVillages.size+'|'+activeLandmarks.size;
+  if(sig!==fpSig){ FP_CACHE.clear(); fpSig=sig; }
+  const key=i+','+j+','+Math.floor((refY+0.1)/B);
+  let v=FP_CACHE.get(key);
+  if(v===undefined){
+    /* the frame's allowance of new ground to judge is spent: this plan is
+       given up for now, and taken up again next frame from the cells
+       already judged — a town's first evening is planned over a few frames
+       rather than in one long one */
+    if(fpCellLeft<=0){ fpOut=true; return NaN; }
+    fpCellLeft--; FP_STATS.cells++; const y=folkCellY((i+0.5)*FP_C,(j+0.5)*FP_C,refY); v=(y===null)?NaN:y;
+    if(FP_CACHE.size>200000) FP_CACHE.clear(); FP_CACHE.set(key,v); }
+  else FP_STATS.hits++;
+  return v;
+}
+function folkCellY(x,z,refY){
+  const g=groundInfo(x,z,refY+0.1);
+  if(!g.land) return null;
+  const c=landAtWorld(x,z);
+  const door=inDoorway(x,z);
+  if(g.edited&&c&&g.y>c.h*B+B*1.2&&!(door&&Math.abs(g.y-refY)<=B*1.35)&&!houseFloorAt(x,z,g.y)) return null;
+  if(isFinite(g.ceil)&&(g.ceil-g.y)<B*1.9&&!((g.ceil-g.y)>=B*1.0&&(door||underEave(x,z)))) return null;
+  if(blockedByStructureNPC(x,z)&&!doorRefusedAt(x,z)) return null;
+  if(blockedBySolid(x,z)) return null;
+  if(landmarkSolidAt(x,z,g.y+2,g.y+8)) return null;
+  return g.y;
+}
+function planFolkPath(ent,gx,gz){
+  if(fpLeft<=0||fpCellLeft<=0) return undefined;   /* no ration left this frame: ask again next */
+  fpLeft--; fpOut=false;
+  const t0=performance.now();
+  const sx=ent.m.position.x, sz=ent.m.position.z, sy=ent.m.position.y;
+  const C=FP_C, pad=B*16;
+  /* the grid is the world's own (cells on multiples of C), so the cells one
+     plan judged serve every plan after it */
+  const minX=Math.floor((Math.min(sx,gx)-pad)/C)*C, minZ=Math.floor((Math.min(sz,gz)-pad)/C)*C;
+  const I0=Math.round(minX/C), J0=Math.round(minZ/C);
+  const W=Math.ceil((Math.max(sx,gx)+pad-minX)/C), H=Math.ceil((Math.max(sz,gz)+pad-minZ)/C);
+  const N=W*H;
+  if(N>FP_N){ FP_STATS.none++; return null; }
+  /* the buffers are the planner's own, kept between plans; a cell is fresh
+     to this plan when its generation mark is not this plan's */
+  const gen=++fpGen, G0=FP_BUF.gen, st=FP_BUF.st, ys=FP_BUF.ys, gS=FP_BUF.g, from=FP_BUF.from, shut=FP_BUF.shut;
+  const fresh=k=>{ if(G0[k]!==gen){ G0[k]=gen; st[k]=0; gS[k]=1e9; from[k]=-1; shut[k]=0; } };
+  const cx=i=>minX+(i+0.5)*C, cz=j=>minZ+(j+0.5)*C;
+  const ok=(k,i,j,refY)=>{ fresh(k); if(!st[k]){ const y=folkCellCached(I0+i,J0+j,refY);
+      if(y!==y) st[k]=2; else { st[k]=1; ys[k]=y; } } return st[k]===1; };
+  const si=Math.floor((sx-minX)/C), sj=Math.floor((sz-minZ)/C);
+  const gi=Math.floor((gx-minX)/C), gj=Math.floor((gz-minZ)/C);
+  const s=sj*W+si, goal=gj*W+gi;
+  fresh(s); fresh(goal<N&&goal>=0?goal:s); st[s]=1; ys[s]=sy; gS[s]=0;
+  const hOf=(i,j)=>{ const a=Math.abs(i-gi), b=Math.abs(j-gj); return Math.max(a,b)+0.414*Math.min(a,b); };
+  /* a binary heap of cells by their estimate */
+  const hk=[], hf=[];
+  const push=(k,f)=>{ let n=hk.length; hk.push(k); hf.push(f);
+    while(n>0){ const p=(n-1)>>1; if(hf[p]<=f) break; hk[n]=hk[p]; hf[n]=hf[p]; n=p; } hk[n]=k; hf[n]=f; };
+  const pop=()=>{ const top=hk[0], lk=hk.pop(), lf=hf.pop(); const L=hk.length;
+    if(L){ let n=0; for(;;){ let c=2*n+1; if(c>=L) break; if(c+1<L&&hf[c+1]<hf[c]) c++;
+        if(hf[c]>=lf) break; hk[n]=hk[c]; hf[n]=hf[c]; n=c; } hk[n]=lk; hf[n]=lf; }
+    return top; };
+  push(s,hOf(si,sj));
+  let best=s, bestH=hOf(si,sj), found=false, exp=0;
+  const D8=[[1,0,1],[-1,0,1],[0,1,1],[0,-1,1],[1,1,1.414],[1,-1,1.414],[-1,1,1.414],[-1,-1,1.414]];
+  while(hk.length&&exp<16000){
+    const k=pop(); fresh(k); if(shut[k]) continue; shut[k]=1; exp++;
+    const i=k%W, j=(k-i)/W;
+    const h=hOf(i,j); if(h<bestH){ bestH=h; best=k; }
+    if(k===goal||h<1){ best=k; found=true; break; }
+    for(const[di,dj,w] of D8){ const ni=i+di, nj=j+dj; if(ni<0||nj<0||ni>=W||nj>=H) continue;
+      const nk=nj*W+ni; fresh(nk); if(shut[nk]) continue;
+      if(!ok(nk,ni,nj,ys[k])) continue;
+      if(Math.abs(ys[nk]-ys[k])>B*1.35) continue;                /* a step, not a bank */
+      if(di&&dj){ const ka=j*W+ni, kb=nj*W+i;                  /* no cutting a corner */
+        if(!ok(ka,ni,j,ys[k])||!ok(kb,i,nj,ys[k])) continue; }
+      const g2=gS[k]+w+(ys[nk]!==ys[k]?0.6:0);                   /* a step costs a little */
+      if(g2<gS[nk]){ gS[nk]=g2; from[nk]=k; push(nk,g2+hOf(ni,nj)); } } }
+  const ms=performance.now()-t0; FP_STATS.ms+=ms; if(ms>FP_STATS.maxMs) FP_STATS.maxMs=ms;
+  if(fpOut){ FP_STATS.deferred=(FP_STATS.deferred||0)+1; return undefined; }
+  FP_STATS.plans++;
+  if(best===s){ FP_STATS.none++; return null; }
+  /* the cells back to the start, kept only where the way turns */
+  const cells=[]; for(let k=best;k!==-1&&k!==s;k=from[k]) cells.push(k); cells.reverse();
+  const pts=[]; let pdi=null,pdj=null, prev=s;
+  for(let n=0;n<cells.length;n++){ const k=cells[n], i=k%W, j=(k-i)/W, pi=prev%W, pj=(prev-pi)/W;
+    const di=i-pi, dj=j-pj;
+    if(pdi!==null&&(di!==pdi||dj!==pdj)) pts.push([cx(pi),cz(pj)]);
+    pdi=di; pdj=dj; prev=k; }
+  if(found) pts.push([gx,gz]); else { const i=best%W, j=(best-i)/W; pts.push([cx(i),cz(j)]); }
+  if(found) FP_STATS.found++; else FP_STATS.partial++;
+  return {pts,i:0,gx,gz,partial:!found};
+}
+/* give a walker a planned way to its mark (if the ration allows this frame) */
+function folkPlan(ent){
+  if(ent._fpWait>0) return false;
+  const P=planFolkPath(ent,ent.tx,ent.tz);
+  if(P===undefined) return false;                 /* rationed: try again next frame */
+  if(!P){ ent._fpWait=2.5; ent._path=null; ent._partialN=(ent._partialN||0)+1; return false; }
+  ent._path=P; ent._detour=null; ent._held=0; ent._fpWait=P.partial?2.5:0.8;
+  ent._partialN=P.partial?(ent._partialN||0)+1:0;
+  return true;
+}
 function moveEnt(ent,dt,sp){
   if(pushOutOfSolids(ent,dt)){ ent._blk='push'; return true; }   /* getting clear IS this frame's business */
   /* ---- A DETOUR (Round 96) ----
@@ -13939,7 +14604,15 @@ function moveEnt(ent,dt,sp){
      from there — the way a man gets round a thing he cannot see past. */
   if(ent._detour){ const dd=Math.hypot(ent._detour.x-ent.m.position.x,ent._detour.z-ent.m.position.z);
     if(dd<1.5||--ent._detour.t<=0) ent._detour=null; }
-  const TX=ent._detour?ent._detour.x:ent.tx, TZ=ent._detour?ent._detour.z:ent.tz;
+  if(ent._fpWait>0) ent._fpWait-=dt;
+  /* a planned way (Round 137): kept while the mark is the one it was planned
+     for, walked corner to corner */
+  if(ent._path){ const P=ent._path;
+    if(Math.hypot(P.gx-ent.tx,P.gz-ent.tz)>3) ent._path=null;
+    else { while(P.i<P.pts.length&&Math.hypot(P.pts[P.i][0]-ent.m.position.x,P.pts[P.i][1]-ent.m.position.z)<1.2) P.i++;
+      if(P.i>=P.pts.length) ent._path=null; else ent._detour=null; } }
+  const TX=ent._path?ent._path.pts[ent._path.i][0]:ent._detour?ent._detour.x:ent.tx,
+        TZ=ent._path?ent._path.pts[ent._path.i][1]:ent._detour?ent._detour.z:ent.tz;
   const dx=TX-ent.m.position.x, dz=TZ-ent.m.position.z;
   const d=Math.hypot(dx,dz); let moving=d>0.6;
   if(moving){ const nx=ent.m.position.x+dx/d*sp*dt, nz=ent.m.position.z+dz/d*sp*dt;
@@ -13975,7 +14648,7 @@ function moveEnt(ent,dt,sp){
        lies below the true ground of its column (a house on terraced land
        has its floor a course and a half over the downhill yard); a step of
        a course and a third is still what a man may take (Round 96) */
-    const climbBuilt=gN.edited&&cN&&gN.y>cN.h*B+B*1.2&&!(Math.abs(gN.y-ent.m.position.y)<=B*1.35&&inDoorway(nx,nz));
+    const climbBuilt=gN.edited&&cN&&gN.y>cN.h*B+B*1.2&&!(Math.abs(gN.y-ent.m.position.y)<=B*1.35&&inDoorway(nx,nz))&&!houseFloorAt(nx,nz,gN.y);
     /* ---- AND HE MUST HAVE ROOM TO STAND UP IN IT ----
        Forbidding the climb was not enough on its own. A footing runs UNDER
        the walls it carries, and a stall's counter has its canopy posts on it.
@@ -14027,7 +14700,7 @@ function moveEnt(ent,dt,sp){
         if(state.mode==='walk'&&Math.hypot(ax2-state.walk.x,az2-state.walk.z)<2.6) continue;
         const g2=groundInfo(ax2,az2,ent.m.position.y+0.1); if(!g2.land) continue;
         if(Math.abs(g2.y-ent.m.position.y)>B*1.35) continue;
-        const c2=landAtWorld(ax2,az2); if(g2.edited&&c2&&g2.y>c2.h*B+B*1.2&&!inDoorway(ax2,az2)) continue;
+        const c2=landAtWorld(ax2,az2); if(g2.edited&&c2&&g2.y>c2.h*B+B*1.2&&!inDoorway(ax2,az2)&&!houseFloorAt(ax2,az2,g2.y)) continue;
         if(isFinite(g2.ceil)&&(g2.ceil-g2.y)<B*1.9&&!((g2.ceil-g2.y)>=B*1.0&&(underEave(ax2,az2)||doorHead(ax2,az2)))) continue;
         if(blockedByStructureNPC(ax2,az2)||blockedBySolid(ax2,az2)||blockedByEntity(ax2,az2,ent.m)) continue;
         if(landmarkSolidAt(ax2,az2,ent.m.position.y+2,ent.m.position.y+8)) continue;
@@ -14035,7 +14708,14 @@ function moveEnt(ent,dt,sp){
     }
     if(ent._blk===''||ent._blk==='door'){ ent._held=0; if(++ent._free>60) ent._dn=0; }
     else { ent._held=(ent._held||0)+1; ent._free=0;
-      if(ent._held>40&&!ent._detour){ ent._held=0;
+      /* refused for a while: plan the way (Round 137). A planned way that
+         is itself refused is planned again from here — a neighbour stood
+         in it, or a door is swinging; only when no plan can be had does
+         the old way round by lottery serve */
+      if(ent._held>12&&ent._blk!=='entity'&&ent._blk!=='player'&&Math.hypot(ent.tx-ent.m.position.x,ent.tz-ent.m.position.z)>4){
+        if(ent._path&&ent._held>40) ent._path=null;
+        if(!ent._path&&folkPlan(ent)) ent._held=0; }
+      if(ent._held>40&&!ent._detour&&!ent._path){ ent._held=0;
         /* each detour that does not free him reaches farther than the last
            (a row of market stalls is longer than one stall), and the side
            turns every second time; sixty free frames forget the run */
@@ -14087,7 +14767,7 @@ function moveEnt(ent,dt,sp){
      place was reached by walking, so it is outside every wall by
      construction, and it is where a stranded one is put back. */
   const cH=(gHere.edited)?landAtWorld(ent.m.position.x,ent.m.position.z):null;
-  const hereBad=(cH&&gHere.y>cH.h*B+B*1.2&&!inDoorway(ent.m.position.x,ent.m.position.z))
+  const hereBad=(cH&&gHere.y>cH.h*B+B*1.2&&!inDoorway(ent.m.position.x,ent.m.position.z)&&!houseFloorAt(ent.m.position.x,ent.m.position.z,gHere.y))
     ||(gHere.land&&isFinite(gHere.ceil)&&(gHere.ceil-gHere.y)<B*1.9&&!((gHere.ceil-gHere.y)>=B*1.0&&(underEave(ent.m.position.x,ent.m.position.z)||doorHead(ent.m.position.x,ent.m.position.z))));
   if(hereBad){
     if(ent.gx!==undefined){ ent.m.position.x=ent.gx; ent.m.position.z=ent.gz; ent.m.position.y=ent.gy; }
@@ -14150,11 +14830,76 @@ function blockedByStructureNPC(nx,nz){
    so the robe does not sink. Sat, the pelvis drops and the legs go out. Both
    are undone by the one hand, and moveEnt puts the feet back on the ground
    the next step taken. */
-function lieDown(ent){
+/* ---- A PLACE OF HIS OWN TO SLEEP (Round 137) ----
+   THE FAULT THIS MENDS. Every soul of a household made for the one spot in
+   the middle of the room and lay down within two paces of it. The first one
+   home lay there, and a body lying on the floor is a body the others may not
+   walk into (three paces) — so the rest of the house stood all night four
+   paces from their beds, read 'entity', held by their own sleeping kin.
+   Each soul now has its own place, head to the far wall, feet to the room.
+   The head of the house takes the bed the house was built with, in the far
+   corner. The rest lie on mats along the far wall, a body's breadth and more
+   apart, and then in a second row; every place is checked against the
+   furniture and the shelves first, so nobody is laid across the table. */
+function houseBedSpots(H){
+  if(H._bedSpots) return H._bedSpots;
+  if(!H.door) return null;
+  const T=B*0.5, ix0=H.x0+T, ix1=H.x1-T, iz0=H.z0+T, iz1=H.z1-T, dd=H.door.dir;
+  /* the room's own frame, exactly as emitFurniture laid it: `a` from the far
+     wall toward the door, `b` across from one side wall */
+  const ax=(dd>=2), aDir=(dd===0||dd===2)?1:-1;
+  const aO=ax?(aDir>0?ix0:ix1):(aDir>0?iz0:iz1), bO=ax?iz0:ix0;
+  const bLen=ax?(iz1-iz0):(ix1-ix0);
+  const P=(a,b)=>ax?[aO+aDir*a,bO+b]:[bO+b,aO+aDir*a];
+  const fY=H.yb+(H.big?0:B);
+  const g0=groundInfo((H.x0+H.x1)/2,(H.z0+H.z1)/2,fY+B*0.6);
+  if(!g0.edited) return null;                                  /* not laid yet: ask again */
+  const floorOK=(a,b)=>{ const q=P(a,b), g=groundInfo(q[0],q[1],fY+B*0.6);
+    return g.land&&Math.abs(g.y-fY)<1&&!blockedBySolid(q[0],q[1],0.8); };
+  const ang=ax?(aDir>0?Math.PI/2:-Math.PI/2):(aDir>0?0:Math.PI);
+  const L=B*1.9, spots=[];
+  /* the bed the house was built with, in the far corner: the head of the
+     house sleeps in it, stepping up from the floor beside it */
+  if(floorOK(B*1.7,B*2.6)){ const q=P(B*1.7,B*2.6), l=P(B*0.35+L,B*1.02);
+    spots.push({x:q[0],z:q[1],lx:l[0],lz:l[1],ly:fY+B,ang,bed:true}); }   /* on it: the bed stands a whole course, as its cells are stamped */
+  /* the rest on mats along the far wall, clear of the shelves, the table
+     and each other, and then a second row nearer the hearth */
+  for(const a of [B*0.85+L,B*3.3+L]) for(let b=B*2.6;b<=bLen-B*1.0;b+=B*1.25){
+    if(!(floorOK(a,b)&&floorOK(a-L*0.5,b)&&floorOK(a-L*0.95,b))) continue;
+    const q=P(a,b); spots.push({x:q[0],z:q[1],lx:q[0],lz:q[1],ly:fY,ang,a,b}); }
+  /* and where a household is bigger than the rows, any stretch of clear
+     floor in the room long enough to lie on, clear of those already laid */
+  const aLen=ax?(ix1-ix0):(iz1-iz0);
+  if(spots.length<6) for(let a=L+B*0.85;a<=aLen-B*0.6&&spots.length<6;a+=B*0.6)
+    for(let b=B*1.0;b<=bLen-B*1.0&&spots.length<6;b+=B*0.6){
+      if(spots.some(o=>o.a!==undefined?(Math.abs(o.b-b)<B*1.2&&Math.abs(o.a-a)<L+B*0.6):Math.hypot(o.lx-P(a,b)[0],o.lz-P(a,b)[1])<L+B)) continue;
+      if(!(floorOK(a,b)&&floorOK(a-L*0.5,b)&&floorOK(a-L*0.95,b))) continue;
+      const q=P(a,b); spots.push({x:q[0],z:q[1],lx:q[0],lz:q[1],ly:fY,ang,a,b}); }
+  return H._bedSpots=spots;
+}
+function bedOf(ent){
+  const hm=ent.home;
+  if(ent._bed&&ent._bed.hm===hm) return ent._bed;
+  const H=hm.H, mid={hm,x:hm.x!==undefined?hm.x:hm.doorx,z:hm.z!==undefined?hm.z:hm.doorz,ang:null};
+  if(!H||hm.x0===undefined) return ent._bed=mid;
+  const spots=houseBedSpots(H);
+  if(!spots) return mid;                                       /* (not kept: the house is still being laid) */
+  const k=H._bedTaken||0; H._bedTaken=k+1;
+  const sp=spots[k];
+  if(!sp) return ent._bed=mid;                                 /* more souls than places: the old way */
+  return ent._bed=Object.assign({hm},sp);
+}
+function lieDown(ent,ang){
   if(ent._lying) return;
   const u=ent.m.userData, sc=ent.m.scale.y||1;
   ent._lying=true; ent._sat=false; ent.anim='sleep'; ent.act=null; ent.acting=false;
+  /* turned first and THEN laid back, so the body lies the way he faces and
+     not always head to the north, as the default order of turns laid every
+     sleeper in the world (Round 137) */
+  ent.m.rotation.order='YXZ';
+  if(ang!==undefined&&ang!==null) ent.m.rotation.y=ang;
   ent.m.rotation.x=-Math.PI/2;
+  setEyes(ent,true); ent._wokeT=0;
   ent.m.position.y=(ent.gy!==undefined?ent.gy:ent.m.position.y)+1.0*sc;
   u.armL.rotation.x=0; u.armR.rotation.x=0;
   for(const L of u.legs){ L.rotation.x=0; const j=L.userData.knee||L.userData.elbow; if(j) j.rotation.x=0; }
@@ -14169,10 +14914,14 @@ function sitDown(ent){
 function standUp(ent){
   if(!ent._lying&&!ent._sat) return;
   const u=ent.m.userData;
-  ent.m.rotation.x=0;
+  ent.m.rotation.x=0; ent.m.rotation.order='XYZ';
+  setEyes(ent,false);
+  /* out of the bed and onto the floor beside it (Round 137) */
+  if(ent._wake){ const w=ent._wake; ent._wake=null;
+    ent.m.position.x=w.x; ent.m.position.z=w.z; ent.gx=w.x; ent.gz=w.z; ent.gy=w.y; }
   if(ent.gy!==undefined) ent.m.position.y=ent.gy;
   for(let i=0;i<2;i++){ u.legs[i].rotation.x=0; const k=u.legs[i].userData.knee; if(k) k.rotation.x=0; }
-  ent._lying=false; ent._sat=false; ent.actT=undefined; ent.acting=false;
+  ent._lying=false; ent._sat=false; ent.actT=undefined; ent.acting=false; ent._partialN=0; ent._outside=false;
   if(ent.anim==='sleep') ent.anim='idle';
 }
 function wanderTick(ent,site,dt,speed){
@@ -14180,9 +14929,21 @@ function wanderTick(ent,site,dt,speed){
   const roamR=ent.roamR||4.6;
   /* home for the night and at the hearth: lie down, and stay down */
   if(ent._abed&&ent.home){
-    const hx=ent.home.x!==undefined?ent.home.x:ent.home.doorx, hz=ent.home.z!==undefined?ent.home.z:ent.home.doorz;
-    if(ent._lying) return false;
-    if(Math.hypot(ent.m.position.x-hx,ent.m.position.z-hz)<2.2){ lieDown(ent); return false; }
+    const bd=bedOf(ent);
+    if(ent._lying){ sleepTick(ent,dt); return false; }
+    if(Math.hypot(ent.m.position.x-bd.x,ent.m.position.z-bd.z)<2.2){
+      /* laid in his own place, along the floor with his head to the back
+         wall — not where his last step happened to end, which put the head
+         of the bed through the plaster (Round 137) */
+      if(bd.ang!==null){ const g=groundInfo(bd.x,bd.z,ent.m.position.y+0.1);
+        if(g.land&&Math.abs(g.y-ent.m.position.y)<B*0.6){
+          ent._wake={x:bd.x,z:bd.z,y:g.y};                       /* where he will stand up again */
+          ent.m.position.x=bd.lx; ent.m.position.z=bd.lz; ent.gy=bd.ly; } }
+      lieDown(ent,bd.ang); return false; }
+    /* no way home at all — three plans running found none, and he has
+       walked as near as there is: he beds down where he is, as a herdsman
+       lies out by his fold (Round 137) */
+    if(ent._partialN>=3&&!ent._path){ ent._outside=true; lieDown(ent); return false; }
   }
   ent.t-=dt;
   if(ent.t<=0){
@@ -14194,13 +14955,15 @@ function wanderTick(ent,site,dt,speed){
       const inside=H.x0!==undefined?(px>H.x0&&px<H.x1&&pz>H.z0&&pz<H.z1)
         :(H.x!==undefined&&Math.hypot(px-H.x,pz-H.z)<B*1.4);   /* a home with no rect on record: near its middle is in */
       if(!inside&&H.ox!==undefined&&Math.hypot(px-H.ox,pz-H.oz)>2.5){ nx=H.ox; nz=H.oz; }   /* to his own door first */
-      else { nx=(H.x!==undefined?H.x:H.doorx)+(Math.random()-0.5)*2;      /* and then to the room, not the doorway */
-        nz=(H.z!==undefined?H.z:H.doorz)+(Math.random()-0.5)*2; }
+      else { const bd=bedOf(ent); nx=bd.x; nz=bd.z; }                  /* and then to his own place in the room */
     } else { const a=Math.random()*Math.PI*2, r=Math.random()*roamR*B;
       nx=ax+Math.cos(a)*r; nz=az+Math.sin(a)*r; }
-    const cc=landAtWorld(nx,nz); if(cc&&cc.kind!=='wall'){ ent.tx=nx; ent.tz=nz; } }
-  const moving=moveEnt(ent,dt,speed*(ent.child?0.7:1));
-  if(!moving){
+    const cc=landAtWorld(nx,nz); if(cc&&cc.kind!=='wall'){ ent.tx=nx; ent.tz=nz;
+      /* the walk home is planned from the outset when it is more than a
+         few steps (Round 137) */
+      if((ent._abed||ent._shelter)&&ent.home&&!ent._path&&Math.hypot(nx-ent.m.position.x,nz-ent.m.position.z)>14) folkPlan(ent); } }
+  const moving=moveSoul(ent,dt,speed*(ent.child?0.7:1));
+  if(!moving&&!ent._riding){
     if(state.mode==='walk'&&Math.hypot(state.walk.x-ent.m.position.x,state.walk.z-ent.m.position.z)<9)
       ent.m.rotation.y=Math.atan2(state.walk.x-ent.m.position.x,state.walk.z-ent.m.position.z);
     else if(ent.faceX!==undefined)
@@ -14228,10 +14991,13 @@ function folkActPlace(ent,vv,act){
     if(best){ ent.tx=px+(best.m.position.x-px)*0.6; ent.tz=pz+(best.m.position.z-pz)*0.6;
       ent.faceX=best.m.position.x; ent.faceZ=best.m.position.z; }
     return; }
-  if(act==='tend'){ const w=ent.farm||ent.pen||ent.spot||ent.stall||ent.well||null;
+  if(act==='tend'){ const w=ent.farm||ent.pen||ent.spot||ent.stall||ent.well||ent.work||null;
     if(w){ ent.faceX=w.x; ent.faceZ=w.z; } }
   ent.tx=px+(R()-0.5)*3; ent.tz=pz+(R()-0.5)*3;
 }
+/* the lesson's hours are the teacher's row's (Round 137 — they were written
+   into the code three times over, and the table said nothing of them) */
+function lessonHour(h){ return window.BEHAVIOR&&BEHAVIOR.folkLesson?BEHAVIOR.folkLesson(h):(h>=8&&h<13); }
 function nextTask(ent,vv){
   const site=vv.site, R=Math.random;
   const F=window.BEHAVIOR?BEHAVIOR.folkOf(ent.role):null;
@@ -14255,7 +15021,7 @@ function nextTask(ent,vv){
   /* — except a child in lesson hours, who is at the lesson: the draw is for
      the waking day as a whole, and the first cut of test 62 read no child
      at school at ten because four in five picks went to play */
-  const atLesson=ent.role==='child'&&hour>=8&&hour<13&&ent.teach;
+  const atLesson=ent.role==='child'&&lessonHour(hour)&&ent.teach;
   if(F&&!atLesson&&R()>F.work){ const act=BEHAVIOR.drawFolkAct(ent.role,R());
     if(act){ ent.act=act; ent.anim=act; ent.actT=3+R()*4; folkActPlace(ent,vv,act); return; } }
   ent.act=null;
@@ -14290,12 +15056,12 @@ function nextTask(ent,vv){
       else { ent.leg='about'; const a=R()*6.28, r2=R()*(ent.roamR||4)*B;
         ent.tx=site.x+Math.cos(a)*r2; ent.tz=site.z+Math.sin(a)*r2; ent.actT=1.5+R()*2.5; ent.anim='idle'; }
       break; }
-    case 'herder': { const pen=ent.pen||site;
+    case 'herder': { const pen=flockHome(vv,hour)||ent.pen||site;    /* the pasture by day, the fold at evening */
       let stray=null,bd=0;
-      for(const b of vv.beasts||[]){ if(b.kind!=='sheep'&&b.kind!=='goat'&&b.kind!=='cow') continue;
+      for(const b of vv.beasts||[]){ if(!FLOCK_KINDS.has(b.kind)) continue;
         const d2=Math.hypot(b.m.position.x-pen.x,b.m.position.z-pen.z);
         if(d2>bd){ bd=d2; stray=b; } }
-      if(stray&&bd>B*7){ ent.drive=stray; ent.tx=stray.m.position.x; ent.tz=stray.m.position.z; ent.actT=0.7; ent.anim='idle'; }
+      if(stray&&bd>B*(flockOut(hour)?9:5)){ ent.drive=stray; ent.tx=stray.m.position.x; ent.tz=stray.m.position.z; ent.actT=0.7; ent.anim='idle'; }
       else { ent.drive=null; ent.tx=pen.x+(R()-0.5)*B*5; ent.tz=pen.z+(R()-0.5)*B*5; ent.actT=2.5+R()*3; ent.anim='idle'; }
       break; }
     case 'hunter': {
@@ -14310,13 +15076,41 @@ function nextTask(ent,vv){
     case 'child': {
       /* the LOCAL hour — this read state.simHours, the world clock, so the
          lesson was at the right hour at one longitude only */
-      if(hour>=8&&hour<13&&ent.teach){                /* the morning lesson */
+      if(lessonHour(hour)&&ent.teach){                /* the morning lesson */
         ent.tx=ent.teach.x+(R()-0.5)*B*2.4; ent.tz=ent.teach.z+B*0.7+(R()-0.5)*B*1.8;
         ent.actT=4+R()*3; ent.anim='sit'; ent.faceX=ent.teach.x; ent.faceZ=ent.teach.z; }
       else { ent.anim='play'; ent.actT=0.35; }        /* tag about the square (retargeted live) */
       break; }
+    case 'gleaner': {                                 /* after the reapers, in the field, and the sheaves home */
+      if(ent.leg==='field'&&ent.work){ const w=ent.work; ent.leg='home'; ent.tx=w.x; ent.tz=w.z; ent.actT=3+R()*2; ent.anim='stack';
+        ent.faceX=w.faceX; ent.faceZ=w.faceZ; ent.load=true; }
+      else { const f=ent.farm||site; ent.leg='field'; ent.tx=f.x+(R()-0.5)*B*3.4; ent.tz=f.z+(R()-0.5)*B*2.2; ent.actT=8+R()*8;
+        ent.anim='glean'; ent.faceX=undefined; ent.load=false; }
+      break; }
+    case 'potter': case 'weaver': case 'baker': case 'carpenter': case 'spinner': {
+      const w=ent.work||ent.home||site;
+      ent.tx=w.x+(R()-0.5)*1.2; ent.tz=w.z+(R()-0.5)*1.2; ent.actT=7+R()*8;
+      ent.anim=ent.role==='potter'?'throw':ent.role==='weaver'?'weave':ent.role==='baker'?'knead':ent.role==='spinner'?'spin':'work';
+      ent.faceX=w.faceX; ent.faceZ=w.faceZ; ent.load=false; break; }
+    case 'woodcutter': {                              /* out to the trees, and home with the load */
+      const w=ent.work||ent.home||site, L=ent.woodlot;
+      if(ent.leg==='lot'||!L){ ent.leg='home'; ent.tx=w.x; ent.tz=w.z; ent.actT=3+R()*2; ent.anim='stack';
+        ent.faceX=w.faceX; ent.faceZ=w.faceZ; ent.load=!!L; }
+      else { ent.leg='lot'; ent.tx=L.x+(R()-0.5)*B*5; ent.tz=L.z+(R()-0.5)*B*5; ent.actT=10+R()*10; ent.anim='chop';
+        ent.faceX=L.x+(R()-0.5)*B*8; ent.faceZ=L.z+(R()-0.5)*B*8; ent.load=false; }
+      break; }
+    case 'mason': {                                   /* the stone-heap, and the course being raised */
+      const w=ent.work||ent.home||site, Q=ent.quarry;
+      if(ent.leg==='quarry'||!Q){ ent.leg='lay'; ent.tx=w.x; ent.tz=w.z; ent.actT=12+R()*10; ent.anim='work';
+        ent.faceX=w.faceX; ent.faceZ=w.faceZ; ent.load=false; }
+      else { ent.leg='quarry'; ent.tx=Q.x+(R()-0.5)*B*2.6; ent.tz=Q.z+(R()-0.5)*B*2.6; ent.actT=3+R()*3; ent.anim='tend';
+        ent.faceX=Q.x; ent.faceZ=Q.z; }
+      break; }
     case 'teacher': { const p2=ent.post||site;
-      ent.tx=p2.x+(R()-0.5)*2; ent.tz=p2.z+(R()-0.5)*2; ent.actT=5+R()*4; ent.anim='teach'; break; }
+      /* he teaches in the lesson's hours; outside them he sits at his post
+         with the scroll (Round 137 — he was read teaching an empty square
+         at seven in the evening) */
+      ent.tx=p2.x+(R()-0.5)*2; ent.tz=p2.z+(R()-0.5)*2; ent.actT=5+R()*4; ent.anim=lessonHour(hour)?'teach':'study'; break; }
     default: { const a=R()*6.28, r2=R()*(ent.roamR||4)*B;
       ent.tx=site.x+Math.cos(a)*r2; ent.tz=site.z+Math.sin(a)*r2; ent.actT=1.5+R()*3; ent.anim='idle'; }
   }
@@ -14336,7 +15130,35 @@ function personTick(ent,vv,dt){
      everyone in: weather is not hours. */
   const hour=vv.hour!==undefined?vv.hour:localHourAt(site.x,site.z);
   ent._abed=window.BEHAVIOR?!BEHAVIOR.folkAwake(ent.role,hour):(worldNight>0.55);
+  /* ---- WHERE THE CLOCK SAYS (Round 137) ----
+     THE FAULT THIS MENDS. A village is raised when the traveller comes near
+     and was raised the same at every hour: every soul set down at its work.
+     Come at two in the morning and the whole town stood in the market and
+     the fields, then turned and walked home in front of him — the town
+     plainly began when he arrived. A soul whose trade has it abed at this
+     hour is now raised in its own bed, lying down, the door shut. (The
+     floor is looked for until the house is laid; a house still being built
+     a slice at a time has no floor yet.) */
+  if((ent._born||0)<40){ ent._born=(ent._born||0)+1;
+    if(!ent._abed||!ent.home||ent._lying) ent._born=99;
+    else { const bd=bedOf(ent), H=ent.home.H;
+      const g=groundInfo(bd.x,bd.z,(H&&H.yb!==undefined?H.yb:ent.m.position.y)+B*2.5);
+      if(g.land&&g.edited&&insideHouse(bd.x,bd.z)&&bd.ang!==null){
+        ent._wake={x:bd.x,z:bd.z,y:g.y};
+        ent.m.position.set(bd.lx,bd.ly,bd.lz); ent.gx=bd.x; ent.gz=bd.z; ent.gy=bd.ly; ent.tx=bd.x; ent.tz=bd.z;
+        ent.acting=false; ent.act=null; ent.actT=undefined; ent._path=null; ent._detour=null;
+        lieDown(ent,bd.ang); ent._born=99; } } }
   const pace=window.BEHAVIOR?BEHAVIOR.folkPaceOf(ent.role,7):7;
+  /* ---- AND ONE WITH NO HOUSE BEDS DOWN BY THE WELL (Round 137) ----
+     a soul the houses had no room for went on working through the night,
+     the one figure up in a sleeping town */
+  if(ent._abed&&!ent.home){
+    if(ent._lying) sleepTick(ent,dt);
+    if(!ent._lying){ const a=hash2(ent.seed||1,4.4)*6.2832, r=B*(2.8+hash2(ent.seed||1,8.8)*1.8);
+      ent.tx=site.x+Math.cos(a)*r; ent.tz=site.z+Math.sin(a)*r; ent.anim='home'; ent.act=null;
+      if(Math.hypot(ent.m.position.x-ent.tx,ent.m.position.z-ent.tz)<2.2) lieDown(ent);
+      else moveEnt(ent,dt,pace); }
+    ent._wasAbed=true; return; }
   if((ent._abed||ent._shelter)&&ent.home){
     if(ent._lying&&!ent._abed) standUp(ent);       /* the storm keeps him in; it does not put him to bed */
     if(ent._sat) standUp(ent);                      /* a soul sat at bread stands before it walks */
@@ -14351,7 +15173,7 @@ function personTick(ent,vv,dt){
      could still be walking there and sitting through it at three (a long
      walk's budget plus the act ran past any hold), and test 62 caught one
      at the lesson at quarter past. The bell rings: task re-drawn. */
-  if(ent.role==='child'&&ent.anim==='sit'&&!(hour>=8&&hour<13)){ ent.actT=undefined; ent.acting=false; ent.act=null; }
+  if(ent.role==='child'&&ent.anim==='sit'&&!lessonHour(hour)){ ent.actT=undefined; ent.acting=false; ent.act=null; }
   const px=ent.m.position.x, pz=ent.m.position.z;
   if(ent.actT===undefined){ nextTask(ent,vv);
     /* ---- AND A WALK HAS A BUDGET (Round 95) ----
@@ -14368,7 +15190,8 @@ function personTick(ent,vv,dt){
   if(ent.role==='herder'&&ent.drive){ const s=ent.drive;
     ent.tx=s.m.position.x; ent.tz=s.m.position.z;
     if(Math.hypot(px-s.m.position.x,pz-s.m.position.z)<7){ s.driven=true; }       /* drive it penward */
-    if(ent.pen&&Math.hypot(s.m.position.x-ent.pen.x,s.m.position.z-ent.pen.z)<B*4){ ent.drive=null; nextTask(ent,vv); } }
+    const fh=flockHome(vv,hour)||ent.pen;
+    if(fh&&Math.hypot(s.m.position.x-fh.x,s.m.position.z-fh.z)<B*4){ ent.drive=null; nextTask(ent,vv); } }
   if(ent.role==='hunter'&&ent.stalk){ const s=ent.stalk;
     ent.tx=s.m.position.x; ent.tz=s.m.position.z;
     if(Math.hypot(px-s.m.position.x,pz-s.m.position.z)<5){ s.spooked=tnow; ent.stalk=null; nextTask(ent,vv); } }
@@ -14385,7 +15208,8 @@ function personTick(ent,vv,dt){
   if(d>2.2){
     ent.acting=false;
     if(ent._sat||ent._lying) standUp(ent);
-    if(!ent.drive&&!ent.stalk&&!(ent.role==='child'&&ent.anim==='play')){
+    if(ent.m.rotation.x!==0&&!ent._lying) ent.m.rotation.x=0;   /* up from the gleaner's stoop */
+    if(!ent.drive&&!ent.stalk&&!(ent.role==='child'&&ent.anim==='play')&&!ent._riding&&!(ent.mountE&&d>B*10)){
       ent._wk=(ent._wk===undefined?6:ent._wk)-dt;
       if(ent._wk<0){ ent.actT=undefined; ent.act=null; ent.tx=px; ent.tz=pz; ent.stuck=0; return; } }
     /* every trade goes at its own pace, out of js/behavior.js — the hunter
@@ -14393,8 +15217,16 @@ function personTick(ent,vv,dt){
     let sp=window.BEHAVIOR?BEHAVIOR.folkPaceOf(ent.role,7):7;
     if(ent.role==='child'&&ent.anim==='play') sp=8.5;
     else if(ent.role==='hunter'&&ent.stalk) sp=4.5;
-    moveEnt(ent,dt,sp);
+    if(ent.load) sp*=0.8;
+    const wk=moveSoul(ent,dt,sp);
+    if(ent._riding){ ent.load=false; }
+    /* the arms on the road: a load borne on the shoulder, or swung with the
+       stride — they used to stay set in whatever the hands last did (Round 137) */
+    if(ent._riding){ }
+    else if(ent.load){ u.armL.rotation.x=-2.9; u.armR.rotation.x=-2.7; }
+    else if(wk&&!ent.child){ const ph=tnow*7.5; u.armL.rotation.x=Math.sin(ph)*0.35; u.armR.rotation.x=-Math.sin(ph)*0.35; }
   } else {
+    if(ent._riding&&ent.mountE) getDown(ent,ent.mountE);
     if(!ent.acting){ ent.acting=true; ent.pt=ent.actT||2; }
     ent.pt-=dt;
     /* face the work — or a traveller come close to speak */
@@ -14410,6 +15242,7 @@ function personTick(ent,vv,dt){
     else if(A==='feed'){ u.armR.rotation.x=-0.7+Math.sin(tnow*5)*0.6; vv.feedT=tnow; vv.feedX=px; vv.feedZ=pz; }
     else if(A==='hawk'){ u.armR.rotation.x=-1.35+Math.sin(tnow*2.4)*0.22; u.armL.rotation.x=-0.2; }
     else if(A==='teach'){ u.armR.rotation.x=-1.0+Math.sin(tnow*1.7)*0.35; }
+    else if(A==='study'){ sitDown(ent); u.armR.rotation.x=-1.25; u.armL.rotation.x=-1.25; }
     else if(A==='fish'&&u.rod){
       /* ---- THE FISHERMAN'S REAL WORK ----
          He waits with the rod out over the water, feels the tug, STRIKES, and
@@ -14437,6 +15270,14 @@ function personTick(ent,vv,dt){
       if(A==='eat'){ u.armR.rotation.x=-1.3+Math.sin(tnow*2.2)*0.35; u.armL.rotation.x=-0.6; }
       else { u.armR.rotation.x=0; u.armL.rotation.x=0; } }
     else if(A==='pray'){ u.armL.rotation.x=-2.4; u.armR.rotation.x=-2.4; }
+    /* the trades of the household (Round 137) */
+    else if(A==='throw'){ sitDown(ent); u.armR.rotation.x=-1.15+Math.sin(tnow*4.2)*0.12; u.armL.rotation.x=-1.15+Math.sin(tnow*4.2+1.6)*0.12; }
+    else if(A==='weave'){ const k=Math.sin(tnow*1.6); u.armR.rotation.x=-1.3+k*0.35; u.armL.rotation.x=-1.3-k*0.35; }
+    else if(A==='knead'){ const k=Math.max(0,Math.sin(tnow*4.6)); u.armR.rotation.x=-0.85-k*0.5; u.armL.rotation.x=-0.85-k*0.5; }
+    else if(A==='chop'){ const k=(Math.sin(tnow*3.1)+1)/2; u.armR.rotation.x=-0.4-k*2.5; u.armL.rotation.x=-0.4-k*2.5; }
+    else if(A==='spin'){ sitDown(ent); u.armR.rotation.x=-2.2+Math.sin(tnow*6)*0.12; u.armL.rotation.x=-0.9+Math.sin(tnow*3)*0.2; }
+    else if(A==='glean'){ const k=(Math.sin(tnow*1.4)+1)/2; u.armR.rotation.x=-0.3-k*0.9; u.armL.rotation.x=-0.6; ent.m.rotation.x=k*0.35; }
+    else if(A==='stack'){ ent.load=false; u.armR.rotation.x=-1.0+Math.sin(tnow*2.5)*0.4; u.armL.rotation.x=-1.0+Math.sin(tnow*2.5)*0.4; }
     else if(A==='carry'){ u.armL.rotation.x=-2.9; u.armR.rotation.x=-0.2; }
     else if(A==='tend'){ u.armR.rotation.x=-0.7+Math.sin(tnow*3.2)*0.5; u.armL.rotation.x=-0.4+Math.sin(tnow*3.2+0.5)*0.3; }
     else if(A==='talk'){ u.armR.rotation.x=-0.5+Math.sin(tnow*2.1)*0.45; u.armL.rotation.x=0; }
@@ -14449,7 +15290,49 @@ function personTick(ent,vv,dt){
 }
 const BEAST_PREY=new Set(['sheep','goat','pig','chicken','hare','deer','donkey']);
 const WOLF_PREY=new Set(['pig','sheep','chicken','hare','goat']);
+/* ---- THE FLOCK KEEPS HOURS (Round 137) ----
+   THE FAULT THIS MENDS. The village's beasts kept no hours at all: the sheep
+   stood about the fold at midnight as at noon, roaming the same few paces,
+   and only a storm or a wolf ever moved them. The flock — sheep, goats,
+   cattle, the camels of the desert towns — now goes out at first light to
+   a pasture beyond the fold, away from the houses, grazes there through the
+   day, and comes back in at evening before the herdsman goes to his bed;
+   each beast has its own place in the fold, and lies down there in the
+   dead of night. The hens go in to roost at dusk and come out at dawn.
+   The herdsman keeps them: at pasture by day, and at evening he goes after
+   any that lag and drives them home. */
+const FLOCK_KINDS=new Set(['sheep','goat','cow','camel','pig']);
+function flockOut(h){ return h>=5.6&&h<18.8; }
+function villagePasture(vv){
+  if(vv.pasture) return vv.pasture;
+  const S=vv.site, P=vv.pen, base=Math.atan2(P.z-S.z,P.x-S.x);
+  const pc=landAtWorld(P.x,P.z), py=pc?pc.h*B:0;
+  for(const r of [B*14,B*10,B*18,B*7]) for(const da of [0,0.5,-0.5,1,-1,1.6,-1.6,2.4,-2.4,3.1]){
+    const a=base+da, x=P.x+Math.cos(a)*r, z=P.z+Math.sin(a)*r, c=landAtWorld(x,z);
+    if(!c||c.kind==='wall'||c.kind==='floe'||Math.abs(c.h*B-py)>B*2) continue;
+    if(houseAround(x,z)||blockedBySolid(x,z,B)) continue;
+    return vv.pasture={x,z}; }
+  return vv.pasture={x:P.x,z:P.z};
+}
+function flockHome(vv,h){ return vv.pen?(flockOut(h)?villagePasture(vv):vv.pen):null; }
+function foldSpot(vv,ent){ return {x:vv.pen.x+(hash2(ent.seed,3.1)-0.5)*B*4.4, z:vv.pen.z+(hash2(ent.seed,7.3)-0.5)*B*2.4}; }
+/* a village raised at night has its flock already in the fold, and one
+   raised by day has it out at pasture — not standing where the builder set
+   it down (Round 137, as the people are raised where the clock says) */
+function beastWhereTheClockSays(ent,vv){
+  ent._born=true;
+  if(!vv.pen) return;
+  const hr=vv.hour!==undefined?vv.hour:12, flock=FLOCK_KINDS.has(ent.kind), hen=ent.kind==='chicken';
+  let q=null;
+  if((flock&&!flockOut(hr))||(hen&&(hr<5.5||hr>=19.2))){ q=foldSpot(vv,ent); ent.hx=vv.pen.x; ent.hz=vv.pen.z; }
+  else if(flock){ const P=villagePasture(vv); q={x:P.x+(hash2(ent.seed,1.7)-0.5)*B*6, z:P.z+(hash2(ent.seed,5.9)-0.5)*B*6}; ent.hx=q.x; ent.hz=q.z; }
+  if(!q) return;
+  const c=landAtWorld(q.x,q.z); if(!c||c.kind==='wall'||blockedBySolid(q.x,q.z)) return;
+  const g=groundInfo(q.x,q.z,c.h*B+B*0.5); if(!g.land) return;
+  ent.m.position.set(q.x,g.y,q.z); ent.gx=q.x; ent.gz=q.z; ent.gy=g.y; ent.tx=q.x; ent.tz=q.z;
+}
 function beastTick(ent,vv,dt){
+  if(!ent._born) beastWhereTheClockSays(ent,vv);
   const m=ent.m, px=m.position.x, pz=m.position.z, tnow=performance.now()*0.001;
   ent.t-=dt; ent.panic=false;
   let sp=4.5;
@@ -14475,6 +15358,7 @@ function beastTick(ent,vv,dt){
     } else if(ent.t<=0){ ent.t=2+Math.random()*3; const a=Math.random()*6.28;   /* skulk the outskirts */
       ent.tx=vv.site.x+Math.cos(a)*B*14; ent.tz=vv.site.z+Math.sin(a)*B*14; }
   } else {
+    const hr=vv.hour!==undefined?vv.hour:12; ent._sleep=false;
     /* fear: the traveller too close, a wolf on the hunt, a hunter's spear */
     let fx=null,fz=null;
     if(BEAST_PREY.has(ent.kind)){
@@ -14485,8 +15369,19 @@ function beastTick(ent,vv,dt){
     }
     if(fx!==null){ const dd=Math.hypot(px-fx,pz-fz)||1;
       ent.tx=px+(px-fx)/dd*24; ent.tz=pz+(pz-fz)/dd*24; ent.t=0.4; ent.panic=true; sp=9; }
-    else if(ent.driven&&vv.pen){ ent.tx=vv.pen.x; ent.tz=vv.pen.z; sp=7;
-      if(Math.hypot(px-vv.pen.x,pz-vv.pen.z)<B*3){ ent.driven=false; ent.hx=vv.pen.x; ent.hz=vv.pen.z; } }
+    else if(ent.driven&&vv.pen){ const fh=(FLOCK_KINDS.has(ent.kind)&&flockHome(vv,vv.hour!==undefined?vv.hour:12))||vv.pen;
+      ent.tx=fh.x; ent.tz=fh.z; sp=7;
+      if(Math.hypot(px-fh.x,pz-fh.z)<B*3){ ent.driven=false; ent.hx=fh.x; ent.hz=fh.z; } }
+    else if(vv.pen&&(FLOCK_KINDS.has(ent.kind)||ent.kind==='chicken')&&!(ent.kind==='chicken'?!(hr<5.5||hr>=19.2):flockOut(hr))){
+      /* in the fold for the night: to its own place in it, and there it stays */
+      const fs=foldSpot(vv,ent), sx=fs.x, sz=fs.z;
+      ent.hx=vv.pen.x; ent.hz=vv.pen.z; ent.t=1;
+      if(Math.hypot(px-sx,pz-sz)>1.6){ ent.tx=sx; ent.tz=sz; sp=ent.kind==='chicken'?4:5.5; }
+      else { ent.tx=px; ent.tz=pz; ent._sleep=(hr>=20.5||hr<4.8); } }
+    else if(vv.pen&&FLOCK_KINDS.has(ent.kind)&&Math.hypot(ent.hx-villagePasture(vv).x,ent.hz-villagePasture(vv).z)>B*5){
+      /* out to the pasture at first light, each to its own patch of it */
+      const P=villagePasture(vv); ent.hx=P.x+(hash2(ent.seed,1.7)-0.5)*B*6; ent.hz=P.z+(hash2(ent.seed,5.9)-0.5)*B*6;
+      ent.tx=ent.hx; ent.tz=ent.hz; ent.t=4+hash2(ent.seed,2.2)*6; sp=5; }
     else if((vv.stormF||0)>0.35&&vv.pen&&Math.hypot(px-vv.pen.x,pz-vv.pen.z)>B*4){
       ent.tx=vv.pen.x+(Math.random()-0.5)*B*3; ent.tz=vv.pen.z+(Math.random()-0.5)*B*3; sp=6; } /* huddle at the pen in storm */
     else if(ent.kind==='chicken'&&tnow-(vv.feedT||-99)<1.2&&Math.hypot(vv.feedX-px,vv.feedZ-pz)<45){
@@ -14496,6 +15391,7 @@ function beastTick(ent,vv,dt){
       ent.tx=ent.hx+Math.cos(a)*r2; ent.tz=ent.hz+Math.sin(a)*r2; }
   }
   const mv=moveEnt(ent,dt,sp);
+  if(ent._sleep&&!mv) ent.m.position.y-=(ent.kind==='chicken'?0.5:1.4);   /* lain down in the fold */
   if(ent.hop!==undefined&&ent.hop>0){ ent.hop-=dt; ent.m.position.y+=Math.sin(Math.max(0,ent.hop)*6.28)*1.4; }
   /* the pen's beasts breathe and swish like the wild ones — a farmyard of
      parked statues is no better than a plain of them */
@@ -14504,7 +15400,7 @@ function beastTick(ent,vv,dt){
   { const tl=ent.m.userData&&ent.m.userData.tail;
     if(tl) tl.rotation.y=Math.sin(tnow*(mv?5.5:1.5)+ph2)*(mv?0.3:0.15); }
   /* and a standing grazer puts its head down to the grass now and then */
-  if(!mv&&!ent.panic&&BEAST_PREY.has(ent.kind)){
+  if(!mv&&!ent.panic&&!ent._sleep&&BEAST_PREY.has(ent.kind)){
     const gz=Math.sin(tnow*0.4+ph2);
     ent.m.rotation.x=gz>0.35?0.2+Math.sin(tnow*3+ph2)*0.05:0;
   } else ent.m.rotation.x=0;
@@ -14657,8 +15553,10 @@ function updateVillages(px,pz,dt,nightF,dayF){
          it. Anything the traveller himself did there is in the other layer
          and is not touched. */
       if(vv.stamps) for(const g2 of vv.stamps) stampDrop(g2);
+      if(vv.ways) for(const k of vv.ways){ const n=(WAYS.get(k)||1)-1; if(n>0) WAYS.set(k,n); else WAYS.delete(k); }
       activeVillages.delete(i); }
   }
+  fpLeft=3; fpCellLeft=700;                      /* this frame's ration of planned ways (Round 137) */
   for(const[,vv] of activeVillages){ if(vv.none||!vv.g) continue;
     vv.stormF=stormAt(vv.site.x,vv.site.z);      /* foul weather empties the lanes */
     /* THE VILLAGE'S OWN HOUR, read once a frame for everyone in it: the
@@ -14666,7 +15564,9 @@ function updateVillages(px,pz,dt,nightF,dayF){
        (Round 95 — each trade keeps its own hours out of js/behavior.js) */
     vv.hour=localHourAt(vv.site.x,vv.site.z);
     for(const p of vv.people){ personTick(p,vv,dt); figureLod(p); }
+    if(vv.stalls) for(const st of vv.stalls) if(st.cover) st.cover.visible=!stallOpen(st);
     for(const b2 of vv.beasts){ beastTick(b2,vv,dt); figureLod(b2); }
+    if(vv.mounts) for(const M of vv.mounts){ mountTick(M,vv,dt); figureLod(M); }
     if(vv.birds) for(const bd of vv.birds) birdTick(bd,dt);
     for(const tm of vv.torchMats) tm.opacity=nightF*0.85;
   }
@@ -14795,6 +15695,17 @@ $('trade-rows').addEventListener('click',e=>{
 $('trade-close').addEventListener('click',closeTrade);
 $('trade').addEventListener('click',e=>{ if(e.target.id==='trade') closeTrade(); });
 /* the stall the traveller stands before, and the trader hailed at sea */
+/* ---- THE STALL SHUTS WHEN ITS KEEPER GOES HOME (Round 137) ----
+   the market traded at midnight with nobody behind the counter; the goods
+   sat out under the stars. A stall is open while its keeper is up; when he
+   goes home a cloth is drawn over the goods, and it is drawn back when he
+   comes to his counter in the morning. */
+function stallOpen(s){
+  const k=s&&s.keeper;
+  if(!k) return true;
+  return !k._abed&&!k._lying;
+}
+const STALL_CLOTH=new THREE.MeshLambertMaterial({color:0xb7a47e}); LIT.push(STALL_CLOTH);
 function nearestStallVillage(){
   if(state.mode!=='walk') return null;
   let bestS=null;
@@ -14880,11 +15791,15 @@ function promptTick(){
     else {
       promptDoor=nearestDoor(state.walk.x,state.walk.z);
       promptStall=nearestStallVillage();
+      /* a stall whose keeper has gone home is shut: no trade at it (Round 137) */
+      const stallShut=promptStall&&!stallOpen(promptStall.s);
+      if(stallShut){ if(promptStall.d<7){ label='the stall is shut — its keeper has gone home'; promptAction='none'; } promptStall=null; }
       promptMount=nearestMount(state.walk.x,state.walk.z);
       /* a stall STOOD AT wins over a door eleven units off — in a packed
          market square the widest catchment (13) had the lowest word, and a
          trader standing at his own counter was told to open somebody's door */
-      if(promptStall&&promptStall.d<7){ label='F — trade at the stall'; promptAction='trade'; }
+      if(label){ }
+      else if(promptStall&&promptStall.d<7){ label='F — trade at the stall'; promptAction='trade'; }
       else if(promptScroll){ label='F \u2014 take up the scroll'; promptAction='scroll'; }
       else if(promptDoor){ label='F — '+(promptDoor.door.open?'close the door':'open the door'); promptAction='door'; }
       else if(promptMount){ label='F — mount the '+promptMount.kind; promptAction='ride'; }
@@ -14926,6 +15841,22 @@ const SPEECH={
   shopper:['“The market is busy today — good bread at the far stall.”'],
   folk:['“Peace be upon you, traveller from the sea.”',
     '“Strange sails in the harbour — from what land do you hail?”'],
+  potter:['“Clay from the riverbank, a turn of the wheel, and a jar for oil or for water.”',
+    '“Mind the pots by the wall — they are drying in the sun.”'],
+  weaver:['“The warp hangs from the beam, weighted with stones; the weft goes over and under.”',
+    '“Wool from the flock, spun and woven — a cloak for the cold nights.”'],
+  baker:['“Barley loaves, baked on the hot stones of the oven.”',
+    '“Come at first light — the bread is best warm.”'],
+  carpenter:['“Olive wood is hard, but it lasts — a yoke for a lifetime.”',
+    '“A beam for a roof, a door for a house, a plough for the field.”'],
+  woodcutter:['“The trees thin toward the town; every year I walk further for a load.”',
+    '“Wood for the ovens and the hearths — the town burns a wood a year.”'],
+  spinner:['“Wool from the flock, flax from the field — the spindle turns it to thread.”',
+    '“Sit a while if you like — the thread is long and the day is longer.”'],
+  gleaner:['“The owner of the field leaves the corners for us — that is the custom of the land.”',
+    '“A sheaf a day, and there is bread for the house.”'],
+  mason:['“Stone from the heap, dressed and laid — the house will stand when I am gone.”',
+    '“The town grows; there is always a wall to raise.”'],
   sailor:['“She is trim and true, this ship — room for twelve souls and cargo below.”',
     '“Mind the hatch amidships; the hold is full of good cargo.”'] };
 /* every soul bears a name; speak again and the talk goes deeper, and ends
@@ -14956,6 +15887,13 @@ function rumourLine(){
     +Math.max(50,km).toLocaleString()+' km over the deep. No one here has seen its coast.”';
 }
 function speakTo(p){ if(!p) return;
+  /* ---- A SLEEPER DOES NOT ANSWER (Round 137) ----
+     a man abed was asked the time of day and gave his trade's cheerful
+     line, lying flat on his back with his eyes on the roof-beams */
+  const who=p.name?p.name+' the '+callingOf(p):'The '+callingOf(p);
+  if(p._lying){ wakeSleeper(p,6);
+    toast(who+' wakes, and lifts '+(p.female?'her':'his')+' head — “Mm? It is the middle of the night, friend. Let a soul sleep.”'); return; }
+  if(p._abed){ toast(who+' — “It is late, friend, and I am for my bed. Come and find me in the morning.”'); return; }
   const lines=SPEECH[p.role]||SPEECH.folk;
   const now=performance.now()*0.001;
   if(!p.talk||now-p.talk.t>25) p.talk={idx:0,t:now};
@@ -16379,11 +17317,11 @@ function blockedByEntity(nx,nz,exclude){
   for(const[,vv] of activeVillages){ if(vv.none||!vv.site) continue;
     if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>360) continue;
     const test=arr=>{ if(!arr) return false;
-      for(const e of arr){ if(e.m===exclude) continue;
+      for(const e of arr){ if(e.m===exclude||e._riding) continue;
         const r=(e.child?1.0:1.6);
         if(Math.hypot(nx-e.m.position.x,nz-e.m.position.z)<r+1.4) return true; }
       return false; };
-    if(test(vv.people)||test(vv.beasts)) return true;
+    if(test(vv.people)||test(vv.beasts)||test(vv.mounts)) return true;
   }
   return false;
 }
@@ -16443,6 +17381,7 @@ function mountUp(a){
     const pommel=lbox(1.0,1.0,1.0,0x4a2f1c); pommel.position.set(0,by+1.3,1.6); m.add(pommel);
     for(const s of [1,-1]){ const girth=lbox(0.4,bu*0.5,0.5,0x4a2f1c);
       girth.position.set(s*2.1,by-bu*0.25,-0.3); m.add(girth); } }
+  m.scale.setScalar(mountScale(a.kind));
   scene.add(m);
   state.mount={kind:a.kind,m};
   state.walk.heading=a.heading;
@@ -16517,6 +17456,7 @@ function interact(){
       state.coins+=gain; w.userData.chest.visible=false;
       toast('You break open the sea-chest \u2014 '+gain+' shekels of old silver, given up by the deep. Purse: '+state.coins+'.');
       saveState(); break; }
+    case 'none': break;                             /* a notice, not a deed (a shut stall) */
     case 'trade': { const st=promptStall;
       const cty=cityFor(st.i);
       openTrade(st.i,'the market of '+(cty?cty.name+', ':'')+COUNTRIES[st.i].n,false); break; }
@@ -16532,7 +17472,7 @@ function interact(){
 function setDoor(H,open,by){ const D2=H&&H.door; if(!D2) return;
   D2.open=open; D2.target=open?D2.base+D2.swing:D2.base; D2._by=open?(by||null):null; }
 function toggleDoor(){ if(!promptDoor||!promptDoor.door) return;
-  setDoor(promptDoor,!promptDoor.door.open,'hand'); }
+  setDoor(promptDoor,!promptDoor.door.open,'hand'); noiseAt(promptDoor.dx,promptDoor.dz,B*8); }
 function treeBlocked(nx,nz){
   const c=landAtWorld(nx,nz); if(!c||!c.tree) return false;
   const ix=Math.floor(nx/B), iz=Math.floor(nz/B);
@@ -16653,7 +17593,7 @@ function splEmit(x,y,z,vx,vy,vz,life,sz,surf,mist){
 /* the water's face under a point: the sea's own swell near the level of the sea, or (a lake or a
    river, high in the land) the level the splash was asked for */
 function splSurface(x,y,z){ return Math.abs(y-WATER_Y)<14?WATER_Y+seaHeight(x,z):y-1.2; }
-function splash(x,y,z,big){ initSplash();
+function splash(x,y,z,big){ initSplash(); if(big) noiseAt(x,z,B*6);
   const surf=splSurface(x,y,z), k=big?1:0.55;
   /* the crown, thrown out and up from the rim */
   const nC=big?46:18;
@@ -16706,9 +17646,57 @@ function splashTick(dt){ if(!splPts) return;
   splPts.material.uniforms.uScale.value=renderer.domElement.height*0.9;
   SPL_LIGHT.value.copy(waveMat.uniforms.uLight.value);
 }
-const STEP=B*1.2, JUMPH=B*2.3, CLIMBH=B*4.6;   /* step / must-jump / can-climb heights */
+const STEP=B*1.05, JUMPH=B*2.3, CLIMBH=B*4.6;   /* step / must-jump / can-climb heights */
 const HEAD_R=B*1.9;   /* a man's own height, for the roof of a passage */
 const BODY_R=1.9;   /* the traveller's own half-breadth — he is a body, not a point */
+/* ================= THE BODY IS A BOX, AND THE BLOCKS ARE SOLID (Round 136) =================
+   The traveller asked for it in plain words: "the blocks still do not seem solid like real minecraft",
+   and "fell through the ground". The walk read the world as a HEIGHT for each column: the ground under
+   his midline, four points at his shoulders asked only whether they stood more than a step higher, and
+   a wall of three or four blocks walked into was simply climbed. So his shoulder and his flank went into
+   the stone beside every step (measured: a quarter of all the steps of a blind walk about Yasharal had
+   some of him inside a block, and in the caves his feet stood inside the rock a hundred times in two and
+   a half thousand steps).
+   Now he is what a block game's player is: a BOX, a little narrower than a block and nearly two high,
+   and no part of it may be inside a solid block. A step of one block is taken in his stride; anything
+   higher is jumped (a block and a half at most) or, if he means it, climbed — with the jump held, never
+   by walking into it. He stands on the highest block under ANY part of his feet, so the edge of a ledge
+   holds him as it does in the game, and a fall can never be carried past a floor. And if he is ever
+   found inside the rock all the same — a block laid on him, a slip of the arithmetic — he is put back
+   into the open air above at once, as the game pushes its player out of a block. */
+const FOOT_R=BODY_R*0.9, BODY_TOP=HEAD_R*0.92;   /* the box: its half-breadth, and the head the doorways are cut for */
+function bodyInBlocks(x,fy,z,lo,hi){
+  const r=FOOT_R;
+  const x0=Math.floor((x-r)/B), x1=Math.floor((x+r)/B), z0=Math.floor((z-r)/B), z1=Math.floor((z+r)/B);
+  const y0=Math.floor((fy+lo)/B), y1=Math.floor((fy+hi-0.01)/B);
+  for(let ix=x0;ix<=x1;ix++) for(let iz=z0;iz<=z1;iz++) for(let iy=y0;iy<=y1;iy++)
+    if(blockSolidAt(ix,iy,iz)) return true;
+  return false;
+}
+/* the top of the highest block the box would have to stand on to go here, if no higher than `lim` over his feet */
+function stepTop(x,z,fy,lim){
+  const r=FOOT_R;
+  const x0=Math.floor((x-r)/B), x1=Math.floor((x+r)/B), z0=Math.floor((z-r)/B), z1=Math.floor((z+r)/B);
+  const y0=Math.floor((fy+0.05)/B), y1=Math.floor((fy+lim)/B);
+  let top=fy;
+  for(let ix=x0;ix<=x1;ix++) for(let iz=z0;iz<=z1;iz++) for(let iy=y1;iy>=y0;iy--)
+    if(blockSolidAt(ix,iy,iz)){ const t=(iy+1)*B; if(t>top) top=t; break; }
+  return top-fy<=lim+0.001?top:null;
+}
+/* the highest floor under any part of his feet, at or a little over them (-Infinity over open sea) */
+function footFloor(x,z,fy){
+  let best=-Infinity; const r=FOOT_R;
+  for(let k=0;k<5;k++){ const ox=k?((k&1)?r:-r):0, oz=k?((k&2)?r:-r):0;
+    const g=groundInfo(x+ox,z+oz,fy+0.1); if(!g.land) continue;
+    if(g.y<=fy+B*0.3&&g.y>best) best=g.y; }
+  return best;
+}
+/* the first height above, block by block, where the whole box stands in the open air */
+function freeAbove(x,z,fy){
+  for(let k=0;k<260;k++){ const y=(Math.floor(fy/B)+k)*B; if(!bodyInBlocks(x,y,z,0.05,BODY_TOP)) return y; }
+  return null;
+}
+let walkUnstuck=0;   /* (for the fuzzer: how many times he was found in the rock and put back) */
 function walkTick(dt){
   const w=state.walk, u=walkerG.userData; const [f,t]=axis();
   if(w.feetY===undefined){ w.feetY=groundInfo(w.x,w.z).y; w.vy=0; w.grounded=true; }
@@ -16726,16 +17714,44 @@ function walkTick(dt){
     return;
   }
   w.heading+=t*dt*2.4;
+  /* ---- FOUND IN THE ROCK, PUT BACK IN THE AIR ---- */
+  if(!state.mount&&bodyInBlocks(w.x,w.feetY,w.z,B*0.55,HEAD_R*0.9)){
+    const ny=freeAbove(w.x,w.z,w.feetY);
+    if(ny!==null){ w.feetY=ny; w.vy=0; w.grounded=true; w.stepOff=0; walkUnstuck++; } }
   const gi=groundInfo(w.x,w.z,w.feetY+0.1);
   /* over water the body SWIMS — no man walks upon the sea. But a body still
      IN THE AIR above the water (a leap off a cliff, a jump from a pier) falls
      under gravity until it truly meets the surface — no mid-air snap-down. */
   const surfY0=WATER_Y+seaHeight(w.x,w.z);
   const swimming=gi.water&&(w.feetY===undefined||w.feetY<=surfY0+0.6);
+  /* ---- IN THE WATER OF A WELL, A STREAM, A SPILLED BUCKET (Round 136) ----
+     The sea is the sea, and swum as it always was (above). Water that is BLOCKS — a well, a trough, a
+     channel, the stream off a spring, a bucket poured out — is now waded and swum as the block games
+     have it: he walks into it, the bed is his floor, it holds him back, he sinks slowly when it is over
+     his head and swims up with the jump held, and he hauls himself out over a block's edge. */
+  const wix=Math.floor(w.x/B), wiz=Math.floor(w.z/B);
+  const liqFeet=!swimming&&isLiquid(blockAt(wix,Math.floor((w.feetY+0.6)/B),wiz));
+  const liqChest=!swimming&&isLiquid(blockAt(wix,Math.floor((w.feetY+B*1.25)/B),wiz));
+  const wading=liqFeet||liqChest;
+  if(wading&&!w.wading){ const sy=(Math.floor((w.feetY+B*1.25)/B)+(liqChest?1:0))*B;
+    if(w.vy<-12) splash(w.x,sy,w.z,w.vy<-40); }
+  w.wading=wading; w.deepWade=liqChest;
   /* ---- vertical physics: gravity, landing, the jump, and true buoyancy ----
      In the water the body floats AT the surface and rides the swell — prone
      and stroking when swimming forward, treading upright when at rest. */
   const surfY=WATER_Y+seaHeight(w.x,w.z);
+  /* ---- A LEDGE IS CLIMBED ON PURPOSE ----
+     Walking into a wall of three or four blocks used to climb it, so no wall in the world stopped him.
+     Now a wall is a wall; he goes up a ledge only when he means to — the jump held as he presses into
+     it (SPACE, or the JUMP / CLIMB button) — and only if there is room for him on top. */
+  if((keys.Space||w.jumpReq)&&w.grounded&&!(w.spill>0)&&!state.mount&&!swimming&&f>0.3){
+    const ax=w.x+Math.sin(w.heading)*B*0.95, az=w.z+Math.cos(w.heading)*B*0.95;
+    const tg=groundInfo(ax,az,w.feetY+B*4.8), dd=tg.y-w.feetY;
+    if(tg.land&&dd>B*1.3&&dd<=CLIMBH&&!blockedByStructure(ax,az)&&!treeBlocked(ax,az)&&!blockedBySolid(ax,az)
+      &&!landmarkSolidAt(ax,az,tg.y+2.2,tg.y+8)&&!bodyInBlocks(ax,tg.y,az,0.05,BODY_TOP)
+      &&!bodyInBlocks(w.x,w.feetY,w.z,0.05,dd+BODY_TOP)){          /* and nothing over his head on the way up */
+      w.climb={t:0,dur:0.8, x0:w.x,z0:w.z,y0:w.feetY, x1:ax,z1:az,y1:tg.y};
+      w.jumpReq=false; return; } }
   if(swimming){
     if(state.mount) dismount(true);      /* a horse will not swim — you part at the water's edge */
     if(!w.inWater){
@@ -16799,7 +17815,18 @@ function walkTick(dt){
   else { if(w.inWater){ w.inWater=false; }
     /* (a sprawl is a thing of dry land — water catches him instead) */
     w.driftX=0; w.driftZ=0; w.wPitch=0; w.wRoll=0;   /* out of the water, out of its motion */
-    w.vy-=64*dt; w.feetY+=w.vy*dt;
+    const floorY=footFloor(w.x,w.z,w.feetY);   /* (every floor under him, read before he moves) */
+    if(wading){
+      /* the water bears him up and holds him back: over his chest he barely sinks, and the jump held
+         swims him up — out at the top, and over the lip of a block if he is pressing toward it */
+      const up=keys.Space||w.jumpHold;
+      w.vy-=64*dt*(liqChest?0.16:0.55);
+      if(up) w.vy+=(liqChest?110:70)*dt;
+      w.vy*=Math.max(0,1-3.2*dt);
+      w.vy=Math.max(-16,Math.min(liqChest?16:24,w.vy));
+      w.jumpReq=false; }
+    else w.vy-=64*dt;
+    w.feetY+=w.vy*dt;
     /* ---- A BODY DOES NOT FALL FASTER THAN IT CAN BE CAUGHT ----
        Off the shoulder of a mountain a thousand units high the fall reached
        hundreds of units a second, and at that speed a frame carries the body
@@ -16809,102 +17836,98 @@ function walkTick(dt){
        longer than half a block, so every ledge on the way down is offered to
        him and he stands on the first one that will hold him. */
     if(w.vy<-190) w.vy=-190;
-    { const y0=w.feetY-w.vy*dt;          /* where he was before this frame */
-      const drop=y0-w.feetY;
-      if(drop>B*0.5&&!gi.water){
-        const steps=Math.min(24,Math.ceil(drop/(B*0.5)));
-        for(let k=1;k<=steps;k++){
-          const yk=y0-drop*(k/steps);
-          if(yk<=gi.y){ w.feetY=gi.y; break; }
-          w.feetY=yk; } } }
+    /* (and the floor was read for the whole of his feet BEFORE the frame's fall, as the highest ground at
+       or under them — so however far a frame carries him, it cannot carry him past it) */
     /* land arrests the fall; water does not — the body carries its speed
        through the surface so the plunge can read it */
     /* A JUMP LANDS AT ABOUT -38, and a man is not winded by his own hop —
        only a real drop puts him down. */
     const wasFalling=!w.grounded&&w.vy<-88;
-    if(w.feetY<=gi.y&&!gi.water){
-      w.feetY=gi.y;
+    if(w.feetY<=floorY&&floorY>-1e8){
+      w.feetY=floorY;
       /* ---- AND HE IS WINDED BY IT ----
          A long drop puts him down hard: he lands sprawled and gathers himself
          up again over a moment, rather than striking the rock at a hundred
          units a second and walking on as though nothing had happened. */
-      if(wasFalling&&!w.climb) w.spill=Math.min(1.5,0.45+(-w.vy)/190*1.05);
+      if(wasFalling&&!w.climb&&!wading) w.spill=Math.min(1.5,0.45+(-w.vy)/190*1.05);   /* (water breaks a fall) */
       w.vy=0; w.grounded=true; } else w.grounded=false;
-    if((keys.Space||w.jumpReq)&&w.grounded&&!(w.spill>0)){ w.vy=38; w.grounded=false; } w.jumpReq=false;
+    if((keys.Space||w.jumpReq)&&w.grounded&&!(w.spill>0)&&!wading){ w.vy=38; w.grounded=false; } w.jumpReq=false;
     /* ---- AND A ROOF IS A ROOF ----
        In a passage a man may not jump up through the rock over his head.
        Asked only of a column that has actually been hollowed, so nothing
        under the open sky pays a thing for it. */
     if(gi.hollow&&isFinite(gi.ceil)&&w.feetY+HEAD_R>gi.ceil){
-      w.feetY=gi.ceil-HEAD_R; if(w.vy>0) w.vy=0; } }
-  /* ---- horizontal move, gated by the height of the ground ahead ---- */
+      w.feetY=gi.ceil-HEAD_R; if(w.vy>0) w.vy=0; }
+    /* and any block over ANY part of his head stops the rise — not only the roof of a hollow column */
+    if(w.vy>0&&bodyInBlocks(w.x,w.feetY,w.z,BODY_TOP*0.6,BODY_TOP)){
+      const iy=Math.floor((w.feetY+BODY_TOP)/B);
+      w.feetY=Math.min(w.feetY,iy*B-BODY_TOP-0.01); w.vy=0; } }
+  /* ---- horizontal move: the box against the blocks ---- */
   /* mounted, the beast's stride is yours: a canter at twice a man's pace */
-  const sp=(w.spill>0&&!swimming)?0:f*(swimming?16:state.mount?38:18);
-  const fullX=w.x+Math.sin(w.heading)*sp*dt, fullZ=w.z+Math.cos(w.heading)*sp*dt;
-  /* THE BODY IS NOT A POINT. Every test below was made at the traveller's
-     midline alone, so he could stand with his centre just inside a cell and
-     half of himself buried in the stone beside it — and the face of a wall
-     lying between two frames' sample points was walked clean through. His
-     whole breadth is tested now, and if the way is barred he SLIDES along
-     it (trying each axis alone) instead of sticking fast against it. */
-  let nx=fullX, nz=fullZ, tg=groundInfo(nx,nz,w.feetY+0.1), diff=0, solidBlock=false, canGo=false;
+  const sp=(w.spill>0&&!swimming)?0:f*(swimming?16:state.mount?38:wading?(liqChest?8:11):18);
+  /* and RUNNING water carries him with it, out from its spring and down its fall, as it does in the block
+     games — a level held by js/water.js, pushing toward the thinner water beside it */
+  let flowX=0, flowZ=0;
+  if(wading&&window.WATER){ const fiy=Math.floor((w.feetY+0.6)/B), lv=WATER.levelAt(wix,fiy,wiz);
+    if(lv!==null&&lv!==undefined){
+      for(const [ox,oz] of [[1,0],[-1,0],[0,1],[0,-1]]){ const l2=WATER.levelAt(wix+ox,fiy,wiz+oz);
+        if(l2!==null&&l2!==undefined&&l2>lv&&l2<8){ flowX+=ox; flowZ+=oz; }
+        else if(blockAt(wix+ox,fiy,wiz+oz)===0&&!blockSolidAt(wix+ox,fiy-1,wiz+oz)){ flowX+=ox; flowZ+=oz; } }
+      const fm=Math.hypot(flowX,flowZ); if(fm>0){ flowX=flowX/fm*7*dt; flowZ=flowZ/fm*7*dt; } } }
+  const fullX=w.x+Math.sin(w.heading)*sp*dt+flowX, fullZ=w.z+Math.cos(w.heading)*sp*dt+flowZ;
+  /* THE BODY IS NOT A POINT, and the blocks are solid (Round 136). The box is tried where the stride
+     would carry it; if any block stands in it he steps up onto it — a block in his stride, a little more
+     than a block under a hand in the air, the strand out of the sea — or he does not go. And when the way
+     is barred he SLIDES along it (trying each axis alone) instead of sticking fast against it. The other
+     things that bar the way (the houses' own footprint, the trees, the wells and stalls, the people, the
+     works of the ancients) bar it as they always have. */
+  const fy0=w.feetY;
+  let nx=fullX, nz=fullZ, tg=null, canGo=false, ny=fy0;
   const tryStep=(tx,tz)=>{
-    const g2=groundInfo(tx,tz,w.feetY+0.1);
-    const d2=g2.y-w.feetY;
+    const g2=groundInfo(tx,tz,fy0+0.1);
     const near2=Math.hypot(tx-state.boat.x,tz-state.boat.z)<90*SHIP_K;
     const deck2=deckMap.get(Math.floor(tx/B)+','+Math.floor(tz/B))!==undefined;
-    const solid2=blockedByStructure(tx,tz)||treeBlocked(tx,tz)||blockedBySolid(tx,tz)||blockedByEntity(tx,tz,walkerG)
-      ||!!landmarkSolidAt(tx,tz,w.feetY+2.2,w.feetY+8);   /* the works of the ancients bar the way */
-    let ok=true;
-    if(!g2.land) ok = near2||deck2||(Math.hypot(tx,tz)/R_WORLD<0.985)
-      ||Math.hypot(tx,tz)<Math.hypot(w.x,w.z);   /* swim; beyond the rim, inward always */
-    else if(swimming&&camInsideShip(tx,surfY,tz)&&!camInsideShip(w.x,surfY,w.z)) ok=false;
-    else if(d2<=STEP){ /* a small step — walk up or down freely */ }
-    else if(swimming && d2<=JUMPH+3){ /* haul out of the water onto the strand */ }
-    else if(d2<=JUMPH) ok = w.feetY>=g2.y-B*0.4;   /* two blocks: only if jumping onto it */
-    else ok=false;                                  /* higher — climbed, or gone around */
-    if(solid2) ok=false;
+    if(blockedByStructure(tx,tz)||treeBlocked(tx,tz)||blockedBySolid(tx,tz)||blockedByEntity(tx,tz,walkerG)
+      ||landmarkSolidAt(tx,tz,fy0+2.2,fy0+8)) return null;     /* the works of the ancients bar the way */
+    if(!g2.land){
+      const ok=near2||deck2||(Math.hypot(tx,tz)/R_WORLD<0.985)
+        ||Math.hypot(tx,tz)<Math.hypot(w.x,w.z);               /* swim; beyond the rim, inward always */
+      if(!ok) return null;
+      /* (off the strand and into the sea: his body must still clear the land at his side) */
+      if(!swimming&&bodyInBlocks(tx,fy0,tz,0.05,BODY_TOP)) return null;
+      return {g:g2,ny:fy0}; }
+    if(swimming&&camInsideShip(tx,surfY,tz)&&!camInsideShip(w.x,surfY,w.z)) return null;
     /* a merchantman's hull is as solid to a swimmer as the traveller's own */
-    if(ok&&swimming&&insideTraderHull(tx,tz,2)&&!insideTraderHull(w.x,w.z,2)) ok=false;
-    /* and his shoulders must clear it too, not only his midline */
-    if(ok&&!swimming) for(let k=0;k<4;k++){ const aa=k*1.5708;
-      const g3=groundInfo(tx+Math.cos(aa)*BODY_R,tz+Math.sin(aa)*BODY_R,w.feetY+0.1);
-      if(g3.land&&g3.y-w.feetY>STEP){ ok=false; break; } }
-    /* ---- AND HIS HEAD MUST GO WHERE HIS FEET DO ----
-       Under the open sky the rise test above is the whole of it: nothing
-       stands over a man but air. In a passage it is not — the floor ahead
-       may be level with his feet and the rock still come down to his chest.
-       Asked only where something has actually been hollowed, so no step,
-       no ledge and no climb anywhere else in the world is touched by it. */
-    if(ok&&!swimming&&(g2.hollow||gi.hollow||g2.edited||gi.edited)){
-      if(solidAt(tx,w.feetY+STEP+1,tz)||solidAt(tx,w.feetY+HEAD_R*0.92,tz)) ok=false; }
-    return ok?{g:g2,d:d2,solid:solid2}:null;
+    if(swimming&&insideTraderHull(tx,tz,2)&&!insideTraderHull(w.x,w.z,2)) return null;
+    let y=fy0;
+    if(bodyInBlocks(tx,y,tz,0.05,BODY_TOP)){
+      /* how high he may step: a block on his feet; hauling out of the sea, the bank; in the air, only the
+         lip of a block his feet have all but cleared (so a jump takes a block and a half, never two) */
+      const lim=swimming?JUMPH+3:(w.grounded||wading)?STEP:B*0.12;   /* (out of a well over its lip, a block) */
+      const top=stepTop(tx,tz,fy0,lim);
+      if(top===null) return null;
+      y=top;
+      if(bodyInBlocks(tx,y,tz,0.05,BODY_TOP)) return null; }
+    return {g:g2,ny:y};
   };
-  let r0=tryStep(fullX,fullZ);
-  if(!r0&&sp!==0){                                  /* barred — slide along the face */
+  const pushing=sp!==0||flowX!==0||flowZ!==0;
+  let r0=pushing?tryStep(fullX,fullZ):null;
+  if(!r0&&pushing){                                  /* barred — slide along the face */
     const rx=tryStep(fullX,w.z);
     if(rx){ nz=w.z; r0=rx; }
     else { const rz=tryStep(w.x,fullZ); if(rz){ nx=w.x; r0=rz; } }
   }
-  if(r0){ canGo=true; tg=r0.g; diff=r0.d; solidBlock=r0.solid; }
-  else { nx=fullX; nz=fullZ; tg=groundInfo(nx,nz); diff=tg.y-w.feetY;
-    solidBlock=blockedByStructure(nx,nz)||treeBlocked(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,walkerG)
-      ||!!landmarkSolidAt(nx,nz,w.feetY+2.2,w.feetY+8);
-    /* three or four blocks of rock is not a wall but a ledge — he climbs it */
-    if(tg.land&&diff>JUMPH&&diff<=CLIMBH&&f>0.3&&w.grounded&&!solidBlock&&!w.climb)
-      w.climb={t:0,dur:0.8, x0:w.x,z0:w.z,y0:w.feetY,
-        x1:nx+Math.sin(w.heading)*B*0.6, z1:nz+Math.cos(w.heading)*B*0.6, y1:tg.y};
-  }
+  if(r0){ canGo=true; tg=r0.g; ny=r0.ny; }
   const _fy0=w.feetY;                    /* the height he stood at before the step */
   if(canGo){ state.dist+=Math.hypot(nx-w.x,nz-w.z); w.x=nx; w.z=nz;
-    /* snap small steps — but NEVER onto open water. groundInfo hands back a
-       FLAT WATER_Y-2.2 for every wave in the sea, so this line was pinning
-       the swimmer to a dead level plane every frame, overwriting whatever
-       height the swell had given him. That is the whole of the skating: a
-       body held at one fixed height while the waves ran through it. Over
-       water his buoyancy rules; snapping resumes the moment he touches land
-       (so he may still haul out onto the strand). */
-    if(w.grounded && (!swimming||tg.land) && diff>=-B*3 && diff<=(swimming?JUMPH+3:STEP)) w.feetY=tg.y; }
+    if(ny>w.feetY){ w.feetY=ny; if(w.vy<0) w.vy=0; }       /* up the step he took */
+    /* and DOWN a step as he walks off one — but NEVER onto open water. groundInfo hands back a FLAT
+       WATER_Y-2.2 for every wave in the sea, so a snap there pinned the swimmer to a dead level plane
+       every frame, overwriting whatever height the swell had given him (the whole of the old "skating").
+       Over water his buoyancy rules; on land the highest floor under his feet, up to three blocks down,
+       is stepped onto in his stride and anything deeper is a fall. */
+    if(w.grounded&&(!swimming||tg.land)){ const fl=footFloor(w.x,w.z,w.feetY);
+      if(fl>-1e8&&fl<w.feetY&&fl>=w.feetY-B*3) w.feetY=fl; } }
   /* ---- AND THE STEP IS NOT A JOLT ----
      The ground of this world is cut in whole blocks, so the height under a
      traveller's feet does not RISE as he walks — it JUMPS, seven units at a
@@ -16947,6 +17970,13 @@ function walkTick(dt){
       u.armL.rotation.z=0.85; u.armR.rotation.z=-0.85;
       u.legL.rotation.x=Math.sin(s*1.6)*0.45; u.legR.rotation.x=-Math.sin(s*1.6)*0.45;
     }
+  } else if(wading&&liqChest&&!w.grounded){
+    /* out of his depth in a well or a stream: treading water, the head kept up */
+    const s=performance.now()*0.008;
+    walkerG.rotation.x=0.15; walkerG.rotation.z=0;
+    u.armL.rotation.x=-0.45+Math.sin(s)*0.22; u.armR.rotation.x=-0.45-Math.sin(s)*0.22;
+    u.armL.rotation.z=0.85; u.armR.rotation.z=-0.85;
+    u.legL.rotation.x=Math.sin(s*1.6)*0.45; u.legR.rotation.x=-Math.sin(s*1.6)*0.45;
   } else if(!w.grounded){
     /* ---- THE JUMP, AND THE FALL ----
        A hop off a step and a drop off a mountain shoulder are not the same
@@ -17006,17 +18036,11 @@ function walkTick(dt){
     if(legs) for(const L of legs){
       L.rotation.x=moving?Math.sin(ph+(L.userData.ph||0))*0.62:0;
       jointTick(L,moving); }
-    const seat=beastUnits(M.kind)*0.74;
+    const seat=beastUnits(M.kind)*0.74*(M.m.scale.x||1)+0.6;
     const bump=moving?Math.abs(Math.sin(ph))*0.9:0;
-    walkerG.position.y=w.feetY+seat-4.1+bump;
+    walkerG.position.y=w.feetY+seat-4.3+bump;
     walkerG.rotation.x=0;
-    u.legL.rotation.x=-1.2; u.legR.rotation.x=-1.2;
-    u.legL.rotation.z=0.35; u.legR.rotation.z=-0.35;
-    if(u.legL.userData.knee) u.legL.userData.knee.rotation.x=1.25;
-    if(u.legR.userData.knee) u.legR.userData.knee.rotation.x=1.25;
-    u.armL.rotation.x=-0.55; u.armR.rotation.x=-0.55;
-    if(u.armL.userData.elbow) u.armL.userData.elbow.rotation.x=-0.5;
-    if(u.armR.userData.elbow) u.armR.userData.elbow.rotation.x=-0.5;
+    astride(u);
   } else { u.legL.rotation.z=0; u.legR.rotation.z=0; }
   /* the held-back height is paid out of the DRAWING, last of all and over
      every pose above — the body and the beast under it ride the step up
@@ -17917,6 +18941,24 @@ function fpMat(m){ if(!m) return m; let c=_fpMats.get(m); if(!c){ c=m.clone(); c
 function fpLayer(o){ o.traverse(q=>{ q.layers.set(1); q.renderOrder=999; if(q.isMesh) q.material=Array.isArray(q.material)?q.material.map(fpMat):fpMat(q.material); q.frustumCulled=false; }); }
 const fpFore=new THREE.Mesh(new THREE.BoxGeometry(1.26,2.29,1.35).translate(0,-1.14,0),sleeveMatP); fpLayer(fpFore); fpPivot.add(fpFore);
 let fpHeldG=null, fpHeldKey=null;
+/* ---- THE HAND AS THE BLOCK GAMES SHOW IT (Round 137) ----
+   THE FAULT THIS MENDS. Through his own eyes the tool was hung on the forearm
+   exactly as it hangs in the over-the-shoulder view — along the line of the arm
+   and four units long — and the arm pointed straight away from the eye. So the
+   haft ran from the corner of the view up past its edge, and its head was never
+   in it: a stick. And in free roam an EMPTY hand was given an iron pick to draw,
+   because the bare hand digs there at a pick's pace — a phantom tool in a hand
+   the belt said was empty.
+   Now an empty hand is the arm and the hand, coming up from the lower right as
+   it does in the block games; and a thing held is held as they hold it — small,
+   diagonal across the lower right, the head of the tool up and in the view,
+   the fist round the haft and the forearm going down out of the corner. The
+   pose is numbers, here, so they may be tuned against a picture. */
+const FP_POSE={ empty:{p:[2.6,-2.85,-3.7], d:[-0.2,0.5,-1], roll:0.2},
+                tool:{p:[2.35,-2.5,-4.25], d:[-0.6,0.76,-0.28], roll:1.0, s:0.6, fore:[0.45,-0.55,0.7]} };
+window.__FPPOSE=FP_POSE;
+const _fpQ=new THREE.Quaternion(), _fpQ2=new THREE.Quaternion(), _fpV=new THREE.Vector3(), _fpV2=new THREE.Vector3(),
+  _fpUp=new THREE.Vector3(0,1,0), _fpDn=new THREE.Vector3(0,-1,0), _fpX=new THREE.Vector3(1,0,0);
 function fpViewHide(){ if(fpView.visible) fpView.visible=false; }
 const _fpE=new THREE.Vector3(), _fpT=new THREE.Vector3();
 function fpEye(dt){
@@ -17955,16 +18997,66 @@ function fpEye(dt){
   fpView.visible=handOn;
   if(handOn){
     camera.updateMatrixWorld(); fpView.position.copy(camera.position); fpView.quaternion.copy(camera.quaternion);
-    let b=heldBlock(); if(!b&&freeHand()) b=BLOCK_BY_ID['iron-pick']||null;
+    const b=heldBlock();                               /* (an empty hand is drawn empty, whatever it can dig) */
     const key=b?b.id:null;
-    if(key!==fpHeldKey){ if(fpHeldG){ fpFore.remove(fpHeldG); fpHeldG=null; }
-      if(b){ fpHeldG=heldModel(b); fpLayer(fpHeldG); fpFore.add(fpHeldG); } fpHeldKey=key; }
+    if(key!==fpHeldKey){ if(fpHeldG){ fpPivot.remove(fpHeldG); fpHeldG=null; }
+      if(b){ fpHeldG=heldModel(b); fpHeldG.rotation.set(0,0,0); fpHeldG.position.set(0,-0.3,0);
+        fpLayer(fpHeldG); fpPivot.add(fpHeldG); }
+      if(fpHeldKey!==undefined) fpSway.eq=0;         /* (a new thing in the hand comes up from below) */
+      fpHeldKey=key; }
+    /* the hand is a little behind the eye: turn, and it lags the turn and swings back after it; look
+       up or down, and it follows a moment late (VoxelCraft's measure, by the turn itself and not the mouse,
+       so a drag, a key and a touch all move it alike) */
+    const dy=Math.atan2(Math.sin(yaw-fpSway.yaw),Math.cos(yaw-fpSway.yaw)), dp=p-fpSway.p;
+    fpSway.yaw=yaw; fpSway.p=p;
+    if(Math.abs(dy)<0.6&&Math.abs(dp)<0.6){
+      fpSway.x=Math.max(-0.25,Math.min(0.25,fpSway.x-dy*0.55)); fpSway.y=Math.max(-0.25,Math.min(0.25,fpSway.y+dp*0.55)); }
+    const k=Math.exp(-8*dt); fpSway.x*=k; fpSway.y*=k;
+    fpSway.eq=Math.min(1,fpSway.eq+dt*5);
     /* at rest the hand is carried forward at the right of the view; the blow swings it down and back */
     const t=performance.now()*0.001, mv=(state.mode==='walk'?w.moving:state.deck&&state.deck.moving)?1:0;
     let sw=0; if(MINE.on) sw=Math.max(0,Math.sin(t*3.1*Math.PI*2)); else if(swingT>0) sw=Math.sin((1-swingT/0.3)*Math.PI);
-    fpPivot.position.set(2.15,-2.05+Math.sin(t*7)*0.08*mv,-3.1);
-    fpPivot.rotation.set(1.6-sw*0.9,0.28+sw*0.25,0.12);
+    const dip=1-fpSway.eq, P=fpHeldG?FP_POSE.tool:FP_POSE.empty;
+    fpPivot.position.set(P.p[0]-fpSway.x*1.2,P.p[1]+Math.sin(t*7)*0.08*mv-dip*dip*2.4+fpSway.y*0.6-sw*0.5,P.p[2]);
+    /* the arm (empty) or the haft (holding) laid along its line, turned about that line, and the blow
+       swung down about the view's own crosswise axis */
+    _fpV.set(P.d[0],P.d[1],P.d[2]).normalize();
+    _fpQ.setFromUnitVectors(fpHeldG?_fpUp:_fpDn,_fpV);
+    _fpQ2.setFromAxisAngle(_fpV,P.roll); _fpQ.premultiply(_fpQ2);
+    _fpQ2.setFromAxisAngle(_fpX,-sw*0.9+fpSway.y*0.6+dip*0.5); _fpQ.premultiply(_fpQ2);
+    fpPivot.quaternion.copy(_fpQ);
+    if(fpHeldG){ fpHeldG.scale.setScalar(P.s);
+      /* the forearm runs from the fist, down and back out of the lower corner */
+      _fpV2.set(P.fore[0],P.fore[1],P.fore[2]).normalize();
+      _fpQ2.copy(_fpQ).invert(); _fpV2.applyQuaternion(_fpQ2);       /* (view-space direction into the pivot's own) */
+      fpFore.position.copy(_fpV2).multiplyScalar(2.3);
+      fpFore.quaternion.setFromUnitVectors(_fpDn,_fpV2.clone().negate()); }
+    else { fpFore.position.set(0,0,0); fpFore.quaternion.identity(); }
   }
+}
+const fpSway={x:0,y:0,yaw:0,p:0,eq:1}; window.__FPSWAY=fpSway;
+/* ---- THE FIRST BLOCK ON A STRAIGHT LINE (Round 136) ----
+   How far along the line from a to b (as a share of it, 1 for none) the first solid block lies — walked
+   block by block (the voxel-walk of Amanatides and Woo), so a wall one block thick is never stepped over
+   between two samples. The block the line starts in is not asked: the eye's line starts at his head. */
+function voxelRayT(ax,ay,az,bx,by,bz){
+  const dx=bx-ax, dy=by-ay, dz=bz-az;
+  if(dx*dx+dy*dy+dz*dz<1e-6) return 1;
+  let ix=Math.floor(ax/B), iy=Math.floor(ay/B), iz=Math.floor(az/B);
+  const sx=dx>0?1:-1, sy=dy>0?1:-1, sz=dz>0?1:-1;
+  const tdx=dx!==0?B/Math.abs(dx):Infinity, tdy=dy!==0?B/Math.abs(dy):Infinity, tdz=dz!==0?B/Math.abs(dz):Infinity;
+  let tmx=dx!==0?((sx>0?(ix+1)*B-ax:ax-ix*B)/Math.abs(dx)):Infinity;
+  let tmy=dy!==0?((sy>0?(iy+1)*B-ay:ay-iy*B)/Math.abs(dy)):Infinity;
+  let tmz=dz!==0?((sz>0?(iz+1)*B-az:az-iz*B)/Math.abs(dz)):Infinity;
+  for(let n=0;n<400;n++){
+    let t;
+    if(tmx<tmy&&tmx<tmz){ t=tmx; tmx+=tdx; ix+=sx; }
+    else if(tmy<tmz){ t=tmy; tmy+=tdy; iy+=sy; }
+    else { t=tmz; tmz+=tdz; iz+=sz; }
+    if(t>1) return 1;
+    if(blockSolidAt(ix,iy,iz)) return t;
+  }
+  return 1;
 }
 function cameraTick(dt){
   if(cut){ sceneTick(dt); return; }
@@ -18165,7 +19257,11 @@ function cameraTick(dt){
        hillsides). The KIND is returned, because the answer to a hill and
        the answer to a house are not the same. */
     const blocked=(sx,sy,sz)=>{ const lc4=landAtWorld(sx,sz);
-      if(sy<(lc4?lc4.h*B:WATER_Y)+2.0) return 1;
+      /* (a hollow or a built column is asked block by block — a cave's walls, a town wall, the stones of
+         a house — as an open column is asked by its height) */
+      const ixs=Math.floor(sx/B), izs=Math.floor(sz/B);
+      if(lc4&&(lc4.spans||editColumn(ixs,izs))){ if(blockSolidAt(ixs,Math.floor(sy/B),izs)) return 3; }
+      else if(sy<(lc4?lc4.h*B:WATER_Y)+2.0) return 1;
       if(landmarkSolidAt(sx,sz,sy-1.2,sy+1.2)) return 1;
       if(lc4&&lc4.tree&&sy<treeTopAt(sx,sz,lc4)+0.8) return 2;
       return sy<houseTopAt(sx,sz)+0.6?3:0; };
@@ -18272,6 +19368,22 @@ function cameraTick(dt){
   if(state.shake>0.01&&(state.mode==='boat'||state.mode==='deck')){ const k=state.shake*state.shake*3.2;
     camera.position.x+=(Math.random()-0.5)*k; camera.position.y+=(Math.random()-0.5)*k; camera.position.z+=(Math.random()-0.5)*k;
     state.shake*=Math.max(0,1-dt*2.4); }
+  /* ---- AND THE EYE ITSELF NEVER STANDS BEHIND A WALL (Round 136) ----
+     Everything above decides where the eye WANTS to be, and the eye eases there — so for the few frames
+     of every swing round, every step past a corner, every wall coming between, the eye was still on the
+     far side of the stone, and the traveller saw the inside of the rock and the underside of the world.
+     So last of all the line from his head to the eye as it truly stands is walked block by block, and if
+     a block is on it the eye is brought in to just short of that block at once — no easing, as the block
+     games do it. (Not under the sea, which keeps its own eye; not in his own head, which has nothing
+     between.) */
+  if(zf<0.02&&!(state.mode==='dive'||swimCam)&&(state.mode==='walk'||state.mode==='fly')){
+    const hx=px, hy=baseY+9, hz=pz, cp=camera.position;
+    if(!blockSolidAt(Math.floor(hx/B),Math.floor(hy/B),Math.floor(hz/B))){
+      const t=voxelRayT(hx,hy,hz,cp.x,cp.y,cp.z);
+      if(t<1){ const L=Math.hypot(cp.x-hx,cp.y-hy,cp.z-hz)||1, k=Math.max(0,t-1.2/L);
+        cp.set(hx+(cp.x-hx)*k, hy+(cp.y-hy)*k, hz+(cp.z-hz)*k);
+        camClear=Math.min(camClear,k+0.02);
+        if(camera.near>0.5){ camera.near=0.5; camera.updateProjectionMatrix(); } } } }
   if(state.mode==='dive'||swimCam){ const cp=camera.position;
     const lc=landAtWorld(cp.x,cp.z);
     const floor=Math.max(seabedDepth(cp.x,cp.z), lc?lc.h*B:-1e9)+3.0;
@@ -18602,7 +19714,7 @@ async function saveState(){
        given. The satchel is written slot by slot — the ORDER is his, he
        arranged it, and a save that re-sorted his belt would be a save that
        rearranged his hands. */
-    sa:SATCHEL.map(sl=>sl?[sl.id,sl.n]:0), sp:[...SPOKEN]});
+    sa:SATCHEL.map(sl=>sl?[sl.id,sl.n]:0), gr:GRID.map(sl=>sl?[sl.id,sl.n]:0), sp:[...SPOKEN]});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
 }
@@ -18819,6 +19931,10 @@ updateGuideBtn();
 $('prompt').onclick=interact;
 $('b-spear').onclick=throwSpear;
 $('b-jump').onclick=()=>{ if(state.mode==='walk') state.walk.jumpReq=true; };
+/* (and HELD, for swimming up out of a well or a stream — the touch screen's SPACE) */
+{ const bj=$('b-jump');
+  bj.addEventListener('pointerdown',()=>{ if(state.mode==='walk') state.walk.jumpHold=true; });
+  for(const ev of ['pointerup','pointerleave','pointercancel']) bj.addEventListener(ev,()=>{ state.walk.jumpHold=false; }); }
 $('logbook').addEventListener('click',toggleLog);
 $('b-firm').onclick=()=>{ state.firm?exitFirm():enterFirm(); };
 
@@ -19276,6 +20392,9 @@ async function begin(fresh,roam){
        the block table is read by ID for exactly this reason. */
     if(saved.sa) for(let i=0;i<SATCHEL_N&&i<saved.sa.length;i++){ const e=saved.sa[i];
       SATCHEL[i]=(e&&BLOCK_BY_ID[e[0]]&&e[1]>0)?{id:e[0],n:Math.min(STACK,e[1])}:null; }
+    /* (and what was left lying on the grid, Round 135) */
+    if(saved.gr) for(let i=0;i<9&&i<saved.gr.length;i++){ const e=saved.gr[i];
+      GRID[i]=(e&&BLOCK_BY_ID[e[0]]&&e[1]>0)?{id:e[0],n:Math.min(STACK,e[1])}:null; }
     if(saved.sp) for(const k of saved.sp) SPOKEN.add(k); }
   else{ const [sx,sz]=findStart(); state.boat.x=sx; state.boat.z=sz; state.simHours=9.5;
     /* ---- A NEW VOYAGE SETS OUT WITH A PICK AND AN AXE ----
@@ -19825,6 +20944,10 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
      the acceptance tests can ask the RUNNING WORLD rather than the source. */
   cellSpans:(ix,iz)=>{ const c=cell(ix,iz); return c&&c.spans||null; },
   caveLightAt,solidRuns,solidAt,groundInfo,
+  /* ---- THE BODY'S OWN STEP, FOR THE WALK FUZZER (Round 136) ----
+     The walk run frame by frame without drawing, the keys it reads, and the block truth it is judged by */
+  walkTick:dt=>walkTick(dt), keys, blockSolidAt, cellAt:(ix,iz)=>cell(ix,iz),
+  walkUnstuck:()=>walkUnstuck, bodyInBlocks:(x,fy,z,lo,hi)=>bodyInBlocks(x,fy,z,lo,hi), BEAST_BOX,
   caveAt:(x,z)=>window.CAVES?CAVES.regionAt(x,z):0,
   caveSeeds:()=>RANGES.map(g=>({ix:Math.floor(g.x/B),iz:Math.floor(g.z/B)})),
   lightTorch:on=>{ setTorch(on); TORCH.s=on?1:0; TORCH_S.value=on?1:0;
@@ -20160,6 +21283,43 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
   /* one soul's tick, callable by a cost probe — the whole loop is timed by
      calling it for every soul in the village a hundred times over */
   personTickProbe:(e,vv,dt)=>personTick(e,vv,dt),
+  folkPathStats:()=>Object.assign({},FP_STATS),
+  dbgEye:e=>{ DBG_EYE=e||null; },
+  /* the lanes built up in courses about the nearest village: each cell, and how far it stands over its ground */
+  villageWays:()=>{ let best=null,bd=1e18; const p=playerXZ();
+    for(const[,vv] of activeVillages){ if(!vv.site) continue; const d=(vv.site.x-p.x)**2+(vv.site.z-p.z)**2; if(d<bd){ bd=d; best=vv; } }
+    if(!best||!best.ways) return [];
+    return best.ways.map(k=>{ const [i,j]=k.split(',').map(Number), c=cell(i,j), g=groundInfo((i+0.5)*B,(j+0.5)*B);
+      return {i,j,top:g.y,nat:c?c.h*B:null}; }); },
+  /* why the planner will not stand on each cell about a soul of the nearest village */
+  folkCellsWhy:(i,r)=>{ let best=null,bd=1e18; const p=playerXZ();
+    for(const[,vv] of activeVillages){ if(!vv.people||!vv.site) continue;
+      const d=(vv.site.x-p.x)**2+(vv.site.z-p.z)**2; if(d<bd){ bd=d; best=vv; } }
+    const e=best.people[i], x0=e.m.position.x, z0=e.m.position.z, y0=e.m.position.y, out=[];
+    r=r||2;
+    for(let dj=-r;dj<=r;dj++){ const row=[];
+      for(let di=-r;di<=r;di++){ const x=x0+di*FP_C, z=z0+dj*FP_C;
+        const g=groundInfo(x,z,y0+0.1); let why='';
+        if(!g.land) why='noland';
+        else { const c=landAtWorld(x,z), door=inDoorway(x,z);
+          if(g.edited&&c&&g.y>c.h*B+B*1.2&&!(door&&Math.abs(g.y-y0)<=B*1.35)&&!houseFloorAt(x,z,g.y)) why='climb';
+          else if(isFinite(g.ceil)&&(g.ceil-g.y)<B*1.9&&!((g.ceil-g.y)>=B*1.0&&(door||underEave(x,z)))) why='noroom';
+          else if(blockedByStructureNPC(x,z)&&!doorRefusedAt(x,z)) why='struct';
+          else if(blockedBySolid(x,z)) why='solid';
+          else if(landmarkSolidAt(x,z,g.y+2,g.y+8)) why='lmk';
+          else if(Math.abs(g.y-y0)>B*1.35) why='steep'; }
+        row.push((why||'ok')+':'+(g.y-y0).toFixed(0)); }
+      out.push(row.join(' ')); }
+    return {x:x0,y:y0,z:z0,grid:out}; },
+  /* the town's people stepped without drawing a frame, for a probe that
+     keeps a whole night: n steps of dt, the same tick the frame runs */
+  folkStep:(n,dt)=>{ for(let k=0;k<n;k++){ fpLeft=3; fpCellLeft=700;
+      for(const[,vv] of activeVillages){ if(vv.none||!vv.g) continue;
+        vv.hour=localHourAt(vv.site.x,vv.site.z);
+        for(const p of vv.people) personTick(p,vv,dt);
+        for(const b2 of vv.beasts) beastTick(b2,vv,dt);
+        if(vv.mounts) for(const M of vv.mounts) mountTick(M,vv,dt); }
+      doorTick(dt); } },
   villageFolk:()=>{ let best=null,bd=1e18; const p=playerXZ();
     for(const[,vv] of activeVillages){ if(!vv.people||!vv.site) continue;
       const d=(vv.site.x-p.x)**2+(vv.site.z-p.z)**2; if(d<bd){ bd=d; best=vv; } }
@@ -20167,8 +21327,8 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
     return {hour:best.hour, site:{x:best.site.x,z:best.site.z}, storm:best.stormF||0,
       people:best.people.map((e,i)=>({i,name:e.name,role:e.role,anim:e.anim||null,act:e.act||null,
         tx:e.tx,tz:e.tz,t:e.t,blk:e._blk||'',acting:!!e.acting,shelter:!!e._shelter,
-        awake:!e._abed,lying:!!e._lying,sat:!!e._sat,child:!!e.child,heat:!!(e._heat&&e.act==='rest'),
-        homeD:e.homeD,homeI:(e.home&&e.home.H)?best.houses.indexOf(e.home.H):null,stuck:e.stuck||0,det:e._detour?[+e._detour.x.toFixed(0),+e._detour.z.toFixed(0),e._detour.t]:null,held:e._held||0,dn:e._dn||0,hm:e.home?{x:e.home.x,z:e.home.z,x0:e.home.x0,x1:e.home.x1,z0:e.home.z0,z1:e.home.z1,dx:e.home.dx,dz:e.home.dz,ox:e.home.ox,oz:e.home.oz,doorx:e.home.doorx,doorz:e.home.doorz}:null,door:(e.home&&e.home.H&&e.home.H.door)?(e.home.H.door.open?'open':'shut'):null,
+        awake:!e._abed,lying:!!e._lying,eyesShut:!!e._eyesShut,woke:+(e._wokeT||0).toFixed(1),sat:!!e._sat,child:!!e.child,heat:!!(e._heat&&e.act==='rest'),
+        homeD:e.homeD,homeI:(e.home&&e.home.H)?best.houses.indexOf(e.home.H):null,stuck:e.stuck||0,path:e._path?{n:e._path.pts.length,i:e._path.i,partial:e._path.partial}:null,bed:e._bed?{x:+e._bed.x.toFixed(1),z:+e._bed.z.toFixed(1),lx:e._bed.lx,lz:e._bed.lz,ly:e._bed.ly,inBed:!!e._bed.bed,mat:e._bed.ang!==null}:null,outside:!!e._outside,riding:!!e._riding,hasMount:!!e.mountE,mountD:e.mountE?+Math.hypot(e.mountE.m.position.x-e.m.position.x,e.mountE.m.position.z-e.m.position.z).toFixed(1):null,det:e._detour?[+e._detour.x.toFixed(0),+e._detour.z.toFixed(0),e._detour.t]:null,held:e._held||0,dn:e._dn||0,hm:e.home?{x:e.home.x,z:e.home.z,x0:e.home.x0,x1:e.home.x1,z0:e.home.z0,z1:e.home.z1,dx:e.home.dx,dz:e.home.dz,ox:e.home.ox,oz:e.home.oz,doorx:e.home.doorx,doorz:e.home.doorz}:null,door:(e.home&&e.home.H&&e.home.H.door)?(e.home.H.door.open?'open':'shut'):null,
         x:e.m.position.x,y:e.m.position.y,z:e.m.position.z,
         home:e.home?Math.hypot(e.m.position.x-(e.home.x!==undefined?e.home.x:e.home.doorx),
                               e.m.position.z-(e.home.z!==undefined?e.home.z:e.home.doorz)):null}))}; },
@@ -20235,7 +21395,9 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
     for(const[vi,vv] of activeVillages){ if(vv.none||!vv.beasts||!vv.site) continue;
       const d=(vv.site.x-p.x)**2+(vv.site.z-p.z)**2; if(d<bd){ bd=d; best={vi,vv}; } }
     if(!best) return null;
-    return {vi:best.vi,beasts:best.vv.beasts.map(b=>({kind:b.kind,x:b.m.position.x,y:b.m.position.y,z:b.m.position.z}))}; },
+    return {vi:best.vi,pen:best.vv.pen||null,pasture:best.vv.pen?villagePasture(best.vv):null,
+      beasts:best.vv.beasts.map(b=>({kind:b.kind,x:b.m.position.x,y:b.m.position.y,z:b.m.position.z,sleep:!!b._sleep,driven:!!b.driven,
+        tx:b.tx,tz:b.tz,blk:b._blk||'',stuck:b.stuck||0,panic:!!b.panic,path:b._path?{n:b._path.pts.length,i:b._path.i,partial:b._path.partial}:null}))}; },
   startFishing:()=>startFishing(),
   reelIn:()=>reelIn(),
   endFishing:q=>endFishing(q),
@@ -20308,8 +21470,8 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
     for(const [,vv] of activeVillages){ const ex=vv.ex||vv; const hs=ex&&ex.houses;
       if(!hs||!hs.length) continue;
       for(const H of hs){
-        const fy=H.yb+B*0.55;                       /* the top of the footing */
-        const iy=Math.floor(fy/B)+1;                /* the first course of wall above it */
+        const fy=H.big?H.yb:H.yb+B*0.55;            /* the top of the footing (a big house's is its floor) */
+        const iy=H.big?Math.floor((H.yb+0.1)/B):Math.floor(fy/B)+1;   /* the first course of wall above it */
         /* walk the four walls; the door's own wall is known by its gap */
         const mid=(a,b)=>(a+b)/2;
         const tries=[
@@ -20323,7 +21485,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
           /* it must be WALL: open air on both sides of it, in or out */
           return {x:(ix+0.5)*B, y:(iy+0.5)*B, z:(iz+0.5)*B, ix,iy,iz,
                   above:{x:(ix+0.5)*B, y:(iy+1.5)*B, z:(iz+0.5)*B},
-                  floor:H.yb+B*0.58, house:{x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1}};
+                  floor:H.big?H.yb+0.03:H.yb+B*0.58, house:{x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1}};
         }
       }
     }
@@ -20640,6 +21802,9 @@ let zoomMapFadeCache=0;                 /* set by the frame, read by the aim */
 const _aimP=new THREE.Vector3(), _aimD=new THREE.Vector3();
 let AIM=null;                           /* {ix,iy,iz, nx,ny,nz, n, dist} or null */
 /* the six faces, as the step that last carried us across one */
+/* (water is no wall to the arm either — it reaches through it to the bed — unless the hand holds an EMPTY
+   vessel, which is dipped into the water itself) */
+let aimLiquid=false;
 function aimAt(ox,oy,oz, dx,dy,dz, reach){
   /* the cell the eye is in, and which way each axis is going */
   let ix=Math.floor(ox/B), iy=Math.floor(oy/B), iz=Math.floor(oz/B);
@@ -20669,7 +21834,7 @@ function aimAt(ox,oy,oz, dx,dy,dz, reach){
     /* the arm lands on rock AND on a growing plant — the plant is no wall
        to the foot (blockSolidAt says air), but reaping is the hand's work
        and a crop the arm passed through could never be taken */
-    if(blockSolidAt(ix,iy,iz)||blockSownAt(ix,iy,iz))
+    if(blockSolidAt(ix,iy,iz)||blockSownAt(ix,iy,iz)||(aimLiquid&&isLiquid(blockAt(ix,iy,iz))))
       return {ix,iy,iz,nx,ny,nz,n:blockAt(ix,iy,iz),dist:t};
   }
   return null;
@@ -20716,7 +21881,9 @@ function aimTick(){
   const can = !AIM_OFF && !state.firm && state.mode!=='fly' && zoomMapFadeCache<0.02;
   if(!can){ AIM=null; if(markG) markG.visible=false; return; }
   eyeRay();
+  { const hb=heldBlock(); aimLiquid=!!(hb&&hb.serves==='bucket'&&hb.fills); }
   AIM=aimAt(_aimP.x,_aimP.y,_aimP.z, _aimD.x,_aimD.y,_aimD.z, REACH);
+  aimLiquid=false;
   const m=ensureMark();
   if(!AIM){ m.visible=false; return; }
   m.visible=true;
@@ -20976,7 +22143,7 @@ function mineTick(dt){
   /* a chip flies off the face with every blow */
   MINE.chip-=dt;
   if(MINE.chip<=0){ MINE.chip=0.26; blockBits(MINE.ix,MINE.iy,MINE.iz,MINE.n,3,tgt,0.55); }
-  if(MINE.t>=MINE.need){
+  if(MINE.t>=MINE.need){ noiseAt(state.walk.x,state.walk.z,B*7);
     const cx=(MINE.ix+0.5)*B, cy=(MINE.iy+0.5)*B, cz=(MINE.iz+0.5)*B;
     const was=MINE.n;
     setBlock(cx,cy,cz,0);
@@ -21115,6 +22282,7 @@ const SPOKEN=new Set();            /* the substances whose word has been given *
    disagree, which is the bug that owns every inventory ever written. */
 const STACK=20, BELT_N=8, SATCHEL_N=32;
 const SATCHEL=new Array(SATCHEL_N).fill(null);   /* {id,n} or null */
+const GRID=new Array(9).fill(null);              /* what is laid on the grid of the page (THE GRID, below) */
 /* how many of a substance are held, all told */
 function satchelCount(id){ let k=0;
   for(const sl of SATCHEL) if(sl&&sl.id===id) k+=sl.n;
@@ -21237,6 +22405,21 @@ function takeUp(d){
    its verse. That is the difference between having read the account and
    having a crafting grid. */
 const WORK_DEFS=(window.EARTH&&EARTH.workList)||[];
+/* ---- AND ITS SHAPE, FOR THE GRID (Round 135) ----
+   A work may say how it is laid out on a three-by-three grid (world/works.js, `shape` and `key`). The
+   shape is read into cells, each with the share of its material it takes at one making; a shape whose
+   cells do not add up to what the work takes is dropped here, and the work is made from the ledger only. */
+function workShape(w,of){
+  const rows=w.shape;
+  if(!Array.isArray(rows)||!w.key||!rows.length||rows.length>3||!rows.every(r=>typeof r==='string'&&r.length<=3)) return null;
+  const wd=Math.max(...rows.map(r=>r.length)), ids=[], cnt=Object.create(null);
+  for(let y=0;y<rows.length;y++) for(let x=0;x<wd;x++){ const ch=rows[y][x]||' ';
+    if(ch===' '){ ids.push(null); continue; }
+    const id=w.key[ch]; if(!id||!of.some(q=>q.id===id)) return null;
+    ids.push(id); cnt[id]=(cnt[id]||0)+1; }
+  for(const q of of) if(!cnt[q.id]||q.c%cnt[q.id]) return null;
+  return {w:wd, h:rows.length, cells:ids.map(id=>id?{id, c:of.find(q=>q.id===id).c/cnt[id]}:null)};
+}
 const WORKS=[], WORK_BY_ID=Object.create(null);
 for(const w of WORK_DEFS){
   /* a work whose materials or product this build has not got is dropped at
@@ -21260,7 +22443,7 @@ for(const w of WORK_DEFS){
   if(!good||!of.length||!gives.length) continue;
   const rf=w.refuses&&blockId(w.refuses.id)?{...w.refuses,n:blockId(w.refuses.id)}:null;
   const rec={id:w.id, name:w.name||w.id, of, gives, at:w.at||null,
-             needs:w.needs||null, refuses:rf, verse:w.verse||null};
+             needs:w.needs||null, refuses:rf, verse:w.verse||null, shape:workShape(w,of)};
   WORKS.push(rec); WORK_BY_ID[w.id]=rec;
 }
 /* ---- IS HE STANDING AT A FIRE? ----
@@ -21528,12 +22711,11 @@ function fallTickIn(dt){
        if water is standing there the water is not destroyed but pushed up,
        because there is as much water after a fall as there was before it. */
     let ly=Math.max(iy,EY_MIN+1);
-    while(ly<EY_MAX&&blockSolidAt(f.ix,ly,f.iz)){
-      const q=blockAt(f.ix,ly,f.iz);
-      if(isLiquid(q)&&!blockSolidAt(f.ix,ly+1,f.iz)){
-        setBlock((f.ix+0.5)*B,(ly+1.5)*B,(f.iz+0.5)*B,q); break; }
-      ly++;
-    }
+    while(ly<EY_MAX&&blockSolidAt(f.ix,ly,f.iz)) ly++;
+    /* (water is not solid now, so the block has sunk to the bed; the water it lands in goes up over it) */
+    { const q=blockAt(f.ix,ly,f.iz);
+      if(isLiquid(q)){ let wy=ly+1; while(wy<EY_MAX&&blockAt(f.ix,wy,f.iz)!==0&&!isLiquid(blockAt(f.ix,wy,f.iz))) wy++;
+        if(wy<EY_MAX&&blockAt(f.ix,wy,f.iz)===0) setBlock((f.ix+0.5)*B,(wy+0.5)*B,(f.iz+0.5)*B,q); } }
     setBlock((f.ix+0.5)*B,(ly+0.5)*B,(f.iz+0.5)*B,f.n);
     scene.remove(f.m); LOOSE.splice(i,1);
   }
@@ -21608,13 +22790,14 @@ function heldTick(dt){
   const w=state.walk;
   const show=(state.mode==='walk'||state.mode==='deck')&&!cut&&!state.fishing&&!state.mount
     &&!(state.mode==='walk'&&(w.inWater||w.climb||w.spill>0));
-  let b=heldBlock(); if(!b&&freeHand()) b=BLOCK_BY_ID['iron-pick']||null;
+  const b=heldBlock();                               /* (an empty hand carries nothing — Round 137) */
   const key=show&&b?b.id:null;
   if(key!==heldKey){
     if(heldG){ el.remove(heldG); heldG.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); heldG=null; }
-    if(key) { heldG=heldModel(b); el.add(heldG); }
+    if(key) { heldG=heldModel(b); el.add(heldG); if(heldKey) heldEq=0; }
     heldKey=key; }
   if(!show) return;
+  heldEq=Math.min(1,heldEq+dt*5);
   /* the blow: while the hand is on a block the arm rises and falls three
      times a second; a block laid is one quick stroke */
   swingT=Math.max(0,swingT-dt);
@@ -21629,13 +22812,16 @@ function heldTick(dt){
   } else if(heldG){
     /* at rest the tool is carried a little forward, not dangled */
     u.armR.rotation.x=Math.min(u.armR.rotation.x,-0.25+u.armR.rotation.x*0.4);
+    /* and a new thing taken in hand is brought up from his side */
+    if(heldEq<1){ u.armR.rotation.x*=heldEq; heldG.scale.setScalar(0.55+0.45*heldEq); } else heldG.scale.setScalar(1);
   }
 }
+let heldEq=1;
 /* one clay token, with the face of its substance fired into it */
 function tokenEl(slot,idx,inPage){
   const d=D.createElement('div');
   d.className='tok'+(slot?'':' bare')+(!inPage&&idx===heldSlot?' held':'')
-    +(inPage&&idx===pagePick?' pick':'');
+    +(inPage&&idx>=0&&idx===pagePick?' pick':'');
   if(slot){
     const b=BLOCK_BY_ID[slot.id];
     const t=b&&TEX[b.mTop];
@@ -21672,11 +22858,25 @@ function pageDraw(){
   /* the page holds the four-and-twenty; the strap beneath holds the eight,
      so a thing is moved down to the hand by two touches and no dragging —
      which is the only scheme that works the same with a finger and a mouse */
+  /* (shift and a click sends a thing straight between the satchel and the belt) */
   for(let i=BELT_N;i<SATCHEL_N;i++){ const t=tokenEl(SATCHEL[i],i,true);
-    t.onpointerdown=e=>{ e.preventDefault(); pageTouch(i); }; g.appendChild(t); }
+    t.onpointerdown=e=>{ e.preventDefault(); if(e.shiftKey) quickMove(i); else pageTouch(i); }; g.appendChild(t); }
   for(let i=0;i<BELT_N;i++){ const t=tokenEl(SATCHEL[i],i,true);
-    t.onpointerdown=e=>{ e.preventDefault(); pageTouch(i); }; b2.appendChild(t); }
-  worksDraw(); storesDraw();
+    t.onpointerdown=e=>{ e.preventDefault(); if(e.shiftKey) quickMove(i); else pageTouch(i); }; b2.appendChild(t); }
+  gridDraw(); worksDraw(); storesDraw();
+}
+/* ---- SHIFT AND A CLICK ----
+   A thing on the belt goes up into the satchel, and a thing in the satchel comes down to the belt, in
+   one click and no picking up: onto a part-filled stack of the same first, then into the first free
+   place; what will not go stays where it was. */
+function quickMove(i){
+  const s=SATCHEL[i]; if(!s) return;
+  const [a,b]=i<BELT_N?[BELT_N,SATCHEL_N]:[0,BELT_N];
+  let n=s.n;
+  for(let k=a;k<b&&n>0;k++){ const t=SATCHEL[k]; if(t&&t.id===s.id&&t.n<STACK){ const put=Math.min(n,STACK-t.n); t.n+=put; n-=put; } }
+  for(let k=a;k<b&&n>0;k++) if(!SATCHEL[k]){ SATCHEL[k]={id:s.id,n}; n=0; }
+  if(n>0) s.n=n; else SATCHEL[i]=null;
+  pagePick=-1; satchelTouch(); pageDraw(); beltDraw();
 }
 /* ---- THE STORES ----
    §11's "unlimited blocks", and the only honest reading of it: not a satchel
@@ -21730,12 +22930,138 @@ function worksDraw(){
     const of=D.createElement('span'); of.className='of';
     of.textContent=workLine(w,st);
     row.appendChild(nm); row.appendChild(of);
+    /* a click makes it once; shift and a click makes as many as the satchel will run to. On the grid
+       the ledger is the book of shapes instead: a click lays the work out on the grid from the satchel
+       (shift lays as many makings as it holds), so a man may see the shape and then make it there */
     row.onpointerdown=e=>{ e.preventDefault();
-      const r=workMake(w.id);
+      if(gridMode&&w.shape){ gridLay(w,e.shiftKey); pageDraw(); beltDraw(); return; }
+      const r=e.shiftKey?workMakeAll(w.id):workMake(w.id);
       if(r.ok||r.why==='refused'){ pageDraw(); beltDraw(); } else worksDraw(); };
+    if(gridMode&&w.shape) row.title='lay it out on the grid';
     el.appendChild(row);
   }
 }
+function workMakeAll(id){
+  let r=workMake(id), made=0;
+  while(r.ok&&made<64){ made++; r=workMake(id); }
+  return made?{ok:true,made}:r;
+}
+/* ================= THE GRID (a choice on the page, Round 135) =================
+   For a man who would rather lay a thing out than read it off a ledger: three by three, as the block
+   games have it. What is laid on it is taken out of the satchel, and what is left on it goes back when the
+   page is shut (and is kept with the satchel meanwhile, so nothing laid there is ever lost). A shape is
+   matched wherever it lies on the grid and either way about, and the work is the SAME work as the
+   ledger's — the same fire it wants, the same tool in the hand, the same refusal in the same words: dressed
+   stone laid out in the altar's shape is not an altar. A touch on a cell lays one of what is picked up
+   (so a shape is laid in a few touches), shift lays the whole of it; a touch on a laid cell takes it back.
+   A touch on what it makes makes it once; shift makes as many as the grid holds. */
+const GRID_KEY='voyage-grid';
+let gridMode=false, pickLaid=false; try{ gridMode=localStorage.getItem(GRID_KEY)==='1'; }catch(e){}
+function setGridMode(on){ gridMode=!!on; try{ localStorage.setItem(GRID_KEY,gridMode?'1':'0'); }catch(e){}
+  if(!gridMode) gridReturn(); D.body.classList.toggle('gridmode',gridMode); pageDraw(); beltDraw(); }
+function gridBox(){ let x0=3,y0=3,x1=-1,y1=-1;
+  for(let i=0;i<9;i++) if(GRID[i]){ const x=i%3, y=(i/3)|0; if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+  return x1<0?null:{x0,y0,w:x1-x0+1,h:y1-y0+1}; }
+/* which work lies on the grid, which way about, whether it is the refused stuff, and how many makings it holds */
+function gridMatch(){
+  const bx=gridBox(); if(!bx) return null;
+  for(const w of WORKS){ const S=w.shape; if(!S||S.w!==bx.w||S.h!==bx.h) continue;
+    for(const mir of [false,true]){ let ok=true, refused=false, times=Infinity;
+      for(let y=0;y<S.h&&ok;y++) for(let x=0;x<S.w&&ok;x++){
+        const want=S.cells[y*S.w+(mir?S.w-1-x:x)], have=GRID[(bx.y0+y)*3+bx.x0+x];
+        if(!want){ if(have) ok=false; continue; }
+        if(!have){ ok=false; continue; }
+        if(have.id===want.id) times=Math.min(times,Math.floor(have.n/want.c));
+        else if(w.refuses&&have.id===w.refuses.id&&w.of.length===1&&want.id===w.of[0].id) refused=true;
+        else ok=false; }
+      if(ok) return {w, mir, bx, refused, times:refused?0:times}; } }
+  return null;
+}
+function gridWhy(m){
+  if(!m) return '';
+  const w=m.w;
+  if(m.refused) return 'not of '+blockName(w.refuses.n);
+  if(w.at&&!workPlaceAt(w.at)){ const nm=blockName(blockId(w.at)); return 'at '+(/^(a|an|the) /i.test(nm)?nm:'a '+nm); }
+  if(w.needs){ const h=heldBlock(); if(!h||h.serves!==w.needs) return 'wants a '+w.needs+' in the hand'; }
+  if(m.times<1) return 'more in each place';
+  return '';
+}
+function gridMake(all){
+  const m=gridMatch(); if(!m) return {ok:false, why:'none'};
+  const w=m.w;
+  if(m.refused){ if(w.refuses.why) toast(w.refuses.why.t, w.refuses.why.ref); return {ok:false, why:'refused'}; }
+  if(gridWhy(m)) return {ok:false, why:'want'};
+  let made=0;
+  while(made<(all?64:1)){ const mm=gridMatch(); if(!mm||mm.w!==w||mm.times<1) break;
+    if(!w.gives.every(q=>satchelRoom(q.id))) break;
+    const S=w.shape;
+    for(let y=0;y<S.h;y++) for(let x=0;x<S.w;x++){ const want=S.cells[y*S.w+(mm.mir?S.w-1-x:x)]; if(!want) continue;
+      const i=(mm.bx.y0+y)*3+mm.bx.x0+x; GRID[i].n-=want.c; if(GRID[i].n<=0) GRID[i]=null; }
+    for(const q of w.gives) satchelAdd(q.id,q.c);
+    made++; }
+  if(!made){ toast('The satchel is full.'); return {ok:false, why:'full'}; }
+  if(w.verse&&!SPOKEN.has('work:'+w.id)){ SPOKEN.add('work:'+w.id); toast(w.verse.t, w.verse.ref); }
+  satchelTouch(); return {ok:true, made, gave:w.gives.map(q=>q.id+' x'+q.c*made).join(', ')};
+}
+/* a touch on a cell: lay one of what is picked up (shift: all of it), or take back what lies there */
+function gridTouch(i,all){
+  const g=GRID[i];
+  if(pagePick>=0&&SATCHEL[pagePick]){ const s=SATCHEL[pagePick];
+    if(!g||g.id===s.id){ const n=Math.min(all?s.n:1, STACK-(g?g.n:0));
+      if(n>0){ if(g) g.n+=n; else GRID[i]={id:s.id,n}; s.n-=n; }
+      if(s.n<=0){ SATCHEL[pagePick]=null; pagePick=-1; pickLaid=false; } else if(all){ pagePick=-1; pickLaid=false; } else pickLaid=true; }
+    else { GRID[i]={id:s.id,n:s.n}; SATCHEL[pagePick]={id:g.id,n:g.n}; pagePick=-1; pickLaid=false; } }
+  else if(g){ const n=all?1:g.n, put=satchelAdd(g.id,n); g.n-=put; if(g.n<=0) GRID[i]=null; }
+  satchelTouch(); pageDraw(); beltDraw();
+}
+/* everything on the grid back into the satchel (what will not go stays on the grid) */
+function gridReturn(){
+  for(let i=0;i<9;i++){ const g=GRID[i]; if(!g) continue;
+    const put=satchelAdd(g.id,g.n); g.n-=put; if(g.n<=0) GRID[i]=null; }
+  satchelTouch();
+}
+/* the book of shapes: a work laid out on the grid from the satchel, once (or as many times as it holds) */
+function gridLay(w,many){
+  gridReturn(); if(GRID.some(Boolean)) return;
+  const S=w.shape, need=Object.create(null);
+  for(const c of S.cells) if(c) need[c.id]=(need[c.id]||0)+c.c;
+  let times=many?99:1;
+  for(const id in need) times=Math.min(times,Math.floor(satchelCount(id)/need[id]));
+  for(const c of S.cells) if(c) times=Math.min(times,Math.floor(STACK/c.c));
+  if(times<1){ toast('Not enough in the satchel to lay out '+w.name+'.'); return; }
+  const ox=Math.floor((3-S.w)/2), oy=Math.floor((3-S.h)/2);
+  for(let y=0;y<S.h;y++) for(let x=0;x<S.w;x++){ const c=S.cells[y*S.w+x]; if(!c) continue;
+    const got=satchelTake(c.id,c.c*times); GRID[(oy+y)*3+ox+x]={id:c.id,n:got}; }
+  satchelTouch();
+}
+function gridDraw(){
+  D.body.classList.toggle('gridmode',gridMode);
+  const md=$('page-mode');
+  if(md){ md.textContent='';
+    for(const [on,label] of [[false,'☰ the ledger'],[true,'▦ the grid']]){
+      const sp=D.createElement('span'); sp.textContent=label; if(gridMode===on) sp.className='on';
+      sp.onpointerdown=e=>{ e.preventDefault(); if(gridMode!==on) setGridMode(on); };
+      md.appendChild(sp); } }
+  const el=$('page-craft'); if(!el) return;
+  el.textContent='';
+  if(!gridMode) return;
+  const g3=D.createElement('div'); g3.className='g3';
+  for(let i=0;i<9;i++){ const t=tokenEl(GRID[i],-1,true);
+    t.onpointerdown=e=>{ e.preventDefault(); gridTouch(i,e.shiftKey||e.button===2); };
+    t.oncontextmenu=e=>e.preventDefault();
+    g3.appendChild(t); }
+  const ar=D.createElement('div'); ar.className='arrow'; ar.textContent='➜';
+  const res=D.createElement('div'); res.className='res';
+  const m=gridMatch(), why=gridWhy(m);
+  const out=m?tokenEl({id:m.w.gives[0].id,n:m.w.gives[0].c},-1,true):tokenEl(null,-1,true);
+  if(m){ out.classList.add(m.refused?'refused':why?'no':'ready'); out.title=m.w.name;
+    out.onpointerdown=e=>{ e.preventDefault(); gridMake(e.shiftKey); pageDraw(); beltDraw(); }; }
+  const nm=D.createElement('div'); nm.className='why'+(m&&m.refused?' refused':'');
+  nm.textContent=m?(why||m.w.name):'';
+  res.appendChild(out); res.appendChild(nm);
+  el.appendChild(g3); el.appendChild(ar); el.appendChild(res);
+}
+window.__GRID={GRID, gridMatch, gridMake, gridTouch, gridLay, gridReturn, setGridMode, quickMove, workMakeAll, get mode(){ return gridMode; }};
 /* what a work costs, written the way a man would say it */
 function workLine(w,st){
   const cost=w.of.map(q=>q.c+' '+blockName(q.n)).join(', ');
@@ -21749,6 +23075,9 @@ function workLine(w,st){
   return cost;
 }
 function pageTouch(i){
+  /* (a thing picked up and laid on the grid is let go of by the next touch on the page: that touch picks
+     up what it touches, as a man reaches for the next stuff, and does not trade the two places) */
+  if(pickLaid){ pickLaid=false; pagePick=SATCHEL[i]&&pagePick!==i?i:-1; pageDraw(); beltDraw(); return; }
   if(pagePick<0){ if(SATCHEL[i]) pagePick=i; }
   else if(pagePick===i){ pagePick=-1; }
   else {
@@ -21761,7 +23090,7 @@ function pageTouch(i){
   }
   pageDraw(); beltDraw();
 }
-function togglePage(){ pageOpen=!pageOpen; pagePick=-1; pageDraw(); beltDraw(); }
+function togglePage(){ pageOpen=!pageOpen; pagePick=-1; pickLaid=false; if(!pageOpen) gridReturn(); pageDraw(); beltDraw(); }
 
 /* ================= THE PLACING =================
    Phase 4, step 6. A block set down against the face that was struck, on the
@@ -21872,7 +23201,7 @@ function useHoe(){
   return {tilled:b.id, at:[a.ix,a.iy,a.iz], now:b.tills};
 }
 function placeBlock(){
-  if(AIM&&state.mode==='walk') swingOnce();     /* the arm goes out to it, whatever comes of it */
+  if(AIM&&state.mode==='walk'){ swingOnce(); noiseAt(state.walk.x,state.walk.z,B*6); }   /* the arm goes out to it, whatever comes of it */
   /* the vessel is used before the rule below throws every held thing out —
      a bucket is `place:false` like any held thing, and doing nothing with it
      would be the whole of the bug */
@@ -22200,7 +23529,7 @@ function frame(){
     else { state.breath-=dt/75;
       if(state.breath<0.3&&!state._breathWarn){ state._breathWarn=true;
         toast('Your chest tightens — the surface is life. Rise and breathe, or take the immortal breath.'); }
-      if(state.breath<=0){ state.breath=0.15; state._breathWarn=false; surface();
+      if(state.breath<=0){ state.breath=0.15; state._breathWarn=false; surface(); hurtFlash();
         toast('Your breath fails — you break for the surface, gasping.'); } }
   } else { state.breath=Math.min(1,state.breath+dt/6); if(state.breath>0.5) state._breathWarn=false; }
   { const bEl=$('breath'); if(bEl){ const show=state.mode==='dive';
@@ -22537,6 +23866,14 @@ function frame(){
   updateScrolls(p.x,p.z);        /* the scrolls stand in their places */
   guideTick(dt);                 /* and the compass needle lies on the next of them */
   cameraTick(dt);
+  /* a probe's own eye, for a picture framed by hand (debug only) */
+  if(DBG_EYE){ camera.position.set(DBG_EYE[0],DBG_EYE[1],DBG_EYE[2]); camera.lookAt(DBG_EYE[3],DBG_EYE[4],DBG_EYE[5]); }
+  /* ---- AND AN EYE UNDER THE WATER OF A WELL OR A STREAM SEES THROUGH WATER (Round 136) ----
+     The sea has its own deep (above); a block of water closing over the eye gives the block games' wash
+     of blue over the view, and lets it go the moment the eye is out. */
+  { const el=$('wateye'); if(el){ const cp=camera.position;
+      const inW=!state.firm&&isLiquid(blockAt(Math.floor(cp.x/B),Math.floor(cp.y/B),Math.floor(cp.z/B)));
+      if(inW!==!!el._on){ el._on=inW; el.style.opacity=inW?'1':'0'; } } }
   labelT-=dt; if(labelT<=0){ labelT=0.4; updateLabels(p.x,p.z); placeTick(); }
   miniT-=dt; if(miniT<=0){ miniT=0.5; drawMapInto(minictx,mini.width,false);
     if(bigOpen) sizeBig(); }
