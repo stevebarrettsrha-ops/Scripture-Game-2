@@ -4583,7 +4583,7 @@ function buildChunk(cx,cz){
     emitColumn(G,ix,iz,cc);
     const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B, j=hash2(ix*1.7,iz*2.9);
     if(cc.tree&&!noTreeAt(ix,iz)) emitTree(G,ix,iz,cc);
-    else {
+    else if(!noTreeAt(ix,iz)){   /* (a cleared lot or yard grows no scrub either — Round 137) */
       /* thickest where no one lives — a village keeps its ground grazed.
          Every ground the grass file knows is asked; the ones it does not
          know (sand, stone, snow, the ice) simply bear nothing. */
@@ -8657,6 +8657,55 @@ function personFaceTex(skHex,HR,EY){
     g.fillStyle=rgb(EY[0],EY[1],EY[2]); g.fillRect(4,8,2,2); g.fillRect(11,8,2,2);
     g.fillStyle=rgb(Math.max(0,r-40),Math.max(0,g2-34),Math.max(0,b2-30)); g.fillRect(7,10,2,2);
     g.fillStyle='rgb(120,72,48)'; g.fillRect(6,13,4,1); }); }
+/* ---- THE EYES CLOSE IN SLEEP (Round 137) ----
+   A sleeper lay on his back staring at the roof-beams, eyes wide, the same face
+   he worked the field with. Asleep, his eyes are shut — the lids a dark line
+   where the eyes were — and they open when he is woken: by the traveller
+   come close or speaking, or by a noise near him (a door, a blow on a block,
+   a splash). Woken, he lifts his head a moment and looks, then sleeps again. */
+const personSleepHead={};
+function personFaceShutTex(skHex,HR){
+  const r=(skHex>>16)&255,g2=(skHex>>8)&255,b2=skHex&255;
+  return mkTex(g=>{ g.fillStyle=rgb(r,g2,b2); g.fillRect(0,0,16,16);
+    for(let y=0;y<6;y++)for(let x=0;x<16;x++){ if(y<4||hash2(x*3.1,y*7.7)>0.5){
+      const c=jit(HR,22,x+y*16); P(g,x,y,rgb(c[0],c[1],c[2])); } }
+    g.fillStyle='rgb(58,42,28)'; g.fillRect(2,6,5,1); g.fillRect(9,6,5,1);      // brows
+    g.fillStyle='rgb(40,28,20)'; g.fillRect(3,9,3,1); g.fillRect(10,9,3,1);     // the lids, shut
+    g.fillStyle=rgb(Math.max(0,r-40),Math.max(0,g2-34),Math.max(0,b2-30)); g.fillRect(7,10,2,2);
+    g.fillStyle='rgb(120,72,48)'; g.fillRect(6,13,4,1); }); }
+function personSleepHeadMats(sk,HR,EY){
+  const key=sk+','+HR+','+EY; if(personSleepHead[key]) return personSleepHead[key];
+  const open=personHeadMats(sk,HR,EY).slice();
+  open[4]=new THREE.MeshLambertMaterial({map:personFaceShutTex(sk,HR)});
+  return personSleepHead[key]=open;
+}
+/* shut or open a soul's eyes (folk of the world; a figure of the story keeps its own setFace) */
+function setEyes(ent,shut){
+  const u=ent.m.userData; if(!u||!u.head||u.sk===undefined||u.setFace) return;
+  if(!!ent._eyesShut===!!shut) return;
+  ent._eyesShut=!!shut;
+  u.head.material=shut?personSleepHeadMats(u.sk,u.HR,u.EY):personHeadMats(u.sk,u.HR,u.EY);
+  if(ent._lod){ restoreRig(ent.m,ent); ent.m.remove(ent._lod); ent._lod.geometry.dispose(); ent._lod=null; ent._lodState=undefined; }   /* (welded again, with the new face) */
+}
+/* ---- NOISES THAT WAKE A SLEEPER ----
+   what the traveller does near a sleeping house: a door swung, a block struck
+   out or laid, a splash. Each is a place and a moment; a sleeper within reach
+   of it wakes. */
+const NOISES=[];
+function noiseAt(x,z,r){ NOISES.push({x,z,r:r||B*7,t:performance.now()*0.001}); if(NOISES.length>24) NOISES.shift(); }
+function wakeSleeper(ent,secs){ if(!ent._lying) return; ent._wokeT=Math.max(ent._wokeT||0,secs||5); }
+/* a soul lying asleep: woken, it opens its eyes and props itself up to look toward what woke it,
+   and lies back and sleeps again when the traveller has gone and the hush has held a while */
+function sleepTick(ent,dt){
+  const px=ent.m.position.x, pz=ent.m.position.z, now=performance.now()*0.001;
+  if(state.mode==='walk'&&Math.hypot(state.walk.x-px,state.walk.z-pz)<B*2.6) ent._wokeT=Math.max(ent._wokeT||0,3);
+  for(const N of NOISES) if(now-N.t<0.5&&N.t>(ent._heardT||0)&&Math.hypot(N.x-px,N.z-pz)<N.r){ ent._heardT=N.t; ent._wokeT=Math.max(ent._wokeT||0,5); }
+  if((ent._wokeT||0)>0){ ent._wokeT-=dt;
+    setEyes(ent,false);
+    ent.m.rotation.x=-Math.PI/2+0.5;                                  /* up on an elbow */
+    if(ent._wokeT<=0){ ent._wokeT=0; setEyes(ent,true); ent.m.rotation.x=-Math.PI/2; } }
+  else setEyes(ent,true);
+}
 function personHeadMats(sk,HR,EY){
   const key=sk+','+HR+','+EY; if(personHead[key]) return personHead[key];
   const hairM=lam(hairHex(HR));
@@ -8736,6 +8785,7 @@ function makePerson(seed, role, child, female, folk, look){
   if(child) g.scale.set(0.62,0.62,0.62);
   g.userData={legs:[legL,legR,armL,armR],armL,armR,rod,rodLine,rodBob,rodFish,female:!!female};
   if(L) Object.assign(g.userData,{legL,legR,head,robeMat:robeM,sk,HR,EY});
+  else Object.assign(g.userData,{head,sk,HR,EY});      /* (the face, so a sleeper's eyes can close) */
   return g;
 }
 /* ---- EVERY BEAST OF THE FIELD, AND WHERE IT IS BUILT ----
@@ -13240,7 +13290,10 @@ function clearLotOfTrees(x0,z0,x1,z1,y){
     (NOTREE||(NOTREE=new Set())).add((ix+32768)*65536+(iz+32768));
     if(!_stampOn) continue;
     for(let cy=cy0-1;cy<=cy0+48;cy++){ const b=blockOf(blockAt(ix,cy,iz));
-      if(b&&/^log-/.test(b.id)) stampBlock(ix,cy,iz,0); } }
+      /* the trunk of every kind, and the leaves and the bush too (Round 137 —
+         the test was `log-` alone, which missed the plain log and every leaf,
+         and left a bush standing in front of a door in Yasharal) */
+      if(b&&/^(log|leaves)(-|$)/.test(b.id)) stampBlock(ix,cy,iz,0); } }
 }
 function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   const style=(ex&&ex.style)||'levant';
@@ -13251,6 +13304,14 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
   const rnd=k=>hash2(seed*7.7+k*3.1,seed*3.3+k*9.7);
   const x0=hx-w*B/2, x1=hx+w*B/2, z0=hz-d*B/2, z1=hz+d*B/2;
   clearLotOfTrees(x0-B*1.5,z0-B*1.5,x1+B*1.5,z1+B*1.5,y);
+  /* and the yard before the door is cleared further out than the lot about
+     the walls — the way in, and the household's work, are done there. It is
+     cleared BEFORE a block of the house is laid: the clearing takes timber,
+     and the lintel is timber (Round 137) */
+  { const ux=doorDir===2?1:doorDir===3?-1:0, uz=doorDir===0?1:doorDir===1?-1:0;
+    const fx=doorDir===2?x1:doorDir===3?x0:hx, fz=doorDir===0?z1:doorDir===1?z0:hz;
+    const ax=fx+ux*B*6.5, az=fz+uz*B*6.5, hw=B*4.5;
+    clearLotOfTrees(Math.min(fx,ax)-(uz?hw:0),Math.min(fz,az)-(ux?hw:0),Math.max(fx,ax)+(uz?hw:0),Math.max(fz,az)+(ux?hw:0),y); }
   /* four blocks to the eaves now, not three — a house a man does not have
      to stoop into reads as a HOUSE, not a hut */
   /* ---- A DOOR A MAN WALKS THROUGH UPRIGHT (Round 128) ----
@@ -13452,6 +13513,7 @@ function emitHouse(G,ex, hx,hz,y, w,d, doorDir, seed){
                  z:(doorDir>=2?gz:hz)+(doorDir===0?d*B/2+B:doorDir===1?-d*B/2-B:0)});
   const gapCX = doorDir===2?x1-T/2:doorDir===3?x0+T/2:gx;
   const gapCZ = doorDir===0?z1-T/2:doorDir===1?z0+T/2:gz;
+
   /* ---- AND A DOORSTEP WHERE THE YARD LIES BELOW (Round 96) ----
      A house on terraced land has no level side sometimes; its door then
      faces a yard a course or two down, and the footing hangs over it — a
@@ -13904,8 +13966,16 @@ function* spawnVillage(i,exShell){
   const site=SITES[i]; if(!site){ activeVillages.set(i,{none:true}); return; }
   const rnd=k=>hash2(i*31.7+k*7.7, i*11.3+k*3.9);
   const G=newG(); const ex=exShell||{};
+  /* ---- THE DOORS OF THE STORY, IN EVERY TOWN (Round 137) ----
+     The houses of the story stand on the ground, their floor level with the
+     street, with a doorway two cells wide and three courses high and a leaf
+     to fill it. The villages kept the old door: one cell wide and two courses
+     high over a footing a course up, which beside a man reads as a hatch, has
+     a step in the way of every soul going in, and was the house's weak point
+     in every probe of the folk going home. Every house of a town is built as
+     the story builds its own. */
   Object.assign(ex,{doors:[],houses:[],torchIn:[],farms:[],stalls:[],pen:null,stamps:[],
-    style:houseStyleFor(i), ci:i});
+    style:houseStyleFor(i), ci:i, big:true});
   const wy=topY(site.ix,site.iz);
   const cfg=cityFor(i);                 /* a great city here, or a small village? */
   const torches=[]; const solids=[];
@@ -14775,7 +14845,7 @@ function houseBedSpots(H){
   /* the bed the house was built with, in the far corner: the head of the
      house sleeps in it, stepping up from the floor beside it */
   if(floorOK(B*1.7,B*2.6)){ const q=P(B*1.7,B*2.6), l=P(B*0.35+L,B*1.02);
-    spots.push({x:q[0],z:q[1],lx:l[0],lz:l[1],ly:fY+B*0.42,ang,bed:true}); }
+    spots.push({x:q[0],z:q[1],lx:l[0],lz:l[1],ly:fY+B,ang,bed:true}); }   /* on it: the bed stands a whole course, as its cells are stamped */
   /* the rest on mats along the far wall, clear of the shelves, the table
      and each other, and then a second row nearer the hearth */
   for(const a of [B*0.85+L,B*3.3+L]) for(let b=B*2.6;b<=bLen-B*1.0;b+=B*1.25){
@@ -14813,6 +14883,7 @@ function lieDown(ent,ang){
   ent.m.rotation.order='YXZ';
   if(ang!==undefined&&ang!==null) ent.m.rotation.y=ang;
   ent.m.rotation.x=-Math.PI/2;
+  setEyes(ent,true); ent._wokeT=0;
   ent.m.position.y=(ent.gy!==undefined?ent.gy:ent.m.position.y)+1.0*sc;
   u.armL.rotation.x=0; u.armR.rotation.x=0;
   for(const L of u.legs){ L.rotation.x=0; const j=L.userData.knee||L.userData.elbow; if(j) j.rotation.x=0; }
@@ -14828,6 +14899,7 @@ function standUp(ent){
   if(!ent._lying&&!ent._sat) return;
   const u=ent.m.userData;
   ent.m.rotation.x=0; ent.m.rotation.order='XYZ';
+  setEyes(ent,false);
   /* out of the bed and onto the floor beside it (Round 137) */
   if(ent._wake){ const w=ent._wake; ent._wake=null;
     ent.m.position.x=w.x; ent.m.position.z=w.z; ent.gx=w.x; ent.gz=w.z; ent.gy=w.y; }
@@ -14842,7 +14914,7 @@ function wanderTick(ent,site,dt,speed){
   /* home for the night and at the hearth: lie down, and stay down */
   if(ent._abed&&ent.home){
     const bd=bedOf(ent);
-    if(ent._lying) return false;
+    if(ent._lying){ sleepTick(ent,dt); return false; }
     if(Math.hypot(ent.m.position.x-bd.x,ent.m.position.z-bd.z)<2.2){
       /* laid in his own place, along the floor with his head to the back
          wall — not where his last step happened to end, which put the head
@@ -15065,6 +15137,7 @@ function personTick(ent,vv,dt){
      a soul the houses had no room for went on working through the night,
      the one figure up in a sleeping town */
   if(ent._abed&&!ent.home){
+    if(ent._lying) sleepTick(ent,dt);
     if(!ent._lying){ const a=hash2(ent.seed||1,4.4)*6.2832, r=B*(2.8+hash2(ent.seed||1,8.8)*1.8);
       ent.tx=site.x+Math.cos(a)*r; ent.tz=site.z+Math.sin(a)*r; ent.anim='home'; ent.act=null;
       if(Math.hypot(ent.m.position.x-ent.tx,ent.m.position.z-ent.tz)<2.2) lieDown(ent);
@@ -15802,7 +15875,8 @@ function speakTo(p){ if(!p) return;
      a man abed was asked the time of day and gave his trade's cheerful
      line, lying flat on his back with his eyes on the roof-beams */
   const who=p.name?p.name+' the '+callingOf(p):'The '+callingOf(p);
-  if(p._lying){ toast(who+' is asleep, and does not stir.'); return; }
+  if(p._lying){ wakeSleeper(p,6);
+    toast(who+' wakes, and lifts '+(p.female?'her':'his')+' head — “Mm? It is the middle of the night, friend. Let a soul sleep.”'); return; }
   if(p._abed){ toast(who+' — “It is late, friend, and I am for my bed. Come and find me in the morning.”'); return; }
   const lines=SPEECH[p.role]||SPEECH.folk;
   const now=performance.now()*0.001;
@@ -17381,7 +17455,7 @@ function interact(){
 function setDoor(H,open,by){ const D2=H&&H.door; if(!D2) return;
   D2.open=open; D2.target=open?D2.base+D2.swing:D2.base; D2._by=open?(by||null):null; }
 function toggleDoor(){ if(!promptDoor||!promptDoor.door) return;
-  setDoor(promptDoor,!promptDoor.door.open,'hand'); }
+  setDoor(promptDoor,!promptDoor.door.open,'hand'); noiseAt(promptDoor.dx,promptDoor.dz,B*8); }
 function treeBlocked(nx,nz){
   const c=landAtWorld(nx,nz); if(!c||!c.tree) return false;
   const ix=Math.floor(nx/B), iz=Math.floor(nz/B);
@@ -17502,7 +17576,7 @@ function splEmit(x,y,z,vx,vy,vz,life,sz,surf,mist){
 /* the water's face under a point: the sea's own swell near the level of the sea, or (a lake or a
    river, high in the land) the level the splash was asked for */
 function splSurface(x,y,z){ return Math.abs(y-WATER_Y)<14?WATER_Y+seaHeight(x,z):y-1.2; }
-function splash(x,y,z,big){ initSplash();
+function splash(x,y,z,big){ initSplash(); if(big) noiseAt(x,z,B*6);
   const surf=splSurface(x,y,z), k=big?1:0.55;
   /* the crown, thrown out and up from the rim */
   const nC=big?46:18;
@@ -18856,6 +18930,24 @@ function fpMat(m){ if(!m) return m; let c=_fpMats.get(m); if(!c){ c=m.clone(); c
 function fpLayer(o){ o.traverse(q=>{ q.layers.set(1); q.renderOrder=999; if(q.isMesh) q.material=Array.isArray(q.material)?q.material.map(fpMat):fpMat(q.material); q.frustumCulled=false; }); }
 const fpFore=new THREE.Mesh(new THREE.BoxGeometry(1.26,2.29,1.35).translate(0,-1.14,0),sleeveMatP); fpLayer(fpFore); fpPivot.add(fpFore);
 let fpHeldG=null, fpHeldKey=null;
+/* ---- THE HAND AS THE BLOCK GAMES SHOW IT (Round 137) ----
+   THE FAULT THIS MENDS. Through his own eyes the tool was hung on the forearm
+   exactly as it hangs in the over-the-shoulder view — along the line of the arm
+   and four units long — and the arm pointed straight away from the eye. So the
+   haft ran from the corner of the view up past its edge, and its head was never
+   in it: a stick. And in free roam an EMPTY hand was given an iron pick to draw,
+   because the bare hand digs there at a pick's pace — a phantom tool in a hand
+   the belt said was empty.
+   Now an empty hand is the arm and the hand, coming up from the lower right as
+   it does in the block games; and a thing held is held as they hold it — small,
+   diagonal across the lower right, the head of the tool up and in the view,
+   the fist round the haft and the forearm going down out of the corner. The
+   pose is numbers, here, so they may be tuned against a picture. */
+const FP_POSE={ empty:{p:[2.6,-2.85,-3.7], d:[-0.2,0.5,-1], roll:0.2},
+                tool:{p:[2.35,-2.5,-4.25], d:[-0.6,0.76,-0.28], roll:1.0, s:0.6, fore:[0.45,-0.55,0.7]} };
+window.__FPPOSE=FP_POSE;
+const _fpQ=new THREE.Quaternion(), _fpQ2=new THREE.Quaternion(), _fpV=new THREE.Vector3(), _fpV2=new THREE.Vector3(),
+  _fpUp=new THREE.Vector3(0,1,0), _fpDn=new THREE.Vector3(0,-1,0), _fpX=new THREE.Vector3(1,0,0);
 function fpViewHide(){ if(fpView.visible) fpView.visible=false; }
 const _fpE=new THREE.Vector3(), _fpT=new THREE.Vector3();
 function fpEye(dt){
@@ -18894,10 +18986,11 @@ function fpEye(dt){
   fpView.visible=handOn;
   if(handOn){
     camera.updateMatrixWorld(); fpView.position.copy(camera.position); fpView.quaternion.copy(camera.quaternion);
-    let b=heldBlock(); if(!b&&freeHand()) b=BLOCK_BY_ID['iron-pick']||null;
+    const b=heldBlock();                               /* (an empty hand is drawn empty, whatever it can dig) */
     const key=b?b.id:null;
-    if(key!==fpHeldKey){ if(fpHeldG){ fpFore.remove(fpHeldG); fpHeldG=null; }
-      if(b){ fpHeldG=heldModel(b); fpLayer(fpHeldG); fpFore.add(fpHeldG); }
+    if(key!==fpHeldKey){ if(fpHeldG){ fpPivot.remove(fpHeldG); fpHeldG=null; }
+      if(b){ fpHeldG=heldModel(b); fpHeldG.rotation.set(0,0,0); fpHeldG.position.set(0,-0.3,0);
+        fpLayer(fpHeldG); fpPivot.add(fpHeldG); }
       if(fpHeldKey!==undefined) fpSway.eq=0;         /* (a new thing in the hand comes up from below) */
       fpHeldKey=key; }
     /* the hand is a little behind the eye: turn, and it lags the turn and swings back after it; look
@@ -18912,9 +19005,22 @@ function fpEye(dt){
     /* at rest the hand is carried forward at the right of the view; the blow swings it down and back */
     const t=performance.now()*0.001, mv=(state.mode==='walk'?w.moving:state.deck&&state.deck.moving)?1:0;
     let sw=0; if(MINE.on) sw=Math.max(0,Math.sin(t*3.1*Math.PI*2)); else if(swingT>0) sw=Math.sin((1-swingT/0.3)*Math.PI);
-    const dip=1-fpSway.eq;
-    fpPivot.position.set(2.15-fpSway.x*1.2,-2.05+Math.sin(t*7)*0.08*mv-dip*dip*2.4+fpSway.y*0.6,-3.1);
-    fpPivot.rotation.set(1.6-sw*0.9+fpSway.y*0.6+dip*0.5,0.28+sw*0.25+fpSway.x*0.6,0.12);
+    const dip=1-fpSway.eq, P=fpHeldG?FP_POSE.tool:FP_POSE.empty;
+    fpPivot.position.set(P.p[0]-fpSway.x*1.2,P.p[1]+Math.sin(t*7)*0.08*mv-dip*dip*2.4+fpSway.y*0.6-sw*0.5,P.p[2]);
+    /* the arm (empty) or the haft (holding) laid along its line, turned about that line, and the blow
+       swung down about the view's own crosswise axis */
+    _fpV.set(P.d[0],P.d[1],P.d[2]).normalize();
+    _fpQ.setFromUnitVectors(fpHeldG?_fpUp:_fpDn,_fpV);
+    _fpQ2.setFromAxisAngle(_fpV,P.roll); _fpQ.premultiply(_fpQ2);
+    _fpQ2.setFromAxisAngle(_fpX,-sw*0.9+fpSway.y*0.6+dip*0.5); _fpQ.premultiply(_fpQ2);
+    fpPivot.quaternion.copy(_fpQ);
+    if(fpHeldG){ fpHeldG.scale.setScalar(P.s);
+      /* the forearm runs from the fist, down and back out of the lower corner */
+      _fpV2.set(P.fore[0],P.fore[1],P.fore[2]).normalize();
+      _fpQ2.copy(_fpQ).invert(); _fpV2.applyQuaternion(_fpQ2);       /* (view-space direction into the pivot's own) */
+      fpFore.position.copy(_fpV2).multiplyScalar(2.3);
+      fpFore.quaternion.setFromUnitVectors(_fpDn,_fpV2.clone().negate()); }
+    else { fpFore.position.set(0,0,0); fpFore.quaternion.identity(); }
   }
 }
 const fpSway={x:0,y:0,yaw:0,p:0,eq:1}; window.__FPSWAY=fpSway;
@@ -21210,7 +21316,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
     return {hour:best.hour, site:{x:best.site.x,z:best.site.z}, storm:best.stormF||0,
       people:best.people.map((e,i)=>({i,name:e.name,role:e.role,anim:e.anim||null,act:e.act||null,
         tx:e.tx,tz:e.tz,t:e.t,blk:e._blk||'',acting:!!e.acting,shelter:!!e._shelter,
-        awake:!e._abed,lying:!!e._lying,sat:!!e._sat,child:!!e.child,heat:!!(e._heat&&e.act==='rest'),
+        awake:!e._abed,lying:!!e._lying,eyesShut:!!e._eyesShut,woke:+(e._wokeT||0).toFixed(1),sat:!!e._sat,child:!!e.child,heat:!!(e._heat&&e.act==='rest'),
         homeD:e.homeD,homeI:(e.home&&e.home.H)?best.houses.indexOf(e.home.H):null,stuck:e.stuck||0,path:e._path?{n:e._path.pts.length,i:e._path.i,partial:e._path.partial}:null,bed:e._bed?{x:+e._bed.x.toFixed(1),z:+e._bed.z.toFixed(1),lx:e._bed.lx,lz:e._bed.lz,ly:e._bed.ly,inBed:!!e._bed.bed,mat:e._bed.ang!==null}:null,outside:!!e._outside,riding:!!e._riding,hasMount:!!e.mountE,mountD:e.mountE?+Math.hypot(e.mountE.m.position.x-e.m.position.x,e.mountE.m.position.z-e.m.position.z).toFixed(1):null,det:e._detour?[+e._detour.x.toFixed(0),+e._detour.z.toFixed(0),e._detour.t]:null,held:e._held||0,dn:e._dn||0,hm:e.home?{x:e.home.x,z:e.home.z,x0:e.home.x0,x1:e.home.x1,z0:e.home.z0,z1:e.home.z1,dx:e.home.dx,dz:e.home.dz,ox:e.home.ox,oz:e.home.oz,doorx:e.home.doorx,doorz:e.home.doorz}:null,door:(e.home&&e.home.H&&e.home.H.door)?(e.home.H.door.open?'open':'shut'):null,
         x:e.m.position.x,y:e.m.position.y,z:e.m.position.z,
         home:e.home?Math.hypot(e.m.position.x-(e.home.x!==undefined?e.home.x:e.home.doorx),
@@ -21353,8 +21459,8 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
     for(const [,vv] of activeVillages){ const ex=vv.ex||vv; const hs=ex&&ex.houses;
       if(!hs||!hs.length) continue;
       for(const H of hs){
-        const fy=H.yb+B*0.55;                       /* the top of the footing */
-        const iy=Math.floor(fy/B)+1;                /* the first course of wall above it */
+        const fy=H.big?H.yb:H.yb+B*0.55;            /* the top of the footing (a big house's is its floor) */
+        const iy=H.big?Math.floor((H.yb+0.1)/B):Math.floor(fy/B)+1;   /* the first course of wall above it */
         /* walk the four walls; the door's own wall is known by its gap */
         const mid=(a,b)=>(a+b)/2;
         const tries=[
@@ -21368,7 +21474,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
           /* it must be WALL: open air on both sides of it, in or out */
           return {x:(ix+0.5)*B, y:(iy+0.5)*B, z:(iz+0.5)*B, ix,iy,iz,
                   above:{x:(ix+0.5)*B, y:(iy+1.5)*B, z:(iz+0.5)*B},
-                  floor:H.yb+B*0.58, house:{x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1}};
+                  floor:H.big?H.yb+0.03:H.yb+B*0.58, house:{x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1}};
         }
       }
     }
@@ -22026,7 +22132,7 @@ function mineTick(dt){
   /* a chip flies off the face with every blow */
   MINE.chip-=dt;
   if(MINE.chip<=0){ MINE.chip=0.26; blockBits(MINE.ix,MINE.iy,MINE.iz,MINE.n,3,tgt,0.55); }
-  if(MINE.t>=MINE.need){
+  if(MINE.t>=MINE.need){ noiseAt(state.walk.x,state.walk.z,B*7);
     const cx=(MINE.ix+0.5)*B, cy=(MINE.iy+0.5)*B, cz=(MINE.iz+0.5)*B;
     const was=MINE.n;
     setBlock(cx,cy,cz,0);
@@ -22673,7 +22779,7 @@ function heldTick(dt){
   const w=state.walk;
   const show=(state.mode==='walk'||state.mode==='deck')&&!cut&&!state.fishing&&!state.mount
     &&!(state.mode==='walk'&&(w.inWater||w.climb||w.spill>0));
-  let b=heldBlock(); if(!b&&freeHand()) b=BLOCK_BY_ID['iron-pick']||null;
+  const b=heldBlock();                               /* (an empty hand carries nothing — Round 137) */
   const key=show&&b?b.id:null;
   if(key!==heldKey){
     if(heldG){ el.remove(heldG); heldG.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); heldG=null; }
@@ -23084,7 +23190,7 @@ function useHoe(){
   return {tilled:b.id, at:[a.ix,a.iy,a.iz], now:b.tills};
 }
 function placeBlock(){
-  if(AIM&&state.mode==='walk') swingOnce();     /* the arm goes out to it, whatever comes of it */
+  if(AIM&&state.mode==='walk'){ swingOnce(); noiseAt(state.walk.x,state.walk.z,B*6); }   /* the arm goes out to it, whatever comes of it */
   /* the vessel is used before the rule below throws every held thing out —
      a bucket is `place:false` like any held thing, and doing nothing with it
      would be the whole of the bug */
