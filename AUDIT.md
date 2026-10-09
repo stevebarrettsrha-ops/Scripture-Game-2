@@ -11317,7 +11317,11 @@ How it is drawn:
 **Shafts of sunlight.** When the sun stands behind a wood, a wall or a ship's rigging, the bright
 sky between the leaves is drawn out along lines from the sun. The light comes through the gaps in
 shafts and hangs in the air. Only the sky near the sun is bright enough to make them, and only
-while he is up and in front of the eye. They are strongest when he is low.
+while he is up and in front of the eye. They are strongest when he is low. They show in the air in
+front of darker things (leaves, trunks, the ground); over the open sky about the sun, already bright
+with him, they add little. The olive crowns are thick, so on the Mount of Olives the light spills
+round the edge of a crown and throws a dark ray up into the sky, rather than coming through it in
+many thin beams.
 
 **The air toward the sun.** Far land fades into the fog, and the fog is the colour of the horizon.
 But the horizon is not one colour: the air about the sun is bright with him, and at sunset the

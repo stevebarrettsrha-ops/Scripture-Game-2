@@ -7052,7 +7052,7 @@ const SHADOW={ on:!((window.__INJECT||{}).noShadow), size:2048, R:480 };
    a little more colour, a gentle curve through the middle tones, the shadows a breath cooler and the
    lights a breath warmer, and the corners a little darker, as a lens leaves them.
    POST.on=false (or __INJECT.noPost) draws straight to the screen, as before. */
-const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14, curve:0.20, vig:0.26, rays:0.55 };
+const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14, curve:0.20, vig:0.26, rays:1.3 };
 { const VS='varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }';
   const qs=new THREE.Scene(), qc=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
   const quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2)); quad.frustumCulled=false; qs.add(quad);
@@ -7092,7 +7092,10 @@ const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14,
     void main(){
       vec3 c=texture2D(t,vUv).rgb;
       c+=(texture2D(b1,vUv).rgb*0.7+texture2D(b2,vUv).rgb*1.0)*bloom;
-      if(rayAmt>0.001) c+=texture2D(rays,vUv).rgb*rayCol*rayAmt;
+      /* the shafts show in the air before what is darker than they (the leaves, the trunks, the ground);
+         over the open sky about the sun, already bright with him, they add little */
+      if(rayAmt>0.001){ float self=smoothstep(0.55,0.95,max(c.r,max(c.g,c.b)));
+        c+=texture2D(rays,vUv).rgb*rayCol*rayAmt*(1.0-0.7*self); }
       float l=dot(c,vec3(0.2126,0.7152,0.0722));
       c=max(mix(vec3(l),c,sat),0.0);
       c=clamp(c,0.0,1.0); c=mix(c,c*c*(3.0-2.0*c),curve);
