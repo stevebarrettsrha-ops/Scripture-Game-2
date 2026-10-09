@@ -11319,9 +11319,24 @@ sky between the leaves is drawn out along lines from the sun. The light comes th
 shafts and hangs in the air. Only the sky near the sun is bright enough to make them, and only
 while he is up and in front of the eye. They are strongest when he is low. They show in the air in
 front of darker things (leaves, trunks, the ground); over the open sky about the sun, already bright
-with him, they add little. The olive crowns are thick, so on the Mount of Olives the light spills
-round the edge of a crown and throws a dark ray up into the sky, rather than coming through it in
-many thin beams.
+with him, they add little.
+- They are drawn from the glow's softened picture of the bright parts. A spot of sun through a gap
+  in the leaves is only a few pixels; drawn out as it was, it made a hair, not a shaft.
+- They are strongest while the sun is behind leaves and shows only through their gaps. In open sky
+  his whole disc is bright, and drawing it out at full strength would only make a large blur.
+
+**The olive's leaves are open.** The traveller asked for "the olive leaves bigger gaps so the beams
+come through". The olive crowns had been built of the leaf the whole flora wears, which lets light
+through single pinholes, so a crown stood against the evening sun as one dark mass.
+- The olive now has its own leaf (`leafOlive`), ribbed and tinted as before. Its holes are gathered
+  into soft gaps about a quarter of a block across, and the gaps meet across the edges of the
+  faces.
+- The leaves at a gap's edge are drawn a little lighter, as if lit through.
+- The crowns themselves have holes through them as well as ragged edges (story/world.js,
+  `W.olive`).
+- The low sun now comes through the groves of the Mount of Olives and Gat-Shemen in spots and
+  shafts. The olive's shadow on the ground is dappled through the same gaps.
+- Only the olive's leaves change. Every other tree in the world keeps the common leaf.
 
 **The air toward the sun.** Far land fades into the fog, and the fog is the colour of the horizon.
 But the horizon is not one colour: the air about the sun is bright with him, and at sunset the

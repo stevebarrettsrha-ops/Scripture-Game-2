@@ -692,6 +692,26 @@ TEX.plantW = mkTex(g=>{ g.clearRect(0,0,16,16);
         g.fillRect(x+(y>h2-3?(hash2(k,9.1)>0.5?FG:-FG):0),16-FG-y,FG,FG); } } });
 TEX.solidW = mkTex(g=>speckle(g,[228,228,228],26,[198,198,198],0.35),16,16,RIM);
 blockMat('leafW',TEX.leafW,{alphaTest:0.4}); blockMat('barkW',TEX.barkW);
+/* ---- THE OLIVE'S OWN LEAF, OPEN TO THE SUN ----
+   The same grey leaf, ribbed the same way and tinted by its block, but the olive's crown is a thin,
+   silvery thing that the sun comes through. The common leaf lets the light through single pinholes,
+   and a crown built of it stood against the evening sun as one dark mass. This one has its holes
+   gathered into gaps — soft blobs a quarter of a block across, laid out so they meet across the edge
+   of the face — and the low sun comes through them in shafts (Gat-Shemen and the Mount of Olives:
+   blocks/leaves-olive.js, story/world.js W.olive). */
+TEX.leafOlive=mkTex(g=>{
+  const P=4, sm=t=>t*t*(3-2*t), hw=(i,j)=>hash2((((i%P)+P)%P)*7.3+19.1,(((j%P)+P)%P)*5.9+3.7);
+  const sn=(x,y)=>{ const i=Math.floor(x), j=Math.floor(y), fx=sm(x-i), fy=sm(y-j), a=hw(i,j), b=hw(i+1,j), c=hw(i,j+1), d=hw(i+1,j+1);
+    return a+(b-a)*fx+(c-a)*fy+(a-b-c+d)*fx*fy; };
+  for(let y=0;y<16;y+=FG) for(let x=0;x<16;x+=FG){
+    const gap=sn(x/4,y/4), n=hash2(x*2.7+y*1.3,y*3.1+x*0.7);
+    if(gap<0.47||n<0.10){ g.clearRect(x,y,FG,FG); continue; }      /* the gaps the sun comes through */
+    let v=196+hash2(x*5.1,y*7.3)*58;
+    const rib=Math.abs(((x*0.9+y*0.35)%4)-2);
+    if(rib<0.6) v*=0.86; else if(rib>1.8) v*=1.05;
+    if(gap<0.55) v*=1.08;                                           /* the leaves at a gap's edge, lit through */
+    Pf(g,x,y,rgb(Math.round(Math.min(255,v)),Math.round(Math.min(255,v)),Math.round(Math.min(255,v)))); } });
+blockMat('leafOlive',TEX.leafOlive,{alphaTest:0.4});
 /* ================= §2.4.3 — THE BARK OF EACH KIND =================
    *"Bark per species. Silver-birch paper, cork oak, cedar fissures, palm
    rings, olive's twisted grey. One 32×32 texture each, generated."*
@@ -916,7 +936,7 @@ windSway(MAT.flowerR,0.6,true,'snow'); windSway(MAT.flowerY,0.6,true,'snow');
    swings further than the sward, and the thorn crowns ride it */
 windSway(MAT.savgrass,1.5,true,'snow'); windSway(MAT.acacia,0.5,false,'leaf');
 /* and every leaf and every herb on the earth moves with it */
-windSway(MAT.leafW,0.55,false,'leaf'); windSway(MAT.everW,0.55,false,null);
+windSway(MAT.leafW,0.55,false,'leaf'); windSway(MAT.everW,0.55,false,null); windSway(MAT.leafOlive,0.55,false,'leaf');
 windSway(MAT.plantW,0.85,true,'snow');
 /* the two crops are NOT given windSway: `cropYear` below carries the same
    sway inside it, because it must own the whole vertex shader to sink the
@@ -7052,7 +7072,7 @@ const SHADOW={ on:!((window.__INJECT||{}).noShadow), size:2048, R:480 };
    a little more colour, a gentle curve through the middle tones, the shadows a breath cooler and the
    lights a breath warmer, and the corners a little darker, as a lens leaves them.
    POST.on=false (or __INJECT.noPost) draws straight to the screen, as before. */
-const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14, curve:0.20, vig:0.26, rays:1.3 };
+const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14, curve:0.20, vig:0.26, rays:1.3, rayGain:8 };
 { const VS='varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }';
   const qs=new THREE.Scene(), qc=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
   const quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2)); quad.frustumCulled=false; qs.add(quad);
@@ -7079,13 +7099,18 @@ const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14,
      is drawn out along the lines from the sun, a little at a time, so the light comes through the gaps in
      shafts and lies in the air. Only the sky near him is bright enough to give them, and only while he is
      up, and in front of the eye. */
-  const mRays=mk({t:{value:null},sun:{value:new THREE.Vector2(0.5,0.5)},asp:{value:1}},`
-    uniform sampler2D t; uniform vec2 sun; uniform float asp; varying vec2 vUv;
+  /* (drawn from the glow's own softened picture of the bright: a spot of sun through a gap in the leaves
+     is a few pixels, and drawn out as it is it gave a hair, not a shaft — softened, it gives a beam) */
+  const mRays=mk({t:{value:null},sun:{value:new THREE.Vector2(0.5,0.5)},asp:{value:1},gain:{value:3}},`
+    uniform sampler2D t; uniform vec2 sun; uniform float asp, gain; varying vec2 vUv;
     void main(){ vec2 d=(vUv-sun)*(0.92/28.0); vec2 uv=vUv; float decay=1.0; vec3 acc=vec3(0.0);
       for(int i=0;i<28;i++){ uv-=d; vec3 c=texture2D(t,clamp(uv,0.0,1.0)).rgb;
-        float l=max(c.r,max(c.g,c.b)); vec2 q=(uv-sun)*vec2(asp,1.0);
-        acc+=c*smoothstep(0.55,0.95,l)*exp(-dot(q,q)*9.0)*decay; decay*=0.95; }
-      gl_FragColor=vec4(acc*(1.0/28.0),1.0); }`);
+        vec2 q=(uv-sun)*vec2(asp,1.0);
+        acc+=c*exp(-dot(q,q)*6.0)*decay; decay*=0.955; }
+      /* strongest when he is behind the leaves and shows only through their gaps; in the open sky his
+         whole disc is bright, and drawn out at that strength it would only be a great blur */
+      vec3 s0=texture2D(t,sun).rgb; float opn=smoothstep(0.35,0.9,max(s0.r,max(s0.g,s0.b)));
+      gl_FragColor=vec4(acc*(gain*(1.0-0.8*opn)/28.0),1.0); }`);
   const mComp=mk({t:{value:null},b1:{value:null},b2:{value:null},rays:{value:null},rayAmt:{value:0},rayCol:{value:new THREE.Color(1,0.9,0.7)},
     bloom:{value:0.4},sat:{value:1.1},curve:{value:0.2},vig:{value:0.25}},`
     uniform sampler2D t, b1, b2, rays; uniform float bloom, sat, curve, vig, rayAmt; uniform vec3 rayCol; varying vec2 vUv;
@@ -7142,7 +7167,7 @@ const POST={ on:!((window.__INJECT||{}).noPost), bloom:0.34, thr:0.86, sat:1.14,
       if(_sp.z<1&&_sp.z>-1&&Math.abs(_sp.x)<1.6&&Math.abs(_sp.y)<1.6){
         ray=POST.rays*Math.min(1,sun.userData.bright)*(1-_ss(1.0,1.6,Math.max(Math.abs(_sp.x),Math.abs(_sp.y))))
           *(1-_ss(0.15,0.6,SKYDOME.storm||0))*(1-(_eyeSub||0))*(0.6+0.4*(1-_ss(0.6,1.0,SKYDOME.dayF)));
-        if(ray>0.001){ mRays.uniforms.t.value=rtS.texture; mRays.uniforms.sun.value.set(_sp.x*0.5+0.5,_sp.y*0.5+0.5);
+        if(ray>0.001){ mRays.uniforms.t.value=rtQ.texture; mRays.uniforms.gain.value=POST.rayGain; mRays.uniforms.sun.value.set(_sp.x*0.5+0.5,_sp.y*0.5+0.5);
           mRays.uniforms.asp.value=W/H; pass(mRays,rtR); } } }
     const U=mComp.uniforms; U.t.value=rtS.texture; U.b1.value=rtQ.texture; U.b2.value=rtE.texture;
     U.rays.value=rtR.texture; U.rayAmt.value=ray; U.rayCol.value.copy(SKYDOME.U.uSunCol.value);

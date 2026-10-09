@@ -189,6 +189,7 @@ W.olive=function(S,x,z,s){ s=s||1; const P=S.api, Bw=K().B, c=Bw/P.S, gy=S.groun
     for(let by=-1;by<=2;by++) for(let bx=-3;bx<=3;bx++) for(let bz=-3;bz<=3;bz++){
       const d=(bx*bx+bz*bz)/(r*r)+((by-0.4)*(by-0.4))/(RY*RY); if(d>1) continue;
       if(d>0.55&&H(bx+ex*7+k,bz+by*13+ez)<0.35) continue;                        /* the edge broken up, the sky through it */
+      if(d<=0.55&&H(bz+ex*5+k,bx+by*11+ez)<0.34) continue;                   /* and holes through the crown, for the sun to come through */
       const X=Math.round(ex+bx), Y=Math.round(ey+by), Z=Math.round(ez+bz), key=X+','+Y+','+Z; if(done.has(key)) continue; done.add(key);
       blk(X,Y,Z,'leaves-olive'); } });
 };
