@@ -11447,6 +11447,64 @@ all of them and show me screenshots". These are the eight that were undone or on
 - A small bug fixed while in there: with nothing picked up, every token in **The Stores** (free
   hand) was drawn with the "picked" outline. The test read `-1 === -1`.
 
+## 4ei. Round 136 — solid blocks, no falling through, the camera kept out of walls, wading
+
+The traveller reported: "fell through the ground. there is no ground in some places. Also animals are
+still walking through mountains and walls in voyage. camera also passing through walls. Also the blocks
+still do not seem solid like real minecraft, and the behavior of water." Then: "you should still wade in
+the water".
+
+**How it was found.** A walk fuzzer (driving `walkTick` blind for 2,500 steps at a time, with random
+turns and jumps, about Yasharal and three cave mouths) judged every step against the block truth. Under
+the old rules about Yasharal, 402 steps had his torso or head inside a block and 38 had his feet sunk in
+the roof or walls of a house. In the caves, between 559 and 1,860 steps each had some of him inside the
+rock. The walk read the world as one height per column: his midline's ground, four shoulder points asked
+only whether they stood more than a step higher, and any wall of three or four blocks was climbed simply
+by walking into it.
+
+- **The traveller is a box, and the blocks are solid.** The box is a little narrower than a block and
+  nearly two high. No part of it may be inside a solid block:
+  - A one-block step is taken in his stride.
+  - Anything higher must be jumped, a block and a half at most, so a two-block wall cannot be jumped.
+  - A wall of up to about four and a half blocks is climbed only **on purpose**: hold the jump (SPACE,
+    or the JUMP / CLIMB button) while pressing into it, and only if there is room on top.
+  - He stands on the highest block under any part of his feet, so a ledge's edge holds him, and the
+    floor is read before each frame's fall so no fall can pass through it.
+  - Any block over any part of his head stops a jump.
+  - If he is ever found inside rock all the same (a block laid on him, say), he is put back into the
+    open air above at once.
+
+  On the same fuzzer runs, the torso-in-a-wall count went from 402 to 5 about Yasharal. All five are
+  his head within a third of a unit of a ceiling at the top of a jump, above the doorway-height box he
+  is tested with. It went to 0 in all three caves, and sunk feet went from 38 to 0.
+- **The camera stays out of the rock.** The boom's sight-line now asks hollow and built columns block by
+  block (a cave's walls, a town wall), not just the column's height. Last of all, every frame, the line
+  from his head to where the eye actually is gets walked block by block (Amanatides–Woo). If a block
+  lies on it, the eye comes in to just short of it at once, with no easing. Before, the eye eased toward
+  its target and spent the frames of every swing or corner on the far side of the stone. That gave the
+  views of the underside of the world and of ore in the strata that came with the report.
+- **Wild beasts have bodies.** Each kind's length and height are measured once from the beast itself. A
+  beast stands on the highest floor under its back, middle and nose, so no part of it is in the ground.
+  It takes at most a block in a stride (the goat's old two and a half is gone). Its body height over
+  that floor must be clear of blocks and of water. The houses, wells and stalls bar it as they bar the
+  townsfolk; before, wild beasts were asked only about the procedural ground under their middle, so a
+  herd walked through a village's walls. A beast turned back by the rock does not swing its nose into
+  it, and a beast is set down facing a bearing its whole body is clear on, or the spot is given up. Its
+  slot used to keep whatever bearing it last had, so on a mountainside beasts were born with their
+  noses in the slope.
+- **Water is waded.** A water block is no longer solid to anything:
+  - He walks into a well, a trough, a channel or a poured bucket and stands on its bed.
+  - The water holds him back (about half speed). Over his chest he barely sinks and treads water.
+  - Jump held swims him up, and he hauls himself out over a one-block lip. The JUMP / CLIMB button
+    works held as well as tapped.
+  - Running water from a spring or a bucket carries him toward its thinner water, as in the block games.
+  - With his eye under block water the view is washed blue.
+  - A block dropped in water sinks to the bed and the water goes up over it.
+  - The faces of the blocks under the water are now drawn.
+  - The arm reaches through water to the bed. An empty bucket is still dipped into the water itself.
+
+  Wild beasts keep out of wells. The sea is unchanged and swum as before.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

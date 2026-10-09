@@ -208,6 +208,8 @@
   /* THE BREATH BAR KEEPS CLEAR OF THE WORDS. It sat at 20vh, square on top of
      the place-line at 19vh, and covered the depth reading whenever the diver
      was under. It rides BELOW the place-line now, on the same centre axis. */
+  #wateye{ position:fixed; inset:0; z-index:4; pointer-events:none; opacity:0; transition:opacity .15s;
+    background:radial-gradient(ellipse at 50% 45%, rgba(40,110,170,.30), rgba(12,52,96,.62)); }
   #hurt{ position:fixed; inset:0; z-index:5; pointer-events:none; opacity:0;
     box-shadow:inset 0 0 160px 40px rgba(200,0,0,.75); }
   #breath{ position:fixed; z-index:6; left:50%; bottom:16.5vh; transform:translateX(-50%);
@@ -641,7 +643,7 @@
   </div></div>
   <div class="ctl-sec"><h3>ASHORE</h3><div class="row">
     <span class="k">W A S D</span><span class="v">walk &mdash; every land holds a village of the ancient time</span>
-    <span class="k">SPACE</span><span class="v">jump and climb</span>
+    <span class="k">SPACE</span><span class="v">jump (a block and a half) &middot; held against a ledge of three or four blocks, climb it &middot; held in a well or a stream, swim up</span>
     <span class="k">F</span><span class="v">open doors &middot; speak with the people &middot; trade in the market &middot; cast a line from strand or pier</span>
     <span class="k">Q</span><span class="v">throw the spear &mdash; the hunt, ashore and beneath the waves</span>
   </div></div>
@@ -815,6 +817,7 @@ window.__MENUUI=(function(){
 </div>
 <div id="breath"><div id="breath-fill"></div></div>
 <div id="hurt"></div>
+<div id="wateye"></div>
 <div id="joy"><div id="joyk"></div></div>
 <div id="flypad"><button id="fp-up" class="fpb">▲</button><button id="fp-dn" class="fpb">▼</button></div>
 <div id="cine"><div class="bar t"></div><div class="bar b"></div>

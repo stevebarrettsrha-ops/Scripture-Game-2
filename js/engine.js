@@ -3768,7 +3768,10 @@ function blockSolidAt(ix,iy,iz){
      and the faces beside it are drawn as though it were air. It is still a
      block — blockAt answers it, the arm can be laid on it (aimAt asks for
      it by name), and breaking it is how the field is reaped. */
-  if(e!==undefined) return e!==0 && !(BLOCKS[e]&&BLOCKS[e].sown);
+  /* (and since Round 136 WATER is no wall either: "you should still wade in the water". A man walks
+     into a well or a stream and stands in it to the knee or the chest, or swims it; the bed under it is
+     his floor, a block dropped in it sinks to that bed, and the faces under the water are drawn) */
+  if(e!==undefined) return e!==0 && !(BLOCKS[e]&&(BLOCKS[e].sown||BLOCKS[e].liquid));
   return proceduralSolid(ix,iy,iz);
 }
 /* is a growing plant standing in this cell? asked by the arm, which must be
@@ -11763,6 +11766,33 @@ function updateBlooms(px,pz,dt){ initBlooms(); const doy=dayOfYear();
     else b.m.visible=false;
   } }
 function hideBlooms(){ for(const b of BLOOMS) if(b.m) b.m.visible=false; }
+/* ---- A BEAST IS A BODY, AND THE BLOCKS ARE SOLID TO IT TOO (Round 136) ----
+   "Animals are still walking through mountains and walls." A wild beast was asked only how high the
+   procedural ground stood under its MIDDLE: the town walls and the houses (which are blocks laid over the
+   ground, not the ground) were not asked at all, so a herd walked straight through a village; a goat took
+   two and a half blocks in a stride; and a camel's whole fore-half went into the hillside in front of it
+   while its middle stood on the terrace below. Now it is asked as the traveller is: the floor under its
+   back, its middle and its nose (the highest of the three is what it stands on, so no part of it is ever
+   in the ground), a step of one block at most, the blocks over that floor clear for the height of its
+   body, and the houses, the wells and the stalls barring it as they bar the townsfolk. */
+const BEAST_BOX=Object.create(null);
+function beastFloor(a,x,z,heading,refY,cap){
+  const bx=BEAST_BOX[a.kind]||{len:B,ht:B}, h=bx.len*0.42, sx=Math.sin(heading)*h, sz=Math.cos(heading)*h;
+  let y=-Infinity, land=true;
+  for(const k of [-1,0,1]){ const g=groundInfo(x+sx*k,z+sz*k,refY+0.1); if(!g.land){ land=false; continue; }
+    /* (ground over `cap` is a wall in front of it, not a floor under it — the stride is refused at it, and
+       a beast standing still is not hoisted up onto a terrace by the tip of its nose) */
+    if(cap!==undefined&&g.y>cap) continue;
+    if(g.y>y) y=g.y; }
+  return {y,land};
+}
+function beastClear(a,x,z,heading,fy){
+  const bx=BEAST_BOX[a.kind]||{len:B,ht:B}, h=bx.len*0.42, sx=Math.sin(heading)*h, sz=Math.cos(heading)*h;
+  const y0=Math.floor((fy+0.3)/B), y1=Math.floor((fy+Math.max(B*0.6,bx.ht*0.9))/B);
+  for(const k of [-1,0,1]){ const ix=Math.floor((x+sx*k)/B), iz=Math.floor((z+sz*k)/B);
+    for(let iy=y0;iy<=y1;iy++) if(blockSolidAt(ix,iy,iz)||isLiquid(blockAt(ix,iy,iz))) return false; }   /* (nor into a well) */
+  return true;
+}
 function updateLandLife(px,pz,dt,t){ initLandLife();
   const night=(worldNight||0)>0.6;
   /* ---- THE RING RIDES THE HAZE ----
@@ -11801,6 +11831,10 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
       a.role=WILD_ROLE[kind]||'graze'; a.job='roam'; a.jt=Math.random()*3; a.prey=null; a.cool=0;
       a.dead=0; a.den=null; a.act=null; a.burst=0; a.fear=0; a.panicT=0; a.ph=Math.random()*6.283;
       a.m.rotation.set(0,0,0);
+      /* (the size of its body, measured once a kind off the beast itself, for the blocks it may not enter) */
+      if(!BEAST_BOX[kind]){ a.m.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(a.m), sz=bb.getSize(new THREE.Vector3());
+        BEAST_BOX[kind]={len:Math.min(B*4,Math.max(sz.x,sz.z)), ht:Math.min(B*3,Math.max(1,sz.y))}; }
+      a.gy=undefined;
       /* ---- UP THE TREE, IF THAT IS WHERE IT LIVES ----
          Set at the true crown height of the tree standing on its own cell,
          the same question the nests ask. It does not roam: it hangs there,
@@ -11822,6 +11856,15 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
          — drink or wallow in `acts` — and so does its trade: the bear fishes
          the shallows and the crocodile lies in them. Asked ONCE, here. */
       a.wets=wetKind(a.kind,a.role);
+      /* ---- AND IT IS SET DOWN FACING OPEN GROUND (Round 136) ----
+         It kept whatever bearing its slot last had, so on a mountainside a beast was born with its nose in
+         the slope. It is turned to a bearing its whole body is clear on — and a spot with no such bearing
+         (a ledge narrower than the beast, a cleft) is given up for another. */
+      if(!a.upTree){ let ok=false;
+        for(let k=0;k<8&&!ok;k++){ const hd=k*Math.PI/4+Math.random()*0.5;
+          const fl=beastFloor(a,a.x,a.z,hd,sp.y+B*0.3,sp.y+B*1.05);
+          if(fl.land&&fl.y>-1e8&&beastClear(a,a.x,a.z,hd,fl.y)){ a.heading=hd; a.gy=fl.y; ok=true; } }
+        if(!ok){ if(a.m)a.m.visible=false; hideYoung(a); a.set=false; continue; } }
       /* ---- AND WHETHER IT OWNS A BED, AND THE HOUR IT TAKES TO IT ----
          §2.3.6 promises that "a beast with a home WALKS TO IT at dusk". Sixty
          kinds declare a real one — a den, a burrow, a tree, a rock — and
@@ -12242,11 +12285,16 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
          and a half blocks, a wolf a block and a half, an elephant or a
          hippo barely a kerb. A beast turned back by the rock sheers off
          along it, exactly as it does at any other barrier. */
-      const stepH=B*(window.BEHAVIOR?BEHAVIOR.climbOf(a.kind):1.0);
-      const rise=c?c.h*B-a.m.position.y:0;
-      if(c&&rise<stepH&&rise>-stepH*2.2&&beastMayStand(a.kind,c)
-        &&!landmarkSolidAt(nx,nz,a.m.position.y+2,a.m.position.y+8)){   /* no beast strides through the masonry either */
-        a.x=nx; a.z=nz; a.heading=Math.atan2(dx,dz); a.stuck=0; }
+      /* (and since Round 136 no beast takes more than a block in a stride, as no beast in the block games
+         does — the goat and the chamois still go where the slope is a staircase, a block at a time) */
+      const stepH=Math.min(B*1.05,B*(window.BEHAVIOR?BEHAVIOR.climbOf(a.kind):1.0));
+      const hd=Math.atan2(dx,dz), gy0=(a.gy!==undefined)?a.gy:(c?c.h*B:WATER_Y);
+      const fN=beastFloor(a,nx,nz,hd,gy0+stepH);
+      const rise=fN.y-gy0;
+      if(c&&fN.land&&rise<=stepH&&rise>-B*3.2&&beastMayStand(a.kind,c)&&beastClear(a,nx,nz,hd,fN.y)
+        &&!blockedByStructureNPC(nx,nz)&&!blockedBySolid(nx,nz,1.0)
+        &&!landmarkSolidAt(nx,nz,fN.y+2,fN.y+8)){   /* no beast strides through the masonry either */
+        a.x=nx; a.z=nz; a.heading=hd; a.stuck=0; a.gy=fN.y; }
       else {
         /* ---- A BEAST TURNS AWAY FROM WHAT IT CANNOT CROSS ----
            When the way was barred it only reset its work-timer and kept the
@@ -12260,7 +12308,9 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
         const away=Math.atan2(dx,dz)+(a.stuck%2?1:-1)*(0.7+0.45*Math.min(4,a.stuck));
         const reach=26+Math.random()*34;
         a.tx=a.x+Math.sin(away)*reach; a.tz=a.z+Math.cos(away)*reach;
-        a.heading=away; a.jt=Math.max(a.jt,0.6);
+        /* (and it does not turn its nose into the rock it is standing against) */
+        if(beastClear(a,a.x,a.z,away,a.gy!==undefined?a.gy:(c?c.h*B:WATER_Y))) a.heading=away;
+        a.jt=Math.max(a.jt,0.6);
         /* and if it has been penned a long while, it gives up that ground and
            looks for another spot of its own country altogether */
         if(a.stuck>14){ a.set=false; a.stuck=0; }
@@ -12312,7 +12362,11 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
        fall of the withers comes off the same law, so a bounding hare truly
        leaves the ground and a walking elephant truly does not. */
     const GT=tickGait(a,a.kind,moving?spd:0,dt);
-    a.m.position.set(a.x,(c2?c2.h*B:WATER_Y)+lift+(GT?Math.max(0,GT.rise):0),a.z);
+    /* it stands on the highest floor under its whole length — never with a part of it in the ground */
+    { const g0=(a.gy!==undefined?a.gy:(c2?c2.h*B:WATER_Y));
+      const f2=beastFloor(a,a.x,a.z,a.heading||0,g0+B*0.3,g0+B*1.05);
+      a.gy=f2.y>-1e8?f2.y:(c2?c2.h*B:WATER_Y); }
+    a.m.position.set(a.x,a.gy+lift+(GT?Math.max(0,GT.rise):0),a.z);
     a.m.rotation.y=a.heading; a.m.rotation.x=lean; a.m.rotation.z=roll;
     /* ---- THE BREATH IN THE BODY ----
        Nothing standing still was truly still: no flank moved, no tail
@@ -16797,9 +16851,57 @@ function splashTick(dt){ if(!splPts) return;
   splPts.material.uniforms.uScale.value=renderer.domElement.height*0.9;
   SPL_LIGHT.value.copy(waveMat.uniforms.uLight.value);
 }
-const STEP=B*1.2, JUMPH=B*2.3, CLIMBH=B*4.6;   /* step / must-jump / can-climb heights */
+const STEP=B*1.05, JUMPH=B*2.3, CLIMBH=B*4.6;   /* step / must-jump / can-climb heights */
 const HEAD_R=B*1.9;   /* a man's own height, for the roof of a passage */
 const BODY_R=1.9;   /* the traveller's own half-breadth — he is a body, not a point */
+/* ================= THE BODY IS A BOX, AND THE BLOCKS ARE SOLID (Round 136) =================
+   The traveller asked for it in plain words: "the blocks still do not seem solid like real minecraft",
+   and "fell through the ground". The walk read the world as a HEIGHT for each column: the ground under
+   his midline, four points at his shoulders asked only whether they stood more than a step higher, and
+   a wall of three or four blocks walked into was simply climbed. So his shoulder and his flank went into
+   the stone beside every step (measured: a quarter of all the steps of a blind walk about Yasharal had
+   some of him inside a block, and in the caves his feet stood inside the rock a hundred times in two and
+   a half thousand steps).
+   Now he is what a block game's player is: a BOX, a little narrower than a block and nearly two high,
+   and no part of it may be inside a solid block. A step of one block is taken in his stride; anything
+   higher is jumped (a block and a half at most) or, if he means it, climbed — with the jump held, never
+   by walking into it. He stands on the highest block under ANY part of his feet, so the edge of a ledge
+   holds him as it does in the game, and a fall can never be carried past a floor. And if he is ever
+   found inside the rock all the same — a block laid on him, a slip of the arithmetic — he is put back
+   into the open air above at once, as the game pushes its player out of a block. */
+const FOOT_R=BODY_R*0.9, BODY_TOP=HEAD_R*0.92;   /* the box: its half-breadth, and the head the doorways are cut for */
+function bodyInBlocks(x,fy,z,lo,hi){
+  const r=FOOT_R;
+  const x0=Math.floor((x-r)/B), x1=Math.floor((x+r)/B), z0=Math.floor((z-r)/B), z1=Math.floor((z+r)/B);
+  const y0=Math.floor((fy+lo)/B), y1=Math.floor((fy+hi-0.01)/B);
+  for(let ix=x0;ix<=x1;ix++) for(let iz=z0;iz<=z1;iz++) for(let iy=y0;iy<=y1;iy++)
+    if(blockSolidAt(ix,iy,iz)) return true;
+  return false;
+}
+/* the top of the highest block the box would have to stand on to go here, if no higher than `lim` over his feet */
+function stepTop(x,z,fy,lim){
+  const r=FOOT_R;
+  const x0=Math.floor((x-r)/B), x1=Math.floor((x+r)/B), z0=Math.floor((z-r)/B), z1=Math.floor((z+r)/B);
+  const y0=Math.floor((fy+0.05)/B), y1=Math.floor((fy+lim)/B);
+  let top=fy;
+  for(let ix=x0;ix<=x1;ix++) for(let iz=z0;iz<=z1;iz++) for(let iy=y1;iy>=y0;iy--)
+    if(blockSolidAt(ix,iy,iz)){ const t=(iy+1)*B; if(t>top) top=t; break; }
+  return top-fy<=lim+0.001?top:null;
+}
+/* the highest floor under any part of his feet, at or a little over them (-Infinity over open sea) */
+function footFloor(x,z,fy){
+  let best=-Infinity; const r=FOOT_R;
+  for(let k=0;k<5;k++){ const ox=k?((k&1)?r:-r):0, oz=k?((k&2)?r:-r):0;
+    const g=groundInfo(x+ox,z+oz,fy+0.1); if(!g.land) continue;
+    if(g.y<=fy+B*0.3&&g.y>best) best=g.y; }
+  return best;
+}
+/* the first height above, block by block, where the whole box stands in the open air */
+function freeAbove(x,z,fy){
+  for(let k=0;k<260;k++){ const y=(Math.floor(fy/B)+k)*B; if(!bodyInBlocks(x,y,z,0.05,BODY_TOP)) return y; }
+  return null;
+}
+let walkUnstuck=0;   /* (for the fuzzer: how many times he was found in the rock and put back) */
 function walkTick(dt){
   const w=state.walk, u=walkerG.userData; const [f,t]=axis();
   if(w.feetY===undefined){ w.feetY=groundInfo(w.x,w.z).y; w.vy=0; w.grounded=true; }
@@ -16817,16 +16919,44 @@ function walkTick(dt){
     return;
   }
   w.heading+=t*dt*2.4;
+  /* ---- FOUND IN THE ROCK, PUT BACK IN THE AIR ---- */
+  if(!state.mount&&bodyInBlocks(w.x,w.feetY,w.z,B*0.55,HEAD_R*0.9)){
+    const ny=freeAbove(w.x,w.z,w.feetY);
+    if(ny!==null){ w.feetY=ny; w.vy=0; w.grounded=true; w.stepOff=0; walkUnstuck++; } }
   const gi=groundInfo(w.x,w.z,w.feetY+0.1);
   /* over water the body SWIMS — no man walks upon the sea. But a body still
      IN THE AIR above the water (a leap off a cliff, a jump from a pier) falls
      under gravity until it truly meets the surface — no mid-air snap-down. */
   const surfY0=WATER_Y+seaHeight(w.x,w.z);
   const swimming=gi.water&&(w.feetY===undefined||w.feetY<=surfY0+0.6);
+  /* ---- IN THE WATER OF A WELL, A STREAM, A SPILLED BUCKET (Round 136) ----
+     The sea is the sea, and swum as it always was (above). Water that is BLOCKS — a well, a trough, a
+     channel, the stream off a spring, a bucket poured out — is now waded and swum as the block games
+     have it: he walks into it, the bed is his floor, it holds him back, he sinks slowly when it is over
+     his head and swims up with the jump held, and he hauls himself out over a block's edge. */
+  const wix=Math.floor(w.x/B), wiz=Math.floor(w.z/B);
+  const liqFeet=!swimming&&isLiquid(blockAt(wix,Math.floor((w.feetY+0.6)/B),wiz));
+  const liqChest=!swimming&&isLiquid(blockAt(wix,Math.floor((w.feetY+B*1.25)/B),wiz));
+  const wading=liqFeet||liqChest;
+  if(wading&&!w.wading){ const sy=(Math.floor((w.feetY+B*1.25)/B)+(liqChest?1:0))*B;
+    if(w.vy<-12) splash(w.x,sy,w.z,w.vy<-40); }
+  w.wading=wading; w.deepWade=liqChest;
   /* ---- vertical physics: gravity, landing, the jump, and true buoyancy ----
      In the water the body floats AT the surface and rides the swell — prone
      and stroking when swimming forward, treading upright when at rest. */
   const surfY=WATER_Y+seaHeight(w.x,w.z);
+  /* ---- A LEDGE IS CLIMBED ON PURPOSE ----
+     Walking into a wall of three or four blocks used to climb it, so no wall in the world stopped him.
+     Now a wall is a wall; he goes up a ledge only when he means to — the jump held as he presses into
+     it (SPACE, or the JUMP / CLIMB button) — and only if there is room for him on top. */
+  if((keys.Space||w.jumpReq)&&w.grounded&&!(w.spill>0)&&!state.mount&&!swimming&&f>0.3){
+    const ax=w.x+Math.sin(w.heading)*B*0.95, az=w.z+Math.cos(w.heading)*B*0.95;
+    const tg=groundInfo(ax,az,w.feetY+B*4.8), dd=tg.y-w.feetY;
+    if(tg.land&&dd>B*1.3&&dd<=CLIMBH&&!blockedByStructure(ax,az)&&!treeBlocked(ax,az)&&!blockedBySolid(ax,az)
+      &&!landmarkSolidAt(ax,az,tg.y+2.2,tg.y+8)&&!bodyInBlocks(ax,tg.y,az,0.05,BODY_TOP)
+      &&!bodyInBlocks(w.x,w.feetY,w.z,0.05,dd+BODY_TOP)){          /* and nothing over his head on the way up */
+      w.climb={t:0,dur:0.8, x0:w.x,z0:w.z,y0:w.feetY, x1:ax,z1:az,y1:tg.y};
+      w.jumpReq=false; return; } }
   if(swimming){
     if(state.mount) dismount(true);      /* a horse will not swim — you part at the water's edge */
     if(!w.inWater){
@@ -16890,7 +17020,18 @@ function walkTick(dt){
   else { if(w.inWater){ w.inWater=false; }
     /* (a sprawl is a thing of dry land — water catches him instead) */
     w.driftX=0; w.driftZ=0; w.wPitch=0; w.wRoll=0;   /* out of the water, out of its motion */
-    w.vy-=64*dt; w.feetY+=w.vy*dt;
+    const floorY=footFloor(w.x,w.z,w.feetY);   /* (every floor under him, read before he moves) */
+    if(wading){
+      /* the water bears him up and holds him back: over his chest he barely sinks, and the jump held
+         swims him up — out at the top, and over the lip of a block if he is pressing toward it */
+      const up=keys.Space||w.jumpHold;
+      w.vy-=64*dt*(liqChest?0.16:0.55);
+      if(up) w.vy+=(liqChest?110:70)*dt;
+      w.vy*=Math.max(0,1-3.2*dt);
+      w.vy=Math.max(-16,Math.min(liqChest?16:24,w.vy));
+      w.jumpReq=false; }
+    else w.vy-=64*dt;
+    w.feetY+=w.vy*dt;
     /* ---- A BODY DOES NOT FALL FASTER THAN IT CAN BE CAUGHT ----
        Off the shoulder of a mountain a thousand units high the fall reached
        hundreds of units a second, and at that speed a frame carries the body
@@ -16900,102 +17041,98 @@ function walkTick(dt){
        longer than half a block, so every ledge on the way down is offered to
        him and he stands on the first one that will hold him. */
     if(w.vy<-190) w.vy=-190;
-    { const y0=w.feetY-w.vy*dt;          /* where he was before this frame */
-      const drop=y0-w.feetY;
-      if(drop>B*0.5&&!gi.water){
-        const steps=Math.min(24,Math.ceil(drop/(B*0.5)));
-        for(let k=1;k<=steps;k++){
-          const yk=y0-drop*(k/steps);
-          if(yk<=gi.y){ w.feetY=gi.y; break; }
-          w.feetY=yk; } } }
+    /* (and the floor was read for the whole of his feet BEFORE the frame's fall, as the highest ground at
+       or under them — so however far a frame carries him, it cannot carry him past it) */
     /* land arrests the fall; water does not — the body carries its speed
        through the surface so the plunge can read it */
     /* A JUMP LANDS AT ABOUT -38, and a man is not winded by his own hop —
        only a real drop puts him down. */
     const wasFalling=!w.grounded&&w.vy<-88;
-    if(w.feetY<=gi.y&&!gi.water){
-      w.feetY=gi.y;
+    if(w.feetY<=floorY&&floorY>-1e8){
+      w.feetY=floorY;
       /* ---- AND HE IS WINDED BY IT ----
          A long drop puts him down hard: he lands sprawled and gathers himself
          up again over a moment, rather than striking the rock at a hundred
          units a second and walking on as though nothing had happened. */
-      if(wasFalling&&!w.climb) w.spill=Math.min(1.5,0.45+(-w.vy)/190*1.05);
+      if(wasFalling&&!w.climb&&!wading) w.spill=Math.min(1.5,0.45+(-w.vy)/190*1.05);   /* (water breaks a fall) */
       w.vy=0; w.grounded=true; } else w.grounded=false;
-    if((keys.Space||w.jumpReq)&&w.grounded&&!(w.spill>0)){ w.vy=38; w.grounded=false; } w.jumpReq=false;
+    if((keys.Space||w.jumpReq)&&w.grounded&&!(w.spill>0)&&!wading){ w.vy=38; w.grounded=false; } w.jumpReq=false;
     /* ---- AND A ROOF IS A ROOF ----
        In a passage a man may not jump up through the rock over his head.
        Asked only of a column that has actually been hollowed, so nothing
        under the open sky pays a thing for it. */
     if(gi.hollow&&isFinite(gi.ceil)&&w.feetY+HEAD_R>gi.ceil){
-      w.feetY=gi.ceil-HEAD_R; if(w.vy>0) w.vy=0; } }
-  /* ---- horizontal move, gated by the height of the ground ahead ---- */
+      w.feetY=gi.ceil-HEAD_R; if(w.vy>0) w.vy=0; }
+    /* and any block over ANY part of his head stops the rise — not only the roof of a hollow column */
+    if(w.vy>0&&bodyInBlocks(w.x,w.feetY,w.z,BODY_TOP*0.6,BODY_TOP)){
+      const iy=Math.floor((w.feetY+BODY_TOP)/B);
+      w.feetY=Math.min(w.feetY,iy*B-BODY_TOP-0.01); w.vy=0; } }
+  /* ---- horizontal move: the box against the blocks ---- */
   /* mounted, the beast's stride is yours: a canter at twice a man's pace */
-  const sp=(w.spill>0&&!swimming)?0:f*(swimming?16:state.mount?38:18);
-  const fullX=w.x+Math.sin(w.heading)*sp*dt, fullZ=w.z+Math.cos(w.heading)*sp*dt;
-  /* THE BODY IS NOT A POINT. Every test below was made at the traveller's
-     midline alone, so he could stand with his centre just inside a cell and
-     half of himself buried in the stone beside it — and the face of a wall
-     lying between two frames' sample points was walked clean through. His
-     whole breadth is tested now, and if the way is barred he SLIDES along
-     it (trying each axis alone) instead of sticking fast against it. */
-  let nx=fullX, nz=fullZ, tg=groundInfo(nx,nz,w.feetY+0.1), diff=0, solidBlock=false, canGo=false;
+  const sp=(w.spill>0&&!swimming)?0:f*(swimming?16:state.mount?38:wading?(liqChest?8:11):18);
+  /* and RUNNING water carries him with it, out from its spring and down its fall, as it does in the block
+     games — a level held by js/water.js, pushing toward the thinner water beside it */
+  let flowX=0, flowZ=0;
+  if(wading&&window.WATER){ const fiy=Math.floor((w.feetY+0.6)/B), lv=WATER.levelAt(wix,fiy,wiz);
+    if(lv!==null&&lv!==undefined){
+      for(const [ox,oz] of [[1,0],[-1,0],[0,1],[0,-1]]){ const l2=WATER.levelAt(wix+ox,fiy,wiz+oz);
+        if(l2!==null&&l2!==undefined&&l2>lv&&l2<8){ flowX+=ox; flowZ+=oz; }
+        else if(blockAt(wix+ox,fiy,wiz+oz)===0&&!blockSolidAt(wix+ox,fiy-1,wiz+oz)){ flowX+=ox; flowZ+=oz; } }
+      const fm=Math.hypot(flowX,flowZ); if(fm>0){ flowX=flowX/fm*7*dt; flowZ=flowZ/fm*7*dt; } } }
+  const fullX=w.x+Math.sin(w.heading)*sp*dt+flowX, fullZ=w.z+Math.cos(w.heading)*sp*dt+flowZ;
+  /* THE BODY IS NOT A POINT, and the blocks are solid (Round 136). The box is tried where the stride
+     would carry it; if any block stands in it he steps up onto it — a block in his stride, a little more
+     than a block under a hand in the air, the strand out of the sea — or he does not go. And when the way
+     is barred he SLIDES along it (trying each axis alone) instead of sticking fast against it. The other
+     things that bar the way (the houses' own footprint, the trees, the wells and stalls, the people, the
+     works of the ancients) bar it as they always have. */
+  const fy0=w.feetY;
+  let nx=fullX, nz=fullZ, tg=null, canGo=false, ny=fy0;
   const tryStep=(tx,tz)=>{
-    const g2=groundInfo(tx,tz,w.feetY+0.1);
-    const d2=g2.y-w.feetY;
+    const g2=groundInfo(tx,tz,fy0+0.1);
     const near2=Math.hypot(tx-state.boat.x,tz-state.boat.z)<90*SHIP_K;
     const deck2=deckMap.get(Math.floor(tx/B)+','+Math.floor(tz/B))!==undefined;
-    const solid2=blockedByStructure(tx,tz)||treeBlocked(tx,tz)||blockedBySolid(tx,tz)||blockedByEntity(tx,tz,walkerG)
-      ||!!landmarkSolidAt(tx,tz,w.feetY+2.2,w.feetY+8);   /* the works of the ancients bar the way */
-    let ok=true;
-    if(!g2.land) ok = near2||deck2||(Math.hypot(tx,tz)/R_WORLD<0.985)
-      ||Math.hypot(tx,tz)<Math.hypot(w.x,w.z);   /* swim; beyond the rim, inward always */
-    else if(swimming&&camInsideShip(tx,surfY,tz)&&!camInsideShip(w.x,surfY,w.z)) ok=false;
-    else if(d2<=STEP){ /* a small step — walk up or down freely */ }
-    else if(swimming && d2<=JUMPH+3){ /* haul out of the water onto the strand */ }
-    else if(d2<=JUMPH) ok = w.feetY>=g2.y-B*0.4;   /* two blocks: only if jumping onto it */
-    else ok=false;                                  /* higher — climbed, or gone around */
-    if(solid2) ok=false;
+    if(blockedByStructure(tx,tz)||treeBlocked(tx,tz)||blockedBySolid(tx,tz)||blockedByEntity(tx,tz,walkerG)
+      ||landmarkSolidAt(tx,tz,fy0+2.2,fy0+8)) return null;     /* the works of the ancients bar the way */
+    if(!g2.land){
+      const ok=near2||deck2||(Math.hypot(tx,tz)/R_WORLD<0.985)
+        ||Math.hypot(tx,tz)<Math.hypot(w.x,w.z);               /* swim; beyond the rim, inward always */
+      if(!ok) return null;
+      /* (off the strand and into the sea: his body must still clear the land at his side) */
+      if(!swimming&&bodyInBlocks(tx,fy0,tz,0.05,BODY_TOP)) return null;
+      return {g:g2,ny:fy0}; }
+    if(swimming&&camInsideShip(tx,surfY,tz)&&!camInsideShip(w.x,surfY,w.z)) return null;
     /* a merchantman's hull is as solid to a swimmer as the traveller's own */
-    if(ok&&swimming&&insideTraderHull(tx,tz,2)&&!insideTraderHull(w.x,w.z,2)) ok=false;
-    /* and his shoulders must clear it too, not only his midline */
-    if(ok&&!swimming) for(let k=0;k<4;k++){ const aa=k*1.5708;
-      const g3=groundInfo(tx+Math.cos(aa)*BODY_R,tz+Math.sin(aa)*BODY_R,w.feetY+0.1);
-      if(g3.land&&g3.y-w.feetY>STEP){ ok=false; break; } }
-    /* ---- AND HIS HEAD MUST GO WHERE HIS FEET DO ----
-       Under the open sky the rise test above is the whole of it: nothing
-       stands over a man but air. In a passage it is not — the floor ahead
-       may be level with his feet and the rock still come down to his chest.
-       Asked only where something has actually been hollowed, so no step,
-       no ledge and no climb anywhere else in the world is touched by it. */
-    if(ok&&!swimming&&(g2.hollow||gi.hollow||g2.edited||gi.edited)){
-      if(solidAt(tx,w.feetY+STEP+1,tz)||solidAt(tx,w.feetY+HEAD_R*0.92,tz)) ok=false; }
-    return ok?{g:g2,d:d2,solid:solid2}:null;
+    if(swimming&&insideTraderHull(tx,tz,2)&&!insideTraderHull(w.x,w.z,2)) return null;
+    let y=fy0;
+    if(bodyInBlocks(tx,y,tz,0.05,BODY_TOP)){
+      /* how high he may step: a block on his feet; hauling out of the sea, the bank; in the air, only the
+         lip of a block his feet have all but cleared (so a jump takes a block and a half, never two) */
+      const lim=swimming?JUMPH+3:(w.grounded||wading)?STEP:B*0.12;   /* (out of a well over its lip, a block) */
+      const top=stepTop(tx,tz,fy0,lim);
+      if(top===null) return null;
+      y=top;
+      if(bodyInBlocks(tx,y,tz,0.05,BODY_TOP)) return null; }
+    return {g:g2,ny:y};
   };
-  let r0=tryStep(fullX,fullZ);
-  if(!r0&&sp!==0){                                  /* barred — slide along the face */
+  const pushing=sp!==0||flowX!==0||flowZ!==0;
+  let r0=pushing?tryStep(fullX,fullZ):null;
+  if(!r0&&pushing){                                  /* barred — slide along the face */
     const rx=tryStep(fullX,w.z);
     if(rx){ nz=w.z; r0=rx; }
     else { const rz=tryStep(w.x,fullZ); if(rz){ nx=w.x; r0=rz; } }
   }
-  if(r0){ canGo=true; tg=r0.g; diff=r0.d; solidBlock=r0.solid; }
-  else { nx=fullX; nz=fullZ; tg=groundInfo(nx,nz); diff=tg.y-w.feetY;
-    solidBlock=blockedByStructure(nx,nz)||treeBlocked(nx,nz)||blockedBySolid(nx,nz)||blockedByEntity(nx,nz,walkerG)
-      ||!!landmarkSolidAt(nx,nz,w.feetY+2.2,w.feetY+8);
-    /* three or four blocks of rock is not a wall but a ledge — he climbs it */
-    if(tg.land&&diff>JUMPH&&diff<=CLIMBH&&f>0.3&&w.grounded&&!solidBlock&&!w.climb)
-      w.climb={t:0,dur:0.8, x0:w.x,z0:w.z,y0:w.feetY,
-        x1:nx+Math.sin(w.heading)*B*0.6, z1:nz+Math.cos(w.heading)*B*0.6, y1:tg.y};
-  }
+  if(r0){ canGo=true; tg=r0.g; ny=r0.ny; }
   const _fy0=w.feetY;                    /* the height he stood at before the step */
   if(canGo){ state.dist+=Math.hypot(nx-w.x,nz-w.z); w.x=nx; w.z=nz;
-    /* snap small steps — but NEVER onto open water. groundInfo hands back a
-       FLAT WATER_Y-2.2 for every wave in the sea, so this line was pinning
-       the swimmer to a dead level plane every frame, overwriting whatever
-       height the swell had given him. That is the whole of the skating: a
-       body held at one fixed height while the waves ran through it. Over
-       water his buoyancy rules; snapping resumes the moment he touches land
-       (so he may still haul out onto the strand). */
-    if(w.grounded && (!swimming||tg.land) && diff>=-B*3 && diff<=(swimming?JUMPH+3:STEP)) w.feetY=tg.y; }
+    if(ny>w.feetY){ w.feetY=ny; if(w.vy<0) w.vy=0; }       /* up the step he took */
+    /* and DOWN a step as he walks off one — but NEVER onto open water. groundInfo hands back a FLAT
+       WATER_Y-2.2 for every wave in the sea, so a snap there pinned the swimmer to a dead level plane
+       every frame, overwriting whatever height the swell had given him (the whole of the old "skating").
+       Over water his buoyancy rules; on land the highest floor under his feet, up to three blocks down,
+       is stepped onto in his stride and anything deeper is a fall. */
+    if(w.grounded&&(!swimming||tg.land)){ const fl=footFloor(w.x,w.z,w.feetY);
+      if(fl>-1e8&&fl<w.feetY&&fl>=w.feetY-B*3) w.feetY=fl; } }
   /* ---- AND THE STEP IS NOT A JOLT ----
      The ground of this world is cut in whole blocks, so the height under a
      traveller's feet does not RISE as he walks — it JUMPS, seven units at a
@@ -17038,6 +17175,13 @@ function walkTick(dt){
       u.armL.rotation.z=0.85; u.armR.rotation.z=-0.85;
       u.legL.rotation.x=Math.sin(s*1.6)*0.45; u.legR.rotation.x=-Math.sin(s*1.6)*0.45;
     }
+  } else if(wading&&liqChest&&!w.grounded){
+    /* out of his depth in a well or a stream: treading water, the head kept up */
+    const s=performance.now()*0.008;
+    walkerG.rotation.x=0.15; walkerG.rotation.z=0;
+    u.armL.rotation.x=-0.45+Math.sin(s)*0.22; u.armR.rotation.x=-0.45-Math.sin(s)*0.22;
+    u.armL.rotation.z=0.85; u.armR.rotation.z=-0.85;
+    u.legL.rotation.x=Math.sin(s*1.6)*0.45; u.legR.rotation.x=-Math.sin(s*1.6)*0.45;
   } else if(!w.grounded){
     /* ---- THE JUMP, AND THE FALL ----
        A hop off a step and a drop off a mountain shoulder are not the same
@@ -18070,6 +18214,29 @@ function fpEye(dt){
   }
 }
 const fpSway={x:0,y:0,yaw:0,p:0,eq:1}; window.__FPSWAY=fpSway;
+/* ---- THE FIRST BLOCK ON A STRAIGHT LINE (Round 136) ----
+   How far along the line from a to b (as a share of it, 1 for none) the first solid block lies — walked
+   block by block (the voxel-walk of Amanatides and Woo), so a wall one block thick is never stepped over
+   between two samples. The block the line starts in is not asked: the eye's line starts at his head. */
+function voxelRayT(ax,ay,az,bx,by,bz){
+  const dx=bx-ax, dy=by-ay, dz=bz-az;
+  if(dx*dx+dy*dy+dz*dz<1e-6) return 1;
+  let ix=Math.floor(ax/B), iy=Math.floor(ay/B), iz=Math.floor(az/B);
+  const sx=dx>0?1:-1, sy=dy>0?1:-1, sz=dz>0?1:-1;
+  const tdx=dx!==0?B/Math.abs(dx):Infinity, tdy=dy!==0?B/Math.abs(dy):Infinity, tdz=dz!==0?B/Math.abs(dz):Infinity;
+  let tmx=dx!==0?((sx>0?(ix+1)*B-ax:ax-ix*B)/Math.abs(dx)):Infinity;
+  let tmy=dy!==0?((sy>0?(iy+1)*B-ay:ay-iy*B)/Math.abs(dy)):Infinity;
+  let tmz=dz!==0?((sz>0?(iz+1)*B-az:az-iz*B)/Math.abs(dz)):Infinity;
+  for(let n=0;n<400;n++){
+    let t;
+    if(tmx<tmy&&tmx<tmz){ t=tmx; tmx+=tdx; ix+=sx; }
+    else if(tmy<tmz){ t=tmy; tmy+=tdy; iy+=sy; }
+    else { t=tmz; tmz+=tdz; iz+=sz; }
+    if(t>1) return 1;
+    if(blockSolidAt(ix,iy,iz)) return t;
+  }
+  return 1;
+}
 function cameraTick(dt){
   if(cut){ sceneTick(dt); return; }
   /* ---- THE SLIDE ----
@@ -18269,7 +18436,11 @@ function cameraTick(dt){
        hillsides). The KIND is returned, because the answer to a hill and
        the answer to a house are not the same. */
     const blocked=(sx,sy,sz)=>{ const lc4=landAtWorld(sx,sz);
-      if(sy<(lc4?lc4.h*B:WATER_Y)+2.0) return 1;
+      /* (a hollow or a built column is asked block by block — a cave's walls, a town wall, the stones of
+         a house — as an open column is asked by its height) */
+      const ixs=Math.floor(sx/B), izs=Math.floor(sz/B);
+      if(lc4&&(lc4.spans||editColumn(ixs,izs))){ if(blockSolidAt(ixs,Math.floor(sy/B),izs)) return 3; }
+      else if(sy<(lc4?lc4.h*B:WATER_Y)+2.0) return 1;
       if(landmarkSolidAt(sx,sz,sy-1.2,sy+1.2)) return 1;
       if(lc4&&lc4.tree&&sy<treeTopAt(sx,sz,lc4)+0.8) return 2;
       return sy<houseTopAt(sx,sz)+0.6?3:0; };
@@ -18376,6 +18547,22 @@ function cameraTick(dt){
   if(state.shake>0.01&&(state.mode==='boat'||state.mode==='deck')){ const k=state.shake*state.shake*3.2;
     camera.position.x+=(Math.random()-0.5)*k; camera.position.y+=(Math.random()-0.5)*k; camera.position.z+=(Math.random()-0.5)*k;
     state.shake*=Math.max(0,1-dt*2.4); }
+  /* ---- AND THE EYE ITSELF NEVER STANDS BEHIND A WALL (Round 136) ----
+     Everything above decides where the eye WANTS to be, and the eye eases there — so for the few frames
+     of every swing round, every step past a corner, every wall coming between, the eye was still on the
+     far side of the stone, and the traveller saw the inside of the rock and the underside of the world.
+     So last of all the line from his head to the eye as it truly stands is walked block by block, and if
+     a block is on it the eye is brought in to just short of that block at once — no easing, as the block
+     games do it. (Not under the sea, which keeps its own eye; not in his own head, which has nothing
+     between.) */
+  if(zf<0.02&&!(state.mode==='dive'||swimCam)&&(state.mode==='walk'||state.mode==='fly')){
+    const hx=px, hy=baseY+9, hz=pz, cp=camera.position;
+    if(!blockSolidAt(Math.floor(hx/B),Math.floor(hy/B),Math.floor(hz/B))){
+      const t=voxelRayT(hx,hy,hz,cp.x,cp.y,cp.z);
+      if(t<1){ const L=Math.hypot(cp.x-hx,cp.y-hy,cp.z-hz)||1, k=Math.max(0,t-1.2/L);
+        cp.set(hx+(cp.x-hx)*k, hy+(cp.y-hy)*k, hz+(cp.z-hz)*k);
+        camClear=Math.min(camClear,k+0.02);
+        if(camera.near>0.5){ camera.near=0.5; camera.updateProjectionMatrix(); } } } }
   if(state.mode==='dive'||swimCam){ const cp=camera.position;
     const lc=landAtWorld(cp.x,cp.z);
     const floor=Math.max(seabedDepth(cp.x,cp.z), lc?lc.h*B:-1e9)+3.0;
@@ -18923,6 +19110,10 @@ updateGuideBtn();
 $('prompt').onclick=interact;
 $('b-spear').onclick=throwSpear;
 $('b-jump').onclick=()=>{ if(state.mode==='walk') state.walk.jumpReq=true; };
+/* (and HELD, for swimming up out of a well or a stream — the touch screen's SPACE) */
+{ const bj=$('b-jump');
+  bj.addEventListener('pointerdown',()=>{ if(state.mode==='walk') state.walk.jumpHold=true; });
+  for(const ev of ['pointerup','pointerleave','pointercancel']) bj.addEventListener(ev,()=>{ state.walk.jumpHold=false; }); }
 $('logbook').addEventListener('click',toggleLog);
 $('b-firm').onclick=()=>{ state.firm?exitFirm():enterFirm(); };
 
@@ -19932,6 +20123,10 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
      the acceptance tests can ask the RUNNING WORLD rather than the source. */
   cellSpans:(ix,iz)=>{ const c=cell(ix,iz); return c&&c.spans||null; },
   caveLightAt,solidRuns,solidAt,groundInfo,
+  /* ---- THE BODY'S OWN STEP, FOR THE WALK FUZZER (Round 136) ----
+     The walk run frame by frame without drawing, the keys it reads, and the block truth it is judged by */
+  walkTick:dt=>walkTick(dt), keys, blockSolidAt, cellAt:(ix,iz)=>cell(ix,iz),
+  walkUnstuck:()=>walkUnstuck, bodyInBlocks:(x,fy,z,lo,hi)=>bodyInBlocks(x,fy,z,lo,hi),
   caveAt:(x,z)=>window.CAVES?CAVES.regionAt(x,z):0,
   caveSeeds:()=>RANGES.map(g=>({ix:Math.floor(g.x/B),iz:Math.floor(g.z/B)})),
   lightTorch:on=>{ setTorch(on); TORCH.s=on?1:0; TORCH_S.value=on?1:0;
@@ -20747,6 +20942,9 @@ let zoomMapFadeCache=0;                 /* set by the frame, read by the aim */
 const _aimP=new THREE.Vector3(), _aimD=new THREE.Vector3();
 let AIM=null;                           /* {ix,iy,iz, nx,ny,nz, n, dist} or null */
 /* the six faces, as the step that last carried us across one */
+/* (water is no wall to the arm either — it reaches through it to the bed — unless the hand holds an EMPTY
+   vessel, which is dipped into the water itself) */
+let aimLiquid=false;
 function aimAt(ox,oy,oz, dx,dy,dz, reach){
   /* the cell the eye is in, and which way each axis is going */
   let ix=Math.floor(ox/B), iy=Math.floor(oy/B), iz=Math.floor(oz/B);
@@ -20776,7 +20974,7 @@ function aimAt(ox,oy,oz, dx,dy,dz, reach){
     /* the arm lands on rock AND on a growing plant — the plant is no wall
        to the foot (blockSolidAt says air), but reaping is the hand's work
        and a crop the arm passed through could never be taken */
-    if(blockSolidAt(ix,iy,iz)||blockSownAt(ix,iy,iz))
+    if(blockSolidAt(ix,iy,iz)||blockSownAt(ix,iy,iz)||(aimLiquid&&isLiquid(blockAt(ix,iy,iz))))
       return {ix,iy,iz,nx,ny,nz,n:blockAt(ix,iy,iz),dist:t};
   }
   return null;
@@ -20823,7 +21021,9 @@ function aimTick(){
   const can = !AIM_OFF && !state.firm && state.mode!=='fly' && zoomMapFadeCache<0.02;
   if(!can){ AIM=null; if(markG) markG.visible=false; return; }
   eyeRay();
+  { const hb=heldBlock(); aimLiquid=!!(hb&&hb.serves==='bucket'&&hb.fills); }
   AIM=aimAt(_aimP.x,_aimP.y,_aimP.z, _aimD.x,_aimD.y,_aimD.z, REACH);
+  aimLiquid=false;
   const m=ensureMark();
   if(!AIM){ m.visible=false; return; }
   m.visible=true;
@@ -21651,12 +21851,11 @@ function fallTickIn(dt){
        if water is standing there the water is not destroyed but pushed up,
        because there is as much water after a fall as there was before it. */
     let ly=Math.max(iy,EY_MIN+1);
-    while(ly<EY_MAX&&blockSolidAt(f.ix,ly,f.iz)){
-      const q=blockAt(f.ix,ly,f.iz);
-      if(isLiquid(q)&&!blockSolidAt(f.ix,ly+1,f.iz)){
-        setBlock((f.ix+0.5)*B,(ly+1.5)*B,(f.iz+0.5)*B,q); break; }
-      ly++;
-    }
+    while(ly<EY_MAX&&blockSolidAt(f.ix,ly,f.iz)) ly++;
+    /* (water is not solid now, so the block has sunk to the bed; the water it lands in goes up over it) */
+    { const q=blockAt(f.ix,ly,f.iz);
+      if(isLiquid(q)){ let wy=ly+1; while(wy<EY_MAX&&blockAt(f.ix,wy,f.iz)!==0&&!isLiquid(blockAt(f.ix,wy,f.iz))) wy++;
+        if(wy<EY_MAX&&blockAt(f.ix,wy,f.iz)===0) setBlock((f.ix+0.5)*B,(wy+0.5)*B,(f.iz+0.5)*B,q); } }
     setBlock((f.ix+0.5)*B,(ly+0.5)*B,(f.iz+0.5)*B,f.n);
     scene.remove(f.m); LOOSE.splice(i,1);
   }
@@ -22807,6 +23006,12 @@ function frame(){
   updateScrolls(p.x,p.z);        /* the scrolls stand in their places */
   guideTick(dt);                 /* and the compass needle lies on the next of them */
   cameraTick(dt);
+  /* ---- AND AN EYE UNDER THE WATER OF A WELL OR A STREAM SEES THROUGH WATER (Round 136) ----
+     The sea has its own deep (above); a block of water closing over the eye gives the block games' wash
+     of blue over the view, and lets it go the moment the eye is out. */
+  { const el=$('wateye'); if(el){ const cp=camera.position;
+      const inW=!state.firm&&isLiquid(blockAt(Math.floor(cp.x/B),Math.floor(cp.y/B),Math.floor(cp.z/B)));
+      if(inW!==!!el._on){ el._on=inW; el.style.opacity=inW?'1':'0'; } } }
   labelT-=dt; if(labelT<=0){ labelT=0.4; updateLabels(p.x,p.z); placeTick(); }
   miniT-=dt; if(miniT<=0){ miniT=0.5; drawMapInto(minictx,mini.width,false);
     if(bigOpen) sizeBig(); }
