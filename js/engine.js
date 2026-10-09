@@ -16070,7 +16070,7 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code.indexOf('Digit')===0){ const k=+e.code.slice(5);
     if(k>=1&&k<=BELT_N){ heldSlot=k-1; beltDraw(); } }
   if(e.code==='KeyI'){ e.preventDefault(); togglePage(); }
-  if(e.code==='F5'){ e.preventDefault(); if(running&&!state.firm) setPov(state.pov==='first'?'third':'first'); }
+  if(e.code==='F5'&&!window.STORY){ e.preventDefault(); if(!state.firm) setPov(state.pov==='first'?'third':'first'); }   /* (the story keeps its own eye) */
   if(e.code==='KeyV'){ e.preventDefault();
     const r=placeBlock();
     if(r&&r.no&&r.no!=='nothing is within reach') toast('Not there — '+r.no+'.'); } });
