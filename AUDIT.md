@@ -11352,6 +11352,29 @@ computer. The choice is remembered on this computer, and the story's acts follow
 `__POST.on`, or `__INJECT.noShadow`, `noReflect` and `noPost` at boot. The renderer's draw count
 is now the whole frame's, including the shadow map, the reflection and the glow.
 
+## 4eg. Round 134 — through his own eyes (F5)
+
+The traveller asked: "in voyage make it possible to switch between third and first person (Like
+Mine craft)".
+
+- **F5**, or ☰ → **👁 View**, switches between the eye over the traveller's shoulder and the eye in
+  his own head. The choice is remembered on this computer.
+- In first person his body is not drawn. His right arm comes into the foot of the view at the
+  right, with whatever is in his hand (the pick, the axe, a block to lay). It swings as he
+  strikes and bobs a little as he walks. It is drawn over everything, as in Minecraft. The sun's
+  shadow map and the water's reflection do not include it.
+- Dragging to look turns him: the sideways drag turns his heading and the up-and-down drag lifts
+  or lowers his gaze, so he walks where he looks. The gold block outline follows the gaze, as it
+  did from the shoulder.
+- It works ashore, on the deck, swimming and under the sea, and in the air. At the wheel the
+  eye stands just behind and above the wheel, looking out over the deck: the ship is built four
+  times a man's size, and from his own head the wheel filled the view like a wall.
+- The hold and the inside of a house keep their own first-person eye, as before. Story mode is
+  not affected; its acts keep their own cameras.
+- The controls book and the hint line list F5.
+- For tools, `__VDBG.seabedDepth` gives the height of the sea bed at any point, so a test can
+  place a diver over water deep enough to swim in.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

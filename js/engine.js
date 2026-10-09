@@ -7214,7 +7214,7 @@ const REFLECT={ on:!((window.__INJECT||{}).noReflect), scale:0.5, lakes:new Set(
     look.set(0,0,-1).applyMatrix4(rot).add(Cw);
     tgt.subVectors(Pw,look).reflect(N).negate().add(Pw);
     vcam.position.copy(view); vcam.up.set(0,1,0).applyMatrix4(rot).reflect(N); vcam.lookAt(tgt);
-    vcam.near=camera.near; vcam.far=camera.far; vcam.layers.mask=camera.layers.mask;
+    vcam.near=camera.near; vcam.far=camera.far; vcam.layers.mask=camera.layers.mask&~2;   /* (not the hand in the eye's own view, F5) */
     vcam.updateMatrixWorld(); vcam.projectionMatrix.copy(camera.projectionMatrix);
     RF_U.uReflMat.value.copy(TM).multiply(vcam.projectionMatrix).multiply(vcam.matrixWorldInverse);
     /* the near plane laid along the face of the water, so nothing under it is drawn into the picture */
@@ -16070,6 +16070,7 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
   if(e.code.indexOf('Digit')===0){ const k=+e.code.slice(5);
     if(k>=1&&k<=BELT_N){ heldSlot=k-1; beltDraw(); } }
   if(e.code==='KeyI'){ e.preventDefault(); togglePage(); }
+  if(e.code==='F5'){ e.preventDefault(); if(running&&!state.firm) setPov(state.pov==='first'?'third':'first'); }
   if(e.code==='KeyV'){ e.preventDefault();
     const r=placeBlock();
     if(r&&r.no&&r.no!=='nothing is within reach') toast('Not there — '+r.no+'.'); } });
@@ -17883,6 +17884,87 @@ const _camHold=new THREE.Vector3();
 /* the helm's boom: k × the zoom, never under `min` at the usual zoom, looking
    `fwd` ahead of the ship and `up` over her deck */
 const BOAT_LOOK=Object.assign({k:1.7,min:190*SHIP_K,fwd:70*SHIP_K,up:26*SHIP_K},window.__CAMTUNE||{});
+/* ================= THE EYE IN HIS OWN HEAD (F5) =================
+   As in Minecraft, the view may be the traveller's own: F5 (or ☰ → View) turns between the eye over his
+   shoulder and the eye in his head. In his head the body is not drawn — only his right arm at the foot of
+   the view, and whatever is in his hand, swinging as it swings — and to look about is to turn him: the
+   drag turns his heading and lifts or lowers his gaze, and he walks where he looks. It holds ashore, on
+   the deck, at the wheel, swimming, under the sea and in the air; the hold and the inside of a house were
+   seen from within already. The choice is kept on this machine. */
+const POV_KEY='voyage-pov';
+state.pov='third';
+try{ if(localStorage.getItem(POV_KEY)==='first') state.pov='first'; }catch(e){}
+function povFirst(){ return state.pov==='first'&&!window.STORY&&!state.firm&&running&&
+  (state.mode==='walk'||state.mode==='deck'||state.mode==='boat'||state.mode==='dive'||state.mode==='fly')&&zoomMapFadeCache<0.02; }
+function setPov(p,quiet){ state.pov=p==='first'?'first':'third';
+  try{ localStorage.setItem(POV_KEY,state.pov); }catch(e){}
+  const b=$('b-pov'); if(b) b.textContent='👁 View: '+(state.pov==='first'?'first person':'third person');
+  if(state.pov==='third'){ fpViewHide(); if(fpHid&&!camInside){ walkerG.visible=true; } fpHid=false; }
+  if(!quiet) toast(state.pov==='first'?'Through his own eyes — drag to look and to turn; F5 to stand back.':'Over his shoulder again — F5 to look through his eyes.'); }
+let fpHid=false;
+{ const bp=$('b-pov'); if(bp){ bp.textContent='👁 View: '+(state.pov==='first'?'first person':'third person');
+    bp.onclick=()=>setPov(state.pov==='first'?'third':'first'); } }
+/* the arm and the thing in the hand, drawn over the world at the foot of the view (on a layer of their
+   own: the sun's map and the water's picture never see them) */
+const fpView=new THREE.Group(); fpView.visible=false; fpView.userData.noShadow=true; scene.add(fpView);
+camera.layers.enable(1);
+const fpPivot=new THREE.Group(); fpView.add(fpPivot);
+const _fpMats=new Map();
+function fpMat(m){ if(!m) return m; let c=_fpMats.get(m); if(!c){ c=m.clone(); c.depthTest=false; c.depthWrite=false; c.fog=false; _fpMats.set(m,c);
+    if(c.isMeshBasicMaterial) LIT.push(c); }                    /* (the day's light falls on it as on the rest) */
+  return c; }
+function fpLayer(o){ o.traverse(q=>{ q.layers.set(1); q.renderOrder=999; if(q.isMesh) q.material=Array.isArray(q.material)?q.material.map(fpMat):fpMat(q.material); q.frustumCulled=false; }); }
+const fpFore=new THREE.Mesh(new THREE.BoxGeometry(1.26,2.29,1.35).translate(0,-1.14,0),sleeveMatP); fpLayer(fpFore); fpPivot.add(fpFore);
+let fpHeldG=null, fpHeldKey=null;
+function fpViewHide(){ if(fpView.visible) fpView.visible=false; }
+const _fpE=new THREE.Vector3(), _fpT=new THREE.Vector3();
+function fpEye(dt){
+  /* to look about is to turn him: the drag's yaw is laid into his heading, and his gaze is the pitch */
+  if(state.camYaw){ const y=state.camYaw; state.camYaw=0;
+    if(state.mode==='walk') state.walk.heading+=y;
+    else if(state.mode==='deck') state.deck.h+=y;
+    else if(state.mode==='dive') state.dive.heading+=y;
+    else if(state.mode==='fly') state.fly.heading+=y;
+    else if(state.mode==='boat') fpEye.helmYaw=(fpEye.helmYaw||0)+y; }       /* at the wheel the eye turns, not the ship */
+  if(state.mode!=='boat') fpEye.helmYaw=0;
+  /* the eye is in his head, wherever the head is: upright ashore, prone in the water, on the deck. At the
+     wheel it is lifted over it: the ship is built four times the size of a man, and from his own head
+     the wheel filled the whole view like a wall */
+  const head=walkerG.children[0];
+  if(walkerG.parent) walkerG.parent.updateMatrixWorld(); walkerG.updateMatrixWorld();
+  if(state.mode==='boat'){ boatG.updateMatrixWorld(); _fpE.set(0,SD.qdeckY+26,SD.wheelZ-6); boatG.localToWorld(_fpE); }
+  else if(head){ head.getWorldPosition(_fpE); _fpE.y+=0.3; }
+  else { walkerG.getWorldPosition(_fpE); _fpE.y+=10.6; }
+  if(walkerG.visible){ walkerG.visible=false; fpHid=true; }
+  let yaw;
+  if(state.mode==='walk') yaw=state.walk.heading;
+  else if(state.mode==='deck') yaw=state.boat.heading+state.deck.h;
+  else if(state.mode==='dive') yaw=state.dive.heading;
+  else if(state.mode==='fly') yaw=state.fly.heading;
+  else yaw=state.boat.heading+(fpEye.helmYaw||0);
+  const p=state.camPitch, cp=Math.cos(p);
+  /* a hand's breadth forward of the head, so the eye is not inside it */
+  if(state.mode!=='boat'){ _fpE.x+=Math.sin(yaw)*0.5; _fpE.z+=Math.cos(yaw)*0.5; }
+  camera.position.copy(_fpE);
+  _fpT.set(_fpE.x+Math.sin(yaw)*cp*20, _fpE.y-Math.sin(p)*20, _fpE.z+Math.cos(yaw)*cp*20);
+  camera.lookAt(_fpT);
+  /* the arm and the tool: shown ashore and on the deck, where the hand holds something */
+  const w=state.walk;
+  const handOn=(state.mode==='walk'||state.mode==='deck')&&!state.fishing&&!state.mount&&!(state.mode==='walk'&&(w.inWater||w.climb));
+  fpView.visible=handOn;
+  if(handOn){
+    camera.updateMatrixWorld(); fpView.position.copy(camera.position); fpView.quaternion.copy(camera.quaternion);
+    let b=heldBlock(); if(!b&&freeHand()) b=BLOCK_BY_ID['iron-pick']||null;
+    const key=b?b.id:null;
+    if(key!==fpHeldKey){ if(fpHeldG){ fpFore.remove(fpHeldG); fpHeldG=null; }
+      if(b){ fpHeldG=heldModel(b); fpLayer(fpHeldG); fpFore.add(fpHeldG); } fpHeldKey=key; }
+    /* at rest the hand is carried forward at the right of the view; the blow swings it down and back */
+    const t=performance.now()*0.001, mv=(Math.abs(w.sp||0)>0.5)?1:0;
+    let sw=0; if(MINE.on) sw=Math.max(0,Math.sin(t*3.1*Math.PI*2)); else if(swingT>0) sw=Math.sin((1-swingT/0.3)*Math.PI);
+    fpPivot.position.set(2.15,-2.05+Math.sin(t*7)*0.08*mv,-3.1);
+    fpPivot.rotation.set(1.6-sw*0.9,0.28+sw*0.25,0.12);
+  }
+}
 function cameraTick(dt){
   if(cut){ sceneTick(dt); return; }
   /* ---- THE SLIDE ----
@@ -17932,7 +18014,10 @@ function cameraTick(dt){
      The camera is clamped well inside the walls (never through them), the near
      plane is pulled in, and the body is hidden so it doesn't fill the view. */
   const Hin = state.mode==='walk' ? insideHouse(state.walk.x,state.walk.z) : null;
-  setCamInside(!!Hin);
+  const fpNow=povFirst();
+  setCamInside(!!Hin||fpNow);
+  if(fpNow&&!Hin){ fpEye(dt); return; }
+  fpViewHide();
   if(Hin){ const w=state.walk, H=Hin, hy=walkerG.position.y+8.5, inset=B*0.5+2.2;
     let cxp=w.x+Math.sin(w.heading)*1.0, czp=w.z+Math.cos(w.heading)*1.0;
     cxp=Math.max(H.x0+inset, Math.min(H.x1-inset, cxp));
@@ -19711,7 +19796,7 @@ if(!window.__HOST_BOOT){
 }
 
 /* a small debug handle — used by the automated smoke tests; harmless in play */
-window.__VDBG={BUILD_STATS,state,setMode,updateChunks,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
+window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWorld,HATCH,SHIP_S,activeVillages,groundInfo,
   /* the ship and her company — her deck's open ground, and who is aboard */
   SHIP_SX,SHIP_K,SD,deckAllowed,holdAllowed,CREW,initCrew,
   /* and the water that answers: a splash, a strike, the field's own state */

@@ -610,6 +610,7 @@
   <div class="ctl-sec"><h3>THE SHIP</h3><div class="row">
     <span class="k">W A S D</span><span class="v">helm and sail &mdash; or the left thumb on a touch screen</span>
     <span class="k">drag</span><span class="v">look about</span>
+    <span class="k">F5</span><span class="v">look through the traveller&rsquo;s own eyes, or stand back over his shoulder again &mdash; through his eyes, the drag turns him and he walks where he looks</span>
     <span class="k">E</span><span class="v">with land in reach, go straight ashore &mdash; out at sea, leave the wheel and walk the deck; ashore, board the ship again</span>
     <span class="k">F</span><span class="v">the hold below the hatch amidships &mdash; and hail a passing trader</span>
     <span class="k">N</span><span class="v">cast the trawl net &mdash; trawl slow over shoaling water for a hold-filling catch</span>
@@ -756,7 +757,7 @@ window.__MENUUI=(function(){
 <div class="hud" id="place"></div>
 <button id="prompt">F — open the door</button>
 <div class="hud" id="verse"><div class="vt" id="verse-t"></div><div class="vr" id="verse-r"></div></div>
-<div class="hud" id="hint" hidden>W A S D — helm and sail &nbsp;·&nbsp; drag — look &nbsp;·&nbsp; E — the wheel · the deck · the shore &nbsp;·&nbsp; SPACE — jump / climb &nbsp;·&nbsp; F — doors · speak · trade · fish · the hold · hail &nbsp;·&nbsp; Q — the spear (ashore and beneath the waves) &nbsp;·&nbsp; N — the trawl net &nbsp;·&nbsp; G — rise into the air (SPACE up · SHIFT down) &nbsp;·&nbsp; C — dive the deep (SHIFT down · SPACE up) &nbsp;·&nbsp; M — the map &nbsp;·&nbsp; L — the log &nbsp;·&nbsp; scroll — draw back, out to the whole earth</div>
+<div class="hud" id="hint" hidden>W A S D — helm and sail &nbsp;·&nbsp; drag — look &nbsp;·&nbsp; F5 — through his eyes / over his shoulder &nbsp;·&nbsp; E — the wheel · the deck · the shore &nbsp;·&nbsp; SPACE — jump / climb &nbsp;·&nbsp; F — doors · speak · trade · fish · the hold · hail &nbsp;·&nbsp; Q — the spear (ashore and beneath the waves) &nbsp;·&nbsp; N — the trawl net &nbsp;·&nbsp; G — rise into the air (SPACE up · SHIFT down) &nbsp;·&nbsp; C — dive the deep (SHIFT down · SPACE up) &nbsp;·&nbsp; M — the map &nbsp;·&nbsp; L — the log &nbsp;·&nbsp; scroll — draw back, out to the whole earth</div>
 
 <!-- ================= THE BELT, AND THE PAGE =================
      §2.2: never a grey hotbar, never a grid of grey squares. A row of CLAY
@@ -817,6 +818,8 @@ window.__MENUUI=(function(){
   <button class="btn" id="b-sound">🔊 Sound: on</button>
   <!-- THE LOOK: the sun's shadows, the world in the water and the glow — a slow machine may lay them by -->
   <button class="btn" id="b-look">✨ Look: full</button>
+  <!-- THE EYE IN HIS OWN HEAD: over the shoulder, or through his eyes (F5) -->
+  <button class="btn" id="b-pov">👁 View: third person</button>
   <button class="btn" id="b-spear">🗡 Throw spear</button>
   <button class="btn" id="b-jump">⤴ Jump / climb</button>
 </div>
