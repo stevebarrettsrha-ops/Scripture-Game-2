@@ -457,6 +457,20 @@ TEX.alabaster  = mkTex(g=>{ speckle(g,PB.alabaster.b,10,PB.alabaster.a,0.24);
   for(let k=0;k<4;k++){ const y0=2+hash2(k,6.1)*12;
     for(let x=0;x<16;x+=FG){ const y=y0+Math.sin(x*0.45+k*1.7)*0.9;
       g.fillStyle=C(PB.alabaster.vein); g.fillRect(x,Math.round(y/FG)*FG,FG,FG); } } },16,16,RIM);
+/* THE METALS AND THE WHITE STONE OF THE HOUSE (Round 138). The gold of the Houses at Yahrushalayim was
+   drawn with the HAY block, the nearest colour the sets had, so the plated face of the porch read as a
+   bale of straw; the bronze of Yakin and Boaz and of the altar as brown brick. Now each is its own:
+   gold beaten into plates, laid in courses and catching the light; bronze, cast and burnished, going
+   dark and green where it is not rubbed; and the white stone the House of Herodes was built of. */
+TEX.goldLeaf   = mkTex(g=>{ speckle(g,[214,170,62],12,[240,206,104],0.26);
+  g.fillStyle=C([150,108,32]); g.fillRect(0,7,16,FG); g.fillRect(0,15,16,FG);          /* the joints of the plates */
+  g.fillStyle=C([255,232,150]); g.fillRect(2,2,FG*3,FG); g.fillRect(9,10,FG*3,FG); },16,16,RIM);
+TEX.bronze     = mkTex(g=>{ speckle(g,[150,104,54],12,[112,100,66],0.22);
+  g.fillStyle=C([192,142,82]); g.fillRect(3,4,FG*2,FG); g.fillRect(10,11,FG*2,FG); },16,16,RIM);
+TEX.marble     = mkTex(g=>{ speckle(g,[238,234,224],5,[222,218,206],0.20);
+  for(let k=0;k<2;k++){ const y0=3+hash2(k,8.3)*10;
+    for(let x=0;x<16;x+=FG){ const y=y0+Math.sin(x*0.5+k*2.1)*1.2;
+      g.fillStyle=C([200,198,192]); g.fillRect(x,Math.round(y/FG)*FG,FG,FG); } } },16,16,RIM);
 /* flint: dark, glassy, and it breaks in shells */
 TEX.flint      = mkTex(g=>{ speckle(g,PB.flint.b,18,PB.flint.a,0.34);
   for(let k=0;k<9;k++){ const cx=hash2(k,1.9)*16, cy=hash2(k,8.3)*16, r=1.2+hash2(k,3.3)*1.6;
@@ -681,6 +695,7 @@ blockMat('ironPick',TEX.ironPick,{transparent:true});
 blockMat('goldOre',TEX.goldOre); blockMat('silverOre',TEX.silverOre);
 blockMat('copperOre',TEX.copperOre); blockMat('ironOre',TEX.ironOre);
 blockMat('alabaster',TEX.alabaster); blockMat('flint',TEX.flint);
+blockMat('goldLeaf',TEX.goldLeaf); blockMat('bronze',TEX.bronze); blockMat('marble',TEX.marble);
 blockMat('sand',TEX.sand); blockMat('stone',TEX.stone); blockMat('cobble',TEX.cobble); blockMat('basalt',TEX.basalt);
 blockMat('deepStone',TEX.deepStone); blockMat('bedrock',TEX.bedrock);
 blockMat('mudbrick',TEX.mudbrick); blockMat('plaster',TEX.plaster); blockMat('thatch',TEX.thatch);
@@ -17415,6 +17430,17 @@ function seacavePass(px,pz){
   }
   SC_MS+=performance.now()-t0; SC_SCANS++;
 }
+function lmClearGround(L,x,z,y){ const t=L.tm, U=lmU, rects=[];
+  const sq=(cx,cz,h)=>rects.push([cx-h,cz-h,cx+h,cz+h]);
+  if(L.kind==='temple') rects.push([x-U(t.L/2+30),z-U(t.W/2+30),x+U(t.L/2+30),z+U(t.W/2+30)]);
+  else if(L.kind==='pyramid') for(const P of t.parts) sq(x+U(P.dx),z+U(P.dz),U(P.base/2+40));
+  else if(L.kind==='ziggurat') sq(x,z,U(Math.max(t.tiers[0][0],t.tiers[0][1])/2+60));
+  else if(L.kind==='city') sq(x,z,U(t.R+20));
+  else if(L.kind==='stonecircle') sq(x,z,U(t.R+15));
+  else if(L.kind==='lighthouse') sq(x,z,U(t.w1/2+30));
+  else if(L.kind==='gate') sq(x,z,U(t.w+25));
+  else if(L.kind==='statue') sq(x,z,U(t.h*3+8));
+  for(const r of rects) clearLotOfTrees(r[0],r[1],r[2],r[3],y); }
 function spawnLandmark(i){
   const L=LANDMARKS[i], site=landmarkSite(i);
   /* the fault put back for test 68: a builder that silently stops building */
@@ -17428,6 +17454,11 @@ function spawnLandmark(i){
     const G=newG();
     _solidRec=[];                       /* the builder writes its own collision */
     var lmSolids;
+    /* ON THE TRUE EARTH A WORK OF THE ANCIENTS STANDS IN ITS OWN GROUND: the wild wood of the true earth
+       grew up to the very steps of the temple of Artemis, and a man walking up to it walked through a
+       forest. Its precinct is cleared of the land's trees, the work's own footprint and a broad margin
+       about it, as a temenos, a court or a plaza was kept clear */
+    if(TRUE_EARTH&&L.tm) lmClearGround(L,x,z,y);
     const build=(GG)=>(TRUE_EARTH&&L.tm)?lmTrue(GG,x,z,y,L):(LM_BUILDERS[L.kind]||lmTemple)(GG,x,z,y,L.s,i*77.7);
     try{ build(G); }
     finally{ lmSolids=_solidRec; _solidRec=null; }   /* never left recording */

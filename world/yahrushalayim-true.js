@@ -20,8 +20,8 @@
 (function(){
 window.YAHRU_PLAN_TRUE=function(api,period){
   const herod=period==='herodes', ruin=period==='return';
-  const LIME=0xd8cfb8, STONE=0x9c9486, STONE2=0x7a7266, PATH=0xb49a74, TIMBER=0x6e5238, GOLD='hay',
-        WHITE=0xece6d6, BRONZE=0x8a6a3a, CEDAR=0x7a4a2a, BLUE=0x4a2a6a;
+  const LIME=0xd8cfb8, STONE=0x9c9486, STONE2=0x7a7266, PATH=0xb49a74, TIMBER=0x6e5238, GOLD='gold-leaf',
+        WHITE='marble', BRONZE='bronze', CEDAR=0x7a4a2a, BLUE=0x4a2a6a;
   const hash=(x,z)=>{ const s=Math.sin(x*127.1+z*311.7)*43758.5453; return s-Math.floor(s); };
   const gY=(x,z)=>api.groundY(x,z);
 

@@ -515,6 +515,9 @@ const FILES=[
      the order among them fixes nothing but their numbering, and the save
      carries a table of their names so that numbering may change safely. */
   'blocks/alabaster.js',
+  'blocks/gold-leaf.js',
+  'blocks/bronze.js',
+  'blocks/marble.js',
   'blocks/altar.js',
   'blocks/bench.js',
   'blocks/bitumen.js',
