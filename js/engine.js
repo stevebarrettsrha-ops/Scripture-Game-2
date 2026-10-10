@@ -2576,14 +2576,37 @@ function ravineCut(c,x,z){
       c.spans=CAVES.mergeRuns(all); }
   }
 }
+/* ---- THE LAND A SETTLEMENT HAS MADE (Round 137, Phase C) ----
+   Every inhabited place has altered the ground about it, and it reads from
+   the hills:
+     - the CORE, where the houses, the market and the squares stand, is
+       levelled flat and cleared of every tree and bush, the ground trampled
+       bare in patches and most of all about the middle;
+     - the FELLED RING about it is where the wood was cut for timber and
+       fuel and to make room for the fields: stumps stand where the trees
+       stood, with bare earth between;
+     - and past it the WILD WOOD begins at once and thick, wherever the land
+       grows trees at all, so the line between the town's ground and the
+       untamed country is sharp.
+   A city reaches farther than a village in every one of these. */
+const SETTLED_R={village:{flat:95,skirt:190,core:175,ring:340,edge:430},
+              city:{flat:200,skirt:340,core:360,ring:560,edge:660}};
+function settleProfile(st){
+  if(st._prof) return st._prof;
+  let city=false; try{ city=!!cityFor(st.i); }catch(e){}
+  return st._prof=Object.assign({kind:city?'city':'village'},city?SETTLED_R.city:SETTLED_R.village);
+}
 function cellCompute(ix,iz){
   const c=cellRaw(ix,iz); if(!c) return null;
   if(SITES.length&&c.kind!=='wall'&&c.kind!=='floe'){
     const x=(ix+.5)*B, z=(iz+.5)*B, u=x/R_WORLD, v=z/R_WORLD;
     const near=siteGrid.get(siteKey(u,v));
+    /* the settled ground: the nearest settlement's reach decides it */
+    let sd=1e9, sP=null;
+    if(near) for(const st of near){ const d=Math.hypot(x-st.x,z-st.z), P=settleProfile(st); if(d<P.edge&&d/P.edge<sd/(sP?sP.edge:1)){ sd=d; sP=P; } }
     if(near) for(const st of near){
-      const d=Math.hypot(x-st.x,z-st.z);
-      if(d<170){ const t=Math.min(1,(170-d)/120);
+      const d=Math.hypot(x-st.x,z-st.z), SP=settleProfile(st);
+      if(d<SP.skirt){ const t=Math.min(1,(SP.skirt-d)/(SP.skirt-SP.flat));
         /* ---- AND THE CORE IS LEVEL, NOT NEARLY LEVEL ----
            The flattening only ever reached 92 per cent of the way, so where
            a village stood against a mountain the remaining eight per cent of
@@ -2606,6 +2629,16 @@ function cellCompute(ix,iz){
            is dropped outright. */
         if(c.spans&&c.h<h0) c.spans=clipSpans(c.spans,c.h);
         break; }
+    }
+    if(sP){ const j=hash2(ix*0.71+3.3,iz*1.37-1.9), j2=hash2(ix*2.3+0.4,iz*0.9+5.1);
+      const wood=c.kind==='grass'||c.kind==='tropic';
+      if(sd<sP.core){ c.tree=0; c.cleared=2;                      /* the town's own ground */
+        if(j2<(sd<sP.core*0.45?0.34:0.16)) c.bare=2; }            /* trampled bare */
+      else if(sd<sP.ring){ c.cleared=1;                           /* the felled ring */
+        if(c.tree){ c.tree=0; if(j<0.7) c.stump=1; }
+        else if(wood&&j<0.035) c.stump=1;                         /* (the wood stood thicker than the wild grows now) */
+        if(!c.stump&&j2<0.17) c.bare=1; }
+      else if(wood&&!c.tree&&j<0.26) c.tree=c.kind==='tropic'?2:1;   /* the wild wood's edge */
     }
   }
   if(c.kind!=='wall'&&c.kind!=='floe') ravineCut(c,(ix+.5)*B,(iz+.5)*B);
@@ -4584,10 +4617,22 @@ function buildChunk(cx,cz){
     const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B, j=hash2(ix*1.7,iz*2.9);
     if(cc.tree&&!noTreeAt(ix,iz)) emitTree(G,ix,iz,cc);
     else if(!noTreeAt(ix,iz)){   /* (a cleared lot or yard grows no scrub either — Round 137) */
+      /* the settled ground: earth trampled or cut bare, and in the town's own
+         ground no bush at all (Round 137) */
+      if(cc.stump){
+        /* a stump: a short round of trunk with the cut showing its rings, roots
+           at its foot — and now and then the felled bole lying beside it */
+        const sx=x+(j-0.5)*B*0.3, sz=z+(hash2(ix*3.3,iz*1.1)-0.5)*B*0.3, r=B*(0.26+j*0.08), sh=B*(0.32+hash2(ix,iz*2.2)*0.18);
+        emitBox(G,sx-r,yT,sz-r,sx+r,yT+sh,sz+r,'logSide','logTop',null);
+        emitBox(G,sx-r*1.6,yT,sz-B*0.07,sx+r*1.6,yT+B*0.1,sz+B*0.07,'logSide','logSide',null);
+        emitBox(G,sx-B*0.07,yT,sz-r*1.6,sx+B*0.07,yT+B*0.1,sz+r*1.6,'logSide','logSide',null);
+        if(j<0.12) emitBox(G,sx+r+B*0.1,yT,sz-B*0.2,sx+r+B*1.9,yT+B*0.4,sz+B*0.2,'logSide','logTop',null);
+        emitScrub(G,ix,iz,cc,0.34); }
+      else if(cc.bare) emitTop(G,cc.bare===2?'path':'dirt', ix*B+0.05,iz*B+0.05,(ix+1)*B-0.05,(iz+1)*B-0.05, yT+0.05, 1.0);
       /* thickest where no one lives — a village keeps its ground grazed.
          Every ground the grass file knows is asked; the ones it does not
          know (sand, stone, snow, the ice) simply bear nothing. */
-      emitScrub(G,ix,iz,cc,nearSettled(x,z)?0.34:1);
+      else if(cc.cleared!==2) emitScrub(G,ix,iz,cc,(cc.cleared||nearSettled(x,z))?0.34:1);
     }
     if(cc.kind==='grass'&&j>0.994)
       emitBox(G, x-B*0.5,yT,z-B*0.5, x+B*0.5,yT+B,z+B*0.5,'stone','stone',null);
@@ -13699,7 +13744,9 @@ function emitTradeTools(G,H,trade,side,solids,houses){
    standing within a walk of it */
 function findWoodlot(site,rnd){
   let best=null,bn=-1;
-  for(const r of [B*22,B*30,B*38]) for(let k=0;k<12;k++){ const a=k/12*6.2832+rnd(500)*0.5;
+  /* out past the felled ring, where the standing wood begins (Phase C) */
+  const P=settleProfile(site), R0=P.ring+B*3;
+  for(const r of [R0,R0+B*5,R0+B*10]) for(let k=0;k<12;k++){ const a=k/12*6.2832+rnd(500)*0.5;
     const x=site.x+Math.cos(a)*r, z=site.z+Math.sin(a)*r, c=landAtWorld(x,z);
     if(!c||c.kind==='wall'||c.kind==='floe') continue;
     let n=0; const ix=Math.floor(x/B), iz=Math.floor(z/B);
@@ -13863,6 +13910,35 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
       const c=landAtWorld(p[0],p[1]); if(!c||c.kind==='wall') continue;
       emitBox(G,p[0]-0.5,c.h*B,p[1]-0.5,p[0]+0.5,c.h*B+B*1.9,p[1]+0.5,'logSide','logTop',null);
       torches.push({x:p[0],y:c.h*B+B*1.9,z:p[1]}); } }
+  /* ---- THE WALL OF THE CITY (Round 137, Phase C) ----
+     A great city of the Bible days was a walled city: its houses close inside a
+     ring of wall with a tower at every corner and a gate where each of its two
+     great streets goes out, a tower either side of the gate. The wall is drawn
+     round the houses as they fell, a few paces clear of the outermost, and it
+     stands on the ground course by course, so it climbs and falls with the land. */
+  { let R=0; for(const H of ex.houses) R=Math.max(R,Math.abs(H.x0-cx),Math.abs(H.x1-cx),Math.abs(H.z0-cz),Math.abs(H.z1-cz));
+    R=Math.ceil((R+B*5)/B)*B;
+    const ci=Math.floor(cx/B), cj=Math.floor(cz/B), n=Math.round(R/B), WH=5, GH=1;
+    const col=(ix,iz,h)=>{ const c=cell(ix,iz); if(!c||c.kind==='wall'||c.kind==='floe') return;
+      emitBox(G,ix*B,c.h*B-B,iz*B,(ix+1)*B,c.h*B+h*B,(iz+1)*B,'hewnStone','hewnStone',null); };
+    stamped(ex,()=>{
+      for(let k=-n;k<=n;k++){
+        const gate=Math.abs(k)<=GH;
+        for(const [ix,iz] of [[ci+k,cj-n],[ci+k,cj+n],[ci-n,cj+k],[ci+n,cj+k]]){
+          if(gate) continue;
+          col(ix,iz,WH);
+          if((k+n)%2===0){ const c=cell(ix,iz); if(c) emitBox(G,ix*B+B*0.2,c.h*B+WH*B,iz*B+B*0.2,(ix+1)*B-B*0.2,c.h*B+WH*B+B*0.6,(iz+1)*B-B*0.2,'hewnStone','hewnStone',null); } } }
+      /* the towers: the four corners, and either side of each gate */
+      const tower=(ti,tj)=>{ for(let a=-1;a<=1;a++) for(let b2=-1;b2<=1;b2++) col(ti+a,tj+b2,WH+2); };
+      for(const [ti,tj] of [[ci-n,cj-n],[ci+n,cj-n],[ci-n,cj+n],[ci+n,cj+n]]) tower(ti,tj);
+      for(const s2 of [-1,1]) for(const [ti,tj] of [[ci+s2*(GH+2),cj-n],[ci+s2*(GH+2),cj+n],[ci-n,cj+s2*(GH+2)],[ci+n,cj+s2*(GH+2)]]) tower(ti,tj);
+      /* and the lintel over each gate */
+      for(const [gi,gj,ax] of [[ci,cj-n,1],[ci,cj+n,1],[ci-n,cj,0],[ci+n,cj,0]]) for(let k=-GH;k<=GH;k++){
+        const ix=ax?gi+k:gi, iz=ax?gj:gj+k, c=cell(ix,iz); if(!c) continue;
+        emitBox(G,ix*B,c.h*B+B*3,iz*B,(ix+1)*B,c.h*B+WH*B,(iz+1)*B,'hewnStone','hewnStone',null); } });
+    for(const [x0,x1,z0,z1] of [[cx-R-B*2,cx+R+B*2,cz-R-B*2,cz-R+B*2],[cx-R-B*2,cx+R+B*2,cz+R-B*2,cz+R+B*2],
+                                [cx-R-B*2,cx-R+B*2,cz-R,cz+R],[cx+R-B*2,cx+R+B*2,cz-R,cz+R]]) addRect(x0,x1,z0,z1);
+    ex.cityWall={x:cx,z:cz,R}; }
   return {homes,market};
 }
 const deckMap=new Map();
@@ -14098,6 +14174,105 @@ function* spawnVillage(i,exShell){
       solids.push({x:px3,z:pz3,r:B*1.6}); addRect(px3-B*1.6,px3+B*1.6,pz3-B*1.4,pz3+B*1.4);
       ex.stalls.push({x:px3,z:pz3}); }
   }
+  /* ---- THE GROWING TRADE TOWN (Round 137, Phase C) ----
+     A town with a quay on the sea is a trade town: the caravans come down to
+     it and the ships put in, and it shows it — a caravanserai, a walled yard
+     where the beasts of the road are stabled about a court with an arcade
+     inside the wall; storehouses by the quay; and it is still building.
+     Its building lots fill in as the days go by: a house is begun every few
+     days and its walls rise a course a day until the roof is on, so a
+     traveller who comes back after a month finds a bigger town than he left.
+     The masons work at whichever house is going up. */
+  ex.trade=!!(ex.pier&&!cfg);
+  if(ex.trade){
+    const day=Math.floor(state.simHours/24);
+    const place=(rad,w,d,tag)=>{ for(let tr=0;tr<14;tr++){ const a=rnd(700+tag*17+tr)*Math.PI*2, r=rad+rnd(710+tag*17+tr)*B*6;
+        const x=site.x+Math.cos(a)*r, z=site.z+Math.sin(a)*r, c=landAtWorld(x,z);
+        if(!c||c.kind==='wall'||c.kind==='floe'||c.kind==='sand') continue;
+        if(!rectFree(x-w*B/2-B,x+w*B/2+B,z-d*B/2-B,z+d*B/2+B,B)) continue;
+        return {x,z,y:c.h*B}; } return null; };
+    /* the caravanserai */
+    const K=place(B*24,11,11,1);
+    if(K){ const {x,z,y}=K, h=B*11/2, T=B*0.8, gw=B*1.2, wh=B*3;
+      stamped(ex,()=>{ clearLotOfTrees(x-h-B,z-h-B,x+h+B,z+h+B,y);
+        emitBox(G,x-h,y,z-h,x+h,y+wh,z-h+T,'mudbrick','mudbrick',null);
+        emitBox(G,x-h,y,z+h-T,x-gw,y+wh,z+h,'mudbrick','mudbrick',null); emitBox(G,x+gw,y,z+h-T,x+h,y+wh,z+h,'mudbrick','mudbrick',null);
+        emitBox(G,x-gw,y+B*2.2,z+h-T,x+gw,y+wh,z+h,'logSide','logTop',null);          /* the gate's lintel */
+        emitBox(G,x-h,y,z-h,x-h+T,y+wh,z+h,'mudbrick','mudbrick',null); emitBox(G,x+h-T,y,z-h,x+h,y+wh,z+h,'mudbrick','mudbrick',null);
+        /* the arcade inside the wall: posts and a roof of beams over the stalls of the beasts */
+        for(let k=-4;k<=4;k+=2){ for(const [px,pz] of [[x+k*B,z-h+B*2.4],[x-h+B*2.4,z+k*B],[x+h-B*2.4,z+k*B]])
+            emitBox(G,px-B*0.2,y,pz-B*0.2,px+B*0.2,y+B*2.4,pz+B*0.2,'logSide','logTop',null); }
+        emitBox(G,x-h+T,y+B*2.4,z-h+T,x+h-T,y+B*2.7,z-h+B*2.6,'planks','planks',null);
+        emitBox(G,x-h+T,y+B*2.4,z-h+T,x-h+B*2.6,y+B*2.7,z+h-T,'planks','planks',null);
+        emitBox(G,x+h-B*2.6,y+B*2.4,z-h+T,x+h-T,y+B*2.7,z+h-T,'planks','planks',null);
+        for(let k=0;k<5;k++) emitBox(G,x-B*2+k*B,y,z-h+B*1.2,x-B*1.4+k*B,y+B*0.6,z-h+B*1.8,'hayTop','haySide',null);   /* fodder */
+        emitPlaza(G,x,z,y,B*3); emitStairLine(G,ex,site.x,site.z,x,z+h+B); });
+      addRect(x-h-B,x+h+B,z-h-B,z+h+B); solids.push({x,z:z-h+B*1.5,r:B*1.2});
+      ex.caravanserai={x,z}; }
+    /* the storehouses by the quay */
+    for(let k=0;k<2;k++){ const S2=place(B*14,9,5,3+k); if(!S2) continue;
+      stamped(ex,()=>emitHouse(G,ex,S2.x,S2.z,S2.y,9,5,rnd(720+k)<0.5?0:1,i*100+90+k)); addRect(S2.x-B*5.5,S2.x+B*5.5,S2.z-B*3.5,S2.z+B*3.5); }
+    /* the building lots: one begun every four days, a course a day */
+    ex.sites=[];
+    for(let k=0;k<4;k++){ const start=k*4+Math.floor(rnd(730+k)*3), age=day-start; if(age<0) continue;
+      const L=place(B*20,7,7,6+k); if(!L) continue;
+      if(age>=5){ stamped(ex,()=>emitHouse(G,ex,L.x,L.z,L.y,7,7,Math.floor(rnd(740+k)*4),i*100+95+k)); }
+      else { const courses=age+1, h7=B*3.5;
+        stamped(ex,()=>{ clearLotOfTrees(L.x-h7-B,L.z-h7-B,L.x+h7+B,L.z+h7+B,L.y);
+          emitBox(G,L.x-h7,L.y-B*0.98,L.z-h7,L.x+h7,L.y-B*0.02,L.z+h7,'cobble','cobble',null);
+          const wt=Math.min(4,courses)*B;
+          emitBox(G,L.x-h7,L.y,L.z-h7,L.x+h7,L.y+wt,L.z-h7+B*0.5,'mudbrick','mudbrick',null);
+          emitBox(G,L.x-h7,L.y,L.z-h7,L.x-h7+B*0.5,L.y+wt,L.z+h7,'mudbrick','mudbrick',null);
+          emitBox(G,L.x+h7-B*0.5,L.y,L.z-h7,L.x+h7,L.y+Math.max(B,wt-B),L.z+h7,'mudbrick','mudbrick',null);
+          emitBox(G,L.x-h7,L.y,L.z+h7-B*0.5,L.x-B,L.y+Math.max(B,wt-B),L.z+h7,'mudbrick','mudbrick',null);
+          for(let q=0;q<3;q++) emitBox(G,L.x+h7+B*1.2,L.y,L.z-B+q*B*0.9,L.x+h7+B*2.0,L.y+B*(0.5+0.25*q),L.z-B*0.3+q*B*0.9,'mudbrick','mudbrick',null);
+          /* a ladder against the rising wall */
+          emitBox(G,L.x-B*0.6,L.y,L.z-h7-B*0.6,L.x-B*0.45,L.y+wt+B,L.z-h7-B*0.5,'logSide','logTop',null);
+          emitBox(G,L.x+B*0.45,L.y,L.z-h7-B*0.6,L.x+B*0.6,L.y+wt+B,L.z-h7-B*0.5,'logSide','logTop',null); });
+        ex.sites.push({x:L.x,z:L.z-h7-B*1.6,faceX:L.x,faceZ:L.z}); }
+      addRect(L.x-B*4.5,L.x+B*4.5,L.z-B*4.5,L.z+B*4.5); }
+    yield; }
+  /* ---- THE COUNTRYSIDE (Round 137, Phase C) ----
+     A town does not end at its last house. Out in the felled ring stand the
+     farmsteads: a family's house, its strips of field, the threshing floor
+     of beaten stone where the grain is trodden out, and a low wall of field
+     stones gathered from the ploughing — each joined to the town by a lane.
+     A farmstead is put where the ground is least broken. */
+  { const P=settleProfile(site), nFS=P.kind==='city'?5:3;
+    for(let f=0;f<nFS;f++){
+      let best=null;
+      for(let tr=0;tr<10;tr++){
+        const ang=(f+rnd(600+f*13+tr)*0.8)/nFS*Math.PI*2, rad=P.core+B*4+rnd(610+f*13+tr)*(P.ring-P.core-B*10);
+        const hx=site.x+Math.cos(ang)*rad, hz=site.z+Math.sin(ang)*rad;
+        const c0=landAtWorld(hx,hz); if(!c0||c0.kind==='wall'||c0.kind==='floe'||c0.kind==='sand') continue;
+        let lo=1e9,hi=-1e9,ok=true;
+        for(const [dx,dz] of [[0,0],[-B*6,-B*5],[B*6,-B*5],[-B*6,B*6],[B*6,B*6],[0,B*8]]){
+          const c=landAtWorld(hx+dx,hz+dz); if(!c||c.kind==='wall'||c.kind==='floe'){ ok=false; break; } lo=Math.min(lo,c.h); hi=Math.max(hi,c.h); }
+        if(!ok||!rectFree(hx-B*7,hx+B*7,hz-B*6,hz+B*10,B)) continue;
+        if(!best||hi-lo<best.sp){ best={hx,hz,c0,sp:hi-lo}; if(hi-lo<=1) break; } }
+      if(!best||best.sp>3) continue;
+      const {hx,hz,c0}=best, y=c0.h*B, toTown=Math.atan2(site.x-hx,site.z-hz);
+      /* the house faces the town; its fields lie behind it */
+      const dd=Math.abs(Math.sin(toTown))>Math.abs(Math.cos(toTown))?(Math.sin(toTown)>0?2:3):(Math.cos(toTown)>0?0:1);
+      stamped(ex,()=>emitHouse(G,ex, hx,hz,y, 7,7, dd, i*100+70+f));
+      addRect(hx-B*4.5,hx+B*4.5,hz-B*4.5,hz+B*4.5);
+      const bx=-Math.sin(toTown), bz=-Math.cos(toTown);            /* away from the town */
+      for(let k=0;k<2;k++){ const fx=hx+bx*B*9+(k?1:-1)*bz*B*3.2, fz=hz+bz*B*9-(k?1:-1)*bx*B*3.2, fc=landAtWorld(fx,fz);
+        if(!fc||fc.kind==='wall'||!rectFree(fx-B*2.6,fx+B*2.6,fz-B*1.8,fz+B*1.8,0)) continue;
+        stamped(ex,()=>emitFarm(G,fx,fz,fc.h*B,i*100+80+f*2+k)); addRect(fx-B*2.6,fx+B*2.6,fz-B*1.8,fz+B*1.8);
+        ex.farms.push({x:fx,z:fz}); }
+      /* the threshing floor, beside the house */
+      { const tx=hx+bz*B*7.5, tz=hz-bx*B*7.5, r=2;
+        for(let a=-r;a<=r;a++) for(let b2=-r;b2<=r;b2++){ if(a*a+b2*b2>r*r+1) continue;
+          const ix=Math.floor(tx/B)+a, iz=Math.floor(tz/B)+b2, c=cell(ix,iz); if(!c||c.kind==='wall') continue;
+          emitTop(G,'hewnStone', ix*B+0.04,iz*B+0.04,(ix+1)*B-0.04,(iz+1)*B-0.04, c.h*B+0.06, 0.95); } }
+      /* the field wall of gathered stones, along the far side of the fields */
+      { const wx=hx+bx*B*12.5, wz=hz+bz*B*12.5;
+        for(let k=-5;k<=5;k++){ const px=wx+bz*B*k, pz=wz-bx*B*k, c=landAtWorld(px,pz); if(!c||c.kind==='wall') continue;
+          if(hash2(px*0.3,pz*0.7)<0.12) continue;                     /* a gap where it has tumbled */
+          emitBox(G,px-B*0.5,c.h*B,pz-B*0.5,px+B*0.5,c.h*B+B*(0.45+hash2(px,pz)*0.2),pz+B*0.5,'cobble','cobble',null); } }
+      stamped(ex,()=>emitStairLine(G,ex,site.x,site.z,hx+Math.sin(toTown)*B*5,hz+Math.cos(toTown)*B*5));
+      if(f%2===1) yield; } }
   /* ---- THE HOUSEHOLD AT ITS TRADE (Round 137): each house its two trades,
      their tools in its yard, and the town's woodlot and stone-heap ---- */
   ex.woodlot=findWoodlot(site,rnd);
@@ -14278,7 +14453,8 @@ function* spawnVillage(i,exShell){
       e.role=e.female?H.ftrade:H.trade;
       e.work=(e.female?H.fwork:H.work)||(e.home.ox!==undefined?{x:e.home.ox,z:e.home.oz}:{x:e.home.x,z:e.home.z});
       if(e.role==='woodcutter') e.woodlot=ex.woodlot||null;
-      if(e.role==='mason') e.quarry=ex.quarry||null;
+      if(e.role==='mason'){ e.quarry=ex.quarry||null;
+        if(ex.sites&&ex.sites.length) e.work=ex.sites[Math.floor(hash2(e.seed,2.7)*ex.sites.length)%ex.sites.length]; }
       if(e.role==='gleaner'){ if(ex.farms&&ex.farms.length) e.farm=ex.farms[Math.floor(hash2(e.seed,6.1)*ex.farms.length)%ex.farms.length];
         else e.role='weaver'; } } }
   yield;
