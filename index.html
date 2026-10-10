@@ -511,6 +511,27 @@
     #ui{ bottom:calc(6vh + 56px); }
     body.rail-shut #ui{ display:none; }
   }
+  /* ---- THE BUTTONS PUT AWAY (H, or the ◐) ----
+     "create a button to hide hud so the screen is not so crowded with buttons". The rail, the title,
+     the clock, the compass and the little chart, and the line of keys go; the belt, the prompts at a
+     door and the verses stay, for they are the game and not the furniture of it. The ◐ itself stays,
+     faint, to bring them back. */
+  #b-hud{ position:fixed; z-index:9; right:calc(2vw + 54px); bottom:6vh;
+    width:46px; height:46px; padding:0; text-align:center; line-height:44px;
+    font-size:19px; letter-spacing:0; border-radius:6px; }
+  @media (min-width:901px){ #b-hud{ right:2vw; bottom:2vh; width:40px; height:40px; line-height:38px; font-size:17px; } }
+  body.hud-off #ui, body.hud-off #rose-stack, body.hud-off #head, body.hud-off #clock,
+  body.hud-off #hint, body.hud-off #b-rail{ opacity:0 !important; pointer-events:none !important; transition:opacity .4s ease; }
+  body.hud-off #b-hud{ opacity:.45; }
+  body.hud-off #b-hud:hover{ opacity:1; }
+  body.pregame #b-hud, body.cine #b-hud{ display:none; }
+  /* ---- THE NAME OF THE PLACE, ONCE ----
+     It stood under the view the whole voyage long. Now it is shown as a land is come into, held a
+     few seconds and let go; where he is, is asked of the map (M), which says it at its head. */
+  #place{ opacity:0; transition:opacity 1.1s ease; pointer-events:none; }
+  #place.show{ opacity:1; }
+  #bigmap .m-here{ font-size:clamp(12px,2vmin,17px); letter-spacing:.28em; color:var(--gold);
+    text-shadow:0 2px 10px rgba(0,0,0,.85); margin-bottom:1vh; text-align:center; }
 
   /* ---- AND THE LAST FEW THINGS PUT OUT OF EACH OTHER'S WAY ----
      Giving every line a ground made each of them a little larger, and three
@@ -677,7 +698,8 @@
   </div></div>
   <div class="ctl-sec"><h3>THE CHART AND THE LOG</h3><div class="row">
     <span class="k">&#129517; the compass</span><span class="v">in the corner, over the little chart &mdash; the card holds true north (the midst of the earth), the needle lies on the mark, and the gold pip at the head of the case is STRAIGHT AHEAD: turn until the needle stands under the pip, then walk. The reading at its foot counts the miles down as you close. The button on the rail swings it between the scrolls and your ship.</span>
-    <span class="k">M</span><span class="v">the circle of the whole earth</span>
+    <span class="k">M</span><span class="v">the circle of the whole earth &mdash; and at its head, where you are</span>
+    <span class="k">H</span><span class="v">put the buttons away, for the world alone (the &#9680; in the corner does the same, and brings them back)</span>
     <span class="k">L</span><span class="v">the ship's log &mdash; lands visited, the purse, the cargo and the next landfall</span>
     <span class="k">P / ESC</span><span class="v">pause the voyage, and the same again to carry on</span>
     <span class="k">K</span><span class="v">turn the season</span>
@@ -699,6 +721,7 @@
     <button class="mo" id="mo-daypart"></button>
     <button class="mo" id="mo-season"></button>
     <button class="mo" id="mo-wind"></button>
+    <button class="mo" id="mo-earth"></button>
   </div>
   <button class="mm-back" id="opt-back">Back</button>
 </div></div>
@@ -783,7 +806,7 @@ window.__MENUUI=(function(){
 <div class="hud" id="place"></div>
 <button id="prompt">F — open the door</button>
 <div class="hud" id="verse"><div class="vt" id="verse-t"></div><div class="vr" id="verse-r"></div></div>
-<div class="hud" id="hint" hidden>W A S D — helm and sail &nbsp;·&nbsp; drag — look &nbsp;·&nbsp; F5 — through his eyes / over his shoulder &nbsp;·&nbsp; E — the wheel · the deck · the shore &nbsp;·&nbsp; SPACE — jump / climb &nbsp;·&nbsp; F — doors · speak · trade · fish · the hold · hail &nbsp;·&nbsp; Q — the spear (ashore and beneath the waves) &nbsp;·&nbsp; N — the trawl net &nbsp;·&nbsp; G — rise into the air (SPACE up · SHIFT down) &nbsp;·&nbsp; C — dive the deep (SHIFT down · SPACE up) &nbsp;·&nbsp; M — the map &nbsp;·&nbsp; L — the log &nbsp;·&nbsp; scroll — draw back, out to the whole earth</div>
+<div class="hud" id="hint" hidden>W A S D — helm and sail &nbsp;·&nbsp; drag — look &nbsp;·&nbsp; F5 — through his eyes / over his shoulder &nbsp;·&nbsp; E — the wheel · the deck · the shore &nbsp;·&nbsp; SPACE — jump / climb &nbsp;·&nbsp; F — doors · speak · trade · fish · the hold · hail &nbsp;·&nbsp; Q — the spear (ashore and beneath the waves) &nbsp;·&nbsp; N — the trawl net &nbsp;·&nbsp; G — rise into the air (SPACE up · SHIFT down) &nbsp;·&nbsp; C — dive the deep (SHIFT down · SPACE up) &nbsp;·&nbsp; M — the map &nbsp;·&nbsp; H — hide the buttons &nbsp;·&nbsp; L — the log &nbsp;·&nbsp; scroll — draw back, out to the whole earth</div>
 
 <!-- ================= THE BELT, AND THE PAGE =================
      §2.2: never a grey hotbar, never a grid of grey squares. A row of CLAY
@@ -825,6 +848,7 @@ window.__MENUUI=(function(){
 <div id="cine-fade"></div><div id="cine-title"></div>
 
 <button class="btn" id="b-rail" aria-label="menu">☰</button>
+<button class="btn" id="b-hud" aria-label="hide the buttons" title="Put the buttons away (H)">◐</button>
 <div id="ui">
   <button class="btn" id="b-ashore">⚓ Go ashore</button>
   <button class="btn" id="b-fly">🕊 Rise up</button>
@@ -855,7 +879,7 @@ window.__MENUUI=(function(){
   <button class="btn" id="b-jump">⤴ Jump / climb</button>
 </div>
 
-<div id="bigmap"><canvas id="bigcv"></canvas><div class="m-hint">the circle of the earth — tap to return to the deep</div></div>
+<div id="bigmap"><div class="m-here" id="m-here"></div><canvas id="bigcv"></canvas><div class="m-hint">the circle of the earth — tap to return to the deep</div></div>
 
 <div id="logbook"><div id="log-inner">
   <h2>📜 THE SHIP'S LOG</h2>

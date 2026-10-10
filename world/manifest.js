@@ -254,11 +254,18 @@ const FILES=[
   'world/verses.js',
   'world/landmarks.js',
   'world/yahrushalayim.js',
+  'world/yahrushalayim-true.js',
   /* the authored places (Phase 8) — AFTER landmarks, because a place names
      the landmark it stands in and the list must already hold it */
   'world/places.js',
   'world/waterfalls.js',
   'world/deeps.js',
+  /* THE TRUE FACE OF THE EARTH: heights and depths in metres, from the open Terrain Tiles, and */
+  /* the reader of them. Read only when the earth is drawn at its true measure (Phase T). */
+  'world/dem.js',
+  'js/dem.js',
+  /* the towns of the land, each at its own latitude and longitude (raised at the true measure) */
+  'world/towns.js',
   'world/scenes.js',
   /* THE SCROLLS HIDDEN IN THE EARTH — what the voyage is for */
   'world/scrolls.js',
@@ -508,6 +515,10 @@ const FILES=[
      the order among them fixes nothing but their numbering, and the save
      carries a table of their names so that numbering may change safely. */
   'blocks/alabaster.js',
+  'blocks/gold-leaf.js',
+  'blocks/bronze.js',
+  'blocks/marble.js',
+  'blocks/veil.js',
   'blocks/altar.js',
   'blocks/bench.js',
   'blocks/bitumen.js',

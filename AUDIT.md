@@ -11680,6 +11680,141 @@ city's gates; the worst frame spent planning was 12 ms.
 Not yet: several places per land joined by roads (C3), and the city by quarters of trade (D).
 Test results for this round are recorded with the next commit.
 
+## 4ek. Round 138 — the earth at the measure of the men upon it
+
+The traveller asked: "Make the land way bigger so that everything can fit, also make the whole world
+bigger to ensure everything can hold as its real world counterparts, remember this is a real world
+simulator", and then: "Scale up and fix story locations to the new real world". The plan is Phase T
+of ROADMAP-LIVING-WORLD.md; TRUE-MEASURES.md has the measures and the decision.
+
+**Why it had to be the whole earth.** The map was drawn at about 9 units to the kilometre and the
+people at 6,500. A true Temple Mount was wider than the map from the coast to the Yardĕn. Nothing
+short of drawing the earth at the people's own measure lets a city stand at its true size in its true
+place: one degree of latitude is 111 km, 722,768 units, and the earth's radius on the map is
+130,098,150 units.
+
+### How it is chosen
+
+**The whole game is on the true earth** (asked: "what if I want the whole game to use the true
+world??"): the voyage, the story and Scripture Unfolds all raise it unless the small map is chosen.
+The traveller can still pick the earth in the voyage's Options ("The earth: the small map / at her
+true measure"), and the same choice is on the story's road; the page raises the world again. A link
+can carry it too (`?earth=small`, `?earth=true`). A voyage in the log is carried to the same spot on
+the map, and the block edits of each measure are kept apart (what was built on the small map stays
+with the small map). The tools (the acceptance suite, the shots) still see the small map they were
+written about, unless run with `EARTH=true`.
+
+**Found by starting a fresh voyage on it, and fixed:**
+- **The view went white at sea.** The two backdrop sheets of the sea were each one disc the size of
+  the world about its middle; at the true measure their corners lay forty million units from the eye,
+  past what the card's 32-bit numbers can carry, and now and then a sheet came out in front of the
+  near sea, wholly in the fog. Found by elimination: not the post pass, the shadows, the mirror, a
+  storm or the basins; drawn with no fog the sea was there (57 against 222). On the true earth the
+  sheets are 600,000-unit discs kept under the eye; the wall at the rim is put by until the eye is
+  near it.
+- **The sea was cut off in squares** (the traveller's own diagnosis: "the view threshold also needs
+  to expand"). The live water was a square 770 m across and the lit sea floor one of 100 m, and the
+  true earth is seen eight kilometres out. On the true earth the live water is three times as wide,
+  and the floor's rim fades into the colour of the dark sheet beyond it, not into a pale one.
+
+**The screen less crowded** (asked: "create a button to hide hud … and let the name of a place flash
+once"): H, or the ◐ in the corner, puts away the rail, the title, the clock, the compass, the little
+chart and the line of keys (the belt, the prompts and the verses stay; the choice is kept). The name
+of a place is shown as it is come into, for a few seconds, and let go; the map (M) says where you are
+at its head.
+
+### What was built (commits 14ab5f8 to b98a3a5)
+
+- **The eye's own origin.** Every shader works from an origin that moves with the eye in steps of
+  100,000 units, so a world 130 million units across draws without shaking. At the small map it draws
+  exactly as before (the sea, the town and the night were compared pixel for pixel).
+- **The true face of the earth.** Heights and coasts from the open Terrain Tiles in four layers: the
+  whole earth coarse, the Levant, the hills of Yahuḏah, Shomeron and the Galil, and the city at about
+  30 m. They are packed small (world/dem.js) and read by js/dem.js, which carries its own inflate so
+  the game still opens from a file. A block of height is 0.92 m. Read in the game: the Temple Mount
+  741 m, the Mount of Olives 803 m, Bĕyth Leḥem 750 m, Yahriḥo −231 m, Ḥermon 2,790 m.
+  - The rift and the other basins under the sea's level (Qattara, Turpan, Danakil, Death Valley) are
+    dry land, and the sea is not drawn over them.
+  - Kinnereth (−216 m) and the Salt Sea (−415 m) stand at their own levels.
+  - The land wears the dry country of the summer: pale grass, stone and olives in the hills, desert
+    east of the watershed and south of Be'ĕrsheḇa.
+- **Thirty towns of Yasharal in their places** (world/towns.js), named as the Besorah names them.
+- **Yahrushalayim at her true size** (world/yahrushalayim-true.js), in both periods:
+  - Herodes': the platform 488/470/315/280 m with its porches and the royal porch; the courts; the
+    House 100 cubits long and high, its porch's face plated with gold; the altar; the Antonia; the
+    pools; the palace and its towers; the walls.
+  - The kings': Shelomoh's House at 60 × 20 × 30 cubits, Yakin and Boaz, the sea of bronze, the
+    palace.
+  - Some six hundred houses in the quarters, seen from afar as their own blocks.
+- **The wonders of the ancients** (the pyramids, the ziggurat, the walls, the lighthouse and the
+  rest) at their true measures.
+- **Seen from afar.** The far land is drawn at the true earth always, out to 90 km, with its valleys:
+  it had taken the tallest ground of each cell, which on the true earth filled the Qiḏron level with
+  the Mount. The dun of the dry hills is broken by stone and scrub. The city's walls, courts and
+  houses are seen as silhouettes beyond the streamed ground.
+- **Travel.** The ship keeps a true pace and runs the swift hours at it, dropping out of them near
+  land. Distances read in true kilometres. Clouds and storms stand at their own heights.
+- **The story at its true places.** Every scene of the city is moved to where its business is in the
+  true city: by its own `trueAt` (the courts, the treasury, the praetorium, the prison, Golgotha, the
+  upper room, the house of the kohen gadol, the Mount of Olives), or else by the city's mark it was
+  played nearest to.
+
+### Found by playing the story on the true earth, and fixed this round
+
+- **The Yardĕn's ford had no river.** An edit could stand only between −64 and 1,024 courses (−59 m
+  to 945 m), so every block a set laid in the rift was stamped into nothing. The range on the true
+  earth is now the earth's own.
+- **Then it went black.** The foundations of the earth lay at −48 courses for every column, and the
+  floor of the rift there is −417. The whole valley lay under the bottom of the world: it was not
+  solid, and every column the set touched was drawn up as a pillar to the old floor, 370 courses high,
+  a wall of them round the camera. The foundations now lie under each column's own face wherever the
+  land is below the sea. (It was found by elimination: the lights, the time of day and the fade were
+  the same in both runs, but the dark run drew 265,000 more triangles.)
+- **The city's touched columns were walked from the sea's level**, eight hundred courses each. They are
+  walked from their own face now.
+- **The eye counted as under the sea** wherever it stood over water below the sea's level. In the dry
+  basins it never is.
+- **Golgotha was watched through a wood.** The true city has open hillside where the small one had
+  streets, and the land's own trees stood there. The ground under a scene's witness and people, and
+  24 m about them, is cleared of the land's trees; the scene's own olives and figs stay.
+
+### What was seen
+
+screenshots-round138/true-earth.jpg sets the small map's city beside the true one, the rift, the ford and two scenes.
+
+Story scenes photographed on the true earth: the entry, the cleansing of the courts, Golgotha, the
+courtyard of the kohen gadol, the upper pool, the lake at Kephar Naḥum at dawn, the ford of the
+Yardĕn, the trough at Bĕyth Leḥem, the upper room. Every one ran to its words without an error. The
+city photographed from the Mount of Olives, from the court and from the south-west.
+
+### The acceptance suite, on the small map
+
+Run after this round's changes:
+- **Pass:** 1–5, 8–10, 13–17, 19, 20, 22, 24–47, 48, 49, 51, 52, 56, 57, 60, 66, 68, 69. Test 50 is
+  pending by its own word.
+- **Fixed in this round:**
+  - Tests 6, 7 and 13–15 broke on a debug read this round added under the name `blockId`, which the
+    suite uses to look a block up by name. It is `blockNameAt` now.
+  - Test 48 read the crop shader as JavaScript and stumbled on the eye's own origin; it reads that
+    expression as the vertex's place on the map now.
+- **Test 11** failed inside the whole suite (1.78×), and passed alone on this round's code (1.04×,
+  open 2,169 ms), as it does on the commit before Phase T (1.03×).
+- **Already failing before Phase T** (run on ee0286c with the same result): test 12 (plains chunks
+  3.79 ms against a 3.31 ceiling), test 18 (134 of 198 villagers cannot be built into), test 21
+  (4 of 174,966 cells outside their ore band), and test 23 (the stores offer none of the 10 tools).
+  They are not this round's, and are left for their own.
+- **Not run this time:** 53–55 and 61–65 (the beasts, the people's day, the trade); the browser
+  closed under the long beast tests, and none of them reads anything Phase T touched on the small
+  map.
+
+### Still to do (Phase T)
+
+- Rivers drawn at their true widths along the earth's own courses, and the coasts and lakes walkable.
+- Flying heights and speeds at the true measure.
+- The city's far houses in more detail, and the whole of the Herodian city peopled.
+- Making the true earth the default once a full voyage has been played on it, with the acceptance
+  suite run at both measures.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

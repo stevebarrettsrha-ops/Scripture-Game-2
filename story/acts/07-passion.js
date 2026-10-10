@@ -151,7 +151,7 @@ STORY.act({
     ]},
 
   /* ---------------- VI.2 — THE HOUSE OF PRAYER ---------------- */
-  { id:'cleansing', title:'The courts of the House', date:'the next day', place:'courts', time:'day',
+  { id:'cleansing', title:'The courts of the House', date:'the next day', place:'courts', time:'day', trueAt:[-16,225],   /* (at the true measure: the court of the nations, by the royal porch) */
     player:{ at:[-11,-38], face:Math.PI, look:ADULT },
     crowds:[ {id:'courtcrowd', n:240, area:[-42,-66,12,-34], look:[-22,-54], path:[[-11,-42.6],[-24,-55]], clear:2.2, keep:[[-35,-57.4,-14,-52.6]]} ],
     actors:[
@@ -204,7 +204,7 @@ STORY.act({
     ]},
 
   /* ---------------- VI.3 — CAESAR'S COIN, AND THE WIDOW'S TWO COINS ---------------- */
-  { id:'treasury', title:'The courts of the House', date:'in the days before the Pesach', place:'courts', time:'day',
+  { id:'treasury', title:'The courts of the House', date:'in the days before the Pesach', place:'courts', time:'day', trueAt:[94,13],   /* (the court of the women, by its chests) */
     player:{ at:[6,-31], face:Math.PI, look:ADULT },
     crowds:[ {id:'courtcrowd', n:160, area:[-30,-60,22,-32], look:'treasury', keep:[[-6,-41.4,18,-36.6]]} ],
     actors:[
@@ -606,7 +606,7 @@ STORY.act({
     ]},
 
   /* ---------------- VI.10 — BEFORE PILATE ---------------- */
-  { id:'pilate', title:'The Pavement', date:'early, the Preparation of the Pesach', place:'praetorium', time:'dawn',
+  { id:'pilate', title:'The Pavement', date:'early, the Preparation of the Pesach', place:'praetorium', time:'dawn', trueAt:[-58,-229],   /* (the court of the fortress at the corner) */
     player:{ at:[-24,-52], face:Math.PI, look:ADULT },
     crowds:[ {id:'multitude', n:280, area:[-48,-58,-14,-40], look:'pavement', keep:[[-41,-64,-26,-58.4]], path:[[-32,-58],[-22,-51],[-11,-41]], clear:1.4} ],
     actors:[

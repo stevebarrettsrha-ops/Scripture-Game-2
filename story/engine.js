@@ -75,7 +75,7 @@ function groundAt(x,z,ref){
 function groundAt0(x,z,ref){
   const k=K(); let r;
   if(ref!==undefined) r=anchor.y+ref*S;
-  else if(ctx&&ctx.api){ if(ctx.api.inPadL(x,z)) r=anchor.y+2.2*S;
+  else if(ctx&&ctx.api){ const pd=ctx.api.inPadL(x,z); if(pd) r=(pd.ty!==undefined?pd.ty*k.B:anchor.y)+2.2*S;   /* (its own level ground: a set may lie on more than one) */
     else { const m=ctx.api.moundL(x,z); if(m!==null) r=anchor.y+(m+0.5)*S; } }
   /* with nothing to say how high (the city's courts, terraces, houses and the Hĕḵal), the
      floor is found from below: up from under the natural ground, through the stone, to the
@@ -134,11 +134,40 @@ function dropScene(){
   if(ctx&&ctx.api) ctx.api.drop();
   ctx=null; ring=null;
 }
+let _smallMarks={};
+/* the small city's own marks, for a period: her plan run once with nothing built */
+function smallCityMarks(period){
+  if(_smallMarks[period]) return _smallMarks[period];
+  const marks={}, nop=()=>{}, api={S:1,marks,box:nop,pad:nop,top:nop,water:nop,house:nop,quarter:null,mound:nop,clearTrees:nop,
+    groundY:()=>0,inPadL:()=>null,moundL:()=>null,mark:(n,x,z)=>{ marks[n]=[x,z]; },X:x=>x,Z:z=>z,Y:y=>y,local:(x,z)=>[x,z],pads:[]};
+  try{ window.YAHRU_PLAN(api,period); }catch(e){}
+  return (_smallMarks[period]=marks); }
+function trueCityAnchor(A,sc){
+  const k=K(), S=k.setScale, yp=k.yahruPos(), period=sc.period||A.period||'kings';
+  const big=k.yahruAs(period)||{}, small=smallCityMarks(period);
+  let off=sc.trueAt||null;
+  if(!off){
+    /* where the scene is played: its player, else its first actor */
+    let P=null; const pl=sc.player&&sc.player.at;
+    const plain=at=>Array.isArray(at)&&typeof at[0]==='number'?at:(Array.isArray(at)&&typeof at[0]==='string'&&small[at[0]]?[small[at[0]][0]+at[1],small[at[0]][1]+at[2]]:(typeof at==='string'&&small[at]?small[at]:null));
+    P=plain(pl); if(!P) for(const a of sc.actors||[]){ P=plain(a.at); if(P) break; }
+    if(P){ let bd=1e9, best=null;
+      for(const m in small){ if(/Y$/.test(m)||!big[m]) continue; const d=Math.hypot(small[m][0]-P[0],small[m][1]-P[1]); if(d<bd){ bd=d; best=m; } }
+      if(best) off=[big[best][0]-small[best][0],big[best][1]-small[best][1]]; } }
+  if(!off) return A;
+  const x=yp.x+off[0]*S, z=yp.z+off[1]*S, ix=Math.floor(x/k.B), iz=Math.floor(z/k.B), y=k.topY(ix,iz);
+  return Object.assign({},A,{x,z,y,markOff:off,yShift:(A.y-y)/S}); }
 function buildScene(sc){
   dropScene();
   const k=K();
   /* WHERE IT HAPPENED: the place's anchor in the world (story/places.js) */
-  const A=window.STORYPLACES.at(sc.place,act);
+  let A=window.STORYPLACES.at(sc.place,act);
+  /* AT THE TRUE MEASURE the city stands at her true size, and a scene of hers written about the
+     small city is moved to where its own business is in the true one: by its own `trueAt` (the
+     courts of the House, the fortress), or else by the mark of hers it was played nearest to,
+     from that mark's place in the small city to its place in the true. The scene's own numbers
+     stand as they were written, about its new anchor, and her marks are named from it too. */
+  if(A.city&&!A.markOff&&K().trueEarth&&K().trueEarth()) A=trueCityAnchor(A,sc);
   anchor=A;
   /* THE SEASON is the scene's own, not the voyage's year: spring unless the scene names
      another (Rome was founded, by its own reckoning, on 21 April; the shepherds lay out in the
@@ -152,13 +181,28 @@ function buildScene(sc){
   standWalker(A.x,A.z,A.y);
   /* the city of the great king is the voyage's own, raised as she stood in the act's days;
      a scene there lays only its own things about her */
-  if(A.city){ ctx.markers=Object.assign({},k.yahruAs(sc.period||A.period)); }   /* a scene may stand in another of her days */
+  if(A.city){ ctx.markers=Object.assign({},k.yahruAs(sc.period||A.period));     /* a scene may stand in another of her days */
+    /* (a set laid at its own true place: her marks are named from its anchor, not hers) */
+    if(A.markOff) for(const m in ctx.markers){ const v=ctx.markers[m]; if(!Array.isArray(v)||v.length!==2) continue;
+      if(/Y$/.test(m)) ctx.markers[m]=[v[0]+(A.yShift||0),v[1]];          /* a height: from the new anchor's ground */
+      else ctx.markers[m]=[v[0]-A.markOff[0],v[1]-A.markOff[1]]; } }
   if(k.aimOff) k.aimOff(true);                                    /* (the voyage's mark on the block in reach is not the story's) */
   ctx.api=k.setBuilder(A.x,A.z,A.y);
   const st=new window.STORYWORLD.Static(ctx.api);
   const build=window.STORYSETTINGS[sc.place];
   if(!build) throw new Error('no such place: '+sc.place);
   build(ctx,st);
+  /* ON THE TRUE EARTH a scene of the city may be played where the small city had streets and the true
+     one has open hillside, and the land's own trees stand there: the ground the scene is played over
+     (its witness and its people, and some way about them) is taken clear of them, so that no scene
+     is watched through a wood that was never written into it. Its own olives and figs are its own. */
+  if(k.trueEarth&&k.trueEarth()&&ctx.api.clearTrees){
+    let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9;
+    const take=at=>{ try{ const p=Array.isArray(at)&&typeof at[0]==='number'?at:pos(at); if(p&&isFinite(p[0])&&isFinite(p[1])){
+      x0=Math.min(x0,p[0]); z0=Math.min(z0,p[1]); x1=Math.max(x1,p[0]); z1=Math.max(z1,p[1]); } }catch(e){} };
+    if(sc.player&&sc.player.at) take(sc.player.at);
+    for(const a of sc.actors||[]) if(a.at) take(a.at);
+    if(x0<x1+1&&x1-x0<400&&z1-z0<400) ctx.api.clearTrees(x0-24,z0-24,x1+24,z1+24); }
   ctx.api.end();
   root.add(st.mesh());
   k.updateChunks(A.x,A.z,9999);

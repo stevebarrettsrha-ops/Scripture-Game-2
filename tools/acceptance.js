@@ -907,7 +907,7 @@ T[20]={name:'an altar of unhewn stone refuses hewn stone',
 
 T[21]={name:'every land holds what its data says, and the ore is truly in the rock',
   run:async page=>page.evaluate(async()=>{
-    const D=window.__VDBG, B=D.B, R=180000;
+    const D=window.__VDBG, B=D.B, R=D.R_WORLD||180000;   /* (the measure of the map: it is not fixed, ROADMAP Phase T) */
     if(!D.minerals) return {pending:'no minerals (Phase 4 step 7)'};
     const defs=D.minerals();
     if(!defs.length) return {ok:false,got:'world/minerals.js declares nothing'};
@@ -2945,6 +2945,11 @@ T[48]={name:'a field bears its own country\'s corn, keeps the year, and not one 
     const src=C.glsl('1.0');
     let body=src.trim();
     if(body[0]==='{') body=body.slice(1,body.lastIndexOf('}'));
+    /* (the vertex's place on the map is found through the eye's own origin since Round 138:
+       orgOfMv(modelViewMatrix*vec4(position,1.0)).xz+uOrg is the map's x,z of the vertex, which for
+       a field laid with no transform is position.xz — that shift is proven by its own probe, and
+       here it is read as what it comes to) */
+    body=body.replace(/orgOfMv\(modelViewMatrix\*vec4\(position,1\.0\)\)\.xz\+uOrg/g,'position.xz');
     body=body.replace(/\bfloat\b/g,'var').replace(/vCrop=vec2\(([\s\S]*)\);?\s*$/,'return [$1];');
     let run;
     try{ run=new Function('position','uSeasonY','fract','clamp','mix','smoothstep','length','sin','abs',body); }

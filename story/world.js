@@ -41,7 +41,8 @@ const C = W.C = {
    the place's anchor, in one stamp group the scene takes up again when it ends. A box
    standing outside the level ground of the set stands on the ground where it is. */
 function Static(api){ this.api=api; this.colliders=[]; this.p=[]; this.c=[]; this.i=[]; this.n=0; }
-Static.prototype.ground=function(x,z){ return this.api.inPadL(x,z)?0:this.api.groundY(x,z); };
+Static.prototype.ground=function(x,z){ const pd=this.api.inPadL(x,z);
+  return pd?(pd.ty!==undefined?(pd.ty*window.__KIT.B-this.api.baseY)/this.api.S:0):this.api.groundY(x,z); };
 Static.prototype.box=function(x0,y0,z0,x1,y1,z1,color,opt){
   opt=opt||{};
   if(x1<x0){ const t=x0; x0=x1; x1=t; } if(z1<z0){ const t=z0; z0=z1; z1=t; } if(y1<y0){ const t=y0; y0=y1; y1=t; }
@@ -604,22 +605,24 @@ W.lakeWaves=function(ctx,r){
     uCamPos:WU.uCamPos,uMoonDir:WU.uMoonDir,uMoonCol:WU.uMoonCol,uMoon:WU.uMoon,uNoise:WU.uMap,
     uRip:RP.tex,uRipO:RP.o,uRipOn:RP.on,
     uRefl:WU.uRefl,uReflMat:WU.uReflMat,uReflOn:WU.uReflOn,uReflY:WU.uReflY,
-    uHzDir:WU.uHzDir,uHzCol:WU.uHzCol,uHzSet:WU.uHzSet,uHzSetAmt:WU.uHzSetAmt,uHzFlat:WU.uHzFlat};
+    uHzDir:WU.uHzDir,uHzCol:WU.uHzCol,uHzSet:WU.uHzSet,uHzSetAmt:WU.uHzSetAmt,uHzFlat:WU.uHzFlat,
+    uCamO:WU.uCamO,uOrg:WU.uOrg};
   const WAVE=W.LAKE_WAVES.map(c=>`{ float a=uA*${c[2].toFixed(3)}, k=${(2*Math.PI/c[1]).toFixed(4)}, om=${Math.sqrt(9.8*2*Math.PI/c[1]).toFixed(4)};
       vec2 D=vec2(cos(${c[0].toFixed(3)})*uDir.x-sin(${c[0].toFixed(3)})*uDir.y, sin(${c[0].toFixed(3)})*uDir.x+cos(${c[0].toFixed(3)})*uDir.y);
       float f=k*dot(D,P)-om*uT, c=cos(f), s=sin(f);
       dp.xz+=0.55*a*D*c; dp.y+=a*s; nr.xz-=D*k*a*c; nr.y-=0.55*k*a*s; }`).join('\n');
   const mat=new THREE.ShaderMaterial({uniforms:U,transparent:true,
-    vertexShader:`uniform float uT,uA; uniform vec2 uDir; uniform vec4 uRect; uniform mat4 uReflMat;
+    /* (reckoned about the voyage's own origin, as every water of the voyage is: THE EYE'S OWN ORIGIN) */
+    vertexShader:KIT.ORG_GLSL+`uniform float uT,uA; uniform vec2 uDir; uniform vec4 uRect; uniform mat4 uReflMat;
       varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP; varying vec4 vRefl;
       void main(){ vec2 P=position.xz; vec3 dp=vec3(0.0); vec3 nr=vec3(0.0,1.0,0.0);
         /* the waves lie down within a few metres of the shore */
         float e=smoothstep(0.0,6.0,min(min(P.x-uRect.x,uRect.z-P.x),min(P.y-uRect.y,uRect.w-P.y)));
         ${WAVE}
         dp*=e; vEdge=e; vH=dp.y; vP=P; vN=normalize(mix(vec3(0.0,1.0,0.0),nr,e));
-        vec4 wp=modelMatrix*vec4(position+dp,1.0); vW=wp.xyz; vRefl=uReflMat*wp;
-        vec4 mv=viewMatrix*wp; vFog=-mv.z; gl_Position=projectionMatrix*mv; }`,
-    fragmentShader:`precision highp float;
+        vec4 mv=modelViewMatrix*vec4(position+dp,1.0); vW=orgOfMv(mv); vRefl=uReflMat*vec4(vW,1.0);
+        vFog=-mv.z; gl_Position=projectionMatrix*mv; }`,
+    fragmentShader:KIT.ORG_GLSL+`precision highp float;
       uniform vec3 uLight,uSunDir,uSunCol,uZenith,uFogColor,uCamPos,uMoonDir,uMoonCol,uSkyHor,uSkyTop; uniform float uFogNear,uFogFar,uMoon,uA,uT,uBoatH;
       uniform vec4 uBoat; uniform vec4 uBoats[8]; uniform float uBoatHs[8]; uniform sampler2D uNoise,uRip; uniform vec2 uRipO; uniform float uRipOn;
       uniform sampler2D uRefl; uniform float uReflOn,uReflY;
@@ -887,22 +890,24 @@ W.lakeWaves=function(ctx,r){
     uCamPos:WU.uCamPos,uMoonDir:WU.uMoonDir,uMoonCol:WU.uMoonCol,uMoon:WU.uMoon,uNoise:WU.uMap,
     uRip:RP.tex,uRipO:RP.o,uRipOn:RP.on,
     uRefl:WU.uRefl,uReflMat:WU.uReflMat,uReflOn:WU.uReflOn,uReflY:WU.uReflY,
-    uHzDir:WU.uHzDir,uHzCol:WU.uHzCol,uHzSet:WU.uHzSet,uHzSetAmt:WU.uHzSetAmt,uHzFlat:WU.uHzFlat};
+    uHzDir:WU.uHzDir,uHzCol:WU.uHzCol,uHzSet:WU.uHzSet,uHzSetAmt:WU.uHzSetAmt,uHzFlat:WU.uHzFlat,
+    uCamO:WU.uCamO,uOrg:WU.uOrg};
   const WAVE=W.LAKE_WAVES.map(c=>`{ float a=uA*${c[2].toFixed(3)}, k=${(2*Math.PI/c[1]).toFixed(4)}, om=${Math.sqrt(9.8*2*Math.PI/c[1]).toFixed(4)};
       vec2 D=vec2(cos(${c[0].toFixed(3)})*uDir.x-sin(${c[0].toFixed(3)})*uDir.y, sin(${c[0].toFixed(3)})*uDir.x+cos(${c[0].toFixed(3)})*uDir.y);
       float f=k*dot(D,P)-om*uT, c=cos(f), s=sin(f);
       dp.xz+=0.55*a*D*c; dp.y+=a*s; nr.xz-=D*k*a*c; nr.y-=0.55*k*a*s; }`).join('\n');
   const mat=new THREE.ShaderMaterial({uniforms:U,transparent:true,
-    vertexShader:`uniform float uT,uA; uniform vec2 uDir; uniform vec4 uRect; uniform mat4 uReflMat;
+    /* (reckoned about the voyage's own origin, as every water of the voyage is: THE EYE'S OWN ORIGIN) */
+    vertexShader:KIT.ORG_GLSL+`uniform float uT,uA; uniform vec2 uDir; uniform vec4 uRect; uniform mat4 uReflMat;
       varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP; varying vec4 vRefl;
       void main(){ vec2 P=position.xz; vec3 dp=vec3(0.0); vec3 nr=vec3(0.0,1.0,0.0);
         /* the waves lie down within a few metres of the shore */
         float e=smoothstep(0.0,6.0,min(min(P.x-uRect.x,uRect.z-P.x),min(P.y-uRect.y,uRect.w-P.y)));
         ${WAVE}
         dp*=e; vEdge=e; vH=dp.y; vP=P; vN=normalize(mix(vec3(0.0,1.0,0.0),nr,e));
-        vec4 wp=modelMatrix*vec4(position+dp,1.0); vW=wp.xyz; vRefl=uReflMat*wp;
-        vec4 mv=viewMatrix*wp; vFog=-mv.z; gl_Position=projectionMatrix*mv; }`,
-    fragmentShader:`precision highp float;
+        vec4 mv=modelViewMatrix*vec4(position+dp,1.0); vW=orgOfMv(mv); vRefl=uReflMat*vec4(vW,1.0);
+        vFog=-mv.z; gl_Position=projectionMatrix*mv; }`,
+    fragmentShader:KIT.ORG_GLSL+`precision highp float;
       uniform vec3 uLight,uSunDir,uSunCol,uZenith,uFogColor,uCamPos,uMoonDir,uMoonCol,uSkyHor,uSkyTop; uniform float uFogNear,uFogFar,uMoon,uA,uT,uBoatH;
       uniform vec4 uBoat; uniform vec4 uBoats[8]; uniform float uBoatHs[8]; uniform sampler2D uNoise,uRip; uniform vec2 uRipO; uniform float uRipOn;
       uniform sampler2D uRefl; uniform float uReflOn,uReflY;

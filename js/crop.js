@@ -139,11 +139,13 @@ function yearAt(ph,latN){
    It is built from the constants above so the two cannot be edited apart.
    `uSeasonY` is the turn of the year; the latitude is the vertex's own
    distance from the middle of the disc, which is how the leaves and the snow
-   have always found theirs. */
+   have always found theirs (reckoned about the eye's own origin: the shader
+   that takes this must be given orgShader's lines, as every shader of the
+   voyage that asks where in the world it is). */
 function glsl(invR){
   const f=n=>n.toFixed(4);
   return (
-  '{ float sr=length(position.xz)*'+invR+';\n'+
+  '{ float sr=length(orgOfMv(modelViewMatrix*vec4(position,1.0)).xz+uOrg)*'+invR+';\n'+
   '  float latN=1.0-sr*2.0;\n'+
   '  float p=fract(uSeasonY+(latN<0.0?0.5:0.0));\n'+
   '  float band=clamp(abs(latN),0.0,1.0);\n'+
