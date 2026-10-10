@@ -38,6 +38,9 @@ async function open(opts){
     /* the second game is opened by the same machinery — it is the same engine,
        the same world and the same Besorah, and the acceptance suite has to be
        able to ask it questions too (§5's handshake) */
+    /* settings handed to the engine before it boots (window.__INJECT): the eye's own origin, the
+       measure of the world, the looks turned off — so a tool can try the world another way */
+    if(opts.inject) await page.addInitScript(o=>{ window.__INJECT=Object.assign(window.__INJECT||{},o); },opts.inject);
     await page.goto('file://'+path.join(ROOT,opts.page||'index.html'));
     if(opts.page) return {browser,page,errs};
     /* the world builds under the loading screen; the menu is the sign it stands */

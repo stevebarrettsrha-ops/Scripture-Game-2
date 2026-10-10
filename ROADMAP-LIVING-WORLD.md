@@ -181,6 +181,47 @@ There are two real limits:
   - With 60–90 events at 1.5–3 minutes each, the whole film runs about 2.5–4 hours.
 - **F6. Checked words.** Every caption is checked against the Besorah by `tools/extract-besorah.js --check`.
 
+### Phase T — the true measure of the earth (asked in Round 137, before D–F)
+
+The traveller asked: "Make the land way bigger so that everything can fit, also make the whole world
+bigger to ensure everything can hold as its real world counterparts, remember this is a real world
+simulator", and then: "Scale up and fix story locations to the new real world".
+
+The map was drawn at about 9 units to the kilometre. The men, houses and sets are built at 6.5 units
+to the metre, which is 6,500 to the kilometre. So the land was some 720 times smaller than the people
+on it: a true Temple Mount (488 m by 300 m) is wider than the whole map from the coast to the Yardĕn.
+The only way for every city and House to stand at its true size, in its true place, is to draw the
+earth at the same measure as the people: one degree of latitude is 111 km, which is 722,768 units.
+
+- **T1. The eye's own origin.** Every vertex and shader works relative to the eye, so a world 130
+  million units across draws without shaking. (Round 137.)
+- **T2. One measure.** `WORLD_K` sets the size of the map; every distance on the map follows from it.
+  Fixed numbers that assumed the old map are derived from it.
+- **T3. The true face of the earth.** Heights and coasts come from the open Terrain Tiles (SRTM,
+  ETOPO1 and others), in layers:
+  - the whole earth, coarse;
+  - the Levant at about 130 m;
+  - the city of the great king at about 30 m.
+
+  A fractal draws the detail under the data, and heights are true, one block to 0.92 m. Lakes keep
+  their own levels: Kinnereth at −212 m, the Salt Sea at −430 m.
+- **T4. The far land.** Hills and coasts tens of kilometres off are drawn coarse beyond the streamed
+  ground, so the Mount of Olives is seen from the city and Ḥermon from the Galil.
+- **T5. Travel at the true measure.**
+  - The ship sails at a true pace. At the swift hours the course runs at that pace in sped-up time,
+    and the ship falls out of the swift hours near land.
+  - Walking and riding stay at a true pace.
+  - Distances are read in true kilometres.
+- **T6. Every town in its place.** Each land carries its true towns by latitude and longitude (for
+  Yasharal: Natsareth, Kephar Naḥum, Yeriḥo, Bĕyth Leḥem, Ḥeḇron, Sheḵem, Yapho, Caesarea and
+  others), and villages between them. The scenes of the story stand at their true places, with no
+  more moving aside to clear a city.
+- **T7. Yahrushalayim at true measure.** The Mount at 488/470/315/280 m, the House at 100 cubits, the
+  courts, the Antonia and the city walls. Solomon's House is 60 × 20 × 30 cubits; see
+  TRUE-MEASURES.md. The wonders of the ancients are built at true size.
+- **T8. Old voyages.** A save made at another measure is carried to the same place on the earth. Its
+  block edits, which cannot be carried, are kept aside rather than laid in the wrong place.
+
 ## How each phase is proven
 
 Each phase ships with a probe that runs in the actual game, as the rounds before did:
@@ -190,6 +231,7 @@ Each phase ships with a probe that runs in the actual game, as the rounds before
 - **Phase C:** the flatness of squares, the share of cleared ground, and the stumps are measured.
 - **Phase D:** prices are compared by land.
 - **Phase E:** beasts and fish are counted at their homes or shelters by night.
+- **Phase T:** heights at named places are read against their true values, the walk from Yahrushalayim to Bĕyth Leḥem is measured in kilometres, and nothing shakes at the rim.
 - **Phase F:** every scroll's film plays end to end, with the face rule kept on every frame and every caption passing the Besorah check.
 
 Before and after screenshots come with each round.

@@ -98,3 +98,18 @@ alone (see `.gitignore`).
   the browser only.
 - `local/install-shortcuts.ps1` and `local/install-shortcuts.sh` make the shortcuts. Their icon
   is drawn from `local/icon.svg` by `node local/make-icons.js`.
+
+## CREDITS
+
+The heights and depths of the earth (`world/dem.js`, read by `js/dem.js`) come from the open
+**Terrain Tiles** dataset on AWS Open Data, gathered by Mapzen. They are built from:
+
+- SRTM, from NASA and the USGS;
+- GMTED2010, from the USGS and NGA;
+- ETOPO1, from NOAA;
+- other open national datasets.
+
+Data © Mapzen and its sources: <https://github.com/tilezen/joerd/blob/master/docs/attribution.md>.
+
+`tools/dem/fetch.py` downloads the tiles and `tools/dem/convert.py` packs them, if you want to
+rebuild the file or add a region.

@@ -13,7 +13,11 @@ const COUNTRIES=window.EARTH.list, VERSES=window.EARTH.verseList, RIVERS=window.
 /* the great cities (one per land, for the flagship coasts); the rest keep small villages */
 const CITIES=window.EARTH.cityList||[]; const CITY_BY_COUNTRY={};
 for(const c of CITIES) CITY_BY_COUNTRY[c.country]=c;
-function cityFor(i){ return CITY_BY_COUNTRY[COUNTRIES[i].n]; }
+/* a site past the nations is a TOWN of the land (Phase T6, world/towns.js): its own city plan if it is
+   one, and its nation for everything else */
+function cityFor(i){ if(i<COUNTRIES.length) return CITY_BY_COUNTRY[COUNTRIES[i].n];
+  const st=SITES[i]; return st&&st.cfg||null; }
+function siteCountry(i){ if(i<COUNTRIES.length) return i; const st=SITES[i]; return st&&st.ci>=0?st.ci:0; }
 
 /* ---------------- world constants ---------------- */
 /* (Chunks were tried at 32 cells with VIEW halved — the same reach in a
@@ -31,7 +35,26 @@ function cityFor(i){ return CITY_BY_COUNTRY[COUNTRIES[i].n]; }
    distances, and the sea between the nations is a true sea. Old voyages
    are carried over: a save remembers the radius it was made at, and its
    places are scaled to the same spot on the map (see loadSaved). */
-const R_WORLD=180000, B=6, CH=16, CHW=B*CH, VIEW=13; /* rim = 30,000 km, 1 block = 1 km */
+/* ---- AND THE TRUE MEASURE OF THE EARTH ----
+   A man is drawn at six and a half units to the metre, and the map was drawn at nine units to the
+   KILOMETRE: seven hundred and twenty times smaller than the men who walk on it, so that a city built
+   at its true size stood over the next town and a temple of true measure was larger than its land.
+   WORLD_K is how many times the map is drawn larger than that. 1 is the old map; WORLD_TRUE_K is the
+   earth at the same measure as the men upon it, a degree of latitude its true 111 km (THE EYE'S OWN
+   ORIGIN is what lets the card draw a world of that size). It is set once, here, and every distance
+   on the map follows from R_WORLD. */
+const U_PER_M_WORLD=6.5, M_PER_DEG=111195;
+const WORLD_TRUE_K=180*M_PER_DEG*U_PER_M_WORLD/180000;
+const WORLD_K=(()=>{ const v=(window.__INJECT||{}).worldK; return v==='true'?WORLD_TRUE_K:(+v>0?+v:1); })();
+const R_WORLD=Math.round(180000*WORLD_K), B=6, CH=16, CHW=B*CH, VIEW=13; /* the rim: 180 degrees from the pole */
+/* at (or near) the true measure the land is the earth's own: its heights and coasts are read from
+   world/dem.js (THE TRUE FACE OF THE EARTH, beside cellRaw), and a block of height is a block of
+   the men's own measure, 0.92 m, not the forty metres the small map had to raise its summits by */
+const TRUE_EARTH=WORLD_K>=40&&!!(window.DEM&&window.DEM.ready());
+const M_PER_BLK=B/U_PER_M_WORLD;
+/* how many units of the map make a true kilometre (the readouts of distance; on the small map they
+   counted a block a kilometre, which was neither) */
+const U_PER_KM=R_WORLD/(180*M_PER_DEG/1000);
 const ICE_UV=0.948, SHELF_UV=0.915, WATER_Y=0.35;
 /* ---- THE HEIGHT OF THE WALL OF ICE ----
    Two thousand feet, and level from there to the rim. A block is a METRE in
@@ -840,7 +863,7 @@ const WIND_T={value:0}, WIND_A={value:1};
    is half a year on from the north, worked out per-leaf from its distance to
    the centre. No chunk is ever re-meshed for it; it is all in the shader. */
 const SEASON_Y={value:0};
-const INV_R_STR=(1/180000).toExponential();   /* 1 / R_WORLD, for the shader */
+const INV_R_STR=(1/R_WORLD).toExponential(8);   /* 1 / R_WORLD, for the shader */
 /* ---- AND IT MUST BE DONE IN THE FRAGMENT, NOT THE VERTEX COLOUR ----
    The vertex colour is MULTIPLIED into the block's texture, so whitening it
    only ever BRIGHTENS what is already there: a white vertex colour over a green
@@ -849,7 +872,7 @@ const INV_R_STR=(1/180000).toExponential();   /* 1 / R_WORLD, for the shader */
    position is known), handed to the fragment as a varying, and MIXED over the
    sampled texture there — which can truly bury a green field in white. */
 const SEASON_VS=                                    /* -> vSeas = (autumn, winter) for a leaf */
-  '{ float sr=length(position.xz)*'+INV_R_STR+';\n'+
+  '{ float sr=length(orgOfMv(modelViewMatrix*vec4(position,1.0)).xz+uOrg)*'+INV_R_STR+';\n'+
   '  float latN=1.0-sr*2.0;\n'+                                   /* +1 north pole .. -1 south */
   '  float ph=fract(uSeasonY+(latN<0.0?0.5:0.0));\n'+            /* the south is half a year on */
   '  float autumn=smoothstep(0.50,0.66,ph)*(1.0-smoothstep(0.66,0.82,ph));\n'+
@@ -861,7 +884,7 @@ const SEASON_FS=                                    /* the leaf: gilded, then ba
   '  diffuseColor.rgb=mix(diffuseColor.rgb, vec3(0.78,0.55,0.16), vSeas.x*0.80);\n'+
   '  diffuseColor.rgb=mix(diffuseColor.rgb, vec3(0.42,0.34,0.26), vSeas.y*0.72);';
 const SNOW_VS=                                      /* -> vSeas.y = how deep the snow lies */
-  '{ float sr=length(position.xz)*'+INV_R_STR+';\n'+
+  '{ float sr=length(orgOfMv(modelViewMatrix*vec4(position,1.0)).xz+uOrg)*'+INV_R_STR+';\n'+
   '  float latN=1.0-sr*2.0;\n'+
   '  float ph=fract(uSeasonY+(latN<0.0?0.5:0.0));\n'+
   '  float winter=clamp(smoothstep(0.74,0.90,ph)+(1.0-smoothstep(0.10,0.26,ph)),0.0,1.0);\n'+
@@ -878,7 +901,7 @@ function windSway(mat,amp,rooted,tint){
     let vs=sh.vertexShader.replace(
       '#include <begin_vertex>',
       '#include <begin_vertex>\n'+
-      '{ float wph=position.x*0.161+position.z*0.127;\n'+
+      '{ vec3 wO=orgOfMv(modelViewMatrix*vec4(position,1.0)); float wph=wO.x*0.161+wO.z*0.127;\n'+
       '  float wgt='+(rooted?'clamp(uv.y,0.0,1.0)':'0.55+0.45*sin(position.y*0.21+wph)')+';\n'+
       '  float ws1=sin(uWindT*1.7+wph)+0.5*sin(uWindT*2.9+wph*1.83);\n'+
       '  float ws2=sin(uWindT*1.3+wph*1.31)+0.5*sin(uWindT*2.3+wph*0.77);\n'+
@@ -894,7 +917,7 @@ function windSway(mat,amp,rooted,tint){
       sh.fragmentShader='varying vec2 vSeas;\n'+sh.fragmentShader.replace(
         '#include <color_fragment>',
         '#include <color_fragment>\n'+(tint==='snow'?SNOW_FS:SEASON_FS)); }
-    sh.vertexShader=head+vs;
+    sh.vertexShader=head+vs; orgShader(sh);
   };
   /* ---- EVERY PATCHED MATERIAL MUST KEEP ITS OWN PROGRAM ----
      three.js keys a compiled shader by the SOURCE TEXT of onBeforeCompile, and
@@ -920,7 +943,7 @@ function groundSnow(mat){
     sh.vertexShader='uniform float uSeasonY;\nvarying vec2 vSeas;\n'+sh.vertexShader.replace(
       '#include <color_vertex>','#include <color_vertex>\n'+SNOW_VS);
     sh.fragmentShader='varying vec2 vSeas;\n'+sh.fragmentShader.replace(
-      '#include <color_fragment>','#include <color_fragment>\n'+SNOW_FS); };
+      '#include <color_fragment>','#include <color_fragment>\n'+SNOW_FS); orgShader(sh); };
   mat.customProgramCacheKey=()=>'groundsnow';
   mat.needsUpdate=true;
 }
@@ -981,7 +1004,7 @@ function cropYear(mat,turns){
          one translation, it is exact for every stature, and a shoot coming up
          out of the ground is what a shoot looks like. */
       '  transformed.y-=(1.0-vCrop.x)*'+(6*2.4).toFixed(2)+';\n'+
-      '{ float wph=position.x*0.161+position.z*0.127;\n'+
+      '{ vec3 wO=orgOfMv(modelViewMatrix*vec4(position,1.0)); float wph=wO.x*0.161+wO.z*0.127;\n'+
       '  float wgt=clamp(uv.y,0.0,1.0);\n'+
       '  float ws1=sin(uWindT*1.7+wph)+0.5*sin(uWindT*2.9+wph*1.83);\n'+
       '  float ws2=sin(uWindT*1.3+wph*1.31)+0.5*sin(uWindT*2.3+wph*0.77);\n'+
@@ -994,6 +1017,7 @@ function cropYear(mat,turns){
       /* the ear turns to straw as it comes ready, and what is left standing
          after the sickle is straw and nothing else */
       '\n  diffuseColor.rgb=mix(diffuseColor.rgb, vec3(0.84,0.70,0.30), vCrop.y*0.86);':''));
+    orgShader(sh);
   };
   mat.customProgramCacheKey=()=>'crop|'+(turns?1:0);
   mat.needsUpdate=true;
@@ -1011,7 +1035,7 @@ const surfMat=blockMat('surf',TEX.surf,{transparent:true,alphaTest:0.02,depthWri
 /* a swinging door leaf (its own mesh so it can open/close) */
 const doorLeafMat=new THREE.MeshBasicMaterial({map:TEX.door,side:THREE.DoubleSide,alphaTest:0.1});
 LIT.push(doorLeafMat);
-const seaTex=TEX.water.clone(); seaTex.needsUpdate=true; seaTex.repeat.set(R_WORLD/12,R_WORLD/12);
+const seaTex=TEX.water.clone(); seaTex.needsUpdate=true; seaTex.repeat.set(Math.min(15000,R_WORLD/12),Math.min(15000,R_WORLD/12));   /* (a 32-bit texture coordinate holds no more repeats than that) */
 /* the open sea repeats ~10,000× — without mipmaps it aliases into shimmer */
 seaTex.generateMipmaps=true; seaTex.minFilter=THREE.LinearMipmapLinearFilter;
 const seaMat=new THREE.MeshBasicMaterial({map:seaTex,transparent:true,opacity:0.82,side:THREE.DoubleSide});
@@ -1030,10 +1054,52 @@ LIT.push(seaMat);
    worked out in the fragment: three instructions, no extra draw call, and
    nothing whatever paid while it is out.
 
-   (The chunk mesher bakes its geometry in WORLD coordinates — the same
-   property the wind in the leaves leans on — so the vertex position IS the
-   world position and the distance to the flame is one subtraction.) */
+   (The distance to the flame is taken about THE EYE'S OWN ORIGIN, below: the flame's place is
+   handed to the card less that origin, and every face reckons its own the same way.) */
+/* ================= THE EYE'S OWN ORIGIN =================
+   The earth is drawn at its true measure: six and a half units to the metre, and the rim of the world
+   a hundred and thirty million units from its middle. A 32-bit number, which is all a graphics card
+   holds, keeps seven figures: at forty million (the land of Yasharal) it can say where a thing is only
+   to the nearest four units, and a vertex written there would shake and every pattern drawn on the
+   world (the waves, the light under the water, the sway of a leaf) would break into steps.
+   So the card is never handed the world's own numbers. The place of every thing about the eye is
+   reckoned in the game's own 64-bit numbers and handed over as it stands FROM THE EYE (three.js does
+   that already: an object's place times the eye's is worked out before it is sent). A shader that
+   must know where in the world a point is reckons it as the eye's place plus the point's offset from
+   the eye; and the eye's place is handed over less a coarse ORIGIN, a round number moved only when the
+   eye has gone far from it. The origin is a whole multiple of 100,000 units, and every pattern on the
+   sea repeats a whole number of times in that, so moving it shows nothing. */
+const ORG={x:0,z:0,G:(window.__INJECT&&window.__INJECT.orgG)||100000};
+const ORG_U={uCamO:{value:new THREE.Vector3()}, uOrg:{value:new THREE.Vector2()}};
+/* in any shader: orgOfMv(a point from the eye) → the point about the origin */
+const ORG_GLSL='#ifndef ORG_DEF\n#define ORG_DEF\nuniform vec3 uCamO; uniform vec2 uOrg;\n'+
+  'vec3 orgOfMv(vec4 mv){ return (vec4(mv.xyz,0.0)*viewMatrix).xyz+uCamO; }\n#endif\n';
+/* give a shader the origin's uniforms and its helper, once, at the very top of both its halves —
+   called LAST in a patch, after that patch has put its own text in front, since several patches are
+   chained onto one shader and each puts its own lines first */
+function orgShader(sh){ Object.assign(sh.uniforms,ORG_U);
+  sh.vertexShader=ORG_GLSL+sh.vertexShader.split(ORG_GLSL).join('');
+  sh.fragmentShader=ORG_GLSL+sh.fragmentShader.split(ORG_GLSL).join(''); }
+/* things handed to the card as world places, kept here at their true places and handed over less the
+   origin each frame (the flame, the pools of the story, the hole in the sea, the ripples) */
+const ORG_FEED=[], _orgT=new THREE.Matrix4();
+function orgFeed(abs,out,pairs){ ORG_FEED.push({abs,out,pairs:pairs||[['x','z']]}); }
+/* the eye a drawing is made from: set before EVERY drawing, for the sun's map and the mirror too */
+function orgEye(cam){ cam.updateMatrixWorld(); const e=cam.matrixWorld.elements;
+  ORG_U.uCamO.value.set(e[12]-ORG.x,e[13],e[14]-ORG.z);
+  if(typeof SH_U!=='undefined') SH_U.uShMatV.value.multiplyMatrices(SH_U.uShMat.value,cam.matrixWorld); }
+/* the origin is moved, if it must be, at the head of a frame (so everything the frame hands the card
+   is reckoned about one origin); and at its drawing the eye and the fed places are handed over */
+function orgSnap(){ camera.updateMatrixWorld(); const e=camera.matrixWorld.elements, G=ORG.G;
+  if(Math.abs(e[12]-ORG.x)>G*0.75) ORG.x=Math.round(e[12]/G)*G;
+  if(Math.abs(e[14]-ORG.z)>G*0.75) ORG.z=Math.round(e[14]/G)*G;
+  ORG_U.uOrg.value.set(ORG.x,ORG.z); }
+function orgTick(){
+  for(const f of ORG_FEED){ const a=f.abs.value!==undefined?f.abs.value:f.abs, o=f.out.value!==undefined?f.out.value:f.out;
+    o.copy(a); for(const q of f.pairs){ o[q[0]]-=ORG.x; o[q[1]]-=ORG.z; } }
+  orgEye(camera); }
 const TORCH_P={value:new THREE.Vector3(0,-1e7,0)}, TORCH_R={value:78}, TORCH_S={value:0};
+const TORCH_PO={value:new THREE.Vector3(0,-1e7,0)}; orgFeed(TORCH_P,TORCH_PO);
 /* a material may already carry a patch (the wind, the snow, the turn of the
    year). Chain onto it rather than over it — and give the chain its own key,
    or three.js hands every patched material the first one's program. */
@@ -1048,9 +1114,9 @@ function addPatch(mat,fn,key){
 }
 function torchLight(mat){
   addPatch(mat,sh=>{
-    sh.uniforms.uTorchP=TORCH_P; sh.uniforms.uTorchR=TORCH_R; sh.uniforms.uTorchS=TORCH_S;
+    sh.uniforms.uTorchP=TORCH_PO; sh.uniforms.uTorchR=TORCH_R; sh.uniforms.uTorchS=TORCH_S;
     sh.vertexShader='varying vec3 vTPos;\n'+sh.vertexShader.replace(
-      '#include <begin_vertex>','#include <begin_vertex>\n  vTPos=position;');
+      '#include <project_vertex>','#include <project_vertex>\n  vTPos=orgOfMv(mvPosition);');
     sh.fragmentShader='uniform vec3 uTorchP;\nuniform float uTorchR;\nuniform float uTorchS;\nvarying vec3 vTPos;\n'+
       sh.fragmentShader.replace('#include <color_fragment>',
         '#include <color_fragment>\n'+
@@ -1069,6 +1135,7 @@ function torchLight(mat){
         '    float lum=max(0.04,dot(lit0,vec3(0.3,0.59,0.11)));\n'+
         '    float want=uTorchS*t*t*1.15;\n'+
         '    diffuseColor.rgb*=clamp(want/lum,1.0,8.0); }');
+    orgShader(sh);
   },'torch');
 }
 /* every block material that exists at this point takes the torch, and so
@@ -1087,9 +1154,10 @@ const _torched=new WeakSet();
    shore says it is sea and not a pit in the land), and under every lake, pool and river a set of the
    story lays (each set's water is written into a short list as it is laid, and taken out again when
    the set is). A face in the dark of a cave under the water takes none of it; its vertex light is low. */
-const UW_N=8, UW_RECT=[], UW_Y=[], UW_OWN=[];
-for(let i=0;i<UW_N;i++){ UW_RECT.push(new THREE.Vector4(0,0,-1,-1)); UW_Y.push(0); UW_OWN.push(null); }
-const UW={ uUwT:{value:0}, uUwSun:{value:1}, uUwRect:{value:UW_RECT}, uUwY:{value:UW_Y} };
+const UW_N=8, UW_RECT=[], UW_RECT_O=[], UW_Y=[], UW_OWN=[];
+for(let i=0;i<UW_N;i++){ UW_RECT.push(new THREE.Vector4(0,0,-1,-1)); UW_RECT_O.push(new THREE.Vector4(0,0,-1,-1)); UW_Y.push(0); UW_OWN.push(null);
+  orgFeed(UW_RECT[i],UW_RECT_O[i],[['x','y'],['z','w']]); }
+const UW={ uUwT:{value:0}, uUwSun:{value:1}, uUwRect:{value:UW_RECT_O}, uUwY:{value:UW_Y} };
 function underWaterAdd(own,x0,z0,x1,z1,y){ let i=UW_OWN.indexOf(null); if(i<0) i=0;
   UW_RECT[i].set(x0,z0,x1,z1); UW_Y[i]=y; UW_OWN[i]=own; }
 function underWaterDrop(own){ for(let i=0;i<UW_N;i++) if(UW_OWN[i]===own){ UW_OWN[i]=null; UW_RECT[i].set(0,0,-1,-1); } }
@@ -1106,7 +1174,7 @@ const UW_GLSL=`
     for(int i=0;i<${UW_N};i++){ vec4 r=uUwRect[i]; if(r.z<r.x) continue;
       if(vUwW.x>r.x&&vUwW.x<r.z&&vUwW.z>r.y&&vUwW.z<r.w) surf=max(surf,uUwY[i]); }
     if(surf<-1e8&&vUwW.y<${WATER_Y.toFixed(3)}){                       /* the open sea */
-      float sh=texture2D(uUwShoal, vUwW.xz*${(0.5/R_WORLD).toFixed(10)}+0.5).r;
+      float sh=texture2D(uUwShoal, (vUwW.xz+uOrg)*${(0.5/R_WORLD).toExponential(8)}+0.5).r;
       if(sh<0.985) surf=${WATER_Y.toFixed(3)}; }
     float d=(surf-vUwW.y)/${B.toFixed(1)};                           /* how deep, in blocks */
     if(d<=0.02) return lit;
@@ -1118,9 +1186,9 @@ const UW_GLSL=`
 function underWaterLight(mat){
   addPatch(mat,sh=>{ Object.assign(sh.uniforms,UW); sh.uniforms.uUwShoal={value:SHOAL_TEX};
     sh.vertexShader='varying vec3 vUwW;\n'+sh.vertexShader.replace('#include <project_vertex>',
-      '#include <project_vertex>\n  vUwW=(modelMatrix*vec4(transformed,1.0)).xyz;');
+      '#include <project_vertex>\n  vUwW=orgOfMv(mvPosition);');
     sh.fragmentShader=UW_GLSL+'\n'+sh.fragmentShader.replace('vec3 outgoingLight = reflectedLight.indirectDiffuse;',
-      'vec3 outgoingLight = reflectedLight.indirectDiffuse;\n  outgoingLight=underWater(outgoingLight);'); },'underwater');
+      'vec3 outgoingLight = reflectedLight.indirectDiffuse;\n  outgoingLight=underWater(outgoingLight);'); orgShader(sh); },'underwater');
 }
 /* (the picture of the world in the water — THE WORLD IN THE WATER, after the glow — read by the sea, the
    lakes of the story and the still water of the blocks) */
@@ -1146,7 +1214,9 @@ const HZ_GLSL=`
     vec3 c=mix(fogC,uHzSet,clamp(uHzSetAmt*band*pow(max(sd*0.5+0.5,0.0),3.0),0.0,1.0));
     c+=uHzCol*(pow(max(sd,0.0),60.0)*0.22+pow(max(sd,0.0),8.0)*0.06);
     return mix(c,fogC,uHzFlat); }`;
-const SH_U={ uShMap:{value:null}, uShMat:{value:new THREE.Matrix4()}, uShAmt:{value:0}, uShDir:{value:new THREE.Vector3(0,1,0)},
+/* uShMatV is the sun's map reckoned from the EYE (uShMat times the eye's own place, worked out in the
+   game's own numbers by orgEye): a face hands it its place from the eye, never its place in the world */
+const SH_U={ uShMap:{value:null}, uShMat:{value:new THREE.Matrix4()}, uShMatV:{value:new THREE.Matrix4()}, uShAmt:{value:0}, uShDir:{value:new THREE.Vector3(0,1,0)},
   uShTexel:{value:1/2048}, uShOff:{value:0.7}, uShBias:{value:0.0001}, uShTone:{value:new THREE.Color(0.54,0.6,0.76)} };
 const SH_GLSL=`
   uniform sampler2D uShMap; uniform mat4 uShMat; uniform float uShAmt, uShTexel, uShOff, uShBias; uniform vec3 uShDir, uShTone;
@@ -1169,8 +1239,8 @@ const SH_GLSL=`
   /* and a face turned away from him is in its own shade, whatever stands between */
   float shadowLit(vec3 N){ float face=smoothstep(0.0,0.10,dot(N,uShDir)); return face<=0.0?0.0:face*shadowCast(N); }`;
 /* where the point stands in the sun's map, and where it stands from the eye */
-const SH_VS='#include <project_vertex>\n  { vec4 shP=vec4(transformed,1.0);\n  #ifdef USE_INSTANCING\n  shP=instanceMatrix*shP;\n  #endif\n  vShL=(uShMat*(modelMatrix*shP)).xyz; vShV=mvPosition.xyz; }';
-const SH_VPARS='uniform mat4 uShMat;\nvarying vec3 vShL, vShV;\n';
+const SH_VS='#include <project_vertex>\n  { vShL=(uShMatV*vec4(mvPosition.xyz,1.0)).xyz; vShV=mvPosition.xyz; }';
+const SH_VPARS='uniform mat4 uShMatV;\nvarying vec3 vShL, vShV;\n';
 const SH_FOG='#include <fog_fragment>\n#ifdef USE_FOG\n  gl_FragColor.rgb+=(hazeOf(fogColor,normalize((vec4(vShV,0.0)*viewMatrix).xyz))-fogColor)*fogFactor;\n#endif';
 const _shadowed=new WeakSet();
 /* a block face, or a thing drawn by the day's light alone (the chunks, the timbers of a ship) */
@@ -1755,7 +1825,7 @@ function llToWorld(lat,lon){ const r=(90-lat)/180, a=lon*Math.PI/180;
    At 40 m to the block Everest stands 221 blocks — 1,326 units — far above
    the floor of cloud at 238, so the great summits truly stand in the clouds
    and are seen from days away at sea. */
-const MTN_M_PER_BLOCK=40;
+const MTN_M_PER_BLOCK=TRUE_EARTH?M_PER_BLK:40;
 /* and how high a range that bears no name may climb of itself */
 const MTN_MAX=170;
 /* ---- RAISED ONCE THE FALLING WATERS ARE LAID IN ----
@@ -2144,10 +2214,108 @@ function offshoreAt(x,z){
   return ((a+(b-a)*tx)+((c+(d-c)*tx)-(a+(b-a)*tx))*tz)/255;
 }
 
+/* ================= THE TRUE FACE OF THE EARTH (Phase T) =================
+   At the true measure the land is not invented: its height at every column is the earth's own, read
+   from the open Terrain Tiles (world/dem.js, js/dem.js) — the whole earth at some twenty kilometres
+   to a sample, the Levant at a hundred and thirty metres, the city of the great king at thirty — and
+   the coast is where that height meets the sea. Under the finest sample the data cannot say what the
+   ground does, so a fractal says it: rolls as broad as the sample and as high as a few hundredths of
+   it, hillocks of fifty metres, and the stones of a field. It never lifts the sea onto the land or
+   sinks the land under it, so the coast stays the earth's.
+   Some land lies below the sea and is dry — the rift of the Yardĕn above all, falling to the Salt Sea
+   four hundred metres down. Those depressions are named here, and within them the land keeps its true
+   height; and the two great waters of the rift keep their own levels, Kinnereth at −212 m and the
+   Salt Sea at −415. */
+const DRY_BELOW=[
+  {n:'the rift of the Yardĕn',lat:[29.4,33.05],lon:[35.10,35.90]},
+  {n:'Qattara',lat:[28.5,30.6],lon:[25.5,29.6]},
+  {n:'Turpan',lat:[42.4,43.3],lon:[88.5,90.3]},
+  {n:'Danakil',lat:[13.3,15.2],lon:[39.7,41.0]},
+  {n:'Death Valley',lat:[35.7,36.9],lon:[-117.4,-116.4]}];
+/* the waters of a depression: its level as the data reads it, and how deep it lies under that */
+const RIFT_LAKES=[
+  {n:'Kinnereth',lat:[32.69,32.92],lon:[35.49,35.66],level:-216,deep:43},
+  {n:'the Salt Sea',lat:[31.02,31.80],lon:[35.33,35.62],level:-415,deep:300}];
+function inBoxLL(b,lat,lon){ return lat>=b.lat[0]&&lat<=b.lat[1]&&lon>=b.lon[0]&&lon<=b.lon[1]; }
+/* the place of a column on the earth */
+function latLonOf(x,z){ const u=x/R_WORLD, v=z/R_WORLD; return [90-Math.hypot(u,v)*180, Math.atan2(u,v)*180/Math.PI]; }
+/* the earth's height at a point in metres, with the fractal under the data; null where there is none */
+function trueMetres(x,z,lat,lon){
+  const e0=DEM.heightAt(lat,lon); if(e0===null) return null;
+  const sp=DEM.spacingAt(lat,lon)||130;
+  const xm=x/U_PER_M_WORLD, zm=z/U_PER_M_WORLD;
+  const a1=Math.min(220,sp*0.03), f1=1/(sp*0.8);
+  let d=(fbm(xm*f1+3.1,zm*f1-7.7)-0.5)*2*a1;                         /* rolls as broad as a sample */
+  d+=(fbm(xm/45+11.3,zm/45-5.9)-0.5)*2*Math.min(5,1.2+a1*0.3);       /* hillocks */
+  d+=(fbm(xm/9-2.2,zm/9+8.1)-0.5)*0.9;                              /* the stones of a field */
+  return {e0,d,sp};
+}
+function cellRawTrue(ix,iz){
+  const x=(ix+.5)*B, z=(iz+.5)*B, u=x/R_WORLD, v=z/R_WORLD, r=Math.hypot(u,v);
+  if(r>=SHELF_UV) return cellRawSmall(ix,iz);           /* the shelf of ice and the wall: as they were */
+  const lat=90-r*180, lon=Math.atan2(u,v)*180/Math.PI;
+  const T=trueMetres(x,z,lat,lon); if(!T) return null;
+  const e0=T.e0;
+  let dry=false, lake=null;
+  if(e0<=0.5){
+    for(const D of DRY_BELOW) if(inBoxLL(D,lat,lon)){ dry=true; break; }
+    if(!dry) return null;                                /* the sea */
+    for(const L of RIFT_LAKES) if(inBoxLL(L,lat,lon)&&e0<=L.level+1.5){ lake=L; break; }
+  }
+  /* the country: read off the chart, and where the chart's coarse coast says sea under true land,
+     from the nearest pixel that is a country */
+  let ci=countryAtUV(u,v);
+  if(!ci){ const s1=1/HALF;
+    for(let k=1;k<=6&&!ci;k++) for(let a=0;a<8;a++){ const t=a*Math.PI/4, q=countryAtUV(u+Math.cos(t)*s1*k,v+Math.sin(t)*s1*k); if(q){ ci=q; break; } } }
+  const j=hash2(ix,iz), n=fbm(ix*.11,iz*.11), n2=fbm(ix*.023/WORLD_K+40,iz*.023/WORLD_K-70);
+  if(lake){
+    /* the bed falls from the strand to the lake's own depth toward its middle */
+    const cy=(lake.lat[0]+lake.lat[1])/2, cx2=(lake.lon[0]+lake.lon[1])/2;
+    const ry=(lake.lat[1]-lake.lat[0])/2, rx=(lake.lon[1]-lake.lon[0])/2;
+    const q=Math.min(1,Math.hypot((lat-cy)/ry,(lon-cx2)/rx));
+    const bedM=lake.level-lake.deep*Math.pow(1-q,0.7)-1.5;
+    return {h:Math.round(bedM/M_PER_BLK), kind:'sand', tree:0, ci, dk:false, lake:Math.round(lake.level/M_PER_BLK)};
+  }
+  /* the fractal comes in over the first twenty metres of the strand, so the coast stays where it is */
+  const em=dry?e0+T.d:Math.max(0.6,e0+T.d*Math.min(1,Math.max(0,e0/20)));
+  let h=Math.round(em/M_PER_BLK); if(!dry&&h<1) h=1;
+  /* how steep: the fall of the data across a sample, in metres to the metre */
+  const dl=0.5/111195*T.sp;
+  const sl=Math.abs((DEM.heightAt(lat+dl,lon)||e0)-(DEM.heightAt(lat-dl,lon)||e0))/T.sp
+          +Math.abs((DEM.heightAt(lat,lon+dl)||e0)-(DEM.heightAt(lat,lon-dl)||e0))/T.sp;
+  /* the bands of the heights, in true metres */
+  const snowLine=Math.max(3,5000*(1-Math.pow(Math.min(1,Math.abs(lat)/78),1.6)))/M_PER_BLK;
+  const treeLine=snowLine*0.62;
+  const snowEdge=snowLine*(1+(fbm(ix*.045/40+311,iz*.045/40-97)-0.5)*0.34)+(hash2(ix*0.71+5,iz*0.71-3)-0.5)*3;
+  const snow=lat>72||lat<-55||h>snowEdge;
+  const tundra=!snow&&lat>58&&lat<=72;
+  const alpine=!snow&&!tundra&&h>treeLine;
+  /* the dry country: the old belt of the deserts, and in the land of Yasharal the true line of it —
+     the Negeḇ south of Be'er Sheḇa, and the wilderness east of the watershed falling to the rift */
+  const levant=lat>29&&lat<34&&lon>34&&lon<37;
+  const desert=!alpine&&(levant?(lat<31.25||(lon>35.27&&lat<32.25&&em<650&&!(Math.abs(lat-31.857)<0.02&&Math.abs(lon-35.444)<0.03)))
+                               :(lat>11&&lat<36&&n2>0.42));
+  const tropic=lat<=11&&lat>-38;
+  const beach=!snow&&!tundra&&!dry&&em<2.6&&sl<0.06;
+  const dens=GROUND.closure(ix,iz);
+  let kind, tree=0;
+  if(beach){ kind='sand'; if(tropic&&j<0.022*dens) tree=2; }
+  else if(snow) kind='snow';
+  else if(tundra){ kind='tundra'; tree=j<0.016*dens?1:0; }
+  else if(alpine){ kind=h>treeLine+(snowLine-treeLine)*0.45?'rock':'alpine'; tree=(kind==='alpine'&&j<0.016*dens)?1:0; }
+  else if(sl>0.55) kind='rock';                          /* a cliff, a gorge wall */
+  else if(desert){ kind=sl>0.22?'badlands':'desert'; tree=j<0.004?1:0; }
+  else if(tropic){ kind='tropic'; tree=j<0.062*dens?2:0; }
+  else { kind='grass'; tree=j<(levant?0.02:0.045)*dens?1:0; }
+  const dk=em>12;
+  const spans=window.CAVES?CAVES.spansAt(x,z,h,!dk):null;
+  return spans?{h,kind,tree,ci,dk,spans}:{h,kind,tree,ci,dk};
+}
 /* Each call returns a FRESH object. (A shared scratch object here once meant
    that querying a neighbour clobbered the current cell mid-mesh: cliff side
    faces were skipped and trees were placed with the neighbour's height.) */
-function cellRaw(ix,iz){
+function cellRaw(ix,iz){ return TRUE_EARTH?cellRawTrue(ix,iz):cellRawSmall(ix,iz); }
+function cellRawSmall(ix,iz){
   const x=(ix+.5)*B, z=(iz+.5)*B, u=x/R_WORLD, v=z/R_WORLD;
   const r=Math.hypot(u,v);
   if(r>0.995) return null;
@@ -2403,9 +2571,16 @@ function siteKey(u,v){ return Math.floor((u+1)*16)+','+Math.floor((v+1)*16); }
    (Enabled only after computeSites() — before that the flattening would be
    baked in wrong. Cleared wholesale when it grows past bound.) */
 const CELL_CACHE=new Map(); let cellCacheOn=false;
+/* ---- ONE NUMBER FOR A COLUMN, ANYWHERE ON THE EARTH ----
+   Columns were packed as (ix+20000)·50000 + (iz+20000), and later (ix+32768)·65536, which held while
+   the earth was thirty thousand blocks across — and not quite even then: a column 30,000 blocks out
+   shared its number with another 50,000 along. At the true measure of the earth a column may lie
+   twenty-two million blocks from the middle. Two to the twenty-five either way, packed into a double's
+   fifty-three bits, is room for all of it. */
+function colKey(ix,iz){ return (ix+33554432)*67108864+(iz+33554432); }
 function cell(ix,iz){
   if(!cellCacheOn) return cellCompute(ix,iz);
-  const k=(ix+20000)*50000+(iz+20000);
+  const k=colKey(ix,iz);
   let c=CELL_CACHE.get(k);
   if(c===undefined){ c=cellCompute(ix,iz);
     if(CELL_CACHE.size>350000) CELL_CACHE.clear();
@@ -2698,13 +2873,41 @@ function computeSites(){
         if(countryAtUV(u,v)===i+1){ best=tryPt(u,v); if(best) break outer; }
       } }
     }
+    /* at the true measure a land's own city stands where it stood (her town in world/towns.js) */
+    if(TRUE_EARTH){ const cfgC=CITY_BY_COUNTRY[co.n], tw=cfgC&&TOWNS.find(t=>t.n===cfgC.name);
+      if(tw){ const at=townSpot(tw); if(at){ best=Object.assign(at,{i}); TOWN_USED.add(tw.n); } } }
     SITES[i]=best;
-    if(best){ const u=best.x/R_WORLD, v=best.z/R_WORLD;
-      for(let du=-1;du<=1;du++) for(let dv=-1;dv<=1;dv++){
-        const k=(Math.floor((u+1)*16)+du)+','+(Math.floor((v+1)*16)+dv);
-        if(!siteGrid.has(k)) siteGrid.set(k,[]); siteGrid.get(k).push(best); } }
+    siteGridAdd(best);
+  }
+  /* ---- AND EVERY TOWN OF THE LAND IN ITS PLACE (Phase T6) ----
+     On the small map a nation had one village. At the true measure Yasharal alone is a hundred and
+     fifty kilometres long, so each town of world/towns.js is raised where it stood, as its own
+     settlement past the nations' own: a walled city, a market town or a village by its size. */
+  if(TRUE_EARTH) for(const t of TOWNS){
+    if(TOWN_USED.has(t.n)) continue;
+    const ci=COUNTRIES.findIndex(c=>c.n===t.land); if(ci<0) continue;
+    const at=townSpot(t); if(!at) continue;
+    if(yahruPos&&Math.hypot(at.x-yahruPos.x,at.z-yahruPos.z)<9000) continue;   /* (none stands inside her) */
+    const i=SITES.length;
+    const cfg=t.size==='city'?{country:t.land,name:t.n,houses:14,size:2,market:true,streets:true,wells:2}
+            :t.size==='town'?{country:t.land,name:t.n,houses:8,size:1,market:true,streets:true,wells:1}:null;
+    SITES[i]=Object.assign(at,{i,ci,town:t,cfg,name:t.n});
+    siteGridAdd(SITES[i]);
   }
 }
+const TOWNS=(window.EARTH&&EARTH.townList)||[], TOWN_USED=new Set();
+/* the dry ground nearest a town's own latitude and longitude */
+function townSpot(t){
+  const p=llToWorld(t.lat,t.lon), ix0=Math.floor(p[0]/B), iz0=Math.floor(p[1]/B);
+  for(let rad=0;rad<60;rad++) for(let a=0;a<Math.max(1,rad*6);a++){
+    const th=a/(rad*6||1)*Math.PI*2, jx=ix0+Math.round(Math.cos(th)*rad), jz=iz0+Math.round(Math.sin(th)*rad);
+    const cc=cellRaw(jx,jz); if(cc&&cc.kind!=='wall'&&cc.kind!=='floe'&&cc.lake===undefined)
+      return {ix:jx,iz:jz,x:(jx+.5)*B,z:(jz+.5)*B,h0:cc.h}; }
+  return null; }
+function siteGridAdd(best){ if(!best) return; const u=best.x/R_WORLD, v=best.z/R_WORLD;
+  for(let du=-1;du<=1;du++) for(let dv=-1;dv<=1;dv++){
+    const k=(Math.floor((u+1)*16)+du)+','+(Math.floor((v+1)*16)+dv);
+    if(!siteGrid.has(k)) siteGrid.set(k,[]); siteGrid.get(k).push(best); } }
 
 /* ================= CHUNK MESHER =================
    Merged geometry per material per chunk, per-face MC shading:
@@ -2901,7 +3104,8 @@ function litRuns(ix,iz,sp,out){
   out.length=0;
   for(let i=0;i<sp.length;i+=2){
     if(sp[i+1]<=0&&!_deepOn){ out.push(CAVE_DARK); continue; }   /* its faces are not being built */
-    const ym=(sp[i]+sp[i+1])*0.5, k=((ix+32768)*65536+(iz+32768))*4096+(ym*2+1024);
+    /* (kept for one build, and asked only about the chunk being built and its rim: packed about it) */
+    const ym=(sp[i]+sp[i+1])*0.5, k=((ix-_bcx*CH+256)*1024+(iz-_bcz*CH+256))*8192+(ym*2+4096);
     let v=_litMemo.get(k);
     if(v===undefined){ v=CAVE_DARK+(1-CAVE_DARK)*caveLightAt(ix,iz,ym); _litMemo.set(k,v); }
     out.push(v);
@@ -3179,7 +3383,7 @@ function shallowView(c,slot){
   if(_deepOn||!c||!c.spans||c.spans[1]>0) return c;
   const sp=c.spans; let i=0; while(i<sp.length&&sp[i+1]<=0) i+=2;
   _deepSkipped=true;
-  const o=_shv[slot]; o.h=c.h; o.kind=c.kind; o.tree=c.tree; o.ci=c.ci; o.ravine=c.ravine;
+  const o=_shv[slot]; o.h=c.h; o.kind=c.kind; o.tree=c.tree; o.ci=c.ci; o.ravine=c.ravine; o.lake=c.lake;
   o.spans=i<sp.length?sp.subarray(i):null; return o;
 }
 function emitColumn(G,ix,iz,cc){
@@ -3190,6 +3394,8 @@ function emitColumn(G,ix,iz,cc){
      the sky — a cliff, a ravine, a pit — stays in the ordinary one */
   const GD=_chunkGD||G; let PG=G;
   faceTop(G,topMatFor(cc.kind),x0,z0,x1,z1,yT,1.0,1,aoTop(ix,iz,cc.h));
+  /* a lake of the rift, at its own level over its own bed (THE TRUE FACE OF THE EARTH) */
+  if(cc.lake!==undefined&&cc.lake>cc.h) faceTop(G,'waterB',x0,z0,x1,z1,cc.lake*B+WATER_Y,1.0);
   const [sTop,sLow]=sideMatsFor(cc.kind);
   /* ---- WHETHER ANYTHING LIES UNDER THIS COUNTRY AT ALL ----
      One array read for the whole column, and for nearly the whole earth the
@@ -4134,7 +4340,14 @@ function editColumn(ix,iz){
    The format is versioned from the first line, and a record of a version
    this build does not know is LEFT ALONE rather than guessed at. */
 const EDB={db:null,ready:null,fail:false};
-const EDB_NAME='the-voyage', EDB_ST='edits', EDB_MT='meta';
+/* ---- AND A WORLD'S EDITS BELONG TO ITS OWN MEASURE (Phase T8) ----
+   A block dug is written by its chunk, and a chunk of the small map and a chunk of the true earth
+   with the same number are different places on the earth. The edits of each measure are kept in
+   their own store (and marked with it in the saves folder): an old voyage's diggings are kept
+   aside, untouched, rather than laid down in the wrong country. */
+const EDIT_R=WORLD_K===1?0:R_WORLD;                 /* 0: the small map, as every edit ever saved before */
+const EDB_NAME=EDIT_R?'the-voyage-'+EDIT_R:'the-voyage', EDB_ST='edits', EDB_MT='meta';
+function editMeasureOk(rec){ return (rec.R||0)===EDIT_R; }
 const EDIT_SAVE=new Set();       /* chunks changed since the last writing-down */
 function edbOpen(){
   if(EDB.ready) return EDB.ready;
@@ -4203,9 +4416,9 @@ function editsToFolder(keys){
   const ids=blockIds(), t=tableHash(ids);
   if(!FOLDER_TABLES.has(t)){ FOLDER_TABLES.add(t);
     L.put('world/blocks-'+t+'.json',JSON.stringify({k:'blocks',v:EDIT_VER,h:t,ids})); }
-  for(const k of keys){ const m=EDITS.get(k), path='world/'+L.enc(k)+'.json';
+  for(const k of keys){ const m=EDITS.get(k), path='world/'+(EDIT_R?'R'+EDIT_R+'-':'')+L.enc(k)+'.json';
     if(!m||!m.size) L.del(path);
-    else L.put(path,JSON.stringify({k,v:EDIT_VER,t,d:Array.from(rleEncode(m))})); }
+    else L.put(path,JSON.stringify(EDIT_R?{k,v:EDIT_VER,t,R:EDIT_R,d:Array.from(rleEncode(m))}:{k,v:EDIT_VER,t,d:Array.from(rleEncode(m))})); }
   return L.flush();
 }
 function editsSave(){
@@ -4255,7 +4468,7 @@ async function editsLoad(){
     const remaps={};
     let n=0;
     for(const f in L.world){ const rec=L.world[f];
-      if(f.indexOf('blocks')===0||!rec||rec.v!==EDIT_VER||!rec.d) continue;
+      if(f.indexOf('blocks')===0||!rec||rec.v!==EDIT_VER||!rec.d||!editMeasureOk(rec)) continue;
       const ids=rec.t?tables[rec.t]:legacy;
       if(rec.t&&!ids) continue;               /* its table is missing: left alone rather than misread */
       const key=rec.t||'';
@@ -4386,7 +4599,7 @@ function blockArray(){
            crawled as the eye moved (the story's level ground showed it worst). */
         'vec4 texelColor=texture(uArr,vec3(vUv,mod(floor(vLayer+0.5),256.0)));\n'+
         'texelColor=mapTexelToLinear(texelColor);\ndiffuseColor*=texelColor;')
-      .replace('#include <color_fragment>','#include <color_fragment>\n'+SNOW_FS); };
+      .replace('#include <color_fragment>','#include <color_fragment>\n'+SNOW_FS); orgShader(sh); };
   mat.customProgramCacheKey=()=>'blockArr';
   LIT.push(mat); torchAll();
   BARR={mat,layer,names,tex};
@@ -4434,7 +4647,7 @@ function plantArray(){
         SEASON_VS+'\n  vec2 pSL=vSeas;\n'+SNOW_VS+'\n  vec2 pSS=vSeas;\n'+
         '  vSeas=vTint<0.5?vec2(0.0):(vTint<1.5?pSL:pSS);')
       .replace('#include <begin_vertex>','#include <begin_vertex>\n'+
-        '{ float wph=position.x*0.161+position.z*0.127;\n'+
+        '{ vec3 wO=orgOfMv(modelViewMatrix*vec4(position,1.0)); float wph=wO.x*0.161+wO.z*0.127;\n'+
         '  float wgt=P_ROOT[pL]>0.5?clamp(uv.y,0.0,1.0):0.55+0.45*sin(position.y*0.21+wph);\n'+
         '  float ws1=sin(uWindT*1.7+wph)+0.5*sin(uWindT*2.9+wph*1.83);\n'+
         '  float ws2=sin(uWindT*1.3+wph*1.31)+0.5*sin(uWindT*2.3+wph*0.77);\n'+
@@ -4445,7 +4658,7 @@ function plantArray(){
         'vec4 texelColor=texture(uArr,vec3(vUv,floor(vLayer+0.5)));\n'+
         'texelColor=mapTexelToLinear(texelColor);\ndiffuseColor*=texelColor;')
       .replace('#include <color_fragment>','#include <color_fragment>\n'+
-        '  if(vTint>0.5&&vTint<1.5){ '+SEASON_FS+' }\n  else if(vTint>1.5){ '+SNOW_FS+' }'); };
+        '  if(vTint>0.5&&vTint<1.5){ '+SEASON_FS+' }\n  else if(vTint>1.5){ '+SNOW_FS+' }'); orgShader(sh); };
   mat.customProgramCacheKey=()=>'plantArr';
   const compile=mat.onBeforeCompile;      /* its own shader, before the torch and the rest are chained on (THE SHADOWS OF THE DAY) */
   LIT.push(mat); torchAll();
@@ -4642,12 +4855,14 @@ function buildChunk(cx,cz){
       emitBox(G, x-B*0.5,yT,z-B*0.5, x+B*0.5,yT+B,z+B*0.5,'stone','stone',null);
   }
   placedFlush(G);     /* and go out as the fewest rectangles that cover them */
+  /* written about the chunk's own corner, not in the world's numbers (THE EYE'S OWN ORIGIN) */
+  const ox=cx*CHW, oz=cz*CHW; rebaseG(G,ox,oz);
   mergeBlockArray(G); /* and every plain face of them as ONE draw */
   const meshes=[];
-  chunkMeshes(G,meshes,false);
+  chunkMeshes(G,meshes,false,ox,oz);
   /* and the inside of the deep caves, as meshes of their own (deepTick) */
   const GD=_chunkGD; _chunkGD=null;
-  if(GD&&Object.keys(GD).length){ mergeBlockArray(GD); chunkMeshes(GD,meshes,true); }
+  if(GD&&Object.keys(GD).length){ rebaseG(GD,ox,oz); mergeBlockArray(GD); chunkMeshes(GD,meshes,true,ox,oz); }
   /* `deep`: nothing of the deep is missing from it — either it was built,
      or there was none to leave out (most of the earth), and deepTick need
      not send it back */
@@ -4655,7 +4870,11 @@ function buildChunk(cx,cz){
   _deepOn=true;
 }
 /* the buckets of one chunk made into meshes under the chunk root */
-function chunkMeshes(G,meshes,deep){
+/* a bucket's vertices moved to be about (ox,oz), in the game's own numbers before they are ever
+   rounded to the card's: subtracted at the world's scale after the rounding, they would keep its error */
+function rebaseG(G,ox,oz){ if(!ox&&!oz) return;
+  for(const k in G){ const p=G[k].p; for(let i=0;i<p.length;i+=3){ p[i]-=ox; p[i+2]-=oz; } } }
+function chunkMeshes(G,meshes,deep,ox,oz){
   for(const mat in G){ const g=G[mat];
     const bg=new THREE.BufferGeometry();
     bg.setAttribute('position',new THREE.Float32BufferAttribute(g.p,3));
@@ -4664,6 +4883,7 @@ function chunkMeshes(G,meshes,deep){
     if(g.l) bg.setAttribute('aLayer',new THREE.Float32BufferAttribute(g.l,1));
     bg.setIndex(ArrayBuffer.isView(g.i)?new THREE.BufferAttribute(g.i,1):g.i);
     const m=new THREE.Mesh(bg,mat==='__arr'?BARR.mat:mat==='__plant'?PARR.mat:MAT[mat]); m.frustumCulled=true;
+    m.position.set(ox||0,0,oz||0); m.updateMatrix(); m.matrixAutoUpdate=false;
     if(deep){ m.userData.deep=true; m.visible=caveFacesShown(); }
     chunkRoot.add(m); meshes.push(m); }
 }
@@ -4699,6 +4919,22 @@ function flushEdits(ms){
    things are not part of a chunk and must move about on their own — a nest,
    a den, a burrow — but they are built out of exactly the same boxes. This
    makes one group out of a bucket, so the same emit code serves both. */
+/* ---- A BUCKET OF FACES MADE INTO ONE MESH, ABOUT ITS OWN PLACE ----
+   The emit code writes in the world's own numbers, and a 32-bit vertex at the true measure of the
+   earth cannot hold them (THE EYE'S OWN ORIGIN). So the mesh is set down at a round place near its
+   first vertex and its vertices written about that, before they are ever made 32-bit. A thing built
+   about its own middle (the ship, a nest) has that round place at nought and is left as it was. */
+function bucketMesh(gg,mat){
+  const p=gg.p; let ox=0, oz=0;
+  if(p.length>=3){ ox=Math.round(p[0]/CHW)*CHW; oz=Math.round(p[2]/CHW)*CHW; }
+  let P=p;
+  if(ox||oz){ P=new Float32Array(p.length); for(let i=0;i<p.length;i+=3){ P[i]=p[i]-ox; P[i+1]=p[i+1]; P[i+2]=p[i+2]-oz; } }
+  const bg=new THREE.BufferGeometry();
+  bg.setAttribute('position',P instanceof Float32Array?new THREE.BufferAttribute(P,3):new THREE.Float32BufferAttribute(P,3));
+  bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
+  bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
+  bg.setIndex(gg.i);
+  const m=new THREE.Mesh(bg,mat); m.position.set(ox,0,oz); return m; }
 function groupFromG(G){ const g=new THREE.Group();
   for(const mat in G){ const b=G[mat];
     const bg=new THREE.BufferGeometry();
@@ -4865,7 +5101,9 @@ function updateChunks(px,pz,budget,view){
    outer pair just inside the far one. Every vertex of a patch carries the same
    height, so the patch is flat; the thin quads BETWEEN patches stand up on
    end. One index buffer, built once, serves every rebuild. */
-const FL_RINGS=64, FL_SPOKES=112, FL_R0=420, FL_R1=3600, FL_FADE=330, FL_STEP=300;
+/* (at the true measure of the earth the ring reaches fourteen kilometres: the Mount of Olives seen from
+   the city, the hills of Yahuḏah from the coast, the haze closing far out over them — Phase T4) */
+const FL_RINGS=64, FL_SPOKES=112, FL_R0=420, FL_R1=TRUE_EARTH?90000:3600, FL_FADE=330, FL_STEP=300;
 const FL_NR2=FL_RINGS*2, FL_NS2=FL_SPOKES*2;   /* the woven grid is twice as fine */
 const FL_INSET=0.035;         /* how far in from a cell's edge its corners sit */
 /* the angle of every vertex column: two per cell, just inside its two edges.
@@ -5369,7 +5607,9 @@ function updateFarLand(px,pz,force,eyeY){
    fog until the ship draws near, as a far country is in Minecraft. The haze
    only opens when the traveller rises high on the air or draws the eye back
    off the world — the carpet of the whole earth appears there instead. */
-const FOG_FAR=1140, FOG_NEAR=500;
+/* at the true measure the haze stands kilometres out, over the far ring (FL_R1), not at the edge of
+   the streamed chunks: the land beyond them is the far ring's coarse brick, as a hill is seen from afar */
+const FOG_FAR=TRUE_EARTH?52000:1140, FOG_NEAR=TRUE_EARTH?2400:500;
 /* how high the eye must rise before the far carpet may stand in for the
    world; below this everything is blocks and fog, and nothing else */
 const ALOFT_EYE=1000;
@@ -5554,16 +5794,16 @@ const waveGeo=(()=>{
   g.setIndex(idx); return g;
 })();
 /* each storm's three seas, unrolled for the GPU — the very sum stormSea() takes on the CPU */
-const tempestUnroll=TSWELL.map(c=>`
+const tempestUnroll=TSWELL.map((c,j)=>`
           { vec2 D=vec2(${c.c.toFixed(5)}*D0.x-(${c.s.toFixed(5)})*D0.y, ${c.s.toFixed(5)}*D0.x+${c.c.toFixed(5)}*D0.y);
             float A=H*${c.A.toFixed(3)}, k=${c.k.toFixed(6)}, Q=${c.Q.toFixed(3)};
-            float f=k*dot(D,P)-${c.omega.toFixed(5)}*uTime, cc=cos(f), ss=sin(f);
+            float f=k*dot(D,P)-${c.omega.toFixed(5)}*uTime+uTPh[i*${TSWELL.length}+${j}], cc=cos(f), ss=sin(f);
             disp.x+=Q*A*D.x*cc; disp.z+=Q*A*D.y*cc; disp.y+=A*ss; swl+=A*ss;
             float WA=k*A; nrm.x-=D.x*WA*cc; nrm.z-=D.y*WA*cc; nrm.y-=Q*WA*ss; }`).join('\n');
 const waveUnroll=WAVES.map(w=>`{
   vec2 D=vec2(${w.dx.toFixed(5)},${w.dy.toFixed(5)});
   float A=amp*${w.A.toFixed(4)}, k=${w.k.toFixed(6)}, Q=${w.Q.toFixed(3)};
-  float f=k*dot(D,P)+${w.omega.toFixed(5)}*uTime, c=cos(f), s=sin(f);
+  float f=k*dot(D,P)+${w.omega.toFixed(5)}*uTime+uWPh[${WAVES.indexOf(w)}], c=cos(f), s=sin(f);
   disp.x+=Q*A*D.x*c; disp.z+=Q*A*D.y*c; disp.y+=A*s;
   float WA=k*A; nrm.x-=D.x*WA*c; nrm.z-=D.y*WA*c; nrm.y-=Q*WA*s;
 }`).join('\n');
@@ -5605,8 +5845,13 @@ const waveMat=new THREE.ShaderMaterial({
     uTD:{value:[new THREE.Vector2(1,0),new THREE.Vector2(1,0),new THREE.Vector2(1,0)]},
     uRog:{value:new THREE.Vector4(0,0,1,0)}, uRogA:{value:0}, uRogW:{value:95}, uStormDir:{value:new THREE.Vector2(1,0)},
     uRefl:RF_U.uRefl, uReflMat:RF_U.uReflMat, uReflOn:RF_U.uReflOn, uReflY:RF_U.uReflY,
-    uHzDir:HZ_U.uHzDir, uHzCol:HZ_U.uHzCol, uHzSet:HZ_U.uHzSet, uHzSetAmt:HZ_U.uHzSetAmt, uHzFlat:HZ_U.uHzFlat },
-  vertexShader:`
+    uHzDir:HZ_U.uHzDir, uHzCol:HZ_U.uHzCol, uHzSet:HZ_U.uHzSet, uHzSetAmt:HZ_U.uHzSetAmt, uHzFlat:HZ_U.uHzFlat,
+    /* THE EYE'S OWN ORIGIN: the grid's middle, the eye, the ship, the storms are all handed over
+       about it, and each wave's phase at it is worked out here in the game's own numbers */
+    uCamO:ORG_U.uCamO, uOrg:ORG_U.uOrg,
+    uWPh:{value:WAVES.map(()=>0)}, uTPh:{value:[0,0,0,0,0,0,0,0,0].slice(0,3*TSWELL.length)} },
+  vertexShader:ORG_GLSL+`
+    uniform float uWPh[${WAVES.length}], uTPh[${3*TSWELL.length}];
     uniform float uTime, uAmp; uniform vec2 uCenter; uniform sampler2D uShoal;
     uniform vec4 uTS[3]; uniform vec2 uTD[3]; uniform vec4 uRog; uniform float uRogA, uRogW;
     varying vec3 vNormal, vWorld; varying float vHeight, vFog, vTaper; varying vec2 vUv, vP;
@@ -5624,7 +5869,7 @@ const waveMat=new THREE.ShaderMaterial({
          breaks as the bottom rises under it. So the amplitude is damped by
          the same distance-to-land field the surf already reads, and by the
          shore it is all but flat. */
-      float shr=texture2D(uShoal, P*${(0.5/R_WORLD).toFixed(10)}+0.5).r;
+      float shr=texture2D(uShoal, (P+uOrg)*${(0.5/R_WORLD).toExponential(8)}+0.5).r;
       float lie=1.0-smoothstep(0.22,0.90,shr);
       float amp=uAmp*taper*(0.10+0.90*lie);
       vec3 disp=vec3(P.x, ${WATER_Y.toFixed(3)}, P.y);
@@ -5645,10 +5890,10 @@ const waveMat=new THREE.ShaderMaterial({
       vStorm=clamp(sw,0.0,1.0); vSwell=swl; vSH=sH;
       vHeight=baseH-${WATER_Y.toFixed(3)}; vTaper=taper;
       vNormal=normalize(nrm); vUv=P*0.02; vP=P; vWorld=disp; vRefl=uReflMat*vec4(disp,1.0);
-      vec4 mv=viewMatrix*vec4(disp,1.0); vFog=-mv.z;
+      vec4 mv=vec4(mat3(viewMatrix)*(disp-uCamO),1.0); vFog=-mv.z;
       gl_Position=projectionMatrix*mv;
     }`,
-  fragmentShader:`
+  fragmentShader:ORG_GLSL+`
     precision highp float;
     uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow, uCamPos, uSunCol, uZenith, uSkyHor, uSkyTop; uniform sampler2D uMap, uShoal;
     uniform float uFogNear, uFogFar, uOpacity, uTime, uShipH; uniform vec4 uShip;
@@ -5685,7 +5930,7 @@ const waveMat=new THREE.ShaderMaterial({
       vec3 tex=texture2D(uMap,vUv).rgb;
       /* how near the land lies beneath: 1 clear shallow → 0 the true deep
          (smoothstepped so the field rolls off without banding) */
-      float shoalRaw=texture2D(uShoal, vP*${(0.5/R_WORLD).toFixed(10)}+0.5).r;
+      float shoalRaw=texture2D(uShoal, (vP+uOrg)*${(0.5/R_WORLD).toExponential(8)}+0.5).r;
       float shoal=smoothstep(0.03,0.9,shoalRaw);
       float deepF=1.0-shoal;
       /* colour by real depth — turquoise over the shallows, dark over the deep —
@@ -5838,10 +6083,20 @@ const holeData=new Uint8Array(HOLE_N*HOLE_N*4);
 const holeTex=new THREE.DataTexture(holeData,HOLE_N,HOLE_N,THREE.RGBAFormat);
 holeTex.magFilter=holeTex.minFilter=THREE.NearestFilter; holeTex.generateMipmaps=false; holeTex.needsUpdate=true;
 const HOLE_O={value:new THREE.Vector2(-1e9,-1e9)}, HOLE_ON={value:0}, HOLE_T={value:holeTex};
-const HOLE_GLSL='uniform sampler2D uHole; uniform vec2 uHoleO; uniform float uHoleOn;\n'+
-  'bool inHole(vec2 w){ if(uHoleOn<0.5) return false; vec2 hc=(w-uHoleO)/'+HOLE_SPAN.toFixed(1)+';\n'+
+const HOLE_OO={value:new THREE.Vector2(-1e9,-1e9)}; orgFeed(HOLE_O,HOLE_OO,[['x','y']]);
+/* ---- AND THE SEA DOES NOT LIE OVER LAND THAT IS BELOW IT ----
+   At the true measure the rift of the Yardĕn falls four hundred metres under the sea's level, dry,
+   and the sheet of the open sea (drawn everywhere, and hidden by the land standing over it) would lie
+   over Yeriḥo like a lid. Within the named depressions (DRY_BELOW) it is not drawn at all; their own
+   waters are drawn at their own levels by the chunks. */
+const DRY_U={uDry:{value:[0,1,2,3,4,5].map(i=>{ const D=TRUE_EARTH&&DRY_BELOW[i]; return D?new THREE.Vector4(D.lat[0],D.lat[1],D.lon[0],D.lon[1]):new THREE.Vector4(1,0,1,0); })},
+  uDryN:{value:TRUE_EARTH?Math.min(6,DRY_BELOW.length):0}};
+const HOLE_GLSL='uniform sampler2D uHole; uniform vec2 uHoleO; uniform float uHoleOn; uniform vec4 uDry[6]; uniform float uDryN;\n'+
+  'bool inDry(vec2 w){ if(uDryN<0.5) return false; vec2 a=(w+uOrg)*'+(1/R_WORLD).toExponential(8)+'; float lat=90.0-length(a)*180.0, lon=degrees(atan(a.x,a.y));\n'+
+  '  for(int i=0;i<6;i++){ vec4 b=uDry[i]; if(lat>=b.x&&lat<=b.y&&lon>=b.z&&lon<=b.w) return true; } return false; }\n'+
+  'bool inHole(vec2 w){ if(inDry(w)) return true; if(uHoleOn<0.5) return false; vec2 hc=(w-uHoleO)/'+HOLE_SPAN.toFixed(1)+';\n'+
   '  if(hc.x<0.0||hc.y<0.0||hc.x>=1.0||hc.y>=1.0) return false; return texture2D(uHole,hc).r>0.5; }\n';
-waveMat.uniforms.uHole=HOLE_T; waveMat.uniforms.uHoleO=HOLE_O; waveMat.uniforms.uHoleOn=HOLE_ON;
+waveMat.uniforms.uHole=HOLE_T; waveMat.uniforms.uHoleO=HOLE_OO; waveMat.uniforms.uHoleOn=HOLE_ON; Object.assign(waveMat.uniforms,DRY_U);
 waveMat.fragmentShader=waveMat.fragmentShader.replace('    void main(){',
   HOLE_GLSL+'    void main(){\n      if(inHole(vWorld.xz)) discard;');
 waveMat.needsUpdate=true;
@@ -5877,6 +6132,7 @@ for(let k=0;k<RIP_N*RIP_N;k++){ RIP_DATA[k*4]=128; RIP_DATA[k*4+1]=128; RIP_DATA
 const ripTex=new THREE.DataTexture(RIP_DATA,RIP_N,RIP_N,THREE.RGBAFormat);
 ripTex.magFilter=ripTex.minFilter=THREE.LinearFilter; ripTex.generateMipmaps=false; ripTex.needsUpdate=true;
 const RIP_T={value:ripTex}, RIP_O={value:new THREE.Vector2(-1e9,-1e9)}, RIP_ON={value:0};
+const RIP_OO={value:new THREE.Vector2(-1e9,-1e9)}; orgFeed(RIP_O,RIP_OO,[['x','y']]);
 let ripIX=null, ripIZ=null, ripAcc=0, ripCalm=99, ripDirty=false;
 /* the field kept under the eye — slid a whole number of cells at a time, so the water it holds
    keeps its place in the world */
@@ -6013,27 +6269,29 @@ waveMat.needsUpdate=true;
    (THE FULLNESS OF TIME's lake in a gale: its waves rise and fall over the water blocks, and the
    flat face of the blocks must not show through the troughs) */
 const LAKE_HIDE={value:new THREE.Vector4(0,0,0,0)}, LAKE_HIDE_ON={value:0};
+const LAKE_HIDE_O={value:new THREE.Vector4(0,0,0,0)}; orgFeed(LAKE_HIDE,LAKE_HIDE_O,[['x','y'],['z','w']]);
 if(MAT.waterB) addPatch(MAT.waterB,sh=>{
-  sh.uniforms.uLakeHide=LAKE_HIDE; sh.uniforms.uLakeHideOn=LAKE_HIDE_ON;
-  sh.vertexShader='varying vec3 vLH;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n  vLH=position;');
+  sh.uniforms.uLakeHide=LAKE_HIDE_O; sh.uniforms.uLakeHideOn=LAKE_HIDE_ON;
+  sh.vertexShader='varying vec3 vLH;\n'+sh.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\n  vLH=orgOfMv(mvPosition);');
   sh.fragmentShader='varying vec3 vLH;\nuniform vec4 uLakeHide; uniform float uLakeHideOn;\n'+sh.fragmentShader.replace('#include <clipping_planes_fragment>',
     '#include <clipping_planes_fragment>\n  if(uLakeHideOn>0.5&&vLH.x>uLakeHide.x&&vLH.x<uLakeHide.z&&vLH.z>uLakeHide.y&&vLH.z<uLakeHide.w) discard;');
+  orgShader(sh);
 },'lake-hide');
 if(MAT.waterB&&renderer.capabilities.isWebGL2){        /* (the face is found by derivatives: WebGL2) */
   MAT.waterB.userData.plain=false;
   MAT.waterB.transparent=true;                                    /* (its alpha is the patch's: clear looking down, a mirror looking along) */
   const WU=waveMat.uniforms;
   addPatch(MAT.waterB,sh=>{
-    Object.assign(sh.uniforms,{uRip:RIP_T,uRipO:RIP_O,uRipOn:RIP_ON,uWTime:WU.uTime,uWSun:WU.uSunDir,uWSunC:WU.uSunCol,
+    Object.assign(sh.uniforms,{uRip:RIP_T,uRipO:RIP_OO,uRipOn:RIP_ON,uWTime:WU.uTime,uWSun:WU.uSunDir,uWSunC:WU.uSunCol,
       uWZen:WU.uZenith,uWFog:WU.uFogColor,uWCam:WU.uCamPos,uWLight:WU.uLight,uWHor:WU.uSkyHor,uWTop:WU.uSkyTop},RF_U);
     /* THE FACE OF STILL WATER MOVES: little waves run over a pond, a river, a lake — the face rises
        and falls a few hundredths of a block, never above its banks (it only ever sinks from the level
        of its blocks), and the edges of the faces beside it go with it, so no seam opens */
     sh.vertexShader='varying vec3 vWP;\nuniform float uWTime;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n'+
-      '  { float fb=fract(position.y/'+B.toFixed(4)+'); if(fb<0.02||fb>0.98){ vec2 q=position.xz/'+B.toFixed(4)+';\n'+
+      '  { float fb=fract(position.y/'+B.toFixed(4)+'); if(fb<0.02||fb>0.98){ vec2 q=orgOfMv(modelViewMatrix*vec4(position,1.0)).xz/'+B.toFixed(4)+';\n'+
       '      float w=0.5*sin(q.x*2.03+uWTime*1.7)+0.35*sin(q.y*1.61-uWTime*1.3+q.x*0.4)+0.25*sin((q.x+q.y)*2.9+uWTime*2.3)+0.15*sin((q.x-q.y)*4.1-uWTime*3.1);\n'+
       '      transformed.y+=(w-1.25)*'+(B*0.055).toFixed(4)+'; } }\n'+
-      '  vWP=transformed;');
+      '  vWP=orgOfMv(modelViewMatrix*vec4(transformed,1.0));');
     sh.fragmentShader='varying vec3 vWP;\nuniform sampler2D uRip; uniform vec2 uRipO; uniform float uRipOn, uWTime;\n'+
       'uniform vec3 uWSun, uWSunC, uWZen, uWFog, uWCam, uWLight, uWHor, uWTop;\n'+
       'uniform sampler2D uRefl; uniform mat4 uReflMat; uniform float uReflOn, uReflY;\n'+
@@ -6063,13 +6321,14 @@ if(MAT.waterB&&renderer.capabilities.isWebGL2){        /* (the face is found by 
       '      gl_FragColor.rgb+=uWSunC*sp*clamp(L.y*3.0,0.0,1.0);\n'+
       '      gl_FragColor.rgb=mix(gl_FragColor.rgb,vec3(0.90,0.94,1.0)*uWLight,clamp(rf*0.85,0.0,0.85));\n'+
       '    } }');
+    orgShader(sh);
   },'water-live');
 }
-farSeaMat.onBeforeCompile=sh=>{ sh.uniforms.uHole=HOLE_T; sh.uniforms.uHoleO=HOLE_O; sh.uniforms.uHoleOn=HOLE_ON;
-  sh.vertexShader='varying vec2 vHW;\n'+sh.vertexShader.replace('#include <begin_vertex>',
-    '#include <begin_vertex>\n  vHW=(modelMatrix*vec4(transformed,1.0)).xz;');
+farSeaMat.onBeforeCompile=sh=>{ sh.uniforms.uHole=HOLE_T; sh.uniforms.uHoleO=HOLE_OO; sh.uniforms.uHoleOn=HOLE_ON; Object.assign(sh.uniforms,DRY_U);
+  sh.vertexShader='varying vec2 vHW;\n'+sh.vertexShader.replace('#include <project_vertex>',
+    '#include <project_vertex>\n  vHW=orgOfMv(mvPosition).xz;');
   sh.fragmentShader='varying vec2 vHW;\n'+HOLE_GLSL+sh.fragmentShader.replace('void main() {',
-    'void main() {\n  if(inHole(vHW)) discard;'); };
+    'void main() {\n  if(inHole(vHW)) discard;'); orgShader(sh); };
 farSeaMat.customProgramCacheKey=()=>'seaHole';
 let _holeAt=[1e9,1e9], _holeT=0;
 var _holeDirty=true;     /* var: editColumnsChanged may ask before this line has run */
@@ -6143,7 +6402,9 @@ function waterTick(px,pz,dayF,storm){
   seaTime=performance.now()*0.001; seaAmp=1+storm*1.7;
   const u=waveMat.uniforms;
   u.uTime.value=seaTime; u.uAmp.value=seaAmp;
-  u.uCenter.value.set(px,pz);
+  u.uCenter.value.set(px-ORG.x,pz-ORG.z);
+  /* each wave's phase at the origin, so the sea is one sea whichever origin it is drawn about */
+  for(let i=0;i<WAVES.length;i++){ const w=WAVES[i]; u.uWPh.value[i]=(w.k*(w.dx*ORG.x+w.dy*ORG.z))%(2*Math.PI); }
   u.uLight.value.copy(mix3(0x38405e,0xd9a878,0xffffff,dayF)).multiplyScalar(1-storm*0.34);
   u.uSunCol.value.copy(mix3(0x243048,0xffcf8a,0xfff2d6,dayF));
   u.uZenith.value.copy(mix3(0x05070f,0x27446e,0x3d76c0,dayF)).multiplyScalar(1-storm*0.45);
@@ -6182,10 +6443,10 @@ function waterTick(px,pz,dayF,storm){
      forcing must not put moon-glitter on a sea whose moon has set */
   const moonB=moon.userData.bright!==undefined?moon.userData.bright:moonMat2.opacity;
   u.uMoon.value=Math.max(0,1-dayF*1.5)*moonB*(1-storm*0.55);
-  u.uCamPos.value.copy(camera.position);
+  u.uCamPos.value.copy(camera.position); u.uCamPos.value.x-=ORG.x; u.uCamPos.value.z-=ORG.z;
   const spd=Math.min(1,Math.abs(state.boat.speed)/30);
   const shown=(state.mode!=='walk')?1:Math.max(0,1-Math.hypot(px-state.boat.x,pz-state.boat.z)/(400*SHIP_K));
-  u.uShip.value.set(state.boat.x,state.boat.z,spd,shown);
+  u.uShip.value.set(state.boat.x-ORG.x,state.boat.z-ORG.z,spd,shown);
   u.uShipH.value=state.boat.heading;
   tempestUniforms(u);
 }
@@ -6271,7 +6532,7 @@ function makeCoverTex(){ const S=256, c=texCanvas(S,S), g=c.getContext('2d'), im
   for(let y=0;y<S;y++)for(let x=0;x<S;x++){ const i=(y*S+x)*4; let h=(tn(x,y,3)*0.6+tn(x,y,7)*0.4-0.34)/0.42; h=Math.max(0,Math.min(1,h));
     const L=0.72+0.28*h; d[i]=L*248; d[i+1]=L*250; d[i+2]=L*255; d[i+3]=Math.round((0.4+0.6*h)*255); }
   g.putImageData(img,0,0); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; return t; }
-const coverTex=makeCoverTex(); coverTex.repeat.set(ICE_UV*R_WORLD/1200,ICE_UV*R_WORLD/1200);
+const coverTex=makeCoverTex(); coverTex.repeat.set(Math.min(15000,ICE_UV*R_WORLD/1200),Math.min(15000,ICE_UV*R_WORLD/1200));
 const cloudCover=new THREE.Mesh(new THREE.CircleGeometry(ICE_UV*R_WORLD,140),
   new THREE.MeshBasicMaterial({map:coverTex,transparent:true,opacity:0,depthWrite:false,fog:false,side:THREE.DoubleSide}));
 cloudCover.rotation.x=-Math.PI/2; cloudCover.position.y=CLOUD_Y-10; cloudCover.visible=false; scene.add(cloudCover);
@@ -6685,8 +6946,12 @@ function tempestTick(dt){
 /* the storms' seas, handed to the GPU */
 function tempestUniforms(u){
   for(let i=0;i<3;i++){ const T=TEMPESTS[i];
-    if(T){ u.uTS.value[i].set(T.x,T.z,T.R,T.I); u.uTD.value[i].set(T.dx,T.dz); } else u.uTS.value[i].set(0,0,1,0); }
-  u.uRogA.value=ROGUE.on?ROGUE.A:0; u.uRog.value.set(ROGUE.x,ROGUE.z,ROGUE.dx,ROGUE.dz); u.uRogW.value=ROGUE.W;
+    if(T){ u.uTS.value[i].set(T.x-ORG.x,T.z-ORG.z,T.R,T.I); u.uTD.value[i].set(T.dx,T.dz);
+      /* and each of its seas' phase at the eye's own origin (as the steady waves': waterTick) */
+      for(let j=0;j<TSWELL.length;j++){ const c=TSWELL[j], Dx=c.c*T.dx-c.s*T.dz, Dz=c.s*T.dx+c.c*T.dz;
+        u.uTPh.value[i*TSWELL.length+j]=(c.k*(Dx*ORG.x+Dz*ORG.z))%(2*Math.PI); } }
+    else u.uTS.value[i].set(0,0,1,0); }
+  u.uRogA.value=ROGUE.on?ROGUE.A:0; u.uRog.value.set(ROGUE.x-ORG.x,ROGUE.z-ORG.z,ROGUE.dx,ROGUE.dz); u.uRogW.value=ROGUE.W;
   let best=0; for(const T of TEMPESTS){ const w=tempestW(T,state.boat.x,state.boat.z); if(w>best){ best=w; u.uStormDir.value.set(T.dx,T.dz); } } }
 
 /* ---- THE STORM SEEN FROM AFAR: a wall of rain under a black deck of cloud ----
@@ -6696,9 +6961,9 @@ function tempestUniforms(u){
 const TEMP_GEO={wall:new THREE.CylinderGeometry(1,1,1,56,1,true), deck:new THREE.SphereGeometry(1,72,36,0,Math.PI*2,0,Math.PI*0.5), skirt:new THREE.CircleGeometry(1,64)};
 TEMP_GEO.wall.translate(0,0.5,0); TEMP_GEO.skirt.rotateX(-Math.PI/2);
 function tempestVis(T){
-  const U={uT:{value:0},uI:{value:0},uFlash:{value:0},uIn:{value:0},uLight:waveMat.uniforms.uLight,uNoise:{value:SEA_NOISE},uCam:waveMat.uniforms.uCamPos,uC:{value:new THREE.Vector2()}};
+  const U={uT:{value:0},uI:{value:0},uFlash:{value:0},uIn:{value:0},uLight:waveMat.uniforms.uLight,uNoise:{value:SEA_NOISE},uCam:waveMat.uniforms.uCamPos,uC:{value:new THREE.Vector2()},uCamO:ORG_U.uCamO,uOrg:ORG_U.uOrg};
   const wallM=new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,side:THREE.DoubleSide,fog:false,
-    vertexShader:'varying vec2 vUv; varying vec3 vW; void main(){ vUv=uv; vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }',
+    vertexShader:ORG_GLSL+'varying vec2 vUv; varying vec3 vW; void main(){ vUv=uv; vec4 mv=modelViewMatrix*vec4(position,1.0); vW=orgOfMv(mv); gl_Position=projectionMatrix*mv; }',
     fragmentShader:`uniform float uT,uI,uFlash,uIn; uniform vec3 uLight,uCam; uniform vec2 uC; uniform sampler2D uNoise; varying vec2 vUv; varying vec3 vW;
       void main(){ float y=vUv.y;
         float st=texture2D(uNoise,vec2(vUv.x*16.0,y*0.7+uT*0.35)).b*0.6+texture2D(uNoise,vec2(vUv.x*43.0+0.3,y*2.4+uT*0.9)).g*0.4;
@@ -6716,14 +6981,14 @@ function tempestVis(T){
   const deckM=new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,side:THREE.DoubleSide,fog:false,
     /* billowed: the dome heaped into towers by a sum of lumps along its normal, and its head spread
        out flat into an anvil, as a thunderhead's is */
-    vertexShader:`uniform float uT; varying vec3 vN,vW; varying vec3 vP;
+    vertexShader:ORG_GLSL+`uniform float uT; varying vec3 vN,vW; varying vec3 vP;
       float lump(vec3 p){ return sin(p.x*7.1+uT*0.03)*sin(p.z*6.3-uT*0.02)*0.5+sin(p.x*13.7+p.z*11.1+uT*0.05)*0.25+sin(p.y*9.0+p.x*5.0)*0.25+sin((p.x-p.z)*21.0)*0.12; }
       void main(){ vec3 p=position; float y=p.y;
         p+=normal*(0.10+0.07*lump(p))*smoothstep(0.0,0.25,y);
         float anv=smoothstep(0.62,0.95,y); p.xz*=1.0+anv*0.55; p.y=mix(p.y,0.80+p.y*0.25,anv);
         p.xz*=mix(0.55,1.0,smoothstep(0.0,0.35,y));          /* narrower at the foot: a column rising */
-        vP=p; vN=normalize(mat3(modelMatrix)*normal); vec4 w=modelMatrix*vec4(p,1.0); vW=w.xyz;
-        gl_Position=projectionMatrix*viewMatrix*w; }`,
+        vP=p; vN=normalize(mat3(modelMatrix)*normal); vec4 mv=modelViewMatrix*vec4(p,1.0); vW=orgOfMv(mv);
+        gl_Position=projectionMatrix*mv; }`,
     fragmentShader:`uniform float uT,uI,uFlash,uIn; uniform vec3 uLight,uCam; uniform sampler2D uNoise; varying vec3 vN,vW,vP;
       void main(){
         vec2 q=vec2(atan(vP.z,vP.x)*1.4, vP.y*1.6);
@@ -6741,7 +7006,7 @@ function tempestVis(T){
   /* AND THE SEA BENEATH IT: dark slate out to the horizon, so the storm stands on the water and does
      not float over a band of pale sea (drawn past the haze, faded out near the eye where the waves are) */
   const skirtM=new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,fog:false,
-    vertexShader:'varying vec2 vUv; varying vec3 vW; void main(){ vUv=uv; vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }',
+    vertexShader:ORG_GLSL+'varying vec2 vUv; varying vec3 vW; void main(){ vUv=uv; vec4 mv=modelViewMatrix*vec4(position,1.0); vW=orgOfMv(mv); gl_Position=projectionMatrix*mv; }',
     fragmentShader:`uniform float uI,uFlash; uniform vec3 uLight,uCam; varying vec2 vUv; varying vec3 vW;
       void main(){ float r=length(vUv-0.5)*2.0;
         float a=uI*0.9*(1.0-smoothstep(0.55,1.0,r))*smoothstep(500.0,1500.0,length(vW.xz-uCam.xz));
@@ -6770,7 +7035,7 @@ function tempestBolt(T,x,z){ const V=T.vis; if(!V) return;
 function tempestVisTick(T,dt,far){
   if(!T.vis) T.vis=tempestVis(T);
   const V=T.vis, U=V.U, cp=camera.position;
-  V.wall.position.set(T.x,WATER_Y-30,T.z); V.wall.scale.set(T.R*0.95,210,T.R*0.95); U.uC.value.set(T.x,T.z);
+  V.wall.position.set(T.x,WATER_Y-30,T.z); V.wall.scale.set(T.R*0.95,210,T.R*0.95); U.uC.value.set(T.x-ORG.x,T.z-ORG.z);
   V.deck.position.set(T.x,WATER_Y+120,T.z); V.deck.scale.set(T.R*1.3,760,T.R*1.3);
   V.skirt.position.set(T.x,WATER_Y+1.5,T.z); V.skirt.scale.set(T.R*1.7,1,T.R*1.7);
   U.uT.value=performance.now()*0.001; U.uI.value=T.I;
@@ -7063,12 +7328,15 @@ const SHADOW={ on:!((window.__INJECT||{}).noShadow), size:2048, R:480 };
     else if(m.alphaTest>0&&m.map) c=new THREE.MeshBasicMaterial({map:m.map,alphaTest:m.alphaTest,side:THREE.DoubleSide,colorWrite:false});
     else c=solid;
     CAST.set(m,c); return c; }
+  /* how high the eye stands over the GROUND under it, not over the sea: at the true measure the city
+     of the great king stands eight hundred metres up, and an eye in her streets is not "aloft" */
+  function _shGround(){ const c=landAtWorld(camera.position.x,camera.position.z); return c?c.h*B:WATER_Y; }
   SHADOW.tick=function(){
     const S=SHADOW;
     /* how strong the shade is: with the sun's coming, under no storm, with the eye in the air and not too high */
     let amt=0;
     if(S.on&&!state.firm&&chunkRoot.parent&&chunkRoot.children.length&&!SKYDOME.off){
-      amt=_ss(0.42,0.62,SKYDOME.dayF)*(1-_ss(0.15,0.6,SKYDOME.storm||0))*(1-(_eyeSub||0))*(1-_ss(1600,2600,camera.position.y));
+      amt=_ss(0.42,0.62,SKYDOME.dayF)*(1-_ss(0.15,0.6,SKYDOME.storm||0))*(1-(_eyeSub||0))*(1-_ss(1600,2600,camera.position.y-_shGround()));
       amt*=Math.min(1,(sun.userData.bright||0)*1.5+0.2); }
     SH_U.uShAmt.value=amt*0.9;
     if(amt<0.01) return;
@@ -7101,7 +7369,7 @@ const SHADOW={ on:!((window.__INJECT||{}).noShadow), size:2048, R:480 };
       if(c) m.material=c; else m.visible=false; }
     P.children.splice(idx,1); SCN.children.push(chunkRoot); chunkRoot.parent=SCN;
     const prevRT=renderer.getRenderTarget();
-    cam.layers.set(0);
+    cam.layers.set(0); orgEye(cam);
     try{ renderer.setRenderTarget(rt); renderer.clear(true,true,false); renderer.render(SCN,cam); }
     finally{
       SCN.children.length=0; P.children.splice(idx,0,chunkRoot); chunkRoot.parent=P;
@@ -7115,6 +7383,7 @@ const SHADOW={ on:!((window.__INJECT||{}).noShadow), size:2048, R:480 };
     finally{ scene.overrideMaterial=ov; scene.autoUpdate=au; renderer.autoClear=ac; scene.background=bg; scene.fog=fg;
       renderer.setRenderTarget(prevRT); }
     SH_U.uShMat.value.multiplyMatrices(BIAS,cam.projectionMatrix).multiply(cam.matrixWorldInverse);
+    orgEye(camera);                        /* (and the eye is the traveller's again, with the new map) */
     SH_U.uShDir.value.copy(_L); SH_U.uShTexel.value=1/S.size; SH_U.uShOff.value=tx*1.2;
     SH_U.uShBias.value=0.25/(cam.far-cam.near);
     S.rt=rt; S.cam=cam; S.U=SH_U;          /* (tools: the map itself, to look at) */
@@ -7332,7 +7601,8 @@ const REFLECT={ on:!((window.__INJECT||{}).noReflect), scale:0.5, lakes:new Set(
     vcam.position.copy(view); vcam.up.set(0,1,0).applyMatrix4(rot).reflect(N); vcam.lookAt(tgt);
     vcam.near=camera.near; vcam.far=camera.far; vcam.layers.mask=camera.layers.mask&~2;   /* (not the hand in the eye's own view, F5) */
     vcam.updateMatrixWorld(); vcam.projectionMatrix.copy(camera.projectionMatrix);
-    RF_U.uReflMat.value.copy(TM).multiply(vcam.projectionMatrix).multiply(vcam.matrixWorldInverse);
+    /* (handed a point about THE EYE'S OWN ORIGIN, as every water's face reckons its own place) */
+    RF_U.uReflMat.value.copy(TM).multiply(vcam.projectionMatrix).multiply(vcam.matrixWorldInverse).multiply(_orgT.makeTranslation(ORG.x,0,ORG.z));
     /* the near plane laid along the face of the water, so nothing under it is drawn into the picture */
     plane.setFromNormalAndCoplanarPoint(N,Pw); plane.applyMatrix4(vcam.matrixWorldInverse);
     clip.set(plane.normal.x,plane.normal.y,plane.normal.z,plane.constant);
@@ -7351,8 +7621,8 @@ const REFLECT={ on:!((window.__INJECT||{}).noReflect), scale:0.5, lakes:new Set(
     for(const m of REFLECT.lakes) hide(m);
     const kids=chunkRoot.children; for(let i=0;i<kids.length;i++) if(kids[i].material===MAT.waterB) hide(kids[i]);
     const prev=renderer.getRenderTarget();
-    try{ renderer.setRenderTarget(rt); renderer.render(scene,vcam); }
-    finally{ renderer.setRenderTarget(prev); for(const o of hid) o.visible=true; }
+    try{ orgEye(vcam); renderer.setRenderTarget(rt); renderer.render(scene,vcam); }
+    finally{ renderer.setRenderTarget(prev); for(const o of hid) o.visible=true; orgEye(camera); }
     RF_U.uRefl.value=rt.texture; RF_U.uReflY.value=y; RF_U.uReflOn.value=1;
   };
   window.__REFLECT=REFLECT;
@@ -7375,7 +7645,7 @@ function setLook(full,keep){
     toast(full?'The full look: the shadows of the sun, the world in the water, the glow of the light.':
                'The fast look: no shadows, no reflections in the water, no glow — for a slower machine.'); }; }
 renderer.info.autoReset=false;
-function drawWorld(){ renderer.info.reset(); SKYDOME.tick(); SHADOW.tick(); REFLECT.tick(); POST.render(); }
+function drawWorld(){ renderer.info.reset(); orgTick(); SKYDOME.tick(); SHADOW.tick(); REFLECT.tick(); POST.render(); }
 const _skyHor=new THREE.Color(0xc9e0f2);
 function skyTick(px,pz){
   /* ---- THE TWO GREAT LIGHTS, WHERE THEY TRULY ARE ----
@@ -7587,11 +7857,7 @@ const hullG=new THREE.Group(); hullG.scale.set(SHIP_SX,SHIP_S,SHIP_S); boatG.add
     lan.position.set(0,5.6,lz); hullG.add(lan);
     const gm2=new THREE.SpriteMaterial({map:glowTexCv,transparent:true,opacity:0.4,depthWrite:false});
     const gs=new THREE.Sprite(gm2); gs.scale.set(11,11,1); gs.position.set(0,5,lz); hullG.add(gs); }
-  for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
-    bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
-    bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
-    bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
-    bg.setIndex(gg.i); hullG.add(new THREE.Mesh(bg,MAT[mat])); }
+  for(const mat in G){ const gg=G[mat]; hullG.add(bucketMesh(gg,MAT[mat])); }
   boatG.userData={flag,wheel};
   scene.add(boatG); }
 /* walkable regions of the deck, in ship-local WORLD coordinates (scaled) */
@@ -9092,7 +9358,7 @@ const D_PLAIN_MIN=3500, D_PLAIN_MAX=5400;    /* the abyssal plains */
 const O_SHELF=4.5/OFF_PX, O_SLOPE=0.62;
 /* how far the shoal field reaches out from any shore, in world units: 4.5 map
    pixels at ~117 units each — the true width of a continental shelf */
-const SHOAL_REACH=4.5*117;
+const SHOAL_REACH=4.5*117*WORLD_K;   /* (117 was a pixel of the old, smaller map; it is kept, and grows with the earth) */
 /* how near the surface the bed of the open sea may EVER come. Nothing that is
    not on the chart is allowed to break the water. */
 const SB_MIN_M=180;
@@ -9102,6 +9368,9 @@ const SEA_ZONES=[[200,'EPIPELAGIC'],[1000,'MESOPELAGIC'],[4000,'BATHYPELAGIC'],
 function seaZone(m){ for(const z of SEA_ZONES) if(m<z[0]) return z[1]; return 'HADAL'; }
 /* the depth of the bed at a place, in METRES below the waterline */
 function seabedMetres(x,z){
+  /* at the true measure the bed of the sea is the earth's own, sounded to the metre near the coasts
+     of the Levant and to the twenty-five metres in the deep */
+  if(TRUE_EARTH){ const [la,lo]=latLonOf(x,z), e=DEM.heightAt(la,lo); if(e!==null) return Math.max(D_STRAND,-e); }
   /* ---- THE ABYSSAL PLAIN ----
      Long, low swells three and a half to five and a half kilometres down.
      The wavelength is deliberately vast (some four kilometres as a swimmer
@@ -13343,11 +13612,11 @@ function houseWashed(i,seed){
    WRITTEN DOWN as treeless, the bole pass and the crown both ask it, and the
    trunk already standing there is taken out. */
 var NOTREE=null;      /* var: a chunk may be built before this line has run */
-function noTreeAt(ix,iz){ return !!NOTREE&&NOTREE.has((ix+32768)*65536+(iz+32768)); }
+function noTreeAt(ix,iz){ return !!NOTREE&&NOTREE.has(colKey(ix,iz)); }
 function clearLotOfTrees(x0,z0,x1,z1,y){
   const cy0=Math.floor(y/B);
   for(let ix=Math.floor(x0/B);ix<=Math.floor(x1/B);ix++) for(let iz=Math.floor(z0/B);iz<=Math.floor(z1/B);iz++){
-    (NOTREE||(NOTREE=new Set())).add((ix+32768)*65536+(iz+32768));
+    (NOTREE||(NOTREE=new Set())).add(colKey(ix,iz));
     if(!_stampOn) continue;
     for(let cy=cy0-1;cy<=cy0+48;cy++){ const b=blockOf(blockAt(ix,cy,iz));
       /* the trunk of every kind, and the leaves and the bush too (Round 137 —
@@ -14072,7 +14341,7 @@ function* spawnVillage(i,exShell){
      in every probe of the folk going home. Every house of a town is built as
      the story builds its own. */
   Object.assign(ex,{doors:[],houses:[],torchIn:[],farms:[],stalls:[],pen:null,stamps:[],
-    style:houseStyleFor(i), ci:i, big:true});
+    style:houseStyleFor(siteCountry(i)), ci:siteCountry(i), big:true});
   const wy=topY(site.ix,site.iz);
   const cfg=cityFor(i);                 /* a great city here, or a small village? */
   const torches=[]; const solids=[];
@@ -14348,11 +14617,7 @@ function* spawnVillage(i,exShell){
   /* build the merged meshes */
   const g=new THREE.Group();
   for(const mat in G){ const gg=G[mat];
-    const bg=new THREE.BufferGeometry();
-    bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
-    bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
-    bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
-    bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); yield; }
+    g.add(bucketMesh(gg,MAT[mat])); yield; }
   /* the doors — each house a swinging leaf, closed to begin */
   for(const H of ex.houses){ if(!H.door) continue; const D2=H.door;
     const dm=new THREE.Mesh(new THREE.BoxGeometry(D2.w,D2.h,0.6),doorLeafMat);
@@ -14451,7 +14716,7 @@ function* spawnVillage(i,exShell){
       const x=wx+Math.cos(th)*r, z=wz+Math.sin(th)*r;
       if(spawnFree(x,z)) return {x,z}; }
     return {x:wx,z:wz}; };
-  const folk=folkOfCountry(i);                     /* the people of this land, as they looked */
+  const folk=folkOfCountry(siteCountry(i));        /* the people of this land, as they looked */
   const addPerson=(role,hx,hz,roamR,child,female,data)=>{
     const seed=i*1000+people.length*7;
     const onDk=deckMap.get(Math.floor(hx/B)+','+Math.floor(hz/B))!==undefined;
@@ -15751,8 +16016,9 @@ function updateVillages(px,pz,dt,nightF,dayF){
      clear view. The build is spread over frames by villageBuildTick. */
   const trigV=state.mode==='fly'
     ?Math.max(1600,Math.min(3000,(scene.fog?scene.fog.far:1140)*0.92)):1600;
-  for(let i=0;i<COUNTRIES.length;i++){
-    const s0=SITES[i]; const c=COUNTRIES[i].c;
+  for(let i=0;i<SITES.length||i<COUNTRIES.length;i++){
+    const s0=SITES[i]; if(!s0&&i>=COUNTRIES.length) continue;
+    const c=COUNTRIES[siteCountry(i)].c;
     const sxp=s0?s0.x:c[0]*R_WORLD, szp=s0?s0.z:c[1]*R_WORLD;
     const d=Math.hypot(px-sxp, pz-szp);
     const has=activeVillages.has(i);
@@ -16132,7 +16398,7 @@ function rumourLine(){
   const dx=s.x-px, dz=s.z-pz;
   const ang=Math.atan2(dx*eX+dz*eZ, dx*nX+dz*nZ);
   const dir=COMPASS8[(Math.round(ang/(Math.PI/4))+8)%8];
-  const km=Math.round(bd/B/50)*50;
+  const km=Math.round(bd/U_PER_KM/50)*50;
   return '“Sailors speak of '+COUNTRIES[best].n+' — away to the '+dir+', some '
     +Math.max(50,km).toLocaleString()+' km over the deep. No one here has seen its coast.”';
 }
@@ -16402,7 +16668,9 @@ function spearTick(dt){
 
 /* ================= YAHRUSHALAYIM ================= */
 let yahruPos=null, YAHRU_MARKS={}, yahruStamp=null, yahruPeriod=null;
-{ const lat=31.78, lon=35.23, r=(90-lat)/180;
+/* (at the true measure she is set down by the rock of the House itself, to the metre: the old map could
+   not tell the Mount from the city about it, and stood her by the hundredth of a degree) */
+{ const lat=TRUE_EARTH?31.7781:31.78, lon=TRUE_EARTH?35.2354:35.23, r=(90-lat)/180;
   const u=r*Math.sin(lon*Math.PI/180), v=r*Math.cos(lon*Math.PI/180);
   const ix0=Math.floor(u*R_WORLD/B), iz0=Math.floor(v*R_WORLD/B);
   for(let rad=0;rad<30&&!yahruPos;rad++) for(let a=0;a<Math.max(1,rad*6)&&!yahruPos;a++){
@@ -16477,11 +16745,7 @@ function buildYahruIn(){
     emitBox(G, tx-B*0.3,gy,tz-B*0.3, tx+B*0.3,gy+B*1.5,tz+B*0.3, 'logSide','logTop',null);
     emitBox(G, tx-B*1.15,gy+B*1.2,tz-B*1.15, tx+B*1.15,gy+B*2.2,tz+B*1.15, 'leaves','leaves','leaves'); }
   const g=new THREE.Group();
-  for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
-    bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
-    bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
-    bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
-    bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
+  for(const mat in G){ const gg=G[mat]; g.add(bucketMesh(gg,MAT[mat])); }
   scene.add(g);
 }
 
@@ -16533,11 +16797,7 @@ function buildHomeIn(){
   emitBox(G, cx-B*2.5,cany+B*2.4,cz-B*2.5, cx+B*2.5,cany+B*3.2,cz+B*2.5, 'leaves','leaves','leaves');
   /* build the meshes */
   const g=new THREE.Group();
-  for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
-    bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
-    bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
-    bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
-    bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
+  for(const mat in G){ const gg=G[mat]; g.add(bucketMesh(gg,MAT[mat])); }
   /* the swinging door + register the room so it collides and enters like a home */
   for(const H of ex.houses){ if(!H.door) continue; const D2=H.door;
     const dm=new THREE.Mesh(new THREE.BoxGeometry(D2.w,D2.h,0.6),doorLeafMat);
@@ -16675,11 +16935,7 @@ function lmRange(L){
     cr++;
   }
   const g=new THREE.Group();
-  for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
-    bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
-    bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
-    bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
-    bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
+  for(const mat in G){ const gg=G[mat]; g.add(bucketMesh(gg,MAT[mat])); }
   for(const q of glows){
     const gm2=new THREE.SpriteMaterial({map:glowTexCv,color:q.c,transparent:true,opacity:q.o,depthWrite:false});
     const gs=new THREE.Sprite(gm2); gs.scale.set(q.s,q.s,1); gs.position.set(q.x,q.y,q.z); g.add(gs); }
@@ -16741,11 +16997,7 @@ function lmFalls(L){
     faceTop(G,'waterB',wx-B*0.9,wz-B*0.9,wx+B*0.9,wz+B*0.9,c.h*B+0.5,1.0);
   }
   const g=new THREE.Group();
-  for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
-    bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
-    bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
-    bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
-    bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
+  for(const mat in G){ const gg=G[mat]; g.add(bucketMesh(gg,MAT[mat])); }
   for(const q2 of glows){
     const gm2=new THREE.SpriteMaterial({map:glowTexCv,color:q2.c,transparent:true,opacity:q2.o,depthWrite:false});
     const gs=new THREE.Sprite(gm2); gs.scale.set(q2.s,q2.s,1); gs.position.set(q2.x,q2.y,q2.z); g.add(gs); }
@@ -17051,11 +17303,7 @@ function spawnLandmark(i){
     stamp=stampedGroup(()=>build(newG()));
     g=new THREE.Group();
     gStruct=new THREE.Group(); g.add(gStruct);
-    for(const mat in G){ const gg=G[mat]; const bg=new THREE.BufferGeometry();
-      bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
-      bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
-      bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
-      bg.setIndex(gg.i); gStruct.add(new THREE.Mesh(bg,MAT[mat])); }
+    for(const mat in G){ const gg=G[mat]; gStruct.add(bucketMesh(gg,MAT[mat])); }
     if(L.kind==='lighthouse'){                             /* the fire at the top, ever burning */
       const tip=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),torchMat); tip.position.set(x,y+B*15.4,z); g.add(tip);
       const gm2=new THREE.SpriteMaterial({map:glowTexCv,transparent:true,opacity:0.6,depthWrite:false});
@@ -17432,11 +17680,30 @@ function insideTraderHull(x,z,margin){
     if(Math.abs(lx)<15*SHIP_K+(margin||0)&&Math.abs(lz)<46*SHIP_K+(margin||0)) return T; }
   return null;
 }
+/* is there land within `reach` along her course, or a little either side of it? */
+function landAhead(x,z,h,reach){
+  for(const da of [0,0.25,-0.25]) for(let k=1;k<=16;k++){ const d=reach*k/16;
+    if(landAtWorld(x+Math.sin(h+da)*d,z+Math.cos(h+da)*d)) return true; }
+  return false; }
+/* she is running in the swift hours: over the open sea, faster than the ground could ever be laid */
+function voyaging(){ return TRUE_EARTH&&state.mode==='boat'&&Math.abs(state.boat.speed)>400; }
 function boatTick(dt,helm){
   const bt=state.boat; const [f,t]=helm?axis():[0,0];
   const st=stormAt(bt.x,bt.z);
   seaTime=performance.now()*0.001; seaAmp=1+st*1.7;    /* fix the sea for this frame */
-  const target=f*40*SPEEDS[state.speedIdx][2]*sailFactor(bt.heading)*(1-0.45*st)*(state.net?0.72:1);
+  /* ---- AND AT THE TRUE MEASURE, HER TRUE PACE IN THE SWIFT HOURS ----
+     On the small map the swift hours only drove her harder (the third number of SPEEDS). At the
+     true measure of the earth a crossing of the Great Sea is two thousand kilometres, days of
+     sailing at her true pace; so in the swift hours she keeps that true pace and the hours run
+     past her: at 'swift' a day goes by in seventy-two breaths and she makes her day's run in it.
+     She is brought back to the true hours as soon as land lies within the reach she could run
+     before a man could see it coming (VOYAGE_DROP): the ground is laid only at the true pace. */
+  let paceMul=SPEEDS[state.speedIdx][2];
+  if(TRUE_EARTH&&state.speedIdx>0){ paceMul=SPEEDS[state.speedIdx][0];
+    if(landAhead(bt.x,bt.z,bt.heading,Math.max(4000,Math.abs(bt.speed)*3))){
+      state.speedIdx=0; updateSpeedBtn(); paceMul=SPEEDS[0][2];
+      toast('Land lies ahead. The hours slow to their true pace.'); } }
+  const target=f*40*paceMul*sailFactor(bt.heading)*(1-0.45*st)*(state.net?0.72:1);
   bt.speed+=(target-bt.speed)*Math.min(1,dt*1.2);
   if(Math.abs(bt.speed)>0.4) bt.heading+=t*dt*(0.85+Math.min(1,Math.abs(bt.speed)/22)*0.6);
   const nx=bt.x+Math.sin(bt.heading)*bt.speed*dt, nz=bt.z+Math.cos(bt.heading)*bt.speed*dt;
@@ -17709,7 +17976,7 @@ function interact(){
     case 'none': break;                             /* a notice, not a deed (a shut stall) */
     case 'trade': { const st=promptStall;
       const cty=cityFor(st.i);
-      openTrade(st.i,'the market of '+(cty?cty.name+', ':'')+COUNTRIES[st.i].n,false); break; }
+      openTrade(st.i,'the market of '+(cty?cty.name+', ':'')+COUNTRIES[siteCountry(st.i)].n,false); break; }
     case 'hail': { const h=promptTrader; h.T.halt=25; tradeShip=h.T;
       toast('You hail the merchantman; she backs her sails and comes alongside to trade.');
       openTrade(500+h.k*7,'a merchantman upon the deep (her prices are her own)',true); break; }
@@ -17816,7 +18083,7 @@ function insideHouse(x,z){
    water and rings it (rippleAt). And the water itself is struck where the thing went in, so the
    rings go out from the place. All the drops in the air are ONE draw (a single cloud of points). */
 const SPL_N=420;
-const SPL={x:new Float32Array(SPL_N),y:new Float32Array(SPL_N),z:new Float32Array(SPL_N),vx:new Float32Array(SPL_N),
+const SPL={x:new Float64Array(SPL_N),y:new Float32Array(SPL_N),z:new Float64Array(SPL_N),vx:new Float32Array(SPL_N),
   vy:new Float32Array(SPL_N),vz:new Float32Array(SPL_N),life:new Float32Array(SPL_N),max:new Float32Array(SPL_N),
   sz:new Float32Array(SPL_N),surf:new Float32Array(SPL_N),mist:new Uint8Array(SPL_N),live:0,next:0};
 const splPos=new Float32Array(SPL_N*3), splSize=new Float32Array(SPL_N), splAlpha=new Float32Array(SPL_N);
@@ -17887,10 +18154,10 @@ function splashTick(dt){ if(!splPts) return;
       splAlpha[k]=L>0?Math.min(0.9,0.35+L/SPL.max[k]):0;
     }
     SPL.life[k]=L;
-    splPos[k*3]=SPL.x[k]; splPos[k*3+1]=SPL.y[k]; splPos[k*3+2]=SPL.z[k]; splSize[k]=L>0?SPL.sz[k]:0;
+    splPos[k*3]=SPL.x[k]-ORG.x; splPos[k*3+1]=SPL.y[k]; splPos[k*3+2]=SPL.z[k]-ORG.z; splSize[k]=L>0?SPL.sz[k]:0;
     if(L>0) live++;
   }
-  SPL.live=live;
+  SPL.live=live; splPts.position.set(ORG.x,0,ORG.z);   /* (written about the eye's own origin) */
   const g=splPts.geometry; g.attributes.position.needsUpdate=true; g.attributes.size.needsUpdate=true; g.attributes.alpha.needsUpdate=true;
   splPts.visible=live>0&&!_nearHidden;
   splPts.material.uniforms.uScale.value=renderer.domElement.height*0.9;
@@ -20163,7 +20430,7 @@ function toggleLog(){
     : 'the hold stands empty';
   $('log-stats').innerHTML=
     'Lands visited: <b>'+names.length+' / '+COUNTRIES.length+'</b><br>'+
-    'Distance sailed: <b>'+Math.round(state.dist/B).toLocaleString()+' km</b><br>'+
+    'Distance sailed: <b>'+Math.round(state.dist/U_PER_KM).toLocaleString()+' km</b><br>'+
     'Purse: <b>'+(state.coins||0)+' shekels</b> · Cargo: <b>'+cargoCount()+' / '+CARGO_MAX+'</b> ('+cargoTxt+')<br>'+
     'Fish drawn from the deep: <b>'+(state.fish||0)+'</b> · Game taken by the spear: <b>'+(state.game||0)+'</b> · Pearls: <b>'+(state.pearls||0)+'</b><br>'+
     'Scrolls gathered: <b>'+scrollTaken.size+' / '+SCROLLS.filter(x=>!x.gone).length+'</b>'+
@@ -20546,7 +20813,7 @@ function nextLandfall(){
   const dx=COUNTRIES[best].c[0]*R_WORLD-p.x, dz=COUNTRIES[best].c[1]*R_WORLD-p.z;
   const ang=Math.atan2(dx*eX+dz*eZ, dx*nX+dz*nZ);
   return { n:COUNTRIES[best].n, dir:COMPASS8[(Math.round(ang/(Math.PI/4))+8)%8],
-    km:Math.max(50,Math.round(bd*R_WORLD/B/50)*50) };
+    km:Math.max(50,Math.round(bd*R_WORLD/U_PER_KM/50)*50) };
 }
 function checkFulfilled(){
   if(state.vf||state.visited.size<COUNTRIES.length) return;
@@ -20559,11 +20826,12 @@ window.addEventListener('error',()=>{ try{ saveState(); }catch(e){} });
 
 /* ================= LAUNCH ================= */
 function findStart(){
-  let lat=32.1, lon=33.4;
-  for(let k=0;k<24;k++){ const r=(90-lat)/180;
+  /* (at the true measure she rides off Yapho, a few kilometres out, not a day's sail off the coast) */
+  let lat=TRUE_EARTH?32.06:32.1, lon=TRUE_EARTH?34.70:33.4;
+  for(let k=0;k<60;k++){ const r=(90-lat)/180;
     const u=r*Math.sin(lon*Math.PI/180), v=r*Math.cos(lon*Math.PI/180);
     if(!landAtWorld(u*R_WORLD,v*R_WORLD)) return [u*R_WORLD,v*R_WORLD];
-    lon-=0.5; }
+    lon-=TRUE_EARTH?0.01:0.5; }
   return [0.17*R_WORLD,0.26*R_WORLD];
 }
 let running=false, saveT=0;
@@ -20821,11 +21089,7 @@ function storyHouse(hx,hz,y,w,d,door,seed,style,more){
   if(ex.washed===undefined) delete ex.washed; if(!ex.wall) delete ex.wall;
   const grp=stampedGroup(()=>emitHouse(G,ex,hx,hz,y,w,d,door,seed||1));
   const g=new THREE.Group();
-  for(const mat in G){ const gg=G[mat]; if(!gg.p||!gg.p.length) continue; const bg=new THREE.BufferGeometry();
-    bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
-    bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
-    bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
-    bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
+  for(const mat in G){ const gg=G[mat]; if(!gg.p||!gg.p.length) continue; g.add(bucketMesh(gg,MAT[mat])); }
   const regs=[];
   for(const H of ex.houses){ if(!H.door) continue; const D2=H.door;
     const dm=new THREE.Mesh(new THREE.BoxGeometry(D2.w,D2.h,0.6),doorLeafMat);
@@ -20940,11 +21204,7 @@ function setBuilder(ax,az,baseY,opt){
         const hy=api.inPadL(q.x,q.z)?baseY:(()=>{ const c=cell(Math.floor(X(q.x)/B),Math.floor(Z(q.z)/B)); return c?c.h*B:baseY; })();
         emitHouse(G,ex,X(q.x),Z(q.z),hy,odd(q.w),odd(q.d),{s:0,n:1,e:2,w:3}[q.door||'s'],q.seed||1); } });
       const g=new THREE.Group();
-      for(const mat in G){ const gg=G[mat]; if(!gg.p||!gg.p.length) continue; const bg=new THREE.BufferGeometry();
-        bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
-        bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
-        bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
-        bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
+      for(const mat in G){ const gg=G[mat]; if(!gg.p||!gg.p.length) continue; g.add(bucketMesh(gg,MAT[mat])); }
       const regs=[];
       for(const H of ex.houses){ if(!H.door) continue; const D2=H.door;
         const dm=new THREE.Mesh(new THREE.BoxGeometry(D2.w,D2.h,0.6),doorLeafMat);
@@ -20997,7 +21257,8 @@ window.__KIT={
   waterAt:(x,y,z)=>blockAt(Math.floor(x/B),Math.floor(y/B),Math.floor(z/B))===blockId('water'),
   robeMat:robeMatHex, blockMat:n=>MAT[n]||null, solidAt, splash:(x,y,z,big)=>splash(x,y,z,big),
   /* the live water, the storm and the hidden still water — for a story's own sea */
-  ripple:{tex:RIP_T,o:RIP_O,on:RIP_ON,span:RIP_SPAN,at:(x,z,a,r,f)=>rippleAt(x,z,a,r,f),focus:p=>{ RIP_FOCUS=p||null; }},
+  ORG_GLSL, ORG, org:()=>({x:ORG.x,z:ORG.z}),
+  ripple:{tex:RIP_T,o:RIP_OO,on:RIP_ON,span:RIP_SPAN,at:(x,z,a,r,f)=>rippleAt(x,z,a,r,f),focus:p=>{ RIP_FOCUS=p||null; }},
   setStorm:v=>{ STORM_FORCE=v==null?null:+v; },
   lakeHide:(r)=>{ if(r){ LAKE_HIDE.value.set(r[0],r[1],r[2],r[3]); LAKE_HIDE_ON.value=1; } else LAKE_HIDE_ON.value=0; }, playerXZ, jointTick, tickGait, makeBird, makePerson,
   /* the floor of cloud, which a story lifts high over its scenes: the voyage's clouds stand
@@ -21619,6 +21880,18 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
     if(best&&best.houses[i]) setDoor(best.houses[i],open,open?'hand':null); },
   /* a column read the way a walker reads it: the ground and ceiling at a
      reference height, and which courses are solid */
+  /* every drawn thing whose own vertices are written in the world's numbers rather than about
+     its own place: at the true measure of the earth those numbers run to tens of millions, and
+     a 32-bit vertex there is rounded to whole metres (THE EYE'S OWN ORIGIN) */
+  worldScale:()=>({R:R_WORLD,K:WORLD_K,trueEarth:TRUE_EARTH,uPerKm:U_PER_KM,org:{x:ORG.x,z:ORG.z}}),
+  absBaked:(lim)=>{ lim=lim||20000; const out=[];
+    scene.traverse(o=>{ const g=o.geometry; if(!g||!(o.isMesh||o.isPoints||o.isLine)) return;
+      if(!g.boundingSphere) g.computeBoundingSphere(); const s=g.boundingSphere; if(!s) return;
+      const c=s.center, far=Math.hypot(c.x,c.y,c.z);
+      if(far>lim){ let p=o, path=[]; while(p&&p!==scene&&path.length<6){ path.push(p===chunkRoot?'CHUNKS':(p.name||p.type)+(Object.keys(p.userData||{}).slice(0,3).join('/'))); p=p.parent; }
+        const m=Array.isArray(o.material)?o.material[0]:o.material;
+        out.push({far:Math.round(far),r:Math.round(s.radius),mat:m&&(m.name||m.type),path:path.join('<'),vis:o.visible}); } });
+    return out; },
   columnAt:(x,z,refY)=>{ const ix=Math.floor(x/B), iz=Math.floor(z/B), c=landAtWorld(x,z);
     const g=groundInfo(x,z,refY); const solid=[]; const h0=c?c.h:0;
     for(let iy=h0-2;iy<=h0+7;iy++) if(blockSolidAt(ix,iy,iz)){ const b=blockAt(ix,iy,iz); solid.push(iy+':'+(typeof blockName==='function'?blockName(b):b)); }
@@ -22293,7 +22566,10 @@ function cutCrack(ix,iy,iz,nx,ny,nz){
   /* the face's own two ways, and the corner it starts from */
   let ox,oy,oz, ux,uy,uz, vx,vy,vz;
   const e=0.035*B;                        /* a hair proud, so it is not in the face */
-  const x0=ix*B, y0=iy*B, z0=iz*B;
+  /* drawn about the block's own corner (THE EYE'S OWN ORIGIN): the lines are a hair from the face, and
+     in the world's own numbers a hair is less than a 32-bit vertex can say */
+  g.position.set(ix*B,0,iz*B);
+  const x0=0, y0=iy*B, z0=0;
   if(ny!==0){ oy=y0+(ny>0?B+e:-e); ox=x0; oz=z0;
     ux=B;uy=0;uz=0; vx=0;vy=0;vz=B; }
   else if(nx!==0){ ox=x0+(nx>0?B+e:-e); oy=y0; oz=z0;
@@ -23602,7 +23878,7 @@ function updateFalls(px,pz){
 
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0, liveT=0;
-function frame(){
+function frame(){ orgSnap();
   requestAnimationFrame(frame);
   const dt=Math.min(0.05,clock.getDelta());
   /* before the voyage begins the MENU stands over the living world: the sky
@@ -24034,7 +24310,7 @@ function frame(){
      traveller watches his own world arrive in pieces behind him */
   const chunkBudget=(state.mode==='fly'&&trueSpd>260)?14
     :(state.mode==='fly'||trueSpd>50||backW>0)?9:4;
-  updateChunks(p.x,p.z,chunkBudget,viewEff);
+  if(!voyaging()) updateChunks(p.x,p.z,chunkBudget,viewEff);   /* (over the open sea in the swift hours there is nothing to lay) */
   zoomMapFadeCache=zMapF;
   aimTick();                         /* the block at the end of the traveller's arm */
   if(!mineDriven) mineTick(dt);      /* and the hand held to it until it gives */
@@ -24119,7 +24395,7 @@ function frame(){
   const carpetWant=(frame._carpetOn?1:0)*(1-Math.max(0,Math.min(1,(zMapF-0.60)/0.15)));
   farLandMat.opacity+=(carpetWant-farLandMat.opacity)*Math.min(1,dt*2.5);
   farLand.visible=farLandMat.opacity>0.02;
-  if(frame._carpetOn) updateFarLand(p.x,p.z,false,eyeY);
+  if(frame._carpetOn&&!voyaging()) updateFarLand(p.x,p.z,false,eyeY);
   updateVillages(p.x,p.z,dt,light.nightF,light.dayF);
   updateLandmarks(p.x,p.z);
   seacavePass(p.x,p.z);

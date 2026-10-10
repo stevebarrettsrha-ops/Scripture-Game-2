@@ -259,6 +259,12 @@ const FILES=[
   'world/places.js',
   'world/waterfalls.js',
   'world/deeps.js',
+  /* THE TRUE FACE OF THE EARTH: heights and depths in metres, from the open Terrain Tiles, and */
+  /* the reader of them. Read only when the earth is drawn at its true measure (Phase T). */
+  'world/dem.js',
+  'js/dem.js',
+  /* the towns of the land, each at its own latitude and longitude (raised at the true measure) */
+  'world/towns.js',
   'world/scenes.js',
   /* THE SCROLLS HIDDEN IN THE EARTH — what the voyage is for */
   'world/scrolls.js',

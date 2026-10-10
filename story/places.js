@@ -3,13 +3,14 @@
    Every scene is set down at its true place on the voyage's earth, by latitude and
    longitude: Natsareth in the hills of the Galil, Qanah over the valley north of it,
    Kephar Naḥum on the north shore of the lake, the Yardĕn below Yeriḥo, the city of the great
-   king on her hill. The voyage's earth is drawn at its own scale (a degree is a thousand
-   units, so the whole road from Bĕyth Leḥem to Yahrushalayim is some eighty), and a scene is
-   built at the scale of a man, so a set is larger than the ground between two towns. Where a
-   set cannot stand at its very place — Bĕyth Leḥem would stand inside the walls of
-   Yahrushalayim — it is moved out along its true bearing until it is clear, and then to the
-   most level ground near there that is dry land, not under another town, a landmark or a
-   scroll of the voyage.
+   king on her hill. At the true measure of the earth (Phase T) the map is drawn at the scale
+   of a man, as the sets are: Bĕyth Leḥem stands nine kilometres from the city, as it does, and
+   every set stands at its very place, on the most level dry ground near it. On the old small map
+   (a degree a thousand units, the road from Bĕyth Leḥem to Yahrushalayim some eighty) a set was
+   larger than the ground between two towns, so a set that would stand inside the walls of
+   Yahrushalayim is moved out along its true bearing until it is clear (`clear`), which at the
+   true measure never happens; and either way it keeps off another town, a landmark or a scroll
+   of the voyage.
 
    `at(place, act)` → {x,z,y} in world units, the place's anchor, its ground's height; and for
    the city, `city:true` and the period she is raised in for that act. */

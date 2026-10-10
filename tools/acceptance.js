@@ -907,7 +907,7 @@ T[20]={name:'an altar of unhewn stone refuses hewn stone',
 
 T[21]={name:'every land holds what its data says, and the ore is truly in the rock',
   run:async page=>page.evaluate(async()=>{
-    const D=window.__VDBG, B=D.B, R=180000;
+    const D=window.__VDBG, B=D.B, R=D.R_WORLD||180000;   /* (the measure of the map: it is not fixed, ROADMAP Phase T) */
     if(!D.minerals) return {pending:'no minerals (Phase 4 step 7)'};
     const defs=D.minerals();
     if(!defs.length) return {ok:false,got:'world/minerals.js declares nothing'};
