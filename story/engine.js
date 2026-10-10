@@ -192,6 +192,17 @@ function buildScene(sc){
   const build=window.STORYSETTINGS[sc.place];
   if(!build) throw new Error('no such place: '+sc.place);
   build(ctx,st);
+  /* ON THE TRUE EARTH a scene of the city may be played where the small city had streets and the true
+     one has open hillside, and the land's own trees stand there: the ground the scene is played over
+     (its witness and its people, and some way about them) is taken clear of them, so that no scene
+     is watched through a wood that was never written into it. Its own olives and figs are its own. */
+  if(k.trueEarth&&k.trueEarth()&&ctx.api.clearTrees){
+    let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9;
+    const take=at=>{ try{ const p=Array.isArray(at)&&typeof at[0]==='number'?at:pos(at); if(p&&isFinite(p[0])&&isFinite(p[1])){
+      x0=Math.min(x0,p[0]); z0=Math.min(z0,p[1]); x1=Math.max(x1,p[0]); z1=Math.max(z1,p[1]); } }catch(e){} };
+    if(sc.player&&sc.player.at) take(sc.player.at);
+    for(const a of sc.actors||[]) if(a.at) take(a.at);
+    if(x0<x1+1&&x1-x0<400&&z1-z0<400) ctx.api.clearTrees(x0-24,z0-24,x1+24,z1+24); }
   ctx.api.end();
   root.add(st.mesh());
   k.updateChunks(A.x,A.z,9999);

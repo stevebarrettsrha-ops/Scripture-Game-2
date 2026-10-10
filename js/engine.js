@@ -1503,9 +1503,16 @@ function surfaceBlockOf(kind){ return blockId(KIND_BLOCK[kind]||'stone'); }
    faces between a solid cell and an open one, and underground there are none
    until somebody digs. It costs the world nothing it does not show. */
 const DEEP=48, DEEPSTONE_Y=-18;
+/* THE FOUNDATIONS UNDER A COLUMN. On the small map they lie at one course for the whole earth, −DEEP,
+   and no dry land stands near it. On the true earth the floor of the rift by the Yardĕn is four
+   hundred courses under the sea, and Qattara a hundred and forty: there the foundations lie DEEP
+   courses under the land's own face, or the whole floor of the valley stood under the bottom of the
+   world — not solid to the foot, and every column a hand had touched drawn up as a pillar from it to
+   the old floor, a forest of them round the ford. */
+function floorOf(h){ return (TRUE_EARTH&&h<8-DEEP)?h-DEEP:-DEEP; }
 const SOIL_DEPTH={ grass:4, tropic:4, tundra:4, savanna:4, sand:5, desert:5 };
 function strataId(kind,h,iy){
-  if(iy<=-DEEP) return 'bedrock';
+  if(iy<=floorOf(h)) return 'bedrock';
   if(kind==='wall'||kind==='floe') return 'ice';
   if(iy<DEEPSTONE_Y) return 'deep-stone';
   const soil=SOIL_DEPTH[kind];
@@ -2249,6 +2256,10 @@ const RIFT_LAKES=[
 function inBoxLL(b,lat,lon){ return lat>=b.lat[0]&&lat<=b.lat[1]&&lon>=b.lon[0]&&lon<=b.lon[1]; }
 /* the place of a column on the earth */
 function latLonOf(x,z){ const u=x/R_WORLD, v=z/R_WORLD; return [90-Math.hypot(u,v)*180, Math.atan2(u,v)*180/Math.PI]; }
+/* whether a place of the map lies in one of the dry basins under the sea's level (the rift, Qattara):
+   there the sea's level is not the water's, and an eye below it is not under the sea */
+function inDryBasin(x,z){ if(!TRUE_EARTH) return false; const [la,lo]=latLonOf(x,z);
+  for(const D of DRY_BELOW) if(inBoxLL(D,la,lo)) return true; return false; }
 /* the earth's height at a point in metres, with the fractal under the data; null where there is none */
 function earthMetres(x,z,lat,lon){
   const e0=DEM.heightAt(lat,lon); if(e0===null) return null;
@@ -3156,7 +3167,10 @@ const _myR=[], _nbR=[];
 const _ecc={h:0,kind:'',tree:0,ci:0,spans:null};
 function editedCell(ix,iz,cc,em,out){
   out=out||_ecc;
-  let hi=cc.h-1, lo=0;
+  /* (on the true earth the walk below starts at the column's own face or its lowest edit, not at the
+     sea's level: a column of the city of the great king stands eight hundred courses over it, and
+     every touched column of her was walked course by course from nought) */
+  let hi=cc.h-1, lo=TRUE_EARTH?cc.h-1:0;
   for(const y of em.keys()){ if(y>hi) hi=y; if(y<lo) lo=y; }
   /* ---- WHAT IS TERRAIN HERE, AND WHAT IS NOT ----
      A cell the overlay names is NOT terrain, whatever stands in it. This
@@ -3176,7 +3190,8 @@ function editedCell(ix,iz,cc,em,out){
      pile blocks over his head, and the top of the column follows him */
   let top=cc.h;
   for(let y=hi;y>=cc.h;y--) if(tS(y)){ top=y+1; break; }
-  while(top>-DEEP&&!tS(top-1)) top--;       /* down through the dug earth to what is left */
+  const fl=floorOf(cc.h);
+  while(top>fl&&!tS(top-1)) top--;       /* down through the dug earth to what is left */
   /* `run` is null while no run is open — a course can be NEGATIVE (the deep,
      a pit dug under the sea's level), so -1 is a course and not a sentinel */
   const air=[]; let run=null;
@@ -3186,7 +3201,7 @@ function editedCell(ix,iz,cc,em,out){
   /* Below the lowest edit nothing has been touched, so the runs there are
      the column's own and are copied, not walked course by course; a run
      that reaches up past that line is walked from its foot. */
-  let from=Math.min(lo,0);
+  let from=TRUE_EARTH?lo:Math.min(lo,0);
   const sp0=cc.spans;
   if(sp0) for(let i=0;i<sp0.length;i+=2){
     if(sp0[i+1]<=from) air.push(sp0[i],sp0[i+1]);
@@ -3196,7 +3211,7 @@ function editedCell(ix,iz,cc,em,out){
     else if(run!==null){ air.push(run,y); run=null; }
   }
   if(run!==null&&run<top) air.push(run,top);
-  out.h=Math.max(-DEEP+1,top); out.kind=cc.kind; out.tree=0; out.ci=cc.ci;
+  out.h=Math.max(fl+1,top); out.kind=cc.kind; out.tree=0; out.ci=cc.ci;
   out.spans=air.length?Int16Array.from(air):null;
   return out;
 }
@@ -3937,7 +3952,13 @@ function chunkShelfHere(x,z,bedY){
    shafts and staircases — runs UP. Laid out with y fastest, a wall of forty
    blocks is one run of forty in the record instead of forty separate
    entries, and the run-length coding below gets it for nothing. */
-const EY_MIN=-64, EY_MAX=1024, EY_SPAN=EY_MAX-EY_MIN;
+/* THE HEIGHTS AN EDIT MAY STAND AT, in blocks. On the small map −64 to 1024 held the whole earth (a
+   block of height there was forty metres). On the true earth a block is 0.92 m: the floor of the rift
+   by the Yardĕn is four hundred blocks under the sea and Ḥermon three thousand over it, and a set
+   laid there was stamped into nothing (the Yardĕn's ford had neither river nor bank). There the range
+   is the earth's own, from the deeps to the highest snows; its edits are kept under a measure of their
+   own (EDIT_R), so the wider index never reads a record written with the narrow one. */
+const EY_MIN=TRUE_EARTH?-12000:-64, EY_MAX=TRUE_EARTH?10000:1024, EY_SPAN=EY_MAX-EY_MIN;
 const EDIT_VER=1;
 const EDITS=new Map();          /* chunkKey -> Map<index, block number>  (0 = broken) */
 const EDIT_DIRTY=new Set();     /* the chunks awaiting a remesh */
@@ -4000,7 +4021,7 @@ function editAt(ix,iy,iz){
 /* what the world would be here with nobody's hand in it */
 function proceduralSolid(ix,iy,iz){
   const c=cell(ix,iz); if(!c) return false;
-  if(iy>=c.h||iy<-DEEP) return false;
+  if(iy>=c.h||iy<floorOf(c.h)) return false;
   const sp=c.spans; if(!sp) return true;
   for(let i=0;i<sp.length;i+=2) if(iy>=sp[i]&&iy<sp[i+1]) return false;
   return true;
@@ -4008,7 +4029,7 @@ function proceduralSolid(ix,iy,iz){
 function proceduralBlock(ix,iy,iz){
   if(!proceduralSolid(ix,iy,iz)) return 0;
   const c=cell(ix,iz);
-  if(iy<=-DEEP) return blockId('bedrock');
+  if(iy<=floorOf(c.h)) return blockId('bedrock');
   if(iy>=c.h-1) return surfaceBlockOf(c.kind);
   /* under the surface course, the land may hold something better than stone */
   const ore=(iy>=0?oreAt(c,ix,iy,iz):0)||commonOreAt(c,ix,iy,iz);
@@ -11227,7 +11248,7 @@ function eyeUnderwater(){
      and the sea has no business in it. */
   if(state.mode==='deck'&&state.deck.level==='hold'){ _eyeUnder=false; _eyeSub=0; return false; }
   const cp=camera.position;
-  if(landAtWorld(cp.x,cp.z)){ _eyeUnder=false; _eyeSub=0; return false; }
+  if(landAtWorld(cp.x,cp.z)||inDryBasin(cp.x,cp.z)){ _eyeUnder=false; _eyeSub=0; return false; }
   /* a little hysteresis at the waterline: the eye must rise clear of the
      swell to come out, or a crest lapping the lens would flicker the whole
      sea on and off from one frame to the next */
@@ -22038,6 +22059,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
      a 32-bit vertex there is rounded to whole metres (THE EYE'S OWN ORIGIN) */
   worldScale:()=>({R:R_WORLD,K:WORLD_K,trueEarth:TRUE_EARTH,uPerKm:U_PER_KM,org:{x:ORG.x,z:ORG.z}}),
   trueCell:(ix,iz)=>TRUE_EARTH?cellRawTrue(ix,iz):null,
+  blockId:(ix,iy,iz)=>{ const b=blockOf(blockAt(ix,iy,iz)); return b?b.id:null; },
   trueAt:(x,z)=>{ const [la,lo]=latLonOf(x,z); return {lat:la,lon:lo,m:TRUE_EARTH?earthMetres(x,z,la,lo):null}; },
   absBaked:(lim)=>{ lim=lim||20000; const out=[];
     scene.traverse(o=>{ const g=o.geometry; if(!g||!(o.isMesh||o.isPoints||o.isLine)) return;
