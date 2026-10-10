@@ -5309,7 +5309,9 @@ function flFillRing(k,px,pz,kr,fine){
        would only thrash it for the ground underfoot */
     const ix=Math.floor(wx/B), iz=Math.floor(wz/B);
     let cc=cellRaw(ix,iz);
-    if(cc&&cc.h>6&&span>1){
+    /* (not on the true earth: its heights are the earth's own, smooth between the samples, and the
+       tallest of a footprint there fills every valley — the Qiḏron came up level with the Mount) */
+    if(cc&&cc.h>6&&span>1&&!TRUE_EARTH){
       const a1=cellRaw(ix+span,iz+span); if(a1&&a1.h>cc.h) cc=a1;
       const a2=cellRaw(ix-span,iz+span); if(a2&&a2.h>cc.h) cc=a2;
       const a3=cellRaw(ix+span,iz-span); if(a3&&a3.h>cc.h) cc=a3;
@@ -5362,7 +5364,8 @@ function flFillRing(k,px,pz,kr,fine){
     }
     let y,c;
     if(cc&&cc.lake!==undefined&&cc.lake>cc.h){ y=cc.lake*B+WATER_Y; c=FL_SEA; }   /* a lake of the rift, at its own level */
-    else if(cc){ y=cc.h*B; c=FL_COL[cc.kind]||FL_COL.grass; }
+    else if(cc){ y=cc.h*B; c=FL_COL[cc.kind]||FL_COL.grass;
+      if(TRUE_EARTH&&FL_DRY[cc.kind]) c=flDryTint(c,ix,iz); }
     else if(Math.hypot(wx,wz)>R_WORLD*0.9955){
       /* past the rim there is no sea and no land — only the outer darkness.
          A sheet of ocean drawn out there hung in the void below the ice. */
@@ -5384,6 +5387,20 @@ function flFillRing(k,px,pz,kr,fine){
       _flCB[i]=c[0]; _flCB[i+1]=c[1]; _flCB[i+2]=c[2]; }
   }
 }
+/* THE DRY COUNTRY FROM AFAR is not one sheet of sand. On the true earth a cell of the ring is tens
+   of metres to a few hundred, and the hills of Yahuḏah at that grain are pale summer grass broken by
+   grey limestone and the dark of olive and scrub: each cell takes a little of one or the other, by a
+   fixed lot of its own ground (so the same hill wears the same coat at every rebuild). */
+const FL_DRY={savanna:1,desert:1,badlands:1,sand:0};
+const FL_STONE=[0.60,0.59,0.55], FL_SCRUB=[0.36,0.39,0.25], _flTc=[0,0,0];
+function flLot(a,b){ let h=Math.imul(a|0,374761393)+Math.imul(b|0,668265263)|0;
+  h=Math.imul(h^(h>>>13),1274126177); return ((h^(h>>>16))>>>0)/4294967296; }
+function flDryTint(c,ix,iz){
+  const gx=ix>>4, gz=iz>>4, r=flLot(gx,gz), r2=flLot(gz+7919,gx-104729);
+  const st=r<0.34?0.30+r*0.6:0, sc=(r2<0.30&&c!==FL_COL.desert)?0.22+r2:0;
+  const dk=0.94+0.12*flLot(gx+31,gz+57);
+  for(let i=0;i<3;i++) _flTc[i]=(c[i]+(FL_STONE[i]-c[i])*st+(FL_SCRUB[i]-c[i])*sc)*dk;
+  return _flTc; }
 /* a cell index, with the spokes running round and the rings stopping at the
    ends — so the blending at the ring's own two edges leans on itself */
 function flAt(k,s){ return (k<0?0:k>=FL_RINGS?FL_RINGS-1:k)*FL_SPOKES

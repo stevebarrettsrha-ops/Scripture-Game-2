@@ -119,6 +119,8 @@ window.YAHRU_PLAN_TRUE=function(api,period){
     api.box(HX0,H0,-18.4,HXP,H0+52.5,18.4,WHITE);                                       /* the body */
     api.box(HXP,H0,-26.25,HX1,H0+52.5,26.25,WHITE);                                     /* the porch */
     api.box(HX0,H0+52.5,-18.4,HXP,H0+53.5,18.4,GOLD); api.box(HXP,H0+52.5,-26.25,HX1,H0+53.5,26.25,GOLD);
+    api.box(HX1-0.4,H0,-26.25,HX1,H0+52.5,26.25,GOLD);                                  /* the face of the porch, plated with gold (as the record of the land tells it, the first thing the sun struck) */
+    api.box(HX0-0.4,H0+44,-18.4,HX1,H0+45,18.4,GOLD); api.box(HXP,H0+44,-26.25,HX1,H0+45,-25.85,GOLD); api.box(HXP,H0+44,25.85,HX1,H0+45,26.25,GOLD);   /* a band of gold about the upper storey */
     api.box(HXP+1.5,H0,-10,HX1-1.5,H0+40,10,'air');                                     /* within the porch */
     api.box(HX1-1.5,H0,-5.25,HX1+0.1,H0+21,5.25,'air');                                 /* its open front, 20 by 40 cubits */
     api.box(HX1-0.2,H0+21,-6,HX1+0.2,H0+23,6,GOLD);                                     /* the golden vine over it */
