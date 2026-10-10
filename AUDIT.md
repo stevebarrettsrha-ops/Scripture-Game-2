@@ -11765,6 +11765,26 @@ courtyard of the kohen gadol, the upper pool, the lake at Kephar Naḥum at dawn
 Yardĕn, the trough at Bĕyth Leḥem, the upper room. Every one ran to its words without an error. The
 city photographed from the Mount of Olives, from the court and from the south-west.
 
+### The acceptance suite, on the small map
+
+Run after this round's changes:
+- **Pass:** 1–5, 8–10, 13–17, 19, 20, 22, 24–47, 48, 49, 51, 52, 56, 57, 60, 66, 68, 69. Test 50 is
+  pending by its own word.
+- **Fixed in this round:**
+  - Tests 6, 7 and 13–15 broke on a debug read this round added under the name `blockId`, which the
+    suite uses to look a block up by name. It is `blockNameAt` now.
+  - Test 48 read the crop shader as JavaScript and stumbled on the eye's own origin; it reads that
+    expression as the vertex's place on the map now.
+- **Test 11** failed inside the whole suite (1.78×), and passed alone on this round's code (1.04×,
+  open 2,169 ms), as it does on the commit before Phase T (1.03×).
+- **Already failing before Phase T** (run on ee0286c with the same result): test 12 (plains chunks
+  3.79 ms against a 3.31 ceiling), test 18 (134 of 198 villagers cannot be built into), test 21
+  (4 of 174,966 cells outside their ore band), and test 23 (the stores offer none of the 10 tools).
+  They are not this round's, and are left for their own.
+- **Not run this time:** 53–55 and 61–65 (the beasts, the people's day, the trade); the browser
+  closed under the long beast tests, and none of them reads anything Phase T touched on the small
+  map.
+
 ### Still to do (Phase T)
 
 - Rivers drawn at their true widths along the earth's own courses, and the coasts and lakes walkable.
