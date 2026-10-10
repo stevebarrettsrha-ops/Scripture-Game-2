@@ -11695,11 +11695,33 @@ place: one degree of latitude is 111 km, 722,768 units, and the earth's radius o
 
 ### How it is chosen
 
-The small map stays the default until the true earth has been played through. The traveller picks the
-earth in the voyage's Options ("The earth: the small map / at her true measure"), and the same
-choice is on the story's road; the page raises the world again. A link can carry it too
-(`?earth=true`). A voyage in the log is carried to the same spot on the map, and the block edits of
-each measure are kept apart.
+**The whole game is on the true earth** (asked: "what if I want the whole game to use the true
+world??"): the voyage, the story and Scripture Unfolds all raise it unless the small map is chosen.
+The traveller can still pick the earth in the voyage's Options ("The earth: the small map / at her
+true measure"), and the same choice is on the story's road; the page raises the world again. A link
+can carry it too (`?earth=small`, `?earth=true`). A voyage in the log is carried to the same spot on
+the map, and the block edits of each measure are kept apart (what was built on the small map stays
+with the small map). The tools (the acceptance suite, the shots) still see the small map they were
+written about, unless run with `EARTH=true`.
+
+**Found by starting a fresh voyage on it, and fixed:**
+- **The view went white at sea.** The two backdrop sheets of the sea were each one disc the size of
+  the world about its middle; at the true measure their corners lay forty million units from the eye,
+  past what the card's 32-bit numbers can carry, and now and then a sheet came out in front of the
+  near sea, wholly in the fog. Found by elimination: not the post pass, the shadows, the mirror, a
+  storm or the basins; drawn with no fog the sea was there (57 against 222). On the true earth the
+  sheets are 600,000-unit discs kept under the eye; the wall at the rim is put by until the eye is
+  near it.
+- **The sea was cut off in squares** (the traveller's own diagnosis: "the view threshold also needs
+  to expand"). The live water was a square 770 m across and the lit sea floor one of 100 m, and the
+  true earth is seen eight kilometres out. On the true earth the live water is three times as wide,
+  and the floor's rim fades into the colour of the dark sheet beyond it, not into a pale one.
+
+**The screen less crowded** (asked: "create a button to hide hud … and let the name of a place flash
+once"): H, or the ◐ in the corner, puts away the rail, the title, the clock, the compass, the little
+chart and the line of keys (the belt, the prompts and the verses stay; the choice is kept). The name
+of a place is shown as it is come into, for a few seconds, and let go; the map (M) says where you are
+at its head.
 
 ### What was built (commits 14ab5f8 to b98a3a5)
 

@@ -40,7 +40,11 @@ async function open(opts){
        able to ask it questions too (§5's handshake) */
     /* settings handed to the engine before it boots (window.__INJECT): the eye's own origin, the
        measure of the world, the looks turned off — so a tool can try the world another way */
-    if(opts.inject) await page.addInitScript(o=>{ window.__INJECT=Object.assign(window.__INJECT||{},o); },opts.inject);
+    /* THE EARTH THE TOOLS SEE. The game raises the true earth unless told otherwise; the acceptance suite
+       and the shots were written about the small map, so they are given it unless a caller asks for
+       another (opts.inject.worldK) or the environment does (EARTH=true node tools/acceptance.js) */
+    const inj=Object.assign({worldK:process.env.EARTH||'1'},opts.inject||{});
+    await page.addInitScript(o=>{ window.__INJECT=Object.assign(window.__INJECT||{},o); },inj);
     await page.goto('file://'+path.join(ROOT,opts.page||'index.html'));
     if(opts.page) return {browser,page,errs};
     /* the world builds under the loading screen; the menu is the sign it stands */

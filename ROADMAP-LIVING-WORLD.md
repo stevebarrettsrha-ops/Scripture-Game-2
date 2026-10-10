@@ -223,9 +223,9 @@ earth at the same measure as the people: one degree of latitude is 111 km, which
   block edits, which cannot be carried, are kept aside rather than laid in the wrong place.
 
 **Status (Round 138; AUDIT §4ek).** T1–T4 and T6–T8 are built, with T5's true pace at sea. The
-small map is still the default: the traveller chooses the true earth in the Options or on the
-story's road. Still to do: rivers at their true widths, walkable coasts and lakes, flying at the true
-measure, the far houses of the city in more detail, and making the true earth the default.
+true earth is the default for the whole game (the voyage, the story, Scripture Unfolds); the small
+map is a choice in the Options and on the story's road. Still to do: rivers at their true widths, walkable coasts and lakes, flying at the true
+measure, and the far houses of the city in more detail.
 
 ## How each phase is proven
 

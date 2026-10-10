@@ -46,12 +46,14 @@ function siteCountry(i){ if(i<COUNTRIES.length) return i; const st=SITES[i]; ret
 const U_PER_M_WORLD=6.5, M_PER_DEG=111195;
 const WORLD_TRUE_K=180*M_PER_DEG*U_PER_M_WORLD/180000;
 /* which earth is raised: the harness's word first, then the page's address (?earth=true, ?earth=small),
-   then the traveller's own choice in the Options (kept under EARTH_KEY, read by the voyage and the
-   story's pages alike) */
+   then the traveller's own choice in the Options (kept under EARTH_KEY, read by the voyage, the story's
+   pages and SCRIPTURE UNFOLDS alike). With no word from any of them it is THE TRUE EARTH, wherever
+   its heights came with the game (world/dem.js); a copy without them raises the small map. */
 const EARTH_KEY='voyage:earth';
 const WORLD_K=(()=>{ let v=(window.__INJECT||{}).worldK;
   if(v===undefined){ try{ const q=new URLSearchParams(location.search).get('earth'); if(q) v=q; }catch(e){} }
   if(v===undefined){ try{ const k=localStorage.getItem(EARTH_KEY); if(k) v=k; }catch(e){} }
+  if(v===undefined) v=(window.DEM&&window.DEM.ready())?'true':'small';
   return v==='true'?WORLD_TRUE_K:(+v>0?+v:1); })();
 const R_WORLD=Math.round(180000*WORLD_K), B=6, CH=16, CHW=B*CH, VIEW=13; /* the rim: 180 degrees from the pole */
 /* at (or near) the true measure the land is the earth's own: its heights and coasts are read from
@@ -5692,7 +5694,15 @@ const dirL=new THREE.DirectionalLight(0xffffff,0.5); dirL.position.set(0.4,1,0.2
    They are spread by hundreds of units now (the eye cannot tell a flat
    backdrop's depth anyway), and the fighting has nothing left to fight. */
 const SEA_DISC=296, SEA_DISC_DEEP=700;
-const seaDeep=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),
+/* THE BACKDROP SHEETS ON THE TRUE EARTH go with the eye. Laid as one disc the size of the world about
+   its middle, each was a hundred and thirty million units across, made of a few dozen triangles whose
+   corners lay forty million units from the eye — past what the card's own 32-bit numbers can carry
+   through the drawing of a triangle. So now and then the sheet came out in FRONT of the near sea, and
+   wholly in the fog: the whole view went white, with only the ship's name standing in it. On the true
+   earth each is a disc of 600,000 units (ninety kilometres, well past the fog's end) kept under the
+   eye; it is one flat colour, so its moving shows nothing. On the small map it stays as it was. */
+const SEA_DISC_R=TRUE_EARTH?600000:R_WORLD*1.002;
+const seaDeep=new THREE.Mesh(new THREE.CircleGeometry(SEA_DISC_R,120),
   new THREE.MeshBasicMaterial({color:0x0c2c48}));
 /* (both now lie UNDER the foundations of the earth, course −48: at −60 the
    dark sheet ran straight through the caves under the plains, a flat blue
@@ -5757,7 +5767,7 @@ function updateWallWeather(px,pz,dt){
    to solid white at midday and flood the sea. It keeps a fixed deep blue and
    is lit only by the fog it sits within. */
 const farSeaMat=new THREE.MeshBasicMaterial({color:0x123353});
-const sea=new THREE.Mesh(new THREE.CircleGeometry(R_WORLD*1.002,120),farSeaMat);
+const sea=new THREE.Mesh(new THREE.CircleGeometry(SEA_DISC_R,120),farSeaMat);
 /* the dark bed of the sea sits WELL below the surface now, so the sandy
    shelf along every coast truly shows through the clear shallows above it */
 sea.rotation.x=-Math.PI/2; sea.position.y=WATER_Y-SEA_DISC; scene.add(sea);
@@ -5840,11 +5850,16 @@ function seaSlope(x,z){ let sx=0,sz=0;
    It has to reach as far as the haze now does, or its flat edge stands out
    as a seam on open water where the fog no longer hides it. */
 const WG_S=2500, WG_SEG=260;          /* (fine enough to carry a storm's shortest sea, 140 units crest to crest) */
+/* ON THE TRUE EARTH the view runs eight kilometres before the fog has it, and a square of live water
+   770 m across ended in a straight line against the dark sheet beyond it, in plain sight from the deck.
+   There the square is three times as wide, and finer in proportion, so a storm's shortest sea is
+   still carried (36 units to a cell). The small map keeps its own. */
+const WG_SW=TRUE_EARTH?7500:WG_S, WG_SEGW=TRUE_EARTH?420:WG_SEG;
 const waveGeo=(()=>{
-  const g=new THREE.BufferGeometry(), pos=[], idx=[], N=WG_SEG+1;
+  const g=new THREE.BufferGeometry(), pos=[], idx=[], N=WG_SEGW+1;
   for(let j=0;j<N;j++) for(let i=0;i<N;i++)
-    pos.push(-WG_S+i/WG_SEG*2*WG_S, 0, -WG_S+j/WG_SEG*2*WG_S);
-  for(let j=0;j<WG_SEG;j++) for(let i=0;i<WG_SEG;i++){
+    pos.push(-WG_SW+i/WG_SEGW*2*WG_SW, 0, -WG_SW+j/WG_SEGW*2*WG_SW);
+  for(let j=0;j<WG_SEGW;j++) for(let i=0;i<WG_SEGW;i++){
     const a=j*N+i, b=a+1, c=a+N, d=c+1; idx.push(a,c,b, b,c,d); }
   g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
   g.setIndex(idx); return g;
@@ -5916,7 +5931,7 @@ const waveMat=new THREE.ShaderMaterial({
     void main(){
       vec2 P=position.xz+uCenter;
       float ed=max(abs(position.x),abs(position.z));
-      float taper=1.0-smoothstep(${(WG_S*0.55).toFixed(1)},${(WG_S*0.97).toFixed(1)},ed);
+      float taper=1.0-smoothstep(${(WG_SW*0.55).toFixed(1)},${(WG_SW*0.97).toFixed(1)},ed);
       /* THE SWELL LIES DOWN AS IT COMES ASHORE. A wave in a storm stands
          nearly ten units, and the flattest beach is only six above the
          waterline — so the open-sea swell, carried right up onto the land by
@@ -9682,6 +9697,7 @@ seaFloor.visible=false; seaFloor.frustumCulled=false; scene.add(seaFloor);
    the block's face now, so all that is left for the vertex tint is the light
    (which fails with depth) and the cold of the water. */
 const SB_WATER=[0.42,0.62,0.70], SB_COOL=0.20;
+const SB_DEEPC=(()=>{ const c=new THREE.Color(0x123353); return [c.r,c.g,c.b]; })();   /* the far sea sheet's own colour (farSeaMat) */
 let _sbAt=null;
 /* THE BED IS LAID OVER MANY FRAMES AND SWAPPED IN WHOLE — a cell at a time
    into a spare pair of buffers, on a threshold of real travel; the bed on
@@ -9799,11 +9815,17 @@ function updateSeaFloor(px,pz,force){
          The outer cells lean wholly into the water's own colour now, so the
          floor is lost by degrees into blue — ground fading into deep water —
          and never ends on a line. */
+      /* (ON THE TRUE EARTH the shallows run on for kilometres past the patch, and what is seen beyond
+         its rim is the dark sheet under the water, not the pale water-colour: faded to the pale, the rim
+         stood as a light square on dark blue, sliding with the ship — "cutting off with rectangle
+         boxes". There it fades to the sheet's own colour, over the outer third of the patch, eased.) */
       const eN=SB_N-1, ecl=Math.min(Math.min(i,eN-i),Math.min(j,eN-j));
-      const ef=Math.min(1,ecl/9);
-      r =r *ef + SB_WATER[0]*lit*(1-ef);
-      g2=g2*ef + SB_WATER[1]*lit*(1-ef);
-      b2=b2*ef + SB_WATER[2]*lit*(1-ef);
+      let ef=Math.min(1,ecl/9);
+      const EW=TRUE_EARTH?SB_DEEPC:SB_WATER, el=TRUE_EARTH?1:lit;
+      if(TRUE_EARTH){ const t=Math.min(1,ecl/(SB_N*0.34)); ef=t*t*(3-2*t); }
+      r =r *ef + EW[0]*el*(1-ef);
+      g2=g2*ef + EW[1]*el*(1-ef);
+      b2=b2*ef + EW[2]*el*(1-ef);
       for(let q=0;q<4;q++){ const t=(o+q)*3;
         _sbC[t]=r; _sbC[t+1]=g2; _sbC[t+2]=b2; }
       /* THE SIDE OF A BLOCK IS DARKER THAN ITS TOP, as it is ashore — that
@@ -17615,6 +17637,7 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
      flying, diving, the spear, the net — are not taken from behind the map.
      They used to run underneath it: C set the diver draining breath under
      the overlay, G took flight, E went ashore, all unseen. */
+  if(e.code==='KeyH'){ toggleHud(); return; }
   if(state.firm){ if(e.code==='KeyM') toggleMap(); if(e.code==='KeyL') toggleLog(); return; }
   if(e.code==='Space'){ e.preventDefault(); if(state.mode==='walk') state.walk.jumpReq=true; }
   if(e.code==='KeyE') toggleAshore();
@@ -20136,7 +20159,7 @@ function placeTick(){
   }
   if(yahruPos&&!seen.yahru&&Math.hypot(p.x-yahruPos.x,p.z-yahruPos.z)<300){
     seen.yahru=true; const vs=VERSES.find(q=>q.ref.indexOf('5:5')>=0); if(vs) toast(vs.t,vs.ref); }
-  $('place').textContent=txt;
+  placeFlash(txt);
   /* the hour HERE, on a twelve-hour face, and the name of that hour */
   const pp=playerXZ(), lh=localHourAt(pp.x,pp.z);
   /* THREE LINES, never four: the panel sits above the button rail, and a
@@ -20305,7 +20328,26 @@ function drawMapInto(ctx2,size,withNames,noMark){
 const mini=$('mini'), minictx=mini.getContext('2d');
 let bigOpen=false;
 function toggleMap(){ bigOpen=!bigOpen; $('bigmap').style.display=bigOpen?'flex':'none';
-  if(bigOpen) sizeBig(); }
+  if(bigOpen){ const h=$('m-here'); if(h) h.textContent=placeFlash.cur||''; sizeBig(); } }
+/* ---- THE NAME OF THE PLACE, ONCE ----
+   Shown when a new name has held for a moment (a bank of a river, the edge of the waters off a land,
+   is not flashed again at every step across it), kept a few seconds, and let go. The name now is
+   kept for the map, which says it at its head. */
+function placeFlash(txt){
+  const el=$('place'), now=performance.now(); placeFlash.cur=txt;
+  if(txt!==placeFlash.cand){ placeFlash.cand=txt; placeFlash.since=now; }
+  if(!el||txt===placeFlash.shown||now-placeFlash.since<1200) return;
+  placeFlash.shown=txt; el.textContent=txt; el.classList.add('show');
+  clearTimeout(placeFlash.t); placeFlash.t=setTimeout(()=>el.classList.remove('show'),4500); }
+/* ---- THE BUTTONS PUT AWAY (H, or the ◐ in the corner) — the choice kept on this machine ---- */
+const HUD_KEY='voyage:hud-off';
+function setHudOff(off,quiet){ document.body.classList.toggle('hud-off',!!off);
+  try{ localStorage.setItem(HUD_KEY,off?'1':'0'); }catch(e){}
+  const b=$('b-hud'); if(b) b.title=off?'Bring the buttons back (H)':'Put the buttons away (H)';
+  if(!quiet&&off) toast('The buttons are put away — H, or the ◐ in the corner, brings them back.'); }
+function toggleHud(){ setHudOff(!document.body.classList.contains('hud-off')); }
+{ const b=$('b-hud'); if(b) b.onclick=()=>toggleHud();
+  let off=false; try{ off=localStorage.getItem(HUD_KEY)==='1'; }catch(e){} setHudOff(off,true); }
 /* ---- THE TRAVELLER'S HAND ON THE YEAR (the K key) ----
    Step round the ring — Spring, Summer, Autumn, Winter, and back to the year's
    own natural course — and the whole world answers: the leaves gild or green,
@@ -24443,7 +24485,7 @@ function frame(){ orgSnap();
     /* keyed on the VIEW's reach, not the flyer's height alone — the eye
        drawn far back from the deck sees the same pale square from the same
        distance, and must lose it the same way */
-    frame._wgHi = frame._wgHi ? viewReach>4800 : viewReach>5200;
+    frame._wgHi = frame._wgHi ? viewReach>4800*WG_SW/WG_S : viewReach>5200*WG_SW/WG_S;
     waveGrid.visible=!inHold&&!frame._wgHi;
     sea.visible=seaDeep.visible=!inHold&&!underEye;
     /* over the furnished shallows the discs drop far beneath the lit bed, so
@@ -24454,6 +24496,12 @@ function frame(){ orgSnap();
        with them, a whole-ocean flicker at every crossing of the shelf line */
     sea.position.y    +=((shallowView?WATER_Y-520:WATER_Y-SEA_DISC )-sea.position.y    )*Math.min(1,dt*2.5);
     seaDeep.position.y+=((shallowView?WATER_Y-820:WATER_Y-SEA_DISC_DEEP)-seaDeep.position.y)*Math.min(1,dt*2.5); }
+  if(TRUE_EARTH){ sea.position.x=seaDeep.position.x=camera.position.x; sea.position.z=seaDeep.position.z=camera.position.z;
+    /* and the wall at the rim, built the same way (a ring of corners millions of units apart), is put
+       by until the eye is within two million units of it */
+    const farFromRim=R_WORLD-Math.hypot(camera.position.x,camera.position.z)>2e6;
+    if(farFromRim&&voidWall.visible){ voidWall.visible=false; voidWall.userData.trueHid=true; }
+    else if(!farFromRim&&voidWall.userData.trueHid){ voidWall.visible=true; voidWall.userData.trueHid=false; } }
   seaLifeTick(p.x,p.z,dt);
   rippleTick(dt,p.x,p.z);
   splashTick(dt);

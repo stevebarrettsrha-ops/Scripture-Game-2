@@ -108,7 +108,7 @@ function render(){
    The same choice as the voyage's Options (the engine reads it, under the same key, when an act's
    page raises the world) */
 { const E=$('h-earth'), KEY='voyage:earth';
-  const cur=()=>{ try{ return localStorage.getItem(KEY)==='true'; }catch(e){ return false; } };
+  const cur=()=>{ try{ return localStorage.getItem(KEY)!=='small'; }catch(e){ return true; } };   /* (the true earth unless the small map was chosen) */
   const lab=()=>{ E.textContent=cur()?'🌍 The earth: at her true measure':'🗺 The earth: the small map'; };
   if(E){ lab(); E.onclick=()=>{ try{ localStorage.setItem(KEY,cur()?'small':'true'); }catch(e){} lab(); }; } }
 $('h-reset').onclick=()=>{ if(!confirm('Wash the family scroll clean and begin the road again?')) return;
