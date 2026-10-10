@@ -472,6 +472,10 @@ TEX.marble     = mkTex(g=>{ speckle(g,[238,234,224],5,[222,218,206],0.20);
   for(let k=0;k<2;k++){ const y0=3+hash2(k,8.3)*10;
     for(let x=0;x<16;x+=FG){ const y=y0+Math.sin(x*0.5+k*2.1)*1.2;
       g.fillStyle=C([200,198,192]); g.fillRect(x,Math.round(y/FG)*FG,FG,FG); } } },16,16,RIM);
+/* THE VEIL: blue, purple and scarlet, woven on fine white linen, a pattern of the weaver (Shemoth 26:31) */
+TEX.veil       = mkTex(g=>{ speckle(g,[70,52,128],8,[58,44,112],0.3);
+  for(let y=0;y<16;y+=4){ g.fillStyle=C([150,36,48]); g.fillRect(0,y,16,FG); g.fillStyle=C([226,220,204]); g.fillRect(0,y+2,16,FG); }
+  for(let x=2;x<16;x+=6){ g.fillStyle=C([46,74,150]); g.fillRect(x,0,FG,16); } },16,16,RIM);
 /* flint: dark, glassy, and it breaks in shells */
 TEX.flint      = mkTex(g=>{ speckle(g,PB.flint.b,18,PB.flint.a,0.34);
   for(let k=0;k<9;k++){ const cx=hash2(k,1.9)*16, cy=hash2(k,8.3)*16, r=1.2+hash2(k,3.3)*1.6;
@@ -696,7 +700,7 @@ blockMat('ironPick',TEX.ironPick,{transparent:true});
 blockMat('goldOre',TEX.goldOre); blockMat('silverOre',TEX.silverOre);
 blockMat('copperOre',TEX.copperOre); blockMat('ironOre',TEX.ironOre);
 blockMat('alabaster',TEX.alabaster); blockMat('flint',TEX.flint);
-blockMat('goldLeaf',TEX.goldLeaf); blockMat('bronze',TEX.bronze); blockMat('marble',TEX.marble);
+blockMat('goldLeaf',TEX.goldLeaf); blockMat('bronze',TEX.bronze); blockMat('marble',TEX.marble); blockMat('veil',TEX.veil);
 blockMat('sand',TEX.sand); blockMat('stone',TEX.stone); blockMat('cobble',TEX.cobble); blockMat('basalt',TEX.basalt);
 blockMat('deepStone',TEX.deepStone); blockMat('bedrock',TEX.bedrock);
 blockMat('mudbrick',TEX.mudbrick); blockMat('plaster',TEX.plaster); blockMat('thatch',TEX.thatch);
@@ -21359,6 +21363,14 @@ function setBuilder(ax,az,baseY,opt){
       const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1)), [j0,j1]=cells(Y(y0),Y(y1));
       for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++) for(let j=j0;j<=j1;j++) stampBlock(i,j,k,n);
       if(api.farG&&n>0&&Math.max(Math.abs(x1-x0),Math.abs(y1-y0),Math.abs(z1-z0))>=2.5) farBox(i0*B,j0*B,k0*B,(i1+1)*B,(j1+1)*B,(k1+1)*B,n); },
+    /* THE FINE WORK OF A SET, smaller than a block: the branches of a lampstand, the horns of an altar,
+       the legs of a table. Drawn as it is, in the block's own material, but laid in no block and
+       standing in no man's way (the set's blocks are its body; these are its ornaments) */
+    detail(x0,y0,z0,x1,y1,z1,col){ const n=setBlockFor(col), b=BLOCKS[n]; if(!b) return;
+      if(!api.detG) api.detG=newG();
+      const was2=_stampOn; _stampOn=null;
+      try{ emitBox(api.detG,X(Math.min(x0,x1)),Y(Math.min(y0,y1)),Z(Math.min(z0,z1)),X(Math.max(x0,x1)),Y(Math.max(y0,y1)),Z(Math.max(z0,z1)),b.mSide,b.mTop,null); }
+      finally{ _stampOn=was2; } },
     /* the land's own trees taken off a lot of the set where no pad is laid (a slope a scene
        is played on); the lot is written down as treeless, as a house's lot is */
     clearTrees(x0,z0,x1,z1){ clearLotOfTrees(Math.min(X(x0),X(x1)),Math.min(Z(z0),Z(z1)),Math.max(X(x0),X(x1)),Math.max(Z(z0),Z(z1)),baseY); },
@@ -21386,6 +21398,9 @@ function setBuilder(ax,az,baseY,opt){
         for(let j=tY;j<Math.max(h,tY)+2;j++) stampBlock(i,j,k,0);
         for(let j=Math.min(h,tY)-1;j<tY-1;j++) if(j>=h-1) stampBlock(i,j,k,fill);
         stampBlock(i,tY-1,k,top); }
+      /* (and a city's level ground is seen from afar with her walls: the pavement of the Mount stood
+         as dun hillside past the streamed ground, under walls and a House drawn in full) */
+      if(api.farG&&!P.r&&top) farBox(i0*B,(tY-4)*B,k0*B,(i1+1)*B,tY*B,(k1+1)*B,top);
       /* ---- AND ITS EDGE IS EASED INTO THE LAND ----
          Cut level into a hillside, a set stood in a pit with sheer earthen walls; laid on a
          slope, it stood on a cliff. The ground for `blend` blocks about it is eased from the
@@ -21469,10 +21484,14 @@ function setBuilder(ax,az,baseY,opt){
           t.userData.cx=(+q[0]+0.5)*FAR_T; t.userData.cz=(+q[1]+0.5)*FAR_T;
           for(const mat in G) t.add(bucketMesh(G[mat],MAT[mat])); g.add(t); }
         scene.add(g); api.farGroup=g; SET_FAR.add(g); }
+      if(api.detG&&!api.detGroup){ const g=new THREE.Group(); g.name='set-detail';
+        for(const mat in api.detG){ const gg=api.detG[mat]; if(gg.p&&gg.p.length) g.add(bucketMesh(gg,MAT[mat])); }
+        scene.add(g); api.detGroup=g; }
       return api; },
     drop(){ api.end(); stampDrop(grp); for(const h of houses) h.drop(); houses.length=0; underWaterDrop(grp);
       if(api.farGroup){ scene.remove(api.farGroup); SET_FAR.delete(api.farGroup);
-        api.farGroup.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); api.farGroup=null; } }
+        api.farGroup.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); api.farGroup=null; }
+      if(api.detGroup){ scene.remove(api.detGroup); api.detGroup.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); api.detGroup=null; api.detG=null; } }
   };
   return api;
 }

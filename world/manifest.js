@@ -518,6 +518,7 @@ const FILES=[
   'blocks/gold-leaf.js',
   'blocks/bronze.js',
   'blocks/marble.js',
+  'blocks/veil.js',
   'blocks/altar.js',
   'blocks/bench.js',
   'blocks/bitumen.js',
