@@ -476,6 +476,23 @@ TEX.marble     = mkTex(g=>{ speckle(g,[238,234,224],5,[222,218,206],0.20);
 TEX.veil       = mkTex(g=>{ speckle(g,[70,52,128],8,[58,44,112],0.3);
   for(let y=0;y<16;y+=4){ g.fillStyle=C([150,36,48]); g.fillRect(0,y,16,FG); g.fillStyle=C([226,220,204]); g.fillRect(0,y+2,16,FG); }
   for(let x=2;x<16;x+=6){ g.fillStyle=C([46,74,150]); g.fillRect(x,0,FG,16); } },16,16,RIM);
+/* THE STONES OF THE NATIONS' WORKS (Round 139). Each wonder is raised in the stone it was raised in:
+   the golden sandstone of the quarries of Silsila that built No-Amon's pylons; the rose rock of Sela,
+   banded red and cream and ochre as the sea laid it down; the red granite of Seweneh that the obelisks
+   were cut from whole; and the grey stone of Parsa, polished nearly black. */
+TEX.sandstone  = mkTex(g=>{ speckle(g,[210,178,122],10,[190,156,104],0.26);
+  g.fillStyle=C([164,132,86]); g.fillRect(0,7,16,FG); g.fillRect(0,15,16,FG); g.fillRect(5,0,FG,7); g.fillRect(12,8,FG,7); },16,16,RIM);
+TEX.roseRock   = mkTex(g=>{ speckle(g,[196,120,104],10,[176,98,86],0.3);
+  for(let k=0;k<4;k++){ const y0=2+k*4, col=[[226,170,140],[150,78,70],[214,150,96],[170,92,84]][k];
+    for(let x=0;x<16;x+=FG){ const y=y0+Math.sin(x*0.42+k*1.7)*1.4; g.fillStyle=C(col); g.fillRect(x,Math.round(y/FG)*FG,FG,FG*1.5); } } },16,16,RIM);
+TEX.redGranite = mkTex(g=>{ speckle(g,[164,88,82],16,[120,64,62],0.34);
+  for(let k=0;k<14;k++){ g.fillStyle=C(hash2(k,4.1)>0.5?[44,40,42]:[216,190,180]); g.fillRect(Math.floor(hash2(k,1.3)*16),Math.floor(hash2(k,7.7)*16),FG,FG); } },16,16,RIM);
+TEX.glazedBrick= mkTex(g=>{ speckle(g,[44,86,168],8,[36,70,146],0.26);
+  g.fillStyle=C([200,190,150]); g.fillRect(0,7,16,FG); g.fillRect(0,15,16,FG); g.fillRect(7,0,FG,7); g.fillRect(3,8,FG,7); g.fillRect(12,8,FG,7);
+  g.fillStyle=C([96,140,214]); g.fillRect(2,2,FG*3,FG); g.fillRect(9,10,FG*2,FG); },16,16,RIM);
+TEX.greyStone  = mkTex(g=>{ speckle(g,[132,130,126],8,[112,110,108],0.24);
+  g.fillStyle=C([92,90,88]); g.fillRect(0,15,16,FG); g.fillRect(0,0,FG,16);
+  g.fillStyle=C([170,168,164]); g.fillRect(3,4,FG*4,FG); },16,16,RIM);
 /* flint: dark, glassy, and it breaks in shells */
 TEX.flint      = mkTex(g=>{ speckle(g,PB.flint.b,18,PB.flint.a,0.34);
   for(let k=0;k<9;k++){ const cx=hash2(k,1.9)*16, cy=hash2(k,8.3)*16, r=1.2+hash2(k,3.3)*1.6;
@@ -701,6 +718,7 @@ blockMat('goldOre',TEX.goldOre); blockMat('silverOre',TEX.silverOre);
 blockMat('copperOre',TEX.copperOre); blockMat('ironOre',TEX.ironOre);
 blockMat('alabaster',TEX.alabaster); blockMat('flint',TEX.flint);
 blockMat('goldLeaf',TEX.goldLeaf); blockMat('bronze',TEX.bronze); blockMat('marble',TEX.marble); blockMat('veil',TEX.veil);
+blockMat('sandstone',TEX.sandstone); blockMat('roseRock',TEX.roseRock); blockMat('redGranite',TEX.redGranite); blockMat('greyStone',TEX.greyStone); blockMat('glazedBrick',TEX.glazedBrick);
 blockMat('sand',TEX.sand); blockMat('stone',TEX.stone); blockMat('cobble',TEX.cobble); blockMat('basalt',TEX.basalt);
 blockMat('deepStone',TEX.deepStone); blockMat('bedrock',TEX.bedrock);
 blockMat('mudbrick',TEX.mudbrick); blockMat('plaster',TEX.plaster); blockMat('thatch',TEX.thatch);
@@ -16992,7 +17010,42 @@ const LM_BUILDERS={pyramid:lmPyramid,ziggurat:lmZiggurat,temple:lmTemple,stoneci
    seven stages, the Parthenon 69.5 by 30.9 m on columns 10.4 m high). Each is laid course by course,
    a block to the course, so a pyramid is a stair of 159 courses and not nine. */
 const lmU=m=>m*U_PER_M_WORLD;
+/* ---- A WONDER RAISED BY ITS OWN PLAN (Round 139) ----
+   The generic temple above is one shape for every temple: a box on a ring of square posts. A wonder that
+   has its own plan (world/wonders-true.js: `tm.form`) is laid by it instead, in metres about the site, with
+   x to the east, z to the south and y over the site's own ground, as the city of the great king is. The
+   plan is turned by whole quarters to the true bearing of the place (north on the disc is toward its midst,
+   and turns with the longitude), so a pylon stands square to the blocks and still faces nearly the way its
+   builders faced it. */
+function lmQuarter(L){ return ((Math.round(L.lon/90)%4)+4)%4; }
+function lmLocal(L,x,z){ const k=lmQuarter(L), U=lmU;
+  return (lx,lz)=>{ const [p,q]=k===0?[lx,lz]:k===1?[lz,-lx]:k===2?[-lx,-lz]:[-lz,lx]; return [x+U(p),z+U(q)]; }; }
+/* A WORK AS BROAD AS A TOWN IS SEEN FROM AFAR IN TILES. The silhouette of a wonder was put away whole
+   once the chunk at its middle was laid; Karnak is half a kilometre across and the streamed blocks reach
+   some two hundred metres, so from its gate its far half simply was not there. Its triangles are laid in
+   tiles of two chunks a side, and each is put away only when the chunk under it is laid. */
+const LM_TILE=CHW*2;
+function lmTileG(G,x,z){ const T=G.__tiles; if(!T) return G; const k=Math.floor(x/LM_TILE)+','+Math.floor(z/LM_TILE);
+  let g=T.get(k); if(!g){ g=newG(); T.set(k,g); } return g; }
+function lmForm(G,x,z,y,L){ const t=L.tm, F=window.WONDER_FORMS&&WONDER_FORMS[t.form]; if(!F) return false;
+  const W=lmLocal(L,x,z), U=lmU;
+  const api={ tm:t,
+    box(x0,y0,z0,x1,y1,z1,m,top){ const [ax,az]=W(x0,z0), [bx,bz]=W(x1,z1), lo=Math.min(y0,y1);
+      emitBox(lmTileG(G,(ax+bx)/2,(az+bz)/2),Math.min(ax,bx),y+U(lo),Math.min(az,bz),Math.max(ax,bx),y+U(Math.max(y0,y1)),Math.max(az,bz),m,top||m,lo>0.3?m:null); },
+    /* the ground of a court made level with the site: the land above cut away, the land below filled,
+       its top laid with `top`. Only the blocks are levelled; the far land keeps its own lie */
+    level(x0,z0,x1,z1,top,fill){ if(!_stampOn) return;
+      const [ax,az]=W(x0,z0), [bx,bz]=W(x1,z1), ty=Math.round(y/B), nt=blockForMat(top||'sand'), nf=blockForMat(fill||top||'sand');
+      for(let ix=Math.floor(Math.min(ax,bx)/B);ix<Math.ceil(Math.max(ax,bx)/B);ix++) for(let iz=Math.floor(Math.min(az,bz)/B);iz<Math.ceil(Math.max(az,bz)/B);iz++){
+        const c=cell(ix,iz); if(!c||c.kind==='wall') continue;
+        for(let j=ty;j<c.h+2;j++) stampBlock(ix,j,iz,0);
+        for(let j=c.h-1;j<ty-1;j++) stampBlock(ix,j,iz,nf);
+        stampBlock(ix,ty-1,iz,nt); } },
+    /* the land's own height here, in metres over the site */
+    ground(lx,lz){ const [ax,az]=W(lx,lz); return (topY(Math.floor(ax/B),Math.floor(az/B))-y)/U_PER_M_WORLD; } };
+  F(api); return true; }
 function lmTrue(G,x,z,y,L){ const t=L.tm, U=lmU;
+  if(t.form&&lmForm(G,x,z,y,L)) return;
   switch(L.kind){
   case 'pyramid': for(const P of t.parts){ const px=x+U(P.dx), pz=z+U(P.dz), n=Math.max(4,Math.round(P.h/M_PER_BLK)), hb=U(P.base/2);
       const gy=topY(Math.floor(px/B),Math.floor(pz/B));
@@ -17439,7 +17492,9 @@ function seacavePass(px,pz){
 }
 function lmClearGround(L,x,z,y){ const t=L.tm, U=lmU, rects=[];
   const sq=(cx,cz,h)=>rects.push([cx-h,cz-h,cx+h,cz+h]);
-  if(L.kind==='temple') rects.push([x-U(t.L/2+30),z-U(t.W/2+30),x+U(t.L/2+30),z+U(t.W/2+30)]);
+  if(t.clear){ const W=lmLocal(L,x,z), [ax,az]=W(t.clear[0],t.clear[1]), [bx,bz]=W(t.clear[2],t.clear[3]);
+    rects.push([Math.min(ax,bx),Math.min(az,bz),Math.max(ax,bx),Math.max(az,bz)]); }
+  else if(L.kind==='temple') rects.push([x-U(t.L/2+30),z-U(t.W/2+30),x+U(t.L/2+30),z+U(t.W/2+30)]);
   else if(L.kind==='pyramid') for(const P of t.parts) sq(x+U(P.dx),z+U(P.dz),U(P.base/2+40));
   else if(L.kind==='ziggurat') sq(x,z,U(Math.max(t.tiers[0][0],t.tiers[0][1])/2+60));
   else if(L.kind==='city') sq(x,z,U(t.R+20));
@@ -17463,6 +17518,7 @@ function spawnLandmark(i){
   else if(L.kind==='falls'){ g=lmFalls(L); if(g) scene.add(g); }
   else if(L.kind!=='mount'){
     const G=newG();
+    if(TRUE_EARTH&&L.tm&&L.tm.form) Object.defineProperty(G,'__tiles',{value:new Map(),enumerable:false});
     _solidRec=[];                       /* the builder writes its own collision */
     var lmSolids;
     /* ON THE TRUE EARTH A WORK OF THE ANCIENTS STANDS IN ITS OWN GROUND: the wild wood of the true earth
@@ -17493,6 +17549,10 @@ function spawnLandmark(i){
     g=new THREE.Group();
     gStruct=new THREE.Group(); g.add(gStruct);
     for(const mat in G){ const gg=G[mat]; gStruct.add(bucketMesh(gg,MAT[mat])); }
+    if(G.__tiles) for(const [k,TG] of G.__tiles){ const tg=new THREE.Group(), [tx,tz]=k.split(',').map(Number);
+      tg.userData.chunk=Math.floor((tx+0.5)*LM_TILE/CHW)+','+Math.floor((tz+0.5)*LM_TILE/CHW);
+      for(const mat in TG) tg.add(bucketMesh(TG[mat],MAT[mat])); gStruct.add(tg); }
+    if(G.__tiles) gStruct.userData.tiled=true;
     if(L.kind==='lighthouse'){                             /* the fire at the top, ever burning */
       const tip=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),torchMat); tip.position.set(x,y+B*15.4,z); g.add(tip);
       const gm2=new THREE.SpriteMaterial({map:glowTexCv,transparent:true,opacity:0.6,depthWrite:false});
@@ -17503,7 +17563,7 @@ function spawnLandmark(i){
   let label=null;
   if(!L.secret){
     label=makeLabel(L.n,true);
-    label.position.set(x, y+(L.kind==='mount'?(L.peak||18)*B+30:B*16+24), z);
+    label.position.set(x, y+(L.kind==='mount'?(L.peak||18)*B+30:(TRUE_EARTH&&L.tm&&L.tm.top)?lmU(L.tm.top)+24:B*16+24), z);
     label.scale.set(220,220/6,1);
     scene.add(label);
   }
@@ -22568,6 +22628,7 @@ function silhouetteTick(){
   if(_nearHidden) return;
   for(const[,A] of activeLandmarks){
     if(!A.gStruct||!A.stamp) continue;
+    if(A.gStruct.userData.tiled){ for(const t of A.gStruct.children) if(t.userData.chunk) t.visible=!chunks.has(t.userData.chunk); continue; }
     A.gStruct.visible=!chunks.has(Math.floor(A.x/CHW)+','+Math.floor(A.z/CHW));
   }
 }
