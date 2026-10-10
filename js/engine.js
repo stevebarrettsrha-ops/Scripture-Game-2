@@ -1233,11 +1233,16 @@ const UW_GLSL=`
     float c=uwCaustic(vUwW.xz/${B.toFixed(1)}*0.9, uUwT*1.2)*smoothstep(12.0,0.0,d);
     vec3 o=lit*mix(vec3(1.0),absorb,sky);
     return o*(1.0+sky*uUwSun*(c*0.75-0.12)); }`;
+/* (and the dry floors of the depressions under the sea's level — the rift of the Yardĕn, Qattara — are not
+   under the open sea: Yahriḥo was drawn green and dark as a wreck on the sea-bed) */
+const UW_DRY_GLSL='uniform vec4 uDry[6]; uniform float uDryN;\n'+
+  'bool uwDry(vec2 w){ if(uDryN<0.5) return false; vec2 a=(w+uOrg)*'+(1/R_WORLD).toExponential(8)+'; float lat=90.0-length(a)*180.0, lon=degrees(atan(a.x,a.y));\n'+
+  '  for(int i=0;i<6;i++){ vec4 b=uDry[i]; if(lat>=b.x&&lat<=b.y&&lon>=b.z&&lon<=b.w) return true; } return false; }\n';
 function underWaterLight(mat){
-  addPatch(mat,sh=>{ Object.assign(sh.uniforms,UW); sh.uniforms.uUwShoal={value:SHOAL_TEX};
+  addPatch(mat,sh=>{ Object.assign(sh.uniforms,UW,DRY_U); sh.uniforms.uUwShoal={value:SHOAL_TEX};
     sh.vertexShader='varying vec3 vUwW;\n'+sh.vertexShader.replace('#include <project_vertex>',
       '#include <project_vertex>\n  vUwW=orgOfMv(mvPosition);');
-    sh.fragmentShader=UW_GLSL+'\n'+sh.fragmentShader.replace('vec3 outgoingLight = reflectedLight.indirectDiffuse;',
+    sh.fragmentShader=UW_DRY_GLSL+UW_GLSL.replace('if(surf<-1e8&&vUwW.y<','if(surf<-1e8&&!uwDry(vUwW.xz)&&vUwW.y<')+'\n'+sh.fragmentShader.replace('vec3 outgoingLight = reflectedLight.indirectDiffuse;',
       'vec3 outgoingLight = reflectedLight.indirectDiffuse;\n  outgoingLight=underWater(outgoingLight);'); orgShader(sh); },'underwater');
 }
 /* (the picture of the world in the water — THE WORLD IN THE WATER, after the glow — read by the sea, the
@@ -2898,6 +2903,10 @@ function cellCompute(ix,iz){
        threshing floors and its folds, walled with the stones the plough turned up. */
     if(TRUE_EARTH&&near&&c.cleared!==2){ if(!roadCell(c,x,z)&&!c.cleared&&FARM_KINDS[c.kind]) farmCell(c,ix,iz,x,z,near); }
   }
+  /* (and the ground of a wonder that stood in the desert is desert, though the land's own reading, a
+     valley's green beside it, would have grown a meadow on the plateau of Giza) */
+  if(TRUE_EARTH&&c.kind!=='wall'&&c.kind!=='floe'&&c.kind!=='sand'){ const D=lmDesert(), x=(ix+.5)*B, z=(iz+.5)*B;
+    for(const r of D) if(x>r[0]&&x<r[2]&&z>r[1]&&z<r[3]){ c.kind='sand'; c.tree=0; c.stump=0; c.field=0; c.vine=0; break; } }
   if(c.kind!=='wall'&&c.kind!=='floe') ravineCut(c,(ix+.5)*B,(iz+.5)*B);
   return c;
 }
@@ -17095,6 +17104,11 @@ const lmU=m=>m*U_PER_M_WORLD;
    plan is turned by whole quarters to the true bearing of the place (north on the disc is toward its midst,
    and turns with the longitude), so a pylon stands square to the blocks and still faces nearly the way its
    builders faced it. */
+let _lmDesert=null;
+function lmDesert(){ if(_lmDesert) return _lmDesert; _lmDesert=[];
+  for(const L of LANDMARKS){ const t=L.tm; if(!t||!t.desert||!t.clear) continue; const [x,z]=llToWorld(L.lat,L.lon), W=lmLocal(L,x,z);
+    const [ax,az]=W(t.clear[0],t.clear[1]), [bx,bz]=W(t.clear[2],t.clear[3]); _lmDesert.push([Math.min(ax,bx),Math.min(az,bz),Math.max(ax,bx),Math.max(az,bz)]); }
+  return _lmDesert; }
 function lmQuarter(L){ return ((Math.round(L.lon/90)%4)+4)%4; }
 function lmLocal(L,x,z){ const k=lmQuarter(L), U=lmU;
   return (lx,lz)=>{ const [p,q]=k===0?[lx,lz]:k===1?[lz,-lx]:k===2?[-lx,-lz]:[-lz,lx]; return [x+U(p),z+U(q)]; }; }
@@ -17307,11 +17321,17 @@ const activeLandmarks=new Map(); const LM_SITE=[];
 function landmarkSite(idx){ if(LM_SITE[idx]!==undefined) return LM_SITE[idx];
   const L=LANDMARKS[idx]; const [wx,wz]=llToWorld(L.lat,L.lon);
   const ix0=Math.floor(wx/B), iz0=Math.floor(wz/B); let best=null;
+  /* (forty cells is forty metres at the true measure, and the Pharos stood just off the shore the earth's
+     heights give: there the search goes out a kilometre, twenty-five metres a step) */
+  const st=TRUE_EARTH?Math.max(1,Math.round(lmU(25)/B)):1;
   for(let rad=0;rad<40&&!best;rad++) for(let a=0;a<Math.max(1,rad*6)&&!best;a++){
     const th=a/(rad*6||1)*Math.PI*2;
-    const jx=ix0+Math.round(Math.cos(th)*rad), jz=iz0+Math.round(Math.sin(th)*rad);
+    const jx=ix0+Math.round(Math.cos(th)*rad*st), jz=iz0+Math.round(Math.sin(th)*rad*st);
     const cc=cell(jx,jz); if(cc&&cc.kind!=='wall'&&cc.kind!=='floe') best={ix:jx,iz:jz,x:(jx+.5)*B,z:(jz+.5)*B};
   }
+  /* (and a work with its own plan that stood in the sea stands there: the Pharos was on its island, and the
+     earth's heights put the whole shore of Alexandria under the water's level) */
+  if(!best&&TRUE_EARTH&&L.tm&&L.tm.form) best={ix:ix0,iz:iz0,x:(ix0+.5)*B,z:(iz0+.5)*B,sea:true};
   LM_SITE[idx]=best||null; return LM_SITE[idx];
 }
 /* ================= THE AUTHORED PLACES — Phase 8 =================

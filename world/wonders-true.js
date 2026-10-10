@@ -631,6 +631,8 @@ F.giza=function(api){ const K=kit(api), box=K.box, LS='hewnStone', SS='sandstone
    high, a round lantern stage, the fire at the top some 100 m over the sea. */
 F.pharos=function(api){ const K=kit(api), box=K.box, LS='hewnStone', MB='marble';
   K.level(-62,-62,62,62,'stone','stone');
+  /* its island, the rock of Pharos, with the mole of the Heptastadion running back toward the city */
+  K.oval(0,0,95,80,-16,0.5,'stone','stone',3); box(-8,-16,80,8,1,420,'stone');
   K.carve([-48,-2,-48,48,9,48],[[-43,0,-43,43,9.1,43],[-3,0,47,3,6,48.1]],LS);
   for(const sx of [-1,1]) for(const sz of [-1,1]) box(sx*48-6,-2,sz*48-6,sx*48+6,12,sz*48+6,LS);
   K.merlons('x',-48,48,-47.5,9,LS,2.4); K.merlons('x',-48,48,47.5,9,LS,2.4);

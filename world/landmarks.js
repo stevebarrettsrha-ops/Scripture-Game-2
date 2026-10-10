@@ -20,7 +20,7 @@ EARTH.landmark({n:"The Pyramids of Giza", lat:29.98, lon:31.13, kind:'pyramid', 
   /* (tm: the true measure in metres, raised when the earth is drawn at its own — ROADMAP Phase T7:
      Khufu 230.3 m square and 146.6 high, Khafre 215.3 and 143.5, Menkaure 103.4 and 65.5, each at its
      own place about the mark) */
-  tm:{form:'giza',clear:[-260,-60,720,960],top:150,parts:[{dx:404,dz:89,base:230.3,h:146.6},{dx:77,dz:433,base:215.3,h:143.5},{dx:-164,dz:834,base:103.4,h:65.5}]}});
+  tm:{form:'giza',desert:true,clear:[-300,-100,780,1000],top:150,parts:[{dx:404,dz:89,base:230.3,h:146.6},{dx:77,dz:433,base:215.3,h:143.5},{dx:-164,dz:834,base:103.4,h:65.5}]}});
 EARTH.landmark({n:"The Ziggurat of Ur", lat:30.96, lon:46.10, kind:'ziggurat', tm:{form:'ur',clear:[-50,-65,50,40],top:32,tiers:[[64,46,11],[38,26,6],[20,14,5]]}});
 EARTH.landmark({n:"Baḇal (Baḇylon) — Etemenanki", lat:32.54, lon:44.42, kind:'ziggurat',
   tm:{form:'babylon',clear:[-60,-60,60,105],top:95,tiers:[[91,91,33],[78,78,18],[60,60,6],[51,51,6],[42,42,6],[33,33,6],[24,24,15]]}});   /* (the Esagila tablet) */
@@ -34,7 +34,7 @@ EARTH.landmark({n:"The Walls of Yahriḥo", lat:31.87, lon:35.44, kind:'city', t
 EARTH.landmark({n:"The Lighthouse of Alexandria", lat:31.21, lon:29.89, kind:'lighthouse', tm:{form:'pharos',clear:[-62,-62,62,62],top:106,fire:95.5,w1:30,h1:60,w2:18,h2:30,w3:9,h3:15}});
 EARTH.landmark({n:"Petra of the Rock", lat:30.33, lon:35.44, kind:'temple', tm:{form:'petra',clear:[-60,-50,140,50],top:56,L:25,W:20,colH:12,step:5}});
 EARTH.landmark({n:"Persepolis of Persia", lat:29.93, lon:52.89, kind:'temple', s:1.3, tm:{form:'persepolis',clear:[-170,-235,155,230],top:42,L:112,W:112,colH:20,step:8.6}});
-EARTH.landmark({n:"The Temple of Karnak at No-Amon", lat:25.72, lon:32.66, kind:'temple', s:1.4, tm:{form:'karnak',clear:[-215,-180,265,262],top:38,L:103,W:52,colH:21,step:6.3}});
+EARTH.landmark({n:"The Temple of Karnak at No-Amon", lat:25.72, lon:32.66, kind:'temple', s:1.4, tm:{form:'karnak',desert:true,clear:[-215,-180,265,262],top:38,L:103,W:52,colH:21,step:6.3}});
 EARTH.landmark({n:"Baalbek of the Great Stones", lat:34.01, lon:36.20, kind:'temple', tm:{form:'baalbek',clear:[-55,-60,280,125],top:46,L:88,W:48,colH:20,step:5.6}});
 EARTH.landmark({n:"Mohenjo-daro on the Indus", lat:27.33, lon:68.14, kind:'city', tm:{form:'mohenjo',clear:[-330,-260,260,260],top:24,R:400,h:6,houses:90}});
 EARTH.landmark({n:"Knossos of Kaphtor", lat:35.30, lon:25.16, kind:'city', tm:{form:'knossos',clear:[-90,-90,70,70],top:20,R:90,h:5,houses:40}});
