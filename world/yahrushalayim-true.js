@@ -210,7 +210,7 @@ window.YAHRU_PLAN_TRUE=function(api,period){
        up three; the horns a cubit at the corners; its ramp thirty-two cubits long and sixteen wide on
        the south; and about it, half way up, the line of red */
     const AZ0=-cu(16)+cu(4), AZ1=AZ0+cu(32), AY=Cp;
-    const ALT=0xa99c84;
+    const ALT='plaster';                                 /* of whole stones, untouched by iron, and whitewashed twice a year (Middot 3:4) */
     api.box(AX0,AY,AZ0,AX1,AY+cu(1),AZ1,ALT);
     api.box(AX0+c,AY+cu(1),AZ0+c,AX1-c,AY+cu(6),AZ1-c,ALT);
     api.box(AX0+c*0.6,AY+cu(3.2),AZ0+c*0.6,AX1-c*0.6,AY+cu(3.8),AZ1-c*0.6,'brick');            /* the line of red */
