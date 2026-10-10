@@ -52,6 +52,9 @@ const R_WORLD=Math.round(180000*WORLD_K), B=6, CH=16, CHW=B*CH, VIEW=13; /* the 
    the men's own measure, 0.92 m, not the forty metres the small map had to raise its summits by */
 const TRUE_EARTH=WORLD_K>=40&&!!(window.DEM&&window.DEM.ready());
 const M_PER_BLK=B/U_PER_M_WORLD;
+/* the height the flora's bands of growth are written in (js/flora.js, `hh`): blocks of the small map,
+   forty metres each — so the true earth's height is put into that measure before it is asked */
+function floraH(h){ return TRUE_EARTH?h*M_PER_BLK/40:h; }
 /* how many units of the map make a true kilometre (the readouts of distance; on the small map they
    counted a block a kilometre, which was neither) */
 const U_PER_KM=R_WORLD/(180*M_PER_DEG/1000);
@@ -2309,7 +2312,7 @@ function cellRawTrue(ix,iz){
   /* the hills of Yahuḏah and Shomeron and the low country are the dry country of the summer: pale
      grass and stone among the olives, not the wet green of the north. The Galil and the Karmel, the
      coast north of the Yarqon, are greener. */
-  else if(levant&&(lat<32.45||(lon>35.0&&lat<32.6))){ kind='savanna'; tree=j<0.024*dens?1:0; }
+  else if(levant&&(lat<32.45||(lon>35.0&&lat<32.6))){ kind='savanna'; tree=j<0.011*dens?1:0; }
   else { kind='grass'; tree=j<(levant?0.03:0.045)*dens?1:0; }
   const dk=em>12;
   const spans=window.CAVES?CAVES.spansAt(x,z,h,!dk):null;
@@ -3731,7 +3734,7 @@ function emitTree(G,ix,iz,cc){
   initFlora();
   if(window.FLORA){
     const wet=chunkRiver&&riverBankCell((ix+0.5)*B,(iz+0.5)*B);
-    const K=FLORA.treeAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wet);
+    const K=FLORA.treeAt(chunkLand,cc.kind,floraH(cc.h),ix,iz,hash2,wet);
     if(K){ FKIT.G=G; FLORA.emitTree(FKIT,K,ix,iz,cc); FKIT.G=null; return; }
   }
   /* ---- AND IF THE FLORA HAS NOTHING FOR THIS GROUND ----
@@ -3828,7 +3831,7 @@ function emitScrub(G,ix,iz,cc,wild){
          flora is asked only for those two — a mushroom and a lichen have
          colours of their own and the lookup would be work done for nothing. */
       const K=(GROUND.needsWood(g.m)&&window.FLORA)
-        ? FLORA.treeAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wet) : null;
+        ? FLORA.treeAt(chunkLand,cc.kind,floraH(cc.h),ix,iz,hash2,wet) : null;
       FKIT.G=G; GROUND.emit(FKIT,g,ix,iz,cc.h*B,K); FKIT.G=null;
     }
   }
@@ -3839,14 +3842,14 @@ function emitScrub(G,ix,iz,cc,wild){
      grass and takes its own number, so the two layers never fight over a
      cell — where a bush stands, no blade is drawn under it. */
   if(window.FLORA){
-    const P=FLORA.plantAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wild,wet);
+    const P=FLORA.plantAt(chunkLand,cc.kind,floraH(cc.h),ix,iz,hash2,wild,wet);
     if(P){ FKIT.G=G; FLORA.emitPlant(FKIT,P,ix,iz,cc); FKIT.G=null; return; }
     /* ---- AND THE YOUNG GROWTH ----
        A wood with no young trees in it is a plantation, not a wood. A few
        cells in every hundred carry a SAPLING of one of the same kinds that
        stand grown over them — knee-high, the right species for the country,
        and the same one every time you pass. */
-    const S=FLORA.saplingAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wild,wet);
+    const S=FLORA.saplingAt(chunkLand,cc.kind,floraH(cc.h),ix,iz,hash2,wild,wet);
     if(S){ FKIT.G=G; FLORA.emitSapling(FKIT,S,ix,iz,cc); FKIT.G=null; return; }
   }
   const gr=GRASS.at(ix,iz,cc.kind,wild); if(!gr) return;
@@ -4736,7 +4739,7 @@ function buildChunk(cx,cz){
          call — a different `wet` here could pick a different tree, and the
          trunk stamped now would stand under somebody else's crown */
       const wet=chunkRiver&&riverBankCell((ix+0.5)*B,(iz+0.5)*B);
-      const K=FLORA.treeAt(chunkLand,cc.kind,cc.h,ix,iz,hash2,wet);
+      const K=FLORA.treeAt(chunkLand,cc.kind,floraH(cc.h),ix,iz,hash2,wet);
       if(K){ BKIT.G=BG_NULL; FLORA.emitTree(BKIT,K,ix,iz,cc); BKIT.G=null; }
     }
     EDIT_DIRTY.delete(cx+','+cz);
@@ -5164,6 +5167,9 @@ const flGeo=(()=>{
 /* the colours the blocks read as from far off, where no texture can be seen */
 const FL_COL={grass:[0.34,0.52,0.26], tropic:[0.22,0.50,0.22], tundra:[0.44,0.49,0.40],
   sand:[0.80,0.73,0.52], desert:[0.82,0.72,0.48], badlands:[0.64,0.39,0.25],
+  /* the dun grass of the plain and of the summer hills (it had no colour here, and the far country of
+     every savanna on the earth was drawn as green pasture) */
+  savanna:[0.66,0.60,0.38],
   rock:[0.50,0.49,0.47], alpine:[0.40,0.34,0.26], snow:[0.86,0.92,1.02],
   /* the far ring wears ONE material for the whole world, so its ice cannot be
      lit apart — the blue is put into the vertex colour instead, strong enough
@@ -11453,7 +11459,7 @@ function treeNear(x,z,reach){
          felled, is no perch: birds sat roosting on the air where they had been, Round 137) */
       if(window.FLORA&&FLORA.boleBlocks&&FLORA.boleBlocks()){ const bb=blockOf(blockAt(ix,c.h,iz)); if(!bb||bb.drops!=='log') continue; }
       if(!window.FLORA) return {ix,iz,c,y:c.h*B+B*2.6,x:(ix+0.5)*B,z:(iz+0.5)*B};
-      const K=FLORA.treeAt(landNameAt((ix+0.5)*B,(iz+0.5)*B),c.kind,c.h,ix,iz,hash2,false);
+      const K=FLORA.treeAt(landNameAt((ix+0.5)*B,(iz+0.5)*B),c.kind,floraH(c.h),ix,iz,hash2,false);
       const crown=K?FLORA.crownY(K,ix,iz,hash2):0;
       if(crown<B*1.2) continue;                 /* a shrub is not a home */
       return {ix,iz,c,K,crown,y:c.h*B+crown,x:(ix+0.5)*B,z:(iz+0.5)*B}; } }
@@ -21301,7 +21307,10 @@ function setBuilder(ax,az,baseY,opt){
       const G=newG(), ex={doors:[],houses:[],torchIn:[],style:o.style||'levant',big:true};
       const grp=stampedGroup(()=>{ for(const q of list){
         const pdq=api.inPadL(q.x,q.z), hy=pdq?pdq.ty*B:(()=>{ const c=cell(Math.floor(X(q.x)/B),Math.floor(Z(q.z)/B)); return c?c.h*B:baseY; })();
-        emitHouse(G,ex,X(q.x),Z(q.z),hy,odd(q.w),odd(q.d),{s:0,n:1,e:2,w:3}[q.door||'s'],q.seed||1); } });
+        emitHouse(G,ex,X(q.x),Z(q.z),hy,odd(q.w),odd(q.d),{s:0,n:1,e:2,w:3}[q.door||'s'],q.seed||1);
+        /* and its far silhouette, a whitewashed box, for a city seen from a hill (opt.far) */
+        if(api.farG){ const hw=odd(q.w)*B/2, hd=odd(q.d)*B/2, xc=X(q.x), zc=Z(q.z);
+          farBox(xc-hw,hy,zc-hd,xc+hw,hy+B*4,zc+hd,blockId(((q.seed||1)%3)?'plaster':'mudbrick')); } } });
       const g=new THREE.Group();
       for(const mat in G){ const gg=G[mat]; if(!gg.p||!gg.p.length) continue; g.add(bucketMesh(gg,MAT[mat])); }
       const regs=[];

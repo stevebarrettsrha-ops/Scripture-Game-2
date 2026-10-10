@@ -272,7 +272,7 @@ window.YAHRU_PLAN_TRUE=function(api,period){
     api.box(tx-0.9,ty,tz-3.5,tx+0.9,ty+0.8,tz-2.5,TIMBER); api.box(tx-4.8,ty,tz-4.4,tx-3.2,ty+1.8,tz-3.6,TIMBER);
     api.mark('studyDesk',tx,tz-1.8); api.mark('studyDoor',tx,tz+6.5); api.mark('studyIn',tx+2,tz); api.mark('studyShelf',tx-4,tz-2.8); }
   /* olives on the slopes of the Mount of Olives, across the Qidron, and Gat Shemanim at its foot */
-  for(let k=0;k<160;k++){ const ox=330+hash(k,3)*520, oz=-420+hash(k,9)*620, y=gY(ox,oz);
+  for(let k=0;k<70;k++){ const ox=330+hash(k,3)*520, oz=-420+hash(k,9)*620, y=gY(ox,oz);
     api.box(ox-0.4,y,oz-0.4,ox+0.4,y+2.4,oz+0.4,0x5d4a36); api.box(ox-2,y+2,oz-2,ox+2,y+4,oz+2,0x6d7a4a); }
   api.mark('gethsemane',416,-155); api.mark('olivesTop',833,-44);
   api.mark('westQuarter',-400,300);
