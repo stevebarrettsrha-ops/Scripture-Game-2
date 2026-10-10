@@ -256,6 +256,7 @@ const FILES=[
   'world/yahrushalayim.js',
   'world/yahrushalayim-true.js',
   'world/wonders-true.js',
+  'world/cities-true.js',
   /* the authored places (Phase 8) — AFTER landmarks, because a place names
      the landmark it stands in and the list must already hold it */
   'world/places.js',

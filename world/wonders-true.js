@@ -102,15 +102,26 @@ function kit(api){
       box(x0+i*dx,yb,z0+j*dz,x0+(i+1)*dx,h,z0+(j+1)*dz,m);
       if(h-h0>6){ const r=Math.min(dx,dz)*0.3; box(x0+i*dx+r,h,z0+j*dz+r,x0+(i+1)*dx-r,h+(h-h0)*0.12,z0+(j+1)*dz-r,m); } } };
   /* a wall laid along a polyline, a box every couple of metres */
-  K.wallLine=(pts,y0,y1,t,m)=>{ for(let p=0;p+1<pts.length;p++){ const [x0,z0]=pts[p], [x1,z1]=pts[p+1], L=Math.hypot(x1-x0,z1-z0), n=Math.max(1,Math.round(L/2));
+  K.wallLine=(pts,y0,y1,t,m,follow)=>{ for(let p=0;p+1<pts.length;p++){ const [x0,z0]=pts[p], [x1,z1]=pts[p+1], L=Math.hypot(x1-x0,z1-z0), n=Math.max(1,Math.round(L/2));
       for(let k=0;k<n;k++){ const mx=x0+(x1-x0)*(k+0.5)/n, mz=z0+(z1-z0)*(k+0.5)/n, rx=Math.abs(x1-x0)/n/2+t/2, rz=Math.abs(z1-z0)/n/2+t/2;
-        box(mx-rx,y0,mz-rz,mx+rx,y1,mz+rz,m); } } };
+        const g=follow?api.ground(mx,mz):0; box(mx-rx,g+y0,mz-rz,mx+rx,g+y1,mz+rz,m); } } };
   /* an obelisk cut whole from granite, its tip sheathed in gold */
   K.obelisk=(cx,cz,h,b,m)=>{ box(cx-b*0.85,-1,cz-b*0.85,cx+b*0.85,0.9,cz+b*0.85,m); const n=6, hs=h*0.93;
     for(let i=0;i<n;i++){ const w=b/2*(1-0.32*i/n); box(cx-w,0.9+hs*i/n,cz-w,cx+w,0.9+hs*(i+1)/n,cz+w,m); }
     const w=b/2*0.68; box(cx-w,0.9+hs,cz-w,cx+w,0.9+hs+h*0.035,cz+w,'goldLeaf'); box(cx-w*0.5,0.9+hs+h*0.035,cz-w*0.5,cx+w*0.5,0.9+h,cz+w*0.5,'goldLeaf'); };
+  /* an oval of ground or of building, laid in strips of `st` metres (a tell, a harbour, an island) */
+  K.oval=(cx,cz,a,b,y0,y1,m,top,st)=>{ st=st||2; for(let z=-b;z<b;z+=st){ const zm=Math.min(b,Math.abs(z+st/2)), w=a*Math.sqrt(Math.max(0,1-(zm/b)**2));
+      if(w>0.3) box(cx-w,y0,cz+z,cx+w,y1,cz+z+st,m,top); } };
+  /* an oval wall `t` thick, open where `gaps` say ([angle, half-width in radians], angle 0 is east, +z south) */
+  K.ovalRing=(cx,cz,a,b,t,y0,y1,m,gaps,st)=>{ st=st||2; gaps=gaps||[];
+    const open=(x,z)=>{ const th=Math.atan2(z/b,x/a); return gaps.some(([g,hw])=>Math.abs(Math.atan2(Math.sin(th-g),Math.cos(th-g)))<hw); };
+    for(let z=-b;z<b;z+=st){ const zm=Math.abs(z+st/2), wo=a*Math.sqrt(Math.max(0,1-(zm/b)**2)), wi=zm<b-t?(a-t)*Math.sqrt(Math.max(0,1-(zm/(b-t))**2)):0;
+      if(wo<0.3) continue;
+      if(wi<0.5){ if(!open(0,z+st/2)) box(cx-wo,y0,cz+z,cx+wo,y1,cz+z+st,m); continue; }
+      for(const sx of [-1,1]){ const xm=sx*(wi+wo)/2; if(open(xm,z+st/2)) continue; box(cx+sx*wi,y0,cz+z,cx+sx*wo,y1,cz+z+st,m); } } };
   return K;
 }
+window.WONDER_KIT=kit;
 
 /* ============================== KARNAK ==============================
    The axis runs east from the river; the first pylon is at the west. */
@@ -536,5 +547,170 @@ F.babylon=function(api){ const K=kit(api), box=K.box, BR='brick', MB='mudbrick',
   for(const s of [-1,1]) K.flight('x',s*(w0/2-1),s*6,d0/2,d0/2+8,0,h0,48,BR);
   /* the doorway of the shrine on the top, facing the stair */
   const top=y-T[T.length-1][2]; box(-2.2,top,T[T.length-1][1]/2-0.2,2.2,top+6,T[T.length-1][1]/2+0.4,'goldLeaf');
+};
+
+/* ============================== THE PYRAMIDS OF GIZA AND THEIR TEMPLES ==============================
+   Each pyramid footed on its own ground and cased in white limestone as it still was in those days; the
+   mortuary temple on its east face, the causeway down to the valley temple; the queens' pyramids; the
+   fields of mastaba tombs west and east of Khufu; the Sphinx at the foot of Khafre's causeway, 73 m long
+   and 20 high, facing the sunrise, with its temple before it. */
+F.giza=function(api){ const K=kit(api), box=K.box, LS='hewnStone', SS='sandstone', RG='redGranite', P=api.tm.parts;
+  const pyr=(px,pz,base,h)=>{ const g=api.ground(px,pz), n=Math.max(4,Math.round(h/0.923)), hb=base/2;
+    box(px-hb,g-6,pz-hb,px+hb,g,pz+hb,LS);
+    for(let i=0;i<n;i++){ const w=hb*(1-i/n); if(w<0.46) break; box(px-w,g+h*i/n,pz-w,px+w,g+h*(i+1)/n,pz+w,LS); } return g; };
+  /* a causeway: a walled and roofed way, following the ground, a box every four metres */
+  const causeway=(x0,z0,x1,z1)=>{ const L=Math.hypot(x1-x0,z1-z0), n=Math.max(1,Math.round(L/4));
+    for(let k=0;k<n;k++){ const a=k/n, b=(k+1)/n, ax=x0+(x1-x0)*a, az=z0+(z1-z0)*a, bx=x0+(x1-x0)*b, bz=z0+(z1-z0)*b, g=api.ground((ax+bx)/2,(az+bz)/2);
+      const lx=Math.min(ax,bx)-(Math.abs(bz-az)>Math.abs(bx-ax)?3:0), hx=Math.max(ax,bx)+(Math.abs(bz-az)>Math.abs(bx-ax)?3:0);
+      const lz=Math.min(az,bz)-(Math.abs(bx-ax)>=Math.abs(bz-az)?3:0), hz=Math.max(az,bz)+(Math.abs(bx-ax)>=Math.abs(bz-az)?3:0);
+      box(lx,g-1,lz,hx,g+1,hz,LS); box(lx,g+5,lz,hx,g+5.8,hz,LS);
+      if(Math.abs(bx-ax)>=Math.abs(bz-az)){ box(lx,g+1,lz,hx,g+5,lz+0.8,LS); box(lx,g+1,hz-0.8,hx,g+5,hz,LS); }
+      else { box(lx,g+1,lz,lx+0.8,g+5,hz,LS); box(hx-0.8,g+1,lz,hx,g+5,hz,LS); } } };
+  const temple=(x0,z0,x1,z1,h,g)=>K.carve([x0,g-1,z0,x1,g+h,z1],[[x0+4,g,z0+4,x1-4,g+h+0.1,z1-4],[x0-0.1,g,(z0+z1)/2-2,x0+4.1,g+5,(z0+z1)/2+2],[x1-4.1,g,(z0+z1)/2-2,x1+0.1,g+5,(z0+z1)/2+2]],LS);
+  const T=[[40,52,600],[55,100,494],[30,40,600]];
+  P.forEach((p,i)=>{ const px=p.dx, pz=p.dz, hb=p.base/2, g=pyr(px,pz,p.base,p.h), [tl,tw,cl]=T[i];
+    /* the enclosure wall */
+    const r=hb+11; box(px-r,g-1,pz-r,px+r,g+7,pz-r+2,LS); box(px-r,g-1,pz+r-2,px+r,g+7,pz+r,LS); box(px-r,g-1,pz-r,px-r+2,g+7,pz+r,LS); box(px+r-2,g-1,pz-r,px+r,g+7,pz-tw/2,LS); box(px+r-2,g-1,pz+tw/2,px+r,g+7,pz+r,LS);
+    temple(px+hb,pz-tw/2,px+hb+tl,pz+tw/2,9,g);
+    if(i!==1) causeway(px+hb+tl,pz,px+hb+tl+cl,pz+(i===0?60:0)); });
+  /* the queens' pyramids */
+  const K0=P[0], M0=P[2];
+  for(let j=0;j<3;j++) pyr(K0.dx+K0.base/2+40,K0.dz-10+j*48,46,30);
+  for(let j=0;j<3;j++) pyr(M0.dx-45+j*45,M0.dz+M0.base/2+40,j?31:44,j?21:28);
+  /* the fields of the mastabas */
+  for(let i=0;i<6;i++) for(let j=0;j<12;j++){ const x=K0.dx-K0.base/2-60-i*30, z=K0.dz-K0.base/2+10+j*19, g=api.ground(x,z); box(x-6,g-1,z-12,x+6,g+5.5,z+5,LS); }
+  for(let i=0;i<3;i++) for(let j=0;j<6;j++){ const x=K0.dx+K0.base/2+95+i*30, z=K0.dz-K0.base/2+10+j*19, g=api.ground(x,z); box(x-6,g-1,z-12,x+6,g+5.5,z+5,LS); }
+  /* the Sphinx, at the foot of Khafre's causeway, and its temples */
+  const C1=P[1], sx=C1.dx+C1.base/2+380, sz=C1.dz+30, g=api.ground(sx,sz);
+  causeway(C1.dx+C1.base/2+55,C1.dz,sx+30,sz+48);
+  box(sx-42,g-2,sz-14,sx+40,g,sz+14,SS);                                                         /* the floor of its hollow */
+  box(sx-36,g,sz-6.5,sx+18,g+11,sz+6.5,SS); box(sx-36,g,sz-7,sx-22,g+12.5,sz+7,SS);                 /* the body and the haunches */
+  for(const s of [-1,1]) box(sx+14,g,sz+s*2.2,sx+37,g+3,sz+s*6.6,SS);                             /* the paws */
+  box(sx+12,g,sz-5.6,sx+23,g+15,sz+5.6,SS);                                                       /* the breast */
+  box(sx+13.5,g+15,sz-4.6,sx+23.5,g+20,sz+4.6,SS);                                                /* the head (the face kept plain) */
+  for(const s of [-1,1]) box(sx+15,g+10.5,sz+s*4.6,sx+21,g+18.5,sz+s*6.2,SS);                     /* the lappets of the head-cloth */
+  box(sx+14.5,g+20,sz-3.8,sx+22,g+20.8,sz+3.8,SS);
+  temple(sx+40,sz-23,sx+86,sz+23,9,g);                                                            /* the Sphinx temple */
+  K.carve([sx+25,g-1,sz+30,sx+70,g+13,sz+75],[[sx+29,g,sz+34,sx+66,g+12,sz+71],[sx+69.9,g,sz+50,sx+70.1,g+5,sz+55]],LS);   /* Khafre's valley temple */
+  for(let i=0;i<5;i++) for(const z of [sz+44,sz+60]) box(sx+33+i*6.5-0.6,g,z-0.6,sx+33+i*6.5+0.6,g+12,z+0.6,RG);          /* its pillars of granite */
+};
+
+/* ============================== THE PHAROS OF ALEXANDRIA ==============================
+   On its island in its walled court: a square stage 30 m broad and 56 high, an octagon of 18 m and 27
+   high, a round lantern stage, the fire at the top some 100 m over the sea. */
+F.pharos=function(api){ const K=kit(api), box=K.box, LS='hewnStone', MB='marble';
+  K.level(-62,-62,62,62,'stone','stone');
+  K.carve([-48,-2,-48,48,9,48],[[-43,0,-43,43,9.1,43],[-3,0,47,3,6,48.1]],LS);
+  for(const sx of [-1,1]) for(const sz of [-1,1]) box(sx*48-6,-2,sz*48-6,sx*48+6,12,sz*48+6,LS);
+  K.merlons('x',-48,48,-47.5,9,LS,2.4); K.merlons('x',-48,48,47.5,9,LS,2.4);
+  for(let i=0;i<8;i++){ const w=15.25-i*0.18, y0=i?55.9*i/8:-2, y1=55.9*(i+1)/8; box(-w,y0,-w,w,y1,w,LS);
+    if(i>0&&i<8) for(const t of [-8,0,8]) { box(-w-0.05,y0+3,t-0.6,-w+0.3,y0+5,t+0.6,'basalt'); box(w-0.3,y0+3,t-0.6,w+0.05,y0+5,t+0.6,'basalt'); box(t-0.6,y0+3,-w-0.05,t+0.6,y0+5,-w+0.3,'basalt'); box(t-0.6,y0+3,w-0.3,t+0.6,y0+5,w+0.05,'basalt'); } }
+  box(-15.4,55.9,-15.4,15.4,57.2,15.4,LS); for(const sx of [-1,1]) for(const sz of [-1,1]) box(sx*14-1,57.2,sz*14-1,sx*14+1,60,sz*14+1,LS);
+  K.flight('z',30,15.25,-3,3,0,9,14,LS);                                                               /* the ramp up to the door */
+  K.round(0,0,57.2,84.6,9.15,LS); K.round(0,0,84.6,85.8,9.8,LS);
+  K.round(0,0,85.8,93.2,4.2,LS); K.round(0,0,93.2,94,4.8,LS);
+  for(let k=0;k<8;k++){ const a=k/8*Math.PI*2; K.round(Math.cos(a)*3.8,Math.sin(a)*3.8,94,100,0.35,MB); }
+  K.round(0,0,100,101,4.6,LS); K.round(0,0,101,102.5,3,LS); K.round(0,0,102.5,103.5,1.6,LS);
+  box(-1.4,94,-1.4,1.4,95.2,1.4,'bronze');                                                             /* the brazier of the fire */
+};
+
+/* ============================== STONEHENGE ==============================
+   The ring of thirty sarsens with their lintels unbroken, the horseshoe of five great trilithons open to
+   the midsummer sunrise, the bluestones in their ring and horseshoe, the altar stone, the bank and the
+   ditch, the heel stone out on the avenue. */
+F.stonehenge=function(api){ const K=kit(api), box=K.box, SA='stone', BL='deepStone', SS='sandstone';
+  K.level(-62,-62,62,62,'grassTop','dirt');
+  const stone=(x,z,a,w,t,y0,h,m)=>{ const c=Math.abs(Math.cos(a))>Math.abs(Math.sin(a)); /* tangential: broad across the radius */
+    if(c) box(x-t/2,y0,z-w/2,x+t/2,y0+h,z+w/2,m); else box(x-w/2,y0,z-t/2,x+w/2,y0+h,z+t/2,m); };
+  K.ovalRing(0,0,53,53,3,-0.5,1.2,'dirt',[[-0.87,0.09]],1.5);                                          /* the bank, open to the avenue */
+  K.ovalRing(0,0,56.5,56.5,3,-1.6,-0.3,'dirt',[[-0.87,0.09]],1.5);
+  const ax=-0.87;                                                                                     /* the axis, toward the midsummer sunrise */
+  const P=[]; for(let i=0;i<30;i++){ const a=i/30*Math.PI*2+0.05; P.push([Math.cos(a)*15.6,Math.sin(a)*15.6,a]); }
+  for(const [x,z,a] of P) stone(x,z,a,2.1,1.1,-1,5.1,SA);
+  for(let i=0;i<30;i++){ const p=P[i], q=P[(i+1)%30]; K.wallLine([[p[0],p[1]],[q[0],q[1]]],4.1,4.9,1.0,SA); }
+  /* the five trilithons */
+  for(const [d,h] of [[0,7.3],[0.95,6.6],[-0.95,6.6],[1.75,6.0],[-1.75,6.0]]){ const a=ax+Math.PI+d, r=9.2, x=Math.cos(a)*r, z=Math.sin(a)*r;
+    const tx=-Math.sin(a), tz=Math.cos(a);
+    for(const s of [-1.3,1.3]) stone(x+tx*s,z+tz*s,a,2.2,1.2,-1,h+1,SA);
+    K.wallLine([[x-tx*2.6,z-tz*2.6],[x+tx*2.6,z+tz*2.6]],h,h+1,1.1,SA); }
+  for(let i=0;i<56;i++){ const a=i/56*Math.PI*2, x=Math.cos(a)*12, z=Math.sin(a)*12; if(i%3===2) continue; stone(x,z,a,1.0,0.6,-0.5,2.0,BL); }
+  for(let i=0;i<19;i++){ const a=ax+Math.PI+(i/18-0.5)*3.8, x=Math.cos(a)*6.4, z=Math.sin(a)*6.4; stone(x,z,a,0.8,0.6,-0.5,2.3,BL); }
+  { const a=ax+Math.PI, x=Math.cos(a)*4.6, z=Math.sin(a)*4.6; box(x-2.4,-0.3,z-0.6,x+2.4,0.45,z+0.6,SS); }   /* the altar stone */
+  box(Math.cos(ax)*77-1.2,-0.5,Math.sin(ax)*77-1,Math.cos(ax)*77+1.2,4.7,Math.sin(ax)*77+1,SA);       /* the heel stone */
+  for(let k=0;k<30;k++){ const r=58+k*4; for(const s of [-1,1]){ const x=Math.cos(ax)*r-Math.sin(ax)*11*s, z=Math.sin(ax)*r+Math.cos(ax)*11*s; box(x-2,-0.5,z-2,x+2,0.8,z+2,'dirt'); } }
+};
+
+/* ============================== GÖBEKLI TEPE ==============================
+   On its hill: round enclosures of drystone with T-shaped pillars set in their walls facing in, and in
+   the midst of each two great pillars of 5.5 m. */
+F.gobekli=function(api){ const K=kit(api), box=K.box, LS='hewnStone', W='cobble';
+  K.oval(0,0,150,150,-3,6,'dirt','grassTop',4); K.oval(0,0,90,90,6,12,'dirt','grassTop',4);
+  const tp=(x,z,h,ax,y0)=>{ if(ax==='x'){ box(x-0.8,y0,z-0.28,x+0.8,y0+h-1.2,z+0.28,LS); box(x-1.5,y0+h-1.2,z-0.3,x+1.5,y0+h,z+0.3,LS); }
+      else { box(x-0.28,y0,z-0.8,x+0.28,y0+h-1.2,z+0.8,LS); box(x-0.3,y0+h-1.2,z-1.5,x+0.3,y0+h,z+1.5,LS); } };
+  for(const [cx,cz,r,n] of [[0,0,10,11],[-18,-20,13,12],[2,-30,7,7],[-30,-2,7,8]]){
+    box(cx-r-1,9,cz-r-1,cx+r+1,12.1,cz+r+1,'path');
+    K.ovalRing(cx,cz,r+1.2,r+1.2,1.4,9,12,W,[[0.6,0.12]],1);
+    for(let i=0;i<n;i++){ const a=i/n*Math.PI*2+0.3, x=cx+Math.cos(a)*(r-0.5), z=cz+Math.sin(a)*(r-0.5);
+      tp(x,z,3.6,Math.abs(Math.cos(a))>Math.abs(Math.sin(a))?'z':'x',9); }
+    tp(cx-1.8,cz,r>9?5.5:4.2,'z',9); tp(cx+1.8,cz,r>9?5.5:4.2,'z',9); }
+  box(-60,-1,-60,60,12,60,'dirt','grassTop');
+  for(const [cx,cz,r] of [[0,0,11.5],[-18,-20,14.5],[2,-30,8.5],[-30,-2,8.5]]) K.oval(cx,cz,r,r,9,12.05,'path',null,1);
+};
+
+/* ============================== THE LION GATE OF MYCENAE ==============================
+   The citadel on its hill inside walls of cyclopean blocks; the Lion Gate in the north-west, its lintel
+   and the relieving triangle with the two lions over it, the bastion that makes its approach a trap;
+   the grave circle within; the palace's hall with its hearth and four columns on the summit. */
+F.mycenae=function(api){ const K=kit(api), box=K.box, CY='stone', LS='hewnStone';
+  const wall=[[-14,-8],[-60,-20],[-110,10],[-130,60],[-90,110],[-20,120],[60,95],[110,40],[95,-10],[40,-25],[8,-10]];
+  K.wallLine(wall,-2,8,6,CY,true);
+  K.wallLine([[-14,-8],[-14,-26]],-2,9,5,CY,true);                                                     /* the bastion */
+  const g=api.ground(-2,-9);
+  for(const s of [-1,1]) box(-2+s*1.55,g-1,-12,-2+s*4.5,g+8,-6,CY);
+  box(-2-1.55,g-0.4,-12,-2+1.55,g+0.1,-6,LS);
+  box(-4.25,g+2.95,-11.2,0.25,g+3.95,-6.8,LS);                                                          /* the lintel */
+  for(let i=0;i<4;i++){ const w=1.6*(1-i/4); box(-2-w,g+3.95+i*0.82,-11.2,-2+w,g+4.77+i*0.82,-10.6,LS); }   /* the relief of the lions in its triangle */
+  box(-2-1.6,g+3.95,-10.6,-2+1.6,g+7.2,-6.8,CY);
+  { const gc=api.ground(-25,15); K.ovalRing(-25,15,13.75,13.75,1.2,gc-0.5,gc+1.2,LS,[[-1.6,0.15]],0.8); }   /* grave circle A */
+  const top=api.ground(20,55);
+  K.carve([5,top-1,47,30,top+6,63],[[7,top,49,28,top+6.1,61],[29.9,top,53,30.1,top+3.5,57],[18,top,49.5,18.6,top+5,60.5]],LS);
+  K.round(12,55,top,top+0.5,2.0,'brick'); for(const [x,z] of [[9.5,52.5],[14.5,52.5],[9.5,57.5],[14.5,57.5]]) K.round(x,z,top,top+5,0.35,'brick');
+  for(let k=0;k<26;k++){ const x=-90+hsh(k,3)*170, z=0+hsh(3,k)*105; const gg=api.ground(x,z); box(x-3,gg-1,z-3,x+3,gg+3.4,z+3,CY); }
+};
+const hsh=(i,j)=>{ const v=Math.sin(i*12.9898+j*78.233)*43758.5453; return v-Math.floor(v); };
+
+/* ============================== THE LION GATE OF HATTUSA ==============================
+   The upper city's wall on its rampart, faced with a stone glacis, towers every thirty metres; the gate
+   between its two towers, the passage closed by a pointed arch of corbelled stones, the lions' foreparts
+   carved from the outer jambs. */
+F.hattusa=function(api){ const K=kit(api), box=K.box, CY='stone', MB='mudbrick', D='dirt';
+  for(let x=-150;x<150;x+=4){ const g=api.ground(x+2,0);
+    for(let i=0;i<5;i++) box(x,g-1,-8+i*2,x+4,g+2+i*2,-6+i*2,i<4?'cobble':D);
+    box(x,g+10,-1,x+4,g+18,4,MB); box(x,g-1,-1,x+4,g+10,4,D);
+    if(((x+150)/4)%8===0&&Math.abs(x)>14) box(x-3,g+10,-3,x+7,g+21,6,MB); }
+  const g=api.ground(0,0);
+  for(const s of [-1,1]) box(s*1.65,g-1,-6,s*9,g+21,8,CY);
+  for(let i=0;i<6;i++){ const w=1.65-(i<3?0:(i-2)*0.32); if(w>1.6) continue; box(-1.65,g+3.2+i*0.7,-6,-w,g+3.9+i*0.7,8,CY); box(w,g+3.2+i*0.7,-6,1.65,g+3.9+i*0.7,8,CY); }
+  box(-1.65,g+7.4,-6,1.65,g+21,8,CY);
+  for(const s of [-1,1]){ box(s*1.65-0.6,g,-7.6,s*1.65+0.6,g+2.2,-6,CY); box(s*1.65-0.55,g+2.2,-7.4,s*1.65+0.55,g+3.0,-6,CY); }  /* the lions' foreparts */
+  box(-1.65,g-0.4,-6,1.65,g+0.1,8,'path');
+};
+
+/* ============================== THE GATES OF NINEWĔH ==============================
+   The great wall of mud brick on its stone footing and facing, fifteen metres thick and twenty high,
+   the moat before it; the gate of Nergal between its towers, two pairs of winged bulls in its passage. */
+F.nineveh=function(api){ const K=kit(api), box=K.box, MB='mudbrick', LS='hewnStone', GS='greyStone';
+  K.level(-60,-60,60,60,'sand','sand');
+  for(let x=-250;x<250;x+=5){ if(Math.abs(x)<12) continue; const g=api.ground(x+2.5,0);
+    box(x,g-2,-7.5,x+5,g+4,7.5,LS); box(x,g+4,-7.5,x+5,g+20,7.5,MB);
+    if(((x+250)/5)%2===0) box(x+1,g+20,-7.5,x+3.5,g+21.8,-6.5,MB);
+    if(((x+250)/5)%7===0) box(x-2,g-2,-11,x+7,g+24,7.5,MB);
+    box(x,g-3,-30,x+5,g-0.4,-20,'waterB'); }
+  for(const s of [-1,1]){ box(s*4.6,-2,-12,s*20,24,10,MB); box(s*4.6,-2,-12,s*20,4,10,LS); }
+  box(-4.6,10,-12,4.6,24,10,MB); box(-4.6,-0.4,-12,4.6,0.1,10,'path');
+  /* the winged bulls, their faces kept plain */
+  const bull=(x,z,f)=>{ box(x-0.8,0,z-2.8,x+0.8,1.2,z+2.8,GS); for(const a of [-2.0,1.6]) box(x-0.7,1.2,z+a*f-0.45,x+0.7,3.0,z+a*f+0.45,GS);
+    box(x-0.85,3.0,z-2.6,x+0.85,5.0,z+2.6,GS); box(x-0.95,4.4,z-1.8,x+0.95,6.4,z+1.2,GS); box(x-0.7,4.8,z+f*2.2-0.7,x+0.7,6.6,z+f*2.2+0.7,GS); box(x-0.6,6.6,z+f*2.2-0.6,x+0.6,7.8,z+f*2.2+0.6,GS); };
+  for(const s of [-1,1]){ bull(s*3.7,-8,-1); bull(s*3.7,6,1); }
 };
 })();

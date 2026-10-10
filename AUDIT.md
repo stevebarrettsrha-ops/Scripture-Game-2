@@ -11815,6 +11815,111 @@ Run after this round's changes:
 - Making the true earth the default once a full voyage has been played on it, with the acceptance
   suite run at both measures.
 
+## 4el. Round 139 — the works of the nations by their own plans, and the country about the towns
+
+The traveller, having seen Herodes' House raised by the measures of Middot: *"move to the other temples,
+to the same standard, Karnak, Petra and Persepolis and others"*, and then: *"temples and cities and
+countries and towns and country side, urban and rural areas — do the same as well."*
+
+### The wonders, each by its own plan
+
+At the true measure every temple among the wonders had been the one generic temple: a stepped box on a
+ring of square posts with a stepped roof. Karnak, Petra and Persepolis were not replicas of anything.
+Now a wonder whose `tm` names a `form` is laid by its own builder in `world/wonders-true.js` (and the
+walled cities in `world/cities-true.js`), in metres about its site, at its measured size, in the stone
+it was built of. The measures and their sources head each file. In brief:
+
+- **Karnak**: the quay and the ram-headed sphinxes; the first pylon (113 × 15 × 31.5 m); the great
+  court with its colonnades, the kiosk of Taharqa, the shrine of Seti II, the temple of Ramesses III and
+  the colossi; the second pylon with its flagstaffs; the great hall of 134 columns (the nave's twelve
+  of 21 m with open papyrus heads, 122 of 15 m with closed buds, architraves, the clerestory grilles,
+  the roofs); the third to sixth pylons; the obelisks of Thutmose I and Hatshepsut in red granite with
+  gilded tips; the granite barque shrine; the festival hall of Thutmose III with its tent-pole columns;
+  the sacred lake and the scarab; pylons VII–X on the southern way; the mud-brick enclosure.
+- **Petra**: the Treasury cut into the rose rock at the end of the Siq, its portico of six columns
+  under the pediment, the door into the chamber 12.5 m square, the side chambers, the tholos with its
+  cone and urn between the halves of the broken pediment; the rock about it left as weather leaves
+  rock (domes and gullies, `K.crag`), the Siq a cleft some 3 m wide coming in from the east.
+- **Persepolis**: the terrace (455 × 300 m, 12 m high) and its walls; the double stair; the gate of
+  all nations with its bulls; the Apadana on its platform with its two stairs, 36 columns in the hall
+  and three porticoes of twelve, the double-bull capitals, the corner towers and merlons; the hall of a
+  hundred columns with its porch and bulls; the palaces of Darius and Xerxes, the council hall, the
+  treasury of ninety-nine columns, the women's palace.
+- **The Parthenon**: three steps, 8 × 17 Doric columns of 10.4 m, the porches of six, the cella with
+  its two-storey colonnade about the statue's base (the image itself is not raised) and its pool, the
+  west room of four Ionic columns, the triglyph frieze, the pediments and the marble roof.
+- **Artemis at Ephesus**: a platform of steps, about 120 Ionic columns of 18 m in two rows with the
+  sculptured drums at the front, the deep porch, the sekos open to the sky with its little shrine (no
+  image), the three openings in the west pediment, the altar court.
+- **Baalbek**: the trilithon (three stones of 19 m) in the western wall; Jupiter's house on its podium,
+  54 columns of 23 m and its entablature; the great court with porticoes of granite columns, exedrae,
+  the tower altar and the basins; the hexagonal forecourt; the propylaea; the temple of Bacchus.
+- **Ur and Etemenanki**: battered, buttressed stages of baked brick over mud brick; at Ur the three
+  stairways meeting at the gatehouse and the shrine on the top; at Babylon the great stair running out
+  from the south face (it had read as a pole from the side: it was a ramp of boxes standing in the air,
+  and is a solid flight now), the side stairs, the top shrine in blue glazed brick.
+- **The others**: Giza (each pyramid footed on its own ground and cased in white limestone, the
+  enclosure walls, mortuary and valley temples, causeways, the queens' pyramids, the mastaba fields,
+  and the Sphinx, 73 m long, with its temple); the Pharos (square, octagonal and round stages, the fire
+  some 95 m up, its walled court); Stonehenge (thirty sarsens and their lintel ring, the five trilithons
+  open to the midsummer sunrise, the bluestones, the altar and heel stones, bank, ditch and avenue);
+  Göbekli Tepe (the round enclosures with their T-pillars); the Lion Gate of Mycenae with its citadel,
+  grave circle and megaron; the Lion Gate of Hattusa on its rampart; the Nergal gate of Ninewĕh with its
+  winged bulls.
+- **The cities**: Yahriḥo (the tell, the revetment and the wall on it, the houses against the wall,
+  one with a scarlet cord, the upper city, the gate toward the spring); Megiddo (the tell, the gate of
+  six chambers and its ramp, the stables, the palace, the round altar, the silo, the shaft); Knossos
+  (the central court, the storerooms with their jars, the throne room, the grand staircase in its
+  light-well, the red columns wider at the head, horns on the roofs, the theatral steps); Mohenjo-daro
+  (the citadel mound, the great bath, the granary, the pillared hall; the lower town in its grid of
+  streets with houses about courts, wells and drains); Carthage (the round harbour of the warships with
+  its island and admiralty and ship-sheds, the merchant harbour, the Byrsa, the triple wall).
+
+Faces of the kings' colossi, the Sphinx and the winged bulls are kept plain, and no image of a god is
+raised in any shrine (the bases stand empty).
+
+New stones for them, one block a file: **sandstone**, **rose rock**, **red granite**, **grey stone**
+and **glazed brick**.
+
+### What had to change in the engine for works this large
+
+- **The plan is turned to the place's bearing.** North on the disc is toward its midst and turns with
+  the longitude; a plan is turned by whole quarters to the nearest true bearing (`lmQuarter`), so a pylon
+  stays square to the blocks and still faces nearly the way it was built.
+- **A broad work is seen from afar in tiles.** The far silhouette of a wonder was put away whole as soon
+  as the chunk at its middle was laid; Karnak is half a kilometre across and the blocks reach some two
+  hundred metres, so from its gate its far half simply was not there. Its triangles are now laid in
+  tiles of two chunks a side, each put away only when the chunk under it is laid **and laid again with
+  the work in it** (a chunk waiting for its remesh still showed the trees that stood there).
+- **A court's ground is made level with the site** (`api.level`): higher land cut down and lower land
+  filled in the blocks, so a hump of the land does not stand up through a court.
+- **A precinct as broad as a town is cleared of trees as a rectangle** (`NOTREE_R`), not column by
+  column (the clearing of Giza would have been a million keys), and the trunks the chunks had already
+  stamped are taken out from the stamps themselves.
+- **No town is raised on a wonder.** The town of Yahriḥo had been set on the old tell; in the days of
+  Herodes the town stood some two kilometres south by his winter palaces, and it stands there now.
+
+### The country about the towns (at the true measure)
+
+A town was an island of houses in the wild wood. Now:
+
+- **Roads** join every town to its two nearest (within 35 km), a trodden way some four metres broad.
+- **Fields about every town**, out to some 650 m from a village, 1.1 km from a town and 1.8 km from a
+  city, in parcels of about 36 × 22 m: grain standing in rows on ploughed earth, fallow and pasture,
+  olive groves in rows, vineyards on their stakes each with its stone tower, threshing floors, sheepfolds;
+  the parcels walled with the stones the plough turned up, a gap left for the gate. Toward the edge the
+  wild comes back in, parcel by parcel.
+- **Towns at their true size**: a city of the land holds some 250 households in its walls, a market town
+  120, a village thirty to forty, on ground widened to hold them.
+
+### Not done this round
+
+- The wonders are raised **as their builders finished them**. By the days of Herodes, Persepolis was a
+  burnt ruin, Etemenanki had been pulled down and Ur's ziggurat was a ruin; Baalbek's temple of Bacchus
+  was not yet built. Each could be given its state in that day, as the city of the great king has hers.
+- Hill-country terraces (the land's own steps faced with stone) and the regional dress of the
+  countryside (the paddies, the steppe herds) are for Phase D.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
