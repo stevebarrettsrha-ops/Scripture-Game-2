@@ -210,7 +210,7 @@ STORY.act({
     ]},
 
   /* ---------------- VIII.3 — THE LOVELY GATE ---------------- */
-  { id:'lame', title:'The courts of the House', date:'the ninth hour, the hour of prayer', place:'courts', time:'day',
+  { id:'lame', title:'The courts of the House', date:'the ninth hour, the hour of prayer', place:'courts', time:'day', trueAt:[119,38.4],   /* (the gate called Beautiful) */
     player:{ at:['womenCourt',-7,-5], face:Math.PI/2, look:ADULT },
     crowds:[ {id:'worshippers', n:240, area:[-30,-62,24,-30], look:'womenCourt', keep:[[-14,-44,8,-36]]} ],
     actors:[
@@ -700,7 +700,7 @@ STORY.act({
   /* Kĕpha asleep between two soldiers, bound with two chains; a mal'ak — a man in white within a light — and
      a light in the building; the chains fall, the guard posts are passed, the iron gate opens of
      itself (Acts 12:1-12). The killing of Ya‛aqoḇ is read, never drawn. */
-  { id:'prison', title:'Yahrushalayim', date:'the Days of Unleavened Bread', place:'prison', time:'night',
+  { id:'prison', title:'Yahrushalayim', date:'the Days of Unleavened Bread', place:'prison', time:'night', trueAt:[-58,-229],
     player:{ at:'street', face:Math.PI, look:ADULT, hidden:true },
     actors:[
       T('kepha',[-31.1,-71.25],{face:Math.PI/2}),

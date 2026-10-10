@@ -2240,7 +2240,7 @@ function inBoxLL(b,lat,lon){ return lat>=b.lat[0]&&lat<=b.lat[1]&&lon>=b.lon[0]&
 /* the place of a column on the earth */
 function latLonOf(x,z){ const u=x/R_WORLD, v=z/R_WORLD; return [90-Math.hypot(u,v)*180, Math.atan2(u,v)*180/Math.PI]; }
 /* the earth's height at a point in metres, with the fractal under the data; null where there is none */
-function trueMetres(x,z,lat,lon){
+function earthMetres(x,z,lat,lon){
   const e0=DEM.heightAt(lat,lon); if(e0===null) return null;
   const sp=DEM.spacingAt(lat,lon)||130;
   const xm=x/U_PER_M_WORLD, zm=z/U_PER_M_WORLD;
@@ -2254,7 +2254,7 @@ function cellRawTrue(ix,iz){
   const x=(ix+.5)*B, z=(iz+.5)*B, u=x/R_WORLD, v=z/R_WORLD, r=Math.hypot(u,v);
   if(r>=SHELF_UV) return cellRawSmall(ix,iz);           /* the shelf of ice and the wall: as they were */
   const lat=90-r*180, lon=Math.atan2(u,v)*180/Math.PI;
-  const T=trueMetres(x,z,lat,lon); if(!T) return null;
+  const T=earthMetres(x,z,lat,lon); if(!T) return null;
   const e0=T.e0;
   let dry=false, lake=null;
   if(e0<=0.5){
@@ -21122,7 +21122,7 @@ function setBlockFor(col){
 }
 function setBuilder(ax,az,baseY,opt){
   opt=opt||{}; const S=opt.S||SET_S, houses=[], marks={};
-  const X=x=>ax+x*S, Z=z=>az+z*S, Y=y=>baseY+y*S, tY=Math.round(baseY/B);
+  const X=x=>ax+x*S, Z=z=>az+z*S, Y=y=>baseY+y*S, tY=Math.round(baseY/B), tYb=tY;
   const was=_stampOn; if(!was) stampBegin();
   const grp=_stampOn;
   const cells=(x0,x1,lo,hi)=>{ const e=STAMP_EPS*B; let a=Math.floor((Math.min(x0,x1)+e)/B), b=Math.ceil((Math.max(x0,x1)-e)/B)-1; if(b<a){ b=a=Math.floor((x0+x1)/2/B); } return [a,b]; };
@@ -21142,17 +21142,21 @@ function setBuilder(ax,az,baseY,opt){
     /* the ground's own top course laid with something else: a path, a floor, a field */
     top(x0,z0,x1,z1,col){ const n=setBlockFor(col); if(!n) return;
       const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1));
-      for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ const c=cell(i,k); const t=api.flat&&api.inPad(i,k)?tY:(c?c.h:tY); stampBlock(i,t-1,k,n); } },
+      for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ const c=cell(i,k), pd=api.flat&&api.inPad(i,k); const t=pd?pd.ty:(c?c.h:tY); stampBlock(i,t-1,k,n); } },
     /* THE GROUND MADE LEVEL for a set: higher land cut down, lower land filled, the top laid
        with `top` (grass), trees taken off the lot; `r` rounds the corners into an oval */
     pads:[], flat:false, mtops:new Map(),
     /* the height a heaped hill was raised to here, in metres above the anchor, or null */
     moundL(x,z){ const v=api.mtops.get(Math.floor(X(x)/B)+','+Math.floor(Z(z)/B)); return v===undefined?null:(v*B-baseY)/S; },
-    inPad(i,k){ for(const p of api.pads) if(i>=p.i0&&i<=p.i1&&k>=p.k0&&k<=p.k1){ if(!p.r) return true;
+    /* the level ground a column lies in (its own level, .ty), or null — the last laid wins */
+    inPad(i,k){ for(let n=api.pads.length-1;n>=0;n--){ const p=api.pads[n]; if(i>=p.i0&&i<=p.i1&&k>=p.k0&&k<=p.k1){ if(!p.r) return p;
         const cx=(p.i0+p.i1)/2, cz=(p.k0+p.k1)/2, rx=(p.i1-p.i0)/2+0.5, rz=(p.k1-p.k0)/2+0.5;
-        if(((i-cx)/rx)**2+((k-cz)/rz)**2<=1) return true; } return false; },
+        if(((i-cx)/rx)**2+((k-cz)/rz)**2<=1) return p; } } return null; },
+    /* (o.y: the level of this ground in metres over the set's own, for a city on more than one
+       level — the courts of the House, the upper city, the lower; else the set's own level) */
     pad(x0,z0,x1,z1,o){ o=o||{}; const top=setBlockFor(o.top||'grass'), fill=blockId(o.fill||'dirt');
-      const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1)); const P={i0,i1,k0,k1,r:!!o.round}; api.pads.push(P); api.flat=true;
+      const tY=o.y!==undefined?Math.round((baseY+o.y*S)/B):tYb;
+      const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1)); const P={i0,i1,k0,k1,r:!!o.round,ty:tY}; api.pads.push(P); api.flat=true;
       clearLotOfTrees(X(Math.min(x0,x1)),Z(Math.min(z0,z1)),X(Math.max(x0,x1)),Z(Math.max(z0,z1)),baseY);
       for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ if(P.r&&!api.inPad(i,k)) continue;
         const c=cell(i,k); if(!c||c.kind==='wall') continue; const h=c.h;
@@ -21182,6 +21186,7 @@ function setBuilder(ax,az,baseY,opt){
     /* standing water: a channel, a pool, a lake — `depth` courses of water, its face level
        with the ground's (or `drop` courses below it) */
     water(x0,z0,x1,z1,o){ o=o||{}; const d=o.depth||2, dr=o.drop||0, w=blockId('water'), bed=blockId(o.bed||'sand');
+      const tY=o.y!==undefined?Math.round((baseY+o.y*S)/B):tYb;                  /* (o.y: its face's own level, as pad's) */
       const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1));
       underWaterAdd(grp,i0*B,k0*B,(i1+1)*B,(k1+1)*B,(tY-dr)*B);          /* its bed takes the light under the water */
       for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ if(o.test&&!o.test(...api.local((i+.5)*B,(k+.5)*B))) continue;
@@ -21193,7 +21198,7 @@ function setBuilder(ax,az,baseY,opt){
     house(x,z,w,d,o){ o=o||{}; const odd=v=>{ v=Math.max(5,Math.round(v*S/B)); return v%2?v:v+1; };
       const dir={s:0,n:1,e:2,w:3}[o.door||'s'];
       /* on the level ground of the set, at its height; anywhere else, on the ground where it stands */
-      const hy=api.inPadL(x,z)?baseY:(()=>{ const c=cell(Math.floor(X(x)/B),Math.floor(Z(z)/B)); return c?c.h*B:baseY; })();
+      const pd0=api.inPadL(x,z), hy=pd0?pd0.ty*B:(()=>{ const c=cell(Math.floor(X(x)/B),Math.floor(Z(z)/B)); return c?c.h*B:baseY; })();
       houses.push(storyHouse(X(x),Z(z),hy,odd(w),odd(d),dir,o.seed||Math.floor(Math.abs(x*31+z*17))+1,o.style||'levant',{washed:o.washed,wall:o.wall,big:o.big!==false})); },
     /* A QUARTER OF HOUSES AT ONCE (Round 137): a city's lanes of houses built as ONE
        geometry and one stamp — a hundred houses as a hundred groups were a thousand draws.
@@ -21201,7 +21206,7 @@ function setBuilder(ax,az,baseY,opt){
     quarter(list,o){ o=o||{}; const odd=v=>{ v=Math.max(5,Math.round(v*S/B)); return v%2?v:v+1; };
       const G=newG(), ex={doors:[],houses:[],torchIn:[],style:o.style||'levant',big:true};
       const grp=stampedGroup(()=>{ for(const q of list){
-        const hy=api.inPadL(q.x,q.z)?baseY:(()=>{ const c=cell(Math.floor(X(q.x)/B),Math.floor(Z(q.z)/B)); return c?c.h*B:baseY; })();
+        const pdq=api.inPadL(q.x,q.z), hy=pdq?pdq.ty*B:(()=>{ const c=cell(Math.floor(X(q.x)/B),Math.floor(Z(q.z)/B)); return c?c.h*B:baseY; })();
         emitHouse(G,ex,X(q.x),Z(q.z),hy,odd(q.w),odd(q.d),{s:0,n:1,e:2,w:3}[q.door||'s'],q.seed||1); } });
       const g=new THREE.Group();
       for(const mat in G){ const gg=G[mat]; if(!gg.p||!gg.p.length) continue; g.add(bucketMesh(gg,MAT[mat])); }
@@ -21229,7 +21234,7 @@ function setBuilder(ax,az,baseY,opt){
         for(let j=g0-1;j<want-1;j++) stampBlock(i,j,k,j<want-3?rock:fill);
         stampBlock(i,want-1,k,top); } },
     groundY(x,z){ const m=api.moundL(x,z), c=cell(Math.floor(X(x)/B),Math.floor(Z(z)/B));
-      const ref=api.inPadL(x,z)?baseY+2.2*S:Math.max(m===null?-1e9:baseY+m*S,c?c.h*B:baseY)+12;
+      const pdg=api.inPadL(x,z), ref=pdg?pdg.ty*B+2.2*S:Math.max(m===null?-1e9:baseY+m*S,c?c.h*B:baseY)+12;
       const g=groundInfo(X(x),Z(z),ref); return ((g&&g.y!=null?g.y:baseY)-baseY)/S; },
     mark(name,x,z){ marks[name]=[x,z]; },
     end(){ if(!was&&_stampOn===grp) stampEnd(); return api; },
@@ -21244,7 +21249,9 @@ function buildYahruPlan(period){
   if(yahruStamp){ yahruStamp.drop(); yahruStamp=null; }
   const base=topY(yahruPos.ix,yahruPos.iz);
   const api=setBuilder(yahruPos.x,yahruPos.z,base);
-  try{ window.YAHRU_PLAN(api,period||'kings'); } finally{ api.end(); }
+  /* at the true measure of the earth, the city at hers (world/yahrushalayim-true.js, Phase T7) */
+  const plan=(TRUE_EARTH&&window.YAHRU_PLAN_TRUE)||window.YAHRU_PLAN;
+  try{ plan(api,period||'kings'); } finally{ api.end(); }
   YAHRU_MARKS=api.marks; yahruStamp=api; yahruPeriod=period||'kings';
   return api;
 }
@@ -21277,7 +21284,7 @@ window.__KIT={
   houses:()=>standaloneHouses, aimOff:v=>{ AIM_OFF=!!v; if(v&&markG) markG.visible=false; },          /* the set's houses, their doors (the story swings them for whoever comes) */
   storyHouse, topY, cell, landAtWorld, groundInfo, llToWorld, setLocalHour, localHourAt,
   state, setMode, walkerG:()=>walkerG, updateChunks, flushEdits,
-  yahruPos:()=>yahruPos, yahruMarks:()=>YAHRU_MARKS, sites:()=>SITES,
+  yahruPos:()=>yahruPos, yahruMarks:()=>YAHRU_MARKS, sites:()=>SITES, trueEarth:()=>TRUE_EARTH,
   setBuilder, setScale:SET_S, yahruPeriod:()=>yahruPeriod,
   /* raise the city as she stood in a period ('kings' | 'herodes'), if she is not already */
   yahruAs:p=>{ if(yahruPos&&window.YAHRU_PLAN&&yahruPeriod!==p) buildYahruPlan(p); return YAHRU_MARKS; }
@@ -21884,6 +21891,8 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
      its own place: at the true measure of the earth those numbers run to tens of millions, and
      a 32-bit vertex there is rounded to whole metres (THE EYE'S OWN ORIGIN) */
   worldScale:()=>({R:R_WORLD,K:WORLD_K,trueEarth:TRUE_EARTH,uPerKm:U_PER_KM,org:{x:ORG.x,z:ORG.z}}),
+  trueCell:(ix,iz)=>TRUE_EARTH?cellRawTrue(ix,iz):null,
+  trueAt:(x,z)=>{ const [la,lo]=latLonOf(x,z); return {lat:la,lon:lo,m:TRUE_EARTH?earthMetres(x,z,la,lo):null}; },
   absBaked:(lim)=>{ lim=lim||20000; const out=[];
     scene.traverse(o=>{ const g=o.geometry; if(!g||!(o.isMesh||o.isPoints||o.isLine)) return;
       if(!g.boundingSphere) g.computeBoundingSphere(); const s=g.boundingSphere; if(!s) return;

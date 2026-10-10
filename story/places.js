@@ -39,14 +39,14 @@ const PLACES={
   caesarea:   {lat:33.248, lon:35.694, flat:30, why:'Caesarea Philippi, at the springs of the Yardĕn below Ḥermon'},
   ginae:      {lat:32.461, lon:35.302, flat:56, why:'Ayin Gannim, the last village of Shomeron on the road from Galil'},
   yeriho:     {lat:31.857, lon:35.444, flat:64, why:'Yahriḥo, the city of palm trees, below the ascent to Yahrushalayim'},
-  olivet:     {city:true, why:'the descent of the Mount of Olives, across the Qidron from her walls'},
+  olivet:     {city:true, trueAt:[355,-97], why:'the descent of the Mount of Olives, across the Qidron from her walls'},
   /* Passion Week (Act VI): each on the city's own ground */
   courts:     {city:true, why:'the courts of the House, on its platform'},
-  upperroom:  {city:true, why:'a house of two storeys in the lower city, by the square'},
-  highpriest: {city:true, why:'the courtyard of the kohen gadol'},
+  upperroom:  {city:true, trueAt:[-622,692], why:'a house of two storeys in the upper city, on the south-western hill'},
+  highpriest: {city:true, trueAt:[-429,692], why:'the courtyard of the kohen gadol, on the eastern slope of the western hill'},
   praetorium: {city:true, why:'the Pavement, before the fortress at the corner of the courts'},
   prison:     {city:true, why:'the fortress at the corner of the courts, where Kĕpha was kept (Acts 12:4)'},
-  golgotha:   {city:true, why:'outside the west wall, near the city: the knoll and the garden'},
+  golgotha:   {city:true, trueAt:[-484,-13], why:'outside the second wall, by the Gennath gate: the knoll and the garden'},
   /* The Rising (Act VII) */
   emmaus:     {lat:31.840, lon:35.130, flat:34, clear:820, why:'Amma’us, twelve kilometres from Yahrushalayim (Luke 24:13), in the hills to the west'},
   tiberias:   {lat:32.873, lon:35.549, flat:30, why:'the shore of the Sea of Kinnereth below the hills, west of Kephar Naḥum (Yahuchanon 21:1)'},
@@ -116,7 +116,17 @@ window.STORYPLACES={
   at(place,act){
     const def=PLACES[place]; if(!def) throw new Error('no such place in the world: '+place);
     const period=PERIOD[act&&act.id]||'herodes';
-    if(def.city){ const k=K(), yp=k.yahruPos(); return {x:yp.x,z:yp.z,y:k.topY(yp.ix,yp.iz),city:true,period}; }
+    if(def.city){ const k=K(), yp=k.yahruPos();
+      /* AT THE TRUE MEASURE the city stands at her true size (world/yahrushalayim-true.js), and a
+         set of her that stands by itself — Golgotha and its garden, the upper room, the court of the
+         kohen gadol, the garden over the Qidron — is laid at its own true place: the set as it was
+         drawn, moved by `trueAt` metres from her anchor, and the city's marks moved back by the same
+         so they still name her own places */
+      if(def.trueAt&&k.trueEarth&&k.trueEarth()){ const S=k.setScale, x=yp.x+def.trueAt[0]*S, z=yp.z+def.trueAt[1]*S;
+        const ix=Math.floor(x/k.B), iz=Math.floor(z/k.B);
+        const y=k.topY(ix,iz);
+        return {x,z,y,city:true,period,markOff:def.trueAt,yShift:(k.topY(yp.ix,yp.iz)-y)/S}; }
+      return {x:yp.x,z:yp.z,y:k.topY(yp.ix,yp.iz),city:true,period}; }
     if(!cache[place]) cache[place]=find(def);
     return Object.assign({period},cache[place]);
   }

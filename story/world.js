@@ -41,7 +41,8 @@ const C = W.C = {
    the place's anchor, in one stamp group the scene takes up again when it ends. A box
    standing outside the level ground of the set stands on the ground where it is. */
 function Static(api){ this.api=api; this.colliders=[]; this.p=[]; this.c=[]; this.i=[]; this.n=0; }
-Static.prototype.ground=function(x,z){ return this.api.inPadL(x,z)?0:this.api.groundY(x,z); };
+Static.prototype.ground=function(x,z){ const pd=this.api.inPadL(x,z);
+  return pd?(pd.ty!==undefined?(pd.ty*window.__KIT.B-this.api.baseY)/this.api.S:0):this.api.groundY(x,z); };
 Static.prototype.box=function(x0,y0,z0,x1,y1,z1,color,opt){
   opt=opt||{};
   if(x1<x0){ const t=x0; x0=x1; x1=t; } if(z1<z0){ const t=z0; z0=z1; z1=t; } if(y1<y0){ const t=y0; y0=y1; y1=t; }
