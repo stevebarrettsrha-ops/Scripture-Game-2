@@ -16787,7 +16787,9 @@ let yahruPos=null, YAHRU_MARKS={}, yahruStamp=null, yahruPeriod=null;
     const cc=cellRaw(jx,jz); if(cc&&cc.kind!=='wall') yahruPos={ix:jx,iz:jz,x:(jx+.5)*B,z:(jz+.5)*B};
   } }
 function buildYahru(){ if(!yahruPos) return;
-  if(window.YAHRU_PLAN){ buildYahruPlan(window.__STORY_PERIOD||'kings'); return; }
+  /* the voyage is sailed in the days of Herodes, when his House stood and Shelomoh's had been gone
+     six hundred years (burned by Baḇel); a story set in other days raises her as she stood in them */
+  if(window.YAHRU_PLAN){ buildYahruPlan(window.__STORY_PERIOD||'herodes'); return; }
   stamped(null,()=>buildYahruIn()); }
 /* the city of the great king, raised in stone. She is set down ONCE and never
    taken up again, so her stamp is owned by nobody: there is no village to
@@ -21496,16 +21498,16 @@ function setBuilder(ax,az,baseY,opt){
   return api;
 }
 /* THE CITY OF THE GREAT KING, BY PERIOD. world/yahrushalayim.js holds her plan; the voyage
-   raises her as she stood in the days of the kings (Solomon's Hĕḵal), and a story set in the
-   days of Herodes raises her with his great courts instead — the same city, one at a time. */
+   raises her as she stood in the days of Herodes, his House on its great courts; a story set in
+   the days of the kings raises her with Shelomoh's House instead — the same city, one at a time. */
 function buildYahruPlan(period){
   if(yahruStamp){ yahruStamp.drop(); yahruStamp=null; }
   const base=topY(yahruPos.ix,yahruPos.iz);
   const api=setBuilder(yahruPos.x,yahruPos.z,base,{far:TRUE_EARTH});
   /* at the true measure of the earth, the city at hers (world/yahrushalayim-true.js, Phase T7) */
   const plan=(TRUE_EARTH&&window.YAHRU_PLAN_TRUE)||window.YAHRU_PLAN;
-  try{ plan(api,period||'kings'); } finally{ api.end(); }
-  YAHRU_MARKS=api.marks; yahruStamp=api; yahruPeriod=period||'kings';
+  try{ plan(api,period||'herodes'); } finally{ api.end(); }
+  YAHRU_MARKS=api.marks; yahruStamp=api; yahruPeriod=period||'herodes';
   return api;
 }
 window.__KIT={
