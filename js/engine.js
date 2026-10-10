@@ -13221,7 +13221,7 @@ function underEave(nx,nz){
   const at=arr=>{ for(const H of arr){
     if(nx>H.x0-B-0.6&&nx<H.x1+B+0.6&&nz>H.z0-B-0.6&&nz<H.z1+B+0.6&&!(nx>H.x0&&nx<H.x1&&nz>H.z0&&nz<H.z1)) return true; } return false; };
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
-    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue; if(at(vv.houses)) return true; }
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>(vv.reach||420)) continue; if(at(vv.houses)) return true; }
   return at(standaloneHouses);
 }
 /* the house whose ground (walls, band, eave, or the bank it is dug into)
@@ -13230,7 +13230,7 @@ function houseAround(nx,nz){
   const m=B*1.6;
   const at=arr=>{ for(const H of arr){ if(nx>H.x0-m&&nx<H.x1+m&&nz>H.z0-m&&nz<H.z1+m) return H; } return null; };
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
-    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue; const H=at(vv.houses); if(H) return H; }
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>(vv.reach||420)) continue; const H=at(vv.houses); if(H) return H; }
   return at(standaloneHouses);
 }
 /* ---- A MAN DUCKS THROUGH HIS OWN DOOR (Round 96) ----
@@ -13272,7 +13272,7 @@ function inDoorway(nx,nz){
   if(window.__INJECT&&__INJECT.noDoorway) return false;
   const at=arr=>{ for(const H of arr){ if(H.door&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8+(H.apron||0)*B) return true; } return false; };
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
-    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue; if(at(vv.houses)) return true; }
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>(vv.reach||420)) continue; if(at(vv.houses)) return true; }
   return at(standaloneHouses);
 }
 /* ================= HOW EACH LAND BUILT ITS HOUSES =================
@@ -13777,7 +13777,8 @@ function findQuarry(site,rnd,wood){
    — from the high side down, a course lower each cell — so no step along
    it is more than the one course a man or a beast can take. It is fill
    only: nothing is cut, and nothing is laid inside a house. */
-function emitStairLine(G,ex,x0,z0,x1,z1){
+function emitStairLine(G,ex,x0,z0,x1,z1,maxFill){
+  maxFill=maxFill===undefined?1e9:maxFill;
   const cells=[]; let ix=Math.floor(x0/B), iz=Math.floor(z0/B);
   const ex1=Math.floor(x1/B), ez1=Math.floor(z1/B);
   cells.push([ix,iz]);
@@ -13799,7 +13800,7 @@ function emitStairLine(G,ex,x0,z0,x1,z1){
   for(let k=1;k<sH.length;k++) if(sH[k]!==null&&sH[k-1]!==null) sH[k]=Math.max(sH[k],sH[k-1]-1);
   for(let k=sH.length-2;k>=0;k--) if(sH[k]!==null&&sH[k+1]!==null) sH[k]=Math.max(sH[k],sH[k+1]-1);
   for(let k=0;k<cells.length;k++){ const [i,j]=cells[k]; if(h[k]===null) continue;
-    if(sH[k]>h[k]&&!inHouse(i,j)){
+    if(sH[k]>h[k]&&sH[k]-h[k]<=maxFill&&!inHouse(i,j)){
       emitBox(G,i*B,h[k]*B,j*B,(i+1)*B,sH[k]*B,(j+1)*B,'cobble','path',null);
       const key=i+','+j; WAYS.set(key,(WAYS.get(key)||0)+1);
       if(ex) (ex.ways||(ex.ways=[])).push(key); }
@@ -14232,6 +14233,42 @@ function* spawnVillage(i,exShell){
         ex.sites.push({x:L.x,z:L.z-h7-B*1.6,faceX:L.x,faceZ:L.z}); }
       addRect(L.x-B*4.5,L.x+B*4.5,L.z-B*4.5,L.z+B*4.5); }
     yield; }
+  /* ---- MORE THAN ONE PLACE IN A LAND (Round 137, Phase C3) ----
+     A land was never one town. Out in its country stand hamlets — three or
+     four houses about a well, a field, a family to every house — each joined
+     to the town by a road worn into the ground (built up a little where it
+     must, but no causeway thrown over a valley). They are raised with the
+     town, as its farmsteads are. */
+  ex.hamlets=[];
+  { const P=settleProfile(site), nH=2;
+    for(let hm=0;hm<nH;hm++){
+      let best=null;
+      for(let tr=0;tr<12;tr++){
+        const ang=(hm+0.5+rnd(800+hm*19+tr)*0.7)/nH*Math.PI*2, rad=P.edge+B*20+rnd(810+hm*19+tr)*B*60;
+        const hx=site.x+Math.cos(ang)*rad, hz=site.z+Math.sin(ang)*rad;
+        let lo=1e9,hi=-1e9,ok=true;
+        for(const [dx,dz] of [[0,0],[-B*9,-B*9],[B*9,-B*9],[-B*9,B*9],[B*9,B*9]]){
+          const c=landAtWorld(hx+dx,hz+dz); if(!c||c.kind==='wall'||c.kind==='floe'||c.kind==='sand'){ ok=false; break; } lo=Math.min(lo,c.h); hi=Math.max(hi,c.h); }
+        if(!ok) continue;
+        if(!best||hi-lo<best.sp){ best={hx,hz,sp:hi-lo}; if(hi-lo<=1) break; } }
+      if(!best||best.sp>3) continue;
+      const {hx,hz}=best, cw=landAtWorld(hx,hz), wy2=cw.h*B;
+      stamped(ex,()=>{ clearLotOfTrees(hx-B*3,hz-B*3,hx+B*3,hz+B*3,wy2); emitWell(G,hx,hz,wy2); });
+      solids.push({x:hx,z:hz,r:B*1.5}); addRect(hx-B*1.5,hx+B*1.5,hz-B*1.5,hz+B*1.5);
+      const nHouse=3+(rnd(820+hm)>0.5?1:0); let built=0;
+      for(let k=0;k<nHouse;k++){ const a2=k/nHouse*Math.PI*2+rnd(830+hm)*0.6, r2=B*9;
+        const x=hx+Math.cos(a2)*r2, z=hz+Math.sin(a2)*r2, c=landAtWorld(x,z); if(!c||c.kind==='wall') continue;
+        if(!rectFree(x-B*4.5,x+B*4.5,z-B*4.5,z+B*4.5,B)) continue;
+        const dd=Math.abs(Math.cos(a2))>Math.abs(Math.sin(a2))?(Math.cos(a2)>0?3:2):(Math.sin(a2)>0?1:0);   /* each door toward the well */
+        stamped(ex,()=>emitHouse(G,ex,x,z,c.h*B,7,7,dd,i*100+60+hm*5+k)); addRect(x-B*4.5,x+B*4.5,z-B*4.5,z+B*4.5); built++; }
+      const fa=rnd(840+hm)*Math.PI*2, fx=hx+Math.cos(fa)*B*17, fz=hz+Math.sin(fa)*B*17, fc=landAtWorld(fx,fz);
+      if(fc&&fc.kind!=='wall'&&rectFree(fx-B*2.6,fx+B*2.6,fz-B*1.8,fz+B*1.8,0)){
+        stamped(ex,()=>emitFarm(G,fx,fz,fc.h*B,i*100+50+hm)); addRect(fx-B*2.6,fx+B*2.6,fz-B*1.8,fz+B*1.8); ex.farms.push({x:fx,z:fz}); }
+      /* the road to the town, from its nearest gate or its edge */
+      const toT=Math.atan2(site.x-hx,site.z-hz), sx0=site.x-Math.sin(toT)*P.core*0.6, sz0=site.z-Math.cos(toT)*P.core*0.6;
+      stamped(ex,()=>emitStairLine(G,ex,sx0,sz0,hx,hz,2));
+      ex.hamlets.push({x:hx,z:hz,houses:built});
+      yield; } }
   /* ---- THE COUNTRYSIDE (Round 137, Phase C) ----
      A town does not end at its last house. Out in the felled ring stand the
      farmsteads: a family's house, its strips of field, the threshing floor
@@ -14430,6 +14467,9 @@ function* spawnVillage(i,exShell){
   if(ex.pen) addPerson('feeder',ex.pen.x+B,ex.pen.z+B,3,false,true,{pen:ex.pen});
   for(const s of ex.stalls) addPerson('vendor',s.x,s.z-B*1.6,1,false,rnd(s.x)>0.5,{stall:s});
   if(ex.pier) addPerson('fisher',ex.pier.x,ex.pier.z,1,false,false,{spot:{x:ex.pier.x,z:ex.pier.z}});
+  /* the families of the hamlets: two grown souls to a house, set down at the well */
+  for(const hm of ex.hamlets||[]) for(let k=0;k<hm.houses*2;k++)
+    addPerson('folk',hm.x+(rnd(900+k)-0.5)*B*6,hm.z+(rnd(910+k)-0.5)*B*6,3,false,k%2===1);
   const nFolk=2+Math.floor(rnd(70)*3);
   for(let p=0;p<nFolk;p++)
     addPerson(ex.stalls.length&&p%2?'shopper':'folk',
@@ -14526,7 +14566,10 @@ function* spawnVillage(i,exShell){
     cl.position.set(st.x,sy+B*1.13,st.z); cl.visible=false; g.add(cl); st.cover=cl; }
   scene.add(g);
   activeVillages.set(i,{g,site,people,beasts,birds,torchMats,deckKeys,houses:ex.houses,solids,
-    farms:ex.farms,stalls:ex.stalls,pen:ex.pen,pier:ex.pier,stamps:ex.stamps,ways:ex.ways||(ex.ways=[]),mounts,feedT:-99});
+    farms:ex.farms,stalls:ex.stalls,pen:ex.pen,pier:ex.pier,stamps:ex.stamps,ways:ex.ways||(ex.ways=[]),mounts,feedT:-99,hamlets:ex.hamlets||[],trade:!!ex.trade,caravanserai:ex.caravanserai||null,sites:ex.sites||[],
+    /* how far its houses, farmsteads and hamlets reach from the well — every quick
+       "is this near that town" test asks it, not the old fixed 420 (Round 137) */
+    reach:Math.max(420,...ex.houses.map(H=>Math.hypot((H.x0+H.x1)/2-site.x,(H.z0+H.z1)/2-site.z)+B*14))});
 }
 /* =================== THE LABOURS OF THE PEOPLE ===================
    A little task engine. moveEnt walks a body toward its mark with
@@ -14544,7 +14587,7 @@ function* spawnVillage(i,exShell){
 function pushOutOfSolids(ent,dt){
   const P=1.5;
   for(const[,vv] of activeVillages){ if(!vv.solids||!vv.site) continue;
-    if(Math.hypot(ent.m.position.x-vv.site.x,ent.m.position.z-vv.site.z)>420) continue;
+    if(Math.hypot(ent.m.position.x-vv.site.x,ent.m.position.z-vv.site.z)>(vv.reach||420)) continue;
     for(const s of vv.solids){
       const ox=ent.m.position.x-s.x, oz=ent.m.position.z-s.z;
       const d=Math.hypot(ox,oz), need=s.r+P;
@@ -14989,13 +15032,13 @@ function doorRefusedAt(nx,nz){
   const at=arr=>{ for(const H of arr){ if(!H.door) continue;
     if(Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8&&houseBlocksNPC(nx,nz,H)) return H; } return null; };
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
-    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue;
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>(vv.reach||420)) continue;
     const H=at(vv.houses); if(H) return H; }
   return at(standaloneHouses);
 }
 function blockedByStructureNPC(nx,nz){
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
-    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue;
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>(vv.reach||420)) continue;
     for(const H of vv.houses) if(houseBlocksNPC(nx,nz,H)) return true; }
   for(const H of standaloneHouses) if(houseBlocksNPC(nx,nz,H)) return true;
   return false;
@@ -15905,7 +15948,7 @@ function nearbyPerson(){
   if(state.mode!=='walk') return null;
   let best=null,bd=1e9;
   for(const[,vv] of activeVillages){ if(vv.none||!vv.people||!vv.site) continue;
-    if(Math.hypot(state.walk.x-vv.site.x,state.walk.z-vv.site.z)>420) continue;
+    if(Math.hypot(state.walk.x-vv.site.x,state.walk.z-vv.site.z)>(vv.reach||420)) continue;
     for(const p of vv.people){ const d=Math.hypot(state.walk.x-p.m.position.x,state.walk.z-p.m.position.z);
       if(d<7&&d<bd){ bd=d; best=p; } } }
   return best;
@@ -17439,7 +17482,7 @@ function houseBlocks(nx,nz,H){
 }
 function blockedByStructure(nx,nz){
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
-    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue;
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>(vv.reach||420)) continue;
     for(const H of vv.houses) if(houseBlocks(nx,nz,H)) return true;
   }
   for(const H of standaloneHouses) if(houseBlocks(nx,nz,H)) return true;
@@ -17459,7 +17502,7 @@ function houseTopAt(x,z){
       const t=H.top!==undefined?H.top:(H.door?H.door.y:0)+B*6.5;
       if(t>top) top=t; } } };
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
-    if(Math.hypot(x-vv.site.x,z-vv.site.z)>420) continue; scan(vv.houses); }
+    if(Math.hypot(x-vv.site.x,z-vv.site.z)>(vv.reach||420)) continue; scan(vv.houses); }
   scan(standaloneHouses);
   return top;
 }
@@ -17483,7 +17526,7 @@ function treeTopAt(x,z,c){
 function blockedBySolid(nx,nz,pad){
   const P=(pad===undefined)?1.5:pad;
   for(const[,vv] of activeVillages){ if(!vv.solids||!vv.site) continue;
-    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>420) continue;
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>(vv.reach||420)) continue;
     for(const s of vv.solids) if(Math.hypot(nx-s.x,nz-s.z)<s.r+P) return true;
   }
   return false;
@@ -17491,7 +17534,7 @@ function blockedBySolid(nx,nz,pad){
 /* you cannot walk through people or beasts (nor they through you) */
 function blockedByEntity(nx,nz,exclude){
   for(const[,vv] of activeVillages){ if(vv.none||!vv.site) continue;
-    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>360) continue;
+    if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>(vv.reach||360)) continue;
     const test=arr=>{ if(!arr) return false;
       for(const e of arr){ if(e.m===exclude||e._riding) continue;
         const r=(e.child?1.0:1.6);
@@ -17507,7 +17550,7 @@ function nearestDoor(px,pz){
   const scan=arr=>{ for(const H of arr){ if(!H.door) continue;
     const d=Math.hypot(px-H.dx,pz-H.dz); if(d<11&&d<bd){ bd=d; best=H; } } };
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
-    if(Math.hypot(px-vv.site.x,pz-vv.site.z)>420) continue; scan(vv.houses); }
+    if(Math.hypot(px-vv.site.x,pz-vv.site.z)>(vv.reach||420)) continue; scan(vv.houses); }
   scan(standaloneHouses);
   return best;
 }
@@ -17730,7 +17773,7 @@ function insideHouseIn(x,z,arr){ const T2=B*0.5+0.5;
   return null; }
 function insideHouse(x,z){
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
-    if(Math.hypot(x-vv.site.x,z-vv.site.z)>420) continue;
+    if(Math.hypot(x-vv.site.x,z-vv.site.z)>(vv.reach||420)) continue;
     const H=insideHouseIn(x,z,vv.houses); if(H) return H;
   }
   return insideHouseIn(x,z,standaloneHouses);
