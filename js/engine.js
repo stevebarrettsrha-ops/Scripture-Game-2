@@ -465,8 +465,9 @@ TEX.alabaster  = mkTex(g=>{ speckle(g,PB.alabaster.b,10,PB.alabaster.a,0.24);
 TEX.goldLeaf   = mkTex(g=>{ speckle(g,[214,170,62],12,[240,206,104],0.26);
   g.fillStyle=C([150,108,32]); g.fillRect(0,7,16,FG); g.fillRect(0,15,16,FG);          /* the joints of the plates */
   g.fillStyle=C([255,232,150]); g.fillRect(2,2,FG*3,FG); g.fillRect(9,10,FG*3,FG); },16,16,RIM);
-TEX.bronze     = mkTex(g=>{ speckle(g,[150,104,54],12,[112,100,66],0.22);
-  g.fillStyle=C([192,142,82]); g.fillRect(3,4,FG*2,FG); g.fillRect(10,11,FG*2,FG); },16,16,RIM);
+TEX.bronze     = mkTex(g=>{ speckle(g,[182,122,56],9,[138,92,42],0.30);
+  g.fillStyle=C([236,186,110]); g.fillRect(1,2,FG*5,FG); g.fillRect(8,9,FG*5,FG); g.fillRect(4,13,FG*3,FG);   /* where the light runs on the burnished metal */
+  g.fillStyle=C([96,110,84]); g.fillRect(12,3,FG*2,FG*2); },16,16,RIM);                                      /* a fleck of green where it is not rubbed */
 TEX.marble     = mkTex(g=>{ speckle(g,[238,234,224],5,[222,218,206],0.20);
   for(let k=0;k<2;k++){ const y0=3+hash2(k,8.3)*10;
     for(let x=0;x<16;x+=FG){ const y=y0+Math.sin(x*0.5+k*2.1)*1.2;
@@ -17440,7 +17441,11 @@ function lmClearGround(L,x,z,y){ const t=L.tm, U=lmU, rects=[];
   else if(L.kind==='lighthouse') sq(x,z,U(t.w1/2+30));
   else if(L.kind==='gate') sq(x,z,U(t.w+25));
   else if(L.kind==='statue') sq(x,z,U(t.h*3+8));
-  for(const r of rects) clearLotOfTrees(r[0],r[1],r[2],r[3],y); }
+  for(const r of rects){ clearLotOfTrees(r[0],r[1],r[2],r[3],y);
+    /* and the ground already laid there is laid again without them (it was built before the work was
+       raised, and kept its trees: the steps of Artemis stood in a wood) */
+    for(let cx=Math.floor(r[0]/CHW);cx<=Math.floor(r[2]/CHW);cx++) for(let cz=Math.floor(r[1]/CHW);cz<=Math.floor(r[3]/CHW);cz++){
+      const k=cx+','+cz; if(chunks.has(k)) EDIT_DIRTY.add(k); } } }
 function spawnLandmark(i){
   const L=LANDMARKS[i], site=landmarkSite(i);
   /* the fault put back for test 68: a builder that silently stops building */
