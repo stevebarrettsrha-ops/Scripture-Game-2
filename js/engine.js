@@ -490,9 +490,9 @@ TEX.redGranite = mkTex(g=>{ speckle(g,[164,88,82],16,[120,64,62],0.34);
 TEX.glazedBrick= mkTex(g=>{ speckle(g,[44,86,168],8,[36,70,146],0.26);
   g.fillStyle=C([200,190,150]); g.fillRect(0,7,16,FG); g.fillRect(0,15,16,FG); g.fillRect(7,0,FG,7); g.fillRect(3,8,FG,7); g.fillRect(12,8,FG,7);
   g.fillStyle=C([96,140,214]); g.fillRect(2,2,FG*3,FG); g.fillRect(9,10,FG*2,FG); },16,16,RIM);
-TEX.greyStone  = mkTex(g=>{ speckle(g,[132,130,126],8,[112,110,108],0.24);
-  g.fillStyle=C([92,90,88]); g.fillRect(0,15,16,FG); g.fillRect(0,0,FG,16);
-  g.fillStyle=C([170,168,164]); g.fillRect(3,4,FG*4,FG); },16,16,RIM);
+TEX.greyStone  = mkTex(g=>{ speckle(g,[162,154,142],8,[142,135,124],0.24);
+  g.fillStyle=C([112,106,98]); g.fillRect(0,15,16,FG); g.fillRect(0,0,FG,16);
+  g.fillStyle=C([192,186,174]); g.fillRect(3,4,FG*4,FG); },16,16,RIM);
 /* flint: dark, glassy, and it breaks in shells */
 TEX.flint      = mkTex(g=>{ speckle(g,PB.flint.b,18,PB.flint.a,0.34);
   for(let k=0;k<9;k++){ const cx=hash2(k,1.9)*16, cy=hash2(k,8.3)*16, r=1.2+hash2(k,3.3)*1.6;
@@ -24684,7 +24684,10 @@ function frame(){ orgSnap();
        distance, and must lose it the same way */
     frame._wgHi = frame._wgHi ? viewReach>4800*WG_SW/WG_S : viewReach>5200*WG_SW/WG_S;
     waveGrid.visible=!inHold&&!frame._wgHi;
-    sea.visible=seaDeep.visible=!inHold&&!underEye;
+    /* (and an eye down in a dry basin under the sea's level has the backdrop sheets over it like a lid,
+       and sees the whole rift through them: they are not drawn there, as the wave sheet is not) */
+    const lidded=TRUE_EARTH&&camera.position.y<WATER_Y+U_PER_M_WORLD*10&&inDryBasin(camera.position.x,camera.position.z);
+    sea.visible=seaDeep.visible=!inHold&&!underEye&&!lidded;
     /* over the furnished shallows the discs drop far beneath the lit bed, so
        the true floor and its life show through the clear water — while the
        water past the patch still has the deep's own blue standing under it */

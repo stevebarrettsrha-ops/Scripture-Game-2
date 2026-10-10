@@ -124,6 +124,10 @@ F.knossos=function(api){ const K=kit(api), box=K.box, GY='alabaster', PL='plaste
   for(const x of [-8,-3,3,8]) for(const z of [-58,-51]) box(x-0.6,0,z-0.6,x+0.6,4,z+0.6,GY);
   box(-11,4,-61,11,5,-46,PL); for(const z of [-60,-47]) for(const s of [-1,1]) box(s*11,-1,-61,s*10,4,-46,GY);
   for(const z of [-42,-37,-32]) mcol(15.5,z,0,4.2); box(13,4.2,-44,18,5,-30,PL);
+  /* the red bands that ran along the Minoan walls under the roofs, and the timber courses in them */
+  for(const [x0,z0,x1,z1,h] of [[-45.2,-45.2,-12.8,40.2,9],[12.8,-45.2,50.2,40.2,12],[-13.2,-45.2,13.2,-26.3,7],[-13.2,26.3,13.2,45.2,7]]){
+    box(x0,h-1.3,z0,x1,h-0.5,z0+0.25,RD); box(x0,h-1.3,z1-0.25,x1,h-0.5,z1,RD); box(x0,h-1.3,z0,x0+0.25,h-0.5,z1,RD); box(x1-0.25,h-1.3,z0,x1,h-0.5,z1,RD);
+    box(x0,3.6,z0,x1,4.0,z0+0.2,'planks'); box(x0,3.6,z1-0.2,x1,4.0,z1,'planks'); }
   /* the south wing and its propylaeum */
   K.carve([-13,-1,26.5,13,7,45],[[-2.5,0,26.4,2.5,4,45.1],[-8,0,32,8,4,40]],GY,PL);
   for(const x of [-5,5]) mcol(x,36,0,4);
@@ -171,7 +175,13 @@ F.mohenjo=function(api){ const K=kit(api), box=K.box, BR='brick', MB='mudbrick',
 };
 
 /* ============================== CARTHAGE ============================== */
-F.carthage=function(api){ const K=kit(api), box=K.box, HS='hewnStone', PL='plaster', ST='stone', W='waterB', P='path';
+F.carthage=function(api0){
+  /* (the plan is laid mirrored north for south: the earth's heights put the open sea north of the round
+     harbour here, so the merchant harbour opens north into it and the city and the Byrsa stand on the
+     land to the south) */
+  const api=Object.assign({},api0,{box:(x0,y0,z0,x1,y1,z1,m,t)=>api0.box(x0,y0,-z1,x1,y1,-z0,m,t),
+    level:(x0,z0,x1,z1,a,b)=>api0.level(x0,-z1,x1,-z0,a,b), ground:(x,z)=>api0.ground(x,-z)});
+  const K=kit(api), box=K.box, HS='hewnStone', PL='plaster', ST='stone', W='waterB', P='path';
   K.level(-420,-460,360,420,'sand','sand');
   /* the round harbour of the warships: its quay all about, the ship-sheds, the island, the admiralty */
   const cx=0, cz=0, R=162, RI=53;

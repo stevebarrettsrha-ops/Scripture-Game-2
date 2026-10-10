@@ -389,8 +389,37 @@ F.persepolis=function(api){ const K=kit(api), box=K.box, GS='greyStone', MB='mud
 
 /* ============================== THE PARTHENON ==============================
    Its long side east and west; the door of the cella faces the sunrise. */
-F.parthenon=function(api){ const K=kit(api), box=K.box, M='marble', BS='basalt';
-  K.level(-45,-25,45,25,'stone','stone');
+F.parthenon=function(api){ const YA=api.tm.rock||0;
+  /* THE ROCK OF THE ACROPOLIS: the earth's heights are read too coarsely to hold it, so it is raised here,
+     a plateau some 260 by 130 m standing YA metres over the city, its edges broken cliff, walled about; the
+     great ramp and the Propylaea at its west end; the Erechtheion and its porch of the maidens to the north;
+     the little temple of Athena Nike on its bastion. The Parthenon stands on its top. */
+  if(YA){ const R=kit(api), b=R.box, M='marble', LS='hewnStone';
+    R.level(-240,-110,110,60,'stone','stone');
+    b(-170,YA-4,-90,90,YA,40,'stone');
+    for(const [x0,z0,x1,z1,f] of [[-178,-98,98,-90,'+z'],[-178,40,98,48,'-z'],[-178,-90,-170,40,'+x'],[90,-90,98,40,'-x']]){
+      b(Math.max(x0,-176),-4,Math.max(z0,-96),Math.min(x1,96),YA-4,Math.min(z1,46),'stone'); R.crag(x0,z0,x1,z1,-4,YA*0.55,YA+1,'stone',{c:4,face:f,seed:x0+z0}); }
+    for(const [x0,z0,x1,z1] of [[-170,-90,90,-87.5],[-170,37.5,90,40],[87.5,-90,90,40],[-170,-90,-167.5,-48],[-170,-12,-167.5,40]]) b(x0,YA,z0,x1,YA+5,z1,LS);
+    /* the ramp and the Propylaea */
+    R.flight('x',-238,-170,-35,-25,0,YA,40,LS);
+    const PY=YA; b(-170,PY,-48,-150,PY+1,-12,M);
+    for(let i=0;i<6;i++) R.round(-168,-40+i*3.2,PY+1,PY+9.5,0.7,M);
+    R.carve([-166,PY+1,-41,-150,PY+12,-19],[[-165,PY+1,-40,-151,PY+11,-20],[-166.1,PY+1,-32.5,-164.9,PY+8,-27.5],[-151.1,PY+1,-32.5,-149.9,PY+8,-27.5]],M);
+    b(-169,PY+9.5,-42,-166,PY+11,-18,M); R.gable('z',-170,-150,-42,-18,PY+12,2.6,5,M);
+    b(-170,PY+1,-48,-156,PY+9,-42,M); b(-170,PY+1,-18,-156,PY+9,-12,M);
+    /* the bastion and the temple of Athena Nike */
+    b(-185,-4,2,-170,PY+1,16,LS); b(-182,PY+1,6,-174,PY+2,12,M); b(-181,PY+2,6.6,-175,PY+6,11.4,M);
+    for(const z of [6.4,8.2,10,11.6]) R.round(-182.4,z,PY+2,PY+6,0.25,M); R.gable('x',-182.6,-174,6,12,PY+6.4,1.2,3,M); b(-182.6,PY+6,6,-174,PY+6.4,12,M);
+    /* the Erechtheion, its east porch of six, its north porch, its porch of the maidens (plain columns) */
+    R.carve([-75,PY,-60,-52,PY+10,-48],[[-74,PY,-59,-53,PY+9,-49],[-52.1,PY,-55.5,-50.9,PY+6.5,-52.5]],M);
+    for(let i=0;i<6;i++) R.round(-50,-59.2+i*2.08,PY,PY+8.2,0.4,M); b(-51,PY+8.2,-60,-48.6,PY+9.2,-48,M);
+    for(const [x,z] of [[-70,-64],[-66.5,-64],[-63,-64],[-70,-61.2],[-63,-61.2]]) R.round(x,z,PY,PY+7.6,0.4,M); b(-71.5,PY+7.6,-65.5,-61.5,PY+8.6,-60,M);
+    for(let i=0;i<3;i++) for(const z of [-46.6,-45.4]) R.round(-70+i*2.6,z,PY+1.6,PY+4.8,0.3,M);
+    b(-71,PY,-47.6,-63.5,PY+1.6,-44.6,M); b(-71,PY+4.8,-47.6,-63.5,PY+5.8,-44.6,M);
+    R.gable('x',-75,-48.6,-60.5,-47.5,PY+10,1.6,4,M); }
+  const A2=YA?Object.assign({},api,{box:(x0,y0,z0,x1,y1,z1,m,t)=>api.box(x0,y0+YA,z0,x1,y1+YA,z1,m,t),level:()=>{}}):api;
+  const K=kit(A2), box=K.box, M='marble', BS='basalt';
+  if(!YA) K.level(-45,-25,45,25,'stone','stone');
   /* the three steps and the stylobate */
   box(-36.15,-2,-16.85,36.15,0.55,16.85,M); box(-35.45,0.55,-16.15,35.45,1.1,16.15,M); box(-34.75,1.1,-15.45,34.75,1.65,15.45,M);
   const Y0=1.65, CH=10.43, A0=Y0+CH;
@@ -458,8 +487,10 @@ F.baalbek=function(api){ const K=kit(api), box=K.box, L='sandstone', HS='hewnSto
   K.level(-55,-60,280,125,'stone','stone');
   /* the outer podium on the west, six courses and then the trilithon, three stones of 19 m */
   box(-48.4,-2,-34,-44,7,34,HS);
-  for(const [a,b] of [[-28.65,-9.7],[-9.55,9.55],[9.7,28.65]]) box(-48.4,7,a,-44,11.3,b,L);
-  box(-48.4,7,-34,-44,11.3,-28.8,HS); box(-48.4,7,28.8,-44,11.3,34,HS);
+  for(const [a,b] of [[-28.65,-9.55],[-9.55,9.55],[9.55,28.65]]) box(-48.4,7,a,-44,11.3,b,L);
+  for(const z of [-28.65,-9.55,9.55,28.65]) box(-48.6,6.6,z-0.5,-44,11.7,z+0.5,'stone');               /* the joints between them, a block broad, so the three stones read */
+  box(-48.4,6.6,-29.2,-44,7,29.2,'stone'); box(-48.4,11.3,-29.2,-44,11.7,29.2,'stone');
+  box(-48.4,7,-34,-44,11.3,-29.15,HS); box(-48.4,7,29.15,-44,11.3,34,HS);
   /* the podium of Jupiter's house, and the great court raised before it */
   const Y0=12; box(-44,-2,-24,44,Y0,24,L);
   box(44,-2,-56,190,C,56,HS);
