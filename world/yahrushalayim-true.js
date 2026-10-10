@@ -85,65 +85,230 @@ window.YAHRU_PLAN_TRUE=function(api,period){
     for(let s=0;s<24;s++) api.box(rw-14-s*1.2,PY-1-s*0.9,RS0+2,rw-13-s*1.2+1.2,PY-s*0.9,RS0+15,STONE);
     /* the gates of Ḥuldah in the south wall, and the broad steps up to them from the city */
     for(const gx of [-55,25]) for(let s=0;s<20;s++) api.box(gx-20,PY-1-s*0.6,S+s*1.1,gx+20,PY-s*0.6,S+(s+1)*1.1,STONE);
-    /* THE BALUSTRADE (soreg), and the terrace of the inner courts within it */
-    const soreg=(x0,z0,x1,z1)=>{ for(let x=x0;x<x1;x+=2){ if(hash(x,1)<0.08) continue; api.box(x,PY,z0,x+1.6,PY+1.5,z0+0.3,WHITE); api.box(x,PY,z1-0.3,x+1.6,PY+1.5,z1,WHITE); }
-      for(let z=z0;z<z1;z+=2){ api.box(x0,PY,z,x0+0.3,PY+1.5,z+1.6,WHITE); api.box(x1-0.3,PY,z,x1,PY+1.5,z+1.6,WHITE); } };
-    soreg(-62,-56,148,56);
-    api.box(-50,PY,-44,138,PY+3,44,STONE);                                            /* the terrace (ḥel) */
-    for(let s=0;s<6;s++) api.box(138+s*0.5,PY+s*0.5-0.5,-12,138.5+s*0.5,PY+3-s*0.5,12,STONE);
-    const T=PY+3;                                                                     /* the court of the women's floor */
-    /* THE COURT OF THE WOMEN: 70.9 m square, its walls 12 m, a chamber at each corner, the gate east */
-    const W0=62, W1=133, WZ=35.45;
-    for(const [x0,z0,x1,z1] of [[W0,-WZ,W1,-WZ+1.5],[W0,WZ-1.5,W1,WZ],[W1-1.5,-WZ,W1,-6],[W1-1.5,6,W1,WZ]]) api.box(x0,T,z0,x1,T+12,z1,WHITE);
-    for(const [cx,cz] of [[W0+10,-WZ+10],[W0+10,WZ-10],[W1-10,-WZ+10],[W1-10,WZ-10]]){
-      api.box(cx-10,T,cz-10,cx+10,T+5,cz-9.4,LIME); api.box(cx-10,T,cz+9.4,cx+10,T+5,cz+10,LIME);
-      api.box(cx-10,T,cz-10,cx-9.4,T+5,cz+10,LIME); api.box(cx+9.4,T,cz-10,cx+10,T+5,cz+10,LIME); }
-    api.box(W1-2,T,-11,W1+3,T+20,-6,WHITE); api.box(W1-2,T,6,W1+3,T+20,11,WHITE);    /* the Beautiful gate (Acts 3:2) */
-    api.box(W1-2,T+14,-6,W1+3,T+20,6,GOLD);
-    /* THE NICANOR GATE and its fifteen steps up to the court of Yisra'ĕl */
-    const C=T+4.5;
-    for(let s=0;s<15;s++) api.box(W0-0.3*s,T+s*0.3,-9,W0+6-0.3*s,T+(s+1)*0.3,9,WHITE);
-    api.box(W0-3,T,-15,W0+3,C+21,-9,WHITE); api.box(W0-3,T,9,W0+3,C+21,15,WHITE); api.box(W0-3,C+15,-9,W0+3,C+21,9,GOLD);
-    /* THE INNER COURT: 98.2 by 70.9 m, raised over the women's court, its walls 20 m and three gates
-       on either side */
-    const I0=-41.7, I1=W0-1;
-    api.box(I0,T,-WZ,I1,C,WZ,STONE);
-    for(const z0 of [-WZ,WZ-2]) for(let x=I0;x<I1;x+=4){ if([-12,13,38].some(g=>Math.abs(x+2-g)<3)) continue; api.box(x,C,z0,x+4,C+20,z0+2,WHITE); }
-    api.box(I0,C,-WZ,I0+2,C+20,WZ,WHITE);
-    /* THE HOUSE: on its own platform six cubits over the court; its porch 100 cubits wide and high
-       to the east, its body 70 wide behind; the holy place 40 cubits long, the most set apart place
-       20, a veil between; gold along its crown */
-    const H0=C+3.15, HX0=-30, HXP=12, HX1=22.5;
-    api.box(HX0-3,C,-27,HX1+1,H0,27,WHITE);
-    for(let s=0;s<12;s++) api.box(HX1+1+s*0.5,C,-10,HX1+1.5+s*0.5,H0-s*0.26,10,WHITE);
-    api.box(HX0,H0,-18.4,HXP,H0+52.5,18.4,WHITE);                                       /* the body */
-    api.box(HXP,H0,-26.25,HX1,H0+52.5,26.25,WHITE);                                     /* the porch */
-    api.box(HX0,H0+52.5,-18.4,HXP,H0+53.5,18.4,GOLD); api.box(HXP,H0+52.5,-26.25,HX1,H0+53.5,26.25,GOLD);
-    api.box(HX1-0.4,H0,-26.25,HX1,H0+52.5,26.25,GOLD);                                  /* the face of the porch, plated with gold (as the record of the land tells it, the first thing the sun struck) */
-    api.box(HX0-0.4,H0+44,-18.4,HX1,H0+45,18.4,GOLD); api.box(HXP,H0+44,-26.25,HX1,H0+45,-25.85,GOLD); api.box(HXP,H0+44,25.85,HX1,H0+45,26.25,GOLD);   /* a band of gold about the upper storey */
-    api.box(HXP+1.5,H0,-10,HX1-1.5,H0+40,10,'air');                                     /* within the porch */
-    api.box(HX1-1.5,H0,-5.25,HX1+0.1,H0+21,5.25,'air');                                 /* its open front, 20 by 40 cubits */
-    api.box(HX1-0.2,H0+21,-6,HX1+0.2,H0+23,6,GOLD);                                     /* the golden vine over it */
-    api.box(HXP-1,H0,-2.6,HXP+1.6,H0+10.5,2.6,'air');                                   /* the door of the holy place */
-    api.box(HXP+1.4,H0,-2.6,HXP+1.6,H0+10.5,2.6,GOLD);                                  /* its leaves of gold */
-    api.box(HX0+10.5,H0,-5.25,HXP-1,H0+21,5.25,'air');                                  /* the holy place, 40 cubits */
-    api.box(HX0+0.5,H0,-5.25,HX0+10.5,H0+21,5.25,'air');                                /* the most set apart place, 20 */
-    api.box(HX0+10.3,H0,-5.25,HX0+10.6,H0+21,5.25,BLUE);                                /* the veil */
-    api.box(HX0+10.5,H0,-5.25,HXP-1,H0+0.05,5.25,0x8a7a5a);                            /* its floor */
-    const ia=HX0+12.6;
-    api.box(ia-0.5,H0,-0.5,ia+0.5,H0+1,0.5,GOLD);                                       /* the altar of incense */
-    api.box(ia+5,H0,3.5,ia+5.24,H0+1.6,3.74,GOLD); api.box(ia+5,H0+1.5,2.8,ia+5.24,H0+1.7,4.4,GOLD);   /* the lampstand, south */
-    api.box(ia+4.5,H0,-4.2,ia+5.5,H0+0.9,-3,GOLD);                                      /* the table, north */
-    api.mark('holyPlace',HX0+21,1); api.mark('incense',ia+1.2,0); api.mark('incenseAltar',ia,0);
-    api.mark('lampstand',ia+5.1,3.6); api.mark('porchFront',HX1+3,0);
-    /* THE ALTAR, 32 cubits square and 15 high, its ramp from the south; the laver between it and
-       the porch; the place of slaughter to the north of it */
-    const AX0=HX1+8, AX1=AX0+16.8;
-    api.box(AX0,C,-6.4,AX1,C+7.9,10.4,0xa99c84);
-    for(let s=0;s<16;s++) api.box(AX0+4,C,10.4+s*1.2,AX1-4,C+7.9-s*0.49,11.6+s*1.2,0xa99c84);
-    api.box(HX1+3,C,-14,HX1+5,C+1.6,-12,BRONZE);
-    for(let k=0;k<6;k++) api.box(AX0+k*2.6,C,-22,AX0+k*2.6+1,C+1.2,-21,STONE2);
-    api.mark('altarFront',AX1+6,0); api.mark('hekal',HX0+20,0); api.mark('hekalView',W0+20,0);
+    /* ================= THE HOUSE AND ITS COURTS, BY THE MEASURES OF MIDDOT =================
+       Laid out as the tractate Middot gives them (and the reconstructions drawn from it), in cubits
+       of 0.525 m, everything facing EAST, to the rising sun:
+         from east to west the court of the women (135 cubits square), the gate of Nicanor and its
+         fifteen steps, the court of Yisra'ĕl (11), the court of the priests (11), the altar (32), the
+         space between the altar and the porch (22), the House (100), and behind it (11): 187 in all
+         from the gate of Nicanor to the west wall; 135 from north to south.
+       Outside the walls the terrace (ḥel, 10 cubits) and its twelve steps, and below it the barrier
+       (soreg) beyond which no man of the nations went. */
+    const c=0.525, cu=n=>n*c;
+    const Xn=62;                                         /* the gate of Nicanor: the west wall of the women's court */
+    const WZ=cu(67.5);                                   /* half of 135 cubits, north to south */
+    const WE=Xn+cu(135);                                 /* the east wall of the women's court */
+    const XI=Xn-cu(11), XP=XI-cu(11);                    /* the court of Yisra'ĕl, then of the priests */
+    const AX1=XP, AX0=AX1-cu(32);                        /* the altar */
+    const HX1=AX0-cu(22), HX0=HX1-cu(100);               /* the House, its porch front at HX1 */
+    const XW=HX0-cu(11);                                 /* the west wall of the inner court */
+    const WT=cu(5);                                      /* the walls' thickness */
+    const T=PY+cu(6);                                    /* the terrace and the court of the women: twelve steps of half a cubit */
+    const C=T+cu(7.5);                                   /* the court of Yisra'ĕl: fifteen steps of half a cubit */
+    const Cp=C+cu(2.5);                                  /* the court of the priests: two and a half cubits higher */
+    const H0=Cp+cu(6);                                   /* the floor of the House: six cubits more, twelve steps */
+    /* ---- THE BARRIER (soreg) and THE TERRACE (ḥel) ---- */
+    const K0=XW-WT-cu(10), K1=WE+WT+cu(10), KZ=WZ+WT+cu(10);
+    const soreg=(x0,z0,x1,z1)=>{ for(let x=x0;x<x1;x+=2){ if(hash(x,1)<0.06) continue; api.box(x,PY,z0,x+1.6,PY+1,z0+0.3,WHITE); api.box(x,PY,z1-0.3,x+1.6,PY+1,z1,WHITE); }
+      for(let z=z0;z<z1;z+=2){ api.box(x0,PY,z,x0+0.3,PY+1,z+1.6,WHITE); api.box(x1-0.3,PY,z,x1,PY+1,z+1.6,WHITE); } };
+    soreg(K0-cu(14),-KZ-cu(14),K1+cu(14),KZ+cu(14));
+    api.box(K0,PY,-KZ,K1,T,KZ,STONE);                                                  /* the terrace */
+    const steps12=(x0,z0,x1,z1,dir)=>{ for(let s=0;s<12;s++){ const o=cu(1)*s, y=T-cu(0.5)*(s+1);   /* down and out from the terrace's edge */
+        if(dir==='e') api.box(x1+o,PY,z0,x1+o+cu(1),y+cu(0.5),z1,STONE); else if(dir==='n') api.box(x0,PY,z0-o-cu(1),x1,y+cu(0.5),z0-o,STONE); else api.box(x0,PY,z1+o,x1,y+cu(0.5),z1+o+cu(1),STONE); } };
+    steps12(0,-cu(10),K1,cu(10),'e');
+    for(const gx of [Xn+cu(67.5), XW+cu(30), XW+cu(85), XW+cu(140)]){ steps12(gx-cu(8),-KZ,gx+cu(8),KZ,'n'); steps12(gx-cu(8),-KZ,gx+cu(8),KZ,'s'); }
+    /* a gate through a wall running north-south (the west and east walls) or east-west (north and south) */
+    function gateNS(x,z0,z1,y,h,col){ api.box(x-WT/2-0.2,y,z0,x+WT/2+0.2,y+h,z1,'air'); }
+    function gateEW(x0,x1,z,y,h){ api.box(x0,y,z-WT/2-0.2,x1,y+h,z+WT/2+0.2,'air'); }
+    function towerAt(x,z,w,d,y0,y1){ api.box(x-w/2,y0,z-d/2,x+w/2,y1,z+d/2,WHITE); api.box(x-w/2,y1,z-d/2,x+w/2,y1+0.9,z+d/2,GOLD); }
+
+    /* ================= THE COURT OF THE WOMEN (135 × 135 cubits) ================= */
+    const WH=T+cu(30);                                                               /* its walls */
+    api.box(Xn,T-0.5,-WZ,WE,T,WZ,LIME);                                              /* its pavement */
+    api.box(Xn,T,-WZ-WT,WE+WT,WH,-WZ,WHITE); api.box(Xn,T,WZ,WE+WT,WH,WZ+WT,WHITE);  /* north and south walls */
+    api.box(WE,T,-WZ-WT,WE+WT,WH,WZ+WT,WHITE);                                       /* the east wall */
+    /* the gates: the eastern (the gate called Beautiful, Ma'asei 3:2), and one north and one south */
+    gateNS(WE+WT/2,-cu(5),cu(5),T,cu(20)); gateEW(Xn+cu(62.5),Xn+cu(72.5),-WZ-WT/2,T,cu(20)); gateEW(Xn+cu(62.5),Xn+cu(72.5),WZ+WT/2,T,cu(20));
+    api.box(WE+WT,T,-cu(5)-0.4,WE+WT+0.5,T+cu(20),-cu(5),BRONZE); api.box(WE+WT,T,cu(5),WE+WT+0.5,T+cu(20),cu(5)+0.4,BRONZE);   /* its bronze leaves, open */
+    api.box(WE-0.3,T+cu(20),-cu(6),WE+WT+0.3,T+cu(21),cu(6),GOLD);
+    towerAt(WE+WT+cu(4),-cu(12),cu(8),cu(8),T,WH+cu(8)); towerAt(WE+WT+cu(4),cu(12),cu(8),cu(8),T,WH+cu(8));   /* the gate's towers */
+    towerAt(WE+WT/2,-WZ-WT/2,cu(14),cu(14),T,WH+cu(10)); towerAt(WE+WT/2,WZ+WT/2,cu(14),cu(14),T,WH+cu(10));   /* its corners */
+    /* THE FOUR CHAMBERS at its corners, forty cubits square and open to the sky (Middot 2:5): the
+       lepers' to the north-west, the wood's to the north-east, the oil's and wine's to the south-west,
+       the Nazirites' to the south-east */
+    const ch40=(x0,z0,doorDir)=>{ const x1=x0+cu(40), z1=z0+cu(40), h=T+cu(12);
+      api.box(x0,T,z0,x1,h,z0+1,LIME); api.box(x0,T,z1-1,x1,h,z1,LIME); api.box(x0,T,z0,x0+1,h,z1,LIME); api.box(x1-1,T,z0,x1,h,z1,LIME);
+      const mx=(x0+x1)/2, mz=(z0+z1)/2;
+      if(doorDir==='s') api.box(mx-1.5,T,z1-1.2,mx+1.5,T+3.2,z1+0.2,'air'); else api.box(mx-1.5,T,z0-0.2,mx+1.5,T+3.2,z0+1.2,'air');
+      return [mx,mz]; };
+    const lep=ch40(Xn,-WZ,'s'), wood=ch40(WE-cu(40),-WZ,'s'), oil=ch40(Xn,WZ-cu(40),'n'), naz=ch40(WE-cu(40),WZ-cu(40),'n');
+    api.mark('chamberLepers',lep[0],lep[1]); api.mark('chamberWood',wood[0],wood[1]); api.mark('chamberOil',oil[0],oil[1]); api.mark('chamberNazirites',naz[0],naz[1]);
+    /* THE GALLERY about it, from which the women looked on (Middot 2:5), on columns, between the
+       corner chambers; and under it the thirteen chests of the treasury (Mark 12:41) */
+    const GY=T+cu(14), gd=cu(10);
+    for(const zs of [-1,1]){ const zw=zs*WZ, zc=zw-zs*gd;
+      columns(Xn+cu(41),zc,WE-cu(41),zc,T,cu(14),cu(8));
+      api.box(Xn+cu(40),GY,Math.min(zw,zc),WE-cu(40),GY+cu(1.5),Math.max(zw,zc),CEDAR); }
+    for(const xs of [Xn,WE]){ const xc=xs===Xn?xs+gd:xs-gd;
+      for(const [z0,z1] of [[-WZ+cu(41),-cu(8)],[cu(8),WZ-cu(41)]]){ columns(xc,z0,xc,z1,T,cu(14),cu(8));
+        api.box(Math.min(xs,xc),GY,z0,Math.max(xs,xc),GY+cu(1.5),z1,CEDAR); } }
+    for(let k=0;k<13;k++){ const zs=k<7?-1:1, i=k<7?k:k-7, x=Xn+cu(48)+i*cu(7);
+      api.box(x,T,zs*(WZ-gd-cu(2)),x+cu(2),T+cu(2),zs*(WZ-gd-cu(4)),BRONZE); }
+    /* THE FOUR LAMPSTANDS OF GOLD, fifty cubits high, with four bowls of gold on each (Sukkah 5:2),
+       which lit the city at the feast */
+    for(const [lx,lz] of [[Xn+cu(52),-cu(22)],[Xn+cu(52),cu(22)],[WE-cu(52),-cu(22)],[WE-cu(52),cu(22)]]){
+      api.box(lx-0.5,T,lz-0.5,lx+0.5,T+cu(50),lz+0.5,GOLD); api.box(lx-1.5,T+cu(50),lz-1.5,lx+1.5,T+cu(50)+1,lz+1.5,GOLD); }
+
+    /* ================= THE GATE OF NICANOR, AND THE FIFTEEN STEPS ================= */
+    api.box(Xn-WT,T,-WZ-WT,Xn,C+cu(30),WZ+WT,WHITE);                                 /* the wall between the courts */
+    for(let s=0;s<15;s++){ const r=cu(15)-s*cu(0.6);                                  /* the steps, rounded */
+      api.box(Xn,T,-r,Xn+r*0.62,T+cu(0.5)*(s+1),r,WHITE); }
+    gateNS(Xn-WT/2,-cu(5),cu(5),C,cu(20));
+    api.box(Xn-WT-0.1,C,-cu(5)-0.6,Xn+0.1,C+cu(20),-cu(5),BRONZE); api.box(Xn-WT-0.1,C,cu(5),Xn+0.1,C+cu(20),cu(5)+0.6,BRONZE);   /* its doors of bronze, open */
+    towerAt(Xn-WT/2,-cu(14),cu(12),cu(12),T,C+cu(40)); towerAt(Xn-WT/2,cu(14),cu(12),cu(12),T,C+cu(40));
+    api.box(Xn-WT-0.4,C+cu(20),-cu(8),Xn+0.4,C+cu(22),cu(8),GOLD);
+    api.mark('nicanor',Xn+cu(10),0); api.mark('courtWomen',(Xn+WE)/2,0); api.mark('beautifulGate',WE+WT+cu(6),0);
+
+    /* ================= THE INNER COURT (187 × 135 cubits) ================= */
+    const IH=C+cu(30);
+    api.box(XW,T,-WZ,Xn-WT,C,WZ,STONE);                                              /* raised over the women's court */
+    api.box(XW,C,-WZ,XP,Cp,WZ,STONE);                                                /* and the court of the priests over that of Yisra'ĕl */
+    for(let s=0;s<3;s++) api.box(XP,C,-WZ+cu(10),XP+cu(1)*(3-s),C+cu(0.8)*(s+1),WZ-cu(10),WHITE);   /* the platform (dukhan) where the Lewites sang */
+    for(let z=-WZ+cu(10);z<WZ-cu(10);z+=2){ if(Math.abs(z)<cu(6)) continue; api.box(XP-0.3,Cp,z,XP,Cp+cu(1),z+1.4,WHITE); }   /* the low rail between the courts */
+    api.box(XW-WT,T,-WZ-WT,Xn-WT,IH,-WZ,WHITE); api.box(XW-WT,T,WZ,Xn-WT,IH,WZ+WT,WHITE);   /* north and south walls */
+    api.box(XW-WT,T,-WZ-WT,XW,IH,WZ+WT,WHITE);                                       /* the west wall: no gate */
+    /* its gates, three to the north and three to the south (Middot 1:4): on the south the gate of
+       kindling, the gate of the firstlings, the water gate; on the north the gate of the spark, the
+       gate of the offering, and the house of the hearth */
+    const GX=[[cu(30),'Kindling','Hearth'],[cu(85),'Firstlings','Offering'],[cu(140),'Water','Spark']];
+    for(const [dx,sN,nN] of GX){ const gx=XW+dx;
+      for(const zs of [-1,1]){ const zw=zs*(WZ+WT/2);
+        gateEW(gx-cu(5),gx+cu(5),zw,Cp,cu(20));
+        for(let s=0;s<20;s++){ const z=zs*(WZ+WT)+zs*s*0.26; api.box(gx-cu(5),T,Math.min(z,z+zs*0.26),gx+cu(5),Cp-s*(Cp-T)/20,Math.max(z,z+zs*0.26),STONE); }   /* down to the terrace */
+        towerAt(gx-cu(10),zw+zs*cu(3),cu(9),cu(14),T,IH+cu(8)); towerAt(gx+cu(10),zw+zs*cu(3),cu(9),cu(14),T,IH+cu(8));
+        api.box(gx-cu(6),Cp+cu(20),zw-WT/2-0.4,gx+cu(6),Cp+cu(21.5),zw+WT/2+0.4,GOLD); }
+      api.mark('gate'+sN,gx,WZ+cu(8)); api.mark('gate'+nN,gx,-WZ-cu(8)); }
+    for(const [tx,tz] of [[XW-WT/2,-WZ-WT/2],[XW-WT/2,WZ+WT/2],[Xn-WT/2,-WZ-WT/2],[Xn-WT/2,WZ+WT/2]]) towerAt(tx,tz,cu(14),cu(14),T,IH+cu(12));
+    /* the chambers along its walls, between the gates (the chamber of hewn stone, where the great
+       council sat, half within the court on the south; the chambers of salt, of the hides, of the
+       rinsers; the house of the hearth on the north-west) */
+    const room=(x0,x1,zs,name)=>{ const zw=zs*WZ, zi=zw-zs*cu(14);
+      api.box(x0,Cp,Math.min(zw,zi),x1,Cp+cu(16),Math.max(zw,zi),LIME);
+      api.box(x0+1,Cp,Math.min(zw,zi)+(zs<0?1:1),x1-1,Cp+cu(14),Math.max(zw,zi)-1,'air');
+      api.box((x0+x1)/2-1,Cp,zi-0.6,(x0+x1)/2+1,Cp+cu(6),zi+0.6,'air');
+      api.box(x0,Cp+cu(16),Math.min(zw,zi),x1,Cp+cu(16.6),Math.max(zw,zi),CEDAR);
+      api.mark(name,(x0+x1)/2,zi-zs*cu(3)); };
+    /* (Middot 5:3-4: on the north the chambers of salt, of the hides, of the rinsers; on the south of the
+       wood, of the well of the exiles, and of hewn stone; and the house of the hearth by its gate) */
+    room(XW+cu(40),XW+cu(75),-1,'chamberSalt'); room(XW+cu(95),XW+cu(130),-1,'chamberHides'); room(XW+cu(150),Xn-WT-cu(1),-1,'chamberRinsers');
+    room(XW+cu(40),XW+cu(75),1,'chamberWoodInner'); room(XW+cu(95),XW+cu(130),1,'chamberGolah'); room(XW+cu(150),Xn-WT-cu(1),1,'chamberHewnStone');
+    room(XW+cu(1),XW+cu(15),-1,'houseOfHearth');
+
+    /* ================= THE ALTAR (Middot 3:1) =================
+       Thirty-two cubits square at its foot, a cubit high; set in a cubit and up five; in a cubit and
+       up three; the horns a cubit at the corners; its ramp thirty-two cubits long and sixteen wide on
+       the south; and about it, half way up, the line of red */
+    const AZ0=-cu(16)+cu(4), AZ1=AZ0+cu(32), AY=Cp;
+    const ALT=0xa99c84;
+    api.box(AX0,AY,AZ0,AX1,AY+cu(1),AZ1,ALT);
+    api.box(AX0+c,AY+cu(1),AZ0+c,AX1-c,AY+cu(6),AZ1-c,ALT);
+    api.box(AX0+c*0.6,AY+cu(3.2),AZ0+c*0.6,AX1-c*0.6,AY+cu(3.8),AZ1-c*0.6,'brick');            /* the line of red */
+    api.box(AX0+cu(2),AY+cu(6),AZ0+cu(2),AX1-cu(2),AY+cu(9),AZ1-cu(2),ALT);
+    for(const [hx,hz] of [[AX0+cu(2),AZ0+cu(2)],[AX1-cu(3),AZ0+cu(2)],[AX0+cu(2),AZ1-cu(3)],[AX1-cu(3),AZ1-cu(3)]]) api.box(hx,AY+cu(9),hz,hx+c*1.8,AY+cu(10),hz+c*1.8,ALT);   /* the horns */
+    api.box(AX0+cu(10),AY+cu(9),AZ0+cu(10),AX1-cu(10),AY+cu(9.6),AZ1-cu(10),'brick');          /* the fire on it */
+    for(let s=0;s<20;s++){ const z=AZ1+s*cu(32)/20; api.box(AX0+cu(8),AY,z,AX1-cu(8),AY+cu(9)*(1-s/20),z+cu(32)/20,ALT); }   /* the ramp */
+    /* THE LAVER, between the porch and the altar and toward the south, of bronze, with its twelve
+       spouts (Middot 3:6, Yoma 3:10) */
+    const LX=HX1+cu(14), LZ=AZ1+cu(4);
+    api.box(LX-cu(2.5),Cp,LZ-cu(2.5),LX+cu(2.5),Cp+cu(4),LZ+cu(2.5),BRONZE); api.box(LX-cu(1.8),Cp+cu(4)-0.6,LZ-cu(1.8),LX+cu(1.8),Cp+cu(4),LZ+cu(1.8),'water');
+    api.mark('laver',LX,LZ-cu(5));
+    /* THE PLACE OF SLAUGHTER, north of the altar (Middot 3:5, 5:2): the rings in the floor in rows,
+       eight tables of marble, and eight short pillars with beams of cedar and hooks of iron on them */
+    for(let r=0;r<4;r++) for(let k=0;k<6;k++){ const x=AX0+cu(3)+k*cu(5), z=AZ0-cu(8)-r*cu(4); api.box(x-0.4,Cp,z-0.4,x+0.4,Cp+0.5,z+0.4,BRONZE); }
+    for(let k=0;k<8;k++){ const x=AX0+cu(1)+k*cu(4), z=AZ0-cu(28); api.box(x,Cp,z,x+cu(2.5),Cp+cu(2),z+cu(1.5),WHITE); }
+    for(let k=0;k<8;k++){ const x=AX0+cu(1)+k*cu(4), z=AZ0-cu(34); api.box(x,Cp,z,x+c*1.8,Cp+cu(4),z+c*1.8,WHITE); }
+    for(let k=0;k<4;k++){ const x=AX0+cu(1)+k*cu(8); api.box(x,Cp+cu(4),AZ0-cu(34),x+cu(4)+c*1.8,Cp+cu(4.8),AZ0-cu(34)+c*1.8,CEDAR); }
+    api.mark('slaughter',AX0+cu(16),AZ0-cu(20)); api.mark('altarFront',AX1+cu(6),0);
+
+    /* ================= THE HOUSE (Middot 4) =================
+       A hundred cubits long, a hundred high, a hundred wide at the porch and seventy behind it, like a
+       lion, narrow behind and broad in front; on a plinth of six cubits and twelve steps. From east to
+       west: the wall of the porch 5, the porch 11, the wall of the holy place 6, the holy place 40,
+       the cubit between the two veils, the most set apart place 20, its wall 6, a cell 6, the cell's
+       wall 5. From north to south across the body: wall 5, the winding stair 3, wall 5, a cell 6,
+       wall 6, the holy place 20, wall 6, a cell 6, wall 5, the channel for the water 3, wall 5. */
+    const HZ=cu(35), PZ=cu(50);
+    const xPW=HX1-cu(5), xPI=xPW-cu(11), xHW=xPI-cu(6), xHk=xHW-cu(40), xV1=xHk, xV2=xHk-cu(1), xDb=xV2-cu(20), xDW=xDb-cu(6);
+    const xCl=xDW-cu(6);
+    api.box(HX0-cu(3),Cp,-PZ-cu(3),HX1+cu(1),H0,PZ+cu(3),WHITE);                       /* the plinth */
+    for(let s=0;s<12;s++) api.box(HX1+cu(1)+s*cu(1),Cp,-cu(20),HX1+cu(2)+s*cu(1),H0-cu(0.5)*s,cu(20),WHITE);   /* the twelve steps */
+    const HT=H0+cu(100);
+    api.box(HX0,H0,-HZ,xPI,HT,HZ,WHITE);                                             /* the body, seventy wide */
+    api.box(xPI,H0,-PZ,HX1,HT,PZ,WHITE);                                             /* the porch, a hundred wide */
+    /* its face: pilasters with capitals of gold, the whole face banded with gold above, the crown of
+       gold and the spikes of gold along the roof that no bird might settle there (Middot 4:6) */
+    for(const z of [-cu(44),-cu(26),cu(26),cu(44)]){ api.box(HX1,H0,z-cu(2),HX1+cu(1.6),H0+cu(80),z+cu(2),WHITE); api.box(HX1,H0+cu(80),z-cu(2.5),HX1+cu(2),H0+cu(84),z+cu(2.5),GOLD); }
+    api.box(HX1-0.4,H0+cu(84),-PZ,HX1+0.3,H0+cu(96),PZ,GOLD);
+    for(const [x0,z0,x1,z1] of [[xPI,-PZ,HX1,-PZ+0.9],[xPI,PZ-0.9,HX1,PZ],[HX0,-HZ,xPI,-HZ+0.9],[HX0,HZ-0.9,xPI,HZ],[HX0,-HZ,HX0+0.9,HZ],[xPI-0.9,-PZ,xPI,-HZ],[xPI-0.9,HZ,xPI,PZ]]){
+      api.box(x0,HT-cu(3),z0,x1,HT,z1,GOLD); }
+    for(let x=HX0;x<HX1;x+=1.85){ api.box(x,HT,-(x<xPI?HZ:PZ),x+0.9,HT+1,-(x<xPI?HZ:PZ)+0.9,GOLD); api.box(x,HT,(x<xPI?HZ:PZ)-0.9,x+0.9,HT+1,(x<xPI?HZ:PZ),GOLD); }
+    for(let z=-PZ;z<PZ;z+=1.85) api.box(HX1-0.9,HT,z,HX1,HT+1,z+0.9,GOLD);
+    for(let z=-HZ;z<HZ;z+=1.85) api.box(HX0,HT,z,HX0+0.9,HT+1,z+0.9,GOLD);
+    /* THE PORCH (ulam): its open front forty cubits high and twenty wide, with no doors; within, eleven
+       deep and the breadth of the house; over its entrance five beams of oak, one over another
+       (Middot 3:7) */
+    api.box(xPI,H0,-PZ+cu(5),xPW,H0+cu(90),PZ-cu(5),'air');
+    api.box(xPW-0.2,H0,-cu(10),HX1+0.2,H0+cu(40),cu(10),'air');
+    api.box(HX1-0.3,H0,-cu(11),HX1+0.4,H0+cu(41),-cu(10),GOLD); api.box(HX1-0.3,H0,cu(10),HX1+0.4,H0+cu(41),cu(11),GOLD);   /* the frame of the entrance */
+    for(let b=0;b<5;b++) api.box(HX1-0.5,H0+cu(41)+b*cu(1.6),-cu(12)-b*cu(1),HX1+0.5,H0+cu(42)+b*cu(1.6),cu(12)+b*cu(1),CEDAR);
+    /* THE ENTRANCE OF THE HOLY PLACE: twenty cubits high and ten wide, its doors of gold folded back,
+       and over it the vine of gold, its clusters the height of a man (Middot 3:8) */
+    api.box(xHW,H0,-HZ+cu(16),xPI,H0+cu(90),HZ-cu(16),WHITE);
+    api.box(xPI-0.1,H0+cu(20),-cu(9),xPI+0.5,H0+cu(25),cu(9),GOLD);                     /* the vine */
+    for(let k=0;k<7;k++){ const z=-cu(8)+k*cu(16/6); api.box(xPI-0.1,H0+cu(17),z,xPI+0.6,H0+cu(20),z+0.9,GOLD); }   /* its clusters, hanging */
+    api.box(xPI,H0,-cu(9.5),xPI+0.6,H0+cu(20),-cu(5),GOLD); api.box(xPI,H0,cu(5),xPI+0.6,H0+cu(20),cu(9.5),GOLD);   /* the doors, folded back */
+    api.box(xPI,H0+cu(1),cu(14),xPI+cu(2),H0+cu(2.4),cu(16),WHITE); api.box(xPI,H0+cu(1),-cu(16),xPI+cu(2),H0+cu(2.4),-cu(14),GOLD);   /* the tables of marble and of gold in the porch (Menachot 11:7) */
+    /* THE HOLY PLACE (hekal), forty cubits by twenty and forty high, and THE MOST SET APART PLACE,
+       twenty cubits square: one hollow, its walls overlaid with gold */
+    api.box(xDb-1,H0,-cu(10)-1,xHW+0.5,H0+cu(40)+1,cu(10)+1,GOLD);
+    api.box(xDb,H0,-cu(10),xHW,H0+cu(40),cu(10),'air');
+    /* THE TWO VEILS, a cubit between them (Yoma 5:1): the outer one open at its south end, the inner
+       at its north; within, nothing but the stone of the foundation, three fingers above the floor */
+    api.box(xV1+0.2,H0,-cu(10),xV1+1.1,H0+cu(40),cu(10),BLUE);
+    api.box(xV1+0.2,H0,cu(7.5),xV1+1.1,H0+cu(7),cu(10),'air');
+    api.box(xV2-1.1,H0,-cu(10),xV2-0.2,H0+cu(40),cu(10),BLUE);
+    api.box(xV2-1.1,H0,-cu(10),xV2-0.2,H0+cu(7),-cu(7.5),'air');
+    /* its entrance through the wall from the porch, twenty high and ten wide */
+    api.box(xHW-0.3,H0,-cu(5),xPI+0.3,H0+cu(20),cu(5),'air');
+    api.box(xDb+cu(8),H0,-cu(2),xDb+cu(12),H0+0.5,cu(2),'stone');                          /* the stone of the foundation */
+    /* the things of the holy place (Menachot 11:6; Yoma 5:5): the table to the north, the lampstand
+       to the south, the altar of incense between them */
+    const ia=xV1+cu(14);
+    api.box(ia-c,H0,-c,ia+c,H0+cu(2),c,GOLD);                                              /* the golden altar */
+    api.box(ia+cu(8),H0,-cu(5),ia+cu(10),H0+cu(1.5),-cu(4),GOLD);                          /* the table */
+    { const lx=ia+cu(8), lz=cu(4.5); api.box(lx-0.5,H0,lz-0.5,lx+0.5,H0+cu(3.6),lz+0.5,GOLD);  /* the lampstand: the shaft, its seven lamps */
+      api.box(lx-0.5,H0+cu(2.4),lz-cu(2.6),lx+0.5,H0+cu(3.0),lz+cu(2.6),GOLD);
+      for(let k=-3;k<=3;k++) api.box(lx-0.5,H0+cu(3.0),lz+k*cu(0.8)-0.4,lx+0.5,H0+cu(3.6),lz+k*cu(0.8)+0.4,GOLD); }
+    /* THE CHAMBERS about the House: thirty-eight cells, fifteen on the north, fifteen on the south and
+       eight on the west, three storeys, five cubits, six and seven high (Middot 4:3), each with three
+       doors: to the next, to the one above, and to the winding stair */
+    const zC0=cu(10)+cu(6), zC1=zC0+cu(6);                                                 /* a cell lies outside the holy place's own wall */
+    const store=[[H0,cu(5)],[H0+cu(6),cu(6)],[H0+cu(13),cu(7)]];
+    for(const zs of [-1,1]) for(const [sy,sh] of store) for(let k=0;k<5;k++){
+      const L=(xPI-cu(6)-xDW)/5, x0=xDW+k*L;
+      api.box(x0+0.5,sy,Math.min(zs*zC0,zs*zC1),x0+L-0.5,sy+sh,Math.max(zs*zC0,zs*zC1),'air');
+      if(k<4) api.box(x0+L-1,sy,zs*(zC0+cu(2)),x0+L+1,sy+cu(4),zs*(zC0+cu(4)),'air'); }
+    for(const [sy,sh,n] of [[H0,cu(5),3],[H0+cu(6),cu(6),3],[H0+cu(13),cu(7),2]]) for(let k=0;k<n;k++){
+      const L=cu(20)/n, z0=-cu(10)+k*L; api.box(xCl,sy,z0+0.4,xDW,sy+sh,z0+L-0.4,'air'); }
+    /* the winding stair on the north side, by which the priests went up to the roof */
+    for(let s=0;s<30;s++){ const x=xPI-cu(6)-s*cu(2.2); if(x<HX0+cu(5)) break;
+      api.box(x-cu(2.2),H0+s*cu(1),-HZ+cu(5),x,H0+s*cu(1)+cu(5),-HZ+cu(8),'air'); }
+    /* the upper storey over the holy place and the most set apart place */
+    api.box(xDb,H0+cu(46),-cu(10),xHW,H0+cu(86),cu(10),'air');
+    api.mark('holyPlace',xHk+cu(26),cu(2)); api.mark('incense',ia+cu(2),0); api.mark('incenseAltar',ia,0);
+    api.mark('lampstand',ia+cu(8),cu(4.5)); api.mark('table',ia+cu(9),-cu(4.5)); api.mark('veil',xV1+cu(2),0);
+    api.mark('mostHoly',xDb+cu(10),0); api.mark('porch',(xPI+xPW)/2,0); api.mark('porchFront',HX1+cu(14),-cu(4));
+    api.mark('hekal',(xHk+xHW)/2,0); api.mark('hekalView',Xn+cu(40),0); api.mark('courtPriests',(HX1+AX0)/2,-cu(20)); api.mark('courtIsrael',XI+cu(5),cu(30));
     /* the corner over the Qidron, the highest of the courts (Mattithyahu 4:5) */
     api.mark('pinnacle',xe(S)-6,S-6); api.mark('pinnacleY',PY+31.2,0);
     /* THE FORTRESS AT THE CORNER (the Antonia): four towers over the north-west of the courts */
