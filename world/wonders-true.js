@@ -677,7 +677,7 @@ F.stonehenge=function(api){ const K=kit(api), box=K.box, SA='stone', BL='deepSto
    On its hill: round enclosures of drystone with T-shaped pillars set in their walls facing in, and in
    the midst of each two great pillars of 5.5 m. */
 F.gobekli=function(api){ const K=kit(api), box=K.box, LS='hewnStone', W='cobble';
-  K.oval(0,0,150,150,-3,6,'dirt','grassTop',4); K.oval(0,0,90,90,6,12,'dirt','grassTop',4);
+  K.oval(0,0,150,150,-3,6,'grassTop','grassTop',4); K.oval(0,0,90,90,6,12,'grassTop','grassTop',4);
   const tp=(x,z,h,ax,y0)=>{ if(ax==='x'){ box(x-0.8,y0,z-0.28,x+0.8,y0+h-1.2,z+0.28,LS); box(x-1.5,y0+h-1.2,z-0.3,x+1.5,y0+h,z+0.3,LS); }
       else { box(x-0.28,y0,z-0.8,x+0.28,y0+h-1.2,z+0.8,LS); box(x-0.3,y0+h-1.2,z-1.5,x+0.3,y0+h,z+1.5,LS); } };
   for(const [cx,cz,r,n] of [[0,0,10,11],[-18,-20,13,12],[2,-30,7,7],[-30,-2,7,8]]){
@@ -686,7 +686,7 @@ F.gobekli=function(api){ const K=kit(api), box=K.box, LS='hewnStone', W='cobble'
     for(let i=0;i<n;i++){ const a=i/n*Math.PI*2+0.3, x=cx+Math.cos(a)*(r-0.5), z=cz+Math.sin(a)*(r-0.5);
       tp(x,z,3.6,Math.abs(Math.cos(a))>Math.abs(Math.sin(a))?'z':'x',9); }
     tp(cx-1.8,cz,r>9?5.5:4.2,'z',9); tp(cx+1.8,cz,r>9?5.5:4.2,'z',9); }
-  box(-60,-1,-60,60,12,60,'dirt','grassTop');
+  box(-60,-1,-60,60,12,60,'grassTop');
   for(const [cx,cz,r] of [[0,0,11.5],[-18,-20,14.5],[2,-30,8.5],[-30,-2,8.5]]) K.oval(cx,cz,r,r,9,12.05,'path',null,1);
 };
 
