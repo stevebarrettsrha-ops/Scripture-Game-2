@@ -16876,6 +16876,65 @@ function lmStatue(G,x,z,y){
   emitBox(G, x-B*1.35,y+B*2.1,z+B*1.25, x+B*1.35,y+B*2.7,z+B*1.4, 'stone','stone',null); }
 const LM_BUILDERS={pyramid:lmPyramid,ziggurat:lmZiggurat,temple:lmTemple,stonecircle:lmStoneCircle,
   wall:lmWall,lighthouse:lmLighthouse,gate:lmGate,city:lmCity,statue:lmStatue};
+/* ---- THE WORKS OF THE ANCIENTS AT THEIR TRUE MEASURE (Phase T7) ----
+   When the earth is drawn at the people's own measure a wonder is raised at its own: `L.tm` in
+   world/landmarks.js gives it in metres (Khufu 230 m square and 147 high, Etemenanki 91 m on its
+   seven stages, the Parthenon 69.5 by 30.9 m on columns 10.4 m high). Each is laid course by course,
+   a block to the course, so a pyramid is a stair of 159 courses and not nine. */
+const lmU=m=>m*U_PER_M_WORLD;
+function lmTrue(G,x,z,y,L){ const t=L.tm, U=lmU;
+  switch(L.kind){
+  case 'pyramid': for(const P of t.parts){ const px=x+U(P.dx), pz=z+U(P.dz), n=Math.max(4,Math.round(P.h/M_PER_BLK)), hb=U(P.base/2);
+      const gy=topY(Math.floor(px/B),Math.floor(pz/B));
+      emitBox(G,px-hb,gy-B*6,pz-hb,px+hb,gy,pz+hb,'sand','sand',null);                    /* footed in the ground */
+      for(let i=0;i<n;i++){ const w=hb*(1-i/n); if(w<B*0.5) break;
+        emitBox(G,px-w,gy+i*B,pz-w,px+w,gy+(i+1)*B,pz+w,'sand','sand',null); } } return;
+  case 'ziggurat': { let yy=y;
+      emitBox(G,x-U(t.tiers[0][0]/2),y-B*3,z-U(t.tiers[0][1]/2),x+U(t.tiers[0][0]/2),y,z+U(t.tiers[0][1]/2),'badSide','badTop',null);   /* footed */
+      for(const [w,d,h] of t.tiers){ emitBox(G,x-U(w/2),yy,z-U(d/2),x+U(w/2),yy+U(h),z+U(d/2),'badSide','badTop',null); yy+=U(h); }
+      const H=yy-y, d0=U(t.tiers[0][1]/2), n=Math.round(H/B);
+      for(let i=0;i<n;i++){ const tt=i/n; emitBox(G,x-U(4),y+i*B,z+d0+U(30)*(1-tt)-B,x+U(4),y+(i+1)*B,z+d0+U(30)*(1-tt)+B,'badSide','badTop',null); }   /* the great stair */
+      return; }
+  case 'temple': { const hl=U(t.L/2), hw=U(t.W/2), ch=U(t.colH), st=U(t.step||4.5), y0=y+U(1.6);
+      emitBox(G,x-hl-U(2),y-B*2,z-hw-U(2),x+hl+U(2),y+U(0.5),z+hw+U(2),'stone','stone',null);   /* the steps */
+      emitBox(G,x-hl,y,z-hw,x+hl,y0,z+hw,'stone','stone',null);                                 /* the stylobate */
+      const cr=U(Math.max(0.6,t.colH*0.08));
+      for(let cx2=-hl+cr;cx2<=hl-cr+1;cx2+=st) for(const sz of [-1,1]) emitBox(G,x+cx2-cr,y0,z+sz*(hw-cr)-cr,x+cx2+cr,y0+ch,z+sz*(hw-cr)+cr,'stone','stone',null);
+      for(let cz2=-hw+cr+st;cz2<hw-cr-1;cz2+=st) for(const sx of [-1,1]) emitBox(G,x+sx*(hl-cr)-cr,y0,z+cz2-cr,x+sx*(hl-cr)+cr,y0+ch,z+cz2+cr,'stone','stone',null);
+      emitBox(G,x-hl*0.62,y0,z-hw*0.55,x+hl*0.62,y0+ch,z+hw*0.55,'stone','stone',null);       /* the cella */
+      emitBox(G,x-hl,y0+ch,z-hw,x+hl,y0+ch+U(t.colH*0.18),z+hw,'stone','stone',null);          /* the entablature */
+      for(let i=0;i<4;i++){ const f=1-i/4; emitBox(G,x-hl,y0+ch+U(t.colH*0.18)+i*U(t.W*0.04),z-hw*f,x+hl,y0+ch+U(t.colH*0.18)+(i+1)*U(t.W*0.04),z+hw*f,'roof','roof','roof'); }
+      return; }
+  case 'stonecircle': { const R=U(t.R), n=t.n, h=U(t.h), w=U(t.w/2), th=U(t.t/2);
+      for(let i=0;i<n;i++){ const a=i/n*6.283, sx=x+Math.cos(a)*R, sz=z+Math.sin(a)*R;
+        emitBox(G,sx-w,y-B,sz-th,sx+w,y+h,sz+th,'stone','stone',null);
+        if(t.lintel){ const a2=(i+0.5)/n*6.283, lx=x+Math.cos(a2)*R, lz=z+Math.sin(a2)*R; emitBox(G,lx-U(1.8),y+h,lz-U(0.5),lx+U(1.8),y+h+U(0.8),lz+U(0.5),'stone','stone',null); } }
+      return; }
+  case 'wall': { const L2=U(t.L), h=U(t.h), w=U(t.w/2), every=U(t.every||120);
+      for(let s2=0;s2<L2;s2+=B){ const wx2=x-L2/2+s2, wz2=z+Math.sin(s2/U(200))*U(40);
+        const c=landAtWorld(wx2,wz2); if(!c||c.kind==='wall'||c.kind==='floe') continue; const gy=c.h*B;
+        emitBox(G,wx2,gy-B,wz2-w,wx2+B,gy+h,wz2+w,'cobble','cobble',null);
+        if(Math.round(s2/B)%2===0) emitBox(G,wx2,gy+h,wz2-w,wx2+B*0.5,gy+h+U(1.2),wz2-w+U(0.6),'cobble','cobble',null);
+        if(s2%every<B) emitBox(G,wx2-U(5),gy-B,wz2-U(6),wx2+U(5),gy+h+U(6),wz2+U(6),'cobble','cobble',null); }
+      return; }
+  case 'lighthouse': { let yy=y;
+      for(const [w,h] of [[t.w1,t.h1],[t.w2,t.h2],[t.w3,t.h3]]){ emitBox(G,x-U(w/2),yy-(yy===y?B*2:0),z-U(w/2),x+U(w/2),yy+U(h),z+U(w/2),'stone','stone',null); yy+=U(h); }
+      emitBox(G,x-U(3),yy,z-U(3),x+U(3),yy+U(2),z+U(3),'cobble','cobble',null); return; }
+  case 'gate': { const hw=U(t.w/2), h=U(t.h), d=U(t.d/2), op=Math.min(hw*0.4,U(3));
+      emitBox(G,x-hw,y-B,z-d,x-op,y+h,z+d,'cobble','cobble',null); emitBox(G,x+op,y-B,z-d,x+hw,y+h,z+d,'cobble','cobble',null);
+      emitBox(G,x-op,y+Math.min(h*0.7,U(8)),z-d,x+op,y+h,z+d,'cobble','cobble',null);
+      emitBox(G,x-hw-U(2),y+h,z-d,x+hw+U(2),y+h+U(1.5),z+d,'cobble','cobble',null); return; }
+  case 'city': { const R=U(t.R), h=U(t.h), n=Math.round(6.283*R/B);
+      for(let a=0;a<n;a++){ if(a<4) continue; const th=a/n*6.283, wx2=x+Math.cos(th)*R, wz2=z+Math.sin(th)*R;
+        const c=landAtWorld(wx2,wz2); if(!c||c.kind==='wall'||c.kind==='floe') continue;
+        emitBox(G,wx2-B*0.5,c.h*B-B,wz2-B*0.5,wx2+B*0.5,c.h*B+h,wz2+B*0.5,'cobble','cobble',null); }
+      for(let hI=0;hI<(t.houses||30);hI++){ const a=hash2(hI*3.1,7.7)*6.283, r=R*0.12+hash2(hI*1.7,15.4)*R*0.75;
+        const hx=x+Math.cos(a)*r, hz=z+Math.sin(a)*r, c=landAtWorld(hx,hz); if(!c||c.kind==='wall') continue;
+        const gy=c.h*B, w=U(3+hash2(hI,23.1)*3); emitBox(G,hx-w,gy-B,hz-w,hx+w,gy+U(3.2+hash2(hI,38.5)*2),hz+w,'path','path',null); }
+      return; }
+  case 'statue': { const h=U(t.h); emitBox(G,x-h*0.5,y-B,z-h*0.45,x+h*0.5,y+h,z+h*0.45,'stone','stone',null); return; }
+  }
+}
 /* ---- THE DRESSING OF A SECRET RANGE ----
    The land itself (peaks, canyons, shafts) is cut in cellRaw; what is built
    here when the traveller draws near is the WATER AND THE LIGHT of the
@@ -17281,7 +17340,7 @@ function spawnLandmark(i){
     const G=newG();
     _solidRec=[];                       /* the builder writes its own collision */
     var lmSolids;
-    const build=(GG)=>(LM_BUILDERS[L.kind]||lmTemple)(GG,x,z,y,L.s,i*77.7);
+    const build=(GG)=>(TRUE_EARTH&&L.tm)?lmTrue(GG,x,z,y,L):(LM_BUILDERS[L.kind]||lmTemple)(GG,x,z,y,L.s,i*77.7);
     try{ build(G); }
     finally{ lmSolids=_solidRec; _solidRec=null; }   /* never left recording */
     /* ---- AND THE WORK OF THE ANCIENTS IS RAISED TWICE ----
@@ -17383,7 +17442,10 @@ function updateLandmarks(px,pz){
        ancients stand whole before his eye can reach them */
     const open=state.mode==='fly'
       ?Math.max(0,Math.min(1,((scene.fog?scene.fog.far:1140)-1700)/1600)):0;
-    const trig=((L.kind==='range')?2600:1600)*(1+open*0.8);
+    /* (at the true measure a wonder is raised as soon as it could be seen through the haze: a
+       pyramid is fifteen hundred units across, and the old ring of sixteen hundred would have had
+       the traveller inside it before it stood) */
+    const trig=(TRUE_EARTH&&L.tm)?FOG_FAR*0.8:((L.kind==='range')?2600:1600)*(1+open*0.8);
     if(d<trig&&!has) spawnLandmark(i);
     else if(d>trig+500&&has){ const A=activeLandmarks.get(i);
       if(A.stamp) stampDrop(A.stamp);      /* the blocks go with the triangles */
