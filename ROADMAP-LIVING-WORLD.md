@@ -86,7 +86,7 @@ There are two real limits:
 
 ## The plan, in order
 
-### Phase A — the day goes on (people)
+### Phase A — the day goes on (people) · DONE in Round 137
 
 - **A1. Wake where the clock says.** When a village is raised, each soul is set down where its schedule puts it at that hour: abed at night, at work by day, on the road at dawn and dusk. The same date always gives the same village.
 - **A2. Everyone reaches home.** Find and fix where the 15 of 33 stall on the way home (stepped ground and doorsteps). Target: all asleep indoors by midnight.
@@ -112,7 +112,7 @@ There are two real limits:
 - **B2. Talking.** The player can **speak, ask for work, or trade**. Jobs are tracked in THE LOG and kept in the save. The reward is shekels and the village's goodwill.
 - **B3. Scrolls as rewards.** Some scrolls of Phase F are never found lying anywhere. Townsfolk give them, after a job or a chain of jobs, in a land that fits the book: a scribe in Yahudah, an elder in Babel, a merchant in Tsor.
 
-### Phase C — settlements and the land they change
+### Phase C — settlements and the land they change · C1, C2 and C4 done in Round 137; C3 (more places per land, roads) to come
 
 - **C1. Three kinds of place:**
   - **Rural countryside:** farmsteads, field strips, orchards and vineyards, threshing floors, stone field walls, shepherds' folds, terraces.

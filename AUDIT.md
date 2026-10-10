@@ -11526,6 +11526,160 @@ by walking into it.
 
   Wild beasts keep out of wells. The sea is unchanged and swum as before.
 
+## 4ej. Round 137 — the day goes on: home at night, a trade for every soul, the flock and the beast at the door
+
+The traveller asked that every soul work by day and go home at evening, on foot or riding; that the
+beasts go home to their places; and "when I am playing the voyage i feel like the world went on without
+me". The findings and the plan are in ROADMAP-LIVING-WORLD.md; this round is its Phase A.
+
+**How it was found.** A probe keeps Yasharal's town (33 souls, 17 houses) through a night and a day,
+stepping the people and beasts the way the frame does, and reads every soul: up or abed, where, how far
+from its own place, and the reason its last step was refused. Kept through the night before this
+round, only 18 of 33 were lying down at their own homes by two in the morning; the rest stood all night
+where they had stopped.
+
+### Everyone reaches home
+
+The probe gave the refusal for each soul still standing, and there were four separate faults:
+
+- **Doorways walled shut at the threshold.** The house is not on the block grid, so its half-block wall
+  falls across two cells about as often as one. Only the cell under the wall's middle had its footing
+  course cleared. The other kept it: a two-course step under a one-course gap, which nobody can take.
+  Three of Yasharal's seventeen doorways were shut to their own households that way. Every cell the
+  wall's thickness touches is cleared now.
+- **A house on a slope had a floor nobody could stand on.** The rule against climbing the furniture
+  judged a built surface by the natural ground of its column. A house raised on a slope has its floor
+  laid level over falling ground, so part of the floor (in two houses, nearly all of it) read as a
+  roof. Inside a house's room, the surface at the house's own floor height is now its floor. A bed,
+  chest or table a course above it is still furniture.
+- **Households held by their own sleepers.** Every soul of a house made for the one spot in the middle
+  of the room. The first one home lay down there, and a body on the floor is a body the others may not
+  walk into, so the rest stood all night four paces from their beds. Each soul now has its own place:
+  the head of the house in the bed the house was built with, the rest on mats along the far wall and
+  then in a second row, each place checked against the furniture. A sleeper lies the way he faces,
+  head to the wall; before, every sleeper in the world lay head to the north, whatever the room.
+- **No way round a terrace.** A refused walker swung a step to either side, then took a waypoint by
+  lottery. That gets round a bale, not a bank. A refused walker now plans: a grid of half-block cells
+  judged by exactly the rules a step is judged by (a shut door counts as a way, since he opens it), and
+  the shortest way through it, walked corner to corner. The walk home is planned from the outset.
+  Cells judged are remembered until something is built or dug. Plans are rationed a few to a frame,
+  and the new ground judged in one frame is capped, so a whole town turning home costs no hitch.
+- **And where there is still no way,** a soul is housed on the level of its work, and as a last resort
+  lies down where it is, as a herdsman lies out by his fold.
+
+| Yasharal, one night | before | after |
+|---|---|---|
+| lying down at 2:00 / in their own place | 18 / — | 33 / 33 |
+| in the house's own bed | — | 16 |
+| time from bed-hour to the last soul down (game seconds) | never | 140; 50 with the story doors (40 souls, farmsteads included) |
+| worst frame spent planning (first evening in a fresh town) | — | 19 ms (52 ms before the cell ration) |
+
+### Where the clock says
+
+A village is raised when the traveller comes near. It used to be raised the same at every hour, with
+every soul at its work, so a town come upon at two in the morning stood in the market and then walked
+home in front of him. A soul whose trade has it abed is now raised lying in its own place, the door
+shut; a flock is raised in its fold by night and at its pasture by day. Raised at 2:00: 32 of 33 lying
+in their own places at the first frame (the 33rd was the household's sixth soul, for which there was
+then no place; there is now).
+
+### A trade for every soul
+
+Kept through a day, 13 of Yasharal's 33 souls had no work at all: the city's residents were "folk", who
+wandered the square from rising to bed. Every house now keeps one trade for its men (potter, carpenter,
+woodcutter, mason) and one for its women (weaver, baker, spinner, gleaner), and the tools of both stand
+in its yard beside the door: a wheel and drying pots, a bench and timber, a woodpile and chopping block,
+dressed stone, an upright loom with its weights, a kneading trough and a clay oven, a stool and a basket
+of wool, sheaves. The woodcutter walks out to the town's woodlot (the direction with the most trunks
+standing within a walk) and home with his load on his shoulder. The mason goes between the stone heap
+at the edge of town and the course he is raising. The gleaner works the fields after the reapers. Each
+has its own hours in js/behavior.js, its own work in the hands, and its own words. A couple of
+market-goers are kept where there is a market. The lesson's hours are now the teacher's row in the
+table, not written into the code three times, and outside them the teacher sits with the scroll instead
+of teaching an empty square. Arms swing with the stride on the road; before, they stayed set in
+whatever the hands last did.
+
+Kept through a working day at Yasharal (33 souls): at every hour from 9:30 to 19:00, every grown
+soul was up and either at its trade's own work or walking to it; no soul was left with the role "folk".
+
+### The beast at the door
+
+A household whose work lies a long walk off keeps a beast for the road: a camel in the desert lands, a
+horse in the north, a donkey everywhere else. It is tethered by the door at night, saddled. In the
+morning its rider goes to it, swings up, rides out, and gets down beside the work, leaving it tied
+there. At evening he rides home to its place at the door and walks the last steps in.
+
+Read at dawn at Yasharal: a mason rode his donkey out to the stone heap and tethered it there.
+After the traveller's report that riding "did not look right", a beast taken for riding (his own or a
+townsman's) is drawn at riding size, so its back is at the rider's hip (RIDE_BACK per kind); drawn at
+its true size a donkey came to a man's knee. The rider sits astride: thighs forward along the flanks,
+a little apart, shins hanging, hands to the reins.
+
+### The flock keeps hours
+
+The village's beasts kept no hours: sheep stood about the fold at midnight as at noon. The flock (sheep,
+goats, cattle, camels) now goes out at first light to a pasture beyond the fold, away from the houses,
+and comes in at evening before the herdsman goes to bed. Each beast has its own place in the fold and
+lies down there in the dead of night. The hens go in to roost at dusk. The herdsman keeps the flock at
+pasture by day and drives the laggards home at evening.
+
+The hen of Yasharal's lower town never reached the fold, which stands on a terrace four and five
+courses up: the lanes followed every bump of the ground, straight up the bank. **A lane is now a way:**
+its cells are joined edge to edge, and where the ground jumps it is built up in courses of stone, a
+course lower each cell from the high side, so no step along it is more than one course. It is fill
+only, never inside a house, and a lane built up in courses is a floor to the walkers.
+
+Kept through a day: the goat of Yasharal's fold at pasture with the herdsman from 6:30 to 18:30, in
+the fold by 19:30 and lying down there from 21:00; the hen in the fold at night once the lanes had
+their steps.
+
+### Small truths
+
+- A sleeper does not answer when spoken to, and a soul on its way to bed says so.
+- A stall whose keeper has gone home is shut: a cloth is drawn over the goods, and there is no trade
+  at it until he comes back to his counter in the morning.
+- A soul with no house beds down by the well instead of working through the night.
+
+### Reported by the traveller, and mended in this round
+
+- **"First person broken, I am seeing a stick."** In free roam an empty hand was drawn holding an iron
+  pick, because the bare hand digs there at a pick's pace; seen from the eye along the forearm, it was
+  a haft running off the edge of the view. An empty hand is now the sleeve and the hand, and a tool
+  held is held small and diagonal in the lower right with its head in view (FP_POSE).
+- **"Eyes should be closed when sleeping."** A sleeper's eyes are shut; the traveller close or
+  speaking, a door swung, a block struck or laid, or a splash nearby wakes him: eyes open, up on an
+  elbow, and down again when it is quiet.
+- **"Fix doors like how story mode fixes them."** Every house of every town is now built with the
+  story's door: floor level with the street, a doorway two cells wide and three high. The lot and the
+  yard before the door are cleared of leaves, plain logs and scrub (the clearing matched only `log-`).
+
+### Phase C — the land a settlement has made
+
+- **The core, the felled ring, the wild wood.** Every settlement's ground is shaped in the cell data
+  itself. The core is levelled (a village flat to 95 units and eased out to 190, a city to 200 and 340)
+  and cleared of every tree and bush, trampled bare in patches and most about the middle. Around it the
+  felled ring has stumps where the trees stood (a short round of trunk with its rings, roots at its foot,
+  and now and then the felled bole beside it) and bare earth between. Past it the wild wood begins at
+  once and thick, wherever the land grows trees, so the line is sharp. The woodcutters go out past the
+  ring to the standing wood.
+- **The countryside.** Out in the felled ring stand farmsteads (three about a village, five about a
+  city): a family's house facing the town, two strips of field behind it, a threshing floor of dressed
+  stone, a low wall of gathered field stones, and a lane to the town. Each field has its farmer, and the
+  household its trades.
+- **The growing trade town.** A village with a quay is a trade town: a caravanserai (a walled yard with
+  a gate, an arcade and fodder for the beasts of the road), storehouses, and building lots that fill in
+  as the days pass — a house begun every four days, its walls rising a course a day, a ladder against
+  them, until the roof is on. The masons work at the house going up.
+- **The walled city.** A great city is walled: a ring of dressed stone drawn round its houses, a tower
+  at each corner and a gate where each of its two great streets goes out, a tower either side.
+
+Kept through a night with the walls and the farmsteads standing, Yasharal's 40 souls (the farmstead
+families among them) were all lying in their own places 50 game-seconds after bed-hour, through the
+city's gates; the worst frame spent planning was 12 ms.
+
+Not yet: several places per land joined by roads (C3), and the city by quarters of trade (D).
+Test results for this round are recorded with the next commit.
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.
