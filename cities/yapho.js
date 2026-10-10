@@ -9,7 +9,7 @@
 EARTH.city({
 country:"Yasharal",
 name:"Yapho",
-houses:12,
+houses:20,
 size:2,
 market:true,
 fishStall:true,

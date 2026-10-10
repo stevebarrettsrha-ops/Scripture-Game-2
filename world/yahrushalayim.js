@@ -45,7 +45,7 @@ window.YAHRU_PLAN=function(api,period){
       if(k%2===0) api.box(mx-rx*0.6,h,mz-rz*0.6,mx+rx*0.6,h+1,mz+rz*0.6,LIME);
       if(k%9===0) api.box(mx-2.4,0,mz-2.4,mx+2.4,h+2.6,mz+2.4,LIME); } };   /* towers */
   wall(cx-hw,cz-hd,cx+hw,cz-hd); wall(cx+hw,cz-hd,cx+hw,cz+hd);
-  wall(cx+hw,cz+hd,cx-hw,cz+hd,[cx-14,cz+hd,5]); wall(cx-hw,cz+hd,cx-hw,cz-hd);
+  wall(cx+hw,cz+hd,cx-hw,cz+hd,[cx-14,cz+hd,5]); wall(cx-hw,cz+hd,cx-hw,cz-hd,period==='return'?null:[cx-hw,cz-6,4]);
   { const x=cx-14, z=cz+hd, w=4, h=9;                                         /* the gate */
     api.box(x-w/2-3,0,z-2.4,x-w/2,h,z+2.4,LIME); api.box(x+w/2,0,z-2.4,x+w/2+3,h,z+2.4,LIME);
     api.box(x-w/2,5.4,z-2.2,x+w/2,h-1,z+2.2,LIME); }
@@ -136,6 +136,28 @@ window.YAHRU_PLAN=function(api,period){
     if(x>4&&x<26&&r===3) continue;                                         /* the square before the south wall */
     if(ruin&&hash(c*3,r*7)<0.62) continue;                                    /* few houses built again yet */
     api.house(x,z,6+hash(r*3,c)*2,6+hash(c*5,r)*2,{door:r%2?'n':'s',seed:r*7+c+3});
+  }
+  /* ---- THE SECOND QUARTER, ON THE WESTERN HILL (Round 137) ----
+     The city was never a few streets: she grew west over the hill, and the broad wall
+     was carried round the new quarter (Neḥemyah 3:8; 2 Diḇre haYamim 32:5) — house on
+     house down narrow lanes, a cross street through the middle, a gate on its south side
+     and a way through the old west wall into the first city. In the days of the return
+     it stands mostly in ruin. */
+  if(api.quarter){
+    const qx0=cx-hw-112, qx1=cx-hw-2, qz0=cz-hd+2, qz1=cz+hd-6;
+    api.pad(qx0-4,qz0-4,qx1+2,qz1+4,{fill:'cobble',blend:8});
+    wall(qx0,cz-hd,cx-hw,cz-hd); wall(qx0,cz-hd,qx0,qz1+4);
+    wall(qx0,qz1+4,cx-hw,qz1+4,[qx0+56,qz1+4,4]);
+    const list=[];
+    for(let x=qx0+7;x<=qx1-5;x+=10) for(let z=qz0+6;z<=qz1-4;z+=10){
+      if(Math.abs(z-(cz-6))<5) continue;                                     /* the cross street to the old city */
+      if(Math.abs(x-(qx0+56))<5) continue;                                   /* the street from the south gate */
+      if(ruin&&hash(x*0.3,z*0.7)<0.7) continue;
+      list.push({x:x+(hash(x,z)-0.5)*1.2, z:z+(hash(z,x)-0.5)*1.2, w:6.5+hash(x*2,z)*1.5, d:6.5+hash(z*2,x)*1.5,
+        door:hash(x,z*3)<0.5?'n':'s', seed:Math.floor(hash(x*5,z*5)*997)+1}); }
+    api.quarter(list);
+    api.top(qx0+4,cz-8,qx1+2,cz-4,PATH); api.top(qx0+54,cz-6,qx0+58,qz1+6,PATH);
+    api.mark('westQuarter',(qx0+qx1)/2,(qz0+qz1)/2);
   }
   /* the street up to the house of Aluahim */
   api.top(cx-3.2,cz-20,cx-0.8,cz+56,PATH);

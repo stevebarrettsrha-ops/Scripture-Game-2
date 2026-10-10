@@ -2589,12 +2589,16 @@ function ravineCut(c,x,z){
        grows trees at all, so the line between the town's ground and the
        untamed country is sharp.
    A city reaches farther than a village in every one of these. */
-const SETTLED_R={village:{flat:95,skirt:190,core:175,ring:340,edge:430},
+const SETTLED_R={village:{flat:150,skirt:260,core:245,ring:420,edge:510},
               city:{flat:200,skirt:340,core:360,ring:560,edge:660}};
+function cityHomesOf(cfg){ return Math.round((cfg.houses||12)*8); }
 function settleProfile(st){
   if(st._prof) return st._prof;
-  let city=false; try{ city=!!cityFor(st.i); }catch(e){}
-  return st._prof=Object.assign({kind:city?'city':'village'},city?SETTLED_R.city:SETTLED_R.village);
+  let cfg=null; try{ cfg=cityFor(st.i); }catch(e){}
+  if(!cfg) return st._prof=Object.assign({kind:'village'},SETTLED_R.village);
+  /* a city's ground is as broad as its houses: half the side of its square of lots, and more */
+  const half=(Math.ceil(Math.sqrt(cityHomesOf(cfg)*1.6)/2)+1.5)*B*10;
+  return st._prof={kind:'city',flat:half+B*4,skirt:half+B*22,core:half+B*14,ring:half+B*50,edge:half+B*66};
 }
 function cellCompute(ix,iz){
   const c=cellRaw(ix,iz); if(!c) return null;
@@ -11149,6 +11153,10 @@ function riverBankAt(x,z){
    a ring and hands back the nearest bole, with the true crown height of that
    species on it. It is what the tree-dwellers are placed by, and what the
    nests of the birds are hung from. */
+/* the top of whatever stands at a point — the ground as dug, levelled or built on, a
+   roof — not the land's own height before anyone touched it (Round 137: birds sat on
+   the air over ground a town had cut down, and inside the house built over it) */
+function groundTopAt(x,z,c){ const g=groundInfo(x,z); return g&&g.land?g.y:(c?c.h*B:WATER_Y); }
 function treeNear(x,z,reach){
   reach=reach||4;
   const ix0=Math.floor(x/B), iz0=Math.floor(z/B);
@@ -11156,7 +11164,10 @@ function treeNear(x,z,reach){
     for(let a=-r;a<=r;a++) for(let b2=-r;b2<=r;b2++){
       if(r>0&&Math.abs(a)!==r&&Math.abs(b2)!==r) continue;
       const ix=ix0+a, iz=iz0+b2, c=cell(ix,iz);
-      if(!c||!c.tree||c.kind==='wall') continue;
+      if(!c||!c.tree||c.kind==='wall'||noTreeAt(ix,iz)) continue;
+      /* (and only a tree that STANDS — a lot cleared for a house, or a bole the hand has
+         felled, is no perch: birds sat roosting on the air where they had been, Round 137) */
+      if(window.FLORA&&FLORA.boleBlocks&&FLORA.boleBlocks()){ const bb=blockOf(blockAt(ix,c.h,iz)); if(!bb||bb.drops!=='log') continue; }
       if(!window.FLORA) return {ix,iz,c,y:c.h*B+B*2.6,x:(ix+0.5)*B,z:(iz+0.5)*B};
       const K=FLORA.treeAt(landNameAt((ix+0.5)*B,(iz+0.5)*B),c.kind,c.h,ix,iz,hash2,false);
       const crown=K?FLORA.crownY(K,ix,iz,hash2):0;
@@ -12477,7 +12488,11 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
        leaves the ground and a walking elephant truly does not. */
     const GT=tickGait(a,a.kind,moving?spd:0,dt);
     /* it stands on the highest floor under its whole length — never with a part of it in the ground */
-    if(a.gy===undefined||a._gx!==a.x||a._gz!==a.z){ const g0=(a.gy!==undefined?a.gy:(c2?c2.h*B:WATER_Y));
+    /* (and asked again now and then where it stands still: a town raised or a block
+       broken under a grazing beast moves its floor, and it was left standing on the air
+       where the ground had been — Round 137) */
+    a._gyT=(a._gyT||0)-dt;
+    if(a.gy===undefined||a._gx!==a.x||a._gz!==a.z||a._gyT<=0){ a._gyT=0.8+Math.random()*0.6; const g0=(a.gy!==undefined?a.gy:(c2?c2.h*B:WATER_Y));
       const f2=beastFloor(a,a.x,a.z,a.heading||0,g0+B*0.3,g0+B*1.05);
       a.gy=f2.y>-1e8?f2.y:(c2?c2.h*B:WATER_Y); a._gx=a.x; a._gz=a.z; }
     a.m.position.set(a.x,a.gy+lift+(GT?Math.max(0,GT.rise):0),a.z);
@@ -12621,7 +12636,7 @@ function initNests(){ if(NESTS.length) return;
    tree-nester's is set at the TRUE crown height of the tree standing on that
    very cell — asked of the flora, which is the only thing that knows. */
 function homeSiteFor(wx,wz,c,gi,gj){
-  const ix=Math.floor(wx/B), iz=Math.floor(wz/B), yG=c.h*B;
+  const ix=Math.floor(wx/B), iz=Math.floor(wz/B), yG=groundTopAt(wx,wz,c);
   const land=landNameAt(wx,wz);
   const pick=hash2(gi*7.1+3.3,gj*4.9-1.7);
   /* a treed cell belongs to whatever nests in trees; bare ground to whatever
@@ -12835,14 +12850,14 @@ function forageSpot(b,px,pz,rad){
     else { const a=Math.random()*6.28, r=50+Math.random()*RR; x=px+Math.cos(a)*r; z=pz+Math.sin(a)*r; }
     const c=landAtWorld(x,z);
     if(b.fisher){ if(!c) return {x,y:WATER_Y+3,z,water:true}; }
-    else if(c&&c.kind!=='wall') return {x,y:c.h*B+1.4,z,water:false};
+    else if(c&&c.kind!=='wall') return {x,y:groundTopAt(x,z,c)+1.4,z,water:false};
   }
   /* a gull carried inland finds no water to strike — rather than wheel there
      for ever it forages the ground, as gulls do */
   if(b.fisher){ for(let tr=0;tr<6;tr++){
     const a=Math.random()*6.28, r=50+Math.random()*AL_R;
     const x=px+Math.cos(a)*r, z=pz+Math.sin(a)*r, c=landAtWorld(x,z);
-    if(c&&c.kind!=='wall') return {x,y:c.h*B+1.4,z,water:false}; } }
+    if(c&&c.kind!=='wall') return {x,y:groundTopAt(x,z,c)+1.4,z,water:false}; } }
   return null;
 }
 /* ---- THE MIDDLE OF THIS BIRD'S OWN FLOCK, IF IT HAS ONE ----
@@ -12919,7 +12934,7 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
          underneath the ice, which is the flock seen dropping through the
          world at the rim. Past the foot of the wall there are no fowl. */
       if(Math.hypot(b.x,b.z)/R_WORLD>SHELF_UV){ b.m.visible=false; b.set=false; continue; }
-      const c=landAtWorld(b.x,b.z), base=c?c.h*B:WATER_Y;
+      const c=landAtWorld(b.x,b.z), base=c?groundTopAt(b.x,b.z,c):WATER_Y;
       b.y=type==='butterfly'?base+3:base+30+Math.random()*60;
       /* WHICH BIRDS FISH is read from js/behavior.js now, not named by hand:
          the gull and the puffin take their living from the water wherever they
@@ -12947,11 +12962,11 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
       /* it goes from flower to flower, and never further — and at night it
          SITS, folded on a stem, as every butterfly on the earth does */
       if(night){ if(b.job!=='sit'){ b.job='sit';
-          const c=landAtWorld(b.x,b.z); b.tx=b.x; b.tz=b.z; b.ty=(c?c.h*B:WATER_Y)+1.2; } }
+          const c=landAtWorld(b.x,b.z); b.tx=b.x; b.tz=b.z; b.ty=(c?groundTopAt(b.x,b.z,c):WATER_Y)+1.2; } }
       else if(b.jt<=0||b.job==='sit'){ b.job='fly';
         const a=Math.random()*6.28, r=3+Math.random()*14;
         b.tx=b.x+Math.cos(a)*r; b.tz=b.z+Math.sin(a)*r;
-        const c=landAtWorld(b.tx,b.tz); b.ty=(c?c.h*B:WATER_Y)+2+Math.random()*4;
+        const c=landAtWorld(b.tx,b.tz); b.ty=(c?groundTopAt(b.x,b.z,c):WATER_Y)+2+Math.random()*4;
         b.jt=1.2+Math.random()*2; }
     } else {
       claimNest(b);
@@ -13002,7 +13017,7 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
             /* and it does not eat its supper inside her timbers either */
             const w3=c?null:besideShip(b.x,b.z);
             b.tx=w3?w3.x:b.x; b.tz=w3?w3.z:b.z;
-            b.ty=(c?c.h*B:WATER_Y+2)+0.8; break; }
+            b.ty=(c?groundTopAt(b.x,b.z,c):WATER_Y+2)+0.8; break; }
           b.tx=b.nest.x; b.tz=b.nest.z; b.ty=b.nest.y+3;
           if(Math.hypot(b.x-b.tx,b.z-b.tz)<7&&Math.abs(b.y-b.ty)<6){
             b.job='feed'; b.jt=2.2+Math.random(); b.nest.cheep=2.6; }
@@ -13022,7 +13037,7 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
               const w2=(!BH||BH.perch!=='ground')?treeNear(b.x,b.z,6):null;
               if(w2) b.perch={x:w2.x,y:w2.y+1.0,z:w2.z};
               else{ const c=landAtWorld(b.x,b.z);
-                if(c) b.perch={x:b.x,y:c.h*B+0.6,z:b.z};
+                if(c) b.perch={x:b.x,y:groundTopAt(b.x,b.z,c)+0.6,z:b.z};
                 /* ---- NO DEAD BIRDS ON THE NIGHT SEA ----
                    A bird benighted over open water used to be set down ON the
                    waves, stone-still, wings folded — a floating corpse to any
@@ -13038,7 +13053,7 @@ function updateAirLife(px,pz,dt,t,night){ initAirLife(); updateNests(px,pz,dt);
                 else{ let fx2=null,fz2=null,fy2=0;
                   for(const rr of [140,280,430]){ for(let q=0;q<10;q++){ const a2=q/10*6.283;
                       const x2=b.x+Math.cos(a2)*rr, z2=b.z+Math.sin(a2)*rr, c2=landAtWorld(x2,z2);
-                      if(c2&&c2.kind!=='wall'){ fx2=x2; fz2=z2; fy2=c2.h*B+0.6; break; } }
+                      if(c2&&c2.kind!=='wall'){ fx2=x2; fz2=z2; fy2=groundTopAt(x2,z2,c2)+0.6; break; } }
                     if(fx2!==null) break; }
                   if(fx2!==null) b.perch={x:fx2,y:fy2,z:fz2};
                   else b.perch={x:b.x,y:0,z:b.z,air:true}; } } }
@@ -13852,42 +13867,47 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
   /* half again the homes, on lots half again apart — a CITY now stands a
      head taller and a street wider than the villages it lords it over */
   rectFree=rectFree||(()=>true); addRect=addRect||(()=>{});
-  const cx=site.x, cz=site.z, sz2=cfg.size||2, nHomes=Math.round((cfg.houses||14)*1.4);
+  /* ---- A CITY OF MANY (Round 137) ----
+     The traveller: "towns in real life are way bigger than this — the people are
+     many, not a few houses." A city of the Bible days was houses wall to wall
+     down narrow lanes, by the hundred. A city's file gives its size in tens of
+     households; the city is eight times that, packed close. */
+  const cx=site.x, cz=site.z, sz2=cfg.size||2, nHomes=cityHomesOf(cfg);
   stamped(ex,()=>emitPlaza(G, cx,cz, wy, B*(6+sz2*1.5)));
   stamped(ex,()=>emitWell(G, cx,cz, wy));
   solids.push({x:cx,z:cz,r:B*1.7});
   addRect(cx-B*1.7,cx+B*1.7,cz-B*1.7,cz+B*1.7);
-  /* lots a street-and-a-garden apart — a city breathes, it does not huddle */
-  const spacing=B*15, reach=B*(12+Math.ceil(nHomes/2));
+  /* lots close-packed: a house of seven or eight blocks on a lot of ten, an alley
+     between, a cross-street every fourth lot and the two great streets through */
+  const spacing=B*10, G2=Math.ceil(Math.sqrt(nHomes*1.6)/2)+1, reach=spacing*(G2+0.5);
   stamped(ex,()=>emitPathLine(G, cx-reach,cz, cx+reach,cz));   // the two main streets
   stamped(ex,()=>emitPathLine(G, cx,cz-reach, cx,cz+reach));
   const lots=[];
-  for(let gy=-3;gy<=3;gy++) for(let gx=-3;gx<=3;gx++){
+  for(let gy=-G2;gy<=G2;gy++) for(let gx=-G2;gx<=G2;gx++){
     if(Math.abs(gx)<=0&&Math.abs(gy)<=0) continue;
-    lots.push([gx,gy,Math.abs(gx)+Math.abs(gy)+rnd(gx*7+gy)*0.3]); }
+    if(gx%4===0||gy%4===0) continue;                         /* the cross-streets */
+    lots.push([gx,gy,Math.hypot(gx,gy)+rnd(gx*7+gy)*0.4]); }
   lots.sort((a,b)=>a[2]-b[2]);
   const homes=[]; let placed=0;
   for(const lot of lots){ if(placed>=nHomes) break;
     const gx=lot[0], gy=lot[1];
     if(gx===0||gy===0) continue;                        // keep the streets clear
-    const hx=cx+gx*spacing+(rnd(placed+1)-0.5)*B*1.5, hz=cz+gy*spacing+(rnd(placed+9)-0.5)*B*1.5;
+    const hx=cx+gx*spacing, hz=cz+gy*spacing;
     const hc=landAtWorld(hx,hz); if(!hc||hc.kind==='wall'||hc.kind==='floe') continue;
-    const w=8+Math.floor(rnd(placed+20)*3), d=8+Math.floor(rnd(placed+25)*3);
-    if(!rectFree(hx-w*B/2-B,hx+w*B/2+B,hz-d*B/2-B,hz+d*B/2+B,B)) continue;
+    const w=7+Math.floor(rnd(placed+20)*2), d=7+Math.floor(rnd(placed+25)*2);
+    if(!rectFree(hx-w*B/2,hx+w*B/2,hz-d*B/2,hz+d*B/2,B*0.5)) continue;
     const ddx=cx-hx, ddz=cz-hz;
     const doorDir=doorSide(hx,hz,hc.h*B,w,d,ddx,ddz);
     stamped(ex,()=>emitHouse(G,ex, hx,hz,hc.h*B, w,d, doorDir, i*100+placed));
-    addRect(hx-w*B/2-B,hx+w*B/2+B,hz-d*B/2-B,hz+d*B/2+B);
+    addRect(hx-w*B/2,hx+w*B/2,hz-d*B/2,hz+d*B/2);
     const H=ex.houses[ex.houses.length-1];
-    stamped(ex,()=>{ emitPathLine(G, H.dx,H.dz, cx+gx*spacing, cz);   // a lane to the street
-      emitPathLine(G, cx+gx*spacing, cz, cx+gx*spacing, cz+gy*spacing); });
     /* the whole home on the record — its room AND its door — so a city
        resident walks in by the door like a villager, not at the wall */
     { const home={x:hx,z:hz,x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1,doorx:H.dx,doorz:H.dz,H};
       if(H.dx!==undefined){ const ux=H.dx-hx, uz=H.dz-hz, dd=Math.hypot(ux,uz)||1, out=B*(1.2+(H.apron||0));
         home.dx=H.dx; home.dz=H.dz; home.ox=H.dx+ux/dd*out; home.oz=H.dz+uz/dd*out; }
       homes.push(home); } placed++;
-    if(placed%3===0) yield;                              /* breathe between the houses */
+    if(placed%4===0) yield;                              /* breathe between the houses */
   }
   /* the market — a row of stalls along the eastern street */
   let market=null;
@@ -14082,15 +14102,15 @@ function* spawnVillage(i,exShell){
     /* --- a village proper: a broad ring of homes about the well and square
        --- grown a full size: more homes, bigger homes, a wider ring to
        stand them in, so a town reads as a town and not a huddle of huts */
-    const nH=8+Math.floor(rnd(1)*4);
+    const nH=20+Math.floor(rnd(1)*8);                  /* a village of many households (Round 137) */
     for(let h=0;h<nH;h++){
       /* a full-grown home (8–10 blocks a side), and a ring wide enough that
          every house keeps its own ground about it — each candidate is tested
          against everything already standing, and drawn again until it fits */
       const w=8+Math.floor(rnd(h+20)*3), d=8+Math.floor(rnd(h+25)*3);
       let hx=0,hz=0,hc=null,found=false;
-      for(let tr=0;tr<10&&!found;tr++){
-        const ang=(h/nH+rnd(h*10+tr+2)*0.35)*Math.PI*2, rad=(10+rnd(h*10+tr+9)*10)*B;
+      for(let tr=0;tr<16&&!found;tr++){
+        const ang=(h/nH+rnd(h*10+tr+2)*0.35)*Math.PI*2, rad=(10+rnd(h*10+tr+9)*(14+tr*1.2))*B;
         const tx=site.x+Math.cos(ang)*rad, tz=site.z+Math.sin(ang)*rad;
         const tc=landAtWorld(tx,tz); if(!tc||tc.kind==='wall'||tc.kind==='floe') continue;
         /* the roof overhangs a block on every side, and a lane runs between */
@@ -14470,7 +14490,7 @@ function* spawnVillage(i,exShell){
   /* the families of the hamlets: two grown souls to a house, set down at the well */
   for(const hm of ex.hamlets||[]) for(let k=0;k<hm.houses*2;k++)
     addPerson('folk',hm.x+(rnd(900+k)-0.5)*B*6,hm.z+(rnd(910+k)-0.5)*B*6,3,false,k%2===1);
-  const nFolk=2+Math.floor(rnd(70)*3);
+  const nFolk=cityHomes?2+Math.floor(rnd(70)*3):Math.max(4,Math.round(ex.houses.length*1.6));   /* the households of a village */
   for(let p=0;p<nFolk;p++)
     addPerson(ex.stalls.length&&p%2?'shopper':'folk',
       cx+(rnd(p+30)-0.5)*B*5,cz+(rnd(p+40)-0.5)*B*5,4,false,rnd(p+31)>0.5);
@@ -14696,7 +14716,7 @@ function mountTick(M,vv,dt){
    corner to corner. Where no way reaches the mark he is given the way to
    the nearest place that can be reached. Plans are rationed a few to a
    frame, so a whole town turning home at once costs nothing to see. */
-let DBG_EYE=null;
+let DBG_EYE=null, simFrame=0;
 const FP_C=B/2;
 let fpLeft=3, fpCellLeft=700, fpOut=false;
 const FP_STATS={plans:0,found:0,partial:0,none:0,ms:0,maxMs:0,cells:0,hits:0};
@@ -15782,7 +15802,18 @@ function updateVillages(px,pz,dt,nightF,dayF){
        solar hour at the well, not the darkness of the traveller's sky
        (Round 95 — each trade keeps its own hours out of js/behavior.js) */
     vv.hour=localHourAt(vv.site.x,vv.site.z);
-    for(const p of vv.people){ personTick(p,vv,dt); figureLod(p); }
+    /* ---- A CROWD COSTS WHAT IS SEEN OF IT (Round 137) ----
+       A city of a hundred and sixty households is three hundred souls. Each keeps
+       its whole day wherever it is; only how often it is stepped follows the
+       traveller's distance — every frame near him, every third frame across the
+       town, every eighth at its far side — with the time it missed handed to it
+       on its turn, so its day runs at the same pace. */
+    { const pp=playerXZ(); simFrame++;
+      for(let k=0;k<vv.people.length;k++){ const p=vv.people[k];
+        const d=Math.hypot(p.m.position.x-pp.x,p.m.position.z-pp.z), every=d<220?1:d<520?3:8;
+        p._acc=(p._acc||0)+dt;
+        if((simFrame+k)%every===0){ personTick(p,vv,Math.min(0.3,p._acc)); p._acc=0; }
+        figureLod(p); } }
     if(vv.stalls) for(const st of vv.stalls) if(st.cover) st.cover.visible=!stallOpen(st);
     for(const b2 of vv.beasts){ beastTick(b2,vv,dt); figureLod(b2); }
     if(vv.mounts) for(const M of vv.mounts){ mountTick(M,vv,dt); figureLod(M); }
@@ -20900,6 +20931,29 @@ function setBuilder(ax,az,baseY,opt){
       /* on the level ground of the set, at its height; anywhere else, on the ground where it stands */
       const hy=api.inPadL(x,z)?baseY:(()=>{ const c=cell(Math.floor(X(x)/B),Math.floor(Z(z)/B)); return c?c.h*B:baseY; })();
       houses.push(storyHouse(X(x),Z(z),hy,odd(w),odd(d),dir,o.seed||Math.floor(Math.abs(x*31+z*17))+1,o.style||'levant',{washed:o.washed,wall:o.wall,big:o.big!==false})); },
+    /* A QUARTER OF HOUSES AT ONCE (Round 137): a city's lanes of houses built as ONE
+       geometry and one stamp — a hundred houses as a hundred groups were a thousand draws.
+       `list`: [{x,z,w,d,door,seed}] in metres, as `house` takes them. */
+    quarter(list,o){ o=o||{}; const odd=v=>{ v=Math.max(5,Math.round(v*S/B)); return v%2?v:v+1; };
+      const G=newG(), ex={doors:[],houses:[],torchIn:[],style:o.style||'levant',big:true};
+      const grp=stampedGroup(()=>{ for(const q of list){
+        const hy=api.inPadL(q.x,q.z)?baseY:(()=>{ const c=cell(Math.floor(X(q.x)/B),Math.floor(Z(q.z)/B)); return c?c.h*B:baseY; })();
+        emitHouse(G,ex,X(q.x),Z(q.z),hy,odd(q.w),odd(q.d),{s:0,n:1,e:2,w:3}[q.door||'s'],q.seed||1); } });
+      const g=new THREE.Group();
+      for(const mat in G){ const gg=G[mat]; if(!gg.p||!gg.p.length) continue; const bg=new THREE.BufferGeometry();
+        bg.setAttribute('position',new THREE.Float32BufferAttribute(gg.p,3));
+        bg.setAttribute('uv',new THREE.Float32BufferAttribute(gg.uv,2));
+        bg.setAttribute('color',new THREE.Float32BufferAttribute(gg.c,3));
+        bg.setIndex(gg.i); g.add(new THREE.Mesh(bg,MAT[mat])); }
+      const regs=[];
+      for(const H of ex.houses){ if(!H.door) continue; const D2=H.door;
+        const dm=new THREE.Mesh(new THREE.BoxGeometry(D2.w,D2.h,0.6),doorLeafMat);
+        dm.geometry.translate(D2.w/2,D2.h/2,0); dm.position.set(D2.hx,D2.y,D2.hz); dm.rotation.y=D2.base;
+        g.add(dm); D2.mesh=dm; standaloneHouses.push(H); regs.push(H); }
+      scene.add(g);
+      houses.push({group:g,stamp:grp,drop:()=>{ stampDrop(grp); scene.remove(g);
+        for(const H of regs){ const i=standaloneHouses.indexOf(H); if(i>=0) standaloneHouses.splice(i,1); } }});
+      return ex.houses; },
     inPadL(x,z){ return api.inPad(Math.floor(X(x)/B),Math.floor(Z(z)/B)); },
     /* A HILL HEAPED UP where the story needs one the world's coarse ground does not have — the
        brow of Natsareth's hill, the slope of a mount: `h` metres high at (x,z), falling away
