@@ -222,6 +222,11 @@ earth at the same measure as the people: one degree of latitude is 111 km, which
 - **T8. Old voyages.** A save made at another measure is carried to the same place on the earth. Its
   block edits, which cannot be carried, are kept aside rather than laid in the wrong place.
 
+**Status (Round 138; AUDIT §4ek).** T1–T4 and T6–T8 are built, with T5's true pace at sea. The
+small map is still the default: the traveller chooses the true earth in the Options or on the
+story's road. Still to do: rivers at their true widths, walkable coasts and lakes, flying at the true
+measure, the far houses of the city in more detail, and making the true earth the default.
+
 ## How each phase is proven
 
 Each phase ships with a probe that runs in the actual game, as the rounds before did:
