@@ -2306,7 +2306,11 @@ function cellRawTrue(ix,iz){
   else if(sl>0.55) kind='rock';                          /* a cliff, a gorge wall */
   else if(desert){ kind=sl>0.22?'badlands':'desert'; tree=j<0.004?1:0; }
   else if(tropic){ kind='tropic'; tree=j<0.062*dens?2:0; }
-  else { kind='grass'; tree=j<(levant?0.02:0.045)*dens?1:0; }
+  /* the hills of Yahuḏah and Shomeron and the low country are the dry country of the summer: pale
+     grass and stone among the olives, not the wet green of the north. The Galil and the Karmel, the
+     coast north of the Yarqon, are greener. */
+  else if(levant&&(lat<32.45||(lon>35.0&&lat<32.6))){ kind='savanna'; tree=j<0.024*dens?1:0; }
+  else { kind='grass'; tree=j<(levant?0.03:0.045)*dens?1:0; }
   const dk=em>12;
   const spans=window.CAVES?CAVES.spansAt(x,z,h,!dk):null;
   return spans?{h,kind,tree,ci,dk,spans}:{h,kind,tree,ci,dk};
@@ -5344,7 +5348,8 @@ function flFillRing(k,px,pz,kr,fine){
       if(low) cc=low;
     }
     let y,c;
-    if(cc){ y=cc.h*B; c=FL_COL[cc.kind]||FL_COL.grass; }
+    if(cc&&cc.lake!==undefined&&cc.lake>cc.h){ y=cc.lake*B+WATER_Y; c=FL_SEA; }   /* a lake of the rift, at its own level */
+    else if(cc){ y=cc.h*B; c=FL_COL[cc.kind]||FL_COL.grass; }
     else if(Math.hypot(wx,wz)>R_WORLD*0.9955){
       /* past the rim there is no sea and no land — only the outer darkness.
          A sheet of ocean drawn out there hung in the void below the ice. */
@@ -6324,12 +6329,17 @@ if(MAT.waterB&&renderer.capabilities.isWebGL2){        /* (the face is found by 
     orgShader(sh);
   },'water-live');
 }
-farSeaMat.onBeforeCompile=sh=>{ sh.uniforms.uHole=HOLE_T; sh.uniforms.uHoleO=HOLE_OO; sh.uniforms.uHoleOn=HOLE_ON; Object.assign(sh.uniforms,DRY_U);
-  sh.vertexShader='varying vec2 vHW;\n'+sh.vertexShader.replace('#include <project_vertex>',
-    '#include <project_vertex>\n  vHW=orgOfMv(mvPosition).xz;');
-  sh.fragmentShader='varying vec2 vHW;\n'+HOLE_GLSL+sh.fragmentShader.replace('void main() {',
-    'void main() {\n  if(inHole(vHW)) discard;'); orgShader(sh); };
-farSeaMat.customProgramCacheKey=()=>'seaHole';
+/* the sheets of the sea leave out the dug holes and the dry depressions (THE TRUE FACE OF THE EARTH):
+   the far sheet, and the dark one under it, which lies only fifty courses down and so stood over the
+   rift of the Yardĕn too */
+function seaSheetMask(mat,key){
+  mat.onBeforeCompile=sh=>{ sh.uniforms.uHole=HOLE_T; sh.uniforms.uHoleO=HOLE_OO; sh.uniforms.uHoleOn=HOLE_ON; Object.assign(sh.uniforms,DRY_U);
+    sh.vertexShader='varying vec2 vHW;\n'+sh.vertexShader.replace('#include <project_vertex>',
+      '#include <project_vertex>\n  vHW=orgOfMv(mvPosition).xz;');
+    sh.fragmentShader='varying vec2 vHW;\n'+HOLE_GLSL+sh.fragmentShader.replace('void main() {',
+      'void main() {\n  if(inHole(vHW)) discard;'); orgShader(sh); };
+  mat.customProgramCacheKey=()=>key; }
+seaSheetMask(farSeaMat,'seaHole'); seaSheetMask(seaDeep.material,'seaHoleDeep');
 let _holeAt=[1e9,1e9], _holeT=0;
 var _holeDirty=true;     /* var: editColumnsChanged may ask before this line has run */
 /* ---- THE INSIDE OF THE EARTH IS DRAWN ONLY FOR WHOEVER IS NEAR IT ----
@@ -6454,7 +6464,9 @@ function waterTick(px,pz,dayF,storm){
 /* flat drifting clouds, minecraft-fashion.
    CLOUD_Y is the floor of cloud the traveller rises through when he takes to
    the air; a higher, thinner cirrus sheet gives the sky depth from above. */
-const CLOUD_Y=238, CIRRUS_Y=560;
+/* (at the true measure the floor of cloud stands where cloud stands, some two kilometres up, and the
+   cirrus at eight: on the small map they were at the scale of its summits) */
+const CLOUD_Y=TRUE_EARTH?2000*U_PER_M_WORLD:238, CIRRUS_Y=TRUE_EARTH?8000*U_PER_M_WORLD:560;
 /* ---- THE SHEET HAS NO EDGE ----
    The cloud planes are drawn with the fog off (fog at 1,140 would erase the
    whole sheet), so each one used to end in a razor-straight line a few
@@ -6850,8 +6862,11 @@ function windLabel(){
    Wandering cells of foul weather: darkness, close fog, heavy seas and a
    slowed ship. They drift about the deep and show on the maps — steer wide. */
 const STORMS=[];
+/* (at the true measure a storm is as broad as storms are: the weather of the deep tens of kilometres
+   across, a squall over the ship more than one; on the small map they were drawn to its scale) */
+const STORM_K=TRUE_EARTH?10:1, TEMPEST_K=TRUE_EARTH?5:1;
 for(let i=0;i<9;i++) STORMS.push({
-  a:hash2(i,1.7)*Math.PI*2, r:0.2+hash2(i,2.3)*0.65, R:1600+hash2(i,3.1)*2600,
+  a:hash2(i,1.7)*Math.PI*2, r:0.2+hash2(i,2.3)*0.65, R:(1600+hash2(i,3.1)*2600)*STORM_K,
   va:(hash2(i,4.9)-0.5)*0.004, vr:(hash2(i,5.7)-0.5)*0.0006 });
 function stormTick(dt){ for(const s of STORMS){ s.a+=s.va*dt; s.r+=s.vr*dt;
   if(s.r<0.1||s.r>0.9) s.vr*=-1; } }
@@ -6885,8 +6900,8 @@ function deepWater(x,z,R){ if(offshoreAt(x,z)<0.45) return false;
 /* raise a tempest `dist` units off on bearing `ang` (or where the sea allows); o.I its fury, o.now to skip the gathering */
 function spawnTempest(o){ o=o||{}; const b=state.boat;
   for(let tries=0;tries<14;tries++){
-    const ang=o.ang!==undefined?o.ang:Math.random()*Math.PI*2, dist=o.dist!==undefined?o.dist:3600+Math.random()*2600;
-    const R=o.R||1100+Math.random()*900, x=b.x+Math.sin(ang)*dist, z=b.z+Math.cos(ang)*dist;
+    const ang=o.ang!==undefined?o.ang:Math.random()*Math.PI*2, dist=o.dist!==undefined?o.dist:(3600+Math.random()*2600)*TEMPEST_K;
+    const R=o.R||(1100+Math.random()*900)*TEMPEST_K, x=b.x+Math.sin(ang)*dist, z=b.z+Math.cos(ang)*dist;
     if(!o.force&&!deepWater(x,z,R)) continue;
     /* it comes down toward the ship's waters, a little to one side, at a pace she can outrun */
     const toward=Math.atan2(b.x-x,b.z-z)+(Math.random()-0.5)*0.9, sp=o.sp!==undefined?o.sp:7+Math.random()*5;
@@ -6917,7 +6932,7 @@ function tempestTick(dt){
     /* it dies over the land, as storms do, and is lost when the ship has left it far behind */
     if(landAtWorld(T.x,T.z)) T.age=Math.max(T.age,T.life[0]+T.life[1]);
     const far=Math.hypot(T.x-b.x,T.z-b.z);
-    if(T.age>T.life[0]+T.life[1]+T.life[2]||far>16000){ tempestDrop(T); TEMPESTS.splice(i,1); continue; }
+    if(T.age>T.life[0]+T.life[1]+T.life[2]||far>16000*TEMPEST_K){ tempestDrop(T); TEMPESTS.splice(i,1); continue; }
     const w=tempestW(T,b.x,b.z);
     if(atSea&&w>0.55&&!T.upon){ T.upon=true; toast('The storm is upon you — hold her head to the seas!'); }
     if(w<0.25) T.upon=false;
@@ -7035,8 +7050,8 @@ function tempestBolt(T,x,z){ const V=T.vis; if(!V) return;
 function tempestVisTick(T,dt,far){
   if(!T.vis) T.vis=tempestVis(T);
   const V=T.vis, U=V.U, cp=camera.position;
-  V.wall.position.set(T.x,WATER_Y-30,T.z); V.wall.scale.set(T.R*0.95,210,T.R*0.95); U.uC.value.set(T.x-ORG.x,T.z-ORG.z);
-  V.deck.position.set(T.x,WATER_Y+120,T.z); V.deck.scale.set(T.R*1.3,760,T.R*1.3);
+  V.wall.position.set(T.x,WATER_Y-30,T.z); V.wall.scale.set(T.R*0.95,210*TEMPEST_K,T.R*0.95); U.uC.value.set(T.x-ORG.x,T.z-ORG.z);
+  V.deck.position.set(T.x,WATER_Y+120*TEMPEST_K,T.z); V.deck.scale.set(T.R*1.3,760*TEMPEST_K,T.R*1.3);
   V.skirt.position.set(T.x,WATER_Y+1.5,T.z); V.skirt.scale.set(T.R*1.7,1,T.R*1.7);
   U.uT.value=performance.now()*0.001; U.uI.value=T.I;
   U.uIn.value=1-_ss(T.R*0.55,T.R*1.05,Math.hypot(cp.x-T.x,cp.z-T.z));
@@ -20036,7 +20051,7 @@ function placeTick(){
   const u=p.x/R_WORLD, v=p.z/R_WORLD, r=Math.hypot(u,v);
   let txt;
   if(state.mode==='fly'){                              /* aloft — name the height above the deep */
-    const km=Math.max(0,Math.round((state.fly.y-CLOUD_Y)/6));
+    const km=Math.max(0,Math.round((state.fly.y-CLOUD_Y)/U_PER_KM));
     txt = state.fly.y>=domeCeilAt(state.fly.x,state.fly.z)-60 ? 'AGAINST THE FIRMAMENT'
         : state.fly.y>CLOUD_Y+8 ? 'ALOFT — '+km.toLocaleString()+' KM ABOVE THE CLOUDS'
         : 'RISING ON THE AIR'; }
@@ -21175,6 +21190,10 @@ const SET_PAL=[[0xd8cfb8,'hewn-stone'],[0xece6d6,'plaster'],[0xe6e0cf,'plaster']
   [0x8a9467,'leaves'],[0x9aa27a,'leaves'],[0x7d8a45,'leaves'],[0x5d4a36,'log'],[0x6e5238,'planks'],[0x7a5a3e,'planks'],
   [0x8d7a55,'planks'],[0xd4af37,'hay'],[0xb08d3c,'hay'],[0xcdb36a,'hay'],[0xefe9dc,'wool'],[0xe0d4b0,'wool'],
   [0xcdbb92,'sand'],[0x8d8272,'stone'],[0x7c7a4e,'thatch'],[0xa99c84,'stone'],[0x4f7f95,'water'],[0x6a6560,'cobble']];
+/* the far silhouettes of the sets that keep them, each tile shown only beyond the streamed blocks */
+const SET_FAR=new Set();
+function setFarTick(px,pz){ if(!SET_FAR.size) return; const near=VIEW*CHW*0.85;
+  for(const g of SET_FAR) for(const t of g.children) t.visible=Math.hypot(t.userData.cx-px,t.userData.cz-pz)>near; }
 function setBlockFor(col){
   if(typeof col==='string') return col==='air'?0:blockId(col);
   if(col===0x2b241d) return 0;                                 /* the dark of a doorway: an opening */
@@ -21188,7 +21207,19 @@ function setBuilder(ax,az,baseY,opt){
   const was=_stampOn; if(!was) stampBegin();
   const grp=_stampOn;
   const cells=(x0,x1,lo,hi)=>{ const e=STAMP_EPS*B; let a=Math.floor((Math.min(x0,x1)+e)/B), b=Math.ceil((Math.max(x0,x1)-e)/B)-1; if(b<a){ b=a=Math.floor((x0+x1)/2/B); } return [a,b]; };
-  const api={ S, ax, az, baseY, marks,
+  /* ---- AND HER GREAT WORKS ARE SEEN FROM AFAR (Phase T7) ----
+     opt.far: a set as large as a city is laid in blocks, and blocks are drawn only within the
+     streamed ring, some two hundred metres. So every great box of it (a wall, a porch, the House) is
+     drawn a second time as a silhouette, in tiles of four chunks, and each tile is put away while the
+     traveller is near enough for the blocks themselves to stand (as the works of the ancients are:
+     AND THE WORK OF THE ANCIENTS IS RAISED TWICE) */
+  const FAR_T=CHW*4;
+  function farBox(x0,y0,z0,x1,y1,z1,n){ const b=BLOCKS[n]; if(!b) return;
+    const tk=Math.floor((x0+x1)/2/FAR_T)+','+Math.floor((z0+z1)/2/FAR_T);
+    let G=api.farG.get(tk); if(!G){ G=newG(); api.farG.set(tk,G); }
+    const was2=_stampOn; _stampOn=null;
+    try{ emitBox(G,x0,y0,z0,x1,y1,z1,b.mSide,b.mTop,null); } finally{ _stampOn=was2; } }
+  const api={ S, ax, az, baseY, marks, farG:opt.far?new Map():null, farGroup:null,
     X, Z, Y, local:(wx,wz)=>[(wx-ax)/S,(wz-az)/S],
     /* a box of blocks; boxes of no size at all (a beam end, a lamp) are details for the eye
        and are left to the things of a scene */
@@ -21197,7 +21228,8 @@ function setBuilder(ax,az,baseY,opt){
       const n=setBlockFor(col); if(n===undefined||n===null) return;
       if((o&&o.surface)||(Math.abs(y1-y0)<0.3&&Math.max(y0,y1)<=0.35&&Math.min(y0,y1)>=-0.05)){ return api.top(x0,z0,x1,z1,col); }
       const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1)), [j0,j1]=cells(Y(y0),Y(y1));
-      for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++) for(let j=j0;j<=j1;j++) stampBlock(i,j,k,n); },
+      for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++) for(let j=j0;j<=j1;j++) stampBlock(i,j,k,n);
+      if(api.farG&&n>0&&Math.max(Math.abs(x1-x0),Math.abs(y1-y0),Math.abs(z1-z0))>=2.5) farBox(i0*B,j0*B,k0*B,(i1+1)*B,(j1+1)*B,(k1+1)*B,n); },
     /* the land's own trees taken off a lot of the set where no pad is laid (a slope a scene
        is played on); the lot is written down as treeless, as a house's lot is */
     clearTrees(x0,z0,x1,z1){ clearLotOfTrees(Math.min(X(x0),X(x1)),Math.min(Z(z0),Z(z1)),Math.max(X(x0),X(x1)),Math.max(Z(z0),Z(z1)),baseY); },
@@ -21299,8 +21331,16 @@ function setBuilder(ax,az,baseY,opt){
       const pdg=api.inPadL(x,z), ref=pdg?pdg.ty*B+2.2*S:Math.max(m===null?-1e9:baseY+m*S,c?c.h*B:baseY)+12;
       const g=groundInfo(X(x),Z(z),ref); return ((g&&g.y!=null?g.y:baseY)-baseY)/S; },
     mark(name,x,z){ marks[name]=[x,z]; },
-    end(){ if(!was&&_stampOn===grp) stampEnd(); return api; },
-    drop(){ api.end(); stampDrop(grp); for(const h of houses) h.drop(); houses.length=0; underWaterDrop(grp); }
+    end(){ if(!was&&_stampOn===grp) stampEnd();
+      if(api.farG&&api.farG.size&&!api.farGroup){ const g=new THREE.Group(); g.name='set-far';
+        for(const [tk,G] of api.farG){ const t=new THREE.Group(), q=tk.split(',');
+          t.userData.cx=(+q[0]+0.5)*FAR_T; t.userData.cz=(+q[1]+0.5)*FAR_T;
+          for(const mat in G) t.add(bucketMesh(G[mat],MAT[mat])); g.add(t); }
+        scene.add(g); api.farGroup=g; SET_FAR.add(g); }
+      return api; },
+    drop(){ api.end(); stampDrop(grp); for(const h of houses) h.drop(); houses.length=0; underWaterDrop(grp);
+      if(api.farGroup){ scene.remove(api.farGroup); SET_FAR.delete(api.farGroup);
+        api.farGroup.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); api.farGroup=null; } }
   };
   return api;
 }
@@ -21310,7 +21350,7 @@ function setBuilder(ax,az,baseY,opt){
 function buildYahruPlan(period){
   if(yahruStamp){ yahruStamp.drop(); yahruStamp=null; }
   const base=topY(yahruPos.ix,yahruPos.iz);
-  const api=setBuilder(yahruPos.x,yahruPos.z,base);
+  const api=setBuilder(yahruPos.x,yahruPos.z,base,{far:TRUE_EARTH});
   /* at the true measure of the earth, the city at hers (world/yahrushalayim-true.js, Phase T7) */
   const plan=(TRUE_EARTH&&window.YAHRU_PLAN_TRUE)||window.YAHRU_PLAN;
   try{ plan(api,period||'kings'); } finally{ api.end(); }
@@ -24438,9 +24478,11 @@ function frame(){ orgSnap();
      where countries should stand, and every new chunk popping into open
      air. There the carpet DOES stand under him — coarse lego beyond the
      fine — so the earth runs unbroken to the horizon at every height. */
-  const flyNoCarpet = state.mode==='fly'&&zMapF<0.02&&eyeY<1400;
-  const carpet = !flyNoCarpet && (frame._carpetOn ? (viewReach>ALOFT_EYE*0.85||zMapF>0.012)
-                                                  : (viewReach>ALOFT_EYE||zMapF>0.02));
+  const flyNoCarpet = !TRUE_EARTH&&state.mode==='fly'&&zMapF<0.02&&eyeY<1400;
+  /* (on the true earth it stands always: the land runs on for kilometres past the streamed blocks,
+     to the haze, and the eye at a man's height sees it) */
+  const carpet = TRUE_EARTH || (!flyNoCarpet && (frame._carpetOn ? (viewReach>ALOFT_EYE*0.85||zMapF>0.012)
+                                                  : (viewReach>ALOFT_EYE||zMapF>0.02)));
   frame._carpetOn = showNear&&!underEye&&carpet;
   /* ---- AND THE RING GOES OUT AS THE CHART COMES FULLY IN ----
      Fading it against the chart was once tried and was wrong, and the reason
@@ -24469,6 +24511,7 @@ function frame(){ orgSnap();
   if(frame._carpetOn&&!voyaging()) updateFarLand(p.x,p.z,false,eyeY);
   updateVillages(p.x,p.z,dt,light.nightF,light.dayF);
   updateLandmarks(p.x,p.z);
+  setFarTick(p.x,p.z);           /* and the great works of the city, seen from afar */
   seacavePass(p.x,p.z);
   updateFalls(p.x,p.z);          /* and the springs at the head of every fall */
   /* the living world — weather, hearths, fireflies, meetings, murmurs */
