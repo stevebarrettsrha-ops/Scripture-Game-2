@@ -104,6 +104,13 @@ function render(){
   const a=d&&ST.acts.find(x=>x.id===d); $('hub-msg').textContent=a?'The act is complete: '+a.title+'.':'';
   acts(); $('hub-codex').innerHTML=codexHTML(); drawMap(); bonds(); said();
 }
+/* THE EARTH the acts are walked on: the small map, or the earth at the measure of the men upon it.
+   The same choice as the voyage's Options (the engine reads it, under the same key, when an act's
+   page raises the world) */
+{ const E=$('h-earth'), KEY='voyage:earth';
+  const cur=()=>{ try{ return localStorage.getItem(KEY)==='true'; }catch(e){ return false; } };
+  const lab=()=>{ E.textContent=cur()?'🌍 The earth: at her true measure':'🗺 The earth: the small map'; };
+  if(E){ lab(); E.onclick=()=>{ try{ localStorage.setItem(KEY,cur()?'small':'true'); }catch(e){} lab(); }; } }
 $('h-reset').onclick=()=>{ if(!confirm('Wash the family scroll clean and begin the road again?')) return;
   save.codex={}; save.acts={}; save.witnessed=0; save.road={}; save.bonds={}; save.choices={}; persist(); render(); };
 window.__HUB={save,render};

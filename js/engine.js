@@ -45,7 +45,14 @@ function siteCountry(i){ if(i<COUNTRIES.length) return i; const st=SITES[i]; ret
    on the map follows from R_WORLD. */
 const U_PER_M_WORLD=6.5, M_PER_DEG=111195;
 const WORLD_TRUE_K=180*M_PER_DEG*U_PER_M_WORLD/180000;
-const WORLD_K=(()=>{ const v=(window.__INJECT||{}).worldK; return v==='true'?WORLD_TRUE_K:(+v>0?+v:1); })();
+/* which earth is raised: the harness's word first, then the page's address (?earth=true, ?earth=small),
+   then the traveller's own choice in the Options (kept under EARTH_KEY, read by the voyage and the
+   story's pages alike) */
+const EARTH_KEY='voyage:earth';
+const WORLD_K=(()=>{ let v=(window.__INJECT||{}).worldK;
+  if(v===undefined){ try{ const q=new URLSearchParams(location.search).get('earth'); if(q) v=q; }catch(e){} }
+  if(v===undefined){ try{ const k=localStorage.getItem(EARTH_KEY); if(k) v=k; }catch(e){} }
+  return v==='true'?WORLD_TRUE_K:(+v>0?+v:1); })();
 const R_WORLD=Math.round(180000*WORLD_K), B=6, CH=16, CHW=B*CH, VIEW=13; /* the rim: 180 degrees from the pole */
 /* at (or near) the true measure the land is the earth's own: its heights and coasts are read from
    world/dem.js (THE TRUE FACE OF THE EARTH, beside cellRaw), and a block of height is a block of
@@ -21551,7 +21558,18 @@ function syncOpts(){ for(const[a,b] of OPTMAP){
   const A=$(a), B2=$(b); if(A&&B2) A.textContent=B2.textContent; } }
 for(const[a,b] of OPTMAP){ const A=$(a);
   if(A) A.onclick=()=>{ const B2=$(b); if(B2) B2.click(); syncOpts(); }; }
-$('m-options-btn').onclick=()=>{ syncOpts(); $('opt-modal').style.display='flex'; };
+/* THE EARTH: the old map, or the earth at the measure of the men upon it. A new earth is a new
+   world to raise, so the choice is kept and the page raised again; a voyage in the log is carried
+   to the same spot on the map (loadSaved scales it by the radius it was kept at) */
+function earthLabel(){ return TRUE_EARTH?'\u{1F30D} The earth: at her true measure':'\u{1F5FA} The earth: the small map'; }
+{ const E=$('mo-earth');
+  if(E) E.onclick=()=>{
+    const to=TRUE_EARTH?'small':'true';
+    if(to==='true'&&!(window.DEM&&window.DEM.ready())){ toast('The heights of the true earth are not with this copy of the game.'); return; }
+    try{ localStorage.setItem(EARTH_KEY,to); }catch(e){}
+    E.textContent='Raising the '+(to==='true'?'true earth':'small map')+'\u2026';
+    try{ const u=new URL(location.href); u.searchParams.delete('earth'); location.replace(u.toString()); }catch(e){ location.reload(); } }; }
+$('m-options-btn').onclick=()=>{ syncOpts(); const E=$('mo-earth'); if(E) E.textContent=earthLabel(); $('opt-modal').style.display='flex'; };
 $('opt-back').onclick=()=>{ $('opt-modal').style.display='none'; };
 
 /* ---- ANOTHER GAME MAY RAISE THIS SAME WORLD ----
