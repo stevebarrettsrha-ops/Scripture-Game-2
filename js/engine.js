@@ -22059,7 +22059,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
      a 32-bit vertex there is rounded to whole metres (THE EYE'S OWN ORIGIN) */
   worldScale:()=>({R:R_WORLD,K:WORLD_K,trueEarth:TRUE_EARTH,uPerKm:U_PER_KM,org:{x:ORG.x,z:ORG.z}}),
   trueCell:(ix,iz)=>TRUE_EARTH?cellRawTrue(ix,iz):null,
-  blockId:(ix,iy,iz)=>{ const b=blockOf(blockAt(ix,iy,iz)); return b?b.id:null; },
+  blockNameAt:(ix,iy,iz)=>{ const b=blockOf(blockAt(ix,iy,iz)); return b?b.id:null; },
   trueAt:(x,z)=>{ const [la,lo]=latLonOf(x,z); return {lat:la,lon:lo,m:TRUE_EARTH?earthMetres(x,z,la,lo):null}; },
   absBaked:(lim)=>{ lim=lim||20000; const out=[];
     scene.traverse(o=>{ const g=o.geometry; if(!g||!(o.isMesh||o.isPoints||o.isLine)) return;
