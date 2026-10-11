@@ -11936,6 +11936,17 @@ A town was an island of houses in the wild wood. Now:
 - **Towns at their true size**: a city of the land holds some 250 households in its walls, a market town
   120, a village thirty to forty, on ground widened to hold them.
 
+### Acceptance
+
+The suite runs some four minutes a test on this box, so the tests that read what this round touched
+were run: **1–10 pass** (the blocks, broken and placed, survive a reload; the new stones among them),
+**36 passes** (74/74 blocks, 476 files), **48 passes** (the fields of every land), **68 passes** (every
+kind of the ancients' works rises at its true place; the city keeps her hill). **18 fails as it did
+before Phase T** (134 of 198 villagers cannot be built into). **62 failed once** (a woodcutter counted
+"abed but riding"), passed on the commit before this round, and **passed on this round's code when run
+again**: the fault is one of timing in the people's night, not of anything this round changed on the
+small map (every new path here is the true earth's alone).
+
 ### Not done this round
 
 - The wonders are raised **as their builders finished them**. By the days of Herodes, Persepolis was a
