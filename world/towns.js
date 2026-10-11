@@ -27,7 +27,7 @@ const T=[
   {n:'Arad',         lat:31.2800, lon:35.1260, size:'town',    land:'Yasharal', by:'at the edge of the Negeḇ'},
   {n:'Be’ĕrsheḇa',   lat:31.2450, lon:34.8410, size:'town',    land:'Yasharal', by:'the wells of the fathers, at the edge of the wilderness'},
   /* the rift */
-  {n:'Yahriḥo',      lat:31.8710, lon:35.4440, size:'town',    land:'Yasharal', by:'the city of palm trees, at the spring below the ascent'},
+  {n:'Yahriḥo',      lat:31.8566, lon:35.4590, size:'town',    land:'Yasharal', by:'the city of palm trees, where the Wadi Qelt comes out of the hills by the winter palaces of Herodes (the old walled city is the tell up the road, by the spring)'},
   {n:'Bĕyth She’an', lat:32.5040, lon:35.5030, size:'city',    land:'Yasharal', by:'where the great valley comes down to the Yardĕn'},
   /* Shomeron and the middle hills */
   {n:'Shiloh',       lat:32.0550, lon:35.2890, size:'village', land:'Yasharal', by:'where the Tent of Meeting stood'},

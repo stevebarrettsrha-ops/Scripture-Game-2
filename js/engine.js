@@ -476,6 +476,23 @@ TEX.marble     = mkTex(g=>{ speckle(g,[238,234,224],5,[222,218,206],0.20);
 TEX.veil       = mkTex(g=>{ speckle(g,[70,52,128],8,[58,44,112],0.3);
   for(let y=0;y<16;y+=4){ g.fillStyle=C([150,36,48]); g.fillRect(0,y,16,FG); g.fillStyle=C([226,220,204]); g.fillRect(0,y+2,16,FG); }
   for(let x=2;x<16;x+=6){ g.fillStyle=C([46,74,150]); g.fillRect(x,0,FG,16); } },16,16,RIM);
+/* THE STONES OF THE NATIONS' WORKS (Round 139). Each wonder is raised in the stone it was raised in:
+   the golden sandstone of the quarries of Silsila that built No-Amon's pylons; the rose rock of Sela,
+   banded red and cream and ochre as the sea laid it down; the red granite of Seweneh that the obelisks
+   were cut from whole; and the grey stone of Parsa, polished nearly black. */
+TEX.sandstone  = mkTex(g=>{ speckle(g,[210,178,122],10,[190,156,104],0.26);
+  g.fillStyle=C([164,132,86]); g.fillRect(0,7,16,FG); g.fillRect(0,15,16,FG); g.fillRect(5,0,FG,7); g.fillRect(12,8,FG,7); },16,16,RIM);
+TEX.roseRock   = mkTex(g=>{ speckle(g,[196,120,104],10,[176,98,86],0.3);
+  for(let k=0;k<4;k++){ const y0=2+k*4, col=[[226,170,140],[150,78,70],[214,150,96],[170,92,84]][k];
+    for(let x=0;x<16;x+=FG){ const y=y0+Math.sin(x*0.42+k*1.7)*1.4; g.fillStyle=C(col); g.fillRect(x,Math.round(y/FG)*FG,FG,FG*1.5); } } },16,16,RIM);
+TEX.redGranite = mkTex(g=>{ speckle(g,[164,88,82],16,[120,64,62],0.34);
+  for(let k=0;k<14;k++){ g.fillStyle=C(hash2(k,4.1)>0.5?[44,40,42]:[216,190,180]); g.fillRect(Math.floor(hash2(k,1.3)*16),Math.floor(hash2(k,7.7)*16),FG,FG); } },16,16,RIM);
+TEX.glazedBrick= mkTex(g=>{ speckle(g,[44,86,168],8,[36,70,146],0.26);
+  g.fillStyle=C([200,190,150]); g.fillRect(0,7,16,FG); g.fillRect(0,15,16,FG); g.fillRect(7,0,FG,7); g.fillRect(3,8,FG,7); g.fillRect(12,8,FG,7);
+  g.fillStyle=C([96,140,214]); g.fillRect(2,2,FG*3,FG); g.fillRect(9,10,FG*2,FG); },16,16,RIM);
+TEX.greyStone  = mkTex(g=>{ speckle(g,[162,154,142],8,[142,135,124],0.24);
+  g.fillStyle=C([112,106,98]); g.fillRect(0,15,16,FG); g.fillRect(0,0,FG,16);
+  g.fillStyle=C([192,186,174]); g.fillRect(3,4,FG*4,FG); },16,16,RIM);
 /* flint: dark, glassy, and it breaks in shells */
 TEX.flint      = mkTex(g=>{ speckle(g,PB.flint.b,18,PB.flint.a,0.34);
   for(let k=0;k<9;k++){ const cx=hash2(k,1.9)*16, cy=hash2(k,8.3)*16, r=1.2+hash2(k,3.3)*1.6;
@@ -701,6 +718,7 @@ blockMat('goldOre',TEX.goldOre); blockMat('silverOre',TEX.silverOre);
 blockMat('copperOre',TEX.copperOre); blockMat('ironOre',TEX.ironOre);
 blockMat('alabaster',TEX.alabaster); blockMat('flint',TEX.flint);
 blockMat('goldLeaf',TEX.goldLeaf); blockMat('bronze',TEX.bronze); blockMat('marble',TEX.marble); blockMat('veil',TEX.veil);
+blockMat('sandstone',TEX.sandstone); blockMat('roseRock',TEX.roseRock); blockMat('redGranite',TEX.redGranite); blockMat('greyStone',TEX.greyStone); blockMat('glazedBrick',TEX.glazedBrick);
 blockMat('sand',TEX.sand); blockMat('stone',TEX.stone); blockMat('cobble',TEX.cobble); blockMat('basalt',TEX.basalt);
 blockMat('deepStone',TEX.deepStone); blockMat('bedrock',TEX.bedrock);
 blockMat('mudbrick',TEX.mudbrick); blockMat('plaster',TEX.plaster); blockMat('thatch',TEX.thatch);
@@ -1215,11 +1233,16 @@ const UW_GLSL=`
     float c=uwCaustic(vUwW.xz/${B.toFixed(1)}*0.9, uUwT*1.2)*smoothstep(12.0,0.0,d);
     vec3 o=lit*mix(vec3(1.0),absorb,sky);
     return o*(1.0+sky*uUwSun*(c*0.75-0.12)); }`;
+/* (and the dry floors of the depressions under the sea's level — the rift of the Yardĕn, Qattara — are not
+   under the open sea: Yahriḥo was drawn green and dark as a wreck on the sea-bed) */
+const UW_DRY_GLSL='uniform vec4 uDry[6]; uniform float uDryN;\n'+
+  'bool uwDry(vec2 w){ if(uDryN<0.5) return false; vec2 a=(w+uOrg)*'+(1/R_WORLD).toExponential(8)+'; float lat=90.0-length(a)*180.0, lon=degrees(atan(a.x,a.y));\n'+
+  '  for(int i=0;i<6;i++){ vec4 b=uDry[i]; if(lat>=b.x&&lat<=b.y&&lon>=b.z&&lon<=b.w) return true; } return false; }\n';
 function underWaterLight(mat){
-  addPatch(mat,sh=>{ Object.assign(sh.uniforms,UW); sh.uniforms.uUwShoal={value:SHOAL_TEX};
+  addPatch(mat,sh=>{ Object.assign(sh.uniforms,UW,DRY_U); sh.uniforms.uUwShoal={value:SHOAL_TEX};
     sh.vertexShader='varying vec3 vUwW;\n'+sh.vertexShader.replace('#include <project_vertex>',
       '#include <project_vertex>\n  vUwW=orgOfMv(mvPosition);');
-    sh.fragmentShader=UW_GLSL+'\n'+sh.fragmentShader.replace('vec3 outgoingLight = reflectedLight.indirectDiffuse;',
+    sh.fragmentShader=UW_DRY_GLSL+UW_GLSL.replace('if(surf<-1e8&&vUwW.y<','if(surf<-1e8&&!uwDry(vUwW.xz)&&vUwW.y<')+'\n'+sh.fragmentShader.replace('vec3 outgoingLight = reflectedLight.indirectDiffuse;',
       'vec3 outgoingLight = reflectedLight.indirectDiffuse;\n  outgoingLight=underWater(outgoingLight);'); orgShader(sh); },'underwater');
 }
 /* (the picture of the world in the water — THE WORLD IN THE WATER, after the glow — read by the sea, the
@@ -2814,13 +2837,21 @@ function ravineCut(c,x,z){
 const SETTLED_R={village:{flat:150,skirt:260,core:245,ring:420,edge:510},
               city:{flat:200,skirt:340,core:360,ring:560,edge:660}};
 function cityHomesOf(cfg){ return Math.round((cfg.houses||12)*8); }
+/* (and at the true measure, how far its fields, groves and vineyards reach: a village farms some six
+   hundred metres about it, a town a kilometre, a city nearly two) */
+const FARM_M={village:650,town:1100,city:1800};
 function settleProfile(st){
   if(st._prof) return st._prof;
+  const P=settleProfile0(st), sz=(st.town&&st.town.size)||(P.kind==='city'?'city':'village');
+  if(TRUE_EARTH&&P.kind==='village') for(const k of ['flat','skirt','core','ring','edge']) P[k]*=1.4;   /* (its houses stand wider) */
+  P.farm=TRUE_EARTH?FARM_M[sz]*U_PER_M_WORLD:0;
+  return st._prof=P; }
+function settleProfile0(st){
   let cfg=null; try{ cfg=cityFor(st.i); }catch(e){}
-  if(!cfg) return st._prof=Object.assign({kind:'village'},SETTLED_R.village);
+  if(!cfg) return Object.assign({kind:'village'},SETTLED_R.village);
   /* a city's ground is as broad as its houses: half the side of its square of lots, and more */
   const half=(Math.ceil(Math.sqrt(cityHomesOf(cfg)*1.6)/2)+1.5)*B*10;
-  return st._prof={kind:'city',flat:half+B*4,skirt:half+B*22,core:half+B*14,ring:half+B*50,edge:half+B*66};
+  return {kind:'city',flat:half+B*4,skirt:half+B*22,core:half+B*14,ring:half+B*50,edge:half+B*66};
 }
 function cellCompute(ix,iz){
   const c=cellRaw(ix,iz); if(!c) return null;
@@ -2866,10 +2897,58 @@ function cellCompute(ix,iz){
         if(!c.stump&&j2<0.17) c.bare=1; }
       else if(wood&&!c.tree&&j<0.26) c.tree=c.kind==='tropic'?2:1;   /* the wild wood's edge */
     }
+    /* ---- AND ABOUT EVERY TOWN, ITS COUNTRY (Round 139) ----
+       At the true measure a town is not an island of houses in the wild wood: its roads run out to the
+       next town, and about it lie its fields, its olive groves, its vineyards with their towers, its
+       threshing floors and its folds, walled with the stones the plough turned up. */
+    if(TRUE_EARTH&&near&&c.cleared!==2){ if(!roadCell(c,x,z)&&!c.cleared&&FARM_KINDS[c.kind]) farmCell(c,ix,iz,x,z,near); }
   }
+  /* (and the ground of a wonder that stood in the desert is desert, though the land's own reading, a
+     valley's green beside it, would have grown a meadow on the plateau of Giza) */
+  if(TRUE_EARTH&&c.kind!=='wall'&&c.kind!=='floe'&&c.kind!=='sand'){ const D=lmDesert(), x=(ix+.5)*B, z=(iz+.5)*B;
+    for(const r of D) if(x>r[0]&&x<r[2]&&z>r[1]&&z<r[3]){ c.kind='sand'; c.tree=0; c.stump=0; c.field=0; c.vine=0; break; } }
   if(c.kind!=='wall'&&c.kind!=='floe') ravineCut(c,(ix+.5)*B,(iz+.5)*B);
   return c;
 }
+const FARM_KINDS={grass:1,savanna:1,tropic:1,tundra:1};
+/* a parcel of the country: grain, fallow, an olive grove, a vineyard, a threshing floor, a fold */
+function farmCell(c,ix,iz,x,z,near){
+  let fd=1e9,fS=null,fR=1;
+  for(const st of near){ const d=Math.hypot(x-st.x,z-st.z); if(d>FARM_M.city*U_PER_M_WORLD) continue;
+    const P=settleProfile(st); if(d<P.farm&&d>P.ring&&d/P.farm<fd/fR){ fd=d; fS=st; fR=P.farm; } }
+  if(!fS) return;
+  const U=U_PER_M_WORLD, PW=36*U, PD=22*U;
+  const pv=Math.floor(z/PD), off=hash2(pv*1.7,3.1)*PW, pu=Math.floor((x+off)/PW);
+  const t=hash2(pu*1.31+fS.i*0.7,pv*2.71), far=fd/fR;
+  if(far>0.6&&hash2(pu*3.3,pv*1.9)<(far-0.6)*2.2) return;              /* the wild comes back in at the edge */
+  const lu=(x+off)-pu*PW, lv=z-pv*PD, edge=lu<B||lv<B, gate=Math.abs(lv-PD/2)<B*1.5||Math.abs(lu-PW/2)<B*1.5;
+  const wall=()=>{ c.h+=1; c.kind='rock'; c.field=0; c.vine=0; };
+  c.farm=1; c.tree=0; c.stump=0;
+  if(t<0.36){ c.field=1; if(edge&&!gate&&hash2(pu,pv*5.5)<0.7) wall(); }
+  else if(t<0.5){ if(edge&&!gate&&hash2(pu,pv*5.5)<0.5) wall(); }
+  else if(t<0.72){ const g=7*U, cx=(Math.floor(lu/g)+0.5)*g, cz=(Math.floor(lv/g)+0.5)*g;
+    if(Math.abs(lu-cx)<B*0.5&&Math.abs(lv-cz)<B*0.5) c.tree=1;
+    else if(edge&&!gate&&hash2(pu,pv*5.5)<0.6) wall(); }
+  else if(t<0.9){ c.vine=(Math.floor(lv/B)%3===1&&lu>B*5)?1:0;
+    if(lu>B*2&&lu<B*4&&lv>B*2&&lv<B*4){ c.h+=5; c.kind='rock'; c.vine=0; }  /* the tower in the vineyard */
+    else if(edge&&!gate) wall(); }
+  else if(t<0.95){ if(Math.hypot(lu-PW/2,lv-PD/2)<6*U) c.bare=2; }                /* a threshing floor */
+  else if(Math.abs(Math.hypot(lu-PW/2,lv-PD/2)-7*U)<B*0.6&&!gate) wall();          /* a sheepfold */
+}
+/* THE ROADS BETWEEN THE TOWNS: each town joined to its two nearest, a trodden way some four metres broad */
+const ROADS=new Map(), ROAD_T=2000*U_PER_M_WORLD;
+function buildRoads(){ if(!TRUE_EARTH) return; const S=SITES.filter(Boolean);
+  for(const a of S){ const nb=S.filter(b=>b!==a).map(b=>[b,Math.hypot(b.x-a.x,b.z-a.z)]).filter(q=>q[1]<35000*U_PER_M_WORLD).sort((p,q)=>p[1]-q[1]).slice(0,2);
+    for(const [b] of nb){ const seg=[a.x,a.z,b.x,b.z], L=Math.hypot(b.x-a.x,b.z-a.z), n=Math.ceil(L/(ROAD_T/2));
+      const keys=new Set(); for(let k=0;k<=n;k++){ const px=a.x+(b.x-a.x)*k/n, pz=a.z+(b.z-a.z)*k/n;
+        for(let du=-1;du<=1;du++) for(let dv=-1;dv<=1;dv++) keys.add((Math.floor(px/ROAD_T)+du)+','+(Math.floor(pz/ROAD_T)+dv)); }
+      for(const k of keys){ if(!ROADS.has(k)) ROADS.set(k,[]); ROADS.get(k).push(seg); } } } }
+function roadCell(c,x,z){ if(!ROADS.size||c.kind==='wall'||c.kind==='floe') return false;
+  const L=ROADS.get(Math.floor(x/ROAD_T)+','+Math.floor(z/ROAD_T)); if(!L) return false;
+  const W=2.2*U_PER_M_WORLD;
+  for(const [ax,az,bx,bz] of L){ const dx=bx-ax, dz=bz-az, l2=dx*dx+dz*dz||1, t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/l2));
+    if(Math.hypot(x-ax-dx*t,z-az-dz*t)<W){ c.tree=0; c.stump=0; c.bare=2; c.road=1; return true; } }
+  return false; }
 function topY(ix,iz){ const c=cell(ix,iz); return c? c.h*B : WATER_Y; }
 function landAtWorld(x,z){ return cell(Math.floor(x/B),Math.floor(z/B)); }
 function computeSites(){
@@ -2935,12 +3014,17 @@ function computeSites(){
     const ci=COUNTRIES.findIndex(c=>c.n===t.land); if(ci<0) continue;
     const at=townSpot(t); if(!at) continue;
     if(yahruPos&&Math.hypot(at.x-yahruPos.x,at.z-yahruPos.z)<9000) continue;   /* (none stands inside her) */
+    /* nor on a work of the ancients raised by its own plan: the tell of Yahriḥo is not the town of Herodes' day */
+    if(LANDMARKS.some(L=>L.tm&&L.tm.form&&(()=>{ const p=llToWorld(L.lat,L.lon); return Math.hypot(at.x-p[0],at.z-p[1])<600*U_PER_M_WORLD; })())) continue;
     const i=SITES.length;
-    const cfg=t.size==='city'?{country:t.land,name:t.n,houses:14,size:2,market:true,streets:true,wells:2}
-            :t.size==='town'?{country:t.land,name:t.n,houses:8,size:1,market:true,streets:true,wells:1}:null;
+    /* (a city of the land held some two to three hundred households in its walls, a market town a hundred
+       and more; at the true measure they are raised at that size) */
+    const cfg=t.size==='city'?{country:t.land,name:t.n,houses:32,size:2,market:true,streets:true,wells:3}
+            :t.size==='town'?{country:t.land,name:t.n,houses:15,size:1,market:true,streets:true,wells:2}:null;
     SITES[i]=Object.assign(at,{i,ci,town:t,cfg,name:t.n});
     siteGridAdd(SITES[i]);
   }
+  buildRoads();
 }
 const TOWNS=(window.EARTH&&EARTH.townList)||[], TOWN_USED=new Set();
 /* the dry ground nearest a town's own latitude and longitude */
@@ -4903,6 +4987,11 @@ function buildChunk(cx,cz){
         if(j<0.12) emitBox(G,sx+r+B*0.1,yT,sz-B*0.2,sx+r+B*1.9,yT+B*0.4,sz+B*0.2,'logSide','logTop',null);
         emitScrub(G,ix,iz,cc,0.34); }
       else if(cc.bare) emitTop(G,cc.bare===2?'path':'dirt', ix*B+0.05,iz*B+0.05,(ix+1)*B-0.05,(iz+1)*B-0.05, yT+0.05, 1.0);
+      /* the fields: the ploughed earth, and the grain standing in its rows; the vines on their stakes */
+      else if(cc.field){ emitTop(G,'soil', ix*B+0.05,iz*B+0.05,(ix+1)*B-0.05,(iz+1)*B-0.05, yT+0.05, 1.0);
+        if(iz%2===0) emitBox(G,ix*B+0.2,yT,z-B*0.32,(ix+1)*B-0.2,yT+B*(0.62+j*0.12),z+B*0.32,'haySide','hayTop',null); }
+      else if(cc.vine){ emitBox(G,x-B*0.06,yT,z-B*0.06,x+B*0.06,yT+B*1.25,z+B*0.06,'logSide','logSide',null);
+        emitBox(G,ix*B+0.1,yT+B*0.45,z-B*0.3,(ix+1)*B-0.1,yT+B*1.15,z+B*0.3,'leaves','leaves',null); }
       /* thickest where no one lives — a village keeps its ground grazed.
          Every ground the grass file knows is asked; the ones it does not
          know (sand, stone, snow, the ice) simply bear nothing. */
@@ -13720,9 +13809,25 @@ function houseWashed(i,seed){
    WRITTEN DOWN as treeless, the bole pass and the crown both ask it, and the
    trunk already standing there is taken out. */
 var NOTREE=null;      /* var: a chunk may be built before this line has run */
-function noTreeAt(ix,iz){ return !!NOTREE&&NOTREE.has(colKey(ix,iz)); }
+/* (a precinct as broad as a town is written down as its rectangle, not column by column: the court of
+   Giza alone is a million columns) */
+var NOTREE_R=null;
+function noTreeAt(ix,iz){ if(NOTREE_R) for(const r of NOTREE_R) if(ix>=r[0]&&ix<=r[2]&&iz>=r[1]&&iz<=r[3]) return true;
+  return !!NOTREE&&NOTREE.has(colKey(ix,iz)); }
+/* the trunks and crowns the chunks already laid have stamped there, taken out of the stamps themselves
+   (a work raised before its own stamping pass cleared nothing: Karnak's court stood full of bare boles) */
+function dropBolesIn(i0,k0,i1,k1){
+  for(let cx=Math.floor(i0/CH);cx<=Math.floor(i1/CH);cx++) for(let cz=Math.floor(k0/CH);cz<=Math.floor(k1/CH);cz++){
+    const key=cx+','+cz, m=SEDITS.get(key); if(!m) continue; let n0=0;
+    for(const [idx,n] of m){ if(!n) continue; const b=blockOf(n); if(!b||!/^(log|leaves)(-|$)/.test(b.id)) continue;
+      const ix=cx*CH+eLx(idx), iz=cz*CH+eLz(idx); if(ix>=i0&&ix<=i1&&iz>=k0&&iz<=k1){ m.delete(idx); n0++; } }
+    if(n0){ if(!m.size) SEDITS.delete(key); EDIT_DIRTY.add(key); editColumnsChanged(); } } }
 function clearLotOfTrees(x0,z0,x1,z1,y){
   const cy0=Math.floor(y/B);
+  const i0=Math.floor(x0/B), i1=Math.floor(x1/B), k0=Math.floor(z0/B), k1=Math.floor(z1/B);
+  if((i1-i0+1)*(k1-k0+1)>20000){ (NOTREE_R||(NOTREE_R=[])).push([i0,k0,i1,k1]);
+    dropBolesIn(i0,k0,i1,k1); return; }
+  if(!_stampOn) dropBolesIn(i0,k0,i1,k1);
   for(let ix=Math.floor(x0/B);ix<=Math.floor(x1/B);ix++) for(let iz=Math.floor(z0/B);iz<=Math.floor(z1/B);iz++){
     (NOTREE||(NOTREE=new Set())).add(colKey(ix,iz));
     if(!_stampOn) continue;
@@ -14479,7 +14584,7 @@ function* spawnVillage(i,exShell){
     /* --- a village proper: a broad ring of homes about the well and square
        --- grown a full size: more homes, bigger homes, a wider ring to
        stand them in, so a town reads as a town and not a huddle of huts */
-    const nH=20+Math.floor(rnd(1)*8);                  /* a village of many households (Round 137) */
+    const nH=(TRUE_EARTH?30:20)+Math.floor(rnd(1)*(TRUE_EARTH?14:8));   /* a village of many households (Round 137); at the true measure, its true thirty to forty */
     for(let h=0;h<nH;h++){
       /* a full-grown home (8–10 blocks a side), and a ring wide enough that
          every house keeps its own ground about it — each candidate is tested
@@ -14487,7 +14592,7 @@ function* spawnVillage(i,exShell){
       const w=8+Math.floor(rnd(h+20)*3), d=8+Math.floor(rnd(h+25)*3);
       let hx=0,hz=0,hc=null,found=false;
       for(let tr=0;tr<16&&!found;tr++){
-        const ang=(h/nH+rnd(h*10+tr+2)*0.35)*Math.PI*2, rad=(10+rnd(h*10+tr+9)*(14+tr*1.2))*B;
+        const ang=(h/nH+rnd(h*10+tr+2)*0.35)*Math.PI*2, rad=(10+rnd(h*10+tr+9)*(14+tr*1.2))*B*(TRUE_EARTH?1.4:1);
         const tx=site.x+Math.cos(ang)*rad, tz=site.z+Math.sin(ang)*rad;
         const tc=landAtWorld(tx,tz); if(!tc||tc.kind==='wall'||tc.kind==='floe') continue;
         /* the roof overhangs a block on every side, and a lane runs between */
@@ -16992,7 +17097,47 @@ const LM_BUILDERS={pyramid:lmPyramid,ziggurat:lmZiggurat,temple:lmTemple,stoneci
    seven stages, the Parthenon 69.5 by 30.9 m on columns 10.4 m high). Each is laid course by course,
    a block to the course, so a pyramid is a stair of 159 courses and not nine. */
 const lmU=m=>m*U_PER_M_WORLD;
+/* ---- A WONDER RAISED BY ITS OWN PLAN (Round 139) ----
+   The generic temple above is one shape for every temple: a box on a ring of square posts. A wonder that
+   has its own plan (world/wonders-true.js: `tm.form`) is laid by it instead, in metres about the site, with
+   x to the east, z to the south and y over the site's own ground, as the city of the great king is. The
+   plan is turned by whole quarters to the true bearing of the place (north on the disc is toward its midst,
+   and turns with the longitude), so a pylon stands square to the blocks and still faces nearly the way its
+   builders faced it. */
+let _lmDesert=null;
+function lmDesert(){ if(_lmDesert) return _lmDesert; _lmDesert=[];
+  for(const L of LANDMARKS){ const t=L.tm; if(!t||!t.desert||!t.clear) continue; const [x,z]=llToWorld(L.lat,L.lon), W=lmLocal(L,x,z);
+    const [ax,az]=W(t.clear[0],t.clear[1]), [bx,bz]=W(t.clear[2],t.clear[3]); _lmDesert.push([Math.min(ax,bx),Math.min(az,bz),Math.max(ax,bx),Math.max(az,bz)]); }
+  return _lmDesert; }
+function lmQuarter(L){ return ((Math.round(L.lon/90)%4)+4)%4; }
+function lmLocal(L,x,z){ const k=lmQuarter(L), U=lmU;
+  return (lx,lz)=>{ const [p,q]=k===0?[lx,lz]:k===1?[lz,-lx]:k===2?[-lx,-lz]:[-lz,lx]; return [x+U(p),z+U(q)]; }; }
+/* A WORK AS BROAD AS A TOWN IS SEEN FROM AFAR IN TILES. The silhouette of a wonder was put away whole
+   once the chunk at its middle was laid; Karnak is half a kilometre across and the streamed blocks reach
+   some two hundred metres, so from its gate its far half simply was not there. Its triangles are laid in
+   tiles of two chunks a side, and each is put away only when the chunk under it is laid. */
+const LM_TILE=CHW*2;
+function lmTileG(G,x,z){ const T=G.__tiles; if(!T) return G; const k=Math.floor(x/LM_TILE)+','+Math.floor(z/LM_TILE);
+  let g=T.get(k); if(!g){ g=newG(); T.set(k,g); } return g; }
+function lmForm(G,x,z,y,L){ const t=L.tm, F=window.WONDER_FORMS&&WONDER_FORMS[t.form]; if(!F) return false;
+  const W=lmLocal(L,x,z), U=lmU;
+  const api={ tm:t,
+    box(x0,y0,z0,x1,y1,z1,m,top){ const [ax,az]=W(x0,z0), [bx,bz]=W(x1,z1), lo=Math.min(y0,y1);
+      emitBox(lmTileG(G,(ax+bx)/2,(az+bz)/2),Math.min(ax,bx),y+U(lo),Math.min(az,bz),Math.max(ax,bx),y+U(Math.max(y0,y1)),Math.max(az,bz),m,top||m,lo>0.3?m:null); },
+    /* the ground of a court made level with the site: the land above cut away, the land below filled,
+       its top laid with `top`. Only the blocks are levelled; the far land keeps its own lie */
+    level(x0,z0,x1,z1,top,fill){ if(!_stampOn) return;
+      const [ax,az]=W(x0,z0), [bx,bz]=W(x1,z1), ty=Math.round(y/B), nt=blockForMat(top||'sand'), nf=blockForMat(fill||top||'sand');
+      for(let ix=Math.floor(Math.min(ax,bx)/B);ix<Math.ceil(Math.max(ax,bx)/B);ix++) for(let iz=Math.floor(Math.min(az,bz)/B);iz<Math.ceil(Math.max(az,bz)/B);iz++){
+        const c=cell(ix,iz); if(!c||c.kind==='wall') continue;
+        for(let j=ty;j<c.h+2;j++) stampBlock(ix,j,iz,0);
+        for(let j=c.h-1;j<ty-1;j++) stampBlock(ix,j,iz,nf);
+        stampBlock(ix,ty-1,iz,nt); } },
+    /* the land's own height here, in metres over the site */
+    ground(lx,lz){ const [ax,az]=W(lx,lz); return (topY(Math.floor(ax/B),Math.floor(az/B))-y)/U_PER_M_WORLD; } };
+  F(api); return true; }
 function lmTrue(G,x,z,y,L){ const t=L.tm, U=lmU;
+  if(t.form&&lmForm(G,x,z,y,L)) return;
   switch(L.kind){
   case 'pyramid': for(const P of t.parts){ const px=x+U(P.dx), pz=z+U(P.dz), n=Math.max(4,Math.round(P.h/M_PER_BLK)), hb=U(P.base/2);
       const gy=topY(Math.floor(px/B),Math.floor(pz/B));
@@ -17176,11 +17321,17 @@ const activeLandmarks=new Map(); const LM_SITE=[];
 function landmarkSite(idx){ if(LM_SITE[idx]!==undefined) return LM_SITE[idx];
   const L=LANDMARKS[idx]; const [wx,wz]=llToWorld(L.lat,L.lon);
   const ix0=Math.floor(wx/B), iz0=Math.floor(wz/B); let best=null;
+  /* (forty cells is forty metres at the true measure, and the Pharos stood just off the shore the earth's
+     heights give: there the search goes out a kilometre, twenty-five metres a step) */
+  const st=TRUE_EARTH?Math.max(1,Math.round(lmU(25)/B)):1;
   for(let rad=0;rad<40&&!best;rad++) for(let a=0;a<Math.max(1,rad*6)&&!best;a++){
     const th=a/(rad*6||1)*Math.PI*2;
-    const jx=ix0+Math.round(Math.cos(th)*rad), jz=iz0+Math.round(Math.sin(th)*rad);
+    const jx=ix0+Math.round(Math.cos(th)*rad*st), jz=iz0+Math.round(Math.sin(th)*rad*st);
     const cc=cell(jx,jz); if(cc&&cc.kind!=='wall'&&cc.kind!=='floe') best={ix:jx,iz:jz,x:(jx+.5)*B,z:(jz+.5)*B};
   }
+  /* (and a work with its own plan that stood in the sea stands there: the Pharos was on its island, and the
+     earth's heights put the whole shore of Alexandria under the water's level) */
+  if(!best&&TRUE_EARTH&&L.tm&&L.tm.form) best={ix:ix0,iz:iz0,x:(ix0+.5)*B,z:(iz0+.5)*B,sea:true};
   LM_SITE[idx]=best||null; return LM_SITE[idx];
 }
 /* ================= THE AUTHORED PLACES — Phase 8 =================
@@ -17439,7 +17590,9 @@ function seacavePass(px,pz){
 }
 function lmClearGround(L,x,z,y){ const t=L.tm, U=lmU, rects=[];
   const sq=(cx,cz,h)=>rects.push([cx-h,cz-h,cx+h,cz+h]);
-  if(L.kind==='temple') rects.push([x-U(t.L/2+30),z-U(t.W/2+30),x+U(t.L/2+30),z+U(t.W/2+30)]);
+  if(t.clear){ const W=lmLocal(L,x,z), [ax,az]=W(t.clear[0],t.clear[1]), [bx,bz]=W(t.clear[2],t.clear[3]);
+    rects.push([Math.min(ax,bx),Math.min(az,bz),Math.max(ax,bx),Math.max(az,bz)]); }
+  else if(L.kind==='temple') rects.push([x-U(t.L/2+30),z-U(t.W/2+30),x+U(t.L/2+30),z+U(t.W/2+30)]);
   else if(L.kind==='pyramid') for(const P of t.parts) sq(x+U(P.dx),z+U(P.dz),U(P.base/2+40));
   else if(L.kind==='ziggurat') sq(x,z,U(Math.max(t.tiers[0][0],t.tiers[0][1])/2+60));
   else if(L.kind==='city') sq(x,z,U(t.R+20));
@@ -17463,6 +17616,7 @@ function spawnLandmark(i){
   else if(L.kind==='falls'){ g=lmFalls(L); if(g) scene.add(g); }
   else if(L.kind!=='mount'){
     const G=newG();
+    if(TRUE_EARTH&&L.tm&&L.tm.form) Object.defineProperty(G,'__tiles',{value:new Map(),enumerable:false});
     _solidRec=[];                       /* the builder writes its own collision */
     var lmSolids;
     /* ON THE TRUE EARTH A WORK OF THE ANCIENTS STANDS IN ITS OWN GROUND: the wild wood of the true earth
@@ -17493,17 +17647,22 @@ function spawnLandmark(i){
     g=new THREE.Group();
     gStruct=new THREE.Group(); g.add(gStruct);
     for(const mat in G){ const gg=G[mat]; gStruct.add(bucketMesh(gg,MAT[mat])); }
+    if(G.__tiles) for(const [k,TG] of G.__tiles){ const tg=new THREE.Group(), [tx,tz]=k.split(',').map(Number);
+      tg.userData.chunk=Math.floor((tx+0.5)*LM_TILE/CHW)+','+Math.floor((tz+0.5)*LM_TILE/CHW);
+      for(const mat in TG) tg.add(bucketMesh(TG[mat],MAT[mat])); gStruct.add(tg); }
+    if(G.__tiles) gStruct.userData.tiled=true;
     if(L.kind==='lighthouse'){                             /* the fire at the top, ever burning */
-      const tip=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),torchMat); tip.position.set(x,y+B*15.4,z); g.add(tip);
+      const fy=(TRUE_EARTH&&L.tm&&L.tm.fire)?lmU(L.tm.fire)-B*15.4:0;   /* (at the true measure, a hundred metres up) */
+      const tip=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),torchMat); tip.position.set(x,y+fy+B*15.4,z); g.add(tip);
       const gm2=new THREE.SpriteMaterial({map:glowTexCv,transparent:true,opacity:0.6,depthWrite:false});
-      const gs=new THREE.Sprite(gm2); gs.scale.set(60,60,1); gs.position.set(x,y+B*15.6,z); g.add(gs); }
+      const gs=new THREE.Sprite(gm2); gs.scale.set(60,60,1); gs.position.set(x,y+fy+B*15.6,z); g.add(gs); }
     scene.add(g);
   }
   /* a SECRET place hangs out no banner — it is found, not signposted */
   let label=null;
   if(!L.secret){
     label=makeLabel(L.n,true);
-    label.position.set(x, y+(L.kind==='mount'?(L.peak||18)*B+30:B*16+24), z);
+    label.position.set(x, y+(L.kind==='mount'?(L.peak||18)*B+30:(TRUE_EARTH&&L.tm&&L.tm.top)?lmU(L.tm.top)+24:B*16+24), z);
     label.scale.set(220,220/6,1);
     scene.add(label);
   }
@@ -22568,6 +22727,7 @@ function silhouetteTick(){
   if(_nearHidden) return;
   for(const[,A] of activeLandmarks){
     if(!A.gStruct||!A.stamp) continue;
+    if(A.gStruct.userData.tiled){ for(const t of A.gStruct.children) if(t.userData.chunk) t.visible=!chunks.has(t.userData.chunk)||EDIT_DIRTY.has(t.userData.chunk); continue; }   /* (and kept until the chunk is laid again with the work in it) */
     A.gStruct.visible=!chunks.has(Math.floor(A.x/CHW)+','+Math.floor(A.z/CHW));
   }
 }
@@ -24544,7 +24704,10 @@ function frame(){ orgSnap();
        distance, and must lose it the same way */
     frame._wgHi = frame._wgHi ? viewReach>4800*WG_SW/WG_S : viewReach>5200*WG_SW/WG_S;
     waveGrid.visible=!inHold&&!frame._wgHi;
-    sea.visible=seaDeep.visible=!inHold&&!underEye;
+    /* (and an eye down in a dry basin under the sea's level has the backdrop sheets over it like a lid,
+       and sees the whole rift through them: they are not drawn there, as the wave sheet is not) */
+    const lidded=TRUE_EARTH&&camera.position.y<WATER_Y+U_PER_M_WORLD*10&&inDryBasin(camera.position.x,camera.position.z);
+    sea.visible=seaDeep.visible=!inHold&&!underEye&&!lidded;
     /* over the furnished shallows the discs drop far beneath the lit bed, so
        the true floor and its life show through the clear water — while the
        water past the patch still has the deep's own blue standing under it */
