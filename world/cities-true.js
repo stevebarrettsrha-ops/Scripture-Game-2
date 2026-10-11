@@ -31,7 +31,7 @@ const hsh=(i,j)=>{ const v=Math.sin(i*12.9898+j*78.233)*43758.5453; return v-Mat
 /* ============================== YAHRIḤO ============================== */
 F.jericho=function(api){ const K=kit(api), box=K.box, MB='mudbrick', ST='stone', D='dirt', P='path';
   K.level(-120,-200,130,200,'sand','dirt');
-  K.oval(0,0,88,178,-3,4.5,D,P); K.oval(0,0,72,160,4.5,10,D,P); K.oval(0,0,60,142,10,15,D,P);
+  api.always(()=>{ K.oval(0,0,88,178,-3,4.5,D,P); K.oval(0,0,72,160,4.5,10,D,P); K.oval(0,0,60,142,10,15,D,P); });   /* the tell outlasts every city on it */
   const gate=[[0,0.07]];
   K.ovalRing(0,0,89,179,2.5,-3,4.5,ST,gate);                                                         /* the revetment */
   K.ovalRing(0,0,88,178,2,4.5,11,MB,gate);                                                            /* the wall upon it */
@@ -57,9 +57,9 @@ F.megiddo=function(api){ const K=kit(api), box=K.box, HS='hewnStone', ST='stone'
   K.level(-140,-140,140,120,'grassTop','dirt');
   /* the tell, its shaft for the water cut through it */
   const shaft=[-102,-1,-4,-94,TT+1,4];
-  for(const [a,b,y0,y1] of [[125,105,-3,7],[112,92,7,14],[100,80,14,TT]]){
+  api.always(()=>{ for(const [a,b,y0,y1] of [[125,105,-3,7],[112,92,7,14],[100,80,14,TT]]){
     for(let z=-b;z<b;z+=2){ const zm=Math.min(b,Math.abs(z+1)), w=a*Math.sqrt(Math.max(0,1-(zm/b)**2)); if(w<0.3) continue;
-      K.carve([-w,y0,z,w,y1,z+2],[shaft],D,P); } }
+      K.carve([-w,y0,z,w,y1,z+2],[shaft],D,P); } } });
   /* the wall of offsets and insets on the crest */
   K.ovalRing(0,0,100,80,3.5,TT,TT+7,HS,[[-Math.PI/2,0.06]]);
   for(let k=0;k<36;k++){ const th=k/36*Math.PI*2; if(Math.abs(Math.atan2(Math.sin(th+Math.PI/2),Math.cos(th+Math.PI/2)))<0.1) continue;
@@ -140,6 +140,8 @@ F.knossos=function(api){ const K=kit(api), box=K.box, GY='alabaster', PL='plaste
 
 /* ============================== MOHENJO-DARO ============================== */
 F.mohenjo=function(api){ const K=kit(api), box=K.box, BR='brick', MB='mudbrick', P='path', CT=12;
+  /* (in any year of the story it is a mound on the plain, its city two thousand years under it) */
+  if(api.state==='none'){ api.always(()=>{ K.level(-330,-260,260,260,'sand','dirt'); K.oval(-220,0,110,210,-3,CT-2,'dirt','path',4); }); return; }
   K.level(-330,-260,260,260,'sand','dirt');
   /* the citadel mound, its baked-brick revetment */
   box(-320,-3,-200,-120,CT-1,200,MB,P); box(-322,-3,-202,-118,CT,-198,BR); box(-322,-3,198,-118,CT,202,BR);
@@ -201,7 +203,7 @@ F.carthage=function(api0){
   for(const s of [-1,1]) for(let i=0;i<27;i++) box(s*167-2.5,0.8,R+50+i*11,s*167+2.5,6,R+58+i*11,PL);                /* the warehouses on the quays */
   /* the hill of the Byrsa: a mound with houses of many storeys up its sides, the temple of the city's god left out */
   const bxc=-300, bzc=-300;
-  K.oval(bxc,bzc,120,120,-3,14,'dirt','path',3); K.oval(bxc,bzc,85,85,14,32,'dirt','path',3); K.oval(bxc,bzc,50,50,32,46,'dirt','path',3);
+  api.always(()=>{ K.oval(bxc,bzc,120,120,-3,14,'dirt','path',3); K.oval(bxc,bzc,85,85,14,32,'dirt','path',3); K.oval(bxc,bzc,50,50,32,46,'dirt','path',3); });
   K.carve([bxc-24,46,bzc-16,bxc+24,58,bzc+16],[[bxc-21,46,bzc-13,bxc+21,56,bzc+13],[bxc-2,46,bzc+15.9,bxc+2,52,bzc+16.1]],HS);
   for(let x=-110;x<=110;x+=11) for(let z=-110;z<=110;z+=11){ const r=Math.hypot(x,z); if(r<55||r>115) continue;
     const y=r<85?32:14, h=8+hsh(x,z)*12;

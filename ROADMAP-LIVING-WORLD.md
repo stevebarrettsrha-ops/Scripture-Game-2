@@ -237,6 +237,10 @@ folds within field-stone walls) and stands at its true size. Still to do: each w
 the days of Herodes (Persepolis burnt, Etemenanki pulled down), hill-country terraces, and the
 regional dress of the countryside (Phase D).
 
+**Status (Round 140; AUDIT §4em).** In the story each work of the ancients stands as it stood in the
+scene's year (whole, rising, a ruin, or not yet), from `tm.era` in world/landmarks.js; the voyage keeps
+every one whole.
+
 ## How each phase is proven
 
 Each phase ships with a probe that runs in the actual game, as the rounds before did:

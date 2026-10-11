@@ -160,7 +160,7 @@ F.karnak=function(api){ const K=kit(api), box=K.box, S='sandstone', MB='mudbrick
     box(x-1.1,-0.5,z-2.5,x+1.1,1.3,z+2.5,S); box(x-0.75,1.3,z-2.0,x+0.75,2.7,z+1.9,S);                    /* the plinth, the lion's body */
     box(x-0.6,2.1,hz-0.4,x+0.6,3.7,hz+0.9,S); box(x-0.9,3.0,hz+0.2,x+0.9,3.5,hz+0.9,S); }                   /* the ram's head and its horns */
   /* ---- the first pylon, and the great court ---- */
-  pylon({ax:'x',a0:-139,a1:-124,c:0,hw:56.5,h:31.5,gw:3.8,gh:18});
+  api.part([-380,-340],()=>pylon({ax:'x',a0:-139,a1:-124,c:0,hw:56.5,h:31.5,gw:3.8,gh:18}));     /* (Nectanebo's, the last raised) */
   box(-124,-0.8,-48.5,-40,0.1,48.5,S);
   for(const s of [-1,1]){
     /* the walls of the court, and the colonnades along them (the south one broken by the temple of Ramesses III) */
@@ -170,8 +170,8 @@ F.karnak=function(api){ const K=kit(api), box=K.box, S='sandstone', MB='mudbrick
     for(const [a,b] of segs){ box(a,9,s*45.6,b,10.2,s*43.4,S); box(a,10.2,s*48.5,b,11.0,s*43.2,S); } }
   /* the kiosk of Taharqa: ten columns of 21 m in two rows, low screens between */
   const KX=[-112,-100,-88,-76,-64];
-  for(const s of [-1,1]){ for(const x of KX) papOpen(x,s*8.5,21,1.5);
-    for(let i=0;i+1<KX.length;i++) box(KX[i]+1.6,-0.5,s*8.5-0.5,KX[i+1]-1.6,3.2,s*8.5+0.5,S); }
+  api.part([-690,-664],()=>{ for(const s of [-1,1]){ for(const x of KX) papOpen(x,s*8.5,21,1.5);
+    for(let i=0;i+1<KX.length;i++) box(KX[i]+1.6,-0.5,s*8.5-0.5,KX[i+1]-1.6,3.2,s*8.5+0.5,S); } });
   /* the triple shrine of Seti II in the north-west corner */
   K.carve([-118,-0.5,-47,-106,6.5,-37],[[-117,0,-46,-114.4,5,-36.9],[-113.3,0,-46,-110.7,5,-36.9],[-109.6,0,-46,-107,5,-36.9]],HS);
   /* the temple of Ramesses III, its pylon facing into the court */
@@ -253,11 +253,13 @@ F.karnak=function(api){ const K=kit(api), box=K.box, S='sandstone', MB='mudbrick
 F.petra=function(api){ const K=kit(api), box=K.box, R='roseRock';
   K.level(0,-20,30,20,'sand','sand'); K.level(30,-1.6,85,1.6,'sand','sand'); K.level(85,-0.6,140,3,'sand','sand'); K.level(8,-45,22,-20,'sand','sand');
   /* the cliff behind, the facade cut back into it, the great chamber and its door hollowed in it */
-  K.carve([-30,-4,-45,0,47,45],[
+  const built=api.state!=='none';                                                                      /* (before Aretas cut it, the rock was whole) */
+  api.always(()=>{
+  K.carve([-30,-4,-45,0,47,45],built?[
     [-6,0,-13.5,0.1,44,13.5],                    /* the recess the facade stands in */
     [-19.5,1.2,-6.25,-7.5,10,6.25],              /* the chamber, 12.5 m square */
     [-7.6,1.2,-1.8,-5.9,9.2,1.8],                /* its door */
-    [-21.5,2.6,-2.2,-19.4,7.4,2.2]],R);          /* the niche at its back */
+    [-21.5,2.6,-2.2,-19.4,7.4,2.2]]:[],R);       /* the niche at its back */
   /* the rock about the plaza, the outer Siq going north, and the Siq itself coming in from the east */
   K.crag(-30,-45,0,45,47,47,66,R,{face:'+x',seed:2});                                                  /* the rock over the facade */
   box(-34,-4,-50,-30,30,50,R); K.crag(-60,-50,-30,50,-4,20,48,R,{seed:9});                             /* and the mountain behind it */
@@ -265,6 +267,7 @@ F.petra=function(api){ const K=kit(api), box=K.box, R='roseRock';
   K.crag(30,-20,45,-1.6,-4,44,64,R,{face:'+z',c:4,seed:6}); K.crag(30,1.6,45,20,-4,44,64,R,{face:'-z',c:4,seed:7});
   K.crag(45,-18,85,-1.6,-4,48,72,R,{face:'+z',c:4,seed:8}); K.crag(45,1.6,85,18,-4,48,72,R,{face:'-z',c:4,seed:10});
   K.crag(85,-16,140,-0.6,-4,46,70,R,{face:'+z',c:4,seed:11}); K.crag(85,3.0,140,20,-4,46,70,R,{face:'-z',c:4,seed:12});
+  }); if(!built) return;
   /* the lower storey: the platform and its steps, six columns, the wings with their side chambers */
   box(-6,-0.5,-13.5,1.6,1.2,13.5,R); box(1.6,-0.5,-8.2,2.4,0.8,8.2,R); box(2.4,-0.5,-8.2,3.2,0.4,8.2,R);
   for(const s of [-1,1]){ const z0=s*8.4, z1=s*13.5;
@@ -394,31 +397,36 @@ F.parthenon=function(api){ const YA=api.tm.rock||0;
      a plateau some 260 by 130 m standing YA metres over the city, its edges broken cliff, walled about; the
      great ramp and the Propylaea at its west end; the Erechtheion and its porch of the maidens to the north;
      the little temple of Athena Nike on its bastion. The Parthenon stands on its top. */
-  if(YA){ const R=kit(api), b=R.box, M='marble', LS='hewnStone';
+  if(YA){ const R=kit(api), b=R.box, M='marble', LS='hewnStone', PY=YA;
+    api.always(()=>{
     R.level(-240,-110,110,60,'stone','stone');
     b(-170,YA-4,-90,90,YA,40,'stone');
     for(const [x0,z0,x1,z1,f] of [[-178,-98,98,-90,'+z'],[-178,40,98,48,'-z'],[-178,-90,-170,40,'+x'],[90,-90,98,40,'-x']]){
       b(Math.max(x0,-176),-4,Math.max(z0,-96),Math.min(x1,96),YA-4,Math.min(z1,46),'stone'); R.crag(x0,z0,x1,z1,-4,YA*0.55,YA+1,'stone',{c:4,face:f,seed:x0+z0}); }
     for(const [x0,z0,x1,z1] of [[-170,-90,90,-87.5],[-170,37.5,90,40],[87.5,-90,90,40],[-170,-90,-167.5,-48],[-170,-12,-167.5,40]]) b(x0,YA,z0,x1,YA+5,z1,LS);
-    /* the ramp and the Propylaea */
     R.flight('x',-238,-170,-35,-25,0,YA,40,LS);
-    const PY=YA; b(-170,PY,-48,-150,PY+1,-12,M);
+    b(-185,-4,2,-170,YA+1,16,LS); });                                                                   /* the ramp, and the bastion */
+    /* the Propylaea (437–432) */
+    api.part([-437,-432],()=>{
+    b(-170,PY,-48,-150,PY+1,-12,M);
     for(let i=0;i<6;i++) R.round(-168,-40+i*3.2,PY+1,PY+9.5,0.7,M);
     R.carve([-166,PY+1,-41,-150,PY+12,-19],[[-165,PY+1,-40,-151,PY+11,-20],[-166.1,PY+1,-32.5,-164.9,PY+8,-27.5],[-151.1,PY+1,-32.5,-149.9,PY+8,-27.5]],M);
     b(-169,PY+9.5,-42,-166,PY+11,-18,M); R.gable('z',-170,-150,-42,-18,PY+12,2.6,5,M);
-    b(-170,PY+1,-48,-156,PY+9,-42,M); b(-170,PY+1,-18,-156,PY+9,-12,M);
-    /* the bastion and the temple of Athena Nike */
-    b(-185,-4,2,-170,PY+1,16,LS); b(-182,PY+1,6,-174,PY+2,12,M); b(-181,PY+2,6.6,-175,PY+6,11.4,M);
-    for(const z of [6.4,8.2,10,11.6]) R.round(-182.4,z,PY+2,PY+6,0.25,M); R.gable('x',-182.6,-174,6,12,PY+6.4,1.2,3,M); b(-182.6,PY+6,6,-174,PY+6.4,12,M);
-    /* the Erechtheion, its east porch of six, its north porch, its porch of the maidens (plain columns) */
-    R.carve([-75,PY,-60,-52,PY+10,-48],[[-74,PY,-59,-53,PY+9,-49],[-52.1,PY,-55.5,-50.9,PY+6.5,-52.5]],M);
+    b(-170,PY+1,-48,-156,PY+9,-42,M); b(-170,PY+1,-18,-156,PY+9,-12,M); });
+    /* the temple of Athena Nike on its bastion (427–424) */
+    api.part([-427,-424],()=>{ b(-182,PY+1,6,-174,PY+2,12,M); b(-181,PY+2,6.6,-175,PY+6,11.4,M);
+    for(const z of [6.4,8.2,10,11.6]) R.round(-182.4,z,PY+2,PY+6,0.25,M); R.gable('x',-182.6,-174,6,12,PY+6.4,1.2,3,M); b(-182.6,PY+6,6,-174,PY+6.4,12,M); });
+    /* the Erechtheion (421–406), its east porch of six, its north porch, its porch of the maidens (plain columns) */
+    api.part([-421,-406],()=>{ R.carve([-75,PY,-60,-52,PY+10,-48],[[-74,PY,-59,-53,PY+9,-49],[-52.1,PY,-55.5,-50.9,PY+6.5,-52.5]],M);
     for(let i=0;i<6;i++) R.round(-50,-59.2+i*2.08,PY,PY+8.2,0.4,M); b(-51,PY+8.2,-60,-48.6,PY+9.2,-48,M);
     for(const [x,z] of [[-70,-64],[-66.5,-64],[-63,-64],[-70,-61.2],[-63,-61.2]]) R.round(x,z,PY,PY+7.6,0.4,M); b(-71.5,PY+7.6,-65.5,-61.5,PY+8.6,-60,M);
     for(let i=0;i<3;i++) for(const z of [-46.6,-45.4]) R.round(-70+i*2.6,z,PY+1.6,PY+4.8,0.3,M);
     b(-71,PY,-47.6,-63.5,PY+1.6,-44.6,M); b(-71,PY+4.8,-47.6,-63.5,PY+5.8,-44.6,M);
-    R.gable('x',-75,-48.6,-60.5,-47.5,PY+10,1.6,4,M); }
+    R.gable('x',-75,-48.6,-60.5,-47.5,PY+10,1.6,4,M); }); }
   const A2=YA?Object.assign({},api,{box:(x0,y0,z0,x1,y1,z1,m,t)=>api.box(x0,y0+YA,z0,x1,y1+YA,z1,m,t),level:()=>{}}):api;
   const K=kit(A2), box=K.box, M='marble', BS='basalt';
+  /* the Parthenon itself (447–432) */
+  api.part([-447,-432],()=>{
   if(!YA) K.level(-45,-25,45,25,'stone','stone');
   /* the three steps and the stylobate */
   box(-36.15,-2,-16.85,36.15,0.55,16.85,M); box(-35.45,0.55,-16.15,35.45,1.1,16.15,M); box(-34.75,1.1,-15.45,34.75,1.65,15.45,M);
@@ -451,6 +459,7 @@ F.parthenon=function(api){ const YA=api.tm.rock||0;
   /* the roof of marble tiles; its stepped ends are the pediments; the acroteria */
   K.gable('x',-35.3,35.3,-16.0,16.0,A0+3.3,3.8,7,M);
   for(const x of [-35,35]){ box(x-0.5,A0+7.1,-0.6,x+0.5,A0+8.6,0.6,M); for(const s of [-1,1]) box(x-0.5,A0+3.3,s*15.2,x+0.5,A0+4.6,s*15.9,M); }
+  });
 };
 
 /* ============================== ARTEMIS AT EPHESUS ==============================
@@ -486,24 +495,32 @@ F.artemis=function(api){ const K=kit(api), box=K.box, M='marble';
 F.baalbek=function(api){ const K=kit(api), box=K.box, L='sandstone', HS='hewnStone', RG='redGranite', C=5;
   K.level(-55,-60,280,125,'stone','stone');
   /* the outer podium on the west, six courses and then the trilithon, three stones of 19 m */
+  /* (the plan dates its own parts: the podium of the Phoenician sanctuary from c. 60 BCE, the house of Jupiter 16 BCE–60 CE,
+     the great court in the second century, the forecourt and propylaea in the third, the house of Bacchus c. 150–250) */
+  const corin=(cx,cz,y0,h,r,m)=>{ K.round(cx,cz,y0,y0+1.2,r*1.4,L); K.round(cx,cz,y0+1.2,y0+h-2.1,r,m||L); K.round(cx,cz,y0+h-2.1,y0+h-0.6,r*1.25,L);
+    box(cx-r*1.5,y0+h-0.6,cz-r*1.5,cx+r*1.5,y0+h,cz+r*1.5,L); };
+  const Y0=12;
+  api.part([-60,-16],()=>{
   box(-48.4,-2,-34,-44,7,34,HS);
   for(const [a,b] of [[-28.65,-9.55],[-9.55,9.55],[9.55,28.65]]) box(-48.4,7,a,-44,11.3,b,L);
   for(const z of [-28.65,-9.55,9.55,28.65]) box(-48.6,6.6,z-0.5,-44,11.7,z+0.5,'stone');               /* the joints between them, a block broad, so the three stones read */
   box(-48.4,6.6,-29.2,-44,7,29.2,'stone'); box(-48.4,11.3,-29.2,-44,11.7,29.2,'stone');
   box(-48.4,7,-34,-44,11.3,-29.15,HS); box(-48.4,7,29.15,-44,11.3,34,HS);
   /* the podium of Jupiter's house, and the great court raised before it */
-  const Y0=12; box(-44,-2,-24,44,Y0,24,L);
+  box(-44,-2,-24,44,Y0,24,L);
   box(44,-2,-56,190,C,56,HS);
   K.flight('x',58,44,-16,16,C,Y0,14,L);
   /* ten by nineteen columns of 23 m, their bases and Corinthian heads */
-  const corin=(cx,cz,y0,h,r,m)=>{ K.round(cx,cz,y0,y0+1.2,r*1.4,L); K.round(cx,cz,y0+1.2,y0+h-2.1,r,m||L); K.round(cx,cz,y0+h-2.1,y0+h-0.6,r*1.25,L);
-    box(cx-r*1.5,y0+h-0.6,cz-r*1.5,cx+r*1.5,y0+h,cz+r*1.5,L); };
+  });
+  api.part([-16,60],()=>{
   for(let i=0;i<10;i++){ const z=-21.8+i*43.6/9; corin(-41.8,z,Y0,22.9,1.1); corin(41.8,z,Y0,22.9,1.1); }
   for(let i=1;i<18;i++){ const x=-41.8+i*83.6/18; corin(x,-21.8,Y0,22.9,1.1); corin(x,21.8,Y0,22.9,1.1); }
   K.carve([-30,Y0,-13,28,Y0+22.9,13],[[-28.4,Y0,-11.4,26.4,Y0+21.4,11.4],[26.3,Y0,-3,28.1,Y0+13,3]],L);
   box(-28.4,Y0,-11.4,-18,Y0+3,11.4,L); K.flight('x',-14,-18,-4,4,Y0,Y0+3,6,L);                        /* the raised adyton */
   const A=Y0+22.9; box(-44,A,-24,44,A+1.7,24,L); box(-44,A+1.7,-24,44,A+3.3,24,L); box(-44.8,A+3.3,-24.8,44.8,A+5,24.8,L);
   K.gable('x',-44.8,44.8,-24.8,24.8,A+5,7,7,L);
+  });
+  api.part([100,200],()=>{
   /* the great court: porticoes of granite columns, exedrae in the walls, the tower altar, two basins */
   for(const s of [-1,1]){
     K.carve([56,C,Math.min(s*52,s*56),186,C+12,Math.max(s*52,s*56)],[80,120,160].map(x=>[x-5,C,s>0?52:-55,x+5,C+9,s>0?55:-52]),L);
@@ -514,6 +531,8 @@ F.baalbek=function(api){ const K=kit(api), box=K.box, L='sandstone', HS='hewnSto
   box(186,C,-56,190,C+12,-4,L); box(186,C,4,190,C+12,56,L); box(186,C+9,-4,190,C+12,4,L);
   box(92,C,-10,112,C+17,10,L); K.flight('x',122,112,-3,3,C,C+17,24,L);
   box(118,C,-4,126,C+3,4,L);
+  });
+  api.part([200,250],()=>{
   /* the hexagonal forecourt, its ring of granite columns */
   const hc=[217.5,0], hr=28, hp=[]; for(let i=0;i<=6;i++){ const a=Math.PI/6+i*Math.PI/3; hp.push([hc[0]+hr*Math.cos(a),hc[1]+hr*Math.sin(a)]); }
   box(190,-2,-30,245,C,30,HS);
@@ -526,6 +545,8 @@ F.baalbek=function(api){ const K=kit(api), box=K.box, L='sandstone', HS='hewnSto
   for(let i=0;i<12;i++) corin(255,-19.8+i*3.6,C,14,0.65);
   box(247.5,C+14,-22,262,C+16,22,L);
   K.flight('x',276,262,-20,20,0,C,14,L);
+  });
+  api.part([150,250],()=>{
   /* the temple of Bacchus, south of the great house, on its own podium */
   const bx=40, bz=100, BY=5;
   box(bx-36,-2,bz-19,bx+33,BY,bz+19,L); K.flight('x',bx+45,bx+33,bz-8,bz+8,0,BY,12,L);
@@ -533,6 +554,7 @@ F.baalbek=function(api){ const K=kit(api), box=K.box, L='sandstone', HS='hewnSto
   for(let i=1;i<14;i++){ const x=bx-31.4+i*62.8/14; corin(x,bz-15.9,BY,19,0.95); corin(x,bz+15.9,BY,19,0.95); }
   K.carve([bx-24,BY,bz-11,bx+22,BY+19,bz+11],[[bx-22.5,BY,bz-9.5,bx+20.5,BY+18,bz+9.5],[bx+20.4,BY,bz-3.25,bx+22.1,BY+13,bz+3.25]],L);
   box(bx-33,BY+19,bz-17.5,bx+33,BY+23,bz+17.5,L); K.gable('x',bx-33.6,bx+33.6,bz-18.1,bz+18.1,BY+23,5,6,L);
+  });
 };
 
 /* ============================== THE ZIGGURAT OF UR ==============================
@@ -632,7 +654,8 @@ F.giza=function(api){ const K=kit(api), box=K.box, LS='hewnStone', SS='sandstone
 F.pharos=function(api){ const K=kit(api), box=K.box, LS='hewnStone', MB='marble';
   K.level(-62,-62,62,62,'stone','stone');
   /* its island, the rock of Pharos, with the mole of the Heptastadion running back toward the city */
-  K.oval(0,0,95,80,-16,0.5,'stone','stone',3); box(-8,-16,80,8,1,420,'stone');
+  api.always(()=>{ K.oval(0,0,95,80,-16,0.5,'stone','stone',3); box(-8,-16,80,8,1,420,'stone'); });
+  if(api.state==='none') return;
   K.carve([-48,-2,-48,48,9,48],[[-43,0,-43,43,9.1,43],[-3,0,47,3,6,48.1]],LS);
   for(const sx of [-1,1]) for(const sz of [-1,1]) box(sx*48-6,-2,sz*48-6,sx*48+6,12,sz*48+6,LS);
   K.merlons('x',-48,48,-47.5,9,LS,2.4); K.merlons('x',-48,48,47.5,9,LS,2.4);
@@ -677,7 +700,8 @@ F.stonehenge=function(api){ const K=kit(api), box=K.box, SA='stone', BL='deepSto
    On its hill: round enclosures of drystone with T-shaped pillars set in their walls facing in, and in
    the midst of each two great pillars of 5.5 m. */
 F.gobekli=function(api){ const K=kit(api), box=K.box, LS='hewnStone', W='cobble';
-  K.oval(0,0,150,150,-3,6,'grassTop','grassTop',4); K.oval(0,0,90,90,6,12,'grassTop','grassTop',4);
+  api.always(()=>{ K.oval(0,0,150,150,-3,6,'grassTop','grassTop',4); K.oval(0,0,90,90,6,12,'grassTop','grassTop',4); box(-60,-1,-60,60,12,60,'grassTop'); });   /* the hill is the earth's own */
+  if(api.state==='none') return;
   const tp=(x,z,h,ax,y0)=>{ if(ax==='x'){ box(x-0.8,y0,z-0.28,x+0.8,y0+h-1.2,z+0.28,LS); box(x-1.5,y0+h-1.2,z-0.3,x+1.5,y0+h,z+0.3,LS); }
       else { box(x-0.28,y0,z-0.8,x+0.28,y0+h-1.2,z+0.8,LS); box(x-0.3,y0+h-1.2,z-1.5,x+0.3,y0+h,z+1.5,LS); } };
   for(const [cx,cz,r,n] of [[0,0,10,11],[-18,-20,13,12],[2,-30,7,7],[-30,-2,7,8]]){
@@ -686,7 +710,6 @@ F.gobekli=function(api){ const K=kit(api), box=K.box, LS='hewnStone', W='cobble'
     for(let i=0;i<n;i++){ const a=i/n*Math.PI*2+0.3, x=cx+Math.cos(a)*(r-0.5), z=cz+Math.sin(a)*(r-0.5);
       tp(x,z,3.6,Math.abs(Math.cos(a))>Math.abs(Math.sin(a))?'z':'x',9); }
     tp(cx-1.8,cz,r>9?5.5:4.2,'z',9); tp(cx+1.8,cz,r>9?5.5:4.2,'z',9); }
-  box(-60,-1,-60,60,12,60,'grassTop');
   for(const [cx,cz,r] of [[0,0,11.5],[-18,-20,14.5],[2,-30,8.5],[-30,-2,8.5]]) K.oval(cx,cz,r,r,9,12.05,'path',null,1);
 };
 
@@ -699,11 +722,11 @@ F.mycenae=function(api){ const K=kit(api), box=K.box, CY='stone', LS='hewnStone'
   K.wallLine(wall,-2,8,6,CY,true);
   K.wallLine([[-14,-8],[-14,-26]],-2,9,5,CY,true);                                                     /* the bastion */
   const g=api.ground(-2,-9);
-  for(const s of [-1,1]) box(-2+s*1.55,g-1,-12,-2+s*4.5,g+8,-6,CY);
+  api.always(()=>{ for(const s of [-1,1]) box(-2+s*1.55,g-1,-12,-2+s*4.5,g+8,-6,CY);
   box(-2-1.55,g-0.4,-12,-2+1.55,g+0.1,-6,LS);
   box(-4.25,g+2.95,-11.2,0.25,g+3.95,-6.8,LS);                                                          /* the lintel */
   for(let i=0;i<4;i++){ const w=1.6*(1-i/4); box(-2-w,g+3.95+i*0.82,-11.2,-2+w,g+4.77+i*0.82,-10.6,LS); }   /* the relief of the lions in its triangle */
-  box(-2-1.6,g+3.95,-10.6,-2+1.6,g+7.2,-6.8,CY);
+  box(-2-1.6,g+3.95,-10.6,-2+1.6,g+7.2,-6.8,CY); });
   { const gc=api.ground(-25,15); K.ovalRing(-25,15,13.75,13.75,1.2,gc-0.5,gc+1.2,LS,[[-1.6,0.15]],0.8); }   /* grave circle A */
   const top=api.ground(20,55);
   K.carve([5,top-1,47,30,top+6,63],[[7,top,49,28,top+6.1,61],[29.9,top,53,30.1,top+3.5,57],[18,top,49.5,18.6,top+5,60.5]],LS);
