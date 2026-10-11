@@ -11899,6 +11899,30 @@ and **glazed brick**.
 - **No town is raised on a wonder.** The town of Yahriḥo had been set on the old tell; in the days of
   Herodes the town stood some two kilometres south by his winter palaces, and it stands there now.
 
+### Found by photographing them, and put right
+
+- **The precincts stood full of bare trunks.** The ground of a wonder was cleared of trees before its
+  own stamping pass ran, and the clearing only took trunks out during a stamp, so the trunks the chunks
+  had already stamped stood on in Karnak's court and great hall, crowns and all. They are taken out of
+  the stamps themselves now (`dropBolesIn`), whenever a lot is cleared.
+- **Yahriḥo was drawn as a wreck on the sea-bed.** The light under the sea fell on every point under the
+  sea's level not charted as land, and the dry floor of the rift is under it. It asks the same question
+  of the depressions the wave sheet asks (`uwDry`), and the camera-following sea sheets are not drawn over
+  an eye below the sea's level in a dry basin.
+- **The Pharos had no ground.** On the true earth the search for a wonder's ground reached forty cells,
+  forty metres; the earth's heights put the whole shore of Alexandria under the water's level. The search
+  now reaches a kilometre, and a wonder with its own plan that finds no land stands at its true place in
+  the sea: the Pharos rises on its island, with its mole.
+- **The Parthenon stood on the plain.** The heights are too coarse to hold the Acropolis; the rock is
+  raised under it (`tm.rock`), with its walls, the ramp, the Propylaea, the Erechtheion and its porch,
+  and the temple of Athena Nike on its bastion.
+- **Carthage's city stood in the sea.** The heights put the open sea north of the round harbour; the plan
+  is laid mirrored so the merchant harbour opens into the sea and the city and the Byrsa stand on land.
+- **Giza's plateau and the plain of Persepolis grew a meadow and a wood.** A wonder may declare its
+  ground desert (`tm.desert`): within its precinct the land is drawn as sand.
+- Petra's rock is weathered domes and gullies, not a box; the trilithon's three stones show their
+  joints; Knossos has its red bands; the stone of Parsa is warmed.
+
 ### The country about the towns (at the true measure)
 
 A town was an island of houses in the wild wood. Now:

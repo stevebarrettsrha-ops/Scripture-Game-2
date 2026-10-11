@@ -33,7 +33,7 @@ EARTH.landmark({n:"The Great Wall", lat:40.43, lon:116.57, kind:'wall', s:3, tm:
 EARTH.landmark({n:"The Walls of Yahriḥo", lat:31.87, lon:35.44, kind:'city', tm:{form:'jericho',clear:[-120,-200,130,200],top:28,R:120,h:7,houses:40}});
 EARTH.landmark({n:"The Lighthouse of Alexandria", lat:31.21, lon:29.89, kind:'lighthouse', tm:{form:'pharos',clear:[-62,-62,62,62],top:106,fire:95.5,w1:30,h1:60,w2:18,h2:30,w3:9,h3:15}});
 EARTH.landmark({n:"Petra of the Rock", lat:30.33, lon:35.44, kind:'temple', tm:{form:'petra',clear:[-60,-50,140,50],top:56,L:25,W:20,colH:12,step:5}});
-EARTH.landmark({n:"Persepolis of Persia", lat:29.93, lon:52.89, kind:'temple', s:1.3, tm:{form:'persepolis',clear:[-170,-235,155,230],top:42,L:112,W:112,colH:20,step:8.6}});
+EARTH.landmark({n:"Persepolis of Persia", lat:29.93, lon:52.89, kind:'temple', s:1.3, tm:{form:'persepolis',desert:true,clear:[-260,-250,160,240],top:42,L:112,W:112,colH:20,step:8.6}});
 EARTH.landmark({n:"The Temple of Karnak at No-Amon", lat:25.72, lon:32.66, kind:'temple', s:1.4, tm:{form:'karnak',desert:true,clear:[-215,-180,265,262],top:38,L:103,W:52,colH:21,step:6.3}});
 EARTH.landmark({n:"Baalbek of the Great Stones", lat:34.01, lon:36.20, kind:'temple', tm:{form:'baalbek',clear:[-55,-60,280,125],top:46,L:88,W:48,colH:20,step:5.6}});
 EARTH.landmark({n:"Mohenjo-daro on the Indus", lat:27.33, lon:68.14, kind:'city', tm:{form:'mohenjo',clear:[-330,-260,260,260],top:24,R:400,h:6,houses:90}});

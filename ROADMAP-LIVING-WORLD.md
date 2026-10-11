@@ -227,6 +227,16 @@ true earth is the default for the whole game (the voyage, the story, Scripture U
 map is a choice in the Options and on the story's road. Still to do: rivers at their true widths, walkable coasts and lakes, flying at the true
 measure, and the far houses of the city in more detail.
 
+**Status (Round 139; AUDIT §4el).** The wonders of the ancients are raised by plans of their own at
+their true measure, not one generic temple: Karnak, Petra, Persepolis, the Parthenon on its Acropolis,
+Artemis at Ephesus, Baalbek, the ziggurats of Ur and Babylon, Giza with the Sphinx, the Pharos on its
+island, Stonehenge, Göbekli Tepe and the gates of Mycenae, Hattusa and Ninewĕh; the walled cities
+(Yahriḥo, Megiddo, Knossos, Mohenjo-daro, Carthage) the same. On the true earth every town has its
+country (roads to its neighbours, fields, olive groves, vineyards with towers, threshing floors and
+folds within field-stone walls) and stands at its true size. Still to do: each wonder in its state in
+the days of Herodes (Persepolis burnt, Etemenanki pulled down), hill-country terraces, and the
+regional dress of the countryside (Phase D).
+
 ## How each phase is proven
 
 Each phase ships with a probe that runs in the actual game, as the rounds before did:
