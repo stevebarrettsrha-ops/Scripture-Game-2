@@ -157,9 +157,19 @@ function trueCityAnchor(A,sc){
   if(!off) return A;
   const x=yp.x+off[0]*S, z=yp.z+off[1]*S, ix=Math.floor(x/k.B), iz=Math.floor(z/k.B), y=k.topY(ix,iz);
   return Object.assign({},A,{x,z,y,markOff:off,yShift:(A.y-y)/S}); }
+/* THE YEAR A SCENE IS PLAYED IN, from its date ('612 BCE', 'c. 28 CE'); else the first dated scene of its
+   act; else its period's. The works of the ancients are raised as they stood in it (engine.js, A WONDER
+   IN ITS OWN DAY): Ninewĕh whole and burning in 612, Etemenanki whole in 539, Persepolis a ruin and the
+   Acropolis crowned in the days of Sha'ul. The voyage has no year, and every work stands whole in it. */
+const PERIOD_YEAR={kings:-701,return:-536,herodes:30};
+function dateYear(d){ const m=/(\d+)\s*(BCE|CE)\b/.exec(d||''); return m?(m[2]==='BCE'?-1:1)*+m[1]:null; }
+function yearOf(sc){ let y=dateYear(sc.date); if(y!==null) return y;
+  if(act) for(const s of act.scenes){ y=dateYear(s.date); if(y!==null) return y; }
+  const p=sc.period||window.__STORY_PERIOD; return PERIOD_YEAR[p]!==undefined?PERIOD_YEAR[p]:30; }
 function buildScene(sc){
   dropScene();
   const k=K();
+  if(k.setYear) k.setYear(yearOf(sc));
   /* WHERE IT HAPPENED: the place's anchor in the world (story/places.js) */
   let A=window.STORYPLACES.at(sc.place,act);
   /* AT THE TRUE MEASURE the city stands at her true size, and a scene of hers written about the
@@ -175,7 +185,8 @@ function buildScene(sc){
   if(window.SEASON) SEASON.setSeason(sc.season||act.season||'Spring');
   root=new THREE.Group(); root.name='story-scene'; root.position.set(A.x,A.y,A.z); root.scale.setScalar(S); k.scene.add(root);
   scene=root;
-  ctx={scene:root,colliders:[],markers:{},actors:{},things:{},glows:{},water:[],flicker:[],flock:[],bounds:null,wind:[0.5,0.2],place:sc.place,period:sc.period||A.period,anchor:A};
+  ctx={scene:root,colliders:[],markers:{},actors:{},things:{},glows:{},water:[],flicker:[],flock:[],bounds:null,wind:[0.5,0.2],place:sc.place,period:sc.period||A.period,anchor:A,
+    year:yearOf(sc),trueEarth:!!(k.trueEarth&&k.trueEarth())};
   ctx.groundY=(x,z,ref)=>groundAt(x,z,ref);
   /* the traveller is stood there, unseen, so the world is built about the scene */
   standWalker(A.x,A.z,A.y);
@@ -1489,17 +1500,19 @@ function enterBeat(){
       if(onIt&&g!==player) g.userData.fixedY=yOf(B.y); else if(B.y===null) delete g.userData.fixedY; }
     return nextBeat(); }
   if(T==='cam'){ controlsOn=!!B.free;
-    if(B.release){ releaseCamera(); controlsOn=true; return nextBeat(); }
-    const S=B.on?shotOf(B):null;
-    const at=S?S.look:Array.isArray(B.look)&&B.look.length===3&&typeof B.look[0]==='number'?B.look:lookAtSpec(B.look);
+    /* (a scene played at a work of the ancients that stands at its true size frames it from farther off: `trueFrom`, `trueLook`) */
+    const Bc=(B.trueFrom&&ctx.trueEarth)?Object.assign({},B,{from:B.trueFrom,look:B.trueLook||B.look}):B;
+    if(Bc.release){ releaseCamera(); controlsOn=true; return nextBeat(); }
+    const S=Bc.on?shotOf(Bc):null;
+    const at=S?S.look:Array.isArray(Bc.look)&&Bc.look.length===3&&typeof Bc.look[0]==='number'?Bc.look:lookAtSpec(Bc.look);
     let from;
     if(S) from=S.from;
-    else if(B.from&&B.from.rel){ const g=ctx.actors[B.from.rel]||ctx.things[B.from.rel], o=B.from.off; from=[g.position.x+o[0],g.position.y+o[1],g.position.z+o[2]]; }
-    else if(Array.isArray(B.from)&&B.from.length===3&&typeof B.from[0]==='number') from=B.from;
+    else if(Bc.from&&Bc.from.rel){ const g=ctx.actors[Bc.from.rel]||ctx.things[Bc.from.rel], o=Bc.from.off; from=[g.position.x+o[0],g.position.y+o[1],g.position.z+o[2]]; }
+    else if(Array.isArray(Bc.from)&&Bc.from.length===3&&typeof Bc.from[0]==='number') from=Bc.from;
     /* a marker (or a marker and a step from it), at `fy` metres, or `fdy` above the ground there */
-    else { const m=pos(B.from); from=[m[0],B.fdy!==undefined?(ctx.groundY(m[0],m[1])||0)+B.fdy:(B.fy||4),m[1]]; }
-    holdCamera(S?from:faceSafe(from,at),at,ST.fast?0.01:(B.dur||2.5));
-    if(B.wait===false) return nextBeat();
+    else { const m=pos(Bc.from); from=[m[0],Bc.fdy!==undefined?(ctx.groundY(m[0],m[1])||0)+Bc.fdy:(Bc.fy||4),m[1]]; }
+    holdCamera(S?from:faceSafe(from,at),at,ST.fast?0.01:(Bc.dur||2.5));
+    if(Bc.wait===false) return nextBeat();
     onFrame=()=>{ if(camT>=1) nextBeat(); }; return; }
   if(T==='show'||T==='hide'){ for(const id of [].concat(B.id)){ const o=ctx.glows[id]||ctx.things[id]||ctx.actors[id]; if(o) o.visible=(T==='show'); }
     if(B.host!==undefined&&ctx.host){ for(const G of ctx.host) G.visible=!!B.host; if(ctx.hostFigs) ctx.hostFigs.visible=!!B.host; }

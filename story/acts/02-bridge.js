@@ -38,8 +38,8 @@ STORY.act({
   { id:'nineveh', title:'Ninewĕh', date:'612 BCE', place:'nineveh', time:'dusk',
     player:{ at:[0,60], hidden:true },
     beats:[
-      {t:'cam', from:[34,16,46], look:[0,6,0], dur:0.1},
-      {t:'cam', from:[-30,20,44], look:[0,6,-6], dur:16, wait:false},
+      {t:'cam', from:[34,16,46], look:[0,6,0], dur:0.1, trueFrom:[70,6,-140], trueLook:[0,14,0]},
+      {t:'cam', from:[-30,20,44], look:[0,6,-6], dur:16, wait:false, trueFrom:[-80,10,-120], trueLook:[0,16,-6]},
       {t:'era', i:0, head:'612 BCE — Ashshur falls', text:'The empire that menaced the days of Yahshayahu is itself destroyed: Ninewĕh burns.'},
       {t:'end'}
     ]},
@@ -55,8 +55,8 @@ STORY.act({
   { id:'babel', title:'Baḇal', date:'539 BCE', place:'babel', time:'day',
     player:{ at:[0,60], hidden:true },
     beats:[
-      {t:'cam', from:[26,8,56], look:[0,10,-10], dur:0.1},
-      {t:'cam', from:[-24,14,52], look:[0,14,-26], dur:16, wait:false},
+      {t:'cam', from:[26,8,56], look:[0,10,-10], dur:0.1, trueFrom:[150,46,175], trueLook:[0,42,0]},
+      {t:'cam', from:[-24,14,52], look:[0,14,-26], dur:16, wait:false, trueFrom:[-135,38,165], trueLook:[0,40,-8]},
       {t:'era', i:2, head:'539 BCE — Koresh of Persia', text:'Koresh sovereign of Persia takes Baḇal and lets the exiles go home to build again.'},
       {t:'read', ref:'EZRA 1:1'},
       {t:'end'}

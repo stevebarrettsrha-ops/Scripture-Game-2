@@ -17119,6 +17119,50 @@ function lmLocal(L,x,z){ const k=lmQuarter(L), U=lmU;
 const LM_TILE=CHW*2;
 function lmTileG(G,x,z){ const T=G.__tiles; if(!T) return G; const k=Math.floor(x/LM_TILE)+','+Math.floor(z/LM_TILE);
   let g=T.get(k); if(!g){ g=newG(); T.set(k,g); } return g; }
+/* ---- A WONDER IN ITS OWN DAY (Round 140) ----
+   In the voyage the works of the ancients stand as their builders finished them, every one. The story is
+   played in a year — Ninewĕh in 612 BCE, Baḇal in 539, the road of Sha'ul in the fifties — and in that year
+   a work may not yet be raised, may be rising, may stand whole, or may lie in ruin: Persepolis was a burnt
+   ruin in the days of Herodes and Etemenanki a heap. `tm.era` (world/landmarks.js) gives each its years,
+   and the year is the story's alone: the voyage has none, and sees every work whole. */
+let STORY_YEAR=null;
+const PERIOD_YEAR={kings:-701,return:-536,herodes:30};
+if(window.__STORY_PERIOD&&PERIOD_YEAR[window.__STORY_PERIOD]!==undefined) STORY_YEAR=PERIOD_YEAR[window.__STORY_PERIOD];
+function eraState(year,era,o){ o=o||{}; const rise=o.rise||era.rise, fall=('fall' in o)?o.fall:era.fall, gone=('gone' in o)?o.gone:era.gone;
+  if(year===null||year===undefined||!rise) return {state:'whole',frac:1};
+  if(year<rise[0]) return {state:'none',frac:0};
+  if(gone!==undefined&&gone!==null&&year>=gone) return {state:'none',frac:0};
+  if(fall!==undefined&&fall!==null&&year>=fall) return {state:'ruin',frac:0};
+  if(year<rise[1]) return {state:'building',frac:Math.max(0.05,(year-rise[0])/Math.max(1,rise[1]-rise[0]))};
+  return {state:'whole',frac:1}; }
+function lmEraOf(L){ const t=L.tm; if(!t||!t.era||STORY_YEAR===null) return null; return Object.assign({year:STORY_YEAR},eraState(STORY_YEAR,t.era)); }
+/* the mason's hand turned to the year: a work still rising is cut at the course it had reached; a ruin
+   keeps its lower courses, more where the stone was good and less where it was mud, its columns toppled
+   and lying where they fell, and its roofs, timber, cloth and gold gone altogether; of a work not yet
+   begun, or buried, nothing is laid at all */
+const ERA_GONE={planks:1,roof:1,thatch:1,leaves:1,goldLeaf:1,veil:1,waterB:1,wool:1,hay:1,haySide:1,hayTop:1,logSide:1,bronze:1};
+const ERA_SOFT={mudbrick:0.35,plaster:0.5,brick:0.7,glazedBrick:0.6,sand:0.5,dirt:0.6,path:0.6};
+function lmEraBox(box0,st,era,top){
+  if(st.state==='whole') return box0;
+  if(st.state==='none') return ()=>{};
+  if(st.state==='building'){ const lim=top*st.frac;
+    return (x0,y0,z0,x1,y1,z1,m,t)=>{ const lo=Math.min(y0,y1); if(lo>=lim) return; box0(x0,lo,z0,x1,Math.min(Math.max(y0,y1),lim),z1,m,t); }; }
+  const keep=(era&&era.keep)||0.35, topple=Math.min(0.9,1-keep);
+  return (x0,y0,z0,x1,y1,z1,m,t)=>{
+    if(ERA_GONE[m]) return;
+    const lo=Math.min(y0,y1), hi=Math.max(y0,y1), cx=(x0+x1)/2, cz=(z0+z1)/2, h=hi-lo, w=Math.max(Math.abs(x1-x0),Math.abs(z1-z0));
+    const n=hash2(Math.floor(cx/9)*0.37+1.3,Math.floor(cz/9)*0.53+2.1);          /* the ruin's own lie, in cells of nine metres */
+    const lim=top*keep*(0.3+1.4*n)*(ERA_SOFT[m]||1);
+    if(lo>=lim) return;                                                           /* (what stood above the ruin's line is gone, a column's stub with it: no stump hangs in the air) */
+    if(w<2.6&&h>5){ const r=hash2(cx*1.7+0.2,cz*2.3+0.7);                         /* a column, or a standing stone */
+      if(r<topple){ box0(x0,lo,z0,x1,Math.min(hi,lo+0.6+r*2.5),z1,m,t);              /* its stub */
+        if(r<topple*0.6){ const d=hash2(cz*0.9+1.1,cx*1.3+0.3), L=h*0.7, sg=d<0.5?1:-1, ww=Math.min(Math.abs(x1-x0),Math.abs(z1-z0));   /* and the shaft where it fell */
+          if(d<0.25||d>=0.75) box0(Math.min(cx+sg*(ww/2+0.6),cx+sg*(ww/2+0.6+L)),lo,cz-ww/2,Math.max(cx+sg*(ww/2+0.6),cx+sg*(ww/2+0.6+L)),lo+ww,cz+ww/2,m,t);
+          else box0(cx-ww/2,lo,Math.min(cz+sg*(ww/2+0.6),cz+sg*(ww/2+0.6+L)),cx+ww/2,lo+ww,Math.max(cz+sg*(ww/2+0.6),cz+sg*(ww/2+0.6+L)),m,t); }
+        return; } }
+    box0(x0,lo,z0,x1,Math.min(hi,lim+(hash2(cx*0.7,cz*1.1)-0.5)*1.2),z1,m,t);
+    if(hi>lim+2&&w>2&&lo<=1&&hash2(cx*2.1+5,cz*1.7+3)<0.3) box0(x0-1,lo,z0-1,x1+1,lo+0.8,z1+1,'cobble','cobble');   /* the heap of what fell */
+  }; }
 function lmForm(G,x,z,y,L){ const t=L.tm, F=window.WONDER_FORMS&&WONDER_FORMS[t.form]; if(!F) return false;
   const W=lmLocal(L,x,z), U=lmU;
   const api={ tm:t,
@@ -17135,6 +17179,16 @@ function lmForm(G,x,z,y,L){ const t=L.tm, F=window.WONDER_FORMS&&WONDER_FORMS[t.
         stampBlock(ix,ty-1,iz,nt); } },
     /* the land's own height here, in metres over the site */
     ground(lx,lz){ const [ax,az]=W(lx,lz); return (topY(Math.floor(ax/B),Math.floor(az/B))-y)/U_PER_M_WORLD; } };
+  /* the year (A WONDER IN ITS OWN DAY): the plan's boxes pass through the year's hand; a plan that dates
+     its own parts lays each through `part`, and what is the earth's own (a rock, an island) through `always` */
+  const era=lmEraOf(L), top=t.top||20, box0=api.box;
+  if(era&&era.state==='none'&&!(t.era.natural||t.era.parts)) return true;        /* nothing stood here in that year */
+  api.box0=box0; api.state=era?era.state:'whole'; api.year=era?era.year:null;
+  api.box=era&&!t.era.parts?lmEraBox(box0,era,t.era,top):box0;
+  api.part=(rise,fn,o)=>{ let b=box0;
+    if(era){ const st=eraState(era.year,t.era,Object.assign({rise},o||{})); if(st.state==='none') return; b=lmEraBox(box0,st,t.era,(o&&o.top)||top); }
+    const was=api.box; api.box=b; try{ fn(); } finally{ api.box=was; } };
+  api.always=fn=>{ const was=api.box; api.box=box0; try{ fn(); } finally{ api.box=was; } };
   F(api); return true; }
 function lmTrue(G,x,z,y,L){ const t=L.tm, U=lmU;
   if(t.form&&lmForm(G,x,z,y,L)) return;
@@ -17589,6 +17643,7 @@ function seacavePass(px,pz){
   SC_MS+=performance.now()-t0; SC_SCANS++;
 }
 function lmClearGround(L,x,z,y){ const t=L.tm, U=lmU, rects=[];
+  { const e=lmEraOf(L); if(e&&e.state==='none'&&!(t.era.natural||t.era.parts)) return; }   /* (not yet raised, or buried: the wood stands) */
   const sq=(cx,cz,h)=>rects.push([cx-h,cz-h,cx+h,cz+h]);
   if(t.clear){ const W=lmLocal(L,x,z), [ax,az]=W(t.clear[0],t.clear[1]), [bx,bz]=W(t.clear[2],t.clear[3]);
     rects.push([Math.min(ax,bx),Math.min(az,bz),Math.max(ax,bx),Math.max(az,bz)]); }
@@ -17736,15 +17791,23 @@ function updateLandmarks(px,pz){
        the traveller inside it before it stood) */
     const trig=(TRUE_EARTH&&L.tm)?FOG_FAR*0.8:((L.kind==='range')?2600:1600)*(1+open*0.8);
     if(d<trig&&!has) spawnLandmark(i);
-    else if(d>trig+500&&has){ const A=activeLandmarks.get(i);
-      if(A.stamp) stampDrop(A.stamp);      /* the blocks go with the triangles */
-      if(A.placeStamps) stampDrop(A.placeStamps);   /* and an authored place with its ground */
-      if(A.g){ scene.remove(A.g); A.g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); }
-      if(A.label){ scene.remove(A.label);
-        if(A.label.material.map) A.label.material.map.dispose(); A.label.material.dispose(); }
-      activeLandmarks.delete(i); }
+    else if(d>trig+500&&has) dropLandmark(i);
   }
 }
+function dropLandmark(i){ const A=activeLandmarks.get(i); if(!A) return;
+  if(A.stamp) stampDrop(A.stamp);      /* the blocks go with the triangles */
+  if(A.placeStamps) stampDrop(A.placeStamps);   /* and an authored place with its ground */
+  if(A.g){ scene.remove(A.g); A.g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); }
+  if(A.label){ scene.remove(A.label);
+    if(A.label.material.map) A.label.material.map.dispose(); A.label.material.dispose(); }
+  activeLandmarks.delete(i); }
+/* THE STORY TURNS THE YEAR: every work of the ancients standing whose state in the new year is not its
+   state in the old is taken down and raised again as it stood (a plan that dates its own parts, always) */
+function setStoryYear(y){ if(y===STORY_YEAR) return; const was=STORY_YEAR; STORY_YEAR=y;
+  for(const [i,A] of [...activeLandmarks]){ const L=LANDMARKS[i]; if(!L.tm||!L.tm.era||A.none) continue;
+    STORY_YEAR=was; const a=lmEraOf(L); STORY_YEAR=y; const b=lmEraOf(L);
+    if(!L.tm.era.parts&&a&&b&&a.state===b.state&&a.frac===b.frac) continue;
+    dropLandmark(i); spawnLandmark(i); } }
 
 /* ================= NAME BANNERS ================= */
 const labelCache=new Map(); const shownLabels=new Map(); let namesOn=true;
@@ -21701,7 +21764,10 @@ window.__KIT={
   yahruPos:()=>yahruPos, yahruMarks:()=>YAHRU_MARKS, sites:()=>SITES, trueEarth:()=>TRUE_EARTH,
   setBuilder, setScale:SET_S, yahruPeriod:()=>yahruPeriod,
   /* raise the city as she stood in a period ('kings' | 'herodes'), if she is not already */
-  yahruAs:p=>{ if(yahruPos&&window.YAHRU_PLAN&&yahruPeriod!==p) buildYahruPlan(p); return YAHRU_MARKS; }
+  yahruAs:p=>{ if(yahruPos&&window.YAHRU_PLAN&&yahruPeriod!==p) buildYahruPlan(p); return YAHRU_MARKS; },
+  /* the year the story is played in (A WONDER IN ITS OWN DAY); the voyage never sets one */
+  setYear:setStoryYear, storyYear:()=>STORY_YEAR,
+  landmarks:()=>LANDMARKS.map((L,i)=>({i,n:L.n,kind:L.kind,lat:L.lat,lon:L.lon})), landmarkSiteOf:i=>landmarkSite(i)
 };
 window.__WORLD={
   scene,camera,renderer,THREE,

@@ -64,8 +64,8 @@ const PLACES={
   rome:       {lat:41.89,  lon:12.485, flat:50, why:'Rome, by the Tiber under the Palatine (Acts 28:16)'},
   /* the seven hundred years: the empires, each at its own seat */
   tiber:      {lat:41.89, lon:12.49, flat:20, why:'by the Tiber, where Rome begins'},
-  nineveh:    {lat:36.36, lon:43.15, flat:36, why:'Ninewĕh on the Ḥiddeqel, seat of Ashshur'},
-  babel:      {lat:32.54, lon:44.42, flat:40, why:'Baḇal on the Euphrates'},
+  nineveh:    {lat:36.36, lon:43.15, flat:36, wonder:'The Gates of Ninewĕh', why:'Ninewĕh on the Ḥiddeqel, seat of Ashshur'},
+  babel:      {lat:32.54, lon:44.42, flat:40, wonder:'Baḇal (Baḇylon) — Etemenanki', why:'Baḇal on the Euphrates'},
   pella:      {lat:40.76, lon:22.52, flat:26, why:'Pella of Macedon, the city of Alexander'},
   mountain:   {lat:33.42,  lon:35.86,  flat:6, high:true, why:'"a very high mountain" — the heights of Ḥermon'}
 };
@@ -127,6 +127,11 @@ window.STORYPLACES={
         const y=k.topY(ix,iz);
         return {x,z,y,city:true,period,markOff:def.trueAt,yShift:(k.topY(yp.ix,yp.iz)-y)/S}; }
       return {x:yp.x,z:yp.z,y:k.topY(yp.ix,yp.iz),city:true,period}; }
+    /* AT A WORK OF THE ANCIENTS (`wonder`: its name in world/landmarks.js) the scene is played at the work's own
+       site on the true earth, not at the flattest ground near it: the gate of Ninewĕh, the tower of Baḇal */
+    if(def.wonder&&!cache[place]){ const k=K(); if(k.trueEarth&&k.trueEarth()&&k.landmarks){
+      const L=k.landmarks().find(q=>q.n===def.wonder), st=L&&k.landmarkSiteOf(L.i);
+      if(st) cache[place]={x:st.x,z:st.z,y:k.topY(st.ix,st.iz)}; } }
     if(!cache[place]) cache[place]=find(def);
     return Object.assign({period},cache[place]);
   }

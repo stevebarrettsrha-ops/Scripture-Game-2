@@ -11955,6 +11955,75 @@ small map (every new path here is the true earth's alone).
 - Hill-country terraces (the land's own steps faced with stone) and the regional dress of the
   countryside (the paddies, the steppe herds) are for Phase D.
 
+## 4em. Round 140 — the wonders in their own day (the story), and whole in the voyage
+
+The traveller, asked whether the works of the ancients should be shown as they stood in the days of
+Herodes: *"yes show them as they stood in that era only in story mode, they stay in voyage."*
+
+### What was built
+
+- **Each work has its years** (`tm.era` in world/landmarks.js): `rise:[begun, finished]`, `fall` (ruined),
+  `gone` (no trace), `keep` (how much of its height a ruin keeps), `natural` (its ground is the earth's own
+  and stands in every year: a rock, an island, a tell) and `parts` (the plan dates its own parts). The years
+  are given there, in brief, with their grounds.
+- **The story has a year; the voyage has none.** A scene's year is read from its date (`612 BCE`,
+  `c. 28 CE`), else from the first dated scene of its act, else from its period (the days of the kings
+  701 BCE, the return 536, Herodes 30 CE). The story engine tells the voyage engine the year as each scene
+  is built (`__KIT.setYear`); every work of the ancients standing whose state changes with it is taken down
+  and raised again as it stood. The voyage never sets a year, and `STORY_YEAR` stays null there: every
+  work stands whole, as Round 139 left it.
+- **The year's hand on the plan** (engine.js, A WONDER IN ITS OWN DAY). The plan's boxes pass through
+  one of four hands: *whole* lays them as written; *building* cuts them at the course reached by that
+  year; *ruin* keeps the lower courses (more where the stone was good, a third as much where it was mud
+  brick), topples most columns and standing stones to stubs with the shaft lying where it fell, lays a
+  heap of what fell, and lays no roof, timber, cloth, gold or water at all; *none* lays nothing. A plan
+  may date its own parts (`api.part([begun,finished],fn)`): the Parthenon's rock and ramp stand always,
+  the Propylaea from 437, Athena Nike from 427, the Erechtheion from 421; Baalbek's podium from c. 60 BCE,
+  Jupiter's house rising 16 BCE–60 CE (three fifths up in the days of Herodes), its courts in the second
+  century, the forecourt and propylaea in the third, the house of Bacchus c. 150–250; Karnak's first
+  pylon from Nectanebo and the kiosk from Taharqa. What is the earth's own is laid always (`api.always`):
+  the rock of Sela with the Siq, the island of Pharos, the hill of Gobekli Tepe, the tells of Yahriḥo and
+  Megiddo, the Byrsa, the mound of Mohenjo-daro, and the Lion Gate of Mycenae that Pausanias saw.
+- **The story's scenes at the wonders.** On the true earth the bridge's Ninewĕh (612 BCE) and Baḇal (539)
+  are played at the true gate of Sennacherib's wall and the true Etemenanki, whole in those years; the
+  scenes' own stand-ins (a small gate, a tower of seven courses) are not laid there, the fire of Ninewĕh is
+  set about the true wall, and the cameras take a farther frame for the true size (`trueFrom`,
+  `trueLook` on a cam beat). Sha'ul's Athens looks at the true Acropolis three hundred metres east with the
+  Parthenon on it, and Ephesos leaves the Artemision at its own place two kilometres off.
+
+### Seen (screenshots-round140/wonders-in-their-day.jpg)
+
+- **Persepolis**, no year (the voyage): the terrace, stair, gate, Apadana and hall whole. In 30 CE: the
+  terrace, its stairs and the stone doorframes stand; the mud-brick walls are gone; the columns are stubs
+  with their shafts lying in the court — Alexander's fire, as the traveller walks it.
+- **Etemenanki** in 539 (the bridge's year): whole, the blue shrine on its seventh stage. In 30 CE: a
+  heap, the lowest stage cut to a few courses, the rest gone.
+- **Ur** in 30 CE: the lowest stage and the foot of its stairs. **Carthage** in 30 CE: the houses razed to
+  their footings, the harbour basins silted but holding water at the sea's level. **Ninewĕh** in 612:
+  Sennacherib's wall and gate whole (the city burns behind them in the scene); in 30 CE a line of
+  stumps. **Stonehenge** in 30 CE: stones fallen, lintels down. **Mycenae** in 30 CE: the walls low,
+  the Lion Gate standing in them.
+- **Baalbek** in 30 CE: the podium, and Jupiter's columns risen three fifths, no entablature, no courts.
+- **The Acropolis** in 701 BCE: the rock, its wall and the ramp, nothing on it; in 445: the Parthenon's
+  stylobate laid, two courses up; in 30 CE: the Parthenon, Propylaea, Erechtheion and Athena Nike.
+- **Sela** in 701 BCE: the rock whole at the end of the Siq, no Treasury cut in it. **Pharos** in 701:
+  the island and nothing on it.
+- **The story's own scenes:** Baḇal in 539 is played before the true Etemenanki, whole, seven stages and
+  the blue shrine; Ninewĕh in 612 before Sennacherib's wall from across the moat, the fire standing up
+  over it; Sha'ul on the Areopagus has the true Acropolis on the horizon with the Parthenon on it.
+- **Found and fixed on the way:** a column's stub was laid at the column's own foot, and a column on a
+  stage of the tower (a buttress of the fifth stage, fifty metres up) left its stub hanging in the air
+  over the heap; what stood above the ruin's line is dropped whole now, stub and all. And a scene
+  played at a wonder was anchored by the story's own search for flat ground, up to a kilometre off,
+  so the tower of Baḇal stood at the edge of its own scene: a place that names its wonder (`wonder` in
+  story/places.js) is played at the work's own site.
+
+### Acceptance
+
+Test 68 (the wonders stand where the scroll says, on the voyage's small map) passes as before; the
+year's hand is never raised on the voyage. The story's three scenes at the wonders were played on the
+true earth and photographed (above).
+
 ## 5. Further recommendations (future work)
 
 1. **Cargo physically visible in the hold** — stack crates as the manifest fills.

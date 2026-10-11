@@ -15,33 +15,49 @@
        pyramid · ziggurat · temple · stonecircle · wall · lighthouse ·
        gate · city · statue          (s : optional size factor)          */
 
+/* ---- THE YEARS OF EACH WORK (Round 140) ----
+   In the voyage every work stands as its builders finished it. The story is played in a year, and a work
+   with `era` in its `tm` is raised there as it stood in that year (engine.js, A WONDER IN ITS OWN DAY):
+     rise:[begun, finished]  (years, BCE negative)   fall: the year it was ruined   gone: no trace after
+     keep: how much of its height a ruin keeps (of the full height `top`; mud brick keeps a third of that)
+     natural: its ground is the earth's own (a rock, an island, a tell) and stands in every year
+     parts: the plan dates its own parts (api.part), the whole is not judged at once
+   The years, in brief: Ur's tower raised c. 2100 and left with its city c. 300; Etemenanki standing by
+   the days of Ḥizqiyahu, razed by Alexander in 323 to be rebuilt and never rebuilt; Sennacherib's wall
+   of Ninewĕh begun c. 703 and the city burnt in 612; the Artemision of Croesus from c. 550, burnt in
+   356 and raised again to the same plan; the Parthenon 447–432 (the Propylaea 437, Athena Nike 427,
+   the Erechtheion 421–406); Persepolis begun by Darius c. 515 and burnt in 330; the Pharos 297–283;
+   the Treasury of Sela under Aretas IV; Baalbek's house of Jupiter begun c. 16 BCE and finished c. 60 CE,
+   its courts and the house of Bacchus in the second and third centuries; Mycenae, Hattusa and Knossos
+   ruins since the end of the Bronze Age; Mohenjo-daro and Gobekli Tepe mounds long before any of them;
+   Carthage of the Punic days razed in 146; the tell of Yahriḥo, Ḥi'ĕl's city, burnt by Baḇal in 587. */
 /* ---- the works of the ancients, as they stood BCE ---- */
 EARTH.landmark({n:"The Pyramids of Giza", lat:29.98, lon:31.13, kind:'pyramid', s:1.3,
   /* (tm: the true measure in metres, raised when the earth is drawn at its own — ROADMAP Phase T7:
      Khufu 230.3 m square and 146.6 high, Khafre 215.3 and 143.5, Menkaure 103.4 and 65.5, each at its
      own place about the mark) */
-  tm:{form:'giza',desert:true,clear:[-300,-100,780,1000],top:150,parts:[{dx:404,dz:89,base:230.3,h:146.6},{dx:77,dz:433,base:215.3,h:143.5},{dx:-164,dz:834,base:103.4,h:65.5}]}});
-EARTH.landmark({n:"The Ziggurat of Ur", lat:30.96, lon:46.10, kind:'ziggurat', tm:{form:'ur',clear:[-50,-65,50,40],top:32,tiers:[[64,46,11],[38,26,6],[20,14,5]]}});
+  tm:{form:'giza',era:{rise:[-2560,-2500]},desert:true,clear:[-300,-100,780,1000],top:150,parts:[{dx:404,dz:89,base:230.3,h:146.6},{dx:77,dz:433,base:215.3,h:143.5},{dx:-164,dz:834,base:103.4,h:65.5}]}});
+EARTH.landmark({n:"The Ziggurat of Ur", lat:30.96, lon:46.10, kind:'ziggurat', tm:{form:'ur',era:{rise:[-2100,-2050],fall:-300,keep:0.5},clear:[-50,-65,50,40],top:32,tiers:[[64,46,11],[38,26,6],[20,14,5]]}});
 EARTH.landmark({n:"Baḇal (Baḇylon) — Etemenanki", lat:32.54, lon:44.42, kind:'ziggurat',
-  tm:{form:'babylon',clear:[-60,-60,60,105],top:95,tiers:[[91,91,33],[78,78,18],[60,60,6],[51,51,6],[42,42,6],[33,33,6],[24,24,15]]}});   /* (the Esagila tablet) */
-EARTH.landmark({n:"The Gates of Ninewĕh", lat:36.36, lon:43.15, kind:'gate', tm:{form:'nineveh',clear:[-255,-90,255,25],top:28,w:40,h:20,d:22}});
-EARTH.landmark({n:"The Temple of Artemis at Ephesus", lat:37.95, lon:27.36, kind:'temple', s:1.2, tm:{form:'artemis',clear:[-125,-50,80,50],top:34,L:137,W:69,colH:18,step:6.2}});
-EARTH.landmark({n:"The Parthenon of Athens", lat:37.97, lon:23.73, kind:'temple', tm:{form:'parthenon',rock:30,clear:[-240,-110,110,60],top:52,L:69.5,W:30.9,colH:10.4,step:4.3}});
-EARTH.landmark({n:"The Standing Stones of Stonehenge", lat:51.18, lon:-1.83, kind:'stonecircle', tm:{form:'stonehenge',clear:[-70,-180,160,70],top:10,R:16.5,n:30,h:4.1,w:2.1,t:1.1,lintel:true}});
-EARTH.landmark({n:"Gobekli Tepe", lat:37.22, lon:38.92, kind:'stonecircle', tm:{form:'gobekli',clear:[-155,-155,155,155],top:20,R:10,n:12,h:5.5,w:1.4,t:0.6}});
+  tm:{form:'babylon',era:{rise:[-1800,-1750],fall:-323,keep:0.12},clear:[-60,-60,60,105],top:95,tiers:[[91,91,33],[78,78,18],[60,60,6],[51,51,6],[42,42,6],[33,33,6],[24,24,15]]}});   /* (the Esagila tablet) */
+EARTH.landmark({n:"The Gates of Ninewĕh", lat:36.36, lon:43.15, kind:'gate', tm:{form:'nineveh',era:{rise:[-703,-693],fall:-611,keep:0.3},clear:[-255,-160,255,25],top:28,w:40,h:20,d:22}});
+EARTH.landmark({n:"The Temple of Artemis at Ephesus", lat:37.95, lon:27.36, kind:'temple', s:1.2, tm:{form:'artemis',era:{rise:[-560,-540],fall:268,keep:0.3},clear:[-125,-50,80,50],top:34,L:137,W:69,colH:18,step:6.2}});
+EARTH.landmark({n:"The Parthenon of Athens", lat:37.97, lon:23.73, kind:'temple', tm:{form:'parthenon',era:{rise:[-447,-432],natural:true,parts:true},rock:30,clear:[-240,-110,110,60],top:52,L:69.5,W:30.9,colH:10.4,step:4.3}});
+EARTH.landmark({n:"The Standing Stones of Stonehenge", lat:51.18, lon:-1.83, kind:'stonecircle', tm:{form:'stonehenge',era:{rise:[-3000,-2000],fall:-1500,keep:0.7},clear:[-70,-180,160,70],top:10,R:16.5,n:30,h:4.1,w:2.1,t:1.1,lintel:true}});
+EARTH.landmark({n:"Gobekli Tepe", lat:37.22, lon:38.92, kind:'stonecircle', tm:{form:'gobekli',era:{rise:[-9500,-9000],gone:-8000,natural:true},clear:[-155,-155,155,155],top:20,R:10,n:12,h:5.5,w:1.4,t:0.6}});
 EARTH.landmark({n:"The Great Wall", lat:40.43, lon:116.57, kind:'wall', s:3, tm:{L:2400,h:7.8,w:6.5,every:120}});
-EARTH.landmark({n:"The Walls of Yahriḥo", lat:31.87, lon:35.44, kind:'city', tm:{form:'jericho',clear:[-120,-200,130,200],top:28,R:120,h:7,houses:40}});
-EARTH.landmark({n:"The Lighthouse of Alexandria", lat:31.21, lon:29.89, kind:'lighthouse', tm:{form:'pharos',clear:[-62,-62,62,62],top:106,fire:95.5,w1:30,h1:60,w2:18,h2:30,w3:9,h3:15}});
-EARTH.landmark({n:"Petra of the Rock", lat:30.33, lon:35.44, kind:'temple', tm:{form:'petra',clear:[-60,-50,140,50],top:56,L:25,W:20,colH:12,step:5}});
-EARTH.landmark({n:"Persepolis of Persia", lat:29.93, lon:52.89, kind:'temple', s:1.3, tm:{form:'persepolis',desert:true,clear:[-260,-250,160,240],top:42,L:112,W:112,colH:20,step:8.6}});
-EARTH.landmark({n:"The Temple of Karnak at No-Amon", lat:25.72, lon:32.66, kind:'temple', s:1.4, tm:{form:'karnak',desert:true,clear:[-215,-180,265,262],top:38,L:103,W:52,colH:21,step:6.3}});
-EARTH.landmark({n:"Baalbek of the Great Stones", lat:34.01, lon:36.20, kind:'temple', tm:{form:'baalbek',clear:[-55,-60,280,125],top:46,L:88,W:48,colH:20,step:5.6}});
-EARTH.landmark({n:"Mohenjo-daro on the Indus", lat:27.33, lon:68.14, kind:'city', tm:{form:'mohenjo',clear:[-330,-260,260,260],top:24,R:400,h:6,houses:90}});
-EARTH.landmark({n:"Knossos of Kaphtor", lat:35.30, lon:25.16, kind:'city', tm:{form:'knossos',clear:[-90,-90,70,70],top:20,R:90,h:5,houses:40}});
-EARTH.landmark({n:"The Lion Gate of Mycenae", lat:37.73, lon:22.76, kind:'gate', tm:{form:'mycenae',clear:[-140,-60,120,130],top:14,w:10,h:7,d:5}});
-EARTH.landmark({n:"The Gates of Hattusa", lat:40.02, lon:34.62, kind:'gate', tm:{form:'hattusa',clear:[-155,-70,155,25],top:24,w:14,h:10,d:9}});
-EARTH.landmark({n:"Megiddo of the Plain", lat:32.58, lon:35.18, kind:'city', tm:{form:'megiddo',clear:[-140,-140,140,120],top:34,R:110,h:8,houses:40}});
-EARTH.landmark({n:"Carthage of the Sea", lat:36.85, lon:10.32, kind:'city', tm:{form:'carthage',clear:[-420,-420,360,460],top:64,R:450,h:12,houses:120}});
+EARTH.landmark({n:"The Walls of Yahriḥo", lat:31.87, lon:35.44, kind:'city', tm:{form:'jericho',era:{rise:[-870,-850],fall:-587,keep:0.3},clear:[-120,-200,130,200],top:28,R:120,h:7,houses:40}});
+EARTH.landmark({n:"The Lighthouse of Alexandria", lat:31.21, lon:29.89, kind:'lighthouse', tm:{form:'pharos',era:{rise:[-297,-283],fall:1303,natural:true},clear:[-62,-62,62,62],top:106,fire:95.5,w1:30,h1:60,w2:18,h2:30,w3:9,h3:15}});
+EARTH.landmark({n:"Petra of the Rock", lat:30.33, lon:35.44, kind:'temple', tm:{form:'petra',era:{rise:[-10,-5],natural:true},clear:[-60,-50,140,50],top:56,L:25,W:20,colH:12,step:5}});
+EARTH.landmark({n:"Persepolis of Persia", lat:29.93, lon:52.89, kind:'temple', s:1.3, tm:{form:'persepolis',era:{rise:[-515,-460],fall:-330,keep:0.35},desert:true,clear:[-260,-250,160,240],top:42,L:112,W:112,colH:20,step:8.6}});
+EARTH.landmark({n:"The Temple of Karnak at No-Amon", lat:25.72, lon:32.66, kind:'temple', s:1.4, tm:{form:'karnak',era:{rise:[-1970,-1300]},desert:true,clear:[-215,-180,265,262],top:38,L:103,W:52,colH:21,step:6.3}});
+EARTH.landmark({n:"Baalbek of the Great Stones", lat:34.01, lon:36.20, kind:'temple', tm:{form:'baalbek',era:{rise:[-60,250],parts:true},clear:[-55,-60,280,125],top:46,L:88,W:48,colH:20,step:5.6}});
+EARTH.landmark({n:"Mohenjo-daro on the Indus", lat:27.33, lon:68.14, kind:'city', tm:{form:'mohenjo',era:{rise:[-2500,-2450],fall:-1900,gone:-1500,natural:true},clear:[-330,-260,260,260],top:24,R:400,h:6,houses:90}});
+EARTH.landmark({n:"Knossos of Kaphtor", lat:35.30, lon:25.16, kind:'city', tm:{form:'knossos',era:{rise:[-1900,-1700],fall:-1375,keep:0.3},clear:[-90,-90,70,70],top:20,R:90,h:5,houses:40}});
+EARTH.landmark({n:"The Lion Gate of Mycenae", lat:37.73, lon:22.76, kind:'gate', tm:{form:'mycenae',era:{rise:[-1350,-1250],fall:-1100,keep:0.4},clear:[-140,-60,120,130],top:14,w:10,h:7,d:5}});
+EARTH.landmark({n:"The Gates of Hattusa", lat:40.02, lon:34.62, kind:'gate', tm:{form:'hattusa',era:{rise:[-1650,-1600],fall:-1180,keep:0.4},clear:[-155,-70,155,25],top:24,w:14,h:10,d:9}});
+EARTH.landmark({n:"Megiddo of the Plain", lat:32.58, lon:35.18, kind:'city', tm:{form:'megiddo',era:{rise:[-950,-900],fall:-600,keep:0.3},clear:[-140,-140,140,120],top:34,R:110,h:8,houses:40}});
+EARTH.landmark({n:"Carthage of the Sea", lat:36.85, lon:10.32, kind:'city', tm:{form:'carthage',era:{rise:[-814,-500],fall:-146,keep:0.15},clear:[-420,-420,360,460],top:64,R:450,h:12,houses:120}});
 EARTH.landmark({n:"Caral of the Sacred Fire", lat:-10.89, lon:-77.52, kind:'pyramid', s:0.8, tm:{parts:[{dx:0,dz:0,base:155,h:28}]}});
 EARTH.landmark({n:"The Great Heads of the Olmec", lat:18.10, lon:-94.04, kind:'statue', tm:{h:3}});
 

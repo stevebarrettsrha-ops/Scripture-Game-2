@@ -419,13 +419,19 @@ S.tiber=function(ctx,st){
 S.nineveh=function(ctx,st){
   ctx.wind=[1.2,0.4];
   W.ground(ctx,{color:C.grassDry,flat:36,top:'sand'});
-  W.wall(st,-34,10,34,10,{h:9,t:3,color:'mudbrick',gap:[0,10,5]});
-  W.gate(st,0,10,'x',{w:5,h:12,color:'mudbrick'});
-  for(const sx of [-1,1]){ const x=sx*4.6; st.box(x-0.7,0,12,x+0.7,3.6,16,'alabaster'); st.box(x-0.9,3.6,12.2,x+0.9,4.2,15.6,'alabaster'); }   /* the lamassu */
-  st.box(-20,0,-24,20,6,-6,'mudbrick'); st.box(-12,6,-20,12,12,-10,'mudbrick'); st.box(-6,12,-17,6,15,-13,'mudbrick');   /* the palace mound */
+  /* ON THE TRUE EARTH the gate of Sennacherib's wall stands here at its own size, whole in this year (world/wonders-true.js,
+     and world/landmarks.js for its years), and the scene lays only its fire about it — the city burning behind the wall */
+  const TE=ctx.trueEarth;
+  if(!TE){
+    W.wall(st,-34,10,34,10,{h:9,t:3,color:'mudbrick',gap:[0,10,5]});
+    W.gate(st,0,10,'x',{w:5,h:12,color:'mudbrick'});
+    for(const sx of [-1,1]){ const x=sx*4.6; st.box(x-0.7,0,12,x+0.7,3.6,16,'alabaster'); st.box(x-0.9,3.6,12.2,x+0.9,4.2,15.6,'alabaster'); }   /* the lamassu */
+    st.box(-20,0,-24,20,6,-6,'mudbrick'); st.box(-12,6,-20,12,12,-10,'mudbrick'); st.box(-6,12,-17,6,15,-13,'mudbrick'); }  /* the palace mound */
   ctx.flames=[];
-  for(let k=0;k<14;k++){ const x=-26+W.hash(k,1)*52, z=-24+W.hash(k,2)*30; const f=W.glow(ctx,x,2+W.hash(k,3)*10,z,5+W.hash(k,4)*5,0xff7a2a,0); f.flicker=true; ctx.flicker.push(f); }
-  mk(ctx,'gate',0,10);
+  /* (on the true earth the scene is watched from outside the wall, across the moat: the fire stands up over it, the city within burning) */
+  for(let k=0;k<(TE?22:14);k++){ const x=TE?-90+W.hash(k,1)*180:-26+W.hash(k,1)*52, z=TE?14+W.hash(k,2)*60:-24+W.hash(k,2)*30;
+    const f=W.glow(ctx,x,TE?14+W.hash(k,3)*24:2+W.hash(k,3)*10,z,5+W.hash(k,4)*(TE?10:5),0xff7a2a,0); f.flicker=true; ctx.flicker.push(f); }
+  mk(ctx,'gate',0,TE?0:10);
   ctx.bounds=null;
 };
 /* BAḆAL, 539 BCE: the stepped temple tower of seven stages and the gate faced with blue glazed
@@ -433,6 +439,8 @@ S.nineveh=function(ctx,st){
 S.babel=function(ctx,st){
   ctx.wind=[1.0,0.2];
   W.ground(ctx,{color:C.grassDry,flat:40,top:'sand'});
+  /* (on the true earth Etemenanki itself stands here, 91 m square on its seven stages, whole in this year) */
+  if(ctx.trueEarth){ mk(ctx,'gate',0,22); ctx.bounds=null; return; }
   let w=30; for(let k=0;k<7;k++){ const h=k*4.2; st.box(-w/2,h,-30-w/2,w/2,h+4.2,-30+w/2,k%2?'mudbrick':'brick'); w-=4; }
   st.box(-3,0,-30+15,3,6,-30+19,'mudbrick');                                      /* the great stair */
   for(const sx of [-1,1]){ const x=sx*6; st.box(x-3,0,14,x+3,13,20,'sapphire');      /* the gate towers, blue */
@@ -1120,8 +1128,9 @@ S.antioch=function(ctx,st){
 S.athens=function(ctx,st){
   ctx.wind=[0.8,0.3];
   W.ground(ctx,{color:C.grassDry,flat:40});
-  ctx.api.mound(-62,0,20,34,{top:'stone'});                                                    /* the Acropolis */
-  temple(st,-62,0,16,30,7,'alabaster',ctx.groundY(-62,0)||20);
+  /* (on the true earth the Acropolis is the true one, three hundred metres east with the Parthenon on it) */
+  if(!ctx.trueEarth){ ctx.api.mound(-62,0,20,34,{top:'stone'});                                 /* the Acropolis */
+    temple(st,-62,0,16,30,7,'alabaster',ctx.groundY(-62,0)||20); }
   ctx.api.mound(-14,-6,5,12,{top:'stone'});                                                    /* the hill of Ares */
   for(let k=0;k<6;k++) st.box(-6+k*0.6,0,-8+k*0.4,-5.4+k*0.6,0.4+k*0.6,-6+k*0.4,C.rock);     /* its steps cut in the rock */
   for(let x=10;x<40;x+=3.2) st.box(x-0.4,0,13.6,x+0.4,4.2,14.4,'alabaster'); st.box(9,4.2,13,41,4.8,18,C.roofEarth); st.box(9,0,17.6,41,4.2,18,'alabaster');   /* the porch of the agora */
@@ -1130,7 +1139,9 @@ S.athens=function(ctx,st){
   for(let k=0;k<14;k++){ const a=W.hash(k,4)*6.28, r=34+W.hash(k,5)*20; W.olive(st,Math.cos(a)*r+20,Math.sin(a)*r,0.9); }
   mk(ctx,'agora',24,8); mk(ctx,'altar',18.7,4.6); mk(ctx,'altarFront',21,4.6); mk(ctx,'porch',24,12); mk(ctx,'areopagus',-14,-6); mk(ctx,'arFoot',-2,-6);
   mk(ctx,'idols',30,-4); mk(ctx,'crowd',-10,-2);
-  const ay=ctx.groundY(-62,0)||20; ctx.markers.acropolis=[-62,0,ay+6];
+  if(ctx.trueEarth){ const k=window.__KIT, p=k.llToWorld(37.9715,23.7257), ax=(p[0]-ctx.anchor.x)/k.setScale, az=(p[1]-ctx.anchor.z)/k.setScale;
+    ctx.markers.acropolis=[ax,az,(ctx.groundY(ax,az)||0)+40]; }
+  else { const ay=ctx.groundY(-62,0)||20; ctx.markers.acropolis=[-62,0,ay+6]; }
   /* the market-place "every day with those who happened to be there" (Acts 17:17) */
   W.folk(ctx,[
     {do:'sell', at:[36,6], face:-Math.PI/2, goods:'pots'}, {do:'sell', at:[12,9], face:Math.PI/2, goods:'cloth'},
@@ -1250,7 +1261,7 @@ S.ephesos=function(ctx,st){
   room(ctx,st,-36,4,-26,12,{door:'e',wall:C.whitewash});
   [[-12,10],[0,10],[34,10],[46,10],[-48,10],[40,-16],[-40,-16]].forEach(([x,z],k)=>W.house(st,x,z,8,7,{door:z>0?'n':'s',color:k%2?C.limestone:C.whitewash,h:3.4}));
   /* her house, far off on the plain toward the sea */
-  temple(st,96,60,20,34,8,'alabaster');
+  if(!ctx.trueEarth) temple(st,96,60,20,34,8,'alabaster');                                       /* (on the true earth the Artemision stands at its own place, two kilometres off) */
   mk(ctx,'theatre',OX,OZ); mk(ctx,'orchestra',0,-22); mk(ctx,'stage',0,-16.2); mk(ctx,'parodos',26,-20); mk(ctx,'parodosIn',13,-21);
   mk(ctx,'street',0,-3.6); mk(ctx,'shop',19,7.6); mk(ctx,'shopFront',19,2); mk(ctx,'lodging',-31,8); mk(ctx,'lodgingDoor',-24.4,8);
   mk(ctx,'artemision',96,60); ctx.markers.cavea=[0,-48,19];
