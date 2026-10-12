@@ -6128,7 +6128,9 @@ const waveMat=new THREE.ShaderMaterial({
       float deepF=1.0-shoal;
       /* colour by real depth — turquoise over the shallows, dark over the deep —
          with a breath of the old wave-height shading kept within it */
-      vec3 base=mix(uShallow,uDeep,deepF);
+      /* (graded by the true depth, smoothly, from the strand's turquoise out to the deep's blue) */
+      float spB=1.0-pow(max(shoalRaw,0.0001),0.83333), mB=2.17+197.8*pow(spB,2.6);
+      vec3 base=mix(uShallow,uDeep,max(deepF*0.6,smoothstep(3.0,85.0,mB)));
       base*=0.88+0.24*clamp(vHeight*0.22+0.5,0.0,1.0);
       /* a storm sea is dark slate-green, lighter where a crest stands up against the sky */
       base=mix(base,vec3(0.075,0.14,0.15)*(0.85+0.45*clamp(vSwell/(vSH*1.4+0.01)*0.5+0.5,0.0,1.0)),vStorm*0.65);
@@ -6250,7 +6252,14 @@ const waveMat=new THREE.ShaderMaterial({
          does when it is looked across rather than into. */
       float dH=length(vWorld.xz-uCamPos.xz);
       clear*=1.0-smoothstep(${(VIEW*CHW*0.30).toFixed(1)},${(VIEW*CHW*0.72).toFixed(1)},dH);
-      float aa=mix(0.93,0.30,clear);
+      /* ---- THE SHALLOWS GRADE INTO THE DEEP WITHOUT A SEAM ----
+         Seen through water that was clear to sixty metres, the shelf's terraces of blocks showed
+         as hard pale steps and patches all the way out, and the turquoise broke off against the
+         deep blue at the edge of the blocks. Real shallows are their COLOUR, not their bed: the
+         bed shows only in the last few metres by the strand, and from there the water deepens
+         smoothly from turquoise to the blue of the deep. */
+      float aa=mix(0.93,0.66,clear);
+      aa=mix(aa,0.36,1.0-smoothstep(2.4,9.0,shelfM));
       aa=mix(aa,0.985,fres*0.6*above);
       aa=max(aa,allFoam*0.95*above);
       /* and from beneath, the skin of the sea is thin — the daylight comes
@@ -8116,9 +8125,20 @@ function deckAllowed(lx,lz){
   if(lz<SD.qdeckZ&&Math.hypot(lx,lz-SD.wheelZ-0.6)<3.0) return false;     /* the wheel and its pedestal */
   /* and the passengers and the benches they sit on are bodies too: walk round them */
   for(const o of PAX_OBS){ if(Math.hypot(lx-o[0],lz-o[1])<o[2]) return false; }
+  for(const r of PAX_RECTS){ if(lx>r[0]&&lx<r[1]&&lz>r[2]&&lz<r[3]) return false; }
   return true;
 }
-const PAX_OBS=[];
+const PAX_OBS=[], PAX_RECTS=[];
+/* ---- A BODY, NOT A POINT ----
+   The deck was asked about the one point under a man's feet, so a man could stand with his
+   shoulder in a mast, his back in the bulwark or his knees in a bench, and the hands walked
+   through the passengers. A body is the point and a span about it. */
+const DECK_BODY=1.7;
+function deckBodyAllowed(lx,lz){
+  if(!deckAllowed(lx,lz)) return false;
+  for(const [dx,dz] of [[DECK_BODY,0],[-DECK_BODY,0],[0,DECK_BODY],[0,-DECK_BODY]])
+    if(!deckAllowed(lx+dx,lz+dz)) return false;
+  return true; }
 function deckHeightAt(lz){ return lz<SD.qdeckZ?SD.qdeckY:(lz>SD.fdeckZ?SD.fdeckY:SD.deckY); }
 /* ---- AND SHE IS A SOLID THING TO EVERYTHING THAT WOULD SET DOWN ----
    THE FAULT: "the boat is not being treated as a physical structure — birds
@@ -8184,8 +8204,12 @@ function holdAllowed(lx,lz){
    in the ship's frame and a man at the helm must still see the people at her bow. */
 const CREW=[];
 const SHIP_FOLK=['levant','levant','levant','med','africa','east','india','north','west'];
+/* the height of the benches' seat over the waist planks: a man's shin, and the sitter's hips are
+   set ON it (they were let down two and a half units under a seat standing three up, and every
+   sitter sat sunk to the belt in the plank) */
+const PAX_SEAT_TOP=2.45;
 function paxSeat(m,sc){ const u=m.userData;                   /* sat on a bench, as a villager sits (sitDown) */
-  m.position.y-=2.4*sc;
+  m.position.y+=PAX_SEAT_TOP-(4.3-0.7)*sc;           /* (hip pivot 4.3 up, the thigh's half-depth under it) */
   for(let i=0;i<2;i++){ u.legs[i].rotation.x=1.35; const k=u.legs[i].userData.knee; if(k) k.rotation.x=-0.7; } }
 function initCrew(){ if(CREW.length) return;
   const X=SHIP_SX, Z=SHIP_S;
@@ -8216,12 +8240,14 @@ function initCrew(){ if(CREW.length) return;
   const benchObs=[];
   for(const sd of [1,-1]) for(const [z0,z1] of [[-11.6,-4.9],[7.9,14.6]]){
     const len=(z1-z0)*Z, bz=(z0+z1)/2*Z, bx=sd*(2.9*X+0.5);
-    const seat=texBox(3.0,0.55,len,'planks','benchTop'); seat.position.set(bx,SD.deckY+2.9,bz); boatG.add(seat);
-    for(const e of [-0.44,0.44]){ const leg=texBox(1.6,2.6,0.8,'planks'); leg.position.set(bx,SD.deckY+1.4,bz+e*len); boatG.add(leg); }
-    for(let z=z0;z<=z1;z+=1.1) benchObs.push([bx,z*Z,1.8]); }
+    const seat=texBox(3.0,0.55,len,'planks','benchTop'); seat.position.set(bx,SD.deckY+PAX_SEAT_TOP-0.275,bz); boatG.add(seat);
+    for(const e of [-0.44,0.44]){ const leg=texBox(1.6,PAX_SEAT_TOP-0.55,0.8,'planks'); leg.position.set(bx,SD.deckY+(PAX_SEAT_TOP-0.55)/2,bz+e*len); boatG.add(leg); }
+    /* the bench and the knees of those on it are one solid block to walk round, not a string of
+       beads with gaps between them that the hands walked through */
+    benchObs.push([Math.min(bx-1.5,sd*2.9*X-3.2),Math.max(bx+1.5,sd*2.9*X+3.2),z0*Z-1.2,z1*Z+1.2]); }
   let n=0;
   for(const sp of spots){
-    if(!deckAllowed(sp.lx,sp.lz)) continue;
+    if(sp.how==='bench'?!deckAllowed(sp.lx,sp.lz):!deckBodyAllowed(sp.lx,sp.lz)) continue;
     const seed=4100+n*31, h=hash2(seed,7.7);
     const child=h<0.16, female=!child&&hash2(seed,3.3)<0.45;
     const m=makePerson(seed,'villager',child,female,SHIP_FOLK[Math.floor(hash2(seed,5.1)*SHIP_FOLK.length)]);
@@ -8230,10 +8256,16 @@ function initCrew(){ if(CREW.length) return;
     if(sp.how==='bench') paxSeat(m,sc);
     else if(hash2(seed,2.2)<0.4){ m.userData.armL.rotation.x=-0.5; m.userData.armR.rotation.x=-0.5; }   /* hands on the rail */
     boatG.add(m);
-    PAX_OBS.push([sp.lx,sp.lz,1.5]);
+    if(sp.how!=='bench') PAX_OBS.push([sp.lx,sp.lz,3.0]);   /* (a sitter is inside his bench's block) */
     CREW.push({m,kind:'pax',sat:sp.how==='bench',hx:sp.lx,hz:sp.lz,ry:m.rotation.y,t:hash2(seed,1.9)*6,ph:hash2(seed,4.4)*6.28});
     n++; }
-  for(const o of benchObs) PAX_OBS.push(o);          /* (solid only once the sitters are set on them) */
+  for(const r of benchObs) PAX_RECTS.push(r);        /* (solid only once the sitters are set on them) */
+  /* and a hand whose post now falls in a bench or a passenger is moved to the nearest open plank */
+  for(const c of CREW){ if(c.kind!=='hand'||deckBodyAllowed(c.hx,c.hz)) continue;
+    let best=null;
+    for(let r=2;r<=24&&!best;r+=2) for(let a=0;a<12;a++){ const nx=c.hx+Math.cos(a*0.5236)*r, nz=c.hz+Math.sin(a*0.5236)*r;
+      if(deckBodyAllowed(nx,nz)){ best=[nx,nz]; break; } }
+    if(best){ c.hx=c.tx=best[0]; c.hz=c.tz=best[1]; c.m.position.set(best[0],deckHeightAt(best[1]),best[1]); } }
 }
 const _crewW=new THREE.Vector3();
 const CREW_NEAR=46, CREW_FAR=2600;       /* full rig within eight metres or so; a face further off is a few pixels */
@@ -8246,11 +8278,11 @@ function crewTick(dt){ initCrew();
       if(c.t<=0){ c.t=3+Math.random()*5;
         for(let tr=0;tr<6;tr++){ const a=Math.random()*6.28, r=Math.random()*9*SHIP_S;
           const nx=c.hx+Math.cos(a)*r, nz=c.hz+Math.sin(a)*r;
-          if(deckAllowed(nx,nz)){ c.tx=nx; c.tz=nz; break; } } }
+          if(deckBodyAllowed(nx,nz)){ c.tx=nx; c.tz=nz; break; } } }
       const dx=c.tx-c.m.position.x, dz=c.tz-c.m.position.z, d=Math.hypot(dx,dz);
       let moving=false;
       if(d>0.5){ const nx=c.m.position.x+dx/d*6*dt, nz=c.m.position.z+dz/d*6*dt;
-        if(deckAllowed(nx,nz)){ c.m.position.x=nx; c.m.position.z=nz;
+        if(deckBodyAllowed(nx,nz)){ c.m.position.x=nx; c.m.position.z=nz;
           c.m.rotation.y=Math.atan2(dx,dz); moving=true; } else c.t=0; }
       c.m.position.y=deckHeightAt(c.m.position.z);
       for(const L of u.legs) L.rotation.x=moving?Math.sin(ph+(L.userData.ph||0))*0.55:0;
