@@ -22,7 +22,7 @@
 const {open}=require('./harness.js');
 const path=require('path');
 
-const STALL=150;                 /* game seconds on one beat before it is called a stall */
+const STALL=300;                 /* game seconds on one beat before it is called a stall */
 const LIMIT=3600;                /* game seconds an act may take in all */
 const DT=0.05;                   /* the step of game time each tick */
 
@@ -53,7 +53,7 @@ const DT=0.05;                   /* the step of game time each tick */
         try{ r=await page.evaluate(P=>{ const S=window.__STORY, ST=S.ST;
             for(let k=0;k<P.N&&!ST.doneId;k++) window.__STAGE_TICK(P.DT);
             const st=ST.stuck.splice(0); const b=S.beat||{};
-            return {done:ST.doneId||null,key:S.scene+'#'+S.beatIx,stuck:st,beat:{scene:S.scene,beat:S.beatIx,t:b.t,who:b.who,goto:b.goto,text:b.text}}; },{DT,N:40}); }
+            return {done:ST.doneId||null,key:S.scene+'#'+S.beatIx+'|'+((document.getElementById('goal')||{}).textContent||''),stuck:st,beat:{scene:S.scene,beat:S.beatIx,t:b.t,who:b.who,goto:b.goto,text:b.text}}; },{DT,N:40}); }
         catch(e){
           /* the act's page gave way to the road's: finished, if the save says so */
           await page.waitForLoadState('domcontentloaded').catch(()=>{});

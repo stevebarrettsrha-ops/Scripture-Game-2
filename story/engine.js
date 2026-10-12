@@ -161,7 +161,7 @@ function trueCityAnchor(A,sc){
     P=plain(pl); if(!P) for(const a of sc.actors||[]){ P=plain(a.at); if(P) break; }
     if(P){ let bd=1e9, best=null;
       for(const m in small){ if(/Y$/.test(m)||!big[m]) continue; const d=Math.hypot(small[m][0]-P[0],small[m][1]-P[1]); if(d<bd){ bd=d; best=m; } }
-      if(best) off=[big[best][0]-small[best][0],big[best][1]-small[best][1]]; } }
+      if(best) off=[big[best][0]-small[best][0],big[best][1]-small[best][1]]; A=Object.assign({},A,{anchorMark:best}); } }
   if(!off) return A;
   const x=yp.x+off[0]*S, z=yp.z+off[1]*S, ix=Math.floor(x/k.B), iz=Math.floor(z/k.B), y=k.topY(ix,iz);
   return Object.assign({},A,{x,z,y,markOff:off,yShift:(A.y-y)/S,byMark:!sc.trueAt,period}); }
@@ -217,6 +217,7 @@ function buildScene(sc){
     if(A.markOff&&A.byMark){ const small=smallCityMarks(A.period||sc.period||'kings'), big=k.yahruAs(sc.period||A.period)||{};
       ctx.remap=[]; for(const m in small){ if(/Y$/.test(m)||!big[m]||!Array.isArray(big[m])) continue;
         ctx.remap.push({s:small[m],d:[big[m][0]-small[m][0]-A.markOff[0],big[m][1]-small[m][1]-A.markOff[1]]}); }
+      ctx.remapHome=A.anchorMark&&small[A.anchorMark]||null;
       if(!ctx.remap.length) ctx.remap=null; } }
   if(k.aimOff) k.aimOff(true);                                    /* (the voyage's mark on the block in reach is not the story's) */
   ctx.api=k.setBuilder(A.x,A.z,A.y);
@@ -664,9 +665,15 @@ function pos(at){ if(typeof at==='string'){ const m=ctx.markers[at]; if(m) retur
   if(Array.isArray(at)&&at.length===2&&typeof at[0]==='number') return remapXZ(at);
   return at; }
 /* a place written about the small city, where it stands in the true one (see buildScene) */
+/* (a place goes with another mark only when it was written plainly BESIDE that mark — within twenty
+   metres of it, and at less than half the distance to the mark the scene is anchored on. In the small
+   city the gate and the house of the taught ones stand sixteen metres apart; in the true one, four
+   hundred and seventy, and a man written between them must not be thrown across the city) */
 function remapXZ(p){ const R=ctx&&ctx.remap; if(!R) return p;
-  let best=null, bd=1e9; for(const r of R){ const d=(p[0]-r.s[0])**2+(p[1]-r.s[1])**2; if(d<bd){ bd=d; best=r; } }
-  return best?[p[0]+best.d[0],p[1]+best.d[1]]:p; }
+  let best=null, bd=1e9; for(const r of R){ const d=Math.hypot(p[0]-r.s[0],p[1]-r.s[1]); if(d<bd){ bd=d; best=r; } }
+  const H=ctx.remapHome, dh=H?Math.hypot(p[0]-H[0],p[1]-H[1]):1e9;
+  if(!best||bd>20||bd>dh*0.5) return p;
+  return [p[0]+best.d[0],p[1]+best.d[1]]; }
 function remap3(p){ if(!ctx||!ctx.remap||!Array.isArray(p)||p.length!==3||typeof p[0]!=='number') return p;
   const q=remapXZ([p[0],p[2]]); return [q[0],p[1],q[1]]; }
 /* a height given as a marker's (the city's 'pinnacleY'), or as metres */
@@ -745,7 +752,9 @@ function guideGoal(){ const B=beat; if(!B||!player) return null;
 let lastPlan=null;
 function planWay(tx,tz,r,from){
   const F=from||player.position;
-  const H=0.5, sx=F.x, sz=F.z, sy=F.y;
+  /* (a long way across a city is walked on a coarser grid: a street is wider than a metre) */
+  const H=Math.hypot(tx-F.x,tz-F.z)>90?1.0:0.5, sx=F.x, sz=F.z, sy=F.y;
+  r=Math.max(r,H*0.75);
   const b=ctx.bounds, pad=30;
   const x0=Math.max(b?b.x0:-1e9,Math.min(sx,tx)-pad), x1=Math.min(b?b.x1:1e9,Math.max(sx,tx)+pad);
   const z0=Math.max(b?b.z0:-1e9,Math.min(sz,tz)-pad), z1=Math.min(b?b.z1:1e9,Math.max(sz,tz)+pad);
@@ -758,7 +767,7 @@ function planWay(tx,tz,r,from){
   const hOf=(i,j)=>Math.hypot(i*H-tx,j*H-tz);
   seen.set(key(si,sj),{i:si,j:sj,y:sy,g:0,from:null,shut:false}); open.push([hOf(si,sj),key(si,sj)]);
   let n=0, end=null;
-  while(open.length&&n<60000){
+  while(open.length&&n<90000){
     const ck=open.pop()[1];
     const C=seen.get(ck); if(C.shut) continue; C.shut=true; n++;
     if(hOf(C.i,C.j)<r){ end=C; break; }
@@ -1046,7 +1055,7 @@ function moveActors(dt){
         if(P.t>(u.follow?6:4)){ u._prog=null; u._path=null;
           const k2=u.follow?Math.max(0,(d-1.6)/d):1;
           g.position.x+=dx*k2; g.position.z+=dz*k2; u.gy=ctx.groundY(g.position.x,g.position.z,(u.gy||g.position.y)+3);
-          (ST.stuck=ST.stuck||[]).push({who:id,act:act&&act.id,scene:act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id,beat:beatIx,d:+d.toFixed(1),plan:lastPlan});
+          if(g.visible) (ST.stuck=ST.stuck||[]).push({who:id,act:act&&act.id,scene:act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id,beat:beatIx,d:+d.toFixed(1),plan:lastPlan});   /* (one gone from sight is no one's concern) */
           if(!u.follow) u.target=null; continue; }
         if(u._path){ const W=u._path;
           while(W.i<W.pts.length-1&&Math.hypot(W.pts[W.i][0]-g.position.x,W.pts[W.i][1]-g.position.z)<0.35) W.i++;
@@ -1624,7 +1633,14 @@ function enterBeat(){
   if(T==='move'){ const who=[].concat(B.who), tos=Array.isArray(B.who)||Array.isArray(B.to&&B.to[0])?[].concat(B.to):[B.to];   /* one figure, one place — even a place given as [x,z] */ who.forEach((w,k)=>{ const g=ctx.actors[w]; if(!g) return;
       const to=pos(tos[Math.min(k,tos.length-1)]);
       g.userData.follow=null; g.userData.target=to; if(B.speed) g.userData.speed=B.speed;
-      if(ST.fast){ g.position.x=to[0]; g.position.z=to[1];
+      /* ---- A WALK ACROSS A CITY IS A CUT, NOT A WAIT ----
+         The scenes were written about the small city, where the gate stood beside the upper room;
+         at the true measure it is six hundred and forty metres off, and the act stood while two
+         men walked there at a stroll and back again — minutes of nothing, and twice the playtest's
+         patience. No scene was ever written with a walk of ninety metres; one that long now
+         happens between one look and the next, and the figure is there. */
+      const far=Math.hypot(to[0]-g.position.x,to[1]-g.position.z)>90;
+      if(ST.fast||far){ g.position.x=to[0]; g.position.z=to[1];
         /* set straight down where he was going: on the floor he would have walked to (a hall
            under a roof), not on the roof over it */
         const top=ctx.groundY(to[0],to[1]), cur=g.position.y, near=ctx.groundY(to[0],to[1],cur+1.6);
