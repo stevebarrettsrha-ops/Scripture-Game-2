@@ -377,8 +377,15 @@ window.YAHRU_PLAN_TRUE=function(api,period){
       for(let k=0;k<9;k++){ const x=-20+hash(k,3)*50, z=18+hash(k,5)*10; api.box(x-0.7,PY+1.2,z-0.5,x+0.7,PY+1.9,z+0.5,LIME); }
       api.mark('foundation',10,0); api.mark('altarFront',50,0); api.mark('pinnacle',20,0); api.mark('pinnacleY',PY+2,0);
     } else {
-      for(const [x0,z0,x1,z1] of [[G0x,G0z,G1x,G0z+1.5],[G0x,G1z-1.5,G1x,G1z],[G0x,G0z,G0x+1.5,G1z],[G1x-1.5,G0z,G1x,-8],[G1x-1.5,8,G1x,G1z]]){
+      /* the great court's wall has its gate to the south too, toward the king's house and the city
+         of Dawiḏ, with a stair up out of the court to the ground there: with the eastern gate alone,
+         over the Qidron, the court lay sunk in the rock with no way in from the city at all, and a
+         scene that sends the witness up through the city to the House could not be finished */
+      const SG0=0, SG1=16;
+      for(const [x0,z0,x1,z1] of [[G0x,G0z,G1x,G0z+1.5],[G0x,G1z-1.5,SG0,G1z],[SG1,G1z-1.5,G1x,G1z],[G0x,G0z,G0x+1.5,G1z],[G1x-1.5,G0z,G1x,-8],[G1x-1.5,8,G1x,G1z]]){
         api.box(x0,PY,z0,x1,PY+6,z1,LIME); }
+      { const yOut=gY((SG0+SG1)/2,G1z+16), n=Math.max(1,Math.ceil(Math.abs(yOut-PY)/0.8));
+        for(let k=0;k<n;k++) api.pad(SG0,G1z+k*1.6,SG1,G1z+(k+1)*1.6,{y:PY+(k+1)*(yOut-PY)/n,fill:'hewn-stone',top:'cobble',blend:k===n-1?4:0}); }
       const IC0=-25, IC1=75, IZ=35;
       for(const [x0,z0,x1,z1] of [[IC0,-IZ,IC1,-IZ+1],[IC0,IZ-1,IC1,IZ],[IC0,-IZ,IC0+1,IZ],[IC1-1,-IZ,IC1,-5],[IC1-1,5,IC1,IZ]]){
         api.box(x0,PY,z0,x1,PY+2.4,z1,STONE); api.box(x0,PY+2.4,z0,x1,PY+3.2,z1,CEDAR); }

@@ -755,7 +755,8 @@ function planWay(tx,tz,r,from){
   /* (a long way across a city is walked on a coarser grid: a street is wider than a metre) */
   const H=Math.hypot(tx-F.x,tz-F.z)>90?1.0:0.5, sx=F.x, sz=F.z, sy=F.y;
   r=Math.max(r,H*0.75);
-  const b=ctx.bounds, pad=30;
+  const deck=!from&&ctx.playerY!==undefined;          /* the witness held at a deck's height walks her deck */
+  const b=ctx.bounds, pad=Math.max(30,Math.hypot(tx-F.x,tz-F.z)*0.25);   /* (a long way may have to go well round) */
   const x0=Math.max(b?b.x0:-1e9,Math.min(sx,tx)-pad), x1=Math.min(b?b.x1:1e9,Math.max(sx,tx)+pad);
   const z0=Math.max(b?b.z0:-1e9,Math.min(sz,tz)-pad), z1=Math.min(b?b.z1:1e9,Math.max(sz,tz)+pad);
   const key=(i,j)=>i+','+j, seen=new Map();
@@ -767,7 +768,7 @@ function planWay(tx,tz,r,from){
   const hOf=(i,j)=>Math.hypot(i*H-tx,j*H-tz);
   seen.set(key(si,sj),{i:si,j:sj,y:sy,g:0,from:null,shut:false}); open.push([hOf(si,sj),key(si,sj)]);
   let n=0, end=null;
-  while(open.length&&n<90000){
+  while(open.length&&n<150000){
     const ck=open.pop()[1];
     const C=seen.get(ck); if(C.shut) continue; C.shut=true; n++;
     if(hOf(C.i,C.j)<r){ end=C; break; }
@@ -775,9 +776,9 @@ function planWay(tx,tz,r,from){
     for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){
       const ni=C.i+di, nj=C.j+dj, nx=ni*H, nz=nj*H; if(nx<x0||nx>x1||nz<z0||nz>z1) continue;
       const nk=key(ni,nj); const N0=seen.get(nk); if(N0&&N0.shut) continue;
-      if(blocked(nx,nz,0.3,C.y)||hullCross(cx,cz,nx,nz)) continue;
+      if(blocked(nx,nz,0.3,C.y)||hullCross(cx,cz,nx,nz,deck)) continue;
       if(di&&dj&&(blocked(cx+di*H,cz,0.3,C.y)||blocked(cx,cz+dj*H,0.3,C.y))) continue;
-      const gy=ctx.groundY(nx,nz,C.y+CLIMB_REF); if(gy===null||gy===undefined||!isFinite(gy)) continue;
+      const gy=deck?ctx.playerY:ctx.groundY(nx,nz,C.y+CLIMB_REF); if(gy===null||gy===undefined||!isFinite(gy)) continue;
       const g=C.g+(di&&dj?1.414:1)+(gy>C.y+0.3?0.6:0);
       if(!N0||g<N0.g){ seen.set(nk,{i:ni,j:nj,y:gy,g,from:ck,shut:false}); open.push([g+hOf(ni,nj)/H,nk]); } } }
   lastPlan={from:[+sx.toFixed(1),+sy.toFixed(1),+sz.toFixed(1)],to:[+tx.toFixed(1),+tz.toFixed(1)],n,box:[Math.round(x0),Math.round(z0),Math.round(x1),Math.round(z1)]};
@@ -831,8 +832,9 @@ function movePlayer(dt){
     const dx=Math.sin(ang)*sp*dt, dz=Math.cos(ang)*sp*dt;
     const x=player.position.x, z=player.position.z;
     const y=player.position.y;
-    if(!blocked(x+dx,z,0.3,y)&&!hullCross(x,z,x+dx,z)) player.position.x+=dx;
-    if(!blocked(player.position.x,z+dz,0.3,y)&&!hullCross(player.position.x,z,player.position.x,z+dz)) player.position.z+=dz;
+    const onDeck=ctx.playerY!==undefined;                /* (held at a deck's height: her side is a wall both ways) */
+    if(!blocked(x+dx,z,0.3,y)&&!hullCross(x,z,x+dx,z,onDeck)) player.position.x+=dx;
+    if(!blocked(player.position.x,z+dz,0.3,y)&&!hullCross(player.position.x,z,player.position.x,z+dz,onDeck)) player.position.z+=dz;
     player.rotation.y=turnTo(player.rotation.y,ang,dt*10);
     ud.walk=(ud.walk||0)+dt*sp*2.2;
   } else ud.walk=0;
@@ -1624,8 +1626,11 @@ function enterBeat(){
   if(T==='say'||T==='read'){ showVerse(B); return; }
   /* a goal or a deed is the player's to walk to: the story lets go of the camera first */
   if((T==='goal'||T==='witness')&&camTarget){ releaseCamera(); controlsOn=true; }
-  if(T==='goal'){ setGoal(B.text); const m=pos(B.goto); reachBounds(m); ringAt(m); onFrame=()=>{
-      if(Math.hypot(player.position.x-m[0],player.position.z-m[1])<(B.r||2.4)){ ringOff(); setGoal(''); nextBeat(); } }; return; }
+  if(T==='goal'){ setGoal(B.text); const m=pos(B.goto); reachBounds(m); ringAt(m);
+    const relock=!!ctx.playerLock&&Math.hypot(player.position.x-m[0],player.position.z-m[1])>=(B.r||2.4);   /* (a mark he is held away from: he is let go to it) */
+    if(relock){ ctx.playerLock=false; controlsOn=true; }
+    onFrame=()=>{
+      if(Math.hypot(player.position.x-m[0],player.position.z-m[1])<(B.r||2.4)){ ringOff(); setGoal(''); if(relock) ctx.playerLock=true; nextBeat(); } }; return; }
   if(T==='witness'){ startWitness(B); return; }
   if(T==='choice'){ showChoice(B); return; }
   if(T==='collect'){ collect(B.id); return; }
@@ -1912,6 +1917,15 @@ function reachBounds(m){ const b=ctx.bounds; if(!b||!m) return; const M=8;
 function startWitness(B){
   for(const id of B.items) reachBounds(thingPos(id)); if(B.deliver) reachBounds(pos(B.deliver));
   witness={B,done:new Set(),holding:0,carrying:null};
+  /* ---- A THING TO BE TAKEN UP THAT HE CANNOT REACH, HE MUST BE LET WALK TO ----
+     The witness is held at his place in a boat (`player … lock`) so the sea cannot throw him
+     about; but the grain ship's cargo stood three to six metres off him with an arm's reach of
+     2.8, he was not let take a step, and the act could never be finished. If anything to be done
+     lies out of his reach he is let walk for this deed (on her deck: he does not step off her),
+     and held again after it. */
+  if(ctx.playerLock&&player){ const R=B.reach||2.2, P=player.position;
+    const out=B.items.some(id=>{ const q=thingPos(id); return q&&Math.hypot(q[0]-P.x,q[1]-P.z)>=R; })||!!B.deliver;
+    if(out){ ctx.playerLock=false; witness.relock=true; controlsOn=true; } }
   setGoal(B.text+'  (0/'+B.items.length+')');
   onFrame=dt=>{
     const W=witness; if(!W) return;
@@ -1940,7 +1954,7 @@ function witnessDone(id){
   /* what the hand did shows: the jar filled, the group given its bread */
   if(B.reveal&&B.reveal[id]){ for(const r of [].concat(B.reveal[id])){ const o=ctx.things[r];
       if(o){ if(o.userData.fill) o.userData.fill.visible=true; else o.visible=true; } } } setGoal(B.text+'  ('+W.done.size+'/'+B.items.length+')');
-  if(W.done.size>=B.items.length){ hide('sprompt'); setGoal(''); witness=null; nextBeat(); }
+  if(W.done.size>=B.items.length){ hide('sprompt'); setGoal(''); if(W.relock) ctx.playerLock=true; witness=null; nextBeat(); }
 }
 function showPrompt(t){ $('prompt-t').textContent='E  '+t; show('sprompt'); }
 function setProgress(f){ $('hold').style.width=Math.round(Math.max(0,Math.min(1,f))*100)+'%'; }
