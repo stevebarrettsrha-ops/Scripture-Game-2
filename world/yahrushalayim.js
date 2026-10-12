@@ -31,7 +31,7 @@ window.YAHRU_PLAN=function(api,period){
   /* ---- the ground made level within the walls, and about the pool without them ---- */
   /* she stands on Mount Moriyah (world/landmarks.js): where her level ground stands out over
      the mountain's flank it is held up as the city's terraces were, in coursed stone */
-  api.pad(cx-hw-6,cz-hd-6,cx+hw+6,cz+hd+8,{fill:'cobble',blend:0});
+  api.pad(cx-hw-6,cz-hd-6,cx+hw+6,cz+hd+8,{fill:'cobble',top:'path',blend:0});   /* (a street, not a lawn) */
   api.pad(-98,38,-6,100,{round:true,fill:'cobble',blend:0});
 
   /* ---- THE WALL, with crenels, and the gate in the south-west ---- */
@@ -145,7 +145,7 @@ window.YAHRU_PLAN=function(api,period){
      it stands mostly in ruin. */
   if(api.quarter){
     const qx0=cx-hw-112, qx1=cx-hw-2, qz0=cz-hd+2, qz1=cz+hd-6;
-    api.pad(qx0-4,qz0-4,qx1+2,qz1+4,{fill:'cobble',blend:8});
+    api.pad(qx0-4,qz0-4,qx1+2,qz1+4,{fill:'cobble',top:'path',blend:8});
     wall(qx0,cz-hd,cx-hw,cz-hd); wall(qx0,cz-hd,qx0,qz1+4);
     wall(qx0,qz1+4,cx-hw,qz1+4,[qx0+56,qz1+4,4]);
     const list=[];

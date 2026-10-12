@@ -34,14 +34,37 @@ window.YAHRU_PLAN_TRUE=function(api,period){
         const mx=(ax+bx)/2, mz=(az+bz)/2; run+=L/n;
         if(gates.some(g=>Math.hypot(mx-g[0],mz-g[1])<g[2])) continue;
         const y=gY(mx,mz), rx=Math.abs(bx-ax)/2+t/2, rz=Math.abs(bz-az)/2+t/2;
-        if(ruin){ const r=hash(mx,mz); if(r<0.35) continue; api.box(mx-rx,y-1,mz-rz,mx+rx,y+1+r*h*0.5,mz+rz,STONE2); continue; }
-        api.box(mx-rx,y-1,mz-rz,mx+rx,y+h,mz+rz,o.col||LIME);
+        /* footed on the LOWEST ground under the whole of it, and sunk into it: footed on the
+           ground at its middle, a stretch of wall across a slope stood clear of the land on its
+           downhill face and the light showed under it */
+        const yf=foot(mx-rx,mz-rz,mx+rx,mz+rz)-2;
+        if(ruin){ const r=hash(mx,mz); if(r<0.35) continue; api.box(mx-rx,yf,mz-rz,mx+rx,y+1+r*h*0.5,mz+rz,STONE2); continue; }
+        api.box(mx-rx,yf,mz-rz,mx+rx,y+h,mz+rz,o.col||LIME);
         if(k%2===0) api.box(mx-rx*0.5,y+h,mz-rz*0.5,mx+rx*0.5,y+h+1.2,mz+rz*0.5,o.col||LIME);   /* crenels */
-        if(run>=every){ run=0; api.box(mx-4,y-1,mz-4,mx+4,y+h+6,mz+4,o.col||LIME); } } }
+        if(run>=every){ run=0; api.box(mx-4,foot(mx-4,mz-4,mx+4,mz+4)-2,mz-4,mx+4,y+h+6,mz+4,o.col||LIME); } } }
     for(const g of gates){ const y=gY(g[0],g[1]);                                                   /* the gate towers */
       if(ruin) continue;
-      api.box(g[0]-g[2]-5,y-1,g[1]-5,g[0]-g[2],y+h+5,g[1]+5,o.col||LIME); api.box(g[0]+g[2],y-1,g[1]-5,g[0]+g[2]+5,y+h+5,g[1]+5,o.col||LIME); } }
-  function tower(x,z,w,d,h,col){ const y=gY(x,z); api.box(x-w/2,y-2,z-d/2,x+w/2,y+h,z+d/2,col||LIME); }
+      /* each tower on its own lowest ground, and the gateway between them paved down to the
+         ground on either side of it, with a lintel over it, so the gate is a gate in the wall
+         and not two towers standing apart on the hillside */
+      /* the towers stand ALONG the wall, one at either end of its opening (they stood east and
+         west of every gate whichever way the wall ran, so in a wall running north they stood
+         in the field on one side and in the street on the other, and the gap was bare) */
+      let ux=1, uz=0, bd=Infinity;
+      for(let p=0;p+1<pts.length;p++){ const [x0,z0]=pts[p], [x1,z1]=pts[p+1], L=Math.hypot(x1-x0,z1-z0)||1;
+        const tt=Math.max(0,Math.min(1,((g[0]-x0)*(x1-x0)+(g[1]-z0)*(z1-z0))/(L*L)));
+        const dd=Math.hypot(g[0]-(x0+(x1-x0)*tt),g[1]-(z0+(z1-z0)*tt)); if(dd<bd){ bd=dd; ux=(x1-x0)/L; uz=(z1-z0)/L; } }
+      for(const sd of [-1,1]){ const tx=g[0]+ux*sd*(g[2]+2.5), tz=g[1]+uz*sd*(g[2]+2.5);
+        api.box(tx-2.5,foot(tx-2.5,tz-2.5,tx+2.5,tz+2.5)-2,tz-2.5,tx+2.5,y+h+5,tz+2.5,o.col||LIME); }
+      /* the lintel over the gateway, and its floor paved down to the ground either side */
+      const lx=Math.abs(ux)*g[2]+Math.abs(uz)*(t/2+0.5), lz=Math.abs(uz)*g[2]+Math.abs(ux)*(t/2+0.5);
+      api.box(g[0]-lx,y+Math.min(h-2,7),g[1]-lz,g[0]+lx,y+h+2,g[1]+lz,o.col||LIME);
+      api.top(g[0]-lx,g[1]-lz,g[0]+lx,g[1]+lz,STONE); } }
+  /* the lowest ground under a footprint: its corners, its edges' middles and its middle */
+  function foot(x0,z0,x1,z1){ let m=Infinity;
+    for(const fx of [0,0.5,1]) for(const fz of [0,0.5,1]) m=Math.min(m,gY(x0+(x1-x0)*fx,z0+(z1-z0)*fz));
+    return m; }
+  function tower(x,z,w,d,h,col){ const y=gY(x,z); api.box(x-w/2,foot(x-w/2,z-d/2,x+w/2,z+d/2)-2,z-d/2,x+w/2,y+h,z+d/2,col||LIME); }
   /* columns along a line, every `step` metres, from y0 up h */
   function columns(x0,z0,x1,z1,y0,h,step,col){ const L=Math.hypot(x1-x0,z1-z0), n=Math.max(1,Math.round(L/step));
     for(let k=0;k<=n;k++){ const x=x0+(x1-x0)*k/n, z=z0+(z1-z0)*k/n; api.box(x-0.7,y0,z-0.7,x+0.7,y0+h,z+0.7,col||WHITE); } }
@@ -413,6 +436,9 @@ window.YAHRU_PLAN_TRUE=function(api,period){
     api.box(-760,PYp,160,-680,PYp+12,230,WHITE); api.box(-760,PYp,300,-680,PYp+12,370,WHITE);
     tower(-690,72,20,20,45); tower(-745,78,14,14,40); tower(-718,95,11,11,26);
     api.mark('palaceHerodes',-720,260);
+    /* within the walls the ground is the city's: streets, not pasture */
+    if(api.townGround) api.townGround([[-795,62],[-520,45],[-470,-80],[-440,-250],[-150,-306],[-132,-267],[183,-267],
+      [156,226],[140,520],[90,760],[-30,835],[-160,850],[-450,830],[-700,770],[-790,640],[-800,420]]);
     /* the first wall, the west and south walls about Tsiyon to Shiloaḥ, the east wall along the ridge */
     wallLine([[-790,62],[-560,45],[-360,10],[-140,-30]],{gates:[[-520,42,6]]});
     wallLine([[-795,62],[-800,420],[-790,640],[-700,770],[-450,830],[-160,850],[-30,835]],{gates:[[-430,832,6]]});
@@ -434,6 +460,8 @@ window.YAHRU_PLAN_TRUE=function(api,period){
     houses+=quarter(-40,240,100,790,22,(x,z)=>!(Math.abs(x-28)<4)&&!(Math.abs(z-500)<4));
     houses+=quarter(-210,0,-150,600,24);
     houses+=quarter(-560,60,-230,700,30);
+    if(api.townGround) api.townGround([[-150,-40],[-450,-10],[-600,120],[-620,420],[-560,680],[-330,820],[-30,835],
+      [90,760],[140,520],[150,120],[150,-150],[-120,-150]]);
     /* the walls of Ḥizqiyahu: the broad wall across the north-west (Neḥemyah 3:8), seven metres
        thick, about the western hill, down to the pool and up the eastern ridge */
     wallLine([[-150,-40],[-450,-10],[-600,120]],{t:7,gates:[[-300,-25,6]]});
