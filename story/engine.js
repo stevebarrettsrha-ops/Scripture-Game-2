@@ -94,10 +94,16 @@ function groundAt0(x,z,ref){
 }
 /* THE GROUND UNDER ONE OF THE SCENE'S PEOPLE as they go: a step of one course is taken up if
    there is room for a man over it; a wall is never climbed course by course onto a roof */
+/* ---- A MAN HOPS A BANK OF TWO COURSES ----
+   The figures of a scene took a step of a metre and no more, and the player a course; the land of
+   the true earth is cut in whole blocks and rises two at a pace on any hillside, so a figure sent up
+   a slope walked into it and stood there for ever, and the act waited on him. A rise of two courses
+   (with room to stand on top of it) is taken as a man takes it, with a hop; a wall is still a wall. */
+const CLIMB_M=2.2, CLIMB_REF=2.4;
 function stepGround(x,z,cur){
-  let f=groundAt(x,z,cur+1.0);
+  let f=groundAt(x,z,cur+CLIMB_REF);
   if(f>cur+0.05){ const k=K(), B=k.B, wx=anchor.x+x*S, wz=anchor.z+z*S, fy=anchor.y+f*S;
-    if(f>cur+1.0||k.solidAt(wx,fy+0.5*B,wz)||k.solidAt(wx,fy+1.5*B,wz)) f=cur; }
+    if(f>cur+CLIMB_M||k.solidAt(wx,fy+0.5*B,wz)||k.solidAt(wx,fy+1.5*B,wz)) f=cur; }
   return f;
 }
 /* is a man of the scene stopped here? the blocks of the world are what stop him: a step of
@@ -105,8 +111,10 @@ function stepGround(x,z,cur){
 function solidFor(x,z,y){
   const k=K(), B=k.B, wx=anchor.x+x*S, wz=anchor.z+z*S, foot=anchor.y+y*S;
   const at=d=>k.solidAt(wx,foot+d*B,wz);
-  if(at(0.5)) return at(1.5)||at(2.5);
-  return at(1.5);
+  if(!at(0.5)) return at(1.5);                 /* level: room for the body */
+  if(!at(1.5)) return at(2.5);                 /* a step of one course, room over it */
+  if(at(2.5)) return true;                     /* three courses and more: a wall */
+  return at(3.5);                              /* a bank of two, hopped, if a man can stand on it */
 }
 
 /* the hour of a scene: sky, sun, fog and how much the stars show */
@@ -156,7 +164,7 @@ function trueCityAnchor(A,sc){
       if(best) off=[big[best][0]-small[best][0],big[best][1]-small[best][1]]; } }
   if(!off) return A;
   const x=yp.x+off[0]*S, z=yp.z+off[1]*S, ix=Math.floor(x/k.B), iz=Math.floor(z/k.B), y=k.topY(ix,iz);
-  return Object.assign({},A,{x,z,y,markOff:off,yShift:(A.y-y)/S}); }
+  return Object.assign({},A,{x,z,y,markOff:off,yShift:(A.y-y)/S,byMark:!sc.trueAt,period}); }
 /* THE YEAR A SCENE IS PLAYED IN, from its date ('612 BCE', 'c. 28 CE'); else the first dated scene of its
    act; else its period's. The works of the ancients are raised as they stood in it (engine.js, A WONDER
    IN ITS OWN DAY): Ninewĕh whole and burning in 612, Etemenanki whole in 539, Persepolis a ruin and the
@@ -196,7 +204,20 @@ function buildScene(sc){
     /* (a set laid at its own true place: her marks are named from its anchor, not hers) */
     if(A.markOff) for(const m in ctx.markers){ const v=ctx.markers[m]; if(!Array.isArray(v)||v.length!==2) continue;
       if(/Y$/.test(m)) ctx.markers[m]=[v[0]+(A.yShift||0),v[1]];          /* a height: from the new anchor's ground */
-      else ctx.markers[m]=[v[0]-A.markOff[0],v[1]-A.markOff[1]]; } }
+      else ctx.markers[m]=[v[0]-A.markOff[0],v[1]-A.markOff[1]]; }
+    /* ---- AND EVERY PLACE OF THE SCENE GOES WITH THE MARK IT WAS WRITTEN BESIDE ----
+       The scene's own numbers were written about the small city, and they were moved to the true
+       one by ONE offset — the mark the scene began nearest to. A scene that walks from the gate
+       to the upper pool was moved by the gate; but in the true city the pool lies in another
+       quarter altogether, so the highway, the sovereign's guards and the stone the sign is
+       written on stood inside the walls and down in a valley, the prophet and his son were sent
+       there and could not arrive, and the act could not be finished. Now each number is moved
+       by the mark nearest to where it was written: a place beside the small city's pool is set
+       beside the true pool, a place by the gate by the true gate. */
+    if(A.markOff&&A.byMark){ const small=smallCityMarks(A.period||sc.period||'kings'), big=k.yahruAs(sc.period||A.period)||{};
+      ctx.remap=[]; for(const m in small){ if(/Y$/.test(m)||!big[m]||!Array.isArray(big[m])) continue;
+        ctx.remap.push({s:small[m],d:[big[m][0]-small[m][0]-A.markOff[0],big[m][1]-small[m][1]-A.markOff[1]]}); }
+      if(!ctx.remap.length) ctx.remap=null; } }
   if(k.aimOff) k.aimOff(true);                                    /* (the voyage's mark on the block in reach is not the story's) */
   ctx.api=k.setBuilder(A.x,A.z,A.y);
   const st=new window.STORYWORLD.Static(ctx.api);
@@ -209,7 +230,7 @@ function buildScene(sc){
      is watched through a wood that was never written into it. Its own olives and figs are its own. */
   if(k.trueEarth&&k.trueEarth()&&ctx.api.clearTrees){
     let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9;
-    const take=at=>{ try{ const p=Array.isArray(at)&&typeof at[0]==='number'?at:pos(at); if(p&&isFinite(p[0])&&isFinite(p[1])){
+    const take=at=>{ try{ const p=pos(at); if(p&&isFinite(p[0])&&isFinite(p[1])){
       x0=Math.min(x0,p[0]); z0=Math.min(z0,p[1]); x1=Math.max(x1,p[0]); z1=Math.max(z1,p[1]); } }catch(e){} };
     if(sc.player&&sc.player.at) take(sc.player.at);
     for(const a of sc.actors||[]) if(a.at) take(a.at);
@@ -283,7 +304,7 @@ function buildScene(sc){
     /* `on`: a light that rests on someone's head and goes with him — "tongues as of fire,
        and one sat upon each of them" (Acts 2:3) — `dy` above the top of the head */
     if(gl.on&&ctx.actors[gl.on]&&!gl.at) gl.at=[0,0,0];
-    const p=gl.at.length===3&&typeof gl.at[0]==='number'?gl.at:(()=>{ const m=pos(gl.at);
+    const p=gl.at.length===3&&typeof gl.at[0]==='number'?remap3(gl.at):(()=>{ const m=pos(gl.at);
       return [m[0],gl.dy!==undefined?(ctx.groundY(m[0],m[1])||0)+gl.dy:(gl.y||2),m[1]]; })();
     const G=window.STORYWORLD.glow(ctx,p[0],p[1],p[2],gl.size||3,gl.color,gl.intensity===undefined?1.2:gl.intensity);
     if(gl.h){ G.sprite.scale.set(gl.size||3,gl.h,1); G.aspect=gl.h/(gl.size||3); }      /* a column of light keeps its height as it pulses or swells */
@@ -640,7 +661,14 @@ function pos(at){ if(typeof at==='string'){ const m=ctx.markers[at]; if(m) retur
     throw new Error('no marker '+at); }
   /* a marker and a step from it: ['pinnacle',1.6,-0.7] */
   if(Array.isArray(at)&&typeof at[0]==='string'){ const m=pos(at[0]); return [m[0]+at[1],m[1]+at[2]]; }
+  if(Array.isArray(at)&&at.length===2&&typeof at[0]==='number') return remapXZ(at);
   return at; }
+/* a place written about the small city, where it stands in the true one (see buildScene) */
+function remapXZ(p){ const R=ctx&&ctx.remap; if(!R) return p;
+  let best=null, bd=1e9; for(const r of R){ const d=(p[0]-r.s[0])**2+(p[1]-r.s[1])**2; if(d<bd){ bd=d; best=r; } }
+  return best?[p[0]+best.d[0],p[1]+best.d[1]]:p; }
+function remap3(p){ if(!ctx||!ctx.remap||!Array.isArray(p)||p.length!==3||typeof p[0]!=='number') return p;
+  const q=remapXZ([p[0],p[2]]); return [q[0],p[1],q[1]]; }
 /* a height given as a marker's (the city's 'pinnacleY'), or as metres */
 function yOf(y){ return typeof y==='string'?pos(y)[0]:y; }
 function thingPos(id){ const o=ctx.things[id]||ctx.actors[id]; return o?[o.position.x,o.position.z]:null; }
@@ -696,6 +724,81 @@ function blocked(x,z,r,y){
   for(const [dx,dz] of [[r,r],[r,-r],[-r,r],[-r,-r]]) if(solidFor(x+dx,z+dz,y)) return true;
   return false;
 }
+/* ================= THE WAY SHOWN =================
+   A mark the player cannot find his way to is a story that cannot be finished. When he has been
+   pressing on for five seconds and come no nearer (a wall, a bank too high, a house in the way),
+   the way round is worked out — a walk over the same ground by the same rules his feet keep — and
+   he is led along it. If there is no way at all, he is set down at the mark. The playtest
+   (ST.playtest) is led the same way from the first, so every mark it reaches a man could reach. */
+let guide=null, stuckT=0, stuckAt=null;
+function guideGoal(){ const B=beat; if(!B||!player) return null;
+  if(B.t==='goal'){ const m=pos(B.goto); return [m[0],m[1],(B.r||2.4)*0.6]; }
+  if(B.t==='witness'&&witness){ const W=witness;
+    if(W.carrying){ const m=pos(B.deliver); return [m[0],m[1],(B.r||3)*0.6]; }
+    let best=null, bd=1e9;
+    for(const id of B.items){ if(W.done.has(id)) continue; const p=thingPos(id); if(!p) continue;
+      const d=Math.hypot(player.position.x-p[0],player.position.z-p[1]); if(d<bd){ bd=d; best=p; } }
+    if(best) return [best[0],best[1],(B.reach||2.2)*0.6]; }
+  return null; }
+/* a walk from where he stands to within r of (tx,tz), on a half-metre grid: a cell is entered as
+   movePlayer would enter it (blocked, the hull of a boat), and stood in at the ground it has */
+let lastPlan=null;
+function planWay(tx,tz,r,from){
+  const F=from||player.position;
+  const H=0.5, sx=F.x, sz=F.z, sy=F.y;
+  const b=ctx.bounds, pad=30;
+  const x0=Math.max(b?b.x0:-1e9,Math.min(sx,tx)-pad), x1=Math.min(b?b.x1:1e9,Math.max(sx,tx)+pad);
+  const z0=Math.max(b?b.z0:-1e9,Math.min(sz,tz)-pad), z1=Math.min(b?b.z1:1e9,Math.max(sz,tz)+pad);
+  const key=(i,j)=>i+','+j, seen=new Map();
+  /* a binary heap of [f,key] */
+  const open={a:[],get length(){ return this.a.length; },
+    push(e){ const a=this.a; a.push(e); let i=a.length-1; while(i>0){ const p=(i-1)>>1; if(a[p][0]<=e[0]) break; a[i]=a[p]; i=p; } a[i]=e; },
+    pop(){ const a=this.a, top=a[0], last=a.pop(); if(a.length){ let i=0; for(;;){ let c=2*i+1; if(c>=a.length) break; if(c+1<a.length&&a[c+1][0]<a[c][0]) c++; if(a[c][0]>=last[0]) break; a[i]=a[c]; i=c; } a[i]=last; } return top; } };
+  const si=Math.round(sx/H), sj=Math.round(sz/H);
+  const hOf=(i,j)=>Math.hypot(i*H-tx,j*H-tz);
+  seen.set(key(si,sj),{i:si,j:sj,y:sy,g:0,from:null,shut:false}); open.push([hOf(si,sj),key(si,sj)]);
+  let n=0, end=null;
+  while(open.length&&n<60000){
+    const ck=open.pop()[1];
+    const C=seen.get(ck); if(C.shut) continue; C.shut=true; n++;
+    if(hOf(C.i,C.j)<r){ end=C; break; }
+    const cx=C.i*H, cz=C.j*H;
+    for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){
+      const ni=C.i+di, nj=C.j+dj, nx=ni*H, nz=nj*H; if(nx<x0||nx>x1||nz<z0||nz>z1) continue;
+      const nk=key(ni,nj); const N0=seen.get(nk); if(N0&&N0.shut) continue;
+      if(blocked(nx,nz,0.3,C.y)||hullCross(cx,cz,nx,nz)) continue;
+      if(di&&dj&&(blocked(cx+di*H,cz,0.3,C.y)||blocked(cx,cz+dj*H,0.3,C.y))) continue;
+      const gy=ctx.groundY(nx,nz,C.y+CLIMB_REF); if(gy===null||gy===undefined||!isFinite(gy)) continue;
+      const g=C.g+(di&&dj?1.414:1)+(gy>C.y+0.3?0.6:0);
+      if(!N0||g<N0.g){ seen.set(nk,{i:ni,j:nj,y:gy,g,from:ck,shut:false}); open.push([g+hOf(ni,nj)/H,nk]); } } }
+  lastPlan={from:[+sx.toFixed(1),+sy.toFixed(1),+sz.toFixed(1)],to:[+tx.toFixed(1),+tz.toFixed(1)],n,box:[Math.round(x0),Math.round(z0),Math.round(x1),Math.round(z1)]};
+  if(!end) return null;
+  const pts=[]; for(let c=end;c;c=c.from?seen.get(c.from):null) pts.push([c.i*H,c.j*H]);
+  pts.reverse(); pts.push([tx,tz]); return pts; }
+function setOnMark(G,why){
+  const x=G[0], z=G[1];
+  player.position.set(x,ctx.groundY(x,z),z); guide=null; stuckT=0;
+  (ST.stuck=ST.stuck||[]).push({who:'player',act:act&&act.id,scene:act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id,beat:beatIx,why,plan:lastPlan});
+  if(!ST.playtest) toast('There was no way through — you are brought to the place.'); }
+function startGuide(quiet){
+  const G=guideGoal(); if(!G) return false;
+  const pts=planWay(G[0],G[1],Math.max(0.4,G[2]));
+  if(!pts){ setOnMark(G,'no way'); return true; }
+  guide={pts,i:0,G,t:0,best:1e9,bt:0,replans:0};
+  if(!quiet&&!ST.playtest) toast('The way round is found — you are led to the place.');
+  return true; }
+/* the bearing to walk this frame, or null when not led */
+function guideSteer(dt){
+  if(!guide) return null;
+  const G=guideGoal(); if(!G||Math.hypot(G[0]-guide.G[0],G[1]-guide.G[1])>1.5){ guide=null; return null; }   /* the mark moved or was reached */
+  const P=player.position;
+  while(guide.i<guide.pts.length-1&&Math.hypot(guide.pts[guide.i][0]-P.x,guide.pts[guide.i][1]-P.z)<0.35) guide.i++;
+  const w=guide.pts[guide.i], d=Math.hypot(G[0]-P.x,G[1]-P.z);
+  guide.t+=dt; if(d<guide.best-0.2){ guide.best=d; guide.bt=0; } else guide.bt+=dt;
+  if(guide.bt>4){ if(++guide.replans>2){ setOnMark(G,'led, and held'); return null; }
+    const pts=planWay(G[0],G[1],Math.max(0.4,G[2])); if(!pts){ setOnMark(G,'no way'); return null; }
+    guide.pts=pts; guide.i=0; guide.bt=0; }
+  return Math.atan2(w[0]-P.x,w[1]-P.z); }
 function movePlayer(dt){
   if(!player||ctx.playerHidden) return;
   let fx=0, fz=0;
@@ -703,10 +806,19 @@ function movePlayer(dt){
     if(keys.KeyW||keys.ArrowUp) fz+=1; if(keys.KeyS||keys.ArrowDown) fz-=1;
     if(keys.KeyA||keys.ArrowLeft) fx-=1; if(keys.KeyD||keys.ArrowRight) fx+=1;
     if(joy.active){ fx+=joy.x; fz-=joy.y; } }
-  const L=Math.hypot(fx,fz), ud=player.userData;
+  /* a man pressing on and getting nowhere, while a mark waits for him */
+  const pressing=Math.hypot(fx,fz)>0.05, wants=beat&&(beat.t==='goal'||beat.t==='witness');
+  if(!wants) guide=null;
+  if(wants&&!guide&&controlsOn&&!ctx.playerLock&&(pressing||ST.playtest)){
+    if(ST.playtest) startGuide(true);
+    else { if(!stuckAt||Math.hypot(player.position.x-stuckAt[0],player.position.z-stuckAt[1])>0.4){ stuckAt=[player.position.x,player.position.z]; stuckT=0; }
+      else if((stuckT+=dt)>5){ stuckT=0; stuckAt=null; startGuide(false); } } }
+  else if(!pressing) { stuckT=0; stuckAt=null; }
+  const gAng=(controlsOn&&!ctx.playerLock)?guideSteer(dt):null;
+  const L=gAng!==null?1:Math.hypot(fx,fz), ud=player.userData;
   if(L>0.05){
     const sp=(keys.ShiftLeft||keys.ShiftRight?6.2:3.6)*Math.min(1,L);
-    const fwd=camYaw+Math.PI, ang=fwd+Math.atan2(fx,fz);
+    const fwd=camYaw+Math.PI, ang=gAng!==null?gAng:fwd+Math.atan2(fx,fz);
     const dx=Math.sin(ang)*sp*dt, dz=Math.cos(ang)*sp*dt;
     const x=player.position.x, z=player.position.z;
     const y=player.position.y;
@@ -716,7 +828,7 @@ function movePlayer(dt){
     ud.walk=(ud.walk||0)+dt*sp*2.2;
   } else ud.walk=0;
   if(ctx.playerY!==undefined) player.position.y=ctx.playerY;
-  else { const gy=ctx.groundY(player.position.x,player.position.z,player.position.y+1.5);
+  else { const gy=ctx.groundY(player.position.x,player.position.z,player.position.y+CLIMB_REF);
     /* a step up is taken at once; a drop is fallen, not floated down */
     player.position.y=gy>player.position.y?gy:Math.max(gy,player.position.y-dt*9); }
   animFigure(player,dt,L>0.05); animFace(player,'player',dt);
@@ -903,7 +1015,11 @@ function clothStep(g,dt,moving,stride){
 }
 /* is there a block where a man's body would be, standing at height gy here? */
 function wallAt(x,z,gy){ if(gy===undefined) return false; const k=K(), wx=anchor.x+x*S, wz=anchor.z+z*S;
-  return k.solidAt(wx,anchor.y+(gy+0.9)*S,wz)||k.solidAt(wx,anchor.y+(gy+1.5)*S,wz); }
+  if(!(k.solidAt(wx,anchor.y+(gy+0.9)*S,wz)||k.solidAt(wx,anchor.y+(gy+1.5)*S,wz))) return false;
+  /* a bank he can hop is not a wall */
+  const f=groundAt(x,z,gy+CLIMB_REF);
+  if(f>gy+0.05&&f<=gy+CLIMB_M&&!k.solidAt(wx,anchor.y+f*S+0.5*k.B,wz)&&!k.solidAt(wx,anchor.y+f*S+1.5*k.B,wz)) return false;
+  return true; }
 /* the actors walk where the story sends them */
 function moveActors(dt){
   for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData;
@@ -913,6 +1029,33 @@ function moveActors(dt){
       if(f){ const d=Math.hypot(f.position.x-g.position.x,f.position.z-g.position.z); tgt=d>2.4?[f.position.x,f.position.z]:null; } }
     let moving=false;
     if(tgt){ const dx=tgt[0]-g.position.x, dz=tgt[1]-g.position.z, d=Math.hypot(dx,dz);
+      /* ---- AND NO ONE IS LEFT STANDING AGAINST A WALL FOR EVER ----
+         The act waits for everyone it sends to arrive. A figure walked straight at his mark and
+         turned a little aside at a wall — so a mark on the far side of a city wall, a house or a
+         crowd standing on it held him against it for ever, and the whole story with him, and the
+         game could not be finished. Two seconds without drawing nearer and he works out the way
+         round (the same walk the witness is led by) and takes it; if there is none, or he is
+         still held, he is simply there. Every rescue is written down for the playtest. */
+      let way=null;
+      if(d>0.15&&!(u.follow&&d<=2.4)){ const P=u._prog||(u._prog={d:d,t:0,tx:tgt[0],tz:tgt[1]});
+        if(P.tx!==tgt[0]||P.tz!==tgt[1]){ P.d=d; P.t=0; P.tx=tgt[0]; P.tz=tgt[1]; u._path=null; P.tries=0; }
+        else if(d<P.d-0.25){ P.d=d; P.t=0; } else P.t+=dt;
+        if(P.t>2&&!u._path&&(P.tries||0)<2&&!u.follow&&u.fixedY===undefined){ P.tries=(P.tries||0)+1; P.t=0;
+          const pts=planWay(tgt[0],tgt[1],0.4,{x:g.position.x,y:u.gy!==undefined?u.gy:g.position.y,z:g.position.z});
+          if(pts) u._path={pts,i:0}; else P.t=99; }
+        if(P.t>(u.follow?6:4)){ u._prog=null; u._path=null;
+          const k2=u.follow?Math.max(0,(d-1.6)/d):1;
+          g.position.x+=dx*k2; g.position.z+=dz*k2; u.gy=ctx.groundY(g.position.x,g.position.z,(u.gy||g.position.y)+3);
+          (ST.stuck=ST.stuck||[]).push({who:id,act:act&&act.id,scene:act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id,beat:beatIx,d:+d.toFixed(1),plan:lastPlan});
+          if(!u.follow) u.target=null; continue; }
+        if(u._path){ const W=u._path;
+          while(W.i<W.pts.length-1&&Math.hypot(W.pts[W.i][0]-g.position.x,W.pts[W.i][1]-g.position.z)<0.35) W.i++;
+          way=W.pts[W.i]; } }
+      else { u._prog=null; u._path=null; }
+      if(way){ const wx=way[0]-g.position.x, wz=way[1]-g.position.z, wd=Math.hypot(wx,wz);
+        if(wd>0.05){ const sp=Math.min(wd,(u.speed||2.6)*dt), a=Math.atan2(wx,wz);
+          g.position.x+=Math.sin(a)*sp; g.position.z+=Math.cos(a)*sp; g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=true; } }
+      else
       if(d>0.15){ const sp=Math.min(d,(u.speed||2.6)*dt);
         /* a wall in the way is gone round, not walked through: the step is turned aside, a
            little and then more, until the body would not stand in a block */
@@ -1472,7 +1615,7 @@ function enterBeat(){
   if(T==='say'||T==='read'){ showVerse(B); return; }
   /* a goal or a deed is the player's to walk to: the story lets go of the camera first */
   if((T==='goal'||T==='witness')&&camTarget){ releaseCamera(); controlsOn=true; }
-  if(T==='goal'){ setGoal(B.text); const m=pos(B.goto); ringAt(m); onFrame=()=>{
+  if(T==='goal'){ setGoal(B.text); const m=pos(B.goto); reachBounds(m); ringAt(m); onFrame=()=>{
       if(Math.hypot(player.position.x-m[0],player.position.z-m[1])<(B.r||2.4)){ ringOff(); setGoal(''); nextBeat(); } }; return; }
   if(T==='witness'){ startWitness(B); return; }
   if(T==='choice'){ showChoice(B); return; }
@@ -1504,11 +1647,11 @@ function enterBeat(){
     const Bc=(B.trueFrom&&ctx.trueEarth)?Object.assign({},B,{from:B.trueFrom,look:B.trueLook||B.look}):B;
     if(Bc.release){ releaseCamera(); controlsOn=true; return nextBeat(); }
     const S=Bc.on?shotOf(Bc):null;
-    const at=S?S.look:Array.isArray(Bc.look)&&Bc.look.length===3&&typeof Bc.look[0]==='number'?Bc.look:lookAtSpec(Bc.look);
+    const at=S?S.look:Array.isArray(Bc.look)&&Bc.look.length===3&&typeof Bc.look[0]==='number'?(Bc===B?remap3(Bc.look):Bc.look):lookAtSpec(Bc.look);
     let from;
     if(S) from=S.from;
     else if(Bc.from&&Bc.from.rel){ const g=ctx.actors[Bc.from.rel]||ctx.things[Bc.from.rel], o=Bc.from.off; from=[g.position.x+o[0],g.position.y+o[1],g.position.z+o[2]]; }
-    else if(Array.isArray(Bc.from)&&Bc.from.length===3&&typeof Bc.from[0]==='number') from=Bc.from;
+    else if(Array.isArray(Bc.from)&&Bc.from.length===3&&typeof Bc.from[0]==='number') from=Bc===B?remap3(Bc.from):Bc.from;
     /* a marker (or a marker and a step from it), at `fy` metres, or `fdy` above the ground there */
     else { const m=pos(Bc.from); from=[m[0],Bc.fdy!==undefined?(ctx.groundY(m[0],m[1])||0)+Bc.fdy:(Bc.fy||4),m[1]]; }
     holdCamera(S?from:faceSafe(from,at),at,ST.fast?0.01:(Bc.dur||2.5));
@@ -1576,7 +1719,7 @@ function enterBeat(){
     const by=B.by?new THREE.Vector3(...B.by):null;
     /* `hold`: a figure carried up (Acts 1:9) is held where the drift leaves him, not set back on the ground */
     if(B.hold) for(const id of [].concat(B.id)){ const g=ctx.actors[id]; if(g&&g.userData.fixedY===undefined) g.userData.fixedY=g.position.y; }
-    const D={objs,from:objs.map(q=>q.position.clone()),to:by?null:new THREE.Vector3(...B.to),by,t:0,dur:ST.fast?0.001:(B.dur||3)};
+    const D={objs,from:objs.map(q=>q.position.clone()),to:by?null:new THREE.Vector3(...remap3(B.to)),by,t:0,dur:ST.fast?0.001:(B.dur||3)};
     ctx.drifts.push(D);
     if(B.wait===false) return nextBeat();
     onFrame=()=>{ if(D.t>=1) nextBeat(); }; return; }
@@ -1743,7 +1886,15 @@ function ringOff(){ if(ring){ scene.remove(ring); ring.userData.beam.sprite.pare
 /* ---- THE WITNESS: small faithful things to do ----
    items: things to lay a hand on, each `hold` seconds; `deliver` takes it to a
    marker (it follows the player there); `send` sends it on its own. */
+/* ---- A MARK IS ALWAYS INSIDE THE GROUND THAT MAY BE WALKED ----
+   A scene keeps the witness within its bounds. At the true measure some of its marks are the
+   city's own and lie far out of the box written for the small map (the House stands four hundred
+   and seventy metres from the house of the taught ones), so the mark could be seen and never
+   reached, and the act never finished. The bounds open to take in every place the witness is sent. */
+function reachBounds(m){ const b=ctx.bounds; if(!b||!m) return; const M=8;
+  if(m[0]-M<b.x0) b.x0=m[0]-M; if(m[0]+M>b.x1) b.x1=m[0]+M; if(m[1]-M<b.z0) b.z0=m[1]-M; if(m[1]+M>b.z1) b.z1=m[1]+M; }
 function startWitness(B){
+  for(const id of B.items) reachBounds(thingPos(id)); if(B.deliver) reachBounds(pos(B.deliver));
   witness={B,done:new Set(),holding:0,carrying:null};
   setGoal(B.text+'  (0/'+B.items.length+')');
   onFrame=dt=>{
@@ -1959,10 +2110,11 @@ function journal(sc){
    end of each one (window.__STAGE_TICK), before it draws: the story moves its people, holds
    its camera, keeps His face from the lens, and sets the voyage's eye from its own. */
 function frame(dtW){
-  const dt=Math.min(0.05,clock.getDelta()), t=clock.elapsedTime;
+  const dt0=Math.min(0.05,clock.getDelta()), dt=ST.simDt||dt0, t=clock.elapsedTime;
   if(!running||!ctx){ idleView(t); return; }
   keepWorld();
   beatT+=dt;
+  if(ST.playtest) playStep();
   movePlayer(dt); moveActors(dt); moveFlock(dt,t);
   if(ctx.tickers) for(const f of ctx.tickers) f(dt);                                   /* a set's own motion: the wheat in the wind */
   for(const f of ctx.flicker){ const k=0.85+Math.sin(t*13)*0.08+Math.sin(t*7.3)*0.07; f.sprite.scale.setScalar(f.base*k); if(f.light) f.light.intensity=1.4*k; }
@@ -1990,7 +2142,7 @@ function frame(dtW){
     if(g){ const m=SV.mouth(T.sp.key)||0, k=1+m*0.12; g.sprite.scale.set(g.base*k,g.base*k*(g.aspect||1),1); } }
   if(ST.fast) fastStep();
   if(onFrame) onFrame(dt);
-  actPressed=false;
+  actPressed=false; if(ST.playtest) actHeld=false;
   updateCamera(dt);
   /* the test harness may hold the eye on a point (ST.camHold: {from,look}) — never past the guard */
   if(ST.camHold){ camera.position.set(...ST.camHold.from); camera.lookAt(...ST.camHold.look); }
@@ -2037,6 +2189,22 @@ function idleView(t){
   vc.lookAt(idleAt.x,idleAt.y+30,idleAt.z); vc.updateMatrixWorld();
 }
 
+/* ---- THE PLAYTEST'S HAND: every act played as a player plays it, in the game's own time ----
+   The fast hand below sets the witness straight down on every mark and every figure straight on
+   his, so it can never find a figure who does not arrive or a mark no one can walk to — and that
+   is exactly how the game was once left unfinishable. This hand reads nothing (the text is
+   advanced as soon as it shows) but WALKS: it is led to each mark by the way a man's feet could
+   take (guideSteer), presses E at each thing to be taken up, carries it to its place, and waits
+   for every figure the story sends to arrive on his own legs. What could not be done is written
+   in ST.stuck. */
+function playStep(){
+  if(fulfilOpen){ closeFulfil(); return; }
+  if(!$('choice').classList.contains('off')){ hide('choice'); nextBeat(); return; }
+  if(waitingAdvance){ advance(); return; }
+  const B=beat; if(!B) return;
+  if(B.t==='cam') camT=1;
+  if(B.t==='witness'){ actHeld=true; actPressed=true; }
+}
 /* ---- THE TEST HARNESS'S HAND: one beat a frame, taken as a player would ---- */
 function fastStep(){
   const B=beat; if(!B) return;
@@ -2064,7 +2232,8 @@ ST.boot=function(opt){
   /* for the test harness: where the story stands, and a way to run it */
   window.__STORY={ST,save,get act(){ return act&&act.id; },get scene(){ return act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id; },
     get beat(){ return beat; },get beatIx(){ return beatIx; },run:(id,s)=>{ const a=ST.acts.find(q=>q.id===id); stopAct(); runAct(a,s||0); },
-    advance, get running(){ return running; }, ctx:()=>ctx, faceExposed, dbg:{clearShot,lineClear,camFree,exposedFrom,HOURS,applyTime,free:()=>{ releaseCamera(); controlsOn=true; onFrame=null; }}, player:()=>player, camera:()=>camera,
+    advance, get running(){ return running; }, ctx:()=>ctx, faceExposed, dbg:{blocked,solidFor,planWay,ground:(x,z,r)=>ctx.groundY(x,z,r),pos:m=>pos(m),clearShot,lineClear,camFree,exposedFrom,HOURS,applyTime,free:()=>{ releaseCamera(); controlsOn=true; onFrame=null; }}, player:()=>player, camera:()=>camera,
+    stuck:()=>ST.stuck||[], beatT:()=>beatT,
     reset:()=>{ save.codex={}; save.acts={}; save.witnessed=0; save.road={}; save.bonds={}; persist(); } };
 };
 })();
