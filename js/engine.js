@@ -2301,10 +2301,31 @@ const DRY_BELOW=[
   {n:'Danakil',lat:[13.3,15.2],lon:[39.7,41.0]},
   {n:'Death Valley',lat:[35.7,36.9],lon:[-117.4,-116.4]}];
 /* the waters of a depression: its level as the data reads it, and how deep it lies under that */
+/* THE SHORE OF KINNERETH, as it runs: read off the data alone the lake came out patched and a
+   kilometre short of its shores — the tiles sample the rift at a hundred and thirty metres and read
+   the water as anything from -207 to -224, and the strands of the north and east were land — and
+   Kephar Naḥum, which stands on the water's edge, stood seven hundred metres from it. So its shore
+   is given, (lat,lon) round from the inflow of the Yardĕn: the east shore under the Golan, Ein Gev,
+   Tsemaḥ, the outflow, Ḥammath and Tiberias, Magdala, Ginosar, Tabgha, Kephar Naḥum. */
+const KINNERETH_SHORE=[[32.887,35.618],[32.8835,35.628],[32.876,35.635],[32.865,35.641],[32.85,35.6445],[32.835,35.646],
+  [32.825,35.6475],[32.81,35.646],[32.795,35.643],[32.784,35.64],[32.77,35.6355],[32.755,35.63],[32.74,35.623],[32.728,35.613],
+  [32.717,35.6],[32.708,35.588],[32.706,35.58],[32.711,35.572],[32.72,35.567],[32.735,35.561],[32.75,35.556],[32.768,35.55],
+  [32.78,35.544],[32.792,35.539],[32.805,35.53],[32.815,35.523],[32.825,35.5185],[32.838,35.519],[32.848,35.523],[32.858,35.53],
+  [32.866,35.539],[32.873,35.549],[32.877,35.56],[32.88,35.57],[32.8803,35.576],[32.882,35.588],[32.885,35.6],[32.887,35.61]];
 const RIFT_LAKES=[
-  {n:'Kinnereth',lat:[32.69,32.92],lon:[35.49,35.66],level:-216,deep:43},
+  {n:'Kinnereth',lat:[32.69,32.92],lon:[35.49,35.66],level:-216,deep:43,shore:KINNERETH_SHORE},
   {n:'the Salt Sea',lat:[31.02,31.80],lon:[35.33,35.62],level:-415,deep:300}];
 function inBoxLL(b,lat,lon){ return lat>=b.lat[0]&&lat<=b.lat[1]&&lon>=b.lon[0]&&lon<=b.lon[1]; }
+/* a place within a shore given as (lat,lon) points; and how far it is from that shore, in metres */
+function inPolyLL(P,lat,lon){ let inside=false;
+  for(let i=0,j=P.length-1;i<P.length;j=i++){ const ya=P[i][0], xa=P[i][1], yb=P[j][0], xb=P[j][1];
+    if(((ya>lat)!==(yb>lat))&&(lon<(xb-xa)*(lat-ya)/(yb-ya)+xa)) inside=!inside; }
+  return inside; }
+function shoreDistM(P,lat,lon){ const kx=M_PER_DEG*Math.cos(lat*Math.PI/180), ky=M_PER_DEG; let best=1e12;
+  for(let i=0,j=P.length-1;i<P.length;j=i++){ const ax=(P[j][1]-lon)*kx, ay=(P[j][0]-lat)*ky, bx=(P[i][1]-lon)*kx, by=(P[i][0]-lat)*ky;
+    const dx=bx-ax, dy=by-ay, t=Math.max(0,Math.min(1,-(ax*dx+ay*dy)/(dx*dx+dy*dy||1)));
+    best=Math.min(best,Math.hypot(ax+dx*t,ay+dy*t)); }
+  return best; }
 /* the place of a column on the earth */
 function latLonOf(x,z){ const u=x/R_WORLD, v=z/R_WORLD; return [90-Math.hypot(u,v)*180, Math.atan2(u,v)*180/Math.PI]; }
 /* whether a place of the map lies in one of the dry basins under the sea's level (the rift, Qattara):
@@ -2332,7 +2353,7 @@ function cellRawTrue(ix,iz){
   if(e0<=0.5){
     for(const D of DRY_BELOW) if(inBoxLL(D,lat,lon)){ dry=true; break; }
     if(!dry) return null;                                /* the sea */
-    for(const L of RIFT_LAKES) if(inBoxLL(L,lat,lon)&&e0<=L.level+1.5){ lake=L; break; }
+    for(const L of RIFT_LAKES) if(inBoxLL(L,lat,lon)&&(L.shore?inPolyLL(L.shore,lat,lon):e0<=L.level+1.5)){ lake=L; break; }
   }
   /* the country: read off the chart, and where the chart's coarse coast says sea under true land,
      from the nearest pixel that is a country */
@@ -2342,14 +2363,22 @@ function cellRawTrue(ix,iz){
   const j=hash2(ix,iz), n=fbm(ix*.11,iz*.11), n2=fbm(ix*.023/WORLD_K+40,iz*.023/WORLD_K-70);
   if(lake){
     /* the bed falls from the strand to the lake's own depth toward its middle */
-    const cy=(lake.lat[0]+lake.lat[1])/2, cx2=(lake.lon[0]+lake.lon[1])/2;
-    const ry=(lake.lat[1]-lake.lat[0])/2, rx=(lake.lon[1]-lake.lon[0])/2;
-    const q=Math.min(1,Math.hypot((lat-cy)/ry,(lon-cx2)/rx));
-    const bedM=lake.level-lake.deep*Math.pow(1-q,0.7)-1.5;
+    let bedM;
+    if(lake.shore){ const d=shoreDistM(lake.shore,lat,lon);                        /* (a shore given: deepening from it) */
+      bedM=lake.level-1-lake.deep*Math.pow(Math.min(1,d/2500),0.8); }
+    else{ const cy=(lake.lat[0]+lake.lat[1])/2, cx2=(lake.lon[0]+lake.lon[1])/2;
+      const ry=(lake.lat[1]-lake.lat[0])/2, rx=(lake.lon[1]-lake.lon[0])/2;
+      const q=Math.min(1,Math.hypot((lat-cy)/ry,(lon-cx2)/rx));
+      bedM=lake.level-lake.deep*Math.pow(1-q,0.7)-1.5; }
     return {h:Math.round(bedM/M_PER_BLK), kind:'sand', tree:0, ci, dk:false, lake:Math.round(lake.level/M_PER_BLK)};
   }
   /* the fractal comes in over the first twenty metres of the strand, so the coast stays where it is */
-  const em=dry?e0+T.d:Math.max(0.6,e0+T.d*Math.min(1,Math.max(0,e0/20)));
+  let em=dry?e0+T.d:Math.max(0.6,e0+T.d*Math.min(1,Math.max(0,e0/20)));
+  /* about a lake whose shore is given, the land stands above its water (the data's own reading of the
+     strand is often under it), and the first metres up from the water are its beach */
+  let strand=false;
+  if(dry) for(const L of RIFT_LAKES) if(L.shore&&inBoxLL(L,lat,lon)){ const d=shoreDistM(L.shore,lat,lon);
+    const lo=L.level+1.2*M_PER_BLK+Math.min(3,d*0.02); if(em<lo) em=lo; strand=d<14; break; }
   let h=Math.round(em/M_PER_BLK); if(!dry&&h<1) h=1;
   /* how steep: the fall of the data across a sample, in metres to the metre */
   const dl=0.5/111195*T.sp;
@@ -2371,7 +2400,7 @@ function cellRawTrue(ix,iz){
   const beach=!snow&&!tundra&&!dry&&em<2.6&&sl<0.06;
   const dens=GROUND.closure(ix,iz);
   let kind, tree=0;
-  if(beach){ kind='sand'; if(tropic&&j<0.022*dens) tree=2; }
+  if(beach||strand){ kind='sand'; if(tropic&&j<0.022*dens) tree=2; }
   else if(snow) kind='snow';
   else if(tundra){ kind='tundra'; tree=j<0.016*dens?1:0; }
   else if(alpine){ kind=h>treeLine+(snowLine-treeLine)*0.45?'rock':'alpine'; tree=(kind==='alpine'&&j<0.016*dens)?1:0; }
