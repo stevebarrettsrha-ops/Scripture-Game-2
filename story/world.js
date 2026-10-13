@@ -1259,7 +1259,7 @@ function pixWing(V,o){
 W.seraph=function(o){ o=o||{};
   const g=new THREE.Group(), V=new Vox();
   const side=s=>{ if(s>0) return g; const m=new THREE.Group(); m.scale.x=-1; g.add(m); return m; };
-  const ROBE=0x3a2080, ROBE2=0x45288f, ROBE3=0x30196c, GOLD=0xf0bc44, GOLD2=0xd89a2a;
+  const ROBE=0x341c78, ROBE2=0x3c2286, ROBE3=0x2a1662, GOLD=0xf0bc44, GOLD2=0xd89a2a;
   const FIRE=0xff8c22, FIRE2=0xffb03a, FIRE3=0xe0601a, HOT=0xfff0a0, EMBER=0xb8400e;
   /* the robe: stepped tier on tier from the girdle to a hem spread wide, gold run down it in stripes */
   const TH=0.1, Y0=1.5;

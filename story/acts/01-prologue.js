@@ -82,7 +82,7 @@ STORY.act({
       {t:'read', ref:'YASHAYAHU 6:1', who:'nabi'},
       {t:'show', id:['ser1','ser2','ser3','ser4']},
       /* close on one of them: his face covered, his feet covered, and with two he flies */
-      {t:'cam', from:['heaven',-3,4], fy:220+9, look:{at:['heaven',-6.5,-10], y:220+12.4}, dur:3},
+      {t:'cam', from:['heaven',-10,1.5], fy:220+8.6, look:{at:['heaven',-6.5,-10], y:220+12.2}, dur:3},
       {t:'read', ref:'YASHAYAHU 6:2', who:'nabi'},
       {t:'cam', from:['heaven',-10,1], fy:220+10, look:{at:['heaven',0,-12], y:220+12.5}, dur:2.5},
       {t:'read', ref:'YASHAYAHU 6:3', teller:'nabi', voices:['seraph']},
