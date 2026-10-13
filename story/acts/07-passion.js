@@ -242,7 +242,7 @@ STORY.act({
       {t:'move', who:'widow', to:[-1.6,-38.4], speed:0.7},
       {t:'cam', from:[3.4,5.8,-35.6], look:'widow', dur:2},
       {t:'read', ref:'MARK 12:42'},
-      {t:'move', who:'widow', to:[-8,-37], speed:0.7, wait:false},
+      {t:'move', who:'widow', to:[-6,-39.4], speed:0.7, wait:false},              /* (back the way she came: further on, in the true court, is a wall) */
       {t:'face', who:'yahusha', to:'kepha'},
       {t:'cam', on:'yahusha', shot:'back', toward:'kepha', dur:1.6},
       {t:'say', who:'yahusha', ref:'MARK 12:43-44', turn:false},
@@ -319,7 +319,7 @@ STORY.act({
       {t:'say', who:'yahusha', ref:'LUKE 22:11', turn:false},
       {t:'say', who:'yahusha', ref:'LUKE 22:12', turn:false},
       {t:'cam', release:true},
-      {t:'move', who:['kepha','yahuchanon'], to:['gateIn',['gateIn',-1.4,0.6]], speed:1.4},
+      {t:'move', who:['kepha','yahuchanon'], to:['gateIn',['gateIn>gateOut',1.2,0.5]], speed:1.4},   /* (the one behind the other in the gateway, whichever way the city's gate is turned) */
       {t:'move', who:'jarman', to:[-6,30], speed:1, wait:false},
       {t:'move', who:['kepha','yahuchanon'], to:[[-6.4,32],[-7.6,32.6]], speed:1.3},
       {t:'goal', text:'Go in with them, and follow the man with the jar', goto:[-8,34], r:4},

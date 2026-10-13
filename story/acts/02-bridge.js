@@ -67,7 +67,7 @@ STORY.act({
        seen the first House, and the people (Ezra 3:10-12) */
     actors:[
       ...[0,1,2,3].map(k=>({id:'kh'+k, dress:'kohen', at:[1+k*3.2,-33.6], face:Math.PI, beard:[0x6d6a66,0x2c241f,0x3a2a1e,0x9a948a][k]})),
-      ...[0,1,2].map(k=>({id:'lw'+k, dress:'levite', at:[17+k*1.6,-36+k*1.2], face:-Math.PI*0.6, beard:0x3a2a1e})),
+      ...[0,1,2].map(k=>({id:'lw'+k, dress:'levite', at:[2.6+k*3.2,-31.1], face:Math.PI, beard:0x3a2a1e})),   /* (between the kohanim and the people: on the true earth the place they stood before was a roof) */
       ...[0,1,2].map(k=>({id:'old'+k, kind:'oldman', at:[-6.4+k*1.4,-38.4-k*0.8], face:Math.PI*0.75, robe:[0x5c5040,0x6b5a44,0x4a4036][k], cloth:0xe8e2d2, beard:0xc8c4bc})),
       ...[0,1,2,3,4,5,6,7].map(k=>({id:'rp'+k, at:[-4+k*2.2,-28.6+(k%2)*1.6], face:Math.PI,
         robe:[0x7c6a52,0x5f6a52,0x8e6f4c,0x6b5a44,0x74604a,0x5c5040,0x8a7a60,0x6e5a70][k], cloth:[0xcfc4aa,0xe8e2d2,0xb9ab8e,0x3c3a44][k%4], beard:k%3===1?null:0x2c241f, kind:k%3===1?'woman':'man'}))
