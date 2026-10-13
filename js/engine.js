@@ -2957,6 +2957,17 @@ function roadCell(c,x,z){ if(!ROADS.size||c.kind==='wall'||c.kind==='floe') retu
   for(const [ax,az,bx,bz] of L){ const dx=bx-ax, dz=bz-az, l2=dx*dx+dz*dz||1, t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/l2));
     if(Math.hypot(x-ax-dx*t,z-az-dz*t)<W){ c.tree=0; c.stump=0; c.bare=2; c.road=1; return true; } }
   return false; }
+/* ---- WILD COUNTRY: no village, town or city, nor its fields, nor a road, within r of (x,z) ----
+   For a scene of the making of the world, which must not have a ploughed field standing on the shore
+   of the third day (Bereshith 2:5, "there was no man to till the ground"). */
+function wildAt(x,z,r){ r=r||0;
+  for(const st of SITES){ if(!st) continue; const P=settleProfile(st), R=Math.max(P.farm||0,P.edge)+r;
+    if((x-st.x)**2+(z-st.z)**2<R*R) return false; }
+  if(yahruPos&&Math.hypot(x-yahruPos.x,z-yahruPos.z)<9000+r) return false;
+  for(let du=-1;du<=1;du++) for(let dv=-1;dv<=1;dv++){ const L=ROADS.get((Math.floor(x/ROAD_T)+du)+','+(Math.floor(z/ROAD_T)+dv)); if(!L) continue;
+    for(const [ax,az,bx,bz] of L){ const dx=bx-ax, dz=bz-az, l2=dx*dx+dz*dz||1, t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/l2));
+      if(Math.hypot(x-ax-dx*t,z-az-dz*t)<r) return false; } }
+  return true; }
 function topY(ix,iz){ const c=cell(ix,iz); return c? c.h*B : WATER_Y; }
 function landAtWorld(x,z){ return cell(Math.floor(x/B),Math.floor(z/B)); }
 function computeSites(){
@@ -21947,6 +21958,7 @@ window.__WORLD={
   ensureFlyDome,flyDome:()=>flyDome,
   R_WORLD,B,WATER_Y,SEA_SURF,CLOUD_Y,U_PER_M,
   state,setMode,updateChunks,landAtWorld,seaHeight,findStart,
+  trueEarth:TRUE_EARTH, wildAt,
   /* THE HOUR, for a stage that is staged somewhere the traveller is not.
      `setLocalHour` takes the longitude out of the world clock, so an hour
      asked for is the hour of the DAY at the place named — the same rule
