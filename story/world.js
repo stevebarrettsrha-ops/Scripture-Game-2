@@ -1231,6 +1231,7 @@ Vox.prototype.into=function(par){ const out=[];
    blocks, each ending a step longer or shorter than the next, and each burning at its end.
    Broad through the middle, narrowing to a tip that turns up. */
 const SER_BLUE={bone:0xf4c64e,cov:0x1d2f74,cov2:0x2a4596,sec:0x3359b4,sec2:0x3f6bc8,pri:0x5a88dc,pri2:0x78a2ea,end:0xffc23c,fire:0xff8a1c};
+const SER_FLY=0.66;   /* (how high the flying wings are lifted from the level) */
 const SER_GOLD={bone:0xfff2b8,cov:0xc98a1e,cov2:0xd99c2a,sec:0xe6ae34,sec2:0xeebd48,pri:0xf4cc5c,pri2:0xf8d870,end:0xffd060,fire:0xff9a28};
 function pixWing(V,o){
   const P=o.pal, v=o.v||0.1, L=o.span, C=o.chord, th=o.th||0.08, n=Math.max(4,Math.round(L/v));
@@ -1250,16 +1251,16 @@ function pixWing(V,o){
       V.box(v*1.02,v*1.02,th,c,x,y,z,glow); } } }
 /* A SERAPH, "a burning one" (Yashayahu 6:2,6), laid in blocks as the land is: "each one had six
    wings; with two he covered his face, and with two he covered his feet, and with two he flew."
-   The two over his face fold about his head and meet above it, their ends rising over him, the
-   burning face seen between their edges of gold; the two over his feet are crossed before his robe;
-   the two he flies with are raised high and wide behind him. A breast of fire, a long robe stepped
-   wide to its hem. `tongs`: he holds the tongs he takes the live coal with from off the altar —
-   upright, as a torch, until the coal is in them; then held out before him. Some 3.4 high to the
-   ends of the wings over his head, facing +z, his feet at the origin. */
+   The two over his face spring from the sides of his head and are folded across before it; the
+   two he flies with are spread wide behind him; the two below hang down his sides from the girdle
+   to his feet, wrapping them. A breast of fire, a robe of white and gold stepped wide to its hem.
+   `tongs`: he holds the tongs he takes the live coal with from off the altar — upright, as a torch,
+   until the coal is in them; then he bows and reaches down with them. Some 3.4 high to the tops of
+   his wings, facing +z, his feet at the origin. */
 W.seraph=function(o){ o=o||{};
   const g=new THREE.Group(), V=new Vox();
   const side=s=>{ if(s>0) return g; const m=new THREE.Group(); m.scale.x=-1; g.add(m); return m; };
-  const ROBE=0x341c78, ROBE2=0x3c2286, ROBE3=0x2a1662, GOLD=0xf0bc44, GOLD2=0xd89a2a;
+  const ROBE=0xf7f4ec, ROBE2=0xece6d6, ROBE3=0xdcd2bc, GOLD=0xf0bc44, GOLD2=0xd89a2a;
   const FIRE=0xff8c22, FIRE2=0xffb03a, FIRE3=0xe0601a, HOT=0xfff0a0, EMBER=0xb8400e;
   /* the robe: stepped tier on tier from the girdle to a hem spread wide, gold run down it in stripes */
   const TH=0.1, Y0=1.5;
@@ -1285,33 +1286,21 @@ W.seraph=function(o){ o=o||{};
   for(const s of [-1,1]){ V.box(0.1,0.04,0.03,0x7a2406,s*0.08,2.66,0.196,true); V.box(0.07,0.05,0.03,0xfffbe8,s*0.08,2.615,0.198,true); }
   V.box(0.04,0.08,0.03,0xffe090,0,2.54,0.198,true);
   V.box(0.1,0.05,0.03,0x6a1c04,0,2.47,0.198,true);
-  /* the two over his face: folded about the head from behind, their edges of gold meeting before it,
-     and over it, their ends rising above him */
-  const R0=0.35;
-  for(const s of [-1,1]){ const P=side(s);
-    const Vs=s>0?V:new Vox(); /* (the left is laid as the right and turned in the glass) */
-    for(let y=2.12;y<3.04;y+=0.085){
-      const R=y<2.34?R0+(2.34-y)*0.45:y<2.76?R0+0.015*Math.sin((y-2.34)*7):R0*Math.sqrt(Math.max(0.06,1-Math.pow((y-2.76)/0.3,2)));
-      const a0=y<2.42?0.42:y<2.76?0.6:Math.max(0.1,0.6-(y-2.76)*2.4);                                      /* the face seen between them */
-      const n=Math.max(3,Math.round((Math.PI-a0)*R/0.085)), row=Math.round((y-2.12)/0.085);
-      for(let k=0;k<n;k++){ const a=a0+(k+0.5)/n*(Math.PI-a0);
-        let c=k===0?GOLD:k===1?0x7aa4ec:k<4?SER_BLUE.sec2:k<6?SER_BLUE.sec:SER_BLUE.cov;
-        if(k>1&&(row+(k>>1))%3===0) c=mixHex(c,0x101840,0.32);                                            /* in rows of feathers */
-        Vs.box(0.09,0.09,0.08,c,Math.sin(a)*R,y,Math.cos(a)*R,false,a); }
-      if(row===0) for(let k=0;k<n;k++){ const a=a0+(k+0.5)/n*(Math.PI-a0), Rk=R+0.015, dn=(k%3===1)?2:1;          /* their feathers' ends, burning, on his shoulders */
-        for(let q=1;q<=dn;q++) Vs.box(0.09,0.085,0.08,q===dn?SER_BLUE.fire:SER_BLUE.end,Math.sin(a)*Rk,y-q*0.085,Math.cos(a)*Rk,true,a); } }
-    /* the ends of the two, rising over his head as wings */
-    const tp=new THREE.Group(); tp.position.set(0.16,2.9,0.04); tp.rotation.set(0,-0.12,1.02); P.add(tp);
-    const Vt=new Vox(); pixWing(Vt,{span:0.9,chord:0.5,v:0.075,pal:SER_BLUE,lift:0.45,th:0.07}); Vt.into(tp);
-    if(Vs!==V) Vs.into(P); }
-  /* the two he flies with: raised from behind his shoulders, high and wide, swept back */
   const W6={fly:[],face:[],feet:[]};
-  for(const s of [-1,1]){ const P=side(s), pv=new THREE.Group(); pv.position.set(0.22,2.32,-0.3); pv.rotation.set(0,-0.3,0.98); P.add(pv);
+  /* the two over his face: from the sides of his head, above the ears, laid down across before it,
+     crossed the one over the other */
+  for(const s of [-1,1]){ const P=side(s), pv=new THREE.Group(); pv.position.set(0.3,2.88,s>0?0.255:0.225); pv.rotation.z=-2.46; pv.scale.y=-1; P.add(pv);
+    const Vw=new Vox(); pixWing(Vw,{span:0.8,chord:0.34,v:0.055,pal:SER_BLUE,lift:0.08,th:0.045}); Vw.into(pv); W6.face.push(pv); }
+  /* the two he flies with: from behind his shoulders, spread wide */
+  for(const s of [-1,1]){ const P=side(s), pv=new THREE.Group(); pv.position.set(0.22,2.32,-0.3); pv.rotation.set(0,-0.3,SER_FLY); P.add(pv);
     const Vw=new Vox(); pixWing(Vw,{span:3.4,chord:1.6,v:0.1,pal:SER_BLUE}); Vw.into(pv); W6.fly.push(pv); }
-  /* the two over his feet: from his girdle, crossed before the robe, their ends at his feet */
-  for(const s of [-1,1]){ const P=side(s), pv=new THREE.Group(); pv.position.set(0.5,1.12,0.36+(s>0?0.04:0)); pv.rotation.set(-0.36,0,0); P.add(pv);
-    const wi=new THREE.Group(); wi.rotation.z=-2.36; wi.scale.y=-1; pv.add(wi);
-    const Vw=new Vox(); pixWing(Vw,{span:1.5,chord:0.46,v:0.075,pal:SER_GOLD,lift:0.1,th:0.07}); Vw.into(wi); W6.feet.push(pv); }
+  /* the two over his feet: from his girdle down his sides, outside the robe as it spreads, their
+     feathers drawn back about him, their ends at his feet */
+  for(const s of [-1,1]){ const P=side(s), pv=new THREE.Group(); pv.position.set(0.44,1.62,0.24); P.add(pv);
+    const S=new THREE.Vector3(0.6,-1.52,0.06).normalize(), F=new THREE.Vector3(0.55,0,-1).normalize(), Y=F.clone().negate();
+    const Z=new THREE.Vector3().crossVectors(S,Y).normalize(); Y.crossVectors(Z,S).normalize();
+    pv.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(S,Y,Z));
+    const Vw=new Vox(); pixWing(Vw,{span:1.66,chord:0.7,v:0.075,pal:SER_GOLD,lift:0.06,th:0.07}); Vw.into(pv); W6.feet.push(pv); }
   V.into(g);
   /* his arms, in the robe's sleeves, the hands of fire: the left before him; the right held out,
      with the tongs when he has them */
@@ -1338,7 +1327,7 @@ W.seraph=function(o){ o=o||{};
    and reaches down with them before him, arm and tongs in one line, their end come in under his own
    middle: so a man kneeling before him has the coal brought to his lips (6:7) */
 W.seraphTick=function(g,dt){ const u=g.userData, W6=u.wings6; if(!W6) return; u.t+=dt; const a=Math.sin(u.t*3.2)*0.2;
-  for(const w of W6.fly) w.rotation.z=0.98+a;
+  for(const w of W6.fly) w.rotation.z=SER_FLY+a;
   if(u.arm){ const k=u.carry+=((u.coal&&u.coal.visible?1:0)-u.carry)*Math.min(1,dt*2.5), A=u.arm;
     A.sh.rotation.x=-0.25+(-0.96+0.25)*k; A.sh.rotation.y=-0.3*k; A.el.rotation.x=1.57*k; A.hd.rotation.x=0.25+(1.57-0.25)*k;
     g.rotation.x=0.35*k; } };

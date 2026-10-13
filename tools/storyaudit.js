@@ -128,8 +128,13 @@ function auditScene(P){
         const lines=[];
         if(R.err) lines.push('ERROR   could not be raised: '+R.err);
         let bad=0;
-        if(R.water){ const off=R.water.lakeWet<70||(R.water.stageWet!==null&&R.water.stageWet>15); if(off) bad++;
-          lines.push('WATER   its water over the earth\'s water '+R.water.lakeWet+'%; its dry stage over the earth\'s water '+(R.water.stageWet===null?'-':R.water.stageWet+'%')+(off?'   <-- does not agree':'')); }
+        /* (two agreements that look like disagreements: a river the scene lays where the earth draws none
+            — neither its water nor its stage over the earth's water — and a scene played out on the water
+            itself, in a boat — both wholly over it) */
+        if(R.water){ const lw=R.water.lakeWet, sw=R.water.stageWet;
+          const own=lw===0&&!sw, afloat=lw>=95&&sw!==null&&sw>=95;
+          const off=!own&&!afloat&&(lw<70||(sw!==null&&sw>15)); if(off) bad++;
+          lines.push('WATER   its water over the earth\'s water '+lw+'%; its dry stage over the earth\'s water '+(sw===null?'-':sw+'%')+(off?'   <-- does not agree':own?'   (its own river, where the earth draws none)':afloat?'   (played on the water)':'')); }
         for(const p of R.spots||[]){ lines.push('SPOT    '+p); bad++; }
         for(const w of R.ways||[]){ lines.push('WAY     '+w); bad++; }
         for(const nt of R.notes||[]) lines.push('note    '+nt);
