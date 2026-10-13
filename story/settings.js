@@ -1037,7 +1037,7 @@ S.damascus=function(ctx,st){
   room(ctx,st,15,5,23,12,{door:'w',wall:C.limestone});                                           /* the house of Yahuḏah */
   for(let k=0;k<26;k++){ const x=-100+W.hash(k,2)*70, z=(W.hash(k,3)<0.5?-1:1)*(5+W.hash(k,4)*30); W.olive(st,x,z,0.9); }   /* the gardens */
   mk(ctx,'road0',-58,-2.7); mk(ctx,'road1',-50,-2.1); mk(ctx,'light',-42,-1.4); mk(ctx,'road2',-32,-0.6); mk(ctx,'gate',-22,0); mk(ctx,'gateIn',-17,0);
-  mk(ctx,'straight',4,0); mk(ctx,'yahudahDoor',14,8.5); mk(ctx,'yahudahIn',17.4,8.5); mk(ctx,'bed',21,10.5); mk(ctx,'hananyah',40,-6);
+  mk(ctx,'straight',4,0); mk(ctx,'yahudahDoor',14,8.5); mk(ctx,'yahudahIn',17.4,8.5); mk(ctx,'bed',21,10.5); mk(ctx,'hananyah',40,-4.6);   /* (in the street before his door, not in its wall) */
   /* the city about its day: sellers along the street called Straight under its colonnades, people
      going up and down it, the gardeners among the trees outside the wall */
   W.folk(ctx,[

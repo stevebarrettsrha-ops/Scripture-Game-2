@@ -259,8 +259,8 @@ STORY.act({
       Object.assign({id:'stephanos', at:'accused', face:Math.PI},STEPHANOS),
       {id:'kohenG', name:'The kohen gadol', key:'Qayapha', dress:'kohen', at:'qayapha', face:0, robe:0x3a3a6a, cloth:0xe8e0cc, beard:0x6d6a66, kind:'oldman', sit:true, bench:true},
       ...folk('o',10,[5.6,24.8,18.4,25.4],0,{dress:'scribe', kind:'oldman', sit:true, bench:true}),
-      {id:'fr0', name:'Men put up to it', at:['accused',-2.4,1.4], face:Math.PI, robe:0x6a5a3a, cloth:0xcfc4aa, beard:0x2c241f},
-      {id:'fr1', at:['accused',2.4,1.6], face:Math.PI, robe:0x5a4a3a, cloth:0xb9ab8e, beard:0x1e1814},
+      {id:'fr0', name:'Men put up to it', at:['accused',-2.4,2.2], face:Math.PI, robe:0x6a5a3a, cloth:0xcfc4aa, beard:0x2c241f},
+      {id:'fr1', at:['accused',2.4,2.2], face:Math.PI, robe:0x5a4a3a, cloth:0xb9ab8e, beard:0x1e1814},
       Object.assign({id:'shaul', at:['fire',2.4,0.6], face:Math.PI*1.1},SHAUL),
       ...folk('h',6,[9,30,17,34],Math.PI)
     ],
@@ -453,7 +453,7 @@ STORY.act({
     ],
     things:[ {id:'food', kind:'basket', at:['straight',6,1.4], full:true} ],
     /* the Master in a vision: light, as on the road (the speaker's glow is 'light') */
-    glows:[ {id:'light', at:['hananyah',0,-1.6], dy:2.4, size:2.6, color:0xfff6dc, intensity:1.2, pulse:true, hidden:true},
+    glows:[ {id:'light', at:['hananyah',-1.6,0], dy:2.4, size:2.6, color:0xfff6dc, intensity:1.2, pulse:true, hidden:true},
             /* "something like scales fell from his eyes" (9:18) */
             {id:'scales', at:['bed',-0.2,0], dy:1.2, size:0.9, color:0xfffbea, intensity:0.6, hidden:true} ],
     beats:[
@@ -527,7 +527,7 @@ STORY.act({
       {t:'wait', s:2.5},
       /* up the stair and in */
       {t:'place', who:'kepha', at:[-6,24.4], y:'tabY', face:-Math.PI/2},
-      {t:'place', who:'m0', at:['tabStreet',0,-1.4], y:null}, {t:'place', who:'m1', at:['tabStreet',-0.6,1], y:null},
+      {t:'place', who:'m0', at:['tabStreet',0.6,-0.2], y:null}, {t:'place', who:'m1', at:['tabStreet',-0.6,1], y:null},
       {t:'face', who:'wd0', to:'kepha'}, {t:'face', who:'wd1', to:'kepha'}, {t:'face', who:'wd2', to:'kepha'},
       {t:'hold', id:'coat0', who:'wd0'}, {t:'hold', id:'coat1', who:'wd1'}, {t:'hold', id:'coat2', who:'wd2'},   /* "showing the inner garments and outer garments" */
       {t:'cam', from:[-6.6,4.7,21.2], look:[-10,3.7,24.4], dur:2},
@@ -576,9 +576,9 @@ STORY.act({
     actors:[
       T('kepha','roof',{face:Math.PI/2, y:'roofY', sit:true}),
       {id:'tanner', name:'Shim‛on the tanner', key:'Shimon the tanner', at:['tannerIn',0,1.4], face:-Math.PI/2, robe:0x5a4030, cloth:0xcfc4aa, beard:0x6d6a66, kind:'oldman'},
-      {id:'sent0', name:'The men from Cornelius', at:['street',-8,-1], face:Math.PI/2, robe:0x6a5a44, cloth:0xd8ceb4, beard:0x2c241f, skin:0xa87a50},
-      {id:'sent1', at:['street',-9,0.6], face:Math.PI/2, robe:0x5a5a6a, cloth:0xcfc4aa, skin:0xb08060},
-      LEGION('sent2',['street',-10,-0.4],Math.PI/2)
+      {id:'sent0', name:'The men from Cornelius', at:['street',-8,3], face:Math.PI/2, robe:0x6a5a44, cloth:0xd8ceb4, beard:0x2c241f, skin:0xa87a50},
+      {id:'sent1', at:['street',-9,4], face:Math.PI/2, robe:0x5a5a6a, cloth:0xcfc4aa, skin:0xb08060},
+      LEGION('sent2',['street',-10,3.4],Math.PI/2)
     ],
     /* the vessel like a great linen sheet (10:11-12), let down before him over the yard by its four
        corners on cords of light, out of the opened shamayim; it goes up and comes down three times (10:16) */
