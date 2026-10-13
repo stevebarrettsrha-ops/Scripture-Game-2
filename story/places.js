@@ -133,7 +133,8 @@ window.STORYPLACES={
       const L=k.landmarks().find(q=>q.n===def.wonder), st=L&&k.landmarkSiteOf(L.i);
       if(st) cache[place]={x:st.x,z:st.z,y:k.topY(st.ix,st.iz)}; } }
     if(!cache[place]) cache[place]=find(def);
-    return Object.assign({period},cache[place]);
+    /* (`turn`: the set laid half round, its east to the west — see story/engine.js, SX) */
+    return Object.assign({period,turn:!!def.turn},cache[place]);
   }
 };
 })();

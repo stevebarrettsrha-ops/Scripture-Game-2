@@ -36,7 +36,7 @@ function auditScene(P){
   try{ S.run(P.id,P.si); }catch(e){ return {scene:sc.id,err:String(e&&e.message||e)}; }
   const ctx=S.ctx(), A=ctx.anchor, Sc=K.setScale, B=K.B;
   const out={scene:sc.id,spots:[],ways:[],notes:[]};
-  const W=(x,z)=>[A.x+x*Sc,A.z+z*Sc];
+  const W=(x,z)=>ctx.toWorldXZ?ctx.toWorldXZ(x,z):[A.x+x*Sc,A.z+z*Sc];
   const natural=(x,z)=>{ const w=W(x,z), c=K.cell(Math.floor(w[0]/B),Math.floor(w[1]/B)); return c?(c.h*B-A.y)/Sc:null; };
   const earthWet=(x,z)=>{ const w=W(x,z), c=K.landAtWorld(w[0],w[1]); return !c||(c.lake!==undefined&&c.lake>c.h); };
   const solid=(x,y,z)=>{ const w=W(x,z); return K.solidAt(w[0],A.y+y*Sc,w[1]); };

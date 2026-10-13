@@ -779,7 +779,7 @@ const floorAt=ctx=>(x,z)=>ctx.groundY(x,z)||0;
    the tomb beside it — must not stand on what it left there the first time: these sets are laid at
    a fixed height (`abs`), the city's own level or the land's own, never on the ground found under them. */
 const fixed=st0=>({box:(a,b,c,d,e,f,g,h)=>st0.box(a,b,c,d,e,f,g,Object.assign({abs:true},h||{})), detail:(...a)=>st0.detail(...a), ground:()=>0, api:st0.api});
-const landY=(ctx,x,z)=>{ const k=window.__KIT, A=ctx.anchor, S=ctx.scene.scale.x, c=k.cell(Math.floor((A.x+x*S)/k.B),Math.floor((A.z+z*S)/k.B)); return c?(c.h*k.B-A.y)/S:0; };
+const landY=(ctx,x,z)=>{ const k=window.__KIT, A=ctx.anchor, S=ctx.scene.scale.x, w=ctx.toWorldXZ(x,z), c=k.cell(Math.floor(w[0]/k.B),Math.floor(w[1]/k.B)); return c?(c.h*k.B-A.y)/S:0; };
 
 /* THE COURTS OF THE HOUSE (Mark 11:15; 12:41): the tables of the money changers in rows and the
    seats of those who sold doves on the court of the nations, west of the inner courts; and the
@@ -1144,7 +1144,7 @@ S.athens=function(ctx,st){
   for(let k=0;k<14;k++){ const a=W.hash(k,4)*6.28, r=34+W.hash(k,5)*20; W.olive(st,Math.cos(a)*r+20,Math.sin(a)*r,0.9); }
   mk(ctx,'agora',24,8); mk(ctx,'altar',18.7,4.6); mk(ctx,'altarFront',21,4.6); mk(ctx,'porch',24,12); mk(ctx,'areopagus',-14,-6); mk(ctx,'arFoot',-2,-6);
   mk(ctx,'idols',30,-4); mk(ctx,'crowd',-10,-2);
-  if(ctx.trueEarth){ const k=window.__KIT, p=k.llToWorld(37.9715,23.7257), ax=(p[0]-ctx.anchor.x)/k.setScale, az=(p[1]-ctx.anchor.z)/k.setScale;
+  if(ctx.trueEarth){ const k=window.__KIT, p=k.llToWorld(37.9715,23.7257), [ax,az]=ctx.fromWorldXZ(p[0],p[1]);
     ctx.markers.acropolis=[ax,az,(ctx.groundY(ax,az)||0)+40]; }
   else { const ay=ctx.groundY(-62,0)||20; ctx.markers.acropolis=[-62,0,ay+6]; }
   /* the market-place "every day with those who happened to be there" (Acts 17:17) */

@@ -41,6 +41,12 @@ function textOf(ref){ const e=ST.text[ref]; return e?e.t:null; }
    voyage's camera is set from it every frame. */
 const K=()=>window.__KIT;
 let renderer, scene, camera, ctx=null, root=null, anchor=null, S=6.5;
+/* THE SCENE TURNED ABOUT: a place may be `turn`ed half round on the earth (story/places.js), so a set
+   written with its lake to the east stands with it to the west, as the east shore of Kinnereth has
+   it. Then x and z go out from the anchor the other way: SX is the scale across the ground, S's own
+   sign or the other, and the scene's root is turned with it. */
+let SX=6.5;
+const Q_HALF=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI);
 const clock=new THREE.Clock();
 function initGL(){
   renderer=K().renderer; S=K().setScale;
@@ -52,8 +58,8 @@ function resize(){ const vc=K().camera; camera.aspect=vc.aspect||window.innerWid
 function writeCamera(){
   if(!root) return;
   const vc=K().camera;
-  vc.position.set(anchor.x+camera.position.x*S, anchor.y+camera.position.y*S, anchor.z+camera.position.z*S);
-  vc.quaternion.copy(camera.quaternion);
+  vc.position.set(anchor.x+camera.position.x*SX, anchor.y+camera.position.y*S, anchor.z+camera.position.z*SX);
+  vc.quaternion.copy(camera.quaternion); if(SX<0) vc.quaternion.premultiply(Q_HALF);
   if(vc.fov!==camera.fov){ vc.fov=camera.fov; vc.updateProjectionMatrix(); }
   if(camera.aspect!==vc.aspect){ camera.aspect=vc.aspect; camera.updateProjectionMatrix(); }
   vc.updateMatrixWorld();
@@ -66,7 +72,7 @@ function writeCamera(){
 function groundAt(x,z,ref){
   const y=groundAt0(x,z,ref), k=K();
   if(!k.waterAt||!anchor) return y;
-  const B=k.B, wx=anchor.x+x*S, wz=anchor.z+z*S, wy=anchor.y+y*S;
+  const B=k.B, wx=anchor.x+x*SX, wz=anchor.z+z*SX, wy=anchor.y+y*S;
   if(!k.waterAt(wx,wy-0.5*B,wz)) return y;
   let b=wy-0.5*B, n=0; while(n<12&&k.waterAt(wx,b,wz)){ b-=B; n++; }
   const bed=(Math.floor(b/B)+1)*B;                                            /* the top of the first block that is not water */
@@ -82,14 +88,14 @@ function groundAt0(x,z,ref){
      first floor with a man's headroom over it — the platform's top in the courts, the floor
      under a roof, never the roof (the world's own query only looks two courses above the
      land, and would stand a man inside a platform built higher than that) */
-  if(r===undefined){ const B=k.B, wx=anchor.x+x*S, wz=anchor.z+z*S, c=k.cell(Math.floor(wx/B),Math.floor(wz/B));
+  if(r===undefined){ const B=k.B, wx=anchor.x+x*SX, wz=anchor.z+z*SX, c=k.cell(Math.floor(wx/B),Math.floor(wz/B));
     if(c){ let b=c.h-6, n=0;
       while(n<40&&!k.solidAt(wx,(b+0.5)*B,wz)){ b++; n++; }
       for(;n<120;){ while(n<120&&k.solidAt(wx,(b+0.5)*B,wz)){ b++; n++; }
         if(!k.solidAt(wx,(b+1.5)*B,wz)) break;
         b++; n++; }
       return (b*B-anchor.y)/S; } }
-  const g=k.groundInfo(anchor.x+x*S,anchor.z+z*S,r);
+  const g=k.groundInfo(anchor.x+x*SX,anchor.z+z*SX,r);
   return ((g&&g.y!=null?g.y:anchor.y)-anchor.y)/S;
 }
 /* THE GROUND UNDER ONE OF THE SCENE'S PEOPLE as they go: a step of one course is taken up if
@@ -102,14 +108,14 @@ function groundAt0(x,z,ref){
 const CLIMB_M=2.2, CLIMB_REF=2.4;
 function stepGround(x,z,cur){
   let f=groundAt(x,z,cur+CLIMB_REF);
-  if(f>cur+0.05){ const k=K(), B=k.B, wx=anchor.x+x*S, wz=anchor.z+z*S, fy=anchor.y+f*S;
+  if(f>cur+0.05){ const k=K(), B=k.B, wx=anchor.x+x*SX, wz=anchor.z+z*SX, fy=anchor.y+f*S;
     if(f>cur+CLIMB_M||k.solidAt(wx,fy+0.5*B,wz)||k.solidAt(wx,fy+1.5*B,wz)) f=cur; }
   return f;
 }
 /* is a man of the scene stopped here? the blocks of the world are what stop him: a step of
    one course he climbs; anything higher, or a lintel at his head, he does not */
 function solidFor(x,z,y){
-  const k=K(), B=k.B, wx=anchor.x+x*S, wz=anchor.z+z*S, foot=anchor.y+y*S;
+  const k=K(), B=k.B, wx=anchor.x+x*SX, wz=anchor.z+z*SX, foot=anchor.y+y*S;
   const at=d=>k.solidAt(wx,foot+d*B,wz);
   if(!at(0.5)) return at(1.5);                 /* level: room for the body */
   if(!at(1.5)) return at(2.5);                 /* a step of one course, room over it */
@@ -186,16 +192,17 @@ function buildScene(sc){
      from that mark's place in the small city to its place in the true. The scene's own numbers
      stand as they were written, about its new anchor, and her marks are named from it too. */
   if(A.city&&!A.markOff&&K().trueEarth&&K().trueEarth()) A=trueCityAnchor(A,sc);
-  anchor=A;
+  anchor=A; SX=A.turn?-S:S;
   /* THE SEASON is the scene's own, not the voyage's year: spring unless the scene names
      another (Rome was founded, by its own reckoning, on 21 April; the shepherds lay out in the
      fields; the lake is crossed in fair weather) — the snow is never laid on a scene by chance */
   if(window.SEASON) SEASON.setSeason(sc.season||act.season||'Spring');
-  root=new THREE.Group(); root.name='story-scene'; root.position.set(A.x,A.y,A.z); root.scale.setScalar(S); k.scene.add(root);
+  root=new THREE.Group(); root.name='story-scene'; root.position.set(A.x,A.y,A.z); root.scale.setScalar(S); root.rotation.y=SX<0?Math.PI:0; k.scene.add(root);
   scene=root;
   ctx={scene:root,colliders:[],markers:{},actors:{},things:{},glows:{},water:[],flicker:[],flock:[],bounds:null,wind:[0.5,0.2],place:sc.place,period:sc.period||A.period,anchor:A,
     year:yearOf(sc),trueEarth:!!(k.trueEarth&&k.trueEarth())};
   ctx.groundY=(x,z,ref)=>groundAt(x,z,ref);
+  ctx.toWorldXZ=(x,z)=>[A.x+x*SX,A.z+z*SX]; ctx.fromWorldXZ=(wx,wz)=>[(wx-A.x)/SX,(wz-A.z)/SX];   /* (for a set that asks the land itself) */
   /* the traveller is stood there, unseen, so the world is built about the scene */
   standWalker(A.x,A.z,A.y);
   /* the city of the great king is the voyage's own, raised as she stood in the act's days;
@@ -220,7 +227,7 @@ function buildScene(sc){
         ctx.remap.push({n:m,s:small[m],d,t:[small[m][0]+d[0],small[m][1]+d[1]],home:m===A.anchorMark}); }
       if(!ctx.remap.length) ctx.remap=null; } }
   if(k.aimOff) k.aimOff(true);                                    /* (the voyage's mark on the block in reach is not the story's) */
-  ctx.api=k.setBuilder(A.x,A.z,A.y);
+  ctx.api=k.setBuilder(A.x,A.z,A.y,{turn:!!A.turn});
   const st=new window.STORYWORLD.Static(ctx.api);
   const build=window.STORYSETTINGS[sc.place];
   if(!build) throw new Error('no such place: '+sc.place);
@@ -373,7 +380,7 @@ function placeCrowds(sc){
           u=Math.max(0,Math.min(1,((x-a0[0])*dx+(z-a0[1])*dz)/L2)); return (x-a0[0]-u*dx)**2+(z-a0[1]-u*dz)**2<(c.clear||2.4)**2; })) continue;
       if(taken.some(q=>(q[0]-x)**2+(q[1]-z)**2<(q[2]||gap)**2)) continue;
       const y=c.top!==undefined?ctx.groundY(x,z,c.top):ctx.groundY(x,z); if(y==null||!isFinite(y)) continue;   /* `top`: found from that height down — the seats of a theatre */
-      const wx=anchor.x+x*S, wz=anchor.z+z*S;
+      const wx=anchor.x+x*SX, wz=anchor.z+z*SX;
       if(k.solidAt(wx,anchor.y+(y+0.5)*S,wz)||k.solidAt(wx,anchor.y+(y+1.4)*S,wz)) continue;     /* in a wall, a tree, a house */
       if(c.minY!==undefined&&y<c.minY) continue;
       if(Math.abs(y-refY)>dyMax) continue;
@@ -393,8 +400,8 @@ function placeCrowds(sc){
 }
 /* ---- THE LIFE OF THE WATERS, AND THE WATER STIRRED ----
    Is there water at (x,z) under the face `y`? (a pool's, a river's, a lake's blocks) */
-function wetAt(x,z,y){ const k=K(); return !!(k.waterAt&&k.waterAt(anchor.x+x*S,anchor.y+((y||0)-0.3)*S,anchor.z+z*S)); }
-function toW(x,y,z){ return new THREE.Vector3(anchor.x+x*S,anchor.y+y*S,anchor.z+z*S); }
+function wetAt(x,z,y){ const k=K(); return !!(k.waterAt&&k.waterAt(anchor.x+x*SX,anchor.y+((y||0)-0.3)*S,anchor.z+z*SX)); }
+function toW(x,y,z){ return new THREE.Vector3(anchor.x+x*SX,anchor.y+y*S,anchor.z+z*SX); }
 /* the creatures of each water the set asked for (W.waterLife): fish in it, frogs and turtles at its
    edge, egrets in its shallows, dragonflies over it, butterflies over the green about it */
 function spawnLife(){
@@ -464,7 +471,7 @@ function wadeTick(dt){
   const k=K(); if(!k.ripple||!k.waterAt) return;
   if(!ctx.lake&&(ctx.hasWater||ctx.wet)){ const p=player||null; if(p){ const w=toW(p.position.x,0,p.position.z); k.ripple.focus({x:w.x,y:w.y,z:w.z}); } }
   const ring=(g)=>{ const u=g.userData; if(!g.visible) return; const x=g.position.x, z=g.position.z;
-    if(!k.waterAt(anchor.x+x*S,anchor.y+(g.position.y+0.35)*S,anchor.z+z*S)) return;
+    if(!k.waterAt(anchor.x+x*SX,anchor.y+(g.position.y+0.35)*S,anchor.z+z*SX)) return;
     ctx.wet=true;
     const lp=u._wadeP; u._wadeT=(u._wadeT||0)-dt;
     if(!lp||Math.hypot(x-lp[0],z-lp[1])>0.5){ u._wadeP=[x,z]; const w=toW(x,0,z); k.ripple.at(w.x,w.z,-0.8,5,0.25); u._wadeT=1.6; }
@@ -1061,7 +1068,7 @@ function clothStep(g,dt,moving,stride){
   }
 }
 /* is there a block where a man's body would be, standing at height gy here? */
-function wallAt(x,z,gy){ if(gy===undefined) return false; const k=K(), wx=anchor.x+x*S, wz=anchor.z+z*S;
+function wallAt(x,z,gy){ if(gy===undefined) return false; const k=K(), wx=anchor.x+x*SX, wz=anchor.z+z*SX;
   if(!(k.solidAt(wx,anchor.y+(gy+0.9)*S,wz)||k.solidAt(wx,anchor.y+(gy+1.5)*S,wz))) return false;
   /* a bank he can hop is not a wall */
   const f=groundAt(x,z,gy+CLIMB_REF);
@@ -1288,7 +1295,7 @@ function doorsTick(dt){
     if(!ctx.playerHidden&&(player.position.x-x)**2+(player.position.z-z)**2<r2) return true;      /* (the witness, though the eye be too close to draw him) */ for(const id in ctx.actors) if(t(ctx.actors[id])) return true;
     for(const F of ctx.folk||[]) if(t(F.g)) return true; return false; };
   for(const H of k.houses()){ const D=H.door; if(!D||!D.mesh) continue;
-    const x=(H.dx-anchor.x)/S, z=(H.dz-anchor.z)/S;
+    const x=(H.dx-anchor.x)/SX, z=(H.dz-anchor.z)/SX;
     if(Math.abs(x-player.position.x)>90||Math.abs(z-player.position.z)>90) continue;
     D.target=near(x,z)?D.base+D.swing:D.base;
     if(Math.abs(D.ang-D.target)>0.001){ D.ang+=(D.target-D.ang)*Math.min(1,dt*5); D.mesh.rotation.y=D.ang; } } }
@@ -1325,7 +1332,7 @@ function dip(){ const f=$('fade'); if(!f) return; f.style.transition='none'; f.s
 /* a roof (or the floor of an upper room, or a lintel) over the head here: the world's blocks
    between two and four metres above the feet */
 function underRoof(x,y,z){ const k=K(); if(!k.solidAt) return false;
-  for(const h of [2.0,2.6,3.2,3.8]) if(k.solidAt(anchor.x+x*S,anchor.y+(y+h)*S,anchor.z+z*S)) return true;
+  for(const h of [2.0,2.6,3.2,3.8]) if(k.solidAt(anchor.x+x*SX,anchor.y+(y+h)*S,anchor.z+z*SX)) return true;
   return false; }
 /* "there was a great earthquake" (Mattithyahu 28:2): the eye is shaken, hard and then less */
 function quake(dt){
@@ -1343,7 +1350,7 @@ function convoShot(){
   if(g.userData.holy){ from=[q.x+ux*2.4+sx*1.1, q.y+2.15, q.z+uz*2.4+sz*1.1]; look=[p.x,p.y+1.45,p.z]; }
   else { from=[p.x-ux*1.6+sx*0.8, p.y+1.95, p.z-uz*1.6+sz*0.8]; look=[q.x,q.y+1.5*(g.userData.s||1),q.z]; }
   if(from[1]<ctx.groundY(from[0],from[2])+0.5) return null;
-  const k=K(); if(k.solidAt(anchor.x+from[0]*S,anchor.y+from[1]*S,anchor.z+from[2]*S)) return null;
+  const k=K(); if(k.solidAt(anchor.x+from[0]*SX,anchor.y+from[1]*S,anchor.z+from[2]*SX)) return null;
   return {from,look};
 }
 /* HIS FACE IS NEVER SHOWN. Yahusha has a body like every man's; His face is never seen.
@@ -1441,7 +1448,7 @@ const _ray=new THREE.Raycaster();
 /* is the line from the eye to a point of the scene open? (blocks of the world, its growing
    things, the set's details — everything drawn but the people and the light) */
 function lineClear(from,to){
-  const k=K(), W=v=>new THREE.Vector3(anchor.x+v[0]*S,anchor.y+v[1]*S,anchor.z+v[2]*S);
+  const k=K(), W=v=>new THREE.Vector3(anchor.x+v[0]*SX,anchor.y+v[1]*S,anchor.z+v[2]*SX);
   const a=W(to), b=W(from), dir=b.clone().sub(a), L=dir.length(); if(L<0.4*S) return true;
   dir.divideScalar(L);
   const n=Math.ceil(L/(0.25*S));
@@ -1456,13 +1463,13 @@ function pullIn(from,look){
      breadth short of the first block met — or of one beside the line (a door-jamb) that the
      lens, being a little wide, would cut into */
   const k=K(); let t=1; const L=Math.hypot(from[0]-look[0],from[1]-look[1],from[2]-look[2]), n=Math.max(8,Math.ceil(L/0.18));
-  const hit=(x,y,z)=>{ const wx=anchor.x+x*S, wy=anchor.y+y*S, wz=anchor.z+z*S, m=0.22*S;
+  const hit=(x,y,z)=>{ const wx=anchor.x+x*SX, wy=anchor.y+y*S, wz=anchor.z+z*SX, m=0.22*S;
     return k.solidAt(wx,wy,wz)||k.solidAt(wx+m,wy,wz)||k.solidAt(wx-m,wy,wz)||k.solidAt(wx,wy,wz+m)||k.solidAt(wx,wy,wz-m)||k.solidAt(wx,wy+m,wz); };
   for(let i=1;i<=n;i++){ const f=i/n, x=look[0]+(from[0]-look[0])*f, y=look[1]+(from[1]-look[1])*f, z=look[2]+(from[2]-look[2])*f;
     if(hit(x,y,z)){ t=Math.max(0.1,(i-1)/n); break; } }
   return [look[0]+(from[0]-look[0])*t,look[1]+(from[1]-look[1])*t,look[2]+(from[2]-look[2])*t];
 }
-function camFree(p){ const k=K(), B=k.B, x=anchor.x+p[0]*S, y=anchor.y+p[1]*S, z=anchor.z+p[2]*S;
+function camFree(p){ const k=K(), B=k.B, x=anchor.x+p[0]*SX, y=anchor.y+p[1]*S, z=anchor.z+p[2]*SX;
   return !k.solidAt(x,y,z)&&!k.solidAt(x,y+0.35*S,z)&&!k.solidAt(x,y-0.35*S,z)&&!k.solidAt(x+0.4*S,y,z)&&!k.solidAt(x-0.4*S,y,z)&&!k.solidAt(x,y,z+0.4*S)&&!k.solidAt(x,y,z-0.4*S); }
 /* A CLEAR SHOT. The blocks of the world stand where they stand, and a shot written for a scene
    can find a wall, a roof, a tree or a hillside between the eye and what it looks at. When it
@@ -1875,7 +1882,7 @@ function chainEnd(e,out){ if(Array.isArray(e)&&ctx.actors[e[0]]) return handAt(c
 /* NOTHING HANGS THROUGH ANYTHING: a point of a chain (or anything let fall) lies on what is under it — out of a
    block of the world, up onto the floor, and over the bodies of those lying or sitting there */
 function restOn(P){ const k=K(), B=k.B;
-  for(let n=0;n<60&&k.solidAt(anchor.x+P.x*S,anchor.y+(P.y-0.015)*S,anchor.z+P.z*S);n++) P.y+=0.03;
+  for(let n=0;n<60&&k.solidAt(anchor.x+P.x*SX,anchor.y+(P.y-0.015)*S,anchor.z+P.z*SX);n++) P.y+=0.03;
   for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; if(!g.visible||!(u.lie||u.sit||u.kneel)) continue;
     const dx=P.x-g.position.x, dz=P.z-g.position.z, s=u.s||1, fx=Math.sin(g.rotation.y), fz=Math.cos(g.rotation.y);
     let inside=false, top=g.position.y;
@@ -2258,12 +2265,12 @@ let lampLight=null;
 function sceneLamp(){
   const k=K(); if(!k.lamp||!root) return;
   const at=lookAtNow(), lx=at[0], ly=at[1], lz=at[2];
-  const roofed=k.solidAt(anchor.x+lx*S,anchor.y+(ly+2.6)*S,anchor.z+lz*S)||k.solidAt(anchor.x+lx*S,anchor.y+(ly+3.6)*S,anchor.z+lz*S);
+  const roofed=k.solidAt(anchor.x+lx*SX,anchor.y+(ly+2.6)*S,anchor.z+lz*SX)||k.solidAt(anchor.x+lx*SX,anchor.y+(ly+3.6)*S,anchor.z+lz*SX);
   const want=timeNow==='night'?0.85:timeNow==='dusk'?0.5:timeNow==='dawn'?0.35:roofed?0.45:0;
   if(!lampLight){ lampLight=new THREE.PointLight(0xffd9a0,0,14*S,1.4); }
   if(lampLight.parent!==root) root.add(lampLight);
   lampLight.position.set(lx,ly+1.6,lz); lampLight.intensity=want*1.3;
-  if(want>0) k.lamp(anchor.x+lx*S,anchor.y+(ly+1.2)*S,anchor.z+lz*S,want,12*S);
+  if(want>0) k.lamp(anchor.x+lx*SX,anchor.y+(ly+1.2)*S,anchor.z+lz*SX,want,12*S);
 }
 /* the world is held for the scene: the hour the scene names, the traveller where the witness
    is (so the ground about him is the ground that is built), and never seen */
@@ -2278,7 +2285,7 @@ function keepWorld(){
   if(anchor) k.setLocalHour(hourNow,anchor.x,anchor.z);
   { const cl=k.clouds&&k.clouds(); if(cl&&anchor) cl.position.y=Math.max(k.CLOUD_Y,anchor.y+180*S); }
   const p=player&&!ctx.playerHidden?player.position:{x:0,y:0,z:0};
-  standWalker(anchor.x+p.x*S,anchor.z+p.z*S,anchor.y+p.y*S);
+  standWalker(anchor.x+p.x*SX,anchor.z+p.z*SX,anchor.y+p.y*S);
 }
 /* with no act running, the eye turns slowly over the city of the great king */
 let idleAt=null;
@@ -2321,7 +2328,7 @@ function walkWatch(dt){
     u._wwY=p.y; u._wwBeat=beatIx; u._wwScene=sid;
     if(fixed) return;
     if(!cut&&last!==undefined&&Math.abs(p.y-last)>2.5) note(who,(p.y<last?'dropped ':'jumped ')+Math.round(Math.abs(p.y-last)*10)/10+' m in a step',g);
-    { const k=K(), wx=anchor.x+p.x*S, wz=anchor.z+p.z*S;
+    { const k=K(), wx=anchor.x+p.x*SX, wz=anchor.z+p.z*SX;
       if(k.solidAt(wx,anchor.y+(p.y+0.9)*S,wz)&&k.solidAt(wx,anchor.y+(p.y+1.5)*S,wz)) note(who,'body inside a block',g); } };
   if(!ctx.playerHidden) look('the witness',player,ctx.playerY!==undefined);
   for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; look(id,g,u.fixedY!==undefined||!!u.aboard||!!u.ride||!!u.lie); }

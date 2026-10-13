@@ -21747,7 +21747,10 @@ function setBlockFor(col){
 }
 function setBuilder(ax,az,baseY,opt){
   opt=opt||{}; const S=opt.S||SET_S, houses=[], marks={};
-  const X=x=>ax+x*S, Z=z=>az+z*S, Y=y=>baseY+y*S, tY=Math.round(baseY/B), tYb=tY;
+  /* (opt.turn: the set is laid turned half round about its anchor — x and z go out the other way —
+     and a door written in its south wall is in its north) */
+  const SX=opt.turn?-S:S, DOORS=opt.turn?{s:1,n:0,e:3,w:2}:{s:0,n:1,e:2,w:3};
+  const X=x=>ax+x*SX, Z=z=>az+z*SX, Y=y=>baseY+y*S, tY=Math.round(baseY/B), tYb=tY;
   const was=_stampOn; if(!was) stampBegin();
   const grp=_stampOn;
   const cells=(x0,x1,lo,hi)=>{ const e=STAMP_EPS*B; let a=Math.floor((Math.min(x0,x1)+e)/B), b=Math.ceil((Math.max(x0,x1)-e)/B)-1; if(b<a){ b=a=Math.floor((x0+x1)/2/B); } return [a,b]; };
@@ -21764,7 +21767,7 @@ function setBuilder(ax,az,baseY,opt){
     const was2=_stampOn; _stampOn=null;
     try{ emitBox(G,x0,y0,z0,x1,y1,z1,b.mSide,b.mTop,null); } finally{ _stampOn=was2; } }
   const api={ S, ax, az, baseY, marks, farG:opt.far?new Map():null, farGroup:null,
-    X, Z, Y, local:(wx,wz)=>[(wx-ax)/S,(wz-az)/S],
+    X, Z, Y, local:(wx,wz)=>[(wx-ax)/SX,(wz-az)/SX],
     /* a box of blocks; boxes of no size at all (a beam end, a lamp) are details for the eye
        and are left to the things of a scene */
     box(x0,y0,z0,x1,y1,z1,col,o){
@@ -21780,7 +21783,7 @@ function setBuilder(ax,az,baseY,opt){
     detail(x0,y0,z0,x1,y1,z1,col){ const n=setBlockFor(col), b=BLOCKS[n]; if(!b) return;
       if(!api.detG) api.detG=newG();
       const was2=_stampOn; _stampOn=null;
-      try{ emitBox(api.detG,X(Math.min(x0,x1)),Y(Math.min(y0,y1)),Z(Math.min(z0,z1)),X(Math.max(x0,x1)),Y(Math.max(y0,y1)),Z(Math.max(z0,z1)),b.mSide,b.mTop,null); }
+      try{ emitBox(api.detG,Math.min(X(x0),X(x1)),Y(Math.min(y0,y1)),Math.min(Z(z0),Z(z1)),Math.max(X(x0),X(x1)),Y(Math.max(y0,y1)),Math.max(Z(z0),Z(z1)),b.mSide,b.mTop,null); }
       finally{ _stampOn=was2; } },
     /* the land's own trees taken off a lot of the set where no pad is laid (a slope a scene
        is played on); the lot is written down as treeless, as a house's lot is */
@@ -21803,7 +21806,7 @@ function setBuilder(ax,az,baseY,opt){
     pad(x0,z0,x1,z1,o){ o=o||{}; const top=setBlockFor(o.top||'grass'), fill=blockId(o.fill||'dirt');
       const tY=o.y!==undefined?Math.round((baseY+o.y*S)/B):tYb;
       const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1)); const P={i0,i1,k0,k1,r:!!o.round,ty:tY}; api.pads.push(P); api.flat=true;
-      clearLotOfTrees(X(Math.min(x0,x1)),Z(Math.min(z0,z1)),X(Math.max(x0,x1)),Z(Math.max(z0,z1)),baseY);
+      clearLotOfTrees(Math.min(X(x0),X(x1)),Math.min(Z(z0),Z(z1)),Math.max(X(x0),X(x1)),Math.max(Z(z0),Z(z1)),baseY);
       for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ if(P.r&&!api.inPad(i,k)) continue;
         const c=cell(i,k); if(!c||c.kind==='wall') continue; const h=c.h;
         for(let j=tY;j<Math.max(h,tY)+2;j++) stampBlock(i,j,k,0);
@@ -21857,7 +21860,7 @@ function setBuilder(ax,az,baseY,opt){
         for(let j=Math.min(g,tY-dr-d-1)-1;j<wTop;j++) stampBlock(i,j,k,rim); } },
     /* a house of the land — the voyage's own, with its door, floor and furniture */
     house(x,z,w,d,o){ o=o||{}; const odd=v=>{ v=Math.max(5,Math.round(v*S/B)); return v%2?v:v+1; };
-      const dir={s:0,n:1,e:2,w:3}[o.door||'s'];
+      const dir=DOORS[o.door||'s'];
       /* on the level ground of the set, at its height; anywhere else, on the ground where it stands */
       const pd0=api.inPadL(x,z), hy=pd0?pd0.ty*B:(()=>{ const c=cell(Math.floor(X(x)/B),Math.floor(Z(z)/B)); return c?c.h*B:baseY; })();
       houses.push(storyHouse(X(x),Z(z),hy,odd(w),odd(d),dir,o.seed||Math.floor(Math.abs(x*31+z*17))+1,o.style||'levant',{washed:o.washed,wall:o.wall,big:o.big!==false})); },
@@ -21868,7 +21871,7 @@ function setBuilder(ax,az,baseY,opt){
       const G=newG(), ex={doors:[],houses:[],torchIn:[],style:o.style||'levant',big:true};
       const grp=stampedGroup(()=>{ for(const q of list){
         const pdq=api.inPadL(q.x,q.z), hy=pdq?pdq.ty*B:(()=>{ const c=cell(Math.floor(X(q.x)/B),Math.floor(Z(q.z)/B)); return c?c.h*B:baseY; })();
-        emitHouse(G,ex,X(q.x),Z(q.z),hy,odd(q.w),odd(q.d),{s:0,n:1,e:2,w:3}[q.door||'s'],q.seed||1);
+        emitHouse(G,ex,X(q.x),Z(q.z),hy,odd(q.w),odd(q.d),DOORS[q.door||'s'],q.seed||1);
         /* and its far silhouette, a whitewashed box, for a city seen from a hill (opt.far) */
         if(api.farG){ const hw=odd(q.w)*B/2, hd=odd(q.d)*B/2, xc=X(q.x), zc=Z(q.z);
           farBox(xc-hw,hy,zc-hd,xc+hw,hy+B*4,zc+hd,blockId(((q.seed||1)%3)?'plaster':'mudbrick')); } } });
