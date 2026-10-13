@@ -1320,7 +1320,7 @@ W.seraph=function(o){ o=o||{};
     const el=new THREE.Group(); el.position.set(0,-0.36,0); sh.add(el);
     const Vf=new Vox(); Vf.box(0.18,0.18,0.36,ROBE2,0,0,0.16); Vf.box(0.19,0.19,0.05,GOLD,0,0,0.33); Vf.box(0.15,0.15,0.12,FIRE2,0,0,0.41,true); Vf.into(el);
     const hd=new THREE.Group(); hd.position.set(0,0,0.42); el.add(hd);
-    sh.rotation.x=-0.25; el.rotation.x=0; hd.rotation.x=0.25; sh.rotation.z=0.06;
+    sh.rotation.order='YXZ'; sh.rotation.x=-0.25; el.rotation.x=0; hd.rotation.x=0.25; sh.rotation.z=0.06;
     if(tongs){ const Vt=new Vox();
       for(const q of [-1,1]) Vt.box(0.04,1.05,0.04,0xc89a3a,q*0.035,0.42,0);
       Vt.box(0.11,0.05,0.05,0xe8b850,0,-0.1,0); Vt.box(0.12,0.04,0.12,0xe8b850,0,0.9,0); Vt.into(hd);
@@ -1331,13 +1331,17 @@ W.seraph=function(o){ o=o||{};
     return sh; };
   arm(-1,false); arm(1,!!o.tongs);
   const head=new THREE.Object3D(); head.position.set(0,2.56,0); g.add(head);
+  g.rotation.order='YXZ';                                                     /* (he bows forward from his feet, whichever way he is turned) */
   g.userData.wings6=W6; g.userData.t=Math.random()*6; g.userData.head=head; g.userData.carry=0;
   return g; };
-/* the flying wings beat; the tongs are held up as a torch, and out before him while the coal is in them */
+/* the flying wings beat; the tongs are held up as a torch — and while the coal is in them he bows
+   and reaches down with them before him, arm and tongs in one line, their end come in under his own
+   middle: so a man kneeling before him has the coal brought to his lips (6:7) */
 W.seraphTick=function(g,dt){ const u=g.userData, W6=u.wings6; if(!W6) return; u.t+=dt; const a=Math.sin(u.t*3.2)*0.2;
   for(const w of W6.fly) w.rotation.z=0.98+a;
   if(u.arm){ const k=u.carry+=((u.coal&&u.coal.visible?1:0)-u.carry)*Math.min(1,dt*2.5), A=u.arm;
-    A.sh.rotation.x=-0.25+(-1.3+0.25)*k; A.el.rotation.x=1.57*k; A.hd.rotation.x=0.25+(1.57-0.25)*k; } };
+    A.sh.rotation.x=-0.25+(-0.96+0.25)*k; A.sh.rotation.y=-0.3*k; A.el.rotation.x=1.57*k; A.hd.rotation.x=0.25+(1.57-0.25)*k;
+    g.rotation.x=0.35*k; } };
 /* A LIVING ONE about the throne, as Yahazq'al saw them (1:5-11): the likeness of a man, straight
    legs and the sole of a calf's foot sparkling like burnished bronze, the hands of a man under the
    wings, and four faces — a man before, a lion on the right, an ox on the left, an eagle behind —
@@ -1395,7 +1399,8 @@ W.smokeCloud=function(ctx,x,z,o){ o=o||{};
     sp.position.set(Math.cos(a)*d*(o.sx||1),1+Math.random()*H,Math.sin(a)*d+(o.dz||0)); g.add(sp);
     puffs.push({sp,m,base:sp.position.y,ph:Math.random()*6,sp2:0.3+Math.random()*0.5}); }
   let t=0; g.userData.tick=dt=>{ t+=dt;
-    for(const p of puffs){ p.sp.position.y=p.base+((t*p.sp2+p.ph)%4)*0.6; p.m.opacity=Math.min(o.op||0.62,(p.m.opacity||0)+dt*0.25); } };
+    for(const p of puffs){ p.sp.position.y=p.base+((t*p.sp2+p.ph)%4)*0.6; const top=(o.rest!==undefined&&t>(o.hold||10))?o.rest:(o.op||0.62);
+      p.m.opacity+=Math.max(-dt*0.08,Math.min(dt*0.25,top-(p.m.opacity||0))); } };          /* (`rest`: after `hold` seconds it thins to a haze) */
   g.position.set(x,0,z); ctx.scene.add(g); return g; };
 /* the heavenly altar, from which the coal was taken with the tongs (6:6): gold, a fire of coals on it */
 W.heavenAltar=function(ctx,x,z,o){ o=o||{};

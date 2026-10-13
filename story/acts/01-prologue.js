@@ -47,7 +47,7 @@ STORY.act({
       {id:'train', kind:'robeTrain', at:['heaven',0,-13.2], y:220, len:24, w0:3, w1:20, h0:6.4, hidden:true},
       {id:'altar', kind:'heavenAltar', at:['heaven',6,-4], y:220, s:1.3, hidden:true},
       /* "and the house was filled with smoke" (6:4) */
-      {id:'smoke', kind:'smokeCloud', at:['heaven',0,-4], y:220, r:20, h:16, n:56, hidden:true} ],
+      {id:'smoke', kind:'smokeCloud', at:['heaven',0,-4], y:220, r:20, h:16, n:56, rest:0.16, hold:12, hidden:true} ],
     glows:[ {id:'hekalLight', at:[6,10,-26], size:9, color:0xfff2c0, intensity:0, pulse:true, hidden:true},
             /* the light on the seat, and the column of it over the throne */
             {id:'glory', at:['heaven',0,-14.6], y:220+8.2, size:6.5, color:0xfff6dc, intensity:1.8, pulse:true, hidden:true},
@@ -100,12 +100,13 @@ STORY.act({
       {t:'cam', from:['heaven',12,8], fy:220+4, look:{at:['heaven',4,0], y:220+3}, dur:2},
       {t:'drift', id:'ser2', toAt:['heaven',6,-6.2], y:220+3.4, dur:2.4},
       {t:'carry', id:'coal', by:'ser2'},
-      {t:'drift', id:'ser2', toAt:['heaven',0.4,9.2], y:220+2.6, dur:3},
-      {t:'cam', from:['heaven',-4.5,14.5], fy:220+2.4, look:{at:['heaven',0.3,10.2], y:220+2.2}, dur:1.6},
+      /* he comes down before him, bows, and brings the tongs to his lips */
+      {t:'drift', id:'ser2', toAt:['heaven',0,8.25], y:220+3.2, dur:3},
+      {t:'cam', from:['heaven',-7.5,11.5], fy:220+2.2, look:{at:['heaven',0,10], y:220+2.6}, dur:1.6},
       {t:'read', ref:'YASHAYAHU 6:6', who:'nabi'},
-      {t:'carry', id:'coal'},
-      {t:'drift', id:'coal', toAt:['heaven',0,11.65], y:220+1.2, dur:1.2},
+      {t:'cam', from:['heaven',-3.4,12.8], fy:220+1.7, look:{at:['heaven',0,11.4], y:220+1.5}, dur:1.4},
       {t:'read', ref:'YASHAYAHU 6:7', teller:'nabi', voices:['seraph']},
+      {t:'carry', id:'coal'},
       {t:'hide', id:'coal'},
       {t:'drift', id:'ser2', toAt:['heaven',6.5,-10], y:220+12, dur:2.6, wait:false},
       {t:'stand', who:'yah'},
