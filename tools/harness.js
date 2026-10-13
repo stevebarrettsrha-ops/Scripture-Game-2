@@ -45,7 +45,8 @@ async function open(opts){
        another (opts.inject.worldK) or the environment does (EARTH=true node tools/acceptance.js) */
     const inj=Object.assign({worldK:process.env.EARTH||'1'},opts.inject||{});
     await page.addInitScript(o=>{ window.__INJECT=Object.assign(window.__INJECT||{},o); },inj);
-    await page.goto('file://'+path.join(ROOT,opts.page||'index.html'));
+    /* (a loaded machine — several worlds raised at once — can take more than the default half-minute to load the page) */
+    await page.goto('file://'+path.join(ROOT,opts.page||'index.html'),{timeout:opts.gotoTimeout||300000});
     if(opts.page) return {browser,page,errs};
     /* the world builds under the loading screen; the menu is the sign it stands */
     await page.waitForFunction(()=>window.__VDBG&&document.getElementById('menu')&&

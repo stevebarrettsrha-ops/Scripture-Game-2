@@ -76,17 +76,39 @@ window.STORY=(function(){
     if(kind!=='coast') return {x:st[0],z:st[1]};
     if(_coast) return _coast;
     /* a widening ring-search out from the opening for the nearest dry ground */
-    let best=null, bd=1e12;
+    let best=null, bd=1e12, r0=0;
     for(let r=200;r<=9000&&!best;r+=200){
       for(let k=0;k<48;k++){
         const a=k/48*Math.PI*2, x=st[0]+Math.cos(a)*r, z=st[1]+Math.sin(a)*r;
         if(!W.landAtWorld(x,z)) continue;
         const d2=(x-st[0])**2+(z-st[1])**2;
-        if(d2<bd){ bd=d2; best={x,z}; }
+        if(d2<bd){ bd=d2; best={x,z,a}; }
       }
       if(best) break;
+      r0=r;
     }
-    _coast=best||{x:st[0],z:st[1]};
+    /* AT THE TRUE MEASURE THE SHIP OPENS KILOMETRES OUT, off Yapho, and nine thousand units never
+       reached the shore: every scroll was staged on open water, and the third day's dry land rose
+       out of sight behind the eye. The search goes on outward in widening rings, and the shore it
+       finds is walked in to along its own ray — to the water's edge, then a little way up the
+       beach — so the earth stands in the middle of the shot and a man set there stands on it. */
+    if(!best){
+      for(let r=9000*1.06;r<=90000&&!best;r*=1.06){
+        const n=Math.max(48,Math.ceil(Math.PI*2*r/500));
+        for(let k=0;k<n;k++){
+          const a=k/n*Math.PI*2, x=st[0]+Math.cos(a)*r, z=st[1]+Math.sin(a)*r;
+          if(!W.landAtWorld(x,z)) continue;
+          const d2=(x-st[0])**2+(z-st[1])**2;
+          if(d2<bd){ bd=d2; best={x,z,a}; }
+        }
+        if(!best) r0=r;
+      }
+      if(best){ const c=Math.cos(best.a), s=Math.sin(best.a); let lo=r0, hi=Math.sqrt(bd);
+        for(let i=0;i<16;i++){ const m=(lo+hi)/2; if(W.landAtWorld(st[0]+c*m,st[1]+s*m)) hi=m; else lo=m; }
+        let r=hi; for(let k=0;k<6&&W.landAtWorld(st[0]+c*(r+30),st[1]+s*(r+30));k++) r+=30;
+        best={x:st[0]+c*r,z:st[1]+s*r}; }
+    }
+    _coast=best?{x:best.x,z:best.z}:{x:st[0],z:st[1]};
     return _coast;
   }
 

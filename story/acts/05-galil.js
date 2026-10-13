@@ -540,7 +540,9 @@ STORY.act({
 
   /* ---------------- IV.6 — THE CAPTAIN ---------------- */
   { id:'captain', title:'Kephar Naḥum', date:'Galil', place:'galil', time:'day',
-    player:{ at:[2,7], face:Math.PI*0.75, look:ADULT },
+    /* (the witness stood in the south wall of the house at [4,10], and the eye inside it: both are
+       set a step out into the street) */
+    player:{ at:[1.2,4.4], face:Math.PI*0.75, look:ADULT },
     actors:[
       Object.assign({id:'yahusha', at:[6,1], face:Math.PI/2},YAHUSHA),
       T('kepha',[4.2,-1],{face:Math.PI/2}), T('yahuchanon',[3.8,3],{face:Math.PI/2}),
@@ -552,7 +554,7 @@ STORY.act({
     beats:[
       {t:'move', who:'captain', to:[9.6,0.8], speed:1.6, wait:false},
       {t:'move', who:'legio1', to:[11.2,2.6], speed:1.6, wait:false},
-      {t:'cam', from:[2.6,2.6,7.4], look:[9.6,1.5,0.8], dur:3},
+      {t:'cam', from:[2.2,2.6,5.8], look:[9.6,1.5,0.8], dur:3},
       {t:'say', who:'captain', ref:'MATTITHYAHU 8:5-6', turn:false},
       {t:'face', who:'yahusha', to:'captain'},
       {t:'cam', on:'yahusha', shot:'back', toward:'captain', dur:1.8},
@@ -567,7 +569,8 @@ STORY.act({
       {t:'cam', on:'yahusha', shot:'back', toward:'captain', dur:1.8},
       {t:'say', who:'yahusha', ref:'MATTITHYAHU 8:13', turn:false},
       {t:'cam', release:true},
-      {t:'move', who:['captain','legio1'], to:[[30,-30],[31,-28]], speed:1.6, wait:false},
+      /* home along the beach (they were sent out into the lake) */
+      {t:'move', who:['captain','legio1'], to:[[16,-30],[17.4,-28.4]], speed:1.6, wait:false},
       {t:'choice', prompt:'You', options:[
         {text:'Watch the Roman go', reply:'A soldier of the empire, and he believed. You think of the scroll under your arm, and of who it was written for.'},
         {text:'Ask Kĕpha what this means'} ]},

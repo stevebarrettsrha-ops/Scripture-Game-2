@@ -21795,6 +21795,7 @@ function setBuilder(ax,az,baseY,opt){
     /* standing water: a channel, a pool, a lake — `depth` courses of water, its face level
        with the ground's (or `drop` courses below it) */
     water(x0,z0,x1,z1,o){ o=o||{}; const d=o.depth||2, dr=o.drop||0, w=blockId('water'), bed=blockId(o.bed||'sand');
+      (api.waters||(api.waters=[])).push([Math.min(x0,x1),Math.min(z0,z1),Math.max(x0,x1),Math.max(z0,z1)]);   /* (what water a set laid, for the tools to set beside the earth's own) */
       const tY=o.y!==undefined?Math.round((baseY+o.y*S)/B):tYb;                  /* (o.y: its face's own level, as pad's) */
       const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1));
       underWaterAdd(grp,i0*B,k0*B,(i1+1)*B,(k1+1)*B,(tY-dr)*B);          /* its bed takes the light under the water */

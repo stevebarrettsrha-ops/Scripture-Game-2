@@ -1,8 +1,8 @@
 /* ================= THE SECOND SCROLL: THE GARDEN =================
-   BERĔSHITH 2:4-25 — the mist, the forming of the man out of the dust, the
+   BERĔSHITH 2:5-23 — the mist, the forming of the man out of the dust, the
    garden planted eastward, the two trees, the four riverheads, the charge to
    work it and guard it, the naming of every living thing, the deep sleep,
-   and the woman brought to the man.
+   and the woman brought to the man. (2:4, 2:12 and 2:24-25 are not read.)
 
    And then the scroll changes hands. ADAM AND HAWWAH 1 takes up the same
    moment from the other side and tells what BERĔSHITH does not: WHERE the
@@ -19,10 +19,15 @@ STORY.scene({
 
   stage:[
     /* the world stands finished now: lit, vaulted, dry, and full of life */
-    { t:  0, dark:0, light:1, sky:0x9fc5e8, sun:1, moon:1, stars:1, firm:0.10,
+    /* (in the morning of the garden, by the scene's own clock — not the watcher's — and no stars
+       in a day sky) */
+    { t:  0, dark:0, light:1, sky:0x9fc5e8, sun:1, moon:0.3, stars:0, firm:0.10,
       land:1, sea:1, clouds:1, lifeSea:1, lifeAir:1, lifeLand:1, fogN:400, fogF:1080,
-      cd:300, cy:120, ca:0.00, cl:24, cfov:62, cut:true },
-    { t: 19, cd:210, cy: 70, cl:14, ca:0.03, man:1 },  /* the breath of life */
+      cd:300, cy:120, ca:0.00, cl:24, cfov:62, cut:true, hour:10 },
+    { t: 19, cd:210, cy: 70, cl:14, ca:0.03 },
+    /* the breath of life — the man stands with 2:7, and not through "there was no man to till the
+       ground" (2:5), which he faded in across */
+    { t: 19, man:1, cut:true },
     { t: 32, cd:170, cy: 46, cl: 9, ca:0.055 },     /* the garden planted */
     { t: 56, cd:230, cy: 88, cl:18, ca:0.09 },      /* the river, and its four heads */
     { t: 81, cd:150, cy: 38, cl: 7, ca:0.12 },      /* the charge, and the command */

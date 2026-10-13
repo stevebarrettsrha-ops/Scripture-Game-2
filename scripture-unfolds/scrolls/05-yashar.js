@@ -14,7 +14,7 @@
    between the movements — because a book of generations is a book about time
    going on while nobody is watching. The sun crosses with it: bright morning
    at the forming of the man, high noon through the generations, a white cold
-   sky at the whirlwind, and the last of the light on Shinar.
+   sky at the whirlwind, and night over Shinar.
 
    AND THE SNOW IS IN THE BOOK. The kings sent men to the place where Ḥanoḵ
    went up and found the earth there filled with snow and great stones of
@@ -39,7 +39,10 @@ STORY.scene({
     { t: 36, hour:9, cd:180, cy: 50, cl:11, ca:0.058 },      /* the garden, and the charge */
     /* ---- the generations, and the sun climbing over them ---- */
     { t: 58, hour:11.4, cd:240, cy: 78, cl:15, ca:0.095, light:1, sun:1, sky:0x9fc5e8,
-      fogN:380, fogF:1160, man:0 },
+      fogN:380, fogF:1160 },
+    /* (the man leaves the shot when the generations begin — he faded out across "He took Adawm and
+       his wife and placed them in the garden", 1:7) */
+    { t: 58, man:0, cut:true },
     { t: 80, hour:12.2, cd:210, cy: 64, cl:13, ca:0.130 },      /* Ḥanoḵ walked with Aluahim */
     { t:102, hour:12.9, cd:170, cy: 46, cl:10, ca:0.165 },      /* called out of his house */
     /* ---- and on the seventh day he went up ---- */

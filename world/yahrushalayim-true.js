@@ -480,7 +480,11 @@ window.YAHRU_PLAN_TRUE=function(api,period){
     /* OUTSIDE THE GATE: the highway of the Launderer's Field and the upper pool (Yashayahu 7:3) */
     const px=-360, pz=-150, pw=26, pd=16;
     api.water(px-pw/2,pz-pd/2,px+pw/2,pz+pd/2,{depth:2,bed:'stone',y:gY(px,pz)-0.6});
-    api.mark('pool',px+10,pz+2); api.mark('poolEnd',px+9.5,pz-6.5); api.mark('ahaz',px+4,pz-8); api.mark('field',px+30,pz+14);
+    /* the marks stand where the small city's do about her pool — off its eastern end, and at the
+       end of the conduit by its northern side — measured from THIS pool's own edges: they were the
+       small pool's very numbers, and the true pool is half again as big, so the sovereign stood in
+       the water up to his waist and the prophet was sent to meet him there */
+    api.mark('pool',px+pw/2+2,pz+2); api.mark('poolEnd',px+pw/2+1.5,pz-pd/2-1); api.mark('ahaz',px+4,pz-pd/2-2.5); api.mark('field',px+30,pz+14);
     for(let k=0;k<30;k++) api.top(-300-k*2,-50-k*1.6,-297-k*2,-47-k*1.6,PATH);
   }
   /* THE HOUSE OF THE TAUGHT ONES (Yashayahu 8:16), in the lower city by the square */

@@ -1072,6 +1072,357 @@ W.throne=function(ctx,x,z,o){ o=o||{};
   for(const sx of [-1,1]){ b(0.08,0.06,0.58,trim,sx*W2,H+0.3,0.0); b(0.07,0.3,0.07,frame,sx*W2,H+0.15,0.26); }   /* the arms */
   if(st!=='kohen') b(W2*2+0.2,0.12,0.42,st==='king'?0x6a2440:0xd8d0bb,0,0.06,0.5);          /* the footstool */
   g.position.set(x,0,z); g.rotation.y=o.face||0; ctx.scene.add(g); return g; };
+/* ================= WHAT YAHSHAYAHU SAW (Yashayahu 6) =================
+   "I saw (YAHUAH) HWHY sitting on a throne, high and lifted up, and the train of His robe filled
+   the Hĕḵal. Above it stood seraphim. Each one had six wings: with two he covered his face, with
+   two he covered his feet and with two he flew" (6:1-2).
+   He who sits on the throne is never drawn: the throne stands in its light, and the light is on
+   the seat. The seraphim ("burning ones") are figures of light, their faces and feet covered as
+   the verse says, and the third pair beating. */
+const lightMat=(c,o)=>new THREE.MeshBasicMaterial({color:c,transparent:o!==undefined&&o<1,opacity:o===undefined?1:o,depthWrite:o===undefined||o>=1,fog:false});
+/* one wing: a broad vane of feathers from its root out along +x, its face in the x-y plane; the
+   feathers burn gold toward the tips */
+function seraphWing(len,wid){
+  const w=new THREE.Group();
+  const vane=new THREE.Mesh(new THREE.BoxGeometry(len,wid,0.03),lightMat(0xffefc8)); vane.position.x=len/2; w.add(vane);
+  for(let k=0;k<5;k++){ const fl=len*(0.55+0.45*(k/4)), fy=-wid/2+wid*(k+0.5)/5;
+    const f=new THREE.Mesh(new THREE.BoxGeometry(fl,wid*0.22,0.035),lightMat(k%2?0xffdc8a:0xfff6e0));
+    f.position.set(fl/2+len*0.06,fy,0.02*(k%2?1:-1)); w.add(f);
+    const tip=new THREE.Mesh(new THREE.BoxGeometry(len*0.18,wid*0.2,0.04),lightMat(k%2?0xff9a30:0xffb84a));     /* the burning ones: their feathers end in fire */
+    tip.position.set(fl+len*0.06-len*0.06,fy,0.03); w.add(tip); }
+  return w; }
+/* the six wings, set on a figure (in the figure's own measure: a man some 1.8 high, facing +z) */
+W.seraphWings=function(fig){
+  const pair=(len,wid,place)=>[1,-1].map(sx=>{ const w=seraphWing(len,wid); w.scale.x=sx; place(w,sx); fig.add(w); return w; });
+  /* two that fly: out from the shoulders, high and wide */
+  const fly=pair(2.3,0.62,(w,sx)=>{ w.position.set(sx*0.24,1.38,-0.16); w.rotation.z=sx*0.42; });
+  /* two over the face: from the shoulders, folded in across before it */
+  /* (each folded wing is turned about, so it lies inward across the body, not out from it) */
+  const face=pair(0.54,0.48,(w,sx)=>{ w.position.set(sx*0.42,1.62,0.3); w.rotation.y=Math.PI; w.rotation.z=sx*0.06; });
+  /* two over the feet: from the hips, folded down across the legs */
+  const feet=pair(0.7,0.62,(w,sx)=>{ w.position.set(sx*0.44,0.36,0.32); w.rotation.y=Math.PI; w.rotation.z=-sx*0.22; });
+  fig.userData.wings={fly,face,feet,t:Math.random()*6};
+  return fig.userData.wings; };
+W.seraphWingsTick=function(fig,dt){ const W2=fig.userData.wings; if(!W2) return;
+  W2.t+=dt; const a=Math.sin(W2.t*5.2)*0.42;
+  W2.fly[0].rotation.z=0.42+a; W2.fly[1].rotation.z=-(0.42+a); };
+/* the throne, high and lifted up: a dais of light in three steps, the seat and its back, all
+   white fire edged with gold, borne in the air (`lift` metres over the floor) */
+W.gloryThrone=function(ctx,x,z,o){ o=o||{};
+  const g=new THREE.Group(), s=o.s||1, lift=o.lift||0;
+  const b=(w,h,d,c,px,py,pz,op)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(w*s,h*s,d*s),lightMat(c,op)); q.position.set(px*s,lift+py*s,pz*s); g.add(q); return q; };
+  b(3.6,0.36,3.0,0xf4e6c4,0,0.18,0); b(3.66,0.08,3.06,0xd9a83a,0,0.38,0);
+  b(2.9,0.36,2.4,0xf8eed6,0,0.58,-0.15); b(2.96,0.08,2.46,0xd9a83a,0,0.78,-0.15);
+  b(2.2,0.36,1.8,0xfdf6e8,0,0.98,-0.3); b(2.26,0.08,1.86,0xd9a83a,0,1.18,-0.3);
+  b(1.7,0.28,1.3,0xfffaf0,0,1.48,-0.35); b(1.76,0.06,1.36,0xe8b850,0,1.64,-0.35);         /* the seat */
+  b(1.7,2.6,0.26,0xfff6e6,0,2.9,-0.92); b(1.9,0.18,0.34,0xe8b850,0,4.25,-0.92);     /* its back, and the crest */
+  for(const sx of [-1,1]){ b(0.2,0.6,1.2,0xfff4dc,sx*0.85,1.95,-0.35); b(0.26,0.1,1.26,0xe8b850,sx*0.85,2.28,-0.35); }   /* its arms */
+  g.position.set(x,0,z); g.rotation.y=o.face||0; ctx.scene.add(g); return g; };
+/* THE COURT OF HEAVEN, where the vision is seen: "I saw (YAHUAH) HWHY sitting on a throne, high
+   and lifted up" — not the stone of the earthly house but the house above it. A vault of golden
+   light all about (it is drawn whatever the hour below), a floor of cloud, and the pillars of the
+   heavenly house in two rows of light down to the throne. Centred on its own origin; +z toward
+   the one who sees, -z toward the throne. */
+W.heavenCourt=function(ctx,x,z,o){ o=o||{};
+  const g=new THREE.Group(), R=o.r||150;
+  /* the vault: gold-white overhead, warm at the horizon, pale under the cloud */
+  const sg=new THREE.SphereGeometry(R,40,24), col=new Float32Array(sg.attributes.position.count*3);
+  for(let i=0;i<sg.attributes.position.count;i++){ const y=sg.attributes.position.getY(i)/R;
+    /* deep azure overhead ("as it were the body of the heavens in clearness", Shemoth 24:10), gold low about
+       the horizon where the light of the throne fills it, and pale under the floor of cloud */
+    const u=Math.max(0,y), hz=Math.exp(-Math.abs(y)*5);
+    const c=y>0?[0.16+0.84*hz,0.30+0.55*hz+0.1*(1-u),0.62+0.18*hz]:[0.96,0.92,0.84];
+    col[i*3]=c[0]; col[i*3+1]=c[1]; col[i*3+2]=c[2]; }
+  sg.setAttribute('color',new THREE.BufferAttribute(col,3));
+  /* (opaque, and writing its depth, so nothing of the earth below shows through it) */
+  const vault=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.BackSide,fog:false})); g.add(vault);
+  /* the floor of cloud: a soft disc, and banks of cloud heaped about its edge and under it */
+  const cv=document.createElement('canvas'); cv.width=cv.height=256; const c2=cv.getContext('2d');
+  const gr=c2.createRadialGradient(128,128,10,128,128,128); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(0.6,'rgba(255,250,240,0.9)'); gr.addColorStop(1,'rgba(255,248,232,0)');
+  c2.fillStyle=gr; c2.fillRect(0,0,256,256);
+  for(let k=0;k<160;k++){ const a=Math.random()*6.28, d=Math.random()*110, r=8+Math.random()*26;
+    const pg=c2.createRadialGradient(128+Math.cos(a)*d,128+Math.sin(a)*d,0,128+Math.cos(a)*d,128+Math.sin(a)*d,r);
+    pg.addColorStop(0,'rgba(255,255,255,0.35)'); pg.addColorStop(1,'rgba(255,255,255,0)'); c2.fillStyle=pg; c2.fillRect(0,0,256,256); }
+  const tex=new THREE.CanvasTexture(cv);
+  const floor=new THREE.Mesh(new THREE.CircleGeometry(o.floor||70,48),new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,fog:false,color:0xf2ecdf}));
+  floor.rotation.x=-Math.PI/2; floor.position.y=-0.05; g.add(floor);
+  const puff=new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false,fog:false,color:0xfffdf6,opacity:0.9});
+  for(let k=0;k<46;k++){ const a=k/46*Math.PI*2+Math.random()*0.2, d=(o.floor||70)*(0.72+Math.random()*0.5), sp=new THREE.Sprite(puff);
+    const s2=18+Math.random()*26; sp.scale.set(s2,s2*0.55,1); sp.position.set(Math.cos(a)*d,-6+Math.random()*10,Math.sin(a)*d); g.add(sp); }
+  for(let k=0;k<20;k++){ const sp=new THREE.Sprite(puff), s2=26+Math.random()*30; sp.scale.set(s2,s2*0.5,1);
+    sp.position.set((Math.random()-0.5)*90,-10-Math.random()*8,(Math.random()-0.5)*90); g.add(sp); }
+  /* and before the throne, "as it were a paved work of a sapphire stone" (Shemoth 24:10) */
+  if(o.pave){ const P=o.pave, tw=1.2;
+    for(let ix=0;ix<Math.round(P.w/tw);ix++) for(let iz=0;iz<Math.round(P.d/tw);iz++){
+      const c=((ix+iz)%2)?0x2a4fa8:0x1f3f90, m=lamb(c,mixHex(c,0x000000,0.6));
+      const q=new THREE.Mesh(new THREE.BoxGeometry(tw*0.97,0.12,tw*0.97),m);
+      q.position.set(-P.w/2+(ix+0.5)*tw,0.02,P.z-P.d/2+(iz+0.5)*tw); g.add(q); }
+    const edge=lamb(0xe8b850,0x6a4a10);
+    for(const sx of [-1,1]){ const e=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.16,P.d),edge); e.position.set(sx*P.w/2,0.04,P.z); g.add(e); }
+    const e2=new THREE.Mesh(new THREE.BoxGeometry(P.w,0.16,0.2),edge); e2.position.set(0,0.04,P.z+P.d/2); g.add(e2); }
+  /* the pillars of the house above, two rows of light from the one who sees to the throne */
+  const pm=new THREE.MeshLambertMaterial({color:0xf6f0e2,emissive:0x8a8070,fog:false});
+  const cap=new THREE.MeshLambertMaterial({color:0xe8b850,emissive:0x7a5a20,fog:false});
+  for(const sx of [-1,1]) for(let k=0;k<6;k++){ const pz=18-k*7.2, px=sx*(o.aisle||11);
+    const col2=new THREE.Mesh(new THREE.CylinderGeometry(0.8,0.95,o.ph||34,14),pm); col2.position.set(px,(o.ph||34)/2,pz); g.add(col2);
+    const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.25,1.25,0.5,14),cap); ring.position.set(px,0.25,pz); g.add(ring);
+    const top=ring.clone(); top.position.y=(o.ph||34)-0.25; g.add(top); }
+  g.position.set(x,o.y||0,z); ctx.scene.add(g); return g; };
+/* ---- A FEATHERED WING, BLOCK BY BLOCK ----
+   A broad wing, not a fan of sticks: column by column out along its span (+x from the root), each
+   column hanging from the leading edge (-y) in three rows — the coverts, the secondaries, and the
+   long primaries whose ends are cut unevenly as feathers are — broad through the middle of the wing
+   and narrowing to the tip, its colour running from the root's to the tip's along the span. */
+const lamb=(c,e)=>new THREE.MeshLambertMaterial({color:c,emissive:e===undefined?0x000000:e,fog:false});
+const _matCache={};
+function lambC(c,e){ const k=c+':'+e; return _matCache[k]||(_matCache[k]=lamb(c,e)); }
+function mixHex(a,b,u){ const ch=(x,s)=>(x>>s)&255, m=s=>Math.round(ch(a,s)+(ch(b,s)-ch(a,s))*u);
+  return (m(16)<<16)|(m(8)<<8)|m(0); }
+function voxWing(o){
+  const g=new THREE.Group(), L=o.span, C=o.chord, n=o.n||12, w=L/n, P=o.pal, T=o.th||0.09;
+  const box=(bw,bh,bd,m,x,y,z)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,bd),m); q.position.set(x,y,z); g.add(q); return q; };
+  const glow=c=>mixHex(c,0x000000,0.72);
+  for(let i=0;i<n;i++){ const u=(i+0.5)/n, x=u*L;
+    /* broad through the middle, tapering to a point; the tip curls up a little */
+    const ch=C*(0.55+0.55*Math.sin(Math.PI*Math.min(1,u*1.15)))*(u>0.82?Math.max(0.25,1-(u-0.82)/0.2):1);
+    const lift=C*0.35*u*u;
+    const jag=((i*7)%3-1)*0.06*C;                                       /* the feathers' uneven ends */
+    const cov=ch*0.3, sec=ch*0.3, pri=ch*0.4+jag;
+    const cCov=mixHex(P.covert,P.covertTip,u), cSec=mixHex(P.root,P.mid,u), cPri=mixHex(P.mid,P.tip,Math.pow(u,0.8)), cEnd=mixHex(P.tip,P.end,u);
+    box(w*1.06,0.12,T*1.6,lambC(P.bone,glow(P.bone)),x,lift,0.02);                                   /* the leading edge */
+    box(w*1.04,cov,T,lambC(cCov,glow(cCov)),x,lift-cov/2,T*0.6);                                     /* the coverts */
+    box(w*1.02,sec,T,lambC(cSec,glow(cSec)),x,lift-cov-sec/2,T*0.3);                                 /* the secondaries */
+    box(w*0.96,pri*0.7,T,lambC(cPri,glow(cPri)),x,lift-cov-sec-pri*0.35,0);                          /* the primaries */
+    box(w*0.9,pri*0.3,T,lambC(cEnd,glow(cEnd)),x,lift-cov-sec-pri*0.85,-T*0.2); }                    /* and their burning ends */
+  return g; }
+/* the blue and gold of the burning ones' wings, and the gold and ivory of the living ones' */
+const WING_SERAPH={bone:0xf2c24a,covert:0x1c3478,covertTip:0x2f57b0,root:0x23428e,mid:0x3e6ac4,tip:0x6f8fd8,end:0xf6c04a};
+const WING_LIVING={bone:0xf0d070,covert:0xf8f2e2,covertTip:0xf2e6c4,root:0xf4ecd8,mid:0xeedcae,tip:0xf0d48a,end:0xe8b850};
+/* ---- BLOCKS GATHERED INTO ONE ----
+   A figure laid block by block, as the land is: every block is put into one of two meshes, the
+   lit (shaded by the light of the scene) and the burning (its own light, never shaded), each
+   block coloured in its corners — so a figure of some thousands of blocks is two draws. push()
+   and pop() carry a frame, so a wing can be laid flat in its own plane and set at its angle. */
+const _ub=new THREE.BoxGeometry(1,1,1).toNonIndexed(), _ubP=_ub.attributes.position.array, _ubN=_ub.attributes.normal.array;
+const _vm=new THREE.Matrix4(), _vn=new THREE.Matrix3(), _vv=new THREE.Vector3(), _vc=new THREE.Color(), _vq=new THREE.Quaternion(), _ve=new THREE.Euler(), _vs=new THREE.Vector3(), _vp=new THREE.Vector3();
+function Vox(){ this.L={p:[],n:[],c:[]}; this.G={p:[],n:[],c:[]}; this.M=new THREE.Matrix4(); this.st=[]; }
+Vox.prototype.push=function(x,y,z,rx,ry,rz,sx){ this.st.push(this.M.clone());
+  _ve.set(rx||0,ry||0,rz||0); _vq.setFromEuler(_ve); _vm.compose(_vp.set(x,y,z),_vq,_vs.set(sx||1,1,1)); this.M.multiply(_vm); return this; };
+Vox.prototype.pop=function(){ this.M=this.st.pop(); return this; };
+/* one block: w×h×d about (x,y,z), turned `ry` about its upright; `glow` — it burns */
+Vox.prototype.box=function(w,h,d,col,x,y,z,glow,ry){ const B=glow?this.G:this.L;
+  _ve.set(0,ry||0,0); _vq.setFromEuler(_ve); _vm.compose(_vp.set(x,y,z),_vq,_vs.set(w,h,d)).premultiply(this.M);
+  _vn.getNormalMatrix(_vm); _vc.setHex(col);
+  for(let k=0;k<36;k++){ _vv.fromArray(_ubP,k*3).applyMatrix4(_vm); B.p.push(_vv.x,_vv.y,_vv.z);
+    _vv.fromArray(_ubN,k*3).applyMatrix3(_vn).normalize(); B.n.push(_vv.x,_vv.y,_vv.z); B.c.push(_vc.r,_vc.g,_vc.b); }
+  return this; };
+const VOX_LIT=new THREE.MeshLambertMaterial({vertexColors:true,emissive:0x101018,fog:false}),
+      VOX_GLOW=new THREE.MeshBasicMaterial({vertexColors:true,fog:false});
+Vox.prototype.into=function(par){ const out=[];
+  for(const [B,m] of [[this.L,VOX_LIT],[this.G,VOX_GLOW]]){ if(!B.p.length) continue;
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.Float32BufferAttribute(B.p,3)); geo.setAttribute('normal',new THREE.Float32BufferAttribute(B.n,3));
+    geo.setAttribute('color',new THREE.Float32BufferAttribute(B.c,3)); geo.computeBoundingSphere();
+    const q=new THREE.Mesh(geo,m); par.add(q); out.push(q); }
+  return out; };
+/* ---- A WING OF THE BURNING ONES, BLOCK BY BLOCK ----
+   Laid flat in its own plane: out along +x from the root, the bone of it along the top, the
+   feathers hanging below (-y) — the coverts, the secondaries, then the long feathers in pairs of
+   blocks, each ending a step longer or shorter than the next, and each burning at its end.
+   Broad through the middle, narrowing to a tip that turns up. */
+const SER_BLUE={bone:0xf4c64e,cov:0x1d2f74,cov2:0x2a4596,sec:0x3359b4,sec2:0x3f6bc8,pri:0x5a88dc,pri2:0x78a2ea,end:0xffc23c,fire:0xff8a1c};
+const SER_GOLD={bone:0xfff2b8,cov:0xc98a1e,cov2:0xd99c2a,sec:0xe6ae34,sec2:0xeebd48,pri:0xf4cc5c,pri2:0xf8d870,end:0xffd060,fire:0xff9a28};
+function pixWing(V,o){
+  const P=o.pal, v=o.v||0.1, L=o.span, C=o.chord, th=o.th||0.08, n=Math.max(4,Math.round(L/v));
+  for(let i=0;i<n;i++){ const u=(i+0.5)/n, x=(i+0.5)*v;
+    const lift=C*(o.lift===undefined?0.3:o.lift)*u*u+(u>0.86?(u-0.86)*C*1.6:0);                 /* the tip turns up */
+    const ch=C*(0.42+0.58*Math.sin(Math.PI*Math.min(1,u*1.12)))*(u>0.84?Math.max(0.22,1-(u-0.84)/0.2):1);
+    const rows=Math.max(2,Math.round(ch/v));
+    const f=(i>>1), step=((f*5)%3)+((i&1)?0:1);                                                  /* the feathers' stepped ends */
+    const R=rows+step, cov=Math.max(1,Math.round(rows*0.3)), sec=Math.max(1,Math.round(rows*0.3));
+    for(let j=0;j<R;j++){ const y=lift-j*v; let c, glow=false, z=0;
+      if(j===0){ c=P.bone; z=th*0.25; }
+      else if(j<=cov){ c=((j+i)%3===0)?P.cov2:P.cov; z=th*0.5; }                                     /* the coverts, scalloped */
+      else if(j<=cov+sec){ c=((j+(i>>1))%3===0)?P.sec2:P.sec; z=th*0.25; }
+      else if(j>=R-1){ c=P.fire; glow=true; }                                                       /* and every long feather burns at its end */
+      else if(j>=R-2){ c=P.end; glow=true; }
+      else c=(i&1)?P.pri2:P.pri;
+      V.box(v*1.02,v*1.02,th,c,x,y,z,glow); } } }
+/* A SERAPH, "a burning one" (Yashayahu 6:2,6), laid in blocks as the land is: "each one had six
+   wings; with two he covered his face, and with two he covered his feet, and with two he flew."
+   The two over his face fold about his head and meet above it, their ends rising over him, the
+   burning face seen between their edges of gold; the two over his feet are crossed before his robe;
+   the two he flies with are raised high and wide behind him. A breast of fire, a long robe stepped
+   wide to its hem. `tongs`: he holds the tongs he takes the live coal with from off the altar —
+   upright, as a torch, until the coal is in them; then held out before him. Some 3.4 high to the
+   ends of the wings over his head, facing +z, his feet at the origin. */
+W.seraph=function(o){ o=o||{};
+  const g=new THREE.Group(), V=new Vox();
+  const side=s=>{ if(s>0) return g; const m=new THREE.Group(); m.scale.x=-1; g.add(m); return m; };
+  const ROBE=0x3a2080, ROBE2=0x45288f, ROBE3=0x30196c, GOLD=0xf0bc44, GOLD2=0xd89a2a;
+  const FIRE=0xff8c22, FIRE2=0xffb03a, FIRE3=0xe0601a, HOT=0xfff0a0, EMBER=0xb8400e;
+  /* the robe: stepped tier on tier from the girdle to a hem spread wide, gold run down it in stripes */
+  const TH=0.1, Y0=1.5;
+  const tier=(r,d,h,c,y)=>{ V.box(2*r,h,2*d*0.56,c,0,y,0); V.box(2*r*0.9,h,2*d*0.82,c,0,y,0); V.box(2*r*0.66,h,2*d,c,0,y,0); };
+  tier(1.12,1.0,0.04,GOLD2,0.02); tier(1.06,0.94,0.06,ROBE3,0.05);                                  /* the hem spread about him */
+  for(let y=0.08,k=0;y<Y0;y+=TH,k++){ const t=y/Y0, r=0.34+0.66*Math.pow(1-t,1.7), d=r*0.86, c=k%2?ROBE:ROBE2;
+    tier(r,d,TH,c,y+TH/2);
+    if(k===0) tier(r+0.012,d+0.012,TH*0.6,GOLD,y+TH/2);
+    else for(const fx of [-0.6,-0.2,0.2,0.6]) V.box(0.07,TH,0.03,GOLD,fx*r,y+TH/2,d+0.012); }
+  V.box(0.74,0.1,0.42,GOLD,0,Y0+0.03,0);                                                            /* the girdle */
+  /* the breast of fire, burning brightest along a cross of light upon it */
+  V.box(0.66,0.72,0.36,FIRE,0,1.9,0,true);
+  V.box(0.6,0.66,0.38,FIRE3,0,1.9,0,true);
+  for(let i=0;i<7;i++) for(let j=0;j<8;j++){ const x=-0.24+i*0.08, y=1.6+j*0.08, h=hash(i*3.1,j*7.7);
+    const onX=Math.abs(x)<0.05, onY=Math.abs(y-2.06)<0.05&&Math.abs(x)<0.2, near=Math.abs(x)<0.13||(Math.abs(y-2.06)<0.12&&Math.abs(x)<0.27);
+    const c=(onX&&y>1.62&&y<2.24)||onY?HOT:near?FIRE2:h<0.22?EMBER:h<0.6?FIRE:FIRE2;
+    V.box(0.08,0.08,0.03,c,x,y,0.19,true); }
+  for(const s of [-1,1]){ V.box(0.26,0.22,0.36,ROBE2,s*0.43,2.15,0); V.box(0.28,0.05,0.38,GOLD,s*0.43,2.27,0); V.box(0.05,0.2,0.38,GOLD,s*0.31,2.15,0); }   /* the shoulders */
+  V.box(0.18,0.14,0.18,FIRE3,0,2.3,0,true);                                                          /* the neck */
+  /* his face: fire, white at the eyes, the mouth open — "and one cried to another" */
+  V.box(0.38,0.42,0.36,FIRE2,0,2.56,0,true);
+  V.box(0.3,0.3,0.03,0xffcc58,0,2.58,0.18,true);
+  for(const s of [-1,1]){ V.box(0.1,0.04,0.03,0x7a2406,s*0.08,2.66,0.196,true); V.box(0.07,0.05,0.03,0xfffbe8,s*0.08,2.615,0.198,true); }
+  V.box(0.04,0.08,0.03,0xffe090,0,2.54,0.198,true);
+  V.box(0.1,0.05,0.03,0x6a1c04,0,2.47,0.198,true);
+  /* the two over his face: folded about the head from behind, their edges of gold meeting before it,
+     and over it, their ends rising above him */
+  const R0=0.35;
+  for(const s of [-1,1]){ const P=side(s);
+    const Vs=s>0?V:new Vox(); /* (the left is laid as the right and turned in the glass) */
+    for(let y=2.12;y<3.04;y+=0.085){
+      const R=y<2.34?R0+(2.34-y)*0.45:y<2.76?R0+0.015*Math.sin((y-2.34)*7):R0*Math.sqrt(Math.max(0.06,1-Math.pow((y-2.76)/0.3,2)));
+      const a0=y<2.42?0.42:y<2.76?0.6:Math.max(0.1,0.6-(y-2.76)*2.4);                                      /* the face seen between them */
+      const n=Math.max(3,Math.round((Math.PI-a0)*R/0.085)), row=Math.round((y-2.12)/0.085);
+      for(let k=0;k<n;k++){ const a=a0+(k+0.5)/n*(Math.PI-a0);
+        let c=k===0?GOLD:k===1?0x7aa4ec:k<4?SER_BLUE.sec2:k<6?SER_BLUE.sec:SER_BLUE.cov;
+        if(k>1&&(row+(k>>1))%3===0) c=mixHex(c,0x101840,0.32);                                            /* in rows of feathers */
+        Vs.box(0.09,0.09,0.08,c,Math.sin(a)*R,y,Math.cos(a)*R,false,a); }
+      if(row===0) for(let k=0;k<n;k++){ const a=a0+(k+0.5)/n*(Math.PI-a0), Rk=R+0.015, dn=(k%3===1)?2:1;          /* their feathers' ends, burning, on his shoulders */
+        for(let q=1;q<=dn;q++) Vs.box(0.09,0.085,0.08,q===dn?SER_BLUE.fire:SER_BLUE.end,Math.sin(a)*Rk,y-q*0.085,Math.cos(a)*Rk,true,a); } }
+    /* the ends of the two, rising over his head as wings */
+    const tp=new THREE.Group(); tp.position.set(0.16,2.9,0.04); tp.rotation.set(0,-0.12,1.02); P.add(tp);
+    const Vt=new Vox(); pixWing(Vt,{span:0.9,chord:0.5,v:0.075,pal:SER_BLUE,lift:0.45,th:0.07}); Vt.into(tp);
+    if(Vs!==V) Vs.into(P); }
+  /* the two he flies with: raised from behind his shoulders, high and wide, swept back */
+  const W6={fly:[],face:[],feet:[]};
+  for(const s of [-1,1]){ const P=side(s), pv=new THREE.Group(); pv.position.set(0.22,2.32,-0.3); pv.rotation.set(0,-0.3,0.98); P.add(pv);
+    const Vw=new Vox(); pixWing(Vw,{span:3.4,chord:1.6,v:0.1,pal:SER_BLUE}); Vw.into(pv); W6.fly.push(pv); }
+  /* the two over his feet: from his girdle, crossed before the robe, their ends at his feet */
+  for(const s of [-1,1]){ const P=side(s), pv=new THREE.Group(); pv.position.set(0.5,1.12,0.36+(s>0?0.04:0)); pv.rotation.set(-0.36,0,0); P.add(pv);
+    const wi=new THREE.Group(); wi.rotation.z=-2.36; wi.scale.y=-1; pv.add(wi);
+    const Vw=new Vox(); pixWing(Vw,{span:1.5,chord:0.46,v:0.075,pal:SER_GOLD,lift:0.1,th:0.07}); Vw.into(wi); W6.feet.push(pv); }
+  V.into(g);
+  /* his arms, in the robe's sleeves, the hands of fire: the left before him; the right held out,
+     with the tongs when he has them */
+  const arm=(s,tongs)=>{ const P=side(s), sh=new THREE.Group(); sh.position.set(0.5,2.16,0); P.add(sh);
+    const Va=new Vox(); Va.box(0.2,0.38,0.2,ROBE2,0,-0.18,0); Va.box(0.21,0.05,0.21,GOLD,0,-0.02,0); Va.into(sh);
+    const el=new THREE.Group(); el.position.set(0,-0.36,0); sh.add(el);
+    const Vf=new Vox(); Vf.box(0.18,0.18,0.36,ROBE2,0,0,0.16); Vf.box(0.19,0.19,0.05,GOLD,0,0,0.33); Vf.box(0.15,0.15,0.12,FIRE2,0,0,0.41,true); Vf.into(el);
+    const hd=new THREE.Group(); hd.position.set(0,0,0.42); el.add(hd);
+    sh.rotation.x=-0.25; el.rotation.x=0; hd.rotation.x=0.25; sh.rotation.z=0.06;
+    if(tongs){ const Vt=new Vox();
+      for(const q of [-1,1]) Vt.box(0.04,1.05,0.04,0xc89a3a,q*0.035,0.42,0);
+      Vt.box(0.11,0.05,0.05,0xe8b850,0,-0.1,0); Vt.box(0.12,0.04,0.12,0xe8b850,0,0.9,0); Vt.into(hd);
+      g.userData.tongTip=new THREE.Object3D(); g.userData.tongTip.position.set(0,1.02,0); hd.add(g.userData.tongTip);
+      /* the live coal in them, shown while he carries it */
+      const coal=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.13,0.15),new THREE.MeshBasicMaterial({color:0xff5a10,fog:false})); coal.position.set(0,1.02,0); coal.visible=false; hd.add(coal); g.userData.coal=coal;
+      g.userData.arm={sh,el,hd}; }
+    return sh; };
+  arm(-1,false); arm(1,!!o.tongs);
+  const head=new THREE.Object3D(); head.position.set(0,2.56,0); g.add(head);
+  g.userData.wings6=W6; g.userData.t=Math.random()*6; g.userData.head=head; g.userData.carry=0;
+  return g; };
+/* the flying wings beat; the tongs are held up as a torch, and out before him while the coal is in them */
+W.seraphTick=function(g,dt){ const u=g.userData, W6=u.wings6; if(!W6) return; u.t+=dt; const a=Math.sin(u.t*3.2)*0.2;
+  for(const w of W6.fly) w.rotation.z=0.98+a;
+  if(u.arm){ const k=u.carry+=((u.coal&&u.coal.visible?1:0)-u.carry)*Math.min(1,dt*2.5), A=u.arm;
+    A.sh.rotation.x=-0.25+(-1.3+0.25)*k; A.el.rotation.x=1.57*k; A.hd.rotation.x=0.25+(1.57-0.25)*k; } };
+/* A LIVING ONE about the throne, as Yahazq'al saw them (1:5-11): the likeness of a man, straight
+   legs and the sole of a calf's foot sparkling like burnished bronze, the hands of a man under the
+   wings, and four faces — a man before, a lion on the right, an ox on the left, an eagle behind —
+   their wings joined upward and two covering their bodies; "their appearance like burning coals of
+   fire" (1:13). Some 3.2 high, facing +z. */
+W.livingOne=function(o){ o=o||{};
+  const g=new THREE.Group();
+  const add=(w,h,d,m,x,y,z,par)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); q.position.set(x,y,z); (par||g).add(q); return q; };
+  const bronze=lamb(0xc8862e,0x5a3008), amber=lamb(0xe8a040,0x7a3a08), dark=lamb(0x1a120c), white=lamb(0xf4f0e6,0x302c24),
+        skin=lamb(0x8a5a32,0x2a1608), beard=lamb(0x2a1a10), mane=lamb(0xc88a2e,0x4a2a08), lionF=lamb(0xdca452,0x4a2a08),
+        ox=lamb(0x5a3a22,0x1a0c04), horn=lamb(0x2a2018), beak=lamb(0xf0b020,0x5a3a00), red=lamb(0xa02020,0x300808), tooth=lamb(0xf6f2e8);
+  /* legs straight, the feet a calf's, bronze */
+  for(const sx of [-1,1]){ add(0.26,1.1,0.28,bronze,sx*0.2,0.65,0); add(0.3,0.16,0.4,lamb(0xe0b050,0x6a4a10),sx*0.2,0.08,0.04); }
+  add(0.7,0.95,0.42,amber,0,1.65,0);                                                  /* the body, like coals of fire */
+  add(0.72,0.1,0.44,bronze,0,1.2,0);
+  /* the hands of a man, held out under the wings */
+  for(const sx of [-1,1]){ const a=new THREE.Group(); a.position.set(sx*0.47,2.05,0); a.rotation.z=sx*0.55; g.add(a);
+    add(0.18,0.62,0.18,amber,0,-0.3,0,a); add(0.2,0.16,0.12,skin,0,-0.66,0.02,a); }
+  /* the head of four faces */
+  const H=new THREE.Group(); H.position.set(0,2.4,0); g.add(H);
+  add(0.5,0.52,0.5,skin,0,0.26,0,H);
+  /* a man before */
+  add(0.08,0.06,0.02,dark,-0.11,0.32,0.26,H); add(0.08,0.06,0.02,dark,0.11,0.32,0.26,H); add(0.08,0.12,0.06,skin,0,0.22,0.28,H);
+  add(0.42,0.16,0.06,beard,0,0.06,0.26,H); add(0.5,0.1,0.52,beard,0,0.54,0,H);
+  /* a lion on the right: the mane about, the muzzle out, its mouth open */
+  add(0.2,0.7,0.6,mane,0.32,0.26,-0.02,H); add(0.3,0.26,0.32,lionF,0.55,0.24,0.02,H); add(0.06,0.06,0.08,dark,0.71,0.3,0.02,H);
+  add(0.22,0.07,0.24,red,0.6,0.1,0.02,H); add(0.04,0.06,0.04,tooth,0.68,0.13,0.1,H); add(0.04,0.06,0.04,tooth,0.68,0.13,-0.06,H);
+  add(0.04,0.06,0.04,dark,0.42,0.36,0.17,H);
+  /* an ox on the left: the broad muzzle, and the horns */
+  add(0.3,0.3,0.34,ox,-0.56,0.2,0.02,H); add(0.06,0.08,0.1,dark,-0.72,0.18,0.02,H);
+  const hornL=add(0.08,0.36,0.08,horn,-0.4,0.66,0.12,H); hornL.rotation.z=0.7; const hornR=add(0.08,0.36,0.08,horn,-0.4,0.66,-0.12,H); hornR.rotation.z=0.7;
+  /* an eagle behind: white head, the hooked beak of gold */
+  add(0.46,0.42,0.18,white,0,0.3,-0.33,H); add(0.12,0.12,0.26,beak,0,0.24,-0.52,H); add(0.12,0.08,0.06,beak,0,0.16,-0.64,H);
+  add(0.06,0.06,0.04,dark,0.13,0.36,-0.43,H); add(0.06,0.06,0.04,dark,-0.13,0.36,-0.43,H);
+  /* the wings: two joined upward over it, two covering the body */
+  const wing=(span,h0,h1,x,y,z,a,flip)=>{ const w=voxWing({span,chord:h1,pal:WING_LIVING,n:10}); w.position.set(x,y,z); w.rotation.z=a; if(flip) w.scale.y=-1; g.add(w); return w; };
+  const up=[ wing(2.2,0.5,1.2, 0.3,2.35,-0.3, 1.25), wing(2.2,0.5,1.2,-0.3,2.35,-0.3, Math.PI-1.25,true) ];
+  wing(1.5,0.3,0.55, 0.42,2.0,0.3, Math.PI+1.2); wing(1.5,0.3,0.55,-0.42,2.0,0.34,-1.2,true);
+  g.userData.up=up; g.userData.t=Math.random()*6; g.userData.headG=H;
+  g.userData.tick=dt=>{ g.userData.t+=dt; const a=Math.sin(g.userData.t*1.6)*0.06; up[0].rotation.z=1.25+a; up[1].rotation.z=Math.PI-1.25-a; };
+  return g; };
+W.livingOneAt=function(ctx,x,z,o){ const g=W.livingOne(o); const s=o&&o.s||1.2; g.scale.setScalar(s); g.position.set(x,0,z); g.rotation.y=(o&&o.face)||0; ctx.scene.add(g); return g; };
+/* "and the house was filled with smoke" (Yashayahu 6:4): banks of grey smoke, not light, rolling and
+   rising through the court */
+W.smokeCloud=function(ctx,x,z,o){ o=o||{};
+  const cv=document.createElement('canvas'); cv.width=cv.height=128; const c2=cv.getContext('2d');
+  for(let k=0;k<26;k++){ const px=30+Math.random()*68, py=30+Math.random()*68, r=14+Math.random()*26;
+    const gr=c2.createRadialGradient(px,py,0,px,py,r); gr.addColorStop(0,'rgba(255,255,255,0.32)'); gr.addColorStop(1,'rgba(255,255,255,0)');
+    c2.fillStyle=gr; c2.fillRect(0,0,128,128); }
+  const tex=new THREE.CanvasTexture(cv), g=new THREE.Group(), puffs=[];
+  const R=o.r||16, H=o.h||14, N=o.n||46;
+  for(let k=0;k<N;k++){ const m=new THREE.SpriteMaterial({map:tex,color:k%3?0x8e8a86:0xa8a49e,transparent:true,opacity:0,depthWrite:false,fog:false});
+    const sp=new THREE.Sprite(m), s2=6+Math.random()*9; sp.scale.set(s2,s2,1);
+    const a=Math.random()*Math.PI*2, d=Math.sqrt(Math.random())*R;
+    sp.position.set(Math.cos(a)*d*(o.sx||1),1+Math.random()*H,Math.sin(a)*d+(o.dz||0)); g.add(sp);
+    puffs.push({sp,m,base:sp.position.y,ph:Math.random()*6,sp2:0.3+Math.random()*0.5}); }
+  let t=0; g.userData.tick=dt=>{ t+=dt;
+    for(const p of puffs){ p.sp.position.y=p.base+((t*p.sp2+p.ph)%4)*0.6; p.m.opacity=Math.min(o.op||0.62,(p.m.opacity||0)+dt*0.25); } };
+  g.position.set(x,0,z); ctx.scene.add(g); return g; };
+/* the heavenly altar, from which the coal was taken with the tongs (6:6): gold, a fire of coals on it */
+W.heavenAltar=function(ctx,x,z,o){ o=o||{};
+  const g=new THREE.Group(), s=o.s||1;
+  const b=(w,h,d,c,py)=>{ const q=new THREE.Mesh(new THREE.BoxGeometry(w*s,h*s,d*s),lightMat(c)); q.position.y=py*s; g.add(q); return q; };
+  b(1.6,1.1,1.6,0xe8b850,0.55); b(1.8,0.12,1.8,0xf6d27a,1.16); b(1.3,0.14,1.3,0xff7a2a,1.28);
+  for(const sx of [-1,1]) for(const sz of [-1,1]){ const h=new THREE.Mesh(new THREE.BoxGeometry(0.18*s,0.3*s,0.18*s),lightMat(0xf6d27a)); h.position.set(sx*0.8*s,1.35*s,sz*0.8*s); g.add(h); }   /* its horns */
+  g.position.set(x,0,z); ctx.scene.add(g); return g; };
+/* the train of His robe, filling the Hĕḵal: a cloth of light from the seat, down over the dais
+   and out over the whole floor to the doors, widening as it goes, stirring as cloth does */
+W.robeTrain=function(ctx,x,z,o){ o=o||{};
+  const L=o.len||14, W0=o.w0||1.2, W1=o.w1||8, H0=o.h0||2, NX=10, NZ=36;
+  const geo=new THREE.BufferGeometry(), P=new Float32Array((NX+1)*(NZ+1)*3), Cc=new Float32Array((NX+1)*(NZ+1)*3), I=[];
+  const base=[];
+  for(let j=0;j<=NZ;j++){ const t=j/NZ, w=W0+(W1-W0)*Math.min(1,t*1.6), drop=t<0.18?H0*(1-t/0.18):0;
+    for(let i=0;i<=NX;i++){ const u=i/NX-0.5, k=(j*(NX+1)+i);
+      base.push([u*w, 0.03+drop, t*L]);
+      const hem=Math.abs(u)>0.44||j>NZ-2?1:0;                        /* its hem worked in gold */
+      Cc[k*3]=1; Cc[k*3+1]=hem?0.82:0.97; Cc[k*3+2]=hem?0.5:0.9; } }
+  for(let j=0;j<NZ;j++) for(let i=0;i<NX;i++){ const a=j*(NX+1)+i, b2=a+1, c=a+NX+1, d=c+1; I.push(a,c,b2, b2,c,d); }
+  geo.setAttribute('position',new THREE.BufferAttribute(P,3)); geo.setAttribute('color',new THREE.BufferAttribute(Cc,3)); geo.setIndex(I);
+  const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:0.9,side:THREE.DoubleSide,depthWrite:false,fog:false}));
+  const g=new THREE.Group(); g.add(m); g.position.set(x,0,z); g.rotation.y=o.face||0; ctx.scene.add(g);
+  let t=0; const set=()=>{ for(let k=0;k<base.length;k++){ const q=base[k], ripple=q[1]<0.2?Math.sin(q[2]*1.3-t*1.4+q[0]*0.8)*0.05+0.05:0;
+      P[k*3]=q[0]; P[k*3+1]=q[1]+ripple; P[k*3+2]=q[2]; } geo.attributes.position.needsUpdate=true; geo.computeBoundingSphere(); };
+  set(); g.userData.tick=dt=>{ t+=dt; set(); };
+  return g; };
 W.basket=function(ctx,x,z,full){
   const g=new THREE.Group();
   const a=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.4,0.6),new THREE.MeshLambertMaterial({color:0xa8844a})); a.position.y=0.2; g.add(a);

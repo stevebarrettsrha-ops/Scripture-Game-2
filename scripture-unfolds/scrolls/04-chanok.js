@@ -44,16 +44,21 @@ STORY.scene({
     /* ---- AND THEN MICHAAL, URIAL, RAPHAAL AND GABRIAL LOOKED DOWN ----
        the one cut in the film, and it is a cut on purpose: the eye is not
        carried up to the gates of shamayim, it is already there */
-    { t:130, hour:16.6, cd:900, cy:760, cl:0, ca:0.195, cfov:52, dark:0.16, light:0.62,
+    /* (in the dark of the fade, 125.2-126.8 — at 130 the fade had cleared and the old low shot came
+       back for three seconds before the cut) */
+    { t:126, hour:16.6, cd:900, cy:760, cl:0, ca:0.195, cfov:52, dark:0.16, light:0.62,
       sky:0x6d7f93, sun:0.5, stars:0.20, firm:0.30, far:1, clouds:0,
       fogN:900, fogF:5200, cut:true },
     { t:152, hour:17.2, cd:1050, cy:840, cl:0, ca:0.225 },      /* the earth cries out */
     { t:172, hour:17.8, cd:1180, cy:900, cl:0, ca:0.255, stars:0.35 },  /* the book of the reprimand */
-    /* ---- the clouds invited me and a mist summoned me ---- */
+    /* ---- the clouds invited me and a mist summoned me (5:8) ----
+       the clouds come about him and the mist closes in while it is read, and clear as he is lifted
+       upward into the shamayim (they were set to nothing here, and the fog drawn far out) */
+    { t:188 },
     { t:196, hour:19.6, cd:1400, cy:1180, cl:0, ca:0.290, dark:0.30, light:0.55, sky:0x3f5470,
-      sun:0.24, moon:0.9, stars:0.72, firm:0.62, clouds:0, fogF:7200 },
+      sun:0.24, moon:0.9, stars:0.72, firm:0.62, clouds:1, fogN:60, fogF:900 },
     { t:218, hour:21, cd:1620, cy:1420, cl:0, ca:0.325, dark:0.44, light:0.46, sky:0x22314c,
-      sun:0.08, stars:0.95, firm:0.85 },
+      sun:0.08, stars:0.95, firm:0.85, clouds:0, fogN:900, fogF:7200 },
     /* ---- the places of the luminaries, and the treasuries of the stars ---- */
     { t:240, hour:22.4, cd:1780, cy:1560, cl:0, ca:0.360, dark:0.54, sky:0x141d33, sun:0,
       stars:1, firm:1, clouds:0 },

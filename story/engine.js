@@ -216,8 +216,8 @@ function buildScene(sc){
        beside the true pool, a place by the gate by the true gate. */
     if(A.markOff&&A.byMark){ const small=smallCityMarks(A.period||sc.period||'kings'), big=k.yahruAs(sc.period||A.period)||{};
       ctx.remap=[]; for(const m in small){ if(/Y$/.test(m)||!big[m]||!Array.isArray(big[m])) continue;
-        ctx.remap.push({s:small[m],d:[big[m][0]-small[m][0]-A.markOff[0],big[m][1]-small[m][1]-A.markOff[1]]}); }
-      ctx.remapHome=A.anchorMark&&small[A.anchorMark]||null;
+        const d=[big[m][0]-small[m][0]-A.markOff[0],big[m][1]-small[m][1]-A.markOff[1]];
+        ctx.remap.push({n:m,s:small[m],d,t:[small[m][0]+d[0],small[m][1]+d[1]],home:m===A.anchorMark}); }
       if(!ctx.remap.length) ctx.remap=null; } }
   if(k.aimOff) k.aimOff(true);                                    /* (the voyage's mark on the block in reach is not the story's) */
   ctx.api=k.setBuilder(A.x,A.z,A.y);
@@ -279,11 +279,22 @@ function buildScene(sc){
       obj.position.set(p[0],t.y!==undefined?yOf(t.y):(ctx.groundY(p[0],p[1])||0)+(t.dy||0),p[1]); scene.add(obj); }
     else if(t.kind==='vision'){ obj=window.STORYWORLD.vision(ctx,p[0],p[1],t); obj.position.y=t.y!==undefined?yOf(t.y):(ctx.groundY(p[0],p[1])||0); }
     else if(t.kind==='throne'){ obj=window.STORYWORLD.throne(ctx,p[0],p[1],t); obj.position.y=t.y!==undefined?yOf(t.y):(ctx.groundY(p[0],p[1])||0); }
+    /* the throne high and lifted up, and the train of the robe filling the Hĕḵal (Yashayahu 6:1) */
+    else if(t.kind==='gloryThrone'){ obj=window.STORYWORLD.gloryThrone(ctx,p[0],p[1],t); obj.position.y=(ctx.groundY(p[0],p[1])||0)+(t.dy||0); }
+    /* the court of heaven where the vision is seen, and its altar (Yashayahu 6:1, 6:6) */
+    else if(t.kind==='heavenCourt'){ obj=window.STORYWORLD.heavenCourt(ctx,p[0],p[1],t); }
+    else if(t.kind==='smokeCloud'){ obj=window.STORYWORLD.smokeCloud(ctx,p[0],p[1],t); }
+    else if(t.kind==='livingOne'){ obj=window.STORYWORLD.livingOneAt(ctx,p[0],p[1],t); }
+    else if(t.kind==='heavenAltar'){ obj=window.STORYWORLD.heavenAltar(ctx,p[0],p[1],t); obj.position.y=(ctx.groundY(p[0],p[1])||0)+(t.dy||0); }
+    else if(t.kind==='robeTrain'){ if(t.lenTo){ const q=pos(t.lenTo); t.len=Math.max(3,Math.hypot(q[0]-p[0],q[1]-p[1])*(t.lenK||0.92)); }   /* (as long as the house is) */
+      obj=window.STORYWORLD.robeTrain(ctx,p[0],p[1],t); obj.position.y=(ctx.groundY(p[0],p[1])||0)+(t.dy||0); }
     else { obj=new THREE.Mesh(new THREE.BoxGeometry(t.w||0.5,t.h||0.5,t.d||0.5),new THREE.MeshLambertMaterial({color:t.color||0xc9b38a}));
       /* `y` a height in the scene; `dy` (or nothing) above the ground where it lies */
       const gy=t.y!==undefined?t.y:(ctx.groundY(p[0],p[1])||0)+(t.dy||0);
       obj.position.set(p[0],gy+(t.h||0.5)/2,p[1]); scene.add(obj); }
     if(t.face!==undefined) obj.rotation.y=t.face;
+    /* `faceTo`: turned toward a place (a throne toward the doors, whichever way the house runs) */
+    if(t.faceTo!==undefined){ const q=pos(t.faceTo); obj.rotation.y=Math.atan2(q[0]-obj.position.x,q[1]-obj.position.z); }
     if(t.hidden) obj.visible=false;
     if(t.y!==undefined&&t.kind!=='box'&&t.kind!=='dove'&&t.kind!=='throne'&&t.kind!=='vision'&&t.kind!=='fish') obj.position.y=t.y;
     obj.userData.thing=t; obj.userData.baseY=obj.position.y; ctx.things[t.id]=obj; }
@@ -309,7 +320,7 @@ function buildScene(sc){
       return [m[0],gl.dy!==undefined?(ctx.groundY(m[0],m[1])||0)+gl.dy:(gl.y||2),m[1]]; })();
     const G=window.STORYWORLD.glow(ctx,p[0],p[1],p[2],gl.size||3,gl.color,gl.intensity===undefined?1.2:gl.intensity);
     if(gl.h){ G.sprite.scale.set(gl.size||3,gl.h,1); G.aspect=gl.h/(gl.size||3); }      /* a column of light keeps its height as it pulses or swells */
-    if(gl.malak) malakFigure(G,gl);
+    if(gl.seraph) seraphFigure(G,gl); else if(gl.malak) malakFigure(G,gl);
     G.visible=!gl.hidden; G.pulse=gl.pulse; if(gl.on&&ctx.actors[gl.on]){ G.on=ctx.actors[gl.on]; G.onDy=gl.dy===undefined?0.18:gl.dy; } ctx.glows[gl.id]=G; }
   ctx.drifts=[];
   if(sc.host){ ctx.host=[]; const h=sc.host;                     /* the heavenly host */
@@ -654,26 +665,51 @@ function folkTick(dt){
       const onHead=(F.jarH&&F.jarH.visible)||(F.load&&F.load.visible&&F.load.parent===u.head);
       if(u.head&&!u.holy) u.head.rotation.x=onHead?-u.waist.rotation.x:-Math.max(0,u.waist.rotation.x)*0.32; }   /* the head kept up a little, looking at the work — and level under a load */
     if(knees&&!u.sit&&u.legL){ for(const Lg of [u.legL,u.legR]){ Lg.rotation.x=-knees*0.7; if(Lg.userData.knee) Lg.userData.knee.rotation.x=knees*1.4; }
-      g.position.y=u.gy-knees*0.12; }                                                       /* the knees given, the body let down on them */
+      g.position.y=(u.fixedY!==undefined?u.fixedY:u.gy)-knees*0.12; }   /* (on what he is held on — a boat, a vision's floor — not the ground under it) */                                                       /* the knees given, the body let down on them */
   }
 }
 function pos(at){ if(typeof at==='string'){ const m=ctx.markers[at]; if(m) return m;
     const g=ctx.actors[at]||ctx.things[at]; if(g) return [g.position.x,g.position.z];   /* a person or a thing: where they are now */
     throw new Error('no marker '+at); }
+  /* ALONG A LINE BETWEEN TWO MARKS: ['holyPlace>porchFront', a, s] — `a` metres from the first
+     toward the second (or, with a fourth 'f', that fraction of the way), and `s` metres to the
+     right of that line. A place written so stands the same in any city whichever way her
+     buildings are turned: in the small city the House runs north and south, in the true one
+     east and west, and a throne written 'at the far end of the holy place' is there in both. */
+  if(Array.isArray(at)&&typeof at[0]==='string'&&at[0].indexOf('>')>0){ const [na,nb]=at[0].split('>'), A0=pos(na), B0=pos(nb);
+    const dx=B0[0]-A0[0], dz=B0[1]-A0[1], L=Math.hypot(dx,dz)||1, ux=dx/L, uz=dz/L, a=at[3]==='f'?(at[1]||0)*L:(at[1]||0), sd=at[2]||0;
+    return [A0[0]+ux*a-uz*sd, A0[1]+uz*a+ux*sd]; }
   /* a marker and a step from it: ['pinnacle',1.6,-0.7] */
   if(Array.isArray(at)&&typeof at[0]==='string'){ const m=pos(at[0]); return [m[0]+at[1],m[1]+at[2]]; }
   if(Array.isArray(at)&&at.length===2&&typeof at[0]==='number') return remapXZ(at);
   return at; }
 /* a place written about the small city, where it stands in the true one (see buildScene) */
-/* (a place goes with another mark only when it was written plainly BESIDE that mark — within twenty
-   metres of it, and at less than half the distance to the mark the scene is anchored on. In the small
-   city the gate and the house of the taught ones stand sixteen metres apart; in the true one, four
-   hundred and seventy, and a man written between them must not be thrown across the city) */
+/* WHERE A PLACE WRITTEN ABOUT THE SMALL CITY STANDS IN THE TRUE ONE.
+   It goes with the mark it was written beside — the one nearest it, unless the mark the scene is
+   anchored on is about as near (in the small city the gate and the house of the taught ones stand
+   sixteen metres apart; in the true one four hundred and seventy, and a man written between them
+   must not be thrown across the city). And a place written BETWEEN two marks — a stone on the road
+   from the gate to the upper pool — is set the same part of the way between them in the true city,
+   so long as the two stand at much the same distance apart in both (not stretched more than
+   fourfold); else it keeps to its one mark. Far from every mark (sixty metres) it keeps to the
+   scene's anchor. */
 function remapXZ(p){ const R=ctx&&ctx.remap; if(!R) return p;
-  let best=null, bd=1e9; for(const r of R){ const d=Math.hypot(p[0]-r.s[0],p[1]-r.s[1]); if(d<bd){ bd=d; best=r; } }
-  const H=ctx.remapHome, dh=H?Math.hypot(p[0]-H[0],p[1]-H[1]):1e9;
-  if(!best||bd>20||bd>dh*0.5) return p;
-  return [p[0]+best.d[0],p[1]+best.d[1]]; }
+  const dist=r=>Math.hypot(p[0]-r.s[0],p[1]-r.s[1]);
+  let m1=null, d1=1e9; for(const r of R){ const d=dist(r); if(d<d1){ d1=d; m1=r; } }
+  const home=R.find(r=>r.home);
+  if(home&&dist(home)<=1.5*d1){ m1=home; d1=dist(home); }
+  if(!m1||d1>60) return p;
+  let m2=null, t2=0, bp=1e9;
+  for(const r of R){ if(r===m1) continue;
+    const ex=r.s[0]-m1.s[0], ez=r.s[1]-m1.s[1], Ls=Math.hypot(ex,ez); if(Ls<1) continue;
+    const Lt=Math.hypot(r.t[0]-m1.t[0],r.t[1]-m1.t[1]); if(Lt>Ls*4||Lt<Ls/4) continue;
+    const vx=p[0]-m1.s[0], vz=p[1]-m1.s[1], t=(vx*ex+vz*ez)/(Ls*Ls); if(t<=0.02||t>1.2) continue;
+    const perp=Math.abs(vx*ez-vz*ex)/Ls; if(perp>Math.max(8,0.5*Ls)) continue;
+    if(perp<bp){ bp=perp; m2=r; t2=Math.min(1,t); } }
+  let d=m1.d;
+  if(m2) d=[m1.d[0]+(m2.d[0]-m1.d[0])*t2,m1.d[1]+(m2.d[1]-m1.d[1])*t2];
+  else if(d1>25&&!m1.home) return p;
+  return [p[0]+d[0],p[1]+d[1]]; }
 function remap3(p){ if(!ctx||!ctx.remap||!Array.isArray(p)||p.length!==3||typeof p[0]!=='number') return p;
   const q=remapXZ([p[0],p[2]]); return [q[0],p[1],q[1]]; }
 /* a height given as a marker's (the city's 'pinnacleY'), or as metres */
@@ -1740,10 +1776,19 @@ function enterBeat(){
     const by=B.by?new THREE.Vector3(...B.by):null;
     /* `hold`: a figure carried up (Acts 1:9) is held where the drift leaves him, not set back on the ground */
     if(B.hold) for(const id of [].concat(B.id)){ const g=ctx.actors[id]; if(g&&g.userData.fixedY===undefined) g.userData.fixedY=g.position.y; }
-    const D={objs,from:objs.map(q=>q.position.clone()),to:by?null:new THREE.Vector3(...remap3(B.to)),by,t:0,dur:ST.fast?0.001:(B.dur||3)};
+    /* (`toAt` [a place] with `dy`: to so high over the floor there) */
+    const toV=B.toAt?(()=>{ const m=pos(B.toAt); return [m[0],B.y!==undefined?B.y:(ctx.groundY(m[0],m[1])||0)+(B.dy||1.5),m[1]]; })():B.to?remap3(B.to):null;
+    const D={objs,from:objs.map(q=>q.position.clone()),to:by?null:new THREE.Vector3(...toV),by,t:0,dur:ST.fast?0.001:(B.dur||3)};
     ctx.drifts.push(D);
     if(B.wait===false) return nextBeat();
     onFrame=()=>{ if(D.t>=1) nextBeat(); }; return; }
+  /* `carry`: a light taken up in a seraph's tongs (`by`), or set down again (no `by`) — the live coal (Yashayahu 6:6) */
+  if(T==='carry'){ const G=ctx.glows[B.id]; if(G){ const was=G.onTongs, F=ctx.glows[B.by||was]&&ctx.glows[B.by||was].fig;
+      G.onTongs=B.by||null; if(F&&F.userData.coal) F.userData.coal.visible=!!B.by; }   /* (the coal itself is seen in the tongs) */
+    return nextBeat(); }
+  /* the screen goes to white or dark (`to` 1) and comes back (`to` 0): the passing into a vision */
+  if(T==='fade'){ const f=$('fade'); if(f) f.style.background=B.color||'#000'; fade(B.to===undefined?1:B.to,ST.fast?0:(B.dur||0.8));
+    if(ST.fast||B.wait===false) return nextBeat(); onFrame=()=>{ if(beatT>=(B.dur||0.8)) nextBeat(); }; return; }
   if(T==='quake'){ ctx.quake=ST.fast?0:(B.s||2.5); return nextBeat(); }
   if(T==='wait'){ onFrame=()=>{ if(ST.fast||beatT>=B.s) nextBeat(); }; return; }
   if(T==='player'){ ctx.playerHidden=!!B.hidden; player.visible=!B.hidden; if(B.hidden) controlsOn=false;
@@ -1765,7 +1810,8 @@ function enterBeat(){
 const MALAK_SKIN=[0x6e4524,0x704a27,0x7a4e29,0x6a4426];   /* brown, as the people of the land are */
 function malakFigure(G,gl){
   const k=Math.abs((gl.id||'').split('').reduce((a,c)=>a*31+c.charCodeAt(0),7))%MALAK_SKIN.length;
-  const f=window.STORYWORLD.person(ctx,{id:'glow:'+gl.id, dress:'man', robe:0xf4f1e8, cloth:0xfbf8ef, sash:0xe8dcb0, skin:MALAK_SKIN[k], beard:gl.beard||null});
+  const f=window.STORYWORLD.person(ctx,{id:'glow:'+gl.id, dress:'man', robe:gl.seraph?0xfff6e4:0xf4f1e8, cloth:gl.seraph?0xfffbf0:0xfbf8ef, sash:gl.seraph?0xf0c860:0xe8dcb0, skin:MALAK_SKIN[k], beard:gl.beard||null});
+
   f.userData.id='glow:'+gl.id; f.userData.def={ground:true}; f.userData.malak=true; f.userData.noShadow=true; f.visible=false;   /* (light throws no shadow) */
   if(gl.sit) f.userData.sit=true;
   f.userData.s=gl.scale||(gl.float||(gl.at&&gl.at.length===3&&gl.at[1]>5)?1.35:1.08); f.scale.setScalar(f.userData.s);
@@ -1780,8 +1826,27 @@ function malakFigure(G,gl){
   G.fig=f; G.toward=gl.toward; G.float=gl.float; G.seat=gl.seat;
   Object.defineProperty(G,'visible',{configurable:true, get(){ return G.sprite.visible; },
     set(v){ G.sprite.visible=v; if(G.light) G.light.intensity=v?G.light.userData.on:0; f.visible=v; G.faceLight.intensity=v?0.9:0; }}); }
-const _cw=new THREE.Vector3();
+/* ---- A SERAPH, SEEN (Yashayahu 6:2,6) ----
+   A figure of his own (story/world.js, W.seraph): a body of fire, his robe, his six wings — and
+   borne in the air at his light. `tongs`: he holds the tongs he takes the coal with. */
+function seraphFigure(G,gl){
+  const f=window.STORYWORLD.seraph({tongs:!!gl.tongs}); f.userData.seraph=true; f.userData.noShadow=true; f.visible=false;
+  f.userData.s=gl.scale||2; f.scale.setScalar(f.userData.s); ctx.scene.add(f);
+  G.sprite.material.opacity=0.2;                                     /* (a light about him, not a glare over him) */
+  const S=(K()&&K().setScale)||6.5; G.faceLight=new THREE.PointLight(0xfff0dc,0,8*S,1.6); ctx.scene.add(G.faceLight);
+  G.fig=f; G.float=true; G.toward=gl.toward;
+  Object.defineProperty(G,'visible',{configurable:true, get(){ return G.sprite.visible; },
+    set(v){ G.sprite.visible=v; if(G.light) G.light.intensity=v?G.light.userData.on:0; f.visible=v; G.faceLight.intensity=v?0.5:0; }}); }
+const _cw=new THREE.Vector3(), _tt=new THREE.Vector3();
 function malakTick(G,id,dt){
+  if(G.fig.userData.seraph){ const f=G.fig, u=f.userData, q=G.sprite.position;
+    /* his light about his breast; turned to the one he is sent to, else to whoever is near, else the witness */
+    f.position.set(q.x,q.y-1.6*u.s,q.z);
+    let tg=G.toward&&ctx.actors[G.toward]; if(!tg){ let bd=1e9; for(const a in ctx.actors){ const g=ctx.actors[a]; if(!g.visible) continue; const d=(g.position.x-q.x)**2+(g.position.z-q.z)**2; if(d<bd&&d<1600){ bd=d; tg=g; } } }
+    if(!tg) tg=player;
+    f.rotation.y=turnTo(f.rotation.y,Math.atan2(tg.position.x-q.x,tg.position.z-q.z),dt*3);
+    G.faceLight.position.set(q.x,q.y,q.z);
+    window.STORYWORLD.seraphTick(f,dt); return; }
   const f=G.fig, u=f.userData, q=G.sprite.position, gr=ctx.groundY(q.x,q.z,q.y)||0;
   /* standing on the ground under the light when it is near the ground; else borne up in it */
   const stand=!G.float&&q.y-gr<4.2, feet=stand?gr:q.y-1.25*(u.s||1);
@@ -1794,7 +1859,8 @@ function malakTick(G,id,dt){
   /* lit on the side that is seen */
   camera.getWorldPosition(_cw); ctx.scene.worldToLocal(_cw); const dx=_cw.x-q.x, dy=_cw.y-q.y, dz=_cw.z-q.z, L=Math.hypot(dx,dy,dz)||1;
   G.faceLight.position.set(f.position.x+dx/L*1.4,feet+1.7*(u.s||1),f.position.z+dz/L*1.4);
-  animFigure(f,dt,false); animFace(f,id&&('glow:'+id),dt); }
+  animFigure(f,dt,false); animFace(f,id&&('glow:'+id),dt);
+  if(u.wings) window.STORYWORLD.seraphWingsTick(f,dt); }
 /* ---- HELD IN THE HANDS, AND THE CHAINS ---- */
 const _h1=new THREE.Vector3(), _h2=new THREE.Vector3(), _Z=new THREE.Vector3(0,0,1);
 function handAt(g,side,out){ const A=side==='L'?g.userData.armL:g.userData.armR, h=A&&A.userData.hand;
@@ -1835,7 +1901,8 @@ function chainTick(o){ const u=o.userData, t=u.thing; u.ends=u.ends||[new THREE.
     _h1.subVectors(b,a).normalize(); L.quaternion.setFromUnitVectors(_Z,_h1);
     L.rotateZ(k%2?Math.PI/2:0); }
   u.cuffA.position.copy(A); u.cuffB.position.copy(B); }
-function lookAtSpec(l){ if(typeof l==='string'){ if(ctx.actors[l]){ const g=ctx.actors[l]; return [g.position.x,g.position.y+(g.userData.fours?0.75:1.5),g.position.z]; }
+function lookAtSpec(l){ if(l&&!Array.isArray(l)&&typeof l==='object'&&l.at){ const m=pos(l.at); return [m[0],l.y!==undefined?l.y:(ctx.groundY(m[0],m[1])||0)+(l.dy||1.4),m[1]]; }   /* {at, dy}: a place, so high over its floor (or at `y`) */
+  if(typeof l==='string'){ if(ctx.actors[l]){ const g=ctx.actors[l]; return [g.position.x,g.position.y+(g.userData.fours?0.75:1.5),g.position.z]; }
     if(ctx.glows[l]){ const s=ctx.glows[l].sprite.position; return [s.x,s.y,s.z]; }
     const m=pos(l); return [m[0],m[2]!==undefined?m[2]:1.5,m[1]]; }
   if(Array.isArray(l)&&typeof l[0]==='string'){ const m=pos(l); return [m[0],(ctx.groundY(m[0],m[1])||0)+1.4,m[1]]; }   /* near a marker: a step from it, at a man's height */
@@ -2145,6 +2212,7 @@ function frame(dtW){
   keepWorld();
   beatT+=dt;
   if(ST.playtest) playStep();
+  if(ST.walkWatch) walkWatch(dt);
   movePlayer(dt); moveActors(dt); moveFlock(dt,t);
   if(ctx.tickers) for(const f of ctx.tickers) f(dt);                                   /* a set's own motion: the wheat in the wind */
   for(const f of ctx.flicker){ const k=0.85+Math.sin(t*13)*0.08+Math.sin(t*7.3)*0.07; f.sprite.scale.setScalar(f.base*k); if(f.light) f.light.intensity=1.4*k; }
@@ -2152,6 +2220,9 @@ function frame(dtW){
     if(G.on){ const g=G.on, u=g.userData, hy=g.position.y+(u.headY||1.6)+0.24*(u.s||1)+G.onDy;   /* on the top of the head, sitting or standing (the figure is already set down for sitting) */
       G.sprite.position.set(g.position.x,hy,g.position.z); if(G.light) G.light.position.set(g.position.x,hy,g.position.z); }
     if(G.pulse){ const k=1+Math.sin(t*2)*0.08; G.sprite.scale.set(G.base*k,G.base*k*(G.aspect||1),1); }
+    /* held in a seraph's tongs (`carry`): it goes where they go */
+    if(G.onTongs){ const F=ctx.glows[G.onTongs]&&ctx.glows[G.onTongs].fig, tt=F&&F.userData.tongTip;
+      if(tt&&F.visible){ F.updateMatrixWorld(true); tt.getWorldPosition(_tt); ctx.scene.worldToLocal(_tt); G.sprite.position.copy(_tt); if(G.light) G.light.position.copy(_tt); } }
     if(G.fig&&G.sprite.visible) malakTick(G,id,dt); }
   if(ctx.host) for(const G of ctx.host){ if(!G.visible) continue; G.sprite.position.y+=Math.sin(t*1.3+G.ph)*0.01; }
   if(ring){ ring.material.opacity=0.55+Math.sin(t*4)*0.25; }
@@ -2234,6 +2305,26 @@ function playStep(){
   const B=beat; if(!B) return;
   if(B.t==='cam') camT=1;
   if(B.t==='witness'){ actHeld=true; actPressed=true; }
+}
+/* ---- WHAT GOES WRONG UNDER A MAN'S FEET (for the playtest) ----
+   Every frame: anyone whose body stands inside a block, anyone who drops or jumps more than a
+   storey in one step without the story having set him there, anyone whose place is not a number.
+   Written once per kind, person and scene into ST.walkErr. */
+const _ww=new Map();
+function walkWatch(dt){
+  const L=ST.walkErr||(ST.walkErr=[]), sid=act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id;
+  const note=(who,kind,g)=>{ const key=sid+'|'+who+'|'+kind; if(_ww.get(key)) return; _ww.set(key,1);
+    L.push({scene:sid,beat:beatIx,who,kind,at:[Math.round(g.position.x*10)/10,Math.round(g.position.y*10)/10,Math.round(g.position.z*10)/10]}); };
+  const look=(who,g,fixed)=>{ if(!g||!g.visible) return; const p=g.position;
+    if(!isFinite(p.x)||!isFinite(p.y)||!isFinite(p.z)){ note(who,'not a number',g); return; }
+    const u=g.userData, last=u._wwY, cut=u._wwBeat!==beatIx||u._wwScene!==sid;
+    u._wwY=p.y; u._wwBeat=beatIx; u._wwScene=sid;
+    if(fixed) return;
+    if(!cut&&last!==undefined&&Math.abs(p.y-last)>2.5) note(who,(p.y<last?'dropped ':'jumped ')+Math.round(Math.abs(p.y-last)*10)/10+' m in a step',g);
+    { const k=K(), wx=anchor.x+p.x*S, wz=anchor.z+p.z*S;
+      if(k.solidAt(wx,anchor.y+(p.y+0.9)*S,wz)&&k.solidAt(wx,anchor.y+(p.y+1.5)*S,wz)) note(who,'body inside a block',g); } };
+  if(!ctx.playerHidden) look('the witness',player,ctx.playerY!==undefined);
+  for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; look(id,g,u.fixedY!==undefined||!!u.aboard||!!u.ride||!!u.lie); }
 }
 /* ---- THE TEST HARNESS'S HAND: one beat a frame, taken as a player would ---- */
 function fastStep(){

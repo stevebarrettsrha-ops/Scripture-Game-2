@@ -508,7 +508,12 @@ function galil(ctx,st,o){
   /* THE LAKE: its floor levelled and its water laid, from the beach out past where the boats
      go; a beach of pebbles along its edge */
   ctx.api.pad(SHORE.x-8,-80,SHORE.x+92,80,{top:'sand'});
-  ctx.api.water(SHORE.x,-78,SHORE.x+90,78,{depth:3,bed:'sand'});
+  /* the water shelves off the beach — ankle-deep, then to the knee, then deep — instead of falling
+     three courses at the water's edge, so whoever stands at the edge holding a boat is in the
+     shallows and not in it to the chest */
+  ctx.api.water(SHORE.x+6,-78,SHORE.x+90,78,{depth:3,bed:'sand'});
+  ctx.api.water(SHORE.x+3,-78,SHORE.x+6,78,{depth:2,drop:0,bed:'sand'});
+  ctx.api.water(SHORE.x,-78,SHORE.x+3,78,{depth:1,bed:'sand'});
   W.waterLife(ctx,{at:[SHORE.x+12,0], r:36, y:0, fish:18, frogs:3, flies:4, egrets:3, turtles:1, butterflies:2});   /* the fish of Galil, the egrets of its shore */
   st.box(SHORE.x-6,0,-80,SHORE.x,0.1,80,'sand');
   for(let k=0;k<26;k++){ const z=-90+k*7, x=SHORE.x-3+W.hash(k,5)*2.2; W.rock(st,x,z,0.35+W.hash(k,6)*0.4); }

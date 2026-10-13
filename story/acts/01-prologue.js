@@ -22,22 +22,44 @@ STORY.act({
     people:{name:'The people', key:'people', kind:'crowd', actor:'w1', actors:['w1','w2','w3','w4']},
     rab:{name:'The Raḇshaqĕh', key:'rabshaqeh', kind:'man', actor:'rab', actors:['rab']},
     hiz:{name:'Ḥizqiyahu', key:'hizqiyahu', kind:'man', actor:'hiz', actors:['hiz']},
-    /* "one cried to another" (6:3): the seraphim are light, never figures */
+    /* "one cried to another" (6:3): the seraphim, figures of light with their six wings (6:2) */
     seraph:{name:'The seraphim', key:'seraph', kind:'angel', glow:'ser1'}
   },
   scenes:[
 
   /* ---------------- I.1 — THE VISION ---------------- */
   { id:'vision', title:'Yahrushalayim', date:'c. 740 BCE', place:'yahrushalayim', time:'dawn',
+    /* WHAT YAHSHAYAHU SAW (6:1-7), staged as the verses say it and no more. He is in the Hĕḵal of
+       the earth at dawn; what he SEES is the house above it — the court of heaven, raised over the
+       city above the clouds (`heaven`, and every place of the vision is written from it): a vault
+       of golden light, a floor of cloud, the pillars of the heavenly house, the throne high and
+       lifted up with the train of the robe filling the house, the seraphim over it, the altar from
+       which the coal is taken. When the vision has been given he is in the Hĕḵal of stone again.
+       He who sits on the throne is never drawn: the throne stands in its light and the light is on
+       the seat. The seraphim are figures of light, each with his six wings — two over his face,
+       two over his feet, two beating (6:2). In the earthly house, places are written along the
+       house itself (`holyPlace>porchFront`), so they stand right in the small city and the true. */
     player:{ at:[-10,26], hidden:true },
-    actors:[ {id:'yah', name:'Yahshayahu', at:'holyPlace', face:Math.PI, robe:0x4a3c33, cloth:0xb9ab8e, beard:0x6d6a66, hidden:true} ],
+    actors:[ {id:'yah', name:'Yahshayahu', at:['holyPlace>porchFront',0.44,0,'f'], face:Math.PI, robe:0x4a3c33, cloth:0xb9ab8e, beard:0x6d6a66, hidden:true} ],
+    things:[
+      {id:'heaven', kind:'heavenCourt', at:'holyPlace', y:220, pave:{w:16, d:20, z:-11}, hidden:true},
+      {id:'throne', kind:'gloryThrone', at:['heaven',0,-14], y:220, s:2.4, lift:3, hidden:true},
+      {id:'train', kind:'robeTrain', at:['heaven',0,-13.2], y:220, len:24, w0:3, w1:20, h0:6.4, hidden:true},
+      {id:'altar', kind:'heavenAltar', at:['heaven',6,-4], y:220, s:1.3, hidden:true},
+      /* "and the house was filled with smoke" (6:4) */
+      {id:'smoke', kind:'smokeCloud', at:['heaven',0,-4], y:220, r:20, h:16, n:56, hidden:true} ],
     glows:[ {id:'hekalLight', at:[6,10,-26], size:9, color:0xfff2c0, intensity:0, pulse:true, hidden:true},
-            /* He who sits on the throne is not drawn: the light fills the house (6:1) */
-            {id:'glory', at:[6,6.4,-54.6], size:11, color:0xfff6dc, intensity:2.4, pulse:true, hidden:true},
-            {id:'ser1', at:[3.6,7.6,-53], size:2.8, color:0xffe2a0, intensity:1.4, pulse:true, hidden:true},
-            {id:'ser2', at:[8.4,7.6,-53], size:2.8, color:0xffe2a0, intensity:1.4, pulse:true, hidden:true},
-            {id:'smoke', at:[6,5.2,-51.4], size:8, color:0xd8d4cc, intensity:0.35, hidden:true},
-            {id:'coal', at:[6,3.9,-53.8], size:0.6, color:0xff6a20, intensity:1.2, hidden:true} ],
+            /* the light on the seat, and the column of it over the throne */
+            {id:'glory', at:['heaven',0,-14.6], y:220+8.2, size:6.5, color:0xfff6dc, intensity:1.8, pulse:true, hidden:true},
+            {id:'gloryHigh', at:['heaven',0,-15.4], y:220+17, size:3.6, h:26, color:0xfffbe8, intensity:0, pulse:true, hidden:true},
+            /* "above it stood seraphim": two who cry one to another, either side over the throne, and two more above */
+            /* (the one at the right of the throne carries the tongs he takes the coal with, 6:6) */
+            {id:'ser1', seraph:true, scale:2, at:['heaven',-6.5,-10], y:220+12, size:5, color:0xffc070, intensity:1.4, pulse:true, hidden:true},
+            {id:'ser2', seraph:true, tongs:true, scale:2, at:['heaven',6.5,-10], y:220+12, size:5, color:0xffc070, intensity:1.4, pulse:true, hidden:true},
+            {id:'ser3', seraph:true, scale:1.8, at:['heaven',-4.5,-17], y:220+19, size:4.5, color:0xffb860, intensity:0.9, pulse:true, hidden:true},
+            {id:'ser4', seraph:true, scale:1.8, at:['heaven',4.5,-17], y:220+19, size:4.5, color:0xffb860, intensity:0.9, pulse:true, hidden:true},
+            /* the live coal on the altar, taken with the tongs (6:6) */
+            {id:'coal', at:['heaven',6,-4], y:220+1.9, size:1.1, color:0xff6a20, intensity:1.6, hidden:true} ],
     beats:[
       {t:'cam', from:[-70,40,70], look:[6,6,-30], dur:0.1},
       {t:'title', text:'THE FULLNESS OF TIME', sub:'Part I · The Promise'},
@@ -47,29 +69,59 @@ STORY.act({
       {t:'show', id:'hekalLight'},
       {t:'cam', from:[6,9,-2], look:[6,8,-28], dur:4},
       {t:'hide', id:'hekalLight'},
-      {t:'show', id:['yah','glory']},
-      {t:'cam', from:[7.6,4.4,-48.2], look:[6,5.6,-54.4], dur:2.5},
+      /* in the Hĕḵal of stone, at dawn, the prophet before the veil */
+      {t:'face', who:'yah', to:['holyPlace>porchFront',-0.42,0,'f']},
+      {t:'show', id:'yah'},
+      {t:'cam', from:['holyPlace>porchFront',0.62,1.2,'f'], fdy:1.9, look:{at:['holyPlace>porchFront',-0.30,0,'f'], dy:3.2}, dur:2.5},
+      /* and the house of heaven is opened to him */
+      {t:'fade', to:1, color:'#fff8e6', dur:1.4},
+      {t:'place', who:'yah', at:['heaven',0,12], y:220, face:Math.PI},
+      {t:'show', id:['heaven','throne','train','altar','glory','gloryHigh']},
+      {t:'cam', from:['heaven',3,21], fy:220+2.6, look:{at:['heaven',0,-14], y:220+8}, dur:0.1},
+      {t:'fade', to:0, color:'#fff8e6', dur:2.2},
       {t:'read', ref:'YASHAYAHU 6:1', who:'nabi'},
-      {t:'show', id:['ser1','ser2']},
+      {t:'show', id:['ser1','ser2','ser3','ser4']},
+      /* close on one of them: his face covered, his feet covered, and with two he flies */
+      {t:'cam', from:['heaven',-3,4], fy:220+9, look:{at:['heaven',-6.5,-10], y:220+12.4}, dur:3},
       {t:'read', ref:'YASHAYAHU 6:2', who:'nabi'},
+      {t:'cam', from:['heaven',-10,1], fy:220+10, look:{at:['heaven',0,-12], y:220+12.5}, dur:2.5},
       {t:'read', ref:'YASHAYAHU 6:3', teller:'nabi', voices:['seraph']},
+      /* "the posts of the door were shaken by the voice of him who cried out" */
+      {t:'quake', s:2.6},
       {t:'show', id:'smoke'},
+      {t:'cam', from:['heaven',-5,27], fy:220+5, look:{at:['heaven',0,-10], y:220+7}, dur:2.5},
       {t:'read', ref:'YASHAYAHU 6:4', who:'nabi'},
-      {t:'cam', from:[4.6,4.2,-48.6], look:[6,4.2,-50.8], dur:2},
+      /* "Woe to me, for I am undone!" — and he goes down on his knees */
+      {t:'kneel', who:'yah'},
+      {t:'cam', from:['heaven',-3.2,8], fy:220+1.6, look:'yah', dur:2},
       {t:'read', ref:'YASHAYAHU 6:5', who:'nabi', teller:'nabi'},
+      /* one of the seraphim flies down to the altar, takes the coal in his tongs, and flies to him with it */
       {t:'show', id:'coal'},
+      {t:'cam', from:['heaven',12,8], fy:220+4, look:{at:['heaven',4,0], y:220+3}, dur:2},
+      {t:'drift', id:'ser2', toAt:['heaven',6,-6.2], y:220+3.4, dur:2.4},
+      {t:'carry', id:'coal', by:'ser2'},
+      {t:'drift', id:'ser2', toAt:['heaven',0.4,9.2], y:220+2.6, dur:3},
+      {t:'cam', from:['heaven',-4.5,14.5], fy:220+2.4, look:{at:['heaven',0.3,10.2], y:220+2.2}, dur:1.6},
       {t:'read', ref:'YASHAYAHU 6:6', who:'nabi'},
-      {t:'drift', id:'coal', to:[6,4.3,-51.1], dur:2},
+      {t:'carry', id:'coal'},
+      {t:'drift', id:'coal', toAt:['heaven',0,11.65], y:220+1.2, dur:1.2},
       {t:'read', ref:'YASHAYAHU 6:7', teller:'nabi', voices:['seraph']},
       {t:'hide', id:'coal'},
-      {t:'cam', from:[7.6,4.4,-48.2], look:[6,5.6,-54.4], dur:2},
+      {t:'drift', id:'ser2', toAt:['heaven',6.5,-10], y:220+12, dur:2.6, wait:false},
+      {t:'stand', who:'yah'},
+      {t:'cam', from:['heaven',3,21], fy:220+2.6, look:{at:['heaven',0,-14], y:220+8}, dur:2.5},
       {t:'read', ref:'YASHAYAHU 6:8', teller:'nabi', voices:['yahuah','nabi']},
       {t:'read', ref:'YASHAYAHU 6:9', teller:'nabi', voices:['yahuah']},
       {t:'read', ref:'YASHAYAHU 6:10', who:'yahuah'},
       {t:'read', ref:'YASHAYAHU 6:11', teller:'nabi', voices:['nabi','yahuah']},
       {t:'read', ref:'YASHAYAHU 6:12', who:'yahuah'},
       {t:'read', ref:'YASHAYAHU 6:13', who:'yahuah'},
-      {t:'hide', id:['glory','ser1','ser2','smoke']},
+      /* and he is in the house of stone again, sent */
+      {t:'fade', to:1, color:'#fff8e6', dur:1.4},
+      {t:'hide', id:['heaven','throne','train','altar','glory','gloryHigh','ser1','ser2','ser3','ser4','smoke']},
+      {t:'place', who:'yah', at:['holyPlace>porchFront',0.44,0,'f'], y:null, face:Math.PI},
+      {t:'cam', from:['holyPlace>porchFront',0.62,-1.2,'f'], fdy:1.8, look:'yah', dur:0.1},
+      {t:'fade', to:0, color:'#fff8e6', dur:1.8},
       {t:'end'}
     ]},
 

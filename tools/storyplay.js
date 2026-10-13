@@ -44,22 +44,22 @@ const DT=0.05;                   /* the step of game time each tick */
       await page.waitForFunction(()=>window.__STORY&&window.__STORY.running,null,{timeout:1200000});
       /* played a slice at a time, so that the end of the act — which leaves the act's page for
          the road's — is seen, and what was rescued is read off as it happens */
-      await page.evaluate(P=>{ const ST=window.__STORY.ST; ST.playtest=true; ST.simDt=P.DT; ST.stuck=[];
+      await page.evaluate(P=>{ const ST=window.__STORY.ST; ST.playtest=true; ST.simDt=P.DT; ST.stuck=[]; ST.walkWatch=true; ST.walkErr=[];
         try{ const s=JSON.parse(localStorage.getItem('fullness:v1')||'{}'); if(s.acts) delete s.acts[P.id]; localStorage.setItem('fullness:v1',JSON.stringify(s)); }catch(e){} },{DT,id:A.id});
-      const res={done:null,sim:0,stuck:[],stalls:[],at:''};
+      const res={done:null,sim:0,stuck:[],stalls:[],walk:[],at:''};
       let lastKey='', held=0;
       while(res.sim<LIMIT&&!res.done){
         let r;
         try{ r=await page.evaluate(P=>{ const S=window.__STORY, ST=S.ST;
             for(let k=0;k<P.N&&!ST.doneId;k++) window.__STAGE_TICK(P.DT);
-            const st=ST.stuck.splice(0); const b=S.beat||{};
-            return {done:ST.doneId||null,key:S.scene+'#'+S.beatIx+'|'+((document.getElementById('goal')||{}).textContent||''),stuck:st,beat:{scene:S.scene,beat:S.beatIx,t:b.t,who:b.who,goto:b.goto,text:b.text}}; },{DT,N:40}); }
+            const st=ST.stuck.splice(0), we=(ST.walkErr||[]).splice(0); const b=S.beat||{};
+            return {walkErr:we,done:ST.doneId||null,key:S.scene+'#'+S.beatIx+'|'+((document.getElementById('goal')||{}).textContent||''),stuck:st,beat:{scene:S.scene,beat:S.beatIx,t:b.t,who:b.who,goto:b.goto,text:b.text}}; },{DT,N:40}); }
         catch(e){
           /* the act's page gave way to the road's: finished, if the save says so */
           await page.waitForLoadState('domcontentloaded').catch(()=>{});
           const done=await page.evaluate(id=>{ try{ return (JSON.parse(localStorage.getItem('fullness:v1')||'{}').acts||{})[id]==='done'; }catch(e){ return false; } },A.id).catch(()=>false);
           res.done=done?A.id:null; if(!done) res.at=lastKey+' (the page went away)'; break; }
-        res.sim+=40*DT; res.stuck.push(...r.stuck); res.at=r.key;
+        res.sim+=40*DT; res.stuck.push(...r.stuck); res.walk.push(...r.walkErr); res.at=r.key;
         if(r.done){ res.done=r.done; break; }
         if(r.key===lastKey) held+=40*DT; else { held=0; lastKey=r.key; }
         if(held>STALL){ res.stalls.push(r.beat);
@@ -67,13 +67,14 @@ const DT=0.05;                   /* the step of game time each tick */
           held=0; }
       }
       res.sim=Math.round(res.sim);
-      const ok=res.done&&!res.stalls.length;
+      const ok=res.done&&!res.stalls.length&&!res.walk.length&&!errs.length;
       if(!ok) bad++;
       rows.push(A.id.padEnd(15)+(res.done?'FINISHED':'NOT FINISHED (at '+res.at+')')+
         '  '+res.sim+' s of play, '+Math.round((Date.now()-t0)/1000)+' s to run'+
         (res.stalls.length?'\n    STALLS: '+res.stalls.map(s=>JSON.stringify(s)).join('\n            '):'')+
         (res.stuck.length?'\n    rescued: '+res.stuck.map(s=>(s.who+' @'+s.scene+'#'+s.beat+(s.why?' ('+s.why+')':s.d!==undefined?' ('+s.d+' m short)':'')+(s.plan?' plan '+JSON.stringify(s.plan):''))).join(', '):'')+
-        (errs.length?'\n    page errors: '+errs.slice(0,3).join(' | '):''));
+        (res.walk.length?'\n    walking: '+res.walk.map(w=>w.who+' '+w.kind+' @'+w.scene+'#'+w.beat+' '+JSON.stringify(w.at)).join('\n             '):'')+
+        (errs.length?'\n    page errors ('+errs.length+'): '+[...new Set(errs.map(e=>e.split('\n')[0]))].slice(0,6).join('\n                 '):''));
     }catch(e){ bad++; rows.push(A.id.padEnd(15)+'FAILED TO RUN: '+String(e.message||e).split('\n')[0]); }
     finally{ if(browser) await browser.close().catch(()=>{}); }
     console.log(rows[rows.length-1]);

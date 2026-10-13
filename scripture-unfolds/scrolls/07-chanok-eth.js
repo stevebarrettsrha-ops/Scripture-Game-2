@@ -18,7 +18,7 @@
    INSIDE the vault and returning by the north to rise again. This project
    models all of it. So the film does one long climb, from the water at the
    first caption to the vault at the last, with the coarse carpet on beneath
-   it the whole way — because from up there the streamed ring is a raft, and
+   it from the first light — because from up there the streamed ring is a raft, and
    the earth this book describes must run out to a rim or the reading of it
    is a lie.
 
@@ -39,30 +39,37 @@ STORY.scene({
     { t:  0, hour:4.8, dark:0.30, light:0.46, sky:0x2c3854, sun:0, moon:0.85, stars:0.95, firm:0.14,
       land:1, sea:1, clouds:1, lifeSea:1, lifeAir:1, lifeLand:1,
       fogN:340, fogF:1200, cd:220, cy: 54, ca:0.00, cl:10, cfov:60, cut:true },
-    { t: 22, hour:5.8, cd:260, cy: 88, cl:14, ca:0.030, dark:0.16, light:0.68, sky:0x5b5a72,
-      sun:0.35, moon:0.5, stars:0.55 },              /* the luminaries do not change their orbits */
-    /* ---- the sun has its rising in the eastern doors ---- */
-    { t: 46, hour:7.4, cd:340, cy:160, cl:18, ca:0.062, dark:0, light:0.94, sky:0xa8b9cd,
-      sun:0.95, moon:0.2, stars:0.10, firm:0.22, far:1, clouds:0.62,
+    { t: 22, hour:5.0, cd:260, cy: 88, cl:14, ca:0.030, dark:0.16, light:0.68, sky:0x5b5a72,
+      sun:0.1, moon:0.5, stars:0.55 },              /* the luminaries do not change their orbits */
+    /* (THE DAY IS TIMED TO ITS VERSES: the first light under "the book of the courses of the
+       luminaries" (72:1), the sun rising in the eastern doors under 72:2-3 which tells it, and going
+       down under 72:5 which tells THAT — it had risen under a verse about trees and set under the
+       moon's) */
+    { t: 46, hour:5.6, cd:340, cy:160, cl:18, ca:0.062, dark:0, light:0.94, sky:0xa8b9cd,
+      sun:0.25, moon:0.2, stars:0.10, firm:0.22, far:1, clouds:0.62,
       fogN:520, fogF:2400 },
-    { t: 72, hour:10.2, cd:440, cy:250, cl:16, ca:0.095, light:1, sun:1, sky:0x9fc5e8,
+    /* ---- the sun has its rising in the eastern doors (72:2-3) ---- */
+    { t: 72, hour:7.0, cd:440, cy:250, cl:16, ca:0.095, light:1, sun:0.95, sky:0x9fc5e8,
       clouds:0.30, fogN:640, fogF:3200 },
-    { t: 98, hour:12.6, cd:560, cy:350, cl:12, ca:0.130, firm:0.32, clouds:0.12, fogF:4000 },
+    /* ---- and it goes down, and returns through the north to the east (72:5) ---- */
+    { t: 98, hour:16.5, cd:560, cy:350, cl:12, ca:0.130, firm:0.32, clouds:0.12, fogF:4000 },
+    { t:121, hour:18.6, sun:0.12, light:0.6 },
     /* ---- and after this law, the law of the smaller luminary ---- */
-    { t:126, hour:14.6, cd:660, cy:440, cl: 8, ca:0.165, light:0.80, sun:0.45, sky:0x7d8fae,
+    { t:126, hour:19.0, cd:660, cy:440, cl: 8, ca:0.165, light:0.55, sun:0.02, sky:0x5d6f92,
       moon:0.85, stars:0.35, firm:0.40, clouds:0.05, fogF:4600 },
-    { t:152, hour:16.8, cd:760, cy:530, cl: 6, ca:0.200, light:0.62, sun:0.12, sky:0x4f5c7e,
+    { t:152, hour:19.6, cd:760, cy:530, cl: 6, ca:0.200, light:0.52, sun:0, sky:0x4f5c7e,
       moon:1, stars:0.75, firm:0.50, clouds:0, fogF:5200 },
     /* ---- twelve doors at the ends of the earth ---- */
-    { t:180, hour:18.6, cd:880, cy:620, cl: 3, ca:0.238, cfov:66, light:0.56, sky:0x3d4a6b,
+    { t:180, hour:20.4, cd:880, cy:620, cl: 3, ca:0.238, cfov:66, light:0.52, sky:0x3d4a6b,
       stars:0.88, firm:0.62, clouds:0, fogN:800, fogF:6000 },
-    { t:208, hour:20, cd:1000, cy:700, cl: 0, ca:0.276, fogF:6600 },
-    { t:236, hour:21.2, cd:1120, cy:780, cl: 0, ca:0.314, light:0.50, sky:0x33405f,
+    { t:208, hour:21.2, cd:1000, cy:700, cl: 0, ca:0.276, fogF:6600 },
+    { t:236, hour:22.0, cd:1120, cy:780, cl: 0, ca:0.314, light:0.50, sky:0x33405f,
       stars:0.95, firm:0.74 },
     /* ---- the pillars of the shamayim, and the firmament above ---- */
-    { t:266, hour:22.4, cd:1240, cy:880, cl: 0, ca:0.352, cfov:70, light:0.46, sky:0x27314b,
+    { t:266, hour:22.8, cd:1240, cy:880, cl: 0, ca:0.352, cfov:70, light:0.46, sky:0x27314b,
       stars:1, firm:0.88, fogF:7400 },
-    { t:296, hour:23.4, cd:1340, cy:980, cl: 0, ca:0.390, firm:1, sky:0x1c2540 },
+    /* "the ruchot on the earth carrying the clouds" (18:5) */
+    { t:296, hour:23.5, cd:1340, cy:980, cl: 0, ca:0.390, firm:1, sky:0x1c2540, clouds:0.5 },
     { t:322, hour:24.2, cd:1400, cy:1040, cl: 0, ca:0.424 },
   ],
 
