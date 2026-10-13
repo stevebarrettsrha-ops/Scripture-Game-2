@@ -1205,21 +1205,23 @@ const WING_LIVING={bone:0xf0d070,covert:0xf8f2e2,covertTip:0xf2e6c4,root:0xf4ecd
    and pop() carry a frame, so a wing can be laid flat in its own plane and set at its angle. */
 const _ub=new THREE.BoxGeometry(1,1,1).toNonIndexed(), _ubP=_ub.attributes.position.array, _ubN=_ub.attributes.normal.array;
 const _vm=new THREE.Matrix4(), _vn=new THREE.Matrix3(), _vv=new THREE.Vector3(), _vc=new THREE.Color(), _vq=new THREE.Quaternion(), _ve=new THREE.Euler(), _vs=new THREE.Vector3(), _vp=new THREE.Vector3();
-function Vox(){ this.L={p:[],n:[],c:[]}; this.G={p:[],n:[],c:[]}; this.M=new THREE.Matrix4(); this.st=[]; }
+function Vox(){ this.L={p:[],n:[],c:[]}; this.G={p:[],n:[],c:[]}; this.P={p:[],n:[],c:[]}; this.M=new THREE.Matrix4(); this.st=[]; }
 Vox.prototype.push=function(x,y,z,rx,ry,rz,sx){ this.st.push(this.M.clone());
   _ve.set(rx||0,ry||0,rz||0); _vq.setFromEuler(_ve); _vm.compose(_vp.set(x,y,z),_vq,_vs.set(sx||1,1,1)); this.M.multiply(_vm); return this; };
 Vox.prototype.pop=function(){ this.M=this.st.pop(); return this; };
-/* one block: w×h×d about (x,y,z), turned `ry` about its upright; `glow` — it burns */
-Vox.prototype.box=function(w,h,d,col,x,y,z,glow,ry){ const B=glow?this.G:this.L;
+/* one block: w×h×d about (x,y,z), turned `ry` about its upright; `glow` — it burns, or 'pale' — it is
+   white that shines: shaded by the light, but never darkened past a bright shadow */
+Vox.prototype.box=function(w,h,d,col,x,y,z,glow,ry){ const B=glow==='pale'?this.P:glow?this.G:this.L;
   _ve.set(0,ry||0,0); _vq.setFromEuler(_ve); _vm.compose(_vp.set(x,y,z),_vq,_vs.set(w,h,d)).premultiply(this.M);
   _vn.getNormalMatrix(_vm); _vc.setHex(col);
   for(let k=0;k<36;k++){ _vv.fromArray(_ubP,k*3).applyMatrix4(_vm); B.p.push(_vv.x,_vv.y,_vv.z);
     _vv.fromArray(_ubN,k*3).applyMatrix3(_vn).normalize(); B.n.push(_vv.x,_vv.y,_vv.z); B.c.push(_vc.r,_vc.g,_vc.b); }
   return this; };
 const VOX_LIT=new THREE.MeshLambertMaterial({vertexColors:true,emissive:0x101018,fog:false}),
-      VOX_GLOW=new THREE.MeshBasicMaterial({vertexColors:true,fog:false});
+      VOX_GLOW=new THREE.MeshBasicMaterial({vertexColors:true,fog:false}),
+      VOX_PALE=new THREE.MeshLambertMaterial({vertexColors:true,emissive:0x5a564e,fog:false});
 Vox.prototype.into=function(par){ const out=[];
-  for(const [B,m] of [[this.L,VOX_LIT],[this.G,VOX_GLOW]]){ if(!B.p.length) continue;
+  for(const [B,m] of [[this.L,VOX_LIT],[this.G,VOX_GLOW],[this.P,VOX_PALE]]){ if(!B.p.length) continue;
     const geo=new THREE.BufferGeometry();
     geo.setAttribute('position',new THREE.Float32BufferAttribute(B.p,3)); geo.setAttribute('normal',new THREE.Float32BufferAttribute(B.n,3));
     geo.setAttribute('color',new THREE.Float32BufferAttribute(B.c,3)); geo.computeBoundingSphere();
@@ -1260,15 +1262,15 @@ function pixWing(V,o){
 W.seraph=function(o){ o=o||{};
   const g=new THREE.Group(), V=new Vox();
   const side=s=>{ if(s>0) return g; const m=new THREE.Group(); m.scale.x=-1; g.add(m); return m; };
-  const ROBE=0xf7f4ec, ROBE2=0xece6d6, ROBE3=0xdcd2bc, GOLD=0xf0bc44, GOLD2=0xd89a2a;
+  const ROBE=0xeeeae0, ROBE2=0xdcd5c4, ROBE3=0xc9c0aa, GOLD=0xf0bc44, GOLD2=0xd89a2a;
   const FIRE=0xff8c22, FIRE2=0xffb03a, FIRE3=0xe0601a, HOT=0xfff0a0, EMBER=0xb8400e;
   /* the robe: stepped tier on tier from the girdle to a hem spread wide, gold run down it in stripes */
   const TH=0.1, Y0=1.5;
-  const tier=(r,d,h,c,y)=>{ V.box(2*r,h,2*d*0.56,c,0,y,0); V.box(2*r*0.9,h,2*d*0.82,c,0,y,0); V.box(2*r*0.66,h,2*d,c,0,y,0); };
-  tier(1.12,1.0,0.04,GOLD2,0.02); tier(1.06,0.94,0.06,ROBE3,0.05);                                  /* the hem spread about him */
+  const tier=(r,d,h,c,y,lit)=>{ const q=lit?false:'pale'; V.box(2*r,h,2*d*0.56,c,0,y,0,q); V.box(2*r*0.9,h,2*d*0.82,c,0,y,0,q); V.box(2*r*0.66,h,2*d,c,0,y,0,q); };
+  tier(1.12,1.0,0.04,GOLD2,0.02,true); tier(1.06,0.94,0.06,ROBE3,0.05);                                  /* the hem spread about him */
   for(let y=0.08,k=0;y<Y0;y+=TH,k++){ const t=y/Y0, r=0.34+0.66*Math.pow(1-t,1.7), d=r*0.86, c=k%2?ROBE:ROBE2;
     tier(r,d,TH,c,y+TH/2);
-    if(k===0) tier(r+0.012,d+0.012,TH*0.6,GOLD,y+TH/2);
+    if(k===0) tier(r+0.012,d+0.012,TH*0.6,GOLD,y+TH/2,true);
     else for(const fx of [-0.6,-0.2,0.2,0.6]) V.box(0.07,TH,0.03,GOLD,fx*r,y+TH/2,d+0.012); }
   V.box(0.74,0.1,0.42,GOLD,0,Y0+0.03,0);                                                            /* the girdle */
   /* the breast of fire, burning brightest along a cross of light upon it */
@@ -1278,7 +1280,7 @@ W.seraph=function(o){ o=o||{};
     const onX=Math.abs(x)<0.05, onY=Math.abs(y-2.06)<0.05&&Math.abs(x)<0.2, near=Math.abs(x)<0.13||(Math.abs(y-2.06)<0.12&&Math.abs(x)<0.27);
     const c=(onX&&y>1.62&&y<2.24)||onY?HOT:near?FIRE2:h<0.22?EMBER:h<0.6?FIRE:FIRE2;
     V.box(0.08,0.08,0.03,c,x,y,0.19,true); }
-  for(const s of [-1,1]){ V.box(0.26,0.22,0.36,ROBE2,s*0.43,2.15,0); V.box(0.28,0.05,0.38,GOLD,s*0.43,2.27,0); V.box(0.05,0.2,0.38,GOLD,s*0.31,2.15,0); }   /* the shoulders */
+  for(const s of [-1,1]){ V.box(0.26,0.22,0.36,ROBE2,s*0.43,2.15,0,'pale'); V.box(0.28,0.05,0.38,GOLD,s*0.43,2.27,0); V.box(0.05,0.2,0.38,GOLD,s*0.31,2.15,0); }   /* the shoulders */
   V.box(0.18,0.14,0.18,FIRE3,0,2.3,0,true);                                                          /* the neck */
   /* his face: fire, white at the eyes, the mouth open — "and one cried to another" */
   V.box(0.38,0.42,0.36,FIRE2,0,2.56,0,true);
@@ -1305,9 +1307,9 @@ W.seraph=function(o){ o=o||{};
   /* his arms, in the robe's sleeves, the hands of fire: the left before him; the right held out,
      with the tongs when he has them */
   const arm=(s,tongs)=>{ const P=side(s), sh=new THREE.Group(); sh.position.set(0.5,2.16,0); P.add(sh);
-    const Va=new Vox(); Va.box(0.2,0.38,0.2,ROBE2,0,-0.18,0); Va.box(0.21,0.05,0.21,GOLD,0,-0.02,0); Va.into(sh);
+    const Va=new Vox(); Va.box(0.2,0.38,0.2,ROBE2,0,-0.18,0,'pale'); Va.box(0.21,0.05,0.21,GOLD,0,-0.02,0); Va.into(sh);
     const el=new THREE.Group(); el.position.set(0,-0.36,0); sh.add(el);
-    const Vf=new Vox(); Vf.box(0.18,0.18,0.36,ROBE2,0,0,0.16); Vf.box(0.19,0.19,0.05,GOLD,0,0,0.33); Vf.box(0.15,0.15,0.12,FIRE2,0,0,0.41,true); Vf.into(el);
+    const Vf=new Vox(); Vf.box(0.18,0.18,0.36,ROBE2,0,0,0.16,'pale'); Vf.box(0.19,0.19,0.05,GOLD,0,0,0.33); Vf.box(0.15,0.15,0.12,FIRE2,0,0,0.41,true); Vf.into(el);
     const hd=new THREE.Group(); hd.position.set(0,0,0.42); el.add(hd);
     sh.rotation.order='YXZ'; sh.rotation.x=-0.25; el.rotation.x=0; hd.rotation.x=0.25; sh.rotation.z=0.06;
     if(tongs){ const Vt=new Vox();
