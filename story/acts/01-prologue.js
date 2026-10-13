@@ -102,7 +102,7 @@ STORY.act({
       {t:'carry', id:'coal', by:'ser2'},
       /* he comes down before him, bows, and brings the tongs to his lips */
       {t:'drift', id:'ser2', toAt:['heaven',0,8.25], y:220+3.2, dur:3},
-      {t:'cam', from:['heaven',-13,13], fy:220+3.2, look:{at:['heaven',0,10], y:220+3.6}, dur:1.6},
+      {t:'cam', from:['heaven',-7,19.5], fy:220+2.6, look:{at:['heaven',0,9], y:220+3.6}, dur:1.6},
       {t:'read', ref:'YASHAYAHU 6:6', who:'nabi'},
       {t:'cam', from:['heaven',-5.2,13.6], fy:220+2.1, look:{at:['heaven',0,11], y:220+2.2}, dur:1.4},
       {t:'read', ref:'YASHAYAHU 6:7', teller:'nabi', voices:['seraph']},
