@@ -1059,7 +1059,7 @@ S.damascus=function(ctx,st){
    house about a court (10:24), the harbour Herodes built in sight beyond it. */
 function coast(ctx,st,o){
   ctx.wind=[1.4,0.5];
-  W.ground(ctx,{color:C.grassDry,flat:34,peak:{x:-50,z:0,h:9,r:40}});
+  W.ground(ctx,{color:C.grassDry,flat:34,peak:{x:-62,z:0,h:9,r:30}});                 /* (the hill kept off the level ground: heaped over its edge, it stood a cliff there) */
   sea(ctx,st,20);
   for(let k=0;k<24;k++){ const z=-110+k*9, x=17+W.hash(k,5)*2; W.rock(st,x,z,0.4+W.hash(k,6)*0.5); }
   if(o.town==='yapho'){

@@ -1135,15 +1135,18 @@ function moveActors(dt){
           if(g.visible) (ST.stuck=ST.stuck||[]).push({who:id,act:act&&act.id,scene:act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id,beat:beatIx,d:+d.toFixed(1),plan:lastPlan});   /* (one gone from sight is no one's concern) */
           if(!u.follow) u.target=null; continue; }
         if(u._path){ const W=u._path;
-          while(W.i<W.pts.length-1&&Math.hypot(W.pts[W.i][0]-g.position.x,W.pts[W.i][1]-g.position.z)<0.35) W.i++;
+          while(W.i<W.pts.length-1&&Math.hypot(W.pts[W.i][0]-g.position.x,W.pts[W.i][1]-g.position.z)<0.2) W.i++;
+          /* (on a way round he is getting there as long as he is getting along it — a way round a house
+             first goes away from the mark, and measured by the mark alone he was "held" and carried) */
+          if(W.i!==P.wi){ P.wi=W.i; P.t=0; }
           way=W.pts[W.i]; } }
       else { u._prog=null; u._path=null; }
       if(way){ const wx=way[0]-g.position.x, wz=way[1]-g.position.z, wd=Math.hypot(wx,wz);
         if(wd>0.05){ const sp=Math.min(wd,(u.speed||2.6)*dt), a=Math.atan2(wx,wz);
           /* (round a corner, not through it: a step that would stand him in a block slides along it) */
           let mx=Math.sin(a)*sp, mz=Math.cos(a)*sp;
-          if(u.fixedY===undefined&&(wallAt(g.position.x+mx*1.6,g.position.z+mz*1.6,u.gy)||wallAt(g.position.x+mx,g.position.z+mz,u.gy))){
-            if(!wallAt(g.position.x+mx*1.6,g.position.z,u.gy)) mz=0; else if(!wallAt(g.position.x,g.position.z+mz*1.6,u.gy)) mx=0; else mx=mz=0; }
+          if(u.fixedY===undefined&&wallAt(g.position.x+mx,g.position.z+mz,u.gy)){
+            if(!wallAt(g.position.x+mx,g.position.z,u.gy)) mz=0; else if(!wallAt(g.position.x,g.position.z+mz,u.gy)) mx=0; else mx=mz=0; }
           g.position.x+=mx; g.position.z+=mz; g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=mx!==0||mz!==0; if(moving) u._mv='on a planned way'; } }
       else
       if(d>0.15){ const sp=Math.min(d,(u.speed||2.6)*dt);
