@@ -1814,7 +1814,10 @@ function enterBeat(){
   if(T==='stop'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.follow=null; g.userData.target=null; } } return nextBeat(); }
   if(T==='face'){ const g=ctx.actors[B.who]; const p=B.to==='player'?[player.position.x,player.position.z]:(ctx.actors[B.to]||ctx.things[B.to])?thingPos(B.to):pos(B.to);
     if(g) g.rotation.y=Math.atan2(p[0]-g.position.x,p[1]-g.position.z); return nextBeat(); }
-  if(T==='place'){ const g=B.who==='player'?player:ctx.actors[B.who]; const p=pos(B.at); if(g) g.userData._mv=null;
+  /* (and a figure set down is no longer walking to where he was last sent: Kĕpha, set in the upper room before
+     he had reached the foot of its stair, went on looking for a way down to it from inside the room) */
+  if(T==='place'){ const g=B.who==='player'?player:ctx.actors[B.who]; const p=pos(B.at);
+    if(g){ const u=g.userData; u._mv=null; if(g!==player){ u.target=null; u._prog=null; u._path=null; } }
     if(g){ const onIt=B.y!==undefined&&B.y!==null&&yOf(B.y)!==undefined;
       g.position.set(p[0],onIt?yOf(B.y):ctx.groundY(p[0],p[1]),p[1]); g.userData.gy=g.position.y; if(B.face!==undefined) g.rotation.y=faceOf(B.face,p);
       /* `y`: standing on something that is not the ground — the floor of a boat, a roof;
