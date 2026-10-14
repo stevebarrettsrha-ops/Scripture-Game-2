@@ -90,6 +90,12 @@ function groundAt0(x,z,ref){
      land, and would stand a man inside a platform built higher than that) */
   if(r===undefined){ const B=k.B, wx=anchor.x+x*SX, wz=anchor.z+z*SX, c=k.cell(Math.floor(wx/B),Math.floor(wz/B));
     if(c){ let b=c.h-6, n=0;
+      /* (where a set has cut the land down — a level ground let into a hillside, its edge eased back up
+         the slope — the land's own top is gone: the floor is found going down to the cut, or a man set
+         there was stood in the air forty metres over it) */
+      if(!k.solidAt(wx,(c.h-0.5)*B,wz)&&!k.solidAt(wx,(c.h-1.5)*B,wz)){ b=c.h-1;
+        while(n<200&&!k.solidAt(wx,(b-0.5)*B,wz)){ b--; n++; }
+        return (b*B-anchor.y)/S; }
       while(n<40&&!k.solidAt(wx,(b+0.5)*B,wz)){ b++; n++; }
       for(;n<120;){ while(n<120&&k.solidAt(wx,(b+0.5)*B,wz)){ b++; n++; }
         if(!k.solidAt(wx,(b+1.5)*B,wz)) break;
@@ -807,7 +813,12 @@ function planWay(tx,tz,r,from){
   const open={a:[],get length(){ return this.a.length; },
     push(e){ const a=this.a; a.push(e); let i=a.length-1; while(i>0){ const p=(i-1)>>1; if(a[p][0]<=e[0]) break; a[i]=a[p]; i=p; } a[i]=e; },
     pop(){ const a=this.a, top=a[0], last=a.pop(); if(a.length){ let i=0; for(;;){ let c=2*i+1; if(c>=a.length) break; if(c+1<a.length&&a[c+1][0]<a[c][0]) c++; if(a[c][0]>=last[0]) break; a[i]=a[c]; i=c; } a[i]=last; } return top; } };
-  const si=Math.round(sx/H), sj=Math.round(sz/H);
+  let si=Math.round(sx/H), sj=Math.round(sz/H);
+  /* (one pressed into a corner, his own spot within a hand of a wall, starts from the nearest spot clear
+     of it — the way was never found from where he stood, and he was carried to his mark) */
+  if(blocked(si*H,sj*H,0.3,sy)){ let bd=1e9, bi=si, bj=sj;
+    for(let di=-3;di<=3;di++) for(let dj=-3;dj<=3;dj++){ const d=di*di+dj*dj; if(d<bd&&!blocked((si+di)*H,(sj+dj)*H,0.3,sy)){ bd=d; bi=si+di; bj=sj+dj; } }
+    si=bi; sj=bj; }
   const hOf=(i,j)=>Math.hypot(i*H-tx,j*H-tz);
   seen.set(key(si,sj),{i:si,j:sj,y:sy,g:0,from:null,shut:false}); open.push([hOf(si,sj),key(si,sj)]);
   let n=0, end=null;
@@ -1099,7 +1110,10 @@ function moveActors(dt){
           if(pts) u._path={pts,i:0}; else P.t=99; }
         if(P.t>(u.follow?6:4)){ u._prog=null; u._path=null;
           const k2=u.follow?Math.max(0,(d-1.6)/d):1;
-          g.position.x+=dx*k2; g.position.z+=dz*k2; u.gy=ctx.groundY(g.position.x,g.position.z,(u.gy||g.position.y)+3);
+          g.position.x+=dx*k2; g.position.z+=dz*k2;
+          /* (the floor under his head, not the roof over it: a mark in a room is under a roof a man's height up) */
+          { const g0=u.gy!==undefined?u.gy:g.position.y, lo=ctx.groundY(g.position.x,g.position.z,g0+1.6), hi=ctx.groundY(g.position.x,g.position.z,g0+3);
+            u.gy=(isFinite(lo)&&lo>g0-6)?lo:hi; }
           /* (and set down beside his mark, not in the wall it was written in) */
           if(u.fixedY===undefined&&wallAt(g.position.x,g.position.z,u.gy)){ const x0=g.position.x, z0=g.position.z;
             search: for(let r=0.4;r<=2.0;r+=0.4) for(let q=0;q<12;q++){ const t=q/12*Math.PI*2, x=x0+Math.cos(t)*r, z=z0+Math.sin(t)*r, y=ctx.groundY(x,z,u.gy+1.5);

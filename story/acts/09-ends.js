@@ -661,7 +661,8 @@ STORY.act({
       {t:'face', who:'kepha', to:'cornelius'},
       {t:'cam', from:['door',3.6,3], fdy:2, look:'cornelius', dur:1.8},
       {t:'say', who:'kepha', ref:'ACTS 10:26', turn:false},
-      {t:'move', who:['kepha','cornelius'], to:[['court',1.4,-2.4],['court',1.6,1.4]], speed:1},   /* (by the pool, not in it) */
+      {t:'move', who:['kepha','cornelius'], to:[['court',4,-3.4],['court',4,3.4]], speed:1},        /* (round the pool of the court, not through it) */
+      {t:'move', who:['kepha','cornelius'], to:[['court',0.6,-2.6],['court',0.6,1.8]], speed:1},
       {t:'read', ref:'ACTS 10:27'},
       {t:'face', who:'kepha', to:'rel3'},
       {t:'cam', from:['court',5.4,-3], fdy:2.2, look:'kepha', dur:2},
