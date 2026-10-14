@@ -2909,8 +2909,12 @@ function cellCompute(ix,iz){
            into the true land so no village sits on a cut-out plate. */
         const k=(t>=1)?1:t*0.92;
         const h0=c.h;
-        c.h=Math.max(1,Math.round(c.h+(st.h0-c.h)*k));
-        if(c.kind!=='sand'&&c.h===1) c.h=2;
+        /* (held above the sea's level — except a town of the dry rift, Kephar Nahum, Tiberias, Yeriho,
+           whose ground lies hundreds of metres under it: held there, every one of them was raised on a
+           mesa to the level of the Great Sea, and its houses stood buried under it) */
+        const lo=st.h0<1?-1e9:1;
+        c.h=Math.max(lo,Math.round(c.h+(st.h0-c.h)*k));
+        if(lo===1&&c.kind!=='sand'&&c.h===1) c.h=2;
         /* ---- AND THE HOLLOW UNDER IT COMES DOWN WITH THE GROUND ----
            A village levels the land for eighty-six units about it. Where it
            levels a hill that had a passage in it the ground can drop THROUGH
@@ -3012,8 +3016,8 @@ function computeSites(){
       const cc=cellRaw(ix,iz);
       /* the city of the great king stands on her own hill: no village is raised inside her walls */
       if(yahruPos&&Math.hypot((ix+.5)*B-yahruPos.x,(iz+.5)*B-yahruPos.z)<900) return null;
-      if(cc&&cc.kind!=='wall'&&cc.kind!=='floe'&&cc.h<=maxH)
-        return {i,ix,iz,x:(ix+.5)*B,z:(iz+.5)*B,h0:Math.max(2,cc.h)};
+      if(cc&&cc.kind!=='wall'&&cc.kind!=='floe'&&cc.lake===undefined&&cc.h<=maxH)        /* (never in a lake of the rift) */
+        return {i,ix,iz,x:(ix+.5)*B,z:(iz+.5)*B,h0:cc.h>=1?Math.max(2,cc.h):cc.h};      /* (and in the dry rift, at its own depth) */
       return null; };
     for(let pass=0;pass<2&&!best;pass++){
     maxH = pass===0 ? 12 : 1e9;
