@@ -1149,7 +1149,13 @@ function moveActors(dt){
            the way to it goes through the block — so both are asked, and if no way aside will do he
            waits, and in a moment works out the way round) */
         const px=g.position.x, pz=g.position.z, st2=Math.min(sp+0.2,0.45);
-        const clear=b=>!wallAt(px+Math.sin(b)*0.45,pz+Math.cos(b)*0.45,u.gy)&&!wallAt(px+Math.sin(b)*st2,pz+Math.cos(b)*st2,u.gy)&&!wallAt(px+Math.sin(b)*sp,pz+Math.cos(b)*sp,u.gy);
+        /* (nor up a stair or a bench when his mark is on the ground — he went up the stair at the side
+           of a house, along its roof and off the far edge of it — nor over a drop of more than a storey) */
+        const P2=u._prog; if(P2&&P2.tgy===undefined) P2.tgy=ctx.groundY(tgt[0],tgt[1],(u.gy||0)+CLIMB_REF);
+        const tgy=P2&&isFinite(P2.tgy)?P2.tgy:u.gy;
+        const ledge=b=>{ if(u.gy===undefined) return false; const n=stepGround(px+Math.sin(b)*0.45,pz+Math.cos(b)*0.45,u.gy);
+          return (n>u.gy+0.5&&tgy<=u.gy+0.3)||n<u.gy-2.4; };
+        const clear=b=>!wallAt(px+Math.sin(b)*0.45,pz+Math.cos(b)*0.45,u.gy)&&!wallAt(px+Math.sin(b)*st2,pz+Math.cos(b)*st2,u.gy)&&!wallAt(px+Math.sin(b)*sp,pz+Math.cos(b)*sp,u.gy)&&!ledge(b);
         if(u.fixedY===undefined&&!clear(a0)){ a=null;
           for(const da of [0.5,-0.5,1.0,-1.0,1.5,-1.5,2.1,-2.1]){ const b=a0+da; if(clear(b)){ a=b; break; } } }
         if(a!==null){ g.position.x+=Math.sin(a)*sp; g.position.z+=Math.cos(a)*sp;
