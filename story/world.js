@@ -1261,8 +1261,8 @@ function pixWing(V,o){
    until the coal is in them; then he bows and reaches down with them. Some 4 high to the tops of his
    wings, facing +z, his feet at the origin. */
 W.seraph=function(o){ o=o||{};
-  const g=new THREE.Group(), V=new Vox();
-  const side=s=>{ if(s>0) return g; const m=new THREE.Group(); m.scale.x=-1; g.add(m); return m; };
+  const g=new THREE.Group(), body=new THREE.Group(), V=new Vox(); g.add(body);           /* (the body rides up and down on the wingbeat) */
+  const side=s=>{ if(s>0) return body; const m=new THREE.Group(); m.scale.x=-1; body.add(m); return m; };
   const ROBE=0xf6f1e4, ROBE2=0xe9e1cf, GOLD=0xf0bc44, LIGHT=0xfff1c8;
   /* the robe: close about him from the shoulders to the feet, a little fuller below the girdle */
   for(let y=0.1,k=0;y<2.2;y+=0.1,k++){ const r=y<1.5?0.27+0.08*(1-y/1.5):0.27+0.1*((y-1.5)/0.7);
@@ -1280,9 +1280,9 @@ W.seraph=function(o){ o=o||{};
     const Vw=new Vox(); pixWing(Vw,{span:3.2,chord:1.5,v:0.1,pal:SER_WHITE}); Vw.into(pv); W6.fly.push(pv); }
   /* the two over his feet: from the girdle down across before him, crossed, their ends at his feet */
   for(const s of [-1,1]) W6.feet.push(wing(side(s),0.3,1.46,s>0?0.37:0.34,-1.9,false,1.62,0.62,0.075));
-  V.into(g);
+  V.into(body);
   /* the hand put out from under his wings, with the tongs */
-  if(o.tongs){ const sh=new THREE.Group(); sh.position.set(0.42,2.12,0.05); g.add(sh);
+  if(o.tongs){ const sh=new THREE.Group(); sh.position.set(0.42,2.12,0.05); body.add(sh);
     const Va=new Vox(); Va.box(0.18,0.38,0.18,ROBE2,0,-0.18,0,'pale'); Va.into(sh);
     const el=new THREE.Group(); el.position.set(0,-0.36,0); sh.add(el);
     const Vf=new Vox(); Vf.box(0.16,0.16,0.36,ROBE2,0,0,0.16,'pale'); Vf.box(0.17,0.17,0.05,GOLD,0,0,0.33); Vf.box(0.13,0.13,0.12,LIGHT,0,0,0.41,true); Vf.into(el);
@@ -1295,15 +1295,21 @@ W.seraph=function(o){ o=o||{};
     /* the live coal in them, shown while he carries it */
     const coal=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.13,0.15),new THREE.MeshBasicMaterial({color:0xff5a10,fog:false})); coal.position.set(0,1.02,0); coal.visible=false; hd.add(coal); g.userData.coal=coal;
     g.userData.arm={sh,el,hd}; }
-  const head=new THREE.Object3D(); head.position.set(0,2.5,0); g.add(head);
+  const head=new THREE.Object3D(); head.position.set(0,2.5,0); body.add(head);
   g.rotation.order='YXZ';                                                     /* (he bows forward from his feet, whichever way he is turned) */
-  g.userData.wings6=W6; g.userData.t=Math.random()*6; g.userData.head=head; g.userData.carry=0;
+  for(const w of [...W6.face,...W6.feet]) w.userData.z0=w.rotation.z;
+  g.userData.wings6=W6; g.userData.body=body; g.userData.t=Math.random()*6; g.userData.head=head; g.userData.carry=0;
   return g; };
-/* the flying wings beat; the tongs are held up as a torch — and while the coal is in them he bows
-   and reaches down with them before him, arm and tongs in one line, their end come in under his own
+/* "and with two he flew": the wings spread at his sides beat — down hard, swept forward, and up again
+   drawn back — and he rides on them, lifted a little on every stroke; the wings over his face and his
+   feet stir with it. The tongs are held up as a torch — and while the coal is in them he bows and
+   reaches down with them before him, arm and tongs in one line, their end come in under his own
    middle: so a man kneeling before him has the coal brought to his lips (6:7) */
-W.seraphTick=function(g,dt){ const u=g.userData, W6=u.wings6; if(!W6) return; u.t+=dt; const a=Math.sin(u.t*3.2)*0.2;
-  for(const w of W6.fly) w.rotation.z=SER_FLY+a;
+W.seraphTick=function(g,dt){ const u=g.userData, W6=u.wings6; if(!W6) return; u.t+=dt;
+  const p=u.t*4.6, sn=Math.sin(p), beat=sn>0?sn:sn*0.75;                     /* (the downstroke the stronger) */
+  for(const w of W6.fly){ w.rotation.z=SER_FLY+0.46*beat; w.rotation.y=-0.25-0.18*Math.cos(p); }
+  for(const w of [...W6.face,...W6.feet]) w.rotation.z=w.userData.z0+0.035*Math.sin(p-0.9);
+  if(u.body) u.body.position.y=0.07*Math.sin(p-1.4);                          /* lifted after each stroke */
   if(u.arm){ const k=u.carry+=((u.coal&&u.coal.visible?1:0)-u.carry)*Math.min(1,dt*2.5), A=u.arm;
     A.sh.rotation.x=-0.25+(-0.96+0.25)*k; A.sh.rotation.y=-0.3*k; A.el.rotation.x=1.57*k; A.hd.rotation.x=0.25+(1.57-0.25)*k;
     g.rotation.x=0.35*k; } };
