@@ -373,8 +373,9 @@ function buildScene(sc){
   /* the player */
   const P=sc.player||{};
   player=window.STORYWORLD.person(ctx,Object.assign({robe:0x7a6a8e,cloth:0xcfc6b0,skin:0x8a5a3a},P.look||{}));
-  const pp=pos(P.at||[0,0]); player.position.set(pp[0],ctx.groundY(pp[0],pp[1]),pp[1]); player.rotation.y=P.face||0;
-  camYaw=(P.face||0)+Math.PI; camTarget=null;
+  const pp=pos(P.at||[0,0]); player.position.set(pp[0],ctx.groundY(pp[0],pp[1]),pp[1]);
+  const pf=faceOf(P.face,pp); player.rotation.y=pf;                              /* (a bearing, or a place to face: it was taken as a number, and the eye went to NaN) */
+  camYaw=pf+Math.PI; camTarget=null;
   ctx.playerHidden=!!P.hidden; player.visible=!P.hidden;
 }
 /* THE MULTITUDE of a scene (`crowds`): beyond its named people, the many — `n` of them, in an
