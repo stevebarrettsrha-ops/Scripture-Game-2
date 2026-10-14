@@ -1143,7 +1143,10 @@ S.athens=function(ctx,st){
   if(!ctx.trueEarth){ ctx.api.mound(-62,0,20,34,{top:'stone'});                                 /* the Acropolis */
     temple(st,-62,0,16,30,7,'alabaster',ctx.groundY(-62,0)||20); }
   ctx.api.mound(-14,-6,5,12,{top:'stone'});                                                    /* the hill of Ares */
-  for(let k=0;k<6;k++) st.box(-3.0-k*0.6,0,-7,-2.4-k*0.6,0.4+k*0.6,-5,C.rock);               /* its steps cut in the rock, going up from its foot toward the hill (they climbed the other way, and ended in a drop) */
+  /* its steps cut in the rock, going up its side from the foot toward the top, each a little above the
+     rock it is cut in (they climbed away from the hill, three metres up into the air, and ended in a drop) */
+  for(let k=0;k<11;k++){ const x1=-2.4-k*0.9, xc=x1-0.45, h=(ctx.api.moundL(xc,-6)||0)+0.18;
+    st.box(x1-0.9,0,-7,x1,Math.max(0.3,h),-5,C.rock); }
   for(let x=10;x<40;x+=3.2) st.box(x-0.4,0,13.6,x+0.4,4.2,14.4,'alabaster'); st.box(9,4.2,13,41,4.8,18,C.roofEarth); st.box(9,0,17.6,41,4.2,18,'alabaster');   /* the porch of the agora */
   st.box(18,0,4,19.4,1.1,5.2,'alabaster'); st.detail(17.96,0.5,4.2,18.0,0.9,5.0,0x3a2a1e);    /* the altar, and its inscription */
   for(let k=0;k<5;k++){ const x=24+k*3; st.box(x-0.4,0,-6.4,x+0.4,2.2,-5.6,'alabaster'); st.box(x-0.5,2.2,-6.5,x+0.5,2.5,-5.5,C.gold); }   /* the images of the city's gods */

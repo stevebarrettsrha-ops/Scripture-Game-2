@@ -623,6 +623,8 @@ STORY.act({
       {t:'goal', text:'Go and open the gate to the men', goto:'gate', r:2},
       {t:'place', who:'kepha', at:'stairFoot', y:null, face:-Math.PI/2},
       {t:'stand', who:'kepha'},
+      {t:'move', who:'kepha', to:['stairFoot',0,2.2], speed:1.2},                      /* (out from the foot of the stair and along the house, not back up its steps and off the roof) */
+      {t:'move', who:'kepha', to:['stairFoot',-10,1.6], speed:1.2},
       {t:'move', who:'kepha', to:['gate',1.2,0], speed:1.2},
       {t:'face', who:'kepha', to:'sent0'},
       {t:'cam', from:['gate',3,3], fdy:2, look:'sent0', dur:2},
