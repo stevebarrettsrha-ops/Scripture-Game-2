@@ -1100,6 +1100,10 @@ function moveActors(dt){
         if(P.t>(u.follow?6:4)){ u._prog=null; u._path=null;
           const k2=u.follow?Math.max(0,(d-1.6)/d):1;
           g.position.x+=dx*k2; g.position.z+=dz*k2; u.gy=ctx.groundY(g.position.x,g.position.z,(u.gy||g.position.y)+3);
+          /* (and set down beside his mark, not in the wall it was written in) */
+          if(u.fixedY===undefined&&wallAt(g.position.x,g.position.z,u.gy)){ const x0=g.position.x, z0=g.position.z;
+            search: for(let r=0.4;r<=2.0;r+=0.4) for(let q=0;q<12;q++){ const t=q/12*Math.PI*2, x=x0+Math.cos(t)*r, z=z0+Math.sin(t)*r, y=ctx.groundY(x,z,u.gy+1.5);
+              if(isFinite(y)&&!wallAt(x,z,y)){ g.position.x=x; g.position.z=z; u.gy=y; break search; } } }
           if(g.visible) (ST.stuck=ST.stuck||[]).push({who:id,act:act&&act.id,scene:act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id,beat:beatIx,d:+d.toFixed(1),plan:lastPlan});   /* (one gone from sight is no one's concern) */
           if(!u.follow) u.target=null; continue; }
         if(u._path){ const W=u._path;
@@ -1108,17 +1112,25 @@ function moveActors(dt){
       else { u._prog=null; u._path=null; }
       if(way){ const wx=way[0]-g.position.x, wz=way[1]-g.position.z, wd=Math.hypot(wx,wz);
         if(wd>0.05){ const sp=Math.min(wd,(u.speed||2.6)*dt), a=Math.atan2(wx,wz);
-          g.position.x+=Math.sin(a)*sp; g.position.z+=Math.cos(a)*sp; g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=true; } }
+          /* (round a corner, not through it: a step that would stand him in a block slides along it) */
+          let mx=Math.sin(a)*sp, mz=Math.cos(a)*sp;
+          if(u.fixedY===undefined&&wallAt(g.position.x+mx*1.6,g.position.z+mz*1.6,u.gy)){
+            if(!wallAt(g.position.x+mx*1.6,g.position.z,u.gy)) mz=0; else if(!wallAt(g.position.x,g.position.z+mz*1.6,u.gy)) mx=0; else mx=mz=0; }
+          g.position.x+=mx; g.position.z+=mz; g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=mx!==0||mz!==0; } }
       else
       if(d>0.15){ const sp=Math.min(d,(u.speed||2.6)*dt);
         /* a wall in the way is gone round, not walked through: the step is turned aside, a
            little and then more, until the body would not stand in a block */
         let a0=Math.atan2(dx,dz), a=a0;
-        if(u.fixedY===undefined&&wallAt(g.position.x+Math.sin(a0)*0.45,g.position.z+Math.cos(a0)*0.45,u.gy)){
-          for(const da of [0.5,-0.5,1.0,-1.0,1.5,-1.5,2.1,-2.1]){ const b=a0+da+(u.steer||0)*0.0;
-            if(!wallAt(g.position.x+Math.sin(b)*0.45,g.position.z+Math.cos(b)*0.45,u.gy)){ a=b; break; } } }
-        g.position.x+=Math.sin(a)*sp; g.position.z+=Math.cos(a)*sp;
-        g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=true; }
+        /* (and the step itself must not stand him in one: at a corner the point ahead is clear while
+           the way to it goes through the block — so both are asked, and if no way aside will do he
+           waits, and in a moment works out the way round) */
+        const px=g.position.x, pz=g.position.z, st2=Math.min(sp+0.2,0.45);
+        const clear=b=>!wallAt(px+Math.sin(b)*0.45,pz+Math.cos(b)*0.45,u.gy)&&!wallAt(px+Math.sin(b)*st2,pz+Math.cos(b)*st2,u.gy);
+        if(u.fixedY===undefined&&!clear(a0)){ a=null;
+          for(const da of [0.5,-0.5,1.0,-1.0,1.5,-1.5,2.1,-2.1]){ const b=a0+da; if(clear(b)){ a=b; break; } } }
+        if(a!==null){ g.position.x+=Math.sin(a)*sp; g.position.z+=Math.cos(a)*sp;
+          g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=true; } }
       else if(!u.follow) u.target=null; }
     if(u.fixedY!==undefined) g.position.y=u.fixedY-sitDrop(u)+(u.lie?0.16:0);
     else { u.gy=stepGround(g.position.x,g.position.z,u.gy===undefined?ctx.groundY(g.position.x,g.position.z):u.gy); g.position.y=u.gy-sitDrop(u)+(u.lie?0.16:0); }
