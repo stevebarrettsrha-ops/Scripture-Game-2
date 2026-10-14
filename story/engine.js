@@ -182,7 +182,15 @@ function trueCityAnchor(A,sc){
   if(!off){
     /* where the scene is played: its player, else its first actor */
     let P=null; const pl=sc.player&&sc.player.at;
-    const plain=at=>Array.isArray(at)&&typeof at[0]==='number'?at:(Array.isArray(at)&&typeof at[0]==='string'&&small[at[0]]?[small[at[0]][0]+at[1],small[at[0]][1]+at[2]]:(typeof at==='string'&&small[at]?small[at]:null));
+    /* (a place written along the line between two marks, ['gateIn>gateOut',a,s], is read as pos() reads it:
+       unread, the siege was anchored on the first plain number it found, the Raḇshaqĕh's at the pool) */
+    const plain=at=>{ if(Array.isArray(at)&&typeof at[0]==='number') return at;
+      if(typeof at==='string') return small[at]||null;
+      if(!Array.isArray(at)||typeof at[0]!=='string') return null;
+      if(at[0].indexOf('>')>0){ const [na,nb]=at[0].split('>'), A0=small[na], B0=small[nb]; if(!A0||!B0) return null;
+        const dx=B0[0]-A0[0], dz=B0[1]-A0[1], L=Math.hypot(dx,dz)||1, ux=dx/L, uz=dz/L, a=at[3]==='f'?(at[1]||0)*L:(at[1]||0), sd=at[2]||0;
+        return [A0[0]+ux*a-uz*sd, A0[1]+uz*a+ux*sd]; }
+      const m=small[at[0]]; return m?[m[0]+(at[1]||0),m[1]+(at[2]||0)]:null; };
     P=plain(pl); if(!P) for(const a of sc.actors||[]){ P=plain(a.at); if(P) break; }
     if(P){ let bd=1e9, best=null;
       for(const m in small){ if(/Y$/.test(m)||!big[m]) continue; const d=Math.hypot(small[m][0]-P[0],small[m][1]-P[1]); if(d<bd){ bd=d; best=m; } }
@@ -1158,6 +1166,7 @@ function moveActors(dt){
           if(u.fixedY===undefined&&wallAt(g.position.x,g.position.z,u.gy)){ const x0=g.position.x, z0=g.position.z;
             search: for(let r=0.4;r<=2.0;r+=0.4) for(let q=0;q<12;q++){ const t=q/12*Math.PI*2, x=x0+Math.cos(t)*r, z=z0+Math.sin(t)*r, y=ctx.groundY(x,z,u.gy+1.5);
               if(isFinite(y)&&!wallAt(x,z,y)){ g.position.x=x; g.position.z=z; u.gy=y; break search; } } }
+          if(u.fixedY===undefined&&isFinite(u.gy)) g.position.y=u.gy-sitDrop(u)+(u.lie?0.16:0);          /* (set down at once, not a frame later) */
           if(g.visible&&d>=0.45) (ST.stuck=ST.stuck||[]).push({who:id,act:act&&act.id,scene:act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id,beat:beatIx,d:+d.toFixed(1),plan:lastPlan});   /* (one gone from sight is no one's concern, nor one set down the last hand's breadth) */
           if(!u.follow) u.target=null; continue; }
         if(u._path){ const W=u._path;
@@ -1241,6 +1250,11 @@ function moveActors(dt){
    coming up to him is walking (the walker gives way). */
 const APART=0.46;
 const RIDE_H=0.62;                                  /* a rider's seat above the ground, on a young donkey */
+/* (a step aside from his neighbour, but never into a wall: twelve followed Him through the gate, pressed
+   together, and two of them were shouldered into the stones of its jamb) */
+function shove(g,mx,mz){ if(!mx&&!mz) return; const u=g.userData, x=g.position.x+mx, z=g.position.z+mz;
+  if(u.gy!==undefined&&wallAt(x,z,u.gy)&&!wallAt(g.position.x,g.position.z,u.gy)) return;
+  g.position.x=x; g.position.z=z; }
 function keepApart(dt){
   const L=[]; for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; if(!g.visible||u.lie||u.fixedY!==undefined||u.ride||u.aboard) continue; L.push(g); }
   const k=Math.min(1,dt*6);
@@ -1249,9 +1263,9 @@ function keepApart(dt){
       if(d>=APART) continue;
       const nx=d>1e-4?dx/d:Math.cos(i+j), nz=d>1e-4?dz/d:Math.sin(i+j), push=(APART-d)*k;
       const am=!!a.userData.target, bm=!!b.userData.target, wa=am===bm?0.5:am?1:0, wb=1-wa;
-      a.position.x-=nx*push*wa; a.position.z-=nz*push*wa; b.position.x+=nx*push*wb; b.position.z+=nz*push*wb; } }
+      shove(a,-nx*push*wa,-nz*push*wa); shove(b,nx*push*wb,nz*push*wb); } }
   if(player&&player.visible) for(const a of L){ const dx=a.position.x-player.position.x, dz=a.position.z-player.position.z, d=Math.hypot(dx,dz);
-    if(d<APART&&d>1e-4){ const push=(APART-d)*k; a.position.x+=dx/d*push; a.position.z+=dz/d*push; } }
+    if(d<APART&&d>1e-4){ const push=(APART-d)*k; shove(a,dx/d*push,dz/d*push); } }
 }
 /* is a point inside or against someone? (the eye is never set there) */
 function inBody(p){
@@ -1776,7 +1790,8 @@ function enterBeat(){
         const top=ctx.groundY(to[0],to[1]), cur=g.position.y, near=ctx.groundY(to[0],to[1],cur+1.6);
         /* (and only a floor a man can stand on: sent from the gate to the upper pool, ten metres up the
            hill, the floor looked for at the gate's height was inside the hillside, and there he stood) */
-        g.userData.gy=near!=null&&isFinite(near)&&top-near>2&&Math.abs(near-cur)<3&&!sunkAt(to[0],to[1],near)?near:undefined; } });
+        g.userData.gy=near!=null&&isFinite(near)&&top-near>2&&Math.abs(near-cur)<3&&!sunkAt(to[0],to[1],near)?near:(isFinite(top)?top:undefined);
+        if(g.userData.gy!==undefined&&g.userData.fixedY===undefined) g.position.y=g.userData.gy-sitDrop(g.userData); } });   /* (at once: for a frame he stood at the gate's height on the hill) */
     if(B.wait===false) return nextBeat();
     onFrame=()=>{ if(who.every(w=>!ctx.actors[w]||!ctx.actors[w].userData.target)) nextBeat(); }; return; }
   if(T==='follow'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.target=null; g.userData.follow=B.target||'player'; } } return nextBeat(); }

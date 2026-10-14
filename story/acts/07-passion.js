@@ -496,10 +496,10 @@ STORY.act({
     ],
     glows:[0,1,2,3,4].map(k=>({id:'torch'+k, at:[52+k*1.2,2.2,-62+k*2.2], size:1.4, color:0xff9a40, intensity:0.9}))
       /* "and having touched his ear, He healed him" (Luke 22:51) */
-      .concat([{id:'ear', at:[62.6,-60], dy:1.7, size:0.8, color:0xfff4d8, intensity:0.5, hidden:true}]),
+      .concat([{id:'ear', at:[62.3,-58.8], dy:1.7, size:0.8, color:0xfff4d8, intensity:0.5, hidden:true}]),
     beats:[
       {t:'cam', from:['three',2,-4], fdy:2.4, look:'yahudahQ', dur:0.1},
-      {t:'move', who:['yahudahQ','melek'].concat(ids(BAND)), to:[[63.4,-58],[62.6,-60]].concat(BAND.map((a,k)=>[58.6+(k%5)*1.1,-61+Math.floor(k/5)*3.4+(k%2)*0.6])), speed:1.4, wait:false},
+      {t:'move', who:['yahudahQ','melek'].concat(ids(BAND)), to:[[63.4,-58],[62.3,-58.8]].concat(BAND.map((a,k)=>[57.6+(k%5)*0.8,-61+Math.floor(k/5)*3.4+(k%2)*0.6])), speed:1.4, wait:false},   /* (Meleḵ in the gateway, the band drawn up short of the garden's wall: two of them were sent onto its top) */
       {t:'drift', id:['torch0','torch1','torch2','torch3','torch4'], by:[7,0,1], dur:6, wait:false},
       {t:'read', ref:'MARK 14:43'},
       {t:'read', ref:'MARK 14:44', voices:['yahudahQ']},
