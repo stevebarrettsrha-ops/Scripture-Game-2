@@ -507,7 +507,9 @@ function galil(ctx,st,o){
      land is laid there — and out on the lake, `afloat`, none at all) */
   const k=window.__KIT, inLake=(x,z)=>{ if(!ctx.trueEarth||!ctx.toWorldXZ) return false; const w=ctx.toWorldXZ(x,z), c=k.cell(Math.floor(w[0]/k.B),Math.floor(w[1]/k.B)); return !!(c&&c.lake!==undefined&&c.lake>c.h); };
   const afloat=inLake(0,0);
-  if(!afloat) W.ground(ctx,{color:o.village?C.grassDry:C.grass,flat:30,
+  /* (cut down to the lake's own level on the true earth, the shore's slope is eased back a long way, or
+     the set stands in a pit under a wall of earth — the east shore climbs steeply to the Golan) */
+  if(!afloat) W.ground(ctx,{color:o.village?C.grassDry:C.grass,flat:30,blend:ctx.trueEarth?40:undefined,
     peak:o.village?{x:-80,z:6,h:11,r:72}:{x:-46,z:0,h:8,r:56}});
   /* THE LAKE: its floor levelled and its water laid, from the beach out past where the boats
      go; a beach of pebbles along its edge */

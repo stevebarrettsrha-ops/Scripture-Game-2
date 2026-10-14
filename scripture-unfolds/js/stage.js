@@ -166,8 +166,8 @@ window.STAGE=(function(){
     const K=()=>window.__KIT; let land=null, air=null, t0=performance.now();
     const LAND=['lion','gazelle','gazelle','deer','cow','cow','goat','goat','ox','wildass','camel','lizard','lizard'];
     const AIR=['dove','dove','gull','gull','eagle','dove','crow'];
-    function spawnLand(){ land=[]; const k=K(); if(!k||!k.makeBeast) return;
-      LAND.forEach((kind,i)=>{ let m=null; try{ m=k.makeBeast(kind); }catch(e){} if(!m) return;
+    function spawnLand(){ land=[]; const k=K(), make=k&&(k.makeAnimal||k.makeBeast); if(!make) return;   /* (makeAnimal: every land beast, at its true size) */
+      LAND.forEach((kind,i)=>{ let m=null; try{ m=make(kind); }catch(e){} if(!m) return;
         const a=i/LAND.length*Math.PI*2+0.4, r=26+((i*37)%5)*9, x=anchor.x+Math.cos(a)*r, z=anchor.z+Math.sin(a)*r;
         m.position.set(x,groundY(x,z),z); m.rotation.y=a+Math.PI*(0.3+((i*13)%7)/10); W.scene.add(m); land.push({m,kind,ent:{m}}); }); }
     function spawnAir(){ air=[]; const k=K(); if(!k||!k.makeBird) return;

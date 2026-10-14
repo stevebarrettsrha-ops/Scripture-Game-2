@@ -91,7 +91,7 @@ W.Static=Static;
 W.ground=function(ctx,o){
   const api=ctx.api, f=o.flat===undefined?30:o.flat;
   const top=o.top||(o.color===C.grass?'grass':o.color===0xc9b48a?'sand':'grass');
-  if(f>0) api.pad(-f,-f,f,f,{round:true,top});
+  if(f>0) api.pad(-f,-f,f,f,{round:true,top,blend:o.blend});           /* (`blend`: how far its edge is eased into the land, in blocks) */
   for(const p of [].concat(o.peak||[])) api.mound(p.x,p.z,p.h,p.r,{top});
   return null;   /* ctx.groundY stays the engine's: it looks for the floor under a man, not the roof over him */
 };
