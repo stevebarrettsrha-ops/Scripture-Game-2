@@ -1115,6 +1115,7 @@ function moveActors(dt){
           { const g0=u.gy!==undefined?u.gy:g.position.y, lo=ctx.groundY(g.position.x,g.position.z,g0+1.6), hi=ctx.groundY(g.position.x,g.position.z,g0+3);
             u.gy=(isFinite(lo)&&lo>g0-6)?lo:hi; }
           /* (and set down beside his mark, not in the wall it was written in) */
+          u._mv='set down by the rescue';
           if(u.fixedY===undefined&&wallAt(g.position.x,g.position.z,u.gy)){ const x0=g.position.x, z0=g.position.z;
             search: for(let r=0.4;r<=2.0;r+=0.4) for(let q=0;q<12;q++){ const t=q/12*Math.PI*2, x=x0+Math.cos(t)*r, z=z0+Math.sin(t)*r, y=ctx.groundY(x,z,u.gy+1.5);
               if(isFinite(y)&&!wallAt(x,z,y)){ g.position.x=x; g.position.z=z; u.gy=y; break search; } } }
@@ -1130,7 +1131,7 @@ function moveActors(dt){
           let mx=Math.sin(a)*sp, mz=Math.cos(a)*sp;
           if(u.fixedY===undefined&&wallAt(g.position.x+mx*1.6,g.position.z+mz*1.6,u.gy)){
             if(!wallAt(g.position.x+mx*1.6,g.position.z,u.gy)) mz=0; else if(!wallAt(g.position.x,g.position.z+mz*1.6,u.gy)) mx=0; else mx=mz=0; }
-          g.position.x+=mx; g.position.z+=mz; g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=mx!==0||mz!==0; } }
+          g.position.x+=mx; g.position.z+=mz; g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=mx!==0||mz!==0; if(moving) u._mv='on a planned way'; } }
       else
       if(d>0.15){ const sp=Math.min(d,(u.speed||2.6)*dt);
         /* a wall in the way is gone round, not walked through: the step is turned aside, a
@@ -1144,7 +1145,7 @@ function moveActors(dt){
         if(u.fixedY===undefined&&!clear(a0)){ a=null;
           for(const da of [0.5,-0.5,1.0,-1.0,1.5,-1.5,2.1,-2.1]){ const b=a0+da; if(clear(b)){ a=b; break; } } }
         if(a!==null){ g.position.x+=Math.sin(a)*sp; g.position.z+=Math.cos(a)*sp;
-          g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=true; } }
+          g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=true; u._mv='walking to his mark'; } }
       else if(!u.follow) u.target=null; }
     if(u.fixedY!==undefined) g.position.y=u.fixedY-sitDrop(u)+(u.lie?0.16:0);
     else { u.gy=stepGround(g.position.x,g.position.z,u.gy===undefined?ctx.groundY(g.position.x,g.position.z):u.gy); g.position.y=u.gy-sitDrop(u)+(u.lie?0.16:0); }
@@ -1725,7 +1726,7 @@ function enterBeat(){
   if(T==='stop'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.follow=null; g.userData.target=null; } } return nextBeat(); }
   if(T==='face'){ const g=ctx.actors[B.who]; const p=B.to==='player'?[player.position.x,player.position.z]:(ctx.actors[B.to]||ctx.things[B.to])?thingPos(B.to):pos(B.to);
     if(g) g.rotation.y=Math.atan2(p[0]-g.position.x,p[1]-g.position.z); return nextBeat(); }
-  if(T==='place'){ const g=B.who==='player'?player:ctx.actors[B.who]; const p=pos(B.at);
+  if(T==='place'){ const g=B.who==='player'?player:ctx.actors[B.who]; const p=pos(B.at); if(g) g.userData._mv=null;
     if(g){ const onIt=B.y!==undefined&&B.y!==null;
       g.position.set(p[0],onIt?yOf(B.y):ctx.groundY(p[0],p[1]),p[1]); g.userData.gy=g.position.y; if(B.face!==undefined) g.rotation.y=B.face;
       /* `y`: standing on something that is not the ground — the floor of a boat, a roof;
@@ -2355,7 +2356,7 @@ function walkWatch(dt){
     if(fixed) return;
     if(!cut&&last!==undefined&&Math.abs(p.y-last)>2.5) note(who,(p.y<last?'dropped ':'jumped ')+Math.round(Math.abs(p.y-last)*10)/10+' m in a step',g);
     { const k=K(), wx=anchor.x+p.x*SX, wz=anchor.z+p.z*SX;
-      if(k.solidAt(wx,anchor.y+(p.y+0.9)*S,wz)&&k.solidAt(wx,anchor.y+(p.y+1.5)*S,wz)) note(who,'body inside a block',g); } };
+      if(k.solidAt(wx,anchor.y+(p.y+0.9)*S,wz)&&k.solidAt(wx,anchor.y+(p.y+1.5)*S,wz)) note(who,'body inside a block'+(g.userData._mv?' ('+g.userData._mv+')':' (where he was set)'),g); } };
   if(!ctx.playerHidden) look('the witness',player,ctx.playerY!==undefined);
   for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; look(id,g,u.fixedY!==undefined||!!u.aboard||!!u.ride||!!u.lie); }
 }
