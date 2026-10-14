@@ -835,7 +835,7 @@ function guideGoal(){ const B=beat; if(!B||!player) return null;
 /* a walk from where he stands to within r of (tx,tz), on a half-metre grid: a cell is entered as
    movePlayer would enter it (blocked, the hull of a boat), and stood in at the ground it has */
 let lastPlan=null;
-function planWay(tx,tz,r,from){
+function planWay(tx,tz,r,from,noAvoid){
   const F=from||player.position;
   /* (a long way across a city is walked on a coarser grid: a street is wider than a metre) */
   const H=Math.hypot(tx-F.x,tz-F.z)>90?1.0:0.5, sx=F.x, sz=F.z, sy=F.y;
@@ -856,6 +856,15 @@ function planWay(tx,tz,r,from){
     for(let di=-3;di<=3;di++) for(let dj=-3;dj<=3;dj++){ const d=di*di+dj*dj; if(d<bd&&!blocked((si+di)*H,(sj+dj)*H,0.3,sy)){ bd=d; bi=si+di; bj=sj+dj; } }
     si=bi; sj=bj; }
   const hOf=(i,j)=>Math.hypot(i*H-tx,j*H-tz);
+  /* (one of the scene's people sent to his mark goes round those already standing at theirs — a soldier's
+     way to the foot of the spur went through the centurion, and a man at rest does not give way to one
+     walking: he was held there, and carried. Not those about his own mark, and if that leaves no way, the
+     way is found as before.) */
+  const rest=[]; if(from&&!noAvoid) for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData;
+    if(!g.visible||u.target||u.follow||u.aboard||u.ride||u.fixedY!==undefined) continue;
+    const px=g.position.x, pz=g.position.z; if(Math.hypot(px-sx,pz-sz)<0.6||Math.hypot(px-tx,pz-tz)<1.0) continue;
+    rest.push([px,pz]); }
+  const byRest=(x,z)=>{ for(const q of rest) if((x-q[0])*(x-q[0])+(z-q[1])*(z-q[1])<0.36) return true; return false; };
   seen.set(key(si,sj),{i:si,j:sj,y:sy,g:0,from:null,shut:false}); open.push([hOf(si,sj),key(si,sj)]);
   let n=0, end=null;
   while(open.length&&n<150000){
@@ -866,7 +875,7 @@ function planWay(tx,tz,r,from){
     for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){
       const ni=C.i+di, nj=C.j+dj, nx=ni*H, nz=nj*H; if(nx<x0||nx>x1||nz<z0||nz>z1) continue;
       const nk=key(ni,nj); const N0=seen.get(nk); if(N0&&N0.shut) continue;
-      if(blocked(nx,nz,0.3,C.y)||hullCross(cx,cz,nx,nz,deck)) continue;
+      if(blocked(nx,nz,0.3,C.y)||hullCross(cx,cz,nx,nz,deck)||(rest.length&&byRest(nx,nz))) continue;
       if(di&&dj&&(blocked(cx+di*H,cz,0.3,C.y)||blocked(cx,cz+dj*H,0.3,C.y))) continue;
       const gy=deck?ctx.playerY:ctx.groundY(nx,nz,C.y+CLIMB_REF); if(gy===null||gy===undefined||!isFinite(gy)) continue;
       /* (no higher a step than a man takes, and no cliff dropped: a way that read the top of a door's
@@ -875,7 +884,7 @@ function planWay(tx,tz,r,from){
       const g=C.g+(di&&dj?1.414:1)+(gy>C.y+0.3?0.6:0);
       if(!N0||g<N0.g){ seen.set(nk,{i:ni,j:nj,y:gy,g,from:ck,shut:false}); open.push([g+hOf(ni,nj)/H,nk]); } } }
   lastPlan={from:[+sx.toFixed(1),+sy.toFixed(1),+sz.toFixed(1)],to:[+tx.toFixed(1),+tz.toFixed(1)],n,box:[Math.round(x0),Math.round(z0),Math.round(x1),Math.round(z1)]};
-  if(!end) return null;
+  if(!end) return rest.length?planWay(tx,tz,r,from,true):null;
   const pts=[]; for(let c=end;c;c=c.from?seen.get(c.from):null) pts.push([c.i*H,c.j*H]);
   pts.reverse(); pts.push([tx,tz]); return pts; }
 function setOnMark(G,why){
@@ -1211,6 +1220,7 @@ function moveActors(dt){
            there four seconds and then carried the last fifth of a metre) */
         else if(d<0.45&&!u.follow){ u.target=null; u._prog=null; u._path=null; } }
       else if(!u.follow) u.target=null; }
+    if(u.sitOnArrive&&!u.target){ u.sit=true; u.sitOnArrive=false; }
     if(u.fixedY!==undefined) g.position.y=u.fixedY-sitDrop(u)+(u.lie?0.16:0);
     else { u.gy=stepGround(g.position.x,g.position.z,u.gy===undefined?ctx.groundY(g.position.x,g.position.z):u.gy); g.position.y=u.gy-sitDrop(u)+(u.lie?0.16:0); }
     /* riding (Luke 19:35): the beast goes where the rider goes, under him, at its own gait */
@@ -1831,7 +1841,10 @@ function enterBeat(){
     if(B.storm!==undefined&&K().setStorm) K().setStorm(B.storm||null);      /* the rain, the thunder and the dark of a squall */
     return nextBeat(); }
   /* "Make the people sit down" (Yahuchanon 6:10): on the grass, legs out before them */
-  if(T==='sit'||T==='stand'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.sit=(T==='sit'); g.userData.lie=false; g.userData.kneel=false; g.rotation.x=0; } } return nextBeat(); }
+  /* (one told to sit while still walking to his place sits when he gets there: he went the rest of the way
+     through the garden gliding along seated) */
+  if(T==='sit'||T==='stand'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ const u=g.userData, later=T==='sit'&&!!u.target;
+      u.sit=T==='sit'&&!later; u.sitOnArrive=later; u.lie=false; u.kneel=false; g.rotation.x=0; } } return nextBeat(); }
   /* "falling on His knees He was praying" (Luqas 22:41) */
   if(T==='kneel'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.kneel=true; g.userData.sit=false; g.userData.lie=false; g.rotation.x=0; } } return nextBeat(); }
   /* lying on the ground: asleep in a camp, or fallen (Yashayahu 37:36) */
