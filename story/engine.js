@@ -833,6 +833,9 @@ function planWay(tx,tz,r,from){
       if(blocked(nx,nz,0.3,C.y)||hullCross(cx,cz,nx,nz,deck)) continue;
       if(di&&dj&&(blocked(cx+di*H,cz,0.3,C.y)||blocked(cx,cz+dj*H,0.3,C.y))) continue;
       const gy=deck?ctx.playerY:ctx.groundY(nx,nz,C.y+CLIMB_REF); if(gy===null||gy===undefined||!isFinite(gy)) continue;
+      /* (no higher a step than a man takes, and no cliff dropped: a way that read the top of a door's
+         jamb as ground went on along the wall-tops and the roofs, and those sent by it fell off them) */
+      if(!deck&&(gy>C.y+CLIMB_M||gy<C.y-2.4)) continue;
       const g=C.g+(di&&dj?1.414:1)+(gy>C.y+0.3?0.6:0);
       if(!N0||g<N0.g){ seen.set(nk,{i:ni,j:nj,y:gy,g,from:ck,shut:false}); open.push([g+hOf(ni,nj)/H,nk]); } } }
   lastPlan={from:[+sx.toFixed(1),+sy.toFixed(1),+sz.toFixed(1)],to:[+tx.toFixed(1),+tz.toFixed(1)],n,box:[Math.round(x0),Math.round(z0),Math.round(x1),Math.round(z1)]};
