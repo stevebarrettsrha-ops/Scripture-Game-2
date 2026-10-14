@@ -1205,13 +1205,13 @@ const WING_LIVING={bone:0xf0d070,covert:0xf8f2e2,covertTip:0xf2e6c4,root:0xf4ecd
    and pop() carry a frame, so a wing can be laid flat in its own plane and set at its angle. */
 const _ub=new THREE.BoxGeometry(1,1,1).toNonIndexed(), _ubP=_ub.attributes.position.array, _ubN=_ub.attributes.normal.array;
 const _vm=new THREE.Matrix4(), _vn=new THREE.Matrix3(), _vv=new THREE.Vector3(), _vc=new THREE.Color(), _vq=new THREE.Quaternion(), _ve=new THREE.Euler(), _vs=new THREE.Vector3(), _vp=new THREE.Vector3();
-function Vox(){ this.L={p:[],n:[],c:[]}; this.G={p:[],n:[],c:[]}; this.P={p:[],n:[],c:[]}; this.M=new THREE.Matrix4(); this.st=[]; }
+function Vox(){ this.L={p:[],n:[],c:[]}; this.G={p:[],n:[],c:[]}; this.P={p:[],n:[],c:[]}; this.A={p:[],n:[],c:[]}; this.M=new THREE.Matrix4(); this.st=[]; }
 Vox.prototype.push=function(x,y,z,rx,ry,rz,sx){ this.st.push(this.M.clone());
   _ve.set(rx||0,ry||0,rz||0); _vq.setFromEuler(_ve); _vm.compose(_vp.set(x,y,z),_vq,_vs.set(sx||1,1,1)); this.M.multiply(_vm); return this; };
 Vox.prototype.pop=function(){ this.M=this.st.pop(); return this; };
 /* one block: w×h×d about (x,y,z), turned `ry` about its upright; `glow` — it burns, or 'pale' — it is
    white that shines: shaded by the light, but never darkened past a bright shadow */
-Vox.prototype.box=function(w,h,d,col,x,y,z,glow,ry){ const B=glow==='pale'?this.P:glow?this.G:this.L;
+Vox.prototype.box=function(w,h,d,col,x,y,z,glow,ry){ const B=glow==='pale'?this.P:glow==='aglow'?this.A:glow?this.G:this.L;
   _ve.set(0,ry||0,0); _vq.setFromEuler(_ve); _vm.compose(_vp.set(x,y,z),_vq,_vs.set(w,h,d)).premultiply(this.M);
   _vn.getNormalMatrix(_vm); _vc.setHex(col);
   for(let k=0;k<36;k++){ _vv.fromArray(_ubP,k*3).applyMatrix4(_vm); B.p.push(_vv.x,_vv.y,_vv.z);
@@ -1219,9 +1219,10 @@ Vox.prototype.box=function(w,h,d,col,x,y,z,glow,ry){ const B=glow==='pale'?this.
   return this; };
 const VOX_LIT=new THREE.MeshLambertMaterial({vertexColors:true,emissive:0x101018,fog:false}),
       VOX_GLOW=new THREE.MeshBasicMaterial({vertexColors:true,fog:false}),
-      VOX_PALE=new THREE.MeshLambertMaterial({vertexColors:true,emissive:0x5a564e,fog:false});
+      VOX_PALE=new THREE.MeshLambertMaterial({vertexColors:true,emissive:0x5a564e,fog:false}),
+      VOX_AGLOW=new THREE.MeshLambertMaterial({vertexColors:true,emissive:0x5e5038,fog:false});   /* (the feathers of the burning ones: lit, and warm with their own light in the shadow) */
 Vox.prototype.into=function(par){ const out=[];
-  for(const [B,m] of [[this.L,VOX_LIT],[this.G,VOX_GLOW],[this.P,VOX_PALE]]){ if(!B.p.length) continue;
+  for(const [B,m] of [[this.L,VOX_LIT],[this.G,VOX_GLOW],[this.P,VOX_PALE],[this.A,VOX_AGLOW]]){ if(!B.p.length) continue;
     const geo=new THREE.BufferGeometry();
     geo.setAttribute('position',new THREE.Float32BufferAttribute(B.p,3)); geo.setAttribute('normal',new THREE.Float32BufferAttribute(B.n,3));
     geo.setAttribute('color',new THREE.Float32BufferAttribute(B.c,3)); geo.computeBoundingSphere();
@@ -1233,7 +1234,7 @@ Vox.prototype.into=function(par){ const out=[];
    blocks, each ending a step longer or shorter than the next, and each burning at its end.
    Broad through the middle, narrowing to a tip that turns up. */
 /* the feathers of the burning ones: white, warmed with gold, their long feathers gold at the ends */
-const SER_WHITE={bone:0xf0d79a,cov:0xf6eedb,cov2:0xe8d6ad,sec:0xfaf3e3,sec2:0xeee0c0,pri:0xfdf8ec,pri2:0xf3e7cb,end:0xf0cd7a,fire:0xdcaa48};
+const SER_WHITE={bone:0xe6c886,cov:0xe8dcc0,cov2:0xd8c296,sec:0xeee2c8,sec2:0xdfcca2,pri:0xf1e8d4,pri2:0xe4d2ae,end:0xf0cd7a,fire:0xdcaa48};
 const SER_FLY=0.62;   /* (how high the flying wings are lifted from the level) */
 function pixWing(V,o){
   const P=o.pal, v=o.v||0.1, L=o.span, C=o.chord, th=o.th||0.08, n=Math.max(4,Math.round(L/v));
@@ -1250,7 +1251,7 @@ function pixWing(V,o){
       else if(j>=R-1){ c=P.fire; glow=true; }                                                       /* and every long feather burns at its end */
       else if(j>=R-2){ c=P.end; glow=true; }
       else c=(i&1)?P.pri2:P.pri;
-      V.box(v*1.02,v*1.02,th,c,x,y,z,glow||(o.pale?'pale':false)); } } }
+      V.box(v*1.02,v*1.02,th,c,x,y,z,glow||(o.pale?'pale':o.aglow?'aglow':false)); } } }
 /* A SERAPH, "a burning one" (Yashayahu 6:2,6), laid in blocks as the land is: "each one had six
    wings; with two he covered his face, and with two he covered his feet, and with two he flew."
    As the director has him: all wings, white and gold. The two over his face rise from his shoulders
@@ -1272,12 +1273,12 @@ W.seraph=function(o){ o=o||{};
   V.box(0.32,0.36,0.32,LIGHT,0,2.5,0,true);                                                         /* his head, hidden in light */
   const W6={fly:[],face:[],feet:[]};
   const wing=(P,x,y,z,ang,flip,span,chord,v)=>{ const pv=new THREE.Group(); pv.position.set(x,y,z); pv.rotation.z=ang; if(flip) pv.scale.y=-1; P.add(pv);
-    const Vw=new Vox(); pixWing(Vw,{span,chord,v,pal:SER_WHITE,lift:0.08,th:0.07}); Vw.into(pv); return pv; };
+    const Vw=new Vox(); pixWing(Vw,{span,chord,v,pal:SER_WHITE,aglow:true,lift:0.08,th:0.07}); Vw.into(pv); return pv; };
   /* the two over his face: from his shoulders up across before it, crossed, their ends over his head */
   for(const s of [-1,1]) W6.face.push(wing(side(s),0.38,1.9,s>0?0.33:0.3,2.12,false,2.3,0.7,0.075));
   /* the two he flies with: from behind his shoulders, spread wide */
   for(const s of [-1,1]){ const P=side(s), pv=new THREE.Group(); pv.position.set(0.22,2.3,-0.24); pv.rotation.set(0,-0.25,SER_FLY); P.add(pv);
-    const Vw=new Vox(); pixWing(Vw,{span:3.2,chord:1.5,v:0.1,pal:SER_WHITE}); Vw.into(pv); W6.fly.push(pv); }
+    const Vw=new Vox(); pixWing(Vw,{span:3.2,chord:1.5,v:0.1,pal:SER_WHITE,aglow:true}); Vw.into(pv); W6.fly.push(pv); }
   /* the two over his feet: from the girdle down across before him, crossed, their ends at his feet */
   for(const s of [-1,1]) W6.feet.push(wing(side(s),0.3,1.46,s>0?0.37:0.34,-1.9,false,1.62,0.62,0.075));
   V.into(body);

@@ -8,7 +8,7 @@
    empty is reported), the stage is put at the middle of the caption (STAGE.seek) and held while
    the world is drawn about the eye, and the screen is taken. Page errors are reported per scene.
    <outDir>/<scene>/NN-<ref>.png, and <outDir>/index.json with the captions and their words.
-   EARTH=1 for the small map; the true earth is the default. */
+   REFS="1:20,1:27" for only those captions. EARTH=1 for the small map; the true earth is the default. */
 const {open}=require('./harness.js');
 const fs=require('fs'), path=require('path');
 (async()=>{
@@ -35,7 +35,9 @@ const fs=require('fs'), path=require('path');
       const dir=path.join(outDir,S.id); fs.mkdirSync(dir,{recursive:true});
       const empty=caps.caps.filter(c=>!c.text||!c.text.trim());
       if(empty.length){ bad++; console.log(S.id+': '+empty.length+' caption(s) came back with no words: '+empty.map(c=>c.ref||('@'+c.t)).join(', ')); }
+      const REFS=(process.env.REFS||'').split(',').map(x=>x.trim()).filter(Boolean);   /* REFS="1:20,1:27": only the captions whose reference ends so */
       for(let i=0;i<caps.caps.length;i++){ const c=caps.caps[i], mid=(c.t+c.to)/2;
+        if(REFS.length&&!REFS.some(r=>(c.ref||'').endsWith(' '+r))) continue;
         await page.evaluate(async P=>{ STAGE.seek(P.mid);
           for(let k=0;k<P.FR;k++){ STAGE.seek(P.mid); await new Promise(r=>requestAnimationFrame(r)); } },{mid,FR});
         const file=path.join(dir,String(i+1).padStart(2,'0')+'-'+(c.ref||'t'+mid).replace(/[^A-Za-z0-9]+/g,'_')+'.png');

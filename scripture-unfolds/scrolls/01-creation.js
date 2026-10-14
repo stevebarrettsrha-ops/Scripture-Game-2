@@ -76,13 +76,13 @@ STORY.scene({
     /* the host and the lesser light rule the night (1:16-18), and are not left at full in the day after */
     { t:245, cd:170, cy:44, cl:8, cfov:64, ca:0.425, stars:0, moon:0.3 },
     { t:251, lifeSea:0, lifeAir:0 },                            /* (they come with 1:20, not before it) */
-    { t:252, lifeSea:1, lifeAir:1 },                            /* THE WATERS TEEM, AND THE BIRDS FLY */
+    { t:252, lifeSea:1, lifeAir:1, birds:1 },                   /* THE WATERS TEEM, AND THE BIRDS FLY */
     { t:285, ca:0.475, cd:150, cy:34 },
 
     /* ===== THE SIXTH DAY — the beasts of the earth, and the man ===== */
     { t:293, cd:128, cy:26, cl:6, cfov:62, ca:0.495 },
     { t:299, lifeLand:0 },                                     /* (they come with 1:24, not before it) */
-    { t:300, lifeLand:1 },                                     /* THE BEASTS OF THE EARTH */
+    { t:300, lifeLand:1, beasts:1 },                           /* THE BEASTS OF THE EARTH */
     { t:330, ca:0.545, cd:112, cy:22 },
     { t:334, man:1, cut:true },                               /* IN THE IMAGE OF ALUAHIM — with 1:27, not while 1:26 is read */
     { t:369, cd: 96, cy:19, ca:0.575 },
