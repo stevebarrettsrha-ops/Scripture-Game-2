@@ -111,7 +111,12 @@ function groundAt0(x,z,ref){
    the true earth is cut in whole blocks and rises two at a pace on any hillside, so a figure sent up
    a slope walked into it and stood there for ever, and the act waited on him. A rise of two courses
    (with room to stand on top of it) is taken as a man takes it, with a hop; a wall is still a wall. */
-const CLIMB_M=2.2, CLIMB_REF=2.4;
+/* (CLIMB_REF: how far over his feet the ground is looked for, in metres. The world finds it by going down
+   from there to the first block, so it must be under a doorway's lintel — laid in whole blocks it hangs
+   at 1.85 — or the lintel's top is the ground, and a door is a wall three metres high: it was 2.4, and
+   the doors of every house were climbed or not gone through at all. 1.3 is still over a step of two
+   courses, which is the highest a man hops.) */
+const CLIMB_M=2.2, CLIMB_REF=1.3;
 function stepGround(x,z,cur){
   let f=groundAt(x,z,cur+CLIMB_REF);
   if(f>cur+0.05){ const k=K(), B=k.B, wx=anchor.x+x*SX, wz=anchor.z+z*SX, fy=anchor.y+f*S;
