@@ -1158,7 +1158,9 @@ function moveActors(dt){
           if(u.fixedY===undefined&&!u.follow&&d>1.2) for(let q=0.4;q<d;q+=0.4){ const x=g.position.x+dx/d*q, z=g.position.z+dz/d*q;
             if(wallAt(x,z,u.gy)){ P.los=false; P.t=2.01; break; } } }
         else if(d<P.d-0.25){ P.d=d; P.t=0; } else P.t+=dt;
-        if(P.t>2&&!u._path&&(P.tries||0)<3&&!u.follow&&u.fixedY===undefined){ P.tries=(P.tries||0)+1; P.t=0;
+        /* (and one held on a way already worked out — those he was to pass have sat down across it since — works
+           out another, round them) */
+        if(P.t>2&&(P.tries||0)<3&&!u.follow&&u.fixedY===undefined){ P.tries=(P.tries||0)+1; P.t=0; u._path=null;
           const pts=planWay(tgt[0],tgt[1],0.4,{x:g.position.x,y:u.gy!==undefined?u.gy:g.position.y,z:g.position.z});
           if(pts) u._path={pts,i:0}; else P.t=99; }
         if(P.t>(u.follow?6:4)){ u._prog=null; u._path=null;
