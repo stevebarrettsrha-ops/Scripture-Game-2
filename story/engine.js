@@ -1899,6 +1899,9 @@ function enterBeat(){
     for(const id of [].concat(B.id)){ const o=id==='player'?player:(ctx.things[id]||ctx.actors[id]), G=ctx.glows[id];
       if(o){ objs.push(o); if(id!=='player') o.visible=true; } if(G){ objs.push(G.sprite); if(G.light) objs.push(G.light); G.visible=true; } }
     const by=B.by?new THREE.Vector3(...B.by):null;
+    /* (those carried — a ship's company driven onto the beach — are not walking to a place left behind: two
+       sailors still bound for the bow were held by the drift, and set back on the deck's old place in the sea) */
+    for(const id of [].concat(B.id)){ const g=ctx.actors[id]; if(g){ g.userData.target=null; g.userData._prog=null; g.userData._path=null; } }
     /* `hold`: a figure carried up (Acts 1:9) is held where the drift leaves him, not set back on the ground */
     if(B.hold) for(const id of [].concat(B.id)){ const g=ctx.actors[id]; if(g&&g.userData.fixedY===undefined) g.userData.fixedY=g.position.y; }
     /* (`toAt` [a place] with `dy`: to so high over the floor there) */
