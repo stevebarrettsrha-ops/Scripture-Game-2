@@ -110,7 +110,7 @@ STORY.act({
   /* ---------------- VI.1 — THE ENTRY ---------------- */
   { id:'entry', title:'Yahrushalayim', date:'before the Pesach, c. 30 CE', place:'yahrushalayim', time:'day',
     player:{ at:[-9,47], face:Math.PI, look:ADULT },
-    crowds:[ {id:'pilgrims', n:320, area:[-42,28,8,76], path:[[-30,66],[-24,58],[-15.6,47],'gateIn',[-2,24]], clear:2.6, facePath:true} ],
+    crowds:[ {id:'pilgrims', n:320, area:[-42,28,8,76], path:[[-30,66],[-24,58],[-15.6,47],'gateIn','gateStreet'], clear:2.6, facePath:true} ],
     actors:[
       Object.assign({id:'yahusha', at:[-24,58], face:Math.PI*0.85},YAHUSHA),
       T('kepha',[-22,60],{face:Math.PI*0.85}), T('yahuchanon',[-26,60.6],{face:Math.PI*0.85}), T('andri',[-23.4,62.4],{face:Math.PI*0.85}),
@@ -136,7 +136,7 @@ STORY.act({
       {t:'cam', on:'yahusha', shot:'back', toward:'g3', back:6, dur:2.5},
       {t:'say', who:'crowds', ref:'MATTITHYAHU 21:9', turn:false},
       {t:'move', who:'yahusha', to:'gateIn', speed:0.8},
-      {t:'move', who:'yahusha', to:[-2,24], speed:0.8, wait:false},
+      {t:'move', who:'yahusha', to:'gateStreet', speed:0.8, wait:false},
       {t:'cam', on:'yahusha', shot:'back', toward:'g3', back:6, dur:3},
       {t:'say', who:'city', ref:'MATTITHYAHU 21:10', turn:false},
       {t:'say', who:'crowds', ref:'MATTITHYAHU 21:11', turn:false},

@@ -173,7 +173,9 @@ window.YAHRU_PLAN=function(api,period){
 
   /* ---- OUTSIDE THE GATE: the highway of the Launderer's Field, and the upper pool ---- */
   const gx=cx-14, gz=cz+hd+6;
-  api.mark('gateIn',gx,cz+hd-8); api.mark('gateOut',gx,gz+2);
+  api.mark('gateIn',gx,cz+hd-8); api.mark('gateOut',gx,gz+2); api.mark('gateStreet',cx-2,cz+hd-14);   /* (and the street just within it) */
+  /* the walk along the wall's top east of the gate, between its towers (Yashayahu 36:11), and its height */
+  api.mark('wallTop',cx-6,cz+hd-0.85); api.mark('wallTopEnd',cx+6,cz+hd-0.85); api.mark('wallTopY',7.2,0);
   for(let k=0;k<30;k++) api.top(gx-2-k*1.6,gz+k*0.9-1.2,gx-0.4-k*1.6,gz+k*0.9+1.2,PATH);
   const px=gx-58, pz=gz+34, pw=16, pd=11;
   api.water(px-pw/2,pz-pd/2,px+pw/2,pz+pd/2,{depth:2,bed:'stone'});

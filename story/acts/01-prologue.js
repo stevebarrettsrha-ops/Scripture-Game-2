@@ -130,8 +130,10 @@ STORY.act({
   { id:'upper-pool', title:'The upper pool', date:'c. 735 BCE', place:'yahrushalayim', time:'day',
     player:{ at:[-10,26], face:Math.PI },
     actors:[
-      {id:'yah', name:'Yahshayahu', at:[-16,30], face:Math.PI, robe:0x4a3c33, cloth:0xb9ab8e, beard:0x6d6a66, staff:true},
-      {id:'son', name:'She’ar-Yashuḇ', at:[-17.5,31], face:Math.PI, robe:0x8e6f4c, cloth:0xd8ceb4, small:true},
+      /* (by the gate, measured from it: written in the small city's numbers, the boy was set in the true
+         city on the top of its gate-tower, fourteen metres up, with no way down) */
+      {id:'yah', name:'Yahshayahu', at:['gateIn>gateOut',0,2], face:'gateIn', robe:0x4a3c33, cloth:0xb9ab8e, beard:0x6d6a66, staff:true},
+      {id:'son', name:'She’ar-Yashuḇ', at:['gateIn>gateOut',1,3.5], face:'gateIn', robe:0x8e6f4c, cloth:0xd8ceb4, small:true},
       {id:'ahaz', name:'Aḥaz', dress:'king', at:['ahaz',2.6,0.4], face:0, robe:0x5a2d6b, cloth:0xd4af37, sash:0xd4af37, beard:0x2c241f},
       {id:'guard1', at:[-64.2,69], face:0, robe:0x6b5a44, cloth:0x8a7a60},
       {id:'guard2', at:[-63.4,72.4], face:0, robe:0x6b5a44, cloth:0x8a7a60}
@@ -214,13 +216,15 @@ STORY.act({
 
   /* ---------------- I.4 — SANḤĔRIḆ AT THE GATES ---------------- */
   { id:'siege', title:'Yahrushalayim', date:'c. 701 BCE', place:'yahrushalayim', time:'day',
-    player:{ at:[-18,30], face:0 },
+    player:{ at:['gateIn>gateOut',0,4], face:'gateOut' },
     actors:[
-      ...[0,1,2,3,4].map(k=>({id:'w'+k, at:[-22+k*1.6,32+(k%2)], face:0, robe:[0x7c6a52,0x6b5a44,0x8e6f4c,0x5c5040,0x74604a][k], cloth:[0xcfc4aa,0xb9ab8e,0xd8ceb4,0xa89a7e,0xc1b394][k], beard:k%2?0x2c241f:0x3a2a1e})),
-      {id:'alyaqim', name:'Alyaqim', at:[-16,28], face:0, robe:0x3f4a6a, cloth:0xe8e2d2, beard:0x2c241f, sash:0xb08d3c},
-      {id:'shebnah', name:'Sheḇnah', dress:'scribe', at:[-14,28.6], face:0, robe:0x6a5a44, cloth:0xd8cfb8, beard:0x6d6a66},
-      {id:'yoah', name:'Yo’aḥ', at:[-12,28], face:0, robe:0x5a4a6a, cloth:0xd8ceb4, beard:0x3a2a1e},
-      ...[0,1,2,3,4,5].map(k=>({id:'p'+k, at:[-34+k*4.6,38], y:7.2, face:0, robe:[0x7c6a52,0x5f6a52,0x8e6f4c,0x6b5a44,0x74604a,0x6e5a70][k], cloth:[0xcfc4aa,0xe8e2d2,0xb9ab8e,0x3c3a44,0xd8ceb4,0xe6e0cf][k], kind:k%3===1?'woman':'man', beard:k%3===1?null:0x2c241f})),
+      ...[0,1,2,3,4].map(k=>({id:'w'+k, at:['gateIn>gateOut',2+(k%2),8-k*1.6], face:'gateOut', robe:[0x7c6a52,0x6b5a44,0x8e6f4c,0x5c5040,0x74604a][k], cloth:[0xcfc4aa,0xb9ab8e,0xd8ceb4,0xa89a7e,0xc1b394][k], beard:k%2?0x2c241f:0x3a2a1e})),
+      {id:'alyaqim', name:'Alyaqim', at:['gateIn>gateOut',-2,2], face:'gateOut', robe:0x3f4a6a, cloth:0xe8e2d2, beard:0x2c241f, sash:0xb08d3c},
+      {id:'shebnah', name:'Sheḇnah', dress:'scribe', at:['gateIn>gateOut',-1.4,0], face:'gateOut', robe:0x6a5a44, cloth:0xd8cfb8, beard:0x6d6a66},
+      {id:'yoah', name:'Yo’aḥ', at:['gateIn>gateOut',-2,-2], face:'gateOut', robe:0x5a4a6a, cloth:0xd8ceb4, beard:0x3a2a1e},
+      /* the people on the wall (Yashayahu 36:11), along its walk: on her own wall's top in the true city, which
+         no one height will do for (they were thrown six hundred metres off, or stood in the air over a street) */
+      ...[0,1,2,3,4,5].map(k=>({id:'p'+k, at:['wallTop>wallTopEnd',[0,2,4,8,10,12][k],0], y:'wallTopY', face:'pool', robe:[0x7c6a52,0x5f6a52,0x8e6f4c,0x6b5a44,0x74604a,0x6e5a70][k], cloth:[0xcfc4aa,0xe8e2d2,0xb9ab8e,0x3c3a44,0xd8ceb4,0xe6e0cf][k], kind:k%3===1?'woman':'man', beard:k%3===1?null:0x2c241f})),
       {id:'rab', name:'The Raḇshaqĕh', dress:'rabshaqeh', at:[-48,110], face:Math.PI, robe:0x2a3a6a, sash:0x8a1a2a, beard:0x14100e, cloth:null, hidden:true, key:'rabshaqeh'},
       ...[0,1,2,3,4,5,6,7].map(k=>({id:'a'+k, dress:'assyrian', at:[-44-(k%4)*2,112+Math.floor(k/4)*2], face:Math.PI, robe:0x7a2a22, cloth:null, beard:0x14100e, hidden:true}))
     ],
@@ -242,7 +246,7 @@ STORY.act({
       {t:'read', ref:'2 DIḆRĔ HAYAMIM 32:30'},
       {t:'note', text:'The channel he cut is there still: 533 metres through the rock beneath the City of Dawiḏ, from the spring of Giḥon to the pool of Shiloaḥ. An inscription found in it in 1880 tells how the two crews of hewers, cutting from either end, heard each other’s picks through the rock and met.'},
       {t:'goal', text:'Go back into the city and up onto the wall — the army of Ashshur is coming', goto:'gateIn', r:4},
-      {t:'player', at:[-22,38.2], y:7.2, lock:true, face:0},
+      {t:'player', at:['wallTop>wallTopEnd',6,0], y:'wallTopY', lock:true, face:'pool'},
       {t:'show', id:['rab','a0','a1','a2','a3','a4','a5','a6','a7']},
       {t:'move', who:['rab','a0','a1','a2','a3','a4','a5','a6','a7'], to:[[-57,74.5],[-53.2,76],[-55,76.6],[-57,77],[-59,76.6],[-53,74.4],[-52.2,72.8],[-51.6,75],[-60.6,75.8]], speed:2.2, wait:false},   /* the lip of the hill; the army behind on the slope */
       {t:'cam', from:[-46,5,66], look:[-58,1.2,76], dur:3},
@@ -252,15 +256,15 @@ STORY.act({
       {t:'read', ref:'YASHAYAHU 36:3'},
       {t:'cam', from:[-59.6,2.3,67.6], look:'rab', dur:2.5},     /* over Alyaqim's shoulder */
       {t:'say', who:'rab', ref:'YASHAYAHU 36:4', turn:false},
-      {t:'face', who:'rab', to:[-22,38]},
+      {t:'face', who:'rab', to:'player'},
       {t:'cam', from:[-53.4,2.2,71.2], look:'rab', dur:2.5},       /* he turns to call up to the wall */
       {t:'say', who:'rab', ref:'YASHAYAHU 36:13', turn:false},
       {t:'say', who:'rab', ref:'YASHAYAHU 36:14', turn:false},
       {t:'say', who:'rab', teller:'rab', ref:'YASHAYAHU 36:15', turn:false},   /* his speech runs on from 36:14 */
-      {t:'cam', from:[-30,8.6,34], look:[-24,7.8,38], dur:2.5},
+      {t:'cam', on:'p2', shot:'back', toward:'rab', dur:2.5},                /* over the shoulders of the people on the wall */
       {t:'read', ref:'YASHAYAHU 36:21', voices:['hiz']},
       {t:'robe', who:'alyaqim', color:0x4a4036}, {t:'robe', who:'shebnah', color:0x4a4036}, {t:'robe', who:'yoah', color:0x4a4036},
-      {t:'move', who:['alyaqim','shebnah','yoah'], to:[[-14,30],[-15.6,31],[-12.4,31]], speed:1.6, wait:false},
+      {t:'move', who:['alyaqim','shebnah','yoah'], to:[['gateIn>gateOut',0,0],['gateIn>gateOut',1,1.6],['gateIn>gateOut',1,-1.6]], speed:1.6, wait:false},
       {t:'read', ref:'YASHAYAHU 36:22'},
       {t:'player', lock:false},
       {t:'choice', prompt:'You', options:[
@@ -283,12 +287,12 @@ STORY.act({
     glows:[ {id:'malak', malak:true, at:[-34,13,70], size:12, color:0xfff6dc, intensity:2.2, pulse:true, hidden:true} ],
     beats:[
       {t:'cam', from:[12,4,-4], look:'hiz', dur:0.1},
-      {t:'move', who:'hiz', to:[6,-26], speed:1.2, wait:false},
+      {t:'move', who:'hiz', to:['hekalView>hekal',4,0], speed:1.2, wait:false},     /* (up to the House: four metres on from where it is seen, toward it) */
       {t:'cam', from:[14,5,-14], look:[6,1.6,-26], dur:8, wait:false},
       {t:'read', ref:'YASHAYAHU 37:1'},
       {t:'read', ref:'YASHAYAHU 37:14'},
       {t:'read', ref:'YASHAYAHU 37:15'},
-      {t:'face', who:'hiz', to:[6,-50]},
+      {t:'face', who:'hiz', to:'hekal'},
       {t:'sit', who:'hiz'},
       {t:'time', to:'dusk'},
       {t:'cam', from:[10.6,2.6,-20.4], look:'hiz', dur:2.5},

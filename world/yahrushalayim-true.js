@@ -449,7 +449,10 @@ window.YAHRU_PLAN_TRUE=function(api,period){
     /* the first wall, the west and south walls about Tsiyon to Shiloaḥ, the east wall along the ridge */
     wallLine([[-790,62],[-560,45],[-360,10],[-140,-30]],{gates:[[-520,42,6]]});
     wallLine([[-795,62],[-800,420],[-790,640],[-700,770],[-450,830],[-160,850],[-30,835]],{gates:[[-430,832,6]]});
-    wallLine([[-30,835],[90,760],[140,520],[156,226]],{gates:[[30,820,5]]});
+    /* (the gate by the pool stands IN the wall: set at (30,820) it stood twenty metres out in the field,
+       its two towers and their lintel over nothing, and the wall behind them unbroken — there was no way
+       into the city from the south, and He rode up to her and could not come in) */
+    wallLine([[-30,835],[90,760],[140,520],[156,226]],{gates:[[30,797.5,5]]});
     /* the second wall, about the new quarter, from the Gennath gate to the fortress */
     wallLine([[-520,45],[-470,-80],[-440,-250],[-150,-306]],{gates:[[-462,-120,6]]});
     /* the pool of Shiloaḥ at the foot of the ridge (Yahuchanon 9:7) */
@@ -461,7 +464,7 @@ window.YAHRU_PLAN_TRUE=function(api,period){
     for(let z=230;z<780;z+=3) api.top(26,z,30,z+3,PATH);
     api.top(-10,480,60,520,PATH); api.mark('square',25,500); api.mark('street',28,420);
     /* the gate out to the south, by the pool: the Dung gate's way to the valley */
-    api.mark('gateIn',30,800); api.mark('gateOut',30,846);
+    api.mark('gateIn',30,784); api.mark('gateOut',30,814); api.mark('gateStreet',28,772);   /* (and the street just within it) */
   } else {
     /* the city of Dawiḏ on its ridge, and the western hill Ḥizqiyahu walled in */
     houses+=quarter(-40,240,100,790,22,(x,z)=>!(Math.abs(x-28)<4)&&!(Math.abs(z-500)<4));
@@ -473,10 +476,14 @@ window.YAHRU_PLAN_TRUE=function(api,period){
        thick, about the western hill, down to the pool and up the eastern ridge */
     wallLine([[-150,-40],[-450,-10],[-600,120]],{t:7,gates:[[-300,-25,6]]});
     wallLine([[-600,120],[-620,420],[-560,680],[-330,820],[-30,835]],{gates:[[-330,820,6]]});
-    wallLine([[-30,835],[90,760],[140,520],[150,120]],{gates:[[30,820,5]]});
+    wallLine([[-30,835],[90,760],[140,520],[150,120]],{gates:[[30,797.5,5]]});
     for(let z=230;z<780;z+=3) api.top(26,z,30,z+3,PATH);
     api.top(-10,480,60,520,PATH); api.mark('square',25,500); api.mark('street',28,420);
     api.mark('gateIn',-300,-15); api.mark('gateOut',-300,-50);
+    /* the walk along the broad wall's top, west of the gate (Yashayahu 36:11, "the people who are on the
+       wall"): its inner half, clear of the crenels along its middle, from beyond the gate's tower to short
+       of the next — no height is given, for the wall stands course by course on the hill */
+    api.mark('wallTop',-312.2,-21.2); api.mark('wallTopEnd',-323.6,-20.0);
     /* OUTSIDE THE GATE: the highway of the Launderer's Field and the upper pool (Yashayahu 7:3) */
     const px=-360, pz=-150, pw=26, pd=16;
     api.water(px-pw/2,pz-pd/2,px+pw/2,pz+pd/2,{depth:2,bed:'stone',y:gY(px,pz)-0.6});
