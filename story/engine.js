@@ -1181,7 +1181,7 @@ function moveActors(dt){
             search: for(let r=0.4;r<=2.0;r+=0.4) for(let q=0;q<12;q++){ const t=q/12*Math.PI*2, x=x0+Math.cos(t)*r, z=z0+Math.sin(t)*r, y=ctx.groundY(x,z,u.gy+1.5);
               if(isFinite(y)&&!wallAt(x,z,y)){ g.position.x=x; g.position.z=z; u.gy=y; break search; } } }
           if(u.fixedY===undefined&&isFinite(u.gy)) g.position.y=u.gy-sitDrop(u)+(u.lie?0.16:0);          /* (set down at once, not a frame later) */
-          if(g.visible&&d>=0.45) (ST.stuck=ST.stuck||[]).push({who:id,act:act&&act.id,scene:act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id,beat:beatIx,d:+d.toFixed(1),plan:lastPlan});   /* (one gone from sight is no one's concern, nor one set down the last hand's breadth) */
+          if(g.visible&&d>=0.7) (ST.stuck=ST.stuck||[]).push({who:id,act:act&&act.id,scene:act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id,beat:beatIx,d:+d.toFixed(1),plan:lastPlan});   /* (one gone from sight is no one's concern, nor one set down the last hand's breadth) */
           if(!u.follow) u.target=null; continue; }
         if(u._path){ const W=u._path;
           while(W.i<W.pts.length-1&&Math.hypot(W.pts[W.i][0]-g.position.x,W.pts[W.i][1]-g.position.z)<0.2) W.i++;
@@ -1221,9 +1221,9 @@ function moveActors(dt){
           for(const da of [0.5,-0.5,1.0,-1.0,1.5,-1.5,2.1,-2.1]){ const b=a0+da; if(clear(b)){ a=b; break; } } }
         if(a!==null){ g.position.x+=Math.sin(a)*sp; g.position.z+=Math.cos(a)*sp;
           g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=true; u._mv='walking to his mark'; }
-        /* (a hand's breadth from his mark with a wall or the crowd at his elbow, he is there: he was held
-           there four seconds and then carried the last fifth of a metre) */
-        else if(d<0.45&&!u.follow){ u.target=null; u._prog=null; u._path=null; } }
+        /* (a stride from his mark with a wall or the crowd at his elbow, he is there: he was held there four
+           seconds and then carried the last fifth of a metre, or the last half of one among the mourners) */
+        else if(d<0.7&&!u.follow){ u.target=null; u._prog=null; u._path=null; } }
       else if(!u.follow) u.target=null; }
     if(u.sitOnArrive&&!u.target){ u.sit=true; u.sitOnArrive=false; }
     if(u.fixedY!==undefined) g.position.y=u.fixedY-sitDrop(u)+(u.lie?0.16:0);
