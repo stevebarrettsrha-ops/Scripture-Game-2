@@ -893,7 +893,7 @@ function movePlayer(dt){
     ud.walk=(ud.walk||0)+dt*sp*2.2;
   } else ud.walk=0;
   if(ctx.playerY!==undefined) player.position.y=ctx.playerY;
-  else { const gy=ctx.groundY(player.position.x,player.position.z,player.position.y+CLIMB_REF);
+  else { const gy=stepGround(player.position.x,player.position.z,player.position.y);   /* (a lintel at his head is not a floor to be stood on) */
     /* a step up is taken at once; a drop is fallen, not floated down */
     player.position.y=gy>player.position.y?gy:Math.max(gy,player.position.y-dt*9); }
   animFigure(player,dt,L>0.05); animFace(player,'player',dt);
@@ -1129,7 +1129,7 @@ function moveActors(dt){
         if(wd>0.05){ const sp=Math.min(wd,(u.speed||2.6)*dt), a=Math.atan2(wx,wz);
           /* (round a corner, not through it: a step that would stand him in a block slides along it) */
           let mx=Math.sin(a)*sp, mz=Math.cos(a)*sp;
-          if(u.fixedY===undefined&&wallAt(g.position.x+mx*1.6,g.position.z+mz*1.6,u.gy)){
+          if(u.fixedY===undefined&&(wallAt(g.position.x+mx*1.6,g.position.z+mz*1.6,u.gy)||wallAt(g.position.x+mx,g.position.z+mz,u.gy))){
             if(!wallAt(g.position.x+mx*1.6,g.position.z,u.gy)) mz=0; else if(!wallAt(g.position.x,g.position.z+mz*1.6,u.gy)) mx=0; else mx=mz=0; }
           g.position.x+=mx; g.position.z+=mz; g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=mx!==0||mz!==0; if(moving) u._mv='on a planned way'; } }
       else
@@ -1141,7 +1141,7 @@ function moveActors(dt){
            the way to it goes through the block — so both are asked, and if no way aside will do he
            waits, and in a moment works out the way round) */
         const px=g.position.x, pz=g.position.z, st2=Math.min(sp+0.2,0.45);
-        const clear=b=>!wallAt(px+Math.sin(b)*0.45,pz+Math.cos(b)*0.45,u.gy)&&!wallAt(px+Math.sin(b)*st2,pz+Math.cos(b)*st2,u.gy);
+        const clear=b=>!wallAt(px+Math.sin(b)*0.45,pz+Math.cos(b)*0.45,u.gy)&&!wallAt(px+Math.sin(b)*st2,pz+Math.cos(b)*st2,u.gy)&&!wallAt(px+Math.sin(b)*sp,pz+Math.cos(b)*sp,u.gy);
         if(u.fixedY===undefined&&!clear(a0)){ a=null;
           for(const da of [0.5,-0.5,1.0,-1.0,1.5,-1.5,2.1,-2.1]){ const b=a0+da; if(clear(b)){ a=b; break; } } }
         if(a!==null){ g.position.x+=Math.sin(a)*sp; g.position.z+=Math.cos(a)*sp;
