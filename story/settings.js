@@ -503,7 +503,11 @@ function room(ctx,st0,x0,z0,x1,z1,o){ let st;
 }
 
 function galil(ctx,st,o){
-  W.ground(ctx,{color:o.village?C.grassDry:C.grass,flat:30,
+  /* (on the true earth the lake is Kinnereth's own: where a place of the set lies in it, nothing of the
+     land is laid there — and out on the lake, `afloat`, none at all) */
+  const k=window.__KIT, inLake=(x,z)=>{ if(!ctx.trueEarth||!ctx.toWorldXZ) return false; const w=ctx.toWorldXZ(x,z), c=k.cell(Math.floor(w[0]/k.B),Math.floor(w[1]/k.B)); return !!(c&&c.lake!==undefined&&c.lake>c.h); };
+  const afloat=inLake(0,0);
+  if(!afloat) W.ground(ctx,{color:o.village?C.grassDry:C.grass,flat:30,
     peak:o.village?{x:-80,z:6,h:11,r:72}:{x:-46,z:0,h:8,r:56}});
   /* THE LAKE: its floor levelled and its water laid, from the beach out past where the boats
      go; a beach of pebbles along its edge */
@@ -515,8 +519,8 @@ function galil(ctx,st,o){
   ctx.api.water(SHORE.x+3,-78,SHORE.x+6,78,{depth:2,drop:0,bed:'sand'});
   ctx.api.water(SHORE.x,-78,SHORE.x+3,78,{depth:1,bed:'sand'});
   W.waterLife(ctx,{at:[SHORE.x+12,0], r:36, y:0, fish:18, frogs:3, flies:4, egrets:3, turtles:1, butterflies:2});   /* the fish of Galil, the egrets of its shore */
-  st.box(SHORE.x-6,0,-80,SHORE.x,0.1,80,'sand');
-  for(let k=0;k<26;k++){ const z=-90+k*7, x=SHORE.x-3+W.hash(k,5)*2.2; W.rock(st,x,z,0.35+W.hash(k,6)*0.4); }
+  if(!afloat) st.box(SHORE.x-6,0,-80,SHORE.x,0.1,80,'sand');
+  for(let k=0;k<26;k++){ const z=-90+k*7, x=SHORE.x-3+W.hash(k,5)*2.2; if(!inLake(x,z)) W.rock(st,x,z,0.35+W.hash(k,6)*0.4); }
   if(o.village){
     const BAS='basalt', BAS2='basalt';                                   /* the black basalt of Kephar Naḥum */
     /* the town lies along the shore; the slope of the hills west of it is left open, for the crowds */
@@ -556,7 +560,7 @@ function galil(ctx,st,o){
     ctx.api.clearTrees(-42,-6,-20,18);                                                /* the slope He taught and named the Twelve on, open */
   } else {
     for(let k=0;k<70;k++){ const x=-60+W.hash(k,7)*72, z=-50+W.hash(k,8)*100;
-      if(Math.hypot(x+20,z)<26) continue; st.detail(x-0.4,ctx.groundY(x,z),z-0.4,x+0.4,ctx.groundY(x,z)+0.35,z+0.4,0x6e8a46); }
+      if(Math.hypot(x+20,z)<26||inLake(x,z)) continue; st.detail(x-0.4,ctx.groundY(x,z),z-0.4,x+0.4,ctx.groundY(x,z)+0.35,z+0.4,0x6e8a46); }
     mk(ctx,'beach',SHORE.x-3,0); mk(ctx,'slope',-20,0); mk(ctx,'seat',-30,0);
   }
   ctx.wind=o.wind||[0.9,0.5];

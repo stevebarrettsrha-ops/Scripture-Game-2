@@ -21808,7 +21808,7 @@ function setBuilder(ax,az,baseY,opt){
       const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1)); const P={i0,i1,k0,k1,r:!!o.round,ty:tY}; api.pads.push(P); api.flat=true;
       clearLotOfTrees(Math.min(X(x0),X(x1)),Math.min(Z(z0),Z(z1)),Math.max(X(x0),X(x1)),Math.max(Z(z0),Z(z1)),baseY);
       for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ if(P.r&&!api.inPad(i,k)) continue;
-        const c=cell(i,k); if(!c||c.kind==='wall') continue; const h=c.h;
+        const c=cell(i,k); if(!c||c.kind==='wall'||(c.lake!==undefined&&c.lake>c.h)) continue; const h=c.h;   /* (a lake of the earth is not filled in) */
         for(let j=tY;j<Math.max(h,tY)+2;j++) stampBlock(i,j,k,0);
         for(let j=Math.min(h,tY)-1;j<tY-1;j++) if(j>=h-1) stampBlock(i,j,k,fill);
         stampBlock(i,tY-1,k,top); }
@@ -21829,7 +21829,7 @@ function setBuilder(ax,az,baseY,opt){
           if(P.r){ const q=Math.hypot((i-cx)/rx,(k-cz)/rz); if(q<=1) continue; d=(q-1)*Math.min(rx,rz); }
           else { const dx=Math.max(i0-i,0,i-i1), dz=Math.max(k0-k,0,k-k1); d=Math.max(dx,dz); if(d<=0) continue; }
           if(d>=bl) continue;
-          const c=cell(i,k); if(!c||c.kind==='wall') continue; const h=c.h;
+          const c=cell(i,k); if(!c||c.kind==='wall'||(c.lake!==undefined&&c.lake>c.h)) continue; const h=c.h;
           if(api.mtops&&api.mtops.has(i+','+k)) continue;
           const t=d/bl, e=t*t*(3-2*t), want=Math.round(tY+(h-tY)*e);
           if(want===h) continue;
@@ -21844,6 +21844,8 @@ function setBuilder(ax,az,baseY,opt){
       underWaterAdd(grp,i0*B,k0*B,(i1+1)*B,(k1+1)*B,(tY-dr)*B);          /* its bed takes the light under the water */
       for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ if(o.test&&!o.test(...api.local((i+.5)*B,(k+.5)*B))) continue;
         const c=cell(i,k); const h=Math.max(c?c.h:tY,tY);
+        /* over a lake of the earth (Kinnereth) the set's water is the lake's own, from its bed to its face */
+        if(c&&c.lake!==undefined&&c.lake>c.h){ for(let j=c.h;j<tY-dr;j++) stampBlock(i,j,k,w); continue; }
         for(let j=tY-dr;j<h+2;j++) stampBlock(i,j,k,0);
         for(let j=tY-dr-d;j<tY-dr;j++) stampBlock(i,j,k,w);
         stampBlock(i,tY-dr-d-1,k,bed);
@@ -21857,6 +21859,7 @@ function setBuilder(ax,az,baseY,opt){
       for(let i=i0-1;i<=i1+1;i++) for(let k=k0-1;k<=k1+1;k++){
         if(i>=i0&&i<=i1&&k>=k0&&k<=k1) continue;
         const c=cell(i,k); const g=c?c.h:tY; if(g>=wTop) continue;
+        if(c&&c.lake!==undefined&&c.lake>=wTop) continue;                          /* (the earth's own lake goes on beyond it: no wall) */
         for(let j=Math.min(g,tY-dr-d-1)-1;j<wTop;j++) stampBlock(i,j,k,rim); } },
     /* a house of the land — the voyage's own, with its door, floor and furniture */
     house(x,z,w,d,o){ o=o||{}; const odd=v=>{ v=Math.max(5,Math.round(v*S/B)); return v%2?v:v+1; };
@@ -21894,7 +21897,7 @@ function setBuilder(ax,az,baseY,opt){
       const [i0,i1]=cells(X(x-r),X(x+r)), [k0,k1]=cells(Z(z-r),Z(z+r));
       for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ const [lx,lz]=api.local((i+.5)*B,(k+.5)*B);
         const q=Math.max(0,1-Math.hypot(lx-x,lz-z)/r); if(q<=0) continue;
-        const c=cell(i,k); if(!c||c.kind==='wall'||api.inPad(i,k)) continue;   /* the set's level ground stays level */
+        const c=cell(i,k); if(!c||c.kind==='wall'||api.inPad(i,k)||(c.lake!==undefined&&c.lake>c.h)) continue;   /* the set's level ground stays level; a lake is not heaped up */
         const g0=c.h, want=tY+Math.round(h*q*q*(3-2*q)*S/B);
         if(want<=g0) continue;
         api.mtops.set(i+','+k,want);

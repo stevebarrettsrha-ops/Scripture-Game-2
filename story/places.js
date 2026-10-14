@@ -23,10 +23,10 @@ const PLACES={
   yahrushalayim:{city:true},
   natsareth:  {lat:32.702, lon:35.297, flat:30, why:'Natsareth, in the hills of the lower Galil'},
   qanah:      {lat:32.746, lon:35.342, flat:34, why:'Qanah of Galil (Kafr Kanna), over the valley'},
-  galil:      {lat:32.881, lon:35.575, flat:30, why:'Kephar Naḥum, on the north shore of the lake'},
-  galilEast:  {lat:32.836, lon:35.650, flat:30, why:'the east shore, below the grassy slopes (Bĕyth Tsaiḏa)'},
-  galilSea:   {lat:32.830, lon:35.585, flat:30, why:'out on the lake, between the shores'},
-  gadarenes:  {lat:32.826, lon:35.648, flat:30, why:'the country of the Gaḏarenes, the steep east shore of the lake (Mark 5:1)'},
+  galil:      {lat:32.88037, lon:35.57552, flat:30, shore:true, why:'Kephar Naḥum, on the north shore of the lake'},
+  galilEast:  {lat:32.83682, lon:35.64603, flat:30, shore:true, turn:true, why:'the east shore, below the grassy slopes (Bĕyth Tsaiḏa)'},
+  galilSea:   {lat:32.830, lon:35.585, flat:30, shore:true, why:'out on the lake, between the shores'},
+  gadarenes:  {lat:32.82414, lon:35.64767, flat:30, shore:true, turn:true, why:'the country of the Gaḏarenes, the steep east shore of the lake (Mark 5:1)'},
   road:       {lat:32.20,  lon:35.28,  flat:30, why:'the hill road through Shomeron'},
   beythlehem: {lat:31.705, lon:35.200, flat:36, clear:820, why:'Bĕyth Leḥem, south of the city'},
   fields:     {lat:31.700, lon:35.215, flat:34, clear:900, why:'the pasture below Bĕyth Leḥem'},
@@ -49,7 +49,7 @@ const PLACES={
   golgotha:   {city:true, trueAt:[-484,-13], why:'outside the second wall, by the Gennath gate: the knoll and the garden'},
   /* The Rising (Act VII) */
   emmaus:     {lat:31.840, lon:35.130, flat:34, clear:820, why:'Amma’us, twelve kilometres from Yahrushalayim (Luke 24:13), in the hills to the west'},
-  tiberias:   {lat:32.873, lon:35.549, flat:30, why:'the shore of the Sea of Kinnereth below the hills, west of Kephar Naḥum (Yahuchanon 21:1)'},
+  tiberias:   {lat:32.87291, lon:35.54847, flat:30, shore:true, why:'the shore of the Sea of Kinnereth below the hills, west of Kephar Naḥum (Yahuchanon 21:1)'},
   /* To the End of the Earth (Act VIII) */
   gazaroad:   {lat:31.58,  lon:34.92,  flat:46, why:'the way down from Yahrushalayim to Azzah, "this is desert" (Acts 8:26)'},
   damascus:   {lat:33.51,  lon:36.29,  flat:60, why:'Damascus, the road in from the south-west and the street called Straight (Acts 9:11)'},
@@ -94,7 +94,21 @@ function rough(x,z,flat){
     lo=Math.min(lo,c.h); hi=Math.max(hi,c.h); }
   return {r:hi-lo, h:hi};
 }
+/* A SET ON THE SHORE OF KINNERETH (`shore`) stands at its very place — the place was chosen so its
+   water lies over the lake's and its town over the land (and `turn`ed where the lake is on its other
+   side) — and at the height of the lake's own face, so its beach and boats are at the water and the
+   water it lays is the lake's. (The finder below would not do: the whole rift lies under the level of
+   the sea, which it takes for water, and a set out on the lake was laid on its bed, forty metres
+   under the water.) */
+function findShore(def){
+  const k=K(), B=k.B, p=k.llToWorld(def.lat,def.lon), ix=Math.floor(p[0]/B), iz=Math.floor(p[1]/B);
+  let lake=null;
+  for(let r=0;r<=80&&lake===null;r+=2) for(let a=0;a<Math.max(1,r*4)&&lake===null;a++){ const t=a/Math.max(1,r*4)*Math.PI*2;
+    const c=k.cell(ix+Math.round(Math.cos(t)*r),iz+Math.round(Math.sin(t)*r)); if(c&&c.lake!==undefined&&c.lake>c.h) lake=c.lake; }
+  return {x:(ix+0.5)*B, z:(iz+0.5)*B, y:lake!==null?lake*B:k.topY(ix,iz)};
+}
 function find(def){
+  if(def.shore&&K().trueEarth&&K().trueEarth()) return findShore(def);
   const k=K(), p=k.llToWorld(def.lat,def.lon); let P={x:p[0],z:p[1]};
   /* out from under the city along its true bearing, when it would stand in her */
   const yp=k.yahruPos();
@@ -134,7 +148,7 @@ window.STORYPLACES={
       if(st) cache[place]={x:st.x,z:st.z,y:k.topY(st.ix,st.iz)}; } }
     if(!cache[place]) cache[place]=find(def);
     /* (`turn`: the set laid half round, its east to the west — see story/engine.js, SX) */
-    return Object.assign({period,turn:!!def.turn},cache[place]);
+    return Object.assign({period,turn:!!(def.turn&&K().trueEarth&&K().trueEarth())},cache[place]);
   }
 };
 })();
