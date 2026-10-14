@@ -21837,8 +21837,11 @@ function setBuilder(ax,az,baseY,opt){
           if(api.mtops&&api.mtops.has(i+','+k)) continue;
           const t=d/bl, e=t*t*(3-2*t), want=Math.round(tY+(h-tY)*e);
           if(want===h) continue;
+          (api.blendH||(api.blendH=new Map())).set(i+','+k,want);                    /* (the height it was eased to, for the floor under a man there) */
           if(want<h){ for(let j=want;j<h+2;j++) stampBlock(i,j,k,0); stampBlock(i,want-1,k,top); }
           else { for(let j=h-1;j<want-1;j++) stampBlock(i,j,k,fill); stampBlock(i,want-1,k,top); } } } },
+    /* the course a cell at the edge of a level ground was eased to (in blocks), or undefined */
+    blendL(x,z){ return api.blendH?api.blendH.get(Math.floor(X(x)/B)+','+Math.floor(Z(z)/B)):undefined; },
     /* standing water: a channel, a pool, a lake — `depth` courses of water, its face level
        with the ground's (or `drop` courses below it) */
     water(x0,z0,x1,z1,o){ o=o||{}; const d=o.depth||2, dr=o.drop||0, w=blockId('water'), bed=blockId(o.bed||'sand');

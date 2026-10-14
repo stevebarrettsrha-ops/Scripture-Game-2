@@ -82,7 +82,10 @@ function groundAt0(x,z,ref){
   const k=K(); let r;
   if(ref!==undefined) r=anchor.y+ref*S;
   else if(ctx&&ctx.api){ const pd=ctx.api.inPadL(x,z); if(pd) r=(pd.ty!==undefined?pd.ty*k.B:anchor.y)+2.2*S;   /* (its own level ground: a set may lie on more than one) */
-    else { const m=ctx.api.moundL(x,z); if(m!==null) r=anchor.y+(m+0.5)*S; } }
+    /* (or the slope its edge was eased into: cut down a hillside, the land's own top is gone, and a man
+       set there was found standing in the air forty metres over the cut) */
+    else { const bh=ctx.api.blendL?ctx.api.blendL(x,z):undefined; if(bh!==undefined) r=bh*k.B+2.2*S;
+      else { const m=ctx.api.moundL(x,z); if(m!==null) r=anchor.y+(m+0.5)*S; } } }
   /* with nothing to say how high (the city's courts, terraces, houses and the Hĕḵal), the
      floor is found from below: up from under the natural ground, through the stone, to the
      first floor with a man's headroom over it — the platform's top in the courts, the floor
@@ -90,12 +93,6 @@ function groundAt0(x,z,ref){
      land, and would stand a man inside a platform built higher than that) */
   if(r===undefined){ const B=k.B, wx=anchor.x+x*SX, wz=anchor.z+z*SX, c=k.cell(Math.floor(wx/B),Math.floor(wz/B));
     if(c){ let b=c.h-6, n=0;
-      /* (where a set has cut the land down — a level ground let into a hillside, its edge eased back up
-         the slope — the land's own top is gone: the floor is found going down to the cut, or a man set
-         there was stood in the air forty metres over it) */
-      if(!k.solidAt(wx,(c.h-0.5)*B,wz)&&!k.solidAt(wx,(c.h-1.5)*B,wz)){ b=c.h-1;
-        while(n<200&&!k.solidAt(wx,(b-0.5)*B,wz)){ b--; n++; }
-        return (b*B-anchor.y)/S; }
       while(n<40&&!k.solidAt(wx,(b+0.5)*B,wz)){ b++; n++; }
       for(;n<120;){ while(n<120&&k.solidAt(wx,(b+0.5)*B,wz)){ b++; n++; }
         if(!k.solidAt(wx,(b+1.5)*B,wz)) break;
