@@ -640,14 +640,14 @@ STORY.act({
     player:{ at:['inner',1.4,3], face:Math.PI/2, look:ADULT },
     actors:[
       {id:'cornelius', name:'Cornelius', key:'Cornelius', folk:'roman', dress:'centurion', at:['door',-1.6,0], face:Math.PI/2},
-      ...folk('rel',10,[-8,-6,2,6],Math.PI/2,{folk:'roman', dress:'man'}),
-      T('kepha',['street',8,0],{face:-Math.PI/2}),
-      ...folk('br',4,[22,-2,26,2],-Math.PI/2)
+      ...folk('rel',10,[-8,-6,2,6],Math.PI/2,{folk:'roman', dress:'man'}).map(a=>a.id==='rel0'?Object.assign(a,{at:[-3,0.6]}):a),   /* (not in the pool of the court) */
+      T('kepha',['street',0,-4],{face:-Math.PI/2}),                                     /* (come by the road from Yapho, 10:23 — not out of the sea) */
+      ...folk('br',4,[13,-12,18,-8],-Math.PI/2)
     ],
     things:[ {id:'jarC', kind:'jar', at:['inner',0,-2.4]} ],
     /* "the Set-apart Spirit fell upon all those hearing the word" (10:44): a flame over each head of the
        household where they stand — the women a little lower — and over Cornelius */
-    glows:[[0.22,0.85,0.64],[1.58,2.92,-0.91],[-0.91,2.1,2.58],[0.3,2.1,-5.87],[1.68,2.0,-4.66],[-2.51,2.1,-0.16],
+    glows:[[-3,2.1,0.6],[1.58,2.92,-0.91],[-0.91,2.1,2.58],[0.3,2.1,-5.87],[1.68,2.0,-4.66],[-2.51,2.1,-0.16],
            [-6.79,2.1,3.79],[-1.63,2.92,-0.29],[-6.85,2.1,1.98],[1.4,3.02,-1.65],[-2.4,2.2,1.4]]
       .map((p,k)=>({id:'r'+k, at:p, size:0.5, color:0xff9a3a, intensity:k%2?0.5:0.8, pulse:true, hidden:true})),
     beats:[
@@ -661,7 +661,7 @@ STORY.act({
       {t:'face', who:'kepha', to:'cornelius'},
       {t:'cam', from:['door',3.6,3], fdy:2, look:'cornelius', dur:1.8},
       {t:'say', who:'kepha', ref:'ACTS 10:26', turn:false},
-      {t:'move', who:['kepha','cornelius'], to:[['court',3,0],['court',1.6,1.4]], speed:1},
+      {t:'move', who:['kepha','cornelius'], to:[['court',1.4,-2.4],['court',1.6,1.4]], speed:1},   /* (by the pool, not in it) */
       {t:'read', ref:'ACTS 10:27'},
       {t:'face', who:'kepha', to:'rel3'},
       {t:'cam', from:['court',5.4,-3], fdy:2.2, look:'kepha', dur:2},
@@ -1099,10 +1099,10 @@ STORY.act({
       {t:'say', who:'jailer', ref:'ACTS 16:30', turn:false},
       {t:'say', who:'emissaries', ref:'ACTS 16:31', turn:false},
       {t:'mood', who:'jailer'},
-      {t:'move', who:['jh0','jh1','jh2'], to:[['jailerDoor',-1.2,-1.6],['jailerDoor',-1.8,-0.4],['jailerDoor',-1.2,0.8]], speed:1.2, wait:false},
+      {t:'move', who:['jh0','jh1','jh2'], to:[['jailerDoor',0,-1.4],['jailerDoor',0.2,0],['jailerDoor',0,1.4]], speed:1.2, wait:false},   /* (in the way between the prison and his door) */
       {t:'read', ref:'ACTS 16:32'},
       /* the wounds washed at the trough, and he immersed, he and all his */
-      {t:'move', who:['jailer','shaul','sila','jh0','jh1','jh2'], to:[['trough',-0.4,0.4],['trough',-1.8,0.6],['trough',0.9,0.6],['trough',-2.6,1.8],['trough',-0.8,2],['trough',1.4,2]], speed:1},
+      {t:'move', who:['jailer','shaul','sila','jh0','jh1','jh2'], to:[['trough',-0.4,0.4],['trough',-1.8,0.6],['trough',0.9,0.6],['trough',-2.6,1.8],['trough',-2.2,-0.4],['trough',2.2,0.2]], speed:1},
       {t:'cam', from:['trough',3.4,3.4], fdy:1.8, look:'jailer', dur:2},
       {t:'read', ref:'ACTS 16:33'},
       {t:'move', who:['jailer','shaul','sila','jh0','jh1','jh2'], to:[[24.3,9.4],[28.1,9.4],[28.1,10.8],[24.3,10.8],[26.2,8.2],[26.2,12]], speed:1},
@@ -1222,11 +1222,11 @@ STORY.act({
       {t:'wait', s:2.5},
       /* at the lodging: "the taught ones did not allow him" */
       {t:'cam', from:['lodgingDoor',5,4], fdy:2.4, look:'shaul', dur:0.1},
-      {t:'move', who:'shaul', to:['lodgingDoor',-1.6,0], speed:1.3, wait:false},
+      {t:'move', who:'shaul', to:['lodgingDoor',-2.6,0], speed:1.3, wait:false},          /* (within the door, not in its jamb) */
       {t:'cam', release:true},
       {t:'goal', text:'Stand in the doorway — do not let Sha’ul go into the theatre', goto:'lodgingDoor', r:1.4},
       {t:'face', who:'shaul', to:'player'},
-      {t:'move', who:['tg0','tg1'], to:[['lodgingDoor',-2.2,-1],['lodgingDoor',-2.2,1]], speed:1.4},
+      {t:'move', who:['tg0','tg1'], to:[['lodgingDoor',-3.4,-1.2],['lodgingDoor',-3.4,1.2]], speed:1.4},
       {t:'cam', from:['lodgingDoor',3,-2.4], fdy:1.9, look:'shaul', dur:2},
       {t:'read', ref:'ACTS 19:30'},
       {t:'show', id:'messenger'},

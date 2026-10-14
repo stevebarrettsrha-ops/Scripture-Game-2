@@ -319,7 +319,7 @@ STORY.act({
       {t:'say', who:'yahusha', ref:'LUKE 22:11', turn:false},
       {t:'say', who:'yahusha', ref:'LUKE 22:12', turn:false},
       {t:'cam', release:true},
-      {t:'move', who:['kepha','yahuchanon'], to:['gateIn',['gateIn>gateOut',1.2,0.5]], speed:1.4},   /* (the one behind the other in the gateway, whichever way the city's gate is turned) */
+      {t:'move', who:['kepha','yahuchanon'], to:['gateIn',['gateIn>gateOut',-1.0,0]], speed:1.4},   /* (the one behind the other, inside the gate, whichever way the city's gate is turned) */
       {t:'move', who:'jarman', to:[-6,30], speed:1, wait:false},
       {t:'move', who:['kepha','yahuchanon'], to:[[-6.4,32],[-7.6,32.6]], speed:1.3},
       {t:'goal', text:'Go in with them, and follow the man with the jar', goto:[-8,34], r:4},
