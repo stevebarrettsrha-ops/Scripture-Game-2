@@ -918,7 +918,11 @@ S.golgotha=function(ctx,st){
     st.detail(x-0.3,y,z-0.3,x+0.3,y+0.25,z+0.3,0x8a8070); }                               /* wedged with stones at its foot */
   { const y=G(-66,-34); st.detail(-65.9,y+3.55,-34.4,-65.84,y+3.95,-33.6,0xece6d6); }        /* the title over His head (Yahuchanon 19:19) */
   /* the road from the gate, round the wall and north past the spur, outside */
-  for(let x=-14;x>=-56;x-=1.6) ctx.api.top(x-1,43,x+1,45,C.path);                         /* out of the gate, west below the wall */
+  /* (on the true earth the gate is the Gennath, in the first wall where the second begins, west of where the
+     small city's stood: the road and its mark go from there, or the road began inside the second wall's
+     quarter and Miryam, running from the tomb to the city, was sent behind a wall she could not pass) */
+  const gxR=ctx.trueEarth?-36:-14;
+  for(let x=gxR;x>=-56;x-=1.6) ctx.api.top(x-1,43,x+1,45,C.path);                         /* out of the gate, west below the wall */
   for(let z=44;z>=-56;z-=1.6) ctx.api.top(-57,z-1,-55,z+1,C.path);                        /* and north along it, below the spur */
   /* the garden: the face of the rock and the tomb cut into it */
   const ly=landY(ctx,-70,-11);
@@ -930,7 +934,7 @@ S.golgotha=function(ctx,st){
   ctx.markers.stakeY=[G(-66,-34)+0.9,0];                                                /* the height of His feet on the stake */
   mk(ctx,'skull',-66,-34); mk(ctx,'stakeL',-66,-37.4); mk(ctx,'stakeR',-66,-30.6); mk(ctx,'onStake',-65.7,-34);
   mk(ctx,'foot',-61.6,-34); mk(ctx,'soldiers',-61.4,-37.6); mk(ctx,'scoffers',-56,-30); mk(ctx,'mother',-62.2,-31.4);
-  mk(ctx,'afar',-52,-44); mk(ctx,'gateRoad',-18,44); mk(ctx,'roadBend',-58,-4);
+  mk(ctx,'afar',-52,-44); mk(ctx,'gateRoad',ctx.trueEarth?-37:-18,ctx.trueEarth?46:44); mk(ctx,'roadBend',-58,-4);
   mk(ctx,'tomb',-70.6,-11); mk(ctx,'tombIn',-72.4,-11); mk(ctx,'tombOut',-67,-11); mk(ctx,'tombFront',-64,-11);
   mk(ctx,'stone',-68.8,-14); mk(ctx,'stoneShut',-68.8,-11); mk(ctx,'garden',-60,-8); mk(ctx,'opposite',-60,-13);
   const hk=ctx.markers.hekal||[6,-44]; ctx.markers.city=[hk[0],hk[1],16];
