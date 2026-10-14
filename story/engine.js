@@ -124,6 +124,9 @@ function stepGround(x,z,cur){
   if(sunkAt(x,z,f)){ const g=groundAt(x,z,f+3.2); if(isFinite(g)&&g>f&&g<=f+3.0&&!sunkAt(x,z,g)) f=g; }
   return f;
 }
+/* does a body standing at this height touch the blocks, at the knee or the chest? */
+function bodyHit(x,z,y){ const k=K(), wx=anchor.x+x*SX, wz=anchor.z+z*SX;
+  return k.solidAt(wx,anchor.y+(y+0.9)*S,wz)||k.solidAt(wx,anchor.y+(y+1.5)*S,wz); }
 /* is a body standing at this height inside the blocks (at the knee and the chest)? */
 function sunkAt(x,z,y){ const k=K(), wx=anchor.x+x*SX, wz=anchor.z+z*SX;
   return k.solidAt(wx,anchor.y+(y+0.9)*S,wz)&&k.solidAt(wx,anchor.y+(y+1.5)*S,wz); }
@@ -1265,7 +1268,8 @@ const RIDE_H=0.62;                                  /* a rider's seat above the 
 /* (a step aside from his neighbour, but never into a wall: twelve followed Him through the gate, pressed
    together, and two of them were shouldered into the stones of its jamb) */
 function shove(g,mx,mz){ if(!mx&&!mz) return; const u=g.userData, x=g.position.x+mx, z=g.position.z+mz;
-  if(u.gy!==undefined&&wallAt(x,z,u.gy)&&!wallAt(g.position.x,g.position.z,u.gy)) return;
+  /* (nor into a heap he could have stepped up onto: shoved, he is not stepping, and stood in its corner) */
+  if(u.gy!==undefined&&bodyHit(x,z,u.gy)&&!bodyHit(g.position.x,g.position.z,u.gy)) return;
   g.position.x=x; g.position.z=z; }
 function keepApart(dt){
   const L=[]; for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; if(!g.visible||u.lie||u.fixedY!==undefined||u.ride||u.aboard) continue; L.push(g); }

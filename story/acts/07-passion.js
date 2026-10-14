@@ -433,10 +433,10 @@ STORY.act({
       {t:'say', who:'kepha', ref:'MARK 14:31', turn:false},
       {t:'cam', release:true},
       {t:'move', who:['yahusha','kepha','yaaqob','yahuchanon','andri','philip','toma','mattithyahu','bartholomi'],
-        to:['gIn',[63.6,-56.4],[63.2,-59.4],[64.4,-60],[65.6,-55.4],[66.6,-56],[64.6,-54.8],[66.8,-54.4],[63.6,-54.6]], speed:1.1, wait:false},
+        to:['gIn',[63.6,-56.4],[63.2,-59.4],[64.4,-60],[65.6,-55.4],[66.6,-56],[64.6,-54.8],[65.8,-57.2],[63.6,-54.6]], speed:1.1, wait:false},
       {t:'read', ref:'YAHUCHANON 18:1'},
       {t:'witness', text:'Light the lamp at the gate of the garden for those who wait', items:['lamp'], verb:'Light the lamp', hold:0.8, reach:2.2, reveal:{lamp:'lampGlow'}},
-      {t:'move', who:['andri','philip','toma','mattithyahu','bartholomi'], to:[[65.4,-55.6],[66.6,-56.4],[64.6,-54.8],[66.8,-54.4],[63.6,-54.6]], speed:1, wait:false},
+      {t:'move', who:['andri','philip','toma','mattithyahu','bartholomi'], to:[[65.4,-55.6],[66.6,-56.4],[64.6,-54.8],[65.8,-57.2],[63.6,-54.6]], speed:1, wait:false},   /* (Mattithyahu on the open walk: written under the old tree's low limbs on the slope, he could not be got there) */
       {t:'face', who:'yahusha', to:'andri'},
       {t:'cam', on:'yahusha', shot:'back', toward:'andri', dur:1.6},
       {t:'say', who:'yahusha', ref:'MARK 14:32', turn:false},
