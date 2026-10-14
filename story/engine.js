@@ -1111,9 +1111,14 @@ function moveActors(dt){
          still held, he is simply there. Every rescue is written down for the playtest. */
       let way=null;
       if(d>0.15&&!(u.follow&&d<=2.4)){ const P=u._prog||(u._prog={d:d,t:0,tx:tgt[0],tz:tgt[1]});
-        if(P.tx!==tgt[0]||P.tz!==tgt[1]){ P.d=d; P.t=0; P.tx=tgt[0]; P.tz=tgt[1]; u._path=null; P.tries=0; }
+        if(P.tx!==tgt[0]||P.tz!==tgt[1]){ P.d=d; P.t=0; P.tx=tgt[0]; P.tz=tgt[1]; u._path=null; P.tries=0; P.los=undefined; }
+        /* (a wall between him and his mark: the way round is worked out before he sets off, not after he
+           has walked into the wall and wedged himself in its corner, where no way could be found) */
+        if(P.los===undefined){ P.los=true;
+          if(u.fixedY===undefined&&!u.follow&&d>1.2) for(let q=0.4;q<d;q+=0.4){ const x=g.position.x+dx/d*q, z=g.position.z+dz/d*q;
+            if(wallAt(x,z,u.gy)){ P.los=false; P.t=2.01; break; } } }
         else if(d<P.d-0.25){ P.d=d; P.t=0; } else P.t+=dt;
-        if(P.t>2&&!u._path&&(P.tries||0)<2&&!u.follow&&u.fixedY===undefined){ P.tries=(P.tries||0)+1; P.t=0;
+        if(P.t>2&&!u._path&&(P.tries||0)<3&&!u.follow&&u.fixedY===undefined){ P.tries=(P.tries||0)+1; P.t=0;
           const pts=planWay(tgt[0],tgt[1],0.4,{x:g.position.x,y:u.gy!==undefined?u.gy:g.position.y,z:g.position.z});
           if(pts) u._path={pts,i:0}; else P.t=99; }
         if(P.t>(u.follow?6:4)){ u._prog=null; u._path=null;
