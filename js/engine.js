@@ -1299,7 +1299,7 @@ const SH_GLSL=`
     float ndl=max(dot(N,uShDir),0.0);
     vec3 p=vShL+mat3(uShMat)*(N*uShOff*(1.5-ndl));
     float rim=max(abs(p.x-0.5),abs(p.y-0.5))*2.0;
-    float w=(rim>=1.0||p.z>=1.0)?1.0:smoothstep(0.78,1.0,rim);
+    float w=(rim>=1.0||p.z>=1.0||p.z<=0.0)?1.0:smoothstep(0.78,1.0,rim);
     float a=w<1.0?shPcf(uShMap,p,uShTexel,uShBias):1.0;
     if(w<=0.0||uShFar<0.5) return mix(a,1.0,w);
     vec3 q=vShL2+mat3(uShMat2)*(N*uShOff2*(1.5-ndl));
@@ -2084,7 +2084,7 @@ const HOLES=[];
 for(const H of ((window.EARTH&&window.EARTH.holeList)||[])){
   const [hx,hz]=llToWorld(H.lat,H.lon);
   /* (at the true measure a hole is as wide as it truly is: `rm`, its radius at the mouth in metres) */
-  HOLES.push({x:hx,z:hz,R:(TRUE_EARTH&&H.rm)?H.rm*U_PER_M_WORLD:(H.r||80),m:(H.m||120),n:H.n}); }
+  HOLES.push({x:hx,z:hz,R:(TRUE_EARTH&&H.rm)?H.rm*U_PER_M_WORLD:(H.r||80),m:(H.m||120),n:H.n,rim:H.rim}); }
 /* how much FURTHER the bed drops here than the reef about it. A blue hole is
    not an absolute depth — it is a shaft sunk below whatever floor it opens
    in — so it is added to the bed rather than compared against it, and the
@@ -6112,14 +6112,24 @@ const DT_K={value:new THREE.Vector2(1/(2*DT_HALF),0)};          /* its scale, an
 let _dt=null;                                                      /* a sheet being laid: {cx,cz,row,first} */
 function depthTick(px,pz){
   if(!TRUE_EARTH||!window.DEM) return;
-  if(!_dt){ const on=DT_K.value.y>0.5;
+  const on=DT_K.value.y>0.5, reach=DT_HALF-WG_SW;
+  /* (gone clean out of the sheet — a cut of the story, a voyage taken up again, a leap — the new one is laid
+     whole at once, and a sheet being laid for the place left behind is dropped) */
+  const lost=!on||Math.abs(px-DT_C.value.x)>reach||Math.abs(pz-DT_C.value.y)>reach;
+  if(_dt&&lost&&!_dt.first&&(Math.abs(px-_dt.cx)>DT_HALF*0.25||Math.abs(pz-_dt.cz)>DT_HALF*0.25)) _dt=null;
+  if(!_dt){
     if(on&&Math.abs(px-DT_C.value.x)<DT_HALF*0.25&&Math.abs(pz-DT_C.value.y)<DT_HALF*0.25) return;
-    _dt={cx:Math.round(px/DT_TX)*DT_TX, cz:Math.round(pz/DT_TX)*DT_TX, row:0, first:!on}; }
-  /* (the first sheet at once; after that a few rows a frame, and the old one shown till the new is whole) */
-  const rows=_dt.first?DT_N:24;
-  for(let r=0;r<rows&&_dt.row<DT_N;r++,_dt.row++){ const j=_dt.row, z=_dt.cz-DT_HALF+(j+0.5)*DT_TX;
+    _dt={cx:Math.round(px/DT_TX)*DT_TX, cz:Math.round(pz/DT_TX)*DT_TX, row:0, first:lost}; }
+  /* (a jump laid at once; on ordinary travel a few milliseconds' worth of rows a frame — the old sheet still
+     covers the waves for a kilometre and more — so there is no stutter every kilometre) */
+  const t0=performance.now();
+  while(_dt.row<DT_N){ const j=_dt.row, z=_dt.cz-DT_HALF+(j+0.5)*DT_TX;
     for(let i=0;i<DT_N;i++){ const x=_dt.cx-DT_HALF+(i+0.5)*DT_TX, ll=latLonOf(x,z), e=DEM.heightAt(ll[0],ll[1]);
-      DT_NEXT[j*DT_N+i]=e===null?255:Math.max(0,Math.min(255,Math.round(-e))); } }
+      let d=e===null?255:-e;
+      if(e!==null&&HOLES.length&&d>0){ d=holeReefAt(x,z,d); d+=holeCutAt(x,z); }       /* (the reef and the shaft of a blue hole, as its bed is laid) */
+      DT_NEXT[j*DT_N+i]=Math.max(0,Math.min(255,Math.round(d))); }
+    _dt.row++;
+    if(!_dt.first&&performance.now()-t0>3) break; }
   if(_dt.row>=DT_N){
     for(let k=0;k<DT_N*DT_N;k++){ const v=DT_NEXT[k]; DT_DATA[k*4]=v; DT_DATA[k*4+1]=v; DT_DATA[k*4+2]=v; DT_DATA[k*4+3]=255; }
     DT_TEX.needsUpdate=true; DT_C.value.set(_dt.cx,_dt.cz); DT_K.value.y=1; _dt=null; } }
@@ -6130,7 +6140,7 @@ const DT_GLSL=`
     float trueShoal(vec2 P){ vec2 t=(P-uDepO)*uDepK.x+0.5;
       if(t.x<0.0||t.y<0.0||t.x>1.0||t.y>1.0) return 0.0;
       float dM=texture2D(uDepT,t).r*255.0;
-      float sp=pow(clamp((dM-2.17)/197.8,0.0,1.0),0.3846);
+      float sp=pow(clamp(dM/200.0,0.0,1.0),0.3846);        /* (only true dry ground is a whole 1: the surf runs up to the strand) */
       return pow(1.0-sp,1.2); }
 `;
 const waveMat=new THREE.ShaderMaterial({
@@ -7717,8 +7727,10 @@ const SHADOW={ on:!((window.__INJECT||{}).noShadow), size:2048, R:480,
       fx=camera.position.x+_F.x*t; fz=camera.position.z+_F.z*t; }
     { const dx=fx-camera.position.x, dz=fz-camera.position.z, d=Math.hypot(dx,dz);
       if(d<1){ _F.y=0; if(_F.lengthSq()<1e-6) _F.set(0,0,-1); _F.normalize(); _C.copy(camera.position).addScaledVector(_F,S.R*0.4); }
-      else { const a=Math.max(Math.min(d*0.5,S.R*0.45),Math.min(d,S.R*0.4)); _C.set(camera.position.x+dx/d*a,camera.position.y,camera.position.z+dz/d*a); } }
-    const D=1200, R=S.R, tx=aim(cam,_C,R,D,1000,2400,S.size);
+      else { const a=Math.max(Math.min(d*0.5,S.R*0.45),S.R*0.4); _C.set(camera.position.x+dx/d*a,camera.position.y,camera.position.z+dz/d*a); } }
+    /* (stood back far enough toward the sun that nothing on the land toward a LOW sun falls before its near
+       plane: with the sun near the earth, ground a thousand units toward him was cut off, and read as lit) */
+    const R=S.R, tx=aim(cam,_C,R,2600,2400,2400,S.size);
     /* the far map: when it is due, centred well out ahead along the level of the eye's look */
     let far=false, tx2=0;
     if(rt2){ const Rf=F2.R; _F.y=0; if(_F.lengthSq()<1e-6) _F.set(0,0,-1); _F.normalize();
@@ -8018,7 +8030,11 @@ function setLook(full,keep){
     toast(full?'The full look: the shadows of the sun, the world in the water, the glow of the light.':
                'The fast look: no shadows, no reflections in the water, no glow — for a slower machine.'); }; }
 renderer.info.autoReset=false;
-function drawWorld(){ renderer.info.reset(); orgTick(); SKYDOME.tick(); SHADOW.tick(); REFLECT.tick(); POST.render(); }
+function drawWorld(){ renderer.info.reset(); orgTick(); SKYDOME.tick(); SHADOW.tick(); REFLECT.tick();
+  /* (the eye pressed close behind his head sees past it, not into his hood: his body is left out of this
+     one drawing of the frame — he still throws his shadow and is seen in the water) */
+  const hideMe=nearHid&&nearFresh&&walkerG.visible&&running; nearFresh=false; if(hideMe) walkerG.visible=false;
+  try{ POST.render(); } finally{ if(hideMe) walkerG.visible=true; } }
 const _skyHor=new THREE.Color(0xc9e0f2);
 function skyTick(px,pz){
   /* ---- THE TWO GREAT LIGHTS, WHERE THEY TRULY ARE ----
@@ -9314,7 +9330,7 @@ const walkerG=new THREE.Group();
      With the default XYZ order the swim/flight pitch was a world-frame tilt,
      so turning while prone rolled and flipped the body sideways. */
   walkerG.rotation.order='YXZ';
-  walkerG.userData={legL,legR,armL,armR}; }
+  walkerG.userData={legL,legR,armL,armR,head}; }
 
 /* ================= VILLAGERS & BEASTS (mob-fashion) ================= */
 function villagerFaceTex(seed){
@@ -9897,8 +9913,18 @@ function trueSeabedMetres(x,z,m0){
   /* the named deeps, eased in off the shelf, and the blue holes sheer */
   const td=trenchDepthAt(x,z);
   if(td>m) m+=(td-m)*open;
-  if(HOLES.length) m+=holeCutAt(x,z);
+  if(HOLES.length){ m=holeReefAt(x,z,m); m+=holeCutAt(x,z); }
   return Math.max(Math.min(m0,0.5),m); }
+/* ---- AND A BLUE HOLE OPENS IN ITS REEF ----
+   The earth's coarse soundings have no reefs in them: Belize's hole lay at the foot of two kilometres of
+   open ocean, Dahab's of four hundred metres, and the shaft "through a reef in a few fathoms of
+   turquoise" was a pit in the abyss. About each hole the bed is raised to its reef (`rim` metres, six
+   unless the hole says), eased back into the true bed over six mouths' breadth. */
+function holeReefAt(x,z,m){
+  for(const h of HOLES){ const dx=x-h.x, dz=z-h.z, far=7.5*h.R; if(dx>far||dx<-far||dz>far||dz<-far) continue;
+    const d=Math.hypot(dx,dz), w=1-Math.min(1,Math.max(0,(d-1.5*h.R)/(6*h.R)));
+    if(w>0&&m>(h.rim||6)) m+=((h.rim||6)-m)*w*w*(3-2*w); }
+  return m; }
 /* ONE sea, one bed: at the strand the shelf profile comes out at D_STRAND,
    which IS the foot of the land (SUBSEA_Y, where every island's flank is cut
    off), so a swimmer can walk down a coastal flank and keep going — sand at
@@ -10068,6 +10094,7 @@ seaFloor.visible=false; seaFloor.frustumCulled=false; scene.add(seaFloor);
    the block's face now, so all that is left for the vertex tint is the light
    (which fails with depth) and the cold of the water. */
 const SB_WATER=[0.42,0.62,0.70], SB_COOL=0.20;
+const SB_DEEPC=(()=>{ const c=new THREE.Color(0x123353); return [c.r,c.g,c.b]; })();
 let _sbAt=null;
 /* THE BED IS LAID OVER MANY FRAMES AND SWAPPED IN WHOLE — a cell at a time
    into a spare pair of buffers, on a threshold of real travel; the bed on
@@ -10186,10 +10213,12 @@ function updateSeaFloor(px,pz,force){
          floor is lost by degrees into blue — ground fading into deep water —
          and never ends on a line. */
       const eN=SB_N-1, ecl=Math.min(Math.min(i,eN-i),Math.min(j,eN-j));
-      const ef=Math.min(1,ecl/9);
-      r =r *ef + SB_WATER[0]*lit*(1-ef);
-      g2=g2*ef + SB_WATER[1]*lit*(1-ef);
-      b2=b2*ef + SB_WATER[2]*lit*(1-ef);
+      /* (on the true earth into the colour of the deep disc beyond it, not a pale blue: over a clear bank far
+         from land the pale rim was a light square sliding along with the ship) */
+      const ef=Math.min(1,ecl/9), EW=TRUE_EARTH?SB_DEEPC:SB_WATER, el=TRUE_EARTH?1:lit;
+      r =r *ef + EW[0]*el*(1-ef);
+      g2=g2*ef + EW[1]*el*(1-ef);
+      b2=b2*ef + EW[2]*el*(1-ef);
       for(let q=0;q<4;q++){ const t=(o+q)*3;
         _sbC[t]=r; _sbC[t+1]=g2; _sbC[t+2]=b2; }
       /* THE SIDE OF A BLOCK IS DARKER THAN ITS TOP, as it is ashore — that
@@ -20185,6 +20214,8 @@ function setPov(p,quiet){ state.pov=p==='first'?'first':'third';
   if(!quiet) toast(state.pov==='first'?'Through his own eyes — drag to look and to turn; F5 to stand back.':'Over his shoulder again — F5 to look through his eyes.'); }
 let fpHid=false;
 let nearHid=false;                                  /* (the body put away while the eye is pressed close behind his head) */
+const _nearHead=new THREE.Vector3();
+let nearFresh=false;                                /* (set by this frame's own third-person eye: an early way out of it leaves the body drawn) */
 { const bp=$('b-pov'); if(bp){ bp.textContent='👁 View: '+(state.pov==='first'?'first person':'third person');
     bp.onclick=()=>setPov(state.pov==='first'?'third':'first'); } }
 /* the arm and the thing in the hand, drawn over the world at the foot of the view (on a layer of their
@@ -20678,11 +20709,15 @@ function cameraTick(dt){
      the back of his hood (player-reported: "the camera snapping to the back of the head"). As in every
      game of the kind, when the eye is that close the body is put away, and the view is his own, over
      where his shoulder was; drawn back out past arm's length, he is there again. */
-  if(!camInside){ const cp=camera.position, wp=walkerG.position;
-    const dH=Math.hypot(cp.x-wp.x,cp.y-(wp.y+10.4),cp.z-wp.z);
-    if(!nearHid){ if(walkerG.visible&&dH<7.5&&(state.mode==='walk'||state.mode==='fly'||state.mode==='deck'||state.mode==='dive')){ walkerG.visible=false; nearHid=true; } }
-    else if(dH>9.5){ walkerG.visible=true; nearHid=false; } }
-  else nearHid=false;
+  /* (his head where it truly is — prone in the water, on the deck of a moving ship — and the body is put
+     away only for the drawing of the frame, so nothing that shows or hides him for its own reasons is
+     ever overruled: see drawWorld) */
+  { const hd=walkerG.userData&&walkerG.userData.head, cp=camera.position;
+    if(hd&&walkerG.visible&&(state.mode==='walk'||state.mode==='fly'||state.mode==='deck'||state.mode==='dive')){
+      hd.getWorldPosition(_nearHead); const dH=_nearHead.distanceTo(cp);
+      nearHid=nearHid?dH<9.5:dH<7.5; }
+    else nearHid=false;
+    nearFresh=true; }
   camera.lookAt(camTgt);
 }
 

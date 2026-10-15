@@ -489,7 +489,7 @@ function room(ctx,st0,x0,z0,x1,z1,o){ let st;
      stood up through it. Every part is laid from the ground at the room's middle now (on a level set,
      the same as before), and the walls are footed down to the land. */
   const base=(st0.ground?st0.ground(mx,mz):0)+Y;
-  st={box:(a,b,c,d,e,f,g,h)=>st0.box(a,b+base,c,d,e+base,f,g,Object.assign({abs:true},b<=0.3?{foot:true}:{},h||{}))};
+  st={box:(a,b,c,d,e,f,g,h)=>st0.box(a,b+base,c,d,e+base,f,g,Object.assign({abs:true},{foot:b<=0.3&&g!=='air'},h||{}))};
   st.detail=(...a)=>st0.detail(a[0],a[1]+base,a[2],a[3],a[4]+base,a[5],a[6],a[7]);
   const dz0=mz-1.3, dz1=mz+1.3;                                                     /* a doorway two of the world's cells across (written a little wider: laid in whole blocks, a doorway of two metres could come out one block wide, and everyone going in rubbed its jambs) */
   /* the four walls, the door left open in its own */
@@ -791,7 +791,7 @@ const floorAt=ctx=>(x,z)=>ctx.groundY(x,z)||0;
 /* A set raised twice on the same ground — the upper room made ready, then supped in; Golgotha, then
    the tomb beside it — must not stand on what it left there the first time: these sets are laid at
    a fixed height (`abs`), the city's own level or the land's own, never on the ground found under them. */
-const fixed=st0=>({box:(a,b,c,d,e,f,g,h)=>st0.box(a,b,c,d,e,f,g,Object.assign({abs:true},h||{})), detail:(...a)=>st0.detail(...a), ground:()=>0, api:st0.api});
+const fixed=st0=>({box:(a,b,c,d,e,f,g,h)=>st0.box(a,b,c,d,e,f,g,Object.assign({abs:true},b<=0.3&&g!=='air'?{foot:true}:{},h||{})), detail:(...a)=>st0.detail(...a), ground:()=>0, api:st0.api});   /* (what stands at the set's level is footed down to the land under it) */
 const landY=(ctx,x,z)=>{ const k=window.__KIT, A=ctx.anchor, S=ctx.scene.scale.x, w=ctx.toWorldXZ(x,z), c=k.cell(Math.floor(w[0]/k.B),Math.floor(w[1]/k.B)); return c?(c.h*k.B-A.y)/S:0; };
 
 /* THE COURTS OF THE HOUSE (Mark 11:15; 12:41): the tables of the money changers in rows and the
@@ -825,22 +825,25 @@ S.upperroom=function(ctx,st0){
   const gd=Math.min(0,landY(ctx,17,z0-0.6));
   st.detail(16.3,gd,z0-0.06,17.7,gd+2.0,z0,0x3a2a1e);                                   /* the door of the house below, at the street */
   room(ctx,st,x0,z0,x1,z1,{door:'e',wall:C.limestone,y:F,noStair:true});
+  st.box(x1+0.1,0,z0+1,x1+1.5,0.92,z0+2,C.stoneDark); st.box(x1+0.1,0,z0+2,x1+1.5,1.85,z0+3,C.stoneDark);   /* the stair */
   st.box(x1+0.1,0,z0+3,x1+1.5,F,z0+5.2,C.stoneDark);                                    /* its landing at the door */
-  /* ---- THE STAIR COMES DOWN TO THE STREET, WHEREVER THE STREET IS ----
-     Two steps were laid from the set's level; on the slope of Zion the street lies metres below it, and
-     with the house now standing on its plinth the stair must reach the ground or no one goes up. A
-     course a step, a metre a tread, north from the landing until the next step would be the ground. */
-  let zFoot=z0+2.5;
-  for(let k=0;k<12;k++){ const top=F-(k+1)*0.92, zA=z0+3-(k+1)*1.0;
-    const g=Math.min(landY(ctx,x1+0.4,zA+0.5),landY(ctx,x1+1.2,zA+0.5));
+  /* ---- THE COURT STANDS ON ITS TERRACE, AND STEPS COME UP TO ITS GATE ----
+     On the slope of Zion the street falls away under the set metres below its level. The court east of the
+     house (where the stair comes down, and Rhode's gate opens north onto the street) is a terrace at the
+     house's own foot, walled down to the land; and from its gate a flight comes down to the street, a
+     course a step, a metre a tread, until the next step would be the ground (none, where the street is
+     level with the court). */
+  st.box(x1,-0.92,24.2,25.8,0,z1,C.limestone);
+  for(let k=0;k<8;k++){ const top=-(k+1)*0.92, zA=24.2-(k+1)*1.0;
+    const g=Math.min(landY(ctx,21.9,zA+0.5),landY(ctx,23.7,zA+0.5));
     if(top<=g+0.1) break;
-    st.box(x1+0.1,Math.min(g,top)-0.92,zA,x1+1.5,top,zA+1.0,C.stoneDark,{foot:true}); zFoot=zA-0.6; }
+    st.box(21.9,Math.min(g,top)-0.92,zA,23.7,top,zA+1.0,C.stoneDark); }
   st.detail(14.6,F,29.5,19.4,F+0.38,30.5,C.timber);                                     /* the low table */
   st.detail(15.2,F+0.38,29.8,15.8,F+0.46,30.2,0xd8c08a); st.detail(17.6,F+0.38,29.9,17.9,F+0.6,30.1,0x7a2a2a);   /* bread, a cup */
   for(const [lx,lz] of [[12.8,27],[12.8,33],[21.2,27],[21.2,33]]) W.glow(ctx,lx,F+2,lz,1.1,0xffc070,0.8);
   /* the street outside about its day — and "a man carrying a jar of water" (Marqos 14:13) */
   W.folk(ctx,[{do:'carry', from:[8,20], to:[27,22], load:'jar', n:1}, {do:'stroll', area:[6,16,30,24], n:3}, {do:'talk', at:[26,36], n:2}]);
-  mk(ctx,'urHouse',17,24.4); mk(ctx,'stairFoot',22.8,zFoot); mk(ctx,'stairTop',22.8,30.2); mk(ctx,'roomDoor',20.6,30); mk(ctx,'roomIn',20.4,30);
+  mk(ctx,'urHouse',17,24.4); mk(ctx,'stairFoot',22.8,26.2); mk(ctx,'stairTop',22.8,30.2); mk(ctx,'roomDoor',20.6,30); mk(ctx,'roomIn',20.4,30);
   mk(ctx,'table',17,30); mk(ctx,'roomCorner',13.4,33);
 };
 

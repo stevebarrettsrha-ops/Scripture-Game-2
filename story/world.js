@@ -60,8 +60,10 @@ Static.prototype.box=function(x0,y0,z0,x1,y1,z1,color,opt){
      was buried; a fixed set (abs) had no footing at all, and the upper room floated over Zion. A box
      laid from the ground up (y0 at its own ground, or at the set's level for a fixed set) is footed
      down to the land under the whole of itself; a lintel, a roof or a beam (laid higher) is not.
-     `foot:false` opts out, `foot:true` asks for it at any height. */
-  const foot=opt.foot!==undefined?opt.foot:(color!=='air'&&y0<=0.3);
+     `foot:false` opts out, `foot:true` asks for it at any height. (An `abs` box is measured from the set's
+     level, so it is footed only where it stands at its OWN ground: an olive's crown laid on low ground was
+     below the set's level, and every leaf became a pillar to the earth. A fixed set asks for its own feet.) */
+  const foot=opt.foot!==undefined?opt.foot:(color!=='air'&&(opt.abs?y0<=this.ground(cx,cz)+0.3:y0<=0.3));
   this.api.box(x0,y0+g,z0,x1,y1+g,z1,color,foot?{foot:true}:undefined);
 };
 /* the little things, gathered into one mesh a scene, shaded by the way each face looks */

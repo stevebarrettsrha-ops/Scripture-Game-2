@@ -312,7 +312,7 @@ STORY.act({
       {t:'lie', who:['a0','a1','a2','a3','a4','a5','a6','a7']},
       /* (the camp, its tents and the eye are all written from the upper pool, so the true city moves them together:
          written in bare numbers, the eye stayed by the study and the look went seven hundred metres off to the pool) */
-      {t:'cam', from:['pool',22,-20], fdy:7, look:{at:['pool',6,-6], dy:0.8}, dur:3},
+      {t:'cam', from:['pool',32,-32], fdy:10, look:{at:['pool',8,-6], dy:1}, dur:3},   /* (as it was written, high enough that the mal'ak is in the frame all down his way) */
       {t:'show', id:'malak'},
       {t:'drift', id:'malak', toAt:['pool',-4,-4], dy:11, dur:4},
       {t:'read', ref:'YASHAYAHU 37:36'},
