@@ -63,6 +63,9 @@ function writeCamera(){
   if(vc.fov!==camera.fov){ vc.fov=camera.fov; vc.updateProjectionMatrix(); }
   if(camera.aspect!==vc.aspect){ camera.aspect=vc.aspect; camera.updateProjectionMatrix(); }
   vc.updateMatrixWorld();
+  /* (and the sun's map of shadows is laid about what the shot looks at, not a fixed step ahead of the eye:
+     a wide shot of a camp or a crowd far off had them outside it) */
+  const L=lookAtNow(); if(L&&K().shadowFocus) K().shadowFocus(anchor.x+L[0]*SX, anchor.y+L[1]*S, anchor.z+L[2]*SX);
 }
 /* the ground under a point of the scene, in its metres; `ref` the height the asker stands
    at (so a floor under a roof is found, and not the roof) */
@@ -338,6 +341,7 @@ function buildScene(sc){
   placeCrowds(sc);
   spawnLife();
   spawnFolk(sc);
+  if(K().shadowRescan) K().shadowRescan();          /* (the scene's people and things throw their shade from its first frame) */
   /* THE LAKE'S OWN WAVES, where the set has asked for them (S.galilSea): laid over the still water,
      which is put by beneath them */
   if(ctx.lake&&K().ripple){ const L=ctx.lake, r=L.rect;
@@ -1543,10 +1547,46 @@ function shotOf(B){
     const k=g.userData.s||1, fx=p.x+f.x*1.6*k+sd.x*0.3, fz=p.z+f.z*1.6*k+sd.z*0.3;
     return {from:[fx,p.y+(1.25+sit)*k,fz], look:[p.x,p.y+(0.95+sit)*k,p.z]}; }
   const m=B.toward&&!ctx.actors[B.toward]&&ctx.markers[B.toward];        /* toward a person, or a place (the city, far off) */
-  const t=B.toward&&ctx.actors[B.toward]?ctx.actors[B.toward].position:m?new THREE.Vector3(m[0],(m[2]!==undefined?m[2]:1.5)-1.3,m[1]):p.clone().addScaledVector(f,6);
+  let ta=B.toward&&ctx.actors[B.toward]||null;
+  let t=ta?ta.position:m?new THREE.Vector3(m[0],(m[2]!==undefined?m[2]:(ctx.groundY(m[0],m[1])||0)+1.5)-1.3,m[1]):p.clone().addScaledVector(f,6);
+  /* ---- HE IS SPOKEN OVER ONLY TOWARD WHAT IS BEFORE HIM ----
+     One He speaks to who stands behind Him or at His side cannot be looked at over His shoulder:
+     the eye stood between them and looked away from Him (the gate at 21:10). Then it looks where
+     He faces, past Him. */
+  { const dx=t.x-p.x, dz=t.z-p.z, d=Math.hypot(dx,dz);
+    if(d>0.3&&dx*f.x+dz*f.z<0.25*d){ const L=Math.max(5,d); t=new THREE.Vector3(p.x+f.x*L,p.y,p.z+f.z*L); ta=null; } }
   const side=B.side||1;
-  const bk=B.back||3.6, up=B.lift||0;                                  /* `back`, `lift`: farther behind Him, higher over Him */
-  return {from:[p.x-f.x*bk+sd.x*1.5*side,p.y+2.3+sit+up,p.z-f.z*bk+sd.z*1.5*side], look:[t.x,t.y+1.3,t.z]};
+  let shot;
+  if(B.back!==undefined||B.lift!==undefined){                            /* `back`, `lift`: a hand-set shot keeps its numbers */
+    const bk=B.back||3.6, up=B.lift||0;
+    shot={from:[p.x-f.x*bk+sd.x*1.5*side,p.y+2.3+sit+up,p.z-f.z*bk+sd.z*1.5*side], look:[t.x,t.y+1.3,t.z]}; }
+  else {
+    /* ---- AND THE TWO HEADS ARE THE PICTURE ----
+       The eye stood half a metre over His head and looked at the chest of one six or eight metres
+       off: on the true earth's terraces, with the one He speaks to a step higher, His head dropped
+       below the middle of the frame and His body under the verse. It stands close at His shoulder
+       now, level with the higher of the two heads, and looks between them — both faces held above
+       the words, the one He speaks to near enough to be seen. */
+    const k=g.userData.s||1, head=p.y+(1.82+sit)*k;
+    const th=t.y+(ta?(ta.userData.sit?0.95:1.55)*(ta.userData.s||1):1.5), eye=Math.max(head,th)+0.12;
+    shot={from:[p.x-f.x*2.4+sd.x*1.3*side, eye, p.z-f.z*2.4+sd.z*1.3*side], look:[t.x,(eye+th)/2-0.15,t.z]}; }
+  /* ---- NOR ARE THOSE WHO FOLLOW HIM BETWEEN ----
+     The disciples walk a pace or two behind Him, which is exactly where the eye stands: the
+     picture was their backs. If another figure stands on the line from the eye to His head, the
+     eye rises over them, or crosses to His other shoulder, or rises again. */
+  const hx=p.x, hy=p.y+(1.6+sit)*(g.userData.s||1), hz=p.z;
+  const blockedBy=fr=>{ for(const id in ctx.actors){ const a=ctx.actors[id]; if(a===g||a===ta||!a.visible) continue;
+      const q=a.position, s=a.userData.s||1, ax=hx-fr[0], ay=hy-fr[1], az=hz-fr[2], L2=ax*ax+az*az; if(L2<1e-6) continue;
+      const u=Math.max(0,Math.min(1,((q.x-fr[0])*ax+(q.z-fr[2])*az)/L2));
+      if(u<0.02||u>0.97) continue;
+      const cx=fr[0]+ax*u, cz=fr[2]+az*u, cy=fr[1]+ay*u;
+      if((q.x-cx)**2+(q.z-cz)**2<0.35*0.35&&cy>q.y&&cy<q.y+1.9*s) return true; }
+    return false; };
+  if(blockedBy(shot.from)){
+    const base=shot.from, other=[p.x+(base[0]-p.x)-2*sd.x*((base[0]-p.x)*sd.x+(base[2]-p.z)*sd.z), base[1], p.z+(base[2]-p.z)-2*sd.z*((base[0]-p.x)*sd.x+(base[2]-p.z)*sd.z)];
+    for(const c of [[base[0],base[1]+1.2,base[2]],other,[base[0],base[1]+2.4,base[2]],[other[0],other[1]+1.2,other[2]]])
+      if(!blockedBy(c)){ shot.from=c; break; } }
+  return shot;
 }
 function holdCamera(from,look,dur){
   camTarget={from0:[camera.position.x,camera.position.y,camera.position.z],
@@ -1568,7 +1608,10 @@ function lineClear(from,to){
   for(let i=Math.ceil(0.5*S/(0.25*S));i<=n;i++){ const t=i/n; if(k.solidAt(a.x+dir.x*L*t,a.y+dir.y*L*t,a.z+dir.z*L*t)) return false; }
   const targets=[k.chunkRoot]; root.traverse(o=>{ if(o.name==='story-details') targets.push(o); });
   _ray.set(a.clone().addScaledVector(dir,0.5*S),dir); _ray.far=L-0.5*S;
-  return !_ray.intersectObjects(targets,true).some(h=>h.object.visible!==false&&!(h.object.material&&h.object.material.transparent&&h.object.material.opacity<0.5));
+  /* (still water is no wall to the eye: its face is drawn clear from above, and where a set lays its own
+     waves it is not drawn at all — yet the ray met it, and every shot of a man in a boat was lifted
+     straight overhead) */
+  return !_ray.intersectObjects(targets,true).some(h=>h.object.visible!==false&&!(h.object.material&&(h.object.material.name==='waterB'||(h.object.material.transparent&&h.object.material.opacity<0.5))));
 }
 /* the follow camera, each frame: brought in along its line until no block stands between */
 function pullIn(from,look){
@@ -1801,7 +1844,9 @@ function enterBeat(){
          patience. No scene was ever written with a walk of ninety metres; one that long now
          happens between one look and the next, and the figure is there. */
       const far=Math.hypot(to[0]-g.position.x,to[1]-g.position.z)>90;
-      if(ST.fast||far){ g.position.x=to[0]; g.position.z=to[1];
+      if(ST.fast||far){ const tdx=to[0]-g.position.x, tdz=to[1]-g.position.z;
+        if(tdx*tdx+tdz*tdz>0.09) g.rotation.y=Math.atan2(tdx,tdz);   /* (facing the way he went, as he would have arrived) */
+        g.position.x=to[0]; g.position.z=to[1];
         /* set straight down where he was going: on the floor he would have walked to (a hall
            under a roof), not on the roof over it */
         const top=ctx.groundY(to[0],to[1]), cur=g.position.y, near=ctx.groundY(to[0],to[1],cur+1.6);
@@ -1837,10 +1882,23 @@ function enterBeat(){
     else if(Array.isArray(Bc.from)&&Bc.from.length===3&&typeof Bc.from[0]==='number') from=Bc===B?remap3(Bc.from):Bc.from;
     /* a marker (or a marker and a step from it), at `fy` metres, or `fdy` above the ground there */
     else { const m=pos(Bc.from); from=[m[0],Bc.fdy!==undefined?(ctx.groundY(m[0],m[1])||0)+Bc.fdy:(Bc.fy||4),m[1]]; }
+    /* ---- A CAMERA GOES WITH WHAT IT LOOKS AT ----
+       Written in bare numbers for the small city and carried into the true one, the eye and the thing
+       it looks at were each moved by their OWN nearest landmark: an eye fourteen metres from the camp
+       stayed by the study while the camp went seven hundred metres off to the pool. When the carrying
+       tears them apart (or crushes them together), the eye is carried as the look was, keeping the
+       picture as it was written. (Only a near shot, of people: a wide one over the city, opened wider
+       by the true city's greater size, still takes in the whole of it.) */
+    if(Bc===B&&!S&&Array.isArray(B.from)&&B.from.length===3&&typeof B.from[0]==='number'&&Array.isArray(B.look)&&B.look.length===3&&typeof B.look[0]==='number'){
+      const F0=B.from, L0=B.look, d0=Math.hypot(F0[0]-L0[0],F0[2]-L0[2]), d1=Math.hypot(from[0]-at[0],from[2]-at[2]);
+      if(d0<30&&Math.abs(d1-d0)>Math.max(6,0.5*d0)){
+        from=[F0[0]+at[0]-L0[0], at[1]+(F0[1]-L0[1]), F0[2]+at[2]-L0[2]];
+        const gy=ctx.groundY(from[0],from[2]); if(isFinite(gy)&&from[1]<gy+0.6) from[1]=gy+0.6; } }
     holdCamera(S?from:faceSafe(from,at),at,ST.fast?0.01:(Bc.dur||2.5));
     if(Bc.wait===false) return nextBeat();
     onFrame=()=>{ if(camT>=1) nextBeat(); }; return; }
   if(T==='show'||T==='hide'){ for(const id of [].concat(B.id)){ const o=ctx.glows[id]||ctx.things[id]||ctx.actors[id]; if(o) o.visible=(T==='show'); }
+    if(T==='show'&&K().shadowRescan) K().shadowRescan();                     /* (what is shown throws its shade at once) */
     if(B.host!==undefined&&ctx.host){ for(const G of ctx.host) G.visible=!!B.host; if(ctx.hostFigs) ctx.hostFigs.visible=!!B.host; }
     if(B.star!==undefined&&ctx.star) ctx.star.visible=!!B.star;
     if(B.kingdoms!==undefined&&ctx.kingdoms) for(const G of ctx.kingdoms) G.visible=!!B.kingdoms;
@@ -2036,7 +2094,7 @@ function chainTick(o){ const u=o.userData, t=u.thing; u.ends=u.ends||[new THREE.
 function lookAtSpec(l){ if(l&&!Array.isArray(l)&&typeof l==='object'&&l.at){ const m=pos(l.at); return [m[0],l.y!==undefined?l.y:(ctx.groundY(m[0],m[1])||0)+(l.dy||1.4),m[1]]; }   /* {at, dy}: a place, so high over its floor (or at `y`) */
   if(typeof l==='string'){ if(ctx.actors[l]){ const g=ctx.actors[l]; return [g.position.x,g.position.y+(g.userData.fours?0.75:1.5),g.position.z]; }
     if(ctx.glows[l]){ const s=ctx.glows[l].sprite.position; return [s.x,s.y,s.z]; }
-    const m=pos(l); return [m[0],m[2]!==undefined?m[2]:1.5,m[1]]; }
+    const m=pos(l); return [m[0],m[2]!==undefined?m[2]:(ctx.groundY(m[0],m[1])||0)+1.5,m[1]]; }   /* (a bare place: a man's height over ITS ground, not over the anchor's) */
   if(Array.isArray(l)&&typeof l[0]==='string'){ const m=pos(l); return [m[0],(ctx.groundY(m[0],m[1])||0)+1.4,m[1]]; }   /* near a marker: a step from it, at a man's height */
   return l; }   /* a marker may carry its own height: [x,z,y] */
 function endScene(){

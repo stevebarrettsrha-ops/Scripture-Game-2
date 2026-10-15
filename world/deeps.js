@@ -59,9 +59,9 @@ EARTH.deep({n:"The Weddell Abyss",                    lat:-65.00, lon:-40.00, m:
    the shelf where the shelf is otherwise a few fathoms deep — which is the
    whole of why they look as they do from above.
    m : the depth of the shaft in metres.  r : the mouth, in world units. */
-EARTH.hole({n:"The Great Blue Hole of Belize",  lat:17.316, lon:-87.535, m:124, r:96});
-EARTH.hole({n:"Dean's Blue Hole",               lat:23.784, lon:-74.892, m:202, r:64});
-EARTH.hole({n:"The Dragon Hole — Yongle Atoll", lat:16.527, lon:111.766, m:300, r:78});
-EARTH.hole({n:"The Blue Hole of Dahab",         lat:28.572, lon:34.537,  m:130, r:58});
-EARTH.hole({n:"Taam Ja' of Chetumal Bay",       lat:18.500, lon:-88.000, m:420, r:70});
-EARTH.hole({n:"The Blue Hole of Gozo",          lat:36.049, lon:14.189,  m:60,  r:44});
+EARTH.hole({n:"The Great Blue Hole of Belize",  lat:17.316, lon:-87.535, m:124, r:96, rm:160});
+EARTH.hole({n:"Dean's Blue Hole",               lat:23.784, lon:-74.892, m:202, r:64, rm:18});
+EARTH.hole({n:"The Dragon Hole — Yongle Atoll", lat:16.527, lon:111.766, m:300, r:78, rm:65});
+EARTH.hole({n:"The Blue Hole of Dahab",         lat:28.572, lon:34.537,  m:130, r:58, rm:28});
+EARTH.hole({n:"Taam Ja' of Chetumal Bay",       lat:18.500, lon:-88.000, m:420, r:70, rm:65});
+EARTH.hole({n:"The Blue Hole of Gozo",          lat:36.049, lon:14.189,  m:60,  r:44, rm:8});

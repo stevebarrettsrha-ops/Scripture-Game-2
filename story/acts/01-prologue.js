@@ -280,11 +280,11 @@ STORY.act({
       {id:'hiz', name:'Ḥizqiyahu', dress:'king', at:'street', face:Math.PI, robe:0x4a4036, sash:0x3a3028, beard:0x2c241f, key:'hizqiyahu'},
       {id:'yah', name:'Yahshayahu', at:'studyDesk', face:Math.PI, robe:0x4a3c33, cloth:0xb9ab8e, beard:0x6d6a66, staff:true},
       {id:'k0', dress:'kohen', at:[2,-30], face:0, beard:0x6d6a66},
-      ...[0,1,2,3,4,5,6,7].map(k=>({id:'a'+k, dress:'assyrian', at:[-50.4-(k%4)*3.3,71.6+Math.floor(k/4)*2.8], face:Math.PI*(k%2), robe:0x7a2a22, cloth:null, beard:0x14100e}))
+      ...[0,1,2,3,4,5,6,7].map(k=>({id:'a'+k, dress:'assyrian', at:['pool',11.6-(k%4)*3.3,-8.4+Math.floor(k/4)*2.8], face:Math.PI*(k%2), robe:0x7a2a22, cloth:null, beard:0x14100e}))
     ],
     things:[ {id:'letter', kind:'box', at:[-30,22.6], w:0.5, h:0.08, d:0.3, y:0.84, color:0xe9dfc2},
-             ...[0,1,2,3,4].map(k=>({id:'tent'+k, kind:'box', at:[-46.4-k*4.2,76.2-(k%2)*0.6], w:3.2, h:1.9, d:2.2, color:0xb8a888})) ],
-    glows:[ {id:'malak', malak:true, at:[-34,13,70], size:12, color:0xfff6dc, intensity:2.2, pulse:true, hidden:true} ],
+             ...[0,1,2,3,4].map(k=>({id:'tent'+k, kind:'box', at:['pool',15.6-k*4.2,-3.8-(k%2)*0.6], w:3.2, h:1.9, d:2.2, color:0xb8a888})) ],
+    glows:[ {id:'malak', malak:true, at:['pool',28,-10], dy:13, size:12, color:0xfff6dc, intensity:2.2, pulse:true, hidden:true} ],
     beats:[
       {t:'cam', from:[12,4,-4], look:'hiz', dur:0.1},
       {t:'move', who:'hiz', to:['hekalView>hekal',4,0], speed:1.2, wait:false},     /* (up to the House: four metres on from where it is seen, toward it) */
@@ -310,9 +310,11 @@ STORY.act({
       {t:'say', who:'yah', ref:'YASHAYAHU 37:35', turn:false},
       {t:'time', to:'night'},
       {t:'lie', who:['a0','a1','a2','a3','a4','a5','a6','a7']},
-      {t:'cam', from:[-30,10,48], look:[-54,1,74], dur:3},
+      /* (the camp, its tents and the eye are all written from the upper pool, so the true city moves them together:
+         written in bare numbers, the eye stayed by the study and the look went seven hundred metres off to the pool) */
+      {t:'cam', from:['pool',22,-20], fdy:7, look:{at:['pool',6,-6], dy:0.8}, dur:3},
       {t:'show', id:'malak'},
-      {t:'drift', id:'malak', to:[-66,11,76], dur:4},
+      {t:'drift', id:'malak', toAt:['pool',-4,-4], dy:11, dur:4},
       {t:'read', ref:'YASHAYAHU 37:36'},
       {t:'hide', id:'malak'},
       {t:'time', to:'dawn'},

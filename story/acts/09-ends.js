@@ -1324,8 +1324,10 @@ STORY.act({
       {t:'read', ref:'ACTS 27:29'},
       {t:'show', id:'skiff'},
       {t:'move', who:['s0','s1'], to:[[SX+1.6,-6.4],[SX+1.4,-5.4]], speed:1.4, wait:false},
+      {t:'cam', from:[SX-0.8,1.8,-1.2], look:[SX+2.6,0.6,-6.6], dur:1.6},   /* (the sailors at the bow, letting the skiff down) */
       {t:'read', ref:'ACTS 27:30'},
       {t:'face', who:'shaul', to:'captain'},
+      {t:'cam', from:[SX+1.4,1.4,-1.6], look:'shaul', dur:1.2},
       {t:'say', who:'shaul', ref:'ACTS 27:31', turn:false},
       {t:'drift', id:'skiff', by:[18,0,-10], dur:5, wait:false},
       {t:'read', ref:'ACTS 27:32'},

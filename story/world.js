@@ -55,7 +55,14 @@ Static.prototype.box=function(x0,y0,z0,x1,y1,z1,color,opt){
      as a course of blocks a man would have to stoop under */
   const thinAbove=y1-y0<0.32&&y0>0.6;
   if(opt.detail||span<0.4||(opt.collide===false&&span<0.6)||thinAbove){ this.detail(x0,y0+g,z0,x1,y1+g,z1,typeof color==='number'?color:0x7c7a4e,opt); return; }
-  this.api.box(x0,y0+g,z0,x1,y1+g,z1,color);
+  /* ---- AND WHAT STANDS ON THE GROUND STANDS ON IT ALL ALONG ----
+     A box was set on the ground at its MIDDLE, so on a slope its downhill side hung and its uphill side
+     was buried; a fixed set (abs) had no footing at all, and the upper room floated over Zion. A box
+     laid from the ground up (y0 at its own ground, or at the set's level for a fixed set) is footed
+     down to the land under the whole of itself; a lintel, a roof or a beam (laid higher) is not.
+     `foot:false` opts out, `foot:true` asks for it at any height. */
+  const foot=opt.foot!==undefined?opt.foot:(color!=='air'&&y0<=0.3);
+  this.api.box(x0,y0+g,z0,x1,y1+g,z1,color,foot?{foot:true}:undefined);
 };
 /* the little things, gathered into one mesh a scene, shaded by the way each face looks */
 Static.prototype.detail=function(x0,y0,z0,x1,y1,z1,color,opt){

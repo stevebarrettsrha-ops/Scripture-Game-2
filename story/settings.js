@@ -481,9 +481,16 @@ const SHORE={x:22,d:6,slope:0.16};
 function room(ctx,st0,x0,z0,x1,z1,o){ let st;
   o=o||{}; const t=0.5, BAS=o.wall||'basalt', mx=(x0+x1)/2, mz=(z0+z1)/2;
   /* `y`: the floor's height, where the ground is not the set's own level (a terrace of the city) */
-  const Y=o.y||0, H=2.8+Y; st={box:(a,b,c,d,e,f,g,h)=>st0.box(a,b+Y,c,d,e+Y,f,g,h)}; 
-  st.box(x0,0,z0,x1,0.08,z1,C.path);                                                /* the floor of beaten earth */
-  st.detail=(...a)=>st0.detail(a[0],a[1]+Y,a[2],a[3],a[4]+Y,a[5],a[6],a[7]);
+  const Y=o.y||0, H=2.8+Y;
+  st0.box(x0,Y,z0,x1,Y+0.08,z1,C.path);                                             /* the floor of beaten earth */
+  /* ---- ONE GROUND FOR THE WHOLE ROOM ----
+     Each wall was set on the ground at its OWN middle and the roof on the room's: on a slope the
+     downhill wall's top fell short of the roof and the light came in under it, and the uphill wall
+     stood up through it. Every part is laid from the ground at the room's middle now (on a level set,
+     the same as before), and the walls are footed down to the land. */
+  const base=(st0.ground?st0.ground(mx,mz):0)+Y;
+  st={box:(a,b,c,d,e,f,g,h)=>st0.box(a,b+base,c,d,e+base,f,g,Object.assign({abs:true},b<=0.3?{foot:true}:{},h||{}))};
+  st.detail=(...a)=>st0.detail(a[0],a[1]+base,a[2],a[3],a[4]+base,a[5],a[6],a[7]);
   const dz0=mz-1.3, dz1=mz+1.3;                                                     /* a doorway two of the world's cells across (written a little wider: laid in whole blocks, a doorway of two metres could come out one block wide, and everyone going in rubbed its jambs) */
   /* the four walls, the door left open in its own */
   const WH=H-Y;
@@ -498,7 +505,7 @@ function room(ctx,st0,x0,z0,x1,z1,o){ let st;
   /* the stair up the outside of the south wall, from the east */
   if(!o.noStair) for(let k=0;k<6;k++){ const sx=x1-0.4-k*0.95; st.box(sx-0.95,0,z1,sx,0.62*(k+1),z1+1.2,C.stoneDark); }
   /* a mat to lie on, a lamp niche, a water jar by the door */
-  st.box(x0+t+0.2,0.08,z0+t+0.2,x0+t+2.2,0.2,z0+t+1.2,0xb39a6a,{collide:false});
+  st0.box(x0+t+0.2,Y+0.08,z0+t+0.2,x0+t+2.2,Y+0.2,z0+t+1.2,0xb39a6a,{collide:false});
   return {roofY:H+0.92};
 }
 
@@ -814,17 +821,26 @@ S.upperroom=function(ctx,st0){
   ctx.wind=[0.4,0.2];
   const st=fixed(st0);
   const x0=12,z0=26,x1=22,z1=34, F=2.77;                                               /* three courses of the world's blocks */
-  st.box(x0,0,z0,x1,F,z1,C.limestone);
-  st.detail(16.3,0,z0-0.06,17.7,2.0,z0,0x3a2a1e);                                       /* the door of the house below */
+  st.box(x0,0,z0,x1,F,z1,C.limestone);                                                  /* (footed down to the land: on the true earth Zion falls away under it, and it floated) */
+  const gd=Math.min(0,landY(ctx,17,z0-0.6));
+  st.detail(16.3,gd,z0-0.06,17.7,gd+2.0,z0,0x3a2a1e);                                   /* the door of the house below, at the street */
   room(ctx,st,x0,z0,x1,z1,{door:'e',wall:C.limestone,y:F,noStair:true});
-  st.box(x1+0.1,0,z0+1,x1+1.5,0.92,z0+2,C.stoneDark); st.box(x1+0.1,0,z0+2,x1+1.5,1.85,z0+3,C.stoneDark);   /* the stair */
   st.box(x1+0.1,0,z0+3,x1+1.5,F,z0+5.2,C.stoneDark);                                    /* its landing at the door */
+  /* ---- THE STAIR COMES DOWN TO THE STREET, WHEREVER THE STREET IS ----
+     Two steps were laid from the set's level; on the slope of Zion the street lies metres below it, and
+     with the house now standing on its plinth the stair must reach the ground or no one goes up. A
+     course a step, a metre a tread, north from the landing until the next step would be the ground. */
+  let zFoot=z0+2.5;
+  for(let k=0;k<12;k++){ const top=F-(k+1)*0.92, zA=z0+3-(k+1)*1.0;
+    const g=Math.min(landY(ctx,x1+0.4,zA+0.5),landY(ctx,x1+1.2,zA+0.5));
+    if(top<=g+0.1) break;
+    st.box(x1+0.1,Math.min(g,top)-0.92,zA,x1+1.5,top,zA+1.0,C.stoneDark,{foot:true}); zFoot=zA-0.6; }
   st.detail(14.6,F,29.5,19.4,F+0.38,30.5,C.timber);                                     /* the low table */
   st.detail(15.2,F+0.38,29.8,15.8,F+0.46,30.2,0xd8c08a); st.detail(17.6,F+0.38,29.9,17.9,F+0.6,30.1,0x7a2a2a);   /* bread, a cup */
   for(const [lx,lz] of [[12.8,27],[12.8,33],[21.2,27],[21.2,33]]) W.glow(ctx,lx,F+2,lz,1.1,0xffc070,0.8);
   /* the street outside about its day — and "a man carrying a jar of water" (Marqos 14:13) */
   W.folk(ctx,[{do:'carry', from:[8,20], to:[27,22], load:'jar', n:1}, {do:'stroll', area:[6,16,30,24], n:3}, {do:'talk', at:[26,36], n:2}]);
-  mk(ctx,'urHouse',17,24.4); mk(ctx,'stairFoot',22.8,26.2); mk(ctx,'stairTop',22.8,30.2); mk(ctx,'roomDoor',20.6,30); mk(ctx,'roomIn',20.4,30);
+  mk(ctx,'urHouse',17,24.4); mk(ctx,'stairFoot',22.8,zFoot); mk(ctx,'stairTop',22.8,30.2); mk(ctx,'roomDoor',20.6,30); mk(ctx,'roomIn',20.4,30);
   mk(ctx,'table',17,30); mk(ctx,'roomCorner',13.4,33);
 };
 
@@ -926,7 +942,7 @@ S.golgotha=function(ctx,st){
   for(let z=44;z>=-56;z-=1.6) ctx.api.top(-57,z-1,-55,z+1,C.path);                        /* and north along it, below the spur */
   /* the garden: the face of the rock and the tomb cut into it */
   const ly=landY(ctx,-70,-11);
-  st.box(-78,ly,-17,-70,ly+5,-5,C.limestone,{abs:true});
+  st.box(-78,ly,-17,-70,ly+5,-5,C.limestone,{abs:true,foot:true});                 /* (footed: laid at its doorway's ground, its low side hung over the hill) */
   st.box(-74,ly,-12.6,-69.6,ly+2.4,-9.4,'air',{abs:true});                    /* cut clean through the face */
   ctx.api.top(-70,-13,-69.2,-9,C.stone);                                         /* the threshold, level with the ground */
   for(let k=0;k<12;k++){ const a=W.hash(k,5)*6.28, r=6+W.hash(k,6)*9, x=-60+Math.cos(a)*r, z=-8+Math.sin(a)*r; if(x<-68) continue; if(k%3) W.olive(st,x,z,0.8); else W.fig(st,x,z); }

@@ -123,7 +123,9 @@ STORY.act({
       .concat([0,1,2,3,4].map(k=>({id:'gar'+k, kind:'box', at:[-13.4+(k%2)*1.6,49-k*1.6], w:1, h:0.06, d:1.4, color:[0x7c6a52,0x5a6470,0x8e6f4c,0x6e5a70,0x7a5040][k], hidden:true}))),
     beats:[
       {t:'ride', who:'yahusha', on:'colt'},
-      {t:'cam', from:[-2,9,58], look:[-14,4,36], dur:0.1},
+      /* (from behind Him on the road, over the pilgrims, along the way to the gate — written from the gate, so the
+         true city's higher walls stand in the top of the picture and not across the middle of it) */
+      {t:'cam', from:['gateOut',-18,24], fdy:7, look:{at:['gateOut',-5,6], dy:1.2}, dur:0.1},
       {t:'title', text:'Act VI · Passion Week', sub:'The entry · Pesach · Gethsemane · Golgotha'},
       {t:'note', text:'Pilgrims came up to Yahrushalayim from all the land for the Pesach, and the city was full. The road from the Mount of Olives brought Him round to her gates, and the crowds came out to meet Him.'},
       {t:'show', id:['gar0','gar1','gar2','gar3','gar4']},
@@ -133,11 +135,11 @@ STORY.act({
       {t:'witness', text:'Cut a branch and spread it on the way', items:['branchCut'], verb:'Cut a branch', hold:0.8, deliver:[-12.4,46], r:2.2, carryText:'Lay it on the road before Him'},
       {t:'show', id:'branch'},
       {t:'face', who:'yahusha', to:'gateIn'},
-      {t:'cam', on:'yahusha', shot:'back', toward:'g3', back:6, dur:2.5},
+      {t:'cam', from:['gateOut',-7,5], fdy:3.2, look:'yahusha', dur:2.5},   /* (behind Him and to the left, the gate ahead: not over the backs of those following) */
       {t:'say', who:'crowds', ref:'MATTITHYAHU 21:9', turn:false},
       {t:'move', who:'yahusha', to:'gateIn', speed:0.8},
       {t:'move', who:'yahusha', to:'gateStreet', speed:0.8, wait:false},
-      {t:'cam', on:'yahusha', shot:'back', toward:'g3', back:6, dur:3},
+      {t:'cam', from:['gateIn',0.8,5], fdy:2.4, look:{at:'gateStreet', dy:1.6}, dur:3},   /* (inside the gate behind Him, up the street He walks — the crowd He has left is behind Him) */
       {t:'say', who:'city', ref:'MATTITHYAHU 21:10', turn:false},
       {t:'say', who:'crowds', ref:'MATTITHYAHU 21:11', turn:false},
       {t:'time', to:'dusk'},
