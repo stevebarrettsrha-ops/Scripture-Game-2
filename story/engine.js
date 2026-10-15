@@ -1348,13 +1348,17 @@ function moveActors(dt){
            has walked into the wall and wedged himself in its corner, where no way could be found) */
         if(P.los===undefined){ P.los=true;
           if(u.fixedY===undefined&&!u.follow&&d>1.2) for(let q=0.4;q<d;q+=0.4){ const x=g.position.x+dx/d*q, z=g.position.z+dz/d*q;
-            if(wallAt(x,z,u.gy)||softAt(x,z,u.gy!==undefined?u.gy:g.position.y,0.22,g,tgt,15)){ P.los=false; P.t=2.01; break; } } }   /* (or a table, one sitting, the multitude) */
+            if(wallAt(x,z,u.gy)){ P.los=false; P.soft=false; P.t=2.01; break; }
+            if(softAt(x,z,u.gy!==undefined?u.gy:g.position.y,0.22,g,tgt,15)){ P.los=false; P.soft=true; P.t=2.01; break; } } }   /* (or a table, one sitting, the multitude) */
         else if(d<P.d-0.25){ P.d=d; P.t=0; } else P.t+=dt;
         /* (and one held on a way already worked out — those he was to pass have sat down across it since — works
            out another, round them) */
         if(P.t>2&&(P.tries||0)<3&&!u.follow&&u.fixedY===undefined){ P.tries=(P.tries||0)+1; P.t=0; u._path=null;
           const pts=planWay(tgt[0],tgt[1],0.4,{x:g.position.x,y:u.gy!==undefined?u.gy:g.position.y,z:g.position.z,g});
-          if(pts) u._path={pts,i:0}; else P.t=99; }
+          /* (and if no way round a table or a sitting man is found — on the strand, where the planner will not
+             go down to the water — he walks on as he always did, turning aside from what is before him: one
+             only held by soft things was carried to his mark at once, fifteen metres along the shore) */
+          if(pts) u._path={pts,i:0}; else if(P.soft&&P.tries<3){ P.t=0; P.d=d; } else P.t=99; }
         if(P.t>(u.follow?6:4)){ u._prog=null; u._path=null;
           const k2=u.follow?Math.max(0,(d-1.6)/d):1;
           g.position.x+=dx*k2; g.position.z+=dz*k2;
