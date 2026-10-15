@@ -445,7 +445,7 @@ function placeCrowds(sc){
     /* each of them a body the people of the scene go round, while the crowd is seen (one sitting, with his knees) */
     for(let i=ctx.crowdPts.length-figs.length;i<ctx.crowdPts.length;i++) ctx.crowdPts[i][3]=mesh;
     if(ctx.soft) for(const f of figs){ const r=f.sit?0.34:0.2, cx=f.sit?f.x+Math.sin(f.face)*0.25:f.x, cz=f.sit?f.z+Math.cos(f.face)*0.25:f.z;
-      softPut({t:1,cx,cz,r,x0:cx-r,z0:cz-r,x1:cx+r,z1:cz+r,y0:f.y,y1:f.y+(f.sit?1.1:1.7),m:mesh,name:'the crowd '+c.id}); } }
+      softPut({t:1,b:2,cx,cz,r,x0:cx-r,z0:cz-r,x1:cx+r,z1:cz+r,y0:f.y,y1:f.y+(f.sit?1.1:1.7),m:mesh,name:'the crowd '+c.id}); } }
 }
 /* the places the story sends its people, and the ways it walks them there (from where each then stands), left
    open by the multitude: it stood on the marks the Twelve were sent to, and in the road they were walked along.
@@ -899,13 +899,14 @@ function planWay(tx,tz,r,from,noAvoid,hard){
      way is found as before.) */
   const rest=[]; if(from&&!noAvoid) for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData;
     if(!g.visible||u.target||u.follow||u.aboard||u.ride||u.fixedY!==undefined) continue;
+    if(!hard&&(u.sit||u.lie||u.kneel)) continue;                                         /* (one sitting or lying is gone round by his own shape, below) */
     const px=g.position.x, pz=g.position.z; if(Math.hypot(px-sx,pz-sz)<0.6||Math.hypot(px-tx,pz-tz)<1.0) continue;
     rest.push([px,pz]); }
   const byRest=(x,z)=>{ for(const q of rest) if((x-q[0])*(x-q[0])+(z-q[1])*(z-q[1])<0.36) return true; return false; };
   /* (and round a table, one sitting, the multitude — the witness a little wider than his feet keep them, so the
      way he is led does not brush them — unless there is no way but through them: then it is found as before) */
   const me=from?from.g||null:player, goal=[tx,tz], sr=from?0.25:0.3, sm=new Map();
-  const soft=(i,j,y)=>{ if(hard) return false; const k2=key(i,j); let v=sm.get(k2); if(v===undefined){ v=softAt(i*H,j*H,y,sr,me,goal); sm.set(k2,v); } return v; };
+  const soft=(i,j,y)=>{ if(hard) return false; const k2=key(i,j); let v=sm.get(k2); if(v===undefined){ v=softAt(i*H,j*H,y,sr,me,goal,15); sm.set(k2,v); } return v; };
   seen.set(key(si,sj),{i:si,j:sj,y:sy,g:0,from:null,shut:false}); open.push([hOf(si,sj),key(si,sj)]);
   let n=0, end=null;
   while(open.length&&n<150000){
@@ -978,9 +979,14 @@ function movePlayer(dt){
     const onDeck=ctx.playerY!==undefined;                /* (held at a deck's height: her side is a wall both ways) */
     /* (nor into a table, a jar, a beast, one sitting or lying, one of the multitude or the townsfolk — only into: out
        of one he is never held, and one at the mark he is sent to is not in his way) */
-    const GG=wants?guideGoal():null, sOn=!(gAng!==null&&guide&&guide.pts.hard);          /* (led by a way that had to go through them, he goes) */
-    if(!blocked(x+dx,z,0.3,y)&&!hullCross(x,z,x+dx,z,onDeck)&&!(sOn&&softAt(x+dx,z,y,0.22,player,GG))) player.position.x+=dx;
-    if(!blocked(player.position.x,z+dz,0.3,y)&&!hullCross(player.position.x,z,player.position.x,z+dz,onDeck)&&!(sOn&&softAt(player.position.x,z+dz,y,0.22,player,GG))) player.position.z+=dz;
+    /* (led by a way that had to go through them, or held by them a moment and a half on the way he is led — one of
+       the townsfolk stood in it — he goes on: the way shown is never the way that holds him) */
+    const GG=wants?guideGoal():null, sOn=!(gAng!==null&&guide&&(guide.pts.hard||guide.sh>1.5));
+    const hx=sOn&&softAt(x+dx,z,y,0.22,player,GG);
+    if(!blocked(x+dx,z,0.3,y)&&!hullCross(x,z,x+dx,z,onDeck)&&!hx) player.position.x+=dx;
+    const hz=sOn&&softAt(player.position.x,z+dz,y,0.22,player,GG);
+    if(!blocked(player.position.x,z+dz,0.3,y)&&!hullCross(player.position.x,z,player.position.x,z+dz,onDeck)&&!hz) player.position.z+=dz;
+    if(gAng!==null&&guide&&(hx||hz)) guide.sh=(guide.sh||0)+dt;
     player.rotation.y=turnTo(player.rotation.y,ang,dt*10);
     ud.walk=(ud.walk||0)+dt*sp*2.2;
   } else ud.walk=0;
@@ -1202,7 +1208,7 @@ function gatherSoft(st){
     if(y1-y0<0.25||Math.min(x1-x0,z1-z0)<0.14||x1-x0>30||z1-z0>30) continue;
     /* (and only what stands on the floor under it, to the knee at least: not a frond, an awning, a lintel) */
     const g=ctx.groundY((x0+x1)/2,(z0+z1)/2,y0+0.6); if(g==null||!isFinite(g)||y0>g+0.35||y1<g+0.3) continue;
-    softPut({t:0,x0,z0,x1,z1,y0,y1,name:'the set at '+((x0+x1)/2).toFixed(1)+','+((z0+z1)/2).toFixed(1)}); } }
+    softPut({t:0,b:1,x0,z0,x1,z1,y0,y1,name:'the set at '+((x0+x1)/2).toFixed(1)+','+((z0+z1)/2).toFixed(1)}); } }
 /* a thing's footprint, [half across, half along, from, to (over where it stands), a beast], for those a body
    is kept out of: a table, a basket, a jar, the round stone, a car, a beast. Not a boat (her hull is her own),
    nor a cloth, a coin, a fish, a dove, a vision. */
@@ -1224,15 +1230,15 @@ function softDyn(){ const S=ctx.soft; if(S.dyn&&S.dynT===softT) return S.dyn; S.
   const rid={}; for(const id in ctx.actors){ const u=ctx.actors[id].userData; if(u.ride) rid[u.ride]=1; if(u.aboard) rid[u.aboard.id]=1; }
   for(const id in ctx.things){ const o=ctx.things[id], u=o.userData, F=u.soft;
     if(!F||!o.visible||u.heldBy||u.leadBy||u.following||rid[id]) continue;
-    L.push(Object.assign(oRect(o.position.x,o.position.z,o.rotation.y,F[0],F[1]),{y0:o.position.y+F[2],y1:o.position.y+F[3],name:id})); }
+    L.push(Object.assign(oRect(o.position.x,o.position.z,o.rotation.y,F[0],F[1]),{b:4,y0:o.position.y+F[2],y1:o.position.y+F[3],name:id})); }
   for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; if(!g.visible||u.ride||u.aboard||!(u.sit||u.lie||u.kneel)) continue;
     const s=u.s||1, fx=Math.sin(g.rotation.y), fz=Math.cos(g.rotation.y), fl=g.position.y+sitDrop(u)-(u.lie?0.16:0);
     if(u.lie){ const k=(g.rotation.x>0?0.9:-0.9)*s;                 /* (on his back he lies back from his feet; on his face, before them) */
-      L.push(Object.assign(oRect(g.position.x+fx*k,g.position.z+fz*k,g.rotation.y,0.275*s,0.95*s),{y0:fl,y1:fl+0.5,g,p:1,a:1,name:id})); }
+      L.push(Object.assign(oRect(g.position.x+fx*k,g.position.z+fz*k,g.rotation.y,0.275*s,0.95*s),{b:8,y0:fl,y1:fl+0.5,g,a:1,name:id})); }
     else { const k=(u.kneel?-0.45:groundSit(u)?0.62:0.45)*s;
-      L.push({t:2,ax:g.position.x,az:g.position.z,bx:g.position.x+fx*k,bz:g.position.z+fz*k,r:0.2*s,y0:fl,y1:fl+1.3,g,p:1,a:1,name:id}); } }
-  for(const F of ctx.folk||[]){ const g=F.g, y=g.userData.gy||0; L.push({t:1,cx:g.position.x,cz:g.position.z,r:0.24,y0:y,y1:y+1.7,g,p:1,f:1,name:'one of the townsfolk'}); }
-  for(const q of ctx.folkSolids||[]){ if(q[3]===undefined) q[3]=ctx.groundY(q[0],q[1])||0; L.push({t:1,cx:q[0],cz:q[1],r:q[2],y0:q[3],y1:q[3]+1.5,p:1,f:1,name:'the townsfolk at their work'}); }
+      L.push({t:2,b:8,ax:g.position.x,az:g.position.z,bx:g.position.x+fx*k,bz:g.position.z+fz*k,r:0.2*s,y0:fl,y1:fl+1.3,g,a:1,name:id}); } }
+  for(const F of ctx.folk||[]){ const g=F.g, y=g.userData.gy||0; L.push({t:1,b:16,cx:g.position.x,cz:g.position.z,r:0.24,y0:y,y1:y+1.7,g,f:1,name:'one of the townsfolk'}); }
+  for(const q of ctx.folkSolids||[]){ if(q[3]===undefined) q[3]=ctx.groundY(q[0],q[1])||0; L.push({t:1,b:8,cx:q[0],cz:q[1],r:q[2],y0:q[3],y1:q[3]+1.5,f:1,name:'the townsfolk at their work'}); }
   return L; }
 /* how far (x,z) lies off a soft thing's footprint (0 within it); its nearest point is left in _sc */
 const _sc=[0,0];
@@ -1245,18 +1251,19 @@ function softDist(e,px,pz){ let qx,qz,r=0;
   _sc[0]=qx; _sc[1]=qz; return Math.max(0,Math.hypot(px-qx,pz-qz)-r); }
 /* is a body of radius r, its feet at y, at (x,z) in a soft thing? `self`, who asks, is not in his own way, nor
    is what he stands in already (the witness: what he touches at all, so he is only kept from going in);
-   nor what lies within a stride of his `goal`. `mask`: 1 the set's, 2 the multitude, 4 the things, 8 the people. */
+   nor what lies within a stride of his `goal`. `mask`: 1 the set's, 2 the multitude, 4 the things, 8 those sitting
+   or lying and the townsfolk's work, 16 the townsfolk going about (not worth a way worked round: they move on). */
 function softHit(x,z,y,r,self,goal,mask){
-  const S=ctx&&ctx.soft; if(!S||y==null||!isFinite(y)) return null; mask=mask||15;
+  const S=ctx&&ctx.soft; if(!S||y==null||!isFinite(y)) return null; mask=mask||31;
   const lo=y+0.1, hi=y+1.6, me=self&&self.position, rin=self===player?r:r*0.6, folkG=!!(self&&self.userData&&self.userData.folkG);
   const hit=e=>e.y1>=lo&&e.y0<=hi&&softDist(e,x,z)<r&&!(goal&&softDist(e,goal[0],goal[1])<0.6)&&!(me&&softDist(e,me.x,me.z)<rin);
   if(mask&3){ const q=++S.q;
     for(let i=Math.floor(x-r);i<=Math.floor(x+r);i++) for(let j=Math.floor(z-r);j<=Math.floor(z+r);j++){ const L=S.grid.get(softK(i,j)); if(!L) continue;
       for(const e of L){ if(e.q===q) continue; e.q=q;
-        if(e.m?(!(mask&2)||!e.m.visible):!(mask&1)) continue;
+        if(!(mask&e.b)||(e.m&&!e.m.visible)) continue;
         if(hit(e)) return e; } } }
-  if(mask&12) for(const e of softDyn()){ if(e.g&&e.g===self) continue;
-    if(e.p?(!(mask&8)||(e.f&&folkG)):!(mask&4)) continue;                 /* (the townsfolk keep from each other and their work themselves) */
+  if(mask&28) for(const e of softDyn()){ if(e.g&&e.g===self) continue;
+    if(!(mask&e.b)||(e.f&&folkG)) continue;                                /* (the townsfolk keep from each other and their work themselves) */
     if(hit(e)) return e; }
   return null; }
 function softAt(x,z,y,r,self,goal,mask){ return !!softHit(x,z,y,r,self,goal,mask); }
@@ -1312,7 +1319,7 @@ function moveActors(dt){
            has walked into the wall and wedged himself in its corner, where no way could be found) */
         if(P.los===undefined){ P.los=true;
           if(u.fixedY===undefined&&!u.follow&&d>1.2) for(let q=0.4;q<d;q+=0.4){ const x=g.position.x+dx/d*q, z=g.position.z+dz/d*q;
-            if(wallAt(x,z,u.gy)||softAt(x,z,u.gy,0.22,g,tgt)){ P.los=false; P.t=2.01; break; } } }   /* (or a table, one sitting, the multitude) */
+            if(wallAt(x,z,u.gy)||softAt(x,z,u.gy!==undefined?u.gy:g.position.y,0.22,g,tgt,15)){ P.los=false; P.t=2.01; break; } } }   /* (or a table, one sitting, the multitude) */
         else if(d<P.d-0.25){ P.d=d; P.t=0; } else P.t+=dt;
         /* (and one held on a way already worked out — those he was to pass have sat down across it since — works
            out another, round them) */
@@ -1373,7 +1380,7 @@ function moveActors(dt){
         /* (and round a table, a jar, one sitting, one of the multitude, at the height he walks at — a deck's, an
            upper floor's as well. One who cannot be led round by a way worked out — held at a height, or following —
            and finds no way aside, or is held by them a moment and a half, goes on as he went: they never keep him) */
-        const fy=u.fixedY!==undefined?u.fixedY:u.gy, plans=!u.follow&&u.fixedY===undefined, useSoft=plans||!(P2&&P2.t>1.5);
+        const fy=u.fixedY!==undefined?u.fixedY:u.gy!==undefined?u.gy:g.position.y, plans=!u.follow&&u.fixedY===undefined, useSoft=plans||!(P2&&P2.t>1.5);
         const sa=Math.min(0.45,d), soft=b=>!softAt(px+Math.sin(b)*sa,pz+Math.cos(b)*sa,fy,0.22,g,tgt)&&!softAt(px+Math.sin(b)*sp,pz+Math.cos(b)*sp,fy,0.22,g,tgt);
         const pick=f=>{ if(f(a0)) return a0; for(const da of [0.5,-0.5,1.0,-1.0,1.5,-1.5,2.1,-2.1]){ const b=a0+da; if(f(b)) return b; } return null; };
         if(u.fixedY!==undefined){ a=useSoft?pick(soft):null; if(a===null) a=a0; }

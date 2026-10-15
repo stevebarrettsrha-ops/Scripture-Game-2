@@ -1016,7 +1016,7 @@ STORY.act({
       LEGION('lc0',['bemaFront',-3,-1],0), LEGION('lc1',['bemaFront',3,-1],0),
       {id:'jailer', name:'The jailer', key:'the jailer of philippi', folk:'roman', dress:'man', at:['prisonDoor',-1.2,1.6], face:-Math.PI/2, robe:0x6a4a3a, cloth:0xb9ab8e, sash:0x3a2a1a, beard:0x3a2a1e},
       ...[[10,7.6,0],[10.6,14.6,Math.PI],[12.4,7.4,0]].map(([x,z,f],k)=>({id:'pz'+k, at:[x,z], face:f, sit:true, ground:true, robe:[0x5c5040,0x4f6a4f,0x6b5a44][k], cloth:[0xa89a7e,0x8a7a60,0x9a8a70][k], beard:[0x3a2a1e,0x2c241f,0x6d6a66][k], skin:[0x9a6a40,0x8a5a36,0xa87a50][k]})),
-      ...[0,1,2].map(k=>({id:'jh'+k, at:['jailerIn',k*1.2-1.2,1], face:-Math.PI/2, folk:'roman', kind:k===0?'woman':'man', dress:k===0?'woman':'man', small:k===2, robe:[0x7a5040,0x5a6470,0x8a7a60][k], cloth:[0xe8e2d2,0xcfc4aa,0xd8ceb4][k]}))
+      ...[0,1,2].map(k=>({id:'jh'+k, at:['jailerIn',k*1.2-1.2,-0.6], face:-Math.PI/2, folk:'roman', kind:k===0?'woman':'man', dress:k===0?'woman':'man', small:k===2, robe:[0x7a5040,0x5a6470,0x8a7a60][k], cloth:[0xe8e2d2,0xcfc4aa,0xd8ceb4][k]}))   /* (before his table: two stood in it) */
     ],
     things:[ {id:'door1', kind:'box', at:[8.25,11], w:0.14, h:2.2, d:2.0, color:0x5d4a36, hidden:true},
              {id:'door2', kind:'box', at:[14.05,11], w:0.14, h:2.2, d:2.0, color:0x5d4a36, hidden:true},
