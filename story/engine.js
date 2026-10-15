@@ -91,8 +91,13 @@ function groundAt0(x,z,ref){
     /* (its own level ground: a set may lie on more than one — but where something is BUILT on it, a house
        with a floor up a stair, the floor is found from below like any other: read off the level ground,
        the upper room's floor was taken for the street, and none could find a way across it) */
-    if(pd){ const py=pd.ty!==undefined?pd.ty*k.B:anchor.y;
-      if(!k.solidAt(anchor.x+x*SX,py+0.5*k.B,anchor.z+z*SX)) r=py+2.2*S; }
+    if(pd){ const py=pd.ty!==undefined?pd.ty*k.B:anchor.y, B=k.B, wx=anchor.x+x*SX, wz=anchor.z+z*SX;
+      if(!k.solidAt(wx,py+1.5*B,wz)) r=py+2.2*S;
+      /* (found up from the level ground itself, not from the land's old height: where the level was cut down
+         into a hill, a man there was looked for from inside the air of the cut, and set forty metres up) */
+      else { let b=Math.round(py/B), n=0;
+        for(;n<120;){ while(n<120&&k.solidAt(wx,(b+0.5)*B,wz)){ b++; n++; } if(!k.solidAt(wx,(b+1.5)*B,wz)) break; b++; n++; }
+        return (b*B-anchor.y)/S; } }
     /* (or the slope its edge was eased into: cut down a hillside, the land's own top is gone, and a man
        set there was found standing in the air forty metres over the cut) */
     else { const bh=ctx.api.blendL?ctx.api.blendL(x,z):undefined; if(bh!==undefined) r=bh*k.B+2.2*S;
