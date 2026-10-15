@@ -283,7 +283,7 @@ STORY.act({
       ...[0,1,2,3,4,5,6,7].map(k=>({id:'a'+k, dress:'assyrian', at:['pool',11.6-(k%4)*3.3,-8.4+Math.floor(k/4)*2.8], face:Math.PI*(k%2), robe:0x7a2a22, cloth:null, beard:0x14100e}))
     ],
     things:[ {id:'letter', kind:'box', at:[-30,22.6], w:0.5, h:0.08, d:0.3, y:0.84, color:0xe9dfc2},
-             ...[0,1,2,3,4].map(k=>({id:'tent'+k, kind:'box', at:['pool',15.6-k*4.2,-3.8-(k%2)*0.6], w:3.2, h:1.9, d:2.2, color:0xb8a888})) ],
+             ...[0,1,2,3,4].map(k=>({id:'tent'+k, kind:'box', at:['pool',15.6-k*4.2,-2.4-(k%2)*0.6], w:3.2, h:1.9, d:2.2, color:0xb8a888})) ],
     glows:[ {id:'malak', malak:true, at:['pool',28,-10], dy:13, size:12, color:0xfff6dc, intensity:2.2, pulse:true, hidden:true} ],
     beats:[
       {t:'cam', from:[12,4,-4], look:'hiz', dur:0.1},
