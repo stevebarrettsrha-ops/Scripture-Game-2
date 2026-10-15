@@ -601,6 +601,8 @@ const FILES=[
   /* the olive's leaf and bole, for the groves of the story (Round 130) — appended */
   'blocks/leaves-olive.js',
   'blocks/log-olive.js',
+  /* the work the people give, by trade (Phase B) — appended, same append-only rule */
+  'world/jobs.js',
   'js/engine.js',
 ];
 
