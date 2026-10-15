@@ -1322,7 +1322,9 @@ S.ephesos=function(ctx,st){
    a reef off a point; a fire kindled on the shore in the rain (28:2) */
 S.malta=function(ctx,st){
   ctx.wind=[4,-1.6];
-  W.ground(ctx,{color:C.grassDry,flat:30,peak:[{x:-40,z:-40,h:10,r:30},{x:-40,z:50,h:12,r:34}]});
+  /* (raised out of the sea, its round level ground would stand ten metres out into the bay past the beach, where
+     on land the bay's water was cut into it: the shore below is level ground enough) */
+  W.ground(ctx,{color:C.grassDry,flat:ctx.anchor&&ctx.anchor.sea?0:30,peak:[{x:-40,z:-40,h:10,r:30},{x:-40,z:50,h:12,r:34}]});
   ctx.api.pad(-34,-46,14,46,{top:'sand'});                                                     /* the shore they came ashore on, above the sea (Acts 28:1) */
   sea(ctx,st,20,{depth:5});
   for(let k=0;k<10;k++){ const z=-4+W.hash(k,2)*8, x=38+W.hash(k,3)*8; st.box(x-1,-5,z-1,x+1,0.3+W.hash(k,4)*0.5,z+1,C.rock); }   /* the reef where the two seas meet */
