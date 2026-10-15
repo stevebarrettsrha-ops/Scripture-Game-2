@@ -12420,7 +12420,124 @@ function takeWatch(a){
    — hashed from its home range, so the same beast makes for the same
    hollow every dusk. The herd beasts of the open answer null and bed
    where the herd stands. */
+/* ---- A HOME IN ITS OWN COUNTRY, AND KEPT (Round 141, Phase E1) ----
+   THE FAULT THIS MENDS. The beast's bed was "a remembered spot of its own ground — hashed from its
+   home range", and its home range was wherever the haze had happened to set it down: the same fox
+   met twice was two foxes with two dens, the hippo's "water" bed was a dry spot on the bank, the
+   goat bedded on the meadow and the meerkat on bare grass with no burrow under it.
+   Now the earth is cut into territories (WILD_TERR a side), and each kind's home in a territory is
+   looked for ONCE, on the ground itself, and kept: every beast of that kind set down anywhere in
+   that country makes for the same home every evening. And the home is the kind's own:
+     water    a place in the water at its edge (a river, a lake, the shallows) — it walks to the
+              strand and goes down into the water to lie with only its back showing;
+     rock     bare rock, a crag, or failing those the highest ground about;
+     burrow   level open ground, no tree, no field, no town — and the burrow is DUG there, a hole
+              and its heap, and at its hour the beast goes down it and is gone;
+     den      the den the nests' own map already puts in that country, if there is one of its
+              kind; else a bank to dig into, the mouth turned downhill; it lies in the mouth;
+     tree     a tree of its country, and it climbs into the crown to sleep;
+     ice      the floe and the snow.
+   The territory is what is kept, not the spot it was born on. */
+const WILD_TERR=420, WILD_HOMES=new Map(), WILD_HOME_G=new Map(); let WILD_HOME_T=0;
+function wildSettled(c){ return !!(c&&(c.cleared||c.farm||c.road)); }
+function wildHomeOf(a){
+  const H=window.BEHAVIOR?BEHAVIOR.homeOf(a.kind):'open'; if(H==='open') return null;
+  const ti=Math.floor(a.hx/WILD_TERR), tj=Math.floor(a.hz/WILD_TERR), key=a.kind+'|'+ti+','+tj;
+  let h=WILD_HOMES.get(key);
+  if(h===undefined){ h=wildHomeFind(a.kind,H,ti,tj,key)||null; if(WILD_HOMES.size>6000) WILD_HOMES.clear(); WILD_HOMES.set(key,h); }
+  return h; }
+function wildHomeFind(kind,H,ti,tj,key){
+  const T=WILD_TERR, cx=(ti+0.5)*T, cz=(tj+0.5)*T, sd=travHash(key)*97;
+  const spec=(window.NEST&&NEST.homeOf(kind))||null, r=B*0.9*((spec&&spec.r)||1);
+  /* the ground of the territory, looked at on a grid of nine by nine, nearest its middle first */
+  const grid=(R,N)=>{ const g=[];
+    for(let a2=0;a2<N;a2++) for(let b2=0;b2<N;b2++){
+      const x=cx+((a2+0.5)/N*2-1)*R+(hash2(a2*3.1+sd,b2*1.7)-0.5)*R/N, z=cz+((b2+0.5)/N*2-1)*R+(hash2(b2*2.3,a2*5.3+sd)-0.5)*R/N;
+      g.push({x,z,d:Math.hypot(x-cx,z-cz)}); }
+    return g.sort((p,q)=>p.d-q.d); };
+  const wetAt=(x,z)=>{ const c=landAtWorld(x,z); if(Math.hypot(x,z)/R_WORLD>=SHELF_UV) return null;
+    if(!c) return {wy:WATER_Y}; if(c.lake!==undefined&&c.lake>c.h) return {wy:c.lake*B+WATER_Y}; return null; };
+  const stepOf=(x,z,c)=>{ let m=0, dir=null;
+    for(const [dx,dz] of [[B,0],[-B,0],[0,B],[0,-B]]){ const n=landAtWorld(x+dx,z+dz); if(!n) continue;
+      const dh=n.h-c.h; if(Math.abs(dh)>Math.abs(m)){ m=dh; dir=[dx,dz]; } }
+    return {m,dir}; };
+  if(H==='water'){
+    for(const R of [T*0.62,T*1.3]) for(const p of grid(R,R>T?13:9)){
+      const w=wetAt(p.x,p.z); if(!w) continue;
+      /* a water's edge: the land within four blocks of it */
+      let shore=null;
+      for(let k=1;k<=4&&!shore;k++) for(let q=0;q<8;q++){ const an=q/8*Math.PI*2, sx=p.x+Math.cos(an)*B*k, sz=p.z+Math.sin(an)*B*k, c=landAtWorld(sx,sz);
+        if(c&&c.kind!=='wall'&&c.kind!=='floe'&&!(c.lake!==undefined&&c.lake>c.h)&&!wildSettled(c)&&beastMayStand(kind,c)){ shore={x:sx,z:sz}; break; } }
+      if(!shore) continue;
+      const ux=p.x-shore.x, uz=p.z-shore.z, ul=Math.hypot(ux,uz)||1;
+      let bx=p.x+ux/ul*B*1.5, bz=p.z+uz/ul*B*1.5; if(!wetAt(bx,bz)){ bx=p.x; bz=p.z; }
+      return {kind:'water',key,x:shore.x,z:shore.z,bx,bz,wy:w.wy,hd:Math.atan2(ux,uz)}; }
+    /* (at the true measure the rivers are not yet water — the bank of the watercourse, then) */
+    for(const p of grid(T*1.3,13)){ const u=p.x/R_WORLD, v=p.z/R_WORLD; if(!riverAtUV(u,v)) continue;
+      const c=landAtWorld(p.x,p.z); if(!c||c.kind==='wall'||wildSettled(c)) continue;
+      return {kind:'bank',key,x:p.x,z:p.z,bx:p.x,bz:p.z}; }
+    return null; }
+  if(H==='rock'){ let best=null, bs=-1e9;
+    for(const p of grid(T*0.62,9)){ const c=landAtWorld(p.x,p.z); if(!c||c.kind==='wall'||c.kind==='floe'||wildSettled(c)||!beastMayStand(kind,c)) continue;
+      if(c.tree&&treeBlocked(p.x,p.z)) continue;
+      const rock=c.kind==='rock'||c.kind==='badlands'||c.kind==='alpine', st=stepOf(p.x,p.z,c);
+      const s=(rock?100:0)+(Math.abs(st.m)>=2?50:0)+c.h*0.05-p.d*0.01;
+      if(s>bs){ bs=s; best={kind:'rock',key,x:p.x,z:p.z,bx:p.x,bz:p.z}; } }
+    return best; }
+  if(H==='tree'){
+    for(const p of grid(T*0.62,9)){ const c=landAtWorld(p.x,p.z); if(!c||wildSettled(c)||!beastMayStand(kind,c)) continue;
+      const w2=treeNear(p.x,p.z,4); if(!w2) continue;
+      return {kind:'tree',key,x:w2.x+B*1.1,z:w2.z,bx:w2.x+B*0.45,bz:w2.z,up:Math.max(B*1.5,(w2.crown||B*3)*0.78)}; }
+    return null; }
+  if(H==='ice'){
+    for(const p of grid(T*0.62,9)){ const c=landAtWorld(p.x,p.z);
+      if(c&&(c.kind==='floe'||c.kind==='snow'||c.kind==='tundra'||(c.kind==='wall'&&c.h<=60))&&beastMayStand(kind,c)) return {kind:'ice',key,x:p.x,z:p.z,bx:p.x,bz:p.z}; }
+    return null; }
+  /* a den or a burrow: the one the nests' own map puts in this country for this kind, if there is one */
+  const form=(spec&&spec.form)||(H==='burrow'?'burrow':'den');
+  const mk=(x,z,rot,adopt)=>{ const s=Math.sin(rot), c=Math.cos(rot), off=(lz)=>[x+s*lz,z+c*lz];
+    let bed, door;
+    if(form==='cave'){ bed=off(-r*1.15); door=off(r*1.4); }
+    else if(form==='warren'){ const a2=hash2(0,0)*2, at=(k)=>{ const lx=Math.cos(a2)*r*k, lz=Math.sin(a2)*r*k; return [x+lx*c+lz*s,z-lx*s+lz*c]; };
+      bed=at(0.95); door=at(1.9); }
+    else if(form==='burrow'||form==='holt'){ bed=off(r*0.5); door=off(r*1.5); }
+    else if(form==='den'){ bed=off(r*1.0); door=off(r*2.0); }
+    else { bed=[x,z]; door=off(r*1.6); }
+    const under=form==='burrow'||form==='warren'||(H==='burrow'&&form!=='mound');
+    return {kind:under?'burrow':'den',form,key,hx:x,hz:z,rot,x:door[0],z:door[1],bx:bed[0],bz:bed[1],hd:Math.atan2(door[0]-bed[0],door[1]-bed[1]),
+      mesh:true,spec:spec||{form,where:'ground',n:0,r:1},adopt:!!adopt}; };
+  { const CS=430; let best=null;
+    for(let gi=Math.round(cx/CS)-1;gi<=Math.round(cx/CS)+1;gi++) for(let gj=Math.round(cz/CS)-1;gj<=Math.round(cz/CS)+1;gj++){
+      if(hash2(gi*2.7,gj*5.1)<0.5) continue;
+      const wx=gi*CS+(hash2(gi,gj)-0.5)*300, wz=gj*CS+(hash2(gj,gi)-0.5)*300, c=landAtWorld(wx,wz); if(!c||c.kind==='wall'||!c.ci) continue;
+      const s=homeSiteFor(wx,wz,c,gi,gj); if(!s||s.bird||s.kind!==kind||!beastMayStand(kind,landAtWorld(s.x!==undefined?s.x:wx,s.z!==undefined?s.z:wz))) continue;
+      const x=s.x!==undefined?s.x:wx, z=s.z!==undefined?s.z:wz, d=Math.hypot(x-cx,z-cz);
+      if(d<T*1.2&&(!best||d<best.d)) best={x,z,d}; }
+    if(best) return mk(best.x,best.z,0,true); }
+  /* else a bank to dig into, its mouth turned downhill — or, for the burrowers, open level ground */
+  let lev=null;
+  for(const p of grid(T*0.62,9)){ const c=landAtWorld(p.x,p.z); if(!c||c.kind==='wall'||c.kind==='floe'||wildSettled(c)||c.tree||c.field||c.vine||!beastMayStand(kind,c)) continue;
+    if(c.kind==='sand'&&H!=='burrow') continue;
+    const st=stepOf(p.x,p.z,c);
+    if(H==='den'&&st.m>=1&&st.m<=4&&st.dir) return mk(p.x,p.z,Math.atan2(-st.dir[0],-st.dir[1]),false);
+    if(!lev&&Math.abs(st.m)<=1) lev=p; }
+  return lev?mk(lev.x,lev.z,hash2(lev.x*0.1,lev.z*0.1)*Math.PI*2,false):null; }
+/* the dug homes stand where their beasts are, built as the nests are built — unless a nest of the
+   world's own already stands on that very spot */
+function wildHomesTick(px,pz){
+  const want=new Map();
+  for(const a of LANDLIFE){ const H=a.set&&a.den; if(!H||!H.mesh) continue;
+    if(Math.hypot(H.hx-px,H.hz-pz)>720) continue;
+    let held=false; for(const N of NESTS) if(N.set&&!N.bird&&Math.hypot(N.x-H.hx,N.z-H.hz)<4){ held=true; break; }
+    if(!held) want.set(H.key,H); }
+  for(const [k,o] of WILD_HOME_G) if(!want.has(k)){ scene.remove(o.g); freeTree(o.g); WILD_HOME_G.delete(k); }
+  for(const [k,H] of want){ if(WILD_HOME_G.has(k)||WILD_HOME_G.size>=14) continue;
+    const built=buildBeastHome({home:H.spec,kind:k.split('|')[0],bird:false});
+    built.g.position.set(H.hx,groundTopAt(H.hx,H.hz,landAtWorld(H.hx,H.hz)),H.hz); built.g.rotation.y=H.rot||0;
+    scene.add(built.g); WILD_HOME_G.set(k,{g:built.g,H}); } }
+/* the old way, kept so a probe may put the fault back and measure it (`__INJECT.hashedDens`) */
 function findDen(a){
+  if(!(window.__INJECT&&__INJECT.hashedDens)) return wildHomeOf(a);
   for(const N of NESTS){ if(!N.set||N.bird) continue;
     if(N.kind&&N.kind.indexOf(a.kind+'|')===0&&Math.hypot(N.x-a.x,N.z-a.z)<280){
       /* ---- AND A BEAST THAT WINTERS IN A CAVE LIES *INSIDE* IT ----
@@ -12534,6 +12651,8 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
   /* THE HERDS OF THE EARTH, ONCE, BEFORE ANYBODY MOVES — so that every beast
      in this frame reads the same herd, and so does the instrument. */
   LL_T+=dt;      /* the herds' own clock, for the matriarch's slow-turning bearing */
+  /* (and the dug homes of the beasts in reach stand where their beasts are — Round 141) */
+  WILD_HOME_T-=dt; if(WILD_HOME_T<=0){ WILD_HOME_T=0.5; wildHomesTick(px,pz); }
   { const t0=performance.now(); herdPass(); HSTAT.passMs+=performance.now()-t0;
     HSTAT.secs+=dt; HSTAT.frames++; }
   for(const a of LANDLIFE){ if(!a.set||Math.hypot(a.hx-px,a.hz-pz)>llReap){
@@ -12610,7 +12729,9 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
          in the heat, and at any instant it leaves seven in eight of them
          about their business. */
       a.hasHome=!!(window.BEHAVIOR&&BEHAVIOR.homeOf(a.kind)!=='open');
-      a.lieAt=hash2(sp.x*0.023,sp.z*0.031)*24;
+      /* (its hour of rest is its territory's, as its home is — Round 141) */
+      a.lieAt=hash2(Math.floor(sp.x/WILD_TERR)*0.73+a.kind.length*0.11,Math.floor(sp.z/WILD_TERR)*1.31)*24;
+      a.bedP=0; a.fresh=true;
       a.river=riverBankAt(sp.x,sp.z); a.sink=0; a.crouch=false; a.hidden=false;
       a.m.visible=true; a.m.position.set(sp.x,sp.y,sp.z);
       /* ---- AND SOME OF THEM HAVE YOUNG AT FOOT ----
@@ -12727,12 +12848,24 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
        herd is for. */
     if(asleep){
       if(a.job!=='bed'&&a.job!=='home'){
-        a.den=findDen(a); a.job=a.den?'home':'bed'; a.act=null; a.prey=null; a.crouch=false; }
+        a.den=findDen(a); a.job=a.den?'home':'bed'; a.act=null; a.prey=null; a.crouch=false;
+        /* ---- WHERE THE CLOCK SAYS (Round 141) ----
+           a beast set down at its sleeping hour is set down abed at its own home — if that home
+           lies out in the haze, where its being there cannot be seen to begin */
+        if(a.fresh&&a.den&&a.den.bx!==undefined&&Math.hypot(a.den.x-px,a.den.z-pz)>llMin*0.8){
+          a.x=a.tx=a.den.bx; a.z=a.tz=a.den.bz; a.job='bed'; a.bedP=1; a.gy=undefined;
+          if(a.den.hd!==undefined) a.heading=a.den.hd; } }
       if(a.job==='home'){ const dh=Math.hypot(a.den.x-a.x,a.den.z-a.z);
-        if(dh<3.5) a.job='bed';
+        if(dh<3.5){ a.job='bed'; if(a.den.hd!==undefined&&a.den.bx!==undefined) a.heading=a.den.hd; }
         else { a.tx=a.den.x; a.tz=a.den.z; spd=walkSpd*1.4; } }
-      if(a.job==='bed') spd=0;
+      if(a.job==='bed'){ spd=0;
+        /* and it goes INTO its home: down into the water, down the burrow, up the tree, into the den's mouth */
+        if(a.den&&a.den.bx!==undefined) a.bedP=Math.min(1,(a.bedP||0)+dt/2.4); }
     }
+    else if((a.bedP||0)>0&&a.den&&a.den.bx!==undefined){
+      /* woken: out of the water, up out of the burrow, down the tree — before anything else */
+      a.bedP=Math.max(0,a.bedP-dt/2.4); spd=0; a.job='bed';
+      if(a.bedP<=0){ a.job='roam'; a.jt=0.3+Math.random(); a.x=a.tx=a.den.x; a.z=a.tz=a.den.z; a.gy=undefined; } }
     else{
     if(a.job==='bed'||a.job==='home'){ a.job='roam'; a.jt=0.3+Math.random(); }
 
@@ -13045,6 +13178,19 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
            looks for another spot of its own country altogether */
         if(a.stuck>14){ a.set=false; a.stuck=0; }
       } }
+    /* ---- IN, OR COMING OUT OF, ITS OWN HOME (Round 141) ----
+       the body goes along the way in a little each moment: from the strand down into the water to
+       its back, from the mouth down the burrow until it is gone, up the bole into the crown */
+    let homeY=null, homeLift=0;
+    if((a.bedP||0)>0&&a.den&&a.den.bx!==undefined){ const H=a.den, p=a.bedP, ps=travSm(p);
+      a.x=H.x+(H.bx-H.x)*p; a.z=H.z+(H.bz-H.z)*p; a.tx=a.x; a.tz=a.z;
+      if(H.hd!==undefined) a.heading=H.hd;
+      const ht=(BEAST_BOX[a.kind]&&BEAST_BOX[a.kind].ht)||B;
+      if(H.kind==='water'){ const g0=groundInfo(H.x,H.z), y0=g0.land?g0.y:H.wy; homeY=y0+((H.wy-ht*0.62)-y0)*ps; }
+      else if(H.kind==='burrow') homeLift=-ht*1.15*ps;
+      else if(H.kind==='tree') homeLift=(H.up||B*2)*ps;
+      else homeLift=-1.6*ps; }
+    if(a.den&&a.den.kind==='burrow'){ const gone=(a.bedP||0)>0.97; if(a.m.visible===gone){ a.m.visible=!gone; if(gone) hideYoung(a); } }
     const c2=landAtWorld(a.x,a.z);
     /* how the body carries itself at its work */
     let lift=0, lean=0, roll=0;
@@ -13061,7 +13207,7 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
     }
     else if(a.job==='fish'){ lean=0.34+Math.sin(t*2.2+a.ph)*0.05; lift=-0.6; }  /* down at the water's edge */
     else if(a.job==='feed') lean=0.30+Math.sin(t*2.6+a.ph)*0.06;  /* tearing at the kill */
-    else if(a.job==='bed'){ lift=-1.6; }                      /* bedded down for the night */
+    else if(a.job==='bed'){ lift=(a.den&&a.den.bx!==undefined)?homeLift:-1.6; }   /* bedded down for the night (at home, as its home has it) */
     else if(a.job==='act'){
       /* ---- THE SMALL BUSINESS OF THE DAY, PERFORMED ----
          each habit of the behavior file is a real attitude of the body —
@@ -13100,8 +13246,9 @@ function updateLandLife(px,pz,dt,t){ initLandLife();
     if(a.gy===undefined||a._gx!==a.x||a._gz!==a.z||a._gyT<=0){ a._gyT=0.8+Math.random()*0.6; const g0=(a.gy!==undefined?a.gy:(c2?c2.h*B:WATER_Y));
       const f2=beastFloor(a,a.x,a.z,a.heading||0,g0+B*0.3,g0+B*1.05);
       a.gy=f2.y>-1e8?f2.y:(c2?c2.h*B:WATER_Y); a._gx=a.x; a._gz=a.z; }
-    a.m.position.set(a.x,a.gy+lift+(GT?Math.max(0,GT.rise):0),a.z);
+    a.m.position.set(a.x,homeY!==null?homeY:a.gy+lift+(GT?Math.max(0,GT.rise):0),a.z);
     a.m.rotation.y=a.heading; a.m.rotation.x=lean; a.m.rotation.z=roll;
+    a.fresh=false;
     /* ---- THE BREATH IN THE BODY ----
        Nothing standing still was truly still: no flank moved, no tail
        swished, and a beast at rest read as parked. Every one of them now
@@ -19194,7 +19341,7 @@ function dismount(quiet){
     a.x=a.hx=a.tx=state.walk.x+Math.sin(state.walk.heading+1.6)*5;
     a.z=a.hz=a.tz=state.walk.z+Math.cos(state.walk.heading+1.6)*5;
     a.heading=state.walk.heading; a.role='graze'; a.job='roam'; a.jt=1+Math.random()*2;
-    a.dead=0; a.den=null; a.act=null; a.burst=0; a.fear=0; a.panicT=0; a.upTree=0;
+    a.dead=0; a.den=null; a.act=null; a.burst=0; a.fear=0; a.panicT=0; a.upTree=0; a.bedP=0;
     a.day='day'; a.river=false; a.ph=Math.random()*6.283;
     a.m.visible=true; M.m=null; break; }
   if(M.m){ scene.remove(M.m); freeTree(M.m); }   /* no slot free — it slips away, and is given back */
