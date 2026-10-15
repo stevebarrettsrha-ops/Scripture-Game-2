@@ -480,7 +480,7 @@ STORY.act({
     ]},
 
   /* ---------------- II.7 — THE BOY IN THE HOUSE OF HIS FATHER ---------------- */
-  { id:'boy', title:'Yahrushalayim', date:'twelve years later, at the Pesach', place:'yahrushalayim', time:'day',
+  { id:'boy', title:'Yahrushalayim', date:'twelve years later, at the Pesach', place:'yahrushalayim', time:'day', trueAt:[112,160],   /* (at the true measure: under Shelomoh's porch on the east side of the courts, south of the barrier — each of its places sent by its own nearest mark, the teachers and the way to them were scattered over the courts) */
     player:{ at:[18,-52], face:Math.PI/2, look:{robe:0x8a7454, cloth:0xd8cfb8, beard:0x3a2a1e, skin:0x86573a} },
     crowds:[ {id:'pilgrims', n:240, area:[-4,-74,44,-38], jitter:6.3, keep:[[29,-64,38,-54]]} ],
     actors:[ Object.assign({id:'miryam', name:'Miryam', key:'Miryam', at:[10,-50.6], face:Math.PI/2},MIRYAM),

@@ -55,11 +55,17 @@ const WORLD_K=(()=>{ let v=(window.__INJECT||{}).worldK;
   if(v===undefined){ try{ const k=localStorage.getItem(EARTH_KEY); if(k) v=k; }catch(e){} }
   if(v===undefined) v=(window.DEM&&window.DEM.ready())?'true':'small';
   return v==='true'?WORLD_TRUE_K:(+v>0?+v:1); })();
-const R_WORLD=Math.round(180000*WORLD_K), B=6, CH=16, CHW=B*CH, VIEW=13; /* the rim: 180 degrees from the pole */
+const R_WORLD=Math.round(180000*WORLD_K), B=6, CH=16, CHW=B*CH; /* the rim: 180 degrees from the pole */
 /* at (or near) the true measure the land is the earth's own: its heights and coasts are read from
    world/dem.js (THE TRUE FACE OF THE EARTH, beside cellRaw), and a block of height is a block of
    the men's own measure, 0.92 m, not the forty metres the small map had to raise its summits by */
 const TRUE_EARTH=WORLD_K>=40&&!!(window.DEM&&window.DEM.ready());
+/* ---- AND ON THE TRUE EARTH MORE OF IT STANDS IN BLOCKS ----
+   The streamed ring of true blocks reached 13 chunks (1,248 units, about 1.2 km); past it the
+   land was the far ring's smooth brick, so from any wall or hill the country a few hundred
+   metres off was already a soft blur. On the true earth, where the haze stands kilometres out,
+   the ring of blocks reaches 18 chunks (1,728 units) — about twice the ground in true blocks. */
+const VIEW=TRUE_EARTH?18:13;
 const M_PER_BLK=B/U_PER_M_WORLD;
 /* the height the flora's bands of growth are written in (js/flora.js, `hh`): blocks of the small map,
    forty metres each — so the true earth's height is put into that measure before it is asked */
@@ -2295,10 +2301,31 @@ const DRY_BELOW=[
   {n:'Danakil',lat:[13.3,15.2],lon:[39.7,41.0]},
   {n:'Death Valley',lat:[35.7,36.9],lon:[-117.4,-116.4]}];
 /* the waters of a depression: its level as the data reads it, and how deep it lies under that */
+/* THE SHORE OF KINNERETH, as it runs: read off the data alone the lake came out patched and a
+   kilometre short of its shores — the tiles sample the rift at a hundred and thirty metres and read
+   the water as anything from -207 to -224, and the strands of the north and east were land — and
+   Kephar Naḥum, which stands on the water's edge, stood seven hundred metres from it. So its shore
+   is given, (lat,lon) round from the inflow of the Yardĕn: the east shore under the Golan, Ein Gev,
+   Tsemaḥ, the outflow, Ḥammath and Tiberias, Magdala, Ginosar, Tabgha, Kephar Naḥum. */
+const KINNERETH_SHORE=[[32.887,35.618],[32.8835,35.628],[32.876,35.635],[32.865,35.641],[32.85,35.6445],[32.835,35.646],
+  [32.825,35.6475],[32.81,35.646],[32.795,35.643],[32.784,35.64],[32.77,35.6355],[32.755,35.63],[32.74,35.623],[32.728,35.613],
+  [32.717,35.6],[32.708,35.588],[32.706,35.58],[32.711,35.572],[32.72,35.567],[32.735,35.561],[32.75,35.556],[32.768,35.55],
+  [32.78,35.544],[32.792,35.539],[32.805,35.53],[32.815,35.523],[32.825,35.5185],[32.838,35.519],[32.848,35.523],[32.858,35.53],
+  [32.866,35.539],[32.873,35.549],[32.877,35.56],[32.88,35.57],[32.8803,35.576],[32.882,35.588],[32.885,35.6],[32.887,35.61]];
 const RIFT_LAKES=[
-  {n:'Kinnereth',lat:[32.69,32.92],lon:[35.49,35.66],level:-216,deep:43},
+  {n:'Kinnereth',lat:[32.69,32.92],lon:[35.49,35.66],level:-216,deep:43,shore:KINNERETH_SHORE},
   {n:'the Salt Sea',lat:[31.02,31.80],lon:[35.33,35.62],level:-415,deep:300}];
 function inBoxLL(b,lat,lon){ return lat>=b.lat[0]&&lat<=b.lat[1]&&lon>=b.lon[0]&&lon<=b.lon[1]; }
+/* a place within a shore given as (lat,lon) points; and how far it is from that shore, in metres */
+function inPolyLL(P,lat,lon){ let inside=false;
+  for(let i=0,j=P.length-1;i<P.length;j=i++){ const ya=P[i][0], xa=P[i][1], yb=P[j][0], xb=P[j][1];
+    if(((ya>lat)!==(yb>lat))&&(lon<(xb-xa)*(lat-ya)/(yb-ya)+xa)) inside=!inside; }
+  return inside; }
+function shoreDistM(P,lat,lon){ const kx=M_PER_DEG*Math.cos(lat*Math.PI/180), ky=M_PER_DEG; let best=1e12;
+  for(let i=0,j=P.length-1;i<P.length;j=i++){ const ax=(P[j][1]-lon)*kx, ay=(P[j][0]-lat)*ky, bx=(P[i][1]-lon)*kx, by=(P[i][0]-lat)*ky;
+    const dx=bx-ax, dy=by-ay, t=Math.max(0,Math.min(1,-(ax*dx+ay*dy)/(dx*dx+dy*dy||1)));
+    best=Math.min(best,Math.hypot(ax+dx*t,ay+dy*t)); }
+  return best; }
 /* the place of a column on the earth */
 function latLonOf(x,z){ const u=x/R_WORLD, v=z/R_WORLD; return [90-Math.hypot(u,v)*180, Math.atan2(u,v)*180/Math.PI]; }
 /* whether a place of the map lies in one of the dry basins under the sea's level (the rift, Qattara):
@@ -2326,7 +2353,7 @@ function cellRawTrue(ix,iz){
   if(e0<=0.5){
     for(const D of DRY_BELOW) if(inBoxLL(D,lat,lon)){ dry=true; break; }
     if(!dry) return null;                                /* the sea */
-    for(const L of RIFT_LAKES) if(inBoxLL(L,lat,lon)&&e0<=L.level+1.5){ lake=L; break; }
+    for(const L of RIFT_LAKES) if(inBoxLL(L,lat,lon)&&(L.shore?inPolyLL(L.shore,lat,lon):e0<=L.level+1.5)){ lake=L; break; }
   }
   /* the country: read off the chart, and where the chart's coarse coast says sea under true land,
      from the nearest pixel that is a country */
@@ -2336,14 +2363,22 @@ function cellRawTrue(ix,iz){
   const j=hash2(ix,iz), n=fbm(ix*.11,iz*.11), n2=fbm(ix*.023/WORLD_K+40,iz*.023/WORLD_K-70);
   if(lake){
     /* the bed falls from the strand to the lake's own depth toward its middle */
-    const cy=(lake.lat[0]+lake.lat[1])/2, cx2=(lake.lon[0]+lake.lon[1])/2;
-    const ry=(lake.lat[1]-lake.lat[0])/2, rx=(lake.lon[1]-lake.lon[0])/2;
-    const q=Math.min(1,Math.hypot((lat-cy)/ry,(lon-cx2)/rx));
-    const bedM=lake.level-lake.deep*Math.pow(1-q,0.7)-1.5;
+    let bedM;
+    if(lake.shore){ const d=shoreDistM(lake.shore,lat,lon);                        /* (a shore given: deepening from it) */
+      bedM=lake.level-1-lake.deep*Math.pow(Math.min(1,d/2500),0.8); }
+    else{ const cy=(lake.lat[0]+lake.lat[1])/2, cx2=(lake.lon[0]+lake.lon[1])/2;
+      const ry=(lake.lat[1]-lake.lat[0])/2, rx=(lake.lon[1]-lake.lon[0])/2;
+      const q=Math.min(1,Math.hypot((lat-cy)/ry,(lon-cx2)/rx));
+      bedM=lake.level-lake.deep*Math.pow(1-q,0.7)-1.5; }
     return {h:Math.round(bedM/M_PER_BLK), kind:'sand', tree:0, ci, dk:false, lake:Math.round(lake.level/M_PER_BLK)};
   }
   /* the fractal comes in over the first twenty metres of the strand, so the coast stays where it is */
-  const em=dry?e0+T.d:Math.max(0.6,e0+T.d*Math.min(1,Math.max(0,e0/20)));
+  let em=dry?e0+T.d:Math.max(0.6,e0+T.d*Math.min(1,Math.max(0,e0/20)));
+  /* about a lake whose shore is given, the land stands above its water (the data's own reading of the
+     strand is often under it), and the first metres up from the water are its beach */
+  let strand=false;
+  if(dry) for(const L of RIFT_LAKES) if(L.shore&&inBoxLL(L,lat,lon)){ const d=shoreDistM(L.shore,lat,lon);
+    const lo=L.level+1.2*M_PER_BLK+Math.min(3,d*0.02); if(em<lo) em=lo; strand=d<14; break; }
   let h=Math.round(em/M_PER_BLK); if(!dry&&h<1) h=1;
   /* how steep: the fall of the data across a sample, in metres to the metre */
   const dl=0.5/111195*T.sp;
@@ -2365,7 +2400,7 @@ function cellRawTrue(ix,iz){
   const beach=!snow&&!tundra&&!dry&&em<2.6&&sl<0.06;
   const dens=GROUND.closure(ix,iz);
   let kind, tree=0;
-  if(beach){ kind='sand'; if(tropic&&j<0.022*dens) tree=2; }
+  if(beach||strand){ kind='sand'; if(tropic&&j<0.022*dens) tree=2; }
   else if(snow) kind='snow';
   else if(tundra){ kind='tundra'; tree=j<0.016*dens?1:0; }
   else if(alpine){ kind=h>treeLine+(snowLine-treeLine)*0.45?'rock':'alpine'; tree=(kind==='alpine'&&j<0.016*dens)?1:0; }
@@ -2874,8 +2909,12 @@ function cellCompute(ix,iz){
            into the true land so no village sits on a cut-out plate. */
         const k=(t>=1)?1:t*0.92;
         const h0=c.h;
-        c.h=Math.max(1,Math.round(c.h+(st.h0-c.h)*k));
-        if(c.kind!=='sand'&&c.h===1) c.h=2;
+        /* (held above the sea's level — except a town of the dry rift, Kephar Nahum, Tiberias, Yeriho,
+           whose ground lies hundreds of metres under it: held there, every one of them was raised on a
+           mesa to the level of the Great Sea, and its houses stood buried under it) */
+        const lo=st.h0<1?-1e9:1;
+        c.h=Math.max(lo,Math.round(c.h+(st.h0-c.h)*k));
+        if(lo===1&&c.kind!=='sand'&&c.h===1) c.h=2;
         /* ---- AND THE HOLLOW UNDER IT COMES DOWN WITH THE GROUND ----
            A village levels the land for eighty-six units about it. Where it
            levels a hill that had a passage in it the ground can drop THROUGH
@@ -2890,7 +2929,9 @@ function cellCompute(ix,iz){
     if(sP){ const j=hash2(ix*0.71+3.3,iz*1.37-1.9), j2=hash2(ix*2.3+0.4,iz*0.9+5.1);
       const wood=c.kind==='grass'||c.kind==='tropic';
       if(sd<sP.core){ c.tree=0; c.cleared=2;                      /* the town's own ground */
-        if(j2<(sd<sP.core*0.45?0.34:0.16)) c.bare=2; }            /* trampled bare */
+        /* trampled bare: the middle of a town is beaten path, and its lanes
+           are mostly earth — grass does not grow where people walk all day */
+        if(j2<(sd<sP.core*0.45?0.85:0.6)) c.bare=(sd<sP.core*0.45||j2<0.3)?2:1; }
       else if(sd<sP.ring){ c.cleared=1;                           /* the felled ring */
         if(c.tree){ c.tree=0; if(j<0.7) c.stump=1; }
         else if(wood&&j<0.035) c.stump=1;                         /* (the wood stood thicker than the wild grows now) */
@@ -2949,6 +2990,17 @@ function roadCell(c,x,z){ if(!ROADS.size||c.kind==='wall'||c.kind==='floe') retu
   for(const [ax,az,bx,bz] of L){ const dx=bx-ax, dz=bz-az, l2=dx*dx+dz*dz||1, t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/l2));
     if(Math.hypot(x-ax-dx*t,z-az-dz*t)<W){ c.tree=0; c.stump=0; c.bare=2; c.road=1; return true; } }
   return false; }
+/* ---- WILD COUNTRY: no village, town or city, nor its fields, nor a road, within r of (x,z) ----
+   For a scene of the making of the world, which must not have a ploughed field standing on the shore
+   of the third day (Bereshith 2:5, "there was no man to till the ground"). */
+function wildAt(x,z,r){ r=r||0;
+  for(const st of SITES){ if(!st) continue; const P=settleProfile(st), R=Math.max(P.farm||0,P.edge)+r;
+    if((x-st.x)**2+(z-st.z)**2<R*R) return false; }
+  if(yahruPos&&Math.hypot(x-yahruPos.x,z-yahruPos.z)<9000+r) return false;
+  for(let du=-1;du<=1;du++) for(let dv=-1;dv<=1;dv++){ const L=ROADS.get((Math.floor(x/ROAD_T)+du)+','+(Math.floor(z/ROAD_T)+dv)); if(!L) continue;
+    for(const [ax,az,bx,bz] of L){ const dx=bx-ax, dz=bz-az, l2=dx*dx+dz*dz||1, t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/l2));
+      if(Math.hypot(x-ax-dx*t,z-az-dz*t)<r) return false; } }
+  return true; }
 function topY(ix,iz){ const c=cell(ix,iz); return c? c.h*B : WATER_Y; }
 function landAtWorld(x,z){ return cell(Math.floor(x/B),Math.floor(z/B)); }
 function computeSites(){
@@ -2964,8 +3016,8 @@ function computeSites(){
       const cc=cellRaw(ix,iz);
       /* the city of the great king stands on her own hill: no village is raised inside her walls */
       if(yahruPos&&Math.hypot((ix+.5)*B-yahruPos.x,(iz+.5)*B-yahruPos.z)<900) return null;
-      if(cc&&cc.kind!=='wall'&&cc.kind!=='floe'&&cc.h<=maxH)
-        return {i,ix,iz,x:(ix+.5)*B,z:(iz+.5)*B,h0:Math.max(2,cc.h)};
+      if(cc&&cc.kind!=='wall'&&cc.kind!=='floe'&&cc.lake===undefined&&cc.h<=maxH)        /* (never in a lake of the rift) */
+        return {i,ix,iz,x:(ix+.5)*B,z:(iz+.5)*B,h0:cc.h>=1?Math.max(2,cc.h):cc.h};      /* (and in the dry rift, at its own depth) */
       return null; };
     for(let pass=0;pass<2&&!best;pass++){
     maxH = pass===0 ? 12 : 1e9;
@@ -4973,6 +5025,9 @@ function buildChunk(cx,cz){
     }
     emitColumn(G,ix,iz,cc);
     const x=(ix+.5)*B, z=(iz+.5)*B, yT=cc.h*B, j=hash2(ix*1.7,iz*2.9);
+    if(TOWN_GROUND.length&&townGroundAt(x,z)){     /* a walled city's streets: trodden, never grown */
+      emitTop(G,hash2(Math.floor(ix/5)*0.37+1.1,Math.floor(iz/5)*0.41-2.3)+hash2(ix*0.9,iz*1.3)*0.25<0.4?'dirt':'path', ix*B+0.05,iz*B+0.05,(ix+1)*B-0.05,(iz+1)*B-0.05, yT+0.05, 1.0);
+      continue; }
     if(cc.tree&&!noTreeAt(ix,iz)) emitTree(G,ix,iz,cc);
     else if(!noTreeAt(ix,iz)){   /* (a cleared lot or yard grows no scrub either — Round 137) */
       /* the settled ground: earth trampled or cut bare, and in the town's own
@@ -5249,7 +5304,9 @@ function updateChunks(px,pz,budget,view){
    end. One index buffer, built once, serves every rebuild. */
 /* (at the true measure of the earth the ring reaches fourteen kilometres: the Mount of Olives seen from
    the city, the hills of Yahuḏah from the coast, the haze closing far out over them — Phase T4) */
-const FL_RINGS=64, FL_SPOKES=112, FL_R0=420, FL_R1=TRUE_EARTH?90000:3600, FL_FADE=330, FL_STEP=300;
+/* (on the true earth the far country is woven half again as fine each way, so the land past the
+   blocks keeps its hills and valleys instead of melting into broad smooth swells) */
+const FL_RINGS=TRUE_EARTH?96:64, FL_SPOKES=TRUE_EARTH?168:112, FL_R0=420, FL_R1=TRUE_EARTH?90000:3600, FL_FADE=330, FL_STEP=300;
 const FL_NR2=FL_RINGS*2, FL_NS2=FL_SPOKES*2;   /* the woven grid is twice as fine */
 const FL_INSET=0.035;         /* how far in from a cell's edge its corners sit */
 /* the angle of every vertex column: two per cell, just inside its two edges.
@@ -6115,7 +6172,9 @@ const waveMat=new THREE.ShaderMaterial({
       float deepF=1.0-shoal;
       /* colour by real depth — turquoise over the shallows, dark over the deep —
          with a breath of the old wave-height shading kept within it */
-      vec3 base=mix(uShallow,uDeep,deepF);
+      /* (graded by the true depth, smoothly, from the strand's turquoise out to the deep's blue) */
+      float spB=1.0-pow(max(shoalRaw,0.0001),0.83333), mB=2.17+197.8*pow(spB,2.6);
+      vec3 base=mix(uShallow,uDeep,max(deepF*0.6,smoothstep(3.0,85.0,mB)));
       base*=0.88+0.24*clamp(vHeight*0.22+0.5,0.0,1.0);
       /* a storm sea is dark slate-green, lighter where a crest stands up against the sky */
       base=mix(base,vec3(0.075,0.14,0.15)*(0.85+0.45*clamp(vSwell/(vSH*1.4+0.01)*0.5+0.5,0.0,1.0)),vStorm*0.65);
@@ -6229,7 +6288,22 @@ const waveMat=new THREE.ShaderMaterial({
       float sp=1.0-pow(max(shoalRaw,0.0001),0.83333);
       float shelfM=2.17+197.8*pow(sp,2.6);           /* the depth here, in metres */
       float clear=1.0-smoothstep(8.0,62.0,shelfM);
-      float aa=mix(0.93,0.30,clear);
+      /* ---- AND NO RING ABOUT THE SHIP ----
+         The bed under the water is blocks only as far as the streamed chunks reach; past them it is
+         the dark sheet of the deep. Seen through clear water that frontier stood on the sea as a
+         great pale circle that went everywhere with the ship. The eye now sees down into the water
+         less and less with distance, and not at all well before the blocks give out, as real water
+         does when it is looked across rather than into. */
+      float dH=length(vWorld.xz-uCamPos.xz);
+      clear*=1.0-smoothstep(${(VIEW*CHW*0.30).toFixed(1)},${(VIEW*CHW*0.72).toFixed(1)},dH);
+      /* ---- THE SHALLOWS GRADE INTO THE DEEP WITHOUT A SEAM ----
+         Seen through water that was clear to sixty metres, the shelf's terraces of blocks showed
+         as hard pale steps and patches all the way out, and the turquoise broke off against the
+         deep blue at the edge of the blocks. Real shallows are their COLOUR, not their bed: the
+         bed shows only in the last few metres by the strand, and from there the water deepens
+         smoothly from turquoise to the blue of the deep. */
+      float aa=mix(0.93,0.66,clear);
+      aa=mix(aa,0.36,1.0-smoothstep(2.4,9.0,shelfM));
       aa=mix(aa,0.985,fres*0.6*above);
       aa=max(aa,allFoam*0.95*above);
       /* and from beneath, the skin of the sea is thin — the daylight comes
@@ -6481,8 +6555,11 @@ if(MAT.waterB&&renderer.capabilities.isWebGL2){        /* (the face is found by 
       '    if(abs(fn.y)>0.7){                                  /* the water\'s face, not its sides */\n'+
       '      vec2 p=vWP.xz;\n'+
       '      vec3 N=vec3(0.0,1.0,0.0);\n'+
-      '      N.x+=0.10*sin(p.x*0.21+uWTime*1.3)+0.06*sin(p.y*0.37-uWTime*1.9+p.x*0.11)+0.035*sin((p.x+p.y)*0.83+uWTime*2.7);\n'+
-      '      N.z+=0.10*sin(p.y*0.19-uWTime*1.1)+0.06*sin(p.x*0.33+uWTime*1.7-p.y*0.13)+0.035*sin((p.x-p.y)*0.79-uWTime*2.3);\n'+
+      /* the ripple is summed from wavelets running on many bearings and lengths, so it never
+         settles into the regular lattice of crossed lines a lake used to show */
+      '      vec2 q1=mat2(0.83,-0.56,0.56,0.83)*p, q2=mat2(0.31,0.95,-0.95,0.31)*p, q3=mat2(-0.6,0.8,-0.8,-0.6)*p;\n'+
+      '      N.x+=0.07*sin(p.x*0.21+uWTime*1.3)+0.05*sin(q1.y*0.37-uWTime*1.9)+0.03*sin(q2.x*0.83+uWTime*2.7)+0.02*sin(q3.y*1.71-uWTime*3.3);\n'+
+      '      N.z+=0.07*sin(p.y*0.19-uWTime*1.1)+0.05*sin(q2.y*0.33+uWTime*1.7)+0.03*sin(q3.x*0.79-uWTime*2.3)+0.02*sin(q1.x*1.53+uWTime*3.7);\n'+
       '      float rf=0.0;\n'+
       '      if(uRipOn>0.5){ vec2 rc=(p-uRipO)/'+RIP_SPAN.toFixed(1)+';\n'+
       '        if(rc.x>0.0&&rc.y>0.0&&rc.x<1.0&&rc.y<1.0){ vec4 rp=texture2D(uRip,rc);\n'+
@@ -6490,6 +6567,11 @@ if(MAT.waterB&&renderer.capabilities.isWebGL2){        /* (the face is found by 
       '          N.xz+=(rp.rg-0.5)*3.6*ek; rf=rp.a*ek; } }\n'+
       '      N=normalize(N);\n'+
       '      vec3 V=normalize(uWCam-vWP), L=normalize(uWSun), H=normalize(V+L);\n'+
+      /* the body of the water: a deep green-blue under the light of the hour, not the flat painted
+         blue of the block — looking down into it the eye sees its own colour and its bed, and only
+         at a slant does the sky take it over */
+      '      vec3 body=vec3(0.055,0.20,0.24)*uWLight;\n'+
+      '      gl_FragColor.rgb=mix(gl_FragColor.rgb,body,0.55);\n'+
       '      float fres=0.02+0.98*pow(1.0-max(dot(N,V),0.0),5.0);\n'+
       '      vec3 R=reflect(-V,N); vec3 sky=mix(uWHor,uWTop,pow(clamp(R.y,0.0,1.0),0.5));\n'+
       '      if(uReflOn>0.001){ vec4 rq=uReflMat*vec4(vWP,1.0); vec2 ruv=rq.xy/rq.w+N.xz*0.04;\n'+
@@ -7918,12 +8000,35 @@ function texBox(w,h,d, matSide, matTop, matBot){
    helm sit aft at -z, in view of the following camera. The deck is a real
    place — the traveller stands at the wheel to sail, and can walk the planks. */
 /* Hull-local proportions (the hull is built at these, then scaled up whole). */
-const DECK_Y=6.2, QDECK_Y=11, FDECK_Y=8.8, FDECK_Z=17.5, QDECK_Z=-17.6, HELM={x:0,z:-22.6}, WHEEL_Z=-20.4;
+const DECK_Y=6.2, QDECK_Y=11, FDECK_Y=8.8, FDECK_Z=17.5, QDECK_Z=-17.6, HELM={x:0,z:-22.6};
+/* the wheel in a traveller's measure: its plane a forearm ahead of the helmsman,
+   its hub at his chest, five units in the radius (about 0.7 m) */
+const WHEEL_REACH=4.6, WHEEL_HUB_Y=7.6, WHEEL_R=4.2;
 /* (SHIP_S, SHIP_SX and SHIP_K, her size, are declared ahead of the sea: the wake is drawn to it) */
 const SD={ deckY:DECK_Y*SHIP_S, qdeckY:QDECK_Y*SHIP_S, fdeckY:FDECK_Y*SHIP_S,
-  fdeckZ:FDECK_Z*SHIP_S, qdeckZ:QDECK_Z*SHIP_S, helmZ:HELM.z*SHIP_S, wheelZ:WHEEL_Z*SHIP_S };
+  fdeckZ:FDECK_Z*SHIP_S, qdeckZ:QDECK_Z*SHIP_S, helmZ:HELM.z*SHIP_S, wheelZ:HELM.z*SHIP_S+WHEEL_REACH };
 const HOLD={halfX:2.9*SHIP_SX, z0:-19*SHIP_S, z1:23*SHIP_S, y:0.55*SHIP_S};
 const HATCH={x:0, z:4.6*SHIP_S, r:3.8*SHIP_S};
+function makeHelmWheel(){
+  const G=new THREE.Group(), wheel=new THREE.Group();
+  const deckY=SD.qdeckY, z=SD.wheelZ;
+  /* the pedestal the axle runs through, standing just ahead of the wheel */
+  const post=texBox(1.4,WHEEL_HUB_Y+0.6,1.6,'logSide','logTop');
+  post.position.set(0,deckY+(WHEEL_HUB_Y+0.6)/2,z+1.2); G.add(post);
+  const axle=texBox(0.5,0.5,1.4,'logSide','logTop'); axle.position.set(0,deckY+WHEEL_HUB_Y,z+0.6); G.add(axle);
+  wheel.position.set(0,deckY+WHEEL_HUB_Y,z); G.add(wheel);
+  const hub=texBox(1.1,1.1,0.9,'benchSide','benchTop'); wheel.add(hub);
+  /* eight spokes, each running out past the rim into a handle */
+  for(let i=0;i<8;i++){ const a=i*Math.PI/4;
+    const sp=texBox(0.32,WHEEL_R+1.1,0.32,'logSide');
+    sp.geometry.translate(0,(WHEEL_R+1.1)/2,0); sp.rotation.z=a; wheel.add(sp); }
+  /* the rim, sixteen short staves round the circle */
+  const seg=2*Math.PI*WHEEL_R/16*1.08;
+  for(let i=0;i<16;i++){ const a=(i+0.5)*Math.PI/8;
+    const st=texBox(seg,0.45,0.5,'benchSide','benchTop');
+    st.position.set(-Math.sin(a)*WHEEL_R,Math.cos(a)*WHEEL_R,0); st.rotation.z=a; wheel.add(st); }
+  G.userData.wheel=wheel; return G;
+}
 const boatG=new THREE.Group();
 /* YXZ: yaw first, then pitch/roll IN THE HEADING FRAME — with the default XYZ
    order the wave-pitch was applied about the WORLD x-axis, so the ship leaned
@@ -7958,11 +8063,13 @@ const hullG=new THREE.Group(); hullG.scale.set(SHIP_SX,SHIP_S,SHIP_S); boatG.add
   add(texBox(14,1.8,1.0,'logSide','logTop'),0,11.9,-27.6);
   add(texBox(5,1.2,2.4,'planks','planks'),0,6.8,-16.6);
   add(texBox(5,2.4,2.4,'planks','planks'),0,7.4,-18.4);
-  /* the wheel */
-  add(texBox(1.1,2.4,1.1,'logSide','logTop'),0,12.2,WHEEL_Z);
-  const wheel=add(texBox(3.6,3.6,0.6,'benchSide','benchTop'),0,14.6,WHEEL_Z-0.2);
-  for(const [hx,hy] of [[0,2.1],[0,-2.1],[2.1,0],[-2.1,0]])
-    { const hnd=texBox(0.5,0.5,0.9,'logSide'); hnd.position.set(hx,hy,0); wheel.add(hnd); }
+  /* THE WHEEL IS BUILT TO THE MAN WHO STEERS HER, NOT TO THE HULL. It was a
+     box in hull-local measure, so it was scaled up with her — 7.4 times in
+     the beam and 4 in height — into a slab twenty-six units across and
+     fourteen tall, its hub a head above the helmsman. A ship's wheel is a
+     man's reach: some 1.4 m across, its hub at his chest, its spokes where
+     his hands fall. So it stands in the ship's own (unscaled) frame, made in
+     a traveller's measure (a man is ~12 units), see makeHelmWheel below. */
   /* three masts; square sails on fore and main, the mizzen bare-yarded */
   const mkSail=(w,h)=>{ const m=new THREE.MeshBasicMaterial({map:TEX.wool,side:THREE.DoubleSide});
     m.color.setRGB(1,1,1); LIT.push(m);
@@ -8048,7 +8155,8 @@ const hullG=new THREE.Group(); hullG.scale.set(SHIP_SX,SHIP_S,SHIP_S); boatG.add
     const gm2=new THREE.SpriteMaterial({map:glowTexCv,transparent:true,opacity:0.4,depthWrite:false});
     const gs=new THREE.Sprite(gm2); gs.scale.set(11,11,1); gs.position.set(0,5,lz); hullG.add(gs); }
   for(const mat in G){ const gg=G[mat]; hullG.add(bucketMesh(gg,MAT[mat])); }
-  boatG.userData={flag,wheel};
+  const helmW=makeHelmWheel(); boatG.add(helmW);
+  boatG.userData={flag,wheel:helmW.userData.wheel,helmW};
   scene.add(boatG); }
 /* walkable regions of the deck, in ship-local WORLD coordinates (scaled) */
 const DECK_OBS=[[0,14,2.0],[0,-4,2.0],[0,-25.5,1.9],[4.8,8,1.4],[-4.8,-2,1.4],[4.8,-12,1.4],[-4.1,14,1.4]]
@@ -8058,12 +8166,23 @@ function deckAllowed(lx,lz){
   if(lz>25.2*SHIP_S||lz<-27.0*SHIP_S) return false;
   if(Math.abs(lx)<1.7*SHIP_SX&&lz>2.9*SHIP_S&&lz<6.3*SHIP_S) return false;   /* the open hatchway */
   for(const o of DECK_OBS){ if(Math.hypot(lx-o[0],lz-o[1])<o[2]) return false; }
-  if(lz<SD.qdeckZ&&Math.hypot(lx,lz-SD.wheelZ)<1.6*SHIP_SX) return false;
+  if(lz<SD.qdeckZ&&Math.hypot(lx,lz-SD.wheelZ-0.6)<3.0) return false;     /* the wheel and its pedestal */
   /* and the passengers and the benches they sit on are bodies too: walk round them */
   for(const o of PAX_OBS){ if(Math.hypot(lx-o[0],lz-o[1])<o[2]) return false; }
+  for(const r of PAX_RECTS){ if(lx>r[0]&&lx<r[1]&&lz>r[2]&&lz<r[3]) return false; }
   return true;
 }
-const PAX_OBS=[];
+const PAX_OBS=[], PAX_RECTS=[];
+/* ---- A BODY, NOT A POINT ----
+   The deck was asked about the one point under a man's feet, so a man could stand with his
+   shoulder in a mast, his back in the bulwark or his knees in a bench, and the hands walked
+   through the passengers. A body is the point and a span about it. */
+const DECK_BODY=1.7;
+function deckBodyAllowed(lx,lz){
+  if(!deckAllowed(lx,lz)) return false;
+  for(const [dx,dz] of [[DECK_BODY,0],[-DECK_BODY,0],[0,DECK_BODY],[0,-DECK_BODY]])
+    if(!deckAllowed(lx+dx,lz+dz)) return false;
+  return true; }
 function deckHeightAt(lz){ return lz<SD.qdeckZ?SD.qdeckY:(lz>SD.fdeckZ?SD.fdeckY:SD.deckY); }
 /* ---- AND SHE IS A SOLID THING TO EVERYTHING THAT WOULD SET DOWN ----
    THE FAULT: "the boat is not being treated as a physical structure — birds
@@ -8129,8 +8248,12 @@ function holdAllowed(lx,lz){
    in the ship's frame and a man at the helm must still see the people at her bow. */
 const CREW=[];
 const SHIP_FOLK=['levant','levant','levant','med','africa','east','india','north','west'];
+/* the height of the benches' seat over the waist planks: a man's shin, and the sitter's hips are
+   set ON it (they were let down two and a half units under a seat standing three up, and every
+   sitter sat sunk to the belt in the plank) */
+const PAX_SEAT_TOP=2.45;
 function paxSeat(m,sc){ const u=m.userData;                   /* sat on a bench, as a villager sits (sitDown) */
-  m.position.y-=2.4*sc;
+  m.position.y+=PAX_SEAT_TOP-(4.3-0.7)*sc;           /* (hip pivot 4.3 up, the thigh's half-depth under it) */
   for(let i=0;i<2;i++){ u.legs[i].rotation.x=1.35; const k=u.legs[i].userData.knee; if(k) k.rotation.x=-0.7; } }
 function initCrew(){ if(CREW.length) return;
   const X=SHIP_SX, Z=SHIP_S;
@@ -8161,12 +8284,14 @@ function initCrew(){ if(CREW.length) return;
   const benchObs=[];
   for(const sd of [1,-1]) for(const [z0,z1] of [[-11.6,-4.9],[7.9,14.6]]){
     const len=(z1-z0)*Z, bz=(z0+z1)/2*Z, bx=sd*(2.9*X+0.5);
-    const seat=texBox(3.0,0.55,len,'planks','benchTop'); seat.position.set(bx,SD.deckY+2.9,bz); boatG.add(seat);
-    for(const e of [-0.44,0.44]){ const leg=texBox(1.6,2.6,0.8,'planks'); leg.position.set(bx,SD.deckY+1.4,bz+e*len); boatG.add(leg); }
-    for(let z=z0;z<=z1;z+=1.1) benchObs.push([bx,z*Z,1.8]); }
+    const seat=texBox(3.0,0.55,len,'planks','benchTop'); seat.position.set(bx,SD.deckY+PAX_SEAT_TOP-0.275,bz); boatG.add(seat);
+    for(const e of [-0.44,0.44]){ const leg=texBox(1.6,PAX_SEAT_TOP-0.55,0.8,'planks'); leg.position.set(bx,SD.deckY+(PAX_SEAT_TOP-0.55)/2,bz+e*len); boatG.add(leg); }
+    /* the bench and the knees of those on it are one solid block to walk round, not a string of
+       beads with gaps between them that the hands walked through */
+    benchObs.push([Math.min(bx-1.5,sd*2.9*X-3.2),Math.max(bx+1.5,sd*2.9*X+3.2),z0*Z-1.2,z1*Z+1.2]); }
   let n=0;
   for(const sp of spots){
-    if(!deckAllowed(sp.lx,sp.lz)) continue;
+    if(sp.how==='bench'?!deckAllowed(sp.lx,sp.lz):!deckBodyAllowed(sp.lx,sp.lz)) continue;
     const seed=4100+n*31, h=hash2(seed,7.7);
     const child=h<0.16, female=!child&&hash2(seed,3.3)<0.45;
     const m=makePerson(seed,'villager',child,female,SHIP_FOLK[Math.floor(hash2(seed,5.1)*SHIP_FOLK.length)]);
@@ -8175,10 +8300,16 @@ function initCrew(){ if(CREW.length) return;
     if(sp.how==='bench') paxSeat(m,sc);
     else if(hash2(seed,2.2)<0.4){ m.userData.armL.rotation.x=-0.5; m.userData.armR.rotation.x=-0.5; }   /* hands on the rail */
     boatG.add(m);
-    PAX_OBS.push([sp.lx,sp.lz,1.5]);
+    if(sp.how!=='bench') PAX_OBS.push([sp.lx,sp.lz,3.0]);   /* (a sitter is inside his bench's block) */
     CREW.push({m,kind:'pax',sat:sp.how==='bench',hx:sp.lx,hz:sp.lz,ry:m.rotation.y,t:hash2(seed,1.9)*6,ph:hash2(seed,4.4)*6.28});
     n++; }
-  for(const o of benchObs) PAX_OBS.push(o);          /* (solid only once the sitters are set on them) */
+  for(const r of benchObs) PAX_RECTS.push(r);        /* (solid only once the sitters are set on them) */
+  /* and a hand whose post now falls in a bench or a passenger is moved to the nearest open plank */
+  for(const c of CREW){ if(c.kind!=='hand'||deckBodyAllowed(c.hx,c.hz)) continue;
+    let best=null;
+    for(let r=2;r<=24&&!best;r+=2) for(let a=0;a<12;a++){ const nx=c.hx+Math.cos(a*0.5236)*r, nz=c.hz+Math.sin(a*0.5236)*r;
+      if(deckBodyAllowed(nx,nz)){ best=[nx,nz]; break; } }
+    if(best){ c.hx=c.tx=best[0]; c.hz=c.tz=best[1]; c.m.position.set(best[0],deckHeightAt(best[1]),best[1]); } }
 }
 const _crewW=new THREE.Vector3();
 const CREW_NEAR=46, CREW_FAR=2600;       /* full rig within eight metres or so; a face further off is a few pixels */
@@ -8191,11 +8322,11 @@ function crewTick(dt){ initCrew();
       if(c.t<=0){ c.t=3+Math.random()*5;
         for(let tr=0;tr<6;tr++){ const a=Math.random()*6.28, r=Math.random()*9*SHIP_S;
           const nx=c.hx+Math.cos(a)*r, nz=c.hz+Math.sin(a)*r;
-          if(deckAllowed(nx,nz)){ c.tx=nx; c.tz=nz; break; } } }
+          if(deckBodyAllowed(nx,nz)){ c.tx=nx; c.tz=nz; break; } } }
       const dx=c.tx-c.m.position.x, dz=c.tz-c.m.position.z, d=Math.hypot(dx,dz);
       let moving=false;
       if(d>0.5){ const nx=c.m.position.x+dx/d*6*dt, nz=c.m.position.z+dz/d*6*dt;
-        if(deckAllowed(nx,nz)){ c.m.position.x=nx; c.m.position.z=nz;
+        if(deckBodyAllowed(nx,nz)){ c.m.position.x=nx; c.m.position.z=nz;
           c.m.rotation.y=Math.atan2(dx,dz); moving=true; } else c.t=0; }
       c.m.position.y=deckHeightAt(c.m.position.z);
       for(const L of u.legs) L.rotation.x=moving?Math.sin(ph+(L.userData.ph||0))*0.55:0;
@@ -8224,6 +8355,9 @@ const TRADERS=[];
 function initTraders(){ if(TRADERS.length) return;
   for(let k=0;k<2;k++){ const g=new THREE.Group();
     const sc=0.62, h=hullG.clone(); h.scale.set(SHIP_SX*sc,SHIP_S*sc,SHIP_S*sc); g.add(h);
+    /* her wheel is in a man's measure, apart from the hull — carried over at her scale */
+    const hw=boatG.userData.helmW.clone(), cs=0.85;           /* (cs: her crew's own scale) */
+    hw.scale.setScalar(cs); hw.position.set(0,(sc-cs)*SD.qdeckY,(sc-cs)*SD.wheelZ); g.add(hw);
     /* ---- NO GHOST SHIPS, AND NO SHIP SAILING HERSELF ----
        A living crew works her deck: a watch at the bow, hands in the waist —
        and A MAN AT THE WHEEL. The master used to stand off to one side of the
@@ -8232,16 +8366,16 @@ function initTraders(){ if(TRADERS.length) return;
        now, exactly where the traveller stands at his own, facing the bow with
        both hands upon it, and he works it as she comes round. */
     const posts=[
-      {lx:HELM.x, lz:HELM.z, ry:0, helm:true},          /* the helmsman */
+      {lx:HELM.x, lz:SD.wheelZ-WHEEL_REACH*cs/sc, ry:0, helm:true},   /* the helmsman, a reach behind his wheel */
       {lx:0,lz:20*SHIP_S,ry:0},                          /* the watch at the bow */
       {lx:3.4*SHIP_SX,lz:7*SHIP_S,ry:Math.PI*0.55},
       {lx:-3.8*SHIP_SX,lz:-4*SHIP_S,ry:-Math.PI*0.4}];
     const crew=[];
     for(let i=0;i<posts.length;i++){ const p=posts[i];
       const m=makePerson(7300+k*57+i*13,'sailor',false,i===3);
-      m.scale.setScalar(0.85);
+      m.scale.setScalar(cs);
       /* the helmsman stands on the quarterdeck, not on the waist planks */
-      const py=p.helm?QDECK_Y:deckHeightAt(p.lz);
+      const py=p.helm?SD.qdeckY:deckHeightAt(p.lz);
       m.position.set(p.lx*sc,py*sc,p.lz*sc);
       m.rotation.y=p.ry; m.userData.baseRy=p.ry; m.userData.helm=!!p.helm;
       /* both hands out upon the wheel, as the traveller's are */
@@ -11867,6 +12001,7 @@ function bornBeside(kind,sp){
    file, so the beast arrives at grass that is really there. */
 function grassProbe(x,z){ const c=landAtWorld(x,z);
   if(!c||c.kind==='wall'||!GRASS.SWARD[c.kind]) return null;
+  if(TOWN_GROUND.length&&townGroundAt(x,z)) return null;     /* (no grazing in the streets) */
   return {kind:c.kind, wild:nearSettled(x,z)?0.34:1}; }
 /* give a mother her young, or take them away again */
 function setYoung(a,want){
@@ -13812,7 +13947,36 @@ var NOTREE=null;      /* var: a chunk may be built before this line has run */
 /* (a precinct as broad as a town is written down as its rectangle, not column by column: the court of
    Giza alone is a million columns) */
 var NOTREE_R=null;
-function noTreeAt(ix,iz){ if(NOTREE_R) for(const r of NOTREE_R) if(ix>=r[0]&&ix<=r[2]&&iz>=r[1]&&iz<=r[3]) return true;
+/* ---- NO GRASS IN THE STREETS ----
+   THE FAULT THIS MENDS: within the walls of Yahrushalayim the land's own
+   sward stood knee-high between the houses, with scrub in the lanes and
+   trees in the yards, as if the city had been abandoned to the wild. Grass
+   does not grow on a street a city walks every day. A walled city hands its
+   ring of walls in here (setBuilder's townGround); every column inside it
+   grows no tree, no bush and no blade, and its top is trodden earth and
+   beaten path. */
+const TOWN_GROUND=[];
+function inPoly(x,z,P){ let c=false;
+  for(let i=0,j=P.length-1;i<P.length;j=i++){ const a=P[i], b=P[j];
+    if(((a[1]>z)!==(b[1]>z))&&(x<(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0])) c=!c; }
+  return c; }
+function townGroundAt(x,z){
+  for(const T of TOWN_GROUND) if(x>=T.x0&&x<=T.x1&&z>=T.z0&&z<=T.z1&&inPoly(x,z,T.pts)) return true;
+  return false; }
+function townGroundDirty(T,own){
+  /* the boles already stamped inside the walls come down with the rest of the wild (never a
+     beam or a pillar the city laid herself: `own` holds her own stamped cells) */
+  if(own){ const i0=Math.floor(T.x0/B), i1=Math.floor(T.x1/B), k0=Math.floor(T.z0/B), k1=Math.floor(T.z1/B);
+  for(let cx=Math.floor(i0/CH);cx<=Math.floor(i1/CH);cx++) for(let cz=Math.floor(k0/CH);cz<=Math.floor(k1/CH);cz++){
+    const key=cx+','+cz, m=SEDITS.get(key); if(!m) continue; let n0=0;
+    for(const [idx,n] of m){ if(!n) continue; const b=blockOf(n); if(!b||!/^(log|leaves)(-|$)/.test(b.id)) continue;
+      if(own.has(key+':'+idx)) continue;
+      const ix=cx*CH+eLx(idx), iz=cz*CH+eLz(idx); if(townGroundAt((ix+.5)*B,(iz+.5)*B)){ m.delete(idx); n0++; } }
+    if(n0){ if(!m.size) SEDITS.delete(key); EDIT_DIRTY.add(key); editColumnsChanged(); } } }
+  for(let cx=Math.floor(T.x0/CHW);cx<=Math.floor(T.x1/CHW);cx++) for(let cz=Math.floor(T.z0/CHW);cz<=Math.floor(T.z1/CHW);cz++){
+    const k=cx+','+cz; if(chunks.has(k)) EDIT_DIRTY.add(k); } }
+function noTreeAt(ix,iz){ if(TOWN_GROUND.length&&townGroundAt((ix+.5)*B,(iz+.5)*B)) return true;
+  if(NOTREE_R) for(const r of NOTREE_R) if(ix>=r[0]&&ix<=r[2]&&iz>=r[1]&&iz<=r[3]) return true;
   return !!NOTREE&&NOTREE.has(colKey(ix,iz)); }
 /* the trunks and crowns the chunks already laid have stamped there, taken out of the stamps themselves
    (a work raised before its own stamping pass cleared nothing: Karnak's court stood full of bare boles) */
@@ -15277,10 +15441,11 @@ function planFolkPath(ent,gx,gz){
     for(const[di,dj,w] of D8){ const ni=i+di, nj=j+dj; if(ni<0||nj<0||ni>=W||nj>=H) continue;
       const nk=nj*W+ni; fresh(nk); if(shut[nk]) continue;
       if(!ok(nk,ni,nj,ys[k])) continue;
-      if(Math.abs(ys[nk]-ys[k])>B*1.35) continue;                /* a step, not a bank */
+      const dyk=ys[nk]-ys[k];
+      if(dyk>FOLK_HOP_UP||dyk<-FOLK_DROP) continue;              /* a step or a hop, not a cliff */
       if(di&&dj){ const ka=j*W+ni, kb=nj*W+i;                  /* no cutting a corner */
         if(!ok(ka,ni,j,ys[k])||!ok(kb,i,nj,ys[k])) continue; }
-      const g2=gS[k]+w+(ys[nk]!==ys[k]?0.6:0);                   /* a step costs a little */
+      const g2=gS[k]+w+(Math.abs(dyk)>FOLK_STEP?2.5:ys[nk]!==ys[k]?0.6:0);   /* a step costs a little, a hop more */
       if(g2<gS[nk]){ gS[nk]=g2; from[nk]=k; push(nk,g2+hOf(ni,nj)); } } }
   const ms=performance.now()-t0; FP_STATS.ms+=ms; if(ms>FP_STATS.maxMs) FP_STATS.maxMs=ms;
   if(fpOut){ FP_STATS.deferred=(FP_STATS.deferred||0)+1; return undefined; }
@@ -15306,6 +15471,30 @@ function folkPlan(ent){
   ent._path=P; ent._detour=null; ent._held=0; ent._fpWait=P.partial?2.5:0.8;
   ent._partialN=P.partial?(ent._partialN||0)+1:0;
   return true;
+}
+/* ---- FOLK HOP UP A BANK, AS A MAN DOES ----
+   THE FAULT THIS MENDS: a walker took only a step of a course and a third,
+   so on any hill whose ground rose two blocks at a pace — which is most
+   hills, the land being cut in whole blocks — the folk stood at the foot of
+   it, swung left and right against the bank and stuck there. A man (and a
+   goat) hops a two-block rise and drops off a three-block one. On BUILT
+   ground (walls, counters, footings) the old step stands: the folk are not
+   to climb the furniture. */
+const FOLK_STEP=B*1.35, FOLK_HOP_UP=B*2.2, FOLK_DROP=B*3.3;
+function folkStepOK(dy,edited){
+  if(edited) return Math.abs(dy)<=FOLK_STEP;
+  return dy<=FOLK_HOP_UP&&dy>=-FOLK_DROP;
+}
+/* the body's height over its ground while it hops: an arc from where it
+   stood to where it lands, over in a third of a second */
+function folkHopY(ent,gy,dt){
+  const prev=ent.gy;
+  if(!ent._hop&&prev!==undefined&&(gy-prev>B*0.6||gy-prev<-B*1.2)&&Math.abs(gy-prev)<B*4)
+    ent._hop={t:0,dur:gy>prev?0.32:0.28,y0:prev,arc:gy>prev?(gy-prev)*0.3+B*0.35:B*0.2};
+  const H=ent._hop; if(!H) return gy;
+  H.t+=dt; const p=Math.min(1,H.t/H.dur);
+  if(p>=1){ ent._hop=null; return gy; }
+  return H.y0+(gy-H.y0)*p+Math.sin(p*Math.PI)*H.arc;
 }
 function moveEnt(ent,dt,sp){
   if(pushOutOfSolids(ent,dt)){ ent._blk='push'; return true; }   /* getting clear IS this frame's business */
@@ -15345,8 +15534,9 @@ function moveEnt(ent,dt,sp){
        With his own height for a reference he is given the floor he is
        standing on, and the wall beside him reads as the four-block step it is
        and turns him back, as a wall should. */
-    const gN=groundInfo(nx,nz,ent.m.position.y+0.1);
-    const tooSteep=gN.land&&Math.abs(gN.y-ent.m.position.y)>B*1.35;   /* folk walk steps, not cliff faces */
+    const refY=ent.gy!==undefined&&ent._hop?ent.gy:ent.m.position.y;   /* (his ground, not the top of a hop) */
+    const gN=groundInfo(nx,nz,refY+0.1);
+    const tooSteep=gN.land&&!folkStepOK(gN.y-refY,gN.edited);   /* folk walk steps and hop banks, not cliff faces */
     /* ---- AND A MAN DOES NOT CLIMB THE FURNITURE ----
        One course is a step, and folk have always been allowed to take one.
        That was a rule about GROUND. Phase 3 laid the whole village in blocks,
@@ -15415,8 +15605,8 @@ function moveEnt(ent,dt,sp){
       for(const sw of swings){
         const ax2=ent.m.position.x+Math.sin(ang+sw)*stp, az2=ent.m.position.z+Math.cos(ang+sw)*stp;
         if(state.mode==='walk'&&Math.hypot(ax2-state.walk.x,az2-state.walk.z)<2.6) continue;
-        const g2=groundInfo(ax2,az2,ent.m.position.y+0.1); if(!g2.land) continue;
-        if(Math.abs(g2.y-ent.m.position.y)>B*1.35) continue;
+        const g2=groundInfo(ax2,az2,refY+0.1); if(!g2.land) continue;
+        if(!folkStepOK(g2.y-refY,g2.edited)) continue;
         const c2=landAtWorld(ax2,az2); if(g2.edited&&c2&&g2.y>c2.h*B+B*1.2&&!inDoorway(ax2,az2)&&!houseFloorAt(ax2,az2,g2.y)) continue;
         if(isFinite(g2.ceil)&&(g2.ceil-g2.y)<B*1.9&&!((g2.ceil-g2.y)>=B*1.0&&(underEave(ax2,az2)||doorHead(ax2,az2)))) continue;
         if(blockedByStructureNPC(ax2,az2)||blockedBySolid(ax2,az2)||blockedByEntity(ax2,az2,ent.m)) continue;
@@ -15463,8 +15653,8 @@ function moveEnt(ent,dt,sp){
           for(const[side,r] of [[ent._dside,r0],[-ent._dside,r0],[ent._dside,r0*0.5],[-ent._dside,r0*0.5]]){
             const ang=Math.atan2(dx,dz)+side*(Math.PI/2+(Math.random()-0.5)*0.6);
             const wx=ent.m.position.x+Math.sin(ang)*r, wz=ent.m.position.z+Math.cos(ang)*r;
-            const g=groundInfo(wx,wz,ent.m.position.y+0.1); if(!g.land) continue;
-            if(Math.abs(g.y-ent.m.position.y)>B*1.35) continue;
+            const g=groundInfo(wx,wz,refY+0.1); if(!g.land) continue;
+            if(!folkStepOK(g.y-refY,g.edited)) continue;
             if(isFinite(g.ceil)&&(g.ceil-g.y)<B*1.9) continue;
             if(blockedByStructureNPC(wx,wz)||blockedBySolid(wx,wz)) continue;
             best={x:wx,z:wz}; break; }
@@ -15492,9 +15682,10 @@ function moveEnt(ent,dt,sp){
     ent.tx=ent.m.position.x; ent.tz=ent.m.position.z;
     ent.acting=false; ent.pt=0; ent.t=0;
     return moving; }
-  ent.m.position.y=gHere.land?gHere.y:WATER_Y;
+  const gyHere=gHere.land?gHere.y:WATER_Y;
+  ent.m.position.y=folkHopY(ent,gyHere,dt);
   /* this footing was reached lawfully; it is the one to come back to */
-  ent.gx=ent.m.position.x; ent.gz=ent.m.position.z; ent.gy=ent.m.position.y;
+  ent.gx=ent.m.position.x; ent.gz=ent.m.position.z; ent.gy=gyHere;
   const legs=ent.m.userData.legs;
   /* the penned and the herded go by the same law as the wild ones */
   const GT=ent.kind?tickGait(ent,ent.kind,moving?sp:0,dt):null;
@@ -21560,7 +21751,10 @@ function setBlockFor(col){
 }
 function setBuilder(ax,az,baseY,opt){
   opt=opt||{}; const S=opt.S||SET_S, houses=[], marks={};
-  const X=x=>ax+x*S, Z=z=>az+z*S, Y=y=>baseY+y*S, tY=Math.round(baseY/B), tYb=tY;
+  /* (opt.turn: the set is laid turned half round about its anchor — x and z go out the other way —
+     and a door written in its south wall is in its north) */
+  const SX=opt.turn?-S:S, DOORS=opt.turn?{s:1,n:0,e:3,w:2}:{s:0,n:1,e:2,w:3};
+  const X=x=>ax+x*SX, Z=z=>az+z*SX, Y=y=>baseY+y*S, tY=Math.round(baseY/B), tYb=tY;
   const was=_stampOn; if(!was) stampBegin();
   const grp=_stampOn;
   const cells=(x0,x1,lo,hi)=>{ const e=STAMP_EPS*B; let a=Math.floor((Math.min(x0,x1)+e)/B), b=Math.ceil((Math.max(x0,x1)-e)/B)-1; if(b<a){ b=a=Math.floor((x0+x1)/2/B); } return [a,b]; };
@@ -21577,7 +21771,7 @@ function setBuilder(ax,az,baseY,opt){
     const was2=_stampOn; _stampOn=null;
     try{ emitBox(G,x0,y0,z0,x1,y1,z1,b.mSide,b.mTop,null); } finally{ _stampOn=was2; } }
   const api={ S, ax, az, baseY, marks, farG:opt.far?new Map():null, farGroup:null,
-    X, Z, Y, local:(wx,wz)=>[(wx-ax)/S,(wz-az)/S],
+    X, Z, Y, local:(wx,wz)=>[(wx-ax)/SX,(wz-az)/SX],
     /* a box of blocks; boxes of no size at all (a beam end, a lamp) are details for the eye
        and are left to the things of a scene */
     box(x0,y0,z0,x1,y1,z1,col,o){
@@ -21593,7 +21787,7 @@ function setBuilder(ax,az,baseY,opt){
     detail(x0,y0,z0,x1,y1,z1,col){ const n=setBlockFor(col), b=BLOCKS[n]; if(!b) return;
       if(!api.detG) api.detG=newG();
       const was2=_stampOn; _stampOn=null;
-      try{ emitBox(api.detG,X(Math.min(x0,x1)),Y(Math.min(y0,y1)),Z(Math.min(z0,z1)),X(Math.max(x0,x1)),Y(Math.max(y0,y1)),Z(Math.max(z0,z1)),b.mSide,b.mTop,null); }
+      try{ emitBox(api.detG,Math.min(X(x0),X(x1)),Y(Math.min(y0,y1)),Math.min(Z(z0),Z(z1)),Math.max(X(x0),X(x1)),Y(Math.max(y0,y1)),Math.max(Z(z0),Z(z1)),b.mSide,b.mTop,null); }
       finally{ _stampOn=was2; } },
     /* the land's own trees taken off a lot of the set where no pad is laid (a slope a scene
        is played on); the lot is written down as treeless, as a house's lot is */
@@ -21616,9 +21810,9 @@ function setBuilder(ax,az,baseY,opt){
     pad(x0,z0,x1,z1,o){ o=o||{}; const top=setBlockFor(o.top||'grass'), fill=blockId(o.fill||'dirt');
       const tY=o.y!==undefined?Math.round((baseY+o.y*S)/B):tYb;
       const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1)); const P={i0,i1,k0,k1,r:!!o.round,ty:tY}; api.pads.push(P); api.flat=true;
-      clearLotOfTrees(X(Math.min(x0,x1)),Z(Math.min(z0,z1)),X(Math.max(x0,x1)),Z(Math.max(z0,z1)),baseY);
+      clearLotOfTrees(Math.min(X(x0),X(x1)),Math.min(Z(z0),Z(z1)),Math.max(X(x0),X(x1)),Math.max(Z(z0),Z(z1)),baseY);
       for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ if(P.r&&!api.inPad(i,k)) continue;
-        const c=cell(i,k); if(!c||c.kind==='wall') continue; const h=c.h;
+        const c=cell(i,k); if(!c||c.kind==='wall'||(c.lake!==undefined&&c.lake>c.h)) continue; const h=c.h;   /* (a lake of the earth is not filled in) */
         for(let j=tY;j<Math.max(h,tY)+2;j++) stampBlock(i,j,k,0);
         for(let j=Math.min(h,tY)-1;j<tY-1;j++) if(j>=h-1) stampBlock(i,j,k,fill);
         stampBlock(i,tY-1,k,top); }
@@ -21639,26 +21833,44 @@ function setBuilder(ax,az,baseY,opt){
           if(P.r){ const q=Math.hypot((i-cx)/rx,(k-cz)/rz); if(q<=1) continue; d=(q-1)*Math.min(rx,rz); }
           else { const dx=Math.max(i0-i,0,i-i1), dz=Math.max(k0-k,0,k-k1); d=Math.max(dx,dz); if(d<=0) continue; }
           if(d>=bl) continue;
-          const c=cell(i,k); if(!c||c.kind==='wall') continue; const h=c.h;
+          const c=cell(i,k); if(!c||c.kind==='wall'||(c.lake!==undefined&&c.lake>c.h)) continue; const h=c.h;
           if(api.mtops&&api.mtops.has(i+','+k)) continue;
           const t=d/bl, e=t*t*(3-2*t), want=Math.round(tY+(h-tY)*e);
           if(want===h) continue;
+          (api.blendH||(api.blendH=new Map())).set(i+','+k,want);                    /* (the height it was eased to, for the floor under a man there) */
           if(want<h){ for(let j=want;j<h+2;j++) stampBlock(i,j,k,0); stampBlock(i,want-1,k,top); }
           else { for(let j=h-1;j<want-1;j++) stampBlock(i,j,k,fill); stampBlock(i,want-1,k,top); } } } },
+    /* the course a cell at the edge of a level ground was eased to (in blocks), or undefined */
+    blendL(x,z){ return api.blendH?api.blendH.get(Math.floor(X(x)/B)+','+Math.floor(Z(z)/B)):undefined; },
     /* standing water: a channel, a pool, a lake — `depth` courses of water, its face level
        with the ground's (or `drop` courses below it) */
     water(x0,z0,x1,z1,o){ o=o||{}; const d=o.depth||2, dr=o.drop||0, w=blockId('water'), bed=blockId(o.bed||'sand');
+      (api.waters||(api.waters=[])).push([Math.min(x0,x1),Math.min(z0,z1),Math.max(x0,x1),Math.max(z0,z1)]);   /* (what water a set laid, for the tools to set beside the earth's own) */
       const tY=o.y!==undefined?Math.round((baseY+o.y*S)/B):tYb;                  /* (o.y: its face's own level, as pad's) */
       const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1));
       underWaterAdd(grp,i0*B,k0*B,(i1+1)*B,(k1+1)*B,(tY-dr)*B);          /* its bed takes the light under the water */
       for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ if(o.test&&!o.test(...api.local((i+.5)*B,(k+.5)*B))) continue;
         const c=cell(i,k); const h=Math.max(c?c.h:tY,tY);
+        /* over a lake of the earth (Kinnereth) the set's water is the lake's own, from its bed to its face */
+        if(c&&c.lake!==undefined&&c.lake>c.h){ for(let j=c.h;j<tY-dr;j++) stampBlock(i,j,k,w); continue; }
         for(let j=tY-dr;j<h+2;j++) stampBlock(i,j,k,0);
         for(let j=tY-dr-d;j<tY-dr;j++) stampBlock(i,j,k,w);
-        stampBlock(i,tY-dr-d-1,k,bed); } },
+        stampBlock(i,tY-dr-d-1,k,bed);
+        /* and where the land falls away below the pool, its bed is built up from the ground */
+        if(c&&c.h<tY-dr-d-1) for(let j=c.h-1;j<tY-dr-d-1;j++) stampBlock(i,j,k,bed); }
+      /* ---- A POOL IS HELD IN A BASIN, NOT STOOD ON THE HILLSIDE ----
+         Laid on a slope, the water's face stood above the ground on the downhill side, and the
+         pool showed as a bare wall of water standing in the air. Every cell about it whose ground
+         lies lower than the water's face is walled up to that face in the pool's own stone. */
+      const rim=blockId(o.rim||(o.bed==='stone'?'stone':'cobble')), wTop=tY-dr;
+      for(let i=i0-1;i<=i1+1;i++) for(let k=k0-1;k<=k1+1;k++){
+        if(i>=i0&&i<=i1&&k>=k0&&k<=k1) continue;
+        const c=cell(i,k); const g=c?c.h:tY; if(g>=wTop) continue;
+        if(c&&c.lake!==undefined&&c.lake>=wTop) continue;                          /* (the earth's own lake goes on beyond it: no wall) */
+        for(let j=Math.min(g,tY-dr-d-1)-1;j<wTop;j++) stampBlock(i,j,k,rim); } },
     /* a house of the land — the voyage's own, with its door, floor and furniture */
     house(x,z,w,d,o){ o=o||{}; const odd=v=>{ v=Math.max(5,Math.round(v*S/B)); return v%2?v:v+1; };
-      const dir={s:0,n:1,e:2,w:3}[o.door||'s'];
+      const dir=DOORS[o.door||'s'];
       /* on the level ground of the set, at its height; anywhere else, on the ground where it stands */
       const pd0=api.inPadL(x,z), hy=pd0?pd0.ty*B:(()=>{ const c=cell(Math.floor(X(x)/B),Math.floor(Z(z)/B)); return c?c.h*B:baseY; })();
       houses.push(storyHouse(X(x),Z(z),hy,odd(w),odd(d),dir,o.seed||Math.floor(Math.abs(x*31+z*17))+1,o.style||'levant',{washed:o.washed,wall:o.wall,big:o.big!==false})); },
@@ -21669,7 +21881,7 @@ function setBuilder(ax,az,baseY,opt){
       const G=newG(), ex={doors:[],houses:[],torchIn:[],style:o.style||'levant',big:true};
       const grp=stampedGroup(()=>{ for(const q of list){
         const pdq=api.inPadL(q.x,q.z), hy=pdq?pdq.ty*B:(()=>{ const c=cell(Math.floor(X(q.x)/B),Math.floor(Z(q.z)/B)); return c?c.h*B:baseY; })();
-        emitHouse(G,ex,X(q.x),Z(q.z),hy,odd(q.w),odd(q.d),{s:0,n:1,e:2,w:3}[q.door||'s'],q.seed||1);
+        emitHouse(G,ex,X(q.x),Z(q.z),hy,odd(q.w),odd(q.d),DOORS[q.door||'s'],q.seed||1);
         /* and its far silhouette, a whitewashed box, for a city seen from a hill (opt.far) */
         if(api.farG){ const hw=odd(q.w)*B/2, hd=odd(q.d)*B/2, xc=X(q.x), zc=Z(q.z);
           farBox(xc-hw,hy,zc-hd,xc+hw,hy+B*4,zc+hd,blockId(((q.seed||1)%3)?'plaster':'mudbrick')); } } });
@@ -21692,7 +21904,7 @@ function setBuilder(ax,az,baseY,opt){
       const [i0,i1]=cells(X(x-r),X(x+r)), [k0,k1]=cells(Z(z-r),Z(z+r));
       for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ const [lx,lz]=api.local((i+.5)*B,(k+.5)*B);
         const q=Math.max(0,1-Math.hypot(lx-x,lz-z)/r); if(q<=0) continue;
-        const c=cell(i,k); if(!c||c.kind==='wall'||api.inPad(i,k)) continue;   /* the set's level ground stays level */
+        const c=cell(i,k); if(!c||c.kind==='wall'||api.inPad(i,k)||(c.lake!==undefined&&c.lake>c.h)) continue;   /* the set's level ground stays level; a lake is not heaped up */
         const g0=c.h, want=tY+Math.round(h*q*q*(3-2*q)*S/B);
         if(want<=g0) continue;
         api.mtops.set(i+','+k,want);
@@ -21702,7 +21914,15 @@ function setBuilder(ax,az,baseY,opt){
       const pdg=api.inPadL(x,z), ref=pdg?pdg.ty*B+2.2*S:Math.max(m===null?-1e9:baseY+m*S,c?c.h*B:baseY)+12;
       const g=groundInfo(X(x),Z(z),ref); return ((g&&g.y!=null?g.y:baseY)-baseY)/S; },
     mark(name,x,z){ marks[name]=[x,z]; },
-    end(){ if(!was&&_stampOn===grp) stampEnd();
+    /* the ground inside a city's walls (a ring of points in the set's metres): no grass, no
+       scrub and no trees grow in it, and its top is the trodden earth of streets */
+    townGround(pts){ const P=pts.map(p=>[X(p[0]),Z(p[1])]);
+      const T={pts:P,x0:Math.min(...P.map(p=>p[0])),x1:Math.max(...P.map(p=>p[0])),
+        z0:Math.min(...P.map(p=>p[1])),z1:Math.max(...P.map(p=>p[1]))};
+      TOWN_GROUND.push(T); (api.towns||(api.towns=[])).push(T); townGroundDirty(T); },
+    end(){ if(api.towns&&!api._townsCut){ api._townsCut=true; const own=new Set();
+        for(let i=0;i<grp.cells.length;i+=2) own.add(grp.cells[i]+':'+grp.cells[i+1]);
+        for(const T of api.towns) townGroundDirty(T,own); } if(!was&&_stampOn===grp) stampEnd();
       if(api.farG&&api.farG.size&&!api.farGroup){ const g=new THREE.Group(); g.name='set-far';
         for(const [tk,G] of api.farG){ const t=new THREE.Group(), q=tk.split(',');
           t.userData.cx=(+q[0]+0.5)*FAR_T; t.userData.cz=(+q[1]+0.5)*FAR_T;
@@ -21712,7 +21932,8 @@ function setBuilder(ax,az,baseY,opt){
         for(const mat in api.detG){ const gg=api.detG[mat]; if(gg.p&&gg.p.length) g.add(bucketMesh(gg,MAT[mat])); }
         scene.add(g); api.detGroup=g; }
       return api; },
-    drop(){ api.end(); stampDrop(grp); for(const h of houses) h.drop(); houses.length=0; underWaterDrop(grp);
+    drop(){ api.end(); stampDrop(grp);
+      if(api.towns){ for(const T of api.towns){ const i=TOWN_GROUND.indexOf(T); if(i>=0) TOWN_GROUND.splice(i,1); townGroundDirty(T); } api.towns=null; } for(const h of houses) h.drop(); houses.length=0; underWaterDrop(grp);
       if(api.farGroup){ scene.remove(api.farGroup); SET_FAR.delete(api.farGroup);
         api.farGroup.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); api.farGroup=null; }
       if(api.detGroup){ scene.remove(api.detGroup); api.detGroup.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); api.detGroup=null; api.detG=null; } }
@@ -21779,6 +22000,7 @@ window.__WORLD={
   ensureFlyDome,flyDome:()=>flyDome,
   R_WORLD,B,WATER_Y,SEA_SURF,CLOUD_Y,U_PER_M,
   state,setMode,updateChunks,landAtWorld,seaHeight,findStart,
+  trueEarth:TRUE_EARTH, wildAt,
   /* THE HOUR, for a stage that is staged somewhere the traveller is not.
      `setLocalHour` takes the longitude out of the world clock, so an hour
      asked for is the hour of the DAY at the place named — the same rule
@@ -24476,8 +24698,8 @@ function frame(){ orgSnap();
      well (+2) — at full wing (520 u/s) the frontier is crossed in seconds,
      and the extra ring keeps the new ground rising behind the haze instead
      of popping inside the view */
-  const viewEff=Math.min(21,(state.mode==='fly'
-    ?13+Math.round(Math.max(0,eyeY-200)/200)+Math.min(2,Math.round((frame._spd||0)/260))
+  const viewEff=Math.min(VIEW+8,(state.mode==='fly'
+    ?VIEW+Math.round(Math.max(0,eyeY-200)/200)+Math.min(2,Math.round((frame._spd||0)/260))
     :VIEW)+backW);
   frame._flyAir=(frame._flyAir||0)
     +(((state.mode==='fly'&&!state.firm)?1:0)-(frame._flyAir||0))*Math.min(1,dt*1.4);

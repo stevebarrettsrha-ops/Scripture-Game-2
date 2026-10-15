@@ -76,17 +76,39 @@ window.STORY=(function(){
     if(kind!=='coast') return {x:st[0],z:st[1]};
     if(_coast) return _coast;
     /* a widening ring-search out from the opening for the nearest dry ground */
-    let best=null, bd=1e12;
+    let best=null, bd=1e12, r0=0;
     for(let r=200;r<=9000&&!best;r+=200){
       for(let k=0;k<48;k++){
         const a=k/48*Math.PI*2, x=st[0]+Math.cos(a)*r, z=st[1]+Math.sin(a)*r;
         if(!W.landAtWorld(x,z)) continue;
         const d2=(x-st[0])**2+(z-st[1])**2;
-        if(d2<bd){ bd=d2; best={x,z}; }
+        if(d2<bd){ bd=d2; best={x,z,a}; }
       }
       if(best) break;
+      r0=r;
     }
-    _coast=best||{x:st[0],z:st[1]};
+    /* AT THE TRUE MEASURE THE SHIP OPENS KILOMETRES OUT, off Yapho, and nine thousand units never
+       reached the shore: every scroll was staged on open water, and the third day's dry land rose
+       out of sight behind the eye. So there the shore is found by rays cast out from the opening —
+       each walked out to the first dry ground and back to the water's edge — and of those shores
+       the nearest WILD one is taken: Yapho's own beach is ploughed and walled, and the dry land of
+       the third day must not come up with fields on it before there was a man to till the ground
+       (Bereshith 2:5). The eye is set a little way up the beach, so a man set there stands on it. */
+    if(W.trueEarth&&W.wildAt&&!(best&&W.wildAt(best.x,best.z,1200))){
+      const N=360, shore=[];
+      for(let k=0;k<N;k++){ const a=k/N*Math.PI*2, c=Math.cos(a), s=Math.sin(a);
+        let r0=0, hit=0;
+        for(let r=400;r<=90000;r+=400){ if(W.landAtWorld(st[0]+c*r,st[1]+s*r)){ hit=r; break; } r0=r; }
+        if(!hit) continue;
+        let lo=r0, hi=hit;
+        for(let i=0;i<14;i++){ const m=(lo+hi)/2; if(W.landAtWorld(st[0]+c*m,st[1]+s*m)) hi=m; else lo=m; }
+        shore.push({r:hi,c,s}); }
+      shore.sort((p,q)=>p.r-q.r);
+      const p=shore.find(q=>W.wildAt(st[0]+q.c*q.r,st[1]+q.s*q.r,1200))||shore[0];
+      if(p){ let r=p.r; for(let k=0;k<6&&W.landAtWorld(st[0]+p.c*(r+30),st[1]+p.s*(r+30));k++) r+=30;
+        best={x:st[0]+p.c*r,z:st[1]+p.s*r}; }
+    }
+    _coast=best?{x:best.x,z:best.z}:{x:st[0],z:st[1]};
     return _coast;
   }
 

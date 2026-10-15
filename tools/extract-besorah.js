@@ -63,7 +63,9 @@ function plain(t){
     .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
     .replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ')
     .replace(/\s+/g,' ')
-    .trim();
+    .trim()
+    /* a drop capital the page sets apart from the rest of its word ("A nd Aluahim said", YASHAR 1:1) */
+    .replace(/^A nd\b/,'And');
 }
 
 /* ---- THE BESORAH NAMES THE BOOKS (Round 109) ----

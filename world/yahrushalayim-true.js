@@ -34,14 +34,37 @@ window.YAHRU_PLAN_TRUE=function(api,period){
         const mx=(ax+bx)/2, mz=(az+bz)/2; run+=L/n;
         if(gates.some(g=>Math.hypot(mx-g[0],mz-g[1])<g[2])) continue;
         const y=gY(mx,mz), rx=Math.abs(bx-ax)/2+t/2, rz=Math.abs(bz-az)/2+t/2;
-        if(ruin){ const r=hash(mx,mz); if(r<0.35) continue; api.box(mx-rx,y-1,mz-rz,mx+rx,y+1+r*h*0.5,mz+rz,STONE2); continue; }
-        api.box(mx-rx,y-1,mz-rz,mx+rx,y+h,mz+rz,o.col||LIME);
+        /* footed on the LOWEST ground under the whole of it, and sunk into it: footed on the
+           ground at its middle, a stretch of wall across a slope stood clear of the land on its
+           downhill face and the light showed under it */
+        const yf=foot(mx-rx,mz-rz,mx+rx,mz+rz)-2;
+        if(ruin){ const r=hash(mx,mz); if(r<0.35) continue; api.box(mx-rx,yf,mz-rz,mx+rx,y+1+r*h*0.5,mz+rz,STONE2); continue; }
+        api.box(mx-rx,yf,mz-rz,mx+rx,y+h,mz+rz,o.col||LIME);
         if(k%2===0) api.box(mx-rx*0.5,y+h,mz-rz*0.5,mx+rx*0.5,y+h+1.2,mz+rz*0.5,o.col||LIME);   /* crenels */
-        if(run>=every){ run=0; api.box(mx-4,y-1,mz-4,mx+4,y+h+6,mz+4,o.col||LIME); } } }
+        if(run>=every){ run=0; api.box(mx-4,foot(mx-4,mz-4,mx+4,mz+4)-2,mz-4,mx+4,y+h+6,mz+4,o.col||LIME); } } }
     for(const g of gates){ const y=gY(g[0],g[1]);                                                   /* the gate towers */
       if(ruin) continue;
-      api.box(g[0]-g[2]-5,y-1,g[1]-5,g[0]-g[2],y+h+5,g[1]+5,o.col||LIME); api.box(g[0]+g[2],y-1,g[1]-5,g[0]+g[2]+5,y+h+5,g[1]+5,o.col||LIME); } }
-  function tower(x,z,w,d,h,col){ const y=gY(x,z); api.box(x-w/2,y-2,z-d/2,x+w/2,y+h,z+d/2,col||LIME); }
+      /* each tower on its own lowest ground, and the gateway between them paved down to the
+         ground on either side of it, with a lintel over it, so the gate is a gate in the wall
+         and not two towers standing apart on the hillside */
+      /* the towers stand ALONG the wall, one at either end of its opening (they stood east and
+         west of every gate whichever way the wall ran, so in a wall running north they stood
+         in the field on one side and in the street on the other, and the gap was bare) */
+      let ux=1, uz=0, bd=Infinity;
+      for(let p=0;p+1<pts.length;p++){ const [x0,z0]=pts[p], [x1,z1]=pts[p+1], L=Math.hypot(x1-x0,z1-z0)||1;
+        const tt=Math.max(0,Math.min(1,((g[0]-x0)*(x1-x0)+(g[1]-z0)*(z1-z0))/(L*L)));
+        const dd=Math.hypot(g[0]-(x0+(x1-x0)*tt),g[1]-(z0+(z1-z0)*tt)); if(dd<bd){ bd=dd; ux=(x1-x0)/L; uz=(z1-z0)/L; } }
+      for(const sd of [-1,1]){ const tx=g[0]+ux*sd*(g[2]+2.5), tz=g[1]+uz*sd*(g[2]+2.5);
+        api.box(tx-2.5,foot(tx-2.5,tz-2.5,tx+2.5,tz+2.5)-2,tz-2.5,tx+2.5,y+h+5,tz+2.5,o.col||LIME); }
+      /* the lintel over the gateway, and its floor paved down to the ground either side */
+      const lx=Math.abs(ux)*g[2]+Math.abs(uz)*(t/2+0.5), lz=Math.abs(uz)*g[2]+Math.abs(ux)*(t/2+0.5);
+      api.box(g[0]-lx,y+Math.min(h-2,7),g[1]-lz,g[0]+lx,y+h+2,g[1]+lz,o.col||LIME);
+      api.top(g[0]-lx,g[1]-lz,g[0]+lx,g[1]+lz,STONE); } }
+  /* the lowest ground under a footprint: its corners, its edges' middles and its middle */
+  function foot(x0,z0,x1,z1){ let m=Infinity;
+    for(const fx of [0,0.5,1]) for(const fz of [0,0.5,1]) m=Math.min(m,gY(x0+(x1-x0)*fx,z0+(z1-z0)*fz));
+    return m; }
+  function tower(x,z,w,d,h,col){ const y=gY(x,z); api.box(x-w/2,foot(x-w/2,z-d/2,x+w/2,z+d/2)-2,z-d/2,x+w/2,y+h,z+d/2,col||LIME); }
   /* columns along a line, every `step` metres, from y0 up h */
   function columns(x0,z0,x1,z1,y0,h,step,col){ const L=Math.hypot(x1-x0,z1-z0), n=Math.max(1,Math.round(L/step));
     for(let k=0;k<=n;k++){ const x=x0+(x1-x0)*k/n, z=z0+(z1-z0)*k/n; api.box(x-0.7,y0,z-0.7,x+0.7,y0+h,z+0.7,col||WHITE); } }
@@ -354,8 +377,15 @@ window.YAHRU_PLAN_TRUE=function(api,period){
       for(let k=0;k<9;k++){ const x=-20+hash(k,3)*50, z=18+hash(k,5)*10; api.box(x-0.7,PY+1.2,z-0.5,x+0.7,PY+1.9,z+0.5,LIME); }
       api.mark('foundation',10,0); api.mark('altarFront',50,0); api.mark('pinnacle',20,0); api.mark('pinnacleY',PY+2,0);
     } else {
-      for(const [x0,z0,x1,z1] of [[G0x,G0z,G1x,G0z+1.5],[G0x,G1z-1.5,G1x,G1z],[G0x,G0z,G0x+1.5,G1z],[G1x-1.5,G0z,G1x,-8],[G1x-1.5,8,G1x,G1z]]){
+      /* the great court's wall has its gate to the south too, toward the king's house and the city
+         of Dawiḏ, with a stair up out of the court to the ground there: with the eastern gate alone,
+         over the Qidron, the court lay sunk in the rock with no way in from the city at all, and a
+         scene that sends the witness up through the city to the House could not be finished */
+      const SG0=0, SG1=16;
+      for(const [x0,z0,x1,z1] of [[G0x,G0z,G1x,G0z+1.5],[G0x,G1z-1.5,SG0,G1z],[SG1,G1z-1.5,G1x,G1z],[G0x,G0z,G0x+1.5,G1z],[G1x-1.5,G0z,G1x,-8],[G1x-1.5,8,G1x,G1z]]){
         api.box(x0,PY,z0,x1,PY+6,z1,LIME); }
+      { const yOut=gY((SG0+SG1)/2,G1z+16), n=Math.max(1,Math.ceil(Math.abs(yOut-PY)/0.8));
+        for(let k=0;k<n;k++) api.pad(SG0,G1z+k*1.6,SG1,G1z+(k+1)*1.6,{y:PY+(k+1)*(yOut-PY)/n,fill:'hewn-stone',top:'cobble',blend:k===n-1?4:0}); }
       const IC0=-25, IC1=75, IZ=35;
       for(const [x0,z0,x1,z1] of [[IC0,-IZ,IC1,-IZ+1],[IC0,IZ-1,IC1,IZ],[IC0,-IZ,IC0+1,IZ],[IC1-1,-IZ,IC1,-5],[IC1-1,5,IC1,IZ]]){
         api.box(x0,PY,z0,x1,PY+2.4,z1,STONE); api.box(x0,PY+2.4,z0,x1,PY+3.2,z1,CEDAR); }
@@ -413,10 +443,16 @@ window.YAHRU_PLAN_TRUE=function(api,period){
     api.box(-760,PYp,160,-680,PYp+12,230,WHITE); api.box(-760,PYp,300,-680,PYp+12,370,WHITE);
     tower(-690,72,20,20,45); tower(-745,78,14,14,40); tower(-718,95,11,11,26);
     api.mark('palaceHerodes',-720,260);
+    /* within the walls the ground is the city's: streets, not pasture */
+    if(api.townGround) api.townGround([[-795,62],[-520,45],[-470,-80],[-440,-250],[-150,-306],[-132,-267],[183,-267],
+      [156,226],[140,520],[90,760],[-30,835],[-160,850],[-450,830],[-700,770],[-790,640],[-800,420]]);
     /* the first wall, the west and south walls about Tsiyon to Shiloaḥ, the east wall along the ridge */
     wallLine([[-790,62],[-560,45],[-360,10],[-140,-30]],{gates:[[-520,42,6]]});
     wallLine([[-795,62],[-800,420],[-790,640],[-700,770],[-450,830],[-160,850],[-30,835]],{gates:[[-430,832,6]]});
-    wallLine([[-30,835],[90,760],[140,520],[156,226]],{gates:[[30,820,5]]});
+    /* (the gate by the pool stands IN the wall: set at (30,820) it stood twenty metres out in the field,
+       its two towers and their lintel over nothing, and the wall behind them unbroken — there was no way
+       into the city from the south, and He rode up to her and could not come in) */
+    wallLine([[-30,835],[90,760],[140,520],[156,226]],{gates:[[30,797.5,5]]});
     /* the second wall, about the new quarter, from the Gennath gate to the fortress */
     wallLine([[-520,45],[-470,-80],[-440,-250],[-150,-306]],{gates:[[-462,-120,6]]});
     /* the pool of Shiloaḥ at the foot of the ridge (Yahuchanon 9:7) */
@@ -428,24 +464,34 @@ window.YAHRU_PLAN_TRUE=function(api,period){
     for(let z=230;z<780;z+=3) api.top(26,z,30,z+3,PATH);
     api.top(-10,480,60,520,PATH); api.mark('square',25,500); api.mark('street',28,420);
     /* the gate out to the south, by the pool: the Dung gate's way to the valley */
-    api.mark('gateIn',30,800); api.mark('gateOut',30,846);
+    api.mark('gateIn',30,784); api.mark('gateOut',30,814); api.mark('gateStreet',28,772);   /* (and the street just within it) */
   } else {
     /* the city of Dawiḏ on its ridge, and the western hill Ḥizqiyahu walled in */
     houses+=quarter(-40,240,100,790,22,(x,z)=>!(Math.abs(x-28)<4)&&!(Math.abs(z-500)<4));
     houses+=quarter(-210,0,-150,600,24);
     houses+=quarter(-560,60,-230,700,30);
+    if(api.townGround) api.townGround([[-150,-40],[-450,-10],[-600,120],[-620,420],[-560,680],[-330,820],[-30,835],
+      [90,760],[140,520],[150,120],[150,-150],[-120,-150]]);
     /* the walls of Ḥizqiyahu: the broad wall across the north-west (Neḥemyah 3:8), seven metres
        thick, about the western hill, down to the pool and up the eastern ridge */
     wallLine([[-150,-40],[-450,-10],[-600,120]],{t:7,gates:[[-300,-25,6]]});
     wallLine([[-600,120],[-620,420],[-560,680],[-330,820],[-30,835]],{gates:[[-330,820,6]]});
-    wallLine([[-30,835],[90,760],[140,520],[150,120]],{gates:[[30,820,5]]});
+    wallLine([[-30,835],[90,760],[140,520],[150,120]],{gates:[[30,797.5,5]]});
     for(let z=230;z<780;z+=3) api.top(26,z,30,z+3,PATH);
     api.top(-10,480,60,520,PATH); api.mark('square',25,500); api.mark('street',28,420);
     api.mark('gateIn',-300,-15); api.mark('gateOut',-300,-50);
+    /* the walk along the broad wall's top, west of the gate (Yashayahu 36:11, "the people who are on the
+       wall"): its inner half, clear of the crenels along its middle, from beyond the gate's tower to short
+       of the next — no height is given, for the wall stands course by course on the hill */
+    api.mark('wallTop',-312.2,-21.2); api.mark('wallTopEnd',-323.6,-20.0);
     /* OUTSIDE THE GATE: the highway of the Launderer's Field and the upper pool (Yashayahu 7:3) */
     const px=-360, pz=-150, pw=26, pd=16;
     api.water(px-pw/2,pz-pd/2,px+pw/2,pz+pd/2,{depth:2,bed:'stone',y:gY(px,pz)-0.6});
-    api.mark('pool',px+10,pz+2); api.mark('poolEnd',px+9.5,pz-6.5); api.mark('ahaz',px+4,pz-8); api.mark('field',px+30,pz+14);
+    /* the marks stand where the small city's do about her pool — off its eastern end, and at the
+       end of the conduit by its northern side — measured from THIS pool's own edges: they were the
+       small pool's very numbers, and the true pool is half again as big, so the sovereign stood in
+       the water up to his waist and the prophet was sent to meet him there */
+    api.mark('pool',px+pw/2+2,pz+2); api.mark('poolEnd',px+pw/2+1.5,pz-pd/2-1); api.mark('ahaz',px+4,pz-pd/2-2.5); api.mark('field',px+30,pz+14);
     for(let k=0;k<30;k++) api.top(-300-k*2,-50-k*1.6,-297-k*2,-47-k*1.6,PATH);
   }
   /* THE HOUSE OF THE TAUGHT ONES (Yashayahu 8:16), in the lower city by the square */

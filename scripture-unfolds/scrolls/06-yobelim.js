@@ -15,10 +15,10 @@
    names the forty-nine jubilees the sun is coming up again — because that is
    what the book says a year is, and this world keeps that year.
 
-   IT IS ALSO THE ONLY FILM ANCHORED IN THE HIGH GROUND. `anchor:'coast'` is
-   the shore every other scroll is staged on; this one is a man on a mountain
-   in a cloud for six days, so the camera is kept high and the cloud is kept
-   on him — the `clouds` dial at its full through the whole of the first
+   IT IS STAGED ON THE SAME SHORE AS THE OTHERS (`anchor:'coast'` — the stage
+   has no mountain to stand on), but this one is a man on a mountain in a
+   cloud for six days, so the camera is kept high and the cloud is kept on
+   him — the `clouds` dial at its full through the whole of the first
    movement, which is the nearest thing this stage has to an overshadowing. */
 
 STORY.scene({
@@ -78,16 +78,17 @@ STORY.scene({
     { t: 20.0, to: 41.0, q:['yobelim',1,2] },
     { t: 42.0, to: 63.0, q:['yobelim',1,3] },
     { t: 64.0, to: 79.0, q:['yobelim',1,4] },
-    /* --- how in six days He finished all His works --- */
+    /* --- the six days, the sun appointed for a sign, and Ḥanoḵ who first wrote down the signs of the shamayim --- */
     { t: 88.0, to:111.0, q:['yobelim',2,1] },
     { t:112.0, to:135.0, q:['yobelim',2,9] },
     { t:136.0, to:155.0, q:['yobelim',4,17] },
-    /* --- and the weeks of days that make the year --- */
+    /* --- the weeks of days that make the year; and Ḥanoḵ taken, who wrote it down --- */
     { t:162.0, to:185.0, q:['yobelim',6,30] },
     { t:186.0, to:209.0, q:['yobelim',6,32] },
     { t:210.0, to:227.0, q:['yobelim',4,23] },
-    /* --- forty-nine yobelim from the days of Adawm --- */
-    { t:236.0, to:261.0, q:['yobelim',50,4] },
-    { t:262.0, to:294.0, q:['yobelim',1,5] },
+    /* --- "write them in a book", under the host; and the forty-nine yobelim as the sun comes up again
+       (the two were the other way about, and the jubilees were read in full night) --- */
+    { t:236.0, to:261.0, q:['yobelim',1,5] },
+    { t:262.0, to:294.0, q:['yobelim',50,4] },
   ],
 });

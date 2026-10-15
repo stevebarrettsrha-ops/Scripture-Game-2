@@ -10,16 +10,18 @@
    FOUR MOVEMENTS, AND EACH ONE HAS ITS OWN LIGHT, which is the whole reason
    this book films well on a stage built out of dials:
 
-     the bush   dusk in a wilderness, everything dark but one thing burning
+     the bush   dusk in a wilderness, the light going (the bush itself is not
+                drawn: the stage has no dial for one burning thing)
      the column cloud by day and fire by night — the stage runs both, in
                 order, because the verse says the one did not cease by day
                 nor the other by night
      the sea    the morning watch: a strong east ruach all night and then the
-                waters divided at the break of day, so this movement alone
-                is anchored out over water and the light comes up in it
+                break of day — told by the light of that night and morning; the
+                waters going back and returning are not drawn (the stage has
+                no dial that parts a sea), and the scene stays on its shore
      the mount  Sinai in smoke, all of it, and the smoke going up like the
-                smoke of a furnace — the darkest sky in the film, in the
-                middle of the day
+                smoke of a furnace — the darkest sky in the film, on the
+                morning of the third day (19:16)
 
    The eye is kept LOW throughout, lower than any other film on this shelf.
    Nothing here is seen from the shamayim: every one of these four things was
@@ -41,9 +43,12 @@ STORY.scene({
     { t: 40, hour:19.2, cd: 74, cy: 13, cl: 3, ca:0.045, light:0.50, sky:0x6a4a42, sun:0.10,
       fogN:150, fogF:520 },                          /* take your sandals off your feet */
     { t: 62, hour:19.7, cd: 88, cy: 17, cl: 4, ca:0.070, light:0.56, sky:0x74544a, sun:0.14 },
-    /* ---- the column of cloud by day ---- */
-    { t: 88, hour:32, cd:200, cy: 56, cl:12, ca:0.105, dark:0, light:1, sky:0x9fc5e8, sun:1,
-      moon:0, stars:0, clouds:1, man:0, fogN:340, fogF:1080 },
+    /* (held while the voice speaks from the bush, 3:7 — the day that follows began to come while
+       it was read, through midnight to morning, and Mosheh went out of the shot) */
+    { t: 79.5 },
+    /* ---- the column of cloud by day — in the dark between (83.05-84.45) ---- */
+    { t: 83.5, hour:32, cd:200, cy: 56, cl:12, ca:0.105, dark:0, light:1, sky:0x9fc5e8, sun:1,
+      moon:0, stars:0, clouds:1, man:0, fogN:340, fogF:1080, cut:true },
     /* ---- and the column of fire by night ---- */
     { t:110, hour:45, cd:180, cy: 48, cl:10, ca:0.135, dark:0.36, light:0.40, sky:0x232b46,
       sun:0, moon:0.9, stars:0.95, fogN:260, fogF:860 },
@@ -55,13 +60,15 @@ STORY.scene({
     { t:188, hour:53.6, cd:210, cy: 46, cl: 7, ca:0.240, dark:0.06, light:0.82, sky:0x9b8478,
       sun:0.55, moon:0.1, stars:0, fogN:300, fogF:1000 },  /* the break of day */
     { t:214, hour:56.2, cd:250, cy: 62, cl:10, ca:0.275, dark:0, light:0.96, sky:0xa9c2da, sun:0.9 },
-    /* ---- and the mountain was in smoke, all of it ---- */
-    { t:242, hour:60, cd:180, cy: 44, cl: 9, ca:0.310, dark:0.30, light:0.54, sky:0x4a4038,
+    /* (held while the waters return over the chariots, 14:28 — the smoke of Sinai began to come over it) */
+    { t:234 },
+    /* ---- and the mountain was in smoke, all of it — "on the third day in the morning" (19:16) ---- */
+    { t:242, hour:57, cd:180, cy: 44, cl: 9, ca:0.310, dark:0.30, light:0.54, sky:0x4a4038,
       sun:0.18, clouds:1, fogN:190, fogF:640 },
-    { t:266, hour:61.2, cd:140, cy: 32, cl: 6, ca:0.340, dark:0.44, light:0.40, sky:0x332c26,
+    { t:266, hour:57.8, cd:140, cy: 32, cl: 6, ca:0.340, dark:0.44, light:0.40, sky:0x332c26,
       sun:0.05, fogN:150, fogF:520 },
-    { t:292, hour:62.4, cd:120, cy: 26, cl: 5, ca:0.368, dark:0.52, light:0.34, sky:0x241f1c, sun:0 },
-    { t:316, hour:63.4, cd:170, cy: 40, cl: 8, ca:0.398, dark:0.46, light:0.38, sky:0x2b2521 },
+    { t:292, hour:58.6, cd:120, cy: 26, cl: 5, ca:0.368, dark:0.52, light:0.34, sky:0x241f1c, sun:0 },
+    { t:316, hour:59.4, cd:170, cy: 40, cl: 8, ca:0.398, dark:0.46, light:0.38, sky:0x2b2521 },
   ],
 
   titles:[

@@ -110,7 +110,7 @@ STORY.act({
   /* ---------------- VI.1 — THE ENTRY ---------------- */
   { id:'entry', title:'Yahrushalayim', date:'before the Pesach, c. 30 CE', place:'yahrushalayim', time:'day',
     player:{ at:[-9,47], face:Math.PI, look:ADULT },
-    crowds:[ {id:'pilgrims', n:320, area:[-42,28,8,76], path:[[-30,66],[-24,58],[-15.6,47],'gateIn',[-2,24]], clear:2.6, facePath:true} ],
+    crowds:[ {id:'pilgrims', n:320, area:[-42,28,8,76], path:[[-30,66],[-24,58],[-15.6,47],'gateIn','gateStreet'], clear:2.6, facePath:true} ],
     actors:[
       Object.assign({id:'yahusha', at:[-24,58], face:Math.PI*0.85},YAHUSHA),
       T('kepha',[-22,60],{face:Math.PI*0.85}), T('yahuchanon',[-26,60.6],{face:Math.PI*0.85}), T('andri',[-23.4,62.4],{face:Math.PI*0.85}),
@@ -136,7 +136,7 @@ STORY.act({
       {t:'cam', on:'yahusha', shot:'back', toward:'g3', back:6, dur:2.5},
       {t:'say', who:'crowds', ref:'MATTITHYAHU 21:9', turn:false},
       {t:'move', who:'yahusha', to:'gateIn', speed:0.8},
-      {t:'move', who:'yahusha', to:[-2,24], speed:0.8, wait:false},
+      {t:'move', who:'yahusha', to:'gateStreet', speed:0.8, wait:false},
       {t:'cam', on:'yahusha', shot:'back', toward:'g3', back:6, dur:3},
       {t:'say', who:'city', ref:'MATTITHYAHU 21:10', turn:false},
       {t:'say', who:'crowds', ref:'MATTITHYAHU 21:11', turn:false},
@@ -242,7 +242,7 @@ STORY.act({
       {t:'move', who:'widow', to:[-1.6,-38.4], speed:0.7},
       {t:'cam', from:[3.4,5.8,-35.6], look:'widow', dur:2},
       {t:'read', ref:'MARK 12:42'},
-      {t:'move', who:'widow', to:[-8,-37], speed:0.7, wait:false},
+      {t:'move', who:'widow', to:[-6,-39.4], speed:0.7, wait:false},              /* (back the way she came: further on, in the true court, is a wall) */
       {t:'face', who:'yahusha', to:'kepha'},
       {t:'cam', on:'yahusha', shot:'back', toward:'kepha', dur:1.6},
       {t:'say', who:'yahusha', ref:'MARK 12:43-44', turn:false},
@@ -319,7 +319,7 @@ STORY.act({
       {t:'say', who:'yahusha', ref:'LUKE 22:11', turn:false},
       {t:'say', who:'yahusha', ref:'LUKE 22:12', turn:false},
       {t:'cam', release:true},
-      {t:'move', who:['kepha','yahuchanon'], to:['gateIn',['gateIn',-1.4,0.6]], speed:1.4},
+      {t:'move', who:['kepha','yahuchanon'], to:['gateIn',['gateIn>gateOut',-1.0,0]], speed:1.4},   /* (the one behind the other, inside the gate, whichever way the city's gate is turned) */
       {t:'move', who:'jarman', to:[-6,30], speed:1, wait:false},
       {t:'move', who:['kepha','yahuchanon'], to:[[-6.4,32],[-7.6,32.6]], speed:1.3},
       {t:'goal', text:'Go in with them, and follow the man with the jar', goto:[-8,34], r:4},
@@ -433,10 +433,10 @@ STORY.act({
       {t:'say', who:'kepha', ref:'MARK 14:31', turn:false},
       {t:'cam', release:true},
       {t:'move', who:['yahusha','kepha','yaaqob','yahuchanon','andri','philip','toma','mattithyahu','bartholomi'],
-        to:['gIn',[63.6,-56.4],[63.2,-59.4],[64.4,-60],[65.6,-55.4],[66.6,-56],[64.6,-54.8],[66.8,-54.4],[63.6,-54.6]], speed:1.1, wait:false},
+        to:['gIn',[63.6,-56.4],[63.2,-59.4],[64.4,-60],[65.6,-55.4],[66.6,-56],[64.6,-54.8],[65.8,-57.2],[63.6,-54.6]], speed:1.1, wait:false},
       {t:'read', ref:'YAHUCHANON 18:1'},
       {t:'witness', text:'Light the lamp at the gate of the garden for those who wait', items:['lamp'], verb:'Light the lamp', hold:0.8, reach:2.2, reveal:{lamp:'lampGlow'}},
-      {t:'move', who:['andri','philip','toma','mattithyahu','bartholomi'], to:[[65.4,-55.6],[66.6,-56.4],[64.6,-54.8],[66.8,-54.4],[63.6,-54.6]], speed:1, wait:false},
+      {t:'move', who:['andri','philip','toma','mattithyahu','bartholomi'], to:[[65.4,-55.6],[66.6,-56.4],[64.6,-54.8],[65.8,-57.2],[63.6,-54.6]], speed:1, wait:false},   /* (Mattithyahu on the open walk: written under the old tree's low limbs on the slope, he could not be got there) */
       {t:'face', who:'yahusha', to:'andri'},
       {t:'cam', on:'yahusha', shot:'back', toward:'andri', dur:1.6},
       {t:'say', who:'yahusha', ref:'MARK 14:32', turn:false},
@@ -496,10 +496,10 @@ STORY.act({
     ],
     glows:[0,1,2,3,4].map(k=>({id:'torch'+k, at:[52+k*1.2,2.2,-62+k*2.2], size:1.4, color:0xff9a40, intensity:0.9}))
       /* "and having touched his ear, He healed him" (Luke 22:51) */
-      .concat([{id:'ear', at:[62.6,-60], dy:1.7, size:0.8, color:0xfff4d8, intensity:0.5, hidden:true}]),
+      .concat([{id:'ear', at:[62.3,-58.8], dy:1.7, size:0.8, color:0xfff4d8, intensity:0.5, hidden:true}]),
     beats:[
       {t:'cam', from:['three',2,-4], fdy:2.4, look:'yahudahQ', dur:0.1},
-      {t:'move', who:['yahudahQ','melek'].concat(ids(BAND)), to:[[63.4,-58],[62.6,-60]].concat(BAND.map((a,k)=>[58.6+(k%5)*1.1,-61+Math.floor(k/5)*3.4+(k%2)*0.6])), speed:1.4, wait:false},
+      {t:'move', who:['yahudahQ','melek'].concat(ids(BAND)), to:[[63.4,-58],[62.3,-58.8]].concat(BAND.map((a,k)=>[57.6+(k%5)*0.8,-61+Math.floor(k/5)*3.4+(k%2)*0.6])), speed:1.4, wait:false},   /* (Meleḵ in the gateway, the band drawn up short of the garden's wall: two of them were sent onto its top) */
       {t:'drift', id:['torch0','torch1','torch2','torch3','torch4'], by:[7,0,1], dur:6, wait:false},
       {t:'read', ref:'MARK 14:43'},
       {t:'read', ref:'MARK 14:44', voices:['yahudahQ']},

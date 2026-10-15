@@ -259,8 +259,8 @@ STORY.act({
       Object.assign({id:'stephanos', at:'accused', face:Math.PI},STEPHANOS),
       {id:'kohenG', name:'The kohen gadol', key:'Qayapha', dress:'kohen', at:'qayapha', face:0, robe:0x3a3a6a, cloth:0xe8e0cc, beard:0x6d6a66, kind:'oldman', sit:true, bench:true},
       ...folk('o',10,[5.6,24.8,18.4,25.4],0,{dress:'scribe', kind:'oldman', sit:true, bench:true}),
-      {id:'fr0', name:'Men put up to it', at:['accused',-2.4,1.4], face:Math.PI, robe:0x6a5a3a, cloth:0xcfc4aa, beard:0x2c241f},
-      {id:'fr1', at:['accused',2.4,1.6], face:Math.PI, robe:0x5a4a3a, cloth:0xb9ab8e, beard:0x1e1814},
+      {id:'fr0', name:'Men put up to it', at:['accused',-2.4,2.2], face:Math.PI, robe:0x6a5a3a, cloth:0xcfc4aa, beard:0x2c241f},
+      {id:'fr1', at:['accused',2.4,2.2], face:Math.PI, robe:0x5a4a3a, cloth:0xb9ab8e, beard:0x1e1814},
       Object.assign({id:'shaul', at:['fire',2.4,0.6], face:Math.PI*1.1},SHAUL),
       ...folk('h',6,[9,30,17,34],Math.PI)
     ],
@@ -453,7 +453,7 @@ STORY.act({
     ],
     things:[ {id:'food', kind:'basket', at:['straight',6,1.4], full:true} ],
     /* the Master in a vision: light, as on the road (the speaker's glow is 'light') */
-    glows:[ {id:'light', at:['hananyah',0,-1.6], dy:2.4, size:2.6, color:0xfff6dc, intensity:1.2, pulse:true, hidden:true},
+    glows:[ {id:'light', at:['hananyah',-1.6,0], dy:2.4, size:2.6, color:0xfff6dc, intensity:1.2, pulse:true, hidden:true},
             /* "something like scales fell from his eyes" (9:18) */
             {id:'scales', at:['bed',-0.2,0], dy:1.2, size:0.9, color:0xfffbea, intensity:0.6, hidden:true} ],
     beats:[
@@ -527,7 +527,7 @@ STORY.act({
       {t:'wait', s:2.5},
       /* up the stair and in */
       {t:'place', who:'kepha', at:[-6,24.4], y:'tabY', face:-Math.PI/2},
-      {t:'place', who:'m0', at:['tabStreet',0,-1.4], y:null}, {t:'place', who:'m1', at:['tabStreet',-0.6,1], y:null},
+      {t:'place', who:'m0', at:['tabStreet',0.6,-0.2], y:null}, {t:'place', who:'m1', at:['tabStreet',-0.6,1], y:null},
       {t:'face', who:'wd0', to:'kepha'}, {t:'face', who:'wd1', to:'kepha'}, {t:'face', who:'wd2', to:'kepha'},
       {t:'hold', id:'coat0', who:'wd0'}, {t:'hold', id:'coat1', who:'wd1'}, {t:'hold', id:'coat2', who:'wd2'},   /* "showing the inner garments and outer garments" */
       {t:'cam', from:[-6.6,4.7,21.2], look:[-10,3.7,24.4], dur:2},
@@ -576,9 +576,9 @@ STORY.act({
     actors:[
       T('kepha','roof',{face:Math.PI/2, y:'roofY', sit:true}),
       {id:'tanner', name:'Shim‛on the tanner', key:'Shimon the tanner', at:['tannerIn',0,1.4], face:-Math.PI/2, robe:0x5a4030, cloth:0xcfc4aa, beard:0x6d6a66, kind:'oldman'},
-      {id:'sent0', name:'The men from Cornelius', at:['street',-8,-1], face:Math.PI/2, robe:0x6a5a44, cloth:0xd8ceb4, beard:0x2c241f, skin:0xa87a50},
-      {id:'sent1', at:['street',-9,0.6], face:Math.PI/2, robe:0x5a5a6a, cloth:0xcfc4aa, skin:0xb08060},
-      LEGION('sent2',['street',-10,-0.4],Math.PI/2)
+      {id:'sent0', name:'The men from Cornelius', at:['street',-8,3], face:Math.PI/2, robe:0x6a5a44, cloth:0xd8ceb4, beard:0x2c241f, skin:0xa87a50},
+      {id:'sent1', at:['street',-9,4], face:Math.PI/2, robe:0x5a5a6a, cloth:0xcfc4aa, skin:0xb08060},
+      LEGION('sent2',['street',-10,3.4],Math.PI/2)
     ],
     /* the vessel like a great linen sheet (10:11-12), let down before him over the yard by its four
        corners on cords of light, out of the opened shamayim; it goes up and comes down three times (10:16) */
@@ -623,6 +623,8 @@ STORY.act({
       {t:'goal', text:'Go and open the gate to the men', goto:'gate', r:2},
       {t:'place', who:'kepha', at:'stairFoot', y:null, face:-Math.PI/2},
       {t:'stand', who:'kepha'},
+      {t:'move', who:'kepha', to:['stairFoot',0,2.2], speed:1.2},                      /* (out from the foot of the stair and along the house, not back up its steps and off the roof) */
+      {t:'move', who:'kepha', to:['stairFoot',-10,1.6], speed:1.2},
       {t:'move', who:'kepha', to:['gate',1.2,0], speed:1.2},
       {t:'face', who:'kepha', to:'sent0'},
       {t:'cam', from:['gate',3,3], fdy:2, look:'sent0', dur:2},
@@ -640,14 +642,14 @@ STORY.act({
     player:{ at:['inner',1.4,3], face:Math.PI/2, look:ADULT },
     actors:[
       {id:'cornelius', name:'Cornelius', key:'Cornelius', folk:'roman', dress:'centurion', at:['door',-1.6,0], face:Math.PI/2},
-      ...folk('rel',10,[-8,-6,2,6],Math.PI/2,{folk:'roman', dress:'man'}),
-      T('kepha',['street',8,0],{face:-Math.PI/2}),
-      ...folk('br',4,[22,-2,26,2],-Math.PI/2)
+      ...folk('rel',10,[-8,-6,2,6],Math.PI/2,{folk:'roman', dress:'man'}).map(a=>a.id==='rel0'?Object.assign(a,{at:[-3,0.6]}):a),   /* (not in the pool of the court) */
+      T('kepha',['street',0,-4],{face:-Math.PI/2}),                                     /* (come by the road from Yapho, 10:23 — not out of the sea) */
+      ...folk('br',4,[13,-12,18,-8],-Math.PI/2)
     ],
     things:[ {id:'jarC', kind:'jar', at:['inner',0,-2.4]} ],
     /* "the Set-apart Spirit fell upon all those hearing the word" (10:44): a flame over each head of the
        household where they stand — the women a little lower — and over Cornelius */
-    glows:[[0.22,0.85,0.64],[1.58,2.92,-0.91],[-0.91,2.1,2.58],[0.3,2.1,-5.87],[1.68,2.0,-4.66],[-2.51,2.1,-0.16],
+    glows:[[-3,2.1,0.6],[1.58,2.92,-0.91],[-0.91,2.1,2.58],[0.3,2.1,-5.87],[1.68,2.0,-4.66],[-2.51,2.1,-0.16],
            [-6.79,2.1,3.79],[-1.63,2.92,-0.29],[-6.85,2.1,1.98],[1.4,3.02,-1.65],[-2.4,2.2,1.4]]
       .map((p,k)=>({id:'r'+k, at:p, size:0.5, color:0xff9a3a, intensity:k%2?0.5:0.8, pulse:true, hidden:true})),
     beats:[
@@ -661,7 +663,8 @@ STORY.act({
       {t:'face', who:'kepha', to:'cornelius'},
       {t:'cam', from:['door',3.6,3], fdy:2, look:'cornelius', dur:1.8},
       {t:'say', who:'kepha', ref:'ACTS 10:26', turn:false},
-      {t:'move', who:['kepha','cornelius'], to:[['court',3,0],['court',1.6,1.4]], speed:1},
+      {t:'move', who:['kepha','cornelius'], to:[['court',4,-3.4],['court',4,3.4]], speed:1},        /* (round the pool of the court, not through it) */
+      {t:'move', who:['kepha','cornelius'], to:[['court',0.6,-2.6],['court',0.6,1.8]], speed:1},
       {t:'read', ref:'ACTS 10:27'},
       {t:'face', who:'kepha', to:'rel3'},
       {t:'cam', from:['court',5.4,-3], fdy:2.2, look:'kepha', dur:2},
@@ -1099,10 +1102,10 @@ STORY.act({
       {t:'say', who:'jailer', ref:'ACTS 16:30', turn:false},
       {t:'say', who:'emissaries', ref:'ACTS 16:31', turn:false},
       {t:'mood', who:'jailer'},
-      {t:'move', who:['jh0','jh1','jh2'], to:[['jailerDoor',-1.2,-1.6],['jailerDoor',-1.8,-0.4],['jailerDoor',-1.2,0.8]], speed:1.2, wait:false},
+      {t:'move', who:['jh0','jh1','jh2'], to:[['jailerDoor',0,-1.4],['jailerDoor',0.2,0],['jailerDoor',0,1.4]], speed:1.2, wait:false},   /* (in the way between the prison and his door) */
       {t:'read', ref:'ACTS 16:32'},
       /* the wounds washed at the trough, and he immersed, he and all his */
-      {t:'move', who:['jailer','shaul','sila','jh0','jh1','jh2'], to:[['trough',-0.4,0.4],['trough',-1.8,0.6],['trough',0.9,0.6],['trough',-2.6,1.8],['trough',-0.8,2],['trough',1.4,2]], speed:1},
+      {t:'move', who:['jailer','shaul','sila','jh0','jh1','jh2'], to:[['trough',-0.4,0.4],['trough',-1.8,0.6],['trough',0.9,0.6],['trough',-2.6,1.8],['trough',-2.2,-0.4],['trough',2.2,0.2]], speed:1},
       {t:'cam', from:['trough',3.4,3.4], fdy:1.8, look:'jailer', dur:2},
       {t:'read', ref:'ACTS 16:33'},
       {t:'move', who:['jailer','shaul','sila','jh0','jh1','jh2'], to:[[24.3,9.4],[28.1,9.4],[28.1,10.8],[24.3,10.8],[26.2,8.2],[26.2,12]], speed:1},
@@ -1222,11 +1225,11 @@ STORY.act({
       {t:'wait', s:2.5},
       /* at the lodging: "the taught ones did not allow him" */
       {t:'cam', from:['lodgingDoor',5,4], fdy:2.4, look:'shaul', dur:0.1},
-      {t:'move', who:'shaul', to:['lodgingDoor',-1.6,0], speed:1.3, wait:false},
+      {t:'move', who:'shaul', to:['lodgingDoor',-2.6,0], speed:1.3, wait:false},          /* (within the door, not in its jamb) */
       {t:'cam', release:true},
       {t:'goal', text:'Stand in the doorway — do not let Sha’ul go into the theatre', goto:'lodgingDoor', r:1.4},
       {t:'face', who:'shaul', to:'player'},
-      {t:'move', who:['tg0','tg1'], to:[['lodgingDoor',-2.2,-1],['lodgingDoor',-2.2,1]], speed:1.4},
+      {t:'move', who:['tg0','tg1'], to:[['lodgingDoor',-3.4,-1.2],['lodgingDoor',-3.4,1.2]], speed:1.4},
       {t:'cam', from:['lodgingDoor',3,-2.4], fdy:1.9, look:'shaul', dur:2},
       {t:'read', ref:'ACTS 19:30'},
       {t:'show', id:'messenger'},

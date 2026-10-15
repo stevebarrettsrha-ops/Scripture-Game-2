@@ -36,7 +36,10 @@ STORY.scene({
     { t:  0, dark:1, light:0.02, sky:SKY_DARK, sun:0, moon:0, stars:0,
       firm:0, land:0, sea:1, clouds:0, fogN:1, fogF:340,
       lifeSea:0, lifeAir:0, lifeLand:0,
-      cd: 92, cy: 13, ca:0.00, cl:2, cfov:64, cut:true },
+      cd: 92, cy: 13, ca:0.00, cl:2, cfov:64, cut:true,
+      /* the hour is the scene's own, noon, and not the watcher's clock: the greater light of the
+         fourth day stands overhead where it is shown, not below the horizon of a real night */
+      hour:12 },
     /* and the Ruach of Aluahim moving on the face of the waters */
     { t: 30, ca:0.05, cd:104, cy:15 },
 
@@ -64,20 +67,24 @@ STORY.scene({
 
     /* ===== THE FOURTH DAY — the two great lights, and the stars ===== */
     { t:191, cd:230, cy:110, cl:70, cfov:66, ca:0.335 },
+    { t:197, sun:0 },                                          /* (the greater light comes with 1:14, not before it) */
     { t:200, sun:1, ca:0.35 },
     { t:214, moon:1, stars:1, ca:0.375 },
     { t:232, ca:0.405, cd:240, cy:120 },
 
     /* ===== THE FIFTH DAY — the waters teem, and the birds fly ===== */
-    { t:245, cd:170, cy:44, cl:8, cfov:64, ca:0.425 },
-    { t:252, lifeSea:1, lifeAir:1 },                            /* THE WATERS TEEM, AND THE BIRDS FLY */
+    /* the host and the lesser light rule the night (1:16-18), and are not left at full in the day after */
+    { t:245, cd:170, cy:44, cl:8, cfov:64, ca:0.425, stars:0, moon:0.3 },
+    { t:251, lifeSea:0, lifeAir:0 },                            /* (they come with 1:20, not before it) */
+    { t:252, lifeSea:1, lifeAir:1, birds:1 },                   /* THE WATERS TEEM, AND THE BIRDS FLY */
     { t:285, ca:0.475, cd:150, cy:34 },
 
     /* ===== THE SIXTH DAY — the beasts of the earth, and the man ===== */
     { t:293, cd:128, cy:26, cl:6, cfov:62, ca:0.495 },
-    { t:300, lifeLand:1 },                                     /* THE BEASTS OF THE EARTH */
+    { t:299, lifeLand:0 },                                     /* (they come with 1:24, not before it) */
+    { t:300, lifeLand:1, beasts:1 },                           /* THE BEASTS OF THE EARTH */
     { t:330, ca:0.545, cd:112, cy:22 },
-    { t:334, man:1 },                                         /* IN THE IMAGE OF ALUAHIM */
+    { t:334, man:1, cut:true },                               /* IN THE IMAGE OF ALUAHIM — with 1:27, not while 1:26 is read */
     { t:369, cd: 96, cy:19, ca:0.575 },
 
     /* ===== THE SEVENTH DAY — and He rested ===== */

@@ -41,6 +41,12 @@ function textOf(ref){ const e=ST.text[ref]; return e?e.t:null; }
    voyage's camera is set from it every frame. */
 const K=()=>window.__KIT;
 let renderer, scene, camera, ctx=null, root=null, anchor=null, S=6.5;
+/* THE SCENE TURNED ABOUT: a place may be `turn`ed half round on the earth (story/places.js), so a set
+   written with its lake to the east stands with it to the west, as the east shore of Kinnereth has
+   it. Then x and z go out from the anchor the other way: SX is the scale across the ground, S's own
+   sign or the other, and the scene's root is turned with it. */
+let SX=6.5;
+const Q_HALF=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI);
 const clock=new THREE.Clock();
 function initGL(){
   renderer=K().renderer; S=K().setScale;
@@ -52,8 +58,8 @@ function resize(){ const vc=K().camera; camera.aspect=vc.aspect||window.innerWid
 function writeCamera(){
   if(!root) return;
   const vc=K().camera;
-  vc.position.set(anchor.x+camera.position.x*S, anchor.y+camera.position.y*S, anchor.z+camera.position.z*S);
-  vc.quaternion.copy(camera.quaternion);
+  vc.position.set(anchor.x+camera.position.x*SX, anchor.y+camera.position.y*S, anchor.z+camera.position.z*SX);
+  vc.quaternion.copy(camera.quaternion); if(SX<0) vc.quaternion.premultiply(Q_HALF);
   if(vc.fov!==camera.fov){ vc.fov=camera.fov; vc.updateProjectionMatrix(); }
   if(camera.aspect!==vc.aspect){ camera.aspect=vc.aspect; camera.updateProjectionMatrix(); }
   vc.updateMatrixWorld();
@@ -66,7 +72,7 @@ function writeCamera(){
 function groundAt(x,z,ref){
   const y=groundAt0(x,z,ref), k=K();
   if(!k.waterAt||!anchor) return y;
-  const B=k.B, wx=anchor.x+x*S, wz=anchor.z+z*S, wy=anchor.y+y*S;
+  const B=k.B, wx=anchor.x+x*SX, wz=anchor.z+z*SX, wy=anchor.y+y*S;
   if(!k.waterAt(wx,wy-0.5*B,wz)) return y;
   let b=wy-0.5*B, n=0; while(n<12&&k.waterAt(wx,b,wz)){ b-=B; n++; }
   const bed=(Math.floor(b/B)+1)*B;                                            /* the top of the first block that is not water */
@@ -76,37 +82,63 @@ function groundAt0(x,z,ref){
   const k=K(); let r;
   if(ref!==undefined) r=anchor.y+ref*S;
   else if(ctx&&ctx.api){ const pd=ctx.api.inPadL(x,z); if(pd) r=(pd.ty!==undefined?pd.ty*k.B:anchor.y)+2.2*S;   /* (its own level ground: a set may lie on more than one) */
-    else { const m=ctx.api.moundL(x,z); if(m!==null) r=anchor.y+(m+0.5)*S; } }
+    /* (or the slope its edge was eased into: cut down a hillside, the land's own top is gone, and a man
+       set there was found standing in the air forty metres over the cut) */
+    else { const bh=ctx.api.blendL?ctx.api.blendL(x,z):undefined; if(bh!==undefined) r=bh*k.B+2.2*S;
+      else { const m=ctx.api.moundL(x,z); if(m!==null) r=anchor.y+(m+0.5)*S; } } }
   /* with nothing to say how high (the city's courts, terraces, houses and the Hĕḵal), the
      floor is found from below: up from under the natural ground, through the stone, to the
      first floor with a man's headroom over it — the platform's top in the courts, the floor
      under a roof, never the roof (the world's own query only looks two courses above the
      land, and would stand a man inside a platform built higher than that) */
-  if(r===undefined){ const B=k.B, wx=anchor.x+x*S, wz=anchor.z+z*S, c=k.cell(Math.floor(wx/B),Math.floor(wz/B));
+  if(r===undefined){ const B=k.B, wx=anchor.x+x*SX, wz=anchor.z+z*SX, c=k.cell(Math.floor(wx/B),Math.floor(wz/B));
     if(c){ let b=c.h-6, n=0;
       while(n<40&&!k.solidAt(wx,(b+0.5)*B,wz)){ b++; n++; }
       for(;n<120;){ while(n<120&&k.solidAt(wx,(b+0.5)*B,wz)){ b++; n++; }
         if(!k.solidAt(wx,(b+1.5)*B,wz)) break;
         b++; n++; }
       return (b*B-anchor.y)/S; } }
-  const g=k.groundInfo(anchor.x+x*S,anchor.z+z*S,r);
+  const g=k.groundInfo(anchor.x+x*SX,anchor.z+z*SX,r);
   return ((g&&g.y!=null?g.y:anchor.y)-anchor.y)/S;
 }
 /* THE GROUND UNDER ONE OF THE SCENE'S PEOPLE as they go: a step of one course is taken up if
    there is room for a man over it; a wall is never climbed course by course onto a roof */
+/* ---- A MAN HOPS A BANK OF TWO COURSES ----
+   The figures of a scene took a step of a metre and no more, and the player a course; the land of
+   the true earth is cut in whole blocks and rises two at a pace on any hillside, so a figure sent up
+   a slope walked into it and stood there for ever, and the act waited on him. A rise of two courses
+   (with room to stand on top of it) is taken as a man takes it, with a hop; a wall is still a wall. */
+/* (CLIMB_REF: how far over his feet the ground is looked for, in metres. The world finds it by going down
+   from there to the first block, so it must be under a doorway's lintel — laid in whole blocks it hangs
+   at 1.85 — or the lintel's top is the ground, and a door is a wall three metres high: it was 2.4, and
+   the doors of every house were climbed or not gone through at all. 1.3 is still over a step of two
+   courses, which is the highest a man hops.) */
+const CLIMB_M=2.2, CLIMB_REF=1.3;
 function stepGround(x,z,cur){
-  let f=groundAt(x,z,cur+1.0);
-  if(f>cur+0.05){ const k=K(), B=k.B, wx=anchor.x+x*S, wz=anchor.z+z*S, fy=anchor.y+f*S;
-    if(f>cur+1.0||k.solidAt(wx,fy+0.5*B,wz)||k.solidAt(wx,fy+1.5*B,wz)) f=cur; }
+  let f=groundAt(x,z,cur+CLIMB_REF);
+  if(f>cur+0.05){ const k=K(), B=k.B, wx=anchor.x+x*SX, wz=anchor.z+z*SX, fy=anchor.y+f*S;
+    if(f>cur+CLIMB_M||k.solidAt(wx,fy+0.5*B,wz)||k.solidAt(wx,fy+1.5*B,wz)) f=cur; }
+  /* (one found with the ground over his knees and his chest — a step up refused under a bough, and the
+     slope rising on under him — comes up out of it to the floor over him, a storey at most: he walked on
+     inside the hillside to the upper pool, and only stood up on it when he got there) */
+  if(sunkAt(x,z,f)){ const g=groundAt(x,z,f+3.2); if(isFinite(g)&&g>f&&g<=f+3.0&&!sunkAt(x,z,g)) f=g; }
   return f;
 }
+/* does a body standing at this height touch the blocks, at the knee or the chest? */
+function bodyHit(x,z,y){ const k=K(), wx=anchor.x+x*SX, wz=anchor.z+z*SX;
+  return k.solidAt(wx,anchor.y+(y+0.9)*S,wz)||k.solidAt(wx,anchor.y+(y+1.5)*S,wz); }
+/* is a body standing at this height inside the blocks (at the knee and the chest)? */
+function sunkAt(x,z,y){ const k=K(), wx=anchor.x+x*SX, wz=anchor.z+z*SX;
+  return k.solidAt(wx,anchor.y+(y+0.9)*S,wz)&&k.solidAt(wx,anchor.y+(y+1.5)*S,wz); }
 /* is a man of the scene stopped here? the blocks of the world are what stop him: a step of
    one course he climbs; anything higher, or a lintel at his head, he does not */
 function solidFor(x,z,y){
-  const k=K(), B=k.B, wx=anchor.x+x*S, wz=anchor.z+z*S, foot=anchor.y+y*S;
+  const k=K(), B=k.B, wx=anchor.x+x*SX, wz=anchor.z+z*SX, foot=anchor.y+y*S;
   const at=d=>k.solidAt(wx,foot+d*B,wz);
-  if(at(0.5)) return at(1.5)||at(2.5);
-  return at(1.5);
+  if(!at(0.5)) return at(1.5);                 /* level: room for the body */
+  if(!at(1.5)) return at(2.5);                 /* a step of one course, room over it */
+  if(at(2.5)) return true;                     /* three courses and more: a wall */
+  return at(3.5);                              /* a bank of two, hopped, if a man can stand on it */
 }
 
 /* the hour of a scene: sky, sun, fog and how much the stars show */
@@ -134,11 +166,15 @@ function dropScene(){
   if(ctx&&ctx.api) ctx.api.drop();
   ctx=null; ring=null;
 }
-let _smallMarks={};
+let _smallMarks={}, _smallPlats={};
 /* the small city's own marks, for a period: her plan run once with nothing built */
 function smallCityMarks(period){
   if(_smallMarks[period]) return _smallMarks[period];
-  const marks={}, nop=()=>{}, api={S:1,marks,box:nop,pad:nop,top:nop,water:nop,house:nop,quarter:null,mound:nop,clearTrees:nop,
+  /* (and her platforms — a box of stone on her level ground broader than a large room: the courts of
+     Herodes stand on one three metres high, and a height written in them is over its top) */
+  const plats=_smallPlats[period]=[];
+  const marks={}, nop=()=>{}, api={S:1,marks,pad:nop,top:nop,water:nop,house:nop,quarter:null,mound:nop,clearTrees:nop,
+    box:(x0,y0,z0,x1,y1,z1)=>{ if(Math.min(y0,y1)<=0.05&&Math.abs((x1-x0)*(z1-z0))>=400) plats.push([Math.min(x0,x1),Math.min(z0,z1),Math.max(x0,x1),Math.max(z0,z1),Math.max(y0,y1)]); },
     groundY:()=>0,inPadL:()=>null,moundL:()=>null,mark:(n,x,z)=>{ marks[n]=[x,z]; },X:x=>x,Z:z=>z,Y:y=>y,local:(x,z)=>[x,z],pads:[]};
   try{ window.YAHRU_PLAN(api,period); }catch(e){}
   return (_smallMarks[period]=marks); }
@@ -149,14 +185,22 @@ function trueCityAnchor(A,sc){
   if(!off){
     /* where the scene is played: its player, else its first actor */
     let P=null; const pl=sc.player&&sc.player.at;
-    const plain=at=>Array.isArray(at)&&typeof at[0]==='number'?at:(Array.isArray(at)&&typeof at[0]==='string'&&small[at[0]]?[small[at[0]][0]+at[1],small[at[0]][1]+at[2]]:(typeof at==='string'&&small[at]?small[at]:null));
+    /* (a place written along the line between two marks, ['gateIn>gateOut',a,s], is read as pos() reads it:
+       unread, the siege was anchored on the first plain number it found, the Raḇshaqĕh's at the pool) */
+    const plain=at=>{ if(Array.isArray(at)&&typeof at[0]==='number') return at;
+      if(typeof at==='string') return small[at]||null;
+      if(!Array.isArray(at)||typeof at[0]!=='string') return null;
+      if(at[0].indexOf('>')>0){ const [na,nb]=at[0].split('>'), A0=small[na], B0=small[nb]; if(!A0||!B0) return null;
+        const dx=B0[0]-A0[0], dz=B0[1]-A0[1], L=Math.hypot(dx,dz)||1, ux=dx/L, uz=dz/L, a=at[3]==='f'?(at[1]||0)*L:(at[1]||0), sd=at[2]||0;
+        return [A0[0]+ux*a-uz*sd, A0[1]+uz*a+ux*sd]; }
+      const m=small[at[0]]; return m?[m[0]+(at[1]||0),m[1]+(at[2]||0)]:null; };
     P=plain(pl); if(!P) for(const a of sc.actors||[]){ P=plain(a.at); if(P) break; }
     if(P){ let bd=1e9, best=null;
       for(const m in small){ if(/Y$/.test(m)||!big[m]) continue; const d=Math.hypot(small[m][0]-P[0],small[m][1]-P[1]); if(d<bd){ bd=d; best=m; } }
-      if(best) off=[big[best][0]-small[best][0],big[best][1]-small[best][1]]; } }
+      if(best) off=[big[best][0]-small[best][0],big[best][1]-small[best][1]]; A=Object.assign({},A,{anchorMark:best}); } }
   if(!off) return A;
   const x=yp.x+off[0]*S, z=yp.z+off[1]*S, ix=Math.floor(x/k.B), iz=Math.floor(z/k.B), y=k.topY(ix,iz);
-  return Object.assign({},A,{x,z,y,markOff:off,yShift:(A.y-y)/S}); }
+  return Object.assign({},A,{x,z,y,markOff:off,yShift:(A.y-y)/S,byMark:!sc.trueAt,period}); }
 /* THE YEAR A SCENE IS PLAYED IN, from its date ('612 BCE', 'c. 28 CE'); else the first dated scene of its
    act; else its period's. The works of the ancients are raised as they stood in it (engine.js, A WONDER
    IN ITS OWN DAY): Ninewĕh whole and burning in 612, Etemenanki whole in 539, Persepolis a ruin and the
@@ -178,16 +222,17 @@ function buildScene(sc){
      from that mark's place in the small city to its place in the true. The scene's own numbers
      stand as they were written, about its new anchor, and her marks are named from it too. */
   if(A.city&&!A.markOff&&K().trueEarth&&K().trueEarth()) A=trueCityAnchor(A,sc);
-  anchor=A;
+  anchor=A; SX=A.turn?-S:S;
   /* THE SEASON is the scene's own, not the voyage's year: spring unless the scene names
      another (Rome was founded, by its own reckoning, on 21 April; the shepherds lay out in the
      fields; the lake is crossed in fair weather) — the snow is never laid on a scene by chance */
   if(window.SEASON) SEASON.setSeason(sc.season||act.season||'Spring');
-  root=new THREE.Group(); root.name='story-scene'; root.position.set(A.x,A.y,A.z); root.scale.setScalar(S); k.scene.add(root);
+  root=new THREE.Group(); root.name='story-scene'; root.position.set(A.x,A.y,A.z); root.scale.setScalar(S); root.rotation.y=SX<0?Math.PI:0; k.scene.add(root);
   scene=root;
   ctx={scene:root,colliders:[],markers:{},actors:{},things:{},glows:{},water:[],flicker:[],flock:[],bounds:null,wind:[0.5,0.2],place:sc.place,period:sc.period||A.period,anchor:A,
     year:yearOf(sc),trueEarth:!!(k.trueEarth&&k.trueEarth())};
   ctx.groundY=(x,z,ref)=>groundAt(x,z,ref);
+  ctx.toWorldXZ=(x,z)=>[A.x+x*SX,A.z+z*SX]; ctx.fromWorldXZ=(wx,wz)=>[(wx-A.x)/SX,(wz-A.z)/SX];   /* (for a set that asks the land itself) */
   /* the traveller is stood there, unseen, so the world is built about the scene */
   standWalker(A.x,A.z,A.y);
   /* the city of the great king is the voyage's own, raised as she stood in the act's days;
@@ -196,9 +241,23 @@ function buildScene(sc){
     /* (a set laid at its own true place: her marks are named from its anchor, not hers) */
     if(A.markOff) for(const m in ctx.markers){ const v=ctx.markers[m]; if(!Array.isArray(v)||v.length!==2) continue;
       if(/Y$/.test(m)) ctx.markers[m]=[v[0]+(A.yShift||0),v[1]];          /* a height: from the new anchor's ground */
-      else ctx.markers[m]=[v[0]-A.markOff[0],v[1]-A.markOff[1]]; } }
+      else ctx.markers[m]=[v[0]-A.markOff[0],v[1]-A.markOff[1]]; }
+    /* ---- AND EVERY PLACE OF THE SCENE GOES WITH THE MARK IT WAS WRITTEN BESIDE ----
+       The scene's own numbers were written about the small city, and they were moved to the true
+       one by ONE offset — the mark the scene began nearest to. A scene that walks from the gate
+       to the upper pool was moved by the gate; but in the true city the pool lies in another
+       quarter altogether, so the highway, the sovereign's guards and the stone the sign is
+       written on stood inside the walls and down in a valley, the prophet and his son were sent
+       there and could not arrive, and the act could not be finished. Now each number is moved
+       by the mark nearest to where it was written: a place beside the small city's pool is set
+       beside the true pool, a place by the gate by the true gate. */
+    if(A.markOff&&A.byMark){ const small=smallCityMarks(A.period||sc.period||'kings'), big=k.yahruAs(sc.period||A.period)||{};
+      ctx.remap=[]; for(const m in small){ if(/Y$/.test(m)||!big[m]||!Array.isArray(big[m])) continue;
+        const d=[big[m][0]-small[m][0]-A.markOff[0],big[m][1]-small[m][1]-A.markOff[1]];
+        ctx.remap.push({n:m,s:small[m],d,t:[small[m][0]+d[0],small[m][1]+d[1]],home:m===A.anchorMark}); }
+      if(!ctx.remap.length) ctx.remap=null; } }
   if(k.aimOff) k.aimOff(true);                                    /* (the voyage's mark on the block in reach is not the story's) */
-  ctx.api=k.setBuilder(A.x,A.z,A.y);
+  ctx.api=k.setBuilder(A.x,A.z,A.y,{turn:!!A.turn});
   const st=new window.STORYWORLD.Static(ctx.api);
   const build=window.STORYSETTINGS[sc.place];
   if(!build) throw new Error('no such place: '+sc.place);
@@ -209,7 +268,7 @@ function buildScene(sc){
      is watched through a wood that was never written into it. Its own olives and figs are its own. */
   if(k.trueEarth&&k.trueEarth()&&ctx.api.clearTrees){
     let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9;
-    const take=at=>{ try{ const p=Array.isArray(at)&&typeof at[0]==='number'?at:pos(at); if(p&&isFinite(p[0])&&isFinite(p[1])){
+    const take=at=>{ try{ const p=pos(at); if(p&&isFinite(p[0])&&isFinite(p[1])){
       x0=Math.min(x0,p[0]); z0=Math.min(z0,p[1]); x1=Math.max(x1,p[0]); z1=Math.max(z1,p[1]); } }catch(e){} };
     if(sc.player&&sc.player.at) take(sc.player.at);
     for(const a of sc.actors||[]) if(a.at) take(a.at);
@@ -226,9 +285,9 @@ function buildScene(sc){
   for(const a of sc.actors||[]){
     const g=window.STORYWORLD.person(ctx,a);
     const p=pos(a.at); g.position.set(p[0],ctx.groundY(p[0],p[1]),p[1]); g.userData.id=a.id;
-    g.rotation.y=a.face!==undefined?a.face:0;
+    g.rotation.y=faceOf(a.face,p);
     g.userData.id=a.id; g.userData.name=a.name; g.userData.target=null; g.userData.follow=null; g.userData.def=a;
-    if(a.y!==undefined){ g.userData.fixedY=yOf(a.y); g.position.y=g.userData.fixedY; }
+    if(a.y!==undefined&&yOf(a.y)!==undefined){ g.userData.fixedY=yOf(a.y); g.position.y=g.userData.fixedY; }
     if(a.hidden) g.visible=false;
     if(a.sit) g.userData.sit=true;
     if(a.name) g.userData.label=makeLabel(a.name,g);
@@ -257,11 +316,22 @@ function buildScene(sc){
       obj.position.set(p[0],t.y!==undefined?yOf(t.y):(ctx.groundY(p[0],p[1])||0)+(t.dy||0),p[1]); scene.add(obj); }
     else if(t.kind==='vision'){ obj=window.STORYWORLD.vision(ctx,p[0],p[1],t); obj.position.y=t.y!==undefined?yOf(t.y):(ctx.groundY(p[0],p[1])||0); }
     else if(t.kind==='throne'){ obj=window.STORYWORLD.throne(ctx,p[0],p[1],t); obj.position.y=t.y!==undefined?yOf(t.y):(ctx.groundY(p[0],p[1])||0); }
+    /* the throne high and lifted up, and the train of the robe filling the Hĕḵal (Yashayahu 6:1) */
+    else if(t.kind==='gloryThrone'){ obj=window.STORYWORLD.gloryThrone(ctx,p[0],p[1],t); obj.position.y=(ctx.groundY(p[0],p[1])||0)+(t.dy||0); }
+    /* the court of heaven where the vision is seen, and its altar (Yashayahu 6:1, 6:6) */
+    else if(t.kind==='heavenCourt'){ obj=window.STORYWORLD.heavenCourt(ctx,p[0],p[1],t); }
+    else if(t.kind==='smokeCloud'){ obj=window.STORYWORLD.smokeCloud(ctx,p[0],p[1],t); }
+    else if(t.kind==='livingOne'){ obj=window.STORYWORLD.livingOneAt(ctx,p[0],p[1],t); }
+    else if(t.kind==='heavenAltar'){ obj=window.STORYWORLD.heavenAltar(ctx,p[0],p[1],t); obj.position.y=(ctx.groundY(p[0],p[1])||0)+(t.dy||0); }
+    else if(t.kind==='robeTrain'){ if(t.lenTo){ const q=pos(t.lenTo); t.len=Math.max(3,Math.hypot(q[0]-p[0],q[1]-p[1])*(t.lenK||0.92)); }   /* (as long as the house is) */
+      obj=window.STORYWORLD.robeTrain(ctx,p[0],p[1],t); obj.position.y=(ctx.groundY(p[0],p[1])||0)+(t.dy||0); }
     else { obj=new THREE.Mesh(new THREE.BoxGeometry(t.w||0.5,t.h||0.5,t.d||0.5),new THREE.MeshLambertMaterial({color:t.color||0xc9b38a}));
       /* `y` a height in the scene; `dy` (or nothing) above the ground where it lies */
       const gy=t.y!==undefined?t.y:(ctx.groundY(p[0],p[1])||0)+(t.dy||0);
       obj.position.set(p[0],gy+(t.h||0.5)/2,p[1]); scene.add(obj); }
     if(t.face!==undefined) obj.rotation.y=t.face;
+    /* `faceTo`: turned toward a place (a throne toward the doors, whichever way the house runs) */
+    if(t.faceTo!==undefined){ const q=pos(t.faceTo); obj.rotation.y=Math.atan2(q[0]-obj.position.x,q[1]-obj.position.z); }
     if(t.hidden) obj.visible=false;
     if(t.y!==undefined&&t.kind!=='box'&&t.kind!=='dove'&&t.kind!=='throne'&&t.kind!=='vision'&&t.kind!=='fish') obj.position.y=t.y;
     obj.userData.thing=t; obj.userData.baseY=obj.position.y; ctx.things[t.id]=obj; }
@@ -283,11 +353,11 @@ function buildScene(sc){
     /* `on`: a light that rests on someone's head and goes with him — "tongues as of fire,
        and one sat upon each of them" (Acts 2:3) — `dy` above the top of the head */
     if(gl.on&&ctx.actors[gl.on]&&!gl.at) gl.at=[0,0,0];
-    const p=gl.at.length===3&&typeof gl.at[0]==='number'?gl.at:(()=>{ const m=pos(gl.at);
+    const p=gl.at.length===3&&typeof gl.at[0]==='number'?remap3(gl.at):(()=>{ const m=pos(gl.at);
       return [m[0],gl.dy!==undefined?(ctx.groundY(m[0],m[1])||0)+gl.dy:(gl.y||2),m[1]]; })();
     const G=window.STORYWORLD.glow(ctx,p[0],p[1],p[2],gl.size||3,gl.color,gl.intensity===undefined?1.2:gl.intensity);
     if(gl.h){ G.sprite.scale.set(gl.size||3,gl.h,1); G.aspect=gl.h/(gl.size||3); }      /* a column of light keeps its height as it pulses or swells */
-    if(gl.malak) malakFigure(G,gl);
+    if(gl.seraph) seraphFigure(G,gl); else if(gl.malak) malakFigure(G,gl);
     G.visible=!gl.hidden; G.pulse=gl.pulse; if(gl.on&&ctx.actors[gl.on]){ G.on=ctx.actors[gl.on]; G.onDy=gl.dy===undefined?0.18:gl.dy; } ctx.glows[gl.id]=G; }
   ctx.drifts=[];
   if(sc.host){ ctx.host=[]; const h=sc.host;                     /* the heavenly host */
@@ -303,8 +373,9 @@ function buildScene(sc){
   /* the player */
   const P=sc.player||{};
   player=window.STORYWORLD.person(ctx,Object.assign({robe:0x7a6a8e,cloth:0xcfc6b0,skin:0x8a5a3a},P.look||{}));
-  const pp=pos(P.at||[0,0]); player.position.set(pp[0],ctx.groundY(pp[0],pp[1]),pp[1]); player.rotation.y=P.face||0;
-  camYaw=(P.face||0)+Math.PI; camTarget=null;
+  const pp=pos(P.at||[0,0]); player.position.set(pp[0],ctx.groundY(pp[0],pp[1]),pp[1]);
+  const pf=faceOf(P.face,pp); player.rotation.y=pf;                              /* (a bearing, or a place to face: it was taken as a number, and the eye went to NaN) */
+  camYaw=pf+Math.PI; camTarget=null;
   ctx.playerHidden=!!P.hidden; player.visible=!P.hidden;
 }
 /* THE MULTITUDE of a scene (`crowds`): beyond its named people, the many — `n` of them, in an
@@ -340,7 +411,7 @@ function placeCrowds(sc){
           u=Math.max(0,Math.min(1,((x-a0[0])*dx+(z-a0[1])*dz)/L2)); return (x-a0[0]-u*dx)**2+(z-a0[1]-u*dz)**2<(c.clear||2.4)**2; })) continue;
       if(taken.some(q=>(q[0]-x)**2+(q[1]-z)**2<(q[2]||gap)**2)) continue;
       const y=c.top!==undefined?ctx.groundY(x,z,c.top):ctx.groundY(x,z); if(y==null||!isFinite(y)) continue;   /* `top`: found from that height down — the seats of a theatre */
-      const wx=anchor.x+x*S, wz=anchor.z+z*S;
+      const wx=anchor.x+x*SX, wz=anchor.z+z*SX;
       if(k.solidAt(wx,anchor.y+(y+0.5)*S,wz)||k.solidAt(wx,anchor.y+(y+1.4)*S,wz)) continue;     /* in a wall, a tree, a house */
       if(c.minY!==undefined&&y<c.minY) continue;
       if(Math.abs(y-refY)>dyMax) continue;
@@ -360,8 +431,8 @@ function placeCrowds(sc){
 }
 /* ---- THE LIFE OF THE WATERS, AND THE WATER STIRRED ----
    Is there water at (x,z) under the face `y`? (a pool's, a river's, a lake's blocks) */
-function wetAt(x,z,y){ const k=K(); return !!(k.waterAt&&k.waterAt(anchor.x+x*S,anchor.y+((y||0)-0.3)*S,anchor.z+z*S)); }
-function toW(x,y,z){ return new THREE.Vector3(anchor.x+x*S,anchor.y+y*S,anchor.z+z*S); }
+function wetAt(x,z,y){ const k=K(); return !!(k.waterAt&&k.waterAt(anchor.x+x*SX,anchor.y+((y||0)-0.3)*S,anchor.z+z*SX)); }
+function toW(x,y,z){ return new THREE.Vector3(anchor.x+x*SX,anchor.y+y*S,anchor.z+z*SX); }
 /* the creatures of each water the set asked for (W.waterLife): fish in it, frogs and turtles at its
    edge, egrets in its shallows, dragonflies over it, butterflies over the green about it */
 function spawnLife(){
@@ -431,7 +502,7 @@ function wadeTick(dt){
   const k=K(); if(!k.ripple||!k.waterAt) return;
   if(!ctx.lake&&(ctx.hasWater||ctx.wet)){ const p=player||null; if(p){ const w=toW(p.position.x,0,p.position.z); k.ripple.focus({x:w.x,y:w.y,z:w.z}); } }
   const ring=(g)=>{ const u=g.userData; if(!g.visible) return; const x=g.position.x, z=g.position.z;
-    if(!k.waterAt(anchor.x+x*S,anchor.y+(g.position.y+0.35)*S,anchor.z+z*S)) return;
+    if(!k.waterAt(anchor.x+x*SX,anchor.y+(g.position.y+0.35)*S,anchor.z+z*SX)) return;
     ctx.wet=true;
     const lp=u._wadeP; u._wadeT=(u._wadeT||0)-dt;
     if(!lp||Math.hypot(x-lp[0],z-lp[1])>0.5){ u._wadeP=[x,z]; const w=toW(x,0,z); k.ripple.at(w.x,w.z,-0.8,5,0.25); u._wadeT=1.6; }
@@ -632,17 +703,70 @@ function folkTick(dt){
       const onHead=(F.jarH&&F.jarH.visible)||(F.load&&F.load.visible&&F.load.parent===u.head);
       if(u.head&&!u.holy) u.head.rotation.x=onHead?-u.waist.rotation.x:-Math.max(0,u.waist.rotation.x)*0.32; }   /* the head kept up a little, looking at the work — and level under a load */
     if(knees&&!u.sit&&u.legL){ for(const Lg of [u.legL,u.legR]){ Lg.rotation.x=-knees*0.7; if(Lg.userData.knee) Lg.userData.knee.rotation.x=knees*1.4; }
-      g.position.y=u.gy-knees*0.12; }                                                       /* the knees given, the body let down on them */
+      g.position.y=(u.fixedY!==undefined?u.fixedY:u.gy)-knees*0.12; }   /* (on what he is held on — a boat, a vision's floor — not the ground under it) */                                                       /* the knees given, the body let down on them */
   }
 }
 function pos(at){ if(typeof at==='string'){ const m=ctx.markers[at]; if(m) return m;
     const g=ctx.actors[at]||ctx.things[at]; if(g) return [g.position.x,g.position.z];   /* a person or a thing: where they are now */
     throw new Error('no marker '+at); }
+  /* ALONG A LINE BETWEEN TWO MARKS: ['holyPlace>porchFront', a, s] — `a` metres from the first
+     toward the second (or, with a fourth 'f', that fraction of the way), and `s` metres to the
+     right of that line. A place written so stands the same in any city whichever way her
+     buildings are turned: in the small city the House runs north and south, in the true one
+     east and west, and a throne written 'at the far end of the holy place' is there in both. */
+  if(Array.isArray(at)&&typeof at[0]==='string'&&at[0].indexOf('>')>0){ const [na,nb]=at[0].split('>'), A0=pos(na), B0=pos(nb);
+    const dx=B0[0]-A0[0], dz=B0[1]-A0[1], L=Math.hypot(dx,dz)||1, ux=dx/L, uz=dz/L, a=at[3]==='f'?(at[1]||0)*L:(at[1]||0), sd=at[2]||0;
+    return [A0[0]+ux*a-uz*sd, A0[1]+uz*a+ux*sd]; }
   /* a marker and a step from it: ['pinnacle',1.6,-0.7] */
   if(Array.isArray(at)&&typeof at[0]==='string'){ const m=pos(at[0]); return [m[0]+at[1],m[1]+at[2]]; }
+  if(Array.isArray(at)&&at.length===2&&typeof at[0]==='number') return remapXZ(at);
   return at; }
+/* a place written about the small city, where it stands in the true one (see buildScene) */
+/* WHERE A PLACE WRITTEN ABOUT THE SMALL CITY STANDS IN THE TRUE ONE.
+   It goes with the mark it was written beside — the one nearest it, unless the mark the scene is
+   anchored on is about as near (in the small city the gate and the house of the taught ones stand
+   sixteen metres apart; in the true one four hundred and seventy, and a man written between them
+   must not be thrown across the city). And a place written BETWEEN two marks — a stone on the road
+   from the gate to the upper pool — is set the same part of the way between them in the true city,
+   so long as the two stand at much the same distance apart in both (not stretched more than
+   fourfold); else it keeps to its one mark. Far from every mark (sixty metres) it keeps to the
+   scene's anchor. */
+function remapXZ(p){ const R=ctx&&ctx.remap; if(!R) return p;
+  const dist=r=>Math.hypot(p[0]-r.s[0],p[1]-r.s[1]);
+  let m1=null, d1=1e9; for(const r of R){ const d=dist(r); if(d<d1){ d1=d; m1=r; } }
+  const home=R.find(r=>r.home);
+  if(home&&dist(home)<=1.5*d1){ m1=home; d1=dist(home); }
+  if(!m1||d1>60) return p;
+  let m2=null, t2=0, bp=1e9;
+  for(const r of R){ if(r===m1) continue;
+    const ex=r.s[0]-m1.s[0], ez=r.s[1]-m1.s[1], Ls=Math.hypot(ex,ez); if(Ls<1) continue;
+    const Lt=Math.hypot(r.t[0]-m1.t[0],r.t[1]-m1.t[1]); if(Lt>Ls*4||Lt<Ls/4) continue;
+    const vx=p[0]-m1.s[0], vz=p[1]-m1.s[1], t=(vx*ex+vz*ez)/(Ls*Ls); if(t<=0.02||t>1.2) continue;
+    const perp=Math.abs(vx*ez-vz*ex)/Ls; if(perp>Math.max(8,0.5*Ls)) continue;
+    if(perp<bp){ bp=perp; m2=r; t2=Math.min(1,t); } }
+  let d=m1.d;
+  if(m2) d=[m1.d[0]+(m2.d[0]-m1.d[0])*t2,m1.d[1]+(m2.d[1]-m1.d[1])*t2];
+  else if(d1>25&&!m1.home) return p;
+  return [p[0]+d[0],p[1]+d[1]]; }
+/* (and its height, written over the small city's level ground, is over the true one's ground where it now
+   stands: the eye on the highway to the upper pool was set four metres up from the gate's street, and the
+   pool is ten metres higher up the hill — it looked at the sovereign from inside the hillside) */
+/* (so too a scene set down whole at its own place in the true city, `trueAt`: written over the small
+   city's courts, three metres up on their platform, its eye looked over every head in the true ones) */
+function remap3(p){ if(!ctx||!Array.isArray(p)||p.length!==3||typeof p[0]!=='number') return p;
+  const A=ctx.anchor; if(!ctx.remap&&!(A&&A.byMark===false&&A.markOff&&ctx.trueEarth)) return p;
+  const q=ctx.remap?remapXZ([p[0],p[2]]):[p[0],p[2]], g=ctx.groundY(q[0],q[1]);
+  let g0=0; for(const P of _smallPlats[ctx.anchor&&ctx.anchor.period||ctx.period||'kings']||[]) if(p[0]>=P[0]&&p[0]<=P[2]&&p[2]>=P[1]&&p[2]<=P[3]) g0=Math.max(g0,P[4]);
+  return [q[0],p[1]-g0+(isFinite(g)?g:0),q[1]]; }
 /* a height given as a marker's (the city's 'pinnacleY'), or as metres */
-function yOf(y){ return typeof y==='string'?pos(y)[0]:y; }
+/* (a height named by a mark the city does not have — her wall's top, which the true city's walls give
+   course by course on the hill and no one number can — is no height: he stands on the floor there) */
+function yOf(y){ if(typeof y!=='string') return y; const m=ctx.markers[y]; return m?m[0]:undefined; }
+/* a way to face: a bearing, or a place (a mark, a person, a thing) to face toward from `p` — the gate's
+   outside is north in one city and south in the other, and a man on her wall looks out of it in both */
+function faceOf(f,p){ if(f===undefined) return 0; if(typeof f==='number') return f;
+  const q=f==='player'&&player?[player.position.x,player.position.z]:(ctx.actors[f]||ctx.things[f])?thingPos(f):pos(f);
+  return Math.atan2(q[0]-p[0],q[1]-p[1]); }
 function thingPos(id){ const o=ctx.things[id]||ctx.actors[id]; return o?[o.position.x,o.position.z]:null; }
 
 /* a name floating over a head, shown near or while speaking — a fixed size
@@ -696,6 +820,101 @@ function blocked(x,z,r,y){
   for(const [dx,dz] of [[r,r],[r,-r],[-r,r],[-r,-r]]) if(solidFor(x+dx,z+dz,y)) return true;
   return false;
 }
+/* ================= THE WAY SHOWN =================
+   A mark the player cannot find his way to is a story that cannot be finished. When he has been
+   pressing on for five seconds and come no nearer (a wall, a bank too high, a house in the way),
+   the way round is worked out — a walk over the same ground by the same rules his feet keep — and
+   he is led along it. If there is no way at all, he is set down at the mark. The playtest
+   (ST.playtest) is led the same way from the first, so every mark it reaches a man could reach. */
+let guide=null, stuckT=0, stuckAt=null;
+function guideGoal(){ const B=beat; if(!B||!player) return null;
+  if(B.t==='goal'){ const m=pos(B.goto); return [m[0],m[1],(B.r||2.4)*0.6]; }
+  if(B.t==='witness'&&witness){ const W=witness;
+    if(W.carrying){ const m=pos(B.deliver); return [m[0],m[1],(B.r||3)*0.6]; }
+    let best=null, bd=1e9;
+    for(const id of B.items){ if(W.done.has(id)) continue; const p=thingPos(id); if(!p) continue;
+      const d=Math.hypot(player.position.x-p[0],player.position.z-p[1]); if(d<bd){ bd=d; best=p; } }
+    if(best) return [best[0],best[1],(B.reach||2.2)*0.6]; }
+  return null; }
+/* a walk from where he stands to within r of (tx,tz), on a half-metre grid: a cell is entered as
+   movePlayer would enter it (blocked, the hull of a boat), and stood in at the ground it has */
+let lastPlan=null;
+function planWay(tx,tz,r,from,noAvoid){
+  const F=from||player.position;
+  /* (a long way across a city is walked on a coarser grid: a street is wider than a metre) */
+  const H=Math.hypot(tx-F.x,tz-F.z)>90?1.0:0.5, sx=F.x, sz=F.z, sy=F.y;
+  r=Math.max(r,H*0.75);
+  const deck=!from&&ctx.playerY!==undefined;          /* the witness held at a deck's height walks her deck */
+  const b=ctx.bounds, pad=Math.max(30,Math.hypot(tx-F.x,tz-F.z)*0.25);   /* (a long way may have to go well round) */
+  const x0=Math.max(b?b.x0:-1e9,Math.min(sx,tx)-pad), x1=Math.min(b?b.x1:1e9,Math.max(sx,tx)+pad);
+  const z0=Math.max(b?b.z0:-1e9,Math.min(sz,tz)-pad), z1=Math.min(b?b.z1:1e9,Math.max(sz,tz)+pad);
+  const key=(i,j)=>i+','+j, seen=new Map();
+  /* a binary heap of [f,key] */
+  const open={a:[],get length(){ return this.a.length; },
+    push(e){ const a=this.a; a.push(e); let i=a.length-1; while(i>0){ const p=(i-1)>>1; if(a[p][0]<=e[0]) break; a[i]=a[p]; i=p; } a[i]=e; },
+    pop(){ const a=this.a, top=a[0], last=a.pop(); if(a.length){ let i=0; for(;;){ let c=2*i+1; if(c>=a.length) break; if(c+1<a.length&&a[c+1][0]<a[c][0]) c++; if(a[c][0]>=last[0]) break; a[i]=a[c]; i=c; } a[i]=last; } return top; } };
+  let si=Math.round(sx/H), sj=Math.round(sz/H);
+  /* (one pressed into a corner, his own spot within a hand of a wall, starts from the nearest spot clear
+     of it — the way was never found from where he stood, and he was carried to his mark) */
+  if(blocked(si*H,sj*H,0.3,sy)){ let bd=1e9, bi=si, bj=sj;
+    for(let di=-3;di<=3;di++) for(let dj=-3;dj<=3;dj++){ const d=di*di+dj*dj; if(d<bd&&!blocked((si+di)*H,(sj+dj)*H,0.3,sy)){ bd=d; bi=si+di; bj=sj+dj; } }
+    si=bi; sj=bj; }
+  const hOf=(i,j)=>Math.hypot(i*H-tx,j*H-tz);
+  /* (one of the scene's people sent to his mark goes round those already standing at theirs — a soldier's
+     way to the foot of the spur went through the centurion, and a man at rest does not give way to one
+     walking: he was held there, and carried. Not those about his own mark, and if that leaves no way, the
+     way is found as before.) */
+  const rest=[]; if(from&&!noAvoid) for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData;
+    if(!g.visible||u.target||u.follow||u.aboard||u.ride||u.fixedY!==undefined) continue;
+    const px=g.position.x, pz=g.position.z; if(Math.hypot(px-sx,pz-sz)<0.6||Math.hypot(px-tx,pz-tz)<1.0) continue;
+    rest.push([px,pz]); }
+  const byRest=(x,z)=>{ for(const q of rest) if((x-q[0])*(x-q[0])+(z-q[1])*(z-q[1])<0.36) return true; return false; };
+  seen.set(key(si,sj),{i:si,j:sj,y:sy,g:0,from:null,shut:false}); open.push([hOf(si,sj),key(si,sj)]);
+  let n=0, end=null;
+  while(open.length&&n<150000){
+    const ck=open.pop()[1];
+    const C=seen.get(ck); if(C.shut) continue; C.shut=true; n++;
+    if(hOf(C.i,C.j)<r){ end=C; break; }
+    const cx=C.i*H, cz=C.j*H;
+    for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){
+      const ni=C.i+di, nj=C.j+dj, nx=ni*H, nz=nj*H; if(nx<x0||nx>x1||nz<z0||nz>z1) continue;
+      const nk=key(ni,nj); const N0=seen.get(nk); if(N0&&N0.shut) continue;
+      if(blocked(nx,nz,0.3,C.y)||hullCross(cx,cz,nx,nz,deck)||(rest.length&&byRest(nx,nz))) continue;
+      if(di&&dj&&(blocked(cx+di*H,cz,0.3,C.y)||blocked(cx,cz+dj*H,0.3,C.y))) continue;
+      const gy=deck?ctx.playerY:ctx.groundY(nx,nz,C.y+CLIMB_REF); if(gy===null||gy===undefined||!isFinite(gy)) continue;
+      /* (no higher a step than a man takes, and no cliff dropped: a way that read the top of a door's
+         jamb as ground went on along the wall-tops and the roofs, and those sent by it fell off them) */
+      if(!deck&&(gy>C.y+CLIMB_M||gy<C.y-2.4)) continue;
+      const g=C.g+(di&&dj?1.414:1)+(gy>C.y+0.3?0.6:0);
+      if(!N0||g<N0.g){ seen.set(nk,{i:ni,j:nj,y:gy,g,from:ck,shut:false}); open.push([g+hOf(ni,nj)/H,nk]); } } }
+  lastPlan={from:[+sx.toFixed(1),+sy.toFixed(1),+sz.toFixed(1)],to:[+tx.toFixed(1),+tz.toFixed(1)],n,box:[Math.round(x0),Math.round(z0),Math.round(x1),Math.round(z1)]};
+  if(!end) return rest.length?planWay(tx,tz,r,from,true):null;
+  const pts=[]; for(let c=end;c;c=c.from?seen.get(c.from):null) pts.push([c.i*H,c.j*H]);
+  pts.reverse(); pts.push([tx,tz]); return pts; }
+function setOnMark(G,why){
+  const x=G[0], z=G[1];
+  player.position.set(x,ctx.groundY(x,z),z); guide=null; stuckT=0;
+  (ST.stuck=ST.stuck||[]).push({who:'player',act:act&&act.id,scene:act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id,beat:beatIx,why,plan:lastPlan});
+  if(!ST.playtest) toast('There was no way through — you are brought to the place.'); }
+function startGuide(quiet){
+  const G=guideGoal(); if(!G) return false;
+  const pts=planWay(G[0],G[1],Math.max(0.4,G[2]));
+  if(!pts){ setOnMark(G,'no way'); return true; }
+  guide={pts,i:0,G,t:0,best:1e9,bt:0,replans:0};
+  if(!quiet&&!ST.playtest) toast('The way round is found — you are led to the place.');
+  return true; }
+/* the bearing to walk this frame, or null when not led */
+function guideSteer(dt){
+  if(!guide) return null;
+  const G=guideGoal(); if(!G||Math.hypot(G[0]-guide.G[0],G[1]-guide.G[1])>1.5){ guide=null; return null; }   /* the mark moved or was reached */
+  const P=player.position;
+  while(guide.i<guide.pts.length-1&&Math.hypot(guide.pts[guide.i][0]-P.x,guide.pts[guide.i][1]-P.z)<0.35) guide.i++;
+  const w=guide.pts[guide.i], d=Math.hypot(G[0]-P.x,G[1]-P.z);
+  guide.t+=dt; if(d<guide.best-0.2){ guide.best=d; guide.bt=0; } else guide.bt+=dt;
+  if(guide.bt>4){ if(++guide.replans>2){ setOnMark(G,'led, and held'); return null; }
+    const pts=planWay(G[0],G[1],Math.max(0.4,G[2])); if(!pts){ setOnMark(G,'no way'); return null; }
+    guide.pts=pts; guide.i=0; guide.bt=0; }
+  return Math.atan2(w[0]-P.x,w[1]-P.z); }
 function movePlayer(dt){
   if(!player||ctx.playerHidden) return;
   let fx=0, fz=0;
@@ -703,20 +922,30 @@ function movePlayer(dt){
     if(keys.KeyW||keys.ArrowUp) fz+=1; if(keys.KeyS||keys.ArrowDown) fz-=1;
     if(keys.KeyA||keys.ArrowLeft) fx-=1; if(keys.KeyD||keys.ArrowRight) fx+=1;
     if(joy.active){ fx+=joy.x; fz-=joy.y; } }
-  const L=Math.hypot(fx,fz), ud=player.userData;
+  /* a man pressing on and getting nowhere, while a mark waits for him */
+  const pressing=Math.hypot(fx,fz)>0.05, wants=beat&&(beat.t==='goal'||beat.t==='witness');
+  if(!wants) guide=null;
+  if(wants&&!guide&&controlsOn&&!ctx.playerLock&&(pressing||ST.playtest)){
+    if(ST.playtest) startGuide(true);
+    else { if(!stuckAt||Math.hypot(player.position.x-stuckAt[0],player.position.z-stuckAt[1])>0.4){ stuckAt=[player.position.x,player.position.z]; stuckT=0; }
+      else if((stuckT+=dt)>5){ stuckT=0; stuckAt=null; startGuide(false); } } }
+  else if(!pressing) { stuckT=0; stuckAt=null; }
+  const gAng=(controlsOn&&!ctx.playerLock)?guideSteer(dt):null;
+  const L=gAng!==null?1:Math.hypot(fx,fz), ud=player.userData;
   if(L>0.05){
     const sp=(keys.ShiftLeft||keys.ShiftRight?6.2:3.6)*Math.min(1,L);
-    const fwd=camYaw+Math.PI, ang=fwd+Math.atan2(fx,fz);
+    const fwd=camYaw+Math.PI, ang=gAng!==null?gAng:fwd+Math.atan2(fx,fz);
     const dx=Math.sin(ang)*sp*dt, dz=Math.cos(ang)*sp*dt;
     const x=player.position.x, z=player.position.z;
     const y=player.position.y;
-    if(!blocked(x+dx,z,0.3,y)&&!hullCross(x,z,x+dx,z)) player.position.x+=dx;
-    if(!blocked(player.position.x,z+dz,0.3,y)&&!hullCross(player.position.x,z,player.position.x,z+dz)) player.position.z+=dz;
+    const onDeck=ctx.playerY!==undefined;                /* (held at a deck's height: her side is a wall both ways) */
+    if(!blocked(x+dx,z,0.3,y)&&!hullCross(x,z,x+dx,z,onDeck)) player.position.x+=dx;
+    if(!blocked(player.position.x,z+dz,0.3,y)&&!hullCross(player.position.x,z,player.position.x,z+dz,onDeck)) player.position.z+=dz;
     player.rotation.y=turnTo(player.rotation.y,ang,dt*10);
     ud.walk=(ud.walk||0)+dt*sp*2.2;
   } else ud.walk=0;
   if(ctx.playerY!==undefined) player.position.y=ctx.playerY;
-  else { const gy=ctx.groundY(player.position.x,player.position.z,player.position.y+1.5);
+  else { const gy=stepGround(player.position.x,player.position.z,player.position.y);   /* (a lintel at his head is not a floor to be stood on) */
     /* a step up is taken at once; a drop is fallen, not floated down */
     player.position.y=gy>player.position.y?gy:Math.max(gy,player.position.y-dt*9); }
   animFigure(player,dt,L>0.05); animFace(player,'player',dt);
@@ -902,8 +1131,12 @@ function clothStep(g,dt,moving,stride){
   }
 }
 /* is there a block where a man's body would be, standing at height gy here? */
-function wallAt(x,z,gy){ if(gy===undefined) return false; const k=K(), wx=anchor.x+x*S, wz=anchor.z+z*S;
-  return k.solidAt(wx,anchor.y+(gy+0.9)*S,wz)||k.solidAt(wx,anchor.y+(gy+1.5)*S,wz); }
+function wallAt(x,z,gy){ if(gy===undefined) return false; const k=K(), wx=anchor.x+x*SX, wz=anchor.z+z*SX;
+  if(!(k.solidAt(wx,anchor.y+(gy+0.9)*S,wz)||k.solidAt(wx,anchor.y+(gy+1.5)*S,wz))) return false;
+  /* a bank he can hop is not a wall */
+  const f=groundAt(x,z,gy+CLIMB_REF);
+  if(f>gy+0.05&&f<=gy+CLIMB_M&&!k.solidAt(wx,anchor.y+f*S+0.5*k.B,wz)&&!k.solidAt(wx,anchor.y+f*S+1.5*k.B,wz)) return false;
+  return true; }
 /* the actors walk where the story sends them */
 function moveActors(dt){
   for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData;
@@ -913,16 +1146,87 @@ function moveActors(dt){
       if(f){ const d=Math.hypot(f.position.x-g.position.x,f.position.z-g.position.z); tgt=d>2.4?[f.position.x,f.position.z]:null; } }
     let moving=false;
     if(tgt){ const dx=tgt[0]-g.position.x, dz=tgt[1]-g.position.z, d=Math.hypot(dx,dz);
+      /* ---- AND NO ONE IS LEFT STANDING AGAINST A WALL FOR EVER ----
+         The act waits for everyone it sends to arrive. A figure walked straight at his mark and
+         turned a little aside at a wall — so a mark on the far side of a city wall, a house or a
+         crowd standing on it held him against it for ever, and the whole story with him, and the
+         game could not be finished. Two seconds without drawing nearer and he works out the way
+         round (the same walk the witness is led by) and takes it; if there is none, or he is
+         still held, he is simply there. Every rescue is written down for the playtest. */
+      let way=null;
+      if(d>0.15&&!(u.follow&&d<=2.4)){ const P=u._prog||(u._prog={d:d,t:0,tx:tgt[0],tz:tgt[1]});
+        if(P.tx!==tgt[0]||P.tz!==tgt[1]){ P.d=d; P.t=0; P.tx=tgt[0]; P.tz=tgt[1]; u._path=null; P.tries=0; P.los=undefined; }
+        /* (a wall between him and his mark: the way round is worked out before he sets off, not after he
+           has walked into the wall and wedged himself in its corner, where no way could be found) */
+        if(P.los===undefined){ P.los=true;
+          if(u.fixedY===undefined&&!u.follow&&d>1.2) for(let q=0.4;q<d;q+=0.4){ const x=g.position.x+dx/d*q, z=g.position.z+dz/d*q;
+            if(wallAt(x,z,u.gy)){ P.los=false; P.t=2.01; break; } } }
+        else if(d<P.d-0.25){ P.d=d; P.t=0; } else P.t+=dt;
+        /* (and one held on a way already worked out — those he was to pass have sat down across it since — works
+           out another, round them) */
+        if(P.t>2&&(P.tries||0)<3&&!u.follow&&u.fixedY===undefined){ P.tries=(P.tries||0)+1; P.t=0; u._path=null;
+          const pts=planWay(tgt[0],tgt[1],0.4,{x:g.position.x,y:u.gy!==undefined?u.gy:g.position.y,z:g.position.z});
+          if(pts) u._path={pts,i:0}; else P.t=99; }
+        if(P.t>(u.follow?6:4)){ u._prog=null; u._path=null;
+          const k2=u.follow?Math.max(0,(d-1.6)/d):1;
+          g.position.x+=dx*k2; g.position.z+=dz*k2;
+          /* (the floor under his head, not the roof over it: a mark in a room is under a roof a man's height up) */
+          { const g0=u.gy!==undefined?u.gy:g.position.y, x=g.position.x, z=g.position.z, lo=ctx.groundY(x,z,g0+1.6), hi=ctx.groundY(x,z,g0+3);
+            u.gy=(isFinite(lo)&&lo>g0-6)?lo:hi;
+            /* (nor in the hill under it: his mark up on the slope, ten metres over where he was held, the floor
+               looked for from his own height was inside the hillside, and he was set down in it) */
+            if(!isFinite(u.gy)||sunkAt(x,z,u.gy)){ const f=ctx.groundY(x,z); if(isFinite(f)) u.gy=f; } }
+          /* (and set down beside his mark, not in the wall it was written in) */
+          u._mv='set down by the rescue';
+          if(u.fixedY===undefined&&wallAt(g.position.x,g.position.z,u.gy)){ const x0=g.position.x, z0=g.position.z;
+            search: for(let r=0.4;r<=2.0;r+=0.4) for(let q=0;q<12;q++){ const t=q/12*Math.PI*2, x=x0+Math.cos(t)*r, z=z0+Math.sin(t)*r, y=ctx.groundY(x,z,u.gy+1.5);
+              if(isFinite(y)&&!wallAt(x,z,y)){ g.position.x=x; g.position.z=z; u.gy=y; break search; } } }
+          if(u.fixedY===undefined&&isFinite(u.gy)) g.position.y=u.gy-sitDrop(u)+(u.lie?0.16:0);          /* (set down at once, not a frame later) */
+          if(g.visible&&d>=0.7) (ST.stuck=ST.stuck||[]).push({who:id,act:act&&act.id,scene:act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id,beat:beatIx,d:+d.toFixed(1),plan:lastPlan});   /* (one gone from sight is no one's concern, nor one set down the last hand's breadth) */
+          if(!u.follow) u.target=null; continue; }
+        if(u._path){ const W=u._path;
+          while(W.i<W.pts.length-1&&Math.hypot(W.pts[W.i][0]-g.position.x,W.pts[W.i][1]-g.position.z)<0.2) W.i++;
+          /* (on a way round he is getting there as long as he is getting along it — a way round a house
+             first goes away from the mark, and measured by the mark alone he was "held" and carried) */
+          if(W.i!==P.wi){ P.wi=W.i; P.t=0; }
+          way=W.pts[W.i]; } }
+      else { u._prog=null; u._path=null; }
+      if(way){ const wx=way[0]-g.position.x, wz=way[1]-g.position.z, wd=Math.hypot(wx,wz);
+        if(wd>0.05){ const sp=Math.min(wd,(u.speed||2.6)*dt), a=Math.atan2(wx,wz);
+          /* (round a corner, not through it: a step that would stand him in a block slides along it) */
+          let mx=Math.sin(a)*sp, mz=Math.cos(a)*sp;
+          if(u.fixedY===undefined&&wallAt(g.position.x+mx,g.position.z+mz,u.gy)){
+            if(!wallAt(g.position.x+mx,g.position.z,u.gy)) mz=0; else if(!wallAt(g.position.x,g.position.z+mz,u.gy)) mx=0; else mx=mz=0; }
+          g.position.x+=mx; g.position.z+=mz; g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=mx!==0||mz!==0; if(moving) u._mv='on a planned way'; } }
+      else
       if(d>0.15){ const sp=Math.min(d,(u.speed||2.6)*dt);
         /* a wall in the way is gone round, not walked through: the step is turned aside, a
            little and then more, until the body would not stand in a block */
         let a0=Math.atan2(dx,dz), a=a0;
-        if(u.fixedY===undefined&&wallAt(g.position.x+Math.sin(a0)*0.45,g.position.z+Math.cos(a0)*0.45,u.gy)){
-          for(const da of [0.5,-0.5,1.0,-1.0,1.5,-1.5,2.1,-2.1]){ const b=a0+da+(u.steer||0)*0.0;
-            if(!wallAt(g.position.x+Math.sin(b)*0.45,g.position.z+Math.cos(b)*0.45,u.gy)){ a=b; break; } } }
-        g.position.x+=Math.sin(a)*sp; g.position.z+=Math.cos(a)*sp;
-        g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=true; }
+        /* (and the step itself must not stand him in one: at a corner the point ahead is clear while
+           the way to it goes through the block — so both are asked, and if no way aside will do he
+           waits, and in a moment works out the way round) */
+        const px=g.position.x, pz=g.position.z, st2=Math.min(sp+0.2,0.45);
+        /* (nor up a stair or a bench when his mark is on the ground — he went up the stair at the side
+           of a house, along its roof and off the far edge of it — nor over a drop of more than a storey) */
+        const P2=u._prog; if(P2&&P2.tgy===undefined) P2.tgy=ctx.groundY(tgt[0],tgt[1],(u.gy||0)+CLIMB_REF);
+        const tgy=P2&&isFinite(P2.tgy)?P2.tgy:u.gy;
+        const ledge=b=>{ if(u.gy===undefined) return false; const n=stepGround(px+Math.sin(b)*0.45,pz+Math.cos(b)*0.45,u.gy);
+          return (n>u.gy+0.5&&tgy<=u.gy+0.3)||n<u.gy-2.4; };
+        /* (and a body's half-width kept from a wall at his side: sliding along one he went with his middle on
+           its face, half of him in it) */
+        const side=b=>{ const lx=px+Math.sin(b)*sp, lz=pz+Math.cos(b)*sp, ox=Math.cos(b)*0.22, oz=-Math.sin(b)*0.22;
+          return !wallAt(lx+ox,lz+oz,u.gy)&&!wallAt(lx-ox,lz-oz,u.gy); };
+        const clear=b=>!wallAt(px+Math.sin(b)*0.45,pz+Math.cos(b)*0.45,u.gy)&&!wallAt(px+Math.sin(b)*st2,pz+Math.cos(b)*st2,u.gy)&&!wallAt(px+Math.sin(b)*sp,pz+Math.cos(b)*sp,u.gy)&&side(b)&&!ledge(b);
+        if(u.fixedY===undefined&&!clear(a0)){ a=null;
+          for(const da of [0.5,-0.5,1.0,-1.0,1.5,-1.5,2.1,-2.1]){ const b=a0+da; if(clear(b)){ a=b; break; } } }
+        if(a!==null){ g.position.x+=Math.sin(a)*sp; g.position.z+=Math.cos(a)*sp;
+          g.rotation.y=turnTo(g.rotation.y,a,dt*8); moving=true; u._mv='walking to his mark'; }
+        /* (a stride from his mark with a wall or the crowd at his elbow, he is there: he was held there four
+           seconds and then carried the last fifth of a metre, or the last half of one among the mourners) */
+        else if(d<0.7&&!u.follow){ u.target=null; u._prog=null; u._path=null; } }
       else if(!u.follow) u.target=null; }
+    if(u.sitOnArrive&&!u.target){ u.sit=true; u.sitOnArrive=false; }
     if(u.fixedY!==undefined) g.position.y=u.fixedY-sitDrop(u)+(u.lie?0.16:0);
     else { u.gy=stepGround(g.position.x,g.position.z,u.gy===undefined?ctx.groundY(g.position.x,g.position.z):u.gy); g.position.y=u.gy-sitDrop(u)+(u.lie?0.16:0); }
     /* riding (Luke 19:35): the beast goes where the rider goes, under him, at its own gait */
@@ -962,6 +1266,12 @@ function moveActors(dt){
    coming up to him is walking (the walker gives way). */
 const APART=0.46;
 const RIDE_H=0.62;                                  /* a rider's seat above the ground, on a young donkey */
+/* (a step aside from his neighbour, but never into a wall: twelve followed Him through the gate, pressed
+   together, and two of them were shouldered into the stones of its jamb) */
+function shove(g,mx,mz){ if(!mx&&!mz) return; const u=g.userData, x=g.position.x+mx, z=g.position.z+mz;
+  /* (nor into a heap he could have stepped up onto: shoved, he is not stepping, and stood in its corner) */
+  if(u.gy!==undefined&&bodyHit(x,z,u.gy)&&!bodyHit(g.position.x,g.position.z,u.gy)) return;
+  g.position.x=x; g.position.z=z; }
 function keepApart(dt){
   const L=[]; for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; if(!g.visible||u.lie||u.fixedY!==undefined||u.ride||u.aboard) continue; L.push(g); }
   const k=Math.min(1,dt*6);
@@ -970,9 +1280,9 @@ function keepApart(dt){
       if(d>=APART) continue;
       const nx=d>1e-4?dx/d:Math.cos(i+j), nz=d>1e-4?dz/d:Math.sin(i+j), push=(APART-d)*k;
       const am=!!a.userData.target, bm=!!b.userData.target, wa=am===bm?0.5:am?1:0, wb=1-wa;
-      a.position.x-=nx*push*wa; a.position.z-=nz*push*wa; b.position.x+=nx*push*wb; b.position.z+=nz*push*wb; } }
+      shove(a,-nx*push*wa,-nz*push*wa); shove(b,nx*push*wb,nz*push*wb); } }
   if(player&&player.visible) for(const a of L){ const dx=a.position.x-player.position.x, dz=a.position.z-player.position.z, d=Math.hypot(dx,dz);
-    if(d<APART&&d>1e-4){ const push=(APART-d)*k; a.position.x+=dx/d*push; a.position.z+=dz/d*push; } }
+    if(d<APART&&d>1e-4){ const push=(APART-d)*k; shove(a,dx/d*push,dz/d*push); } }
 }
 /* is a point inside or against someone? (the eye is never set there) */
 function inBody(p){
@@ -1098,7 +1408,7 @@ function doorsTick(dt){
     if(!ctx.playerHidden&&(player.position.x-x)**2+(player.position.z-z)**2<r2) return true;      /* (the witness, though the eye be too close to draw him) */ for(const id in ctx.actors) if(t(ctx.actors[id])) return true;
     for(const F of ctx.folk||[]) if(t(F.g)) return true; return false; };
   for(const H of k.houses()){ const D=H.door; if(!D||!D.mesh) continue;
-    const x=(H.dx-anchor.x)/S, z=(H.dz-anchor.z)/S;
+    const x=(H.dx-anchor.x)/SX, z=(H.dz-anchor.z)/SX;
     if(Math.abs(x-player.position.x)>90||Math.abs(z-player.position.z)>90) continue;
     D.target=near(x,z)?D.base+D.swing:D.base;
     if(Math.abs(D.ang-D.target)>0.001){ D.ang+=(D.target-D.ang)*Math.min(1,dt*5); D.mesh.rotation.y=D.ang; } } }
@@ -1135,7 +1445,7 @@ function dip(){ const f=$('fade'); if(!f) return; f.style.transition='none'; f.s
 /* a roof (or the floor of an upper room, or a lintel) over the head here: the world's blocks
    between two and four metres above the feet */
 function underRoof(x,y,z){ const k=K(); if(!k.solidAt) return false;
-  for(const h of [2.0,2.6,3.2,3.8]) if(k.solidAt(anchor.x+x*S,anchor.y+(y+h)*S,anchor.z+z*S)) return true;
+  for(const h of [2.0,2.6,3.2,3.8]) if(k.solidAt(anchor.x+x*SX,anchor.y+(y+h)*S,anchor.z+z*SX)) return true;
   return false; }
 /* "there was a great earthquake" (Mattithyahu 28:2): the eye is shaken, hard and then less */
 function quake(dt){
@@ -1153,7 +1463,7 @@ function convoShot(){
   if(g.userData.holy){ from=[q.x+ux*2.4+sx*1.1, q.y+2.15, q.z+uz*2.4+sz*1.1]; look=[p.x,p.y+1.45,p.z]; }
   else { from=[p.x-ux*1.6+sx*0.8, p.y+1.95, p.z-uz*1.6+sz*0.8]; look=[q.x,q.y+1.5*(g.userData.s||1),q.z]; }
   if(from[1]<ctx.groundY(from[0],from[2])+0.5) return null;
-  const k=K(); if(k.solidAt(anchor.x+from[0]*S,anchor.y+from[1]*S,anchor.z+from[2]*S)) return null;
+  const k=K(); if(k.solidAt(anchor.x+from[0]*SX,anchor.y+from[1]*S,anchor.z+from[2]*SX)) return null;
   return {from,look};
 }
 /* HIS FACE IS NEVER SHOWN. Yahusha has a body like every man's; His face is never seen.
@@ -1251,7 +1561,7 @@ const _ray=new THREE.Raycaster();
 /* is the line from the eye to a point of the scene open? (blocks of the world, its growing
    things, the set's details — everything drawn but the people and the light) */
 function lineClear(from,to){
-  const k=K(), W=v=>new THREE.Vector3(anchor.x+v[0]*S,anchor.y+v[1]*S,anchor.z+v[2]*S);
+  const k=K(), W=v=>new THREE.Vector3(anchor.x+v[0]*SX,anchor.y+v[1]*S,anchor.z+v[2]*SX);
   const a=W(to), b=W(from), dir=b.clone().sub(a), L=dir.length(); if(L<0.4*S) return true;
   dir.divideScalar(L);
   const n=Math.ceil(L/(0.25*S));
@@ -1266,13 +1576,13 @@ function pullIn(from,look){
      breadth short of the first block met — or of one beside the line (a door-jamb) that the
      lens, being a little wide, would cut into */
   const k=K(); let t=1; const L=Math.hypot(from[0]-look[0],from[1]-look[1],from[2]-look[2]), n=Math.max(8,Math.ceil(L/0.18));
-  const hit=(x,y,z)=>{ const wx=anchor.x+x*S, wy=anchor.y+y*S, wz=anchor.z+z*S, m=0.22*S;
+  const hit=(x,y,z)=>{ const wx=anchor.x+x*SX, wy=anchor.y+y*S, wz=anchor.z+z*SX, m=0.22*S;
     return k.solidAt(wx,wy,wz)||k.solidAt(wx+m,wy,wz)||k.solidAt(wx-m,wy,wz)||k.solidAt(wx,wy,wz+m)||k.solidAt(wx,wy,wz-m)||k.solidAt(wx,wy+m,wz); };
   for(let i=1;i<=n;i++){ const f=i/n, x=look[0]+(from[0]-look[0])*f, y=look[1]+(from[1]-look[1])*f, z=look[2]+(from[2]-look[2])*f;
     if(hit(x,y,z)){ t=Math.max(0.1,(i-1)/n); break; } }
   return [look[0]+(from[0]-look[0])*t,look[1]+(from[1]-look[1])*t,look[2]+(from[2]-look[2])*t];
 }
-function camFree(p){ const k=K(), B=k.B, x=anchor.x+p[0]*S, y=anchor.y+p[1]*S, z=anchor.z+p[2]*S;
+function camFree(p){ const k=K(), B=k.B, x=anchor.x+p[0]*SX, y=anchor.y+p[1]*S, z=anchor.z+p[2]*SX;
   return !k.solidAt(x,y,z)&&!k.solidAt(x,y+0.35*S,z)&&!k.solidAt(x,y-0.35*S,z)&&!k.solidAt(x+0.4*S,y,z)&&!k.solidAt(x-0.4*S,y,z)&&!k.solidAt(x,y,z+0.4*S)&&!k.solidAt(x,y,z-0.4*S); }
 /* A CLEAR SHOT. The blocks of the world stand where they stand, and a shot written for a scene
    can find a wall, a roof, a tree or a hillside between the eye and what it looks at. When it
@@ -1472,8 +1782,11 @@ function enterBeat(){
   if(T==='say'||T==='read'){ showVerse(B); return; }
   /* a goal or a deed is the player's to walk to: the story lets go of the camera first */
   if((T==='goal'||T==='witness')&&camTarget){ releaseCamera(); controlsOn=true; }
-  if(T==='goal'){ setGoal(B.text); const m=pos(B.goto); ringAt(m); onFrame=()=>{
-      if(Math.hypot(player.position.x-m[0],player.position.z-m[1])<(B.r||2.4)){ ringOff(); setGoal(''); nextBeat(); } }; return; }
+  if(T==='goal'){ setGoal(B.text); const m=pos(B.goto); reachBounds(m); ringAt(m);
+    const relock=!!ctx.playerLock&&Math.hypot(player.position.x-m[0],player.position.z-m[1])>=(B.r||2.4);   /* (a mark he is held away from: he is let go to it) */
+    if(relock){ ctx.playerLock=false; controlsOn=true; }
+    onFrame=()=>{
+      if(Math.hypot(player.position.x-m[0],player.position.z-m[1])<(B.r||2.4)){ ringOff(); setGoal(''); if(relock) ctx.playerLock=true; nextBeat(); } }; return; }
   if(T==='witness'){ startWitness(B); return; }
   if(T==='choice'){ showChoice(B); return; }
   if(T==='collect'){ collect(B.id); return; }
@@ -1481,20 +1794,33 @@ function enterBeat(){
   if(T==='move'){ const who=[].concat(B.who), tos=Array.isArray(B.who)||Array.isArray(B.to&&B.to[0])?[].concat(B.to):[B.to];   /* one figure, one place — even a place given as [x,z] */ who.forEach((w,k)=>{ const g=ctx.actors[w]; if(!g) return;
       const to=pos(tos[Math.min(k,tos.length-1)]);
       g.userData.follow=null; g.userData.target=to; if(B.speed) g.userData.speed=B.speed;
-      if(ST.fast){ g.position.x=to[0]; g.position.z=to[1];
+      /* ---- A WALK ACROSS A CITY IS A CUT, NOT A WAIT ----
+         The scenes were written about the small city, where the gate stood beside the upper room;
+         at the true measure it is six hundred and forty metres off, and the act stood while two
+         men walked there at a stroll and back again — minutes of nothing, and twice the playtest's
+         patience. No scene was ever written with a walk of ninety metres; one that long now
+         happens between one look and the next, and the figure is there. */
+      const far=Math.hypot(to[0]-g.position.x,to[1]-g.position.z)>90;
+      if(ST.fast||far){ g.position.x=to[0]; g.position.z=to[1];
         /* set straight down where he was going: on the floor he would have walked to (a hall
            under a roof), not on the roof over it */
         const top=ctx.groundY(to[0],to[1]), cur=g.position.y, near=ctx.groundY(to[0],to[1],cur+1.6);
-        g.userData.gy=near!=null&&isFinite(near)&&top-near>2&&Math.abs(near-cur)<3?near:undefined; } });
+        /* (and only a floor a man can stand on: sent from the gate to the upper pool, ten metres up the
+           hill, the floor looked for at the gate's height was inside the hillside, and there he stood) */
+        g.userData.gy=near!=null&&isFinite(near)&&top-near>2&&Math.abs(near-cur)<3&&!sunkAt(to[0],to[1],near)?near:(isFinite(top)?top:undefined);
+        if(g.userData.gy!==undefined&&g.userData.fixedY===undefined) g.position.y=g.userData.gy-sitDrop(g.userData); } });   /* (at once: for a frame he stood at the gate's height on the hill) */
     if(B.wait===false) return nextBeat();
     onFrame=()=>{ if(who.every(w=>!ctx.actors[w]||!ctx.actors[w].userData.target)) nextBeat(); }; return; }
   if(T==='follow'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.target=null; g.userData.follow=B.target||'player'; } } return nextBeat(); }
   if(T==='stop'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.follow=null; g.userData.target=null; } } return nextBeat(); }
   if(T==='face'){ const g=ctx.actors[B.who]; const p=B.to==='player'?[player.position.x,player.position.z]:(ctx.actors[B.to]||ctx.things[B.to])?thingPos(B.to):pos(B.to);
     if(g) g.rotation.y=Math.atan2(p[0]-g.position.x,p[1]-g.position.z); return nextBeat(); }
+  /* (and a figure set down is no longer walking to where he was last sent: Kĕpha, set in the upper room before
+     he had reached the foot of its stair, went on looking for a way down to it from inside the room) */
   if(T==='place'){ const g=B.who==='player'?player:ctx.actors[B.who]; const p=pos(B.at);
-    if(g){ const onIt=B.y!==undefined&&B.y!==null;
-      g.position.set(p[0],onIt?yOf(B.y):ctx.groundY(p[0],p[1]),p[1]); g.userData.gy=g.position.y; if(B.face!==undefined) g.rotation.y=B.face;
+    if(g){ const u=g.userData; u._mv=null; if(g!==player){ u.target=null; u._prog=null; u._path=null; } }
+    if(g){ const onIt=B.y!==undefined&&B.y!==null&&yOf(B.y)!==undefined;
+      g.position.set(p[0],onIt?yOf(B.y):ctx.groundY(p[0],p[1]),p[1]); g.userData.gy=g.position.y; if(B.face!==undefined) g.rotation.y=faceOf(B.face,p);
       /* `y`: standing on something that is not the ground — the floor of a boat, a roof;
          `y:null` sets him back down on the ground */
       if(onIt&&g!==player) g.userData.fixedY=yOf(B.y); else if(B.y===null) delete g.userData.fixedY; }
@@ -1504,11 +1830,11 @@ function enterBeat(){
     const Bc=(B.trueFrom&&ctx.trueEarth)?Object.assign({},B,{from:B.trueFrom,look:B.trueLook||B.look}):B;
     if(Bc.release){ releaseCamera(); controlsOn=true; return nextBeat(); }
     const S=Bc.on?shotOf(Bc):null;
-    const at=S?S.look:Array.isArray(Bc.look)&&Bc.look.length===3&&typeof Bc.look[0]==='number'?Bc.look:lookAtSpec(Bc.look);
+    const at=S?S.look:Array.isArray(Bc.look)&&Bc.look.length===3&&typeof Bc.look[0]==='number'?(Bc===B?remap3(Bc.look):Bc.look):lookAtSpec(Bc.look);
     let from;
     if(S) from=S.from;
     else if(Bc.from&&Bc.from.rel){ const g=ctx.actors[Bc.from.rel]||ctx.things[Bc.from.rel], o=Bc.from.off; from=[g.position.x+o[0],g.position.y+o[1],g.position.z+o[2]]; }
-    else if(Array.isArray(Bc.from)&&Bc.from.length===3&&typeof Bc.from[0]==='number') from=Bc.from;
+    else if(Array.isArray(Bc.from)&&Bc.from.length===3&&typeof Bc.from[0]==='number') from=Bc===B?remap3(Bc.from):Bc.from;
     /* a marker (or a marker and a step from it), at `fy` metres, or `fdy` above the ground there */
     else { const m=pos(Bc.from); from=[m[0],Bc.fdy!==undefined?(ctx.groundY(m[0],m[1])||0)+Bc.fdy:(Bc.fy||4),m[1]]; }
     holdCamera(S?from:faceSafe(from,at),at,ST.fast?0.01:(Bc.dur||2.5));
@@ -1525,7 +1851,10 @@ function enterBeat(){
     if(B.storm!==undefined&&K().setStorm) K().setStorm(B.storm||null);      /* the rain, the thunder and the dark of a squall */
     return nextBeat(); }
   /* "Make the people sit down" (Yahuchanon 6:10): on the grass, legs out before them */
-  if(T==='sit'||T==='stand'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.sit=(T==='sit'); g.userData.lie=false; g.userData.kneel=false; g.rotation.x=0; } } return nextBeat(); }
+  /* (one told to sit while still walking to his place sits when he gets there: he went the rest of the way
+     through the garden gliding along seated) */
+  if(T==='sit'||T==='stand'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ const u=g.userData, later=T==='sit'&&!!u.target;
+      u.sit=T==='sit'&&!later; u.sitOnArrive=later; u.lie=false; u.kneel=false; g.rotation.x=0; } } return nextBeat(); }
   /* "falling on His knees He was praying" (Luqas 22:41) */
   if(T==='kneel'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.kneel=true; g.userData.sit=false; g.userData.lie=false; g.rotation.x=0; } } return nextBeat(); }
   /* lying on the ground: asleep in a camp, or fallen (Yashayahu 37:36) */
@@ -1574,20 +1903,32 @@ function enterBeat(){
     for(const id of [].concat(B.id)){ const o=id==='player'?player:(ctx.things[id]||ctx.actors[id]), G=ctx.glows[id];
       if(o){ objs.push(o); if(id!=='player') o.visible=true; } if(G){ objs.push(G.sprite); if(G.light) objs.push(G.light); G.visible=true; } }
     const by=B.by?new THREE.Vector3(...B.by):null;
+    /* (those carried — a ship's company driven onto the beach — are not walking to a place left behind: two
+       sailors still bound for the bow were held by the drift, and set back on the deck's old place in the sea) */
+    for(const id of [].concat(B.id)){ const g=ctx.actors[id]; if(g){ g.userData.target=null; g.userData._prog=null; g.userData._path=null; } }
     /* `hold`: a figure carried up (Acts 1:9) is held where the drift leaves him, not set back on the ground */
     if(B.hold) for(const id of [].concat(B.id)){ const g=ctx.actors[id]; if(g&&g.userData.fixedY===undefined) g.userData.fixedY=g.position.y; }
-    const D={objs,from:objs.map(q=>q.position.clone()),to:by?null:new THREE.Vector3(...B.to),by,t:0,dur:ST.fast?0.001:(B.dur||3)};
+    /* (`toAt` [a place] with `dy`: to so high over the floor there) */
+    const toV=B.toAt?(()=>{ const m=pos(B.toAt); return [m[0],B.y!==undefined?B.y:(ctx.groundY(m[0],m[1])||0)+(B.dy||1.5),m[1]]; })():B.to?remap3(B.to):null;
+    const D={objs,from:objs.map(q=>q.position.clone()),to:by?null:new THREE.Vector3(...toV),by,t:0,dur:ST.fast?0.001:(B.dur||3)};
     ctx.drifts.push(D);
     if(B.wait===false) return nextBeat();
     onFrame=()=>{ if(D.t>=1) nextBeat(); }; return; }
+  /* `carry`: a light taken up in a seraph's tongs (`by`), or set down again (no `by`) — the live coal (Yashayahu 6:6) */
+  if(T==='carry'){ const G=ctx.glows[B.id]; if(G){ const was=G.onTongs, F=ctx.glows[B.by||was]&&ctx.glows[B.by||was].fig;
+      G.onTongs=B.by||null; if(F&&F.userData.coal) F.userData.coal.visible=!!B.by; }   /* (the coal itself is seen in the tongs) */
+    return nextBeat(); }
+  /* the screen goes to white or dark (`to` 1) and comes back (`to` 0): the passing into a vision */
+  if(T==='fade'){ const f=$('fade'); if(f) f.style.background=B.color||'#000'; fade(B.to===undefined?1:B.to,ST.fast?0:(B.dur||0.8));
+    if(ST.fast||B.wait===false) return nextBeat(); onFrame=()=>{ if(beatT>=(B.dur||0.8)) nextBeat(); }; return; }
   if(T==='quake'){ ctx.quake=ST.fast?0:(B.s||2.5); return nextBeat(); }
   if(T==='wait'){ onFrame=()=>{ if(ST.fast||beatT>=B.s) nextBeat(); }; return; }
   if(T==='player'){ ctx.playerHidden=!!B.hidden; player.visible=!B.hidden; if(B.hidden) controlsOn=false;
     /* set the player down somewhere — in a boat, say — and hold him there (lock), or let him go */
-    const onIt=B.y!==undefined&&B.y!==null;
-    if(B.at){ const p=pos(B.at); player.position.set(p[0],onIt?B.y:ctx.groundY(p[0],p[1]),p[1]); }
-    if(B.face!==undefined){ player.rotation.y=B.face; camYaw=B.face+Math.PI; }
-    if(onIt) ctx.playerY=B.y; else if(B.y===null||B.lock===false) ctx.playerY=undefined;
+    const by=B.y===undefined||B.y===null?B.y:yOf(B.y), onIt=by!==undefined&&by!==null;
+    if(B.at){ const p=pos(B.at); player.position.set(p[0],onIt?by:ctx.groundY(p[0],p[1]),p[1]); }
+    if(B.face!==undefined){ const f=faceOf(B.face,[player.position.x,player.position.z]); player.rotation.y=f; camYaw=f+Math.PI; }
+    if(onIt) ctx.playerY=by; else if(B.y===null||B.lock===false||B.y!==undefined) ctx.playerY=undefined;
     if(B.lock!==undefined) ctx.playerLock=!!B.lock;
     return nextBeat(); }
   /* the jars filled, the baskets heaped, the net full of fish; `color` turns water to wine */
@@ -1601,7 +1942,8 @@ function enterBeat(){
 const MALAK_SKIN=[0x6e4524,0x704a27,0x7a4e29,0x6a4426];   /* brown, as the people of the land are */
 function malakFigure(G,gl){
   const k=Math.abs((gl.id||'').split('').reduce((a,c)=>a*31+c.charCodeAt(0),7))%MALAK_SKIN.length;
-  const f=window.STORYWORLD.person(ctx,{id:'glow:'+gl.id, dress:'man', robe:0xf4f1e8, cloth:0xfbf8ef, sash:0xe8dcb0, skin:MALAK_SKIN[k], beard:gl.beard||null});
+  const f=window.STORYWORLD.person(ctx,{id:'glow:'+gl.id, dress:'man', robe:gl.seraph?0xfff6e4:0xf4f1e8, cloth:gl.seraph?0xfffbf0:0xfbf8ef, sash:gl.seraph?0xf0c860:0xe8dcb0, skin:MALAK_SKIN[k], beard:gl.beard||null});
+
   f.userData.id='glow:'+gl.id; f.userData.def={ground:true}; f.userData.malak=true; f.userData.noShadow=true; f.visible=false;   /* (light throws no shadow) */
   if(gl.sit) f.userData.sit=true;
   f.userData.s=gl.scale||(gl.float||(gl.at&&gl.at.length===3&&gl.at[1]>5)?1.35:1.08); f.scale.setScalar(f.userData.s);
@@ -1616,8 +1958,27 @@ function malakFigure(G,gl){
   G.fig=f; G.toward=gl.toward; G.float=gl.float; G.seat=gl.seat;
   Object.defineProperty(G,'visible',{configurable:true, get(){ return G.sprite.visible; },
     set(v){ G.sprite.visible=v; if(G.light) G.light.intensity=v?G.light.userData.on:0; f.visible=v; G.faceLight.intensity=v?0.9:0; }}); }
-const _cw=new THREE.Vector3();
+/* ---- A SERAPH, SEEN (Yashayahu 6:2,6) ----
+   A figure of his own (story/world.js, W.seraph): a body of fire, his robe, his six wings — and
+   borne in the air at his light. `tongs`: he holds the tongs he takes the coal with. */
+function seraphFigure(G,gl){
+  const f=window.STORYWORLD.seraph({tongs:!!gl.tongs}); f.userData.seraph=true; f.userData.noShadow=true; f.visible=false;
+  f.userData.s=gl.scale||2; f.scale.setScalar(f.userData.s); ctx.scene.add(f);
+  G.sprite.material.opacity=0.2;                                     /* (a light about him, not a glare over him) */
+  const S=(K()&&K().setScale)||6.5; G.faceLight=new THREE.PointLight(0xfff0dc,0,8*S,1.6); ctx.scene.add(G.faceLight);
+  G.fig=f; G.float=true; G.toward=gl.toward;
+  Object.defineProperty(G,'visible',{configurable:true, get(){ return G.sprite.visible; },
+    set(v){ G.sprite.visible=v; if(G.light) G.light.intensity=v?G.light.userData.on:0; f.visible=v; G.faceLight.intensity=v?0.5:0; }}); }
+const _cw=new THREE.Vector3(), _tt=new THREE.Vector3();
 function malakTick(G,id,dt){
+  if(G.fig.userData.seraph){ const f=G.fig, u=f.userData, q=G.sprite.position;
+    /* his light about his breast; turned to the one he is sent to, else to whoever is near, else the witness */
+    f.position.set(q.x,q.y-1.6*u.s,q.z);
+    let tg=G.toward&&ctx.actors[G.toward]; if(!tg){ let bd=1e9; for(const a in ctx.actors){ const g=ctx.actors[a]; if(!g.visible) continue; const d=(g.position.x-q.x)**2+(g.position.z-q.z)**2; if(d<bd&&d<1600){ bd=d; tg=g; } } }
+    if(!tg) tg=player;
+    f.rotation.y=turnTo(f.rotation.y,Math.atan2(tg.position.x-q.x,tg.position.z-q.z),dt*3);
+    G.faceLight.position.set(q.x,q.y,q.z);
+    window.STORYWORLD.seraphTick(f,dt); return; }
   const f=G.fig, u=f.userData, q=G.sprite.position, gr=ctx.groundY(q.x,q.z,q.y)||0;
   /* standing on the ground under the light when it is near the ground; else borne up in it */
   const stand=!G.float&&q.y-gr<4.2, feet=stand?gr:q.y-1.25*(u.s||1);
@@ -1630,7 +1991,8 @@ function malakTick(G,id,dt){
   /* lit on the side that is seen */
   camera.getWorldPosition(_cw); ctx.scene.worldToLocal(_cw); const dx=_cw.x-q.x, dy=_cw.y-q.y, dz=_cw.z-q.z, L=Math.hypot(dx,dy,dz)||1;
   G.faceLight.position.set(f.position.x+dx/L*1.4,feet+1.7*(u.s||1),f.position.z+dz/L*1.4);
-  animFigure(f,dt,false); animFace(f,id&&('glow:'+id),dt); }
+  animFigure(f,dt,false); animFace(f,id&&('glow:'+id),dt);
+  if(u.wings) window.STORYWORLD.seraphWingsTick(f,dt); }
 /* ---- HELD IN THE HANDS, AND THE CHAINS ---- */
 const _h1=new THREE.Vector3(), _h2=new THREE.Vector3(), _Z=new THREE.Vector3(0,0,1);
 function handAt(g,side,out){ const A=side==='L'?g.userData.armL:g.userData.armR, h=A&&A.userData.hand;
@@ -1645,7 +2007,7 @@ function chainEnd(e,out){ if(Array.isArray(e)&&ctx.actors[e[0]]) return handAt(c
 /* NOTHING HANGS THROUGH ANYTHING: a point of a chain (or anything let fall) lies on what is under it — out of a
    block of the world, up onto the floor, and over the bodies of those lying or sitting there */
 function restOn(P){ const k=K(), B=k.B;
-  for(let n=0;n<60&&k.solidAt(anchor.x+P.x*S,anchor.y+(P.y-0.015)*S,anchor.z+P.z*S);n++) P.y+=0.03;
+  for(let n=0;n<60&&k.solidAt(anchor.x+P.x*SX,anchor.y+(P.y-0.015)*S,anchor.z+P.z*SX);n++) P.y+=0.03;
   for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; if(!g.visible||!(u.lie||u.sit||u.kneel)) continue;
     const dx=P.x-g.position.x, dz=P.z-g.position.z, s=u.s||1, fx=Math.sin(g.rotation.y), fz=Math.cos(g.rotation.y);
     let inside=false, top=g.position.y;
@@ -1671,7 +2033,8 @@ function chainTick(o){ const u=o.userData, t=u.thing; u.ends=u.ends||[new THREE.
     _h1.subVectors(b,a).normalize(); L.quaternion.setFromUnitVectors(_Z,_h1);
     L.rotateZ(k%2?Math.PI/2:0); }
   u.cuffA.position.copy(A); u.cuffB.position.copy(B); }
-function lookAtSpec(l){ if(typeof l==='string'){ if(ctx.actors[l]){ const g=ctx.actors[l]; return [g.position.x,g.position.y+(g.userData.fours?0.75:1.5),g.position.z]; }
+function lookAtSpec(l){ if(l&&!Array.isArray(l)&&typeof l==='object'&&l.at){ const m=pos(l.at); return [m[0],l.y!==undefined?l.y:(ctx.groundY(m[0],m[1])||0)+(l.dy||1.4),m[1]]; }   /* {at, dy}: a place, so high over its floor (or at `y`) */
+  if(typeof l==='string'){ if(ctx.actors[l]){ const g=ctx.actors[l]; return [g.position.x,g.position.y+(g.userData.fours?0.75:1.5),g.position.z]; }
     if(ctx.glows[l]){ const s=ctx.glows[l].sprite.position; return [s.x,s.y,s.z]; }
     const m=pos(l); return [m[0],m[2]!==undefined?m[2]:1.5,m[1]]; }
   if(Array.isArray(l)&&typeof l[0]==='string'){ const m=pos(l); return [m[0],(ctx.groundY(m[0],m[1])||0)+1.4,m[1]]; }   /* near a marker: a step from it, at a man's height */
@@ -1743,8 +2106,25 @@ function ringOff(){ if(ring){ scene.remove(ring); ring.userData.beam.sprite.pare
 /* ---- THE WITNESS: small faithful things to do ----
    items: things to lay a hand on, each `hold` seconds; `deliver` takes it to a
    marker (it follows the player there); `send` sends it on its own. */
+/* ---- A MARK IS ALWAYS INSIDE THE GROUND THAT MAY BE WALKED ----
+   A scene keeps the witness within its bounds. At the true measure some of its marks are the
+   city's own and lie far out of the box written for the small map (the House stands four hundred
+   and seventy metres from the house of the taught ones), so the mark could be seen and never
+   reached, and the act never finished. The bounds open to take in every place the witness is sent. */
+function reachBounds(m){ const b=ctx.bounds; if(!b||!m) return; const M=8;
+  if(m[0]-M<b.x0) b.x0=m[0]-M; if(m[0]+M>b.x1) b.x1=m[0]+M; if(m[1]-M<b.z0) b.z0=m[1]-M; if(m[1]+M>b.z1) b.z1=m[1]+M; }
 function startWitness(B){
+  for(const id of B.items) reachBounds(thingPos(id)); if(B.deliver) reachBounds(pos(B.deliver));
   witness={B,done:new Set(),holding:0,carrying:null};
+  /* ---- A THING TO BE TAKEN UP THAT HE CANNOT REACH, HE MUST BE LET WALK TO ----
+     The witness is held at his place in a boat (`player … lock`) so the sea cannot throw him
+     about; but the grain ship's cargo stood three to six metres off him with an arm's reach of
+     2.8, he was not let take a step, and the act could never be finished. If anything to be done
+     lies out of his reach he is let walk for this deed (on her deck: he does not step off her),
+     and held again after it. */
+  if(ctx.playerLock&&player){ const R=B.reach||2.2, P=player.position;
+    const out=B.items.some(id=>{ const q=thingPos(id); return q&&Math.hypot(q[0]-P.x,q[1]-P.z)>=R; })||!!B.deliver;
+    if(out){ ctx.playerLock=false; witness.relock=true; controlsOn=true; } }
   setGoal(B.text+'  (0/'+B.items.length+')');
   onFrame=dt=>{
     const W=witness; if(!W) return;
@@ -1773,7 +2153,7 @@ function witnessDone(id){
   /* what the hand did shows: the jar filled, the group given its bread */
   if(B.reveal&&B.reveal[id]){ for(const r of [].concat(B.reveal[id])){ const o=ctx.things[r];
       if(o){ if(o.userData.fill) o.userData.fill.visible=true; else o.visible=true; } } } setGoal(B.text+'  ('+W.done.size+'/'+B.items.length+')');
-  if(W.done.size>=B.items.length){ hide('sprompt'); setGoal(''); witness=null; nextBeat(); }
+  if(W.done.size>=B.items.length){ hide('sprompt'); setGoal(''); if(W.relock) ctx.playerLock=true; witness=null; nextBeat(); }
 }
 function showPrompt(t){ $('prompt-t').textContent='E  '+t; show('sprompt'); }
 function setProgress(f){ $('hold').style.width=Math.round(Math.max(0,Math.min(1,f))*100)+'%'; }
@@ -1959,10 +2339,12 @@ function journal(sc){
    end of each one (window.__STAGE_TICK), before it draws: the story moves its people, holds
    its camera, keeps His face from the lens, and sets the voyage's eye from its own. */
 function frame(dtW){
-  const dt=Math.min(0.05,clock.getDelta()), t=clock.elapsedTime;
+  const dt0=Math.min(0.05,clock.getDelta()), dt=ST.simDt||dt0, t=clock.elapsedTime;
   if(!running||!ctx){ idleView(t); return; }
   keepWorld();
   beatT+=dt;
+  if(ST.playtest) playStep();
+  if(ST.walkWatch) walkWatch(dt);
   movePlayer(dt); moveActors(dt); moveFlock(dt,t);
   if(ctx.tickers) for(const f of ctx.tickers) f(dt);                                   /* a set's own motion: the wheat in the wind */
   for(const f of ctx.flicker){ const k=0.85+Math.sin(t*13)*0.08+Math.sin(t*7.3)*0.07; f.sprite.scale.setScalar(f.base*k); if(f.light) f.light.intensity=1.4*k; }
@@ -1970,6 +2352,9 @@ function frame(dtW){
     if(G.on){ const g=G.on, u=g.userData, hy=g.position.y+(u.headY||1.6)+0.24*(u.s||1)+G.onDy;   /* on the top of the head, sitting or standing (the figure is already set down for sitting) */
       G.sprite.position.set(g.position.x,hy,g.position.z); if(G.light) G.light.position.set(g.position.x,hy,g.position.z); }
     if(G.pulse){ const k=1+Math.sin(t*2)*0.08; G.sprite.scale.set(G.base*k,G.base*k*(G.aspect||1),1); }
+    /* held in a seraph's tongs (`carry`): it goes where they go */
+    if(G.onTongs){ const F=ctx.glows[G.onTongs]&&ctx.glows[G.onTongs].fig, tt=F&&F.userData.tongTip;
+      if(tt&&F.visible){ F.updateMatrixWorld(true); tt.getWorldPosition(_tt); ctx.scene.worldToLocal(_tt); G.sprite.position.copy(_tt); if(G.light) G.light.position.copy(_tt); } }
     if(G.fig&&G.sprite.visible) malakTick(G,id,dt); }
   if(ctx.host) for(const G of ctx.host){ if(!G.visible) continue; G.sprite.position.y+=Math.sin(t*1.3+G.ph)*0.01; }
   if(ring){ ring.material.opacity=0.55+Math.sin(t*4)*0.25; }
@@ -1990,7 +2375,7 @@ function frame(dtW){
     if(g){ const m=SV.mouth(T.sp.key)||0, k=1+m*0.12; g.sprite.scale.set(g.base*k,g.base*k*(g.aspect||1),1); } }
   if(ST.fast) fastStep();
   if(onFrame) onFrame(dt);
-  actPressed=false;
+  actPressed=false; if(ST.playtest) actHeld=false;
   updateCamera(dt);
   /* the test harness may hold the eye on a point (ST.camHold: {from,look}) — never past the guard */
   if(ST.camHold){ camera.position.set(...ST.camHold.from); camera.lookAt(...ST.camHold.look); }
@@ -2005,12 +2390,12 @@ let lampLight=null;
 function sceneLamp(){
   const k=K(); if(!k.lamp||!root) return;
   const at=lookAtNow(), lx=at[0], ly=at[1], lz=at[2];
-  const roofed=k.solidAt(anchor.x+lx*S,anchor.y+(ly+2.6)*S,anchor.z+lz*S)||k.solidAt(anchor.x+lx*S,anchor.y+(ly+3.6)*S,anchor.z+lz*S);
+  const roofed=k.solidAt(anchor.x+lx*SX,anchor.y+(ly+2.6)*S,anchor.z+lz*SX)||k.solidAt(anchor.x+lx*SX,anchor.y+(ly+3.6)*S,anchor.z+lz*SX);
   const want=timeNow==='night'?0.85:timeNow==='dusk'?0.5:timeNow==='dawn'?0.35:roofed?0.45:0;
   if(!lampLight){ lampLight=new THREE.PointLight(0xffd9a0,0,14*S,1.4); }
   if(lampLight.parent!==root) root.add(lampLight);
   lampLight.position.set(lx,ly+1.6,lz); lampLight.intensity=want*1.3;
-  if(want>0) k.lamp(anchor.x+lx*S,anchor.y+(ly+1.2)*S,anchor.z+lz*S,want,12*S);
+  if(want>0) k.lamp(anchor.x+lx*SX,anchor.y+(ly+1.2)*S,anchor.z+lz*SX,want,12*S);
 }
 /* the world is held for the scene: the hour the scene names, the traveller where the witness
    is (so the ground about him is the ground that is built), and never seen */
@@ -2025,7 +2410,7 @@ function keepWorld(){
   if(anchor) k.setLocalHour(hourNow,anchor.x,anchor.z);
   { const cl=k.clouds&&k.clouds(); if(cl&&anchor) cl.position.y=Math.max(k.CLOUD_Y,anchor.y+180*S); }
   const p=player&&!ctx.playerHidden?player.position:{x:0,y:0,z:0};
-  standWalker(anchor.x+p.x*S,anchor.z+p.z*S,anchor.y+p.y*S);
+  standWalker(anchor.x+p.x*SX,anchor.z+p.z*SX,anchor.y+p.y*S);
 }
 /* with no act running, the eye turns slowly over the city of the great king */
 let idleAt=null;
@@ -2037,6 +2422,42 @@ function idleView(t){
   vc.lookAt(idleAt.x,idleAt.y+30,idleAt.z); vc.updateMatrixWorld();
 }
 
+/* ---- THE PLAYTEST'S HAND: every act played as a player plays it, in the game's own time ----
+   The fast hand below sets the witness straight down on every mark and every figure straight on
+   his, so it can never find a figure who does not arrive or a mark no one can walk to — and that
+   is exactly how the game was once left unfinishable. This hand reads nothing (the text is
+   advanced as soon as it shows) but WALKS: it is led to each mark by the way a man's feet could
+   take (guideSteer), presses E at each thing to be taken up, carries it to its place, and waits
+   for every figure the story sends to arrive on his own legs. What could not be done is written
+   in ST.stuck. */
+function playStep(){
+  if(fulfilOpen){ closeFulfil(); return; }
+  if(!$('choice').classList.contains('off')){ hide('choice'); nextBeat(); return; }
+  if(waitingAdvance){ advance(); return; }
+  const B=beat; if(!B) return;
+  if(B.t==='cam') camT=1;
+  if(B.t==='witness'){ actHeld=true; actPressed=true; }
+}
+/* ---- WHAT GOES WRONG UNDER A MAN'S FEET (for the playtest) ----
+   Every frame: anyone whose body stands inside a block, anyone who drops or jumps more than a
+   storey in one step without the story having set him there, anyone whose place is not a number.
+   Written once per kind, person and scene into ST.walkErr. */
+const _ww=new Map();
+function walkWatch(dt){
+  const L=ST.walkErr||(ST.walkErr=[]), sid=act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id;
+  const note=(who,kind,g)=>{ const key=sid+'|'+who+'|'+kind; if(_ww.get(key)) return; _ww.set(key,1);
+    L.push({scene:sid,beat:beatIx,who,kind,at:[Math.round(g.position.x*10)/10,Math.round(g.position.y*10)/10,Math.round(g.position.z*10)/10]}); };
+  const look=(who,g,fixed)=>{ if(!g||!g.visible) return; const p=g.position;
+    if(!isFinite(p.x)||!isFinite(p.y)||!isFinite(p.z)){ note(who,'not a number',g); return; }
+    const u=g.userData, last=u._wwY, cut=u._wwBeat!==beatIx||u._wwScene!==sid;
+    u._wwY=p.y; u._wwBeat=beatIx; u._wwScene=sid;
+    if(fixed) return;
+    if(!cut&&last!==undefined&&Math.abs(p.y-last)>2.5) note(who,(p.y<last?'dropped ':'jumped ')+Math.round(Math.abs(p.y-last)*10)/10+' m in a step',g);
+    { const k=K(), wx=anchor.x+p.x*SX, wz=anchor.z+p.z*SX;
+      if(k.solidAt(wx,anchor.y+(p.y+0.9)*S,wz)&&k.solidAt(wx,anchor.y+(p.y+1.5)*S,wz)) note(who,'body inside a block'+(g.userData._mv?' ('+g.userData._mv+')':' (where he was set)'),g); } };
+  if(!ctx.playerHidden) look('the witness',player,ctx.playerY!==undefined);
+  for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; look(id,g,u.fixedY!==undefined||!!u.aboard||!!u.ride||!!u.lie); }
+}
 /* ---- THE TEST HARNESS'S HAND: one beat a frame, taken as a player would ---- */
 function fastStep(){
   const B=beat; if(!B) return;
@@ -2064,7 +2485,8 @@ ST.boot=function(opt){
   /* for the test harness: where the story stands, and a way to run it */
   window.__STORY={ST,save,get act(){ return act&&act.id; },get scene(){ return act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id; },
     get beat(){ return beat; },get beatIx(){ return beatIx; },run:(id,s)=>{ const a=ST.acts.find(q=>q.id===id); stopAct(); runAct(a,s||0); },
-    advance, get running(){ return running; }, ctx:()=>ctx, faceExposed, dbg:{clearShot,lineClear,camFree,exposedFrom,HOURS,applyTime,free:()=>{ releaseCamera(); controlsOn=true; onFrame=null; }}, player:()=>player, camera:()=>camera,
+    advance, get running(){ return running; }, ctx:()=>ctx, faceExposed, dbg:{blocked,solidFor,planWay,ground:(x,z,r)=>ctx.groundY(x,z,r),pos:m=>pos(m),clearShot,lineClear,camFree,exposedFrom,HOURS,applyTime,free:()=>{ releaseCamera(); controlsOn=true; onFrame=null; }}, player:()=>player, camera:()=>camera,
+    stuck:()=>ST.stuck||[], beatT:()=>beatT,
     reset:()=>{ save.codex={}; save.acts={}; save.witnessed=0; save.road={}; save.bonds={}; persist(); } };
 };
 })();

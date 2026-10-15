@@ -484,7 +484,7 @@ function room(ctx,st0,x0,z0,x1,z1,o){ let st;
   const Y=o.y||0, H=2.8+Y; st={box:(a,b,c,d,e,f,g,h)=>st0.box(a,b+Y,c,d,e+Y,f,g,h)}; 
   st.box(x0,0,z0,x1,0.08,z1,C.path);                                                /* the floor of beaten earth */
   st.detail=(...a)=>st0.detail(a[0],a[1]+Y,a[2],a[3],a[4]+Y,a[5],a[6],a[7]);
-  const dz0=mz-1.0, dz1=mz+1.0;                                                     /* a doorway two of the world's cells across */
+  const dz0=mz-1.3, dz1=mz+1.3;                                                     /* a doorway two of the world's cells across (written a little wider: laid in whole blocks, a doorway of two metres could come out one block wide, and everyone going in rubbed its jambs) */
   /* the four walls, the door left open in its own */
   const WH=H-Y;
   if(o.door==='e'){ st.box(x1-t,0,z0,x1,WH,dz0,BAS); st.box(x1-t,0,dz1,x1,WH,z1,BAS); st.box(x1-t,2.2,dz0,x1,WH,dz1,BAS); } else st.box(x1-t,0,z0,x1,WH,z1,BAS);
@@ -503,15 +503,26 @@ function room(ctx,st0,x0,z0,x1,z1,o){ let st;
 }
 
 function galil(ctx,st,o){
-  W.ground(ctx,{color:o.village?C.grassDry:C.grass,flat:30,
+  /* (on the true earth the lake is Kinnereth's own: where a place of the set lies in it, nothing of the
+     land is laid there — and out on the lake, `afloat`, none at all) */
+  const k=window.__KIT, inLake=(x,z)=>{ if(!ctx.trueEarth||!ctx.toWorldXZ) return false; const w=ctx.toWorldXZ(x,z), c=k.cell(Math.floor(w[0]/k.B),Math.floor(w[1]/k.B)); return !!(c&&c.lake!==undefined&&c.lake>c.h); };
+  const afloat=inLake(0,0);
+  /* (cut down to the lake's own level on the true earth, the shore's slope is eased back a long way, or
+     the set stands in a pit under a wall of earth — the east shore climbs steeply to the Golan) */
+  if(!afloat) W.ground(ctx,{color:o.village?C.grassDry:C.grass,flat:30,blend:ctx.trueEarth?40:undefined,
     peak:o.village?{x:-80,z:6,h:11,r:72}:{x:-46,z:0,h:8,r:56}});
   /* THE LAKE: its floor levelled and its water laid, from the beach out past where the boats
      go; a beach of pebbles along its edge */
   ctx.api.pad(SHORE.x-8,-80,SHORE.x+92,80,{top:'sand'});
-  ctx.api.water(SHORE.x,-78,SHORE.x+90,78,{depth:3,bed:'sand'});
+  /* the water shelves off the beach — ankle-deep, then to the knee, then deep — instead of falling
+     three courses at the water's edge, so whoever stands at the edge holding a boat is in the
+     shallows and not in it to the chest */
+  ctx.api.water(SHORE.x+6,-78,SHORE.x+90,78,{depth:3,bed:'sand'});
+  ctx.api.water(SHORE.x+3,-78,SHORE.x+6,78,{depth:2,drop:0,bed:'sand'});
+  ctx.api.water(SHORE.x,-78,SHORE.x+3,78,{depth:1,bed:'sand'});
   W.waterLife(ctx,{at:[SHORE.x+12,0], r:36, y:0, fish:18, frogs:3, flies:4, egrets:3, turtles:1, butterflies:2});   /* the fish of Galil, the egrets of its shore */
-  st.box(SHORE.x-6,0,-80,SHORE.x,0.1,80,'sand');
-  for(let k=0;k<26;k++){ const z=-90+k*7, x=SHORE.x-3+W.hash(k,5)*2.2; W.rock(st,x,z,0.35+W.hash(k,6)*0.4); }
+  if(!afloat) st.box(SHORE.x-6,0,-80,SHORE.x,0.1,80,'sand');
+  for(let k=0;k<26;k++){ const z=-90+k*7, x=SHORE.x-3+W.hash(k,5)*2.2; if(!inLake(x,z)) W.rock(st,x,z,0.35+W.hash(k,6)*0.4); }
   if(o.village){
     const BAS='basalt', BAS2='basalt';                                   /* the black basalt of Kephar Naḥum */
     /* the town lies along the shore; the slope of the hills west of it is left open, for the crowds */
@@ -551,7 +562,7 @@ function galil(ctx,st,o){
     ctx.api.clearTrees(-42,-6,-20,18);                                                /* the slope He taught and named the Twelve on, open */
   } else {
     for(let k=0;k<70;k++){ const x=-60+W.hash(k,7)*72, z=-50+W.hash(k,8)*100;
-      if(Math.hypot(x+20,z)<26) continue; st.detail(x-0.4,ctx.groundY(x,z),z-0.4,x+0.4,ctx.groundY(x,z)+0.35,z+0.4,0x6e8a46); }
+      if(Math.hypot(x+20,z)<26||inLake(x,z)) continue; st.detail(x-0.4,ctx.groundY(x,z),z-0.4,x+0.4,ctx.groundY(x,z)+0.35,z+0.4,0x6e8a46); }
     mk(ctx,'beach',SHORE.x-3,0); mk(ctx,'slope',-20,0); mk(ctx,'seat',-30,0);
   }
   ctx.wind=o.wind||[0.9,0.5];
@@ -774,7 +785,7 @@ const floorAt=ctx=>(x,z)=>ctx.groundY(x,z)||0;
    the tomb beside it — must not stand on what it left there the first time: these sets are laid at
    a fixed height (`abs`), the city's own level or the land's own, never on the ground found under them. */
 const fixed=st0=>({box:(a,b,c,d,e,f,g,h)=>st0.box(a,b,c,d,e,f,g,Object.assign({abs:true},h||{})), detail:(...a)=>st0.detail(...a), ground:()=>0, api:st0.api});
-const landY=(ctx,x,z)=>{ const k=window.__KIT, A=ctx.anchor, S=ctx.scene.scale.x, c=k.cell(Math.floor((A.x+x*S)/k.B),Math.floor((A.z+z*S)/k.B)); return c?(c.h*k.B-A.y)/S:0; };
+const landY=(ctx,x,z)=>{ const k=window.__KIT, A=ctx.anchor, S=ctx.scene.scale.x, w=ctx.toWorldXZ(x,z), c=k.cell(Math.floor(w[0]/k.B),Math.floor(w[1]/k.B)); return c?(c.h*k.B-A.y)/S:0; };
 
 /* THE COURTS OF THE HOUSE (Mark 11:15; 12:41): the tables of the money changers in rows and the
    seats of those who sold doves on the court of the nations, west of the inner courts; and the
@@ -907,7 +918,11 @@ S.golgotha=function(ctx,st){
     st.detail(x-0.3,y,z-0.3,x+0.3,y+0.25,z+0.3,0x8a8070); }                               /* wedged with stones at its foot */
   { const y=G(-66,-34); st.detail(-65.9,y+3.55,-34.4,-65.84,y+3.95,-33.6,0xece6d6); }        /* the title over His head (Yahuchanon 19:19) */
   /* the road from the gate, round the wall and north past the spur, outside */
-  for(let x=-14;x>=-56;x-=1.6) ctx.api.top(x-1,43,x+1,45,C.path);                         /* out of the gate, west below the wall */
+  /* (on the true earth the gate is the Gennath, in the first wall where the second begins, west of where the
+     small city's stood: the road and its mark go from there, or the road began inside the second wall's
+     quarter and Miryam, running from the tomb to the city, was sent behind a wall she could not pass) */
+  const gxR=ctx.trueEarth?-36:-14;
+  for(let x=gxR;x>=-56;x-=1.6) ctx.api.top(x-1,43,x+1,45,C.path);                         /* out of the gate, west below the wall */
   for(let z=44;z>=-56;z-=1.6) ctx.api.top(-57,z-1,-55,z+1,C.path);                        /* and north along it, below the spur */
   /* the garden: the face of the rock and the tomb cut into it */
   const ly=landY(ctx,-70,-11);
@@ -919,7 +934,7 @@ S.golgotha=function(ctx,st){
   ctx.markers.stakeY=[G(-66,-34)+0.9,0];                                                /* the height of His feet on the stake */
   mk(ctx,'skull',-66,-34); mk(ctx,'stakeL',-66,-37.4); mk(ctx,'stakeR',-66,-30.6); mk(ctx,'onStake',-65.7,-34);
   mk(ctx,'foot',-61.6,-34); mk(ctx,'soldiers',-61.4,-37.6); mk(ctx,'scoffers',-56,-30); mk(ctx,'mother',-62.2,-31.4);
-  mk(ctx,'afar',-52,-44); mk(ctx,'gateRoad',-18,44); mk(ctx,'roadBend',-58,-4);
+  mk(ctx,'afar',-52,-44); mk(ctx,'gateRoad',ctx.trueEarth?-37:-18,ctx.trueEarth?46:44); mk(ctx,'roadBend',-58,-4);
   mk(ctx,'tomb',-70.6,-11); mk(ctx,'tombIn',-72.4,-11); mk(ctx,'tombOut',-67,-11); mk(ctx,'tombFront',-64,-11);
   mk(ctx,'stone',-68.8,-14); mk(ctx,'stoneShut',-68.8,-11); mk(ctx,'garden',-60,-8); mk(ctx,'opposite',-60,-13);
   const hk=ctx.markers.hekal||[6,-44]; ctx.markers.city=[hk[0],hk[1],16];
@@ -1032,7 +1047,7 @@ S.damascus=function(ctx,st){
   room(ctx,st,15,5,23,12,{door:'w',wall:C.limestone});                                           /* the house of Yahuḏah */
   for(let k=0;k<26;k++){ const x=-100+W.hash(k,2)*70, z=(W.hash(k,3)<0.5?-1:1)*(5+W.hash(k,4)*30); W.olive(st,x,z,0.9); }   /* the gardens */
   mk(ctx,'road0',-58,-2.7); mk(ctx,'road1',-50,-2.1); mk(ctx,'light',-42,-1.4); mk(ctx,'road2',-32,-0.6); mk(ctx,'gate',-22,0); mk(ctx,'gateIn',-17,0);
-  mk(ctx,'straight',4,0); mk(ctx,'yahudahDoor',14,8.5); mk(ctx,'yahudahIn',17.4,8.5); mk(ctx,'bed',21,10.5); mk(ctx,'hananyah',40,-6);
+  mk(ctx,'straight',4,0); mk(ctx,'yahudahDoor',14,8.5); mk(ctx,'yahudahIn',17.4,8.5); mk(ctx,'bed',21,10.5); mk(ctx,'hananyah',40,-4.6);   /* (in the street before his door, not in its wall) */
   /* the city about its day: sellers along the street called Straight under its colonnades, people
      going up and down it, the gardeners among the trees outside the wall */
   W.folk(ctx,[
@@ -1048,7 +1063,7 @@ S.damascus=function(ctx,st){
    house about a court (10:24), the harbour Herodes built in sight beyond it. */
 function coast(ctx,st,o){
   ctx.wind=[1.4,0.5];
-  W.ground(ctx,{color:C.grassDry,flat:34,peak:{x:-50,z:0,h:9,r:40}});
+  W.ground(ctx,{color:C.grassDry,flat:34,peak:{x:-62,z:0,h:9,r:30}});                 /* (the hill kept off the level ground: heaped over its edge, it stood a cliff there) */
   sea(ctx,st,20);
   for(let k=0;k<24;k++){ const z=-110+k*9, x=17+W.hash(k,5)*2; W.rock(st,x,z,0.4+W.hash(k,6)*0.5); }
   if(o.town==='yapho'){
@@ -1132,14 +1147,17 @@ S.athens=function(ctx,st){
   if(!ctx.trueEarth){ ctx.api.mound(-62,0,20,34,{top:'stone'});                                 /* the Acropolis */
     temple(st,-62,0,16,30,7,'alabaster',ctx.groundY(-62,0)||20); }
   ctx.api.mound(-14,-6,5,12,{top:'stone'});                                                    /* the hill of Ares */
-  for(let k=0;k<6;k++) st.box(-6+k*0.6,0,-8+k*0.4,-5.4+k*0.6,0.4+k*0.6,-6+k*0.4,C.rock);     /* its steps cut in the rock */
+  /* its steps cut in the rock, going up its side from the foot toward the top, each a little above the
+     rock it is cut in (they climbed away from the hill, three metres up into the air, and ended in a drop) */
+  for(let k=0;k<11;k++){ const x1=-2.4-k*0.9, xc=x1-0.45, h=(ctx.api.moundL(xc,-6)||0)+0.18;
+    st.box(x1-0.9,0,-7,x1,Math.max(0.3,h),-5,C.rock); }
   for(let x=10;x<40;x+=3.2) st.box(x-0.4,0,13.6,x+0.4,4.2,14.4,'alabaster'); st.box(9,4.2,13,41,4.8,18,C.roofEarth); st.box(9,0,17.6,41,4.2,18,'alabaster');   /* the porch of the agora */
   st.box(18,0,4,19.4,1.1,5.2,'alabaster'); st.detail(17.96,0.5,4.2,18.0,0.9,5.0,0x3a2a1e);    /* the altar, and its inscription */
   for(let k=0;k<5;k++){ const x=24+k*3; st.box(x-0.4,0,-6.4,x+0.4,2.2,-5.6,'alabaster'); st.box(x-0.5,2.2,-6.5,x+0.5,2.5,-5.5,C.gold); }   /* the images of the city's gods */
   for(let k=0;k<14;k++){ const a=W.hash(k,4)*6.28, r=34+W.hash(k,5)*20; W.olive(st,Math.cos(a)*r+20,Math.sin(a)*r,0.9); }
   mk(ctx,'agora',24,8); mk(ctx,'altar',18.7,4.6); mk(ctx,'altarFront',21,4.6); mk(ctx,'porch',24,12); mk(ctx,'areopagus',-14,-6); mk(ctx,'arFoot',-2,-6);
   mk(ctx,'idols',30,-4); mk(ctx,'crowd',-10,-2);
-  if(ctx.trueEarth){ const k=window.__KIT, p=k.llToWorld(37.9715,23.7257), ax=(p[0]-ctx.anchor.x)/k.setScale, az=(p[1]-ctx.anchor.z)/k.setScale;
+  if(ctx.trueEarth){ const k=window.__KIT, p=k.llToWorld(37.9715,23.7257), [ax,az]=ctx.fromWorldXZ(p[0],p[1]);
     ctx.markers.acropolis=[ax,az,(ctx.groundY(ax,az)||0)+40]; }
   else { const ay=ctx.groundY(-62,0)||20; ctx.markers.acropolis=[-62,0,ay+6]; }
   /* the market-place "every day with those who happened to be there" (Acts 17:17) */

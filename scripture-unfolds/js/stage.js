@@ -28,7 +28,13 @@
      lifeLand 0..1 livestock, creeping things, the beasts of the earth — SIXTH
      ship    0..1  the great ship. There is no ship in the creation of the
                    world, so a scene has none unless it asks for one
-     man     0..1  and no man either, until the sixth day
+     man     0..1  and no man either, until the sixth day — stood on the ground before the
+                   eye at the anchor: the traveller's own figure rides with the ship, and
+                   with no ship in the world he was never seen at all
+     beasts  0..1  THE MAKING OF THEM, SEEN: the world's own creatures keep far off from the
+     birds   0..1  traveller (a kilometre and more), so a scene that tells of their making
+                   asks for them here — cattle, creeping things and the beasts of the earth
+                   stood about the anchor, and birds wheeling over it
      far     0..1  THE COARSE CARPET, and a scene must ASK for it — see below
      hour    0..24 THE HOUR OF THE DAY at the place the scene is staged, and
                    the one dial here that reaches past the dressing into the
@@ -54,7 +60,7 @@ window.STAGE=(function(){
   let held=null;          /* what the world looked like before we borrowed it */
 
   const DEFAULT={ dark:0, light:1, sky:null, sun:1, moon:1, stars:1, firm:0,
-    land:1, sea:1, clouds:1, lifeSea:1, lifeAir:1, lifeLand:1, ship:0, man:0,
+    land:1, sea:1, clouds:1, lifeSea:1, lifeAir:1, lifeLand:1, ship:0, man:0, beasts:0, birds:0,
     far:0, hour:null, fogN:null, fogF:null,
     cd:120, cy:40, ca:0, cl:10, cfov:62, cut:false };
 
@@ -135,6 +141,8 @@ window.STAGE=(function(){
     W.voidWall.visible=held.voidWall;
     W.cloudMat.opacity=held.cloudOp; W.cloudMat.color.setHex(held.cloudCol);
     W.boatG.visible=held.ship; W.walkerG.visible=held.man;
+    if(held.manAt){ const m=held.manAt; if(m.parent) m.parent.add(W.walkerG); W.walkerG.position.copy(m.pos); W.walkerG.rotation.y=m.rot; }
+    makers.drop();
     if(W.farLand) W.farLand.visible=held.farVis;
     if(W.farLandMat) W.farLandMat.opacity=held.farOp;
     W.state.simHours=held.simHours; W.state.dayIdx=held.dayIdx;
@@ -143,6 +151,37 @@ window.STAGE=(function(){
   }
 
   const _c=new T.Color();
+  /* the ground's top at a place of the world */
+  function groundY(x,z){ const c=W.landAtWorld(x,z); return c?c.h*W.B:W.WATER_Y; }
+  /* THE MAN, stood on the ground a few steps before the anchor, turned to the eye */
+  function standMan(){
+    if(!held.manAt) held.manAt={parent:W.walkerG.parent,pos:W.walkerG.position.clone(),rot:W.walkerG.rotation.y};
+    if(W.walkerG.parent!==W.scene) W.scene.add(W.walkerG);
+    const cx=W.camera.position.x, cz=W.camera.position.z, dx=cx-anchor.x, dz=cz-anchor.z, L=Math.hypot(dx,dz)||1;
+    const x=anchor.x+dx/L*8, z=anchor.z+dz/L*8;
+    W.walkerG.position.set(x,groundY(x,z),z); W.walkerG.rotation.y=Math.atan2(cx-x,cz-z);
+  }
+  /* THE CREATURES OF THE FIFTH AND SIXTH DAYS, made where they are seen */
+  const makers=(function(){
+    const K=()=>window.__KIT; let land=null, air=null, t0=performance.now();
+    const LAND=['lion','gazelle','gazelle','deer','cow','cow','goat','goat','ox','wildass','camel','lizard','lizard'];
+    const AIR=['dove','dove','gull','gull','eagle','dove','crow'];
+    function spawnLand(){ land=[]; const k=K(), make=k&&(k.makeAnimal||k.makeBeast); if(!make) return;   /* (makeAnimal: every land beast, at its true size) */
+      LAND.forEach((kind,i)=>{ let m=null; try{ m=make(kind); }catch(e){} if(!m) return;
+        const a=i/LAND.length*Math.PI*2+0.4, r=26+((i*37)%5)*9, x=anchor.x+Math.cos(a)*r, z=anchor.z+Math.sin(a)*r;
+        m.position.set(x,groundY(x,z),z); m.rotation.y=a+Math.PI*(0.3+((i*13)%7)/10); W.scene.add(m); land.push({m,kind,ent:{m}}); }); }
+    function spawnAir(){ air=[]; const k=K(); if(!k||!k.makeBird) return;
+      AIR.forEach((kind,i)=>{ let m=null; try{ m=k.makeBird(kind); }catch(e){} if(!m) return;
+        W.scene.add(m); air.push({m,a:i*0.9,r:50+i*11,h:40+((i*7)%4)*12,sp:0.25+(i%3)*0.08}); }); }
+    function drop(){ for(const L of [land,air]) if(L) for(const b of L) if(b.m.parent) b.m.parent.remove(b.m); land=null; air=null; }
+    function tick(d){ const now=performance.now(), dt=Math.min(0.1,(now-t0)/1000); t0=now;
+      if(d.beasts>0.5&&!land) spawnLand(); else if(d.beasts<=0.5&&land){ for(const b of land) W.scene.remove(b.m); land=null; }
+      if(d.birds>0.5&&!air) spawnAir(); else if(d.birds<=0.5&&air){ for(const b of air) W.scene.remove(b.m); air=null; }
+      if(land&&K().tickGait) for(const b of land){ try{ K().tickGait(b.ent,b.kind,0,dt); }catch(e){} }
+      if(air) for(const b of air){ b.a+=dt*b.sp; const x=anchor.x+Math.cos(b.a)*b.r, z=anchor.z+Math.sin(b.a)*b.r;
+        b.m.position.set(x,groundY(anchor.x,anchor.z)+b.h,z); b.m.rotation.y=-b.a; } }
+    return {tick,drop};
+  })();
   /* HOW FAR THE GROUND IS SUNK when the dry land has not yet appeared. Deep
      enough that not one summit of the highest range shows above the water. */
   const SINK=2600;
@@ -261,6 +300,8 @@ window.STAGE=(function(){
     /* ---- and neither ship nor man is in the world before its time ---- */
     W.boatG.visible=d.ship>0.5;
     W.walkerG.visible=d.man>0.5;
+    if(d.man>0.5) standMan();
+    makers.tick(d);
     /* ---- how far the eye reaches ---- */
     if(sc.fog){ if(d.fogN!==null&&d.fogN!==undefined) sc.fog.near=d.fogN;
       if(d.fogF!==null&&d.fogF!==undefined) sc.fog.far=d.fogF; }

@@ -26,24 +26,28 @@ STORY.scene({
 
   stage:[
     /* an overcast afternoon: the world entire, and the sun taken off it */
-    { t:  0, hour:15, dark:0.06, light:0.80, sky:0x8ea3ae, sun:0.30, moon:0, stars:0, firm:0,
+    { t:  0, hour:15, dark:0.06, light:0.80, sky:0x8ea3ae, sun:0, moon:0, stars:0, firm:0,
       land:1, sea:1, clouds:1, lifeSea:1, lifeAir:1, lifeLand:1,
       fogN:220, fogF:760, cd:170, cy:44, ca:0.00, cl:12, cfov:60, cut:true },
     { t: 20, hour:15.6, cd:140, cy: 34, cl: 9, ca:0.020 },      /* they cried aloud */
     { t: 47, hour:16.4, cd: 96, cy: 22, cl: 5, ca:0.045, fogN:150, fogF:560 },  /* to the cave */
     { t: 61, hour:17, cd: 88, cy: 18, cl: 4, ca:0.060, dark:0.10 },  /* a hundred and forty days */
-    /* ---- and a son is born, and the light comes back a little ---- */
-    { t: 80, hour:14, cd:180, cy: 52, cl:14, ca:0.085, dark:0.02, light:0.92, sun:0.55,
-      sky:0x9fb4bd, fogN:260, fogF:900 },
+    /* (held through the mourning: the light that comes back with the son must not begin to come
+       while "in great grief a hundred and forty days" is still being read, and the clock must not
+       be seen to run backwards) */
+    { t: 73 },
+    /* ---- and a son is born, and the light comes back a little — in the dark between ---- */
+    { t: 76.5, hour:14, cd:180, cy: 52, cl:14, ca:0.085, dark:0.02, light:0.92,
+      sky:0x9fb4bd, fogN:260, fogF:900, cut:true },
     { t: 94, hour:14.8, cd:150, cy: 40, cl:10, ca:0.110 },
     /* ---- the old man's end, and the evening comes on ---- */
-    { t:114, hour:16.6, cd:110, cy: 26, cl: 6, ca:0.140, light:0.74, sun:0.34, sky:0x8a8f9b },
-    { t:129, hour:17.8, cd: 92, cy: 20, cl: 4, ca:0.160, light:0.60, sun:0.16, sky:0x6f7280 },
-    { t:143, hour:18.8, cd:130, cy: 32, cl: 8, ca:0.185, light:0.44, sun:0.04, sky:0x54566a,
+    { t:114, hour:16.6, cd:110, cy: 26, cl: 6, ca:0.140, light:0.74, sky:0x8a8f9b },
+    { t:129, hour:17.8, cd: 92, cy: 20, cl: 4, ca:0.160, light:0.60, sky:0x6f7280 },
+    { t:143, hour:18.8, cd:130, cy: 32, cl: 8, ca:0.185, light:0.44, sky:0x54566a,
       moon:0.5, stars:0.30, fogN:200, fogF:700 },
     /* ---- and the two lines part, under the host of the shamayim ---- */
     { t:163, hour:20.6, cd:230, cy: 74, cl:16, ca:0.215, light:0.30, sun:0, sky:0x2b2f45,
-      moon:1, stars:0.85, fogN:240, fogF:840 },
+      moon:1, stars:0.85, fogN:240, fogF:840, clouds:0.2 },    /* the overcast parts: the lesser light and the host */
     { t:196, hour:22.4, cd:300, cy:104, cl:22, ca:0.250 },
   ],
 
