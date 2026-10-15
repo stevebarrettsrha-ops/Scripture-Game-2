@@ -10,15 +10,18 @@
    FOUR MOVEMENTS, AND EACH ONE HAS ITS OWN LIGHT, which is the whole reason
    this book films well on a stage built out of dials:
 
-     the bush   dusk in a wilderness, the light going (the bush itself is not
-                drawn: the stage has no dial for one burning thing)
+     the bush   dusk in a wilderness, the light going, and a thorn-bush a few
+                steps from Mosheh that takes fire with 3:2 and is not consumed
+                (`bush`: a bush at a half, burning above it)
      the column cloud by day and fire by night — the stage runs both, in
                 order, because the verse says the one did not cease by day
                 nor the other by night
      the sea    the morning watch: a strong east ruach all night and then the
-                break of day — told by the light of that night and morning; the
-                waters going back and returning are not drawn (the stage has
-                no dial that parts a sea), and the scene stays on its shore
+                break of day — told by the light of that night and morning, and
+                by the waters themselves (`waters`): stood up in a wall on the
+                right hand and on the left of a lane of dry ground while 14:21-22
+                are read, and let fall with 14:27, so that by 14:28 the sea has
+                returned. The scene stays on its shore and looks down the lane
      the mount  Sinai in smoke, all of it, and the smoke going up like the
                 smoke of a furnace — the darkest sky in the film, on the
                 morning of the third day (19:16)
@@ -37,9 +40,10 @@ STORY.scene({
   stage:[
     /* the back of the wilderness, at the end of the day */
     { t:  0, hour:18.2, dark:0.14, light:0.66, sky:0x8a6f5e, sun:0.34, moon:0.25, stars:0.10, firm:0.04,
-      land:1, sea:1, clouds:0.5, lifeSea:1, lifeAir:1, lifeLand:1, man:1,
+      land:1, sea:1, clouds:0.5, lifeSea:1, lifeAir:1, lifeLand:1, man:1, bush:0.5,
       fogN:200, fogF:720, cd:120, cy: 26, ca:0.00, cl: 6, cfov:58, cut:true },
     { t: 18, hour:18.7, cd: 92, cy: 18, cl: 4, ca:0.022, light:0.58, sky:0x7a5a4c, sun:0.20 },
+    { t: 18, bush:1, cut:true },         /* "in a flame of fire from the midst of a bush" — with 3:2, not before */
     { t: 40, hour:19.2, cd: 74, cy: 13, cl: 3, ca:0.045, light:0.50, sky:0x6a4a42, sun:0.10,
       fogN:150, fogF:520 },                          /* take your sandals off your feet */
     { t: 62, hour:19.7, cd: 88, cy: 17, cl: 4, ca:0.070, light:0.56, sky:0x74544a, sun:0.14 },
@@ -48,18 +52,19 @@ STORY.scene({
     { t: 79.5 },
     /* ---- the column of cloud by day — in the dark between (83.05-84.45) ---- */
     { t: 83.5, hour:32, cd:200, cy: 56, cl:12, ca:0.105, dark:0, light:1, sky:0x9fc5e8, sun:1,
-      moon:0, stars:0, clouds:1, man:0, fogN:340, fogF:1080, cut:true },
+      moon:0, stars:0, clouds:1, man:0, bush:0, fogN:340, fogF:1080, cut:true },
     /* ---- and the column of fire by night ---- */
     { t:110, hour:45, cd:180, cy: 48, cl:10, ca:0.135, dark:0.36, light:0.40, sky:0x232b46,
       sun:0, moon:0.9, stars:0.95, fogN:260, fogF:860 },
     /* ---- the sea, and a strong east ruach all that night ---- */
     { t:136, hour:47, cd:150, cy: 30, cl: 5, ca:0.170, dark:0.42, light:0.36, sky:0x1b2138,
-      moon:0.7, stars:0.9, clouds:1, fogN:220, fogF:780 },
+      moon:0.7, stars:0.9, clouds:1, fogN:220, fogF:780, waters:0 },
     { t:162, hour:51, cd:170, cy: 34, cl: 5, ca:0.205, dark:0.28, light:0.50, sky:0x3b3a54,
-      moon:0.4, stars:0.5 },                         /* the morning watch */
+      moon:0.4, stars:0.5, waters:1 },               /* the morning watch — the waters a wall on the right and on the left */
     { t:188, hour:53.6, cd:210, cy: 46, cl: 7, ca:0.240, dark:0.06, light:0.82, sky:0x9b8478,
-      sun:0.55, moon:0.1, stars:0, fogN:300, fogF:1000 },  /* the break of day */
-    { t:214, hour:56.2, cd:250, cy: 62, cl:10, ca:0.275, dark:0, light:0.96, sky:0xa9c2da, sun:0.9 },
+      sun:0.55, moon:0.1, stars:0, fogN:300, fogF:1000, waters:1 },  /* the break of day */
+    { t:214, hour:56.2, cd:250, cy: 62, cl:10, ca:0.275, dark:0, light:0.96, sky:0xa9c2da, sun:0.9,
+      waters:0 },                                    /* and the sea returned to its usual flow */
     /* (held while the waters return over the chariots, 14:28 — the smoke of Sinai began to come over it) */
     { t:234 },
     /* ---- and the mountain was in smoke, all of it — "on the third day in the morning" (19:16) ---- */

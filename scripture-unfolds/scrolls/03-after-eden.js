@@ -9,8 +9,11 @@
    ends with Ḥanoḵ still ministering in that cave, which is the thread the
    next scroll picks up.
 
-   WHY IT LOOKS THE WAY IT DOES. No stage dial in this file makes the world;
-   the world already stands. What the track does instead is take the SUN off
+   WHY IT LOOKS THE WAY IT DOES. One thing only is raised: the cave they
+   lived in, the Cave of Treasures, stood in its rock beside the anchor from
+   the first frame (`cave`), because the boy is carried to it (1:4) and the
+   old man dies in it (8:1). Beyond that no stage dial in this file makes the
+   world; the world already stands. What the track does instead is take the SUN off
    it — a flat overcast, the light down, the fog drawn in close — and then
    walk the whole scene from that grey afternoon down into night, so that by
    the last caption the only things in the sky are the lesser light and the
@@ -27,7 +30,7 @@ STORY.scene({
   stage:[
     /* an overcast afternoon: the world entire, and the sun taken off it */
     { t:  0, hour:15, dark:0.06, light:0.80, sky:0x8ea3ae, sun:0, moon:0, stars:0, firm:0,
-      land:1, sea:1, clouds:1, lifeSea:1, lifeAir:1, lifeLand:1,
+      land:1, sea:1, clouds:1, lifeSea:1, lifeAir:1, lifeLand:1, cave:1,
       fogN:220, fogF:760, cd:170, cy:44, ca:0.00, cl:12, cfov:60, cut:true },
     { t: 20, hour:15.6, cd:140, cy: 34, cl: 9, ca:0.020 },      /* they cried aloud */
     { t: 47, hour:16.4, cd: 96, cy: 22, cl: 5, ca:0.045, fogN:150, fogF:560 },  /* to the cave */

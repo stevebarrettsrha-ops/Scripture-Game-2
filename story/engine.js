@@ -1381,7 +1381,7 @@ function moveActors(dt){
            upper floor's as well. One who cannot be led round by a way worked out — held at a height, or following —
            and finds no way aside, or is held by them a moment and a half, goes on as he went: they never keep him) */
         const fy=u.fixedY!==undefined?u.fixedY:u.gy!==undefined?u.gy:g.position.y, plans=!u.follow&&u.fixedY===undefined, useSoft=plans||!(P2&&P2.t>1.5);
-        const sa=Math.min(0.45,d), soft=b=>!softAt(px+Math.sin(b)*sa,pz+Math.cos(b)*sa,fy,0.22,g,tgt)&&!softAt(px+Math.sin(b)*sp,pz+Math.cos(b)*sp,fy,0.22,g,tgt);
+        const sa=Math.min(0.45,d), soft=b=>!softAt(px+Math.sin(b)*sa,pz+Math.cos(b)*sa,fy,0.22,g,tgt,15)&&!softAt(px+Math.sin(b)*sp,pz+Math.cos(b)*sp,fy,0.22,g,tgt,15);   /* (the townsfolk step aside for him themselves) */
         const pick=f=>{ if(f(a0)) return a0; for(const da of [0.5,-0.5,1.0,-1.0,1.5,-1.5,2.1,-2.1]){ const b=a0+da; if(f(b)) return b; } return null; };
         if(u.fixedY!==undefined){ a=useSoft?pick(soft):null; if(a===null) a=a0; }
         else { a=pick(useSoft?b=>clear(b)&&soft(b):clear); if(a===null&&useSoft&&!plans) a=pick(clear); }

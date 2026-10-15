@@ -8,7 +8,11 @@
    moment from the other side and tells what BERĔSHITH does not: WHERE the
    garden stood, what lay north and south of it, and the cave in the rock
    below it that Adawm was given to live in. The two books are read together
-   here, in that order, because that is the order they happened in.        */
+   here, in that order, because that is the order they happened in.
+
+   THE GARDEN IS PLANTED ON THE SHORE IT IS STAGED ON, which is bare dune: its
+   trees GROW out of the ground while 2:8-9 are read (`garden`), and the river
+   that went out of it to water it fills its bed while 2:10-14 are (`river`).  */
 
 STORY.scene({
   id:'eden',
@@ -29,8 +33,8 @@ STORY.scene({
        ground" (2:5), which he faded in across */
     { t: 19, man:1, cut:true },
     { t: 32, cd:170, cy: 46, cl: 9, ca:0.055 },     /* the garden planted */
-    { t: 56, cd:230, cy: 88, cl:18, ca:0.09 },      /* the river, and its four heads */
-    { t: 81, cd:150, cy: 38, cl: 7, ca:0.12 },      /* the charge, and the command */
+    { t: 56, cd:230, cy: 88, cl:18, ca:0.09, garden:1 },   /* the river, and its four heads */
+    { t: 81, cd:150, cy: 38, cl: 7, ca:0.12, river:1 },    /* the charge, and the command */
     { t:104, cd:190, cy: 54, cl:11, ca:0.155 },     /* the naming of the beasts */
     { t:131, cd:120, cy: 28, cl: 5, ca:0.185 },     /* the deep sleep */
     { t:155, cd:140, cy: 33, cl: 6, ca:0.215 },     /* bone of my bones */

@@ -12,7 +12,8 @@
    SO THIS FILM IS THE ONLY ONE THAT NEVER STOPS MOVING. One unbroken swing
    round the anchor from the first frame to the last — no cuts, only fades
    between the movements — because a book of generations is a book about time
-   going on while nobody is watching. The sun crosses with it: bright morning
+   going on while nobody is watching. (The one leap in it, from the ark to the
+   night over Shinar, is made in the dark of a fade, where nobody sees it.) The sun crosses with it: bright morning
    at the forming of the man, high noon through the generations, a white cold
    sky at the whirlwind, and night over Shinar.
 
@@ -51,13 +52,19 @@ STORY.scene({
     { t:150, hour:14, cd:560, cy:205, cl: 0, ca:0.245, sky:0xd2e2ee, sun:0.92, clouds:1,
       fogN:700, fogF:3600 },                         /* the earth filled with snow */
     { t:172, hour:14.8, cd:500, cy:182, cl: 0, ca:0.280, sky:0xc4d8e8 },
-    /* ---- the ark, and after it the nations ---- */
-    { t:196, hour:16, cd:300, cy:120, cl:12, ca:0.315, sky:0x9ab6cf, sun:0.86, light:0.94,
-      firm:0.08, fogN:420, fogF:1500, far:1 },
-    { t:220, hour:17.2, cd:240, cy: 86, cl:14, ca:0.350, far:0, fogN:360, fogF:1120 },
+    /* ---- the ark, and after it the nations ----
+       THE ARK IS DRAWN (`ark`), raised in the dark between (192.15-193.35) and taken down in the
+       next (239.05-240.45); and a hull of three hundred cubits is a hundred and fifty-seven metres
+       of gopher wood, so the eye is let out to three quarters of a kilometre to see it whole, and
+       the haze with it */
+    { t:193, hour:16, cd:760, cy:190, cl:34, ca:0.315, sky:0x9ab6cf, sun:0.86, light:0.94,
+      firm:0.08, fogN:620, fogF:2400, far:1 },
+    { t:193, ark:1, cut:true },
+    { t:220, hour:17.2, cd:700, cy:170, cl:30, ca:0.350, fogN:560, fogF:2000 },
+    { t:239, hour:17.6, cd:660, cy:160, cl:28, ca:0.365 },
     /* ---- the night Aḇram was born, and Shinar under it ---- */
-    { t:244, hour:20.4, cd:190, cy: 60, cl:12, ca:0.385, light:0.52, sun:0.10, sky:0x4a5570,
-      moon:0.9, stars:0.75, fogN:280, fogF:900 },
+    { t:240, hour:20.4, cd:190, cy: 60, cl:12, ca:0.385, light:0.52, sun:0.10, sky:0x4a5570,
+      moon:0.9, stars:0.75, fogN:280, fogF:900, far:0, ark:0, cut:true },
     { t:268, hour:22, cd:230, cy: 80, cl:16, ca:0.420, light:0.40, sun:0, sky:0x2e3752,
       moon:1, stars:0.95 },
     { t:292, hour:23.2, cd:280, cy:100, cl:20, ca:0.455 },

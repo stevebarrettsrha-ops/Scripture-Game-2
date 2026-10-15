@@ -438,7 +438,7 @@ STORY.act({
       {id:'ph2', dress:'scribe', at:[22.6,3.8], face:-Math.PI/2, robe:0xcfc4aa, cloth:0x4a4a5a, beard:0x6d6a66},
       ...TABLE
     ],
-    things:[ {id:'booth', kind:'box', at:[14.8,-4], w:1.4, h:0.8, d:2.2, color:0x6e5238}, {id:'stool', kind:'box', at:[13.55,-4.0], w:0.42, h:0.4, d:0.42, color:0x5d4a36},
+    things:[ {id:'booth', kind:'box', at:[14.8,-4], w:1.4, h:0.8, d:2.2, color:0x6e5238}, {id:'stool', kind:'box', at:[13.55,-4.0], w:0.42, h:0.4, d:0.42, color:0x5d4a36},   /* (his seat at it: he sat on the air) */
              {id:'coins', kind:'box', at:[14.8,-4.2], w:0.5, h:0.05, d:0.4, y:0.8, color:0xb8a060},
              {id:'table', kind:'box', at:[10.6,9.6], w:1.4, h:0.5, d:5.2, color:0x7a5a3e},
              {id:'bread1', kind:'basket', at:[17.6,3.6], full:true}, {id:'bread2', kind:'basket', at:[18.4,4.6], full:true}, {id:'bread3', kind:'basket', at:[16.8,4.8], full:true} ],
@@ -868,7 +868,7 @@ STORY.act({
       {t:'cam', release:true},
       {t:'read', ref:'MARK 5:37'},
       {t:'show', id:ids(WAIL).concat('mother')},
-      {t:'move', who:['yairA','yahusha','kepha','yaaqob','yahuchanon','hh1','hh2'], to:[[0.4,-10.4],[-0.6,-12],[-1.2,-13.6],[-1.6,-10.8],[-2.2,-12.8],[-0.8,-8.2],[-2.4,-15.6]], speed:1.3},   /* (the last, his, clear of the wailer at -1,-15.5: he could not come to it, and was carried) */
+      {t:'move', who:['yairA','yahusha','kepha','yaaqob','yahuchanon','hh1','hh2'], to:[[0.4,-10.4],[-0.6,-12],[-1.2,-13.6],[-1.6,-10.8],[-2.2,-12.8],[-0.8,-8.2],[-2.4,-15.6]], speed:1.3},   /* (the messenger's beside the wailer at -1,-15.5, not on her: he could not come to it, and was carried) */
       {t:'goal', text:'Follow as far as the house of Ya‛ir', goto:[-4.4,-7.6], r:3},
       {t:'cam', from:[-6.6,2.8,-5.4], look:[-0.6,1.3,-12], dur:2},
       {t:'read', ref:'MARK 5:38'},

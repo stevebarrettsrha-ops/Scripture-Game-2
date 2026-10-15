@@ -64,7 +64,8 @@ const LEGION=(id,at,face,extra)=>Object.assign({id,at,face,folk:'roman',dress:'l
 const GATECROWD=folk('g',18,[-20,40,-8,52],Math.PI*0.5);                       /* at the gate (Mattithyahu 21:8) */
 const SELLERS=folk('v',6,[-34,-57,-18,-53],Math.PI)                           /* buying and selling in the court */
   .map((a,k)=>Object.assign(a,{at:[[-32.6,-31.4,-27,-22.6,-21.4,-17][k],-56], face:a.face-Math.PI}));   /* (each behind his table, facing the court: scattered, two stood inside one) */
-const COURTFOLK=folk('c',10,[-22,-56,-12,-51],Math.PI);
+const COURTFOLK=folk('c',10,[-22,-56,-12,-51],Math.PI)
+  .map(a=>a.id==='c0'?Object.assign(a,{at:[-18.6,-52.8]}):a.id==='c1'?Object.assign(a,{at:[-21.2,-53.0]}):a);   /* (two stood on the marks the lame man and a child are sent to) */
 const KIDS=[0,1,2,3].map(k=>({id:'kid'+k, name:k?undefined:'The children', kind:k%2?'woman':'boy', small:true, at:[-14+k*1.3,-51], face:Math.PI, robe:[0x9a5a62,0x6a7a5a,0x9a7a5a,0x5a6a8a][k], cloth:[0xe0c27a,0xe6e0cf,0xd8cfb8,0xe8e2d2][k]}));
 const GIVERS=folk('r',5,[-2,-40.6,4,-39.6],0,{robe:0x5a2a4a, sash:0xb08d3c});   /* the rich putting in much */
 const PLOTTERS=[{id:'kg1', name:'A chief kohen', dress:'kohen', at:[-6,-51.6], face:Math.PI, beard:0x6d6a66, kind:'oldman'},

@@ -821,6 +821,11 @@ S.upperroom=function(ctx,st0){
   ctx.wind=[0.4,0.2];
   const st=fixed(st0);
   const x0=12,z0=26,x1=22,z1=34, F=2.77;                                               /* three courses of the world's blocks */
+  /* ---- AND THE STREET COMES UP TO ITS DOOR ----
+     On the slope of Zion the land about the house lies metres under the set's level: footed, the house
+     stood on a wall of its own stone nine metres high, and the street was a stair of raw earth below it.
+     The street and the court about the house are laid level with its door, and eased into the hill. */
+  ctx.api.pad(4,14,32,40,{top:0xb49a74,blend:14});
   st.box(x0,0,z0,x1,F,z1,C.limestone);                                                  /* (footed down to the land: on the true earth Zion falls away under it, and it floated) */
   const gd=Math.min(0,landY(ctx,17,z0-0.6));
   st.detail(16.3,gd,z0-0.06,17.7,gd+2.0,z0,0x3a2a1e);                                   /* the door of the house below, at the street */
