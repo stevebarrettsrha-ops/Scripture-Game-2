@@ -767,9 +767,9 @@ STORY.act({
       /* (Shim'on seen with the beam on him, before his face as he takes up the way — the wide shot showed the
          whole slope, and him too small to see what he bore) */
       {t:'cam', from:{rel:'kurene', off:[-2.06,1.8,-1.86]}, look:'kurene', dur:0.1},
+      {t:'read', ref:'LUKE 23:26'},                                                             /* (the stake laid on him, and then they go) */
       {t:'move', who:['yahusha','kurene','sold1','sold2'], to:[['foot',2.4,0],['foot',4.6,1.6],['foot',3,-2],['foot',4.4,-1.2]], speed:1.1, wait:false},
       {t:'follow', who:ids(ROADFOLK).slice(0,6).concat(['miryam','yahuchanon','magdala','qlophah']), target:'yahusha'},
-      {t:'read', ref:'LUKE 23:26'},
       {t:'cam', from:[-50,6,10], look:[-62,2,-24], dur:2},
       {t:'read', ref:'LUKE 23:27'},
       {t:'stop', who:['yahusha']},
