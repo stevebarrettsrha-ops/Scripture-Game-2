@@ -14497,6 +14497,20 @@ function emitPen(G,cx,cz,y,w,d){
   emitHay(G,cx+B*0.4,cz-B*0.35,y);
 }
 function emitBench(G,x,z,y){ emitBox(G,x-B*0.5,y,z-B*0.5,x+B*0.5,y+B,z+B*0.5,'benchSide','benchTop',null); }
+/* ---- THE HEN-HOUSE (Round 141, Phase E2) ----
+   The hens went in at dusk to the same fold as the sheep, and stood about all night among the
+   flock's feet. A household's hens roost in a coop: a little house of planks four cells by three,
+   open on the side toward the yard, roofed against the rain two courses up (room for a hen, and for
+   the boy who comes for the eggs, stooping), straw on its floor. It stands beside the fold, and the
+   hens go into it when the light goes. `i0,j0` its corner cell; it opens toward +z. */
+function emitCoop(G,i0,j0,y){
+  const x0=i0*B, z0=j0*B, H=B*2;
+  emitBox(G,x0,y,z0,x0+4*B,y+H,z0+B,'planks','planks',null);                 /* the back */
+  emitBox(G,x0,y,z0+B,x0+B,y+H,z0+3*B,'planks','planks',null);              /* and the two sides */
+  emitBox(G,x0+3*B,y,z0+B,x0+4*B,y+H,z0+3*B,'planks','planks',null);
+  emitBox(G,x0,y+H,z0,x0+4*B,y+H+B*0.5,z0+3*B,'roof','roof','roof');         /* the roof */
+  emitTop(G,'hayTop',x0+B+0.05,z0+B+0.05,x0+3*B-0.05,z0+3*B-0.05,y+0.06,1.0);  /* straw on the floor */
+}
 /* ================= CITY PIECES ================= */
 /* a paved plaza of cobblestone */
 function emitPlaza(G,cx,cz,y,rad){
@@ -14838,6 +14852,17 @@ function* spawnVillage(i,exShell){
     }
   }
   torches.push(...ex.torchIn);          /* the hearth-lights within the houses */
+  /* the hen-house beside the fold, on level ground of its own, its open side clear (Round 141) */
+  if(ex.pen){ const P0=ex.pen, pc0=landAtWorld(P0.x,P0.z);
+    for(const [dx,dz] of [[B*7,0],[-B*7,0],[0,-B*5.5],[B*7,-B*4],[-B*7,-B*4],[0,B*7.5]]){
+      const cx=P0.x+dx, cz=P0.z+dz, i0=Math.floor(cx/B)-2, j0=Math.floor(cz/B)-1, x0=i0*B, z0=j0*B;
+      const c0=landAtWorld(x0+B*2,z0+B*1.5); if(!c0||c0.kind==='wall'||c0.kind==='floe'||!pc0) continue;
+      if(Math.abs(c0.h-pc0.h)>1) continue;
+      let flat=true; for(let a=0;a<4&&flat;a++) for(let b2=0;b2<5;b2++){ const c=cell(i0+a,j0+b2); if(!c||c.kind==='wall'||c.h!==c0.h){ flat=false; break; } }
+      if(!flat||!rectFree(x0-B*0.5,x0+B*4.5,z0-B*0.5,z0+B*5,0)) continue;
+      stamped(ex,()=>{ clearLotOfTrees(x0-B,z0-B,x0+B*5,z0+B*5,c0.h*B); emitCoop(G,i0,j0,c0.h*B); });
+      addRect(x0,x0+B*4,z0,z0+B*3);
+      ex.coop={x:x0+B*2,z:z0+B*2,fx:x0+B*2,fz:z0+B*4.2,y:c0.h*B}; break; } }
   yield;
   /* the pier, if the sea lies near */
   /* the pier's planks and piles belong to the village that laid them, and go
@@ -14989,7 +15014,19 @@ function* spawnVillage(i,exShell){
       { const tx=hx+bz*B*7.5, tz=hz-bx*B*7.5, r=2;
         for(let a=-r;a<=r;a++) for(let b2=-r;b2<=r;b2++){ if(a*a+b2*b2>r*r+1) continue;
           const ix=Math.floor(tx/B)+a, iz=Math.floor(tz/B)+b2, c=cell(ix,iz); if(!c||c.kind==='wall') continue;
-          emitTop(G,'hewnStone', ix*B+0.04,iz*B+0.04,(ix+1)*B-0.04,(iz+1)*B-0.04, c.h*B+0.06, 0.95); } }
+          emitTop(G,'hewnStone', ix*B+0.04,iz*B+0.04,(ix+1)*B-0.04,(iz+1)*B-0.04, c.h*B+0.06, 0.95); }
+        /* ---- AND THE OX THAT TREADS IT, TIED AT THE DOOR BY NIGHT (Round 141, Phase E2) ----
+           its post a little way off the yard before the door, on the house's own level */
+        const H=ex.houses[ex.houses.length-1], fc=landAtWorld(tx,tz);
+        if(H&&H.door&&fc&&Math.abs(fc.h*B-H.yb)<=B*1.5){ const dd2=H.door.dir, ux=dd2===2?1:dd2===3?-1:0, uz=dd2===0?1:dd2===1?-1:0;
+          for(const sd of [1,-1]){ const sx=H.dx+ux*B*3.4-uz*sd*B*3.2, sz=H.dz+uz*B*3.4+ux*sd*B*3.2, c=landAtWorld(sx,sz);
+            if(!c||c.kind==='wall'||c.kind==='floe'||Math.abs(c.h*B-H.yb)>B*1.5) continue;
+            const qx=sx-uz*sd*B*1.1, qz=sz+ux*sd*B*1.1, qc=landAtWorld(qx,qz); if(!qc||qc.kind==='wall') continue;
+            if(ex.houses.some(o=>sx>o.x0-B*1.2&&sx<o.x1+B*1.2&&sz>o.z0-B*1.2&&sz<o.z1+B*1.2)) continue;
+            if(!rectFree(sx-B,sx+B,sz-B,sz+B,0)) continue;
+            stamped(ex,()=>emitFencePost(G,qx,qz,qc.h*B));
+            solids.push({x:qx,z:qz,r:B*0.45}); addRect(qx-B*0.5,qx+B*0.5,qz-B*0.5,qz+B*0.5);
+            (ex.steads||(ex.steads=[])).push({floor:{x:tx,z:tz},tether:{x:sx,z:sz},post:{x:qx,z:qz},H}); break; } } }
       /* the field wall of gathered stones, along the far side of the fields */
       { const wx=hx+bx*B*12.5, wz=hz+bz*B*12.5;
         for(let k=-5;k<=5;k++){ const px=wx+bz*B*k, pz=wz-bx*B*k, c=landAtWorld(px,pz); if(!c||c.kind==='wall') continue;
@@ -15206,6 +15243,12 @@ function* spawnVillage(i,exShell){
     an.position.set(bx,topY(Math.floor(bx/B),Math.floor(bz/B)),bz); g.add(an);
     placedAt.push({x:bx,z:bz});
     beasts.push({m:an,kind:'wolf',hx:bx,hz:bz,tx:bx,tz:bz,t:2,seed:i*100+99,roamR:10,cool:6}); }
+  /* the draught beast of every farmstead: an ox (a camel in the desert), tied at its post by the door
+     (Round 141, Phase E2 — it is set where the clock says on its first step) */
+  for(let k=0;k<(ex.steads||[]).length;k++){ const S=ex.steads[k], kind=baseKind==='desert'?'camel':'ox';
+    const an=makeAnimal(kind), c=landAtWorld(S.tether.x,S.tether.z);
+    an.position.set(S.tether.x,c?c.h*B:wy,S.tether.z); g.add(an);
+    beasts.push({m:an,kind,hx:S.tether.x,hz:S.tether.z,tx:S.tether.x,tz:S.tether.z,t:0,seed:i*100+30+k,roamR:1,draught:S}); }
   /* ---- THE BEAST AT THE DOOR (Round 137) ----
      A household whose work lies a long walk off keeps a beast for the road
      — a camel in the desert lands, a horse in the north, a donkey
@@ -16246,6 +16289,42 @@ function villagePasture(vv){
 }
 function flockHome(vv,h){ return vv.pen?(flockOut(h)?villagePasture(vv):vv.pen):null; }
 function foldSpot(vv,ent){ return {x:vv.pen.x+(hash2(ent.seed,3.1)-0.5)*B*4.4, z:vv.pen.z+(hash2(ent.seed,7.3)-0.5)*B*2.4}; }
+/* the hens roost in their own house (Round 141): each its own place on the straw, inside the walls */
+function henAbed(h){ return h<5.5||h>=19.2; }
+function coopSpot(vv,ent){ const C=vv.coop; return {x:C.x+(hash2(ent.seed,3.7)-0.5)*B*1.5, z:C.z+(hash2(ent.seed,8.1)-0.5)*B*1.2}; }
+function henNight(vv,ent){ return vv.coop?coopSpot(vv,ent):foldSpot(vv,ent); }
+/* ---- THE OX AT THE THRESHING FLOOR, AND AT ITS POST BY NIGHT (Round 141, Phase E2) ----
+   "Thou shalt not muzzle the ox when he treadeth out the corn" (Debarim 25:4). A farmstead keeps its
+   draught beast, and the village kept none: the flock went out and came in, and nothing pulled or
+   trod. Now each farmstead's ox goes round and round the threshing floor beside the house by day,
+   treading out the grain, and at evening it is led back to its post by the door and tied there; in
+   the dead of the night it lies down at its tether. */
+function draughtWork(h){ return h>=6.8&&h<17.6; }
+function draughtTick(ent,vv,dt){
+  const S=ent.draught, hr=vv.hour!==undefined?vv.hour:12, tnow=performance.now()*0.001;
+  const px=ent.m.position.x, pz=ent.m.position.z;
+  if(!ent._born){ ent._born=true;                              /* where the clock says, the first time it is seen */
+    const q=draughtWork(hr)?{x:S.floor.x+B*1.5,z:S.floor.z}:S.tether, c=landAtWorld(q.x,q.z);
+    if(c&&!blockedBySolid(q.x,q.z)){ const g=groundInfo(q.x,q.z,c.h*B+B*0.5);
+      if(g.land){ ent.m.position.set(q.x,g.y,q.z); ent.gx=q.x; ent.gz=q.z; ent.gy=g.y; ent.tx=q.x; ent.tz=q.z; } } }
+  let sp=4.2; ent._sleep=false; ent.panic=false;
+  if(draughtWork(hr)){ const F=S.floor, d=Math.hypot(px-F.x,pz-F.z);
+    if(d>B*3.2){ ent.tx=F.x+B*1.5; ent.tz=F.z; ent.ang=undefined; }
+    else { if(ent.ang===undefined) ent.ang=Math.atan2(pz-F.z,px-F.x);
+      ent.ang+=dt*0.3;                                             /* round and round, at a tread */
+      ent.tx=F.x+Math.cos(ent.ang+0.45)*B*1.5; ent.tz=F.z+Math.sin(ent.ang+0.45)*B*1.5; sp=2.9; } }
+  else { const T=S.tether, d=Math.hypot(px-T.x,pz-T.z); ent.ang=undefined;
+    if(d>1.6){ ent.tx=T.x; ent.tz=T.z; }
+    else { ent.tx=px; ent.tz=pz; ent._sleep=(hr>=21||hr<4.6); } }
+  const mv=moveEnt(ent,dt,sp);
+  if(!mv&&!draughtWork(hr)&&Math.hypot(px-S.tether.x,pz-S.tether.z)<=1.6)        /* tied: it stands along its post */
+    ent.m.rotation.y=Math.atan2(S.post.x-px,S.post.z-pz)+Math.PI/2;
+  if(ent._sleep&&!mv) ent.m.position.y-=1.4;
+  const ph2=(ent.seed||0)*6.28;
+  ent.m.scale.y=1+0.012*Math.sin(tnow*2.1+ph2);
+  const tl=ent.m.userData&&ent.m.userData.tail; if(tl) tl.rotation.y=Math.sin(tnow*(mv?5.5:1.5)+ph2)*(mv?0.3:0.15);
+  ent.m.rotation.x=0;
+}
 /* a village raised at night has its flock already in the fold, and one
    raised by day has it out at pasture — not standing where the builder set
    it down (Round 137, as the people are raised where the clock says) */
@@ -16254,7 +16333,10 @@ function beastWhereTheClockSays(ent,vv){
   if(!vv.pen) return;
   const hr=vv.hour!==undefined?vv.hour:12, flock=FLOCK_KINDS.has(ent.kind), hen=ent.kind==='chicken';
   let q=null;
-  if((flock&&!flockOut(hr))||(hen&&(hr<5.5||hr>=19.2))){ q=foldSpot(vv,ent); ent.hx=vv.pen.x; ent.hz=vv.pen.z; }
+  /* (a hen scratches by day about the door of her own house, and is in it by night — Round 141) */
+  if(hen&&vv.coop){ ent.hx=vv.coop.fx; ent.hz=vv.coop.fz+B; ent.roamR=3;
+    q=henAbed(hr)?coopSpot(vv,ent):{x:ent.hx+(hash2(ent.seed,1.3)-0.5)*B*4,z:ent.hz+hash2(ent.seed,2.9)*B*3}; }
+  else if((flock&&!flockOut(hr))||(hen&&henAbed(hr))){ q=foldSpot(vv,ent); ent.hx=vv.pen.x; ent.hz=vv.pen.z; }
   else if(flock){ const P=villagePasture(vv); q={x:P.x+(hash2(ent.seed,1.7)-0.5)*B*6, z:P.z+(hash2(ent.seed,5.9)-0.5)*B*6}; ent.hx=q.x; ent.hz=q.z; }
   if(!q) return;
   const c=landAtWorld(q.x,q.z); if(!c||c.kind==='wall'||blockedBySolid(q.x,q.z)) return;
@@ -16262,6 +16344,7 @@ function beastWhereTheClockSays(ent,vv){
   ent.m.position.set(q.x,g.y,q.z); ent.gx=q.x; ent.gz=q.z; ent.gy=g.y; ent.tx=q.x; ent.tz=q.z;
 }
 function beastTick(ent,vv,dt){
+  if(ent.draught){ draughtTick(ent,vv,dt); return; }
   if(!ent._born) beastWhereTheClockSays(ent,vv);
   const m=ent.m, px=m.position.x, pz=m.position.z, tnow=performance.now()*0.001;
   ent.t-=dt; ent.panic=false;
@@ -16302,10 +16385,10 @@ function beastTick(ent,vv,dt){
     else if(ent.driven&&vv.pen){ const fh=(FLOCK_KINDS.has(ent.kind)&&flockHome(vv,vv.hour!==undefined?vv.hour:12))||vv.pen;
       ent.tx=fh.x; ent.tz=fh.z; sp=7;
       if(Math.hypot(px-fh.x,pz-fh.z)<B*3){ ent.driven=false; ent.hx=fh.x; ent.hz=fh.z; } }
-    else if(vv.pen&&(FLOCK_KINDS.has(ent.kind)||ent.kind==='chicken')&&!(ent.kind==='chicken'?!(hr<5.5||hr>=19.2):flockOut(hr))){
-      /* in the fold for the night: to its own place in it, and there it stays */
-      const fs=foldSpot(vv,ent), sx=fs.x, sz=fs.z;
-      ent.hx=vv.pen.x; ent.hz=vv.pen.z; ent.t=1;
+    else if(vv.pen&&(FLOCK_KINDS.has(ent.kind)||ent.kind==='chicken')&&!(ent.kind==='chicken'?!henAbed(hr):flockOut(hr))){
+      /* in the fold for the night: to its own place in it, and there it stays (a hen, in her coop) */
+      const hen=ent.kind==='chicken', fs=hen?henNight(vv,ent):foldSpot(vv,ent), sx=fs.x, sz=fs.z;
+      if(hen&&vv.coop){ ent.hx=vv.coop.fx; ent.hz=vv.coop.fz+B; } else { ent.hx=vv.pen.x; ent.hz=vv.pen.z; } ent.t=1;
       if(Math.hypot(px-sx,pz-sz)>1.6){ ent.tx=sx; ent.tz=sz; sp=ent.kind==='chicken'?4:5.5; }
       else { ent.tx=px; ent.tz=pz; ent._sleep=(hr>=20.5||hr<4.8); } }
     else if(vv.pen&&FLOCK_KINDS.has(ent.kind)&&Math.hypot(ent.hx-villagePasture(vv).x,ent.hz-villagePasture(vv).z)>B*5){
