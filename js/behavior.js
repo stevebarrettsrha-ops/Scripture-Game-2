@@ -316,6 +316,19 @@ spinner: {rise:5.5, bed:20.0, work:0.72, pace:6,   rest:13.0, acts:[['talk',4],[
           greet:'Peace. The spindle never stops in this house.'},
 gleaner: {rise:5.5, bed:19.5, work:0.70, pace:6.5, rest:13.0, acts:[['carry',4],['eat',3],['rest',2],['talk',2]],
           greet:'The ears the reapers leave are for the poor and the stranger.'},
+/* ---- THE PEOPLE OF THE ROAD (Round 141) ----
+   the travellers between the towns: on the road from first light, camped by it at dark (the engine's
+   TRAV_DAY keeps their hours on the road; these rows give their pace and their word in passing) */
+drover:  {rise:5.6, bed:19.4, work:0.85, pace:6,   rest:null, acts:[['watch',4],['tend',3],['eat',2]],
+          greet:'Give the beasts room, friend — they are laden, and they do not turn quickly.'},
+boy:     {rise:5.6, bed:19.4, work:0.85, pace:6,   rest:null, acts:[['watch',3],['play',2]],
+          greet:'Peace! Is it far yet to the next town?'},
+wayfarer:{rise:5.6, bed:19.4, work:0.90, pace:7,   rest:null, acts:[['watch',3],['talk',3],['eat',2]],
+          greet:'Peace to you on the road, friend.'},
+rider:   {rise:5.6, bed:19.4, work:0.90, pace:9.5, rest:null, acts:[['watch',3]],
+          greet:'Peace — and make way, if you please; I have far to go before dark.'},
+servant: {rise:5.6, bed:19.4, work:0.90, pace:9.5, rest:null, acts:[['watch',3]],
+          greet:'My master is in haste, friend. Peace to you.'},
 child:   {rise:6.5, bed:19.0, work:0.20, pace:8.5, rest:13.5, acts:[['play',8],['eat',2],['watch',1],['talk',1]],
           greet:'Come and play! You cannot catch me!',
           greetLesson:'Shh — the teacher is looking!'},

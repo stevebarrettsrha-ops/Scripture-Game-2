@@ -2978,9 +2978,13 @@ function farmCell(c,ix,iz,x,z,near){
 }
 /* THE ROADS BETWEEN THE TOWNS: each town joined to its two nearest, a trodden way some four metres broad */
 const ROADS=new Map(), ROAD_T=2000*U_PER_M_WORLD;
-function buildRoads(){ if(!TRUE_EARTH) return; const S=SITES.filter(Boolean);
+/* (and which two towns each road joins, once a road, for the travellers who walk it — Round 141) */
+const ROAD_PAIRS=[];
+function buildRoads(){ if(!TRUE_EARTH) return; const S=SITES.filter(Boolean), had=new Set();
   for(const a of S){ const nb=S.filter(b=>b!==a).map(b=>[b,Math.hypot(b.x-a.x,b.z-a.z)]).filter(q=>q[1]<35000*U_PER_M_WORLD).sort((p,q)=>p[1]-q[1]).slice(0,2);
-    for(const [b] of nb){ const seg=[a.x,a.z,b.x,b.z], L=Math.hypot(b.x-a.x,b.z-a.z), n=Math.ceil(L/(ROAD_T/2));
+    for(const [b] of nb){ const pk=Math.min(a.i,b.i)+'-'+Math.max(a.i,b.i);
+      if(!had.has(pk)){ had.add(pk); ROAD_PAIRS.push({a:a.i<b.i?a:b,b:a.i<b.i?b:a,key:pk}); }
+      const seg=[a.x,a.z,b.x,b.z], L=Math.hypot(b.x-a.x,b.z-a.z), n=Math.ceil(L/(ROAD_T/2));
       const keys=new Set(); for(let k=0;k<=n;k++){ const px=a.x+(b.x-a.x)*k/n, pz=a.z+(b.z-a.z)*k/n;
         for(let du=-1;du<=1;du++) for(let dv=-1;dv<=1;dv++) keys.add((Math.floor(px/ROAD_T)+du)+','+(Math.floor(pz/ROAD_T)+dv)); }
       for(const k of keys){ if(!ROADS.has(k)) ROADS.set(k,[]); ROADS.get(k).push(seg); } } } }
@@ -14468,6 +14472,16 @@ function emitStairLine(G,ex,x0,z0,x1,z1,maxFill){
     else emitPathCell(G,i,j); }
 }
 
+/* every column within `half` cells of the line from (x0,z0) to (x1,z1), each once, written treeless
+   and its standing bole taken out (a road through a wood — Round 141) */
+function clearWayOfTrees(x0,z0,x1,z1,half){
+  const seen=new Set(), L=Math.hypot(x1-x0,z1-z0), n=Math.ceil(L/(B*0.7));
+  for(let k=0;k<=n;k++){ const t=k/n, ci=Math.floor((x0+(x1-x0)*t)/B), cj=Math.floor((z0+(z1-z0)*t)/B);
+    for(let a=-half;a<=half;a++) for(let b2=-half;b2<=half;b2++){ const key=(ci+a)+','+(cj+b2); if(seen.has(key)) continue; seen.add(key);
+      const c=cell(ci+a,cj+b2); if(!c||c.kind==='wall'||c.kind==='floe') continue;
+      if(!c.tree&&!c.stump) continue;                                   /* (nothing stands there to take out) */
+      clearLotOfTrees((ci+a)*B+0.1,(cj+b2)*B+0.1,(ci+a+1)*B-0.1,(cj+b2+1)*B-0.1,c.h*B); } }
+}
 function emitFencePost(G,x,z,y){ emitBox(G,x-0.45,y,z-0.45,x+0.45,y+B*1.15,z+0.45,'logSide','logTop',null); }
 function emitFenceRail(G,x0,z0,x1,z1,y){
   if(Math.abs(x1-x0)<0.01) emitBox(G,x0-0.28,y+B*0.55,Math.min(z0,z1),x0+0.28,y+B*0.82,Math.max(z0,z1),'logSide','logSide',null);
@@ -14932,7 +14946,14 @@ function* spawnVillage(i,exShell){
         stamped(ex,()=>emitFarm(G,fx,fz,fc.h*B,i*100+50+hm)); addRect(fx-B*2.6,fx+B*2.6,fz-B*1.8,fz+B*1.8); ex.farms.push({x:fx,z:fz}); }
       /* the road to the town, from its nearest gate or its edge */
       const toT=Math.atan2(site.x-hx,site.z-hz), sx0=site.x-Math.sin(toT)*P.core*0.6, sz0=site.z-Math.cos(toT)*P.core*0.6;
-      stamped(ex,()=>emitStairLine(G,ex,sx0,sz0,hx,hz,2));
+      stamped(ex,()=>{ emitStairLine(G,ex,sx0,sz0,hx,hz,2);
+        /* ---- AND THE ROAD IS A RIDE CUT THROUGH THE WOOD (Round 141) ----
+           The hamlets stand out past the felled ring, where the wild wood begins at once and
+           thick, and the road to them was laid as a stripe of trodden earth with the trees left
+           standing in it: a bole in the middle of the way every few paces, and a caravan has no
+           business threading a thicket. The way is cleared two cells either side, as a road
+           through a wood is. */
+        clearWayOfTrees(sx0,sz0,hx,hz,2); });
       ex.hamlets.push({x:hx,z:hz,houses:built});
       yield; } }
   /* ---- THE COUNTRYSIDE (Round 137, Phase C) ----
@@ -15229,6 +15250,7 @@ function* spawnVillage(i,exShell){
   scene.add(g);
   activeVillages.set(i,{g,site,people,beasts,birds,torchMats,deckKeys,houses:ex.houses,solids,
     farms:ex.farms,stalls:ex.stalls,pen:ex.pen,pier:ex.pier,stamps:ex.stamps,ways:ex.ways||(ex.ways=[]),mounts,feedT:-99,hamlets:ex.hamlets||[],trade:!!ex.trade,caravanserai:ex.caravanserai||null,sites:ex.sites||[],
+    cityWall:ex.cityWall||null,coop:ex.coop||null,steads:ex.steads||[],
     /* how far its houses, farmsteads and hamlets reach from the well — every quick
        "is this near that town" test asks it, not the old fixed 420 (Round 137) */
     reach:Math.max(420,...ex.houses.map(H=>Math.hypot((H.x0+H.x1)/2-site.x,(H.z0+H.z1)/2-site.z)+B*14))});
@@ -16491,9 +16513,562 @@ function updateVillages(px,pz,dt,nightF,dayF){
     for(const tm of vv.torchMats) tm.opacity=nightF*0.85;
   }
   for(const L of LITGLOWS.values()) L.mat.opacity=nightF*0.85;   /* the kilns burn by night too */
+  travTick(px,pz,dt);                           /* and the roads between, and the people on them (Round 141) */
   doorTick(dt);
   promptTick();
 }
+/* ================= THE TRAVELLERS ON THE ROAD (Round 141, Phase A7) =================
+   "In the days of Shamgar the highways were unoccupied, and the travellers walked through byways"
+   (Shophetim 5:6) — and so it was on this earth until now. Phase C3 laid a road from every town
+   to its hamlets, and at the true measure from town to town, and nobody ever walked one: the
+   merchant ships were the only travellers in the world. A road is not a stripe of trodden earth;
+   it is the people on it. Now the caravans go up and down — a drover and his string of laden asses
+   or camels in file behind him, a man on his ass or his horse about his master's business, a
+   household walking to the next town with its goods on a donkey — out of one place, along the
+   road to the next, a rest there while the beasts are watered, and back again.
+
+   WHERE THE CLOCK SAYS, AND CHEAPLY. Nobody on a road is simulated while the traveller is away,
+   and nobody need be. A party's place on its road is a sum: how long the roads have been walked
+   (TRAV_CLOCK, which runs by day and stands still by night, when every party camps where the dark
+   finds it), its own pace, and its own place in its round. So the caravan met this afternoon is
+   where its day has put it, and tomorrow it has gone on. Only a party within sight of the
+   traveller is built at all, and only it is stepped; every other is a number.
+
+   THE WAY IS LOOKED AT, NOT ASSUMED. A road is a straight line from its one end to its other, and
+   what stands on that line — a farmstead raised in the felled ring, a field, a fold, a well, a
+   bank — is no business of the line's. So the way is judged a block at a time, and only where a
+   party will walk: each block of it may stand off the line to either side, as much as ten blocks,
+   to find ground a man and a laden beast may go on (land and not water, no wall, no house, no
+   well, no field, no tree, no bank of more than a step), and how wide it is there (a lane through
+   a town is narrower than the open road); and the swerve is eased in and out, so a file bends
+   round the farmstead instead of leaping it. A road with water across it is not walked at all. */
+const TRAV_SS=B, TRAV_PN=48, TRAV_BUILD_R=560, TRAV_DROP_R=760;
+const TRAV_TRY=[1,2,3,4,5,6,7,8,10];                 /* the swerve tried, in blocks, either side */
+/* each party keeps to its own side of the way for the way it goes (a block or two to the right),
+   and the faster keep further out — so the rider passes the caravan, and the caravan coming the
+   other way passes them both, and none goes through another */
+const TRAV_LANE={caravan:0.8,walk:1.55,ride:2.3};
+const TRAV_PACE={caravan:6,walk:7,ride:9.5};          /* units a second: a laden file, a man afoot, a man astride */
+const TRAV_DAY=[5.6,19.4];                            /* on the road from first light, camped at dark */
+let TRAV_CLOCK=0, travScanT=0, travCamp=false, travSig='', travBuilding=null;
+const TRAV_LEGS=new Map(), TRAV_NEAR=[], TRAV_WANT=new Set(), TRAV_BUILDQ=[];
+const TRAV_STATS={pieces:0,pieceMs:0,maxPieceMs:0,built:0,dropped:0,buildMs:0,maxBuildMs:0,ms:0,maxMs:0,frames:0,held:0};
+function travHash(s){ let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return ((h>>>0)%100000)/100000; }
+function siteNameOf(i){ const st=SITES[i]; if(st&&st.name) return st.name; const cty=cityFor(i); if(cty&&cty.name) return cty.name;
+  const co=COUNTRIES[siteCountry(i)]; return co?co.n:'the town'; }
+/* a hamlet was never named: each is the enclosure of the house that founded it, as Ḥatsar-Addar and
+   Ḥatsar-Shu'al are named on the borders of the land (Bemiḏbar 34:4, Yahusha 15:28) */
+function hamletNameOf(i,k){ return 'Ḥatsar '+NAMES_M[Math.floor(hash2(i*3.1+k*7.7,5.3)*NAMES_M.length)%NAMES_M.length]; }
+/* the people of the road are not the townsfolk, and do not share their names (a drover called Boaz
+   passing a sleeping Boaz of the town was the same name barking, to anyone who reads by name) */
+const NAMES_ROAD_M=['Ḥur','Yitro','Ḥoḇaḇ','Yeter','Shoḇal','Tola','Zeraḥ','Peleḡ','Naḇal','Ḥeleḇ','Ḡaḥam','Ira','Ḥushai','Ebed'];
+const NAMES_ROAD_F=['Ḥoḡlah','Milkah','Tirtsah','Noʿah','Basemath','Mahalath','Ephrath','Tsiḇyah','Shiphrah','Puah','Ḥaggith','Atarah'];
+function travName(seed,female){ const pool=female?NAMES_ROAD_F:NAMES_ROAD_M; return pool[Math.floor(hash2(seed,9.7)*pool.length)%pool.length]; }
+/* ---- A ROAD, AS THE TRAVELLERS KNOW IT ----
+   `pts` is its line (two points for the open road; more where it is planned through a town),
+   `ends` the two places it joins, `vi` the town it belongs to (a hamlet road lives and dies with
+   its town; a road between towns is the earth's own). */
+function travLeg(key,pts,ends,vi){
+  const leg={key,pts,cum:[0],L:0,ends,vi:(vi===undefined?null:vi),parties:null,pieces:new Map(),stale:null,
+    wet:null,scan:null,dead:false,plan:null,via:null,_j:0};
+  travMeasure(leg); return leg; }
+function travMeasure(leg){ leg.cum=[0];
+  for(let k=1;k<leg.pts.length;k++) leg.cum.push(leg.cum[k-1]+Math.hypot(leg.pts[k][0]-leg.pts[k-1][0],leg.pts[k][1]-leg.pts[k-1][1]));
+  leg.L=leg.cum[leg.cum.length-1]; leg.pieces.clear(); leg.stale=null; leg._j=0; }
+/* the line of the road a distance along it, and which way it runs there (a scratch, read at once) */
+const _tb={x:0,z:0,tx:0,tz:1};
+function travBase(leg,s){
+  const P=leg.pts, C=leg.cum; s=Math.max(0,Math.min(leg.L,s));
+  let j=Math.min(leg._j,P.length-2);
+  while(j>0&&C[j]>s) j--; while(j<P.length-2&&C[j+1]<s) j++;
+  leg._j=j;
+  const L=(C[j+1]-C[j])||1, t=(s-C[j])/L, dx=P[j+1][0]-P[j][0], dz=P[j+1][1]-P[j][1];
+  _tb.x=P[j][0]+dx*t; _tb.z=P[j][1]+dz*t; _tb.tx=dx/L; _tb.tz=dz/L; return _tb; }
+function travSegDist(leg,x,z){ let best=1e18;
+  for(let k=0;k+1<leg.pts.length;k++){ const ax=leg.pts[k][0], az=leg.pts[k][1], dx=leg.pts[k+1][0]-ax, dz=leg.pts[k+1][1]-az,
+    l2=dx*dx+dz*dz||1, t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/l2)); best=Math.min(best,Math.hypot(x-ax-dx*t,z-az-dz*t)); }
+  return best; }
+/* what of the towns stands about a stretch of road: their houses, wells, stalls and fields */
+function travObstacles(x0,z0,x1,z1){
+  const o={h:[],s:[],f:[]}, pad=B*16;
+  for(const[,vv] of activeVillages){ if(vv.none||!vv.site||!vv.houses) continue;
+    const R=(vv.reach||420)+B*24; if(vv.site.x+R<x0||vv.site.x-R>x1||vv.site.z+R<z0||vv.site.z-R>z1) continue;
+    for(const H of vv.houses) if(H.x1>x0-pad&&H.x0<x1+pad&&H.z1>z0-pad&&H.z0<z1+pad) o.h.push(H);
+    if(vv.solids) for(const s of vv.solids) if(s.x>x0-pad&&s.x<x1+pad&&s.z>z0-pad&&s.z<z1+pad) o.s.push(s);
+    if(vv.farms) for(const f of vv.farms) if(f.x>x0-pad&&f.x<x1+pad&&f.z>z0-pad&&f.z<z1+pad) o.f.push(f); }
+  for(const H of standaloneHouses) if(H.x1>x0-pad&&H.x0<x1+pad&&H.z1>z0-pad&&H.z0<z1+pad) o.h.push(H);
+  return o; }
+/* may a man and a laden beast stand here? The height of the ground he would stand on, or null */
+function travFit(o,x,z,refY){
+  const c=landAtWorld(x,z); if(!c||c.kind==='wall'||c.kind==='floe') return null;
+  if(c.lake!==undefined&&c.lake>c.h) return null;                      /* (a lake of the rift is water) */
+  for(const H of o.h) if(x>H.x0-B*1.3&&x<H.x1+B*1.3&&z>H.z0-B*1.3&&z<H.z1+B*1.3) return null;
+  for(const s of o.s){ const r=s.r+B*0.7; if((x-s.x)*(x-s.x)+(z-s.z)*(z-s.z)<r*r) return null; }
+  for(const f of o.f) if(Math.abs(x-f.x)<B*3.1&&Math.abs(z-f.z)<B*2.3) return null;
+  if(c.tree&&treeBlocked(x,z)) return null;
+  const g=groundInfo(x,z,(refY!==undefined?refY:c.h*B)+B*1.2); if(!g.land) return null;
+  /* a built thing more than a course over its ground is a wall, a fence or a counter — but a lane
+     built up in courses (emitStairLine) was laid to be walked on */
+  if(g.edited&&g.y>c.h*B+B*1.2&&!(WAYS.size&&WAYS.has(Math.floor(x/B)+','+Math.floor(z/B)))) return null;
+  if(isFinite(g.ceil)&&g.ceil-g.y<B*1.9) return null;
+  if(refY!==undefined&&(g.y-refY>B*1.45||refY-g.y>B*2.3)) return null;   /* a step, not a bank */
+  if(landmarkSolidAt(x,z,g.y+2,g.y+8)) return null;
+  return g.y; }
+/* ---- A PIECE OF THE WAY, JUDGED ----
+   TRAV_PN blocks of the road at a time: where each block stands off the line (`o`), the height of
+   the ground there (`y`), and the room either side (`rl`, `rr`). Worked from the side a
+   neighbouring piece has already been worked from, so the two meet. */
+function travPiece(leg,p){
+  const t0=performance.now();
+  const kMax=Math.floor(leg.L/TRAV_SS), k0=p*TRAV_PN, k1=Math.min(kMax,k0+TRAV_PN), n=k1-k0+1;
+  if(n<2) return null;
+  const pc={o:new Float32Array(n),y:new Float32Array(n),rl:new Float32Array(n),rr:new Float32Array(n),bad:0,wet:0,k0,n};
+  let x0=1e18,z0=1e18,x1=-1e18,z1=-1e18;
+  for(let k=k0;k<=k1;k+=Math.min(8,Math.max(1,k1-k))){ const b=travBase(leg,k*TRAV_SS);
+    if(b.x<x0) x0=b.x; if(b.x>x1) x1=b.x; if(b.z<z0) z0=b.z; if(b.z>z1) z1=b.z; if(k===k1) break; }
+  const ob=travObstacles(x0,z0,x1,z1);
+  const prev=leg.pieces.get(p-1)||(leg.stale&&leg.stale.get(p-1)), next=leg.pieces.get(p+1);
+  const back=!prev&&!!next;
+  let po=back?next.o[0]:prev?prev.o[prev.n-1]:0, py=back?next.y[0]:prev?prev.y[prev.n-1]:undefined;
+  const raw=new Float32Array(n);
+  for(let q=0;q<n;q++){ const j=back?n-1-q:q;
+    const b=travBase(leg,Math.min(leg.L,(k0+j)*TRAV_SS)), bx=b.x, bz=b.z, nx=-b.tz, nz=b.tx;
+    let got=null, go=po;
+    const tryO=o=>{ const y=travFit(ob,bx+nx*o,bz+nz*o,py); if(y!==null){ got=y; go=o; return true; } return false; };
+    if(!tryO(0)&&!(po!==0&&tryO(po))){ const sg=po<0?-1:1;
+      for(const m of TRAV_TRY){ if(tryO(sg*m*B)||tryO(-sg*m*B)) break; } }
+    if(got===null){ pc.bad++; go=po;
+      const wx=bx+nx*go, wz=bz+nz*go, g=groundInfo(wx,wz,(py!==undefined?py:0)+B*1.2);
+      got=g.land?g.y:(py!==undefined?py:WATER_Y);
+      if(!landAtWorld(wx,wz)) pc.wet++; }
+    raw[j]=go; pc.y[j]=got; po=go; py=got; }
+  /* the swerve eased in and out — no more than half a block aside for a block along — but where an
+     eased block would stand on ground the line itself refused, the block keeps its own step */
+  const o=pc.o; o.set(raw);
+  for(let pass=0;pass<2;pass++){
+    for(let j=1;j<n;j++){ const a=o[j-1]; if(Math.abs(a)-B*0.5>Math.abs(o[j])&&(o[j]===0||Math.sign(o[j])===Math.sign(a))) o[j]=a-Math.sign(a)*B*0.5; }
+    for(let j=n-2;j>=0;j--){ const a=o[j+1]; if(Math.abs(a)-B*0.5>Math.abs(o[j])&&(o[j]===0||Math.sign(o[j])===Math.sign(a))) o[j]=a-Math.sign(a)*B*0.5; } }
+  for(let j=0;j<n;j++){ if(o[j]===raw[j]) continue; const b=travBase(leg,Math.min(leg.L,(k0+j)*TRAV_SS)), nx=-b.tz, nz=b.tx;
+    const y=travFit(ob,b.x+nx*o[j],b.z+nz*o[j],pc.y[j]); if(y===null) o[j]=raw[j]; else pc.y[j]=y; }
+  for(let j=0;j<n;j++){ const b=travBase(leg,Math.min(leg.L,(k0+j)*TRAV_SS)), nx=-b.tz, nz=b.tx, cx=b.x+nx*o[j], cz=b.z+nz*o[j];
+    for(const sd of [1,-1]){ let r=0;
+      for(const m of [0.8,1.6,2.4]){ if(travFit(ob,cx+nx*sd*m*B,cz+nz*sd*m*B,pc.y[j])===null) break; r=m*B; }
+      if(sd>0) pc.rr[j]=r; else pc.rl[j]=r; } }
+  leg.pieces.set(p,pc); if(leg.stale) leg.stale.delete(p);
+  const ms=performance.now()-t0; TRAV_STATS.pieces++; TRAV_STATS.pieceMs+=ms; if(ms>TRAV_STATS.maxPieceMs) TRAV_STATS.maxPieceMs=ms;
+  return pc; }
+/* where a body stands, a distance along the road and so far to its side of it */
+const _ta={x:0,z:0,y:0,tx:0,tz:1,sl:0};
+function travAt(leg,s,lane,out){
+  const kMax=Math.floor(leg.L/TRAV_SS);
+  s=Math.max(0,Math.min(kMax*TRAV_SS,s));
+  let k=Math.floor(s/TRAV_SS); if(k>=kMax) k=Math.max(0,kMax-1);
+  const p=Math.floor(k/TRAV_PN);
+  let pc=leg.pieces.get(p);
+  if(!pc){ TRAV_WANT.add(leg.key+'|'+p); pc=leg.stale&&leg.stale.get(p); if(!pc) return false; }
+  const j=k-pc.k0, j2=Math.min(pc.n-1,j+1), f=Math.max(0,Math.min(1,s/TRAV_SS-k));
+  const o=pc.o[j]+(pc.o[j2]-pc.o[j])*f;
+  const rr=Math.min(pc.rr[j],pc.rr[j2]), rl=Math.min(pc.rl[j],pc.rl[j2]);
+  const ln=lane>0?Math.min(lane,rr):Math.max(lane,-rl);
+  const b=travBase(leg,s);
+  out.x=b.x-b.tz*(o+ln); out.z=b.z+b.tx*(o+ln); out.y=pc.y[j]+(pc.y[j2]-pc.y[j])*f;
+  out.tx=b.tx; out.tz=b.tz; out.sl=(pc.o[j2]-pc.o[j])/TRAV_SS;
+  return true; }
+/* ---- WATER ACROSS THE ROAD ----
+   On the small map the land is its own answer. On the true earth a road is a straight line from
+   town to town, and between two towns of the coast it may cut a corner of the sea, or between two
+   of the lake a corner of Kinnereth: the earth's own water is asked along its whole length once,
+   the first time it comes near, a little each frame. */
+function travWetAt(x,z){
+  if(!TRUE_EARTH){ const c=landAtWorld(x,z); return !c||c.kind==='wall'||c.kind==='floe'; }
+  const u=x/R_WORLD, v=z/R_WORLD, r=Math.hypot(u,v); if(r>=SHELF_UV) return true;
+  const lat=90-r*180, lon=Math.atan2(u,v)*180/Math.PI, T=earthMetres(x,z,lat,lon); if(!T) return true;
+  if(T.e0>0.5) return false;
+  let dry=false; for(const D of DRY_BELOW) if(inBoxLL(D,lat,lon)){ dry=true; break; }
+  if(!dry) return true;
+  for(const L of RIFT_LAKES) if(inBoxLL(L,lat,lon)&&(L.shore?inPolyLL(L.shore,lat,lon):T.e0<=L.level+1.5)) return true;
+  return false; }
+function* travScan(leg){ const st=TRUE_EARTH?B*4:B; let n=0;
+  for(let s=0;s<=leg.L;s+=st){ const b=travBase(leg,s); if(travWetAt(b.x,b.z)){ leg.wet=true; leg.dead=true; return; }
+    if(++n%24===0) yield; }
+  leg.wet=false; }
+/* ---- THE ROADS OF A TOWN: to each of its hamlets ----
+   From the edge of the town's own houses (outside its wall, if it has one) to the edge of the
+   hamlet's ring of houses, along the line Phase C3 laid the road on. In a trade town the road
+   begins in the caravanserai, and the way out to the town's edge is planned through its lanes. */
+function travVillageLegs(i,vv){
+  vv.legsMade=true;
+  if(!vv.hamlets||!vv.hamlets.length) return;
+  const st=vv.site, P=settleProfile(st);
+  let R=P.core*0.6;
+  for(const H of vv.houses){ const hx=(H.x0+H.x1)/2, hz=(H.z0+H.z1)/2, d=Math.hypot(hx-st.x,hz-st.z);
+    if(d<P.core) R=Math.max(R,d+Math.hypot(H.x1-H.x0,H.z1-H.z0)*0.5); }
+  R+=B*4;
+  for(let k=0;k<vv.hamlets.length;k++){ const hm=vv.hamlets[k], D=Math.hypot(hm.x-st.x,hm.z-st.z); if(D<1) continue;
+    const ux=(hm.x-st.x)/D, uz=(hm.z-st.z)/D;
+    let r0=R; if(vv.cityWall) r0=Math.max(r0,(vv.cityWall.R+B*5)/Math.max(Math.abs(ux),Math.abs(uz)));
+    const r1=D-B*15; if(r1-r0<B*40) continue;
+    const kind=vv.cityWall?'city':vv.trade?'trade':'town';
+    const leg=travLeg('h'+i+'.'+k,[[st.x+ux*r0,st.z+uz*r0],[st.x+ux*r1,st.z+uz*r1]],
+      [{name:siteNameOf(i),kind,i},{name:hamletNameOf(i,k),kind:'hamlet',i}],i);
+    if(vv.caravanserai) leg.plan={tries:0};
+    leg.scan=travScan(leg);
+    TRAV_LEGS.set(leg.key,leg); } }
+/* the way from the caravanserai's gate to the town's edge, planned as the townsfolk plan theirs */
+function travPlanCaravanserai(leg,vv){
+  const K=vv.caravanserai, h=B*5.5, gzOut=K.z+h+B*2.2, gzIn=K.z+h-B*2.4;
+  const a=leg.pts[0], g0=groundInfo(K.x,gzOut);
+  /* (a ration of its own: the townsfolk's evening plans must not starve the road's one) */
+  fpLeft=Math.max(fpLeft,1); fpCellLeft=Math.max(fpCellLeft,400);
+  const P=planFolkPath({m:{position:{x:K.x,y:g0.y,z:gzOut}}},a[0],a[1]);
+  if(P===undefined){ if(++leg.plan.tries<240) return false; leg.plan=null; return true; }   /* (rationed: asked again) */
+  leg.plan=null;
+  if(!P||P.partial) return true;                     /* no way through the town: the road begins at its edge */
+  const pts=[[K.x,K.z+B*0.8],[K.x,gzIn],[K.x,gzOut]];
+  for(const q of P.pts) pts.push([q[0],q[1]]);
+  pts.push(leg.pts[1]);
+  leg.pts=pts; travMeasure(leg); leg.via='caravanserai';
+  leg.ends[0]={name:leg.ends[0].name,kind:'caravanserai',i:leg.ends[0].i};
+  return true; }
+/* ---- THE ROADS BETWEEN THE TOWNS (the true earth) ----
+   From the edge of the one town's houses (or its wall) to the edge of the other's. A road that
+   runs through a third town's houses, or under the walls of the city of the great king, is not
+   walked: the line was drawn for the land, and a caravan does not go through a man's house. */
+function travTownR(st,ux,uz){
+  const P=settleProfile(st); let r=P.core+B*7;
+  const cfg=cityFor(st.i);
+  if(cfg){ const G2=Math.ceil(Math.sqrt(cityHomesOf(cfg)*1.6)/2)+1, W=(G2*10+12)*B;
+    r=Math.max(r,W/Math.max(Math.abs(ux),Math.abs(uz),0.01)+B*6); }
+  return r; }
+function travPairLeg(pr){
+  const a=pr.a, b=pr.b, D=Math.hypot(b.x-a.x,b.z-a.z)||1, ux=(b.x-a.x)/D, uz=(b.z-a.z)/D;
+  const rA=travTownR(a,ux,uz), rB=travTownR(b,ux,uz);
+  const leg=travLeg('r'+pr.key,[[a.x+ux*rA,a.z+uz*rA],[b.x-ux*rB,b.z-uz*rB]],
+    [{name:siteNameOf(a.i),kind:cityFor(a.i)?'city':'town',i:a.i},{name:siteNameOf(b.i),kind:cityFor(b.i)?'city':'town',i:b.i}]);
+  if(D-rA-rB<B*80) leg.dead=true;
+  if(!leg.dead) for(const c of SITES){ if(!c||c===a||c===b) continue;
+    if(travSegDist(leg,c.x,c.z)<settleProfile(c).core+B*12){ leg.dead=true; break; } }
+  if(!leg.dead&&yahruPos&&travSegDist(leg,yahruPos.x,yahruPos.z)<9500) leg.dead=true;
+  if(!leg.dead) leg.scan=travScan(leg);
+  TRAV_LEGS.set(leg.key,leg); return leg; }
+/* ---- WHO WALKS A ROAD ----
+   Three to a hamlet road (a caravan, a walker, a rider); on a road between towns one party to
+   every seven hundred units of it, each in both directions in its turn. Who they are is the road's
+   own hash, so the same road carries the same people every time it is come to. */
+const TRAV_LOAD={grain:0xc9b48a,oil:0xa4552e,wine:0x5a3226,salt:0xe6e2d8,cedar:0x8a5a36,cloth:0x5e4a86,spice:0xb27a36,dye:0x7a2a6e};
+const TRAV_LOAD_N={grain:'sacks of grain',oil:'jars of oil',wine:'skins of wine',salt:'salt in sacks',cedar:'cedar beams',
+  cloth:'bales of cloth',spice:'bales of spices',dye:'jars of purple dye'};
+function travBeastLen(kind){ const u=beastUnits(kind)||12, ax=window.SIZE?SIZE.axisOf(kind):'z';
+  return (ax==='y'?u*1.45:u)*mountScale(kind); }
+/* what is cheap where they set out (the land's own goods, by its own prices) */
+function travCargo(i,r){ if(!GOODS.length) return null;
+  const L=GOODS.map((g,gi)=>[g.k,priceAt(i,gi)/g.base]).sort((p,q)=>p[1]-q[1]);
+  return L[Math.floor(r*Math.min(3,L.length))%L.length][0]; }
+function travParty(leg,k,type,r,dry,lat,folk){
+  const pack=dry?'camel':(r(2)<0.22?'mule':'donkey');
+  const ride=dry?'camel':lat>44?'horse':(r(3)<0.55?'donkey':r(3)<0.8?'mule':'horse');
+  const spec=[];
+  if(type==='caravan'){ spec.push({t:'p',role:'drover'});
+    const n=2+Math.floor(r(4)*4); for(let q=0;q<n;q++) spec.push({t:'b',kind:pack});
+    if(r(5)<0.45){ const boy=r(6)<0.5; spec.push({t:'p',role:boy?'boy':'drover',child:boy}); } }
+  else if(type==='walk'){ spec.push({t:'p',role:'wayfarer'});
+    if(r(5)<0.5) spec.push({t:'b',kind:dry?'camel':'donkey'});
+    const n=Math.floor(r(4)*3);
+    for(let q=0;q<n;q++){ const ch=q>0&&r(9+q)<0.5; spec.push({t:'p',role:ch?'child':'wayfarer',female:q===0||r(7+q)<0.5,child:ch}); } }
+  else { spec.push({t:'r',kind:ride,role:'rider'}); if(r(5)<0.3) spec.push({t:'p',role:'servant'}); }
+  const len=s=>s.t==='p'?B*(s.child?0.6:0.9):travBeastLen(s.kind);
+  const offs=[0];
+  for(let q=1;q<spec.length;q++) offs.push(offs[q-1]+0.5*(len(spec[q-1])+len(spec[q]))+B*(spec[q].t==='p'&&spec[q-1].t==='p'?0.55:0.8));
+  const S=offs[offs.length-1]+0.5*len(spec[spec.length-1])+B*1.6;
+  const v=TRAV_PACE[type], eA=(k%4)*B*3+r(10)*B*2, eB=((k+2)%4)*B*3+r(11)*B*2, Lu=leg.L-eA-eB;
+  if(Lu<2*S+B*12) return null;
+  const T2=S/(v*0.75)+2, P=22+r(8)*30, T1=(Lu-S)/v;
+  return {leg,k,type,spec,offs,S,v,eA,eB,Lu,T1,T2,P,C:2*(T1+P+T2),phase:0,jit:r(12),delay:0,seed:Math.floor(r(13)*1e6),
+    cargo:[travCargo(leg.ends[0].i,r(14)),travCargo(leg.ends[1].i,r(15))],folk,bodies:null,haltT:0,swerveT:0,fire:null,camped:false}; }
+function travParties(leg){
+  if(leg.parties) return leg.parties;
+  const P=leg.parties=[], h0=travHash(leg.key)*1000, local=leg.vi!==null;
+  const N=local?3:Math.max(2,Math.min(400,Math.round(leg.L/700)));
+  const mid=travBase(leg,leg.L*0.5), mx=mid.x, mz=mid.z, c=landAtWorld(mx,mz), lat=90-Math.hypot(mx,mz)/R_WORLD*180;
+  const dry=!!c&&(c.kind==='desert'||c.kind==='badlands');
+  const ci=countryAtUV(mx/R_WORLD,mz/R_WORLD), folk=folkOfCountry(ci?ci-1:siteCountry(leg.ends[0].i));
+  for(let k=0;k<N;k++){ const r=q=>hash2(h0*0.731+k*17.3+q*3.17,h0*0.377-k*5.9+q*1.31);
+    let type; if(local) type=['caravan','walk','ride'][(k+Math.floor(r(1)*3))%3];
+    else { const q=r(1); type=q<0.45?'caravan':q<0.75?'walk':'ride'; }
+    const pt=travParty(leg,k,type,r,dry,lat,folk); if(pt) P.push(pt); }
+  /* spread through their rounds, so that a road is not walked by everyone at once */
+  for(let k=0;k<P.length;k++) P[k].phase=(k+P[k].jit*0.6)/P.length*P[k].C;
+  return P; }
+/* ---- WHERE IN ITS ROUND A PARTY IS ----
+   Out along the road (0), resting at the far end (1), turning about (2) — the drover walks back
+   down his string to its tail and leads it home, the beasts turning where they stand — home along
+   the road (3), resting at this end (4), and turning about again (5). `s` is the leader's place. */
+function travPose(pt){
+  let t=((TRAV_CLOCK-pt.delay+pt.phase)%pt.C+pt.C)%pt.C;
+  const T1=pt.T1, P=pt.P, T2=pt.T2, S=pt.S, Lu=pt.Lu, v=pt.v;
+  if(t<T1) return {ph:0,s:S+v*t,u:0};
+  t-=T1; if(t<P) return {ph:1,s:Lu,u:t/P};
+  t-=P; if(t<T2) return {ph:2,s:Lu-S*(t/T2),u:t/T2};
+  t-=T2; if(t<T1) return {ph:3,s:Lu-S-v*t,u:0};
+  t-=T1; if(t<P) return {ph:4,s:0,u:t/P};
+  t-=P; return {ph:5,s:S*Math.min(1,t/T2),u:Math.min(1,t/T2)}; }
+const _tp={s:0,lane:0,turn:0,dir:1,mv:false};
+function travSm(x){ x=x<0?0:x>1?1:x; return x*x*(3-2*x); }
+function travPlace(pt,i,pose){
+  const l=TRAV_LANE[pt.type]*B, L2=l+B*1.4, ph=pose.ph, u=pose.u, o=_tp; o.turn=0;
+  if(i===0){
+    if(ph===0){ o.s=pose.s; o.lane=l; o.dir=1; o.mv=true; }
+    else if(ph===1){ o.s=pt.Lu; o.lane=l; o.dir=1; o.mv=false; }
+    else if(ph===2){ o.s=pose.s; o.dir=1; o.turn=travSm(u/0.15); o.mv=true;
+      o.lane=u<0.15?l+(-L2-l)*travSm(u/0.15):u<0.85?-L2:-L2+(L2-l)*travSm((u-0.85)/0.15); }
+    else if(ph===3){ o.s=pose.s; o.lane=-l; o.dir=-1; o.mv=true; }
+    else if(ph===4){ o.s=0; o.lane=-l; o.dir=-1; o.mv=false; }
+    else { o.s=pose.s; o.dir=-1; o.turn=travSm(u/0.15); o.mv=true;
+      o.lane=u<0.15?-l+(L2+l)*travSm(u/0.15):u<0.85?L2:L2-(L2-l)*travSm((u-0.85)/0.15); } }
+  else { const off=pt.offs[i];
+    if(ph===0){ o.s=pose.s-off; o.lane=l; o.dir=1; o.mv=true; }
+    else if(ph===1){ o.s=pt.Lu-off; o.lane=l; o.dir=1; o.mv=false; }
+    else if(ph===2){ o.s=pt.Lu-off; o.dir=1; o.turn=travSm(u/0.5); o.lane=u<0.5?l:l-2*l*travSm((u-0.5)/0.5); o.mv=u>0.02&&u<0.98; }
+    else if(ph===3){ o.s=pose.s+(pt.S-off); o.lane=-l; o.dir=-1; o.mv=true; }
+    else if(ph===4){ o.s=pt.S-off; o.lane=-l; o.dir=-1; o.mv=false; }
+    else { o.s=pt.S-off; o.dir=-1; o.turn=travSm(u/0.5); o.lane=u<0.5?-l:-l+2*l*travSm((u-0.5)/0.5); o.mv=u>0.02&&u<0.98; } }
+  o.s+=pt.eA; return o; }
+/* ---- A PARTY BUILT: the makers every soul and beast of the world is made by ---- */
+function travPack(an,kind,cargo){
+  const bu=beastUnits(kind), by=bu*0.74, col=TRAV_LOAD[cargo]||0xb09a70;
+  an.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(an);
+  const w=Math.max(1.6,bb.max.x-bb.min.x), len=Math.max(3,bb.max.z-bb.min.z), cz=(bb.max.z+bb.min.z)/2-0.3;
+  const bl=lbox(w*0.8,0.45,len*0.34,0x6e3e26); bl.position.set(0,by,cz); an.add(bl);                    /* the blanket */
+  if(cargo==='cedar'){ for(const sx of [-1,1]){ const lg=lbox(w*0.2,w*0.2,len*0.95,col); lg.position.set(sx*w*0.17,by+w*0.12,cz); an.add(lg); } }
+  else for(const sx of [-1,1]){                                                                            /* the panniers, one each side */
+    const pn=lbox(w*0.3,bu*0.2,len*0.26,col); pn.position.set(sx*(w*0.5+w*0.06),by-bu*0.1,cz); an.add(pn);
+    const tie=lbox(w*0.32,0.25,0.25,0x3a2a1a); tie.position.set(sx*(w*0.5+w*0.06),by-bu*0.1+bu*0.1,cz); an.add(tie); }
+  const tp=lbox(w*0.5,bu*0.1,len*0.2,cargo==='salt'?0xd8d0c0:0xa08a62); tp.position.set(0,by+bu*0.06,cz); an.add(tp); }
+function travSaddle(an,kind){ const by=beastUnits(kind)*0.74;
+  const blanket=lbox(4.4,0.5,5.6,0x7a4a2a); blanket.position.set(0,by,-0.3); an.add(blanket);
+  const seat=lbox(3.4,1.1,4.4,0x5a3a22); seat.position.set(0,by+0.6,-0.3); an.add(seat); }
+/* a party is built a body a frame (a beast is welded and coated as it is made, and six of them in one
+   frame is a hitch the traveller would feel); it is shown when the last of it stands */
+function travBuild(pt){
+  const t0=performance.now(), bodies=pt._bodies||(pt._bodies=[]), start=bodies.length;
+  for(let i=start;i<pt.spec.length;i++){ if(i>start&&performance.now()-t0>1.0) break;
+    const s=pt.spec[i], seed=pt.seed+i*131;
+    if(s.t==='b'){ const m=makeAnimal(s.kind); travPack(m,s.kind,pt.cargo[0]); m.scale.setScalar(mountScale(s.kind));
+      m.visible=false; scene.add(m);
+      bodies.push({m,t:'b',kind:s.kind,seed,party:pt,i,len:travBeastLen(s.kind),_hid:true}); continue; }
+    const female=!!s.female, child=!!s.child;
+    const m=makePerson(seed,s.role==='drover'?'herder':'traveller',child,female,pt.folk);
+    if(s.role==='wayfarer'&&!child){ const bd=lbox(2.4,2.4,1.5,female?0x8a6040:0x6e5a40); bd.position.set(0,8.2,-1.6); m.add(bd); }   /* a bundle on the back */
+    m.visible=false; scene.add(m);
+    const e={m,t:s.t,role:s.role,female,child,seed,name:travName(seed,female),party:pt,i,len:B*0.9,road:true,_hid:true};
+    if(s.t==='r'){ const M=makeAnimal(s.kind); travSaddle(M,s.kind); M.scale.setScalar(mountScale(s.kind)); M.visible=false; scene.add(M);
+      e.mountE={m:M,kind:s.kind,seed:seed+7,_hid:true}; e.kind=s.kind; e.len=travBeastLen(s.kind); }
+    bodies.push(e); }
+  const ms=performance.now()-t0; TRAV_STATS.buildMs+=ms; if(ms>TRAV_STATS.maxBuildMs) TRAV_STATS.maxBuildMs=ms;
+  if(bodies.length<pt.spec.length) return false;
+  pt.bodies=bodies; pt._bodies=null; TRAV_STATS.built++; return true; }
+/* taken down again as the village is: geometry always, a material only if no other thing in the
+   world is drawn with it */
+function travDispose(o){
+  scene.remove(o);
+  const sharedT=new Set(Object.values(TEX)), sharedM=new Set(Object.values(MAT).concat(Object.values(ROBETEX)));
+  for(const rm of Object.values(ROBETEX)) sharedT.add(rm.map);
+  sharedT.add(glowTexCv); sharedM.add(doorLeafMat); sharedM.add(torchMat); sharedM.add(_lodMat); sharedM.add(travFireMat);
+  for(const C of [personHead,personSleepHead]) for(const arr of Object.values(C)) for(const m of arr){ sharedM.add(m); if(m.map) sharedT.add(m.map); }
+  o.traverse(q=>{ if(q.geometry) q.geometry.dispose();
+    const mats=Array.isArray(q.material)?q.material:(q.material?[q.material]:[]);
+    for(const m of mats){ if(sharedM.has(m)) continue; if(m.map&&!sharedT.has(m.map)) m.map.dispose(); m.dispose(); } }); }
+function travDrop(pt){
+  if(pt._bodies){ for(const e of pt._bodies){ travDispose(e.m); if(e.mountE) travDispose(e.mountE.m); } pt._bodies=null; }
+  if(!pt.bodies) return;
+  for(const e of pt.bodies){ travDispose(e.m); if(e.mountE) travDispose(e.mountE.m);
+    for(const b of BARKS) if(b.ent===e){ b.ent=null; b.t=0; b.sp.visible=false; } }
+  if(pt.fire){ travDispose(pt.fire.g); pt.fire=null; }
+  pt.bodies=null; pt.camped=false; TRAV_STATS.dropped++; }
+function travDropLeg(leg){ if(leg.parties) for(const pt of leg.parties) travDrop(pt); leg.dead=true; TRAV_LEGS.delete(leg.key); }
+/* ---- THE CAMP ----
+   A party the dark finds on the road stops where it is: the beasts go down where they stand, the
+   people lie down beside them on the side away from the way, and a caravan's fire is lit. */
+const travFireMat=new THREE.MeshBasicMaterial({color:0xffa040});
+function travFire(pt,x,z,y){
+  const g=new THREE.Group();
+  for(const a of [0.5,-0.5]){ const lg=lbox(3.2,0.6,0.6,0x4a3020); lg.rotation.y=a; lg.position.set(0,0.3,0); g.add(lg); }
+  const fl=new THREE.Mesh(new THREE.BoxGeometry(1.1,1.6,1.1),travFireMat); fl.position.set(0,1.2,0); g.add(fl);
+  const gm=new THREE.SpriteMaterial({map:glowTexCv,color:0xffb060,transparent:true,opacity:0.7,depthWrite:false});
+  const gs=new THREE.Sprite(gm); gs.scale.set(22,22,1); gs.position.set(0,2.4,0); g.add(gs);
+  g.position.set(x,y,z); scene.add(g);
+  return {g,fl,gs}; }
+/* is the way in front of this party stood in? (the traveller, or a townsman about his work) */
+function travHeld(pt){
+  const L=pt.bodies[0]; if(L.x===undefined) return false;
+  const near=(x,z,r)=>{ if(state.mode==='walk'&&Math.hypot(state.walk.x-x,state.walk.z-z)<r) return true; return false; };
+  for(const e of pt.bodies){ if(!e.mv||e.x===undefined) continue;
+    const ah=(e.t==='p'?2.4:e.len*0.5+1.6), ax=e.x+Math.sin(e.hd)*ah, az=e.z+Math.cos(e.hd)*ah;
+    if(near(ax,az,3.2)) return true; }
+  /* and the leader asks of the townsfolk only (the beasts behind him follow where he has gone) */
+  if(L.mv) for(const[,vv] of activeVillages){ if(vv.none||!vv.people||!vv.site) continue;
+    if(Math.hypot(L.x-vv.site.x,L.z-vv.site.z)>(vv.reach||420)+60) continue;
+    const ah=(L.t==='p'?2.6:L.len*0.5+1.8), ax=L.x+Math.sin(L.hd)*ah, az=L.z+Math.cos(L.hd)*ah;
+    for(const p of vv.people) if(!p._lying&&Math.hypot(p.m.position.x-ax,p.m.position.z-az)<2.6) return true;
+    for(const b of vv.beasts) if(Math.hypot(b.m.position.x-ax,b.m.position.z-az)<3.0) return true; }
+  return false; }
+function travShow(e,want){
+  if(want&&e._hid){ e.m.visible=true; e._hid=false; e._lodState=undefined; }
+  else if(!want&&!e._hid){ e.m.visible=false; e._hid=true; } }
+function travPartyTick(pt,leg,dt){
+  let pose=travPose(pt);
+  /* a party stands while its way is stood in, and waits; held a good while, it goes round */
+  if(!travCamp){
+    if(pt.talkT>0){ pt.talkT-=dt; pt.delay+=dt; pose=travPose(pt); }    /* (stood while one of them talks) */
+    else if(pt.swerveT>0) pt.swerveT-=dt;
+    else if(travHeld(pt)){ pt.delay+=dt; pt.haltT+=dt; TRAV_STATS.held++; pose=travPose(pt);
+      if(pt.haltT>4){ pt.swerveT=7; pt.haltT=0; } }
+    else pt.haltT=Math.max(0,pt.haltT-dt); }
+  /* where every body of it stands: if a piece of the way is not judged yet, the party is not shown */
+  const P=[];
+  for(let i=0;i<pt.bodies.length;i++){ const pl=travPlace(pt,i,pose);
+    let lane=pl.lane; if(pt.swerveT>0&&pl.mv) lane+=Math.sign(lane||1)*B*2.2*travSm(Math.min(pt.swerveT,7-pt.swerveT));
+    if(!travAt(leg,pl.s,lane,_ta)){ for(const e of pt.bodies){ travShow(e,false); if(e.mountE) travShow(e.mountE,false); } if(pt.fire) pt.fire.g.visible=false; return; }
+    let vx=_ta.tx-_ta.sl*_ta.tz, vz=_ta.tz+_ta.sl*_ta.tx; if(pl.dir<0){ vx=-vx; vz=-vz; }
+    /* (ox,oz: the side of the way this body keeps, outward from the middle of the road) */
+    const sg=lane<0?-1:1;
+    P.push({x:_ta.x,z:_ta.z,y:_ta.y,hd:Math.atan2(vx,vz)+Math.PI*pl.turn,mv:pl.mv&&!travCamp,lane,ox:-_ta.tz*sg,oz:_ta.tx*sg}); }
+  const now=performance.now(), tnow=now*0.001;
+  const camp=travCamp;
+  /* the fire of the camp, lit beside the leader on the side away from the way */
+  if(camp&&!pt.fire&&pt.type!=='ride'){ const q=P[0];
+    const fx=q.x+q.ox*B*2.8, fz=q.z+q.oz*B*2.8, g=groundInfo(fx,fz,q.y+B*1.2);
+    if(g.land&&!blockedBySolid(fx,fz)) pt.fire=travFire(pt,fx,fz,g.y); }
+  if(pt.fire){ pt.fire.g.visible=camp; if(camp){ const f=0.8+0.3*Math.sin(tnow*9.1+pt.seed)+0.15*Math.sin(tnow*23.7);
+      pt.fire.fl.scale.set(f,f*1.2,f); pt.fire.gs.material.opacity=0.45+0.25*f; } }
+  for(let i=0;i<pt.bodies.length;i++){ const e=pt.bodies[i], q=P[i], m=e.m;
+    e.mv=q.mv; e.hd=q.hd;
+    const moved=e.x===undefined||Math.abs(q.x-e.x)>0.01||Math.abs(q.z-e.z)>0.01;
+    e.x=q.x; e.z=q.z;
+    const sx=Math.sin(q.hd), sz=Math.cos(q.hd);
+    if(e.t==='p'){
+      /* a soul afoot: on the ground under him, hopping a bank as a man does */
+      if(camp){ if(!e._lying){
+          const lx=q.x+q.ox*B*1.4, lz=q.z+q.oz*B*1.4, g=groundInfo(lx,lz,q.y+B*1.2);
+          e.gy=g.land?g.y:q.y; m.position.set(g.land?lx:q.x,e.gy,g.land?lz:q.z); lieDown(e,q.hd+Math.PI/2); }
+        sleepTick(e,dt); }
+      else {
+        if(e._lying) standUp(e);
+        if(moved||e._gyAt===undefined){ const g=groundInfo(q.x,q.z,q.y+B*1.2); e._gyAt=g.land?g.y:q.y; }
+        m.position.set(q.x,folkHopY(e,e._gyAt,dt),q.z); e.gy=e._gyAt;
+        m.rotation.y=q.hd;
+        if(e._faceT>0){ e._faceT-=dt; m.rotation.y=Math.atan2(state.walk.x-q.x,state.walk.z-q.z); }   /* turned to the one he talks to */
+        const legs=m.userData.legs, ph=now*0.012+e.seed;
+        if(legs) for(const L of legs){ L.rotation.x=q.mv?Math.sin(ph+(L.userData.ph||0))*0.55:0; jointTick(L,q.mv); } }
+      TRAV_NEAR.push(e); }
+    else {
+      /* a beast (or the mount under a rider): on the higher of the ground under its fore and hind
+         feet, so no part of it is ever in the bank it is climbing */
+      const M=e.t==='r'?e.mountE:e, bm=M.m, hl=e.len*0.38;
+      if(moved||e._gyAt===undefined){
+        const gf=groundInfo(q.x+sx*hl,q.z+sz*hl,q.y+B*1.2), gb=groundInfo(q.x-sx*hl,q.z-sz*hl,q.y+B*1.2);
+        e._gyAt=Math.max(gf.land?gf.y:q.y,gb.land?gb.y:q.y); }
+      const GT=tickGait(M,M.kind,q.mv?pt.v:0,dt);
+      const kneel=camp?(M.kind==='camel'?3.2:1.4):0;
+      bm.position.set(q.x,e._gyAt+(GT?Math.max(0,GT.rise):0)-kneel,q.z);
+      bm.rotation.y=q.hd; bm.rotation.z=GT?GT.roll:0;
+      const tl=bm.userData&&bm.userData.tail; if(tl) tl.rotation.y=Math.sin(tnow*(q.mv?5.5:1.5)+(M.seed||0))*(q.mv?0.3:0.15);
+      if(e.t==='r'){
+        if(camp){ if(!e._lying){
+            const lx=q.x+q.ox*B*1.9, lz=q.z+q.oz*B*1.9, g=groundInfo(lx,lz,q.y+B*1.2);
+            const u=m.userData; for(let k=0;k<2;k++){ const L=u.legs[k]; L.rotation.z=0; }
+            e.gy=g.land?g.y:q.y; m.position.set(g.land?lx:q.x,e.gy,g.land?lz:q.z); lieDown(e,q.hd+Math.PI/2); }
+          sleepTick(e,dt); }
+        else { if(e._lying) standUp(e); seatRider(e,M,q.mv); }
+        TRAV_NEAR.push(e); }
+      else TRAV_NEAR.push(e); }
+    /* shown when its way is judged, and drawn as finely as it can be seen */
+    travShow(e,true); figureLod(e);
+    if(e.mountE){ travShow(e.mountE,true); figureLod(e.mountE); } } }
+/* ---- THE ROADS WITHIN REACH, refreshed four times a second ---- */
+function travRefresh(px,pz){
+  /* the ground of the towns changed (one raised, one taken down, a block laid): the way is judged again */
+  let nb=0; for(const[,vv] of activeVillages) if(vv.g) nb++;
+  const sig=nb+'|'+EDITS.size+'|'+activeLandmarks.size;
+  if(sig!==travSig){ travSig=sig;
+    for(const leg of TRAV_LEGS.values()) if(leg.pieces.size){ leg.stale=new Map(leg.pieces); leg.pieces=new Map(); } }
+  for(const[i,vv] of activeVillages) if(vv.g&&!vv.legsMade) travVillageLegs(i,vv);
+  for(const leg of [...TRAV_LEGS.values()]){
+    if(leg.vi!==null){ const vv=activeVillages.get(leg.vi); if(!vv||!vv.g){ travDropLeg(leg); continue; } } }
+  if(TRUE_EARTH) for(const pr of ROAD_PAIRS){
+    const has=TRAV_LEGS.get('r'+pr.key);
+    const ax=pr.a.x, az=pr.a.z, dx=pr.b.x-ax, dz=pr.b.z-az, l2=dx*dx+dz*dz||1, t=Math.max(0,Math.min(1,((px-ax)*dx+(pz-az)*dz)/l2));
+    const d=Math.hypot(px-ax-dx*t,pz-az-dz*t);
+    if(!has&&d<3000) travPairLeg(pr);
+    else if(has&&d>7000) travDropLeg(has); }
+  /* who is near enough to be built, and who has gone far enough to be let go */
+  TRAV_BUILDQ.length=0;
+  for(const leg of TRAV_LEGS.values()){
+    if(leg.dead||leg.wet!==false||leg.plan) continue;
+    if(travSegDist(leg,px,pz)>TRAV_DROP_R+800){ if(leg.parties) for(const pt of leg.parties) if(pt.bodies) travDrop(pt);
+      leg.pieces.clear(); leg.stale=null; continue; }
+    for(const pt of travParties(leg)){ const pose=travPose(pt), b=travBase(leg,pt.eA+pose.s), d=Math.hypot(b.x-px,b.z-pz);
+      if(!pt.bodies&&d<TRAV_BUILD_R) TRAV_BUILDQ.push([d,pt]);
+      else if(pt.bodies&&d>TRAV_DROP_R) travDrop(pt); }
+    /* pieces of the way far behind are let go */
+    for(const p of [...leg.pieces.keys()]){ const b=travBase(leg,Math.min(leg.L,(p+0.5)*TRAV_PN*TRAV_SS));
+      if(Math.hypot(b.x-px,b.z-pz)>TRAV_DROP_R+600) leg.pieces.delete(p); } }
+  TRAV_BUILDQ.sort((a,b)=>a[0]-b[0]); }
+/* ---- THE SLOW WORK, a little each frame: water looked for, a town's lanes planned, a piece of the
+   way judged, a party built ---- */
+function travWork(t0){
+  for(const leg of TRAV_LEGS.values()){ if(performance.now()-t0>1.2) break;
+    while(leg.scan&&performance.now()-t0<1.2){ const r=leg.scan.next(); if(r.done) leg.scan=null; } }
+  for(const leg of TRAV_LEGS.values()) if(leg.plan&&!leg.dead&&leg.vi!==null){
+    const vv=activeVillages.get(leg.vi); if(!vv||!vv.caravanserai){ leg.plan=null; continue; }
+    travPlanCaravanserai(leg,vv); break; }
+  let n=0;
+  for(const key of TRAV_WANT){ if(n>0&&performance.now()-t0>2.5) break;
+    TRAV_WANT.delete(key); const bar=key.lastIndexOf('|'), leg=TRAV_LEGS.get(key.slice(0,bar)), p=+key.slice(bar+1);
+    if(!leg||leg.dead||leg.pieces.has(p)) continue;
+    const pc=travPiece(leg,p); n++;
+    if(pc&&pc.wet>2){ leg.dead=true; leg.wet=true; travDropLeg(leg); } }
+  if(travBuilding&&(travBuilding.bodies||!travBuilding._bodies||travBuilding.leg.dead)) travBuilding=null;
+  if(!travBuilding&&TRAV_BUILDQ.length){ const pt=TRAV_BUILDQ.shift()[1]; if(!pt.bodies&&!pt.leg.dead) travBuilding=pt; }
+  if(travBuilding&&performance.now()-t0<1.5){ if(travBuild(travBuilding)) travBuilding=null; } }
+function travTick(px,pz,dt){
+  const t0=performance.now();
+  const hr=localHourAt(px,pz), day=hr>=TRAV_DAY[0]&&hr<TRAV_DAY[1];
+  travCamp=!day; if(day) TRAV_CLOCK+=dt;
+  travScanT-=dt;
+  if(travScanT<=0){ travScanT=0.25; travRefresh(px,pz); }
+  travWork(t0);
+  TRAV_NEAR.length=0;
+  for(const leg of TRAV_LEGS.values()){ if(!leg.parties) continue;
+    for(const pt of leg.parties){ if(!pt.bodies) continue;
+      if(!travCamp&&pt.fire){ travDispose(pt.fire.g); pt.fire=null; }
+      travPartyTick(pt,leg,dt); } }
+  const ms=performance.now()-t0; TRAV_STATS.ms+=ms; TRAV_STATS.frames++; if(ms>TRAV_STATS.maxMs) TRAV_STATS.maxMs=ms; }
+/* ---- WHAT A TRAVELLER SAYS ----
+   Where he comes from, where he goes, what the beasts carry, and how far the road is yet. */
+function travPlaceName(E){ return E.kind==='caravanserai'?'the caravanserai of '+E.name:E.name; }
+function travSpeech(p){
+  const pt=p.party, leg=pt.leg, pose=travPose(pt), ph=pose.ph;
+  const out=ph<=2, from=out?leg.ends[0]:leg.ends[1], to=out?leg.ends[1]:leg.ends[0];
+  const goods=TRAV_LOAD_N[pt.cargo[out?0:1]]||'goods';
+  const at=(ph===1||ph===2)?leg.ends[1]:(ph===4||ph===5)?leg.ends[0]:null;
+  const lines=[];
+  if(at){ const back=(ph===1||ph===2)?leg.ends[0]:leg.ends[1];
+    lines.push('“We are come to '+travPlaceName(at)+', and the beasts are watered. When they have rested we go back to '+travPlaceName(back)+'.”');
+    if(pt.type==='caravan') lines.push('“We brought '+goods+' out of '+travPlaceName(from===at?to:from)+'; we take back '+(TRAV_LOAD_N[pt.cargo[out?1:0]]||'what is cheap here')+'.”'); }
+  else {
+    if(pt.type==='caravan') lines.push('“We came out of '+travPlaceName(from)+' and we make for '+travPlaceName(to)+' — '+goods+' on the beasts, for the market there.”');
+    else if(pt.type==='ride') lines.push(p.role==='servant'?'“My master rides to '+travPlaceName(to)+', and I go at his heel. We left '+travPlaceName(from)+' this morning.”'
+      :'“From '+travPlaceName(from)+' to '+travPlaceName(to)+', on my master\'s business — and the ass knows the road better than I.”');
+    else lines.push('“We walk from '+travPlaceName(from)+' to '+travPlaceName(to)+'; my brother\'s house is there. We carry what we need on our backs.”');
+    const rem=out?pt.Lu-pose.s:pose.s, secs=rem/pt.v, hr=localHourAt(p.x,p.z);
+    let when=hr+secs/3600<TRAV_DAY[1]?(secs<1500?'within the hour':hr+secs/3600<12.5?'by noon':hr+secs/3600<16?'in the afternoon':'before dark')
+      :'tomorrow, if we camp by the road tonight';
+    if(TRUE_EARTH){ const km=rem/U_PER_KM;
+      lines.push('“'+to.name+' is '+(km<1.5?'not two kilometres':'some '+Math.round(km)+' kilometres')+' on. We will be there '+when+'.”'); }
+    else lines.push('“'+(rem<pt.Lu*0.3?to.name+' is just ahead':rem<pt.Lu*0.65?'Half the road is behind us':'Most of the road is before us')+' — we will be there '+when+'.”');
+    if(pt.type==='caravan') lines.push('“'+goods.charAt(0).toUpperCase()+goods.slice(1)+' — cheap where they were made, dearer where they are wanted. That is the whole of the trade.”'); }
+  return lines; }
 /* ================= COINS & CARGO — THE TRADE OF THE SEAS =================
    Every market prices its wares by its own land (a fixed factor per land and
    good): buy where a thing is cheap, bear it over the deep in the hold, and
@@ -16652,6 +17227,9 @@ function nearbyPerson(){
     if(Math.hypot(state.walk.x-vv.site.x,state.walk.z-vv.site.z)>(vv.reach||420)) continue;
     for(const p of vv.people){ const d=Math.hypot(state.walk.x-p.m.position.x,state.walk.z-p.m.position.z);
       if(d<7&&d<bd){ bd=d; best=p; } } }
+  /* and the travellers on the road (Round 141) */
+  for(const e of TRAV_NEAR){ if(!e.road||!e.m.visible) continue;
+    const d=Math.hypot(state.walk.x-e.m.position.x,state.walk.z-e.m.position.z); if(d<7&&d<bd){ bd=d; best=e; } }
   return best;
 }
 function canFishHere(){
@@ -16812,9 +17390,13 @@ function speakTo(p){ if(!p) return;
      line, lying flat on his back with his eyes on the roof-beams */
   const who=p.name?p.name+' the '+callingOf(p):'The '+callingOf(p);
   if(p._lying){ wakeSleeper(p,6);
-    toast(who+' wakes, and lifts '+(p.female?'her':'his')+' head — “Mm? It is the middle of the night, friend. Let a soul sleep.”'); return; }
+    toast(who+' wakes, and lifts '+(p.female?'her':'his')+' head — '+(p.road?'“We camp by the road till the light, friend; the beasts are worn and so are we. Ask me on the way tomorrow.”'
+      :'“Mm? It is the middle of the night, friend. Let a soul sleep.”')); return; }
   if(p._abed){ toast(who+' — “It is late, friend, and I am for my bed. Come and find me in the morning.”'); return; }
-  const lines=SPEECH[p.role]||SPEECH.folk;
+  /* a traveller on the road tells where he comes from and where he goes, and what he carries; his
+     party stands while he talks (Round 141) */
+  if(p.road){ p.party.talkT=5; p._faceT=5; }
+  const lines=p.road?travSpeech(p):(SPEECH[p.role]||SPEECH.folk);
   const now=performance.now()*0.001;
   if(!p.talk||now-p.talk.t>25) p.talk={idx:0,t:now};
   p.talk.t=now;
@@ -18446,6 +19028,12 @@ function blockedByEntity(nx,nz,exclude){
       return false; };
     if(test(vv.people)||test(vv.beasts)||test(vv.mounts)) return true;
   }
+  /* and the travellers on the road, a beast by its own bulk (Round 141) */
+  for(const e of TRAV_NEAR){ if(e.m===exclude||e.x===undefined) continue;
+    const r=e.t==='p'?(e.child?1.0:1.6):Math.max(1.8,e.len*0.32);
+    if(Math.abs(nx-e.x)<r+1.4&&Math.abs(nz-e.z)<r+1.4&&Math.hypot(nx-e.x,nz-e.z)<r+1.4) return true;
+    if(e.t!=='p'){ const hx=Math.sin(e.hd||0)*e.len*0.3, hz=Math.cos(e.hd||0)*e.len*0.3;   /* (fore and hind, a long beast) */
+      if(Math.hypot(nx-e.x-hx,nz-e.z-hz)<r+1.0||Math.hypot(nx-e.x+hx,nz-e.z+hz)<r+1.0) return true; } }
   return false;
 }
 /* the nearest shut/open door to a point, within reach and on land */
@@ -21387,6 +21975,12 @@ function greetTick(dt,nightF){
                                     :GREETS_DAY[Math.floor(Math.random()*GREETS_DAY.length)]);
         barkAt(p,line);
         return; } } }
+  /* the travellers on the road hail a man they pass (Round 141) */
+  for(const p of TRAV_NEAR){ if(!p.road||p._lying||!p.m.visible) continue;
+    const d=Math.hypot(p.m.position.x-w.x,p.m.position.z-w.z);
+    if(d>3&&d<9&&(!p.greetT||now-p.greetT>40)){ p.greetT=now;
+      const own=window.BEHAVIOR&&BEHAVIOR.folkGreet?BEHAVIOR.folkGreet(p.role,false):null;
+      barkAt(p,own||GREETS_DAY[Math.floor(Math.random()*GREETS_DAY.length)]); return; } }
 }
 
 /* ---- GULL CRIES & CRICKETS — the air itself is alive ---- */
@@ -22620,6 +23214,34 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
     for(let iy=h0-2;iy<=h0+7;iy++) if(blockSolidAt(ix,iy,iz)){ const b=blockAt(ix,iy,iz); solid.push(iy+':'+(typeof blockName==='function'?blockName(b):b)); }
     return {h:h0,kind:c&&c.kind,y:g.y,ceil:g.ceil,land:g.land,edited:!!g.edited,solidCourses:solid}; },
   barks:()=>BARKS.filter(b=>b.ent).map(b=>({role:b.ent.role,name:b.ent.name,line:b.line||''})),
+  /* ---- THE ROADS AND THE PEOPLE ON THEM (Round 141), read-only but for the clock ----
+     `trav` the roads within reach and their parties; `travAudit` every body that is built and shown,
+     judged against the ground and the things of the towns: how far it stands over (or in) the ground
+     under it, whether that ground is water, a house or a well; `travClock` sets the roads' clock, so a
+     probe may see a party at another place in its round */
+  trav:()=>({clock:TRAV_CLOCK,camp:travCamp,stats:Object.assign({},TRAV_STATS),
+    legs:[...TRAV_LEGS.values()].map(l=>({key:l.key,L:Math.round(l.L),dead:l.dead,wet:l.wet,via:l.via,plan:!!l.plan,
+      ends:l.ends.map(e=>e.name+' ('+e.kind+')'),pieces:l.pieces.size,parties:l.parties?l.parties.length:0,
+      built:l.parties?l.parties.filter(p=>p.bodies).length:0,a:l.pts[0],b:l.pts[l.pts.length-1],n:l.pts.length})),
+    parties:[...TRAV_LEGS.values()].flatMap(l=>(l.parties||[]).filter(p=>p.bodies).map(p=>{ const ps=travPose(p);
+      return {leg:l.key,type:p.type,ph:ps.ph,s:Math.round(ps.s),Lu:Math.round(p.Lu),n:p.bodies.length,cargo:p.cargo,camped:!!travCamp,
+        bodies:p.bodies.map(e=>({t:e.t,role:e.role||null,kind:e.kind||null,name:e.name||null,x:e.x,z:e.z,y:e.m.position.y,vis:e.m.visible,lying:!!e._lying}))}; }))}),
+  travAudit:()=>{ const out={bodies:0,shown:0,float:0,sunk:0,wet:0,inHouse:0,inSolid:0,worst:0,list:[]};
+    for(const l of TRAV_LEGS.values()) for(const p of (l.parties||[])){ if(!p.bodies) continue;
+      for(const e of p.bodies){ out.bodies++; const M=e.t==='r'?e.mountE:(e.t==='b'?e:null), m=M?M.m:e.m;
+        if(!m.visible) continue; out.shown++;
+        const x=m.position.x, z=m.position.z, c=landAtWorld(x,z), g=groundInfo(x,z,m.position.y+B*0.9);
+        const kneel=travCamp&&M?(M.kind==='camel'?3.2:1.4):0, lie=e._lying?1.0:0;
+        const dy=m.position.y+kneel-lie-(g.land?g.y:WATER_Y);
+        if(!c) out.wet++;
+        if(dy>2.6) out.float++; if(dy<-1.2) out.sunk++;
+        if(Math.abs(dy)>Math.abs(out.worst)) out.worst=+dy.toFixed(2);
+        if(insideHouse(x,z)||blockedByStructureNPC(x,z)) out.inHouse++;
+        if(blockedBySolid(x,z,0)) out.inSolid++;
+        if(out.list.length<60) out.list.push({t:e.t,kind:e.kind||e.role,x:+x.toFixed(1),z:+z.toFixed(1),dy:+dy.toFixed(2),water:!c}); } }
+    return out; },
+  travClock:v=>{ if(v!==undefined) TRAV_CLOCK=v; return TRAV_CLOCK; },
+  travSpeak:()=>{ const p=nearbyPerson(); if(!p||!p.road) return null; return {name:p.name,role:p.role,lines:travSpeech(p)}; },
   /* the market, read as the stall shows it — buy and sell per good at a
      land profile, with the fish, the pearl and the reputation ladder */
   marketAt:profile=>({goods:GOODS.map((g,gi)=>{ const sp=spreadOf(priceAt(profile,gi),false);
