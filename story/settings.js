@@ -830,8 +830,10 @@ S.upperroom=function(ctx,st0){
   const gd=Math.min(0,landY(ctx,17,z0-0.6));
   st.detail(16.3,gd,z0-0.06,17.7,gd+2.0,z0,0x3a2a1e);                                   /* the door of the house below, at the street */
   room(ctx,st,x0,z0,x1,z1,{door:'e',wall:C.limestone,y:F,noStair:true});
-  st.box(x1+0.1,0,z0+1,x1+1.5,0.92,z0+2,C.stoneDark); st.box(x1+0.1,0,z0+2,x1+1.5,1.85,z0+3,C.stoneDark);   /* the stair */
-  st.box(x1+0.1,0,z0+3,x1+1.5,F,z0+5.2,C.stoneDark);                                    /* its landing at the door */
+  /* the stair, and its landing at the door: each tread longer than a block of the world, so no step is lost
+     between two blocks (on a metre's tread the witness went up the landing's whole height in one stride) */
+  st.box(x1+0.1,0,z0-1,x1+1.5,0.92,z0+0.3,C.stoneDark); st.box(x1+0.1,0,z0+0.3,x1+1.5,1.85,z0+1.6,C.stoneDark);
+  st.box(x1+0.1,0,z0+1.6,x1+1.5,F,z0+5.2,C.stoneDark);
   /* ---- THE COURT STANDS ON ITS TERRACE, AND STEPS COME UP TO ITS GATE ----
      On the slope of Zion the street falls away under the set metres below its level. The court east of the
      house (where the stair comes down, and Rhode's gate opens north onto the street) is a terrace at the
@@ -848,7 +850,7 @@ S.upperroom=function(ctx,st0){
   for(const [lx,lz] of [[12.8,27],[12.8,33],[21.2,27],[21.2,33]]) W.glow(ctx,lx,F+2,lz,1.1,0xffc070,0.8);
   /* the street outside about its day — and "a man carrying a jar of water" (Marqos 14:13) */
   W.folk(ctx,[{do:'carry', from:[8,20], to:[27,22], load:'jar', n:1}, {do:'stroll', area:[6,16,30,24], n:3}, {do:'talk', at:[26,36], n:2}]);
-  mk(ctx,'urHouse',17,24.4); mk(ctx,'stairFoot',22.8,26.2); mk(ctx,'stairTop',22.8,30.2); mk(ctx,'roomDoor',20.6,30); mk(ctx,'roomIn',20.4,30);
+  mk(ctx,'urHouse',17,24.4); mk(ctx,'stairFoot',22.8,24.6); mk(ctx,'stairTop',22.8,30.2); mk(ctx,'roomDoor',20.6,30); mk(ctx,'roomIn',20.4,30);
   mk(ctx,'table',17,30); mk(ctx,'roomCorner',13.4,33);
 };
 

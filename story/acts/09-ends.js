@@ -783,7 +783,7 @@ STORY.act({
       {t:'cam', from:['table',3.2,2.4], fdy:1.7, look:'pr2', dur:0.1},
       {t:'note', text:'The house of Miryam was the gathering place of the Natsarim in Yahrushalayim; her son Yahuchanon, who was also called Mark, would set out with Barnaḇah and Sha’ul (Acts 12:25). Rhode is a Greek name: "rose".'},
       {t:'move', who:'kepha', to:[22.8,22.9], speed:1.2, wait:false},
-      {t:'cam', from:['stairFoot',-1.3,-2.25], fdy:1.7, look:'kepha', dur:2},   /* beside the gate, before his face as he knocks */
+      {t:'cam', from:['urHouse',4.5,-0.45], fdy:1.7, look:'kepha', dur:2},   /* beside the gate, before his face as he knocks */
       {t:'face', who:'kepha', to:'leaf'},
       {t:'read', ref:'ACTS 12:13'},
       {t:'cam', release:true},
