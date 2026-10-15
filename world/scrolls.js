@@ -207,3 +207,51 @@ EARTH.scroll({ id:'ester', book:'ESTĔR', name:'THE SCROLL OF ESTĔR',
   verse:{ t:'“For if you keep entirely silent at this time, relief and deliverance shall arise for the Yahuḏim from another place, while you and your father’s house perish. And who knows whether you have come to the reign for such a time as this?”',
           ref:'ESTĔR 4:14' },
   words:'A queen in Persia who went in to the king unbidden, at the risk of her life, and her people were saved.' });
+
+/* ================= THE SCROLLS OF THE BESORAH OF YAHUSHA =================
+   The account did not end at the exile, and neither do the scrolls. These are
+   the events of the Besorah and the assembly, each laid in the land it
+   happened in, so that the Library of SCRIPTURE UNFOLDS can be filled from
+   Berĕshith to Ḥazon and the whole Bible played as one (ROADMAP Phase F):
+   the birth at Bĕyth Leḥem, the immersion in the Yardĕn, the tomb found
+   empty, the Ruach at the Festival of Weeks, the road to Damascus, and the
+   renewed Yahrushalayim seen on Patmos. Each has its own film there.
+
+   Their verses, like every verse above, came out of the Besorah by
+   tools/extract-besorah.js, and `--check` holds them to the letter. */
+
+EARTH.scroll({ id:'birth', book:'LUKE', name:'THE SCROLL OF THE BIRTH',
+  country:'Yahudah', bearing:1.25,
+  verse:{ t:'“Because there was born to you today in the city of Dawiḏ a Saviour, who is Mashiach, the Master.',
+          ref:'LUKE 2:11' },
+  words:'Shepherds keeping watch by night in the fields below Bĕyth Leḥem, and a child laid in a feeding trough, because there was no room for them in a lodging place.' });
+
+EARTH.scroll({ id:'immersion', book:'MATTITHYAHU', name:'THE SCROLL OF THE YARDĔN',
+  country:'Yahudah', bearing:3.05,
+  verse:{ t:'and see, a voice out of the shamayim, saying, “This is My Son, the Beloved, in whom I did delight.”',
+          ref:'MATTITHYAHU 3:17' },
+  words:'Yahuchanon immersing in the Yardĕn, all the country going out to him — and the shamayim opened over the One he immersed.' });
+
+EARTH.scroll({ id:'tomb', book:'MATTITHYAHU', name:'THE SCROLL OF THE EMPTY TOMB',
+  country:'Yahudah', bearing:4.6,
+  verse:{ t:'And see, there was a great earthquake, for a mal\'ak of (YAHUAH) HWHY came down out of shamayim and came and rolled back the stone from the door, and sat on it.',
+          ref:'MATTITHYAHU 28:2' },
+  words:'Toward dawn on the first day of the week the women came to the tomb in the garden, and the stone was rolled back, and He was not there.' });
+
+EARTH.scroll({ id:'shabuoth', book:'ACTS', name:'THE SCROLL OF THE FESTIVAL OF WEEKS',
+  country:'Yahudah', bearing:5.5,
+  verse:{ t:'And they were all filled with the Ruach HaQadash and began to speak with other tongues, as the Ruach gave them to speak.',
+          ref:'ACTS 2:4' },
+  words:'The taught ones together in one house in Yahrushalayim, a sound from the shamayim, and tongues as of fire on each one of them.' });
+
+EARTH.scroll({ id:'dammeseq', book:'ACTS', name:'THE SCROLL OF THE ROAD TO DAMASCUS',
+  country:'Syria', bearing:0.8,
+  verse:{ t:'It came to be, that as he journeyed, he came near Damascus and suddenly a light flashed around him from the shamayim.',
+          ref:'ACTS 9:3' },
+  words:'Sha’ul on the road with letters against the taught ones — a light out of the shamayim, and a voice, and a man led by the hand into the city.' });
+
+EARTH.scroll({ id:'hazon', book:'ḤAZON', name:'THE SCROLL OF ḤAZON',
+  country:'Greece', bearing:2.0,
+  verse:{ t:'And I, Yahuchanon, saw the qadash (Set Apart) city, renewed Yahrushalayim, coming down out of the shamayim from Aluahim, prepared as a bride adorned for her husband.',
+          ref:'ḤAZON 21:2' },
+  words:'On the island called Patmos, Yahuchanon saw a renewed shamayim and a renewed earth, and the set-apart city coming down out of the shamayim.' });
