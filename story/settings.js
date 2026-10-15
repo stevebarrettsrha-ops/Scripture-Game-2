@@ -1037,6 +1037,9 @@ function sea(ctx,st,x0,o){ o=o||{}; const z1=o.z1===undefined?120:o.z1;
      beach alone is laid, eased down into the water off its edge, and no pool of still water is set over the
      live sea; a floor laid over the bay stood the whole bay up out of the water as land) */
   if(ctx.anchor&&ctx.anchor.sea){ ctx.api.pad(x0-8,-120,x0,120,{top:'sand'}); st.box(x0-6,0,-120,x0,0.1,120,'sand'); return; }
+  /* (and one set down on the true strand — story/places.js, `coast` — has the Great Sea itself before it, some
+     twenty metres out: no pool is laid, only the sand of its beach where the land is) */
+  if(ctx.anchor&&ctx.anchor.coastal){ st.box(x0-6,0,-120,x0,0.1,120,'sand'); return; }
   ctx.api.pad(x0-8,-120,x0+150,z1,{top:'sand'});
   ctx.api.water(x0,-118,x0+148,z1-2,{depth:o.depth||4,bed:'sand'});
   W.waterLife(ctx,{at:[x0+10,0], r:26, y:0, fish:10, egrets:2, flies:2});

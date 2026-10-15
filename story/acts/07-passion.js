@@ -764,10 +764,13 @@ STORY.act({
              {id:'tunic', kind:'box', at:['soldiers',-0.3,1.3], w:0.5, h:0.1, d:0.7, color:0xcfc2a0, hidden:true} ],
     beats:[
       {t:'lead', id:'beam', by:'kurene', back:0.27, up:1.50, turn:Math.PI/2}, {t:'pose', who:'kurene', arms:'carry'},   /* (across the backs of his shoulders, behind his neck, not through it) */
-      {t:'cam', from:[-50,6,10], look:[-62,2,-24], dur:0.1},
+      /* (Shim'on seen with the beam on him, before his face as he takes up the way — the wide shot showed the
+         whole slope, and him too small to see what he bore) */
+      {t:'cam', from:{rel:'kurene', off:[-2.06,1.8,-1.86]}, look:'kurene', dur:0.1},
       {t:'move', who:['yahusha','kurene','sold1','sold2'], to:[['foot',2.4,0],['foot',4.6,1.6],['foot',3,-2],['foot',4.4,-1.2]], speed:1.1, wait:false},
       {t:'follow', who:ids(ROADFOLK).slice(0,6).concat(['miryam','yahuchanon','magdala','qlophah']), target:'yahusha'},
       {t:'read', ref:'LUKE 23:26'},
+      {t:'cam', from:[-50,6,10], look:[-62,2,-24], dur:2},
       {t:'read', ref:'LUKE 23:27'},
       {t:'stop', who:['yahusha']},
       {t:'face', who:'yahusha', to:'magdala'},
