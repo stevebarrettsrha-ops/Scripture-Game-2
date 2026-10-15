@@ -69,6 +69,9 @@ Static.prototype.box=function(x0,y0,z0,x1,y1,z1,color,opt){
 /* the little things, gathered into one mesh a scene, shaded by the way each face looks */
 Static.prototype.detail=function(x0,y0,z0,x1,y1,z1,color,opt){
   opt=opt||{};
+  /* (and kept, so a body is not walked through it: the engine keeps those standing on the floor
+     at a knee's height and more — a table, a bench, a jar, a palm's foot; `walk` for one that is not) */
+  if(!opt.walk) this.colliders.push([x0,y0,z0,x1,y1,z1]);
   const j=opt.jitter===undefined?0.06:opt.jitter;
   const k=1+(hash(x0*3.1+z1,z0*1.7+y0)-0.5)*j*2;
   const col=new THREE.Color(typeof color==='number'?color:0x8a8478); col.multiplyScalar(k);

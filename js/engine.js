@@ -5703,6 +5703,10 @@ function flShadeRing(k,r1){
     const sink=Math.max(0,1-Math.max(0,r-FL_R0)/FL_FADE);
     let y=_flH[c0]-sink*B*1.4;
     if(_flLand[c0]) y=Math.max(y,Math.min(_flH[c0],WATER_Y+2.2));
+    /* (on the true earth the open sea's floor here lies under the trough of a storm's greatest sea: at
+       six units the flat navy stood up in every trough of a gale. Laid here, after the turn-shading, so
+       the coasts are shaded as they were) */
+    else if(TRUE_EARTH&&y>-800) y-=74;
     _flY[c0]=y;
   }
 }
@@ -6008,6 +6012,29 @@ let seaTime=0, seaAmp=1;                    /* shared clock + storm amplitude */
    storm. They lie down over the shallows as every sea does. The heights are the same sum on
    the CPU (what the ship rides) and on the GPU (what is drawn). */
 const TEMPESTS=[];
+/* ---- AND A STORM A STORY CALLS DOWN RAISES THEM TOO ----
+   setStorm darkened the sky and doubled the fair-weather ripples, and the long seas of a storm were
+   never seen in a story at all: the Euroclydon blew over a sea of ripples. A story's storm is a tempest
+   of its own now, everywhere about the eye at its fury and running before the story's wind. It is not one
+   of the voyage's (no wall of rain, no rogue, no spout is ever made of it); it is only the first of the
+   seas drawn, in the first of the GPU's three places, and the CPU sums the same three. */
+let STORY_T=null;
+function seaStormAt(i){ return STORY_T?(i?TEMPESTS[i-1]:STORY_T):TEMPESTS[i]; }
+/* (`dir`: the way the story's wind blows, [x,z] or {x,z} in the world; left out, the wind of the place.
+   Its seas are reckoned from where the eye stood when it rose (ox,oz), not from the middle of the earth:
+   so a wind that backs a point or two turns the seas about the scene, and does not throw every crest
+   in it a long way over in one frame) */
+function storyStorm(v,dir){
+  if(!(v>0)){ if(STORY_T) STORY_T.peak=0; return; }
+  const p=camera.position; let dx=0, dz=0;
+  if(dir){ dx=Array.isArray(dir)?+dir[0]:+dir.x; dz=Array.isArray(dir)?+dir[1]:+dir.z; }
+  if(!(Math.hypot(dx,dz)>1e-6)){ if(STORY_T&&!dir){ dx=STORY_T.tx; dz=STORY_T.tz; } else { const w=windAt(p.x,p.z); dx=w.x; dz=w.z; } }
+  const l=Math.hypot(dx,dz)||1; dx/=l; dz/=l;
+  if(!(Math.hypot(dx,dz)>0.5)){ dx=1; dz=0; }
+  /* (a new storm, or one risen again far from the last: the seas taken up where the eye now is) */
+  if(!STORY_T||Math.hypot(p.x-STORY_T.ox,p.z-STORY_T.oz)>20000)
+    STORY_T={x:p.x,z:p.z,ox:p.x,oz:p.z,R:1e7,I:STORY_T?STORY_T.I:0,peak:0,dx,dz,tx:dx,tz:dz};
+  STORY_T.peak=Math.min(1,+v); STORY_T.tx=dx; STORY_T.tz=dz; }
 const TSWELL=[[0,420,1.0,0.78],[0.38,250,0.46,0.70],[-0.52,140,0.22,0.60]].map(r=>({off:r[0],k:2*Math.PI/r[1],A:r[2],Q:r[3],
   omega:Math.sqrt(G_GRAV*2*Math.PI/r[1]),c:Math.cos(r[0]),s:Math.sin(r[0])}));
 const TS_H=30;                                   /* the great swell's height at a storm's full fury (units; 6 to the metre) */
@@ -6016,14 +6043,16 @@ function _ss(a,b,x){ const t=Math.max(0,Math.min(1,(x-a)/(b-a))); return t*t*(3-
 /* how hard a tempest blows at a point: full over its heart, falling away over its outer bands */
 function tempestW(T,x,z){ const d=Math.hypot(x-T.x,z-T.z); if(d>=T.R*1.8) return 0; return T.I*(1-_ss(T.R*0.5,T.R*1.8,d)); }
 /* the swell lies down over the shallows (the GPU's own `lie`, off the same shoal field) */
-function seaLie(x,z){ return 0.05+0.95*(1-_ss(0.22,0.90,shoalAt(x,z))); }
+/* (on the true earth the GPU reads its shoal off the depth sheet about the eye, and so does this:
+   the coarse map put the storm's whole height under a ship the drawn sea had laid flat at the strand) */
+function seaLie(x,z){ return 0.05+0.95*(1-_ss(0.22,0.90,(TRUE_EARTH&&DT_K.value.y>0.5)?trueShoalAt(x,z):shoalAt(x,z))); }
 function stormSea(x,z,sl){
   let h=0, lie=-1;
-  for(const T of TEMPESTS){ const w=tempestW(T,x,z); if(w<=0) continue;
+  for(let i=0;i<3;i++){ const T=seaStormAt(i); if(!T) break; const w=tempestW(T,x,z); if(w<=0) continue;
     if(lie<0) lie=seaLie(x,z);
-    const H=TS_H*Math.pow(w,1.25)*lie;
+    const H=TS_H*Math.pow(w,1.25)*lie, qx=x-(T.ox||0), qz=z-(T.oz||0);
     for(const c of TSWELL){ const Dx=c.c*T.dx-c.s*T.dz, Dz=c.s*T.dx+c.c*T.dz;
-      const f=c.k*(Dx*x+Dz*z)-c.omega*seaTime, A=H*c.A;
+      const f=c.k*(Dx*qx+Dz*qz)-c.omega*seaTime, A=H*c.A;
       h+=A*Math.sin(f); if(sl){ const q=Math.cos(f)*A*c.k; sl.x+=q*Dx; sl.z+=q*Dz; } } }
   if(ROGUE.on){ if(lie<0) lie=seaLie(x,z);
     const rx=x-ROGUE.x, rz=z-ROGUE.z, sd=rx*ROGUE.dx+rz*ROGUE.dz, lat=-rx*ROGUE.dz+rz*ROGUE.dx, W=ROGUE.W;
@@ -6033,14 +6062,14 @@ function stormSea(x,z,sl){
   return h; }
 function seaHeight(x,z){ let y=0;
   for(const w of WAVES){ const f=w.k*(w.dx*x+w.dy*z)+w.omega*seaTime; y+=w.A*seaAmp*Math.sin(f); }
-  if(TEMPESTS.length||ROGUE.on) y+=stormSea(x,z,null);
+  if(TEMPESTS.length||ROGUE.on||STORY_T) y+=stormSea(x,z,null);
   return y; }
 const _slope={x:0,z:0};
 function seaSlope(x,z){ let sx=0,sz=0;
   for(const w of WAVES){ const f=w.k*(w.dx*x+w.dy*z)+w.omega*seaTime;
     const c=Math.cos(f)*w.A*seaAmp*w.k; sx+=c*w.dx; sz+=c*w.dy; }
   _slope.x=sx; _slope.z=sz;
-  if(TEMPESTS.length||ROGUE.on) stormSea(x,z,_slope);
+  if(TEMPESTS.length||ROGUE.on||STORY_T) stormSea(x,z,_slope);
   return _slope; }
 
 /* the GPU wave grid, following the ship/traveller across the deep.
@@ -6052,12 +6081,31 @@ const WG_S=2500, WG_SEG=260;          /* (fine enough to carry a storm's shortes
    There the square is three times as wide, and finer in proportion, so a storm's shortest sea is
    still carried (36 units to a cell). The small map keeps its own. */
 const WG_SW=TRUE_EARTH?7500:WG_S, WG_SEGW=TRUE_EARTH?420:WG_SEG;
+/* ---- AND ON THE TRUE EARTH THE WATER GOES ON TO THE HAZE ----
+   Past the square the eye met the far ring's own sea, a flat navy floor laid under the face with no
+   sky in it, and barely fogged short of eight kilometres: a hard dark band under every horizon, from
+   the deck and from a story's strand alike. So the square is carried on outward in rings to where the
+   haze has all of it, each ring the last one's edge laid further out (the same vertices round, so no
+   seam can open). The swell has lain down before the square's rim, so the rings are flat water; but
+   they mirror the same sky and stand in the same haze, and the horizon is one sea. */
+const WG_OUT=TRUE_EARTH?60000:WG_SW, WG_RINGS=TRUE_EARTH?12:0;
 const waveGeo=(()=>{
   const g=new THREE.BufferGeometry(), pos=[], idx=[], N=WG_SEGW+1;
   for(let j=0;j<N;j++) for(let i=0;i<N;i++)
     pos.push(-WG_SW+i/WG_SEGW*2*WG_SW, 0, -WG_SW+j/WG_SEGW*2*WG_SW);
   for(let j=0;j<WG_SEGW;j++) for(let i=0;i<WG_SEGW;i++){
     const a=j*N+i, b=a+1, c=a+N, d=c+1; idx.push(a,c,b, b,c,d); }
+  if(WG_RINGS){ const rim=[];                                      /* the square's own edge, once round */
+    for(let i=0;i<WG_SEGW;i++) rim.push(i);
+    for(let j=0;j<WG_SEGW;j++) rim.push(j*N+WG_SEGW);
+    for(let i=WG_SEGW;i>0;i--) rim.push(WG_SEGW*N+i);
+    for(let j=WG_SEGW;j>0;j--) rim.push(j*N);
+    const M=rim.length, q=Math.pow(WG_OUT/WG_SW,1/WG_RINGS);
+    let prev=rim;
+    for(let r=1;r<=WG_RINGS;r++){ const s=Math.pow(q,r), base=pos.length/3, cur=[];
+      for(let m=0;m<M;m++){ const v=rim[m]*3; pos.push(pos[v]*s,0,pos[v+2]*s); cur.push(base+m); }
+      for(let m=0;m<M;m++){ const m2=(m+1)%M, a=prev[m], b=prev[m2], c=cur[m], d=cur[m2]; idx.push(a,c,b, b,c,d); }
+      prev=cur; } }
   g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
   g.setIndex(idx); return g;
 })();
@@ -6110,6 +6158,14 @@ const DT_C={value:new THREE.Vector2(0,0)}, DT_CO={value:new THREE.Vector2(0,0)};
 orgFeed(DT_C,DT_CO,[['x','y']]);
 const DT_K={value:new THREE.Vector2(1/(2*DT_HALF),0)};          /* its scale, and whether it is read at all */
 let _dt=null;                                                      /* a sheet being laid: {cx,cz,row,first} */
+/* ---- AND LAND A STORY RAISES OUT OF THE SEA IS A SHORE ----
+   A set anchored where the true earth has only water builds its island up from the bed (setBuilder,
+   overSea). The sheet reads it as the strand, so the swell lies down against it and the surf runs on
+   it as on any shore of the earth's own: else the storm's whole seas ran on through the island. */
+const MADE_LAND=[];                                                /* [x0,z0,x1,z1] in the world */
+function madeLandAt(x,z){ const h=DT_TX*0.5;
+  for(const R of MADE_LAND) if(x>R[0]-h&&x<R[2]+h&&z>R[1]-h&&z<R[3]+h) return true; return false; }
+function madeLandChanged(){ DT_K.value.y=0; _dt=null; }           /* (the sheet laid again whole, next frame) */
 function depthTick(px,pz){
   if(!TRUE_EARTH||!window.DEM) return;
   const on=DT_K.value.y>0.5, reach=DT_HALF-WG_SW;
@@ -6127,12 +6183,23 @@ function depthTick(px,pz){
     for(let i=0;i<DT_N;i++){ const x=_dt.cx-DT_HALF+(i+0.5)*DT_TX, ll=latLonOf(x,z), e=DEM.heightAt(ll[0],ll[1]);
       let d=e===null?255:-e;
       if(e!==null&&HOLES.length&&d>0){ d=holeReefAt(x,z,d); d+=holeCutAt(x,z); }       /* (the reef and the shaft of a blue hole, as its bed is laid) */
+      if(MADE_LAND.length&&madeLandAt(x,z)) d=0;
       DT_NEXT[j*DT_N+i]=Math.max(0,Math.min(255,Math.round(d))); }
     _dt.row++;
     if(!_dt.first&&performance.now()-t0>3) break; }
   if(_dt.row>=DT_N){
     for(let k=0;k<DT_N*DT_N;k++){ const v=DT_NEXT[k]; DT_DATA[k*4]=v; DT_DATA[k*4+1]=v; DT_DATA[k*4+2]=v; DT_DATA[k*4+3]=255; }
     DT_TEX.needsUpdate=true; DT_C.value.set(_dt.cx,_dt.cz); DT_K.value.y=1; _dt=null; } }
+/* the shoal off the laid sheet at a point, as trueShoal reads it on the card (between the texels, and
+   0 off the sheet) — for the CPU's own sum of the storm's seas */
+function trueShoalAt(x,z){
+  const tx=(x-DT_C.value.x)/(2*DT_HALF)+0.5, tz=(z-DT_C.value.y)/(2*DT_HALF)+0.5;
+  if(tx<0||tz<0||tx>1||tz>1) return 0;
+  const N=DT_N, u=Math.min(N-1,Math.max(0,tx*N-0.5)), v=Math.min(N-1,Math.max(0,tz*N-0.5));
+  const i0=Math.floor(u), j0=Math.floor(v), i1=Math.min(N-1,i0+1), j1=Math.min(N-1,j0+1), fu=u-i0, fv=v-j0, D=DT_DATA;
+  const a=D[(j0*N+i0)*4]+(D[(j0*N+i1)*4]-D[(j0*N+i0)*4])*fu, b=D[(j1*N+i0)*4]+(D[(j1*N+i1)*4]-D[(j1*N+i0)*4])*fu;
+  const sp=Math.pow(Math.min(1,Math.max(0,(a+(b-a)*fv)/200)),0.3846);
+  return Math.pow(1-sp,1.2); }
 /* in the sea's shaders: the shoal at a place (as the shoal map gives it, 0 out in the deep and 1 at the
    strand) from the true sounding there — the same depth curve the shader's clearness reads back */
 const DT_GLSL=`
@@ -6171,12 +6238,12 @@ const waveMat=new THREE.ShaderMaterial({
     uniform float uWPh[${WAVES.length}], uTPh[${3*TSWELL.length}];
     uniform float uTime, uAmp; uniform vec2 uCenter; uniform sampler2D uShoal;${DT_GLSL}
     uniform vec4 uTS[3]; uniform vec2 uTD[3]; uniform vec4 uRog; uniform float uRogA, uRogW;
-    varying vec3 vNormal, vWorld; varying float vHeight, vFog, vTaper; varying vec2 vUv, vP;
+    varying vec3 vNormal, vWorld; varying float vHeight, vFog, vTaper, vEd; varying vec2 vUv, vP;
     varying float vStorm, vSwell, vSH;
     uniform mat4 uReflMat; varying vec4 vRefl;
     void main(){
       vec2 P=position.xz+uCenter;
-      float ed=max(abs(position.x),abs(position.z));
+      float ed=max(abs(position.x),abs(position.z)); vEd=ed;
       float taper=1.0-smoothstep(${(WG_SW*0.55).toFixed(1)},${(WG_SW*0.97).toFixed(1)},ed);
       /* THE SWELL LIES DOWN AS IT COMES ASHORE. A wave in a storm stands
          nearly ten units, and the flattest beach is only six above the
@@ -6213,9 +6280,9 @@ const waveMat=new THREE.ShaderMaterial({
   fragmentShader:ORG_GLSL+`
     precision highp float;
     uniform vec3 uLight, uFogColor, uSunDir, uDeep, uShallow, uCamPos, uSunCol, uZenith, uSkyHor, uSkyTop; uniform sampler2D uMap, uShoal;${DT_GLSL}
-    uniform float uFogNear, uFogFar, uOpacity, uTime, uShipH; uniform vec4 uShip;
+    uniform float uFogNear, uFogFar, uOpacity, uTime, uShipH, uAmp; uniform vec4 uShip;
     uniform vec3 uMoonDir, uMoonCol; uniform float uMoon; uniform vec2 uStormDir;
-    varying vec3 vNormal, vWorld; varying float vHeight, vFog, vTaper; varying vec2 vUv, vP;
+    varying vec3 vNormal, vWorld; varying float vHeight, vFog, vTaper, vEd; varying vec2 vUv, vP;
     varying float vStorm, vSwell, vSH;
     uniform sampler2D uRefl; uniform float uReflOn, uReflY; varying vec4 vRefl;
     ${HZ_GLSL}
@@ -6257,8 +6324,9 @@ const waveMat=new THREE.ShaderMaterial({
       /* a storm sea is dark slate-green, lighter where a crest stands up against the sky */
       base=mix(base,vec3(0.075,0.14,0.15)*(0.85+0.45*clamp(vSwell/(vSH*1.4+0.01)*0.5+0.5,0.0,1.0)),vStorm*0.65);
       vec3 col=base*(0.62+0.5*diff)*(0.82+0.36*tex.b);
-      /* crest foam — only the tallest crests, torn ragged by the ripple noise */
-      float foam=smoothstep(2.1,3.3,vHeight)*(0.45+0.9*rB.b);
+      /* crest foam — only the tallest crests, torn ragged by the ripple noise (the tallest for the sea
+         that is running: in a blow every crest stood past a fixed height, and a fifth of the sea was white) */
+      float foam=smoothstep(2.1,3.3,vHeight/max(1.0,uAmp))*(0.45+0.9*rB.b);
       /* the ship's wake: bright collar at the hull, a widening V astern */
       vec2 fwd=vec2(sin(uShipH),cos(uShipH)), rgt=vec2(cos(uShipH),-sin(uShipH));
       vec2 rel=vP-uShip.xy; float along=dot(rel,fwd), side=dot(rel,rgt);
@@ -6385,7 +6453,9 @@ const waveMat=new THREE.ShaderMaterial({
          ring beneath it. Stood on the water the haze has long since taken it
          and nothing of this can be seen — but drawn back off the world, where
          the haze opens, its square corner stood on the ocean like a raft. */
-      aa*=smoothstep(0.0,0.35,vTaper);
+      /* (on the true earth the flat rings go on past the square, and thin away at their own rim instead,
+         far out in the haze) */
+      ${TRUE_EARTH?`aa*=1.0-smoothstep(${(WG_OUT*0.85).toFixed(1)},${WG_OUT.toFixed(1)},vEd);`:'aa*=smoothstep(0.0,0.35,vTaper);'}
       float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
       /* the haze over storm water is the storm's own dark, not the fair sky's */
       vec3 fogC=mix(hazeOf(uFogColor,normalize(vWorld-uCamPos)),vec3(0.10,0.12,0.14)*(0.45+0.55*uLight),smoothstep(0.0,0.6,vStorm)*0.85);
@@ -6737,7 +6807,15 @@ function holeTick(dt,px,pz){
 }
 const _sunW=new THREE.Vector3(), _moonW=new THREE.Vector3();
 function waterTick(px,pz,dayF,storm){
-  seaTime=performance.now()*0.001; seaAmp=1+storm*1.7;
+  const t0=seaTime; seaTime=performance.now()*0.001;
+  /* (a story's storm raises its own seas, so the fair-weather swell is not doubled on top of them; and
+     those seas build, and fall, at the pace the story's own lake keeps — never in one frame) */
+  seaAmp=1+storm*(STORY_T?0.6:1.7);
+  if(STORY_T){ const T=STORY_T, dS=Math.min(0.25,Math.max(0,seaTime-t0)), e=Math.min(1,dS*0.8);
+    T.I+=(T.peak-T.I)*Math.min(1,dS*(T.peak>T.I?1.2:1.6));
+    { let dx=T.dx+(T.tx-T.dx)*e, dz=T.dz+(T.tz-T.dz)*e; const l=Math.hypot(dx,dz);
+      if(l>0.05){ T.dx=dx/l; T.dz=dz/l; } else { T.dx=T.tx; T.dz=T.tz; } }
+    if(T.peak<=0&&T.I<0.004) STORY_T=null; }
   const u=waveMat.uniforms;
   u.uTime.value=seaTime; u.uAmp.value=seaAmp;
   u.uCenter.value.set(px-ORG.x,pz-ORG.z);
@@ -7289,14 +7367,15 @@ function tempestTick(dt){
 }
 /* the storms' seas, handed to the GPU */
 function tempestUniforms(u){
-  for(let i=0;i<3;i++){ const T=TEMPESTS[i];
+  for(let i=0;i<3;i++){ const T=seaStormAt(i);
     if(T){ u.uTS.value[i].set(T.x-ORG.x,T.z-ORG.z,T.R,T.I); u.uTD.value[i].set(T.dx,T.dz);
       /* and each of its seas' phase at the eye's own origin (as the steady waves': waterTick) */
       for(let j=0;j<TSWELL.length;j++){ const c=TSWELL[j], Dx=c.c*T.dx-c.s*T.dz, Dz=c.s*T.dx+c.c*T.dz;
-        u.uTPh.value[i*TSWELL.length+j]=(c.k*(Dx*ORG.x+Dz*ORG.z))%(2*Math.PI); } }
+        u.uTPh.value[i*TSWELL.length+j]=(c.k*(Dx*(ORG.x-(T.ox||0))+Dz*(ORG.z-(T.oz||0))))%(2*Math.PI); } }
     else u.uTS.value[i].set(0,0,1,0); }
   u.uRogA.value=ROGUE.on?ROGUE.A:0; u.uRog.value.set(ROGUE.x-ORG.x,ROGUE.z-ORG.z,ROGUE.dx,ROGUE.dz); u.uRogW.value=ROGUE.W;
-  let best=0; for(const T of TEMPESTS){ const w=tempestW(T,state.boat.x,state.boat.z); if(w>best){ best=w; u.uStormDir.value.set(T.dx,T.dz); } } }
+  let best=0; for(const T of TEMPESTS){ const w=tempestW(T,state.boat.x,state.boat.z); if(w>best){ best=w; u.uStormDir.value.set(T.dx,T.dz); } }
+  if(STORY_T&&STORY_T.I>best) u.uStormDir.value.set(STORY_T.dx,STORY_T.dz); }
 
 /* ---- THE STORM SEEN FROM AFAR: a wall of rain under a black deck of cloud ----
    Drawn without the haze (it is seen across forty kilometres of sea, where the haze has long
@@ -8003,6 +8082,9 @@ const REFLECT={ on:!((window.__INJECT||{}).noReflect), scale:0.5, lakes:new Set(
     hid.length=0;
     const hide=o=>{ if(o&&o.visible){ o.visible=false; hid.push(o); } };
     hide(waveGrid); hide(sea); hide(seaDeep);
+    /* (nor the stars: each point, drawn a fixed size into a half-size picture and shaken by the ripple,
+       lay on the night sea as a white squiggle — the sky the water mirrors is dark without them) */
+    hide(starGroup);
     for(const m of REFLECT.lakes) hide(m);
     const kids=chunkRoot.children; for(let i=0;i<kids.length;i++) if(kids[i].material===MAT.waterB) hide(kids[i]);
     const prev=renderer.getRenderTarget();
@@ -8060,7 +8142,9 @@ function skyTick(px,pz){
   if(st>0.01){ _c1.setHex(sky); _c2.setHex(0x4c545e); sky=_c1.lerp(_c2,st*0.75).getHex(); }
   scene.background.setHex(sky);
   if(scene.fog){ scene.fog.color.setHex(sky); /* fog is detached in the firmament view */
-    scene.fog.near=FOG_NEAR*(1-st*0.55); scene.fog.far=FOG_FAR-st*260;
+    /* (on the true earth the storm's murk closes in by its share of the reach, as on the small map: two
+       hundred and sixty units off fifty-two thousand left the horizon razor-sharp in a gale) */
+    scene.fog.near=FOG_NEAR*(1-st*0.55); scene.fog.far=TRUE_EARTH?FOG_FAR*(1-st*0.8):FOG_FAR-st*260;
     gradeHaze(px,pz,dayF,st); }
   const l=mix3(0x38405e,0xd9a878,0xffffff,dayF);
   const dim=1-st*0.38;
@@ -20216,6 +20300,26 @@ let fpHid=false;
 let nearHid=false;                                  /* (the body put away while the eye is pressed close behind his head) */
 const _nearHead=new THREE.Vector3();
 let nearFresh=false;                                /* (set by this frame's own third-person eye: an early way out of it leaves the body drawn) */
+/* the eye drawn in within HEAD_CLEAR of his head is craned up its own column (by CRANE_UP at the most),
+   and its gaze goes on past him (camGaze, eased); craneK is how far up it went this frame */
+const HEAD_CLEAR=8.5, CRANE_UP=6.0;
+let camGaze=0, craneK=0;
+/* where he stood when the last frame's eye was laid, and in what mode (the follow carries the eye on by
+   as much as he has come toward it: see cameraTick) */
+const _camMan=new THREE.Vector3(); let _camManOn=false, _camManMode='';
+/* the eye against his head and his trunk, in the world — on the deck or off it, upright, prone in the
+   water or leaning into the air: his head where it truly is, and the line from his hips up to it */
+const _nhHip=new THREE.Vector3(), _nhAhead=new THREE.Vector3();
+let _nhHeadD=1e9, _nhBodyD=1e9;
+function eyeToBody(cp){
+  const hd=walkerG.userData&&walkerG.userData.head;
+  if(hd) hd.getWorldPosition(_nearHead);
+  else { walkerG.updateWorldMatrix(true,false); _nearHead.set(0,10.4,0); walkerG.localToWorld(_nearHead); }
+  _nhHip.set(0,1.0,0); walkerG.localToWorld(_nhHip);
+  _nhHeadD=cp.distanceTo(_nearHead);
+  const vx=_nearHead.x-_nhHip.x, vy=_nearHead.y-_nhHip.y, vz=_nearHead.z-_nhHip.z, L2=(vx*vx+vy*vy+vz*vz)||1;
+  let t=((cp.x-_nhHip.x)*vx+(cp.y-_nhHip.y)*vy+(cp.z-_nhHip.z)*vz)/L2; t=t<0?0:t>1?1:t;
+  _nhBodyD=Math.hypot(cp.x-_nhHip.x-vx*t, cp.y-_nhHip.y-vy*t, cp.z-_nhHip.z-vz*t); }
 { const bp=$('b-pov'); if(bp){ bp.textContent='👁 View: '+(state.pov==='first'?'first person':'third person');
     bp.onclick=()=>setPov(state.pov==='first'?'third':'first'); } }
 /* the arm and the thing in the hand, drawn over the world at the foot of the view (on a layer of their
@@ -20349,6 +20453,7 @@ function voxelRayT(ax,ay,az,bx,by,bz){
   return 1;
 }
 function cameraTick(dt){
+  const manWas=_camManOn; _camManOn=false;         /* (any way out before the follow breaks its carry) */
   if(cut){ sceneTick(dt); return; }
   /* ---- THE SLIDE ----
      A flick of the finger or the mouse hands its pace to the view, and the
@@ -20538,6 +20643,7 @@ function cameraTick(dt){
        UNITS now, off the traveller's own shoulder. */
   /* (the deep keeps its own law, above — and the boom is handed back whole
      while he is under, so it is not still half drawn-in when he comes out) */
+  craneK=0;
   if(state.mode==='dive'||swimCam) camClear=1;
   else {
     const ox=px, oy=baseY+9, oz=pz;
@@ -20578,8 +20684,11 @@ function cameraTick(dt){
            and its step back from the face is a HAND'S BREADTH IN UNITS, not
            a share of the whole boom (a share re-entered the wall band from
            any distance, and the floor hoisted the eye onto the roof anyway). */
-        const minD=(kindHit>=2)?3.4:(state.mode==='boat'?34:state.mode==='deck'?14:9);
-        const back=(kindHit>=2)?1.0/Math.max(dist,1):0.015;
+        /* (but the helm's boom hangs on the ship's middle, and a house ashore astern let it in to a hand's
+           breadth of her — through the helmsman's own head: the ship keeps her own floor whatever stops it) */
+        const tight=kindHit>=2&&state.mode!=='boat';
+        const minD=tight?3.4:(state.mode==='boat'?34:state.mode==='deck'?14:9);
+        const back=tight?1.0/Math.max(dist,1):0.015;
         want=Math.max(Math.min(0.92,minD/Math.max(dist,minD)),want-back); }
       /* ---- AND THE EYE'S OWN COLUMN STANDS CLEAR OF THE HOMES ----
          A house on a terrace can win the sight-line walk as GROUND (the
@@ -20610,6 +20719,19 @@ function cameraTick(dt){
       camPos.x=ox+(camPos.x-ox)*camClear;
       camPos.y=oy+(camPos.y-oy)*camClear;
       camPos.z=oz+(camPos.z-oz)*camClear; }
+    /* ---- AND DRAWN IN THAT CLOSE, THE EYE GOES UP ----
+       Let in to a hand's breadth by a house or a tree at his back, the eye sat a few units behind his
+       hood and looked into it: the whole frame was the back of his head, hair over skin (player-reported).
+       Within HEAD_CLEAR of his head the seat is craned UP its own column instead — the wall or the trunk
+       that drew it in stands in the whole column, and the walk has just found this one open — as high as
+       a roof or a bough over it allows, and the gaze goes on past him (at the end, below): his crown low
+       in the frame and the street before him. It is laid on the seat after the walk, so nothing of it is
+       fed back into the walk, and the follow eases the eye up as it eases everything. */
+    if(state.mode==='walk'||state.mode==='fly'||state.mode==='deck'){
+      const hb=Math.hypot(camPos.x-px,camPos.y-(baseY+10.4),camPos.z-pz);
+      if(hb<HEAD_CLEAR){ let up=CRANE_UP*Math.min(1,(HEAD_CLEAR-hb)/(HEAD_CLEAR-3.0));
+        while(up>0.4&&blocked(camPos.x,camPos.y+up,camPos.z)) up*=0.5;          /* (a lintel, a cave's roof: as high as it may) */
+        if(up>0.4){ camPos.y+=up; craneK=up/CRANE_UP; } } }
     /* and the pitch being free to look UP, the ground itself is its floor:
        the eye settles just over the grass, the planks or the water — let up
        and down at a pace, never snapped (see camFloor). A gap too wide to be
@@ -20649,11 +20771,30 @@ function cameraTick(dt){
      had just been pulled in against, and the world was seen through the
      stone. That is the other half of the shimmer. */
   if(!camInside){
-    const wantNear=Math.max(1,Math.min(600,
+    /* (and with his body put away the eye may be pressed nearer the stone than a unit: it is opened in) */
+    const wantNear=nearHid?0.3:Math.max(1,Math.min(600,
       Math.hypot(camPos.x-px,camPos.y-baseY,camPos.z-pz)*0.02));
     if(Math.abs(camera.near-wantNear)>Math.max(0.5,camera.near*0.15)){
       camera.near=wantNear; camera.updateProjectionMatrix(); } }
-  camera.position.lerp(camPos,Math.min(1,dt*5));
+  /* ---- THE FOLLOW TRAILS HIM, AND GOES ROUND HIM: NEVER INTO HIM ----
+     The eye eased toward its seat a fifth of a second behind, and that lag was a LENGTH: backing toward
+     the eye he walked into it (three or four units afoot, seven mounted, thirty diving, a hundred on the
+     wing), and a quick swing of the view carried it along the chord straight through him. So as much of
+     his own going as closes on the eye carries the eye on with it (never past the seat the walk has
+     cleared), and the eased boom is never let shorter than the eased length between the two: a swing
+     goes round him. (The helm keeps the plain ease: its boom hangs on the ship's middle, not on him.) */
+  { const cp=camera.position, Ox=px, Oy=baseY+9, Oz=pz, seatL=Math.hypot(camPos.x-Ox,camPos.y-Oy,camPos.z-Oz);
+    if(manWas&&_camManMode===state.mode&&state.mode!=='boat'){
+      const mx=px-_camMan.x, my=baseY-_camMan.y, mz=pz-_camMan.z;
+      if(mx*mx+my*my+mz*mz<120*120){                                    /* (not across a leap or a landfall) */
+        const bx=cp.x-Ox, by=cp.y-Oy, bz=cp.z-Oz, bl=Math.hypot(bx,by,bz);
+        if(bl>0.5){ const s=Math.min((mx*bx+my*by+mz*bz)/bl, seatL-bl);
+          if(s>0){ const f=s/bl; cp.x+=bx*f; cp.y+=by*f; cp.z+=bz*f; } } } }
+    _camMan.set(px,baseY,pz); _camManOn=true; _camManMode=state.mode;
+    const a=Math.min(1,dt*5), L0=Math.hypot(cp.x-Ox,cp.y-Oy,cp.z-Oz);
+    cp.lerp(camPos,a);
+    if(state.mode!=='boat'){ const Lm=L0+(seatL-L0)*a, L=Math.hypot(cp.x-Ox,cp.y-Oy,cp.z-Oz);
+      if(L>0.05&&L<Lm-0.01){ const k=Lm/L; cp.set(Ox+(cp.x-Ox)*k, Oy+(cp.y-Oy)*k, Oz+(cp.z-Oz)*k); } } }
   /* the shock of a sea striking her, or a spout taking hold, comes up through her into the eye */
   if(state.shake>0.01&&(state.mode==='boat'||state.mode==='deck')){ const k=state.shake*state.shake*3.2;
     camera.position.x+=(Math.random()-0.5)*k; camera.position.y+=(Math.random()-0.5)*k; camera.position.z+=(Math.random()-0.5)*k;
@@ -20712,12 +20853,27 @@ function cameraTick(dt){
   /* (his head where it truly is — prone in the water, on the deck of a moving ship — and the body is put
      away only for the drawing of the frame, so nothing that shows or hides him for its own reasons is
      ever overruled: see drawWorld) */
-  { const hd=walkerG.userData&&walkerG.userData.head, cp=camera.position;
-    if(hd&&walkerG.visible&&(state.mode==='walk'||state.mode==='fly'||state.mode==='deck'||state.mode==='dive')){
-      hd.getWorldPosition(_nearHead); const dH=_nearHead.distanceTo(cp);
-      nearHid=nearHid?dH<9.5:dH<7.5; }
-    else nearHid=false;
-    nearFresh=true; }
+  /* BUT PUT AWAY AT SEVEN UNITS HE WAS GONE whenever the eye came in at all, and the view popped to his
+     own. The eye craned up over him (above) looks on PAST him now: the gaze is eased toward a point
+     before him as the eye is craned, or comes within arm's length of his head — and wholly at once when
+     it is all but in it, so an eye pressed against his back by a wall looks out along his way and never
+     up into the sky over him. And the body is put away only when the eye is truly IN him (his head, or
+     the line from his hips up to it, in every pose and every mode, the helm too) or his head would stand
+     in the middle of the picture; and shown again only well clear of all three. */
+  if(!camInside){ const cp=camera.position;
+    eyeToBody(cp);
+    const gWant=state.mode==='boat'?0:Math.max(craneK,Math.min(1,Math.max(0,(4.5-_nhHeadD)/2.0)));
+    camGaze+=(gWant-camGaze)*Math.min(1,dt*6); if(_nhHeadD<2.5) camGaze=Math.max(camGaze,gWant);
+    if(camGaze>0.002){ _nhAhead.set(px-Math.sin(az)*28, baseY+(swimCam?2:5), pz-Math.cos(az)*28); camTgt.lerp(_nhAhead,camGaze); }
+    if(walkerG.visible){
+      const hx=_nearHead.x-cp.x, hy=_nearHead.y-cp.y, hz=_nearHead.z-cp.z, tx=camTgt.x-cp.x, ty=camTgt.y-cp.y, tz=camTgt.z-cp.z;
+      const ang=Math.acos(Math.max(-1,Math.min(1,(hx*tx+hy*ty+hz*tz)/((_nhHeadD*Math.hypot(tx,ty,tz))||1))));
+      const rad=Math.atan(1.9/Math.max(0.1,_nhHeadD));                 /* his head's half-breadth, as the eye sees it */
+      nearHid=nearHid?(_nhHeadD<3.8||_nhBodyD<2.8||(_nhHeadD<8.0&&ang<rad+0.25))
+                     :(_nhHeadD<3.0||_nhBodyD<2.0||(_nhHeadD<6.0&&ang<rad+0.08)); }
+    else nearHid=false; }
+  else { nearHid=false; camGaze=0; }
+  nearFresh=true;
   camera.lookAt(camTgt);
 }
 
@@ -21952,7 +22108,37 @@ function setBuilder(ax,az,baseY,opt){
     let G=api.farG.get(tk); if(!G){ G=newG(); api.farG.set(tk,G); }
     const was2=_stampOn; _stampOn=null;
     try{ emitBox(G,x0,y0,z0,x1,y1,z1,b.mSide,b.mTop,null); } finally{ _stampOn=was2; } }
+  /* ---- A SET LAID WHERE THE EARTH HAS ONLY SEA ----
+     The true earth's soundings lose a small island (Melite is sampled every sixteen kilometres there, and
+     all of it is sea), and a set anchored there had nothing under it: its level ground and its hills were
+     laid only where the earth already had land, and none was laid at all. With `overSea` (opt.overSea for
+     the whole set, api.overSea changed as it is laid, or o.overSea on one pad or hill) the ground is built
+     up out of the sea instead, from the bed: a column of it beside open water goes down to the floor, as an
+     island's flank does, and a column within it only so deep as the lowest ground about it, so the inside
+     of the island, which is never seen, is not forty courses of blocks under every step. The courses under
+     the top are laid last of all (end), when every column the set raised is known. */
+  const seaCols=new Map(); let madeR=null;
+  function seaCol(i,k,t,topN,fill){ const key=i+','+k, was2=seaCols.get(key);
+    if(was2&&was2.t>t) for(let j=t;j<was2.t;j++) stampBlock(i,j,k,0);        /* (laid lower over a higher: cut down) */
+    seaCols.set(key,{i,k,t,fill});
+    stampBlock(i,t-1,k,t*B>WATER_Y?topN:blockId('sand'));                   /* (a top under the water is sand) */
+    if(t*B>WATER_Y){ const x0=i*B, z0=k*B;
+      if(!madeR) madeR=[x0,z0,x0+B,z0+B]; else { madeR[0]=Math.min(madeR[0],x0); madeR[1]=Math.min(madeR[1],z0); madeR[2]=Math.max(madeR[2],x0+B); madeR[3]=Math.max(madeR[3],z0+B); } } }
+  function seaFill(){ if(!seaCols.size) return; const was3=_stampOn, rock=blockId('stone'); _stampOn=grp;
+    try{ for(const s of seaCols.values()){ const bed=api.bedCourse(s.i,s.k); let low=Infinity, open=false;
+        for(const [di,dk] of [[1,0],[-1,0],[0,1],[0,-1]]){ const i2=s.i+di, k2=s.k+dk, n=seaCols.get(i2+','+k2);
+          if(n){ low=Math.min(low,n.t); continue; }
+          if(!cell(i2,k2)){ open=true; break; }
+          low=Math.min(low,api.groundCourse(i2,k2)); }
+        const j0=open?bed:Math.max(bed,Math.min(s.t-4,low-1));
+        for(let j=j0;j<s.t-1;j++) stampBlock(s.i,j,s.k,j<s.t-4?rock:s.fill); } }
+    finally{ _stampOn=was3; }
+    /* (and the sea's depth sheet reads it as a strand: the swell lies down against it) */
+    if(madeR){ api._made=madeR; MADE_LAND.push(madeR); madeLandChanged(); } }
   const api={ S, ax, az, baseY, marks, farG:opt.far?new Map():null, farGroup:null,
+    overSea:!!opt.overSea,
+    /* the course the bed of the sea stands at under a column (its top face, as the floor is drawn) */
+    bedCourse(i,k){ return Math.round(seabedDepth((i+.5)*B,(k+.5)*B)/B); },
     X, Z, Y, local:(wx,wz)=>[(wx-ax)/SX,(wz-az)/SX],
     /* a box of blocks; boxes of no size at all (a beam end, a lamp) are details for the eye
        and are left to the things of a scene */
@@ -21992,11 +22178,12 @@ function setBuilder(ax,az,baseY,opt){
     /* (o.y: the level of this ground in metres over the set's own, for a city on more than one
        level — the courts of the House, the upper city, the lower; else the set's own level) */
     pad(x0,z0,x1,z1,o){ o=o||{}; const top=setBlockFor(o.top||'grass'), fill=blockId(o.fill||'dirt');
-      const tY=o.y!==undefined?Math.round((baseY+o.y*S)/B):tYb;
+      const tY=o.y!==undefined?Math.round((baseY+o.y*S)/B):tYb, os=o.overSea!==undefined?!!o.overSea:api.overSea;
       const [i0,i1]=cells(X(x0),X(x1)), [k0,k1]=cells(Z(z0),Z(z1)); const P={i0,i1,k0,k1,r:!!o.round,ty:tY}; api.pads.push(P); api.flat=true;
       clearLotOfTrees(Math.min(X(x0),X(x1)),Math.min(Z(z0),Z(z1)),Math.max(X(x0),X(x1)),Math.max(Z(z0),Z(z1)),baseY);
       for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ if(P.r&&!api.inPad(i,k)) continue;
-        const c=cell(i,k); if(!c||c.kind==='wall'||(c.lake!==undefined&&c.lake>c.h)) continue; const h=c.h;   /* (a lake of the earth is not filled in) */
+        const c=cell(i,k); if(!c&&os){ seaCol(i,k,tY,top,fill); continue; }             /* (raised out of the sea) */
+        if(!c||c.kind==='wall'||(c.lake!==undefined&&c.lake>c.h)) continue; const h=c.h;   /* (a lake of the earth is not filled in) */
         for(let j=tY;j<Math.max(h,tY)+2;j++) stampBlock(i,j,k,0);
         for(let j=Math.min(h,tY)-1;j<tY-1;j++) if(j>=h-1) stampBlock(i,j,k,fill);
         stampBlock(i,tY-1,k,top); }
@@ -22017,11 +22204,13 @@ function setBuilder(ax,az,baseY,opt){
           if(P.r){ const q=Math.hypot((i-cx)/rx,(k-cz)/rz); if(q<=1) continue; d=(q-1)*Math.min(rx,rz); }
           else { const dx=Math.max(i0-i,0,i-i1), dz=Math.max(k0-k,0,k-k1); d=Math.max(dx,dz); if(d<=0) continue; }
           if(d>=bl) continue;
-          const c=cell(i,k); if(!c||c.kind==='wall'||(c.lake!==undefined&&c.lake>c.h)) continue; const h=c.h;
+          const c=cell(i,k), sc=!c&&os;                                              /* (over the sea, eased down to its bed) */
+          if(!sc&&(!c||c.kind==='wall'||(c.lake!==undefined&&c.lake>c.h))) continue; const h=sc?api.bedCourse(i,k):c.h;
           if(api.mtops&&api.mtops.has(i+','+k)) continue;
           const t=d/bl, e=t*t*(3-2*t), want=Math.round(tY+(h-tY)*e);
           if(want===h) continue;
           (api.blendH||(api.blendH=new Map())).set(i+','+k,want);                    /* (the height it was eased to, for the floor under a man there) */
+          if(sc){ if(want>h) seaCol(i,k,want,top,fill); continue; }
           if(want<h){ for(let j=want;j<h+2;j++) stampBlock(i,j,k,0); stampBlock(i,want-1,k,top); }
           else { for(let j=h-1;j<want-1;j++) stampBlock(i,j,k,fill); stampBlock(i,want-1,k,top); } } } },
     /* the course a cell at the edge of a level ground was eased to (in blocks), or undefined */
@@ -22092,13 +22281,16 @@ function setBuilder(ax,az,baseY,opt){
        brow of Natsareth's hill, the slope of a mount: `h` metres high at (x,z), falling away
        smoothly over `r`; earth under a top of `top`; never cut below the ground already there */
     mound(x,z,h,r,o){ o=o||{}; const top=setBlockFor(o.top||'grass'), fill=blockId('dirt'), rock=blockId('stone');
+      const os=o.overSea!==undefined?!!o.overSea:api.overSea;
       const [i0,i1]=cells(X(x-r),X(x+r)), [k0,k1]=cells(Z(z-r),Z(z+r));
       for(let i=i0;i<=i1;i++) for(let k=k0;k<=k1;k++){ const [lx,lz]=api.local((i+.5)*B,(k+.5)*B);
         const q=Math.max(0,1-Math.hypot(lx-x,lz-z)/r); if(q<=0) continue;
-        const c=cell(i,k); if(!c||c.kind==='wall'||api.inPad(i,k)||(c.lake!==undefined&&c.lake>c.h)) continue;   /* the set's level ground stays level; a lake is not heaped up */
-        const g0=c.h, want=tY+Math.round(h*q*q*(3-2*q)*S/B);
+        const c=cell(i,k), sc=!c&&os;                                                /* (heaped up out of the sea, from its bed) */
+        if(api.inPad(i,k)||(!sc&&(!c||c.kind==='wall'||(c.lake!==undefined&&c.lake>c.h)))) continue;   /* the set's level ground stays level; a lake is not heaped up */
+        const g0=sc?api.bedCourse(i,k):c.h, want=tY+Math.round(h*q*q*(3-2*q)*S/B);
         if(want<=g0) continue;
         api.mtops.set(i+','+k,want);
+        if(sc){ seaCol(i,k,want,top,fill); continue; }
         for(let j=g0-1;j<want-1;j++) stampBlock(i,j,k,j<want-3?rock:fill);
         stampBlock(i,want-1,k,top); } },
     groundY(x,z){ const m=api.moundL(x,z), c=cell(Math.floor(X(x)/B),Math.floor(Z(z)/B));
@@ -22111,7 +22303,8 @@ function setBuilder(ax,az,baseY,opt){
       const T={pts:P,x0:Math.min(...P.map(p=>p[0])),x1:Math.max(...P.map(p=>p[0])),
         z0:Math.min(...P.map(p=>p[1])),z1:Math.max(...P.map(p=>p[1]))};
       TOWN_GROUND.push(T); (api.towns||(api.towns=[])).push(T); townGroundDirty(T); },
-    end(){ if(api.towns&&!api._townsCut){ api._townsCut=true; const own=new Set();
+    end(){ if(!api._seaDone){ api._seaDone=true; seaFill(); }
+      if(api.towns&&!api._townsCut){ api._townsCut=true; const own=new Set();
         for(let i=0;i<grp.cells.length;i+=2) own.add(grp.cells[i]+':'+grp.cells[i+1]);
         for(const T of api.towns) townGroundDirty(T,own); } if(!was&&_stampOn===grp) stampEnd();
       if(api.farG&&api.farG.size&&!api.farGroup){ const g=new THREE.Group(); g.name='set-far';
@@ -22124,6 +22317,7 @@ function setBuilder(ax,az,baseY,opt){
         scene.add(g); api.detGroup=g; }
       return api; },
     drop(){ api.end(); stampDrop(grp);
+      if(api._made){ const i=MADE_LAND.indexOf(api._made); if(i>=0) MADE_LAND.splice(i,1); api._made=null; madeLandChanged(); }
       if(api.towns){ for(const T of api.towns){ const i=TOWN_GROUND.indexOf(T); if(i>=0) TOWN_GROUND.splice(i,1); townGroundDirty(T); } api.towns=null; } for(const h of houses) h.drop(); houses.length=0; underWaterDrop(grp);
       if(api.farGroup){ scene.remove(api.farGroup); SET_FAR.delete(api.farGroup);
         api.farGroup.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); api.farGroup=null; }
@@ -22157,7 +22351,11 @@ window.__KIT={
   /* the live water, the storm and the hidden still water — for a story's own sea */
   ORG_GLSL, ORG, org:()=>({x:ORG.x,z:ORG.z}),
   ripple:{tex:RIP_T,o:RIP_OO,on:RIP_ON,span:RIP_SPAN,at:(x,z,a,r,f)=>rippleAt(x,z,a,r,f),focus:p=>{ RIP_FOCUS=p||null; }},
-  setStorm:v=>{ STORM_FORCE=v==null?null:+v; },
+  /* (and its seas: `dir`, [x,z] in the world, the way its wind blows — see storyStorm) */
+  setStorm:(v,dir)=>{ STORM_FORCE=v==null?null:+v; storyStorm(v==null?0:+v,dir); },
+  /* the face of the live sea at a point of the world: units over WATER_Y (as __WORLD.seaHeight), for a
+     story's boats and swimmers on the voyage's own sea */
+  seaHeight:(x,z)=>seaHeight(x,z),
   lakeHide:(r)=>{ if(r){ LAKE_HIDE.value.set(r[0],r[1],r[2],r[3]); LAKE_HIDE_ON.value=1; } else LAKE_HIDE_ON.value=0; }, playerXZ, jointTick, tickGait, makeBird, makePerson,
   /* the floor of cloud, which a story lifts high over its scenes: the voyage's clouds stand
      at the scale of its earth, and a scene is built at the scale of a man */
@@ -24591,13 +24789,16 @@ function cellHitsAnyLiving(ix,iy,iz){
   if(state.mode==='walk'&&state.walk.feetY!==undefined&&
      cellHitsBody(ix,iy,iz, state.walk.x,state.walk.feetY,state.walk.z, BODY_R, HEAD_R)) return 'the traveller';
   const cx=(ix+0.5)*B, cz=(iz+0.5)*B;
+  /* (every soul of every town that is up, each asked for itself: a fixed 460 units from the well left out
+     every hamlet family and the outer city folk, and a man could be walled up in his own field) */
   for(const[,vv] of activeVillages){
-    if(!vv.site||Math.hypot(cx-vv.site.x,cz-vv.site.z)>460) continue;
     if(vv.people) for(const e of vv.people){ const P=e.m&&e.m.position; if(!P) continue;
+      if(Math.abs(P.x-cx)>B*3||Math.abs(P.z-cz)>B*3) continue;
       if(cellHitsBody(ix,iy,iz,P.x,P.y,P.z, 2.0, B*1.9)) return e.name||'a villager'; }
     if(vv.beasts) for(const e of vv.beasts){ const P=e.m&&e.m.position; if(!P) continue;
-      const bl=(bodyLenOf&&bodyLenOf(e.kind))||8;
-      if(cellHitsBody(ix,iy,iz,P.x,P.y,P.z, Math.max(2.2,bl*0.4), Math.max(B,bl*0.9))) return 'a beast'; }
+      const bl=(bodyLenOf&&bodyLenOf(e.kind))||8, half=Math.max(2.2,bl*0.4);
+      if(Math.abs(P.x-cx)>half+B||Math.abs(P.z-cz)>half+B) continue;
+      if(cellHitsBody(ix,iy,iz,P.x,P.y,P.z, half, Math.max(B,bl*0.9))) return 'a beast'; }
   }
   return null;
 }
@@ -25215,7 +25416,7 @@ function frame(){ orgSnap();
   spearTick(dt);
   crewTick(dt);
   netTick(dt);
-  if(!state.firm&&state.mode!=='dive') traderTick(p.x,p.z,dt); else hideTraders();
+  if(!state.firm&&state.mode!=='dive'&&!window.__STORY_HOST) traderTick(p.x,p.z,dt); else hideTraders();   /* (no merchantman of a later age sails through a story) */
   audioTick(light.storm||0);
   torchTick(dt);                     /* the flame the traveller carries */
   heldTick(dt);                      /* and the tool in his other hand */

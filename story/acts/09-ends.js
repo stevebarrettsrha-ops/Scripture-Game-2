@@ -258,7 +258,7 @@ STORY.act({
     actors:[
       Object.assign({id:'stephanos', at:'accused', face:Math.PI},STEPHANOS),
       {id:'kohenG', name:'The kohen gadol', key:'Qayapha', dress:'kohen', at:'qayapha', face:0, robe:0x3a3a6a, cloth:0xe8e0cc, beard:0x6d6a66, kind:'oldman', sit:true, bench:true},
-      ...folk('o',10,[5.6,24.8,18.4,25.4],0,{dress:'scribe', kind:'oldman', sit:true, bench:true}),
+      ...folk('o',10,[5.6,24.8,18.4,25.4],0,{dress:'scribe', kind:'oldman', sit:true, bench:true}).map((a,k)=>Object.assign(a,{at:[k<5?5.8+k*1.2:13.4+(k-5)*1.2,25]})),   /* (a seat apiece along their bench) */
       {id:'fr0', name:'Men put up to it', at:['accused',-2.4,2.2], face:Math.PI, robe:0x6a5a3a, cloth:0xcfc4aa, beard:0x2c241f},
       {id:'fr1', at:['accused',2.4,2.2], face:Math.PI, robe:0x5a4a3a, cloth:0xb9ab8e, beard:0x1e1814},
       Object.assign({id:'shaul', at:['fire',2.4,0.6], face:Math.PI*1.1},SHAUL),
@@ -498,7 +498,7 @@ STORY.act({
   { id:'tabitha', title:'Yapho', date:'in those days', place:'yapho', time:'day',
     player:{ at:'tabStreet', face:-Math.PI/2, look:ADULT },
     actors:[
-      {id:'tabitha', name:'Taḇitha', key:'Tabitha', kind:'woman', at:[-10.5,24], y:'tabY', face:Math.PI/2, robe:0x8a6a5a, cloth:0xe8e2d2, skin:0x86573a},
+      {id:'tabitha', name:'Taḇitha', key:'Tabitha', kind:'woman', at:[-10.5,24], y:'tabBedY', ground:true, face:Math.PI/2, robe:0x8a6a5a, cloth:0xe8e2d2, skin:0x86573a},
       ...WIDOWS.map(([x,z,f],k)=>({id:'wd'+k, name:k?undefined:'The widows', key:'the widows of yapho', kind:'woman', at:[x,z], y:'tabY', face:f,
         robe:[0x3c3a44,0x4a3a3a,0x3a3a2e,0x44403a][k], cloth:[0x3c3a44,0x5a4a44,0x2e2c30,0x6a5a4a][k], skin:[0x7a4e30,0x86573a,0x704a27,0x7c5430][k]})),
       {id:'m0', name:'Two men', key:'the two men sent to kepha', at:['tabStreet',-1,-1.2], face:-Math.PI/2, robe:0x6b5a44, cloth:0xd8ceb4, beard:0x2c241f},
@@ -537,9 +537,9 @@ STORY.act({
       {t:'hide', id:['coat0','coat1','coat2']},
       {t:'move', who:['wd0','wd1','wd2','wd3'], to:[[-5.8,23.2],[-5.4,24.2],[-5.8,25.2],[-6.4,24]], speed:1},
       {t:'hide', id:['wd0','wd1','wd2','wd3']},
-      {t:'move', who:'kepha', to:[-11.2,22.7], speed:0.9},
-      {t:'face', who:'kepha', to:'tabitha'},
-      {t:'sit', who:'kepha'},
+      {t:'move', who:'kepha', to:[-11.4,22.8], speed:0.9},
+      {t:'face', who:'kepha', to:[-11.9,24]},
+      {t:'kneel', who:'kepha'},   /* (9:40: on his knees on the floor at her head — set to sit, he sat on the air beside her linen) */
       {t:'cam', from:[-7.6,4.3,21.4], look:[-11,3.3,23.4], dur:2.5},
       {t:'pose', who:'kepha', arms:'up'}, {t:'wait', s:2}, {t:'pose', who:'kepha'},
       {t:'cam', from:[-9.2,3.9,22.6], look:[-11.6,3.2,24], dur:2},

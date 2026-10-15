@@ -857,7 +857,7 @@ S.highpriest=function(ctx,st0){
   st.box(x0,0,z0,x1,3,z0+0.5,L); st.box(x0,0,z1-0.5,x1,3,z1,L); st.box(x0,0,z0,x0+0.5,3,z1,L);
   st.box(x1-0.5,0,z0,x1,3,29.2,L); st.box(x1-0.5,0,30.8,x1,3,z1,L);
   for(const px of [6,10,14,18]) st.box(px-0.3,0,28.2,px+0.3,2.8,28.8,L);                  /* the pillars of the hall */
-  st.detail(5,0,24.6,19,0.46,25.4,C.stoneDark);                                          /* the council's bench */
+  st.detail(5,0,24.6,19,0.40,25.4,C.stoneDark);                                          /* the council's bench (its top under the thighs of those sat on it) */
   W.fire(ctx,st,13,32.2);
   st.detail(22.2,2.6,28.6,25.2,2.8,31.4,C.roofEarth);                                   /* the porch over the gate, without */
   st.detail(24.6,0,28.8,25,2.6,29.2,C.timber); st.detail(24.6,0,30.8,25,2.6,31.2,C.timber);
@@ -1098,12 +1098,12 @@ function coast(ctx,st,o){
       room(ctx,st,x0,z0,x1,z1,{door:'e',wall:C.whitewash,y:F,noStair:true});
       st.box(x1+0.1,0,z0+1,x1+1.5,0.92,z0+2,C.stoneDark); st.box(x1+0.1,0,z0+2,x1+1.5,1.85,z0+3,C.stoneDark);
       st.box(x1+0.1,0,z0+3,x1+1.5,F,z0+5.2,C.stoneDark);
-      st.detail(x0+1.2,F+0.08,23.2,x0+3.4,F+0.2,24.8,0xe8e0cc);                                  /* the linen she was laid on */
+      st.detail(x0+1.2,F+0.08,23.2,x0+3.4,F+0.11,24.8,0xe8e0cc);                                 /* the linen she was laid on (thin: laid a hand deep, she lay sunk in it) */
       st.detail(x1-2.6,F+0.08,z1-1.6,x1-0.9,F+0.6,z1-0.9,C.timber);                              /* a chest of the garments she made */
       W.glow(ctx,x0+0.9,F+1.9,z1-0.9,0.6,0xffc070,0.22); W.glow(ctx,x0+0.9,F+1.9,z0+0.9,0.6,0xffc070,0.22);
       mk(ctx,'tabRoom',-8.6,24); mk(ctx,'bier',-11.7,24); mk(ctx,'tabDoor',-4.6,24); mk(ctx,'tabLanding',-3.3,24.2);
       mk(ctx,'tabStair',-3.2,20.2); mk(ctx,'tabStreet',-1.6,18.4); mk(ctx,'tabBelow',-9,18.6); mk(ctx,'lodRoad',-34,22);
-      ctx.markers.tabY=[F+0.08,0]; }
+      ctx.markers.tabY=[F+0.08,0]; ctx.markers.tabBedY=[F+0.11,0]; }
     ctx.markers.roofY=[2.8+0.92+0.02,0];
     /* the port about its day: the tanner's men at the vats, the fishers on the beach at their nets,
        the catch carried up and sold, and the mill and spindle at the doors */
