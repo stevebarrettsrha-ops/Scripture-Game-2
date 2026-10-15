@@ -601,6 +601,10 @@ const FILES=[
   /* the olive's leaf and bole, for the groves of the story (Round 130) — appended */
   'blocks/leaves-olive.js',
   'blocks/log-olive.js',
+  /* every land its own — its names, its trade, its workshops (Phase D) — appended */
+  'world/lands.js',
+  'world/workshops.js',
+  'js/lands.js',
   'js/engine.js',
 ];
 
