@@ -927,7 +927,7 @@ function planWay(tx,tz,r,from,noAvoid,hard){
   lastPlan={from:[+sx.toFixed(1),+sy.toFixed(1),+sz.toFixed(1)],to:[+tx.toFixed(1),+tz.toFixed(1)],n,box:[Math.round(x0),Math.round(z0),Math.round(x1),Math.round(z1)]};
   if(!end) return rest.length?planWay(tx,tz,r,from,true,hard):hard?null:planWay(tx,tz,r,from,noAvoid,true);
   const pts=[]; for(let c=end;c;c=c.from?seen.get(c.from):null) pts.push([c.i*H,c.j*H]);
-  pts.reverse(); pts.push([tx,tz]); return pts; }
+  pts.reverse(); pts.push([tx,tz]); if(hard) pts.hard=true; return pts; }
 function setOnMark(G,why){
   const x=G[0], z=G[1];
   player.position.set(x,ctx.groundY(x,z),z); guide=null; stuckT=0;
@@ -978,9 +978,9 @@ function movePlayer(dt){
     const onDeck=ctx.playerY!==undefined;                /* (held at a deck's height: her side is a wall both ways) */
     /* (nor into a table, a jar, a beast, one sitting or lying, one of the multitude or the townsfolk — only into: out
        of one he is never held, and one at the mark he is sent to is not in his way) */
-    const GG=wants?guideGoal():null;
-    if(!blocked(x+dx,z,0.3,y)&&!hullCross(x,z,x+dx,z,onDeck)&&!softAt(x+dx,z,y,0.22,player,GG)) player.position.x+=dx;
-    if(!blocked(player.position.x,z+dz,0.3,y)&&!hullCross(player.position.x,z,player.position.x,z+dz,onDeck)&&!softAt(player.position.x,z+dz,y,0.22,player,GG)) player.position.z+=dz;
+    const GG=wants?guideGoal():null, sOn=!(gAng!==null&&guide&&guide.pts.hard);          /* (led by a way that had to go through them, he goes) */
+    if(!blocked(x+dx,z,0.3,y)&&!hullCross(x,z,x+dx,z,onDeck)&&!(sOn&&softAt(x+dx,z,y,0.22,player,GG))) player.position.x+=dx;
+    if(!blocked(player.position.x,z+dz,0.3,y)&&!hullCross(player.position.x,z,player.position.x,z+dz,onDeck)&&!(sOn&&softAt(player.position.x,z+dz,y,0.22,player,GG))) player.position.z+=dz;
     player.rotation.y=turnTo(player.rotation.y,ang,dt*10);
     ud.walk=(ud.walk||0)+dt*sp*2.2;
   } else ud.walk=0;
@@ -1207,7 +1207,7 @@ function gatherSoft(st){
    is kept out of: a table, a basket, a jar, the round stone, a car, a beast. Not a boat (her hull is her own),
    nor a cloth, a coin, a fish, a dove, a vision. */
 function thingFoot(t){ const k=t.kind||'box';
-  if(k==='box'){ const h=t.h||0.5; return h>=0.2?[(t.w||0.5)/2,(t.d||0.5)/2,-h/2,h/2]:null; }
+  if(k==='box'){ const h=t.h||0.5, w=t.w||0.5, d=t.d||0.5; return h>=0.2&&Math.min(w,d)>=0.2?[w/2,d/2,-h/2,h/2]:null; }   /* (not a flask in the hand, a coin, a cloth) */
   if(k==='jar') return [0.37,0.37,0,1.05];
   if(k==='basket') return [0.3,0.3,0,0.45];
   if(k==='roundStone'){ const r=t.r||1.25; return [(t.w||0.45)/2,r,0,2*r]; }
@@ -1288,7 +1288,7 @@ function settleActors(sc){
       best=[x,z,gy,r]; break find; }
     if(!best) continue;
     g.position.set(best[0],best[2]-sitDrop(u),best[1]); u.gy=best[2];
-    (ST.stuck=ST.stuck||[]).push({who:id,act:act&&act.id,scene:sc.id,beat:0,why:'settled out of '+e.name+(g.visible?'':', unseen'),d:best[3]}); } }
+    if(g.visible) (ST.stuck=ST.stuck||[]).push({who:id,act:act&&act.id,scene:sc.id,beat:0,why:'settled out of '+e.name,d:best[3]}); } }   /* (one unseen is set somewhere before he is shown) */
 /* the actors walk where the story sends them */
 function moveActors(dt){
   for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData;
@@ -1374,7 +1374,7 @@ function moveActors(dt){
            upper floor's as well. One who cannot be led round by a way worked out — held at a height, or following —
            and finds no way aside, or is held by them a moment and a half, goes on as he went: they never keep him) */
         const fy=u.fixedY!==undefined?u.fixedY:u.gy, plans=!u.follow&&u.fixedY===undefined, useSoft=plans||!(P2&&P2.t>1.5);
-        const soft=b=>!softAt(px+Math.sin(b)*0.45,pz+Math.cos(b)*0.45,fy,0.22,g,tgt)&&!softAt(px+Math.sin(b)*sp,pz+Math.cos(b)*sp,fy,0.22,g,tgt);
+        const sa=Math.min(0.45,d), soft=b=>!softAt(px+Math.sin(b)*sa,pz+Math.cos(b)*sa,fy,0.22,g,tgt)&&!softAt(px+Math.sin(b)*sp,pz+Math.cos(b)*sp,fy,0.22,g,tgt);
         const pick=f=>{ if(f(a0)) return a0; for(const da of [0.5,-0.5,1.0,-1.0,1.5,-1.5,2.1,-2.1]){ const b=a0+da; if(f(b)) return b; } return null; };
         if(u.fixedY!==undefined){ a=useSoft?pick(soft):null; if(a===null) a=a0; }
         else { a=pick(useSoft?b=>clear(b)&&soft(b):clear); if(a===null&&useSoft&&!plans) a=pick(clear); }

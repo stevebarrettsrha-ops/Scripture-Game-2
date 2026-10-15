@@ -20785,11 +20785,16 @@ function cameraTick(dt){
      goes round him. (The helm keeps the plain ease: its boom hangs on the ship's middle, not on him.) */
   { const cp=camera.position, Ox=px, Oy=baseY+9, Oz=pz, seatL=Math.hypot(camPos.x-Ox,camPos.y-Oy,camPos.z-Oz);
     if(manWas&&_camManMode===state.mode&&state.mode!=='boat'){
-      const mx=px-_camMan.x, my=baseY-_camMan.y, mz=pz-_camMan.z;
-      if(mx*mx+my*my+mz*mz<120*120){                                    /* (not across a leap or a landfall) */
+      const mx=px-_camMan.x, my=baseY-_camMan.y, mz=pz-_camMan.z, mm=Math.hypot(mx,my,mz);
+      if(mm>1e-4&&mm<120){                                              /* (not across a leap or a landfall) */
         const bx=cp.x-Ox, by=cp.y-Oy, bz=cp.z-Oz, bl=Math.hypot(bx,by,bz);
-        if(bl>0.5){ const s=Math.min((mx*bx+my*by+mz*bz)/bl, seatL-bl);
-          if(s>0){ const f=s/bl; cp.x+=bx*f; cp.y+=by*f; cp.z+=bz*f; } } } }
+        /* (carried with the whole of his step, by as much as it is toward the eye: carried along the boom
+           alone, the eye over a pitched boom was left behind by the rest of it and swung up over his head
+           and out before him at a run) */
+        const w=bl>0.5&&bl<seatL?Math.min(1,Math.max(0,2*(mx*bx+my*by+mz*bz)/(bl*mm))):0;
+        if(w>0){ let nx=bx+mx*w, ny=by+my*w, nz=bz+mz*w; const nl=Math.hypot(nx,ny,nz);
+          if(nl>seatL){ const k=seatL/nl; nx*=k; ny*=k; nz*=k; }               /* (never past the seat the walk has cleared) */
+          cp.set(Ox+nx,Oy+ny,Oz+nz); } } }
     _camMan.set(px,baseY,pz); _camManOn=true; _camManMode=state.mode;
     const a=Math.min(1,dt*5), L0=Math.hypot(cp.x-Ox,cp.y-Oy,cp.z-Oz);
     cp.lerp(camPos,a);
