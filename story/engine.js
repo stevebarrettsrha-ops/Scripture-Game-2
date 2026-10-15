@@ -1352,7 +1352,7 @@ function moveActors(dt){
          still held, he is simply there. Every rescue is written down for the playtest. */
       let way=null;
       if(d>0.15&&!(u.follow&&d<=2.4)){ const P=u._prog||(u._prog={d:d,t:0,tx:tgt[0],tz:tgt[1]});
-        if(P.tx!==tgt[0]||P.tz!==tgt[1]){ P.d=d; P.t=0; P.tx=tgt[0]; P.tz=tgt[1]; u._path=null; P.tries=0; P.los=undefined; }
+        if(P.tx!==tgt[0]||P.tz!==tgt[1]){ P.d=d; P.t=0; P.tx=tgt[0]; P.tz=tgt[1]; u._path=null; P.tries=0; P.los=undefined; P.soft=false; P.walk=false; }
         /* (a wall between him and his mark: the way round is worked out before he sets off, not after he
            has walked into the wall and wedged himself in its corner, where no way could be found) */
         if(P.los===undefined){ P.los=true;
@@ -1362,7 +1362,10 @@ function moveActors(dt){
         else if(d<P.d-0.25){ P.d=d; P.t=0; } else P.t+=dt;
         /* (and one held on a way already worked out — those he was to pass have sat down across it since — works
            out another, round them) */
-        if(P.t>2&&(P.tries||0)<3&&!u.follow&&u.fixedY===undefined){ P.tries=(P.tries||0)+1; P.t=0; u._path=null;
+        /* (a way round those sitting that he is held on twice over — jostled among them at a fire — is given up,
+           and he walks on as he always did, turning aside from what is before him) */
+        if(P.t>2&&P.soft&&(P.tries||0)>=2&&!P.walk){ u._path=null; P.walk=true; P.t=0; P.d=d; }
+        if(P.t>2&&(P.tries||0)<3&&!u.follow&&u.fixedY===undefined&&!P.walk){ P.tries=(P.tries||0)+1; P.t=0; u._path=null;
           const pts=planWay(tgt[0],tgt[1],0.4,{x:g.position.x,y:u.gy!==undefined?u.gy:g.position.y,z:g.position.z,g});
           /* (and if no way round a table or a sitting man is found — on the strand, where the planner will not
              go down to the water — he walks on as he always did, turning aside from what is before him: one
@@ -1386,7 +1389,7 @@ function moveActors(dt){
           if(g.visible&&d>=0.7) (ST.stuck=ST.stuck||[]).push({who:id,act:act&&act.id,scene:act&&act.scenes[sceneIx]&&act.scenes[sceneIx].id,beat:beatIx,d:+d.toFixed(1),plan:lastPlan});   /* (one gone from sight is no one's concern, nor one set down the last hand's breadth) */
           if(!u.follow) u.target=null; continue; }
         if(u._path){ const W=u._path;
-          while(W.i<W.pts.length-1&&Math.hypot(W.pts[W.i][0]-g.position.x,W.pts[W.i][1]-g.position.z)<0.2) W.i++;
+          while(W.i<W.pts.length-1&&Math.hypot(W.pts[W.i][0]-g.position.x,W.pts[W.i][1]-g.position.z)<0.35) W.i++;   /* (a step of the way passed, not stood on) */
           /* (on a way round he is getting there as long as he is getting along it — a way round a house
              first goes away from the mark, and measured by the mark alone he was "held" and carried) */
           if(W.i!==P.wi){ P.wi=W.i; P.t=0; }
