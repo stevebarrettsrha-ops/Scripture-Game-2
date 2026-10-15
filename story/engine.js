@@ -892,6 +892,10 @@ function planWay(tx,tz,r,from,noAvoid,hard){
   /* (a long way across a city is walked on a coarser grid: a street is wider than a metre) */
   const H=Math.hypot(tx-F.x,tz-F.z)>90?1.0:0.5, sx=F.x, sz=F.z, sy=F.y;
   r=Math.max(r,H*0.75);
+  /* (a mark laid hard against a wall — the basin in the corner of the upper room — is reached as near as a
+     man's body may come: the wall's blocks reach to within his breadth of it, and no step of the way ever
+     counted as there) */
+  if(blocked(tx,tz,0.3,sy)) r=Math.max(r,1.0);
   const deck=!from&&ctx.playerY!==undefined;          /* the witness held at a deck's height walks her deck */
   const b=ctx.bounds, pad=Math.max(30,Math.hypot(tx-F.x,tz-F.z)*0.25);   /* (a long way may have to go well round) */
   const x0=Math.max(b?b.x0:-1e9,Math.min(sx,tx)-pad), x1=Math.min(b?b.x1:1e9,Math.max(sx,tx)+pad);

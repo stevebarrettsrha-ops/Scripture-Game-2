@@ -54,7 +54,8 @@ const PLACES={
   gazaroad:   {lat:31.58,  lon:34.92,  flat:46, why:'the way down from Yahrushalayim to Azzah, "this is desert" (Acts 8:26)'},
   damascus:   {lat:33.51,  lon:36.29,  flat:60, why:'Damascus, the road in from the south-west and the street called Straight (Acts 9:11)'},
   /* (the coast's set lays its sea toward its +x, and the Great Sea lies west-north-west of both: `turn`ed, its
-     +x looks out over the true sea, which a set laid unturned had put inland, toward the hills) */
+     +x looks out over the true sea, which a set laid unturned had put inland, toward the hills; and over the town
+     of the voyage on that shore, which its pool is kept short of: story/settings.js, coast) */
   yapho:      {lat:32.054, lon:34.752, flat:34, turn:true, why:'Yapho by the sea, the house of Shim‛on the tanner (Acts 10:6)'},
   caesareaM:  {lat:32.50,  lon:34.892, flat:34, turn:true, why:'Caesarea by the sea, the house of the captain Cornelius (Acts 10:24)'},
   antioch:    {lat:36.20,  lon:36.16,  flat:46, why:'Antioch on the Orontes, where they were first called Natsarim (Acts 11:26)'},

@@ -1028,14 +1028,15 @@ function temple(st0,x,z,w,d,h,col,y0){ col=col||'alabaster';
   st.box(x-w/2+1,1.8+h,z-d/2+1,x+w/2-1,2.8+h,z+d/2-1,col); st.box(x-w/2+2.6,2.8+h,z-d/2+1,x+w/2-2.6,3.6+h,z+d/2-1,col);
   st.box(x-w/2+4.2,3.6+h,z-d/2+1,x+w/2-4.2,4.2+h,z+d/2-1,col);
   st.box(x-w/2+4,1.8,z-d/2+4,x+w/2-4,1.8+h,z+d/2-4,'plaster'); }
-/* the sea laid along +x from `x0`: its floor levelled, a beach of sand, the water `depth` deep */
-function sea(ctx,st,x0,o){ o=o||{};
+/* the sea laid along +x from `x0`: its floor levelled, a beach of sand, the water `depth` deep (and, given `z1`,
+   no further toward +z than that) */
+function sea(ctx,st,x0,o){ o=o||{}; const z1=o.z1===undefined?120:o.z1;
   /* (a set raised out of the Great Sea itself — story/places.js, `sea` — has the true sea for its own: its
      beach alone is laid, eased down into the water off its edge, and no pool of still water is set over the
      live sea; a floor laid over the bay stood the whole bay up out of the water as land) */
   if(ctx.anchor&&ctx.anchor.sea){ ctx.api.pad(x0-8,-120,x0,120,{top:'sand'}); st.box(x0-6,0,-120,x0,0.1,120,'sand'); return; }
-  ctx.api.pad(x0-8,-120,x0+150,120,{top:'sand'});
-  ctx.api.water(x0,-118,x0+148,118,{depth:o.depth||4,bed:'sand'});
+  ctx.api.pad(x0-8,-120,x0+150,z1,{top:'sand'});
+  ctx.api.water(x0,-118,x0+148,z1-2,{depth:o.depth||4,bed:'sand'});
   W.waterLife(ctx,{at:[x0+10,0], r:26, y:0, fish:10, egrets:2, flies:2});
   st.box(x0-6,0,-120,x0,0.1,120,'sand'); }
 
@@ -1092,7 +1093,11 @@ S.damascus=function(ctx,st){
 function coast(ctx,st,o){
   ctx.wind=[1.4,0.5];
   W.ground(ctx,{color:C.grassDry,flat:34,peak:{x:-62,z:0,h:9,r:30}});                 /* (the hill kept off the level ground: heaped over its edge, it stood a cliff there) */
-  sea(ctx,st,20);
+  /* (turned to the Great Sea, the set looks out over the voyage's own town on that shore: Yapho's wall stands some
+     fifteen metres to its +z, out past the beach, and Caesarea's ninety. Laid its full breadth, the pool buried
+     their houses to the eaves and flooded them, their upper courses loose over its water: it is kept short of each
+     wall by the ten blocks its edge is eased over) */
+  sea(ctx,st,20,ctx.anchor&&ctx.anchor.turn?{z1:o.town==='yapho'?4:75}:{});
   for(let k=0;k<24;k++){ const z=-110+k*9, x=17+W.hash(k,5)*2; W.rock(st,x,z,0.4+W.hash(k,6)*0.5); }
   if(o.town==='yapho'){
     room(ctx,st,4,-6,12,2,{door:'w',wall:C.limestone});                                         /* the tanner's house, its stair up the outside */
