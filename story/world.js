@@ -639,6 +639,10 @@ W.lakeWaves=function(ctx,r){
       uniform vec4 uBoat; uniform vec4 uBoats[8]; uniform float uBoatHs[8]; uniform sampler2D uNoise,uRip; uniform vec2 uRipO; uniform float uRipOn;
       uniform sampler2D uRefl; uniform float uReflOn,uReflY;
       ${window.__KIT.hazeGLSL||'vec3 hazeOf(vec3 f,vec3 d){ return f; }'}
+      /* (the eye's distance, vFog, is in the world's units, the set's metres times its scale: the reaches
+         below are written in metres, and were met six and a half times too near: the ripple gone at twenty
+         metres, the waves a flat mirror at twenty-six, and only the round blots of foam left on it) */
+      const float SC=${(+KIT.setScale||1).toFixed(3)};
       varying vec3 vW,vN; varying float vH,vFog,vEdge; varying vec2 vP; varying vec4 vRefl;
       void main(){
         /* none of it inside the boat's own hull */
@@ -651,11 +655,11 @@ W.lakeWaves=function(ctx,r){
         vec3 N=normalize(vN);
         vec3 n1=texture2D(uNoise,vP*0.11+vec2(uT*0.05,uT*0.03)).rgb, n2=texture2D(uNoise,vP*0.37-vec2(uT*0.08,-uT*0.06)).rgb;
         /* the fine ripple lies down with distance (afar it can only alias into streaks of light) */
-        float nearD=1.0-smoothstep(25.0,140.0,vFog);
+        float nearD=1.0-smoothstep(25.0*SC,140.0*SC,vFog);
         N=normalize(N+vec3((n1.r-0.5)*0.26+(n2.r-0.5)*0.12*nearD,0.0,(n1.g-0.5)*0.26+(n2.g-0.5)*0.12*nearD));
         /* and the waves themselves lie flat to the eye far off: a lake seen across is a smooth mirror of its
            far shore, not rows of crests turned light and dark against each other (the lines in the water) */
-        N=normalize(mix(N,vec3(0.0,1.0,0.0),smoothstep(18.0,170.0,vFog)*0.85));
+        N=normalize(mix(N,vec3(0.0,1.0,0.0),smoothstep(18.0*SC,170.0*SC,vFog)*0.85*(1.0-smoothstep(0.15,0.4,uA))));   /* (a gale's lake is no mirror) */
         float rf=0.0;
         if(uRipOn>0.5){ vec2 rc=(vW.xz-uRipO)/${RP.span.toFixed(1)};
           if(rc.x>0.0&&rc.y>0.0&&rc.x<1.0&&rc.y<1.0){ vec4 rp=texture2D(uRip,rc); N=normalize(N+vec3((rp.r-0.5)*2.6,0.0,(rp.g-0.5)*2.6)); rf=rp.a; } }
@@ -666,7 +670,9 @@ W.lakeWaves=function(ctx,r){
         float diff=clamp(dot(N,Ls),0.0,1.0);
         vec3 col=base*(0.55+0.55*diff);
         /* white water on the crests the gale tears off them, and the foam of the live field */
-        float crest=smoothstep(0.38,0.85,vH/(uA*1.25+0.001))*smoothstep(0.12,0.4,uA)*(0.55+0.9*n2.b);
+        /* (only the tops of the highest crests break, and their white thins with distance, where a crest is a
+           few pixels and its foam a pale blot) */
+        float crest=smoothstep(0.55,0.95,vH/(uA*1.25+0.001))*smoothstep(0.12,0.4,uA)*(0.55+0.9*n2.b)*mix(1.0,0.35,smoothstep(60.0*SC,250.0*SC,vFog));
         float foam=clamp(crest*0.85+rf*0.95,0.0,1.0);
         col=mix(col,vec3(0.86,0.91,0.96),foam);
         col*=uLight;

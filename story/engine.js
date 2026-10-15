@@ -1072,6 +1072,11 @@ function lakeTick(dt){
   /* everyone in her moves with her; everyone on the water stands on its face */
   const ride=(g,base)=>{ if(!main) return false; const b=inBoat(main,g.position.x,g.position.z); if(!b) return false;
     const u=main.userData; g.position.y=base+u.heave+b.al*Math.sin(u.pitch)+b.ac*Math.sin(u.roll); return true; };
+  /* (and on the Great Sea, where she is thrown up and down metres at a time, what lies on her deck goes with
+     her: the cargo stood still in the air while she fell away under it) */
+  L.main=main;
+  if(L.voyage) for(const id in ctx.things){ const o=ctx.things[id], u=o.userData;
+    if(o!==main&&!u.bob&&o.visible&&u.baseY!==undefined&&!u.following&&!u.goTo&&!u.heldBy) ride(o,u.baseY); }
   const r=L.rect;
   for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData; if(!g.visible||u.fixedY===undefined) continue;
     const base=g.position.y;
@@ -1561,9 +1566,10 @@ function updateCamera(dt){
     camT=Math.min(1,camT+dt/(camTarget.dur||2));
     const e=camT<0.5?2*camT*camT:1-Math.pow(-2*camT+2,2)/2;
     const fp=camTarget.from0, tp=camTarget.to;
-    camera.position.set(fp[0]+(tp[0]-fp[0])*e,fp[1]+(tp[1]-fp[1])*e,fp[2]+(tp[2]-fp[2])*e);
+    const M=camTarget.ride!==undefined&&ctx.lake&&ctx.lake.main, dy=M?(M.userData.heave||0)-camTarget.ride:0;   /* (an eye at sea, riding with her) */
+    camera.position.set(fp[0]+(tp[0]-fp[0])*e,fp[1]+(tp[1]-fp[1])*e+dy,fp[2]+(tp[2]-fp[2])*e);
     const la=camTarget.look0, lb=camTarget.look;
-    camera.lookAt(la[0]+(lb[0]-la[0])*e,la[1]+(lb[1]-la[1])*e,la[2]+(lb[2]-la[2])*e);
+    camera.lookAt(la[0]+(lb[0]-la[0])*e,la[1]+(lb[1]-la[1])*e+dy,la[2]+(lb[2]-la[2])*e);
     /* the player is not left filling the lens of a shot the story is holding */
     if(player&&!ctx.playerHidden) player.visible=camera.position.distanceTo(player.position.clone().setY(player.position.y+1))>2.2;
     quake(dt); return; }
@@ -1804,7 +1810,7 @@ function shotOf(B){
 }
 function holdCamera(from,look,dur){
   camTarget={from0:[camera.position.x,camera.position.y,camera.position.z],
-    look0:camTarget?camTarget.look:lookNow(),to:clearShot(from,look),look,dur:dur||2}; camT=0;
+    look0:camTarget&&camTarget.ride===undefined?camTarget.look:lookNow(),to:clearShot(from,look),look,dur:dur||2}; camT=0;   /* (from one riding with her: where it looked this moment) */
 }
 /* A CLEAR SHOT: the blocks of the world stand where they stand, and a shot written for a scene
    can find a wall, a roof, a tree or a hillside between the eye and what it looks at. The eye
@@ -2108,7 +2114,17 @@ function enterBeat(){
       if(d0<30&&Math.abs(d1-d0)>Math.max(6,0.5*d0)){
         from=[F0[0]+at[0]-L0[0], at[1]+(F0[1]-L0[1]), F0[2]+at[2]-L0[2]];
         const gy=ctx.groundY(from[0],from[2]); if(isFinite(gy)&&from[1]<gy+0.6) from[1]=gy+0.6; } }
-    holdCamera(S?from:faceSafe(from,at),at,ST.fast?0.01:(Bc.dur||2.5));
+    /* ---- AND AN EYE AT SEA RIDES WITH HER ----
+       On the Great Sea her boat rides the sea's own swell (lakeH), metres of it in a gale, and an eye held still
+       beside her saw her deck thrown up past it and fall away under it. A shot written over the water in
+       numbers is reckoned from her as she lies this moment, and rises and falls with her while it is held. */
+    let at2=at, r0=null;
+    { const L=ctx.lake, m=L&&L.voyage&&L.main;
+      if(m&&!S&&Array.isArray(Bc.from)&&typeof Bc.from[0]==='number'&&from[0]>L.rect[0]&&from[0]<L.rect[2]&&from[2]>L.rect[1]&&from[2]<L.rect[3]){
+        r0=m.userData.heave||0; from=[from[0],from[1]+r0,from[2]];
+        if(Array.isArray(Bc.look)&&typeof Bc.look[0]==='number') at2=[at[0],at[1]+r0,at[2]]; } }
+    holdCamera(S?from:faceSafe(from,at2),at2,ST.fast?0.01:(Bc.dur||2.5));
+    if(r0!==null) camTarget.ride=r0;
     if(Bc.wait===false) return nextBeat();
     onFrame=()=>{ if(camT>=1) nextBeat(); }; return; }
   if(T==='show'||T==='hide'){ for(const id of [].concat(B.id)){ const o=ctx.glows[id]||ctx.things[id]||ctx.actors[id]; if(o) o.visible=(T==='show'); }
@@ -2184,7 +2200,11 @@ function enterBeat(){
     if(B.hold) for(const id of [].concat(B.id)){ const g=ctx.actors[id]; if(g&&g.userData.fixedY===undefined) g.userData.fixedY=g.position.y; }
     /* (`toAt` [a place] with `dy`: to so high over the floor there) */
     const toV=B.toAt?(()=>{ const m=pos(B.toAt); return [m[0],B.y!==undefined?B.y:(ctx.groundY(m[0],m[1])||0)+(B.dy||1.5),m[1]]; })():B.to?remap3(B.to):null;
-    const D={objs,from:objs.map(q=>q.position.clone()),to:by?null:new THREE.Vector3(...toV),by,t:0,dur:ST.fast?0.001:(B.dur||3)};
+    /* (on the Great Sea a boat and those in her are taken from where they lie at rest, not from where the swell
+       has them this moment: else she kept that moment's heave for ever after, her deck a metre under the sea) */
+    const rest=q=>{ const v=q.position.clone(), u=q.userData||{}; if(ctx.lake&&ctx.lake.voyage){
+      if(u.bob&&u.baseY!==undefined) v.y=u.baseY; else if(u.fixedY!==undefined) v.y=u.fixedY; else if(q===player&&ctx.playerY!==undefined) v.y=ctx.playerY; } return v; };
+    const D={objs,from:objs.map(rest),to:by?null:new THREE.Vector3(...toV),by,t:0,dur:ST.fast?0.001:(B.dur||3)};
     ctx.drifts.push(D);
     if(B.wait===false) return nextBeat();
     onFrame=()=>{ if(D.t>=1) nextBeat(); }; return; }
