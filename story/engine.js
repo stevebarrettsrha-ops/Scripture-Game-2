@@ -76,6 +76,9 @@ function groundAt(x,z,ref){
   const y=groundAt0(x,z,ref), k=K();
   if(!k.waterAt||!anchor) return y;
   const B=k.B, wx=anchor.x+x*SX, wz=anchor.z+z*SX, wy=anchor.y+y*S;
+  /* (nor is the Great Sea, which is no blocks: off a beach raised out of it the bed falls away forty metres,
+     and an eye set some metres "over the ground" there was set on the bottom of the bay) */
+  if(wy<k.WATER_Y&&k.cell&&!k.cell(Math.floor(wx/B),Math.floor(wz/B))) return Math.max(y,(k.WATER_Y-anchor.y)/S-1.25);
   if(!k.waterAt(wx,wy-0.5*B,wz)) return y;
   let b=wy-0.5*B, n=0; while(n<12&&k.waterAt(wx,b,wz)){ b-=B; n++; }
   const bed=(Math.floor(b/B)+1)*B;                                            /* the top of the first block that is not water */
@@ -260,7 +263,7 @@ function buildScene(sc){
         ctx.remap.push({n:m,s:small[m],d,t:[small[m][0]+d[0],small[m][1]+d[1]],home:m===A.anchorMark}); }
       if(!ctx.remap.length) ctx.remap=null; } }
   if(k.aimOff) k.aimOff(true);                                    /* (the voyage's mark on the block in reach is not the story's) */
-  ctx.api=k.setBuilder(A.x,A.z,A.y,{turn:!!A.turn});
+  ctx.api=k.setBuilder(A.x,A.z,A.y,{turn:!!A.turn,overSea:!!A.sea});      /* (a place the earth has only sea at: its ground raised out of it, story/places.js) */
   const st=new window.STORYWORLD.Static(ctx.api);
   const build=window.STORYSETTINGS[sc.place];
   if(!build) throw new Error('no such place: '+sc.place);
@@ -346,8 +349,15 @@ function buildScene(sc){
   if(K().shadowRescan) K().shadowRescan();          /* (the scene's people and things throw their shade from its first frame) */
   /* THE LAKE'S OWN WAVES, where the set has asked for them (S.galilSea): laid over the still water,
      which is put by beneath them */
+  /* ---- AND THE GREAT SEA IS ITS OWN ----
+     A set's water at the sea's own level (Melite) is the voyage's live sea, and the lake's waves were laid
+     over it: two fields of waves crossing, the sea's crests and their foam standing up through the lake's in
+     pale blots. There the voyage's sea is the only one drawn, and a boat rides it (`voyage`; see lakeH).
+     Kinnereth lies far under the sea's level, and keeps its own waves. */
   if(ctx.lake&&K().ripple){ const L=ctx.lake, r=L.rect;
-    L.w=window.STORYWORLD.lakeWaves(ctx,r); L.A=0.025+0.075*(ctx.rough||1); L.t=0;
+    L.voyage=!!(k.seaHeight&&(A.sea||(ctx.trueEarth&&Math.abs(A.y-k.WATER_Y)<=k.B)));
+    if(!L.voyage) L.w=window.STORYWORLD.lakeWaves(ctx,r);
+    L.A=0.025+0.075*(ctx.rough||1); L.t=0;
     root.updateMatrixWorld(true);                   /* (not yet drawn: its world matrix is not yet worked out) */
     const a=root.localToWorld(new THREE.Vector3(r[0],0,r[1])), b=root.localToWorld(new THREE.Vector3(r[2],0,r[3]));
     K().lakeHide([Math.min(a.x,b.x),Math.min(a.z,b.z),Math.max(a.x,b.x),Math.max(a.z,b.z)]); }
@@ -1003,6 +1013,9 @@ function turnTo(a,b,k){ let d=b-a; while(d>Math.PI) d-=Math.PI*2; while(d<-Math.
    Their height follows the wind: a breath of it at rest, a metre and more in the squall (Mark
    4:37), and back to a floor when He speaks to it (4:39). */
 function lakeH(x,z){ const L=ctx.lake, r=L.rect;
+  /* (on the Great Sea, the voyage's own sea's face, from the set's level: a set raised out of it stands a
+     course over it, and its boats ride that much lower) */
+  if(L.voyage){ const k=K(); return (k.WATER_Y+k.seaHeight(anchor.x+x*SX,anchor.z+z*SX)-anchor.y)/S; }
   const e=Math.min(x-r[0],r[2]-x,z-r[1],r[3]-z); if(e<=0) return 0;
   const ef=e>=6?1:(e/6)*(e/6)*(3-2*e/6);
   const wl=Math.hypot(ctx.wind[0],ctx.wind[1])||1, dx=ctx.wind[0]/wl, dz=ctx.wind[1]/wl;
@@ -1036,8 +1049,10 @@ function lakeTick(dt){
   L.t+=dt;
   const want=0.025+0.075*(ctx.rough||0);
   L.A+=(want-L.A)*Math.min(1,dt*(want<L.A?1.6:0.5));            /* the calm comes at a word; the storm builds */
-  const U=L.w.U; U.uT.value=L.t; U.uA.value=L.A;
-  { const wl=Math.hypot(ctx.wind[0],ctx.wind[1])||1; U.uDir.value.set(ctx.wind[0]/wl,ctx.wind[1]/wl); }
+  const U=L.w?L.w.U:null;                                       /* (none on the Great Sea: the voyage draws it) */
+  if(U){ U.uT.value=L.t; U.uA.value=L.A;
+    const wl=Math.hypot(ctx.wind[0],ctx.wind[1])||1; U.uDir.value.set(ctx.wind[0]/wl,ctx.wind[1]/wl); }
+  const lv=L.voyage?(KIT.WATER_Y-anchor.y)/S:0;                 /* (the sea's level from the set's) */
   /* the boats ride it: heave with the water under her, pitch and roll with its slope, and heel to the wind */
   let main=null;
   for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; if(!u.bob||!o.visible) continue;
@@ -1045,14 +1060,14 @@ function lakeTick(dt){
     const x=o.position.x, z=o.position.z, ha=B.len*0.36, hb=B.beam*0.5;
     const hc=lakeH(x,z), hf=lakeH(x+fx*ha,z+fz*ha), hs=lakeH(x-fx*ha,z-fz*ha), hp=lakeH(x+rx*hb,z+rz*hb), hn=lakeH(x-rx*hb,z-rz*hb);
     const cl=(v,m)=>v<-m?-m:v>m?m:v;
-    u.heave=(hc*2+hf+hs)/4*0.9; u.pitch=cl(Math.atan2(hf-hs,2*ha),0.2); u.roll=cl(Math.atan2(hp-hn,2*hb)*0.8,0.24);
+    u.heave=lv+((hc*2+hf+hs)/4-lv)*0.9; u.pitch=cl(Math.atan2(hf-hs,2*ha),0.2); u.roll=cl(Math.atan2(hp-hn,2*hb)*0.8,0.24);
     o.position.y=u.baseY+u.heave; o.rotation.x=-u.pitch; o.rotation.z=u.roll;
     if(u.boat&&!main) main=o; }
-  { let n=0; for(const id in ctx.things){ const o=ctx.things[id], t=o.userData.thing; if(n>=8||!o.visible||!t||t.kind!=='boat') continue;
+  if(U){ let n=0; for(const id in ctx.things){ const o=ctx.things[id], t=o.userData.thing; if(n>=8||!o.visible||!t||t.kind!=='boat') continue;
       const B=o.userData.boat||(t.big?{len:window.STORYWORLD.BOAT.len*(t.scale||1),beam:window.STORYWORLD.BOAT.beam*(t.scale||1)}:{len:7,beam:2.1});
       U.uBoats.value[n].set(o.position.x,o.position.z,B.len,B.beam); U.uBoatHs.value[n]=o.rotation.y; n++; }
     for(;n<8;n++) U.uBoats.value[n].w=-99; }
-  if(main){ U.uBoat.value.set(main.position.x,main.position.z,main.userData.boat.len,main.userData.boat.beam); U.uBoatH.value=main.rotation.y;
+  if(main){ if(U){ U.uBoat.value.set(main.position.x,main.position.z,main.userData.boat.len,main.userData.boat.beam); U.uBoatH.value=main.rotation.y; }
     const w=toWorld(main.position.x,0,main.position.z); KIT.ripple.focus({x:w.x,y:w.y,z:w.z}); }
   /* everyone in her moves with her; everyone on the water stands on its face */
   const ride=(g,base)=>{ if(!main) return false; const b=inBoat(main,g.position.x,g.position.z); if(!b) return false;
@@ -2105,7 +2120,9 @@ function enterBeat(){
   if(T==='time'){ applyTime(B.to); setBed(ctx.place,B.to); return nextBeat(); }
   /* the wind and the waves: "the ruach was against it" … "the ruach ceased" */
   if(T==='weather'){ if(B.wind) ctx.wind=B.wind; if(B.rough!==undefined) ctx.rough=B.rough;
-    if(B.storm!==undefined&&K().setStorm) K().setStorm(B.storm||null);      /* the rain, the thunder and the dark of a squall */
+    /* the rain, the thunder and the dark of a squall; and the sea's own storm seas, running before the scene's
+       wind (its way in the world: a set laid turned blows the other way) */
+    if(B.storm!==undefined&&K().setStorm){ const sw=Math.sign(SX)||1; K().setStorm(B.storm||null,ctx.wind?[ctx.wind[0]*sw,ctx.wind[1]*sw]:undefined); }
     return nextBeat(); }
   /* "Make the people sit down" (Yahuchanon 6:10): on the grass, legs out before them */
   /* (one told to sit while still walking to his place sits when he gets there: he went the rest of the way
@@ -2626,7 +2643,7 @@ function frame(dtW){
   for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; const w=u.wings||(u.bird&&u.bird.userData&&u.bird.userData.wings); if(w&&w[0]){ const a=Math.sin(t*9)*0.5; w[0].rotation.z=a; w[1].rotation.z=-a; }
     if(u.tick&&o.visible) u.tick(dt);
     if(u.bob&&!ctx.lake){ const k=ctx.rough||1; o.position.y=u.baseY+Math.sin(t*1.3+o.position.x)*0.06*k; o.rotation.z=Math.sin(t*0.9+o.position.z)*0.025*k; } }
-  if(ctx.lake&&ctx.lake.w) lakeTick(dt);
+  if(ctx.lake&&(ctx.lake.w||ctx.lake.voyage)) lakeTick(dt);
   lifeTick(dt); wadeTick(dt); folkTick(dt); doorsTick(dt);
   if(portrait&&!$('sverse').classList.contains('off')) drawPortrait();
   { const T=SV.talk, g=T&&T.sp&&T.sp.glow&&ctx.glows[T.sp.glow];          /* a mal'ak's light swells with the words */

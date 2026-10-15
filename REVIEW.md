@@ -28,8 +28,9 @@
 > helm, deck and shore by where you stand), with a ship-aware chase camera; coasts now terrace
 > down to walkable sand beaches with palms on the tropical strand, while icy and cliff shores
 > rely on village piers — and going ashore prefers beaches, then piers, then high ground.
-> Still open from the review: small-island data upgrade (50m coastlines), ocean encounters
-> (passing ships, wrecks), and villager day/night schedules.
+> Still open from the review: small-island data upgrade (50m coastlines). Ocean encounters
+> (passing merchant ships, wrecks on the deep sea-bed) and villager day/night schedules (AUDIT
+> Rounds 95 and 137) have since been built.
 
 *Reviewed on branch `claude/sandbox-world-review-l396hy`. The game was run end-to-end in a headless
 browser as part of this review: title screen → set sail → sail → go ashore → village at night →

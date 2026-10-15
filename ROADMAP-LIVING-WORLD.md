@@ -112,7 +112,7 @@ There are two real limits:
 - **B2. Talking.** The player can **speak, ask for work, or trade**. Jobs are tracked in THE LOG and kept in the save. The reward is shekels and the village's goodwill.
 - **B3. Scrolls as rewards.** Some scrolls of Phase F are never found lying anywhere. Townsfolk give them, after a job or a chain of jobs, in a land that fits the book: a scribe in Yahudah, an elder in Babel, a merchant in Tsor.
 
-### Phase C — settlements and the land they change · C1, C2 and C4 done in Round 137; C3 (more places per land, roads) to come
+### Phase C — settlements and the land they change · DONE: C1, C2 and C4 in Round 137; C3 in de0fc9d (two hamlets in every land, joined to its town by roads)
 
 - **C1. Three kinds of place:**
   - **Rural countryside:** farmsteads, field strips, orchards and vineyards, threshing floors, stone field walls, shepherds' folds, terraces.

@@ -206,13 +206,14 @@ window.STAGE=(function(){
        came up, read back off the track, so a film sought into its middle builds them where playing it
        through would have. All are made to the measure of the man and the beasts. */
     const MAKE={}, EASE={}, up={}, M=()=>W.U_PER_M||6;
+    /* (a thing that cannot be made is left out, and the film plays on without it) */
     function tickProps(d){
       for(const k in MAKE){ const v=+d[k]||0;
-        if(v>0.004&&!up[k]){ const g=new T.Group(); MAKE[k](g); W.scene.add(g); up[k]=g; }
+        if(v>0.004&&!up[k]){ const g=new T.Group(); try{ MAKE[k](g); }catch(e){ g.userData.broken=true; } W.scene.add(g); up[k]=g; }
         else if(v<=0.004&&up[k]) putAway(k);
-        if(up[k]&&EASE[k]) EASE[k](up[k],v); } }
+        if(up[k]&&EASE[k]&&!up[k].userData.broken) EASE[k](up[k],v); } }
     function putAway(k){ const g=up[k]; delete up[k]; if(g.parent) g.parent.remove(g);
-      g.traverse(o=>{ if(o.geometry&&!o.isSprite) o.geometry.dispose(); });
+      g.traverse(o=>{ if(o.geometry&&!o.isSprite) o.geometry.dispose(); if(o.isInstancedMesh) o.dispose(); });
       /* the lamp put out exactly as the torch's own tick puts it out */
       if(g.userData.lit&&K()&&K().lamp) K().lamp(0,-1e7,0,0); }
     function dropProps(){ for(const k in up) putAway(k); }
@@ -270,12 +271,10 @@ window.STAGE=(function(){
         if(best) return best; }
       return null; }
     /* the first of these stations ([across the eye's line, toward the eye]) with dry ground under the
-       whole footprint — or, asked for `high`, the one of them standing highest */
-    function station(e,list,L,Wd,high){ let pick=null;
+       whole footprint, or the first of them if none has */
+    function station(e,list,L,Wd){
       const at2=(l,s)=>[anchor.x+e.fz*l+e.fx*s,anchor.z-e.fx*l+e.fz*s];
-      for(const [l,s] of list){ const [x,z]=at2(l,s), f=under(x,z,e.fx,e.fz,L,Wd);
-        if(f.ok&&(!pick||(high&&f.lo>pick.f.lo))){ pick={x,z,f}; if(!high) break; } }
-      if(pick) return pick;
+      for(const [l,s] of list){ const [x,z]=at2(l,s), f=under(x,z,e.fx,e.fz,L,Wd); if(f.ok) return {x,z,f}; }
       const [x,z]=at2(list[0][0],list[0][1]); return {x,z,f:under(x,z,e.fx,e.fz,L,Wd)}; }
 
     /* THE BUSH (Shemoth 3:2): a thorn-bush of the wilderness, of blocks, about a man's height, a few
@@ -334,18 +333,19 @@ window.STAGE=(function(){
       const sd=Math.sign((e.x-c.x)*az-(e.z-c.z)*ax)||1;
       blk(g,0.6*m,4.6*m,3.8*m,sd*(Wd/2+0.2*m),0.4*m,L*0.18,mt.dark); };
 
-    /* THE CAVE OF TREASURES ("a cave in a rock", Adam and Hawwah 1, 1:9): a face of grey stone stood
-       on the higher ground to one side of the anchor, the dark of its mouth turned to the eye */
+    /* THE CAVE OF TREASURES ("a cave in a rock", Adam and Hawwah 1, 1:9): a face of grey stone some
+       fourteen metres across stood a little beyond the anchor, where the eye is looking, the dark of
+       its mouth turned to the eye */
     MAKE.cave=g=>{ const m=M(), mt=mats(), e=eyeAt('cave'),
-        st=station(e,[[50,0],[-50,0],[70,-10],[-70,-10],[90,0],[-90,0]],8*m,14*m,true);
+        st=station(e,[[0,-30],[0,-45],[24,-30],[-24,-30],[34,-12],[-34,-12]],8*m,14*m);
       g.position.set(st.x,st.f.lo-0.6*m,st.z); g.rotation.y=Math.atan2(e.x-st.x,e.z-st.z);
-      blk(g,9*m,7*m,7*m,0,0,-3.5*m,mt.rock);
-      blk(g,4.6*m,5.2*m,6*m,-6*m,0,-3.4*m,mt.rock2);
-      blk(g,5*m,3.8*m,5.6*m,6.4*m,0,-3*m,mt.rock2);
-      blk(g,7*m,1.8*m,6*m,-0.8*m,7*m,-3.8*m,mt.rock2);
-      blk(g,1.6*m,1.3*m,1.5*m,3.4*m,0,1.2*m,mt.rock2);
-      blk(g,1.1*m,0.9*m,1.2*m,-4.6*m,0,1.5*m,mt.rock);
-      blk(g,2.6*m,3.6*m,0.5*m,-0.6*m,0.6*m,0.15*m,mt.mouth); };
+      blk(g,7*m,6*m,6*m,0,0,-3*m,mt.rock);
+      blk(g,3.6*m,4.4*m,5*m,-4.8*m,0,-2.8*m,mt.rock2);
+      blk(g,4*m,3.2*m,4.6*m,5*m,0,-2.6*m,mt.rock2);
+      blk(g,5.6*m,1.5*m,5*m,-0.6*m,6*m,-3.2*m,mt.rock2);
+      blk(g,1.4*m,1.1*m,1.3*m,2.8*m,0,1*m,mt.rock2);
+      blk(g,1*m,0.8*m,1.1*m,-3.8*m,0,1.3*m,mt.rock);
+      blk(g,2.4*m,3.2*m,0.5*m,-0.5*m,0.6*m,0.15*m,mt.mouth); };
 
     /* THE RIVER that went out of Ĕḏen to water the garden (Bereshith 2:10): down from inland to the
        sea along the nearest way to it, passing the anchor to one side, laid on the ground a stretch at

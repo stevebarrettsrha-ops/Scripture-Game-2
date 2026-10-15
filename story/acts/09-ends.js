@@ -974,9 +974,10 @@ STORY.act({
       {t:'sit', who:['shaul','sila']},
       {t:'cam', from:['prayer',3,4], fdy:1.6, look:'shaul', dur:2},
       {t:'read', ref:'ACTS 16:13'},
-      {t:'note', text:'Thyatira, in Asia, was a city of dyers: inscriptions found there name its guild of purple-dyers. The purple was dear, and those who sold it were not poor.'},
       {t:'mood', who:'ludia', ex:'awe'},
       {t:'cam', from:['prayer',-2.4,3.4], fdy:1.4, look:'ludia', dur:2.5},
+      {t:'read', ref:'ACTS 16:14'},
+      {t:'note', text:'Thyatira, in Asia, was a city of dyers: inscriptions found there name its guild of purple-dyers. The purple was dear, and those who sold it were not poor.'},
       {t:'wait', s:1.5},
       /* she and her household immersed in the river */
       {t:'show', id:['lh0','lh1','lh2']},

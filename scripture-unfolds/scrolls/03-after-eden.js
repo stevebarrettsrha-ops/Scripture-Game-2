@@ -10,15 +10,15 @@
    next scroll picks up.
 
    WHY IT LOOKS THE WAY IT DOES. One thing only is raised: the cave they
-   lived in, the Cave of Treasures, stood in its rock beside the anchor from
+   lived in, the Cave of Treasures, stood in its rock by the anchor from
    the first frame (`cave`), because the boy is carried to it (1:4) and the
-   old man dies in it (8:1). Beyond that no stage dial in this file makes the
-   world; the world already stands. What the track does instead is take the SUN off
-   it — a flat overcast, the light down, the fog drawn in close — and then
-   walk the whole scene from that grey afternoon down into night, so that by
-   the last caption the only things in the sky are the lesser light and the
-   host. Nothing is invented to carry the grief; the hour of the day carries
-   it, and the hour of the day is a thing this world already has.        */
+   old man dies in it (8:1). Beyond that no stage dial in this file makes
+   the world; the world already stands. What the track does instead is take
+   the SUN off it — a flat overcast, the light down, the fog drawn in close —
+   and then walk the whole scene from that grey afternoon down into night, so
+   that by the last caption the only things in the sky are the lesser light
+   and the host. Nothing is invented to carry the grief; the hour of the day
+   carries it, and the hour of the day is a thing this world already has.  */
 
 STORY.scene({
   id:'after-eden',

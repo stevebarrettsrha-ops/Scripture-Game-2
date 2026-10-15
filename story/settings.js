@@ -1030,6 +1030,10 @@ function temple(st0,x,z,w,d,h,col,y0){ col=col||'alabaster';
   st.box(x-w/2+4,1.8,z-d/2+4,x+w/2-4,1.8+h,z+d/2-4,'plaster'); }
 /* the sea laid along +x from `x0`: its floor levelled, a beach of sand, the water `depth` deep */
 function sea(ctx,st,x0,o){ o=o||{};
+  /* (a set raised out of the Great Sea itself — story/places.js, `sea` — has the true sea for its own: its
+     beach alone is laid, eased down into the water off its edge, and no pool of still water is set over the
+     live sea; a floor laid over the bay stood the whole bay up out of the water as land) */
+  if(ctx.anchor&&ctx.anchor.sea){ ctx.api.pad(x0-8,-120,x0,120,{top:'sand'}); st.box(x0-6,0,-120,x0,0.1,120,'sand'); return; }
   ctx.api.pad(x0-8,-120,x0+150,120,{top:'sand'});
   ctx.api.water(x0,-118,x0+148,118,{depth:o.depth||4,bed:'sand'});
   W.waterLife(ctx,{at:[x0+10,0], r:26, y:0, fish:10, egrets:2, flies:2});

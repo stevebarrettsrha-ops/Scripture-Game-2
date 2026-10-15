@@ -53,8 +53,10 @@ const PLACES={
   /* To the End of the Earth (Act VIII) */
   gazaroad:   {lat:31.58,  lon:34.92,  flat:46, why:'the way down from Yahrushalayim to Azzah, "this is desert" (Acts 8:26)'},
   damascus:   {lat:33.51,  lon:36.29,  flat:60, why:'Damascus, the road in from the south-west and the street called Straight (Acts 9:11)'},
-  yapho:      {lat:32.054, lon:34.752, flat:34, why:'Yapho by the sea, the house of Shim‛on the tanner (Acts 10:6)'},
-  caesareaM:  {lat:32.50,  lon:34.892, flat:34, why:'Caesarea by the sea, the house of the captain Cornelius (Acts 10:24)'},
+  /* (the coast's set lays its sea toward its +x, and the Great Sea lies west-north-west of both: `turn`ed, its
+     +x looks out over the true sea, which a set laid unturned had put inland, toward the hills) */
+  yapho:      {lat:32.054, lon:34.752, flat:34, turn:true, why:'Yapho by the sea, the house of Shim‛on the tanner (Acts 10:6)'},
+  caesareaM:  {lat:32.50,  lon:34.892, flat:34, turn:true, why:'Caesarea by the sea, the house of the captain Cornelius (Acts 10:24)'},
   antioch:    {lat:36.20,  lon:36.16,  flat:46, why:'Antioch on the Orontes, where they were first called Natsarim (Acts 11:26)'},
   lystra:     {lat:37.578,  lon:32.453, flat:46, why:'Lustra in Lukaonia, the house of Zeus before its gate (Acts 14:13)'},
   philippi:   {lat:41.013,  lon:24.287, flat:60, why:'Philippi of Makedonia, a colony, its river outside the gate (Acts 16:12-13)'},
@@ -123,6 +125,14 @@ function find(def){
       if(score<bs){ bs=score; best={x,z}; } } }
   if(!best) best=P;
   const B=k.B, ix=Math.floor(best.x/B), iz=Math.floor(best.z/B);
+  /* ---- AND WHERE THE EARTH HAS ONLY SEA ----
+     The soundings lose a small island (Melite, sampled every sixteen kilometres, is all sea), and the set
+     was quietly anchored in open water at the sea's own face: its ground and its hills were laid nowhere,
+     and its beach was awash. Such a place is said to be at sea (`sea`), and its set is built up out of the
+     sea from the bed (the kit's overSea), its level one course above the water so its beach stands dry. */
+  /* (said once: a place is found once, and kept) */
+  if(!k.cell(ix,iz)){ console.warn('STORYPLACES: no dry ground near '+def.lat+','+def.lon+' ('+def.why+'): its set is raised out of the sea');
+    return {x:(ix+0.5)*B, z:(iz+0.5)*B, y:(Math.floor(k.WATER_Y/B)+1)*B, sea:true}; }
   return {x:(ix+0.5)*B, z:(iz+0.5)*B, y:k.topY(ix,iz)};
 }
 window.STORYPLACES={
