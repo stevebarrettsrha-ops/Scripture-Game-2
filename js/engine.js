@@ -6172,9 +6172,7 @@ const waveMat=new THREE.ShaderMaterial({
       float deepF=1.0-shoal;
       /* colour by real depth — turquoise over the shallows, dark over the deep —
          with a breath of the old wave-height shading kept within it */
-      /* (graded by the true depth, smoothly, from the strand's turquoise out to the deep's blue) */
-      float spB=1.0-pow(max(shoalRaw,0.0001),0.83333), mB=2.17+197.8*pow(spB,2.6);
-      vec3 base=mix(uShallow,uDeep,max(deepF*0.6,smoothstep(3.0,85.0,mB)));
+      vec3 base=mix(uShallow,uDeep,deepF);
       base*=0.88+0.24*clamp(vHeight*0.22+0.5,0.0,1.0);
       /* a storm sea is dark slate-green, lighter where a crest stands up against the sky */
       base=mix(base,vec3(0.075,0.14,0.15)*(0.85+0.45*clamp(vSwell/(vSH*1.4+0.01)*0.5+0.5,0.0,1.0)),vStorm*0.65);
@@ -6296,14 +6294,7 @@ const waveMat=new THREE.ShaderMaterial({
          does when it is looked across rather than into. */
       float dH=length(vWorld.xz-uCamPos.xz);
       clear*=1.0-smoothstep(${(VIEW*CHW*0.30).toFixed(1)},${(VIEW*CHW*0.72).toFixed(1)},dH);
-      /* ---- THE SHALLOWS GRADE INTO THE DEEP WITHOUT A SEAM ----
-         Seen through water that was clear to sixty metres, the shelf's terraces of blocks showed
-         as hard pale steps and patches all the way out, and the turquoise broke off against the
-         deep blue at the edge of the blocks. Real shallows are their COLOUR, not their bed: the
-         bed shows only in the last few metres by the strand, and from there the water deepens
-         smoothly from turquoise to the blue of the deep. */
-      float aa=mix(0.93,0.66,clear);
-      aa=mix(aa,0.36,1.0-smoothstep(2.4,9.0,shelfM));
+      float aa=mix(0.93,0.30,clear);
       aa=mix(aa,0.985,fres*0.6*above);
       aa=max(aa,allFoam*0.95*above);
       /* and from beneath, the skin of the sea is thin — the daylight comes
