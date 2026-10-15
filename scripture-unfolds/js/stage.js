@@ -333,19 +333,40 @@ window.STAGE=(function(){
       const sd=Math.sign((e.x-c.x)*az-(e.z-c.z)*ax)||1;
       blk(g,0.6*m,4.6*m,3.8*m,sd*(Wd/2+0.2*m),0.4*m,L*0.18,mt.dark); };
 
-    /* THE CAVE OF TREASURES ("a cave in a rock", Adam and Hawwah 1, 1:9): a face of grey stone some
-       fourteen metres across stood a little beyond the anchor, where the eye is looking, the dark of
-       its mouth turned to the eye */
-    MAKE.cave=g=>{ const m=M(), mt=mats(), e=eyeAt('cave'),
-        st=station(e,[[0,-30],[0,-45],[24,-30],[-24,-30],[34,-12],[-34,-12]],8*m,14*m);
-      g.position.set(st.x,st.f.lo-0.6*m,st.z); g.rotation.y=Math.atan2(e.x-st.x,e.z-st.z);
-      blk(g,7*m,6*m,6*m,0,0,-3*m,mt.rock);
-      blk(g,3.6*m,4.4*m,5*m,-4.8*m,0,-2.8*m,mt.rock2);
-      blk(g,4*m,3.2*m,4.6*m,5*m,0,-2.6*m,mt.rock2);
-      blk(g,5.6*m,1.5*m,5*m,-0.6*m,6*m,-3.2*m,mt.rock2);
-      blk(g,1.4*m,1.1*m,1.3*m,2.8*m,0,1*m,mt.rock2);
-      blk(g,1*m,0.8*m,1.1*m,-3.8*m,0,1.3*m,mt.rock);
-      blk(g,2.4*m,3.2*m,0.5*m,-0.5*m,0.6*m,0.15*m,mt.mouth); };
+    /* THE CAVE OF TREASURES ("a cave in a rock", Adam and Hawwah 1, 1:9): a knoll of grey stone some
+       fifteen metres across stood a little beyond the anchor, where the eye is looking, built of the
+       world's own blocks one upon another — each stone its own shade, as the hills about it are — and
+       sunk a block into the ground under every column of it, so it rises out of the land and does not
+       sit on it. The dark of its mouth is turned to the eye: a doorway of the height of a man and a
+       little more, a lintel of the rock over it, and the dark going back into the hill behind. */
+    MAKE.cave=g=>{ const m=M(), mt=mats(), e=eyeAt('cave'), b=W.B,
+        st=station(e,[[0,-30],[0,-45],[24,-30],[-24,-30],[34,-12],[-34,-12]],12*m,15*m);
+      const ry=Math.atan2(e.x-st.x,e.z-st.z), cs=Math.cos(ry), sn=Math.sin(ry), y0=st.f.lo-0.6*m;
+      g.position.set(st.x,y0,st.z); g.rotation.y=ry;
+      const RX=7.5*m, RZ=5.5*m, H=6.5*m, CZ=-4*m, front=CZ+RZ, MW=1.3*m, MH=2.6*m, MD=4.4*m;
+      const hs=(i,j)=>{ const q=Math.sin(i*127.1+j*311.7)*43758.5453; return q-Math.floor(q); };
+      const gAt=(x,z)=>groundY(st.x+x*cs+z*sn,st.z-x*sn+z*cs)-y0;          /* the ground under (x,z) of the knoll */
+      const stones=[], shade=[], scrub=[], SH=[0x8a8174,0x7d7468,0x6f675c,0x958b7c,0x625b51,0x837a6c];
+      const gm=gAt(0,front);
+      for(let i=-Math.ceil(RX/b);i<=Math.ceil(RX/b);i++) for(let j=-Math.ceil(RZ/b);j<=Math.ceil(RZ/b);j++){
+        const x=i*b, z=CZ+j*b, r=Math.hypot(x/RX,(z-CZ)/RZ); if(r>1) continue;
+        const gy=Math.floor(gAt(x,z)/b)*b-b;
+        let top=Math.round((st.f.hi-y0+H*Math.pow(1-r*r,0.6)*(0.8+0.32*hs(i,j)))/b)*b;
+        if(top<gy+2*b) top=gy+2*b;
+        /* the doorway: the columns in it are open from the ground to the lintel, and the lintel kept
+           only where the rock stands a block and more over it */
+        const door=Math.abs(x)<MW&&z>front-MD;
+        for(let y=gy;y<top;y+=b){
+          if(door&&y+b>gy+b&&y<gm+MH) continue;
+          stones.push({bx:0,by:0,bz:0,x,y,z,w:b,h:b,d:b}); shade.push(SH[Math.floor(hs(i*7+y,j*3-y)*SH.length)]); }
+        if(!door&&r<0.85&&hs(j,i)<0.13) scrub.push({bx:0,by:0,bz:0,x,y:top,z,w:0.7*b,h:0.5*b,d:0.7*b}); }
+      for(const [x,z,s] of [[2.6,2.4,1],[-3.4,2.9,0.8],[4.2,0.6,0.7],[-5.1,1.0,1.1]]){ const k=stones.length;
+        stones.push({bx:0,by:0,bz:0,x:x*m,y:Math.floor(gAt(x*m,z*m)/b)*b,z:z*m,w:s*b,h:s*b*0.8,d:s*b*1.1,ry:k}); shade.push(SH[k%SH.length]); }
+      const ri=mt.rockI||(mt.rockI=new T.MeshLambertMaterial({color:0xffffff})), im=many(g,stones,ri), cl=new T.Color();
+      shade.forEach((c,i)=>im.setColorAt(i,cl.setHex(c))); if(im.instanceColor) im.instanceColor.needsUpdate=true;
+      if(scrub.length) many(g,scrub,mt.leaf2);
+      /* the dark within: from a block inside the doorway back into the hill */
+      blk(g,2*MW+0.2*m,MH+0.6*m,MD-b,0,gm-0.4*m,front-b-(MD-b)/2,mt.mouth); };
 
     /* THE RIVER that went out of Ĕḏen to water the garden (Bereshith 2:10): down from inland to the
        sea along the nearest way to it, passing the anchor to one side, laid on the ground a stretch at
