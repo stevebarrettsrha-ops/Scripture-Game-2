@@ -10284,7 +10284,9 @@ function updateSeaFloor(px,pz,force){
         _sbU[(o+4+q)*2]=uu[q];   _sbU[(o+4+q)*2+1]=vv[q]; }
       /* the light does not reach the trenches, and it fails on its TRUE
          measure: all but spent by 200 m, wholly gone by 1,000 */
-      const dm2=(SEA_SURF-y)/U_PER_M, lit=0.34+0.62*Math.max(0,1-dm2/900);
+      /* (and yet a man's eye must see the deep he came down to: the trench walls and the ridges of the abyss
+         are lit by the water's own dim blue, never the black that hid them — player-asked) */
+      const dm2=(SEA_SURF-y)/U_PER_M, lit=0.58+0.38*Math.max(0,1-dm2/900);
       const jr=0.94+0.12*hash2(i*1.7+j*0.3,j*2.1-i*0.7);
       /* THE WATER LENDS ITS OWN COLOUR to everything beneath it — but by
          MIXING toward the blue of the sea, not by pulling the red channel
@@ -25184,7 +25186,7 @@ function frame(){ orgSnap();
        with the view now closing at three hundred units it washed the whole
        reef out to one flat wash of it. A deeper sea-green holds the blocks
        and the coral up against it. */
-    const wc=mix3(0x061826,0x0e4a68,0x2b8ba8,1-murk);
+    const wc=mix3(0x1a4a66,0x165a7a,0x2b8ba8,1-murk);              /* (the deep a dim, clear blue: seen, not black) */
     /* AS DEEP AS THE EYE IS UNDER, and no deeper. A crest washing over the
        lens used to snap the whole world — sky, coast and all — to full
        water-light for the seconds it took to pass, and snap it back again:
@@ -25199,9 +25201,9 @@ function frame(){ orgSnap();
        reaches the rim of the floor — and the deep looks as it should besides,
        the far kelp going to shadow rather than standing sharp to the horizon. */
     scene.fog.near+=(4-scene.fog.near)*w;
-    scene.fog.far+=((330-murk*190)-scene.fog.far)*w;
-    hemi.intensity+=((1.0-murk*0.6)-hemi.intensity)*w;
-    dirL.intensity+=((0.5-murk*0.32)-dirL.intensity)*w; }
+    scene.fog.far+=((330-murk*70)-scene.fog.far)*w;
+    hemi.intensity+=((1.0-murk*0.22)-hemi.intensity)*w;
+    dirL.intensity+=((0.5-murk*0.18)-dirL.intensity)*w; }
   /* ---- BREATH — the diver's chest against the deep ----
      It drains below, refills above; fails, and you break for the surface.
      The immortal breath (🫧) frees you of it altogether. */
