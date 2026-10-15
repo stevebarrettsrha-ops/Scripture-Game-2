@@ -87,7 +87,12 @@ function groundAt(x,z,ref){
 function groundAt0(x,z,ref){
   const k=K(); let r;
   if(ref!==undefined) r=anchor.y+ref*S;
-  else if(ctx&&ctx.api){ const pd=ctx.api.inPadL(x,z); if(pd) r=(pd.ty!==undefined?pd.ty*k.B:anchor.y)+2.2*S;   /* (its own level ground: a set may lie on more than one) */
+  else if(ctx&&ctx.api){ const pd=ctx.api.inPadL(x,z);
+    /* (its own level ground: a set may lie on more than one — but where something is BUILT on it, a house
+       with a floor up a stair, the floor is found from below like any other: read off the level ground,
+       the upper room's floor was taken for the street, and none could find a way across it) */
+    if(pd){ const py=pd.ty!==undefined?pd.ty*k.B:anchor.y;
+      if(!k.solidAt(anchor.x+x*SX,py+0.5*k.B,anchor.z+z*SX)) r=py+2.2*S; }
     /* (or the slope its edge was eased into: cut down a hillside, the land's own top is gone, and a man
        set there was found standing in the air forty metres over the cut) */
     else { const bh=ctx.api.blendL?ctx.api.blendL(x,z):undefined; if(bh!==undefined) r=bh*k.B+2.2*S;
