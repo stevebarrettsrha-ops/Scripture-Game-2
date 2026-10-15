@@ -70,6 +70,14 @@ window.STAGE=(function(){
     land:1, sea:1, clouds:1, lifeSea:1, lifeAir:1, lifeLand:1, ship:0, man:0, beasts:0, birds:0,
     traders:0, bush:0, waters:0, ark:0, cave:0, garden:0, river:0,
     far:0, hour:null, fogN:null, fogF:null,
+    /* THE SIGNS, and what the things of a scene are doing (see THE PLAYERS below): YAHUAH is shown
+       only as light, cloud and fire — glory, fire — and the rest are the waters, the rain, the bow,
+       the earth shaking, the tongues as of fire, the city coming down, the ladder, and the dials a
+       thing of the scene names for itself (the stone rolled, the den sealed, the pillar raised) */
+    glory:0, fire:0, rain:0, flood:0, bow:0, shake:0, tongues:0, city:0, ladder:0,
+    roll:0, seal:0, raise:0, dove:0,
+    /* ox, oz: the eye turns about a point this far (metres) across and into the stage from the anchor */
+    ox:0, oz:0,
     cd:120, cy:40, ca:0, cl:10, cfov:62, cut:false };
 
   function lerp(a,b,u){ return a+(b-a)*u; }
@@ -118,16 +126,27 @@ window.STAGE=(function(){
     return out;
   }
 
-  function play(tr,anch,done){
-    track=tr.slice().sort((a,b)=>a.t-b.t); t=0; playing=true;
+  /* `scene`, when a film is played (not the idle turn behind the Library): its players, its
+     things and its signs, and `front` — the bearing, in turns, the eye's first station stands at
+     from the anchor, which every `ca` of that film is then counted from */
+  let front=0, waiting=false;
+  function play(tr,anch,done,scene){
+    track=tr.slice().sort((a,b)=>a.t-b.t); t=0; playing=true; waiting=false;
     anchor=anch||{x:0,z:0}; onDone=done||null;
     if(!held) hold();
+    cast3.drop();
+    front=scene&&typeof scene.front==='number'?scene.front:(anch&&anch.front!=null?anch.front:0);
+    if(scene&&(scene.cast||scene.crowds||scene.herds||scene.props||scene.signs||scene.set)) cast3.begin(scene);
     return dur();
   }
   function dur(){ return track&&track.length?track[track.length-1].t:0; }
   function elapsed(){ return t; }
   function seek(x){ t=Math.max(0,Math.min(dur(),x)); }
-  function stop(){ playing=false; track=null; give(); }
+  function stop(){ playing=false; track=null; waiting=false; cast3.drop(); give(); }
+  /* THE CAPTION WAITS FOR THE VOICE. While a verse is still being read when its time is up, the
+     film's own clock stands still — the world goes on moving, the sea and the folk and the light,
+     but nothing of the telling moves on until the reading is done (js/story.js asks for it) */
+  function wait(on){ waiting=!!on; }
 
   /* the world is BORROWED, and given back exactly as it was found */
   function hold(){
@@ -394,6 +413,466 @@ window.STAGE=(function(){
       for(const im of g.userData.ims) place(im,b=>Math.max(0,Math.min(1,v*1.6-0.6*b.k/n))); };
     return {tick,drop};
   })();
+  /* ================= THE PLAYERS, THE THINGS AND THE SIGNS =================
+     Scripture-Game writes every slide as data: the place, the hour, the cast with their poses,
+     the crowds, the props and the effects. A film here is written the same way, and this is
+     what stands them on the true earth at the scroll's own place.
+
+     THE STAGE IS LAID ONTO THE LAND. Its FRONT is the eye's first station (the scene's `front`,
+     in turns, as `ca` is counted); from there `x` runs across the picture to the right and `z`
+     runs into it, both in metres from the anchor — so what Scripture-Game calls across the screen
+     is across the eye's view, and its depth is distance. A player's `y` is metres over the ground.
+
+       cast:  [{ id, as, keys:[{t,x,z,y,pose,face}], on:[t0,t1], ... }]   one figure each
+       crowds:[{ n, as, x0,z0,x1,z1, y, pose, poses:[[t,pose]], face, on }] many at once
+       herds: [{ kind, n, x0,z0,x1,z1, face, on }]                          the beasts
+       props: [{ k, x, z, turn, s, on, ... }]                                the things the verses name
+       signs: { glory:{x,z,h,r}, fire:{x,z,h}, city:{dist,size}, bow:{dist}, flood:{} }
+       set:   { clear:[x0,z0,x1,z1], level:[[x0,z0,x1,z1,top]], water:[[x0,z0,x1,z1,depth]] }
+
+     `as` dresses a figure: man · elder · woman · youth · boy · girl · yahusha · infant · malak ·
+     giant · soldier · sovereign · prophet. `pose`: stand · walk · kneel · sit · prone (fallen on
+     the face) · lie (asleep, on the back) · arms (lifted to the shamayim) · pray (hands before
+     him) · wade (waist-deep in the river). `face`: 'eye', another player's id, [x,z], or a
+     bearing in turns about the stage (0 toward the eye, 0.5 away, 0.25 to the right).
+
+     THE RULES THIS GAME KEEPS, kept here and not left to the films:
+       · EVERYONE IS BROWN. A figure is given a brown skin unless a film names another.
+       · YAHUSHA'S FACE IS NEVER DRAWN. `as:'yahusha'` (and the infant) is built holy — the front
+         of the head is skin and nothing else — and the eye is never let nearer to His head than
+         GUARD metres: if a key would bring it closer, it is held back along its own line.
+       · YAHUAH IS SHOWN ONLY AS LIGHT, CLOUD AND FIRE: `glory` and `fire` and nothing more. No
+         figure is ever made for Him, and a voice from the shamayim is a light and a caption.
+       · MAL'AKIM ARE BROWN MEN LIT FROM WITHIN, with no wings: their robes and skin burn with a
+         light of their own, and a glow stands about them.
+       · VIOLENCE IS READ, NEVER DRAWN. No blade or blow is made here: Golyath simply falls.  */
+  const cast3=(function(){
+    const K=()=>window.__KIT;
+    const S=()=>(K()&&K().setScale)||6.5;            /* world units to the metre */
+    const GUARD=6.5;                                  /* metres the eye keeps from His head */
+    let sc=null, root=null, fr={f:[0,-1],r:[1,0],yaw:Math.PI}, figs=[], things=[], api=null, lit=null;
+    const TAU=Math.PI*2;
+    function setFrame(turns){ const a=turns*TAU;
+      fr={f:[-Math.sin(a),-Math.cos(a)], r:[Math.cos(a),-Math.sin(a)], yaw:Math.atan2(-Math.sin(a),-Math.cos(a))}; }
+    /* a point of the stage (metres across, metres in) as a point of the world */
+    function wpt(x,z){ const s=S(); return [anchor.x+(fr.r[0]*x+fr.f[0]*z)*s, anchor.z+(fr.r[1]*x+fr.f[1]*z)*s]; }
+    /* the ground a thing stands on: what is BUILT counts (a set's level floor, a city's paving) */
+    function gy(X,Z){ const c=W.landAtWorld(X,Z); let y=c?c.h*W.B:W.WATER_Y;
+      try{ const g=K().groundInfo(X,Z,y+24); if(g&&g.y!=null&&isFinite(g.y)) y=g.y; }catch(e){}
+      return y; }
+    /* a bearing on the stage as a way in the world */
+    function dirOf(turns){ const a=turns*TAU, c=Math.cos(a), s=Math.sin(a);
+      return [-fr.f[0]*c+fr.r[0]*s, -fr.f[1]*c+fr.r[1]*s]; }
+
+    /* ---- THE STUFF THINGS ARE MADE OF ---- */
+    let MT=null;
+    function glowTex(inner,outer){ const cv=document.createElement('canvas'); cv.width=cv.height=64;
+      const g=cv.getContext('2d'), gr=g.createRadialGradient(32,32,0,32,32,32);
+      gr.addColorStop(0,inner); gr.addColorStop(0.35,outer); gr.addColorStop(1,'rgba(0,0,0,0)');
+      g.fillStyle=gr; g.fillRect(0,0,64,64); return new T.CanvasTexture(cv); }
+    function mats(){ if(MT) return MT;
+      const L=(c,o)=>new T.MeshLambertMaterial(Object.assign({color:c},o||{}));
+      const add=(c,op)=>new T.MeshBasicMaterial({color:c,transparent:true,opacity:op,blending:T.AdditiveBlending,depthWrite:false});
+      MT={ stone:L(0x9a9184), stone2:L(0x80786c), dark:new T.MeshBasicMaterial({color:0x0b0907}), wood:L(0x6a4a2c), wood2:L(0x856038),
+        hay:L(0xc8a85a), cloth:L(0xefe8d8), pitch:L(0x2a2018), gopher:L(0x7b5634), leaf:L(0x55702f), leaf2:L(0x41602a), thorn:L(0x5b4630),
+        water:L(0x3f7f96,{emissive:0x0c2a36,transparent:true,opacity:0.86}), flood:L(0x2f4652,{emissive:0x0a1418}),
+        flame:add(0xffa640,0.85), gold:add(0xffd88a,0.9), shaft:add(0xfff2c8,0.16),
+        glow:new T.SpriteMaterial({map:glowTex('rgba(255,252,236,1)','rgba(255,226,150,0.55)'),transparent:true,depthWrite:false,blending:T.AdditiveBlending,fog:false}),
+        ember:new T.SpriteMaterial({map:glowTex('rgba(255,236,190,1)','rgba(255,150,60,0.6)'),transparent:true,depthWrite:false,blending:T.AdditiveBlending}),
+        rain:new T.MeshBasicMaterial({color:0xaab6c4,transparent:true,opacity:0.4,depthWrite:false}) };
+      return MT; }
+    function blk(g,w,h,d,x,y,z,m){ const s=S(), b=new T.Mesh(new T.BoxGeometry(w*s,h*s,d*s),m); b.position.set(x*s,(y+h/2)*s,z*s); g.add(b); return b; }
+    function sprite(g,mat,x,y,z,size){ const s=S(), sp=new T.Sprite(mat.clone?mat.clone():mat); sp.position.set(x*s,y*s,z*s); sp.scale.set(size*s,size*s,1); g.add(sp); return sp; }
+
+    /* ================= THE PEOPLE ================= */
+    const SKIN=[0x8d5524,0x7a4a22,0x6b3f1d,0x9a6438,0x5e3a1c,0x84532c,0x734626,0x8a5a32];
+    const ROBE=[0x8a7454,0x6e5a44,0x9a8462,0x5f4b3a,0x7c6a52,0xa08a68,0x6a5a48,0x8c6e4c];
+    const CLOTH=[0x6e5a4a,0x4f5f6e,0x7a5040,0x5e6a52,0x8a7a62,0x3f4a5a];
+    const LOOK={
+      man:{}, prophet:{robe:0x6b5a40,beard:0x2a2018},
+      elder:{beard:0xd6d2ca,hair:0xd6d2ca},
+      woman:{female:true}, girl:{female:true,small:0.74},
+      youth:{small:0.9,beard:false}, boy:{small:0.74,beard:false},
+      /* HE IS HOLY: the face is never drawn (makeFigure's `holy`), and a plain head-cloth frames it */
+      yahusha:{holy:true,robe:0xe8e0cc,sash:0x8a6a44,cloth:0xe9e3d2},
+      malak:{robe:0xf3efe4,beard:false,malak:true},
+      giant:{robe:0x8a6a3a,cloth:0x9a7a3e,scale:1.62,under:0x6a5030},
+      soldier:{robe:0x8c2a22,cloth:0x9a9aa0,under:0x5a4030},
+      sovereign:{robe:0x5a2a6a,sash:0xc8a040,cloth:0xc8a040},
+      shepherd:{robe:0x7a6a50,staff:true,cloth:0x8a7a5a}
+    };
+    function infant(){ const g=new T.Group(), m=mats();
+      /* wrapped up (Luke 2:7): a bundle of cloth, and the head of a child — and the face, as His face
+         always is here, not drawn: the skin of the head and nothing upon it */
+      const sk=new T.MeshLambertMaterial({color:0x8a5a32});
+      const body=new T.Mesh(new T.BoxGeometry(2.2,1.3,3.6),m.cloth); body.position.set(0,0.65,0); g.add(body);
+      const head=new T.Mesh(new T.BoxGeometry(1.25,1.25,1.25),[sk,sk,sk,sk,sk,sk]); head.position.set(0,1.0,2.2); g.add(head);
+      g.userData={head,holy:true,infant:true}; return g; }
+    /* lit from within: every stuff of the figure made its own, burning with its own colour */
+    function litWithin(g){
+      g.traverse(o=>{ if(!o.isMesh) return;
+        const one=mt=>{ const c=mt.clone(); if(c.emissive){ c.emissive.copy(c.color||new T.Color(0xffffff)).multiplyScalar(0.62); } return c; };
+        o.material=Array.isArray(o.material)?o.material.map(one):one(o.material); });
+      const sp=new T.Sprite(mats().glow.clone()); sp.position.y=7; sp.scale.set(30,30,1); sp.material.opacity=0.7; g.add(sp);
+      g.userData.halo=sp; g.userData.lit=true; }
+    function makeOne(c,i){
+      const k=K(); if(!k||!k.makeFigure) return null;
+      const look=Object.assign({},LOOK[c.as]||{},c), seed=look.seed||(i*7+3);
+      let fig;
+      if(c.as==='infant') fig=infant();
+      else{
+        const o={seed, skin:look.skin!=null?look.skin:SKIN[seed%SKIN.length],
+          hair:look.hair!=null?look.hair:0x1c140f, eye:0x2a1a10,
+          robe:look.robe!=null?look.robe:ROBE[(seed*3)%ROBE.length], sash:look.sash, under:look.under,
+          cloth:look.cloth!=null?look.cloth:(look.female?CLOTH[seed%CLOTH.length]:undefined),
+          female:!!look.female, staff:!!look.staff, holy:!!look.holy, small:look.small, folk:'levant'};
+        if(look.beard!==false&&!look.female&&!(look.small<0.95)) o.beard=look.beard!=null?look.beard:o.hair;
+        try{ fig=k.makeFigure(o); }catch(e){ return null; }
+        if(look.malak) litWithin(fig);
+      }
+      const h=new T.Group(); h.add(fig); h.scale.setScalar(look.scale||1);
+      const P={c,fig,h,holy:!!(look.holy||c.as==='infant'),malak:!!look.malak,ph:(seed%7)*0.9,
+        tongue:null,prev:null,id:c.id||null};
+      return P; }
+    /* ---- THE POSES ---- */
+    function pose(P,name,walk){
+      const u=P.fig.userData, f=P.fig;
+      f.rotation.set(0,0,0); f.position.set(0,0,0);
+      const L=[u.legL,u.legR,u.armL,u.armR];
+      if(!u.legL){ if(name==='prone'||name==='lie'){ f.rotation.x=name==='prone'?Math.PI/2:-Math.PI/2; f.position.y=0.8; } return; }
+      for(const l of L){ if(!l) continue; l.rotation.set(0,0,0); const kn=l.userData.knee||l.userData.elbow; if(kn) kn.rotation.x=l.userData.knee?0.05:-0.14; }
+      if(name==='walk'){ const s=Math.sin(walk);
+        u.legL.rotation.x=s*0.55; u.legR.rotation.x=-s*0.55; u.armL.rotation.x=-s*0.4; u.armR.rotation.x=s*0.4;
+        const jt=K()&&K().jointTick; if(jt) for(const l of L) jt(l,true); }
+      else if(name==='kneel'){ for(const l of [u.legL,u.legR]){ l.userData.knee.rotation.x=1.5; } f.position.y=-2.2; }
+      else if(name==='sit'){ for(const l of [u.legL,u.legR]) l.rotation.x=-1.45; f.position.y=-3.5; u.armL.rotation.x=u.armR.rotation.x=-0.5; }
+      else if(name==='prone'){ f.rotation.x=Math.PI/2; f.position.y=1.0; u.armL.rotation.x=u.armR.rotation.x=-2.9; }
+      else if(name==='lie'){ f.rotation.x=-Math.PI/2; f.position.y=1.0; }
+      else if(name==='arms'){ u.armL.rotation.x=u.armR.rotation.x=-2.75; u.armL.rotation.z=0.3; u.armR.rotation.z=-0.3; }
+      else if(name==='pray'){ u.armL.rotation.x=u.armR.rotation.x=-1.25; u.armL.rotation.z=-0.25; u.armR.rotation.z=0.25; }
+      else if(name==='kneelpray'){ for(const l of [u.legL,u.legR]) l.userData.knee.rotation.x=1.5; f.position.y=-2.2; u.armL.rotation.x=u.armR.rotation.x=-2.6; }
+      else if(name==='wade'){ u.armL.rotation.x=u.armR.rotation.x=-0.45; }   /* (he stands on the river's bed, and the river is to his waist) */
+      else if(name==='reach'){ u.armR.rotation.x=-1.5; }
+    }
+    /* where a player is at time tt, read off its keys and eased between them */
+    function keyAt(c,tt){
+      const ks=c.keys||[{t:0,x:c.x||0,z:c.z||0,y:c.y||0,pose:c.pose,face:c.face}];
+      let i=0; while(i<ks.length-1&&ks[i+1].t<=tt) i++;
+      const A=ks[i], B=ks[Math.min(i+1,ks.length-1)];
+      const m={}; for(let j=0;j<=i;j++) Object.assign(m,ks[j]);
+      if(A===B||tt<=A.t) return {x:m.x||0,z:m.z||0,y:m.y||0,pose:m.pose||c.pose||'stand',face:m.face!==undefined?m.face:c.face,moving:false};
+      const u0=Math.max(0,Math.min(1,(tt-A.t)/Math.max(1e-3,B.t-A.t))), u=B.cut?0:u0;
+      const lx=(a,b)=>a+(b-a)*u, bx=B.x!=null?B.x:m.x||0, bz=B.z!=null?B.z:m.z||0, by=B.y!=null?B.y:m.y||0;
+      const moving=Math.hypot(bx-(m.x||0),bz-(m.z||0))>0.3&&!B.cut;
+      return {x:lx(m.x||0,bx),z:lx(m.z||0,bz),y:lx(m.y||0,by),pose:moving&&!B.glide?'walk':(m.pose||c.pose||'stand'),
+        face:moving?null:(m.face!==undefined?m.face:c.face),moving,to:[bx,bz]}; }
+    function onAt(c,tt){ return !c.on||(tt>=c.on[0]&&tt<c.on[1]); }
+
+    /* ================= THE THINGS THE VERSES NAME =================
+       Each is built about its own foot, in metres, with +z into the picture (`turn` swings it),
+       stood on the ground where the film sets it; `ease` is what it does as the film runs. */
+    const THING={};
+    /* an altar of whole stones (Shamoth 20:25), the wood laid in order on it (Bereshith 22:9) —
+       and on Karmel twelve stones and a trench about it (Malakim Aleph 18:31-32) */
+    THING.altar=(g,p)=>{ const m=mats(), n=p.stones||12;
+      for(let i=0;i<n;i++){ const a=i/n*TAU, r=0.55+(i%2)*0.12;
+        blk(g,0.62,0.55+(i%3)*0.08,0.6,Math.cos(a)*r,0,Math.sin(a)*r,i%3?m.stone:m.stone2); }
+      blk(g,1.5,0.62,1.5,0,0.05,0,m.stone2); blk(g,1.7,0.3,1.7,0,0.66,0,m.stone);
+      if(p.wood!==false) for(let i=0;i<5;i++) blk(g,1.6,0.16,0.18,0,0.96+(i%2)*0.16,-0.6+i*0.3,m.wood);
+      if(p.trench){ for(const [w,d,x,z] of [[4,0.5,0,1.9],[4,0.5,0,-1.9],[0.5,3.3,1.9,0],[0.5,3.3,-1.9,0]]){ const b=blk(g,w,0.08,d,x,0.02,z,m.water); b.visible=false; (g.userData.trench=g.userData.trench||[]).push(b); } }
+      g.userData.fireAt=[0,1.3,0]; };
+    /* (the trench holds water from when it is poured, `wet`, until the fire licks it up, `dry`) */
+    THING.altar.ease=(g,p,d,tt)=>{ if(g.userData.trench) for(const b of g.userData.trench)
+      b.visible=(!p.wet||tt>=p.wet)&&(d.fire<0.9||!p.dry); };
+    /* the ark of gopher wood (Bereshith 6:14-16): three hundred cubits, fifty and thirty — pitched
+       within and without, three decks, the light of a cubit under the roof, the door in its side.
+       It rides the waters as they rise (`float`) and comes to rest where it was laid. */
+    THING.ark=(g,p)=>{ const m=mats(), cub=0.523, L=300*cub, Wd=50*cub, H=30*cub, s=p.scale||1;
+      const q=new T.Group(); q.scale.setScalar(s); g.add(q);
+      blk(q,Wd,H*0.42,L,0,0,0,m.pitch); blk(q,Wd,H*0.43,L,0,H*0.42,0,m.gopher);
+      for(const y of [H*0.3,H*0.6]) blk(q,Wd+0.3,0.4,L+0.3,0,y,0,m.wood);
+      blk(q,Wd*0.92,cub,L*0.97,0,H*0.85,0,m.dark); blk(q,Wd*1.06,H*0.15-cub,L*1.01,0,H*0.85+cub,0,m.gopher);
+      blk(q,0.6,4.6,3.8,-(Wd/2+0.2),0.4,L*0.18,m.dark); };
+    /* the stone at his head, and the same stone set up as a standing column (Bereshith 28:11,18) */
+    THING.pillar=(g,p)=>{ const m=mats(); const st=new T.Group(); g.add(st); g.userData.st=st;
+      blk(st,0.42,1.25,0.32,0,0,0,m.stone); };
+    THING.pillar.ease=(g,p,d)=>{ const st=g.userData.st, r=Math.max(0,Math.min(1,d.raise||0)), s=S();
+      st.rotation.x=(1-r)*Math.PI/2; st.position.y=(1-r)*0.16*s; st.position.z=(1-r)*0.62*s; };
+    /* a thicket — the ram caught in it by its horns (Bereshith 22:13) is a beast of the herds */
+    THING.thicket=(g,p)=>{ const m=mats();
+      for(let i=0;i<5;i++) blk(g,0.16,0.9,0.16,(i-2)*0.35,0,((i*2)%3-1)*0.25,m.thorn);
+      for(let i=0;i<22;i++){ const a=i*2.4, r=0.2+1.1*((i*7)%16)/16, y=(0.3+1.0*((i*11)%16)/16)*(1-r/2.6);
+        blk(g,0.6,0.5,0.6,Math.cos(a)*r,y,Math.sin(a)*r,i%3?m.leaf:m.leaf2); } };
+    /* a fire of wood: the shepherds' by night, the fire Aḇrahim carried (Bereshith 22:6) */
+    THING.fire=(g,p)=>{ const m=mats(); for(let i=0;i<4;i++){ const b=blk(g,0.9,0.14,0.14,0,0,0,m.wood); b.rotation.y=i*0.8; }
+      g.userData.tongues=[]; for(let i=0;i<5;i++){ const f=new T.Mesh(new T.BoxGeometry(0.16*S(),1,0.16*S()).translate(0,0.5,0),m.flame);
+        f.position.set(Math.cos(i*1.3)*0.18*S(),0.1*S(),Math.sin(i*1.3)*0.18*S()); g.add(f); g.userData.tongues.push(f); }
+      g.userData.lamp=[0,0.8,0,p.light||0.5]; };
+    THING.fire.ease=(g,p,d)=>{ const s=performance.now()/1000;
+      g.userData.tongues.forEach((q,i)=>{ q.scale.y=Math.max(0.01,(0.55+0.3*Math.sin(s*(9+i*1.3)+i))*S()); }); };
+    /* THE DEN OF LIONS (Dani'al 6:16-17): walls of stone about a floor, open above — and the stone
+       brought and laid on its mouth, sealed with the signet, by its dial (`seal`) */
+    THING.den=(g,p)=>{ const m=mats(), w=p.w||9, d=p.d||9, h=p.h||3.4;
+      blk(g,w+1.2,h,0.6,0,0,-d/2,m.stone2); blk(g,w+1.2,h,0.6,0,0,d/2,m.stone2);
+      blk(g,0.6,h,d,-w/2,0,0,m.stone); blk(g,0.6,h,d,w/2,0,0,m.stone);
+      blk(g,w,0.12,d,0,0,0,m.stone2);
+      const lid=blk(g,w+1.4,0.5,d+1.4,0,h,0,m.stone); g.userData.lid=lid; lid.visible=false; };
+    THING.den.ease=(g,p,d)=>{ g.userData.lid.visible=(d.seal||0)>0.5; };
+    /* THE TOMB hewn out of the rock (Mattithyahu 27:60), and the great stone at its door — rolled
+       back from the door by its dial (`roll`) as the mal'ak rolled it (28:2) */
+    THING.tomb=(g,p)=>{ const m=mats();
+      blk(g,9,4.6,5,0,0,-2.5,m.stone); blk(g,4,3.2,4.4,-5.6,0,-2.4,m.stone2); blk(g,3.6,2.6,4,5.4,0,-2.2,m.stone2);
+      blk(g,7,1.4,4.6,0.4,4.6,-2.7,m.stone2);
+      blk(g,1.3,1.9,0.3,0,0,0.02,m.dark);
+      const st=new T.Mesh(new T.CylinderGeometry(1.15*S(),1.15*S(),0.42*S(),20),m.stone2);
+      st.rotation.x=Math.PI/2; st.position.set(0,1.15*S(),0.36*S()); g.add(st); g.userData.stone=st; };
+    THING.tomb.ease=(g,p,d)=>{ const st=g.userData.stone, r=Math.max(0,Math.min(1,d.roll||0)), s=S();
+      st.position.x=r*2.5*s; st.rotation.y=0; st.rotation.z=-r*2.5/1.15;
+      /* rolled back, it is laid down flat, and he sat on it */
+      if(r>=1){ st.rotation.x=0; st.position.y=0.21*s; st.position.z=1.4*s; } else { st.rotation.x=Math.PI/2; st.position.y=1.15*s; st.position.z=0.36*s; } };
+    /* A SHELTER FOR THE BEASTS against the rock, and the feeding trough the child was laid in */
+    THING.stable=(g,p)=>{ const m=mats();
+      blk(g,8,3.4,1.6,0,0,-3.2,m.stone2);
+      for(const [x,z] of [[-3.6,2.2],[3.6,2.2],[-3.6,-2.4],[3.6,-2.4]]) blk(g,0.24,2.6,0.24,x,0,z,m.wood);
+      const roof=blk(g,8.2,0.22,5.4,0,2.6,0,m.hay); roof.rotation.x=-0.12;
+      blk(g,1.6,0.55,0.7,0.6,0,0.2,m.wood); blk(g,1.4,0.18,0.5,0.6,0.5,0.2,m.hay);
+      g.userData.manger=[0.6,0.62,0.2]; };
+    /* the river, for a film that has no river of the world to stand in: a run of water laid across
+       the picture on the ground, with its banks of reeds (the Yardĕn is laid as real water by `set`) */
+    THING.reeds=(g,p)=>{ const m=mats(), L=p.len||30; for(let i=0;i<L*2;i++){ const x=-L/2+i*0.5+((i*37)%7)/10, z=((i*13)%5)/5-0.5;
+      blk(g,0.14,0.9+((i*11)%5)/6,0.14,x,0,z,i%2?m.leaf:m.leaf2); } };
+    /* tents of the camp, a little way off (the armies of the valley) */
+    THING.tent=(g,p)=>{ const m=mats(); const t=new T.Mesh(new T.ConeGeometry(2.4*S(),2.6*S(),4),new T.MeshLambertMaterial({color:p.col||0x6a5a46}));
+      t.position.y=1.3*S(); t.rotation.y=Math.PI/4; g.add(t); };
+    /* the dove (Mattithyahu 3:16): down out of the opened shamayim to Him, by its dial */
+    THING.dove=(g,p)=>{ const k=K(); let b=null; try{ b=k.makeBird('dove'); }catch(e){}
+      if(b){ b.scale.setScalar(2.2); g.add(b); g.userData.b=b; }
+      const sp=new T.Sprite(mats().glow.clone()); sp.scale.set(14,14,1); sp.material.opacity=0.6; g.add(sp); g.userData.sp=sp; };
+    THING.dove.ease=(g,p,d)=>{ const v=Math.max(0,Math.min(1,d.dove||0)), s=S(), e=v*v*(3-2*v);
+      const h=(p.h0||40)+((p.h1||3)-(p.h0||40))*e;
+      for(const o of [g.userData.b,g.userData.sp]) if(o){ o.position.set(0,h*s,(1-e)*(p.dz||-12)*s); o.visible=v>0.01; } };
+    /* THE LADDER set up on the earth whose top reached to the shamayim (Bereshith 28:12): a way of
+       light from beside the sleeper up past the clouds, and the mal'akim going up and coming down
+       it (players with `climb`) — and the top of it is where the light of `glory` stands */
+    THING.ladder=(g,p)=>{ const m=mats(), H=p.h||260, n=Math.floor(H/1.6), lean=p.lean||0.18;
+      const rail=new T.MeshBasicMaterial({color:0xffe0a0,transparent:true,opacity:0.8,blending:T.AdditiveBlending,depthWrite:false,fog:false});
+      g.userData.mat=rail;
+      /* (leaning away from the eye, into the picture: -z) */
+      for(const sd of [-1,1]){ const b=new T.Mesh(new T.BoxGeometry(0.16*S(),H*S(),0.16*S()),rail);
+        b.position.set(sd*0.8*S(),H/2*S(),-H/2*lean*S()); b.rotation.x=-lean; g.add(b); }
+      const im=new T.InstancedMesh(new T.BoxGeometry(1.6*S(),0.1*S(),0.1*S()),rail,n);
+      const M4=new T.Matrix4(); for(let i=0;i<n;i++){ const y=i*1.6+0.6; M4.makeTranslation(0,y*S(),-y*lean*S()); im.setMatrixAt(i,M4); }
+      im.frustumCulled=false; g.add(im); g.userData.top=[0,H,H*lean]; };
+    THING.ladder.ease=(g,p,d)=>{ g.userData.mat.opacity=0.85*Math.max(0,Math.min(1,d.ladder||0)); g.visible=(d.ladder||0)>0.01; };
+    /* A HOUSE'S COURT, walled, for the taught ones sitting together (Acts 2:1-2) where the city
+       has none to hand */
+    THING.court=(g,p)=>{ const m=mats(), w=p.w||12, d=p.d||10, h=p.h||2.6, plaster=new T.MeshLambertMaterial({color:0xe6dfcd});
+      /* (its door in the wall toward the eye: +z is toward the eye, as every thing here is built) */
+      blk(g,w,h,0.5,0,0,-d/2,plaster); blk(g,0.5,h,d,-w/2,0,0,plaster); blk(g,0.5,h,d,w/2,0,0,plaster);
+      blk(g,w/2-1,h,0.5,-w/4-0.5,0,d/2,plaster); blk(g,w/2-1,h,0.5,w/4+0.5,0,d/2,plaster); blk(g,w,0.1,d,0,0,0,m.stone2); };
+
+    /* ================= THE SIGNS =================
+       Not things that stand on the ground but what comes upon it: the light, the fire, the waters,
+       the rain, the bow in the cloud, and the city coming down. Each is built once when its dial
+       first lifts off nothing, and follows its dial after. */
+    const SIGN={};
+    /* THE ESTEEM OF (YAHUAH) HWHY — light, and only light: a brightness standing in the air, and a
+       shaft of it down to the ground beneath, which the world's own lamp lights the ground under */
+    SIGN.glory=(g,p)=>{ const m=mats(), h=p.h||60, r=p.r||40;
+      const sp=new T.Sprite(m.glow.clone()); sp.position.y=h*S(); sp.scale.set(r*S(),r*S(),1); g.add(sp); g.userData.sp=sp;
+      const sh=new T.Mesh(new T.CylinderGeometry((p.top||4)*S(),(p.foot||10)*S(),h*S(),28,1,true),m.shaft.clone());
+      sh.position.y=h/2*S(); g.add(sh); g.userData.sh=sh; g.userData.lamp=[0,2,0,1.2]; };
+    SIGN.glory.ease=(g,p,v)=>{ const s=performance.now()/1000; g.userData.sp.material.opacity=Math.min(1,v*(0.92+0.08*Math.sin(s*1.7)));
+      g.userData.sh.material.opacity=0.2*v*(p.shaft===false?0:1); g.userData.lamp[3]=1.3*v; };
+    /* THE FIRE OF (YAHUAH) HWHY FELL (Malakim Aleph 18:38): a column of fire down out of the
+       shamayim, and the fire on what it fell on */
+    SIGN.fire=(g,p)=>{ const m=mats(), h=p.h||120;
+      g.userData.col=[]; for(let i=0;i<9;i++){ const f=new T.Mesh(new T.BoxGeometry((0.9+(i%3)*0.4)*S(),h*S(),(0.9+(i%2)*0.5)*S()).translate(0,h/2*S(),0),m.flame.clone());
+        f.position.set(Math.cos(i*2.1)*0.5*S(),0,Math.sin(i*2.1)*0.5*S()); g.add(f); g.userData.col.push(f); }
+      g.userData.on=[]; for(let i=0;i<10;i++){ const f=new T.Mesh(new T.BoxGeometry(0.3*S(),1,0.3*S()).translate(0,0.5,0),m.flame);
+        f.position.set(Math.cos(i*1.7)*0.6*S(),(p.y||1.2)*S(),Math.sin(i*1.7)*0.6*S()); g.add(f); g.userData.on.push(f); }
+      const sp=new T.Sprite(m.ember.clone()); sp.position.y=(p.y||1.2)*S()+8; sp.scale.set(14*S(),14*S(),1); g.add(sp); g.userData.sp=sp;
+      g.userData.lamp=[0,(p.y||1.2)+1,0,1]; };
+    SIGN.fire.ease=(g,p,v)=>{ const s=performance.now()/1000, fall=Math.max(0,Math.min(1,v*2)), burn=Math.max(0,Math.min(1,v*2-0.6));
+      g.userData.col.forEach((f,i)=>{ f.material.opacity=0.55*fall*(1-burn*0.85); f.scale.y=Math.max(0.01,fall); f.position.y=(1-fall)*(p.h||120)*S(); });
+      g.userData.on.forEach((f,i)=>{ f.visible=burn>0.01; f.scale.y=Math.max(0.01,burn*(1.4+0.8*Math.sin(s*(8+i))+i%3*0.4)*S()); });
+      g.userData.sp.material.opacity=Math.max(fall*0.5,burn); g.userData.lamp[3]=1.2*Math.max(fall,burn); };
+    /* the windows of the shamayim opened (Bereshith 7:11): rain about the eye wherever it is */
+    SIGN.rain=(g,p)=>{ const m=mats(), n=900, im=new T.InstancedMesh(new T.BoxGeometry(0.05*S(),1.4*S(),0.05*S()),m.rain.clone(),n);
+      im.frustumCulled=false; g.add(im); g.userData.im=im; g.userData.drops=[];
+      for(let i=0;i<n;i++) g.userData.drops.push([(Math.random()-0.5)*80,Math.random()*50,(Math.random()-0.5)*80]); g.userData.t0=performance.now(); };
+    SIGN.rain.ease=(g,p,v)=>{ const u=g.userData, now=performance.now(), dt=Math.min(0.1,(now-u.t0)/1000); u.t0=now;
+      const c=W.camera.position, s=S(), M4=new T.Matrix4();
+      g.position.set(0,0,0);
+      u.drops.forEach((q,i)=>{ q[1]-=dt*22; if(q[1]<-6){ q[1]+=50; q[0]=(Math.random()-0.5)*80; q[2]=(Math.random()-0.5)*80; }
+        M4.makeTranslation(c.x+q[0]*s,c.y+(q[1]-14)*s,c.z+q[2]*s); u.im.setMatrixAt(i,M4); });
+      u.im.instanceMatrix.needsUpdate=true; u.im.material.opacity=0.42*v; };
+    SIGN.rain.world=true;
+    /* AND THE WATERS INCREASED (Bereshith 7:17-19): the face of the flood, raised over the land
+       about the scene by its dial, in metres over the ground the scene is played on */
+    SIGN.flood=(g,p)=>{ const m=mats(), d=new T.Mesh(new T.CircleGeometry(5200,48),m.flood); d.rotation.x=-Math.PI/2; g.add(d); g.userData.d=d; };
+    SIGN.flood.ease=(g,p,v)=>{ g.userData.d.position.y=(v*(p.depth||40)-(p.below||6))*S(); g.visible=v>0.002; };
+    /* MY RAINBOW IN THE CLOUD (Bereshith 9:13): seven bands, far off over the land beyond */
+    SIGN.bow=(g,p)=>{ const cols=[0xd9473a,0xe8893a,0xecd24a,0x5aa65a,0x3f7fc0,0x4a4aa8,0x7a4aa0], R=(p.r||420), tube=R*0.012;
+      g.userData.ms=[];
+      cols.forEach((c,i)=>{ const mt=new T.MeshBasicMaterial({color:c,transparent:true,opacity:0,depthWrite:false,fog:false});
+        const tor=new T.Mesh(new T.TorusGeometry((R-i*tube*2)*S()/6.5*6.5,tube*S(),6,72,Math.PI),mt); g.add(tor); g.userData.ms.push(mt); });
+      g.userData.y=-(p.sink||60); };
+    SIGN.bow.ease=(g,p,v)=>{ for(const m of g.userData.ms) m.opacity=0.3*v; };
+    /* THE SET-APART CITY, RENEWED YAHRUSHALAYIM, COMING DOWN OUT OF THE SHAMAYIM (Ḥazon 21:2,10-11):
+       foursquare (21:16), her light like a jasper stone clear as crystal, twelve gates (21:12-13),
+       three to a side — let down by her dial from high in the air to stand over the land */
+    SIGN.city=(g,p)=>{ const L=(p.size||360)*S(), H=L*0.62;
+      const wall=new T.MeshBasicMaterial({color:0xb8e0c4,transparent:true,opacity:0.32,blending:T.AdditiveBlending,depthWrite:false,fog:false});
+      const core=new T.Mesh(new T.BoxGeometry(L,H,L),wall); core.position.y=H/2; g.add(core);
+      const edge=new T.LineSegments(new T.EdgesGeometry(new T.BoxGeometry(L,H,L)),new T.LineBasicMaterial({color:0xffe6a0,transparent:true,opacity:0.9,fog:false}));
+      edge.position.y=H/2; g.add(edge);
+      g.userData.gates=[];
+      for(let sd=0;sd<4;sd++) for(let k=-1;k<=1;k++){ const sp=new T.Sprite(mats().glow.clone()); const a=sd*Math.PI/2;
+        const u=k*L/3.2, x=Math.cos(a)*L/2+Math.sin(a)*u, z=Math.sin(a)*L/2-Math.cos(a)*u;
+        sp.position.set(x,H*0.12,z); sp.scale.set(L*0.16,L*0.16,1); g.add(sp); g.userData.gates.push(sp); }
+      const halo=new T.Sprite(mats().glow.clone()); halo.position.y=H*0.5; halo.scale.set(L*2.6,L*2.6,1); g.add(halo);
+      g.userData.parts=[wall,edge.material,halo.material].concat(g.userData.gates.map(s=>s.material)); g.userData.H=H; };
+    SIGN.city.ease=(g,p,v)=>{ const e=v*v*(3-2*v); g.userData.y=(1-e)*(p.high||1600)*S()+(p.rest||-20)*S();
+      const [w,ed,ha,...gs]=g.userData.parts; w.opacity=0.34*Math.min(1,v*3); ed.opacity=0.9*Math.min(1,v*3); ha.opacity=0.55*Math.min(1,v*2);
+      for(const s of gs) s.opacity=Math.min(1,v*2); };
+
+    /* ================= THE SET: THE GROUND MADE READY =================
+       The voyage's own set builder (THE SET BUILDER, the one the city of the great king is raised
+       by): the land's trees taken off the ground the scene is played on, level ground where an
+       altar or a tomb is to stand, and real water where the Yardĕn is to run. Laid when the film
+       begins and taken up again whole when it ends. The stage's frame is the set's when the film's
+       `front` is a quarter-turn; otherwise each rectangle is laid by the square that holds it. */
+    function setRect(r){ const s=S(), pts=[[r[0],r[1]],[r[2],r[1]],[r[0],r[3]],[r[2],r[3]]].map(([x,z])=>[fr.r[0]*x+fr.f[0]*z, fr.r[1]*x+fr.f[1]*z]);
+      return [Math.min(...pts.map(p=>p[0])),Math.min(...pts.map(p=>p[1])),Math.max(...pts.map(p=>p[0])),Math.max(...pts.map(p=>p[1]))]; }
+    function buildSet(st){ const k=K(); if(!k||!k.setBuilder) return;
+      const base=gy(anchor.x,anchor.z);
+      try{ api=k.setBuilder(anchor.x,anchor.z,base,{});
+        if(st.clear){ const r=setRect(st.clear); api.clearTrees(r[0],r[1],r[2],r[3]); }
+        for(const L of st.level||[]){ const r=setRect(L); api.pad(r[0],r[1],r[2],r[3],{top:L[4]||'grass',blend:L[5]==null?8:L[5],y:L[6]||0}); }
+        for(const w of st.water||[]){ const r=setRect(w); api.water(r[0],r[1],r[2],r[3],{depth:w[4]||2,bed:'sand'}); }
+        api.end();
+        if(k.flushEdits) for(let n=0;n<60&&k.flushEdits(4000);n++){}
+      }catch(e){ console.warn('STAGE: the set could not be laid — '+(e&&e.message||e)); } }
+
+    /* ================= THE SCENE, RAISED AND TAKEN DOWN ================= */
+    function begin(scene){
+      sc=scene; setFrame(front); root=new T.Group(); root.name='unfold-stage'; W.scene.add(root);
+      figs=[]; things=[];
+      if(sc.set) buildSet(sc.set);
+      let i=0;
+      for(const c of sc.cast||[]){ const P=makeOne(c,i++); if(P){ root.add(P.h); figs.push(P); } }
+      for(const cw of sc.crowds||[]){
+        const n=cw.n||8, cols=Math.ceil(Math.sqrt(n*(Math.abs(cw.x1-cw.x0)+1)/(Math.abs(cw.z1-cw.z0)+1)));
+        for(let j=0;j<n;j++){ const as=Array.isArray(cw.as)?cw.as[j%cw.as.length]:(cw.as==='mixed'?['man','woman','elder','man','youth','woman'][j%6]:(cw.as||'man'));
+          const cx=j%cols, cz=Math.floor(j/cols), rows=Math.ceil(n/cols);
+          const jx=((j*37)%11)/11-0.5, jz=((j*53)%13)/13-0.5;
+          const x=cw.x0+(cw.x1-cw.x0)*((cx+0.5+jx*0.6)/cols), z=cw.z0+(cw.z1-cw.z0)*((cz+0.5+jz*0.6)/Math.max(1,rows));
+          const c={id:(cw.id||'crowd')+j, as, x, z, y:cw.y?cw.y[0]+(cw.y[1]-cw.y[0])*(((j*29)%17)/17):0,
+            pose:cw.pose, face:cw.face, on:cw.on, poses:cw.poses, seed:(cw.seed||11)+j*5, robe:cw.robe, cloth:cw.cloth,
+            tongue:cw.tongue, bob:cw.y?1:0};
+          const P=makeOne(c,i++); if(P){ root.add(P.h); figs.push(P); } } }
+      for(const hd of sc.herds||[]){ const k=K(); if(!k||!k.makeAnimal) break;
+        for(let j=0;j<(hd.n||1);j++){ let m=null; try{ m=k.makeAnimal(hd.kind); }catch(e){} if(!m) continue;
+          const x=hd.x!=null&&hd.n<=1?hd.x:hd.x0+(hd.x1-hd.x0)*(((j*37)%19)/19), z=hd.z!=null&&hd.n<=1?hd.z:hd.z0+(hd.z1-hd.z0)*(((j*53)%17)/17);
+          const g=new T.Group(); g.add(m); root.add(g);
+          things.push({beast:true,g,p:Object.assign({},hd,{x,z,turn:hd.turn!=null?hd.turn:((j*0.37)%1)})}); } }
+      for(const p of sc.props||[]){ const g=new T.Group(); try{ (THING[p.k]||(()=>{}))(g,p); }catch(e){ console.warn('STAGE: a '+p.k+' could not be made — '+(e&&e.message||e)); }
+        root.add(g); things.push({g,p,ease:THING[p.k]&&THING[p.k].ease}); }
+      lit=null;
+    }
+    function drop(){
+      if(root){ W.scene.remove(root); root.traverse(o=>{ if(o.geometry&&!o.isSprite) o.geometry.dispose(); }); root=null; }
+      if(api){ try{ api.drop(); const k=K(); if(k.flushEdits) for(let n=0;n<60&&k.flushEdits(4000);n++){} }catch(e){} api=null; }
+      if(lit&&K()&&K().lamp) K().lamp(0,-1e7,0,0); lit=null;
+      figs=[]; things=[]; sc=null; signs={};
+    }
+    let signs={};
+    /* a thing stood on the stage: built facing +z, it faces the eye, with its +x to the right of
+       the picture (`turn` swings it, in turns) */
+    function stand(g,x,z,turn,y){ const [X,Z]=wpt(x,z); g.position.set(X,gy(X,Z)+(y||0)*S(),Z); g.rotation.y=fr.yaw+Math.PI+(turn||0)*TAU; return [X,Z]; }
+    function tick(d,tt){
+      if(!sc||!root) return;
+      const k=K(), cam=W.camera.position, lamps=[];
+      /* ---- the things ---- */
+      for(const th of things){ const p=th.p, on=onAt(p,tt); th.g.visible=on; if(!on) continue;
+        if(!th.placed||p.float){ const [X,Z]=stand(th.g,p.x||0,p.z||0,p.turn,p.y); th.placed=true; th.gy=th.g.position.y;
+          if(p.float&&signs.flood){ const wy=signs.flood.g.position.y+signs.flood.g.userData.d.position.y; th.g.position.y=Math.max(th.gy,wy-(p.draft||4)*S()); } }
+        if(th.ease) try{ th.ease(th.g,p,d,tt); }catch(e){}
+        const L=th.g.userData.lamp; if(L) lamps.push([th.g.position.x+L[0],th.g.position.y+L[1]*S(),th.g.position.z+L[2],L[3]]); }
+      /* ---- the signs ---- */
+      for(const name in SIGN){ const v=+d[name]||0, spec=(sc.signs||{})[name];
+        if(v>0.004&&!signs[name]&&(spec||SIGN[name].world)){ const g=new T.Group(); try{ SIGN[name](g,spec||{}); }catch(e){ g.userData.broken=true; }
+          root.add(g); signs[name]={g,spec:spec||{}}; }
+        const s=signs[name]; if(!s) continue;
+        s.g.visible=v>0.004; if(!s.g.visible||s.g.userData.broken) continue;
+        if(!SIGN[name].world){
+          let x=s.spec.x||0, z=s.spec.z!=null?s.spec.z:(s.spec.dist||0);
+          if(s.spec.on){ const P=figs.find(f=>f.id===s.spec.on); if(P){ const q=keyAt(P.c,tt); x=q.x; z=q.z; } }
+          const [X,Z]=wpt(x,z); s.g.position.set(X,(s.spec.abs!=null?gy(anchor.x,anchor.z)+s.spec.abs*S():gy(X,Z))+(s.g.userData.y||0),Z);
+          s.g.rotation.y=fr.yaw; }
+        try{ SIGN[name].ease(s.g,s.spec,v); }catch(e){}
+        if(!SIGN[name].world&&(s.g.userData.y!==undefined)) s.g.position.y+=0;
+        const L=s.g.userData.lamp; if(L&&L[3]>0.01) lamps.push([s.g.position.x+L[0],s.g.position.y+L[1]*S(),s.g.position.z+L[2],L[3]]); }
+      /* ---- the players ---- */
+      const byId={}; for(const P of figs) if(P.id) byId[P.id]=P;
+      for(const P of figs){ const c=P.c, on=onAt(c,tt); P.h.visible=on; if(!on) continue;
+        let q=keyAt(c,tt), x=q.x, z=q.z, y=q.y;
+        /* the mal'akim going up and coming down on the ladder (Bereshith 28:12) */
+        if(c.climb){ const lad=things.find(t=>t.p.k==='ladder'); if(lad){ const tp=lad.g.userData.top||[0,200,30];
+          let u=((tt/(c.climb.period||28))+(c.climb.phase||0))%1; if(c.climb.dir<0) u=1-u;
+          x=(lad.p.x||0)+(c.climb.side||0); z=(lad.p.z||0)+tp[2]*u+0.6; y=tp[1]*u;
+          q={x,z,y,pose:'stand',face:c.climb.dir<0?0:0.5}; } }
+        if(c.poses) for(const [pt,pn] of c.poses) if(tt>=pt) q.pose=pn;
+        const [X,Z]=wpt(x,z);
+        P.h.position.set(X,gy(X,Z)+y*S()+(c.bob?Math.sin(tt*0.9+P.ph)*0.4*S():0),Z);
+        /* which way he faces */
+        let dir=null; const fc=q.face;
+        if(q.moving&&q.to){ const [X2,Z2]=wpt(q.to[0],q.to[1]); dir=[X2-X,Z2-Z]; }
+        else if(fc==='eye') dir=[cam.x-X,cam.z-Z];
+        else if(typeof fc==='string'&&byId[fc]) dir=[byId[fc].h.position.x-X,byId[fc].h.position.z-Z];
+        else if(Array.isArray(fc)){ const [X2,Z2]=wpt(fc[0],fc[1]); dir=[X2-X,Z2-Z]; }
+        else if(typeof fc==='number') dir=dirOf(fc);
+        if(dir&&Math.hypot(dir[0],dir[1])>1e-3) P.h.rotation.y=Math.atan2(dir[0],dir[1]);
+        P.walk=(P.walk||0)+(q.moving?0.16:0);
+        pose(P,q.pose,P.walk);
+        /* the tongues as of fire, settled on each one of them (Acts 2:3) */
+        if(c.tongue){ if(!P.tongue){ const f=new T.Mesh(new T.BoxGeometry(0.9,2.4,0.9).translate(0,1.2,0),mats().flame); const sp=new T.Sprite(mats().ember.clone()); sp.scale.set(7,7,1); sp.position.y=1.4;
+            const g=new T.Group(); g.add(f); g.add(sp); g.position.y=14.2; P.fig.add(g); P.tongue=g; }
+          const v=Math.max(0,Math.min(1,d.tongues||0)); P.tongue.visible=v>0.01; P.tongue.scale.setScalar(Math.max(0.01,v*(0.9+0.15*Math.sin(tt*9+P.ph)))); }
+        if(P.malak){ lamps.push([P.h.position.x,P.h.position.y+8,P.h.position.z,0.55]);
+          const hl=P.fig.userData.halo; if(hl) hl.material.opacity=0.55+0.15*Math.sin(tt*1.3+P.ph); }
+      }
+      /* ---- the beasts stand where they are set, and turn as they are told ---- */
+      for(const th of things) if(th.beast){ const p=th.p, on=onAt(p,tt); th.g.visible=on; if(on&&!th.placed){ stand(th.g,p.x,p.z,p.turn); th.placed=true; } }
+      /* ---- THE ONE LAMP OF THE WORLD goes to the brightest light the scene has ---- */
+      if(k&&k.lamp){ lamps.sort((a,b)=>b[3]-a[3]); const L=lamps[0];
+        if(L&&L[3]>0.02){ k.lamp(L[0],L[1],L[2],Math.min(1.4,L[3]),110); lit=true; } else if(lit){ k.lamp(0,-1e7,0,0); lit=null; } }
+      /* ---- AND HIS FACE IS GUARDED FROM THE EYE ----
+         Whatever a key asks of the eye, it is never let within GUARD metres of His head: it is held
+         back along its own line, still looking where it looked. */
+      for(const P of figs){ if(!P.holy||!P.h.visible) continue;
+        const hp=headOf(P), dx=cam.x-hp.x, dy=cam.y-hp.y, dz=cam.z-hp.z, dd=Math.hypot(dx,dy,dz), g=GUARD*S();
+        if(dd<g&&dd>1e-3){ const s=g/dd; W.camera.position.set(hp.x+dx*s,hp.y+dy*s,hp.z+dz*s); } }
+    }
+    const _v=new T.Vector3();
+    function headOf(P){ const hd=P.fig.userData.head; if(hd){ hd.getWorldPosition(_v); return {x:_v.x,y:_v.y,z:_v.z}; }
+      return {x:P.h.position.x,y:P.h.position.y+10*S()/6.5,z:P.h.position.z}; }
+    /* is a face blank — the front of the head one colour from edge to edge, nothing drawn on it */
+    function blankFace(P){ const hd=P.fig.userData.head; if(!hd) return false;
+      const mt=Array.isArray(hd.material)?hd.material[4]:hd.material; if(!mt) return false;
+      const img=mt.map&&mt.map.image; if(!img) return true;            /* no picture on it at all */
+      try{ const cv=document.createElement('canvas'); cv.width=img.width; cv.height=img.height; const g=cv.getContext('2d'); g.drawImage(img,0,0);
+        const px=g.getImageData(0,0,cv.width,cv.height).data; for(let i=4;i<px.length;i+=4) if(Math.abs(px[i]-px[0])+Math.abs(px[i+1]-px[1])+Math.abs(px[i+2]-px[2])>6) return false;
+        return true; }catch(e){ return false; } }
+    function faceRule(){ const out=[]; const cam=W.camera.position;
+      for(const P of figs){ if(!P.holy) continue; const hp=headOf(P);
+        out.push({id:P.id||P.c.as, shown:P.h.visible, blank:blankFace(P), metres:+(Math.hypot(cam.x-hp.x,cam.y-hp.y,cam.z-hp.z)/S()).toFixed(1)}); }
+      return {holy:out, ok:out.every(o=>!o.shown||(o.blank&&o.metres>=GUARD-0.05))}; }
+    function list(){ return figs.map(P=>({id:P.id,as:P.c.as,shown:P.h.visible,x:+P.h.position.x.toFixed(1),y:+P.h.position.y.toFixed(1),z:+P.h.position.z.toFixed(1)})); }
+    return {begin,drop,tick,wpt,faceRule,list};
+  })();
+
   /* HOW FAR THE GROUND IS SUNK when the dry land has not yet appeared. Deep
      enough that not one summit of the highest range shows above the water. */
   const SINK=2600;
@@ -545,24 +1024,35 @@ window.STAGE=(function(){
        first days are left exactly as they were; as the land rises the eye rises with it. And whatever
        a key asks, the eye is kept a man's height and more off the ground under it, and the line from
        it to what it looks at kept off the ground half way. */
-    const a=d.ca*Math.PI*2, ex=anchor.x+Math.sin(a)*d.cd, ez=anchor.z+Math.cos(a)*d.cd;
-    const sunk=SINK*(1-lf), g0=Math.max(0,groundY(anchor.x,anchor.z)-W.WATER_Y)*lf, ly=d.cl+g0;
+    /* (a film with a `front` counts its turns from there; ox/oz move the point it turns about) */
+    const a=(d.ca+front)*Math.PI*2;
+    let cx=anchor.x, cz=anchor.z;
+    if(d.ox||d.oz){ const p=cast3.wpt(d.ox,d.oz); cx=p[0]; cz=p[1]; }
+    const ex=cx+Math.sin(a)*d.cd, ez=cz+Math.cos(a)*d.cd;
+    const sunk=SINK*(1-lf), g0=Math.max(0,groundY(cx,cz)-W.WATER_Y)*lf, ly=d.cl+g0;
     let ey=Math.max(d.cy+g0,Math.max(W.WATER_Y,groundAt(ex,ez)-sunk)+W.B*1.5);
-    { const gm=Math.max(W.WATER_Y,groundAt((ex+anchor.x)/2,(ez+anchor.z)/2)-sunk)+W.B; if((ey+ly)/2<gm) ey=2*gm-ly; }
-    W.camera.position.set(ex,ey,ez);
-    W.camera.lookAt(anchor.x,ly,anchor.z);
+    { const gm=Math.max(W.WATER_Y,groundAt((ex+cx)/2,(ez+cz)/2)-sunk)+W.B; if((ey+ly)/2<gm) ey=2*gm-ly; }
+    /* the earth quaking (Mattithyahu 28:2): the eye is shaken, nothing else is */
+    let sx=0, sy=0;
+    if(d.shake>0.004){ const s=performance.now()/1000; sx=Math.sin(s*31)*Math.sin(s*7.3)*d.shake*2.2; sy=Math.sin(s*23.7)*d.shake*1.4; }
+    W.camera.position.set(ex+sx,ey+sy,ez);
+    W.camera.lookAt(cx+sx*0.5,ly,cz);
     if(Math.abs(W.camera.fov-d.cfov)>0.01){ W.camera.fov=d.cfov; W.camera.updateProjectionMatrix(); }
+    cast3.tick(d,t);            /* the players and the things, and His face guarded from the eye */
   }
 
   function tick(dt){
     if(!playing||!track) return;
-    t+=dt;
+    if(!waiting) t+=dt;
     const end=dur();
     apply(at(Math.min(t,end)));
-    if(t>=end){ playing=false; const f=onDone; onDone=null; if(f) f(); }
+    if(t>=end&&!waiting){ playing=false; const f=onDone; onDone=null; if(f) f(); }
   }
   window.__STAGE_TICK=tick;
 
   return {play,stop,tick,seek,elapsed,dur,at,anchorAt:a=>{anchor=a;},
-    isPlaying:()=>playing, give};
+    isPlaying:()=>playing, give, wait, waiting:()=>waiting,
+    /* THE FACE RULE, ASKED: every holy figure on the stage this frame, whether its face is blank
+       to the last pixel, and how near the eye stands to it — for the probe that plays every film */
+    faceRule:()=>cast3.faceRule(), players:()=>cast3.list()};
 })();
