@@ -1151,19 +1151,21 @@ T[30]={name:'a scroll taken in the voyage opens its passage in Scripture Unfolds
         const it=[...document.querySelectorAll('.sc-item')];
         return {n:it.length, shut:it.filter(e=>e.classList.contains('shut')).length};
       });
-      /* 3 — AND TAKING THE SCROLL OF THE BEGINNING opens the passages EVERY
-         book of which has been found, and only those. The garden reads two
-         scrolls and must stay shut on one of them; a shut row must also NAME
-         what is missing, or it tells a man nothing about where to go. */
+      /* 3 — AND TAKING THE SCROLL OF THE BEGINNING opens the entries of the
+         Library EVERY scroll of which has been taken up, and only those (Phase
+         F5: an entry is filed under its own scrolls — the flood under the
+         scroll on Ararat, the garden under the beginning AND the cave). The
+         garden must stay shut on the one it lacks; a shut row must also SAY
+         where the missing scroll lies, or who gives it, or it tells a man
+         nothing about where to go. */
       const one=await page.evaluate(()=>{
         localStorage.setItem('voyage:state',JSON.stringify({v:8,sr:['bereshith']}));
         window.__UNFOLD.rebuild();
         const it=[...document.querySelectorAll('.sc-item')];
-        const want=window.STORY.list()
-          .filter(s=>window.STORY.booksOf(s).every(b=>b==='bereshith')).length;
+        const want=window.__UNFOLD.library().filter(e=>e.scrolls.every(id=>id==='bereshith')).length;
         const shut=it.filter(e=>e.classList.contains('shut'));
         return {n:it.length, shut:shut.length, want:want,
-          named:shut.filter(e=>/still in the earth: \S/.test(e.textContent)).length};
+          named:shut.filter(e=>/not yet gathered \S+ (it lies|given by) \S/.test(e.textContent)).length};
       });
       /* 4 — and taking BOTH scrolls the garden is drawn from opens it */
       const two=await page.evaluate(()=>{
@@ -1171,8 +1173,8 @@ T[30]={name:'a scroll taken in the voyage opens its passage in Scripture Unfolds
           JSON.stringify({v:8,sr:['bereshith','adam-eve-1']}));
         window.__UNFOLD.rebuild();
         const it=[...document.querySelectorAll('.sc-item')];
-        const want=window.STORY.list().filter(s=>window.STORY.booksOf(s)
-          .every(b=>b==='bereshith'||b==='adam-eve-1')).length;
+        const want=window.__UNFOLD.library().filter(e=>e.scrolls
+          .every(id=>id==='bereshith'||id==='adam-eve-1')).length;
         return {n:it.length, open:it.length-it.filter(e=>e.classList.contains('shut')).length,
           want:want};
       });
@@ -1180,7 +1182,7 @@ T[30]={name:'a scroll taken in the voyage opens its passage in Scripture Unfolds
                  none.n>0 && none.shut===none.n &&
                  one.shut===one.n-one.want && one.want>0 && one.named===one.shut &&
                  two.open===two.want && two.want>one.want;
-      return {ok, got:'the shelf holds '+openAll.n+' passages · '+
+      return {ok, got:'the Library holds '+openAll.n+' scrolls · '+
         'no voyage: '+openAll.shut+' shut · '+
         'a voyage with nothing taken: '+none.shut+' of '+none.n+' shut · '+
         'the beginning taken: '+(one.n-one.shut)+' open of '+one.want+' owed, '+
