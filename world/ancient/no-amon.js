@@ -15,7 +15,7 @@
        and the palms and the fields of the valley along the river. */
 (function(){
 const NX=-430;                                                     /* the Nile's middle, west of the quay */
-const LX=-250, LZ=1900;                                            /* Luxor: the face of its first pylon */
+const LX=-170, LZ=1900;                                            /* Luxor: the face of its first pylon */
 const MUT={x:48,z:640};
 const DEF={
   n:'No-Amon', land:'Egypt', lat:25.7188, lon:32.6573, at:'The Temple of Karnak at No-Amon',
