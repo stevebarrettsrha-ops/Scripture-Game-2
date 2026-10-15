@@ -113,7 +113,7 @@ STORY.act({
 
   /* ---------------- VIII.1 — THE FESTIVAL OF WEEKS ---------------- */
   { id:'shavuot', title:'Yahrushalayim', date:'the Festival of weeks', place:'upperroom', time:'day',
-    player:{ at:[21,33], face:-Math.PI*0.75, look:ADULT },
+    player:{ at:[20.5,32.5], face:-Math.PI*0.75, look:ADULT },
     crowds:[ {id:'pilgrims', n:340, area:[2,-8,40,23], look:['urHouse',0,0], keep:[[10,18,26,25.6]]} ],
     actors:[
       ...ROOM(ELEVEN),
@@ -177,7 +177,7 @@ STORY.act({
 
   /* ---------------- VIII.2 — THE FIRST ASSEMBLY ---------------- */
   { id:'assembly', title:'The upper room', date:'in those days', place:'upperroom', time:'lamplit',
-    player:{ at:[21,33], face:-Math.PI*0.75, look:ADULT },
+    player:{ at:[20.5,32.5], face:-Math.PI*0.75, look:ADULT },
     actors:[
       ...ROOM(ELEVEN),
       Object.assign({id:'miryam', at:[21,29], face:-Math.PI/2, sit:true},MIRYAM),

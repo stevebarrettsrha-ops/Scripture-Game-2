@@ -342,7 +342,7 @@ STORY.act({
 
   /* ---------------- VI.6 — THE SUPPER ---------------- */
   { id:'supper', title:'The upper room', date:'the night of the Pesach', place:'upperroom', time:'night',
-    player:{ at:[21,33], face:-Math.PI*0.75, look:ADULT },
+    player:{ at:[20.5,32.5], face:-Math.PI*0.75, look:ADULT },
     actors:[
       Object.assign({id:'yahusha', at:[16.8,28.7], face:0, sit:true},YAHUSHA),
       T('andri',[14.4,28.7],{face:0, sit:true}), T('yahuchanon',[15.6,28.7],{face:0, sit:true}), T('yahudahQ',[18,28.7],{face:0, sit:true}),

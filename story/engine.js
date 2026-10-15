@@ -1001,10 +1001,14 @@ function movePlayer(dt){
     /* (led by a way that had to go through them, or held by them a moment and a half on the way he is led — one of
        the townsfolk stood in it — he goes on: the way shown is never the way that holds him) */
     const GG=wants?guideGoal():null, sOn=!(gAng!==null&&guide&&(guide.pts.hard||guide.sh>1.5));
+    /* (set down pressed into a corner — the corner of the upper room, its walls' blocks within his breadth —
+       every step he took was still in it and he could not move at all: from such a place his middle alone is
+       asked, so he steps out of it) */
+    const br=blocked(x,z,0.3,y)?0.1:0.3;
     const hx=sOn&&softAt(x+dx,z,y,0.22,player,GG);
-    if(!blocked(x+dx,z,0.3,y)&&!hullCross(x,z,x+dx,z,onDeck)&&!hx) player.position.x+=dx;
+    if(!blocked(x+dx,z,br,y)&&!hullCross(x,z,x+dx,z,onDeck)&&!hx) player.position.x+=dx;
     const hz=sOn&&softAt(player.position.x,z+dz,y,0.22,player,GG);
-    if(!blocked(player.position.x,z+dz,0.3,y)&&!hullCross(player.position.x,z,player.position.x,z+dz,onDeck)&&!hz) player.position.z+=dz;
+    if(!blocked(player.position.x,z+dz,br,y)&&!hullCross(player.position.x,z,player.position.x,z+dz,onDeck)&&!hz) player.position.z+=dz;
     if(gAng!==null&&guide&&(hx||hz)) guide.sh=(guide.sh||0)+dt;
     player.rotation.y=turnTo(player.rotation.y,ang,dt*10);
     ud.walk=(ud.walk||0)+dt*sp*2.2;
