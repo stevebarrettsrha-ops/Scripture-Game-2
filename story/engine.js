@@ -1306,7 +1306,7 @@ function settleActors(sc){
     for(const E of T) if(E.y1>=y+0.1&&E.y0<=y+1.6&&softDist(E,x,z)<0.12) return E; return null; };
   for(const id in ctx.actors){ const g=ctx.actors[id], u=g.userData;
     if(u.fixedY!==undefined||u.lie||u.kneel||u.ride||u.aboard||(u.sit&&!groundSit(u))) continue;
-    const y=g.position.y+sitDrop(u), fx=Math.sin(g.rotation.y), fz=Math.cos(g.rotation.y);
+    const y=u.gy!==undefined?u.gy:g.position.y, fx=Math.sin(g.rotation.y), fz=Math.cos(g.rotation.y);   /* (the floor: one sitting is not yet let down on it) */
     const at=(x,z,gy)=>inOne(x,z,gy)||(u.sit?inOne(x+fx*0.4,z+fz*0.4,gy):null);       /* (one sitting: his knees too) */
     const e=at(g.position.x,g.position.z,y); if(!e) continue;
     let best=null;

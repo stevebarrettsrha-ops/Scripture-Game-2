@@ -6287,7 +6287,8 @@ const waveMat=new THREE.ShaderMaterial({
     uniform sampler2D uRefl; uniform float uReflOn, uReflY; varying vec4 vRefl;
     ${HZ_GLSL}
     float h21(vec2 p){ return fract(sin(dot(p,vec2(41.3,289.1)))*43758.5); }
-    void main(){
+    void main(){${TRUE_EARTH?`
+      if(vEd>${WG_SW.toFixed(1)}&&uCamPos.y>2000.0) discard;          /* (the rings, let go from on high: see the edge below) */`:''}
       vec3 N=normalize(vNormal);
       /* fine wind-ripple, two scrolling octaves — the skin of the sea is never
          still: per-pixel normal detail breaks the big Gerstner facets into chop */
@@ -6455,7 +6456,11 @@ const waveMat=new THREE.ShaderMaterial({
          the haze opens, its square corner stood on the ocean like a raft. */
       /* (on the true earth the flat rings go on past the square, and thin away at their own rim instead,
          far out in the haze) */
-      ${TRUE_EARTH?`aa*=1.0-smoothstep(${(WG_OUT*0.85).toFixed(1)},${WG_OUT.toFixed(1)},vEd);`:'aa*=smoothstep(0.0,0.35,vTaper);'}
+      ${TRUE_EARTH?`aa*=1.0-smoothstep(${(WG_OUT*0.85).toFixed(1)},${WG_OUT.toFixed(1)},vEd);
+      /* (but the rings lie over the low country of every coast too, a few units under its face, and from on
+         high, so far off, the eye's depth cannot hold the two apart: the shore would be speckled through with
+         sea. So as the eye climbs they are let go, and the square thins at its own edge again as it did) */
+      aa*=mix(1.0,smoothstep(0.0,0.35,vTaper),smoothstep(1000.0,2000.0,uCamPos.y));`:'aa*=smoothstep(0.0,0.35,vTaper);'}
       float ff=clamp((vFog-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
       /* the haze over storm water is the storm's own dark, not the fair sky's */
       vec3 fogC=mix(hazeOf(uFogColor,normalize(vWorld-uCamPos)),vec3(0.10,0.12,0.14)*(0.45+0.55*uLight),smoothstep(0.0,0.6,vStorm)*0.85);
@@ -22214,6 +22219,9 @@ function setBuilder(ax,az,baseY,opt){
           if(api.mtops&&api.mtops.has(i+','+k)) continue;
           const t=d/bl, e=t*t*(3-2*t), want=Math.round(tY+(h-tY)*e);
           if(want===h) continue;
+          /* (raised out of the sea, another level ground's eased edge raised higher here is never cut down by
+             this one: an edge only fills up, as it does over land, else a shaft was sunk to the bed at its corner) */
+          if(sc&&seaCols.has(i+','+k)&&seaCols.get(i+','+k).t>=want) continue;
           (api.blendH||(api.blendH=new Map())).set(i+','+k,want);                    /* (the height it was eased to, for the floor under a man there) */
           if(sc){ if(want>h) seaCol(i,k,want,top,fill); continue; }
           if(want<h){ for(let j=want;j<h+2;j++) stampBlock(i,j,k,0); stampBlock(i,want-1,k,top); }
@@ -22294,7 +22302,8 @@ function setBuilder(ax,az,baseY,opt){
         if(api.inPad(i,k)||(!sc&&(!c||c.kind==='wall'||(c.lake!==undefined&&c.lake>c.h)))) continue;   /* the set's level ground stays level; a lake is not heaped up */
         const g0=sc?api.bedCourse(i,k):c.h, want=tY+Math.round(h*q*q*(3-2*q)*S/B);
         if(want<=g0) continue;
-        api.mtops.set(i+','+k,want);
+        if(sc&&seaCols.has(i+','+k)&&seaCols.get(i+','+k).t>=want) continue;     /* (nor a hill out of the sea: it heaps up, never cuts down) */
+        const m0=api.mtops.get(i+','+k); if(m0===undefined||want>m0) api.mtops.set(i+','+k,want);   /* (two hills meeting: the higher stands) */
         if(sc){ seaCol(i,k,want,top,fill); continue; }
         for(let j=g0-1;j<want-1;j++) stampBlock(i,j,k,j<want-3?rock:fill);
         stampBlock(i,want-1,k,top); } },
