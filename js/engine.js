@@ -2924,7 +2924,7 @@ function ancientBox(A){ const g=A.def.ground||{}, U=U_PER_M_WORLD; let x0=-50,x1
   for(const L of g.level||[]) take(L.x,L.z,Math.max(L.rx,L.rz)+(L.blend||200));
   for(const H of g.hills||[]) take(H[0],H[1],Math.max(H[3],H[4])+(H[7]||0));
   for(const W of g.waters||[]) for(const p of W.pts) take(p[0],p[1],W.w);
-  for(const P of [...(g.land||[]),...(g.sea||[]),...(g.cut||[])]) for(const p of P) take(p[0],p[1],5);
+  for(const P of [...(g.land||[]),...(g.sea||[]),...(g.cut||[])]) for(const p of (P.pts||P)) take(p[0],p[1],5);
   for(const Q of g.pools||[]){ take(Q[0],Q[1],5); take(Q[2],Q[3],5); }
   A.bx0=A.x+x0*U; A.bx1=A.x+x1*U; A.bz0=A.z+z0*U; A.bz1=A.z+z1*U; }
 function ancientGround(c,ix,iz){
@@ -2934,9 +2934,10 @@ function ancientGround(c,ix,iz){
     const g=A.def.ground||{}, lx=(x-A.x)/U_PER_M_WORLD, lz=(z-A.z)/U_PER_M_WORLD;
     /* the sea she had not yet given up; the island and the moles she won from it; the harbours cut back */
     if(c&&g.sea&&g.sea.some(P=>inPoly(lx,lz,P))) c=null;
-    const made=!!(g.land&&g.land.some(P=>inPoly(lx,lz,P)));            /* (an island in her river stays dry) */
-    if(made){
-      if(!c) c={h:A.hB,kind:'sand',tree:0,ci:A.ci,dk:false}; else { c.h=A.hB; if(c.spans) c.spans=clipSpans(c.spans,c.h); } }
+    /* (a land is its points, or {pts, y} for ground won at y metres over her base; an island in her river stays dry) */
+    const LP=g.land&&g.land.find(P=>inPoly(lx,lz,P.pts||P)), made=!!LP;
+    if(made){ const h=A.hB+Math.round((LP.y||0)/M_PER_BLK);
+      if(!c) c={h,kind:'sand',tree:0,ci:A.ci,dk:false}; else { c.h=h; if(c.spans) c.spans=clipSpans(c.spans,c.h); } }
     if(c&&g.cut&&g.cut.some(P=>inPoly(lx,lz,P))) c=null;
     if(!c||c.kind==='wall'||c.kind==='floe') return c;
     /* the plain levelled for her, and eased into the land about (`y` metres over her base, `kind` its ground) */

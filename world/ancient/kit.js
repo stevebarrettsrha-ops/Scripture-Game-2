@@ -19,7 +19,7 @@
                       hills: [[x,z,h,rx,rz,fall,kind]]     tells and hills heaped up over her base
                       waters:[{pts,w,level,depth,sea}]     rivers, canals and moats
                       pools: [[x0,z0,x1,z1,level,depth]]   basins and harbours
-                      land:  [[[x,z],...]]                 ground raised out of the sea
+                      land:  [[[x,z],...] or {pts,y}]      ground raised out of the sea (at y metres over her base)
                       sea, cut: [[[x,z],...]]              ground given back to it (before and after `land`)
      plan           function*(api): her stone, laid by the set builder (setBuilder in js/engine.js), yielding
                     between its parts so she rises a part to a frame
@@ -77,7 +77,9 @@ window.ANCIENT_KIT=function(api,def){
   K.mass=(x0,z0,x1,z1,h,m,o)=>{ const y=(o&&o.y!==undefined)?o.y:K.foot(x0,z0,x1,z1); box(x0,y-MPB,z0,x1,y+h,z1,m,{foot:true}); return y; };
   /* the mason's tools of the wonders (a carved block, a round shaft, a flight of steps, a stepped gable,
      merlons, an obelisk, an oval, a ring of wall), on her ground */
-  Object.assign(K,window.WONDER_KIT({box:(a,b,c,d,e,f,m)=>box(a,b,c,d,e,f,m),level:()=>{},ground:(x,z)=>K.g(x,z)}));
+  /* (the wonders' tools name their stone as the drawn faces are named; here it is laid as blocks, by their ids) */
+  const AS={goldLeaf:'gold-leaf',hewnStone:'hewn-stone',redGranite:'red-granite',greyStone:'grey-stone',glazedBrick:'glazed-brick',roseRock:'rose-rock',waterB:'water',logSide:'log'};
+  Object.assign(K,window.WONDER_KIT({box:(a,b,c,d,e,f,m)=>box(a,b,c,d,e,f,AS[m]||m),level:()=>{},ground:(x,z)=>K.g(x,z)}));
 
   /* ---- A WALL ALONG A LINE OF POINTS, with its towers and its gates ----
      o: h (height), t (thickness), m (its stone), towers (every so many metres), tw (a tower's breadth),
