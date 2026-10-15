@@ -21,7 +21,7 @@ const TX=-1260;                                                    /* the Ḥidd
 const KY={x:-560,z:650,rx:430,rz:300,h:25}, NY={x:-430,z:1850,rx:240,rz:200,h:18};
 const DEF={
   n:'Ninewĕh', land:'Iraq', lat:36.36, lon:43.15, at:'The Gates of Ninewĕh',
-  square:[250,1100], reach:1900, folk:96, style:'levant',
+  square:[250,1100], reach:2000, folk:96, style:'levant',
   ground:{
     level:[{x:-250,z:1350,rx:1250,rz:1750,blend:500}],
     hills:[[KY.x,KY.z,KY.h,KY.rx,KY.rz,0.2,'badlands'],[NY.x,NY.z,NY.h,NY.rx,NY.rz,0.25,'badlands']],
@@ -99,7 +99,7 @@ const DEF={
     /* ================= THE LOWER TOWN ================= */
     const SQ=DEF.square; api.top(SQ[0]-32,SQ[1]-26,SQ[0]+32,SQ[1]+26,LS); api.mark('square',SQ[0],SQ[1]);
     /* the royal road from the gate of Nergal south to the Khosr, and from the gate of Shamash west */
-    K.street([[0,N+10],[0,kz(0)-24]],14,LS); K.street([[E-10,700],[E-260,700]],12,'path');
+    K.street([[0,N+30],[0,kz(0)-24]],14,LS); K.street([[E-10,700],[E-260,700]],12,'path');
     /* bridges over the Khosr on the way south, and by the square */
     for(const x of [0,280]){ const z=kz(x); K.bridge(x,z-22,x,z+22,9,0.2,-4.9,LS); }
     K.street([[0,kz(0)+24],[0,kz(0)+400]],12,'path');

@@ -20,7 +20,7 @@ const NX=650;                                                      /* the Nile's
 const SQx=-3600, SQz=-900;                                         /* Saqqara: the step pyramid */
 const DEF={
   n:'Noph', land:'Egypt', lat:29.8449, lon:31.2549,
-  square:[-150,250], reach:1300, folk:90, style:'levant',
+  square:[-150,250], reach:1400, folk:90, style:'levant',
   ground:{
     level:[{x:-60,z:-150,rx:1500,rz:2600,blend:900,kind:'grass'},
            {x:SQx,z:SQz,rx:760,rz:620,blend:700,y:36,kind:'desert'}],

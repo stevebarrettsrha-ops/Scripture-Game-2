@@ -20,7 +20,7 @@
 const W0=-650, E0=900, N0=-250, S0=470, SZ=330;                    /* her walls; the Straight's line */
 const DEF={
   n:'Dammeseq', land:'Syria', lat:33.5115, lon:36.3066,
-  square:[330,100], reach:1000, folk:90, style:'levant',
+  square:[330,100], reach:1100, folk:90, style:'levant',
   ground:{
     level:[{x:120,z:110,rx:1000,rz:560,blend:320}],
     waters:[{pts:[[-1800,-380],[-900,-330],[-300,-300],[300,-310],[1000,-290],[1800,-250]],w:24,level:-2,depth:2.5},

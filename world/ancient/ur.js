@@ -57,7 +57,8 @@ const DEF={
     const T={x0:-120,x1:205,z0:-120,z1:150};
     K.wall([[T.x0,T.z0],[T.x1,T.z0],[T.x1,T.z1],[T.x0,T.z1],[T.x0,T.z0]],{m:MB,h:7,t:3.5,towers:22,tw:5,th:2,gates:[[T.x1,-40,5,'temenosEast'],[60,T.z1,6,'edublalmah'],[T.x0,0,5]],gm:BR});
     /* the terrace of the tower, its retaining wall about it, its way up from the court of Nanna */
-    { const y=0; for(const [a0,b0,a1,b1] of [[-75,-50,48,-48],[-75,48,48,50],[-75,-50,-73,50],[46,-50,48,-10],[46,10,48,50]]) box(a0,y-M,b0,a1,y+2.6,b1,BR);
+    /* (outside the tower's own levelled court, which world/wonders-true.js lays and keeps) */
+    { const y=0; for(const [a0,b0,a1,b1] of [[-80,-56,54,-54],[-80,54,54,56],[-80,-56,-78,56],[52,-56,54,-12],[52,12,54,56]]) box(a0,y-M,b0,a1,y+2.6,b1,BR);
       api.mark('ziggurat',-62,0); api.mark('zigguratStair',-58,0); }
     /* the court of Nanna (Ekishnugal) on the east of the terrace: its court, its rooms, its shrine */
     { const y=K.court(55,-110,195,10,8,MB,{t:2.5,rooms:9,door:'w',pave:BR});

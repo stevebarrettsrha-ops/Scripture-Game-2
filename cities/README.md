@@ -41,3 +41,15 @@ wells:2               // how many wells of water
 The residents each own one of the houses and head home when the sun goes down.
 Everything is procedural from these fields — you tune the look and feel here,
 the generator lays out the streets, plaza, stalls and homes.
+
+## The cities of the ancients, built as themselves
+
+On the true earth nine cities are not generated from these fields but written
+out by hand, each at her own latitude and longitude, in `../world/ancient/`:
+Baḇel, Ninewĕh, Ur, Noph, No-Amon, Tsor, Tsidon, Dammeseq and Rome (one file
+to a city, the mason's tools in `../world/ancient/kit.js`, and the format at
+the head of that file). Each file gives her ground (the plain levelled, her
+tells and hills, her rivers, moats and harbours, an island won from the sea)
+and her plan (walls, gates, temples, palaces, streets and quarters). Her folk
+are a town's folk, living in the houses her plan lays. Tsor here is Lebanon's
+own great city, so `tsor.js` names the city that `world/ancient/tsor.js` builds.

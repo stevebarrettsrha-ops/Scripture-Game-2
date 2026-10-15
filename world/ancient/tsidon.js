@@ -21,7 +21,7 @@ const C={x0:-610,x1:-150,z0:-430,z1:120};                          /* her walls 
 const ACR={x:-250,z:40,rx:95,rz:85,h:22};
 const DEF={
   n:'Tsidon', land:'Lebanon', lat:33.5665, lon:35.3640, base:5, coast:true,
-  square:[-310,-130], reach:1000, folk:80, style:'levant',
+  square:[-310,-130], reach:1300, folk:80, style:'levant',
   ground:{
     level:[{x:-430,z:-150,rx:420,rz:340,blend:160}],
     /* (and the hollows the earth's coarse heights leave in the coastal plain about her, which are no sea, filled) */

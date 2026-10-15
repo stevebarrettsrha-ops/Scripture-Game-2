@@ -25,7 +25,7 @@ const HILL={cap:[-230,-10,30,105,230,0.38],pal:[190,340,32,250,205,0.3],ave:[-56
             esq:[1050,-320,34,520,430,0.55],vim:[720,-880,30,330,200,0.5],qui:[120,-900,32,420,250,0.5]};
 const DEF={
   n:'Rome', land:'Italy', lat:41.8925, lon:12.4853, style:'med',
-  square:[380,-300], reach:1700, folk:110,
+  square:[380,-300], reach:1900, folk:110,
   ground:{
     level:[{x:100,z:150,rx:1900,rz:1800,blend:500,kind:'grass'}],
     hills:Object.values(HILL).map(h=>[...h,'grass']),

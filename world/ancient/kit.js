@@ -156,10 +156,12 @@ window.ANCIENT_KIT=function(api,def){
     const y=K.foot(X(-L,-W),Z(-L,-W),X(L,W),Z(L,W));
     B2(-L,y-1,-W,L,y+hp,W,o.pm||'hewn-stone'); box(Math.min(X(-L,-W),X(L,W)),y-1-MPB,Math.min(Z(-L,-W),Z(L,W)),Math.max(X(-L,-W),X(L,W)),y,Math.max(Z(-L,-W),Z(L,W)),o.pm||'hewn-stone',{foot:true});
     for(let i=0;i<Math.ceil(hp/0.4);i++){ const u=s*(L+i*0.8); B2(Math.min(u,u+s*0.8),y-1,-W*0.6,Math.max(u,u+s*0.8),y+hp-i*0.4,W*0.6,o.pm||'hewn-stone'); }   /* the stair at its front */
-    const Y=y+hp, inner=o.pro?0.55:1;
-    const cellaL=o.pro?L*0.95:L-step*1.6, cellaW=o.pro?W*0.95:W-step*1.2;
-    /* the cella, its door at the front */
-    B2(-cellaL+(o.pro?s*L*0.25:0),Y,-cellaW,cellaL+(o.pro?s*L*0.25:0)*0,Y+ch,cellaW,m);
+    const Y=y+hp;
+    /* the cella, set back behind the porch of a temple with columns at its front only; its door in its front */
+    const porch=o.pro?(o.rows||2)*step+1.2:0;
+    const c0=o.pro?(s>0?-L+0.6:-L+porch):-(L-step*1.6), c1=o.pro?(s>0?L-porch:L-0.6):(L-step*1.6), cw=o.pro?W-0.6:W-step*1.2;
+    { const du=s>0?c1:c0, dw=Math.min(2.4,cw*0.4), dh=Math.min(ch*0.7,7);
+      K.hall(X(c0,-cw),Z(c0,-cw),X(c1,cw),Z(c1,cw),ch,m,{y:Y,parapet:false,doors:[alongX?[X(du,0),cz,dw,dh]:[cx,Z(du,0),dw,dh]]}); }
     /* the columns: all about (peripteral), or in rows before the front (prostyle) */
     if(o.pro){ for(let v=-W+r+0.4;v<=W-r-0.4;v+=step) for(let row=0;row<(o.rows||2);row++){ const u=s*(L-r-0.6-row*step); B2(u-r,Y,v-r,u+r,Y+ch,v+r,m); } }
     else { for(let u=-L+r+0.4;u<=L-r-0.4;u+=step) for(const sv of [-1,1]) B2(u-r,Y,sv*(W-r-0.4)-r,u+r,Y+ch,sv*(W-r-0.4)+r,m);
@@ -168,8 +170,6 @@ window.ANCIENT_KIT=function(api,def){
     const gh=wid*0.13, n=Math.max(3,Math.round(gh/0.9));            /* the roof and its pediments, stepped */
     for(let i=0;i<n;i++){ const f=1-i/n; B2(-L,Y+ch+eh+gh*i/n,-W*f,L,Y+ch+eh+gh*(i+1)/n,W*f,o.roof||'roof-tile'); }
     B2(s*L-s*0.6,Y+ch+eh,-W,s*L,Y+ch+eh+gh*0.95,W,m);                /* the pediment's face in stone */
-    /* the doorway */
-    const du=s*cellaL; B2(Math.min(du,du-s*1.5),Y,-Math.min(2.2,cellaW*0.4),Math.max(du,du-s*1.5)+(s>0?0.2:0),Y+Math.min(ch*0.7,7),Math.min(2.2,cellaW*0.4),'air');
     return Y; };
   /* AN ALTAR before a temple: a block of stone with its stair */
   K.altar=(x,z,w,h,m)=>{ const y=K.g(x,z); box(x-w/2,y-MPB,z-w/2,x+w/2,y+h,z+w/2,m||'hewn-stone',{foot:true}); };

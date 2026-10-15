@@ -19,7 +19,7 @@ const LX=-250, LZ=1900;                                            /* Luxor: the
 const MUT={x:48,z:640};
 const DEF={
   n:'No-Amon', land:'Egypt', lat:25.7188, lon:32.6573, at:'The Temple of Karnak at No-Amon',
-  square:[-120,1100], reach:1700, folk:96, style:'levant',
+  square:[-120,1100], reach:1400, folk:96, style:'levant',
   ground:{
     level:[{x:-150,z:950,rx:760,rz:1650,blend:450,kind:'grass'}],
     waters:[

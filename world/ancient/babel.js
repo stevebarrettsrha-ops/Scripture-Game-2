@@ -29,7 +29,7 @@ const O=18;                                                        /* Nemetti-En
 const PW=300, PZ=175;                                              /* the processional way: south from the gate at x=PW, then west at z=PZ */
 const DEF={
   n:'Baḇel', land:'Iraq', lat:32.5363, lon:44.4209, at:'Baḇal (Baḇylon) — Etemenanki',
-  square:[560,-130], reach:1250, folk:96, style:'levant',
+  square:[560,-130], reach:1700, folk:96, style:'levant',
   ground:{
     level:[{x:-50,z:-150,rx:1250,rz:1050,blend:450}],
     waters:[
