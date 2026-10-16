@@ -112,6 +112,8 @@ There are two real limits:
 - **B2. Talking.** The player can **speak, ask for work, or trade**. Jobs are tracked in THE LOG and kept in the save. The reward is shekels and the village's goodwill.
 - **B3. Scrolls as rewards.** Some scrolls of Phase F are never found lying anywhere. Townsfolk give them, after a job or a chain of jobs, in a land that fits the book: a scribe in Yahudah, an elder in Babel, a merchant in Tsor.
 
+**Status (Phase B).** Built. F before a soul of a town opens the talk: speak, ask for work, or trade at the town's prices. The work is data (`world/jobs.js`, ten jobs in seven manners) and is done with the world's own hands: grain beaten out at the threshing floors of the farmsteads, timber and stone out of the satchel, fish out of the creel, jars drawn at the well and poured at the giver's door, a real stray placed out past the fields and led home to the fold, a real wolf at the fold driven off or speared, and parcels carried to the market of another town. Jobs are kept in THE LOG and the save; the pay is shekels and the town's goodwill, which leans its market's prices his way, warms the greeting and, once he is trusted, brings word of a scroll. Seven of the twenty-four scrolls (`given` in `world/scrolls.js`) lie on no ground and are given by a scribe of Yasharal, a scribe of the House, an elder of Babel, a merchant of Tsor and a widow at the well of Shushan; THE LOG lists every scroll with where it lies or who gives it. Proven by acceptance test 70. Not done: "repair the wall" as stone laid into a real breach (the mason asks for stones to be brought instead).
+
 ### Phase C — settlements and the land they change · DONE: C1, C2 and C4 in Round 137; C3 in de0fc9d (two hamlets in every land, joined to its town by roads)
 
 - **C1. Three kinds of place:**
@@ -180,6 +182,12 @@ There are two real limits:
   - Scrolls not yet gathered appear as gap cards that say where the scroll lies, or who in which land will give it.
   - With 60–90 events at 1.5–3 minutes each, the whole film runs about 2.5–4 hours.
 - **F6. Checked words.** Every caption is checked against the Besorah by `tools/extract-besorah.js --check`.
+
+**Where Phase F stands.** Begun in SCRIPTURE UNFOLDS:
+- **F5 is in.** The shelf is the Scroll Library: every scroll of the voyage, Berĕshith to Ḥazon, under its age, each opened by its own scrolls; a missing one says where it lies, or who gives it (a `givenBy` in the scroll list is read). PLAY THE WHOLE BIBLE (B) plays every gathered scroll back to back with a card for each age, the scroll's own verse over its land where it has no film yet, and a gap card for each missing one.
+- **F1/F2 in part.** Scripture-Game's recordings are brought over by `tools/import-voices.js` for the verses the films read (144 clips, 2.5 MB; 108 of 257 captions voiced — its texts often join or part verses differently, and those are not voiced), and a caption is held while its voice reads. Its `music.js` plays under every film. The New Testament has no recordings and is read by caption alone.
+- **F3 in part.** Twelve new films, each at its true place: the flood, Moriyah, Bĕyth ʼĔl, the valley of Ĕlah, Karmel, the den of lions, the birth, the immersion, the empty tomb, the Festival of Weeks, the road to Damascus and Ḥazon. The stage now has players, things and signs, and keeps the face rule itself (`STAGE.faceRule`, asked on every frame by `tools/unfoldshots.js`).
+- Still to come: films for the scrolls that have only their verse (Baḇel, Aḇram, Seḏom, Yosĕph, the sea, Neḇo, Yahriḥo, the House, Yonah, Estĕr), the rest of the 60–90 events, recorded New Testament voices, and the scrolls given by the townsfolk (Phase B).
 
 ### Phase T — the true measure of the earth (asked in Round 137, before D–F)
 

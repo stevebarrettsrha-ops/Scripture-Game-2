@@ -187,6 +187,50 @@
   #log-stats b{ color:var(--gold); }
   #log-lands{ font-size:clamp(10px,1.6vmin,13px); line-height:1.9; color:#9a8f74; font-style:italic; }
   #logbook .m-hint{ margin-top:2.5vh; font-size:clamp(9px,1.4vmin,12px); letter-spacing:.2em; color:#6a6252; }
+  /* ---- THE WORK OF THE PEOPLE AND THE SCROLLS, IN THE LOG (Phase B) ----
+     Lists read down a page, not across it: these two are set to the left,
+     in the log's own small hand, each section under a gold heading. */
+  #log-inner h3{ color:var(--gold); letter-spacing:.24em; font-weight:600; font-size:clamp(11px,1.8vmin,15px);
+    margin:2.6vh 0 1vh; text-align:center; }
+  #log-work, #log-scrolls{ text-align:left; font-size:clamp(10px,1.55vmin,13px); line-height:1.6; color:#cfc5aa; }
+  #log-work b, #log-scrolls b{ color:#efe6cf; font-weight:600; }
+  #log-work .none{ color:#8a8270; font-style:italic; text-align:center; }
+  #log-work .job{ margin:.6vh 0; padding:.6vh 1.2vh; border-left:2px solid rgba(232,198,106,.45); background:rgba(232,198,106,.04); }
+  #log-work .job.ready{ border-left-color:#a8d07a; }
+  #log-work .job .who{ color:#9a8f74; font-style:italic; }
+  #log-work .job .pr{ color:#d8cead; }
+  #log-work .job.ready .pr{ color:#bfe09a; }
+  #log-work .sum{ color:#9a8f74; margin-bottom:.4vh; text-align:center; }
+  #log-work .done{ color:#a39a82; }
+  #log-work .gws{ text-align:center; }
+  #log-work .gw{ display:inline-block; margin:.2vh .5vh; padding:.1vh 1vh; border:1px solid rgba(232,198,106,.3); border-radius:3px; }
+  #log-scrolls .sc{ display:flex; gap:1vh; padding:.45vh 0; border-bottom:1px solid rgba(232,198,106,.1); }
+  #log-scrolls .sc .m{ flex:0 0 1.4em; color:var(--gold); text-align:center; }
+  #log-scrolls .sc i{ color:#8a8270; font-size:.85em; letter-spacing:.08em; }
+  #log-scrolls .sc.got .w{ color:#8a8270; }
+  #log-scrolls .sc.got b{ color:#c9bc94; }
+  #log-scrolls .tag{ display:inline-block; font-size:.78em; letter-spacing:.14em; padding:0 .7vh; margin-right:.5vh;
+    border-radius:3px; border:1px solid; }
+  #log-scrolls .tag.lie{ color:#b9c7d8; border-color:rgba(185,199,216,.5); }
+  #log-scrolls .tag.give{ color:#e8c66a; border-color:rgba(232,198,106,.6); }
+  /* ---- THE TALK (Phase B2) ----
+     Set low on the glass and narrow, NOT a curtain over the world: the man
+     spoken to stands in plain view above it, turned to the traveller. */
+  #talk{ position:fixed; z-index:8; left:50%; bottom:21vh; transform:translateX(-50%); margin-left:-11vw;
+    width:min(84vw,620px); display:none; pointer-events:auto;
+    border:1px solid rgba(232,198,106,.55); border-radius:6px; padding:1.5vh 1.8vw 1.2vh;
+    background:rgba(10,14,26,.93); box-shadow:0 0 40px rgba(0,0,0,.75); }
+  #talk-who{ color:var(--gold); letter-spacing:.18em; font-size:clamp(12px,2vmin,17px); font-weight:600; text-align:center; }
+  #talk-sub{ text-align:center; color:#9a8f74; font-style:italic; font-size:clamp(9px,1.45vmin,12px); margin:.4vh 0 1vh; }
+  #talk-line{ color:#efe6cf; font-style:italic; font-size:clamp(11px,1.8vmin,15px); line-height:1.55; text-align:center; margin-bottom:1vh; }
+  #talk-note{ color:#cfc5aa; font-size:clamp(10px,1.5vmin,13px); line-height:1.5; text-align:center; margin-bottom:1vh; }
+  #talk-note div{ margin:.3vh 0; }
+  #talk-acts .trow{ display:flex; flex-wrap:wrap; gap:.8vh; justify-content:center; margin-top:.7vh; }
+  #talk-acts .trow.due .tbtn{ border-color:#a8d07a; color:#cfe8a8; background:rgba(168,208,122,.1); }
+  #talk-acts .tbtn{ font-size:clamp(10px,1.6vmin,13px); padding:.6vh 1.3vh; }
+  #talk-acts .tbtn .k{ display:inline-block; opacity:.55; margin-right:.6em; }
+  #talk .m-hint{ margin-top:1.1vh; text-align:center; font-size:clamp(8px,1.3vmin,11px); letter-spacing:.2em; color:#6a6252; cursor:pointer; }
+  @media (max-width:620px){ #talk{ bottom:13vh; margin-left:-13vw; width:min(72vw,420px); padding:1.2vh 2.6vw 1vh; } }
   #trade{ position:fixed; inset:0; z-index:22; display:none; align-items:center; justify-content:center;
     background:rgba(4,6,13,.88); }
   #trade-inner{ min-width:min(92vw,560px); max-width:min(94vw,640px); max-height:84vh; overflow-y:auto;
@@ -666,6 +710,7 @@
     <span class="k">W A S D</span><span class="v">walk &mdash; every land holds a village of the ancient time</span>
     <span class="k">SPACE</span><span class="v">jump (a block and a half) &middot; held against a ledge of three or four blocks, climb it &middot; held in a well or a stream, swim up</span>
     <span class="k">F</span><span class="v">open doors &middot; speak with the people &middot; trade in the market &middot; cast a line from strand or pier</span>
+    <span class="k">the people</span><span class="v">stop a soul of the town with F and talk: SPEAK with him, ASK FOR WORK that fits his trade, or TRADE at his town&rsquo;s prices (the number keys choose). Work done is paid in shekels and in the town&rsquo;s goodwill, kept in the log &mdash; and some scrolls are not in the earth at all, but kept by a scribe, an elder, a merchant or a widow for one who has worked for their land.</span>
     <span class="k">Q</span><span class="v">throw the spear &mdash; the hunt, ashore and beneath the waves</span>
   </div></div>
   <div class="ctl-sec"><h3>THE HAND &mdash; BREAKING, GATHERING AND BUILDING</h3><div class="row">
@@ -885,8 +930,21 @@ window.__MENUUI=(function(){
   <h2>📜 THE SHIP'S LOG</h2>
   <div id="log-stats"></div>
   <div id="log-lands"></div>
+  <!-- the work of the people, and every scroll with where it lies or who keeps it (Phase B) -->
+  <div id="log-work"></div>
+  <div id="log-scrolls"></div>
   <div class="m-hint">tap to close</div>
 </div></div>
+
+<!-- THE TALK: a soul of the town stopped with F (Phase B2) — speak, ask for work, trade -->
+<div id="talk">
+  <div id="talk-who"></div>
+  <div id="talk-sub"></div>
+  <div id="talk-line"></div>
+  <div id="talk-note"></div>
+  <div id="talk-acts"></div>
+  <div class="m-hint" id="talk-close">F, ESC or walk on to take your leave · the number keys choose</div>
+</div>
 
 <div id="paused">
   <h2>&#9208; THE VOYAGE STANDS STILL</h2>

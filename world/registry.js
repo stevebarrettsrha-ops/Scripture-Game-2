@@ -29,7 +29,8 @@ window.EARTH={
   list:[], verseList:[], riverList:[], cityList:[], landmarkList:[],
   deepList:[], holeList:[], sceneList:[], scrollList:[], beastList:[],
   faunaList:[], floraList:[], cropList:[], mineralList:[], workList:[], blockList:[],
-  waterfallList:[], placeList:[], goodList:[], shoalList:[],
+  waterfallList:[], placeList:[], goodList:[], shoalList:[], jobList:[],
+  landList:[], tongueList:[], workshopList:[],
 
   country:function(c){this.list.push(c);},
   verses:function(v){this.verseList=v;},
@@ -49,6 +50,8 @@ window.EARTH={
   place:function(p){this.placeList.push(p);},
   /* the goods of the trade of the seas — see world/goods.js */
   good:function(g){this.goodList.push(g);},
+  /* the work the people of a town give, by trade (Phase B) — see world/jobs.js */
+  job:function(j){this.jobList.push(j);},
   /* the nations of fish, shoaling and inshore — see world/waters.js */
   shoal:function(s){this.shoalList.push(s);},
   /* the trenches of the sea, each at its true sounding — see world/deeps.js */
@@ -89,5 +92,14 @@ window.EARTH={
      true height and breadth and the FORM it takes, in world/waterfalls.js.
      js/waterfall.js cuts the rock to those numbers and js/water.js runs the
      water down it; neither knows one fall from another by name. */
-  waterfall:function(w){this.waterfallList.push(w);}
+  waterfall:function(w){this.waterfallList.push(w);},
+  /* EVERY LAND ITS OWN (Phase D) — what each nation was called in the days of
+     the account, what it makes and what it lacks, the work of its towns, its
+     greeting, its dress and its herds, in world/lands.js; the names its people
+     bear, tongue by tongue, beside them; and the WORKSHOPS a town of a land
+     raises at its edge — the dye-vats of Tsor, the kilns of Baḇal — laid out
+     block by block in world/workshops.js. js/lands.js is what reads them. */
+  land:function(l){this.landList.push(l);},
+  tongue:function(t){this.tongueList.push(t);},
+  workshop:function(w){this.workshopList.push(w);}
 };
