@@ -680,10 +680,12 @@ window.STAGE=(function(){
        shaft of it down to the ground beneath, which the world's own lamp lights the ground under */
     SIGN.glory=(g,p)=>{ const m=mats(), h=p.h||60, r=p.r||40;
       const sp=new T.Sprite(m.glow.clone()); sp.position.y=h*S(); sp.scale.set(r*S(),r*S(),1); g.add(sp); g.userData.sp=sp;
-      const sh=new T.Mesh(new T.CylinderGeometry((p.top||4)*S(),(p.foot||10)*S(),h*S(),28,1,true),m.shaft.clone());
-      sh.position.y=h/2*S(); g.add(sh); g.userData.sh=sh; g.userData.lamp=[0,2,0,1.2]; };
+      /* (the shaft is three, one within another, so its light thins toward its edge and has none) */
+      g.userData.sh=[1,0.7,0.42].map(k=>{ const sh=new T.Mesh(new T.CylinderGeometry((p.top||4)*k*S(),(p.foot||10)*k*S(),h*S(),28,1,true),m.shaft.clone());
+        sh.position.y=h/2*S(); g.add(sh); return sh; });
+      g.userData.lamp=[0,2,0,1.2]; };
     SIGN.glory.ease=(g,p,v)=>{ const s=performance.now()/1000; g.userData.sp.material.opacity=Math.min(1,v*(0.92+0.08*Math.sin(s*1.7)));
-      g.userData.sh.material.opacity=0.2*v*(p.shaft===false?0:1); g.userData.lamp[3]=1.3*v; };
+      for(const sh of g.userData.sh) sh.material.opacity=0.075*v*(p.shaft===false?0:1); g.userData.lamp[3]=1.3*v; };
     /* THE FIRE OF (YAHUAH) HWHY FELL (Malakim Aleph 18:38): a column of fire down out of the
        shamayim, and the fire on what it fell on */
     SIGN.fire=(g,p)=>{ const m=mats(), h=p.h||120;
